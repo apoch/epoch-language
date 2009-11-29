@@ -1,0 +1,512 @@
+<?xml version="1.0" encoding="Windows-1252"?>
+<VisualStudioProject
+	ProjectType="Visual C++"
+	Version="8.00"
+	Name="EXEGen"
+	ProjectGUID="{B3F81558-A03F-4912-94F2-D41692CBFC26}"
+	RootNamespace="EXEGen"
+	Keyword="Win32Proj"
+	>
+	<Platforms>
+		<Platform
+			Name="Win32"
+		/>
+	</Platforms>
+	<ToolFiles>
+	</ToolFiles>
+	<Configurations>
+		<Configuration
+			Name="Debug|Win32"
+			OutputDirectory="..\Bin\$(ConfigurationName)"
+			IntermediateDirectory="..\Build\$(ProjectName)$(ConfigurationName)"
+			ConfigurationType="1"
+			CharacterSet="1"
+			>
+			<Tool
+				Name="VCPreBuildEventTool"
+			/>
+			<Tool
+				Name="VCCustomBuildTool"
+			/>
+			<Tool
+				Name="VCXMLDataGeneratorTool"
+			/>
+			<Tool
+				Name="VCWebServiceProxyGeneratorTool"
+			/>
+			<Tool
+				Name="VCMIDLTool"
+			/>
+			<Tool
+				Name="VCCLCompilerTool"
+				Optimization="0"
+				AdditionalIncludeDirectories="..\Shared\;."
+				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE"
+				MinimalRebuild="true"
+				BasicRuntimeChecks="3"
+				RuntimeLibrary="3"
+				UsePrecompiledHeader="2"
+				PrecompiledHeaderThrough="pch.h"
+				WarningLevel="3"
+				Detect64BitPortabilityProblems="true"
+				DebugInformationFormat="4"
+			/>
+			<Tool
+				Name="VCManagedResourceCompilerTool"
+			/>
+			<Tool
+				Name="VCResourceCompilerTool"
+			/>
+			<Tool
+				Name="VCPreLinkEventTool"
+			/>
+			<Tool
+				Name="VCLinkerTool"
+				AdditionalDependencies="imagehlp.lib"
+				LinkIncremental="2"
+				GenerateDebugInformation="true"
+				SubSystem="1"
+				TargetMachine="1"
+			/>
+			<Tool
+				Name="VCALinkTool"
+			/>
+			<Tool
+				Name="VCManifestTool"
+				UseFAT32Workaround="true"
+			/>
+			<Tool
+				Name="VCXDCMakeTool"
+			/>
+			<Tool
+				Name="VCBscMakeTool"
+			/>
+			<Tool
+				Name="VCFxCopTool"
+			/>
+			<Tool
+				Name="VCAppVerifierTool"
+			/>
+			<Tool
+				Name="VCWebDeploymentTool"
+			/>
+			<Tool
+				Name="VCPostBuildEventTool"
+			/>
+		</Configuration>
+		<Configuration
+			Name="Release|Win32"
+			OutputDirectory="..\Bin\$(ConfigurationName)"
+			IntermediateDirectory="..\Build\$(ProjectName)$(ConfigurationName)"
+			ConfigurationType="1"
+			CharacterSet="1"
+			WholeProgramOptimization="1"
+			>
+			<Tool
+				Name="VCPreBuildEventTool"
+			/>
+			<Tool
+				Name="VCCustomBuildTool"
+			/>
+			<Tool
+				Name="VCXMLDataGeneratorTool"
+			/>
+			<Tool
+				Name="VCWebServiceProxyGeneratorTool"
+			/>
+			<Tool
+				Name="VCMIDLTool"
+			/>
+			<Tool
+				Name="VCCLCompilerTool"
+				AdditionalIncludeDirectories="..\Shared\;."
+				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE"
+				RuntimeLibrary="2"
+				UsePrecompiledHeader="2"
+				PrecompiledHeaderThrough="pch.h"
+				WarningLevel="3"
+				Detect64BitPortabilityProblems="true"
+				DebugInformationFormat="3"
+			/>
+			<Tool
+				Name="VCManagedResourceCompilerTool"
+			/>
+			<Tool
+				Name="VCResourceCompilerTool"
+			/>
+			<Tool
+				Name="VCPreLinkEventTool"
+			/>
+			<Tool
+				Name="VCLinkerTool"
+				LinkIncremental="1"
+				GenerateDebugInformation="true"
+				SubSystem="1"
+				OptimizeReferences="2"
+				EnableCOMDATFolding="2"
+				TargetMachine="1"
+			/>
+			<Tool
+				Name="VCALinkTool"
+			/>
+			<Tool
+				Name="VCManifestTool"
+				UseFAT32Workaround="true"
+			/>
+			<Tool
+				Name="VCXDCMakeTool"
+			/>
+			<Tool
+				Name="VCBscMakeTool"
+			/>
+			<Tool
+				Name="VCFxCopTool"
+			/>
+			<Tool
+				Name="VCAppVerifierTool"
+			/>
+			<Tool
+				Name="VCWebDeploymentTool"
+			/>
+			<Tool
+				Name="VCPostBuildEventTool"
+			/>
+		</Configuration>
+	</Configurations>
+	<References>
+	</References>
+	<Files>
+		<Filter
+			Name="Entry Point"
+			Filter="cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx"
+			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
+			>
+			<File
+				RelativePath=".\Entry Point\EXEGen.cpp"
+				>
+			</File>
+		</Filter>
+		<Filter
+			Name="Resource Compiler"
+			>
+			<File
+				RelativePath=".\Resource Compiler\ResourceDirectory.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Resource Compiler\ResourceDirectory.h"
+				>
+			</File>
+			<File
+				RelativePath=".\Resource Compiler\ResourceEmitter.h"
+				>
+			</File>
+			<File
+				RelativePath=".\Resource Compiler\ResourceScript.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Resource Compiler\ResourceScript.h"
+				>
+			</File>
+			<File
+				RelativePath=".\Resource Compiler\ResourceTypes.h"
+				>
+			</File>
+			<Filter
+				Name="Resource Types"
+				>
+				<File
+					RelativePath=".\Resource Compiler\Resource Types\Icons.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\Resource Compiler\Resource Types\Icons.h"
+					>
+				</File>
+				<File
+					RelativePath=".\Resource Compiler\Resource Types\Menus.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\Resource Compiler\Resource Types\Menus.h"
+					>
+				</File>
+			</Filter>
+		</Filter>
+		<Filter
+			Name="Precompiled Header"
+			>
+			<File
+				RelativePath=".\pch.cpp"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						UsePrecompiledHeader="1"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						UsePrecompiledHeader="1"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\pch.h"
+				>
+			</File>
+		</Filter>
+		<Filter
+			Name="Section Managers"
+			>
+			<File
+				RelativePath=".\Section Managers\Code.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Section Managers\Code.h"
+				>
+			</File>
+			<File
+				RelativePath=".\Section Managers\Data.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Section Managers\Data.h"
+				>
+			</File>
+			<File
+				RelativePath=".\Section Managers\EpochData.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Section Managers\EpochData.h"
+				>
+			</File>
+			<File
+				RelativePath=".\Section Managers\PEHeader.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Section Managers\PEHeader.h"
+				>
+			</File>
+			<File
+				RelativePath=".\Section Managers\PESections.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Section Managers\PESections.h"
+				>
+			</File>
+			<File
+				RelativePath=".\Section Managers\Resources.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Section Managers\Resources.h"
+				>
+			</File>
+			<File
+				RelativePath=".\Section Managers\Thunk.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Section Managers\Thunk.h"
+				>
+			</File>
+		</Filter>
+		<Filter
+			Name="Linker"
+			>
+			<File
+				RelativePath=".\Linker\Linker.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Linker\Linker.h"
+				>
+			</File>
+			<File
+				RelativePath=".\Linker\LinkWriter.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Linker\LinkWriter.h"
+				>
+			</File>
+		</Filter>
+		<Filter
+			Name="Embedded Resources"
+			>
+			<File
+				RelativePath=".\Embedded Resources\EmbeddedStrings.h"
+				>
+			</File>
+		</Filter>
+		<Filter
+			Name="Project Files"
+			>
+			<File
+				RelativePath=".\Project Files\Project.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Project Files\Project.h"
+				>
+			</File>
+		</Filter>
+		<Filter
+			Name="Shared"
+			>
+			<Filter
+				Name="Configuration"
+				>
+				<File
+					RelativePath="..\Shared\Configuration\ConfigFile.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\Shared\Configuration\ConfigFile.h"
+					>
+				</File>
+				<File
+					RelativePath="..\Shared\Configuration\RuntimeOptions.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\Shared\Configuration\RuntimeOptions.h"
+					>
+				</File>
+			</Filter>
+			<Filter
+				Name="User Interface"
+				>
+				<File
+					RelativePath="..\Shared\User Interface\Input.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\Shared\User Interface\Input.h"
+					>
+				</File>
+				<File
+					RelativePath="..\Shared\User Interface\Output.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\Shared\User Interface\Output.h"
+					>
+				</File>
+				<File
+					RelativePath="..\Shared\User Interface\OutputStream.inl"
+					>
+				</File>
+			</Filter>
+			<Filter
+				Name="Utility Code"
+				>
+				<File
+					RelativePath="..\Shared\Utility\Exception.h"
+					>
+				</File>
+				<File
+					RelativePath="..\Shared\Utility\Strings.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\Shared\Utility\Strings.h"
+					>
+				</File>
+				<Filter
+					Name="Threading"
+					>
+					<File
+						RelativePath="..\Shared\Utility\Threading\ThreadExceptions.h"
+						>
+					</File>
+					<File
+						RelativePath="..\Shared\Utility\Threading\Threads.cpp"
+						>
+					</File>
+					<File
+						RelativePath="..\Shared\Utility\Threading\Threads.h"
+						>
+					</File>
+				</Filter>
+				<Filter
+					Name="Files"
+					>
+					<File
+						RelativePath="..\Shared\Utility\Files\FilesAndPaths.cpp"
+						>
+					</File>
+					<File
+						RelativePath="..\Shared\Utility\Files\FilesAndPaths.h"
+						>
+					</File>
+					<File
+						RelativePath="..\Shared\Utility\Files\SpecialPaths.cpp"
+						>
+					</File>
+					<File
+						RelativePath="..\Shared\Utility\Files\SpecialPaths.h"
+						>
+					</File>
+				</Filter>
+				<Filter
+					Name="Memory"
+					>
+					<File
+						RelativePath="..\Shared\Utility\Memory\Heap.cpp"
+						>
+					</File>
+					<File
+						RelativePath="..\Shared\Utility\Memory\Heap.h"
+						>
+					</File>
+					<File
+						RelativePath="..\Shared\Utility\Memory\ThreadLocalAllocator.cpp"
+						>
+					</File>
+					<File
+						RelativePath="..\Shared\Utility\Memory\ThreadLocalAllocator.h"
+						>
+					</File>
+				</Filter>
+			</Filter>
+		</Filter>
+		<Filter
+			Name="DLL Access"
+			>
+			<File
+				RelativePath=".\DLL Access\Exceptions.h"
+				>
+			</File>
+			<File
+				RelativePath=".\DLL Access\FugueASMDLL.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\DLL Access\FugueASMDLL.h"
+				>
+			</File>
+			<File
+				RelativePath=".\DLL Access\FugueVMDLL.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\DLL Access\FugueVMDLL.h"
+				>
+			</File>
+		</Filter>
+	</Files>
+	<Globals>
+	</Globals>
+</VisualStudioProject>

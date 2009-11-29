@@ -1,0 +1,30 @@
+//
+// The Epoch Language Project
+// Win32 EXE Generator
+//
+// Wrapper objects for emitting the Portable Executable header set
+//
+
+#pragma once
+
+// Dependencies
+#include "Linker/Linker.h"
+
+
+//
+// This class manages the PE headers for the output file.
+//
+class PEHeaderSection : public LinkerSectionManager
+{
+// Section manager interface
+public:
+	virtual void Generate(Linker& linker);
+	virtual void Emit(Linker& linker, LinkWriter& writer);
+
+	virtual bool RepresentsPESection() const;
+
+// Header management interface
+public:
+	DWORD GetHeaderSize() const;
+};
+

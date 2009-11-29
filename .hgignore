@@ -1,0 +1,9 @@
+syntax: glob
+Bin/*
+Build/*
+*.exe
+*.vcproj.*.Administrator.user
+VTune/*
+*.ncb
+*.suo
+*.aps

@@ -1,0 +1,7 @@
+LIBRARY	"FugueDLL"
+EXPORTS
+	ExecuteSourceCode		@1
+	ExecuteBinaryFile		@2
+	ExecuteBinaryBuffer		@3
+	SerializeSourceCode		@4
+

@@ -1,0 +1,32 @@
+The Fugue project currently has the following dependencies:
+
+
+Microsoft Platform SDK
+----------------------
+
+The latest version should always work.
+http://www.microsoft.com/
+
+
+
+Boost
+-----
+
+Version 1.38.0
+http://www.boost.org/
+
+
+
+nVidia CUDA SDK
+---------------
+
+Version 2.3
+http://www.nvidia.com/object/cuda_home.html
+
+Please note that compiling CUDA code on Windows requires an installed version
+of the cl.exe compiler used by Microsoft Visual Studio. Epoch programs which
+make use of the CUDA interop libraries will only be compilable with such an
+environment available. However, compiled Epoch programs can still be executed
+without the CUDA SDK or cl.exe being installed on the target machine.
+
+

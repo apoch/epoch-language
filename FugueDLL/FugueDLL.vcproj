@@ -1,0 +1,1441 @@
+<?xml version="1.0" encoding="Windows-1252"?>
+<VisualStudioProject
+	ProjectType="Visual C++"
+	Version="8.00"
+	Name="FugueDLL"
+	ProjectGUID="{3200C206-136E-4436-8A3F-C1DD064D0A8E}"
+	RootNamespace="FugueDLL"
+	Keyword="Win32Proj"
+	>
+	<Platforms>
+		<Platform
+			Name="Win32"
+		/>
+	</Platforms>
+	<ToolFiles>
+	</ToolFiles>
+	<Configurations>
+		<Configuration
+			Name="Debug|Win32"
+			OutputDirectory="..\Bin\$(ConfigurationName)"
+			IntermediateDirectory="..\Build\$(ProjectName)$(ConfigurationName)"
+			ConfigurationType="2"
+			CharacterSet="1"
+			>
+			<Tool
+				Name="VCPreBuildEventTool"
+			/>
+			<Tool
+				Name="VCCustomBuildTool"
+			/>
+			<Tool
+				Name="VCXMLDataGeneratorTool"
+			/>
+			<Tool
+				Name="VCWebServiceProxyGeneratorTool"
+			/>
+			<Tool
+				Name="VCMIDLTool"
+			/>
+			<Tool
+				Name="VCCLCompilerTool"
+				AdditionalOptions="$(AdditionalCompilerParameters)"
+				Optimization="0"
+				AdditionalIncludeDirectories="..\Shared\;.\"
+				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_USRDLL;UNITTESTS"
+				MinimalRebuild="true"
+				BasicRuntimeChecks="3"
+				RuntimeLibrary="3"
+				UsePrecompiledHeader="2"
+				PrecompiledHeaderThrough="pch.h"
+				WarningLevel="3"
+				Detect64BitPortabilityProblems="true"
+				DebugInformationFormat="4"
+			/>
+			<Tool
+				Name="VCManagedResourceCompilerTool"
+			/>
+			<Tool
+				Name="VCResourceCompilerTool"
+			/>
+			<Tool
+				Name="VCPreLinkEventTool"
+			/>
+			<Tool
+				Name="VCLinkerTool"
+				LinkIncremental="2"
+				ModuleDefinitionFile="DLL Exports\Exports.def"
+				GenerateDebugInformation="true"
+				SubSystem="2"
+				TargetMachine="1"
+			/>
+			<Tool
+				Name="VCALinkTool"
+			/>
+			<Tool
+				Name="VCManifestTool"
+			/>
+			<Tool
+				Name="VCXDCMakeTool"
+			/>
+			<Tool
+				Name="VCBscMakeTool"
+			/>
+			<Tool
+				Name="VCFxCopTool"
+			/>
+			<Tool
+				Name="VCAppVerifierTool"
+			/>
+			<Tool
+				Name="VCWebDeploymentTool"
+			/>
+			<Tool
+				Name="VCPostBuildEventTool"
+			/>
+		</Configuration>
+		<Configuration
+			Name="Release|Win32"
+			OutputDirectory="..\Bin\$(ConfigurationName)"
+			IntermediateDirectory="..\Build\$(ProjectName)$(ConfigurationName)"
+			ConfigurationType="2"
+			CharacterSet="1"
+			WholeProgramOptimization="1"
+			>
+			<Tool
+				Name="VCPreBuildEventTool"
+			/>
+			<Tool
+				Name="VCCustomBuildTool"
+			/>
+			<Tool
+				Name="VCXMLDataGeneratorTool"
+			/>
+			<Tool
+				Name="VCWebServiceProxyGeneratorTool"
+			/>
+			<Tool
+				Name="VCMIDLTool"
+			/>
+			<Tool
+				Name="VCCLCompilerTool"
+				AdditionalOptions="$(AdditionalCompilerParameters)"
+				AdditionalIncludeDirectories="..\Shared\;."
+				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL"
+				RuntimeLibrary="2"
+				UsePrecompiledHeader="2"
+				PrecompiledHeaderThrough="pch.h"
+				WarningLevel="3"
+				Detect64BitPortabilityProblems="true"
+				DebugInformationFormat="3"
+			/>
+			<Tool
+				Name="VCManagedResourceCompilerTool"
+			/>
+			<Tool
+				Name="VCResourceCompilerTool"
+			/>
+			<Tool
+				Name="VCPreLinkEventTool"
+			/>
+			<Tool
+				Name="VCLinkerTool"
+				LinkIncremental="1"
+				ModuleDefinitionFile="DLL Exports\Exports.def"
+				GenerateDebugInformation="true"
+				SubSystem="2"
+				OptimizeReferences="2"
+				EnableCOMDATFolding="2"
+				TargetMachine="1"
+			/>
+			<Tool
+				Name="VCALinkTool"
+			/>
+			<Tool
+				Name="VCManifestTool"
+			/>
+			<Tool
+				Name="VCXDCMakeTool"
+			/>
+			<Tool
+				Name="VCBscMakeTool"
+			/>
+			<Tool
+				Name="VCFxCopTool"
+			/>
+			<Tool
+				Name="VCAppVerifierTool"
+			/>
+			<Tool
+				Name="VCWebDeploymentTool"
+			/>
+			<Tool
+				Name="VCPostBuildEventTool"
+			/>
+		</Configuration>
+	</Configurations>
+	<References>
+	</References>
+	<Files>
+		<Filter
+			Name="DLL Entry Point"
+			Filter="cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx"
+			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
+			>
+			<File
+				RelativePath=".\DLL Entry Point\FugueDLL.cpp"
+				>
+			</File>
+		</Filter>
+		<Filter
+			Name="Parser"
+			>
+			<File
+				RelativePath=".\Parser\Grammars.h"
+				>
+			</File>
+			<File
+				RelativePath=".\Parser\Parse.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Parser\Parse.h"
+				>
+			</File>
+			<File
+				RelativePath=".\Parser\Tracing.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Parser\Tracing.h"
+				>
+			</File>
+			<Filter
+				Name="Parser State Machine"
+				>
+				<File
+					RelativePath=".\Parser\Parser State Machine\Concurrency.cpp"
+					>
+					<FileConfiguration
+						Name="Debug|Win32"
+						>
+						<Tool
+							Name="VCCLCompilerTool"
+							ObjectFile="$(IntDir)\$(InputName)1.obj"
+							XMLDocumentationFileName="$(IntDir)\$(InputName)1.xdc"
+						/>
+					</FileConfiguration>
+					<FileConfiguration
+						Name="Release|Win32"
+						>
+						<Tool
+							Name="VCCLCompilerTool"
+							ObjectFile="$(IntDir)\$(InputName)1.obj"
+							XMLDocumentationFileName="$(IntDir)\$(InputName)1.xdc"
+						/>
+					</FileConfiguration>
+				</File>
+				<File
+					RelativePath=".\Parser\Parser State Machine\Extensions.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\Parser\Parser State Machine\Externals.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\Parser\Parser State Machine\FlowControl.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\Parser\Parser State Machine\Functions.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\Parser\Parser State Machine\Helpers.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\Parser\Parser State Machine\Infix.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\Parser\Parser State Machine\Parameters.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\Parser\Parser State Machine\ParserState.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\Parser\Parser State Machine\ParserState.h"
+					>
+				</File>
+				<File
+					RelativePath=".\Parser\Parser State Machine\Structures.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\Parser\Parser State Machine\TemplatedFunctions.inl"
+					>
+				</File>
+				<File
+					RelativePath=".\Parser\Parser State Machine\Tuples.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\Parser\Parser State Machine\Variables.cpp"
+					>
+				</File>
+			</Filter>
+			<Filter
+				Name="Debug Info Tables"
+				>
+				<File
+					RelativePath=".\Parser\Debug Info Tables\DebugTable.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\Parser\Debug Info Tables\DebugTable.h"
+					>
+				</File>
+			</Filter>
+			<Filter
+				Name="Parse Functors"
+				>
+				<File
+					RelativePath=".\Parser\Parse Functors\Aliases.h"
+					>
+				</File>
+				<File
+					RelativePath=".\Parser\Parse Functors\Blocks.h"
+					>
+				</File>
+				<File
+					RelativePath=".\Parser\Parse Functors\Concurrency.h"
+					>
+				</File>
+				<File
+					RelativePath=".\Parser\Parse Functors\Debug.h"
+					>
+				</File>
+				<File
+					RelativePath=".\Parser\Parse Functors\Extensions.h"
+					>
+				</File>
+				<File
+					RelativePath=".\Parser\Parse Functors\Externals.h"
+					>
+				</File>
+				<File
+					RelativePath=".\Parser\Parse Functors\FlowControl.h"
+					>
+				</File>
+				<File
+					RelativePath=".\Parser\Parse Functors\Functions.h"
+					>
+				</File>
+				<File
+					RelativePath=".\Parser\Parse Functors\FunctionSignatures.h"
+					>
+				</File>
+				<File
+					RelativePath=".\Parser\Parse Functors\Globals.h"
+					>
+				</File>
+				<File
+					RelativePath=".\Parser\Parse Functors\Infix.h"
+					>
+				</File>
+				<File
+					RelativePath=".\Parser\Parse Functors\Operations.h"
+					>
+				</File>
+				<File
+					RelativePath=".\Parser\Parse Functors\Parameters.h"
+					>
+				</File>
+				<File
+					RelativePath=".\Parser\Parse Functors\ParseFunctorBase.h"
+					>
+				</File>
+				<File
+					RelativePath=".\Parser\Parse Functors\Structures.h"
+					>
+				</File>
+				<File
+					RelativePath=".\Parser\Parse Functors\Tuples.h"
+					>
+				</File>
+				<File
+					RelativePath=".\Parser\Parse Functors\Utility.h"
+					>
+				</File>
+				<File
+					RelativePath=".\Parser\Parse Functors\Variables.h"
+					>
+				</File>
+			</Filter>
+			<Filter
+				Name="Op Generation"
+				>
+				<File
+					RelativePath=".\Parser\Op Generation\Arithmetic.cpp"
+					>
+					<FileConfiguration
+						Name="Debug|Win32"
+						>
+						<Tool
+							Name="VCCLCompilerTool"
+							ObjectFile="$(IntDir)\$(InputName)1.obj"
+							XMLDocumentationFileName="$(IntDir)\$(InputName)1.xdc"
+						/>
+					</FileConfiguration>
+					<FileConfiguration
+						Name="Release|Win32"
+						>
+						<Tool
+							Name="VCCLCompilerTool"
+							ObjectFile="$(IntDir)\$(InputName)1.obj"
+							XMLDocumentationFileName="$(IntDir)\$(InputName)1.xdc"
+						/>
+					</FileConfiguration>
+				</File>
+				<File
+					RelativePath=".\Parser\Op Generation\BitwiseAndLogic.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\Parser\Op Generation\Comparison.cpp"
+					>
+					<FileConfiguration
+						Name="Debug|Win32"
+						>
+						<Tool
+							Name="VCCLCompilerTool"
+							ObjectFile="$(IntDir)\$(InputName)1.obj"
+							XMLDocumentationFileName="$(IntDir)\$(InputName)1.xdc"
+						/>
+					</FileConfiguration>
+					<FileConfiguration
+						Name="Release|Win32"
+						>
+						<Tool
+							Name="VCCLCompilerTool"
+							ObjectFile="$(IntDir)\$(InputName)1.obj"
+							XMLDocumentationFileName="$(IntDir)\$(InputName)1.xdc"
+						/>
+					</FileConfiguration>
+				</File>
+				<File
+					RelativePath=".\Parser\Op Generation\Concurrency.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\Parser\Op Generation\Containers.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\Parser\Op Generation\Debugging.cpp"
+					>
+					<FileConfiguration
+						Name="Debug|Win32"
+						>
+						<Tool
+							Name="VCCLCompilerTool"
+							ObjectFile="$(IntDir)\$(InputName)1.obj"
+							XMLDocumentationFileName="$(IntDir)\$(InputName)1.xdc"
+						/>
+					</FileConfiguration>
+					<FileConfiguration
+						Name="Release|Win32"
+						>
+						<Tool
+							Name="VCCLCompilerTool"
+							ObjectFile="$(IntDir)\$(InputName)1.obj"
+							XMLDocumentationFileName="$(IntDir)\$(InputName)1.xdc"
+						/>
+					</FileConfiguration>
+				</File>
+				<File
+					RelativePath=".\Parser\Op Generation\FlowControl.cpp"
+					>
+					<FileConfiguration
+						Name="Debug|Win32"
+						>
+						<Tool
+							Name="VCCLCompilerTool"
+							ObjectFile="$(IntDir)\$(InputName)2.obj"
+							XMLDocumentationFileName="$(IntDir)\$(InputName)2.xdc"
+						/>
+					</FileConfiguration>
+					<FileConfiguration
+						Name="Release|Win32"
+						>
+						<Tool
+							Name="VCCLCompilerTool"
+							ObjectFile="$(IntDir)\$(InputName)2.obj"
+							XMLDocumentationFileName="$(IntDir)\$(InputName)2.xdc"
+						/>
+					</FileConfiguration>
+				</File>
+				<File
+					RelativePath=".\Parser\Op Generation\MapReduce.cpp"
+					>
+					<FileConfiguration
+						Name="Debug|Win32"
+						>
+						<Tool
+							Name="VCCLCompilerTool"
+							ObjectFile="$(IntDir)\$(InputName)1.obj"
+							XMLDocumentationFileName="$(IntDir)\$(InputName)1.xdc"
+						/>
+					</FileConfiguration>
+					<FileConfiguration
+						Name="Release|Win32"
+						>
+						<Tool
+							Name="VCCLCompilerTool"
+							ObjectFile="$(IntDir)\$(InputName)1.obj"
+							XMLDocumentationFileName="$(IntDir)\$(InputName)1.xdc"
+						/>
+					</FileConfiguration>
+				</File>
+				<File
+					RelativePath=".\Parser\Op Generation\OpGenerator.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\Parser\Op Generation\OpValidation.h"
+					>
+				</File>
+				<File
+					RelativePath=".\Parser\Op Generation\Strings.cpp"
+					>
+					<FileConfiguration
+						Name="Debug|Win32"
+						>
+						<Tool
+							Name="VCCLCompilerTool"
+							ObjectFile="$(IntDir)\$(InputName)1.obj"
+							XMLDocumentationFileName="$(IntDir)\$(InputName)1.xdc"
+						/>
+					</FileConfiguration>
+					<FileConfiguration
+						Name="Release|Win32"
+						>
+						<Tool
+							Name="VCCLCompilerTool"
+							ObjectFile="$(IntDir)\$(InputName)1.obj"
+							XMLDocumentationFileName="$(IntDir)\$(InputName)1.xdc"
+						/>
+					</FileConfiguration>
+				</File>
+				<File
+					RelativePath=".\Parser\Op Generation\Structures.cpp"
+					>
+					<FileConfiguration
+						Name="Debug|Win32"
+						>
+						<Tool
+							Name="VCCLCompilerTool"
+							ObjectFile="$(IntDir)\$(InputName)1.obj"
+							XMLDocumentationFileName="$(IntDir)\$(InputName)1.xdc"
+						/>
+					</FileConfiguration>
+					<FileConfiguration
+						Name="Release|Win32"
+						>
+						<Tool
+							Name="VCCLCompilerTool"
+							ObjectFile="$(IntDir)\$(InputName)1.obj"
+							XMLDocumentationFileName="$(IntDir)\$(InputName)1.xdc"
+						/>
+					</FileConfiguration>
+				</File>
+				<File
+					RelativePath=".\Parser\Op Generation\Tuples.cpp"
+					>
+					<FileConfiguration
+						Name="Debug|Win32"
+						>
+						<Tool
+							Name="VCCLCompilerTool"
+							ObjectFile="$(IntDir)\$(InputName)1.obj"
+							XMLDocumentationFileName="$(IntDir)\$(InputName)1.xdc"
+						/>
+					</FileConfiguration>
+					<FileConfiguration
+						Name="Release|Win32"
+						>
+						<Tool
+							Name="VCCLCompilerTool"
+							ObjectFile="$(IntDir)\$(InputName)1.obj"
+							XMLDocumentationFileName="$(IntDir)\$(InputName)1.xdc"
+						/>
+					</FileConfiguration>
+				</File>
+				<File
+					RelativePath=".\Parser\Op Generation\Types.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\Parser\Op Generation\Variables.cpp"
+					>
+					<FileConfiguration
+						Name="Debug|Win32"
+						>
+						<Tool
+							Name="VCCLCompilerTool"
+							ObjectFile="$(IntDir)\$(InputName)1.obj"
+							XMLDocumentationFileName="$(IntDir)\$(InputName)1.xdc"
+						/>
+					</FileConfiguration>
+					<FileConfiguration
+						Name="Release|Win32"
+						>
+						<Tool
+							Name="VCCLCompilerTool"
+							ObjectFile="$(IntDir)\$(InputName)1.obj"
+							XMLDocumentationFileName="$(IntDir)\$(InputName)1.xdc"
+						/>
+					</FileConfiguration>
+				</File>
+			</Filter>
+			<Filter
+				Name="Error Handling"
+				>
+				<File
+					RelativePath=".\Parser\Error Handling\ErrorHandling.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\Parser\Error Handling\ParserExceptions.h"
+					>
+				</File>
+				<File
+					RelativePath=".\Parser\Error Handling\SyntaxErrors.h"
+					>
+				</File>
+			</Filter>
+		</Filter>
+		<Filter
+			Name="Virtual Machine"
+			>
+			<File
+				RelativePath=".\Virtual Machine\Routines.inl"
+				>
+			</File>
+			<File
+				RelativePath=".\Virtual Machine\SelfAware.h"
+				>
+			</File>
+			<File
+				RelativePath=".\Virtual Machine\SelfAware.inl"
+				>
+			</File>
+			<File
+				RelativePath=".\Virtual Machine\VMExceptions.h"
+				>
+			</File>
+			<Filter
+				Name="Core Entities"
+				>
+				<File
+					RelativePath=".\Virtual Machine\Core Entities\Block.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\Virtual Machine\Core Entities\Block.h"
+					>
+				</File>
+				<File
+					RelativePath=".\Virtual Machine\Core Entities\Function.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\Virtual Machine\Core Entities\Function.h"
+					>
+				</File>
+				<File
+					RelativePath=".\Virtual Machine\Core Entities\Operation.h"
+					>
+				</File>
+				<File
+					RelativePath=".\Virtual Machine\Core Entities\Program.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\Virtual Machine\Core Entities\Program.h"
+					>
+				</File>
+				<File
+					RelativePath=".\Virtual Machine\Core Entities\RValue.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\Virtual Machine\Core Entities\RValue.h"
+					>
+				</File>
+				<Filter
+					Name="Scopes"
+					>
+					<File
+						RelativePath=".\Virtual Machine\Core Entities\Scopes\ActivatedScope.cpp"
+						>
+					</File>
+					<File
+						RelativePath=".\Virtual Machine\Core Entities\Scopes\ActivatedScope.h"
+						>
+					</File>
+					<File
+						RelativePath=".\Virtual Machine\Core Entities\Scopes\ScopeDescription.cpp"
+						>
+					</File>
+					<File
+						RelativePath=".\Virtual Machine\Core Entities\Scopes\ScopeDescription.h"
+						>
+					</File>
+				</Filter>
+				<Filter
+					Name="Types"
+					>
+					<File
+						RelativePath=".\Virtual Machine\Core Entities\Types\CompositeType.cpp"
+						>
+					</File>
+					<File
+						RelativePath=".\Virtual Machine\Core Entities\Types\CompositeType.h"
+						>
+					</File>
+					<File
+						RelativePath=".\Virtual Machine\Core Entities\Types\FunctionSignature.cpp"
+						>
+					</File>
+					<File
+						RelativePath=".\Virtual Machine\Core Entities\Types\FunctionSignature.h"
+						>
+					</File>
+					<File
+						RelativePath=".\Virtual Machine\Core Entities\Types\Structure.cpp"
+						>
+					</File>
+					<File
+						RelativePath=".\Virtual Machine\Core Entities\Types\Structure.h"
+						>
+					</File>
+					<File
+						RelativePath=".\Virtual Machine\Core Entities\Types\Tuple.cpp"
+						>
+					</File>
+					<File
+						RelativePath=".\Virtual Machine\Core Entities\Types\Tuple.h"
+						>
+					</File>
+				</Filter>
+				<Filter
+					Name="Variables"
+					>
+					<File
+						RelativePath=".\Virtual Machine\Core Entities\Variables\BufferVariable.h"
+						>
+					</File>
+					<File
+						RelativePath=".\Virtual Machine\Core Entities\Variables\ListVariable.h"
+						>
+					</File>
+					<File
+						RelativePath=".\Virtual Machine\Core Entities\Variables\StringVariable.h"
+						>
+					</File>
+					<File
+						RelativePath=".\Virtual Machine\Core Entities\Variables\StructureVariable.h"
+						>
+					</File>
+					<File
+						RelativePath=".\Virtual Machine\Core Entities\Variables\TupleVariable.h"
+						>
+					</File>
+					<File
+						RelativePath=".\Virtual Machine\Core Entities\Variables\Variable.cpp"
+						>
+					</File>
+					<File
+						RelativePath=".\Virtual Machine\Core Entities\Variables\Variable.h"
+						>
+					</File>
+				</Filter>
+				<Filter
+					Name="Concurrency"
+					>
+					<File
+						RelativePath=".\Virtual Machine\Core Entities\Concurrency\Future.cpp"
+						>
+					</File>
+					<File
+						RelativePath=".\Virtual Machine\Core Entities\Concurrency\Future.h"
+						>
+					</File>
+					<File
+						RelativePath=".\Virtual Machine\Core Entities\Concurrency\ResponseMap.cpp"
+						>
+					</File>
+					<File
+						RelativePath=".\Virtual Machine\Core Entities\Concurrency\ResponseMap.h"
+						>
+					</File>
+				</Filter>
+			</Filter>
+			<Filter
+				Name="Operations"
+				>
+				<File
+					RelativePath=".\Virtual Machine\Operations\Debugging.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\Virtual Machine\Operations\Debugging.h"
+					>
+				</File>
+				<File
+					RelativePath=".\Virtual Machine\Operations\StackOps.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\Virtual Machine\Operations\StackOps.h"
+					>
+				</File>
+				<File
+					RelativePath=".\Virtual Machine\Operations\Typedefs.h"
+					>
+				</File>
+				<File
+					RelativePath=".\Virtual Machine\Operations\UtilityOps.h"
+					>
+				</File>
+				<Filter
+					Name="Concurrency"
+					>
+					<File
+						RelativePath=".\Virtual Machine\Operations\Concurrency\FutureOps.cpp"
+						>
+					</File>
+					<File
+						RelativePath=".\Virtual Machine\Operations\Concurrency\FutureOps.h"
+						>
+					</File>
+					<File
+						RelativePath=".\Virtual Machine\Operations\Concurrency\Messaging.cpp"
+						>
+					</File>
+					<File
+						RelativePath=".\Virtual Machine\Operations\Concurrency\Messaging.h"
+						>
+					</File>
+					<File
+						RelativePath=".\Virtual Machine\Operations\Concurrency\Tasks.cpp"
+						>
+						<FileConfiguration
+							Name="Debug|Win32"
+							>
+							<Tool
+								Name="VCCLCompilerTool"
+								ObjectFile="$(IntDir)\$(InputName)1.obj"
+								XMLDocumentationFileName="$(IntDir)\$(InputName)1.xdc"
+							/>
+						</FileConfiguration>
+						<FileConfiguration
+							Name="Release|Win32"
+							>
+							<Tool
+								Name="VCCLCompilerTool"
+								ObjectFile="$(IntDir)\$(InputName)1.obj"
+								XMLDocumentationFileName="$(IntDir)\$(InputName)1.xdc"
+							/>
+						</FileConfiguration>
+					</File>
+					<File
+						RelativePath=".\Virtual Machine\Operations\Concurrency\Tasks.h"
+						>
+					</File>
+				</Filter>
+				<Filter
+					Name="Containers"
+					>
+					<File
+						RelativePath=".\Virtual Machine\Operations\Containers\ContainerOps.cpp"
+						>
+					</File>
+					<File
+						RelativePath=".\Virtual Machine\Operations\Containers\ContainerOps.h"
+						>
+					</File>
+					<File
+						RelativePath=".\Virtual Machine\Operations\Containers\MapReduce.cpp"
+						>
+					</File>
+					<File
+						RelativePath=".\Virtual Machine\Operations\Containers\MapReduce.h"
+						>
+					</File>
+				</Filter>
+				<Filter
+					Name="Operators"
+					>
+					<File
+						RelativePath=".\Virtual Machine\Operations\Operators\Arithmetic.cpp"
+						>
+					</File>
+					<File
+						RelativePath=".\Virtual Machine\Operations\Operators\Arithmetic.h"
+						>
+					</File>
+					<File
+						RelativePath=".\Virtual Machine\Operations\Operators\Arithmetic.inl"
+						>
+					</File>
+					<File
+						RelativePath=".\Virtual Machine\Operations\Operators\Bitwise.cpp"
+						>
+					</File>
+					<File
+						RelativePath=".\Virtual Machine\Operations\Operators\Bitwise.h"
+						>
+					</File>
+					<File
+						RelativePath=".\Virtual Machine\Operations\Operators\Comparison.cpp"
+						>
+					</File>
+					<File
+						RelativePath=".\Virtual Machine\Operations\Operators\Comparison.h"
+						>
+					</File>
+					<File
+						RelativePath=".\Virtual Machine\Operations\Operators\CompoundOperator.cpp"
+						>
+					</File>
+					<File
+						RelativePath=".\Virtual Machine\Operations\Operators\CompoundOperator.h"
+						>
+					</File>
+					<File
+						RelativePath=".\Virtual Machine\Operations\Operators\Logical.cpp"
+						>
+					</File>
+					<File
+						RelativePath=".\Virtual Machine\Operations\Operators\Logical.h"
+						>
+					</File>
+				</Filter>
+				<Filter
+					Name="Variables"
+					>
+					<File
+						RelativePath=".\Virtual Machine\Operations\Variables\StringOps.cpp"
+						>
+					</File>
+					<File
+						RelativePath=".\Virtual Machine\Operations\Variables\StringOps.h"
+						>
+					</File>
+					<File
+						RelativePath=".\Virtual Machine\Operations\Variables\StructureOps.cpp"
+						>
+					</File>
+					<File
+						RelativePath=".\Virtual Machine\Operations\Variables\StructureOps.h"
+						>
+					</File>
+					<File
+						RelativePath=".\Virtual Machine\Operations\Variables\TupleOps.cpp"
+						>
+					</File>
+					<File
+						RelativePath=".\Virtual Machine\Operations\Variables\TupleOps.h"
+						>
+					</File>
+					<File
+						RelativePath=".\Virtual Machine\Operations\Variables\VariableOps.cpp"
+						>
+					</File>
+					<File
+						RelativePath=".\Virtual Machine\Operations\Variables\VariableOps.h"
+						>
+					</File>
+				</Filter>
+				<Filter
+					Name="Flow"
+					>
+					<File
+						RelativePath=".\Virtual Machine\Operations\Flow\FlowControl.cpp"
+						>
+						<FileConfiguration
+							Name="Debug|Win32"
+							>
+							<Tool
+								Name="VCCLCompilerTool"
+								ObjectFile="$(IntDir)\$(InputName)1.obj"
+								XMLDocumentationFileName="$(IntDir)\$(InputName)1.xdc"
+							/>
+						</FileConfiguration>
+						<FileConfiguration
+							Name="Release|Win32"
+							>
+							<Tool
+								Name="VCCLCompilerTool"
+								ObjectFile="$(IntDir)\$(InputName)1.obj"
+								XMLDocumentationFileName="$(IntDir)\$(InputName)1.xdc"
+							/>
+						</FileConfiguration>
+					</File>
+					<File
+						RelativePath=".\Virtual Machine\Operations\Flow\FlowControl.h"
+						>
+					</File>
+					<File
+						RelativePath=".\Virtual Machine\Operations\Flow\Invoke.cpp"
+						>
+					</File>
+					<File
+						RelativePath=".\Virtual Machine\Operations\Flow\Invoke.h"
+						>
+					</File>
+				</Filter>
+			</Filter>
+			<Filter
+				Name="Types Management"
+				>
+				<File
+					RelativePath=".\Virtual Machine\Types Management\RuntimeCasts.h"
+					>
+				</File>
+				<File
+					RelativePath=".\Virtual Machine\Types Management\TypeCasts.h"
+					>
+				</File>
+				<File
+					RelativePath=".\Virtual Machine\Types Management\TypeInfo.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\Virtual Machine\Types Management\TypeInfo.h"
+					>
+				</File>
+			</Filter>
+		</Filter>
+		<Filter
+			Name="DLL Exports"
+			>
+			<File
+				RelativePath=".\DLL Exports\Exports.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\DLL Exports\Exports.def"
+				>
+			</File>
+		</Filter>
+		<Filter
+			Name="Marshalling"
+			>
+			<File
+				RelativePath=".\Marshalling\Callback.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Marshalling\Callback.h"
+				>
+			</File>
+			<File
+				RelativePath=".\Marshalling\DLLPool.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Marshalling\DLLPool.h"
+				>
+			</File>
+			<File
+				RelativePath=".\Marshalling\ExternalDLL.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Marshalling\ExternalDLL.h"
+				>
+			</File>
+			<File
+				RelativePath=".\Marshalling\Libraries.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Marshalling\Libraries.h"
+				>
+			</File>
+			<File
+				RelativePath=".\Marshalling\StructureConversion.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Marshalling\StructureConversion.h"
+				>
+			</File>
+		</Filter>
+		<Filter
+			Name="Bytecode"
+			>
+			<File
+				RelativePath="..\Shared\Bytecode\Bytecode.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\Shared\Bytecode\Bytecode.h"
+				>
+			</File>
+			<File
+				RelativePath="..\Shared\Bytecode\BytecodeExceptions.h"
+				>
+			</File>
+			<File
+				RelativePath="..\Shared\Bytecode\Loading.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\Shared\Bytecode\Loading.h"
+				>
+			</File>
+			<File
+				RelativePath="..\Shared\Bytecode\Services.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\Shared\Bytecode\Services.h"
+				>
+			</File>
+		</Filter>
+		<Filter
+			Name="String Data"
+			>
+			<File
+				RelativePath=".\String Data\Keywords.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\String Data\Keywords.h"
+				>
+			</File>
+			<File
+				RelativePath=".\String Data\Operators.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\String Data\Operators.h"
+				>
+			</File>
+			<File
+				RelativePath=".\String Data\StringConstants.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\String Data\StringConstants.h"
+				>
+			</File>
+		</Filter>
+		<Filter
+			Name="Shared"
+			>
+			<Filter
+				Name="Utility Code"
+				>
+				<File
+					RelativePath="..\Shared\Utility\Exception.h"
+					>
+				</File>
+				<File
+					RelativePath="..\Shared\Utility\Strings.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\Shared\Utility\Strings.h"
+					>
+				</File>
+				<Filter
+					Name="Threading"
+					>
+					<File
+						RelativePath="..\Shared\Utility\Threading\Lockless.h"
+						>
+					</File>
+					<File
+						RelativePath="..\Shared\Utility\Threading\Mailbox.h"
+						>
+					</File>
+					<File
+						RelativePath="..\Shared\Utility\Threading\ThreadExceptions.h"
+						>
+					</File>
+					<File
+						RelativePath="..\Shared\Utility\Threading\Threads.cpp"
+						>
+					</File>
+					<File
+						RelativePath="..\Shared\Utility\Threading\Threads.h"
+						>
+					</File>
+				</Filter>
+				<Filter
+					Name="Memory"
+					>
+					<File
+						RelativePath="..\Shared\Utility\Memory\Heap.cpp"
+						>
+					</File>
+					<File
+						RelativePath="..\Shared\Utility\Memory\Heap.h"
+						>
+					</File>
+					<File
+						RelativePath="..\Shared\Utility\Memory\MemoryManager.cpp"
+						>
+					</File>
+					<File
+						RelativePath="..\Shared\Utility\Memory\MemoryManager.h"
+						>
+					</File>
+					<File
+						RelativePath="..\Shared\Utility\Memory\Stack.cpp"
+						>
+					</File>
+					<File
+						RelativePath="..\Shared\Utility\Memory\Stack.h"
+						>
+					</File>
+					<File
+						RelativePath="..\Shared\Utility\Memory\ThreadLocalAllocator.cpp"
+						>
+					</File>
+					<File
+						RelativePath="..\Shared\Utility\Memory\ThreadLocalAllocator.h"
+						>
+					</File>
+				</Filter>
+				<Filter
+					Name="Types"
+					>
+					<File
+						RelativePath="..\Shared\Utility\Types\EpochTypeIDs.h"
+						>
+					</File>
+					<File
+						RelativePath="..\Shared\Utility\Types\IDTypes.h"
+						>
+					</File>
+					<File
+						RelativePath="..\Shared\Utility\Types\IntegerTypes.h"
+						>
+					</File>
+					<File
+						RelativePath="..\Shared\Utility\Types\RealTypes.h"
+						>
+					</File>
+				</Filter>
+				<Filter
+					Name="Files"
+					>
+					<File
+						RelativePath="..\Shared\Utility\Files\Files.cpp"
+						>
+					</File>
+					<File
+						RelativePath="..\Shared\Utility\Files\Files.h"
+						>
+					</File>
+					<File
+						RelativePath="..\Shared\Utility\Files\FilesAndPaths.cpp"
+						>
+					</File>
+					<File
+						RelativePath="..\Shared\Utility\Files\FilesAndPaths.h"
+						>
+					</File>
+					<File
+						RelativePath="..\Shared\Utility\Files\SpecialPaths.cpp"
+						>
+					</File>
+					<File
+						RelativePath="..\Shared\Utility\Files\SpecialPaths.h"
+						>
+					</File>
+				</Filter>
+			</Filter>
+			<Filter
+				Name="Serialization"
+				>
+				<File
+					RelativePath="..\Shared\Serialization\SerializationTokens.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\Shared\Serialization\SerializationTokens.h"
+					>
+				</File>
+			</Filter>
+			<Filter
+				Name="Configuration"
+				>
+				<File
+					RelativePath="..\Shared\Configuration\ConfigFile.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\Shared\Configuration\ConfigFile.h"
+					>
+				</File>
+				<File
+					RelativePath="..\Shared\Configuration\RuntimeOptions.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\Shared\Configuration\RuntimeOptions.h"
+					>
+				</File>
+			</Filter>
+			<Filter
+				Name="User Interface"
+				>
+				<File
+					RelativePath="..\Shared\User Interface\Input.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\Shared\User Interface\Input.h"
+					>
+				</File>
+				<File
+					RelativePath="..\Shared\User Interface\Output.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\Shared\User Interface\Output.h"
+					>
+				</File>
+				<File
+					RelativePath="..\Shared\User Interface\OutputStream.inl"
+					>
+				</File>
+			</Filter>
+		</Filter>
+		<Filter
+			Name="Validator"
+			>
+			<File
+				RelativePath=".\Validator\Validator.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Validator\Validator.h"
+				>
+			</File>
+			<Filter
+				Name="Task Safety"
+				>
+				<File
+					RelativePath=".\Validator\Task Safety\TaskSafety.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\Validator\Task Safety\TaskSafety.h"
+					>
+				</File>
+			</Filter>
+		</Filter>
+		<Filter
+			Name="Language Extensions"
+			>
+			<File
+				RelativePath=".\Language Extensions\DLLAccess.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Language Extensions\DLLAccess.h"
+				>
+			</File>
+			<File
+				RelativePath=".\Language Extensions\ExtensionCatalog.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Language Extensions\ExtensionCatalog.h"
+				>
+			</File>
+			<File
+				RelativePath=".\Language Extensions\FunctionPointerTypes.h"
+				>
+			</File>
+			<File
+				RelativePath=".\Language Extensions\HandleTypes.h"
+				>
+			</File>
+			<File
+				RelativePath=".\Language Extensions\Handoff.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Language Extensions\Handoff.h"
+				>
+			</File>
+		</Filter>
+		<Filter
+			Name="Traverser"
+			>
+			<File
+				RelativePath=".\Traverser\TraversalInterface.h"
+				>
+			</File>
+		</Filter>
+		<Filter
+			Name="Serialization"
+			>
+			<File
+				RelativePath=".\Serialization\SerializationLogic.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Serialization\SerializationTraverser.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Serialization\SerializationTraverser.h"
+				>
+			</File>
+		</Filter>
+		<Filter
+			Name="Precompiled Header"
+			>
+			<File
+				RelativePath=".\pch.cpp"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						UsePrecompiledHeader="1"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						UsePrecompiledHeader="1"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\pch.h"
+				>
+			</File>
+		</Filter>
+	</Files>
+	<Globals>
+	</Globals>
+</VisualStudioProject>

@@ -1,0 +1,7 @@
+LIBRARY	"EpochCUDA"
+EXPORTS
+	Register						@1
+	LoadSourceBlock					@2
+	ExecuteSourceBlock				@3
+	StartNewProgramCompilation		@4
+	CommitCompilation				@5

@@ -1,0 +1,174 @@
+//
+// The Epoch Language Project
+// FUGUE Virtual Machine
+//
+// Declarations of runtime variable typecast operations for the VM.
+//
+
+#pragma once
+
+#include "Virtual Machine/Core Entities/RValue.h"
+#include "Virtual Machine/Core Entities/Operation.h"
+#include "Virtual Machine/Core Entities/Variables/BufferVariable.h"
+
+#include "Utility/Strings.h"
+
+
+namespace VM
+{
+
+	namespace Operations
+	{
+
+		template<typename OriginVarTypeInfo, typename DestinationVarTypeInfo>
+		class TypeCast : public Operation, public SelfAware<TypeCast<OriginVarTypeInfo, DestinationVarTypeInfo> >
+		{
+		// Operation interface
+		public:
+			virtual void ExecuteFast(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+			{
+				OriginVarTypeInfo::VariableType var(stack.GetCurrentTopOfStack());
+				stack.Pop(var.GetStorageSize());
+			}
+
+			virtual RValuePtr ExecuteAndStoreRValue(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+			{
+				OriginVarTypeInfo::VariableType var(stack.GetCurrentTopOfStack());
+				DestinationVarTypeInfo::VariableType::BaseStorage retval;
+
+				std::wstringstream convert;
+				convert << var.GetValue();
+				if(!(convert >> retval))
+					throw ExecutionException("Failed to cast value; possible causes are overflow or malformed data");
+
+				stack.Pop(var.GetStorageSize());
+				DestinationVarTypeInfo::VariableType returnvariable(&retval);
+				return returnvariable.GetAsRValue();
+			}
+
+			virtual EpochVariableTypeID GetType(const ScopeDescription& scope) const
+			{ return GetDestinationType(); }
+
+			virtual size_t GetNumParameters(const VM::ScopeDescription& scope) const
+			{ return 1; }
+
+		// Additional queries
+		public:
+			EpochVariableTypeID GetOriginalType() const
+			{ return OriginVarTypeInfo::VariableType::GetStaticType(); }
+
+			// This may look redundant (given the presence of GetType()) but
+			// in fact it is very handy to be able to look up the operation's
+			// type without a valid scope description object, e.g. when the
+			// serializer is running.
+			EpochVariableTypeID GetDestinationType() const
+			{ return DestinationVarTypeInfo::VariableType::GetStaticType(); }
+		};
+
+
+		template<typename OriginVarTypeInfo>
+		class TypeCastToString : public Operation, public SelfAware<TypeCastToString<OriginVarTypeInfo> >
+		{
+		// Operation interface
+		public:
+			virtual void ExecuteFast(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+			{
+				OriginVarTypeInfo::VariableType var(stack.GetCurrentTopOfStack());
+				stack.Pop(var.GetStorageSize());
+			}
+
+			virtual RValuePtr ExecuteAndStoreRValue(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+			{
+				OriginVarTypeInfo::VariableType var(stack.GetCurrentTopOfStack());
+				std::wstring retval;
+
+				std::wstringstream convert;
+				convert << var.GetValue();
+				if(!(convert >> retval))
+					throw ExecutionException("Failed to cast value; possible causes are overflow or malformed data");
+
+				stack.Pop(var.GetStorageSize());
+				return RValuePtr(new StringRValue(retval));
+			}
+
+			virtual EpochVariableTypeID GetType(const ScopeDescription& scope) const
+			{ return VM::EpochVariableType_String; }
+
+			virtual size_t GetNumParameters(const VM::ScopeDescription& scope) const
+			{ return 1; }
+
+		// Additional queries
+		public:
+			EpochVariableTypeID GetOriginalType() const
+			{ return OriginVarTypeInfo::VariableType::GetStaticType(); }
+
+			EpochVariableTypeID GetDestinationType() const
+			{ return VM::EpochVariableType_String; }
+		};
+
+		class TypeCastBooleanToString : public Operation, public SelfAware<TypeCastBooleanToString>
+		{
+			virtual void ExecuteFast(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+			{
+				BooleanVariable var(stack.GetCurrentTopOfStack());
+				stack.Pop(var.GetStorageSize());
+			}
+
+			virtual RValuePtr ExecuteAndStoreRValue(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+			{
+				BooleanVariable var(stack.GetCurrentTopOfStack());
+				std::wstring retval = (var.GetValue() ? Keywords::True : Keywords::False);
+				stack.Pop(var.GetStorageSize());
+				return RValuePtr(new StringRValue(retval));
+			}
+
+			virtual EpochVariableTypeID GetType(const ScopeDescription& scope) const
+			{ return VM::EpochVariableType_String; }
+
+			virtual size_t GetNumParameters(const VM::ScopeDescription& scope) const
+			{ return 1; }
+
+
+		// Additional queries
+		public:
+			EpochVariableTypeID GetOriginalType() const
+			{ return VM::EpochVariableType_Boolean; }
+
+			EpochVariableTypeID GetDestinationType() const
+			{ return VM::EpochVariableType_String; }
+		};
+
+		class TypeCastBufferToString : public Operation, public SelfAware<TypeCastBufferToString>
+		{
+			virtual void ExecuteFast(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+			{
+				BufferVariable var(stack.GetCurrentTopOfStack());
+				stack.Pop(var.GetStorageSize());
+			}
+
+			virtual RValuePtr ExecuteAndStoreRValue(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+			{
+				BufferVariable var(stack.GetCurrentTopOfStack());
+				std::wstring retval = reinterpret_cast<const wchar_t*>(var.GetValue());
+				stack.Pop(var.GetStorageSize());
+				return RValuePtr(new StringRValue(retval));
+			}
+
+			virtual EpochVariableTypeID GetType(const ScopeDescription& scope) const
+			{ return VM::EpochVariableType_String; }
+
+			virtual size_t GetNumParameters(const VM::ScopeDescription& scope) const
+			{ return 1; }
+
+		// Additional queries
+		public:
+			EpochVariableTypeID GetOriginalType() const
+			{ return VM::EpochVariableType_Buffer; }
+
+			EpochVariableTypeID GetDestinationType() const
+			{ return VM::EpochVariableType_String; }
+		};
+
+	}
+
+}
