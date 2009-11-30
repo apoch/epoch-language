@@ -545,6 +545,16 @@ namespace Parser
 					  )
 					;
 
+				FunctionReturns
+					= (  (INTEGER >> OPENPARENS >> StringIdentifier[RegisterIntegerReturn(self.State)] >> COMMA >> IntegerLiteral[RegisterIntegerReturnValue(self.State)] >> CLOSEPARENS)
+				 	   | (INTEGER16 >> OPENPARENS >> StringIdentifier[RegisterInt16Return(self.State)] >> COMMA >> IntegerLiteral[RegisterInt16ReturnValue(self.State)] >> CLOSEPARENS)
+					   | (STRING >> OPENPARENS >> StringIdentifier[RegisterStringReturn(self.State)] >> COMMA >> StringLiteral[RegisterStringReturnValue(self.State)] >> CLOSEPARENS)
+					   | (BOOLEAN >> OPENPARENS >> StringIdentifier[RegisterBooleanReturn(self.State)] >> COMMA >> BooleanLiteral[RegisterBooleanReturnValue(self.State)] >> CLOSEPARENS)
+					   | (REAL >> OPENPARENS >> StringIdentifier[RegisterRealReturn(self.State)] >> COMMA >> RealLiteral[RegisterRealReturnValue(self.State)] >> CLOSEPARENS)
+					   | ((StringIdentifier - FUNCTION)[RegisterUnknownReturn(self.State)] >> OPENPARENS >> StringIdentifier[RegisterUnknownReturnName(self.State)] >> COMMA >> OperationParameter[ExitUnknownReturnConstructor(self.State)] >> CLOSEPARENS)
+					  ) % COMMA
+					;
+
 				FunctionDefinition
 					= SyntaxErrorGuard
 					(
@@ -568,14 +578,7 @@ namespace Parser
 								  >> FUNCTIONARROW
 								  >> (
 										(
-											OPENPARENS[RegisterBeginningOfFunctionReturns(self.State)] >> 
-												(  (INTEGER >> OPENPARENS >> StringIdentifier[RegisterIntegerReturn(self.State)] >> COMMA >> IntegerLiteral[RegisterIntegerReturnValue(self.State)] >> CLOSEPARENS)
-												 | (INTEGER16 >> OPENPARENS >> StringIdentifier[RegisterInt16Return(self.State)] >> COMMA >> IntegerLiteral[RegisterInt16ReturnValue(self.State)] >> CLOSEPARENS)
-												 | (STRING >> OPENPARENS >> StringIdentifier[RegisterStringReturn(self.State)] >> COMMA >> StringLiteral[RegisterStringReturnValue(self.State)] >> CLOSEPARENS)
-												 | (BOOLEAN >> OPENPARENS >> StringIdentifier[RegisterBooleanReturn(self.State)] >> COMMA >> BooleanLiteral[RegisterBooleanReturnValue(self.State)] >> CLOSEPARENS)
-												 | (REAL >> OPENPARENS >> StringIdentifier[RegisterRealReturn(self.State)] >> COMMA >> RealLiteral[RegisterRealReturnValue(self.State)] >> CLOSEPARENS)
-												) % COMMA
-											>> CLOSEPARENS
+											OPENPARENS[RegisterBeginningOfFunctionReturns(self.State)] >> FunctionReturns >> CLOSEPARENS
 										)
 									  |
 										(OPENPARENS >> CLOSEPARENS[RegisterNullReturn(self.State)])
@@ -684,7 +687,7 @@ namespace Parser
 			boost::spirit::classic::rule<ScannerType> ExternalDeclaration, RealLiteral, TupleDefinition, StructureDefinition, HigherOrderFunctionHelper, MessageDispatch;
 			boost::spirit::classic::rule<ScannerType> HexLiteral, Task, AcceptMessageHelper, ResponseMapHelper, InfixDeclaration, PassedParameterBase, InfixOperator;
 			boost::spirit::classic::rule<ScannerType> InfixAssignmentHelper, OtherKeywords, ReadStructureHelper, WriteStructureHelper, MemberHelper, MessageHelper;
-			boost::spirit::classic::rule<ScannerType> IncrementDecrementHelper, OpAssignmentHelper, LanguageExtensionBlock, ExtensionImport;
+			boost::spirit::classic::rule<ScannerType> IncrementDecrementHelper, OpAssignmentHelper, LanguageExtensionBlock, ExtensionImport, FunctionReturns;
 
 			boost::spirit::classic::stored_rule<ScannerType> LanguageExtensionKeywords;
 
@@ -1094,6 +1097,7 @@ namespace Parser
 												 | (STRING >> OPENPARENS >> StringIdentifier >> COMMA >> StringLiteral >> CLOSEPARENS)
 												 | (BOOLEAN >> OPENPARENS >> StringIdentifier >> COMMA >> BooleanLiteral >> CLOSEPARENS)
 												 | (REAL >> OPENPARENS >> StringIdentifier >> COMMA >> RealLiteral >> CLOSEPARENS)
+												 | ((StringIdentifier - FUNCTION) >> OPENPARENS >> StringIdentifier[StartCountingParams(self.State)][PushIdentifierNoStack(self.State)] >> COMMA >> (OperationParameter)[FinishReturnConstructor(self.State)] >> CLOSEPARENS)
 												) % COMMA
 											>> CLOSEPARENS
 										)

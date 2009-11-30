@@ -215,5 +215,8 @@ void ParserState::PushCachedOperations()
 void ParserState::AddOperationToCurrentBlock(VM::OperationPtr op)
 {
 	DebugInfo.TrackInstruction(op.get(), GetFileLocationInfo());
-	Blocks.back().TheBlock->AddOperation(op);
+	if(!Blocks.empty())
+		Blocks.back().TheBlock->AddOperation(op);
+	else
+		FunctionReturnInitializationBlock->AddOperation(op);
 }

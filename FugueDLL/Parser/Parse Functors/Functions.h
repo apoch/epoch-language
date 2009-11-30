@@ -313,6 +313,87 @@ struct RegisterBooleanReturn : public ParseFunctorBase
 };
 
 //
+// Inform the parse analyzer that the current function returns include a structure.
+//
+struct RegisterUnknownReturn : public ParseFunctorBase
+{
+	RegisterUnknownReturn(Parser::ParserState& state)
+		: ParseFunctorBase(state)
+	{ }
+
+	template <typename IteratorType>
+	void operator () (IteratorType begin, IteratorType end) const
+	{
+		Trace(L"RegisterUnknownReturn", std::wstring(begin, end));
+
+		State.SetParsePosition(begin);
+		std::wstring rettypename(begin, end);
+		State.RegisterUnknownReturn(StripWhitespace(rettypename));
+	}
+};
+
+//
+// Inform the parse analyzer of the name of the returned structure-typed value
+//
+struct RegisterUnknownReturnName : public ParseFunctorBase
+{
+	RegisterUnknownReturnName(Parser::ParserState& state)
+		: ParseFunctorBase(state)
+	{ }
+
+	template <typename IteratorType>
+	void operator () (IteratorType begin, IteratorType end) const
+	{
+		Trace(L"RegisterUnknownReturnName", std::wstring(begin, end));
+
+		State.SetParsePosition(begin);
+		std::wstring retname(begin, end);
+		State.RegisterUnknownReturnName(StripWhitespace(retname));
+	}
+};
+
+//
+// Inform the parse analyzer that we have finished the constructor of a structure-typed return value
+// This function is used in the preparse phase to manage the parser state internally.
+//
+struct ExitUnknownReturnConstructor : public ParseFunctorBase
+{
+	ExitUnknownReturnConstructor(Parser::ParserState& state)
+		: ParseFunctorBase(state)
+	{ }
+
+	template <typename IteratorType>
+	void operator () (IteratorType begin, IteratorType end) const
+	{
+		Trace(L"ExitUnknownReturnConstructor");
+
+		State.SetParsePosition(begin);
+		State.ExitUnknownReturnConstructor();
+	}
+};
+
+//
+// Inform the parse analyzer that we have finished the constructor of a structure-typed return value
+// This function is used in the parse phase to set up initialization instructions for the members of
+// the structure return variable being constructed.
+//
+struct FinishReturnConstructor : public ParseFunctorBase
+{
+	FinishReturnConstructor(Parser::ParserState& state)
+		: ParseFunctorBase(state)
+	{ }
+
+	template <typename IteratorType>
+	void operator () (IteratorType begin, IteratorType end) const
+	{
+		Trace(L"FinishReturnConstructor");
+
+		State.SetParsePosition(begin);
+		State.FinishReturnConstructor();
+	}
+};
+
+//
 // Inform the parse analyzer that the current function returns nothing.
 //
 struct RegisterNullReturn : public ParseFunctorBase

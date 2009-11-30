@@ -84,12 +84,16 @@ namespace Parser
 	// Function returns
 	public:
 		void RegisterBeginningOfFunctionReturns();
+		void ExitUnknownReturnConstructor();
+		void FinishReturnConstructor();
 
 		void RegisterIntegerReturn(const std::wstring& retname);
 		void RegisterInt16Return(const std::wstring& retname);
 		void RegisterRealReturn(const std::wstring& retname);
 		void RegisterStringReturn(const std::wstring& retname);
 		void RegisterBooleanReturn(const std::wstring& retname);
+		void RegisterUnknownReturn(const std::wstring& rettype);
+		void RegisterUnknownReturnName(const std::wstring& retname);
 		void RegisterNullReturn();
 
 		void RegisterReturnValue(Integer32 value);
@@ -516,6 +520,8 @@ namespace Parser
 		std::deque<VM::ScopeDescription*> DisplacedScopes;
 		std::deque<VM::ResponseMap*> ResponseMapStack;
 		std::stack<std::wstring> ExtensionBlockKeywords;
+		std::stack<std::wstring> UnknownReturnTypes;
+		std::stack<IDType> UnknownReturnTypeHints;
 
 		std::stack<std::list<std::wstring> > InfixOperatorList;
 		std::deque<unsigned> InfixOperandCount;
@@ -531,6 +537,7 @@ namespace Parser
 		VM::ScopeDescription* FunctionReturns;
 
 		std::map<std::wstring, FunctionRetMap> FunctionReturnValueTracker;
+		VM::Block* FunctionReturnInitializationBlock;
 
 		VM::TupleType* CreatedTupleType;
 		VM::StructureType* CreatedStructureType;

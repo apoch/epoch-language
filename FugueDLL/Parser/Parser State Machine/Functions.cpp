@@ -156,6 +156,7 @@ void ParserState::RegisterParamIsReference()
 void ParserState::RegisterBeginningOfFunctionReturns()
 {
 	FunctionReturns = new VM::ScopeDescription;
+	FunctionReturns->ParentScope = CurrentScope;
 }
 
 //
@@ -194,6 +195,76 @@ void ParserState::RegisterStringReturn(const std::wstring& retname)
 void ParserState::RegisterBooleanReturn(const std::wstring& retname)
 {
 	RegisterFunctionReturn(VM::EpochVariableType_Boolean, retname);
+}
+
+//
+// Register that the current function has an unknown return variable type.
+// The type's name is passed first to this function, followed by the actual
+// variable's name which is passed to RegisterUnknownReturnName.
+//
+void ParserState::RegisterUnknownReturn(const std::wstring& rettype)
+{
+	if(!CurrentScope->HasStructureType(rettype))
+	{
+		ReportFatalError("This type is not recognized or is not suitable for a function return value");
+		return;
+	}
+
+	UnknownReturnTypes.push(rettype);
+	UnknownReturnTypeHints.push(CurrentScope->GetStructureTypeID(rettype));
+
+	if(!FunctionReturnInitializationBlock)
+		FunctionReturnInitializationBlock = new VM::Block;
+}
+
+//
+// Register the name of a structure-typed function return variable
+//
+void ParserState::RegisterUnknownReturnName(const std::wstring& retname)
+{
+	RegisterFunctionReturn(VM::EpochVariableType_Structure, retname);
+}
+
+//
+// Register that we have finished parsing the constructor of a structure-typed return value
+//
+void ParserState::ExitUnknownReturnConstructor()
+{
+	// TODO - ensure that the constructor is passed the correct number and type of parameters!
+
+	std::wstring rettype = UnknownReturnTypes.top();
+	UnknownReturnTypes.pop();
+
+	if(FunctionReturnTypes.top() != VM::EpochVariableType_Structure)
+		throw ParserFailureException("Expected a structure here");
+
+	const std::wstring& varname = ParsedProgram->PoolStaticString(FunctionReturnNames.top());
+	FunctionReturns->AddStructureVariable(rettype, varname);
+
+	FunctionReturnTypes.pop();
+	FunctionReturnNames.pop();
+}
+
+//
+// Register that the instructions used to initialize a function's return values are completed
+//
+void ParserState::FinishReturnConstructor()
+{
+	for(unsigned i = 0; i < PassedParameterCount.top() - 1; ++i)
+		TheStack.pop_back();
+
+	if(TheStack.back().Type != StackEntry::STACKENTRYTYPE_IDENTIFIER)
+		throw ParserFailureException("Expected a structure identifier here");
+
+	const std::wstring& varname = ParsedProgram->PoolStaticString(TheStack.back().StringValue);
+
+	TheStack.pop_back();
+	PassedParameterCount.pop();
+
+	FunctionReturnInitializationBlock->AddOperation(VM::OperationPtr(new VM::Operations::PushIntegerLiteral(static_cast<Integer32>(UnknownReturnTypeHints.top()))));
+	FunctionReturnInitializationBlock->AddOperation(VM::OperationPtr(new VM::Operations::InitializeValue(varname)));
+
+	UnknownReturnTypeHints.pop();
 }
 
 //

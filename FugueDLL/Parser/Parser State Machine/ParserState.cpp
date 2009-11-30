@@ -39,7 +39,8 @@ ParserState::ParserState(Byte* sourcebuffer)
 	  MessageDispatchScope(NULL),
 	  InjectNotOperator(false),
 	  InjectNegateOperator(false),
-	  SavedStringSlots(static_cast<unsigned>(SavedStringSlot_Max))
+	  SavedStringSlots(static_cast<unsigned>(SavedStringSlot_Max)),
+	  FunctionReturnInitializationBlock(NULL)
 {
 	CurrentScope = &ParsedProgram->GetGlobalScope();
 }
@@ -54,6 +55,7 @@ ParserState::~ParserState()
 	delete CreatedTupleType;
 	delete CreatedStructureType;
 	delete MessageDispatchScope;
+	delete FunctionReturnInitializationBlock;
 
 	for(std::deque<StackEntry>::iterator iter = TheStack.begin(); iter != TheStack.end(); ++iter)
 	{
