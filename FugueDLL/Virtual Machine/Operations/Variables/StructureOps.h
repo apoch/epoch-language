@@ -75,6 +75,7 @@ namespace VM
 		// Additional helpers
 		public:
 			IDType WalkInstructionsForReadStruct(const ScopeDescription& scope, Operation* op) const;
+			IDType WalkInstructionsForTypeHint(const ScopeDescription& scope) const;
 			
 			const std::wstring& GetMemberName() const
 			{ return MemberName; }

@@ -223,9 +223,6 @@ void ParserState::EnterBlock()
 			for(std::vector<VM::Operation*>::const_iterator iter = ops.begin(); iter != ops.end(); ++iter)
 			{
 				VM::Operation* op = *iter;
-//				VM::Operations::AssignStructure* assignstructureop = dynamic_cast<VM::Operations::AssignStructure*>(op);
-//				VM::Operations::AssignStructureIndirect* assignstructureindirectop = dynamic_cast<VM::Operations::AssignStructureIndirect*>(op);
-//				VM::Operations::AssignTuple* assigntupleop = dynamic_cast<VM::Operations::AssignTuple*>(op);
 				VM::Operations::AssignValue* assignop = dynamic_cast<VM::Operations::AssignValue*>(op);
 
 				if(assignop)

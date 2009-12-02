@@ -116,12 +116,36 @@ void Block::ShiftUpTailOperation(size_t offset)
 	if(Operations.size() <= offset)
 		throw InternalFailureException("Cannot shift up tail operation - not enough operations exist");
 
+	// TODO - check this and other nearby functions for exception safety
 	Operation* op = *Operations.rbegin();
 
 	for(size_t i = Operations.size() - 1; i >= Operations.size() - offset; --i)
 		Operations[i] = Operations[i - 1];
 
 	Operations[Operations.size() - offset - 1] = op;
+}
+
+void Block::ShiftUpTailOperationGroup(size_t offset, const VM::ScopeDescription& scope)
+{
+	if(!offset)
+		return;
+
+	if(Operations.size() <= offset)
+		throw InternalFailureException("Cannot shift up tail operation - not enough operations exist");
+
+	size_t numopsingroup = Operations.size() - CountTailOps(1, scope);
+
+	std::reverse(Operations.rbegin(), Operations.rbegin() + numopsingroup);
+
+	for(size_t groupindex = 0; groupindex < numopsingroup; ++groupindex)
+	{
+		Operation* op = *Operations.rbegin();
+
+		for(size_t i = Operations.size() - 1; i >= Operations.size() - offset - numopsingroup + groupindex; --i)
+			Operations[i] = Operations[i - 1];
+
+		Operations[Operations.size() - offset - numopsingroup + groupindex] = op;
+	}
 }
 
 

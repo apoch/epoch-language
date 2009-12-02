@@ -113,6 +113,13 @@ IDType ReadStructureIndirect::WalkInstructionsForReadStruct(const ScopeDescripti
 	return StructureTrackerClass::GetOwnerOfStructureType(structid)->GetStructureType(structid).GetMemberTypeHint(readindirectop->MemberName);
 }
 
+IDType ReadStructureIndirect::WalkInstructionsForTypeHint(const ScopeDescription& scope) const
+{
+	IDType structid = WalkInstructionsForReadStruct(scope, PriorOp);
+	return StructureTrackerClass::GetOwnerOfStructureType(structid)->GetStructureType(structid).GetMemberTypeHint(MemberName);
+}
+
+
 //
 // Construct and initialize the structure write operation
 //

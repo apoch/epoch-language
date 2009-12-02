@@ -813,16 +813,17 @@ namespace Parser
 					| !(NOT[RegisterNotOperation(self.State)] | NEGATE[RegisterNegateOperation(self.State)]) >> StringIdentifier[PushIdentifierAsParameter(self.State)]
 					;
 
+				InfixHelper
+					= (MEMBEROPERATOR >> StringIdentifier[RegisterMemberAccess(self.State)])
+					| (InfixOperator[ResetMemberAccess(self.State)][RegisterInfixOperator(self.State)][ResetMemberAccessRValue(self.State)] >> PassedParameterBase[RegisterInfixOperand(self.State)])
+					;
+
 				PassedParameterInfixList
-					= PassedParameterBase[RegisterInfixOperand(self.State)] >> 
-						(
-							(+(MEMBEROPERATOR >> StringIdentifier[RegisterMemberAccess(self.State)]))
-						  | (*((InfixOperator[RegisterInfixOperator(self.State)] >> PassedParameterBase)[RegisterInfixOperand(self.State)]))
-						)
+					= PassedParameterBase[RegisterInfixOperand(self.State)] >> (*InfixHelper)
 					;
 
 				PassedParameter
-					= PassedParameterInfixList[TerminateInfixExpression(self.State)][ResetMemberAccess(self.State)]
+					= PassedParameterInfixList[TerminateInfixExpression(self.State)]
 					;
 
 				OperationParameter
@@ -934,8 +935,8 @@ namespace Parser
 					;
 
 				InfixAssignmentHelper
-					= (((StringIdentifier >> MEMBEROPERATOR)[RegisterCompositeLValue(self.State)]) >> +(StringIdentifier[RegisterMemberLValueAccess(self.State)] % MEMBEROPERATOR) >> boost::spirit::classic::strlit<>(OPERATOR(Assign))[ResetMemberAccessLValue(self.State)][StartCountingParams(self.State)] >> PassedParameter)[FinalizeCompositeAssignment(self.State)]
-					| *((StringIdentifier >> boost::spirit::classic::strlit<>(OPERATOR(Assign)))[RegisterInfixOperandAsLValue(self.State)]) >> (PassedParameter)
+					= ((StringIdentifier[SaveStringIdentifier(self.State, SavedStringSlot_InfixLValue)] >> +(MEMBEROPERATOR >> StringIdentifier[RegisterMemberLValueAccess(self.State)]) >> boost::spirit::classic::strlit<>(OPERATOR(Assign))[RegisterCompositeLValue(self.State)][ResetMemberAccessLValue(self.State)][ResetMemberAccessRValue(self.State)][StartCountingParams(self.State)] >> PassedParameter)[FinalizeCompositeAssignment(self.State)])
+					| (+((StringIdentifier >> boost::spirit::classic::strlit<>(OPERATOR(Assign)))[RegisterInfixOperandAsLValue(self.State)]) >> PassedParameter)
 					;
 
 				LanguageExtensionBlock
@@ -952,7 +953,7 @@ namespace Parser
 					| ResponseMapHelper
 					| Operation[RegisterOperation(self.State)]
 					| OpAssignmentHelper
-					| InfixAssignmentHelper
+					| InfixAssignmentHelper[PopParameterCount(self.State)]
 					| CodeBlock
 					;
 
@@ -1152,7 +1153,8 @@ namespace Parser
 
 				// Note that we do NOT define Assign as an infix operator here; the grammar
 				// handles assignments separately in order to ensure correct semantics.
-				// See the InfixAssignmentHelper production for details.
+				// See the InfixAssignmentHelper production for details. The member access
+				// operator is also excluded from this list for similar reasons.
 				InfixOperator = boost::spirit::classic::strlit<>(OPERATOR(Add))
 							  | boost::spirit::classic::strlit<>(OPERATOR(Subtract))
 							  | boost::spirit::classic::strlit<>(OPERATOR(Multiply))
@@ -1173,6 +1175,65 @@ namespace Parser
 				self.State.SetUpTypeAliases(*this, self.State);
 
 				Extensions::EnumerateExtensionKeywords(RegisterEnumeratedExtension<definition<ScannerType> >(*this));
+
+#ifdef BOOST_SPIRIT_DEBUG
+				BOOST_SPIRIT_DEBUG_RULE(StringIdentifier);
+				BOOST_SPIRIT_DEBUG_RULE(FunctionDefinition);
+				BOOST_SPIRIT_DEBUG_RULE(PassedParameter);
+				BOOST_SPIRIT_DEBUG_RULE(OperationParameter);
+				BOOST_SPIRIT_DEBUG_RULE(Operation);
+				BOOST_SPIRIT_DEBUG_RULE(CodeBlock);
+				BOOST_SPIRIT_DEBUG_RULE(Program);
+
+				BOOST_SPIRIT_DEBUG_RULE(LiteralValue);
+				BOOST_SPIRIT_DEBUG_RULE(IntegerLiteral);
+				BOOST_SPIRIT_DEBUG_RULE(StringLiteral);
+				BOOST_SPIRIT_DEBUG_RULE(Control);
+				BOOST_SPIRIT_DEBUG_RULE(ControlSimple);
+				BOOST_SPIRIT_DEBUG_RULE(ControlWithEnding);
+				BOOST_SPIRIT_DEBUG_RULE(LibraryImport);
+
+				BOOST_SPIRIT_DEBUG_RULE(ControlKeywords);
+				BOOST_SPIRIT_DEBUG_RULE(TypeKeywords);
+				BOOST_SPIRIT_DEBUG_RULE(BooleanLiteral);
+				BOOST_SPIRIT_DEBUG_RULE(CodeBlockContents);
+				BOOST_SPIRIT_DEBUG_RULE(GlobalBlock);
+				BOOST_SPIRIT_DEBUG_RULE(InfixHelper);
+
+				BOOST_SPIRIT_DEBUG_RULE(ExternalDeclaration);
+				BOOST_SPIRIT_DEBUG_RULE(RealLiteral);
+				BOOST_SPIRIT_DEBUG_RULE(OtherKeywords);
+				BOOST_SPIRIT_DEBUG_RULE(TupleDefinition);
+				BOOST_SPIRIT_DEBUG_RULE(StructureDefinition);
+				BOOST_SPIRIT_DEBUG_RULE(HigherOrderFunctionHelper);
+
+				BOOST_SPIRIT_DEBUG_RULE(ReadStructureHelper);
+				BOOST_SPIRIT_DEBUG_RULE(WriteStructureHelper);
+				BOOST_SPIRIT_DEBUG_RULE(MemberHelper);
+				BOOST_SPIRIT_DEBUG_RULE(HexLiteral);
+				BOOST_SPIRIT_DEBUG_RULE(Task);
+				BOOST_SPIRIT_DEBUG_RULE(MessageHelper);
+				BOOST_SPIRIT_DEBUG_RULE(AcceptMessageHelper);
+
+				BOOST_SPIRIT_DEBUG_RULE(ResponseMapHelper);
+				BOOST_SPIRIT_DEBUG_RULE(MessageDispatch);
+				BOOST_SPIRIT_DEBUG_RULE(InfixDeclaration);
+				BOOST_SPIRIT_DEBUG_RULE(PassedParameterBase);
+
+				BOOST_SPIRIT_DEBUG_RULE(PassedParameterInfixList);
+				BOOST_SPIRIT_DEBUG_RULE(InfixAssignmentHelper);
+				BOOST_SPIRIT_DEBUG_RULE(AliasDeclaration);
+				BOOST_SPIRIT_DEBUG_RULE(IncrementDecrementHelper);
+				BOOST_SPIRIT_DEBUG_RULE(OpAssignmentHelper);
+
+				BOOST_SPIRIT_DEBUG_RULE(LanguageExtensionBlock);
+				BOOST_SPIRIT_DEBUG_RULE(ExtensionImport);
+
+				BOOST_SPIRIT_DEBUG_RULE(InfixOperator);
+				BOOST_SPIRIT_DEBUG_RULE(VariableDefinition);
+				BOOST_SPIRIT_DEBUG_RULE(UserDefinedTypeAliases);
+				BOOST_SPIRIT_DEBUG_RULE(LanguageExtensionKeywords);
+#endif
 			}
 
 			// Character tokens
@@ -1188,7 +1249,7 @@ namespace Parser
 			// Parser rules
 			boost::spirit::classic::rule<ScannerType> StringIdentifier, FunctionDefinition, PassedParameter, OperationParameter, Operation, CodeBlock, Program;
 			boost::spirit::classic::rule<ScannerType> LiteralValue, IntegerLiteral, StringLiteral, Control, ControlSimple, ControlWithEnding, LibraryImport;
-			boost::spirit::classic::rule<ScannerType> ControlKeywords, TypeKeywords, BooleanLiteral, CodeBlockContents, GlobalBlock;
+			boost::spirit::classic::rule<ScannerType> ControlKeywords, TypeKeywords, BooleanLiteral, CodeBlockContents, GlobalBlock, InfixHelper;
 			boost::spirit::classic::rule<ScannerType> ExternalDeclaration, RealLiteral, OtherKeywords, TupleDefinition, StructureDefinition, HigherOrderFunctionHelper;
 			boost::spirit::classic::rule<ScannerType> ReadStructureHelper, WriteStructureHelper, MemberHelper, HexLiteral, Task, MessageHelper, AcceptMessageHelper;
 			boost::spirit::classic::rule<ScannerType> ResponseMapHelper, MessageDispatch, InfixDeclaration, PassedParameterBase;

@@ -303,6 +303,23 @@ struct ResetMemberAccessLValue : public ParseFunctorBase
 };
 
 //
+// Reset tracking of r-value member accesses
+//
+struct ResetMemberAccessRValue : public ParseFunctorBase
+{
+	ResetMemberAccessRValue(Parser::ParserState& state)
+		: ParseFunctorBase(state)
+	{ }
+
+	template <typename IteratorType>
+	void operator () (IteratorType begin, IteratorType end) const
+	{
+		Trace(L"ResetMemberAccessRValue", std::wstring(begin, end));
+		State.ResetMemberAccessRValue();
+	}
+};
+
+//
 // Register that we are using a member of a composite type as an l-value
 //
 struct RegisterCompositeLValue : public ParseFunctorBase
@@ -314,10 +331,8 @@ struct RegisterCompositeLValue : public ParseFunctorBase
 	template <typename IteratorType>
 	void operator () (IteratorType begin, IteratorType end) const
 	{
-		std::wstring str(begin, end);
-		str = str.substr(0, str.find(Operators::Member));
-		Trace(L"RegisterCompositeLValue", str);
-		State.RegisterCompositeLValue(str);
+		Trace(L"RegisterCompositeLValue");
+		State.RegisterCompositeLValue();
 	}
 };
 

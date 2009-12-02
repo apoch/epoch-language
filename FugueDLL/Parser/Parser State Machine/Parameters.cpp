@@ -229,3 +229,9 @@ void ParserState::PushBooleanLiteral(bool value)
 	++PassedParameterCount.top();
 }
 
+
+void ParserState::PopParameterCount()
+{
+	PassedParameterCount.pop();
+}
+

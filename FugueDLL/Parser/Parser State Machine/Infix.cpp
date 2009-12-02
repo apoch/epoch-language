@@ -110,9 +110,14 @@ void ParserState::RegisterInfixOperandAsLValue(const std::wstring& lvaluename)
 //
 void ParserState::TerminateInfixExpression()
 {
+	ResetMemberAccess();
+
 	bool firstrun = true;
 	while(FinalizeInfixExpression(firstrun, *CurrentScope))
 		firstrun = false;
+
+	LastMemberLevelRValue = MemberLevelRValue;
+	MemberLevelRValue = 0;
 }
 
 

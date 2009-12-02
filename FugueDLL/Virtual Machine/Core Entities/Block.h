@@ -47,6 +47,7 @@ namespace VM
 		void RemoveTailOperations(size_t numops);
 		void RemoveOperationFromEnd(size_t numops, const ScopeDescription& scope);
 		void ShiftUpTailOperation(size_t offset);
+		void ShiftUpTailOperationGroup(size_t offset, const VM::ScopeDescription& scope);
 		void ReverseTailOperations(size_t numops, const ScopeDescription& scope);
 
 		OperationPtr PopTailOperation()

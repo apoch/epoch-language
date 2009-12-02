@@ -46,6 +46,7 @@ namespace Parser
 		SavedStringSlot_IncDec,
 		SavedStringSlot_OpAssign,
 		SavedStringSlot_Alias,
+		SavedStringSlot_InfixLValue,
 
 		SavedStringSlot_Max			// Always leave this as the last enum!
 	};
@@ -130,6 +131,7 @@ namespace Parser
 	// Parameter passing
 	public:
 		void StartCountingParams();
+		void PopParameterCount();
 		void CountParameter();
 		void PushOperationAsParameter(const std::wstring& operationname);
 		void PushIdentifier(const std::wstring& identifier);
@@ -235,11 +237,12 @@ namespace Parser
 		void RegisterOpAssignment();
 		void RegisterOpAssignmentOperator(const std::wstring& op);
 
-		void RegisterCompositeLValue(const std::wstring& varname);
+		void RegisterCompositeLValue();
 		void RegisterMemberAccess(const std::wstring& membername);
 		void RegisterMemberLValueAccess(const std::wstring& membername);
 		void ResetMemberAccess();
 		void ResetMemberAccessLValue();
+		void ResetMemberAccessRValue();
 		void FinalizeCompositeAssignment();
 
 		void PreincrementVariable();
@@ -552,7 +555,9 @@ namespace Parser
 
 		VM::Block* GlobalBlock;
 
-		unsigned MemberLevel;
+		unsigned MemberLevelLValue;
+		unsigned MemberLevelRValue;
+		unsigned LastMemberLevelRValue;
 
 		bool IsDefiningConstant;
 

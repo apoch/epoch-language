@@ -242,3 +242,18 @@ struct PushIdentifierNoStack : public ParseFunctorBase
 	}
 };
 
+struct PopParameterCount : public ParseFunctorBase
+{
+	PopParameterCount(Parser::ParserState& state)
+		: ParseFunctorBase(state)
+	{ }
+
+	template <typename IteratorType>
+	void operator () (IteratorType begin, IteratorType end) const
+	{
+		std::wstring str(begin, end);
+		Trace(L"PopParameterCount", str);
+
+		State.PopParameterCount();
+	}
+};

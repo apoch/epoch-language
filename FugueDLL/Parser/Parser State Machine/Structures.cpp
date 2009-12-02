@@ -111,7 +111,7 @@ void ParserState::FinishStructureType()
 //
 void ParserState::IncrementMemberLevel()
 {
-	++MemberLevel;
+	++MemberLevelRValue;
 }
 
 //
@@ -121,8 +121,9 @@ void ParserState::IncrementMemberLevel()
 //
 void ParserState::ResetMemberLevel()
 {
-	Blocks.back().TheBlock->ShiftUpTailOperation(MemberLevel);
-	MemberLevel = 0;
+	Blocks.back().TheBlock->ShiftUpTailOperation(MemberLevelRValue);
+	LastMemberLevelRValue = MemberLevelRValue;
+	MemberLevelRValue = 0;
 }
 
 //
@@ -131,6 +132,7 @@ void ParserState::ResetMemberLevel()
 void ParserState::RegisterMemberAccess(const std::wstring& membername)
 {
 	MemberAccesses.push_back(membername);
+	++MemberLevelRValue;
 }
 
 //
@@ -189,7 +191,7 @@ void ParserState::ResetMemberAccess()
 void ParserState::RegisterMemberLValueAccess(const std::wstring& membername)
 {
 	MemberAccesses.push_back(membername);
-	++MemberLevel;
+	++MemberLevelLValue;
 }
 
 //
@@ -242,14 +244,20 @@ void ParserState::ResetMemberAccessLValue()
 	MemberAccesses.clear();
 }
 
+void ParserState::ResetMemberAccessRValue()
+{
+	LastMemberLevelRValue = MemberLevelRValue;
+	MemberLevelRValue = 0;
+}
+
 //
 // Track the root variable of a set of nested member accesses
 //
-void ParserState::RegisterCompositeLValue(const std::wstring& varname)
+void ParserState::RegisterCompositeLValue()
 {
 	StackEntry entry;
 	entry.Type = StackEntry::STACKENTRYTYPE_IDENTIFIER;
-	entry.StringValue = varname;
+	entry.StringValue = SavedStringSlots[SavedStringSlot_InfixLValue];
 	TheStack.push_back(entry);
 }
 
@@ -264,10 +272,34 @@ void ParserState::FinalizeCompositeAssignment()
 	if(rvaluetype == VM::EpochVariableType_Structure)
 	{
 		VM::Operations::PushOperation* pushop = dynamic_cast<VM::Operations::PushOperation*>(Blocks.back().TheBlock->GetTailOperation());
-		rvaluehint = CurrentScope->GetVariableStructureTypeID(dynamic_cast<VM::Operations::GetVariableValue*>(pushop->GetNestedOperation())->GetAssociatedIdentifier());
+
+		VM::Operations::GetVariableValue* nestedreadop = dynamic_cast<VM::Operations::GetVariableValue*>(pushop->GetNestedOperation());
+		if(nestedreadop)
+			rvaluehint = CurrentScope->GetVariableStructureTypeID(nestedreadop->GetAssociatedIdentifier());
+		else
+		{
+			VM::Operations::ReadStructure* readstructop = dynamic_cast<VM::Operations::ReadStructure*>(pushop->GetNestedOperation());
+			if(readstructop)
+			{
+				const VM::ScopeDescription* ownerscope = CurrentScope->GetScopeOwningVariable(readstructop->GetAssociatedIdentifier());
+				IDType structtype = ownerscope->GetVariableStructureTypeID(readstructop->GetAssociatedIdentifier());
+				rvaluehint = VM::StructureTrackerClass::GetOwnerOfStructureType(structtype)->GetStructureType(structtype).GetMemberTypeHint(readstructop->GetMemberName());
+			}
+			else
+			{
+				VM::Operations::ReadStructureIndirect* readindirectop = dynamic_cast<VM::Operations::ReadStructureIndirect*>(pushop->GetNestedOperation());
+				if(readindirectop)
+					rvaluehint = readindirectop->WalkInstructionsForTypeHint(*CurrentScope);
+				else
+					throw VM::NotImplementedException("Not sure how to handle this assignment (VM functionality incomplete perhaps?)");
+			}
+		}
 	}
 
-	Blocks.back().TheBlock->ShiftUpTailOperation(MemberLevel);
+	if(LastMemberLevelRValue > 0)
+		Blocks.back().TheBlock->ShiftUpTailOperationGroup(LastMemberLevelRValue, *CurrentScope);
+	else
+		Blocks.back().TheBlock->ShiftUpTailOperationGroup(MemberLevelLValue, *CurrentScope);
 
 	VM::Operation* tailop = Blocks.back().TheBlock->GetTailOperation();
 
@@ -306,9 +338,13 @@ void ParserState::FinalizeCompositeAssignment()
 			while(true)
 			{
 				VM::Operation* op = ops[--i];
-				op = dynamic_cast<VM::Operations::PushOperation*>(op)->GetNestedOperation();
+				VM::Operations::PushOperation* pushop = dynamic_cast<VM::Operations::PushOperation*>(op);
+				if(!pushop)
+					throw ParserFailureException("Expected a stack push operation but found none");
+				
+				VM::Operation* nestedop = pushop->GetNestedOperation();
 
-				bindop = dynamic_cast<VM::Operations::BindStructMemberReference*>(op);
+				bindop = dynamic_cast<VM::Operations::BindStructMemberReference*>(nestedop);
 				if(!bindop)
 					throw ParserFailureException("Can't understand nested member accesses");
 
@@ -348,7 +384,8 @@ void ParserState::FinalizeCompositeAssignment()
 	for(unsigned i = 0; i < PassedParameterCount.top(); ++i)
 		TheStack.pop_back();
 
-	PassedParameterCount.pop();
-	MemberLevel = 0;
+	MemberLevelLValue = 0;
+	LastMemberLevelRValue = MemberLevelRValue;
+	MemberLevelRValue = 0;
 }
 
