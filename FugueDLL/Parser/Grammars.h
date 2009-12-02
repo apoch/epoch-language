@@ -558,6 +558,7 @@ namespace Parser
 				FunctionDefinition
 					= SyntaxErrorGuard
 					(
+						(!(INFIXDECL[RegisterUserDefinedInfix(self.State)])) >>
 						(StringIdentifier - EXTERNAL - TUPLE - STRUCTURE - FUNCTION - GLOBAL - INFIXDECL)[RegisterFunctionPP(self.State)] >>
 							ExpectFunctionParameters
 							(
@@ -640,12 +641,8 @@ namespace Parser
 					  >> CLOSEBRACE
 					;
 
-				InfixDeclaration
-					= INFIXDECL >> OPENPARENS >> StringIdentifier[RegisterUserDefinedInfix(self.State)] >> CLOSEPARENS
-					;
-
 				Program
-					= *(ExternalDeclaration | GlobalBlock | LibraryImport | ExtensionImport | HigherOrderFunctionHelper | TupleDefinition | StructureDefinition | InfixDeclaration | AliasDeclaration | FunctionDefinition)
+					= *(ExternalDeclaration | GlobalBlock | LibraryImport | ExtensionImport | HigherOrderFunctionHelper | TupleDefinition | StructureDefinition | AliasDeclaration | FunctionDefinition)
 					;
 
 				InfixOperator = boost::spirit::classic::strlit<>(OPERATOR(Add))
@@ -685,7 +682,7 @@ namespace Parser
 			boost::spirit::classic::rule<ScannerType> LiteralValue, IntegerLiteral, StringLiteral, Control, ControlSimple, ControlWithEnding, LibraryImport, AliasDeclaration;
 			boost::spirit::classic::rule<ScannerType> ControlKeywords, TypeKeywords, VariableDefinition, BooleanLiteral, CodeBlockContents, GlobalBlock, PassedParameterInfixList;
 			boost::spirit::classic::rule<ScannerType> ExternalDeclaration, RealLiteral, TupleDefinition, StructureDefinition, HigherOrderFunctionHelper, MessageDispatch;
-			boost::spirit::classic::rule<ScannerType> HexLiteral, Task, AcceptMessageHelper, ResponseMapHelper, InfixDeclaration, PassedParameterBase, InfixOperator;
+			boost::spirit::classic::rule<ScannerType> HexLiteral, Task, AcceptMessageHelper, ResponseMapHelper, PassedParameterBase, InfixOperator;
 			boost::spirit::classic::rule<ScannerType> InfixAssignmentHelper, OtherKeywords, ReadStructureHelper, WriteStructureHelper, MemberHelper, MessageHelper;
 			boost::spirit::classic::rule<ScannerType> IncrementDecrementHelper, OpAssignmentHelper, LanguageExtensionBlock, ExtensionImport, FunctionReturns;
 
@@ -1080,6 +1077,7 @@ namespace Parser
 				FunctionDefinition
 					=
 					(
+						(!INFIXDECL) >>
 						(StringIdentifier - EXTERNAL - TUPLE - STRUCTURE - FUNCTION - GLOBAL - INFIXDECL)[RegisterFunction(self.State)] >>
 							(
 								COLON >>
@@ -1139,12 +1137,8 @@ namespace Parser
 					  >> CLOSEBRACE[ExitGlobalBlock(self.State)]
 					;
 
-				InfixDeclaration
-					= INFIXDECL >> OPENPARENS >> StringIdentifier >> CLOSEPARENS
-					;
-
 				Program
-					= *(ExternalDeclaration | LibraryImport | ExtensionImport | GlobalBlock | HigherOrderFunctionHelper | TupleDefinition | StructureDefinition | InfixDeclaration | AliasDeclaration | FunctionDefinition)
+					= *(ExternalDeclaration | LibraryImport | ExtensionImport | GlobalBlock | HigherOrderFunctionHelper | TupleDefinition | StructureDefinition | AliasDeclaration | FunctionDefinition)
 					;
 
 				AliasDeclaration
@@ -1217,7 +1211,6 @@ namespace Parser
 
 				BOOST_SPIRIT_DEBUG_RULE(ResponseMapHelper);
 				BOOST_SPIRIT_DEBUG_RULE(MessageDispatch);
-				BOOST_SPIRIT_DEBUG_RULE(InfixDeclaration);
 				BOOST_SPIRIT_DEBUG_RULE(PassedParameterBase);
 
 				BOOST_SPIRIT_DEBUG_RULE(PassedParameterInfixList);
@@ -1252,7 +1245,7 @@ namespace Parser
 			boost::spirit::classic::rule<ScannerType> ControlKeywords, TypeKeywords, BooleanLiteral, CodeBlockContents, GlobalBlock, InfixHelper;
 			boost::spirit::classic::rule<ScannerType> ExternalDeclaration, RealLiteral, OtherKeywords, TupleDefinition, StructureDefinition, HigherOrderFunctionHelper;
 			boost::spirit::classic::rule<ScannerType> ReadStructureHelper, WriteStructureHelper, MemberHelper, HexLiteral, Task, MessageHelper, AcceptMessageHelper;
-			boost::spirit::classic::rule<ScannerType> ResponseMapHelper, MessageDispatch, InfixDeclaration, PassedParameterBase;
+			boost::spirit::classic::rule<ScannerType> ResponseMapHelper, MessageDispatch, PassedParameterBase;
 			boost::spirit::classic::rule<ScannerType> PassedParameterInfixList, InfixAssignmentHelper, AliasDeclaration, IncrementDecrementHelper, OpAssignmentHelper;
 			boost::spirit::classic::rule<ScannerType> LanguageExtensionBlock, ExtensionImport;
 

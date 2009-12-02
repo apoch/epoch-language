@@ -47,6 +47,13 @@ void ParserState::RegisterUpcomingFunctionPP(const std::wstring& functionname)
 	ExpectedBlockTypes.push(BlockEntry::BLOCKENTRYTYPE_FUNCTION);
 	ParamCount = 0;
 	ReadingFunctionSignature = true;
+
+	if(FunctionIsInfix)
+		RegisterInfixFunction(functionname);
+
+	// TODO - we need to enforce that an infix function takes two parameters; types should not matter though
+
+	FunctionIsInfix = false;
 }
 
 

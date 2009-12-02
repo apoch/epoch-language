@@ -225,7 +225,7 @@ namespace Parser
 		std::wstring LookupInfixAlias(const std::wstring& opname) const;
 		unsigned GetInfixPrecedence(const std::wstring& opname) const;
 
-		void RegisterUserDefinedInfix(const std::wstring& opname);
+		void RegisterUserDefinedInfix();
 
 		template<typename T>
 		void SetUpUserInfixOps(T& target)
@@ -442,6 +442,8 @@ namespace Parser
 
 		void AddOperationToCurrentBlock(VM::OperationPtr op);
 
+		void RegisterInfixFunction(const std::wstring& functionname);
+
 	// Internal helpers for builtin functions
 	private:
 		// Arithmetic
@@ -584,6 +586,8 @@ namespace Parser
 		std::list<std::wstring> MemberAccesses;
 
 		std::map<VM::Operation*, size_t> TypeAnnotationOps;
+
+		bool FunctionIsInfix;
 
 	// Public tracking
 	public:

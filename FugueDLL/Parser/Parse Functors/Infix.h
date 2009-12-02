@@ -199,10 +199,9 @@ struct RegisterUserDefinedInfix : public ParseFunctorBase
 	template <typename IteratorType>
 	void operator () (IteratorType begin, IteratorType end) const
 	{
-		std::wstring str(begin, end);
-		Trace(L"RegisterUserDefinedInfix", str);
+		Trace(L"RegisterUserDefinedInfix");
 
-		State.RegisterUserDefinedInfix(str);
+		State.RegisterUserDefinedInfix();
 	}
 };
 

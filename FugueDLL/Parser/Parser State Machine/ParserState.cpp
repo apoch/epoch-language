@@ -41,7 +41,8 @@ ParserState::ParserState(Byte* sourcebuffer)
 	  InjectNotOperator(false),
 	  InjectNegateOperator(false),
 	  SavedStringSlots(static_cast<unsigned>(SavedStringSlot_Max)),
-	  FunctionReturnInitializationBlock(NULL)
+	  FunctionReturnInitializationBlock(NULL),
+	  FunctionIsInfix(false)
 {
 	CurrentScope = &ParsedProgram->GetGlobalScope();
 }

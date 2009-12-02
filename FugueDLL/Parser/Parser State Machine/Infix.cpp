@@ -659,14 +659,21 @@ namespace
 
 
 //
-// Add a record describing a user-define infix operator
+// Record that the following function is to be added to the infix operator list
 //
-void ParserState::RegisterUserDefinedInfix(const std::wstring& opname)
+void ParserState::RegisterUserDefinedInfix()
 {
-	DefineInfixOperator(opname, opname, OPREC_USER);
-	UserInfixOperators.insert(narrow(opname));
+	FunctionIsInfix = true;
 }
 
+//
+// Actually add a function to the infix operator table
+//
+void ParserState::RegisterInfixFunction(const std::wstring& functionname)
+{
+	DefineInfixOperator(functionname, functionname, OPREC_USER);
+	UserInfixOperators.insert(narrow(functionname));
+}
 
 //
 // Inject a preincrement operation
