@@ -108,14 +108,15 @@ void ParserState::PushIdentifierAsParameter(const std::wstring& identifier)
 	if(InjectNotOperator)
 	{
 		leaveoponstack = true;
-		if(Blocks.back().TheBlock->GetTailOperation()->GetType(*CurrentScope) == VM::EpochVariableType_Boolean)
+		VM::EpochVariableTypeID type = Blocks.back().TheBlock->GetTailOperation()->GetType(*CurrentScope);
+		if(type == VM::EpochVariableType_Boolean)
 		{
 			VM::OperationPtr injectop(new VM::Operations::PushOperation(new VM::Operations::LogicalNot));
 			AddOperationToCurrentBlock(injectop);
 		}
 		else
 		{
-			VM::OperationPtr injectop(new VM::Operations::PushOperation(new VM::Operations::BitwiseNot));
+			VM::OperationPtr injectop(new VM::Operations::PushOperation(new VM::Operations::BitwiseNot(type)));
 			AddOperationToCurrentBlock(injectop);
 		}
 	}

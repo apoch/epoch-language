@@ -95,6 +95,7 @@ namespace Serialization
 	// Serialization interface
 	public:
 		void WriteOp(const void* opptr, const std::wstring& token, bool newline);
+		void WriteOp(const void* opptr, const std::wstring& token, VM::EpochVariableTypeID type);
 		void WriteOp(const std::wstring& token);
 		void WriteOp(const void* opptr, const std::wstring& token, const std::wstring& param);
 		void WriteOp(const void* opptr, const std::wstring& token, const std::wstring& param1, const std::wstring& param2);
@@ -110,6 +111,7 @@ namespace Serialization
 		void WriteAcceptMessage(const void* opptr, const std::wstring& token, const std::wstring& messagename, const std::list<VM::EpochVariableTypeID>& payloadtypes);
 		void WriteConsList(const void* opptr, const std::wstring& token, VM::EpochVariableTypeID elementtype, size_t numelements);
 		void WriteCompoundOp(const void* opptr, const std::wstring& token, size_t numops);
+		void WriteCompoundOp(const void* opptr, const std::wstring& token, VM::EpochVariableTypeID type, size_t numops);
 
 	// Internal helpers
 	private:

@@ -64,6 +64,7 @@ std::wstring Serialization::GetValue(L"READ");
 std::wstring Serialization::SizeOf(L"SIZEOF");
 std::wstring Serialization::Length(L"LENGTH");
 std::wstring Serialization::IntegerConstant(L"INT");
+std::wstring Serialization::Integer16Constant(L"INT16");
 std::wstring Serialization::RealConstant(L"REAL");
 std::wstring Serialization::BooleanConstant(L"BOOL");
 

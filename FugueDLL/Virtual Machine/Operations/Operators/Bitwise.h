@@ -25,13 +25,17 @@ namespace VM
 		//
 		class BitwiseOr : public CompoundOperator, public Operation, public SelfAware<BitwiseOr>
 		{
+		// Construction
+		public:
+			BitwiseOr(EpochVariableTypeID type);
+
 		// Operation interface
 		public:
 			virtual void ExecuteFast(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult);
 			virtual RValuePtr ExecuteAndStoreRValue(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult);
 
 			virtual EpochVariableTypeID GetType(const ScopeDescription& scope) const
-			{ return EpochVariableType_Integer; }
+			{ return Type; }
 
 			virtual size_t GetNumParameters(const VM::ScopeDescription& scope) const
 			{ return SubOps.size(); }
@@ -43,6 +47,15 @@ namespace VM
 
 			virtual void Traverse(Validator::ValidationTraverser& traverser);
 			virtual void Traverse(Serialization::SerializationTraverser& traverser);
+
+		// Additional accessors
+		public:
+			EpochVariableTypeID GetType() const			// Overload used primarily by serialization logic
+			{ return Type; }
+
+		// Internal tracking
+		protected:
+			EpochVariableTypeID Type;
 		};
 
 		//
@@ -50,6 +63,10 @@ namespace VM
 		//
 		class BitwiseAnd : public CompoundOperator, public Operation, public SelfAware<BitwiseAnd>
 		{
+		// Construction
+		public:
+			BitwiseAnd(EpochVariableTypeID type);
+
 		// Operation interface
 		public:
 			virtual void ExecuteFast(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult);
@@ -68,6 +85,15 @@ namespace VM
 
 			virtual void Traverse(Validator::ValidationTraverser& traverser);
 			virtual void Traverse(Serialization::SerializationTraverser& traverser);
+
+		// Additional accessors
+		public:
+			EpochVariableTypeID GetType() const			// Overload used primarily by serialization logic
+			{ return Type; }
+
+		// Internal tracking
+		protected:
+			EpochVariableTypeID Type;
 		};
 
 		//
@@ -75,16 +101,29 @@ namespace VM
 		//
 		class BitwiseXor : public Operation, public SelfAware<BitwiseXor>
 		{
+		// Construction
+		public:
+			BitwiseXor(EpochVariableTypeID type);
+
 		// Operation interface
 		public:
 			virtual void ExecuteFast(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult);
 			virtual RValuePtr ExecuteAndStoreRValue(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult);
 
 			virtual EpochVariableTypeID GetType(const ScopeDescription& scope) const
-			{ return EpochVariableType_Integer; }
+			{ return Type; }
 
 			virtual size_t GetNumParameters(const VM::ScopeDescription& scope) const
 			{ return 2; }
+
+		// Additional accessors
+		public:
+			EpochVariableTypeID GetType() const			// Overload used primarily by serialization logic
+			{ return Type; }
+			
+		// Internal tracking
+		protected:
+			EpochVariableTypeID Type;
 		};
 
 		//
@@ -92,16 +131,29 @@ namespace VM
 		//
 		class BitwiseNot : public Operation, public SelfAware<BitwiseNot>
 		{
+		// Construction
+		public:
+			BitwiseNot(EpochVariableTypeID type);
+			
 		// Operation interface
 		public:
 			virtual void ExecuteFast(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult);
 			virtual RValuePtr ExecuteAndStoreRValue(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult);
 
 			virtual EpochVariableTypeID GetType(const ScopeDescription& scope) const
-			{ return EpochVariableType_Integer; }
+			{ return Type; }
 
 			virtual size_t GetNumParameters(const VM::ScopeDescription& scope) const
 			{ return 1; }
+
+		// Additional accessors
+		public:
+			EpochVariableTypeID GetType() const			// Overload used primarily by serialization logic
+			{ return Type; }
+			
+		// Internal tracking
+		protected:
+			EpochVariableTypeID Type;
 		};
 
 	}

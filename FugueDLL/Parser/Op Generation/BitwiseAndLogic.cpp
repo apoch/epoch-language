@@ -21,6 +21,8 @@
 #include "Virtual Machine/Operations/UtilityOps.h"
 #include "Virtual Machine/Operations/Variables/VariableOps.h"
 #include "Virtual Machine/Operations/Containers/ContainerOps.h"
+#include "Virtual Machine/SelfAware.inl"
+
 
 
 using namespace Parser;
@@ -60,7 +62,9 @@ VM::OperationPtr ParserState::CreateOperation_Or()
 	if(firsttype == VM::EpochVariableType_Boolean)
 		return VM::OperationPtr(ParseLogicalOp<VM::Operations::LogicalOr, VM::Operations::PushBooleanLiteral, VM::Operations::BooleanConstant>(first.IsList(), second.IsList()));
 	else if(firsttype == VM::EpochVariableType_Integer)
-		return VM::OperationPtr(ParseLogicalOp<VM::Operations::BitwiseOr, VM::Operations::PushIntegerLiteral, VM::Operations::IntegerConstant>(first.IsList(), second.IsList()));
+		return VM::OperationPtr(ParseBitwiseOp<VM::Operations::BitwiseOr, VM::Operations::PushIntegerLiteral, VM::Operations::IntegerConstant>(first.IsList(), second.IsList()));
+	else if(firsttype == VM::EpochVariableType_Integer16)
+		return VM::OperationPtr(ParseBitwiseOp<VM::Operations::BitwiseOr, VM::Operations::PushInteger16Literal, VM::Operations::Integer16Constant>(first.IsList(), second.IsList()));
 
 	ReportFatalError("Couldn't determine whether or() should be logical or bitwise");
 	return VM::OperationPtr(new VM::Operations::NoOp);
@@ -101,7 +105,9 @@ VM::OperationPtr ParserState::CreateOperation_And()
 	if(firsttype == VM::EpochVariableType_Boolean)
 		return VM::OperationPtr(ParseLogicalOp<VM::Operations::LogicalAnd, VM::Operations::PushBooleanLiteral, VM::Operations::BooleanConstant>(first.IsList(), second.IsList()));
 	else if(firsttype == VM::EpochVariableType_Integer)
-		return VM::OperationPtr(ParseLogicalOp<VM::Operations::BitwiseAnd, VM::Operations::PushIntegerLiteral, VM::Operations::IntegerConstant>(first.IsList(), second.IsList()));
+		return VM::OperationPtr(ParseBitwiseOp<VM::Operations::BitwiseAnd, VM::Operations::PushIntegerLiteral, VM::Operations::IntegerConstant>(first.IsList(), second.IsList()));
+	else if(firsttype == VM::EpochVariableType_Integer16)
+		return VM::OperationPtr(ParseBitwiseOp<VM::Operations::BitwiseAnd, VM::Operations::PushInteger16Literal, VM::Operations::Integer16Constant>(first.IsList(), second.IsList()));
 
 	ReportFatalError("Couldn't determine whether and() should be logical or bitwise");
 	return VM::OperationPtr(new VM::Operations::NoOp);
@@ -138,8 +144,8 @@ VM::OperationPtr ParserState::CreateOperation_Xor()
 
 	if(firsttype == VM::EpochVariableType_Boolean)
 		return VM::OperationPtr(new VM::Operations::LogicalXor);
-	else if(firsttype == VM::EpochVariableType_Integer)
-		return VM::OperationPtr(new VM::Operations::BitwiseXor);
+	else if(firsttype == VM::EpochVariableType_Integer || firsttype == VM::EpochVariableType_Integer16)
+		return VM::OperationPtr(new VM::Operations::BitwiseXor(firsttype));
 
 	ReportFatalError("Couldn't determine whether xor() should be logical or bitwise");
 	return VM::OperationPtr(new VM::Operations::NoOp);
@@ -166,8 +172,8 @@ VM::OperationPtr ParserState::CreateOperation_Not()
 
 	if(paramtype == VM::EpochVariableType_Boolean)
 		return VM::OperationPtr(new VM::Operations::LogicalNot);
-	else if(paramtype == VM::EpochVariableType_Integer)
-		return VM::OperationPtr(new VM::Operations::BitwiseNot);
+	else if(paramtype == VM::EpochVariableType_Integer || paramtype == VM::EpochVariableType_Integer16)
+		return VM::OperationPtr(new VM::Operations::BitwiseNot(paramtype));
 
 	ReportFatalError("Couldn't determine whether not() should be logical or bitwise");
 	return VM::OperationPtr(new VM::Operations::NoOp);

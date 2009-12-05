@@ -383,6 +383,12 @@ void SerializationTraverser::WriteOp(const void* opptr, const std::wstring& toke
 	}
 }
 
+void SerializationTraverser::WriteOp(const void* opptr, const std::wstring& token, VM::EpochVariableTypeID type)
+{
+	PadTabs();
+	OutputStream << opptr << L" " << token << L" " << type << L"\n";
+}
+
 void SerializationTraverser::WriteOp(const std::wstring& token)
 {
 	PadTabs();
@@ -515,5 +521,11 @@ void SerializationTraverser::WriteCompoundOp(const void* opptr, const std::wstri
 {
 	PadTabs();
 	OutputStream << opptr << L" " << token << L" " << numops << L"\n";
+}
+
+void SerializationTraverser::WriteCompoundOp(const void* opptr, const std::wstring& token, VM::EpochVariableTypeID type, size_t numops)
+{
+	PadTabs();
+	OutputStream << opptr << L" " << token << L" " << type << L" " << numops << L"\n";
 }
 

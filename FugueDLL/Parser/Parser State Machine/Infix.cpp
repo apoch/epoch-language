@@ -383,8 +383,8 @@ bool ParserState::FinalizeInfixExpression(bool isfirstrun, const VM::ScopeDescri
 					if(opname == Keywords::Or)
 					{
 						discardoperations = true;
-						if(expressiontype == VM::EpochVariableType_Integer)
-							op.reset(new VM::Operations::BitwiseOr);
+						if(expressiontype == VM::EpochVariableType_Integer || expressiontype == VM::EpochVariableType_Integer16)
+							op.reset(new VM::Operations::BitwiseOr(expressiontype));
 						else if(expressiontype == VM::EpochVariableType_Boolean)
 							op.reset(new VM::Operations::LogicalOr);
 						else
@@ -393,8 +393,8 @@ bool ParserState::FinalizeInfixExpression(bool isfirstrun, const VM::ScopeDescri
 					else if(opname == Keywords::And)
 					{
 						discardoperations = true;
-						if(expressiontype == VM::EpochVariableType_Integer)
-							op.reset(new VM::Operations::BitwiseAnd);
+						if(expressiontype == VM::EpochVariableType_Integer || expressiontype == VM::EpochVariableType_Integer16)
+							op.reset(new VM::Operations::BitwiseAnd(expressiontype));
 						else if(expressiontype == VM::EpochVariableType_Boolean)
 							op.reset(new VM::Operations::LogicalAnd);
 						else

@@ -67,6 +67,7 @@ namespace Serialization
 	extern std::wstring SizeOf;
 	extern std::wstring Length;
 	extern std::wstring IntegerConstant;
+	extern std::wstring Integer16Constant;
 	extern std::wstring RealConstant;
 	extern std::wstring BooleanConstant;
 

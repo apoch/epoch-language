@@ -129,6 +129,18 @@ void Parser::ParserState::ParsePotentialList(bool islist, ReturnPointerType& ret
 // Set up operations corresponding to a logical/bitwise operator acting on literal parameters or list parameters
 //
 template<typename ReturnPointerType, typename LiteralOperatorType, typename LiteralConstType>
+ReturnPointerType* Parser::ParserState::ParseBitwiseOp(bool firstislist, bool secondislist)
+{
+	std::auto_ptr<ReturnPointerType> retptr(new ReturnPointerType(LiteralConstType::GetTypeStatic()));
+
+	// These need to be in reverse order so the stack is read correctly
+	ParsePotentialList<ReturnPointerType, LiteralOperatorType, LiteralConstType>(secondislist, *retptr.get());
+	ParsePotentialList<ReturnPointerType, LiteralOperatorType, LiteralConstType>(firstislist, *retptr.get());
+
+	return retptr.release();
+}
+
+template<typename ReturnPointerType, typename LiteralOperatorType, typename LiteralConstType>
 ReturnPointerType* Parser::ParserState::ParseLogicalOp(bool firstislist, bool secondislist)
 {
 	std::auto_ptr<ReturnPointerType> retptr(new ReturnPointerType);

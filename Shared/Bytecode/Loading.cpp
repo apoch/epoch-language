@@ -957,9 +957,11 @@ void FileLoader::GenerateOpFromByteCode(unsigned char instruction, VM::Block* ne
 	}
 	else if(instruction == Bytecode::BitwiseAnd)
 	{
+		VM::EpochVariableTypeID type = static_cast<VM::EpochVariableTypeID>(ReadNumber());
+
 		std::auto_ptr<VM::Operations::BitwiseAnd> op(NULL);
 		if(!IsPrepass)
-			op.reset(new VM::Operations::BitwiseAnd);
+			op.reset(new VM::Operations::BitwiseAnd(type));
 
 		UInteger32 testcount = ReadNumber();
 		for(UInteger32 i = 0; i < testcount; ++i)
@@ -976,9 +978,11 @@ void FileLoader::GenerateOpFromByteCode(unsigned char instruction, VM::Block* ne
 	}
 	else if(instruction == Bytecode::BitwiseOr)
 	{
+		VM::EpochVariableTypeID type = static_cast<VM::EpochVariableTypeID>(ReadNumber());
+
 		std::auto_ptr<VM::Operations::BitwiseOr> op(NULL);
 		if(!IsPrepass)
-			op.reset(new VM::Operations::BitwiseOr);
+			op.reset(new VM::Operations::BitwiseOr(type));
 
 		UInteger32 testcount = ReadNumber();
 		for(UInteger32 i = 0; i < testcount; ++i)
@@ -995,13 +999,17 @@ void FileLoader::GenerateOpFromByteCode(unsigned char instruction, VM::Block* ne
 	}
 	else if(instruction == Bytecode::BitwiseXor)
 	{
+		VM::EpochVariableTypeID type = static_cast<VM::EpochVariableTypeID>(ReadNumber());
+
 		if(!IsPrepass)
-			newblock->AddOperation(VM::OperationPtr(new VM::Operations::BitwiseXor));
+			newblock->AddOperation(VM::OperationPtr(new VM::Operations::BitwiseXor(type)));
 	}
 	else if(instruction == Bytecode::BitwiseNot)
 	{
+		VM::EpochVariableTypeID type = static_cast<VM::EpochVariableTypeID>(ReadNumber());
+
 		if(!IsPrepass)
-			newblock->AddOperation(VM::OperationPtr(new VM::Operations::BitwiseNot));
+			newblock->AddOperation(VM::OperationPtr(new VM::Operations::BitwiseNot(type)));
 	}
 	else if(instruction == Bytecode::LogicalAnd)
 	{

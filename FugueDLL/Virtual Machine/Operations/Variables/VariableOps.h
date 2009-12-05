@@ -188,9 +188,60 @@ namespace VM
 				return payload;
 			}
 
+		// Additional accessors
+		public:
+			static EpochVariableTypeID GetTypeStatic()
+			{ return EpochVariableType_Integer; }
+
 		// Internal tracking
 		private:
 			Integer32 Value;
+		};
+
+		//
+		// Operation which evaluates to a literal Integer constant (16 bits wide)
+		// This is mainly used for representing operations that can
+		// be reduced to constants at compile/load time.
+		//
+		class Integer16Constant : public Operation, public SelfAware<Integer16Constant>
+		{
+		// Construction
+		public:
+			Integer16Constant(Integer16 value)
+				: Value(value)
+			{ }
+
+		// Operation interface
+		public:
+			virtual void ExecuteFast(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+			{ }
+
+			virtual RValuePtr ExecuteAndStoreRValue(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+			{ return RValuePtr(new Integer16RValue(Value)); }
+
+			virtual EpochVariableTypeID GetType(const ScopeDescription& scope) const
+			{ return EpochVariableType_Integer16; }
+
+			virtual size_t GetNumParameters(const VM::ScopeDescription& scope) const
+			{ return 0; }
+
+		// Traversal interface
+		public:
+			virtual Traverser::Payload GetNodeTraversalPayload() const
+			{
+				Traverser::Payload payload;
+				payload.SetValue(Value);
+				return payload;
+			}
+
+		// Additional accessors
+		public:
+			static EpochVariableTypeID GetTypeStatic()
+			{ return EpochVariableType_Integer16; }
+
+		// Internal tracking
+		private:
+			Integer16 Value;
 		};
 
 		//
@@ -228,6 +279,11 @@ namespace VM
 				payload.SetValue(Value);
 				return payload;
 			}
+
+		// Additional accessors
+		public:
+			static EpochVariableTypeID GetTypeStatic()
+			{ return EpochVariableType_Real; }
 
 		// Internal tracking
 		private:
@@ -269,6 +325,11 @@ namespace VM
 				payload.SetValue(Value);
 				return payload;
 			}
+
+		// Additional accessors
+		public:
+			static EpochVariableTypeID GetTypeStatic()
+			{ return EpochVariableType_Boolean; }
 
 		// Internal tracking
 		private:

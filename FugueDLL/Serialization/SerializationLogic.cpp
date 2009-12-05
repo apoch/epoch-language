@@ -95,6 +95,11 @@ namespace Extensions
 	template <> void Serialization::SerializeNode<operationname>(const operationname& op, SerializationTraverser& traverser) \
 	{ traverser.WriteOp(&op, GetToken<operationname>(), true); }
 
+#define SERIALIZE_TOKENWITHTYPE(operationname, token) \
+	HELPER_GETTOKEN(operationname, token) \
+	template <> void Serialization::SerializeNode<operationname>(const operationname& op, SerializationTraverser& traverser) \
+	{ traverser.WriteOp(&op, GetToken<operationname>(), op.GetType()); }
+
 #define SERIALIZE_TOKEN_NOLINEBREAK(operationname, token) \
 	HELPER_GETTOKEN(operationname, token) \
 	template <> void Serialization::SerializeNode<operationname>(const operationname& op, SerializationTraverser& traverser) \
@@ -125,6 +130,11 @@ namespace Extensions
 	template <> void Serialization::SerializeNode<operationname>(const operationname& op, SerializationTraverser& traverser) \
 	{ traverser.WriteCompoundOp(&op, GetToken<operationname>(), op.GetSubOperations().size()); }
 
+#define SERIALIZE_COMPOUNDWITHTYPE(operationname, token) \
+	HELPER_GETTOKEN(operationname, token) \
+	template <> void Serialization::SerializeNode<operationname>(const operationname& op, SerializationTraverser& traverser) \
+	{ traverser.WriteCompoundOp(&op, GetToken<operationname>(), op.GetType(), op.GetSubOperations().size()); }
+
 #define SERIALIZE_MEMBERACCESS(operationname, token) \
 	HELPER_GETTOKEN(operationname, token) \
 	template <> void Serialization::SerializeNode<operationname>(const operationname& op, SerializationTraverser& traverser) \
@@ -138,8 +148,6 @@ namespace Extensions
 
 
 // Serialization for operations that consist of just an instruction
-SERIALIZE_TOKENONLY(VM::Operations::BitwiseNot, Serialization::BitwiseNot)
-SERIALIZE_TOKENONLY(VM::Operations::BitwiseXor, Serialization::BitwiseXor)
 SERIALIZE_TOKENONLY(VM::Operations::Break, Serialization::Break)
 SERIALIZE_TOKENONLY(VM::Operations::DebugCrashVM, Serialization::DebugCrashVM)
 SERIALIZE_TOKENONLY(VM::Operations::DebugReadStaticString, Serialization::DebugRead)
@@ -197,6 +205,11 @@ SERIALIZE_TOKEN_NOADDRESS(VM::Operations::ElseIf, Serialization::ElseIf)
 SERIALIZE_TOKEN_NOADDRESS(VM::Operations::ElseIfWrapper, Serialization::ElseIfWrapper)
 
 
+// Operations that must record associated type data
+SERIALIZE_TOKENWITHTYPE(VM::Operations::BitwiseNot, Serialization::BitwiseNot)
+SERIALIZE_TOKENWITHTYPE(VM::Operations::BitwiseXor, Serialization::BitwiseXor)
+
+
 // Operations with payloads that must be serialized
 SERIALIZE_WITHPAYLOAD(VM::Operations::AcceptMessageFromResponseMap, Serialization::AcceptMessageFromMap)
 SERIALIZE_WITHPAYLOAD(VM::Operations::AssignValue, Serialization::AssignValue)
@@ -206,6 +219,7 @@ SERIALIZE_WITHPAYLOAD(VM::Operations::BooleanConstant, Serialization::BooleanCon
 SERIALIZE_WITHPAYLOAD(VM::Operations::GetVariableValue, Serialization::GetValue)
 SERIALIZE_WITHPAYLOAD(VM::Operations::InitializeValue, Serialization::InitializeValue)
 SERIALIZE_WITHPAYLOAD(VM::Operations::IntegerConstant, Serialization::IntegerConstant)
+SERIALIZE_WITHPAYLOAD(VM::Operations::Integer16Constant, Serialization::Integer16Constant)
 SERIALIZE_WITHPAYLOAD(VM::Operations::Invoke, Serialization::Invoke)
 SERIALIZE_WITHPAYLOAD(VM::Operations::InvokeIndirect, Serialization::InvokeIndirect)
 SERIALIZE_WITHPAYLOAD(VM::Operations::IsEqual, Serialization::IsEqual)
@@ -239,8 +253,8 @@ SERIALIZE_ARITHMETIC(VM::Operations::SumInteger16s, Serialization::AddInteger16s
 SERIALIZE_ARITHMETIC(VM::Operations::SumIntegers, Serialization::AddIntegers)
 SERIALIZE_ARITHMETIC(VM::Operations::SumReals, Serialization::AddReals)
 
-SERIALIZE_COMPOUND(VM::Operations::BitwiseAnd, Serialization::BitwiseAnd)
-SERIALIZE_COMPOUND(VM::Operations::BitwiseOr, Serialization::BitwiseOr)
+SERIALIZE_COMPOUNDWITHTYPE(VM::Operations::BitwiseAnd, Serialization::BitwiseAnd)
+SERIALIZE_COMPOUNDWITHTYPE(VM::Operations::BitwiseOr, Serialization::BitwiseOr)
 SERIALIZE_COMPOUND(VM::Operations::LogicalAnd, Serialization::LogicalAnd)
 SERIALIZE_COMPOUND(VM::Operations::LogicalOr, Serialization::LogicalOr)
 
@@ -280,3 +294,4 @@ template <> void Serialization::SerializeNode<VM::Operations::ConsList>(const VM
 template <> const std::wstring& Serialization::GetToken<VM::Operations::BindStructMemberReference>() { return Serialization::BindStructMemberReference; }
 template <> void Serialization::SerializeNode<VM::Operations::BindStructMemberReference>(const VM::Operations::BindStructMemberReference& op, SerializationTraverser& traverser)
 { traverser.WriteChainedOp(&op, GetToken<VM::Operations::BindStructMemberReference>(), op.IsChained(), (op.IsChained() ? Serialization::EmptyString : op.GetAssociatedIdentifier()), op.GetMemberName()); }
+

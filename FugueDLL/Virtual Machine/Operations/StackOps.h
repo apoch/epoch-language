@@ -76,6 +76,11 @@ namespace VM
 		public:
 			virtual Traverser::Payload GetNodeTraversalPayload() const;
 
+		// Additional queries
+		public:
+			Integer16 GetValue() const
+			{ return LiteralValue; }
+
 		// Internal tracking
 		private:
 			Integer16 LiteralValue;

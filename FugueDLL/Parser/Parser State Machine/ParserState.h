@@ -434,6 +434,9 @@ namespace Parser
 		template<typename ReturnPointerType, typename LiteralOperatorType, typename LiteralConstType>
 		ReturnPointerType* ParseLogicalOp(bool firstislist, bool secondislist);
 
+		template<typename ReturnPointerType, typename LiteralOperatorType, typename LiteralConstType>
+		ReturnPointerType* ParseBitwiseOp(bool firstislist, bool secondislist);
+
 		FileLocationInfo GetFileLocationInfo() const;
 
 		size_t ValidateStructInit(const std::vector<std::wstring>& members, const std::wstring& structtypename, std::vector<VM::Operation*>& ops, size_t maxop);
