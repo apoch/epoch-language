@@ -241,8 +241,6 @@ void ParserState::RegisterUnknownReturnName(const std::wstring& retname)
 //
 void ParserState::ExitUnknownReturnConstructor()
 {
-	// TODO - ensure that the constructor is passed the correct number and type of parameters!
-
 	std::wstring rettype = UnknownReturnTypes.top();
 	UnknownReturnTypes.pop();
 
@@ -261,8 +259,27 @@ void ParserState::ExitUnknownReturnConstructor()
 //
 void ParserState::FinishReturnConstructor()
 {
-	for(unsigned i = 0; i < PassedParameterCount.top() - 1; ++i)
-		TheStack.pop_back();
+	IDType hint = UnknownReturnTypeHints.top();
+	const VM::StructureType& t = VM::StructureTrackerClass::GetOwnerOfStructureType(hint)->GetStructureType(hint);
+	const std::vector<std::wstring>& memberorder = t.GetMemberOrder();
+
+	if(PassedParameterCount.top() - 1 != memberorder.size())
+	{
+		ReportFatalError("Incorrect number of parameters");
+
+		for(unsigned i = 0; i < PassedParameterCount.top() - 1; ++i)
+			TheStack.pop_back();
+	}
+	else
+	{
+		for(unsigned i = 0; i < PassedParameterCount.top() - 1; ++i)
+		{
+			if(TheStack.back().DetermineEffectiveType(*CurrentScope) != t.GetMemberType(memberorder[PassedParameterCount.top() - i - 2]))
+				ReportFatalError("Type mismatch");
+
+			TheStack.pop_back();
+		}
+	}
 
 	if(TheStack.back().Type != StackEntry::STACKENTRYTYPE_IDENTIFIER)
 		throw ParserFailureException("Expected a structure identifier here");
@@ -274,7 +291,7 @@ void ParserState::FinishReturnConstructor()
 	TheStack.pop_back();
 	PassedParameterCount.pop();
 
-	FunctionReturnInitializationBlocks[FunctionName]->AddOperation(VM::OperationPtr(new VM::Operations::PushIntegerLiteral(static_cast<Integer32>(UnknownReturnTypeHints.top()))));
+	FunctionReturnInitializationBlocks[FunctionName]->AddOperation(VM::OperationPtr(new VM::Operations::PushIntegerLiteral(static_cast<Integer32>(hint))));
 	FunctionReturnInitializationBlocks[FunctionName]->AddOperation(VM::OperationPtr(new VM::Operations::InitializeValue(varname)));
 
 	UnknownReturnTypeHints.pop();
