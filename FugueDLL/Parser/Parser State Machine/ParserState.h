@@ -439,9 +439,10 @@ namespace Parser
 
 		FileLocationInfo GetFileLocationInfo() const;
 
-		size_t ValidateStructInit(const std::vector<std::wstring>& members, const std::wstring& structtypename, std::vector<VM::Operation*>& ops, size_t maxop);
+		size_t ValidateStructInit(const std::vector<std::wstring>& members, const std::wstring& structtypename, std::vector<VM::Operation*>& ops, size_t maxop, bool& initbyfunctioncall);
 		size_t ValidateTupleInit(const std::vector<std::wstring>& members, const std::wstring& tupletypename, std::vector<VM::Operation*>& ops, size_t maxop);
-		void ReverseOps(size_t numops);
+		void ReverseOps(VM::Block* block, size_t numops);
+		void ReverseOpsAsGroups(VM::Block* block, size_t numops);
 
 		void AddOperationToCurrentBlock(VM::OperationPtr op);
 
@@ -545,7 +546,7 @@ namespace Parser
 		VM::ScopeDescription* FunctionReturns;
 
 		std::map<std::wstring, FunctionRetMap> FunctionReturnValueTracker;
-		VM::Block* FunctionReturnInitializationBlock;
+		std::map<std::wstring, VM::Block*> FunctionReturnInitializationBlocks;
 
 		VM::TupleType* CreatedTupleType;
 		VM::StructureType* CreatedStructureType;

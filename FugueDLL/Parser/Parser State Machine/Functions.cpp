@@ -32,6 +32,7 @@ using namespace Parser;
 void ParserState::RegisterUpcomingFunction(const std::wstring& functionname)
 {
 	PushIdentifier(functionname);
+	FunctionName = functionname;
 	ExpectedBlockTypes.push(BlockEntry::BLOCKENTRYTYPE_FUNCTION_NOCREATE);
 }
 
@@ -220,8 +221,11 @@ void ParserState::RegisterUnknownReturn(const std::wstring& rettype)
 	UnknownReturnTypes.push(rettype);
 	UnknownReturnTypeHints.push(CurrentScope->GetStructureTypeID(rettype));
 
-	if(!FunctionReturnInitializationBlock)
-		FunctionReturnInitializationBlock = new VM::Block;
+	if(TheStack.back().Type != StackEntry::STACKENTRYTYPE_IDENTIFIER)
+		throw ParserFailureException("Lost track of the name of the function being parsed");
+
+	if(!FunctionReturnInitializationBlocks[TheStack.back().StringValue])
+		FunctionReturnInitializationBlocks[TheStack.back().StringValue] = new VM::Block;
 }
 
 //
@@ -265,11 +269,13 @@ void ParserState::FinishReturnConstructor()
 
 	const std::wstring& varname = ParsedProgram->PoolStaticString(TheStack.back().StringValue);
 
+	ReverseOpsAsGroups(FunctionReturnInitializationBlocks[FunctionName], PassedParameterCount.top() - 1);
+
 	TheStack.pop_back();
 	PassedParameterCount.pop();
 
-	FunctionReturnInitializationBlock->AddOperation(VM::OperationPtr(new VM::Operations::PushIntegerLiteral(static_cast<Integer32>(UnknownReturnTypeHints.top()))));
-	FunctionReturnInitializationBlock->AddOperation(VM::OperationPtr(new VM::Operations::InitializeValue(varname)));
+	FunctionReturnInitializationBlocks[FunctionName]->AddOperation(VM::OperationPtr(new VM::Operations::PushIntegerLiteral(static_cast<Integer32>(UnknownReturnTypeHints.top()))));
+	FunctionReturnInitializationBlocks[FunctionName]->AddOperation(VM::OperationPtr(new VM::Operations::InitializeValue(varname)));
 
 	UnknownReturnTypeHints.pop();
 }

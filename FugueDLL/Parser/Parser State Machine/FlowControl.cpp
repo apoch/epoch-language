@@ -205,9 +205,10 @@ void ParserState::EnterBlock()
 		if(!func)
 			throw ParserFailureException("Function not found or not a user-defined function; probably the internal parse stacks are corrupted");
 
-		func->GetReturns().ParentScope = NULL;
-
 		CurrentScope->PushNewGhostSet();
+		func->GetParams().GhostIntoScope(*CurrentScope);
+
+		func->GetReturns().ParentScope = NULL;
 		func->GetReturns().GhostIntoScope(*CurrentScope);
 
 		std::map<std::wstring, FunctionRetMap>::iterator funciter = FunctionReturnValueTracker.find(TheStack.back().StringValue);
@@ -217,28 +218,33 @@ void ParserState::EnterBlock()
 			FunctionReturnValueTracker.erase(funciter);
 		}
 
-		if(FunctionReturnInitializationBlock)
+		std::map<std::wstring, VM::Block*>::iterator funcretblockiter = FunctionReturnInitializationBlocks.find(TheStack.back().StringValue);
+		if(funcretblockiter != FunctionReturnInitializationBlocks.end())
 		{
-			std::vector<VM::Operation*>& ops = FunctionReturnInitializationBlock->GetAllOperations();
-			for(std::vector<VM::Operation*>::const_iterator iter = ops.begin(); iter != ops.end(); ++iter)
+			VM::Block* initblock = funcretblockiter->second;
+
+			if(initblock)
 			{
-				VM::Operation* op = *iter;
-				VM::Operations::AssignValue* assignop = dynamic_cast<VM::Operations::AssignValue*>(op);
-
-				if(assignop)
+				std::vector<VM::Operation*>& ops = initblock->GetAllOperations();
+				for(std::vector<VM::Operation*>::const_iterator iter = ops.begin(); iter != ops.end(); ++iter)
 				{
-					entry.TheBlock->AddOperation(VM::OperationPtr(new VM::Operations::InitializeValue(assignop->GetAssociatedIdentifier())));
-					delete op;
-				}
-				else
-					entry.TheBlock->AddOperation(VM::OperationPtr(op));
-			}
-			ops.clear();
-			delete FunctionReturnInitializationBlock;
-			FunctionReturnInitializationBlock = NULL;
-		}
+					VM::Operation* op = *iter;
+					VM::Operations::AssignValue* assignop = dynamic_cast<VM::Operations::AssignValue*>(op);
 
-		func->GetParams().GhostIntoScope(*CurrentScope);
+					if(assignop)
+					{
+						entry.TheBlock->AddOperation(VM::OperationPtr(new VM::Operations::InitializeValue(assignop->GetAssociatedIdentifier())));
+						delete op;
+					}
+					else
+						entry.TheBlock->AddOperation(VM::OperationPtr(op));
+				}
+				ops.clear();
+				delete initblock;
+			}
+
+			FunctionReturnInitializationBlocks.erase(funcretblockiter);
+		}
 	}
 	else if(entry.Type == BlockEntry::BLOCKENTRYTYPE_IF)
 	{

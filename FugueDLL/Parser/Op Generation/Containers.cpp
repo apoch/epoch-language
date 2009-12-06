@@ -44,7 +44,7 @@ VM::OperationPtr ParserState::CreateOperation_ConsList()
 	if(complained)
 		return VM::OperationPtr(new VM::Operations::NoOp);
 
-	ReverseOps(paramcount);
+	ReverseOps(Blocks.back().TheBlock, paramcount);
 	return VM::OperationPtr(new VM::Operations::ConsList(paramcount, elementtype));
 }
 

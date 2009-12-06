@@ -277,19 +277,50 @@ bool ParserState::FinalizeInfixExpression(bool isfirstrun, const VM::ScopeDescri
 		}
 	} unitssafety;
 
-	VM::EpochVariableTypeID expressiontype = Blocks.back().TheBlock->GetTailOperation()->GetType(*CurrentScope);
+	VM::Block* workingblock;
+	VM::ScopeDescription* workingscope;
+	if(!Blocks.empty())
+	{
+		workingblock = Blocks.back().TheBlock;
+		workingscope = CurrentScope;
+	}
+	else
+	{
+		workingblock = FunctionReturnInitializationBlocks[FunctionName];
+		workingscope = &(dynamic_cast<VM::Function*>(CurrentScope->GetFunction(FunctionName))->GetParams());
+	}
+
+	struct restorescopehelper
+	{
+		VM::ScopeDescription* OldCurrentScope;
+		VM::ScopeDescription*& CSPointer;
+
+		restorescopehelper(VM::ScopeDescription*& p, VM::ScopeDescription* newscope)
+			: CSPointer(p)
+		{
+			OldCurrentScope = CSPointer;
+			CSPointer = newscope;
+		}
+
+		~restorescopehelper()
+		{
+			CSPointer = OldCurrentScope;
+		}
+	} restorescope(CurrentScope, workingscope);
+
+	VM::EpochVariableTypeID expressiontype = workingblock->GetTailOperation()->GetType(*workingscope);
 
 	// First we convert the stream of infix operands into a sequence of infix units
 	bool bailout = false;
 	for(unsigned i = 0; i < InfixOperandCount.back(); ++i)
 	{
 		std::auto_ptr<InfixUnitRawOperations> unit(new InfixUnitRawOperations);
-		size_t numops = Blocks.back().TheBlock->GetNumOperations() - Blocks.back().TheBlock->CountTailOps(1, scope);
+		size_t numops = workingblock->GetNumOperations() - workingblock->CountTailOps(1, scope);
 		for(unsigned j = 0; j < numops; ++j)
 		{
-			VM::OperationPtr op(Blocks.back().TheBlock->PopTailOperation());
+			VM::OperationPtr op(workingblock->PopTailOperation());
 
-			VM::EpochVariableTypeID optype = op->GetType(*CurrentScope);
+			VM::EpochVariableTypeID optype = op->GetType(*workingscope);
 			if(!bailout && optype != expressiontype)
 			{
 				if(optype == VM::EpochVariableType_List)
@@ -358,7 +389,7 @@ bool ParserState::FinalizeInfixExpression(bool isfirstrun, const VM::ScopeDescri
 					TheStack.pop_back();
 					ret = true;
 
-					if(CurrentScope->GetVariableType(injectlvalue) != expressiontype)
+					if(workingscope->GetVariableType(injectlvalue) != expressiontype)
 					{
 						ReportFatalError("Variable must have the same type as the expression");
 						return false;
@@ -446,7 +477,7 @@ bool ParserState::FinalizeInfixExpression(bool isfirstrun, const VM::ScopeDescri
 	// Finally, traverse the unit list, pushing the unit operations onto the instruction block
 	for(std::list<InfixUnit*>::iterator iter = unitssafety.units.begin(); iter != unitssafety.units.end(); )
 	{
-		(*iter)->PushContents(Blocks.back().TheBlock);
+		(*iter)->PushContents(workingblock);
 		delete (*iter);
 		iter = unitssafety.units.erase(iter);
 	}
@@ -459,7 +490,7 @@ bool ParserState::FinalizeInfixExpression(bool isfirstrun, const VM::ScopeDescri
 	{
 		StackEntry entry;
 		entry.Type = StackEntry::STACKENTRYTYPE_OPERATION;
-		entry.OperationPointer = Blocks.back().TheBlock->GetTailOperation();
+		entry.OperationPointer = workingblock->GetTailOperation();
 		TheStack.push_back(entry);
 	}
 

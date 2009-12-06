@@ -218,5 +218,9 @@ void ParserState::AddOperationToCurrentBlock(VM::OperationPtr op)
 	if(!Blocks.empty())
 		Blocks.back().TheBlock->AddOperation(op);
 	else
-		FunctionReturnInitializationBlock->AddOperation(op);
+	{
+		VM::Block* initblock = FunctionReturnInitializationBlocks[FunctionName];
+		if(initblock)
+			initblock->AddOperation(op);
+	}
 }

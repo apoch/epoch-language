@@ -224,7 +224,7 @@ VM::OperationPtr ParserState::CreateOperation(const std::wstring& operationname)
 			Blocks.back().TheBlock->RemoveOperationFromEnd(opcount, *CurrentScope);
 
 			// Reverse the order that members are pushed onto the stack
-			ReverseOps(opcount);
+			ReverseOps(Blocks.back().TheBlock, opcount);
 
 			// Rearrange type annotation operations
 			for(std::map<VM::Operation*, size_t>::iterator iter = TypeAnnotationOps.begin(); iter != TypeAnnotationOps.end(); )
@@ -277,14 +277,34 @@ VM::OperationPtr ParserState::CreateOperation(const std::wstring& operationname)
 			}
 			else
 			{
-				if(PassedParameterCount.top() != members.size() + 1)
+				if(PassedParameterCount.top() == 2)
+				{
+					VM::Operations::GetVariableValue* getvalueop = dynamic_cast<VM::Operations::GetVariableValue*>(allops.back()->GetNestedOperation());
+					if(getvalueop)
+					{
+						if(getvalueop->GetType(*CurrentScope) == VM::EpochVariableType_Structure)
+						{
+							IDType hint = CurrentScope->GetScopeOwningVariable(getvalueop->GetAssociatedIdentifier())->GetVariableStructureTypeID(getvalueop->GetAssociatedIdentifier());
+							if(hint != CurrentScope->GetStructureTypeID(operationname))
+								throw SyntaxException("Incorrect parameter type");
+
+							Blocks.back().TheBlock->RemoveOperationFromEnd(1, *CurrentScope);
+							TheStack.pop_back();
+							CurrentScope->AddStructureVariable(operationname, TheStack.back().StringValue);
+							VM::OperationPtr ret(new VM::Operations::InitializeValue(ParsedProgram->PoolStaticString(TheStack.back().StringValue)));
+							TheStack.pop_back();
+							return ret;
+						}
+						else
+							throw SyntaxException("Incorrect number of parameters");
+					}
+				}
+				else if(PassedParameterCount.top() != members.size() + 1)
 					throw SyntaxException("Incorrect number of parameters");
 			}
 
 			for(size_t i = 0; i < members.size(); ++i)
 			{
-				TheStack.pop_back();
-
 				if(t.GetMemberType(members[i]) == VM::EpochVariableType_Integer16)
 				{
 					VM::Operation* op = Blocks.back().TheBlock->GetOperationFromEnd(members.size() - i, *CurrentScope);
@@ -325,7 +345,14 @@ VM::OperationPtr ParserState::CreateOperation(const std::wstring& operationname)
 				}
 			}
 
-			size_t opcount = ValidateStructInit(members, operationname, allops, allops.size() - 1);
+			bool isfunctioninit = false;
+			size_t opcount = ValidateStructInit(members, operationname, allops, allops.size() - 1, isfunctioninit);
+
+			if(!isfunctioninit)
+			{
+				for(size_t i = 0; i < members.size(); ++i)
+					TheStack.pop_back();
+			}
 
 			if(PassedParameterCount.size() > 1)
 			{
@@ -338,7 +365,7 @@ VM::OperationPtr ParserState::CreateOperation(const std::wstring& operationname)
 			Blocks.back().TheBlock->RemoveOperationFromEnd(opcount, *CurrentScope);
 
 			// Reverse the order that members are pushed onto the stack
-			ReverseOps(opcount);
+			ReverseOps(Blocks.back().TheBlock, opcount);
 
 			// Rearrange type annotation operations
 			for(std::map<VM::Operation*, size_t>::iterator iter = TypeAnnotationOps.begin(); iter != TypeAnnotationOps.end(); )
@@ -371,7 +398,11 @@ VM::OperationPtr ParserState::CreateOperation(const std::wstring& operationname)
 			}
 
 			// Be sure we push the type information onto the stack
-			AddOperationToCurrentBlock(VM::OperationPtr(new VM::Operations::PushIntegerLiteral(static_cast<Integer32>(CurrentScope->GetStructureTypeID(operationname)))));
+			// (but only if we are not generating a copy constructor)
+			if(isfunctioninit)
+				TheStack.pop_back();
+			else
+				AddOperationToCurrentBlock(VM::OperationPtr(new VM::Operations::PushIntegerLiteral(static_cast<Integer32>(CurrentScope->GetStructureTypeID(operationname)))));
 
 			CurrentScope->AddStructureVariable(operationname, TheStack.back().StringValue);
 			VM::OperationPtr ret(new VM::Operations::InitializeValue(ParsedProgram->PoolStaticString(TheStack.back().StringValue)));
@@ -436,9 +467,12 @@ VM::OperationPtr ParserState::CreateOperation(const std::wstring& operationname)
 }
 
 
-size_t ParserState::ValidateStructInit(const std::vector<std::wstring>& members, const std::wstring& structtypename, std::vector<VM::Operation*>& ops, size_t maxop)
+size_t ParserState::ValidateStructInit(const std::vector<std::wstring>& members, const std::wstring& structtypename, std::vector<VM::Operation*>& ops, size_t maxop, bool& initbyfunctioncall)
 {
+	initbyfunctioncall = false;
+
 	const VM::StructureType& structtype = CurrentScope->GetStructureType(structtypename);
+	IDType hint = CurrentScope->GetStructureTypeID(structtypename);
 
 	size_t ret = members.size();
 	size_t remainingmembers = ret;
@@ -447,6 +481,7 @@ size_t ParserState::ValidateStructInit(const std::vector<std::wstring>& members,
 	
 	while(remainingmembers > 0)
 	{
+		bool adjustforparams = false;
 		VM::EpochVariableTypeID membertype = structtype.GetMemberType(members[memberindex]);
 
 		if(membertype == VM::EpochVariableType_Structure)
@@ -470,19 +505,55 @@ size_t ParserState::ValidateStructInit(const std::vector<std::wstring>& members,
 
 			if(!validated)
 			{
+				bool isfuncinit = false;
 				const std::wstring& nestedtypename = CurrentScope->GetStructureTypeID(typehint);
-				size_t delta = ValidateStructInit(nestedmembers, nestedtypename, ops, opindex - 1);
+				size_t delta = ValidateStructInit(nestedmembers, nestedtypename, ops, opindex - 1, isfuncinit);
 				opindex -= delta;
 				ret += delta;
 			}
 		}
 		else if(membertype != ops[opindex]->GetType(*CurrentScope))
 		{
-			std::ostringstream stream;
-			stream << "Type mismatch - parameter " << memberindex + 1;
-			ReportFatalError(stream.str().c_str());
+			if(ops[opindex]->GetType(*CurrentScope) == VM::EpochVariableType_Structure)
+			{
+				VM::Operations::Invoke* invokeop = dynamic_cast<VM::Operations::Invoke*>(ops[opindex]->GetNestedOperation());
+				VM::Operations::InvokeIndirect* invokeindirectop = dynamic_cast<VM::Operations::InvokeIndirect*>(ops[opindex]->GetNestedOperation());
+
+				VM::Function* func = NULL;
+
+				if(invokeop)
+					func = dynamic_cast<VM::Function*>(invokeop->GetFunction());
+				else if(invokeindirectop)
+					func = dynamic_cast<VM::Function*>(CurrentScope->GetFunction(invokeindirectop->GetFunctionName()));
+
+				if(!func)
+					throw ParserFailureException("Support for returning structures from external functions is not yet implemented");
+
+				const std::vector<std::wstring>& funcreturns = func->GetReturns().GetMemberOrder();
+				if(funcreturns.size() == 1 && func->GetReturns().GetVariableStructureTypeID(0) == hint)
+				{
+					initbyfunctioncall = true;
+					adjustforparams = true;
+				}
+				else
+				{
+					std::ostringstream stream;
+					stream << "Type mismatch - parameter " << memberindex + 1 << " - function does not return a matching structure";
+					ReportFatalError(stream.str().c_str());
+				}
+			}
+			else
+			{
+				std::ostringstream stream;
+				stream << "Type mismatch - parameter " << memberindex + 1;
+				ReportFatalError(stream.str().c_str());
+			}
 		}
-		else
+
+		if(initbyfunctioncall)
+			ret = 1;
+		
+		if(adjustforparams)
 		{
 			size_t paramcount = ops[opindex]->GetNumParameters(*CurrentScope);
 			while(paramcount > 0)
@@ -494,6 +565,9 @@ size_t ParserState::ValidateStructInit(const std::vector<std::wstring>& members,
 				--paramcount;
 			}
 		}
+
+		if(initbyfunctioncall)
+			return ret;
 
 		--opindex;
 		--remainingmembers;
@@ -557,9 +631,12 @@ struct MultiOp
 	}
 };
 
-void ParserState::ReverseOps(size_t numops)
+void ParserState::ReverseOps(VM::Block* block, size_t numops)
 {
-	std::vector<VM::Operation*>& originalops = Blocks.back().TheBlock->GetAllOperations();
+	if(numops <= 1)
+		return;
+
+	std::vector<VM::Operation*>& originalops = block->GetAllOperations();
 	size_t index = originalops.size() - 1;
 	size_t originalnumops = numops;
 
@@ -578,15 +655,58 @@ void ParserState::ReverseOps(size_t numops)
 	{
 		size_t numparams = 0;
 
-		MultiOp* multiop = new MultiOp;
+		std::auto_ptr<MultiOp> multiop(new MultiOp);
 		do
 		{
 			numparams += originalops[index]->GetNumParameters(*CurrentScope);
-			multiop->TheOps.push_back(originalops[index]);			
-			--index;
+			multiop->TheOps.push_back(originalops[index]);
 			--numops;
+			--index;
 		} while(numparams-- > 0);
-		safety.opgroups.push_back(multiop);
+		safety.opgroups.push_back(multiop.release());
+	}
+
+	size_t startindex = index + 1;
+	for(std::vector<MultiOp*>::const_iterator iter = safety.opgroups.begin(); iter != safety.opgroups.end(); ++iter)
+		startindex = (*iter)->StoreAllOps(startindex, originalops);
+}
+
+
+// TODO - figure out why we need two different versions of this logic, and fix one or the other if necessary
+void ParserState::ReverseOpsAsGroups(VM::Block* block, size_t numops)
+{
+	if(numops <= 1)
+		return;
+
+	std::vector<VM::Operation*>& originalops = block->GetAllOperations();
+	size_t index = originalops.size() - 1;
+	size_t originalnumops = numops;
+
+	struct autocleanup
+	{
+		~autocleanup()
+		{
+			for(std::vector<MultiOp*>::iterator iter = opgroups.begin(); iter != opgroups.end(); ++iter)
+				delete *iter;
+		}
+
+		std::vector<MultiOp*> opgroups;
+	} safety;
+
+	while(numops)
+	{
+		size_t numparams = 0;
+
+		std::auto_ptr<MultiOp> multiop(new MultiOp);
+		do
+		{
+			numparams += originalops[index]->GetNumParameters(*CurrentScope);
+			multiop->TheOps.push_back(originalops[index]);
+			--index;
+		} while(numparams-- > 0);
+		safety.opgroups.push_back(multiop.release());
+
+		--numops;
 	}
 
 	size_t startindex = index + 1;

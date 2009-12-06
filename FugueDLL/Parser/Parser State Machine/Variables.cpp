@@ -192,7 +192,7 @@ void ParserState::RegisterListVariable()
 		CurrentScope->SetListType(varname, type);
 		CurrentScope->SetListSize(varname, PassedParameterCount.top());
 
-		ReverseOps(PassedParameterCount.top());
+		ReverseOps(Blocks.back().TheBlock, PassedParameterCount.top());
 
 		AddOperationToCurrentBlock(VM::OperationPtr(new VM::Operations::PushIntegerLiteral(static_cast<Integer32>(PassedParameterCount.top()))));
 		AddOperationToCurrentBlock(VM::OperationPtr(new VM::Operations::PushIntegerLiteral(type)));

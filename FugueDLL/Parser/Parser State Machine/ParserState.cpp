@@ -41,7 +41,6 @@ ParserState::ParserState(Byte* sourcebuffer)
 	  InjectNotOperator(false),
 	  InjectNegateOperator(false),
 	  SavedStringSlots(static_cast<unsigned>(SavedStringSlot_Max)),
-	  FunctionReturnInitializationBlock(NULL),
 	  FunctionIsInfix(false)
 {
 	CurrentScope = &ParsedProgram->GetGlobalScope();
@@ -57,7 +56,6 @@ ParserState::~ParserState()
 	delete CreatedTupleType;
 	delete CreatedStructureType;
 	delete MessageDispatchScope;
-	delete FunctionReturnInitializationBlock;
 
 	for(std::deque<StackEntry>::iterator iter = TheStack.begin(); iter != TheStack.end(); ++iter)
 	{
@@ -86,5 +84,8 @@ ParserState::~ParserState()
 
 	for(std::deque<VM::ScopeDescription*>::iterator iter = DisplacedScopes.begin(); iter != DisplacedScopes.end(); ++iter)
 		delete *iter;
+
+	for(std::map<std::wstring, VM::Block*>::iterator iter = FunctionReturnInitializationBlocks.begin(); iter != FunctionReturnInitializationBlocks.end(); ++iter)
+		delete iter->second;
 }
 

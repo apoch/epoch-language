@@ -149,10 +149,24 @@ void ParserState::ResetMemberAccess()
 	std::wstring variablename = TheStack.back().StringValue;
 	TheStack.pop_back();
 
-	Blocks.back().TheBlock->PopTailOperation();		// Undo the PUSH of the structure/tuple since we're doing a member access
+	VM::ScopeDescription* workingscope;
+	if(!Blocks.empty())
+	{
+		Blocks.back().TheBlock->PopTailOperation();		// Undo the PUSH of the structure/tuple since we're doing a member access
+		workingscope = CurrentScope;
+	}
+	else
+	{
+		VM::Block* initblock = FunctionReturnInitializationBlocks[FunctionName];
+		if(!initblock)
+			throw ParserFailureException("Generating operations in a vacuum, no target block available!");
+
+		initblock->PopTailOperation();
+		workingscope = &CurrentScope->GetFunction(FunctionName)->GetParams();
+	}
 
 	bool istuple = false;
-	if(CurrentScope->GetVariableType(variablename) == VM::EpochVariableType_Tuple)
+	if(workingscope->GetVariableType(variablename) == VM::EpochVariableType_Tuple)
 		istuple = true;
 
 	VM::OperationPtr pushop(NULL);
