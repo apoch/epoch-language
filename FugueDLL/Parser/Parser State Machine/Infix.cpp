@@ -32,39 +32,267 @@
 using namespace Parser;
 
 
-// Defined operator precedence levels
-enum OperatorPrecedence
+
+//-------------------------------------------------------------------------------
+// Internal implementation details
+//-------------------------------------------------------------------------------
+
+namespace
 {
-	OPREC_MIN,
-	OPREC_ASSIGNMENT,
-	OPREC_BITWISE,
-	OPREC_LOGICAL,
-	OPREC_EQUALITY,
-	OPREC_COMPARISON,
-	OPREC_USER,
-	OPREC_CALCASSIGN,
-	OPREC_ADDITION,
-	OPREC_MULTIPLICATION,
-	OPREC_BOOLEAN,
-	OPREC_CONCATENATION,
-	OPREC_INCREMENT,
-	OPREC_MEMBER,
-	OPREC_MAX
-};
+
+	// Defined operator precedence levels
+	enum OperatorPrecedence
+	{
+		OPREC_MIN,
+		OPREC_ASSIGNMENT,
+		OPREC_BITWISE,
+		OPREC_LOGICAL,
+		OPREC_EQUALITY,
+		OPREC_COMPARISON,
+		OPREC_USER,
+		OPREC_CALCASSIGN,
+		OPREC_ADDITION,
+		OPREC_MULTIPLICATION,
+		OPREC_BOOLEAN,
+		OPREC_CONCATENATION,
+		OPREC_INCREMENT,
+		OPREC_MEMBER,
+		OPREC_MAX
+	};
 
 
-//
-// Record for tracking details about an infix operator
-//
-struct InfixOperatorData
-{
-	OperatorPrecedence Precedence;
-	std::wstring FunctionName;
-};
+	//
+	// Record for tracking details about an infix operator
+	//
+	struct InfixOperatorData
+	{
+		OperatorPrecedence Precedence;
+		std::wstring FunctionName;
+	};
 
-// Internal tracker of all known infix operators (including user defined ops)
-namespace { std::map<std::wstring, InfixOperatorData> InfixOperators; }
+	// Internal tracker of all known infix operators (including user defined ops)
+	std::map<std::wstring, InfixOperatorData> InfixOperators;
 
+
+	//
+	// Interface for handling a single cohesive unit of operations in an infix expression
+	//
+	// Classes deriving from this interface are used for handling the reordering of operations
+	// performed while applying operator precedence rules to a sequence of infix operators and
+	// operands. A single unit in the sequence might consist of multiple operations, so to get
+	// correct ordering results on the level of individual operations, we package ops into one
+	// of these "infix unit" objects.
+	//
+	struct InfixUnit
+	{
+		virtual ~InfixUnit()
+		{ }
+
+		virtual void PushContents(VM::Block* block) const = 0;
+		virtual void PushOperandsToStack(std::deque<ParserState::StackEntry>& opstack) const = 0;
+		virtual void ClearOperands() = 0;
+		virtual void ClearOperations() = 0;
+		virtual void CopyInstructionsToOp(VM::Operation* op) const = 0;
+	};
+
+	//
+	// Collection of operations representing a single infix operand unit
+	//
+	struct InfixUnitRawOperations : public InfixUnit
+	{
+		std::list<VM::Operation*> PushOperations;
+		std::list<ParserState::StackEntry> Operands;
+
+		//
+		// Add the entire set of operations to the tail of a code block
+		//
+		virtual void PushContents(VM::Block* block) const
+		{
+			for(std::list<VM::Operation*>::const_iterator iter = PushOperations.begin(); iter != PushOperations.end(); ++iter)
+				block->AddOperation(VM::OperationPtr(*iter));
+		}
+
+		//
+		// Push the involved operands onto a parser state stack
+		//
+		virtual void PushOperandsToStack(std::deque<ParserState::StackEntry>& opstack) const
+		{
+			for(std::list<ParserState::StackEntry>::const_iterator iter = Operands.begin(); iter != Operands.end(); ++iter)
+				opstack.push_back(*iter);
+		}
+
+		//
+		// Clear the list of involved operands
+		//
+		virtual void ClearOperands()
+		{
+			Operands.clear();
+		}
+
+		//
+		// Clean up the list of involved operations and break any necessary associations
+		//
+		virtual void ClearOperations()
+		{
+			for(std::list<VM::Operation*>::iterator iter = PushOperations.begin(); iter != PushOperations.end(); ++iter)
+			{
+				VM::Operation* op = *iter;
+
+				// Operations have been taken over by a different instruction, e.g. a
+				// compound bitwise or logical operation. The new holder now owns the
+				// nested operation, so we need to unlink it from the push operation.
+				VM::Operations::PushOperation* pushop = dynamic_cast<VM::Operations::PushOperation*>(op);
+				if(pushop)
+					pushop->UnlinkOperation();
+
+				delete op;
+			}
+
+			PushOperations.clear();
+		}
+
+		//
+		// Add the involved sub-operations to a compound operation
+		//
+		// Compound operations are used for things like logical operators to
+		// ensure that both precedence and short-circuiting work correctly.
+		//
+		// Note that it is not an error for the passed operation to not be
+		// a compound operation; in this case the function has no effect.
+		//
+		virtual void CopyInstructionsToOp(VM::Operation* op) const
+		{
+			VM::Operations::CompoundOperator* compoperator = dynamic_cast<VM::Operations::CompoundOperator*>(op);
+			if(compoperator)
+			{
+				for(std::list<VM::Operation*>::const_iterator iter = PushOperations.begin(); iter != PushOperations.end(); ++iter)
+					compoperator->AddOperation(*iter);
+			}
+		}
+	};
+
+	//
+	// Collection of infix units that can further be treated as a single unit
+	//
+	struct InfixUnitCompound : public InfixUnit
+	{
+		std::list<InfixUnit*> Units;
+
+		//
+		// Destruct the wrapper and clean up the nested infix units
+		//
+		virtual ~InfixUnitCompound()
+		{
+			for(std::list<InfixUnit*>::const_iterator iter = Units.begin(); iter != Units.end(); ++iter)
+				delete (*iter);
+		}
+
+		//
+		// Add the entire set of operations to the tail of a code block
+		//
+		virtual void PushContents(VM::Block* block) const
+		{
+			for(std::list<InfixUnit*>::const_iterator iter = Units.begin(); iter != Units.end(); ++iter)
+				(*iter)->PushContents(block);
+		}
+
+		//
+		// Push the involved operands onto a parser state stack
+		//
+		virtual void PushOperandsToStack(std::deque<ParserState::StackEntry>& opstack) const
+		{
+			for(std::list<InfixUnit*>::const_iterator iter = Units.begin(); iter != Units.end(); ++iter)
+				(*iter)->PushOperandsToStack(opstack);
+		}
+
+		//
+		// Clear the list of involved operands
+		//
+		virtual void ClearOperands()
+		{
+			for(std::list<InfixUnit*>::const_iterator iter = Units.begin(); iter != Units.end(); ++iter)
+				(*iter)->ClearOperands();
+		}
+
+		//
+		// Clean up the list of involved operations
+		//
+		virtual void ClearOperations()
+		{
+			for(std::list<InfixUnit*>::const_iterator iter = Units.begin(); iter != Units.end(); ++iter)
+				(*iter)->ClearOperations();
+		}
+
+		//
+		// Add the involved sub-operations to a compound operation
+		//
+		virtual void CopyInstructionsToOp(VM::Operation* op) const
+		{
+			for(std::list<InfixUnit*>::const_iterator iter = Units.begin(); iter != Units.end(); ++iter)
+				(*iter)->CopyInstructionsToOp(op);
+		}
+	};
+
+
+
+	//
+	// Internal helper: set up infix operator metadata
+	//
+	void DefineInfixOperator(const std::wstring& operatorname, const std::wstring& functionname, OperatorPrecedence precedence)
+	{
+		InfixOperatorData entry;
+		entry.FunctionName = functionname;
+		entry.Precedence = precedence;
+
+		InfixOperators.insert(std::make_pair(operatorname, entry));
+	}
+
+	//
+	// Helper structure used to automatically set up infix operand data on startup
+	//
+	struct autoinit
+	{
+
+		autoinit()
+		{
+			DefineInfixOperator(Operators::Add, Keywords::Add, OPREC_ADDITION);
+			DefineInfixOperator(Operators::Subtract, Keywords::Subtract, OPREC_ADDITION);
+			DefineInfixOperator(Operators::Multiply, Keywords::Multiply, OPREC_MULTIPLICATION);
+			DefineInfixOperator(Operators::Divide, Keywords::Divide, OPREC_MULTIPLICATION);
+
+			DefineInfixOperator(Operators::AddAssign, Keywords::Add, OPREC_CALCASSIGN);
+			DefineInfixOperator(Operators::SubtractAssign, Keywords::Subtract, OPREC_CALCASSIGN);
+			DefineInfixOperator(Operators::MultiplyAssign, Keywords::Multiply, OPREC_CALCASSIGN);
+			DefineInfixOperator(Operators::DivideAssign, Keywords::Divide, OPREC_CALCASSIGN);
+
+			DefineInfixOperator(Operators::Increment, Keywords::Add, OPREC_INCREMENT);
+			DefineInfixOperator(Operators::Decrement, Keywords::Subtract, OPREC_INCREMENT);
+
+			DefineInfixOperator(Operators::Greater, Keywords::Greater, OPREC_COMPARISON);
+			DefineInfixOperator(Operators::GreaterEqual, Keywords::GreaterEqual, OPREC_COMPARISON);
+			DefineInfixOperator(Operators::Less, Keywords::Less, OPREC_COMPARISON);
+			DefineInfixOperator(Operators::LessEqual, Keywords::LessEqual, OPREC_COMPARISON);
+			DefineInfixOperator(Operators::Equal, Keywords::Equal, OPREC_EQUALITY);
+			DefineInfixOperator(Operators::NotEqual, Keywords::NotEqual, OPREC_EQUALITY);
+
+			DefineInfixOperator(Operators::And, Keywords::And, OPREC_BOOLEAN);
+			DefineInfixOperator(Operators::Or, Keywords::Or, OPREC_BOOLEAN);
+			DefineInfixOperator(Operators::Xor, Keywords::Xor, OPREC_BOOLEAN);
+
+			DefineInfixOperator(Operators::Concat, Keywords::Concat, OPREC_CONCATENATION);
+			DefineInfixOperator(Operators::ConcatAssign, Keywords::Concat, OPREC_CALCASSIGN);
+
+			DefineInfixOperator(Operators::Assign, Keywords::Assign, OPREC_ASSIGNMENT);
+		}
+
+	} initinfix;
+
+}
+
+
+//-------------------------------------------------------------------------------
+// Parser state machine interface
+//-------------------------------------------------------------------------------
 
 //
 // Add an infix operator to the current infix expression
@@ -105,8 +333,9 @@ void ParserState::RegisterInfixOperandAsLValue(const std::wstring& lvaluename)
 
 //
 // Finish parsing an infix expression and generate the associated operations
-// Note that this may take several passes to ensure that all the ops are
-// set up correctly.
+//
+// Note that this may take several passes to ensure that all the ops are set
+// up correctly. This is delegated to the FinalizeInfixExpression routine.
 //
 void ParserState::TerminateInfixExpression()
 {
@@ -121,110 +350,6 @@ void ParserState::TerminateInfixExpression()
 }
 
 
-
-//
-// Helper classes for working with infix expressions
-//
-struct InfixUnit
-{
-	virtual ~InfixUnit()
-	{ }
-
-	virtual void PushContents(VM::Block* block) const = 0;
-	virtual void PushOperandsToStack(std::deque<ParserState::StackEntry>& opstack) const = 0;
-	virtual void ClearOperands() = 0;
-	virtual void ClearOperations() = 0;
-	virtual void CopyInstructionsToOp(VM::Operation* op) const = 0;
-};
-
-struct InfixUnitRawOperations : public InfixUnit
-{
-	std::list<VM::Operation*> PushOperations;
-	std::list<ParserState::StackEntry> Operands;
-
-	virtual void PushContents(VM::Block* block) const
-	{
-		for(std::list<VM::Operation*>::const_iterator iter = PushOperations.begin(); iter != PushOperations.end(); ++iter)
-			block->AddOperation(VM::OperationPtr(*iter));
-	}
-
-	virtual void PushOperandsToStack(std::deque<ParserState::StackEntry>& opstack) const
-	{
-		for(std::list<ParserState::StackEntry>::const_iterator iter = Operands.begin(); iter != Operands.end(); ++iter)
-			opstack.push_back(*iter);
-	}
-
-	virtual void ClearOperands()
-	{
-		Operands.clear();
-	}
-
-	virtual void ClearOperations()
-	{
-		for(std::list<VM::Operation*>::iterator iter = PushOperations.begin(); iter != PushOperations.end(); ++iter)
-		{
-			VM::Operation* op = *iter;
-			VM::Operations::PushOperation* pushop = dynamic_cast<VM::Operations::PushOperation*>(op);
-			if(pushop)
-				pushop->UnlinkOperation();
-
-			delete op;
-		}
-
-		PushOperations.clear();
-	}
-
-	virtual void CopyInstructionsToOp(VM::Operation* op) const
-	{
-		VM::Operations::CompoundOperator* compoperator = dynamic_cast<VM::Operations::CompoundOperator*>(op);
-		if(compoperator)
-		{
-			for(std::list<VM::Operation*>::const_iterator iter = PushOperations.begin(); iter != PushOperations.end(); ++iter)
-				compoperator->AddOperation(*iter);
-		}
-	}
-};
-
-struct InfixUnitCompound : public InfixUnit
-{
-	std::list<InfixUnit*> Units;
-
-	virtual ~InfixUnitCompound()
-	{
-		for(std::list<InfixUnit*>::const_iterator iter = Units.begin(); iter != Units.end(); ++iter)
-			delete (*iter);
-	}
-
-	virtual void PushContents(VM::Block* block) const
-	{
-		for(std::list<InfixUnit*>::const_iterator iter = Units.begin(); iter != Units.end(); ++iter)
-			(*iter)->PushContents(block);
-	}
-
-	virtual void PushOperandsToStack(std::deque<ParserState::StackEntry>& opstack) const
-	{
-		for(std::list<InfixUnit*>::const_iterator iter = Units.begin(); iter != Units.end(); ++iter)
-			(*iter)->PushOperandsToStack(opstack);
-	}
-
-	virtual void ClearOperands()
-	{
-		for(std::list<InfixUnit*>::const_iterator iter = Units.begin(); iter != Units.end(); ++iter)
-			(*iter)->ClearOperands();
-	}
-
-	virtual void ClearOperations()
-	{
-		for(std::list<InfixUnit*>::const_iterator iter = Units.begin(); iter != Units.end(); ++iter)
-			(*iter)->ClearOperations();
-	}
-
-	virtual void CopyInstructionsToOp(VM::Operation* op) const
-	{
-		for(std::list<InfixUnit*>::const_iterator iter = Units.begin(); iter != Units.end(); ++iter)
-			(*iter)->CopyInstructionsToOp(op);
-	}
-};
 
 //
 // Run a pass on the current infix expression and reduce it to the
@@ -477,9 +602,10 @@ bool ParserState::FinalizeInfixExpression(bool isfirstrun, const VM::ScopeDescri
 	// Finally, traverse the unit list, pushing the unit operations onto the instruction block
 	for(std::list<InfixUnit*>::iterator iter = unitssafety.units.begin(); iter != unitssafety.units.end(); )
 	{
-		(*iter)->PushContents(workingblock);
-		delete (*iter);
+		InfixUnit* unit = *iter;
+		unit->PushContents(workingblock);
 		iter = unitssafety.units.erase(iter);
+		delete unit;
 	}
 
 	if(!injectlvalue.empty())
@@ -529,6 +655,10 @@ std::wstring ParserState::LookupInfixAlias(const std::wstring& opname) const
 
 //
 // Look up the precedence level of a given infix operator
+//
+// Note that we return an unsigned rather than an OperatorPrecedence enum
+// in order to avoid exposing the enum implementation detail to external
+// client code.
 //
 unsigned ParserState::GetInfixPrecedence(const std::wstring& opname) const
 {
@@ -670,24 +800,6 @@ void ParserState::RegisterOpAssignmentOperator(const std::wstring& op)
 
 	PassedParameterCount.push(0);
 }
-
-namespace
-{
-
-	//
-	// Internal helper: set up infix operator metadata
-	//
-	void DefineInfixOperator(const std::wstring& operatorname, const std::wstring& functionname, OperatorPrecedence precedence)
-	{
-		InfixOperatorData entry;
-		entry.FunctionName = functionname;
-		entry.Precedence = precedence;
-
-		InfixOperators.insert(std::make_pair(operatorname, entry));
-	}
-
-}
-
 
 //
 // Record that the following function is to be added to the infix operator list
@@ -873,50 +985,3 @@ void ParserState::HandleInlineIncDec()
 
 	CountParameter();
 }
-
-
-//
-// Helper structure used to automatically set up infix operand data on startup
-//
-namespace 
-{
-
-	struct autoinit
-	{
-
-		autoinit()
-		{
-			DefineInfixOperator(Operators::Add, Keywords::Add, OPREC_ADDITION);
-			DefineInfixOperator(Operators::Subtract, Keywords::Subtract, OPREC_ADDITION);
-			DefineInfixOperator(Operators::Multiply, Keywords::Multiply, OPREC_MULTIPLICATION);
-			DefineInfixOperator(Operators::Divide, Keywords::Divide, OPREC_MULTIPLICATION);
-
-			DefineInfixOperator(Operators::AddAssign, Keywords::Add, OPREC_CALCASSIGN);
-			DefineInfixOperator(Operators::SubtractAssign, Keywords::Subtract, OPREC_CALCASSIGN);
-			DefineInfixOperator(Operators::MultiplyAssign, Keywords::Multiply, OPREC_CALCASSIGN);
-			DefineInfixOperator(Operators::DivideAssign, Keywords::Divide, OPREC_CALCASSIGN);
-
-			DefineInfixOperator(Operators::Increment, Keywords::Add, OPREC_INCREMENT);
-			DefineInfixOperator(Operators::Decrement, Keywords::Subtract, OPREC_INCREMENT);
-
-			DefineInfixOperator(Operators::Greater, Keywords::Greater, OPREC_COMPARISON);
-			DefineInfixOperator(Operators::GreaterEqual, Keywords::GreaterEqual, OPREC_COMPARISON);
-			DefineInfixOperator(Operators::Less, Keywords::Less, OPREC_COMPARISON);
-			DefineInfixOperator(Operators::LessEqual, Keywords::LessEqual, OPREC_COMPARISON);
-			DefineInfixOperator(Operators::Equal, Keywords::Equal, OPREC_EQUALITY);
-			DefineInfixOperator(Operators::NotEqual, Keywords::NotEqual, OPREC_EQUALITY);
-
-			DefineInfixOperator(Operators::And, Keywords::And, OPREC_BOOLEAN);
-			DefineInfixOperator(Operators::Or, Keywords::Or, OPREC_BOOLEAN);
-			DefineInfixOperator(Operators::Xor, Keywords::Xor, OPREC_BOOLEAN);
-
-			DefineInfixOperator(Operators::Concat, Keywords::Concat, OPREC_CONCATENATION);
-			DefineInfixOperator(Operators::ConcatAssign, Keywords::Concat, OPREC_CALCASSIGN);
-
-			DefineInfixOperator(Operators::Assign, Keywords::Assign, OPREC_ASSIGNMENT);
-		}
-
-	} initinfix;
-
-}
-
