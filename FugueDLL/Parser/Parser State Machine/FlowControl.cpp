@@ -23,6 +23,9 @@
 #include "Virtual Machine/Operations/Variables/StructureOps.h"
 #include "Virtual Machine/Operations/Variables/TupleOps.h"
 
+#include "Utility/Strings.h"
+
+
 using namespace Parser;
 
 
@@ -497,6 +500,8 @@ void ParserState::ExitBlockPP()
 	{
 	case BlockEntry::BLOCKENTRYTYPE_FUNCTION:
 		{
+			unsigned originalparamcount = ParamCount;
+
 			std::auto_ptr<VM::ScopeDescription> params(new VM::ScopeDescription);
 
 			params->ParentScope = CurrentScope;
@@ -561,6 +566,13 @@ void ParserState::ExitBlockPP()
 			std::auto_ptr<VM::FunctionBase> func(new VM::Function(Blocks.back().TheBlock, params.release(), FunctionReturns));
 			CurrentScope->AddFunction(ParsedProgram->PoolStaticString(entry.StringValue), func);
 			FunctionReturns = NULL;
+
+			if(UserInfixOperators.find(narrow(entry.StringValue)) != UserInfixOperators.end())
+			{
+				if(originalparamcount != 2)
+					ReportFatalError("Infix functions must take exactly 2 parameters");
+			}
+
 			TheStack.pop_back();
 			Blocks.pop_back();
 		}

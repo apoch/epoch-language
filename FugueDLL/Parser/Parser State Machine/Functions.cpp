@@ -52,8 +52,6 @@ void ParserState::RegisterUpcomingFunctionPP(const std::wstring& functionname)
 	if(FunctionIsInfix)
 		RegisterInfixFunction(functionname);
 
-	// TODO - we need to enforce that an infix function takes two parameters; types should not matter though
-
 	FunctionIsInfix = false;
 }
 
