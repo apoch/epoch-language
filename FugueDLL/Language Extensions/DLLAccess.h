@@ -30,12 +30,17 @@ namespace Extensions
 		void ExecuteSourceBlock(CodeBlockHandle handle, HandleType activatedscopehandle);
 		void PrepareForExecution();
 
+		CompileSessionHandle GetCompileSession() const
+		{ return SessionHandle; }
+
 	// Internal type definitions for function pointers
 	private:
 		typedef void (__stdcall *RegistrationPtr)(const ExtensionInterface* extensioninterface, ExtensionLibraryHandle token);
-		typedef CodeBlockHandle (__stdcall *LoadSourceBlockPtr)(OriginalCodeHandle handle);
+		typedef CodeBlockHandle (__stdcall *LoadSourceBlockPtr)(CompileSessionHandle sessionid, OriginalCodeHandle handle);
 		typedef void (__stdcall *ExecuteSourceBlockPtr)(CodeBlockHandle handle, HandleType activatedscopehandle);
-		typedef void (__stdcall *PreparePtr)();
+
+		typedef CompileSessionHandle (__stdcall *StartCompileSessionPtr)();
+		typedef void (__stdcall *PreparePtr)(CompileSessionHandle sessionid);
 
 	// Internal bindings to the DLL
 	private:
@@ -44,7 +49,11 @@ namespace Extensions
 		RegistrationPtr DoRegistration;
 		LoadSourceBlockPtr DoLoadSource;
 		ExecuteSourceBlockPtr DoExecuteSource;
+
+		StartCompileSessionPtr DoStartSession;
 		PreparePtr DoPrepare;
+
+		CompileSessionHandle SessionHandle;
 	};
 
 }

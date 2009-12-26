@@ -28,6 +28,7 @@ using namespace Extensions;
 // Construct the access wrapper and initialize the DLL bindings
 //
 ExtensionDLLAccess::ExtensionDLLAccess(const std::wstring& dllname)
+	: SessionHandle(0)
 {
 	// Load the DLL
 	HINSTANCE DLLHandle = ::LoadLibrary(dllname.c_str());
@@ -39,10 +40,13 @@ ExtensionDLLAccess::ExtensionDLLAccess(const std::wstring& dllname)
 	DoLoadSource = reinterpret_cast<LoadSourceBlockPtr>(::GetProcAddress(DLLHandle, "LoadSourceBlock"));
 	DoExecuteSource = reinterpret_cast<ExecuteSourceBlockPtr>(::GetProcAddress(DLLHandle, "ExecuteSourceBlock"));
 	DoPrepare = reinterpret_cast<PreparePtr>(::GetProcAddress(DLLHandle, "CommitCompilation"));
+	DoStartSession = reinterpret_cast<StartCompileSessionPtr>(::GetProcAddress(DLLHandle, "StartNewProgramCompilation"));
 
 	// Validate interface to be sure
-	if(!DoRegistration || !DoLoadSource || !DoExecuteSource || !DoPrepare)
+	if(!DoRegistration || !DoLoadSource || !DoExecuteSource || !DoPrepare || !DoStartSession)
 		throw Exception("One or more Epoch service functions could not be loaded from the requested language extension DLL");
+
+	SessionHandle = DoStartSession();
 }
 
 //
@@ -59,7 +63,7 @@ ExtensionDLLAccess::~ExtensionDLLAccess()
 //
 CodeBlockHandle ExtensionDLLAccess::LoadSourceBlock(OriginalCodeHandle handle)
 {
-	return DoLoadSource(handle);
+	return DoLoadSource(SessionHandle, handle);
 }
 
 //
@@ -245,5 +249,5 @@ void ExtensionDLLAccess::RegisterExtensionKeywords(ExtensionLibraryHandle token)
 //
 void ExtensionDLLAccess::PrepareForExecution()
 {
-	DoPrepare();
+	DoPrepare(SessionHandle);
 }

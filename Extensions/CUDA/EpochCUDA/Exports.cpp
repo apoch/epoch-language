@@ -58,11 +58,11 @@ void __stdcall Register(const Extensions::ExtensionInterface* extensioninterface
 // Request a handle to the compiled language-extended code generated from
 // the original Epoch code, as specified in the provided handle.
 //
-CodeBlockHandle __stdcall LoadSourceBlock(OriginalCodeHandle handle)
+CodeBlockHandle __stdcall LoadSourceBlock(CompileSessionHandle sessionid, OriginalCodeHandle handle)
 {
 	try
 	{
-		return Compiler::GetCompiledBlock(handle);
+		return Compiler::GetCompiledBlock(sessionid, handle);
 	}
 	catch(std::exception& e)
 	{
@@ -100,17 +100,14 @@ void __stdcall ExecuteSourceBlock(CodeBlockHandle handle, HandleType activatedsc
 //
 // Compiler callback: initialize the compiler and prepare for a compilation pass
 //
-// Note that clients do not need to call this function if they only perform a
-// single compilation session; the new compilation will be set up automatically
-// by the library. However, any subsequent compile sessions should be started
-// via this function, in order to prevent corrupted code in the intermediary
-// files used by the compiler.
+// Invoking this function is mandatory to ensure that multiple compilation passes
+// do not obliterate each others' intermediate files.
 //
-void __stdcall StartNewProgramCompilation()
+CompileSessionHandle __stdcall StartNewProgramCompilation()
 {
 	try
 	{
-		Compiler::StartNewCompilation();
+		return Compiler::StartNewCompilation();
 	}
 	catch(std::exception& e)
 	{
@@ -120,6 +117,8 @@ void __stdcall StartNewProgramCompilation()
 	{
 		FugueVMAccess::Interface.Error(L"An unrecognized exception was thrown while initializing the EpochASM-to-CUDA compiler");
 	}
+
+	return 0;
 }
 
 //
@@ -134,11 +133,11 @@ void __stdcall StartNewProgramCompilation()
 // .PTX, assemble it to appropriate bytecode for the available CUDA device, and
 // then execute the generated code on the CUDA device itself.
 //
-void __stdcall CommitCompilation()
+void __stdcall CommitCompilation(CompileSessionHandle sessionid)
 {
 	try
 	{
-		Compiler::CommitCompile();
+		Compiler::CommitCompile(sessionid);
 	}
 	catch(std::exception& e)
 	{

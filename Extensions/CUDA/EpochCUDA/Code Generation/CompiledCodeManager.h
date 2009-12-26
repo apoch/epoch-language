@@ -16,11 +16,12 @@
 namespace Compiler
 {
 
-	void StartNewCompilation();
-	void CommitCompile();
-	const std::wstring& GetGeneratedPTXFileName();
+	Extensions::CompileSessionHandle StartNewCompilation();
+	void CommitCompile(Extensions::CompileSessionHandle sessionid);
+	const std::wstring& GetGeneratedPTXFileName(Extensions::CompileSessionHandle sessionid);
+	Extensions::CompileSessionHandle GetAssociatedSession(Extensions::CodeBlockHandle codehandle);
 
-	Extensions::CodeBlockHandle GetCompiledBlock(Extensions::OriginalCodeHandle handle);
+	Extensions::CodeBlockHandle GetCompiledBlock(Extensions::CompileSessionHandle sessionid, Extensions::OriginalCodeHandle handle);
 	Extensions::OriginalCodeHandle GetOriginalCodeHandle(Extensions::CodeBlockHandle handle);
 
 	const std::list<Traverser::ScopeContents>& GetRegisteredVariables(Extensions::CodeBlockHandle handle);

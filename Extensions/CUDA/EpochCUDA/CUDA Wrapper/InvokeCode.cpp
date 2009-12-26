@@ -40,7 +40,7 @@ void CUDACodeInvoker::Execute()
 
 	// TODO - we need some guarantees of thread safety
 
-	FunctionCall call = Module::LoadCUDAModule(narrow(Compiler::GetGeneratedPTXFileName())).CreateFunctionCall(FunctionName);
+	FunctionCall call = Module::LoadCUDAModule(narrow(Compiler::GetGeneratedPTXFileName(Compiler::GetAssociatedSession(CodeHandle)))).CreateFunctionCall(FunctionName);
 	varbuffer.PrepareFunctionCall(call);
 	call.Execute();
 

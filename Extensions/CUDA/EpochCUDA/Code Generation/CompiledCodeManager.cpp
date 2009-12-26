@@ -26,6 +26,10 @@ using namespace Compiler;
 using namespace Extensions;
 
 
+// Keep track of compile session handles
+CompileSessionHandle CompileHandleCounter = 0;
+
+
 // Keep track of the code handles we have generated
 CodeBlockHandle CodeHandleCounter = 0;
 
@@ -41,8 +45,32 @@ extern Config::ConfigReader Configuration;
 
 
 // Helpers/tracking for creating temporary intermediate files
-std::auto_ptr<TemporaryFileWriter> CompilationTempFile(NULL);
-std::wstring GeneratedPTXFileName;
+struct CompileSessionData
+{
+	CompileSessionData(TemporaryFileWriter* writer)
+		: CompilationTempFile(writer)
+	{ }
+
+	~CompileSessionData()
+	{
+		delete CompilationTempFile;
+	}
+
+	void CloseTempFile()
+	{
+		delete CompilationTempFile;
+		CompilationTempFile = NULL;
+	}
+
+	TemporaryFileWriter* CompilationTempFile;
+	std::wstring GeneratedPTXFileName;
+};
+
+// Track active compile sessions
+std::map<CompileSessionHandle, CompileSessionData*> CompileSessionMap;
+
+// Track which session a code block belongs to
+std::map<CodeBlockHandle, CompileSessionHandle> CodeHandleToSessionMap;
 
 
 //
@@ -52,7 +80,7 @@ std::wstring GeneratedPTXFileName;
 // code block, unless the block has already been compiled, in which case we simply
 // return the handle of the previously compiled code block.
 //
-CodeBlockHandle Compiler::GetCompiledBlock(OriginalCodeHandle handle)
+CodeBlockHandle Compiler::GetCompiledBlock(CompileSessionHandle sessionid, OriginalCodeHandle handle)
 {
 	// Don't bother compiling the same block twice
 	for(std::map<CodeBlockHandle, OriginalCodeHandle>::const_iterator iter = CodeHandleMap.begin(); iter != CodeHandleMap.end(); ++iter)
@@ -61,14 +89,16 @@ CodeBlockHandle Compiler::GetCompiledBlock(OriginalCodeHandle handle)
 			return iter->first;
 	}
 
-	if(!CompilationTempFile.get())		// TODO - bug if we try to run multiple compile sessions concurrently; how should we handle the temp files in this case??
-		StartNewCompilation();
+	// Verify the compile session handle
+	std::map<CompileSessionHandle, CompileSessionData*>::const_iterator sessioniter = CompileSessionMap.find(sessionid);
+	if(sessioniter == CompileSessionMap.end())
+		throw std::exception("Invalid compile session handle");
 
 	std::list<Traverser::ScopeContents> registeredvariables;
 
 	// Perform the code traversal and compilation pass
 	{
-		CompilationSession session(*CompilationTempFile, registeredvariables, handle);
+		CompilationSession session(*(sessioniter->second->CompilationTempFile), registeredvariables, handle);
 		session.FunctionPreamble(handle);
 
 		Traverser::Interface traversal;
@@ -85,6 +115,9 @@ CodeBlockHandle Compiler::GetCompiledBlock(OriginalCodeHandle handle)
 	++CodeHandleCounter;
 	CodeHandleMap[CodeHandleCounter] = handle;
 	RegisteredVariablesMap[CodeHandleCounter].swap(registeredvariables);
+
+	CodeHandleToSessionMap[CodeHandleCounter] = sessionid;
+
 	return CodeHandleCounter;
 }
 
@@ -116,31 +149,33 @@ OriginalCodeHandle Compiler::GetOriginalCodeHandle(CodeBlockHandle handle)
 //
 // Prepare temporary intermediate files and tracking for a compile session
 //
-void Compiler::StartNewCompilation()
+CompileSessionHandle Compiler::StartNewCompilation()
 {
-	delete CompilationTempFile.release();
-	CompilationTempFile = std::auto_ptr<TemporaryFileWriter>(new TemporaryFileWriter(std::ios_base::out | std::ios_base::trunc, L"cu"));
-	GeneratedPTXFileName.clear();
+	CompileSessionHandle ret = ++CompileHandleCounter;
+	CompileSessionMap.insert(std::make_pair(ret, new CompileSessionData(new TemporaryFileWriter(std::ios_base::out | std::ios_base::trunc, L"cu"))));
+	return ret;
 }
 
 //
 // Hand off the CUDA code to the NVCC compiler for generation of the final .PTX code
 //
-void Compiler::CommitCompile()
+void Compiler::CommitCompile(CompileSessionHandle sessionid)
 {
-	if(!CompilationTempFile.get())
+	std::map<CompileSessionHandle, CompileSessionData*>::iterator iter = CompileSessionMap.find(sessionid);
+
+	if(iter == CompileSessionMap.end())
 		throw std::exception("No intermediate .cu file has been generated; call Compiler::StartNewCompilation() before invoking Compiler::CommitCompile()");
 
 	// Acquire the filename of the output .cu file and close the temp
 	// file object's handle on the file so we can write to it
-	std::wstring tempfilename = CompilationTempFile->GetFileName();
-	delete CompilationTempFile.release();
+	std::wstring tempfilename = iter->second->CompilationTempFile->GetFileName();
+	iter->second->CloseTempFile();
 
 	// Generate a filename for the intermediate .ptx file, which
 	// will receive the output of NVCC's pass over the .cu file.
 	{
 		TemporaryFileWriter destoutfile(std::ios_base::trunc, L"ptx");
-		GeneratedPTXFileName = destoutfile.GetFileName();
+		iter->second->GeneratedPTXFileName = destoutfile.GetFileName();
 	}
 
 
@@ -155,7 +190,7 @@ void Compiler::CommitCompile()
 	// just invoke the compiler directly.
 	std::wstring clpath = ShortenPathName(Configuration.ReadConfig<std::wstring>(L"cl"));
 	std::wstring nvccpath = ShortenPathName(Configuration.ReadConfig<std::wstring>(L"nvcc"));
-	std::wstring args = L"/c " + nvccpath + L" --compiler-bindir=" + clpath + L" --ptx " + tempfilename + L" --output-file=" + GeneratedPTXFileName;
+	std::wstring args = L"/c " + nvccpath + L" --compiler-bindir=" + clpath + L" --ptx " + tempfilename + L" --output-file=" + iter->second->GeneratedPTXFileName;
 	std::wstring cmdpath = SpecialPaths::GetSystemPath() + L"\\cmd.exe";
 
 
@@ -178,9 +213,13 @@ void Compiler::CommitCompile()
 //
 // Retrieve the name of the .PTX file generated by the current compile session
 //
-const std::wstring& Compiler::GetGeneratedPTXFileName()
+const std::wstring& Compiler::GetGeneratedPTXFileName(CompileSessionHandle sessionid)
 {
-	return GeneratedPTXFileName;
+	std::map<CompileSessionHandle, CompileSessionData*>::const_iterator iter = CompileSessionMap.find(sessionid);
+	if(iter == CompileSessionMap.end())
+		throw std::exception("Invalid compile session handle");
+
+	return iter->second->GeneratedPTXFileName;
 }
 
 
@@ -190,6 +229,18 @@ const std::wstring& Compiler::GetGeneratedPTXFileName()
 //
 void Compiler::DestroyTempFiles()
 {
-	delete CompilationTempFile.release();
+	for(std::map<CompileSessionHandle, CompileSessionData*>::iterator iter = CompileSessionMap.begin(); iter != CompileSessionMap.end(); ++iter)
+		delete iter->second;
+
+	CompileSessionMap.clear();
 }
 
+
+CompileSessionHandle Compiler::GetAssociatedSession(CodeBlockHandle codehandle)
+{
+	std::map<CodeBlockHandle, CompileSessionHandle>::const_iterator iter = CodeHandleToSessionMap.find(codehandle);
+	if(iter == CodeHandleToSessionMap.end())
+		throw std::exception("Invalid compile session ID");
+
+	return iter->second;
+}
