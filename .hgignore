@@ -1,5 +1,6 @@
 syntax: glob
 Bin/*
+bin/*
 Build/*
 *.exe
 *.vcproj.*.Administrator.user

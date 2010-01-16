@@ -40,10 +40,7 @@ bool BinaryServices::ExecuteMemoryBuffer(const void* buffer)
 	catch(const std::exception& e)
 	{
 		UI::OutputStream output;
-		UI::SetOutputColor(UI::OutputColor_LightRed);
-		output << L"ERROR: ";
-		output.Flush();
-		UI::SetOutputColor(UI::OutputColor_White);
+		output << UI::lightred << L"ERROR: " << UI::resetcolor;
 		output << e.what() << std::endl;
 		::MessageBoxA(0, e.what(), Strings::WindowTitle, MB_ICONERROR);
 		return false;
@@ -51,9 +48,7 @@ bool BinaryServices::ExecuteMemoryBuffer(const void* buffer)
 	catch(...)
 	{
 		UI::OutputStream output;
-		UI::SetOutputColor(UI::OutputColor_LightRed);
-		output << L"ERROR: UNKNOWN EXCEPTION" << std::endl;
-		UI::SetOutputColor(UI::OutputColor_White);
+		output << UI::lightred << L"ERROR: UNKNOWN EXCEPTION" << UI::resetcolor << std::endl;
 		::MessageBoxA(0, "Unknown error", Strings::WindowTitle, MB_ICONERROR);
 		return false;
 	}

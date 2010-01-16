@@ -342,10 +342,10 @@ void Threads::SendEvent(const std::wstring& threadname, const std::wstring& even
 	if(iter == ThreadInfoTable.end())
 	{
 		UI::OutputStream output;
-		UI::SetOutputColor(UI::OutputColor_LightRed);
+		output << UI::lightred;
 		output << L"WARNING - failed to send message \"" << eventname << L"\" to task \"" << threadname;
 		output << L"\"\nHas the task already exited?" << std::endl;
-		UI::SetOutputColor(UI::OutputColor_White);
+		output << UI::resetcolor;
 		return;
 	}
 

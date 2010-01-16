@@ -8,6 +8,7 @@
 
 namespace UI
 {
+
 	//
 	// This class is designed as essentially a drop-in replacement for std::wcout.
 	// Since the actual method of writing the messages in the buffer is controlled
@@ -65,9 +66,33 @@ namespace UI
 			return Flush();
 		}
 
+		//
+		// Support our own custom manipulators
+		//
+		OutputStream& operator << (OutputStream& (__cdecl *ptr)(OutputStream& stream))
+		{
+			(*ptr)(*this);
+			return Flush();
+		}
 
 	// Internal storage
 	private:
 		std::wostringstream Stream;
 	};
+
+	//
+	// Custom stream manipulators for setting output colors
+	//
+	inline OutputStream& __cdecl resetcolor(OutputStream& stream)	{ stream.Flush(); SetOutputColor(OutputColor_White); return stream; }
+	inline OutputStream& __cdecl white(OutputStream& stream)		{ stream.Flush(); SetOutputColor(OutputColor_White); return stream; }
+
+	inline OutputStream& __cdecl red(OutputStream& stream)			{ stream.Flush(); SetOutputColor(OutputColor_Red); return stream; }
+	inline OutputStream& __cdecl lightred(OutputStream& stream)		{ stream.Flush(); SetOutputColor(OutputColor_LightRed); return stream; }
+
+	inline OutputStream& __cdecl green(OutputStream& stream)		{ stream.Flush(); SetOutputColor(OutputColor_Green); return stream; }
+	inline OutputStream& __cdecl lightgreen(OutputStream& stream)	{ stream.Flush(); SetOutputColor(OutputColor_LightGreen); return stream; }
+
+	inline OutputStream& __cdecl blue(OutputStream& stream)			{ stream.Flush(); SetOutputColor(OutputColor_Blue); return stream; }
+	inline OutputStream& __cdecl lightblue(OutputStream& stream)	{ stream.Flush(); SetOutputColor(OutputColor_LightBlue); return stream; }
 }
+

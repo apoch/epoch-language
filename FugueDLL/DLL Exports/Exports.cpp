@@ -61,10 +61,7 @@ bool __stdcall ExecuteSourceCode(const char* filename)
 		Parser::EpochGrammarPreProcess ppgrammar(state);
 		if(!Parser::ParseFile(ppgrammar, grammar, filename, memory))
 		{
-			UI::SetOutputColor(UI::OutputColor_LightRed);
-			output << L"ERROR: ";
-			output.Flush();
-			UI::SetOutputColor(UI::OutputColor_White);
+			output << UI::lightred << L"ERROR: " << UI::resetcolor;
 			output << L"parsing failed" << std::endl;
 			return false;
 		}
@@ -92,19 +89,14 @@ bool __stdcall ExecuteSourceCode(const char* filename)
 	}
 	catch(const std::exception& e)
 	{
-		UI::SetOutputColor(UI::OutputColor_LightRed);
-		output << L"ERROR: ";
-		output.Flush();
-		UI::SetOutputColor(UI::OutputColor_White);
+		output << UI::lightred << L"ERROR: " << UI::resetcolor;
 		output << e.what() << std::endl;
 		::MessageBoxA(0, e.what(), Strings::WindowTitle, MB_ICONERROR);
 		return false;
 	}
 	catch(...)
 	{
-		UI::SetOutputColor(UI::OutputColor_LightRed);
-		output << L"ERROR: UNKNOWN EXCEPTION" << std::endl;
-		UI::SetOutputColor(UI::OutputColor_White);
+		output << UI::lightred << L"ERROR: UNKNOWN EXCEPTION" << UI::resetcolor << std::endl;
 		::MessageBoxA(0, "Unknown error", Strings::WindowTitle, MB_ICONERROR);
 		return false;
 	}
@@ -122,10 +114,7 @@ bool __stdcall ExecuteBinaryFile(const char* filename)
 	catch(const std::exception& e)
 	{
 		UI::OutputStream output;
-		UI::SetOutputColor(UI::OutputColor_LightRed);
-		output << L"ERROR: ";
-		output.Flush();
-		UI::SetOutputColor(UI::OutputColor_White);
+		output << UI::lightred << L"ERROR: " << UI::resetcolor;
 		output << e.what() << std::endl;
 		::MessageBoxA(0, e.what(), Strings::WindowTitle, MB_ICONERROR);
 		return false;
@@ -133,9 +122,7 @@ bool __stdcall ExecuteBinaryFile(const char* filename)
 	catch(...)
 	{
 		UI::OutputStream output;
-		UI::SetOutputColor(UI::OutputColor_LightRed);
-		output << L"ERROR: UNKNOWN EXCEPTION" << std::endl;
-		UI::SetOutputColor(UI::OutputColor_White);
+		output << UI::lightred << L"ERROR: UNKNOWN EXCEPTION" << UI::resetcolor << std::endl;
 		::MessageBoxA(0, "Unknown error", Strings::WindowTitle, MB_ICONERROR);
 		return false;
 	}
@@ -153,10 +140,7 @@ bool __stdcall ExecuteBinaryBuffer(const Byte* buffer)
 	catch(const std::exception& e)
 	{
 		UI::OutputStream output;
-		UI::SetOutputColor(UI::OutputColor_LightRed);
-		output << L"ERROR: ";
-		output.Flush();
-		UI::SetOutputColor(UI::OutputColor_White);
+		output << UI::lightred << L"ERROR: " << UI::resetcolor;
 		output << e.what() << std::endl;
 		::MessageBoxA(0, e.what(), Strings::WindowTitle, MB_ICONERROR);
 		return false;
@@ -164,9 +148,7 @@ bool __stdcall ExecuteBinaryBuffer(const Byte* buffer)
 	catch(...)
 	{
 		UI::OutputStream output;
-		UI::SetOutputColor(UI::OutputColor_LightRed);
-		output << L"ERROR: UNKNOWN EXCEPTION" << std::endl;
-		UI::SetOutputColor(UI::OutputColor_White);
+		output << UI::lightred << L"ERROR: UNKNOWN EXCEPTION" << UI::resetcolor << std::endl;
 		::MessageBoxA(0, "Unknown error", Strings::WindowTitle, MB_ICONERROR);
 		return false;
 	}
@@ -189,10 +171,7 @@ bool __stdcall SerializeSourceCode(const char* filename, const char* outputfilen
 		Parser::EpochGrammarPreProcess ppgrammar(state);
 		if(!Parser::ParseFile(ppgrammar, grammar, filename, memory))
 		{
-			UI::SetOutputColor(UI::OutputColor_LightRed);
-			output << L"ERROR: ";
-			output.Flush();
-			UI::SetOutputColor(UI::OutputColor_White);
+			output << UI::lightred << L"ERROR: " << UI::resetcolor;
 			output << L"parsing failed" << std::endl;
 			return false;
 		}
@@ -216,19 +195,14 @@ bool __stdcall SerializeSourceCode(const char* filename, const char* outputfilen
 	}
 	catch(const std::exception& e)
 	{
-		UI::SetOutputColor(UI::OutputColor_LightRed);
-		output << L"ERROR: ";
-		output.Flush();
-		UI::SetOutputColor(UI::OutputColor_White);
+		output << UI::lightred << L"ERROR: " << UI::resetcolor;
 		output << e.what() << std::endl;
 		::MessageBoxA(0, e.what(), Strings::WindowTitle, MB_ICONERROR);
 		return false;
 	}
 	catch(...)
 	{
-		UI::SetOutputColor(UI::OutputColor_LightRed);
-		output << L"ERROR: UNKNOWN EXCEPTION" << std::endl;
-		UI::SetOutputColor(UI::OutputColor_White);
+		output << UI::lightred << L"ERROR: UNKNOWN EXCEPTION" << UI::resetcolor << std::endl;
 		::MessageBoxA(0, "Unknown error", Strings::WindowTitle, MB_ICONERROR);
 		return false;
 	}

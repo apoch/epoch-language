@@ -27,11 +27,7 @@ void DebugWriteStringExpression::ExecuteFast(ActivatedScope& scope, StackSpace& 
 {
 	UI::OutputStream output;
 
-	UI::SetOutputColor(UI::OutputColor_LightBlue);
-	output << L"DEBUG: ";
-	output.Flush();
-
-	UI::SetOutputColor(UI::OutputColor_White);
+	output << UI::lightblue << L"DEBUG: " << UI::resetcolor;
 	
 	{
 		StringVariable value(stack.GetCurrentTopOfStack());

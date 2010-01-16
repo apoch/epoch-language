@@ -20,11 +20,9 @@ void Parser::Trace(const wchar_t* traceinfo)
 	if(Config::TraceParserExecution)
 	{
 		UI::OutputStream out;
-		UI::SetOutputColor(UI::OutputColor_LightGreen);
-		out << L"Parser trace: ";
+		out << UI::lightgreen << L"Parser trace: ";
 		out.Flush();
-		UI::SetOutputColor(UI::OutputColor_White);
-		out << traceinfo << std::endl;
+		out << UI::resetcolor << traceinfo << std::endl;
 	}
 #endif
 }
@@ -38,11 +36,8 @@ void Parser::Trace(const wchar_t* traceinfo, const std::wstring& identifier)
 	if(Config::TraceParserExecution)
 	{
 		UI::OutputStream out;
-		UI::SetOutputColor(UI::OutputColor_LightGreen);
-		out << L"Parser trace: ";
-		out.Flush();
-		UI::SetOutputColor(UI::OutputColor_White);
-		out << traceinfo << L" [" << identifier << L"]" << std::endl;
+		out << UI::lightgreen << L"Parser trace: ";
+		out << UI::resetcolor << traceinfo << L" [" << identifier << L"]" << std::endl;
 	}
 #endif
 }

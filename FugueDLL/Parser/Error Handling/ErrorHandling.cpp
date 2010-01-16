@@ -32,9 +32,7 @@ void ParserState::ReportFatalError(const char* what)
 	ParseFailed = true;
 
 	UI::OutputStream output;
-	UI::SetOutputColor(UI::OutputColor_LightRed);
-	output << what << std::endl;
-	UI::SetOutputColor(UI::OutputColor_White);
+	output << UI::lightred << what << UI::resetcolor << std::endl;
 	const boost::spirit::classic::file_position pos = GetParsePosition().get_position();
 	output << L"File: " << widen(pos.file) << L" Line: " << pos.line << L" Column: " << pos.column << std::endl;
 	DumpCodeLine(pos.line, pos.column, Config::TabWidth);
