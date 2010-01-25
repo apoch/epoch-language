@@ -69,9 +69,6 @@ namespace
 		// value (in the EAX register, as per __stdcall). In
 		// order to make sure all the housekeeping is done correctly,
 		// we let the compiler generate the return code for us.
-		// Note that since we took a JMP into this function rather
-		// than a CALL, this return will propagate up the call
-		// stack and return to the code that invoked the callback.
 		switch(result->GetType())
 		{
 		case VM::EpochVariableType_Null:

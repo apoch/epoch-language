@@ -287,7 +287,7 @@ void ParserState::FinishReturnConstructor()
 	ReverseOpsAsGroups(FunctionReturnInitializationBlocks[FunctionName], PassedParameterCount.top() - 1);
 
 	TheStack.pop_back();
-	PassedParameterCount.pop();
+	PopParameterCount();
 
 	FunctionReturnInitializationBlocks[FunctionName]->AddOperation(VM::OperationPtr(new VM::Operations::PushIntegerLiteral(static_cast<Integer32>(hint))));
 	FunctionReturnInitializationBlocks[FunctionName]->AddOperation(VM::OperationPtr(new VM::Operations::InitializeValue(varname)));

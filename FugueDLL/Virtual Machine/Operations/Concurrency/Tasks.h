@@ -59,6 +59,63 @@ namespace VM
 			VM::Block* CodeBlock;
 		};
 
+
+		//
+		// Operation for handing off execution to a worker thread
+		//
+		class ForkThread : public Operation, public SelfAware<ForkThread>
+		{
+		// Construction and destruction
+		public:
+			ForkThread(VM::Block* block)
+				: CodeBlock(block)
+			{ }
+
+			virtual ~ForkThread();
+		
+		// Operation interface
+		public:
+			virtual void ExecuteFast(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult);
+			virtual RValuePtr ExecuteAndStoreRValue(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult);
+			
+			virtual EpochVariableTypeID GetType(const ScopeDescription& scope) const
+			{ return EpochVariableType_Null; }
+
+			virtual size_t GetNumParameters(const VM::ScopeDescription& scope) const
+			{ return 2; }
+
+		// Traversal interface
+		protected:
+			template <typename TraverserT>
+			void TraverseHelper(TraverserT& traverser);
+
+			virtual void Traverse(Validator::ValidationTraverser& traverser);
+			virtual void Traverse(Serialization::SerializationTraverser& traverser);
+
+		// Internal tracking
+		private:
+			VM::Block* CodeBlock;
+		};
+
+
+
+		//
+		// Operation for initializng a pool of worker threads
+		//
+		class CreateThreadPool : public Operation, public SelfAware<CreateThreadPool>
+		{		
+		// Operation interface
+		public:
+			virtual void ExecuteFast(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult);
+			virtual RValuePtr ExecuteAndStoreRValue(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult);
+			
+			virtual EpochVariableTypeID GetType(const ScopeDescription& scope) const
+			{ return EpochVariableType_Null; }
+
+			virtual size_t GetNumParameters(const VM::ScopeDescription& scope) const
+			{ return 2; }
+		};
+
 	}
 
 }

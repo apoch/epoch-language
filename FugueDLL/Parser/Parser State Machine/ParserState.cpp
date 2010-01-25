@@ -25,9 +25,9 @@ using namespace Parser;
 //
 // Construct and initialize the analyzer.
 //
-ParserState::ParserState(Byte* sourcebuffer)
+ParserState::ParserState()
 	: ParsedProgram(new VM::Program),
-	  CodeBuffer(sourcebuffer),
+	  CodeBuffer(NULL),
 	  ParseFailed(false),
 	  FunctionReturns(NULL),
 	  CreatedTupleType(NULL),

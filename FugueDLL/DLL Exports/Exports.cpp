@@ -9,7 +9,6 @@
 
 #include "Parser/Parse.h"
 #include "Parser/Parser State Machine/ParserState.h"
-#include "Parser/Grammars.h"
 
 #include "User Interface/Output.h"
 
@@ -27,6 +26,9 @@
 
 namespace
 {
+	//
+	// Dump a list of errors detected by the static validation system
+	//
 	void ReportValidationErrors(const std::list<Validator::ValidationError>& errors, const Parser::ParserState& state)
 	{
 		UI::OutputStream output;
@@ -55,11 +57,9 @@ bool __stdcall ExecuteSourceCode(const char* filename)
 
 	try
 	{
-		std::vector<Byte> memory;
-		Parser::ParserState state(NULL);
-		Parser::EpochGrammar grammar(state);
-		Parser::EpochGrammarPreProcess ppgrammar(state);
-		if(!Parser::ParseFile(ppgrammar, grammar, filename, memory))
+		Parser::ParserState state;
+
+		if(!Parser::ParseFile(filename, state))
 		{
 			output << UI::lightred << L"ERROR: " << UI::resetcolor;
 			output << L"parsing failed" << std::endl;
@@ -75,7 +75,6 @@ bool __stdcall ExecuteSourceCode(const char* filename)
 			throw VM::ExecutionException("Program failed validation.");
 		}
 
-		memory.clear();
 		output << L"Executing program..." << std::endl;
 		state.GetParsedProgram()->Execute();
 		return true;
@@ -165,11 +164,8 @@ bool __stdcall SerializeSourceCode(const char* filename, const char* outputfilen
 
 	try
 	{
-		std::vector<Byte> memory;
-		Parser::ParserState state(NULL);
-		Parser::EpochGrammar grammar(state);
-		Parser::EpochGrammarPreProcess ppgrammar(state);
-		if(!Parser::ParseFile(ppgrammar, grammar, filename, memory))
+		Parser::ParserState state;
+		if(!Parser::ParseFile(filename, state))
 		{
 			output << UI::lightred << L"ERROR: " << UI::resetcolor;
 			output << L"parsing failed" << std::endl;
@@ -185,7 +181,6 @@ bool __stdcall SerializeSourceCode(const char* filename, const char* outputfilen
 			throw VM::ExecutionException("Program failed validation.");
 		}
 
-		memory.clear();
 		output << L"Compiling program..." << std::endl;
 
 		Serialization::SerializationTraverser serializer(outputfilename);

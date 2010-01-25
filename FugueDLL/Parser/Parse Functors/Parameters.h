@@ -242,6 +242,13 @@ struct PushIdentifierNoStack : public ParseFunctorBase
 	}
 };
 
+//
+// Stop counting parameters and move up to the next higher level of parameters
+//
+// This makes it possible to generically handle an arbitrary level
+// of nested function calls, each with their own counted number of
+// parameters.
+//
 struct PopParameterCount : public ParseFunctorBase
 {
 	PopParameterCount(Parser::ParserState& state)

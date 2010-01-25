@@ -81,15 +81,18 @@ namespace Keywords
 
 	extern const wchar_t* Reference;
 	extern const wchar_t* Constant;
-	extern const wchar_t* Future;
 
 	extern const wchar_t* External;
 	extern const wchar_t* Library;
 	extern const wchar_t* Extension;
 
 	extern const wchar_t* Function;
-	extern const wchar_t* Task;
 	extern const wchar_t* Global;
+
+	extern const wchar_t* Task;
+	extern const wchar_t* Thread;
+	extern const wchar_t* ThreadPool;
+	extern const wchar_t* Future;
 
 	extern const wchar_t* True;
 	extern const wchar_t* False;

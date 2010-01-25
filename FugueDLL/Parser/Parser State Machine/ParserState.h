@@ -60,7 +60,7 @@ namespace Parser
 	{
 	// Construction and destruction
 	public:
-		ParserState(Byte* sourcebuffer);
+		ParserState();
 		~ParserState();
 
 	// Functions
@@ -191,6 +191,7 @@ namespace Parser
 	// Tasks and messaging
 	public:
 		void BeginTaskCode();
+		void BeginThreadCode();
 
 		void BeginResponseMap();
 		void EndResponseMap();
@@ -209,6 +210,8 @@ namespace Parser
 
 		void PushCallerOperation();
 		void PushSenderOperation();
+
+		void RegisterThreadPool();
 
 	// Infix operators
 	public:
@@ -397,6 +400,7 @@ namespace Parser
 				BLOCKENTRYTYPE_ELSEIFWRAPPER,
 				BLOCKENTRYTYPE_WHILELOOP,
 				BLOCKENTRYTYPE_TASK,
+				BLOCKENTRYTYPE_THREAD,
 				BLOCKENTRYTYPE_MSGDISPATCH,
 				BLOCKENTRYTYPE_RESPONSEMAP
 			} Type;

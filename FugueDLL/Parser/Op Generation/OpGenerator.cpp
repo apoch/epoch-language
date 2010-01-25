@@ -15,6 +15,7 @@
 #include "Parser/Parse.h"
 #include "Parser/Error Handling/ParserExceptions.h"
 #include "Parser/Op Generation/OpValidation.h"
+#include "Parser/Tracing.h"
 
 #include "Virtual Machine/Core Entities/Block.h"
 #include "Virtual Machine/Core Entities/Function.h"
@@ -41,7 +42,7 @@ void ParserState::PushOperation(const std::wstring& operationname)
 {
 	AddOperationToCurrentBlock(CreateOperation(operationname));
 	MergeDeferredOperations();
-	PassedParameterCount.pop();
+	PopParameterCount();
 }
 
 
@@ -467,6 +468,13 @@ VM::OperationPtr ParserState::CreateOperation(const std::wstring& operationname)
 }
 
 
+//
+// Perform type checking on a structure initialization
+//
+// Given a sequence of instructions that is meant to initialize a
+// structure variable, check the corresponding types to ensure that
+// all type requirements of the struct initialization are met.
+//
 size_t ParserState::ValidateStructInit(const std::vector<std::wstring>& members, const std::wstring& structtypename, std::vector<VM::Operation*>& ops, size_t maxop, bool& initbyfunctioncall)
 {
 	initbyfunctioncall = false;
@@ -578,6 +586,13 @@ size_t ParserState::ValidateStructInit(const std::vector<std::wstring>& members,
 }
 
 
+//
+// Perform type checking on a tuple initialization
+//
+// Given a sequence of instructions that is meant to initialize a
+// tuple variable, check the corresponding types to ensure that
+// all type requirements of the tuple initialization are met.
+//
 size_t ParserState::ValidateTupleInit(const std::vector<std::wstring>& members, const std::wstring& tupletypename, std::vector<VM::Operation*>& ops, size_t maxop)
 {
 	const VM::TupleType& tupletype = CurrentScope->GetTupleType(tupletypename);
@@ -619,6 +634,14 @@ size_t ParserState::ValidateTupleInit(const std::vector<std::wstring>& members, 
 }
 
 
+//
+// Helper wrapper representing a group of related operations
+//
+// This is useful for allowing multiple-instruction sequences that
+// result in a single value passed to a function or constructor.
+// Each instruction in the sequence is wrapped into this structure
+// and treated as if the sequence itself is an indivisible unit.
+//
 struct MultiOp
 {
 	std::vector<VM::Operation*> TheOps;
@@ -631,6 +654,12 @@ struct MultiOp
 	}
 };
 
+//
+// Reverse the given set of trailing operations in a code block
+//
+// In some cases we need to reverse the order of operations, e.g. when
+// dealing with certain calling conventions.
+//
 void ParserState::ReverseOps(VM::Block* block, size_t numops)
 {
 	if(numops <= 1)

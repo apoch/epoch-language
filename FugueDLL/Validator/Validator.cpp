@@ -11,6 +11,7 @@
 #include "pch.h"
 
 #include "Validator/Validator.h"
+#include "Validator/Tracing.h"
 
 #include "Virtual Machine/Core Entities/Scopes/ScopeDescription.h"
 #include "Virtual Machine/Core Entities/Program.h"
@@ -85,6 +86,17 @@ void ValidationTraverser::RegisterScope(VM::ScopeDescription& scope)
 //
 void ValidationTraverser::TraverseScope(VM::ScopeDescription& scope)
 {
+	struct tracehelper
+	{
+		tracehelper(const VM::ScopeDescription& thescope)
+			: TheScope(thescope)
+		{ TraceScopeEntry(TheScope); }
+
+		~tracehelper()		{ TraceScopeExit(TheScope); }
+
+		const VM::ScopeDescription& TheScope;
+	} helper(scope);
+
 	for(VM::ScopeDescription::FunctionMap::iterator iter = scope.Functions.begin(); iter != scope.Functions.end(); ++iter)
 	{
 		VM::SelfAwareBase* func = dynamic_cast<VM::SelfAwareBase*>(iter->second);
@@ -114,6 +126,22 @@ void ValidationTraverser::EnterTask()
 // Register that we have left an asynchronous task block
 //
 void ValidationTraverser::ExitTask()
+{
+	--TaskDepthCounter;
+}
+
+//
+// Register that we have entered an asynchronous thread block
+//
+void ValidationTraverser::EnterThread()
+{
+	++TaskDepthCounter;
+}
+
+//
+// Register that we have left an asynchronous thread block
+//
+void ValidationTraverser::ExitThread()
 {
 	--TaskDepthCounter;
 }

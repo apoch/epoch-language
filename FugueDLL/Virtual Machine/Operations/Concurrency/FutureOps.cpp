@@ -13,6 +13,8 @@
 #include "Virtual Machine/Core Entities/Scopes/ScopeDescription.h"
 #include "Virtual Machine/Core Entities/Concurrency/Future.h"
 
+#include "Virtual Machine/Core Entities/Variables/StringVariable.h"
+
 #include "Utility/Threading/Threads.h"
 
 
@@ -29,6 +31,15 @@ DWORD __stdcall ExecuteEpochFutureTask(void* info);
 //
 void ForkFuture::ExecuteFast(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
 {
+	if(UseThreadPool)
+	{
+		VM::StringVariable temp(stack.GetCurrentTopOfStack());
+		std::wstring poolname = temp.GetValue();
+		stack.Pop(temp.GetStorageSize());
+
+		// TODO - place future computation on thread pool's work queue instead of forking a dedicated thread
+	}
+
 	std::wostringstream id;
 	id << L"Epoch Future Task " << this;
 

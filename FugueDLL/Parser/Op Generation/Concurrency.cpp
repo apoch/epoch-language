@@ -29,7 +29,7 @@ using namespace Parser;
 VM::OperationPtr ParserState::CreateOperation_Message()
 {
 	size_t messageparamcount = PassedParameterCount.top();
-	PassedParameterCount.pop();
+	PopParameterCount();
 	size_t paramcount = PassedParameterCount.top();
 
 	if(paramcount != 2)
@@ -155,15 +155,35 @@ VM::OperationPtr ParserState::CreateOperation_AcceptMessage()
 //
 VM::OperationPtr ParserState::CreateOperation_Future()
 {
-	if(PassedParameterCount.top() != 2)
+	bool threadpool = false;
+
+	if(PassedParameterCount.top() != 2 && PassedParameterCount.top() != 3)
 	{
-		ReportFatalError("future() function requires a variable name and a value");
+		ReportFatalError("future() function requires a variable name and a value, and optionally a target thread pool name");
 
 		for(size_t i = PassedParameterCount.top(); i > 0; --i)
 			TheStack.pop_back();
 
 		return VM::OperationPtr(new VM::Operations::NoOp);
 	}
+
+	if(PassedParameterCount.top() == 3)
+	{
+		threadpool = true;
+		if(TheStack.back().DetermineEffectiveType(*CurrentScope) != VM::EpochVariableType_String)
+		{
+			ReportFatalError("Third parameter to future() must be a string");
+
+			TheStack.pop_back();
+			TheStack.pop_back();
+			TheStack.pop_back();
+
+			return VM::OperationPtr(new VM::Operations::NoOp);
+		}
+
+		TheStack.pop_back();
+	}
+
 
 	if(TheStack.back().Type != StackEntry::STACKENTRYTYPE_OPERATION)
 	{
@@ -194,25 +214,44 @@ VM::OperationPtr ParserState::CreateOperation_Future()
 	{
 		VM::OperationPtr finalop(pushop->GetNestedOperation());
 		pushop->UnlinkOperation();
-		theop.release();
+		theop.release();		// TODO - is this really supposed to be here??
 
+		// TODO - why do we do all this convoluted crap when we could just EraseOperation(theop.get()) ??
 		Blocks.back().TheBlock->EraseOperation(finalop.get());
 		if(Blocks.back().TheBlock->GetNumOperations() > 0)
-			Blocks.back().TheBlock->RemoveTailOperations(1);
+		{
+			if(threadpool)
+			{
+				VM::Operation* op = Blocks.back().TheBlock->GetOperationFromEnd(2, *CurrentScope);
+				Blocks.back().TheBlock->EraseOperation(op);
+				delete op;
+			}
+			else
+				Blocks.back().TheBlock->RemoveTailOperations(1);
+		}
 
 		VM::EpochVariableTypeID type = finalop->GetType(*CurrentScope);
 		CurrentScope->AddFuture(ParsedProgram->PoolStaticString(varname), VM::OperationPtr(finalop.release()));
 
-		return VM::OperationPtr(new VM::Operations::ForkFuture(ParsedProgram->PoolStaticString(varname), type));
+		return VM::OperationPtr(new VM::Operations::ForkFuture(ParsedProgram->PoolStaticString(varname), type, threadpool));
 	}
 
 	Blocks.back().TheBlock->EraseOperation(theop.get());
 	if(Blocks.back().TheBlock->GetNumOperations() > 0)
-		Blocks.back().TheBlock->RemoveTailOperations(1);
+	{
+		if(threadpool)
+		{
+			VM::Operation* op = Blocks.back().TheBlock->GetOperationFromEnd(2, *CurrentScope);
+			Blocks.back().TheBlock->EraseOperation(op);
+			delete op;
+		}
+		else
+			Blocks.back().TheBlock->RemoveTailOperations(1);
+	}
 
 	VM::EpochVariableTypeID type = theop->GetType(*CurrentScope);
 	CurrentScope->AddFuture(ParsedProgram->PoolStaticString(varname), VM::OperationPtr(theop.release()));
 
-	return VM::OperationPtr(new VM::Operations::ForkFuture(ParsedProgram->PoolStaticString(varname), type));
+	return VM::OperationPtr(new VM::Operations::ForkFuture(ParsedProgram->PoolStaticString(varname), type, threadpool));
 }
 

@@ -65,7 +65,7 @@ void ParserState::RegisterVariableValue()
 			TheStack.pop_back();
 			VariableTypeStack.pop();
 			VariableNameStack.pop();
-			PassedParameterCount.pop();
+			PopParameterCount();
 			IsDefiningConstant = false;
 			return;
 		}
@@ -90,7 +90,7 @@ void ParserState::RegisterVariableValue()
 
 	VariableTypeStack.pop();
 	VariableNameStack.pop();
-	PassedParameterCount.pop();
+	PopParameterCount();
 	IsDefiningConstant = false;
 }
 
@@ -207,7 +207,7 @@ void ParserState::RegisterListVariable()
 
 	VariableTypeStack.pop();
 	VariableNameStack.pop();
-	PassedParameterCount.pop();
+	PopParameterCount();
 	IsDefiningConstant = false;
 }
 

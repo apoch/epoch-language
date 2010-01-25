@@ -19,6 +19,7 @@ namespace Config
 
 
 	extern bool TraceParserExecution;
+	extern bool TraceValidatorExecution;
 
 	extern size_t StackSize;
 

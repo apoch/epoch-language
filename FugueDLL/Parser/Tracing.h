@@ -8,9 +8,18 @@
 #pragma once
 
 
+// Forward declarations
+namespace VM
+{
+	class ScopeDescription;
+}
+
+
 namespace Parser
 {
 	void Trace(const wchar_t* traceinfo);
 	void Trace(const wchar_t* traceinfo, const std::wstring& identifier);
+
+	void TraceScopeCreation(const VM::ScopeDescription* newscope, const VM::ScopeDescription* displacedscope);
 }
 

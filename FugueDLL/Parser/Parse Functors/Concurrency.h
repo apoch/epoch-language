@@ -30,6 +30,25 @@ struct BeginTaskCode : public ParseFunctorBase
 
 
 //
+// Inform the parse analyzer that we are entering a pooled thread block
+//
+struct BeginThreadCode : public ParseFunctorBase
+{
+	BeginThreadCode(Parser::ParserState& state)
+		: ParseFunctorBase(state)
+	{ }
+
+	template <typename ParamType>
+	void operator () (ParamType) const
+	{
+		Trace(L"BeginThreadCode");
+
+		State.BeginThreadCode();
+	}
+};
+
+
+//
 // Request the parse analyzer to save the name of a task for later retrieval
 //
 struct SaveTaskName : public ParseFunctorBase
@@ -45,6 +64,24 @@ struct SaveTaskName : public ParseFunctorBase
 		Trace(L"SaveTaskName", str);
 
 		State.SaveTaskName(str);
+	}
+};
+
+
+//
+// Note that the user has requested creation of a thread pool
+//
+struct RegisterThreadPool : public ParseFunctorBase
+{
+	RegisterThreadPool(Parser::ParserState& state)
+		: ParseFunctorBase(state)
+	{ }
+
+	template <typename IteratorType>
+	void operator () (IteratorType begin, IteratorType end) const
+	{
+		Trace(L"RegisterThreadPool");
+		State.RegisterThreadPool();
 	}
 };
 

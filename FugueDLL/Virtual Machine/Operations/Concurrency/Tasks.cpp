@@ -17,6 +17,8 @@
 #include "Virtual Machine/Routines.inl"
 #include "Virtual Machine/VMExceptions.h"
 
+#include "Virtual Machine/SelfAware.inl"
+
 #include "Parser/Parser State Machine/ParserState.h"
 
 #include "Utility/Threading/Threads.h"
@@ -80,6 +82,90 @@ void ForkTask::Traverse(Validator::ValidationTraverser& traverser)
 void ForkTask::Traverse(Serialization::SerializationTraverser& traverser)
 {
 	TraverseHelper(traverser);
+}
+
+
+//
+// Destruct and clean up a thread forking operation
+//
+ForkThread::~ForkThread()
+{
+	delete CodeBlock;
+}
+
+//
+// Fork a thread and start execution in the new context
+//
+void ForkThread::ExecuteFast(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+{
+	std::wstring threadname, poolname;
+
+	{
+		StringVariable temp(stack.GetCurrentTopOfStack());
+		poolname = temp.GetValue();
+		stack.Pop(temp.GetStorageSize());
+	}
+
+	{
+		StringVariable temp(stack.GetCurrentTopOfStack());
+		threadname = temp.GetValue();
+		stack.Pop(temp.GetStorageSize());
+	}
+
+	// TODO - actually place this code on the work queue of the appropriate thread pool
+}
+
+RValuePtr ForkThread::ExecuteAndStoreRValue(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+{
+	ExecuteFast(scope, stack, flowresult);
+	return RValuePtr(new NullRValue);
+}
+
+template <typename TraverserT>
+void ForkThread::TraverseHelper(TraverserT& traverser)
+{
+	traverser.TraverseNode(*this);
+	traverser.EnterThread();
+	if(CodeBlock)
+		CodeBlock->Traverse(traverser);
+	traverser.ExitThread();
+}
+
+void ForkThread::Traverse(Validator::ValidationTraverser& traverser)
+{
+	TraverseHelper(traverser);
+}
+
+void ForkThread::Traverse(Serialization::SerializationTraverser& traverser)
+{
+	TraverseHelper(traverser);
+}
+
+
+void CreateThreadPool::ExecuteFast(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+{
+	std::wstring threadname;
+	Integer32 numthreads;
+
+	{
+		IntegerVariable temp(stack.GetCurrentTopOfStack());
+		numthreads = temp.GetValue();
+		stack.Pop(temp.GetStorageSize());
+	}
+
+	{
+		StringVariable temp(stack.GetCurrentTopOfStack());
+		threadname = temp.GetValue();
+		stack.Pop(temp.GetStorageSize());
+	}
+
+	// TODO - create thread pool
+}
+
+RValuePtr CreateThreadPool::ExecuteAndStoreRValue(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+{
+	ExecuteFast(scope, stack, flowresult);
+	return RValuePtr(new NullRValue);
 }
 
 

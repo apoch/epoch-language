@@ -46,7 +46,7 @@ const FileLocationInfo& DebugTable::GetInstructionLocation(const VM::Operation* 
 // because it is a string variable that is evaluated at runtime. So what we
 // store here is actually the raw source that provides the task name.
 //
-void DebugTable::TrackTaskName(const VM::Operations::ForkTask* forkop, const std::wstring& taskname)
+void DebugTable::TrackTaskName(const VM::Operation* forkop, const std::wstring& taskname)
 {
 	TaskNameTable[forkop] = taskname;
 }
@@ -55,9 +55,9 @@ void DebugTable::TrackTaskName(const VM::Operations::ForkTask* forkop, const std
 //
 // Retrieve the code that generates the title of a forked task
 //
-const std::wstring& DebugTable::GetTaskName(const VM::Operations::ForkTask* forkop) const
+const std::wstring& DebugTable::GetTaskName(const VM::Operation* forkop) const
 {
-	std::map<const VM::Operations::ForkTask*, std::wstring>::const_iterator iter = TaskNameTable.find(forkop);
+	std::map<const VM::Operation*, std::wstring>::const_iterator iter = TaskNameTable.find(forkop);
 	if(iter == TaskNameTable.end())
 		throw Parser::ParserFailureException("Task is not recorded in the debug table");
 

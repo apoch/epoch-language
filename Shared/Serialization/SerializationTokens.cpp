@@ -125,6 +125,8 @@ std::wstring Serialization::TypeCastToString(L"CASTSTR");
 
 std::wstring Serialization::ForkTask(L"FORK");
 std::wstring Serialization::ForkFuture(L"FUTURE");
+std::wstring Serialization::ForkThread(L"FORKTHREAD");
+std::wstring Serialization::ThreadPool(L"THREADPOOL");
 
 std::wstring Serialization::DebugWrite(L"DEBUG_WRITE");
 std::wstring Serialization::DebugRead(L"DEBUG_READ");

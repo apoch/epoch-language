@@ -17,6 +17,10 @@
 // Note that this is ignored in release builds of the VM, which never trace
 bool Config::TraceParserExecution = true;
 
+// Flag controlling whether or not we output trace data when validating code
+// Note that this is ignored in release builds of the VM, which never trace
+bool Config::TraceValidatorExecution = true;
+
 
 // Space reserved for the execution stack, in bytes (default is 1MB)
 // Each forked task will get this amount of stack space as well
@@ -42,6 +46,7 @@ void Config::LoadFromConfigFile()
 	ConfigReader config;
 	
 	config.ReadConfig(L"traceparser", Config::TraceParserExecution);
+	config.ReadConfig(L"tracevalidator", Config::TraceValidatorExecution);
 
 	config.ReadConfig(L"stacksize", Config::StackSize);
 

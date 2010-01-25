@@ -9,6 +9,7 @@
 
 #include "Parser/Parser State Machine/ParserState.h"
 #include "Parser/Error Handling/ParserExceptions.h"
+#include "Parser/Tracing.h"
 #include "Parser/Parse.h"
 
 #include "Virtual Machine/Core Entities/Program.h"
@@ -22,6 +23,8 @@
 #include "Virtual Machine/Operations/Variables/VariableOps.h"
 #include "Virtual Machine/Operations/Variables/StructureOps.h"
 #include "Virtual Machine/Operations/Variables/TupleOps.h"
+
+#include "Virtual Machine/SelfAware.inl"
 
 #include "Utility/Strings.h"
 
@@ -190,13 +193,18 @@ void ParserState::EnterBlock()
 	entry.Type = ExpectedBlockTypes.empty() ? BlockEntry::BLOCKENTRYTYPE_FREE : ExpectedBlockTypes.top();
 
 	std::auto_ptr<VM::ScopeDescription> scope(new VM::ScopeDescription);
-	if(entry.Type == BlockEntry::BLOCKENTRYTYPE_TASK)
+	if(entry.Type == BlockEntry::BLOCKENTRYTYPE_TASK || entry.Type == BlockEntry::BLOCKENTRYTYPE_THREAD)
 	{
 		scope->ParentScope = &GetParsedProgram()->GetGlobalScope();
 		DisplacedScopes.push_back(CurrentScope);
+		TraceScopeCreation(scope.get(), CurrentScope);
 	}
 	else
+	{
+		TraceScopeCreation(scope.get(), NULL);
 		scope->ParentScope = CurrentScope;
+	}
+
 	CurrentScope = scope.release();
 
 	if(entry.Type == BlockEntry::BLOCKENTRYTYPE_FUNCTION_NOCREATE)
@@ -461,6 +469,8 @@ void ParserState::ExitBlock()
 			std::auto_ptr<VM::Block> body(Blocks.back().TheBlock);
 			Blocks.pop_back();
 
+			CurrentScope = DisplacedScopes.back();
+
 			if(TheStack.empty() || TheStack.back().DetermineEffectiveType(*CurrentScope) != VM::EpochVariableType_String)
 				throw ParserFailureException("Task identifiers must be string values");
 
@@ -468,7 +478,32 @@ void ParserState::ExitBlock()
 			DebugInfo.TrackTaskName(opptr.get(), SavedTaskNames.top());
 			AddOperationToCurrentBlock(VM::OperationPtr(opptr.release()));
 			TheStack.pop_back();
+			DisplacedScopes.pop_back();
+			SavedTaskNames.pop();
+			return;
+		}
+		break;
+
+	case BlockEntry::BLOCKENTRYTYPE_THREAD:
+		{
+			std::auto_ptr<VM::Block> body(Blocks.back().TheBlock);
+			Blocks.pop_back();
+
 			CurrentScope = DisplacedScopes.back();
+
+			if(TheStack.empty() || TheStack.back().DetermineEffectiveType(*CurrentScope) != VM::EpochVariableType_String)
+				throw ParserFailureException("Thread pool identifiers must be string values");
+
+			TheStack.pop_back();
+
+			if(TheStack.empty() || TheStack.back().DetermineEffectiveType(*CurrentScope) != VM::EpochVariableType_String)
+				throw ParserFailureException("Thread identifiers must be string values");
+
+			std::auto_ptr<VM::Operations::ForkThread> opptr(new VM::Operations::ForkThread(body.release()));
+			DebugInfo.TrackTaskName(opptr.get(), SavedTaskNames.top());
+			AddOperationToCurrentBlock(VM::OperationPtr(opptr.release()));
+
+			TheStack.pop_back();
 			DisplacedScopes.pop_back();
 			SavedTaskNames.pop();
 			return;
@@ -593,6 +628,7 @@ void ParserState::ExitBlockPP()
 	case BlockEntry::BLOCKENTRYTYPE_WHILELOOP:
 	case BlockEntry::BLOCKENTRYTYPE_FREE:
 	case BlockEntry::BLOCKENTRYTYPE_TASK:
+	case BlockEntry::BLOCKENTRYTYPE_THREAD:
 	case BlockEntry::BLOCKENTRYTYPE_MSGDISPATCH:
 		Blocks.pop_back();
 		break;

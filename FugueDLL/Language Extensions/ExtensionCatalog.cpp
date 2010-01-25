@@ -22,6 +22,9 @@ std::map<ExtensionLibraryHandle, ExtensionDLLAccess> ExtensionLibraryMap;
 ExtensionLibraryHandle handlecounter = 0;
 
 
+//
+// Load a given extension DLL and have the extension register any new keywords
+//
 ExtensionLibraryHandle Extensions::RegisterExtensionLibrary(const std::wstring& libraryname)
 {
 	std::wstring fulldllname = libraryname + L".dll";
@@ -40,6 +43,9 @@ ExtensionLibraryHandle Extensions::RegisterExtensionLibrary(const std::wstring& 
 	return handle;
 }
 
+//
+// Given an extension keyword, locate the library providing the extension
+//
 ExtensionLibraryHandle Extensions::GetLibraryProvidingExtension(const std::wstring& extensionname)
 {
 	std::map<std::wstring, ExtensionLibraryHandle>::const_iterator iter = ExtensionKeywordMap.find(extensionname);
@@ -49,7 +55,14 @@ ExtensionLibraryHandle Extensions::GetLibraryProvidingExtension(const std::wstri
 	return iter->second;
 }
 
-
+//
+// Process the contents of an extension block
+//
+// When an extension keyword is used, the attached code block is passed
+// through this function to the extension library so the library can do
+// any processing it likes on the given code, such as compiling it into
+// a different language.
+//
 CodeBlockHandle Extensions::BindLibraryToCode(ExtensionLibraryHandle libhandle, VM::Block* codeblock)
 {
 	std::map<ExtensionLibraryHandle, ExtensionDLLAccess>::iterator iter = ExtensionLibraryMap.find(libhandle);
@@ -59,7 +72,12 @@ CodeBlockHandle Extensions::BindLibraryToCode(ExtensionLibraryHandle libhandle, 
 	return iter->second.LoadSourceBlock(reinterpret_cast<OriginalCodeHandle>(codeblock));
 }
 
-
+//
+// Execute the processed contents of an extension block
+//
+// Once an extension has processed a block of code, that code can be
+// invoked via this function.
+//
 void Extensions::ExecuteBoundCodeBlock(ExtensionLibraryHandle libhandle, CodeBlockHandle codehandle, HandleType activatedscopehandle)
 {
 	std::map<ExtensionLibraryHandle, ExtensionDLLAccess>::iterator iter = ExtensionLibraryMap.find(libhandle);
@@ -70,6 +88,9 @@ void Extensions::ExecuteBoundCodeBlock(ExtensionLibraryHandle libhandle, CodeBlo
 }
 
 
+//
+// Link a given new language keyword to the library that handles it
+//
 void Extensions::RegisterExtensionKeyword(const std::wstring& keyword, ExtensionLibraryHandle handler)
 {
 	std::map<std::wstring, ExtensionLibraryHandle>::const_iterator iter = ExtensionKeywordMap.find(keyword);
@@ -79,6 +100,9 @@ void Extensions::RegisterExtensionKeyword(const std::wstring& keyword, Extension
 	ExtensionKeywordMap.insert(std::make_pair(keyword, handler));
 }
 
+//
+// Signal all extensions to do any required preparatory work prior to executing the program
+//
 void Extensions::PrepareForExecution()
 {
 	for(std::map<ExtensionLibraryHandle, ExtensionDLLAccess>::iterator iter = ExtensionLibraryMap.begin(); iter != ExtensionLibraryMap.end(); ++iter)

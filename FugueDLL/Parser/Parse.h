@@ -12,12 +12,13 @@
 namespace Parser
 {
 	// Forward declarations
-	struct EpochGrammar;
-	struct EpochGrammarPreProcess;
 	class ParserState;
 
+
 	// Function declarations
-	bool ParseFile(EpochGrammarPreProcess& ppgrammar, EpochGrammar& grammar, const std::string& filename, std::vector<Byte>& memory);
-	bool ParseMemory(EpochGrammarPreProcess& ppgrammar, EpochGrammar& grammar, const std::vector<Byte>& memblock, const std::string& sourcename);
+	bool ParseFile(const std::string& filename, ParserState& state);
+
+	bool ParseMemoryPass1(ParserState& state, const std::vector<Byte>& memblock, const std::string& sourcename);
+	bool ParseMemoryPass2(ParserState& state, const std::vector<Byte>& memblock, const std::string& sourcename);
 }
 

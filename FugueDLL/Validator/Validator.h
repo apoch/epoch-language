@@ -67,14 +67,19 @@ namespace Validator
 		void NullBlock();
 
 		void RegisterScope(VM::ScopeDescription& scope);
-		void TraverseScope(VM::ScopeDescription& scope);
 
 		void EnterTask();
 		void ExitTask();
 
+		void EnterThread();
+		void ExitThread();
+
 	// State query interface
 	public:
 		VM::ScopeDescription* GetCurrentScope()		{ return CurrentScope; }
+
+		void SetCurrentScope(VM::ScopeDescription* scope)
+		{ CurrentScope = scope; }
 
 		bool IsValid() const						{ return Valid; }
 		bool IsInTask() const						{ return (TaskDepthCounter > 0); }
@@ -91,6 +96,10 @@ namespace Validator
 
 		void RecordTraversedOp(const VM::Operation* op)
 		{ SeenOps.insert(op); }
+
+	// Internal helpers
+	private:
+		void TraverseScope(VM::ScopeDescription& scope);
 
 	// Internal tracking
 	private:

@@ -139,6 +139,8 @@ namespace Serialization
 	// Asynchronous tasks
 	extern std::wstring ForkTask;
 	extern std::wstring ForkFuture;
+	extern std::wstring ForkThread;
+	extern std::wstring ThreadPool;
 
 	// Debug operations
 	extern std::wstring DebugWrite;

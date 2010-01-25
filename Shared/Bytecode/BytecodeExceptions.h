@@ -1,6 +1,6 @@
 //
 // The Epoch Language Project
-// FUGUE Virtual Machine
+// FUGUE Bytecode assembler/disassembler
 //
 // Exception wrapper classes for the bytecode subsystem
 //

@@ -204,7 +204,7 @@ void SerializationTraverser::TraverseScope(VM::ScopeDescription& scope)
 	for(VM::ScopeDescription::FutureMap::const_iterator iter = scope.Futures.begin(); iter != scope.Futures.end(); ++iter)
 	{
 		PadTabs();
-		OutputStream << iter->first << L" ";
+		OutputStream << iter->first << L"\n";
 		dynamic_cast<VM::SelfAwareBase*>(iter->second->GetNestedOperation())->Traverse(*this);
 	}
 
@@ -238,6 +238,17 @@ void SerializationTraverser::ExitTask()
 {
 	// Nothing to do for serialization.
 }
+
+void SerializationTraverser::EnterThread()
+{
+	// Nothing to do for serialization.
+}
+
+void SerializationTraverser::ExitThread()
+{
+	// Nothing to do for serialization.
+}
+
 
 
 void SerializationTraverser::TraverseGlobalInitBlock(VM::Block* block)
@@ -467,11 +478,12 @@ void SerializationTraverser::WriteArithmeticOp(const void* opptr, const std::wst
 	OutputStream << numparams << L"\n";
 }
 
-void SerializationTraverser::WriteForkFuture(const void* opptr, const std::wstring& token, const std::wstring& varname, VM::EpochVariableTypeID type)
+void SerializationTraverser::WriteForkFuture(const void* opptr, const std::wstring& token, const std::wstring& varname, VM::EpochVariableTypeID type, bool usesthreadpool)
 {
 	PadTabs();
 	OutputStream << opptr << L" " << token << L" ";
-	OutputStream << varname << L" " << type << L"\n";
+	OutputStream << varname << L" " << type << L" ";
+	OutputStream << (usesthreadpool ? Serialization::True : Serialization::False) << L"\n";
 }
 
 void SerializationTraverser::WriteSendMessage(const void* opptr, const std::wstring& token, bool usestaskid, const std::wstring& messagename, const std::list<VM::EpochVariableTypeID>& payloadtypes)

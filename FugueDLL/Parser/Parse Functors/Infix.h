@@ -243,9 +243,9 @@ struct RegisterOpAssignmentOperator : public ParseFunctorBase
 	}
 };
 
-
-
-
+//
+// Inject a preincrement operation
+//
 struct PreincrementVariable : public ParseFunctorBase
 {
 	PreincrementVariable(Parser::ParserState& state)
@@ -262,6 +262,9 @@ struct PreincrementVariable : public ParseFunctorBase
 	}
 };
 
+//
+// Inject a postdecrement operation
+//
 struct PredecrementVariable : public ParseFunctorBase
 {
 	PredecrementVariable(Parser::ParserState& state)
@@ -278,6 +281,9 @@ struct PredecrementVariable : public ParseFunctorBase
 	}
 };
 
+//
+// Inject a postincrement operation
+//
 struct PostincrementVariable : public ParseFunctorBase
 {
 	PostincrementVariable(Parser::ParserState& state)
@@ -294,6 +300,9 @@ struct PostincrementVariable : public ParseFunctorBase
 	}
 };
 
+//
+// Inject a postdecrement operation
+//
 struct PostdecrementVariable : public ParseFunctorBase
 {
 	PostdecrementVariable(Parser::ParserState& state)

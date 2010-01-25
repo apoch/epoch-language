@@ -8,6 +8,12 @@
 
 #pragma once
 
+
+// Dependencies
+#include "Utility/Strings.h"
+#include "Configuration/RuntimeOptions.h"
+
+
 namespace Parser
 {
 

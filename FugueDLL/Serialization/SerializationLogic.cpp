@@ -53,6 +53,7 @@ namespace Extensions
 
 // We need headers for all operations which are non-trivial to serialize
 #include "Virtual Machine/Operations/Concurrency/FutureOps.h"
+#include "Virtual Machine/Operations/Concurrency/Tasks.h"
 #include "Virtual Machine/Operations/Concurrency/Messaging.h"
 #include "Virtual Machine/Operations/Containers/ContainerOps.h"
 #include "Virtual Machine/Operations/Flow/Invoke.h"
@@ -149,6 +150,7 @@ namespace Extensions
 
 // Serialization for operations that consist of just an instruction
 SERIALIZE_TOKENONLY(VM::Operations::Break, Serialization::Break)
+SERIALIZE_TOKENONLY(VM::Operations::CreateThreadPool, Serialization::ThreadPool)
 SERIALIZE_TOKENONLY(VM::Operations::DebugCrashVM, Serialization::DebugCrashVM)
 SERIALIZE_TOKENONLY(VM::Operations::DebugReadStaticString, Serialization::DebugRead)
 SERIALIZE_TOKENONLY(VM::Operations::DebugWriteStringExpression, Serialization::DebugWrite)
@@ -156,6 +158,7 @@ SERIALIZE_TOKENONLY(VM::Operations::DoWhileLoop, Serialization::DoWhile)
 SERIALIZE_TOKENONLY(VM::Operations::ExecuteBlock, Serialization::BeginBlock)
 SERIALIZE_TOKENONLY(VM::Operations::ExitIfChain, Serialization::ExitIfChain)
 SERIALIZE_TOKENONLY(VM::Operations::ForkTask, Serialization::ForkTask)
+SERIALIZE_TOKENONLY(VM::Operations::ForkThread, Serialization::ForkThread)
 SERIALIZE_TOKENONLY(VM::Operations::GetMessageSender, Serialization::GetMessageSender)
 SERIALIZE_TOKENONLY(VM::Operations::GetTaskCaller, Serialization::GetTaskCaller)
 SERIALIZE_TOKENONLY(VM::Operations::If, Serialization::If)
@@ -277,7 +280,7 @@ template <> void Serialization::SerializeNode<VM::Function>(const VM::Function& 
 
 template <> const std::wstring& Serialization::GetToken<VM::Operations::ForkFuture>() { return Serialization::ForkFuture; }
 template <> void Serialization::SerializeNode<VM::Operations::ForkFuture>(const VM::Operations::ForkFuture& op, SerializationTraverser& traverser)
-{ traverser.WriteForkFuture(&op, GetToken<VM::Operations::ForkFuture>(), op.GetVarName(), op.GetType()); }
+{ traverser.WriteForkFuture(&op, GetToken<VM::Operations::ForkFuture>(), op.GetVarName(), op.GetType(), op.UsesThreadPool()); }
 
 template <> const std::wstring& Serialization::GetToken<VM::Operations::SendTaskMessage>() { return Serialization::SendTaskMessage; }
 template <> void Serialization::SerializeNode<VM::Operations::SendTaskMessage>(const VM::Operations::SendTaskMessage& op, SerializationTraverser& traverser)

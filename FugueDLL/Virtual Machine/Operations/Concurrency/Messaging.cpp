@@ -175,7 +175,7 @@ void AcceptMessage::TraverseHelper(TraverserT& traverser)
 {
 	traverser.TraverseNode(*this);
 	ResponseEntry->GetResponseBlock()->Traverse(traverser);
-	traverser.TraverseScope(*ResponseEntry->GetHelperScope());
+	traverser.RegisterScope(*ResponseEntry->GetHelperScope());
 }
 
 void AcceptMessage::Traverse(Validator::ValidationTraverser& traverser)

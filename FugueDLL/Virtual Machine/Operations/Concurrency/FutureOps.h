@@ -25,9 +25,10 @@ namespace VM
 		{
 		// Construction
 		public:
-			ForkFuture(const std::wstring& varname, EpochVariableTypeID type)
+			ForkFuture(const std::wstring& varname, EpochVariableTypeID type, bool usethreadpool)
 				: Type(type),
-				  VarName(varname)
+				  VarName(varname),
+				  UseThreadPool(usethreadpool)
 			{ }
 
 		// Operation interface
@@ -45,11 +46,13 @@ namespace VM
 		public:
 			EpochVariableTypeID GetType() const			{ return Type; }
 			const std::wstring& GetVarName() const		{ return VarName; }
+			bool UsesThreadPool() const					{ return UseThreadPool; }
 
 		// Internal tracking
 		private:
 			EpochVariableTypeID Type;
 			const std::wstring& VarName;
+			bool UseThreadPool;
 		};
 
 	}

@@ -113,9 +113,8 @@ namespace
 	UINT_PTR RetrieveNumber(std::wifstream& stream)
 	{
 		std::wstring opidstr;
-		stream >> opidstr;
 
-		if(!stream.good())
+		if(!(stream >> opidstr))
 			throw Exception("Failed to extract number from assembly source!");
 
 		if(opidstr == Serialization::True)
@@ -139,9 +138,8 @@ namespace
 	Real RetrieveFloat(std::wifstream& stream)
 	{
 		std::wstring opidstr;
-		stream >> opidstr;
 
-		if(!stream.good())
+		if(!(stream >> opidstr))
 			throw Exception("Failed to extract real from assembly source!");
 
 		std::wstringstream convert;
@@ -160,7 +158,8 @@ namespace
 	bool RetrieveBoolean(std::wifstream& stream)
 	{
 		std::wstring str;
-		stream >> str;
+		if(!(stream >> str))
+			throw Exception("Failed to extract boolean from assembly source!");
 
 		if(str == Serialization::True || str == L"1")
 			return true;
@@ -176,9 +175,8 @@ namespace
 		std::streamsize pos = stream.tellg();
 
 		std::wstring opidstr;
-		stream >> opidstr;
 
-		if(!stream.good())
+		if(!(stream >> opidstr))
 			throw Exception("Failed to extract hex number from assembly source!");
 
 		std::wstringstream convert;
@@ -201,9 +199,8 @@ namespace
 	std::wstring RetrieveString(std::wifstream& stream)
 	{
 		std::wstring ret;
-		stream >> ret;
-
-		if(!stream.good())
+	
+		if(!(stream >> ret))
 			return L"";
 
 		return ret;

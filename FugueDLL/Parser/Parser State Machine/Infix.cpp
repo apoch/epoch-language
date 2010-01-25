@@ -10,6 +10,7 @@
 #include "Parser/Parser State Machine/ParserState.h"
 #include "Parser/Error Handling/ParserExceptions.h"
 #include "Parser/Parse.h"
+#include "Parser/Tracing.h"
 
 #include "Virtual Machine/Core Entities/Block.h"
 #include "Virtual Machine/Core Entities/Program.h"
@@ -635,7 +636,7 @@ bool ParserState::FinalizeInfixExpression(bool isfirstrun, const VM::ScopeDescri
 //
 void ParserState::TerminateParenthetical()
 {
-	PassedParameterCount.pop();
+	PopParameterCount();
 	if(!PassedParameterCount.empty())
 		++PassedParameterCount.top();
 }

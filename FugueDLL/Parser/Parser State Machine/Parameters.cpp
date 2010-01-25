@@ -79,7 +79,7 @@ void ParserState::PushOperationAsParameter(const std::wstring& operationname)
 		InfixOperandCount.pop_back();
 	}
 
-	PassedParameterCount.pop();
+	PopParameterCount();
 	++PassedParameterCount.top();
 }
 
@@ -233,6 +233,7 @@ void ParserState::PushBooleanLiteral(bool value)
 
 void ParserState::PopParameterCount()
 {
+	Trace(L"Reset passed parameter count");
 	PassedParameterCount.pop();
 }
 

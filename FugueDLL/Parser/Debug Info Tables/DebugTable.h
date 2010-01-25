@@ -35,12 +35,12 @@ public:
 	void TrackInstruction(const VM::Operation* op, const FileLocationInfo& fileinfo);
 	const FileLocationInfo& GetInstructionLocation(const VM::Operation* op) const;
 
-	void TrackTaskName(const VM::Operations::ForkTask* forkop, const std::wstring& taskname);
-	const std::wstring& GetTaskName(const VM::Operations::ForkTask* forkop) const;
+	void TrackTaskName(const VM::Operation* forkop, const std::wstring& taskname);
+	const std::wstring& GetTaskName(const VM::Operation* forkop) const;
 
 // Internal tracking
 private:
 	std::map<const VM::Operation*, FileLocationInfo> InstructionLocationTable;
-	std::map<const VM::Operations::ForkTask*, std::wstring> TaskNameTable;
+	std::map<const VM::Operation*, std::wstring> TaskNameTable;
 };
 

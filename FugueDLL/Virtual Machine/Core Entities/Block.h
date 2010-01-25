@@ -94,6 +94,11 @@ namespace VM
 				BoundScope->Traverse(traverser);
 			for(std::vector<Operation*>::const_iterator iter = Operations.begin(); iter != Operations.end(); ++iter)
 			{
+				// We need to reset this every iteration so that the results of traversing
+				// contained operations do not accidentally leave us in a different scope.
+				if(BoundScope)
+					traverser.SetCurrentScope(BoundScope);
+
 				SelfAwareBase* op = dynamic_cast<SelfAwareBase*>(*iter);
 				if(op)
 					op->Traverse(traverser);

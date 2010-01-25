@@ -191,15 +191,19 @@
 			Name="Parser"
 			>
 			<File
-				RelativePath=".\Parser\Grammars.h"
-				>
-			</File>
-			<File
 				RelativePath=".\Parser\Parse.cpp"
 				>
 			</File>
 			<File
 				RelativePath=".\Parser\Parse.h"
+				>
+			</File>
+			<File
+				RelativePath=".\Parser\Pass1.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Parser\Pass2.cpp"
 				>
 			</File>
 			<File
@@ -615,6 +619,30 @@
 				</File>
 				<File
 					RelativePath=".\Parser\Error Handling\SyntaxErrors.h"
+					>
+				</File>
+			</Filter>
+			<Filter
+				Name="Grammars"
+				>
+				<File
+					RelativePath=".\Parser\Grammars\Base.h"
+					>
+				</File>
+				<File
+					RelativePath=".\Parser\Grammars\Pass1.h"
+					>
+				</File>
+				<File
+					RelativePath=".\Parser\Grammars\Pass2.h"
+					>
+				</File>
+				<File
+					RelativePath=".\Parser\Grammars\Skip.h"
+					>
+				</File>
+				<File
+					RelativePath=".\Parser\Grammars\Util.h"
 					>
 				</File>
 			</Filter>
@@ -1326,6 +1354,32 @@
 		<Filter
 			Name="Validator"
 			>
+			<File
+				RelativePath=".\Validator\Tracing.cpp"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						ObjectFile="$(IntDir)\$(InputName)1.obj"
+						XMLDocumentationFileName="$(IntDir)\$(InputName)1.xdc"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						ObjectFile="$(IntDir)\$(InputName)1.obj"
+						XMLDocumentationFileName="$(IntDir)\$(InputName)1.xdc"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\Validator\Tracing.h"
+				>
+			</File>
 			<File
 				RelativePath=".\Validator\Validator.cpp"
 				>

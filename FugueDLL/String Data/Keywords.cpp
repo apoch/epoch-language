@@ -80,7 +80,6 @@ const wchar_t* Keywords::Buffer = L"buffer";
 
 const wchar_t* Keywords::Reference = L"ref";
 const wchar_t* Keywords::Constant = L"constant";
-const wchar_t* Keywords::Future = L"future";
 
 const wchar_t* Keywords::External = L"external";
 const wchar_t* Keywords::Library = L"library";
@@ -88,7 +87,11 @@ const wchar_t* Keywords::Extension = L"extension";
 
 const wchar_t* Keywords::Function = L"function";
 const wchar_t* Keywords::Global = L"global";
+
 const wchar_t* Keywords::Task = L"task";
+const wchar_t* Keywords::Thread = L"thread";
+const wchar_t* Keywords::ThreadPool = L"threadpool";
+const wchar_t* Keywords::Future = L"future";
 
 const wchar_t* Keywords::True = L"true";
 const wchar_t* Keywords::False = L"false";

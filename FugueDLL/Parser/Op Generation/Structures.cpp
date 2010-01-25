@@ -64,7 +64,7 @@ VM::OperationPtr ParserState::CreateOperation_ReadStructure()
 			{
 				ReportFatalError(("Parameter \"" + narrow(readop->GetMemberName()) + "\" is not a structure").c_str());
 				TheStack.pop_back();
-				PassedParameterCount.pop();
+				PopParameterCount();
 				return VM::OperationPtr(new VM::Operations::NoOp);
 			}
 		}
@@ -75,7 +75,7 @@ VM::OperationPtr ParserState::CreateOperation_ReadStructure()
 			{
 				ReportFatalError("Invalid parameter to readstructure()");
 				TheStack.pop_back();
-				PassedParameterCount.pop();
+				PopParameterCount();
 				return VM::OperationPtr(new VM::Operations::NoOp);
 			}
 
@@ -84,7 +84,7 @@ VM::OperationPtr ParserState::CreateOperation_ReadStructure()
 			{
 				ReportFatalError(("Parameter \"" + narrow(readindirectop->GetMemberName()) + "\" is not a structure").c_str());
 				TheStack.pop_back();
-				PassedParameterCount.pop();
+				PopParameterCount();
 				return VM::OperationPtr(new VM::Operations::NoOp);
 			}
 		}
@@ -93,12 +93,12 @@ VM::OperationPtr ParserState::CreateOperation_ReadStructure()
 		{
 			ReportFatalError((narrow(member.StringValue) + " is not a member of the structure " + narrow(CurrentScope->GetStructureTypeID(structid))).c_str());
 			TheStack.pop_back();
-			PassedParameterCount.pop();
+			PopParameterCount();
 			return VM::OperationPtr(new VM::Operations::NoOp);
 		}
 
 		TheStack.pop_back();
-		PassedParameterCount.pop();
+		PopParameterCount();
 		return VM::OperationPtr(new VM::Operations::ReadStructureIndirect(ParsedProgram->PoolStaticString(member.StringValue), Blocks.back().TheBlock->GetTailOperation()));
 	}
 	else

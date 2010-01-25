@@ -641,6 +641,8 @@ VM::Block* FileLoader::LoadCodeBlock()
 //
 void FileLoader::GenerateOpFromByteCode(unsigned char instruction, VM::Block* newblock)
 {
+	// TODO - consider factoring this up into a series of private member functions
+
 	if(instruction == Bytecode::PushOperation)
 	{
 		unsigned char op = ReadInstruction();
@@ -1329,8 +1331,9 @@ void FileLoader::GenerateOpFromByteCode(unsigned char instruction, VM::Block* ne
 	{
 		const std::wstring& futurename = WidenAndCache(ReadNullTerminatedString());
 		Integer32 type = ReadNumber();
+		bool usethreadpool = ReadFlag();
 		if(!IsPrepass)
-			newblock->AddOperation(VM::OperationPtr(new VM::Operations::ForkFuture(futurename, static_cast<VM::EpochVariableTypeID>(type))));
+			newblock->AddOperation(VM::OperationPtr(new VM::Operations::ForkFuture(futurename, static_cast<VM::EpochVariableTypeID>(type), usethreadpool)));
 	}
 	else if(instruction == Bytecode::Map)
 	{

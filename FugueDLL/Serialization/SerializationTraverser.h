@@ -83,14 +83,21 @@ namespace Serialization
 		void NullBlock();
 
 		void RegisterScope(VM::ScopeDescription& scope);
-		void TraverseScope(VM::ScopeDescription& scope);
 
 		void EnterTask();
 		void ExitTask();
 
+		void EnterThread();
+		void ExitThread();
+
 	// State query interface
 	public:
 		VM::ScopeDescription* GetCurrentScope()		{ return CurrentScope; }
+		void SetCurrentScope(VM::ScopeDescription* scope)
+		{
+			// Ignored by serializer, as we maintain record of the
+			// currently active scope by other means.
+		}
 
 	// Serialization interface
 	public:
@@ -106,7 +113,7 @@ namespace Serialization
 
 		void WriteCastOp(const void* opptr, const std::wstring& token, VM::EpochVariableTypeID originaltype, VM::EpochVariableTypeID destinationtype);
 		void WriteArithmeticOp(const void* opptr, const std::wstring& token, bool isfirstlist, bool issecondlist, size_t numparams);
-		void WriteForkFuture(const void* opptr, const std::wstring& token, const std::wstring& varname, VM::EpochVariableTypeID type);
+		void WriteForkFuture(const void* opptr, const std::wstring& token, const std::wstring& varname, VM::EpochVariableTypeID type, bool usesthreadpool);
 		void WriteSendMessage(const void* opptr, const std::wstring& token, bool usestaskid, const std::wstring& messagename, const std::list<VM::EpochVariableTypeID>& payloadtypes);
 		void WriteAcceptMessage(const void* opptr, const std::wstring& token, const std::wstring& messagename, const std::list<VM::EpochVariableTypeID>& payloadtypes);
 		void WriteConsList(const void* opptr, const std::wstring& token, VM::EpochVariableTypeID elementtype, size_t numelements);
@@ -122,6 +129,8 @@ namespace Serialization
 		void WriteTupleType(const VM::TupleType& type);
 		void WriteResponseMap(const VM::ResponseMap& themap);
 		void WriteResponseMapEntry(const VM::ResponseMapEntry& entry);
+
+		void TraverseScope(VM::ScopeDescription& scope);
 
 	// Internal tracking
 	private:

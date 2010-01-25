@@ -246,6 +246,12 @@ Vomit:
 }
 
 
+//
+// Helper function for traversing a DLL invocation operation
+//
+// We template this function in order to eliminate code duplication,
+// since all traversers should handle the operation the same way.
+//
 template <typename TraverserT>
 void CallDLL::TraverseHelper(TraverserT& traverser)
 {
@@ -255,12 +261,19 @@ void CallDLL::TraverseHelper(TraverserT& traverser)
 		Params->Traverse(traverser);
 }
 
+//
+// Traverse the call for validation purposes
+//
 void CallDLL::Traverse(Validator::ValidationTraverser& traverser)
 {
 	TraverseHelper(traverser);
 }
 
+//
+// Traverse the call for serialization purposes
+//
 void CallDLL::Traverse(Serialization::SerializationTraverser& traverser)
 {
 	TraverseHelper(traverser);
 }
+

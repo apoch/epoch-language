@@ -203,7 +203,7 @@ namespace VM
 			{ return TheOp->GetType(scope); }
 
 			virtual size_t GetNumParameters(const VM::ScopeDescription& scope) const
-			{ return TheOp->GetNumParameters(scope); }
+			{ return (TheOp ? TheOp->GetNumParameters(scope) : 0); }
 
 		// Additional queries
 		public:
