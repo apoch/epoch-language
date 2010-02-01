@@ -10,9 +10,16 @@
 #include "CUDA Wrapper/Module.h"
 #include "CUDA Wrapper/FunctionCall.h"
 
+#include "Utility/Threading/Synchronization.h"
 
-// Internal tracking of loaded CUDA modules; used to avoid loading modules more than once
-std::map<std::string, Module*> LoadedModules;
+
+namespace
+{
+	// Internal tracking of loaded CUDA modules; used to avoid loading modules more than once
+	std::map<std::string, Module*> LoadedModules;
+
+	Threads::CriticalSection ModuleListCriticalSection;
+}
 
 
 //
@@ -42,6 +49,8 @@ Module::~Module()
 //
 FunctionCall Module::CreateFunctionCall(const std::string& functionname)
 {
+	Threads::CriticalSection::Auto mutex(CritSec);
+
 	std::map<std::string, FunctionCall*>::const_iterator iter = LoadedFunctions.find(functionname);
 	if(iter != LoadedFunctions.end())
 		return *(iter->second);
@@ -60,6 +69,8 @@ FunctionCall Module::CreateFunctionCall(const std::string& functionname)
 //
 Module& Module::LoadCUDAModule(const std::string& filename)
 {
+	Threads::CriticalSection::Auto mutex(ModuleListCriticalSection);
+
 	std::map<std::string, Module*>::const_iterator iter = LoadedModules.find(filename);
 	if(iter != LoadedModules.end())
 		return *(iter->second);
@@ -72,6 +83,8 @@ Module& Module::LoadCUDAModule(const std::string& filename)
 //
 void Module::ReleaseAllModules()
 {
+	Threads::CriticalSection::Auto mutex(ModuleListCriticalSection);
+
 	for(std::map<std::string, Module*>::iterator iter = LoadedModules.begin(); iter != LoadedModules.end(); ++iter)
 		delete iter->second;
 }

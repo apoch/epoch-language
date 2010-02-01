@@ -10,6 +10,7 @@
 #include "User Interface/Output.h"
 
 #include "Utility/Threading/Threads.h"
+#include "Utility/Threading/Synchronization.h"
 
 #include <iostream>
 
@@ -17,18 +18,21 @@
 using namespace UI;
 
 
+Threads::CriticalSection ConsoleCriticalSection;
+
+
 //
 // Display text messages
 //
 void UI::OutputMessage(const wchar_t* message)
 {
-	Threads::AutoMutex mutex(Threads::ConsoleMutexName);
+	Threads::CriticalSection::Auto mutex(ConsoleCriticalSection);
 	WriteConsole(::GetStdHandle(STD_OUTPUT_HANDLE), message, static_cast<DWORD>(wcslen(message)), NULL, NULL);
 }
 
 void UI::OutputMessage(const std::wstring& message)
 {
-	Threads::AutoMutex mutex(Threads::ConsoleMutexName);
+	Threads::CriticalSection::Auto mutex(ConsoleCriticalSection);
 	WriteConsole(::GetStdHandle(STD_OUTPUT_HANDLE), message.c_str(), static_cast<DWORD>(message.length()), NULL, NULL);
 }
 
@@ -53,7 +57,7 @@ void UI::SetOutputColor(OutputColor color)
 	}
 
 	{
-		Threads::AutoMutex mutex(Threads::ConsoleMutexName);
+		Threads::CriticalSection::Auto mutex(ConsoleCriticalSection);
 		::SetConsoleTextAttribute(::GetStdHandle(STD_OUTPUT_HANDLE), bits);
 	}
 }

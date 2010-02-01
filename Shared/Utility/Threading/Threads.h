@@ -36,10 +36,6 @@ namespace Threads
 	// Handy type shortcuts
 	typedef DWORD (__stdcall *ThreadFuncPtr)(void* param);
 
-	// Constants
-	extern const wchar_t* ConsoleMutexName;
-	extern const wchar_t* MarshallingMutexName;
-
 
 	// Thread forking
 	void Create(const std::wstring& name, ThreadFuncPtr func, VM::Block* codeblock);
@@ -61,43 +57,6 @@ namespace Threads
 	// Thread manager setup/teardown
 	void Init();
 	void Shutdown();
-
-
-	//
-	// RAII wrapper of a system mutex. The named mutex must
-	// be created separately prior to use of the AutoMutex.
-	//
-	class AutoMutex
-	{
-	// Construction and destruction
-	public:
-		explicit AutoMutex(const std::wstring& name);
-		~AutoMutex();
-
-	// Internal tracking
-	private:
-		HANDLE MutexHandle;
-	};
-
-
-	//
-	// RAII wrapper of a special synchronization counter.
-	// This counter is effectively an inverse semaphore;
-	// when its count is 0, it is "unlocked", and when
-	// the count is greater than 0, is is "locked."
-	//
-	class SyncCounter
-	{
-	// Construction and destruction
-	public:
-		explicit SyncCounter(unsigned* pcounter, HANDLE tripevent);
-		~SyncCounter();
-
-	// Internal tracking
-	private:
-		unsigned* PointerToCounter;
-		HANDLE TripEvent;
-	};
 
 
 	//

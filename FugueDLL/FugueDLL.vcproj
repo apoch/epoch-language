@@ -1197,6 +1197,14 @@
 						>
 					</File>
 					<File
+						RelativePath="..\Shared\Utility\Threading\Synchronization.cpp"
+						>
+					</File>
+					<File
+						RelativePath="..\Shared\Utility\Threading\Synchronization.h"
+						>
+					</File>
+					<File
 						RelativePath="..\Shared\Utility\Threading\ThreadExceptions.h"
 						>
 					</File>

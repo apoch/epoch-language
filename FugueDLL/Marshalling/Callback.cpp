@@ -29,26 +29,30 @@
 #include "Virtual Machine/VMExceptions.h"
 
 #include "Utility/Threading/Threads.h"
+#include "Utility/Threading/Synchronization.h"
 
-
-
-//
-// Track the mapping between generated callback stubs and
-// the Epoch functions they are intended to invoke
-//
-typedef std::map<VM::Function*, void*> MarshallingMapT;
-namespace { MarshallingMapT MarshalledCallbackMap; }
-
-struct StubSpaceRecord
-{
-	void* StartOfSpace;
-	void* NextAvailableSlot;
-};
-namespace { std::vector<StubSpaceRecord> StubSpaceList; }
 
 
 namespace
 {
+
+	//
+	// Track the mapping between generated callback stubs and
+	// the Epoch functions they are intended to invoke
+	//
+	typedef std::map<VM::Function*, void*> MarshallingMapT;
+	MarshallingMapT MarshalledCallbackMap;
+
+	struct StubSpaceRecord
+	{
+		void* StartOfSpace;
+		void* NextAvailableSlot;
+	};
+
+	std::vector<StubSpaceRecord> StubSpaceList;
+
+	Threads::CriticalSection MarshallingCriticalSection;
+
 
 	//
 	// Actually invoke the Epoch function, taking care to
@@ -150,7 +154,7 @@ namespace
 //
 void* Marshalling::RequestMarshalledCallback(VM::Function* callbackfunction)
 {
-	Threads::AutoMutex mutex(Threads::MarshallingMutexName);
+	Threads::CriticalSection::Auto mutex(MarshallingCriticalSection);
 
 	// Check if we have already generated a stub for this function
 	MarshallingMapT::const_iterator iter = MarshalledCallbackMap.find(callbackfunction);
@@ -192,7 +196,7 @@ void* Marshalling::RequestMarshalledCallback(VM::Function* callbackfunction)
 //
 void Marshalling::Clean()
 {
-	Threads::AutoMutex mutex(Threads::MarshallingMutexName);
+	Threads::CriticalSection::Auto mutex(MarshallingCriticalSection);
 
 	MarshalledCallbackMap.clear();
 

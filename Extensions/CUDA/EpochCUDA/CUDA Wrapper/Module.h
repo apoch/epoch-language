@@ -11,6 +11,8 @@
 // Dependencies
 #include <cuda.h>
 
+#include "Utility/Threading/Synchronization.h"
+
 
 // Forward declarations
 class FunctionCall;
@@ -36,5 +38,6 @@ public:
 private:
 	CUmodule ModuleHandle;
 	std::map<std::string, FunctionCall*> LoadedFunctions;
+	Threads::CriticalSection CritSec;
 };
 

@@ -35,6 +35,7 @@
 
 #include "Utility/Threading/Threads.h"
 #include "Utility/Threading/ThreadExceptions.h"
+#include "Utility/Threading/Synchronization.h"
 
 #include "Utility/Strings.h"
 
@@ -48,16 +49,11 @@ using namespace Threads;
 // Internal data
 //-------------------------------------------------------------------------------
 
-// Externally visible constants
-const wchar_t* Threads::ConsoleMutexName = L"@console-mutex";
-const wchar_t* Threads::MarshallingMutexName = L"@marshalling-mutex";
-
 // Internal tracking
 namespace
 {
-	const wchar_t* ThreadManagerMutexName = L"@thread-manager-mutex";
-	HANDLE ThreadManagerMutex;
-	HANDLE ConsoleMutex;
+	CriticalSection ThreadManagementCriticalSection;
+
 	HANDLE ThreadStartStopGuard;
 	HANDLE ThreadAccessCounterIsZero;
 	unsigned ThreadAccessCounter;
@@ -73,70 +69,6 @@ namespace
 
 
 //-------------------------------------------------------------------------------
-// Automatic mutex acquire/release wrapper
-//-------------------------------------------------------------------------------
-
-//
-// Acquire the desired mutex, blocking until ownership is gained
-// Note that the mutex resource must be created by the OS prior
-// to using this class.
-//
-AutoMutex::AutoMutex(const std::wstring& name)
-{
-	MutexHandle = ::OpenMutex(SYNCHRONIZE, false, name.c_str());
-}
-
-//
-// Release the attached mutex
-//
-AutoMutex::~AutoMutex()
-{
-	::ReleaseMutex(MutexHandle);
-}
-
-
-//-------------------------------------------------------------------------------
-// Synchronization counter
-//-------------------------------------------------------------------------------
-
-//
-// Construct the counter wrapper and increment the counter
-//
-SyncCounter::SyncCounter(unsigned* pcounter, HANDLE tripevent)
-	: PointerToCounter(pcounter), TripEvent(tripevent)
-{
-	::ResetEvent(tripevent);
-
-	while(true)
-	{
-		unsigned oldval = *pcounter;
-		bool success = CompareAndSwap(pcounter, oldval, oldval + 1);
-		if(success)
-			return;
-	}
-}
-
-//
-// Destruct the counter wrapper and decrement the counter
-//
-SyncCounter::~SyncCounter()
-{
-	while(true)
-	{
-		unsigned oldval = *PointerToCounter;
-		bool success = CompareAndSwap(PointerToCounter, oldval, oldval - 1);
-		if(success)
-		{
-			if(oldval - 1 == 0)
-				::SetEvent(TripEvent);
-
-			return;
-		}
-	}
-}
-
-
-//-------------------------------------------------------------------------------
 // Thread functionality
 //-------------------------------------------------------------------------------
 
@@ -146,9 +78,6 @@ SyncCounter::~SyncCounter()
 void Threads::Init()
 {
 	ThreadAccessCounter = 0;
-
-	ThreadManagerMutex = ::CreateMutex(NULL, false, ThreadManagerMutexName);
-	ConsoleMutex = ::CreateMutex(NULL, false, ConsoleMutexName);
 
 	TLSIndex = ::TlsAlloc();
 	if(TLSIndex == TLS_OUT_OF_INDEXES)
@@ -183,8 +112,6 @@ void Threads::Shutdown()
 
 	CleanupThisThread();
 	ClearThreadTracking();
-	::CloseHandle(ThreadManagerMutex);
-	::CloseHandle(ConsoleMutex);
 	::CloseHandle(ThreadStartStopGuard);
 	::CloseHandle(ThreadAccessCounterIsZero);
 	::TlsFree(TLSIndex);
@@ -196,7 +123,7 @@ void Threads::Shutdown()
 //
 void Threads::Create(const std::wstring& name, ThreadFuncPtr func, VM::Block* codeblock)
 {
-	AutoMutex mutex(ThreadManagerMutexName);
+	CriticalSection::Auto mutex(ThreadManagementCriticalSection);
 	::WaitForSingleObject(ThreadAccessCounterIsZero, INFINITE);
 
 	struct safety
@@ -236,7 +163,7 @@ void Threads::Create(const std::wstring& name, ThreadFuncPtr func, VM::Block* co
 //
 void Threads::Create(const std::wstring& name, ThreadFuncPtr func, VM::Future* boundfuture, VM::Operation* op)
 {
-	AutoMutex mutex(ThreadManagerMutexName);
+	CriticalSection::Auto mutex(ThreadManagementCriticalSection);
 	::WaitForSingleObject(ThreadAccessCounterIsZero, INFINITE);
 
 	struct safety
@@ -284,7 +211,7 @@ void Threads::Enter(void* info)
 //
 void Threads::Exit()
 {
-	AutoMutex mutex(ThreadManagerMutexName);
+	CriticalSection::Auto mutex(ThreadManagementCriticalSection);
 
 	struct safety
 	{

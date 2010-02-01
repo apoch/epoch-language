@@ -17,8 +17,6 @@
 #include "Serialization/SerializationTraverser.h"
 
 
-// TODO - Code review of ENTIRE code base - check for formatting, documentation, and possible code improvements
-
 
 using namespace VM;
 using namespace VM::Operations;

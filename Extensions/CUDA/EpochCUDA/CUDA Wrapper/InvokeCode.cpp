@@ -17,6 +17,11 @@
 
 #include "Utility/Strings.h"
 
+#include "Utility/Threading/Synchronization.h"
+
+
+namespace { Threads::CriticalSection InvocationCriticalSection; }
+
 
 //
 // Construct and initialize the execution wrapper
@@ -38,11 +43,13 @@ void CUDACodeInvoker::Execute()
 	VariableBuffer varbuffer(RegisteredVariables);
 	varbuffer.CopyToDevice(ActivatedScopeHandle);
 
-	// TODO - we need some guarantees of thread safety
+	{
+		Threads::CriticalSection::Auto mutex(InvocationCriticalSection);
 
-	FunctionCall call = Module::LoadCUDAModule(narrow(Compiler::GetGeneratedPTXFileName(Compiler::GetAssociatedSession(CodeHandle)))).CreateFunctionCall(FunctionName);
-	varbuffer.PrepareFunctionCall(call);
-	call.Execute();
+		FunctionCall call = Module::LoadCUDAModule(narrow(Compiler::GetGeneratedPTXFileName(Compiler::GetAssociatedSession(CodeHandle)))).CreateFunctionCall(FunctionName);
+		varbuffer.PrepareFunctionCall(call);
+		call.Execute();
+	}
 
 	varbuffer.CopyFromDevice(ActivatedScopeHandle);
 }

@@ -310,6 +310,18 @@
 						>
 					</File>
 				</Filter>
+				<Filter
+					Name="Threading"
+					>
+					<File
+						RelativePath="..\..\..\Shared\Utility\Threading\Synchronization.cpp"
+						>
+					</File>
+					<File
+						RelativePath="..\..\..\Shared\Utility\Threading\Synchronization.h"
+						>
+					</File>
+				</Filter>
 			</Filter>
 			<Filter
 				Name="Configuration"
