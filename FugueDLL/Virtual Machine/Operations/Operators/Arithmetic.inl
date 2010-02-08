@@ -16,32 +16,32 @@
 // Perform the selected arithmetic operation
 //
 template<VM::Operations::ArithmeticOpType OpType, class VarType, class RValueType>
-VM::RValuePtr VM::Operations::ArithmeticOp<OpType, VarType, RValueType>::ExecuteAndStoreRValue(VM::ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+VM::RValuePtr VM::Operations::ArithmeticOp<OpType, VarType, RValueType>::ExecuteAndStoreRValue(ExecutionContext& context)
 {
 	VarType::BaseStorage ret = 0;
 
 	if(NumParams == 1)
-		ret = OperateOnList(stack);
+		ret = OperateOnList(context.Stack);
 	else if(NumParams == 2)
 	{
 		if(FirstIsList && !SecondIsList)
 		{
-			VarType var(stack.GetCurrentTopOfStack());
+			VarType var(context.Stack.GetCurrentTopOfStack());
 			VarType::BaseStorage variableval = var.GetValue();
-			stack.Pop(VarType::GetStorageSize());
+			context.Stack.Pop(VarType::GetStorageSize());
 			switch(OpType)
 			{
-			case Arithmetic_Add:		ret = OperateOnList(stack) + variableval;		break;
-			case Arithmetic_Subtract:	ret = OperateOnList(stack) - variableval;		break;
-			case Arithmetic_Multiply:	ret = OperateOnList(stack) * variableval;		break;
-			case Arithmetic_Divide:		ret = OperateOnList(stack) / variableval;		break;
+			case Arithmetic_Add:		ret = OperateOnList(context.Stack) + variableval;		break;
+			case Arithmetic_Subtract:	ret = OperateOnList(context.Stack) - variableval;		break;
+			case Arithmetic_Multiply:	ret = OperateOnList(context.Stack) * variableval;		break;
+			case Arithmetic_Divide:		ret = OperateOnList(context.Stack) / variableval;		break;
 			default: throw InternalFailureException("Unrecognized arithmetic operation");
 			}
 		}
 		else if(!FirstIsList && SecondIsList)
 		{
-			ret = OperateOnList(stack);
-			VarType var(stack.GetCurrentTopOfStack());
+			ret = OperateOnList(context.Stack);
+			VarType var(context.Stack.GetCurrentTopOfStack());
 			switch(OpType)
 			{
 			case Arithmetic_Add:		ret = var.GetValue() + ret;		break;
@@ -50,24 +50,24 @@ VM::RValuePtr VM::Operations::ArithmeticOp<OpType, VarType, RValueType>::Execute
 			case Arithmetic_Divide:		ret = var.GetValue() / ret;		break;
 			default: throw InternalFailureException("Unrecognized arithmetic operation");
 			}
-			stack.Pop(VarType::GetStorageSize());
+			context.Stack.Pop(VarType::GetStorageSize());
 		}
 		else if(FirstIsList && SecondIsList)
 		{
-			ret = OperateOnList(stack);
+			ret = OperateOnList(context.Stack);
 			switch(OpType)
 			{
-			case Arithmetic_Add:		ret = OperateOnList(stack) + ret;		break;
-			case Arithmetic_Subtract:	ret = OperateOnList(stack) - ret;		break;
-			case Arithmetic_Multiply:	ret = OperateOnList(stack) * ret;		break;
-			case Arithmetic_Divide:		ret = OperateOnList(stack) / ret;		break;
+			case Arithmetic_Add:		ret = OperateOnList(context.Stack) + ret;		break;
+			case Arithmetic_Subtract:	ret = OperateOnList(context.Stack) - ret;		break;
+			case Arithmetic_Multiply:	ret = OperateOnList(context.Stack) * ret;		break;
+			case Arithmetic_Divide:		ret = OperateOnList(context.Stack) / ret;		break;
 			default: throw InternalFailureException("Unrecognized arithmetic operation");
 			}
 		}
 		else
 		{
-			VarType twovar(stack.GetCurrentTopOfStack());
-			VarType onevar(stack.GetOffsetIntoStack(VarType::GetStorageSize()));
+			VarType twovar(context.Stack.GetCurrentTopOfStack());
+			VarType onevar(context.Stack.GetOffsetIntoStack(VarType::GetStorageSize()));
 			switch(OpType)
 			{
 			case Arithmetic_Add:		ret = onevar.GetValue() + twovar.GetValue();		break;
@@ -76,7 +76,7 @@ VM::RValuePtr VM::Operations::ArithmeticOp<OpType, VarType, RValueType>::Execute
 			case Arithmetic_Divide:		ret = onevar.GetValue() / twovar.GetValue();		break;
 			default: throw InternalFailureException("Unrecognized arithmetic operation");
 			}
-			stack.Pop(VarType::GetStorageSize() * 2);
+			context.Stack.Pop(VarType::GetStorageSize() * 2);
 		}
 	}
 	else
@@ -86,7 +86,7 @@ VM::RValuePtr VM::Operations::ArithmeticOp<OpType, VarType, RValueType>::Execute
 }
 
 template<VM::Operations::ArithmeticOpType OpType, class VarType, class RValueType>
-void VM::Operations::ArithmeticOp<OpType, VarType, RValueType>::ExecuteFast(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+void VM::Operations::ArithmeticOp<OpType, VarType, RValueType>::ExecuteFast(ExecutionContext& context)
 {
 	// Nothing to do here; either the op is called by a PushOperation op, in which case
 	// the rvalue execute function will be used; or the op is standalone and has no

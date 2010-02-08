@@ -30,12 +30,12 @@ ConsList::ConsList(unsigned numentries, EpochVariableTypeID elementtype)
 //
 // Extract a list's contents from the stack and wrap them into an r-value
 //
-void ConsList::ExecuteFast(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+void ConsList::ExecuteFast(ExecutionContext& context)
 {
-	ExecuteAndStoreRValue(scope, stack, flowresult);
+	ExecuteAndStoreRValue(context);
 }
 
-RValuePtr ConsList::ExecuteAndStoreRValue(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+RValuePtr ConsList::ExecuteAndStoreRValue(ExecutionContext& context)
 {
 	std::auto_ptr<ListRValue> ret(new ListRValue(ElementType));
 
@@ -46,7 +46,7 @@ RValuePtr ConsList::ExecuteAndStoreRValue(ActivatedScope& scope, StackSpace& sta
 	case EpochVariableType_Integer:
 		for(unsigned i = 0; i < NumEntries; ++i)
 		{
-			IntegerVariable var(stack.GetOffsetIntoStack(offset));
+			IntegerVariable var(context.Stack.GetOffsetIntoStack(offset));
 			ret->AddElement(new IntegerRValue(var.GetValue()));
 			offset += IntegerVariable::GetStorageSize();
 		}
@@ -55,7 +55,7 @@ RValuePtr ConsList::ExecuteAndStoreRValue(ActivatedScope& scope, StackSpace& sta
 	case EpochVariableType_Integer16:
 		for(unsigned i = 0; i < NumEntries; ++i)
 		{
-			Integer16Variable var(stack.GetOffsetIntoStack(offset));
+			Integer16Variable var(context.Stack.GetOffsetIntoStack(offset));
 			ret->AddElement(new Integer16RValue(var.GetValue()));
 			offset += Integer16Variable::GetStorageSize();
 		}
@@ -64,7 +64,7 @@ RValuePtr ConsList::ExecuteAndStoreRValue(ActivatedScope& scope, StackSpace& sta
 	case EpochVariableType_Boolean:
 		for(unsigned i = 0; i < NumEntries; ++i)
 		{
-			BooleanVariable var(stack.GetOffsetIntoStack(offset));
+			BooleanVariable var(context.Stack.GetOffsetIntoStack(offset));
 			ret->AddElement(new BooleanRValue(var.GetValue()));
 			offset += BooleanVariable::GetStorageSize();
 		}
@@ -73,7 +73,7 @@ RValuePtr ConsList::ExecuteAndStoreRValue(ActivatedScope& scope, StackSpace& sta
 	case EpochVariableType_String:
 		for(unsigned i = 0; i < NumEntries; ++i)
 		{
-			StringVariable var(stack.GetOffsetIntoStack(offset));
+			StringVariable var(context.Stack.GetOffsetIntoStack(offset));
 			ret->AddElement(new StringRValue(var.GetValue()));
 			offset += StringVariable::GetStorageSize();
 		}
@@ -82,7 +82,7 @@ RValuePtr ConsList::ExecuteAndStoreRValue(ActivatedScope& scope, StackSpace& sta
 	case EpochVariableType_Real:
 		for(unsigned i = 0; i < NumEntries; ++i)
 		{
-			RealVariable var(stack.GetOffsetIntoStack(offset));
+			RealVariable var(context.Stack.GetOffsetIntoStack(offset));
 			ret->AddElement(new RealRValue(var.GetValue()));
 			offset += RealVariable::GetStorageSize();
 		}

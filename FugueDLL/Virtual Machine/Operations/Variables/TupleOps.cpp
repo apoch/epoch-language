@@ -36,12 +36,12 @@ ReadTuple::ReadTuple(const std::wstring& varname, const std::wstring& membername
 //
 // Read a value from a tuple
 //
-RValuePtr ReadTuple::ExecuteAndStoreRValue(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+RValuePtr ReadTuple::ExecuteAndStoreRValue(ExecutionContext& context)
 {
-	return scope.GetVariableRef<TupleVariable>(VarName).ReadMember(MemberName);
+	return context.Scope.GetVariableRef<TupleVariable>(VarName).ReadMember(MemberName);
 }
 
-void ReadTuple::ExecuteFast(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+void ReadTuple::ExecuteFast(ExecutionContext& context)
 {
 	// Nothing to do.
 }
@@ -66,37 +66,37 @@ AssignTuple::AssignTuple(const std::wstring& varname, const std::wstring& member
 //
 // Write a value to a tuple
 //
-RValuePtr AssignTuple::ExecuteAndStoreRValue(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+RValuePtr AssignTuple::ExecuteAndStoreRValue(ExecutionContext& context)
 {
-	TupleVariable& tuple = scope.GetVariableRef<TupleVariable>(VarName);
-	switch(GetType(scope.GetOriginalDescription()))
+	TupleVariable& tuple = context.Scope.GetVariableRef<TupleVariable>(VarName);
+	switch(GetType(context.Scope.GetOriginalDescription()))
 	{
 	case EpochVariableType_Integer:
 		{
-			IntegerVariable var(stack.GetCurrentTopOfStack());
+			IntegerVariable var(context.Stack.GetCurrentTopOfStack());
 			tuple.WriteMember(MemberName, var.GetAsRValue(), false);
-			stack.Pop(IntegerVariable::GetStorageSize());
+			context.Stack.Pop(IntegerVariable::GetStorageSize());
 		}
 		break;
 	case EpochVariableType_Real:
 		{
-			RealVariable var(stack.GetCurrentTopOfStack());
+			RealVariable var(context.Stack.GetCurrentTopOfStack());
 			tuple.WriteMember(MemberName, var.GetAsRValue(), false);
-			stack.Pop(RealVariable::GetStorageSize());
+			context.Stack.Pop(RealVariable::GetStorageSize());
 		}
 		break;
 	case EpochVariableType_Boolean:
 		{
-			BooleanVariable var(stack.GetCurrentTopOfStack());
+			BooleanVariable var(context.Stack.GetCurrentTopOfStack());
 			tuple.WriteMember(MemberName, var.GetAsRValue(), false);
-			stack.Pop(BooleanVariable::GetStorageSize());
+			context.Stack.Pop(BooleanVariable::GetStorageSize());
 		}
 		break;
 	case EpochVariableType_String:
 		{
-			StringVariable var(stack.GetCurrentTopOfStack());
+			StringVariable var(context.Stack.GetCurrentTopOfStack());
 			tuple.WriteMember(MemberName, var.GetAsRValue(), false);
-			stack.Pop(StringVariable::GetStorageSize());
+			context.Stack.Pop(StringVariable::GetStorageSize());
 		}
 		break;
 	default:
@@ -106,9 +106,9 @@ RValuePtr AssignTuple::ExecuteAndStoreRValue(ActivatedScope& scope, StackSpace& 
 	return tuple.ReadMember(MemberName);
 }
 
-void AssignTuple::ExecuteFast(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+void AssignTuple::ExecuteFast(ExecutionContext& context)
 {
-	ExecuteAndStoreRValue(scope, stack, flowresult);
+	ExecuteAndStoreRValue(context);
 }
 
 //

@@ -22,12 +22,12 @@ using namespace VM::Operations;
 
 
 
-RValuePtr LogicalOr::ExecuteAndStoreRValue(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+RValuePtr LogicalOr::ExecuteAndStoreRValue(ExecutionContext& context)
 {
 	bool ret = false;
 	for(std::list<Operation*>::iterator iter = SubOps.begin(); iter != SubOps.end(); ++iter)
 	{
-		if((*iter)->ExecuteAndStoreRValue(scope, stack, flowresult)->CastTo<BooleanRValue>().GetValue())
+		if((*iter)->ExecuteAndStoreRValue(context)->CastTo<BooleanRValue>().GetValue())
 		{
 			ret = true;
 			break;
@@ -37,10 +37,10 @@ RValuePtr LogicalOr::ExecuteAndStoreRValue(ActivatedScope& scope, StackSpace& st
 	return RValuePtr(new BooleanRValue(ret));
 }
 
-void LogicalOr::ExecuteFast(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+void LogicalOr::ExecuteFast(ExecutionContext& context)
 {
 	for(std::list<Operation*>::iterator iter = SubOps.begin(); iter != SubOps.end(); ++iter)
-		(*iter)->ExecuteFast(scope, stack, flowresult);
+		(*iter)->ExecuteFast(context);
 }
 
 template <typename TraverserT>
@@ -61,12 +61,12 @@ void LogicalOr::Traverse(Serialization::SerializationTraverser& traverser)
 	TraverseHelper(traverser);
 }
 
-RValuePtr LogicalAnd::ExecuteAndStoreRValue(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+RValuePtr LogicalAnd::ExecuteAndStoreRValue(ExecutionContext& context)
 {
 	bool ret = true;
 	for(std::list<Operation*>::iterator iter = SubOps.begin(); iter != SubOps.end(); ++iter)
 	{
-		if(!(*iter)->ExecuteAndStoreRValue(scope, stack, flowresult)->CastTo<BooleanRValue>().GetValue())
+		if(!(*iter)->ExecuteAndStoreRValue(context)->CastTo<BooleanRValue>().GetValue())
 		{
 			ret = false;
 			break;
@@ -76,10 +76,10 @@ RValuePtr LogicalAnd::ExecuteAndStoreRValue(ActivatedScope& scope, StackSpace& s
 	return RValuePtr(new BooleanRValue(ret));
 }
 
-void LogicalAnd::ExecuteFast(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+void LogicalAnd::ExecuteFast(ExecutionContext& context)
 {
 	for(std::list<Operation*>::iterator iter = SubOps.begin(); iter != SubOps.end(); ++iter)
-		(*iter)->ExecuteFast(scope, stack, flowresult);
+		(*iter)->ExecuteFast(context);
 }
 
 void LogicalAnd::Traverse(Validator::ValidationTraverser& traverser)
@@ -89,36 +89,36 @@ void LogicalAnd::Traverse(Validator::ValidationTraverser& traverser)
 		dynamic_cast<SelfAwareBase*>(*iter)->Traverse(traverser);
 }
 
-RValuePtr LogicalXor::ExecuteAndStoreRValue(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+RValuePtr LogicalXor::ExecuteAndStoreRValue(ExecutionContext& context)
 {
-	BooleanVariable two(stack.GetCurrentTopOfStack());
-	BooleanVariable one(stack.GetOffsetIntoStack(BooleanVariable::GetStorageSize()));
+	BooleanVariable two(context.Stack.GetCurrentTopOfStack());
+	BooleanVariable one(context.Stack.GetOffsetIntoStack(BooleanVariable::GetStorageSize()));
 	bool oneval = one.GetValue();
 	bool twoval = two.GetValue();
 	BooleanVariable::BaseStorage ret = (oneval || twoval) && (!(oneval && twoval));
-	stack.Pop(BooleanVariable::GetStorageSize() * 2);
+	context.Stack.Pop(BooleanVariable::GetStorageSize() * 2);
 
 	return RValuePtr(new BooleanRValue(ret));
 }
 
-void LogicalXor::ExecuteFast(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+void LogicalXor::ExecuteFast(ExecutionContext& context)
 {
-	stack.Pop(BooleanVariable::GetStorageSize() * 2);
+	context.Stack.Pop(BooleanVariable::GetStorageSize() * 2);
 }
 
 
-RValuePtr LogicalNot::ExecuteAndStoreRValue(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+RValuePtr LogicalNot::ExecuteAndStoreRValue(ExecutionContext& context)
 {
-	BooleanVariable param(stack.GetCurrentTopOfStack());
+	BooleanVariable param(context.Stack.GetCurrentTopOfStack());
 	BooleanVariable::BaseStorage ret = !param.GetValue();
-	stack.Pop(BooleanVariable::GetStorageSize());
+	context.Stack.Pop(BooleanVariable::GetStorageSize());
 
 	return RValuePtr(new BooleanRValue(ret));
 
 }
 
-void LogicalNot::ExecuteFast(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+void LogicalNot::ExecuteFast(ExecutionContext& context)
 {
-	stack.Pop(BooleanVariable::GetStorageSize());
+	context.Stack.Pop(BooleanVariable::GetStorageSize());
 }
 

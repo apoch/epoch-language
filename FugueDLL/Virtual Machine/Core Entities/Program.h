@@ -11,6 +11,7 @@
 // Dependencies
 #include "Utility/Memory/Stack.h"
 #include "Virtual Machine/Core Entities/Scopes/ScopeDescription.h"
+#include "Virtual Machine/Thread Pooling/PoolTracker.h"
 
 // Forward declarations
 class HeapStorage;
@@ -49,6 +50,11 @@ namespace VM
 	public:
 		RValuePtr Execute();
 
+	// Thread pool management interface
+	public:
+		void CreateThreadPool(const std::wstring& poolname, unsigned numthreads);
+		void AddPoolWorkItem(const std::wstring& poolname, const std::wstring& threadname, std::auto_ptr<Threads::PoolWorkItem> workitem);
+
 	// Traversal interface
 	public:
 		template <class TraverserT>
@@ -73,13 +79,11 @@ namespace VM
 		StackSpace Stack;
 		VM::Block* GlobalInitBlock;
 		HeapStorage* GlobalStorageSpace;
+		ThreadPoolTracker ThreadPools;
 
 	// Shared internal tracking
 	private:
 		static unsigned ProgramInstances;
 	};
-
-
-	Program* GetRunningProgram();
 }
 

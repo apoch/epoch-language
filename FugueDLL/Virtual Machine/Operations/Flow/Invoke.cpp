@@ -40,14 +40,14 @@ Invoke::~Invoke()
 //
 // Invoke the bound Epoch function
 //
-RValuePtr Invoke::ExecuteAndStoreRValue(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowcontrol)
+RValuePtr Invoke::ExecuteAndStoreRValue(ExecutionContext& context)
 {
-	return Function->Invoke(stack, scope);
+	return Function->Invoke(context);
 }
 
-void Invoke::ExecuteFast(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+void Invoke::ExecuteFast(ExecutionContext& context)
 {
-	Function->Invoke(stack, scope);
+	Function->Invoke(context);
 }
 
 //
@@ -94,14 +94,14 @@ Traverser::Payload Invoke::GetNodeTraversalPayload() const
 //
 // Invoke the bound Epoch function
 //
-RValuePtr InvokeIndirect::ExecuteAndStoreRValue(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowcontrol)
+RValuePtr InvokeIndirect::ExecuteAndStoreRValue(ExecutionContext& context)
 {
-	return scope.GetFunction(FunctionName)->Invoke(stack, scope);
+	return context.Scope.GetFunction(FunctionName)->Invoke(context);
 }
 
-void InvokeIndirect::ExecuteFast(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+void InvokeIndirect::ExecuteFast(ExecutionContext& context)
 {
-	scope.GetFunction(FunctionName)->Invoke(stack, scope);
+	context.Scope.GetFunction(FunctionName)->Invoke(context);
 }
 
 //

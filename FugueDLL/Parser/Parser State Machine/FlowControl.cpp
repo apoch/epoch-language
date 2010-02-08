@@ -117,7 +117,7 @@ void ParserState::PopDoWhileLoop()
 	{
 		ReportFatalError("Syntax error - expected condition for do/while loop");
 
-		std::auto_ptr<VM::Block> poppedblock = Blocks.back().TheBlock;
+		std::auto_ptr<VM::Block> poppedblock(Blocks.back().TheBlock);
 		Blocks.pop_back();
 		TheStack.pop_back();
 		return;
@@ -126,7 +126,7 @@ void ParserState::PopDoWhileLoop()
 	if(Blocks.back().TheBlock->GetTailOperation()->GetType(*CurrentScope) != VM::EpochVariableType_Boolean)
 		ReportFatalError("Condition in do-while() statement must be a boolean expression");
 
-	std::auto_ptr<VM::Block> poppedblock = Blocks.back().TheBlock;
+	std::auto_ptr<VM::Block> poppedblock(Blocks.back().TheBlock);
 	Blocks.pop_back();
 	AddOperationToCurrentBlock(VM::OperationPtr(new VM::Operations::DoWhileLoop(poppedblock.release())));
 
@@ -596,7 +596,7 @@ void ParserState::ExitBlockPP()
 
 			FunctionReturns->ParentScope = NULL;
 			FunctionReturns->RegisterSelfAsTupleType(entry.StringValue);
-			std::auto_ptr<VM::FunctionBase> func(new VM::Function(Blocks.back().TheBlock, params.release(), FunctionReturns));
+			std::auto_ptr<VM::FunctionBase> func(new VM::Function(*ParsedProgram, Blocks.back().TheBlock, params.release(), FunctionReturns));
 			CurrentScope->AddFunction(ParsedProgram->PoolStaticString(entry.StringValue), func);
 			FunctionReturns = NULL;
 

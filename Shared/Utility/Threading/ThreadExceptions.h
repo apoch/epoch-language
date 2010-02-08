@@ -1,6 +1,6 @@
 //
 // The Epoch Language Project
-// FUGUE Virtual Machine
+// Shared Library Code
 //
 // Exception wrapper classes for the threading/task system
 //

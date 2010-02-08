@@ -30,7 +30,7 @@ Traverser::Payload Comparator::GetNodeTraversalPayload() const
 //
 // Test if two values are equal
 //
-RValuePtr IsEqual::ExecuteAndStoreRValue(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+RValuePtr IsEqual::ExecuteAndStoreRValue(ExecutionContext& context)
 {
 	switch(Type)
 	{
@@ -39,40 +39,40 @@ RValuePtr IsEqual::ExecuteAndStoreRValue(ActivatedScope& scope, StackSpace& stac
 
 	case EpochVariableType_Integer:
 		{
-			IntegerVariable val2(stack.GetCurrentTopOfStack());
-			IntegerVariable val1(stack.GetOffsetIntoStack(IntegerVariable::GetStorageSize()));
+			IntegerVariable val2(context.Stack.GetCurrentTopOfStack());
+			IntegerVariable val1(context.Stack.GetOffsetIntoStack(IntegerVariable::GetStorageSize()));
 			bool ret = (val1.GetValue() == val2.GetValue());
-			stack.Pop(IntegerVariable::GetStorageSize() * 2);
+			context.Stack.Pop(IntegerVariable::GetStorageSize() * 2);
 			return RValuePtr(new BooleanRValue(ret));
 		}
 	case EpochVariableType_Real:
 		{
-			RealVariable val2(stack.GetCurrentTopOfStack());
-			RealVariable val1(stack.GetOffsetIntoStack(RealVariable::GetStorageSize()));
+			RealVariable val2(context.Stack.GetCurrentTopOfStack());
+			RealVariable val1(context.Stack.GetOffsetIntoStack(RealVariable::GetStorageSize()));
 			bool ret = (val1.GetValue() == val2.GetValue());
-			stack.Pop(RealVariable::GetStorageSize() * 2);
+			context.Stack.Pop(RealVariable::GetStorageSize() * 2);
 			return RValuePtr(new BooleanRValue(ret));
 		}
 	case EpochVariableType_Boolean:
 		{
-			BooleanVariable val2(stack.GetCurrentTopOfStack());
-			BooleanVariable val1(stack.GetOffsetIntoStack(BooleanVariable::GetStorageSize()));
+			BooleanVariable val2(context.Stack.GetCurrentTopOfStack());
+			BooleanVariable val1(context.Stack.GetOffsetIntoStack(BooleanVariable::GetStorageSize()));
 			bool ret = (val1.GetValue() == val2.GetValue());
-			stack.Pop(BooleanVariable::GetStorageSize() * 2);
+			context.Stack.Pop(BooleanVariable::GetStorageSize() * 2);
 			return RValuePtr(new BooleanRValue(ret));
 		}
 	case EpochVariableType_String:
 		{
-			StringVariable val2(stack.GetCurrentTopOfStack());
-			StringVariable val1(stack.GetOffsetIntoStack(StringVariable::GetStorageSize()));
+			StringVariable val2(context.Stack.GetCurrentTopOfStack());
+			StringVariable val1(context.Stack.GetOffsetIntoStack(StringVariable::GetStorageSize()));
 			bool ret = (val1.GetValue() == val2.GetValue());
-			stack.Pop(StringVariable::GetStorageSize() * 2);
+			context.Stack.Pop(StringVariable::GetStorageSize() * 2);
 			return RValuePtr(new BooleanRValue(ret));
 		}
 	case EpochVariableType_Tuple:
 		{
-			TupleVariable val2(stack.GetCurrentTopOfStack());
-			TupleVariable val1(stack.GetOffsetIntoStack(val2.GetStorageSize()));
+			TupleVariable val2(context.Stack.GetCurrentTopOfStack());
+			TupleVariable val1(context.Stack.GetOffsetIntoStack(val2.GetStorageSize()));
 			IDType id1 = val1.GetValue();
 			IDType id2 = val2.GetValue();
 			
@@ -81,7 +81,7 @@ RValuePtr IsEqual::ExecuteAndStoreRValue(ActivatedScope& scope, StackSpace& stac
 			{
 				ret = true;
 
-				const TupleType& type = scope.GetTupleType(id1);
+				const TupleType& type = context.Scope.GetTupleType(id1);
 				const std::vector<std::wstring>& members = type.GetMemberOrder();
 				for(std::vector<std::wstring>::const_iterator iter = members.begin(); iter != members.end(); ++iter)
 				{
@@ -95,7 +95,7 @@ RValuePtr IsEqual::ExecuteAndStoreRValue(ActivatedScope& scope, StackSpace& stac
 
 			size_t storage1 = val1.GetStorageSize();
 			size_t storage2 = val2.GetStorageSize();
-			stack.Pop(storage1 + storage2);
+			context.Stack.Pop(storage1 + storage2);
 			return RValuePtr(new BooleanRValue(ret));
 		}
 
@@ -104,15 +104,15 @@ RValuePtr IsEqual::ExecuteAndStoreRValue(ActivatedScope& scope, StackSpace& stac
 	}
 }
 
-void IsEqual::ExecuteFast(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+void IsEqual::ExecuteFast(ExecutionContext& context)
 {
-	ExecuteAndStoreRValue(scope, stack, flowresult);
+	ExecuteAndStoreRValue(context);
 }
 
 //
 // Test if two values are not equal
 //
-RValuePtr IsNotEqual::ExecuteAndStoreRValue(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+RValuePtr IsNotEqual::ExecuteAndStoreRValue(ExecutionContext& context)
 {
 	switch(Type)
 	{
@@ -121,40 +121,40 @@ RValuePtr IsNotEqual::ExecuteAndStoreRValue(ActivatedScope& scope, StackSpace& s
 
 	case EpochVariableType_Integer:
 		{
-			IntegerVariable val2(stack.GetCurrentTopOfStack());
-			IntegerVariable val1(stack.GetOffsetIntoStack(IntegerVariable::GetStorageSize()));
+			IntegerVariable val2(context.Stack.GetCurrentTopOfStack());
+			IntegerVariable val1(context.Stack.GetOffsetIntoStack(IntegerVariable::GetStorageSize()));
 			bool ret = (val1.GetValue() != val2.GetValue());
-			stack.Pop(IntegerVariable::GetStorageSize() * 2);
+			context.Stack.Pop(IntegerVariable::GetStorageSize() * 2);
 			return RValuePtr(new BooleanRValue(ret));
 		}
 	case EpochVariableType_Real:
 		{
-			RealVariable val2(stack.GetCurrentTopOfStack());
-			RealVariable val1(stack.GetOffsetIntoStack(RealVariable::GetStorageSize()));
+			RealVariable val2(context.Stack.GetCurrentTopOfStack());
+			RealVariable val1(context.Stack.GetOffsetIntoStack(RealVariable::GetStorageSize()));
 			bool ret = (val1.GetValue() != val2.GetValue());
-			stack.Pop(RealVariable::GetStorageSize() * 2);
+			context.Stack.Pop(RealVariable::GetStorageSize() * 2);
 			return RValuePtr(new BooleanRValue(ret));
 		}
 	case EpochVariableType_Boolean:
 		{
-			BooleanVariable val2(stack.GetCurrentTopOfStack());
-			BooleanVariable val1(stack.GetOffsetIntoStack(BooleanVariable::GetStorageSize()));
+			BooleanVariable val2(context.Stack.GetCurrentTopOfStack());
+			BooleanVariable val1(context.Stack.GetOffsetIntoStack(BooleanVariable::GetStorageSize()));
 			bool ret = (val1.GetValue() != val2.GetValue());
-			stack.Pop(BooleanVariable::GetStorageSize() * 2);
+			context.Stack.Pop(BooleanVariable::GetStorageSize() * 2);
 			return RValuePtr(new BooleanRValue(ret));
 		}
 	case EpochVariableType_String:
 		{
-			StringVariable val2(stack.GetCurrentTopOfStack());
-			StringVariable val1(stack.GetOffsetIntoStack(StringVariable::GetStorageSize()));
+			StringVariable val2(context.Stack.GetCurrentTopOfStack());
+			StringVariable val1(context.Stack.GetOffsetIntoStack(StringVariable::GetStorageSize()));
 			bool ret = (val1.GetValue() != val2.GetValue());
-			stack.Pop(StringVariable::GetStorageSize() * 2);
+			context.Stack.Pop(StringVariable::GetStorageSize() * 2);
 			return RValuePtr(new BooleanRValue(ret));
 		}
 	case EpochVariableType_Tuple:
 		{
-			TupleVariable val2(stack.GetCurrentTopOfStack());
-			TupleVariable val1(stack.GetOffsetIntoStack(val2.GetStorageSize()));
+			TupleVariable val2(context.Stack.GetCurrentTopOfStack());
+			TupleVariable val1(context.Stack.GetOffsetIntoStack(val2.GetStorageSize()));
 			IDType id1 = val1.GetValue();
 			IDType id2 = val2.GetValue();
 			
@@ -163,7 +163,7 @@ RValuePtr IsNotEqual::ExecuteAndStoreRValue(ActivatedScope& scope, StackSpace& s
 			{
 				ret = false;
 
-				const TupleType& type = scope.GetTupleType(id1);
+				const TupleType& type = context.Scope.GetTupleType(id1);
 				const std::vector<std::wstring>& members = type.GetMemberOrder();
 				for(std::vector<std::wstring>::const_iterator iter = members.begin(); iter != members.end(); ++iter)
 				{
@@ -177,7 +177,7 @@ RValuePtr IsNotEqual::ExecuteAndStoreRValue(ActivatedScope& scope, StackSpace& s
 
 			size_t storage1 = val1.GetStorageSize();
 			size_t storage2 = val2.GetStorageSize();
-			stack.Pop(storage1 + storage2);
+			context.Stack.Pop(storage1 + storage2);
 			return RValuePtr(new BooleanRValue(ret));
 		}
 	default:
@@ -185,15 +185,15 @@ RValuePtr IsNotEqual::ExecuteAndStoreRValue(ActivatedScope& scope, StackSpace& s
 	}
 }
 
-void IsNotEqual::ExecuteFast(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+void IsNotEqual::ExecuteFast(ExecutionContext& context)
 {
-	ExecuteAndStoreRValue(scope, stack, flowresult);
+	ExecuteAndStoreRValue(context);
 }
 
 //
 // Test if one value is greater than another
 //
-RValuePtr IsGreater::ExecuteAndStoreRValue(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+RValuePtr IsGreater::ExecuteAndStoreRValue(ExecutionContext& context)
 {
 	switch(Type)
 	{
@@ -202,18 +202,18 @@ RValuePtr IsGreater::ExecuteAndStoreRValue(ActivatedScope& scope, StackSpace& st
 
 	case EpochVariableType_Integer:
 		{
-			IntegerVariable val2(stack.GetCurrentTopOfStack());
-			IntegerVariable val1(stack.GetOffsetIntoStack(IntegerVariable::GetStorageSize()));
+			IntegerVariable val2(context.Stack.GetCurrentTopOfStack());
+			IntegerVariable val1(context.Stack.GetOffsetIntoStack(IntegerVariable::GetStorageSize()));
 			bool ret = (val1.GetValue() > val2.GetValue());
-			stack.Pop(IntegerVariable::GetStorageSize() * 2);
+			context.Stack.Pop(IntegerVariable::GetStorageSize() * 2);
 			return RValuePtr(new BooleanRValue(ret));
 		}
 	case EpochVariableType_Real:
 		{
-			RealVariable val2(stack.GetCurrentTopOfStack());
-			RealVariable val1(stack.GetOffsetIntoStack(RealVariable::GetStorageSize()));
+			RealVariable val2(context.Stack.GetCurrentTopOfStack());
+			RealVariable val1(context.Stack.GetOffsetIntoStack(RealVariable::GetStorageSize()));
 			bool ret = (val1.GetValue() > val2.GetValue());
-			stack.Pop(RealVariable::GetStorageSize() * 2);
+			context.Stack.Pop(RealVariable::GetStorageSize() * 2);
 			return RValuePtr(new BooleanRValue(ret));
 		}
 	default:
@@ -221,16 +221,16 @@ RValuePtr IsGreater::ExecuteAndStoreRValue(ActivatedScope& scope, StackSpace& st
 	}
 }
 
-void IsGreater::ExecuteFast(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+void IsGreater::ExecuteFast(ExecutionContext& context)
 {
-	ExecuteAndStoreRValue(scope, stack, flowresult);
+	ExecuteAndStoreRValue(context);
 }
 
 
 //
 // Test if one value is greater than or equal to another
 //
-RValuePtr IsGreaterOrEqual::ExecuteAndStoreRValue(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+RValuePtr IsGreaterOrEqual::ExecuteAndStoreRValue(ExecutionContext& context)
 {
 	switch(Type)
 	{
@@ -239,18 +239,18 @@ RValuePtr IsGreaterOrEqual::ExecuteAndStoreRValue(ActivatedScope& scope, StackSp
 
 	case EpochVariableType_Integer:
 		{
-			IntegerVariable val2(stack.GetCurrentTopOfStack());
-			IntegerVariable val1(stack.GetOffsetIntoStack(IntegerVariable::GetStorageSize()));
+			IntegerVariable val2(context.Stack.GetCurrentTopOfStack());
+			IntegerVariable val1(context.Stack.GetOffsetIntoStack(IntegerVariable::GetStorageSize()));
 			bool ret = (val1.GetValue() >= val2.GetValue());
-			stack.Pop(IntegerVariable::GetStorageSize() * 2);
+			context.Stack.Pop(IntegerVariable::GetStorageSize() * 2);
 			return RValuePtr(new BooleanRValue(ret));
 		}
 	case EpochVariableType_Real:
 		{
-			RealVariable val2(stack.GetCurrentTopOfStack());
-			RealVariable val1(stack.GetOffsetIntoStack(RealVariable::GetStorageSize()));
+			RealVariable val2(context.Stack.GetCurrentTopOfStack());
+			RealVariable val1(context.Stack.GetOffsetIntoStack(RealVariable::GetStorageSize()));
 			bool ret = (val1.GetValue() >= val2.GetValue());
-			stack.Pop(RealVariable::GetStorageSize() * 2);
+			context.Stack.Pop(RealVariable::GetStorageSize() * 2);
 			return RValuePtr(new BooleanRValue(ret));
 		}
 	default:
@@ -258,16 +258,16 @@ RValuePtr IsGreaterOrEqual::ExecuteAndStoreRValue(ActivatedScope& scope, StackSp
 	}
 }
 
-void IsGreaterOrEqual::ExecuteFast(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+void IsGreaterOrEqual::ExecuteFast(ExecutionContext& context)
 {
-	ExecuteAndStoreRValue(scope, stack, flowresult);
+	ExecuteAndStoreRValue(context);
 }
 
 
 //
 // Test if one value is less than another
 //
-RValuePtr IsLesser::ExecuteAndStoreRValue(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+RValuePtr IsLesser::ExecuteAndStoreRValue(ExecutionContext& context)
 {
 	switch(Type)
 	{
@@ -276,18 +276,18 @@ RValuePtr IsLesser::ExecuteAndStoreRValue(ActivatedScope& scope, StackSpace& sta
 
 	case EpochVariableType_Integer:
 		{
-			IntegerVariable val2(stack.GetCurrentTopOfStack());
-			IntegerVariable val1(stack.GetOffsetIntoStack(IntegerVariable::GetStorageSize()));
+			IntegerVariable val2(context.Stack.GetCurrentTopOfStack());
+			IntegerVariable val1(context.Stack.GetOffsetIntoStack(IntegerVariable::GetStorageSize()));
 			bool ret = (val1.GetValue() < val2.GetValue());
-			stack.Pop(IntegerVariable::GetStorageSize() * 2);
+			context.Stack.Pop(IntegerVariable::GetStorageSize() * 2);
 			return RValuePtr(new BooleanRValue(ret));
 		}
 	case EpochVariableType_Real:
 		{
-			RealVariable val2(stack.GetCurrentTopOfStack());
-			RealVariable val1(stack.GetOffsetIntoStack(RealVariable::GetStorageSize()));
+			RealVariable val2(context.Stack.GetCurrentTopOfStack());
+			RealVariable val1(context.Stack.GetOffsetIntoStack(RealVariable::GetStorageSize()));
 			bool ret = (val1.GetValue() < val2.GetValue());
-			stack.Pop(RealVariable::GetStorageSize() * 2);
+			context.Stack.Pop(RealVariable::GetStorageSize() * 2);
 			return RValuePtr(new BooleanRValue(ret));
 		}
 	default:
@@ -295,15 +295,15 @@ RValuePtr IsLesser::ExecuteAndStoreRValue(ActivatedScope& scope, StackSpace& sta
 	}
 }
 
-void IsLesser::ExecuteFast(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+void IsLesser::ExecuteFast(ExecutionContext& context)
 {
-	ExecuteAndStoreRValue(scope, stack, flowresult);
+	ExecuteAndStoreRValue(context);
 }
 
 //
 // Test if one value is less than or equal to another
 //
-RValuePtr IsLesserOrEqual::ExecuteAndStoreRValue(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+RValuePtr IsLesserOrEqual::ExecuteAndStoreRValue(ExecutionContext& context)
 {
 	switch(Type)
 	{
@@ -312,18 +312,18 @@ RValuePtr IsLesserOrEqual::ExecuteAndStoreRValue(ActivatedScope& scope, StackSpa
 
 	case EpochVariableType_Integer:
 		{
-			IntegerVariable val2(stack.GetCurrentTopOfStack());
-			IntegerVariable val1(stack.GetOffsetIntoStack(IntegerVariable::GetStorageSize()));
+			IntegerVariable val2(context.Stack.GetCurrentTopOfStack());
+			IntegerVariable val1(context.Stack.GetOffsetIntoStack(IntegerVariable::GetStorageSize()));
 			bool ret = (val1.GetValue() <= val2.GetValue());
-			stack.Pop(IntegerVariable::GetStorageSize() * 2);
+			context.Stack.Pop(IntegerVariable::GetStorageSize() * 2);
 			return RValuePtr(new BooleanRValue(ret));
 		}
 	case EpochVariableType_Real:
 		{
-			RealVariable val2(stack.GetCurrentTopOfStack());
-			RealVariable val1(stack.GetOffsetIntoStack(RealVariable::GetStorageSize()));
+			RealVariable val2(context.Stack.GetCurrentTopOfStack());
+			RealVariable val1(context.Stack.GetOffsetIntoStack(RealVariable::GetStorageSize()));
 			bool ret = (val1.GetValue() <= val2.GetValue());
-			stack.Pop(RealVariable::GetStorageSize() * 2);
+			context.Stack.Pop(RealVariable::GetStorageSize() * 2);
 			return RValuePtr(new BooleanRValue(ret));
 		}
 	default:
@@ -331,7 +331,7 @@ RValuePtr IsLesserOrEqual::ExecuteAndStoreRValue(ActivatedScope& scope, StackSpa
 	}
 }
 
-void IsLesserOrEqual::ExecuteFast(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+void IsLesserOrEqual::ExecuteFast(ExecutionContext& context)
 {
-	ExecuteAndStoreRValue(scope, stack, flowresult);
+	ExecuteAndStoreRValue(context);
 }

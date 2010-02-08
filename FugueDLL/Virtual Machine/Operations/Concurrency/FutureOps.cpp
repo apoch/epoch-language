@@ -15,6 +15,10 @@
 
 #include "Virtual Machine/Core Entities/Variables/StringVariable.h"
 
+#include "Virtual Machine/Core Entities/Program.h"
+
+#include "Virtual Machine/Thread Pooling/WorkItems.h"
+
 #include "Utility/Threading/Threads.h"
 
 
@@ -29,27 +33,29 @@ DWORD __stdcall ExecuteEpochFutureTask(void* info);
 //
 // Fork a task that computes a future, and start execution of code in the new context
 //
-void ForkFuture::ExecuteFast(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+void ForkFuture::ExecuteFast(ExecutionContext& context)
 {
-	if(UseThreadPool)
-	{
-		VM::StringVariable temp(stack.GetCurrentTopOfStack());
-		std::wstring poolname = temp.GetValue();
-		stack.Pop(temp.GetStorageSize());
-
-		// TODO - place future computation on thread pool's work queue instead of forking a dedicated thread
-	}
-
 	std::wostringstream id;
 	id << L"Epoch Future Task " << this;
+	Future* future = context.Scope.GetFuture(VarName);
 
-	Future* future = scope.GetFuture(VarName);
-	Threads::Create(id.str(), ExecuteEpochFutureTask, future, future->GetNestedOperation());
+	if(UseThreadPool)
+	{
+		VM::StringVariable temp(context.Stack.GetCurrentTopOfStack());
+		std::wstring poolname = temp.GetValue();
+		context.Stack.Pop(temp.GetStorageSize());
+
+		std::auto_ptr<Threads::PoolWorkItem> workitem(new FutureWorkItem(*future, context));
+		context.RunningProgram.AddPoolWorkItem(poolname, id.str(), workitem);
+		return;
+	}
+
+	Threads::Create(id.str(), ExecuteEpochFutureTask, future, future->GetNestedOperation(), &context.RunningProgram);
 }
 
-RValuePtr ForkFuture::ExecuteAndStoreRValue(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+RValuePtr ForkFuture::ExecuteAndStoreRValue(ExecutionContext& context)
 {
-	ExecuteFast(scope, stack, flowresult);
+	ExecuteFast(context);
 	return RValuePtr(new NullRValue);
 }
 
@@ -67,13 +73,13 @@ DWORD __stdcall ExecuteEpochFutureTask(void* info)
 		Operation* op = threadinfo->OpPointer;
 
 		StackSpace stack;
-		FlowControlResult flowresult = FLOWCONTROL_NORMAL;
 
+		FlowControlResult flowresult = FLOWCONTROL_NORMAL;
 		std::auto_ptr<ScopeDescription> descriptor(new ScopeDescription);
 		std::auto_ptr<ActivatedScope> newscope(new ActivatedScope(*descriptor));
 		newscope->TaskOrigin = threadinfo->TaskOrigin;
 		newscope->Enter(stack);
-		RValuePtr ret(op->ExecuteAndStoreRValue(*newscope, stack, flowresult)->Clone());
+		RValuePtr ret(op->ExecuteAndStoreRValue(ExecutionContext(*threadinfo->RunningProgram, *newscope, stack, flowresult))->Clone());
 		newscope->Exit(stack);
 
 		threadinfo->BoundFuture->SetResult(ret);

@@ -35,20 +35,20 @@ MapOperation::~MapOperation()
 //
 // Map a unary function onto a list of values, and return the result
 //
-RValuePtr MapOperation::ExecuteAndStoreRValue(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+RValuePtr MapOperation::ExecuteAndStoreRValue(ExecutionContext& context)
 {
-	IntegerVariable typevar(stack.GetCurrentTopOfStack());
-	IntegerVariable countvar(stack.GetOffsetIntoStack(IntegerVariable::GetStorageSize()));
+	IntegerVariable typevar(context.Stack.GetCurrentTopOfStack());
+	IntegerVariable countvar(context.Stack.GetOffsetIntoStack(IntegerVariable::GetStorageSize()));
 	IntegerVariable::BaseStorage type = typevar.GetValue();
 	IntegerVariable::BaseStorage count = countvar.GetValue();
-	stack.Pop(IntegerVariable::GetStorageSize() * 2);
+	context.Stack.Pop(IntegerVariable::GetStorageSize() * 2);
 
 	RValuePtr result(new ListRValue(static_cast<EpochVariableTypeID>(type)));
 	ListRValue* resultptr = dynamic_cast<ListRValue*>(result.get());
 
 	for(IntegerVariable::BaseStorage i = 0; i < count; ++i)
 	{
-		RValuePtr ret(TheOp->ExecuteAndStoreRValue(scope, stack, flowresult));
+		RValuePtr ret(TheOp->ExecuteAndStoreRValue(context));
 		
 		EpochVariableTypeID rettype = ret->GetType();
 		if(rettype != EpochVariableType_Null)
@@ -58,9 +58,9 @@ RValuePtr MapOperation::ExecuteAndStoreRValue(ActivatedScope& scope, StackSpace&
 	return result;
 }
 
-void MapOperation::ExecuteFast(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+void MapOperation::ExecuteFast(ExecutionContext& context)
 {
-	ExecuteAndStoreRValue(scope, stack, flowresult);
+	ExecuteAndStoreRValue(context);
 }
 
 
@@ -94,13 +94,13 @@ ReduceOperation::~ReduceOperation()
 // Apply a binary function to each element in a list, keeping a running
 // accumulator value as we go along. The final accumulator value is returned.
 //
-RValuePtr ReduceOperation::ExecuteAndStoreRValue(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+RValuePtr ReduceOperation::ExecuteAndStoreRValue(ExecutionContext& context)
 {
-	IntegerVariable typevar(stack.GetCurrentTopOfStack());
-	IntegerVariable countvar(stack.GetOffsetIntoStack(IntegerVariable::GetStorageSize()));
+	IntegerVariable typevar(context.Stack.GetCurrentTopOfStack());
+	IntegerVariable countvar(context.Stack.GetOffsetIntoStack(IntegerVariable::GetStorageSize()));
 	IntegerVariable::BaseStorage type = typevar.GetValue();
 	IntegerVariable::BaseStorage count = countvar.GetValue();
-	stack.Pop(IntegerVariable::GetStorageSize() * 2);
+	context.Stack.Pop(IntegerVariable::GetStorageSize() * 2);
 
 	size_t elementstoragesize = TypeInfo::GetStorageSize(static_cast<EpochVariableTypeID>(type));
 
@@ -111,37 +111,37 @@ RValuePtr ReduceOperation::ExecuteAndStoreRValue(ActivatedScope& scope, StackSpa
 	// We have to reverse the operands so they work correctly with non-transitive operators
 	std::vector<Byte> buffer1(elementstoragesize, 0);
 	std::vector<Byte> buffer2(elementstoragesize, 0);
-	memcpy(&buffer1[0], stack.GetCurrentTopOfStack(), elementstoragesize);
-	stack.Pop(elementstoragesize);
-	memcpy(&buffer2[0], stack.GetCurrentTopOfStack(), elementstoragesize);
+	memcpy(&buffer1[0], context.Stack.GetCurrentTopOfStack(), elementstoragesize);
+	context.Stack.Pop(elementstoragesize);
+	memcpy(&buffer2[0], context.Stack.GetCurrentTopOfStack(), elementstoragesize);
 	buffer1.swap(buffer2);
-	memcpy(stack.GetCurrentTopOfStack(), &buffer2[0], elementstoragesize);
-	stack.Push(elementstoragesize);
-	memcpy(stack.GetCurrentTopOfStack(), &buffer1[0], elementstoragesize);
+	memcpy(context.Stack.GetCurrentTopOfStack(), &buffer2[0], elementstoragesize);
+	context.Stack.Push(elementstoragesize);
+	memcpy(context.Stack.GetCurrentTopOfStack(), &buffer1[0], elementstoragesize);
 
 	for(IntegerVariable::BaseStorage i = 0; i < count; ++i)
 	{
-		RValuePtr ret(TheOp->ExecuteAndStoreRValue(scope, stack, flowresult));
+		RValuePtr ret(TheOp->ExecuteAndStoreRValue(context));
 		result.reset(ret->Clone());
 		EpochVariableTypeID rettype = ret->GetType();
 		if(rettype != EpochVariableType_Null)
 		{
-			memcpy(&buffer1[0], stack.GetCurrentTopOfStack(), elementstoragesize);
-			stack.Pop(elementstoragesize);
-			PushOperation::DoPush(rettype, ret, scope.GetOriginalDescription(), stack, false);
-			stack.Push(elementstoragesize);
-			memcpy(stack.GetCurrentTopOfStack(), &buffer1[0], elementstoragesize);
+			memcpy(&buffer1[0], context.Stack.GetCurrentTopOfStack(), elementstoragesize);
+			context.Stack.Pop(elementstoragesize);
+			PushOperation::DoPush(rettype, ret, context.Scope.GetOriginalDescription(), context.Stack, false);
+			context.Stack.Push(elementstoragesize);
+			memcpy(context.Stack.GetCurrentTopOfStack(), &buffer1[0], elementstoragesize);
 		}
 	}
 
-	stack.Pop(elementstoragesize);
+	context.Stack.Pop(elementstoragesize);
 
 	return result;
 }
 
-void ReduceOperation::ExecuteFast(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+void ReduceOperation::ExecuteFast(ExecutionContext& context)
 {
-	ExecuteAndStoreRValue(scope, stack, flowresult);
+	ExecuteAndStoreRValue(context);
 }
 
 template <typename TraverserT>

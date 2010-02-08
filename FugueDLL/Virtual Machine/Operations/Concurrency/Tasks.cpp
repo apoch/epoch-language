@@ -13,6 +13,7 @@
 #include "Virtual Machine/Core Entities/Program.h"
 
 #include "Virtual Machine/Operations/Concurrency/Tasks.h"
+#include "Virtual Machine/Thread Pooling/WorkItems.h"
 #include "Virtual Machine/Types Management/TypeInfo.h"
 #include "Virtual Machine/Routines.inl"
 #include "Virtual Machine/VMExceptions.h"
@@ -50,17 +51,17 @@ ForkTask::~ForkTask()
 //
 // Fork a task and start execution in the new context
 //
-void ForkTask::ExecuteFast(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+void ForkTask::ExecuteFast(ExecutionContext& context)
 {
-	StringVariable temp(stack.GetCurrentTopOfStack());
+	StringVariable temp(context.Stack.GetCurrentTopOfStack());
 	std::wstring taskname = temp.GetValue();
-	stack.Pop(temp.GetStorageSize());
-	Threads::Create(taskname, ExecuteEpochTask, CodeBlock);
+	context.Stack.Pop(temp.GetStorageSize());
+	Threads::Create(taskname, ExecuteEpochTask, CodeBlock, &context.RunningProgram);
 }
 
-RValuePtr ForkTask::ExecuteAndStoreRValue(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+RValuePtr ForkTask::ExecuteAndStoreRValue(ExecutionContext& context)
 {
-	ExecuteFast(scope, stack, flowresult);
+	ExecuteFast(context);
 	return RValuePtr(new NullRValue);
 }
 
@@ -96,28 +97,29 @@ ForkThread::~ForkThread()
 //
 // Fork a thread and start execution in the new context
 //
-void ForkThread::ExecuteFast(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+void ForkThread::ExecuteFast(ExecutionContext& context)
 {
 	std::wstring threadname, poolname;
 
 	{
-		StringVariable temp(stack.GetCurrentTopOfStack());
+		StringVariable temp(context.Stack.GetCurrentTopOfStack());
 		poolname = temp.GetValue();
-		stack.Pop(temp.GetStorageSize());
+		context.Stack.Pop(temp.GetStorageSize());
 	}
 
 	{
-		StringVariable temp(stack.GetCurrentTopOfStack());
+		StringVariable temp(context.Stack.GetCurrentTopOfStack());
 		threadname = temp.GetValue();
-		stack.Pop(temp.GetStorageSize());
+		context.Stack.Pop(temp.GetStorageSize());
 	}
 
-	// TODO - actually place this code on the work queue of the appropriate thread pool
+	std::auto_ptr<Threads::PoolWorkItem> workitem(new ForkThreadWorkItem(*CodeBlock, context));
+	context.RunningProgram.AddPoolWorkItem(poolname, threadname, workitem);
 }
 
-RValuePtr ForkThread::ExecuteAndStoreRValue(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+RValuePtr ForkThread::ExecuteAndStoreRValue(ExecutionContext& context)
 {
-	ExecuteFast(scope, stack, flowresult);
+	ExecuteFast(context);
 	return RValuePtr(new NullRValue);
 }
 
@@ -142,29 +144,29 @@ void ForkThread::Traverse(Serialization::SerializationTraverser& traverser)
 }
 
 
-void CreateThreadPool::ExecuteFast(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+void CreateThreadPool::ExecuteFast(ExecutionContext& context)
 {
-	std::wstring threadname;
+	std::wstring poolname;
 	Integer32 numthreads;
 
 	{
-		IntegerVariable temp(stack.GetCurrentTopOfStack());
+		IntegerVariable temp(context.Stack.GetCurrentTopOfStack());
 		numthreads = temp.GetValue();
-		stack.Pop(temp.GetStorageSize());
+		context.Stack.Pop(temp.GetStorageSize());
 	}
 
 	{
-		StringVariable temp(stack.GetCurrentTopOfStack());
-		threadname = temp.GetValue();
-		stack.Pop(temp.GetStorageSize());
+		StringVariable temp(context.Stack.GetCurrentTopOfStack());
+		poolname = temp.GetValue();
+		context.Stack.Pop(temp.GetStorageSize());
 	}
 
-	// TODO - create thread pool
+	context.RunningProgram.CreateThreadPool(poolname, numthreads);
 }
 
-RValuePtr CreateThreadPool::ExecuteAndStoreRValue(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+RValuePtr CreateThreadPool::ExecuteAndStoreRValue(ExecutionContext& context)
 {
-	ExecuteFast(scope, stack, flowresult);
+	ExecuteFast(context);
 	return RValuePtr(new NullRValue);
 }
 
@@ -182,11 +184,11 @@ DWORD __stdcall ExecuteEpochTask(void* info)
 		Block* codeblock = threadinfo->CodeBlock;
 
 		StackSpace stack;
-		FlowControlResult flowresult = FLOWCONTROL_NORMAL;
 
-		std::auto_ptr<ActivatedScope> newscope(new ActivatedScope(*codeblock->GetBoundScope(), VM::GetRunningProgram()->GetActivatedGlobalScope()));
+		FlowControlResult flowresult = FLOWCONTROL_NORMAL;
+		std::auto_ptr<ActivatedScope> newscope(new ActivatedScope(*codeblock->GetBoundScope(), threadinfo->RunningProgram->GetActivatedGlobalScope()));
 		newscope->TaskOrigin = threadinfo->TaskOrigin;
-		codeblock->ExecuteBlock(*newscope, stack, flowresult, NULL);
+		codeblock->ExecuteBlock(ExecutionContext(*threadinfo->RunningProgram, *newscope, stack, flowresult), NULL);
 		newscope->Exit(stack);
 
 		if(stack.GetAllocatedStack() != 0)

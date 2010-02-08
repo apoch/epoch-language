@@ -28,10 +28,10 @@ namespace VM
 		{
 		// Operation interface
 		public:
-			virtual void ExecuteFast(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+			virtual void ExecuteFast(ExecutionContext& context)
 			{ }
 
-			virtual RValuePtr ExecuteAndStoreRValue(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+			virtual RValuePtr ExecuteAndStoreRValue(ExecutionContext& context)
 			{ return RValuePtr(new NullRValue); }
 
 			virtual EpochVariableTypeID GetType(const ScopeDescription& scope) const

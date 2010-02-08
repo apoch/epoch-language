@@ -29,7 +29,6 @@ using namespace VM;
 
 
 unsigned Program::ProgramInstances = 0;
-Program* RunningProgram = NULL;
 
 
 //
@@ -40,6 +39,8 @@ Program::Program() :
 	GlobalStorageSpace(NULL),
 	ActivatedGlobalScope(NULL)
 {
+	// TODO - remove single-program-per-process gibberish
+
 	// This is kind of lame and inelegant; there shouldn't be a limit on the program
 	// instances active because everything should be able to run independently.
 	// Eventually it would be nice to refactor/adjust things to eliminate the one
@@ -52,8 +53,6 @@ Program::Program() :
 	StructureTrackerClass::ResetSharedData();
 	Marshalling::Clean();
 	StringVariable::EmptyPool();
-
-	RunningProgram = this;
 }
 
 //
@@ -82,10 +81,11 @@ RValuePtr Program::Execute()
 		delete GlobalStorageSpace;
 		GlobalStorageSpace = new HeapStorage;
 		FlowControlResult ignored = FLOWCONTROL_NORMAL;
-		GlobalInitBlock->ExecuteBlock(*scope, Stack, ignored, GlobalStorageSpace);
+		GlobalInitBlock->ExecuteBlock(ExecutionContext(*this, *scope, Stack, ignored), GlobalStorageSpace);
 	}
 
-	RValuePtr ret(GlobalScope.GetFunction(L"entrypoint")->Invoke(Stack, *scope));
+	FlowControlResult flowresult = FLOWCONTROL_NORMAL;
+	RValuePtr ret(GlobalScope.GetFunction(L"entrypoint")->Invoke(ExecutionContext(*this, *scope, Stack, flowresult)));
 
 	Threads::WaitForThreadsToFinish();
 
@@ -138,10 +138,22 @@ VM::Block& Program::CreateGlobalInitBlock()
 	return *GlobalInitBlock;
 }
 
+
 //
-// Global access to the running program
+// Create a thread pool of worker threads.
 //
-Program* VM::GetRunningProgram()
+// The created pool can later be referenced by the name provided.
+//
+void Program::CreateThreadPool(const std::wstring& poolname, unsigned numthreads)
 {
-	return RunningProgram;
+	ThreadPools.CreateNamedPool(poolname, numthreads, this);
 }
+
+//
+// Add a work item to a worker thread pool's work queue
+//
+void Program::AddPoolWorkItem(const std::wstring& poolname, const std::wstring& threadname, std::auto_ptr<Threads::PoolWorkItem> workitem)
+{
+	ThreadPools.GetNamedPool(poolname).AddWorkItem(threadname, workitem.release());
+}
+

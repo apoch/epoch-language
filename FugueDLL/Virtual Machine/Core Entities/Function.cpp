@@ -19,10 +19,11 @@ using namespace VM;
 //
 // Construct and initialize a function wrapper
 //
-Function::Function(Block* codeblock, ScopeDescription* params, ScopeDescription* returns)
+Function::Function(Program& program, Block* codeblock, ScopeDescription* params, ScopeDescription* returns)
 	: CodeBlock(codeblock),
 	  Params(params),
-	  Returns(returns)
+	  Returns(returns),
+	  RunningProgram(&program)
 {
 }
 
@@ -39,29 +40,28 @@ Function::~Function()
 //
 // Invoke the function and execute its code
 //
-RValuePtr Function::Invoke(StackSpace& stack, ActivatedScope& scope)
+RValuePtr Function::Invoke(ExecutionContext& context)
 {
 	std::auto_ptr<ActivatedScope> paramclone(new ActivatedScope(*Params));
 	std::auto_ptr<ActivatedScope> returnclone(new ActivatedScope(*Returns));
 
-	paramclone->BindToStack(stack);
-	returnclone->Enter(stack);
+	paramclone->BindToStack(context.Stack);
+	returnclone->Enter(context.Stack);
 
 	std::auto_ptr<ActivatedScope> codescope(new ActivatedScope(*CodeBlock->GetBoundScope()));
-	codescope->TaskOrigin = scope.TaskOrigin;
-	codescope->LastMessageOrigin = scope.LastMessageOrigin;
-	codescope->ParentScope = &scope;
+	codescope->TaskOrigin = context.Scope.TaskOrigin;
+	codescope->LastMessageOrigin = context.Scope.LastMessageOrigin;
+	codescope->ParentScope = &context.Scope;
 	codescope->PushNewGhostSet();
 	paramclone->GhostIntoScope(*codescope);
 	returnclone->GhostIntoScope(*codescope);
 
-	FlowControlResult flowresult = FLOWCONTROL_NORMAL;
-	CodeBlock->ExecuteBlock(*codescope, stack, flowresult, NULL);
+	CodeBlock->ExecuteBlock(ExecutionContext(context.RunningProgram, *codescope, context.Stack, context.FlowResult), NULL);
 	RValuePtr ret(returnclone->GetEffectiveTuple());
-	codescope->Exit(stack);
+	codescope->Exit(context.Stack);
 	
-	returnclone->Exit(stack);
-	paramclone->Exit(stack);
+	returnclone->Exit(context.Stack);
+	paramclone->Exit(context.Stack);
 	codescope->PopGhostSet();
 	return ret;
 }
@@ -73,26 +73,26 @@ RValuePtr Function::Invoke(StackSpace& stack, ActivatedScope& scope)
 // marshalling system, which may invoke functions using direct parameters
 // from the host hardware rather than the internal VM stack.
 //
-RValuePtr Function::InvokeWithExternalParams(StackSpace& stack, void* externalstack, ActivatedScope& scope)
+RValuePtr Function::InvokeWithExternalParams(ExecutionContext& context, void* externalstack)
 {
 	std::auto_ptr<ActivatedScope> paramclone(new ActivatedScope(*Params));
 	std::auto_ptr<ActivatedScope> returnclone(new ActivatedScope(*Returns));
 
 	paramclone->BindToMachineStack(externalstack);
-	returnclone->Enter(stack);
+	returnclone->Enter(context.Stack);
 
 	std::auto_ptr<ActivatedScope> codescope(new ActivatedScope(*CodeBlock->GetBoundScope()));
-	codescope->ParentScope = &scope;
+	codescope->ParentScope = &context.Scope;
 	codescope->PushNewGhostSet();
 	paramclone->GhostIntoScope(*codescope);
 	returnclone->GhostIntoScope(*codescope);
 
 	FlowControlResult flowresult = FLOWCONTROL_NORMAL;
-	CodeBlock->ExecuteBlock(*codescope, stack, flowresult, NULL);
+	CodeBlock->ExecuteBlock(ExecutionContext(context.RunningProgram, *codescope, context.Stack, flowresult), NULL);
 	RValuePtr ret(returnclone->GetEffectiveTuple());
-	codescope->Exit(stack);
+	codescope->Exit(context.Stack);
 	
-	returnclone->Exit(stack);
+	returnclone->Exit(context.Stack);
 	paramclone->ExitFromMachineStack();
 	codescope->PopGhostSet();
 	return ret;

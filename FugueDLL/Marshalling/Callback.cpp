@@ -64,8 +64,9 @@ namespace
 		// in order to reach the actual first parameter. This
 		// is because of the local variable defined in the
 		// callback stub, which uses a stack slot.
-		std::auto_ptr<VM::ActivatedScope> tempscope(new VM::ActivatedScope(VM::GetRunningProgram()->GetGlobalScope()));
-		VM::RValuePtr result(callbackfunction->InvokeWithExternalParams(VM::GetRunningProgram()->GetStack(), espsave + 4, *tempscope));
+		std::auto_ptr<VM::ActivatedScope> tempscope(new VM::ActivatedScope(callbackfunction->GetRunningProgram().GetGlobalScope()));
+		VM::FlowControlResult flowresult = VM::FLOWCONTROL_NORMAL;
+		VM::RValuePtr result(callbackfunction->InvokeWithExternalParams(VM::ExecutionContext(callbackfunction->GetRunningProgram(), *tempscope, callbackfunction->GetRunningProgram().GetStack(), flowresult), espsave + 4));
 
 		// The Epoch function's return value is used to determine
 		// how we leave this shim. We need to clean up local

@@ -30,13 +30,13 @@ BitwiseOr::BitwiseOr(EpochVariableTypeID type)
 }
 
 
-RValuePtr BitwiseOr::ExecuteAndStoreRValue(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+RValuePtr BitwiseOr::ExecuteAndStoreRValue(ExecutionContext& context)
 {
 	if(Type == EpochVariableType_Integer)
 	{
 		Integer32 ret = 0;
 		for(std::list<Operation*>::iterator iter = SubOps.begin(); iter != SubOps.end(); ++iter)
-			ret |= (*iter)->ExecuteAndStoreRValue(scope, stack, flowresult)->CastTo<IntegerRValue>().GetValue();
+			ret |= (*iter)->ExecuteAndStoreRValue(context)->CastTo<IntegerRValue>().GetValue();
 
 		return RValuePtr(new IntegerRValue(ret));
 	}
@@ -44,7 +44,7 @@ RValuePtr BitwiseOr::ExecuteAndStoreRValue(ActivatedScope& scope, StackSpace& st
 	{
 		Integer16 ret = 0;
 		for(std::list<Operation*>::iterator iter = SubOps.begin(); iter != SubOps.end(); ++iter)
-			ret |= (*iter)->ExecuteAndStoreRValue(scope, stack, flowresult)->CastTo<Integer16RValue>().GetValue();
+			ret |= (*iter)->ExecuteAndStoreRValue(context)->CastTo<Integer16RValue>().GetValue();
 
 		return RValuePtr(new IntegerRValue(ret));
 	}
@@ -52,10 +52,10 @@ RValuePtr BitwiseOr::ExecuteAndStoreRValue(ActivatedScope& scope, StackSpace& st
 	throw NotImplementedException("Bitwise-or cannot be used on data of this type");
 }
 
-void BitwiseOr::ExecuteFast(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+void BitwiseOr::ExecuteFast(ExecutionContext& context)
 {
 	for(std::list<Operation*>::iterator iter = SubOps.begin(); iter != SubOps.end(); ++iter)
-		(*iter)->ExecuteFast(scope, stack, flowresult);
+		(*iter)->ExecuteFast(context);
 }
 
 template <typename TraverserT>
@@ -84,27 +84,27 @@ BitwiseAnd::BitwiseAnd(EpochVariableTypeID type)
 		throw NotImplementedException("Bitwise-and cannot be used on data of this type");
 }
 
-RValuePtr BitwiseAnd::ExecuteAndStoreRValue(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+RValuePtr BitwiseAnd::ExecuteAndStoreRValue(ExecutionContext& context)
 {
 	if(Type == EpochVariableType_Integer)
 	{
 		std::list<Operation*>::iterator iter = SubOps.begin();
-		Integer32 ret = (*iter)->ExecuteAndStoreRValue(scope, stack, flowresult)->CastTo<IntegerRValue>().GetValue();
+		Integer32 ret = (*iter)->ExecuteAndStoreRValue(context)->CastTo<IntegerRValue>().GetValue();
 
 		++iter;
 		for( ; iter != SubOps.end(); ++iter)
-			ret &= (*iter)->ExecuteAndStoreRValue(scope, stack, flowresult)->CastTo<IntegerRValue>().GetValue();
+			ret &= (*iter)->ExecuteAndStoreRValue(context)->CastTo<IntegerRValue>().GetValue();
 
 		return RValuePtr(new IntegerRValue(ret));
 	}
 	else if(Type == EpochVariableType_Integer16)
 	{
 		std::list<Operation*>::iterator iter = SubOps.begin();
-		Integer16 ret = (*iter)->ExecuteAndStoreRValue(scope, stack, flowresult)->CastTo<Integer16RValue>().GetValue();
+		Integer16 ret = (*iter)->ExecuteAndStoreRValue(context)->CastTo<Integer16RValue>().GetValue();
 
 		++iter;
 		for( ; iter != SubOps.end(); ++iter)
-			ret &= (*iter)->ExecuteAndStoreRValue(scope, stack, flowresult)->CastTo<Integer16RValue>().GetValue();
+			ret &= (*iter)->ExecuteAndStoreRValue(context)->CastTo<Integer16RValue>().GetValue();
 
 		return RValuePtr(new Integer16RValue(ret));
 	}
@@ -112,10 +112,10 @@ RValuePtr BitwiseAnd::ExecuteAndStoreRValue(ActivatedScope& scope, StackSpace& s
 	throw NotImplementedException("Bitwise-and cannot be used on data of this type");
 }
 
-void BitwiseAnd::ExecuteFast(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+void BitwiseAnd::ExecuteFast(ExecutionContext& context)
 {
 	for(std::list<Operation*>::iterator iter = SubOps.begin(); iter != SubOps.end(); ++iter)
-		(*iter)->ExecuteFast(scope, stack, flowresult);
+		(*iter)->ExecuteFast(context);
 }
 
 
@@ -146,19 +146,19 @@ BitwiseXor::BitwiseXor(EpochVariableTypeID type)
 }
 
 
-RValuePtr BitwiseXor::ExecuteAndStoreRValue(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+RValuePtr BitwiseXor::ExecuteAndStoreRValue(ExecutionContext& context)
 {
-	IntegerVariable two(stack.GetCurrentTopOfStack());
-	IntegerVariable one(stack.GetOffsetIntoStack(IntegerVariable::GetStorageSize()));
+	IntegerVariable two(context.Stack.GetCurrentTopOfStack());
+	IntegerVariable one(context.Stack.GetOffsetIntoStack(IntegerVariable::GetStorageSize()));
 	IntegerVariable::BaseStorage ret = one.GetValue() ^ two.GetValue();
-	stack.Pop(IntegerVariable::GetStorageSize() * 2);
+	context.Stack.Pop(IntegerVariable::GetStorageSize() * 2);
 
 	return RValuePtr(new IntegerRValue(ret));
 }
 
-void BitwiseXor::ExecuteFast(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+void BitwiseXor::ExecuteFast(ExecutionContext& context)
 {
-	stack.Pop(IntegerVariable::GetStorageSize() * 2);
+	context.Stack.Pop(IntegerVariable::GetStorageSize() * 2);
 }
 
 
@@ -170,16 +170,16 @@ BitwiseNot::BitwiseNot(EpochVariableTypeID type)
 		throw NotImplementedException("Bitwise-not cannot be used on data of this type");
 }
 
-RValuePtr BitwiseNot::ExecuteAndStoreRValue(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+RValuePtr BitwiseNot::ExecuteAndStoreRValue(ExecutionContext& context)
 {
-	IntegerVariable one(stack.GetCurrentTopOfStack());
+	IntegerVariable one(context.Stack.GetCurrentTopOfStack());
 	IntegerVariable::BaseStorage ret = ~one.GetValue();
-	stack.Pop(IntegerVariable::GetStorageSize());
+	context.Stack.Pop(IntegerVariable::GetStorageSize());
 
 	return RValuePtr(new IntegerRValue(ret));
 }
 
-void BitwiseNot::ExecuteFast(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+void BitwiseNot::ExecuteFast(ExecutionContext& context)
 {
-	stack.Pop(IntegerVariable::GetStorageSize());
+	context.Stack.Pop(IntegerVariable::GetStorageSize());
 }

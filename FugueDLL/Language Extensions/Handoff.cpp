@@ -35,14 +35,14 @@ HandoffOperation::HandoffOperation(const std::wstring& extensionname, std::auto_
 //
 // Invoke the extension code attached to this handoff block
 //
-void HandoffOperation::ExecuteFast(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+void HandoffOperation::ExecuteFast(ExecutionContext& context)
 {
-	Extensions::ExecuteBoundCodeBlock(ExtensionHandle, CodeHandle, reinterpret_cast<HandleType>(&scope));
+	Extensions::ExecuteBoundCodeBlock(ExtensionHandle, CodeHandle, reinterpret_cast<HandleType>(&context.Scope));
 }
 
-RValuePtr HandoffOperation::ExecuteAndStoreRValue(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+RValuePtr HandoffOperation::ExecuteAndStoreRValue(ExecutionContext& context)
 {
-	ExecuteFast(scope, stack, flowresult);
+	ExecuteFast(context);
 	return RValuePtr(new NullRValue);
 }
 

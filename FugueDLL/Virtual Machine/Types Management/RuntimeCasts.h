@@ -25,15 +25,15 @@ namespace VM
 		{
 		// Operation interface
 		public:
-			virtual void ExecuteFast(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+			virtual void ExecuteFast(ExecutionContext& context)
 			{
-				OriginVarTypeInfo::VariableType var(stack.GetCurrentTopOfStack());
-				stack.Pop(var.GetStorageSize());
+				OriginVarTypeInfo::VariableType var(context.Stack.GetCurrentTopOfStack());
+				context.Stack.Pop(var.GetStorageSize());
 			}
 
-			virtual RValuePtr ExecuteAndStoreRValue(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+			virtual RValuePtr ExecuteAndStoreRValue(ExecutionContext& context)
 			{
-				OriginVarTypeInfo::VariableType var(stack.GetCurrentTopOfStack());
+				OriginVarTypeInfo::VariableType var(context.Stack.GetCurrentTopOfStack());
 				DestinationVarTypeInfo::VariableType::BaseStorage retval;
 
 				std::wstringstream convert;
@@ -41,7 +41,7 @@ namespace VM
 				if(!(convert >> retval))
 					throw ExecutionException("Failed to cast value; possible causes are overflow or malformed data");
 
-				stack.Pop(var.GetStorageSize());
+				context.Stack.Pop(var.GetStorageSize());
 				DestinationVarTypeInfo::VariableType returnvariable(&retval);
 				return returnvariable.GetAsRValue();
 			}
@@ -71,15 +71,15 @@ namespace VM
 		{
 		// Operation interface
 		public:
-			virtual void ExecuteFast(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+			virtual void ExecuteFast(ExecutionContext& context)
 			{
-				OriginVarTypeInfo::VariableType var(stack.GetCurrentTopOfStack());
-				stack.Pop(var.GetStorageSize());
+				OriginVarTypeInfo::VariableType var(context.Stack.GetCurrentTopOfStack());
+				context.Stack.Pop(var.GetStorageSize());
 			}
 
-			virtual RValuePtr ExecuteAndStoreRValue(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+			virtual RValuePtr ExecuteAndStoreRValue(ExecutionContext& context)
 			{
-				OriginVarTypeInfo::VariableType var(stack.GetCurrentTopOfStack());
+				OriginVarTypeInfo::VariableType var(context.Stack.GetCurrentTopOfStack());
 				std::wstring retval;
 
 				std::wstringstream convert;
@@ -87,7 +87,7 @@ namespace VM
 				if(!(convert >> retval))
 					throw ExecutionException("Failed to cast value; possible causes are overflow or malformed data");
 
-				stack.Pop(var.GetStorageSize());
+				context.Stack.Pop(var.GetStorageSize());
 				return RValuePtr(new StringRValue(retval));
 			}
 
@@ -108,17 +108,17 @@ namespace VM
 
 		class TypeCastBooleanToString : public Operation, public SelfAware<TypeCastBooleanToString>
 		{
-			virtual void ExecuteFast(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+			virtual void ExecuteFast(ExecutionContext& context)
 			{
-				BooleanVariable var(stack.GetCurrentTopOfStack());
-				stack.Pop(var.GetStorageSize());
+				BooleanVariable var(context.Stack.GetCurrentTopOfStack());
+				context.Stack.Pop(var.GetStorageSize());
 			}
 
-			virtual RValuePtr ExecuteAndStoreRValue(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+			virtual RValuePtr ExecuteAndStoreRValue(ExecutionContext& context)
 			{
-				BooleanVariable var(stack.GetCurrentTopOfStack());
+				BooleanVariable var(context.Stack.GetCurrentTopOfStack());
 				std::wstring retval = (var.GetValue() ? Keywords::True : Keywords::False);
-				stack.Pop(var.GetStorageSize());
+				context.Stack.Pop(var.GetStorageSize());
 				return RValuePtr(new StringRValue(retval));
 			}
 
@@ -140,17 +140,17 @@ namespace VM
 
 		class TypeCastBufferToString : public Operation, public SelfAware<TypeCastBufferToString>
 		{
-			virtual void ExecuteFast(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+			virtual void ExecuteFast(ExecutionContext& context)
 			{
-				BufferVariable var(stack.GetCurrentTopOfStack());
-				stack.Pop(var.GetStorageSize());
+				BufferVariable var(context.Stack.GetCurrentTopOfStack());
+				context.Stack.Pop(var.GetStorageSize());
 			}
 
-			virtual RValuePtr ExecuteAndStoreRValue(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+			virtual RValuePtr ExecuteAndStoreRValue(ExecutionContext& context)
 			{
-				BufferVariable var(stack.GetCurrentTopOfStack());
+				BufferVariable var(context.Stack.GetCurrentTopOfStack());
 				std::wstring retval = reinterpret_cast<const wchar_t*>(var.GetValue());
-				stack.Pop(var.GetStorageSize());
+				context.Stack.Pop(var.GetStorageSize());
 				return RValuePtr(new StringRValue(retval));
 			}
 

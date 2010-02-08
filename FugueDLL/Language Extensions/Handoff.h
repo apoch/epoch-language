@@ -35,8 +35,8 @@ namespace Extensions
 
 	// Operation interface
 	public:
-		virtual void ExecuteFast(VM::ActivatedScope& scope, StackSpace& stack, VM::FlowControlResult& flowresult);
-		virtual VM::RValuePtr ExecuteAndStoreRValue(VM::ActivatedScope& scope, StackSpace& stack, VM::FlowControlResult& flowresult);
+		virtual void ExecuteFast(VM::ExecutionContext& context);
+		virtual VM::RValuePtr ExecuteAndStoreRValue(VM::ExecutionContext& context);
 		
 		virtual VM::EpochVariableTypeID GetType(const VM::ScopeDescription& scope) const
 		{ return VM::EpochVariableType_Null; }

@@ -1,6 +1,6 @@
 //
 // The Epoch Language Project
-// FUGUE Virtual Machine
+// Shared Library Code
 //
 // Implementation of a lock-free mailbox structure for message passing
 //

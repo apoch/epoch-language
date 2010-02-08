@@ -1,6 +1,6 @@
 //
 // The Epoch Language Project
-// FUGUE Virtual Machine
+// Shared Library Code
 //
 // Platform-dependent threading wrappers
 //
@@ -121,7 +121,7 @@ void Threads::Shutdown()
 //
 // Create a new thread, executing the specified function
 //
-void Threads::Create(const std::wstring& name, ThreadFuncPtr func, VM::Block* codeblock)
+void Threads::Create(const std::wstring& name, ThreadFuncPtr func, VM::Block* codeblock, VM::Program* runningprogram)
 {
 	CriticalSection::Auto mutex(ThreadManagementCriticalSection);
 	::WaitForSingleObject(ThreadAccessCounterIsZero, INFINITE);
@@ -142,6 +142,7 @@ void Threads::Create(const std::wstring& name, ThreadFuncPtr func, VM::Block* co
 	info->MessageEvent = ::CreateEvent(NULL, false, false, NULL);
 	info->TaskOrigin = reinterpret_cast<ThreadInfo*>(::TlsGetValue(TLSIndex))->HandleToSelf;
 	info->BoundFuture = NULL;
+	info->RunningProgram = runningprogram;
 
 	ThreadInfoTable[name] = info.get();
 
@@ -161,7 +162,7 @@ void Threads::Create(const std::wstring& name, ThreadFuncPtr func, VM::Block* co
 // In general this overload should not be called directly; instead,
 // it should be accessed indirectly via the futures interface.
 //
-void Threads::Create(const std::wstring& name, ThreadFuncPtr func, VM::Future* boundfuture, VM::Operation* op)
+void Threads::Create(const std::wstring& name, ThreadFuncPtr func, VM::Future* boundfuture, VM::Operation* op, VM::Program* runningprogram)
 {
 	CriticalSection::Auto mutex(ThreadManagementCriticalSection);
 	::WaitForSingleObject(ThreadAccessCounterIsZero, INFINITE);
@@ -182,6 +183,7 @@ void Threads::Create(const std::wstring& name, ThreadFuncPtr func, VM::Future* b
 	info->MessageEvent = ::CreateEvent(NULL, false, false, NULL);
 	info->TaskOrigin = reinterpret_cast<ThreadInfo*>(::TlsGetValue(TLSIndex))->HandleToSelf;
 	info->BoundFuture = boundfuture;
+	info->RunningProgram = runningprogram;
 
 	ThreadInfoTable[name] = info.get();
 
@@ -367,3 +369,13 @@ const ThreadInfo& Threads::GetInfoForThisThread()
 {
 	return *reinterpret_cast<ThreadInfo*>(::TlsGetValue(TLSIndex));
 }
+
+
+//
+// Return the system handle for the thread-local storage slot used by the threading system
+//
+DWORD Threads::GetTLSIndex()
+{
+	return TLSIndex;
+}
+

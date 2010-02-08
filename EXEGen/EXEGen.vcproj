@@ -349,6 +349,18 @@
 				RelativePath=".\Embedded Resources\EmbeddedStrings.h"
 				>
 			</File>
+			<File
+				RelativePath="..\..\Artwork\Epoch.ico"
+				>
+			</File>
+			<File
+				RelativePath=".\EXEGen.rc"
+				>
+			</File>
+			<File
+				RelativePath=".\resource.h"
+				>
+			</File>
 		</Filter>
 		<Filter
 			Name="Project Files"

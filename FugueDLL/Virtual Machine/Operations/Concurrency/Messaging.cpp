@@ -31,29 +31,29 @@ using namespace VM::Operations;
 // Prototypes
 namespace
 {
-	void Dispatch(const std::vector<ResponseMapEntry*>& mapentries, ActivatedScope& scope, StackSpace& stack, HandleType taskorigin, FlowControlResult& flowresult);
+	void Dispatch(const std::vector<ResponseMapEntry*>& mapentries, ExecutionContext& context, HandleType taskorigin);
 }
 
 
 //
 // Send a message to another task
 //
-void SendTaskMessage::ExecuteFast(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+void SendTaskMessage::ExecuteFast(ExecutionContext& context)
 {
 	std::wstring targetname;
 	TaskHandle threadid;
 
 	if(UsesTaskID)
 	{
-		StringVariable temp(stack.GetCurrentTopOfStack());
+		StringVariable temp(context.Stack.GetCurrentTopOfStack());
 		targetname = temp.GetValue();
-		stack.Pop(temp.GetStorageSize());
+		context.Stack.Pop(temp.GetStorageSize());
 	}
 	else
 	{
-		TaskHandleVariable threadidvar(stack.GetCurrentTopOfStack());
+		TaskHandleVariable threadidvar(context.Stack.GetCurrentTopOfStack());
 		threadid = threadidvar.GetValue();
-		stack.Pop(TaskHandleVariable::GetStorageSize());
+		context.Stack.Pop(TaskHandleVariable::GetStorageSize());
 		targetname = Threads::GetThreadNameGivenID(threadid);
 	}
 
@@ -70,46 +70,46 @@ void SendTaskMessage::ExecuteFast(ActivatedScope& scope, StackSpace& stack, Flow
 		{
 		case EpochVariableType_Integer:
 			{
-				IntegerVariable var(stack.GetCurrentTopOfStack());
+				IntegerVariable var(context.Stack.GetCurrentTopOfStack());
 				*reinterpret_cast<IntegerVariable::BaseStorage*>(storageptr) = var.GetValue();
 				storageptr = reinterpret_cast<Byte*>(storageptr) + IntegerVariable::GetStorageSize();
-				stack.Pop(IntegerVariable::GetStorageSize());
+				context.Stack.Pop(IntegerVariable::GetStorageSize());
 			}
 			break;
 
 		case EpochVariableType_Integer16:
 			{
-				Integer16Variable var(stack.GetCurrentTopOfStack());
+				Integer16Variable var(context.Stack.GetCurrentTopOfStack());
 				*reinterpret_cast<Integer16Variable::BaseStorage*>(storageptr) = var.GetValue();
 				storageptr = reinterpret_cast<Byte*>(storageptr) + Integer16Variable::GetStorageSize();
-				stack.Pop(Integer16Variable::GetStorageSize());
+				context.Stack.Pop(Integer16Variable::GetStorageSize());
 			}
 			break;
 
 		case EpochVariableType_Real:
 			{
-				RealVariable var(stack.GetCurrentTopOfStack());
+				RealVariable var(context.Stack.GetCurrentTopOfStack());
 				*reinterpret_cast<RealVariable::BaseStorage*>(storageptr) = var.GetValue();
 				storageptr = reinterpret_cast<Byte*>(storageptr) + RealVariable::GetStorageSize();
-				stack.Pop(RealVariable::GetStorageSize());
+				context.Stack.Pop(RealVariable::GetStorageSize());
 			}
 			break;
 
 		case EpochVariableType_Boolean:
 			{
-				BooleanVariable var(stack.GetCurrentTopOfStack());
+				BooleanVariable var(context.Stack.GetCurrentTopOfStack());
 				*reinterpret_cast<BooleanVariable::BaseStorage*>(storageptr) = var.GetValue();
 				storageptr = reinterpret_cast<Byte*>(storageptr) + BooleanVariable::GetStorageSize();
-				stack.Pop(BooleanVariable::GetStorageSize());
+				context.Stack.Pop(BooleanVariable::GetStorageSize());
 			}
 			break;
 
 		case EpochVariableType_String:
 			{
-				StringVariable var(stack.GetCurrentTopOfStack());
+				StringVariable var(context.Stack.GetCurrentTopOfStack());
 				*reinterpret_cast<StringVariable::BaseStorage*>(storageptr) = var.GetHandleValue();
 				storageptr = reinterpret_cast<Byte*>(storageptr) + StringVariable::GetStorageSize();
-				stack.Pop(StringVariable::GetStorageSize());
+				context.Stack.Pop(StringVariable::GetStorageSize());
 			}
 			break;
 
@@ -121,9 +121,9 @@ void SendTaskMessage::ExecuteFast(ActivatedScope& scope, StackSpace& stack, Flow
 	Threads::SendEvent(targetname, MessageName, PayloadTypes, heapblock.release());
 }
 
-RValuePtr SendTaskMessage::ExecuteAndStoreRValue(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+RValuePtr SendTaskMessage::ExecuteAndStoreRValue(ExecutionContext& context)
 {
-	ExecuteFast(scope, stack, flowresult);
+	ExecuteFast(context);
 	return RValuePtr(new NullRValue);
 }
 
@@ -156,17 +156,17 @@ AcceptMessage::~AcceptMessage()
 // Note that this blocks until a matching message is received. Also note that
 // while this operation is active, any non-recognized messages will be ignored.
 //
-void AcceptMessage::ExecuteFast(ActivatedScope& oldscope, StackSpace& stack, FlowControlResult& flowresult)
+void AcceptMessage::ExecuteFast(ExecutionContext& context)
 {
 	std::vector<ResponseMapEntry*> vec;
 	vec.push_back(ResponseEntry);
 
-	Dispatch(vec, oldscope, stack, oldscope.TaskOrigin, flowresult);
+	Dispatch(vec, context, context.Scope.TaskOrigin);
 }
 
-RValuePtr AcceptMessage::ExecuteAndStoreRValue(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+RValuePtr AcceptMessage::ExecuteAndStoreRValue(ExecutionContext& context)
 {
-	ExecuteFast(scope, stack, flowresult);
+	ExecuteFast(context);
 	return RValuePtr(new NullRValue);
 }
 
@@ -206,17 +206,17 @@ const std::list<VM::EpochVariableTypeID>& AcceptMessage::GetPayloadTypes() const
 // Also note that while this operation is active, non-matched messages
 // will be ignored entirely.
 //
-void AcceptMessageFromResponseMap::ExecuteFast(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+void AcceptMessageFromResponseMap::ExecuteFast(ExecutionContext& context)
 {
-	const ResponseMap& themap = scope.GetOriginalDescription().GetResponseMap(MapName);
+	const ResponseMap& themap = context.Scope.GetOriginalDescription().GetResponseMap(MapName);
 	const std::vector<ResponseMapEntry*>& mapentries = themap.GetEntries();
 
-	Dispatch(mapentries, scope, stack, scope.TaskOrigin, flowresult);
+	Dispatch(mapentries, context, context.Scope.TaskOrigin);
 }
 
-RValuePtr AcceptMessageFromResponseMap::ExecuteAndStoreRValue(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+RValuePtr AcceptMessageFromResponseMap::ExecuteAndStoreRValue(ExecutionContext& context)
 {
-	ExecuteFast(scope, stack, flowresult);
+	ExecuteFast(context);
 	return RValuePtr(new NullRValue);
 }
 
@@ -243,13 +243,13 @@ void AcceptMessageFromResponseMap::Traverse(Serialization::SerializationTraverse
 //
 // Retrieve the ID of the task which forked this task
 //
-RValuePtr GetTaskCaller::ExecuteAndStoreRValue(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+RValuePtr GetTaskCaller::ExecuteAndStoreRValue(ExecutionContext& context)
 {
-	TaskHandle id = scope.FindTaskOrigin();
+	TaskHandle id = context.Scope.FindTaskOrigin();
 	return RValuePtr(new TaskHandleRValue(id));
 }
 
-void GetTaskCaller::ExecuteFast(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+void GetTaskCaller::ExecuteFast(ExecutionContext& context)
 {
 	// Nothing to do.
 }
@@ -258,13 +258,13 @@ void GetTaskCaller::ExecuteFast(ActivatedScope& scope, StackSpace& stack, FlowCo
 //
 // Retrieve the ID of the task which sent the most recently accepted message
 //
-RValuePtr GetMessageSender::ExecuteAndStoreRValue(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+RValuePtr GetMessageSender::ExecuteAndStoreRValue(ExecutionContext& context)
 {
-	TaskHandle id = scope.FindLastMessageOrigin();
+	TaskHandle id = context.Scope.FindLastMessageOrigin();
 	return RValuePtr(new TaskHandleRValue(id));
 }
 
-void GetMessageSender::ExecuteFast(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+void GetMessageSender::ExecuteFast(ExecutionContext& context)
 {
 	// Nothing to do.
 }
@@ -279,7 +279,7 @@ namespace
 	// This function blocks until a message is matched and accepted. Any messages which
 	// are not matched are discarded immediately.
 	//
-	void Dispatch(const std::vector<ResponseMapEntry*>& mapentries, ActivatedScope& scope, StackSpace& stack, HandleType taskorigin, FlowControlResult& flowresult)
+	void Dispatch(const std::vector<ResponseMapEntry*>& mapentries, ExecutionContext& context, HandleType taskorigin)
 	{
 		while(true)
 		{
@@ -335,23 +335,23 @@ namespace
 					switch(*storageiter)
 					{
 					case EpochVariableType_Integer:
-						PushValueOntoStack<TypeInfo::IntegerT>(stack, *reinterpret_cast<IntegerVariable::BaseStorage*>(heapptr));
+						PushValueOntoStack<TypeInfo::IntegerT>(context.Stack, *reinterpret_cast<IntegerVariable::BaseStorage*>(heapptr));
 						break;
 
 					case EpochVariableType_Integer16:
-						PushValueOntoStack<TypeInfo::Integer16T>(stack, *reinterpret_cast<Integer16Variable::BaseStorage*>(heapptr));
+						PushValueOntoStack<TypeInfo::Integer16T>(context.Stack, *reinterpret_cast<Integer16Variable::BaseStorage*>(heapptr));
 						break;
 
 					case EpochVariableType_Real:
-						PushValueOntoStack<TypeInfo::RealT>(stack, *reinterpret_cast<RealVariable::BaseStorage*>(heapptr));
+						PushValueOntoStack<TypeInfo::RealT>(context.Stack, *reinterpret_cast<RealVariable::BaseStorage*>(heapptr));
 						break;
 
 					case EpochVariableType_Boolean:
-						PushValueOntoStack<TypeInfo::BooleanT>(stack, *reinterpret_cast<BooleanVariable::BaseStorage*>(heapptr));
+						PushValueOntoStack<TypeInfo::BooleanT>(context.Stack, *reinterpret_cast<BooleanVariable::BaseStorage*>(heapptr));
 						break;
 
 					case EpochVariableType_String:
-						PushValueOntoStack<TypeInfo::StringT>(stack, *reinterpret_cast<StringVariable::BaseStorage*>(heapptr));
+						PushValueOntoStack<TypeInfo::StringT>(context.Stack, *reinterpret_cast<StringVariable::BaseStorage*>(heapptr));
 						break;
 
 					default:
@@ -362,16 +362,16 @@ namespace
 				}
 
 				std::auto_ptr<ActivatedScope> newparamscope(new ActivatedScope(*messageblock->GetBoundScope()->ParentScope));
-				newparamscope->ParentScope = &scope;
-				newparamscope->BindToStack(stack);
+				newparamscope->ParentScope = &context.Scope;
+				newparamscope->BindToStack(context.Stack);
 
 				std::auto_ptr<ActivatedScope> newcodescope(new ActivatedScope(*messageblock->GetBoundScope()));
 				newcodescope->ParentScope = newparamscope.get();
 				newcodescope->LastMessageOrigin = msginfo->Origin;
 				newcodescope->TaskOrigin = taskorigin;
-				messageblock->ExecuteBlock(*newcodescope, stack, flowresult, NULL);
+				messageblock->ExecuteBlock(ExecutionContext(context.RunningProgram, *newcodescope, context.Stack, context.FlowResult), NULL);
 
-				newparamscope->Exit(stack);
+				newparamscope->Exit(context.Stack);
 				break;
 			}
 		}

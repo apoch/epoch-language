@@ -34,12 +34,12 @@ ReadStructure::ReadStructure(const std::wstring& varname, const std::wstring& me
 //
 // Read a value from a structure
 //
-RValuePtr ReadStructure::ExecuteAndStoreRValue(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+RValuePtr ReadStructure::ExecuteAndStoreRValue(ExecutionContext& context)
 {
-	return scope.GetVariableRef<StructureVariable>(VarName).ReadMember(MemberName);
+	return context.Scope.GetVariableRef<StructureVariable>(VarName).ReadMember(MemberName);
 }
 
-void ReadStructure::ExecuteFast(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+void ReadStructure::ExecuteFast(ExecutionContext& context)
 {
 	// Nothing to do.
 }
@@ -64,18 +64,18 @@ ReadStructureIndirect::ReadStructureIndirect(const std::wstring& membername, Ope
 //
 // Read a value from a structure on the stack
 //
-RValuePtr ReadStructureIndirect::ExecuteAndStoreRValue(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+RValuePtr ReadStructureIndirect::ExecuteAndStoreRValue(ExecutionContext& context)
 {
-	StructureVariable thestruct(stack.GetCurrentTopOfStack());
+	StructureVariable thestruct(context.Stack.GetCurrentTopOfStack());
 	RValuePtr ret(thestruct.ReadMember(MemberName));
-	stack.Pop(thestruct.GetStorageSize());
+	context.Stack.Pop(thestruct.GetStorageSize());
 	return ret;
 }
 
-void ReadStructureIndirect::ExecuteFast(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+void ReadStructureIndirect::ExecuteFast(ExecutionContext& context)
 {
-	StructureVariable thestruct(stack.GetCurrentTopOfStack());
-	stack.Pop(thestruct.GetStorageSize());
+	StructureVariable thestruct(context.Stack.GetCurrentTopOfStack());
+	context.Stack.Pop(thestruct.GetStorageSize());
 }
 
 //
@@ -132,49 +132,49 @@ AssignStructure::AssignStructure(const std::wstring& varname, const std::wstring
 //
 // Write a value to a structure
 //
-RValuePtr AssignStructure::ExecuteAndStoreRValue(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+RValuePtr AssignStructure::ExecuteAndStoreRValue(ExecutionContext& context)
 {
-	StructureVariable& structure = scope.GetVariableRef<StructureVariable>(VarName);
-	switch(GetType(scope.GetOriginalDescription()))
+	StructureVariable& structure = context.Scope.GetVariableRef<StructureVariable>(VarName);
+	switch(GetType(context.Scope.GetOriginalDescription()))
 	{
 	case EpochVariableType_Integer:
 		{
-			IntegerVariable var(stack.GetCurrentTopOfStack());
+			IntegerVariable var(context.Stack.GetCurrentTopOfStack());
 			structure.WriteMember(MemberName, var.GetAsRValue(), false);
-			stack.Pop(IntegerVariable::GetStorageSize());
+			context.Stack.Pop(IntegerVariable::GetStorageSize());
 		}
 		break;
 	case EpochVariableType_Integer16:
 		{
-			Integer16Variable var(stack.GetCurrentTopOfStack());
+			Integer16Variable var(context.Stack.GetCurrentTopOfStack());
 			structure.WriteMember(MemberName, var.GetAsRValue(), false);
-			stack.Pop(Integer16Variable::GetStorageSize());
+			context.Stack.Pop(Integer16Variable::GetStorageSize());
 		}
 		break;
 	case EpochVariableType_Real:
 		{
-			RealVariable var(stack.GetCurrentTopOfStack());
+			RealVariable var(context.Stack.GetCurrentTopOfStack());
 			structure.WriteMember(MemberName, var.GetAsRValue(), false);
-			stack.Pop(RealVariable::GetStorageSize());
+			context.Stack.Pop(RealVariable::GetStorageSize());
 		}
 		break;
 	case EpochVariableType_Boolean:
 		{
-			BooleanVariable var(stack.GetCurrentTopOfStack());
+			BooleanVariable var(context.Stack.GetCurrentTopOfStack());
 			structure.WriteMember(MemberName, var.GetAsRValue(), false);
-			stack.Pop(BooleanVariable::GetStorageSize());
+			context.Stack.Pop(BooleanVariable::GetStorageSize());
 		}
 		break;
 	case EpochVariableType_String:
 		{
-			StringVariable var(stack.GetCurrentTopOfStack());
+			StringVariable var(context.Stack.GetCurrentTopOfStack());
 			structure.WriteMember(MemberName, var.GetAsRValue(), false);
-			stack.Pop(StringVariable::GetStorageSize());
+			context.Stack.Pop(StringVariable::GetStorageSize());
 		}
 		break;
 	case EpochVariableType_Structure:
 		{
-			StructureVariable var(stack.GetCurrentTopOfStack());
+			StructureVariable var(context.Stack.GetCurrentTopOfStack());
 			const StructureType& structuretype = StructureTrackerClass::GetOwnerOfStructureType(structure.GetValue())->GetStructureType(structure.GetValue());
 			if(var.GetValue() != structuretype.GetMemberTypeHint(MemberName))
 				throw InternalFailureException("Incorrect structure type");
@@ -186,14 +186,14 @@ RValuePtr AssignStructure::ExecuteAndStoreRValue(ActivatedScope& scope, StackSpa
 				rvptr->AddMember(*iter, RValuePtr(var.ReadMember(*iter)->Clone()));
 
 			structure.WriteMember(MemberName, RValuePtr(rvptr), false);
-			stack.Pop(substructuretype.GetTotalSize());
+			context.Stack.Pop(substructuretype.GetTotalSize());
 		}
 		break;
 	case EpochVariableType_Function:
 		{
-			FunctionBinding var(stack.GetCurrentTopOfStack());
+			FunctionBinding var(context.Stack.GetCurrentTopOfStack());
 			structure.WriteMember(MemberName, var.GetAsRValue(), false);
-			stack.Pop(FunctionBinding::GetStorageSize());
+			context.Stack.Pop(FunctionBinding::GetStorageSize());
 		}
 		break;
 	default:
@@ -203,9 +203,9 @@ RValuePtr AssignStructure::ExecuteAndStoreRValue(ActivatedScope& scope, StackSpa
 	return structure.ReadMember(MemberName);
 }
 
-void AssignStructure::ExecuteFast(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+void AssignStructure::ExecuteFast(ExecutionContext& context)
 {
-	ExecuteAndStoreRValue(scope, stack, flowresult);
+	ExecuteAndStoreRValue(context);
 }
 
 //
@@ -227,14 +227,14 @@ AssignStructureIndirect::AssignStructureIndirect(const std::wstring& membername)
 //
 // Write a value to a structure
 //
-RValuePtr AssignStructureIndirect::ExecuteAndStoreRValue(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+RValuePtr AssignStructureIndirect::ExecuteAndStoreRValue(ExecutionContext& context)
 {
-	AddressVariable var(stack.GetCurrentTopOfStack());
+	AddressVariable var(context.Stack.GetCurrentTopOfStack());
 	void* address = var.GetValue();
-	stack.Pop(AddressVariable::GetStorageSize());
+	context.Stack.Pop(AddressVariable::GetStorageSize());
 
 	StructureVariable structvar(address);
-	const StructureType& structtype = scope.GetStructureType(structvar.GetValue());
+	const StructureType& structtype = context.Scope.GetStructureType(structvar.GetValue());
 
 	Byte* varaddress = reinterpret_cast<Byte*>(address) + structtype.GetMemberOffset(MemberName);
 
@@ -243,61 +243,61 @@ RValuePtr AssignStructureIndirect::ExecuteAndStoreRValue(ActivatedScope& scope, 
 	case EpochVariableType_Integer:
 		{
 			IntegerVariable value(varaddress);
-			IntegerVariable::BaseStorage newvalue = *reinterpret_cast<IntegerVariable::BaseStorage*>(stack.GetCurrentTopOfStack());
+			IntegerVariable::BaseStorage newvalue = *reinterpret_cast<IntegerVariable::BaseStorage*>(context.Stack.GetCurrentTopOfStack());
 			value.SetValue(newvalue);
-			stack.Pop(value.GetStorageSize());
+			context.Stack.Pop(value.GetStorageSize());
 			return value.GetAsRValue();
 		}
 	case EpochVariableType_Integer16:
 		{
 			Integer16Variable value(varaddress);
-			Integer16Variable::BaseStorage newvalue = *reinterpret_cast<Integer16Variable::BaseStorage*>(stack.GetCurrentTopOfStack());
+			Integer16Variable::BaseStorage newvalue = *reinterpret_cast<Integer16Variable::BaseStorage*>(context.Stack.GetCurrentTopOfStack());
 			value.SetValue(newvalue);
-			stack.Pop(value.GetStorageSize());
+			context.Stack.Pop(value.GetStorageSize());
 			return value.GetAsRValue();
 		}
 	case EpochVariableType_Real:
 		{
 			RealVariable value(varaddress);
-			RealVariable::BaseStorage newvalue = *reinterpret_cast<RealVariable::BaseStorage*>(stack.GetCurrentTopOfStack());
+			RealVariable::BaseStorage newvalue = *reinterpret_cast<RealVariable::BaseStorage*>(context.Stack.GetCurrentTopOfStack());
 			value.SetValue(newvalue);
-			stack.Pop(value.GetStorageSize());
+			context.Stack.Pop(value.GetStorageSize());
 			return value.GetAsRValue();
 		}
 	case EpochVariableType_String:
 		{
 			StringVariable value(varaddress);
-			StringVariable::BaseStorage newvalue = *reinterpret_cast<StringVariable::BaseStorage*>(stack.GetCurrentTopOfStack());
+			StringVariable::BaseStorage newvalue = *reinterpret_cast<StringVariable::BaseStorage*>(context.Stack.GetCurrentTopOfStack());
 			value.SetHandleValue(newvalue);
-			stack.Pop(value.GetStorageSize());
+			context.Stack.Pop(value.GetStorageSize());
 			return value.GetAsRValue();
 		}
 	case EpochVariableType_Boolean:
 		{
 			BooleanVariable value(varaddress);
-			BooleanVariable::BaseStorage newvalue = *reinterpret_cast<BooleanVariable::BaseStorage*>(stack.GetCurrentTopOfStack());
+			BooleanVariable::BaseStorage newvalue = *reinterpret_cast<BooleanVariable::BaseStorage*>(context.Stack.GetCurrentTopOfStack());
 			value.SetValue(newvalue);
-			stack.Pop(value.GetStorageSize());
+			context.Stack.Pop(value.GetStorageSize());
 			return value.GetAsRValue();
 		}
 	case EpochVariableType_Function:
 		{
 			FunctionBinding value(varaddress);
-			FunctionBinding::BaseStorage newvalue = *reinterpret_cast<FunctionBinding::BaseStorage*>(stack.GetCurrentTopOfStack());
+			FunctionBinding::BaseStorage newvalue = *reinterpret_cast<FunctionBinding::BaseStorage*>(context.Stack.GetCurrentTopOfStack());
 
-			if(!scope.GetFunctionSignature(structtype.GetMemberTypeHintString(MemberName)).DoesFunctionMatchSignature(newvalue, scope.GetOriginalDescription()))
+			if(!context.Scope.GetFunctionSignature(structtype.GetMemberTypeHintString(MemberName)).DoesFunctionMatchSignature(newvalue, context.Scope.GetOriginalDescription()))
 				throw ExecutionException("Function does not meet the type requirements for this member");
 
 			value.SetValue(newvalue);
-			stack.Pop(value.GetStorageSize());
+			context.Stack.Pop(value.GetStorageSize());
 			return value.GetAsRValue();
 		}
 	case EpochVariableType_Address:
 		{
 			AddressVariable value(varaddress);
-			AddressVariable::BaseStorage newvalue = *reinterpret_cast<AddressVariable::BaseStorage*>(stack.GetCurrentTopOfStack());
+			AddressVariable::BaseStorage newvalue = *reinterpret_cast<AddressVariable::BaseStorage*>(context.Stack.GetCurrentTopOfStack());
 			value.SetValue(newvalue);
-			stack.Pop(value.GetStorageSize());
+			context.Stack.Pop(value.GetStorageSize());
 			return value.GetAsRValue();
 		}
 	}
@@ -305,9 +305,9 @@ RValuePtr AssignStructureIndirect::ExecuteAndStoreRValue(ActivatedScope& scope, 
 	throw NotImplementedException("Cannot assign nested structure value");
 }
 
-void AssignStructureIndirect::ExecuteFast(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+void AssignStructureIndirect::ExecuteFast(ExecutionContext& context)
 {
-	ExecuteAndStoreRValue(scope, stack, flowresult);
+	ExecuteAndStoreRValue(context);
 }
 
 
@@ -339,30 +339,30 @@ BindStructMemberReference::BindStructMemberReference(const std::wstring& varname
 //
 // Bind a reference to a given structure member
 //
-RValuePtr BindStructMemberReference::ExecuteAndStoreRValue(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+RValuePtr BindStructMemberReference::ExecuteAndStoreRValue(ExecutionContext& context)
 {
 	if(Chained)
 	{
-		AddressVariable addressvar(stack.GetCurrentTopOfStack());
+		AddressVariable addressvar(context.Stack.GetCurrentTopOfStack());
 		StructureVariable structvar(addressvar.GetValue());
 
 		IDType structtype = structvar.GetValue();
-		size_t offset = scope.GetStructureType(structtype).GetMemberOffset(MemberName);
+		size_t offset = context.Scope.GetStructureType(structtype).GetMemberOffset(MemberName);
 		Byte* retaddr = reinterpret_cast<Byte*>(addressvar.GetValue()) + offset;
 
-		stack.Pop(AddressVariable::GetStorageSize());
+		context.Stack.Pop(AddressVariable::GetStorageSize());
 		return RValuePtr(new AddressRValue(retaddr));
 	}
 	else
 	{
-		Byte* address = reinterpret_cast<Byte*>(scope.GetVariableRef(*VarName).GetStorage()) + scope.GetStructureType(scope.GetVariableStructureTypeID(*VarName)).GetMemberOffset(MemberName);
+		Byte* address = reinterpret_cast<Byte*>(context.Scope.GetVariableRef(*VarName).GetStorage()) + context.Scope.GetStructureType(context.Scope.GetVariableStructureTypeID(*VarName)).GetMemberOffset(MemberName);
 		return RValuePtr(new AddressRValue(address));
 	}
 }
 
-void BindStructMemberReference::ExecuteFast(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+void BindStructMemberReference::ExecuteFast(ExecutionContext& context)
 {
-	ExecuteAndStoreRValue(scope, stack, flowresult);
+	ExecuteAndStoreRValue(context);
 }
 
 //

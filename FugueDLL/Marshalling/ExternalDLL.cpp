@@ -54,7 +54,7 @@ CallDLL::~CallDLL()
 // stack frame. To avoid this, we save off the information we need
 // into registers, and work from there to invoke the function.
 //
-RValuePtr CallDLL::Invoke(StackSpace& stack, ActivatedScope& scope)
+RValuePtr CallDLL::Invoke(ExecutionContext& context)
 {
 	class AutoDeleter
 	{
@@ -71,7 +71,7 @@ RValuePtr CallDLL::Invoke(StackSpace& stack, ActivatedScope& scope)
 	} Buffers;
 
 	std::auto_ptr<ActivatedScope> paramclone(new ActivatedScope(*Params));
-	paramclone->BindToStack(stack);
+	paramclone->BindToStack(context.Stack);
 
 	Integer32 integerret;
 	Integer16 integer16ret;
@@ -223,22 +223,22 @@ TypeIsNull:
 
 IntegerReturn:
 	CStructToEpoch(Buffers.BufferSet, Buffers.Variables);
-	paramclone->Exit(stack);
+	paramclone->Exit(context.Stack);
 	return RValuePtr(new IntegerRValue(integerret));
 
 Integer16Return:
 	CStructToEpoch(Buffers.BufferSet, Buffers.Variables);
-	paramclone->Exit(stack);
+	paramclone->Exit(context.Stack);
 	return RValuePtr(new Integer16RValue(integer16ret));
 
 BooleanReturn:
 	CStructToEpoch(Buffers.BufferSet, Buffers.Variables);
-	paramclone->Exit(stack);
+	paramclone->Exit(context.Stack);
 	return RValuePtr(new BooleanRValue(integerret ? true : false));
 
 NullReturn:
 	CStructToEpoch(Buffers.BufferSet, Buffers.Variables);
-	paramclone->Exit(stack);
+	paramclone->Exit(context.Stack);
 	return RValuePtr(new NullRValue);
 
 Vomit:

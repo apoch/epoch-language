@@ -1,6 +1,6 @@
 //
 // The Epoch Language Project
-// FUGUE Virtual Machine
+// Shared Library Code
 //
 // Basic building blocks for creating lock-free algorithms
 //

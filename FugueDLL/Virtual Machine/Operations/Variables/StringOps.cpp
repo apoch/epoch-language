@@ -21,39 +21,39 @@ using namespace VM::Operations;
 //
 // Concatenate two strings and return the result
 //
-RValuePtr Concatenate::ExecuteAndStoreRValue(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+RValuePtr Concatenate::ExecuteAndStoreRValue(ExecutionContext& context)
 {
 	std::wstring ret;
 
 	if(NumParams == 1)
-		ret = OperateOnList(stack);
+		ret = OperateOnList(context.Stack);
 	else if(NumParams == 2)
 	{
 		if(FirstIsList && !SecondIsList)
 		{
-			StringVariable var(stack.GetCurrentTopOfStack());
+			StringVariable var(context.Stack.GetCurrentTopOfStack());
 			std::wstring variableval = var.GetValue();
-			stack.Pop(StringVariable::GetStorageSize());
-			ret = OperateOnList(stack) + variableval;
+			context.Stack.Pop(StringVariable::GetStorageSize());
+			ret = OperateOnList(context.Stack) + variableval;
 		}
 		else if(!FirstIsList && SecondIsList)
 		{
-			ret = OperateOnList(stack);
-			StringVariable var(stack.GetCurrentTopOfStack());
+			ret = OperateOnList(context.Stack);
+			StringVariable var(context.Stack.GetCurrentTopOfStack());
 			ret = var.GetValue() + ret;
-			stack.Pop(StringVariable::GetStorageSize());
+			context.Stack.Pop(StringVariable::GetStorageSize());
 		}
 		else if(FirstIsList && SecondIsList)
 		{
-			ret = OperateOnList(stack);
-			ret = OperateOnList(stack) + ret;
+			ret = OperateOnList(context.Stack);
+			ret = OperateOnList(context.Stack) + ret;
 		}
 		else
 		{
-			StringVariable twovar(stack.GetCurrentTopOfStack());
-			StringVariable onevar(stack.GetOffsetIntoStack(StringVariable::GetStorageSize()));
+			StringVariable twovar(context.Stack.GetCurrentTopOfStack());
+			StringVariable onevar(context.Stack.GetOffsetIntoStack(StringVariable::GetStorageSize()));
 			ret = onevar.GetValue() + twovar.GetValue();
-			stack.Pop(StringVariable::GetStorageSize() * 2);
+			context.Stack.Pop(StringVariable::GetStorageSize() * 2);
 		}
 	}
 	else
@@ -62,9 +62,9 @@ RValuePtr Concatenate::ExecuteAndStoreRValue(ActivatedScope& scope, StackSpace& 
 	return RValuePtr(new StringRValue(ret));
 }
 
-void Concatenate::ExecuteFast(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+void Concatenate::ExecuteFast(ExecutionContext& context)
 {
-	ExecuteAndStoreRValue(scope, stack, flowresult);
+	ExecuteAndStoreRValue(context);
 }
 
 //
@@ -97,15 +97,15 @@ std::wstring Concatenate::OperateOnList(StackSpace& stack) const
 //
 // Retrieve a string's length
 //
-RValuePtr Length::ExecuteAndStoreRValue(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+RValuePtr Length::ExecuteAndStoreRValue(ExecutionContext& context)
 {
-	if(scope.GetVariableType(VarName) != EpochVariableType_String)
+	if(context.Scope.GetVariableType(VarName) != EpochVariableType_String)
 		throw ExecutionException("length() must be passed a string variable");
 
-	return RValuePtr(new IntegerRValue(static_cast<Integer32>(scope.GetVariableRef<StringVariable>(VarName).GetValue().length())));
+	return RValuePtr(new IntegerRValue(static_cast<Integer32>(context.Scope.GetVariableRef<StringVariable>(VarName).GetValue().length())));
 }
 
-void Length::ExecuteFast(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+void Length::ExecuteFast(ExecutionContext& context)
 {
 	// Nothing to do.
 }

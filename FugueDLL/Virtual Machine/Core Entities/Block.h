@@ -38,7 +38,7 @@ namespace VM
 
 	// Execution interface
 	public:
-		virtual void ExecuteBlock(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult, HeapStorage* heapstorage, bool enterscopes = true);
+		virtual void ExecuteBlock(ExecutionContext& context, HeapStorage* heapstorage, bool enterscopes = true);
 
 	// Operation-list interface
 	public:

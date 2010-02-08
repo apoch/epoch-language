@@ -23,22 +23,22 @@ using namespace VM::Operations;
 //
 // Output an expression (which evaluates to a string) to the debugger interface
 //
-void DebugWriteStringExpression::ExecuteFast(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+void DebugWriteStringExpression::ExecuteFast(ExecutionContext& context)
 {
 	UI::OutputStream output;
 
 	output << UI::lightblue << L"DEBUG: " << UI::resetcolor;
 	
 	{
-		StringVariable value(stack.GetCurrentTopOfStack());
+		StringVariable value(context.Stack.GetCurrentTopOfStack());
 		output << value.GetValue() << std::endl;
 	}
-	stack.Pop(StringVariable::GetStorageSize());
+	context.Stack.Pop(StringVariable::GetStorageSize());
 }
 
-RValuePtr DebugWriteStringExpression::ExecuteAndStoreRValue(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+RValuePtr DebugWriteStringExpression::ExecuteAndStoreRValue(ExecutionContext& context)
 {
-	ExecuteFast(scope, stack, flowresult);
+	ExecuteFast(context);
 	return RValuePtr(new NullRValue);
 }
 
@@ -46,13 +46,13 @@ RValuePtr DebugWriteStringExpression::ExecuteAndStoreRValue(ActivatedScope& scop
 //
 // Perform a blocking read from the debugger interface and return the input string
 //
-RValuePtr DebugReadStaticString::ExecuteAndStoreRValue(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+RValuePtr DebugReadStaticString::ExecuteAndStoreRValue(ExecutionContext& context)
 {
 	UI::Input input;
 	return RValuePtr(new StringRValue(input.BlockingRead()));
 }
 
-void DebugReadStaticString::ExecuteFast(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+void DebugReadStaticString::ExecuteFast(ExecutionContext& context)
 {
 	UI::Input input;
 	input.BlockingRead();

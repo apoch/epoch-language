@@ -30,18 +30,18 @@ ExecuteBlock::~ExecuteBlock()
 //
 // Execute a freestanding block of operations
 //
-RValuePtr ExecuteBlock::ExecuteAndStoreRValue(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+RValuePtr ExecuteBlock::ExecuteAndStoreRValue(ExecutionContext& context)
 {
-	ExecuteFast(scope, stack, flowresult);
+	ExecuteFast(context);
 	return RValuePtr(new NullRValue);
 }
 
-void ExecuteBlock::ExecuteFast(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+void ExecuteBlock::ExecuteFast(ExecutionContext& context)
 {
 	std::auto_ptr<ActivatedScope> newscope(new ActivatedScope(*Body->GetBoundScope()));
-	newscope->ParentScope = &scope;
-	Body->ExecuteBlock(*newscope, stack, flowresult, NULL);
-	newscope->Exit(stack);
+	newscope->ParentScope = &context.Scope;
+	Body->ExecuteBlock(ExecutionContext(context.RunningProgram, *newscope, context.Stack, context.FlowResult), NULL);
+	newscope->Exit(context.Stack);
 }
 
 template <typename TraverserT>
@@ -86,44 +86,44 @@ If::~If()
 //
 // Evaluate the condition, and execute the appropriate half of the conditional statement (true vs. false)
 //
-RValuePtr If::ExecuteAndStoreRValue(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+RValuePtr If::ExecuteAndStoreRValue(ExecutionContext& context)
 {
-	ExecuteFast(scope, stack, flowresult);
+	ExecuteFast(context);
 	return RValuePtr(new NullRValue);
 }
 
-void If::ExecuteFast(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+void If::ExecuteFast(ExecutionContext& context)
 {
-	BooleanVariable condresult(stack.GetCurrentTopOfStack());
+	BooleanVariable condresult(context.Stack.GetCurrentTopOfStack());
 	bool result = condresult.GetValue();
-	stack.Pop(BooleanVariable::GetStorageSize());
+	context.Stack.Pop(BooleanVariable::GetStorageSize());
 
 	if(result)
 	{
 		if(TrueBlock)
 		{
 			std::auto_ptr<ActivatedScope> newscope(new ActivatedScope(*TrueBlock->GetBoundScope()));
-			newscope->ParentScope = &scope;
-			TrueBlock->ExecuteBlock(*newscope, stack, flowresult, NULL);
-			newscope->Exit(stack);
+			newscope->ParentScope = &context.Scope;
+			TrueBlock->ExecuteBlock(ExecutionContext(context.RunningProgram, *newscope, context.Stack, context.FlowResult), NULL);
+			newscope->Exit(context.Stack);
 		}
 	}
 	else
 	{
 		if(ElseIfBlocks)
-			ElseIfBlocks->ExecuteFast(scope, stack, flowresult);
+			ElseIfBlocks->ExecuteFast(context);
 
-		if(flowresult == FLOWCONTROL_NORMAL && FalseBlock)
+		if(context.FlowResult == FLOWCONTROL_NORMAL && FalseBlock)
 		{
 			std::auto_ptr<ActivatedScope> newscope(new ActivatedScope(*FalseBlock->GetBoundScope()));
-			newscope->ParentScope = &scope;
-			FalseBlock->ExecuteBlock(*newscope, stack, flowresult, NULL);
-			newscope->Exit(stack);
+			newscope->ParentScope = &context.Scope;
+			FalseBlock->ExecuteBlock(ExecutionContext(context.RunningProgram, *newscope, context.Stack, context.FlowResult), NULL);
+			newscope->Exit(context.Stack);
 		}
 	}
 
-	if(flowresult == FLOWCONTROL_EXITELSEIFWRAPPER)
-		flowresult = FLOWCONTROL_NORMAL;
+	if(context.FlowResult == FLOWCONTROL_EXITELSEIFWRAPPER)
+		context.FlowResult = FLOWCONTROL_NORMAL;
 }
 
 //
@@ -201,17 +201,17 @@ ElseIfWrapper::~ElseIfWrapper()
 //
 // Execute the elseif clauses in an if block
 //
-void ElseIfWrapper::ExecuteFast(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+void ElseIfWrapper::ExecuteFast(ExecutionContext& context)
 {
 	std::auto_ptr<ActivatedScope> newscope(new ActivatedScope(*WrapperBlock->GetBoundScope()));
-	newscope->ParentScope = &scope;
-	WrapperBlock->ExecuteBlock(*newscope, stack, flowresult, NULL);
-	newscope->Exit(stack);
+	newscope->ParentScope = &context.Scope;
+	WrapperBlock->ExecuteBlock(ExecutionContext(context.RunningProgram, context.Scope, context.Stack, context.FlowResult), NULL);
+	newscope->Exit(context.Stack);
 }
 
-RValuePtr ElseIfWrapper::ExecuteAndStoreRValue(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+RValuePtr ElseIfWrapper::ExecuteAndStoreRValue(ExecutionContext& context)
 {
-	ExecuteFast(scope, stack, flowresult);
+	ExecuteFast(context);
 	return RValuePtr(new NullRValue);
 }
 
@@ -253,24 +253,24 @@ ElseIf::~ElseIf()
 //
 // Execute the elseif clause (assuming the condition is met)
 //
-void ElseIf::ExecuteFast(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+void ElseIf::ExecuteFast(ExecutionContext& context)
 {
-	BooleanVariable condresult(stack.GetCurrentTopOfStack());
+	BooleanVariable condresult(context.Stack.GetCurrentTopOfStack());
 	bool result = condresult.GetValue();
-	stack.Pop(BooleanVariable::GetStorageSize());
+	context.Stack.Pop(BooleanVariable::GetStorageSize());
 
 	if(result)
 	{
 		std::auto_ptr<ActivatedScope> newscope(new ActivatedScope(*TheBlock->GetBoundScope()));
-		newscope->ParentScope = &scope;
-		TheBlock->ExecuteBlock(*newscope, stack, flowresult, NULL);
-		newscope->Exit(stack);
+		newscope->ParentScope = &context.Scope;
+		TheBlock->ExecuteBlock(ExecutionContext(context.RunningProgram, context.Scope, context.Stack, context.FlowResult), NULL);
+		newscope->Exit(context.Stack);
 	}
 }
 
-RValuePtr ElseIf::ExecuteAndStoreRValue(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+RValuePtr ElseIf::ExecuteAndStoreRValue(ExecutionContext& context)
 {
-	ExecuteFast(scope, stack, flowresult);
+	ExecuteFast(context);
 	return RValuePtr(new NullRValue);
 }
 
@@ -312,38 +312,38 @@ DoWhileLoop::~DoWhileLoop()
 // Execute the contents of the do-while loop's body, contingent
 // upon the associated condition expression.
 //
-void DoWhileLoop::ExecuteFast(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+void DoWhileLoop::ExecuteFast(ExecutionContext& context)
 {
 	bool result;
 	std::auto_ptr<ActivatedScope> newscope(new ActivatedScope(*Body->GetBoundScope()));
-	newscope->ParentScope = &scope;
+	newscope->ParentScope = &context.Scope;
 
-	newscope->Enter(stack);
+	newscope->Enter(context.Stack);
 
 	do
 	{
 		FlowControlResult loopflowresult = FLOWCONTROL_NORMAL;
-		Body->ExecuteBlock(*newscope, stack, loopflowresult, NULL, false);
+		Body->ExecuteBlock(ExecutionContext(context.RunningProgram, *newscope, context.Stack, loopflowresult), NULL, false);
 
-		BooleanVariable condresult(stack.GetCurrentTopOfStack());
+		BooleanVariable condresult(context.Stack.GetCurrentTopOfStack());
 		result = condresult.GetValue();
-		stack.Pop(BooleanVariable::GetStorageSize());
+		context.Stack.Pop(BooleanVariable::GetStorageSize());
 
 		if(loopflowresult != FLOWCONTROL_NORMAL)
 		{
 			if(loopflowresult == FLOWCONTROL_RETURN)
-				flowresult = loopflowresult;
+				context.FlowResult = loopflowresult;
 
 			break;
 		}
 	} while(result);
 
-	newscope->Exit(stack);
+	newscope->Exit(context.Stack);
 }
 
-RValuePtr DoWhileLoop::ExecuteAndStoreRValue(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+RValuePtr DoWhileLoop::ExecuteAndStoreRValue(ExecutionContext& context)
 {
-	ExecuteFast(scope, stack, flowresult);
+	ExecuteFast(context);
 	return RValuePtr(new NullRValue);
 }
 
@@ -386,28 +386,28 @@ WhileLoop::~WhileLoop()
 // Execute the contents of the while loop's body, contingent
 // upon the associated condition expression.
 //
-void WhileLoop::ExecuteFast(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+void WhileLoop::ExecuteFast(ExecutionContext& context)
 {
 	FlowControlResult loopflowresult = FLOWCONTROL_NORMAL;
 	std::auto_ptr<ActivatedScope> newscope(new ActivatedScope(*Body->GetBoundScope()));
-	newscope->ParentScope = &scope;
+	newscope->ParentScope = &context.Scope;
 
-	newscope->Enter(stack);
+	newscope->Enter(context.Stack);
 
 	do
 	{
-		Body->ExecuteBlock(*newscope, stack, loopflowresult, NULL, false);
+		Body->ExecuteBlock(ExecutionContext(context.RunningProgram, *newscope, context.Stack, context.FlowResult), NULL, false);
 	} while(loopflowresult == FLOWCONTROL_NORMAL);
 
-	newscope->Exit(stack);
+	newscope->Exit(context.Stack);
 
 	if(loopflowresult == FLOWCONTROL_RETURN)
-		flowresult = loopflowresult;
+		context.FlowResult = loopflowresult;
 }
 
-RValuePtr WhileLoop::ExecuteAndStoreRValue(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+RValuePtr WhileLoop::ExecuteAndStoreRValue(ExecutionContext& context)
 {
-	ExecuteFast(scope, stack, flowresult);
+	ExecuteFast(context);
 	return RValuePtr(new NullRValue);
 }
 
@@ -434,33 +434,33 @@ void WhileLoop::Traverse(Serialization::SerializationTraverser& traverser)
 //
 // Check the while loop's condition, and break if it is false
 //
-void WhileLoopConditional::ExecuteFast(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+void WhileLoopConditional::ExecuteFast(ExecutionContext& context)
 {
-	BooleanVariable condresult(stack.GetCurrentTopOfStack());
+	BooleanVariable condresult(context.Stack.GetCurrentTopOfStack());
 	bool result = condresult.GetValue();
-	stack.Pop(BooleanVariable::GetStorageSize());
+	context.Stack.Pop(BooleanVariable::GetStorageSize());
 
 	if(!result)
-		flowresult = FLOWCONTROL_BREAK;
+		context.FlowResult = FLOWCONTROL_BREAK;
 }
 
-RValuePtr WhileLoopConditional::ExecuteAndStoreRValue(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+RValuePtr WhileLoopConditional::ExecuteAndStoreRValue(ExecutionContext& context)
 {
-	ExecuteFast(scope, stack, flowresult);
+	ExecuteFast(context);
 	return RValuePtr(new NullRValue);
 }
 
 //
 // Break from the current loop
 //
-void Break::ExecuteFast(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+void Break::ExecuteFast(ExecutionContext& context)
 {
-	flowresult = FLOWCONTROL_BREAK;
+	context.FlowResult = FLOWCONTROL_BREAK;
 }
 
-RValuePtr Break::ExecuteAndStoreRValue(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+RValuePtr Break::ExecuteAndStoreRValue(ExecutionContext& context)
 {
-	ExecuteFast(scope, stack, flowresult);
+	ExecuteFast(context);
 	return RValuePtr(new NullRValue);
 }
 
@@ -468,14 +468,14 @@ RValuePtr Break::ExecuteAndStoreRValue(ActivatedScope& scope, StackSpace& stack,
 //
 // Return from the current function
 //
-void Return::ExecuteFast(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+void Return::ExecuteFast(ExecutionContext& context)
 {
-	flowresult = FLOWCONTROL_RETURN;
+	context.FlowResult = FLOWCONTROL_RETURN;
 }
 
-RValuePtr Return::ExecuteAndStoreRValue(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+RValuePtr Return::ExecuteAndStoreRValue(ExecutionContext& context)
 {
-	ExecuteFast(scope, stack, flowresult);
+	ExecuteFast(context);
 	return RValuePtr(new NullRValue);
 }
 
@@ -484,14 +484,14 @@ RValuePtr Return::ExecuteAndStoreRValue(ActivatedScope& scope, StackSpace& stack
 //
 // Exit from the current if/elseif/else chain
 //
-void ExitIfChain::ExecuteFast(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+void ExitIfChain::ExecuteFast(ExecutionContext& context)
 {
-	flowresult = FLOWCONTROL_EXITELSEIFWRAPPER;
+	context.FlowResult = FLOWCONTROL_EXITELSEIFWRAPPER;
 }
 
-RValuePtr ExitIfChain::ExecuteAndStoreRValue(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+RValuePtr ExitIfChain::ExecuteAndStoreRValue(ExecutionContext& context)
 {
-	ExecuteFast(scope, stack, flowresult);
+	ExecuteFast(context);
 	return RValuePtr(new NullRValue);
 }
 

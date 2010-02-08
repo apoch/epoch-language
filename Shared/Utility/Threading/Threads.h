@@ -1,6 +1,6 @@
 //
 // The Epoch Language Project
-// FUGUE Virtual Machine
+// Shared Library Code
 //
 // Platform-dependent threading wrappers
 //
@@ -16,6 +16,7 @@ namespace VM
 	class Operation;
 	class Future;
 	class ActivatedScope;
+	class Program;
 }
 
 // Dependencies
@@ -38,8 +39,8 @@ namespace Threads
 
 
 	// Thread forking
-	void Create(const std::wstring& name, ThreadFuncPtr func, VM::Block* codeblock);
-	void Create(const std::wstring& name, ThreadFuncPtr func, VM::Future* boundfuture, VM::Operation* op);
+	void Create(const std::wstring& name, ThreadFuncPtr func, VM::Block* codeblock, VM::Program* runningprogram);
+	void Create(const std::wstring& name, ThreadFuncPtr func, VM::Future* boundfuture, VM::Operation* op, VM::Program* runningprogram);
 
 	// Helpers for setup/teardown of threads
 	void Enter(void* info);
@@ -53,6 +54,7 @@ namespace Threads
 	// Thread info access
 	const ThreadInfo& GetInfoForThisThread();
 	std::wstring GetThreadNameGivenID(TaskHandle id);
+	DWORD GetTLSIndex();
 
 	// Thread manager setup/teardown
 	void Init();
@@ -70,6 +72,7 @@ namespace Threads
 			VM::Operation* OpPointer;
 		};
 		VM::Future* BoundFuture;
+		VM::Program* RunningProgram;
 		DWORD HandleToSelf;
 		DWORD TaskOrigin;
 		HANDLE LocalHeapHandle;

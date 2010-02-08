@@ -32,8 +32,8 @@ namespace VM
 
 		// Operation interface
 		public:
-			virtual void ExecuteFast(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult);
-			virtual RValuePtr ExecuteAndStoreRValue(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult);
+			virtual void ExecuteFast(ExecutionContext& context);
+			virtual RValuePtr ExecuteAndStoreRValue(ExecutionContext& context);
 			virtual EpochVariableTypeID GetType(const ScopeDescription& scope) const;
 
 			virtual size_t GetNumParameters(const VM::ScopeDescription& scope) const;
@@ -66,8 +66,8 @@ namespace VM
 
 		// Operation interface
 		public:
-			virtual void ExecuteFast(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult);
-			virtual RValuePtr ExecuteAndStoreRValue(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult);
+			virtual void ExecuteFast(ExecutionContext& context);
+			virtual RValuePtr ExecuteAndStoreRValue(ExecutionContext& context);
 			virtual EpochVariableTypeID GetType(const ScopeDescription& scope) const;
 
 			virtual size_t GetNumParameters(const VM::ScopeDescription& scope) const;
@@ -95,8 +95,8 @@ namespace VM
 
 		// Operation interface
 		public:
-			virtual void ExecuteFast(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult);
-			virtual RValuePtr ExecuteAndStoreRValue(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult);
+			virtual void ExecuteFast(ExecutionContext& context);
+			virtual RValuePtr ExecuteAndStoreRValue(ExecutionContext& context);
 			virtual EpochVariableTypeID GetType(const ScopeDescription& scope) const;
 
 			virtual size_t GetNumParameters(const VM::ScopeDescription& scope) const
@@ -130,8 +130,8 @@ namespace VM
 
 		// Operation interface
 		public:
-			virtual void ExecuteFast(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult);
-			virtual RValuePtr ExecuteAndStoreRValue(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult);
+			virtual void ExecuteFast(ExecutionContext& context);
+			virtual RValuePtr ExecuteAndStoreRValue(ExecutionContext& context);
 			
 			virtual EpochVariableTypeID GetType(const ScopeDescription& scope) const
 			{ return EpochVariableType_Integer; }
@@ -167,10 +167,10 @@ namespace VM
 
 		// Operation interface
 		public:
-			virtual void ExecuteFast(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+			virtual void ExecuteFast(ExecutionContext& context)
 			{ }
 
-			virtual RValuePtr ExecuteAndStoreRValue(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+			virtual RValuePtr ExecuteAndStoreRValue(ExecutionContext& context)
 			{ return RValuePtr(new IntegerRValue(Value)); }
 
 			virtual EpochVariableTypeID GetType(const ScopeDescription& scope) const
@@ -213,10 +213,10 @@ namespace VM
 
 		// Operation interface
 		public:
-			virtual void ExecuteFast(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+			virtual void ExecuteFast(ExecutionContext& context)
 			{ }
 
-			virtual RValuePtr ExecuteAndStoreRValue(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+			virtual RValuePtr ExecuteAndStoreRValue(ExecutionContext& context)
 			{ return RValuePtr(new Integer16RValue(Value)); }
 
 			virtual EpochVariableTypeID GetType(const ScopeDescription& scope) const
@@ -259,10 +259,10 @@ namespace VM
 
 		// Operation interface
 		public:
-			virtual void ExecuteFast(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+			virtual void ExecuteFast(ExecutionContext& context)
 			{ }
 
-			virtual RValuePtr ExecuteAndStoreRValue(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+			virtual RValuePtr ExecuteAndStoreRValue(ExecutionContext& context)
 			{ return RValuePtr(new RealRValue(Value)); }
 
 			virtual EpochVariableTypeID GetType(const ScopeDescription& scope) const
@@ -305,10 +305,10 @@ namespace VM
 
 		// Operation interface
 		public:
-			virtual void ExecuteFast(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+			virtual void ExecuteFast(ExecutionContext& context)
 			{ }
 
-			virtual RValuePtr ExecuteAndStoreRValue(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+			virtual RValuePtr ExecuteAndStoreRValue(ExecutionContext& context)
 			{ return RValuePtr(new BooleanRValue(Value)); }
 
 			virtual EpochVariableTypeID GetType(const ScopeDescription& scope) const

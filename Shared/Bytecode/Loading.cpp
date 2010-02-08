@@ -323,7 +323,7 @@ VM::ScopeDescription* FileLoader::LoadScope(bool linktoglobal)
 			VM::Block* codeblock = LoadCodeBlock();
 			if(IsPrepass)
 			{
-				std::auto_ptr<VM::FunctionBase> func(new VM::Function(NULL, params, returns));
+				std::auto_ptr<VM::FunctionBase> func(new VM::Function(*LoadingProgram, NULL, params, returns));
 				FunctionIDMap[funcid] = func.get();
 				ScopeIDMap[scopeid]->AddFunction(WidenAndCache(funcname), func);
 				UnregisterScopeToDelete(params);

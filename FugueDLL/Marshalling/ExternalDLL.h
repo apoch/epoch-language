@@ -28,7 +28,7 @@ namespace Marshalling
 
 	// Function/operation interface
 	public:
-		virtual VM::RValuePtr Invoke(StackSpace& stack, VM::ActivatedScope& scope);
+		virtual VM::RValuePtr Invoke(VM::ExecutionContext& context);
 
 		virtual VM::ScopeDescription& GetParams()
 		{ return *Params; }

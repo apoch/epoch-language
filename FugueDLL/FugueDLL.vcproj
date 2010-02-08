@@ -651,6 +651,10 @@
 			Name="Virtual Machine"
 			>
 			<File
+				RelativePath=".\Virtual Machine\ExecutionContext.h"
+				>
+			</File>
+			<File
 				RelativePath=".\Virtual Machine\Routines.inl"
 				>
 			</File>
@@ -1050,6 +1054,26 @@
 					>
 				</File>
 			</Filter>
+			<Filter
+				Name="Thread Pooling"
+				>
+				<File
+					RelativePath=".\Virtual Machine\Thread Pooling\PoolTracker.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\Virtual Machine\Thread Pooling\PoolTracker.h"
+					>
+				</File>
+				<File
+					RelativePath=".\Virtual Machine\Thread Pooling\WorkItems.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\Virtual Machine\Thread Pooling\WorkItems.h"
+					>
+				</File>
+			</Filter>
 		</Filter>
 		<Filter
 			Name="DLL Exports"
@@ -1206,6 +1230,14 @@
 					</File>
 					<File
 						RelativePath="..\Shared\Utility\Threading\ThreadExceptions.h"
+						>
+					</File>
+					<File
+						RelativePath="..\Shared\Utility\Threading\ThreadPool.cpp"
+						>
+					</File>
+					<File
+						RelativePath="..\Shared\Utility\Threading\ThreadPool.h"
 						>
 					</File>
 					<File

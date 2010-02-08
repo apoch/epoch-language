@@ -16,6 +16,7 @@
 
 
 // Dependencies
+#include "Virtual Machine/ExecutionContext.h"
 #include "Virtual Machine/Core Entities/RValue.h"
 #include "Virtual Machine/SelfAware.h"
 #include "Traverser/TraversalInterface.h"
@@ -32,14 +33,6 @@ namespace VM
 	class ScopeDescription;
 	class ActivatedScope;
 
-	enum FlowControlResult
-	{
-		FLOWCONTROL_NORMAL,					// Proceed with execution as normal
-		FLOWCONTROL_BREAK,					// Break from the current loop
-		FLOWCONTROL_EXITELSEIFWRAPPER,		// Shortcut out of an if/elseif/else chain
-		FLOWCONTROL_RETURN					// Return from the current function
-	};
-
 
 	//
 	// Base interface for all language operations
@@ -52,8 +45,8 @@ namespace VM
 
 	// Execution and type-retrieval interface
 	public:
-		virtual void ExecuteFast(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult) = 0;
-		virtual RValuePtr ExecuteAndStoreRValue(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult) = 0;
+		virtual void ExecuteFast(ExecutionContext& context) = 0;
+		virtual RValuePtr ExecuteAndStoreRValue(ExecutionContext& context) = 0;
 		virtual EpochVariableTypeID GetType(const ScopeDescription& scope) const = 0;
 		virtual size_t GetNumParameters(const VM::ScopeDescription& scope) const = 0;
 

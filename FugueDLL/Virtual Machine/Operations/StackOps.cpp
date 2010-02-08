@@ -29,14 +29,14 @@ using namespace VM::Operations;
 //
 // Push an integer value onto the stack
 //
-void PushIntegerLiteral::ExecuteFast(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+void PushIntegerLiteral::ExecuteFast(ExecutionContext& context)
 {
-	PushValueOntoStack<TypeInfo::IntegerT>(stack, LiteralValue);
+	PushValueOntoStack<TypeInfo::IntegerT>(context.Stack, LiteralValue);
 }
 
-RValuePtr PushIntegerLiteral::ExecuteAndStoreRValue(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+RValuePtr PushIntegerLiteral::ExecuteAndStoreRValue(ExecutionContext& context)
 {
-	ExecuteFast(scope, stack, flowresult);
+	ExecuteFast(context);
 	return RValuePtr(new IntegerRValue(LiteralValue));
 }
 
@@ -51,14 +51,14 @@ Traverser::Payload PushIntegerLiteral::GetNodeTraversalPayload() const
 //
 // Push an integer value onto the stack
 //
-void PushInteger16Literal::ExecuteFast(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+void PushInteger16Literal::ExecuteFast(ExecutionContext& context)
 {
-	PushValueOntoStack<TypeInfo::Integer16T>(stack, LiteralValue);
+	PushValueOntoStack<TypeInfo::Integer16T>(context.Stack, LiteralValue);
 }
 
-RValuePtr PushInteger16Literal::ExecuteAndStoreRValue(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+RValuePtr PushInteger16Literal::ExecuteAndStoreRValue(ExecutionContext& context)
 {
-	ExecuteFast(scope, stack, flowresult);
+	ExecuteFast(context);
 	return RValuePtr(new Integer16RValue(LiteralValue));
 }
 
@@ -73,14 +73,14 @@ Traverser::Payload PushInteger16Literal::GetNodeTraversalPayload() const
 //
 // Push a string value onto the stack
 //
-void PushStringLiteral::ExecuteFast(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+void PushStringLiteral::ExecuteFast(ExecutionContext& context)
 {
-	PushValueOntoStack<TypeInfo::StringT>(stack, StringVariable::PoolStringLiteral(LiteralValue));
+	PushValueOntoStack<TypeInfo::StringT>(context.Stack, StringVariable::PoolStringLiteral(LiteralValue));
 }
 
-RValuePtr PushStringLiteral::ExecuteAndStoreRValue(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+RValuePtr PushStringLiteral::ExecuteAndStoreRValue(ExecutionContext& context)
 {
-	ExecuteFast(scope, stack, flowresult);
+	ExecuteFast(context);
 	return RValuePtr(new StringRValue(LiteralValue));
 }
 
@@ -94,14 +94,14 @@ Traverser::Payload PushStringLiteral::GetNodeTraversalPayload() const
 //
 // Push a real value onto the stack
 //
-void PushRealLiteral::ExecuteFast(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+void PushRealLiteral::ExecuteFast(ExecutionContext& context)
 {
-	PushValueOntoStack<TypeInfo::RealT>(stack, LiteralValue);
+	PushValueOntoStack<TypeInfo::RealT>(context.Stack, LiteralValue);
 }
 
-RValuePtr PushRealLiteral::ExecuteAndStoreRValue(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+RValuePtr PushRealLiteral::ExecuteAndStoreRValue(ExecutionContext& context)
 {
-	ExecuteFast(scope, stack, flowresult);
+	ExecuteFast(context);
 	return RValuePtr(new RealRValue(LiteralValue));
 }
 
@@ -115,14 +115,14 @@ Traverser::Payload PushRealLiteral::GetNodeTraversalPayload() const
 //
 // Push a boolean value onto the stack
 //
-void PushBooleanLiteral::ExecuteFast(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+void PushBooleanLiteral::ExecuteFast(ExecutionContext& context)
 {
-	PushValueOntoStack<TypeInfo::BooleanT>(stack, LiteralValue);
+	PushValueOntoStack<TypeInfo::BooleanT>(context.Stack, LiteralValue);
 }
 
-RValuePtr PushBooleanLiteral::ExecuteAndStoreRValue(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+RValuePtr PushBooleanLiteral::ExecuteAndStoreRValue(ExecutionContext& context)
 {
-	ExecuteFast(scope, stack, flowresult);
+	ExecuteFast(context);
 	return RValuePtr(new BooleanRValue(LiteralValue));
 }
 
@@ -155,18 +155,17 @@ PushOperation::~PushOperation()
 //
 // Evaluate an operation and place its value on the stack
 //
-RValuePtr PushOperation::ExecuteAndStoreRValue(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+RValuePtr PushOperation::ExecuteAndStoreRValue(ExecutionContext& context)
 {
-	RValuePtr opresult(TheOp->ExecuteAndStoreRValue(scope, stack, flowresult));
-	DoPush(TheOp->GetType(scope.GetOriginalDescription()), opresult, scope.GetOriginalDescription(), stack, IsConsList);
+	RValuePtr opresult(TheOp->ExecuteAndStoreRValue(context));
+	DoPush(TheOp->GetType(context.Scope.GetOriginalDescription()), opresult, context.Scope.GetOriginalDescription(), context.Stack, IsConsList);
 
 	return opresult;
 }
 
-void PushOperation::ExecuteFast(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+void PushOperation::ExecuteFast(ExecutionContext& context)
 {
-	RValuePtr opresult(TheOp->ExecuteAndStoreRValue(scope, stack, flowresult));
-	DoPush(TheOp->GetType(scope.GetOriginalDescription()), opresult, scope.GetOriginalDescription(), stack, IsConsList);
+	ExecuteAndStoreRValue(context);
 }
 
 //
@@ -292,14 +291,14 @@ void PushOperation::Traverse(Serialization::SerializationTraverser& traverser)
 //
 // Push a reference binding onto the stack
 //
-void BindReference::ExecuteFast(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+void BindReference::ExecuteFast(ExecutionContext& context)
 {
-	PushValueOntoStack<TypeInfo::ReferenceBindingT>(stack, &scope.GetVariableRef(VarName));
+	PushValueOntoStack<TypeInfo::ReferenceBindingT>(context.Stack, &context.Scope.GetVariableRef(VarName));
 }
 
-RValuePtr BindReference::ExecuteAndStoreRValue(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+RValuePtr BindReference::ExecuteAndStoreRValue(ExecutionContext& context)
 {
-	ExecuteFast(scope, stack, flowresult);
+	ExecuteFast(context);
 	return RValuePtr(new NullRValue);
 }
 
@@ -322,14 +321,14 @@ EpochVariableTypeID BindReference::GetType(const ScopeDescription& scope) const
 //
 // Push a function binding onto the stack
 //
-void BindFunctionReference::ExecuteFast(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+void BindFunctionReference::ExecuteFast(ExecutionContext& context)
 {
-	PushValueOntoStack<TypeInfo::FunctionBindingT>(stack, scope.GetOriginalDescription().GetFunction(FunctionName));
+	PushValueOntoStack<TypeInfo::FunctionBindingT>(context.Stack, context.Scope.GetOriginalDescription().GetFunction(FunctionName));
 }
 
-RValuePtr BindFunctionReference::ExecuteAndStoreRValue(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+RValuePtr BindFunctionReference::ExecuteAndStoreRValue(ExecutionContext& context)
 {
-	ExecuteFast(scope, stack, flowresult);
+	ExecuteFast(context);
 	return RValuePtr(new NullRValue);
 }
 

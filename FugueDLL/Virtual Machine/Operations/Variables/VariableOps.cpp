@@ -35,14 +35,14 @@ AssignValue::AssignValue(const std::wstring& varname)
 //
 // Assign an r-value into a variable (l-value)
 //
-RValuePtr AssignValue::ExecuteAndStoreRValue(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+RValuePtr AssignValue::ExecuteAndStoreRValue(ExecutionContext& context)
 {
-	return scope.PopVariableOffStack(VarName, stack, false);
+	return context.Scope.PopVariableOffStack(VarName, context.Stack, false);
 }
 
-void AssignValue::ExecuteFast(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+void AssignValue::ExecuteFast(ExecutionContext& context)
 {
-	scope.PopVariableOffStack(VarName, stack, false);
+	context.Scope.PopVariableOffStack(VarName, context.Stack, false);
 }
 
 
@@ -87,30 +87,30 @@ InitializeValue::InitializeValue(const std::wstring& varname)
 //
 // Assign an r-value into a variable (l-value)
 //
-RValuePtr InitializeValue::ExecuteAndStoreRValue(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+RValuePtr InitializeValue::ExecuteAndStoreRValue(ExecutionContext& context)
 {
-	if(scope.GetVariableType(VarName) == EpochVariableType_Buffer)
+	if(context.Scope.GetVariableType(VarName) == EpochVariableType_Buffer)
 	{
-		IntegerVariable var(stack.GetCurrentTopOfStack());
+		IntegerVariable var(context.Stack.GetCurrentTopOfStack());
 		size_t buffersize = var.GetValue();
-		stack.Pop(IntegerVariable::GetStorageSize());
+		context.Stack.Pop(IntegerVariable::GetStorageSize());
 
-		scope.GetVariableRef(VarName).CastTo<BufferVariable>().SetValue(NULL, buffersize, true);
-		return scope.GetVariableValue(VarName);
+		context.Scope.GetVariableRef(VarName).CastTo<BufferVariable>().SetValue(NULL, buffersize, true);
+		return context.Scope.GetVariableValue(VarName);
 	}
-	else if(scope.GetVariableType(VarName) == EpochVariableType_List)
+	else if(context.Scope.GetVariableType(VarName) == EpochVariableType_List)
 	{
-		ListVariable& thelist = scope.GetVariableRef<ListVariable>(VarName);
-		thelist.BindToStorage(stack.GetCurrentTopOfStack());
+		ListVariable& thelist = context.Scope.GetVariableRef<ListVariable>(VarName);
+		thelist.BindToStorage(context.Stack.GetCurrentTopOfStack());
 		return thelist.GetAsRValue();
 	}
 	else
-		return scope.PopVariableOffStack(VarName, stack, true);
+		return context.Scope.PopVariableOffStack(VarName, context.Stack, true);
 }
 
-void InitializeValue::ExecuteFast(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+void InitializeValue::ExecuteFast(ExecutionContext& context)
 {
-	ExecuteAndStoreRValue(scope, stack, flowresult);
+	ExecuteAndStoreRValue(context);
 }
 
 
@@ -154,12 +154,12 @@ GetVariableValue::GetVariableValue(const std::wstring& varname)
 //
 // Retrieve a variable's value from the given scope
 //
-RValuePtr GetVariableValue::ExecuteAndStoreRValue(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+RValuePtr GetVariableValue::ExecuteAndStoreRValue(ExecutionContext& context)
 {
-	return scope.GetVariableValue(VarName);
+	return context.Scope.GetVariableValue(VarName);
 }
 
-void GetVariableValue::ExecuteFast(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+void GetVariableValue::ExecuteFast(ExecutionContext& context)
 {
 	// Nothing to do.
 }
@@ -184,19 +184,19 @@ Traverser::Payload GetVariableValue::GetNodeTraversalPayload() const
 //
 // Retrieve a variable's storage size
 //
-RValuePtr SizeOf::ExecuteAndStoreRValue(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+RValuePtr SizeOf::ExecuteAndStoreRValue(ExecutionContext& context)
 {
-	if(scope.HasStructureType(VarName))
-		return RValuePtr(new IntegerRValue(static_cast<Integer32>(scope.GetStructureType(VarName).GetMemberStorageSize())));
-	else if(scope.HasTupleType(VarName))
-		return RValuePtr(new IntegerRValue(static_cast<Integer32>(scope.GetTupleType(VarName).GetTotalSize())));
-	else if(scope.GetVariableType(VarName) == EpochVariableType_Buffer)
-		return RValuePtr(new IntegerRValue(static_cast<Integer32>(scope.GetVariableRef<BufferVariable>(VarName).GetSize())));
+	if(context.Scope.HasStructureType(VarName))
+		return RValuePtr(new IntegerRValue(static_cast<Integer32>(context.Scope.GetStructureType(VarName).GetMemberStorageSize())));
+	else if(context.Scope.HasTupleType(VarName))
+		return RValuePtr(new IntegerRValue(static_cast<Integer32>(context.Scope.GetTupleType(VarName).GetTotalSize())));
+	else if(context.Scope.GetVariableType(VarName) == EpochVariableType_Buffer)
+		return RValuePtr(new IntegerRValue(static_cast<Integer32>(context.Scope.GetVariableRef<BufferVariable>(VarName).GetSize())));
 
-	return RValuePtr(new IntegerRValue(static_cast<Integer32>(TypeInfo::GetStorageSize(scope.GetVariableType(VarName)))));
+	return RValuePtr(new IntegerRValue(static_cast<Integer32>(TypeInfo::GetStorageSize(context.Scope.GetVariableType(VarName)))));
 }
 
-void SizeOf::ExecuteFast(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+void SizeOf::ExecuteFast(ExecutionContext& context)
 {
 	// Nothing to do.
 }

@@ -34,8 +34,8 @@ namespace VM
 
 		// Operation interface (partial)
 		public:
-			virtual void ExecuteFast(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult) = 0;
-			virtual RValuePtr ExecuteAndStoreRValue(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult) = 0;
+			virtual void ExecuteFast(ExecutionContext& context) = 0;
+			virtual RValuePtr ExecuteAndStoreRValue(ExecutionContext& context) = 0;
 
 			virtual EpochVariableTypeID GetType(const ScopeDescription& scope) const
 			{ return EpochVariableType_Boolean; }
@@ -65,8 +65,8 @@ namespace VM
 
 		// Comparator/operation interface
 		public:
-			virtual void ExecuteFast(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult);
-			virtual RValuePtr ExecuteAndStoreRValue(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult);
+			virtual void ExecuteFast(ExecutionContext& context);
+			virtual RValuePtr ExecuteAndStoreRValue(ExecutionContext& context);
 		};
 
 		//
@@ -82,8 +82,8 @@ namespace VM
 
 		// Comparator/operation interface
 		public:
-			virtual void ExecuteFast(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult);
-			virtual RValuePtr ExecuteAndStoreRValue(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult);
+			virtual void ExecuteFast(ExecutionContext& context);
+			virtual RValuePtr ExecuteAndStoreRValue(ExecutionContext& context);
 		};
 
 		//
@@ -99,8 +99,8 @@ namespace VM
 
 		// Comparator/operation interface
 		public:
-			virtual void ExecuteFast(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult);
-			virtual RValuePtr ExecuteAndStoreRValue(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult);
+			virtual void ExecuteFast(ExecutionContext& context);
+			virtual RValuePtr ExecuteAndStoreRValue(ExecutionContext& context);
 		};
 
 		//
@@ -116,8 +116,8 @@ namespace VM
 
 		// Comparator/operation interface
 		public:
-			virtual void ExecuteFast(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult);
-			virtual RValuePtr ExecuteAndStoreRValue(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult);
+			virtual void ExecuteFast(ExecutionContext& context);
+			virtual RValuePtr ExecuteAndStoreRValue(ExecutionContext& context);
 		};
 
 		//
@@ -133,8 +133,8 @@ namespace VM
 
 		// Comparator/operation interface
 		public:
-			virtual void ExecuteFast(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult);
-			virtual RValuePtr ExecuteAndStoreRValue(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult);
+			virtual void ExecuteFast(ExecutionContext& context);
+			virtual RValuePtr ExecuteAndStoreRValue(ExecutionContext& context);
 		};
 
 
@@ -151,8 +151,8 @@ namespace VM
 
 		// Comparator/operation interface
 		public:
-			virtual void ExecuteFast(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult);
-			virtual RValuePtr ExecuteAndStoreRValue(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult);
+			virtual void ExecuteFast(ExecutionContext& context);
+			virtual RValuePtr ExecuteAndStoreRValue(ExecutionContext& context);
 		};
 	}
 

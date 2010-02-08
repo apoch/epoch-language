@@ -34,7 +34,7 @@ namespace VM
 
 	// Function interface
 	public:
-		virtual RValuePtr Invoke(StackSpace& stack, ActivatedScope& scope) = 0;
+		virtual RValuePtr Invoke(ExecutionContext& context) = 0;
 		virtual const ScopeDescription& GetParams() const = 0;
 		virtual ScopeDescription& GetParams() = 0;
 		virtual EpochVariableTypeID GetType(const ScopeDescription& scope) const = 0;
@@ -47,13 +47,13 @@ namespace VM
 	{
 	// Construction and destruction
 	public:
-		Function(Block* codeblock, ScopeDescription* params, ScopeDescription* returns);
+		Function(Program& program, Block* codeblock, ScopeDescription* params, ScopeDescription* returns);
 		virtual ~Function();
 
 	// Function interface
 	public:
-		virtual RValuePtr Invoke(StackSpace& stack, ActivatedScope& scope);
-		virtual RValuePtr InvokeWithExternalParams(StackSpace& stack, void* externalstack, ActivatedScope& scope);
+		virtual RValuePtr Invoke(ExecutionContext& context);
+		virtual RValuePtr InvokeWithExternalParams(ExecutionContext& context, void* externalstack);
 
 		virtual ScopeDescription& GetParams()
 		{ return *Params; }
@@ -82,11 +82,18 @@ namespace VM
 		virtual void Traverse(Validator::ValidationTraverser& traverser);
 		virtual void Traverse(Serialization::SerializationTraverser& traverser);
 
+	// Access to linked program
+	public:
+		Program& GetRunningProgram()
+		{ return *RunningProgram; }
+
 	// Internal tracking
 	protected:
 		Block* CodeBlock;
 		ScopeDescription* Params;
 		ScopeDescription* Returns;
+		Program* RunningProgram;
 	};
+
 }
 

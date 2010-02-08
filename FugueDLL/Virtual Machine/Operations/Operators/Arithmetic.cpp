@@ -18,36 +18,36 @@ using namespace VM::Operations;
 //
 // Execute a negation operation
 //
-void Negate::ExecuteFast(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+void Negate::ExecuteFast(ExecutionContext& context)
 {
-	ExecuteAndStoreRValue(scope, stack, flowresult);
+	ExecuteAndStoreRValue(context);
 }
 
-RValuePtr Negate::ExecuteAndStoreRValue(ActivatedScope& scope, StackSpace& stack, FlowControlResult& flowresult)
+RValuePtr Negate::ExecuteAndStoreRValue(ExecutionContext& context)
 {
 	switch(Type)
 	{
 	case VM::EpochVariableType_Integer:
 		{
-			IntegerVariable var(stack.GetCurrentTopOfStack());
+			IntegerVariable var(context.Stack.GetCurrentTopOfStack());
 			IntegerVariable::BaseStorage value = var.GetValue();
-			stack.Pop(var.GetStorageSize());
+			context.Stack.Pop(var.GetStorageSize());
 			return RValuePtr(new IntegerRValue(-value));
 		}
 
 	case VM::EpochVariableType_Integer16:
 		{
-			Integer16Variable var(stack.GetCurrentTopOfStack());
+			Integer16Variable var(context.Stack.GetCurrentTopOfStack());
 			Integer16Variable::BaseStorage value = var.GetValue();
-			stack.Pop(var.GetStorageSize());
+			context.Stack.Pop(var.GetStorageSize());
 			return RValuePtr(new Integer16RValue(-value));
 		}
 
 	case VM::EpochVariableType_Real:
 		{
-			RealVariable var(stack.GetCurrentTopOfStack());
+			RealVariable var(context.Stack.GetCurrentTopOfStack());
 			RealVariable::BaseStorage value = var.GetValue();
-			stack.Pop(var.GetStorageSize());
+			context.Stack.Pop(var.GetStorageSize());
 			return RValuePtr(new RealRValue(-value));
 		}
 
