@@ -393,6 +393,9 @@ bool Disassembler::DisassembleFile(const std::wstring& inputfile, const std::wst
 		if(memcmp(cookie, Bytecode::HeaderCookie, strlen(Bytecode::HeaderCookie)) != 0)
 			throw Exception("Input file is missing header cookie!");
 
+		WriteHexNumber(outfile, RetrieveNumber(infile));
+		WriteNewline(outfile);
+
 		ExpectInstruction(infile, Bytecode::Scope);
 		UINT_PTR scopeid = RetrieveNumber(infile);
 		WriteHexNumber(outfile, scopeid);

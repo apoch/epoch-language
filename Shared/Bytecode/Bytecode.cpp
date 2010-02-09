@@ -12,6 +12,7 @@ const char* Bytecode::HeaderCookie = "EPOCH";
 
 const unsigned char Bytecode::NullFlag					= 0x00;
 const unsigned char Bytecode::ParentScope				= 0x01;
+const unsigned char Bytecode::ThreadPool				= 0x02;
 const unsigned char Bytecode::Variables					= 0x03;
 const unsigned char Bytecode::Ghosts					= 0x04;
 const unsigned char Bytecode::Functions					= 0x05;
@@ -114,4 +115,5 @@ const unsigned char Bytecode::Reduce					= 0x65;
 const unsigned char Bytecode::IntegerLiteral			= 0x66;
 const unsigned char Bytecode::ListTypes					= 0x67;
 const unsigned char Bytecode::ListSizes					= 0x68;
+const unsigned char Bytecode::ForkThread				= 0x69;
 

@@ -30,6 +30,11 @@ namespace VM
 		Program();
 		~Program();
 
+	// Program flags
+	public:
+		void SetUsesConsole()								{ FlagsUsesConsole = true; }
+		bool GetUsesConsole() const							{ return FlagsUsesConsole; }
+
 	// Global scope access
 	public:
 		ScopeDescription& GetGlobalScope()					{ return GlobalScope; }
@@ -80,6 +85,8 @@ namespace VM
 		VM::Block* GlobalInitBlock;
 		HeapStorage* GlobalStorageSpace;
 		ThreadPoolTracker ThreadPools;
+
+		bool FlagsUsesConsole;
 
 	// Shared internal tracking
 	private:

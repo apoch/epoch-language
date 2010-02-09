@@ -1027,6 +1027,8 @@ DEFINE_INSTRUCTION(Bytecode::Futures, Serialization::Futures)												\
 	LOOP(count)																								\
 		COPY_STR(futurename)																				\
 		SPACE																								\
+		COPY_HEX(futureopaddr)																				\
+		SPACE																								\
 		COPY_INSTRUCTION																					\
 	ENDLOOP																									\
 END_INSTRUCTION																								\
@@ -1036,6 +1038,8 @@ DEFINE_ADDRESSED_INSTRUCTION(Bytecode::Future, Serialization::ForkFuture)							
 	COPY_STR(futurename)																					\
 	SPACE																									\
 	COPY_UINT(futuretype)																					\
+	SPACE																									\
+	COPY_BOOL(usesthreadpool)																				\
     NEWLINE																									\
 END_INSTRUCTION																								\
 																											\
@@ -1071,4 +1075,26 @@ DEFINE_INSTRUCTION(Bytecode::ListSizes, Serialization::ListSizes)											\
 		COPY_UINT(listsize)																					\
 		NEWLINE																								\
 	ENDLOOP																									\
+END_INSTRUCTION																								\
+																											\
+DEFINE_ADDRESSED_INSTRUCTION(Bytecode::ThreadPool, Serialization::ThreadPool)								\
+	NEWLINE																									\
+END_INSTRUCTION																								\
+																											\
+DEFINE_ADDRESSED_INSTRUCTION(Bytecode::ForkThread, Serialization::ForkThread)								\
+	EXPECT(Bytecode::BeginBlock, Serialization::BeginBlock)													\
+	IF_ASSEMBLING																							\
+		READ_HEX(scopeid)																					\
+		EXPECT(Bytecode::Scope, Serialization::Scope)														\
+		WRITE_NUMBER(scopeid)																				\
+	ELSE																									\
+		READ_INSTRUCTION(ignored)																			\
+		NEWLINE																								\
+		COPY_HEX(scopeid)																					\
+		SPACE																								\
+		WRITE_STRING(Serialization::Scope)																	\
+		NEWLINE																								\
+	END_IF																									\
+	RECURSE																									\
+	RECURSE																									\
 END_INSTRUCTION																								\

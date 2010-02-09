@@ -121,6 +121,11 @@ namespace Extensions
 	template <> void Serialization::SerializeNode<operationname>(const operationname& op, SerializationTraverser& traverser) \
 	{ traverser.WriteCastOp(&op, GetToken<operationname>(), op.GetOriginalType(), op.GetDestinationType()); }
 
+#define SERIALIZE_TYPECAST_TOSTRING(operationname, token) \
+	HELPER_GETTOKEN(operationname, token) \
+	template <> void Serialization::SerializeNode<operationname>(const operationname& op, SerializationTraverser& traverser) \
+	{ traverser.WriteCastOp(&op, GetToken<operationname>(), op.GetOriginalType()); }
+
 #define SERIALIZE_ARITHMETIC(operationname, token) \
 	HELPER_GETTOKEN(operationname, token) \
 	template <> void Serialization::SerializeNode<operationname>(const operationname& op, SerializationTraverser& traverser) \
@@ -191,11 +196,11 @@ SERIALIZE_TYPECAST(VM::Operations::TypeCastInteger16ToReal, Serialization::TypeC
 SERIALIZE_TYPECAST(VM::Operations::TypeCastIntegerToReal, Serialization::TypeCast)
 SERIALIZE_TYPECAST(VM::Operations::TypeCastBooleanToReal, Serialization::TypeCast)
 
-SERIALIZE_TYPECAST(VM::Operations::TypeCastRealToString, Serialization::TypeCast)
-SERIALIZE_TYPECAST(VM::Operations::TypeCastInteger16ToString, Serialization::TypeCast)
-SERIALIZE_TYPECAST(VM::Operations::TypeCastIntegerToString, Serialization::TypeCast)
-SERIALIZE_TYPECAST(VM::Operations::TypeCastBooleanToString, Serialization::TypeCastToString)
-SERIALIZE_TYPECAST(VM::Operations::TypeCastBufferToString, Serialization::TypeCastToString)
+SERIALIZE_TYPECAST_TOSTRING(VM::Operations::TypeCastRealToString, Serialization::TypeCastToString)
+SERIALIZE_TYPECAST_TOSTRING(VM::Operations::TypeCastInteger16ToString, Serialization::TypeCastToString)
+SERIALIZE_TYPECAST_TOSTRING(VM::Operations::TypeCastIntegerToString, Serialization::TypeCastToString)
+SERIALIZE_TYPECAST_TOSTRING(VM::Operations::TypeCastBooleanToString, Serialization::TypeCastToString)
+SERIALIZE_TYPECAST_TOSTRING(VM::Operations::TypeCastBufferToString, Serialization::TypeCastToString)
 
 
 

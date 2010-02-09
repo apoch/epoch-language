@@ -37,7 +37,8 @@ unsigned Program::ProgramInstances = 0;
 Program::Program() :
 	GlobalInitBlock(NULL),
 	GlobalStorageSpace(NULL),
-	ActivatedGlobalScope(NULL)
+	ActivatedGlobalScope(NULL),
+	FlagsUsesConsole(false)
 {
 	// TODO - remove single-program-per-process gibberish
 
@@ -72,6 +73,9 @@ Program::~Program()
 RValuePtr Program::Execute()
 {
 	Extensions::PrepareForExecution();
+
+	if(FlagsUsesConsole)
+		::AllocConsole();
 
 	std::auto_ptr<ActivatedScope> scope(new ActivatedScope(GlobalScope));
 	ActivatedGlobalScope = scope.get();

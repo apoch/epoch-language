@@ -157,7 +157,7 @@ bool __stdcall ExecuteBinaryBuffer(const Byte* buffer)
 //
 // Convert raw source code into assembly language format
 //
-bool __stdcall SerializeSourceCode(const char* filename, const char* outputfilename)
+bool __stdcall SerializeSourceCode(const char* filename, const char* outputfilename, bool usesconsole)
 {
 	UI::OutputStream output;
 	output << L"Fugue - Epoch Compiler" << std::endl;
@@ -182,6 +182,9 @@ bool __stdcall SerializeSourceCode(const char* filename, const char* outputfilen
 		}
 
 		output << L"Compiling program..." << std::endl;
+		
+		if(usesconsole)
+			state.GetParsedProgram()->SetUsesConsole();
 
 		Serialization::SerializationTraverser serializer(outputfilename);
 		state.GetParsedProgram()->Traverse(serializer);

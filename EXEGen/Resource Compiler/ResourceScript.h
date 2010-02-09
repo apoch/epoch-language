@@ -20,7 +20,7 @@ namespace ResourceCompiler
 	{
 	// Construction
 	public:
-		explicit ResourceScript(const std::wstring& filename);
+		explicit ResourceScript(const std::list<std::wstring>& resourcefiles);
 		~ResourceScript();
 
 	// Resource loading interface
@@ -29,6 +29,7 @@ namespace ResourceCompiler
 
 	// Internal helpers
 	private:
+		void ProcessScriptFile(const std::wstring& filename);
 		void LoadResourceIntoDirectory(DWORD type, size_t offset, ResourceDirectory& directory);
 
 	// Internal tracking

@@ -58,8 +58,8 @@ bool FugueVMDLLAccess::ExecuteBinaryFile(const char* filename)
 //
 // Invoke the DLL function to serialize source code into Epoch Assembly code
 //
-bool FugueVMDLLAccess::SerializeSourceCode(const char* filename, const char* outputfilename)
+bool FugueVMDLLAccess::SerializeSourceCode(const char* filename, const char* outputfilename, bool usesconsole)
 {
-	return SerializeSource(filename, outputfilename);
+	return SerializeSource(filename, outputfilename, usesconsole);
 }
 

@@ -40,6 +40,7 @@ private:
 // Internal helpers for validation/sanity checks
 private:
 	void CheckCookie();
+	void CheckFlags();
 	void ExpectInstruction(unsigned char instruction);
 
 // Internal helpers for converting bytecode into runtime operation objects

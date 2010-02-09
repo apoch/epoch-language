@@ -95,8 +95,7 @@ namespace Serialization
 		VM::ScopeDescription* GetCurrentScope()		{ return CurrentScope; }
 		void SetCurrentScope(VM::ScopeDescription* scope)
 		{
-			// Ignored by serializer, as we maintain record of the
-			// currently active scope by other means.
+			CurrentScope = scope;
 		}
 
 	// Serialization interface
@@ -112,6 +111,7 @@ namespace Serialization
 		void WritePayload(const Traverser::Payload& payload);
 
 		void WriteCastOp(const void* opptr, const std::wstring& token, VM::EpochVariableTypeID originaltype, VM::EpochVariableTypeID destinationtype);
+		void WriteCastOp(const void* opptr, const std::wstring& token, VM::EpochVariableTypeID originaltype);
 		void WriteArithmeticOp(const void* opptr, const std::wstring& token, bool isfirstlist, bool issecondlist, size_t numparams);
 		void WriteForkFuture(const void* opptr, const std::wstring& token, const std::wstring& varname, VM::EpochVariableTypeID type, bool usesthreadpool);
 		void WriteSendMessage(const void* opptr, const std::wstring& token, bool usestaskid, const std::wstring& messagename, const std::list<VM::EpochVariableTypeID>& payloadtypes);

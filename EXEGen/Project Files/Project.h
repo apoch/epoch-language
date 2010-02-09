@@ -13,9 +13,12 @@ namespace Projects
 
 	class Project
 	{
-	// Construction
+	// Construction and destruction
 	public:
+		Project(const std::wstring& codefilename, const std::wstring& outputfilename, bool useconsole);
 		explicit Project(const std::wstring& filename);
+
+		~Project();
 
 	// Project information retrieval
 	public:
@@ -29,6 +32,8 @@ namespace Projects
 		std::wstring GetAssemblyFileName(const std::wstring& sourcefilename) const;
 		std::wstring GetBinaryFileName(const std::wstring& sourcefilename) const;
 
+		bool GetUsesConsoleFlag() const								{ return UsesConsole; }
+
 	// Internal tracking
 	private:
 		std::wstring IntermediatesPath;
@@ -37,6 +42,10 @@ namespace Projects
 
 		std::list<std::wstring> SourceFiles;
 		std::list<std::wstring> ResourceFiles;
+
+		std::list<std::wstring> TemporaryFiles;
+
+		bool UsesConsole;
 	};
 
 }

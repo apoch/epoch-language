@@ -95,7 +95,8 @@ namespace
 		output << L"   Exegen.exe /execbinary c:\\path\\to\\binary.epb\n";
 
 		output << L"\nCOMPILING EPOCH PROGRAMS\n";
-		output << L"   Exegen.exe /compile c:\\path\\to\\source.epoch c:\\path\\to\\output.easm\n";
+		output << L"   Exegen.exe /compile c:\\path\\to\\source.epoch c:\\path\\to\\output.easm [/console]\n";
+		output << L"   Exegen.exe /makeexe c:\\path\\to\\source.epoch c:\\path\\to\\output.exe [/console]\n";
 		
 		output << L"\nEPOCH ASSEMBLY LANGUAGE UTILITIES\n";
 		output << L"   Exegen.exe /assemble c:\\path\\to\\assembly.easm c:\\path\\to\\output.epb\n";
@@ -242,7 +243,7 @@ namespace
 	//
 	// Helper for batching calls to /compile
 	//
-	bool Compile(const std::wstring& inpath, const std::wstring& outpath, FugueVMDLLAccess& vmaccess)
+	bool Compile(const std::wstring& inpath, const std::wstring& outpath, FugueVMDLLAccess& vmaccess, bool usesconsole)
 	{
 		unsigned success = 0;
 		unsigned count = 0;
@@ -276,7 +277,7 @@ namespace
 		{
 			std::wstring filename = inpathstripped + data.cFileName;
 			std::wstring outfilename = (HasWildcards(inpath) ? outpathstripped + StripExtension(data.cFileName) + L".easm" : outpath);
-			if(vmaccess.SerializeSourceCode(narrow(filename).c_str(), narrow(outfilename).c_str()))
+			if(vmaccess.SerializeSourceCode(narrow(filename).c_str(), narrow(outfilename).c_str(), usesconsole))
 				++success;
 			++count;
 		} while(::FindNextFile(resulthandle, &data));
@@ -385,36 +386,41 @@ namespace
 		output << success << L" of " << count << L" files disassembled successfully.\n\n";
 	}
 
+	//
+	// Helper function for taking a project wrapper object and generating the corresponding .EXE
+	//
+	void BuildProject(Projects::Project& project, FugueVMDLLAccess& vmaccess, FugueASMDLLAccess& asmaccess)
+	{
+		const std::list<std::wstring>& sourcefiles = project.GetSourceFileList();
+		for(std::list<std::wstring>::const_iterator iter = sourcefiles.begin(); iter != sourcefiles.end(); ++iter)
+		{
+			if(!Compile(*iter, project.GetIntermediatesPath() + StripPath(StripExtension(*iter)) + L".easm", vmaccess, project.GetUsesConsoleFlag()))
+				return;
+
+			if(!Assemble(project.GetIntermediatesPath() + StripPath(StripExtension(*iter)) + L".easm", project.GetIntermediatesPath() + StripPath(StripExtension(*iter)) + L".epb", asmaccess))
+				return;
+		}
+		
+		Linker link(project);
+		link.GenerateSections();
+		link.CommitFile();
+	}
 
 	//
 	// Helper function for doing a complete build of a project
 	//
 	void BuildProject(const std::wstring& projectfile, FugueVMDLLAccess& vmaccess, FugueASMDLLAccess& asmaccess)
 	{
-		Projects::Project project(projectfile);
-		
-		const std::list<std::wstring>& sourcefiles = project.GetSourceFileList();
-		for(std::list<std::wstring>::const_iterator iter = sourcefiles.begin(); iter != sourcefiles.end(); ++iter)
-		{
-			if(!Compile(*iter, project.GetIntermediatesPath() + StripExtension(*iter) + L".easm", vmaccess))
-				return;
+		BuildProject(Projects::Project(projectfile), vmaccess, asmaccess);
+	}
 
-			if(!Assemble(project.GetIntermediatesPath() + StripExtension(*iter) + L".easm", project.GetIntermediatesPath() + StripExtension(*iter) + L".epb", asmaccess))
-				return;
-		}
 
-		ResourceCompiler::ResourceDirectory resdirectory;
-
-		const std::list<std::wstring>& resourcefiles = project.GetResourceFileList();
-		for(std::list<std::wstring>::const_iterator iter = resourcefiles.begin(); iter != resourcefiles.end(); ++iter)
-		{
-			ResourceCompiler::ResourceScript resscript(*iter);
-			resscript.AddResourcesToDirectory(resdirectory);
-		}
-		
-		Linker link(project);
-		link.GenerateSections();
-		link.CommitFile();
+	//
+	// Helper function for building stand-alone EXE file from a single Epoch source file
+	//
+	void MakeExe(const std::wstring& codefile, const std::wstring& outputfile, bool useconsole, FugueVMDLLAccess& vmaccess, FugueASMDLLAccess& asmaccess)
+	{
+		BuildProject(Projects::Project(codefile, outputfile, useconsole), vmaccess, asmaccess);	
 	}
 
 	//
@@ -456,7 +462,22 @@ namespace
 			if(!VerifyCommandLine(params, true))
 				return;
 
-			Compile(params[2], params[3], vmaccess);
+			bool consolemode = false;
+			if(params.size() > 4 && params[4] == L"/console")
+				consolemode = true;
+
+			Compile(params[2], params[3], vmaccess, consolemode);
+		}
+		else if(commandswitch == L"/makeexe")
+		{
+			if(!VerifyCommandLine(params, true))
+				return;
+
+			bool consolemode = false;
+			if(params.size() > 4 && params[4] == L"/console")
+				consolemode = true;
+
+			MakeExe(params[2], params[3], consolemode, vmaccess, asmaccess);
 		}
 		else if(commandswitch == L"/assemble")
 		{

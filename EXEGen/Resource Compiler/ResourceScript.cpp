@@ -25,10 +25,25 @@ std::wstring StripQuotes(const std::wstring& str);
 //
 // Construct and initialize a resource script wrapper
 //
-ResourceScript::ResourceScript(const std::wstring& filename)
-	: Filename(filename)
+ResourceScript::ResourceScript(const std::list<std::wstring>& resourcefiles)
 {
-	std::wifstream infile(Filename.c_str());
+	for(std::list<std::wstring>::const_iterator iter = resourcefiles.begin(); iter != resourcefiles.end(); ++iter)
+		ProcessScriptFile(*iter);
+}
+
+//
+// Destruct and clean up a resource script wrapper
+//
+ResourceScript::~ResourceScript()
+{
+	for(std::multimap<DWORD, IconEmitter*>::iterator iter = IconEmitters.begin(); iter != IconEmitters.end(); ++iter)
+		delete iter->second;
+}
+
+
+void ResourceScript::ProcessScriptFile(const std::wstring& filename)
+{
+	std::wifstream infile(filename.c_str());
 	if(!infile)
 		throw FileException("Failed to open resource script file");
 
@@ -60,15 +75,6 @@ ResourceScript::ResourceScript(const std::wstring& filename)
 			std::getline(infile, line);
 		} while(!line.empty() && !infile.eof());
 	}
-}
-
-//
-// Destruct and clean up a resource script wrapper
-//
-ResourceScript::~ResourceScript()
-{
-	for(std::multimap<DWORD, IconEmitter*>::iterator iter = IconEmitters.begin(); iter != IconEmitters.end(); ++iter)
-		delete iter->second;
 }
 
 

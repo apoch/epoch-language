@@ -49,6 +49,8 @@
 
 #include "Utility/Strings.h"
 
+#include <iomanip>
+
 
 //
 // Construct and initialize the loader
@@ -68,11 +70,13 @@ FileLoader::FileLoader(const void* buffer)
 	try
 	{
 		CheckCookie();
+		CheckFlags();
 		LoadScope(true);
 
 		Offset = 0;
 		IsPrepass = false;
 		CheckCookie();
+		CheckFlags();
 		LoadScope(true);
 
 		LoadGlobalInitBlock();
@@ -114,6 +118,16 @@ void FileLoader::CheckCookie()
 		throw InvalidBytecodeException("Binary code does not contain a valid signature cookie; this may indicate a corrupted binary or an outdated library");
 
 	Offset += strlen(Bytecode::HeaderCookie);
+}
+
+//
+// Load options flags for this binary
+//
+void FileLoader::CheckFlags()
+{
+	Integer32 flags = ReadNumber();
+	if(flags)
+		LoadingProgram->SetUsesConsole();
 }
 
 //
@@ -512,12 +526,12 @@ VM::ScopeDescription* FileLoader::LoadScope(bool linktoglobal)
 	for(UINT_PTR i = 0; i < numfutures; ++i)
 	{
 		const std::wstring& futurename = WidenAndCache(ReadNullTerminatedString());
+		ReadNumber();
 
-		VM::Block* tempblock = new VM::Block;
-		GenerateOpFromByteCode(ReadInstruction(), tempblock);
+		std::auto_ptr<VM::Block> tempblock(new VM::Block);
+		GenerateOpFromByteCode(ReadInstruction(), tempblock.get());
 		if(!IsPrepass)
-			ScopeIDMap[scopeid]->AddFuture(futurename, VM::OperationPtr(tempblock->PopTailOperation()));
-		delete tempblock;
+			ScopeIDMap[scopeid]->AddFuture(futurename, tempblock->PopTailOperation());
 	}
 
 	ExpectInstruction(Bytecode::ListTypes);
@@ -1363,8 +1377,30 @@ void FileLoader::GenerateOpFromByteCode(unsigned char instruction, VM::Block* ne
 		if(!IsPrepass)
 			newblock->AddOperation(VM::OperationPtr(new VM::Operations::IntegerConstant(value)));
 	}
+	else if(instruction == Bytecode::ThreadPool)
+	{
+		if(!IsPrepass)
+			newblock->AddOperation(VM::OperationPtr(new VM::Operations::CreateThreadPool()));
+	}
+	else if(instruction == Bytecode::ForkThread)
+	{
+		ExpectInstruction(Bytecode::BeginBlock);
+		VM::ScopeDescription* scope = LoadScope(false);
+		std::auto_ptr<VM::Block> taskblock(LoadCodeBlock());
+		if(!IsPrepass)
+		{
+			scope->ParentScope = &LoadingProgram->GetGlobalScope();
+			taskblock->BindToScope(UnregisterScopeToDelete(scope));
+			newblock->AddOperation(VM::OperationPtr(new VM::Operations::ForkThread(taskblock.release())));
+		}
+	}
 	else
-		throw InvalidBytecodeException("Read an opcode from the binary, but it doesn't match any known opcode. Aborting program execution!");
+	{
+		std::ostringstream stream;
+		stream << "Read an opcode from the binary, but it doesn't match any known opcode. Aborting program execution!\n";
+		stream << "Opcode value: 0x" << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(instruction) << " Offset: 0x" << std::setw(8) << (Offset - 1);
+		throw InvalidBytecodeException(stream.str());
+	}
 }
 
 //

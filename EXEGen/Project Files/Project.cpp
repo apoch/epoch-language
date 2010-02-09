@@ -8,11 +8,35 @@
 #include "pch.h"
 
 #include "Project.h"
+
 #include "Utility/Files/FilesAndPaths.h"
+#include "Utility/Strings.h"
+
+#include <boost/filesystem/operations.hpp>
 
 
 using namespace Projects;
 
+
+//
+// Construct a project wrapper for a stand-alone Epoch source file with no resources
+//
+Project::Project(const std::wstring& codefilename, const std::wstring& outputfilename, bool useconsole)
+	: UsesConsole(useconsole)
+{
+	IntermediatesPath = widen(boost::filesystem::current_path().string());
+	if(*IntermediatesPath.rbegin() != L'\\')
+		IntermediatesPath += L'\\';
+
+	OutputPath = IntermediatesPath;
+	OutputFileName = outputfilename;
+
+	SourceFiles.push_back(codefilename);
+
+	std::wstring tempfilenameroot = IntermediatesPath + StripPath(StripExtension(codefilename));
+	TemporaryFiles.push_back(StripExtension(tempfilenameroot) + L".easm");
+	TemporaryFiles.push_back(StripExtension(tempfilenameroot) + L".epb");
+}
 
 //
 // Construct a project wrapper by reading a project file from disk
@@ -22,7 +46,8 @@ Project::Project(const std::wstring& filename)
 	// Defaults, in case they are omitted from the project file
 	IntermediatesPath = L"build\\";
 	OutputPath = L"compiled\\";
-	OutputFileName = StripExtension(filename) + L".exe";
+	OutputFileName = OutputPath + StripPath(StripExtension(filename)) + L".exe";
+	UsesConsole = false;
 
 
 	std::wifstream infile(filename.c_str());
@@ -90,11 +115,32 @@ Project::Project(const std::wstring& filename)
 					OutputFileName = parameter;
 			}
 		}
+		else if(line == L"[options]")
+		{
+			while(true)
+			{
+				std::getline(infile, line);
+				if(line.empty() || infile.eof())
+					break;
+
+				if(line == L"use-console")
+					UsesConsole = true;
+			}
+		}
 	}
 
 	// Validate the file we just loaded
 	if(SourceFiles.empty())
 		throw Exception("Project must include at least one source file before it can be compiled!");
+}
+
+//
+// Destruct a project and clean up any files marked for deletion
+//
+Project::~Project()
+{
+	for(std::list<std::wstring>::const_iterator iter = TemporaryFiles.begin(); iter != TemporaryFiles.end(); ++iter)
+		boost::filesystem::remove(narrow(*iter).c_str());
 }
 
 

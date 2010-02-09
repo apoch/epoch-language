@@ -25,7 +25,7 @@ using namespace ResourceCompiler;
 // Construct and initialize the resource section manager
 //
 Resources::Resources(Linker& linker)
-	: Script(*linker.GetProject().GetResourceFileList().begin())
+	: Script(linker.GetProject().GetResourceFileList())
 {
 }
 

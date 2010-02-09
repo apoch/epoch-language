@@ -10,6 +10,7 @@
 #include "Serialization/SerializationTraverser.h"
 #include "Serialization/SerializationTokens.h"
 
+#include "Virtual Machine/Core Entities/Program.h"
 #include "Virtual Machine/Core Entities/Scopes/ScopeDescription.h"
 #include "Virtual Machine/Core Entities/Concurrency/Future.h"
 #include "Virtual Machine/SelfAware.h"
@@ -35,6 +36,12 @@ SerializationTraverser::SerializationTraverser(const std::string& filename)
 void SerializationTraverser::SetProgram(VM::Program& program)
 {
 	CurrentProgram = &program;
+
+	UINT_PTR flags = 0;
+	if(CurrentProgram->GetUsesConsole())
+		flags = 1;
+
+	OutputStream << reinterpret_cast<void*>(flags) << L"\n";
 }
 
 void SerializationTraverser::EnterBlock(const VM::Block& block)
@@ -379,6 +386,9 @@ void SerializationTraverser::WriteResponseMapEntry(const VM::ResponseMapEntry& e
 		PadTabs();
 		OutputStream << *iter << L"\n";
 	}
+
+	entry.GetResponseBlock()->Traverse(*this);
+	entry.GetHelperScope()->Traverse(*this);
 }
 
 void SerializationTraverser::WriteOp(const void* opptr, const std::wstring& token, bool newline)
@@ -467,6 +477,12 @@ void SerializationTraverser::WriteCastOp(const void* opptr, const std::wstring& 
 {
 	PadTabs();
 	OutputStream << opptr << L" " << token << L" " << originaltype << L" " << destinationtype << L"\n";
+}
+
+void SerializationTraverser::WriteCastOp(const void* opptr, const std::wstring& token, VM::EpochVariableTypeID originaltype)
+{
+	PadTabs();
+	OutputStream << opptr << L" " << token << L" " << originaltype << L"\n";
 }
 
 void SerializationTraverser::WriteArithmeticOp(const void* opptr, const std::wstring& token, bool isfirstlist, bool issecondlist, size_t numparams)

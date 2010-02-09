@@ -368,6 +368,7 @@ namespace
 	{
 		while(true)
 		{
+			std::wifstream::pos_type pos = infile.tellg();
 			std::wstring str = RetrieveString(infile);
 
 			if(infile.eof())
@@ -383,7 +384,11 @@ namespace
 			if(str.length() == 8 && str.find_first_not_of(L"0123456789ABCDEF") == std::string::npos)
 				continue;
 
-			throw Exception("Failed to assemble instruction: \"" + narrow(str) + "\"");
+			{
+				std::ostringstream stream;
+				stream << "Failed to assemble instruction: \"" << narrow(str) << "\" at offset 0x" << std::hex << std::setw(8) << std::setfill('0') << pos;
+				throw Exception(stream.str());
+			}
 		}
 	}
 
@@ -411,7 +416,10 @@ bool Assembler::AssembleFile(const std::wstring& inputfile, const std::wstring& 
 		if(!outfile)
 			throw Exception("Failed to open destination file for writing!");
 
+		UINT_PTR flags = RetrieveHexNumber(infile);
+
 		outfile << Bytecode::HeaderCookie;
+		WriteLiteral(outfile, flags);
 		UINT_PTR firstscopeid = RetrieveHexNumber(infile);		// Copy first scope's ID so it doesn't get discarded by the assembler table
 		ExpectToken(infile, Serialization::Scope);
 		WriteInstruction(outfile, Bytecode::Scope);
