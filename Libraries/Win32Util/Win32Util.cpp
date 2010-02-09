@@ -193,7 +193,7 @@ void __stdcall LinkToEpochVM(RegistrationTable registration, void* bindrecord)
 		params.push_back(ParamData(L"hwnd", VM::EpochVariableType_Integer));
 		params.push_back(ParamData(L"filtermin", VM::EpochVariableType_Integer));
 		params.push_back(ParamData(L"filtermax", VM::EpochVariableType_Integer));
-		registration.RegisterExternal(L"GetMessage", "GetMessageW", L"user32.dll", &params[0], params.size(), VM::EpochVariableType_Boolean, bindrecord);
+		registration.RegisterExternal(L"GetMessage", "GetMessageW", L"user32.dll", &params[0], params.size(), VM::EpochVariableType_Integer, bindrecord);
 	}
 
 	{

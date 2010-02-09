@@ -205,7 +205,7 @@ void ElseIfWrapper::ExecuteFast(ExecutionContext& context)
 {
 	std::auto_ptr<ActivatedScope> newscope(new ActivatedScope(*WrapperBlock->GetBoundScope()));
 	newscope->ParentScope = &context.Scope;
-	WrapperBlock->ExecuteBlock(ExecutionContext(context.RunningProgram, context.Scope, context.Stack, context.FlowResult), NULL);
+	WrapperBlock->ExecuteBlock(ExecutionContext(context.RunningProgram, *newscope, context.Stack, context.FlowResult), NULL);
 	newscope->Exit(context.Stack);
 }
 
@@ -263,7 +263,7 @@ void ElseIf::ExecuteFast(ExecutionContext& context)
 	{
 		std::auto_ptr<ActivatedScope> newscope(new ActivatedScope(*TheBlock->GetBoundScope()));
 		newscope->ParentScope = &context.Scope;
-		TheBlock->ExecuteBlock(ExecutionContext(context.RunningProgram, context.Scope, context.Stack, context.FlowResult), NULL);
+		TheBlock->ExecuteBlock(ExecutionContext(context.RunningProgram, *newscope, context.Stack, context.FlowResult), NULL);
 		newscope->Exit(context.Stack);
 	}
 }

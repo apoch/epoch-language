@@ -99,10 +99,14 @@ void SerializationTraverser::TraverseScope(VM::ScopeDescription& scope)
 	OutputStream << ParentScope << L" " << scope.ParentScope << L"\n";
 
 	PadTabs();
-	OutputStream << Variables << L" " << scope.Variables.size() << L"\n";
+	OutputStream << Variables << L" " << scope.MemberOrder.size() << L"\n";
 	for(std::vector<std::wstring>::const_iterator iter = scope.MemberOrder.begin(); iter != scope.MemberOrder.end(); ++iter)
 	{
 		PadTabs();
+
+		if(scope.IsReference(*iter))
+			OutputStream << Serialization::Reference << L" ";
+
 		OutputStream << *iter << L" " << scope.GetVariableType(*iter) << L"\n";
 	}
 
@@ -135,6 +139,7 @@ void SerializationTraverser::TraverseScope(VM::ScopeDescription& scope)
 	for(VM::ScopeDescription::FunctionSignatureMap::const_iterator iter = scope.FunctionSignatures.begin(); iter != scope.FunctionSignatures.end(); ++iter)
 	{
 		PadTabs();
+		OutputStream << iter->first << L" ";
 		WriteFunctionSignature(iter->second);
 	}
 

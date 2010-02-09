@@ -17,11 +17,13 @@ class Exception : public std::exception
 public:
 	Exception(const char* message)
 		: exception(message)
-	{ }
+	{
+	}
 
 	Exception(const std::string& message)
 		: exception(message.c_str())
-	{ }
+	{
+	}
 
 // Helpers for making error reporting more friendly
 public:

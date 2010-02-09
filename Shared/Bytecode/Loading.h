@@ -25,7 +25,7 @@ class FileLoader
 {
 // Construction and destruction
 public:
-	FileLoader(const void* buffer);
+	FileLoader(const void* buffer, VM::Program& runningprogram);
 	~FileLoader();
 
 // Result retrieval

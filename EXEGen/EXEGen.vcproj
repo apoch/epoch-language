@@ -526,6 +526,18 @@
 				>
 			</File>
 		</Filter>
+		<Filter
+			Name="Debugging"
+			>
+			<File
+				RelativePath=".\Debugging\EXEDebugger.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Debugging\EXEDebugger.h"
+				>
+			</File>
+		</Filter>
 	</Files>
 	<Globals>
 	</Globals>

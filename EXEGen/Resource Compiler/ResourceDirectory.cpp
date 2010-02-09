@@ -170,6 +170,7 @@ void ResourceDirectory::AddResource(DWORD type, DWORD id, DWORD language, Resour
 {
 	if(ResourceEmitters.find(id) != ResourceEmitters.end())
 	{
+		delete emitter;
 		std::ostringstream msg;
 		msg << "Resource ID " << id << " is already in use!";
 		throw Exception(msg.str());

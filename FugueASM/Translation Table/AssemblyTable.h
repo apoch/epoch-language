@@ -183,6 +183,7 @@ DEFINE_INSTRUCTION(Bytecode::StructureHints, Serialization::StructureTypeHints)	
 	PARAM_UINT(count)																						\
 	LOOP(count)																								\
 		COPY_STR(varname)																					\
+		SPACE																								\
 		PARAM_UINT(vartype)																					\
 	ENDLOOP																									\
 END_INSTRUCTION																								\

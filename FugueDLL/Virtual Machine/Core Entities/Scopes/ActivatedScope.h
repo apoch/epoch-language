@@ -37,10 +37,17 @@ namespace VM
 
 	class ActivatedScope
 	{
-	// Construction
+	// Construction and destruction
 	public:
 		explicit ActivatedScope(const ScopeDescription& scope);
 		ActivatedScope(const ScopeDescription& scope, ActivatedScope* parent);
+
+		~ActivatedScope();
+
+	// Non-copyable
+	private:
+		ActivatedScope(const ActivatedScope& rhs);
+		ActivatedScope& operator = (const ActivatedScope& rhs);
 
 	// Stack interaction interface
 	public:

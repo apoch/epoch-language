@@ -25,6 +25,8 @@
 
 #include "Configuration/RuntimeOptions.h"
 
+#include "Debugging/EXEDebugger.h"
+
 
 // Prototypes
 namespace
@@ -414,13 +416,20 @@ namespace
 		BuildProject(Projects::Project(projectfile), vmaccess, asmaccess);
 	}
 
-
 	//
 	// Helper function for building stand-alone EXE file from a single Epoch source file
 	//
 	void MakeExe(const std::wstring& codefile, const std::wstring& outputfile, bool useconsole, FugueVMDLLAccess& vmaccess, FugueASMDLLAccess& asmaccess)
 	{
 		BuildProject(Projects::Project(codefile, outputfile, useconsole), vmaccess, asmaccess);	
+	}
+
+	//
+	// Helper function for debugging a compiled Epoch EXE
+	//
+	void DebugExe(const std::wstring& exefilename, FugueVMDLLAccess& vmaccess)
+	{
+		vmaccess.ExecuteBinaryBuffer(Debugger::EXEDebugger(exefilename).GetBinaryCodeBuffer());
 	}
 
 	//
@@ -492,6 +501,13 @@ namespace
 				return;
 
 			Disassemble(params[2], params[3], asmaccess);
+		}
+		else if(commandswitch == L"/debug")
+		{
+			if(!VerifyCommandLine(params, false))
+				return;
+
+			DebugExe(params[2], vmaccess);
 		}
 		else
 		{

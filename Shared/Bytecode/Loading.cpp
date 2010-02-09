@@ -61,10 +61,10 @@
 // internal operation objects, using the namespace information gleaned from
 // the first pass.
 //
-FileLoader::FileLoader(const void* buffer)
+FileLoader::FileLoader(const void* buffer, VM::Program& runningprogram)
 	: Buffer(reinterpret_cast<const UByte*>(buffer)),
 	  Offset(0),
-	  LoadingProgram(new VM::Program),
+	  LoadingProgram(&runningprogram),
 	  IsPrepass(true)
 {
 	try
@@ -101,8 +101,6 @@ FileLoader::~FileLoader()
 //
 void FileLoader::Clean()
 {
-	delete LoadingProgram;
-
 	for(std::set<VM::ScopeDescription*>::iterator iter = DeleteScopes.begin(); iter != DeleteScopes.end(); ++iter)
 		delete *iter;
 	DeleteScopes.clear();

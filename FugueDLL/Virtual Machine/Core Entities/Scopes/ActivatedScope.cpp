@@ -64,6 +64,15 @@ ActivatedScope::ActivatedScope(const ScopeDescription& scope, ActivatedScope* pa
 	  Futures(scope.Futures)
 { }
 
+//
+// Destruct and clean up an activated scope
+//
+ActivatedScope::~ActivatedScope()
+{
+	// Poison data members just in case someone tries to use this scope once it has been deleted
+	ParentScope = reinterpret_cast<ActivatedScope*>(static_cast<UINT_PTR>(0xbaadf00d));
+}
+
 
 //-------------------------------------------------------------------------------
 // Stack interaction

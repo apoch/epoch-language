@@ -26,8 +26,9 @@ std::wstring StripQuotes(const std::wstring& str);
 // Construct and initialize a resource script wrapper
 //
 ResourceScript::ResourceScript(const std::list<std::wstring>& resourcefiles)
+	: Filenames(resourcefiles)
 {
-	for(std::list<std::wstring>::const_iterator iter = resourcefiles.begin(); iter != resourcefiles.end(); ++iter)
+	for(std::list<std::wstring>::const_iterator iter = Filenames.begin(); iter != Filenames.end(); ++iter)
 		ProcessScriptFile(*iter);
 }
 
@@ -68,7 +69,7 @@ void ResourceScript::ProcessScriptFile(const std::wstring& filename)
 		else
 			throw Exception("Invalid directive in resource script");
 
-		ResourceOffsets.insert(std::make_pair(restype, infile.tellg()));
+		ResourceOffsets.insert(std::make_pair(restype, OffsetInfo(filename, infile.tellg())));
 
 		do
 		{
@@ -86,19 +87,19 @@ void ResourceScript::ProcessScriptFile(const std::wstring& filename)
 //
 void ResourceScript::AddResourcesToDirectory(ResourceDirectory& directory)
 {
-	for(std::multimap<DWORD, size_t>::const_iterator iter = ResourceOffsets.begin(); iter != ResourceOffsets.end(); ++iter)
-		LoadResourceIntoDirectory(iter->first, iter->second, directory);
+	for(std::multimap<DWORD, OffsetInfo>::const_iterator iter = ResourceOffsets.begin(); iter != ResourceOffsets.end(); ++iter)
+		LoadResourceIntoDirectory(iter->first, iter->second.Filename, iter->second.Offset, directory);
 }
 
 //
 // Read resource information out of the script file and add a corresponding resource to the directory
 //
-void ResourceScript::LoadResourceIntoDirectory(DWORD type, size_t offset, ResourceDirectory& directory)
+void ResourceScript::LoadResourceIntoDirectory(DWORD type, const std::wstring& filename, size_t offset, ResourceDirectory& directory)
 {
 	DWORD id, language;
 	std::auto_ptr<ResourceEmitter> emitter(NULL);
 
-	std::wifstream infile(Filename.c_str());
+	std::wifstream infile(filename.c_str());
 	if(!infile)
 		throw FileException("Failed to open resource script file");
 
@@ -136,9 +137,7 @@ void ResourceScript::LoadResourceIntoDirectory(DWORD type, size_t offset, Resour
 
 			sourcefile = StripQuotes(sourcefile);
 
-			std::auto_ptr<IconEmitter> iemitter(new IconEmitter(sourcefile));
-			emitter.reset(iemitter.get());
-			IconEmitters.insert(std::make_pair(group, iemitter.release()));
+			emitter.reset(new IconEmitter(sourcefile));
 		}
 		break;
 

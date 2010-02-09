@@ -32,10 +32,13 @@ bool BinaryServices::ExecuteFile(const char* filename)
 //
 bool BinaryServices::ExecuteMemoryBuffer(const void* buffer)
 {
+	std::auto_ptr<VM::Program> program(new VM::Program);
+	std::auto_ptr<FileLoader> loader(NULL);
+
 	try
 	{
-		FileLoader loader(buffer);
-		loader.GetProgram()->Execute();
+		loader.reset(new FileLoader(buffer, *program.get()));
+		loader->GetProgram()->Execute();
 	}
 	catch(const std::exception& e)
 	{

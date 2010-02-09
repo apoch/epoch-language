@@ -111,10 +111,10 @@ IDType __stdcall RegistrationStructure(const wchar_t* name, const ParamData* par
 		if(params[i].Type == VM::EpochVariableType_Structure)
 		{
 			const VM::StructureType& structinfo = realbindrecord->TheProgram->GetGlobalScope().GetStructureType(params[i].Hint);
-			typeinfo.AddMember(name, structinfo, params[i].Hint);
+			typeinfo.AddMember(params[i].Name, structinfo, params[i].Hint);
 		}
 		else if(params[i].Type == VM::EpochVariableType_Function)
-			typeinfo.AddFunctionMember(name, params[i].StringHint);
+			typeinfo.AddFunctionMember(params[i].Name, params[i].StringHint);
 		else
 			typeinfo.AddMember(params[i].Name, params[i].Type);
 	}

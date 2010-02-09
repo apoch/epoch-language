@@ -61,6 +61,7 @@ Program::Program() :
 //
 Program::~Program()
 {
+	delete ActivatedGlobalScope;
 	delete GlobalInitBlock;
 	delete GlobalStorageSpace;
 	--ProgramInstances;
@@ -77,23 +78,21 @@ RValuePtr Program::Execute()
 	if(FlagsUsesConsole)
 		::AllocConsole();
 
-	std::auto_ptr<ActivatedScope> scope(new ActivatedScope(GlobalScope));
-	ActivatedGlobalScope = scope.get();
+	delete ActivatedGlobalScope;
+	ActivatedGlobalScope = new ActivatedScope(GlobalScope);
 
 	if(GlobalInitBlock)
 	{
 		delete GlobalStorageSpace;
 		GlobalStorageSpace = new HeapStorage;
 		FlowControlResult ignored = FLOWCONTROL_NORMAL;
-		GlobalInitBlock->ExecuteBlock(ExecutionContext(*this, *scope, Stack, ignored), GlobalStorageSpace);
+		GlobalInitBlock->ExecuteBlock(ExecutionContext(*this, *ActivatedGlobalScope, Stack, ignored), GlobalStorageSpace);
 	}
 
 	FlowControlResult flowresult = FLOWCONTROL_NORMAL;
-	RValuePtr ret(GlobalScope.GetFunction(L"entrypoint")->Invoke(ExecutionContext(*this, *scope, Stack, flowresult)));
+	RValuePtr ret(GlobalScope.GetFunction(L"entrypoint")->Invoke(ExecutionContext(*this, *ActivatedGlobalScope, Stack, flowresult)));
 
 	Threads::WaitForThreadsToFinish();
-
-	ActivatedGlobalScope = NULL;
 
 	size_t allocatedstack = Stack.GetAllocatedStack();
 	if(allocatedstack != 0)

@@ -443,7 +443,7 @@ namespace Parser
 
 		FileLocationInfo GetFileLocationInfo() const;
 
-		size_t ValidateStructInit(const std::vector<std::wstring>& members, const std::wstring& structtypename, std::vector<VM::Operation*>& ops, size_t maxop, bool& initbyfunctioncall);
+		size_t ValidateStructInit(const std::wstring& structtypename, VM::Block& block, size_t offsetfromend);
 		size_t ValidateTupleInit(const std::vector<std::wstring>& members, const std::wstring& tupletypename, std::vector<VM::Operation*>& ops, size_t maxop);
 		void ReverseOps(VM::Block* block, size_t numops);
 		void ReverseOpsAsGroups(VM::Block* block, size_t numops);

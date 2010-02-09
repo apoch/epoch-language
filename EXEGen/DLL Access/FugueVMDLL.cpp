@@ -24,6 +24,7 @@ FugueVMDLLAccess::FugueVMDLLAccess()
 	// Obtain interface into DLL
 	ExecSource = reinterpret_cast<ExecuteSourceCodePtr>(::GetProcAddress(DLLHandle, "ExecuteSourceCode"));
 	ExecBinary = reinterpret_cast<ExecuteBinaryFilePtr>(::GetProcAddress(DLLHandle, "ExecuteBinaryFile"));
+	ExecBuffer = reinterpret_cast<ExecuteBinaryBufferPtr>(::GetProcAddress(DLLHandle, "ExecuteBinaryBuffer"));
 	SerializeSource = reinterpret_cast<SerializeSourceCodePtr>(::GetProcAddress(DLLHandle, "SerializeSourceCode"));
 
 	// Validate interface to be sure
@@ -53,6 +54,14 @@ bool FugueVMDLLAccess::ExecuteSourceCode(const char* filename)
 bool FugueVMDLLAccess::ExecuteBinaryFile(const char* filename)
 {
 	return ExecBinary(filename);
+}
+
+//
+// Invoke the DLL function to execute a binary Epoch program from memory
+//
+bool FugueVMDLLAccess::ExecuteBinaryBuffer(const void* buffer)
+{
+	return ExecBuffer(buffer);
 }
 
 //
