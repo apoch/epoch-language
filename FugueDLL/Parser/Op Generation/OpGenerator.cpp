@@ -170,8 +170,6 @@ VM::OperationPtr ParserState::CreateOperation(const std::wstring& operationname)
 
 			for(size_t i = 0; i < members.size(); ++i)
 			{
-				TheStack.pop_back();
-
 				if(t.GetMemberType(members[i]) == VM::EpochVariableType_Integer16)
 				{
 					VM::Operation* op = Blocks.back().TheBlock->GetOperationFromEnd(members.size() - i, *CurrentScope);
@@ -214,50 +212,46 @@ VM::OperationPtr ParserState::CreateOperation(const std::wstring& operationname)
 
 			size_t opcount = ValidateTupleInit(members, operationname, allops, allops.size() - 1);
 
+			for(size_t i = 0; i < members.size(); ++i)
+				TheStack.pop_back();
+
 			if(PassedParameterCount.size() > 1)
 			{
-				VM::OperationPtr ret(new VM::Operations::IntegerConstant(static_cast<Integer32>(CurrentScope->GetTupleTypeID(operationname))));
-				TypeAnnotationOps.insert(std::make_pair(ret.get(), opcount));
+				VM::OperationPtr ret(new VM::Operations::PushOperation(new VM::Operations::IntegerConstant(static_cast<Integer32>(CurrentScope->GetTupleTypeID(operationname)))));
+				TypeAnnotationOps.push_back(TypeAnnotationOp(ret.get(), opcount));
 				return ret;
 			}
 
-			// Remove stack push of the identifier because this isn't a function call
-			Blocks.back().TheBlock->RemoveOperationFromEnd(opcount, *CurrentScope);
-
 			// Reverse the order that members are pushed onto the stack
-			ReverseOps(Blocks.back().TheBlock, opcount);
+			ReverseOps(Blocks.back().TheBlock, opcount + 1);
 
-			// Rearrange type annotation operations
-			for(std::map<VM::Operation*, size_t>::iterator iter = TypeAnnotationOps.begin(); iter != TypeAnnotationOps.end(); )
+			// Remove stack push of the identifier because this isn't a function call
+			Blocks.back().TheBlock->PopTailOperation();
+
+			// Rearrange type annotation operations into the correct order
+			for(std::list<TypeAnnotationOp>::iterator iter = TypeAnnotationOps.begin(); iter != TypeAnnotationOps.end(); ++iter)
 			{
-				bool movedop = false;
-				unsigned index = 0;
+				size_t opindex = 0;
 				for(std::vector<VM::Operation*>::iterator opiter = allops.begin(); opiter != allops.end(); ++opiter)
 				{
 					VM::Operations::PushOperation* pushop = dynamic_cast<VM::Operations::PushOperation*>(*opiter);
-					if((*opiter == iter->first) || (pushop && pushop->GetNestedOperation() == iter->first))
+					bool pushopmatches = (pushop && (pushop->GetNestedOperation() == iter->TheOperation));
+					if(pushopmatches)
 					{
-						VM::Operation* savedop = allops[index];
-
-						size_t i;
-						for(i = index; i < (index + iter->second); ++i)
-							allops[i] = allops[i + 1];
-
-						allops[i] = savedop;
-						movedop = true;
+						pushop->UnlinkOperation();
+						delete pushop;
+					}
+					if((*opiter == iter->TheOperation) || pushopmatches)
+					{
+						allops.erase(opiter);
+						allops.insert(allops.begin() + opindex + iter->Offset, iter->TheOperation);
 						break;
 					}
-
-					++index;
+					++opindex;
 				}
-
-				if(movedop)
-					iter = TypeAnnotationOps.erase(iter);
-				else
-					++iter;
 			}
+			TypeAnnotationOps.clear();
 
-			// Be sure we push the type information onto the stack
 			AddOperationToCurrentBlock(VM::OperationPtr(new VM::Operations::PushIntegerLiteral(static_cast<Integer32>(CurrentScope->GetTupleTypeID(operationname)))));
 
 			CurrentScope->AddTupleVariable(operationname, TheStack.back().StringValue);
@@ -273,7 +267,7 @@ VM::OperationPtr ParserState::CreateOperation(const std::wstring& operationname)
 
 			if(PassedParameterCount.size() > 1)
 			{
-				if(PassedParameterCount.top() != (members.size() + 1))
+				if(PassedParameterCount.top() != members.size())
 					throw SyntaxException("Incorrect number of parameters");
 			}
 			else
@@ -346,64 +340,57 @@ VM::OperationPtr ParserState::CreateOperation(const std::wstring& operationname)
 				}
 			}
 
-			size_t opcount = ValidateStructInit(operationname, *Blocks.back().TheBlock, 1);
+			bool isfunctioninit = false;
+			size_t opcount = ValidateStructInit(members, operationname, allops, allops.size() - 1, isfunctioninit);
 
-
-			// TODO - WTF was this supposed to accomplish?
-			/*if(PassedParameterCount.size() > 1)
+			if(!isfunctioninit)
 			{
-				VM::OperationPtr ret(new VM::Operations::IntegerConstant(static_cast<Integer32>(CurrentScope->GetStructureTypeID(operationname))));
-				TypeAnnotationOps.insert(std::make_pair(ret.get(), opcount));
-				return ret;
-			}*/
+				for(size_t i = 0; i < members.size(); ++i)
+					TheStack.pop_back();
+			}
 
-			// Remove stack push of the identifier because this isn't a function call
-			std::auto_ptr<VM::Operation> idpushop(Blocks.back().TheBlock->GetOperationFromEnd(members.size() + 1, *CurrentScope));
-			Blocks.back().TheBlock->EraseOperation(idpushop.get());
+			if(PassedParameterCount.size() > 1)
+			{
+				VM::OperationPtr ret(new VM::Operations::PushOperation(new VM::Operations::IntegerConstant(static_cast<Integer32>(CurrentScope->GetStructureTypeID(operationname)))));
+				TypeAnnotationOps.push_back(TypeAnnotationOp(ret.get(), opcount));
+				return ret;
+			}
 
 			// Reverse the order that members are pushed onto the stack
-			ReverseOpsAsGroups(Blocks.back().TheBlock, members.size());
+			ReverseOps(Blocks.back().TheBlock, opcount + 1);
 
-			// Rearrange type annotation operations
-			for(std::map<VM::Operation*, size_t>::iterator iter = TypeAnnotationOps.begin(); iter != TypeAnnotationOps.end(); )
+			// Remove stack push of the identifier because this isn't a function call
+			Blocks.back().TheBlock->PopTailOperation();
+
+			// Rearrange type annotation operations into the correct order
+			for(std::list<TypeAnnotationOp>::iterator iter = TypeAnnotationOps.begin(); iter != TypeAnnotationOps.end(); ++iter)
 			{
-				bool movedop = false;
-				unsigned index = 0;
+				size_t opindex = 0;
 				for(std::vector<VM::Operation*>::iterator opiter = allops.begin(); opiter != allops.end(); ++opiter)
 				{
 					VM::Operations::PushOperation* pushop = dynamic_cast<VM::Operations::PushOperation*>(*opiter);
-					if((*opiter == iter->first) || (pushop && pushop->GetNestedOperation() == iter->first))
+					bool pushopmatches = (pushop && (pushop->GetNestedOperation() == iter->TheOperation));
+					if(pushopmatches)
 					{
-						VM::Operation* savedop = allops[index];
-
-						size_t i;
-						for(i = index; i < (index + iter->second); ++i)
-							allops[i] = allops[i + 1];
-
-						allops[i] = savedop;
-						movedop = true;
+						pushop->UnlinkOperation();
+						delete pushop;
+					}
+					if((*opiter == iter->TheOperation) || pushopmatches)
+					{
+						allops.erase(opiter);
+						allops.insert(allops.begin() + opindex + iter->Offset, iter->TheOperation);
 						break;
 					}
-
-					++index;
+					++opindex;
 				}
-
-				if(movedop)
-					iter = TypeAnnotationOps.erase(iter);
-				else
-					++iter;
 			}
-
-			for(size_t i = 0; i < members.size(); ++i)
-				TheStack.pop_back();
-
-			// TODO - fix copy constructors
+			TypeAnnotationOps.clear();
 
 			// Be sure we push the type information onto the stack
 			// (but only if we are not generating a copy constructor)
-			//if(isfunctioninit)
-			//	TheStack.pop_back();
-			//else
+			if(isfunctioninit)
+				TheStack.pop_back();
+			else
 				AddOperationToCurrentBlock(VM::OperationPtr(new VM::Operations::PushIntegerLiteral(static_cast<Integer32>(CurrentScope->GetStructureTypeID(operationname)))));
 
 			CurrentScope->AddStructureVariable(operationname, TheStack.back().StringValue);
@@ -476,44 +463,114 @@ VM::OperationPtr ParserState::CreateOperation(const std::wstring& operationname)
 // structure variable, check the corresponding types to ensure that
 // all type requirements of the struct initialization are met.
 //
-size_t ParserState::ValidateStructInit(const std::wstring& structtypename, VM::Block& block, size_t offsetfromend)
+size_t ParserState::ValidateStructInit(const std::vector<std::wstring>& members, const std::wstring& structtypename, std::vector<VM::Operation*>& ops, size_t maxop, bool& initbyfunctioncall)
 {
+	initbyfunctioncall = false;
+
 	const VM::StructureType& structtype = CurrentScope->GetStructureType(structtypename);
 	IDType hint = CurrentScope->GetStructureTypeID(structtypename);
 
-	const std::vector<VM::Operation*>& ops = block.GetAllOperations();
-
-	if(ops.empty() || ops.size() < structtype.GetMemberOrder().size())
-		throw ParserFailureException("Not enough instructions present to fully initialize structure");
-
-	size_t opindex = ops.size() - 1;
-
-	for(std::vector<std::wstring>::const_reverse_iterator iter = structtype.GetMemberOrder().rbegin(); iter != structtype.GetMemberOrder().rend(); ++iter)
+	size_t ret = members.size();
+	size_t remainingmembers = ret;
+	size_t opindex = maxop;
+	size_t memberindex = members.size() - 1;
+	
+	while(remainingmembers > 0)
 	{
-		VM::EpochVariableTypeID membertype = structtype.GetMemberType(*iter);
-		VM::Operation* op = ops[opindex];
+		bool adjustforparams = true;
+		VM::EpochVariableTypeID membertype = structtype.GetMemberType(members[memberindex]);
 
-		if(membertype == VM::EpochVariableType_Function)
+		if(membertype == VM::EpochVariableType_Structure)
 		{
-			// TODO - validate function pointers
+			bool validated = false;
+			IDType typehint = structtype.GetMemberTypeHint(members[memberindex]);
+			const std::vector<std::wstring>& nestedmembers = CurrentScope->GetStructureType(typehint).GetMemberOrder();
+
+			VM::Operations::PushOperation* pushop = dynamic_cast<VM::Operations::PushOperation*>(ops[opindex]);
+			if(pushop)
+			{
+				VM::Operations::GetVariableValue* readop = dynamic_cast<VM::Operations::GetVariableValue*>(pushop->GetNestedOperation());
+				if(readop && readop->GetType(*CurrentScope) == VM::EpochVariableType_Structure)
+				{
+					if(CurrentScope->GetVariableStructureTypeID(readop->GetAssociatedIdentifier()) != typehint)
+						ReportFatalError("Type mismatch");
+					else
+						validated = true;
+				}
+			}
+
+			if(!validated)
+			{
+				bool isfuncinit = false;
+				const std::wstring& nestedtypename = CurrentScope->GetStructureTypeID(typehint);
+				size_t delta = ValidateStructInit(nestedmembers, nestedtypename, ops, opindex - 1, isfuncinit);
+				opindex -= delta;
+				ret += delta;
+				adjustforparams = false;
+			}
 		}
-		else if(membertype == VM::EpochVariableType_Structure)
+		else if(membertype != ops[opindex]->GetType(*CurrentScope))
 		{
-			// TODO - validate nested structures
+			if(ops[opindex]->GetType(*CurrentScope) == VM::EpochVariableType_Structure)
+			{
+				VM::Operations::Invoke* invokeop = dynamic_cast<VM::Operations::Invoke*>(ops[opindex]->GetNestedOperation());
+				VM::Operations::InvokeIndirect* invokeindirectop = dynamic_cast<VM::Operations::InvokeIndirect*>(ops[opindex]->GetNestedOperation());
+
+				VM::Function* func = NULL;
+
+				if(invokeop)
+					func = dynamic_cast<VM::Function*>(invokeop->GetFunction());
+				else if(invokeindirectop)
+					func = dynamic_cast<VM::Function*>(CurrentScope->GetFunction(invokeindirectop->GetFunctionName()));
+
+				if(!func)
+					throw ParserFailureException("Support for returning structures from external functions is not yet implemented");
+
+				const std::vector<std::wstring>& funcreturns = func->GetReturns().GetMemberOrder();
+				if(funcreturns.size() == 1 && func->GetReturns().GetVariableStructureTypeID(0) == hint)
+					initbyfunctioncall = true;
+				else
+				{
+					std::ostringstream stream;
+					stream << "Type mismatch - parameter " << memberindex + 1 << " - function does not return a matching structure";
+					ReportFatalError(stream.str().c_str());
+				}
+			}
+			else
+			{
+				std::ostringstream stream;
+				stream << "Type mismatch - parameter " << memberindex + 1;
+				ReportFatalError(stream.str().c_str());
+			}
 		}
-		else if(op->GetType(*CurrentScope) != membertype)
-		{
-			std::ostringstream stream;
-			stream << "Type mismatch - structure member \"" << narrow(*iter) << "\"";
-			ReportFatalError(stream.str().c_str());
-		}
+
+		if(initbyfunctioncall)
+			ret = 1;
 		
-		opindex -= op->GetNumParameters(*CurrentScope);
+		if(adjustforparams)
+		{
+			size_t paramcount = ops[opindex]->GetNumParameters(*CurrentScope);
+			while(paramcount > 0)
+			{
+				--opindex;
+				++ret;
+
+				paramcount += ops[opindex]->GetNumParameters(*CurrentScope);
+				--paramcount;
+			}
+		}
+
+		if(initbyfunctioncall)
+			return ret;
+
 		--opindex;
+		--remainingmembers;
+		--memberindex;
 	}
 
-	return ops.size() - opindex;
+	return ret;
 }
+
 
 
 //
@@ -526,6 +583,7 @@ size_t ParserState::ValidateStructInit(const std::wstring& structtypename, VM::B
 size_t ParserState::ValidateTupleInit(const std::vector<std::wstring>& members, const std::wstring& tupletypename, std::vector<VM::Operation*>& ops, size_t maxop)
 {
 	const VM::TupleType& tupletype = CurrentScope->GetTupleType(tupletypename);
+	IDType hint = CurrentScope->GetTupleTypeID(tupletypename);
 
 	size_t ret = members.size();
 	size_t remainingmembers = ret;
@@ -534,6 +592,7 @@ size_t ParserState::ValidateTupleInit(const std::vector<std::wstring>& members, 
 	
 	while(remainingmembers > 0)
 	{
+		bool adjustforparams = true;
 		VM::EpochVariableTypeID membertype = tupletype.GetMemberType(members[memberindex]);
 
 		if(membertype != ops[opindex]->GetType(*CurrentScope))
@@ -542,7 +601,8 @@ size_t ParserState::ValidateTupleInit(const std::vector<std::wstring>& members, 
 			stream << "Type mismatch - parameter " << memberindex + 1;
 			ReportFatalError(stream.str().c_str());
 		}
-		else
+		
+		if(adjustforparams)
 		{
 			size_t paramcount = ops[opindex]->GetNumParameters(*CurrentScope);
 			while(paramcount > 0)
