@@ -47,6 +47,8 @@
 
 #include "Marshalling/ExternalDLL.h"
 
+#include "Language Extensions/Handoff.h"
+
 #include "Utility/Strings.h"
 
 #include <iomanip>
@@ -71,12 +73,14 @@ FileLoader::FileLoader(const void* buffer, VM::Program& runningprogram)
 	{
 		CheckCookie();
 		CheckFlags();
+		CheckExtensions();
 		LoadScope(true);
 
 		Offset = 0;
 		IsPrepass = false;
 		CheckCookie();
 		CheckFlags();
+		CheckExtensions();
 		LoadScope(true);
 
 		LoadGlobalInitBlock();
@@ -1392,6 +1396,18 @@ void FileLoader::GenerateOpFromByteCode(unsigned char instruction, VM::Block* ne
 			newblock->AddOperation(VM::OperationPtr(new VM::Operations::ForkThread(taskblock.release())));
 		}
 	}
+	else if(instruction == Bytecode::Handoff)
+	{
+		const std::wstring& libraryname = WidenAndCache(ReadNullTerminatedString());
+		ExpectInstruction(Bytecode::BeginBlock);
+		VM::ScopeDescription* scope = LoadScope(false);
+		std::auto_ptr<VM::Block> taskblock(LoadCodeBlock());
+		if(!IsPrepass)
+		{
+			taskblock->BindToScope(UnregisterScopeToDelete(scope));
+			newblock->AddOperation(VM::OperationPtr(new Extensions::HandoffOperation(libraryname, taskblock)));
+		}
+	}
 	else
 	{
 		std::ostringstream stream;
@@ -1445,3 +1461,16 @@ VM::ScopeDescription* FileLoader::UnregisterScopeToDelete(VM::ScopeDescription* 
 
 	return scope;
 }
+
+
+void FileLoader::CheckExtensions()
+{
+	unsigned numextensions = ReadNumber();
+	for(unsigned i = 0; i < numextensions; ++i)
+	{
+		const std::wstring& extensionname = WidenAndCache(ReadNullTerminatedString());
+		if(IsPrepass)
+			Extensions::RegisterExtensionLibrary(extensionname);
+	}
+}
+

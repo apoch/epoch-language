@@ -76,7 +76,10 @@ RValuePtr Program::Execute()
 	Extensions::PrepareForExecution();
 
 	if(FlagsUsesConsole)
-		::AllocConsole();
+	{
+		if(!::AttachConsole(ATTACH_PARENT_PROCESS))
+			::AllocConsole();
+	}
 
 	delete ActivatedGlobalScope;
 	ActivatedGlobalScope = new ActivatedScope(GlobalScope);

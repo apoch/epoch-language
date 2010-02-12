@@ -28,7 +28,8 @@ using namespace Extensions;
 // Construct the access wrapper and initialize the DLL bindings
 //
 ExtensionDLLAccess::ExtensionDLLAccess(const std::wstring& dllname)
-	: SessionHandle(0)
+	: SessionHandle(0),
+	  DLLName(dllname)
 {
 	// Load the DLL
 	HINSTANCE DLLHandle = ::LoadLibrary(dllname.c_str());

@@ -44,9 +44,22 @@ namespace Extensions
 		virtual size_t GetNumParameters(const VM::ScopeDescription& scope) const
 		{ return 0; }
 
+	// Additional accessors
+	public:
+		const std::wstring& GetExtensionName() const
+		{ return ExtensionName; }
+
+	// Traversal interface
+	protected:
+		template <typename TraverserT>
+		void TraverseHelper(TraverserT& traverser);
+
+		virtual void Traverse(Validator::ValidationTraverser& traverser);
+		virtual void Traverse(Serialization::SerializationTraverser& traverser);
+
 	// Internal tracking
 	protected:
-		std::wstring ExtensionName;
+		const std::wstring& ExtensionName;
 		Extensions::ExtensionLibraryHandle ExtensionHandle;
 		std::auto_ptr<VM::Block> CodeBlock;
 		Extensions::CodeBlockHandle CodeHandle;

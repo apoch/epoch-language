@@ -396,6 +396,15 @@ bool Disassembler::DisassembleFile(const std::wstring& inputfile, const std::wst
 		WriteHexNumber(outfile, RetrieveNumber(infile));
 		WriteNewline(outfile);
 
+		UINT_PTR extensioncount = RetrieveNumber(infile);
+		WriteNumber(outfile, extensioncount);
+		WriteNewline(outfile);
+		for(unsigned i = 0; i < extensioncount; ++i)
+		{
+			WriteString(outfile, RetrieveNullTerminatedString(infile));
+			WriteNewline(outfile);
+		}
+
 		ExpectInstruction(infile, Bytecode::Scope);
 		UINT_PTR scopeid = RetrieveNumber(infile);
 		WriteHexNumber(outfile, scopeid);

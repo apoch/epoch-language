@@ -117,6 +117,7 @@ namespace Bytecode
 	extern const unsigned char ListSizes;
 	extern const unsigned char ThreadPool;
 	extern const unsigned char ForkThread;
+	extern const unsigned char Handoff;
 }
 
 

@@ -689,6 +689,8 @@ END_INSTRUCTION																								\
 																											\
 DEFINE_ADDRESSED_INSTRUCTION(Bytecode::BitwiseOr, Serialization::BitwiseOr)									\
 	NEWLINE																									\
+	COPY_UINT(elementtype)																					\
+	SPACE																									\
 	READ_NUMBER(testcount)																					\
 	WRITE_NUMBER(testcount)																					\
 	NEWLINE																									\
@@ -699,6 +701,8 @@ END_INSTRUCTION																								\
 																											\
 DEFINE_ADDRESSED_INSTRUCTION(Bytecode::BitwiseAnd, Serialization::BitwiseAnd)								\
 	NEWLINE																									\
+	COPY_UINT(elementtype)																					\
+	SPACE																									\
 	READ_NUMBER(testcount)																					\
 	WRITE_NUMBER(testcount)																					\
 	NEWLINE																									\
@@ -708,11 +712,11 @@ DEFINE_ADDRESSED_INSTRUCTION(Bytecode::BitwiseAnd, Serialization::BitwiseAnd)			
 END_INSTRUCTION																								\
 																											\
 DEFINE_ADDRESSED_INSTRUCTION(Bytecode::BitwiseXor, Serialization::BitwiseXor)								\
-	NEWLINE																									\
+	PARAM_UINT(type)																						\
 END_INSTRUCTION																								\
 																											\
 DEFINE_ADDRESSED_INSTRUCTION(Bytecode::BitwiseNot, Serialization::BitwiseNot)								\
-	NEWLINE																									\
+	PARAM_UINT(type)																						\
 END_INSTRUCTION																								\
 																											\
 DEFINE_ADDRESSED_INSTRUCTION(Bytecode::LogicalOr, Serialization::LogicalOr)									\
@@ -1099,3 +1103,25 @@ DEFINE_ADDRESSED_INSTRUCTION(Bytecode::ForkThread, Serialization::ForkThread)			
 	RECURSE																									\
 	RECURSE																									\
 END_INSTRUCTION																								\
+																											\
+DEFINE_ADDRESSED_INSTRUCTION(Bytecode::Handoff, Serialization::Handoff)										\
+	PARAM_STR(libraryname)																					\
+	EXPECT(Bytecode::BeginBlock, Serialization::BeginBlock)													\
+	IF_ASSEMBLING																							\
+		READ_HEX(scopeid)																					\
+		EXPECT(Bytecode::Scope, Serialization::Scope)														\
+		WRITE_NUMBER(scopeid)																				\
+	ELSE																									\
+		READ_INSTRUCTION(ignored)																			\
+		NEWLINE																								\
+		COPY_HEX(scopeid)																					\
+		SPACE																								\
+		WRITE_STRING(Serialization::Scope)																	\
+		NEWLINE																								\
+	END_IF																									\
+	RECURSE																									\
+	RECURSE																									\
+END_INSTRUCTION																								\
+
+
+

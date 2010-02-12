@@ -82,12 +82,26 @@ void LogicalAnd::ExecuteFast(ExecutionContext& context)
 		(*iter)->ExecuteFast(context);
 }
 
-void LogicalAnd::Traverse(Validator::ValidationTraverser& traverser)
+
+template <typename TraverserT>
+void LogicalAnd::TraverseHelper(TraverserT& traverser)
 {
 	traverser.TraverseNode(*this);
 	for(std::list<Operation*>::const_iterator iter = SubOps.begin(); iter != SubOps.end(); ++iter)
 		dynamic_cast<SelfAwareBase*>(*iter)->Traverse(traverser);
 }
+
+void LogicalAnd::Traverse(Validator::ValidationTraverser& traverser)
+{
+	TraverseHelper(traverser);
+}
+
+void LogicalAnd::Traverse(Serialization::SerializationTraverser& traverser)
+{
+	TraverseHelper(traverser);
+}
+
+
 
 RValuePtr LogicalXor::ExecuteAndStoreRValue(ExecutionContext& context)
 {

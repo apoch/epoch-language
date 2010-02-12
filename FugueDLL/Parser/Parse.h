@@ -16,7 +16,7 @@ namespace Parser
 
 
 	// Function declarations
-	bool ParseFile(const std::string& filename, ParserState& state);
+	bool ParseFile(const std::string& filename, ParserState& state, std::vector<Byte>& memory);
 
 	bool ParseMemoryPass1(ParserState& state, const std::vector<Byte>& memblock, const std::string& sourcename);
 	bool ParseMemoryPass2(ParserState& state, const std::vector<Byte>& memblock, const std::string& sourcename);

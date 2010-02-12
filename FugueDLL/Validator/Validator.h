@@ -62,7 +62,7 @@ namespace Validator
 			TaskSafetyCheck(op, *this);
 		}
 
-		void EnterBlock(const VM::Block& block);
+		bool EnterBlock(const VM::Block& block);
 		void ExitBlock(const VM::Block& block);
 		void NullBlock();
 
@@ -97,6 +97,20 @@ namespace Validator
 		void RecordTraversedOp(const VM::Operation* op)
 		{ SeenOps.insert(op); }
 
+
+		bool HasAlreadySeenScope(const VM::ScopeDescription& scope) const
+		{ return (SeenScopes.find(&scope) != SeenScopes.end()); }
+
+		void RecordTraversedScope(const VM::ScopeDescription& scope)
+		{ SeenScopes.insert(&scope); }
+
+
+		bool HasAlreadySeenBlock(const VM::Block& block) const
+		{ return (SeenBlocks.find(&block) != SeenBlocks.end()); }
+
+		void RecordTraversedBlock(const VM::Block& block)
+		{ SeenBlocks.insert(&block); }
+
 	// Internal helpers
 	private:
 		void TraverseScope(VM::ScopeDescription& scope);
@@ -112,6 +126,8 @@ namespace Validator
 
 		std::list<ValidationError> ErrorList;
 
+		std::set<const VM::Block*> SeenBlocks;
+		std::set<const VM::ScopeDescription*> SeenScopes;
 		std::set<const VM::Operation*> SeenOps;
 
 	// Access to specific validation wrappers

@@ -63,7 +63,11 @@ namespace VM
 
 		// Traversal interface
 		protected:
+			template <typename TraverserT>
+			void TraverseHelper(TraverserT& traverser);
+
 			virtual void Traverse(Validator::ValidationTraverser& traverser);
+			virtual void Traverse(Serialization::SerializationTraverser& traverser);
 		};
 
 		//

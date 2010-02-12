@@ -59,7 +59,8 @@ void ExecuteBlock::Traverse(Validator::ValidationTraverser& traverser)
 
 void ExecuteBlock::Traverse(Serialization::SerializationTraverser& traverser)
 {
-	TraverseHelper(traverser);
+	if(Body)
+		Body->Traverse(traverser);
 }
 
 
@@ -396,7 +397,7 @@ void WhileLoop::ExecuteFast(ExecutionContext& context)
 
 	do
 	{
-		Body->ExecuteBlock(ExecutionContext(context.RunningProgram, *newscope, context.Stack, context.FlowResult), NULL, false);
+		Body->ExecuteBlock(ExecutionContext(context.RunningProgram, *newscope, context.Stack, loopflowresult), NULL, false);
 	} while(loopflowresult == FLOWCONTROL_NORMAL);
 
 	newscope->Exit(context.Stack);

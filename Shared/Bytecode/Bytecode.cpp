@@ -116,4 +116,5 @@ const unsigned char Bytecode::IntegerLiteral			= 0x66;
 const unsigned char Bytecode::ListTypes					= 0x67;
 const unsigned char Bytecode::ListSizes					= 0x68;
 const unsigned char Bytecode::ForkThread				= 0x69;
+const unsigned char Bytecode::Handoff					= 0x6a;
 

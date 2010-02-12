@@ -33,6 +33,9 @@ namespace Extensions
 		CompileSessionHandle GetCompileSession() const
 		{ return SessionHandle; }
 
+		const std::wstring& GetDLLFileName() const
+		{ return DLLName; }
+
 	// Internal type definitions for function pointers
 	private:
 		typedef void (__stdcall *RegistrationPtr)(const ExtensionInterface* extensioninterface, ExtensionLibraryHandle token);
@@ -44,6 +47,8 @@ namespace Extensions
 
 	// Internal bindings to the DLL
 	private:
+		std::wstring DLLName;
+
 		HMODULE DLLHandle;
 
 		RegistrationPtr DoRegistration;

@@ -473,6 +473,9 @@ namespace
 			if(!VerifyCommandLine(params, true))
 				return;
 
+			if(HasWildcards(params[2]))
+				throw Exception("/makeexe switch only supports one input file at a time");
+
 			bool consolemode = false;
 			if(params.size() > 4 && params[4] == L"/console")
 				consolemode = true;

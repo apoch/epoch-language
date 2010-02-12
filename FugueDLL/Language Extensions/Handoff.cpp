@@ -10,6 +10,7 @@
 #include "Language Extensions/Handoff.h"
 
 #include "Virtual Machine/Core Entities/Block.h"
+#include "Virtual Machine/Core Entities/Scopes/ScopeDescription.h"
 #include "Virtual Machine/SelfAware.inl"
 
 
@@ -46,4 +47,22 @@ RValuePtr HandoffOperation::ExecuteAndStoreRValue(ExecutionContext& context)
 	return RValuePtr(new NullRValue);
 }
 
+
+template <typename TraverserT>
+void HandoffOperation::TraverseHelper(TraverserT& traverser)
+{
+	traverser.TraverseNode(*this);
+	if(CodeBlock.get() != NULL)
+		CodeBlock->Traverse(traverser);
+}
+
+void HandoffOperation::Traverse(Validator::ValidationTraverser& traverser)
+{
+	TraverseHelper(traverser);
+}
+
+void HandoffOperation::Traverse(Serialization::SerializationTraverser& traverser)
+{
+	TraverseHelper(traverser);
+}
 

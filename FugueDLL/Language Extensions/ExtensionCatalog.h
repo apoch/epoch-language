@@ -24,6 +24,8 @@ namespace Extensions
 
 	ExtensionLibraryHandle RegisterExtensionLibrary(const std::wstring& libraryname);
 	ExtensionLibraryHandle GetLibraryProvidingExtension(const std::wstring& extensionname);
+	const std::wstring& GetDLLFileOfLibrary(ExtensionLibraryHandle handle);
+	std::set<std::wstring> GetAllExtensionDLLs();
 
 	void RegisterExtensionKeyword(const std::wstring& keyword, ExtensionLibraryHandle handler);
 

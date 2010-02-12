@@ -17,6 +17,8 @@
 
 #include "Marshalling/ExternalDLL.h"
 
+#include "Language Extensions/ExtensionCatalog.h"
+
 
 using namespace Serialization;
 
@@ -42,14 +44,19 @@ void SerializationTraverser::SetProgram(VM::Program& program)
 		flags = 1;
 
 	OutputStream << reinterpret_cast<void*>(flags) << L"\n";
+
+	std::set<std::wstring> extensionlibs = Extensions::GetAllExtensionDLLs();
+	OutputStream << extensionlibs.size() << L"\n";
+	for(std::set<std::wstring>::const_iterator iter = extensionlibs.begin(); iter != extensionlibs.end(); ++iter)
+		OutputStream << *iter << L"\n";
 }
 
-void SerializationTraverser::EnterBlock(const VM::Block& block)
+bool SerializationTraverser::EnterBlock(const VM::Block& block)
 {
 	if(TraversedObjects.find(&block) != TraversedObjects.end())
 	{
 		SkippedObjects.insert(&block);
-		return;
+		return false;
 	}
 
 	TraversedObjects.insert(&block);
@@ -57,6 +64,8 @@ void SerializationTraverser::EnterBlock(const VM::Block& block)
 	PadTabs();
 	OutputStream << BeginBlock << L"\n";
 	++TabDepth;
+
+	return true;
 }
 
 void SerializationTraverser::ExitBlock(const VM::Block& block)
@@ -560,5 +569,11 @@ void SerializationTraverser::WriteCompoundOp(const void* opptr, const std::wstri
 {
 	PadTabs();
 	OutputStream << opptr << L" " << token << L" " << type << L" " << numops << L"\n";
+}
+
+void SerializationTraverser::WriteHandoffOp(const void* opptr, const std::wstring& token, const std::wstring& libraryname)
+{
+	PadTabs();
+	OutputStream << opptr << L" " << token << L" " << libraryname << L"\n";
 }
 

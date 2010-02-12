@@ -41,6 +41,7 @@ private:
 private:
 	void CheckCookie();
 	void CheckFlags();
+	void CheckExtensions();
 	void ExpectInstruction(unsigned char instruction);
 
 // Internal helpers for converting bytecode into runtime operation objects

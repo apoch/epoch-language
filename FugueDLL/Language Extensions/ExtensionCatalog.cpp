@@ -10,6 +10,8 @@
 #include "Language Extensions/ExtensionCatalog.h"
 #include "Language Extensions/DLLAccess.h"
 
+#include "Utility/Files/FilesAndPaths.h"
+
 
 using namespace Extensions;
 
@@ -107,5 +109,22 @@ void Extensions::PrepareForExecution()
 {
 	for(std::map<ExtensionLibraryHandle, ExtensionDLLAccess>::iterator iter = ExtensionLibraryMap.begin(); iter != ExtensionLibraryMap.end(); ++iter)
 		iter->second.PrepareForExecution();
+}
+
+const std::wstring& Extensions::GetDLLFileOfLibrary(ExtensionLibraryHandle handle)
+{
+	std::map<ExtensionLibraryHandle, ExtensionDLLAccess>::iterator iter = ExtensionLibraryMap.find(handle);
+	if(iter == ExtensionLibraryMap.end())
+		throw Exception("Language extension library handle is invalid; has the library been unloaded?");
+
+	return iter->second.GetDLLFileName();
+}
+
+std::set<std::wstring> Extensions::GetAllExtensionDLLs()
+{
+	std::set<std::wstring> ret;
+	for(std::map<ExtensionLibraryHandle, ExtensionDLLAccess>::const_iterator iter = ExtensionLibraryMap.begin(); iter != ExtensionLibraryMap.end(); ++iter)
+		ret.insert(StripExtension(iter->second.GetDLLFileName()));
+	return ret;
 }
 

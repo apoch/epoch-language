@@ -58,8 +58,9 @@ bool __stdcall ExecuteSourceCode(const char* filename)
 	try
 	{
 		Parser::ParserState state;
+		std::vector<Byte> codememorybuffer;
 
-		if(!Parser::ParseFile(filename, state))
+		if(!Parser::ParseFile(filename, state, codememorybuffer))
 		{
 			output << UI::lightred << L"ERROR: " << UI::resetcolor;
 			output << L"parsing failed" << std::endl;
@@ -165,7 +166,9 @@ bool __stdcall SerializeSourceCode(const char* filename, const char* outputfilen
 	try
 	{
 		Parser::ParserState state;
-		if(!Parser::ParseFile(filename, state))
+		std::vector<Byte> codememorybuffer;
+
+		if(!Parser::ParseFile(filename, state, codememorybuffer))
 		{
 			output << UI::lightred << L"ERROR: " << UI::resetcolor;
 			output << L"parsing failed" << std::endl;

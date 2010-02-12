@@ -78,7 +78,7 @@ namespace Serialization
 			SerializeNode(op, *this);
 		}
 
-		void EnterBlock(const VM::Block& block);
+		bool EnterBlock(const VM::Block& block);
 		void ExitBlock(const VM::Block& block);
 		void NullBlock();
 
@@ -119,6 +119,8 @@ namespace Serialization
 		void WriteConsList(const void* opptr, const std::wstring& token, VM::EpochVariableTypeID elementtype, size_t numelements);
 		void WriteCompoundOp(const void* opptr, const std::wstring& token, size_t numops);
 		void WriteCompoundOp(const void* opptr, const std::wstring& token, VM::EpochVariableTypeID type, size_t numops);
+
+		void WriteHandoffOp(const void* opptr, const std::wstring& token, const std::wstring& libraryname);
 
 	// Internal helpers
 	private:

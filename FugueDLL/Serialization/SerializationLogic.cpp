@@ -45,17 +45,13 @@ namespace VM
 	}
 }
 
-namespace Extensions
-{
-	class HandoffOperation;
-}
-
 
 // We need headers for all operations which are non-trivial to serialize
 #include "Virtual Machine/Operations/Concurrency/FutureOps.h"
 #include "Virtual Machine/Operations/Concurrency/Tasks.h"
 #include "Virtual Machine/Operations/Concurrency/Messaging.h"
 #include "Virtual Machine/Operations/Containers/ContainerOps.h"
+#include "Virtual Machine/Operations/Flow/FlowControl.h"
 #include "Virtual Machine/Operations/Flow/Invoke.h"
 #include "Virtual Machine/Operations/Operators/Arithmetic.h"
 #include "Virtual Machine/Operations/Operators/Bitwise.h"
@@ -73,6 +69,8 @@ namespace Extensions
 #include "Virtual Machine/Types Management/RuntimeCasts.h"
 
 #include "Marshalling/ExternalDLL.h"
+
+#include "Language Extensions/Handoff.h"
 
 #include "Serialization/SerializationTraverser.h"
 #include "Serialization/SerializationTokens.h"
@@ -160,7 +158,6 @@ SERIALIZE_TOKENONLY(VM::Operations::DebugCrashVM, Serialization::DebugCrashVM)
 SERIALIZE_TOKENONLY(VM::Operations::DebugReadStaticString, Serialization::DebugRead)
 SERIALIZE_TOKENONLY(VM::Operations::DebugWriteStringExpression, Serialization::DebugWrite)
 SERIALIZE_TOKENONLY(VM::Operations::DoWhileLoop, Serialization::DoWhile)
-SERIALIZE_TOKENONLY(VM::Operations::ExecuteBlock, Serialization::BeginBlock)
 SERIALIZE_TOKENONLY(VM::Operations::ExitIfChain, Serialization::ExitIfChain)
 SERIALIZE_TOKENONLY(VM::Operations::ForkTask, Serialization::ForkTask)
 SERIALIZE_TOKENONLY(VM::Operations::ForkThread, Serialization::ForkThread)
@@ -176,8 +173,6 @@ SERIALIZE_TOKENONLY(VM::Operations::ReduceOperation, Serialization::Reduce)
 SERIALIZE_TOKENONLY(VM::Operations::Return, Serialization::Return)
 SERIALIZE_TOKENONLY(VM::Operations::WhileLoop, Serialization::While)
 SERIALIZE_TOKENONLY(VM::Operations::WhileLoopConditional, Serialization::WhileCondition)
-
-SERIALIZE_TOKENONLY(Extensions::HandoffOperation, Serialization::Handoff)
 
 
 // Special templated operations
@@ -303,3 +298,10 @@ template <> const std::wstring& Serialization::GetToken<VM::Operations::BindStru
 template <> void Serialization::SerializeNode<VM::Operations::BindStructMemberReference>(const VM::Operations::BindStructMemberReference& op, SerializationTraverser& traverser)
 { traverser.WriteChainedOp(&op, GetToken<VM::Operations::BindStructMemberReference>(), op.IsChained(), (op.IsChained() ? Serialization::EmptyString : op.GetAssociatedIdentifier()), op.GetMemberName()); }
 
+template <> const std::wstring& Serialization::GetToken<VM::Operations::ExecuteBlock>() { return Serialization::EmptyString; }
+template <> void Serialization::SerializeNode<VM::Operations::ExecuteBlock>(const VM::Operations::ExecuteBlock& op, SerializationTraverser& traverser)
+{ }
+
+template <> const std::wstring& Serialization::GetToken<Extensions::HandoffOperation>() { return Serialization::Handoff; }
+template <> void Serialization::SerializeNode<Extensions::HandoffOperation>(const Extensions::HandoffOperation& op, SerializationTraverser& traverser)
+{ traverser.WriteHandoffOp(&op, GetToken<Extensions::HandoffOperation>(), op.GetExtensionName()); }

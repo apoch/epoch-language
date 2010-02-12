@@ -12,6 +12,7 @@
 #include "Parser/Error Handling/ParserExceptions.h"
 
 #include "Virtual Machine/Operations/Flow/FlowControl.h"
+#include "Virtual Machine/Core Entities/Program.h"
 
 #include "Language Extensions/Handoff.h"
 #include "Language Extensions/ExtensionCatalog.h"
@@ -51,5 +52,5 @@ void ParserState::RegisterExtensionBlock()
 
 	std::auto_ptr<VM::Block> block(execblockop->Detach());
 	Blocks.back().TheBlock->RemoveTailOperations(1);
-	AddOperationToCurrentBlock(VM::OperationPtr(new Extensions::HandoffOperation(keyword, block)));
+	AddOperationToCurrentBlock(VM::OperationPtr(new Extensions::HandoffOperation(ParsedProgram->PoolStaticString(keyword), block)));
 }

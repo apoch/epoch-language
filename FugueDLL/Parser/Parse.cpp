@@ -24,9 +24,8 @@ using namespace Parser;
 //
 // Load a file into memory, then send it to the parser
 //
-bool Parser::ParseFile(const std::string& filename, ParserState& state)
+bool Parser::ParseFile(const std::string& filename, ParserState& state, std::vector<Byte>& memory)
 {
-	std::vector<Byte> memory;
 	Files::Load(filename.c_str(), memory);
 
 	state.SetCodeBuffer(&memory[0]);

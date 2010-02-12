@@ -51,9 +51,13 @@ void ValidationTraverser::TraverseGlobalInitBlock(VM::Block* block)
 //
 // Register that we have entered a code block/lexical scope
 //
-void ValidationTraverser::EnterBlock(const VM::Block& block)
+bool ValidationTraverser::EnterBlock(const VM::Block& block)
 {
-	// Nothing to do for validation.
+	if(HasAlreadySeenBlock(block))
+		return false;
+
+	RecordTraversedBlock(block);
+	return true;
 }
 
 //
@@ -86,6 +90,9 @@ void ValidationTraverser::RegisterScope(VM::ScopeDescription& scope)
 //
 void ValidationTraverser::TraverseScope(VM::ScopeDescription& scope)
 {
+	if(HasAlreadySeenScope(scope))
+		return;
+
 	struct tracehelper
 	{
 		tracehelper(const VM::ScopeDescription& thescope)
@@ -111,6 +118,8 @@ void ValidationTraverser::TraverseScope(VM::ScopeDescription& scope)
 		for(std::vector<VM::ResponseMapEntry*>::const_iterator inner_iter = responses.begin(); inner_iter != responses.end(); ++inner_iter)
 			(*inner_iter)->GetResponseBlock()->Traverse(*this);
 	}
+
+	RecordTraversedScope(scope);
 }
 
 

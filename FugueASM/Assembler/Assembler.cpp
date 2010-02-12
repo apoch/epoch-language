@@ -420,6 +420,12 @@ bool Assembler::AssembleFile(const std::wstring& inputfile, const std::wstring& 
 
 		outfile << Bytecode::HeaderCookie;
 		WriteLiteral(outfile, flags);
+		
+		UINT_PTR numextensions = RetrieveNumber(infile);
+		WriteLiteral(outfile, numextensions);
+		for(unsigned i = 0; i < numextensions; ++i)
+			WriteTerminatedString(outfile, RetrieveString(infile));
+
 		UINT_PTR firstscopeid = RetrieveHexNumber(infile);		// Copy first scope's ID so it doesn't get discarded by the assembler table
 		ExpectToken(infile, Serialization::Scope);
 		WriteInstruction(outfile, Bytecode::Scope);
