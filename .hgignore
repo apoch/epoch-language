@@ -2,6 +2,7 @@ syntax: glob
 Bin/*
 bin/*
 Build/*
+build/*
 *.exe
 *.vcproj.*.Administrator.user
 VTune/*
