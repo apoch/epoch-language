@@ -32,7 +32,7 @@
 namespace
 {
 	void Usage();
-	void ExecuteCommandLine(const std::vector<std::wstring>& params, FugueVMDLLAccess& vmaccess, FugueASMDLLAccess& asmaccess);
+	void ExecuteCommandLine(std::vector<std::wstring>& params, FugueVMDLLAccess& vmaccess, FugueASMDLLAccess& asmaccess);
 }
 
 
@@ -124,7 +124,7 @@ namespace
 	//
 	// Helper functions for analyzing the command line and validating the input
 	//
-	bool VerifyCommandLine(const std::vector<std::wstring>& params, bool multipleparams)
+	bool VerifyCommandLine(std::vector<std::wstring>& params, bool multipleparams)
 	{
 		size_t expectedparams = 4;
 
@@ -140,10 +140,11 @@ namespace
 
 		if(multipleparams)
 		{
+			DWORD attributes = ::GetFileAttributes(params[3].c_str());
+
 			// If input has wildcards, ensure the output is a directory and not a file
 			if(HasWildcards(params[2]))
 			{
-				DWORD attributes = ::GetFileAttributes(params[3].c_str());
 				if(attributes == 0xFFFFFFFF)
 				{
 					std::ostringstream msg;
@@ -155,6 +156,18 @@ namespace
 				{
 					std::ostringstream msg;
 					msg << "Input contains wildcards; output must be a valid directory:\n" << narrow(params[3]);
+					throw Exception(msg.str());
+				}
+
+				if(*params[3].rbegin() != L'\\')
+					params[3] += L'\\';
+			}
+			else
+			{
+				if((attributes != 0xFFFFFFFF) && (attributes & FILE_ATTRIBUTE_DIRECTORY))
+				{
+					std::ostringstream msg;
+					msg << "Specified output location is a directory:\n" << narrow(params[3]) << "\nPlease specify a filename for the output file.";
 					throw Exception(msg.str());
 				}
 			}
@@ -267,18 +280,10 @@ namespace
 		else
 			inpathstripped = inpath.substr(0, pos + 1);
 
-		// TODO - fix this bug [Issue #8]
-		std::wstring outpathstripped;
-		pos = outpath.find_last_of(L'\\');
-		if(pos == std::wstring::npos)
-			outpathstripped = L".\\";
-		else
-			outpathstripped = outpath.substr(0, pos + 1);
-
 		do
 		{
 			std::wstring filename = inpathstripped + data.cFileName;
-			std::wstring outfilename = (HasWildcards(inpath) ? outpathstripped + StripExtension(data.cFileName) + L".easm" : outpath);
+			std::wstring outfilename = (HasWildcards(inpath) ? outpath + StripExtension(data.cFileName) + L".easm" : outpath);
 			if(vmaccess.SerializeSourceCode(narrow(filename).c_str(), narrow(outfilename).c_str(), usesconsole))
 				++success;
 			++count;
@@ -317,17 +322,10 @@ namespace
 		else
 			inpathstripped = inpath.substr(0, pos + 1);
 
-		std::wstring outpathstripped;
-		pos = outpath.find_last_of(L'\\');
-		if(pos == std::wstring::npos)
-			outpathstripped = L".\\";
-		else
-			outpathstripped = outpath.substr(0, pos + 1);
-
 		do
 		{
 			std::wstring filename = inpathstripped + data.cFileName;
-			std::wstring outfilename = (HasWildcards(inpath) ? outpathstripped + StripExtension(data.cFileName) + L".epb" : outpath);
+			std::wstring outfilename = (HasWildcards(inpath) ? outpath + StripExtension(data.cFileName) + L".epb" : outpath);
 			if(asmaccess.Assemble(narrow(filename).c_str(), narrow(outfilename).c_str()))
 				++success;
 			++count;
@@ -366,17 +364,10 @@ namespace
 		else
 			inpathstripped = inpath.substr(0, pos + 1);
 
-		std::wstring outpathstripped;
-		pos = outpath.find_last_of(L'\\');
-		if(pos == std::wstring::npos)
-			outpathstripped = L".\\";
-		else
-			outpathstripped = outpath.substr(0, pos + 1);
-
 		do
 		{
 			std::wstring filename = inpathstripped + data.cFileName;
-			std::wstring outfilename = (HasWildcards(inpath) ? outpathstripped + StripExtension(data.cFileName) + L".easm" : outpath);
+			std::wstring outfilename = (HasWildcards(inpath) ? outpath + StripExtension(data.cFileName) + L".easm" : outpath);
 			if(asmaccess.Disassemble(narrow(filename).c_str(), narrow(outfilename).c_str()))
 				++success;
 			++count;
@@ -435,7 +426,7 @@ namespace
 	//
 	// Helper function for validating command line and performing the requested action
 	//
-	void ExecuteCommandLine(const std::vector<std::wstring>& params, FugueVMDLLAccess& vmaccess, FugueASMDLLAccess& asmaccess)
+	void ExecuteCommandLine(std::vector<std::wstring>& params, FugueVMDLLAccess& vmaccess, FugueASMDLLAccess& asmaccess)
 	{
 		if(params.size() <= 1)
 		{
