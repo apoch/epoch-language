@@ -97,8 +97,8 @@ namespace
 		output << L"   Exegen.exe /execbinary c:\\path\\to\\binary.epb\n";
 
 		output << L"\nCOMPILING EPOCH PROGRAMS\n";
-		output << L"   Exegen.exe /compile c:\\path\\to\\source.epoch c:\\path\\to\\output.easm [/console]\n";
-		output << L"   Exegen.exe /makeexe c:\\path\\to\\source.epoch c:\\path\\to\\output.exe [/console]\n";
+		output << L"   Exegen.exe /compile c:\\path\\to\\source.epoch c:\\path\\to\\output.easm\n";
+		output << L"   Exegen.exe /makeexe c:\\path\\to\\source.epoch c:\\path\\to\\output.exe\n";
 		
 		output << L"\nEPOCH ASSEMBLY LANGUAGE UTILITIES\n";
 		output << L"   Exegen.exe /assemble c:\\path\\to\\assembly.easm c:\\path\\to\\output.epb\n";
@@ -463,8 +463,19 @@ namespace
 				return;
 
 			bool consolemode = false;
-			if(params.size() > 4 && params[4] == L"/console")
-				consolemode = true;
+			if(params.size() > 4)
+			{
+				if(params[4] == L"/console")
+					consolemode = true;
+				else if(params[4] == L"/noconsole")
+					consolemode = false;
+				else
+				{
+					throw Exception("Invalid option; please specify /console or /noconsole");
+				}
+			}
+			else
+				throw Exception("Please specify either the /console or /noconsole option.");
 
 			Compile(params[2], params[3], vmaccess, consolemode);
 		}
@@ -477,8 +488,19 @@ namespace
 				throw Exception("/makeexe switch only supports one input file at a time");
 
 			bool consolemode = false;
-			if(params.size() > 4 && params[4] == L"/console")
-				consolemode = true;
+			if(params.size() > 4)
+			{
+				if(params[4] == L"/console")
+					consolemode = true;
+				else if(params[4] == L"/noconsole")
+					consolemode = false;
+				else
+				{
+					throw Exception("Invalid option; please specify /console or /noconsole");
+				}
+			}
+			else
+				throw Exception("Please specify either the /console or /noconsole option.");
 
 			MakeExe(params[2], params[3], consolemode, vmaccess, asmaccess);
 		}
