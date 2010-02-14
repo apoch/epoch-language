@@ -301,7 +301,7 @@ namespace Parser
 					;
 
 				ControlSimple
-					= IF[RegisterControl(self.State, false)] >> OPENPARENS[StartCountingParams(self.State)] >> PassedParameter >> CLOSEPARENS >> CodeBlock >> *(ELSEIF[RegisterControl(self.State, false)] >> OPENPARENS[StartCountingParams(self.State)] >> PassedParameter >> CLOSEPARENS >> CodeBlock) >> !(ELSE[RegisterControl(self.State, false)] >> CodeBlock)
+					= IF[RegisterControl(self.State, false)] >> OPENPARENS[StartCountingParams(self.State)] >> PassedParameter >> CLOSEPARENS[PopParameterCount(self.State)] >> CodeBlock >> *(ELSEIF[RegisterControl(self.State, false)] >> OPENPARENS[StartCountingParams(self.State)] >> PassedParameter >> CLOSEPARENS[PopParameterCount(self.State)] >> CodeBlock) >> !(ELSE[RegisterControl(self.State, false)] >> CodeBlock)
 					| WHILE[RegisterControl(self.State, false)] >> OPENPARENS[StartCountingParams(self.State)] >> PassedParameter >> CLOSEPARENS[RegisterEndOfWhileLoopConditional(self.State)] >> CodeBlock
 					;
 

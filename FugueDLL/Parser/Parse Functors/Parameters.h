@@ -255,6 +255,14 @@ struct PopParameterCount : public ParseFunctorBase
 		: ParseFunctorBase(state)
 	{ }
 
+	template <typename ParamType>
+	void operator () (ParamType) const
+	{
+		Trace(L"PopParameterCount");
+
+		State.PopParameterCount();
+	}
+
 	template <typename IteratorType>
 	void operator () (IteratorType begin, IteratorType end) const
 	{

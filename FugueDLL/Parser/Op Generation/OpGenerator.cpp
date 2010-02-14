@@ -479,6 +479,7 @@ size_t ParserState::ValidateStructInit(const std::vector<std::wstring>& members,
 	{
 		bool adjustforparams = true;
 		VM::EpochVariableTypeID membertype = structtype.GetMemberType(members[memberindex]);
+		VM::EpochVariableTypeID optype = ops[opindex]->GetType(*CurrentScope);
 
 		if(membertype == VM::EpochVariableType_Structure)
 		{
@@ -509,9 +510,9 @@ size_t ParserState::ValidateStructInit(const std::vector<std::wstring>& members,
 				adjustforparams = false;
 			}
 		}
-		else if(membertype != ops[opindex]->GetType(*CurrentScope))
+		else if(membertype != optype)
 		{
-			if(ops[opindex]->GetType(*CurrentScope) == VM::EpochVariableType_Structure)
+			if(optype == VM::EpochVariableType_Structure)
 			{
 				VM::Operations::Invoke* invokeop = dynamic_cast<VM::Operations::Invoke*>(ops[opindex]->GetNestedOperation());
 				VM::Operations::InvokeIndirect* invokeindirectop = dynamic_cast<VM::Operations::InvokeIndirect*>(ops[opindex]->GetNestedOperation());
@@ -535,6 +536,22 @@ size_t ParserState::ValidateStructInit(const std::vector<std::wstring>& members,
 					stream << "Type mismatch - parameter " << memberindex + 1 << " - function does not return a matching structure";
 					ReportFatalError(stream.str().c_str());
 				}
+			}
+			else if(membertype == VM::EpochVariableType_Function)
+			{
+				VM::Operations::BindFunctionReference* bindop = dynamic_cast<VM::Operations::BindFunctionReference*>(ops[opindex]);
+				if(!bindop)
+					throw ParserFailureException("Expected function bind instruction");
+
+				VM::FunctionBase* func = CurrentScope->GetFunction(bindop->GetAssociatedIdentifier());
+
+				if(func)
+				{
+					if(!CurrentScope->GetFunctionSignature(structtype.GetMemberTypeHintString(members[memberindex])).DoesFunctionMatchSignature(func, *CurrentScope))
+						ReportFatalError("Type mismatch - function does not match requirements");
+				}
+				else
+					ReportFatalError("Function not found");
 			}
 			else
 			{

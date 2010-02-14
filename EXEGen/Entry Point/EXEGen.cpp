@@ -441,6 +441,9 @@ namespace
 			if(!VerifyCommandLine(params, false))
 				return;
 
+			if(!::SetCurrentDirectory(StripFilename(params[2]).c_str()))
+				throw Exception("Cannot find path: " + narrow(StripFilename(params[2])));
+
 			BuildProject(params[2], vmaccess, asmaccess);
 		}
 		else if(commandswitch == L"/execsource")
@@ -470,9 +473,7 @@ namespace
 				else if(params[4] == L"/noconsole")
 					consolemode = false;
 				else
-				{
 					throw Exception("Invalid option; please specify /console or /noconsole");
-				}
 			}
 			else
 				throw Exception("Please specify either the /console or /noconsole option.");
@@ -495,9 +496,7 @@ namespace
 				else if(params[4] == L"/noconsole")
 					consolemode = false;
 				else
-				{
 					throw Exception("Invalid option; please specify /console or /noconsole");
-				}
 			}
 			else
 				throw Exception("Please specify either the /console or /noconsole option.");

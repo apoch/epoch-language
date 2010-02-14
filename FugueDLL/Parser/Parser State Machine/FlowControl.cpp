@@ -131,6 +131,7 @@ void ParserState::PopDoWhileLoop()
 	AddOperationToCurrentBlock(VM::OperationPtr(new VM::Operations::DoWhileLoop(poppedblock.release())));
 
 	TheStack.pop_back();
+	PopParameterCount();
 }
 
 //
@@ -146,6 +147,7 @@ void ParserState::PopDoWhileLoopPP()
 //
 void ParserState::RegisterEndOfWhileLoopConditional()
 {
+	PopParameterCount();
 	MergeDeferredOperations();
 	AddOperationToCurrentBlock(VM::OperationPtr(new VM::Operations::WhileLoopConditional));
 }

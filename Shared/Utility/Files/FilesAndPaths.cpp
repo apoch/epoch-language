@@ -44,6 +44,19 @@ std::wstring StripPath(const std::wstring& filename)
 
 
 //
+// Helper for stripping file names off of path specifiers
+//
+std::wstring StripFilename(const std::wstring& path)
+{
+	std::wstring::size_type slashpos = path.find_last_of(L'\\');
+	if(slashpos == std::wstring::npos)
+		return L".\\";
+
+	return path.substr(0, slashpos + 1);
+}
+
+
+//
 // Helper for reducing a path containing spaces to a sanitized "short" path
 // Note that this is platform-specific for Windows.
 //
