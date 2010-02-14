@@ -173,8 +173,8 @@
 		</Configuration>
 		<Configuration
 			Name="Debug (no CUDA support)|Win32"
-			OutputDirectory="$(ConfigurationName)"
-			IntermediateDirectory="$(ConfigurationName)"
+			OutputDirectory="..\Bin\$(ConfigurationName)"
+			IntermediateDirectory="..\Build\$(ProjectName)$(ConfigurationName)"
 			ConfigurationType="2"
 			CharacterSet="1"
 			>
@@ -251,8 +251,8 @@
 		</Configuration>
 		<Configuration
 			Name="Release (no CUDA support)|Win32"
-			OutputDirectory="$(ConfigurationName)"
-			IntermediateDirectory="$(ConfigurationName)"
+			OutputDirectory="..\Bin\$(ConfigurationName)"
+			IntermediateDirectory="..\Build\$(ProjectName)$(ConfigurationName)"
 			ConfigurationType="2"
 			CharacterSet="1"
 			WholeProgramOptimization="1"
