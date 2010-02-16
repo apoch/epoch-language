@@ -78,31 +78,6 @@ RValuePtr Program::Execute()
 {
 	Extensions::PrepareForExecution();
 
-	if(FlagsUsesConsole)
-	{
-		::AllocConsole();
-
-		HANDLE consoleout = ::GetStdHandle(STD_OUTPUT_HANDLE);
-		int systemout = _open_osfhandle(reinterpret_cast<intptr_t>(consoleout), _O_TEXT);
-		FILE* outputhandle = _fdopen(systemout, "w");
-		*stdout = *outputhandle;
-		setvbuf(stdout, NULL, _IONBF, 0);
-
-		HANDLE consoleerr = ::GetStdHandle(STD_ERROR_HANDLE);
-		int systemerr = _open_osfhandle(reinterpret_cast<intptr_t>(consoleerr), _O_TEXT);
-		FILE* errorhandle = _fdopen(systemerr, "w");
-		*stderr = *errorhandle;
-		setvbuf(stderr, NULL, _IONBF, 0);
-
-		HANDLE consolein = ::GetStdHandle(STD_INPUT_HANDLE);
-		int systemin = _open_osfhandle(reinterpret_cast<intptr_t>(consolein), _O_TEXT);
-		FILE* inputhandle = _fdopen(systemin, "r");
-		*stdin = *inputhandle;
-		setvbuf(stdin, NULL, _IONBF, 0);
-
-		std::ios::sync_with_stdio();
-	}
-
 	delete ActivatedGlobalScope;
 	ActivatedGlobalScope = new ActivatedScope(GlobalScope);
 

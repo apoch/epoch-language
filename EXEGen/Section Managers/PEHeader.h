@@ -16,6 +16,12 @@
 //
 class PEHeaderSection : public LinkerSectionManager
 {
+// Construction
+public:
+	PEHeaderSection()
+		: ConsoleMode(false)
+	{ }
+
 // Section manager interface
 public:
 	virtual void Generate(Linker& linker);
@@ -26,5 +32,13 @@ public:
 // Header management interface
 public:
 	DWORD GetHeaderSize() const;
+
+// Options
+public:
+	void SetConsoleMode()			{ ConsoleMode = true; }
+
+// Internal options
+protected:
+	bool ConsoleMode;
 };
 

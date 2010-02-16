@@ -106,11 +106,14 @@ void Linker::GenerateSections()
 //
 void Linker::CommitFile()
 {
-	std::ofstream outstream((TheProject.GetOutputPath() + TheProject.GetOutputFileName()).c_str(), std::ios::binary);
+	std::ofstream outstream((TheProject.GetQualifiedOutputFilename()).c_str(), std::ios::binary);
 	if(!outstream)
 		throw FileException("Cannot open output file for writing");
 
 	outstream.unsetf(std::ios::skipws);
+
+	if(TheProject.GetUsesConsoleFlag())
+		HeaderManager->SetConsoleMode();
 
 	LinkWriter writer(outstream);
 

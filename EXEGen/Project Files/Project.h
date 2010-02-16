@@ -25,6 +25,7 @@ namespace Projects
 		const std::wstring& GetIntermediatesPath() const			{ return IntermediatesPath; }
 		const std::wstring& GetOutputPath() const					{ return OutputPath; }
 		const std::wstring& GetOutputFileName() const				{ return OutputFileName; }
+		std::wstring GetQualifiedOutputFilename() const;
 
 		const std::list<std::wstring>& GetSourceFileList() const	{ return SourceFiles; }
 		const std::list<std::wstring>& GetResourceFileList() const	{ return ResourceFiles; }

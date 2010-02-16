@@ -163,3 +163,13 @@ std::wstring Project::GetBinaryFileName(const std::wstring& sourcefilename) cons
 }
 
 
+//
+// Return the fully qualified path to the output file
+//
+std::wstring Project::GetQualifiedOutputFilename() const
+{
+	if(StripPath(OutputFileName) == OutputFileName)
+		return OutputPath + OutputFileName;
+
+	return OutputFileName;
+}
