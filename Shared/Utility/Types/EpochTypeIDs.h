@@ -33,7 +33,7 @@ namespace VM
 
 		EpochVariableType_Address,
 
-		EpochVariableType_List,
+		EpochVariableType_Array,
 
 		EpochVariableType_TaskHandle,
 	};

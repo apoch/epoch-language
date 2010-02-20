@@ -21,26 +21,26 @@ VM::RValuePtr VM::Operations::ArithmeticOp<OpType, VarType, RValueType>::Execute
 	VarType::BaseStorage ret = 0;
 
 	if(NumParams == 1)
-		ret = OperateOnList(context.Stack);
+		ret = OperateOnArray(context.Stack);
 	else if(NumParams == 2)
 	{
-		if(FirstIsList && !SecondIsList)
+		if(FirstIsArray && !SecondIsArray)
 		{
 			VarType var(context.Stack.GetCurrentTopOfStack());
 			VarType::BaseStorage variableval = var.GetValue();
 			context.Stack.Pop(VarType::GetStorageSize());
 			switch(OpType)
 			{
-			case Arithmetic_Add:		ret = OperateOnList(context.Stack) + variableval;		break;
-			case Arithmetic_Subtract:	ret = OperateOnList(context.Stack) - variableval;		break;
-			case Arithmetic_Multiply:	ret = OperateOnList(context.Stack) * variableval;		break;
-			case Arithmetic_Divide:		ret = OperateOnList(context.Stack) / variableval;		break;
+			case Arithmetic_Add:		ret = OperateOnArray(context.Stack) + variableval;		break;
+			case Arithmetic_Subtract:	ret = OperateOnArray(context.Stack) - variableval;		break;
+			case Arithmetic_Multiply:	ret = OperateOnArray(context.Stack) * variableval;		break;
+			case Arithmetic_Divide:		ret = OperateOnArray(context.Stack) / variableval;		break;
 			default: throw InternalFailureException("Unrecognized arithmetic operation");
 			}
 		}
-		else if(!FirstIsList && SecondIsList)
+		else if(!FirstIsArray && SecondIsArray)
 		{
-			ret = OperateOnList(context.Stack);
+			ret = OperateOnArray(context.Stack);
 			VarType var(context.Stack.GetCurrentTopOfStack());
 			switch(OpType)
 			{
@@ -52,15 +52,15 @@ VM::RValuePtr VM::Operations::ArithmeticOp<OpType, VarType, RValueType>::Execute
 			}
 			context.Stack.Pop(VarType::GetStorageSize());
 		}
-		else if(FirstIsList && SecondIsList)
+		else if(FirstIsArray && SecondIsArray)
 		{
-			ret = OperateOnList(context.Stack);
+			ret = OperateOnArray(context.Stack);
 			switch(OpType)
 			{
-			case Arithmetic_Add:		ret = OperateOnList(context.Stack) + ret;		break;
-			case Arithmetic_Subtract:	ret = OperateOnList(context.Stack) - ret;		break;
-			case Arithmetic_Multiply:	ret = OperateOnList(context.Stack) * ret;		break;
-			case Arithmetic_Divide:		ret = OperateOnList(context.Stack) / ret;		break;
+			case Arithmetic_Add:		ret = OperateOnArray(context.Stack) + ret;		break;
+			case Arithmetic_Subtract:	ret = OperateOnArray(context.Stack) - ret;		break;
+			case Arithmetic_Multiply:	ret = OperateOnArray(context.Stack) * ret;		break;
+			case Arithmetic_Divide:		ret = OperateOnArray(context.Stack) / ret;		break;
 			default: throw InternalFailureException("Unrecognized arithmetic operation");
 			}
 		}
@@ -94,10 +94,10 @@ void VM::Operations::ArithmeticOp<OpType, VarType, RValueType>::ExecuteFast(Exec
 }
 
 //
-// Operate on a list of values from the stack
+// Operate on an array of values from the stack
 //
 template<VM::Operations::ArithmeticOpType OpType, class VarType, class RValueType>
-typename VarType::BaseStorage VM::Operations::ArithmeticOp<OpType, VarType, RValueType>::OperateOnList(StackSpace& stack) const
+typename VarType::BaseStorage VM::Operations::ArithmeticOp<OpType, VarType, RValueType>::OperateOnArray(StackSpace& stack) const
 {
 	VarType::BaseStorage ret = 0;
 	if(OpType == Arithmetic_Multiply || OpType == Arithmetic_Divide)

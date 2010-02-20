@@ -33,7 +33,7 @@ MapOperation::~MapOperation()
 }
 
 //
-// Map a unary function onto a list of values, and return the result
+// Map a unary function onto an array of values, and return the result
 //
 RValuePtr MapOperation::ExecuteAndStoreRValue(ExecutionContext& context)
 {
@@ -43,8 +43,8 @@ RValuePtr MapOperation::ExecuteAndStoreRValue(ExecutionContext& context)
 	IntegerVariable::BaseStorage count = countvar.GetValue();
 	context.Stack.Pop(IntegerVariable::GetStorageSize() * 2);
 
-	RValuePtr result(new ListRValue(static_cast<EpochVariableTypeID>(type)));
-	ListRValue* resultptr = dynamic_cast<ListRValue*>(result.get());
+	RValuePtr result(new ArrayRValue(static_cast<EpochVariableTypeID>(type)));
+	ArrayRValue* resultptr = dynamic_cast<ArrayRValue*>(result.get());
 
 	for(IntegerVariable::BaseStorage i = 0; i < count; ++i)
 	{
@@ -91,7 +91,7 @@ ReduceOperation::~ReduceOperation()
 }
 
 //
-// Apply a binary function to each element in a list, keeping a running
+// Apply a binary function to each element in an array, keeping a running
 // accumulator value as we go along. The final accumulator value is returned.
 //
 RValuePtr ReduceOperation::ExecuteAndStoreRValue(ExecutionContext& context)

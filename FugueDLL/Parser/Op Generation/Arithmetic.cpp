@@ -27,22 +27,22 @@ VM::OperationPtr ParserState::CreateOperation_Add()
 	{
 		if(TheStack.back().Type != StackEntry::STACKENTRYTYPE_OPERATION)
 		{
-			ReportFatalError("add() function expects 2 parameters or 1 list");
+			ReportFatalError("add() function expects 2 parameters or 1 array");
 			TheStack.pop_back();
 			return VM::OperationPtr(new VM::Operations::NoOp);
 		}
 
-		if(TheStack.back().OperationPointer->GetType(*CurrentScope) != VM::EpochVariableType_List)
+		if(TheStack.back().OperationPointer->GetType(*CurrentScope) != VM::EpochVariableType_Array)
 		{
-			ReportFatalError("add() function expects 2 parameters or 1 list");
+			ReportFatalError("add() function expects 2 parameters or 1 array");
 			TheStack.pop_back();
 			return VM::OperationPtr(new VM::Operations::NoOp);
 		}
 
-		VM::Operations::ConsList* consop = dynamic_cast<VM::Operations::ConsList*>(TheStack.back().OperationPointer);
+		VM::Operations::ConsArray* consop = dynamic_cast<VM::Operations::ConsArray*>(TheStack.back().OperationPointer);
 		if(!consop)
 		{
-			ReportFatalError("Expected a list here");
+			ReportFatalError("Expected an array here");
 			TheStack.pop_back();
 			return VM::OperationPtr(new VM::Operations::NoOp);
 		}
@@ -56,14 +56,14 @@ VM::OperationPtr ParserState::CreateOperation_Add()
 			return VM::OperationPtr(new VM::Operations::SumReals);
 		else
 		{
-			ReportFatalError("Cannot add() a list of this type of element");
+			ReportFatalError("Cannot add() an array of this type of element");
 			return VM::OperationPtr(new VM::Operations::NoOp);
 		}
 	}
 
 	if(PassedParameterCount.top() != 2)
 	{
-		ReportFatalError("add() function expects 2 parameters or 1 list");
+		ReportFatalError("add() function expects 2 parameters or 1 array");
 		for(size_t i = PassedParameterCount.top(); i > 0; --i)
 			TheStack.pop_back();
 		return VM::OperationPtr(new VM::Operations::NoOp);
@@ -85,11 +85,11 @@ VM::OperationPtr ParserState::CreateOperation_Add()
 	}
 
 	if(firsttype == VM::EpochVariableType_Integer)
-		return VM::OperationPtr(new VM::Operations::SumIntegers(first.IsList(), second.IsList()));
+		return VM::OperationPtr(new VM::Operations::SumIntegers(first.IsArray(), second.IsArray()));
 	else if(firsttype == VM::EpochVariableType_Integer16)
-		return VM::OperationPtr(new VM::Operations::SumInteger16s(first.IsList(), second.IsList()));
+		return VM::OperationPtr(new VM::Operations::SumInteger16s(first.IsArray(), second.IsArray()));
 	else if(firsttype == VM::EpochVariableType_Real)
-		return VM::OperationPtr(new VM::Operations::SumReals(first.IsList(), second.IsList()));
+		return VM::OperationPtr(new VM::Operations::SumReals(first.IsArray(), second.IsArray()));
 
 	ReportFatalError("add() cannot use parameters of this type");
 	return VM::OperationPtr(new VM::Operations::NoOp);
@@ -105,22 +105,22 @@ VM::OperationPtr ParserState::CreateOperation_Subtract()
 	{
 		if(TheStack.back().Type != StackEntry::STACKENTRYTYPE_OPERATION)
 		{
-			ReportFatalError("subtract() function expects 2 parameters or 1 list");
+			ReportFatalError("subtract() function expects 2 parameters or 1 array");
 			TheStack.pop_back();
 			return VM::OperationPtr(new VM::Operations::NoOp);
 		}
 
-		if(TheStack.back().OperationPointer->GetType(*CurrentScope) != VM::EpochVariableType_List)
+		if(TheStack.back().OperationPointer->GetType(*CurrentScope) != VM::EpochVariableType_Array)
 		{
-			ReportFatalError("subtract() function expects 2 parameters or 1 list");
+			ReportFatalError("subtract() function expects 2 parameters or 1 array");
 			TheStack.pop_back();
 			return VM::OperationPtr(new VM::Operations::NoOp);
 		}
 
-		VM::Operations::ConsList* consop = dynamic_cast<VM::Operations::ConsList*>(TheStack.back().OperationPointer);
+		VM::Operations::ConsArray* consop = dynamic_cast<VM::Operations::ConsArray*>(TheStack.back().OperationPointer);
 		if(!consop)
 		{
-			ReportFatalError("Expected a list constructor here");
+			ReportFatalError("Expected an array constructor here");
 			TheStack.pop_back();
 			return VM::OperationPtr(new VM::Operations::NoOp);
 		}
@@ -134,7 +134,7 @@ VM::OperationPtr ParserState::CreateOperation_Subtract()
 			return VM::OperationPtr(new VM::Operations::SubtractReals);
 		else
 		{
-			ReportFatalError("Cannot subtract() a list of this type of element");
+			ReportFatalError("Cannot subtract() an array of this type of element");
 			return VM::OperationPtr(new VM::Operations::NoOp);
 		}
 	}
@@ -163,11 +163,11 @@ VM::OperationPtr ParserState::CreateOperation_Subtract()
 	}
 
 	if(firsttype == VM::EpochVariableType_Integer)
-		return VM::OperationPtr(new VM::Operations::SubtractIntegers(first.IsList(), second.IsList()));
+		return VM::OperationPtr(new VM::Operations::SubtractIntegers(first.IsArray(), second.IsArray()));
 	else if(firsttype == VM::EpochVariableType_Integer16)
-		return VM::OperationPtr(new VM::Operations::SubtractInteger16s(first.IsList(), second.IsList()));
+		return VM::OperationPtr(new VM::Operations::SubtractInteger16s(first.IsArray(), second.IsArray()));
 	else if(firsttype == VM::EpochVariableType_Real)
-		return VM::OperationPtr(new VM::Operations::SubtractReals(first.IsList(), second.IsList()));
+		return VM::OperationPtr(new VM::Operations::SubtractReals(first.IsArray(), second.IsArray()));
 
 	ReportFatalError("subtract() cannot use parameters of this type");
 	return VM::OperationPtr(new VM::Operations::NoOp);
@@ -183,22 +183,22 @@ VM::OperationPtr ParserState::CreateOperation_Multiply()
 	{
 		if(TheStack.back().Type != StackEntry::STACKENTRYTYPE_OPERATION)
 		{
-			ReportFatalError("multiply() function expects 2 parameters or 1 list");
+			ReportFatalError("multiply() function expects 2 parameters or 1 array");
 			TheStack.pop_back();
 			return VM::OperationPtr(new VM::Operations::NoOp);
 		}
 
-		if(TheStack.back().OperationPointer->GetType(*CurrentScope) != VM::EpochVariableType_List)
+		if(TheStack.back().OperationPointer->GetType(*CurrentScope) != VM::EpochVariableType_Array)
 		{
-			ReportFatalError("multiply() function expects 2 parameters or 1 list");
+			ReportFatalError("multiply() function expects 2 parameters or 1 array");
 			TheStack.pop_back();
 			return VM::OperationPtr(new VM::Operations::NoOp);
 		}
 
-		VM::Operations::ConsList* consop = dynamic_cast<VM::Operations::ConsList*>(TheStack.back().OperationPointer);
+		VM::Operations::ConsArray* consop = dynamic_cast<VM::Operations::ConsArray*>(TheStack.back().OperationPointer);
 		if(!consop)
 		{
-			ReportFatalError("Expected a list here");
+			ReportFatalError("Expected an array here");
 			TheStack.pop_back();
 			return VM::OperationPtr(new VM::Operations::NoOp);
 		}
@@ -212,7 +212,7 @@ VM::OperationPtr ParserState::CreateOperation_Multiply()
 			return VM::OperationPtr(new VM::Operations::MultiplyReals);
 		else
 		{
-			ReportFatalError("Cannot multiply() a list of this type of element");
+			ReportFatalError("Cannot multiply() an array of this type of element");
 			return VM::OperationPtr(new VM::Operations::NoOp);
 		}
 	}
@@ -241,11 +241,11 @@ VM::OperationPtr ParserState::CreateOperation_Multiply()
 	}
 
 	if(firsttype == VM::EpochVariableType_Integer)
-		return VM::OperationPtr(new VM::Operations::MultiplyIntegers(first.IsList(), second.IsList()));
+		return VM::OperationPtr(new VM::Operations::MultiplyIntegers(first.IsArray(), second.IsArray()));
 	else if(firsttype == VM::EpochVariableType_Integer16)
-		return VM::OperationPtr(new VM::Operations::MultiplyInteger16s(first.IsList(), second.IsList()));
+		return VM::OperationPtr(new VM::Operations::MultiplyInteger16s(first.IsArray(), second.IsArray()));
 	else if(firsttype == VM::EpochVariableType_Real)
-		return VM::OperationPtr(new VM::Operations::MultiplyReals(first.IsList(), second.IsList()));
+		return VM::OperationPtr(new VM::Operations::MultiplyReals(first.IsArray(), second.IsArray()));
 
 	ReportFatalError("multiply() cannot use parameters of this type");
 	return VM::OperationPtr(new VM::Operations::NoOp);
@@ -261,22 +261,22 @@ VM::OperationPtr ParserState::CreateOperation_Divide()
 	{
 		if(TheStack.back().Type != StackEntry::STACKENTRYTYPE_OPERATION)
 		{
-			ReportFatalError("divide() function expects 2 parameters or 1 list");
+			ReportFatalError("divide() function expects 2 parameters or 1 array");
 			TheStack.pop_back();
 			return VM::OperationPtr(new VM::Operations::NoOp);
 		}
 
-		if(TheStack.back().OperationPointer->GetType(*CurrentScope) != VM::EpochVariableType_List)
+		if(TheStack.back().OperationPointer->GetType(*CurrentScope) != VM::EpochVariableType_Array)
 		{
-			ReportFatalError("divide() function expects 2 parameters or 1 list");
+			ReportFatalError("divide() function expects 2 parameters or 1 array");
 			TheStack.pop_back();
 			return VM::OperationPtr(new VM::Operations::NoOp);
 		}
 
-		VM::Operations::ConsList* consop = dynamic_cast<VM::Operations::ConsList*>(TheStack.back().OperationPointer);
+		VM::Operations::ConsArray* consop = dynamic_cast<VM::Operations::ConsArray*>(TheStack.back().OperationPointer);
 		if(!consop)
 		{
-			ReportFatalError("Expected a list here");
+			ReportFatalError("Expected an array here");
 			TheStack.pop_back();
 			return VM::OperationPtr(new VM::Operations::NoOp);
 		}
@@ -290,7 +290,7 @@ VM::OperationPtr ParserState::CreateOperation_Divide()
 			return VM::OperationPtr(new VM::Operations::DivideReals);
 		else
 		{
-			ReportFatalError("Cannot divide() a list of this type of element");
+			ReportFatalError("Cannot divide() an array of this type of element");
 			return VM::OperationPtr(new VM::Operations::NoOp);
 		}
 	}
@@ -319,11 +319,11 @@ VM::OperationPtr ParserState::CreateOperation_Divide()
 	}
 
 	if(firsttype == VM::EpochVariableType_Integer)
-		return VM::OperationPtr(new VM::Operations::DivideIntegers(first.IsList(), second.IsList()));
+		return VM::OperationPtr(new VM::Operations::DivideIntegers(first.IsArray(), second.IsArray()));
 	else if(firsttype == VM::EpochVariableType_Integer16)
-		return VM::OperationPtr(new VM::Operations::DivideInteger16s(first.IsList(), second.IsList()));
+		return VM::OperationPtr(new VM::Operations::DivideInteger16s(first.IsArray(), second.IsArray()));
 	else if(firsttype == VM::EpochVariableType_Real)
-		return VM::OperationPtr(new VM::Operations::DivideReals(first.IsList(), second.IsList()));
+		return VM::OperationPtr(new VM::Operations::DivideReals(first.IsArray(), second.IsArray()));
 
 	ReportFatalError("divide() cannot use parameters of this type");
 	return VM::OperationPtr(new VM::Operations::NoOp);

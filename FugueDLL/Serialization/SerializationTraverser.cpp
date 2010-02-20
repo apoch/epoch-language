@@ -230,16 +230,16 @@ void SerializationTraverser::TraverseScope(VM::ScopeDescription& scope)
 	}
 
 	PadTabs();
-	OutputStream << ListTypes << L" " << scope.ListTypes.size() << L"\n";
-	for(std::map<std::wstring, VM::EpochVariableTypeID>::const_iterator iter = scope.ListTypes.begin(); iter != scope.ListTypes.end(); ++iter)
+	OutputStream << ArrayTypes << L" " << scope.ArrayTypes.size() << L"\n";
+	for(std::map<std::wstring, VM::EpochVariableTypeID>::const_iterator iter = scope.ArrayTypes.begin(); iter != scope.ArrayTypes.end(); ++iter)
 	{
 		PadTabs();
 		OutputStream << iter->first << L" " << iter->second << L"\n";
 	}
 
 	PadTabs();
-	OutputStream << ListSizes << L" " << scope.ListSizes.size() << L"\n";
-	for(std::map<std::wstring, size_t>::const_iterator iter = scope.ListSizes.begin(); iter != scope.ListSizes.end(); ++iter)
+	OutputStream << ArraySizes << L" " << scope.ArraySizes.size() << L"\n";
+	for(std::map<std::wstring, size_t>::const_iterator iter = scope.ArraySizes.begin(); iter != scope.ArraySizes.end(); ++iter)
 	{
 		PadTabs();
 		OutputStream << iter->first << L" " << iter->second << L"\n";
@@ -499,12 +499,12 @@ void SerializationTraverser::WriteCastOp(const void* opptr, const std::wstring& 
 	OutputStream << opptr << L" " << token << L" " << originaltype << L"\n";
 }
 
-void SerializationTraverser::WriteArithmeticOp(const void* opptr, const std::wstring& token, bool isfirstlist, bool issecondlist, size_t numparams)
+void SerializationTraverser::WriteArithmeticOp(const void* opptr, const std::wstring& token, bool isfirstarray, bool issecondarray, size_t numparams)
 {
 	PadTabs();
 	OutputStream << opptr << L" " << token << L" ";
-	OutputStream << (isfirstlist ? Serialization::True : Serialization::False) << L" ";
-	OutputStream << (issecondlist ? Serialization::True : Serialization::False) << L" ";
+	OutputStream << (isfirstarray ? Serialization::True : Serialization::False) << L" ";
+	OutputStream << (issecondarray ? Serialization::True : Serialization::False) << L" ";
 	OutputStream << numparams << L"\n";
 }
 
@@ -553,7 +553,7 @@ void SerializationTraverser::WriteAcceptMessage(const void* opptr, const std::ws
 }
 
 
-void SerializationTraverser::WriteConsList(const void* opptr, const std::wstring& token, VM::EpochVariableTypeID elementtype, size_t numelements)
+void SerializationTraverser::WriteConsArray(const void* opptr, const std::wstring& token, VM::EpochVariableTypeID elementtype, size_t numelements)
 {
 	PadTabs();
 	OutputStream << opptr << L" " << token << L" " << elementtype << L" " << numelements << L"\n";

@@ -316,13 +316,13 @@ bool StructureRValue::VirtualComparator(const RValue& rhs) const
 
 
 //-------------------------------------------------------------------------------
-// Lists
+// Arrays
 //-------------------------------------------------------------------------------
 
 //
-// Destruct and clean up a list r-value
+// Destruct and clean up an array r-value
 //
-ListRValue::~ListRValue()
+ArrayRValue::~ArrayRValue()
 {
 	Clean();
 }
@@ -330,7 +330,7 @@ ListRValue::~ListRValue()
 //
 // Release all contained r-values and associated memory
 //
-void ListRValue::Clean()
+void ArrayRValue::Clean()
 {
 	for(std::vector<RValue*>::iterator iter = Elements.begin(); iter != Elements.end(); ++iter)
 		delete *iter;
@@ -339,31 +339,31 @@ void ListRValue::Clean()
 }
 
 //
-// Deep copy from another list r-value
+// Deep copy from another array r-value
 //
-void ListRValue::CopyFrom(const ListRValue& rhs)
+void ArrayRValue::CopyFrom(const ArrayRValue& rhs)
 {
 	for(std::vector<RValue*>::const_iterator iter = rhs.Elements.begin(); iter != rhs.Elements.end(); ++iter)
 		Elements.push_back((*iter)->Clone());
 }
 
 //
-// Append an element to the list
+// Append an element to the array
 //
-void ListRValue::AddElement(RValue* element)
+void ArrayRValue::AddElement(RValue* element)
 {
 	Elements.push_back(element);
 }
 
 //
-// Compare two lists for equality
+// Compare two arrays for equality
 //
-bool ListRValue::VirtualComparator(const RValue& rhs) const
+bool ArrayRValue::VirtualComparator(const RValue& rhs) const
 {
-	if(rhs.GetType() != EpochVariableType_List)
+	if(rhs.GetType() != EpochVariableType_Array)
 		return false;
 
-	const ListRValue& rhsvalue = rhs.CastTo<ListRValue>();
+	const ArrayRValue& rhsvalue = rhs.CastTo<ArrayRValue>();
 	if(rhsvalue.ElementType != ElementType)
 		return false;
 

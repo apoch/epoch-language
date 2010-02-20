@@ -560,9 +560,9 @@ END_INSTRUCTION																								\
 																											\
 DEFINE_ADDRESSED_INSTRUCTION(Bytecode::DivideReals, Serialization::DivideReals)								\
 	SPACE																									\
-	COPY_BOOL(firstislist)																					\
+	COPY_BOOL(firstisarray)																					\
 	SPACE																									\
-	COPY_BOOL(secondislist)																					\
+	COPY_BOOL(secondisarray)																				\
 	SPACE																									\
 	COPY_UINT(numparams)																					\
 	NEWLINE																									\
@@ -570,9 +570,9 @@ END_INSTRUCTION																								\
 																											\
 DEFINE_ADDRESSED_INSTRUCTION(Bytecode::AddReals, Serialization::AddReals)									\
 	SPACE																									\
-	COPY_BOOL(firstislist)																					\
+	COPY_BOOL(firstisarray)																					\
 	SPACE																									\
-	COPY_BOOL(secondislist)																					\
+	COPY_BOOL(secondisarray)																				\
 	SPACE																									\
 	COPY_UINT(numparams)																					\
 	NEWLINE																									\
@@ -580,9 +580,9 @@ END_INSTRUCTION																								\
 																											\
 DEFINE_ADDRESSED_INSTRUCTION(Bytecode::SubReals, Serialization::SubtractReals)								\
 	SPACE																									\
-	COPY_BOOL(firstislist)																					\
+	COPY_BOOL(firstisarray)																					\
 	SPACE																									\
-	COPY_BOOL(secondislist)																					\
+	COPY_BOOL(secondisarray)																				\
 	SPACE																									\
 	COPY_UINT(numparams)																					\
 	NEWLINE																									\
@@ -598,9 +598,9 @@ END_INSTRUCTION																								\
 																											\
 DEFINE_ADDRESSED_INSTRUCTION(Bytecode::AddIntegers, Serialization::AddIntegers)								\
 	SPACE																									\
-	COPY_BOOL(firstislist)																					\
+	COPY_BOOL(firstisarray)																					\
 	SPACE																									\
-	COPY_BOOL(secondislist)																					\
+	COPY_BOOL(secondisarray)																				\
 	SPACE																									\
 	COPY_UINT(numparams)																					\
 	NEWLINE																									\
@@ -608,9 +608,9 @@ END_INSTRUCTION																								\
 																											\
 DEFINE_ADDRESSED_INSTRUCTION(Bytecode::SubtractIntegers, Serialization::SubtractIntegers)					\
 	SPACE																									\
-	COPY_BOOL(firstislist)																					\
+	COPY_BOOL(firstisarray)																					\
 	SPACE																									\
-	COPY_BOOL(secondislist)																					\
+	COPY_BOOL(secondisarray)																				\
 	SPACE																									\
 	COPY_UINT(numparams)																					\
 	NEWLINE																									\
@@ -671,9 +671,9 @@ END_INSTRUCTION																								\
 																											\
 DEFINE_ADDRESSED_INSTRUCTION(Bytecode::Concat, Serialization::Concat)										\
 	SPACE																									\
-	COPY_BOOL(firstislist)																					\
+	COPY_BOOL(firstisarray)																					\
 	SPACE																									\
-	COPY_BOOL(secondislist)																					\
+	COPY_BOOL(secondisarray)																				\
 	SPACE																									\
 	COPY_UINT(numparams)																					\
 	NEWLINE																									\
@@ -840,7 +840,7 @@ DEFINE_INSTRUCTION(Bytecode::ResponseMaps, Serialization::ResponseMaps)									
 	ENDLOOP																									\
 END_INSTRUCTION																								\
 																											\
-DEFINE_ADDRESSED_INSTRUCTION(Bytecode::ConsList, Serialization::ConsList)									\
+DEFINE_ADDRESSED_INSTRUCTION(Bytecode::ConsArray, Serialization::ConsArray)									\
 	SPACE																									\
 	COPY_UINT(type)																							\
 	PARAM_UINT(numops)																						\
@@ -848,9 +848,9 @@ END_INSTRUCTION																								\
 																											\
 DEFINE_ADDRESSED_INSTRUCTION(Bytecode::MultiplyIntegers, Serialization::MultiplyIntegers)					\
 	SPACE																									\
-	COPY_BOOL(firstislist)																					\
+	COPY_BOOL(firstisarray)																					\
 	SPACE																									\
-	COPY_BOOL(secondislist)																					\
+	COPY_BOOL(secondisarray)																				\
 	SPACE																									\
 	COPY_UINT(numparams)																					\
 	NEWLINE																									\
@@ -1009,9 +1009,9 @@ END_INSTRUCTION																								\
 																											\
 DEFINE_ADDRESSED_INSTRUCTION(Bytecode::DivideIntegers, Serialization::DivideIntegers)						\
 	SPACE																									\
-	COPY_BOOL(firstislist)																					\
+	COPY_BOOL(firstisarray)																					\
 	SPACE																									\
-	COPY_BOOL(secondislist)																					\
+	COPY_BOOL(secondisarray)																				\
 	SPACE																									\
 	COPY_UINT(numparams)																					\
     NEWLINE																									\
@@ -1019,9 +1019,9 @@ END_INSTRUCTION																								\
 																											\
 DEFINE_ADDRESSED_INSTRUCTION(Bytecode::DivideInteger16s, Serialization::DivideInteger16s)					\
 	SPACE																									\
-	COPY_BOOL(firstislist)																					\
+	COPY_BOOL(firstisarray)																					\
 	SPACE																									\
-	COPY_BOOL(secondislist)																					\
+	COPY_BOOL(secondisarray)																				\
 	SPACE																									\
 	COPY_UINT(numparams)																					\
     NEWLINE																									\
@@ -1062,22 +1062,22 @@ DEFINE_ADDRESSED_INSTRUCTION(Bytecode::IntegerLiteral, Serialization::IntegerCon
 	PARAM_UINT(value)																						\
 END_INSTRUCTION																								\
 																											\
-DEFINE_INSTRUCTION(Bytecode::ListTypes, Serialization::ListTypes)											\
+DEFINE_INSTRUCTION(Bytecode::ArrayTypes, Serialization::ArrayTypes)											\
 	PARAM_UINT(count)																						\
 	LOOP(count)																								\
-		COPY_STR(listname)																					\
+		COPY_STR(arrayname)																					\
 		SPACE																								\
-		COPY_UINT(listtype)																					\
+		COPY_UINT(arraytype)																				\
 		NEWLINE																								\
 	ENDLOOP																									\
 END_INSTRUCTION																								\
 																											\
-DEFINE_INSTRUCTION(Bytecode::ListSizes, Serialization::ListSizes)											\
+DEFINE_INSTRUCTION(Bytecode::ArraySizes, Serialization::ArraySizes)											\
 	PARAM_UINT(count)																						\
 	LOOP(count)																								\
-		COPY_STR(listname)																					\
+		COPY_STR(arrayname)																					\
 		SPACE																								\
-		COPY_UINT(listsize)																					\
+		COPY_UINT(arraysize)																				\
 		NEWLINE																								\
 	ENDLOOP																									\
 END_INSTRUCTION																								\

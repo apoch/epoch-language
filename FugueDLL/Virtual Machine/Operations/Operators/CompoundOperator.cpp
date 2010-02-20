@@ -2,7 +2,7 @@
 // The Epoch Language Project
 // FUGUE Virtual Machine
 //
-// Base class for operators that can act on lists of parameters
+// Base class for operators that can act on arrays of parameters
 //
 
 #include "pch.h"

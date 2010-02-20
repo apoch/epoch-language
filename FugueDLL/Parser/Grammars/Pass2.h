@@ -83,7 +83,7 @@ namespace Parser
 				  GLOBAL(KEYWORD(Global)), ELSEIF(KEYWORD(ElseIf)), MEMBER(KEYWORD(Member)), CONSTANT(KEYWORD(Constant)),
 				  HEXPREFIX(KEYWORD(HexPrefix)), TASK(KEYWORD(Task)), MESSAGE(KEYWORD(Message)), ACCEPTMESSAGE(KEYWORD(AcceptMessage)),
 				  SENDER(KEYWORD(Sender)), CALLER(KEYWORD(Caller)), RESPONSEMAP(KEYWORD(ResponseMap)), INFIXDECL(KEYWORD(Infix)),
-				  FUTURE(KEYWORD(Future)), REDUCE(KEYWORD(Reduce)), LIST(KEYWORD(List)), MAP(KEYWORD(Map)), VAR(KEYWORD(Var)),
+				  FUTURE(KEYWORD(Future)), REDUCE(KEYWORD(Reduce)), ARRAY(KEYWORD(Array)), MAP(KEYWORD(Map)), VAR(KEYWORD(Var)),
 				  NOT(OPERATOR(Not)), BUFFER(KEYWORD(Buffer)), ALIASDECL(KEYWORD(Alias)), MEMBEROPERATOR(OPERATOR(Member)),
 				  EXTENSION(KEYWORD(Extension)), THREAD(KEYWORD(Thread)), THREADPOOL(KEYWORD(ThreadPool)),
 
@@ -324,7 +324,7 @@ namespace Parser
 					| BOOLEAN
 					| REAL
 					| BUFFER
-					| LIST
+					| ARRAY
 					;
 
 				OtherKeywords
@@ -383,9 +383,9 @@ namespace Parser
 						>> StringIdentifier[RegisterVariableName(self.State)]
 						>> COMMA >> PassedParameter[RegisterVariableValue(self.State)] >> CLOSEPARENS
 
-					| !CONSTANT[RegisterUpcomingConstant(self.State)] >> LIST >> OPENPARENS[RegisterUpcomingListVariable(self.State)][StartCountingParams(self.State)]
+					| !CONSTANT[RegisterUpcomingConstant(self.State)] >> ARRAY >> OPENPARENS[RegisterUpcomingArrayVariable(self.State)][StartCountingParams(self.State)]
 						>> StringIdentifier[RegisterVariableName(self.State)]
-						>> COMMA >> (TypeKeywords[RegisterListType(self.State)] | OperationParameter) >> CLOSEPARENS[RegisterListVariable(self.State)]
+						>> COMMA >> (TypeKeywords[RegisterArrayType(self.State)] | OperationParameter) >> CLOSEPARENS[RegisterArrayVariable(self.State)]
 					;
 
 				TupleDefinition
@@ -583,7 +583,7 @@ namespace Parser
 			boost::spirit::classic::strlit<> FUNCTIONARROW, IF, WHILE, ELSE, DO, INTEGER, STRING, BOOLEAN, REAL, TRUETOKEN, FALSETOKEN, EXTERNAL, CAST, ASSIGN, LIBRARY, ELSEIF;
 			boost::spirit::classic::strlit<> TUPLE, READTUPLE, WRITETUPLE, STRUCTURE, READSTRUCTURE, WRITESTRUCTURE, SIZEOF, INTEGER16, REFERENCE, FUNCTION, LENGTH, GLOBAL, MEMBER;
 			boost::spirit::classic::strlit<> CONSTANT, HEXPREFIX, TASK, MESSAGE, ACCEPTMESSAGE, NULLFUNCTIONARROW, CALLER, SENDER, RESPONSEMAP, INFIXDECL, CRASHPARSER, FUTURE;
-			boost::spirit::classic::strlit<> LIST, MAP, REDUCE, VAR, NOT, BUFFER, ALIASDECL, ADDASSIGN, SUBTRACTASSIGN, MULTIPLYASSIGN, DIVIDEASSIGN, INCREMENT, DECREMENT;
+			boost::spirit::classic::strlit<> ARRAY, MAP, REDUCE, VAR, NOT, BUFFER, ALIASDECL, ADDASSIGN, SUBTRACTASSIGN, MULTIPLYASSIGN, DIVIDEASSIGN, INCREMENT, DECREMENT;
 			boost::spirit::classic::strlit<> CONCATASSIGN, MEMBEROPERATOR, EXTENSION, THREAD, THREADPOOL;
 
 			// Parser rules

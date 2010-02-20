@@ -19,15 +19,15 @@ namespace VM
 	{
 
 		//
-		// This operation constructs an anonymous list container on the stack
+		// This operation constructs an anonymous array container on the stack
 		// It is primarily useful for passing an indeterminate number of values
 		// into a variadic function, such as or() or add().
 		//
-		class ConsList : public Operation, public SelfAware<ConsList>
+		class ConsArray : public Operation, public SelfAware<ConsArray>
 		{
 		// Construction
 		public:
-			ConsList(size_t numentries, EpochVariableTypeID elementtype);
+			ConsArray(size_t numentries, EpochVariableTypeID elementtype);
 
 		// Operation interface
 		public:
@@ -35,7 +35,7 @@ namespace VM
 			virtual RValuePtr ExecuteAndStoreRValue(ExecutionContext& context);
 
 			virtual EpochVariableTypeID GetType(const ScopeDescription& scope) const
-			{ return EpochVariableType_List; }
+			{ return EpochVariableType_Array; }
 
 			virtual size_t GetNumParameters(const VM::ScopeDescription& scope) const
 			{ return NumEntries; }

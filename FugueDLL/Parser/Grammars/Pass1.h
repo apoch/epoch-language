@@ -78,7 +78,7 @@ namespace Parser
 
 				  // String tokens: types
 				  INTEGER(KEYWORD(Integer)), INTEGER16(KEYWORD(Integer16)), STRING(KEYWORD(String)), BOOLEAN(KEYWORD(Boolean)), REAL(KEYWORD(Real)),
-				  TUPLE(KEYWORD(Tuple)), STRUCTURE(KEYWORD(Structure)), BUFFER(KEYWORD(Buffer)), LIST(KEYWORD(List)),
+				  TUPLE(KEYWORD(Tuple)), STRUCTURE(KEYWORD(Structure)), BUFFER(KEYWORD(Buffer)), ARRAY(KEYWORD(Array)),
 
 				  // String tokens: parameter annotations
 				  REFERENCE(KEYWORD(Reference)),
@@ -377,7 +377,7 @@ namespace Parser
 					| BOOLEAN
 					| REAL
 					| BUFFER
-					| LIST
+					| ARRAY
 					;
 
 				OtherKeywords
@@ -413,7 +413,7 @@ namespace Parser
 					| !CONSTANT >> STRING >> (OPENPARENS >> StringIdentifier >> ExpectComma(COMMA) >> PassedParameter >> CLOSEPARENS)
 					| !CONSTANT >> BOOLEAN >> (OPENPARENS >> StringIdentifier >> ExpectComma(COMMA) >> PassedParameter >> CLOSEPARENS)
 					| !CONSTANT >> REAL >> (OPENPARENS >> StringIdentifier >> ExpectComma(COMMA) >> PassedParameter >> CLOSEPARENS)
-					| !CONSTANT >> LIST >> (OPENPARENS >> StringIdentifier >> ExpectComma(COMMA) >> (TypeKeywords | OperationParameter) >> CLOSEPARENS)
+					| !CONSTANT >> ARRAY >> (OPENPARENS >> StringIdentifier >> ExpectComma(COMMA) >> (TypeKeywords | OperationParameter) >> CLOSEPARENS)
 					;
 
 				TupleDefinition
@@ -597,7 +597,7 @@ namespace Parser
 			boost::spirit::classic::strlit<> TUPLE, STRUCTURE, INTEGER16, REFERENCE, FUNCTION, LIBRARY, GLOBAL, ELSEIF, CONSTANT, HEXPREFIX, TASK, ACCEPTMESSAGE;
 			boost::spirit::classic::strlit<> RESPONSEMAP, INFIXDECL, CRASHPARSER, NOT, BUFFER, ASSIGN, CAST, READTUPLE, WRITETUPLE, READSTRUCTURE, WRITESTRUCTURE;
 			boost::spirit::classic::strlit<> SIZEOF, LENGTH, MEMBER, MESSAGE, FUTURE, MAP, REDUCE, CALLER, SENDER, ALIASDECL, INCREMENT, DECREMENT, THREADPOOL;
-			boost::spirit::classic::strlit<> ADDASSIGN, SUBTRACTASSIGN, MULTIPLYASSIGN, DIVIDEASSIGN, CONCATASSIGN, LIST, MEMBEROPERATOR, EXTENSION, THREAD;
+			boost::spirit::classic::strlit<> ADDASSIGN, SUBTRACTASSIGN, MULTIPLYASSIGN, DIVIDEASSIGN, CONCATASSIGN, ARRAY, MEMBEROPERATOR, EXTENSION, THREAD;
 
 			// Parser rules
 			boost::spirit::classic::rule<ScannerType> StringIdentifier, FunctionDefinition, PassedParameter, OperationParameter, Operation, CodeBlock, Program;

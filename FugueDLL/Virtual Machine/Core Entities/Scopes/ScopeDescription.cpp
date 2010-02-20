@@ -16,7 +16,7 @@
 #include "Virtual Machine/Core Entities/Types/Tuple.h"
 #include "Virtual Machine/Core Entities/Variables/TupleVariable.h"
 #include "Virtual Machine/Core Entities/Variables/StructureVariable.h"
-#include "Virtual Machine/Core Entities/Variables/ListVariable.h"
+#include "Virtual Machine/Core Entities/Variables/ArrayVariable.h"
 #include "Virtual Machine/Core Entities/Variables/BufferVariable.h"
 #include "Virtual Machine/Core Entities/Concurrency/ResponseMap.h"
 #include "Virtual Machine/Core Entities/Concurrency/Future.h"
@@ -109,8 +109,8 @@ void ScopeDescription::AddVariable(const std::wstring& name, EpochVariableTypeID
 	case EpochVariableType_Buffer:
 		Variables.insert(VariableMapEntry(name, BufferVariable(NULL)));
 		break;
-	case EpochVariableType_List:
-		Variables.insert(VariableMapEntry(name, ListVariable(NULL)));
+	case EpochVariableType_Array:
+		Variables.insert(VariableMapEntry(name, ArrayVariable(NULL)));
 		break;
 	default:
 		throw NotImplementedException("Cannot add variable to scope - type not recognized");
@@ -253,46 +253,46 @@ void ScopeDescription::AddFuture(const std::wstring& name, VM::OperationPtr boun
 
 
 //-------------------------------------------------------------------------------
-// Lists
+// Arrays
 //-------------------------------------------------------------------------------
 
 //
-// Track the element type of a list variable; this is primarily used for empty
-// lists that cannot use type inference on their elements.
+// Track the element type of an array variable; this is primarily used for
+// empty arrays that cannot use type inference on their elements.
 //
-void ScopeDescription::SetListType(const std::wstring& listname, EpochVariableTypeID type)
+void ScopeDescription::SetArrayType(const std::wstring& arrayname, EpochVariableTypeID type)
 {
-	ListTypes[listname] = type;
+	ArrayTypes[arrayname] = type;
 }
 
 //
-// Retrieve the element type of a list variable
+// Retrieve the element type of an array variable
 //
-EpochVariableTypeID ScopeDescription::GetListType(const std::wstring& listname) const
+EpochVariableTypeID ScopeDescription::GetArrayType(const std::wstring& arrayname) const
 {
-	std::map<std::wstring, EpochVariableTypeID>::const_iterator iter = ListTypes.find(listname);
-	if(iter == ListTypes.end())
-		throw ExecutionException("Could not determine element type of this list");
+	std::map<std::wstring, EpochVariableTypeID>::const_iterator iter = ArrayTypes.find(arrayname);
+	if(iter == ArrayTypes.end())
+		throw ExecutionException("Could not determine element type of this array");
 
 	return iter->second;
 }
 
 //
-// Track the expected size of a list
+// Track the expected size of an array
 //
-void ScopeDescription::SetListSize(const std::wstring& listname, size_t size)
+void ScopeDescription::SetArraySize(const std::wstring& arrayname, size_t size)
 {
-	ListSizes[listname] = size;
+	ArraySizes[arrayname] = size;
 }
 
 //
-// Retrieve the expected size of a list. Used for initialization of unbound list variables.
+// Retrieve the expected size of an array. Used for initialization of unbound array variables.
 //
-size_t ScopeDescription::GetListSize(const std::wstring& listname) const
+size_t ScopeDescription::GetArraySize(const std::wstring& arrayname) const
 {
-	std::map<std::wstring, unsigned>::const_iterator iter = ListSizes.find(listname);
-	if(iter == ListSizes.end())
-		throw ExecutionException("Could not determine size of this list");
+	std::map<std::wstring, unsigned>::const_iterator iter = ArraySizes.find(arrayname);
+	if(iter == ArraySizes.end())
+		throw ExecutionException("Could not determine size of this array");
 
 	return iter->second;
 }

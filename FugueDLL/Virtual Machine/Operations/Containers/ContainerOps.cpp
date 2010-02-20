@@ -19,25 +19,25 @@ using namespace VM::Operations;
 
 
 //
-// Construct a list of the given element type with the given number of entries
+// Construct an array of the given element type with the given number of entries
 //
-ConsList::ConsList(unsigned numentries, EpochVariableTypeID elementtype)
+ConsArray::ConsArray(unsigned numentries, EpochVariableTypeID elementtype)
 	: NumEntries(numentries),
 	  ElementType(elementtype)
 {
 }
 
 //
-// Extract a list's contents from the stack and wrap them into an r-value
+// Extract an array's contents from the stack and wrap them into an r-value
 //
-void ConsList::ExecuteFast(ExecutionContext& context)
+void ConsArray::ExecuteFast(ExecutionContext& context)
 {
 	ExecuteAndStoreRValue(context);
 }
 
-RValuePtr ConsList::ExecuteAndStoreRValue(ExecutionContext& context)
+RValuePtr ConsArray::ExecuteAndStoreRValue(ExecutionContext& context)
 {
-	std::auto_ptr<ListRValue> ret(new ListRValue(ElementType));
+	std::auto_ptr<ArrayRValue> ret(new ArrayRValue(ElementType));
 
 	size_t offset = 0;
 
@@ -89,7 +89,7 @@ RValuePtr ConsList::ExecuteAndStoreRValue(ExecutionContext& context)
 		break;
 
 	default:
-		throw NotImplementedException("Cannot construct list of this type");
+		throw NotImplementedException("Cannot construct array of this type");
 	}
 
 	return RValuePtr(ret.release());

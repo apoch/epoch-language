@@ -150,10 +150,10 @@ namespace Parser
 		void RegisterVariableValue();
 		void RegisterUpcomingConstant();
 
-	// Lists
+	// Arrays
 	public:
-		void RegisterListVariable();
-		void RegisterListType(const std::wstring& type);
+		void RegisterArrayVariable();
+		void RegisterArrayType(const std::wstring& type);
 
 	// Tuples
 	public:
@@ -377,7 +377,7 @@ namespace Parser
 			std::wstring StringValue;
 
 			VM::EpochVariableTypeID DetermineEffectiveType(const VM::ScopeDescription& scope) const;
-			bool IsList() const;
+			bool IsArray() const;
 		};
 
 	private:
@@ -430,16 +430,16 @@ namespace Parser
 		void RegisterExternal(VM::EpochVariableTypeID returntype);
 
 		template<typename LogicalOpType, typename BitwiseOpType>
-		VM::OperationPtr ParseLogicalOpListOnly();
+		VM::OperationPtr ParseLogicalOpArrayOnly();
 
 		template<typename ReturnPointerType, typename LiteralOperatorType, typename LiteralConstType>
-		void ParsePotentialList(bool islist, ReturnPointerType& retopref);
+		void ParsePotentialArray(bool isarray, ReturnPointerType& retopref);
 
 		template<typename ReturnPointerType, typename LiteralOperatorType, typename LiteralConstType>
-		ReturnPointerType* ParseLogicalOp(bool firstislist, bool secondislist);
+		ReturnPointerType* ParseLogicalOp(bool firstisarray, bool secondisarray);
 
 		template<typename ReturnPointerType, typename LiteralOperatorType, typename LiteralConstType>
-		ReturnPointerType* ParseBitwiseOp(bool firstislist, bool secondislist);
+		ReturnPointerType* ParseBitwiseOp(bool firstisarray, bool secondisarray);
 
 		FileLocationInfo GetFileLocationInfo() const;
 
@@ -480,7 +480,7 @@ namespace Parser
 		VM::OperationPtr CreateOperation_Future();
 
 		// Containers
-		VM::OperationPtr CreateOperation_ConsList();
+		VM::OperationPtr CreateOperation_ConsArray();
 
 		// Debugging
 		VM::OperationPtr CreateOperation_DebugWrite();
@@ -589,7 +589,7 @@ namespace Parser
 
 		std::stack<std::wstring> SavedTaskNames;
 
-		VM::EpochVariableTypeID ListType;
+		VM::EpochVariableTypeID ArrayType;
 
 		std::list<std::wstring> MemberAccesses;
 

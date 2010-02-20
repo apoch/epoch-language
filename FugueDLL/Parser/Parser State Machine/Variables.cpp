@@ -162,21 +162,21 @@ const char* ParserState::ResolveAlias(const std::wstring& originalname) const
 
 
 //
-// Register the construction of a named list variable
+// Register the construction of a named array variable
 //
-void ParserState::RegisterListVariable()
+void ParserState::RegisterArrayVariable()
 {
-	// Empty list
+	// Empty array
 	if(PassedParameterCount.top() <= 1)
 	{
 		const std::wstring& varname = ParsedProgram->PoolStaticString(VariableNameStack.top());
 
-		CurrentScope->AddVariable(varname, VM::EpochVariableType_List);
-		CurrentScope->SetListType(varname, ListType);
-		CurrentScope->SetListSize(varname, 0);
+		CurrentScope->AddVariable(varname, VM::EpochVariableType_Array);
+		CurrentScope->SetArrayType(varname, ArrayType);
+		CurrentScope->SetArraySize(varname, 0);
 
 		AddOperationToCurrentBlock(VM::OperationPtr(new VM::Operations::PushIntegerLiteral(0)));
-		AddOperationToCurrentBlock(VM::OperationPtr(new VM::Operations::PushIntegerLiteral(ListType)));
+		AddOperationToCurrentBlock(VM::OperationPtr(new VM::Operations::PushIntegerLiteral(ArrayType)));
 		AddOperationToCurrentBlock(VM::OperationPtr(new VM::Operations::InitializeValue(varname)));
 
 		if(IsDefiningConstant)
@@ -188,9 +188,9 @@ void ParserState::RegisterListVariable()
 
 		const std::wstring& varname = ParsedProgram->PoolStaticString(VariableNameStack.top());
 
-		CurrentScope->AddVariable(varname, VM::EpochVariableType_List);
-		CurrentScope->SetListType(varname, type);
-		CurrentScope->SetListSize(varname, PassedParameterCount.top());
+		CurrentScope->AddVariable(varname, VM::EpochVariableType_Array);
+		CurrentScope->SetArrayType(varname, type);
+		CurrentScope->SetArraySize(varname, PassedParameterCount.top());
 
 		ReverseOps(Blocks.back().TheBlock, PassedParameterCount.top());
 
@@ -212,21 +212,21 @@ void ParserState::RegisterListVariable()
 }
 
 //
-// Register the expected type of an empty list (since we can't use type inference on the list contents)
+// Register the expected type of an empty array (since we can't use type inference on the array contents)
 //
-void ParserState::RegisterListType(const std::wstring& type)
+void ParserState::RegisterArrayType(const std::wstring& type)
 {
 	if(type == Keywords::Integer)
-		ListType = VM::EpochVariableType_Integer;
+		ArrayType = VM::EpochVariableType_Integer;
 	else if(type == Keywords::Integer16)
-		ListType = VM::EpochVariableType_Integer16;
+		ArrayType = VM::EpochVariableType_Integer16;
 	else if(type == Keywords::Real)
-		ListType = VM::EpochVariableType_Real;
+		ArrayType = VM::EpochVariableType_Real;
 	else if(type == Keywords::Boolean)
-		ListType = VM::EpochVariableType_Boolean;
+		ArrayType = VM::EpochVariableType_Boolean;
 	else if(type == Keywords::String)
-		ListType = VM::EpochVariableType_String;
+		ArrayType = VM::EpochVariableType_String;
 	else
-		throw VM::NotImplementedException("Cannot construct a list of this type");
+		throw VM::NotImplementedException("Cannot construct an array of this type");
 }
 

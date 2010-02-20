@@ -26,27 +26,27 @@ RValuePtr Concatenate::ExecuteAndStoreRValue(ExecutionContext& context)
 	std::wstring ret;
 
 	if(NumParams == 1)
-		ret = OperateOnList(context.Stack);
+		ret = OperateOnArray(context.Stack);
 	else if(NumParams == 2)
 	{
-		if(FirstIsList && !SecondIsList)
+		if(FirstIsArray && !SecondIsArray)
 		{
 			StringVariable var(context.Stack.GetCurrentTopOfStack());
 			std::wstring variableval = var.GetValue();
 			context.Stack.Pop(StringVariable::GetStorageSize());
-			ret = OperateOnList(context.Stack) + variableval;
+			ret = OperateOnArray(context.Stack) + variableval;
 		}
-		else if(!FirstIsList && SecondIsList)
+		else if(!FirstIsArray && SecondIsArray)
 		{
-			ret = OperateOnList(context.Stack);
+			ret = OperateOnArray(context.Stack);
 			StringVariable var(context.Stack.GetCurrentTopOfStack());
 			ret = var.GetValue() + ret;
 			context.Stack.Pop(StringVariable::GetStorageSize());
 		}
-		else if(FirstIsList && SecondIsList)
+		else if(FirstIsArray && SecondIsArray)
 		{
-			ret = OperateOnList(context.Stack);
-			ret = OperateOnList(context.Stack) + ret;
+			ret = OperateOnArray(context.Stack);
+			ret = OperateOnArray(context.Stack) + ret;
 		}
 		else
 		{
@@ -68,9 +68,9 @@ void Concatenate::ExecuteFast(ExecutionContext& context)
 }
 
 //
-// Concatenate all members of a list
+// Concatenate all members of an array
 //
-std::wstring Concatenate::OperateOnList(StackSpace& stack) const
+std::wstring Concatenate::OperateOnArray(StackSpace& stack) const
 {
 	std::wstring ret;
 
@@ -81,7 +81,7 @@ std::wstring Concatenate::OperateOnList(StackSpace& stack) const
 	stack.Pop(IntegerVariable::GetStorageSize() * 2);
 
 	if(type != EpochVariableType_String)
-		throw ExecutionException("concat() function expects a list of strings");
+		throw ExecutionException("concat() function expects an array of strings");
 
 	for(Integer32 i = 0; i < count; ++i)
 	{

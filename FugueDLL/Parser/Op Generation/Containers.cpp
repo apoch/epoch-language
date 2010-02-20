@@ -18,9 +18,9 @@ using namespace Parser;
 
 
 //
-// Create an operation that constructs a list variable
+// Create an operation that constructs an array variable
 //
-VM::OperationPtr ParserState::CreateOperation_ConsList()
+VM::OperationPtr ParserState::CreateOperation_ConsArray()
 {
 	size_t paramcount = PassedParameterCount.top();
 	VM::EpochVariableTypeID elementtype = VM::EpochVariableType_Null;
@@ -34,7 +34,7 @@ VM::OperationPtr ParserState::CreateOperation_ConsList()
 		if(TheStack.back().DetermineEffectiveType(*CurrentScope) != elementtype)
 		{
 			if(!complained)
-				ReportFatalError("All elements in a list must be of the same type");
+				ReportFatalError("All elements in an array must be of the same type");
 			complained = true;
 		}
 
@@ -45,7 +45,7 @@ VM::OperationPtr ParserState::CreateOperation_ConsList()
 		return VM::OperationPtr(new VM::Operations::NoOp);
 
 	ReverseOps(Blocks.back().TheBlock, paramcount);
-	return VM::OperationPtr(new VM::Operations::ConsList(paramcount, elementtype));
+	return VM::OperationPtr(new VM::Operations::ConsArray(paramcount, elementtype));
 }
 
 

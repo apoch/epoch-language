@@ -283,25 +283,25 @@ namespace VM
 
 
 	//
-	// Special derived type for list rvalues
+	// Special derived type for array rvalues
 	//
-	class ListRValue : public RValue
+	class ArrayRValue : public RValue
 	{
 	// Construction and destruction
 	public:
-		explicit ListRValue(EpochVariableTypeID elementtype)
-			: RValue(EpochVariableType_List),
+		explicit ArrayRValue(EpochVariableTypeID elementtype)
+			: RValue(EpochVariableType_Array),
 			  ElementType(elementtype)
 		{ }
 
-		ListRValue(const ListRValue& rhs)
-			: RValue(EpochVariableType_List),
+		ArrayRValue(const ArrayRValue& rhs)
+			: RValue(EpochVariableType_Array),
 			  ElementType(rhs.ElementType)
 		{ CopyFrom(rhs); }
 
-		~ListRValue();
+		~ArrayRValue();
 
-	// Access to list elements
+	// Access to array elements
 	public:
 		void AddElement(RValue* element);
 
@@ -317,17 +317,17 @@ namespace VM
 	// R-value interface
 	public:
 		static EpochVariableTypeID GetType()
-		{ return EpochVariableType_List; }
+		{ return EpochVariableType_Array; }
 
 	// Copy interface
 	public:
 		virtual RValue* Clone() const
 		{
-			ListRValue *copy = new ListRValue(*this);
+			ArrayRValue *copy = new ArrayRValue(*this);
 			return copy;
 		}
 
-		ListRValue& operator = (const ListRValue& rhs)
+		ArrayRValue& operator = (const ArrayRValue& rhs)
 		{
 			if(this != &rhs) { Clean(); CopyFrom(rhs); }
 			return *this;
@@ -335,7 +335,7 @@ namespace VM
 
 	protected:
 		void Clean();
-		void CopyFrom(const ListRValue& rhs);
+		void CopyFrom(const ArrayRValue& rhs);
 
 	// Helper for comparison interface
 	public:
@@ -360,7 +360,7 @@ namespace VM
 			  BufferHandle(bufferhandle)
 		{ }
 
-		BufferRValue(const ListRValue& rhs)
+		BufferRValue(const ArrayRValue& rhs)
 			: RValue(EpochVariableType_Buffer)
 		{ CopyFrom(rhs); }
 

@@ -82,8 +82,8 @@ namespace Serialization
 	extern std::wstring AssignStructureIndirect;
 	extern std::wstring BindStructMemberReference;
 
-	// Lists
-	extern std::wstring ConsList;
+	// Arrays
+	extern std::wstring ConsArray;
 	extern std::wstring Map;
 	extern std::wstring Reduce;
 
@@ -168,6 +168,6 @@ namespace Serialization
 	extern std::wstring GlobalBlock;
 	extern std::wstring Constants;
 	extern std::wstring Futures;
-	extern std::wstring ListTypes;
-	extern std::wstring ListSizes;
+	extern std::wstring ArrayTypes;
+	extern std::wstring ArraySizes;
 }

@@ -122,8 +122,8 @@ VM::OperationPtr ParserState::CreateOperation(const std::wstring& operationname)
 		return CreateOperation_Xor();
 	else if(operationname == Keywords::Not)
 		return CreateOperation_Not();
-	else if(operationname == Keywords::List)
-		return CreateOperation_ConsList();
+	else if(operationname == Keywords::Array)
+		return CreateOperation_ConsArray();
 	else if(operationname == Keywords::Map)
 		return CreateOperation_Map();
 	else if(operationname == Keywords::Reduce)

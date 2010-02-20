@@ -536,27 +536,27 @@ VM::ScopeDescription* FileLoader::LoadScope(bool linktoglobal)
 			ScopeIDMap[scopeid]->AddFuture(futurename, tempblock->PopTailOperation());
 	}
 
-	ExpectInstruction(Bytecode::ListTypes);
+	ExpectInstruction(Bytecode::ArrayTypes);
 
-	UINT_PTR numlisttypes = ReadNumber();
-	for(UINT_PTR i = 0; i < numlisttypes; ++i)
+	UINT_PTR numarraytypes = ReadNumber();
+	for(UINT_PTR i = 0; i < numarraytypes; ++i)
 	{
-		const std::wstring& listname = WidenAndCache(ReadNullTerminatedString());
-		Integer32 listtype = ReadNumber();
+		const std::wstring& arrayname = WidenAndCache(ReadNullTerminatedString());
+		Integer32 arraytype = ReadNumber();
 		if(!IsPrepass)
-			ScopeIDMap[scopeid]->SetListType(listname, static_cast<VM::EpochVariableTypeID>(listtype));
+			ScopeIDMap[scopeid]->SetArrayType(arrayname, static_cast<VM::EpochVariableTypeID>(arraytype));
 	}
 
 
-	ExpectInstruction(Bytecode::ListSizes);
+	ExpectInstruction(Bytecode::ArraySizes);
 
-	UINT_PTR numlistsizes = ReadNumber();
-	for(UINT_PTR i = 0; i < numlistsizes; ++i)
+	UINT_PTR numarraysizes = ReadNumber();
+	for(UINT_PTR i = 0; i < numarraysizes; ++i)
 	{
-		const std::wstring& listname = WidenAndCache(ReadNullTerminatedString());
-		Integer32 listsize = ReadNumber();
+		const std::wstring& arrayname = WidenAndCache(ReadNullTerminatedString());
+		Integer32 arraysize = ReadNumber();
 		if(!IsPrepass)
-			ScopeIDMap[scopeid]->SetListSize(listname, listsize);
+			ScopeIDMap[scopeid]->SetArraySize(arrayname, arraysize);
 	}
 
 	ExpectInstruction(Bytecode::EndScope);
@@ -685,15 +685,15 @@ void FileLoader::GenerateOpFromByteCode(unsigned char instruction, VM::Block* ne
 	}
 	else if(instruction == Bytecode::DivideReals)
 	{
-		bool firstislist = ReadFlag();
-		bool secondislist = ReadFlag();
+		bool firstisarray = ReadFlag();
+		bool secondisarray = ReadFlag();
 		UInteger32 paramcount = ReadNumber();
 		if(!IsPrepass)
 		{
 			if(paramcount == 1)
 				newblock->AddOperation(VM::OperationPtr(new VM::Operations::DivideReals));
 			else
-				newblock->AddOperation(VM::OperationPtr(new VM::Operations::DivideReals(firstislist, secondislist)));
+				newblock->AddOperation(VM::OperationPtr(new VM::Operations::DivideReals(firstisarray, secondisarray)));
 		}
 	}
 	else if(instruction == Bytecode::PushIntegerLiteral)
@@ -808,28 +808,28 @@ void FileLoader::GenerateOpFromByteCode(unsigned char instruction, VM::Block* ne
 	}
 	else if(instruction == Bytecode::AddReals)
 	{
-		bool firstislist = ReadFlag();
-		bool secondislist = ReadFlag();
+		bool firstisarray = ReadFlag();
+		bool secondisarray = ReadFlag();
 		UInteger32 paramcount = ReadNumber();
 		if(!IsPrepass)
 		{
 			if(paramcount == 1)
 				newblock->AddOperation(VM::OperationPtr(new VM::Operations::SumReals));
 			else
-				newblock->AddOperation(VM::OperationPtr(new VM::Operations::SumReals(firstislist, secondislist)));
+				newblock->AddOperation(VM::OperationPtr(new VM::Operations::SumReals(firstisarray, secondisarray)));
 		}
 	}
 	else if(instruction == Bytecode::SubReals)
 	{
-		bool firstislist = ReadFlag();
-		bool secondislist = ReadFlag();
+		bool firstisarray = ReadFlag();
+		bool secondisarray = ReadFlag();
 		UInteger32 paramcount = ReadNumber();
 		if(!IsPrepass)
 		{
 			if(paramcount == 1)
 				newblock->AddOperation(VM::OperationPtr(new VM::Operations::SubtractReals));
 			else
-				newblock->AddOperation(VM::OperationPtr(new VM::Operations::SubtractReals(firstislist, secondislist)));
+				newblock->AddOperation(VM::OperationPtr(new VM::Operations::SubtractReals(firstisarray, secondisarray)));
 		}
 	}
 	else if(instruction == Bytecode::PushBooleanLiteral)
@@ -847,28 +847,28 @@ void FileLoader::GenerateOpFromByteCode(unsigned char instruction, VM::Block* ne
 	}
 	else if(instruction == Bytecode::AddIntegers)
 	{
-		bool firstislist = ReadFlag();
-		bool secondislist = ReadFlag();
+		bool firstisarray = ReadFlag();
+		bool secondisarray = ReadFlag();
 		UInteger32 paramcount = ReadNumber();
 		if(!IsPrepass)
 		{
 			if(paramcount == 1)
 				newblock->AddOperation(VM::OperationPtr(new VM::Operations::SumIntegers));
 			else
-				newblock->AddOperation(VM::OperationPtr(new VM::Operations::SumIntegers(firstislist, secondislist)));
+				newblock->AddOperation(VM::OperationPtr(new VM::Operations::SumIntegers(firstisarray, secondisarray)));
 		}
 	}
 	else if(instruction == Bytecode::SubtractIntegers)
 	{
-		bool firstislist = ReadFlag();
-		bool secondislist = ReadFlag();
+		bool firstisarray = ReadFlag();
+		bool secondisarray = ReadFlag();
 		UInteger32 paramcount = ReadNumber();
 		if(!IsPrepass)
 		{
 			if(paramcount == 1)
 				newblock->AddOperation(VM::OperationPtr(new VM::Operations::SubtractIntegers));
 			else
-				newblock->AddOperation(VM::OperationPtr(new VM::Operations::SubtractIntegers(firstislist, secondislist)));
+				newblock->AddOperation(VM::OperationPtr(new VM::Operations::SubtractIntegers(firstisarray, secondisarray)));
 		}
 	}
 	else if(instruction == Bytecode::DebugRead)
@@ -1079,15 +1079,15 @@ void FileLoader::GenerateOpFromByteCode(unsigned char instruction, VM::Block* ne
 	}
 	else if(instruction == Bytecode::Concat)
 	{
-		bool firstislist = ReadFlag();
-		bool secondislist = ReadFlag();
+		bool firstisarray = ReadFlag();
+		bool secondisarray = ReadFlag();
 		UInteger32 paramcount = ReadNumber();
 		if(!IsPrepass)
 		{
 			if(paramcount == 1)
 				newblock->AddOperation(VM::OperationPtr(new VM::Operations::Concatenate));
 			else
-				newblock->AddOperation(VM::OperationPtr(new VM::Operations::Concatenate(firstislist, secondislist)));
+				newblock->AddOperation(VM::OperationPtr(new VM::Operations::Concatenate(firstisarray, secondisarray)));
 		}
 	}
 	else if(instruction == Bytecode::IsGreaterEqual)
@@ -1124,12 +1124,12 @@ void FileLoader::GenerateOpFromByteCode(unsigned char instruction, VM::Block* ne
 			newblock->AddOperation(VM::OperationPtr(new VM::Operations::ExecuteBlock(theblock.release())));
 		}
 	}
-	else if(instruction == Bytecode::ConsList)
+	else if(instruction == Bytecode::ConsArray)
 	{
 		VM::EpochVariableTypeID type = static_cast<VM::EpochVariableTypeID>(ReadNumber());
 		size_t numentries = ReadNumber();
 		if(!IsPrepass)
-			newblock->AddOperation(VM::OperationPtr(new VM::Operations::ConsList(numentries, type)));
+			newblock->AddOperation(VM::OperationPtr(new VM::Operations::ConsArray(numentries, type)));
 	}
 	else if(instruction == Bytecode::ReadStructureIndirect)
 	{
@@ -1194,15 +1194,15 @@ void FileLoader::GenerateOpFromByteCode(unsigned char instruction, VM::Block* ne
 	}
 	else if(instruction == Bytecode::MultiplyIntegers)
 	{
-		bool firstislist = ReadFlag();
-		bool secondislist = ReadFlag();
+		bool firstisarray = ReadFlag();
+		bool secondisarray = ReadFlag();
 		UInteger32 paramcount = ReadNumber();
 		if(!IsPrepass)
 		{
 			if(paramcount == 1)
 				newblock->AddOperation(VM::OperationPtr(new VM::Operations::MultiplyIntegers));
 			else
-				newblock->AddOperation(VM::OperationPtr(new VM::Operations::MultiplyIntegers(firstislist, secondislist)));
+				newblock->AddOperation(VM::OperationPtr(new VM::Operations::MultiplyIntegers(firstisarray, secondisarray)));
 		}
 	}
 	else if(instruction == Bytecode::GetMessageSender)
@@ -1262,15 +1262,15 @@ void FileLoader::GenerateOpFromByteCode(unsigned char instruction, VM::Block* ne
 	}
 	else if(instruction == Bytecode::DivideIntegers)
 	{
-		bool firstislist = ReadFlag();
-		bool secondislist = ReadFlag();
+		bool firstisarray = ReadFlag();
+		bool secondisarray = ReadFlag();
 		Integer32 numparams = ReadNumber();
 		if(!IsPrepass)
 		{
 			if(numparams == 1)
 				newblock->AddOperation(VM::OperationPtr(new VM::Operations::DivideIntegers));
 			else
-				newblock->AddOperation(VM::OperationPtr(new VM::Operations::DivideIntegers(firstislist, secondislist)));
+				newblock->AddOperation(VM::OperationPtr(new VM::Operations::DivideIntegers(firstisarray, secondisarray)));
 		}
 	}
 	else if(instruction == Bytecode::TypeCast)

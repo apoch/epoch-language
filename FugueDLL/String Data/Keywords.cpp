@@ -75,7 +75,7 @@ const wchar_t* Keywords::Boolean = L"boolean";
 const wchar_t* Keywords::Real = L"real";
 const wchar_t* Keywords::Tuple = L"tuple";
 const wchar_t* Keywords::Structure = L"structure";
-const wchar_t* Keywords::List = L"list";
+const wchar_t* Keywords::Array = L"array";
 const wchar_t* Keywords::Buffer = L"buffer";
 
 const wchar_t* Keywords::Reference = L"ref";

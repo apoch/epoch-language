@@ -33,7 +33,7 @@ namespace VM
 			virtual RValuePtr ExecuteAndStoreRValue(ExecutionContext& context);
 
 			virtual EpochVariableTypeID GetType(const ScopeDescription& scope) const
-			{ return EpochVariableType_List; }
+			{ return EpochVariableType_Array; }
 
 			virtual size_t GetNumParameters(const VM::ScopeDescription& scope) const
 			{ return 1; }

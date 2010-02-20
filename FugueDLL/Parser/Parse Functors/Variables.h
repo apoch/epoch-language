@@ -180,26 +180,26 @@ struct RegisterUpcomingBufferVariable : public ParseFunctorBase
 };
 
 //
-// Inform the parse analyzer that the following variable is of the list container type.
+// Inform the parse analyzer that the following variable is of the array container type.
 //
-struct RegisterUpcomingListVariable : public ParseFunctorBase
+struct RegisterUpcomingArrayVariable : public ParseFunctorBase
 {
-	RegisterUpcomingListVariable(Parser::ParserState& state)
+	RegisterUpcomingArrayVariable(Parser::ParserState& state)
 		: ParseFunctorBase(state)
 	{ }
 
 	template <typename ParamType>
 	void operator () (ParamType) const
 	{
-		Trace(L"RegisterUpcomingListVariable");
-		State.RegisterUpcomingVariable(VM::EpochVariableType_List);
+		Trace(L"RegisterUpcomingArrayVariable");
+		State.RegisterUpcomingVariable(VM::EpochVariableType_Array);
 	}
 
 	template <typename IteratorType>
 	void operator () (IteratorType begin, IteratorType end) const
 	{
-		Trace(L"RegisterUpcomingListVariable");
-		State.RegisterUpcomingVariable(VM::EpochVariableType_List);
+		Trace(L"RegisterUpcomingArrayVariable");
+		State.RegisterUpcomingVariable(VM::EpochVariableType_Array);
 	}
 };
 
@@ -243,20 +243,20 @@ struct RegisterVariableValue : public ParseFunctorBase
 };
 
 //
-// Inform the parse analyzer that a list variable has been defined
+// Inform the parse analyzer that an array variable has been defined
 //
-struct RegisterListVariable : public ParseFunctorBase
+struct RegisterArrayVariable : public ParseFunctorBase
 {
-	RegisterListVariable(Parser::ParserState& state)
+	RegisterArrayVariable(Parser::ParserState& state)
 		: ParseFunctorBase(state)
 	{ }
 
 	template <typename ParamType>
 	void operator () (ParamType) const
 	{
-		Trace(L"RegisterListVariable");
+		Trace(L"RegisterArrayVariable");
 
-		State.RegisterListVariable();
+		State.RegisterArrayVariable();
 	}
 };
 
@@ -281,11 +281,11 @@ struct RegisterUpcomingConstant : public ParseFunctorBase
 
 
 //
-// Store the type of an empty list for later retrieval and type validation
+// Store the type of an empty array for later retrieval and type validation
 //
-struct RegisterListType : public ParseFunctorBase
+struct RegisterArrayType : public ParseFunctorBase
 {
-	RegisterListType(Parser::ParserState& state)
+	RegisterArrayType(Parser::ParserState& state)
 		: ParseFunctorBase(state)
 	{ }
 
@@ -293,10 +293,10 @@ struct RegisterListType : public ParseFunctorBase
 	void operator () (IteratorType begin, IteratorType end) const
 	{
 		std::wstring str(begin, end);
-		Trace(L"RegisterListType", str);
+		Trace(L"RegisterArrayType", str);
 
 		State.SetParsePosition(begin);
-		State.RegisterListType(str);
+		State.RegisterArrayType(str);
 	}
 };
 

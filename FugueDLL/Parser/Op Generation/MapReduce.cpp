@@ -35,8 +35,8 @@ using namespace VM::Operations;
 //
 // Create an operation that invokes the map function.
 //
-// Map applies a given unary function to each entry in the list,
-// and returns a list containing the results of the operation.
+// Map applies a given unary function to each entry in the container,
+// and returns a container containing the results of the operation.
 //
 VM::OperationPtr ParserState::CreateOperation_Map()
 {
@@ -55,15 +55,15 @@ VM::OperationPtr ParserState::CreateOperation_Map()
 
 	if(p1.Type == StackEntry::STACKENTRYTYPE_OPERATION)
 	{
-		if(!dynamic_cast<VM::Operations::ConsList*>(p1.OperationPointer) && p1.OperationPointer->GetType(*CurrentScope) != VM::EpochVariableType_List)
+		if(!dynamic_cast<VM::Operations::ConsArray*>(p1.OperationPointer) && p1.OperationPointer->GetType(*CurrentScope) != VM::EpochVariableType_Array)
 		{
-			ReportFatalError("First parameter to map() must be a list");
+			ReportFatalError("First parameter to map() must be an array");
 			return VM::OperationPtr(new VM::Operations::NoOp);
 		}
 	}
 	else if(p1.Type != StackEntry::STACKENTRYTYPE_IDENTIFIER)
 	{
-		ReportFatalError("Expected name of a list");
+		ReportFatalError("Expected name of an array");
 		return VM::OperationPtr(new VM::Operations::NoOp);
 	}
 
@@ -73,12 +73,12 @@ VM::OperationPtr ParserState::CreateOperation_Map()
 
 	if(p1.Type == StackEntry::STACKENTRYTYPE_IDENTIFIER)
 	{
-		elementtype = CurrentScope->GetListType(p1.StringValue);
+		elementtype = CurrentScope->GetArrayType(p1.StringValue);
 	}
 	else
 	{
 		elementtype = p1.OperationPointer->GetType(*CurrentScope);
-		VM::Operations::ConsList* consop = dynamic_cast<VM::Operations::ConsList*>(p1.OperationPointer);
+		VM::Operations::ConsArray* consop = dynamic_cast<VM::Operations::ConsArray*>(p1.OperationPointer);
 		if(consop)
 			elementtype = consop->GetElementType();
 	}
@@ -87,7 +87,7 @@ VM::OperationPtr ParserState::CreateOperation_Map()
 	{
 		if(elementtype != VM::EpochVariableType_String)
 		{
-			ReportFatalError("debugwritestring() expects a string parameter; this list does not contain strings");
+			ReportFatalError("debugwritestring() expects a string parameter; this array does not contain strings");
 			return VM::OperationPtr(new VM::Operations::NoOp);
 		}
 
@@ -113,21 +113,21 @@ VM::OperationPtr ParserState::CreateOperation_Map()
 			return VM::OperationPtr(new VM::Operations::NoOp);
 		}
 
-		if(elementtype == VM::EpochVariableType_List)
+		if(elementtype == VM::EpochVariableType_Array)
 		{
-			// Walk the code backwards to locate the corresponding list cons operation
+			// Walk the code backwards to locate the corresponding array cons operation
 			const std::vector<Operation*>& ops = Blocks.back().TheBlock->GetAllOperations();
 			bool foundtype = false;
 			for(std::vector<Operation*>::const_reverse_iterator iter = ops.rbegin(); iter != ops.rend(); ++iter)
 			{
-				VM::Operations::ConsList* consop = dynamic_cast<VM::Operations::ConsList*>(*iter);
+				VM::Operations::ConsArray* consop = dynamic_cast<VM::Operations::ConsArray*>(*iter);
 				if(!consop)
 				{
 					VM::Operations::PushOperation* pushop = dynamic_cast<VM::Operations::PushOperation*>(*iter);
 					if(!pushop)
-						throw ParserFailureException("Failed to locate list cons");
+						throw ParserFailureException("Failed to locate array cons");
 
-					consop = dynamic_cast<VM::Operations::ConsList*>(pushop->GetNestedOperation());
+					consop = dynamic_cast<VM::Operations::ConsArray*>(pushop->GetNestedOperation());
 					if(consop)
 					{
 						elementtype = consop->GetElementType();
@@ -138,13 +138,13 @@ VM::OperationPtr ParserState::CreateOperation_Map()
 			}
 
 			if(!foundtype)
-				throw ParserFailureException("Failed to determine list element type");
+				throw ParserFailureException("Failed to determine array element type");
 		}
 
 		VM::EpochVariableTypeID paramtype = func->GetParams().GetVariableType(0);
 		if(paramtype != elementtype)
 		{
-			ReportFatalError("This function cannot be used to operate on a list of this type");
+			ReportFatalError("This function cannot be used to operate on an array of this type");
 			return VM::OperationPtr(new VM::Operations::NoOp);
 		}
 
@@ -158,8 +158,8 @@ VM::OperationPtr ParserState::CreateOperation_Map()
 //
 // Create an operation that invokes the reduce function.
 //
-// Reduce combines each entry into the list using a given binary
-// function. The function is applied to each value in the list,
+// Reduce combines each entry in the container using a given binary
+// function. The function is applied to each value in the container,
 // and the running "result" variable. The result is a single
 // value representing the result at the end of the reduction
 // operation.
@@ -181,16 +181,16 @@ VM::OperationPtr ParserState::CreateOperation_Reduce()
 
 	if(p1.Type == StackEntry::STACKENTRYTYPE_OPERATION)
 	{
-		VM::Operations::ConsList* consop = dynamic_cast<VM::Operations::ConsList*>(p1.OperationPointer);
-		if(!consop && p1.OperationPointer->GetType(*CurrentScope) != VM::EpochVariableType_List)
+		VM::Operations::ConsArray* consop = dynamic_cast<VM::Operations::ConsArray*>(p1.OperationPointer);
+		if(!consop && p1.OperationPointer->GetType(*CurrentScope) != VM::EpochVariableType_Array)
 		{
-			ReportFatalError("First parameter to reduce() must be a list");
+			ReportFatalError("First parameter to reduce() must be an array");
 			return VM::OperationPtr(new VM::Operations::NoOp);
 		}
 	}
 	else if(p1.Type != StackEntry::STACKENTRYTYPE_IDENTIFIER)
 	{
-		ReportFatalError("Expected name of a list");
+		ReportFatalError("Expected name of an array");
 		return VM::OperationPtr(new VM::Operations::NoOp);
 	}
 
@@ -200,12 +200,12 @@ VM::OperationPtr ParserState::CreateOperation_Reduce()
 
 	if(p1.Type == StackEntry::STACKENTRYTYPE_IDENTIFIER)
 	{
-		elementtype = CurrentScope->GetListType(p1.StringValue);
+		elementtype = CurrentScope->GetArrayType(p1.StringValue);
 	}
 	else
 	{
 		elementtype = p1.OperationPointer->GetType(*CurrentScope);
-		VM::Operations::ConsList* consop = dynamic_cast<VM::Operations::ConsList*>(p1.OperationPointer);
+		VM::Operations::ConsArray* consop = dynamic_cast<VM::Operations::ConsArray*>(p1.OperationPointer);
 		if(consop)
 			elementtype = consop->GetElementType();
 	}
@@ -262,7 +262,7 @@ VM::OperationPtr ParserState::CreateOperation_Reduce()
 	{
 		if(elementtype != VM::EpochVariableType_String)
 		{
-			ReportFatalError("concat() requires a list of strings");
+			ReportFatalError("concat() requires an array of strings");
 			return VM::OperationPtr(new VM::Operations::NoOp);	
 		}
 

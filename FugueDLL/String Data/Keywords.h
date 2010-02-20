@@ -76,7 +76,7 @@ namespace Keywords
 	extern const wchar_t* Real;
 	extern const wchar_t* Tuple;
 	extern const wchar_t* Structure;
-	extern const wchar_t* List;
+	extern const wchar_t* Array;
 	extern const wchar_t* Buffer;
 
 	extern const wchar_t* Reference;

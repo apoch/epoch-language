@@ -112,11 +112,11 @@ namespace Serialization
 
 		void WriteCastOp(const void* opptr, const std::wstring& token, VM::EpochVariableTypeID originaltype, VM::EpochVariableTypeID destinationtype);
 		void WriteCastOp(const void* opptr, const std::wstring& token, VM::EpochVariableTypeID originaltype);
-		void WriteArithmeticOp(const void* opptr, const std::wstring& token, bool isfirstlist, bool issecondlist, size_t numparams);
+		void WriteArithmeticOp(const void* opptr, const std::wstring& token, bool isfirstarray, bool issecondarray, size_t numparams);
 		void WriteForkFuture(const void* opptr, const std::wstring& token, const std::wstring& varname, VM::EpochVariableTypeID type, bool usesthreadpool);
 		void WriteSendMessage(const void* opptr, const std::wstring& token, bool usestaskid, const std::wstring& messagename, const std::list<VM::EpochVariableTypeID>& payloadtypes);
 		void WriteAcceptMessage(const void* opptr, const std::wstring& token, const std::wstring& messagename, const std::list<VM::EpochVariableTypeID>& payloadtypes);
-		void WriteConsList(const void* opptr, const std::wstring& token, VM::EpochVariableTypeID elementtype, size_t numelements);
+		void WriteConsArray(const void* opptr, const std::wstring& token, VM::EpochVariableTypeID elementtype, size_t numelements);
 		void WriteCompoundOp(const void* opptr, const std::wstring& token, size_t numops);
 		void WriteCompoundOp(const void* opptr, const std::wstring& token, VM::EpochVariableTypeID type, size_t numops);
 

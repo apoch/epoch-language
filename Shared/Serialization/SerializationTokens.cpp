@@ -77,7 +77,7 @@ std::wstring Serialization::AssignStructure(L"WRITESTRUCT");
 std::wstring Serialization::AssignStructureIndirect(L"WRITESTRUCTINDIRECT");
 std::wstring Serialization::BindStructMemberReference(L"BINDSTRUCT");
 
-std::wstring Serialization::ConsList(L"CONSLIST");
+std::wstring Serialization::ConsArray(L"CONSARRAY");
 std::wstring Serialization::Map(L"MAP");
 std::wstring Serialization::Reduce(L"REDUCE");
 
@@ -150,6 +150,6 @@ std::wstring Serialization::StructureStaticData(L"STRUCTUREINFO");
 std::wstring Serialization::GlobalBlock(L"GLOBAL");
 std::wstring Serialization::Constants(L"CONSTANTS");
 std::wstring Serialization::Futures(L"FUTURES");
-std::wstring Serialization::ListTypes(L"LISTTYPES");
-std::wstring Serialization::ListSizes(L"LISTSIZES");
+std::wstring Serialization::ArrayTypes(L"ARRAYTYPES");
+std::wstring Serialization::ArraySizes(L"ARRAYSIZES");
 

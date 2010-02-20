@@ -223,12 +223,12 @@ namespace VM
 
 		// Internal helpers
 		public:
-			static void DoPush(EpochVariableTypeID type, RValuePtr value, const ScopeDescription& scope, StackSpace& stack, bool isconslist);
+			static void DoPush(EpochVariableTypeID type, RValuePtr value, const ScopeDescription& scope, StackSpace& stack, bool isconsarray);
 
 		// Internal tracking
 		private:
 			Operation* TheOp;
-			bool IsConsList;
+			bool IsConsArray;
 		};
 
 

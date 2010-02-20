@@ -43,8 +43,8 @@ VM::EpochVariableTypeID ParserState::StackEntry::DetermineEffectiveType(const VM
 	case STACKENTRYTYPE_IDENTIFIER:
 		return scope.GetVariableType(StringValue);
 	case STACKENTRYTYPE_OPERATION:
-		if(OperationPointer->GetType(scope) == VM::EpochVariableType_List)
-			return dynamic_cast<VM::Operations::ConsList*>(OperationPointer)->GetElementType();
+		if(OperationPointer->GetType(scope) == VM::EpochVariableType_Array)
+			return dynamic_cast<VM::Operations::ConsArray*>(OperationPointer)->GetElementType();
 		return OperationPointer->GetType(scope);
 	default:
 		throw ParserFailureException("Invalid parse stack entry");
@@ -52,13 +52,13 @@ VM::EpochVariableTypeID ParserState::StackEntry::DetermineEffectiveType(const VM
 }
 
 //
-// Determine if a parse stack entry involves a list
+// Determine if a parse stack entry involves an array
 //
-bool ParserState::StackEntry::IsList() const
+bool ParserState::StackEntry::IsArray() const
 {
 	if(Type == STACKENTRYTYPE_OPERATION)
 	{
-		const VM::Operations::ConsList* consop = dynamic_cast<VM::Operations::ConsList*>(OperationPointer);
+		const VM::Operations::ConsArray* consop = dynamic_cast<VM::Operations::ConsArray*>(OperationPointer);
 		if(consop)
 			return true;
 	}

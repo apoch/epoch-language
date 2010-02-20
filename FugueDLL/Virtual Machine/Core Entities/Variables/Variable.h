@@ -33,7 +33,7 @@ namespace VM
 	// A consequence if this is that derived variable classes should
 	// NOT have any member data! Anything that needs to be stored by
 	// the variable should be kept in the storage slot provided. See
-	// the List variable class for an example. This prevents slicing
+	// the Array variable class for an example. This prevents slicing
 	// of the variable objects when they are stored by value.
 	//
 	class Variable

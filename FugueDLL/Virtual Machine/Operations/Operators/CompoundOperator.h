@@ -2,7 +2,7 @@
 // The Epoch Language Project
 // FUGUE Virtual Machine
 //
-// Base class for operators that can act on lists of parameters
+// Base class for operators that can act on arrays of parameters
 //
 
 #pragma once
@@ -18,7 +18,7 @@ namespace VM
 	{
 
 		//
-		// Operation for operators that can act on lists of parameters
+		// Operation for operators that can act on arrays of parameters
 		//
 		class CompoundOperator
 		{
@@ -30,7 +30,7 @@ namespace VM
 					delete *iter;
 			}
 
-		// List support
+		// Array support
 		public:
 			void AddOperation(VM::Operation* op);
 			void AddOperationToFront(VM::Operation* op);

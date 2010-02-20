@@ -127,7 +127,7 @@ namespace VM
 #define SERIALIZE_ARITHMETIC(operationname, token) \
 	HELPER_GETTOKEN(operationname, token) \
 	template <> void Serialization::SerializeNode<operationname>(const operationname& op, SerializationTraverser& traverser) \
-	{ traverser.WriteArithmeticOp(&op, GetToken<operationname>(), op.IsFirstList(), op.IsSecondList(), op.GetNumParameters()); }
+	{ traverser.WriteArithmeticOp(&op, GetToken<operationname>(), op.IsFirstArray(), op.IsSecondArray(), op.GetNumParameters()); }
 
 #define SERIALIZE_COMPOUND(operationname, token) \
 	HELPER_GETTOKEN(operationname, token) \
@@ -290,9 +290,9 @@ template <> const std::wstring& Serialization::GetToken<VM::Operations::AcceptMe
 template <> void Serialization::SerializeNode<VM::Operations::AcceptMessage>(const VM::Operations::AcceptMessage& op, SerializationTraverser& traverser)
 { traverser.WriteAcceptMessage(&op, GetToken<VM::Operations::AcceptMessage>(), op.GetMessageName(), op.GetPayloadTypes()); }
 
-template <> const std::wstring& Serialization::GetToken<VM::Operations::ConsList>() { return Serialization::ConsList; }
-template <> void Serialization::SerializeNode<VM::Operations::ConsList>(const VM::Operations::ConsList& op, SerializationTraverser& traverser)
-{ traverser.WriteConsList(&op, GetToken<VM::Operations::ConsList>(), op.GetElementType(), op.GetNumEntries()); }
+template <> const std::wstring& Serialization::GetToken<VM::Operations::ConsArray>() { return Serialization::ConsArray; }
+template <> void Serialization::SerializeNode<VM::Operations::ConsArray>(const VM::Operations::ConsArray& op, SerializationTraverser& traverser)
+{ traverser.WriteConsArray(&op, GetToken<VM::Operations::ConsArray>(), op.GetElementType(), op.GetNumEntries()); }
 
 template <> const std::wstring& Serialization::GetToken<VM::Operations::BindStructMemberReference>() { return Serialization::BindStructMemberReference; }
 template <> void Serialization::SerializeNode<VM::Operations::BindStructMemberReference>(const VM::Operations::BindStructMemberReference& op, SerializationTraverser& traverser)

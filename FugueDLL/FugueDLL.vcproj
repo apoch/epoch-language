@@ -1107,11 +1107,11 @@
 					Name="Variables"
 					>
 					<File
-						RelativePath=".\Virtual Machine\Core Entities\Variables\BufferVariable.h"
+						RelativePath=".\Virtual Machine\Core Entities\Variables\ArrayVariable.h"
 						>
 					</File>
 					<File
-						RelativePath=".\Virtual Machine\Core Entities\Variables\ListVariable.h"
+						RelativePath=".\Virtual Machine\Core Entities\Variables\BufferVariable.h"
 						>
 					</File>
 					<File

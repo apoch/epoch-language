@@ -19,7 +19,7 @@
 #include "Virtual Machine/Core Entities/Variables/TupleVariable.h"
 #include "Virtual Machine/Core Entities/Variables/StructureVariable.h"
 #include "Virtual Machine/Core Entities/Variables/BufferVariable.h"
-#include "Virtual Machine/Core Entities/Variables/ListVariable.h"
+#include "Virtual Machine/Core Entities/Variables/ArrayVariable.h"
 
 #include "Virtual Machine/Types Management/TypeInfo.h"
 
@@ -131,8 +131,8 @@ void ActivatedScope::Enter(StackSpace& stack)
 		case EpochVariableType_Buffer:
 			StackUsage.top() += var.CastTo<BufferVariable>().BindToStack(stack);
 			break;
-		case EpochVariableType_List:
-			StackUsage.top() += var.CastTo<ListVariable>().BindToStack(stack, OriginalScope.ListSizes.find(*iter)->second, OriginalScope.GetListType(*iter));
+		case EpochVariableType_Array:
+			StackUsage.top() += var.CastTo<ArrayVariable>().BindToStack(stack, OriginalScope.ArraySizes.find(*iter)->second, OriginalScope.GetArrayType(*iter));
 			break;
 		default:
 			throw NotImplementedException("Cannot reserve stack space for this variable type");
@@ -552,12 +552,12 @@ RValuePtr ActivatedScope::PopVariableOffStack(const std::wstring& name, Variable
 			stack.Pop(BufferVariable::GetStorageSize());
 			return ret;
 		}
-	case EpochVariableType_List:
+	case EpochVariableType_Array:
 		{
-			ListVariable temp(stack.GetCurrentTopOfStack());
+			ArrayVariable temp(stack.GetCurrentTopOfStack());
 
 			if(ignorestorage)
-				var.CastTo<ListVariable>().SetInfo(OriginalScope.GetListType(name), OriginalScope.GetListSize(name));
+				var.CastTo<ArrayVariable>().SetInfo(OriginalScope.GetArrayType(name), OriginalScope.GetArraySize(name));
 
 			RValuePtr ret(temp.GetAsRValue());
 			stack.Pop(temp.GetStorageSize());
@@ -670,7 +670,7 @@ RValuePtr ActivatedScope::GetVariableValue(const std::wstring& name) const
 			return retptr;
 		}
 	case EpochVariableType_Buffer:		return GetVariableRef<BufferVariable>(name).GetAsRValue();
-	case EpochVariableType_List:		return GetVariableRef<ListVariable>(name).GetAsRValue();
+	case EpochVariableType_Array:		return GetVariableRef<ArrayVariable>(name).GetAsRValue();
 	}
 
 	throw NotImplementedException("Cannot retrieve variable value - unrecognized type");

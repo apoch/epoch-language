@@ -449,14 +449,14 @@ bool ParserState::FinalizeInfixExpression(bool isfirstrun, const VM::ScopeDescri
 			VM::EpochVariableTypeID optype = op->GetType(*workingscope);
 			if(!bailout && optype != expressiontype)
 			{
-				if(optype == VM::EpochVariableType_List)
+				if(optype == VM::EpochVariableType_Array)
 				{
-					VM::Operations::ConsList* consop;
+					VM::Operations::ConsArray* consop;
 					VM::Operations::PushOperation* pushop = dynamic_cast<VM::Operations::PushOperation*>(op.get());
 					if(pushop)
-						consop = dynamic_cast<VM::Operations::ConsList*>(pushop->GetNestedOperation());
+						consop = dynamic_cast<VM::Operations::ConsArray*>(pushop->GetNestedOperation());
 					else
-						consop = dynamic_cast<VM::Operations::ConsList*>(op.get());
+						consop = dynamic_cast<VM::Operations::ConsArray*>(op.get());
 
 					if(!consop || consop->GetElementType() != expressiontype)
 					{

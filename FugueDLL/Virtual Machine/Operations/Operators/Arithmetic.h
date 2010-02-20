@@ -43,14 +43,14 @@ namespace VM
 		// Construction
 		public:
 			ArithmeticOp()
-				: FirstIsList(true),
-				  SecondIsList(false),
+				: FirstIsArray(true),
+				  SecondIsArray(false),
 				  NumParams(1)
 			{ }
 
-			ArithmeticOp(bool firstislist, bool secondislist)
-				: FirstIsList(firstislist),
-				  SecondIsList(secondislist),
+			ArithmeticOp(bool firstisarray, bool secondisarray)
+				: FirstIsArray(firstisarray),
+				  SecondIsArray(secondisarray),
 				  NumParams(2)
 			{ }
 
@@ -67,18 +67,18 @@ namespace VM
 
 		// Additional queries
 		public:
-			bool IsFirstList() const			{ return FirstIsList; }
-			bool IsSecondList() const			{ return SecondIsList; }
+			bool IsFirstArray() const			{ return FirstIsArray; }
+			bool IsSecondArray() const			{ return SecondIsArray; }
 			size_t GetNumParameters() const		{ return NumParams; }
 
 		// Internal helpers
 		protected:
-			typename VarType::BaseStorage OperateOnList(StackSpace& stack) const;
+			typename VarType::BaseStorage OperateOnArray(StackSpace& stack) const;
 
 		// Internal tracking
 		protected:
-			bool FirstIsList;
-			bool SecondIsList;
+			bool FirstIsArray;
+			bool SecondIsArray;
 			unsigned NumParams;
 		};
 

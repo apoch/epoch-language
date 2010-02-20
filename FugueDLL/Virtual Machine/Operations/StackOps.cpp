@@ -140,7 +140,7 @@ Traverser::Payload PushBooleanLiteral::GetNodeTraversalPayload() const
 PushOperation::PushOperation(VM::Operation* op)
 	: TheOp(op)
 {
-	IsConsList = (dynamic_cast<VM::Operations::ConsList*>(TheOp) != NULL);
+	IsConsArray = (dynamic_cast<VM::Operations::ConsArray*>(TheOp) != NULL);
 }
 
 //
@@ -158,7 +158,7 @@ PushOperation::~PushOperation()
 RValuePtr PushOperation::ExecuteAndStoreRValue(ExecutionContext& context)
 {
 	RValuePtr opresult(TheOp->ExecuteAndStoreRValue(context));
-	DoPush(TheOp->GetType(context.Scope.GetOriginalDescription()), opresult, context.Scope.GetOriginalDescription(), context.Stack, IsConsList);
+	DoPush(TheOp->GetType(context.Scope.GetOriginalDescription()), opresult, context.Scope.GetOriginalDescription(), context.Stack, IsConsArray);
 
 	return opresult;
 }
@@ -172,7 +172,7 @@ void PushOperation::ExecuteFast(ExecutionContext& context)
 // Actually perform the push onto the stack
 // This is factored out for easier usage with tuples/structures
 //
-void PushOperation::DoPush(EpochVariableTypeID type, RValuePtr value, const ScopeDescription& scope, StackSpace& stack, bool isconslist)
+void PushOperation::DoPush(EpochVariableTypeID type, RValuePtr value, const ScopeDescription& scope, StackSpace& stack, bool isconsarray)
 {
 	switch(type)
 	{
@@ -235,24 +235,24 @@ void PushOperation::DoPush(EpochVariableTypeID type, RValuePtr value, const Scop
 		PushValueOntoStack<TypeInfo::AddressT>(stack, value);
 		break;
 
-	case EpochVariableType_List:
+	case EpochVariableType_Array:
 		{
 			// Filthy trick - since we already pushed the parameters onto the stack
-			// when generating the ConsList instruction, we don't have to repeat the
+			// when generating the ConsArray instruction, we don't have to repeat the
 			// push here. Instead, we just push the type and size information, and
-			// let the called function handle the list entity. Of course if we are
-			// doing something other than a list cons, we need to push the actual
-			// list elements onto the stack.
+			// let the called function handle the array entity. Of course if we are
+			// doing something other than an array cons, we need to push the actual
+			// array elements onto the stack.
 
-			ListRValue& listvalue = value->CastTo<ListRValue>();
-			if(!isconslist)
+			ArrayRValue& arrayvalue = value->CastTo<ArrayRValue>();
+			if(!isconsarray)
 			{
-				for(std::vector<RValue*>::const_reverse_iterator iter = listvalue.GetElements().rbegin(); iter != listvalue.GetElements().rend(); ++iter)
-					DoPush(listvalue.GetElementType(), RValuePtr((*iter)->Clone()), scope, stack, false);
+				for(std::vector<RValue*>::const_reverse_iterator iter = arrayvalue.GetElements().rbegin(); iter != arrayvalue.GetElements().rend(); ++iter)
+					DoPush(arrayvalue.GetElementType(), RValuePtr((*iter)->Clone()), scope, stack, false);
 			}
 
-			PushValueOntoStack<TypeInfo::IntegerT>(stack, static_cast<IntegerVariable::BaseStorage>(listvalue.GetElementCount())); 
-			PushValueOntoStack<TypeInfo::IntegerT>(stack, listvalue.GetElementType());
+			PushValueOntoStack<TypeInfo::IntegerT>(stack, static_cast<IntegerVariable::BaseStorage>(arrayvalue.GetElementCount())); 
+			PushValueOntoStack<TypeInfo::IntegerT>(stack, arrayvalue.GetElementType());
 		}
 		break;
 

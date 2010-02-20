@@ -31,22 +31,22 @@ VM::OperationPtr ParserState::CreateOperation_Concat()
 	{
 		if(TheStack.back().Type != StackEntry::STACKENTRYTYPE_OPERATION)
 		{
-			ReportFatalError("concat() function expects 2 strings or 1 list of strings");
+			ReportFatalError("concat() function expects 2 strings or 1 array of strings");
 			TheStack.pop_back();
 			return VM::OperationPtr(new VM::Operations::NoOp);
 		}
 
-		if(TheStack.back().OperationPointer->GetType(*CurrentScope) != VM::EpochVariableType_List)
+		if(TheStack.back().OperationPointer->GetType(*CurrentScope) != VM::EpochVariableType_Array)
 		{
-			ReportFatalError("concat() function expects 2 strings or 1 list of strings");
+			ReportFatalError("concat() function expects 2 strings or 1 array of strings");
 			TheStack.pop_back();
 			return VM::OperationPtr(new VM::Operations::NoOp);
 		}
 
-		VM::Operations::ConsList* consop = dynamic_cast<VM::Operations::ConsList*>(TheStack.back().OperationPointer);
+		VM::Operations::ConsArray* consop = dynamic_cast<VM::Operations::ConsArray*>(TheStack.back().OperationPointer);
 		if(!consop)
 		{
-			ReportFatalError("Expected a list here");
+			ReportFatalError("Expected an array here");
 			TheStack.pop_back();
 			return VM::OperationPtr(new VM::Operations::NoOp);
 		}
@@ -54,7 +54,7 @@ VM::OperationPtr ParserState::CreateOperation_Concat()
 		TheStack.pop_back();
 		if(consop->GetElementType() != VM::EpochVariableType_String)
 		{
-			ReportFatalError("concat() function expects 2 strings or 1 list of strings");
+			ReportFatalError("concat() function expects 2 strings or 1 array of strings");
 			return VM::OperationPtr(new VM::Operations::NoOp);
 		}
 
@@ -63,7 +63,7 @@ VM::OperationPtr ParserState::CreateOperation_Concat()
 
 	if(PassedParameterCount.top() != 2)
 	{
-		ReportFatalError("concat() function expects 2 strings or 1 list of strings");
+		ReportFatalError("concat() function expects 2 strings or 1 array of strings");
 		for(size_t i = PassedParameterCount.top(); i > 0; --i)
 			TheStack.pop_back();
 		return VM::OperationPtr(new VM::Operations::NoOp);
@@ -77,16 +77,16 @@ VM::OperationPtr ParserState::CreateOperation_Concat()
 
 	if(first.DetermineEffectiveType(*CurrentScope) != VM::EpochVariableType_String)
 	{
-		ReportFatalError("concat() function expects 2 strings or 1 list of strings");
+		ReportFatalError("concat() function expects 2 strings or 1 array of strings");
 		return VM::OperationPtr(new VM::Operations::NoOp);
 	}
 	if(second.DetermineEffectiveType(*CurrentScope) != VM::EpochVariableType_String)
 	{
-		ReportFatalError("concat() function expects 2 strings or 1 list of strings");
+		ReportFatalError("concat() function expects 2 strings or 1 array of strings");
 		return VM::OperationPtr(new VM::Operations::NoOp);
 	}
 
-	return VM::OperationPtr(new VM::Operations::Concatenate(first.IsList(), second.IsList()));
+	return VM::OperationPtr(new VM::Operations::Concatenate(first.IsArray(), second.IsArray()));
 }
 
 

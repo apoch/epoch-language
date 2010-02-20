@@ -25,14 +25,14 @@ namespace VM
 		// Construction
 		public:
 			Concatenate()
-				: FirstIsList(true),
-				  SecondIsList(false),
+				: FirstIsArray(true),
+				  SecondIsArray(false),
 				  NumParams(1)
 			{ }
 
-			Concatenate(bool firstislist, bool secondislist)
-				: FirstIsList(firstislist),
-				  SecondIsList(secondislist),
+			Concatenate(bool firstisarray, bool secondisarray)
+				: FirstIsArray(firstisarray),
+				  SecondIsArray(secondisarray),
 				  NumParams(2)
 			{ }
 
@@ -47,25 +47,25 @@ namespace VM
 			virtual size_t GetNumParameters(const VM::ScopeDescription& scope) const
 			{ return 2; }
 
-		// List support
+		// Arrau support
 		public:
 			void AddOperation(VM::Operation* op);
 			void AddOperationToFront(VM::Operation* op);
 
 		// Additional queries
 		public:
-			bool IsFirstList() const			{ return FirstIsList; }
-			bool IsSecondList() const			{ return SecondIsList; }
+			bool IsFirstArray() const			{ return FirstIsArray; }
+			bool IsSecondArray() const			{ return SecondIsArray; }
 			size_t GetNumParameters() const		{ return NumParams; }
 
 		// Internal helpers
 		private:
-			std::wstring OperateOnList(StackSpace& stack) const;
+			std::wstring OperateOnArray(StackSpace& stack) const;
 
 		// Internal tracking
 		private:
-			bool FirstIsList;
-			bool SecondIsList;
+			bool FirstIsArray;
+			bool SecondIsArray;
 			unsigned NumParams;
 		};
 

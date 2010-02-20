@@ -75,7 +75,7 @@ VM::OperationPtr ParserState::CreateOperation_Cast()
 		case VM::EpochVariableType_Structure:
 		case VM::EpochVariableType_Function:
 		case VM::EpochVariableType_Address:
-		case VM::EpochVariableType_List:
+		case VM::EpochVariableType_Array:
 		case VM::EpochVariableType_TaskHandle:
 			ReportFatalError("This data type cannot be converted into an integer");
 			return VM::OperationPtr(new VM::Operations::NoOp);
@@ -102,7 +102,7 @@ VM::OperationPtr ParserState::CreateOperation_Cast()
 		case VM::EpochVariableType_Structure:
 		case VM::EpochVariableType_Function:
 		case VM::EpochVariableType_Address:
-		case VM::EpochVariableType_List:
+		case VM::EpochVariableType_Array:
 		case VM::EpochVariableType_TaskHandle:
 			ReportFatalError("This data type cannot be converted into an integer16");
 			return VM::OperationPtr(new VM::Operations::NoOp);
@@ -129,7 +129,7 @@ VM::OperationPtr ParserState::CreateOperation_Cast()
 		case VM::EpochVariableType_Structure:
 		case VM::EpochVariableType_Function:
 		case VM::EpochVariableType_Address:
-		case VM::EpochVariableType_List:
+		case VM::EpochVariableType_Array:
 		case VM::EpochVariableType_TaskHandle:
 			ReportFatalError("This data type cannot be converted into a real");
 			return VM::OperationPtr(new VM::Operations::NoOp);
@@ -163,7 +163,7 @@ VM::OperationPtr ParserState::CreateOperation_Cast()
 		case VM::EpochVariableType_Structure:
 		case VM::EpochVariableType_Function:
 		case VM::EpochVariableType_Address:
-		case VM::EpochVariableType_List:
+		case VM::EpochVariableType_Array:
 		case VM::EpochVariableType_TaskHandle:
 			ReportFatalError("This data type cannot be converted into a string");
 			return VM::OperationPtr(new VM::Operations::NoOp);

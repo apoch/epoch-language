@@ -12,31 +12,31 @@
 
 
 //
-// Set up operations for a single operator acting on the contents of a single list
+// Set up operations for a single operator acting on the contents of a single array
 //
 template<typename LogicalOpType, typename BitwiseOpType>
-VM::OperationPtr Parser::ParserState::ParseLogicalOpListOnly()
+VM::OperationPtr Parser::ParserState::ParseLogicalOpArrayOnly()
 {
 	if(TheStack.back().Type != StackEntry::STACKENTRYTYPE_OPERATION)
 	{
-		ReportFatalError("Function expects 2 parameters or 1 list");
+		ReportFatalError("Function expects 2 parameters or 1 array");
 		for(size_t i = PassedParameterCount.top(); i > 0; --i)
 			TheStack.pop_back();
 		return VM::OperationPtr(new VM::Operations::NoOp);
 	}
 
-	if(TheStack.back().OperationPointer->GetType(*CurrentScope) != VM::EpochVariableType_List)
+	if(TheStack.back().OperationPointer->GetType(*CurrentScope) != VM::EpochVariableType_Array)
 	{
-		ReportFatalError("Function expects 2 parameters or 1 list");
+		ReportFatalError("Function expects 2 parameters or 1 array");
 		for(size_t i = PassedParameterCount.top(); i > 0; --i)
 			TheStack.pop_back();
 		return VM::OperationPtr(new VM::Operations::NoOp);
 	}
 
-	VM::Operations::ConsList* consop = dynamic_cast<VM::Operations::ConsList*>(TheStack.back().OperationPointer);
+	VM::Operations::ConsArray* consop = dynamic_cast<VM::Operations::ConsArray*>(TheStack.back().OperationPointer);
 	if(!consop)
 	{
-		ReportFatalError("Expected a list constructor here");
+		ReportFatalError("Expected an array constructor here");
 		for(size_t i = PassedParameterCount.top(); i > 0; --i)
 			TheStack.pop_back();
 		return VM::OperationPtr(new VM::Operations::NoOp);
@@ -44,7 +44,7 @@ VM::OperationPtr Parser::ParserState::ParseLogicalOpListOnly()
 
 	if(consop->GetElementType() != VM::EpochVariableType_Integer && consop->GetElementType() != VM::EpochVariableType_Boolean)
 	{
-		ReportFatalError("Function cannot operate on a list of this type");
+		ReportFatalError("Function cannot operate on an array of this type");
 		for(size_t i = PassedParameterCount.top(); i > 0; --i)
 			TheStack.pop_back();
 		return VM::OperationPtr(new VM::Operations::NoOp);
@@ -61,7 +61,7 @@ VM::OperationPtr Parser::ParserState::ParseLogicalOpListOnly()
 	{
 		VM::Operations::PushOperation* pushop = dynamic_cast<VM::Operations::PushOperation*>(Blocks.back().TheBlock->GetTailOperation());
 		if(!pushop)
-			throw ParserFailureException("Unexpected operation in list constructor");
+			throw ParserFailureException("Unexpected operation in array constructor");
 
 		retop->AddOperationToFront(pushop->GetNestedOperation());
 		pushop->UnlinkOperation();
@@ -72,21 +72,21 @@ VM::OperationPtr Parser::ParserState::ParseLogicalOpListOnly()
 }
 
 //
-// Handle operations passed to a function, either in standard form or as part of an anonymous list
+// Handle operations passed to a function, either in standard form or as part of an anonymous array
 //
 template<typename ReturnPointerType, typename LiteralOperatorType, typename LiteralConstType>
-void Parser::ParserState::ParsePotentialList(bool islist, ReturnPointerType& retopref)
+void Parser::ParserState::ParsePotentialArray(bool isarray, ReturnPointerType& retopref)
 {
-	if(islist)
+	if(isarray)
 	{
 		VM::Operation* tailop = Blocks.back().TheBlock->GetTailOperation();
 		VM::Operations::PushOperation* pushop = dynamic_cast<VM::Operations::PushOperation*>(tailop);
 		if(!pushop)
 			throw ParserFailureException("Parse malfunction - expected a push op here");
 
-		VM::Operations::ConsList* consop = dynamic_cast<VM::Operations::ConsList*>(pushop->GetNestedOperation());
+		VM::Operations::ConsArray* consop = dynamic_cast<VM::Operations::ConsArray*>(pushop->GetNestedOperation());
 		if(!consop)
-			throw ParserFailureException("Parse malfunction - expected a list here");
+			throw ParserFailureException("Parse malfunction - expected an array here");
 
 		size_t numentries = consop->GetNumEntries();
 		Blocks.back().TheBlock->RemoveTailOperations(1);	// WARNING: consop is now freed and should not be accessed again!
@@ -95,7 +95,7 @@ void Parser::ParserState::ParsePotentialList(bool islist, ReturnPointerType& ret
 		{
 			VM::Operations::PushOperation* pushop = dynamic_cast<VM::Operations::PushOperation*>(Blocks.back().TheBlock->GetTailOperation());
 			if(!pushop)
-				throw ParserFailureException("Unexpected operation in list constructor");
+				throw ParserFailureException("Unexpected operation in array constructor");
 
 			retopref.AddOperationToFront(pushop->GetNestedOperation());
 			pushop->UnlinkOperation();
@@ -126,28 +126,28 @@ void Parser::ParserState::ParsePotentialList(bool islist, ReturnPointerType& ret
 }
 
 //
-// Set up operations corresponding to a logical/bitwise operator acting on literal parameters or list parameters
+// Set up operations corresponding to a logical/bitwise operator acting on literal parameters or array parameters
 //
 template<typename ReturnPointerType, typename LiteralOperatorType, typename LiteralConstType>
-ReturnPointerType* Parser::ParserState::ParseBitwiseOp(bool firstislist, bool secondislist)
+ReturnPointerType* Parser::ParserState::ParseBitwiseOp(bool firstisarray, bool secondisarray)
 {
 	std::auto_ptr<ReturnPointerType> retptr(new ReturnPointerType(LiteralConstType::GetTypeStatic()));
 
 	// These need to be in reverse order so the stack is read correctly
-	ParsePotentialList<ReturnPointerType, LiteralOperatorType, LiteralConstType>(secondislist, *retptr.get());
-	ParsePotentialList<ReturnPointerType, LiteralOperatorType, LiteralConstType>(firstislist, *retptr.get());
+	ParsePotentialArray<ReturnPointerType, LiteralOperatorType, LiteralConstType>(secondisarray, *retptr.get());
+	ParsePotentialArray<ReturnPointerType, LiteralOperatorType, LiteralConstType>(firstisarray, *retptr.get());
 
 	return retptr.release();
 }
 
 template<typename ReturnPointerType, typename LiteralOperatorType, typename LiteralConstType>
-ReturnPointerType* Parser::ParserState::ParseLogicalOp(bool firstislist, bool secondislist)
+ReturnPointerType* Parser::ParserState::ParseLogicalOp(bool firstisarray, bool secondisarray)
 {
 	std::auto_ptr<ReturnPointerType> retptr(new ReturnPointerType);
 
 	// These need to be in reverse order so the stack is read correctly
-	ParsePotentialList<ReturnPointerType, LiteralOperatorType, LiteralConstType>(secondislist, *retptr.get());
-	ParsePotentialList<ReturnPointerType, LiteralOperatorType, LiteralConstType>(firstislist, *retptr.get());
+	ParsePotentialArray<ReturnPointerType, LiteralOperatorType, LiteralConstType>(secondisarray, *retptr.get());
+	ParsePotentialArray<ReturnPointerType, LiteralOperatorType, LiteralConstType>(firstisarray, *retptr.get());
 
 	return retptr.release();
 }

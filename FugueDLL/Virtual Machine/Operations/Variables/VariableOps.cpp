@@ -12,7 +12,7 @@
 #include "Virtual Machine/Core Entities/Scopes/ActivatedScope.h"
 #include "Virtual Machine/Core Entities/Function.h"
 #include "Virtual Machine/Core Entities/Variables/BufferVariable.h"
-#include "Virtual Machine/Core Entities/Variables/ListVariable.h"
+#include "Virtual Machine/Core Entities/Variables/ArrayVariable.h"
 #include "Virtual Machine/Core Entities/Program.h"
 #include "Virtual Machine/SelfAware.inl"
 
@@ -60,7 +60,7 @@ size_t AssignValue::GetNumParameters(const VM::ScopeDescription& scope) const
 	EpochVariableTypeID type = GetType(scope);
 	if(type == EpochVariableType_Structure || type == EpochVariableType_Tuple)
 		return 2;
-	else if(type == EpochVariableType_List)
+	else if(type == EpochVariableType_Array)
 		return 3;
 
 	return 1;
@@ -98,11 +98,11 @@ RValuePtr InitializeValue::ExecuteAndStoreRValue(ExecutionContext& context)
 		context.Scope.GetVariableRef(VarName).CastTo<BufferVariable>().SetValue(NULL, buffersize, true);
 		return context.Scope.GetVariableValue(VarName);
 	}
-	else if(context.Scope.GetVariableType(VarName) == EpochVariableType_List)
+	else if(context.Scope.GetVariableType(VarName) == EpochVariableType_Array)
 	{
-		ListVariable& thelist = context.Scope.GetVariableRef<ListVariable>(VarName);
-		thelist.BindToStorage(context.Stack.GetCurrentTopOfStack());
-		return thelist.GetAsRValue();
+		ArrayVariable& thearray = context.Scope.GetVariableRef<ArrayVariable>(VarName);
+		thearray.BindToStorage(context.Stack.GetCurrentTopOfStack());
+		return thearray.GetAsRValue();
 	}
 	else
 		return context.Scope.PopVariableOffStack(VarName, context.Stack, true);
@@ -128,7 +128,7 @@ size_t InitializeValue::GetNumParameters(const VM::ScopeDescription& scope) cons
 	EpochVariableTypeID type = GetType(scope);
 	if(type == EpochVariableType_Structure || type == EpochVariableType_Tuple)
 		return 2;
-	else if(type == EpochVariableType_List)
+	else if(type == EpochVariableType_Array)
 		return 3;
 
 	return 1;

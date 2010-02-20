@@ -86,13 +86,13 @@ namespace VM
 	public:
 		void AddFuture(const std::wstring& name, VM::OperationPtr boundop);
 
-	// Lists interface
+	// Arrays interface
 	public:
-		void SetListType(const std::wstring& listname, EpochVariableTypeID type);
-		EpochVariableTypeID GetListType(const std::wstring& listname) const;
+		void SetArrayType(const std::wstring& arrayname, EpochVariableTypeID type);
+		EpochVariableTypeID GetArrayType(const std::wstring& arrayname) const;
 
-		void SetListSize(const std::wstring& listname, size_t size);
-		size_t GetListSize(const std::wstring& listname) const;
+		void SetArraySize(const std::wstring& arrayname, size_t size);
+		size_t GetArraySize(const std::wstring& arrayname) const;
 
 	// Generic variable information retrieval
 	public:
@@ -286,8 +286,8 @@ namespace VM
 		typedef std::pair<std::wstring, ResponseMap*> ResponseMapListEntry;
 		ResponseMapList ResponseMaps;
 
-		std::map<std::wstring, EpochVariableTypeID> ListTypes;
-		std::map<std::wstring, size_t> ListSizes;
+		std::map<std::wstring, EpochVariableTypeID> ArrayTypes;
+		std::map<std::wstring, size_t> ArraySizes;
 	};
 
 }

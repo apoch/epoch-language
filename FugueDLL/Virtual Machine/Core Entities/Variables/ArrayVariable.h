@@ -2,7 +2,7 @@
 // The Epoch Language Project
 // FUGUE Virtual Machine
 //
-// Interface for storing lists of values
+// Interface for storing arrays of values
 //
 
 #pragma once
@@ -17,9 +17,9 @@ namespace VM
 {
 
 	//
-	// Wrapper for list containers
+	// Wrapper for array containers
 	//
-	class ListVariable : public Variable
+	class ArrayVariable : public Variable
 	{
 	// Handy type shortcut
 	public:
@@ -37,12 +37,12 @@ namespace VM
 
 	// Friend access for sharing handles with rvalues
 	public:
-		friend class ListRValue;
+		friend class ArrayRValue;
 
 	// Construction
 	public:
-		ListVariable(void* storage)
-			: Variable(EpochVariableType_List, storage)
+		ArrayVariable(void* storage)
+			: Variable(EpochVariableType_Array, storage)
 		{
 		}
 
@@ -56,7 +56,7 @@ namespace VM
 
 		RValuePtr GetAsRValue() const
 		{
-			ListRValue* p = new ListRValue(GetValue().ElementType);
+			ArrayRValue* p = new ArrayRValue(GetValue().ElementType);
 			RValuePtr ret(p);
 
 			void* offset = reinterpret_cast<Byte*>(Storage) + sizeof(StorageRecT);
@@ -89,20 +89,20 @@ namespace VM
 					}
 				case EpochVariableType_Boolean:
 					{
-						IntegerVariable var(offset);
+						BooleanVariable var(offset);
 						p->AddElement(var.GetAsRValue().release());
 						offset = reinterpret_cast<Byte*>(offset) + var.GetStorageSize();
 						break;
 					}
 				case EpochVariableType_String:
 					{
-						IntegerVariable var(offset);
+						StringVariable var(offset);
 						p->AddElement(var.GetAsRValue().release());
 						offset = reinterpret_cast<Byte*>(offset) + var.GetStorageSize();
 						break;
 					}
 				default:
-					throw NotImplementedException("Lists of this element type are not supported");
+					throw NotImplementedException("Arrays of this element type are not supported");
 				}
 			}
 
@@ -116,10 +116,10 @@ namespace VM
 			pstorage->NumElements = size;
 		}
 
-		size_t BindToStack(StackSpace& stack, size_t listsize, EpochVariableTypeID elementtype)
+		size_t BindToStack(StackSpace& stack, size_t arraysize, EpochVariableTypeID elementtype)
 		{
 			Storage = stack.GetCurrentTopOfStack();
-			return GetBaseStorageSize() + listsize * TypeInfo::GetStorageSize(elementtype);
+			return GetBaseStorageSize() + arraysize * TypeInfo::GetStorageSize(elementtype);
 		}
 
 	// Shared storage size/type retrieval
@@ -133,7 +133,7 @@ namespace VM
 		{ return sizeof(StorageRecT); }
 
 		static EpochVariableTypeID GetStaticType()
-		{ return EpochVariableType_List; }
+		{ return EpochVariableType_Array; }
 	};
 
 }

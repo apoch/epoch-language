@@ -34,7 +34,7 @@ using namespace Parser;
 VM::OperationPtr ParserState::CreateOperation_Or()
 {
 	if(PassedParameterCount.top() == 1)
-		return ParseLogicalOpListOnly<VM::Operations::LogicalOr, VM::Operations::BitwiseOr>();
+		return ParseLogicalOpArrayOnly<VM::Operations::LogicalOr, VM::Operations::BitwiseOr>();
 
 	if(PassedParameterCount.top() != 2)
 	{
@@ -60,11 +60,11 @@ VM::OperationPtr ParserState::CreateOperation_Or()
 	}
 
 	if(firsttype == VM::EpochVariableType_Boolean)
-		return VM::OperationPtr(ParseLogicalOp<VM::Operations::LogicalOr, VM::Operations::PushBooleanLiteral, VM::Operations::BooleanConstant>(first.IsList(), second.IsList()));
+		return VM::OperationPtr(ParseLogicalOp<VM::Operations::LogicalOr, VM::Operations::PushBooleanLiteral, VM::Operations::BooleanConstant>(first.IsArray(), second.IsArray()));
 	else if(firsttype == VM::EpochVariableType_Integer)
-		return VM::OperationPtr(ParseBitwiseOp<VM::Operations::BitwiseOr, VM::Operations::PushIntegerLiteral, VM::Operations::IntegerConstant>(first.IsList(), second.IsList()));
+		return VM::OperationPtr(ParseBitwiseOp<VM::Operations::BitwiseOr, VM::Operations::PushIntegerLiteral, VM::Operations::IntegerConstant>(first.IsArray(), second.IsArray()));
 	else if(firsttype == VM::EpochVariableType_Integer16)
-		return VM::OperationPtr(ParseBitwiseOp<VM::Operations::BitwiseOr, VM::Operations::PushInteger16Literal, VM::Operations::Integer16Constant>(first.IsList(), second.IsList()));
+		return VM::OperationPtr(ParseBitwiseOp<VM::Operations::BitwiseOr, VM::Operations::PushInteger16Literal, VM::Operations::Integer16Constant>(first.IsArray(), second.IsArray()));
 
 	ReportFatalError("Couldn't determine whether or() should be logical or bitwise");
 	return VM::OperationPtr(new VM::Operations::NoOp);
@@ -77,7 +77,7 @@ VM::OperationPtr ParserState::CreateOperation_Or()
 VM::OperationPtr ParserState::CreateOperation_And()
 {
 	if(PassedParameterCount.top() == 1)
-		return ParseLogicalOpListOnly<VM::Operations::LogicalAnd, VM::Operations::BitwiseAnd>();
+		return ParseLogicalOpArrayOnly<VM::Operations::LogicalAnd, VM::Operations::BitwiseAnd>();
 
 	if(PassedParameterCount.top() != 2)
 	{
@@ -103,11 +103,11 @@ VM::OperationPtr ParserState::CreateOperation_And()
 	}
 
 	if(firsttype == VM::EpochVariableType_Boolean)
-		return VM::OperationPtr(ParseLogicalOp<VM::Operations::LogicalAnd, VM::Operations::PushBooleanLiteral, VM::Operations::BooleanConstant>(first.IsList(), second.IsList()));
+		return VM::OperationPtr(ParseLogicalOp<VM::Operations::LogicalAnd, VM::Operations::PushBooleanLiteral, VM::Operations::BooleanConstant>(first.IsArray(), second.IsArray()));
 	else if(firsttype == VM::EpochVariableType_Integer)
-		return VM::OperationPtr(ParseBitwiseOp<VM::Operations::BitwiseAnd, VM::Operations::PushIntegerLiteral, VM::Operations::IntegerConstant>(first.IsList(), second.IsList()));
+		return VM::OperationPtr(ParseBitwiseOp<VM::Operations::BitwiseAnd, VM::Operations::PushIntegerLiteral, VM::Operations::IntegerConstant>(first.IsArray(), second.IsArray()));
 	else if(firsttype == VM::EpochVariableType_Integer16)
-		return VM::OperationPtr(ParseBitwiseOp<VM::Operations::BitwiseAnd, VM::Operations::PushInteger16Literal, VM::Operations::Integer16Constant>(first.IsList(), second.IsList()));
+		return VM::OperationPtr(ParseBitwiseOp<VM::Operations::BitwiseAnd, VM::Operations::PushInteger16Literal, VM::Operations::Integer16Constant>(first.IsArray(), second.IsArray()));
 
 	ReportFatalError("Couldn't determine whether and() should be logical or bitwise");
 	return VM::OperationPtr(new VM::Operations::NoOp);
