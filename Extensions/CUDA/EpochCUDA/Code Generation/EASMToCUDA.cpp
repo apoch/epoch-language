@@ -34,6 +34,13 @@ CompilationSession::CompilationSession(TemporaryFileWriter& codefile, std::list<
 //
 void CompilationSession::RegisterScope(size_t numcontents, const Traverser::ScopeContents* contents)
 {
+	if(!numcontents)
+		return;
+
+	TemporaryCodeFile.OutputStream << L"\n";
+	PadTabs();
+	TemporaryCodeFile.OutputStream << L"// Define variables in the current scope\n";
+
 	for(size_t i = 0; i < numcontents; ++i)
 	{
 		RegisteredVariables.push_back(contents[i]);
@@ -57,6 +64,8 @@ void CompilationSession::RegisterScope(size_t numcontents, const Traverser::Scop
 			throw std::exception("Scope contains a variable of an unrecognized type; cannot generate declaration/initialization code");
 		}
 	}
+
+	TemporaryCodeFile.OutputStream << L"\n";
 }
 
 
@@ -198,8 +207,15 @@ void CompilationSession::EmitInfixExpression(const std::wstring& operatorname)
 //
 void CompilationSession::FunctionPreamble(Extensions::OriginalCodeHandle handle)
 {
-	TemporaryCodeFile.OutputStream << L"extern \"C\" __global__ void " << widen(GenerateFunctionName(handle)) << L"(float* __marshal_input_floats)\n{\n";
-	TemporaryCodeFile.OutputStream << L"\tunsigned int __marshal_float_index = 0;\n";
+	PadTabs();
+	TemporaryCodeFile.OutputStream << L"extern \"C\" __global__ void " << widen(GenerateFunctionName(handle)) << L"(float* __marshal_input_floats)\n";
+	PadTabs();
+	TemporaryCodeFile.OutputStream << L"{\n";
+	++TabDepth;
+	PadTabs();
+	TemporaryCodeFile.OutputStream << L"// Copy variable values from the host into local variables\n";
+	PadTabs();
+	TemporaryCodeFile.OutputStream << L"unsigned int __marshal_float_index = 0;\n";
 }
 
 //
@@ -212,14 +228,19 @@ void CompilationSession::FunctionPreamble(Extensions::OriginalCodeHandle handle)
 //
 void CompilationSession::MarshalOut()
 {
-	TemporaryCodeFile.OutputStream << L"\t__marshal_float_index = 0;\n";
+	TemporaryCodeFile.OutputStream << L"\n";
+	PadTabs();
+	TemporaryCodeFile.OutputStream << L"// Copy final variable values back into the data buffer for retrieval by the host\n";
+	PadTabs();
+	TemporaryCodeFile.OutputStream << L"__marshal_float_index = 0;\n";
 
 	for(std::list<Traverser::ScopeContents>::const_iterator iter = RegisteredVariables.begin(); iter != RegisteredVariables.end(); ++iter)
 	{
+		PadTabs();
 		switch(iter->Type)
 		{
 		case VM::EpochVariableType_Real:
-			TemporaryCodeFile.OutputStream << L"\t__marshal_input_floats[__marshal_float_index++] = " << iter->Identifier << L";\n";
+			TemporaryCodeFile.OutputStream << L"__marshal_input_floats[__marshal_float_index++] = " << iter->Identifier << L";\n";
 			break;
 
 		default:
@@ -227,6 +248,8 @@ void CompilationSession::MarshalOut()
 		}
 	}
 
+	--TabDepth;
+	PadTabs();
 	TemporaryCodeFile.OutputStream << L"}\n\n";
 }
 
