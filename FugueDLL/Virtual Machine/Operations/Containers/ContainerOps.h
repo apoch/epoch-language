@@ -54,6 +54,106 @@ namespace VM
 			EpochVariableTypeID ElementType;
 		};
 
+
+		//
+		// Operation for retrieving a value from an array
+		//
+		class ReadArray : public Operation, public SelfAware<ReadArray>
+		{
+		// Construction
+		public:
+			ReadArray(const std::wstring& arrayname);
+
+		// Operation interface
+		public:
+			virtual void ExecuteFast(ExecutionContext& context);
+			virtual RValuePtr ExecuteAndStoreRValue(ExecutionContext& context);
+
+			virtual EpochVariableTypeID GetType(const ScopeDescription& scope) const;
+
+			virtual size_t GetNumParameters(const VM::ScopeDescription& scope) const
+			{ return 1; }
+
+			const std::wstring& GetAssociatedIdentifier() const
+			{ return ArrayName; }
+
+		// Traversal
+		public:
+			virtual Traverser::Payload GetNodeTraversalPayload(const VM::ScopeDescription* scope) const;
+			
+		// Internal tracking
+		private:
+			const std::wstring& ArrayName;
+		};
+
+
+		//
+		// Operation for writing a value to an array
+		//
+		class WriteArray : public Operation, public SelfAware<WriteArray>
+		{
+		// Construction
+		public:
+			WriteArray(const std::wstring& arrayname);
+
+		// Operation interface
+		public:
+			virtual void ExecuteFast(ExecutionContext& context);
+			virtual RValuePtr ExecuteAndStoreRValue(ExecutionContext& context);
+
+			virtual EpochVariableTypeID GetType(const ScopeDescription& scope) const
+			{ return VM::EpochVariableType_Null; }
+
+			virtual size_t GetNumParameters(const VM::ScopeDescription& scope) const
+			{ return 2; }
+
+			const std::wstring& GetAssociatedIdentifier() const
+			{ return ArrayName; }
+
+		// Traversal
+		public:
+			virtual Traverser::Payload GetNodeTraversalPayload(const VM::ScopeDescription* scope) const;
+
+		// Internal tracking
+		private:
+			const std::wstring& ArrayName;
+		};
+
+
+		//
+		// Operation for retrieving the length of an array
+		//
+		class ArrayLength : public Operation, public SelfAware<ArrayLength>
+		{
+		// Construction
+		public:
+			ArrayLength(const std::wstring& arrayname)
+				: ArrayName(arrayname)
+			{ }
+
+		// Operation interface
+		public:
+			virtual void ExecuteFast(ExecutionContext& context);
+			virtual RValuePtr ExecuteAndStoreRValue(ExecutionContext& context);
+			
+			virtual EpochVariableTypeID GetType(const ScopeDescription& scope) const
+			{ return EpochVariableType_Integer; }
+
+			virtual size_t GetNumParameters(const VM::ScopeDescription& scope) const
+			{ return 0; }
+
+			const std::wstring& GetAssociatedIdentifier() const
+			{ return ArrayName; }
+
+		// Traversal interface
+		public:
+			virtual Traverser::Payload GetNodeTraversalPayload(const VM::ScopeDescription* scope) const;
+
+		// Internal tracking
+		private:
+			const std::wstring& ArrayName;
+		};
+
 	}
 
 }

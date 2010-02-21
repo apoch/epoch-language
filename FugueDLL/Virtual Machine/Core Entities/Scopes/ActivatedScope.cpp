@@ -719,6 +719,34 @@ RValuePtr ActivatedScope::SetVariableValue(const std::wstring& name, RValuePtr v
 		var.CastTo<BufferVariable>().SetHandleValue(value->CastTo<BufferRValue>().GetOriginHandle());
 		break;
 
+	case EpochVariableType_Array:
+		{
+			EpochVariableTypeID elementtype = value->CastTo<ArrayRValue>().GetElementType();
+			std::vector<RValue*> elementvalues = value->CastTo<ArrayRValue>().GetElements();
+			size_t stride = TypeInfo::GetStorageSize(elementtype);
+
+			size_t index = 0;
+			void* deststorage = var.CastTo<ArrayVariable>().GetArrayElementStorage();
+			for(std::vector<RValue*>::const_iterator iter = elementvalues.begin(); iter != elementvalues.end(); ++iter)
+			{
+				switch(elementtype)
+				{
+				case EpochVariableType_Integer:
+					*reinterpret_cast<IntegerVariable::BaseStorage*>(deststorage) = (*iter)->CastTo<IntegerRValue>().GetValue();
+					break;
+
+				case EpochVariableType_Real:
+					*reinterpret_cast<RealVariable::BaseStorage*>(deststorage) = (*iter)->CastTo<RealRValue>().GetValue();
+					break;
+
+				default:
+					throw NotImplementedException("Cannot copy array of this element type, someone has been lazy!");
+				}
+				deststorage = reinterpret_cast<char*>(deststorage) + stride;
+			}
+		}
+		break;
+
 	default:
 		throw NotImplementedException("Cannot set variable value for this type");
 		break;

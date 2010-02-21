@@ -272,7 +272,12 @@ EpochVariableTypeID ScopeDescription::GetArrayType(const std::wstring& arrayname
 {
 	std::map<std::wstring, EpochVariableTypeID>::const_iterator iter = ArrayTypes.find(arrayname);
 	if(iter == ArrayTypes.end())
+	{
+		if(ParentScope)
+			return ParentScope->GetArrayType(arrayname);
+
 		throw ExecutionException("Could not determine element type of this array");
+	}
 
 	return iter->second;
 }
@@ -292,7 +297,12 @@ size_t ScopeDescription::GetArraySize(const std::wstring& arrayname) const
 {
 	std::map<std::wstring, unsigned>::const_iterator iter = ArraySizes.find(arrayname);
 	if(iter == ArraySizes.end())
+	{
+		if(ParentScope)
+			return ParentScope->GetArraySize(arrayname);
+
 		throw ExecutionException("Could not determine size of this array");
+	}
 
 	return iter->second;
 }

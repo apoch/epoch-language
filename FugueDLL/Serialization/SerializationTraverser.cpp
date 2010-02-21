@@ -463,7 +463,7 @@ void SerializationTraverser::WriteOpWithPayload(const VM::Operation* opptr, cons
 {
 	PadTabs();
 	OutputStream << opptr << L" " << token << L" ";
-	WritePayload(opptr->GetNodeTraversalPayload());
+	WritePayload(opptr->GetNodeTraversalPayload(CurrentScope));
 	OutputStream << L"\n";
 }
 

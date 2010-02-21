@@ -41,10 +41,11 @@ RValuePtr PushIntegerLiteral::ExecuteAndStoreRValue(ExecutionContext& context)
 }
 
 
-Traverser::Payload PushIntegerLiteral::GetNodeTraversalPayload() const
+Traverser::Payload PushIntegerLiteral::GetNodeTraversalPayload(const VM::ScopeDescription* scope) const
 {
 	Traverser::Payload ret;
 	ret.SetValue(LiteralValue);
+	ret.ParameterCount = GetNumParameters(*scope);
 	return ret;
 }
 
@@ -62,10 +63,11 @@ RValuePtr PushInteger16Literal::ExecuteAndStoreRValue(ExecutionContext& context)
 	return RValuePtr(new Integer16RValue(LiteralValue));
 }
 
-Traverser::Payload PushInteger16Literal::GetNodeTraversalPayload() const
+Traverser::Payload PushInteger16Literal::GetNodeTraversalPayload(const VM::ScopeDescription* scope) const
 {
 	Traverser::Payload ret;
 	ret.SetValue(LiteralValue);
+	ret.ParameterCount = GetNumParameters(*scope);
 	return ret;
 }
 
@@ -84,10 +86,11 @@ RValuePtr PushStringLiteral::ExecuteAndStoreRValue(ExecutionContext& context)
 	return RValuePtr(new StringRValue(LiteralValue));
 }
 
-Traverser::Payload PushStringLiteral::GetNodeTraversalPayload() const
+Traverser::Payload PushStringLiteral::GetNodeTraversalPayload(const VM::ScopeDescription* scope) const
 {
 	Traverser::Payload ret;
 	ret.SetValue(LiteralValue.c_str());
+	ret.ParameterCount = GetNumParameters(*scope);
 	return ret;
 }
 
@@ -105,10 +108,11 @@ RValuePtr PushRealLiteral::ExecuteAndStoreRValue(ExecutionContext& context)
 	return RValuePtr(new RealRValue(LiteralValue));
 }
 
-Traverser::Payload PushRealLiteral::GetNodeTraversalPayload() const
+Traverser::Payload PushRealLiteral::GetNodeTraversalPayload(const VM::ScopeDescription* scope) const
 {
 	Traverser::Payload ret;
 	ret.SetValue(LiteralValue);
+	ret.ParameterCount = GetNumParameters(*scope);
 	return ret;
 }
 
@@ -126,10 +130,11 @@ RValuePtr PushBooleanLiteral::ExecuteAndStoreRValue(ExecutionContext& context)
 	return RValuePtr(new BooleanRValue(LiteralValue));
 }
 
-Traverser::Payload PushBooleanLiteral::GetNodeTraversalPayload() const
+Traverser::Payload PushBooleanLiteral::GetNodeTraversalPayload(const VM::ScopeDescription* scope) const
 {
 	Traverser::Payload ret;
 	ret.SetValue(LiteralValue);
+	ret.ParameterCount = GetNumParameters(*scope);
 	return ret;
 }
 
@@ -302,7 +307,7 @@ RValuePtr BindReference::ExecuteAndStoreRValue(ExecutionContext& context)
 	return RValuePtr(new NullRValue);
 }
 
-Traverser::Payload BindReference::GetNodeTraversalPayload() const
+Traverser::Payload BindReference::GetNodeTraversalPayload(const VM::ScopeDescription* scope) const
 {
 	Traverser::Payload ret;
 	ret.SetValue(VarName.c_str());
@@ -332,11 +337,12 @@ RValuePtr BindFunctionReference::ExecuteAndStoreRValue(ExecutionContext& context
 	return RValuePtr(new NullRValue);
 }
 
-Traverser::Payload BindFunctionReference::GetNodeTraversalPayload() const
+Traverser::Payload BindFunctionReference::GetNodeTraversalPayload(const VM::ScopeDescription* scope) const
 {
 	Traverser::Payload ret;
 	ret.SetValue(FunctionName.c_str());
 	ret.IsIdentifier = true;
+	ret.ParameterCount = GetNumParameters(*scope);
 	return ret;
 }
 

@@ -131,11 +131,12 @@ namespace VM
 			virtual void Traverse(Validator::ValidationTraverser& traverser);
 			virtual void Traverse(Serialization::SerializationTraverser& traverser);
 
-			virtual Traverser::Payload GetNodeTraversalPayload() const
+			virtual Traverser::Payload GetNodeTraversalPayload(const VM::ScopeDescription* scope) const
 			{
 				Traverser::Payload payload;
 				payload.SetValue(MapName.c_str());
 				payload.IsIdentifier = true;
+				payload.ParameterCount = GetNumParameters(*scope);
 				return payload;
 			}
 			

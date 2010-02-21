@@ -481,6 +481,8 @@ namespace Parser
 
 		// Containers
 		VM::OperationPtr CreateOperation_ConsArray();
+		VM::OperationPtr CreateOperation_ReadArray();
+		VM::OperationPtr CreateOperation_WriteArray();
 
 		// Debugging
 		VM::OperationPtr CreateOperation_DebugWrite();

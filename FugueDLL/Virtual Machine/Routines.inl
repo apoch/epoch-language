@@ -25,3 +25,10 @@ void PushValueOntoStack(StackSpace& thestack, typename TypeData::VariableType::B
 	thestack.Push(TypeData::VariableType::GetBaseStorageSize());
 	*reinterpret_cast<TypeData::VariableType::BaseStorage*>(thestack.GetCurrentTopOfStack()) = value;
 }
+
+
+namespace VM
+{
+	RValuePtr GetRValuePtrFromStorage(VM::EpochVariableTypeID vartype, void* storage);
+	void WriteRValueToStorage(RValuePtr rvalue, void* storage);
+}

@@ -84,6 +84,9 @@ namespace Serialization
 
 	// Arrays
 	extern std::wstring ConsArray;
+	extern std::wstring ReadArray;
+	extern std::wstring WriteArray;
+	extern std::wstring ArrayLength;
 	extern std::wstring Map;
 	extern std::wstring Reduce;
 

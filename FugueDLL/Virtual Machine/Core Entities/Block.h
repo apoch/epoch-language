@@ -78,6 +78,9 @@ namespace VM
 		void BindToScope(ScopeDescription* scope)
 		{ BoundScope = scope; }
 
+		const ScopeDescription* GetBoundScope() const
+		{ return BoundScope; }
+
 		ScopeDescription* GetBoundScope()
 		{ return BoundScope; }
 

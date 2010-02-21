@@ -102,10 +102,17 @@ VM::OperationPtr ParserState::CreateOperation_Length()
 			TheStack.pop_back();
 		return VM::OperationPtr(new VM::Operations::NoOp);
 	}
+
 	StackEntry variable = TheStack.back();
 
 	if(CurrentScope->GetVariableType(variable.StringValue) != VM::EpochVariableType_String)
 	{
+		if(CurrentScope->GetVariableType(variable.StringValue) == VM::EpochVariableType_Array)
+		{
+			TheStack.pop_back();
+			return VM::OperationPtr(new VM::Operations::ArrayLength(ParsedProgram->PoolStaticString(variable.StringValue)));
+		}
+
 		ReportFatalError("Function parameter must be a string");
 		TheStack.pop_back();
 		return VM::OperationPtr(new VM::Operations::NoOp);

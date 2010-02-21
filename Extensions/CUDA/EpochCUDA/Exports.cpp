@@ -157,12 +157,12 @@ void __stdcall CommitCompilation(CompileSessionHandle sessionid)
 // This information is provided to allow seamless integration of variables
 // from the Epoch code into the code produced by the extension library.
 //
-void __stdcall ScopeCallback(TraversalSessionHandle sessionhandle, size_t numcontents, const Traverser::ScopeContents* contents)
+void __stdcall ScopeCallback(TraversalSessionHandle sessionhandle, bool toplevel, size_t numcontents, const Traverser::ScopeContents* contents)
 {
 	try
 	{
 		Compiler::CompilationSession* compile = reinterpret_cast<Compiler::CompilationSession*>(sessionhandle);
-		compile->RegisterScope(numcontents, contents);
+		compile->RegisterScope(toplevel, numcontents, contents);
 	}
 	catch(std::exception& e)
 	{

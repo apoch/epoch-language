@@ -10,7 +10,11 @@
 #include "Virtual Machine/Operations/Containers/ContainerOps.h"
 #include "Virtual Machine/Core Entities/Variables/Variable.h"
 #include "Virtual Machine/Core Entities/Variables/StringVariable.h"
+#include "Virtual Machine/Core Entities/Variables/ArrayVariable.h"
+#include "Virtual Machine/Core Entities/Scopes/ScopeDescription.h"
+#include "Virtual Machine/Types Management/TypeInfo.h"
 #include "Virtual Machine/SelfAware.inl"
+#include "Virtual Machine/Routines.inl"
 #include "Virtual Machine/VMExceptions.h"
 
 
@@ -95,3 +99,127 @@ RValuePtr ConsArray::ExecuteAndStoreRValue(ExecutionContext& context)
 	return RValuePtr(ret.release());
 }
 
+
+
+//
+// Construct and initialize an array read operation
+//
+ReadArray::ReadArray(const std::wstring& arrayname)
+	: ArrayName(arrayname)
+{
+}
+
+void ReadArray::ExecuteFast(ExecutionContext& context)
+{
+	// Nothing to do.
+}
+
+RValuePtr ReadArray::ExecuteAndStoreRValue(ExecutionContext& context)
+{
+	IntegerVariable indexvar(context.Stack.GetCurrentTopOfStack());
+	IntegerVariable::BaseStorage index = indexvar.GetValue();
+	context.Stack.Pop(IntegerVariable::GetStorageSize());
+
+	void* storage = context.Scope.GetVariableRef<ArrayVariable>(ArrayName).GetArrayElementStorage();
+	EpochVariableTypeID entrytype = context.Scope.GetOriginalDescription().GetArrayType(ArrayName);
+
+	if(index < 0 || index >= static_cast<Integer32>(context.Scope.GetOriginalDescription().GetArraySize(ArrayName)))
+		throw ExecutionException("Invalid array index");
+
+	size_t stride = TypeInfo::GetStorageSize(entrytype);
+	void* target = reinterpret_cast<char*>(storage) + (stride * index);
+
+	return GetRValuePtrFromStorage(entrytype, target);
+}
+
+EpochVariableTypeID ReadArray::GetType(const ScopeDescription& scope) const
+{
+	return scope.GetArrayType(ArrayName);
+}
+
+Traverser::Payload ReadArray::GetNodeTraversalPayload(const VM::ScopeDescription* scope) const
+{
+	Traverser::Payload payload;
+	payload.SetValue(ArrayName.c_str());
+	payload.IsIdentifier = true;
+	payload.ParameterCount = GetNumParameters(*scope);
+	return payload;
+}
+
+
+WriteArray::WriteArray(const std::wstring& arrayname)
+	: ArrayName(arrayname)
+{
+}
+
+void WriteArray::ExecuteFast(ExecutionContext& context)
+{
+	RValuePtr writevalue(NULL);
+	EpochVariableTypeID entrytype = context.Scope.GetOriginalDescription().GetArrayType(ArrayName);
+
+	switch(entrytype)
+	{
+	case EpochVariableType_Integer:		writevalue = IntegerVariable(context.Stack.GetCurrentTopOfStack()).GetAsRValue();		break;
+	case EpochVariableType_Integer16:	writevalue = Integer16Variable(context.Stack.GetCurrentTopOfStack()).GetAsRValue();		break;
+	case EpochVariableType_Real:		writevalue = RealVariable(context.Stack.GetCurrentTopOfStack()).GetAsRValue();			break;
+	case EpochVariableType_Boolean:		writevalue = BooleanVariable(context.Stack.GetCurrentTopOfStack()).GetAsRValue();		break;
+	case EpochVariableType_String:		writevalue = StringVariable(context.Stack.GetCurrentTopOfStack()).GetAsRValue();		break;
+	case EpochVariableType_Function:	writevalue = FunctionBinding(context.Stack.GetCurrentTopOfStack()).GetAsRValue();		break;
+	case EpochVariableType_Address:		writevalue = AddressVariable(context.Stack.GetCurrentTopOfStack()).GetAsRValue();		break;
+	case EpochVariableType_Buffer:		writevalue = BufferVariable(context.Stack.GetCurrentTopOfStack()).GetAsRValue();		break;
+	case EpochVariableType_TaskHandle:	writevalue = TaskHandleVariable(context.Stack.GetCurrentTopOfStack()).GetAsRValue();	break;
+	default:
+		throw NotImplementedException("Cannot write array member of this type, support not implemented");
+	}
+
+	context.Stack.Pop(TypeInfo::GetStorageSize(entrytype));
+
+	IntegerVariable indexvar(context.Stack.GetCurrentTopOfStack());
+	IntegerVariable::BaseStorage index = indexvar.GetValue();
+	context.Stack.Pop(IntegerVariable::GetStorageSize());
+
+	void* storage = context.Scope.GetVariableRef<ArrayVariable>(ArrayName).GetArrayElementStorage();
+
+	if(index < 0 || index >= static_cast<Integer32>(context.Scope.GetOriginalDescription().GetArraySize(ArrayName)))
+		throw ExecutionException("Invalid array index");
+
+	size_t stride = TypeInfo::GetStorageSize(entrytype);
+	void* target = reinterpret_cast<char*>(storage) + (stride * index);
+
+	WriteRValueToStorage(writevalue, target);
+}
+
+RValuePtr WriteArray::ExecuteAndStoreRValue(ExecutionContext& context)
+{
+	ExecuteFast(context);
+	return RValuePtr(new NullRValue());
+}
+
+Traverser::Payload WriteArray::GetNodeTraversalPayload(const VM::ScopeDescription* scope) const
+{
+	Traverser::Payload payload;
+	payload.SetValue(ArrayName.c_str());
+	payload.IsIdentifier = true;
+	payload.ParameterCount = GetNumParameters(*scope);
+	return payload;
+}
+
+
+void ArrayLength::ExecuteFast(ExecutionContext& context)
+{
+	// Nothing to do.
+}
+
+RValuePtr ArrayLength::ExecuteAndStoreRValue(ExecutionContext& context)
+{
+	return RValuePtr(new IntegerRValue(static_cast<Integer32>(context.Scope.GetOriginalDescription().GetArraySize(ArrayName))));
+}
+
+Traverser::Payload ArrayLength::GetNodeTraversalPayload(const VM::ScopeDescription* scope) const
+{
+	Traverser::Payload payload;
+	payload.SetValue(ArrayName.c_str());
+	payload.IsIdentifier = true;
+	payload.ParameterCount = GetNumParameters(*scope);
+	return payload;
+}

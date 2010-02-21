@@ -31,6 +31,9 @@ const wchar_t* Keywords::ReadStructure = L"readstructure";
 const wchar_t* Keywords::AssignStructure = L"assignstructure";
 const wchar_t* Keywords::Member = L"member";
 
+const wchar_t* Keywords::ReadArray = L"readarray";
+const wchar_t* Keywords::WriteArray = L"writearray";
+
 const wchar_t* Keywords::Add = L"add";
 const wchar_t* Keywords::Subtract = L"subtract";
 const wchar_t* Keywords::Multiply = L"multiply";

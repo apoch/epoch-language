@@ -46,7 +46,7 @@ namespace VM
 
 		// Traversal
 		public:
-			virtual Traverser::Payload GetNodeTraversalPayload() const;
+			virtual Traverser::Payload GetNodeTraversalPayload(const VM::ScopeDescription* scope) const;
 
 		// Internal tracking
 		private:
@@ -74,7 +74,7 @@ namespace VM
 
 		// Traversal
 		public:
-			virtual Traverser::Payload GetNodeTraversalPayload() const;
+			virtual Traverser::Payload GetNodeTraversalPayload(const VM::ScopeDescription* scope) const;
 
 		// Additional queries
 		public:
@@ -110,7 +110,7 @@ namespace VM
 
 		// Traversal
 		public:
-			virtual Traverser::Payload GetNodeTraversalPayload() const;
+			virtual Traverser::Payload GetNodeTraversalPayload(const VM::ScopeDescription* scope) const;
 
 		// Internal tracking
 		private:
@@ -141,7 +141,7 @@ namespace VM
 
 		// Traversal
 		public:
-			virtual Traverser::Payload GetNodeTraversalPayload() const;
+			virtual Traverser::Payload GetNodeTraversalPayload(const VM::ScopeDescription* scope) const;
 
 		// Internal tracking
 		private:
@@ -172,7 +172,7 @@ namespace VM
 
 		// Traversal
 		public:
-			virtual Traverser::Payload GetNodeTraversalPayload() const;
+			virtual Traverser::Payload GetNodeTraversalPayload(const VM::ScopeDescription* scope) const;
 
 		// Value retrieval
 		public:
@@ -257,7 +257,7 @@ namespace VM
 
 		// Traversal
 		public:
-			virtual Traverser::Payload GetNodeTraversalPayload() const;
+			virtual Traverser::Payload GetNodeTraversalPayload(const VM::ScopeDescription* scope) const;
 
 		// Internal tracking
 		private:
@@ -290,7 +290,7 @@ namespace VM
 
 		// Traversal
 		public:
-			virtual Traverser::Payload GetNodeTraversalPayload() const;
+			virtual Traverser::Payload GetNodeTraversalPayload(const VM::ScopeDescription* scope) const;
 
 		// Internal tracking
 		private:

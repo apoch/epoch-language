@@ -45,7 +45,7 @@ namespace VM
 
 		// Traversal
 		public:
-			virtual Traverser::Payload GetNodeTraversalPayload() const;
+			virtual Traverser::Payload GetNodeTraversalPayload(const VM::ScopeDescription* scope) const;
 
 		// Internal tracking
 		private:
@@ -77,7 +77,7 @@ namespace VM
 
 		// Traversal
 		public:
-			virtual Traverser::Payload GetNodeTraversalPayload() const;
+			virtual Traverser::Payload GetNodeTraversalPayload(const VM::ScopeDescription* scope) const;
 
 		// Internal tracking
 		private:
@@ -109,7 +109,7 @@ namespace VM
 
 		// Traversal
 		public:
-			virtual Traverser::Payload GetNodeTraversalPayload() const;
+			virtual Traverser::Payload GetNodeTraversalPayload(const VM::ScopeDescription* scope) const;
 			
 		// Internal tracking
 		private:
@@ -144,7 +144,7 @@ namespace VM
 
 		// Traversal
 		public:
-			virtual Traverser::Payload GetNodeTraversalPayload() const;
+			virtual Traverser::Payload GetNodeTraversalPayload(const VM::ScopeDescription* scope) const;
 
 		// Internal tracking
 		private:
@@ -181,10 +181,11 @@ namespace VM
 
 		// Traversal interface
 		public:
-			virtual Traverser::Payload GetNodeTraversalPayload() const
+			virtual Traverser::Payload GetNodeTraversalPayload(const VM::ScopeDescription* scope) const
 			{
 				Traverser::Payload payload;
 				payload.SetValue(Value);
+				payload.ParameterCount = GetNumParameters(*scope);
 				return payload;
 			}
 
@@ -227,10 +228,11 @@ namespace VM
 
 		// Traversal interface
 		public:
-			virtual Traverser::Payload GetNodeTraversalPayload() const
+			virtual Traverser::Payload GetNodeTraversalPayload(const VM::ScopeDescription* scope) const
 			{
 				Traverser::Payload payload;
 				payload.SetValue(Value);
+				payload.ParameterCount = GetNumParameters(*scope);
 				return payload;
 			}
 
@@ -273,10 +275,11 @@ namespace VM
 
 		// Traversal interface
 		public:
-			virtual Traverser::Payload GetNodeTraversalPayload() const
+			virtual Traverser::Payload GetNodeTraversalPayload(const VM::ScopeDescription* scope) const
 			{
 				Traverser::Payload payload;
 				payload.SetValue(Value);
+				payload.ParameterCount = GetNumParameters(*scope);
 				return payload;
 			}
 
@@ -319,10 +322,11 @@ namespace VM
 
 		// Traversal interface
 		public:
-			virtual Traverser::Payload GetNodeTraversalPayload() const
+			virtual Traverser::Payload GetNodeTraversalPayload(const VM::ScopeDescription* scope) const
 			{
 				Traverser::Payload payload;
 				payload.SetValue(Value);
+				payload.ParameterCount = GetNumParameters(*scope);
 				return payload;
 			}
 

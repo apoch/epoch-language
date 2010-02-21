@@ -54,7 +54,7 @@ namespace VM
 			virtual void Traverse(Serialization::SerializationTraverser& traverser);
 
 		public:
-			virtual Traverser::Payload GetNodeTraversalPayload() const;
+			virtual Traverser::Payload GetNodeTraversalPayload(const VM::ScopeDescription* scope) const;
 
 		// Internal tracking
 		private:
@@ -96,11 +96,12 @@ namespace VM
 			virtual void Traverse(Validator::ValidationTraverser& traverser);
 			virtual void Traverse(Serialization::SerializationTraverser& traverser);
 
-			virtual Traverser::Payload GetNodeTraversalPayload() const
+			virtual Traverser::Payload GetNodeTraversalPayload(const VM::ScopeDescription* scope) const
 			{
 				Traverser::Payload payload;
 				payload.SetValue(FunctionName.c_str());
 				payload.IsIdentifier = true;
+				payload.ParameterCount = GetNumParameters(*scope);
 				return payload;
 			}
 

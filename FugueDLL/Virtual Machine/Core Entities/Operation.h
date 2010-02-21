@@ -32,6 +32,7 @@ namespace VM
 	// Forward declarations
 	class ScopeDescription;
 	class ActivatedScope;
+	class Block;
 
 
 	//
@@ -55,19 +56,28 @@ namespace VM
 		template <class TraverserT>
 		void TraverseExternal(TraverserT& traverser)
 		{
-			traverser.TraverseNode(dynamic_cast<SelfAwareBase*>(this)->GetToken(), GetNodeTraversalPayload());
+			traverser.TraverseNode(dynamic_cast<SelfAwareBase*>(this)->GetToken(), GetNodeTraversalPayload(traverser.GetCurrentScope()));
 			Operation* nested = GetNestedOperation();
 			if(nested)
 				nested->TraverseExternal(traverser);
+			Block* attachedblock = GetAttachedCodeBlock();
+			if(attachedblock)
+				attachedblock->TraverseExternal(traverser);
 		}
 
-		virtual Traverser::Payload GetNodeTraversalPayload() const
+		virtual Traverser::Payload GetNodeTraversalPayload(const VM::ScopeDescription* scope) const
 		{
 			Traverser::Payload payload;
+			payload.ParameterCount = GetNumParameters(*scope);
 			return payload;
 		}
 
 		virtual Operation* GetNestedOperation() const
+		{
+			return NULL;
+		}
+
+		virtual Block* GetAttachedCodeBlock() const
 		{
 			return NULL;
 		}

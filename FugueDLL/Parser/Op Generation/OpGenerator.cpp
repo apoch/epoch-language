@@ -149,6 +149,10 @@ VM::OperationPtr ParserState::CreateOperation(const std::wstring& operationname)
 	}
 	else if(operationname == Keywords::Future)
 		return CreateOperation_Future();
+	else if(operationname == Keywords::ReadArray)
+		return CreateOperation_ReadArray();
+	else if(operationname == Keywords::WriteArray)
+		return CreateOperation_WriteArray();
 	else
 	{
 		if(CurrentScope->HasTupleType(operationname))

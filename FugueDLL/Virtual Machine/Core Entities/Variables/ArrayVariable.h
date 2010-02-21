@@ -122,6 +122,14 @@ namespace VM
 			return GetBaseStorageSize() + arraysize * TypeInfo::GetStorageSize(elementtype);
 		}
 
+		void* GetArrayElementStorage() const
+		{
+			if(!Storage)
+				return NULL;
+
+			return reinterpret_cast<char*>(Storage) + GetBaseStorageSize();
+		}
+
 	// Shared storage size/type retrieval
 	public:
 		size_t GetStorageSize()

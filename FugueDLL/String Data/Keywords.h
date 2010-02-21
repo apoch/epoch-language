@@ -31,6 +31,9 @@ namespace Keywords
 	extern const wchar_t* ReadStructure;
 	extern const wchar_t* AssignStructure;
 	extern const wchar_t* Member;
+	
+	extern const wchar_t* ReadArray;
+	extern const wchar_t* WriteArray;
 
 	extern const wchar_t* Add;
 	extern const wchar_t* Subtract;

@@ -34,7 +34,7 @@ namespace Traverser
 	typedef void (__stdcall *NodeEntryCallbackPtr)(TraversalSessionHandle sessionhandle);
 	typedef void (__stdcall *NodeExitCallbackPtr)(TraversalSessionHandle sessionhandle);
 	typedef void (__stdcall *NodeTraversalCallbackPtr)(TraversalSessionHandle sessionhandle, const wchar_t* token, const Payload* payload);
-	typedef void (__stdcall *ScopeTraversalCallbackPtr)(TraversalSessionHandle sessionhandle, size_t numcontents, const ScopeContents* contents);
+	typedef void (__stdcall *ScopeTraversalCallbackPtr)(TraversalSessionHandle sessionhandle, bool toplevel, size_t numcontents, const ScopeContents* contents);
 
 
 	//
@@ -65,7 +65,8 @@ namespace Traverser
 		Payload()
 			: PointerValue(NULL),
 			  Type(VM::EpochVariableType_Error),
-			  IsIdentifier(false)
+			  IsIdentifier(false),
+			  ParameterCount(0)
 		{ }
 
 		union
@@ -80,6 +81,7 @@ namespace Traverser
 		
 		VM::EpochVariableTypeID Type;
 		bool IsIdentifier;
+		size_t ParameterCount;
 
 
 		void SetValue(Integer32 value)									{ Int32Value = value; Type = VM::EpochVariableType_Integer; }
@@ -104,11 +106,15 @@ namespace Traverser
 	{
 		ScopeContents()
 			: Identifier(NULL),
-			  Type(VM::EpochVariableType_Error)
+			  Type(VM::EpochVariableType_Error),
+			  ContainedType(VM::EpochVariableType_Error),
+			  ContainedSize(0)
 		{ }
 
 		const wchar_t* Identifier;
 		VM::EpochVariableTypeID Type;
+		VM::EpochVariableTypeID ContainedType;
+		size_t ContainedSize;
 	};
 
 }

@@ -12,6 +12,8 @@
 #include "Utility/Strings.h"
 #include "Serialization/SerializationTokens.h"
 
+#include <algorithm>
+
 
 using namespace Compiler;
 using namespace Extensions;
@@ -32,41 +34,97 @@ CompilationSession::CompilationSession(TemporaryFileWriter& codefile, std::list<
 //
 // Callback: register the contents of a lexical scope with the compiler
 //
-void CompilationSession::RegisterScope(size_t numcontents, const Traverser::ScopeContents* contents)
+void CompilationSession::RegisterScope(bool toplevel, size_t numcontents, const Traverser::ScopeContents* contents)
+{
+	WriteScopeContents(toplevel, numcontents, contents);
+}
+
+void CompilationSession::WriteScopeContents(bool toplevel, size_t numcontents, const Traverser::ScopeContents* contents)
 {
 	if(!numcontents)
 		return;
 
-	TemporaryCodeFile.OutputStream << L"\n";
 	PadTabs();
 	TemporaryCodeFile.OutputStream << L"// Define variables in the current scope\n";
 
 	for(size_t i = 0; i < numcontents; ++i)
 	{
-		RegisteredVariables.push_back(contents[i]);
+		bool appendsemicolon = true;
+
+		if(toplevel)
+			RegisteredVariables.push_back(contents[i]);
 
 		PadTabs();
 		switch(contents[i].Type)
 		{
 		case VM::EpochVariableType_Integer:
-			TemporaryCodeFile.OutputStream << L"int " << contents[i].Identifier << ";\n";
+			TemporaryCodeFile.OutputStream << L"int " << contents[i].Identifier;
+			if(toplevel)
+				TemporaryCodeFile.OutputStream << L" = __marshal_input_ints[__marshal_int_index++]";
 			break;
 
 		case VM::EpochVariableType_Real:
-			TemporaryCodeFile.OutputStream << L"float " << contents[i].Identifier << " = __marshal_input_floats[__marshal_float_index++];\n";
+			TemporaryCodeFile.OutputStream << L"float " << contents[i].Identifier;
+			if(toplevel)
+				TemporaryCodeFile.OutputStream << L" = __marshal_input_floats[__marshal_float_index++]";
 			break;
 
-		case VM::EpochVariableType_String:
-			TemporaryCodeFile.OutputStream << L"char* " << contents[i].Identifier << ";\n";
+		case VM::EpochVariableType_Array:
+			{
+				VM::EpochVariableTypeID arraytype = contents[i].ContainedType;
+				switch(arraytype)
+				{
+				case VM::EpochVariableType_Integer:
+					TemporaryCodeFile.OutputStream << L"int ";
+					break;
+
+				case VM::EpochVariableType_Real:
+					TemporaryCodeFile.OutputStream << L"float ";
+					break;
+
+				default:
+					throw std::exception("Cannot pass arrays of this type");
+				}
+
+				TemporaryCodeFile.OutputStream << contents[i].Identifier << L"[" << contents[i].ContainedSize << L"];\n";
+				ArraySizeCache[contents[i].Identifier] = contents[i].ContainedSize;
+
+				PadTabs();
+				TemporaryCodeFile.OutputStream << "for(unsigned __marshal_array_counter = 0; __marshal_array_counter < " << contents[i].ContainedSize << "; ++__marshal_array_counter)\n";
+				++TabDepth;
+				PadTabs();
+				TemporaryCodeFile.OutputStream << contents[i].Identifier << L"[__marshal_array_counter] = ";
+				
+				switch(arraytype)
+				{
+				case VM::EpochVariableType_Integer:
+					TemporaryCodeFile.OutputStream << L"__marshal_input_int_arrays[__marshal_int_array_index++];\n";
+					break;
+
+				case VM::EpochVariableType_Real:
+					TemporaryCodeFile.OutputStream << L"__marshal_input_float_arrays[__marshal_float_array_index++];\n";
+					break;
+
+				default:
+					throw std::exception("Cannot pass arrays of this type");
+				}				
+				
+				--TabDepth;
+				appendsemicolon = false;
+			}
 			break;
 
 		default:
 			throw std::exception("Scope contains a variable of an unrecognized type; cannot generate declaration/initialization code");
 		}
+
+		if(appendsemicolon)
+			TemporaryCodeFile.OutputStream << L";\n";
 	}
 
 	TemporaryCodeFile.OutputStream << L"\n";
 }
+
 
 
 //
@@ -74,53 +132,7 @@ void CompilationSession::RegisterScope(size_t numcontents, const Traverser::Scop
 //
 void CompilationSession::RegisterLeaf(const wchar_t* token, const Traverser::Payload* payload)
 {
-	if(token == Serialization::PushOperation)
-	{
-		// Do nothing yet; the nested operation will automatically be generated
-	}
-	else if(token == Serialization::PushIntegerLiteral
-		 || token == Serialization::PushRealLiteral
-		 || token == Serialization::GetValue)
-	{
-		Parameters.push(*payload);
-	}
-	else if(token == Serialization::AddReals
-		 || token == Serialization::AddIntegers
-		 || token == Serialization::AddInteger16s)
-	{
-		EmitInfixExpression(L"+");
-	}
-	else if(token == Serialization::SubtractReals
-		 || token == Serialization::SubtractIntegers
-		 || token == Serialization::SubtractInteger16s)
-	{
-		EmitInfixExpression(L"-");
-	}
-	else if(token == Serialization::MultiplyReals
-		 || token == Serialization::MultiplyIntegers
-		 || token == Serialization::MultiplyInteger16s)
-	{
-		EmitInfixExpression(L"*");
-	}
-	else if(token == Serialization::DivideReals
-		 || token == Serialization::DivideIntegers
-		 || token == Serialization::DivideInteger16s)
-	{
-		EmitInfixExpression(L"/");
-	}
-	else if(token == Serialization::AssignValue)
-	{
-		PadTabs();
-		TemporaryCodeFile.OutputStream << payload->StringValue << L" = ";
-
-		Traverser::Payload varpayload = Parameters.top();
-		Parameters.pop();
-
-		OutputPayload(varpayload, TemporaryCodeFile.OutputStream);
-		TemporaryCodeFile.OutputStream << L";\n";
-	}
-	else
-		throw std::exception("Unrecognized token passed to EpochASM-to-CUDA compiler; this may be an unsupported feature or a library version mismatch");
+	LeafStack.top().push_back(Leaf(token, payload));
 }
 
 
@@ -129,6 +141,14 @@ void CompilationSession::RegisterLeaf(const wchar_t* token, const Traverser::Pay
 //
 void CompilationSession::EnterNode()
 {
+	if(!LeafStack.empty())
+	{
+		WriteLeaves(LeafStack.top());
+		LeafStack.top().clear();
+	}
+
+	LeafStack.push(LeafList());
+
 	PadTabs();
 	TemporaryCodeFile.OutputStream << L"{\n";
 	++TabDepth;
@@ -139,9 +159,13 @@ void CompilationSession::EnterNode()
 //
 void CompilationSession::ExitNode()
 {
+	WriteLeaves(LeafStack.top());
+
 	--TabDepth;
 	PadTabs();
 	TemporaryCodeFile.OutputStream << L"}\n";
+
+	LeafStack.pop();
 }
 
 
@@ -183,24 +207,6 @@ void CompilationSession::PadTabs()
 }
 
 //
-// Helper function for constructing and emitting infix operations
-//
-void CompilationSession::EmitInfixExpression(const std::wstring& operatorname)
-{
-	Traverser::Payload varpayload1 = Parameters.top();
-	Parameters.pop();
-
-	Traverser::Payload varpayload2 = Parameters.top();
-	Parameters.pop();
-
-	OutputPayload(varpayload2, ExpressionConstruction);
-	ExpressionConstruction << L" " << operatorname << L" ";
-	OutputPayload(varpayload1, ExpressionConstruction);
-
-	Parameters.push(Traverser::Payload());
-}
-
-//
 // Helper function for writing the beginning of a function definition
 //
 // This code includes preparatory steps for marshalling Epoch data into CUDA variables
@@ -208,7 +214,7 @@ void CompilationSession::EmitInfixExpression(const std::wstring& operatorname)
 void CompilationSession::FunctionPreamble(Extensions::OriginalCodeHandle handle)
 {
 	PadTabs();
-	TemporaryCodeFile.OutputStream << L"extern \"C\" __global__ void " << widen(GenerateFunctionName(handle)) << L"(float* __marshal_input_floats)\n";
+	TemporaryCodeFile.OutputStream << L"extern \"C\" __global__ void " << widen(GenerateFunctionName(handle)) << L"(float* __marshal_input_floats, int* __marshal_input_ints, float* __marshal_input_float_arrays, int* __marshal_input_int_arrays)\n";
 	PadTabs();
 	TemporaryCodeFile.OutputStream << L"{\n";
 	++TabDepth;
@@ -216,6 +222,12 @@ void CompilationSession::FunctionPreamble(Extensions::OriginalCodeHandle handle)
 	TemporaryCodeFile.OutputStream << L"// Copy variable values from the host into local variables\n";
 	PadTabs();
 	TemporaryCodeFile.OutputStream << L"unsigned int __marshal_float_index = 0;\n";
+	PadTabs();
+	TemporaryCodeFile.OutputStream << L"unsigned int __marshal_int_index = 0;\n";
+	PadTabs();
+	TemporaryCodeFile.OutputStream << L"unsigned int __marshal_float_array_index = 0;\n";
+	PadTabs();
+	TemporaryCodeFile.OutputStream << L"unsigned int __marshal_int_array_index = 0;\n";
 }
 
 //
@@ -233,14 +245,45 @@ void CompilationSession::MarshalOut()
 	TemporaryCodeFile.OutputStream << L"// Copy final variable values back into the data buffer for retrieval by the host\n";
 	PadTabs();
 	TemporaryCodeFile.OutputStream << L"__marshal_float_index = 0;\n";
+	PadTabs();
+	TemporaryCodeFile.OutputStream << L"__marshal_int_index = 0;\n";
+	PadTabs();
+	TemporaryCodeFile.OutputStream << L"__marshal_float_array_index = 0;\n";
+	PadTabs();
+	TemporaryCodeFile.OutputStream << L"__marshal_int_array_index = 0;\n";
 
 	for(std::list<Traverser::ScopeContents>::const_iterator iter = RegisteredVariables.begin(); iter != RegisteredVariables.end(); ++iter)
 	{
 		PadTabs();
 		switch(iter->Type)
 		{
+		case VM::EpochVariableType_Integer:
+			TemporaryCodeFile.OutputStream << L"__marshal_input_ints[__marshal_int_index++] = " << iter->Identifier << L";\n";
+			break;
+
 		case VM::EpochVariableType_Real:
 			TemporaryCodeFile.OutputStream << L"__marshal_input_floats[__marshal_float_index++] = " << iter->Identifier << L";\n";
+			break;
+
+		case VM::EpochVariableType_Array:
+			{
+				switch(iter->ContainedType)
+				{
+				case VM::EpochVariableType_Integer:
+					TemporaryCodeFile.OutputStream << "for(unsigned __marshal_array_counter = 0; __marshal_array_counter < " << GetArraySize(iter->Identifier) << "; ++__marshal_array_counter)\n";
+					++TabDepth;
+					PadTabs();
+					TemporaryCodeFile.OutputStream << "__marshal_input_int_arrays[__marshal_int_array_index++] = " << iter->Identifier << "[__marshal_array_counter];\n";
+					--TabDepth;
+					break;
+
+				case VM::EpochVariableType_Real:
+					break;
+
+				default:
+					throw std::exception("Unsupported type - cannot generate code to transfer variable data from the CUDA device!");
+				}
+			}
 			break;
 
 		default:
@@ -252,4 +295,141 @@ void CompilationSession::MarshalOut()
 	PadTabs();
 	TemporaryCodeFile.OutputStream << L"}\n\n";
 }
+
+
+void CompilationSession::WriteLeaves(LeafList& leaves)
+{
+	std::reverse(leaves.begin(), leaves.end());
+
+	std::list<std::wstring> OutputLines;
+
+	for(LeafList::const_iterator iter = leaves.begin(); iter != leaves.end(); ++iter)
+	{
+		if(iter->Token == Serialization::PushOperation)
+			continue;
+
+		OutputLines.push_front(GenerateLeafCode(leaves, iter));
+	}
+
+	for(std::list<std::wstring>::const_iterator iter = OutputLines.begin(); iter != OutputLines.end(); ++iter)
+	{
+		PadTabs();
+		TemporaryCodeFile.OutputStream << (*iter) << L"\n";
+	}
+}
+
+
+std::wstring CompilationSession::GenerateLeafCode(const LeafList& leaves, LeafList::const_iterator& iter)
+{
+	std::wostringstream out;
+
+	if(iter->Token == Serialization::InitializeValue ||
+	   iter->Token == Serialization::AssignValue)
+	{
+		OutputPayload(iter->Payload, out);
+		out << L" = ";
+
+		AdvanceLeafIterator(leaves, iter);
+		out << GenerateLeafCode(leaves, iter);
+		out << L";";
+	
+		return out.str();
+	}
+	else if(iter->Token == Serialization::PushIntegerLiteral ||
+			iter->Token == Serialization::PushInteger16Literal ||
+			iter->Token == Serialization::PushRealLiteral)
+	{
+		OutputPayload(iter->Payload, out);
+		return out.str();
+	}
+	else if(iter->Token == Serialization::While)
+	{
+		return L"while(true)";
+	}
+	else if(iter->Token == Serialization::AddIntegers ||
+			iter->Token == Serialization::AddInteger16s ||
+			iter->Token == Serialization::AddReals)
+	{
+		AdvanceLeafIterator(leaves, iter);
+		std::wstring operand = GenerateLeafCode(leaves, iter);
+		AdvanceLeafIterator(leaves, iter);
+		out << GenerateLeafCode(leaves, iter);
+		out << L" + " << operand;
+		return out.str();
+	}
+	else if(iter->Token == Serialization::GetValue)
+	{
+		return iter->Payload.StringValue;
+	}
+	else if(iter->Token == Serialization::WhileCondition)
+	{
+		AdvanceLeafIterator(leaves, iter);
+		out << L"if(!(" << GenerateLeafCode(leaves, iter) << L")) break;";
+		return out.str();
+	}
+	else if(iter->Token == Serialization::IsLesser)
+	{
+		AdvanceLeafIterator(leaves, iter);
+		std::wstring operand = GenerateLeafCode(leaves, iter);
+		AdvanceLeafIterator(leaves, iter);
+		out << GenerateLeafCode(leaves, iter);
+		out << L" < " << operand;
+		return out.str();
+	}
+	else if(iter->Token == Serialization::ArrayLength)
+	{
+		out << GetArraySize(iter->Payload.StringValue);
+		return out.str();
+	}
+	else if(iter->Token == Serialization::WriteArray)
+	{
+		std::wstring arrayidentifier = iter->Payload.StringValue;
+		AdvanceLeafIterator(leaves, iter);
+		std::wstring rhs = GenerateLeafCode(leaves, iter);
+		AdvanceLeafIterator(leaves, iter);
+		out << arrayidentifier << L"[";
+		out << GenerateLeafCode(leaves, iter) << L"] = ";
+		out << rhs << L";";
+		return out.str();
+	}
+	else if(iter->Token == Serialization::ReadArray)
+	{
+		out << iter->Payload.StringValue << L"[";
+		AdvanceLeafIterator(leaves, iter);
+		out << GenerateLeafCode(leaves, iter) << L"]";
+		return out.str();
+	}
+	else if(iter->Token == Serialization::MultiplyIntegers)
+	{
+		// TODO - factor this sludge out into a helper function
+		AdvanceLeafIterator(leaves, iter);
+		std::wstring operand = GenerateLeafCode(leaves, iter);
+		AdvanceLeafIterator(leaves, iter);
+		out << GenerateLeafCode(leaves, iter);
+		out << L" * " << operand;
+		return out.str();
+	}
+	
+	throw std::exception("Cannot generate CUDA code for the given EASM instruction");
+}
+
+
+size_t CompilationSession::GetArraySize(const std::wstring& arrayname) const
+{
+	std::map<std::wstring, size_t>::const_iterator iter = ArraySizeCache.find(arrayname);
+	if(iter != ArraySizeCache.end())
+		return iter->second;
+
+	throw std::exception("Cannot determine size of array variable - name not recognized");
+}
+
+void CompilationSession::AdvanceLeafIterator(const LeafList& leaves, LeafList::const_iterator& iter) const
+{
+	// TODO - since we don't use leaves anymore, remove the parameter
+	do
+	{
+		++iter;
+	} while(iter->Token == Serialization::PushOperation);
+}
+
 

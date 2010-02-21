@@ -253,6 +253,11 @@ namespace VM
 			virtual void Traverse(Validator::ValidationTraverser& traverser);
 			virtual void Traverse(Serialization::SerializationTraverser& traverser);
 
+			virtual Block* GetAttachedCodeBlock() const
+			{
+				return Body;
+			}
+
 		// Internal tracking
 		private:
 			Block* Body;

@@ -239,6 +239,9 @@ SERIALIZE_WITHPAYLOAD(VM::Operations::PushRealLiteral, Serialization::PushRealLi
 SERIALIZE_WITHPAYLOAD(VM::Operations::PushStringLiteral, Serialization::PushStringLiteral)
 SERIALIZE_WITHPAYLOAD(VM::Operations::RealConstant, Serialization::RealConstant)
 SERIALIZE_WITHPAYLOAD(VM::Operations::SizeOf, Serialization::SizeOf)
+SERIALIZE_WITHPAYLOAD(VM::Operations::ReadArray, Serialization::ReadArray)
+SERIALIZE_WITHPAYLOAD(VM::Operations::WriteArray, Serialization::WriteArray)
+SERIALIZE_WITHPAYLOAD(VM::Operations::ArrayLength, Serialization::ArrayLength)
 
 
 // Operations with compound payloads

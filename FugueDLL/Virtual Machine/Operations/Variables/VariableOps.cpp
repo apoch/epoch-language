@@ -66,11 +66,12 @@ size_t AssignValue::GetNumParameters(const VM::ScopeDescription& scope) const
 	return 1;
 }
 
-Traverser::Payload AssignValue::GetNodeTraversalPayload() const
+Traverser::Payload AssignValue::GetNodeTraversalPayload(const VM::ScopeDescription* scope) const
 {
 	Traverser::Payload ret;
 	ret.SetValue(VarName.c_str());
 	ret.IsIdentifier = true;
+	ret.ParameterCount = GetNumParameters(*scope);
 	return ret;
 }
 
@@ -134,11 +135,12 @@ size_t InitializeValue::GetNumParameters(const VM::ScopeDescription& scope) cons
 	return 1;
 }
 
-Traverser::Payload InitializeValue::GetNodeTraversalPayload() const
+Traverser::Payload InitializeValue::GetNodeTraversalPayload(const VM::ScopeDescription* scope) const
 {
 	Traverser::Payload ret;
 	ret.SetValue(VarName.c_str());
 	ret.IsIdentifier = true;
+	ret.ParameterCount = GetNumParameters(*scope);
 	return ret;
 }
 
@@ -172,11 +174,12 @@ EpochVariableTypeID GetVariableValue::GetType(const ScopeDescription& scope) con
 	return scope.GetVariableType(VarName);
 }
 
-Traverser::Payload GetVariableValue::GetNodeTraversalPayload() const
+Traverser::Payload GetVariableValue::GetNodeTraversalPayload(const VM::ScopeDescription* scope) const
 {
 	Traverser::Payload ret;
 	ret.SetValue(VarName.c_str());
 	ret.IsIdentifier = true;
+	ret.ParameterCount = GetNumParameters(*scope);
 	return ret;
 }
 
@@ -201,10 +204,11 @@ void SizeOf::ExecuteFast(ExecutionContext& context)
 	// Nothing to do.
 }
 
-Traverser::Payload SizeOf::GetNodeTraversalPayload() const
+Traverser::Payload SizeOf::GetNodeTraversalPayload(const VM::ScopeDescription* scope) const
 {
 	Traverser::Payload payload;
 	payload.SetValue(VarName.c_str());
 	payload.IsIdentifier = true;
+	payload.ParameterCount = GetNumParameters(*scope);
 	return payload;
 }

@@ -78,6 +78,9 @@ std::wstring Serialization::AssignStructureIndirect(L"WRITESTRUCTINDIRECT");
 std::wstring Serialization::BindStructMemberReference(L"BINDSTRUCT");
 
 std::wstring Serialization::ConsArray(L"CONSARRAY");
+std::wstring Serialization::ReadArray(L"READARRAY");
+std::wstring Serialization::WriteArray(L"WRITEARRAY");
+std::wstring Serialization::ArrayLength(L"ARRAYLENGTH");
 std::wstring Serialization::Map(L"MAP");
 std::wstring Serialization::Reduce(L"REDUCE");
 

@@ -9,9 +9,12 @@
 
 #include "Virtual Machine/Core Entities/RValue.h"
 #include "Virtual Machine/Core Entities/Scopes/ActivatedScope.h"
-#include "Virtual Machine/Types Management/Typecasts.h"
-#include "Virtual Machine/VMExceptions.h"
 #include "Virtual Machine/Core Entities/Variables/BufferVariable.h"
+
+#include "Virtual Machine/Types Management/Typecasts.h"
+
+#include "Virtual Machine/Routines.inl"
+#include "Virtual Machine/VMExceptions.h"
 
 
 using namespace VM;
@@ -318,6 +321,18 @@ bool StructureRValue::VirtualComparator(const RValue& rhs) const
 //-------------------------------------------------------------------------------
 // Arrays
 //-------------------------------------------------------------------------------
+
+ArrayRValue::ArrayRValue(EpochVariableTypeID elementtype, size_t elementcount, void* originalstorage)
+	: RValue(EpochVariableType_Array),
+	  ElementType(elementtype)
+{
+	void* storage = originalstorage;
+	for(size_t i = 0; i < elementcount; ++i)
+	{
+		Elements.push_back(GetRValuePtrFromStorage(elementtype, storage).release());
+		storage = reinterpret_cast<char*>(storage) + TypeInfo::GetStorageSize(elementtype);
+	}
+}
 
 //
 // Destruct and clean up an array r-value

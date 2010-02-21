@@ -2,7 +2,7 @@
 // The Epoch Language Project
 // CUDA Interoperability Library
 //
-// Wrapper object for marshalling variable data between the host and the CUDA device
+// Wrapper objects for marshalling variable data between the host and the CUDA device
 //
 
 #include "pch.h"
@@ -25,6 +25,10 @@ VariableBuffer::VariableBuffer(const std::list<Traverser::ScopeContents>& variab
 void VariableBuffer::CopyToDevice(HandleType activatedscopehandle)
 {
 	SyncBufferForReals.PassVariablesToDevice(Variables, activatedscopehandle);
+	SyncBufferForInts.PassVariablesToDevice(Variables, activatedscopehandle);
+
+	SyncBufferForRealArrays.PassVariablesToDevice(Variables, activatedscopehandle);
+	SyncBufferForIntArrays.PassVariablesToDevice(Variables, activatedscopehandle);
 }
 
 //
@@ -33,6 +37,10 @@ void VariableBuffer::CopyToDevice(HandleType activatedscopehandle)
 void VariableBuffer::CopyFromDevice(HandleType activatedscopehandle)
 {
 	SyncBufferForReals.RetrieveVariablesFromDevice(Variables, activatedscopehandle);
+	SyncBufferForInts.RetrieveVariablesFromDevice(Variables, activatedscopehandle);
+
+	SyncBufferForRealArrays.RetrieveVariablesFromDevice(Variables, activatedscopehandle);
+	SyncBufferForIntArrays.RetrieveVariablesFromDevice(Variables, activatedscopehandle);
 }
 
 
@@ -46,5 +54,9 @@ void VariableBuffer::CopyFromDevice(HandleType activatedscopehandle)
 void VariableBuffer::PrepareFunctionCall(FunctionCall& func)
 {
 	func.AddParameter(SyncBufferForReals.GetDevicePointer());
+	func.AddParameter(SyncBufferForInts.GetDevicePointer());
+
+	func.AddParameter(SyncBufferForRealArrays.GetDevicePointer());
+	func.AddParameter(SyncBufferForIntArrays.GetDevicePointer());
 }
 

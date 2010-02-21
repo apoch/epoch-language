@@ -10,6 +10,9 @@
 #include "Parser/Parser State Machine/ParserState.h"
 #include "Parser/Parse.h"
 
+#include "Virtual Machine/Core Entities/Program.h"
+#include "Virtual Machine/Core Entities/Scopes/ScopeDescription.h"
+
 #include "Virtual Machine/Operations/Containers/ContainerOps.h"
 #include "Virtual Machine/Operations/UtilityOps.h"
 
@@ -49,3 +52,115 @@ VM::OperationPtr ParserState::CreateOperation_ConsArray()
 }
 
 
+//
+// Create an operation for accessing an array's contents
+//
+VM::OperationPtr ParserState::CreateOperation_ReadArray()
+{
+	size_t paramcount = PassedParameterCount.top();
+	if(paramcount != 2)
+	{
+		while(paramcount > 0)
+		{
+			TheStack.pop_back();
+			--paramcount;
+		}
+
+		ReportFatalError("readarray() function expects 2 parameters");
+		return VM::OperationPtr(new VM::Operations::NoOp);
+	}
+
+	StackEntry index = TheStack.back();
+	TheStack.pop_back();
+
+	if(index.DetermineEffectiveType(*CurrentScope) != VM::EpochVariableType_Integer)
+	{
+		TheStack.pop_back();
+		ReportFatalError("Second parameter to readarray() function must be an integer");
+		return VM::OperationPtr(new VM::Operations::NoOp);
+	}
+
+	StackEntry identifier = TheStack.back();
+	TheStack.pop_back();
+
+	if(identifier.Type != StackEntry::STACKENTRYTYPE_IDENTIFIER)
+	{
+		ReportFatalError("First parameter to readarray() function must be a variable identifier");
+		return VM::OperationPtr(new VM::Operations::NoOp);
+	}
+
+	if(!CurrentScope->HasVariable(identifier.StringValue))
+	{
+		ReportFatalError("Variable not found");
+		return VM::OperationPtr(new VM::Operations::NoOp);
+	}
+
+	if(CurrentScope->GetVariableType(identifier.StringValue) != VM::EpochVariableType_Array)
+	{
+		ReportFatalError("First parameter to readarray() function must be an array variable");
+		return VM::OperationPtr(new VM::Operations::NoOp);
+	}
+
+	return VM::OperationPtr(new VM::Operations::ReadArray(ParsedProgram->PoolStaticString(identifier.StringValue)));
+}
+
+//
+// Create an operation for writing to an array's contents
+//
+VM::OperationPtr ParserState::CreateOperation_WriteArray()
+{
+	size_t paramcount = PassedParameterCount.top();
+	if(paramcount != 3)
+	{
+		while(paramcount > 0)
+		{
+			TheStack.pop_back();
+			--paramcount;
+		}
+
+		ReportFatalError("writearray() function expects 3 parameters");
+		return VM::OperationPtr(new VM::Operations::NoOp);
+	}
+
+	StackEntry value = TheStack.back();
+	TheStack.pop_back();
+
+	StackEntry index = TheStack.back();
+	TheStack.pop_back();
+
+	if(index.DetermineEffectiveType(*CurrentScope) != VM::EpochVariableType_Integer)
+	{
+		TheStack.pop_back();
+		ReportFatalError("Second parameter to writearray() function must be an integer");
+		return VM::OperationPtr(new VM::Operations::NoOp);
+	}
+
+	StackEntry identifier = TheStack.back();
+	TheStack.pop_back();
+
+	if(identifier.Type != StackEntry::STACKENTRYTYPE_IDENTIFIER)
+	{
+		ReportFatalError("First parameter to writearray() function must be a variable identifier");
+		return VM::OperationPtr(new VM::Operations::NoOp);
+	}
+
+	if(!CurrentScope->HasVariable(identifier.StringValue))
+	{
+		ReportFatalError("Variable not found");
+		return VM::OperationPtr(new VM::Operations::NoOp);
+	}
+
+	if(CurrentScope->GetVariableType(identifier.StringValue) != VM::EpochVariableType_Array)
+	{
+		ReportFatalError("First parameter to writearray() function must be an array variable");
+		return VM::OperationPtr(new VM::Operations::NoOp);
+	}
+
+	if(value.DetermineEffectiveType(*CurrentScope) != CurrentScope->GetArrayType(identifier.StringValue))
+	{
+		ReportFatalError("Cannot write this value to the given array - type mismatch");
+		return VM::OperationPtr(new VM::Operations::NoOp);
+	}
+
+	return VM::OperationPtr(new VM::Operations::WriteArray(ParsedProgram->PoolStaticString(identifier.StringValue)));
+}

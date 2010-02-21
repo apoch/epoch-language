@@ -45,7 +45,7 @@ namespace VM
 
 		// Traversal
 		public:
-			virtual Traverser::Payload GetNodeTraversalPayload() const;
+			virtual Traverser::Payload GetNodeTraversalPayload(const VM::ScopeDescription* scope) const;
 
 		// Internal tracking
 		protected:

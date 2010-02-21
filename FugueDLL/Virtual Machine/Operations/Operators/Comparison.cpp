@@ -19,10 +19,11 @@ using namespace VM;
 using namespace VM::Operations;
 
 
-Traverser::Payload Comparator::GetNodeTraversalPayload() const
+Traverser::Payload Comparator::GetNodeTraversalPayload(const VM::ScopeDescription* scope) const
 {
 	Traverser::Payload payload;
 	payload.SetValue(Type);
+	payload.ParameterCount = GetNumParameters(*scope);
 	return payload;
 }
 

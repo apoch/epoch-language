@@ -217,6 +217,9 @@ VALIDATE_ONLY_CONST_GLOBALS(VM::Operations::Length)
 VALIDATE_ONLY_CONST_GLOBALS(VM::Operations::ReadStructure)
 VALIDATE_ONLY_CONST_GLOBALS(VM::Operations::ReadTuple)
 VALIDATE_ONLY_CONST_GLOBALS(VM::Operations::SizeOf)
+VALIDATE_ONLY_CONST_GLOBALS(VM::Operations::ReadArray)
+VALIDATE_ONLY_CONST_GLOBALS(VM::Operations::WriteArray)
+VALIDATE_ONLY_CONST_GLOBALS(VM::Operations::ArrayLength)
 
 
 // Additional validation traversal logic

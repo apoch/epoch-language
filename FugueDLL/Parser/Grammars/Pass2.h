@@ -86,6 +86,7 @@ namespace Parser
 				  FUTURE(KEYWORD(Future)), REDUCE(KEYWORD(Reduce)), ARRAY(KEYWORD(Array)), MAP(KEYWORD(Map)), VAR(KEYWORD(Var)),
 				  NOT(OPERATOR(Not)), BUFFER(KEYWORD(Buffer)), ALIASDECL(KEYWORD(Alias)), MEMBEROPERATOR(OPERATOR(Member)),
 				  EXTENSION(KEYWORD(Extension)), THREAD(KEYWORD(Thread)), THREADPOOL(KEYWORD(ThreadPool)),
+				  READARRAY(KEYWORD(ReadArray)), WRITEARRAY(KEYWORD(WriteArray)),
 
 				  // String tokens: special arithmetic operators
 				  INCREMENT(OPERATOR(Increment)),
@@ -169,6 +170,14 @@ namespace Parser
 					| (WRITESTRUCTURE >> OPENPARENS[StartCountingParams(self.State)] >> PassedParameter >> COMMA >> StringIdentifier[PushIdentifierNoStack(self.State)] >> COMMA >> PassedParameter >> CLOSEPARENS)[ResetMemberLevel(self.State)]
 					;
 
+				ReadArrayHelper
+					= (READARRAY >> OPENPARENS[StartCountingParams(self.State)] >> StringIdentifier[PushIdentifierNoStack(self.State)] >> COMMA >> PassedParameter >> CLOSEPARENS)
+					;
+
+				WriteArrayHelper
+					= (WRITEARRAY >> OPENPARENS[StartCountingParams(self.State)] >> StringIdentifier[PushIdentifierNoStack(self.State)] >> COMMA >> PassedParameter >> COMMA[ResetInfixTracking(self.State)] >> PassedParameter >> CLOSEPARENS)
+					;
+
 				MemberHelper
 					= (MEMBER >> OPENPARENS[StartCountingParams(self.State)] >> (StringIdentifier - MEMBER)[PushIdentifierNoStack(self.State)] >> COMMA >> StringIdentifier[PushIdentifierNoStack(self.State)] >> CLOSEPARENS)
 					| (MEMBER >> OPENPARENS[StartCountingParams(self.State)] >> PassedParameter >> COMMA >> StringIdentifier[PushIdentifierNoStack(self.State)] >> CLOSEPARENS)
@@ -247,8 +256,10 @@ namespace Parser
 					| (WRITETUPLE >> OPENPARENS[StartCountingParams(self.State)] >> StringIdentifier[PushIdentifierNoStack(self.State)] >> COMMA >> StringIdentifier[PushIdentifierNoStack(self.State)] >> COMMA >> PassedParameter >> CLOSEPARENS)
 					| ReadStructureHelper
 					| WriteStructureHelper
-					| (SIZEOF >> OPENPARENS[StartCountingParams(self.State)] >> StringIdentifier[PushIdentifierNoStack(self.State)] >> CLOSEPARENS)
-					| (LENGTH >> OPENPARENS[StartCountingParams(self.State)] >> StringIdentifier[PushIdentifierNoStack(self.State)] >> CLOSEPARENS)
+					| ReadArrayHelper
+					| WriteArrayHelper
+					| (SIZEOF >> OPENPARENS[StartCountingParams(self.State)] >> StringIdentifier[PushIdentifierNoStack(self.State)] >> CLOSEPARENS)[TerminateInfixExpression(self.State)]
+					| (LENGTH >> OPENPARENS[StartCountingParams(self.State)] >> StringIdentifier[PushIdentifierNoStack(self.State)] >> CLOSEPARENS)[TerminateInfixExpression(self.State)]
 					| (FUTURE >> OPENPARENS[StartCountingParams(self.State)] >> StringIdentifier[PushIdentifierNoStack(self.State)] >> COMMA >> PassedParameter >> !(COMMA[ResetInfixTracking(self.State)] >> PassedParameter) >> CLOSEPARENS)
 					| ((MAP | REDUCE) >> OPENPARENS[StartCountingParams(self.State)] >> PassedParameter >> COMMA >> StringIdentifier[PushIdentifierNoStack(self.State)] >> CLOSEPARENS)
 					| MemberHelper[IncrementMemberLevel(self.State)]
@@ -584,7 +595,7 @@ namespace Parser
 			boost::spirit::classic::strlit<> TUPLE, READTUPLE, WRITETUPLE, STRUCTURE, READSTRUCTURE, WRITESTRUCTURE, SIZEOF, INTEGER16, REFERENCE, FUNCTION, LENGTH, GLOBAL, MEMBER;
 			boost::spirit::classic::strlit<> CONSTANT, HEXPREFIX, TASK, MESSAGE, ACCEPTMESSAGE, NULLFUNCTIONARROW, CALLER, SENDER, RESPONSEMAP, INFIXDECL, CRASHPARSER, FUTURE;
 			boost::spirit::classic::strlit<> ARRAY, MAP, REDUCE, VAR, NOT, BUFFER, ALIASDECL, ADDASSIGN, SUBTRACTASSIGN, MULTIPLYASSIGN, DIVIDEASSIGN, INCREMENT, DECREMENT;
-			boost::spirit::classic::strlit<> CONCATASSIGN, MEMBEROPERATOR, EXTENSION, THREAD, THREADPOOL;
+			boost::spirit::classic::strlit<> CONCATASSIGN, MEMBEROPERATOR, EXTENSION, THREAD, THREADPOOL, READARRAY, WRITEARRAY;
 
 			// Parser rules
 			boost::spirit::classic::rule<ScannerType> StringIdentifier, FunctionDefinition, PassedParameter, OperationParameter, Operation, CodeBlock, Program;
@@ -594,7 +605,7 @@ namespace Parser
 			boost::spirit::classic::rule<ScannerType> ReadStructureHelper, WriteStructureHelper, MemberHelper, HexLiteral, Task, MessageHelper, AcceptMessageHelper;
 			boost::spirit::classic::rule<ScannerType> ResponseMapHelper, MessageDispatch, PassedParameterBase, Thread, ThreadPool;
 			boost::spirit::classic::rule<ScannerType> PassedParameterInfixList, InfixAssignmentHelper, AliasDeclaration, IncrementDecrementHelper, OpAssignmentHelper;
-			boost::spirit::classic::rule<ScannerType> LanguageExtensionBlock, ExtensionImport;
+			boost::spirit::classic::rule<ScannerType> LanguageExtensionBlock, ExtensionImport, ReadArrayHelper, WriteArrayHelper;
 
 			// Dynamic parser rules
 			boost::spirit::classic::stored_rule<ScannerType> InfixOperator, VariableDefinition, UserDefinedTypeAliases, LanguageExtensionKeywords;

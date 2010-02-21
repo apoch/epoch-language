@@ -16,6 +16,7 @@
 #include "Virtual Machine/Core Entities/Operation.h"
 #include "Virtual Machine/Core Entities/Scopes/ScopeDescription.h"
 #include "Virtual Machine/Core Entities/Scopes/ActivatedScope.h"
+#include "Virtual Machine/Core Entities/Variables/ArrayVariable.h"
 
 #include "Utility/Strings.h"
 
@@ -110,12 +111,14 @@ namespace
 		public:
 			void EnterBlock(const VM::Block& block)
 			{
+				ActiveScopes.push(block.GetBoundScope());
 				Traversal->NodeEntryCallback(SessionHandle);
 			}
 
 			void ExitBlock(const VM::Block& block)
 			{
 				Traversal->NodeExitCallback(SessionHandle);
+				ActiveScopes.pop();
 			}
 
 			void TraverseNode(const std::wstring& token, const Traverser::Payload& payload)
@@ -125,25 +128,45 @@ namespace
 
 			void RegisterScope(const VM::ScopeDescription* description)
 			{
+				ActiveScopes.push(description);
+
 				std::vector<Traverser::ScopeContents> contents;
 				for(std::vector<std::wstring>::const_iterator iter = description->GetMemberOrder().begin(); iter != description->GetMemberOrder().end(); ++iter)
 				{
 					Traverser::ScopeContents content;
 					content.Identifier = iter->c_str();
 					content.Type = description->GetVariableType(*iter);
+
+					if(content.Type == VM::EpochVariableType_Array)
+					{
+						content.ContainedType = description->GetArrayType(*iter);
+						content.ContainedSize = description->GetArraySize(*iter);
+					}
+
 					contents.push_back(content);
 				}
 
-				Traversal->ScopeTraversalCallback(SessionHandle, contents.size(), contents.size() ? &(contents[0]) : NULL);
+				Traversal->ScopeTraversalCallback(SessionHandle, ActiveScopes.size() == 1, contents.size(), contents.size() ? &(contents[0]) : NULL);
 
 				std::set<const VM::ScopeDescription*> ghostscopes = description->GetAllGhostScopes();
 				for(std::set<const VM::ScopeDescription*>::const_iterator iter = ghostscopes.begin(); iter != ghostscopes.end(); ++iter)
 					RegisterScope(*iter);
+
+				ActiveScopes.pop();
+			}
+
+			const VM::ScopeDescription* GetCurrentScope() const
+			{
+				if(ActiveScopes.empty())
+					return NULL;
+
+				return ActiveScopes.top();
 			}
 
 		private:
 			Traverser::Interface* Traversal;
 			HandleType SessionHandle;
+			std::stack<const VM::ScopeDescription*> ActiveScopes;
 		};
 
 		BindTraversal boundtraverser(traversal, sessionhandle);
@@ -184,7 +207,15 @@ namespace
 	void __stdcall MarshalCallbackWrite(HandleType handle, const wchar_t* identifier, Traverser::Payload* payload)
 	{
 		VM::ActivatedScope* activatedscope = reinterpret_cast<VM::ActivatedScope*>(handle);						// This is safe since we issued the handle to begin with!
-		activatedscope->SetVariableValue(identifier, PayloadToRValue(*payload));
+		VM::EpochVariableTypeID desttype = activatedscope->GetVariableType(identifier);
+		if(desttype == VM::EpochVariableType_Array)
+		{
+			VM::EpochVariableTypeID elementtype = activatedscope->GetOriginalDescription().GetArrayType(identifier);
+			size_t elementcount = activatedscope->GetOriginalDescription().GetArraySize(identifier);
+			activatedscope->SetVariableValue(identifier, VM::RValuePtr(new VM::ArrayRValue(elementtype, elementcount, payload->PointerValue)));
+		}
+		else
+			activatedscope->SetVariableValue(identifier, PayloadToRValue(*payload));
 	}
 
 	//
@@ -206,6 +237,11 @@ namespace
 			break;
 		case VM::EpochVariableType_String:
 			payload->SetValue(activatedscope->GetVariableValue(identifier)->CastTo<VM::StringRValue>().GetValue().c_str());
+			break;
+		case VM::EpochVariableType_Array:
+			payload->Type = VM::EpochVariableType_Array;
+			payload->ParameterCount = activatedscope->GetOriginalDescription().GetArraySize(identifier);
+			payload->PointerValue = activatedscope->GetVariableRef<VM::ArrayVariable>(identifier).GetArrayElementStorage();
 			break;
 
 		default:

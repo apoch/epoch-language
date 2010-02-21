@@ -993,6 +993,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\Virtual Machine\Routines.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\Virtual Machine\Routines.inl"
 				>
 			</File>

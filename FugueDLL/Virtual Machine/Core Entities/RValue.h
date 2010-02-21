@@ -294,6 +294,8 @@ namespace VM
 			  ElementType(elementtype)
 		{ }
 
+		ArrayRValue(EpochVariableTypeID elementtype, size_t elementcount, void* originalstorage);
+
 		ArrayRValue(const ArrayRValue& rhs)
 			: RValue(EpochVariableType_Array),
 			  ElementType(rhs.ElementType)

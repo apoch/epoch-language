@@ -45,9 +45,9 @@ namespace VM
 			{ return EpochVariableType_String; }
 
 			virtual size_t GetNumParameters(const VM::ScopeDescription& scope) const
-			{ return 2; }
+			{ return NumParams; }
 
-		// Arrau support
+		// Array support
 		public:
 			void AddOperation(VM::Operation* op);
 			void AddOperationToFront(VM::Operation* op);
@@ -90,18 +90,19 @@ namespace VM
 			{ return EpochVariableType_Integer; }
 
 			virtual size_t GetNumParameters(const VM::ScopeDescription& scope) const
-			{ return 1; }
+			{ return 0; }
 
 			const std::wstring& GetAssociatedIdentifier() const
 			{ return VarName; }
 
 		// Traversal interface
 		public:
-			virtual Traverser::Payload GetNodeTraversalPayload() const
+			virtual Traverser::Payload GetNodeTraversalPayload(const VM::ScopeDescription* scope) const
 			{
 				Traverser::Payload payload;
 				payload.SetValue(VarName.c_str());
 				payload.IsIdentifier = true;
+				payload.ParameterCount = GetNumParameters(*scope);
 				return payload;
 			}
 
