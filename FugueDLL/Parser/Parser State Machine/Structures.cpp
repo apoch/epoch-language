@@ -79,7 +79,11 @@ void ParserState::RegisterStructureMemberUnknown(const std::wstring& identifier)
 		CreatedStructureType->AddFunctionMember(identifier, UpcomingNestedMemberType);
 	else
 	{
-		ReportFatalError("Unrecognized type; cannot add member to structure");
+		if(UpcomingNestedMemberType == VariableNameStack.top())
+			ReportFatalError("A structure cannot contain an instance of itself");
+		else
+			ReportFatalError("Unrecognized type; cannot add member to structure");
+
 		CreatedStructureType->AddMember(identifier, VM::EpochVariableType_Error);
 	}
 }

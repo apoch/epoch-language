@@ -33,6 +33,9 @@ size_t TypeInfo::GetStorageSize(EpochVariableTypeID type)
 	case EpochVariableType_Structure:
 		throw InternalFailureException("Cannot determine tuple/structure size with no type hint; this probably means the internal parser is borked.");
 
+	case EpochVariableType_Error:
+		return 0;
+
 	default:
 		throw InternalFailureException("Unable to determine the size of this variable/structure member");
 	}
