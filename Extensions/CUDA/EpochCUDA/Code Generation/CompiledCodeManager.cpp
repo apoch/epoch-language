@@ -47,8 +47,9 @@ extern Config::ConfigReader Configuration;
 // Helpers/tracking for creating temporary intermediate files
 struct CompileSessionData
 {
-	CompileSessionData(TemporaryFileWriter* writer)
-		: CompilationTempFile(writer)
+	CompileSessionData(TemporaryFileWriter* writer, HandleType programhandle)
+		: CompilationTempFile(writer),
+		  BoundProgramHandle(programhandle)
 	{ }
 
 	~CompileSessionData()
@@ -62,8 +63,16 @@ struct CompileSessionData
 		CompilationTempFile = NULL;
 	}
 
+	void AttachToTempFile(TemporaryFileWriter* writer)
+	{
+		CloseTempFile();
+		CompilationTempFile = writer;
+	}
+
 	TemporaryFileWriter* CompilationTempFile;
 	std::wstring GeneratedPTXFileName;
+	std::set<std::wstring> InvokedFunctionList;
+	HandleType BoundProgramHandle;
 };
 
 // Track active compile sessions
@@ -98,7 +107,7 @@ CodeBlockHandle Compiler::GetCompiledBlock(CompileSessionHandle sessionid, Origi
 
 	// Perform the code traversal and compilation pass
 	{
-		CompilationSession session(*(sessioniter->second->CompilationTempFile), registeredvariables, handle);
+		CompilationSession session(*(sessioniter->second->CompilationTempFile), registeredvariables, sessionid);
 		session.FunctionPreamble(handle);
 
 		Traverser::Interface traversal;
@@ -106,6 +115,7 @@ CodeBlockHandle Compiler::GetCompiledBlock(CompileSessionHandle sessionid, Origi
 		traversal.NodeExitCallback = NodeExitCallback;
 		traversal.NodeTraversalCallback = LeafCallback;
 		traversal.ScopeTraversalCallback = ScopeCallback;
+		traversal.FunctionTraversalCallback = FunctionCallback;
 
 		FugueVMAccess::Interface.Traverse(handle, &traversal, reinterpret_cast<HandleType>(&session));
 
@@ -133,6 +143,30 @@ const std::list<Traverser::ScopeContents>& Compiler::GetRegisteredVariables(Exte
 	return iter->second;
 }
 
+
+void Compiler::TraverseInvokedFunctions(CompileSessionHandle session)
+{
+	std::map<CompileSessionHandle, CompileSessionData*>::iterator iter = CompileSessionMap.find(session);
+	if(iter == CompileSessionMap.end())
+		throw std::exception("Invalid session handle");
+
+	Traverser::Interface traversal;
+	traversal.NodeEntryCallback = NodeEntryCallback;
+	traversal.NodeExitCallback = NodeExitCallback;
+	traversal.NodeTraversalCallback = LeafCallback;
+	traversal.ScopeTraversalCallback = ScopeCallback;
+	traversal.FunctionTraversalCallback = FunctionCallback;
+
+	for(std::set<std::wstring>::const_iterator funciter = iter->second->InvokedFunctionList.begin(); funciter != iter->second->InvokedFunctionList.end(); ++funciter)
+	{
+		std::list<Traverser::ScopeContents> registeredvariables;
+		CompilationSession compilesession(*(iter->second->CompilationTempFile), registeredvariables, session);
+
+		FugueVMAccess::Interface.TraverseFunction(funciter->c_str(), &traversal, reinterpret_cast<HandleType>(&compilesession), iter->second->BoundProgramHandle);
+	}
+}
+
+
 //
 // Retrieve the Epoch code handle of a compiled block, given the compiled block's handle
 //
@@ -149,10 +183,10 @@ OriginalCodeHandle Compiler::GetOriginalCodeHandle(CodeBlockHandle handle)
 //
 // Prepare temporary intermediate files and tracking for a compile session
 //
-CompileSessionHandle Compiler::StartNewCompilation()
+CompileSessionHandle Compiler::StartNewCompilation(HandleType programhandle)
 {
 	CompileSessionHandle ret = ++CompileHandleCounter;
-	CompileSessionMap.insert(std::make_pair(ret, new CompileSessionData(new TemporaryFileWriter(std::ios_base::out | std::ios_base::trunc, L"cu"))));
+	CompileSessionMap.insert(std::make_pair(ret, new CompileSessionData(new TemporaryFileWriter(std::ios_base::out | std::ios_base::trunc, L"cu"), programhandle)));
 	return ret;
 }
 
@@ -170,6 +204,27 @@ void Compiler::CommitCompile(CompileSessionHandle sessionid)
 	// file object's handle on the file so we can write to it
 	std::wstring tempfilename = iter->second->CompilationTempFile->GetFileName();
 	iter->second->CloseTempFile();
+
+	// Generate the file that contains all functions invoked by the root CUDA code
+	std::wstring functionsfilename;
+	{
+		std::auto_ptr<TemporaryFileWriter> destoutfile(new TemporaryFileWriter(std::ios_base::trunc, L"cu"));
+		functionsfilename = destoutfile->GetFileName();
+		iter->second->AttachToTempFile(destoutfile.release());
+
+		TraverseInvokedFunctions(sessionid);
+
+		iter->second->CloseTempFile();
+	}
+
+	// Generate the "master" file which #includes all of the generated CUDA code
+	std::wstring masterfilename;
+	{
+		TemporaryFileWriter destoutfile(std::ios_base::trunc, L"cu");
+		destoutfile.OutputStream << L"#include \"" << functionsfilename << "\"\n";
+		destoutfile.OutputStream << L"#include \"" << tempfilename << "\"\n";
+		masterfilename = destoutfile.GetFileName();
+	}
 
 	// Generate a filename for the intermediate .ptx file, which
 	// will receive the output of NVCC's pass over the .cu file.
@@ -190,7 +245,7 @@ void Compiler::CommitCompile(CompileSessionHandle sessionid)
 	// just invoke the compiler directly.
 	std::wstring clpath = ShortenPathName(Configuration.ReadConfig<std::wstring>(L"cl"));
 	std::wstring nvccpath = ShortenPathName(Configuration.ReadConfig<std::wstring>(L"nvcc"));
-	std::wstring args = L"/c " + nvccpath + L" --compiler-bindir=" + clpath + L" --ptx " + tempfilename + L" --output-file=" + iter->second->GeneratedPTXFileName;
+	std::wstring args = L"/c " + nvccpath + L" --compiler-bindir=" + clpath + L" --ptx " + masterfilename + L" --output-file=" + iter->second->GeneratedPTXFileName;
 	std::wstring cmdpath = SpecialPaths::GetSystemPath() + L"\\cmd.exe";
 
 
@@ -244,3 +299,14 @@ CompileSessionHandle Compiler::GetAssociatedSession(CodeBlockHandle codehandle)
 
 	return iter->second;
 }
+
+
+void Compiler::RecordInvokedFunction(CompileSessionHandle session, const std::wstring& functionname)
+{
+	std::map<CompileSessionHandle, CompileSessionData*>::const_iterator iter = CompileSessionMap.find(session);
+	if(iter == CompileSessionMap.end())
+		throw std::exception("Invalid compile session handle");
+
+	iter->second->InvokedFunctionList.insert(functionname);	
+}
+

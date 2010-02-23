@@ -1470,7 +1470,7 @@ void FileLoader::CheckExtensions()
 	{
 		const std::wstring& extensionname = WidenAndCache(ReadNullTerminatedString());
 		if(IsPrepass)
-			Extensions::RegisterExtensionLibrary(extensionname);
+			Extensions::RegisterExtensionLibrary(extensionname, LoadingProgram);
 	}
 }
 

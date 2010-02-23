@@ -26,7 +26,7 @@ using namespace Parser;
 //
 void ParserState::RegisterExtension(const std::wstring& filename)
 {
-	Extensions::RegisterExtensionLibrary(filename);
+	Extensions::RegisterExtensionLibrary(filename, ParsedProgram);
 }
 
 

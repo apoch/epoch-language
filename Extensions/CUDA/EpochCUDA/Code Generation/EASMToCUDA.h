@@ -38,11 +38,22 @@ namespace Compiler
 		};
 
 		typedef std::vector<Leaf> LeafList;
-		typedef std::stack<LeafList> LeafListStack;
-		
+
+		struct LeafBlock
+		{
+			LeafList Leaves;
+			bool IsFunction;
+
+			LeafBlock(bool isfunction)
+				: IsFunction(isfunction)
+			{ }
+		};
+
+		typedef std::stack<LeafBlock> LeafListStack;
+
 	// Construction
 	public:
-		CompilationSession(TemporaryFileWriter& codefile, std::list<Traverser::ScopeContents>& registeredvariables, Extensions::OriginalCodeHandle originalcode);
+		CompilationSession(TemporaryFileWriter& codefile, std::list<Traverser::ScopeContents>& registeredvariables, Extensions::CompileSessionHandle sessionhandle);
 
 	// Preparation and data loading
 	public:
@@ -57,6 +68,8 @@ namespace Compiler
 		void FunctionPreamble(Extensions::OriginalCodeHandle handle);
 		void MarshalOut();
 
+		void ExpectFunctionTraversal(const std::wstring& functionname);
+
 	// Internal helpers
 	private:
 		void PadTabs();
@@ -69,12 +82,13 @@ namespace Compiler
 
 		size_t GetArraySize(const std::wstring& arrayname) const;
 
-		void AdvanceLeafIterator(const LeafList& leaves, LeafList::const_iterator& iter) const;
+		void AdvanceLeafIterator(LeafList::const_iterator& iter) const;
 
 	// Internal tracking
 	private:
+		Extensions::CompileSessionHandle SessionHandle;
+
 		unsigned TabDepth;
-		Extensions::OriginalCodeHandle OriginalCode;
 
 		std::stack<Traverser::Payload> Parameters;
 		std::wostringstream ExpressionConstruction;
@@ -86,6 +100,21 @@ namespace Compiler
 		LeafListStack LeafStack;
 
 		std::map<std::wstring, size_t> ArraySizeCache;
+
+		std::wstring PendingFunctionName;
+		bool ExpectingFunctionReturns;
+		bool ExpectingFunctionParams;
+
+		bool ExpectingFunctionBlock;
+		std::wstring PendingFunctionReturnValueName;
+		VM::EpochVariableTypeID PendingFunctionReturnValueType;
+
+
+		bool MarshalFloats;
+		bool MarshalInts;
+
+		bool MarshalFloatArrays;
+		bool MarshalIntArrays;
 	};
 
 }

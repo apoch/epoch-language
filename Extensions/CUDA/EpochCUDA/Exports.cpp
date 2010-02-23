@@ -103,11 +103,11 @@ void __stdcall ExecuteSourceBlock(CodeBlockHandle handle, HandleType activatedsc
 // Invoking this function is mandatory to ensure that multiple compilation passes
 // do not obliterate each others' intermediate files.
 //
-CompileSessionHandle __stdcall StartNewProgramCompilation()
+CompileSessionHandle __stdcall StartNewProgramCompilation(HandleType programhandle)
 {
 	try
 	{
-		return Compiler::StartNewCompilation();
+		return Compiler::StartNewCompilation(programhandle);
 	}
 	catch(std::exception& e)
 	{
@@ -157,8 +157,11 @@ void __stdcall CommitCompilation(CompileSessionHandle sessionid)
 // This information is provided to allow seamless integration of variables
 // from the Epoch code into the code produced by the extension library.
 //
-void __stdcall ScopeCallback(TraversalSessionHandle sessionhandle, bool toplevel, size_t numcontents, const Traverser::ScopeContents* contents)
+void __stdcall ScopeCallback(TraversalSessionHandle sessionhandle, bool toplevel, bool isghost, size_t numcontents, const Traverser::ScopeContents* contents)
 {
+	if(isghost)
+		return;
+
 	try
 	{
 		Compiler::CompilationSession* compile = reinterpret_cast<Compiler::CompilationSession*>(sessionhandle);
@@ -240,6 +243,25 @@ void __stdcall LeafCallback(TraversalSessionHandle sessionhandle, const wchar_t*
 	catch(...)
 	{
 		FugueVMAccess::Interface.Error(L"An unrecognized exception was thrown while attempting to compile a leaf in the code tree");
+	}
+}
+
+
+
+void __stdcall FunctionCallback(Traverser::TraversalSessionHandle sessionhandle, const wchar_t* funcname)
+{
+	try
+	{
+		Compiler::CompilationSession* compile = reinterpret_cast<Compiler::CompilationSession*>(sessionhandle);
+		compile->ExpectFunctionTraversal(funcname);
+	}
+	catch(std::exception& e)
+	{
+		FugueVMAccess::Interface.Error(widen(e.what()).c_str());
+	}
+	catch(...)
+	{
+		FugueVMAccess::Interface.Error(L"An unrecognized exception was thrown while attempting to compile a function");
 	}
 }
 

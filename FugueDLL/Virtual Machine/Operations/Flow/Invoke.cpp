@@ -87,8 +87,9 @@ void Invoke::Traverse(Serialization::SerializationTraverser& traverser)
 Traverser::Payload Invoke::GetNodeTraversalPayload(const VM::ScopeDescription* scope) const
 {
 	Traverser::Payload payload;
-	payload.SetValue(Function);
+	payload.SetValue(scope->GetFunctionName(Function).c_str());
 	payload.ParameterCount = GetNumParameters(*scope);
+	payload.InvokesFunction = true;
 	return payload;
 }
 

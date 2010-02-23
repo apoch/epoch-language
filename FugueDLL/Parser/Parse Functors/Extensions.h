@@ -36,10 +36,11 @@ private:
 // Inform the parse analyzer that a language extension should be loaded
 //
 template <typename DefinitionT>
-struct RegisterExtension
+struct RegisterExtension : public ParseFunctorBase
 {
-	RegisterExtension(DefinitionT& grammardefinition)
-		: GrammarDefinition(grammardefinition)
+	RegisterExtension(Parser::ParserState& state, DefinitionT& grammardefinition)
+		: ParseFunctorBase(state),
+		  GrammarDefinition(grammardefinition)
 	{ }
 
 	template <typename IteratorType>
@@ -47,7 +48,7 @@ struct RegisterExtension
 	{
 		std::wstring extensionname(begin + 1, end - 1);
 		Trace(L"RegisterExtension", extensionname);
-		Extensions::ExtensionLibraryHandle handle = Extensions::RegisterExtensionLibrary(extensionname);
+		Extensions::ExtensionLibraryHandle handle = Extensions::RegisterExtensionLibrary(extensionname, State.GetParsedProgram());
 		Extensions::EnumerateExtensionKeywords(RegisterEnumeratedExtension<DefinitionT>(GrammarDefinition), handle);
 	}
 

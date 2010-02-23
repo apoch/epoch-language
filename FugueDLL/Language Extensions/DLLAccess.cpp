@@ -14,6 +14,7 @@
 
 #include "Virtual Machine/Core Entities/Block.h"
 #include "Virtual Machine/Core Entities/Operation.h"
+#include "Virtual Machine/Core Entities/Program.h"
 #include "Virtual Machine/Core Entities/Scopes/ScopeDescription.h"
 #include "Virtual Machine/Core Entities/Scopes/ActivatedScope.h"
 #include "Virtual Machine/Core Entities/Variables/ArrayVariable.h"
@@ -28,7 +29,7 @@ using namespace Extensions;
 //
 // Construct the access wrapper and initialize the DLL bindings
 //
-ExtensionDLLAccess::ExtensionDLLAccess(const std::wstring& dllname)
+ExtensionDLLAccess::ExtensionDLLAccess(const std::wstring& dllname, VM::Program* program)
 	: SessionHandle(0),
 	  DLLName(dllname)
 {
@@ -48,7 +49,7 @@ ExtensionDLLAccess::ExtensionDLLAccess(const std::wstring& dllname)
 	if(!DoRegistration || !DoLoadSource || !DoExecuteSource || !DoPrepare || !DoStartSession)
 		throw Exception("One or more Epoch service functions could not be loaded from the requested language extension DLL");
 
-	SessionHandle = DoStartSession();
+	SessionHandle = DoStartSession(reinterpret_cast<HandleType>(program));
 }
 
 //
@@ -92,6 +93,85 @@ namespace
 		RegisterExtensionKeyword(keyword, token);
 	}
 
+
+	class BindTraversal
+	{
+	public:
+		BindTraversal(Traverser::Interface* traversal, HandleType sessionhandle)
+			: Traversal(traversal),
+			  SessionHandle(sessionhandle)
+		{ }
+
+	public:
+		void EnterBlock(const VM::Block& block)
+		{
+			ActiveScopes.push(block.GetBoundScope());
+			Traversal->NodeEntryCallback(SessionHandle);
+		}
+
+		void ExitBlock(const VM::Block& block)
+		{
+			Traversal->NodeExitCallback(SessionHandle);
+			ActiveScopes.pop();
+		}
+
+		void TraverseNode(const std::wstring& token, const Traverser::Payload& payload)
+		{
+			Traversal->NodeTraversalCallback(SessionHandle, token.c_str(), &payload);
+		}
+
+		void TraverseFunction(const std::wstring& funcname, VM::Function* targetfunction)
+		{
+			Traversal->FunctionTraversalCallback(SessionHandle, funcname.c_str());
+			targetfunction->GetReturns().TraverseExternal(*this);
+			targetfunction->GetParams().TraverseExternal(*this);
+			targetfunction->GetCodeBlock()->TraverseExternal(*this);
+		}
+
+		void RegisterScope(const VM::ScopeDescription* description, bool isghost)
+		{
+			ActiveScopes.push(description);
+
+			std::vector<Traverser::ScopeContents> contents;
+			for(std::vector<std::wstring>::const_iterator iter = description->GetMemberOrder().begin(); iter != description->GetMemberOrder().end(); ++iter)
+			{
+				Traverser::ScopeContents content;
+				content.Identifier = iter->c_str();
+				content.Type = description->GetVariableType(*iter);
+
+				if(content.Type == VM::EpochVariableType_Array)
+				{
+					content.ContainedType = description->GetArrayType(*iter);
+					content.ContainedSize = description->GetArraySize(*iter);
+				}
+
+				contents.push_back(content);
+			}
+
+			Traversal->ScopeTraversalCallback(SessionHandle, ActiveScopes.size() == 1, isghost, contents.size(), contents.size() ? &(contents[0]) : NULL);
+
+			std::set<const VM::ScopeDescription*> ghostscopes = description->GetAllGhostScopes();
+			for(std::set<const VM::ScopeDescription*>::const_iterator iter = ghostscopes.begin(); iter != ghostscopes.end(); ++iter)
+				RegisterScope(*iter, true);
+
+			ActiveScopes.pop();
+		}
+
+		const VM::ScopeDescription* GetCurrentScope() const
+		{
+			if(ActiveScopes.empty())
+				return NULL;
+
+			return ActiveScopes.top();
+		}
+
+	private:
+		Traverser::Interface* Traversal;
+		HandleType SessionHandle;
+		std::stack<const VM::ScopeDescription*> ActiveScopes;
+	};
+
+
 	//
 	// Callback: traverse a block of code, invoking the given traverser interface as needed
 	//
@@ -100,75 +180,6 @@ namespace
 	//
 	void __stdcall TraversalCallback(OriginalCodeHandle handle, Traverser::Interface* traversal, HandleType sessionhandle)
 	{
-		class BindTraversal
-		{
-		public:
-			BindTraversal(Traverser::Interface* traversal, HandleType sessionhandle)
-				: Traversal(traversal),
-				  SessionHandle(sessionhandle)
-			{ }
-
-		public:
-			void EnterBlock(const VM::Block& block)
-			{
-				ActiveScopes.push(block.GetBoundScope());
-				Traversal->NodeEntryCallback(SessionHandle);
-			}
-
-			void ExitBlock(const VM::Block& block)
-			{
-				Traversal->NodeExitCallback(SessionHandle);
-				ActiveScopes.pop();
-			}
-
-			void TraverseNode(const std::wstring& token, const Traverser::Payload& payload)
-			{
-				Traversal->NodeTraversalCallback(SessionHandle, token.c_str(), &payload);
-			}
-
-			void RegisterScope(const VM::ScopeDescription* description)
-			{
-				ActiveScopes.push(description);
-
-				std::vector<Traverser::ScopeContents> contents;
-				for(std::vector<std::wstring>::const_iterator iter = description->GetMemberOrder().begin(); iter != description->GetMemberOrder().end(); ++iter)
-				{
-					Traverser::ScopeContents content;
-					content.Identifier = iter->c_str();
-					content.Type = description->GetVariableType(*iter);
-
-					if(content.Type == VM::EpochVariableType_Array)
-					{
-						content.ContainedType = description->GetArrayType(*iter);
-						content.ContainedSize = description->GetArraySize(*iter);
-					}
-
-					contents.push_back(content);
-				}
-
-				Traversal->ScopeTraversalCallback(SessionHandle, ActiveScopes.size() == 1, contents.size(), contents.size() ? &(contents[0]) : NULL);
-
-				std::set<const VM::ScopeDescription*> ghostscopes = description->GetAllGhostScopes();
-				for(std::set<const VM::ScopeDescription*>::const_iterator iter = ghostscopes.begin(); iter != ghostscopes.end(); ++iter)
-					RegisterScope(*iter);
-
-				ActiveScopes.pop();
-			}
-
-			const VM::ScopeDescription* GetCurrentScope() const
-			{
-				if(ActiveScopes.empty())
-					return NULL;
-
-				return ActiveScopes.top();
-			}
-
-		private:
-			Traverser::Interface* Traversal;
-			HandleType SessionHandle;
-			std::stack<const VM::ScopeDescription*> ActiveScopes;
-		};
-
 		BindTraversal boundtraverser(traversal, sessionhandle);
 
 		VM::Block* originalcode = reinterpret_cast<VM::Block*>(handle);		// This is safe since we issued the handle to begin with!
@@ -176,11 +187,23 @@ namespace
 		VM::ScopeDescription* parentscope = originalcode->GetBoundScope()->ParentScope;
 		while(parentscope)
 		{
-			boundtraverser.RegisterScope(parentscope);
+			boundtraverser.RegisterScope(parentscope, false);
 			parentscope = parentscope->ParentScope;
 		}
 
 		originalcode->TraverseExternal(boundtraverser);
+	}
+
+
+	void __stdcall TraverseFunctionCallback(const wchar_t* functionname, Traverser::Interface* traversal, HandleType session, HandleType program)
+	{
+		VM::Program* theprogram = reinterpret_cast<VM::Program*>(program);
+		VM::Function* targetfunction = dynamic_cast<VM::Function*>(theprogram->GetGlobalScope().GetFunction(functionname));
+		if(!targetfunction)
+			throw Exception("Could not find the requested function");
+
+		BindTraversal boundtraverser(traversal, session);
+		boundtraverser.TraverseFunction(functionname, targetfunction);
 	}
 
 
@@ -274,6 +297,7 @@ void ExtensionDLLAccess::RegisterExtensionKeywords(ExtensionLibraryHandle token)
 	Extensions::ExtensionInterface eif;
 	eif.Register = RegistrationCallback;
 	eif.Traverse = TraversalCallback;
+	eif.TraverseFunction = TraverseFunctionCallback;
 	eif.MarshalRead = MarshalCallbackRead;
 	eif.MarshalWrite = MarshalCallbackWrite;
 	eif.Error = ErrorCallback;

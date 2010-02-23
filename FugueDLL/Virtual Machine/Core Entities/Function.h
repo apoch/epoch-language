@@ -74,6 +74,9 @@ namespace VM
 		void SetCodeBlock(Block* block)
 		{ delete CodeBlock; CodeBlock = block; }
 
+		const Block* GetCodeBlock() const
+		{ return CodeBlock; }
+
 	// Traversal
 	public:
 		template <typename TraverserT>

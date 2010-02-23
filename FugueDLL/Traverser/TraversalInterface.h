@@ -34,7 +34,8 @@ namespace Traverser
 	typedef void (__stdcall *NodeEntryCallbackPtr)(TraversalSessionHandle sessionhandle);
 	typedef void (__stdcall *NodeExitCallbackPtr)(TraversalSessionHandle sessionhandle);
 	typedef void (__stdcall *NodeTraversalCallbackPtr)(TraversalSessionHandle sessionhandle, const wchar_t* token, const Payload* payload);
-	typedef void (__stdcall *ScopeTraversalCallbackPtr)(TraversalSessionHandle sessionhandle, bool toplevel, size_t numcontents, const ScopeContents* contents);
+	typedef void (__stdcall *ScopeTraversalCallbackPtr)(TraversalSessionHandle sessionhandle, bool toplevel, bool isghost, size_t numcontents, const ScopeContents* contents);
+	typedef void (__stdcall *FunctionTraversalCallbackPtr)(TraversalSessionHandle sessionhandle, const wchar_t* funcname);
 
 
 	//
@@ -49,6 +50,7 @@ namespace Traverser
 		NodeExitCallbackPtr NodeExitCallback;
 		NodeTraversalCallbackPtr NodeTraversalCallback;
 		ScopeTraversalCallbackPtr ScopeTraversalCallback;
+		FunctionTraversalCallbackPtr FunctionTraversalCallback;
 	};
 
 
@@ -66,6 +68,7 @@ namespace Traverser
 			: PointerValue(NULL),
 			  Type(VM::EpochVariableType_Error),
 			  IsIdentifier(false),
+			  InvokesFunction(false),
 			  ParameterCount(0)
 		{ }
 
@@ -81,6 +84,7 @@ namespace Traverser
 		
 		VM::EpochVariableTypeID Type;
 		bool IsIdentifier;
+		bool InvokesFunction;
 		size_t ParameterCount;
 
 

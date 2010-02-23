@@ -227,9 +227,9 @@ namespace VM
 		}
 
 		template <class TraverserT>
-		void TraverseExternal(TraverserT& traverser)
+		void TraverseExternal(TraverserT& traverser) const
 		{
-			traverser.RegisterScope(this);
+			traverser.RegisterScope(this, false);
 		}
 
 	// Internal helpers

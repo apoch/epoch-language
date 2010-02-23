@@ -114,7 +114,7 @@ namespace VM
 		}
 
 		template <class TraverserT>
-		void TraverseExternal(TraverserT& traverser)
+		void TraverseExternal(TraverserT& traverser) const
 		{
 			traverser.EnterBlock(*this);
 			if(BoundScope)

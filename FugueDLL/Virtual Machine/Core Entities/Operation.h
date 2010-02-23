@@ -54,9 +54,9 @@ namespace VM
 	// Traversal interface
 	public:
 		template <class TraverserT>
-		void TraverseExternal(TraverserT& traverser)
+		void TraverseExternal(TraverserT& traverser) const
 		{
-			traverser.TraverseNode(dynamic_cast<SelfAwareBase*>(this)->GetToken(), GetNodeTraversalPayload(traverser.GetCurrentScope()));
+			traverser.TraverseNode(dynamic_cast<const SelfAwareBase*>(this)->GetToken(), GetNodeTraversalPayload(traverser.GetCurrentScope()));
 			Operation* nested = GetNestedOperation();
 			if(nested)
 				nested->TraverseExternal(traverser);

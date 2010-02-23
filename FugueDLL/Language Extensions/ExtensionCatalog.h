@@ -13,7 +13,11 @@
 
 
 // Forward declarations
-namespace VM { class Block; }
+namespace VM
+{
+	class Block;
+	class Program;
+}
 
 
 namespace Extensions
@@ -22,7 +26,7 @@ namespace Extensions
 	void PrepareForExecution();
 
 
-	ExtensionLibraryHandle RegisterExtensionLibrary(const std::wstring& libraryname);
+	ExtensionLibraryHandle RegisterExtensionLibrary(const std::wstring& libraryname, VM::Program* program);
 	ExtensionLibraryHandle GetLibraryProvidingExtension(const std::wstring& extensionname);
 	const std::wstring& GetDLLFileOfLibrary(ExtensionLibraryHandle handle);
 	std::set<std::wstring> GetAllExtensionDLLs();

@@ -552,7 +552,7 @@ namespace Parser
 					;
 
 				ExtensionImport
-					= EXTENSION >> OPENPARENS >> StringLiteral[RegisterExtension<definition<ScannerType> >(*this)] >> CLOSEPARENS
+					= EXTENSION >> OPENPARENS >> StringLiteral[RegisterExtension<definition<ScannerType> >(self.State, *this)] >> CLOSEPARENS
 					;
 
 				GlobalBlock

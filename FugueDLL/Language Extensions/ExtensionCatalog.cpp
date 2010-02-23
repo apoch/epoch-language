@@ -27,7 +27,7 @@ ExtensionLibraryHandle handlecounter = 0;
 //
 // Load a given extension DLL and have the extension register any new keywords
 //
-ExtensionLibraryHandle Extensions::RegisterExtensionLibrary(const std::wstring& libraryname)
+ExtensionLibraryHandle Extensions::RegisterExtensionLibrary(const std::wstring& libraryname, VM::Program* program)
 {
 	std::wstring fulldllname = libraryname + L".dll";
 
@@ -38,7 +38,7 @@ ExtensionLibraryHandle Extensions::RegisterExtensionLibrary(const std::wstring& 
 	ExtensionLibraryHandle handle = ++handlecounter;
 
 	ExtensionLibraryDLLMap.insert(std::make_pair(fulldllname, handle));
-	ExtensionLibraryMap.insert(std::make_pair(handle, ExtensionDLLAccess(fulldllname)));
+	ExtensionLibraryMap.insert(std::make_pair(handle, ExtensionDLLAccess(fulldllname, program)));
 
 	ExtensionLibraryMap.find(handle)->second.RegisterExtensionKeywords(handle);
 

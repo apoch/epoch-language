@@ -25,6 +25,7 @@ namespace Extensions
 
 	typedef void (__stdcall *RegistrationCallbackPtr)(ExtensionLibraryHandle token, const wchar_t* keyword);
 	typedef void (__stdcall *TraversalCallbackPtr)(OriginalCodeHandle handle, Traverser::Interface* traversal, HandleType session);
+	typedef void (__stdcall *TraverseFunctionCallbackPtr)(const wchar_t* functionname, Traverser::Interface* traversal, HandleType session, HandleType program);
 	typedef void (__stdcall *MarshalCallbackReadPtr)(HandleType activatedscopehandle, const wchar_t* identifier, Traverser::Payload* payload);
 	typedef void (__stdcall *MarshalCallbackWritePtr)(HandleType activatedscopehandle, const wchar_t* identifier, Traverser::Payload* payload);
 	typedef void (__stdcall *ErrorCallbackPtr)(const wchar_t* errorstring);
@@ -37,6 +38,7 @@ namespace Extensions
 	{
 		RegistrationCallbackPtr Register;
 		TraversalCallbackPtr Traverse;
+		TraverseFunctionCallbackPtr TraverseFunction;
 		MarshalCallbackReadPtr MarshalRead;
 		MarshalCallbackWritePtr MarshalWrite;
 		ErrorCallbackPtr Error;
