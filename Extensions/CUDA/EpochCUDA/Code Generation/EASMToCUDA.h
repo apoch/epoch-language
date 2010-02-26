@@ -43,9 +43,11 @@ namespace Compiler
 		{
 			LeafList Leaves;
 			bool IsFunction;
+			bool IsDoWhile;
 
-			LeafBlock(bool isfunction)
-				: IsFunction(isfunction)
+			LeafBlock(bool isfunction, bool isdowhile)
+				: IsFunction(isfunction),
+				  IsDoWhile(isdowhile)
 			{ }
 		};
 
@@ -54,6 +56,7 @@ namespace Compiler
 	// Construction
 	public:
 		CompilationSession(TemporaryFileWriter& codefile, std::list<Traverser::ScopeContents>& registeredvariables, Extensions::CompileSessionHandle sessionhandle);
+		CompilationSession(TemporaryFileWriter& codefile, TemporaryFileWriter& prototypesheaderfile, Extensions::CompileSessionHandle sessionhandle);
 
 	// Preparation and data loading
 	public:
@@ -76,13 +79,15 @@ namespace Compiler
 		void OutputPayload(const Traverser::Payload& payload, std::wostream& stream);
 
 		void WriteScopeContents(bool toplevel, size_t numcontents, const Traverser::ScopeContents* contents);
-		void WriteLeaves(LeafList& leaves);
+		void WriteLeaves(LeafList& leaves, bool leavesarestatements);
 
-		std::wstring GenerateLeafCode(const LeafList& leaves, LeafList::const_iterator& iter);
+		std::wstring GenerateLeafCode(LeafList::const_iterator& iter);
 
 		size_t GetArraySize(const std::wstring& arrayname) const;
 
 		void AdvanceLeafIterator(LeafList::const_iterator& iter) const;
+
+		LeafList PopTrailingLeaves(LeafList& leaves);
 
 	// Internal tracking
 	private:
@@ -93,9 +98,10 @@ namespace Compiler
 		std::stack<Traverser::Payload> Parameters;
 		std::wostringstream ExpressionConstruction;
 
-		std::list<Traverser::ScopeContents>& RegisteredVariables;
+		std::list<Traverser::ScopeContents>* RegisteredVariables;
 
 		TemporaryFileWriter& TemporaryCodeFile;
+		TemporaryFileWriter* PrototypeHeaderFile;
 
 		LeafListStack LeafStack;
 
@@ -109,12 +115,15 @@ namespace Compiler
 		std::wstring PendingFunctionReturnValueName;
 		VM::EpochVariableTypeID PendingFunctionReturnValueType;
 
+		bool ExpectingDoWhileBlock;
 
 		bool MarshalFloats;
 		bool MarshalInts;
 
 		bool MarshalFloatArrays;
 		bool MarshalIntArrays;
+
+		bool IgnoreIndentation;
 	};
 
 }

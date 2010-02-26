@@ -157,11 +157,12 @@ void Compiler::TraverseInvokedFunctions(CompileSessionHandle session)
 	traversal.ScopeTraversalCallback = ScopeCallback;
 	traversal.FunctionTraversalCallback = FunctionCallback;
 
+	TemporaryFileWriter headerfilewriter(std::ios_base::trunc, L"cu");
+	iter->second->CompilationTempFile->OutputStream << L"#include \"" << headerfilewriter.GetFileName() << L"\"\n";
+
 	for(std::set<std::wstring>::const_iterator funciter = iter->second->InvokedFunctionList.begin(); funciter != iter->second->InvokedFunctionList.end(); ++funciter)
 	{
-		std::list<Traverser::ScopeContents> registeredvariables;
-		CompilationSession compilesession(*(iter->second->CompilationTempFile), registeredvariables, session);
-
+		CompilationSession compilesession(*(iter->second->CompilationTempFile), headerfilewriter, session);
 		FugueVMAccess::Interface.TraverseFunction(funciter->c_str(), &traversal, reinterpret_cast<HandleType>(&compilesession), iter->second->BoundProgramHandle);
 	}
 }

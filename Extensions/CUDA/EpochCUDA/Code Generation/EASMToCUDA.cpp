@@ -26,15 +26,37 @@ using namespace Extensions;
 CompilationSession::CompilationSession(TemporaryFileWriter& codefile, std::list<Traverser::ScopeContents>& registeredvariables, Extensions::CompileSessionHandle sessionhandle)
 	: SessionHandle(sessionhandle),
 	  TabDepth(0),
-	  RegisteredVariables(registeredvariables),
+	  RegisteredVariables(&registeredvariables),
 	  TemporaryCodeFile(codefile),
+	  PrototypeHeaderFile(NULL),
 	  ExpectingFunctionReturns(false),
 	  ExpectingFunctionParams(false),
 	  ExpectingFunctionBlock(false),
+	  ExpectingDoWhileBlock(false),
 	  MarshalFloats(false),
 	  MarshalInts(false),
 	  MarshalFloatArrays(false),
-	  MarshalIntArrays(false)
+	  MarshalIntArrays(false),
+	  IgnoreIndentation(false)
+{
+}
+
+
+CompilationSession::CompilationSession(TemporaryFileWriter& codefile, TemporaryFileWriter& prototypesheaderfile, Extensions::CompileSessionHandle sessionhandle)
+	: SessionHandle(sessionhandle),
+	  TabDepth(0),
+	  RegisteredVariables(NULL),
+	  TemporaryCodeFile(codefile),
+	  PrototypeHeaderFile(&prototypesheaderfile),
+	  ExpectingFunctionReturns(false),
+	  ExpectingFunctionParams(false),
+	  ExpectingFunctionBlock(false),
+	  ExpectingDoWhileBlock(false),
+	  MarshalFloats(false),
+	  MarshalInts(false),
+	  MarshalFloatArrays(false),
+	  MarshalIntArrays(false),
+	  IgnoreIndentation(false)
 {
 }
 
@@ -52,17 +74,31 @@ void CompilationSession::WriteScopeContents(bool toplevel, size_t numcontents, c
 	if(ExpectingFunctionReturns)
 	{
 		TemporaryCodeFile.OutputStream << L"__device__ ";
+		if(PrototypeHeaderFile)
+			PrototypeHeaderFile->OutputStream << L"__device__ ";
 
 		if(numcontents == 0)
+		{
 			TemporaryCodeFile.OutputStream << L"void ";
+			if(PrototypeHeaderFile)
+				PrototypeHeaderFile->OutputStream << L"void ";
+		}
 		else if(numcontents > 1)
 			throw std::exception("Functions with multiple returns cannot be invoked from a CUDA code segment");
 		else
 		{
 			switch(contents->Type)
 			{
-			case VM::EpochVariableType_Integer:			TemporaryCodeFile.OutputStream << L"int ";		break;
-			case VM::EpochVariableType_Real:			TemporaryCodeFile.OutputStream << L"float ";	break;
+			case VM::EpochVariableType_Integer:
+				TemporaryCodeFile.OutputStream << L"int ";
+				if(PrototypeHeaderFile)
+					PrototypeHeaderFile->OutputStream << L"int ";
+				break;
+			case VM::EpochVariableType_Real:
+				TemporaryCodeFile.OutputStream << L"float ";
+				if(PrototypeHeaderFile)
+					PrototypeHeaderFile->OutputStream << L"float ";
+				break;
 
 			default:
 				throw std::exception("Cannot return this type from a function invoked via a CUDA code segment");
@@ -79,25 +115,43 @@ void CompilationSession::WriteScopeContents(bool toplevel, size_t numcontents, c
 	if(ExpectingFunctionParams)
 	{
 		TemporaryCodeFile.OutputStream << PendingFunctionName << L"(";
+		if(PrototypeHeaderFile)
+			PrototypeHeaderFile->OutputStream << PendingFunctionName << L"(";
 
 		for(size_t i = 0; i < numcontents; ++i)
 		{
 			switch(contents[i].Type)
 			{
-			case VM::EpochVariableType_Integer:			TemporaryCodeFile.OutputStream << L"int ";		break;
-			case VM::EpochVariableType_Real:			TemporaryCodeFile.OutputStream << L"float ";	break;
+			case VM::EpochVariableType_Integer:
+				TemporaryCodeFile.OutputStream << L"int ";
+				if(PrototypeHeaderFile)
+					PrototypeHeaderFile->OutputStream << L"int ";
+				break;
+			case VM::EpochVariableType_Real:
+				TemporaryCodeFile.OutputStream << L"float ";
+				if(PrototypeHeaderFile)
+					PrototypeHeaderFile->OutputStream << L"float ";
+				break;
 
 			default:
 				throw std::exception("Cannot pass this type to a function invoked via a CUDA code segment");
 			}
 
 			TemporaryCodeFile.OutputStream << contents[i].Identifier;
+			if(PrototypeHeaderFile)
+				PrototypeHeaderFile->OutputStream << contents[i].Identifier;
 
 			if(i < numcontents - 1)
+			{
 				TemporaryCodeFile.OutputStream << L", ";
+				if(PrototypeHeaderFile)
+					PrototypeHeaderFile->OutputStream << L", ";
+			}
 		}
 
 		TemporaryCodeFile.OutputStream << L")\n";
+		if(PrototypeHeaderFile)
+			PrototypeHeaderFile->OutputStream << L");\n";
 
 		ExpectingFunctionParams = false;
 		return;
@@ -160,7 +214,7 @@ void CompilationSession::WriteScopeContents(bool toplevel, size_t numcontents, c
 		bool appendsemicolon = true;
 
 		if(toplevel)
-			RegisteredVariables.push_back(contents[i]);
+			RegisteredVariables->push_back(contents[i]);
 
 		PadTabs();
 		switch(contents[i].Type)
@@ -251,11 +305,11 @@ void CompilationSession::EnterNode()
 {
 	if(!LeafStack.empty())
 	{
-		WriteLeaves(LeafStack.top().Leaves);
+		WriteLeaves(LeafStack.top().Leaves, true);
 		LeafStack.top().Leaves.clear();
 	}
 
-	LeafStack.push(LeafBlock(ExpectingFunctionBlock));
+	LeafStack.push(LeafBlock(ExpectingFunctionBlock, ExpectingDoWhileBlock));
 
 	PadTabs();
 	TemporaryCodeFile.OutputStream << L"{\n";
@@ -277,6 +331,8 @@ void CompilationSession::EnterNode()
 
 		TemporaryCodeFile.OutputStream << PendingFunctionReturnValueName << L";\n";
 	}
+
+	ExpectingDoWhileBlock = false;
 }
 
 //
@@ -284,17 +340,33 @@ void CompilationSession::EnterNode()
 //
 void CompilationSession::ExitNode()
 {
-	WriteLeaves(LeafStack.top().Leaves);
-
-	if(LeafStack.top().IsFunction)
+	if(LeafStack.top().IsDoWhile)
 	{
+		LeafList conditionleaves = PopTrailingLeaves(LeafStack.top().Leaves);
+		WriteLeaves(LeafStack.top().Leaves, true);
+		--TabDepth;
 		PadTabs();
-		TemporaryCodeFile.OutputStream << L"return " << PendingFunctionReturnValueName << L";\n";
+		TemporaryCodeFile.OutputStream << L"} while(";
+		bool oldvalue = IgnoreIndentation;
+		IgnoreIndentation = true;
+		WriteLeaves(conditionleaves, false);
+		IgnoreIndentation = oldvalue;
+		TemporaryCodeFile.OutputStream << L");\n";
 	}
+	else
+	{
+		WriteLeaves(LeafStack.top().Leaves, true);
 
-	--TabDepth;
-	PadTabs();
-	TemporaryCodeFile.OutputStream << L"}\n";
+		if(LeafStack.top().IsFunction)
+		{
+			PadTabs();
+			TemporaryCodeFile.OutputStream << L"return " << PendingFunctionReturnValueName << L";\n";
+		}
+
+		--TabDepth;
+		PadTabs();
+		TemporaryCodeFile.OutputStream << L"}\n";
+	}
 
 	LeafStack.pop();
 }
@@ -333,6 +405,9 @@ void CompilationSession::OutputPayload(const Traverser::Payload& payload, std::w
 //
 void CompilationSession::PadTabs()
 {
+	if(IgnoreIndentation)
+		return;
+
 	for(unsigned i = 0; i < TabDepth; ++i)
 		TemporaryCodeFile.OutputStream << L"\t";
 }
@@ -391,7 +466,7 @@ void CompilationSession::MarshalOut()
 		TemporaryCodeFile.OutputStream << L"__marshal_int_array_index = 0;\n";
 	}
 
-	for(std::list<Traverser::ScopeContents>::const_iterator iter = RegisteredVariables.begin(); iter != RegisteredVariables.end(); ++iter)
+	for(std::list<Traverser::ScopeContents>::const_iterator iter = RegisteredVariables->begin(); iter != RegisteredVariables->end(); ++iter)
 	{
 		PadTabs();
 		switch(iter->Type)
@@ -436,7 +511,7 @@ void CompilationSession::MarshalOut()
 }
 
 
-void CompilationSession::WriteLeaves(LeafList& leaves)
+void CompilationSession::WriteLeaves(LeafList& leaves, bool leavesarestatements)
 {
 	std::reverse(leaves.begin(), leaves.end());
 
@@ -447,19 +522,28 @@ void CompilationSession::WriteLeaves(LeafList& leaves)
 		if(iter->Token == Serialization::PushOperation)
 			continue;
 
-		OutputLines.push_front(GenerateLeafCode(leaves, iter));
+		std::wstring line = GenerateLeafCode(iter);
+
+		if(leavesarestatements && iter->Token != Serialization::DoWhile && (*line.rbegin() != L';'))
+			line += L";";
+
+		OutputLines.push_front(line);
 	}
 
 	for(std::list<std::wstring>::const_iterator iter = OutputLines.begin(); iter != OutputLines.end(); ++iter)
 	{
 		PadTabs();
-		TemporaryCodeFile.OutputStream << (*iter) << L"\n";
+		TemporaryCodeFile.OutputStream << (*iter);
+		if(!IgnoreIndentation)
+			TemporaryCodeFile.OutputStream << L"\n";
 	}
 }
 
 
-std::wstring CompilationSession::GenerateLeafCode(const LeafList& leaves, LeafList::const_iterator& iter)
+std::wstring CompilationSession::GenerateLeafCode(LeafList::const_iterator& iter)
 {
+	// TODO - factor out into helper functions
+
 	std::wostringstream out;
 
 	if(iter->Token == Serialization::InitializeValue ||
@@ -469,7 +553,7 @@ std::wstring CompilationSession::GenerateLeafCode(const LeafList& leaves, LeafLi
 		out << L" = ";
 
 		AdvanceLeafIterator(iter);
-		out << GenerateLeafCode(leaves, iter);
+		out << GenerateLeafCode(iter);
 		out << L";";
 	
 		return out.str();
@@ -490,10 +574,43 @@ std::wstring CompilationSession::GenerateLeafCode(const LeafList& leaves, LeafLi
 			iter->Token == Serialization::AddReals)
 	{
 		AdvanceLeafIterator(iter);
-		std::wstring operand = GenerateLeafCode(leaves, iter);
+		std::wstring operand = GenerateLeafCode(iter);
 		AdvanceLeafIterator(iter);
-		out << GenerateLeafCode(leaves, iter);
+		out << GenerateLeafCode(iter);
 		out << L" + " << operand;
+		return out.str();
+	}
+	else if(iter->Token == Serialization::SubtractIntegers ||
+			iter->Token == Serialization::SubtractInteger16s ||
+			iter->Token == Serialization::SubtractReals)
+	{
+		AdvanceLeafIterator(iter);
+		std::wstring operand = GenerateLeafCode(iter);
+		AdvanceLeafIterator(iter);
+		out << GenerateLeafCode(iter);
+		out << L" - " << operand;
+		return out.str();
+	}
+	else if(iter->Token == Serialization::MultiplyIntegers ||
+			iter->Token == Serialization::MultiplyInteger16s ||
+			iter->Token == Serialization::MultiplyReals)
+	{
+		AdvanceLeafIterator(iter);
+		std::wstring operand = GenerateLeafCode(iter);
+		AdvanceLeafIterator(iter);
+		out << GenerateLeafCode(iter);
+		out << L" * " << operand;
+		return out.str();
+	}
+	else if(iter->Token == Serialization::DivideIntegers ||
+			iter->Token == Serialization::DivideInteger16s ||
+			iter->Token == Serialization::DivideReals)
+	{
+		AdvanceLeafIterator(iter);
+		std::wstring operand = GenerateLeafCode(iter);
+		AdvanceLeafIterator(iter);
+		out << GenerateLeafCode(iter);
+		out << L" / " << operand;
 		return out.str();
 	}
 	else if(iter->Token == Serialization::GetValue)
@@ -503,16 +620,25 @@ std::wstring CompilationSession::GenerateLeafCode(const LeafList& leaves, LeafLi
 	else if(iter->Token == Serialization::WhileCondition)
 	{
 		AdvanceLeafIterator(iter);
-		out << L"if(!(" << GenerateLeafCode(leaves, iter) << L")) break;";
+		out << L"if(!(" << GenerateLeafCode(iter) << L")) break;";
 		return out.str();
 	}
 	else if(iter->Token == Serialization::IsLesser)
 	{
 		AdvanceLeafIterator(iter);
-		std::wstring operand = GenerateLeafCode(leaves, iter);
+		std::wstring operand = GenerateLeafCode(iter);
 		AdvanceLeafIterator(iter);
-		out << GenerateLeafCode(leaves, iter);
+		out << GenerateLeafCode(iter);
 		out << L" < " << operand;
+		return out.str();
+	}
+	else if(iter->Token == Serialization::IsGreater)
+	{
+		AdvanceLeafIterator(iter);
+		std::wstring operand = GenerateLeafCode(iter);
+		AdvanceLeafIterator(iter);
+		out << GenerateLeafCode(iter);
+		out << L" > " << operand;
 		return out.str();
 	}
 	else if(iter->Token == Serialization::ArrayLength)
@@ -524,10 +650,10 @@ std::wstring CompilationSession::GenerateLeafCode(const LeafList& leaves, LeafLi
 	{
 		std::wstring arrayidentifier = iter->Payload.StringValue;
 		AdvanceLeafIterator(iter);
-		std::wstring rhs = GenerateLeafCode(leaves, iter);
+		std::wstring rhs = GenerateLeafCode(iter);
 		AdvanceLeafIterator(iter);
 		out << arrayidentifier << L"[";
-		out << GenerateLeafCode(leaves, iter) << L"] = ";
+		out << GenerateLeafCode(iter) << L"] = ";
 		out << rhs << L";";
 		return out.str();
 	}
@@ -535,17 +661,7 @@ std::wstring CompilationSession::GenerateLeafCode(const LeafList& leaves, LeafLi
 	{
 		out << iter->Payload.StringValue << L"[";
 		AdvanceLeafIterator(iter);
-		out << GenerateLeafCode(leaves, iter) << L"]";
-		return out.str();
-	}
-	else if(iter->Token == Serialization::MultiplyIntegers)
-	{
-		// TODO - factor this sludge out into a helper function
-		AdvanceLeafIterator(iter);
-		std::wstring operand = GenerateLeafCode(leaves, iter);
-		AdvanceLeafIterator(iter);
-		out << GenerateLeafCode(leaves, iter);
-		out << L" * " << operand;
+		out << GenerateLeafCode(iter) << L"]";
 		return out.str();
 	}
 	else if(iter->Token == Serialization::Invoke)
@@ -559,11 +675,16 @@ std::wstring CompilationSession::GenerateLeafCode(const LeafList& leaves, LeafLi
 		for(size_t i = 0; i < paramcount; ++i)
 		{
 			AdvanceLeafIterator(iter);
-			out << GenerateLeafCode(leaves, iter);
+			out << GenerateLeafCode(iter);
 		}
 
 		out << L")";
 		return out.str();
+	}
+	else if(iter->Token == Serialization::DoWhile)
+	{
+		ExpectingDoWhileBlock = true;
+		return L"do";
 	}
 	
 	throw std::exception("Cannot generate CUDA code for the given EASM instruction");
@@ -592,5 +713,27 @@ void CompilationSession::ExpectFunctionTraversal(const std::wstring& functionnam
 {
 	PendingFunctionName = functionname;
 	ExpectingFunctionReturns = ExpectingFunctionParams = ExpectingFunctionBlock = true;
+}
+
+
+CompilationSession::LeafList CompilationSession::PopTrailingLeaves(LeafList& leaves)
+{
+	LeafList ret;
+
+	size_t paramcount = 1;
+
+	do
+	{
+		while(leaves.rbegin()->Token == Serialization::PushOperation)
+			leaves.pop_back();
+
+		ret.push_back(*leaves.rbegin());
+		paramcount += leaves.rbegin()->Payload.ParameterCount;
+		--paramcount;
+		leaves.pop_back();
+	} while(paramcount > 0);
+
+	std::reverse(ret.begin(), ret.end());
+	return ret;
 }
 
