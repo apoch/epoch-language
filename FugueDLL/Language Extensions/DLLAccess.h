@@ -24,7 +24,7 @@ namespace Extensions
 	{
 	// Construction and destruction
 	public:
-		ExtensionDLLAccess(const std::wstring& dllname, VM::Program* program);
+		ExtensionDLLAccess(const std::wstring& dllname, VM::Program& program);
 		~ExtensionDLLAccess();
 
 	// Extension interface

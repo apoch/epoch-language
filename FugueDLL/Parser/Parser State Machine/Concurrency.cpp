@@ -9,6 +9,7 @@
 
 #include "Parser/Parser State Machine/ParserState.h"
 #include "Parser/Error Handling/ParserExceptions.h"
+#include "Parser/Op Generation/OpValidation.h"
 #include "Parser/Tracing.h"
 
 #include "Virtual Machine/Core Entities/Scopes/ScopeDescription.h"
@@ -51,27 +52,68 @@ void ParserState::BeginThreadCode()
 //
 void ParserState::RegisterIntegerMessageParam(const std::wstring& paramname)
 {
-	MessageDispatchScope->AddVariable(ParsedProgram->PoolStaticString(paramname), VM::EpochVariableType_Integer);
+	if(MessageParamIsArray)
+	{
+		MessageDispatchScope->AddVariable(ParsedProgram->PoolStaticString(paramname), VM::EpochVariableType_Array);
+		MessageDispatchScope->SetArrayType(paramname, VM::EpochVariableType_Integer);
+	}
+	else
+		MessageDispatchScope->AddVariable(ParsedProgram->PoolStaticString(paramname), VM::EpochVariableType_Integer);
 }
 
 void ParserState::RegisterInt16MessageParam(const std::wstring& paramname)
 {
-	MessageDispatchScope->AddVariable(ParsedProgram->PoolStaticString(paramname), VM::EpochVariableType_Integer16);
+	if(MessageParamIsArray)
+	{
+		MessageDispatchScope->AddVariable(ParsedProgram->PoolStaticString(paramname), VM::EpochVariableType_Array);
+		MessageDispatchScope->SetArrayType(paramname, VM::EpochVariableType_Integer16);
+	}
+	else
+		MessageDispatchScope->AddVariable(ParsedProgram->PoolStaticString(paramname), VM::EpochVariableType_Integer16);
 }
 
 void ParserState::RegisterRealMessageParam(const std::wstring& paramname)
 {
-	MessageDispatchScope->AddVariable(ParsedProgram->PoolStaticString(paramname), VM::EpochVariableType_Real);
+	if(MessageParamIsArray)
+	{
+		MessageDispatchScope->AddVariable(ParsedProgram->PoolStaticString(paramname), VM::EpochVariableType_Array);
+		MessageDispatchScope->SetArrayType(paramname, VM::EpochVariableType_Real);
+	}
+	else
+		MessageDispatchScope->AddVariable(ParsedProgram->PoolStaticString(paramname), VM::EpochVariableType_Real);
 }
 
 void ParserState::RegisterBooleanMessageParam(const std::wstring& paramname)
 {
-	MessageDispatchScope->AddVariable(ParsedProgram->PoolStaticString(paramname), VM::EpochVariableType_Boolean);
+	if(MessageParamIsArray)
+	{
+		MessageDispatchScope->AddVariable(ParsedProgram->PoolStaticString(paramname), VM::EpochVariableType_Array);
+		MessageDispatchScope->SetArrayType(paramname, VM::EpochVariableType_Boolean);
+	}
+	else
+		MessageDispatchScope->AddVariable(ParsedProgram->PoolStaticString(paramname), VM::EpochVariableType_Boolean);
 }
 
 void ParserState::RegisterStringMessageParam(const std::wstring& paramname)
 {
-	MessageDispatchScope->AddVariable(ParsedProgram->PoolStaticString(paramname), VM::EpochVariableType_String);
+	if(MessageParamIsArray)
+	{
+		MessageDispatchScope->AddVariable(ParsedProgram->PoolStaticString(paramname), VM::EpochVariableType_Array);
+		MessageDispatchScope->SetArrayType(paramname, VM::EpochVariableType_String);
+	}
+	else
+		MessageDispatchScope->AddVariable(ParsedProgram->PoolStaticString(paramname), VM::EpochVariableType_String);
+}
+
+
+void ParserState::RegisterArrayMessageParam()
+{
+	MessageParamIsArray = true;
+}
+
+void ParserState::ResetMessageParamFlags()
+{
+	MessageParamIsArray = false;
 }
 
 
@@ -92,7 +134,7 @@ void ParserState::PushCallerOperation()
 	StackEntry entry;
 	entry.Type = StackEntry::STACKENTRYTYPE_OPERATION;
 	TheStack.push_back(entry);
-	TheStack.back().OperationPointer = new VM::Operations::PushOperation(new VM::Operations::GetTaskCaller);	// Bind after the entry is tracked for exception safety
+	TheStack.back().OperationPointer = new VM::Operations::PushOperation(new VM::Operations::GetTaskCaller, *CurrentScope);	// Bind after the entry is tracked for exception safety
 
 	++PassedParameterCount.top();
 }
@@ -105,7 +147,7 @@ void ParserState::PushSenderOperation()
 	StackEntry entry;
 	entry.Type = StackEntry::STACKENTRYTYPE_OPERATION;
 	TheStack.push_back(entry);
-	TheStack.back().OperationPointer = new VM::Operations::PushOperation(new VM::Operations::GetMessageSender);	// Bind after the entry is tracked for exception safety
+	TheStack.back().OperationPointer = new VM::Operations::PushOperation(new VM::Operations::GetMessageSender, *CurrentScope);	// Bind after the entry is tracked for exception safety
 
 	++PassedParameterCount.top();
 }

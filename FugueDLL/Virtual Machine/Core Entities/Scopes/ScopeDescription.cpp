@@ -253,64 +253,6 @@ void ScopeDescription::AddFuture(const std::wstring& name, VM::OperationPtr boun
 
 
 //-------------------------------------------------------------------------------
-// Arrays
-//-------------------------------------------------------------------------------
-
-//
-// Track the element type of an array variable; this is primarily used for
-// empty arrays that cannot use type inference on their elements.
-//
-void ScopeDescription::SetArrayType(const std::wstring& arrayname, EpochVariableTypeID type)
-{
-	ArrayTypes[arrayname] = type;
-}
-
-//
-// Retrieve the element type of an array variable
-//
-EpochVariableTypeID ScopeDescription::GetArrayType(const std::wstring& arrayname) const
-{
-	std::map<std::wstring, EpochVariableTypeID>::const_iterator iter = ArrayTypes.find(arrayname);
-	if(iter == ArrayTypes.end())
-	{
-		if(ParentScope)
-			return ParentScope->GetArrayType(arrayname);
-
-		throw ExecutionException("Could not determine element type of this array");
-	}
-
-	return iter->second;
-}
-
-//
-// Track the expected size of an array
-//
-void ScopeDescription::SetArraySize(const std::wstring& arrayname, size_t size)
-{
-	ArraySizes[arrayname] = size;
-}
-
-//
-// Retrieve the expected size of an array. Used for initialization of unbound array variables.
-//
-size_t ScopeDescription::GetArraySize(const std::wstring& arrayname) const
-{
-	std::map<std::wstring, unsigned>::const_iterator iter = ArraySizes.find(arrayname);
-	if(iter == ArraySizes.end())
-	{
-		if(ParentScope)
-			return ParentScope->GetArraySize(arrayname);
-
-		throw ExecutionException("Could not determine size of this array");
-	}
-
-	return iter->second;
-}
-
-
-
-
-//-------------------------------------------------------------------------------
 // Generic variable information retrieval
 //-------------------------------------------------------------------------------
 
@@ -372,6 +314,13 @@ const ScopeDescription* ScopeDescription::GetScopeOwningVariable(const std::wstr
 {
 	if(Variables.find(name) != Variables.end())
 		return this;
+
+	if(!Ghosts.empty())
+	{
+		GhostVariableMap::const_iterator iter = Ghosts.back().find(name);
+		if(iter != Ghosts.back().end())
+			return iter->second;
+	}
 
 	if(ParentScope)
 		return ParentScope->GetScopeOwningVariable(name);
@@ -898,3 +847,23 @@ void ScopeDescription::CheckForDuplicateIdentifier(const std::wstring& name) con
 }
 
 
+EpochVariableTypeID ScopeDescription::GetArrayType(const std::wstring& name) const
+{
+	std::map<std::wstring, EpochVariableTypeID>::const_iterator iter = ArrayTypes.find(name);
+	if(iter == ArrayTypes.end())
+	{
+		if(!Ghosts.empty())
+		{
+			GhostVariableMap::const_iterator ghostiter = Ghosts.back().find(name);
+			if(ghostiter != Ghosts.back().end())
+				return ghostiter->second->GetArrayType(name);
+		}
+	
+		if(ParentScope)
+			return ParentScope->GetArrayType(name);
+
+		throw ExecutionException("Lost track of array type metadata!");
+	}
+
+	return iter->second;
+}

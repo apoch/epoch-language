@@ -29,6 +29,7 @@ namespace VM
 	public:
 		void CreateNamedPool(const std::wstring& poolname, unsigned numthreads, VM::Program* runningprogram);
 		Threads::ThreadPool& GetNamedPool(const std::wstring& poolname);
+		bool HasNamedPool(const std::wstring& poolname) const;
 
 	// Internal tracking
 	private:

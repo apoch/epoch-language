@@ -81,6 +81,7 @@ namespace Parser
 		void RegisterUpcomingUnknownParam(const std::wstring& nameoftype);
 
 		void RegisterParamIsReference();
+		void RegisterParamIsArray();
 
 	// Function returns
 	public:
@@ -179,6 +180,7 @@ namespace Parser
 		void PopDoWhileLoopPP();
 
 		void RegisterEndOfWhileLoopConditional();
+		void RegisterEndOfParallelFor();
 
 		void EnterBlock();
 		void EnterBlockPP();
@@ -204,6 +206,9 @@ namespace Parser
 		void RegisterRealMessageParam(const std::wstring& paramname);
 		void RegisterBooleanMessageParam(const std::wstring& paramname);
 		void RegisterStringMessageParam(const std::wstring& paramname);
+
+		void ResetMessageParamFlags();
+		void RegisterArrayMessageParam();
 
 		void StartMessageParamScope();
 		void RegisterMessageDispatchCode();
@@ -399,6 +404,7 @@ namespace Parser
 				BLOCKENTRYTYPE_ELSEIF,
 				BLOCKENTRYTYPE_ELSEIFWRAPPER,
 				BLOCKENTRYTYPE_WHILELOOP,
+				BLOCKENTRYTYPE_PARALLELFOR,
 				BLOCKENTRYTYPE_TASK,
 				BLOCKENTRYTYPE_THREAD,
 				BLOCKENTRYTYPE_MSGDISPATCH,
@@ -591,7 +597,8 @@ namespace Parser
 
 		std::stack<std::wstring> SavedTaskNames;
 
-		VM::EpochVariableTypeID ArrayType;
+		std::map<std::wstring, VM::EpochVariableTypeID> ArrayTypes;
+		VM::EpochVariableTypeID TempArrayType;
 
 		std::list<std::wstring> MemberAccesses;
 
@@ -607,6 +614,10 @@ namespace Parser
 		std::list<TypeAnnotationOp> TypeAnnotationOps;
 
 		bool FunctionIsInfix;
+
+		bool MessageParamIsArray;
+
+		std::wstring ParallelForCounterVarName;
 
 	// Public tracking
 	public:

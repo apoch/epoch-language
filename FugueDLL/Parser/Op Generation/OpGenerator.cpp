@@ -122,8 +122,6 @@ VM::OperationPtr ParserState::CreateOperation(const std::wstring& operationname)
 		return CreateOperation_Xor();
 	else if(operationname == Keywords::Not)
 		return CreateOperation_Not();
-	else if(operationname == Keywords::Array)
-		return CreateOperation_ConsArray();
 	else if(operationname == Keywords::Map)
 		return CreateOperation_Map();
 	else if(operationname == Keywords::Reduce)
@@ -149,6 +147,8 @@ VM::OperationPtr ParserState::CreateOperation(const std::wstring& operationname)
 	}
 	else if(operationname == Keywords::Future)
 		return CreateOperation_Future();
+	else if(operationname == Keywords::Array)
+		return CreateOperation_ConsArray();
 	else if(operationname == Keywords::ReadArray)
 		return CreateOperation_ReadArray();
 	else if(operationname == Keywords::WriteArray)
@@ -221,7 +221,7 @@ VM::OperationPtr ParserState::CreateOperation(const std::wstring& operationname)
 
 			if(PassedParameterCount.size() > 1)
 			{
-				VM::OperationPtr ret(new VM::Operations::PushOperation(new VM::Operations::IntegerConstant(static_cast<Integer32>(CurrentScope->GetTupleTypeID(operationname)))));
+				VM::OperationPtr ret(new VM::Operations::PushOperation(new VM::Operations::IntegerConstant(static_cast<Integer32>(CurrentScope->GetTupleTypeID(operationname))), *CurrentScope));
 				TypeAnnotationOps.push_back(TypeAnnotationOp(ret.get(), opcount));
 				return ret;
 			}
@@ -355,7 +355,7 @@ VM::OperationPtr ParserState::CreateOperation(const std::wstring& operationname)
 
 			if(PassedParameterCount.size() > 1)
 			{
-				VM::OperationPtr ret(new VM::Operations::PushOperation(new VM::Operations::IntegerConstant(static_cast<Integer32>(CurrentScope->GetStructureTypeID(operationname)))));
+				VM::OperationPtr ret(new VM::Operations::PushOperation(new VM::Operations::IntegerConstant(static_cast<Integer32>(CurrentScope->GetStructureTypeID(operationname))), *CurrentScope));
 				TypeAnnotationOps.push_back(TypeAnnotationOp(ret.get(), opcount));
 				return ret;
 			}
@@ -449,6 +449,8 @@ VM::OperationPtr ParserState::CreateOperation(const std::wstring& operationname)
 		for(std::vector<std::wstring>::const_iterator iter = paramlist.begin(); iter != paramlist.end(); ++iter)
 		{
 			VM::EpochVariableTypeID type = func->GetParams().GetVariableType(*iter);
+			if(type == VM::EpochVariableType_Array)
+				CurrentScope->SetArrayType(*iter, func->GetParams().GetArrayType(i));
 			ValidateOperationParameter(i, type, func->GetParams());
 
 			TheStack.pop_back();

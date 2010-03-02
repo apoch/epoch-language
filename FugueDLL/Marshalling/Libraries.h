@@ -17,5 +17,6 @@ namespace VM
 namespace Marshalling
 {
 	void BindToLibrary(const std::wstring& filename, VM::Program& program);
+	void BindToLanguageExtension(const std::wstring& filename, VM::Program& program);
 }
 

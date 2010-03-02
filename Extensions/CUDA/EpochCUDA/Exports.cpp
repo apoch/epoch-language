@@ -17,6 +17,8 @@
 #include "Language Extensions/HandleTypes.h"
 #include "Language Extensions/FunctionPointerTypes.h"
 
+#include "Marshalling/LibraryImporting.h"
+
 #include "Utility/Strings.h"
 
 #include "FugueVMAccess.h"
@@ -24,6 +26,9 @@
 
 using namespace Extensions;
 using namespace Traverser;
+
+
+RequestMarshalBufferPtr RequestMarshalBuffer = NULL;
 
 
 //
@@ -263,5 +268,70 @@ void __stdcall FunctionCallback(Traverser::TraversalSessionHandle sessionhandle,
 	{
 		FugueVMAccess::Interface.Error(L"An unrecognized exception was thrown while attempting to compile a function");
 	}
+}
+
+
+
+void __stdcall LinkToEpochVM(RegistrationTable registration, void* bindrecord)
+{
+	RequestMarshalBuffer = registration.RequestMarshalBuffer;
+
+	registration.RegisterFunction(L"CUDAGenerateDataArray", "GenerateDataArray", NULL, 0, VM::EpochVariableType_Array, VM::EpochVariableType_Real, bindrecord);
+	registration.RegisterFunction(L"CUDAGenerateEmptyArray", "GenerateEmptyArray", NULL, 0, VM::EpochVariableType_Array, VM::EpochVariableType_Real, bindrecord);
+	registration.RegisterFunction(L"CUDAGetThreadIndex", "DummyExportFunction", NULL, 0, VM::EpochVariableType_Integer, VM::EpochVariableType_Error, bindrecord);
+
+	{
+		std::vector<ParamData> params;
+		params.push_back(ParamData(L"numthreads", VM::EpochVariableType_Integer));	
+		registration.RegisterFunction(L"CUDASetThreads", "DummyExportFunction", &params[0], params.size(), VM::EpochVariableType_Integer, VM::EpochVariableType_Error, bindrecord);
+	}
+}
+
+
+int __stdcall DummyExportFunction()
+{
+	FugueVMAccess::Interface.Error(L"Invoked dummy function; check that cross-compiler is generating correct code");
+	return 0;
+}
+
+
+unsigned const DummyArraySize = 50000;
+
+
+void* __stdcall GenerateDataArray()
+{
+	void* originalbuffer = RequestMarshalBuffer(sizeof(LibraryArrayReturnInfo) + (sizeof(Real) * DummyArraySize));
+	void* buffer = originalbuffer;
+
+	// Store array size and type hint
+	reinterpret_cast<LibraryArrayReturnInfo*>(buffer)->TypeHint = VM::EpochVariableType_Real;
+	reinterpret_cast<LibraryArrayReturnInfo*>(buffer)->ElementCount = DummyArraySize;
+	buffer = reinterpret_cast<char*>(originalbuffer) + sizeof(LibraryArrayReturnInfo);
+
+	// Fill array with simple data
+	Real* values = reinterpret_cast<Real*>(buffer);
+	for(size_t i = 0; i < DummyArraySize; ++i)
+		values[i] = static_cast<Real>(i);
+
+	return originalbuffer;
+}
+
+
+void* __stdcall GenerateEmptyArray()
+{
+	void* originalbuffer = RequestMarshalBuffer(sizeof(LibraryArrayReturnInfo) + (sizeof(Real) * DummyArraySize));
+	void* buffer = originalbuffer;
+
+	// Store array size and type hint
+	reinterpret_cast<LibraryArrayReturnInfo*>(buffer)->TypeHint = VM::EpochVariableType_Real;
+	reinterpret_cast<LibraryArrayReturnInfo*>(buffer)->ElementCount = DummyArraySize;
+	buffer = reinterpret_cast<char*>(originalbuffer) + sizeof(LibraryArrayReturnInfo);
+
+	// Fill array with blank data
+	Real* values = reinterpret_cast<Real*>(buffer);
+	for(size_t i = 0; i < DummyArraySize; ++i)
+		values[i] = 0.0f;
+
+	return originalbuffer;
 }
 

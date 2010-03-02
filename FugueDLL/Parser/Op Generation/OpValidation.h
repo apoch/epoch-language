@@ -10,6 +10,7 @@
 
 #include "Parser/Parser State Machine/ParserState.h"
 
+#include "Virtual Machine/Operations/Variables/VariableOps.h"
 #include "Virtual Machine/VMExceptions.h"
 
 
@@ -47,6 +48,8 @@ void Parser::ParserState::ValidateOperationParameter(unsigned paramindex, VM::Ep
 				valid = (params.GetVariableTupleTypeID(paramindex) == CurrentScope->GetVariableTupleTypeID(paramentry.StringValue));
 			else if(type == VM::EpochVariableType_Function)
 				valid = (params.GetFunctionSignature(paramindex).DoesFunctionMatchSignature(CurrentScope->GetFunction(paramentry.StringValue), *CurrentScope));
+			else if(type == VM::EpochVariableType_Array)
+				valid = (params.GetArrayType(paramindex) == CurrentScope->GetArrayType(paramentry.StringValue));
 			else
 				valid = (params.GetVariableType(paramindex) == CurrentScope->GetVariableType(paramentry.StringValue));
 		}

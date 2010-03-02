@@ -120,26 +120,49 @@ void CompilationSession::WriteScopeContents(bool toplevel, size_t numcontents, c
 
 		for(size_t i = 0; i < numcontents; ++i)
 		{
-			switch(contents[i].Type)
+			size_t reversedindex = numcontents - i - 1;
+
+			switch(contents[reversedindex].Type)
 			{
 			case VM::EpochVariableType_Integer:
 				TemporaryCodeFile.OutputStream << L"int ";
 				if(PrototypeHeaderFile)
 					PrototypeHeaderFile->OutputStream << L"int ";
 				break;
+
 			case VM::EpochVariableType_Real:
 				TemporaryCodeFile.OutputStream << L"float ";
 				if(PrototypeHeaderFile)
 					PrototypeHeaderFile->OutputStream << L"float ";
 				break;
 
+			case VM::EpochVariableType_Array:
+				switch(contents[reversedindex].ContainedType)
+				{
+				case VM::EpochVariableType_Integer:
+					TemporaryCodeFile.OutputStream << L"int* ";
+					if(PrototypeHeaderFile)
+						PrototypeHeaderFile->OutputStream << L"int* ";
+					break;
+
+				case VM::EpochVariableType_Real:
+					TemporaryCodeFile.OutputStream << L"float* ";
+					if(PrototypeHeaderFile)
+						PrototypeHeaderFile->OutputStream << L"float* ";
+					break;
+
+				default:
+					throw std::exception("Cannot pass arrays of this type to a function invoked via a CUDA code segment");
+				}
+				break;
+
 			default:
 				throw std::exception("Cannot pass this type to a function invoked via a CUDA code segment");
 			}
 
-			TemporaryCodeFile.OutputStream << contents[i].Identifier;
+			TemporaryCodeFile.OutputStream << contents[reversedindex].Identifier;
 			if(PrototypeHeaderFile)
-				PrototypeHeaderFile->OutputStream << contents[i].Identifier;
+				PrototypeHeaderFile->OutputStream << contents[reversedindex].Identifier;
 
 			if(i < numcontents - 1)
 			{
@@ -197,6 +220,8 @@ void CompilationSession::WriteScopeContents(bool toplevel, size_t numcontents, c
 		{
 			PadTabs();
 			TemporaryCodeFile.OutputStream << L"unsigned int __marshal_float_array_index = 0;\n";
+			PadTabs();
+			TemporaryCodeFile.OutputStream << L"float* __marshal_float_array_ptr = __marshal_input_float_arrays;\n";
 		}
 
 		if(MarshalIntArrays)
@@ -233,45 +258,30 @@ void CompilationSession::WriteScopeContents(bool toplevel, size_t numcontents, c
 
 		case VM::EpochVariableType_Array:
 			{
+				std::wstring arraytypetoken;
+
 				VM::EpochVariableTypeID arraytype = contents[i].ContainedType;
 				switch(arraytype)
 				{
 				case VM::EpochVariableType_Integer:
-					TemporaryCodeFile.OutputStream << L"int ";
+					arraytypetoken = L"int";
 					break;
 
 				case VM::EpochVariableType_Real:
-					TemporaryCodeFile.OutputStream << L"float ";
+					arraytypetoken = L"float";
 					break;
 
 				default:
 					throw std::exception("Cannot pass arrays of this type");
 				}
 
-				TemporaryCodeFile.OutputStream << contents[i].Identifier << L"[" << contents[i].ContainedSize << L"];\n";
+				TemporaryCodeFile.OutputStream << arraytypetoken << L"* " << contents[i].Identifier << L" = __marshal_" << arraytypetoken << L"_array_ptr;\n";
+				PadTabs();
+				TemporaryCodeFile.OutputStream << L"__marshal_" << arraytypetoken << L"_array_ptr += __" << arraytypetoken << L"_array_sizes[__marshal_" << arraytypetoken << L"_array_index];\n";
+				PadTabs();
+				TemporaryCodeFile.OutputStream << L"++__marshal_" << arraytypetoken << L"_array_index;\n";
 				ArraySizeCache[contents[i].Identifier] = contents[i].ContainedSize;
-
-				PadTabs();
-				TemporaryCodeFile.OutputStream << "for(unsigned __marshal_array_counter = 0; __marshal_array_counter < " << contents[i].ContainedSize << "; ++__marshal_array_counter)\n";
-				++TabDepth;
-				PadTabs();
-				TemporaryCodeFile.OutputStream << contents[i].Identifier << L"[__marshal_array_counter] = ";
 				
-				switch(arraytype)
-				{
-				case VM::EpochVariableType_Integer:
-					TemporaryCodeFile.OutputStream << L"__marshal_input_int_arrays[__marshal_int_array_index++];\n";
-					break;
-
-				case VM::EpochVariableType_Real:
-					TemporaryCodeFile.OutputStream << L"__marshal_input_float_arrays[__marshal_float_array_index++];\n";
-					break;
-
-				default:
-					throw std::exception("Cannot pass arrays of this type");
-				}				
-				
-				--TabDepth;
 				appendsemicolon = false;
 			}
 			break;
@@ -420,7 +430,7 @@ void CompilationSession::PadTabs()
 void CompilationSession::FunctionPreamble(Extensions::OriginalCodeHandle handle)
 {
 	PadTabs();
-	TemporaryCodeFile.OutputStream << L"extern \"C\" __global__ void " << widen(GenerateFunctionName(handle)) << L"(float* __marshal_input_floats, int* __marshal_input_ints, float* __marshal_input_float_arrays, int* __marshal_input_int_arrays)\n";
+	TemporaryCodeFile.OutputStream << L"extern \"C\" __global__ void " << widen(GenerateFunctionName(handle)) << L"(float* __marshal_input_floats, int* __marshal_input_ints, float* __marshal_input_float_arrays, unsigned __num_float_arrays, unsigned* __float_array_sizes, int* __marshal_input_int_arrays, unsigned __num_int_arrays, unsigned* __int_array_sizes)\n";
 	PadTabs();
 	TemporaryCodeFile.OutputStream << L"{\n";
 	++TabDepth;
@@ -522,7 +532,9 @@ void CompilationSession::WriteLeaves(LeafList& leaves, bool leavesarestatements)
 		if(iter->Token == Serialization::PushOperation)
 			continue;
 
-		std::wstring line = GenerateLeafCode(iter);
+		std::wstring line = GenerateLeafCode(iter, leaves.end());
+		if(line.empty())
+			continue;
 
 		if(leavesarestatements && iter->Token != Serialization::DoWhile && (*line.rbegin() != L';'))
 			line += L";";
@@ -540,7 +552,7 @@ void CompilationSession::WriteLeaves(LeafList& leaves, bool leavesarestatements)
 }
 
 
-std::wstring CompilationSession::GenerateLeafCode(LeafList::const_iterator& iter)
+std::wstring CompilationSession::GenerateLeafCode(LeafList::const_iterator& iter, LeafList::const_iterator& enditer)
 {
 	// TODO - factor out into helper functions
 
@@ -553,7 +565,7 @@ std::wstring CompilationSession::GenerateLeafCode(LeafList::const_iterator& iter
 		out << L" = ";
 
 		AdvanceLeafIterator(iter);
-		out << GenerateLeafCode(iter);
+		out << GenerateLeafCode(iter, enditer);
 		out << L";";
 	
 		return out.str();
@@ -574,9 +586,9 @@ std::wstring CompilationSession::GenerateLeafCode(LeafList::const_iterator& iter
 			iter->Token == Serialization::AddReals)
 	{
 		AdvanceLeafIterator(iter);
-		std::wstring operand = GenerateLeafCode(iter);
+		std::wstring operand = GenerateLeafCode(iter, enditer);
 		AdvanceLeafIterator(iter);
-		out << GenerateLeafCode(iter);
+		out << GenerateLeafCode(iter, enditer);
 		out << L" + " << operand;
 		return out.str();
 	}
@@ -585,9 +597,9 @@ std::wstring CompilationSession::GenerateLeafCode(LeafList::const_iterator& iter
 			iter->Token == Serialization::SubtractReals)
 	{
 		AdvanceLeafIterator(iter);
-		std::wstring operand = GenerateLeafCode(iter);
+		std::wstring operand = GenerateLeafCode(iter, enditer);
 		AdvanceLeafIterator(iter);
-		out << GenerateLeafCode(iter);
+		out << GenerateLeafCode(iter, enditer);
 		out << L" - " << operand;
 		return out.str();
 	}
@@ -596,9 +608,9 @@ std::wstring CompilationSession::GenerateLeafCode(LeafList::const_iterator& iter
 			iter->Token == Serialization::MultiplyReals)
 	{
 		AdvanceLeafIterator(iter);
-		std::wstring operand = GenerateLeafCode(iter);
+		std::wstring operand = GenerateLeafCode(iter, enditer);
 		AdvanceLeafIterator(iter);
-		out << GenerateLeafCode(iter);
+		out << GenerateLeafCode(iter, enditer);
 		out << L" * " << operand;
 		return out.str();
 	}
@@ -607,9 +619,9 @@ std::wstring CompilationSession::GenerateLeafCode(LeafList::const_iterator& iter
 			iter->Token == Serialization::DivideReals)
 	{
 		AdvanceLeafIterator(iter);
-		std::wstring operand = GenerateLeafCode(iter);
+		std::wstring operand = GenerateLeafCode(iter, enditer);
 		AdvanceLeafIterator(iter);
-		out << GenerateLeafCode(iter);
+		out << GenerateLeafCode(iter, enditer);
 		out << L" / " << operand;
 		return out.str();
 	}
@@ -620,24 +632,24 @@ std::wstring CompilationSession::GenerateLeafCode(LeafList::const_iterator& iter
 	else if(iter->Token == Serialization::WhileCondition)
 	{
 		AdvanceLeafIterator(iter);
-		out << L"if(!(" << GenerateLeafCode(iter) << L")) break;";
+		out << L"if(!(" << GenerateLeafCode(iter, enditer) << L")) break;";
 		return out.str();
 	}
 	else if(iter->Token == Serialization::IsLesser)
 	{
 		AdvanceLeafIterator(iter);
-		std::wstring operand = GenerateLeafCode(iter);
+		std::wstring operand = GenerateLeafCode(iter, enditer);
 		AdvanceLeafIterator(iter);
-		out << GenerateLeafCode(iter);
+		out << GenerateLeafCode(iter, enditer);
 		out << L" < " << operand;
 		return out.str();
 	}
 	else if(iter->Token == Serialization::IsGreater)
 	{
 		AdvanceLeafIterator(iter);
-		std::wstring operand = GenerateLeafCode(iter);
+		std::wstring operand = GenerateLeafCode(iter, enditer);
 		AdvanceLeafIterator(iter);
-		out << GenerateLeafCode(iter);
+		out << GenerateLeafCode(iter, enditer);
 		out << L" > " << operand;
 		return out.str();
 	}
@@ -650,10 +662,10 @@ std::wstring CompilationSession::GenerateLeafCode(LeafList::const_iterator& iter
 	{
 		std::wstring arrayidentifier = iter->Payload.StringValue;
 		AdvanceLeafIterator(iter);
-		std::wstring rhs = GenerateLeafCode(iter);
+		std::wstring rhs = GenerateLeafCode(iter, enditer);
 		AdvanceLeafIterator(iter);
 		out << arrayidentifier << L"[";
-		out << GenerateLeafCode(iter) << L"] = ";
+		out << GenerateLeafCode(iter, enditer) << L"] = ";
 		out << rhs << L";";
 		return out.str();
 	}
@@ -661,24 +673,49 @@ std::wstring CompilationSession::GenerateLeafCode(LeafList::const_iterator& iter
 	{
 		out << iter->Payload.StringValue << L"[";
 		AdvanceLeafIterator(iter);
-		out << GenerateLeafCode(iter) << L"]";
+		out << GenerateLeafCode(iter, enditer) << L"]";
 		return out.str();
 	}
 	else if(iter->Token == Serialization::Invoke)
 	{
 		std::wstring funcname = iter->Payload.StringValue;
-		RecordInvokedFunction(SessionHandle, funcname);
 
-		size_t paramcount = iter->Payload.ParameterCount;
-		out << funcname << L"(";
-
-		for(size_t i = 0; i < paramcount; ++i)
+		if(funcname == L"CUDAGetThreadIndex")
 		{
-			AdvanceLeafIterator(iter);
-			out << GenerateLeafCode(iter);
+			out << L"threadIdx.x";
 		}
+		else if(funcname == L"CUDASetThreads")
+		{
+			// Do nothing
+			AdvanceLeafIterator(iter);
+			return L"";
+		}
+		else
+		{
+			RecordInvokedFunction(SessionHandle, funcname);
 
-		out << L")";
+			size_t paramcount = iter->Payload.ParameterCount;
+			out << funcname;
+
+			std::stack<std::wstring> leafcode;
+			for(size_t i = 0; i < paramcount; ++i)
+			{
+				AdvanceLeafIterator(iter);
+				leafcode.push(GenerateLeafCode(iter, enditer));
+			}
+
+			out << L"(";
+
+			while(!leafcode.empty())
+			{
+				out << leafcode.top();
+				leafcode.pop();
+				if(!leafcode.empty())
+					out << L", ";
+			}
+
+			out << L")";
+		}
 		return out.str();
 	}
 	else if(iter->Token == Serialization::DoWhile)
@@ -686,6 +723,8 @@ std::wstring CompilationSession::GenerateLeafCode(LeafList::const_iterator& iter
 		ExpectingDoWhileBlock = true;
 		return L"do";
 	}
+	else if(iter->Token == Serialization::BindReference)
+		return iter->Payload.StringValue;
 	
 	throw std::exception("Cannot generate CUDA code for the given EASM instruction");
 }

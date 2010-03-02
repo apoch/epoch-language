@@ -27,7 +27,7 @@ ExtensionLibraryHandle handlecounter = 0;
 //
 // Load a given extension DLL and have the extension register any new keywords
 //
-ExtensionLibraryHandle Extensions::RegisterExtensionLibrary(const std::wstring& libraryname, VM::Program* program)
+ExtensionLibraryHandle Extensions::RegisterExtensionLibrary(const std::wstring& libraryname, VM::Program& program)
 {
 	std::wstring fulldllname = libraryname + L".dll";
 

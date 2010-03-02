@@ -204,6 +204,24 @@ struct RegisterParamIsReference : public ParseFunctorBase
 	}
 };
 
+
+struct RegisterParamIsArray : public ParseFunctorBase
+{
+	RegisterParamIsArray(Parser::ParserState& state)
+		: ParseFunctorBase(state)
+	{ }
+
+	template <typename IteratorType>
+	void operator () (IteratorType begin, IteratorType end) const
+	{
+		Trace(L"RegisterParamIsArray", std::wstring(begin, end));
+
+		State.SetParsePosition(begin);
+		State.RegisterParamIsArray();
+	}
+};
+
+
 //
 // Inform the parse analyzer that an external function returns an integer value.
 //

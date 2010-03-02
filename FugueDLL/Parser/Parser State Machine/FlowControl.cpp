@@ -101,6 +101,8 @@ void ParserState::RegisterControl(const std::wstring& controlname, bool preproce
 		}
 		ExpectedBlockTypes.push(BlockEntry::BLOCKENTRYTYPE_WHILELOOP);
 	}
+	else if(controlname == Keywords::ParallelFor)
+		ExpectedBlockTypes.push(BlockEntry::BLOCKENTRYTYPE_PARALLELFOR);
 	else
 		throw ParserFailureException("Unrecognized or misplaced flow control keyword");
 }
@@ -198,6 +200,13 @@ void ParserState::EnterBlock()
 		scope->ParentScope = &GetParsedProgram()->GetGlobalScope();
 		DisplacedScopes.push_back(CurrentScope);
 		TraceScopeCreation(scope.get(), CurrentScope);
+	}
+	else if(entry.Type == BlockEntry::BLOCKENTRYTYPE_PARALLELFOR)
+	{
+		scope->AddVariable(ParallelForCounterVarName, VM::EpochVariableType_Integer);
+
+		TraceScopeCreation(scope.get(), NULL);
+		scope->ParentScope = CurrentScope;
 	}
 	else
 	{
@@ -516,6 +525,25 @@ void ParserState::ExitBlock()
 	case BlockEntry::BLOCKENTRYTYPE_RESPONSEMAP:
 		return;
 
+	case BlockEntry::BLOCKENTRYTYPE_PARALLELFOR:
+		{
+			std::auto_ptr<VM::Block> body(Blocks.back().TheBlock);
+			Blocks.pop_back();
+
+			// TODO - validate parameters
+			TheStack.pop_back();	// thread pool size
+			TheStack.pop_back();	// upper bound
+			TheStack.pop_back();	// lower bound
+
+			if(TheStack.empty() || TheStack.back().Type != StackEntry::STACKENTRYTYPE_IDENTIFIER)
+				ReportFatalError("Missing loop counter variable");
+			else
+				AddOperationToCurrentBlock(VM::OperationPtr(new VM::Operations::ParallelFor(body.release(), ParsedProgram->PoolStaticString(TheStack.back().StringValue))));
+
+			TheStack.pop_back();
+		}
+		break;
+
 	default:
 		throw ParserFailureException("Invalid block type; this probably reflects corruption in the parser");
 	}
@@ -578,6 +606,14 @@ void ParserState::ExitBlockPP()
 					HigherOrderFunctionHintStack.pop();
 					break;
 
+				case VM::EpochVariableType_Array:
+					if(ParamsByRef.top())
+						params->AddReference(VM::EpochVariableType_Array, VariableNameStack.top());
+					else
+						params->AddVariable(VariableNameStack.top(), VM::EpochVariableType_Array);
+					params->SetArrayType(VariableNameStack.top(), TempArrayType);
+					break;
+
 				default:
 					if(ParamsByRef.top())
 						params->AddReference(VariableTypeStack.top(), VariableNameStack.top());
@@ -630,6 +666,7 @@ void ParserState::ExitBlockPP()
 	case BlockEntry::BLOCKENTRYTYPE_TASK:
 	case BlockEntry::BLOCKENTRYTYPE_THREAD:
 	case BlockEntry::BLOCKENTRYTYPE_MSGDISPATCH:
+	case BlockEntry::BLOCKENTRYTYPE_PARALLELFOR:
 		Blocks.pop_back();
 		break;
 
@@ -656,5 +693,17 @@ void ParserState::EnterGlobalBlock()
 void ParserState::ExitGlobalBlock()
 {
 	Blocks.pop_back();
+}
+
+
+
+void ParserState::RegisterEndOfParallelFor()
+{
+	if(PassedParameterCount.top() != 4)
+		ReportFatalError("parallelfor() expects 4 parameters");
+
+	ParallelForCounterVarName = (TheStack.rbegin() + 3)->StringValue;
+
+	PopParameterCount();
 }
 

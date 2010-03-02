@@ -140,6 +140,7 @@ void ParserState::RegisterExternalParamAddressName(const std::wstring& paramname
 //
 void ParserState::RegisterExternal(VM::EpochVariableTypeID returntype)
 {
+	VM::EpochVariableTypeID returntypehint = VM::EpochVariableType_Error;
 	std::auto_ptr<VM::ScopeDescription> params(new VM::ScopeDescription);
 
 	params->ParentScope = CurrentScope;
@@ -196,7 +197,7 @@ void ParserState::RegisterExternal(VM::EpochVariableTypeID returntype)
 		ParamsByRef.pop();
 	}
 
-	std::auto_ptr<VM::FunctionBase> dllcall(new Marshalling::CallDLL(ExternalDLLName, FunctionName, params.release(), returntype));
+	std::auto_ptr<VM::FunctionBase> dllcall(new Marshalling::CallDLL(ExternalDLLName, FunctionName, params.release(), returntype, returntypehint));
 
 	try
 	{

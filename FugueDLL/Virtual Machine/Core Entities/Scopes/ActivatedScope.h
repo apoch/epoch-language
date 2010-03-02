@@ -39,8 +39,8 @@ namespace VM
 	{
 	// Construction and destruction
 	public:
-		explicit ActivatedScope(const ScopeDescription& scope);
-		ActivatedScope(const ScopeDescription& scope, ActivatedScope* parent);
+		explicit ActivatedScope(ScopeDescription& scope);
+		ActivatedScope(ScopeDescription& scope, ActivatedScope* parent);
 
 		~ActivatedScope();
 
@@ -148,6 +148,7 @@ namespace VM
 	public:
 		ActivatedScope* ParentScope;
 		const ScopeDescription& GetOriginalDescription() const						{ return OriginalScope; }
+		ScopeDescription& GetOriginalDescription()									{ return OriginalScope; }
 
 	// Tracking of task information
 	public:
@@ -159,7 +160,7 @@ namespace VM
 
 	// Internal tracking
 	private:
-		const ScopeDescription& OriginalScope;
+		ScopeDescription& OriginalScope;
 
 		typedef std::pair<std::wstring, ActivatedScope*> GhostVariableMapEntry;
 		typedef std::map<std::wstring, ActivatedScope*> GhostVariableMap;

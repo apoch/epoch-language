@@ -8,6 +8,7 @@
 #include "pch.h"
 
 #include "Virtual Machine/Operations/Operators/Arithmetic.h"
+#include "Virtual Machine/Core Entities/Variables/ArrayVariable.h"
 #include "Virtual Machine/Core Entities/Scopes/ActivatedScope.h"
 #include "Virtual Machine/Types Management/Typecasts.h"
 
@@ -103,24 +104,26 @@ typename VarType::BaseStorage VM::Operations::ArithmeticOp<OpType, VarType, RVal
 	if(OpType == Arithmetic_Multiply || OpType == Arithmetic_Divide)
 		ret = 1;
 
-	IntegerVariable typevar(stack.GetCurrentTopOfStack());
-	IntegerVariable countvar(stack.GetOffsetIntoStack(IntegerVariable::GetStorageSize()));
-	IntegerVariable::BaseStorage type = typevar.GetValue();
-	IntegerVariable::BaseStorage count = countvar.GetValue();
-	stack.Pop(IntegerVariable::GetStorageSize() * 2);
+	VM::ArrayVariable arrayvar(stack.GetCurrentTopOfStack());
+	VM::EpochVariableTypeID type = arrayvar.GetElementType();
+	void* storage = ArrayVariable::GetArrayStorage(arrayvar.GetValue());
+	size_t count = arrayvar.GetNumElements();
+	stack.Pop(arrayvar.GetStorageSize());
 
 	if(type != VarType::GetStaticType())
 		throw ExecutionException("Type mismatch");
 
-	for(Integer32 i = 0; i < count; ++i)
+	for(size_t i = 0; i < count; ++i)
 	{
-		VarType var(stack.GetCurrentTopOfStack());
+		VarType var(storage);
 		if(OpType == Arithmetic_Add)
 			ret = var.GetValue() + ret;
-		else
+		else if(OpType == Arithmetic_Multiply)
 			ret = var.GetValue() * ret;
+		else
+			throw NotImplementedException("Arithmetic operation not implemented for array mode");
 
-		stack.Pop(VarType::GetStorageSize());
+		storage = reinterpret_cast<char*>(storage) + VarType::GetBaseStorageSize();
 	}
 
 	return ret;

@@ -86,7 +86,7 @@ namespace Parser
 				  FUTURE(KEYWORD(Future)), REDUCE(KEYWORD(Reduce)), ARRAY(KEYWORD(Array)), MAP(KEYWORD(Map)), VAR(KEYWORD(Var)),
 				  NOT(OPERATOR(Not)), BUFFER(KEYWORD(Buffer)), ALIASDECL(KEYWORD(Alias)), MEMBEROPERATOR(OPERATOR(Member)),
 				  EXTENSION(KEYWORD(Extension)), THREAD(KEYWORD(Thread)), THREADPOOL(KEYWORD(ThreadPool)),
-				  READARRAY(KEYWORD(ReadArray)), WRITEARRAY(KEYWORD(WriteArray)),
+				  READARRAY(KEYWORD(ReadArray)), WRITEARRAY(KEYWORD(WriteArray)), PARALLELFOR(KEYWORD(ParallelFor)),
 
 				  // String tokens: special arithmetic operators
 				  INCREMENT(OPERATOR(Increment)),
@@ -207,14 +207,14 @@ namespace Parser
 
 				MessageDispatch
 					= StringIdentifier[PushIdentifierNoStack(self.State)][StartMessageParamScope(self.State)] >>
-						OPENPARENS[StartCountingParams(self.State)] >>
+						OPENPARENS[StartCountingParams(self.State)][ResetMessageParamFlags(self.State)] >>
 							*((
-								(INTEGER >> OPENPARENS >> StringIdentifier[RegisterIntegerMessageParam(self.State)] >> CLOSEPARENS)
-							  | (INTEGER16 >> OPENPARENS >> StringIdentifier[RegisterInt16MessageParam(self.State)] >> CLOSEPARENS)
-							  | (REAL >> OPENPARENS >> StringIdentifier[RegisterRealMessageParam(self.State)] >> CLOSEPARENS)
-							  | (BOOLEAN >> OPENPARENS >> StringIdentifier[RegisterBooleanMessageParam(self.State)] >> CLOSEPARENS)
-							  | (STRING >> OPENPARENS >> StringIdentifier[RegisterStringMessageParam(self.State)] >> CLOSEPARENS)
-							) % COMMA)
+								(INTEGER >> !ARRAY[RegisterArrayMessageParam(self.State)] >> OPENPARENS >> StringIdentifier[RegisterIntegerMessageParam(self.State)] >> CLOSEPARENS)
+							  | (INTEGER16 >> !ARRAY[RegisterArrayMessageParam(self.State)] >> OPENPARENS >> StringIdentifier[RegisterInt16MessageParam(self.State)] >> CLOSEPARENS)
+							  | (REAL >> !ARRAY[RegisterArrayMessageParam(self.State)] >> OPENPARENS >> StringIdentifier[RegisterRealMessageParam(self.State)] >> CLOSEPARENS)
+							  | (BOOLEAN >> !ARRAY[RegisterArrayMessageParam(self.State)] >> OPENPARENS >> StringIdentifier[RegisterBooleanMessageParam(self.State)] >> CLOSEPARENS)
+							  | (STRING >> !ARRAY[RegisterArrayMessageParam(self.State)] >> OPENPARENS >> StringIdentifier[RegisterStringMessageParam(self.State)] >> CLOSEPARENS)
+							) % COMMA[ResetMessageParamFlags(self.State)])
 						>> CLOSEPARENS
 						>> NULLFUNCTIONARROW[RegisterUpcomingMessageDispatch(self.State)]
 						>> CodeBlock
@@ -312,8 +312,9 @@ namespace Parser
 					;
 
 				ControlSimple
-					= IF[RegisterControl(self.State, false)] >> OPENPARENS[StartCountingParams(self.State)] >> PassedParameter >> CLOSEPARENS[PopParameterCount(self.State)] >> CodeBlock >> *(ELSEIF[RegisterControl(self.State, false)] >> OPENPARENS[StartCountingParams(self.State)] >> PassedParameter >> CLOSEPARENS[PopParameterCount(self.State)] >> CodeBlock) >> !(ELSE[RegisterControl(self.State, false)] >> CodeBlock)
-					| WHILE[RegisterControl(self.State, false)] >> OPENPARENS[StartCountingParams(self.State)] >> PassedParameter >> CLOSEPARENS[RegisterEndOfWhileLoopConditional(self.State)] >> CodeBlock
+					= (IF[RegisterControl(self.State, false)] >> OPENPARENS[StartCountingParams(self.State)] >> PassedParameter >> CLOSEPARENS[PopParameterCount(self.State)] >> CodeBlock >> *(ELSEIF[RegisterControl(self.State, false)] >> OPENPARENS[StartCountingParams(self.State)] >> PassedParameter >> CLOSEPARENS[PopParameterCount(self.State)] >> CodeBlock) >> !(ELSE[RegisterControl(self.State, false)] >> CodeBlock))
+					| (WHILE[RegisterControl(self.State, false)] >> OPENPARENS[StartCountingParams(self.State)] >> PassedParameter >> CLOSEPARENS[RegisterEndOfWhileLoopConditional(self.State)] >> CodeBlock)
+					| (PARALLELFOR[RegisterControl(self.State, false)] >> OPENPARENS[StartCountingParams(self.State)] >> StringIdentifier[PushIdentifierNoStack(self.State)] >> COMMA >> PassedParameter >> COMMA >> PassedParameter >> COMMA >> PassedParameter >> CLOSEPARENS[RegisterEndOfParallelFor(self.State)] >> CodeBlock)
 					;
 
 				ControlWithEnding
@@ -326,6 +327,7 @@ namespace Parser
 					| WHILE
 					| ELSE
 					| ELSEIF
+					| PARALLELFOR
 					;
 
 				TypeKeywords
@@ -440,7 +442,7 @@ namespace Parser
 							(
 								COLON >>
 								((OPENPARENS >>
-										(((INTEGER | INTEGER16 | STRING | BOOLEAN | REAL | (StringIdentifier - FUNCTION)) >> !REFERENCE >> OPENPARENS >> StringIdentifier >> CLOSEPARENS)
+										(((INTEGER | INTEGER16 | STRING | BOOLEAN | REAL | (StringIdentifier - FUNCTION)) >> !ARRAY >> !REFERENCE >> OPENPARENS >> StringIdentifier >> CLOSEPARENS)
 										| HigherOrderFunctionHelper
 										) % COMMA >>
 								CLOSEPARENS)
@@ -595,7 +597,7 @@ namespace Parser
 			boost::spirit::classic::strlit<> TUPLE, READTUPLE, WRITETUPLE, STRUCTURE, READSTRUCTURE, WRITESTRUCTURE, SIZEOF, INTEGER16, REFERENCE, FUNCTION, LENGTH, GLOBAL, MEMBER;
 			boost::spirit::classic::strlit<> CONSTANT, HEXPREFIX, TASK, MESSAGE, ACCEPTMESSAGE, NULLFUNCTIONARROW, CALLER, SENDER, RESPONSEMAP, INFIXDECL, CRASHPARSER, FUTURE;
 			boost::spirit::classic::strlit<> ARRAY, MAP, REDUCE, VAR, NOT, BUFFER, ALIASDECL, ADDASSIGN, SUBTRACTASSIGN, MULTIPLYASSIGN, DIVIDEASSIGN, INCREMENT, DECREMENT;
-			boost::spirit::classic::strlit<> CONCATASSIGN, MEMBEROPERATOR, EXTENSION, THREAD, THREADPOOL, READARRAY, WRITEARRAY;
+			boost::spirit::classic::strlit<> CONCATASSIGN, MEMBEROPERATOR, EXTENSION, THREAD, THREADPOOL, READARRAY, WRITEARRAY, PARALLELFOR;
 
 			// Parser rules
 			boost::spirit::classic::rule<ScannerType> StringIdentifier, FunctionDefinition, PassedParameter, OperationParameter, Operation, CodeBlock, Program;

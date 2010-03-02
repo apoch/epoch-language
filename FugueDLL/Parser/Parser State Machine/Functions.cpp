@@ -61,6 +61,9 @@ void ParserState::RegisterUpcomingFunctionPP(const std::wstring& functionname)
 //
 void ParserState::RegisterParam(const std::wstring& paramname)
 {
+	if(VariableTypeStack.top() == VM::EpochVariableType_Array)
+		ArrayTypes[paramname] = TempArrayType;
+
 	VariableNameStack.push(paramname);
 	++ParamCount;
 }
@@ -154,6 +157,12 @@ void ParserState::RegisterParamIsReference()
 	ParamsByRef.top() = true;
 }
 
+
+void ParserState::RegisterParamIsArray()
+{
+	TempArrayType = VariableTypeStack.top();
+	VariableTypeStack.top() = VM::EpochVariableType_Array;
+}
 
 
 //

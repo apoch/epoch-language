@@ -40,7 +40,7 @@ void __stdcall LinkToEpochVM(RegistrationTable registration, void* bindrecord)
 {
 	std::vector<ParamData> params;
 	params.push_back(ParamData(L"maximum", VM::EpochVariableType_Integer));
-	registration.RegisterFunction(L"random", "GetRandomNumber", &params[0], params.size(), VM::EpochVariableType_Integer, bindrecord);
+	registration.RegisterFunction(L"random", "GetRandomNumber", &params[0], params.size(), VM::EpochVariableType_Integer, VM::EpochVariableType_Error, bindrecord);
 }
 
 

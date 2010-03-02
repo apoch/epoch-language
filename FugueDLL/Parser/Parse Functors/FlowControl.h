@@ -91,3 +91,18 @@ struct RegisterEndOfWhileLoopConditional : public ParseFunctorBase
 };
 
 
+struct RegisterEndOfParallelFor : public ParseFunctorBase
+{
+	RegisterEndOfParallelFor(Parser::ParserState& state)
+		: ParseFunctorBase(state)
+	{ }
+
+	template <typename ParamType>
+	void operator () (ParamType) const
+	{
+		Trace(L"RegisterEndOfParallelFor");
+		State.RegisterEndOfParallelFor();
+	}
+};
+
+

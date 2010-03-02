@@ -84,6 +84,7 @@ namespace Serialization
 
 	// Arrays
 	extern std::wstring ConsArray;
+	extern std::wstring ConsArrayIndirect;
 	extern std::wstring ReadArray;
 	extern std::wstring WriteArray;
 	extern std::wstring ArrayLength;
@@ -145,6 +146,9 @@ namespace Serialization
 	extern std::wstring ForkThread;
 	extern std::wstring ThreadPool;
 
+	// Additional parallelism features
+	extern std::wstring ParallelFor;
+
 	// Debug operations
 	extern std::wstring DebugWrite;
 	extern std::wstring DebugRead;
@@ -171,6 +175,4 @@ namespace Serialization
 	extern std::wstring GlobalBlock;
 	extern std::wstring Constants;
 	extern std::wstring Futures;
-	extern std::wstring ArrayTypes;
-	extern std::wstring ArraySizes;
 }

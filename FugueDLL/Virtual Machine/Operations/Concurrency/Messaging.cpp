@@ -60,7 +60,12 @@ void SendTaskMessage::ExecuteFast(ExecutionContext& context)
 	std::auto_ptr<HeapStorage> heapblock(new HeapStorage);
 	size_t neededstorage = 0;
 	for(std::list<EpochVariableTypeID>::const_iterator iter = PayloadTypes.begin(); iter != PayloadTypes.end(); ++iter)
-		neededstorage += TypeInfo::GetStorageSize(*iter);
+	{
+		if(*iter == EpochVariableType_Array)
+			neededstorage += sizeof(HandleType);
+		else
+			neededstorage += TypeInfo::GetStorageSize(*iter);
+	}
 
 	heapblock->Allocate(neededstorage);
 	void* storageptr = heapblock->GetStartOfStorage();
@@ -110,6 +115,15 @@ void SendTaskMessage::ExecuteFast(ExecutionContext& context)
 				*reinterpret_cast<StringVariable::BaseStorage*>(storageptr) = var.GetHandleValue();
 				storageptr = reinterpret_cast<Byte*>(storageptr) + StringVariable::GetStorageSize();
 				context.Stack.Pop(StringVariable::GetStorageSize());
+			}
+			break;
+
+		case EpochVariableType_Array:
+			{
+				ArrayVariable var(context.Stack.GetCurrentTopOfStack());
+				*reinterpret_cast<ArrayVariable::BaseStorage*>(storageptr) = var.GetValue();
+				storageptr = reinterpret_cast<Byte*>(storageptr) + ArrayVariable::GetBaseStorageSize();
+				context.Stack.Pop(ArrayVariable::GetBaseStorageSize());
 			}
 			break;
 
@@ -352,6 +366,10 @@ namespace
 
 					case EpochVariableType_String:
 						PushValueOntoStack<TypeInfo::StringT>(context.Stack, *reinterpret_cast<StringVariable::BaseStorage*>(heapptr));
+						break;
+
+					case EpochVariableType_Array:
+						PushValueOntoStack<TypeInfo::ArrayT>(context.Stack, *reinterpret_cast<ArrayVariable::BaseStorage*>(heapptr));
 						break;
 
 					default:

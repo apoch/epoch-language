@@ -73,7 +73,7 @@ VM::OperationPtr ParserState::CreateOperation_Map()
 
 	if(p1.Type == StackEntry::STACKENTRYTYPE_IDENTIFIER)
 	{
-		elementtype = CurrentScope->GetArrayType(p1.StringValue);
+		elementtype = ArrayTypes[p1.StringValue];
 	}
 	else
 	{
@@ -200,7 +200,7 @@ VM::OperationPtr ParserState::CreateOperation_Reduce()
 
 	if(p1.Type == StackEntry::STACKENTRYTYPE_IDENTIFIER)
 	{
-		elementtype = CurrentScope->GetArrayType(p1.StringValue);
+		elementtype = ArrayTypes[p1.StringValue];
 	}
 	else
 	{

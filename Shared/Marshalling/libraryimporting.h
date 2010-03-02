@@ -28,11 +28,13 @@ struct ParamData
 	const wchar_t* StringHint;
 };
 
-typedef void (__stdcall *RegisterFunctionFuncPtr)(const wchar_t* name, const char* internalname, const ParamData* params, size_t numparams, VM::EpochVariableTypeID returntype, void* bindrecord);
+typedef void (__stdcall *RegisterFunctionFuncPtr)(const wchar_t* name, const char* internalname, const ParamData* params, size_t numparams, VM::EpochVariableTypeID returntype, VM::EpochVariableTypeID returntypehint, void* bindrecord);
 typedef void (__stdcall *RegisterConstantFuncPtr)(const wchar_t* name, VM::EpochVariableTypeID type, void* value, void* bindrecord);
 typedef IDType (__stdcall *RegisterStructureFuncPtr)(const wchar_t* name, const ParamData* params, size_t numparams, void* bindrecord);
 typedef void (__stdcall *RegisterExternalFuncPtr)(const wchar_t* name, const char* internalname, const wchar_t* dllname, const ParamData* params, size_t numparams, VM::EpochVariableTypeID returntype, void* bindrecord);
 typedef void (__stdcall *RegisterSignatureFuncPtr)(const wchar_t* name, const ParamData* params, size_t numparams, VM::EpochVariableTypeID returntype, void* bindrecord);
+
+typedef void* (__stdcall *RequestMarshalBufferPtr)(size_t numbytes);
 
 
 //
@@ -45,5 +47,18 @@ struct RegistrationTable
 	RegisterStructureFuncPtr RegisterStructure;
 	RegisterExternalFuncPtr RegisterExternal;
 	RegisterSignatureFuncPtr RegisterSignature;
+
+	RequestMarshalBufferPtr RequestMarshalBuffer;
+};
+
+
+
+//
+// Helper structure for returning arrays from a library function
+//
+struct LibraryArrayReturnInfo
+{
+	unsigned TypeHint;
+	size_t ElementCount;
 };
 

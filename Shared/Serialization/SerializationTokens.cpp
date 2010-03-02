@@ -78,6 +78,7 @@ std::wstring Serialization::AssignStructureIndirect(L"WRITESTRUCTINDIRECT");
 std::wstring Serialization::BindStructMemberReference(L"BINDSTRUCT");
 
 std::wstring Serialization::ConsArray(L"CONSARRAY");
+std::wstring Serialization::ConsArrayIndirect(L"CONSARRAYINDIRECT");
 std::wstring Serialization::ReadArray(L"READARRAY");
 std::wstring Serialization::WriteArray(L"WRITEARRAY");
 std::wstring Serialization::ArrayLength(L"ARRAYLENGTH");
@@ -131,6 +132,8 @@ std::wstring Serialization::ForkFuture(L"FUTURE");
 std::wstring Serialization::ForkThread(L"FORKTHREAD");
 std::wstring Serialization::ThreadPool(L"THREADPOOL");
 
+std::wstring Serialization::ParallelFor(L"PFOR");
+
 std::wstring Serialization::DebugWrite(L"DEBUG_WRITE");
 std::wstring Serialization::DebugRead(L"DEBUG_READ");
 std::wstring Serialization::DebugCrashVM(L"DEBUG_CRASH_VM");
@@ -153,6 +156,5 @@ std::wstring Serialization::StructureStaticData(L"STRUCTUREINFO");
 std::wstring Serialization::GlobalBlock(L"GLOBAL");
 std::wstring Serialization::Constants(L"CONSTANTS");
 std::wstring Serialization::Futures(L"FUTURES");
-std::wstring Serialization::ArrayTypes(L"ARRAYTYPES");
-std::wstring Serialization::ArraySizes(L"ARRAYSIZES");
+
 

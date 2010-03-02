@@ -28,6 +28,7 @@ size_t TypeInfo::GetStorageSize(EpochVariableTypeID type)
 	case EpochVariableType_Address:		return AddressVariable::GetStorageSize();
 	case EpochVariableType_Buffer:		return BufferVariable::GetStorageSize();
 	case EpochVariableType_TaskHandle:	return TaskHandleVariable::GetStorageSize();
+	case EpochVariableType_Array:		return ArrayVariable::GetBaseStorageSize();
 
 	case EpochVariableType_Tuple:
 	case EpochVariableType_Structure:

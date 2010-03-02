@@ -160,3 +160,8 @@ void Program::AddPoolWorkItem(const std::wstring& poolname, const std::wstring& 
 	ThreadPools.GetNamedPool(poolname).AddWorkItem(threadname, workitem.release());
 }
 
+bool Program::HasThreadPool(const std::wstring& poolname) const
+{
+	return ThreadPools.HasNamedPool(poolname);
+}
+

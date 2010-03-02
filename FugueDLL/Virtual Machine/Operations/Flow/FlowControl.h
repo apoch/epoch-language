@@ -342,6 +342,54 @@ namespace VM
 			virtual size_t GetNumParameters(const VM::ScopeDescription& scope) const
 			{ return 0; }
 		};
+
+
+		//
+		// Operation for executing a parallel for loop
+		//
+		class ParallelFor : public Operation, public SelfAware<ParallelFor>
+		{
+		// Construction and destruction
+		public:
+			ParallelFor(Block* body, const std::wstring& countervarname);
+
+			~ParallelFor();
+
+		// Operation interface
+		public:
+			virtual void ExecuteFast(ExecutionContext& context);
+			virtual RValuePtr ExecuteAndStoreRValue(ExecutionContext& context);
+
+			virtual EpochVariableTypeID GetType(const ScopeDescription& scope) const
+			{ return EpochVariableType_Null; }
+
+			virtual size_t GetNumParameters(const VM::ScopeDescription& scope) const
+			{ return 3; }
+
+		// Traversal interface
+		protected:
+			template <typename TraverserT>
+			void TraverseHelper(TraverserT& traverser);
+
+			virtual void Traverse(Validator::ValidationTraverser& traverser);
+			virtual void Traverse(Serialization::SerializationTraverser& traverser);
+
+		// Additional accessors
+		public:
+			const std::wstring& GetAssociatedIdentifier() const
+			{ return CounterVariableName; }
+
+		// Thread synchronization
+		public:
+			void DecrementWaitCounter();
+
+		// Internal tracking
+		protected:
+			Block* Body;
+			const std::wstring& CounterVariableName;
+
+			HANDLE WaitCounterDecEvent;
+		};
 	}
 }
 

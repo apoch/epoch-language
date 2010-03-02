@@ -38,6 +38,7 @@ namespace VM
 		{
 			PARAMTYPEFLAG_NONE = 0,
 			PARAMTYPEFLAG_ISREFERENCE = 0x01,
+			PARAMTYPEFLAG_ISARRAY = 0x02,
 		};
 
 	// Construction and destruction
@@ -75,6 +76,9 @@ namespace VM
 
 		bool IsReference(unsigned index) const;
 		bool IsFunctionSignature(unsigned index) const;
+
+		bool IsArray(unsigned index) const;
+		EpochVariableTypeID GetArrayType(unsigned index) const;
 
 		EpochVariableTypeID GetReturnType() const;
 		const std::vector<EpochVariableTypeID>& GetReturnTypes() const

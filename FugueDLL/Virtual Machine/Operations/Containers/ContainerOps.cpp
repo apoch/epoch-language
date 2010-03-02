@@ -41,54 +41,70 @@ void ConsArray::ExecuteFast(ExecutionContext& context)
 
 RValuePtr ConsArray::ExecuteAndStoreRValue(ExecutionContext& context)
 {
-	std::auto_ptr<ArrayRValue> ret(new ArrayRValue(ElementType));
+	HandleType arraydatahandle = ArrayVariable::AllocateNewHandle(ElementType, NumEntries);
+	void* storage = ArrayVariable::GetArrayStorage(arraydatahandle);
 
-	size_t offset = 0;
+	std::auto_ptr<ArrayRValue> ret(new ArrayRValue(arraydatahandle, false));
 
 	switch(ElementType)
 	{
 	case EpochVariableType_Integer:
-		for(unsigned i = 0; i < NumEntries; ++i)
+		for(size_t i = 0; i < NumEntries; ++i)
 		{
-			IntegerVariable var(context.Stack.GetOffsetIntoStack(offset));
-			ret->AddElement(new IntegerRValue(var.GetValue()));
-			offset += IntegerVariable::GetStorageSize();
+			IntegerVariable stackvar(context.Stack.GetCurrentTopOfStack());
+			IntegerVariable var(storage);
+			var.SetValue(stackvar.GetValue());
+			ret->AddElement(var.GetAsRValue().release());
+			storage = reinterpret_cast<char*>(storage) + IntegerVariable::GetStorageSize();
+			context.Stack.Pop(IntegerVariable::GetStorageSize());
 		}
 		break;
 
 	case EpochVariableType_Integer16:
-		for(unsigned i = 0; i < NumEntries; ++i)
+		for(size_t i = 0; i < NumEntries; ++i)
 		{
-			Integer16Variable var(context.Stack.GetOffsetIntoStack(offset));
-			ret->AddElement(new Integer16RValue(var.GetValue()));
-			offset += Integer16Variable::GetStorageSize();
+			Integer16Variable stackvar(context.Stack.GetCurrentTopOfStack());
+			Integer16Variable var(storage);
+			var.SetValue(stackvar.GetValue());
+			ret->AddElement(var.GetAsRValue().release());
+			storage = reinterpret_cast<char*>(storage) + Integer16Variable::GetStorageSize();
+			context.Stack.Pop(Integer16Variable::GetStorageSize());
 		}
 		break;
 
 	case EpochVariableType_Boolean:
-		for(unsigned i = 0; i < NumEntries; ++i)
+		for(size_t i = 0; i < NumEntries; ++i)
 		{
-			BooleanVariable var(context.Stack.GetOffsetIntoStack(offset));
-			ret->AddElement(new BooleanRValue(var.GetValue()));
-			offset += BooleanVariable::GetStorageSize();
+			BooleanVariable stackvar(context.Stack.GetCurrentTopOfStack());
+			BooleanVariable var(storage);
+			var.SetValue(stackvar.GetValue());
+			ret->AddElement(var.GetAsRValue().release());
+			storage = reinterpret_cast<char*>(storage) + BooleanVariable::GetStorageSize();
+			context.Stack.Pop(BooleanVariable::GetStorageSize());
 		}
 		break;
 
 	case EpochVariableType_String:
-		for(unsigned i = 0; i < NumEntries; ++i)
+		for(size_t i = 0; i < NumEntries; ++i)
 		{
-			StringVariable var(context.Stack.GetOffsetIntoStack(offset));
-			ret->AddElement(new StringRValue(var.GetValue()));
-			offset += StringVariable::GetStorageSize();
+			StringVariable stackvar(context.Stack.GetCurrentTopOfStack());
+			StringVariable var(storage);
+			var.SetValue(stackvar.GetValue(), true);
+			ret->AddElement(var.GetAsRValue().release());
+			storage = reinterpret_cast<char*>(storage) + StringVariable::GetStorageSize();
+			context.Stack.Pop(StringVariable::GetStorageSize());
 		}
 		break;
 
 	case EpochVariableType_Real:
-		for(unsigned i = 0; i < NumEntries; ++i)
+		for(size_t i = 0; i < NumEntries; ++i)
 		{
-			RealVariable var(context.Stack.GetOffsetIntoStack(offset));
-			ret->AddElement(new RealRValue(var.GetValue()));
-			offset += RealVariable::GetStorageSize();
+			RealVariable stackvar(context.Stack.GetCurrentTopOfStack());
+			RealVariable var(storage);
+			var.SetValue(stackvar.GetValue());
+			ret->AddElement(var.GetAsRValue().release());
+			storage = reinterpret_cast<char*>(storage) + RealVariable::GetStorageSize();
+			context.Stack.Pop(RealVariable::GetStorageSize());
 		}
 		break;
 
@@ -98,6 +114,95 @@ RValuePtr ConsArray::ExecuteAndStoreRValue(ExecutionContext& context)
 
 	return RValuePtr(ret.release());
 }
+
+
+
+ConsArrayIndirect::ConsArrayIndirect(EpochVariableTypeID elementtype, Operation* op)
+	: ElementType(elementtype),
+	  TheOp(op)
+{
+	if(!TheOp)
+		throw InternalFailureException("Cannot construct array, no initialization instruction found");
+}
+
+ConsArrayIndirect::~ConsArrayIndirect()
+{
+	delete TheOp;
+}
+
+//
+// Extract an array's contents from the stack and wrap them into an r-value
+//
+void ConsArrayIndirect::ExecuteFast(ExecutionContext& context)
+{
+	ExecuteAndStoreRValue(context);
+}
+
+RValuePtr ConsArrayIndirect::ExecuteAndStoreRValue(ExecutionContext& context)
+{
+	RValuePtr indirectresultraw(TheOp->ExecuteAndStoreRValue(context));
+	ArrayRValue& indirectresult = indirectresultraw->CastTo<ArrayRValue>();
+	size_t numentries = indirectresult.GetElementCount();
+
+	HandleType arraydatahandle = ArrayVariable::AllocateNewHandle(ElementType, numentries);
+	void* storage = ArrayVariable::GetArrayStorage(arraydatahandle);
+
+	indirectresult.SetHandle(arraydatahandle);
+
+	switch(ElementType)
+	{
+	case EpochVariableType_Integer:
+		for(size_t i = 0; i < numentries; ++i)
+		{
+			IntegerVariable var(storage);
+			var.SetValue(dynamic_cast<IntegerRValue*>(indirectresult.GetElements()[i])->GetValue());
+			storage = reinterpret_cast<char*>(storage) + IntegerVariable::GetStorageSize();
+		}
+		break;
+
+	case EpochVariableType_Integer16:
+		for(size_t i = 0; i < numentries; ++i)
+		{
+			Integer16Variable var(storage);
+			var.SetValue(dynamic_cast<Integer16RValue*>(indirectresult.GetElements()[i])->GetValue());
+			storage = reinterpret_cast<char*>(storage) + Integer16Variable::GetStorageSize();
+		}
+		break;
+
+	case EpochVariableType_Boolean:
+		for(size_t i = 0; i < numentries; ++i)
+		{
+			BooleanVariable var(storage);
+			var.SetValue(dynamic_cast<BooleanRValue*>(indirectresult.GetElements()[i])->GetValue());
+			storage = reinterpret_cast<char*>(storage) + BooleanVariable::GetStorageSize();
+		}
+		break;
+
+	case EpochVariableType_String:
+		for(size_t i = 0; i < numentries; ++i)
+		{
+			StringVariable var(storage);
+			var.SetValue(dynamic_cast<StringRValue*>(indirectresult.GetElements()[i])->GetValue(), true);
+			storage = reinterpret_cast<char*>(storage) + StringVariable::GetStorageSize();
+		}
+		break;
+
+	case EpochVariableType_Real:
+		for(size_t i = 0; i < numentries; ++i)
+		{
+			RealVariable var(storage);
+			var.SetValue(dynamic_cast<RealRValue*>(indirectresult.GetElements()[i])->GetValue());
+			storage = reinterpret_cast<char*>(storage) + RealVariable::GetStorageSize();
+		}
+		break;
+
+	default:
+		throw NotImplementedException("Cannot construct array of this type");
+	}
+
+	return RValuePtr(indirectresultraw.release());
+}
+
 
 
 
@@ -111,7 +216,7 @@ ReadArray::ReadArray(const std::wstring& arrayname)
 
 void ReadArray::ExecuteFast(ExecutionContext& context)
 {
-	// Nothing to do.
+	ExecuteAndStoreRValue(context);
 }
 
 RValuePtr ReadArray::ExecuteAndStoreRValue(ExecutionContext& context)
@@ -120,10 +225,12 @@ RValuePtr ReadArray::ExecuteAndStoreRValue(ExecutionContext& context)
 	IntegerVariable::BaseStorage index = indexvar.GetValue();
 	context.Stack.Pop(IntegerVariable::GetStorageSize());
 
-	void* storage = context.Scope.GetVariableRef<ArrayVariable>(ArrayName).GetArrayElementStorage();
-	EpochVariableTypeID entrytype = context.Scope.GetOriginalDescription().GetArrayType(ArrayName);
+	ArrayVariable& arrayvar = context.Scope.GetVariableRef<ArrayVariable>(ArrayName);
 
-	if(index < 0 || index >= static_cast<Integer32>(context.Scope.GetOriginalDescription().GetArraySize(ArrayName)))
+	void* storage = ArrayVariable::GetArrayStorage(arrayvar.GetValue());
+	EpochVariableTypeID entrytype = arrayvar.GetElementType();
+
+	if(index < 0 || index >= static_cast<Integer32>(arrayvar.GetNumElements()))
 		throw ExecutionException("Invalid array index");
 
 	size_t stride = TypeInfo::GetStorageSize(entrytype);
@@ -155,7 +262,7 @@ WriteArray::WriteArray(const std::wstring& arrayname)
 void WriteArray::ExecuteFast(ExecutionContext& context)
 {
 	RValuePtr writevalue(NULL);
-	EpochVariableTypeID entrytype = context.Scope.GetOriginalDescription().GetArrayType(ArrayName);
+	EpochVariableTypeID entrytype = context.Scope.GetVariableRef<ArrayVariable>(ArrayName).GetElementType();
 
 	switch(entrytype)
 	{
@@ -178,9 +285,10 @@ void WriteArray::ExecuteFast(ExecutionContext& context)
 	IntegerVariable::BaseStorage index = indexvar.GetValue();
 	context.Stack.Pop(IntegerVariable::GetStorageSize());
 
-	void* storage = context.Scope.GetVariableRef<ArrayVariable>(ArrayName).GetArrayElementStorage();
+	ArrayVariable& arrayvar = context.Scope.GetVariableRef<ArrayVariable>(ArrayName);
+	void* storage = ArrayVariable::GetArrayStorage(arrayvar.GetValue());
 
-	if(index < 0 || index >= static_cast<Integer32>(context.Scope.GetOriginalDescription().GetArraySize(ArrayName)))
+	if(index < 0 || index >= static_cast<Integer32>(arrayvar.GetNumElements()))
 		throw ExecutionException("Invalid array index");
 
 	size_t stride = TypeInfo::GetStorageSize(entrytype);
@@ -212,7 +320,8 @@ void ArrayLength::ExecuteFast(ExecutionContext& context)
 
 RValuePtr ArrayLength::ExecuteAndStoreRValue(ExecutionContext& context)
 {
-	return RValuePtr(new IntegerRValue(static_cast<Integer32>(context.Scope.GetOriginalDescription().GetArraySize(ArrayName))));
+	Integer32 length = static_cast<Integer32>(context.Scope.GetVariableRef<ArrayVariable>(ArrayName).GetNumElements());
+	return RValuePtr(new IntegerRValue(length));
 }
 
 Traverser::Payload ArrayLength::GetNodeTraversalPayload(const VM::ScopeDescription* scope) const
@@ -220,6 +329,7 @@ Traverser::Payload ArrayLength::GetNodeTraversalPayload(const VM::ScopeDescripti
 	Traverser::Payload payload;
 	payload.SetValue(ArrayName.c_str());
 	payload.IsIdentifier = true;
-	payload.ParameterCount = GetNumParameters(*scope);
+	payload.ParameterCount = 1;
 	return payload;
 }
+

@@ -41,7 +41,7 @@ typedef void (__stdcall *VMLinkPtr)(RegistrationTable table, void* bindrecord);
 // This function is called by the external library DLL
 // to register its functions with the VM.
 //
-void __stdcall RegistrationFunc(const wchar_t* name, const char* internalname, const ParamData* params, size_t numparams, VM::EpochVariableTypeID returntype, void* bindrecord)
+void __stdcall RegistrationFunc(const wchar_t* name, const char* internalname, const ParamData* params, size_t numparams, VM::EpochVariableTypeID returntype, VM::EpochVariableTypeID returntypehint, void* bindrecord)
 {
 	BindRec* realbindrecord = reinterpret_cast<BindRec*>(bindrecord);
 
@@ -51,7 +51,7 @@ void __stdcall RegistrationFunc(const wchar_t* name, const char* internalname, c
 		paramscope->AddVariable(p[i].Name, p[i].Type);
 
 	VM::ScopeDescription& scope = realbindrecord->TheProgram->GetGlobalScope();
-	std::auto_ptr<VM::FunctionBase> func(new Marshalling::CallDLL(realbindrecord->DLLName, widen(internalname), paramscope.release(), returntype));
+	std::auto_ptr<VM::FunctionBase> func(new Marshalling::CallDLL(realbindrecord->DLLName, widen(internalname), paramscope.release(), returntype, returntypehint));
 	scope.AddFunction(name, func);
 }
 
@@ -163,7 +163,7 @@ void __stdcall RegistrationExternal(const wchar_t* name, const char* internalnam
 		}
 	} while(i > 0);
 
-	std::auto_ptr<VM::FunctionBase> func(new Marshalling::CallDLL(dllname, widen(internalname), paramscope.release(), returntype));
+	std::auto_ptr<VM::FunctionBase> func(new Marshalling::CallDLL(dllname, widen(internalname), paramscope.release(), returntype, VM::EpochVariableType_Error));
 	scope.AddFunction(name, func);
 }
 
@@ -184,6 +184,12 @@ void __stdcall RegistrationSignature(const wchar_t* name, const ParamData* param
 	signature.AddReturn(returntype, 0);
 
 	scope.AddFunctionSignature(name, signature, true);
+}
+
+
+void* __stdcall RequestMarshalBuffer(size_t numbytes)
+{
+	return new char[numbytes];
 }
 
 
@@ -208,6 +214,42 @@ void Marshalling::BindToLibrary(const std::wstring& filename, VM::Program& progr
 	regtable.RegisterStructure = RegistrationStructure;
 	regtable.RegisterExternal = RegistrationExternal;
 	regtable.RegisterSignature = RegistrationSignature;
+
+	regtable.RequestMarshalBuffer = RequestMarshalBuffer;
+
+	BindRec bindrec;
+	bindrec.TheProgram = &program;
+	bindrec.DLLName = fullfilename.c_str();
+
+	vmlink(regtable, &bindrec);
+}
+
+
+//
+// Language extensions might offer some bindings, but are not required to;
+// therefore we take a slightly different approach to loading them, versus
+// a standard library DLL.
+//
+void Marshalling::BindToLanguageExtension(const std::wstring& filename, VM::Program& program)
+{
+	std::wstring fullfilename = filename + L".dll";
+
+	if(Marshalling::TheDLLPool.HasOpenedDLL(fullfilename))
+		return;
+
+	HINSTANCE hdll = Marshalling::TheDLLPool.OpenDLL(fullfilename);
+	VMLinkPtr vmlink = reinterpret_cast<VMLinkPtr>(::GetProcAddress(hdll, "LinkToEpochVM"));
+	if(!vmlink)
+		return;
+
+	RegistrationTable regtable;
+	regtable.RegisterFunction = RegistrationFunc;
+	regtable.RegisterConstant = RegistrationConstant;
+	regtable.RegisterStructure = RegistrationStructure;
+	regtable.RegisterExternal = RegistrationExternal;
+	regtable.RegisterSignature = RegistrationSignature;
+
+	regtable.RequestMarshalBuffer = RequestMarshalBuffer;
 
 	BindRec bindrec;
 	bindrec.TheProgram = &program;

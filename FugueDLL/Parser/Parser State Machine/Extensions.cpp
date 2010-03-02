@@ -17,6 +17,8 @@
 #include "Language Extensions/Handoff.h"
 #include "Language Extensions/ExtensionCatalog.h"
 
+#include "Marshalling/Libraries.h"
+
 
 using namespace Parser;
 
@@ -26,7 +28,8 @@ using namespace Parser;
 //
 void ParserState::RegisterExtension(const std::wstring& filename)
 {
-	Extensions::RegisterExtensionLibrary(filename, ParsedProgram);
+	Extensions::RegisterExtensionLibrary(filename, *ParsedProgram);
+	Marshalling::BindToLanguageExtension(filename, *ParsedProgram);
 }
 
 

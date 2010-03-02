@@ -97,6 +97,8 @@ namespace Keywords
 	extern const wchar_t* ThreadPool;
 	extern const wchar_t* Future;
 
+	extern const wchar_t* ParallelFor;
+
 	extern const wchar_t* True;
 	extern const wchar_t* False;
 

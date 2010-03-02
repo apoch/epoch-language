@@ -1111,6 +1111,10 @@
 					Name="Variables"
 					>
 					<File
+						RelativePath=".\Virtual Machine\Core Entities\Variables\ArrayVariable.cpp"
+						>
+					</File>
+					<File
 						RelativePath=".\Virtual Machine\Core Entities\Variables\ArrayVariable.h"
 						>
 					</File>
@@ -1765,6 +1769,14 @@
 				</File>
 				<File
 					RelativePath="..\Shared\User Interface\OutputStream.inl"
+					>
+				</File>
+			</Filter>
+			<Filter
+				Name="Marshaling"
+				>
+				<File
+					RelativePath="..\Shared\Marshalling\libraryimporting.h"
 					>
 				</File>
 			</Filter>

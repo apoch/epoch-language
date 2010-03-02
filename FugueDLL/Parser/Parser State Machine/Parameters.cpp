@@ -65,7 +65,7 @@ void ParserState::PushOperationAsParameter(const std::wstring& operationname)
 
 	try
 	{
-		VM::OperationPtr pushop(new VM::Operations::PushOperation(innerop.release()));
+		VM::OperationPtr pushop(new VM::Operations::PushOperation(innerop.release(), *CurrentScope));
 		AddOperationToCurrentBlock(pushop);
 	}
 	catch(VM::MissingVariableException& e)
@@ -100,7 +100,7 @@ void ParserState::PushIdentifier(const std::wstring& identifier)
 //
 void ParserState::PushIdentifierAsParameter(const std::wstring& identifier)
 {
-	VM::OperationPtr op(new VM::Operations::PushOperation(new VM::Operations::GetVariableValue(ParsedProgram->PoolStaticString(identifier))));
+	VM::OperationPtr op(new VM::Operations::PushOperation(new VM::Operations::GetVariableValue(ParsedProgram->PoolStaticString(identifier)), *CurrentScope));
 	AddOperationToCurrentBlock(op);
 
 	bool leaveoponstack = false;
@@ -111,12 +111,12 @@ void ParserState::PushIdentifierAsParameter(const std::wstring& identifier)
 		VM::EpochVariableTypeID type = Blocks.back().TheBlock->GetTailOperation()->GetType(*CurrentScope);
 		if(type == VM::EpochVariableType_Boolean)
 		{
-			VM::OperationPtr injectop(new VM::Operations::PushOperation(new VM::Operations::LogicalNot));
+			VM::OperationPtr injectop(new VM::Operations::PushOperation(new VM::Operations::LogicalNot, *CurrentScope));
 			AddOperationToCurrentBlock(injectop);
 		}
 		else
 		{
-			VM::OperationPtr injectop(new VM::Operations::PushOperation(new VM::Operations::BitwiseNot(type)));
+			VM::OperationPtr injectop(new VM::Operations::PushOperation(new VM::Operations::BitwiseNot(type), *CurrentScope));
 			AddOperationToCurrentBlock(injectop);
 		}
 	}
@@ -127,7 +127,7 @@ void ParserState::PushIdentifierAsParameter(const std::wstring& identifier)
 		VM::EpochVariableTypeID type = Blocks.back().TheBlock->GetTailOperation()->GetType(*CurrentScope);
 		if(TypeInfo::IsNumeric(type))
 		{
-			VM::OperationPtr injectop(new VM::Operations::PushOperation(new VM::Operations::Negate(type)));
+			VM::OperationPtr injectop(new VM::Operations::PushOperation(new VM::Operations::Negate(type), *CurrentScope));
 			AddOperationToCurrentBlock(injectop);
 		}
 		else

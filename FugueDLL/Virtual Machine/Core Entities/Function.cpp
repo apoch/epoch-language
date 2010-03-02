@@ -106,6 +106,14 @@ EpochVariableTypeID Function::GetType(const ScopeDescription& scope) const
 	return Returns->GetEffectiveType();
 }
 
+EpochVariableTypeID Function::GetTypeHint(const ScopeDescription& scope) const
+{
+	if(GetType(scope) != EpochVariableType_Array)
+		return EpochVariableType_Error;
+
+	return Returns->GetTypeHint(0);
+}
+
 
 template <typename TraverserT>
 void Function::TraverseHelper(TraverserT& traverser)

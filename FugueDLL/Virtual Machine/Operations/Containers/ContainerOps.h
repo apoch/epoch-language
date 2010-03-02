@@ -55,6 +55,50 @@ namespace VM
 		};
 
 
+		class ConsArrayIndirect : public Operation, public SelfAware<ConsArrayIndirect>
+		{
+		// Construction and destruction
+		public:
+			ConsArrayIndirect(EpochVariableTypeID elementtype, Operation* op);
+			virtual ~ConsArrayIndirect();
+
+		// Operation interface
+		public:
+			virtual void ExecuteFast(ExecutionContext& context);
+			virtual RValuePtr ExecuteAndStoreRValue(ExecutionContext& context);
+
+			virtual EpochVariableTypeID GetType(const ScopeDescription& scope) const
+			{ return EpochVariableType_Array; }
+
+			virtual size_t GetNumParameters(const VM::ScopeDescription& scope) const
+			{ return 1; }
+
+			virtual Operation* GetNestedOperation() const
+			{ return TheOp; }
+
+		// Traversal
+		public:
+			virtual Traverser::Payload GetNodeTraversalPayload(const VM::ScopeDescription* scope) const
+			{
+				Traverser::Payload payload;
+				payload.SetValue(TheOp);
+				payload.ParameterCount = 1;
+				payload.InvokesFunction = true;
+				return payload;
+			}
+
+		// Queries
+		public:
+			EpochVariableTypeID GetElementType() const
+			{ return ElementType; }
+
+		// Internal tracking
+		private:
+			EpochVariableTypeID ElementType;
+			Operation* TheOp;
+		};
+
+
 		//
 		// Operation for retrieving a value from an array
 		//

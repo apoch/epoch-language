@@ -57,7 +57,7 @@ EpochVariableTypeID AssignValue::GetType(const ScopeDescription& scope) const
 
 size_t AssignValue::GetNumParameters(const VM::ScopeDescription& scope) const
 {
-	EpochVariableTypeID type = GetType(scope);
+	EpochVariableTypeID type = scope.GetVariableType(VarName);
 	if(type == EpochVariableType_Structure || type == EpochVariableType_Tuple)
 		return 2;
 	else if(type == EpochVariableType_Array)
@@ -101,9 +101,12 @@ RValuePtr InitializeValue::ExecuteAndStoreRValue(ExecutionContext& context)
 	}
 	else if(context.Scope.GetVariableType(VarName) == EpochVariableType_Array)
 	{
-		ArrayVariable& thearray = context.Scope.GetVariableRef<ArrayVariable>(VarName);
-		thearray.BindToStorage(context.Stack.GetCurrentTopOfStack());
-		return thearray.GetAsRValue();
+		IntegerVariable var(context.Stack.GetCurrentTopOfStack());
+		HandleType handle = var.GetValue();
+		context.Stack.Pop(IntegerVariable::GetStorageSize());
+
+		context.Scope.GetVariableRef(VarName).CastTo<ArrayVariable>().SetValue(handle);
+		return context.Scope.GetVariableValue(VarName);
 	}
 	else
 		return context.Scope.PopVariableOffStack(VarName, context.Stack, true);
@@ -126,7 +129,7 @@ EpochVariableTypeID InitializeValue::GetType(const ScopeDescription& scope) cons
 
 size_t InitializeValue::GetNumParameters(const VM::ScopeDescription& scope) const
 {
-	EpochVariableTypeID type = GetType(scope);
+	EpochVariableTypeID type = scope.GetVariableType(VarName);
 	if(type == EpochVariableType_Structure || type == EpochVariableType_Tuple)
 		return 2;
 	else if(type == EpochVariableType_Array)

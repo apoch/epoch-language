@@ -38,6 +38,7 @@ namespace VM
 		virtual const ScopeDescription& GetParams() const = 0;
 		virtual ScopeDescription& GetParams() = 0;
 		virtual EpochVariableTypeID GetType(const ScopeDescription& scope) const = 0;
+		virtual EpochVariableTypeID GetTypeHint(const ScopeDescription& scope) const = 0;
 	};
 
 	//
@@ -62,6 +63,7 @@ namespace VM
 		{ return *Params; }
 
 		virtual EpochVariableTypeID GetType(const ScopeDescription& scope) const;
+		virtual EpochVariableTypeID GetTypeHint(const ScopeDescription& scope) const;
 
 	// Helpers for working with the parser
 	public:

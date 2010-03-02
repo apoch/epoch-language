@@ -13,6 +13,7 @@
 #include "Marshalling/Callback.h"
 #include "Marshalling/StructureConversion.h"
 #include "Marshalling/DLLPool.h"
+#include "Marshalling/LibraryImporting.h"
 
 #include "Utility/Strings.h"
 
@@ -31,8 +32,8 @@ using namespace VM;
 //
 // Construct a DLL call operation
 //
-CallDLL::CallDLL(const std::wstring& dllname, const std::wstring& functionname, ScopeDescription* paramlist, EpochVariableTypeID returntype)
-	: DLLName(dllname), FunctionName(functionname), Params(paramlist), ReturnType(returntype)
+CallDLL::CallDLL(const std::wstring& dllname, const std::wstring& functionname, ScopeDescription* paramlist, EpochVariableTypeID returntype, VM::EpochVariableTypeID returntypehint)
+	: DLLName(dllname), FunctionName(functionname), Params(paramlist), ReturnType(returntype), ReturnTypeHint(returntypehint)
 {
 }
 
@@ -73,8 +74,9 @@ RValuePtr CallDLL::Invoke(ExecutionContext& context)
 	std::auto_ptr<ActivatedScope> paramclone(new ActivatedScope(*Params));
 	paramclone->BindToStack(context.Stack);
 
-	Integer32 integerret;
-	Integer16 integer16ret;
+	Integer32 integerret = 0;
+	Integer16 integer16ret = 0;
+	LibraryArrayReturnInfo* arrayret = NULL;
 
 	HINSTANCE hdll = TheDLLPool.OpenDLL(DLLName);
 	if(!hdll)
@@ -216,9 +218,16 @@ BoolIsFalse:
 
 TypeIsNull:
 		cmp rettype, EpochVariableType_Null
-		jne Vomit
+		jne TypeIsArray
 		call ebx
 		jmp NullReturn
+
+TypeIsArray:
+		cmp rettype, EpochVariableType_Array
+		jne Vomit
+		call ebx
+		mov arrayret, eax
+		jmp ArrayReturn
 	}
 
 IntegerReturn:
@@ -240,6 +249,15 @@ NullReturn:
 	CStructToEpoch(Buffers.BufferSet, Buffers.Variables);
 	paramclone->Exit(context.Stack);
 	return RValuePtr(new NullRValue);
+
+ArrayReturn:
+	{
+		CStructToEpoch(Buffers.BufferSet, Buffers.Variables);
+		paramclone->Exit(context.Stack);
+		RValuePtr ret(new ArrayRValue(*arrayret));
+		delete [] (reinterpret_cast<char*>(arrayret));
+		return ret;
+	}
 
 Vomit:
 	throw VM::NotImplementedException("Not sure what to do with return value from DLL call; no function call was made");

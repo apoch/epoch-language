@@ -8,11 +8,17 @@
 #include "pch.h"
 
 #include "Virtual Machine/Operations/Flow/FlowControl.h"
+
 #include "Virtual Machine/Core Entities/Block.h"
-#include "Virtual Machine/Types Management/Typecasts.h"
+#include "Virtual Machine/Core Entities/Program.h"
 #include "Virtual Machine/Core Entities/Scopes/ActivatedScope.h"
 #include "Virtual Machine/Core Entities/Scopes/ScopeDescription.h"
+
+#include "Virtual Machine/Types Management/Typecasts.h"
+
 #include "Virtual Machine/SelfAware.inl"
+
+#include "Virtual Machine/Thread Pooling/WorkItems.h"
 
 
 using namespace VM;
@@ -496,3 +502,114 @@ RValuePtr ExitIfChain::ExecuteAndStoreRValue(ExecutionContext& context)
 	return RValuePtr(new NullRValue);
 }
 
+
+
+ParallelFor::ParallelFor(Block* body, const std::wstring& countervarname)
+	: Body(body),
+	  CounterVariableName(countervarname)
+{
+	WaitCounterDecEvent = ::CreateEvent(NULL, FALSE, FALSE, NULL);
+}
+
+
+ParallelFor::~ParallelFor()
+{
+	delete Body;
+	::CloseHandle(WaitCounterDecEvent);
+}
+
+RValuePtr ParallelFor::ExecuteAndStoreRValue(ExecutionContext& context)
+{
+	ExecuteFast(context);
+	return RValuePtr(new NullRValue);
+}
+
+
+void ParallelFor::ExecuteFast(ExecutionContext& context)
+{
+	Integer32 threadcount = 0;
+	size_t lowerbound = 0;
+	size_t upperbound = 0;
+
+	{
+		IntegerVariable var(context.Stack.GetCurrentTopOfStack());
+		threadcount = var.GetValue();
+		context.Stack.Pop(IntegerVariable::GetBaseStorageSize());
+	}
+
+	{
+		IntegerVariable var(context.Stack.GetCurrentTopOfStack());
+		upperbound = var.GetValue();
+		context.Stack.Pop(IntegerVariable::GetBaseStorageSize());
+	}
+
+	{
+		IntegerVariable var(context.Stack.GetCurrentTopOfStack());
+		lowerbound = var.GetValue();
+		context.Stack.Pop(IntegerVariable::GetBaseStorageSize());
+	}
+
+	if(upperbound < lowerbound)
+		return;
+
+	size_t span = upperbound - lowerbound;
+	size_t workchunksize = span / threadcount;
+	size_t partialchunksize = span % threadcount;
+
+	std::wostringstream stream;
+	stream << L"__internal_threadpool_parallelfor_" << this;
+	std::wstring threadpoolname = stream.str();
+	if(!context.RunningProgram.HasThreadPool(threadpoolname))
+		context.RunningProgram.CreateThreadPool(threadpoolname, threadcount);
+
+	unsigned waitcounter = threadcount;
+
+	size_t allocatedchunkspace = 0;
+	while(allocatedchunkspace < span)
+	{
+		size_t chunklowerbound = allocatedchunkspace;
+
+		if(span - allocatedchunkspace <= (workchunksize + partialchunksize))
+			allocatedchunkspace = span;
+		else
+			allocatedchunkspace += workchunksize;
+
+		size_t chunkupperbound = allocatedchunkspace;
+
+		std::wostringstream stream;
+		stream << L"__internal_thread_parallelfor_" << chunklowerbound << L"_" << chunkupperbound;
+		std::auto_ptr<Threads::PoolWorkItem> workitem(new ParallelForWorkItem(*this, &context.Scope, *Body, context.RunningProgram, chunklowerbound, chunkupperbound, CounterVariableName));
+		context.RunningProgram.AddPoolWorkItem(threadpoolname, stream.str(), workitem);
+	}
+
+	while(waitcounter > 0)
+	{
+		::WaitForSingleObject(WaitCounterDecEvent, INFINITE);
+		--waitcounter;
+	}
+}
+
+template <typename TraverserT>
+void ParallelFor::TraverseHelper(TraverserT& traverser)
+{
+	traverser.TraverseNode(*this);
+	traverser.EnterTask();
+	if(Body)
+		Body->Traverse(traverser);
+	traverser.ExitTask();
+}
+
+void ParallelFor::Traverse(Validator::ValidationTraverser& traverser)
+{
+	TraverseHelper(traverser);
+}
+
+void ParallelFor::Traverse(Serialization::SerializationTraverser& traverser)
+{
+	TraverseHelper(traverser);
+}
+
+void ParallelFor::DecrementWaitCounter()
+{
+	::SetEvent(WaitCounterDecEvent);
+}

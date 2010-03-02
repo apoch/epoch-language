@@ -75,6 +75,7 @@ namespace Parser
 				  // String tokens: flow control
 				  IF(KEYWORD(If)), ELSEIF(KEYWORD(ElseIf)), ELSE(KEYWORD(Else)),
 				  DO(KEYWORD(Do)), WHILE(KEYWORD(While)),
+				  PARALLELFOR(KEYWORD(ParallelFor)),
 
 				  // String tokens: types
 				  INTEGER(KEYWORD(Integer)), INTEGER16(KEYWORD(Integer16)), STRING(KEYWORD(String)), BOOLEAN(KEYWORD(Boolean)), REAL(KEYWORD(Real)),
@@ -251,11 +252,11 @@ namespace Parser
 					= StringIdentifier >>
 						OPENPARENS >>
 							*((
-								(INTEGER >> OPENPARENS >> StringIdentifier >> CLOSEPARENS)
-							  | (INTEGER16 >> OPENPARENS >> StringIdentifier >> CLOSEPARENS)
-							  | (REAL >> OPENPARENS >> StringIdentifier >> CLOSEPARENS)
-							  | (BOOLEAN >> OPENPARENS >> StringIdentifier >> CLOSEPARENS)
-							  | (STRING >> OPENPARENS >> StringIdentifier >> CLOSEPARENS)
+								(INTEGER >> !ARRAY >> !REFERENCE >> OPENPARENS >> StringIdentifier >> CLOSEPARENS)
+							  | (INTEGER16 >> !ARRAY >> !REFERENCE >> OPENPARENS >> StringIdentifier >> CLOSEPARENS)
+							  | (REAL >> !ARRAY >> !REFERENCE >> OPENPARENS >> StringIdentifier >> CLOSEPARENS)
+							  | (BOOLEAN >> !ARRAY >> !REFERENCE >> OPENPARENS >> StringIdentifier >> CLOSEPARENS)
+							  | (STRING >> !ARRAY >> !REFERENCE >> OPENPARENS >> StringIdentifier >> CLOSEPARENS)
 							) % COMMA)
 						>> CLOSEPARENS
 						>> NULLFUNCTIONARROW
@@ -368,6 +369,7 @@ namespace Parser
 					| WHILE
 					| ELSE
 					| ELSEIF
+					| PARALLELFOR
 					;
 
 				TypeKeywords
@@ -492,6 +494,7 @@ namespace Parser
 										 | BOOLEAN[RegisterBooleanParam(self.State)]
 										 | REAL[RegisterRealParam(self.State)]
 										 | (StringIdentifier - FUNCTION)[RegisterUnknownParam(self.State)])
+									>> !(ARRAY[RegisterParamIsArray(self.State)])
 									>> !(REFERENCE[RegisterParamIsReference(self.State)])
 									>> OPENPARENS >> StringIdentifier[RegisterParamName(self.State)] >> CLOSEPARENS)
 								 | HigherOrderFunctionHelper)
@@ -597,7 +600,7 @@ namespace Parser
 			boost::spirit::classic::strlit<> TUPLE, STRUCTURE, INTEGER16, REFERENCE, FUNCTION, LIBRARY, GLOBAL, ELSEIF, CONSTANT, HEXPREFIX, TASK, ACCEPTMESSAGE;
 			boost::spirit::classic::strlit<> RESPONSEMAP, INFIXDECL, CRASHPARSER, NOT, BUFFER, ASSIGN, CAST, READTUPLE, WRITETUPLE, READSTRUCTURE, WRITESTRUCTURE;
 			boost::spirit::classic::strlit<> SIZEOF, LENGTH, MEMBER, MESSAGE, FUTURE, MAP, REDUCE, CALLER, SENDER, ALIASDECL, INCREMENT, DECREMENT, THREADPOOL;
-			boost::spirit::classic::strlit<> ADDASSIGN, SUBTRACTASSIGN, MULTIPLYASSIGN, DIVIDEASSIGN, CONCATASSIGN, ARRAY, MEMBEROPERATOR, EXTENSION, THREAD;
+			boost::spirit::classic::strlit<> ADDASSIGN, SUBTRACTASSIGN, MULTIPLYASSIGN, DIVIDEASSIGN, CONCATASSIGN, ARRAY, MEMBEROPERATOR, EXTENSION, THREAD, PARALLELFOR;
 
 			// Parser rules
 			boost::spirit::classic::rule<ScannerType> StringIdentifier, FunctionDefinition, PassedParameter, OperationParameter, Operation, CodeBlock, Program;

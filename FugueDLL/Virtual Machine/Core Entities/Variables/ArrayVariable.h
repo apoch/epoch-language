@@ -10,7 +10,6 @@
 
 // Dependencies
 #include "Virtual Machine/Core Entities/Variables/Variable.h"
-#include "Virtual Machine/Types Management/TypeInfo.h"
 
 
 namespace VM
@@ -23,17 +22,7 @@ namespace VM
 	{
 	// Handy type shortcut
 	public:
-		struct StorageRecT
-		{
-			union
-			{
-				EpochVariableTypeID ElementType;
-				unsigned Ignored;		// Make sure the enumeration takes a full int worth of space
-			};
-			size_t NumElements;
-		};
-
-		typedef StorageRecT BaseStorage;
+		typedef HandleType BaseStorage;
 
 	// Friend access for sharing handles with rvalues
 	public:
@@ -48,100 +37,131 @@ namespace VM
 
 	// Variable interface
 	public:
-		StorageRecT GetValue() const
+		HandleType GetValue() const
 		{
-			StorageRecT* pstorage = reinterpret_cast<StorageRecT*>(Storage);
-			return StorageRecT(*pstorage);
+			HandleType* pstorage = reinterpret_cast<HandleType*>(Storage);
+			return *pstorage;
+		}
+
+		void SetValue(HandleType newvalue)
+		{
+			HandleType* pstorage = reinterpret_cast<HandleType*>(Storage);
+			*pstorage = newvalue;
 		}
 
 		RValuePtr GetAsRValue() const
 		{
-			ArrayRValue* p = new ArrayRValue(GetValue().ElementType);
-			RValuePtr ret(p);
-
-			void* offset = reinterpret_cast<Byte*>(Storage) + sizeof(StorageRecT);
-			
-			StorageRecT* pstorage = reinterpret_cast<StorageRecT*>(Storage);
-			for(unsigned i = 0; i < pstorage->NumElements; ++i)
-			{
-				switch(pstorage->ElementType)
-				{
-				case EpochVariableType_Integer:
-					{
-						IntegerVariable var(offset);
-						p->AddElement(var.GetAsRValue().release());
-						offset = reinterpret_cast<Byte*>(offset) + var.GetStorageSize();
-						break;
-					}
-				case EpochVariableType_Integer16:
-					{
-						Integer16Variable var(offset);
-						p->AddElement(var.GetAsRValue().release());
-						offset = reinterpret_cast<Byte*>(offset) + var.GetStorageSize();
-						break;
-					}
-				case EpochVariableType_Real:
-					{
-						RealVariable var(offset);
-						p->AddElement(var.GetAsRValue().release());
-						offset = reinterpret_cast<Byte*>(offset) + var.GetStorageSize();
-						break;
-					}
-				case EpochVariableType_Boolean:
-					{
-						BooleanVariable var(offset);
-						p->AddElement(var.GetAsRValue().release());
-						offset = reinterpret_cast<Byte*>(offset) + var.GetStorageSize();
-						break;
-					}
-				case EpochVariableType_String:
-					{
-						StringVariable var(offset);
-						p->AddElement(var.GetAsRValue().release());
-						offset = reinterpret_cast<Byte*>(offset) + var.GetStorageSize();
-						break;
-					}
-				default:
-					throw NotImplementedException("Arrays of this element type are not supported");
-				}
-			}
-
-			return ret;
+			return RValuePtr(new ArrayRValue(GetValue(), false));		// TODO - replace this with "true" if arrays suddenly get borked
 		}
 
-		void SetInfo(EpochVariableTypeID elementtype, size_t size)
+		size_t BindToStack(StackSpace& stack)
 		{
-			StorageRecT* pstorage = reinterpret_cast<StorageRecT*>(Storage);
-			pstorage->ElementType = elementtype;
-			pstorage->NumElements = size;
-		}
-
-		size_t BindToStack(StackSpace& stack, size_t arraysize, EpochVariableTypeID elementtype)
-		{
+			stack.Push(GetStorageSize());
 			Storage = stack.GetCurrentTopOfStack();
-			return GetBaseStorageSize() + arraysize * TypeInfo::GetStorageSize(elementtype);
+			return GetStorageSize();
 		}
 
-		void* GetArrayElementStorage() const
+		VM::EpochVariableTypeID GetElementType() const
 		{
-			if(!Storage)
-				return NULL;
-
-			return reinterpret_cast<char*>(Storage) + GetBaseStorageSize();
+			return Pool.Get(GetValue()).Type;
 		}
+
+		size_t GetNumElements() const;
+
 
 	// Shared storage size/type retrieval
 	public:
 		size_t GetStorageSize()
-		{
-			return sizeof(StorageRecT) + GetValue().NumElements * TypeInfo::GetStorageSize(GetValue().ElementType);
-		}
+		{ return sizeof(BaseStorage); }
 
 		static size_t GetBaseStorageSize()
-		{ return sizeof(StorageRecT); }
+		{ return sizeof(BaseStorage); }
 
 		static EpochVariableTypeID GetStaticType()
 		{ return EpochVariableType_Array; }
+
+
+	// Handle management
+	public:
+		static BaseStorage AllocateNewHandle(VM::EpochVariableTypeID elementtype, size_t numentries);
+
+		static void* GetArrayStorage(BaseStorage id)
+		{
+			return Pool.Get(id).Buffer;
+		}
+
+	// Internal helper class for pooling array data
+	protected:
+
+		class PoolType
+		{
+			friend class ArrayRValue;
+
+		protected:
+			struct PoolEntry
+			{
+				Byte* Buffer;
+				size_t Size;
+				VM::EpochVariableTypeID Type;
+			};
+
+		public:
+			PoolType()
+				: CurID(0)
+			{ }
+
+			~PoolType()
+			{
+				for(std::map<HandleType, PoolEntry>::const_iterator iter = ThePool.begin(); iter != ThePool.end(); ++iter)
+					delete [] iter->second.Buffer;
+			}
+
+			HandleType Add(const Byte* existingbuffer, size_t size, VM::EpochVariableTypeID type)
+			{
+				++CurID;
+				PoolEntry entry;
+				entry.Buffer = new Byte[size];
+				entry.Size = size;
+				entry.Type = type;
+				if(existingbuffer)
+					memcpy(entry.Buffer, existingbuffer, size);
+				ThePool.insert(std::make_pair(CurID, entry));
+				return CurID;
+			}
+			void Set(HandleType id, const Byte* existingbuffer, size_t size)
+			{
+				if(ThePool.find(id) == ThePool.end())
+					throw InternalFailureException("Cannot set mutable array entry - ID not allocated");
+
+				delete [] ThePool[id].Buffer;
+				ThePool[id].Buffer = new Byte[size];
+				ThePool[id].Size = size;
+				if(existingbuffer)
+					memcpy(ThePool[id].Buffer, existingbuffer, size);
+			}
+			const PoolEntry& Get(HandleType id) const
+			{
+				std::map<HandleType, PoolEntry>::const_iterator iter = ThePool.find(id);
+				if(iter == ThePool.end())
+					throw InternalFailureException("Invalid pooled array ID!");
+
+				return iter->second;
+			}
+
+			void Clear()
+			{
+				for(std::map<HandleType, PoolEntry>::iterator iter = ThePool.begin(); iter != ThePool.end(); ++iter)
+					delete [] iter->second.Buffer;
+				ThePool.clear();
+				CurID = 0;
+			}
+
+		protected:
+			HandleType CurID;
+			std::map<HandleType, PoolEntry> ThePool;
+		};
+
+		static PoolType Pool;
 	};
 
 }

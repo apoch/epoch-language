@@ -69,7 +69,8 @@ namespace Traverser
 			  Type(VM::EpochVariableType_Error),
 			  IsIdentifier(false),
 			  InvokesFunction(false),
-			  ParameterCount(0)
+			  ParameterCount(0),
+			  ParameterType(VM::EpochVariableType_Error)
 		{ }
 
 		union
@@ -83,6 +84,7 @@ namespace Traverser
 		};
 		
 		VM::EpochVariableTypeID Type;
+		VM::EpochVariableTypeID ParameterType;
 		bool IsIdentifier;
 		bool InvokesFunction;
 		size_t ParameterCount;
@@ -112,13 +114,15 @@ namespace Traverser
 			: Identifier(NULL),
 			  Type(VM::EpochVariableType_Error),
 			  ContainedType(VM::EpochVariableType_Error),
-			  ContainedSize(0)
+			  ContainedSize(0),
+			  ContainedSizeKnown(false)
 		{ }
 
 		const wchar_t* Identifier;
 		VM::EpochVariableTypeID Type;
 		VM::EpochVariableTypeID ContainedType;
 		size_t ContainedSize;
+		bool ContainedSizeKnown;
 	};
 
 }

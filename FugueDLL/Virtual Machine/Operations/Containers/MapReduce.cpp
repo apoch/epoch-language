@@ -12,6 +12,7 @@
 #include "Virtual Machine/Operations/StackOps.h"
 #include "Virtual Machine/Types Management/TypeInfo.h"
 #include "Virtual Machine/Core Entities/Scopes/ActivatedScope.h"
+#include "Virtual Machine/Routines.inl"
 
 #include "Validator/Validator.h"
 
@@ -37,23 +38,28 @@ MapOperation::~MapOperation()
 //
 RValuePtr MapOperation::ExecuteAndStoreRValue(ExecutionContext& context)
 {
-	IntegerVariable typevar(context.Stack.GetCurrentTopOfStack());
-	IntegerVariable countvar(context.Stack.GetOffsetIntoStack(IntegerVariable::GetStorageSize()));
-	IntegerVariable::BaseStorage type = typevar.GetValue();
-	IntegerVariable::BaseStorage count = countvar.GetValue();
-	context.Stack.Pop(IntegerVariable::GetStorageSize() * 2);
+	ArrayVariable arrayvar(context.Stack.GetCurrentTopOfStack());
+	EpochVariableTypeID type = arrayvar.GetElementType();
+	size_t count = arrayvar.GetNumElements();
+	void* storage = ArrayVariable::GetArrayStorage(arrayvar.GetValue());
+	context.Stack.Pop(ArrayVariable::GetBaseStorageSize());
 
-	RValuePtr result(new ArrayRValue(static_cast<EpochVariableTypeID>(type)));
+	RValuePtr result(new ArrayRValue(type));
 	ArrayRValue* resultptr = dynamic_cast<ArrayRValue*>(result.get());
 
-	for(IntegerVariable::BaseStorage i = 0; i < count; ++i)
+	for(size_t i = 0; i < count; ++i)
 	{
+		PushOperation::DoPush(type, GetRValuePtrFromStorage(type, storage).get(), context.Scope.GetOriginalDescription(), context.Stack, false, false);
+		storage = reinterpret_cast<char*>(storage) + TypeInfo::GetStorageSize(type);
+
 		RValuePtr ret(TheOp->ExecuteAndStoreRValue(context));
 		
 		EpochVariableTypeID rettype = ret->GetType();
 		if(rettype != EpochVariableType_Null)
 			resultptr->AddElement(ret.release());
 	}
+
+	resultptr->StoreIntoNewBuffer();
 
 	return result;
 }
@@ -96,47 +102,33 @@ ReduceOperation::~ReduceOperation()
 //
 RValuePtr ReduceOperation::ExecuteAndStoreRValue(ExecutionContext& context)
 {
-	IntegerVariable typevar(context.Stack.GetCurrentTopOfStack());
-	IntegerVariable countvar(context.Stack.GetOffsetIntoStack(IntegerVariable::GetStorageSize()));
-	IntegerVariable::BaseStorage type = typevar.GetValue();
-	IntegerVariable::BaseStorage count = countvar.GetValue();
-	context.Stack.Pop(IntegerVariable::GetStorageSize() * 2);
+	ArrayVariable arrayvar(context.Stack.GetCurrentTopOfStack());
+	EpochVariableTypeID type = arrayvar.GetElementType();
+	size_t count = arrayvar.GetNumElements();
+	void* storage = ArrayVariable::GetArrayStorage(arrayvar.GetValue());
+	context.Stack.Pop(ArrayVariable::GetBaseStorageSize());
 
-	size_t elementstoragesize = TypeInfo::GetStorageSize(static_cast<EpochVariableTypeID>(type));
+	size_t elementstoragesize = TypeInfo::GetStorageSize(type);
+	RValuePtr ret(NULL);
 
 	--count;
+	ret.reset(GetRValuePtrFromStorage(type, storage).release());
+	PushOperation::DoPush(type, ret.get(), context.Scope.GetOriginalDescription(), context.Stack, false, false);
 
-	RValuePtr result(NULL);
-
-	// We have to reverse the operands so they work correctly with non-transitive operators
-	std::vector<Byte> buffer1(elementstoragesize, 0);
-	std::vector<Byte> buffer2(elementstoragesize, 0);
-	memcpy(&buffer1[0], context.Stack.GetCurrentTopOfStack(), elementstoragesize);
-	context.Stack.Pop(elementstoragesize);
-	memcpy(&buffer2[0], context.Stack.GetCurrentTopOfStack(), elementstoragesize);
-	buffer1.swap(buffer2);
-	memcpy(context.Stack.GetCurrentTopOfStack(), &buffer2[0], elementstoragesize);
-	context.Stack.Push(elementstoragesize);
-	memcpy(context.Stack.GetCurrentTopOfStack(), &buffer1[0], elementstoragesize);
-
-	for(IntegerVariable::BaseStorage i = 0; i < count; ++i)
+	for(size_t i = 0; i < count; ++i)
 	{
-		RValuePtr ret(TheOp->ExecuteAndStoreRValue(context));
-		result.reset(ret->Clone());
-		EpochVariableTypeID rettype = ret->GetType();
-		if(rettype != EpochVariableType_Null)
-		{
-			memcpy(&buffer1[0], context.Stack.GetCurrentTopOfStack(), elementstoragesize);
-			context.Stack.Pop(elementstoragesize);
-			PushOperation::DoPush(rettype, ret, context.Scope.GetOriginalDescription(), context.Stack, false);
-			context.Stack.Push(elementstoragesize);
-			memcpy(context.Stack.GetCurrentTopOfStack(), &buffer1[0], elementstoragesize);
-		}
+		storage = reinterpret_cast<char*>(storage) + elementstoragesize;
+		ret.reset(GetRValuePtrFromStorage(type, storage).release());
+		PushOperation::DoPush(type, ret.get(), context.Scope.GetOriginalDescription(), context.Stack, false, false);
+
+		RValuePtr intermediate(TheOp->ExecuteAndStoreRValue(context));
+		ret.reset(intermediate->Clone());
+		PushOperation::DoPush(type, ret.get(), context.Scope.GetOriginalDescription(), context.Stack, false, false);
 	}
 
 	context.Stack.Pop(elementstoragesize);
 
-	return result;
+	return ret;
 }
 
 void ReduceOperation::ExecuteFast(ExecutionContext& context)

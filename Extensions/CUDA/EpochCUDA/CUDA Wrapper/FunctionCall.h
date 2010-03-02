@@ -24,7 +24,8 @@ public:
 
 // Parameter management
 public:
-	void AddParameter(CUdeviceptr devicepointer);
+	void AddPointerParameter(CUdeviceptr devicepointer);
+	void AddNumericParameter(size_t size);
 
 // Execution interface
 public:

@@ -191,7 +191,7 @@ namespace VM
 		{
 		// Construction and destruction
 		public:
-			PushOperation(Operation* op);
+			PushOperation(Operation* op, const ScopeDescription& scope);
 			virtual ~PushOperation();
 
 		// Operation interface
@@ -223,12 +223,13 @@ namespace VM
 
 		// Internal helpers
 		public:
-			static void DoPush(EpochVariableTypeID type, RValuePtr value, const ScopeDescription& scope, StackSpace& stack, bool isconsarray);
+			static void DoPush(EpochVariableTypeID type, RValue* value, const ScopeDescription& scope, StackSpace& stack, bool isconsarray, bool isconsfromfunction);
 
 		// Internal tracking
 		private:
 			Operation* TheOp;
 			bool IsConsArray;
+			bool IsConsFromFunction;
 		};
 
 

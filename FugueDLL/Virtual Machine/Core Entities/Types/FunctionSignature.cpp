@@ -282,3 +282,13 @@ void FunctionSignature::Clean()
 }
 
 
+bool FunctionSignature::IsArray(unsigned index) const
+{
+	return ((ParamFlags[index] & PARAMTYPEFLAG_ISARRAY) != 0);
+}
+
+EpochVariableTypeID FunctionSignature::GetArrayType(unsigned index) const
+{
+	return static_cast<EpochVariableTypeID>(ParamTypeHints[index]);
+}
+

@@ -242,6 +242,7 @@ SERIALIZE_WITHPAYLOAD(VM::Operations::SizeOf, Serialization::SizeOf)
 SERIALIZE_WITHPAYLOAD(VM::Operations::ReadArray, Serialization::ReadArray)
 SERIALIZE_WITHPAYLOAD(VM::Operations::WriteArray, Serialization::WriteArray)
 SERIALIZE_WITHPAYLOAD(VM::Operations::ArrayLength, Serialization::ArrayLength)
+SERIALIZE_WITHPAYLOAD(VM::Operations::ConsArrayIndirect, Serialization::ConsArrayIndirect)
 
 
 // Operations with compound payloads
@@ -276,7 +277,7 @@ SERIALIZE_MEMBERACCESSINDIRECT(VM::Operations::ReadStructureIndirect, Serializat
 // Additional special serialization handling
 template <> const std::wstring& Serialization::GetToken<Marshalling::CallDLL>() { return Serialization::CallDLL; }
 template <> void Serialization::SerializeNode<Marshalling::CallDLL>(const Marshalling::CallDLL& op, SerializationTraverser& traverser)
-{ traverser.WriteOp(&op, GetToken<Marshalling::CallDLL>(), op.GetDLLName(), op.GetFunctionName(), op.GetReturnType()); }
+{ traverser.WriteOp(&op, GetToken<Marshalling::CallDLL>(), op.GetDLLName(), op.GetFunctionName(), op.GetReturnType(), op.GetReturnTypeHint()); }
 
 template <> const std::wstring& Serialization::GetToken<VM::Function>() { throw Exception("Function wrapper object is not serialized directly"); }
 template <> void Serialization::SerializeNode<VM::Function>(const VM::Function& func, SerializationTraverser& traverser) { throw Exception("Function wrapper object is not serialized directly"); }
@@ -308,3 +309,8 @@ template <> void Serialization::SerializeNode<VM::Operations::ExecuteBlock>(cons
 template <> const std::wstring& Serialization::GetToken<Extensions::HandoffOperation>() { return Serialization::Handoff; }
 template <> void Serialization::SerializeNode<Extensions::HandoffOperation>(const Extensions::HandoffOperation& op, SerializationTraverser& traverser)
 { traverser.WriteHandoffOp(&op, GetToken<Extensions::HandoffOperation>(), op.GetExtensionName()); }
+
+template <> const std::wstring& Serialization::GetToken<VM::Operations::ParallelFor>() { return Serialization::ParallelFor; }
+template <> void Serialization::SerializeNode<VM::Operations::ParallelFor>(const VM::Operations::ParallelFor& op, SerializationTraverser& traverser)
+{ traverser.WriteOp(&op, GetToken<VM::Operations::ParallelFor>(), op.GetAssociatedIdentifier()); }
+

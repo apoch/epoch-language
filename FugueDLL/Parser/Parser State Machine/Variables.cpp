@@ -18,6 +18,7 @@
 
 #include "Virtual Machine/Operations/Containers/ContainerOps.h"
 #include "Virtual Machine/Operations/Variables/VariableOps.h"
+#include "Virtual Machine/Operations/Flow/Invoke.h"
 #include "Virtual Machine/Operations/StackOps.h"
 
 #include "Virtual Machine/VMExceptions.h"
@@ -78,6 +79,9 @@ void ParserState::RegisterVariableValue()
 		type = VariableTypeStack.top();
 
 	const std::wstring& varname = ParsedProgram->PoolStaticString(VariableNameStack.top());
+
+	if(type == VM::EpochVariableType_Array)
+		ArrayTypes[varname] = Blocks.back().TheBlock->GetTailOperation()->GetType(*CurrentScope);
 
 	CurrentScope->AddVariable(varname, type);
 	AddOperationToCurrentBlock(VM::OperationPtr(new VM::Operations::InitializeValue(varname)));
@@ -172,12 +176,34 @@ void ParserState::RegisterArrayVariable()
 		const std::wstring& varname = ParsedProgram->PoolStaticString(VariableNameStack.top());
 
 		CurrentScope->AddVariable(varname, VM::EpochVariableType_Array);
-		CurrentScope->SetArrayType(varname, ArrayType);
-		CurrentScope->SetArraySize(varname, 0);
 
-		AddOperationToCurrentBlock(VM::OperationPtr(new VM::Operations::PushIntegerLiteral(0)));
-		AddOperationToCurrentBlock(VM::OperationPtr(new VM::Operations::PushIntegerLiteral(ArrayType)));
-		AddOperationToCurrentBlock(VM::OperationPtr(new VM::Operations::InitializeValue(varname)));
+		VM::Operations::Invoke* invokeop = NULL;
+		VM::Operations::PushOperation* pushop = dynamic_cast<VM::Operations::PushOperation*>(Blocks.back().TheBlock->GetTailOperation());
+		if(pushop)
+		{
+			invokeop = dynamic_cast<VM::Operations::Invoke*>(pushop->GetNestedOperation());
+
+			if(invokeop)
+			{
+				TempArrayType = invokeop->GetFunction()->GetTypeHint(*CurrentScope);
+
+				pushop->UnlinkOperation();
+				Blocks.back().TheBlock->PopTailOperation();
+
+				AddOperationToCurrentBlock(VM::OperationPtr(new VM::Operations::PushOperation(new VM::Operations::ConsArrayIndirect(TempArrayType, invokeop), *CurrentScope)));
+				AddOperationToCurrentBlock(VM::OperationPtr(new VM::Operations::InitializeValue(varname)));
+			}
+			else
+				throw VM::InternalFailureException("Unsure what to do with array constructor");
+		}
+		else
+		{
+			AddOperationToCurrentBlock(VM::OperationPtr(new VM::Operations::PushOperation(new VM::Operations::ConsArray(0, TempArrayType), *CurrentScope)));
+			AddOperationToCurrentBlock(VM::OperationPtr(new VM::Operations::InitializeValue(varname)));
+		}
+
+		ArrayTypes[varname] = TempArrayType;
+		CurrentScope->SetArrayType(varname, TempArrayType);
 
 		if(IsDefiningConstant)
 			CurrentScope->SetConstant(varname);
@@ -189,18 +215,18 @@ void ParserState::RegisterArrayVariable()
 		const std::wstring& varname = ParsedProgram->PoolStaticString(VariableNameStack.top());
 
 		CurrentScope->AddVariable(varname, VM::EpochVariableType_Array);
-		CurrentScope->SetArrayType(varname, type);
-		CurrentScope->SetArraySize(varname, PassedParameterCount.top());
 
 		ReverseOps(Blocks.back().TheBlock, PassedParameterCount.top());
 
-		AddOperationToCurrentBlock(VM::OperationPtr(new VM::Operations::PushIntegerLiteral(static_cast<Integer32>(PassedParameterCount.top()))));
-		AddOperationToCurrentBlock(VM::OperationPtr(new VM::Operations::PushIntegerLiteral(type)));
+		AddOperationToCurrentBlock(VM::OperationPtr(new VM::Operations::PushOperation(new VM::Operations::ConsArray(PassedParameterCount.top(), type), *CurrentScope)));
 		AddOperationToCurrentBlock(VM::OperationPtr(new VM::Operations::InitializeValue(varname)));
+
+		ArrayTypes[varname] = type;
 
 		if(IsDefiningConstant)
 			CurrentScope->SetConstant(varname);
 	}
+
 
 	for(unsigned i = 0; i < PassedParameterCount.top(); ++i)
 		TheStack.pop_back();
@@ -217,15 +243,15 @@ void ParserState::RegisterArrayVariable()
 void ParserState::RegisterArrayType(const std::wstring& type)
 {
 	if(type == Keywords::Integer)
-		ArrayType = VM::EpochVariableType_Integer;
+		TempArrayType = VM::EpochVariableType_Integer;
 	else if(type == Keywords::Integer16)
-		ArrayType = VM::EpochVariableType_Integer16;
+		TempArrayType = VM::EpochVariableType_Integer16;
 	else if(type == Keywords::Real)
-		ArrayType = VM::EpochVariableType_Real;
+		TempArrayType = VM::EpochVariableType_Real;
 	else if(type == Keywords::Boolean)
-		ArrayType = VM::EpochVariableType_Boolean;
+		TempArrayType = VM::EpochVariableType_Boolean;
 	else if(type == Keywords::String)
-		ArrayType = VM::EpochVariableType_String;
+		TempArrayType = VM::EpochVariableType_String;
 	else
 		throw VM::NotImplementedException("Cannot construct an array of this type");
 }

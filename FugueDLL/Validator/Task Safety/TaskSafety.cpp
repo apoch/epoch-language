@@ -175,6 +175,7 @@ VALIDATE_ALWAYS_VALID(VM::Operations::TypeCastBooleanToString)
 VALIDATE_ALWAYS_VALID(VM::Operations::TypeCastBufferToString)
 VALIDATE_ALWAYS_VALID(VM::Operations::WhileLoop)
 VALIDATE_ALWAYS_VALID(VM::Operations::WhileLoopConditional)
+VALIDATE_ALWAYS_VALID(VM::Operations::ConsArrayIndirect)
 
 VALIDATE_ALWAYS_VALID(VM::Operations::TypeCastStringToInteger)
 VALIDATE_ALWAYS_VALID(VM::Operations::TypeCastRealToInteger)
@@ -220,6 +221,7 @@ VALIDATE_ONLY_CONST_GLOBALS(VM::Operations::SizeOf)
 VALIDATE_ONLY_CONST_GLOBALS(VM::Operations::ReadArray)
 VALIDATE_ONLY_CONST_GLOBALS(VM::Operations::WriteArray)
 VALIDATE_ONLY_CONST_GLOBALS(VM::Operations::ArrayLength)
+VALIDATE_ONLY_CONST_GLOBALS(VM::Operations::ParallelFor)
 
 
 // Additional validation traversal logic

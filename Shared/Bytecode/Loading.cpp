@@ -46,6 +46,7 @@
 #include "Virtual Machine/SelfAware.inl"
 
 #include "Marshalling/ExternalDLL.h"
+#include "Marshalling/Libraries.h"
 
 #include "Language Extensions/Handoff.h"
 
@@ -320,12 +321,13 @@ VM::ScopeDescription* FileLoader::LoadScope(bool linktoglobal)
 			std::string dllname = ReadNullTerminatedString();
 			std::string dllfuncname = ReadNullTerminatedString();
 			Integer32 returntype = ReadNumber();
+			Integer32 returntypehint = ReadNumber();
 
 			VM::ScopeDescription* params = LoadScope(false);
 			if(IsPrepass)
 			{
 				UnregisterScopeToDelete(params);
-				std::auto_ptr<VM::FunctionBase> callop(new Marshalling::CallDLL(WidenAndCache(dllname), WidenAndCache(dllfuncname), params, static_cast<VM::EpochVariableTypeID>(returntype)));
+				std::auto_ptr<VM::FunctionBase> callop(new Marshalling::CallDLL(WidenAndCache(dllname), WidenAndCache(dllfuncname), params, static_cast<VM::EpochVariableTypeID>(returntype), static_cast<VM::EpochVariableTypeID>(returntypehint)));
 				FunctionIDMap[funcid] = callop.get();
 				ScopeIDMap[scopeid]->AddFunction(WidenAndCache(funcname), callop);
 			}
@@ -536,29 +538,6 @@ VM::ScopeDescription* FileLoader::LoadScope(bool linktoglobal)
 			ScopeIDMap[scopeid]->AddFuture(futurename, tempblock->PopTailOperation());
 	}
 
-	ExpectInstruction(Bytecode::ArrayTypes);
-
-	UINT_PTR numarraytypes = ReadNumber();
-	for(UINT_PTR i = 0; i < numarraytypes; ++i)
-	{
-		const std::wstring& arrayname = WidenAndCache(ReadNullTerminatedString());
-		Integer32 arraytype = ReadNumber();
-		if(!IsPrepass)
-			ScopeIDMap[scopeid]->SetArrayType(arrayname, static_cast<VM::EpochVariableTypeID>(arraytype));
-	}
-
-
-	ExpectInstruction(Bytecode::ArraySizes);
-
-	UINT_PTR numarraysizes = ReadNumber();
-	for(UINT_PTR i = 0; i < numarraysizes; ++i)
-	{
-		const std::wstring& arrayname = WidenAndCache(ReadNullTerminatedString());
-		Integer32 arraysize = ReadNumber();
-		if(!IsPrepass)
-			ScopeIDMap[scopeid]->SetArraySize(arrayname, arraysize);
-	}
-
 	ExpectInstruction(Bytecode::EndScope);
 
 	return ScopeIDMap[scopeid];
@@ -664,7 +643,7 @@ void FileLoader::GenerateOpFromByteCode(unsigned char instruction, VM::Block* ne
 		unsigned char op = ReadInstruction();
 		GenerateOpFromByteCode(op, newblock);
 		if(!IsPrepass)
-			newblock->AddOperation(VM::OperationPtr(new VM::Operations::PushOperation(newblock->PopTailOperation().release())));
+			newblock->AddOperation(VM::OperationPtr(new VM::Operations::PushOperation(newblock->PopTailOperation().release(), *newblock->GetBoundScope())));
 	}
 	else if(instruction == Bytecode::Invoke)
 	{
@@ -1124,13 +1103,6 @@ void FileLoader::GenerateOpFromByteCode(unsigned char instruction, VM::Block* ne
 			newblock->AddOperation(VM::OperationPtr(new VM::Operations::ExecuteBlock(theblock.release())));
 		}
 	}
-	else if(instruction == Bytecode::ConsArray)
-	{
-		VM::EpochVariableTypeID type = static_cast<VM::EpochVariableTypeID>(ReadNumber());
-		size_t numentries = ReadNumber();
-		if(!IsPrepass)
-			newblock->AddOperation(VM::OperationPtr(new VM::Operations::ConsArray(numentries, type)));
-	}
 	else if(instruction == Bytecode::ReadStructureIndirect)
 	{
 		std::string membername = ReadNullTerminatedString();
@@ -1470,7 +1442,10 @@ void FileLoader::CheckExtensions()
 	{
 		const std::wstring& extensionname = WidenAndCache(ReadNullTerminatedString());
 		if(IsPrepass)
-			Extensions::RegisterExtensionLibrary(extensionname, LoadingProgram);
+		{
+			Extensions::RegisterExtensionLibrary(extensionname, *LoadingProgram);
+			Marshalling::BindToLanguageExtension(extensionname, *LoadingProgram);
+		}
 	}
 }
 

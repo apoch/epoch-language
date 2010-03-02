@@ -43,7 +43,7 @@ VM::OperationPtr ParserState::CreateOperation_Cast()
 	StackEntry p2 = TheStack.back();
 	TheStack.pop_back();
 
-	VM::EpochVariableTypeID vartype;
+	VM::EpochVariableTypeID vartype = VM::EpochVariableType_Error;
 
 
 	try

@@ -81,7 +81,7 @@ namespace Compiler
 		void WriteScopeContents(bool toplevel, size_t numcontents, const Traverser::ScopeContents* contents);
 		void WriteLeaves(LeafList& leaves, bool leavesarestatements);
 
-		std::wstring GenerateLeafCode(LeafList::const_iterator& iter);
+		std::wstring GenerateLeafCode(LeafList::const_iterator& iter, LeafList::const_iterator& enditer);
 
 		size_t GetArraySize(const std::wstring& arrayname) const;
 

@@ -15,8 +15,10 @@ using namespace VM;
 //
 // Get a generic RValue object given some memory storage and the assumed data type
 //
-RValuePtr VM::GetRValuePtrFromStorage(VM::EpochVariableTypeID vartype, void* storage)
+RValuePtr VM::GetRValuePtrFromStorage(VM::EpochVariableTypeID vartype, const void* conststorage)
 {
+	void* storage = const_cast<void*>(conststorage);
+
 	switch(vartype)
 	{
 	case EpochVariableType_Integer:		return IntegerVariable(storage).GetAsRValue();

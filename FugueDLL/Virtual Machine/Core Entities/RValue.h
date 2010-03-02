@@ -14,6 +14,9 @@
 #include "Virtual Machine/Types Management/Typecasts.h"
 #include "Virtual Machine/VMExceptions.h"
 
+// Forward declarations
+struct LibraryArrayReturnInfo;
+
 
 namespace VM
 {
@@ -291,14 +294,20 @@ namespace VM
 	public:
 		explicit ArrayRValue(EpochVariableTypeID elementtype)
 			: RValue(EpochVariableType_Array),
-			  ElementType(elementtype)
+			  ElementType(elementtype),
+			  StoredHandle(0)
 		{ }
+
+		ArrayRValue(HandleType datahandle, bool copyelements);
 
 		ArrayRValue(EpochVariableTypeID elementtype, size_t elementcount, void* originalstorage);
 
+		explicit ArrayRValue(const LibraryArrayReturnInfo& arrayinfo);
+
 		ArrayRValue(const ArrayRValue& rhs)
 			: RValue(EpochVariableType_Array),
-			  ElementType(rhs.ElementType)
+			  ElementType(rhs.ElementType),
+			  StoredHandle(rhs.StoredHandle)
 		{ CopyFrom(rhs); }
 
 		~ArrayRValue();
@@ -321,6 +330,14 @@ namespace VM
 		static EpochVariableTypeID GetType()
 		{ return EpochVariableType_Array; }
 
+		HandleType GetHandle() const
+		{ return StoredHandle; }
+
+		void SetHandle(HandleType handle)
+		{ StoredHandle = handle; }
+
+		void StoreIntoNewBuffer();
+
 	// Copy interface
 	public:
 		virtual RValue* Clone() const
@@ -339,6 +356,8 @@ namespace VM
 		void Clean();
 		void CopyFrom(const ArrayRValue& rhs);
 
+		void CopyElements(const void* storage, size_t numelements);
+
 	// Helper for comparison interface
 	public:
 		virtual bool VirtualComparator(const RValue& rhs) const;
@@ -347,6 +366,7 @@ namespace VM
 	protected:
 		std::vector<RValue*> Elements;
 		EpochVariableTypeID ElementType;
+		HandleType StoredHandle;
 	};
 
 
@@ -362,8 +382,9 @@ namespace VM
 			  BufferHandle(bufferhandle)
 		{ }
 
-		BufferRValue(const ArrayRValue& rhs)
-			: RValue(EpochVariableType_Buffer)
+		BufferRValue(const BufferRValue& rhs)
+			: RValue(EpochVariableType_Buffer),
+			  BufferHandle(0)
 		{ CopyFrom(rhs); }
 
 		~BufferRValue();

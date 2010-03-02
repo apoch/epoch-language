@@ -59,6 +59,7 @@ namespace VM
 	public:
 		void CreateThreadPool(const std::wstring& poolname, unsigned numthreads);
 		void AddPoolWorkItem(const std::wstring& poolname, const std::wstring& threadname, std::auto_ptr<Threads::PoolWorkItem> workitem);
+		bool HasThreadPool(const std::wstring& poolname) const;
 
 	// Traversal interface
 	public:

@@ -16,6 +16,8 @@
 #include "Virtual Machine/Routines.inl"
 #include "Virtual Machine/VMExceptions.h"
 
+#include "Marshalling/LibraryImporting.h"
+
 
 using namespace VM;
 
@@ -324,13 +326,71 @@ bool StructureRValue::VirtualComparator(const RValue& rhs) const
 
 ArrayRValue::ArrayRValue(EpochVariableTypeID elementtype, size_t elementcount, void* originalstorage)
 	: RValue(EpochVariableType_Array),
-	  ElementType(elementtype)
+	  ElementType(elementtype),
+	  StoredHandle(0)
 {
-	void* storage = originalstorage;
-	for(size_t i = 0; i < elementcount; ++i)
+	CopyElements(originalstorage, elementcount);
+}
+
+ArrayRValue::ArrayRValue(HandleType datahandle, bool copyelements)
+	: RValue(EpochVariableType_Array),
+	  StoredHandle(datahandle)
+{
+	const VM::ArrayVariable::PoolType::PoolEntry& entry = VM::ArrayVariable::Pool.Get(StoredHandle);
+	ElementType = entry.Type;
+	if(copyelements)
+		CopyElements(entry.Buffer, entry.Size / TypeInfo::GetStorageSize(ElementType));
+	else
+		Elements.resize(entry.Size / TypeInfo::GetStorageSize(ElementType));
+}
+
+ArrayRValue::ArrayRValue(const LibraryArrayReturnInfo& arrayinfo)
+	: RValue(EpochVariableType_Array),
+	  ElementType(static_cast<EpochVariableTypeID>(arrayinfo.TypeHint)),
+	  StoredHandle(0)
+{
+	CopyElements(reinterpret_cast<const char*>(&arrayinfo) + sizeof(LibraryArrayReturnInfo), arrayinfo.ElementCount);
+}
+
+void ArrayRValue::CopyElements(const void* originalstorage, size_t numelements)
+{
+	const void* storage = originalstorage;
+	for(size_t i = 0; i < numelements; ++i)
 	{
-		Elements.push_back(GetRValuePtrFromStorage(elementtype, storage).release());
-		storage = reinterpret_cast<char*>(storage) + TypeInfo::GetStorageSize(elementtype);
+		Elements.push_back(GetRValuePtrFromStorage(ElementType, storage).release());
+		storage = reinterpret_cast<const char*>(storage) + TypeInfo::GetStorageSize(ElementType);
+	}
+}
+
+void ArrayRValue::StoreIntoNewBuffer()
+{
+	StoredHandle = ArrayVariable::AllocateNewHandle(ElementType, Elements.size());
+	void* storage = ArrayVariable::GetArrayStorage(StoredHandle);
+	for(size_t i = 0; i < Elements.size(); ++i)
+	{
+		switch(ElementType)
+		{
+		case EpochVariableType_Integer:
+			*reinterpret_cast<IntegerVariable::BaseStorage*>(storage) = Elements[i]->CastTo<IntegerRValue>().GetValue();
+			break;
+
+		case EpochVariableType_Integer16:
+			*reinterpret_cast<Integer16Variable::BaseStorage*>(storage) = Elements[i]->CastTo<Integer16RValue>().GetValue();
+			break;
+
+		case EpochVariableType_Real:
+			*reinterpret_cast<RealVariable::BaseStorage*>(storage) = Elements[i]->CastTo<RealRValue>().GetValue();
+			break;
+
+		case EpochVariableType_Boolean:
+			*reinterpret_cast<BooleanVariable::BaseStorage*>(storage) = Elements[i]->CastTo<BooleanRValue>().GetValue();
+			break;
+
+		default:
+			throw VM::NotImplementedException("Support for storing arrays of this type is incomplete");
+		}
+
+		storage = reinterpret_cast<char*>(storage) + TypeInfo::GetStorageSize(ElementType);
 	}
 }
 
@@ -351,6 +411,7 @@ void ArrayRValue::Clean()
 		delete *iter;
 
 	Elements.clear();
+	StoredHandle = 0;
 }
 
 //
@@ -393,6 +454,7 @@ bool ArrayRValue::VirtualComparator(const RValue& rhs) const
 
 	return true;
 }
+
 
 
 //-------------------------------------------------------------------------------

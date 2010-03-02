@@ -5,3 +5,8 @@ EXPORTS
 	ExecuteSourceBlock				@3
 	StartNewProgramCompilation		@4
 	CommitCompilation				@5
+	LinkToEpochVM					@6
+	DummyExportFunction				@7
+	GenerateDataArray				@8
+	GenerateEmptyArray				@9
+	

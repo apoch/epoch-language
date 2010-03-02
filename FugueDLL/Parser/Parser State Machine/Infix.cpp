@@ -382,7 +382,7 @@ bool ParserState::FinalizeInfixExpression(bool isfirstrun, const VM::ScopeDescri
 		TheStack.pop_back();
 
 		VM::OperationPtr getvalop(new VM::Operations::GetVariableValue(ParsedProgram->PoolStaticString(previouslvaluename)));
-		AddOperationToCurrentBlock(VM::OperationPtr(new VM::Operations::PushOperation(getvalop.release())));
+		AddOperationToCurrentBlock(VM::OperationPtr(new VM::Operations::PushOperation(getvalop.release(), *CurrentScope)));
 		AddOperationToCurrentBlock(VM::OperationPtr(new VM::Operations::AssignValue(ParsedProgram->PoolStaticString(lvaluename))));
 
 		InfixOperandCount.pop_back();
@@ -566,7 +566,7 @@ bool ParserState::FinalizeInfixExpression(bool isfirstrun, const VM::ScopeDescri
 					}
 
 					VM::Operation* originalop = op.get();
-					VM::OperationPtr pushop(new VM::Operations::PushOperation(op.release()));
+					VM::OperationPtr pushop(new VM::Operations::PushOperation(op.release(), *CurrentScope));
 					std::auto_ptr<InfixUnitRawOperations> pushopunit(new InfixUnitRawOperations);
 					pushopunit->PushOperations.push_back(pushop.release());
 
@@ -730,7 +730,7 @@ void ParserState::RegisterOpAssignment()
 		return;
 	}
 
-	VM::OperationPtr readop(new VM::Operations::PushOperation(new VM::Operations::GetVariableValue(ParsedProgram->PoolStaticString(lvalue.StringValue))));
+	VM::OperationPtr readop(new VM::Operations::PushOperation(new VM::Operations::GetVariableValue(ParsedProgram->PoolStaticString(lvalue.StringValue)), *CurrentScope));
 	AddOperationToCurrentBlock(readop);
 	Blocks.back().TheBlock->ReverseTailOperations(2, *CurrentScope);
 
@@ -739,9 +739,9 @@ void ParserState::RegisterOpAssignment()
 	{
 		switch(type)
 		{
-		case VM::EpochVariableType_Integer:		arithmeticop.reset(new VM::Operations::PushOperation(new VM::Operations::SumIntegers(false, false)));			break;
-		case VM::EpochVariableType_Integer16:	arithmeticop.reset(new VM::Operations::PushOperation(new VM::Operations::SumInteger16s(false, false)));			break;
-		case VM::EpochVariableType_Real:		arithmeticop.reset(new VM::Operations::PushOperation(new VM::Operations::SumReals(false, false)));				break;
+		case VM::EpochVariableType_Integer:		arithmeticop.reset(new VM::Operations::PushOperation(new VM::Operations::SumIntegers(false, false), *CurrentScope));			break;
+		case VM::EpochVariableType_Integer16:	arithmeticop.reset(new VM::Operations::PushOperation(new VM::Operations::SumInteger16s(false, false), *CurrentScope));			break;
+		case VM::EpochVariableType_Real:		arithmeticop.reset(new VM::Operations::PushOperation(new VM::Operations::SumReals(false, false), *CurrentScope));				break;
 		default:								throw ParserFailureException("Invalid type for this operation");
 		}
 	}
@@ -749,9 +749,9 @@ void ParserState::RegisterOpAssignment()
 	{
 		switch(type)
 		{
-		case VM::EpochVariableType_Integer:		arithmeticop.reset(new VM::Operations::PushOperation(new VM::Operations::SubtractIntegers(false, false)));		break;
-		case VM::EpochVariableType_Integer16:	arithmeticop.reset(new VM::Operations::PushOperation(new VM::Operations::SubtractInteger16s(false, false)));	break;
-		case VM::EpochVariableType_Real:		arithmeticop.reset(new VM::Operations::PushOperation(new VM::Operations::SubtractReals(false, false)));			break;
+		case VM::EpochVariableType_Integer:		arithmeticop.reset(new VM::Operations::PushOperation(new VM::Operations::SubtractIntegers(false, false), *CurrentScope));		break;
+		case VM::EpochVariableType_Integer16:	arithmeticop.reset(new VM::Operations::PushOperation(new VM::Operations::SubtractInteger16s(false, false), *CurrentScope));		break;
+		case VM::EpochVariableType_Real:		arithmeticop.reset(new VM::Operations::PushOperation(new VM::Operations::SubtractReals(false, false), *CurrentScope));			break;
 		default:								throw ParserFailureException("Invalid type for this operation");
 		}
 	}
@@ -759,9 +759,9 @@ void ParserState::RegisterOpAssignment()
 	{
 		switch(type)
 		{
-		case VM::EpochVariableType_Integer:		arithmeticop.reset(new VM::Operations::PushOperation(new VM::Operations::MultiplyIntegers(false, false)));		break;
-		case VM::EpochVariableType_Integer16:	arithmeticop.reset(new VM::Operations::PushOperation(new VM::Operations::MultiplyInteger16s(false, false)));	break;
-		case VM::EpochVariableType_Real:		arithmeticop.reset(new VM::Operations::PushOperation(new VM::Operations::MultiplyReals(false, false)));			break;
+		case VM::EpochVariableType_Integer:		arithmeticop.reset(new VM::Operations::PushOperation(new VM::Operations::MultiplyIntegers(false, false), *CurrentScope));		break;
+		case VM::EpochVariableType_Integer16:	arithmeticop.reset(new VM::Operations::PushOperation(new VM::Operations::MultiplyInteger16s(false, false), *CurrentScope));		break;
+		case VM::EpochVariableType_Real:		arithmeticop.reset(new VM::Operations::PushOperation(new VM::Operations::MultiplyReals(false, false), *CurrentScope));			break;
 		default:								throw ParserFailureException("Invalid type for this operation");
 		}
 	}
@@ -769,9 +769,9 @@ void ParserState::RegisterOpAssignment()
 	{
 		switch(type)
 		{
-		case VM::EpochVariableType_Integer:		arithmeticop.reset(new VM::Operations::PushOperation(new VM::Operations::DivideIntegers(false, false)));		break;
-		case VM::EpochVariableType_Integer16:	arithmeticop.reset(new VM::Operations::PushOperation(new VM::Operations::DivideInteger16s(false, false)));		break;
-		case VM::EpochVariableType_Real:		arithmeticop.reset(new VM::Operations::PushOperation(new VM::Operations::DivideReals(false, false)));			break;
+		case VM::EpochVariableType_Integer:		arithmeticop.reset(new VM::Operations::PushOperation(new VM::Operations::DivideIntegers(false, false), *CurrentScope));			break;
+		case VM::EpochVariableType_Integer16:	arithmeticop.reset(new VM::Operations::PushOperation(new VM::Operations::DivideInteger16s(false, false), *CurrentScope));		break;
+		case VM::EpochVariableType_Real:		arithmeticop.reset(new VM::Operations::PushOperation(new VM::Operations::DivideReals(false, false), *CurrentScope));			break;
 		default:								throw ParserFailureException("Invalid type for this operation");
 		}
 	}
@@ -780,7 +780,7 @@ void ParserState::RegisterOpAssignment()
 		if(type != VM::EpochVariableType_String)
 			throw ParserFailureException("Invalid type for this operation");
 
-		arithmeticop.reset(new VM::Operations::PushOperation(new VM::Operations::Concatenate(false, false)));
+		arithmeticop.reset(new VM::Operations::PushOperation(new VM::Operations::Concatenate(false, false), *CurrentScope));
 	}
 	else
 		throw ParserFailureException("Unrecognized infix assignment operator!");
@@ -831,7 +831,7 @@ void ParserState::PreincrementVariable()
 		return;
 	}
 
-	VM::OperationPtr readop(new VM::Operations::PushOperation(new VM::Operations::GetVariableValue(ParsedProgram->PoolStaticString(SavedStringSlots[SavedStringSlot_IncDec]))));
+	VM::OperationPtr readop(new VM::Operations::PushOperation(new VM::Operations::GetVariableValue(ParsedProgram->PoolStaticString(SavedStringSlots[SavedStringSlot_IncDec])), *CurrentScope));
 	AddOperationToCurrentBlock(readop);
 
 	VM::OperationPtr constop(NULL);
@@ -853,7 +853,7 @@ void ParserState::PreincrementVariable()
 	default:								throw ParserFailureException("Invalid variable type for this operator");
 	}
 	
-	AddOperationToCurrentBlock(VM::OperationPtr(new VM::Operations::PushOperation(innerop.release())));
+	AddOperationToCurrentBlock(VM::OperationPtr(new VM::Operations::PushOperation(innerop.release(), *CurrentScope)));
 	AddOperationToCurrentBlock(VM::OperationPtr(new VM::Operations::AssignValue(ParsedProgram->PoolStaticString(SavedStringSlots[SavedStringSlot_IncDec]))));
 }
 
@@ -869,7 +869,7 @@ void ParserState::PredecrementVariable()
 		return;
 	}
 
-	VM::OperationPtr readop(new VM::Operations::PushOperation(new VM::Operations::GetVariableValue(ParsedProgram->PoolStaticString(SavedStringSlots[SavedStringSlot_IncDec]))));
+	VM::OperationPtr readop(new VM::Operations::PushOperation(new VM::Operations::GetVariableValue(ParsedProgram->PoolStaticString(SavedStringSlots[SavedStringSlot_IncDec])), *CurrentScope));
 	AddOperationToCurrentBlock(readop);
 
 	VM::OperationPtr constop(NULL);
@@ -891,7 +891,7 @@ void ParserState::PredecrementVariable()
 	default:								throw ParserFailureException("Invalid variable type for this operator");
 	}
 
-	AddOperationToCurrentBlock(VM::OperationPtr(new VM::Operations::PushOperation(innerop.release())));
+	AddOperationToCurrentBlock(VM::OperationPtr(new VM::Operations::PushOperation(innerop.release(), *CurrentScope)));
 	AddOperationToCurrentBlock(VM::OperationPtr(new VM::Operations::AssignValue(ParsedProgram->PoolStaticString(SavedStringSlots[SavedStringSlot_IncDec]))));
 }
 
@@ -907,7 +907,7 @@ void ParserState::PostincrementVariable()
 		return;
 	}
 
-	VM::OperationPtr readop(new VM::Operations::PushOperation(new VM::Operations::GetVariableValue(ParsedProgram->PoolStaticString(SavedStringSlots[SavedStringSlot_IncDec]))));
+	VM::OperationPtr readop(new VM::Operations::PushOperation(new VM::Operations::GetVariableValue(ParsedProgram->PoolStaticString(SavedStringSlots[SavedStringSlot_IncDec])), *CurrentScope));
 	AddOperationDeferred(readop);
 
 	VM::OperationPtr constop(NULL);
@@ -929,7 +929,7 @@ void ParserState::PostincrementVariable()
 	default:								throw ParserFailureException("Invalid variable type for this operator");
 	}
 
-	AddOperationDeferred(VM::OperationPtr(new VM::Operations::PushOperation(innerop.release())));
+	AddOperationDeferred(VM::OperationPtr(new VM::Operations::PushOperation(innerop.release(), *CurrentScope)));
 	AddOperationDeferred(VM::OperationPtr(new VM::Operations::AssignValue(ParsedProgram->PoolStaticString(SavedStringSlots[SavedStringSlot_IncDec]))));
 }
 
@@ -945,7 +945,7 @@ void ParserState::PostdecrementVariable()
 		return;
 	}
 
-	VM::OperationPtr readop(new VM::Operations::PushOperation(new VM::Operations::GetVariableValue(ParsedProgram->PoolStaticString(SavedStringSlots[SavedStringSlot_IncDec]))));
+	VM::OperationPtr readop(new VM::Operations::PushOperation(new VM::Operations::GetVariableValue(ParsedProgram->PoolStaticString(SavedStringSlots[SavedStringSlot_IncDec])), *CurrentScope));
 	AddOperationDeferred(readop);
 
 	VM::OperationPtr constop(NULL);
@@ -967,7 +967,7 @@ void ParserState::PostdecrementVariable()
 	default:								throw ParserFailureException("Invalid variable type for this operator");
 	}
 
-	AddOperationDeferred(VM::OperationPtr(new VM::Operations::PushOperation(innerop.release())));
+	AddOperationDeferred(VM::OperationPtr(new VM::Operations::PushOperation(innerop.release(), *CurrentScope)));
 	AddOperationDeferred(VM::OperationPtr(new VM::Operations::AssignValue(ParsedProgram->PoolStaticString(SavedStringSlots[SavedStringSlot_IncDec]))));
 }
 
@@ -977,7 +977,7 @@ void ParserState::PostdecrementVariable()
 //
 void ParserState::HandleInlineIncDec()
 {
-	AddOperationToCurrentBlock(VM::OperationPtr(new VM::Operations::PushOperation(new VM::Operations::GetVariableValue(ParsedProgram->PoolStaticString(SavedStringSlots[SavedStringSlot_IncDec])))));
+	AddOperationToCurrentBlock(VM::OperationPtr(new VM::Operations::PushOperation(new VM::Operations::GetVariableValue(ParsedProgram->PoolStaticString(SavedStringSlots[SavedStringSlot_IncDec])), *CurrentScope)));
 
 	StackEntry entry;
 	entry.Type = StackEntry::STACKENTRYTYPE_OPERATION;

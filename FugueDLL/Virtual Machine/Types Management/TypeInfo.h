@@ -13,6 +13,7 @@
 #include "Virtual Machine/Core Entities/Variables/BufferVariable.h"
 #include "Virtual Machine/Core Entities/Variables/TupleVariable.h"
 #include "Virtual Machine/Core Entities/Variables/StructureVariable.h"
+#include "Virtual Machine/Core Entities/Variables/ArrayVariable.h"
 
 
 namespace TypeInfo
@@ -42,6 +43,7 @@ namespace TypeInfo
 	DECLARE_TYPE(TupleT, TupleVariable, TupleRValue)
 	DECLARE_TYPE(StructureT, StructureVariable, StructureRValue)
 	DECLARE_TYPE(BufferT, BufferVariable, BufferRValue)
+	DECLARE_TYPE(ArrayT, ArrayVariable, ArrayRValue)
 
 
 #undef DECLARE_TYPE

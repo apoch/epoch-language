@@ -136,8 +136,8 @@ void __stdcall LinkToEpochVM(RegistrationTable registration, void* bindrecord)
 	{
 		std::vector<ParamData> params;
 		params.push_back(ParamData(L"value", VM::EpochVariableType_Integer));
-		registration.RegisterFunction(L"hiword", "GetHighWord", &params[0], params.size(), VM::EpochVariableType_Integer, bindrecord);
-		registration.RegisterFunction(L"loword", "GetLowWord", &params[0], params.size(), VM::EpochVariableType_Integer, bindrecord);
+		registration.RegisterFunction(L"hiword", "GetHighWord", &params[0], params.size(), VM::EpochVariableType_Integer, VM::EpochVariableType_Error, bindrecord);
+		registration.RegisterFunction(L"loword", "GetLowWord", &params[0], params.size(), VM::EpochVariableType_Integer, VM::EpochVariableType_Error, bindrecord);
 	}
 
 	// Functions implemented in other libraries

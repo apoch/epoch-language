@@ -96,7 +96,6 @@ namespace Bytecode
 	extern const unsigned char BindStruct;
 	extern const unsigned char WriteStructureIndirect;
 	extern const unsigned char Constants;
-	extern const unsigned char ConsArray;
 	extern const unsigned char FunctionSignatureList;
 	extern const unsigned char FunctionSignatureBegin;
 	extern const unsigned char FunctionSignatureEnd;
@@ -113,8 +112,6 @@ namespace Bytecode
 	extern const unsigned char Map;
 	extern const unsigned char Reduce;
 	extern const unsigned char IntegerLiteral;
-	extern const unsigned char ArrayTypes;
-	extern const unsigned char ArraySizes;
 	extern const unsigned char ThreadPool;
 	extern const unsigned char ForkThread;
 	extern const unsigned char Handoff;

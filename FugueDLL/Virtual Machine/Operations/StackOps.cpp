@@ -17,6 +17,7 @@
 #include "Virtual Machine/Routines.inl"
 #include "Virtual Machine/VMExceptions.h"
 #include "Virtual Machine/Operations/Containers/ContainerOps.h"
+#include "Virtual Machine/Operations/Flow/Invoke.h"
 #include "Virtual Machine/SelfAware.inl"
 
 #include "Parser/Debug Info Tables/DebugTable.h"
@@ -142,10 +143,17 @@ Traverser::Payload PushBooleanLiteral::GetNodeTraversalPayload(const VM::ScopeDe
 // Construct and initialize an operation that pushes the
 // result of another operation onto the stack
 //
-PushOperation::PushOperation(VM::Operation* op)
-	: TheOp(op)
+PushOperation::PushOperation(VM::Operation* op, const ScopeDescription& scope)
+	: TheOp(op),
+	  IsConsArray(false),
+	  IsConsFromFunction(false)
 {
-	IsConsArray = (dynamic_cast<VM::Operations::ConsArray*>(TheOp) != NULL);
+	if(dynamic_cast<VM::Operations::ConsArray*>(TheOp) != NULL)
+		IsConsArray = true;
+
+	VM::Operations::Invoke* invokeop = dynamic_cast<VM::Operations::Invoke*>(TheOp);
+	if(invokeop && invokeop->GetType(scope) == EpochVariableType_Array)
+		IsConsFromFunction = true;
 }
 
 //
@@ -163,7 +171,7 @@ PushOperation::~PushOperation()
 RValuePtr PushOperation::ExecuteAndStoreRValue(ExecutionContext& context)
 {
 	RValuePtr opresult(TheOp->ExecuteAndStoreRValue(context));
-	DoPush(TheOp->GetType(context.Scope.GetOriginalDescription()), opresult, context.Scope.GetOriginalDescription(), context.Stack, IsConsArray);
+	DoPush(TheOp->GetType(context.Scope.GetOriginalDescription()), opresult.get(), context.Scope.GetOriginalDescription(), context.Stack, IsConsArray, IsConsFromFunction);
 
 	return opresult;
 }
@@ -177,7 +185,7 @@ void PushOperation::ExecuteFast(ExecutionContext& context)
 // Actually perform the push onto the stack
 // This is factored out for easier usage with tuples/structures
 //
-void PushOperation::DoPush(EpochVariableTypeID type, RValuePtr value, const ScopeDescription& scope, StackSpace& stack, bool isconsarray)
+void PushOperation::DoPush(EpochVariableTypeID type, RValue* value, const ScopeDescription& scope, StackSpace& stack, bool isconsarray, bool isconsfromfunction)
 {
 	switch(type)
 	{
@@ -212,7 +220,7 @@ void PushOperation::DoPush(EpochVariableTypeID type, RValuePtr value, const Scop
 
 			std::vector<std::wstring> members = tupletype.GetMemberOrder();
 			for(std::vector<std::wstring>::const_reverse_iterator iter = members.rbegin(); iter != members.rend(); ++iter)
-				DoPush(tupletype.GetMemberType(*iter), tuple.GetValue(*iter), scope, stack, false);
+				DoPush(tupletype.GetMemberType(*iter), tuple.GetValue(*iter).get(), scope, stack, false, false);
 
 			PushValueOntoStack<TypeInfo::TupleT>(stack, tupletypeid);
 		}
@@ -226,7 +234,7 @@ void PushOperation::DoPush(EpochVariableTypeID type, RValuePtr value, const Scop
 
 			std::vector<std::wstring> members = structuretype.GetMemberOrder();
 			for(std::vector<std::wstring>::const_reverse_iterator iter = members.rbegin(); iter != members.rend(); ++iter)
-				DoPush(structuretype.GetMemberType(*iter), structure.GetValue(*iter), scope, stack, false);
+				DoPush(structuretype.GetMemberType(*iter), structure.GetValue(*iter).get(), scope, stack, false, false);
 
 			PushValueOntoStack<TypeInfo::StructureT>(stack, structuretypeid);
 		}
@@ -241,24 +249,8 @@ void PushOperation::DoPush(EpochVariableTypeID type, RValuePtr value, const Scop
 		break;
 
 	case EpochVariableType_Array:
-		{
-			// Filthy trick - since we already pushed the parameters onto the stack
-			// when generating the ConsArray instruction, we don't have to repeat the
-			// push here. Instead, we just push the type and size information, and
-			// let the called function handle the array entity. Of course if we are
-			// doing something other than an array cons, we need to push the actual
-			// array elements onto the stack.
-
-			ArrayRValue& arrayvalue = value->CastTo<ArrayRValue>();
-			if(!isconsarray)
-			{
-				for(std::vector<RValue*>::const_reverse_iterator iter = arrayvalue.GetElements().rbegin(); iter != arrayvalue.GetElements().rend(); ++iter)
-					DoPush(arrayvalue.GetElementType(), RValuePtr((*iter)->Clone()), scope, stack, false);
-			}
-
-			PushValueOntoStack<TypeInfo::IntegerT>(stack, static_cast<IntegerVariable::BaseStorage>(arrayvalue.GetElementCount())); 
-			PushValueOntoStack<TypeInfo::IntegerT>(stack, arrayvalue.GetElementType());
-		}
+		stack.Push(sizeof(HandleType));
+		*reinterpret_cast<HandleType*>(stack.GetCurrentTopOfStack()) = value->CastTo<ArrayRValue>().GetHandle();
 		break;
 
 	case EpochVariableType_TaskHandle:

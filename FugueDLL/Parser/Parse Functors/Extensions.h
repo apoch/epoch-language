@@ -10,6 +10,7 @@
 #include "Parser/Parse Functors/ParseFunctorBase.h"
 
 #include "Language Extensions/ExtensionCatalog.h"
+#include "Marshalling/Libraries.h"
 
 
 
@@ -48,8 +49,10 @@ struct RegisterExtension : public ParseFunctorBase
 	{
 		std::wstring extensionname(begin + 1, end - 1);
 		Trace(L"RegisterExtension", extensionname);
-		Extensions::ExtensionLibraryHandle handle = Extensions::RegisterExtensionLibrary(extensionname, State.GetParsedProgram());
+		Extensions::ExtensionLibraryHandle handle = Extensions::RegisterExtensionLibrary(extensionname, *State.GetParsedProgram());
 		Extensions::EnumerateExtensionKeywords(RegisterEnumeratedExtension<DefinitionT>(GrammarDefinition), handle);
+
+		Marshalling::BindToLanguageExtension(extensionname, *State.GetParsedProgram());
 	}
 
 private:

@@ -107,8 +107,31 @@ class SynchronizableArrayBuffer
 // Construction
 public:
 	SynchronizableArrayBuffer()
-		: DevicePointer(0)
+		: DevicePointer(0), SizesDevicePointer(0)
 	{ }
+
+// Preparation operations
+public:
+	void PrepareArraySizesBuffer()
+	{
+		if(SizesDevicePointer)
+		{
+			cuMemFree(SizesDevicePointer);
+			SizesDevicePointer = 0;
+		}
+
+		if(!InternalBuffer.empty())
+		{
+			unsigned sizeinbytes = static_cast<unsigned>(sizeof(unsigned) * InternalBuffer.size());
+
+			std::vector<unsigned> sizebuffer;
+			for(std::vector<std::vector<T> >::const_iterator iter = InternalBuffer.begin(); iter != InternalBuffer.end(); ++iter)
+				sizebuffer.push_back(static_cast<unsigned>(iter->size()));
+
+			cuMemAlloc(&SizesDevicePointer, sizeinbytes);
+			cuMemcpyHtoD(SizesDevicePointer, &sizebuffer[0], sizeinbytes);
+		}
+	}
 
 // Data transfer operations
 public:
@@ -137,12 +160,10 @@ public:
 		if(!InternalBuffer.empty())
 		{
 			size_t buffersize = 0;
-			unsigned buffersizeinbytes = 0;
 			for(std::vector<std::vector<T> >::const_iterator iter = InternalBuffer.begin(); iter != InternalBuffer.end(); ++iter)
-			{
-				buffersizeinbytes += static_cast<unsigned int>(sizeof(T) * iter->size());
 				buffersize += iter->size();
-			}
+
+			unsigned buffersizeinbytes = static_cast<unsigned>(buffersize * sizeof(T));
 
 			unsigned index = 0;
 			std::vector<T> flatbuffer(buffersize);
@@ -166,17 +187,16 @@ public:
 			return;
 
 		size_t buffersize = 0;
-		unsigned buffersizeinbytes = 0;
 		for(std::vector<std::vector<T> >::const_iterator iter = InternalBuffer.begin(); iter != InternalBuffer.end(); ++iter)
-		{
-			buffersizeinbytes += static_cast<unsigned int>(sizeof(T) * iter->size());
 			buffersize += iter->size();
-		}	
+
+		unsigned buffersizeinbytes = static_cast<unsigned>(buffersize * sizeof(T));
 
 		std::vector<T> flatbuffer(buffersize);
 		cuMemcpyDtoH(&flatbuffer[0], DevicePointer, buffersizeinbytes);
 
 		size_t index = 0;
+		size_t internalindex = 0;
 
 		for(std::list<Traverser::ScopeContents>::const_iterator iter = variables.begin(); iter != variables.end(); ++iter)
 		{
@@ -185,8 +205,11 @@ public:
 				Traverser::Payload payload;
 				payload.Type = VM::EpochVariableType_Array;
 				payload.PointerValue = &(flatbuffer[index]);
+				payload.ParameterCount = InternalBuffer[internalindex].size();
+				payload.ParameterType = iter->ContainedType;
 				FugueVMAccess::Interface.MarshalWrite(activatedscopehandle, iter->Identifier, &payload);
-				index += iter->ContainedSize;
+				index += InternalBuffer[internalindex].size();
+				++internalindex;
 			}
 		}
 
@@ -199,9 +222,16 @@ public:
 	CUdeviceptr GetDevicePointer() const
 	{ return DevicePointer; }
 
+	size_t GetNumArrays() const
+	{ return InternalBuffer.size(); }
+
+	CUdeviceptr GetSizesBufferPointer() const
+	{ return SizesDevicePointer; }
+
 // Internal tracking
 private:
 	CUdeviceptr DevicePointer;
+	CUdeviceptr SizesDevicePointer;
 	std::vector<std::vector<T> > InternalBuffer;
 };
 

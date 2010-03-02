@@ -175,9 +175,9 @@ void ParserState::ResetMemberAccess()
 
 	VM::OperationPtr pushop(NULL);
 	if(istuple)
-		pushop.reset(new VM::Operations::PushOperation(new VM::Operations::ReadTuple(ParsedProgram->PoolStaticString(variablename), ParsedProgram->PoolStaticString(MemberAccesses.front()))));
+		pushop.reset(new VM::Operations::PushOperation(new VM::Operations::ReadTuple(ParsedProgram->PoolStaticString(variablename), ParsedProgram->PoolStaticString(MemberAccesses.front())), *CurrentScope));
 	else
-		pushop.reset(new VM::Operations::PushOperation(new VM::Operations::ReadStructure(ParsedProgram->PoolStaticString(variablename), ParsedProgram->PoolStaticString(MemberAccesses.front()))));
+		pushop.reset(new VM::Operations::PushOperation(new VM::Operations::ReadStructure(ParsedProgram->PoolStaticString(variablename), ParsedProgram->PoolStaticString(MemberAccesses.front())), *CurrentScope));
 
 	VM::Operation* lastop = pushop.get();
 
@@ -189,7 +189,7 @@ void ParserState::ResetMemberAccess()
 		if(istuple)
 			throw ParserFailureException("Nested tuple support is not implemented!");
 
-		VM::OperationPtr readindirectop(new VM::Operations::PushOperation(new VM::Operations::ReadStructureIndirect(ParsedProgram->PoolStaticString(MemberAccesses.front()), Blocks.back().TheBlock->GetTailOperation())));
+		VM::OperationPtr readindirectop(new VM::Operations::PushOperation(new VM::Operations::ReadStructureIndirect(ParsedProgram->PoolStaticString(MemberAccesses.front()), Blocks.back().TheBlock->GetTailOperation()), *CurrentScope));
 		lastop = readindirectop.get();
 
 		AddOperationToCurrentBlock(readindirectop);
@@ -245,12 +245,12 @@ void ParserState::ResetMemberAccessLValue()
 		}
 		else
 		{
-			AddOperationToCurrentBlock(VM::OperationPtr(new VM::Operations::PushOperation(new VM::Operations::BindStructMemberReference(ParsedProgram->PoolStaticString(variablename), ParsedProgram->PoolStaticString(MemberAccesses.front())))));
+			AddOperationToCurrentBlock(VM::OperationPtr(new VM::Operations::PushOperation(new VM::Operations::BindStructMemberReference(ParsedProgram->PoolStaticString(variablename), ParsedProgram->PoolStaticString(MemberAccesses.front())), *CurrentScope)));
 
 			MemberAccesses.pop_front();
 			while(MemberAccesses.size() > 1)
 			{
-				AddOperationToCurrentBlock(VM::OperationPtr(new VM::Operations::PushOperation(new VM::Operations::BindStructMemberReference(ParsedProgram->PoolStaticString(MemberAccesses.front())))));
+				AddOperationToCurrentBlock(VM::OperationPtr(new VM::Operations::PushOperation(new VM::Operations::BindStructMemberReference(ParsedProgram->PoolStaticString(MemberAccesses.front())), *CurrentScope)));
 				MemberAccesses.pop_front();
 			}
 

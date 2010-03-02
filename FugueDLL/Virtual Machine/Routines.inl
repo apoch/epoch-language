@@ -13,7 +13,7 @@
 
 
 template<class TypeData>
-void PushValueOntoStack(StackSpace& thestack, VM::RValuePtr value)
+void PushValueOntoStack(StackSpace& thestack, VM::RValue* value)
 {
 	thestack.Push(TypeData::VariableType::GetBaseStorageSize());
 	*reinterpret_cast<TypeData::VariableType::BaseStorage*>(thestack.GetCurrentTopOfStack()) = value->CastTo<TypeData::RValueType>().GetValue();
@@ -29,6 +29,6 @@ void PushValueOntoStack(StackSpace& thestack, typename TypeData::VariableType::B
 
 namespace VM
 {
-	RValuePtr GetRValuePtrFromStorage(VM::EpochVariableTypeID vartype, void* storage);
+	RValuePtr GetRValuePtrFromStorage(VM::EpochVariableTypeID vartype, const void* storage);
 	void WriteRValueToStorage(RValuePtr rvalue, void* storage);
 }

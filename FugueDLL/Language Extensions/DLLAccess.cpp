@@ -29,7 +29,7 @@ using namespace Extensions;
 //
 // Construct the access wrapper and initialize the DLL bindings
 //
-ExtensionDLLAccess::ExtensionDLLAccess(const std::wstring& dllname, VM::Program* program)
+ExtensionDLLAccess::ExtensionDLLAccess(const std::wstring& dllname, VM::Program& program)
 	: SessionHandle(0),
 	  DLLName(dllname)
 {
@@ -49,7 +49,7 @@ ExtensionDLLAccess::ExtensionDLLAccess(const std::wstring& dllname, VM::Program*
 	if(!DoRegistration || !DoLoadSource || !DoExecuteSource || !DoPrepare || !DoStartSession)
 		throw Exception("One or more Epoch service functions could not be loaded from the requested language extension DLL");
 
-	SessionHandle = DoStartSession(reinterpret_cast<HandleType>(program));
+	SessionHandle = DoStartSession(reinterpret_cast<HandleType>(&program));
 }
 
 //
@@ -142,7 +142,7 @@ namespace
 				if(content.Type == VM::EpochVariableType_Array)
 				{
 					content.ContainedType = description->GetArrayType(*iter);
-					content.ContainedSize = description->GetArraySize(*iter);
+					content.ContainedSize = 0;
 				}
 
 				contents.push_back(content);
@@ -218,6 +218,7 @@ namespace
 		case VM::EpochVariableType_Integer:			return VM::RValuePtr(new VM::IntegerRValue(payload.Int32Value));
 		case VM::EpochVariableType_Real:			return VM::RValuePtr(new VM::RealRValue(payload.FloatValue));
 		case VM::EpochVariableType_String:			return VM::RValuePtr(new VM::StringRValue(payload.StringValue));
+		case VM::EpochVariableType_Array:			return VM::RValuePtr(new VM::ArrayRValue(payload.ParameterType, payload.ParameterCount, payload.PointerValue));
 		}
 
 		throw Exception("Unsupported type, cannot convert language extension data into a VM-friendly format");
@@ -231,14 +232,7 @@ namespace
 	{
 		VM::ActivatedScope* activatedscope = reinterpret_cast<VM::ActivatedScope*>(handle);						// This is safe since we issued the handle to begin with!
 		VM::EpochVariableTypeID desttype = activatedscope->GetVariableType(identifier);
-		if(desttype == VM::EpochVariableType_Array)
-		{
-			VM::EpochVariableTypeID elementtype = activatedscope->GetOriginalDescription().GetArrayType(identifier);
-			size_t elementcount = activatedscope->GetOriginalDescription().GetArraySize(identifier);
-			activatedscope->SetVariableValue(identifier, VM::RValuePtr(new VM::ArrayRValue(elementtype, elementcount, payload->PointerValue)));
-		}
-		else
-			activatedscope->SetVariableValue(identifier, PayloadToRValue(*payload));
+		activatedscope->SetVariableValue(identifier, PayloadToRValue(*payload));
 	}
 
 	//
@@ -262,9 +256,12 @@ namespace
 			payload->SetValue(activatedscope->GetVariableValue(identifier)->CastTo<VM::StringRValue>().GetValue().c_str());
 			break;
 		case VM::EpochVariableType_Array:
-			payload->Type = VM::EpochVariableType_Array;
-			payload->ParameterCount = activatedscope->GetOriginalDescription().GetArraySize(identifier);
-			payload->PointerValue = activatedscope->GetVariableRef<VM::ArrayVariable>(identifier).GetArrayElementStorage();
+			{
+				HandleType handle = activatedscope->GetVariableValue(identifier)->CastTo<VM::ArrayRValue>().GetHandle();
+				size_t elementcount = activatedscope->GetVariableValue(identifier)->CastTo<VM::ArrayRValue>().GetElementCount();
+				payload->SetValue(VM::ArrayVariable::GetArrayStorage(handle));
+				payload->ParameterCount = elementcount;
+			}
 			break;
 
 		default:

@@ -228,6 +228,44 @@ struct RegisterStringMessageParam : public ParseFunctorBase
 };
 
 
+struct RegisterArrayMessageParam : public ParseFunctorBase
+{
+	RegisterArrayMessageParam(Parser::ParserState& state)
+		: ParseFunctorBase(state)
+	{ }
+
+	template <typename IteratorType>
+	void operator () (IteratorType begin, IteratorType end) const
+	{
+		Trace(L"RegisterArrayMessageParam");
+
+		State.RegisterArrayMessageParam();
+	}
+};
+
+
+struct ResetMessageParamFlags : public ParseFunctorBase
+{
+	ResetMessageParamFlags(Parser::ParserState& state)
+		: ParseFunctorBase(state)
+	{ }
+
+	template <typename IteratorType>
+	void operator () (IteratorType begin, IteratorType end) const
+	{
+		Trace(L"ResetMessageParamFlags");
+		State.ResetMessageParamFlags();
+	}
+
+	template <typename ParamType>
+	void operator () (ParamType) const
+	{
+		Trace(L"ResetMessageParamFlags");
+		State.ResetMessageParamFlags();
+	}
+};
+
+
 //
 // Inform the parse analyzer that we should begin building a scope
 // description that represents a message's parameter set.

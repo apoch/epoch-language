@@ -118,6 +118,7 @@ DEFINE_INSTRUCTION(Bytecode::Functions, Serialization::Functions)											\
 			SPACE																							\
 			COPY_STR(funcname)																				\
 			PARAM_UINT(functype)																			\
+			PARAM_UINT(functypehint)																		\
 			IF_ASSEMBLING																					\
 				READ_HEX(scopeid)																			\
 				EXPECT(Bytecode::Scope, Serialization::Scope)												\
@@ -840,12 +841,6 @@ DEFINE_INSTRUCTION(Bytecode::ResponseMaps, Serialization::ResponseMaps)									
 	ENDLOOP																									\
 END_INSTRUCTION																								\
 																											\
-DEFINE_ADDRESSED_INSTRUCTION(Bytecode::ConsArray, Serialization::ConsArray)									\
-	SPACE																									\
-	COPY_UINT(type)																							\
-	PARAM_UINT(numops)																						\
-END_INSTRUCTION																								\
-																											\
 DEFINE_ADDRESSED_INSTRUCTION(Bytecode::MultiplyIntegers, Serialization::MultiplyIntegers)					\
 	SPACE																									\
 	COPY_BOOL(firstisarray)																					\
@@ -1060,26 +1055,6 @@ END_INSTRUCTION																								\
 																											\
 DEFINE_ADDRESSED_INSTRUCTION(Bytecode::IntegerLiteral, Serialization::IntegerConstant)						\
 	PARAM_UINT(value)																						\
-END_INSTRUCTION																								\
-																											\
-DEFINE_INSTRUCTION(Bytecode::ArrayTypes, Serialization::ArrayTypes)											\
-	PARAM_UINT(count)																						\
-	LOOP(count)																								\
-		COPY_STR(arrayname)																					\
-		SPACE																								\
-		COPY_UINT(arraytype)																				\
-		NEWLINE																								\
-	ENDLOOP																									\
-END_INSTRUCTION																								\
-																											\
-DEFINE_INSTRUCTION(Bytecode::ArraySizes, Serialization::ArraySizes)											\
-	PARAM_UINT(count)																						\
-	LOOP(count)																								\
-		COPY_STR(arrayname)																					\
-		SPACE																								\
-		COPY_UINT(arraysize)																				\
-		NEWLINE																								\
-	ENDLOOP																									\
 END_INSTRUCTION																								\
 																											\
 DEFINE_ADDRESSED_INSTRUCTION(Bytecode::ThreadPool, Serialization::ThreadPool)								\

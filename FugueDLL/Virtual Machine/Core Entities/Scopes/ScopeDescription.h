@@ -86,14 +86,6 @@ namespace VM
 	public:
 		void AddFuture(const std::wstring& name, VM::OperationPtr boundop);
 
-	// Arrays interface
-	public:
-		void SetArrayType(const std::wstring& arrayname, EpochVariableTypeID type);
-		EpochVariableTypeID GetArrayType(const std::wstring& arrayname) const;
-
-		void SetArraySize(const std::wstring& arrayname, size_t size);
-		size_t GetArraySize(const std::wstring& arrayname) const;
-
 	// Generic variable information retrieval
 	public:
 		bool HasVariable(const std::wstring& name) const
@@ -127,6 +119,9 @@ namespace VM
 		bool IsConstant(const std::wstring& name) const;
 
 		const ScopeDescription* GetScopeOwningVariable(const std::wstring& name) const;
+
+		EpochVariableTypeID GetTypeHint(unsigned index) const
+		{ return EpochVariableType_Error; }
 
 	// Ghost-references for parameter and return value scopes (see function documentation for more details)
 	public:
@@ -218,6 +213,15 @@ namespace VM
 		void AddResponseMap(const std::wstring& name, VM::ResponseMap* responses);
 		const VM::ResponseMap& GetResponseMap(const std::wstring& name) const;
 
+	// Arrays
+	public:
+		void SetArrayType(const std::wstring& name, VM::EpochVariableTypeID type)
+		{ ArrayTypes[name] = type; }
+
+		VM::EpochVariableTypeID GetArrayType(const std::wstring& name) const;
+		VM::EpochVariableTypeID GetArrayType(unsigned index) const
+		{ return GetArrayType(MemberOrder[index]); }
+
 	// Traversal interface
 	public:
 		template <class TraverserT>
@@ -286,8 +290,7 @@ namespace VM
 		typedef std::pair<std::wstring, ResponseMap*> ResponseMapListEntry;
 		ResponseMapList ResponseMaps;
 
-		std::map<std::wstring, EpochVariableTypeID> ArrayTypes;
-		std::map<std::wstring, size_t> ArraySizes;
+		std::map<std::wstring, VM::EpochVariableTypeID> ArrayTypes;
 	};
 
 }

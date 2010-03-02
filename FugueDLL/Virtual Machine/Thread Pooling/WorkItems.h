@@ -21,6 +21,9 @@ namespace VM
 	class Future;
 	class Program;
 
+	namespace Operations
+	{ class ParallelFor; }
+
 
 	struct ForkThreadWorkItem : public Threads::PoolWorkItem
 	{
@@ -52,6 +55,31 @@ namespace VM
 	// Internal tracking
 	protected:
 		Future& TheFuture;
+	};
+
+
+	struct ParallelForWorkItem : public Threads::PoolWorkItem
+	{
+	// Construction
+	public:
+		ParallelForWorkItem(VM::Operations::ParallelFor& pforop, VM::ActivatedScope* parentscope, Block& codeblock, Program& runningprogram, size_t lowerbound, size_t upperbound, const std::wstring& countervarname);
+
+	// Work item interface
+	public:
+		virtual void PerformWork();
+
+	// Internal tracking
+	protected:
+		VM::Operations::ParallelFor& ParallelForOp;
+		VM::ActivatedScope* ParentScope;
+
+		Block& TheBlock;
+		Program& RunningProgram;
+
+		size_t LowerBound;
+		size_t UpperBound;
+
+		const std::wstring& CounterVarName;
 	};
 
 }

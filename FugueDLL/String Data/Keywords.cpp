@@ -96,6 +96,8 @@ const wchar_t* Keywords::Thread = L"thread";
 const wchar_t* Keywords::ThreadPool = L"threadpool";
 const wchar_t* Keywords::Future = L"future";
 
+const wchar_t* Keywords::ParallelFor = L"parallelfor";
+
 const wchar_t* Keywords::True = L"true";
 const wchar_t* Keywords::False = L"false";
 

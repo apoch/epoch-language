@@ -53,10 +53,17 @@ void VariableBuffer::CopyFromDevice(HandleType activatedscopehandle)
 //
 void VariableBuffer::PrepareFunctionCall(FunctionCall& func)
 {
-	func.AddParameter(SyncBufferForReals.GetDevicePointer());
-	func.AddParameter(SyncBufferForInts.GetDevicePointer());
+	func.AddPointerParameter(SyncBufferForReals.GetDevicePointer());
+	func.AddPointerParameter(SyncBufferForInts.GetDevicePointer());
 
-	func.AddParameter(SyncBufferForRealArrays.GetDevicePointer());
-	func.AddParameter(SyncBufferForIntArrays.GetDevicePointer());
+	SyncBufferForRealArrays.PrepareArraySizesBuffer();
+	func.AddPointerParameter(SyncBufferForRealArrays.GetDevicePointer());
+	func.AddNumericParameter(SyncBufferForRealArrays.GetNumArrays());
+	func.AddPointerParameter(SyncBufferForRealArrays.GetSizesBufferPointer());
+
+	SyncBufferForIntArrays.PrepareArraySizesBuffer();
+	func.AddPointerParameter(SyncBufferForIntArrays.GetDevicePointer());
+	func.AddNumericParameter(SyncBufferForIntArrays.GetNumArrays());
+	func.AddPointerParameter(SyncBufferForIntArrays.GetSizesBufferPointer());
 }
 

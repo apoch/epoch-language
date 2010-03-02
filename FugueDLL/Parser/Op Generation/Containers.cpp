@@ -14,10 +14,12 @@
 #include "Virtual Machine/Core Entities/Scopes/ScopeDescription.h"
 
 #include "Virtual Machine/Operations/Containers/ContainerOps.h"
+#include "Virtual Machine/Operations/StackOps.h"
 #include "Virtual Machine/Operations/UtilityOps.h"
 
 
 using namespace Parser;
+
 
 
 //
@@ -26,7 +28,7 @@ using namespace Parser;
 VM::OperationPtr ParserState::CreateOperation_ConsArray()
 {
 	size_t paramcount = PassedParameterCount.top();
-	VM::EpochVariableTypeID elementtype = VM::EpochVariableType_Null;
+	VM::EpochVariableTypeID elementtype = VM::EpochVariableType_Error;
 
 	if(paramcount >= 1)
 		elementtype = TheStack.back().DetermineEffectiveType(*CurrentScope);
@@ -47,8 +49,19 @@ VM::OperationPtr ParserState::CreateOperation_ConsArray()
 	if(complained)
 		return VM::OperationPtr(new VM::Operations::NoOp);
 
-	ReverseOps(Blocks.back().TheBlock, paramcount);
-	return VM::OperationPtr(new VM::Operations::ConsArray(paramcount, elementtype));
+	TempArrayType = elementtype;
+
+	if(paramcount)
+	{
+		ReverseOps(Blocks.back().TheBlock, paramcount);
+		return VM::OperationPtr(new VM::Operations::ConsArray(paramcount, elementtype));
+	}
+
+	VM::OperationPtr op(Blocks.back().TheBlock->PopTailOperation());
+	VM::Operations::PushOperation* pushop = dynamic_cast<VM::Operations::PushOperation*>(op.get());
+	VM::Operation* innerop = pushop->GetNestedOperation();
+	pushop->UnlinkOperation();
+	return VM::OperationPtr(new VM::Operations::ConsArrayIndirect(elementtype, innerop));
 }
 
 
@@ -89,7 +102,7 @@ VM::OperationPtr ParserState::CreateOperation_ReadArray()
 		return VM::OperationPtr(new VM::Operations::NoOp);
 	}
 
-	if(!CurrentScope->HasVariable(identifier.StringValue))
+	if(CurrentScope->GetScopeOwningVariable(identifier.StringValue) == NULL)
 	{
 		ReportFatalError("Variable not found");
 		return VM::OperationPtr(new VM::Operations::NoOp);
@@ -144,7 +157,7 @@ VM::OperationPtr ParserState::CreateOperation_WriteArray()
 		return VM::OperationPtr(new VM::Operations::NoOp);
 	}
 
-	if(!CurrentScope->HasVariable(identifier.StringValue))
+	if(CurrentScope->GetScopeOwningVariable(identifier.StringValue) == NULL)
 	{
 		ReportFatalError("Variable not found");
 		return VM::OperationPtr(new VM::Operations::NoOp);

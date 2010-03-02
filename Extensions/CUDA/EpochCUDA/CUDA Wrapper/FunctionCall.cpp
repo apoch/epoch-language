@@ -11,6 +11,9 @@
 #include "CUDA Wrapper/Module.h"
 
 
+#define ALIGN_UP(offset, alignment) (offset) = ((offset) + (alignment) - 1) & ~((alignment) - 1)
+
+
 //
 // Construct and initialize a function call wrapper
 //
@@ -23,14 +26,20 @@ FunctionCall::FunctionCall(CUfunction handle)
 //
 // Add a parameter to the function call
 //
-void FunctionCall::AddParameter(CUdeviceptr devicepointer)
+void FunctionCall::AddPointerParameter(CUdeviceptr devicepointer)
 {
-	#define ALIGN_UP(offset, alignment) (offset) = ((offset) + (alignment) - 1) & ~((alignment) - 1)
-
 	void* ptr = reinterpret_cast<void*>(static_cast<size_t>(devicepointer));
 	ALIGN_UP(ParamOffset, __alignof(ptr));
 	cuParamSetv(FunctionHandle, ParamOffset, &ptr, sizeof(ptr));
 	ParamOffset += sizeof(ptr);
+}
+
+void FunctionCall::AddNumericParameter(size_t size)
+{
+	size_t internalsize = size;
+	ALIGN_UP(ParamOffset, __alignof(internalsize));
+	cuParamSetv(FunctionHandle, ParamOffset, &internalsize, sizeof(internalsize));
+	ParamOffset += sizeof(size_t);
 }
 
 //
@@ -38,7 +47,9 @@ void FunctionCall::AddParameter(CUdeviceptr devicepointer)
 //
 void FunctionCall::Execute()
 {
+	// TODO - correct threading parameters for invoking CUDA code
 	cuParamSetSize(FunctionHandle, ParamOffset);
-	cuLaunch(FunctionHandle);
+	cuFuncSetBlockShape(FunctionHandle, 256, 1, 1);
+	cuLaunchGrid(FunctionHandle, 16, 1);
 }
 

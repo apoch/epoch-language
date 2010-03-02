@@ -14,6 +14,8 @@
 #include "Virtual Machine/Core Entities/Program.h"
 #include "Virtual Machine/Core Entities/Concurrency/Future.h"
 
+#include "Virtual Machine/Operations/Flow/FlowControl.h"
+
 #include "Utility/Memory/Stack.h"
 #include "Utility/Threading/Threads.h"
 
@@ -65,5 +67,49 @@ void FutureWorkItem::PerformWork()
 
 	if(stack.GetAllocatedStack() != 0)
 		throw InternalFailureException("A stack space leak was detected when exiting an Epoch task.");
+}
+
+
+
+ParallelForWorkItem::ParallelForWorkItem(VM::Operations::ParallelFor& pforop, VM::ActivatedScope* parentscope, Block& codeblock, Program& runningprogram, size_t lowerbound, size_t upperbound, const std::wstring& countervarname)
+	: ParallelForOp(pforop),
+	  TheBlock(codeblock),
+	  RunningProgram(runningprogram),
+	  LowerBound(lowerbound),
+	  UpperBound(upperbound),
+	  CounterVarName(countervarname),
+	  ParentScope(parentscope)
+{
+}
+
+void ParallelForWorkItem::PerformWork()
+{
+	StackSpace stack;
+
+	FlowControlResult flowresult = FLOWCONTROL_NORMAL;
+
+	std::auto_ptr<ActivatedScope> codescope(new ActivatedScope(*TheBlock.GetBoundScope()));
+	codescope->TaskOrigin = Threads::GetInfoForThisThread().TaskOrigin;
+	codescope->LastMessageOrigin = 0;
+	codescope->ParentScope = ParentScope;
+
+	for(size_t counter = LowerBound; counter < UpperBound; ++counter)
+	{
+		codescope->Enter(stack);
+		codescope->SetVariableValue(CounterVarName, RValuePtr(new IntegerRValue(static_cast<Integer32>(counter))));
+		TheBlock.ExecuteBlock(ExecutionContext(RunningProgram, *codescope, stack, flowresult), NULL, false);
+		codescope->Exit(stack);
+
+		if(flowresult != FLOWCONTROL_NORMAL)
+		{
+			flowresult = FLOWCONTROL_NORMAL;
+			break;
+		}
+	}
+
+	ParallelForOp.DecrementWaitCounter();
+
+	if(stack.GetAllocatedStack() != 0)
+		throw InternalFailureException("A stack space leak was detected when completing a ParallelForWorkItem pooled work item.");
 }
 

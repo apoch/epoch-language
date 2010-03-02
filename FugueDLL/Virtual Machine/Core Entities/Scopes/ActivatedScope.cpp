@@ -39,7 +39,7 @@ using namespace VM;
 //
 // Construct and initialize an activated scope, based on a scope description template
 //
-ActivatedScope::ActivatedScope(const ScopeDescription& scope)
+ActivatedScope::ActivatedScope(ScopeDescription& scope)
 	: OriginalScope(scope),
 	  ParentScope(NULL),
 	  TaskOrigin(0),
@@ -53,7 +53,7 @@ ActivatedScope::ActivatedScope(const ScopeDescription& scope)
 //
 // Construct and initialize an activated scope with a given parent scope, based on a scope description template
 //
-ActivatedScope::ActivatedScope(const ScopeDescription& scope, ActivatedScope* parent)
+ActivatedScope::ActivatedScope(ScopeDescription& scope, ActivatedScope* parent)
 	: OriginalScope(scope),
 	  ParentScope(parent),
 	  TaskOrigin(0),
@@ -132,7 +132,7 @@ void ActivatedScope::Enter(StackSpace& stack)
 			StackUsage.top() += var.CastTo<BufferVariable>().BindToStack(stack);
 			break;
 		case EpochVariableType_Array:
-			StackUsage.top() += var.CastTo<ArrayVariable>().BindToStack(stack, OriginalScope.ArraySizes.find(*iter)->second, OriginalScope.GetArrayType(*iter));
+			StackUsage.top() += var.CastTo<ArrayVariable>().BindToStack(stack);
 			break;
 		default:
 			throw NotImplementedException("Cannot reserve stack space for this variable type");
@@ -273,6 +273,9 @@ void ActivatedScope::BindToStack(StackSpace& stack)
 				break;
 			case EpochVariableType_Structure:
 				StackUsage.top() += GetStructureType(var.CastTo<StructureVariable>().GetValue()).GetTotalSize();
+				break;
+			case EpochVariableType_Array:
+				StackUsage.top() += var.CastTo<ArrayVariable>().GetStorageSize();
 				break;
 			default:
 				StackUsage.top() += TypeInfo::GetStorageSize(var.GetType());
@@ -555,12 +558,9 @@ RValuePtr ActivatedScope::PopVariableOffStack(const std::wstring& name, Variable
 	case EpochVariableType_Array:
 		{
 			ArrayVariable temp(stack.GetCurrentTopOfStack());
-
-			if(ignorestorage)
-				var.CastTo<ArrayVariable>().SetInfo(OriginalScope.GetArrayType(name), OriginalScope.GetArraySize(name));
-
 			RValuePtr ret(temp.GetAsRValue());
-			stack.Pop(temp.GetStorageSize());
+			var.CastTo<ArrayVariable>().SetValue(temp.GetValue());
+			stack.Pop(ArrayVariable::GetBaseStorageSize());
 			return ret;
 		}
 	default:
@@ -720,31 +720,8 @@ RValuePtr ActivatedScope::SetVariableValue(const std::wstring& name, RValuePtr v
 		break;
 
 	case EpochVariableType_Array:
-		{
-			EpochVariableTypeID elementtype = value->CastTo<ArrayRValue>().GetElementType();
-			std::vector<RValue*> elementvalues = value->CastTo<ArrayRValue>().GetElements();
-			size_t stride = TypeInfo::GetStorageSize(elementtype);
-
-			size_t index = 0;
-			void* deststorage = var.CastTo<ArrayVariable>().GetArrayElementStorage();
-			for(std::vector<RValue*>::const_iterator iter = elementvalues.begin(); iter != elementvalues.end(); ++iter)
-			{
-				switch(elementtype)
-				{
-				case EpochVariableType_Integer:
-					*reinterpret_cast<IntegerVariable::BaseStorage*>(deststorage) = (*iter)->CastTo<IntegerRValue>().GetValue();
-					break;
-
-				case EpochVariableType_Real:
-					*reinterpret_cast<RealVariable::BaseStorage*>(deststorage) = (*iter)->CastTo<RealRValue>().GetValue();
-					break;
-
-				default:
-					throw NotImplementedException("Cannot copy array of this element type, someone has been lazy!");
-				}
-				deststorage = reinterpret_cast<char*>(deststorage) + stride;
-			}
-		}
+		value->CastTo<ArrayRValue>().StoreIntoNewBuffer();
+		var.CastTo<ArrayVariable>().SetValue(value->CastTo<ArrayRValue>().GetHandle());
 		break;
 
 	default:

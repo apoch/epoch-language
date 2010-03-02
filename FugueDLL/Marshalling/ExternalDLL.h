@@ -23,7 +23,7 @@ namespace Marshalling
 	{
 	// Construction and destruction
 	public:
-		CallDLL(const std::wstring& dllname, const std::wstring& functionname, VM::ScopeDescription* params, VM::EpochVariableTypeID returntype);
+		CallDLL(const std::wstring& dllname, const std::wstring& functionname, VM::ScopeDescription* params, VM::EpochVariableTypeID returntype, VM::EpochVariableTypeID returntypehint);
 		virtual ~CallDLL();
 
 	// Function/operation interface
@@ -39,11 +39,15 @@ namespace Marshalling
 		virtual VM::EpochVariableTypeID GetType(const VM::ScopeDescription& scope) const
 		{ return ReturnType; }
 
+		virtual VM::EpochVariableTypeID GetTypeHint(const VM::ScopeDescription& scope) const
+		{ return GetReturnTypeHint(); }
+
 	// Information retrieval
 	public:
-		const std::wstring& GetDLLName() const			{ return DLLName; }
-		const std::wstring& GetFunctionName() const		{ return FunctionName; }
-		VM::EpochVariableTypeID GetReturnType() const	{ return ReturnType; }
+		const std::wstring& GetDLLName() const				{ return DLLName; }
+		const std::wstring& GetFunctionName() const			{ return FunctionName; }
+		VM::EpochVariableTypeID GetReturnType() const		{ return ReturnType; }
+		VM::EpochVariableTypeID GetReturnTypeHint() const	{ return ReturnTypeHint; }
 
 	// Traversal
 	public:
@@ -59,6 +63,7 @@ namespace Marshalling
 		std::wstring FunctionName;
 		VM::ScopeDescription* Params;
 		VM::EpochVariableTypeID ReturnType;
+		VM::EpochVariableTypeID ReturnTypeHint;
 	};
 
 }

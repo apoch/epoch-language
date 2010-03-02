@@ -51,3 +51,7 @@ Threads::ThreadPool& ThreadPoolTracker::GetNamedPool(const std::wstring& poolnam
 }
 
 
+bool ThreadPoolTracker::HasNamedPool(const std::wstring& poolname) const
+{
+	return (NamedThreadPools.find(poolname) != NamedThreadPools.end());
+}
