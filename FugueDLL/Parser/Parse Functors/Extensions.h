@@ -33,6 +33,28 @@ private:
 	DefinitionT& GrammarDefinition;
 };
 
+template <typename DefinitionT>
+struct RegisterEnumeratedControl
+{
+	RegisterEnumeratedControl(DefinitionT& grammardefinition, Parser::ParserState& state)
+		: GrammarDefinition(grammardefinition),
+		  State(state)
+	{ }
+
+	void operator () (const std::wstring& blockkeyword, const std::vector<Extensions::ExtensionControlParamInfo>& params) const
+	{
+		if(!params.empty())
+			GrammarDefinition.AddExtensionControl(blockkeyword, &params[0], params.size(), State);
+		else
+			GrammarDefinition.AddExtensionControl(blockkeyword, NULL, 0, State);
+	}
+
+private:
+	DefinitionT& GrammarDefinition;
+	Parser::ParserState& State;
+};
+
+
 //
 // Inform the parse analyzer that a language extension should be loaded
 //
@@ -95,3 +117,42 @@ struct RegisterExtensionBlock : public ParseFunctorBase
 		State.RegisterExtensionBlock();
 	}
 };
+
+
+struct CreateLocalVariable : public ParseFunctorBase
+{
+	CreateLocalVariable(Parser::ParserState& state, VM::EpochVariableTypeID type)
+		: ParseFunctorBase(state),
+		  VarType(type)
+	{ }
+
+	template <typename IteratorType>
+	void operator () (IteratorType begin, IteratorType end) const
+	{
+		Trace(L"CreateLocalVariable");
+
+		State.SetParsePosition(begin);
+		std::wstring identifier(begin, end);
+		State.QueueControlVariable(StripWhitespace(identifier), VarType);
+		State.CountParameter();
+	}
+
+private:
+	VM::EpochVariableTypeID VarType;
+};
+
+
+struct RegisterEndOfExtensionControl : public ParseFunctorBase
+{
+	RegisterEndOfExtensionControl(Parser::ParserState& state)
+		: ParseFunctorBase(state)
+	{ }
+
+	template <typename ParamType>
+	void operator () (ParamType) const
+	{
+		Trace(L"RegisterEndOfExtensionControl");
+		State.RegisterEndOfExtensionControl();
+	}
+};
+

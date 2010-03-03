@@ -23,7 +23,7 @@ namespace Compiler
 	const std::wstring& GetGeneratedPTXFileName(Extensions::CompileSessionHandle sessionid);
 	Extensions::CompileSessionHandle GetAssociatedSession(Extensions::CodeBlockHandle codehandle);
 
-	Extensions::CodeBlockHandle GetCompiledBlock(Extensions::CompileSessionHandle sessionid, Extensions::OriginalCodeHandle handle);
+	Extensions::CodeBlockHandle GetCompiledBlock(Extensions::CompileSessionHandle sessionid, Extensions::OriginalCodeHandle handle, const std::wstring& keyword);
 	Extensions::OriginalCodeHandle GetOriginalCodeHandle(Extensions::CodeBlockHandle handle);
 	
 	const std::list<Traverser::ScopeContents>& GetRegisteredVariables(Extensions::CodeBlockHandle handle);
@@ -32,6 +32,8 @@ namespace Compiler
 	void TraverseInvokedFunctions(Extensions::CompileSessionHandle session);
 
 	void DestroyTempFiles();
+
+	const std::wstring& GetCodeControlKeyword(Extensions::CodeBlockHandle handle);
 
 }
 

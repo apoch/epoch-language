@@ -10,6 +10,8 @@
 
 // Dependencies
 #include "Language Extensions/HandleTypes.h"
+#include "Utility/Types/EpochTypeIDs.h"
+#include "Traverser/TraversalInterface.h"
 
 
 // Forward declarations
@@ -23,6 +25,9 @@ namespace VM
 namespace Extensions
 {
 
+	// Forward declarations
+	struct ExtensionControlParamInfo;
+
 	void PrepareForExecution();
 
 
@@ -32,9 +37,13 @@ namespace Extensions
 	std::set<std::wstring> GetAllExtensionDLLs();
 
 	void RegisterExtensionKeyword(const std::wstring& keyword, ExtensionLibraryHandle handler);
+	void RegisterExtensionControl(const std::wstring& keyword, ExtensionLibraryHandle token, size_t numparams, ExtensionControlParamInfo* params);
 
-	CodeBlockHandle BindLibraryToCode(ExtensionLibraryHandle libhandle, VM::Block* codeblock);
+	CodeBlockHandle BindLibraryToCode(ExtensionLibraryHandle libhandle, const std::wstring& keyword, VM::Block* codeblock);
 	void ExecuteBoundCodeBlock(ExtensionLibraryHandle libhandle, CodeBlockHandle codehandle, HandleType activatedscopehandle);
+	void ExecuteBoundCodeBlock(ExtensionLibraryHandle libhandle, CodeBlockHandle codehandle, HandleType activatedscopehandle, const std::vector<Traverser::Payload>& payloads);
+
+	const std::vector<ExtensionControlParamInfo>& GetParamsForControl(const std::wstring& keyword);
 
 
 	template <typename EnumCallback>
@@ -55,7 +64,15 @@ namespace Extensions
 	}
 
 
-	extern std::map<std::wstring, ExtensionLibraryHandle> ExtensionKeywordMap;
+	template <typename EnumCallback>
+	void EnumerateExtensionControls(EnumCallback callback)
+	{
+		for(std::map<std::wstring, std::vector<ExtensionControlParamInfo> >::const_iterator iter = ExtensionControlParamMap.begin(); iter != ExtensionControlParamMap.end(); ++iter)
+			callback(iter->first, iter->second);
+	}
 
+
+	extern std::map<std::wstring, ExtensionLibraryHandle> ExtensionKeywordMap;
+	extern std::map<std::wstring, std::vector<ExtensionControlParamInfo> > ExtensionControlParamMap;
 }
 

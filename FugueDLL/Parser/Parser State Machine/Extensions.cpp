@@ -57,3 +57,21 @@ void ParserState::RegisterExtensionBlock()
 	Blocks.back().TheBlock->RemoveTailOperations(1);
 	AddOperationToCurrentBlock(VM::OperationPtr(new Extensions::HandoffOperation(ParsedProgram->PoolStaticString(keyword), block)));
 }
+
+
+void ParserState::QueueControlVariable(const std::wstring& varname, VM::EpochVariableTypeID type)
+{
+	ControlVarName = varname;
+	ControlVarType = type;
+
+	StackEntry entry;
+	entry.Type = StackEntry::STACKENTRYTYPE_IDENTIFIER;
+	entry.StringValue = varname;
+	TheStack.push_back(entry);
+}
+
+void ParserState::RegisterEndOfExtensionControl()
+{
+	PopParameterCount();
+}
+

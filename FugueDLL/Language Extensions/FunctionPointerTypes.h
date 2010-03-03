@@ -9,6 +9,7 @@
 
 
 // Dependencies
+#include "Utility/Types/EpochTypeIDs.h"
 #include "Language Extensions/HandleTypes.h"
 
 
@@ -23,7 +24,15 @@ namespace Traverser
 namespace Extensions
 {
 
+	struct ExtensionControlParamInfo
+	{
+		bool CreatesLocalVariable;
+		VM::EpochVariableTypeID LocalVariableType;
+	};
+
+
 	typedef void (__stdcall *RegistrationCallbackPtr)(ExtensionLibraryHandle token, const wchar_t* keyword);
+	typedef void (__stdcall *ControlRegistrationCallbackPtr)(ExtensionLibraryHandle token, const wchar_t* keyword, size_t numparams, ExtensionControlParamInfo* params);
 	typedef void (__stdcall *TraversalCallbackPtr)(OriginalCodeHandle handle, Traverser::Interface* traversal, HandleType session);
 	typedef void (__stdcall *TraverseFunctionCallbackPtr)(const wchar_t* functionname, Traverser::Interface* traversal, HandleType session, HandleType program);
 	typedef void (__stdcall *MarshalCallbackReadPtr)(HandleType activatedscopehandle, const wchar_t* identifier, Traverser::Payload* payload);
@@ -37,6 +46,7 @@ namespace Extensions
 	struct ExtensionInterface
 	{
 		RegistrationCallbackPtr Register;
+		ControlRegistrationCallbackPtr RegisterControl;
 		TraversalCallbackPtr Traverse;
 		TraverseFunctionCallbackPtr TraverseFunction;
 		MarshalCallbackReadPtr MarshalRead;

@@ -310,6 +310,10 @@ template <> const std::wstring& Serialization::GetToken<Extensions::HandoffOpera
 template <> void Serialization::SerializeNode<Extensions::HandoffOperation>(const Extensions::HandoffOperation& op, SerializationTraverser& traverser)
 { traverser.WriteHandoffOp(&op, GetToken<Extensions::HandoffOperation>(), op.GetExtensionName()); }
 
+template <> const std::wstring& Serialization::GetToken<Extensions::HandoffControlOperation>() { return Serialization::HandoffControl; }
+template <> void Serialization::SerializeNode<Extensions::HandoffControlOperation>(const Extensions::HandoffControlOperation& op, SerializationTraverser& traverser)
+{ traverser.WriteHandoffOp(&op, GetToken<Extensions::HandoffControlOperation>(), op.GetExtensionName()); }
+
 template <> const std::wstring& Serialization::GetToken<VM::Operations::ParallelFor>() { return Serialization::ParallelFor; }
 template <> void Serialization::SerializeNode<VM::Operations::ParallelFor>(const VM::Operations::ParallelFor& op, SerializationTraverser& traverser)
 { traverser.WriteOp(&op, GetToken<VM::Operations::ParallelFor>(), op.GetAssociatedIdentifier()); }

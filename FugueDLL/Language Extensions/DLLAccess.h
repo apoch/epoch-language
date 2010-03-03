@@ -30,8 +30,9 @@ namespace Extensions
 	// Extension interface
 	public:
 		void RegisterExtensionKeywords(ExtensionLibraryHandle token);
-		CodeBlockHandle LoadSourceBlock(OriginalCodeHandle handle);
+		CodeBlockHandle LoadSourceBlock(const std::wstring& keyword, OriginalCodeHandle handle);
 		void ExecuteSourceBlock(CodeBlockHandle handle, HandleType activatedscopehandle);
+		void ExecuteSourceBlock(CodeBlockHandle handle, HandleType activatedscopehandle, const std::vector<Traverser::Payload>& payloads);
 		void PrepareForExecution();
 
 		CompileSessionHandle GetCompileSession() const
@@ -43,8 +44,9 @@ namespace Extensions
 	// Internal type definitions for function pointers
 	private:
 		typedef void (__stdcall *RegistrationPtr)(const ExtensionInterface* extensioninterface, ExtensionLibraryHandle token);
-		typedef CodeBlockHandle (__stdcall *LoadSourceBlockPtr)(CompileSessionHandle sessionid, OriginalCodeHandle handle);
+		typedef CodeBlockHandle (__stdcall *LoadSourceBlockPtr)(CompileSessionHandle sessionid, OriginalCodeHandle handle, const wchar_t* keyword);
 		typedef void (__stdcall *ExecuteSourceBlockPtr)(CodeBlockHandle handle, HandleType activatedscopehandle);
+		typedef void (__stdcall *ExecuteControlPtr)(CodeBlockHandle handle, HandleType activatedscopehandle, size_t numparams, const Traverser::Payload* params);
 
 		typedef CompileSessionHandle (__stdcall *StartCompileSessionPtr)(HandleType programhandle);
 		typedef void (__stdcall *PreparePtr)(CompileSessionHandle sessionid);
@@ -58,6 +60,7 @@ namespace Extensions
 		RegistrationPtr DoRegistration;
 		LoadSourceBlockPtr DoLoadSource;
 		ExecuteSourceBlockPtr DoExecuteSource;
+		ExecuteControlPtr DoExecuteControl;
 
 		StartCompileSessionPtr DoStartSession;
 		PreparePtr DoPrepare;

@@ -51,7 +51,7 @@ namespace VM
 
 		RValuePtr GetAsRValue() const
 		{
-			return RValuePtr(new ArrayRValue(GetValue(), false));		// TODO - replace this with "true" if arrays suddenly get borked
+			return RValuePtr(new ArrayRValue(GetValue(), false));
 		}
 
 		size_t BindToStack(StackSpace& stack)

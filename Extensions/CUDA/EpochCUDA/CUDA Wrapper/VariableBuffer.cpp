@@ -51,8 +51,10 @@ void VariableBuffer::CopyFromDevice(HandleType activatedscopehandle)
 // of data (where blocks are allocated for each necessary data type). Each pointer is
 // therefore passed as a function parameter to allow easy access.
 //
-void VariableBuffer::PrepareFunctionCall(FunctionCall& func)
+void VariableBuffer::PrepareFunctionCall(FunctionCall& func, size_t lowerbound)
 {
+	func.AddNumericParameter(lowerbound);
+
 	func.AddPointerParameter(SyncBufferForReals.GetDevicePointer());
 	func.AddPointerParameter(SyncBufferForInts.GetDevicePointer());
 

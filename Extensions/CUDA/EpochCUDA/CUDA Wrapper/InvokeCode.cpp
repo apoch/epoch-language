@@ -38,7 +38,7 @@ CUDACodeInvoker::CUDACodeInvoker(Extensions::CodeBlockHandle codehandle, HandleT
 //
 // Execute the bound CUDA code block
 //
-void CUDACodeInvoker::Execute()
+void CUDACodeInvoker::Execute(size_t lowerbound, size_t upperbound)
 {
 	VariableBuffer varbuffer(RegisteredVariables);
 	varbuffer.CopyToDevice(ActivatedScopeHandle);
@@ -47,8 +47,17 @@ void CUDACodeInvoker::Execute()
 		Threads::CriticalSection::Auto mutex(InvocationCriticalSection);
 
 		FunctionCall call = Module::LoadCUDAModule(narrow(Compiler::GetGeneratedPTXFileName(Compiler::GetAssociatedSession(CodeHandle)))).CreateFunctionCall(FunctionName);
-		varbuffer.PrepareFunctionCall(call);
-		call.Execute();
+				
+		if(Compiler::GetCodeControlKeyword(CodeHandle) == L"cudafor")
+		{
+			varbuffer.PrepareFunctionCall(call, lowerbound);
+			call.ExecuteForLoop(upperbound - lowerbound);
+		}
+		else
+		{
+			varbuffer.PrepareFunctionCall(call, 0);
+			call.ExecuteNormal();
+		}
 	}
 
 	varbuffer.CopyFromDevice(ActivatedScopeHandle);

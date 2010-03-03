@@ -9,4 +9,5 @@ EXPORTS
 	DummyExportFunction				@7
 	GenerateDataArray				@8
 	GenerateEmptyArray				@9
+	ExecuteControl					@10
 	

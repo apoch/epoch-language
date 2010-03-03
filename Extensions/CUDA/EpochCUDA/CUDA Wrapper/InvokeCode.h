@@ -26,7 +26,7 @@ public:
 
 // CUDA execution interface
 public:
-	void Execute();
+	void Execute(size_t lowerbound, size_t upperbound);
 
 // Internal tracking
 private:

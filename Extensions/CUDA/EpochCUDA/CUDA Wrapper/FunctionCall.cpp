@@ -45,11 +45,17 @@ void FunctionCall::AddNumericParameter(size_t size)
 //
 // Actually perform the function call
 //
-void FunctionCall::Execute()
+void FunctionCall::ExecuteNormal()
 {
-	// TODO - correct threading parameters for invoking CUDA code
 	cuParamSetSize(FunctionHandle, ParamOffset);
-	cuFuncSetBlockShape(FunctionHandle, 256, 1, 1);
-	cuLaunchGrid(FunctionHandle, 16, 1);
+	cuFuncSetBlockShape(FunctionHandle, 1, 1, 1);
+	cuLaunch(FunctionHandle);
+}
+
+void FunctionCall::ExecuteForLoop(size_t count)
+{
+	cuParamSetSize(FunctionHandle, ParamOffset);
+	cuFuncSetBlockShape(FunctionHandle, 1, 1, 1);
+	cuLaunchGrid(FunctionHandle, static_cast<unsigned>(count), 1);
 }
 

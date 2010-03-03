@@ -19,6 +19,7 @@ using namespace Extensions;
 std::map<std::wstring, ExtensionLibraryHandle> Extensions::ExtensionKeywordMap;
 std::map<std::wstring, ExtensionLibraryHandle> ExtensionLibraryDLLMap;
 std::map<ExtensionLibraryHandle, ExtensionDLLAccess> ExtensionLibraryMap;
+std::map<std::wstring, std::vector<ExtensionControlParamInfo> > Extensions::ExtensionControlParamMap;
 
 
 ExtensionLibraryHandle handlecounter = 0;
@@ -65,13 +66,13 @@ ExtensionLibraryHandle Extensions::GetLibraryProvidingExtension(const std::wstri
 // any processing it likes on the given code, such as compiling it into
 // a different language.
 //
-CodeBlockHandle Extensions::BindLibraryToCode(ExtensionLibraryHandle libhandle, VM::Block* codeblock)
+CodeBlockHandle Extensions::BindLibraryToCode(ExtensionLibraryHandle libhandle, const std::wstring& keyword, VM::Block* codeblock)
 {
 	std::map<ExtensionLibraryHandle, ExtensionDLLAccess>::iterator iter = ExtensionLibraryMap.find(libhandle);
 	if(iter == ExtensionLibraryMap.end())
 		throw Exception("Language extension library handle is invalid; has the library been unloaded?");
 
-	return iter->second.LoadSourceBlock(reinterpret_cast<OriginalCodeHandle>(codeblock));
+	return iter->second.LoadSourceBlock(keyword, reinterpret_cast<OriginalCodeHandle>(codeblock));
 }
 
 //
@@ -90,6 +91,16 @@ void Extensions::ExecuteBoundCodeBlock(ExtensionLibraryHandle libhandle, CodeBlo
 }
 
 
+void Extensions::ExecuteBoundCodeBlock(ExtensionLibraryHandle libhandle, CodeBlockHandle codehandle, HandleType activatedscopehandle, const std::vector<Traverser::Payload>& payloads)
+{
+	std::map<ExtensionLibraryHandle, ExtensionDLLAccess>::iterator iter = ExtensionLibraryMap.find(libhandle);
+	if(iter == ExtensionLibraryMap.end())
+		throw Exception("Language extension library handle is invalid; has the library been unloaded?");
+
+	iter->second.ExecuteSourceBlock(codehandle, activatedscopehandle, payloads);
+}
+
+
 //
 // Link a given new language keyword to the library that handles it
 //
@@ -101,6 +112,21 @@ void Extensions::RegisterExtensionKeyword(const std::wstring& keyword, Extension
 
 	ExtensionKeywordMap.insert(std::make_pair(keyword, handler));
 }
+
+
+void Extensions::RegisterExtensionControl(const std::wstring& keyword, ExtensionLibraryHandle token, size_t numparams, ExtensionControlParamInfo* params)
+{
+	RegisterExtensionKeyword(keyword, token);
+
+	std::vector<ExtensionControlParamInfo> paramvector;
+	paramvector.reserve(numparams);
+
+	for(unsigned i = 0; i < numparams; ++i)
+		paramvector.push_back(params[i]);
+
+	ExtensionControlParamMap.insert(std::make_pair(keyword, paramvector));
+}
+
 
 //
 // Signal all extensions to do any required preparatory work prior to executing the program
@@ -126,5 +152,14 @@ std::set<std::wstring> Extensions::GetAllExtensionDLLs()
 	for(std::map<ExtensionLibraryHandle, ExtensionDLLAccess>::const_iterator iter = ExtensionLibraryMap.begin(); iter != ExtensionLibraryMap.end(); ++iter)
 		ret.insert(StripExtension(iter->second.GetDLLFileName()));
 	return ret;
+}
+
+const std::vector<ExtensionControlParamInfo>& Extensions::GetParamsForControl(const std::wstring& keyword)
+{
+	std::map<std::wstring, std::vector<ExtensionControlParamInfo> >::const_iterator iter = ExtensionControlParamMap.find(keyword);
+	if(iter == ExtensionControlParamMap.end())
+		throw Exception("No language extension is loaded which handles this keyword");
+
+	return iter->second;
 }
 

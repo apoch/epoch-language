@@ -29,7 +29,8 @@ public:
 
 // Execution interface
 public:
-	void Execute();
+	void ExecuteNormal();
+	void ExecuteForLoop(size_t count);
 
 // Internal tracking
 private:

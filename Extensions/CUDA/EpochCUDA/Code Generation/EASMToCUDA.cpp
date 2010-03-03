@@ -430,7 +430,7 @@ void CompilationSession::PadTabs()
 void CompilationSession::FunctionPreamble(Extensions::OriginalCodeHandle handle)
 {
 	PadTabs();
-	TemporaryCodeFile.OutputStream << L"extern \"C\" __global__ void " << widen(GenerateFunctionName(handle)) << L"(float* __marshal_input_floats, int* __marshal_input_ints, float* __marshal_input_float_arrays, unsigned __num_float_arrays, unsigned* __float_array_sizes, int* __marshal_input_int_arrays, unsigned __num_int_arrays, unsigned* __int_array_sizes)\n";
+	TemporaryCodeFile.OutputStream << L"extern \"C\" __global__ void " << widen(GenerateFunctionName(handle)) << L"(unsigned __cudafor_lower_bound, float* __marshal_input_floats, int* __marshal_input_ints, float* __marshal_input_float_arrays, unsigned __num_float_arrays, unsigned* __float_array_sizes, int* __marshal_input_int_arrays, unsigned __num_int_arrays, unsigned* __int_array_sizes)\n";
 	PadTabs();
 	TemporaryCodeFile.OutputStream << L"{\n";
 	++TabDepth;
@@ -682,13 +682,7 @@ std::wstring CompilationSession::GenerateLeafCode(LeafList::const_iterator& iter
 
 		if(funcname == L"CUDAGetThreadIndex")
 		{
-			out << L"threadIdx.x";
-		}
-		else if(funcname == L"CUDASetThreads")
-		{
-			// Do nothing
-			AdvanceLeafIterator(iter);
-			return L"";
+			out << L"(blockIdx.x * blockDim.x + threadIdx.x + __cudafor_lower_bound)";
 		}
 		else
 		{

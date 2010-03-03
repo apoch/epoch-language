@@ -159,6 +159,7 @@ namespace Serialization
 
 	// Language extensions
 	extern std::wstring Handoff;
+	extern std::wstring HandoffControl;
 
 	// Miscellaneous tokens
 	extern std::wstring Null;

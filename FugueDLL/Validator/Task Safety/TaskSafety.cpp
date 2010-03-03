@@ -197,6 +197,7 @@ VALIDATE_ALWAYS_VALID(VM::Operations::TypeCastInteger16ToString)
 VALIDATE_ALWAYS_VALID(VM::Operations::TypeCastIntegerToString)
 
 VALIDATE_ALWAYS_VALID(Extensions::HandoffOperation)
+VALIDATE_ALWAYS_VALID(Extensions::HandoffControlOperation)
 VALIDATE_ALWAYS_VALID(Marshalling::CallDLL)
 
 

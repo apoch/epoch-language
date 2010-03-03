@@ -141,6 +141,7 @@ std::wstring Serialization::DebugCrashVM(L"DEBUG_CRASH_VM");
 std::wstring Serialization::CallDLL(L"EXTERNAL");
 
 std::wstring Serialization::Handoff(L"HANDOFF");
+std::wstring Serialization::HandoffControl(L"HANDOFFCTL");
 
 std::wstring Serialization::Null(L"NULL");
 std::wstring Serialization::BeginBlock(L"BLOCK");

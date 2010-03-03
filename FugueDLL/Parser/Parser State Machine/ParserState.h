@@ -296,12 +296,15 @@ namespace Parser
 		void PushExtensionBlockKeyword(const std::wstring& keyword);
 		void RegisterExtensionBlock();
 
+		void RegisterEndOfExtensionControl();
+
 	// Additional tracking
 	public:
 		void PushOperation(const std::wstring& operationname);
 		void SaveStringIdentifier(const std::wstring& identifier, SavedStringIndex slotindex);
 		void PushSavedIdentifier(SavedStringIndex slotindex);
 		void SaveTaskName(const std::wstring& taskname);
+		void QueueControlVariable(const std::wstring& varname, VM::EpochVariableTypeID type);
 
 	// Bindings to raw source code for outputting hints when errors occur
 	public:
@@ -405,6 +408,7 @@ namespace Parser
 				BLOCKENTRYTYPE_ELSEIFWRAPPER,
 				BLOCKENTRYTYPE_WHILELOOP,
 				BLOCKENTRYTYPE_PARALLELFOR,
+				BLOCKENTRYTYPE_EXTENSIONCONTROL,
 				BLOCKENTRYTYPE_TASK,
 				BLOCKENTRYTYPE_THREAD,
 				BLOCKENTRYTYPE_MSGDISPATCH,
@@ -617,7 +621,8 @@ namespace Parser
 
 		bool MessageParamIsArray;
 
-		std::wstring ParallelForCounterVarName;
+		std::wstring ControlVarName;
+		VM::EpochVariableTypeID ControlVarType;
 
 	// Public tracking
 	public:

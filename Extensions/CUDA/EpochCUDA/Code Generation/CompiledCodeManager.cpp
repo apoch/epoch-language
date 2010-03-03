@@ -36,6 +36,9 @@ CodeBlockHandle CodeHandleCounter = 0;
 // Track correspondence between internal code handles and the block handles from the VM
 std::map<CodeBlockHandle, OriginalCodeHandle> CodeHandleMap;
 
+// Track which keyword was used in the original program to generate a given code block
+std::map<CodeBlockHandle, std::wstring> CodeHandleToKeywordMap;
+
 // Track the known variables for each generated code block
 std::map<CodeBlockHandle, std::list<Traverser::ScopeContents> > RegisteredVariablesMap;
 
@@ -89,7 +92,7 @@ std::map<CodeBlockHandle, CompileSessionHandle> CodeHandleToSessionMap;
 // code block, unless the block has already been compiled, in which case we simply
 // return the handle of the previously compiled code block.
 //
-CodeBlockHandle Compiler::GetCompiledBlock(CompileSessionHandle sessionid, OriginalCodeHandle handle)
+CodeBlockHandle Compiler::GetCompiledBlock(CompileSessionHandle sessionid, OriginalCodeHandle handle, const std::wstring& keyword)
 {
 	// Don't bother compiling the same block twice
 	for(std::map<CodeBlockHandle, OriginalCodeHandle>::const_iterator iter = CodeHandleMap.begin(); iter != CodeHandleMap.end(); ++iter)
@@ -127,6 +130,7 @@ CodeBlockHandle Compiler::GetCompiledBlock(CompileSessionHandle sessionid, Origi
 	RegisteredVariablesMap[CodeHandleCounter].swap(registeredvariables);
 
 	CodeHandleToSessionMap[CodeHandleCounter] = sessionid;
+	CodeHandleToKeywordMap[CodeHandleCounter] = keyword;
 
 	return CodeHandleCounter;
 }
@@ -309,5 +313,15 @@ void Compiler::RecordInvokedFunction(CompileSessionHandle session, const std::ws
 		throw std::exception("Invalid compile session handle");
 
 	iter->second->InvokedFunctionList.insert(functionname);	
+}
+
+
+const std::wstring& Compiler::GetCodeControlKeyword(CodeBlockHandle handle)
+{
+	std::map<CodeBlockHandle, std::wstring>::const_iterator iter = CodeHandleToKeywordMap.find(handle);
+	if(iter == CodeHandleToKeywordMap.end())
+		throw std::exception("Invalid compile session handle");
+
+	return iter->second;
 }
 

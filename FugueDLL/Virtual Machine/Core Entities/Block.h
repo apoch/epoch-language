@@ -43,6 +43,7 @@ namespace VM
 	// Operation-list interface
 	public:
 		void AddOperation(OperationPtr op);
+		void InsertHeadOperation(OperationPtr op);
 		void ReplaceOperationFromEnd(size_t numopsfromend, OperationPtr op, const VM::ScopeDescription& scope);
 		void RemoveTailOperations(size_t numops);
 		void RemoveOperationFromEnd(size_t numops, const ScopeDescription& scope);

@@ -72,6 +72,15 @@ void Block::AddOperation(OperationPtr op)
 
 
 //
+// Insert an operation at the beginning of the code block's execution list
+//
+void Block::InsertHeadOperation(OperationPtr op)
+{
+	Operations.insert(Operations.begin(), op.release());
+}
+
+
+//
 // Remove operations from the end of the code block's execution list
 //
 // Note that unlike other manipulators this function does NOT treat a

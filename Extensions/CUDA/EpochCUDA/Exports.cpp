@@ -46,6 +46,20 @@ void __stdcall Register(const Extensions::ExtensionInterface* extensioninterface
 	{
 		FugueVMAccess::Interface = *extensioninterface;
 		extensioninterface->Register(token, L"cuda");
+
+		{
+			std::vector<Extensions::ExtensionControlParamInfo> params;
+			params.push_back(Extensions::ExtensionControlParamInfo());
+			params[0].LocalVariableType = VM::EpochVariableType_Integer;
+			params[0].CreatesLocalVariable = true;
+			params.push_back(Extensions::ExtensionControlParamInfo());
+			params[1].LocalVariableType = VM::EpochVariableType_Integer;
+			params[1].CreatesLocalVariable = false;
+			params.push_back(Extensions::ExtensionControlParamInfo());
+			params[2].LocalVariableType = VM::EpochVariableType_Integer;
+			params[2].CreatesLocalVariable = false;
+			extensioninterface->RegisterControl(token, L"cudafor", params.size(), &params[0]);
+		}
 	}
 	catch(std::exception& e)
 	{
@@ -63,11 +77,11 @@ void __stdcall Register(const Extensions::ExtensionInterface* extensioninterface
 // Request a handle to the compiled language-extended code generated from
 // the original Epoch code, as specified in the provided handle.
 //
-CodeBlockHandle __stdcall LoadSourceBlock(CompileSessionHandle sessionid, OriginalCodeHandle handle)
+CodeBlockHandle __stdcall LoadSourceBlock(CompileSessionHandle sessionid, OriginalCodeHandle handle, const wchar_t* keyword)
 {
 	try
 	{
-		return Compiler::GetCompiledBlock(sessionid, handle);
+		return Compiler::GetCompiledBlock(sessionid, handle, keyword);
 	}
 	catch(std::exception& e)
 	{
@@ -89,7 +103,30 @@ void __stdcall ExecuteSourceBlock(CodeBlockHandle handle, HandleType activatedsc
 	try
 	{
 		CUDACodeInvoker invoker(handle, activatedscopehandle);
-		invoker.Execute();
+		invoker.Execute(0, 0);
+	}
+	catch(std::exception& e)
+	{
+		FugueVMAccess::Interface.Error(widen(e.what()).c_str());
+	}
+	catch(...)
+	{
+		FugueVMAccess::Interface.Error(L"An unrecognized exception was thrown while trying to execute a CUDA code block");
+	}
+}
+
+void __stdcall ExecuteControl(CodeBlockHandle handle, HandleType activatedscopehandle, size_t numparams, const Traverser::Payload* params)
+{
+	if(numparams != 2)
+	{
+		FugueVMAccess::Interface.Error(L"Incorrect number of parameters supplied to control block");
+		return;
+	}
+
+	try
+	{
+		CUDACodeInvoker invoker(handle, activatedscopehandle);
+		invoker.Execute(params[0].Int32Value, params[1].Int32Value);
 	}
 	catch(std::exception& e)
 	{
@@ -279,12 +316,6 @@ void __stdcall LinkToEpochVM(RegistrationTable registration, void* bindrecord)
 	registration.RegisterFunction(L"CUDAGenerateDataArray", "GenerateDataArray", NULL, 0, VM::EpochVariableType_Array, VM::EpochVariableType_Real, bindrecord);
 	registration.RegisterFunction(L"CUDAGenerateEmptyArray", "GenerateEmptyArray", NULL, 0, VM::EpochVariableType_Array, VM::EpochVariableType_Real, bindrecord);
 	registration.RegisterFunction(L"CUDAGetThreadIndex", "DummyExportFunction", NULL, 0, VM::EpochVariableType_Integer, VM::EpochVariableType_Error, bindrecord);
-
-	{
-		std::vector<ParamData> params;
-		params.push_back(ParamData(L"numthreads", VM::EpochVariableType_Integer));	
-		registration.RegisterFunction(L"CUDASetThreads", "DummyExportFunction", &params[0], params.size(), VM::EpochVariableType_Integer, VM::EpochVariableType_Error, bindrecord);
-	}
 }
 
 

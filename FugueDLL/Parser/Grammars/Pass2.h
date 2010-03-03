@@ -36,6 +36,9 @@
 #include "Parser/Error Handling/ParserExceptions.h"
 #include "Parser/Error Handling/SyntaxErrors.h"
 
+#include "Language Extensions/ExtensionCatalog.h"
+#include "Language Extensions/FunctionPointerTypes.h"
+
 
 namespace Parser
 {
@@ -315,6 +318,7 @@ namespace Parser
 					= (IF[RegisterControl(self.State, false)] >> OPENPARENS[StartCountingParams(self.State)] >> PassedParameter >> CLOSEPARENS[PopParameterCount(self.State)] >> CodeBlock >> *(ELSEIF[RegisterControl(self.State, false)] >> OPENPARENS[StartCountingParams(self.State)] >> PassedParameter >> CLOSEPARENS[PopParameterCount(self.State)] >> CodeBlock) >> !(ELSE[RegisterControl(self.State, false)] >> CodeBlock))
 					| (WHILE[RegisterControl(self.State, false)] >> OPENPARENS[StartCountingParams(self.State)] >> PassedParameter >> CLOSEPARENS[RegisterEndOfWhileLoopConditional(self.State)] >> CodeBlock)
 					| (PARALLELFOR[RegisterControl(self.State, false)] >> OPENPARENS[StartCountingParams(self.State)] >> StringIdentifier[PushIdentifierNoStack(self.State)] >> COMMA >> PassedParameter >> COMMA >> PassedParameter >> COMMA >> PassedParameter >> CLOSEPARENS[RegisterEndOfParallelFor(self.State)] >> CodeBlock)
+					| LanguageExtensionControls
 					;
 
 				ControlWithEnding
@@ -529,6 +533,7 @@ namespace Parser
 				self.State.SetUpTypeAliases(*this, self.State);
 
 				Extensions::EnumerateExtensionKeywords(RegisterEnumeratedExtension<definition<ScannerType> >(*this));
+				Extensions::EnumerateExtensionControls(RegisterEnumeratedControl<definition<ScannerType> >(*this, self.State));
 
 #ifdef BOOST_SPIRIT_DEBUG
 				BOOST_SPIRIT_DEBUG_RULE(StringIdentifier);
@@ -610,7 +615,7 @@ namespace Parser
 			boost::spirit::classic::rule<ScannerType> LanguageExtensionBlock, ExtensionImport, ReadArrayHelper, WriteArrayHelper;
 
 			// Dynamic parser rules
-			boost::spirit::classic::stored_rule<ScannerType> InfixOperator, VariableDefinition, UserDefinedTypeAliases, LanguageExtensionKeywords;
+			boost::spirit::classic::stored_rule<ScannerType> InfixOperator, VariableDefinition, UserDefinedTypeAliases, LanguageExtensionKeywords, LanguageExtensionControls;
 
 
 			//
@@ -699,6 +704,28 @@ namespace Parser
 			void AddLanguageExtension(const std::wstring& blockkeyword)
 			{
 				LanguageExtensionKeywords = LanguageExtensionKeywords.copy() | boost::spirit::classic::strlit<>(Keywords::GetNarrowedKeyword(blockkeyword.c_str()));
+			}
+
+			void AddExtensionControl(const std::wstring& controlkeyword, const Extensions::ExtensionControlParamInfo* paraminfo, size_t numparams, ParserState& state)
+			{
+				boost::spirit::classic::stored_rule<ScannerType> temprule;
+
+				temprule = boost::spirit::classic::strlit<>(Keywords::GetNarrowedKeyword(controlkeyword.c_str()))[RegisterControl(state, false)] >> OPENPARENS[StartCountingParams(state)];
+
+				for(size_t i = 0; i < numparams; ++i)
+				{
+					if(paraminfo[i].CreatesLocalVariable)
+						temprule = temprule.copy() >> StringIdentifier[CreateLocalVariable(state, paraminfo[i].LocalVariableType)];
+					else
+						temprule = temprule.copy() >> PassedParameter;
+					
+					if(i < (numparams - 1))
+						 temprule = temprule.copy() >> COMMA;
+				}
+
+				temprule = temprule.copy() >> CLOSEPARENS[RegisterEndOfExtensionControl(state)] >> CodeBlock;
+
+				LanguageExtensionControls = LanguageExtensionControls.copy() | temprule.copy();
 			}
 		};
 	};

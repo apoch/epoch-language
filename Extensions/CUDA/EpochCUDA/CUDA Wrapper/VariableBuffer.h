@@ -252,7 +252,7 @@ public:
 
 // Helpers for function calls
 public:
-	void PrepareFunctionCall(FunctionCall& func);
+	void PrepareFunctionCall(FunctionCall& func, size_t lowerbound);
 
 // Internal tracking
 private:

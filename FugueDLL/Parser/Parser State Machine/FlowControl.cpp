@@ -26,6 +26,8 @@
 
 #include "Virtual Machine/SelfAware.inl"
 
+#include "Language Extensions/Handoff.h"
+
 #include "Utility/Strings.h"
 
 
@@ -104,7 +106,15 @@ void ParserState::RegisterControl(const std::wstring& controlname, bool preproce
 	else if(controlname == Keywords::ParallelFor)
 		ExpectedBlockTypes.push(BlockEntry::BLOCKENTRYTYPE_PARALLELFOR);
 	else
-		throw ParserFailureException("Unrecognized or misplaced flow control keyword");
+	{
+		StackEntry entry;
+		entry.Type = StackEntry::STACKENTRYTYPE_IDENTIFIER;
+		entry.StringValue = controlname;
+		TheStack.push_back(entry);
+
+		// TODO - verify that the extension keyword is valid!
+		ExpectedBlockTypes.push(BlockEntry::BLOCKENTRYTYPE_EXTENSIONCONTROL);
+	}
 }
 
 //
@@ -201,9 +211,9 @@ void ParserState::EnterBlock()
 		DisplacedScopes.push_back(CurrentScope);
 		TraceScopeCreation(scope.get(), CurrentScope);
 	}
-	else if(entry.Type == BlockEntry::BLOCKENTRYTYPE_PARALLELFOR)
+	else if(entry.Type == BlockEntry::BLOCKENTRYTYPE_PARALLELFOR || entry.Type == BlockEntry::BLOCKENTRYTYPE_EXTENSIONCONTROL)
 	{
-		scope->AddVariable(ParallelForCounterVarName, VM::EpochVariableType_Integer);
+		scope->AddVariable(ControlVarName, ControlVarType);
 
 		TraceScopeCreation(scope.get(), NULL);
 		scope->ParentScope = CurrentScope;
@@ -544,6 +554,25 @@ void ParserState::ExitBlock()
 		}
 		break;
 
+	case BlockEntry::BLOCKENTRYTYPE_EXTENSIONCONTROL:
+		{
+			std::auto_ptr<VM::Block> body(Blocks.back().TheBlock);
+			Blocks.pop_back();
+
+			// TODO - validate parameters, and use the actual extension's defined parameters instead of this hard-coded hack
+			TheStack.pop_back();	// upper bound
+			TheStack.pop_back();	// lower bound
+
+			std::wstring countervarname = TheStack.back().StringValue;
+			TheStack.pop_back();	// counter variable name
+
+			std::wstring keyword = TheStack.back().StringValue;
+			TheStack.pop_back();
+
+			AddOperationToCurrentBlock(VM::OperationPtr(new Extensions::HandoffControlOperation(ParsedProgram->PoolStaticString(keyword), body.release(), ParsedProgram->PoolStaticString(countervarname), *CurrentScope)));
+		}
+		break;
+
 	default:
 		throw ParserFailureException("Invalid block type; this probably reflects corruption in the parser");
 	}
@@ -667,6 +696,7 @@ void ParserState::ExitBlockPP()
 	case BlockEntry::BLOCKENTRYTYPE_THREAD:
 	case BlockEntry::BLOCKENTRYTYPE_MSGDISPATCH:
 	case BlockEntry::BLOCKENTRYTYPE_PARALLELFOR:
+	case BlockEntry::BLOCKENTRYTYPE_EXTENSIONCONTROL:
 		Blocks.pop_back();
 		break;
 
@@ -702,7 +732,8 @@ void ParserState::RegisterEndOfParallelFor()
 	if(PassedParameterCount.top() != 4)
 		ReportFatalError("parallelfor() expects 4 parameters");
 
-	ParallelForCounterVarName = (TheStack.rbegin() + 3)->StringValue;
+	ControlVarName = (TheStack.rbegin() + 3)->StringValue;
+	ControlVarType = VM::EpochVariableType_Integer;
 
 	PopParameterCount();
 }

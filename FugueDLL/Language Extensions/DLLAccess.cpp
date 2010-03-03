@@ -42,6 +42,7 @@ ExtensionDLLAccess::ExtensionDLLAccess(const std::wstring& dllname, VM::Program&
 	DoRegistration = reinterpret_cast<RegistrationPtr>(::GetProcAddress(DLLHandle, "Register"));
 	DoLoadSource = reinterpret_cast<LoadSourceBlockPtr>(::GetProcAddress(DLLHandle, "LoadSourceBlock"));
 	DoExecuteSource = reinterpret_cast<ExecuteSourceBlockPtr>(::GetProcAddress(DLLHandle, "ExecuteSourceBlock"));
+	DoExecuteControl = reinterpret_cast<ExecuteControlPtr>(::GetProcAddress(DLLHandle, "ExecuteControl"));
 	DoPrepare = reinterpret_cast<PreparePtr>(::GetProcAddress(DLLHandle, "CommitCompilation"));
 	DoStartSession = reinterpret_cast<StartCompileSessionPtr>(::GetProcAddress(DLLHandle, "StartNewProgramCompilation"));
 
@@ -64,9 +65,9 @@ ExtensionDLLAccess::~ExtensionDLLAccess()
 //
 // Create a block of code in the language extension, given a block of raw Epoch code
 //
-CodeBlockHandle ExtensionDLLAccess::LoadSourceBlock(OriginalCodeHandle handle)
+CodeBlockHandle ExtensionDLLAccess::LoadSourceBlock(const std::wstring& keyword, OriginalCodeHandle handle)
 {
-	return DoLoadSource(SessionHandle, handle);
+	return DoLoadSource(SessionHandle, handle, keyword.c_str());
 }
 
 //
@@ -75,6 +76,14 @@ CodeBlockHandle ExtensionDLLAccess::LoadSourceBlock(OriginalCodeHandle handle)
 void ExtensionDLLAccess::ExecuteSourceBlock(CodeBlockHandle handle, HandleType activatedscopehandle)
 {
 	return DoExecuteSource(handle, activatedscopehandle);
+}
+
+void ExtensionDLLAccess::ExecuteSourceBlock(CodeBlockHandle handle, HandleType activatedscopehandle, const std::vector<Traverser::Payload>& payloads)
+{
+	if(payloads.empty())
+		return DoExecuteControl(handle, activatedscopehandle, 0, NULL);
+	else
+		return DoExecuteControl(handle, activatedscopehandle, payloads.size(), &payloads[0]);
 }
 
 
@@ -91,6 +100,11 @@ namespace
 	void __stdcall RegistrationCallback(ExtensionLibraryHandle token, const wchar_t* keyword)
 	{
 		RegisterExtensionKeyword(keyword, token);
+	}
+
+	void __stdcall ControlRegistrationCallback(ExtensionLibraryHandle token, const wchar_t* keyword, size_t numparams, ExtensionControlParamInfo* params)
+	{
+		RegisterExtensionControl(keyword, token, numparams, params);
 	}
 
 
@@ -293,6 +307,7 @@ void ExtensionDLLAccess::RegisterExtensionKeywords(ExtensionLibraryHandle token)
 {
 	Extensions::ExtensionInterface eif;
 	eif.Register = RegistrationCallback;
+	eif.RegisterControl = ControlRegistrationCallback;
 	eif.Traverse = TraversalCallback;
 	eif.TraverseFunction = TraverseFunctionCallback;
 	eif.MarshalRead = MarshalCallbackRead;
