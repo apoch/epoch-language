@@ -624,6 +624,8 @@ namespace Parser
 		std::wstring ControlVarName;
 		VM::EpochVariableTypeID ControlVarType;
 
+		std::stack<std::wstring> ExtensionControlKeywords;
+
 	// Public tracking
 	public:
 		DebugTable DebugInfo;

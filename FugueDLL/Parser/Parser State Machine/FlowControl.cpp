@@ -27,6 +27,7 @@
 #include "Virtual Machine/SelfAware.inl"
 
 #include "Language Extensions/Handoff.h"
+#include "Language Extensions/FunctionPointerTypes.h"
 
 #include "Utility/Strings.h"
 
@@ -107,12 +108,16 @@ void ParserState::RegisterControl(const std::wstring& controlname, bool preproce
 		ExpectedBlockTypes.push(BlockEntry::BLOCKENTRYTYPE_PARALLELFOR);
 	else
 	{
+		// This will throw an exception should the keyword be invalid
+		Extensions::GetLibraryProvidingExtension(controlname);
+
 		StackEntry entry;
 		entry.Type = StackEntry::STACKENTRYTYPE_IDENTIFIER;
 		entry.StringValue = controlname;
 		TheStack.push_back(entry);
 
-		// TODO - verify that the extension keyword is valid!
+		ExtensionControlKeywords.push(controlname);
+
 		ExpectedBlockTypes.push(BlockEntry::BLOCKENTRYTYPE_EXTENSIONCONTROL);
 	}
 }
@@ -537,20 +542,42 @@ void ParserState::ExitBlock()
 
 	case BlockEntry::BLOCKENTRYTYPE_PARALLELFOR:
 		{
+			bool success = false;
+
 			std::auto_ptr<VM::Block> body(Blocks.back().TheBlock);
 			Blocks.pop_back();
 
-			// TODO - validate parameters
-			TheStack.pop_back();	// thread pool size
-			TheStack.pop_back();	// upper bound
-			TheStack.pop_back();	// lower bound
+			if(TheStack.empty() || TheStack.back().DetermineEffectiveType(*CurrentScope) != VM::EpochVariableType_Integer)
+				throw ParserFailureException("Last parameter to parallelfor() should be a thread count");
+			TheStack.pop_back();
+
+			if(TheStack.empty() || TheStack.back().DetermineEffectiveType(*CurrentScope) != VM::EpochVariableType_Integer)
+				throw ParserFailureException("Third parameter to parallelfor() should be an upper boundary value");
+			TheStack.pop_back();
+
+			if(TheStack.empty() || TheStack.back().DetermineEffectiveType(*CurrentScope) != VM::EpochVariableType_Integer)
+				throw ParserFailureException("Second parameter to parallelfor() should be a lower boundary value");
+			TheStack.pop_back();
 
 			if(TheStack.empty() || TheStack.back().Type != StackEntry::STACKENTRYTYPE_IDENTIFIER)
-				ReportFatalError("Missing loop counter variable");
+				ReportFatalError("First parameter to parallelfor() should be a loop counter variable name");
 			else
+			{
+				success = true;
 				AddOperationToCurrentBlock(VM::OperationPtr(new VM::Operations::ParallelFor(body.release(), ParsedProgram->PoolStaticString(TheStack.back().StringValue))));
+			}
 
 			TheStack.pop_back();
+
+			// If we didn't manage to attach the code block to a parallelfor instruction,
+			// we need to ensure that we reset the current scope before exiting the switch
+			// case, so that the auto_ptr doesn't release the block prior to us getting
+			// ahold of the block's parent scope pointer.
+			if(!success)
+			{
+				CurrentScope = CurrentScope->ParentScope;
+				return;
+			}
 		}
 		break;
 
@@ -559,15 +586,34 @@ void ParserState::ExitBlock()
 			std::auto_ptr<VM::Block> body(Blocks.back().TheBlock);
 			Blocks.pop_back();
 
-			// TODO - validate parameters, and use the actual extension's defined parameters instead of this hard-coded hack
-			TheStack.pop_back();	// upper bound
-			TheStack.pop_back();	// lower bound
+			std::wstring controlname = ExtensionControlKeywords.top();
+			ExtensionControlKeywords.pop();
 
-			std::wstring countervarname = TheStack.back().StringValue;
-			TheStack.pop_back();	// counter variable name
+			std::wstring countervarname;
+
+			const std::vector<Extensions::ExtensionControlParamInfo>& paraminfo = Extensions::GetParamsForControl(controlname);
+			for(std::vector<Extensions::ExtensionControlParamInfo>::const_reverse_iterator paraminfoiter = paraminfo.rbegin(); paraminfoiter != paraminfo.rend(); ++paraminfoiter)
+			{
+				if(paraminfoiter->CreatesLocalVariable)
+				{
+					if(TheStack.back().Type != StackEntry::STACKENTRYTYPE_IDENTIFIER)
+						ReportFatalError("Expected a variable identifier");
+					else
+						countervarname = TheStack.back().StringValue;
+				}
+				else
+				{
+					if(TheStack.back().DetermineEffectiveType(*CurrentScope) != paraminfoiter->LocalVariableType)
+						ReportFatalError("Parameter type is incorrect");
+				}
+
+				TheStack.pop_back();
+			}
 
 			std::wstring keyword = TheStack.back().StringValue;
 			TheStack.pop_back();
+			if(keyword != controlname)
+				throw ParserFailureException("Mismatched control flow keywords, something has gone horribly wrong in the parser");
 
 			AddOperationToCurrentBlock(VM::OperationPtr(new Extensions::HandoffControlOperation(ParsedProgram->PoolStaticString(keyword), body.release(), ParsedProgram->PoolStaticString(countervarname), *CurrentScope)));
 		}

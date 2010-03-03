@@ -230,6 +230,7 @@ namespace
 		switch(payload.Type)
 		{
 		case VM::EpochVariableType_Integer:			return VM::RValuePtr(new VM::IntegerRValue(payload.Int32Value));
+		case VM::EpochVariableType_Integer16:		return VM::RValuePtr(new VM::Integer16RValue(payload.Int16Value));
 		case VM::EpochVariableType_Real:			return VM::RValuePtr(new VM::RealRValue(payload.FloatValue));
 		case VM::EpochVariableType_String:			return VM::RValuePtr(new VM::StringRValue(payload.StringValue));
 		case VM::EpochVariableType_Array:			return VM::RValuePtr(new VM::ArrayRValue(payload.ParameterType, payload.ParameterCount, payload.PointerValue));
@@ -262,6 +263,9 @@ namespace
 		{
 		case VM::EpochVariableType_Integer:
 			payload->SetValue(activatedscope->GetVariableValue(identifier)->CastTo<VM::IntegerRValue>().GetValue());
+			break;
+		case VM::EpochVariableType_Integer16:
+			payload->SetValue(activatedscope->GetVariableValue(identifier)->CastTo<VM::Integer16RValue>().GetValue());
 			break;
 		case VM::EpochVariableType_Real:
 			payload->SetValue(activatedscope->GetVariableValue(identifier)->CastTo<VM::RealRValue>().GetValue());
