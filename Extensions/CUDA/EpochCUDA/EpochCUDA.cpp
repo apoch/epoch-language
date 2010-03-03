@@ -31,15 +31,7 @@ BOOL APIENTRY DllMain(HMODULE, DWORD reason, LPVOID)
 {
 	try
 	{
-		if(reason == DLL_PROCESS_ATTACH)
-		{
-			if(!InitializeCUDA())
-			{
-				FugueVMAccess::Interface.Error(L"Failed to initialize CUDA support");
-				return FALSE;
-			}
-		}
-		else if(reason == DLL_PROCESS_DETACH)
+		if(reason == DLL_PROCESS_DETACH)
 		{
 			ShutdownCUDA();
 			Compiler::DestroyTempFiles();

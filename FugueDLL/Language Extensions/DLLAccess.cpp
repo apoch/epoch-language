@@ -31,7 +31,8 @@ using namespace Extensions;
 //
 ExtensionDLLAccess::ExtensionDLLAccess(const std::wstring& dllname, VM::Program& program)
 	: SessionHandle(0),
-	  DLLName(dllname)
+	  DLLName(dllname),
+	  ExtensionValid(false)
 {
 	// Load the DLL
 	HINSTANCE DLLHandle = ::LoadLibrary(dllname.c_str());
@@ -39,6 +40,7 @@ ExtensionDLLAccess::ExtensionDLLAccess(const std::wstring& dllname, VM::Program&
 		throw Exception("A language extension DLL was requested, but the DLL was either not found or reported some error during initialization");
 
 	// Obtain interface into DLL
+	DoInitialize = reinterpret_cast<InitializePtr>(::GetProcAddress(DLLHandle, "Initialize"));
 	DoRegistration = reinterpret_cast<RegistrationPtr>(::GetProcAddress(DLLHandle, "Register"));
 	DoLoadSource = reinterpret_cast<LoadSourceBlockPtr>(::GetProcAddress(DLLHandle, "LoadSourceBlock"));
 	DoExecuteSource = reinterpret_cast<ExecuteSourceBlockPtr>(::GetProcAddress(DLLHandle, "ExecuteSourceBlock"));
@@ -47,10 +49,13 @@ ExtensionDLLAccess::ExtensionDLLAccess(const std::wstring& dllname, VM::Program&
 	DoStartSession = reinterpret_cast<StartCompileSessionPtr>(::GetProcAddress(DLLHandle, "StartNewProgramCompilation"));
 
 	// Validate interface to be sure
-	if(!DoRegistration || !DoLoadSource || !DoExecuteSource || !DoPrepare || !DoStartSession)
+	if(!DoInitialize || !DoRegistration || !DoLoadSource || !DoExecuteSource || !DoExecuteControl || !DoPrepare || !DoStartSession)
 		throw Exception("One or more Epoch service functions could not be loaded from the requested language extension DLL");
 
-	SessionHandle = DoStartSession(reinterpret_cast<HandleType>(&program));
+	ExtensionValid = DoInitialize();
+
+	if(ExtensionValid)
+		SessionHandle = DoStartSession(reinterpret_cast<HandleType>(&program));
 }
 
 //

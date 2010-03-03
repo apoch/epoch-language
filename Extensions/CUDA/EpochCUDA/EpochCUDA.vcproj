@@ -62,9 +62,10 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="cuda.lib"
+				AdditionalDependencies="cuda.lib delayimp.lib"
 				LinkIncremental="2"
 				ModuleDefinitionFile="Exports.def"
+				DelayLoadDLLs="nvcuda.dll"
 				GenerateDebugInformation="true"
 				SubSystem="2"
 				TargetMachine="1"
@@ -139,9 +140,10 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="cuda.lib"
+				AdditionalDependencies="cuda.lib delayimp.lib"
 				LinkIncremental="1"
 				ModuleDefinitionFile="Exports.def"
+				DelayLoadDLLs="nvcuda.dll"
 				GenerateDebugInformation="true"
 				SubSystem="2"
 				OptimizeReferences="2"
@@ -220,9 +222,10 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="cuda.lib"
+				AdditionalDependencies="cuda.lib delayimp.lib"
 				LinkIncremental="2"
 				ModuleDefinitionFile="Exports.def"
+				DelayLoadDLLs="nvcuda.dll"
 				GenerateDebugInformation="true"
 				SubSystem="2"
 				TargetMachine="1"
@@ -297,9 +300,10 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="cuda.lib"
+				AdditionalDependencies="cuda.lib delayimp.lib"
 				LinkIncremental="1"
 				ModuleDefinitionFile="Exports.def"
+				DelayLoadDLLs="nvcuda.dll"
 				GenerateDebugInformation="true"
 				SubSystem="2"
 				OptimizeReferences="2"

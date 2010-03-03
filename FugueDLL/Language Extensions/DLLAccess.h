@@ -43,6 +43,7 @@ namespace Extensions
 
 	// Internal type definitions for function pointers
 	private:
+		typedef bool (__stdcall *InitializePtr)();
 		typedef void (__stdcall *RegistrationPtr)(const ExtensionInterface* extensioninterface, ExtensionLibraryHandle token);
 		typedef CodeBlockHandle (__stdcall *LoadSourceBlockPtr)(CompileSessionHandle sessionid, OriginalCodeHandle handle, const wchar_t* keyword);
 		typedef void (__stdcall *ExecuteSourceBlockPtr)(CodeBlockHandle handle, HandleType activatedscopehandle);
@@ -57,6 +58,7 @@ namespace Extensions
 
 		HMODULE DLLHandle;
 
+		InitializePtr DoInitialize;
 		RegistrationPtr DoRegistration;
 		LoadSourceBlockPtr DoLoadSource;
 		ExecuteSourceBlockPtr DoExecuteSource;
@@ -66,6 +68,8 @@ namespace Extensions
 		PreparePtr DoPrepare;
 
 		CompileSessionHandle SessionHandle;
+
+		bool ExtensionValid;
 	};
 
 }

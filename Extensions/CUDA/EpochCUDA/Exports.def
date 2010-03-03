@@ -10,4 +10,6 @@ EXPORTS
 	GenerateDataArray				@8
 	GenerateEmptyArray				@9
 	ExecuteControl					@10
+	Initialize						@11
+	
 	

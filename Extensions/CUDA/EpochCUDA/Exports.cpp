@@ -9,6 +9,7 @@
 
 #include "Traverser/TraversalInterface.h"
 #include "CUDA Wrapper/InvokeCode.h"
+#include "CUDA Wrapper/Initialization.h"
 #include "Configuration/ConfigFile.h"
 
 #include "Code Generation/CompiledCodeManager.h"
@@ -29,6 +30,18 @@ using namespace Traverser;
 
 
 RequestMarshalBufferPtr RequestMarshalBuffer = NULL;
+
+
+bool __stdcall Initialize()
+{
+	if(!InitializeCUDA())
+	{
+		FugueVMAccess::Interface.Error(L"Failed to initialize CUDA support");
+		return false;
+	}
+
+	return true;
+}
 
 
 //
