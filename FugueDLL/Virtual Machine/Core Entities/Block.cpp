@@ -39,7 +39,7 @@ Block::~Block()
 // when appropriate. This is done to allow functions and control structures
 // to retrieve a conditional value from the stack prior to cleanup.
 //
-void Block::ExecuteBlock(ExecutionContext& context, HeapStorage* heapstorage, bool enterscopes)
+void Block::ExecuteBlock(ExecutionContext& context, HeapStorage* heapstorage, bool enterscopes, unsigned skipinstructions)
 {
 	if(enterscopes)
 	{
@@ -49,7 +49,9 @@ void Block::ExecuteBlock(ExecutionContext& context, HeapStorage* heapstorage, bo
 			context.Scope.Enter(context.Stack);
 	}
 
-	for(std::vector<Operation*>::iterator iter = Operations.begin(); iter != Operations.end(); ++iter)
+	std::vector<Operation*>::iterator iter = Operations.begin();
+	std::advance(iter, skipinstructions);
+	while(iter != Operations.end())
 	{
 		FlowControlResult bodyflowresult = FLOWCONTROL_NORMAL;
 		(*iter)->ExecuteFast(ExecutionContext(context.RunningProgram, context.Scope, context.Stack, bodyflowresult));
@@ -58,6 +60,7 @@ void Block::ExecuteBlock(ExecutionContext& context, HeapStorage* heapstorage, bo
 			context.FlowResult = bodyflowresult;
 			break;
 		}
+		++iter;
 	}
 }
 

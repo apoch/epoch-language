@@ -62,7 +62,7 @@ namespace VM
 	{
 	// Construction
 	public:
-		ParallelForWorkItem(VM::Operations::ParallelFor& pforop, VM::ActivatedScope* parentscope, Block& codeblock, Program& runningprogram, size_t lowerbound, size_t upperbound, const std::wstring& countervarname);
+		ParallelForWorkItem(VM::Operations::ParallelFor& pforop, VM::ActivatedScope* parentscope, Block& codeblock, Program& runningprogram, size_t lowerbound, size_t upperbound, const std::wstring& countervarname, unsigned skipinstructions);
 
 	// Work item interface
 	public:
@@ -80,6 +80,8 @@ namespace VM
 		size_t UpperBound;
 
 		const std::wstring& CounterVarName;
+
+		unsigned SkipInstructions;
 	};
 
 }

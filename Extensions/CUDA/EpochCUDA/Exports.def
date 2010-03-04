@@ -11,5 +11,5 @@ EXPORTS
 	GenerateEmptyArray				@9
 	ExecuteControl					@10
 	Initialize						@11
-	
+	IsCUDAAvailable					@12
 	

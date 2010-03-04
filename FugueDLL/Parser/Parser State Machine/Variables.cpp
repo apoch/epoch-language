@@ -222,6 +222,7 @@ void ParserState::RegisterArrayVariable()
 		AddOperationToCurrentBlock(VM::OperationPtr(new VM::Operations::InitializeValue(varname)));
 
 		ArrayTypes[varname] = type;
+		CurrentScope->SetArrayType(varname, type);
 
 		if(IsDefiningConstant)
 			CurrentScope->SetConstant(varname);

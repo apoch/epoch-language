@@ -228,11 +228,16 @@ void CompilationSession::WriteScopeContents(bool toplevel, size_t numcontents, c
 		{
 			PadTabs();
 			TemporaryCodeFile.OutputStream << L"unsigned int __marshal_int_array_index = 0;\n";
+			PadTabs();
+			TemporaryCodeFile.OutputStream << L"int* __marshal_int_array_ptr = __marshal_input_int_arrays;\n";
 		}
 	}
 
 	PadTabs();
 	TemporaryCodeFile.OutputStream << L"// Define variables in the current scope\n";
+
+	unsigned FloatArrayMarshalIndex = 0;
+	unsigned IntArrayMarshalIndex = 0;
 
 	for(size_t i = 0; i < numcontents; ++i)
 	{
@@ -265,10 +270,12 @@ void CompilationSession::WriteScopeContents(bool toplevel, size_t numcontents, c
 				{
 				case VM::EpochVariableType_Integer:
 					arraytypetoken = L"int";
+					SetNamedArrayMarshalIndex(contents[i].Identifier, IntArrayMarshalIndex++);
 					break;
 
 				case VM::EpochVariableType_Real:
 					arraytypetoken = L"float";
+					SetNamedArrayMarshalIndex(contents[i].Identifier, FloatArrayMarshalIndex++);
 					break;
 
 				default:
@@ -280,8 +287,7 @@ void CompilationSession::WriteScopeContents(bool toplevel, size_t numcontents, c
 				TemporaryCodeFile.OutputStream << L"__marshal_" << arraytypetoken << L"_array_ptr += __" << arraytypetoken << L"_array_sizes[__marshal_" << arraytypetoken << L"_array_index];\n";
 				PadTabs();
 				TemporaryCodeFile.OutputStream << L"++__marshal_" << arraytypetoken << L"_array_index;\n";
-				ArraySizeCache[contents[i].Identifier] = contents[i].ContainedSize;
-				
+
 				appendsemicolon = false;
 			}
 			break;
@@ -464,50 +470,22 @@ void CompilationSession::MarshalOut()
 		TemporaryCodeFile.OutputStream << L"__marshal_int_index = 0;\n";
 	}
 
-	if(MarshalFloatArrays)
-	{
-		PadTabs();
-		TemporaryCodeFile.OutputStream << L"__marshal_float_array_index = 0;\n";
-	}
-
-	if(MarshalIntArrays)
-	{
-		PadTabs();
-		TemporaryCodeFile.OutputStream << L"__marshal_int_array_index = 0;\n";
-	}
-
 	for(std::list<Traverser::ScopeContents>::const_iterator iter = RegisteredVariables->begin(); iter != RegisteredVariables->end(); ++iter)
 	{
-		PadTabs();
 		switch(iter->Type)
 		{
 		case VM::EpochVariableType_Integer:
+			PadTabs();
 			TemporaryCodeFile.OutputStream << L"__marshal_input_ints[__marshal_int_index++] = " << iter->Identifier << L";\n";
 			break;
 
 		case VM::EpochVariableType_Real:
+			PadTabs();
 			TemporaryCodeFile.OutputStream << L"__marshal_input_floats[__marshal_float_index++] = " << iter->Identifier << L";\n";
 			break;
 
 		case VM::EpochVariableType_Array:
-			{
-				switch(iter->ContainedType)
-				{
-				case VM::EpochVariableType_Integer:
-					TemporaryCodeFile.OutputStream << "for(unsigned __marshal_array_counter = 0; __marshal_array_counter < " << GetArraySize(iter->Identifier) << "; ++__marshal_array_counter)\n";
-					++TabDepth;
-					PadTabs();
-					TemporaryCodeFile.OutputStream << "__marshal_input_int_arrays[__marshal_int_array_index++] = " << iter->Identifier << "[__marshal_array_counter];\n";
-					--TabDepth;
-					break;
-
-				case VM::EpochVariableType_Real:
-					break;
-
-				default:
-					throw std::exception("Unsupported type - cannot generate code to transfer variable data from the CUDA device!");
-				}
-			}
+			// We write directly to arrays, so there is no need to copy them at this point
 			break;
 
 		default:
@@ -536,7 +514,7 @@ void CompilationSession::WriteLeaves(LeafList& leaves, bool leavesarestatements)
 		if(line.empty())
 			continue;
 
-		if(leavesarestatements && iter->Token != Serialization::DoWhile && (*line.rbegin() != L';'))
+		if(leavesarestatements && iter->Token != Serialization::DoWhile && iter->Token != Serialization::While && (*line.rbegin() != L';'))
 			line += L";";
 
 		OutputLines.push_front(line);
@@ -655,7 +633,7 @@ std::wstring CompilationSession::GenerateLeafCode(LeafList::const_iterator& iter
 	}
 	else if(iter->Token == Serialization::ArrayLength)
 	{
-		out << GetArraySize(iter->Payload.StringValue);
+		out << L"__int_array_sizes[" << GetNamedArrayMarshalIndex(iter->Payload.StringValue) << L"]";
 		return out.str();
 	}
 	else if(iter->Token == Serialization::WriteArray)
@@ -724,15 +702,6 @@ std::wstring CompilationSession::GenerateLeafCode(LeafList::const_iterator& iter
 }
 
 
-size_t CompilationSession::GetArraySize(const std::wstring& arrayname) const
-{
-	std::map<std::wstring, size_t>::const_iterator iter = ArraySizeCache.find(arrayname);
-	if(iter != ArraySizeCache.end())
-		return iter->second;
-
-	throw std::exception("Cannot determine size of array variable - name not recognized");
-}
-
 void CompilationSession::AdvanceLeafIterator(LeafList::const_iterator& iter) const
 {
 	do
@@ -768,5 +737,20 @@ CompilationSession::LeafList CompilationSession::PopTrailingLeaves(LeafList& lea
 
 	std::reverse(ret.begin(), ret.end());
 	return ret;
+}
+
+
+void CompilationSession::SetNamedArrayMarshalIndex(const std::wstring& arrayname, unsigned index)
+{
+	ArrayMarshalInfo[arrayname].MarshalIndex = index;
+}
+
+unsigned CompilationSession::GetNamedArrayMarshalIndex(const std::wstring& arrayname) const
+{
+	std::map<std::wstring, ArrayInfo>::const_iterator iter = ArrayMarshalInfo.find(arrayname);
+	if(iter == ArrayMarshalInfo.end())
+		throw std::exception("Lost track of array marshaling metadata");
+
+	return iter->second.MarshalIndex;
 }
 

@@ -14,6 +14,10 @@
 #define ALIGN_UP(offset, alignment) (offset) = ((offset) + (alignment) - 1) & ~((alignment) - 1)
 
 
+extern bool CUDAAvailableForExecution;
+extern bool CUDALibraryLoaded;
+
+
 //
 // Construct and initialize a function call wrapper
 //
@@ -28,6 +32,9 @@ FunctionCall::FunctionCall(CUfunction handle)
 //
 void FunctionCall::AddPointerParameter(CUdeviceptr devicepointer)
 {
+	if(!CUDAAvailableForExecution)
+		return;
+
 	void* ptr = reinterpret_cast<void*>(static_cast<size_t>(devicepointer));
 	ALIGN_UP(ParamOffset, __alignof(ptr));
 	cuParamSetv(FunctionHandle, ParamOffset, &ptr, sizeof(ptr));
@@ -36,6 +43,9 @@ void FunctionCall::AddPointerParameter(CUdeviceptr devicepointer)
 
 void FunctionCall::AddNumericParameter(size_t size)
 {
+	if(!CUDAAvailableForExecution)
+		return;
+
 	size_t internalsize = size;
 	ALIGN_UP(ParamOffset, __alignof(internalsize));
 	cuParamSetv(FunctionHandle, ParamOffset, &internalsize, sizeof(internalsize));
@@ -47,6 +57,9 @@ void FunctionCall::AddNumericParameter(size_t size)
 //
 void FunctionCall::ExecuteNormal()
 {
+	if(!CUDAAvailableForExecution)
+		return;
+
 	cuParamSetSize(FunctionHandle, ParamOffset);
 	cuFuncSetBlockShape(FunctionHandle, 1, 1, 1);
 	cuLaunch(FunctionHandle);
@@ -54,6 +67,9 @@ void FunctionCall::ExecuteNormal()
 
 void FunctionCall::ExecuteForLoop(size_t count)
 {
+	if(!CUDAAvailableForExecution)
+		return;
+
 	cuParamSetSize(FunctionHandle, ParamOffset);
 	cuFuncSetBlockShape(FunctionHandle, 1, 1, 1);
 	cuLaunchGrid(FunctionHandle, static_cast<unsigned>(count), 1);

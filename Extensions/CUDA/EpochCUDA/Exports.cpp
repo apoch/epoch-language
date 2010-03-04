@@ -31,16 +31,14 @@ using namespace Traverser;
 
 RequestMarshalBufferPtr RequestMarshalBuffer = NULL;
 
+bool CUDAAvailableForExecution = false;
+bool CUDALibraryLoaded = false;
+
 
 bool __stdcall Initialize()
 {
-	if(!InitializeCUDA())
-	{
-		FugueVMAccess::Interface.Error(L"Failed to initialize CUDA support");
-		return false;
-	}
-
-	return true;
+	InitializeCUDA();
+	return (CUDALibraryLoaded && CUDAAvailableForExecution);
 }
 
 
@@ -329,6 +327,7 @@ void __stdcall LinkToEpochVM(RegistrationTable registration, void* bindrecord)
 	registration.RegisterFunction(L"CUDAGenerateDataArray", "GenerateDataArray", NULL, 0, VM::EpochVariableType_Array, VM::EpochVariableType_Real, bindrecord);
 	registration.RegisterFunction(L"CUDAGenerateEmptyArray", "GenerateEmptyArray", NULL, 0, VM::EpochVariableType_Array, VM::EpochVariableType_Real, bindrecord);
 	registration.RegisterFunction(L"CUDAGetThreadIndex", "DummyExportFunction", NULL, 0, VM::EpochVariableType_Integer, VM::EpochVariableType_Error, bindrecord);
+	registration.RegisterFunction(L"IsCUDAAvailable", "IsCUDAAvailable", NULL, 0, VM::EpochVariableType_Boolean, VM::EpochVariableType_Error, bindrecord);
 }
 
 
@@ -377,5 +376,11 @@ void* __stdcall GenerateEmptyArray()
 		values[i] = 0.0f;
 
 	return originalbuffer;
+}
+
+
+bool __stdcall IsCUDAAvailable()
+{
+	return (CUDALibraryLoaded && CUDAAvailableForExecution);
 }
 

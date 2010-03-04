@@ -63,6 +63,9 @@ void ParserState::PushOperationAsParameter(const std::wstring& operationname)
 	entry.OperationPointer = innerop.get();
 	TheStack.push_back(entry);
 
+	VM::EpochVariableTypeID type = innerop->GetType(*CurrentScope);
+
+
 	try
 	{
 		VM::OperationPtr pushop(new VM::Operations::PushOperation(innerop.release(), *CurrentScope));
@@ -72,6 +75,36 @@ void ParserState::PushOperationAsParameter(const std::wstring& operationname)
 	{
 		ReportFatalError(e.what());
 	}
+
+
+	if(InjectNotOperator)
+	{
+		if(type == VM::EpochVariableType_Boolean)
+		{
+			VM::OperationPtr injectop(new VM::Operations::PushOperation(new VM::Operations::LogicalNot, *CurrentScope));
+			AddOperationToCurrentBlock(injectop);
+		}
+		else
+		{
+			VM::OperationPtr injectop(new VM::Operations::PushOperation(new VM::Operations::BitwiseNot(type), *CurrentScope));
+			AddOperationToCurrentBlock(injectop);
+		}
+	}
+
+	if(InjectNegateOperator)
+	{
+		if(TypeInfo::IsNumeric(type))
+		{
+			VM::OperationPtr injectop(new VM::Operations::PushOperation(new VM::Operations::Negate(type), *CurrentScope));
+			AddOperationToCurrentBlock(injectop);
+		}
+		else
+			ReportFatalError("Cannot negate a value of this type");
+	}
+
+	InjectNotOperator = false;
+	InjectNegateOperator = false;
+
 
 	if(PassedParameterCount.top() == 0)
 	{

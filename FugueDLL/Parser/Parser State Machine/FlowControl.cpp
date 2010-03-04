@@ -564,7 +564,7 @@ void ParserState::ExitBlock()
 			else
 			{
 				success = true;
-				AddOperationToCurrentBlock(VM::OperationPtr(new VM::Operations::ParallelFor(body.release(), ParsedProgram->PoolStaticString(TheStack.back().StringValue))));
+				AddOperationToCurrentBlock(VM::OperationPtr(new VM::Operations::ParallelFor(body.release(), ParsedProgram->PoolStaticString(TheStack.back().StringValue), true, 0)));
 			}
 
 			TheStack.pop_back();

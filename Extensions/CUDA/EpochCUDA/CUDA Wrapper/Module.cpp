@@ -13,6 +13,11 @@
 #include "Utility/Threading/Synchronization.h"
 
 
+// TODO - centralize the declarations of these variables
+extern bool CUDAAvailableForExecution;
+extern bool CUDALibraryLoaded;
+
+
 namespace
 {
 	// Internal tracking of loaded CUDA modules; used to avoid loading modules more than once
@@ -27,6 +32,9 @@ namespace
 //
 Module::Module(const std::string& modulefilename)
 {
+	if(!CUDAAvailableForExecution)
+		return;
+
 	if(cuModuleLoad(&ModuleHandle, modulefilename.c_str()) != CUDA_SUCCESS)
 		throw std::exception("Failed to load CUDA assembly module");
 }
@@ -40,7 +48,8 @@ Module::~Module()
 	for(std::map<std::string, FunctionCall*>::iterator iter = LoadedFunctions.begin(); iter != LoadedFunctions.end(); ++iter)
 		delete iter->second;
 
-	cuModuleUnload(ModuleHandle);
+	if(CUDAAvailableForExecution)
+		cuModuleUnload(ModuleHandle);
 }
 
 
@@ -49,6 +58,9 @@ Module::~Module()
 //
 FunctionCall Module::CreateFunctionCall(const std::string& functionname)
 {
+	if(!CUDAAvailableForExecution)
+		return FunctionCall(0);
+
 	Threads::CriticalSection::Auto mutex(CritSec);
 
 	std::map<std::string, FunctionCall*>::const_iterator iter = LoadedFunctions.find(functionname);

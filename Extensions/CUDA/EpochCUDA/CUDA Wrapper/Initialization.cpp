@@ -9,6 +9,7 @@
 #include "pch.h"
 
 #include "CUDA Wrapper/Module.h"
+#include "Code Generation/EASMToCUDA.h"
 
 #include <cuda.h>
 
@@ -38,17 +39,19 @@ bool InitializeCUDA()
 		int devicecount = 0;
 		cuDeviceGetCount(&devicecount);
 		if(devicecount <= 0)
-			throw std::exception("No devices supporting CUDA are available.");
+			return false;
 
 		if(cuDeviceGet(&devicehandle, 0) != CUDA_SUCCESS)
-			throw std::exception("Failed to acquire a handle to a CUDA-enabled device (tried slot 0)");
+			return false;
 
 		if(cuCtxCreate(&ContextHandle, CU_CTX_MAP_HOST, devicehandle) != CUDA_SUCCESS)
-			throw std::exception("Failed to create a CUDA context with the current device");
+			return false;
 
+		CUDALibraryLoaded = true;
+		CUDAAvailableForExecution = true;
 		return true;
 	}
-	__except(true)
+	__except(EXCEPTION_EXECUTE_HANDLER)
 	{
 		return false;
 	}
@@ -61,6 +64,7 @@ bool InitializeCUDA()
 void ShutdownCUDA()
 {
 	Module::ReleaseAllModules();
-	cuCtxDestroy(ContextHandle);
+	if(CUDALibraryLoaded)
+		cuCtxDestroy(ContextHandle);
 }
 

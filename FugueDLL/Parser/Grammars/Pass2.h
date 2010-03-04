@@ -141,9 +141,9 @@ namespace Parser
 					;
 
 				PassedParameterBase
-					= !(NOT[RegisterNotOperation(self.State)] | NEGATE[RegisterNegateOperation(self.State)]) >> Operation[RegisterOperationAsParameter(self.State)]
-					| !(NOT[RegisterNotOperation(self.State)]) >> LiteralValue[UndoNegateOperation(self.State)]
-					| !(NOT[RegisterNotOperation(self.State)] | NEGATE[RegisterNegateOperation(self.State)]) >> StringIdentifier[PushIdentifierAsParameter(self.State)]
+					= (!(NOT[RegisterNotOperation(self.State)] | NEGATE[RegisterNegateOperation(self.State)]) >> Operation[RegisterOperationAsParameter(self.State)])
+					| (!(NOT[RegisterNotOperation(self.State)]) >> LiteralValue[UndoNegateOperation(self.State)])
+					| (!(NOT[RegisterNotOperation(self.State)] | NEGATE[RegisterNegateOperation(self.State)]) >> StringIdentifier[PushIdentifierAsParameter(self.State)])
 					;
 
 				InfixHelper

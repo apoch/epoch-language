@@ -19,6 +19,10 @@
 #include "Utility/Files/TempFile.h"
 
 
+extern bool CUDAAvailableForExecution;
+extern bool CUDALibraryLoaded;
+
+
 namespace Compiler
 {
 
@@ -83,11 +87,12 @@ namespace Compiler
 
 		std::wstring GenerateLeafCode(LeafList::const_iterator& iter, LeafList::const_iterator& enditer);
 
-		size_t GetArraySize(const std::wstring& arrayname) const;
-
 		void AdvanceLeafIterator(LeafList::const_iterator& iter) const;
 
 		LeafList PopTrailingLeaves(LeafList& leaves);
+
+		void SetNamedArrayMarshalIndex(const std::wstring& arrayname, unsigned index);
+		unsigned GetNamedArrayMarshalIndex(const std::wstring& arrayname) const;
 
 	// Internal tracking
 	private:
@@ -105,8 +110,6 @@ namespace Compiler
 
 		LeafListStack LeafStack;
 
-		std::map<std::wstring, size_t> ArraySizeCache;
-
 		std::wstring PendingFunctionName;
 		bool ExpectingFunctionReturns;
 		bool ExpectingFunctionParams;
@@ -114,6 +117,15 @@ namespace Compiler
 		bool ExpectingFunctionBlock;
 		std::wstring PendingFunctionReturnValueName;
 		VM::EpochVariableTypeID PendingFunctionReturnValueType;
+
+		
+		struct ArrayInfo
+		{
+			unsigned MarshalIndex;
+			VM::EpochVariableTypeID ContainedType;
+		};
+		std::map<std::wstring, ArrayInfo> ArrayMarshalInfo;
+
 
 		bool ExpectingDoWhileBlock;
 

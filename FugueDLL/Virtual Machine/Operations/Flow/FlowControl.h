@@ -351,7 +351,7 @@ namespace VM
 		{
 		// Construction and destruction
 		public:
-			ParallelFor(Block* body, const std::wstring& countervarname);
+			ParallelFor(Block* body, const std::wstring& countervarname, bool releasebody, unsigned skipinstructions);
 
 			~ParallelFor();
 
@@ -388,7 +388,11 @@ namespace VM
 			Block* Body;
 			const std::wstring& CounterVariableName;
 
+			bool ReleaseBody;
+
 			HANDLE WaitCounterDecEvent;
+
+			unsigned SkipInstructions;
 		};
 	}
 }

@@ -504,9 +504,11 @@ RValuePtr ExitIfChain::ExecuteAndStoreRValue(ExecutionContext& context)
 
 
 
-ParallelFor::ParallelFor(Block* body, const std::wstring& countervarname)
+ParallelFor::ParallelFor(Block* body, const std::wstring& countervarname, bool releasebody, unsigned skipinstructions)
 	: Body(body),
-	  CounterVariableName(countervarname)
+	  CounterVariableName(countervarname),
+	  ReleaseBody(releasebody),
+	  SkipInstructions(skipinstructions)
 {
 	WaitCounterDecEvent = ::CreateEvent(NULL, FALSE, FALSE, NULL);
 }
@@ -514,7 +516,8 @@ ParallelFor::ParallelFor(Block* body, const std::wstring& countervarname)
 
 ParallelFor::~ParallelFor()
 {
-	delete Body;
+	if(ReleaseBody)
+		delete Body;
 	::CloseHandle(WaitCounterDecEvent);
 }
 
@@ -578,7 +581,7 @@ void ParallelFor::ExecuteFast(ExecutionContext& context)
 
 		std::wostringstream stream;
 		stream << L"__internal_thread_parallelfor_" << chunklowerbound << L"_" << chunkupperbound;
-		std::auto_ptr<Threads::PoolWorkItem> workitem(new ParallelForWorkItem(*this, &context.Scope, *Body, context.RunningProgram, chunklowerbound, chunkupperbound, CounterVariableName));
+		std::auto_ptr<Threads::PoolWorkItem> workitem(new ParallelForWorkItem(*this, &context.Scope, *Body, context.RunningProgram, chunklowerbound, chunkupperbound, CounterVariableName, SkipInstructions));
 		context.RunningProgram.AddPoolWorkItem(threadpoolname, stream.str(), workitem);
 	}
 

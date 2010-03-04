@@ -1599,6 +1599,14 @@
 						>
 					</File>
 					<File
+						RelativePath="..\Shared\Utility\Threading\MachineInfo.cpp"
+						>
+					</File>
+					<File
+						RelativePath="..\Shared\Utility\Threading\MachineInfo.h"
+						>
+					</File>
+					<File
 						RelativePath="..\Shared\Utility\Threading\Mailbox.h"
 						>
 					</File>

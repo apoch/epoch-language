@@ -32,10 +32,11 @@ using namespace Extensions;
 ExtensionDLLAccess::ExtensionDLLAccess(const std::wstring& dllname, VM::Program& program)
 	: SessionHandle(0),
 	  DLLName(dllname),
-	  ExtensionValid(false)
+	  ExtensionValid(false),
+	  DLLHandle(NULL)
 {
 	// Load the DLL
-	HINSTANCE DLLHandle = ::LoadLibrary(dllname.c_str());
+	DLLHandle = ::LoadLibrary(dllname.c_str());
 	if(!DLLHandle)
 		throw Exception("A language extension DLL was requested, but the DLL was either not found or reported some error during initialization");
 
@@ -54,16 +55,7 @@ ExtensionDLLAccess::ExtensionDLLAccess(const std::wstring& dllname, VM::Program&
 
 	ExtensionValid = DoInitialize();
 
-	if(ExtensionValid)
-		SessionHandle = DoStartSession(reinterpret_cast<HandleType>(&program));
-}
-
-//
-// Destruct the access wrapper and free the library
-//
-ExtensionDLLAccess::~ExtensionDLLAccess()
-{
-	::FreeLibrary(DLLHandle);
+	SessionHandle = DoStartSession(reinterpret_cast<HandleType>(&program));
 }
 
 

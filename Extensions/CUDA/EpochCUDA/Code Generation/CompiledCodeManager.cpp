@@ -200,6 +200,9 @@ CompileSessionHandle Compiler::StartNewCompilation(HandleType programhandle)
 //
 void Compiler::CommitCompile(CompileSessionHandle sessionid)
 {
+	if(!CUDAAvailableForExecution)
+		return;
+
 	std::map<CompileSessionHandle, CompileSessionData*>::iterator iter = CompileSessionMap.find(sessionid);
 
 	if(iter == CompileSessionMap.end())

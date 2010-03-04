@@ -71,14 +71,15 @@ void FutureWorkItem::PerformWork()
 
 
 
-ParallelForWorkItem::ParallelForWorkItem(VM::Operations::ParallelFor& pforop, VM::ActivatedScope* parentscope, Block& codeblock, Program& runningprogram, size_t lowerbound, size_t upperbound, const std::wstring& countervarname)
+ParallelForWorkItem::ParallelForWorkItem(VM::Operations::ParallelFor& pforop, VM::ActivatedScope* parentscope, Block& codeblock, Program& runningprogram, size_t lowerbound, size_t upperbound, const std::wstring& countervarname, unsigned skipinstructions)
 	: ParallelForOp(pforop),
 	  TheBlock(codeblock),
 	  RunningProgram(runningprogram),
 	  LowerBound(lowerbound),
 	  UpperBound(upperbound),
 	  CounterVarName(countervarname),
-	  ParentScope(parentscope)
+	  ParentScope(parentscope),
+	  SkipInstructions(skipinstructions)
 {
 }
 
@@ -97,7 +98,7 @@ void ParallelForWorkItem::PerformWork()
 	{
 		codescope->Enter(stack);
 		codescope->SetVariableValue(CounterVarName, RValuePtr(new IntegerRValue(static_cast<Integer32>(counter))));
-		TheBlock.ExecuteBlock(ExecutionContext(RunningProgram, *codescope, stack, flowresult), NULL, false);
+		TheBlock.ExecuteBlock(ExecutionContext(RunningProgram, *codescope, stack, flowresult), NULL, false, SkipInstructions);
 		codescope->Exit(stack);
 
 		if(flowresult != FLOWCONTROL_NORMAL)

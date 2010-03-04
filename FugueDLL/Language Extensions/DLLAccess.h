@@ -22,10 +22,9 @@ namespace Extensions
 
 	class ExtensionDLLAccess
 	{
-	// Construction and destruction
+	// Construction
 	public:
 		ExtensionDLLAccess(const std::wstring& dllname, VM::Program& program);
-		~ExtensionDLLAccess();
 
 	// Extension interface
 	public:
@@ -40,6 +39,9 @@ namespace Extensions
 
 		const std::wstring& GetDLLFileName() const
 		{ return DLLName; }
+
+		bool IsAvailableForExecution() const
+		{ return ExtensionValid; }
 
 	// Internal type definitions for function pointers
 	private:

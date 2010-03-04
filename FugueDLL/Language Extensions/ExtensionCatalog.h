@@ -30,6 +30,7 @@ namespace Extensions
 
 	void PrepareForExecution();
 
+	bool ExtensionIsAvailableForExecution(ExtensionLibraryHandle handle);
 
 	ExtensionLibraryHandle RegisterExtensionLibrary(const std::wstring& libraryname, VM::Program& program);
 	ExtensionLibraryHandle GetLibraryProvidingExtension(const std::wstring& extensionname);

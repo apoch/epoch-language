@@ -19,6 +19,10 @@
 class FunctionCall;
 
 
+extern bool CUDAAvailableForExecution;
+extern bool CUDALibraryLoaded;
+
+
 //
 // Helper class for storing data buffers of specific types; used internally by the VariableBuffer
 //
@@ -35,6 +39,9 @@ public:
 public:
 	void PassVariablesToDevice(const std::list<Traverser::ScopeContents>& variables, HandleType activatedscopehandle)
 	{
+		if(!CUDAAvailableForExecution)
+			return;
+
 		InternalBuffer.clear();
 
 		for(std::list<Traverser::ScopeContents>::const_iterator iter = variables.begin(); iter != variables.end(); ++iter)
@@ -63,6 +70,9 @@ public:
 
 	void RetrieveVariablesFromDevice(const std::list<Traverser::ScopeContents>& variables, HandleType activatedscopehandle)
 	{
+		if(!CUDAAvailableForExecution)
+			return;
+
 		if(InternalBuffer.empty())
 			return;
 
@@ -114,6 +124,9 @@ public:
 public:
 	void PrepareArraySizesBuffer()
 	{
+		if(!CUDAAvailableForExecution)
+			return;
+
 		if(SizesDevicePointer)
 		{
 			cuMemFree(SizesDevicePointer);
@@ -137,6 +150,9 @@ public:
 public:
 	void PassVariablesToDevice(const std::list<Traverser::ScopeContents>& variables, HandleType activatedscopehandle)
 	{
+		if(!CUDAAvailableForExecution)
+			return;
+
 		InternalBuffer.clear();
 
 		for(std::list<Traverser::ScopeContents>::const_iterator iter = variables.begin(); iter != variables.end(); ++iter)
@@ -183,6 +199,9 @@ public:
 
 	void RetrieveVariablesFromDevice(const std::list<Traverser::ScopeContents>& variables, HandleType activatedscopehandle)
 	{
+		if(!CUDAAvailableForExecution)
+			return;
+
 		if(InternalBuffer.empty())
 			return;
 

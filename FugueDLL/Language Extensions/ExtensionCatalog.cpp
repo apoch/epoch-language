@@ -163,3 +163,12 @@ const std::vector<ExtensionControlParamInfo>& Extensions::GetParamsForControl(co
 	return iter->second;
 }
 
+bool Extensions::ExtensionIsAvailableForExecution(ExtensionLibraryHandle handle)
+{
+	std::map<ExtensionLibraryHandle, ExtensionDLLAccess>::const_iterator iter = ExtensionLibraryMap.find(handle);
+	if(iter == ExtensionLibraryMap.end())
+		return false;
+
+	return iter->second.IsAvailableForExecution();
+}
+
