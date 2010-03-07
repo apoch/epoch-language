@@ -259,6 +259,8 @@ void Compiler::CommitCompile(CompileSessionHandle sessionid)
 	std::wstring args = L"/c " + nvccpath + L" --compiler-bindir=" + clpath + L" --ptx " + masterfilename + L" --output-file=" + iter->second->GeneratedPTXFileName;
 	std::wstring cmdpath = SpecialPaths::GetSystemPath() + L"\\cmd.exe";
 
+	if(clpath.empty() || nvccpath.empty())
+		throw std::exception("Compiling this program requires that the CUDA SDK be installed, and a suitable configuration file for Fugue must be set up. Please see the SDK installation guide for details.");
 
 	// Invoke the compiler
 	unsigned exitcode;

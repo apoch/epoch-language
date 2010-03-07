@@ -62,6 +62,9 @@ std::wstring StripFilename(const std::wstring& path)
 //
 std::wstring ShortenPathName(const std::wstring& path)
 {
+	if(path.empty())
+		return L"";
+
 	DWORD size = ::GetShortPathName(path.c_str(), NULL, 0) + 2;
 	std::vector<wchar_t> buffer(size, L'\0');
 	::GetShortPathName(path.c_str(), &buffer[0], size);
