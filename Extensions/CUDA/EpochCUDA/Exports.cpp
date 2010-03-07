@@ -431,6 +431,12 @@ void __stdcall LoadDataBuffer(const char* buffer, size_t size)
 void __stdcall PrepareBlock(CodeBlockHandle handle)
 {
 	std::string funcname = GenerateFunctionName(Compiler::GetOriginalCodeHandle(handle));
-	Module::LoadCUDAModule(narrow(Compiler::GetGeneratedPTXFileName(Compiler::GetAssociatedSession(handle)))).CreateFunctionCall(funcname);
+	std::string filename = narrow(Compiler::GetGeneratedPTXFileName(Compiler::GetAssociatedSession(handle)));
+	Module::LoadCUDAModule(filename).CreateFunctionCall(funcname);
+}
+
+void __stdcall ClearEverything()
+{
+	Compiler::Clear();
 }
 

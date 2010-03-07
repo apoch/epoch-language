@@ -122,4 +122,6 @@ const unsigned char Bytecode::ArrayLength				= 0x6c;
 const unsigned char Bytecode::ParallelFor				= 0x6d;
 const unsigned char Bytecode::HandoffControl			= 0x6e;
 const unsigned char Bytecode::ArrayHints				= 0x6f;
+const unsigned char Bytecode::ConsArray					= 0x70;
+const unsigned char Bytecode::Length					= 0x71;
 

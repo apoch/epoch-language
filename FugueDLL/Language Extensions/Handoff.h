@@ -53,10 +53,6 @@ namespace Extensions
 		Extensions::CodeBlockHandle GetCodeHandle() const
 		{ return CodeHandle; }
 
-	// Additional helpers
-	public:
-		void PrepareForExecution();
-
 	// Traversal interface
 	protected:
 		template <typename TraverserT>
@@ -101,10 +97,6 @@ namespace Extensions
 
 		virtual size_t GetNumParameters(const VM::ScopeDescription& scope) const
 		{ return 2; }
-
-	// Additional helpers
-	public:
-		void PrepareForExecution();
 
 	// Traversal interface
 	protected:

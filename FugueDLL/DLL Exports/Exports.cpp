@@ -186,14 +186,14 @@ bool __stdcall SerializeSourceCode(const char* filename, const char* outputfilen
 		}
 
 		output << L"Compiling program..." << std::endl;
-
-		Extensions::PrepareForExecution();
 		
 		if(usesconsole)
 			state.GetParsedProgram()->SetUsesConsole();
 
 		Serialization::SerializationTraverser serializer(outputfilename);
 		state.GetParsedProgram()->Traverse(serializer);
+		Extensions::PrepareForExecution();
+		Extensions::TraverseExtensions(serializer);
 		output << L"Compiled successfully!\n" << std::endl;
 		return true;
 	}

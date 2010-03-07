@@ -72,8 +72,6 @@ namespace VM
 			traverser.TraverseGlobalInitBlock(GlobalInitBlock);
 			if(GlobalInitBlock)
 				GlobalInitBlock->Traverse(traverser);
-			
-			Extensions::TraverseExtensions(traverser);
 		}
 
 	// Static string pool management

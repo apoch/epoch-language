@@ -94,12 +94,6 @@ void HandoffOperation::Traverse(Serialization::SerializationTraverser& traverser
 	TraverseHelper(traverser);
 }
 
-void HandoffOperation::PrepareForExecution()
-{
-	Extensions::PrepareCodeBlockForExecution(ExtensionHandle, CodeHandle);
-}
-
-
 
 
 
@@ -235,10 +229,5 @@ void HandoffControlOperation::Traverse(Validator::ValidationTraverser& traverser
 void HandoffControlOperation::Traverse(Serialization::SerializationTraverser& traverser)
 {
 	TraverseHelper(traverser);
-}
-
-void HandoffControlOperation::PrepareForExecution()
-{
-	Extensions::PrepareCodeBlockForExecution(ExtensionHandle, CodeHandle);
 }
 

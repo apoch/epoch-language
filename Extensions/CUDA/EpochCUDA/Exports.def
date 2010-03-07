@@ -16,4 +16,6 @@ EXPORTS
 	FreeSerializationBuffer			@14
 	LoadDataBuffer					@15
 	PrepareBlock					@16
+	ClearEverything					@17
+	
 	

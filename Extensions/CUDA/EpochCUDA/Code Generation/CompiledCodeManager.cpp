@@ -275,6 +275,9 @@ void Compiler::CommitCompile(CompileSessionHandle sessionid)
 
 	if(exitcode != 0)
 		throw std::exception("NVCC compiler encountered errors");
+
+	for(std::map<CodeBlockHandle, CompileSessionHandle>::const_iterator iter = CodeHandleToSessionMap.begin(); iter != CodeHandleToSessionMap.end(); ++iter)
+		PrepareBlock(iter->first);
 }
 
 
@@ -286,6 +289,12 @@ const std::wstring& Compiler::GetGeneratedPTXFileName(CompileSessionHandle sessi
 	std::map<CompileSessionHandle, CompileSessionData*>::const_iterator iter = CompileSessionMap.find(sessionid);
 	if(iter == CompileSessionMap.end())
 		throw std::exception("Invalid compile session handle");
+
+	if(iter->second->GeneratedPTXFileName.empty())
+	{
+		TemporaryFileWriter destoutfile(std::ios_base::trunc, L"ptx");
+		iter->second->GeneratedPTXFileName = destoutfile.GetFileName();
+	}
 
 	return iter->second->GeneratedPTXFileName;
 }
@@ -495,5 +504,20 @@ void Compiler::LoadSerializedState(const char* buffer, size_t buffersize)
 
 		stream.seekg(stream.tellg() + static_cast<std::streamoff>(buffersize));
 	}
+}
+
+
+void Compiler::Clear()
+{
+	CompileHandleCounter = 0;
+	CodeHandleCounter = 0;
+	CodeHandleMap.clear();
+	CodeHandleToKeywordMap.clear();
+	RegisteredVariablesMap.clear();
+	CodeHandleToSessionMap.clear();
+
+	for(std::map<CompileSessionHandle, CompileSessionData*>::iterator iter = CompileSessionMap.begin(); iter != CompileSessionMap.end(); ++iter)
+		delete iter->second;
+	CompileSessionMap.clear();
 }
 

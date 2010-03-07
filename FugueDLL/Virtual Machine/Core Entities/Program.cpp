@@ -68,6 +68,8 @@ Program::~Program()
 	delete GlobalInitBlock;
 	delete GlobalStorageSpace;
 	--ProgramInstances;
+
+	Extensions::Reset();
 }
 
 

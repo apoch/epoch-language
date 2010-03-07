@@ -123,6 +123,8 @@ namespace Bytecode
 	extern const unsigned char ParallelFor;
 	extern const unsigned char HandoffControl;
 	extern const unsigned char ArrayHints;
+	extern const unsigned char ConsArray;
+	extern const unsigned char Length;
 }
 
 

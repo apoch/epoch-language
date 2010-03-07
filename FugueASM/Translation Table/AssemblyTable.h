@@ -949,6 +949,7 @@ DEFINE_INSTRUCTION(Bytecode::FunctionSignatureEnd, Serialization::FunctionSignat
 END_INSTRUCTION																								\
 																											\
 DEFINE_ADDRESSED_INSTRUCTION(Bytecode::ForkTask, Serialization::ForkTask)									\
+	NEWLINE																									\
 	EXPECT(Bytecode::BeginBlock, Serialization::BeginBlock)													\
 	IF_ASSEMBLING																							\
 		READ_HEX(scopeid)																					\
@@ -1066,6 +1067,7 @@ DEFINE_ADDRESSED_INSTRUCTION(Bytecode::ThreadPool, Serialization::ThreadPool)			
 END_INSTRUCTION																								\
 																											\
 DEFINE_ADDRESSED_INSTRUCTION(Bytecode::ForkThread, Serialization::ForkThread)								\
+	NEWLINE																									\
 	EXPECT(Bytecode::BeginBlock, Serialization::BeginBlock)													\
 	IF_ASSEMBLING																							\
 		READ_HEX(scopeid)																					\
@@ -1115,8 +1117,17 @@ DEFINE_ADDRESSED_INSTRUCTION(Bytecode::ArrayLength, Serialization::ArrayLength)	
 	PARAM_STR(arrayname)																					\
 END_INSTRUCTION																								\
 																											\
+DEFINE_ADDRESSED_INSTRUCTION(Bytecode::Length, Serialization::Length)										\
+	PARAM_STR(varname)																						\
+END_INSTRUCTION																								\
+																											\
 DEFINE_ADDRESSED_INSTRUCTION(Bytecode::ConsArrayIndirect, Serialization::ConsArrayIndirect)					\
 	PARAM_UINT(elementtype)																					\
+END_INSTRUCTION																								\
+																											\
+DEFINE_ADDRESSED_INSTRUCTION(Bytecode::ConsArray, Serialization::ConsArray)									\
+	PARAM_UINT(elementtype)																					\
+	PARAM_UINT(elementcount)																				\
 END_INSTRUCTION																								\
 																											\
 DEFINE_ADDRESSED_INSTRUCTION(Bytecode::ParallelFor, Serialization::ParallelFor)								\

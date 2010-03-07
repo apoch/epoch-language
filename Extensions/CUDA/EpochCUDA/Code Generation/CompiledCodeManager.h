@@ -38,5 +38,7 @@ namespace Compiler
 	void CopyGeneratedCodeToMemoryBuffers(std::vector<std::vector<Byte> >& buffers);
 	void LoadSerializedState(const char* buffer, size_t size);
 
+	void Clear();
+
 }
 

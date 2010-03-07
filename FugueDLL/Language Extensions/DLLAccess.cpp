@@ -54,10 +54,15 @@ ExtensionDLLAccess::ExtensionDLLAccess(const std::wstring& dllname, VM::Program&
 	DoFreeSerializationBuffer = reinterpret_cast<FreeSerializationBufferPtr>(::GetProcAddress(DLLHandle, "FreeSerializationBuffer"));
 	DoLoadDataBuffer = reinterpret_cast<LoadDataBufferPtr>(::GetProcAddress(DLLHandle, "LoadDataBuffer"));
 	DoPrepareBlock = reinterpret_cast<PrepareBlockPtr>(::GetProcAddress(DLLHandle, "PrepareBlock"));
+	DoClearEverything = reinterpret_cast<ClearEverythingPtr>(::GetProcAddress(DLLHandle, "ClearEverything"));
 
 	// Validate interface to be sure
-	if(!DoInitialize || !DoRegistration || !DoLoadSource || !DoExecuteSource || !DoExecuteControl || !DoPrepare || !DoStartSession || !DoFillSerializationBuffer || !DoFreeSerializationBuffer || !DoLoadDataBuffer || !DoPrepareBlock)
+	if(!DoInitialize || !DoRegistration || !DoLoadSource || !DoExecuteSource || !DoExecuteControl || !DoPrepare ||
+		!DoStartSession || !DoFillSerializationBuffer || !DoFreeSerializationBuffer || !DoLoadDataBuffer ||
+		!DoPrepareBlock || !DoClearEverything)
+	{
 		throw Exception("One or more Epoch service functions could not be loaded from the requested language extension DLL");
+	}
 
 	ExtensionValid = DoInitialize();
 
@@ -355,4 +360,9 @@ void ExtensionDLLAccess::LoadDataBuffer(const std::string& buffer)
 void ExtensionDLLAccess::PrepareCodeBlock(CodeBlockHandle handle)
 {
 	DoPrepareBlock(handle);
+}
+
+void ExtensionDLLAccess::ClearEverything()
+{
+	DoClearEverything();
 }

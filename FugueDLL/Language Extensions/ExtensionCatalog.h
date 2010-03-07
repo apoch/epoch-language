@@ -34,6 +34,7 @@ namespace Extensions
 	struct ExtensionControlParamInfo;
 
 	void PrepareForExecution();
+	void Reset();
 
 	bool ExtensionIsAvailableForExecution(ExtensionLibraryHandle handle);
 

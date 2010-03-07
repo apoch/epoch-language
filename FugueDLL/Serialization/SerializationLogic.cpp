@@ -310,11 +310,11 @@ template <> void Serialization::SerializeNode<VM::Operations::ExecuteBlock>(cons
 
 template <> const std::wstring& Serialization::GetToken<Extensions::HandoffOperation>() { return Serialization::Handoff; }
 template <> void Serialization::SerializeNode<Extensions::HandoffOperation>(const Extensions::HandoffOperation& op, SerializationTraverser& traverser)
-{ const_cast<Extensions::HandoffOperation&>(op).PrepareForExecution(); traverser.WriteHandoffOp(&op, GetToken<Extensions::HandoffOperation>(), op.GetExtensionName(), op.GetCodeHandle()); }
+{ traverser.WriteHandoffOp(&op, GetToken<Extensions::HandoffOperation>(), op.GetExtensionName(), op.GetCodeHandle()); }
 
 template <> const std::wstring& Serialization::GetToken<Extensions::HandoffControlOperation>() { return Serialization::HandoffControl; }
 template <> void Serialization::SerializeNode<Extensions::HandoffControlOperation>(const Extensions::HandoffControlOperation& op, SerializationTraverser& traverser)
-{ const_cast<Extensions::HandoffControlOperation&>(op).PrepareForExecution(); traverser.WriteOp(&op, GetToken<Extensions::HandoffControlOperation>(), op.GetExtensionName(), op.GetAssociatedIdentifier(), op.GetCodeHandle()); }
+{ traverser.WriteOp(&op, GetToken<Extensions::HandoffControlOperation>(), op.GetExtensionName(), op.GetAssociatedIdentifier(), op.GetCodeHandle()); }
 
 template <> const std::wstring& Serialization::GetToken<VM::Operations::ParallelFor>() { return Serialization::ParallelFor; }
 template <> void Serialization::SerializeNode<VM::Operations::ParallelFor>(const VM::Operations::ParallelFor& op, SerializationTraverser& traverser)

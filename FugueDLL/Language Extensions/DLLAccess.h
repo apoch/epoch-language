@@ -39,6 +39,8 @@ namespace Extensions
 		void FreeSerializationBuffer(wchar_t* buffer);
 		void LoadDataBuffer(const std::string& buffer);
 
+		void ClearEverything();
+
 		CompileSessionHandle GetCompileSession() const
 		{ return SessionHandle; }
 
@@ -64,6 +66,8 @@ namespace Extensions
 		typedef void (__stdcall *FillSerializationBufferPtr)(wchar_t** buffer, size_t* buffersize);
 		typedef void (__stdcall *FreeSerializationBufferPtr)(wchar_t* buffer);
 
+		typedef void (__stdcall *ClearEverythingPtr)();
+
 	// Internal bindings to the DLL
 	private:
 		std::wstring DLLName;
@@ -83,6 +87,8 @@ namespace Extensions
 		FillSerializationBufferPtr DoFillSerializationBuffer;
 		FreeSerializationBufferPtr DoFreeSerializationBuffer;
 		LoadDataBufferPtr DoLoadDataBuffer;
+
+		ClearEverythingPtr DoClearEverything;
 
 		CompileSessionHandle SessionHandle;
 

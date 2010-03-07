@@ -219,3 +219,16 @@ void Extensions::PrepareCodeBlockForExecution(ExtensionLibraryHandle libhandle, 
 	iter->second.PrepareCodeBlock(codehandle);
 }
 
+void Extensions::Reset()
+{
+	for(std::map<ExtensionLibraryHandle, ExtensionDLLAccess>::iterator iter = ExtensionLibraryMap.begin(); iter != ExtensionLibraryMap.end(); ++iter)
+		iter->second.ClearEverything();
+
+	ExtensionKeywordMap.clear();
+	ExtensionLibraryDLLMap.clear();
+	ExtensionLibraryMap.clear();
+	ExtensionControlParamMap.clear();
+
+	handlecounter = 0;
+}
+
