@@ -223,7 +223,6 @@ SERIALIZE_WITHPAYLOAD(VM::Operations::GetVariableValue, Serialization::GetValue)
 SERIALIZE_WITHPAYLOAD(VM::Operations::InitializeValue, Serialization::InitializeValue)
 SERIALIZE_WITHPAYLOAD(VM::Operations::IntegerConstant, Serialization::IntegerConstant)
 SERIALIZE_WITHPAYLOAD(VM::Operations::Integer16Constant, Serialization::Integer16Constant)
-SERIALIZE_WITHPAYLOAD(VM::Operations::Invoke, Serialization::Invoke)
 SERIALIZE_WITHPAYLOAD(VM::Operations::InvokeIndirect, Serialization::InvokeIndirect)
 SERIALIZE_WITHPAYLOAD(VM::Operations::IsEqual, Serialization::IsEqual)
 SERIALIZE_WITHPAYLOAD(VM::Operations::IsGreater, Serialization::IsGreater)
@@ -242,7 +241,6 @@ SERIALIZE_WITHPAYLOAD(VM::Operations::SizeOf, Serialization::SizeOf)
 SERIALIZE_WITHPAYLOAD(VM::Operations::ReadArray, Serialization::ReadArray)
 SERIALIZE_WITHPAYLOAD(VM::Operations::WriteArray, Serialization::WriteArray)
 SERIALIZE_WITHPAYLOAD(VM::Operations::ArrayLength, Serialization::ArrayLength)
-SERIALIZE_WITHPAYLOAD(VM::Operations::ConsArrayIndirect, Serialization::ConsArrayIndirect)
 
 
 // Operations with compound payloads
@@ -275,6 +273,10 @@ SERIALIZE_MEMBERACCESSINDIRECT(VM::Operations::ReadStructureIndirect, Serializat
 
 
 // Additional special serialization handling
+template <> const std::wstring& Serialization::GetToken<VM::Operations::Invoke>() { return Serialization::Invoke; }
+template <> void Serialization::SerializeNode<VM::Operations::Invoke>(const VM::Operations::Invoke& op, SerializationTraverser& traverser)
+{ traverser.WriteOp(&op, GetToken<VM::Operations::Invoke>(), op.GetFunction()); }
+
 template <> const std::wstring& Serialization::GetToken<Marshalling::CallDLL>() { return Serialization::CallDLL; }
 template <> void Serialization::SerializeNode<Marshalling::CallDLL>(const Marshalling::CallDLL& op, SerializationTraverser& traverser)
 { traverser.WriteOp(&op, GetToken<Marshalling::CallDLL>(), op.GetDLLName(), op.GetFunctionName(), op.GetReturnType(), op.GetReturnTypeHint()); }
@@ -308,13 +310,16 @@ template <> void Serialization::SerializeNode<VM::Operations::ExecuteBlock>(cons
 
 template <> const std::wstring& Serialization::GetToken<Extensions::HandoffOperation>() { return Serialization::Handoff; }
 template <> void Serialization::SerializeNode<Extensions::HandoffOperation>(const Extensions::HandoffOperation& op, SerializationTraverser& traverser)
-{ traverser.WriteHandoffOp(&op, GetToken<Extensions::HandoffOperation>(), op.GetExtensionName()); }
+{ const_cast<Extensions::HandoffOperation&>(op).PrepareForExecution(); traverser.WriteHandoffOp(&op, GetToken<Extensions::HandoffOperation>(), op.GetExtensionName(), op.GetCodeHandle()); }
 
 template <> const std::wstring& Serialization::GetToken<Extensions::HandoffControlOperation>() { return Serialization::HandoffControl; }
 template <> void Serialization::SerializeNode<Extensions::HandoffControlOperation>(const Extensions::HandoffControlOperation& op, SerializationTraverser& traverser)
-{ traverser.WriteHandoffOp(&op, GetToken<Extensions::HandoffControlOperation>(), op.GetExtensionName()); }
+{ const_cast<Extensions::HandoffControlOperation&>(op).PrepareForExecution(); traverser.WriteOp(&op, GetToken<Extensions::HandoffControlOperation>(), op.GetExtensionName(), op.GetAssociatedIdentifier(), op.GetCodeHandle()); }
 
 template <> const std::wstring& Serialization::GetToken<VM::Operations::ParallelFor>() { return Serialization::ParallelFor; }
 template <> void Serialization::SerializeNode<VM::Operations::ParallelFor>(const VM::Operations::ParallelFor& op, SerializationTraverser& traverser)
 { traverser.WriteOp(&op, GetToken<VM::Operations::ParallelFor>(), op.GetAssociatedIdentifier()); }
 
+template <> const std::wstring& Serialization::GetToken<VM::Operations::ConsArrayIndirect>() { return Serialization::ConsArrayIndirect; }
+template <> void Serialization::SerializeNode<VM::Operations::ConsArrayIndirect>(const VM::Operations::ConsArrayIndirect& op, SerializationTraverser& traverser)
+{ traverser.WriteOp(&op, GetToken<VM::Operations::ConsArrayIndirect>(), op.GetElementType()); }

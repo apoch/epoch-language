@@ -85,6 +85,7 @@ FileLoader::FileLoader(const void* buffer, VM::Program& runningprogram)
 		LoadScope(true);
 
 		LoadGlobalInitBlock();
+		LoadExtensionData();
 	}
 	catch(...)
 	{
@@ -536,6 +537,18 @@ VM::ScopeDescription* FileLoader::LoadScope(bool linktoglobal)
 		GenerateOpFromByteCode(ReadInstruction(), tempblock.get());
 		if(!IsPrepass)
 			ScopeIDMap[scopeid]->AddFuture(futurename, tempblock->PopTailOperation());
+	}
+
+	ExpectInstruction(Bytecode::ArrayHints);
+
+	UINT_PTR numarrayhints = ReadNumber();
+	for(UINT_PTR i = 0; i < numarrayhints; ++i)
+	{
+		const std::wstring& arrayname = WidenAndCache(ReadNullTerminatedString());
+		UINT_PTR hint = ReadNumber();
+
+		if(!IsPrepass)
+			ScopeIDMap[scopeid]->SetArrayType(arrayname, static_cast<VM::EpochVariableTypeID>(hint));
 	}
 
 	ExpectInstruction(Bytecode::EndScope);
@@ -1371,14 +1384,68 @@ void FileLoader::GenerateOpFromByteCode(unsigned char instruction, VM::Block* ne
 	else if(instruction == Bytecode::Handoff)
 	{
 		const std::wstring& libraryname = WidenAndCache(ReadNullTerminatedString());
+		HandleType codehandle = ReadNumber();
 		ExpectInstruction(Bytecode::BeginBlock);
 		VM::ScopeDescription* scope = LoadScope(false);
 		std::auto_ptr<VM::Block> taskblock(LoadCodeBlock());
 		if(!IsPrepass)
 		{
 			taskblock->BindToScope(UnregisterScopeToDelete(scope));
-			newblock->AddOperation(VM::OperationPtr(new Extensions::HandoffOperation(libraryname, taskblock)));
+			newblock->AddOperation(VM::OperationPtr(new Extensions::HandoffOperation(libraryname, taskblock, codehandle)));
 		}
+	}
+	else if(instruction == Bytecode::HandoffControl)
+	{
+		const std::wstring& libraryname = WidenAndCache(ReadNullTerminatedString());
+		const std::wstring& countervarname = WidenAndCache(ReadNullTerminatedString());
+		HandleType codehandle = ReadNumber();
+		ExpectInstruction(Bytecode::BeginBlock);
+		VM::ScopeDescription* scope = LoadScope(false);
+		std::auto_ptr<VM::Block> controlblock(LoadCodeBlock());
+		if(!IsPrepass)
+		{
+			controlblock->BindToScope(UnregisterScopeToDelete(scope));
+			newblock->AddOperation(VM::OperationPtr(new Extensions::HandoffControlOperation(libraryname, controlblock.release(), countervarname, *scope, codehandle)));
+		}
+	}
+	else if(instruction == Bytecode::ParallelFor)
+	{
+		const std::wstring& countervarname = WidenAndCache(ReadNullTerminatedString());
+		ExpectInstruction(Bytecode::BeginBlock);
+		VM::ScopeDescription* scope = LoadScope(false);
+		std::auto_ptr<VM::Block> controlblock(LoadCodeBlock());
+		if(!IsPrepass)
+		{
+			controlblock->BindToScope(UnregisterScopeToDelete(scope));
+			newblock->AddOperation(VM::OperationPtr(new VM::Operations::ParallelFor(controlblock.release(), countervarname, true, 0)));
+		}
+	}
+	else if(instruction == Bytecode::ReadArray)
+	{
+		const std::wstring& arrayname = WidenAndCache(ReadNullTerminatedString());
+		if(!IsPrepass)
+			newblock->AddOperation(VM::OperationPtr(new VM::Operations::ReadArray(arrayname)));
+	}
+	else if(instruction == Bytecode::WriteArray)
+	{
+		const std::wstring& arrayname = WidenAndCache(ReadNullTerminatedString());
+		if(!IsPrepass)
+			newblock->AddOperation(VM::OperationPtr(new VM::Operations::WriteArray(arrayname)));
+	}
+	else if(instruction == Bytecode::ArrayLength)
+	{
+		const std::wstring& arrayname = WidenAndCache(ReadNullTerminatedString());
+		if(!IsPrepass)
+			newblock->AddOperation(VM::OperationPtr(new VM::Operations::ArrayLength(arrayname)));
+	}
+	else if(instruction == Bytecode::ConsArrayIndirect)
+	{
+		VM::EpochVariableTypeID elementtype = static_cast<VM::EpochVariableTypeID>(ReadNumber());
+
+		unsigned char op = ReadInstruction();
+		GenerateOpFromByteCode(op, newblock);
+		if(!IsPrepass)
+			newblock->AddOperation(VM::OperationPtr(new VM::Operations::ConsArrayIndirect(elementtype, newblock->PopTailOperation().release())));
 	}
 	else
 	{
@@ -1443,9 +1510,23 @@ void FileLoader::CheckExtensions()
 		const std::wstring& extensionname = WidenAndCache(ReadNullTerminatedString());
 		if(IsPrepass)
 		{
-			Extensions::RegisterExtensionLibrary(extensionname, *LoadingProgram);
-			Marshalling::BindToLanguageExtension(extensionname, *LoadingProgram);
+			Extensions::RegisterExtensionLibrary(extensionname, *LoadingProgram, false);
+			Marshalling::BindToLanguageExtension(extensionname, *LoadingProgram, false);
 		}
+	}
+}
+
+
+void FileLoader::LoadExtensionData()
+{
+	ExpectInstruction(Bytecode::ExtensionData);
+	unsigned numdatablocks = ReadNumber();
+	for(unsigned i = 0; i < numdatablocks; ++i)
+	{
+		std::string dllname = ReadNullTerminatedString();
+		unsigned blocksize = ReadNumber();
+		std::string block = ReadStringByLength(blocksize);
+		Extensions::LoadDataBuffer(dllname, block);
 	}
 }
 

@@ -35,5 +35,8 @@ namespace Compiler
 
 	const std::wstring& GetCodeControlKeyword(Extensions::CodeBlockHandle handle);
 
+	void CopyGeneratedCodeToMemoryBuffers(std::vector<std::vector<Byte> >& buffers);
+	void LoadSerializedState(const char* buffer, size_t size);
+
 }
 

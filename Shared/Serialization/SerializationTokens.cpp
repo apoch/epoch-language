@@ -157,5 +157,6 @@ std::wstring Serialization::StructureStaticData(L"STRUCTUREINFO");
 std::wstring Serialization::GlobalBlock(L"GLOBAL");
 std::wstring Serialization::Constants(L"CONSTANTS");
 std::wstring Serialization::Futures(L"FUTURES");
-
+std::wstring Serialization::ExtensionData(L"EXTENSIONDATA");
+std::wstring Serialization::ArrayHints(L"ARRAYHINTS");
 

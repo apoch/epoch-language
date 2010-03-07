@@ -230,12 +230,9 @@ void Marshalling::BindToLibrary(const std::wstring& filename, VM::Program& progr
 // therefore we take a slightly different approach to loading them, versus
 // a standard library DLL.
 //
-void Marshalling::BindToLanguageExtension(const std::wstring& filename, VM::Program& program)
+void Marshalling::BindToLanguageExtension(const std::wstring& filename, VM::Program& program, bool registereverything)
 {
 	std::wstring fullfilename = filename + L".dll";
-
-	if(Marshalling::TheDLLPool.HasOpenedDLL(fullfilename))
-		return;
 
 	HINSTANCE hdll = Marshalling::TheDLLPool.OpenDLL(fullfilename);
 	VMLinkPtr vmlink = reinterpret_cast<VMLinkPtr>(::GetProcAddress(hdll, "LinkToEpochVM"));
@@ -250,6 +247,8 @@ void Marshalling::BindToLanguageExtension(const std::wstring& filename, VM::Prog
 	regtable.RegisterSignature = RegistrationSignature;
 
 	regtable.RequestMarshalBuffer = RequestMarshalBuffer;
+
+	regtable.ShouldRegisterEverything = registereverything;
 
 	BindRec bindrec;
 	bindrec.TheProgram = &program;

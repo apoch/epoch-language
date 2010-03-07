@@ -28,8 +28,8 @@ using namespace Parser;
 //
 void ParserState::RegisterExtension(const std::wstring& filename)
 {
-	Extensions::RegisterExtensionLibrary(filename, *ParsedProgram);
-	Marshalling::BindToLanguageExtension(filename, *ParsedProgram);
+	Extensions::RegisterExtensionLibrary(filename, *ParsedProgram, true);
+	Marshalling::BindToLanguageExtension(filename, *ParsedProgram, true);
 }
 
 

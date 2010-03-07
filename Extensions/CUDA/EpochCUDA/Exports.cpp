@@ -15,6 +15,10 @@
 #include "Code Generation/CompiledCodeManager.h"
 #include "Code Generation/EASMToCUDA.h"
 
+#include "CUDA Wrapper/Module.h"
+#include "CUDA Wrapper/Naming.h"
+#include "CUDA Wrapper/FunctionCall.h"
+
 #include "Language Extensions/HandleTypes.h"
 #include "Language Extensions/FunctionPointerTypes.h"
 
@@ -56,8 +60,8 @@ void __stdcall Register(const Extensions::ExtensionInterface* extensioninterface
 	try
 	{
 		FugueVMAccess::Interface = *extensioninterface;
-		extensioninterface->Register(token, L"cuda");
 
+		extensioninterface->Register(token, L"cuda");
 		{
 			std::vector<Extensions::ExtensionControlParamInfo> params;
 			params.push_back(Extensions::ExtensionControlParamInfo());
@@ -324,10 +328,13 @@ void __stdcall LinkToEpochVM(RegistrationTable registration, void* bindrecord)
 {
 	RequestMarshalBuffer = registration.RequestMarshalBuffer;
 
-	registration.RegisterFunction(L"CUDAGenerateDataArray", "GenerateDataArray", NULL, 0, VM::EpochVariableType_Array, VM::EpochVariableType_Real, bindrecord);
-	registration.RegisterFunction(L"CUDAGenerateEmptyArray", "GenerateEmptyArray", NULL, 0, VM::EpochVariableType_Array, VM::EpochVariableType_Real, bindrecord);
-	registration.RegisterFunction(L"CUDAGetThreadIndex", "DummyExportFunction", NULL, 0, VM::EpochVariableType_Integer, VM::EpochVariableType_Error, bindrecord);
-	registration.RegisterFunction(L"IsCUDAAvailable", "IsCUDAAvailable", NULL, 0, VM::EpochVariableType_Boolean, VM::EpochVariableType_Error, bindrecord);
+	if(registration.ShouldRegisterEverything)
+	{
+		registration.RegisterFunction(L"CUDAGenerateDataArray", "GenerateDataArray", NULL, 0, VM::EpochVariableType_Array, VM::EpochVariableType_Real, bindrecord);
+		registration.RegisterFunction(L"CUDAGenerateEmptyArray", "GenerateEmptyArray", NULL, 0, VM::EpochVariableType_Array, VM::EpochVariableType_Real, bindrecord);
+		registration.RegisterFunction(L"CUDAGetThreadIndex", "DummyExportFunction", NULL, 0, VM::EpochVariableType_Integer, VM::EpochVariableType_Error, bindrecord);
+		registration.RegisterFunction(L"IsCUDAAvailable", "IsCUDAAvailable", NULL, 0, VM::EpochVariableType_Boolean, VM::EpochVariableType_Error, bindrecord);
+	}
 }
 
 
@@ -382,5 +389,48 @@ void* __stdcall GenerateEmptyArray()
 bool __stdcall IsCUDAAvailable()
 {
 	return (CUDALibraryLoaded && CUDAAvailableForExecution);
+}
+
+
+
+void __stdcall FillSerializationBuffer(wchar_t** buffer, size_t* buffersize)
+{
+	std::vector<std::vector<Byte> > buffers;
+	Compiler::CopyGeneratedCodeToMemoryBuffers(buffers);
+
+	size_t totalsize = 0;
+	for(std::vector<std::vector<Byte> >::const_iterator iter = buffers.begin(); iter != buffers.end(); ++iter)
+		totalsize += iter->size();
+
+	*buffer = new wchar_t[totalsize];
+	*buffersize = totalsize;
+
+	wchar_t* bufferptr = *buffer;
+
+	for(std::vector<std::vector<Byte> >::const_iterator iter = buffers.begin(); iter != buffers.end(); ++iter)
+	{
+		for(size_t i = 0; i < iter->size(); ++i)
+		{
+			*bufferptr = widen(iter->at(i));
+			++bufferptr;
+		}
+	}
+}
+
+void __stdcall FreeSerializationBuffer(wchar_t* buffer)
+{
+	delete [] buffer;
+}
+
+void __stdcall LoadDataBuffer(const char* buffer, size_t size)
+{
+	Compiler::LoadSerializedState(buffer, size);
+}
+
+
+void __stdcall PrepareBlock(CodeBlockHandle handle)
+{
+	std::string funcname = GenerateFunctionName(Compiler::GetOriginalCodeHandle(handle));
+	Module::LoadCUDAModule(narrow(Compiler::GetGeneratedPTXFileName(Compiler::GetAssociatedSession(handle)))).CreateFunctionCall(funcname);
 }
 

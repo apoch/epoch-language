@@ -9,6 +9,7 @@
 
 #include "Code Generation/CompiledCodeManager.h"
 #include "Code Generation/EASMToCUDA.h"
+#include "CUDA Wrapper/Module.h"
 
 #include "FugueVMAccess.h"
 #include "Exports.h"
@@ -17,7 +18,9 @@
 
 #include "Utility/Files/FilesAndPaths.h"
 #include "Utility/Files/SpecialPaths.h"
+#include "Utility/Files/Files.h"
 #include "Utility/Process.h"
+#include "Utility/Strings.h"
 
 #include <fstream>
 
@@ -326,5 +329,169 @@ const std::wstring& Compiler::GetCodeControlKeyword(CodeBlockHandle handle)
 		throw std::exception("Invalid compile session handle");
 
 	return iter->second;
+}
+
+
+void Compiler::CopyGeneratedCodeToMemoryBuffers(std::vector<std::vector<Byte> >& buffers)
+{
+	buffers.clear();
+
+	buffers.push_back(std::vector<Byte>());
+	std::vector<Byte> temp;
+
+	std::stringstream stream;
+
+	stream << CompileHandleCounter << "\n";
+	stream << CodeHandleCounter << "\n";
+
+	stream << CodeHandleMap.size() << "\n";
+	for(std::map<CodeBlockHandle, OriginalCodeHandle>::const_iterator iter = CodeHandleMap.begin(); iter != CodeHandleMap.end(); ++iter)
+		stream << iter->first << " " << iter->second << "\n";
+
+	stream << CodeHandleToKeywordMap.size() << "\n";
+	for(std::map<CodeBlockHandle, std::wstring>::const_iterator iter = CodeHandleToKeywordMap.begin(); iter != CodeHandleToKeywordMap.end(); ++iter)
+		stream << iter->first << " " << narrow(iter->second) << "\n";
+
+	stream << RegisteredVariablesMap.size() << "\n";
+	for(std::map<CodeBlockHandle, std::list<Traverser::ScopeContents> >::const_iterator iter = RegisteredVariablesMap.begin(); iter != RegisteredVariablesMap.end(); ++iter)
+	{
+		stream << iter->first << " " << iter->second.size() << "\n";
+		for(std::list<Traverser::ScopeContents>::const_iterator contentiter = iter->second.begin(); contentiter != iter->second.end(); ++contentiter)
+		{
+			stream << contentiter->Type << " " << narrow(contentiter->Identifier) << " " << contentiter->ContainedType;
+			stream << " " << contentiter->ContainedSizeKnown << " " << contentiter->ContainedSize << "\n";
+		}
+	}
+
+	stream << CompileSessionMap.size() << "\n";
+	for(std::map<CompileSessionHandle, CompileSessionData*>::const_iterator iter = CompileSessionMap.begin(); iter != CompileSessionMap.end(); ++iter)
+		stream << iter->first << " " << narrow(StripPath(iter->second->GeneratedPTXFileName)) << "\n";
+
+	stream << CodeHandleToSessionMap.size() << "\n";
+	for(std::map<CodeBlockHandle, CompileSessionHandle>::const_iterator iter = CodeHandleToSessionMap.begin(); iter != CodeHandleToSessionMap.end(); ++iter)
+		stream << iter->first << " " << iter->second << "\n";
+
+	stream << Module::BuildSerializationData();
+
+	stream.unsetf(std::ios::skipws);
+	std::copy(std::istream_iterator<Byte>(stream), std::istream_iterator<Byte>(), std::back_inserter(temp));
+
+	buffers.back().swap(temp);
+}
+
+
+void Compiler::LoadSerializedState(const char* buffer, size_t buffersize)
+{
+	size_t size;
+	std::stringstream stream;
+	stream.write(buffer, static_cast<std::streamsize>(buffersize));
+
+	stream >> CompileHandleCounter >> CodeHandleCounter;
+	
+	stream >> size;
+	for(size_t i = 0; i < size; ++i)
+	{
+		CodeBlockHandle codehandle;
+		OriginalCodeHandle originalhandle;
+
+		stream >> codehandle >> originalhandle;
+
+		CodeHandleMap.insert(std::make_pair(codehandle, originalhandle));
+	}
+
+	stream >> size;
+	for(size_t i = 0; i < size; ++i)
+	{
+		CodeBlockHandle codehandle;
+		std::string keyword;
+
+		stream >> codehandle >> keyword;
+
+		CodeHandleToKeywordMap.insert(std::make_pair(codehandle, widen(keyword)));
+	}
+
+	stream >> size;
+	for(size_t i = 0; i < size; ++i)
+	{
+		CodeBlockHandle codehandle;
+		size_t numcontents;
+		std::list<Traverser::ScopeContents> contents;
+
+		stream >> codehandle >> numcontents;
+		for(size_t j = 0; j < numcontents; ++j)
+		{
+			Traverser::ScopeContents content;
+
+			Integer32 intval;
+			stream >> intval;
+			content.Type = static_cast<VM::EpochVariableTypeID>(intval);
+
+			std::string identifier;
+			stream >> identifier;
+			content.Identifier = widen(identifier);
+
+			stream >> intval;
+			content.ContainedType = static_cast<VM::EpochVariableTypeID>(intval);
+
+			stream >> content.ContainedSizeKnown;
+			stream >> content.ContainedSize;
+
+			contents.push_back(content);
+		}
+
+		RegisteredVariablesMap.insert(std::make_pair(codehandle, contents));
+	}
+
+	stream >> size;
+	for(size_t i = 0; i < size; ++i)
+	{
+		CompileSessionHandle sessionhandle;
+		stream >> sessionhandle;
+
+		std::string ptxname;
+		stream >> ptxname;
+
+		std::auto_ptr<CompileSessionData> sessiondata(new CompileSessionData(NULL, 0));
+		sessiondata->GeneratedPTXFileName = widen(ptxname);
+
+		CompileSessionMap.insert(std::make_pair(sessionhandle, sessiondata.release()));
+	}
+
+	stream >> size;
+	for(size_t i = 0; i < size; ++i)
+	{
+		CodeBlockHandle codehandle;
+		CompileSessionHandle sessionhandle;
+		stream >> codehandle >> sessionhandle;
+		CodeHandleToSessionMap.insert(std::make_pair(codehandle, sessionhandle));
+	}
+
+	stream >> size;
+	for(size_t i = 0; i < size; ++i)
+	{
+		std::string modulename;
+		stream >> modulename;
+
+		size_t numfunctions;
+		stream >> numfunctions;
+
+		std::vector<std::string> functionids;
+		for(size_t j = 0; j < numfunctions; ++j)
+		{
+			std::string functionname;
+			stream >> functionname;
+			functionids.push_back(functionname);
+		}
+
+		size_t buffersize;
+		stream >> buffersize;
+
+		std::string ignored;
+		getline(stream, ignored);
+
+		Module::LoadCUDAModule(modulename, functionids, buffer + stream.tellg());
+
+		stream.seekg(stream.tellg() + static_cast<std::streamoff>(buffersize));
+	}
 }
 

@@ -24,7 +24,7 @@ namespace Extensions
 	{
 	// Construction
 	public:
-		ExtensionDLLAccess(const std::wstring& dllname, VM::Program& program);
+		ExtensionDLLAccess(const std::wstring& dllname, VM::Program& program, bool startsession);
 
 	// Extension interface
 	public:
@@ -33,6 +33,11 @@ namespace Extensions
 		void ExecuteSourceBlock(CodeBlockHandle handle, HandleType activatedscopehandle);
 		void ExecuteSourceBlock(CodeBlockHandle handle, HandleType activatedscopehandle, const std::vector<Traverser::Payload>& payloads);
 		void PrepareForExecution();
+		void PrepareCodeBlock(CodeBlockHandle handle);
+
+		void FillSerializationBuffer(wchar_t*& buffer, size_t& buffersize);
+		void FreeSerializationBuffer(wchar_t* buffer);
+		void LoadDataBuffer(const std::string& buffer);
 
 		CompileSessionHandle GetCompileSession() const
 		{ return SessionHandle; }
@@ -50,9 +55,14 @@ namespace Extensions
 		typedef CodeBlockHandle (__stdcall *LoadSourceBlockPtr)(CompileSessionHandle sessionid, OriginalCodeHandle handle, const wchar_t* keyword);
 		typedef void (__stdcall *ExecuteSourceBlockPtr)(CodeBlockHandle handle, HandleType activatedscopehandle);
 		typedef void (__stdcall *ExecuteControlPtr)(CodeBlockHandle handle, HandleType activatedscopehandle, size_t numparams, const Traverser::Payload* params);
+		typedef void (__stdcall *LoadDataBufferPtr)(const char* buffer, size_t buffersize);
 
 		typedef CompileSessionHandle (__stdcall *StartCompileSessionPtr)(HandleType programhandle);
 		typedef void (__stdcall *PreparePtr)(CompileSessionHandle sessionid);
+		typedef void (__stdcall *PrepareBlockPtr)(CodeBlockHandle codehandle);
+
+		typedef void (__stdcall *FillSerializationBufferPtr)(wchar_t** buffer, size_t* buffersize);
+		typedef void (__stdcall *FreeSerializationBufferPtr)(wchar_t* buffer);
 
 	// Internal bindings to the DLL
 	private:
@@ -68,6 +78,11 @@ namespace Extensions
 
 		StartCompileSessionPtr DoStartSession;
 		PreparePtr DoPrepare;
+		PrepareBlockPtr DoPrepareBlock;
+
+		FillSerializationBufferPtr DoFillSerializationBuffer;
+		FreeSerializationBufferPtr DoFreeSerializationBuffer;
+		LoadDataBufferPtr DoLoadDataBuffer;
 
 		CompileSessionHandle SessionHandle;
 

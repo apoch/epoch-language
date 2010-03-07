@@ -12,4 +12,8 @@ EXPORTS
 	ExecuteControl					@10
 	Initialize						@11
 	IsCUDAAvailable					@12
+	FillSerializationBuffer			@13
+	FreeSerializationBuffer			@14
+	LoadDataBuffer					@15
+	PrepareBlock					@16
 	

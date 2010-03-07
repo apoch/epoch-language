@@ -87,6 +87,14 @@ namespace VM
 				return payload;
 			}
 
+		// Traversal interface
+		protected:
+			template <typename TraverserT>
+			void TraverseHelper(TraverserT& traverser);
+
+			virtual void Traverse(Validator::ValidationTraverser& traverser);
+			virtual void Traverse(Serialization::SerializationTraverser& traverser);
+
 		// Queries
 		public:
 			EpochVariableTypeID GetElementType() const

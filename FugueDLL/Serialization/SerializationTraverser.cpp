@@ -229,6 +229,14 @@ void SerializationTraverser::TraverseScope(VM::ScopeDescription& scope)
 		dynamic_cast<VM::SelfAwareBase*>(iter->second->GetNestedOperation())->Traverse(*this);
 	}
 
+	PadTabs();
+	OutputStream << ArrayHints << L" " << scope.ArrayTypes.size() << L"\n";
+	for(std::map<std::wstring, VM::EpochVariableTypeID>::const_iterator iter = scope.ArrayTypes.begin(); iter != scope.ArrayTypes.end(); ++iter)
+	{
+		PadTabs();
+		OutputStream << iter->first << L" " << iter->second << L"\n";
+	}
+
 	--TabDepth;
 	PadTabs();
 	OutputStream << EndScope << L"\n";
@@ -402,6 +410,12 @@ void SerializationTraverser::WriteOp(const void* opptr, const std::wstring& toke
 	}
 }
 
+void SerializationTraverser::WriteOp(const void* opptr, const std::wstring& token, const void* secondptr)
+{
+	PadTabs();
+	OutputStream << opptr << L" " << token << L" " << secondptr << L"\n";
+}
+
 void SerializationTraverser::WriteOp(const void* opptr, const std::wstring& token, VM::EpochVariableTypeID type)
 {
 	PadTabs();
@@ -424,6 +438,12 @@ void SerializationTraverser::WriteOp(const void* opptr, const std::wstring& toke
 {
 	PadTabs();
 	OutputStream << opptr << L" " << token << L" " << param1 << L" " << param2 << L"\n";
+}
+
+void SerializationTraverser::WriteOp(const void* opptr, const std::wstring& token, const std::wstring& param1, const std::wstring& param2, HandleType handle)
+{
+	PadTabs();
+	OutputStream << opptr << L" " << token << L" " << param1 << L" " << param2 << L" " << handle << L"\n";
 }
 
 void SerializationTraverser::WriteOp(const void* opptr, const std::wstring& token, const std::wstring& param1, const std::wstring& param2, VM::EpochVariableTypeID param3, VM::EpochVariableTypeID param4)
@@ -555,9 +575,21 @@ void SerializationTraverser::WriteCompoundOp(const void* opptr, const std::wstri
 	OutputStream << opptr << L" " << token << L" " << type << L" " << numops << L"\n";
 }
 
-void SerializationTraverser::WriteHandoffOp(const void* opptr, const std::wstring& token, const std::wstring& libraryname)
+void SerializationTraverser::WriteHandoffOp(const void* opptr, const std::wstring& token, const std::wstring& libraryname, HandleType handle)
 {
 	PadTabs();
-	OutputStream << opptr << L" " << token << L" " << libraryname << L"\n";
+	OutputStream << opptr << L" " << token << L" " << libraryname << L" " << handle << L"\n";
+}
+
+
+void SerializationTraverser::WriteSize(size_t size)
+{
+	OutputStream << size << L"\n";
+}
+
+void SerializationTraverser::WriteExtensionData(const std::wstring& extensionname, const wchar_t* buffer, size_t buffersize)
+{
+	OutputStream << extensionname << L" " << buffersize << L"\n";
+	OutputStream.write(buffer, static_cast<std::streamsize>(buffersize));
 }
 

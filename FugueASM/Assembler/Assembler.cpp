@@ -30,10 +30,11 @@
 
 #include <fstream>
 #include <iomanip>
+#include <vector>
 
 
 // Prototypes
-namespace { void Assemble(std::wifstream& infile, std::wofstream& outfile); }
+namespace { bool Assemble(std::wifstream& infile, std::wofstream& outfile); }
 
 
 // Constants
@@ -41,7 +42,8 @@ enum AssembleSingleResult
 {
 	CONTINUE_LOOP,			// Short-circuit the assembly loop
 	RECURSIVE_RETURN,		// Return to the next-highest block on the stack
-	PROCEED					// Continue assembling as normal
+	PROCEED,				// Continue assembling as normal
+	FINISH_ASSEMBLING		// Do not assemble anything further in this file
 };
 
 
@@ -350,6 +352,9 @@ namespace
 	#define SKIPTOSTRING(length)							\
 		if(length) { infile.ignore(); }						\
 
+	#define FINISH											\
+		return FINISH_ASSEMBLING;							\
+
 	#define SPACE
 
 	#define NEWLINE
@@ -364,7 +369,7 @@ namespace
 	//
 	// Driver loop that repeatedly reads and processes instructions to assemble
 	//
-	void Assemble(std::wifstream& infile, std::wofstream& outfile)
+	bool Assemble(std::wifstream& infile, std::wofstream& outfile)
 	{
 		while(true)
 		{
@@ -372,13 +377,15 @@ namespace
 			std::wstring str = RetrieveString(infile);
 
 			if(infile.eof())
-				return;
+				return true;
 
 			AssembleSingleResult result = AssembleSingle(str, infile, outfile);
 			if(result == CONTINUE_LOOP)
 				continue;
 			else if(result == RECURSIVE_RETURN)
-				return;
+				return true;
+			else if(result == FINISH_ASSEMBLING)
+				return false;
 
 			// Discard unused hex addresses
 			if(str.length() == 8 && str.find_first_not_of(L"0123456789ABCDEF") == std::string::npos)
@@ -390,6 +397,21 @@ namespace
 				throw Exception(stream.str());
 			}
 		}
+	}
+
+	
+	void CopyExtensionBlock(std::wifstream& infile, std::wofstream& outfile)
+	{
+		WriteTerminatedString(outfile, RetrieveString(infile));
+		UINT_PTR bytesize = RetrieveNumber(infile);
+		WriteLiteral(outfile, bytesize);
+
+		std::wstring ignored;
+		std::getline(infile, ignored);
+
+		std::vector<wchar_t> widebuffer(bytesize, L'\0');
+		infile.read(&widebuffer[0], static_cast<std::streamsize>(bytesize));
+		outfile.write(&widebuffer[0], static_cast<std::streamsize>(bytesize));
 	}
 
 }
@@ -423,7 +445,7 @@ bool Assembler::AssembleFile(const std::wstring& inputfile, const std::wstring& 
 		
 		UINT_PTR numextensions = RetrieveNumber(infile);
 		WriteLiteral(outfile, numextensions);
-		for(unsigned i = 0; i < numextensions; ++i)
+		for(UINT_PTR i = 0; i < numextensions; ++i)
 			WriteTerminatedString(outfile, RetrieveString(infile));
 
 		UINT_PTR firstscopeid = RetrieveHexNumber(infile);		// Copy first scope's ID so it doesn't get discarded by the assembler table
@@ -437,9 +459,15 @@ bool Assembler::AssembleFile(const std::wstring& inputfile, const std::wstring& 
 
 		do
 		{
-			Assemble(infile, outfile);
+			if(!Assemble(infile, outfile))
+				break;
 		} while(!infile.eof());
 
+		UINT_PTR numextdatablocks = RetrieveNumber(infile);
+
+		WriteLiteral(outfile, numextdatablocks);
+		for(UINT_PTR i = 0; i < numextdatablocks; ++i)
+			CopyExtensionBlock(infile, outfile);
 
 		std::wcout << L"Successfully assembled.\n" << std::endl;
 		return true;

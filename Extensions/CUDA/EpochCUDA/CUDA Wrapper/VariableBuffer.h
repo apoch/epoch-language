@@ -49,7 +49,7 @@ public:
 			if(iter->Type == DataType)
 			{
 				Traverser::Payload payload;
-				FugueVMAccess::Interface.MarshalRead(activatedscopehandle, iter->Identifier, &payload);
+				FugueVMAccess::Interface.MarshalRead(activatedscopehandle, iter->Identifier.c_str(), &payload);
 				InternalBuffer.push_back(payload.GetValueByType<T>());
 			}
 		}
@@ -88,7 +88,7 @@ public:
 				Traverser::Payload payload;
 				payload.Type = iter->Type;
 				payload.SetValue(InternalBuffer[index++]);
-				FugueVMAccess::Interface.MarshalWrite(activatedscopehandle, iter->Identifier, &payload);
+				FugueVMAccess::Interface.MarshalWrite(activatedscopehandle, iter->Identifier.c_str(), &payload);
 			}
 		}
 
@@ -160,7 +160,7 @@ public:
 			if(iter->Type == VM::EpochVariableType_Array && iter->ContainedType == DataType)
 			{
 				Traverser::Payload payload;
-				FugueVMAccess::Interface.MarshalRead(activatedscopehandle, iter->Identifier, &payload);
+				FugueVMAccess::Interface.MarshalRead(activatedscopehandle, iter->Identifier.c_str(), &payload);
 				InternalBuffer.push_back(std::vector<T>(payload.ParameterCount));
 				for(size_t i = 0; i < payload.ParameterCount; ++i)
 					InternalBuffer.back()[i] = *(reinterpret_cast<T*>(payload.PointerValue) + i);
@@ -226,7 +226,7 @@ public:
 				payload.PointerValue = &(flatbuffer[index]);
 				payload.ParameterCount = InternalBuffer[internalindex].size();
 				payload.ParameterType = iter->ContainedType;
-				FugueVMAccess::Interface.MarshalWrite(activatedscopehandle, iter->Identifier, &payload);
+				FugueVMAccess::Interface.MarshalWrite(activatedscopehandle, iter->Identifier.c_str(), &payload);
 				index += InternalBuffer[internalindex].size();
 				++internalindex;
 			}

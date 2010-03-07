@@ -176,4 +176,6 @@ namespace Serialization
 	extern std::wstring GlobalBlock;
 	extern std::wstring Constants;
 	extern std::wstring Futures;
+	extern std::wstring ExtensionData;
+	extern std::wstring ArrayHints;
 }

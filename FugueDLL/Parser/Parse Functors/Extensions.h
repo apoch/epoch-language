@@ -71,10 +71,10 @@ struct RegisterExtension : public ParseFunctorBase
 	{
 		std::wstring extensionname(begin + 1, end - 1);
 		Trace(L"RegisterExtension", extensionname);
-		Extensions::ExtensionLibraryHandle handle = Extensions::RegisterExtensionLibrary(extensionname, *State.GetParsedProgram());
+		Extensions::ExtensionLibraryHandle handle = Extensions::RegisterExtensionLibrary(extensionname, *State.GetParsedProgram(), true);
 		Extensions::EnumerateExtensionKeywords(RegisterEnumeratedExtension<DefinitionT>(GrammarDefinition), handle);
 
-		Marshalling::BindToLanguageExtension(extensionname, *State.GetParsedProgram());
+		Marshalling::BindToLanguageExtension(extensionname, *State.GetParsedProgram(), true);
 	}
 
 private:

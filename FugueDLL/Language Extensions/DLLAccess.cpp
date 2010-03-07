@@ -19,6 +19,8 @@
 #include "Virtual Machine/Core Entities/Scopes/ActivatedScope.h"
 #include "Virtual Machine/Core Entities/Variables/ArrayVariable.h"
 
+#include "Marshalling/DLLPool.h"
+
 #include "Utility/Strings.h"
 
 
@@ -29,14 +31,14 @@ using namespace Extensions;
 //
 // Construct the access wrapper and initialize the DLL bindings
 //
-ExtensionDLLAccess::ExtensionDLLAccess(const std::wstring& dllname, VM::Program& program)
+ExtensionDLLAccess::ExtensionDLLAccess(const std::wstring& dllname, VM::Program& program, bool startsession)
 	: SessionHandle(0),
 	  DLLName(dllname),
 	  ExtensionValid(false),
 	  DLLHandle(NULL)
 {
 	// Load the DLL
-	DLLHandle = ::LoadLibrary(dllname.c_str());
+	DLLHandle = Marshalling::TheDLLPool.OpenDLL(dllname);
 	if(!DLLHandle)
 		throw Exception("A language extension DLL was requested, but the DLL was either not found or reported some error during initialization");
 
@@ -48,14 +50,21 @@ ExtensionDLLAccess::ExtensionDLLAccess(const std::wstring& dllname, VM::Program&
 	DoExecuteControl = reinterpret_cast<ExecuteControlPtr>(::GetProcAddress(DLLHandle, "ExecuteControl"));
 	DoPrepare = reinterpret_cast<PreparePtr>(::GetProcAddress(DLLHandle, "CommitCompilation"));
 	DoStartSession = reinterpret_cast<StartCompileSessionPtr>(::GetProcAddress(DLLHandle, "StartNewProgramCompilation"));
+	DoFillSerializationBuffer = reinterpret_cast<FillSerializationBufferPtr>(::GetProcAddress(DLLHandle, "FillSerializationBuffer"));
+	DoFreeSerializationBuffer = reinterpret_cast<FreeSerializationBufferPtr>(::GetProcAddress(DLLHandle, "FreeSerializationBuffer"));
+	DoLoadDataBuffer = reinterpret_cast<LoadDataBufferPtr>(::GetProcAddress(DLLHandle, "LoadDataBuffer"));
+	DoPrepareBlock = reinterpret_cast<PrepareBlockPtr>(::GetProcAddress(DLLHandle, "PrepareBlock"));
 
 	// Validate interface to be sure
-	if(!DoInitialize || !DoRegistration || !DoLoadSource || !DoExecuteSource || !DoExecuteControl || !DoPrepare || !DoStartSession)
+	if(!DoInitialize || !DoRegistration || !DoLoadSource || !DoExecuteSource || !DoExecuteControl || !DoPrepare || !DoStartSession || !DoFillSerializationBuffer || !DoFreeSerializationBuffer || !DoLoadDataBuffer || !DoPrepareBlock)
 		throw Exception("One or more Epoch service functions could not be loaded from the requested language extension DLL");
 
 	ExtensionValid = DoInitialize();
 
-	SessionHandle = DoStartSession(reinterpret_cast<HandleType>(&program));
+	if(startsession)
+		SessionHandle = DoStartSession(reinterpret_cast<HandleType>(&program));
+	else
+		SessionHandle = 0;
 }
 
 
@@ -301,7 +310,7 @@ namespace
 //
 // Request the library extension to register the keywords it wishes to add to the language
 //
-// Note that we also take this opportunity to inform the library of where to find callback
+// Note that we also take this to inform the library of where to find callback
 // functionality for compiling and otherwise handling Epoch code.
 //
 void ExtensionDLLAccess::RegisterExtensionKeywords(ExtensionLibraryHandle token)
@@ -324,4 +333,26 @@ void ExtensionDLLAccess::RegisterExtensionKeywords(ExtensionLibraryHandle token)
 void ExtensionDLLAccess::PrepareForExecution()
 {
 	DoPrepare(SessionHandle);
+}
+
+
+void ExtensionDLLAccess::FillSerializationBuffer(wchar_t*& buffer, size_t& buffersize)
+{
+	DoFillSerializationBuffer(&buffer, &buffersize);
+}
+
+void ExtensionDLLAccess::FreeSerializationBuffer(wchar_t* buffer)
+{
+	DoFreeSerializationBuffer(buffer);
+}
+
+
+void ExtensionDLLAccess::LoadDataBuffer(const std::string& buffer)
+{
+	DoLoadDataBuffer(buffer.data(), buffer.size());
+}
+
+void ExtensionDLLAccess::PrepareCodeBlock(CodeBlockHandle handle)
+{
+	DoPrepareBlock(handle);
 }

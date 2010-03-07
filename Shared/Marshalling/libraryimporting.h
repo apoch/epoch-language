@@ -42,6 +42,8 @@ typedef void* (__stdcall *RequestMarshalBufferPtr)(size_t numbytes);
 //
 struct RegistrationTable
 {
+	bool ShouldRegisterEverything;
+
 	RegisterFunctionFuncPtr RegisterFunction;
 	RegisterConstantFuncPtr RegisterConstant;
 	RegisterStructureFuncPtr RegisterStructure;

@@ -77,6 +77,7 @@ bool __stdcall ExecuteSourceCode(const char* filename)
 		}
 
 		output << L"Executing program..." << std::endl;
+		Extensions::PrepareForExecution();
 		state.GetParsedProgram()->Execute();
 		return true;
 	}
@@ -185,6 +186,8 @@ bool __stdcall SerializeSourceCode(const char* filename, const char* outputfilen
 		}
 
 		output << L"Compiling program..." << std::endl;
+
+		Extensions::PrepareForExecution();
 		
 		if(usesconsole)
 			state.GetParsedProgram()->SetUsesConsole();

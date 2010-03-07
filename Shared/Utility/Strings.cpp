@@ -34,6 +34,13 @@ std::wstring widen(const std::string& str)
 	return std::wstring(buffer.begin(), buffer.end() - 1);
 }
 
+wchar_t widen(char c)
+{
+	wchar_t ret;
+	mbtowc(&ret, &c, 1);
+	return ret;
+}
+
 
 //
 // Convert a wide string to a narrow string
@@ -54,6 +61,13 @@ std::string narrow(const std::wstring& str)
 		throw std::exception("Cannot narrow string - invalid character detected");
 
 	return std::string(buffer.begin(), buffer.end() - 1);
+}
+
+char narrow(wchar_t c)
+{
+	char ret;
+	wctomb_s(NULL, &ret, c, 1);
+	return ret;
 }
 
 

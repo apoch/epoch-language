@@ -76,8 +76,6 @@ Program::~Program()
 //
 RValuePtr Program::Execute()
 {
-	Extensions::PrepareForExecution();
-
 	delete ActivatedGlobalScope;
 	ActivatedGlobalScope = new ActivatedScope(GlobalScope);
 

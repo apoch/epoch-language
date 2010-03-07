@@ -62,6 +62,7 @@ private:
 	void LoadGlobalInitBlock();
 	VM::Block* LoadCodeBlock();
 	VM::FunctionSignature LoadFunctionSignature();
+	void LoadExtensionData();
 
 	const std::wstring& WidenAndCache(const std::string& str);
 

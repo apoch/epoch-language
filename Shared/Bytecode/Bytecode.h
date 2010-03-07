@@ -115,8 +115,14 @@ namespace Bytecode
 	extern const unsigned char ThreadPool;
 	extern const unsigned char ForkThread;
 	extern const unsigned char Handoff;
+	extern const unsigned char ExtensionData;
+	extern const unsigned char ReadArray;
+	extern const unsigned char WriteArray;
+	extern const unsigned char ConsArrayIndirect;
+	extern const unsigned char ArrayLength;
+	extern const unsigned char ParallelFor;
+	extern const unsigned char HandoffControl;
+	extern const unsigned char ArrayHints;
 }
-
-
 
 

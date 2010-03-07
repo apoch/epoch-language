@@ -32,6 +32,7 @@ namespace Extensions
 	// Construction
 	public:
 		HandoffOperation(const std::wstring& extensionname, std::auto_ptr<VM::Block> codeblock);
+		HandoffOperation(const std::wstring& extensionname, std::auto_ptr<VM::Block> codeblock, Extensions::CodeBlockHandle codehandle);
 
 	// Operation interface
 	public:
@@ -48,6 +49,13 @@ namespace Extensions
 	public:
 		const std::wstring& GetExtensionName() const
 		{ return ExtensionName; }
+
+		Extensions::CodeBlockHandle GetCodeHandle() const
+		{ return CodeHandle; }
+
+	// Additional helpers
+	public:
+		void PrepareForExecution();
 
 	// Traversal interface
 	protected:
@@ -79,6 +87,7 @@ namespace Extensions
 	// Construction and destruction
 	public:
 		HandoffControlOperation(const std::wstring& controlkeyword, VM::Block* body, const std::wstring& countervarname, const VM::ScopeDescription& scope);
+		HandoffControlOperation(const std::wstring& controlkeyword, VM::Block* body, const std::wstring& countervarname, const VM::ScopeDescription& scope, Extensions::CodeBlockHandle codehandle);
 
 		~HandoffControlOperation();
 
@@ -92,6 +101,10 @@ namespace Extensions
 
 		virtual size_t GetNumParameters(const VM::ScopeDescription& scope) const
 		{ return 2; }
+
+	// Additional helpers
+	public:
+		void PrepareForExecution();
 
 	// Traversal interface
 	protected:
@@ -114,6 +127,8 @@ namespace Extensions
 		const std::wstring& GetExtensionName() const
 		{ return ExtensionName; }
 
+		Extensions::CodeBlockHandle GetCodeHandle() const
+		{ return CodeHandle; }
 
 	// Internal tracking
 	protected:

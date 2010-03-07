@@ -57,6 +57,10 @@
 
 #define ASSEMBLYTABLE																						\
 																											\
+DEFINE_INSTRUCTION(Bytecode::ExtensionData, Serialization::ExtensionData)									\
+	FINISH																									\
+END_INSTRUCTION																								\
+																											\
 DEFINE_INSTRUCTION(Bytecode::NoOp, Serialization::Null)														\
 	NEWLINE																									\
 END_INSTRUCTION																								\
@@ -1081,6 +1085,7 @@ END_INSTRUCTION																								\
 																											\
 DEFINE_ADDRESSED_INSTRUCTION(Bytecode::Handoff, Serialization::Handoff)										\
 	PARAM_STR(libraryname)																					\
+	PARAM_UINT(codehandle)																					\
 	EXPECT(Bytecode::BeginBlock, Serialization::BeginBlock)													\
 	IF_ASSEMBLING																							\
 		READ_HEX(scopeid)																					\
@@ -1097,6 +1102,70 @@ DEFINE_ADDRESSED_INSTRUCTION(Bytecode::Handoff, Serialization::Handoff)									
 	RECURSE																									\
 	RECURSE																									\
 END_INSTRUCTION																								\
-
-
+																											\
+DEFINE_ADDRESSED_INSTRUCTION(Bytecode::ReadArray, Serialization::ReadArray)									\
+	PARAM_STR(arrayname)																					\
+END_INSTRUCTION																								\
+																											\
+DEFINE_ADDRESSED_INSTRUCTION(Bytecode::WriteArray, Serialization::WriteArray)								\
+	PARAM_STR(arrayname)																					\
+END_INSTRUCTION																								\
+																											\
+DEFINE_ADDRESSED_INSTRUCTION(Bytecode::ArrayLength, Serialization::ArrayLength)								\
+	PARAM_STR(arrayname)																					\
+END_INSTRUCTION																								\
+																											\
+DEFINE_ADDRESSED_INSTRUCTION(Bytecode::ConsArrayIndirect, Serialization::ConsArrayIndirect)					\
+	PARAM_UINT(elementtype)																					\
+END_INSTRUCTION																								\
+																											\
+DEFINE_ADDRESSED_INSTRUCTION(Bytecode::ParallelFor, Serialization::ParallelFor)								\
+	PARAM_STR(countername)																					\
+	EXPECT(Bytecode::BeginBlock, Serialization::BeginBlock)													\
+	NEWLINE																									\
+	IF_ASSEMBLING																							\
+		READ_HEX(scopeid)																					\
+		EXPECT(Bytecode::Scope, Serialization::Scope)														\
+		WRITE_HEX(scopeid)																					\
+	ELSE																									\
+		READ_INSTRUCTION(ignored)																			\
+		COPY_HEX(scopeid)																					\
+		SPACE																								\
+		WRITE_STRING(Serialization::Scope)																	\
+		NEWLINE																								\
+	END_IF																									\
+	RECURSE																									\
+	RECURSE																									\
+END_INSTRUCTION																								\
+																											\
+DEFINE_ADDRESSED_INSTRUCTION(Bytecode::HandoffControl, Serialization::HandoffControl)						\
+	PARAM_STR(controlname)																					\
+	PARAM_STR(countername)																					\
+	PARAM_UINT(codehandle)																					\
+	EXPECT(Bytecode::BeginBlock, Serialization::BeginBlock)													\
+	NEWLINE																									\
+	IF_ASSEMBLING																							\
+		READ_HEX(scopeid)																					\
+		EXPECT(Bytecode::Scope, Serialization::Scope)														\
+		WRITE_HEX(scopeid)																					\
+	ELSE																									\
+		READ_INSTRUCTION(ignored)																			\
+		COPY_HEX(scopeid)																					\
+		SPACE																								\
+		WRITE_STRING(Serialization::Scope)																	\
+		NEWLINE																								\
+	END_IF																									\
+	RECURSE																									\
+	RECURSE																									\
+END_INSTRUCTION																								\
+																											\
+DEFINE_INSTRUCTION(Bytecode::ArrayHints, Serialization::ArrayHints)											\
+	PARAM_UINT(count)																						\
+	LOOP(count)																								\
+		COPY_STR(arrayname)																					\
+		SPACE																								\
+		COPY_UINT(arraytype)																				\
+		NEWLINE																								\
+	ENDLOOP																									\
+END_INSTRUCTION																								\
 

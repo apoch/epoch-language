@@ -22,7 +22,8 @@ class Module
 {
 // Construction and destruction
 private:
-	Module(const std::string& modulefilename);
+	explicit Module(const std::string& modulefilename);
+	Module(const std::vector<std::string>& functionnames, const void* codebuffer);
 	~Module();
 
 // Function access interface
@@ -32,10 +33,16 @@ public:
 // Module wrapper creation and management
 public:
 	static Module& LoadCUDAModule(const std::string& filename);
+	static Module& LoadCUDAModule(const std::string& filename, const std::vector<std::string>& functionnames, const void* buffer);
 	static void ReleaseAllModules();
+
+// Compilation/serialization helpers
+public:
+	static std::string BuildSerializationData();
 
 // Internal tracking
 private:
+	std::string FullFileName;
 	CUmodule ModuleHandle;
 	std::map<std::string, FunctionCall*> LoadedFunctions;
 	Threads::CriticalSection CritSec;

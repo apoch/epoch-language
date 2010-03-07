@@ -47,7 +47,7 @@ void CUDACodeInvoker::Execute(size_t lowerbound, size_t upperbound)
 		Threads::CriticalSection::Auto mutex(InvocationCriticalSection);
 
 		FunctionCall call = Module::LoadCUDAModule(narrow(Compiler::GetGeneratedPTXFileName(Compiler::GetAssociatedSession(CodeHandle)))).CreateFunctionCall(FunctionName);
-				
+
 		if(Compiler::GetCodeControlKeyword(CodeHandle) == L"cudafor")
 		{
 			varbuffer.PrepareFunctionCall(call, lowerbound);

@@ -19,18 +19,20 @@
 
 #include <fstream>
 #include <iomanip>
+#include <vector>
 
 
 
 // Prototypes
-namespace { void Disassemble(std::ifstream& infile, std::ofstream& outfile); }
+namespace { bool Disassemble(std::ifstream& infile, std::ofstream& outfile); }
 
 // Constants
 enum DisassembleSingleResult
 {
 	CONTINUE_LOOP,			// Short-circuit the disassembly loop
 	RECURSIVE_RETURN,		// Return to the next-highest block on the stack
-	PROCEED					// Continue disassembling as normal
+	PROCEED,				// Continue disassembling as normal
+	FINISH_ASSEMBLING		// Do not disassemble anything further in this file
 };
 
 
@@ -317,6 +319,9 @@ namespace
 
 	#define SKIPTOSTRING(length)
 
+	#define FINISH											\
+		return FINISH_ASSEMBLING;							\
+
 	#define SPACE											\
 		WriteSpace(outfile);								\
 
@@ -335,7 +340,7 @@ namespace
 	// traversing the bytecode and converting operations back into
 	// the original EpochASM instructions.
 	//
-	void Disassemble(std::ifstream& infile, std::ofstream& outfile)
+	bool Disassemble(std::ifstream& infile, std::ofstream& outfile)
 	{
 		// Disassemble instructions until we run out
 		while(true)
@@ -343,13 +348,15 @@ namespace
 			unsigned char instruction = RetrieveInstruction(infile);
 
 			if(infile.eof())
-				break;
+				return true;
 
 			DisassembleSingleResult result = DisassembleSingle(instruction, infile, outfile);
 			if(result == CONTINUE_LOOP)
 				continue;
 			else if(result == RECURSIVE_RETURN)
-				return;
+				return true;
+			else if(result == FINISH_ASSEMBLING)
+				return false;
 
 			{
 				std::ostringstream msg;
@@ -358,6 +365,17 @@ namespace
 				throw Exception(msg.str());
 			}
 		}
+	}
+
+	void CopyExtensionBlock(std::ifstream& infile, std::ofstream& outfile)
+	{
+		outfile << RetrieveNullTerminatedString(infile) << " ";
+		UINT_PTR bytesize = RetrieveNumber(infile);
+		outfile << bytesize << "\n";
+
+		std::vector<Byte> buffer(bytesize + 1, '0');
+		infile.read(&buffer[0], static_cast<std::streamsize>(bytesize));
+		outfile.write(&buffer[0], static_cast<std::streamsize>(bytesize));
 	}
 
 }
@@ -399,7 +417,7 @@ bool Disassembler::DisassembleFile(const std::wstring& inputfile, const std::wst
 		UINT_PTR extensioncount = RetrieveNumber(infile);
 		WriteNumber(outfile, extensioncount);
 		WriteNewline(outfile);
-		for(unsigned i = 0; i < extensioncount; ++i)
+		for(UINT_PTR i = 0; i < extensioncount; ++i)
 		{
 			WriteString(outfile, RetrieveNullTerminatedString(infile));
 			WriteNewline(outfile);
@@ -411,10 +429,19 @@ bool Disassembler::DisassembleFile(const std::wstring& inputfile, const std::wst
 		WriteSpace(outfile);
 		WriteString(outfile, Serialization::Scope);
 		WriteNewline(outfile);
-		Disassemble(infile, outfile);
-		
-		if(!infile.eof())
-			Disassemble(infile, outfile);
+
+		do
+		{
+			if(!Disassemble(infile, outfile))
+				break;
+		} while(!infile.eof());
+
+		UINT_PTR extensiondatacount = RetrieveNumber(infile);
+		WriteNewline(outfile);
+		WriteNumber(outfile, extensiondatacount);
+		WriteNewline(outfile);
+		for(UINT_PTR i = 0; i < extensiondatacount; ++i)
+			CopyExtensionBlock(infile, outfile);
 
 		std::wcout << L"Successfully disassembled.\n" << std::endl;
 		return true;

@@ -465,6 +465,14 @@
 					Name="Files"
 					>
 					<File
+						RelativePath="..\..\..\Shared\Utility\Files\Files.cpp"
+						>
+					</File>
+					<File
+						RelativePath="..\..\..\Shared\Utility\Files\Files.h"
+						>
+					</File>
+					<File
 						RelativePath="..\..\..\Shared\Utility\Files\FilesAndPaths.cpp"
 						>
 					</File>

@@ -12,6 +12,7 @@
 #include "Utility/Memory/Stack.h"
 #include "Virtual Machine/Core Entities/Scopes/ScopeDescription.h"
 #include "Virtual Machine/Thread Pooling/PoolTracker.h"
+#include "Language Extensions/ExtensionCatalog.h"
 
 // Forward declarations
 class HeapStorage;
@@ -71,6 +72,8 @@ namespace VM
 			traverser.TraverseGlobalInitBlock(GlobalInitBlock);
 			if(GlobalInitBlock)
 				GlobalInitBlock->Traverse(traverser);
+			
+			Extensions::TraverseExtensions(traverser);
 		}
 
 	// Static string pool management

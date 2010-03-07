@@ -41,6 +41,14 @@ HandoffOperation::HandoffOperation(const std::wstring& extensionname, std::auto_
 		throw Exception("Failed to bind to an Epoch language extension library");
 }
 
+HandoffOperation::HandoffOperation(const std::wstring& extensionname, std::auto_ptr<VM::Block> codeblock, Extensions::CodeBlockHandle codehandle)
+	: ExtensionName(extensionname),
+	  CodeBlock(codeblock),
+	  CodeHandle(codehandle)
+{
+	ExtensionHandle = Extensions::GetLibraryProvidingExtension(extensionname);
+}
+
 
 //
 // Invoke the extension code attached to this handoff block
@@ -86,7 +94,10 @@ void HandoffOperation::Traverse(Serialization::SerializationTraverser& traverser
 	TraverseHelper(traverser);
 }
 
-
+void HandoffOperation::PrepareForExecution()
+{
+	Extensions::PrepareCodeBlockForExecution(ExtensionHandle, CodeHandle);
+}
 
 
 
@@ -108,6 +119,16 @@ HandoffControlOperation::HandoffControlOperation(const std::wstring& controlkeyw
 	if(!CodeHandle)
 		throw Exception("Failed to bind to an Epoch language extension library");
 }
+
+HandoffControlOperation::HandoffControlOperation(const std::wstring& controlkeyword, Block* body, const std::wstring& countervarname, const VM::ScopeDescription& scope, Extensions::CodeBlockHandle codehandle)
+	: Body(body),
+	  CounterVariableName(countervarname),
+	  ExtensionName(controlkeyword),
+	  CodeHandle(codehandle)
+{
+	ExtensionHandle = Extensions::GetLibraryProvidingExtension(controlkeyword);
+}
+
 
 
 HandoffControlOperation::~HandoffControlOperation()
@@ -215,3 +236,9 @@ void HandoffControlOperation::Traverse(Serialization::SerializationTraverser& tr
 {
 	TraverseHelper(traverser);
 }
+
+void HandoffControlOperation::PrepareForExecution()
+{
+	Extensions::PrepareCodeBlockForExecution(ExtensionHandle, CodeHandle);
+}
+

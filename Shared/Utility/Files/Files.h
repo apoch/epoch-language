@@ -10,5 +10,6 @@
 namespace Files
 {
 	void Load(const char* filename, std::vector<Byte>& memory);
+	size_t GetFileSize(const char* filename);
 }
 

@@ -21,6 +21,11 @@ namespace VM
 	class Program;
 }
 
+namespace Serialization
+{
+	class SerializationTraverser;
+}
+
 
 namespace Extensions
 {
@@ -32,7 +37,7 @@ namespace Extensions
 
 	bool ExtensionIsAvailableForExecution(ExtensionLibraryHandle handle);
 
-	ExtensionLibraryHandle RegisterExtensionLibrary(const std::wstring& libraryname, VM::Program& program);
+	ExtensionLibraryHandle RegisterExtensionLibrary(const std::wstring& libraryname, VM::Program& program, bool startsession);
 	ExtensionLibraryHandle GetLibraryProvidingExtension(const std::wstring& extensionname);
 	const std::wstring& GetDLLFileOfLibrary(ExtensionLibraryHandle handle);
 	std::set<std::wstring> GetAllExtensionDLLs();
@@ -45,6 +50,10 @@ namespace Extensions
 	void ExecuteBoundCodeBlock(ExtensionLibraryHandle libhandle, CodeBlockHandle codehandle, HandleType activatedscopehandle, const std::vector<Traverser::Payload>& payloads);
 
 	const std::vector<ExtensionControlParamInfo>& GetParamsForControl(const std::wstring& keyword);
+
+	void LoadDataBuffer(const std::string& libraryname, const std::string& datablock);
+
+	void PrepareCodeBlockForExecution(ExtensionLibraryHandle libhandle, CodeBlockHandle codehandle);
 
 
 	template <typename EnumCallback>
@@ -71,6 +80,16 @@ namespace Extensions
 		for(std::map<std::wstring, std::vector<ExtensionControlParamInfo> >::const_iterator iter = ExtensionControlParamMap.begin(); iter != ExtensionControlParamMap.end(); ++iter)
 			callback(iter->first, iter->second);
 	}
+
+
+	template <typename TraverserT>
+	void TraverseExtensions(TraverserT& traverser)
+	{
+		// Do nothing, by default
+	}
+
+	template <>
+	void TraverseExtensions<Serialization::SerializationTraverser>(Serialization::SerializationTraverser& traverser);
 
 
 	extern std::map<std::wstring, ExtensionLibraryHandle> ExtensionKeywordMap;

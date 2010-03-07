@@ -203,6 +203,23 @@ RValuePtr ConsArrayIndirect::ExecuteAndStoreRValue(ExecutionContext& context)
 	return RValuePtr(indirectresultraw.release());
 }
 
+template <typename TraverserT>
+void ConsArrayIndirect::TraverseHelper(TraverserT& traverser)
+{
+	traverser.TraverseNode(*this);
+	if(TheOp)
+		dynamic_cast<SelfAwareBase*>(TheOp)->Traverse(traverser);
+}
+
+void ConsArrayIndirect::Traverse(Validator::ValidationTraverser& traverser)
+{
+	TraverseHelper(traverser);
+}
+
+void ConsArrayIndirect::Traverse(Serialization::SerializationTraverser& traverser)
+{
+	TraverseHelper(traverser);
+}
 
 
 

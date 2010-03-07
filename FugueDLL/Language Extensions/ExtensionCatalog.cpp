@@ -11,6 +11,10 @@
 #include "Language Extensions/DLLAccess.h"
 
 #include "Utility/Files/FilesAndPaths.h"
+#include "Utility/Strings.h"
+
+#include "Serialization/SerializationTraverser.h"
+#include "Serialization/SerializationTokens.h"
 
 
 using namespace Extensions;
@@ -28,7 +32,7 @@ ExtensionLibraryHandle handlecounter = 0;
 //
 // Load a given extension DLL and have the extension register any new keywords
 //
-ExtensionLibraryHandle Extensions::RegisterExtensionLibrary(const std::wstring& libraryname, VM::Program& program)
+ExtensionLibraryHandle Extensions::RegisterExtensionLibrary(const std::wstring& libraryname, VM::Program& program, bool startsession)
 {
 	std::wstring fulldllname = libraryname + L".dll";
 
@@ -39,7 +43,7 @@ ExtensionLibraryHandle Extensions::RegisterExtensionLibrary(const std::wstring& 
 	ExtensionLibraryHandle handle = ++handlecounter;
 
 	ExtensionLibraryDLLMap.insert(std::make_pair(fulldllname, handle));
-	ExtensionLibraryMap.insert(std::make_pair(handle, ExtensionDLLAccess(fulldllname, program)));
+	ExtensionLibraryMap.insert(std::make_pair(handle, ExtensionDLLAccess(fulldllname, program, startsession)));
 
 	ExtensionLibraryMap.find(handle)->second.RegisterExtensionKeywords(handle);
 
@@ -170,5 +174,48 @@ bool Extensions::ExtensionIsAvailableForExecution(ExtensionLibraryHandle handle)
 		return false;
 
 	return iter->second.IsAvailableForExecution();
+}
+
+
+
+template <>
+void Extensions::TraverseExtensions<Serialization::SerializationTraverser>(Serialization::SerializationTraverser& traverser)
+{
+	traverser.WriteOp(Serialization::ExtensionData);
+	traverser.WriteSize(ExtensionLibraryMap.size());
+
+	for(std::map<ExtensionLibraryHandle, ExtensionDLLAccess>::iterator iter = ExtensionLibraryMap.begin(); iter != ExtensionLibraryMap.end(); ++iter)
+	{
+		size_t datasize;
+		wchar_t* buffer;
+
+		// TODO - exception safety with external buffers (just RAII-wrap the buffers)
+
+		iter->second.FillSerializationBuffer(buffer, datasize);
+		traverser.WriteExtensionData(iter->second.GetDLLFileName(), buffer, datasize);
+		iter->second.FreeSerializationBuffer(buffer);
+	}
+}
+
+
+void Extensions::LoadDataBuffer(const std::string& libraryname, const std::string& datablock)
+{
+	for(std::map<ExtensionLibraryHandle, ExtensionDLLAccess>::iterator iter = ExtensionLibraryMap.begin(); iter != ExtensionLibraryMap.end(); ++iter)
+	{
+		if(iter->second.GetDLLFileName() == widen(libraryname))
+		{
+			iter->second.LoadDataBuffer(datablock);
+			break;
+		}
+	}
+}
+
+void Extensions::PrepareCodeBlockForExecution(ExtensionLibraryHandle libhandle, CodeBlockHandle codehandle)
+{
+	std::map<ExtensionLibraryHandle, ExtensionDLLAccess>::iterator iter = ExtensionLibraryMap.find(libhandle);
+	if(iter == ExtensionLibraryMap.end())
+		throw Exception("Language extension library handle is invalid; has the library been unloaded?");
+
+	iter->second.PrepareCodeBlock(codehandle);
 }
 

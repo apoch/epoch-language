@@ -111,14 +111,13 @@ namespace Traverser
 	struct ScopeContents
 	{
 		ScopeContents()
-			: Identifier(NULL),
-			  Type(VM::EpochVariableType_Error),
+			: Type(VM::EpochVariableType_Error),
 			  ContainedType(VM::EpochVariableType_Error),
 			  ContainedSize(0),
 			  ContainedSizeKnown(false)
 		{ }
 
-		const wchar_t* Identifier;
+		std::wstring Identifier;
 		VM::EpochVariableTypeID Type;
 		VM::EpochVariableTypeID ContainedType;
 		size_t ContainedSize;

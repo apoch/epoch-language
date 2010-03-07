@@ -9,7 +9,10 @@
 
 
 std::wstring widen(const std::string& str);
+wchar_t widen(char c);
+
 std::string narrow(const std::wstring& str);
+char narrow(wchar_t c);
 
 std::wstring StripWhitespace(const std::wstring& str);
 

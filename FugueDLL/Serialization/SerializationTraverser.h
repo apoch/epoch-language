@@ -100,11 +100,13 @@ namespace Serialization
 
 	// Serialization interface
 	public:
+		void WriteOp(const void* opptr, const std::wstring& token, const void* secondptr);
 		void WriteOp(const void* opptr, const std::wstring& token, bool newline);
 		void WriteOp(const void* opptr, const std::wstring& token, VM::EpochVariableTypeID type);
 		void WriteOp(const std::wstring& token);
 		void WriteOp(const void* opptr, const std::wstring& token, const std::wstring& param);
 		void WriteOp(const void* opptr, const std::wstring& token, const std::wstring& param1, const std::wstring& param2);
+		void WriteOp(const void* opptr, const std::wstring& token, const std::wstring& param1, const std::wstring& param2, HandleType handle);
 		void WriteOp(const void* opptr, const std::wstring& token, const std::wstring& param1, const std::wstring& param2, VM::EpochVariableTypeID param3, VM::EpochVariableTypeID param4);
 		void WriteChainedOp(const void* opptr, const std::wstring& token, bool ischained, const std::wstring& param1, const std::wstring& param2);
 		void WriteOpWithPayload(const VM::Operation* opptr, const std::wstring& token);
@@ -120,7 +122,10 @@ namespace Serialization
 		void WriteCompoundOp(const void* opptr, const std::wstring& token, size_t numops);
 		void WriteCompoundOp(const void* opptr, const std::wstring& token, VM::EpochVariableTypeID type, size_t numops);
 
-		void WriteHandoffOp(const void* opptr, const std::wstring& token, const std::wstring& libraryname);
+		void WriteHandoffOp(const void* opptr, const std::wstring& token, const std::wstring& libraryname, HandleType codehandle);
+
+		void WriteSize(size_t size);
+		void WriteExtensionData(const std::wstring& extensionname, const wchar_t* buffer, size_t buffersize);
 
 	// Internal helpers
 	private:
