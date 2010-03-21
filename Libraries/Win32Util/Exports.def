@@ -1,7 +1,0 @@
-LIBRARY	"Win32Util"
-EXPORTS
-	LinkToEpochVM		@1
-	GetHighWord			@2
-	GetLowWord			@3
-	
-

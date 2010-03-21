@@ -1,4 +1,0 @@
-LIBRARY	"FugueASM"
-EXPORTS
-	DoAssemble				@1
-	DoDisassemble			@2

@@ -1,5 +1,0 @@
-LIBRARY	"Random"
-EXPORTS
-	LinkToEpochVM		@1
-	GetRandomNumber		@2
-	
