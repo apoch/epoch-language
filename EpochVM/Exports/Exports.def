@@ -1,0 +1,4 @@
+LIBRARY	"EpochVM"
+EXPORTS
+	ExecuteByteCode				@1
+	GetHeapManager				@2	

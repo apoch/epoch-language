@@ -1,4 +1,4 @@
-The Fugue project currently has the following dependencies:
+The Epoch language project currently has the following dependencies:
 
 
 Microsoft Platform SDK
