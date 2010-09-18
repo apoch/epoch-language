@@ -34,11 +34,14 @@ int _tmain(int argc, _TCHAR* argv[])
 	DLLAccess::CompilerAccess compileraccess;
 	DLLAccess::CompiledByteCodeHandle bytecodebufferhandle = compileraccess.CompileSourceToByteCode(source);
 
-	Serialization::Serializer serializer(compileraccess, bytecodebufferhandle);
-	serializer.Write(L"d:\\foo.txt");
+	if(bytecodebufferhandle)
+	{
+		Serialization::Serializer serializer(compileraccess, bytecodebufferhandle);
+		serializer.Write(L"d:\\foo.txt");
 
-	DLLAccess::VMAccess vmaccess;
-	vmaccess.ExecuteByteCode(compileraccess.GetByteCode(bytecodebufferhandle), compileraccess.GetByteCodeSize(bytecodebufferhandle));
+		DLLAccess::VMAccess vmaccess;
+		vmaccess.ExecuteByteCode(compileraccess.GetByteCode(bytecodebufferhandle), compileraccess.GetByteCodeSize(bytecodebufferhandle));
+	}
 
 	return 0;
 }
