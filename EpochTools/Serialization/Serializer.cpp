@@ -151,12 +151,20 @@ void Serializer::Write(const std::wstring& filename) const
 			outfile << L"READ " << traverser.Read<StringHandle>() << L"\n";
 			break;
 
+		case Bytecode::Instructions::Assign:
+			outfile << L"WRITE " << traverser.Read<StringHandle>() << L"\n";
+			break;
+
 		case Bytecode::Instructions::Invoke:
 			outfile << L"INVOKE " << traverser.Read<StringHandle>() << L"\n";
 			break;
 
 		case Bytecode::Instructions::Return:
 			outfile << L"RETURN\n";
+			break;
+
+		case Bytecode::Instructions::SetRetVal:
+			outfile << L"SETRET " << traverser.Read<StringHandle>() << L"\n";
 			break;
 
 		case Bytecode::Instructions::BeginEntity:
@@ -178,13 +186,14 @@ void Serializer::Write(const std::wstring& filename) const
 			{
 				outfile << L"SCOPE " << traverser.Read<StringHandle>() << L" ";
 				size_t count = traverser.Read<size_t>();
-				outfile << count << L"\n";
+				outfile << count << L" ";
 				while(count-- > 0)
 				{
 					outfile << traverser.Read<StringHandle>() << L" ";
 					outfile << traverser.ReadTypeAnnotation() << L" ";
-					outfile << traverser.Read<Integer32>() << L"\n";
+					outfile << traverser.Read<Integer32>() << L" ";
 				}
+				outfile << L"\n";
 			}
 			break;
 

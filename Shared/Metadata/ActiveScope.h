@@ -18,6 +18,7 @@
 // Forward declarations
 class StackSpace;
 class ScopeDescription;
+class Register;
 namespace VM { class ExecutionContext; }
 
 
@@ -40,9 +41,27 @@ public:
 
 // Variable manipulation interface
 public:
-	void Write(StringHandle variableid, Integer32 value);
+	template <typename T>
+	void Write(StringHandle variableid, T value)
+	{
+		std::map<StringHandle, void*>::const_iterator iter = VariableStorageLocations.find(variableid);
+		if(iter == VariableStorageLocations.end())
+			throw std::exception("Requested variable has not been bound to any storage");
+
+		*reinterpret_cast<T*>(iter->second) = value;
+	}
+
+	void WriteFromStack(StringHandle variableid, StackSpace& stack);
 
 	void PushOntoStack(StringHandle variableid, StackSpace& stack) const;
+
+// Interaction with registers
+public:
+	void CopyToRegister(StringHandle variableid, Register& targetregister) const;
+
+// State queries
+public:
+	bool HasReturnVariable() const;
 
 // Access to parent scope
 public:

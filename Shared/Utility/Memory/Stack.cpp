@@ -92,7 +92,6 @@ void StackSpace::Pop(size_t numbytes)
 	}
 }
 
-
 //
 // END platform-dependent assumptions
 //

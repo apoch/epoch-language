@@ -15,3 +15,5 @@
 
 #include <windows.h>
 
+#include <exception>
+

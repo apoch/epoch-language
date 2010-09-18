@@ -215,8 +215,14 @@ void ExecutionContext::Execute(size_t offset, const ScopeDescription& scope)
 
 	InstructionOffset = InstructionOffsetStack.top();
 	InstructionOffsetStack.pop();
+
+	bool hasreturn = Variables->HasReturnVariable();
+
 	Variables->PopScopeOffStack(*this);
 	Variables = Variables->ParentScope;
+
+	if(hasreturn)
+		State.ReturnValueRegister.PushOntoStack(State.Stack);
 }
 
 //
@@ -244,6 +250,13 @@ void ExecutionContext::Execute()
 
 		case Bytecode::Instructions::Return:	// Return execution control to the parent context
 			return;
+
+		case Bytecode::Instructions::SetRetVal:	// Set return value register
+			{
+				StringHandle variablename = Fetch<StringHandle>();
+				Variables->CopyToRegister(variablename, State.ReturnValueRegister);
+			}
+			break;
 
 		case Bytecode::Instructions::Push:		// Push something onto the stack
 			{
@@ -274,6 +287,13 @@ void ExecutionContext::Execute()
 			{
 				StringHandle variablename = Fetch<StringHandle>();
 				Variables->PushOntoStack(variablename, State.Stack);
+			}
+			break;
+
+		case Bytecode::Instructions::Assign:	// Write a value to a variable's position on the stack
+			{
+				StringHandle variablename = Fetch<StringHandle>();
+				Variables->WriteFromStack(variablename, State.Stack);
 			}
 			break;
 
@@ -392,7 +412,9 @@ void ExecutionContext::Load()
 
 		// Operations with string payload fields
 		case Bytecode::Instructions::Read:
+		case Bytecode::Instructions::Assign:
 		case Bytecode::Instructions::Invoke:
+		case Bytecode::Instructions::SetRetVal:
 			Fetch<StringHandle>();
 			break;
 		

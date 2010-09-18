@@ -21,15 +21,17 @@ namespace Bytecode
 
 		static const Instruction Push = 0x02;
 		static const Instruction Read = 0x03;
+		static const Instruction Assign = 0x04;
 
-		static const Instruction Invoke = 0x04;
-		static const Instruction Return = 0x05;
+		static const Instruction Invoke = 0x05;
+		static const Instruction Return = 0x06;
+		static const Instruction SetRetVal = 0x07;
 
-		static const Instruction BeginEntity = 0x06;
-		static const Instruction EndEntity = 0x07;
+		static const Instruction BeginEntity = 0x08;
+		static const Instruction EndEntity = 0x09;
 
-		static const Instruction PoolString = 0x08;
-		static const Instruction DefineLexicalScope = 0x09;
+		static const Instruction PoolString = 0x0a;
+		static const Instruction DefineLexicalScope = 0x0b;
 
 	}
 

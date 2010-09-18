@@ -36,6 +36,7 @@ void CompilationSemantics::StoreEntityType(Bytecode::EntityTag typetag)
 	switch(typetag)
 	{
 	case Bytecode::EntityTags::Function:
+		CurrentEntities.push(Strings.top());
 		if(!IsPrepass)
 			Emitter.EnterFunction(Session.StringPool.Pool(Strings.top()));
 		Strings.pop();
@@ -57,12 +58,26 @@ void CompilationSemantics::StoreEntityCode()
 	{
 	case Bytecode::EntityTags::Function:
 		if(!IsPrepass)
+		{
+			FunctionSignatureSet::const_iterator iter = Session.FunctionSignatures.find(Session.StringPool.Pool(CurrentEntities.top()));
+			if(iter == Session.FunctionSignatures.end())
+				throw std::exception("Failed to locate function being finalized");
+
+			if(iter->second.GetReturnType() != VM::EpochType_Void)
+			{
+				Emitter.SetReturnRegister(FunctionReturnVars.top());
+				FunctionReturnVars.pop();
+			}
+
 			Emitter.ExitFunction();
+		}
 		break;
 
 	default:
 		throw std::exception("Invalid entity type tag");
 	}
+
+	CurrentEntities.pop();
 }
 
 
@@ -89,7 +104,6 @@ void CompilationSemantics::CompleteInfix()
 	LastPushedItemType = ITEMTYPE_STATEMENT;
 
 	std::wstring statementname = StatementNames.top();
-	StringHandle statementnamehandle = Session.StringPool.Pool(statementname);
 
 	if(!IsPrepass)
 	{
@@ -106,14 +120,19 @@ void CompilationSemantics::CompleteInfix()
 
 			StatementTypes.push(iter->second.GetReturnType());
 
-			iter = Session.FunctionSignatures.find(statementnamehandle);
-			if(iter == Session.FunctionSignatures.end())
-				throw std::exception("Unknown statement, cannot complete parsing");
+			if(statementname == L"=")
+				CompileTimeParameters.top().push_back(CompileTimeParameter(L"rhs", VM::EpochType_Integer));		// TODO - check type of LHS
+			else
+			{
+				iter = Session.FunctionSignatures.find(Session.StringPool.Pool(statementname));
+				if(iter == Session.FunctionSignatures.end())
+					throw std::exception("Unknown statement, cannot complete parsing");
 
-			const std::wstring& paramname = iter->second.GetParameterName(StatementParamCount.top());
-			VM::EpochTypeID paramtype = iter->second.GetParameterType(StatementParamCount.top());
+				const std::wstring& paramname = iter->second.GetParameterName(StatementParamCount.top());
+				VM::EpochTypeID paramtype = iter->second.GetParameterType(StatementParamCount.top());
 
-			CompileTimeParameters.top().push_back(CompileTimeParameter(paramname, paramtype));
+				CompileTimeParameters.top().push_back(CompileTimeParameter(paramname, paramtype));
+			}
 		}
 
 		Emitter.Invoke(infixstatementnamehandle);
@@ -129,21 +148,11 @@ void CompilationSemantics::BeginParameterSet()
 
 void CompilationSemantics::EndParameterSet()
 {
-	if(IsPrepass)
-		Session.FunctionSignatures.insert(std::make_pair(Session.StringPool.Pool(Strings.top()), FunctionSignatureStack.top()));
-
-	FunctionSignatureStack.pop();
 }
 
 void CompilationSemantics::RegisterParameterType(const std::wstring& type)
 {
-	// TODO - improve parameter type detection
-	if(type == L"integer")
-		ParamType = VM::EpochType_Integer;
-	else if(type == L"string")
-		ParamType = VM::EpochType_String;
-	else
-		throw std::exception("Unrecognized type");
+	ParamType = LookupTypeName(type);
 }
 
 void CompilationSemantics::RegisterParameterName(const std::wstring& name)
@@ -157,6 +166,57 @@ void CompilationSemantics::RegisterParameterName(const std::wstring& name)
 			throw std::exception("Unregistered lexical scope");
 		
 		iter->second.AddVariable(name, Session.StringPool.Pool(name), ParamType, VARIABLE_ORIGIN_PARAMETER);
+	}
+}
+
+
+void CompilationSemantics::BeginReturnSet()
+{
+}
+
+void CompilationSemantics::EndReturnSet()
+{
+	if(IsPrepass)
+		Session.FunctionSignatures.insert(std::make_pair(Session.StringPool.Pool(Strings.top()), FunctionSignatureStack.top()));
+
+	FunctionSignatureStack.pop();
+}
+
+void CompilationSemantics::RegisterReturnType(const std::wstring& type)
+{
+	FunctionSignatureStack.top().SetReturnType(LookupTypeName(type));
+}
+
+void CompilationSemantics::RegisterReturnName(const std::wstring& name)
+{
+	if(!IsPrepass)
+	{
+		StringHandle namehandle = Session.StringPool.Pool(name);
+		FunctionReturnVars.push(namehandle);
+		LexicalScopeDescriptions.find(LexicalScopeStack.top())->second.AddVariable(name, namehandle, FunctionSignatureStack.top().GetReturnType(), VARIABLE_ORIGIN_RETURN);
+	}
+}
+
+void CompilationSemantics::RegisterReturnValue()
+{
+	if(!IsPrepass)
+	{
+		PendingEmissionBuffers.push(std::vector<Byte>());
+		PendingEmitters.push(ByteCodeEmitter(PendingEmissionBuffers.top()));
+
+		PendingEmitters.top().PushStringLiteral(FunctionReturnVars.top());
+
+		switch(FunctionSignatureStack.top().GetReturnType())
+		{
+		case VM::EpochType_Integer:
+			PendingEmitters.top().PushIntegerLiteral(IntegerLiterals.top());
+			PendingEmitters.top().Invoke(Session.StringPool.Pool(L"integer"));
+			IntegerLiterals.pop();
+			break;
+
+		default:
+			throw std::exception("Not implemented.");
+		}
 	}
 }
 
@@ -187,14 +247,27 @@ void CompilationSemantics::ValidateStatementParam()
 
 void CompilationSemantics::ValidateAndPushParam(unsigned paramindex)
 {
-	StringHandle statementnamehandle = Session.StringPool.Pool(StatementNames.top());
-	FunctionSignatureSet::const_iterator iter = Session.FunctionSignatures.find(statementnamehandle);
-	if(iter == Session.FunctionSignatures.end())
-		throw std::exception("Unknown statement, cannot validate");
+	std::wstring paramname;
+	VM::EpochTypeID expectedtype = VM::EpochType_Error;
 
-	VM::EpochTypeID expectedtype = iter->second.GetParameterType(paramindex);
+	if(StatementNames.top() == L"=")
+	{
+		paramname = L"rhs";
+		expectedtype = VM::EpochType_Integer;		// TODO - check type of LHS
+	}
+	else
+	{
+		StringHandle statementnamehandle = Session.StringPool.Pool(StatementNames.top());
+		FunctionSignatureSet::const_iterator iter = Session.FunctionSignatures.find(statementnamehandle);
+		if(iter == Session.FunctionSignatures.end())
+			throw std::exception("Unknown statement, cannot validate");
+
+		paramname = iter->second.GetParameterName(paramindex);
+		expectedtype = iter->second.GetParameterType(paramindex);
+	}
+
 	CheckParameterValidity(expectedtype);
-	CompileTimeParameter ctparam(iter->second.GetParameterName(paramindex), expectedtype);
+	CompileTimeParameter ctparam(paramname, expectedtype);
 
 	switch(LastPushedItemType)
 	{
@@ -283,6 +356,19 @@ void CompilationSemantics::Finalize()
 }
 
 
+void CompilationSemantics::EmitPendingCode()
+{
+	if(!IsPrepass)
+	{
+		if(!PendingEmitters.empty())
+		{
+			Emitter.EmitBuffer(PendingEmissionBuffers.top());
+			PendingEmitters.pop();
+			PendingEmissionBuffers.pop();
+		}
+	}
+}
+
 
 void CompilationSemantics::CheckParameterValidity(VM::EpochTypeID expectedtype)
 {
@@ -348,5 +434,34 @@ ScopeDescription& CompilationSemantics::GetLexicalScopeDescription(StringHandle 
 		throw std::exception("Unregistered lexical scope");
 
 	return iter->second;
+}
+
+
+VM::EpochTypeID CompilationSemantics::LookupTypeName(const std::wstring& type) const
+{
+	if(type == L"integer")
+		return VM::EpochType_Integer;
+	else if(type == L"string")
+		return VM::EpochType_String;
+
+	throw std::exception("Unrecognized type");
+}
+
+
+void CompilationSemantics::BeginAssignment()
+{
+	StatementNames.push(L"=");
+	StatementParamCount.push(0);
+	AssignmentTargets.push(Session.StringPool.Pool(TemporaryString));
+	TemporaryString.clear();
+	if(!IsPrepass)
+		CompileTimeParameters.push(std::vector<CompileTimeParameter>());
+}
+
+void CompilationSemantics::CompleteAssignment()
+{
+	StatementNames.pop();
+	Emitter.AssignVariable(AssignmentTargets.top());
+	AssignmentTargets.pop();
 }
 

@@ -195,6 +195,82 @@ struct RegisterParameterName
 	SemanticActionInterface& Bindings;
 };
 
+struct BeginReturnSet
+{
+	BeginReturnSet(SemanticActionInterface& bindings)
+		: Bindings(bindings)
+	{ }
+
+	template <typename ParamType>
+	void operator () (ParamType) const
+	{
+		Bindings.BeginReturnSet();
+	}
+
+	SemanticActionInterface& Bindings;
+};
+
+struct EndReturnSet
+{
+	EndReturnSet(SemanticActionInterface& bindings)
+		: Bindings(bindings)
+	{ }
+
+	template <typename ParamType>
+	void operator () (ParamType) const
+	{
+		Bindings.EndReturnSet();
+	}
+
+	SemanticActionInterface& Bindings;
+};
+
+struct RegisterReturnType
+{
+	RegisterReturnType(SemanticActionInterface& bindings)
+		: Bindings(bindings)
+	{ }
+
+	template <typename IteratorType>
+	void operator () (IteratorType begin, IteratorType end) const
+	{
+		std::wstring str(begin, end);
+		Bindings.RegisterReturnType(str);
+	}
+
+	SemanticActionInterface& Bindings;
+};
+
+struct RegisterReturnName
+{
+	RegisterReturnName(SemanticActionInterface& bindings)
+		: Bindings(bindings)
+	{ }
+
+	template <typename IteratorType>
+	void operator () (IteratorType begin, IteratorType end) const
+	{
+		std::wstring str(begin, end);
+		Bindings.RegisterReturnName(str);
+	}
+
+	SemanticActionInterface& Bindings;
+};
+
+struct RegisterReturnValue
+{
+	RegisterReturnValue(SemanticActionInterface& bindings)
+		: Bindings(bindings)
+	{ }
+
+	template <typename IteratorType>
+	void operator () (IteratorType begin, IteratorType end) const
+	{
+		Bindings.RegisterReturnValue();
+	}
+
+	SemanticActionInterface& Bindings;
+};
 
 struct BeginStatement
 {
@@ -269,6 +345,53 @@ struct Finalize
 	void operator () (IteratorType begin, IteratorType end) const
 	{
 		Bindings.Finalize();
+	}
+
+	SemanticActionInterface& Bindings;
+};
+
+
+struct EmitPendingCode
+{
+	EmitPendingCode(SemanticActionInterface& bindings)
+		: Bindings(bindings)
+	{ }
+
+	template <typename ParamType>
+	void operator () (ParamType) const
+	{
+		Bindings.EmitPendingCode();
+	}
+
+	SemanticActionInterface& Bindings;
+};
+
+
+struct BeginAssignment
+{
+	BeginAssignment(SemanticActionInterface& bindings)
+		: Bindings(bindings)
+	{ }
+
+	template <typename IteratorType>
+	void operator () (IteratorType begin, IteratorType end) const
+	{
+		Bindings.BeginAssignment();
+	}
+
+	SemanticActionInterface& Bindings;
+};
+
+struct CompleteAssignment
+{
+	CompleteAssignment(SemanticActionInterface& bindings)
+		: Bindings(bindings)
+	{ }
+
+	template <typename IteratorType>
+	void operator () (IteratorType begin, IteratorType end) const
+	{
+		Bindings.CompleteAssignment();
 	}
 
 	SemanticActionInterface& Bindings;

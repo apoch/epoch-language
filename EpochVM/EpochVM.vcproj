@@ -414,6 +414,14 @@
 					>
 				</File>
 				<File
+					RelativePath="..\Shared\Metadata\Register.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\Shared\Metadata\Register.h"
+					>
+				</File>
+				<File
 					RelativePath="..\Shared\Metadata\ScopeDescription.cpp"
 					>
 				</File>

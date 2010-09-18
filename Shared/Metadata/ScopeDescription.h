@@ -64,7 +64,7 @@ private:
 private:
 	std::vector<VariableEntry> Variables;
 
-// Permit activeated scopes to access internal data
+// Permit activated scopes to access internal data
 public:
 	friend class ActiveScope;
 };

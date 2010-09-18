@@ -79,7 +79,8 @@ struct FundamentalGrammar : public boost::spirit::classic::grammar<FundamentalGr
 
 				MAPARROW("->"),
 				INTEGER("integer"),
-				STRING("string")
+				STRING("string"),
+				ASSIGN("=")
 		{
 			using namespace boost::spirit::classic;
 
@@ -115,8 +116,13 @@ struct FundamentalGrammar : public boost::spirit::classic::grammar<FundamentalGr
 				= OPENPARENS[BeginParameterSet(self.Bindings)] >> (!(ParameterDeclaration % COMMA)) >> CLOSEPARENS[EndParameterSet(self.Bindings)]
 				;
 
+
+			ReturnDeclaration
+				= VariableType[RegisterReturnType(self.Bindings)] >> OPENPARENS >> StringIdentifier[RegisterReturnName(self.Bindings)] >> COMMA >> Expression[RegisterReturnValue(self.Bindings)] >> CLOSEPARENS
+				;
+
 			ReturnList
-				= OPENPARENS >> CLOSEPARENS
+				= OPENPARENS[BeginReturnSet(self.Bindings)] >> !ReturnDeclaration >> CLOSEPARENS[EndReturnSet(self.Bindings)]
 				;
 
 
@@ -136,11 +142,12 @@ struct FundamentalGrammar : public boost::spirit::classic::grammar<FundamentalGr
 				;
 
 			Statement
-				= StringIdentifier[BeginStatement(self.Bindings)] >> OPENPARENS[BeginStatementParams(self.Bindings)] >> (!(Expression[ValidateStatementParam(self.Bindings)] % COMMA)) >> CLOSEPARENS[CompleteStatement(self.Bindings)]
+				= (StringIdentifier[BeginStatement(self.Bindings)] >> ASSIGN[BeginAssignment(self.Bindings)] >> Expression[ValidateStatementParam(self.Bindings)][CompleteAssignment(self.Bindings)])
+				| (StringIdentifier[BeginStatement(self.Bindings)] >> OPENPARENS[BeginStatementParams(self.Bindings)] >> (!(Expression[ValidateStatementParam(self.Bindings)] % COMMA)) >> CLOSEPARENS[CompleteStatement(self.Bindings)])
 				;
 
 			CodeBlock
-				= OPENBRACE >> (*Statement) >> CLOSEBRACE
+				= OPENBRACE[EmitPendingCode(self.Bindings)] >> (*Statement) >> CLOSEBRACE
 				;
 
 			MetaEntity
@@ -156,7 +163,7 @@ struct FundamentalGrammar : public boost::spirit::classic::grammar<FundamentalGr
 
 		boost::spirit::classic::chlit<> COLON, OPENPARENS, CLOSEPARENS, OPENBRACE, CLOSEBRACE, COMMA, QUOTE;
 
-		boost::spirit::classic::strlit<> MAPARROW, INTEGER, STRING;
+		boost::spirit::classic::strlit<> MAPARROW, INTEGER, STRING, ASSIGN;
 
 		boost::spirit::classic::rule<ScannerType> StringIdentifier;
 
@@ -171,6 +178,7 @@ struct FundamentalGrammar : public boost::spirit::classic::grammar<FundamentalGr
 		boost::spirit::classic::rule<ScannerType> VariableType;
 
 		boost::spirit::classic::rule<ScannerType> ParameterDeclaration;
+		boost::spirit::classic::rule<ScannerType> ReturnDeclaration;
 
 		boost::spirit::classic::rule<ScannerType> ParameterList;
 		boost::spirit::classic::rule<ScannerType> ReturnList;

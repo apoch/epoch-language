@@ -26,13 +26,9 @@
 #include "Libraries/Library.h"
 
 #include "Compiler/Session.h"
+#include "Compiler/ByteCodeEmitter.h"
 
 #include <stack>
-
-
-// Forward declarations
-class ByteCodeEmitter;
-class CompileSession;
 
 
 class CompilationSemantics : public SemanticActionInterface
@@ -79,12 +75,23 @@ public:
 	virtual void RegisterParameterType(const std::wstring& type);
 	virtual void RegisterParameterName(const std::wstring& name);
 
+	virtual void BeginReturnSet();
+	virtual void EndReturnSet();
+	virtual void RegisterReturnType(const std::wstring& type);
+	virtual void RegisterReturnName(const std::wstring& name);
+	virtual void RegisterReturnValue();
+
 	virtual void BeginStatement(const std::wstring& statementname);
 	virtual void BeginStatementParams();
 	virtual void ValidateStatementParam();
 	virtual void CompleteStatement();
 
+	virtual void BeginAssignment();
+	virtual void CompleteAssignment();
+
 	virtual void Finalize();
+
+	virtual void EmitPendingCode();
 
 // Internal helpers
 private:
@@ -94,6 +101,8 @@ private:
 	ScopeDescription& GetLexicalScopeDescription(StringHandle scopename);
 
 	void ValidateAndPushParam(unsigned paramindex);
+
+	VM::EpochTypeID LookupTypeName(const std::wstring& name) const;
 
 // Internal tracking
 private:
@@ -126,5 +135,13 @@ private:
 	ItemType LastPushedItemType;
 
 	std::stack<std::vector<CompileTimeParameter> > CompileTimeParameters;
+
+	std::stack<std::wstring> CurrentEntities;
+	std::stack<StringHandle> FunctionReturnVars;
+
+	std::stack<std::vector<Byte> > PendingEmissionBuffers;
+	std::stack<ByteCodeEmitter> PendingEmitters;
+
+	std::stack<StringHandle> AssignmentTargets;
 };
 

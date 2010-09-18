@@ -32,10 +32,13 @@ public:
 	void EnterFunction(StringHandle functionname);
 	void ExitFunction();
 
+	void SetReturnRegister(StringHandle variablename);
+
 	void PushIntegerLiteral(Integer32 value);
 	void PushStringLiteral(StringHandle handle);
 	
 	void PushVariableValue(StringHandle variablename);
+	void AssignVariable(StringHandle variablename);
 
 	void Invoke(StringHandle functionname);
 
@@ -46,6 +49,7 @@ public:
 	void DefineLexicalScope(StringHandle name, size_t variablecount);
 	void LexicalScopeEntry(StringHandle varname, VM::EpochTypeID vartype, VariableOrigin origin);
 
+	void EmitBuffer(const std::vector<Byte>& buffer);
 
 // Internal helpers
 private:

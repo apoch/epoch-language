@@ -38,11 +38,22 @@ public:
 	virtual void RegisterParameterType(const std::wstring& type) = 0;
 	virtual void RegisterParameterName(const std::wstring& name) = 0;
 
+	virtual void BeginReturnSet() = 0;
+	virtual void EndReturnSet() = 0;
+	virtual void RegisterReturnType(const std::wstring& type) = 0;
+	virtual void RegisterReturnName(const std::wstring& name) = 0;
+	virtual void RegisterReturnValue() = 0;
+
 	virtual void BeginStatement(const std::wstring& statementname) = 0;
 	virtual void BeginStatementParams() = 0;
 	virtual void ValidateStatementParam() = 0;
 	virtual void CompleteStatement() = 0;
 
+	virtual void BeginAssignment() = 0;
+	virtual void CompleteAssignment() = 0;
+
 	virtual void Finalize() = 0;
+
+	virtual void EmitPendingCode() = 0;
 };
 

@@ -37,13 +37,13 @@ void ActiveScope::PushLocalsOntoStack(VM::ExecutionContext& context)
 
 	for(std::vector<ScopeDescription::VariableEntry>::const_iterator iter = OriginalScope.Variables.begin(); iter != OriginalScope.Variables.end(); ++iter)
 	{
-		if(iter->Origin == VARIABLE_ORIGIN_LOCAL)
+		if(iter->Origin == VARIABLE_ORIGIN_LOCAL || iter->Origin == VARIABLE_ORIGIN_RETURN)
 		{
-			VariableStorageLocations[context.OwnerVM.GetPooledStringHandle(iter->Identifier)] = context.State.Stack.GetCurrentTopOfStack();
-
 			size_t size = VM::GetStorageSize(iter->Type);
 			context.State.Stack.Push(size);
 			usedspace += size;
+
+			VariableStorageLocations[context.OwnerVM.GetPooledStringHandle(iter->Identifier)] = context.State.Stack.GetCurrentTopOfStack();
 		}
 	}
 }
@@ -58,14 +58,21 @@ void ActiveScope::PopScopeOffStack(VM::ExecutionContext& context)
 	context.State.Stack.Pop(usedspace);
 }
 
-
-void ActiveScope::Write(StringHandle variableid, Integer32 value)
+void ActiveScope::WriteFromStack(StringHandle variableid, StackSpace& stack)
 {
-	std::map<StringHandle, void*>::const_iterator iter = VariableStorageLocations.find(variableid);
-	if(iter == VariableStorageLocations.end())
-		throw std::exception("Requested variable has not been bound to any storage");
+	switch(OriginalScope.GetVariableTypeByID(variableid))
+	{
+	case VM::EpochType_Integer:
+		Write(variableid, stack.PopValue<Integer32>());
+		break;
 
-	*reinterpret_cast<Integer32*>(iter->second) = value;
+	case VM::EpochType_String:
+		Write(variableid, stack.PopValue<StringHandle>());
+		break;
+
+	default:
+		throw std::exception("Not implemented");
+	}
 }
 
 
@@ -101,3 +108,40 @@ void* ActiveScope::GetVariableStorageLocation(StringHandle variableid) const
 
 	return iter->second;
 }
+
+
+void ActiveScope::CopyToRegister(StringHandle variableid, Register& targetregister) const
+{
+	switch(OriginalScope.GetVariableTypeByID(variableid))
+	{
+	case VM::EpochType_Integer:
+		{
+			Integer32* value = reinterpret_cast<Integer32*>(GetVariableStorageLocation(variableid));
+			targetregister.Set(*value);
+		}
+		break;
+
+	case VM::EpochType_String:
+		{
+			StringHandle* value = reinterpret_cast<StringHandle*>(GetVariableStorageLocation(variableid));
+			targetregister.Set(*value);
+		}
+		break;
+
+	default:
+		throw std::exception("Not implemented");
+	}
+}
+
+bool ActiveScope::HasReturnVariable() const
+{
+	for(std::vector<ScopeDescription::VariableEntry>::const_iterator iter = OriginalScope.Variables.begin(); iter != OriginalScope.Variables.end(); ++iter)
+	{
+		if(iter->Origin == VARIABLE_ORIGIN_RETURN)
+			return true;
+	}
+
+	return false;
+}
+
+

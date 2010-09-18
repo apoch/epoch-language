@@ -156,3 +156,22 @@ void ByteCodeEmitter::EmitEntityTag(Bytecode::EntityTag tag)
 	EmitRawValue(intval);
 }
 
+
+void ByteCodeEmitter::EmitBuffer(const std::vector<Byte>& buffer)
+{
+	Buffer.insert(Buffer.end(), buffer.begin(), buffer.end());
+}
+
+
+void ByteCodeEmitter::SetReturnRegister(StringHandle variablename)
+{
+	EmitInstruction(Bytecode::Instructions::SetRetVal);
+	EmitRawValue(variablename);
+}
+
+void ByteCodeEmitter::AssignVariable(StringHandle variablename)
+{
+	EmitInstruction(Bytecode::Instructions::Assign);
+	EmitRawValue(variablename);
+}
+

@@ -10,6 +10,7 @@
 
 // Dependencies
 #include "Metadata/ScopeDescription.h"
+#include "Metadata/Register.h"
 
 #include "Libraries/Library.h"
 
@@ -102,6 +103,7 @@ namespace VM
 	{
 		ExecutionResult Result;
 		StackSpace Stack;
+		Register ReturnValueRegister;
 	};
 
 	class ExecutionContext
