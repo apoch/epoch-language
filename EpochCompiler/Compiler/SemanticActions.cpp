@@ -86,7 +86,19 @@ void CompilationSemantics::StoreEntityCode()
 
 void CompilationSemantics::StoreInfix(const std::wstring& identifier)
 {
-	unsigned paramindex = StatementParamCount.top();
+	unsigned paramindex;
+
+	if(StatementParamCount.empty())
+	{
+		// We're in a function return value initializer
+		paramindex = 0;
+	}
+	else
+	{
+		// Standard case of infix expression within a statement
+		paramindex = StatementParamCount.top();
+	}
+
 	StatementNames.push(identifier);
 	StatementParamCount.push(0);
 	if(!IsPrepass)
@@ -195,7 +207,10 @@ void CompilationSemantics::BeginReturnSet()
 void CompilationSemantics::EndReturnSet()
 {
 	if(ReturnsIncludedStatement.top())
-		StatementParamCount.pop();
+	{
+		if(!IsPrepass)
+			CompileTimeParameters.pop();
+	}
 
 	if(IsPrepass)
 		Session.FunctionSignatures.insert(std::make_pair(Session.StringPool.Pool(Strings.top()), FunctionSignatureStack.top()));
@@ -211,7 +226,8 @@ void CompilationSemantics::EndReturnSet()
 
 void CompilationSemantics::RegisterReturnType(const std::wstring& type)
 {
-	FunctionReturnTypeNames.push(type);
+	if(!IsPrepass)
+		FunctionReturnTypeNames.push(type);
 	FunctionSignatureStack.top().SetReturnType(LookupTypeName(type));
 }
 
@@ -400,6 +416,10 @@ void CompilationSemantics::CompleteStatement()
 
 void CompilationSemantics::FinalizeStatement()
 {
+	if(!IsPrepass)
+	{
+		StatementTypes.c.clear();
+	}
 	PushedItemTypes.pop();
 }
 
@@ -524,19 +544,21 @@ void CompilationSemantics::CompleteAssignment()
 {
 	StatementNames.pop();
 	if(!IsPrepass)
+	{
 		EmitterStack.top()->AssignVariable(AssignmentTargets.top());
+		CompileTimeParameters.pop();
+		StatementTypes.pop();
+	}
 	AssignmentTargets.pop();
+	StatementParamCount.pop();
 }
 
 
 void CompilationSemantics::SanityCheck() const
 {
-	// TODO - restore sanity checking and fix problems
-	/*
 	if(!Strings.empty() || !EntityTypeTags.empty() || !IntegerLiterals.empty() || !StringLiterals.empty() || !FunctionSignatureStack.empty()
 	|| !StatementNames.empty() || !StatementParamCount.empty() || !StatementTypes.empty() || !LexicalScopeStack.empty() || !CompileTimeParameters.empty()
 	|| !CurrentEntities.empty() || !FunctionReturnVars.empty() || !PendingEmissionBuffers.empty() || !PendingEmitters.empty() || !AssignmentTargets.empty()
 	|| !PushedItemTypes.empty() || !ReturnsIncludedStatement.empty() || !FunctionReturnTypeNames.empty())
 		throw std::exception("Parser leaked a resource");
-		*/
 }
