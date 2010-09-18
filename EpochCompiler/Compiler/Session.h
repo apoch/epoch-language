@@ -55,5 +55,6 @@ private:
 private:
 	std::list<std::wstring> SourceBlocks;
 	std::vector<Byte> ByteCodeBuffer;
+	InfixTable InfixIdentifiers;
 };
 

@@ -1,0 +1,195 @@
+//
+// The Epoch Language Project
+// EPOCHTOOLS Command Line Toolkit
+//
+// Implementation of bytecode serialization subsystem
+//
+
+#include "pch.h"
+
+#include "Serialization/Serializer.h"
+
+#include "Bytecode/Instructions.h"
+#include "Bytecode/EntityTags.h"
+
+#include "Utility/Types/IntegerTypes.h"
+#include "Utility/Types/EpochTypeIDs.h"
+
+#include <fstream>
+
+
+using namespace Serialization;
+
+
+class BufferTraverser
+{
+// Construction
+public:
+	BufferTraverser(const Byte* buffer, size_t size)
+		: Buffer(buffer), Size(size), Offset(0)
+	{ }
+
+// Read interface
+public:
+	template <typename T>
+	T Read()
+	{
+		const Byte* byteoffset = Buffer + Offset;
+		T ret = *reinterpret_cast<const T*>(byteoffset);
+		Offset += sizeof(T);
+		return ret;
+	}
+
+	VM::EpochTypeID ReadTypeAnnotation()
+	{
+		return static_cast<VM::EpochTypeID>(Read<Integer32>());
+	}
+
+	Bytecode::EntityTag ReadEntityTag()
+	{
+		return static_cast<Bytecode::EntityTag>(Read<Integer32>());
+	}
+	
+	std::wstring ReadTerminatedString()
+	{
+		std::wstring ret;
+		wchar_t c;
+		while((c = Read<wchar_t>()) != NULL)
+			ret += c;
+		return ret;
+	}
+
+// State interface
+public:
+	bool EndOfBuffer() const
+	{
+		return Offset >= Size;
+	}
+
+// Public tracking
+public:
+	size_t Offset;
+
+// Internal tracking
+private:
+	const Byte* Buffer;
+	const size_t Size;
+};
+
+
+Serializer::Serializer(const DLLAccess::CompilerAccess& compileraccess, DLLAccess::CompiledByteCodeHandle bytecodehandle)
+	: CompilerAccess(compileraccess),
+	  ByteCodeHandle(bytecodehandle)
+{
+}
+
+
+void Serializer::Write(const std::wstring& filename) const
+{
+	const void* bytecoderaw = CompilerAccess.GetByteCode(ByteCodeHandle);
+	const Byte* bytecodebytes = reinterpret_cast<const Byte*>(bytecoderaw);
+	size_t size = CompilerAccess.GetByteCodeSize(ByteCodeHandle);
+
+	BufferTraverser traverser(bytecodebytes, size);
+
+	size_t indent = 0;
+
+	std::wofstream outfile(filename.c_str());
+	while(!traverser.EndOfBuffer())
+	{
+		outfile.width(sizeof(traverser.Offset) * 2);		// size of offset (e.g. 4 bytes) times 8 bits per byte divided by 4 bits per hex couplet
+		outfile.fill(L'0');
+		outfile << std::hex << traverser.Offset << L" ";
+		outfile << std::dec;
+
+
+		Byte b = traverser.Read<Byte>();
+
+		if(b == Bytecode::Instructions::EndEntity)
+			--indent;
+
+		for(size_t i = 0; i < indent; ++i)
+			outfile << L"\t";
+
+		switch(b)
+		{
+		case Bytecode::Instructions::Halt:
+			outfile << L"HALT\n";
+			break;
+
+		case Bytecode::Instructions::NoOp:
+			outfile << L"NOOP\n";
+			break;
+
+		case Bytecode::Instructions::Push:
+			{
+				VM::EpochTypeID type = traverser.ReadTypeAnnotation();
+				switch(type)
+				{
+				case VM::EpochType_Error:
+				case VM::EpochType_Void:
+					throw std::exception("Failed to serialize untyped PUSH operand");
+		
+				case VM::EpochType_Identifier:
+					throw std::exception("Failed to serialize incorrect PUSH operand");
+
+				case VM::EpochType_Integer:
+					outfile << L"PUSH_INT " << traverser.Read<Integer32>() << L"\n";
+					break;
+
+				case VM::EpochType_String:
+					outfile << L"PUSH_STR " << traverser.Read<StringHandle>() << L"\n";
+					break;
+
+				default:
+					throw std::exception("Failed to serialize unknown type annotation");
+				}
+			}
+			break;
+
+		case Bytecode::Instructions::Read:
+			outfile << L"READ " << traverser.Read<StringHandle>() << L"\n";
+			break;
+
+		case Bytecode::Instructions::Invoke:
+			outfile << L"INVOKE " << traverser.Read<StringHandle>() << L"\n";
+			break;
+
+		case Bytecode::Instructions::Return:
+			outfile << L"RETURN\n";
+			break;
+
+		case Bytecode::Instructions::BeginEntity:
+			outfile << L"ENTITY " << traverser.ReadEntityTag();
+			outfile << L" " << traverser.Read<StringHandle>() << L"\n";
+			++indent;
+			break;
+
+		case Bytecode::Instructions::EndEntity:
+			outfile << L"ENDENTITY\n";
+			break;
+
+		case Bytecode::Instructions::PoolString:
+			outfile << L"POOL_STR " << traverser.Read<StringHandle>() << L" ";
+			outfile << traverser.ReadTerminatedString() << L"\n";
+			break;
+
+		case Bytecode::Instructions::DefineLexicalScope:
+			{
+				outfile << L"SCOPE " << traverser.Read<StringHandle>() << L" ";
+				size_t count = traverser.Read<size_t>();
+				outfile << count << L"\n";
+				while(count-- > 0)
+				{
+					outfile << traverser.Read<StringHandle>() << L" ";
+					outfile << traverser.ReadTypeAnnotation() << L" ";
+					outfile << traverser.Read<Integer32>() << L"\n";
+				}
+			}
+			break;
+
+		default:
+			throw std::exception("Failed to serialize unknown opcode");
+		}
+	}
+}

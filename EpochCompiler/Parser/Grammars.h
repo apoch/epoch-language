@@ -10,10 +10,13 @@
 
 // Dependencies
 #include <boost/spirit/include/classic.hpp>
+#include <boost/spirit/include/classic_stored_rule.hpp>
 
 #include "Parser/SemanticActionBindings.h"
 
 #include "Bytecode/EntityTags.h"
+
+#include "Libraries/Library.h"
 
 
 
@@ -56,8 +59,9 @@ struct SkipGrammar : public boost::spirit::classic::grammar<SkipGrammar>
 //
 struct FundamentalGrammar : public boost::spirit::classic::grammar<FundamentalGrammar>
 {
-	FundamentalGrammar(SemanticActionInterface& bindings)
-		: Bindings(bindings)
+	FundamentalGrammar(SemanticActionInterface& bindings, const InfixTable& infixidentifiers)
+		: Bindings(bindings),
+		  InfixIdentifiers(infixidentifiers)
 	{ }
 
 	template <typename ScannerType>
@@ -121,10 +125,14 @@ struct FundamentalGrammar : public boost::spirit::classic::grammar<FundamentalGr
 				| StringLiteral[StoreStringLiteral(self.Bindings)]
 				;
 
-			Expression
+			ExpressionComponent
 				= Statement
 				| Literal
 				| StringIdentifier[StoreString(self.Bindings)]
+				;
+
+			Expression
+				= (ExpressionComponent >> *(InfixIdentifier[StoreInfix(self.Bindings)] >> ExpressionComponent[ValidateStatementParam(self.Bindings)])[CompleteInfix(self.Bindings)])
 				;
 
 			Statement
@@ -141,6 +149,9 @@ struct FundamentalGrammar : public boost::spirit::classic::grammar<FundamentalGr
 			Program
 				= (*MetaEntity)[Finalize(self.Bindings)]
 				;
+
+			for(InfixTable::const_iterator iter = self.InfixIdentifiers.begin(); iter != self.InfixIdentifiers.end(); ++iter)
+				AddInfixOperator(*PooledNarrowStrings.insert(narrow(*iter)).first);
 		}
 
 		boost::spirit::classic::chlit<> COLON, OPENPARENS, CLOSEPARENS, OPENBRACE, CLOSEBRACE, COMMA, QUOTE;
@@ -153,6 +164,7 @@ struct FundamentalGrammar : public boost::spirit::classic::grammar<FundamentalGr
 		boost::spirit::classic::rule<ScannerType> IntegerLiteral;
 		boost::spirit::classic::rule<ScannerType> Literal;
 
+		boost::spirit::classic::rule<ScannerType> ExpressionComponent;
 		boost::spirit::classic::rule<ScannerType> Expression;
 		boost::spirit::classic::rule<ScannerType> Statement;
 
@@ -168,14 +180,27 @@ struct FundamentalGrammar : public boost::spirit::classic::grammar<FundamentalGr
 
 		boost::spirit::classic::rule<ScannerType> Program;
 
+		boost::spirit::classic::stored_rule<ScannerType> InfixIdentifier;
+		
+		std::set<std::string> PooledNarrowStrings;
+
 		//
 		// Retrieve the parser's starting (root) symbol
 		//
 		const boost::spirit::classic::rule<ScannerType>& start() const
 		{ return Program; }
+
+		//
+		// Register an infix operator function
+		//
+		void AddInfixOperator(const std::string& opname)
+		{
+			InfixIdentifier = boost::spirit::classic::strlit<>(opname.c_str()) | InfixIdentifier.copy();
+		}
 	};
 
 	SemanticActionInterface& Bindings;
+	const InfixTable& InfixIdentifiers;
 
 };
 

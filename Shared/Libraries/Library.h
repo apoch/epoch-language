@@ -13,6 +13,7 @@
 #include "Utility/Types/IDTypes.h"
 
 #include <map>
+#include <set>
 #include <string>
 #include <vector>
 
@@ -32,4 +33,6 @@ typedef std::map<StringHandle, EpochFunctionPtr> FunctionInvocationTable;
 
 typedef void (*CompilerHelperPtr)(ScopeDescription& scope, const std::vector<CompileTimeParameter>& compiletimeparams);
 typedef std::map<std::wstring, CompilerHelperPtr> FunctionCompileHelperTable;
+
+typedef std::set<std::wstring> InfixTable;
 

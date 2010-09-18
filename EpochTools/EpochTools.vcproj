@@ -299,6 +299,18 @@
 				>
 			</File>
 		</Filter>
+		<Filter
+			Name="Serialization"
+			>
+			<File
+				RelativePath=".\Serialization\Serializer.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Serialization\Serializer.h"
+				>
+			</File>
+		</Filter>
 	</Files>
 	<Globals>
 	</Globals>

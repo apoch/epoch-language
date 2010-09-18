@@ -10,11 +10,11 @@
 #include "Compiler/ByteCodeEmitter.h"
 
 
-void ByteCodeEmitter::EnterFunction(const std::wstring& functionname)
+void ByteCodeEmitter::EnterFunction(StringHandle functionname)
 {
 	EmitInstruction(Bytecode::Instructions::BeginEntity);
 	EmitEntityTag(Bytecode::EntityTags::Function);
-	EmitTerminatedString(functionname);
+	EmitRawValue(functionname);
 }
 
 void ByteCodeEmitter::ExitFunction()

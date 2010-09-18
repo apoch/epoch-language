@@ -71,6 +71,9 @@ public:
 	virtual void StoreEntityType(Bytecode::EntityTag typetag);
 	virtual void StoreEntityCode();
 
+	virtual void StoreInfix(const std::wstring& identifier);
+	virtual void CompleteInfix();
+
 	virtual void BeginParameterSet();
 	virtual void EndParameterSet();
 	virtual void RegisterParameterType(const std::wstring& type);
@@ -89,6 +92,8 @@ private:
 
 	void AddLexicalScope(StringHandle scopename);
 	ScopeDescription& GetLexicalScopeDescription(StringHandle scopename);
+
+	void ValidateAndPushParam(unsigned paramindex);
 
 // Internal tracking
 private:

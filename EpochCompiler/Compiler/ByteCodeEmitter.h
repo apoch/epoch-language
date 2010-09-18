@@ -29,7 +29,7 @@ public:
 
 // Code emission helpers
 public:
-	void EnterFunction(const std::wstring& functionname);
+	void EnterFunction(StringHandle functionname);
 	void ExitFunction();
 
 	void PushIntegerLiteral(Integer32 value);

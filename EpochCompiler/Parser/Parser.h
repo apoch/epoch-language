@@ -8,6 +8,10 @@
 #pragma once
 
 
+// Dependencies
+#include "Libraries/Library.h"
+
+
 // Forward declarations
 class SemanticActionInterface;
 
@@ -16,8 +20,9 @@ class Parser
 {
 // Construction
 public:
-	Parser(SemanticActionInterface& semantics)
-		: SemanticActions(semantics)
+	Parser(SemanticActionInterface& semantics, const InfixTable& infixtable)
+		: SemanticActions(semantics),
+		  InfixIdentifiers(infixtable)
 	{ }
 
 // Parsing operations
@@ -27,5 +32,6 @@ public:
 // Internal tracking
 private:
 	SemanticActionInterface& SemanticActions;
+	const InfixTable& InfixIdentifiers;
 };
 

@@ -26,14 +26,14 @@ CompileSession::CompileSession()
 	typedef void (__stdcall *registerlibraryptr)(FunctionSignatureSet&, StringPoolManager&);
 	registerlibraryptr registerlibrary = reinterpret_cast<registerlibraryptr>(::GetProcAddress(dllhandle, "RegisterLibraryContents"));
 
-	typedef void (__stdcall *bindtocompilerptr)(FunctionCompileHelperTable&, StringPoolManager&);
+	typedef void (__stdcall *bindtocompilerptr)(FunctionCompileHelperTable&, InfixTable&, StringPoolManager&);
 	bindtocompilerptr bindtocompiler = reinterpret_cast<bindtocompilerptr>(::GetProcAddress(dllhandle, "BindToCompiler"));
 
 	if(!registerlibrary || !bindtocompiler)
 		throw std::exception("Failed to load Epoch standard library");
 
 	registerlibrary(FunctionSignatures, StringPool);
-	bindtocompiler(CompileTimeHelpers, StringPool);
+	bindtocompiler(CompileTimeHelpers, InfixIdentifiers, StringPool);
 }
 
 
@@ -97,7 +97,7 @@ void CompileSession::CompileFunctions(const std::wstring& code)
 {
 	ByteCodeEmitter emitter(ByteCodeBuffer);
 	CompilationSemantics semantics(emitter, *this);
-	Parser theparser(semantics);
+	Parser theparser(semantics, InfixIdentifiers);
 
 	if(!theparser.Parse(code))
 		throw std::exception("Failure to parse!");

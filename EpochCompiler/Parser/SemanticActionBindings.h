@@ -102,6 +102,36 @@ struct StoreEntityCode
 	SemanticActionInterface& Bindings;
 };
 
+struct StoreInfix
+{
+	StoreInfix(SemanticActionInterface& bindings)
+		: Bindings(bindings)
+	{ }
+
+	template <typename IteratorType>
+	void operator () (IteratorType begin, IteratorType end) const
+	{
+		std::wstring str(begin, end);
+		Bindings.StoreInfix(str);
+	}
+
+	SemanticActionInterface& Bindings;
+};
+
+struct CompleteInfix
+{
+	CompleteInfix(SemanticActionInterface& bindings)
+		: Bindings(bindings)
+	{ }
+
+	template <typename IteratorType>
+	void operator () (IteratorType begin, IteratorType end) const
+	{
+		Bindings.CompleteInfix();
+	}
+
+	SemanticActionInterface& Bindings;
+};
 
 struct BeginParameterSet
 {

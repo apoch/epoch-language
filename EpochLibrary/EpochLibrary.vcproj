@@ -267,6 +267,18 @@
 					>
 				</File>
 			</Filter>
+			<Filter
+				Name="Operators"
+				>
+				<File
+					RelativePath=".\Library Functionality\Operators\Arithmetic.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\Library Functionality\Operators\Arithmetic.h"
+					>
+				</File>
+			</Filter>
 		</Filter>
 		<Filter
 			Name="Shared"

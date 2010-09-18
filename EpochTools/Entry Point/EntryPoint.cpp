@@ -12,10 +12,9 @@
 #include "DLL Access Wrappers/Compiler.h"
 #include "DLL Access Wrappers/VM.h"
 
+#include "Serialization/Serializer.h"
+
 #include "Utility/Files/Files.h"
-
-
-#include <fstream>
 
 
 //
@@ -27,14 +26,16 @@ int _tmain(int argc, _TCHAR* argv[])
 	output << L"Epoch Language Project\nCommand line tools interface\n\n";
 	output.Flush();
 
-	// TODO - build dynamic parser
 	// TODO - exception safety/handling
 
 	// TODO - allow configuration via command line params
-	std::wstring source = Files::Load(L"d:\\epoch\\Programs\\Compiler and VM Tests\\StackTest.epoch");
+	std::wstring source = Files::Load(L"d:\\epoch\\Programs\\Compiler and VM Tests\\stacktest.epoch");
 	
 	DLLAccess::CompilerAccess compileraccess;
 	DLLAccess::CompiledByteCodeHandle bytecodebufferhandle = compileraccess.CompileSourceToByteCode(source);
+
+	Serialization::Serializer serializer(compileraccess, bytecodebufferhandle);
+	serializer.Write(L"d:\\foo.txt");
 
 	DLLAccess::VMAccess vmaccess;
 	vmaccess.ExecuteByteCode(compileraccess.GetByteCode(bytecodebufferhandle), compileraccess.GetByteCodeSize(bytecodebufferhandle));

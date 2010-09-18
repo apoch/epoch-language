@@ -72,8 +72,8 @@ namespace VM
 
 	// Functions
 	public:
-		void AddFunction(const std::wstring& name, EpochFunctionPtr funcptr);
-		void AddFunction(const std::wstring& name, size_t instructionoffset);
+		void AddFunction(StringHandle name, EpochFunctionPtr funcptr);
+		void AddFunction(StringHandle name, size_t instructionoffset);
 
 		void InvokeFunction(StringHandle functionname, ExecutionContext& context);
 

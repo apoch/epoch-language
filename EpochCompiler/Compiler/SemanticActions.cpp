@@ -37,7 +37,7 @@ void CompilationSemantics::StoreEntityType(Bytecode::EntityTag typetag)
 	{
 	case Bytecode::EntityTags::Function:
 		if(!IsPrepass)
-			Emitter.EnterFunction(Strings.top());
+			Emitter.EnterFunction(Session.StringPool.Pool(Strings.top()));
 		Strings.pop();
 		break;
 
@@ -62,6 +62,61 @@ void CompilationSemantics::StoreEntityCode()
 
 	default:
 		throw std::exception("Invalid entity type tag");
+	}
+}
+
+
+void CompilationSemantics::StoreInfix(const std::wstring& identifier)
+{
+	unsigned paramindex = StatementParamCount.top();
+	StatementNames.push(identifier);
+	StatementParamCount.push(0);
+	if(!IsPrepass)
+	{
+		CompileTimeParameters.push(std::vector<CompileTimeParameter>());
+		ValidateAndPushParam(paramindex);
+	}
+}
+
+void CompilationSemantics::CompleteInfix()
+{
+	std::wstring infixstatementname = StatementNames.top();
+	StringHandle infixstatementnamehandle = Session.StringPool.Pool(infixstatementname);
+	unsigned infixparamcount = StatementParamCount.top();
+
+	StatementNames.pop();
+	StatementParamCount.pop();
+	LastPushedItemType = ITEMTYPE_STATEMENT;
+
+	std::wstring statementname = StatementNames.top();
+	StringHandle statementnamehandle = Session.StringPool.Pool(statementname);
+
+	if(!IsPrepass)
+	{
+		FunctionCompileHelperTable::const_iterator iter = CompileTimeHelpers.find(statementname);
+		if(iter != CompileTimeHelpers.end())
+			iter->second(GetLexicalScopeDescription(LexicalScopeStack.top()), CompileTimeParameters.top());
+
+		CompileTimeParameters.pop();
+		if(!CompileTimeParameters.empty())
+		{
+			FunctionSignatureSet::const_iterator iter = Session.FunctionSignatures.find(infixstatementnamehandle);
+			if(iter == Session.FunctionSignatures.end())
+				throw std::exception("Unknown statement, cannot complete parsing");
+
+			StatementTypes.push(iter->second.GetReturnType());
+
+			iter = Session.FunctionSignatures.find(statementnamehandle);
+			if(iter == Session.FunctionSignatures.end())
+				throw std::exception("Unknown statement, cannot complete parsing");
+
+			const std::wstring& paramname = iter->second.GetParameterName(StatementParamCount.top());
+			VM::EpochTypeID paramtype = iter->second.GetParameterType(StatementParamCount.top());
+
+			CompileTimeParameters.top().push_back(CompileTimeParameter(paramname, paramtype));
+		}
+
+		Emitter.Invoke(infixstatementnamehandle);
 	}
 }
 
@@ -127,49 +182,52 @@ void CompilationSemantics::ValidateStatementParam()
 	++StatementParamCount.top();
 
 	if(!IsPrepass)
+		ValidateAndPushParam(paramindex);
+}
+
+void CompilationSemantics::ValidateAndPushParam(unsigned paramindex)
+{
+	StringHandle statementnamehandle = Session.StringPool.Pool(StatementNames.top());
+	FunctionSignatureSet::const_iterator iter = Session.FunctionSignatures.find(statementnamehandle);
+	if(iter == Session.FunctionSignatures.end())
+		throw std::exception("Unknown statement, cannot validate");
+
+	VM::EpochTypeID expectedtype = iter->second.GetParameterType(paramindex);
+	CheckParameterValidity(expectedtype);
+	CompileTimeParameter ctparam(iter->second.GetParameterName(paramindex), expectedtype);
+
+	switch(LastPushedItemType)
 	{
-		StringHandle statementnamehandle = Session.StringPool.Pool(StatementNames.top());
-		FunctionSignatureSet::const_iterator iter = Session.FunctionSignatures.find(statementnamehandle);
-		if(iter == Session.FunctionSignatures.end())
-			throw std::exception("Unknown statement, cannot validate");
+	case ITEMTYPE_STATEMENT:
+		break;
 
-		VM::EpochTypeID expectedtype = iter->second.GetParameterType(paramindex);
-		CheckParameterValidity(expectedtype);
-		CompileTimeParameter ctparam(iter->second.GetParameterName(paramindex), expectedtype);
+	case ITEMTYPE_STRING:
+		if(expectedtype == VM::EpochType_Identifier)
+			Emitter.PushStringLiteral(Session.StringPool.Pool(Strings.top()));
+		else
+			Emitter.PushVariableValue(Session.StringPool.Pool(Strings.top()));
+		ctparam.StringPayload = Strings.top();
+		ctparam.Payload.StringHandleValue = Session.StringPool.Pool(Strings.top());
+		Strings.pop();
+		break;
 
-		switch(LastPushedItemType)
-		{
-		case ITEMTYPE_STATEMENT:
-			break;
+	case ITEMTYPE_STRINGLITERAL:
+		Emitter.PushStringLiteral(StringLiterals.top());
+		ctparam.Payload.StringHandleValue = StringLiterals.top();
+		StringLiterals.pop();
+		break;
 
-		case ITEMTYPE_STRING:
-			if(expectedtype == VM::EpochType_Identifier)
-				Emitter.PushStringLiteral(Session.StringPool.Pool(Strings.top()));
-			else
-				Emitter.PushVariableValue(Session.StringPool.Pool(Strings.top()));
-			ctparam.StringPayload = Strings.top();
-			ctparam.Payload.StringHandleValue = Session.StringPool.Pool(Strings.top());
-			Strings.pop();
-			break;
+	case ITEMTYPE_INTEGERLITERAL:
+		Emitter.PushIntegerLiteral(IntegerLiterals.top());
+		ctparam.Payload.IntegerValue = IntegerLiterals.top();
+		IntegerLiterals.pop();
+		break;
 
-		case ITEMTYPE_STRINGLITERAL:
-			Emitter.PushStringLiteral(StringLiterals.top());
-			ctparam.Payload.StringHandleValue = StringLiterals.top();
-			StringLiterals.pop();
-			break;
-
-		case ITEMTYPE_INTEGERLITERAL:
-			Emitter.PushIntegerLiteral(IntegerLiterals.top());
-			ctparam.Payload.IntegerValue = IntegerLiterals.top();
-			IntegerLiterals.pop();
-			break;
-
-		default:
-			throw std::exception("Not implemented");
-		}
-
-		CompileTimeParameters.top().push_back(ctparam);
+	default:
+		throw std::exception("Not implemented");
 	}
+
+	CompileTimeParameters.top().push_back(ctparam);
 }
 
 void CompilationSemantics::CompleteStatement()

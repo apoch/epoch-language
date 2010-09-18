@@ -30,6 +30,9 @@ public:
 	virtual void StoreEntityType(Bytecode::EntityTag typetag) = 0;
 	virtual void StoreEntityCode() = 0;
 
+	virtual void StoreInfix(const std::wstring& identifier) = 0;
+	virtual void CompleteInfix() = 0;
+
 	virtual void BeginParameterSet() = 0;
 	virtual void EndParameterSet() = 0;
 	virtual void RegisterParameterType(const std::wstring& type) = 0;

@@ -104,31 +104,27 @@ StringHandle VirtualMachine::GetPooledStringHandle(const std::wstring& value)
 //
 // Add a function to the global namespace
 //
-void VirtualMachine::AddFunction(const std::wstring& name, EpochFunctionPtr funcptr)
+void VirtualMachine::AddFunction(StringHandle name, EpochFunctionPtr funcptr)
 {
-	StringHandle namehandle = GetPooledStringHandle(name);
-
-	if(GlobalFunctions.find(namehandle) != GlobalFunctions.end())
+	if(GlobalFunctions.find(name) != GlobalFunctions.end())
 		throw std::exception("Invalid function");
 	
-	GlobalFunctions.insert(std::make_pair(namehandle, funcptr));
+	GlobalFunctions.insert(std::make_pair(name, funcptr));
 }
 
 //
 // Add a user-implemented function to the global namespace
 //
-void VirtualMachine::AddFunction(const std::wstring& name, size_t instructionoffset)
+void VirtualMachine::AddFunction(StringHandle name, size_t instructionoffset)
 {
-	StringHandle namehandle = GetPooledStringHandle(name);
-
-	if(GlobalFunctions.find(namehandle) != GlobalFunctions.end())
+	if(GlobalFunctions.find(name) != GlobalFunctions.end())
 		throw std::exception("Invalid function");
 	
-	if(GlobalFunctionOffsets.find(namehandle) != GlobalFunctionOffsets.end())
+	if(GlobalFunctionOffsets.find(name) != GlobalFunctionOffsets.end())
 		throw std::exception("Function offset has already been cached");
 	
-	GlobalFunctions.insert(std::make_pair(namehandle, FunctionInvocationHelper));
-	GlobalFunctionOffsets.insert(std::make_pair(namehandle, instructionoffset));
+	GlobalFunctions.insert(std::make_pair(name, FunctionInvocationHelper));
+	GlobalFunctionOffsets.insert(std::make_pair(name, instructionoffset));
 }
 
 //
@@ -291,7 +287,7 @@ void ExecutionContext::Execute()
 		case Bytecode::Instructions::BeginEntity:
 			{
 				Bytecode::EntityTag tag = static_cast<Bytecode::EntityTag>(Fetch<Integer32>());
-				Fetch<std::wstring>();
+				Fetch<StringHandle>();
 			}
 			break;
 
@@ -346,7 +342,7 @@ void ExecutionContext::Load()
 				size_t originaloffset = InstructionOffset - 1;
 				entitytypes.push(Fetch<Integer32>());
 				if(entitytypes.top() == Bytecode::EntityTags::Function)
-					OwnerVM.AddFunction(Fetch<std::wstring>(), originaloffset);
+					OwnerVM.AddFunction(Fetch<StringHandle>(), originaloffset);
 			}
 			break;
 

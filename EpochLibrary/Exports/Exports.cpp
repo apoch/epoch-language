@@ -10,6 +10,7 @@
 #include "Library Functionality/Debugging/Debugging.h"
 #include "Library Functionality/Type Constructors/Primitives.h"
 #include "Library Functionality/Type Casting/Typecasts.h"
+#include "Library Functionality/Operators/Arithmetic.h"
 
 
 namespace
@@ -28,6 +29,9 @@ extern "C" void __stdcall RegisterLibraryContents(FunctionSignatureSet& function
 
 	TypeCasts::RegisterLibraryFunctions(functionsignatures, stringpool);
 	TypeCasts::RegisterLibraryFunctions(StandardLibraryFunctionDispatch, stringpool);
+
+	ArithmeticLibrary::RegisterLibraryFunctions(functionsignatures, stringpool);
+	ArithmeticLibrary::RegisterLibraryFunctions(StandardLibraryFunctionDispatch, stringpool);
 }
 
 extern "C" void __stdcall BindToVirtualMachine(FunctionInvocationTable& functiontable, StringPoolManager& stringpool)
@@ -35,13 +39,17 @@ extern "C" void __stdcall BindToVirtualMachine(FunctionInvocationTable& function
 	DebugLibrary::RegisterLibraryFunctions(functiontable, stringpool);
 	TypeConstructors::RegisterLibraryFunctions(functiontable, stringpool);
 	TypeCasts::RegisterLibraryFunctions(functiontable, stringpool);
+	ArithmeticLibrary::RegisterLibraryFunctions(functiontable, stringpool);
 }
 
-extern "C" void __stdcall BindToCompiler(FunctionCompileHelperTable& functiontable, StringPoolManager& stringpool)
+extern "C" void __stdcall BindToCompiler(FunctionCompileHelperTable& functiontable, InfixTable& infixtable, StringPoolManager& stringpool)
 {
 	DebugLibrary::RegisterLibraryFunctions(functiontable);
 	TypeConstructors::RegisterLibraryFunctions(functiontable);
 	TypeCasts::RegisterLibraryFunctions(functiontable);
+
+	ArithmeticLibrary::RegisterLibraryFunctions(functiontable);
+	ArithmeticLibrary::RegisterInfixOperators(infixtable, stringpool);
 }
 
 
