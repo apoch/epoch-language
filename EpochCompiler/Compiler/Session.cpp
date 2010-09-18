@@ -101,5 +101,7 @@ void CompileSession::CompileFunctions(const std::wstring& code)
 
 	if(!theparser.Parse(code))
 		throw std::exception("Failure to parse!");
+
+	semantics.SanityCheck();
 }
 

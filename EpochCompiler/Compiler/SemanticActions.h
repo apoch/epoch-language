@@ -37,7 +37,6 @@ class CompilationSemantics : public SemanticActionInterface
 private:
 	enum ItemType
 	{
-		ITEMTYPE_NOTHING,
 		ITEMTYPE_STATEMENT,
 		ITEMTYPE_STRING,
 		ITEMTYPE_STRINGLITERAL,
@@ -47,13 +46,14 @@ private:
 // Construction
 public:
 	CompilationSemantics(ByteCodeEmitter& emitter, CompileSession& session)
-		: Emitter(emitter),
+		: MasterEmitter(emitter),
 		  Session(session),
 		  ExpressionDepth(0),
-		  LastPushedItemType(ITEMTYPE_NOTHING),
 		  IsPrepass(true),
 		  CompileTimeHelpers(session.CompileTimeHelpers)
-	{ }
+	{
+		EmitterStack.push(&MasterEmitter);
+	}
 
 // Semantic action implementations
 public:
@@ -85,6 +85,7 @@ public:
 	virtual void BeginStatementParams();
 	virtual void ValidateStatementParam();
 	virtual void CompleteStatement();
+	virtual void FinalizeStatement();
 
 	virtual void BeginAssignment();
 	virtual void CompleteAssignment();
@@ -92,6 +93,8 @@ public:
 	virtual void Finalize();
 
 	virtual void EmitPendingCode();
+
+	virtual void SanityCheck() const;
 
 // Internal helpers
 private:
@@ -108,7 +111,8 @@ private:
 private:
 	bool IsPrepass;
 
-	ByteCodeEmitter& Emitter;
+	std::stack<ByteCodeEmitter*> EmitterStack;
+	ByteCodeEmitter& MasterEmitter;
 	CompileSession& Session;
 	FunctionCompileHelperTable& CompileTimeHelpers;
 
@@ -132,16 +136,18 @@ private:
 
 	unsigned ExpressionDepth;
 
-	ItemType LastPushedItemType;
+	std::stack<ItemType> PushedItemTypes;
 
 	std::stack<std::vector<CompileTimeParameter> > CompileTimeParameters;
 
 	std::stack<std::wstring> CurrentEntities;
+	std::stack<std::wstring> FunctionReturnTypeNames;
 	std::stack<StringHandle> FunctionReturnVars;
 
 	std::stack<std::vector<Byte> > PendingEmissionBuffers;
 	std::stack<ByteCodeEmitter> PendingEmitters;
 
 	std::stack<StringHandle> AssignmentTargets;
+	std::stack<bool> ReturnsIncludedStatement;
 };
 

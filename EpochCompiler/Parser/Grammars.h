@@ -142,12 +142,15 @@ struct FundamentalGrammar : public boost::spirit::classic::grammar<FundamentalGr
 				;
 
 			Statement
+				= (StringIdentifier[BeginStatement(self.Bindings)] >> OPENPARENS[BeginStatementParams(self.Bindings)] >> (!(Expression[ValidateStatementParam(self.Bindings)] % COMMA)) >> CLOSEPARENS[CompleteStatement(self.Bindings)])
+				;
+
+			Assignment
 				= (StringIdentifier[BeginStatement(self.Bindings)] >> ASSIGN[BeginAssignment(self.Bindings)] >> Expression[ValidateStatementParam(self.Bindings)][CompleteAssignment(self.Bindings)])
-				| (StringIdentifier[BeginStatement(self.Bindings)] >> OPENPARENS[BeginStatementParams(self.Bindings)] >> (!(Expression[ValidateStatementParam(self.Bindings)] % COMMA)) >> CLOSEPARENS[CompleteStatement(self.Bindings)])
 				;
 
 			CodeBlock
-				= OPENBRACE[EmitPendingCode(self.Bindings)] >> (*Statement) >> CLOSEBRACE
+				= OPENBRACE[EmitPendingCode(self.Bindings)] >> (*((Assignment) | (Statement[FinalizeStatement(self.Bindings)]))) >> CLOSEBRACE
 				;
 
 			MetaEntity
@@ -174,6 +177,7 @@ struct FundamentalGrammar : public boost::spirit::classic::grammar<FundamentalGr
 		boost::spirit::classic::rule<ScannerType> ExpressionComponent;
 		boost::spirit::classic::rule<ScannerType> Expression;
 		boost::spirit::classic::rule<ScannerType> Statement;
+		boost::spirit::classic::rule<ScannerType> Assignment;
 
 		boost::spirit::classic::rule<ScannerType> VariableType;
 

@@ -11,8 +11,24 @@
 
 // Dependencies
 #include "Parser/SemanticActionInterface.h"
+
 #include "Bytecode/EntityTags.h"
+
 #include <sstream>
+
+#ifdef _DEBUG
+#include <iostream>
+#endif
+
+
+template <typename IteratorType>
+void Trace(IteratorType begin, IteratorType end)
+{
+#ifdef _DEBUG
+//	std::wstring blob(begin, end);
+//	std::wcout << L"PARSER TRACE: " << blob << std::endl;
+#endif
+}
 
 
 struct StoreString
@@ -24,6 +40,8 @@ struct StoreString
 	template <typename IteratorType>
 	void operator () (IteratorType begin, IteratorType end) const
 	{
+		Trace(begin, end);
+
 		std::wstring str(begin, end);
 		Bindings.StoreString(str);
 	}
@@ -40,6 +58,8 @@ struct StoreIntegerLiteral
 	template <typename IteratorType>
 	void operator () (IteratorType begin, IteratorType end) const
 	{
+		Trace(begin, end);
+
 		std::wstring str(begin, end);
 		Integer32 value;
 
@@ -62,6 +82,8 @@ struct StoreStringLiteral
 	template <typename IteratorType>
 	void operator () (IteratorType begin, IteratorType end) const
 	{
+		Trace(begin, end);
+
 		std::wstring str(begin, end);
 		Bindings.StoreStringLiteral(str.substr(1, str.length() - 2));
 	}
@@ -80,6 +102,7 @@ struct StoreEntityType
 	template <typename IteratorType>
 	void operator () (IteratorType begin, IteratorType end) const
 	{
+		Trace(begin, end);
 		Bindings.StoreEntityType(TypeTag);
 	}
 
@@ -96,6 +119,7 @@ struct StoreEntityCode
 	template <typename IteratorType>
 	void operator () (IteratorType begin, IteratorType end) const
 	{
+		Trace(begin, end);
 		Bindings.StoreEntityCode();
 	}
 
@@ -111,6 +135,7 @@ struct StoreInfix
 	template <typename IteratorType>
 	void operator () (IteratorType begin, IteratorType end) const
 	{
+		Trace(begin, end);
 		std::wstring str(begin, end);
 		Bindings.StoreInfix(str);
 	}
@@ -127,6 +152,7 @@ struct CompleteInfix
 	template <typename IteratorType>
 	void operator () (IteratorType begin, IteratorType end) const
 	{
+		Trace(begin, end);
 		Bindings.CompleteInfix();
 	}
 
@@ -172,6 +198,7 @@ struct RegisterParameterType
 	template <typename IteratorType>
 	void operator () (IteratorType begin, IteratorType end) const
 	{
+		Trace(begin, end);
 		std::wstring str(begin, end);
 		Bindings.RegisterParameterType(str);
 	}
@@ -188,6 +215,7 @@ struct RegisterParameterName
 	template <typename IteratorType>
 	void operator () (IteratorType begin, IteratorType end) const
 	{
+		Trace(begin, end);
 		std::wstring str(begin, end);
 		Bindings.RegisterParameterName(str);
 	}
@@ -234,6 +262,7 @@ struct RegisterReturnType
 	template <typename IteratorType>
 	void operator () (IteratorType begin, IteratorType end) const
 	{
+		Trace(begin, end);
 		std::wstring str(begin, end);
 		Bindings.RegisterReturnType(str);
 	}
@@ -250,6 +279,7 @@ struct RegisterReturnName
 	template <typename IteratorType>
 	void operator () (IteratorType begin, IteratorType end) const
 	{
+		Trace(begin, end);
 		std::wstring str(begin, end);
 		Bindings.RegisterReturnName(str);
 	}
@@ -266,6 +296,7 @@ struct RegisterReturnValue
 	template <typename IteratorType>
 	void operator () (IteratorType begin, IteratorType end) const
 	{
+		Trace(begin, end);
 		Bindings.RegisterReturnValue();
 	}
 
@@ -281,6 +312,7 @@ struct BeginStatement
 	template <typename IteratorType>
 	void operator () (IteratorType begin, IteratorType end) const
 	{
+		Trace(begin, end);
 		std::wstring str(begin, end);
 		Bindings.BeginStatement(str);
 	}
@@ -312,6 +344,7 @@ struct ValidateStatementParam
 	template <typename IteratorType>
 	void operator () (IteratorType begin, IteratorType end) const
 	{
+		Trace(begin, end);
 		Bindings.ValidateStatementParam();
 	}
 
@@ -333,6 +366,21 @@ struct CompleteStatement
 	SemanticActionInterface& Bindings;
 };
 
+struct FinalizeStatement
+{
+	FinalizeStatement(SemanticActionInterface& bindings)
+		: Bindings(bindings)
+	{ }
+
+	template <typename IteratorType>
+	void operator () (IteratorType begin, IteratorType end) const
+	{
+		Trace(begin, end);
+		Bindings.FinalizeStatement();
+	}
+
+	SemanticActionInterface& Bindings;
+};
 
 
 struct Finalize
@@ -344,6 +392,7 @@ struct Finalize
 	template <typename IteratorType>
 	void operator () (IteratorType begin, IteratorType end) const
 	{
+		Trace(begin, end);
 		Bindings.Finalize();
 	}
 
@@ -376,6 +425,7 @@ struct BeginAssignment
 	template <typename IteratorType>
 	void operator () (IteratorType begin, IteratorType end) const
 	{
+		Trace(begin, end);
 		Bindings.BeginAssignment();
 	}
 
@@ -391,8 +441,10 @@ struct CompleteAssignment
 	template <typename IteratorType>
 	void operator () (IteratorType begin, IteratorType end) const
 	{
+		Trace(begin, end);
 		Bindings.CompleteAssignment();
 	}
 
 	SemanticActionInterface& Bindings;
 };
+

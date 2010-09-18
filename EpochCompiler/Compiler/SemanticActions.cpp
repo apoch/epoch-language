@@ -16,19 +16,19 @@
 void CompilationSemantics::StoreString(const std::wstring& name)
 {
 	Strings.push(name);
-	LastPushedItemType = ITEMTYPE_STRING;
+	PushedItemTypes.push(ITEMTYPE_STRING);
 }
 
 void CompilationSemantics::StoreIntegerLiteral(Integer32 value)
 {
 	IntegerLiterals.push(value);
-	LastPushedItemType = ITEMTYPE_INTEGERLITERAL;
+	PushedItemTypes.push(ITEMTYPE_INTEGERLITERAL);
 }
 
 void CompilationSemantics::StoreStringLiteral(const std::wstring& value)
 {
-	LastPushedItemType = ITEMTYPE_STRINGLITERAL;
 	StringLiterals.push(Session.StringPool.Pool(value));
+	PushedItemTypes.push(ITEMTYPE_STRINGLITERAL);
 }
 
 void CompilationSemantics::StoreEntityType(Bytecode::EntityTag typetag)
@@ -38,8 +38,9 @@ void CompilationSemantics::StoreEntityType(Bytecode::EntityTag typetag)
 	case Bytecode::EntityTags::Function:
 		CurrentEntities.push(Strings.top());
 		if(!IsPrepass)
-			Emitter.EnterFunction(Session.StringPool.Pool(Strings.top()));
+			EmitterStack.top()->EnterFunction(Session.StringPool.Pool(Strings.top()));
 		Strings.pop();
+		PushedItemTypes.pop();
 		break;
 
 	default:
@@ -65,11 +66,12 @@ void CompilationSemantics::StoreEntityCode()
 
 			if(iter->second.GetReturnType() != VM::EpochType_Void)
 			{
-				Emitter.SetReturnRegister(FunctionReturnVars.top());
+				EmitterStack.top()->SetReturnRegister(FunctionReturnVars.top());
 				FunctionReturnVars.pop();
+				FunctionReturnTypeNames.pop();
 			}
 
-			Emitter.ExitFunction();
+			EmitterStack.top()->ExitFunction();
 		}
 		break;
 
@@ -78,6 +80,7 @@ void CompilationSemantics::StoreEntityCode()
 	}
 
 	CurrentEntities.pop();
+	LexicalScopeStack.pop();
 }
 
 
@@ -87,10 +90,9 @@ void CompilationSemantics::StoreInfix(const std::wstring& identifier)
 	StatementNames.push(identifier);
 	StatementParamCount.push(0);
 	if(!IsPrepass)
-	{
 		CompileTimeParameters.push(std::vector<CompileTimeParameter>());
-		ValidateAndPushParam(paramindex);
-	}
+
+	ValidateAndPushParam(paramindex);
 }
 
 void CompilationSemantics::CompleteInfix()
@@ -101,41 +103,50 @@ void CompilationSemantics::CompleteInfix()
 
 	StatementNames.pop();
 	StatementParamCount.pop();
-	LastPushedItemType = ITEMTYPE_STATEMENT;
-
-	std::wstring statementname = StatementNames.top();
+	PushedItemTypes.push(ITEMTYPE_STATEMENT);
 
 	if(!IsPrepass)
 	{
-		FunctionCompileHelperTable::const_iterator iter = CompileTimeHelpers.find(statementname);
-		if(iter != CompileTimeHelpers.end())
-			iter->second(GetLexicalScopeDescription(LexicalScopeStack.top()), CompileTimeParameters.top());
-
-		CompileTimeParameters.pop();
-		if(!CompileTimeParameters.empty())
+		if(!StatementNames.empty())
 		{
-			FunctionSignatureSet::const_iterator iter = Session.FunctionSignatures.find(infixstatementnamehandle);
-			if(iter == Session.FunctionSignatures.end())
-				throw std::exception("Unknown statement, cannot complete parsing");
+			std::wstring statementname = StatementNames.top();
 
-			StatementTypes.push(iter->second.GetReturnType());
+			FunctionCompileHelperTable::const_iterator iter = CompileTimeHelpers.find(statementname);
+			if(iter != CompileTimeHelpers.end())
+				iter->second(GetLexicalScopeDescription(LexicalScopeStack.top()), CompileTimeParameters.top());
 
-			if(statementname == L"=")
-				CompileTimeParameters.top().push_back(CompileTimeParameter(L"rhs", VM::EpochType_Integer));		// TODO - check type of LHS
-			else
+			CompileTimeParameters.pop();
+			if(!CompileTimeParameters.empty())
 			{
-				iter = Session.FunctionSignatures.find(Session.StringPool.Pool(statementname));
+				FunctionSignatureSet::const_iterator iter = Session.FunctionSignatures.find(infixstatementnamehandle);
 				if(iter == Session.FunctionSignatures.end())
 					throw std::exception("Unknown statement, cannot complete parsing");
 
-				const std::wstring& paramname = iter->second.GetParameterName(StatementParamCount.top());
-				VM::EpochTypeID paramtype = iter->second.GetParameterType(StatementParamCount.top());
+				StatementTypes.push(iter->second.GetReturnType());
 
-				CompileTimeParameters.top().push_back(CompileTimeParameter(paramname, paramtype));
+				if(statementname == L"=")
+					CompileTimeParameters.top().push_back(CompileTimeParameter(L"rhs", VM::EpochType_Integer));		// TODO - check type of LHS
+				else
+				{
+					iter = Session.FunctionSignatures.find(Session.StringPool.Pool(statementname));
+					if(iter == Session.FunctionSignatures.end())
+						throw std::exception("Unknown statement, cannot complete parsing");
+
+					const std::wstring& paramname = iter->second.GetParameterName(StatementParamCount.top());
+					VM::EpochTypeID paramtype = iter->second.GetParameterType(StatementParamCount.top());
+
+					CompileTimeParameters.top().push_back(CompileTimeParameter(paramname, paramtype));
+				}
 			}
-		}
 
-		Emitter.Invoke(infixstatementnamehandle);
+			EmitterStack.top()->Invoke(infixstatementnamehandle);
+		}
+		else
+		{
+			// We are in a special location such as the initializer of a return value
+			EmitterStack.top()->Invoke(infixstatementnamehandle);
+			EmitterStack.top()->Invoke(Session.StringPool.Pool(FunctionReturnTypeNames.top()));
+		}
 	}
 }
 
@@ -172,18 +183,35 @@ void CompilationSemantics::RegisterParameterName(const std::wstring& name)
 
 void CompilationSemantics::BeginReturnSet()
 {
+	ReturnsIncludedStatement.push(false);
+	if(!IsPrepass)
+	{
+		PendingEmissionBuffers.push(std::vector<Byte>());
+		PendingEmitters.push(ByteCodeEmitter(PendingEmissionBuffers.top()));
+		EmitterStack.push(&PendingEmitters.top());
+	}
 }
 
 void CompilationSemantics::EndReturnSet()
 {
+	if(ReturnsIncludedStatement.top())
+		StatementParamCount.pop();
+
 	if(IsPrepass)
 		Session.FunctionSignatures.insert(std::make_pair(Session.StringPool.Pool(Strings.top()), FunctionSignatureStack.top()));
+	else
+	{
+		EmitPendingCode();
+		EmitterStack.pop();
+	}
 
 	FunctionSignatureStack.pop();
+	ReturnsIncludedStatement.pop();
 }
 
 void CompilationSemantics::RegisterReturnType(const std::wstring& type)
 {
+	FunctionReturnTypeNames.push(type);
 	FunctionSignatureStack.top().SetReturnType(LookupTypeName(type));
 }
 
@@ -193,6 +221,7 @@ void CompilationSemantics::RegisterReturnName(const std::wstring& name)
 	{
 		StringHandle namehandle = Session.StringPool.Pool(name);
 		FunctionReturnVars.push(namehandle);
+		PendingEmitters.top().PushStringLiteral(namehandle);
 		LexicalScopeDescriptions.find(LexicalScopeStack.top())->second.AddVariable(name, namehandle, FunctionSignatureStack.top().GetReturnType(), VARIABLE_ORIGIN_RETURN);
 	}
 }
@@ -203,21 +232,43 @@ void CompilationSemantics::RegisterReturnValue()
 	{
 		PendingEmissionBuffers.push(std::vector<Byte>());
 		PendingEmitters.push(ByteCodeEmitter(PendingEmissionBuffers.top()));
-
-		PendingEmitters.top().PushStringLiteral(FunctionReturnVars.top());
-
-		switch(FunctionSignatureStack.top().GetReturnType())
-		{
-		case VM::EpochType_Integer:
-			PendingEmitters.top().PushIntegerLiteral(IntegerLiterals.top());
-			PendingEmitters.top().Invoke(Session.StringPool.Pool(L"integer"));
-			IntegerLiterals.pop();
-			break;
-
-		default:
-			throw std::exception("Not implemented.");
-		}
 	}
+
+	switch(FunctionSignatureStack.top().GetReturnType())
+	{
+	case VM::EpochType_Integer:
+		if(PushedItemTypes.top() == ITEMTYPE_INTEGERLITERAL)
+		{
+			if(!IsPrepass)
+			{
+				PendingEmitters.top().PushIntegerLiteral(IntegerLiterals.top());
+				PendingEmitters.top().Invoke(Session.StringPool.Pool(L"integer"));
+			}
+			IntegerLiterals.pop();
+		}
+		else if(PushedItemTypes.top() == ITEMTYPE_STRING)
+		{
+			if(!IsPrepass)
+			{
+				PendingEmitters.top().PushVariableValue(Session.StringPool.Pool(Strings.top()));
+				PendingEmitters.top().Invoke(Session.StringPool.Pool(L"integer"));
+			}
+			Strings.pop();
+		}
+		else if(PushedItemTypes.top() == ITEMTYPE_STATEMENT)
+		{
+			ReturnsIncludedStatement.top() = true;
+			// TODO - check statement return type for validity
+		}
+		else
+			throw std::exception("Type mismatch");
+		break;
+
+	default:
+		throw std::exception("Not implemented.");
+	}
+
+	PushedItemTypes.pop();
 }
 
 
@@ -240,9 +291,7 @@ void CompilationSemantics::ValidateStatementParam()
 {
 	unsigned paramindex = StatementParamCount.top();
 	++StatementParamCount.top();
-
-	if(!IsPrepass)
-		ValidateAndPushParam(paramindex);
+	ValidateAndPushParam(paramindex);
 }
 
 void CompilationSemantics::ValidateAndPushParam(unsigned paramindex)
@@ -250,48 +299,57 @@ void CompilationSemantics::ValidateAndPushParam(unsigned paramindex)
 	std::wstring paramname;
 	VM::EpochTypeID expectedtype = VM::EpochType_Error;
 
-	if(StatementNames.top() == L"=")
+	if(!IsPrepass)
 	{
-		paramname = L"rhs";
-		expectedtype = VM::EpochType_Integer;		// TODO - check type of LHS
-	}
-	else
-	{
-		StringHandle statementnamehandle = Session.StringPool.Pool(StatementNames.top());
-		FunctionSignatureSet::const_iterator iter = Session.FunctionSignatures.find(statementnamehandle);
-		if(iter == Session.FunctionSignatures.end())
-			throw std::exception("Unknown statement, cannot validate");
+		if(StatementNames.top() == L"=")
+		{
+			paramname = L"rhs";
+			expectedtype = VM::EpochType_Integer;		// TODO - check type of LHS
+		}
+		else
+		{
+			StringHandle statementnamehandle = Session.StringPool.Pool(StatementNames.top());
+			FunctionSignatureSet::const_iterator iter = Session.FunctionSignatures.find(statementnamehandle);
+			if(iter == Session.FunctionSignatures.end())
+				throw std::exception("Unknown statement, cannot validate");
 
-		paramname = iter->second.GetParameterName(paramindex);
-		expectedtype = iter->second.GetParameterType(paramindex);
+			paramname = iter->second.GetParameterName(paramindex);
+			expectedtype = iter->second.GetParameterType(paramindex);
+		}
+
+		CheckParameterValidity(expectedtype);
 	}
 
-	CheckParameterValidity(expectedtype);
 	CompileTimeParameter ctparam(paramname, expectedtype);
 
-	switch(LastPushedItemType)
+	switch(PushedItemTypes.top())
 	{
 	case ITEMTYPE_STATEMENT:
 		break;
 
 	case ITEMTYPE_STRING:
-		if(expectedtype == VM::EpochType_Identifier)
-			Emitter.PushStringLiteral(Session.StringPool.Pool(Strings.top()));
-		else
-			Emitter.PushVariableValue(Session.StringPool.Pool(Strings.top()));
+		if(!IsPrepass)
+		{
+			if(expectedtype == VM::EpochType_Identifier)
+				EmitterStack.top()->PushStringLiteral(Session.StringPool.Pool(Strings.top()));
+			else
+				EmitterStack.top()->PushVariableValue(Session.StringPool.Pool(Strings.top()));
+		}
 		ctparam.StringPayload = Strings.top();
 		ctparam.Payload.StringHandleValue = Session.StringPool.Pool(Strings.top());
 		Strings.pop();
 		break;
 
 	case ITEMTYPE_STRINGLITERAL:
-		Emitter.PushStringLiteral(StringLiterals.top());
+		if(!IsPrepass)
+			EmitterStack.top()->PushStringLiteral(StringLiterals.top());
 		ctparam.Payload.StringHandleValue = StringLiterals.top();
 		StringLiterals.pop();
 		break;
 
 	case ITEMTYPE_INTEGERLITERAL:
-		Emitter.PushIntegerLiteral(IntegerLiterals.top());
+		if(!IsPrepass)
+			EmitterStack.top()->PushIntegerLiteral(IntegerLiterals.top());
 		ctparam.Payload.IntegerValue = IntegerLiterals.top();
 		IntegerLiterals.pop();
 		break;
@@ -300,7 +358,9 @@ void CompilationSemantics::ValidateAndPushParam(unsigned paramindex)
 		throw std::exception("Not implemented");
 	}
 
-	CompileTimeParameters.top().push_back(ctparam);
+	PushedItemTypes.pop();
+	if(!IsPrepass)
+		CompileTimeParameters.top().push_back(ctparam);
 }
 
 void CompilationSemantics::CompleteStatement()
@@ -311,7 +371,7 @@ void CompilationSemantics::CompleteStatement()
 
 	StatementNames.pop();
 	StatementParamCount.pop();
-	LastPushedItemType = ITEMTYPE_STATEMENT;
+	PushedItemTypes.push(ITEMTYPE_STATEMENT);
 
 	if(!IsPrepass)
 	{
@@ -334,23 +394,27 @@ void CompilationSemantics::CompleteStatement()
 			CompileTimeParameters.top().push_back(CompileTimeParameter(paramname, paramtype));
 		}
 
-		Emitter.Invoke(statementnamehandle);
+		EmitterStack.top()->Invoke(statementnamehandle);
 	}
 }
 
+void CompilationSemantics::FinalizeStatement()
+{
+	PushedItemTypes.pop();
+}
 
 void CompilationSemantics::Finalize()
 {
 	if(!IsPrepass)
 	{
 		for(std::map<StringHandle, std::wstring>::const_iterator iter = Session.StringPool.GetInternalPool().begin(); iter != Session.StringPool.GetInternalPool().end(); ++iter)
-			Emitter.PoolString(iter->first, iter->second);
+			EmitterStack.top()->PoolString(iter->first, iter->second);
 
 		for(std::map<StringHandle, ScopeDescription>::const_iterator iter = LexicalScopeDescriptions.begin(); iter != LexicalScopeDescriptions.end(); ++iter)
 		{
-			Emitter.DefineLexicalScope(iter->first, iter->second.GetVariableCount());
+			EmitterStack.top()->DefineLexicalScope(iter->first, iter->second.GetVariableCount());
 			for(size_t i = 0; i < iter->second.GetVariableCount(); ++i)
-				Emitter.LexicalScopeEntry(Session.StringPool.Pool(iter->second.GetVariableName(i)), iter->second.GetVariableTypeByIndex(i), iter->second.GetVariableOrigin(i));
+				EmitterStack.top()->LexicalScopeEntry(Session.StringPool.Pool(iter->second.GetVariableName(i)), iter->second.GetVariableTypeByIndex(i), iter->second.GetVariableOrigin(i));
 		}
 	}
 }
@@ -362,7 +426,7 @@ void CompilationSemantics::EmitPendingCode()
 	{
 		if(!PendingEmitters.empty())
 		{
-			Emitter.EmitBuffer(PendingEmissionBuffers.top());
+			EmitterStack.top()->EmitBuffer(PendingEmissionBuffers.top());
 			PendingEmitters.pop();
 			PendingEmissionBuffers.pop();
 		}
@@ -374,13 +438,11 @@ void CompilationSemantics::CheckParameterValidity(VM::EpochTypeID expectedtype)
 {
 	bool valid = true;
 
-	switch(LastPushedItemType)
-	{
-	case ITEMTYPE_NOTHING:
-		if(expectedtype != VM::EpochType_Error)
-			valid = false;
-		break;
+	if(PushedItemTypes.empty())
+		throw std::exception("Expected parameter");
 
+	switch(PushedItemTypes.top())
+	{
 	case ITEMTYPE_STATEMENT:
 		if(StatementTypes.empty())
 			valid = false;
@@ -461,7 +523,20 @@ void CompilationSemantics::BeginAssignment()
 void CompilationSemantics::CompleteAssignment()
 {
 	StatementNames.pop();
-	Emitter.AssignVariable(AssignmentTargets.top());
+	if(!IsPrepass)
+		EmitterStack.top()->AssignVariable(AssignmentTargets.top());
 	AssignmentTargets.pop();
 }
 
+
+void CompilationSemantics::SanityCheck() const
+{
+	// TODO - restore sanity checking and fix problems
+	/*
+	if(!Strings.empty() || !EntityTypeTags.empty() || !IntegerLiterals.empty() || !StringLiterals.empty() || !FunctionSignatureStack.empty()
+	|| !StatementNames.empty() || !StatementParamCount.empty() || !StatementTypes.empty() || !LexicalScopeStack.empty() || !CompileTimeParameters.empty()
+	|| !CurrentEntities.empty() || !FunctionReturnVars.empty() || !PendingEmissionBuffers.empty() || !PendingEmitters.empty() || !AssignmentTargets.empty()
+	|| !PushedItemTypes.empty() || !ReturnsIncludedStatement.empty() || !FunctionReturnTypeNames.empty())
+		throw std::exception("Parser leaked a resource");
+		*/
+}

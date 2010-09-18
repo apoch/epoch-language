@@ -48,6 +48,7 @@ public:
 	virtual void BeginStatementParams() = 0;
 	virtual void ValidateStatementParam() = 0;
 	virtual void CompleteStatement() = 0;
+	virtual void FinalizeStatement() = 0;
 
 	virtual void BeginAssignment() = 0;
 	virtual void CompleteAssignment() = 0;
@@ -55,5 +56,7 @@ public:
 	virtual void Finalize() = 0;
 
 	virtual void EmitPendingCode() = 0;
+
+	virtual void SanityCheck() const = 0;
 };
 

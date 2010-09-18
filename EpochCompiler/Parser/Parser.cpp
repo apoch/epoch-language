@@ -49,6 +49,9 @@ bool Parser::Parse(const std::wstring& code)
 		if(!result.full)
 			return false;
 
+		// Sanity check to make sure the parser is in a clean state
+		SemanticActions.SanityCheck();
+
 		// Second pass: traverse into each function and generate the corresponding bytecode
 		SemanticActions.SetPrepassMode(false);
 		result = parse(start, end, grammar >> end_p, skip);
