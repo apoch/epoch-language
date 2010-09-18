@@ -19,6 +19,13 @@
 #include "Bytecode/EntityTags.h"
 
 
+//
+// Wrapper class for generating bytecode sequences
+//
+// This class is used directly by the parser to create a bytecode stream for a
+// program as it is parsed from source code. The resulting stream is suitable for
+// serialization either in binary or assembly format, or direct execution.
+//
 class ByteCodeEmitter
 {
 // Construction
@@ -27,32 +34,47 @@ public:
 		: Buffer(buffer)
 	{ }
 
-// Code emission helpers
+// Functions
 public:
 	void EnterFunction(StringHandle functionname);
 	void ExitFunction();
 
 	void SetReturnRegister(StringHandle variablename);
 
+// Stack operations
+public:
 	void PushIntegerLiteral(Integer32 value);
 	void PushStringLiteral(StringHandle handle);
-	
 	void PushVariableValue(StringHandle variablename);
-	void AssignVariable(StringHandle variablename);
 
+// Flow control
+public:
 	void Invoke(StringHandle functionname);
-
 	void Halt();
 
-	void PoolString(StringHandle handle, const std::wstring& literalvalue);
-
+// Entities and lexical scopes
+public:
 	void DefineLexicalScope(StringHandle name, size_t variablecount);
 	void LexicalScopeEntry(StringHandle varname, VM::EpochTypeID vartype, VariableOrigin origin);
 
+// Utility instructions
+public:
+	void AssignVariable(StringHandle variablename);
+
+	void PoolString(StringHandle handle, const std::wstring& literalvalue);
+
+// Additional helpers for writing to the data stream
+public:
 	void EmitBuffer(const std::vector<Byte>& buffer);
 
 // Internal helpers
 private:
+	void EmitInstruction(Bytecode::Instruction instruction);
+	void EmitTerminatedString(const std::wstring& value);
+
+	void EmitTypeAnnotation(VM::EpochTypeID type);
+	void EmitEntityTag(Bytecode::EntityTag tag);
+
 	void EmitRawValue(Byte value);
 	void EmitRawValue(Integer32 value);
 	void EmitRawValue(HandleType value);
@@ -60,6 +82,12 @@ private:
 
 	void PrependBytes(unsigned numbytes, const void* bytes);
 
+	//
+	// Prepend any number of bytes to the stream
+	//
+	// The original byte ordering is preserved; i.e. the bytes will not
+	// be reversed by the prepend operation.
+	//
 	template <typename T>
 	void PrependRawValue(const T& value)
 	{
@@ -68,15 +96,10 @@ private:
 
 	void PrependRawValue(const std::wstring& value);
 
-	void EmitInstruction(Bytecode::Instruction instruction);
-	void PrependInstruction(Bytecode::Instruction instruction);
-
-	void EmitEntityTag(Bytecode::EntityTag tag);
-
-	void EmitTypeAnnotation(VM::EpochTypeID type);
 	void PrependTypeAnnotation(VM::EpochTypeID type);
 
-	void EmitTerminatedString(const std::wstring& value);
+	void PrependInstruction(Bytecode::Instruction instruction);
+
 
 // Internal tracking
 private:
