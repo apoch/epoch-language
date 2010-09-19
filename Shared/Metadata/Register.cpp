@@ -12,21 +12,27 @@
 #include "Utility/Memory/Stack.h"
 
 
-// TODO - finish documentation
-
-
+//
+// Construct and initialize the register wrapper
+//
 Register::Register()
 	: Type(VM::EpochType_Error)
 {
 }
 
 
+//
+// Set the value of the register to a 32-bit integer
+//
 void Register::Set(Integer32 value)
 {
 	Value_Integer32 = value;
 	Type = VM::EpochType_Integer;
 }
 
+//
+// Set the value of the register to a string handle
+//
 void Register::Set(StringHandle value)
 {
 	Value_StringHandle = value;
@@ -34,10 +40,16 @@ void Register::Set(StringHandle value)
 }
 
 
+//
+// Push the contents of the register onto the given stack
+//
 void Register::PushOntoStack(StackSpace& stack) const
 {
 	switch(Type)
 	{
+	case VM::EpochType_Error:
+		throw FatalException("Register is empty; cannot push its value onto the stack");
+
 	case VM::EpochType_Integer:
 		stack.PushValue(Value_Integer32);
 		break;

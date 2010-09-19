@@ -12,8 +12,9 @@
 #include "Utility/Strings.h"
 
 
-// TODO - finish documentation
-
+//
+// Add a variable to a lexical scope
+//
 void ScopeDescription::AddVariable(const std::wstring& identifier, StringHandle identifierhandle, VM::EpochTypeID type, VariableOrigin origin)
 {
 	if(HasVariable(identifier))
@@ -22,6 +23,9 @@ void ScopeDescription::AddVariable(const std::wstring& identifier, StringHandle 
 	Variables.push_back(VariableEntry(identifier, identifierhandle, type, origin));
 }
 
+//
+// Determine if the scope contains a variable with the given identifier
+//
 bool ScopeDescription::HasVariable(const std::wstring& identifier) const
 {
 	for(std::vector<VariableEntry>::const_iterator iter = Variables.begin(); iter != Variables.end(); ++iter)
@@ -33,11 +37,17 @@ bool ScopeDescription::HasVariable(const std::wstring& identifier) const
 	return false;
 }
 
+//
+// Retrieve the identifier of the variable at the given index in the scope
+//
 const std::wstring& ScopeDescription::GetVariableName(size_t index) const
 {
 	return Variables[index].Identifier;
 }
 
+//
+// Retrieve the type of a variable given its identifier handle
+//
 VM::EpochTypeID ScopeDescription::GetVariableTypeByID(StringHandle variableid) const
 {
 	for(std::vector<VariableEntry>::const_iterator iter = Variables.begin(); iter != Variables.end(); ++iter)
@@ -49,12 +59,17 @@ VM::EpochTypeID ScopeDescription::GetVariableTypeByID(StringHandle variableid) c
 	throw InvalidIdentifierException("Could not retrieve the variable's type - identifier is not valid in this scope");
 }
 
+//
+// Retrieve the type of the variable at the given index in the scope
+//
 VM::EpochTypeID ScopeDescription::GetVariableTypeByIndex(size_t index) const
 {
 	return Variables[index].Type;
 }
 
-
+//
+// Retrieve the origin of the variable at the given index in the scope
+//
 VariableOrigin ScopeDescription::GetVariableOrigin(size_t index) const
 {
 	return Variables[index].Origin;

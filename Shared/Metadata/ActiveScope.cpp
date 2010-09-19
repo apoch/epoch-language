@@ -16,9 +16,13 @@
 #include "Utility/Memory/Stack.h"
 
 
-// TODO - finish documentation
-
-
+//
+// Attach the parameters defined in the current scope to a given stack space
+//
+// Each variable within the scope which has its origin specified as an entity parameter is
+// bound to a storage location within the given stack space. The stack space is assumed to
+// contain all of the parameters to the entity in order as per the calling convention.
+//
 void ActiveScope::BindParametersToStack(const VM::ExecutionContext& context)
 {
 	char* stackpointer = reinterpret_cast<char*>(context.State.Stack.GetCurrentTopOfStack());
@@ -33,6 +37,9 @@ void ActiveScope::BindParametersToStack(const VM::ExecutionContext& context)
 	}
 }
 
+//
+// Allocate stack space for all local variables (including return value holders) on the given stack
+//
 void ActiveScope::PushLocalsOntoStack(VM::ExecutionContext& context)
 {
 	size_t usedspace = 0;
@@ -50,6 +57,9 @@ void ActiveScope::PushLocalsOntoStack(VM::ExecutionContext& context)
 	}
 }
 
+//
+// Pop a stack so as to reset it after holding parameters and local variables from the current scope
+//
 void ActiveScope::PopScopeOffStack(VM::ExecutionContext& context)
 {
 	size_t usedspace = 0;
@@ -60,6 +70,9 @@ void ActiveScope::PopScopeOffStack(VM::ExecutionContext& context)
 	context.State.Stack.Pop(usedspace);
 }
 
+//
+// Write the topmost stack entry into the given variable's storage location
+//
 void ActiveScope::WriteFromStack(StringHandle variableid, StackSpace& stack)
 {
 	switch(OriginalScope.GetVariableTypeByID(variableid))
@@ -77,7 +90,9 @@ void ActiveScope::WriteFromStack(StringHandle variableid, StackSpace& stack)
 	}
 }
 
-
+//
+// Push a variable's value onto the top of the given stack
+//
 void ActiveScope::PushOntoStack(StringHandle variableid, StackSpace& stack) const
 {
 	switch(OriginalScope.GetVariableTypeByID(variableid))
@@ -102,6 +117,13 @@ void ActiveScope::PushOntoStack(StringHandle variableid, StackSpace& stack) cons
 }
 
 
+//
+// Retrieve the storage location in memory of the given variable
+//
+// This may reside on the stack or the freestore or even be a reference to another
+// variable's storage position, depending on the context. In general it is not safe
+// to assume that a variable resides in any one particular location.
+//
 void* ActiveScope::GetVariableStorageLocation(StringHandle variableid) const
 {
 	std::map<StringHandle, void*>::const_iterator iter = VariableStorageLocations.find(variableid);
@@ -111,7 +133,9 @@ void* ActiveScope::GetVariableStorageLocation(StringHandle variableid) const
 	return iter->second;
 }
 
-
+//
+// Copy a variable's value into the provided virtual machine register
+//
 void ActiveScope::CopyToRegister(StringHandle variableid, Register& targetregister) const
 {
 	switch(OriginalScope.GetVariableTypeByID(variableid))
@@ -135,6 +159,9 @@ void ActiveScope::CopyToRegister(StringHandle variableid, Register& targetregist
 	}
 }
 
+//
+// Determine if the current scope contains a variable bound to an entity return value
+//
 bool ActiveScope::HasReturnVariable() const
 {
 	for(std::vector<ScopeDescription::VariableEntry>::const_iterator iter = OriginalScope.Variables.begin(); iter != OriginalScope.Variables.end(); ++iter)
