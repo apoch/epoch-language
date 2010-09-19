@@ -12,6 +12,8 @@
 #include "Utility/Strings.h"
 
 
+// TODO - finish documentation
+
 void ScopeDescription::AddVariable(const std::wstring& identifier, StringHandle identifierhandle, VM::EpochTypeID type, VariableOrigin origin)
 {
 	if(HasVariable(identifier))

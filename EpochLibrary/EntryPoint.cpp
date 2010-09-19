@@ -13,6 +13,7 @@
 //
 BOOL APIENTRY DllMain(HMODULE, DWORD, LPVOID)
 {
+	// Nothing interesting to do here.
     return TRUE;
 }
 

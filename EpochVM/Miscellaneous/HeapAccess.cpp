@@ -10,6 +10,9 @@
 #include "Utility/Memory/MemoryManager.h"
 
 
+//
+// Retrieve the global heap management object instance
+//
 HeapManager& GetSingleGlobalHeapManager()
 {
 	return HeapManager::GetGlobalHeapManager();

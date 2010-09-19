@@ -10,12 +10,21 @@
 #include "Utility/StringPool.h"
 
 
+//
+// Construct and initialize the string pool
+//
 StringPoolManager::StringPoolManager()
 	: CurrentPooledStringHandle(0)
 {
 }
 
 
+//
+// Add a string to the pool, disallowing duplicate entries
+//
+// If an entry with matching content is found in the pool, its handle is returned.
+// Otherwise, a newly allocated handle is returned.
+//
 StringHandle StringPoolManager::Pool(const std::wstring& stringdata)
 {
 	for(std::map<StringHandle, std::wstring>::const_iterator iter = PooledStrings.begin(); iter != PooledStrings.end(); ++iter)
@@ -29,6 +38,11 @@ StringHandle StringPoolManager::Pool(const std::wstring& stringdata)
 	return handle;
 }
 
+//
+// Assign the given handle to a string entry
+//
+// Replacing an existing string entry with a different string value is not permitted.
+//
 void StringPoolManager::Pool(StringHandle handle, const std::wstring& stringdata)
 {
 	std::pair<std::map<StringHandle, std::wstring>::iterator, bool> ret = PooledStrings.insert(std::make_pair(handle, stringdata));
@@ -38,7 +52,9 @@ void StringPoolManager::Pool(StringHandle handle, const std::wstring& stringdata
 		CurrentPooledStringHandle = handle;
 }
 
-
+//
+// Retrieve the string pooled with the given handle
+//
 const std::wstring& StringPoolManager::GetPooledString(StringHandle handle) const
 {
 	std::map<StringHandle, std::wstring>::const_iterator iter = PooledStrings.find(handle);

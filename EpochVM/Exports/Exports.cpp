@@ -36,7 +36,9 @@ extern "C" void __stdcall ExecuteByteCode(const void* bytecodebuffer, size_t siz
 	}
 }
 
-
+//
+// Permit external access to our heap manager, for shared memory allocation and garbage collection purposes
+//
 extern "C" HeapManager* __stdcall GetHeapManager()
 {
 	return &HeapManager::GetGlobalHeapManager();

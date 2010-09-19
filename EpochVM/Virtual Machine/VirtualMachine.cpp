@@ -25,6 +25,12 @@ using namespace VM;
 namespace
 {
 
+	//
+	// Helper shim - invoke the given Epoch function within the given context
+	//
+	// Whenever an Epoch function is invoked, its handle is passed to this function, along with
+	// the execution context in which the virtual machine is running the Epoch code.
+	//
 	void FunctionInvocationHelper(StringHandle namehandle, ExecutionContext& context)
 	{
 		context.Execute(context.OwnerVM.GetFunctionInstructionOffset(namehandle), context.OwnerVM.GetScopeDescription(namehandle));

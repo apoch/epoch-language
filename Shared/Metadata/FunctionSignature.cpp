@@ -10,6 +10,9 @@
 #include "Metadata/FunctionSignature.h"
 
 
+// TODO - finish documentation
+
+
 FunctionSignature::FunctionSignature()
 	: ReturnType(VM::EpochType_Void)
 {

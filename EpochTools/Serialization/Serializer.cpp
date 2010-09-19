@@ -22,6 +22,9 @@
 using namespace Serialization;
 
 
+//
+// Helper class for traversing through a bytecode buffer
+//
 class BufferTraverser
 {
 // Construction
@@ -78,6 +81,9 @@ private:
 };
 
 
+//
+// Construct and initialize a serialization wrapper
+//
 Serializer::Serializer(const DLLAccess::CompilerAccess& compileraccess, DLLAccess::CompiledByteCodeHandle bytecodehandle)
 	: CompilerAccess(compileraccess),
 	  ByteCodeHandle(bytecodehandle)
@@ -85,6 +91,9 @@ Serializer::Serializer(const DLLAccess::CompilerAccess& compileraccess, DLLAcces
 }
 
 
+//
+// The workhorse function: write the bound bytecode stream to a given file
+//
 void Serializer::Write(const std::wstring& filename) const
 {
 	const void* bytecoderaw = CompilerAccess.GetByteCode(ByteCodeHandle);

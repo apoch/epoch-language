@@ -35,6 +35,7 @@ namespace Marshaling
 	public:
 		HINSTANCE OpenDLL(const std::wstring& name)
 		{
+			// TODO - thread safety
 			std::map<std::wstring, HINSTANCE>::const_iterator iter = LoadedDLLs.find(name);
 			if(iter != LoadedDLLs.end())
 				return iter->second;

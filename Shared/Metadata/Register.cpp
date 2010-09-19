@@ -12,6 +12,9 @@
 #include "Utility/Memory/Stack.h"
 
 
+// TODO - finish documentation
+
+
 Register::Register()
 	: Type(VM::EpochType_Error)
 {

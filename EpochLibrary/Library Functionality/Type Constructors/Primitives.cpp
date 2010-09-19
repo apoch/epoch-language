@@ -54,6 +54,9 @@ void TypeConstructors::RegisterLibraryFunctions(FunctionCompileHelperTable& tabl
 }
 
 
+//
+// Construct an integer variable in memory
+//
 void TypeConstructors::ConstructInteger(StringHandle functionname, VM::ExecutionContext& context)
 {
 	Integer32 value = context.State.Stack.PopValue<Integer32>();
@@ -62,6 +65,11 @@ void TypeConstructors::ConstructInteger(StringHandle functionname, VM::Execution
 	context.Variables->Write(identifierhandle, value);
 }
 
+//
+// Compile-time helper: when a variable definition is encountered, this
+// helper adds the variable itself and its type metadata to the current
+// lexical scope.
+//
 void TypeConstructors::CompileConstructorInteger(ScopeDescription& scope, const std::vector<CompileTimeParameter>& compiletimeparams)
 {
 	scope.AddVariable(compiletimeparams[0].StringPayload, compiletimeparams[0].Payload.StringHandleValue, compiletimeparams[1].Type, VARIABLE_ORIGIN_LOCAL);

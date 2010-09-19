@@ -36,6 +36,7 @@ public:
 public:
 	static HeapManager& GetGlobalHeapManager()
 	{
+		// TODO - Thread safety
 		if(!GlobalHeapManager)
 			GlobalHeapManager = new HeapManager;
 		return *GlobalHeapManager;

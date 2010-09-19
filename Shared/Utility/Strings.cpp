@@ -36,6 +36,9 @@ std::wstring widen(const std::string& str)
 	return std::wstring(buffer.begin(), buffer.end() - 1);
 }
 
+//
+// Widen an individual character
+//
 wchar_t widen(char c)
 {
 	wchar_t ret;
@@ -65,6 +68,9 @@ std::string narrow(const std::wstring& str)
 	return std::string(buffer.begin(), buffer.end() - 1);
 }
 
+//
+// Narrow an individual character
+//
 char narrow(wchar_t c)
 {
 	char ret;

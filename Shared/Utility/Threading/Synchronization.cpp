@@ -18,6 +18,9 @@ using namespace Threads;
 // Critical section
 //-------------------------------------------------------------------------------
 
+//
+// Construct and initialize a critical section wrapper
+//
 CriticalSection::CriticalSection()
 {
 	::InitializeCriticalSection(&CritSec);
@@ -48,44 +51,3 @@ void CriticalSection::Exit()
 	::LeaveCriticalSection(&CritSec);
 }
 
-
-
-//-------------------------------------------------------------------------------
-// Synchronization counter
-//-------------------------------------------------------------------------------
-
-//
-// Construct the counter wrapper and increment the counter
-//
-SyncCounter::SyncCounter(unsigned* pcounter, HANDLE tripevent)
-	: PointerToCounter(pcounter), TripEvent(tripevent)
-{
-	::ResetEvent(tripevent);
-
-	while(true)
-	{
-		unsigned oldval = *pcounter;
-		bool success = CompareAndSwap(pcounter, oldval, oldval + 1);
-		if(success)
-			return;
-	}
-}
-
-//
-// Destruct the counter wrapper and decrement the counter
-//
-SyncCounter::~SyncCounter()
-{
-	while(true)
-	{
-		unsigned oldval = *PointerToCounter;
-		bool success = CompareAndSwap(PointerToCounter, oldval, oldval - 1);
-		if(success)
-		{
-			if(oldval - 1 == 0)
-				::SetEvent(TripEvent);
-
-			return;
-		}
-	}
-}
