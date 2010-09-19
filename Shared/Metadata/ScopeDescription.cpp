@@ -9,11 +9,13 @@
 
 #include "Metadata/ScopeDescription.h"
 
+#include "Utility/Strings.h"
+
 
 void ScopeDescription::AddVariable(const std::wstring& identifier, StringHandle identifierhandle, VM::EpochTypeID type, VariableOrigin origin)
 {
 	if(HasVariable(identifier))
-		throw std::exception("Duplicate identifiers are not allowed");
+		throw InvalidIdentifierException("Duplicate/shadowed identifiers are not permitted - the identifier \"" + narrow(identifier) + "\" is already in use in this scope or some containing scope.");
 
 	Variables.push_back(VariableEntry(identifier, identifierhandle, type, origin));
 }
@@ -42,7 +44,7 @@ VM::EpochTypeID ScopeDescription::GetVariableTypeByID(StringHandle variableid) c
 			return iter->Type;
 	}
 
-	throw std::exception("Invalid variable identifier");
+	throw InvalidIdentifierException("Could not retrieve the variable's type - identifier is not valid in this scope");
 }
 
 VM::EpochTypeID ScopeDescription::GetVariableTypeByIndex(size_t index) const

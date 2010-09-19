@@ -8,6 +8,7 @@
 #include "pch.h"
 
 #include "Serialization/Serializer.h"
+#include "Serialization/Exceptions.h"
 
 #include "Bytecode/Instructions.h"
 #include "Bytecode/EntityTags.h"
@@ -128,10 +129,10 @@ void Serializer::Write(const std::wstring& filename) const
 				{
 				case VM::EpochType_Error:
 				case VM::EpochType_Void:
-					throw std::exception("Failed to serialize untyped PUSH operand");
+					throw SerializationException("Failed to serialize untyped PUSH operand");
 		
 				case VM::EpochType_Identifier:
-					throw std::exception("Failed to serialize incorrect PUSH operand");
+					throw SerializationException("Failed to serialize incorrect PUSH operand");
 
 				case VM::EpochType_Integer:
 					outfile << L"PUSH_INT " << traverser.Read<Integer32>() << L"\n";
@@ -142,7 +143,7 @@ void Serializer::Write(const std::wstring& filename) const
 					break;
 
 				default:
-					throw std::exception("Failed to serialize unknown type annotation");
+					throw SerializationException("Failed to serialize unknown type annotation");
 				}
 			}
 			break;
@@ -198,7 +199,7 @@ void Serializer::Write(const std::wstring& filename) const
 			break;
 
 		default:
-			throw std::exception("Failed to serialize unknown opcode");
+			throw SerializationException("Failed to serialize unknown opcode");
 		}
 	}
 }

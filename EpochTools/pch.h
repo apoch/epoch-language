@@ -24,3 +24,9 @@
 
 #include <windows.h>
 #include <tchar.h>
+
+
+// Epoch project standard shared code
+#include "Utility/Exception.h"
+
+

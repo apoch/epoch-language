@@ -303,11 +303,23 @@
 					>
 				</File>
 				<File
+					RelativePath="..\Shared\Utility\Exception.h"
+					>
+				</File>
+				<File
 					RelativePath="..\Shared\Utility\StringPool.cpp"
 					>
 				</File>
 				<File
 					RelativePath="..\Shared\Utility\StringPool.h"
+					>
+				</File>
+				<File
+					RelativePath="..\Shared\Utility\Strings.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\Shared\Utility\Strings.h"
 					>
 				</File>
 				<Filter

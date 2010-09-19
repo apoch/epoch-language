@@ -8,6 +8,7 @@
 #include "pch.h"
 
 #include "DLL Access Wrappers/VM.h"
+#include "DLL Access Wrappers/Exceptions.h"
 
 #include "Utility/DLLPool.h"
 
@@ -26,7 +27,7 @@ VMAccess::VMAccess()
 	DoExecByteCode = reinterpret_cast<ExecuteByteCodePtr>(::GetProcAddress(dllhandle, "ExecuteByteCode"));
 
 	if(!DoExecByteCode)
-		throw std::exception("Failed to load Epoch Virtual Machine");
+		throw DLLException("Failed to load Epoch Virtual Machine");
 }
 
 //

@@ -44,7 +44,7 @@ void Register::PushOntoStack(StackSpace& stack) const
 		break;
 
 	default:
-		throw std::exception("Not implemented.");
+		throw NotImplementedException("Unsupported data type in Register::PushOntoStack");
 	}
 }
 

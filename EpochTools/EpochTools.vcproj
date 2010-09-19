@@ -253,6 +253,18 @@
 					RelativePath="..\Shared\Utility\DLLPool.h"
 					>
 				</File>
+				<File
+					RelativePath="..\Shared\Utility\Exception.h"
+					>
+				</File>
+				<File
+					RelativePath="..\Shared\Utility\Strings.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\Shared\Utility\Strings.h"
+					>
+				</File>
 				<Filter
 					Name="Threading"
 					>
@@ -291,6 +303,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\DLL Access Wrappers\Exceptions.h"
+				>
+			</File>
+			<File
 				RelativePath=".\DLL Access Wrappers\VM.cpp"
 				>
 			</File>
@@ -302,6 +318,10 @@
 		<Filter
 			Name="Serialization"
 			>
+			<File
+				RelativePath=".\Serialization\Exceptions.h"
+				>
+			</File>
 			<File
 				RelativePath=".\Serialization\Serializer.cpp"
 				>

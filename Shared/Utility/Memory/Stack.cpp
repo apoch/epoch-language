@@ -67,7 +67,7 @@ void StackSpace::Push(size_t numbytes)
 	if(CurrentStackPointer <= StackAllocation)
 	{
 		CurrentStackPointer = StackAllocation;
-		throw std::exception("Out of stack space");
+		throw MemoryException("Out of stack space");
 	}
 }
 
@@ -88,7 +88,7 @@ void StackSpace::Pop(size_t numbytes)
 #endif
 
 		CurrentStackPointer = EndOfStackAllocation;
-		throw std::exception("Popped too much off the stack");
+		throw MemoryException("Popped too much off the stack");
 	}
 }
 

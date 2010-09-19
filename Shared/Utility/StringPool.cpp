@@ -33,7 +33,7 @@ void StringPoolManager::Pool(StringHandle handle, const std::wstring& stringdata
 {
 	std::pair<std::map<StringHandle, std::wstring>::iterator, bool> ret = PooledStrings.insert(std::make_pair(handle, stringdata));
 	if(!ret.second && ret.first->second != stringdata)
-		throw std::exception("Tried to replace a pooled string with a different value!");
+		throw RecoverableException("Tried to replace a pooled string with a different value!");
 	else if(CurrentPooledStringHandle < handle)
 		CurrentPooledStringHandle = handle;
 }
@@ -43,7 +43,7 @@ const std::wstring& StringPoolManager::GetPooledString(StringHandle handle) cons
 {
 	std::map<StringHandle, std::wstring>::const_iterator iter = PooledStrings.find(handle);
 	if(iter == PooledStrings.end())
-		throw std::exception("Invalid string handle");
+		throw RecoverableException("String handle does not correspond to any previously pooled string");
 
 	return iter->second;
 }

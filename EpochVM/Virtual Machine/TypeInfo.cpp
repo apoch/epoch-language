@@ -31,6 +31,6 @@ size_t VM::GetStorageSize(EpochTypeID type)
 	case EpochType_String:				return sizeof(StringHandle);
 
 	default:
-		throw std::exception("Unable to determine the size of this variable/structure member");
+		throw FatalException("Unable to determine the size of this variable/structure member");
 	}
 }

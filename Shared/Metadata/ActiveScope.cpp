@@ -71,7 +71,7 @@ void ActiveScope::WriteFromStack(StringHandle variableid, StackSpace& stack)
 		break;
 
 	default:
-		throw std::exception("Not implemented");
+		throw NotImplementedException("Unsupported data type in ActiveScope::WriteFromStack");
 	}
 }
 
@@ -95,7 +95,7 @@ void ActiveScope::PushOntoStack(StringHandle variableid, StackSpace& stack) cons
 		break;
 
 	default:
-		throw std::exception("Not implemented");
+		throw NotImplementedException("Unsupported data type in ActiveScope::PushOntoStack");
 	}
 }
 
@@ -104,7 +104,7 @@ void* ActiveScope::GetVariableStorageLocation(StringHandle variableid) const
 {
 	std::map<StringHandle, void*>::const_iterator iter = VariableStorageLocations.find(variableid);
 	if(iter == VariableStorageLocations.end())
-		throw std::exception("Invalid variable ID");
+		throw InvalidIdentifierException("Variable ID has not been mapped to a storage location in this scope");
 
 	return iter->second;
 }
@@ -129,7 +129,7 @@ void ActiveScope::CopyToRegister(StringHandle variableid, Register& targetregist
 		break;
 
 	default:
-		throw std::exception("Not implemented");
+		throw NotImplementedException("Unsupported data type in ActiveScope::CopyToRegister");
 	}
 }
 

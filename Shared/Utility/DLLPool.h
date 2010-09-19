@@ -41,7 +41,7 @@ namespace Marshaling
 
 			HINSTANCE hdll = ::LoadLibrary(name.c_str());
 			if(!hdll)
-				throw std::exception("Failed to load external DLL");
+				throw FatalException("Failed to load external DLL");
 
 			LoadedDLLs.insert(std::make_pair(name, hdll));
 			return hdll;

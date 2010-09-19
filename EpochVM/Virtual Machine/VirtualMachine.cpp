@@ -44,7 +44,7 @@ void VirtualMachine::InitStandardLibraries()
 	bindtovmptr bindtovm = reinterpret_cast<bindtovmptr>(::GetProcAddress(dllhandle, "BindToVirtualMachine"));
 
 	if(!bindtovm)
-		throw std::exception("Failed to load Epoch standard library");
+		throw FatalException("Failed to load Epoch standard library");
 
 	bindtovm(GlobalFunctions, StringPool);
 }
@@ -61,7 +61,7 @@ ExecutionResult VirtualMachine::ExecuteByteCode(const Bytecode::Instruction* buf
 
 #ifdef _DEBUG
 	if(context->State.Stack.GetAllocatedStack() > 0)
-		throw std::exception("Stack leakage occurred!");
+		throw FatalException("Stack leakage occurred!");
 #endif
 
 	return result;
@@ -107,7 +107,7 @@ StringHandle VirtualMachine::GetPooledStringHandle(const std::wstring& value)
 void VirtualMachine::AddFunction(StringHandle name, EpochFunctionPtr funcptr)
 {
 	if(GlobalFunctions.find(name) != GlobalFunctions.end())
-		throw std::exception("Invalid function");
+		throw InvalidIdentifierException("Function identifier is already in use");
 	
 	GlobalFunctions.insert(std::make_pair(name, funcptr));
 }
@@ -118,10 +118,10 @@ void VirtualMachine::AddFunction(StringHandle name, EpochFunctionPtr funcptr)
 void VirtualMachine::AddFunction(StringHandle name, size_t instructionoffset)
 {
 	if(GlobalFunctions.find(name) != GlobalFunctions.end())
-		throw std::exception("Invalid function");
+		throw InvalidIdentifierException("Function identifier is already in use");
 	
 	if(GlobalFunctionOffsets.find(name) != GlobalFunctionOffsets.end())
-		throw std::exception("Function offset has already been cached");
+		throw FatalException("Global function code offset has already been cached, but function was not found in the global namespace");
 	
 	GlobalFunctions.insert(std::make_pair(name, FunctionInvocationHelper));
 	GlobalFunctionOffsets.insert(std::make_pair(name, instructionoffset));
@@ -134,7 +134,7 @@ void VirtualMachine::InvokeFunction(StringHandle namehandle, ExecutionContext& c
 {
 	FunctionInvocationTable::const_iterator iter = GlobalFunctions.find(namehandle);
 	if(iter == GlobalFunctions.end())
-		throw std::exception("Invalid function");
+		throw InvalidIdentifierException("No function with that identifier was found");
 
 	iter->second(namehandle, context);
 }
@@ -146,7 +146,7 @@ size_t VirtualMachine::GetFunctionInstructionOffset(StringHandle functionname) c
 {
 	std::map<StringHandle, size_t>::const_iterator iter = GlobalFunctionOffsets.find(functionname);
 	if(iter == GlobalFunctionOffsets.end())
-		throw std::exception("Invalid function");
+		throw InvalidIdentifierException("No function with that identifier was found");
 
 	return iter->second;
 }
@@ -167,7 +167,7 @@ const ScopeDescription& VirtualMachine::GetScopeDescription(StringHandle name) c
 {
 	std::map<StringHandle, ScopeDescription>::const_iterator iter = LexicalScopeDescriptions.find(name);
 	if(iter == LexicalScopeDescriptions.end())
-		throw std::exception("Could not locate lexical scope descriptor");
+		throw InvalidIdentifierException("No lexical scope has been attached to the given identifier");
 
 	return iter->second;
 }
@@ -178,7 +178,7 @@ ScopeDescription& VirtualMachine::GetScopeDescription(StringHandle name)
 {
 	std::map<StringHandle, ScopeDescription>::iterator iter = LexicalScopeDescriptions.find(name);
 	if(iter == LexicalScopeDescriptions.end())
-		throw std::exception("Could not locate lexical scope descriptor");
+		throw InvalidIdentifierException("No lexical scope has been attached to the given identifier");
 
 	return iter->second;
 }
@@ -278,7 +278,7 @@ void ExecutionContext::Execute()
 					break;
 
 				default:
-					throw std::exception("Unrecognized type, cannot PUSH");
+					throw NotImplementedException("Cannot execute PUSH instruction: unsupported type");
 				}
 			}
 			break;
@@ -334,7 +334,7 @@ void ExecutionContext::Execute()
 			break;
 		
 		default:
-			throw std::exception("Invalid bytecode operation");
+			throw FatalException("Invalid bytecode operation");
 		}
 	}
 }
@@ -419,7 +419,7 @@ void ExecutionContext::Load()
 			break;
 		
 		default:
-			throw std::exception("Invalid bytecode operation");
+			throw FatalException("Invalid bytecode operation");
 		}
 	}
 }

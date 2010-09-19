@@ -8,6 +8,7 @@
 #include "pch.h"
 
 #include "DLL Access Wrappers/Compiler.h"
+#include "DLL Access Wrappers/Exceptions.h"
 
 #include "Utility/DLLPool.h"
 
@@ -29,7 +30,7 @@ CompilerAccess::CompilerAccess()
 	DoFreeByteCodeBuffer = reinterpret_cast<FreeByteCodeBufferPtr>(::GetProcAddress(dllhandle, "FreeByteCodeBuffer"));
 
 	if(!DoCompileSource || !DoGetByteCodeBuffer || !DoGetByteCodeBufferSize || !DoFreeByteCodeBuffer)
-		throw std::exception("Failed to load Epoch compiler");
+		throw DLLException("Failed to load Epoch compiler");
 }
 
 

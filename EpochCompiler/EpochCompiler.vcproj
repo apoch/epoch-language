@@ -254,6 +254,10 @@
 					>
 				</File>
 				<File
+					RelativePath="..\Shared\Utility\Exception.h"
+					>
+				</File>
+				<File
 					RelativePath="..\Shared\Utility\StringPool.cpp"
 					>
 				</File>
@@ -328,6 +332,10 @@
 			</File>
 			<File
 				RelativePath=".\Compiler\ByteCodeEmitter.h"
+				>
+			</File>
+			<File
+				RelativePath=".\Compiler\Exceptions.h"
 				>
 			</File>
 			<File

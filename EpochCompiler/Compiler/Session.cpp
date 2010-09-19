@@ -30,7 +30,7 @@ CompileSession::CompileSession()
 	bindtocompilerptr bindtocompiler = reinterpret_cast<bindtocompilerptr>(::GetProcAddress(dllhandle, "BindToCompiler"));
 
 	if(!registerlibrary || !bindtocompiler)
-		throw std::exception("Failed to load Epoch standard library");
+		throw FatalException("Failed to load Epoch standard library");
 
 	registerlibrary(FunctionSignatures, StringPool);
 	bindtocompiler(CompileTimeHelpers, InfixIdentifiers, StringPool);
@@ -100,7 +100,7 @@ void CompileSession::CompileFunctions(const std::wstring& code)
 	Parser theparser(semantics, InfixIdentifiers);
 
 	if(!theparser.Parse(code))
-		throw std::exception("Failure to parse!");
+		throw FatalException("Parsing failed!");
 
 	semantics.SanityCheck();
 }

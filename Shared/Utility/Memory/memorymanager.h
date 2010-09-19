@@ -122,7 +122,7 @@ protected:
 			FreeOffset += numbytes;
 
 			if(FreeOffset > NumBytes)
-				throw std::exception("Overcommitted an unaligned allocation block!");
+				throw MemoryException("Overcommitted an unaligned allocation block!");
 
 			return ptr;
 		}

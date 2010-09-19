@@ -23,7 +23,7 @@ HeapManager::HeapManager()
 
 	HeapHandle = ::HeapCreate(0, PageSize, 0);
 	if(!HeapHandle)
-		throw std::exception("Failed to allocate system heap!");
+		throw MemoryException("Failed to allocate system heap!");
 }
 
 //
@@ -65,7 +65,7 @@ void UnalignedMemoryAllocator::AllocateBlock(size_t numbytes)
 
 	void* memory = ::HeapAlloc(GetSingleGlobalHeapManager().GetHeap(), 0, numpages * GetSingleGlobalHeapManager().GetPageSize());
 	if(!memory)
-		throw std::exception("Failed to allocate heap memory!");
+		throw MemoryException("Failed to allocate heap memory!");
 
 	AllocBlocks.push_back(AllocBlock(memory, numbytes));
 }

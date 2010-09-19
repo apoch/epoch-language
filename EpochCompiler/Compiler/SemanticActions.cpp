@@ -16,8 +16,11 @@
 
 #include "Compiler/SemanticActions.h"
 #include "Compiler/ByteCodeEmitter.h"
+#include "Compiler/Exceptions.h"
 
 #include "Metadata/FunctionSignature.h"
+
+#include "Utility/Strings.h"
 
 
 
@@ -85,7 +88,7 @@ void CompilationSemantics::StoreEntityType(Bytecode::EntityTag typetag)
 	// Handle the error case where the type tag is not recognized. Non-fatal.
 	//
 	default:
-		throw std::exception("Invalid entity type tag");
+		throw RecoverableException("Invalid entity type tag");
 	}
 
 	// Push the tag onto the list now that it is known to be valid
@@ -115,7 +118,7 @@ void CompilationSemantics::StoreEntityCode()
 			{
 				FunctionSignatureSet::const_iterator iter = Session.FunctionSignatures.find(Session.StringPool.Pool(CurrentEntities.top()));
 				if(iter == Session.FunctionSignatures.end())
-					throw std::exception("Failed to locate function being finalized");
+					throw FatalException("Failed to locate function being finalized");
 
 				if(iter->second.GetReturnType() != VM::EpochType_Void)
 				{
@@ -132,7 +135,7 @@ void CompilationSemantics::StoreEntityCode()
 		// Error case: the entity tag is not recognized. Fatal.
 		//
 		default:
-			throw std::exception("Invalid entity type tag");
+			throw FatalException("Invalid entity type tag");
 		}
 	}
 
@@ -216,7 +219,7 @@ void CompilationSemantics::CompleteInfix()
 			{
 				FunctionSignatureSet::const_iterator iter = Session.FunctionSignatures.find(infixstatementnamehandle);
 				if(iter == Session.FunctionSignatures.end())
-					throw std::exception("Unknown statement, cannot complete parsing");
+					throw FatalException("Unknown statement, cannot complete parsing");
 
 				StatementTypes.push(iter->second.GetReturnType());
 
@@ -226,7 +229,7 @@ void CompilationSemantics::CompleteInfix()
 				{
 					iter = Session.FunctionSignatures.find(Session.StringPool.Pool(statementname));
 					if(iter == Session.FunctionSignatures.end())
-						throw std::exception("Unknown statement, cannot complete parsing");
+						throw FatalException("Unknown statement, cannot complete parsing");
 
 					const std::wstring& paramname = iter->second.GetParameterName(StatementParamCount.top());
 					VM::EpochTypeID paramtype = iter->second.GetParameterType(StatementParamCount.top());
@@ -240,7 +243,7 @@ void CompilationSemantics::CompleteInfix()
 			// We are in a special location such as the initializer of a return value
 			FunctionSignatureSet::const_iterator iter = Session.FunctionSignatures.find(infixstatementnamehandle);
 			if(iter == Session.FunctionSignatures.end())
-				throw std::exception("Unknown statement, cannot complete parsing");
+				throw FatalException("Unknown statement, cannot complete parsing");
 
 			StatementTypes.push(iter->second.GetReturnType());
 		}
@@ -264,11 +267,20 @@ void CompilationSemantics::BeginParameterSet()
 	AddLexicalScope(Session.StringPool.Pool(Strings.top()));
 }
 
+//
+// Register the type of a function/entity parameter
+//
 void CompilationSemantics::RegisterParameterType(const std::wstring& type)
 {
 	ParamType = LookupTypeName(type);
 }
 
+//
+// Register the name of a function/entity parameter
+//
+// Adds the parameter to the entity's signature, and optionally in the compilation phase
+// adds the corresponding variable to the entity's local lexical scope.
+//
 void CompilationSemantics::RegisterParameterName(const std::wstring& name)
 {
 	FunctionSignatureStack.top().AddParameter(name, ParamType);
@@ -277,7 +289,7 @@ void CompilationSemantics::RegisterParameterName(const std::wstring& name)
 	{
 		std::map<StringHandle, ScopeDescription>::iterator iter = LexicalScopeDescriptions.find(Session.StringPool.Pool(Strings.top()));
 		if(iter == LexicalScopeDescriptions.end())
-			throw std::exception("Unregistered lexical scope");
+			throw FatalException("No lexical scope has been registered for the identifier \"" + narrow(Strings.top()) + "\"");
 		
 		iter->second.AddVariable(name, Session.StringPool.Pool(name), ParamType, VARIABLE_ORIGIN_PARAMETER);
 	}
@@ -367,11 +379,11 @@ void CompilationSemantics::RegisterReturnValue()
 			// TODO - check statement return type for validity
 		}
 		else
-			throw std::exception("Type mismatch");
+			throw TypeMismatchException("The function is defined as returning an integer but the provided default return value is not of an integer type.");
 		break;
 
 	default:
-		throw std::exception("Not implemented.");
+		throw NotImplementedException("Unsupported function return type in CompilationSemantics::RegisterReturnValue");
 	}
 
 	if(!IsPrepass)
@@ -423,7 +435,7 @@ void CompilationSemantics::CompleteStatement()
 		{
 			FunctionSignatureSet::const_iterator iter = Session.FunctionSignatures.find(statementnamehandle);
 			if(iter == Session.FunctionSignatures.end())
-				throw std::exception("Unknown statement, cannot complete parsing");
+				throw FatalException("Unknown statement, cannot complete parsing");
 
 			StatementTypes.push(iter->second.GetReturnType());
 
@@ -502,7 +514,7 @@ void CompilationSemantics::ValidateAndPushParam(unsigned paramindex)
 			StringHandle statementnamehandle = Session.StringPool.Pool(StatementNames.top());
 			FunctionSignatureSet::const_iterator iter = Session.FunctionSignatures.find(statementnamehandle);
 			if(iter == Session.FunctionSignatures.end())
-				throw std::exception("Unknown statement, cannot validate");
+				throw FatalException("Unknown statement, cannot validate");
 
 			paramname = iter->second.GetParameterName(paramindex);
 			expectedtype = iter->second.GetParameterType(paramindex);
@@ -546,7 +558,7 @@ void CompilationSemantics::ValidateAndPushParam(unsigned paramindex)
 		break;
 
 	default:
-		throw std::exception("Not implemented");
+		throw NotImplementedException("The parser stack contains something we aren't ready to handle in CompilationSemantics::ValidateAndPushParam");
 	}
 
 	PushedItemTypes.pop();
@@ -559,7 +571,7 @@ void CompilationSemantics::CheckParameterValidity(VM::EpochTypeID expectedtype)
 	bool valid = true;
 
 	if(PushedItemTypes.empty())
-		throw std::exception("Expected parameter");
+		throw ParameterException("Expected at least one parameter here, but none have been provided");
 
 	switch(PushedItemTypes.top())
 	{
@@ -594,11 +606,11 @@ void CompilationSemantics::CheckParameterValidity(VM::EpochTypeID expectedtype)
 		break;
 
 	default:
-		throw std::exception("Unrecognized ItemType value in LastPushedItemType, parser is probably broken");
+		throw FatalException("Unrecognized ItemType value in LastPushedItemType, parser is probably broken");
 	}
 
 	if(!valid)
-		throw std::exception("Wrong parameter type");
+		throw TypeMismatchException("Wrong parameter type");
 }
 
 
@@ -638,7 +650,7 @@ ScopeDescription& CompilationSemantics::GetLexicalScopeDescription(StringHandle 
 {
 	std::map<StringHandle, ScopeDescription>::iterator iter = LexicalScopeDescriptions.find(scopename);
 	if(iter == LexicalScopeDescriptions.end())
-		throw std::exception("Unregistered lexical scope");
+		throw InvalidIdentifierException("No lexical scope has been attached to this identifier");
 
 	return iter->second;
 }
@@ -670,7 +682,7 @@ VM::EpochTypeID CompilationSemantics::LookupTypeName(const std::wstring& type) c
 	else if(type == L"string")
 		return VM::EpochType_String;
 
-	throw std::exception("Unrecognized type");
+	throw NotImplementedException("Cannot map the type name \"" + narrow(type) + "\" to an internal type ID");
 }
 
 
@@ -684,5 +696,5 @@ void CompilationSemantics::SanityCheck() const
 	|| !StatementNames.empty() || !StatementParamCount.empty() || !StatementTypes.empty() || !LexicalScopeStack.empty() || !CompileTimeParameters.empty()
 	|| !CurrentEntities.empty() || !FunctionReturnVars.empty() || !PendingEmissionBuffers.empty() || !PendingEmitters.empty() || !AssignmentTargets.empty()
 	|| !PushedItemTypes.empty() || !ReturnsIncludedStatement.empty() || !FunctionReturnTypeNames.empty())
-		throw std::exception("Parser leaked a resource");
+		throw FatalException("Parser leaked a resource");
 }

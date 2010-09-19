@@ -8,6 +8,7 @@
 #include "pch.h"
 
 #include "Utility/Files/Files.h"
+#include "Utility/Strings.h"
 
 #include <fstream>
 
@@ -20,7 +21,7 @@ std::wstring Files::Load(const std::wstring& filename)
 	std::wifstream infile(filename.c_str(), std::ios::binary);
 
     if(!infile)
-		throw std::exception("Failed to load input file");
+		throw FileException("Could not open the input file " + narrow(filename));
 
 	infile.unsetf(std::ios::skipws);
 

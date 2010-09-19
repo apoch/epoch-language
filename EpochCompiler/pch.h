@@ -22,3 +22,8 @@
 
 #include <windows.h>
 
+
+// Epoch project standard code
+#include "Utility/Exception.h"
+
+

@@ -28,7 +28,7 @@ HeapManager& GetSingleGlobalHeapManager()
 		getheapmanagerptr getheapmanager = reinterpret_cast<getheapmanagerptr>(::GetProcAddress(dllhandle, "GetHeapManager"));
 
 		if(!getheapmanager)
-			throw std::exception("Failed to load Epoch virtual machine");
+			throw FatalException("Failed to load Epoch virtual machine");
 
 		SharedHeapManager = getheapmanager();
 	}
