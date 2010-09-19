@@ -174,21 +174,6 @@ struct BeginParameterSet
 	SemanticActionInterface& Bindings;
 };
 
-struct EndParameterSet
-{
-	EndParameterSet(SemanticActionInterface& bindings)
-		: Bindings(bindings)
-	{ }
-
-	template <typename ParamType>
-	void operator () (ParamType) const
-	{
-		Bindings.EndParameterSet();
-	}
-
-	SemanticActionInterface& Bindings;
-};
-
 struct RegisterParameterType
 {
 	RegisterParameterType(SemanticActionInterface& bindings)

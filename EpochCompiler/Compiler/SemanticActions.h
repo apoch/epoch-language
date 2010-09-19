@@ -71,7 +71,6 @@ public:
 	virtual void CompleteInfix();
 
 	virtual void BeginParameterSet();
-	virtual void EndParameterSet();
 	virtual void RegisterParameterType(const std::wstring& type);
 	virtual void RegisterParameterName(const std::wstring& name);
 

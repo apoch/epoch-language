@@ -150,7 +150,12 @@ void CompilationSemantics::StoreEntityCode()
 //
 // Record the parsing of an infix operator
 //
-// TODO - finish documentation
+// At this point we have already parsed the first term of the infix expression (be it
+// a single variable/literal or another expression), and we now have parsed the operator
+// itself (given in the parameter to the function). We need to save off the identifier
+// so that once we parse the second half of the expression we can use it to assemble the
+// final infix expression (respecting precedence rules) and then emit the corresponding
+// bytecode.
 //
 void CompilationSemantics::StoreInfix(const std::wstring& identifier)
 {
@@ -169,14 +174,25 @@ void CompilationSemantics::StoreInfix(const std::wstring& identifier)
 
 	StatementNames.push(identifier);
 	StatementParamCount.push(0);
+
 	if(!IsPrepass)
 		CompileTimeParameters.push(std::vector<CompileTimeParameter>());
 
 	ValidateAndPushParam(paramindex);
 }
 
+//
+// Record the end of an infix expression
+//
+// This may not be the actual end of the expression per se, but rather simply signals
+// that both terms and the infix operator itself have all been parsed and saved off into
+// the state data. Note that the current implementation does NOT respect precedence rules
+// and therefore should be burned at the earliest possible convenience and replaced with
+// something less craptacular.
+//
 void CompilationSemantics::CompleteInfix()
 {
+	// TODO - reimplement support for infix operator precedence rules (then document it)
 	std::wstring infixstatementname = StatementNames.top();
 	StringHandle infixstatementnamehandle = Session.StringPool.Pool(infixstatementname);
 	unsigned infixparamcount = StatementParamCount.top();
@@ -218,20 +234,18 @@ void CompilationSemantics::CompleteInfix()
 					CompileTimeParameters.top().push_back(CompileTimeParameter(paramname, paramtype));
 				}
 			}
-
-			EmitterStack.top()->Invoke(infixstatementnamehandle);
 		}
 		else
 		{
 			// We are in a special location such as the initializer of a return value
-			EmitterStack.top()->Invoke(infixstatementnamehandle);
-
 			FunctionSignatureSet::const_iterator iter = Session.FunctionSignatures.find(infixstatementnamehandle);
 			if(iter == Session.FunctionSignatures.end())
 				throw std::exception("Unknown statement, cannot complete parsing");
 
 			StatementTypes.push(iter->second.GetReturnType());
 		}
+
+		EmitterStack.top()->Invoke(infixstatementnamehandle);
 	}
 }
 
@@ -241,14 +255,13 @@ void CompilationSemantics::CompleteInfix()
 // Entity parameter definitions
 //-------------------------------------------------------------------------------
 
+//
+// Begin parsing the definition list of parameters passed to an entity (usually a function)
+//
 void CompilationSemantics::BeginParameterSet()
 {
 	FunctionSignatureStack.push(FunctionSignature());
 	AddLexicalScope(Session.StringPool.Pool(Strings.top()));
-}
-
-void CompilationSemantics::EndParameterSet()
-{
 }
 
 void CompilationSemantics::RegisterParameterType(const std::wstring& type)
