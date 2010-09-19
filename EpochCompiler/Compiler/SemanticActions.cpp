@@ -4,6 +4,13 @@
 //
 // Wrapper for handling semantic actions invoked by the parser
 //
+// Semantic actions are processed in two phases, one "pre-pass" phase and one
+// compilation phase. During the pre-pass phase, information on lexical scopes,
+// their contents, and general identifier usage is gathered. This data is then
+// used to construct the scope metadata tables and other metadata used by the
+// compilation phase itself, which actually generates bytecode from the source,
+// using the pre-pass metadata for validation, type checking, and so on.
+//
 
 #include "pch.h"
 
@@ -13,28 +20,59 @@
 #include "Metadata/FunctionSignature.h"
 
 
+
+//-------------------------------------------------------------------------------
+// Storage of parsed tokens
+//-------------------------------------------------------------------------------
+
+//
+// Shift a string token onto the general string stack
+//
+// Tokens can represent anything from function calls to flow control keywords to
+// variable accesses; the specific significance of a string token is derived from
+// its context within the code. As a result the general string stack is used for
+// a wide variety of purposes, and accessed throughout the semantic action code.
+//
 void CompilationSemantics::StoreString(const std::wstring& name)
 {
 	Strings.push(name);
 	PushedItemTypes.push(ITEMTYPE_STRING);
 }
 
+//
+// Shift an integer literal onto the integer literal stack
+//
 void CompilationSemantics::StoreIntegerLiteral(Integer32 value)
 {
 	IntegerLiterals.push(value);
 	PushedItemTypes.push(ITEMTYPE_INTEGERLITERAL);
 }
 
+//
+// Shift a string literal onto the string literal stack
+//
 void CompilationSemantics::StoreStringLiteral(const std::wstring& value)
 {
 	StringLiterals.push(Session.StringPool.Pool(value));
 	PushedItemTypes.push(ITEMTYPE_STRINGLITERAL);
 }
 
+//
+// Shift an entity type tag onto the entity type tag stack
+//
+// Entity type tags are used to help generate prolog and epilog code for each entity,
+// as well as track boundaries between execution contexts for entities that trigger
+// them (such as hardware acceleration, multithreading, etc.).
+//
 void CompilationSemantics::StoreEntityType(Bytecode::EntityTag typetag)
 {
 	switch(typetag)
 	{
+	//
+	// The entity is a function. In this case, we need to track the
+	// identifier of the function itself, and if applicable generate
+	// the prolog code during the compilation pass.
+	//
 	case Bytecode::EntityTags::Function:
 		CurrentEntities.push(Strings.top());
 		if(!IsPrepass)
@@ -43,47 +81,77 @@ void CompilationSemantics::StoreEntityType(Bytecode::EntityTag typetag)
 		PushedItemTypes.pop();
 		break;
 
+	//
+	// Handle the error case where the type tag is not recognized. Non-fatal.
+	//
 	default:
 		throw std::exception("Invalid entity type tag");
 	}
 
+	// Push the tag onto the list now that it is known to be valid
 	EntityTypeTags.push(typetag);
 }
 
+//
+// Flag the end of an entity code block and update parser state accordingly
+//
+// This routine emits any necessary epilog code for the entity, as well as shifts the internal
+// state so that the current lexical scope and entity metadata are cleaned up and we return to
+// the original parent context. In general this should be kept as flexible as possible so that
+// we can support features like inner functions, nested anonymous scopes, and so on.
+//
 void CompilationSemantics::StoreEntityCode()
 {
-	Bytecode::EntityTag tag = EntityTypeTags.top();
-	EntityTypeTags.pop();
-
-	switch(tag)
+	if(!IsPrepass)
 	{
-	case Bytecode::EntityTags::Function:
-		if(!IsPrepass)
+		switch(EntityTypeTags.top())
 		{
-			FunctionSignatureSet::const_iterator iter = Session.FunctionSignatures.find(Session.StringPool.Pool(CurrentEntities.top()));
-			if(iter == Session.FunctionSignatures.end())
-				throw std::exception("Failed to locate function being finalized");
-
-			if(iter->second.GetReturnType() != VM::EpochType_Void)
+		//
+		// The entity being processed is a function. In this case we need to generate some epilog
+		// code to handle return values for functions that are not void. Should we fail to look
+		// up the function signature of the entity we are exiting, we must raise a fatal error.
+		//
+		case Bytecode::EntityTags::Function:
 			{
-				EmitterStack.top()->SetReturnRegister(FunctionReturnVars.top());
-				FunctionReturnVars.pop();
-				FunctionReturnTypeNames.pop();
+				FunctionSignatureSet::const_iterator iter = Session.FunctionSignatures.find(Session.StringPool.Pool(CurrentEntities.top()));
+				if(iter == Session.FunctionSignatures.end())
+					throw std::exception("Failed to locate function being finalized");
+
+				if(iter->second.GetReturnType() != VM::EpochType_Void)
+				{
+					EmitterStack.top()->SetReturnRegister(FunctionReturnVars.top());
+					FunctionReturnVars.pop();
+					FunctionReturnTypeNames.pop();
+				}
+
+				EmitterStack.top()->ExitFunction();
 			}
+			break;
 
-			EmitterStack.top()->ExitFunction();
+		//
+		// Error case: the entity tag is not recognized. Fatal.
+		//
+		default:
+			throw std::exception("Invalid entity type tag");
 		}
-		break;
-
-	default:
-		throw std::exception("Invalid entity type tag");
 	}
 
+	EntityTypeTags.pop();
 	CurrentEntities.pop();
 	LexicalScopeStack.pop();
 }
 
 
+
+//-------------------------------------------------------------------------------
+// Infix expression handling
+//-------------------------------------------------------------------------------
+
+//
+// Record the parsing of an infix operator
+//
+// TODO - finish documentation
+//
 void CompilationSemantics::StoreInfix(const std::wstring& identifier)
 {
 	unsigned paramindex;
@@ -157,11 +225,21 @@ void CompilationSemantics::CompleteInfix()
 		{
 			// We are in a special location such as the initializer of a return value
 			EmitterStack.top()->Invoke(infixstatementnamehandle);
-			EmitterStack.top()->Invoke(Session.StringPool.Pool(FunctionReturnTypeNames.top()));
+
+			FunctionSignatureSet::const_iterator iter = Session.FunctionSignatures.find(infixstatementnamehandle);
+			if(iter == Session.FunctionSignatures.end())
+				throw std::exception("Unknown statement, cannot complete parsing");
+
+			StatementTypes.push(iter->second.GetReturnType());
 		}
 	}
 }
 
+
+
+//-------------------------------------------------------------------------------
+// Entity parameter definitions
+//-------------------------------------------------------------------------------
 
 void CompilationSemantics::BeginParameterSet()
 {
@@ -193,6 +271,11 @@ void CompilationSemantics::RegisterParameterName(const std::wstring& name)
 }
 
 
+
+//-------------------------------------------------------------------------------
+// Entity return definitions
+//-------------------------------------------------------------------------------
+
 void CompilationSemantics::BeginReturnSet()
 {
 	ReturnsIncludedStatement.push(false);
@@ -209,7 +292,7 @@ void CompilationSemantics::EndReturnSet()
 	if(ReturnsIncludedStatement.top())
 	{
 		if(!IsPrepass)
-			CompileTimeParameters.pop();
+			CompileTimeParameters.c.clear();
 	}
 
 	if(IsPrepass)
@@ -256,19 +339,13 @@ void CompilationSemantics::RegisterReturnValue()
 		if(PushedItemTypes.top() == ITEMTYPE_INTEGERLITERAL)
 		{
 			if(!IsPrepass)
-			{
 				PendingEmitters.top().PushIntegerLiteral(IntegerLiterals.top());
-				PendingEmitters.top().Invoke(Session.StringPool.Pool(L"integer"));
-			}
 			IntegerLiterals.pop();
 		}
 		else if(PushedItemTypes.top() == ITEMTYPE_STRING)
 		{
 			if(!IsPrepass)
-			{
 				PendingEmitters.top().PushVariableValue(Session.StringPool.Pool(Strings.top()));
-				PendingEmitters.top().Invoke(Session.StringPool.Pool(L"integer"));
-			}
 			Strings.pop();
 		}
 		else if(PushedItemTypes.top() == ITEMTYPE_STATEMENT)
@@ -284,9 +361,18 @@ void CompilationSemantics::RegisterReturnValue()
 		throw std::exception("Not implemented.");
 	}
 
+	if(!IsPrepass)
+		PendingEmitters.top().Invoke(Session.StringPool.Pool(FunctionReturnTypeNames.top()));
+
+	StatementTypes.c.clear();
 	PushedItemTypes.pop();
 }
 
+
+
+//-------------------------------------------------------------------------------
+// Statements
+//-------------------------------------------------------------------------------
 
 void CompilationSemantics::BeginStatement(const std::wstring& statementname)
 {
@@ -302,6 +388,82 @@ void CompilationSemantics::BeginStatementParams()
 	if(!IsPrepass)
 		CompileTimeParameters.push(std::vector<CompileTimeParameter>());
 }
+
+void CompilationSemantics::CompleteStatement()
+{
+	--ExpressionDepth;
+	std::wstring statementname = StatementNames.top();
+	StringHandle statementnamehandle = Session.StringPool.Pool(statementname);
+
+	StatementNames.pop();
+	StatementParamCount.pop();
+	PushedItemTypes.push(ITEMTYPE_STATEMENT);
+
+	if(!IsPrepass)
+	{
+		FunctionCompileHelperTable::const_iterator iter = CompileTimeHelpers.find(statementname);
+		if(iter != CompileTimeHelpers.end())
+			iter->second(GetLexicalScopeDescription(LexicalScopeStack.top()), CompileTimeParameters.top());
+
+		CompileTimeParameters.pop();
+		if(!CompileTimeParameters.empty())
+		{
+			FunctionSignatureSet::const_iterator iter = Session.FunctionSignatures.find(statementnamehandle);
+			if(iter == Session.FunctionSignatures.end())
+				throw std::exception("Unknown statement, cannot complete parsing");
+
+			StatementTypes.push(iter->second.GetReturnType());
+
+			const std::wstring& paramname = iter->second.GetParameterName(StatementParamCount.top());
+			VM::EpochTypeID paramtype = iter->second.GetParameterType(StatementParamCount.top());
+
+			CompileTimeParameters.top().push_back(CompileTimeParameter(paramname, paramtype));
+		}
+
+		EmitterStack.top()->Invoke(statementnamehandle);
+	}
+}
+
+void CompilationSemantics::FinalizeStatement()
+{
+	if(!IsPrepass)
+		StatementTypes.c.clear();
+
+	PushedItemTypes.pop();
+}
+
+
+//-------------------------------------------------------------------------------
+// Assignment operations
+//-------------------------------------------------------------------------------
+
+void CompilationSemantics::BeginAssignment()
+{
+	StatementNames.push(L"=");
+	StatementParamCount.push(0);
+	AssignmentTargets.push(Session.StringPool.Pool(TemporaryString));
+	TemporaryString.clear();
+	if(!IsPrepass)
+		CompileTimeParameters.push(std::vector<CompileTimeParameter>());
+}
+
+void CompilationSemantics::CompleteAssignment()
+{
+	StatementNames.pop();
+	if(!IsPrepass)
+	{
+		EmitterStack.top()->AssignVariable(AssignmentTargets.top());
+		CompileTimeParameters.pop();
+		StatementTypes.pop();
+	}
+	AssignmentTargets.pop();
+	StatementParamCount.pop();
+}
+
+
+//-------------------------------------------------------------------------------
+// Parameter validation
+//-------------------------------------------------------------------------------
 
 void CompilationSemantics::ValidateStatementParam()
 {
@@ -379,81 +541,6 @@ void CompilationSemantics::ValidateAndPushParam(unsigned paramindex)
 		CompileTimeParameters.top().push_back(ctparam);
 }
 
-void CompilationSemantics::CompleteStatement()
-{
-	--ExpressionDepth;
-	std::wstring statementname = StatementNames.top();
-	StringHandle statementnamehandle = Session.StringPool.Pool(statementname);
-
-	StatementNames.pop();
-	StatementParamCount.pop();
-	PushedItemTypes.push(ITEMTYPE_STATEMENT);
-
-	if(!IsPrepass)
-	{
-		FunctionCompileHelperTable::const_iterator iter = CompileTimeHelpers.find(statementname);
-		if(iter != CompileTimeHelpers.end())
-			iter->second(GetLexicalScopeDescription(LexicalScopeStack.top()), CompileTimeParameters.top());
-
-		CompileTimeParameters.pop();
-		if(!CompileTimeParameters.empty())
-		{
-			FunctionSignatureSet::const_iterator iter = Session.FunctionSignatures.find(statementnamehandle);
-			if(iter == Session.FunctionSignatures.end())
-				throw std::exception("Unknown statement, cannot complete parsing");
-
-			StatementTypes.push(iter->second.GetReturnType());
-
-			const std::wstring& paramname = iter->second.GetParameterName(StatementParamCount.top());
-			VM::EpochTypeID paramtype = iter->second.GetParameterType(StatementParamCount.top());
-
-			CompileTimeParameters.top().push_back(CompileTimeParameter(paramname, paramtype));
-		}
-
-		EmitterStack.top()->Invoke(statementnamehandle);
-	}
-}
-
-void CompilationSemantics::FinalizeStatement()
-{
-	if(!IsPrepass)
-	{
-		StatementTypes.c.clear();
-	}
-	PushedItemTypes.pop();
-}
-
-void CompilationSemantics::Finalize()
-{
-	if(!IsPrepass)
-	{
-		for(std::map<StringHandle, std::wstring>::const_iterator iter = Session.StringPool.GetInternalPool().begin(); iter != Session.StringPool.GetInternalPool().end(); ++iter)
-			EmitterStack.top()->PoolString(iter->first, iter->second);
-
-		for(std::map<StringHandle, ScopeDescription>::const_iterator iter = LexicalScopeDescriptions.begin(); iter != LexicalScopeDescriptions.end(); ++iter)
-		{
-			EmitterStack.top()->DefineLexicalScope(iter->first, iter->second.GetVariableCount());
-			for(size_t i = 0; i < iter->second.GetVariableCount(); ++i)
-				EmitterStack.top()->LexicalScopeEntry(Session.StringPool.Pool(iter->second.GetVariableName(i)), iter->second.GetVariableTypeByIndex(i), iter->second.GetVariableOrigin(i));
-		}
-	}
-}
-
-
-void CompilationSemantics::EmitPendingCode()
-{
-	if(!IsPrepass)
-	{
-		if(!PendingEmitters.empty())
-		{
-			EmitterStack.top()->EmitBuffer(PendingEmissionBuffers.top());
-			PendingEmitters.pop();
-			PendingEmissionBuffers.pop();
-		}
-	}
-}
-
-
 void CompilationSemantics::CheckParameterValidity(VM::EpochTypeID expectedtype)
 {
 	bool valid = true;
@@ -502,6 +589,31 @@ void CompilationSemantics::CheckParameterValidity(VM::EpochTypeID expectedtype)
 }
 
 
+//-------------------------------------------------------------------------------
+// Finalization of parsing process
+//-------------------------------------------------------------------------------
+
+void CompilationSemantics::Finalize()
+{
+	if(!IsPrepass)
+	{
+		for(std::map<StringHandle, std::wstring>::const_iterator iter = Session.StringPool.GetInternalPool().begin(); iter != Session.StringPool.GetInternalPool().end(); ++iter)
+			EmitterStack.top()->PoolString(iter->first, iter->second);
+
+		for(std::map<StringHandle, ScopeDescription>::const_iterator iter = LexicalScopeDescriptions.begin(); iter != LexicalScopeDescriptions.end(); ++iter)
+		{
+			EmitterStack.top()->DefineLexicalScope(iter->first, iter->second.GetVariableCount());
+			for(size_t i = 0; i < iter->second.GetVariableCount(); ++i)
+				EmitterStack.top()->LexicalScopeEntry(Session.StringPool.Pool(iter->second.GetVariableName(i)), iter->second.GetVariableTypeByIndex(i), iter->second.GetVariableOrigin(i));
+		}
+	}
+}
+
+
+//-------------------------------------------------------------------------------
+// Lexical scope metadata
+//-------------------------------------------------------------------------------
+
 void CompilationSemantics::AddLexicalScope(StringHandle scopename)
 {
 	// TODO - check for dupes
@@ -519,6 +631,25 @@ ScopeDescription& CompilationSemantics::GetLexicalScopeDescription(StringHandle 
 }
 
 
+
+//-------------------------------------------------------------------------------
+// Additional helpers
+//-------------------------------------------------------------------------------
+
+
+void CompilationSemantics::EmitPendingCode()
+{
+	if(!IsPrepass)
+	{
+		if(!PendingEmitters.empty())
+		{
+			EmitterStack.top()->EmitBuffer(PendingEmissionBuffers.top());
+			PendingEmitters.pop();
+			PendingEmissionBuffers.pop();
+		}
+	}
+}
+
 VM::EpochTypeID CompilationSemantics::LookupTypeName(const std::wstring& type) const
 {
 	if(type == L"integer")
@@ -530,29 +661,9 @@ VM::EpochTypeID CompilationSemantics::LookupTypeName(const std::wstring& type) c
 }
 
 
-void CompilationSemantics::BeginAssignment()
-{
-	StatementNames.push(L"=");
-	StatementParamCount.push(0);
-	AssignmentTargets.push(Session.StringPool.Pool(TemporaryString));
-	TemporaryString.clear();
-	if(!IsPrepass)
-		CompileTimeParameters.push(std::vector<CompileTimeParameter>());
-}
-
-void CompilationSemantics::CompleteAssignment()
-{
-	StatementNames.pop();
-	if(!IsPrepass)
-	{
-		EmitterStack.top()->AssignVariable(AssignmentTargets.top());
-		CompileTimeParameters.pop();
-		StatementTypes.pop();
-	}
-	AssignmentTargets.pop();
-	StatementParamCount.pop();
-}
-
+//-------------------------------------------------------------------------------
+// Safety/debug checks
+//-------------------------------------------------------------------------------
 
 void CompilationSemantics::SanityCheck() const
 {
