@@ -31,6 +31,12 @@
 #include <stack>
 
 
+//
+// Wrapper class for handling semantic actions from the Epoch parser and passing on
+// the important details to the compiler. This class maintains the vast bulk of the
+// state in the parsing process, and really does most of the actual compiling work;
+// the emission of actual bytecode is delegated to the ByteCodeEmitter class.
+//
 class CompilationSemantics : public SemanticActionInterface
 {
 // Internal constants
@@ -48,14 +54,13 @@ public:
 	CompilationSemantics(ByteCodeEmitter& emitter, CompileSession& session)
 		: MasterEmitter(emitter),
 		  Session(session),
-		  ExpressionDepth(0),
 		  IsPrepass(true),
 		  CompileTimeHelpers(session.CompileTimeHelpers)
 	{
 		EmitterStack.push(&MasterEmitter);
 	}
 
-// Semantic action implementations
+// Semantic action implementations (implementation of SemanticActionInterface)
 public:
 	virtual void SetPrepassMode(bool isprepass)
 	{ IsPrepass = isprepass; }
@@ -132,8 +137,6 @@ private:
 
 	std::stack<StringHandle> LexicalScopeStack;
 	std::map<StringHandle, ScopeDescription> LexicalScopeDescriptions;
-
-	unsigned ExpressionDepth;
 
 	std::stack<ItemType> PushedItemTypes;
 

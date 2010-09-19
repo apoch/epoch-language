@@ -11,8 +11,11 @@
 // Dependencies
 #include "Utility/Types/IntegerTypes.h"
 #include "Utility/StringPool.h"
+
 #include "Metadata/FunctionSignature.h"
+
 #include "Libraries/Library.h"
+
 #include <list>
 
 

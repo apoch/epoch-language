@@ -13,6 +13,7 @@
 //
 BOOL APIENTRY DllMain(HMODULE, DWORD, LPVOID)
 {
+	// We don't do anything interesting here; everything waits until library exports are called.
     return TRUE;
 }
 
