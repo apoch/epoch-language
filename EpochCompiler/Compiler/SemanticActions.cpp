@@ -420,8 +420,11 @@ void CompilationSemantics::RegisterReturnValue()
 		}
 		else if(PushedItemTypes.top() == ITEMTYPE_STATEMENT)
 		{
-			if(StatementTypes.top() != VM::EpochType_Integer)
-				throw TypeMismatchException("The function is defined as returning an integer but the provided default return value is not of an integer type.");
+			if(!IsPrepass)
+			{
+				if(StatementTypes.top() != VM::EpochType_Integer)
+					throw TypeMismatchException("The function is defined as returning an integer but the provided default return value is not of an integer type.");
+			}
 
 			ReturnsIncludedStatement.top() = true;
 		}
@@ -509,11 +512,11 @@ void CompilationSemantics::CompleteStatement()
 		if(fsiter == Session.FunctionSignatures.end())
 			Throw(RecoverableException("The function \"" + narrow(statementname) + "\" is not defined in this scope"));
 
+		StatementTypes.push(fsiter->second.GetReturnType());
+
 		CompileTimeParameters.pop();
 		if(!CompileTimeParameters.empty())
 		{
-			StatementTypes.push(fsiter->second.GetReturnType());
-
 			const std::wstring& paramname = fsiter->second.GetParameterName(StatementParamCount.top());
 			VM::EpochTypeID paramtype = fsiter->second.GetParameterType(StatementParamCount.top());
 
@@ -596,9 +599,12 @@ void CompilationSemantics::CompleteAssignment()
 //
 void CompilationSemantics::ValidateStatementParam()
 {
-	unsigned paramindex = StatementParamCount.top();
-	++StatementParamCount.top();
-	ValidateAndPushParam(paramindex);
+	if(!StatementParamCount.empty())
+	{
+		unsigned paramindex = StatementParamCount.top();
+		++StatementParamCount.top();
+		ValidateAndPushParam(paramindex);
+	}
 }
 
 //
