@@ -21,8 +21,8 @@ namespace Serialization
 	{
 	// Construction
 	public:
-		SerializationException(const char* message) : FatalException(message) { }
-		SerializationException(const std::string& message) : FatalException(message) { }
+		explicit SerializationException(const char* message) : FatalException(message) { }
+		explicit SerializationException(const std::string& message) : FatalException(message) { }
 
 	// Helpers for making error reporting more friendly
 	public:

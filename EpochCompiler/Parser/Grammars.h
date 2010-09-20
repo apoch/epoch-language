@@ -142,15 +142,22 @@ struct FundamentalGrammar : public boost::spirit::classic::grammar<FundamentalGr
 				;
 
 			Statement
-				= (StringIdentifier[BeginStatement(self.Bindings)] >> OPENPARENS[BeginStatementParams(self.Bindings)] >> (!(Expression[ValidateStatementParam(self.Bindings)] % COMMA)) >> CLOSEPARENS[CompleteStatement(self.Bindings)])
+				= (StringIdentifier[BeginStatement(self.Bindings)] >> OPENPARENS[BeginStatementParams(self.Bindings)] >> (!((Expression[ValidateStatementParam(self.Bindings)]) % COMMA)) >> CLOSEPARENS[CompleteStatement(self.Bindings)])
 				;
 
 			Assignment
 				= (StringIdentifier[BeginStatement(self.Bindings)] >> ASSIGN[BeginAssignment(self.Bindings)] >> Expression[ValidateStatementParam(self.Bindings)][CompleteAssignment(self.Bindings)])
 				;
 
+			CodeBlockEntry
+				= GeneralExceptionGuard
+				  (
+					((Assignment) | (Statement[FinalizeStatement(self.Bindings)]))
+				  )[GeneralExceptionHandler(self.Bindings)]
+				;
+
 			CodeBlock
-				= OPENBRACE[EmitPendingCode(self.Bindings)] >> (*((Assignment) | (Statement[FinalizeStatement(self.Bindings)]))) >> CLOSEBRACE
+				= OPENBRACE[EmitPendingCode(self.Bindings)] >> (*CodeBlockEntry) >> CLOSEBRACE
 				;
 
 			MetaEntity
@@ -186,6 +193,8 @@ struct FundamentalGrammar : public boost::spirit::classic::grammar<FundamentalGr
 
 		boost::spirit::classic::rule<ScannerType> ParameterList;
 		boost::spirit::classic::rule<ScannerType> ReturnList;
+		
+		boost::spirit::classic::rule<ScannerType> CodeBlockEntry;
 		boost::spirit::classic::rule<ScannerType> CodeBlock;
 
 		boost::spirit::classic::rule<ScannerType> MetaEntity;
@@ -193,6 +202,8 @@ struct FundamentalGrammar : public boost::spirit::classic::grammar<FundamentalGr
 		boost::spirit::classic::rule<ScannerType> Program;
 
 		boost::spirit::classic::stored_rule<ScannerType> InfixIdentifier;
+
+		boost::spirit::classic::guard<RecoverableException> GeneralExceptionGuard;
 		
 		std::set<std::string> PooledNarrowStrings;
 

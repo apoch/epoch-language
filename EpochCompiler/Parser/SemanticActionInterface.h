@@ -17,6 +17,8 @@
 #include "Utility/Types/IntegerTypes.h"
 #include "Bytecode/EntityTags.h"
 
+#include <boost/spirit/include/classic_position_iterator.hpp>
+
 
 class SemanticActionInterface
 {
@@ -57,5 +59,7 @@ public:
 	virtual void EmitPendingCode() = 0;
 
 	virtual void SanityCheck() const = 0;
+
+	virtual void SetParsePosition(const boost::spirit::classic::position_iterator<const char*>& iterator) = 0;
 };
 

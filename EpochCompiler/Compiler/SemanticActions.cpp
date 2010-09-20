@@ -22,6 +22,9 @@
 
 #include "Utility/Strings.h"
 
+#include <boost/spirit/include/classic_exceptions.hpp>
+#include <boost/spirit/include/classic_position_iterator.hpp>
+
 
 
 //-------------------------------------------------------------------------------
@@ -498,21 +501,21 @@ void CompilationSemantics::CompleteStatement()
 
 	if(!IsPrepass)
 	{
-		FunctionCompileHelperTable::const_iterator iter = CompileTimeHelpers.find(statementname);
-		if(iter != CompileTimeHelpers.end())
-			iter->second(GetLexicalScopeDescription(LexicalScopeStack.top()), CompileTimeParameters.top());
+		FunctionCompileHelperTable::const_iterator fchiter = CompileTimeHelpers.find(statementname);
+		if(fchiter != CompileTimeHelpers.end())
+			fchiter->second(GetLexicalScopeDescription(LexicalScopeStack.top()), CompileTimeParameters.top());
+
+		FunctionSignatureSet::const_iterator fsiter = Session.FunctionSignatures.find(statementnamehandle);
+		if(fsiter == Session.FunctionSignatures.end())
+			Throw(RecoverableException("The function \"" + narrow(statementname) + "\" is not defined in this scope"));
 
 		CompileTimeParameters.pop();
 		if(!CompileTimeParameters.empty())
 		{
-			FunctionSignatureSet::const_iterator iter = Session.FunctionSignatures.find(statementnamehandle);
-			if(iter == Session.FunctionSignatures.end())
-				throw FatalException("Unknown statement, cannot complete parsing");
+			StatementTypes.push(fsiter->second.GetReturnType());
 
-			StatementTypes.push(iter->second.GetReturnType());
-
-			const std::wstring& paramname = iter->second.GetParameterName(StatementParamCount.top());
-			VM::EpochTypeID paramtype = iter->second.GetParameterType(StatementParamCount.top());
+			const std::wstring& paramname = fsiter->second.GetParameterName(StatementParamCount.top());
+			VM::EpochTypeID paramtype = fsiter->second.GetParameterType(StatementParamCount.top());
 
 			CompileTimeParameters.top().push_back(CompileTimeParameter(paramname, paramtype));
 		}
@@ -549,6 +552,12 @@ void CompilationSemantics::FinalizeStatement()
 //
 void CompilationSemantics::BeginAssignment()
 {
+	if(!IsPrepass)
+	{
+		if(!LexicalScopeDescriptions[LexicalScopeStack.top()].HasVariable(TemporaryString))
+			Throw(RecoverableException("The variable \"" + narrow(TemporaryString) + "\" is not defined in this scope"));
+	}
+
 	StatementNames.push(L"=");
 	StatementParamCount.push(0);
 	AssignmentTargets.push(Session.StringPool.Pool(TemporaryString));
@@ -568,6 +577,7 @@ void CompilationSemantics::CompleteAssignment()
 	StatementNames.pop();
 	if(!IsPrepass)
 	{
+		// TODO - type checking
 		EmitterStack.top()->AssignVariable(AssignmentTargets.top());
 		CompileTimeParameters.pop();
 		StatementTypes.pop();
@@ -614,7 +624,7 @@ void CompilationSemantics::ValidateAndPushParam(unsigned paramindex)
 			StringHandle statementnamehandle = Session.StringPool.Pool(StatementNames.top());
 			FunctionSignatureSet::const_iterator iter = Session.FunctionSignatures.find(statementnamehandle);
 			if(iter == Session.FunctionSignatures.end())
-				throw FatalException("Unknown statement, cannot validate");
+				Throw(RecoverableException("The function \"" + narrow(StatementNames.top()) + "\" is not defined in this scope"));
 
 			paramname = iter->second.GetParameterName(paramindex);
 			expectedtype = iter->second.GetParameterType(paramindex);
@@ -815,6 +825,19 @@ VM::EpochTypeID CompilationSemantics::LookupTypeName(const std::wstring& type) c
 //-------------------------------------------------------------------------------
 // Safety/debug checks
 //-------------------------------------------------------------------------------
+
+//
+// Exception throwing wrapper
+//
+// We wrap certain exceptions in boost::spirit's exception type so they can be caught by the guard
+// clauses provided in the grammar itself. This allows us to throw internal errors that cause the
+// parser to skip certain tokens and resume parsing in a new position, for instance.
+//
+void CompilationSemantics::Throw(const RecoverableException& exception) const
+{
+	typedef boost::spirit::classic::position_iterator<const char*> PosIteratorT;
+	boost::spirit::classic::throw_<RecoverableException, PosIteratorT>(ParsePosition, exception);
+}
 
 //
 // Perform a simple set of sanity checks to make sure the parser state is consistent and cleaned up

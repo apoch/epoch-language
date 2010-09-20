@@ -20,8 +20,8 @@ namespace DLLAccess
 	{
 	// Construction
 	public:
-		DLLException(const char* message) : FatalException(message) { }
-		DLLException(const std::string& message) : FatalException(message) { }
+		explicit DLLException(const char* message) : FatalException(message) { }
+		explicit DLLException(const std::string& message) : FatalException(message) { }
 
 	// Helpers for making error reporting more friendly
 	public:

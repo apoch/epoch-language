@@ -19,8 +19,8 @@ class TypeMismatchException : public RecoverableException
 {
 // Construction
 public:
-	TypeMismatchException(const char* message) : RecoverableException(message) { }
-	TypeMismatchException(const std::string& message) : RecoverableException(message) { }
+	explicit TypeMismatchException(const char* message) : RecoverableException(message) { }
+	explicit TypeMismatchException(const std::string& message) : RecoverableException(message) { }
 
 // Helpers for making error reporting more friendly
 public:
@@ -42,8 +42,8 @@ class ParameterException : public RecoverableException
 {
 // Construction
 public:
-	ParameterException(const char* message) : RecoverableException(message) { }
-	ParameterException(const std::string& message) : RecoverableException(message) { }
+	explicit ParameterException(const char* message) : RecoverableException(message) { }
+	explicit ParameterException(const std::string& message) : RecoverableException(message) { }
 
 // Helpers for making error reporting more friendly
 public:

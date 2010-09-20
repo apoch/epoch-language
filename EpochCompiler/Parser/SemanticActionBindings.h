@@ -25,10 +25,35 @@ template <typename IteratorType>
 void Trace(IteratorType begin, IteratorType end)
 {
 #ifdef _DEBUG
-//	std::wstring blob(begin, end);
-//	std::wcout << L"PARSER TRACE: " << blob << std::endl;
+	//std::wstring blob(begin, end);
+	//std::wcout << L"PARSER TRACE: " << blob << std::endl;
 #endif
 }
+
+
+struct GeneralExceptionHandler
+{
+	GeneralExceptionHandler(SemanticActionInterface& bindings)
+		: Bindings(bindings)
+	{ }
+
+	template <typename ScannerType, typename ErrorType>
+	boost::spirit::classic::error_status<> operator () (const ScannerType& thescanner, const ErrorType& theerror) const
+	{
+		boost::spirit::classic::file_position pos = theerror.where.get_position();
+
+		std::wcout << L"Error in file \"" << widen(pos.file) << L"\" on line " << pos.line << L":\n";
+		std::wcout << theerror.descriptor.what() << std::endl << std::endl;
+
+        // Move past the broken line and continue parsing
+        while(thescanner.first.get_position().line <= pos.line)
+                ++thescanner;
+
+		return boost::spirit::classic::error_status<>(boost::spirit::classic::error_status<>::retry);
+	}
+
+	SemanticActionInterface& Bindings;
+};
 
 
 struct StoreString
@@ -41,6 +66,7 @@ struct StoreString
 	void operator () (IteratorType begin, IteratorType end) const
 	{
 		Trace(begin, end);
+		Bindings.SetParsePosition(end);
 
 		std::wstring str(begin, end);
 		Bindings.StoreString(str);
@@ -59,6 +85,7 @@ struct StoreIntegerLiteral
 	void operator () (IteratorType begin, IteratorType end) const
 	{
 		Trace(begin, end);
+		Bindings.SetParsePosition(end);
 
 		std::wstring str(begin, end);
 		Integer32 value;
@@ -83,6 +110,7 @@ struct StoreStringLiteral
 	void operator () (IteratorType begin, IteratorType end) const
 	{
 		Trace(begin, end);
+		Bindings.SetParsePosition(end);
 
 		std::wstring str(begin, end);
 		Bindings.StoreStringLiteral(str.substr(1, str.length() - 2));
@@ -103,6 +131,7 @@ struct StoreEntityType
 	void operator () (IteratorType begin, IteratorType end) const
 	{
 		Trace(begin, end);
+		Bindings.SetParsePosition(end);
 		Bindings.StoreEntityType(TypeTag);
 	}
 
@@ -120,6 +149,7 @@ struct StoreEntityCode
 	void operator () (IteratorType begin, IteratorType end) const
 	{
 		Trace(begin, end);
+		Bindings.SetParsePosition(end);
 		Bindings.StoreEntityCode();
 	}
 
@@ -136,6 +166,7 @@ struct StoreInfix
 	void operator () (IteratorType begin, IteratorType end) const
 	{
 		Trace(begin, end);
+		Bindings.SetParsePosition(end);
 		std::wstring str(begin, end);
 		Bindings.StoreInfix(str);
 	}
@@ -153,6 +184,7 @@ struct CompleteInfix
 	void operator () (IteratorType begin, IteratorType end) const
 	{
 		Trace(begin, end);
+		Bindings.SetParsePosition(end);
 		Bindings.CompleteInfix();
 	}
 
@@ -184,6 +216,7 @@ struct RegisterParameterType
 	void operator () (IteratorType begin, IteratorType end) const
 	{
 		Trace(begin, end);
+		Bindings.SetParsePosition(end);
 		std::wstring str(begin, end);
 		Bindings.RegisterParameterType(str);
 	}
@@ -201,6 +234,7 @@ struct RegisterParameterName
 	void operator () (IteratorType begin, IteratorType end) const
 	{
 		Trace(begin, end);
+		Bindings.SetParsePosition(end);
 		std::wstring str(begin, end);
 		Bindings.RegisterParameterName(str);
 	}
@@ -248,6 +282,7 @@ struct RegisterReturnType
 	void operator () (IteratorType begin, IteratorType end) const
 	{
 		Trace(begin, end);
+		Bindings.SetParsePosition(end);
 		std::wstring str(begin, end);
 		Bindings.RegisterReturnType(str);
 	}
@@ -265,6 +300,7 @@ struct RegisterReturnName
 	void operator () (IteratorType begin, IteratorType end) const
 	{
 		Trace(begin, end);
+		Bindings.SetParsePosition(end);
 		std::wstring str(begin, end);
 		Bindings.RegisterReturnName(str);
 	}
@@ -282,6 +318,7 @@ struct RegisterReturnValue
 	void operator () (IteratorType begin, IteratorType end) const
 	{
 		Trace(begin, end);
+		Bindings.SetParsePosition(end);
 		Bindings.RegisterReturnValue();
 	}
 
@@ -298,6 +335,7 @@ struct BeginStatement
 	void operator () (IteratorType begin, IteratorType end) const
 	{
 		Trace(begin, end);
+		Bindings.SetParsePosition(end);
 		std::wstring str(begin, end);
 		Bindings.BeginStatement(str);
 	}
@@ -330,6 +368,7 @@ struct ValidateStatementParam
 	void operator () (IteratorType begin, IteratorType end) const
 	{
 		Trace(begin, end);
+		Bindings.SetParsePosition(end);
 		Bindings.ValidateStatementParam();
 	}
 
@@ -361,6 +400,7 @@ struct FinalizeStatement
 	void operator () (IteratorType begin, IteratorType end) const
 	{
 		Trace(begin, end);
+		Bindings.SetParsePosition(end);
 		Bindings.FinalizeStatement();
 	}
 
@@ -378,6 +418,7 @@ struct Finalize
 	void operator () (IteratorType begin, IteratorType end) const
 	{
 		Trace(begin, end);
+		Bindings.SetParsePosition(end);
 		Bindings.Finalize();
 	}
 
@@ -411,6 +452,7 @@ struct BeginAssignment
 	void operator () (IteratorType begin, IteratorType end) const
 	{
 		Trace(begin, end);
+		Bindings.SetParsePosition(end);
 		Bindings.BeginAssignment();
 	}
 
@@ -427,6 +469,7 @@ struct CompleteAssignment
 	void operator () (IteratorType begin, IteratorType end) const
 	{
 		Trace(begin, end);
+		Bindings.SetParsePosition(end);
 		Bindings.CompleteAssignment();
 	}
 

@@ -100,6 +100,9 @@ public:
 
 	virtual void SanityCheck() const;
 
+	virtual void SetParsePosition(const boost::spirit::classic::position_iterator<const char*>& iterator)
+	{ ParsePosition = iterator; }
+
 // Internal helpers
 private:
 	void CheckParameterValidity(VM::EpochTypeID expectedtype);
@@ -110,6 +113,8 @@ private:
 	void ValidateAndPushParam(unsigned paramindex);
 
 	VM::EpochTypeID LookupTypeName(const std::wstring& name) const;
+
+	void Throw(const RecoverableException& exception) const;
 
 // Internal tracking
 private:
@@ -151,5 +156,7 @@ private:
 
 	std::stack<StringHandle> AssignmentTargets;
 	std::stack<bool> ReturnsIncludedStatement;
+
+	boost::spirit::classic::position_iterator<const char*> ParsePosition;
 };
 

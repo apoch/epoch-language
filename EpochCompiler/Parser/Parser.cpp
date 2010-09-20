@@ -32,7 +32,7 @@ bool Parser::Parse(const std::wstring& code)
 	// The parser prefers to have trailing whitespace, for whatever reason.
 	memblock.push_back('\n');
 
-	position_iterator<const char*> start(&memblock[0], &memblock[0] + memblock.size() - 1, "test");
+	position_iterator<const char*> start(&memblock[0], &memblock[0] + memblock.size() - 1, "unknown_file");
     position_iterator<const char*> end;
 
 	SemanticActions.SetPrepassMode(true);

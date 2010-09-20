@@ -20,12 +20,12 @@ class Exception : public std::exception
 {
 // Construction
 public:
-	Exception(const char* message)
+	explicit Exception(const char* message)
 		: exception(message)
 	{
 	}
 
-	Exception(const std::string& message)
+	explicit Exception(const std::string& message)
 		: exception(message.c_str())
 	{
 	}
@@ -48,8 +48,8 @@ class FatalException : public Exception
 {
 // Construction
 public:
-	FatalException(const char* message) : Exception(message) { }
-	FatalException(const std::string& message) : Exception(message) { }
+	explicit FatalException(const char* message) : Exception(message) { }
+	explicit FatalException(const std::string& message) : Exception(message) { }
 
 // Helpers for making error reporting more friendly
 public:
@@ -67,8 +67,8 @@ class RecoverableException : public Exception
 {
 // Construction
 public:
-	RecoverableException(const char* message) : Exception(message) { }
-	RecoverableException(const std::string& message) : Exception(message) { }
+	explicit RecoverableException(const char* message) : Exception(message) { }
+	explicit RecoverableException(const std::string& message) : Exception(message) { }
 
 // Helpers for making error reporting more friendly
 public:
@@ -86,8 +86,8 @@ class MemoryException : public FatalException
 {
 // Construction
 public:
-	MemoryException(const char* message) : FatalException(message) { }
-	MemoryException(const std::string& message) : FatalException(message) { }
+	explicit MemoryException(const char* message) : FatalException(message) { }
+	explicit MemoryException(const std::string& message) : FatalException(message) { }
 
 // Helpers for making error reporting more friendly
 public:
@@ -105,8 +105,8 @@ class FileException : public RecoverableException
 {
 // Construction
 public:
-	FileException(const char* message) : RecoverableException(message) { }
-	FileException(const std::string& message) : RecoverableException(message) { }
+	explicit FileException(const char* message) : RecoverableException(message) { }
+	explicit FileException(const std::string& message) : RecoverableException(message) { }
 
 // Helpers for making error reporting more friendly
 public:
@@ -124,8 +124,8 @@ class NotImplementedException : public FatalException
 {
 // Construction
 public:
-	NotImplementedException(const char* message) : FatalException(message) { }
-	NotImplementedException(const std::string& message) : FatalException(message) { }
+	explicit NotImplementedException(const char* message) : FatalException(message) { }
+	explicit NotImplementedException(const std::string& message) : FatalException(message) { }
 
 // Helpers for making error reporting more friendly
 public:
@@ -143,8 +143,8 @@ class InvalidIdentifierException : public RecoverableException
 {
 // Construction
 public:
-	InvalidIdentifierException(const char* message) : RecoverableException(message) { }
-	InvalidIdentifierException(const std::string& message) : RecoverableException(message) { }
+	explicit InvalidIdentifierException(const char* message) : RecoverableException(message) { }
+	explicit InvalidIdentifierException(const std::string& message) : RecoverableException(message) { }
 
 // Helpers for making error reporting more friendly
 public:
@@ -162,8 +162,8 @@ class CompileSettingsException : public FatalException
 {
 // Construction
 public:
-	CompileSettingsException(const char* message) : FatalException(message) { }
-	CompileSettingsException(const std::string& message) : FatalException(message) { }
+	explicit CompileSettingsException(const char* message) : FatalException(message) { }
+	explicit CompileSettingsException(const std::string& message) : FatalException(message) { }
 
 // Helpers for making error reporting more friendly
 public:
