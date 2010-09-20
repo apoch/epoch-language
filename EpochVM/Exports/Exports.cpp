@@ -41,6 +41,14 @@ extern "C" void __stdcall ExecuteByteCode(const void* bytecodebuffer, size_t siz
 //
 extern "C" HeapManager* __stdcall GetHeapManager()
 {
-	return &HeapManager::GetGlobalHeapManager();
+	try
+	{
+		return &HeapManager::GetGlobalHeapManager();
+	}
+	catch(...)
+	{
+		::MessageBox(0, L"Failed to retrieve global heap manager", L"Epoch Exception", MB_ICONSTOP);
+		return NULL;
+	}
 }
 
