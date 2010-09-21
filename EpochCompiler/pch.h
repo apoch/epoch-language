@@ -27,3 +27,7 @@
 #include "Utility/Exception.h"
 
 
+
+// Options for Boost
+#define BOOST_EXECPTION_DISABLE
+

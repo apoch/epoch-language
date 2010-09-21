@@ -24,9 +24,6 @@ extern "C" void __stdcall ExecuteByteCode(const void* bytecodebuffer, size_t siz
 	try
 	{
 		VM::VirtualMachine vm;
-
-		// TODO - we need to request all libraries to pool their strings here so as to avoid ID mismatches later on
-
 		vm.InitStandardLibraries();
 		vm.ExecuteByteCode(reinterpret_cast<const Bytecode::Instruction*>(bytecodebuffer), size);
 	}

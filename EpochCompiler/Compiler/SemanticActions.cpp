@@ -25,6 +25,12 @@
 #include <boost/spirit/include/classic_exceptions.hpp>
 #include <boost/spirit/include/classic_position_iterator.hpp>
 
+#include <sstream>
+
+
+// Handy type shortcuts
+typedef boost::spirit::classic::position_iterator<const char*> PosIteratorT;
+typedef boost::spirit::classic::parser_error<TypeMismatchException, PosIteratorT> SpiritCompatibleTypeMismatchException;
 
 
 //-------------------------------------------------------------------------------
@@ -82,7 +88,7 @@ void CompilationSemantics::StoreEntityType(Bytecode::EntityTag typetag)
 	case Bytecode::EntityTags::Function:
 		CurrentEntities.push(Strings.top());
 		if(!IsPrepass)
-			EmitterStack.top()->EnterFunction(Session.StringPool.Pool(Strings.top()));
+			EmitterStack.top()->EnterFunction(LexicalScopeStack.top());
 		Strings.pop();
 		PushedItemTypes.pop();
 		break;
@@ -268,7 +274,25 @@ void CompilationSemantics::CompleteInfix()
 void CompilationSemantics::BeginParameterSet()
 {
 	FunctionSignatureStack.push(FunctionSignature());
-	AddLexicalScope(Session.StringPool.Pool(Strings.top()));
+	if(IsPrepass)
+	{
+		StringHandle overload = AllocateNewOverloadedFunctionName(Session.StringPool.Pool(Strings.top()));
+		AddLexicalScope(overload);
+		OverloadDefinitions.push_back(std::make_pair(ParsePosition, overload));
+	}
+	else
+	{
+		for(std::list<std::pair<boost::spirit::classic::position_iterator<const char*>, StringHandle> >::const_iterator iter = OverloadDefinitions.begin(); iter != OverloadDefinitions.end(); ++iter)
+		{
+			if(iter->first == ParsePosition)
+			{
+				LexicalScopeStack.push(iter->second);
+				return;
+			}
+		}
+
+		throw FatalException("Lost track of a function overload definition somewhere along the line");
+	}
 }
 
 //
@@ -291,9 +315,9 @@ void CompilationSemantics::RegisterParameterName(const std::wstring& name)
 	
 	if(!IsPrepass)
 	{
-		std::map<StringHandle, ScopeDescription>::iterator iter = LexicalScopeDescriptions.find(Session.StringPool.Pool(Strings.top()));
+		std::map<StringHandle, ScopeDescription>::iterator iter = LexicalScopeDescriptions.find(LexicalScopeStack.top());
 		if(iter == LexicalScopeDescriptions.end())
-			throw FatalException("No lexical scope has been registered for the identifier \"" + narrow(Strings.top()) + "\"");
+			throw FatalException("No lexical scope has been registered for the identifier \"" + narrow(Session.StringPool.GetPooledString(LexicalScopeStack.top())) + "\"");
 		
 		iter->second.AddVariable(name, Session.StringPool.Pool(name), ParamType, VARIABLE_ORIGIN_PARAMETER);
 	}
@@ -346,7 +370,7 @@ void CompilationSemantics::EndReturnSet()
 	}
 
 	if(IsPrepass)
-		Session.FunctionSignatures.insert(std::make_pair(Session.StringPool.Pool(Strings.top()), FunctionSignatureStack.top()));
+		Session.FunctionSignatures.insert(std::make_pair(LexicalScopeStack.top(), FunctionSignatureStack.top()));
 	else
 	{
 		EmitPendingCode();
@@ -479,7 +503,10 @@ void CompilationSemantics::BeginStatementParams()
 	TemporaryString.clear();
 	StatementParamCount.push(0);
 	if(!IsPrepass)
+	{
 		CompileTimeParameters.push(std::vector<CompileTimeParameter>());
+		OverloadResolutionFailed.push(false);
+	}
 }
 
 //
@@ -504,26 +531,32 @@ void CompilationSemantics::CompleteStatement()
 
 	if(!IsPrepass)
 	{
-		FunctionCompileHelperTable::const_iterator fchiter = CompileTimeHelpers.find(statementname);
-		if(fchiter != CompileTimeHelpers.end())
-			fchiter->second(GetLexicalScopeDescription(LexicalScopeStack.top()), CompileTimeParameters.top());
-
-		FunctionSignatureSet::const_iterator fsiter = Session.FunctionSignatures.find(statementnamehandle);
-		if(fsiter == Session.FunctionSignatures.end())
-			Throw(RecoverableException("The function \"" + narrow(statementname) + "\" is not defined in this scope"));
-
-		StatementTypes.push(fsiter->second.GetReturnType());
-
-		CompileTimeParameters.pop();
-		if(!CompileTimeParameters.empty())
+		if(!OverloadResolutionFailed.top())
 		{
-			const std::wstring& paramname = fsiter->second.GetParameterName(StatementParamCount.top());
-			VM::EpochTypeID paramtype = fsiter->second.GetParameterType(StatementParamCount.top());
+			RemapFunctionToOverload(CompileTimeParameters.top(), statementname, statementnamehandle);
 
-			CompileTimeParameters.top().push_back(CompileTimeParameter(paramname, paramtype));
+			FunctionCompileHelperTable::const_iterator fchiter = CompileTimeHelpers.find(statementname);
+			if(fchiter != CompileTimeHelpers.end())
+				fchiter->second(GetLexicalScopeDescription(LexicalScopeStack.top()), CompileTimeParameters.top());
+
+			FunctionSignatureSet::const_iterator fsiter = Session.FunctionSignatures.find(statementnamehandle);
+			if(fsiter == Session.FunctionSignatures.end())
+				Throw(RecoverableException("The function \"" + narrow(statementname) + "\" is not defined in this scope"));
+
+			StatementTypes.push(fsiter->second.GetReturnType());
+
+			CompileTimeParameters.pop();
+			if(!CompileTimeParameters.empty())
+			{
+				const std::wstring& paramname = fsiter->second.GetParameterName(StatementParamCount.top());
+				VM::EpochTypeID paramtype = fsiter->second.GetParameterType(StatementParamCount.top());
+
+				CompileTimeParameters.top().push_back(CompileTimeParameter(paramname, paramtype));
+			}
+
+			EmitterStack.top()->Invoke(statementnamehandle);
 		}
-
-		EmitterStack.top()->Invoke(statementnamehandle);
+		OverloadResolutionFailed.pop();
 	}
 }
 
@@ -624,19 +657,63 @@ void CompilationSemantics::ValidateAndPushParam(unsigned paramindex)
 		{
 			paramname = L"rhs";
 			expectedtype = VM::EpochType_Integer;		// TODO - check type of LHS
+
+			CheckParameterValidity(expectedtype);
 		}
 		else
 		{
-			StringHandle statementnamehandle = Session.StringPool.Pool(StatementNames.top());
-			FunctionSignatureSet::const_iterator iter = Session.FunctionSignatures.find(statementnamehandle);
-			if(iter == Session.FunctionSignatures.end())
-				Throw(RecoverableException("The function \"" + narrow(StatementNames.top()) + "\" is not defined in this scope"));
+			bool matchedparam = false;
 
-			paramname = iter->second.GetParameterName(paramindex);
-			expectedtype = iter->second.GetParameterType(paramindex);
+			StringHandle rawnamehandle = Session.StringPool.Pool(StatementNames.top());
+			std::map<StringHandle, std::set<StringHandle> >::const_iterator overloadsiter = FunctionOverloadNames.find(rawnamehandle);
+			if(overloadsiter != FunctionOverloadNames.end())
+			{
+				const std::set<StringHandle>& overloadnames = overloadsiter->second;
+				for(std::set<StringHandle>::const_iterator overloaditer = overloadnames.begin(); overloaditer != overloadnames.end(); ++overloaditer)
+				{
+					StringHandle statementnamehandle = *overloaditer;
+					FunctionSignatureSet::const_iterator iter = Session.FunctionSignatures.find(statementnamehandle);
+					if(iter == Session.FunctionSignatures.end())
+						Throw(RecoverableException("The function \"" + narrow(StatementNames.top()) + "\" is not defined in this scope"));
+
+					paramname = iter->second.GetParameterName(paramindex);
+					expectedtype = iter->second.GetParameterType(paramindex);
+
+					// TODO - using exceptions for this is naughty. Rewrite it to just return a validity value from CheckParameterValidity().
+					try
+					{
+						CheckParameterValidity(expectedtype);
+						matchedparam = true;
+						break;
+					}
+					catch(SpiritCompatibleTypeMismatchException&)
+					{
+						if(overloadnames.size() == 1)
+							throw;
+					}
+				}
+			}
+			else
+			{
+				// This is probably a library function with no registered overloads
+				FunctionSignatureSet::const_iterator iter = Session.FunctionSignatures.find(rawnamehandle);
+				if(iter == Session.FunctionSignatures.end())
+					Throw(RecoverableException("The function \"" + narrow(StatementNames.top()) + "\" is not defined in this scope"));
+
+				paramname = iter->second.GetParameterName(paramindex);
+				expectedtype = iter->second.GetParameterType(paramindex);
+
+				CheckParameterValidity(expectedtype);
+				matchedparam = true;
+			}
+
+			if(!matchedparam)
+			{
+				OverloadResolutionFailed.top() = true;
+				Failed = true;
+				Throw(RecoverableException("No overloaded function takes a matching set of parameters"));
+			}
 		}
-
-		CheckParameterValidity(expectedtype);
 	}
 
 	CompileTimeParameter ctparam(paramname, expectedtype);
@@ -734,7 +811,7 @@ void CompilationSemantics::CheckParameterValidity(VM::EpochTypeID expectedtype)
 	}
 
 	if(!valid)
-		throw TypeMismatchException("Wrong parameter type");
+		Throw(TypeMismatchException("Wrong parameter type"));
 }
 
 
@@ -771,7 +848,9 @@ void CompilationSemantics::Finalize()
 //
 void CompilationSemantics::AddLexicalScope(StringHandle scopename)
 {
-	// TODO - check for dupes
+	if(LexicalScopeDescriptions.find(scopename) != LexicalScopeDescriptions.end())
+		Throw(RecoverableException("An entity with the identifier \"" + narrow(Session.StringPool.GetPooledString(scopename)) + "\" has already been defined"));
+	
 	LexicalScopeDescriptions.insert(std::make_pair(scopename, ScopeDescription()));
 	LexicalScopeStack.push(scopename);
 }
@@ -788,6 +867,73 @@ ScopeDescription& CompilationSemantics::GetLexicalScopeDescription(StringHandle 
 	return iter->second;
 }
 
+
+//-------------------------------------------------------------------------------
+// Function overload management
+//-------------------------------------------------------------------------------
+
+//
+// Allocate an internal alias for an overloaded function name
+//
+// When a function is overloaded, the overloads are given magic name suffixes to help distinguish
+// them from other function overloads. This function creates and pools a new alias if needed; for
+// non-overload situations it just returns the given original name handle.
+//
+StringHandle CompilationSemantics::AllocateNewOverloadedFunctionName(StringHandle originalname)
+{
+	std::set<StringHandle>& overloadednames = FunctionOverloadNames[originalname];
+	if(overloadednames.empty())
+	{
+		overloadednames.insert(originalname);
+		return originalname;
+	}
+
+	std::wostringstream mangled;
+	mangled << Session.StringPool.GetPooledString(originalname) << L"@@overload@@" << overloadednames.size();
+	StringHandle ret = Session.StringPool.Pool(mangled.str());
+	overloadednames.insert(ret);
+	return ret;
+}
+
+//
+// Given a set of parameters, look up the appropriate matching function overload
+//
+void CompilationSemantics::RemapFunctionToOverload(const std::vector<CompileTimeParameter>& params, std::wstring& out_remappedname, StringHandle& out_remappednamehandle) const
+{
+	std::map<StringHandle, std::set<StringHandle> >::const_iterator overloadsiter = FunctionOverloadNames.find(out_remappednamehandle);
+	if(overloadsiter == FunctionOverloadNames.end())
+		return;
+
+	const std::set<StringHandle>& overloadednames = overloadsiter->second;
+	for(std::set<StringHandle>::const_iterator iter = overloadednames.begin(); iter != overloadednames.end(); ++iter)
+	{
+		FunctionSignatureSet::const_iterator signatureiter = Session.FunctionSignatures.find(*iter);
+		if(signatureiter == Session.FunctionSignatures.end())
+			throw FatalException("Tried to map a function overload to an undefined function signature");
+
+		if(params.size() != signatureiter->second.GetNumParameters())
+			continue;
+
+		bool matched = true;
+		for(size_t i = 0; i < signatureiter->second.GetNumParameters(); ++i)
+		{
+			if(params[i].Type != signatureiter->second.GetParameterType(i))
+			{
+				matched = false;
+				break;
+			}
+		}
+
+		if(matched)
+		{
+			out_remappednamehandle = *iter;
+			out_remappedname = Session.StringPool.GetPooledString(out_remappednamehandle);
+			return;
+		}
+	}
+
+	throw FatalException("Failed to remap function overload internally");
+}
 
 
 //-------------------------------------------------------------------------------
@@ -839,10 +985,10 @@ VM::EpochTypeID CompilationSemantics::LookupTypeName(const std::wstring& type) c
 // clauses provided in the grammar itself. This allows us to throw internal errors that cause the
 // parser to skip certain tokens and resume parsing in a new position, for instance.
 //
-void CompilationSemantics::Throw(const RecoverableException& exception) const
+template <typename ExceptionT>
+void CompilationSemantics::Throw(const ExceptionT& exception) const
 {
-	typedef boost::spirit::classic::position_iterator<const char*> PosIteratorT;
-	boost::spirit::classic::throw_<RecoverableException, PosIteratorT>(ParsePosition, exception);
+	boost::spirit::classic::throw_<ExceptionT, PosIteratorT>(ParsePosition, exception);
 }
 
 //

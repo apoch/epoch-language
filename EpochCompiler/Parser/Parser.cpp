@@ -41,28 +41,19 @@ bool Parser::Parse(const std::wstring& code)
 
 	parse_info<position_iterator<const char*> > result;
 
-	// TODO - exception handling here
-	//try
-	{
-		// First pass: build up the list of entities defined in the code
-		result = parse(start, end, grammar >> end_p, skip);
-		if(!result.full)
-			return false;
+	// First pass: build up the list of entities defined in the code
+	result = parse(start, end, grammar >> end_p, skip);
+	if(!result.full)
+		return false;
 
-		// Sanity check to make sure the parser is in a clean state
-		SemanticActions.SanityCheck();
+	// Sanity check to make sure the parser is in a clean state
+	SemanticActions.SanityCheck();
 
-		// Second pass: traverse into each function and generate the corresponding bytecode
-		SemanticActions.SetPrepassMode(false);
-		result = parse(start, end, grammar >> end_p, skip);
-		if(!result.full)
-			return false;
-	}
-	//catch(std::exception& e)
-	//{
-	//	state.ReportFatalError(e.what());
-	//	return false;
-	//}
+	// Second pass: traverse into each function and generate the corresponding bytecode
+	SemanticActions.SetPrepassMode(false);
+	result = parse(start, end, grammar >> end_p, skip);
+	if(!result.full)
+		return false;
 
 	return true;
 }

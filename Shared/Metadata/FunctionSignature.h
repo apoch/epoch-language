@@ -35,6 +35,9 @@ public:
 	VM::EpochTypeID GetReturnType() const
 	{ return ReturnType; }
 
+	size_t GetNumParameters() const
+	{ return Parameters.size(); }
+
 // Internal tracking
 private:
 	struct ParameterEntry

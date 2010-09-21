@@ -55,10 +55,16 @@ public:
 		: MasterEmitter(emitter),
 		  Session(session),
 		  IsPrepass(true),
-		  CompileTimeHelpers(session.CompileTimeHelpers)
+		  CompileTimeHelpers(session.CompileTimeHelpers),
+		  Failed(false)
 	{
 		EmitterStack.push(&MasterEmitter);
 	}
+
+// Check if everything went smooth
+public:
+	bool DidFail() const
+	{ return Failed; }
 
 // Semantic action implementations (implementation of SemanticActionInterface)
 public:
@@ -114,11 +120,16 @@ private:
 
 	VM::EpochTypeID LookupTypeName(const std::wstring& name) const;
 
-	void Throw(const RecoverableException& exception) const;
+	template <typename ExceptionT>
+	void Throw(const ExceptionT& exception) const;
+
+	StringHandle AllocateNewOverloadedFunctionName(StringHandle originalname);
+	void RemapFunctionToOverload(const std::vector<CompileTimeParameter>& params, std::wstring& out_remappedname, StringHandle& out_remappednamehandle) const;
 
 // Internal tracking
 private:
 	bool IsPrepass;
+	bool Failed;
 
 	std::stack<ByteCodeEmitter*> EmitterStack;
 	ByteCodeEmitter& MasterEmitter;
@@ -158,5 +169,10 @@ private:
 	std::stack<bool> ReturnsIncludedStatement;
 
 	boost::spirit::classic::position_iterator<const char*> ParsePosition;
+
+	std::map<StringHandle, std::set<StringHandle> > FunctionOverloadNames;
+	std::stack<bool> OverloadResolutionFailed;
+
+	std::list<std::pair<boost::spirit::classic::position_iterator<const char*>, StringHandle> > OverloadDefinitions;
 };
 

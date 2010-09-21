@@ -99,7 +99,7 @@ void CompileSession::CompileFunctions(const std::wstring& code)
 	CompilationSemantics semantics(emitter, *this);
 	Parser theparser(semantics, InfixIdentifiers);
 
-	if(!theparser.Parse(code))
+	if(!theparser.Parse(code) || semantics.DidFail())
 		throw FatalException("Parsing failed!");
 
 	semantics.SanityCheck();
