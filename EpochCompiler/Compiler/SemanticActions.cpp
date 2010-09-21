@@ -171,26 +171,13 @@ void CompilationSemantics::StoreEntityCode()
 //
 void CompilationSemantics::StoreInfix(const std::wstring& identifier)
 {
-	unsigned paramindex;
-
-	if(StatementParamCount.empty())
-	{
-		// We're in a function return value initializer
-		paramindex = 0;
-	}
-	else
-	{
-		// Standard case of infix expression within a statement
-		paramindex = StatementParamCount.top();
-	}
-
 	StatementNames.push(identifier);
 	StatementParamCount.push(0);
 
 	if(!IsPrepass)
 		CompileTimeParameters.push(std::vector<CompileTimeParameter>());
 
-	ValidateAndPushParam(paramindex);
+	ValidateAndPushParam(0);
 }
 
 //
