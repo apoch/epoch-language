@@ -411,6 +411,7 @@ void CompilationSemantics::RegisterReturnValue()
 		}
 		else if(PushedItemTypes.top() == ITEMTYPE_STRING)
 		{
+			// TODO - do we need to validate the return value type here??
 			if(!IsPrepass)
 				PendingEmitters.top().PushVariableValue(Session.StringPool.Pool(Strings.top()));
 			Strings.pop();
@@ -427,6 +428,34 @@ void CompilationSemantics::RegisterReturnValue()
 		}
 		else
 			throw TypeMismatchException("The function is defined as returning an integer but the provided default return value is not of an integer type.");
+		break;
+
+	case VM::EpochType_String:
+		if(PushedItemTypes.top() == ITEMTYPE_STRINGLITERAL)
+		{
+			if(!IsPrepass)
+				PendingEmitters.top().PushStringLiteral(StringLiterals.top());
+			StringLiterals.pop();
+		}
+		else if(PushedItemTypes.top() == ITEMTYPE_STRING)
+		{
+			// TODO - do we need to validate the return value type here??
+			if(!IsPrepass)
+				PendingEmitters.top().PushVariableValue(Session.StringPool.Pool(Strings.top()));
+			Strings.pop();
+		}
+		else if(PushedItemTypes.top() == ITEMTYPE_STATEMENT)
+		{
+			if(!IsPrepass)
+			{
+				if(StatementTypes.top() != VM::EpochType_String)
+					throw TypeMismatchException("The function is defined as returning a string but the provided default return value is not of string type.");
+			}
+
+			ReturnsIncludedStatement.top() = true;
+		}
+		else
+			throw TypeMismatchException("The function is defined as returning a string but the provided default return value is not of string type.");
 		break;
 
 	default:

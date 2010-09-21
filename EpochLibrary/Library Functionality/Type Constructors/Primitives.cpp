@@ -29,6 +29,7 @@ void TypeConstructors::RegisterLibraryFunctions(FunctionInvocationTable& table, 
 {
 	// TODO - complain on duplicates
 	table.insert(std::make_pair(stringpool.Pool(L"integer"), TypeConstructors::ConstructInteger));
+	table.insert(std::make_pair(stringpool.Pool(L"string"), TypeConstructors::ConstructString));
 }
 
 //
@@ -43,6 +44,12 @@ void TypeConstructors::RegisterLibraryFunctions(FunctionSignatureSet& signatures
 		signature.AddParameter(L"value", VM::EpochType_Integer);
 		signatureset.insert(std::make_pair(stringpool.Pool(L"integer"), signature));
 	}
+	{
+		FunctionSignature signature;
+		signature.AddParameter(L"identifier", VM::EpochType_Identifier);
+		signature.AddParameter(L"value", VM::EpochType_String);
+		signatureset.insert(std::make_pair(stringpool.Pool(L"string"), signature));
+	}
 }
 
 //
@@ -50,7 +57,8 @@ void TypeConstructors::RegisterLibraryFunctions(FunctionSignatureSet& signatures
 //
 void TypeConstructors::RegisterLibraryFunctions(FunctionCompileHelperTable& table)
 {
-	table.insert(std::make_pair(L"integer", TypeConstructors::CompileConstructorInteger));
+	table.insert(std::make_pair(L"integer", TypeConstructors::CompileConstructorPrimitive));
+	table.insert(std::make_pair(L"string", TypeConstructors::CompileConstructorPrimitive));
 }
 
 
@@ -66,12 +74,23 @@ void TypeConstructors::ConstructInteger(StringHandle functionname, VM::Execution
 }
 
 //
+// Construct a string variable in memory
+//
+void TypeConstructors::ConstructString(StringHandle functionname, VM::ExecutionContext& context)
+{
+	StringHandle value = context.State.Stack.PopValue<StringHandle>();
+	StringHandle identifierhandle = context.State.Stack.PopValue<StringHandle>();
+
+	context.Variables->Write(identifierhandle, value);
+}
+
+
+//
 // Compile-time helper: when a variable definition is encountered, this
 // helper adds the variable itself and its type metadata to the current
 // lexical scope.
 //
-void TypeConstructors::CompileConstructorInteger(ScopeDescription& scope, const std::vector<CompileTimeParameter>& compiletimeparams)
+void TypeConstructors::CompileConstructorPrimitive(ScopeDescription& scope, const std::vector<CompileTimeParameter>& compiletimeparams)
 {
 	scope.AddVariable(compiletimeparams[0].StringPayload, compiletimeparams[0].Payload.StringHandleValue, compiletimeparams[1].Type, VARIABLE_ORIGIN_LOCAL);
 }
-

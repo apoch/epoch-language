@@ -31,7 +31,9 @@ namespace TypeConstructors
 	void RegisterLibraryFunctions(FunctionCompileHelperTable& table);
 
 	void ConstructInteger(StringHandle functionname, VM::ExecutionContext& context);
-	void CompileConstructorInteger(ScopeDescription& scope, const std::vector<CompileTimeParameter>& compiletimeparams);
+	void ConstructString(StringHandle functionname, VM::ExecutionContext& context);
+	
+	void CompileConstructorPrimitive(ScopeDescription& scope, const std::vector<CompileTimeParameter>& compiletimeparams);
 
 }
 
