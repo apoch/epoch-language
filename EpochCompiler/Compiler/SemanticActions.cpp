@@ -231,20 +231,6 @@ void CompilationSemantics::CompleteInfix()
 					throw FatalException("Unknown statement, cannot complete parsing");
 
 				StatementTypes.push(iter->second.GetReturnType());
-
-				if(statementname == L"=")
-					CompileTimeParameters.top().push_back(CompileTimeParameter(L"rhs", VM::EpochType_Integer));		// TODO - check type of LHS
-				else
-				{
-					iter = Session.FunctionSignatures.find(Session.StringPool.Pool(statementname));
-					if(iter == Session.FunctionSignatures.end())
-						throw FatalException("Unknown statement, cannot complete parsing");
-
-					const std::wstring& paramname = iter->second.GetParameterName(StatementParamCount.top());
-					VM::EpochTypeID paramtype = iter->second.GetParameterType(StatementParamCount.top());
-
-					CompileTimeParameters.top().push_back(CompileTimeParameter(paramname, paramtype));
-				}
 			}
 		}
 	}
