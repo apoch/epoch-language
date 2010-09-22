@@ -207,6 +207,40 @@ void Serializer::Write(const std::wstring& filename) const
 			}
 			break;
 
+		case Bytecode::Instructions::PatternMatch:
+			{
+				outfile << L"PATTERN " << traverser.Read<StringHandle>() << L" ";
+				size_t count = traverser.Read<size_t>();
+				outfile << count << L" ";
+				for(size_t i = 0; i < count; ++i)
+				{
+					VM::EpochTypeID paramtype = traverser.ReadTypeAnnotation();
+					outfile << paramtype << L" " ;
+
+					bool needsmatching = (traverser.Read<Byte>() != 0);
+					if(needsmatching)
+					{
+						outfile << L"MATCH ";
+						switch(paramtype)
+						{
+						case VM::EpochType_Integer:
+							{
+								Integer32 matchvalue = traverser.Read<Integer32>();
+								outfile << matchvalue << L" ";
+							}
+							break;
+
+						default:
+							throw NotImplementedException("Pattern matching for this parameter type is not implemented");
+						}
+					}
+					else
+						outfile << L"SKIP ";
+				}
+			}
+			outfile << L"\n";
+			break;
+
 		default:
 			throw SerializationException("Failed to serialize unknown opcode");
 		}

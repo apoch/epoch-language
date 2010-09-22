@@ -8,6 +8,7 @@
 #include "pch.h"
 
 #include "Virtual Machine/VirtualMachine.h"
+#include "Virtual Machine/TypeInfo.h"
 
 #include "Metadata/ActiveScope.h"
 
@@ -62,7 +63,7 @@ void VirtualMachine::InitStandardLibraries()
 ExecutionResult VirtualMachine::ExecuteByteCode(const Bytecode::Instruction* buffer, size_t size)
 {
 	std::auto_ptr<ExecutionContext> context(new ExecutionContext(*this, buffer, size));
-	context->Execute();
+	context->Execute(NULL);
 	ExecutionResult result = context->GetExecutionResult();
 
 #ifdef _DEBUG
@@ -211,24 +212,11 @@ void ExecutionContext::Execute(size_t offset, const ScopeDescription& scope)
 {
 	InstructionOffsetStack.push(InstructionOffset);
 
-	std::auto_ptr<ActiveScope> activescope(new ActiveScope(scope, Variables));
-	Variables = activescope.get();
-	Variables->BindParametersToStack(*this);
-	Variables->PushLocalsOntoStack(*this);
-
 	InstructionOffset = offset;
-	Execute();
+	Execute(&scope);
 
 	InstructionOffset = InstructionOffsetStack.top();
 	InstructionOffsetStack.pop();
-
-	bool hasreturn = Variables->HasReturnVariable();
-
-	Variables->PopScopeOffStack(*this);
-	Variables = Variables->ParentScope;
-
-	if(hasreturn)
-		State.ReturnValueRegister.PushOntoStack(State.Stack);
 }
 
 //
@@ -237,8 +225,31 @@ void ExecutionContext::Execute(size_t offset, const ScopeDescription& scope)
 // The reason will be provided in the attached execution context data,
 // as well as any other contextual information, eg. exception payloads.
 //
-void ExecutionContext::Execute()
+void ExecutionContext::Execute(const ScopeDescription* scope)
 {
+	// Automatically cleanup the stack if needed
+	struct autoexit
+	{
+		autoexit(ExecutionContext* thisptr) : ThisPtr(thisptr), DoCleanup(false) { }
+
+		~autoexit()
+		{
+			if(DoCleanup)
+			{
+				ThisPtr->Variables->PopScopeOffStack(*ThisPtr);
+				bool hasreturn = ThisPtr->Variables->HasReturnVariable();
+				ActiveScope* parent = ThisPtr->Variables->ParentScope;
+				delete ThisPtr->Variables;
+				ThisPtr->Variables = parent;
+				if(hasreturn)
+					ThisPtr->State.ReturnValueRegister.PushOntoStack(ThisPtr->State.Stack);
+			}
+		}
+
+		ExecutionContext* ThisPtr;
+		bool DoCleanup;
+	} onexit(this);
+
 	// By default, assume everything is alright
 	State.Result.ResultType = ExecutionResult::EXEC_RESULT_OK;
 
@@ -314,6 +325,15 @@ void ExecutionContext::Execute()
 			{
 				Bytecode::EntityTag tag = static_cast<Bytecode::EntityTag>(Fetch<Integer32>());
 				Fetch<StringHandle>();
+
+				if(tag == Bytecode::EntityTags::Function)
+				{
+					Variables = new ActiveScope(*scope, Variables);
+					Variables->BindParametersToStack(*this);
+					Variables->PushLocalsOntoStack(*this);
+
+					onexit.DoCleanup = true;
+				}
 			}
 			break;
 
@@ -335,6 +355,49 @@ void ExecutionContext::Execute()
 					Fetch<StringHandle>();
 					Fetch<EpochTypeID>();
 					Fetch<VariableOrigin>();
+				}
+			}
+			break;
+
+		case Bytecode::Instructions::PatternMatch:
+			{
+				const char* stackptr = reinterpret_cast<const char*>(State.Stack.GetCurrentTopOfStack());
+				bool matchedpattern = true;
+				StringHandle originalfunction = Fetch<StringHandle>();
+				size_t paramcount = Fetch<size_t>();
+				for(size_t i = 0; i < paramcount; ++i)
+				{
+					EpochTypeID paramtype = Fetch<EpochTypeID>();
+					bool needsmatch = (Fetch<Byte>() != 0);
+					if(needsmatch)
+					{
+						switch(paramtype)
+						{
+						case EpochType_Integer:
+							{
+								Integer32 valuetomatch = Fetch<Integer32>();
+								Integer32 passedvalue = *reinterpret_cast<const Integer32*>(stackptr);
+								if(valuetomatch != passedvalue)
+									matchedpattern = false;
+							}
+							break;
+
+						default:
+							throw NotImplementedException("Support for pattern matching this function parameter type is not implemented");
+						}
+					}
+
+					if(!matchedpattern)
+						break;
+
+					stackptr += GetStorageSize(paramtype);
+				}
+
+				if(matchedpattern)
+				{
+					// Jump execution into the original function, taking care to remove the dispatcher from the call stack
+					Execute(OwnerVM.GetFunctionInstructionOffset(originalfunction), OwnerVM.GetScopeDescription(originalfunction));
+					return;
 				}
 			}
 			break;
@@ -367,7 +430,7 @@ void ExecutionContext::Load()
 			{
 				size_t originaloffset = InstructionOffset - 1;
 				entitytypes.push(Fetch<Integer32>());
-				if(entitytypes.top() == Bytecode::EntityTags::Function)
+				if(entitytypes.top() == Bytecode::EntityTags::Function || entitytypes.top() == Bytecode::EntityTags::PatternMatchingResolver)
 					OwnerVM.AddFunction(Fetch<StringHandle>(), originaloffset);
 			}
 			break;
@@ -422,6 +485,31 @@ void ExecutionContext::Load()
 		case Bytecode::Instructions::Invoke:
 		case Bytecode::Instructions::SetRetVal:
 			Fetch<StringHandle>();
+			break;
+
+		// Operations that take a bit of special processing, but we are still ignoring
+		case Bytecode::Instructions::PatternMatch:
+			{
+				Fetch<StringHandle>();
+				size_t paramcount = Fetch<size_t>();
+				for(size_t i = 0; i < paramcount; ++i)
+				{
+					EpochTypeID paramtype = Fetch<EpochTypeID>();
+					bool needsmatch = (Fetch<Byte>() != 0);
+					if(needsmatch)
+					{
+						switch(paramtype)
+						{
+						case EpochType_Integer:
+							Fetch<Integer32>();
+							break;
+
+						default:
+							throw NotImplementedException("Support for pattern matching this function parameter type is not implemented");
+						}
+					}
+				}
+			}
 			break;
 		
 		default:

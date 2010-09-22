@@ -19,6 +19,10 @@
 #include "Bytecode/EntityTags.h"
 
 
+// Forward declarations
+class FunctionSignature;
+
+
 //
 // Wrapper class for generating bytecode sequences
 //
@@ -56,6 +60,13 @@ public:
 public:
 	void DefineLexicalScope(StringHandle name, size_t variablecount);
 	void LexicalScopeEntry(StringHandle varname, VM::EpochTypeID vartype, VariableOrigin origin);
+
+// Pattern matching
+public:
+	void EnterPatternResolver(StringHandle functionname);
+	void ExitPatternResolver();
+
+	void ResolvePattern(StringHandle dispatchfunction, const FunctionSignature& signature);
 
 // Utility instructions
 public:

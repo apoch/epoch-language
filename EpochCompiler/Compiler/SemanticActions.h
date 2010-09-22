@@ -56,7 +56,8 @@ public:
 		  Session(session),
 		  IsPrepass(true),
 		  CompileTimeHelpers(session.CompileTimeHelpers),
-		  Failed(false)
+		  Failed(false),
+		  InsideParameterList(false)
 	{
 		EmitterStack.push(&MasterEmitter);
 	}
@@ -82,8 +83,10 @@ public:
 	virtual void CompleteInfix();
 
 	virtual void BeginParameterSet();
+	virtual void EndParameterSet();
 	virtual void RegisterParameterType(const std::wstring& type);
 	virtual void RegisterParameterName(const std::wstring& name);
+	virtual void RegisterPatternMatchedParameter();
 
 	virtual void BeginReturnSet();
 	virtual void EndReturnSet();
@@ -125,6 +128,8 @@ private:
 
 	StringHandle AllocateNewOverloadedFunctionName(StringHandle originalname);
 	void RemapFunctionToOverload(const std::vector<CompileTimeParameter>& params, std::wstring& out_remappedname, StringHandle& out_remappednamehandle) const;
+
+	std::wstring GetPatternMatchResolverName(const std::wstring& originalname) const;
 
 // Internal tracking
 private:
@@ -174,5 +179,11 @@ private:
 	std::stack<bool> OverloadResolutionFailed;
 
 	std::list<std::pair<boost::spirit::classic::position_iterator<const char*>, StringHandle> > OverloadDefinitions;
+
+	bool InsideParameterList;
+	bool NeedsPatternResolver;
+
+	std::map<StringHandle, FunctionSignature> NeededPatternResolvers;
+	std::multimap<StringHandle, StringHandle> OriginalFunctionsForPatternResolution;
 };
 

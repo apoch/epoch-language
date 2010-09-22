@@ -28,6 +28,7 @@ namespace ArithmeticLibrary
 
 
 	void AddIntegers(StringHandle functionname, VM::ExecutionContext& context);
+	void SubtractIntegers(StringHandle functionname, VM::ExecutionContext& context);
 
 }
 

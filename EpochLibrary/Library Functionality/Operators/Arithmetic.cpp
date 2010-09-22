@@ -27,6 +27,7 @@ void ArithmeticLibrary::RegisterLibraryFunctions(FunctionInvocationTable& table,
 {
 	// TODO - complain on duplicates
 	table.insert(std::make_pair(stringpool.Pool(L"+"), ArithmeticLibrary::AddIntegers));
+	table.insert(std::make_pair(stringpool.Pool(L"-"), ArithmeticLibrary::SubtractIntegers));
 }
 
 //
@@ -41,6 +42,13 @@ void ArithmeticLibrary::RegisterLibraryFunctions(FunctionSignatureSet& signature
 		signature.AddParameter(L"i2", VM::EpochType_Integer);
 		signature.SetReturnType(VM::EpochType_Integer);
 		signatureset.insert(std::make_pair(stringpool.Pool(L"+"), signature));
+	}
+	{
+		FunctionSignature signature;
+		signature.AddParameter(L"i1", VM::EpochType_Integer);
+		signature.AddParameter(L"i2", VM::EpochType_Integer);
+		signature.SetReturnType(VM::EpochType_Integer);
+		signatureset.insert(std::make_pair(stringpool.Pool(L"-"), signature));
 	}
 }
 
@@ -58,8 +66,14 @@ void ArithmeticLibrary::RegisterLibraryFunctions(FunctionCompileHelperTable& tab
 //
 void ArithmeticLibrary::RegisterInfixOperators(InfixTable& infixtable, StringPoolManager& stringpool)
 {
-	StringHandle handle = stringpool.Pool(L"+");
-	infixtable.insert(stringpool.GetPooledString(handle));
+	{
+		StringHandle handle = stringpool.Pool(L"+");
+		infixtable.insert(stringpool.GetPooledString(handle));
+	}
+	{
+		StringHandle handle = stringpool.Pool(L"-");
+		infixtable.insert(stringpool.GetPooledString(handle));
+	}
 }
 
 
@@ -69,9 +83,20 @@ void ArithmeticLibrary::RegisterInfixOperators(InfixTable& infixtable, StringPoo
 //
 void ArithmeticLibrary::AddIntegers(StringHandle functionname, VM::ExecutionContext& context)
 {
-	Integer32 p1 = context.State.Stack.PopValue<Integer32>();
 	Integer32 p2 = context.State.Stack.PopValue<Integer32>();
+	Integer32 p1 = context.State.Stack.PopValue<Integer32>();
 
 	context.State.Stack.PushValue(p1 + p2);
 }
 
+
+//
+// Subtract two numbers and return the result
+//
+void ArithmeticLibrary::SubtractIntegers(StringHandle functionname, VM::ExecutionContext& context)
+{
+	Integer32 p2 = context.State.Stack.PopValue<Integer32>();
+	Integer32 p1 = context.State.Stack.PopValue<Integer32>();
+
+	context.State.Stack.PushValue(p1 - p2);
+}

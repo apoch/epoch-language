@@ -9,6 +9,8 @@
 
 #include "Compiler/ByteCodeEmitter.h"
 
+#include "Metadata/FunctionSignature.h"
+
 
 
 //-------------------------------------------------------------------------------
@@ -145,6 +147,69 @@ void ByteCodeEmitter::LexicalScopeEntry(StringHandle varname, VM::EpochTypeID va
 	EmitRawValue(varname);
 	EmitRawValue(vartype);
 	EmitRawValue(origin);
+}
+
+
+//-------------------------------------------------------------------------------
+// Pattern matching
+//-------------------------------------------------------------------------------
+
+//
+// Enter a special entity which is used for runtime pattern matching on function parameters
+//
+void ByteCodeEmitter::EnterPatternResolver(StringHandle functionname)
+{
+	EmitInstruction(Bytecode::Instructions::BeginEntity);
+	EmitEntityTag(Bytecode::EntityTags::PatternMatchingResolver);
+	EmitRawValue(functionname);
+}
+
+//
+// Terminate an entity used for pattern matching
+//
+void ByteCodeEmitter::ExitPatternResolver()
+{
+	// TODO - throw a runtime exception instead of just halting the VM entirely
+	Halt();			// Just in case pattern resolution failed
+	EmitInstruction(Bytecode::Instructions::EndEntity);
+}
+
+//
+// Emit special pattern matching instructions
+//
+// The pattern match instruction compares the parameter values on the stack to those
+// in the given signature, checking for matches. If a match is found, the corresponding
+// function overload is invoked. If matching fails, a runtime exception occurs.
+//
+void ByteCodeEmitter::ResolvePattern(StringHandle dispatchfunction, const FunctionSignature& signature)
+{
+	EmitInstruction(Bytecode::Instructions::PatternMatch);
+	EmitRawValue(dispatchfunction);
+	EmitRawValue(signature.GetNumParameters());
+	for(size_t i = 0; i < signature.GetNumParameters(); ++i)
+	{
+		EmitTypeAnnotation(signature.GetParameter(i).Type);
+
+		if(signature.GetParameter(i).Name == L"@@patternmatched")
+		{
+			// Dump information about this parameter so we can check its value
+			EmitRawValue(static_cast<Byte>(1));
+			switch(signature.GetParameter(i).Type)
+			{
+			case VM::EpochType_Integer:
+				EmitRawValue(signature.GetParameter(i).Payload.IntegerValue);
+				break;
+
+			default:
+				throw NotImplementedException("Support for pattern matching function parameters of this type is not implemented");
+			}
+		}
+		else
+		{
+			// Signal that we can ignore this parameter for function matching purposes
+			EmitRawValue(static_cast<Byte>(0));
+		}
+	}
 }
 
 

@@ -32,6 +32,7 @@ namespace Bytecode
 
 		static const Instruction PoolString = 0x0a;
 		static const Instruction DefineLexicalScope = 0x0b;
+		static const Instruction PatternMatch = 0x0c;
 
 	}
 

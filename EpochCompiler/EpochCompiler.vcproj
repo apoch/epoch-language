@@ -298,6 +298,10 @@
 				Name="Metadata"
 				>
 				<File
+					RelativePath="..\Shared\Metadata\CompileTimeParams.h"
+					>
+				</File>
+				<File
 					RelativePath="..\Shared\Metadata\FunctionSignature.cpp"
 					>
 				</File>

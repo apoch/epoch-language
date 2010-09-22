@@ -22,11 +22,11 @@
 
 
 template <typename IteratorType>
-void Trace(IteratorType begin, IteratorType end)
+void Trace(const std::wstring& title, IteratorType begin, IteratorType end)
 {
 #ifdef _DEBUG
-	//std::wstring blob(begin, end);
-	//std::wcout << L"PARSER TRACE: " << blob << std::endl;
+	std::wstring blob(begin, end);
+	std::wcout << L"PARSER TRACE: " << title << L" - " << blob << std::endl;
 #endif
 }
 
@@ -55,6 +55,23 @@ struct GeneralExceptionHandler
 	SemanticActionInterface& Bindings;
 };
 
+struct MissingFunctionBodyExceptionHandler
+{
+	MissingFunctionBodyExceptionHandler(SemanticActionInterface& bindings)
+		: Bindings(bindings)
+	{ }
+
+	template <typename ScannerType, typename ErrorType>
+	boost::spirit::classic::error_status<> operator () (const ScannerType& thescanner, const ErrorType& theerror) const
+	{
+		Bindings.EmitPendingCode();
+		Bindings.StoreEntityCode();
+		return boost::spirit::classic::error_status<>(boost::spirit::classic::error_status<>::accept, 1);
+	}
+
+	SemanticActionInterface& Bindings;
+};
+
 
 struct StoreString
 {
@@ -65,7 +82,7 @@ struct StoreString
 	template <typename IteratorType>
 	void operator () (IteratorType begin, IteratorType end) const
 	{
-		Trace(begin, end);
+		Trace(L"StoreString", begin, end);
 		Bindings.SetParsePosition(end);
 
 		std::wstring str(begin, end);
@@ -84,7 +101,7 @@ struct StoreIntegerLiteral
 	template <typename IteratorType>
 	void operator () (IteratorType begin, IteratorType end) const
 	{
-		Trace(begin, end);
+		Trace(L"StoreIntegerLiteral", begin, end);
 		Bindings.SetParsePosition(end);
 
 		std::wstring str(begin, end);
@@ -109,7 +126,7 @@ struct StoreStringLiteral
 	template <typename IteratorType>
 	void operator () (IteratorType begin, IteratorType end) const
 	{
-		Trace(begin, end);
+		Trace(L"StoreStringLiteral", begin, end);
 		Bindings.SetParsePosition(end);
 
 		std::wstring str(begin, end);
@@ -130,7 +147,7 @@ struct StoreEntityType
 	template <typename IteratorType>
 	void operator () (IteratorType begin, IteratorType end) const
 	{
-		Trace(begin, end);
+		Trace(L"StoreEntityType", begin, end);
 		Bindings.SetParsePosition(end);
 		Bindings.StoreEntityType(TypeTag);
 	}
@@ -148,7 +165,7 @@ struct StoreEntityCode
 	template <typename IteratorType>
 	void operator () (IteratorType begin, IteratorType end) const
 	{
-		Trace(begin, end);
+		Trace(L"StoreEntityCode", begin, end);
 		Bindings.SetParsePosition(end);
 		Bindings.StoreEntityCode();
 	}
@@ -165,7 +182,7 @@ struct StoreInfix
 	template <typename IteratorType>
 	void operator () (IteratorType begin, IteratorType end) const
 	{
-		Trace(begin, end);
+		Trace(L"StoreInfix", begin, end);
 		Bindings.SetParsePosition(end);
 		std::wstring str(begin, end);
 		Bindings.StoreInfix(str);
@@ -183,7 +200,7 @@ struct CompleteInfix
 	template <typename IteratorType>
 	void operator () (IteratorType begin, IteratorType end) const
 	{
-		Trace(begin, end);
+		Trace(L"CompleteInfix", begin, end);
 		Bindings.SetParsePosition(end);
 		Bindings.CompleteInfix();
 	}
@@ -206,6 +223,21 @@ struct BeginParameterSet
 	SemanticActionInterface& Bindings;
 };
 
+struct EndParameterSet
+{
+	EndParameterSet(SemanticActionInterface& bindings)
+		: Bindings(bindings)
+	{ }
+
+	template <typename ParamType>
+	void operator () (ParamType) const
+	{
+		Bindings.EndParameterSet();
+	}
+
+	SemanticActionInterface& Bindings;
+};
+
 struct RegisterParameterType
 {
 	RegisterParameterType(SemanticActionInterface& bindings)
@@ -215,7 +247,7 @@ struct RegisterParameterType
 	template <typename IteratorType>
 	void operator () (IteratorType begin, IteratorType end) const
 	{
-		Trace(begin, end);
+		Trace(L"RegisterParameterType", begin, end);
 		Bindings.SetParsePosition(end);
 		std::wstring str(begin, end);
 		Bindings.RegisterParameterType(str);
@@ -233,7 +265,7 @@ struct RegisterParameterName
 	template <typename IteratorType>
 	void operator () (IteratorType begin, IteratorType end) const
 	{
-		Trace(begin, end);
+		Trace(L"RegisterParameterName", begin, end);
 		Bindings.SetParsePosition(end);
 		std::wstring str(begin, end);
 		Bindings.RegisterParameterName(str);
@@ -281,7 +313,7 @@ struct RegisterReturnType
 	template <typename IteratorType>
 	void operator () (IteratorType begin, IteratorType end) const
 	{
-		Trace(begin, end);
+		Trace(L"RegisterReturnType", begin, end);
 		Bindings.SetParsePosition(end);
 		std::wstring str(begin, end);
 		Bindings.RegisterReturnType(str);
@@ -299,7 +331,7 @@ struct RegisterReturnName
 	template <typename IteratorType>
 	void operator () (IteratorType begin, IteratorType end) const
 	{
-		Trace(begin, end);
+		Trace(L"RegisterReturnName", begin, end);
 		Bindings.SetParsePosition(end);
 		std::wstring str(begin, end);
 		Bindings.RegisterReturnName(str);
@@ -317,7 +349,7 @@ struct RegisterReturnValue
 	template <typename IteratorType>
 	void operator () (IteratorType begin, IteratorType end) const
 	{
-		Trace(begin, end);
+		Trace(L"RegisterReturnValue", begin, end);
 		Bindings.SetParsePosition(end);
 		Bindings.RegisterReturnValue();
 	}
@@ -334,7 +366,7 @@ struct BeginStatement
 	template <typename IteratorType>
 	void operator () (IteratorType begin, IteratorType end) const
 	{
-		Trace(begin, end);
+		Trace(L"BeginStatement", begin, end);
 		Bindings.SetParsePosition(end);
 		std::wstring str(begin, end);
 		Bindings.BeginStatement(str);
@@ -367,7 +399,7 @@ struct ValidateStatementParam
 	template <typename IteratorType>
 	void operator () (IteratorType begin, IteratorType end) const
 	{
-		Trace(begin, end);
+		Trace(L"ValidateStatementParam", begin, end);
 		Bindings.SetParsePosition(end);
 		Bindings.ValidateStatementParam();
 	}
@@ -399,7 +431,7 @@ struct FinalizeStatement
 	template <typename IteratorType>
 	void operator () (IteratorType begin, IteratorType end) const
 	{
-		Trace(begin, end);
+		Trace(L"FinalizeStatement", begin, end);
 		Bindings.SetParsePosition(end);
 		Bindings.FinalizeStatement();
 	}
@@ -417,7 +449,7 @@ struct Finalize
 	template <typename IteratorType>
 	void operator () (IteratorType begin, IteratorType end) const
 	{
-		Trace(begin, end);
+		Trace(L"Finalize", begin, end);
 		Bindings.SetParsePosition(end);
 		Bindings.Finalize();
 	}
@@ -438,6 +470,14 @@ struct EmitPendingCode
 		Bindings.EmitPendingCode();
 	}
 
+	template <typename IteratorType>
+	void operator () (IteratorType begin, IteratorType end) const
+	{
+		Trace(L"EmitPendingCode", begin, end);
+		Bindings.SetParsePosition(end);
+		Bindings.EmitPendingCode();
+	}
+
 	SemanticActionInterface& Bindings;
 };
 
@@ -451,7 +491,7 @@ struct BeginAssignment
 	template <typename IteratorType>
 	void operator () (IteratorType begin, IteratorType end) const
 	{
-		Trace(begin, end);
+		Trace(L"BeginAssignment", begin, end);
 		Bindings.SetParsePosition(end);
 		Bindings.BeginAssignment();
 	}
@@ -468,7 +508,7 @@ struct CompleteAssignment
 	template <typename IteratorType>
 	void operator () (IteratorType begin, IteratorType end) const
 	{
-		Trace(begin, end);
+		Trace(L"CompleteAssignment", begin, end);
 		Bindings.SetParsePosition(end);
 		Bindings.CompleteAssignment();
 	}
@@ -476,3 +516,20 @@ struct CompleteAssignment
 	SemanticActionInterface& Bindings;
 };
 
+
+struct RegisterPatternMatchedParameter
+{
+	RegisterPatternMatchedParameter(SemanticActionInterface& bindings)
+		: Bindings(bindings)
+	{ }
+
+	template <typename IteratorType>
+	void operator () (IteratorType begin, IteratorType end) const
+	{
+		Trace(L"RegisterPatternMatchedParameter", begin, end);
+		Bindings.SetParsePosition(end);
+		Bindings.RegisterPatternMatchedParameter();
+	}
+
+	SemanticActionInterface& Bindings;
+};

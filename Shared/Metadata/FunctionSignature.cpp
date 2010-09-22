@@ -23,11 +23,17 @@ FunctionSignature::FunctionSignature()
 //
 void FunctionSignature::AddParameter(const std::wstring& name, VM::EpochTypeID type)
 {
-	ParameterEntry paramentry;
-	paramentry.ParameterName = name;
-	paramentry.ParameterType = type;
+	Parameters.push_back(CompileTimeParameter(name, type));
+}
 
-	Parameters.push_back(paramentry);
+//
+// Add a parameter that is used in pattern matching which has an integer literal type
+//
+void FunctionSignature::AddPatternMatchedParameter(Integer32 literalvalue)
+{
+	CompileTimeParameter ctparam(L"@@patternmatched", VM::EpochType_Integer);
+	ctparam.Payload.IntegerValue = literalvalue;
+	Parameters.push_back(ctparam);
 }
 
 //
@@ -39,17 +45,11 @@ void FunctionSignature::SetReturnType(VM::EpochTypeID type)
 }
 
 //
-// Retrieve the type of the parameter at the given index
+// Retrieve the parameter at the given index
 //
-VM::EpochTypeID FunctionSignature::GetParameterType(unsigned index) const
+const CompileTimeParameter& FunctionSignature::GetParameter(unsigned index) const
 {
-	return Parameters[index].ParameterType;
+	return Parameters[index];
 }
 
-//
-// Retrieve the name of the parameter at the given index
-//
-const std::wstring& FunctionSignature::GetParameterName(unsigned index) const
-{
-	return Parameters[index].ParameterName;
-}
+

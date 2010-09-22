@@ -12,6 +12,8 @@
 #include "Utility/Types/EpochTypeIDs.h"
 #include "Utility/Types/IDTypes.h"
 
+#include "Metadata/CompileTimeParams.h"
+
 #include <map>
 #include <vector>
 
@@ -25,12 +27,12 @@ public:
 // Signature configuration interface
 public:
 	void AddParameter(const std::wstring& name, VM::EpochTypeID type);
+	void AddPatternMatchedParameter(Integer32 literalvalue);
 	void SetReturnType(VM::EpochTypeID type);
 	
 // Inspection interface
 public:
-	VM::EpochTypeID GetParameterType(unsigned index) const;
-	const std::wstring& GetParameterName(unsigned index) const;
+	const CompileTimeParameter& GetParameter(unsigned index) const;
 
 	VM::EpochTypeID GetReturnType() const
 	{ return ReturnType; }
@@ -40,13 +42,7 @@ public:
 
 // Internal tracking
 private:
-	struct ParameterEntry
-	{
-		std::wstring ParameterName;
-		VM::EpochTypeID ParameterType;
-	};
-
-	std::vector<ParameterEntry> Parameters;
+	std::vector<CompileTimeParameter> Parameters;
 
 	VM::EpochTypeID ReturnType;
 };

@@ -246,6 +246,8 @@ void CompilationSemantics::CompleteInfix()
 //
 void CompilationSemantics::BeginParameterSet()
 {
+	NeedsPatternResolver = false;
+	InsideParameterList = true;
 	FunctionSignatureStack.push(FunctionSignature());
 	if(IsPrepass)
 	{
@@ -266,6 +268,14 @@ void CompilationSemantics::BeginParameterSet()
 
 		throw FatalException("Lost track of a function overload definition somewhere along the line");
 	}
+}
+
+//
+// Finish parsing the definition list of parameters passed to an entity
+//
+void CompilationSemantics::EndParameterSet()
+{
+	InsideParameterList = false;
 }
 
 //
@@ -296,6 +306,54 @@ void CompilationSemantics::RegisterParameterName(const std::wstring& name)
 	}
 }
 
+//
+// Register that a function parameter requires pattern matching
+//
+// Pattern matching allows function overloads to be invoked depending on the values of the function
+// parameters rather than just the types.
+//
+void CompilationSemantics::RegisterPatternMatchedParameter()
+{
+	VM::EpochTypeID paramtype = VM::EpochType_Error;
+
+	switch(PushedItemTypes.top())
+	{
+	case ITEMTYPE_INTEGERLITERAL:
+		{
+			FunctionSignatureStack.top().AddPatternMatchedParameter(IntegerLiterals.top());
+			IntegerLiterals.pop();
+			paramtype = VM::EpochType_Integer;
+		}
+		break;
+
+	case ITEMTYPE_STRINGLITERAL:
+		throw NotImplementedException("TODO");
+		StringLiterals.pop();
+		break;
+
+	case ITEMTYPE_STATEMENT:
+		throw NotImplementedException("TODO");
+		StatementNames.pop();
+		StatementTypes.pop();
+		break;
+
+	default:
+		throw NotImplementedException("Unsupported expression in pattern matched function parameter");
+	}
+
+	PushedItemTypes.pop();
+
+	NeedsPatternResolver = true;
+
+	if(!IsPrepass)
+	{
+		std::map<StringHandle, ScopeDescription>::iterator iter = LexicalScopeDescriptions.find(LexicalScopeStack.top());
+		if(iter == LexicalScopeDescriptions.end())
+			throw FatalException("No lexical scope has been registered for the identifier \"" + narrow(Session.StringPool.GetPooledString(LexicalScopeStack.top())) + "\"");
+		
+		iter->second.AddVariable(L"@@patternmatched", Session.StringPool.Pool(L"@@patternmatched"), paramtype, VARIABLE_ORIGIN_PARAMETER);
+	}
+}
 
 
 //-------------------------------------------------------------------------------
@@ -343,7 +401,31 @@ void CompilationSemantics::EndReturnSet()
 	}
 
 	if(IsPrepass)
+	{
 		Session.FunctionSignatures.insert(std::make_pair(LexicalScopeStack.top(), FunctionSignatureStack.top()));
+		if(NeedsPatternResolver)
+		{
+			StringHandle resolvernamehandle = Session.StringPool.Pool(GetPatternMatchResolverName(Strings.top()));
+			if(Session.FunctionSignatures.find(resolvernamehandle) == Session.FunctionSignatures.end())
+			{
+				Session.FunctionSignatures.insert(std::make_pair(resolvernamehandle, FunctionSignatureStack.top()));
+				NeededPatternResolvers[resolvernamehandle] = FunctionSignatureStack.top();
+			}
+			OriginalFunctionsForPatternResolution.insert(std::make_pair(resolvernamehandle, LexicalScopeStack.top()));
+		}
+		else
+		{
+			// See if this is the default pattern matcher for any other pattern-matched overloads
+			for(FunctionSignatureSet::const_iterator iter = Session.FunctionSignatures.begin(); iter != Session.FunctionSignatures.end(); ++iter)
+			{
+				if(Session.StringPool.GetPooledString(iter->first) == GetPatternMatchResolverName(Strings.top()))
+				{
+					OriginalFunctionsForPatternResolution.insert(std::make_pair(iter->first, LexicalScopeStack.top()));
+					break;
+				}
+			}
+		}
+	}
 	else
 	{
 		EmitPendingCode();
@@ -546,12 +628,21 @@ void CompilationSemantics::CompleteStatement()
 				Throw(RecoverableException("The function \"" + narrow(statementname) + "\" is not defined in this scope"));
 
 			StatementTypes.push(fsiter->second.GetReturnType());
-
 			CompileTimeParameters.pop();
+
 			if(!CompileTimeParameters.empty())
 			{
-				const std::wstring& paramname = fsiter->second.GetParameterName(StatementParamCount.top());
-				VM::EpochTypeID paramtype = fsiter->second.GetParameterType(StatementParamCount.top());
+				std::wstring outerstatementname = StatementNames.top();
+				StringHandle outerstatementnamehandle = Session.StringPool.Pool(outerstatementname);
+
+				RemapFunctionToOverload(CompileTimeParameters.top(), outerstatementname, outerstatementnamehandle);
+
+				FunctionSignatureSet::const_iterator fsiter = Session.FunctionSignatures.find(outerstatementnamehandle);
+				if(fsiter == Session.FunctionSignatures.end())
+					Throw(RecoverableException("The function \"" + narrow(outerstatementname) + "\" is not defined in this scope"));
+
+				const std::wstring& paramname = fsiter->second.GetParameter(StatementParamCount.top()).Name;
+				VM::EpochTypeID paramtype = fsiter->second.GetParameter(StatementParamCount.top()).Type;
 
 				CompileTimeParameters.top().push_back(CompileTimeParameter(paramname, paramtype));
 			}
@@ -618,7 +709,7 @@ void CompilationSemantics::CompleteAssignment()
 		// TODO - type checking
 		EmitterStack.top()->AssignVariable(AssignmentTargets.top());
 		CompileTimeParameters.pop();
-		StatementTypes.pop();
+		StatementTypes.c.clear();
 	}
 	AssignmentTargets.pop();
 	StatementParamCount.pop();
@@ -678,8 +769,8 @@ void CompilationSemantics::ValidateAndPushParam(unsigned paramindex)
 					if(iter == Session.FunctionSignatures.end())
 						Throw(RecoverableException("The function \"" + narrow(StatementNames.top()) + "\" is not defined in this scope"));
 
-					paramname = iter->second.GetParameterName(paramindex);
-					expectedtype = iter->second.GetParameterType(paramindex);
+					paramname = iter->second.GetParameter(paramindex).Name;
+					expectedtype = iter->second.GetParameter(paramindex).Type;
 
 					// TODO - using exceptions for this is naughty. Rewrite it to just return a validity value from CheckParameterValidity().
 					try
@@ -702,8 +793,8 @@ void CompilationSemantics::ValidateAndPushParam(unsigned paramindex)
 				if(iter == Session.FunctionSignatures.end())
 					Throw(RecoverableException("The function \"" + narrow(StatementNames.top()) + "\" is not defined in this scope"));
 
-				paramname = iter->second.GetParameterName(paramindex);
-				expectedtype = iter->second.GetParameterType(paramindex);
+				paramname = iter->second.GetParameter(paramindex).Name;
+				expectedtype = iter->second.GetParameter(paramindex).Type;
 
 				CheckParameterValidity(expectedtype);
 				matchedparam = true;
@@ -828,6 +919,20 @@ void CompilationSemantics::Finalize()
 {
 	if(!IsPrepass)
 	{
+		// Generate any pattern-matching resolver functions needed
+		for(std::map<StringHandle, FunctionSignature>::const_iterator iter = NeededPatternResolvers.begin(); iter != NeededPatternResolvers.end(); ++iter)
+		{
+			EmitterStack.top()->DefineLexicalScope(iter->first, iter->second.GetNumParameters());
+			for(size_t i = 0; i < iter->second.GetNumParameters(); ++i)
+				EmitterStack.top()->LexicalScopeEntry(Session.StringPool.Pool(iter->second.GetParameter(i).Name), iter->second.GetParameter(i).Type, VARIABLE_ORIGIN_PARAMETER);
+
+			EmitterStack.top()->EnterPatternResolver(iter->first);
+			std::pair<std::multimap<StringHandle, StringHandle>::const_iterator, std::multimap<StringHandle, StringHandle>::const_iterator> range = OriginalFunctionsForPatternResolution.equal_range(iter->first);
+			for(std::multimap<StringHandle, StringHandle>::const_iterator originalfunciter = range.first; originalfunciter != range.second; ++originalfunciter)
+				EmitterStack.top()->ResolvePattern(originalfunciter->second, Session.FunctionSignatures.find(originalfunciter->second)->second);
+			EmitterStack.top()->ExitPatternResolver();
+		}
+
 		for(std::map<StringHandle, std::wstring>::const_iterator iter = Session.StringPool.GetInternalPool().begin(); iter != Session.StringPool.GetInternalPool().end(); ++iter)
 			EmitterStack.top()->PoolString(iter->first, iter->second);
 
@@ -906,6 +1011,7 @@ void CompilationSemantics::RemapFunctionToOverload(const std::vector<CompileTime
 	if(overloadsiter == FunctionOverloadNames.end())
 		return;
 
+	bool patternmatching = false;
 	const std::set<StringHandle>& overloadednames = overloadsiter->second;
 	for(std::set<StringHandle>::const_iterator iter = overloadednames.begin(); iter != overloadednames.end(); ++iter)
 	{
@@ -917,23 +1023,54 @@ void CompilationSemantics::RemapFunctionToOverload(const std::vector<CompileTime
 			continue;
 
 		bool matched = true;
+		bool patternsucceeded = true;
 		for(size_t i = 0; i < signatureiter->second.GetNumParameters(); ++i)
 		{
-			if(params[i].Type != signatureiter->second.GetParameterType(i))
+			if(params[i].Type != signatureiter->second.GetParameter(i).Type)
 			{
+				patternsucceeded = false;
 				matched = false;
 				break;
+			}
+
+			if(signatureiter->second.GetParameter(i).Name == L"@@patternmatched")
+			{
+				patternmatching = true;
+				switch(params[i].Type)
+				{
+				case VM::EpochType_Integer:
+					if(signatureiter->second.GetParameter(i).Payload.IntegerValue != params[i].Payload.IntegerValue)
+						patternsucceeded = false;
+					break;
+
+				default:
+					throw NotImplementedException("Unsupported pattern-matched parameter type");
+				}
+
+				if(!matched || !patternsucceeded)
+					break;
 			}
 		}
 
 		if(matched)
 		{
-			out_remappednamehandle = *iter;
-			out_remappedname = Session.StringPool.GetPooledString(out_remappednamehandle);
+			if(patternmatching && !patternsucceeded)
+			{
+				out_remappedname = GetPatternMatchResolverName(out_remappedname);
+				out_remappednamehandle = Session.StringPool.Pool(out_remappedname);
+			}
+			else
+			{
+				out_remappednamehandle = *iter;
+				out_remappedname = Session.StringPool.GetPooledString(out_remappednamehandle);
+			}
 			return;
 		}
 	}
 
+	if(patternmatching)
+		Throw(RecoverableException("No function matches this parameter pattern"));
+		
 	throw FatalException("Failed to remap function overload internally");
 }
 
@@ -973,6 +1110,14 @@ VM::EpochTypeID CompilationSemantics::LookupTypeName(const std::wstring& type) c
 		return VM::EpochType_String;
 
 	throw NotImplementedException("Cannot map the type name \"" + narrow(type) + "\" to an internal type ID");
+}
+
+//
+// Decorate a function name to produce the internal name of the function used to resolve pattern matches for the wrapped function
+//
+std::wstring CompilationSemantics::GetPatternMatchResolverName(const std::wstring& originalname) const
+{
+	return originalname + L"@@resolve_pattern_match";
 }
 
 

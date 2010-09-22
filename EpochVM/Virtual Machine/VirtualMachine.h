@@ -114,7 +114,7 @@ namespace VM
 
 	// Execution interface
 	public:
-		void Execute();
+		void Execute(const ScopeDescription* scope);
 		void Execute(size_t offset, const ScopeDescription& scope);
 
 	// State accessors

@@ -42,15 +42,12 @@ void ActiveScope::BindParametersToStack(const VM::ExecutionContext& context)
 //
 void ActiveScope::PushLocalsOntoStack(VM::ExecutionContext& context)
 {
-	size_t usedspace = 0;
-
 	for(std::vector<ScopeDescription::VariableEntry>::const_iterator iter = OriginalScope.Variables.begin(); iter != OriginalScope.Variables.end(); ++iter)
 	{
 		if(iter->Origin == VARIABLE_ORIGIN_LOCAL || iter->Origin == VARIABLE_ORIGIN_RETURN)
 		{
 			size_t size = VM::GetStorageSize(iter->Type);
 			context.State.Stack.Push(size);
-			usedspace += size;
 
 			VariableStorageLocations[context.OwnerVM.GetPooledStringHandle(iter->Identifier)] = context.State.Stack.GetCurrentTopOfStack();
 		}

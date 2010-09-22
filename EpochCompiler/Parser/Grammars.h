@@ -80,7 +80,9 @@ struct FundamentalGrammar : public boost::spirit::classic::grammar<FundamentalGr
 				MAPARROW("->"),
 				INTEGER("integer"),
 				STRING("string"),
-				ASSIGN("=")
+				ASSIGN("="),
+
+				ExpectFunctionBody(0)
 		{
 			using namespace boost::spirit::classic;
 
@@ -109,11 +111,12 @@ struct FundamentalGrammar : public boost::spirit::classic::grammar<FundamentalGr
 			
 			ParameterDeclaration
 				= VariableType[RegisterParameterType(self.Bindings)] >> OPENPARENS >> StringIdentifier[RegisterParameterName(self.Bindings)] >> CLOSEPARENS
+				| Expression[RegisterPatternMatchedParameter(self.Bindings)]
 				;
 
 
 			ParameterList
-				= OPENPARENS[BeginParameterSet(self.Bindings)] >> (!(ParameterDeclaration % COMMA)) >> CLOSEPARENS
+				= OPENPARENS[BeginParameterSet(self.Bindings)] >> (!(ParameterDeclaration % COMMA)) >> CLOSEPARENS[EndParameterSet(self.Bindings)]
 				;
 
 
@@ -161,7 +164,9 @@ struct FundamentalGrammar : public boost::spirit::classic::grammar<FundamentalGr
 				;
 
 			MetaEntity
-				= StringIdentifier[StoreString(self.Bindings)] >> COLON >> ParameterList >> MAPARROW >> ReturnList[StoreEntityType(self.Bindings, Bytecode::EntityTags::Function)] >> CodeBlock[StoreEntityCode(self.Bindings)];
+				= StringIdentifier[StoreString(self.Bindings)] >> COLON >> ParameterList >> MAPARROW >> ReturnList[StoreEntityType(self.Bindings, Bytecode::EntityTags::Function)]
+					>> MissingFunctionBodyExceptionGuard(ExpectFunctionBody(CodeBlock[StoreEntityCode(self.Bindings)]))[MissingFunctionBodyExceptionHandler(self.Bindings)]
+				;
 
 			Program
 				= (*MetaEntity)[Finalize(self.Bindings)]
@@ -204,6 +209,9 @@ struct FundamentalGrammar : public boost::spirit::classic::grammar<FundamentalGr
 		boost::spirit::classic::stored_rule<ScannerType> InfixIdentifier;
 
 		boost::spirit::classic::guard<RecoverableException> GeneralExceptionGuard;
+
+		boost::spirit::classic::guard<int> MissingFunctionBodyExceptionGuard;
+		boost::spirit::classic::assertion<int> ExpectFunctionBody;
 		
 		std::set<std::string> PooledNarrowStrings;
 
