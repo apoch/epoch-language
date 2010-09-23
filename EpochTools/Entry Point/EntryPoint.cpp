@@ -29,7 +29,7 @@ int _tmain(int argc, _TCHAR* argv[])
 	// TODO - exception safety/handling
 
 	// TODO - allow configuration via command line params
-	std::wstring source = Files::Load(L"d:\\epoch\\Programs\\Compiler and VM Tests\\patterns.epoch");
+	std::wstring source = Files::Load(L"d:\\epoch\\Programs\\Compiler and VM Tests\\overloads.epoch");
 	
 	DLLAccess::CompilerAccess compileraccess;
 	DLLAccess::CompiledByteCodeHandle bytecodebufferhandle = compileraccess.CompileSourceToByteCode(source);

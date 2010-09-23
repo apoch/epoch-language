@@ -590,6 +590,7 @@ void CompilationSemantics::BeginStatementParams()
 	{
 		CompileTimeParameters.push(std::vector<CompileTimeParameter>());
 		OverloadResolutionFailed.push(false);
+		OverloadMatchesPerParameter.push(std::vector<unsigned>());
 	}
 }
 
@@ -615,9 +616,44 @@ void CompilationSemantics::CompleteStatement()
 
 	if(!IsPrepass)
 	{
+		// Check to see if overload resolution failed; if any parameter resolved to zero
+		// overloads, then we failed; if all parameters resolve to more than one overload,
+		// we also failed.
+		bool foundresolvedparam = false;
+		for(std::vector<unsigned>::const_iterator iter = OverloadMatchesPerParameter.top().begin(); iter != OverloadMatchesPerParameter.top().end(); ++iter)
+		{
+			if(*iter == 0)
+			{
+				OverloadResolutionFailed.top() = true;
+				break;
+			}
+			else if(*iter == 1)
+			{
+				foundresolvedparam = true;
+				break;
+			}
+		}
+
+		if(!foundresolvedparam)
+			OverloadResolutionFailed.top() = true;
+
 		if(!OverloadResolutionFailed.top())
 		{
-			RemapFunctionToOverload(CompileTimeParameters.top(), statementname, statementnamehandle);
+			VM::EpochTypeID outerexpectedtype = VM::EpochType_Error;
+			if(!StatementNames.empty())
+			{
+				StringHandle outernamehandle = Session.StringPool.Pool(StatementNames.top());
+				unsigned outerparamindex = StatementParamCount.top();
+
+				// TODO - this doesn't handle assignments yet
+				FunctionSignatureSet::const_iterator outeriter = Session.FunctionSignatures.find(outernamehandle);
+				if(outeriter == Session.FunctionSignatures.end())
+					Throw(RecoverableException("The function \"" + narrow(Session.StringPool.GetPooledString(outernamehandle)) + "\" is not defined in this scope"));
+
+				outerexpectedtype = outeriter->second.GetParameter(outerparamindex).Type;
+			}
+
+			RemapFunctionToOverload(CompileTimeParameters.top(), outerexpectedtype, statementname, statementnamehandle);
 
 			FunctionCompileHelperTable::const_iterator fchiter = CompileTimeHelpers.find(statementname);
 			if(fchiter != CompileTimeHelpers.end())
@@ -635,7 +671,21 @@ void CompilationSemantics::CompleteStatement()
 				std::wstring outerstatementname = StatementNames.top();
 				StringHandle outerstatementnamehandle = Session.StringPool.Pool(outerstatementname);
 
-				RemapFunctionToOverload(CompileTimeParameters.top(), outerstatementname, outerstatementnamehandle);
+				VM::EpochTypeID secondouterexpectedtype = VM::EpochType_Error;
+				if(StatementNames.size() > 1)
+				{
+					StringHandle secondouternamehandle = Session.StringPool.Pool(StatementNames.c.at(StatementNames.size() - 2));
+					unsigned secondouterparamindex = StatementParamCount.c.at(StatementParamCount.size() - 2);
+
+					// TODO - this doesn't handle assignments yet
+					FunctionSignatureSet::const_iterator secondouteriter = Session.FunctionSignatures.find(secondouternamehandle);
+					if(secondouteriter == Session.FunctionSignatures.end())
+						Throw(RecoverableException("The function \"" + narrow(Session.StringPool.GetPooledString(secondouternamehandle)) + "\" is not defined in this scope"));
+
+					secondouterexpectedtype = secondouteriter->second.GetParameter(secondouterparamindex).Type;
+				}
+
+				RemapFunctionToOverload(CompileTimeParameters.top(), secondouterexpectedtype, outerstatementname, outerstatementnamehandle);
 
 				FunctionSignatureSet::const_iterator fsiter = Session.FunctionSignatures.find(outerstatementnamehandle);
 				if(fsiter == Session.FunctionSignatures.end())
@@ -650,6 +700,7 @@ void CompilationSemantics::CompleteStatement()
 			EmitterStack.top()->Invoke(statementnamehandle);
 		}
 		OverloadResolutionFailed.pop();
+		OverloadMatchesPerParameter.pop();
 	}
 }
 
@@ -740,7 +791,7 @@ void CompilationSemantics::ValidateStatementParam()
 void CompilationSemantics::ValidateAndPushParam(unsigned paramindex)
 {
 	std::wstring paramname;
-	VM::EpochTypeID expectedtype = VM::EpochType_Error;
+	VM::EpochTypeID finalexpectedtype = VM::EpochType_Error;
 
 	if(!IsPrepass)
 	{
@@ -749,14 +800,14 @@ void CompilationSemantics::ValidateAndPushParam(unsigned paramindex)
 		if(StatementNames.top() == L"=")
 		{
 			paramname = L"rhs";
-			expectedtype = LexicalScopeDescriptions.find(LexicalScopeStack.top())->second.GetVariableTypeByID(AssignmentTargets.top());
+			finalexpectedtype = LexicalScopeDescriptions.find(LexicalScopeStack.top())->second.GetVariableTypeByID(AssignmentTargets.top());
 
-			if(!CheckParameterValidity(expectedtype))
+			if(!CheckParameterValidity(finalexpectedtype))
 				Throw(TypeMismatchException("Left and right side of assignment must be of the same type"));
 		}
 		else
 		{
-			bool matchedparam = false;
+			unsigned matches = 0;
 
 			StringHandle rawnamehandle = Session.StringPool.Pool(StatementNames.top());
 			std::map<StringHandle, std::set<StringHandle> >::const_iterator overloadsiter = FunctionOverloadNames.find(rawnamehandle);
@@ -771,12 +822,33 @@ void CompilationSemantics::ValidateAndPushParam(unsigned paramindex)
 						Throw(RecoverableException("The function \"" + narrow(StatementNames.top()) + "\" is not defined in this scope"));
 
 					paramname = iter->second.GetParameter(paramindex).Name;
-					expectedtype = iter->second.GetParameter(paramindex).Type;
+					VM::EpochTypeID overloadexpectedtype = iter->second.GetParameter(paramindex).Type;
 
-					if(CheckParameterValidity(expectedtype))
+					if(CheckParameterValidity(overloadexpectedtype))
 					{
-						matchedparam = true;
-						break;
+						// Check return type, if possible, to help resolve overloads that differ by return type
+						if(StatementNames.size() > 1)
+						{
+							StringHandle outernamehandle = Session.StringPool.Pool(StatementNames.c.at(StatementNames.c.size() - 2));
+							unsigned outerparamindex = StatementParamCount.c.at(StatementParamCount.size() - 2);
+
+							// TODO - this doesn't handle assignments yet
+							FunctionSignatureSet::const_iterator outeriter = Session.FunctionSignatures.find(outernamehandle);
+							if(outeriter == Session.FunctionSignatures.end())
+								Throw(RecoverableException("The function \"" + narrow(Session.StringPool.GetPooledString(outernamehandle)) + "\" is not defined in this scope"));
+
+							VM::EpochTypeID outerexpectedtype = outeriter->second.GetParameter(outerparamindex).Type;
+							if(outerexpectedtype == iter->second.GetReturnType())
+							{
+								finalexpectedtype = overloadexpectedtype;
+								++matches;
+							}
+						}
+						else
+						{
+							finalexpectedtype = overloadexpectedtype;
+							++matches;
+						}
 					}
 					else
 					{
@@ -793,15 +865,17 @@ void CompilationSemantics::ValidateAndPushParam(unsigned paramindex)
 					Throw(RecoverableException("The function \"" + narrow(StatementNames.top()) + "\" is not defined in this scope"));
 
 				paramname = iter->second.GetParameter(paramindex).Name;
-				expectedtype = iter->second.GetParameter(paramindex).Type;
+				finalexpectedtype = iter->second.GetParameter(paramindex).Type;
 
-				if(CheckParameterValidity(expectedtype))
-					matchedparam = true;
+				if(CheckParameterValidity(finalexpectedtype))
+					++matches;
 				else
 					Throw(TypeMismatchException("Wrong parameter type"));
 			}
 
-			if(!matchedparam)
+			OverloadMatchesPerParameter.top().push_back(matches);
+
+			if(!matches)
 			{
 				OverloadResolutionFailed.top() = true;
 				Failed = true;
@@ -810,7 +884,7 @@ void CompilationSemantics::ValidateAndPushParam(unsigned paramindex)
 		}
 	}
 
-	CompileTimeParameter ctparam(paramname, expectedtype);
+	CompileTimeParameter ctparam(paramname, finalexpectedtype);
 
 	// Emit any necessary code and set up the compile-time parameter payload
 	switch(PushedItemTypes.top())
@@ -824,7 +898,7 @@ void CompilationSemantics::ValidateAndPushParam(unsigned paramindex)
 			StringHandle handle = Session.StringPool.Pool(Strings.top());
 			if(!IsPrepass)
 			{
-				if(expectedtype == VM::EpochType_Identifier)
+				if(finalexpectedtype == VM::EpochType_Identifier)
 					EmitterStack.top()->PushStringLiteral(handle);
 				else
 					EmitterStack.top()->PushVariableValue(handle);
@@ -1003,7 +1077,7 @@ StringHandle CompilationSemantics::AllocateNewOverloadedFunctionName(StringHandl
 //
 // Given a set of parameters, look up the appropriate matching function overload
 //
-void CompilationSemantics::RemapFunctionToOverload(const std::vector<CompileTimeParameter>& params, std::wstring& out_remappedname, StringHandle& out_remappednamehandle) const
+void CompilationSemantics::RemapFunctionToOverload(const std::vector<CompileTimeParameter>& params, VM::EpochTypeID expectedreturntype, std::wstring& out_remappedname, StringHandle& out_remappednamehandle) const
 {
 	std::map<StringHandle, std::set<StringHandle> >::const_iterator overloadsiter = FunctionOverloadNames.find(out_remappednamehandle);
 	if(overloadsiter == FunctionOverloadNames.end())
@@ -1018,6 +1092,9 @@ void CompilationSemantics::RemapFunctionToOverload(const std::vector<CompileTime
 			throw FatalException("Tried to map a function overload to an undefined function signature");
 
 		if(params.size() != signatureiter->second.GetNumParameters())
+			continue;
+
+		if(expectedreturntype != VM::EpochType_Error && signatureiter->second.GetReturnType() != expectedreturntype)
 			continue;
 
 		bool matched = true;
