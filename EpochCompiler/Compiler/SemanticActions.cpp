@@ -749,9 +749,10 @@ void CompilationSemantics::ValidateAndPushParam(unsigned paramindex)
 		if(StatementNames.top() == L"=")
 		{
 			paramname = L"rhs";
-			expectedtype = VM::EpochType_Integer;		// TODO - check type of LHS
+			expectedtype = LexicalScopeDescriptions.find(LexicalScopeStack.top())->second.GetVariableTypeByID(AssignmentTargets.top());
 
-			CheckParameterValidity(expectedtype);
+			if(!CheckParameterValidity(expectedtype))
+				Throw(TypeMismatchException("Left and right side of assignment must be of the same type"));
 		}
 		else
 		{
@@ -772,17 +773,15 @@ void CompilationSemantics::ValidateAndPushParam(unsigned paramindex)
 					paramname = iter->second.GetParameter(paramindex).Name;
 					expectedtype = iter->second.GetParameter(paramindex).Type;
 
-					// TODO - using exceptions for this is naughty. Rewrite it to just return a validity value from CheckParameterValidity().
-					try
+					if(CheckParameterValidity(expectedtype))
 					{
-						CheckParameterValidity(expectedtype);
 						matchedparam = true;
 						break;
 					}
-					catch(SpiritCompatibleTypeMismatchException&)
+					else
 					{
 						if(overloadnames.size() == 1)
-							throw;
+							Throw(TypeMismatchException("Wrong parameter type"));
 					}
 				}
 			}
@@ -796,8 +795,10 @@ void CompilationSemantics::ValidateAndPushParam(unsigned paramindex)
 				paramname = iter->second.GetParameter(paramindex).Name;
 				expectedtype = iter->second.GetParameter(paramindex).Type;
 
-				CheckParameterValidity(expectedtype);
-				matchedparam = true;
+				if(CheckParameterValidity(expectedtype))
+					matchedparam = true;
+				else
+					Throw(TypeMismatchException("Wrong parameter type"));
 			}
 
 			if(!matchedparam)
@@ -860,10 +861,8 @@ void CompilationSemantics::ValidateAndPushParam(unsigned paramindex)
 //
 // Helper routine for type-checking parameters
 //
-void CompilationSemantics::CheckParameterValidity(VM::EpochTypeID expectedtype)
+bool CompilationSemantics::CheckParameterValidity(VM::EpochTypeID expectedtype)
 {
-	bool valid = true;
-
 	if(PushedItemTypes.empty())
 		throw ParameterException("Expected at least one parameter here, but none have been provided");
 
@@ -871,11 +870,11 @@ void CompilationSemantics::CheckParameterValidity(VM::EpochTypeID expectedtype)
 	{
 	case ITEMTYPE_STATEMENT:
 		if(StatementTypes.empty())
-			valid = false;
+			return false;
 		else if(StatementTypes.top() != expectedtype)
 		{
-			valid = false;
 			StatementTypes.pop();
+			return false;
 		}
 		break;
 
@@ -883,28 +882,27 @@ void CompilationSemantics::CheckParameterValidity(VM::EpochTypeID expectedtype)
 		if(expectedtype != VM::EpochType_Identifier)
 		{
 			if(GetLexicalScopeDescription(LexicalScopeStack.top()).HasVariable(Strings.top()))
-				valid = (GetLexicalScopeDescription(LexicalScopeStack.top()).GetVariableTypeByID(Session.StringPool.Pool(Strings.top())) == expectedtype);
-			else
-				valid = false;
+				return (GetLexicalScopeDescription(LexicalScopeStack.top()).GetVariableTypeByID(Session.StringPool.Pool(Strings.top())) == expectedtype);
+
+			return false;
 		}
 		break;
 
 	case ITEMTYPE_STRINGLITERAL:
 		if(expectedtype != VM::EpochType_String)
-			valid = false;
+			return false;
 		break;
 	
 	case ITEMTYPE_INTEGERLITERAL:
 		if(expectedtype != VM::EpochType_Integer)
-			valid = false;
+			return false;
 		break;
 
 	default:
 		throw FatalException("Unrecognized ItemType value in LastPushedItemType, parser is probably broken");
 	}
 
-	if(!valid)
-		Throw(TypeMismatchException("Wrong parameter type"));
+	return true;
 }
 
 
