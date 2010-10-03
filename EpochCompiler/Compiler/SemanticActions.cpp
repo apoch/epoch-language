@@ -371,12 +371,12 @@ void CompilationSemantics::RegisterPatternMatchedParameter()
 		break;
 
 	case ITEMTYPE_STRINGLITERAL:
-		throw NotImplementedException("TODO");
+		throw NotImplementedException("Pattern matching on this parameter type is not implemented");
 		StringLiterals.pop();
 		break;
 
 	case ITEMTYPE_STATEMENT:
-		throw NotImplementedException("TODO");
+		throw NotImplementedException("Pattern matching on general expressions is not implemented");
 		StatementNames.pop();
 		StatementTypes.pop();
 		break;
@@ -1097,6 +1097,8 @@ void CompilationSemantics::RemapFunctionToOverload(const std::vector<CompileTime
 		return;
 
 	bool patternmatching = false;
+	bool differingreturntypes = false;
+
 	const std::set<StringHandle>& overloadednames = overloadsiter->second;
 	for(std::set<StringHandle>::const_iterator iter = overloadednames.begin(); iter != overloadednames.end(); ++iter)
 	{
@@ -1104,6 +1106,16 @@ void CompilationSemantics::RemapFunctionToOverload(const std::vector<CompileTime
 		if(signatureiter == Session.FunctionSignatures.end())
 			throw FatalException("Tried to map a function overload to an undefined function signature");
 
+		if(expectedreturntype != VM::EpochType_Error && signatureiter->second.GetReturnType() != expectedreturntype)
+		{
+			differingreturntypes = true;
+			break;
+		}
+	}
+
+	for(std::set<StringHandle>::const_iterator iter = overloadednames.begin(); iter != overloadednames.end(); ++iter)
+	{
+		FunctionSignatureSet::const_iterator signatureiter = Session.FunctionSignatures.find(*iter);
 		if(allowpartialparamsets)
 		{
 			if(params.size() > signatureiter->second.GetNumParameters())
@@ -1115,6 +1127,7 @@ void CompilationSemantics::RemapFunctionToOverload(const std::vector<CompileTime
 				continue;
 		}
 
+		// TODO - if parameter validation succeeds but return type validation fails, give a different error message!
 		if(expectedreturntype != VM::EpochType_Error && signatureiter->second.GetReturnType() != expectedreturntype)
 			continue;
 
@@ -1122,41 +1135,6 @@ void CompilationSemantics::RemapFunctionToOverload(const std::vector<CompileTime
 		bool patternsucceeded = true;
 		for(size_t i = 0; i < params.size(); ++i)
 		{
-			if(params[i].Type == VM::EpochType_Identifier)
-			{
-				if(signatureiter->second.GetParameter(i).Type != VM::EpochType_Identifier)
-				{
-					std::map<StringHandle, ScopeDescription>::const_iterator iter = LexicalScopeDescriptions.find(LexicalScopeStack.top());
-					if(iter == LexicalScopeDescriptions.end())
-						throw FatalException("No lexical scope has been registered for the identifier \"" + narrow(Session.StringPool.GetPooledString(LexicalScopeStack.top())) + "\"");
-
-					if(!iter->second.HasVariable(params[i].StringPayload))
-						Throw(RecoverableException("No variable by the name \"" + narrow(params[i].StringPayload) + "\" was found in this scope"));
-
-					if(iter->second.GetVariableTypeByID(params[i].Payload.StringHandleValue) != signatureiter->second.GetParameter(i).Type)
-					{
-						patternsucceeded = false;
-						matched = false;
-						break;
-					}
-				}
-			}
-			else if(params[i].Type == VM::EpochType_Expression)
-			{
-				if(signatureiter->second.GetParameter(i).Type != params[i].ExpressionType)
-				{
-					patternsucceeded = false;
-					matched = false;
-					break;
-				}
-			}
-			else if(params[i].Type != signatureiter->second.GetParameter(i).Type)
-			{
-				patternsucceeded = false;
-				matched = false;
-				break;
-			}
-
 			if(signatureiter->second.GetParameter(i).Name == L"@@patternmatched")
 			{
 				patternmatching = true;
@@ -1167,8 +1145,19 @@ void CompilationSemantics::RemapFunctionToOverload(const std::vector<CompileTime
 						patternsucceeded = false;
 					break;
 
-				// Always delegate to the runtime match default if an expression or variable is passed
+				// If an identifier is passed, we have to check if the overload wants an identifier or a variable
+				// If a variable is preferred, we always delegate to the runtime match default
 				case VM::EpochType_Identifier:
+					if(signatureiter->second.GetParameter(i).Type == VM::EpochType_Identifier)
+					{
+						if(signatureiter->second.GetParameter(i).Payload.StringHandleValue != params[i].Payload.StringHandleValue)
+							patternsucceeded = false;
+					}
+					else
+						patternsucceeded = false;
+					break;
+
+				// Always delegate to the runtime match default if an expression is passed
 				case VM::EpochType_Expression:
 					patternsucceeded = false;
 					break;
@@ -1180,12 +1169,52 @@ void CompilationSemantics::RemapFunctionToOverload(const std::vector<CompileTime
 				if(!matched || !patternsucceeded)
 					break;
 			}
+			else
+			{
+				if(params[i].Type == VM::EpochType_Identifier)
+				{
+					if(signatureiter->second.GetParameter(i).Type != VM::EpochType_Identifier)
+					{
+						std::map<StringHandle, ScopeDescription>::const_iterator iter = LexicalScopeDescriptions.find(LexicalScopeStack.top());
+						if(iter == LexicalScopeDescriptions.end())
+							throw FatalException("No lexical scope has been registered for the identifier \"" + narrow(Session.StringPool.GetPooledString(LexicalScopeStack.top())) + "\"");
+
+						if(!iter->second.HasVariable(params[i].StringPayload))
+							Throw(RecoverableException("No variable by the name \"" + narrow(params[i].StringPayload) + "\" was found in this scope"));
+
+						if(iter->second.GetVariableTypeByID(params[i].Payload.StringHandleValue) != signatureiter->second.GetParameter(i).Type)
+						{
+							patternsucceeded = false;
+							matched = false;
+							break;
+						}
+					}
+				}
+				else if(params[i].Type == VM::EpochType_Expression)
+				{
+					if(signatureiter->second.GetParameter(i).Type != params[i].ExpressionType)
+					{
+						patternsucceeded = false;
+						matched = false;
+						break;
+					}
+				}
+				else if(params[i].Type != signatureiter->second.GetParameter(i).Type)
+				{
+					patternsucceeded = false;
+					matched = false;
+					break;
+				}
+			}
 		}
 
 		if(matched)
 		{
 			if(patternmatching && !patternsucceeded)
 			{
+				if(differingreturntypes)
+					continue;
+
 				out_remappedname = GetPatternMatchResolverName(out_remappedname);
 				out_remappednamehandle = Session.StringPool.Pool(out_remappedname);
 			}
@@ -1199,9 +1228,14 @@ void CompilationSemantics::RemapFunctionToOverload(const std::vector<CompileTime
 	}
 
 	if(patternmatching)
-		Throw(RecoverableException("No function matches this parameter pattern"));
+	{
+		if(differingreturntypes)
+			Throw(RecoverableException("No function overload for \"" + narrow(out_remappedname) + "\" matches the given parameter pattern and expected return type"));
+		else
+			Throw(RecoverableException("No function overload for \"" + narrow(out_remappedname) + "\" matches the given parameter pattern"));
+	}
 		
-	Throw(RecoverableException("No function overload takes a matching parameter set"));
+	Throw(RecoverableException("No function overload for \"" + narrow(out_remappedname) + "\" takes a matching parameter set"));
 }
 
 

@@ -36,17 +36,16 @@ void TypeCasts::RegisterLibraryFunctions(FunctionInvocationTable& table, StringP
 void TypeCasts::RegisterLibraryFunctions(FunctionSignatureSet& signatureset, StringPoolManager& stringpool)
 {
 	// TODO - complain on duplicates
-	// TODO - use pattern matching to select overloads based on the value of the typename parameter
 	{
 		FunctionSignature signature;
-		signature.AddParameter(L"typename", EpochType_Identifier);
+		signature.AddPatternMatchedParameterIdentifier(stringpool.Pool(L"string"));
 		signature.AddParameter(L"value", EpochType_Integer);
 		signature.SetReturnType(VM::EpochType_String);
 		signatureset.insert(std::make_pair(stringpool.Pool(L"cast@@integer_to_string"), signature));
 	}
 	{
 		FunctionSignature signature;
-		signature.AddParameter(L"typename", EpochType_Identifier);
+		signature.AddPatternMatchedParameterIdentifier(stringpool.Pool(L"integer"));
 		signature.AddParameter(L"value", EpochType_String);
 		signature.SetReturnType(VM::EpochType_Integer);
 		signatureset.insert(std::make_pair(stringpool.Pool(L"cast@@string_to_integer"), signature));
@@ -67,9 +66,11 @@ void TypeCasts::RegisterLibraryFunctions(FunctionCompileHelperTable& table)
 //
 void TypeCasts::RegisterLibraryOverloads(std::map<StringHandle, std::set<StringHandle> >& overloadmap, StringPoolManager& stringpool)
 {
-	StringHandle functionnamehandle = stringpool.Pool(L"cast");
-	overloadmap[functionnamehandle].insert(stringpool.Pool(L"cast@@integer_to_string"));
-	overloadmap[functionnamehandle].insert(stringpool.Pool(L"cast@@string_to_integer"));
+	{
+		StringHandle functionnamehandle = stringpool.Pool(L"cast");
+		overloadmap[functionnamehandle].insert(stringpool.Pool(L"cast@@integer_to_string"));
+		overloadmap[functionnamehandle].insert(stringpool.Pool(L"cast@@string_to_integer"));
+	}
 }
 
 //

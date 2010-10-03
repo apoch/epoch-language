@@ -37,6 +37,16 @@ void FunctionSignature::AddPatternMatchedParameter(Integer32 literalvalue)
 }
 
 //
+// Add a parameter that is used in pattern matching which has a type of identifier
+//
+void FunctionSignature::AddPatternMatchedParameterIdentifier(StringHandle identifier)
+{
+	CompileTimeParameter ctparam(L"@@patternmatched", VM::EpochType_Identifier);
+	ctparam.Payload.StringHandleValue = identifier;
+	Parameters.push_back(ctparam);
+}
+
+//
 // Set the return type of the function
 //
 void FunctionSignature::SetReturnType(VM::EpochTypeID type)
