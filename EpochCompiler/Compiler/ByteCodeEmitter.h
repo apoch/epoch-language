@@ -51,6 +51,8 @@ public:
 	void PushStringLiteral(StringHandle handle);
 	void PushVariableValue(StringHandle variablename);
 
+	void PopStack(VM::EpochTypeID type);
+
 // Flow control
 public:
 	void Invoke(StringHandle functionname);

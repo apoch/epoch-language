@@ -95,6 +95,15 @@ void ByteCodeEmitter::PushVariableValue(StringHandle variablename)
 	EmitRawValue(variablename);
 }
 
+//
+// Emit code for popping a given number of bytes off the stack
+//
+void ByteCodeEmitter::PopStack(VM::EpochTypeID type)
+{
+	EmitInstruction(Bytecode::Instructions::Pop);
+	EmitTypeAnnotation(type);
+}
+
 
 //-------------------------------------------------------------------------------
 // Flow control

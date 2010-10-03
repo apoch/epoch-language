@@ -157,6 +157,13 @@ void Serializer::Write(const std::wstring& filename) const
 			}
 			break;
 
+		case Bytecode::Instructions::Pop:
+			{
+				VM::EpochTypeID type = traverser.ReadTypeAnnotation();
+				outfile << L"POP " << type << L"\n";
+			}
+			break;
+
 		case Bytecode::Instructions::Read:
 			outfile << L"READ " << traverser.Read<StringHandle>() << L"\n";
 			break;

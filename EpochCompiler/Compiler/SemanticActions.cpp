@@ -801,7 +801,14 @@ void CompilationSemantics::CompleteStatement()
 void CompilationSemantics::FinalizeStatement()
 {
 	if(!IsPrepass)
+	{
+		if(!StatementTypes.empty())
+		{
+			if(StatementTypes.top() != VM::EpochType_Void)
+				EmitterStack.top()->PopStack(StatementTypes.top());
+		}
 		StatementTypes.c.clear();
+	}
 
 	PushedItemTypes.pop();
 }
