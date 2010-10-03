@@ -5,6 +5,7 @@ Build/*
 build/*
 *.exe
 *.vcproj.*.Administrator.user
+*.vcproj.*.Apoch.user
 VTune/*
 *.ncb
 *.suo
