@@ -40,7 +40,14 @@ extern "C" void* __stdcall CompileSourceToByteCode(const wchar_t* filename, cons
 //
 extern "C" void __stdcall FreeByteCodeBuffer(void* handle)
 {
-	delete reinterpret_cast<CompileSession*>(handle);
+	try
+	{
+		delete reinterpret_cast<CompileSession*>(handle);
+	}
+	catch(...)
+	{
+		::MessageBox(0, L"Exception occurred while freeing code buffer", L"Epoch Exception", MB_ICONSTOP);
+	}
 }
 
 //
@@ -48,7 +55,14 @@ extern "C" void __stdcall FreeByteCodeBuffer(void* handle)
 //
 extern "C" const void* __stdcall GetByteCodeBuffer(void* handle)
 {
-	return reinterpret_cast<CompileSession*>(handle)->GetEmittedBuffer();
+	try
+	{
+		return reinterpret_cast<CompileSession*>(handle)->GetEmittedBuffer();
+	}
+	catch(...)
+	{
+		return NULL;
+	}
 }
 
 //
@@ -56,5 +70,12 @@ extern "C" const void* __stdcall GetByteCodeBuffer(void* handle)
 //
 extern "C" size_t __stdcall GetByteCodeBufferSize(void* handle)
 {
-	return reinterpret_cast<CompileSession*>(handle)->GetEmittedBufferSize();
+	try
+	{
+		return reinterpret_cast<CompileSession*>(handle)->GetEmittedBufferSize();
+	}
+	catch(...)
+	{
+		return 0;
+	}
 }

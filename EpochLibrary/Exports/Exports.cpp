@@ -28,18 +28,24 @@ namespace
 //
 extern "C" void __stdcall RegisterLibraryContents(FunctionSignatureSet& functionsignatures, StringPoolManager& stringpool)
 {
-	// TODO - exception wrappers around ALL export functions (here and in other DLLs)
-	DebugLibrary::RegisterLibraryFunctions(functionsignatures, stringpool);
-	DebugLibrary::RegisterLibraryFunctions(StandardLibraryFunctionDispatch, stringpool);
+	try
+	{
+		DebugLibrary::RegisterLibraryFunctions(functionsignatures, stringpool);
+		DebugLibrary::RegisterLibraryFunctions(StandardLibraryFunctionDispatch, stringpool);
 
-	TypeConstructors::RegisterLibraryFunctions(functionsignatures, stringpool);
-	TypeConstructors::RegisterLibraryFunctions(StandardLibraryFunctionDispatch, stringpool);
+		TypeConstructors::RegisterLibraryFunctions(functionsignatures, stringpool);
+		TypeConstructors::RegisterLibraryFunctions(StandardLibraryFunctionDispatch, stringpool);
 
-	TypeCasts::RegisterLibraryFunctions(functionsignatures, stringpool);
-	TypeCasts::RegisterLibraryFunctions(StandardLibraryFunctionDispatch, stringpool);
+		TypeCasts::RegisterLibraryFunctions(functionsignatures, stringpool);
+		TypeCasts::RegisterLibraryFunctions(StandardLibraryFunctionDispatch, stringpool);
 
-	ArithmeticLibrary::RegisterLibraryFunctions(functionsignatures, stringpool);
-	ArithmeticLibrary::RegisterLibraryFunctions(StandardLibraryFunctionDispatch, stringpool);
+		ArithmeticLibrary::RegisterLibraryFunctions(functionsignatures, stringpool);
+		ArithmeticLibrary::RegisterLibraryFunctions(StandardLibraryFunctionDispatch, stringpool);
+	}
+	catch(...)
+	{
+		::MessageBox(0, L"Fatal error while registering Epoch standard library", L"Epoch Exception", MB_ICONSTOP);
+	}
 }
 
 //
@@ -50,10 +56,17 @@ extern "C" void __stdcall RegisterLibraryContents(FunctionSignatureSet& function
 //
 extern "C" void __stdcall BindToVirtualMachine(FunctionInvocationTable& functiontable, StringPoolManager& stringpool)
 {
-	DebugLibrary::RegisterLibraryFunctions(functiontable, stringpool);
-	TypeConstructors::RegisterLibraryFunctions(functiontable, stringpool);
-	TypeCasts::RegisterLibraryFunctions(functiontable, stringpool);
-	ArithmeticLibrary::RegisterLibraryFunctions(functiontable, stringpool);
+	try
+	{
+		DebugLibrary::RegisterLibraryFunctions(functiontable, stringpool);
+		TypeConstructors::RegisterLibraryFunctions(functiontable, stringpool);
+		TypeCasts::RegisterLibraryFunctions(functiontable, stringpool);
+		ArithmeticLibrary::RegisterLibraryFunctions(functiontable, stringpool);
+	}
+	catch(...)
+	{
+		::MessageBox(0, L"Fatal error while registering Epoch standard library", L"Epoch Exception", MB_ICONSTOP);
+	}
 }
 
 //
@@ -64,14 +77,21 @@ extern "C" void __stdcall BindToVirtualMachine(FunctionInvocationTable& function
 //
 extern "C" void __stdcall BindToCompiler(FunctionCompileHelperTable& functiontable, InfixTable& infixtable, StringPoolManager& stringpool, std::map<StringHandle, std::set<StringHandle> >& overloadmap)
 {
-	DebugLibrary::RegisterLibraryFunctions(functiontable);
-	TypeConstructors::RegisterLibraryFunctions(functiontable);
+	try
+	{
+		DebugLibrary::RegisterLibraryFunctions(functiontable);
+		TypeConstructors::RegisterLibraryFunctions(functiontable);
 
-	TypeCasts::RegisterLibraryFunctions(functiontable);
-	TypeCasts::RegisterLibraryOverloads(overloadmap, stringpool);
+		TypeCasts::RegisterLibraryFunctions(functiontable);
+		TypeCasts::RegisterLibraryOverloads(overloadmap, stringpool);
 
-	ArithmeticLibrary::RegisterLibraryFunctions(functiontable);
-	ArithmeticLibrary::RegisterInfixOperators(infixtable, stringpool);
+		ArithmeticLibrary::RegisterLibraryFunctions(functiontable);
+		ArithmeticLibrary::RegisterInfixOperators(infixtable, stringpool);
+	}
+	catch(...)
+	{
+		::MessageBox(0, L"Fatal error while registering Epoch standard library", L"Epoch Exception", MB_ICONSTOP);
+	}
 }
 
 //
@@ -79,13 +99,20 @@ extern "C" void __stdcall BindToCompiler(FunctionCompileHelperTable& functiontab
 //
 extern "C" void __stdcall InvokeLibraryFunction(StringHandle functionname, VM::ExecutionContext& context)
 {
-	FunctionInvocationTable::const_iterator iter = StandardLibraryFunctionDispatch.find(functionname);
-	if(iter == StandardLibraryFunctionDispatch.end())
+	try
 	{
-		// TODO - flag an error in the execution context
-		return;
-	}
+		FunctionInvocationTable::const_iterator iter = StandardLibraryFunctionDispatch.find(functionname);
+		if(iter == StandardLibraryFunctionDispatch.end())
+		{
+			// TODO - flag an error in the execution context
+			return;
+		}
 
-	iter->second(functionname, context);
+		iter->second(functionname, context);
+	}
+	catch(...)
+	{
+		::MessageBox(0, L"Fatal error while invoking Epoch standard library function", L"Epoch Exception", MB_ICONSTOP);
+	}
 }
 
