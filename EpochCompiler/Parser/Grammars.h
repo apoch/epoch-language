@@ -18,6 +18,8 @@
 
 #include "Libraries/Library.h"
 
+#include "Compiler/Exceptions.h"
+
 
 
 //
@@ -121,7 +123,10 @@ struct FundamentalGrammar : public boost::spirit::classic::grammar<FundamentalGr
 
 
 			ReturnDeclaration
-				= VariableType[RegisterReturnType(self.Bindings)] >> OPENPARENS >> StringIdentifier[RegisterReturnName(self.Bindings)] >> COMMA >> Expression[RegisterReturnValue(self.Bindings)] >> CLOSEPARENS
+				= TypeMismatchExceptionGuard
+				  (
+					VariableType[RegisterReturnType(self.Bindings)] >> OPENPARENS >> StringIdentifier[RegisterReturnName(self.Bindings)] >> COMMA >> Expression[RegisterReturnValue(self.Bindings)] >> CLOSEPARENS
+				  )[GeneralExceptionHandler(self.Bindings)]
 				;
 
 			ReturnList
@@ -155,7 +160,10 @@ struct FundamentalGrammar : public boost::spirit::classic::grammar<FundamentalGr
 			CodeBlockEntry
 				= GeneralExceptionGuard
 				  (
-					((Assignment) | (Statement[FinalizeStatement(self.Bindings)]))
+					TypeMismatchExceptionGuard
+					(
+						((Assignment) | (Statement[FinalizeStatement(self.Bindings)]))
+					)[GeneralExceptionHandler(self.Bindings)]
 				  )[GeneralExceptionHandler(self.Bindings)]
 				;
 
@@ -209,6 +217,7 @@ struct FundamentalGrammar : public boost::spirit::classic::grammar<FundamentalGr
 		boost::spirit::classic::stored_rule<ScannerType> InfixIdentifier;
 
 		boost::spirit::classic::guard<RecoverableException> GeneralExceptionGuard;
+		boost::spirit::classic::guard<TypeMismatchException> TypeMismatchExceptionGuard;
 
 		boost::spirit::classic::guard<int> MissingFunctionBodyExceptionGuard;
 		boost::spirit::classic::assertion<int> ExpectFunctionBody;

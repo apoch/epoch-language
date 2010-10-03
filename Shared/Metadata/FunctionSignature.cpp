@@ -62,4 +62,17 @@ const CompileTimeParameter& FunctionSignature::GetParameter(unsigned index) cons
 	return Parameters[index];
 }
 
+//
+// Retrieve the parameter with the given name
+//
+const CompileTimeParameter& FunctionSignature::GetParameter(const std::wstring& name) const
+{
+	for(size_t i = 0; i < Parameters.size(); ++i)
+	{
+		if(Parameters[i].Name == name)
+			return Parameters[i];
+	}
+
+	throw FatalException("Invalid parameter name");
+}
 

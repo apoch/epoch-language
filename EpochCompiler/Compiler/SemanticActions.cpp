@@ -543,23 +543,28 @@ void CompilationSemantics::RegisterReturnValue()
 		}
 		else if(PushedItemTypes.top() == ITEMTYPE_STRING)
 		{
-			// TODO - do we need to validate the return value type here??
-			if(!IsPrepass)
-				PendingEmitters.top().PushVariableValue(Session.StringPool.Pool(Strings.top()));
+			StringHandle varhandle = Session.StringPool.Pool(Strings.top());
 			Strings.pop();
+
+			VM::EpochTypeID vartype = FunctionSignatureStack.top().GetParameter(Session.StringPool.GetPooledString(varhandle)).Type;
+			if(vartype != VM::EpochType_Integer)
+				Throw(TypeMismatchException("The function is defined as returning an integer but the provided default return value is not of an integer type."));
+
+			if(!IsPrepass)
+				PendingEmitters.top().PushVariableValue(varhandle);
 		}
 		else if(PushedItemTypes.top() == ITEMTYPE_STATEMENT)
 		{
 			if(!IsPrepass)
 			{
 				if(StatementTypes.top() != VM::EpochType_Integer)
-					throw TypeMismatchException("The function is defined as returning an integer but the provided default return value is not of an integer type.");
+					Throw(TypeMismatchException("The function is defined as returning an integer but the provided default return value is not of an integer type."));
 			}
 
 			ReturnsIncludedStatement.top() = true;
 		}
 		else
-			throw TypeMismatchException("The function is defined as returning an integer but the provided default return value is not of an integer type.");
+			Throw(TypeMismatchException("The function is defined as returning an integer but the provided default return value is not of an integer type."));
 		break;
 
 	case VM::EpochType_String:
@@ -571,23 +576,28 @@ void CompilationSemantics::RegisterReturnValue()
 		}
 		else if(PushedItemTypes.top() == ITEMTYPE_STRING)
 		{
-			// TODO - do we need to validate the return value type here??
-			if(!IsPrepass)
-				PendingEmitters.top().PushVariableValue(Session.StringPool.Pool(Strings.top()));
+			StringHandle varhandle = Session.StringPool.Pool(Strings.top());
 			Strings.pop();
+
+			VM::EpochTypeID vartype = FunctionSignatureStack.top().GetParameter(Session.StringPool.GetPooledString(varhandle)).Type;
+			if(vartype != VM::EpochType_String)
+				Throw(TypeMismatchException("The function is defined as returning a string but the provided default return value is not of string type."));
+
+			if(!IsPrepass)
+				PendingEmitters.top().PushVariableValue(varhandle);
 		}
 		else if(PushedItemTypes.top() == ITEMTYPE_STATEMENT)
 		{
 			if(!IsPrepass)
 			{
 				if(StatementTypes.top() != VM::EpochType_String)
-					throw TypeMismatchException("The function is defined as returning a string but the provided default return value is not of string type.");
+					Throw(TypeMismatchException("The function is defined as returning a string but the provided default return value is not of string type."));
 			}
 
 			ReturnsIncludedStatement.top() = true;
 		}
 		else
-			throw TypeMismatchException("The function is defined as returning a string but the provided default return value is not of string type.");
+			Throw(TypeMismatchException("The function is defined as returning a string but the provided default return value is not of string type."));
 		break;
 
 	default:

@@ -36,6 +36,7 @@ public:
 // Inspection interface
 public:
 	const CompileTimeParameter& GetParameter(unsigned index) const;
+	const CompileTimeParameter& GetParameter(const std::wstring& name) const;
 
 	VM::EpochTypeID GetReturnType() const
 	{ return ReturnType; }
