@@ -129,9 +129,11 @@ private:
 	void Throw(const ExceptionT& exception) const;
 
 	StringHandle AllocateNewOverloadedFunctionName(StringHandle originalname);
-	void RemapFunctionToOverload(const std::vector<CompileTimeParameter>& params, VM::EpochTypeID expectedreturntype, std::wstring& out_remappedname, StringHandle& out_remappednamehandle) const;
+	void RemapFunctionToOverload(const std::vector<CompileTimeParameter>& params, VM::EpochTypeID expectedreturntype, bool allowpartialparamsets, std::wstring& out_remappedname, StringHandle& out_remappednamehandle) const;
 
 	std::wstring GetPatternMatchResolverName(const std::wstring& originalname) const;
+
+	VM::EpochTypeID WalkCallChainForExpectedType(size_t index) const;
 
 // Internal tracking
 private:
