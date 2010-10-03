@@ -1098,6 +1098,7 @@ void CompilationSemantics::RemapFunctionToOverload(const std::vector<CompileTime
 
 	bool patternmatching = false;
 	bool differingreturntypes = false;
+	bool remaptopatternresolver = false;
 
 	const std::set<StringHandle>& overloadednames = overloadsiter->second;
 	for(std::set<StringHandle>::const_iterator iter = overloadednames.begin(); iter != overloadednames.end(); ++iter)
@@ -1211,14 +1212,26 @@ void CompilationSemantics::RemapFunctionToOverload(const std::vector<CompileTime
 
 		if(matched)
 		{
-			if(patternmatching && !patternsucceeded)
+			if(patternmatching)
 			{
-				if(!differingreturntypes)
-					matches.insert(Session.StringPool.Pool(GetPatternMatchResolverName(out_remappedname)));
+				if(patternsucceeded)
+				{
+					matches.insert(*iter);
+					break;
+				}
+				else if(!differingreturntypes)
+					remaptopatternresolver = true;
 			}
 			else
 				matches.insert(*iter);
 		}
+	}
+
+	if(remaptopatternresolver)
+	{
+		out_remappedname = GetPatternMatchResolverName(out_remappedname);
+		out_remappednamehandle = Session.StringPool.Pool(out_remappedname);
+		return;
 	}
 
 	if(!matches.empty())
