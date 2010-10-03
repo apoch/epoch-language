@@ -26,22 +26,27 @@ int _tmain(int argc, _TCHAR* argv[])
 	output << L"Epoch Language Project\nCommand line tools interface\n\n";
 	output.Flush();
 
-	// TODO - exception safety/handling
-
-	// TODO - allow configuration via command line params
-	std::wstring filename(L"d:\\epoch\\Programs\\Compiler and VM Tests\\errors.epoch");
-	std::wstring source = Files::Load(filename);
-	
-	DLLAccess::CompilerAccess compileraccess;
-	DLLAccess::CompiledByteCodeHandle bytecodebufferhandle = compileraccess.CompileSourceToByteCode(filename, source);
-
-	if(bytecodebufferhandle)
+	try
 	{
-		Serialization::Serializer serializer(compileraccess, bytecodebufferhandle);
-		serializer.Write(L"d:\\foo.txt");
+		// TODO - allow configuration via command line params
+		std::wstring filename(L"d:\\epoch\\Programs\\Compiler and VM Tests\\errors.epoch");
+		std::wstring source = Files::Load(filename);
+		
+		DLLAccess::CompilerAccess compileraccess;
+		DLLAccess::CompiledByteCodeHandle bytecodebufferhandle = compileraccess.CompileSourceToByteCode(filename, source);
 
-		DLLAccess::VMAccess vmaccess;
-		vmaccess.ExecuteByteCode(compileraccess.GetByteCode(bytecodebufferhandle), compileraccess.GetByteCodeSize(bytecodebufferhandle));
+		if(bytecodebufferhandle)
+		{
+			Serialization::Serializer serializer(compileraccess, bytecodebufferhandle);
+			serializer.Write(L"d:\\foo.txt");
+
+			DLLAccess::VMAccess vmaccess;
+			vmaccess.ExecuteByteCode(compileraccess.GetByteCode(bytecodebufferhandle), compileraccess.GetByteCodeSize(bytecodebufferhandle));
+		}
+	}
+	catch(std::exception& e)
+	{
+		output << L"Error: " << e.what() << std::endl;
 	}
 
 	return 0;
