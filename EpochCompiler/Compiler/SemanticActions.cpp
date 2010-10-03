@@ -1228,6 +1228,7 @@ void CompilationSemantics::RemapFunctionToOverload(const std::vector<CompileTime
 
 		out_remappednamehandle = *matches.begin();
 		out_remappedname = Session.StringPool.GetPooledString(out_remappednamehandle);
+		return;
 	}
 
 	if(patternmatching)

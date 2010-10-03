@@ -29,7 +29,7 @@ int _tmain(int argc, _TCHAR* argv[])
 	// TODO - exception safety/handling
 
 	// TODO - allow configuration via command line params
-	std::wstring filename(L"d:\\epoch\\Programs\\Compiler and VM Tests\\errors.epoch");
+	std::wstring filename(L"d:\\epoch\\Programs\\Compiler and VM Tests\\stacktest.epoch");
 	std::wstring source = Files::Load(filename);
 	
 	DLLAccess::CompilerAccess compileraccess;
