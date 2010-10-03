@@ -40,9 +40,9 @@ CompileSession::CompileSession()
 //
 // Add a code block to the compilation session
 //
-void CompileSession::AddCompileBlock(const std::wstring& source)
+void CompileSession::AddCompileBlock(const std::wstring& source, const std::wstring& filename)
 {
-	SourceBlocks.push_back(source);
+	SourceBlocksAndFileNames.push_back(std::make_pair(source, filename));
 }
 
 
@@ -68,8 +68,8 @@ void CompileSession::EmitByteCode()
 	// user-defined functions at global scope. To accomplish this, we will traverse the
 	// set of code blocks that have been provided, and compile each one's global-scoped
 	// functions.
-	for(std::list<std::wstring>::const_iterator iter = SourceBlocks.begin(); iter != SourceBlocks.end(); ++iter)
-		CompileFunctions(*iter);
+	for(std::list<std::pair<std::wstring, std::wstring> >::const_iterator iter = SourceBlocksAndFileNames.begin(); iter != SourceBlocksAndFileNames.end(); ++iter)
+		CompileFunctions(iter->first, iter->second);
 }
 
 
@@ -93,13 +93,13 @@ size_t CompileSession::GetEmittedBufferSize() const
 //
 // Compile all global-scoped functions in the given code block
 //
-void CompileSession::CompileFunctions(const std::wstring& code)
+void CompileSession::CompileFunctions(const std::wstring& code, const std::wstring& filename)
 {
 	ByteCodeEmitter emitter(ByteCodeBuffer);
 	CompilationSemantics semantics(emitter, *this);
 	Parser theparser(semantics, InfixIdentifiers);
 
-	if(!theparser.Parse(code) || semantics.DidFail())
+	if(!theparser.Parse(code, filename) || semantics.DidFail())
 		throw FatalException("Parsing failed!");
 
 	semantics.SanityCheck();

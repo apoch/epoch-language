@@ -33,7 +33,7 @@ public:
 
 // Tracking of code blocks to compile
 public:
-	void AddCompileBlock(const std::wstring& source);
+	void AddCompileBlock(const std::wstring& source, const std::wstring& filename);
 
 // Bytecode generation
 public:
@@ -53,11 +53,11 @@ public:
 
 // Internal helpers
 private:
-	void CompileFunctions(const std::wstring& codeblock);
+	void CompileFunctions(const std::wstring& codeblock, const std::wstring& filename);
 
 // Internal tracking
 private:
-	std::list<std::wstring> SourceBlocks;
+	std::list<std::pair<std::wstring, std::wstring> > SourceBlocksAndFileNames;
 	std::vector<Byte> ByteCodeBuffer;
 	InfixTable InfixIdentifiers;
 };

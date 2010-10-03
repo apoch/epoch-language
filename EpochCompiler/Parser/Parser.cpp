@@ -21,7 +21,7 @@ using namespace boost::spirit::classic;
 // Parse a given block of code, invoking the bound set of
 // semantic actions during the parse process
 //
-bool Parser::Parse(const std::wstring& code)
+bool Parser::Parse(const std::wstring& code, const std::wstring& filename)
 {
 	std::vector<char> memblock;
 	memblock.reserve(code.length() + 20);		// paranoia padding
@@ -32,7 +32,7 @@ bool Parser::Parse(const std::wstring& code)
 	// The parser prefers to have trailing whitespace, for whatever reason.
 	memblock.push_back('\n');
 
-	position_iterator<const char*> start(&memblock[0], &memblock[0] + memblock.size() - 1, "unknown_file");
+	position_iterator<const char*> start(&memblock[0], &memblock[0] + memblock.size() - 1, narrow(filename));
     position_iterator<const char*> end;
 
 	SemanticActions.SetPrepassMode(true);

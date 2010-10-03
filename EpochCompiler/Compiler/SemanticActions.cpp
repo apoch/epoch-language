@@ -1129,7 +1129,6 @@ void CompilationSemantics::RemapFunctionToOverload(const std::vector<CompileTime
 				continue;
 		}
 
-		// TODO - if parameter validation succeeds but return type validation fails, give a different error message!
 		if(expectedreturntype != VM::EpochType_Error && signatureiter->second.GetReturnType() != expectedreturntype)
 			continue;
 

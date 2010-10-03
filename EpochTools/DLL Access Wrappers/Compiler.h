@@ -28,14 +28,14 @@ namespace DLLAccess
 
 	// DLL interface
 	public:
-		CompiledByteCodeHandle CompileSourceToByteCode(const std::wstring& source);
+		CompiledByteCodeHandle CompileSourceToByteCode(const std::wstring& filename, const std::wstring& source);
 
 		const void* GetByteCode(CompiledByteCodeHandle handle) const;
 		size_t GetByteCodeSize(CompiledByteCodeHandle handle) const;
 
 	// Internal type definitions for function pointers
 	private:
-		typedef CompiledByteCodeHandle (__stdcall *CompileSourceToByteCodePtr)(const wchar_t*, size_t);
+		typedef CompiledByteCodeHandle (__stdcall *CompileSourceToByteCodePtr)(const wchar_t*, const void*, size_t);
 		typedef const void* (__stdcall *GetByteCodeBufferPtr)(CompiledByteCodeHandle);
 		typedef size_t (__stdcall *GetByteCodeBufferSizePtr)(CompiledByteCodeHandle);
 		typedef void (__stdcall *FreeByteCodeBufferPtr)(CompiledByteCodeHandle);

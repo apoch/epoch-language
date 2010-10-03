@@ -293,6 +293,18 @@
 						>
 					</File>
 				</Filter>
+				<Filter
+					Name="Files and Paths"
+					>
+					<File
+						RelativePath="..\Shared\Utility\Files\FilesAndPaths.cpp"
+						>
+					</File>
+					<File
+						RelativePath="..\Shared\Utility\Files\FilesAndPaths.h"
+						>
+					</File>
+				</Filter>
 			</Filter>
 			<Filter
 				Name="Metadata"

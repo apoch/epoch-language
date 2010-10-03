@@ -27,7 +27,7 @@ public:
 
 // Parsing operations
 public:
-	bool Parse(const std::wstring& code);
+	bool Parse(const std::wstring& code, const std::wstring& filename);
 
 // Internal tracking
 private:

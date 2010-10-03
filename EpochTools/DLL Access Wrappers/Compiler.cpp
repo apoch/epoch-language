@@ -47,9 +47,9 @@ CompilerAccess::~CompilerAccess()
 //
 // Compile a block of raw source code into bytecode
 //
-CompiledByteCodeHandle CompilerAccess::CompileSourceToByteCode(const std::wstring& source)
+CompiledByteCodeHandle CompilerAccess::CompileSourceToByteCode(const std::wstring& filename, const std::wstring& source)
 {
-	CompiledByteCodeHandle handle = DoCompileSource(source.c_str(), source.length());
+	CompiledByteCodeHandle handle = DoCompileSource(filename.c_str(), source.c_str(), source.length());
 	ByteCodeBuffers.insert(handle);
 	return handle;
 }

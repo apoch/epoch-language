@@ -17,13 +17,13 @@
 // client code, as well as to prevent having to mess with throwing
 // exceptions across DLL boundaries.
 //
-extern "C" void* __stdcall CompileSourceToByteCode(const void* sourcecodebuffer, size_t sourcesize)
+extern "C" void* __stdcall CompileSourceToByteCode(const wchar_t* filename, const void* sourcecodebuffer, size_t sourcesize)
 {
 	try
 	{
 		std::wstring source(reinterpret_cast<std::wstring::const_pointer>(sourcecodebuffer), sourcesize);
 		std::auto_ptr<CompileSession> session(new CompileSession);
-		session->AddCompileBlock(source);
+		session->AddCompileBlock(source, filename);
 		session->EmitByteCode();
 		return session.release();
 	}

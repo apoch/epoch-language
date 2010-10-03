@@ -14,6 +14,8 @@
 
 #include "Bytecode/EntityTags.h"
 
+#include "Utility/Files/FilesAndPaths.h"
+
 #include <sstream>
 
 #ifdef _DEBUG
@@ -42,7 +44,7 @@ struct GeneralExceptionHandler
 	{
 		boost::spirit::classic::file_position pos = theerror.where.get_position();
 
-		std::wcout << L"Error in file \"" << widen(pos.file) << L"\" on line " << pos.line << L":\n";
+		std::wcout << L"Error in file \"" << StripPath(widen(pos.file)) << L"\" on line " << pos.line << L":\n";
 		std::wcout << theerror.descriptor.what() << std::endl << std::endl;
 
         // Move past the broken line and continue parsing
