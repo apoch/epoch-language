@@ -705,7 +705,7 @@ void CompilationSemantics::CompleteStatement()
 					throw FatalException("Parameter's type is explicitly flagged as invalid");
 
 				case VM::EpochType_Void:
-					Throw(RecoverableException("Parameter has no type; cannot be passed to this function"));		// TODO - test case for this, and improved error message
+					Throw(RecoverableException("Parameter has no type; cannot be passed to this function"));
 
 				case VM::EpochType_Identifier:
 					if(fsiter->second.GetParameter(i).Type == VM::EpochType_Identifier)
@@ -1261,6 +1261,9 @@ void CompilationSemantics::RemapFunctionToOverload(const std::vector<CompileTime
 		else
 			Throw(RecoverableException("No function overload for \"" + narrow(out_remappedname) + "\" matches the given parameter pattern"));
 	}
+
+	if(differingreturntypes)
+		Throw(RecoverableException("The function \"" + narrow(out_remappedname) + "\" does not return the right type to be used for this parameter"));
 		
 	Throw(RecoverableException("No function overload for \"" + narrow(out_remappedname) + "\" takes a matching parameter set"));
 }
