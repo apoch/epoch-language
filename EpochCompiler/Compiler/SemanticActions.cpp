@@ -671,6 +671,8 @@ void CompilationSemantics::CompleteStatement()
 				std::wstring outerstatementname = StatementNames.top();
 				StringHandle outerstatementnamehandle = Session.StringPool.Pool(outerstatementname);
 
+				// TODO - either we need to walk up the entire function call stack (eww) or we need to change over to only doing parameter validation AFTER CompleteStatement()
+
 				VM::EpochTypeID secondouterexpectedtype = VM::EpochType_Error;
 				if(StatementNames.size() > 1)
 				{
@@ -810,8 +812,8 @@ void CompilationSemantics::ValidateAndPushParam(unsigned paramindex)
 			unsigned matches = 0;
 
 			StringHandle rawnamehandle = Session.StringPool.Pool(StatementNames.top());
-			std::map<StringHandle, std::set<StringHandle> >::const_iterator overloadsiter = FunctionOverloadNames.find(rawnamehandle);
-			if(overloadsiter != FunctionOverloadNames.end())
+			std::map<StringHandle, std::set<StringHandle> >::const_iterator overloadsiter = Session.FunctionOverloadNames.find(rawnamehandle);
+			if(overloadsiter != Session.FunctionOverloadNames.end())
 			{
 				const std::set<StringHandle>& overloadnames = overloadsiter->second;
 				for(std::set<StringHandle>::const_iterator overloaditer = overloadnames.begin(); overloaditer != overloadnames.end(); ++overloaditer)
@@ -1060,7 +1062,7 @@ ScopeDescription& CompilationSemantics::GetLexicalScopeDescription(StringHandle 
 //
 StringHandle CompilationSemantics::AllocateNewOverloadedFunctionName(StringHandle originalname)
 {
-	std::set<StringHandle>& overloadednames = FunctionOverloadNames[originalname];
+	std::set<StringHandle>& overloadednames = Session.FunctionOverloadNames[originalname];
 	if(overloadednames.empty())
 	{
 		overloadednames.insert(originalname);
@@ -1079,8 +1081,8 @@ StringHandle CompilationSemantics::AllocateNewOverloadedFunctionName(StringHandl
 //
 void CompilationSemantics::RemapFunctionToOverload(const std::vector<CompileTimeParameter>& params, VM::EpochTypeID expectedreturntype, std::wstring& out_remappedname, StringHandle& out_remappednamehandle) const
 {
-	std::map<StringHandle, std::set<StringHandle> >::const_iterator overloadsiter = FunctionOverloadNames.find(out_remappednamehandle);
-	if(overloadsiter == FunctionOverloadNames.end())
+	std::map<StringHandle, std::set<StringHandle> >::const_iterator overloadsiter = Session.FunctionOverloadNames.find(out_remappednamehandle);
+	if(overloadsiter == Session.FunctionOverloadNames.end())
 		return;
 
 	bool patternmatching = false;

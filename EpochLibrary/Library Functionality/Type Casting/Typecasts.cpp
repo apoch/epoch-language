@@ -26,7 +26,8 @@ using namespace VM;
 void TypeCasts::RegisterLibraryFunctions(FunctionInvocationTable& table, StringPoolManager& stringpool)
 {
 	// TODO - complain on duplicates
-	table.insert(std::make_pair(stringpool.Pool(L"cast"), TypeCasts::Cast));
+	table.insert(std::make_pair(stringpool.Pool(L"cast@@integer_to_string"), TypeCasts::CastIntegerToString));
+	table.insert(std::make_pair(stringpool.Pool(L"cast@@string_to_integer"), TypeCasts::CastStringToInteger));
 }
 
 //
@@ -35,12 +36,20 @@ void TypeCasts::RegisterLibraryFunctions(FunctionInvocationTable& table, StringP
 void TypeCasts::RegisterLibraryFunctions(FunctionSignatureSet& signatureset, StringPoolManager& stringpool)
 {
 	// TODO - complain on duplicates
+	// TODO - use pattern matching to select overloads based on the value of the typename parameter
 	{
 		FunctionSignature signature;
 		signature.AddParameter(L"typename", EpochType_Identifier);
-		signature.AddParameter(L"value", EpochType_Integer);				// TODO - overload cast() to support additional parameter types
-		signature.SetReturnType(VM::EpochType_String);						// TODO - how do we handle this for non-strings??
-		signatureset.insert(std::make_pair(stringpool.Pool(L"cast"), signature));
+		signature.AddParameter(L"value", EpochType_Integer);
+		signature.SetReturnType(VM::EpochType_String);
+		signatureset.insert(std::make_pair(stringpool.Pool(L"cast@@integer_to_string"), signature));
+	}
+	{
+		FunctionSignature signature;
+		signature.AddParameter(L"typename", EpochType_Identifier);
+		signature.AddParameter(L"value", EpochType_String);
+		signature.SetReturnType(VM::EpochType_Integer);
+		signatureset.insert(std::make_pair(stringpool.Pool(L"cast@@string_to_integer"), signature));
 	}
 }
 
@@ -54,9 +63,19 @@ void TypeCasts::RegisterLibraryFunctions(FunctionCompileHelperTable& table)
 
 
 //
+// Register the list of overloads used by functions in this library module
+//
+void TypeCasts::RegisterLibraryOverloads(std::map<StringHandle, std::set<StringHandle> >& overloadmap, StringPoolManager& stringpool)
+{
+	StringHandle functionnamehandle = stringpool.Pool(L"cast");
+	overloadmap[functionnamehandle].insert(stringpool.Pool(L"cast@@integer_to_string"));
+	overloadmap[functionnamehandle].insert(stringpool.Pool(L"cast@@string_to_integer"));
+}
+
+//
 // Convert between primitive types
 //
-void TypeCasts::Cast(StringHandle functionname, ExecutionContext& context)
+void TypeCasts::CastIntegerToString(StringHandle functionname, ExecutionContext& context)
 {
 	Integer32 value = context.State.Stack.PopValue<Integer32>();
 	StringHandle targettype = context.State.Stack.PopValue<StringHandle>();
@@ -68,3 +87,14 @@ void TypeCasts::Cast(StringHandle functionname, ExecutionContext& context)
 	context.State.Stack.PushValue(result);
 }
 
+void TypeCasts::CastStringToInteger(StringHandle functionname, ExecutionContext& context)
+{
+	StringHandle stringhandle = context.State.Stack.PopValue<StringHandle>();
+	StringHandle targettype = context.State.Stack.PopValue<StringHandle>();
+
+	std::wstringstream converter(context.OwnerVM.GetPooledString(stringhandle));
+	Integer32 result;
+	converter >> result;
+
+	context.State.Stack.PushValue(result);
+}

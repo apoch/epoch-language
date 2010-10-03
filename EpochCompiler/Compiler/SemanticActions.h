@@ -175,7 +175,6 @@ private:
 
 	boost::spirit::classic::position_iterator<const char*> ParsePosition;
 
-	std::map<StringHandle, std::set<StringHandle> > FunctionOverloadNames;
 	std::stack<bool> OverloadResolutionFailed;
 
 	std::list<std::pair<boost::spirit::classic::position_iterator<const char*>, StringHandle> > OverloadDefinitions;

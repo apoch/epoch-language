@@ -47,6 +47,7 @@ public:
 // Publicly visible tracking
 public:
 	FunctionSignatureSet FunctionSignatures;
+	std::map<StringHandle, std::set<StringHandle> > FunctionOverloadNames;
 	FunctionCompileHelperTable CompileTimeHelpers;
 	StringPoolManager StringPool;
 

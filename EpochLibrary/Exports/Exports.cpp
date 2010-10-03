@@ -62,11 +62,13 @@ extern "C" void __stdcall BindToVirtualMachine(FunctionInvocationTable& function
 // Strings are pooled in the compiler's internal string pool, syntax extensions
 // are registered, and compile-time code helpers are bound.
 //
-extern "C" void __stdcall BindToCompiler(FunctionCompileHelperTable& functiontable, InfixTable& infixtable, StringPoolManager& stringpool)
+extern "C" void __stdcall BindToCompiler(FunctionCompileHelperTable& functiontable, InfixTable& infixtable, StringPoolManager& stringpool, std::map<StringHandle, std::set<StringHandle> >& overloadmap)
 {
 	DebugLibrary::RegisterLibraryFunctions(functiontable);
 	TypeConstructors::RegisterLibraryFunctions(functiontable);
+
 	TypeCasts::RegisterLibraryFunctions(functiontable);
+	TypeCasts::RegisterLibraryOverloads(overloadmap, stringpool);
 
 	ArithmeticLibrary::RegisterLibraryFunctions(functiontable);
 	ArithmeticLibrary::RegisterInfixOperators(infixtable, stringpool);
