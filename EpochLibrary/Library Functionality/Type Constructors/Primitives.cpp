@@ -28,7 +28,6 @@ using namespace TypeConstructors;
 //
 void TypeConstructors::RegisterLibraryFunctions(FunctionInvocationTable& table, StringPoolManager& stringpool)
 {
-	// TODO - complain on duplicates
 	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"integer"), TypeConstructors::ConstructInteger));
 	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"string"), TypeConstructors::ConstructString));
 }
@@ -38,7 +37,6 @@ void TypeConstructors::RegisterLibraryFunctions(FunctionInvocationTable& table, 
 //
 void TypeConstructors::RegisterLibraryFunctions(FunctionSignatureSet& signatureset, StringPoolManager& stringpool)
 {
-	// TODO - complain on duplicates
 	{
 		FunctionSignature signature;
 		signature.AddParameter(L"identifier", VM::EpochType_Identifier);

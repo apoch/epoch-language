@@ -24,11 +24,12 @@ namespace ArithmeticLibrary
 	void RegisterLibraryFunctions(FunctionInvocationTable& table, StringPoolManager& stringpool);
 	void RegisterLibraryFunctions(FunctionCompileHelperTable& table);
 
-	void RegisterInfixOperators(InfixTable& infixtable, StringPoolManager& stringpool);
+	void RegisterInfixOperators(InfixTable& infixtable, PrecedenceTable& precedences, StringPoolManager& stringpool);
 
 
 	void AddIntegers(StringHandle functionname, VM::ExecutionContext& context);
 	void SubtractIntegers(StringHandle functionname, VM::ExecutionContext& context);
+	void MultiplyIntegers(StringHandle functionname, VM::ExecutionContext& context);
 
 }
 

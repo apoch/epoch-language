@@ -8,6 +8,7 @@
 #include "pch.h"
 
 #include "Library Functionality/Operators/Arithmetic.h"
+#include "Library Functionality/Operators/Precedences.h"
 
 #include "Utility/StringPool.h"
 #include "Utility/NoDupeMap.h"
@@ -28,6 +29,7 @@ void ArithmeticLibrary::RegisterLibraryFunctions(FunctionInvocationTable& table,
 {
 	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"+"), ArithmeticLibrary::AddIntegers));
 	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"-"), ArithmeticLibrary::SubtractIntegers));
+	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"*"), ArithmeticLibrary::MultiplyIntegers));
 }
 
 //
@@ -49,6 +51,13 @@ void ArithmeticLibrary::RegisterLibraryFunctions(FunctionSignatureSet& signature
 		signature.SetReturnType(VM::EpochType_Integer);
 		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"-"), signature));
 	}
+	{
+		FunctionSignature signature;
+		signature.AddParameter(L"i1", VM::EpochType_Integer);
+		signature.AddParameter(L"i2", VM::EpochType_Integer);
+		signature.SetReturnType(VM::EpochType_Integer);
+		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"*"), signature));
+	}
 }
 
 //
@@ -63,15 +72,22 @@ void ArithmeticLibrary::RegisterLibraryFunctions(FunctionCompileHelperTable& tab
 //
 // Bind the library to the infix operator table
 //
-void ArithmeticLibrary::RegisterInfixOperators(InfixTable& infixtable, StringPoolManager& stringpool)
+void ArithmeticLibrary::RegisterInfixOperators(InfixTable& infixtable, PrecedenceTable& precedences, StringPoolManager& stringpool)
 {
 	{
 		StringHandle handle = stringpool.Pool(L"+");
 		AddToSetNoDupe(infixtable, stringpool.GetPooledString(handle));
+		precedences.insert(std::make_pair(PRECEDENCE_ADDSUBTRACT, handle));
 	}
 	{
 		StringHandle handle = stringpool.Pool(L"-");
 		AddToSetNoDupe(infixtable, stringpool.GetPooledString(handle));
+		precedences.insert(std::make_pair(PRECEDENCE_ADDSUBTRACT, handle));
+	}
+	{
+		StringHandle handle = stringpool.Pool(L"*");
+		AddToSetNoDupe(infixtable, stringpool.GetPooledString(handle));
+		precedences.insert(std::make_pair(PRECEDENCE_MULTIPLYDIVIDE, handle));
 	}
 }
 
@@ -98,4 +114,14 @@ void ArithmeticLibrary::SubtractIntegers(StringHandle functionname, VM::Executio
 	Integer32 p1 = context.State.Stack.PopValue<Integer32>();
 
 	context.State.Stack.PushValue(p1 - p2);
+}
+
+//
+// Multiply two numbers and return the result
+void ArithmeticLibrary::MultiplyIntegers(StringHandle functionname, VM::ExecutionContext& context)
+{
+	Integer32 p2 = context.State.Stack.PopValue<Integer32>();
+	Integer32 p1 = context.State.Stack.PopValue<Integer32>();
+
+	context.State.Stack.PushValue(p1 * p2);
 }

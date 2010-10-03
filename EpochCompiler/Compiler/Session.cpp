@@ -26,14 +26,14 @@ CompileSession::CompileSession()
 	typedef void (__stdcall *registerlibraryptr)(FunctionSignatureSet&, StringPoolManager&);
 	registerlibraryptr registerlibrary = reinterpret_cast<registerlibraryptr>(::GetProcAddress(dllhandle, "RegisterLibraryContents"));
 
-	typedef void (__stdcall *bindtocompilerptr)(FunctionCompileHelperTable&, InfixTable&, StringPoolManager&, std::map<StringHandle, std::set<StringHandle> >&);
+	typedef void (__stdcall *bindtocompilerptr)(FunctionCompileHelperTable&, InfixTable&, PrecedenceTable&, StringPoolManager&, std::map<StringHandle, std::set<StringHandle> >&);
 	bindtocompilerptr bindtocompiler = reinterpret_cast<bindtocompilerptr>(::GetProcAddress(dllhandle, "BindToCompiler"));
 
 	if(!registerlibrary || !bindtocompiler)
 		throw FatalException("Failed to load Epoch standard library");
 
 	registerlibrary(FunctionSignatures, StringPool);
-	bindtocompiler(CompileTimeHelpers, InfixIdentifiers, StringPool, FunctionOverloadNames);
+	bindtocompiler(CompileTimeHelpers, InfixIdentifiers, OperatorPrecedences, StringPool, FunctionOverloadNames);
 }
 
 

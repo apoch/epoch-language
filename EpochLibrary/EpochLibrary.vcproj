@@ -278,6 +278,10 @@
 					RelativePath=".\Library Functionality\Operators\Arithmetic.h"
 					>
 				</File>
+				<File
+					RelativePath=".\Library Functionality\Operators\Precedences.h"
+					>
+				</File>
 			</Filter>
 		</Filter>
 		<Filter

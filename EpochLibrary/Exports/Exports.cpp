@@ -15,13 +15,6 @@
 #include "Virtual Machine/VirtualMachine.h"
 
 
-// Internal data tracking
-namespace
-{
-	FunctionInvocationTable StandardLibraryFunctionDispatch;
-}
-
-
 //
 // Register the contents of this Epoch library
 //
@@ -33,16 +26,9 @@ extern "C" void __stdcall RegisterLibraryContents(FunctionSignatureSet& function
 	try
 	{
 		DebugLibrary::RegisterLibraryFunctions(functionsignatures, stringpool);
-		DebugLibrary::RegisterLibraryFunctions(StandardLibraryFunctionDispatch, stringpool);
-
 		TypeConstructors::RegisterLibraryFunctions(functionsignatures, stringpool);
-		TypeConstructors::RegisterLibraryFunctions(StandardLibraryFunctionDispatch, stringpool);
-
 		TypeCasts::RegisterLibraryFunctions(functionsignatures, stringpool);
-		TypeCasts::RegisterLibraryFunctions(StandardLibraryFunctionDispatch, stringpool);
-
 		ArithmeticLibrary::RegisterLibraryFunctions(functionsignatures, stringpool);
-		ArithmeticLibrary::RegisterLibraryFunctions(StandardLibraryFunctionDispatch, stringpool);
 	}
 	catch(...)
 	{
@@ -77,7 +63,7 @@ extern "C" void __stdcall BindToVirtualMachine(FunctionInvocationTable& function
 // Strings are pooled in the compiler's internal string pool, syntax extensions
 // are registered, and compile-time code helpers are bound.
 //
-extern "C" void __stdcall BindToCompiler(FunctionCompileHelperTable& functiontable, InfixTable& infixtable, StringPoolManager& stringpool, std::map<StringHandle, std::set<StringHandle> >& overloadmap)
+extern "C" void __stdcall BindToCompiler(FunctionCompileHelperTable& functiontable, InfixTable& infixtable, PrecedenceTable& precedences, StringPoolManager& stringpool, std::map<StringHandle, std::set<StringHandle> >& overloadmap)
 {
 	try
 	{
@@ -88,7 +74,7 @@ extern "C" void __stdcall BindToCompiler(FunctionCompileHelperTable& functiontab
 		TypeCasts::RegisterLibraryOverloads(overloadmap, stringpool);
 
 		ArithmeticLibrary::RegisterLibraryFunctions(functiontable);
-		ArithmeticLibrary::RegisterInfixOperators(infixtable, stringpool);
+		ArithmeticLibrary::RegisterInfixOperators(infixtable, precedences, stringpool);
 	}
 	catch(...)
 	{

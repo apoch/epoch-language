@@ -135,6 +135,10 @@ private:
 
 	VM::EpochTypeID WalkCallChainForExpectedType(size_t index) const;
 
+	int GetOperatorPrecedence(StringHandle operatorname) const;
+
+	void EmitInfixOperand(ByteCodeEmitter& emitter, const CompileTimeParameter& ctparam);
+
 // Internal tracking
 private:
 	bool IsPrepass;

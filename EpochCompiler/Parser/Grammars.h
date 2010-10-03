@@ -78,6 +78,7 @@ struct FundamentalGrammar : public boost::spirit::classic::grammar<FundamentalGr
 				CLOSEBRACE('}'),
 				COMMA(','),
 				QUOTE('\"'),
+				NEGATE('-'),
 
 				MAPARROW("->"),
 				INTEGER("integer"),
@@ -97,7 +98,7 @@ struct FundamentalGrammar : public boost::spirit::classic::grammar<FundamentalGr
 
 
 			IntegerLiteral
-				= (+(digit_p))
+				= (!NEGATE) >> (+(digit_p))
 				;
 
 			StringLiteral
@@ -184,7 +185,7 @@ struct FundamentalGrammar : public boost::spirit::classic::grammar<FundamentalGr
 				AddInfixOperator(*PooledNarrowStrings.insert(narrow(*iter)).first);
 		}
 
-		boost::spirit::classic::chlit<> COLON, OPENPARENS, CLOSEPARENS, OPENBRACE, CLOSEBRACE, COMMA, QUOTE;
+		boost::spirit::classic::chlit<> COLON, OPENPARENS, CLOSEPARENS, OPENBRACE, CLOSEBRACE, COMMA, QUOTE, NEGATE;
 
 		boost::spirit::classic::strlit<> MAPARROW, INTEGER, STRING, ASSIGN;
 

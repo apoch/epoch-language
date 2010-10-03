@@ -50,6 +50,7 @@ public:
 	std::map<StringHandle, std::set<StringHandle> > FunctionOverloadNames;
 	FunctionCompileHelperTable CompileTimeHelpers;
 	StringPoolManager StringPool;
+	std::multimap<int, StringHandle> OperatorPrecedences;
 
 // Internal helpers
 private:

@@ -238,43 +238,58 @@ void CompilationSemantics::FinalizeInfix()
 	{
 		if(!InfixOperators.empty() && !InfixOperators.top().empty())
 		{
-			// TODO - sort operands and operators by infix precedence rules
+			std::vector<CompileTimeParameter> flatoperandlist;
 
-			std::vector<StringHandle>::const_iterator operatoriter = InfixOperators.top().begin();
-			for(std::vector<std::vector<CompileTimeParameter> >::const_iterator operandsetiter = InfixOperands.top().begin(); operandsetiter != InfixOperands.top().end(); ++operandsetiter)
+			for(std::vector<std::vector<CompileTimeParameter> >::iterator operandsetiter = InfixOperands.top().begin(); operandsetiter != InfixOperands.top().end(); ++operandsetiter)
 			{
 				for(std::vector<CompileTimeParameter>::const_iterator operanditer = operandsetiter->begin(); operanditer != operandsetiter->end(); ++operanditer)
+					flatoperandlist.push_back(*operanditer);
+			}
+
+			for(std::multimap<int, StringHandle>::const_reverse_iterator precedenceiter = Session.OperatorPrecedences.rbegin(); precedenceiter != Session.OperatorPrecedences.rend(); ++precedenceiter)
+			{
+				int precedence = precedenceiter->first;
+				bool collapsed;
+				do
 				{
-					switch(operanditer->Type)
+					collapsed = false;
+
+					std::vector<CompileTimeParameter>::iterator operanditer = flatoperandlist.begin();
+					for(std::vector<StringHandle>::iterator operatoriter = InfixOperators.top().begin(); operatoriter != InfixOperators.top().end(); ++operatoriter)
 					{
-					case VM::EpochType_Integer:
-						PendingEmitters.top().PushIntegerLiteral(operanditer->Payload.IntegerValue);
-						break;
+						if(GetOperatorPrecedence(*operatoriter) == precedence)
+						{
+							std::vector<Byte> buffer;
+							ByteCodeEmitter emitter(buffer);
 
-					case VM::EpochType_String:
-						PendingEmitters.top().PushIntegerLiteral(operanditer->Payload.StringHandleValue);
-						break;
+							std::vector<CompileTimeParameter>::iterator firstoperanditer = operanditer;
 
-					case VM::EpochType_Identifier:
-						PendingEmitters.top().PushVariableValue(operanditer->Payload.StringHandleValue);
-						break;
+							EmitInfixOperand(emitter, *operanditer);
+							++operanditer;
+							EmitInfixOperand(emitter, *operanditer);
 
-					case VM::EpochType_Expression:
-						PendingEmitters.top().EmitBuffer(operanditer->ExpressionContents);
-						break;
+							std::vector<CompileTimeParameter>::iterator secondoperanditer = operanditer;
+							++operanditer;
+							emitter.Invoke(*operatoriter);
 
-					default:
-						throw FatalException("Unsupported operand type in infix expression");
+							firstoperanditer->Type = VM::EpochType_Expression;
+							firstoperanditer->ExpressionContents.swap(buffer);
+
+							flatoperandlist.erase(secondoperanditer);
+							InfixOperators.top().erase(operatoriter);
+
+							collapsed = true;
+							break;
+						}
+						else
+							++operanditer;
 					}
-				}
-
-				PendingEmitters.top().Invoke(*operatoriter);
-				++operatoriter;
+				} while(collapsed);
 			}
 
 			CompileTimeParameter ctparam(L"@@infixresult", VM::EpochType_Expression);
 			ctparam.ExpressionType = StatementTypes.top();
-			ctparam.ExpressionContents = PendingEmissionBuffers.top();
+			ctparam.ExpressionContents.swap(flatoperandlist[0].ExpressionContents);
 			CompileTimeParameters.top().push_back(ctparam);
 		}
 	}
@@ -1329,6 +1344,12 @@ std::wstring CompilationSemantics::GetPatternMatchResolverName(const std::wstrin
 }
 
 
+//
+// Traverse up the call chain of an expression, resolving overloads along the way
+// as possible, looking for the expected type of the current expression term. This
+// is used to allow function overloads to differ only by their return types, where
+// the expected type is used to infer which overload should be invoked.
+//
 VM::EpochTypeID CompilationSemantics::WalkCallChainForExpectedType(size_t index) const
 {
 	if(StatementNames.empty() || StatementNames.c.size() <= index)
@@ -1351,6 +1372,51 @@ VM::EpochTypeID CompilationSemantics::WalkCallChainForExpectedType(size_t index)
 		Throw(RecoverableException("The function \"" + narrow(name) + "\" is not defined in this scope"));
 
 	return iter->second.GetParameter(paramindex).Type;
+}
+
+
+//
+// Retrieve a numerical score indicating the operator precedence level of a given operator
+//
+int CompilationSemantics::GetOperatorPrecedence(StringHandle operatorname) const
+{
+	for(std::multimap<int, StringHandle>::const_iterator iter = Session.OperatorPrecedences.begin(); iter != Session.OperatorPrecedences.end(); ++iter)
+	{
+		if(iter->second == operatorname)
+			return iter->first;
+	}
+
+	Throw(RecoverableException("Infix operator has no precedence level defined"));
+	return 0;		// Just to satisfy the compiler, which can't detect that Throw() will bail us with an exception
+}
+
+
+//
+// Helper for emitting an infix expression operand
+//
+void CompilationSemantics::EmitInfixOperand(ByteCodeEmitter& emitter, const CompileTimeParameter& ctparam)
+{
+	switch(ctparam.Type)
+	{
+	case VM::EpochType_Integer:
+		emitter.PushIntegerLiteral(ctparam.Payload.IntegerValue);
+		break;
+
+	case VM::EpochType_String:
+		emitter.PushIntegerLiteral(ctparam.Payload.StringHandleValue);
+		break;
+
+	case VM::EpochType_Identifier:
+		emitter.PushVariableValue(ctparam.Payload.StringHandleValue);
+		break;
+
+	case VM::EpochType_Expression:
+		emitter.EmitBuffer(ctparam.ExpressionContents);
+		break;
+
+	default:
+		throw FatalException("Unsupported operand type in infix expression");
+	}
 }
 
 
