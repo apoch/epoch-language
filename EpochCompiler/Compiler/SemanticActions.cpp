@@ -852,6 +852,7 @@ void CompilationSemantics::CompleteAssignment()
 	StatementNames.pop();
 	if(!IsPrepass)
 	{
+		VM::EpochTypeID expressiontype = CompileTimeParameters.top()[0].ExpressionType;
 		EmitterStack.top()->EmitBuffer(CompileTimeParameters.top()[0].ExpressionContents);
 
 		PendingEmitters.pop();
@@ -859,10 +860,16 @@ void CompilationSemantics::CompleteAssignment()
 		InfixOperands.pop();
 		InfixOperators.pop();
 
-		// TODO - type checking
 		EmitterStack.top()->AssignVariable(AssignmentTargets.top());
 		CompileTimeParameters.pop();
 		StatementTypes.c.clear();
+
+		if(expressiontype != LexicalScopeDescriptions.find(LexicalScopeStack.top())->second.GetVariableTypeByID(AssignmentTargets.top()))
+		{
+			AssignmentTargets.pop();
+			StatementParamCount.pop();
+			Throw(TypeMismatchException("Right hand side of assignment does not match variable type"));
+		}
 	}
 	AssignmentTargets.pop();
 	StatementParamCount.pop();
