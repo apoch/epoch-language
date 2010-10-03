@@ -1167,6 +1167,12 @@ void CompilationSemantics::RemapFunctionToOverload(const std::vector<CompileTime
 						patternsucceeded = false;
 					break;
 
+				// Always delegate to the runtime match default if an expression or variable is passed
+				case VM::EpochType_Identifier:
+				case VM::EpochType_Expression:
+					patternsucceeded = false;
+					break;
+
 				default:
 					throw NotImplementedException("Unsupported pattern-matched parameter type");
 				}
