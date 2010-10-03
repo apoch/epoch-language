@@ -3,5 +3,4 @@ EXPORTS
 	RegisterLibraryContents		@1
 	BindToVirtualMachine		@2
 	BindToCompiler				@3
-	InvokeLibraryFunction		@4
 

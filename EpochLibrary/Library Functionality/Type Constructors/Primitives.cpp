@@ -17,6 +17,7 @@
 #include "Utility/Types/EpochTypeIDs.h"
 #include "Utility/Types/IntegerTypes.h"
 #include "Utility/StringPool.h"
+#include "Utility/NoDupeMap.h"
 
 
 using namespace TypeConstructors;
@@ -28,8 +29,8 @@ using namespace TypeConstructors;
 void TypeConstructors::RegisterLibraryFunctions(FunctionInvocationTable& table, StringPoolManager& stringpool)
 {
 	// TODO - complain on duplicates
-	table.insert(std::make_pair(stringpool.Pool(L"integer"), TypeConstructors::ConstructInteger));
-	table.insert(std::make_pair(stringpool.Pool(L"string"), TypeConstructors::ConstructString));
+	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"integer"), TypeConstructors::ConstructInteger));
+	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"string"), TypeConstructors::ConstructString));
 }
 
 //
@@ -42,13 +43,13 @@ void TypeConstructors::RegisterLibraryFunctions(FunctionSignatureSet& signatures
 		FunctionSignature signature;
 		signature.AddParameter(L"identifier", VM::EpochType_Identifier);
 		signature.AddParameter(L"value", VM::EpochType_Integer);
-		signatureset.insert(std::make_pair(stringpool.Pool(L"integer"), signature));
+		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"integer"), signature));
 	}
 	{
 		FunctionSignature signature;
 		signature.AddParameter(L"identifier", VM::EpochType_Identifier);
 		signature.AddParameter(L"value", VM::EpochType_String);
-		signatureset.insert(std::make_pair(stringpool.Pool(L"string"), signature));
+		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"string"), signature));
 	}
 }
 
@@ -57,8 +58,8 @@ void TypeConstructors::RegisterLibraryFunctions(FunctionSignatureSet& signatures
 //
 void TypeConstructors::RegisterLibraryFunctions(FunctionCompileHelperTable& table)
 {
-	table.insert(std::make_pair(L"integer", TypeConstructors::CompileConstructorPrimitive));
-	table.insert(std::make_pair(L"string", TypeConstructors::CompileConstructorPrimitive));
+	AddToMapNoDupe(table, std::make_pair(L"integer", TypeConstructors::CompileConstructorPrimitive));
+	AddToMapNoDupe(table, std::make_pair(L"string", TypeConstructors::CompileConstructorPrimitive));
 }
 
 

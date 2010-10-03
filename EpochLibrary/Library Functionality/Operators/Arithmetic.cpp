@@ -10,6 +10,7 @@
 #include "Library Functionality/Operators/Arithmetic.h"
 
 #include "Utility/StringPool.h"
+#include "Utility/NoDupeMap.h"
 
 #include "Libraries/Library.h"
 
@@ -25,9 +26,8 @@ using namespace ArithmeticLibrary;
 //
 void ArithmeticLibrary::RegisterLibraryFunctions(FunctionInvocationTable& table, StringPoolManager& stringpool)
 {
-	// TODO - complain on duplicates
-	table.insert(std::make_pair(stringpool.Pool(L"+"), ArithmeticLibrary::AddIntegers));
-	table.insert(std::make_pair(stringpool.Pool(L"-"), ArithmeticLibrary::SubtractIntegers));
+	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"+"), ArithmeticLibrary::AddIntegers));
+	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"-"), ArithmeticLibrary::SubtractIntegers));
 }
 
 //
@@ -35,20 +35,19 @@ void ArithmeticLibrary::RegisterLibraryFunctions(FunctionInvocationTable& table,
 //
 void ArithmeticLibrary::RegisterLibraryFunctions(FunctionSignatureSet& signatureset, StringPoolManager& stringpool)
 {
-	// TODO - complain on duplicates
 	{
 		FunctionSignature signature;
 		signature.AddParameter(L"i1", VM::EpochType_Integer);
 		signature.AddParameter(L"i2", VM::EpochType_Integer);
 		signature.SetReturnType(VM::EpochType_Integer);
-		signatureset.insert(std::make_pair(stringpool.Pool(L"+"), signature));
+		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"+"), signature));
 	}
 	{
 		FunctionSignature signature;
 		signature.AddParameter(L"i1", VM::EpochType_Integer);
 		signature.AddParameter(L"i2", VM::EpochType_Integer);
 		signature.SetReturnType(VM::EpochType_Integer);
-		signatureset.insert(std::make_pair(stringpool.Pool(L"-"), signature));
+		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"-"), signature));
 	}
 }
 
@@ -68,11 +67,11 @@ void ArithmeticLibrary::RegisterInfixOperators(InfixTable& infixtable, StringPoo
 {
 	{
 		StringHandle handle = stringpool.Pool(L"+");
-		infixtable.insert(stringpool.GetPooledString(handle));
+		AddToSetNoDupe(infixtable, stringpool.GetPooledString(handle));
 	}
 	{
 		StringHandle handle = stringpool.Pool(L"-");
-		infixtable.insert(stringpool.GetPooledString(handle));
+		AddToSetNoDupe(infixtable, stringpool.GetPooledString(handle));
 	}
 }
 

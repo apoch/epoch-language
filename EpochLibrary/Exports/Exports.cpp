@@ -12,6 +12,8 @@
 #include "Library Functionality/Type Casting/Typecasts.h"
 #include "Library Functionality/Operators/Arithmetic.h"
 
+#include "Virtual Machine/VirtualMachine.h"
+
 
 // Internal data tracking
 namespace
@@ -94,25 +96,4 @@ extern "C" void __stdcall BindToCompiler(FunctionCompileHelperTable& functiontab
 	}
 }
 
-//
-// Invoke a function hosted by this library
-//
-extern "C" void __stdcall InvokeLibraryFunction(StringHandle functionname, VM::ExecutionContext& context)
-{
-	try
-	{
-		FunctionInvocationTable::const_iterator iter = StandardLibraryFunctionDispatch.find(functionname);
-		if(iter == StandardLibraryFunctionDispatch.end())
-		{
-			// TODO - flag an error in the execution context
-			return;
-		}
-
-		iter->second(functionname, context);
-	}
-	catch(...)
-	{
-		::MessageBox(0, L"Fatal error while invoking Epoch standard library function", L"Epoch Exception", MB_ICONSTOP);
-	}
-}
 

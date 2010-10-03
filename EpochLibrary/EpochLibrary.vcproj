@@ -307,6 +307,10 @@
 					>
 				</File>
 				<File
+					RelativePath="..\Shared\Utility\NoDupeMap.h"
+					>
+				</File>
+				<File
 					RelativePath="..\Shared\Utility\StringPool.cpp"
 					>
 				</File>

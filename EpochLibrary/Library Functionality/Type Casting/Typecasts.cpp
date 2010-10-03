@@ -12,6 +12,7 @@
 #include "Virtual Machine/VirtualMachine.h"
 
 #include "Utility/StringPool.h"
+#include "Utility/NoDupeMap.h"
 
 #include <sstream>
 
@@ -25,9 +26,8 @@ using namespace VM;
 //
 void TypeCasts::RegisterLibraryFunctions(FunctionInvocationTable& table, StringPoolManager& stringpool)
 {
-	// TODO - complain on duplicates
-	table.insert(std::make_pair(stringpool.Pool(L"cast@@integer_to_string"), TypeCasts::CastIntegerToString));
-	table.insert(std::make_pair(stringpool.Pool(L"cast@@string_to_integer"), TypeCasts::CastStringToInteger));
+	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"cast@@integer_to_string"), TypeCasts::CastIntegerToString));
+	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"cast@@string_to_integer"), TypeCasts::CastStringToInteger));
 }
 
 //
@@ -35,20 +35,19 @@ void TypeCasts::RegisterLibraryFunctions(FunctionInvocationTable& table, StringP
 //
 void TypeCasts::RegisterLibraryFunctions(FunctionSignatureSet& signatureset, StringPoolManager& stringpool)
 {
-	// TODO - complain on duplicates
 	{
 		FunctionSignature signature;
 		signature.AddPatternMatchedParameterIdentifier(stringpool.Pool(L"string"));
 		signature.AddParameter(L"value", EpochType_Integer);
 		signature.SetReturnType(VM::EpochType_String);
-		signatureset.insert(std::make_pair(stringpool.Pool(L"cast@@integer_to_string"), signature));
+		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"cast@@integer_to_string"), signature));
 	}
 	{
 		FunctionSignature signature;
 		signature.AddPatternMatchedParameterIdentifier(stringpool.Pool(L"integer"));
 		signature.AddParameter(L"value", EpochType_String);
 		signature.SetReturnType(VM::EpochType_Integer);
-		signatureset.insert(std::make_pair(stringpool.Pool(L"cast@@string_to_integer"), signature));
+		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"cast@@string_to_integer"), signature));
 	}
 }
 

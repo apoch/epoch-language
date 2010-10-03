@@ -11,6 +11,7 @@
 
 #include "Utility/Types/IDTypes.h"
 #include "Utility/StringPool.h"
+#include "Utility/NoDupeMap.h"
 
 #include "User Interface/Output.h"
 
@@ -25,8 +26,7 @@ using namespace DebugLibrary;
 //
 void DebugLibrary::RegisterLibraryFunctions(FunctionInvocationTable& table, StringPoolManager& stringpool)
 {
-	// TODO - complain on duplicates
-	table.insert(std::make_pair(stringpool.Pool(L"debugwritestring"), DebugLibrary::WriteString));
+	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"debugwritestring"), DebugLibrary::WriteString));
 }
 
 //
@@ -34,11 +34,10 @@ void DebugLibrary::RegisterLibraryFunctions(FunctionInvocationTable& table, Stri
 //
 void DebugLibrary::RegisterLibraryFunctions(FunctionSignatureSet& signatureset, StringPoolManager& stringpool)
 {
-	// TODO - complain on duplicates
 	{
 		FunctionSignature signature;
 		signature.AddParameter(L"str", VM::EpochType_String);
-		signatureset.insert(std::make_pair(stringpool.Pool(L"debugwritestring"), signature));
+		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"debugwritestring"), signature));
 	}
 }
 

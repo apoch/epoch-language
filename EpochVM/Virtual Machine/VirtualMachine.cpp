@@ -324,6 +324,8 @@ void ExecutionContext::Execute(const ScopeDescription* scope)
 			{
 				StringHandle functionname = Fetch<StringHandle>();
 				OwnerVM.InvokeFunction(functionname, *this);
+				if(State.Result.ResultType != ExecutionResult::EXEC_RESULT_OK)
+					return;
 			}
 			break;
 
