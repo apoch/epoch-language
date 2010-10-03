@@ -38,16 +38,20 @@ CriticalSection::~CriticalSection()
 //
 // Enter the critical section, blocking until another thread leaves it, if necessary
 //
-void CriticalSection::Enter()
+void CriticalSection::Enter() const
 {
-	::EnterCriticalSection(&CritSec);
+	// This is an evil cast, but we do it anyways so that critical section holders
+	// can lock safely in const member functions.
+	::EnterCriticalSection(const_cast<LPCRITICAL_SECTION>(&CritSec));
 }
 
 //
 // Leave the critical section, allowing other threads to utilize it
 //
-void CriticalSection::Exit()
+void CriticalSection::Exit() const
 {
-	::LeaveCriticalSection(&CritSec);
+	// This is an evil cast, but we do it anyways so that critical section holders
+	// can lock safely in const member functions.
+	::LeaveCriticalSection(const_cast<LPCRITICAL_SECTION>(&CritSec));
 }
 

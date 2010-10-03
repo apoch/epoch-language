@@ -9,6 +9,7 @@
 #include "Utility/Memory/MemoryManager.h"
 
 HeapManager* HeapManager::GlobalHeapManager = NULL;
+Threads::CriticalSection HeapManager::CritSec;
 
 //
 // Construct a heap manager. This should take care of any platform

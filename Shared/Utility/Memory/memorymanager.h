@@ -11,6 +11,8 @@
 
 // Dependencies
 #include "Utility/Types/IntegerTypes.h"
+#include "Utility/Threading/Synchronization.h"
+
 #include <vector>
 
 
@@ -36,7 +38,8 @@ public:
 public:
 	static HeapManager& GetGlobalHeapManager()
 	{
-		// TODO - Thread safety
+		Threads::CriticalSection::Auto lock(CritSec);
+
 		if(!GlobalHeapManager)
 			GlobalHeapManager = new HeapManager;
 		return *GlobalHeapManager;
@@ -50,6 +53,7 @@ private:
 // Shared internal storage
 private:
 	static HeapManager* GlobalHeapManager;
+	static Threads::CriticalSection CritSec;
 };
 
 HeapManager& GetSingleGlobalHeapManager();

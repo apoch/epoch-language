@@ -11,11 +11,14 @@
 
 #include "Utility/DLLPool.h"
 
+#include "Utility/Threading/Synchronization.h"
+
 
 // Internal tracking
 namespace
 {
 	HeapManager* SharedHeapManager = NULL;
+	Threads::CriticalSection SharedCriticalSection;
 }
 
 
@@ -28,7 +31,8 @@ namespace
 //
 HeapManager& GetSingleGlobalHeapManager()
 {
-	// TODO - thread safety
+	Threads::CriticalSection::Auto lock(SharedCriticalSection);
+	
 	if(!SharedHeapManager)
 	{
 		HINSTANCE dllhandle = Marshaling::TheDLLPool.OpenDLL(L"EpochVM.DLL");

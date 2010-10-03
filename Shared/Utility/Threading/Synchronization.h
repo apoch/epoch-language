@@ -26,14 +26,14 @@ namespace Threads
 
 	// Entry and exit
 	public:
-		void Enter();
-		void Exit();
+		void Enter() const;
+		void Exit() const;
 
 	// RAII helper
 	public:
 		struct Auto
 		{
-			Auto(CriticalSection& critsec)
+			Auto(const CriticalSection& critsec)
 				: BoundCritSec(critsec)
 			{
 				BoundCritSec.Enter();
@@ -45,7 +45,7 @@ namespace Threads
 			}
 
 		private:
-			CriticalSection& BoundCritSec;
+			const CriticalSection& BoundCritSec;
 		};
 
 	// Internal tracking

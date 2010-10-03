@@ -88,7 +88,6 @@ StringHandle VirtualMachine::PoolString(const std::wstring& stringdata)
 //
 void VirtualMachine::PoolString(StringHandle handle, const std::wstring& stringdata)
 {
-	// TODO - thread safety for all string pool accesses
 	StringPool.Pool(handle, stringdata);
 }
 

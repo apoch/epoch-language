@@ -9,6 +9,8 @@
 
 
 // Dependencies
+#include "Utility/Threading/Synchronization.h"
+
 #include <string>
 #include <map>
 
@@ -35,7 +37,8 @@ namespace Marshaling
 	public:
 		HINSTANCE OpenDLL(const std::wstring& name)
 		{
-			// TODO - thread safety
+			Threads::CriticalSection::Auto lock(CritSec);
+			
 			std::map<std::wstring, HINSTANCE>::const_iterator iter = LoadedDLLs.find(name);
 			if(iter != LoadedDLLs.end())
 				return iter->second;
@@ -50,12 +53,14 @@ namespace Marshaling
 
 		bool HasOpenedDLL(const std::wstring& name) const
 		{
+			Threads::CriticalSection::Auto lock(CritSec);
 			return (LoadedDLLs.find(name) != LoadedDLLs.end());
 		}
 
 	// Internal tracking
 	private:
 		std::map<std::wstring, HINSTANCE> LoadedDLLs;
+		Threads::CriticalSection CritSec;
 	};
 
 

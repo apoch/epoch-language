@@ -10,6 +10,8 @@
 
 // Dependencies
 #include "Utility/Types/IDTypes.h"
+#include "Utility/Threading/Synchronization.h"
+
 #include <map>
 #include <string>
 
@@ -36,5 +38,6 @@ public:
 private:
 	StringHandle CurrentPooledStringHandle;
 	std::map<StringHandle, std::wstring> PooledStrings;
+	Threads::CriticalSection CritSec;
 };
 
