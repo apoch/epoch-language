@@ -92,5 +92,10 @@ void TypeConstructors::ConstructString(StringHandle functionname, VM::ExecutionC
 //
 void TypeConstructors::CompileConstructorPrimitive(ScopeDescription& scope, const std::vector<CompileTimeParameter>& compiletimeparams)
 {
-	scope.AddVariable(compiletimeparams[0].StringPayload, compiletimeparams[0].Payload.StringHandleValue, compiletimeparams[1].Type, VARIABLE_ORIGIN_LOCAL);
+	VM::EpochTypeID effectivetype = compiletimeparams[1].Type;
+	if(effectivetype == VM::EpochType_Identifier)
+		effectivetype = scope.GetVariableTypeByID(compiletimeparams[1].Payload.StringHandleValue);
+	else if(effectivetype == VM::EpochType_Expression)
+		effectivetype = compiletimeparams[1].ExpressionType;
+	scope.AddVariable(compiletimeparams[0].StringPayload, compiletimeparams[0].Payload.StringHandleValue, effectivetype, VARIABLE_ORIGIN_LOCAL);
 }

@@ -141,15 +141,15 @@ struct FundamentalGrammar : public boost::spirit::classic::grammar<FundamentalGr
 				;
 
 			Expression
-				= (ExpressionComponent >> *(InfixIdentifier[StoreInfix(self.Bindings)] >> ExpressionComponent[ValidateStatementParam(self.Bindings)])[CompleteInfix(self.Bindings)])
+				= (ExpressionComponent >> (*(InfixIdentifier[StoreInfix(self.Bindings)] >> ExpressionComponent[PushInfixParam(self.Bindings)])[CompleteInfix(self.Bindings)]))[FinalizeInfix(self.Bindings)]
 				;
 
 			Statement
-				= (StringIdentifier[BeginStatement(self.Bindings)] >> OPENPARENS[BeginStatementParams(self.Bindings)] >> (!((Expression[ValidateStatementParam(self.Bindings)]) % COMMA)) >> CLOSEPARENS[CompleteStatement(self.Bindings)])
+				= (StringIdentifier[BeginStatement(self.Bindings)] >> OPENPARENS[BeginStatementParams(self.Bindings)] >> (!((Expression[PushStatementParam(self.Bindings)]) % COMMA)) >> CLOSEPARENS[CompleteStatement(self.Bindings)])
 				;
 
 			Assignment
-				= (StringIdentifier[BeginStatement(self.Bindings)] >> ASSIGN[BeginAssignment(self.Bindings)] >> Expression[ValidateStatementParam(self.Bindings)][CompleteAssignment(self.Bindings)])
+				= (StringIdentifier[BeginStatement(self.Bindings)] >> ASSIGN[BeginAssignment(self.Bindings)] >> Expression[PushStatementParam(self.Bindings)][CompleteAssignment(self.Bindings)])
 				;
 
 			CodeBlockEntry

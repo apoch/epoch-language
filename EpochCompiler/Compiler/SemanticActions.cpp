@@ -177,7 +177,7 @@ void CompilationSemantics::StoreInfix(const std::wstring& identifier)
 	if(!IsPrepass)
 		CompileTimeParameters.push(std::vector<CompileTimeParameter>());
 
-	ValidateAndPushParam(0);
+	PushParam(L"@@infixresult");
 }
 
 //
@@ -185,16 +185,13 @@ void CompilationSemantics::StoreInfix(const std::wstring& identifier)
 //
 // This may not be the actual end of the expression per se, but rather simply signals
 // that both terms and the infix operator itself have all been parsed and saved off into
-// the state data. Note that the current implementation does NOT respect precedence rules
-// and therefore should be burned at the earliest possible convenience and replaced with
-// something less craptacular.
+// the state data. Finalization of the expression and handling of operator precedence
+// rules is delegated to the FinalizeInfix() function.
 //
 void CompilationSemantics::CompleteInfix()
 {
-	// TODO - reimplement support for infix operator precedence rules (then document it)
 	std::wstring infixstatementname = StatementNames.top();
 	StringHandle infixstatementnamehandle = Session.StringPool.Pool(infixstatementname);
-	unsigned infixparamcount = StatementParamCount.top();
 
 	StatementNames.pop();
 	StatementParamCount.pop();
@@ -204,12 +201,7 @@ void CompilationSemantics::CompleteInfix()
 	{
 		if(!IsPrepass)
 		{
-			std::wstring statementname = StatementNames.top();
-
-			FunctionCompileHelperTable::const_iterator iter = CompileTimeHelpers.find(statementname);
-			if(iter != CompileTimeHelpers.end())
-				iter->second(GetLexicalScopeDescription(LexicalScopeStack.top()), CompileTimeParameters.top());
-
+			InfixOperands.top().push_back(CompileTimeParameters.top());
 			CompileTimeParameters.pop();
 			if(!CompileTimeParameters.empty())
 			{
@@ -232,9 +224,62 @@ void CompilationSemantics::CompleteInfix()
 	}
 
 	if(!IsPrepass)
-		EmitterStack.top()->Invoke(infixstatementnamehandle);
+		InfixOperators.top().push_back(infixstatementnamehandle);
 }
 
+//
+// Finalize an infix expression
+//
+void CompilationSemantics::FinalizeInfix()
+{
+	if(!IsPrepass)
+	{
+		if(!InfixOperators.top().empty())
+		{
+			// TODO - sort operands and operators by infix precedence rules
+
+			std::vector<StringHandle>::const_iterator operatoriter = InfixOperators.top().begin();
+			for(std::vector<std::vector<CompileTimeParameter> >::const_iterator operandsetiter = InfixOperands.top().begin(); operandsetiter != InfixOperands.top().end(); ++operandsetiter)
+			{
+				for(std::vector<CompileTimeParameter>::const_iterator operanditer = operandsetiter->begin(); operanditer != operandsetiter->end(); ++operanditer)
+				{
+					switch(operanditer->Type)
+					{
+					case VM::EpochType_Integer:
+						PendingEmitters.top().PushIntegerLiteral(operanditer->Payload.IntegerValue);
+						break;
+
+					case VM::EpochType_String:
+						PendingEmitters.top().PushIntegerLiteral(operanditer->Payload.StringHandleValue);
+						break;
+
+					case VM::EpochType_Identifier:
+						PendingEmitters.top().PushVariableValue(operanditer->Payload.StringHandleValue);
+						break;
+
+					case VM::EpochType_Expression:
+						PendingEmitters.top().EmitBuffer(operanditer->ExpressionContents);
+						break;
+
+					default:
+						throw FatalException("Unsupported operand type in infix expression");
+					}
+				}
+
+				PendingEmitters.top().Invoke(*operatoriter);
+				++operatoriter;
+			}
+
+			if(!CompileTimeParameters.empty())
+			{
+				CompileTimeParameter ctparam(L"@@infixresult", VM::EpochType_Expression);
+				ctparam.ExpressionType = StatementTypes.top();
+				ctparam.ExpressionContents = PendingEmissionBuffers.top();
+				CompileTimeParameters.top().push_back(ctparam);
+			}
+		}
+	}
+}
 
 
 //-------------------------------------------------------------------------------
@@ -589,8 +634,11 @@ void CompilationSemantics::BeginStatementParams()
 	if(!IsPrepass)
 	{
 		CompileTimeParameters.push(std::vector<CompileTimeParameter>());
-		OverloadResolutionFailed.push(false);
-		OverloadMatchesPerParameter.push(std::vector<unsigned>());
+		InfixOperators.push(std::vector<StringHandle>());
+		InfixOperands.push(std::vector<std::vector<CompileTimeParameter> >());
+
+		PendingEmissionBuffers.push(std::vector<Byte>());
+		PendingEmitters.push(ByteCodeEmitter(PendingEmissionBuffers.top()));
 	}
 }
 
@@ -616,93 +664,125 @@ void CompilationSemantics::CompleteStatement()
 
 	if(!IsPrepass)
 	{
-		// Check to see if overload resolution failed; if any parameter resolved to zero
-		// overloads, then we failed; if all parameters resolve to more than one overload,
-		// we also failed.
-		bool foundresolvedparam = false;
-		for(std::vector<unsigned>::const_iterator iter = OverloadMatchesPerParameter.top().begin(); iter != OverloadMatchesPerParameter.top().end(); ++iter)
+		InfixOperators.pop();
+		InfixOperands.pop();
+
+		VM::EpochTypeID outerexpectedtype = VM::EpochType_Error;
+		if(!StatementNames.empty())
 		{
-			if(*iter == 0)
-			{
-				OverloadResolutionFailed.top() = true;
-				break;
-			}
-			else if(*iter == 1)
-			{
-				foundresolvedparam = true;
-				break;
-			}
+			StringHandle outernamehandle = Session.StringPool.Pool(StatementNames.top());
+			unsigned outerparamindex = StatementParamCount.top();
+
+			// TODO - this doesn't handle assignments yet
+			FunctionSignatureSet::const_iterator outeriter = Session.FunctionSignatures.find(outernamehandle);
+			if(outeriter == Session.FunctionSignatures.end())
+				Throw(RecoverableException("The function \"" + narrow(Session.StringPool.GetPooledString(outernamehandle)) + "\" is not defined in this scope"));
+
+			outerexpectedtype = outeriter->second.GetParameter(outerparamindex).Type;
 		}
 
-		if(!foundresolvedparam)
-			OverloadResolutionFailed.top() = true;
+		RemapFunctionToOverload(CompileTimeParameters.top(), outerexpectedtype, statementname, statementnamehandle);
 
-		if(!OverloadResolutionFailed.top())
+		FunctionCompileHelperTable::const_iterator fchiter = CompileTimeHelpers.find(statementname);
+		if(fchiter != CompileTimeHelpers.end())
+			fchiter->second(GetLexicalScopeDescription(LexicalScopeStack.top()), CompileTimeParameters.top());
+
+		FunctionSignatureSet::const_iterator fsiter = Session.FunctionSignatures.find(statementnamehandle);
+		if(fsiter == Session.FunctionSignatures.end())
+			Throw(RecoverableException("The function \"" + narrow(statementname) + "\" is not defined in this scope"));
+
+		// Validate the parameters we've been given against the parameters to this overload
+		if(CompileTimeParameters.top().size() == fsiter->second.GetNumParameters())
 		{
-			VM::EpochTypeID outerexpectedtype = VM::EpochType_Error;
-			if(!StatementNames.empty())
+			for(size_t i = 0; i < CompileTimeParameters.top().size(); ++i)
 			{
-				StringHandle outernamehandle = Session.StringPool.Pool(StatementNames.top());
-				unsigned outerparamindex = StatementParamCount.top();
-
-				// TODO - this doesn't handle assignments yet
-				FunctionSignatureSet::const_iterator outeriter = Session.FunctionSignatures.find(outernamehandle);
-				if(outeriter == Session.FunctionSignatures.end())
-					Throw(RecoverableException("The function \"" + narrow(Session.StringPool.GetPooledString(outernamehandle)) + "\" is not defined in this scope"));
-
-				outerexpectedtype = outeriter->second.GetParameter(outerparamindex).Type;
-			}
-
-			RemapFunctionToOverload(CompileTimeParameters.top(), outerexpectedtype, statementname, statementnamehandle);
-
-			FunctionCompileHelperTable::const_iterator fchiter = CompileTimeHelpers.find(statementname);
-			if(fchiter != CompileTimeHelpers.end())
-				fchiter->second(GetLexicalScopeDescription(LexicalScopeStack.top()), CompileTimeParameters.top());
-
-			FunctionSignatureSet::const_iterator fsiter = Session.FunctionSignatures.find(statementnamehandle);
-			if(fsiter == Session.FunctionSignatures.end())
-				Throw(RecoverableException("The function \"" + narrow(statementname) + "\" is not defined in this scope"));
-
-			StatementTypes.push(fsiter->second.GetReturnType());
-			CompileTimeParameters.pop();
-
-			if(!CompileTimeParameters.empty())
-			{
-				std::wstring outerstatementname = StatementNames.top();
-				StringHandle outerstatementnamehandle = Session.StringPool.Pool(outerstatementname);
-
-				// TODO - either we need to walk up the entire function call stack (eww) or we need to change over to only doing parameter validation AFTER CompleteStatement()
-
-				VM::EpochTypeID secondouterexpectedtype = VM::EpochType_Error;
-				if(StatementNames.size() > 1)
+				switch(CompileTimeParameters.top()[i].Type)
 				{
-					StringHandle secondouternamehandle = Session.StringPool.Pool(StatementNames.c.at(StatementNames.size() - 2));
-					unsigned secondouterparamindex = StatementParamCount.c.at(StatementParamCount.size() - 2);
+				case VM::EpochType_Error:
+					throw FatalException("Parameter's type is explicitly flagged as invalid");
 
-					// TODO - this doesn't handle assignments yet
-					FunctionSignatureSet::const_iterator secondouteriter = Session.FunctionSignatures.find(secondouternamehandle);
-					if(secondouteriter == Session.FunctionSignatures.end())
-						Throw(RecoverableException("The function \"" + narrow(Session.StringPool.GetPooledString(secondouternamehandle)) + "\" is not defined in this scope"));
+				case VM::EpochType_Void:
+					Throw(RecoverableException("Parameter has no type; cannot be passed to this function"));		// TODO - test case for this, and improved error message
 
-					secondouterexpectedtype = secondouteriter->second.GetParameter(secondouterparamindex).Type;
+				case VM::EpochType_Identifier:
+					if(fsiter->second.GetParameter(i).Type == VM::EpochType_Identifier)
+						EmitterStack.top()->PushStringLiteral(CompileTimeParameters.top()[i].Payload.StringHandleValue);
+					else
+					{
+						std::map<StringHandle, ScopeDescription>::const_iterator iter = LexicalScopeDescriptions.find(LexicalScopeStack.top());
+						if(iter == LexicalScopeDescriptions.end())
+							throw FatalException("No lexical scope has been registered for the identifier \"" + narrow(Session.StringPool.GetPooledString(LexicalScopeStack.top())) + "\"");
+
+						if(!iter->second.HasVariable(CompileTimeParameters.top()[i].StringPayload))
+							Throw(RecoverableException("No variable by the name \"" + narrow(CompileTimeParameters.top()[i].StringPayload) + "\" was found in this scope"));
+
+						if(iter->second.GetVariableTypeByID(CompileTimeParameters.top()[i].Payload.StringHandleValue) != fsiter->second.GetParameter(i).Type)
+							Throw(RecoverableException("The variable \"" + narrow(CompileTimeParameters.top()[i].StringPayload) + "\" has the wrong type to be used for this parameter"));
+
+						EmitterStack.top()->PushVariableValue(CompileTimeParameters.top()[i].Payload.StringHandleValue);
+					}
+					break;
+
+				case VM::EpochType_Expression:
+					if(fsiter->second.GetParameter(i).Type == CompileTimeParameters.top()[i].ExpressionType)
+						EmitterStack.top()->EmitBuffer(CompileTimeParameters.top()[i].ExpressionContents);
+					else
+					{
+						std::wostringstream errormsg;
+						errormsg << L"Parameter " << (i + 1) << L" to function \"" << statementname << L"\" is of the wrong type";
+						Throw(RecoverableException(narrow(errormsg.str())));
+					}
+					break;
+
+				case VM::EpochType_Integer:
+					if(fsiter->second.GetParameter(i).Type == VM::EpochType_Integer)
+						EmitterStack.top()->PushIntegerLiteral(CompileTimeParameters.top()[i].Payload.IntegerValue);
+					else
+					{
+						std::wostringstream errormsg;
+						errormsg << L"Parameter " << (i + 1) << L" to function \"" << statementname << L"\" is of the wrong type";
+						Throw(RecoverableException(narrow(errormsg.str())));
+					}
+					break;
+
+				case VM::EpochType_String:
+					if(fsiter->second.GetParameter(i).Type == VM::EpochType_String)
+						EmitterStack.top()->PushStringLiteral(CompileTimeParameters.top()[i].Payload.StringHandleValue);
+					else
+					{
+						std::wostringstream errormsg;
+						errormsg << L"Parameter " << (i + 1) << L" to function \"" << statementname << L"\" is of the wrong type";
+						Throw(RecoverableException(narrow(errormsg.str())));
+					}
+					break;
+
+				default:
+					throw NotImplementedException("Support for parameters of this type is not implemented");
 				}
-
-				RemapFunctionToOverload(CompileTimeParameters.top(), secondouterexpectedtype, outerstatementname, outerstatementnamehandle);
-
-				FunctionSignatureSet::const_iterator fsiter = Session.FunctionSignatures.find(outerstatementnamehandle);
-				if(fsiter == Session.FunctionSignatures.end())
-					Throw(RecoverableException("The function \"" + narrow(outerstatementname) + "\" is not defined in this scope"));
-
-				const std::wstring& paramname = fsiter->second.GetParameter(StatementParamCount.top()).Name;
-				VM::EpochTypeID paramtype = fsiter->second.GetParameter(StatementParamCount.top()).Type;
-
-				CompileTimeParameters.top().push_back(CompileTimeParameter(paramname, paramtype));
 			}
-
-			EmitterStack.top()->Invoke(statementnamehandle);
 		}
-		OverloadResolutionFailed.pop();
-		OverloadMatchesPerParameter.pop();
+		else
+		{
+			std::wostringstream errormsg;
+			errormsg << L"The function \"" << statementname << L"\" expects " << fsiter->second.GetNumParameters() << L" parameters, but ";
+			errormsg << CompileTimeParameters.top().size() << L" were provided";
+			Throw(RecoverableException(narrow(errormsg.str())));
+		}
+
+		StatementTypes.push(fsiter->second.GetReturnType());
+
+		EmitterStack.top()->Invoke(statementnamehandle);
+
+		CompileTimeParameters.pop();
+		if(!CompileTimeParameters.empty())
+		{
+			CompileTimeParameter ctparam(L"@@expression", VM::EpochType_Expression);
+			ctparam.ExpressionType = fsiter->second.GetReturnType();
+			CompileTimeParameters.top().push_back(ctparam);
+		}
+
+		PendingEmitters.pop();
+		PendingEmissionBuffers.pop();
 	}
 }
 
@@ -774,121 +854,42 @@ void CompilationSemantics::CompleteAssignment()
 //-------------------------------------------------------------------------------
 
 //
-// Validate a parameter passed to a statement, incrementing the passed parameter count as we go
+// Queue a parameter passed to a statement for later validation, incrementing the passed parameter count as we go
 //
-void CompilationSemantics::ValidateStatementParam()
+void CompilationSemantics::PushStatementParam()
 {
 	if(!StatementParamCount.empty())
 	{
-		unsigned paramindex = StatementParamCount.top();
 		++StatementParamCount.top();
-		ValidateAndPushParam(paramindex);
+		PushParam(L"@@passedparam");
+	}
+
+	if(!IsPrepass)
+	{
+		InfixOperators.top().clear();
+		InfixOperands.top().clear();
+		PendingEmissionBuffers.top().clear();
 	}
 }
 
 //
-// Perform the actual type validation of a parameter to a statement, and optionally emit the code
-// for passing the parameter itself during the compilation phase.
+// Queue a parameter passed to a statement for later validation, incrementing the passed parameter count as we go
 //
-void CompilationSemantics::ValidateAndPushParam(unsigned paramindex)
+void CompilationSemantics::PushInfixParam()
 {
-	std::wstring paramname;
-	VM::EpochTypeID finalexpectedtype = VM::EpochType_Error;
-
-	if(!IsPrepass)
+	if(!StatementParamCount.empty())
 	{
-		// For assignment operations we need to do special handling since the operator is built in
-		// and we won't be able to look its parameters up in the entity signature tables
-		if(StatementNames.top() == L"=")
-		{
-			paramname = L"rhs";
-			finalexpectedtype = LexicalScopeDescriptions.find(LexicalScopeStack.top())->second.GetVariableTypeByID(AssignmentTargets.top());
-
-			if(!CheckParameterValidity(finalexpectedtype))
-				Throw(TypeMismatchException("Left and right side of assignment must be of the same type"));
-		}
-		else
-		{
-			unsigned matches = 0;
-
-			StringHandle rawnamehandle = Session.StringPool.Pool(StatementNames.top());
-			std::map<StringHandle, std::set<StringHandle> >::const_iterator overloadsiter = Session.FunctionOverloadNames.find(rawnamehandle);
-			if(overloadsiter != Session.FunctionOverloadNames.end())
-			{
-				const std::set<StringHandle>& overloadnames = overloadsiter->second;
-				for(std::set<StringHandle>::const_iterator overloaditer = overloadnames.begin(); overloaditer != overloadnames.end(); ++overloaditer)
-				{
-					StringHandle statementnamehandle = *overloaditer;
-					FunctionSignatureSet::const_iterator iter = Session.FunctionSignatures.find(statementnamehandle);
-					if(iter == Session.FunctionSignatures.end())
-						Throw(RecoverableException("The function \"" + narrow(StatementNames.top()) + "\" is not defined in this scope"));
-
-					paramname = iter->second.GetParameter(paramindex).Name;
-					VM::EpochTypeID overloadexpectedtype = iter->second.GetParameter(paramindex).Type;
-
-					if(CheckParameterValidity(overloadexpectedtype))
-					{
-						// Check return type, if possible, to help resolve overloads that differ by return type
-						if(StatementNames.size() > 1)
-						{
-							StringHandle outernamehandle = Session.StringPool.Pool(StatementNames.c.at(StatementNames.c.size() - 2));
-							unsigned outerparamindex = StatementParamCount.c.at(StatementParamCount.size() - 2);
-
-							// TODO - this doesn't handle assignments yet
-							FunctionSignatureSet::const_iterator outeriter = Session.FunctionSignatures.find(outernamehandle);
-							if(outeriter == Session.FunctionSignatures.end())
-								Throw(RecoverableException("The function \"" + narrow(Session.StringPool.GetPooledString(outernamehandle)) + "\" is not defined in this scope"));
-
-							VM::EpochTypeID outerexpectedtype = outeriter->second.GetParameter(outerparamindex).Type;
-							if(outerexpectedtype == iter->second.GetReturnType())
-							{
-								finalexpectedtype = overloadexpectedtype;
-								++matches;
-							}
-						}
-						else
-						{
-							finalexpectedtype = overloadexpectedtype;
-							++matches;
-						}
-					}
-					else
-					{
-						if(overloadnames.size() == 1)
-							Throw(TypeMismatchException("Wrong parameter type"));
-					}
-				}
-			}
-			else
-			{
-				// This is probably a library function with no registered overloads
-				FunctionSignatureSet::const_iterator iter = Session.FunctionSignatures.find(rawnamehandle);
-				if(iter == Session.FunctionSignatures.end())
-					Throw(RecoverableException("The function \"" + narrow(StatementNames.top()) + "\" is not defined in this scope"));
-
-				paramname = iter->second.GetParameter(paramindex).Name;
-				finalexpectedtype = iter->second.GetParameter(paramindex).Type;
-
-				if(CheckParameterValidity(finalexpectedtype))
-					++matches;
-				else
-					Throw(TypeMismatchException("Wrong parameter type"));
-			}
-
-			OverloadMatchesPerParameter.top().push_back(matches);
-
-			if(!matches)
-			{
-				OverloadResolutionFailed.top() = true;
-				Failed = true;
-				Throw(RecoverableException("No overloaded function takes a matching set of parameters"));
-			}
-		}
+		++StatementParamCount.top();
+		PushParam(L"@@infixoperand");
 	}
+}
 
-	CompileTimeParameter ctparam(paramname, finalexpectedtype);
-
-	// Emit any necessary code and set up the compile-time parameter payload
+//
+// Actually enqueue a parameter for future validation
+//
+void CompilationSemantics::PushParam(const std::wstring& paramname)
+{
+	// Set up the compile-time parameter payload
 	switch(PushedItemTypes.top())
 	{
 	case ITEMTYPE_STATEMENT:
@@ -897,41 +898,41 @@ void CompilationSemantics::ValidateAndPushParam(unsigned paramindex)
 
 	case ITEMTYPE_STRING:
 		{
+			CompileTimeParameter ctparam(paramname, VM::EpochType_Identifier);
 			StringHandle handle = Session.StringPool.Pool(Strings.top());
-			if(!IsPrepass)
-			{
-				if(finalexpectedtype == VM::EpochType_Identifier)
-					EmitterStack.top()->PushStringLiteral(handle);
-				else
-					EmitterStack.top()->PushVariableValue(handle);
-			}
 			ctparam.StringPayload = Strings.top();
 			ctparam.Payload.StringHandleValue = handle;
 			Strings.pop();
+			if(!IsPrepass)
+				CompileTimeParameters.top().push_back(ctparam);
 		}
 		break;
 
 	case ITEMTYPE_STRINGLITERAL:
-		if(!IsPrepass)
-			EmitterStack.top()->PushStringLiteral(StringLiterals.top());
-		ctparam.Payload.StringHandleValue = StringLiterals.top();
-		StringLiterals.pop();
+		{
+			CompileTimeParameter ctparam(paramname, VM::EpochType_String);
+			ctparam.Payload.StringHandleValue = StringLiterals.top();
+			StringLiterals.pop();
+			if(!IsPrepass)
+				CompileTimeParameters.top().push_back(ctparam);
+		}
 		break;
 
 	case ITEMTYPE_INTEGERLITERAL:
-		if(!IsPrepass)
-			EmitterStack.top()->PushIntegerLiteral(IntegerLiterals.top());
-		ctparam.Payload.IntegerValue = IntegerLiterals.top();
-		IntegerLiterals.pop();
+		{
+			CompileTimeParameter ctparam(paramname, VM::EpochType_Integer);
+			ctparam.Payload.IntegerValue = IntegerLiterals.top();
+			IntegerLiterals.pop();
+			if(!IsPrepass)
+				CompileTimeParameters.top().push_back(ctparam);
+		}
 		break;
 
 	default:
-		throw NotImplementedException("The parser stack contains something we aren't ready to handle in CompilationSemantics::ValidateAndPushParam");
+		throw NotImplementedException("The parser stack contains something we aren't ready to handle in CompilationSemantics::PushParam");
 	}
 
 	PushedItemTypes.pop();
-	if(!IsPrepass)
-		CompileTimeParameters.top().push_back(ctparam);
 }
 
 //
@@ -1103,11 +1104,33 @@ void CompilationSemantics::RemapFunctionToOverload(const std::vector<CompileTime
 		bool patternsucceeded = true;
 		for(size_t i = 0; i < signatureiter->second.GetNumParameters(); ++i)
 		{
-			if(params[i].Type != signatureiter->second.GetParameter(i).Type)
+			if(params[i].Type == VM::EpochType_Identifier)
 			{
-				patternsucceeded = false;
-				matched = false;
-				break;
+				if(signatureiter->second.GetParameter(i).Type != VM::EpochType_Identifier)
+				{
+					std::map<StringHandle, ScopeDescription>::const_iterator iter = LexicalScopeDescriptions.find(LexicalScopeStack.top());
+					if(iter == LexicalScopeDescriptions.end())
+						throw FatalException("No lexical scope has been registered for the identifier \"" + narrow(Session.StringPool.GetPooledString(LexicalScopeStack.top())) + "\"");
+
+					if(!iter->second.HasVariable(params[i].StringPayload))
+						Throw(RecoverableException("No variable by the name \"" + narrow(params[i].StringPayload) + "\" was found in this scope"));
+
+					if(iter->second.GetVariableTypeByID(params[i].Payload.StringHandleValue) != signatureiter->second.GetParameter(i).Type)
+					{
+						patternsucceeded = false;
+						matched = false;
+						break;
+					}
+				}
+			}
+			else if(params[i].Type == VM::EpochType_Expression)
+			{
+				if(signatureiter->second.GetParameter(i).Type != params[i].ExpressionType)
+				{
+					patternsucceeded = false;
+					matched = false;
+					break;
+				}
 			}
 
 			if(signatureiter->second.GetParameter(i).Name == L"@@patternmatched")
@@ -1148,7 +1171,7 @@ void CompilationSemantics::RemapFunctionToOverload(const std::vector<CompileTime
 	if(patternmatching)
 		Throw(RecoverableException("No function matches this parameter pattern"));
 		
-	throw FatalException("Failed to remap function overload internally");
+	Throw(RecoverableException("No function overload takes a matching parameter set"));
 }
 
 
@@ -1226,6 +1249,6 @@ void CompilationSemantics::SanityCheck() const
 	if(!Strings.empty() || !EntityTypeTags.empty() || !IntegerLiterals.empty() || !StringLiterals.empty() || !FunctionSignatureStack.empty()
 	|| !StatementNames.empty() || !StatementParamCount.empty() || !StatementTypes.empty() || !LexicalScopeStack.empty() || !CompileTimeParameters.empty()
 	|| !CurrentEntities.empty() || !FunctionReturnVars.empty() || !PendingEmissionBuffers.empty() || !PendingEmitters.empty() || !AssignmentTargets.empty()
-	|| !PushedItemTypes.empty() || !ReturnsIncludedStatement.empty() || !FunctionReturnTypeNames.empty())
+	|| !PushedItemTypes.empty() || !ReturnsIncludedStatement.empty() || !FunctionReturnTypeNames.empty() || !InfixOperators.empty() || !InfixOperands.empty())
 		throw FatalException("Parser leaked a resource");
 }

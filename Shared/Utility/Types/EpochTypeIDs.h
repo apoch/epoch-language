@@ -16,6 +16,7 @@ namespace VM
 		EpochType_Error,
 		
 		EpochType_Identifier,
+		EpochType_Expression,
 
 		EpochType_Void,
 		EpochType_Integer,

@@ -80,7 +80,9 @@ public:
 	virtual void StoreEntityCode();
 
 	virtual void StoreInfix(const std::wstring& identifier);
+	virtual void PushInfixParam();
 	virtual void CompleteInfix();
+	virtual void FinalizeInfix();
 
 	virtual void BeginParameterSet();
 	virtual void EndParameterSet();
@@ -96,7 +98,7 @@ public:
 
 	virtual void BeginStatement(const std::wstring& statementname);
 	virtual void BeginStatementParams();
-	virtual void ValidateStatementParam();
+	virtual void PushStatementParam();
 	virtual void CompleteStatement();
 	virtual void FinalizeStatement();
 
@@ -119,7 +121,7 @@ private:
 	void AddLexicalScope(StringHandle scopename);
 	ScopeDescription& GetLexicalScopeDescription(StringHandle scopename);
 
-	void ValidateAndPushParam(unsigned paramindex);
+	void PushParam(const std::wstring& paramname);
 
 	VM::EpochTypeID LookupTypeName(const std::wstring& name) const;
 
@@ -175,8 +177,6 @@ private:
 
 	boost::spirit::classic::position_iterator<const char*> ParsePosition;
 
-	std::stack<bool> OverloadResolutionFailed;
-
 	std::list<std::pair<boost::spirit::classic::position_iterator<const char*>, StringHandle> > OverloadDefinitions;
 
 	bool InsideParameterList;
@@ -185,6 +185,7 @@ private:
 	std::map<StringHandle, FunctionSignature> NeededPatternResolvers;
 	std::multimap<StringHandle, StringHandle> OriginalFunctionsForPatternResolution;
 
-	std::stack<std::vector<unsigned> > OverloadMatchesPerParameter;
+	std::stack<std::vector<StringHandle> > InfixOperators;
+	std::stack<std::vector<std::vector<CompileTimeParameter> > > InfixOperands;
 };
 

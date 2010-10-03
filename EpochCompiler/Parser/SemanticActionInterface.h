@@ -33,7 +33,9 @@ public:
 	virtual void StoreEntityCode() = 0;
 
 	virtual void StoreInfix(const std::wstring& identifier) = 0;
+	virtual void PushInfixParam() = 0;
 	virtual void CompleteInfix() = 0;
+	virtual void FinalizeInfix() = 0;
 
 	virtual void BeginParameterSet() = 0;
 	virtual void EndParameterSet() = 0;
@@ -49,7 +51,7 @@ public:
 
 	virtual void BeginStatement(const std::wstring& statementname) = 0;
 	virtual void BeginStatementParams() = 0;
-	virtual void ValidateStatementParam() = 0;
+	virtual void PushStatementParam() = 0;
 	virtual void CompleteStatement() = 0;
 	virtual void FinalizeStatement() = 0;
 

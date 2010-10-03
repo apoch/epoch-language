@@ -25,8 +25,8 @@ template <typename IteratorType>
 void Trace(const std::wstring& title, IteratorType begin, IteratorType end)
 {
 #ifdef _DEBUG
-	std::wstring blob(begin, end);
-	std::wcout << L"PARSER TRACE: " << title << L" - " << blob << std::endl;
+	//std::wstring blob(begin, end);
+	//std::wcout << L"PARSER TRACE: " << title << L" - " << blob << std::endl;
 #endif
 }
 
@@ -203,6 +203,23 @@ struct CompleteInfix
 		Trace(L"CompleteInfix", begin, end);
 		Bindings.SetParsePosition(end);
 		Bindings.CompleteInfix();
+	}
+
+	SemanticActionInterface& Bindings;
+};
+
+struct FinalizeInfix
+{
+	FinalizeInfix(SemanticActionInterface& bindings)
+		: Bindings(bindings)
+	{ }
+
+	template <typename IteratorType>
+	void operator () (IteratorType begin, IteratorType end) const
+	{
+		Trace(L"FinalizeInfix", begin, end);
+		Bindings.SetParsePosition(end);
+		Bindings.FinalizeInfix();
 	}
 
 	SemanticActionInterface& Bindings;
@@ -390,18 +407,35 @@ struct BeginStatementParams
 	SemanticActionInterface& Bindings;
 };
 
-struct ValidateStatementParam
+struct PushStatementParam
 {
-	ValidateStatementParam(SemanticActionInterface& bindings)
+	PushStatementParam(SemanticActionInterface& bindings)
 		: Bindings(bindings)
 	{ }
 
 	template <typename IteratorType>
 	void operator () (IteratorType begin, IteratorType end) const
 	{
-		Trace(L"ValidateStatementParam", begin, end);
+		Trace(L"PushStatementParam", begin, end);
 		Bindings.SetParsePosition(end);
-		Bindings.ValidateStatementParam();
+		Bindings.PushStatementParam();
+	}
+
+	SemanticActionInterface& Bindings;
+};
+
+struct PushInfixParam
+{
+	PushInfixParam(SemanticActionInterface& bindings)
+		: Bindings(bindings)
+	{ }
+
+	template <typename IteratorType>
+	void operator () (IteratorType begin, IteratorType end) const
+	{
+		Trace(L"PushInfixParam", begin, end);
+		Bindings.SetParsePosition(end);
+		Bindings.PushInfixParam();
 	}
 
 	SemanticActionInterface& Bindings;
