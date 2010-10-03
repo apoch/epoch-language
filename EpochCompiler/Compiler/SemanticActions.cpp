@@ -1113,6 +1113,8 @@ void CompilationSemantics::RemapFunctionToOverload(const std::vector<CompileTime
 		}
 	}
 
+	std::set<StringHandle> matches;
+
 	for(std::set<StringHandle>::const_iterator iter = overloadednames.begin(); iter != overloadednames.end(); ++iter)
 	{
 		FunctionSignatureSet::const_iterator signatureiter = Session.FunctionSignatures.find(*iter);
@@ -1212,19 +1214,21 @@ void CompilationSemantics::RemapFunctionToOverload(const std::vector<CompileTime
 		{
 			if(patternmatching && !patternsucceeded)
 			{
-				if(differingreturntypes)
-					continue;
-
-				out_remappedname = GetPatternMatchResolverName(out_remappedname);
-				out_remappednamehandle = Session.StringPool.Pool(out_remappedname);
+				if(!differingreturntypes)
+					matches.insert(Session.StringPool.Pool(GetPatternMatchResolverName(out_remappedname)));
 			}
 			else
-			{
-				out_remappednamehandle = *iter;
-				out_remappedname = Session.StringPool.GetPooledString(out_remappednamehandle);
-			}
-			return;
+				matches.insert(*iter);
 		}
+	}
+
+	if(!matches.empty())
+	{
+		if(matches.size() > 1)
+			Throw(RecoverableException("Multiple overloads matched for \"" + narrow(out_remappedname) + "\" - not sure which one to call"));
+
+		out_remappednamehandle = *matches.begin();
+		out_remappedname = Session.StringPool.GetPooledString(out_remappednamehandle);
 	}
 
 	if(patternmatching)
