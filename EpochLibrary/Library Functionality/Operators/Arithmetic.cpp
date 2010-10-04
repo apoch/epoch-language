@@ -30,6 +30,7 @@ void ArithmeticLibrary::RegisterLibraryFunctions(FunctionInvocationTable& table,
 	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"+"), ArithmeticLibrary::AddIntegers));
 	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"-"), ArithmeticLibrary::SubtractIntegers));
 	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"*"), ArithmeticLibrary::MultiplyIntegers));
+	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"/"), ArithmeticLibrary::DivideIntegers));
 }
 
 //
@@ -57,6 +58,13 @@ void ArithmeticLibrary::RegisterLibraryFunctions(FunctionSignatureSet& signature
 		signature.AddParameter(L"i2", VM::EpochType_Integer);
 		signature.SetReturnType(VM::EpochType_Integer);
 		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"*"), signature));
+	}
+	{
+		FunctionSignature signature;
+		signature.AddParameter(L"i1", VM::EpochType_Integer);
+		signature.AddParameter(L"i2", VM::EpochType_Integer);
+		signature.SetReturnType(VM::EpochType_Integer);
+		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"/"), signature));
 	}
 }
 
@@ -89,6 +97,11 @@ void ArithmeticLibrary::RegisterInfixOperators(InfixTable& infixtable, Precedenc
 		AddToSetNoDupe(infixtable, stringpool.GetPooledString(handle));
 		precedences.insert(std::make_pair(PRECEDENCE_MULTIPLYDIVIDE, handle));
 	}
+	{
+		StringHandle handle = stringpool.Pool(L"/");
+		AddToSetNoDupe(infixtable, stringpool.GetPooledString(handle));
+		precedences.insert(std::make_pair(PRECEDENCE_MULTIPLYDIVIDE, handle));
+	}
 }
 
 
@@ -118,10 +131,22 @@ void ArithmeticLibrary::SubtractIntegers(StringHandle functionname, VM::Executio
 
 //
 // Multiply two numbers and return the result
+//
 void ArithmeticLibrary::MultiplyIntegers(StringHandle functionname, VM::ExecutionContext& context)
 {
 	Integer32 p2 = context.State.Stack.PopValue<Integer32>();
 	Integer32 p1 = context.State.Stack.PopValue<Integer32>();
 
 	context.State.Stack.PushValue(p1 * p2);
+}
+
+//
+// Divide two numbers and return the result
+//
+void ArithmeticLibrary::DivideIntegers(StringHandle functionname, VM::ExecutionContext& context)
+{
+	Integer32 p2 = context.State.Stack.PopValue<Integer32>();
+	Integer32 p1 = context.State.Stack.PopValue<Integer32>();
+
+	context.State.Stack.PushValue(p1 / p2);
 }
