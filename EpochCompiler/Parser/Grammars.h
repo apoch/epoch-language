@@ -169,9 +169,13 @@ struct FundamentalGrammar : public boost::spirit::classic::grammar<FundamentalGr
 				  (
 					TypeMismatchExceptionGuard
 					(
-						((Assignment) | (Statement[FinalizeStatement(self.Bindings)]))
+						((Assignment) | (Statement[FinalizeStatement(self.Bindings)]) | InnerCodeBlock)
 					)[GeneralExceptionHandler(self.Bindings)]
 				  )[GeneralExceptionHandler(self.Bindings)]
+				;
+
+			InnerCodeBlock
+				= OPENBRACE[BeginLexicalScope(self.Bindings)] >> (*CodeBlockEntry) >> CLOSEBRACE[EndLexicalScope(self.Bindings)]
 				;
 
 			CodeBlock
@@ -217,6 +221,7 @@ struct FundamentalGrammar : public boost::spirit::classic::grammar<FundamentalGr
 		
 		boost::spirit::classic::rule<ScannerType> CodeBlockEntry;
 		boost::spirit::classic::rule<ScannerType> CodeBlock;
+		boost::spirit::classic::rule<ScannerType> InnerCodeBlock;
 
 		boost::spirit::classic::rule<ScannerType> MetaEntity;
 

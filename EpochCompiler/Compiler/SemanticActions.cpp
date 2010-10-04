@@ -93,6 +93,18 @@ void CompilationSemantics::StoreEntityType(Bytecode::EntityTag typetag)
 		PushedItemTypes.pop();
 		break;
 
+	case Bytecode::EntityTags::FreeBlock:
+		{
+			std::wstring anonymousname = AllocateAnonymousScopeName();
+			StringHandle anonymousnamehandle = Session.StringPool.Pool(anonymousname);
+			CurrentEntities.push(anonymousname);
+			if(!IsPrepass)
+				EmitterStack.top()->EnterEntity(Bytecode::EntityTags::FreeBlock, anonymousnamehandle);
+			LexicalScopeDescriptions.insert(std::make_pair(anonymousnamehandle, ScopeDescription(&LexicalScopeDescriptions.find(LexicalScopeStack.top())->second)));
+			LexicalScopeStack.push(anonymousnamehandle);
+		}
+		break;
+
 	//
 	// Handle the error case where the type tag is not recognized. Non-fatal.
 	//
@@ -140,6 +152,10 @@ void CompilationSemantics::StoreEntityCode()
 			}
 			break;
 
+		case Bytecode::EntityTags::FreeBlock:
+			EmitterStack.top()->ExitEntity();
+			break;
+
 		//
 		// Error case: the entity tag is not recognized. Fatal.
 		//
@@ -148,8 +164,8 @@ void CompilationSemantics::StoreEntityCode()
 		}
 	}
 
-	EntityTypeTags.pop();
 	CurrentEntities.pop();
+	EntityTypeTags.pop();
 	LexicalScopeStack.pop();
 }
 
@@ -1103,7 +1119,7 @@ void CompilationSemantics::Finalize()
 		// Generate any pattern-matching resolver functions needed
 		for(std::map<StringHandle, FunctionSignature>::const_iterator iter = NeededPatternResolvers.begin(); iter != NeededPatternResolvers.end(); ++iter)
 		{
-			EmitterStack.top()->DefineLexicalScope(iter->first, iter->second.GetNumParameters());
+			EmitterStack.top()->DefineLexicalScope(iter->first, 0, iter->second.GetNumParameters());
 			for(size_t i = 0; i < iter->second.GetNumParameters(); ++i)
 				EmitterStack.top()->LexicalScopeEntry(Session.StringPool.Pool(iter->second.GetParameter(i).Name), iter->second.GetParameter(i).Type, VARIABLE_ORIGIN_PARAMETER);
 
@@ -1119,7 +1135,7 @@ void CompilationSemantics::Finalize()
 
 		for(std::map<StringHandle, ScopeDescription>::const_iterator iter = LexicalScopeDescriptions.begin(); iter != LexicalScopeDescriptions.end(); ++iter)
 		{
-			EmitterStack.top()->DefineLexicalScope(iter->first, iter->second.GetVariableCount());
+			EmitterStack.top()->DefineLexicalScope(iter->first, FindLexicalScopeName(iter->second.ParentScope), iter->second.GetVariableCount());
 			for(size_t i = 0; i < iter->second.GetVariableCount(); ++i)
 				EmitterStack.top()->LexicalScopeEntry(Session.StringPool.Pool(iter->second.GetVariableName(i)), iter->second.GetVariableTypeByIndex(i), iter->second.GetVariableOrigin(i));
 		}
@@ -1478,6 +1494,40 @@ void CompilationSemantics::EmitInfixOperand(ByteCodeEmitter& emitter, const Comp
 	default:
 		throw FatalException("Unsupported operand type in infix expression");
 	}
+}
+
+//
+// Generate an internal name for an anonymous lexical scope
+//
+std::wstring CompilationSemantics::AllocateAnonymousScopeName()
+{
+	std::wostringstream ret;
+	ret << L"@@anonscope@@" << AnonymousScopeCounter;
+	++AnonymousScopeCounter;
+	return ret.str();
+}
+
+//
+// Switch between prepass and final compilation pass modes
+//
+void CompilationSemantics::SetPrepassMode(bool isprepass)
+{
+	IsPrepass = isprepass;
+	AnonymousScopeCounter = 0;
+}
+
+//
+// Look up the name handle of the lexical scope description at the given address
+//
+StringHandle CompilationSemantics::FindLexicalScopeName(const ScopeDescription* scope) const
+{
+	for(std::map<StringHandle, ScopeDescription>::const_iterator iter = LexicalScopeDescriptions.begin(); iter != LexicalScopeDescriptions.end(); ++iter)
+	{
+		if(&iter->second == scope)
+			return iter->first;
+	}
+
+	return 0;
 }
 
 

@@ -34,6 +34,9 @@ bool ScopeDescription::HasVariable(const std::wstring& identifier) const
 			return true;
 	}
 
+	if(ParentScope)
+		return ParentScope->HasVariable(identifier);
+
 	return false;
 }
 
@@ -55,6 +58,9 @@ VM::EpochTypeID ScopeDescription::GetVariableTypeByID(StringHandle variableid) c
 		if(iter->IdentifierHandle == variableid)
 			return iter->Type;
 	}
+
+	if(ParentScope)
+		return ParentScope->GetVariableTypeByID(variableid);
 
 	throw InvalidIdentifierException("Could not retrieve the variable's type - identifier is not valid in this scope");
 }

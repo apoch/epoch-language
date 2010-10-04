@@ -18,6 +18,7 @@
 #include "Utility/DLLPool.h"
 
 #include <limits>
+#include <list>
 
 
 using namespace VM;
@@ -235,6 +236,9 @@ void ExecutionContext::Execute(const ScopeDescription* scope)
 		{
 			if(DoCleanup)
 			{
+				while(!ScopesToCleanUp.empty())
+					ThisPtr->Variables = CleanUpTopmostScope();
+
 				ThisPtr->Variables->PopScopeOffStack(*ThisPtr);
 				bool hasreturn = ThisPtr->Variables->HasReturnVariable();
 				ActiveScope* parent = ThisPtr->Variables->ParentScope;
@@ -244,6 +248,18 @@ void ExecutionContext::Execute(const ScopeDescription* scope)
 					ThisPtr->State.ReturnValueRegister.PushOntoStack(ThisPtr->State.Stack);
 			}
 		}
+
+		ActiveScope* CleanUpTopmostScope()
+		{
+			ActiveScope* activescope = ScopesToCleanUp.back();
+			ActiveScope* parent = activescope->ParentScope;
+			activescope->PopScopeOffStack(*ThisPtr);
+			delete activescope;
+			ScopesToCleanUp.pop_back();
+			return parent;
+		}
+
+		std::list<ActiveScope*> ScopesToCleanUp;
 
 		ExecutionContext* ThisPtr;
 		bool DoCleanup;
@@ -332,7 +348,7 @@ void ExecutionContext::Execute(const ScopeDescription* scope)
 		case Bytecode::Instructions::BeginEntity:
 			{
 				Bytecode::EntityTag tag = static_cast<Bytecode::EntityTag>(Fetch<Integer32>());
-				Fetch<StringHandle>();
+				StringHandle name = Fetch<StringHandle>();
 
 				if(tag == Bytecode::EntityTags::Function)
 				{
@@ -342,10 +358,20 @@ void ExecutionContext::Execute(const ScopeDescription* scope)
 
 					onexit.DoCleanup = true;
 				}
+				else if(tag == Bytecode::EntityTags::FreeBlock)
+				{
+					scope = &OwnerVM.GetScopeDescription(name);
+					Variables = new ActiveScope(*scope, Variables);
+					Variables->BindParametersToStack(*this);
+					Variables->PushLocalsOntoStack(*this);
+					onexit.ScopesToCleanUp.push_back(Variables);
+				}
 			}
 			break;
 
 		case Bytecode::Instructions::EndEntity:
+			if(!onexit.ScopesToCleanUp.empty())
+				Variables = onexit.CleanUpTopmostScope();
 			break;
 
 
@@ -356,6 +382,7 @@ void ExecutionContext::Execute(const ScopeDescription* scope)
 
 		case Bytecode::Instructions::DefineLexicalScope:
 			{
+				Fetch<StringHandle>();
 				Fetch<StringHandle>();
 				Integer32 numentries = Fetch<Integer32>();
 				for(Integer32 i = 0; i < numentries; ++i)
@@ -438,8 +465,9 @@ void ExecutionContext::Load()
 			{
 				size_t originaloffset = InstructionOffset - 1;
 				entitytypes.push(Fetch<Integer32>());
+				StringHandle name = Fetch<StringHandle>();
 				if(entitytypes.top() == Bytecode::EntityTags::Function || entitytypes.top() == Bytecode::EntityTags::PatternMatchingResolver)
-					OwnerVM.AddFunction(Fetch<StringHandle>(), originaloffset);
+					OwnerVM.AddFunction(name, originaloffset);
 			}
 			break;
 
@@ -458,10 +486,13 @@ void ExecutionContext::Load()
 		case Bytecode::Instructions::DefineLexicalScope:
 			{
 				StringHandle scopename = Fetch<StringHandle>();
+				StringHandle parentscopename = Fetch<StringHandle>();
 				Integer32 numentries = Fetch<Integer32>();
 
 				OwnerVM.AddLexicalScope(scopename);
 				ScopeDescription& scope = OwnerVM.GetScopeDescription(scopename);
+				if(parentscopename)
+					scope.ParentScope = &OwnerVM.GetScopeDescription(parentscopename);
 
 				for(Integer32 i = 0; i < numentries; ++i)
 				{

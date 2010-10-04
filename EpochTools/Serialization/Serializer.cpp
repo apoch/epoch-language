@@ -185,9 +185,12 @@ void Serializer::Write(const std::wstring& filename) const
 			break;
 
 		case Bytecode::Instructions::BeginEntity:
-			outfile << L"ENTITY " << traverser.ReadEntityTag();
-			outfile << L" " << traverser.Read<StringHandle>() << L"\n";
-			++indent;
+			{
+				outfile << L"ENTITY " << traverser.ReadEntityTag();
+				outfile << L" " << traverser.Read<StringHandle>();
+				outfile << L"\n";
+				++indent;
+			}
 			break;
 
 		case Bytecode::Instructions::EndEntity:
@@ -202,6 +205,7 @@ void Serializer::Write(const std::wstring& filename) const
 		case Bytecode::Instructions::DefineLexicalScope:
 			{
 				outfile << L"SCOPE " << traverser.Read<StringHandle>() << L" ";
+				outfile << traverser.Read<StringHandle>() << L" ";
 				size_t count = traverser.Read<size_t>();
 				outfile << count << L" ";
 				while(count-- > 0)

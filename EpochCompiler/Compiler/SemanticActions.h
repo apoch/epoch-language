@@ -57,7 +57,8 @@ public:
 		  IsPrepass(true),
 		  CompileTimeHelpers(session.CompileTimeHelpers),
 		  Failed(false),
-		  InsideParameterList(false)
+		  InsideParameterList(false),
+		  AnonymousScopeCounter(0)
 	{
 		EmitterStack.push(&MasterEmitter);
 	}
@@ -69,8 +70,7 @@ public:
 
 // Semantic action implementations (implementation of SemanticActionInterface)
 public:
-	virtual void SetPrepassMode(bool isprepass)
-	{ IsPrepass = isprepass; }
+	virtual void SetPrepassMode(bool isprepass);
 
 	virtual void StoreString(const std::wstring& strliteral);
 	virtual void StoreIntegerLiteral(Integer32 value);
@@ -142,6 +142,10 @@ private:
 
 	void EmitInfixOperand(ByteCodeEmitter& emitter, const CompileTimeParameter& ctparam);
 
+	std::wstring AllocateAnonymousScopeName();
+
+	StringHandle FindLexicalScopeName(const ScopeDescription* scope) const;
+
 // Internal tracking
 private:
 	bool IsPrepass;
@@ -196,5 +200,7 @@ private:
 
 	std::stack<std::vector<StringHandle> > InfixOperators;
 	std::stack<std::vector<std::vector<CompileTimeParameter> > > InfixOperands;
+
+	size_t AnonymousScopeCounter;
 };
 

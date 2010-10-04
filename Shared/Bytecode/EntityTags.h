@@ -24,6 +24,7 @@ namespace Bytecode
 
 		static const EntityTag Function = 0x00;
 		static const EntityTag PatternMatchingResolver = 0x01;
+		static const EntityTag FreeBlock = 0x02;
 
 	}
 

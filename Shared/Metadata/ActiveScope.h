@@ -46,7 +46,15 @@ public:
 	{
 		std::map<StringHandle, void*>::const_iterator iter = VariableStorageLocations.find(variableid);
 		if(iter == VariableStorageLocations.end())
+		{
+			if(ParentScope)
+			{
+				ParentScope->Write(variableid, value);
+				return;
+			}
+
 			throw InvalidIdentifierException("Requested variable has not been bound to any storage in this scope");
+		}
 
 		*reinterpret_cast<T*>(iter->second) = value;
 	}

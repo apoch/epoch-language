@@ -26,6 +26,16 @@ enum VariableOrigin
 
 class ScopeDescription
 {
+// Construction
+public:
+	ScopeDescription()
+		: ParentScope(NULL)
+	{ }
+
+	explicit ScopeDescription(ScopeDescription* parentscope)
+		: ParentScope(parentscope)
+	{ }
+
 // Configuration interface
 public:
 	void AddVariable(const std::wstring& identifier, StringHandle identifierhandle, VM::EpochTypeID type, VariableOrigin origin);
@@ -41,6 +51,10 @@ public:
 
 	size_t GetVariableCount() const
 	{ return Variables.size(); }
+
+// Public properties
+public:
+	ScopeDescription* ParentScope;
 
 // Internal helper structures
 private:

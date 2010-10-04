@@ -131,6 +131,25 @@ void ByteCodeEmitter::Halt()
 // Entities and lexical scopes
 //-------------------------------------------------------------------------------
 
+
+//
+// Emit a generic entity body header
+//
+void ByteCodeEmitter::EnterEntity(Bytecode::EntityTag tag, StringHandle name)
+{
+	EmitInstruction(Bytecode::Instructions::BeginEntity);
+	EmitEntityTag(tag);
+	EmitRawValue(name);
+}
+
+//
+// Emit a generic entity exit
+//
+void ByteCodeEmitter::ExitEntity()
+{
+	EmitInstruction(Bytecode::Instructions::EndEntity);
+}
+
 //
 // Emit a header describing a lexical scope
 //
@@ -138,10 +157,11 @@ void ByteCodeEmitter::Halt()
 // scope's internal name (e.g. the name of a function, or a generated name for nested
 // scopes within a function, etc.), and the number of data members in the scope.
 //
-void ByteCodeEmitter::DefineLexicalScope(StringHandle name, size_t variablecount)
+void ByteCodeEmitter::DefineLexicalScope(StringHandle name, StringHandle parent, size_t variablecount)
 {
 	EmitInstruction(Bytecode::Instructions::DefineLexicalScope);
 	EmitRawValue(name);
+	EmitRawValue(parent);
 	EmitRawValue(variablecount);
 }
 

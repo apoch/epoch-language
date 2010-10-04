@@ -526,6 +526,39 @@ struct EndParenthetical
 };
 
 
+struct BeginLexicalScope
+{
+	BeginLexicalScope(SemanticActionInterface& bindings)
+		: Bindings(bindings)
+	{ }
+
+	template <typename ParamType>
+	void operator () (ParamType) const
+	{
+		Trace(L"BeginLexicalScope");
+		Bindings.StoreEntityType(Bytecode::EntityTags::FreeBlock);
+	}
+
+	SemanticActionInterface& Bindings;
+};
+
+struct EndLexicalScope
+{
+	EndLexicalScope(SemanticActionInterface& bindings)
+		: Bindings(bindings)
+	{ }
+
+	template <typename ParamType>
+	void operator () (ParamType) const
+	{
+		Trace(L"EndLexicalScope");
+		Bindings.StoreEntityCode();
+	}
+
+	SemanticActionInterface& Bindings;
+};
+
+
 struct Finalize
 {
 	Finalize(SemanticActionInterface& bindings)

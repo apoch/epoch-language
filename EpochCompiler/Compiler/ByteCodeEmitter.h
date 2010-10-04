@@ -60,7 +60,10 @@ public:
 
 // Entities and lexical scopes
 public:
-	void DefineLexicalScope(StringHandle name, size_t variablecount);
+	void EnterEntity(Bytecode::EntityTag tag, StringHandle name);
+	void ExitEntity();
+
+	void DefineLexicalScope(StringHandle name, StringHandle parent, size_t variablecount);
 	void LexicalScopeEntry(StringHandle varname, VM::EpochTypeID vartype, VariableOrigin origin);
 
 // Pattern matching

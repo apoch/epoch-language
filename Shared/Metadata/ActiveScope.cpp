@@ -125,7 +125,12 @@ void* ActiveScope::GetVariableStorageLocation(StringHandle variableid) const
 {
 	std::map<StringHandle, void*>::const_iterator iter = VariableStorageLocations.find(variableid);
 	if(iter == VariableStorageLocations.end())
+	{
+		if(ParentScope)
+			return ParentScope->GetVariableStorageLocation(variableid);
+
 		throw InvalidIdentifierException("Variable ID has not been mapped to a storage location in this scope");
+	}
 
 	return iter->second;
 }
