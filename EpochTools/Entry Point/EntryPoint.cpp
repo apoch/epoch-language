@@ -107,7 +107,8 @@ int _tmain(int argc, _TCHAR* argv[])
 
 				if(bytecodebufferhandle)
 				{
-					Serialization::Serializer serializer(compileraccess, bytecodebufferhandle);					serializer.Write(outfilename);
+					Serialization::Serializer serializer(compileraccess, bytecodebufferhandle);
+					serializer.Write(outfilename);
 				}
 			}
 			catch(std::exception& e)

@@ -55,6 +55,9 @@ public:
 	virtual void CompleteStatement() = 0;
 	virtual void FinalizeStatement() = 0;
 
+	virtual void BeginParenthetical() = 0;
+	virtual void EndParenthetical() = 0;
+
 	virtual void BeginAssignment() = 0;
 	virtual void CompleteAssignment() = 0;
 

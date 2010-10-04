@@ -142,7 +142,7 @@ struct FundamentalGrammar : public boost::spirit::classic::grammar<FundamentalGr
 
 			ExpressionComponent
 				= Statement
-				| (OPENPARENS >> Expression >> CLOSEPARENS)
+				| (OPENPARENS[BeginParenthetical(self.Bindings)] >> Expression >> CLOSEPARENS)[EndParenthetical(self.Bindings)]
 				| Literal
 				| StringIdentifier[StoreString(self.Bindings)]
 				;

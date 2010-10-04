@@ -238,6 +238,9 @@ void CompilationSemantics::FinalizeInfix()
 	{
 		if(!InfixOperators.empty() && !InfixOperators.top().empty())
 		{
+			while(InfixOperands.top().empty())
+				InfixOperands.pop();
+
 			std::vector<CompileTimeParameter> flatoperandlist;
 
 			for(std::vector<std::vector<CompileTimeParameter> >::iterator operandsetiter = InfixOperands.top().begin(); operandsetiter != InfixOperands.top().end(); ++operandsetiter)
@@ -246,55 +249,92 @@ void CompilationSemantics::FinalizeInfix()
 					flatoperandlist.push_back(*operanditer);
 			}
 
-			for(std::multimap<int, StringHandle>::const_reverse_iterator precedenceiter = Session.OperatorPrecedences.rbegin(); precedenceiter != Session.OperatorPrecedences.rend(); ++precedenceiter)
+			if(!flatoperandlist.empty())
 			{
-				int precedence = precedenceiter->first;
-				bool collapsed;
-				do
+				for(std::multimap<int, StringHandle>::const_reverse_iterator precedenceiter = Session.OperatorPrecedences.rbegin(); precedenceiter != Session.OperatorPrecedences.rend(); ++precedenceiter)
 				{
-					collapsed = false;
-
-					std::vector<CompileTimeParameter>::iterator operanditer = flatoperandlist.begin();
-					for(std::vector<StringHandle>::iterator operatoriter = InfixOperators.top().begin(); operatoriter != InfixOperators.top().end(); ++operatoriter)
+					int precedence = precedenceiter->first;
+					bool collapsed;
+					do
 					{
-						if(GetOperatorPrecedence(*operatoriter) == precedence)
+						collapsed = false;
+
+						std::vector<CompileTimeParameter>::iterator operanditer = flatoperandlist.begin();
+						for(std::vector<StringHandle>::iterator operatoriter = InfixOperators.top().begin(); operatoriter != InfixOperators.top().end(); ++operatoriter)
 						{
-							std::vector<Byte> buffer;
-							ByteCodeEmitter emitter(buffer);
+							if(GetOperatorPrecedence(*operatoriter) == precedence)
+							{
+								std::vector<Byte> buffer;
+								ByteCodeEmitter emitter(buffer);
 
-							std::vector<CompileTimeParameter>::iterator firstoperanditer = operanditer;
+								std::vector<CompileTimeParameter>::iterator firstoperanditer = operanditer;
 
-							EmitInfixOperand(emitter, *operanditer);
-							++operanditer;
-							EmitInfixOperand(emitter, *operanditer);
+								EmitInfixOperand(emitter, *operanditer);
+								++operanditer;
+								EmitInfixOperand(emitter, *operanditer);
 
-							std::vector<CompileTimeParameter>::iterator secondoperanditer = operanditer;
-							++operanditer;
-							emitter.Invoke(*operatoriter);
+								std::vector<CompileTimeParameter>::iterator secondoperanditer = operanditer;
+								++operanditer;
+								emitter.Invoke(*operatoriter);
 
-							firstoperanditer->Type = VM::EpochType_Expression;
-							firstoperanditer->ExpressionContents.swap(buffer);
+								firstoperanditer->Type = VM::EpochType_Expression;
+								firstoperanditer->ExpressionContents.swap(buffer);
 
-							flatoperandlist.erase(secondoperanditer);
-							InfixOperators.top().erase(operatoriter);
+								flatoperandlist.erase(secondoperanditer);
+								InfixOperators.top().erase(operatoriter);
 
-							collapsed = true;
-							break;
+								collapsed = true;
+								break;
+							}
+							else
+								++operanditer;
 						}
-						else
-							++operanditer;
-					}
-				} while(collapsed);
+					} while(collapsed);
+				}
+
+				CompileTimeParameter ctparam(L"@@infixresult", VM::EpochType_Expression);
+				ctparam.ExpressionType = StatementTypes.top();
+				ctparam.ExpressionContents.swap(flatoperandlist[0].ExpressionContents);
+				CompileTimeParameters.top().push_back(ctparam);
 			}
-
-			CompileTimeParameter ctparam(L"@@infixresult", VM::EpochType_Expression);
-			ctparam.ExpressionType = StatementTypes.top();
-			ctparam.ExpressionContents.swap(flatoperandlist[0].ExpressionContents);
-			CompileTimeParameters.top().push_back(ctparam);
-
-			InfixOperands.top().clear();
-			InfixOperands.top().push_back(std::vector<CompileTimeParameter>(1, ctparam));
 		}
+		else if(!InfixOperands.empty() && !InfixOperands.top().empty())
+		{
+			if(InfixOperands.top().back().back().Name == L"@@infixresult")
+				CompileTimeParameters.top().push_back(InfixOperands.top().back().back());
+		}
+	}
+}
+
+//
+// Register the beginning of a parenthetical expression
+//
+void CompilationSemantics::BeginParenthetical()
+{
+	if(!IsPrepass)
+	{
+		InfixOperators.push(std::vector<StringHandle>());
+		InfixOperands.push(std::vector<std::vector<CompileTimeParameter> >());
+
+		CompileTimeParameters.push(std::vector<CompileTimeParameter>());
+	}
+}
+
+//
+// Register the end of a parenthetical expression
+//
+// We need to do some minor housekeeping to ensure that infix operands are in the right order and such.
+//
+void CompilationSemantics::EndParenthetical()
+{
+	if(!IsPrepass)
+	{
+		CompileTimeParameter ctparam = CompileTimeParameters.top().back();
+		InfixOperators.pop();
+		InfixOperands.pop();
+		CompileTimeParameters.pop();
+		if(!CompileTimeParameters.empty())
+			InfixOperands.top().push_back(std::vector<CompileTimeParameter>(1, ctparam));
 	}
 }
 

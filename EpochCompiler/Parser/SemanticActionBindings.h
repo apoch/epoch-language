@@ -15,7 +15,6 @@
 #include "Bytecode/EntityTags.h"
 
 #include "Utility/Files/FilesAndPaths.h"
-
 #include <sstream>
 
 #ifdef _DEBUG
@@ -470,6 +469,38 @@ struct FinalizeStatement
 		Trace(L"FinalizeStatement", begin, end);
 		Bindings.SetParsePosition(end);
 		Bindings.FinalizeStatement();
+	}
+
+	SemanticActionInterface& Bindings;
+};
+
+struct BeginParenthetical
+{
+	BeginParenthetical(SemanticActionInterface& bindings)
+		: Bindings(bindings)
+	{ }
+
+	template <typename ParamType>
+	void operator () (ParamType) const
+	{
+		Bindings.BeginParenthetical();
+	}
+
+	SemanticActionInterface& Bindings;
+};
+
+struct EndParenthetical
+{
+	EndParenthetical(SemanticActionInterface& bindings)
+		: Bindings(bindings)
+	{ }
+
+	template <typename IteratorType>
+	void operator () (IteratorType begin, IteratorType end) const
+	{
+		Trace(L"EndParenthetical", begin, end);
+		Bindings.SetParsePosition(end);
+		Bindings.EndParenthetical();
 	}
 
 	SemanticActionInterface& Bindings;

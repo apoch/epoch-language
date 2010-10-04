@@ -102,6 +102,9 @@ public:
 	virtual void CompleteStatement();
 	virtual void FinalizeStatement();
 
+	virtual void BeginParenthetical();
+	virtual void EndParenthetical();
+
 	virtual void BeginAssignment();
 	virtual void CompleteAssignment();
 
