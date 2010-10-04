@@ -155,8 +155,13 @@ struct FundamentalGrammar : public boost::spirit::classic::grammar<FundamentalGr
 				= (StringIdentifier[BeginStatement(self.Bindings)] >> OPENPARENS[BeginStatementParams(self.Bindings)] >> (!((Expression[PushStatementParam(self.Bindings)]) % COMMA)) >> CLOSEPARENS[CompleteStatement(self.Bindings)])
 				;
 
+			ExpressionOrAssignment
+				= (Assignment)
+				| (Expression[PushStatementParam(self.Bindings)])
+				;
+
 			Assignment
-				= (StringIdentifier[BeginStatement(self.Bindings)] >> ASSIGN[BeginAssignment(self.Bindings)] >> Expression[PushStatementParam(self.Bindings)][CompleteAssignment(self.Bindings)])
+				= (StringIdentifier[BeginStatement(self.Bindings)] >> ASSIGN[BeginAssignment(self.Bindings)] >> ExpressionOrAssignment[CompleteAssignment(self.Bindings)])
 				;
 
 			CodeBlockEntry
@@ -198,6 +203,7 @@ struct FundamentalGrammar : public boost::spirit::classic::grammar<FundamentalGr
 
 		boost::spirit::classic::rule<ScannerType> ExpressionComponent;
 		boost::spirit::classic::rule<ScannerType> Expression;
+		boost::spirit::classic::rule<ScannerType> ExpressionOrAssignment;
 		boost::spirit::classic::rule<ScannerType> Statement;
 		boost::spirit::classic::rule<ScannerType> Assignment;
 

@@ -21,20 +21,25 @@
 #include <iostream>
 #endif
 
+//#define PARSER_TRACING
 
 template <typename IteratorType>
 void Trace(const std::wstring& title, IteratorType begin, IteratorType end)
 {
 #ifdef _DEBUG
+#ifdef PARSER_TRACING
 	std::wstring blob(begin, end);
 	std::wcout << L"PARSER TRACE: " << title << L" - " << blob << std::endl;
+#endif
 #endif
 }
 
 void Trace(const std::wstring& title)
 {
 #ifdef _DEBUG
+#ifdef PARSER_TRACING
 	std::wcout << L"PARSER TRACE: " << title << std::endl;
+#endif
 #endif
 }
 

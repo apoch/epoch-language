@@ -300,8 +300,7 @@ void CompilationSemantics::FinalizeInfix()
 		}
 		else if(!InfixOperands.empty() && !InfixOperands.top().empty())
 		{
-			if(InfixOperands.top().back().back().Name == L"@@infixresult")
-				CompileTimeParameters.top().push_back(InfixOperands.top().back().back());
+			CompileTimeParameters.top().push_back(InfixOperands.top().back().back());
 		}
 	}
 }
@@ -840,7 +839,6 @@ void CompilationSemantics::CompleteStatement()
 			CompileTimeParameter ctparam(L"@@expression", VM::EpochType_Expression);
 			ctparam.ExpressionType = fsiter->second.GetReturnType();
 			ctparam.ExpressionContents = PendingEmissionBuffers.top();
-			CompileTimeParameters.top().push_back(ctparam);
 			
 			if(!InfixOperands.empty())
 				InfixOperands.top().push_back(std::vector<CompileTimeParameter>(1, ctparam));
@@ -920,8 +918,13 @@ void CompilationSemantics::CompleteAssignment()
 	StatementNames.pop();
 	if(!IsPrepass)
 	{
-		VM::EpochTypeID expressiontype = CompileTimeParameters.top().back().ExpressionType;
-		EmitterStack.top()->EmitBuffer(CompileTimeParameters.top().back().ExpressionContents);
+		EmitInfixOperand(*EmitterStack.top(), CompileTimeParameters.top().back());
+
+		VM::EpochTypeID expressiontype = CompileTimeParameters.top().back().Type;
+		if(expressiontype == VM::EpochType_Expression)
+			expressiontype = CompileTimeParameters.top().back().ExpressionType;
+		else if(expressiontype == VM::EpochType_Identifier)
+			expressiontype = LexicalScopeDescriptions.find(LexicalScopeStack.top())->second.GetVariableTypeByID(CompileTimeParameters.top().back().Payload.StringHandleValue);
 
 		PendingEmitters.pop();
 		PendingEmissionBuffers.pop();
@@ -931,6 +934,14 @@ void CompilationSemantics::CompleteAssignment()
 		EmitterStack.top()->AssignVariable(AssignmentTargets.top());
 		CompileTimeParameters.pop();
 		StatementTypes.c.clear();
+
+		// Check for chained assignments
+		if(AssignmentTargets.size() > 1)
+		{
+			CompileTimeParameter ctparam(L"@@chainedassignment", VM::EpochType_Identifier);
+			ctparam.Payload.StringHandleValue = AssignmentTargets.top();
+			CompileTimeParameters.top().push_back(ctparam);
+		}
 
 		if(expressiontype != LexicalScopeDescriptions.find(LexicalScopeStack.top())->second.GetVariableTypeByID(AssignmentTargets.top()))
 		{
