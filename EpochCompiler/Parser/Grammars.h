@@ -142,6 +142,7 @@ struct FundamentalGrammar : public boost::spirit::classic::grammar<FundamentalGr
 
 			ExpressionComponent
 				= Statement
+				| (OPENPARENS >> Expression >> CLOSEPARENS)
 				| Literal
 				| StringIdentifier[StoreString(self.Bindings)]
 				;

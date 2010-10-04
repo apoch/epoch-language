@@ -27,8 +27,8 @@ template <typename IteratorType>
 void Trace(const std::wstring& title, IteratorType begin, IteratorType end)
 {
 #ifdef _DEBUG
-	//std::wstring blob(begin, end);
-	//std::wcout << L"PARSER TRACE: " << title << L" - " << blob << std::endl;
+	std::wstring blob(begin, end);
+	std::wcout << L"PARSER TRACE: " << title << L" - " << blob << std::endl;
 #endif
 }
 

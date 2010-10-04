@@ -291,6 +291,9 @@ void CompilationSemantics::FinalizeInfix()
 			ctparam.ExpressionType = StatementTypes.top();
 			ctparam.ExpressionContents.swap(flatoperandlist[0].ExpressionContents);
 			CompileTimeParameters.top().push_back(ctparam);
+
+			InfixOperands.top().clear();
+			InfixOperands.top().push_back(std::vector<CompileTimeParameter>(1, ctparam));
 		}
 	}
 }
@@ -798,6 +801,9 @@ void CompilationSemantics::CompleteStatement()
 			ctparam.ExpressionType = fsiter->second.GetReturnType();
 			ctparam.ExpressionContents = PendingEmissionBuffers.top();
 			CompileTimeParameters.top().push_back(ctparam);
+			
+			if(!InfixOperands.empty())
+				InfixOperands.top().push_back(std::vector<CompileTimeParameter>(1, ctparam));
 		}
 		else
 			EmitterStack.top()->EmitBuffer(PendingEmissionBuffers.top());
@@ -874,8 +880,8 @@ void CompilationSemantics::CompleteAssignment()
 	StatementNames.pop();
 	if(!IsPrepass)
 	{
-		VM::EpochTypeID expressiontype = CompileTimeParameters.top()[0].ExpressionType;
-		EmitterStack.top()->EmitBuffer(CompileTimeParameters.top()[0].ExpressionContents);
+		VM::EpochTypeID expressiontype = CompileTimeParameters.top().back().ExpressionType;
+		EmitterStack.top()->EmitBuffer(CompileTimeParameters.top().back().ExpressionContents);
 
 		PendingEmitters.pop();
 		PendingEmissionBuffers.pop();
@@ -1291,9 +1297,6 @@ void CompilationSemantics::RemapFunctionToOverload(const std::vector<CompileTime
 			Throw(RecoverableException("No function overload for \"" + narrow(out_remappedname) + "\" matches the given parameter pattern"));
 	}
 
-	if(differingreturntypes)
-		Throw(RecoverableException("The function \"" + narrow(out_remappedname) + "\" does not return the right type to be used for this parameter"));
-		
 	Throw(RecoverableException("No function overload for \"" + narrow(out_remappedname) + "\" takes a matching parameter set"));
 }
 
@@ -1356,22 +1359,29 @@ VM::EpochTypeID CompilationSemantics::WalkCallChainForExpectedType(size_t index)
 		return VM::EpochType_Error;
 
 	std::wstring name = StatementNames.c.at(index);
-	StringHandle namehandle = Session.StringPool.Pool(name);
-	unsigned paramindex = StatementParamCount.c.at(index);
 
-	VM::EpochTypeID outerexpectedtype = VM::EpochType_Error;
-	if(index > 0)
-		outerexpectedtype = WalkCallChainForExpectedType(index - 1);
+	if(name == L"=")
+	{
+		return LexicalScopeDescriptions.find(LexicalScopeStack.top())->second.GetVariableTypeByID(AssignmentTargets.top());
+	}
+	else
+	{
+		StringHandle namehandle = Session.StringPool.Pool(name);
+		unsigned paramindex = StatementParamCount.c.at(index);
+
+		VM::EpochTypeID outerexpectedtype = VM::EpochType_Error;
+		if(index > 0)
+			outerexpectedtype = WalkCallChainForExpectedType(index - 1);
 
 
-	RemapFunctionToOverload(CompileTimeParameters.c.at(index), outerexpectedtype, true, name, namehandle);
+		RemapFunctionToOverload(CompileTimeParameters.c.at(index), outerexpectedtype, true, name, namehandle);
 
-	// TODO - this doesn't handle assignments yet
-	FunctionSignatureSet::const_iterator iter = Session.FunctionSignatures.find(namehandle);
-	if(iter == Session.FunctionSignatures.end())
-		Throw(RecoverableException("The function \"" + narrow(name) + "\" is not defined in this scope"));
+		FunctionSignatureSet::const_iterator iter = Session.FunctionSignatures.find(namehandle);
+		if(iter == Session.FunctionSignatures.end())
+			Throw(RecoverableException("The function \"" + narrow(name) + "\" is not defined in this scope"));
 
-	return iter->second.GetParameter(paramindex).Type;
+		return iter->second.GetParameter(paramindex).Type;
+	}
 }
 
 
