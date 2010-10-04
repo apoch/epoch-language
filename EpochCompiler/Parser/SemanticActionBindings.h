@@ -31,6 +31,13 @@ void Trace(const std::wstring& title, IteratorType begin, IteratorType end)
 #endif
 }
 
+void Trace(const std::wstring& title)
+{
+#ifdef _DEBUG
+	std::wcout << L"PARSER TRACE: " << title << std::endl;
+#endif
+}
+
 
 struct GeneralExceptionHandler
 {
@@ -235,6 +242,7 @@ struct BeginParameterSet
 	template <typename ParamType>
 	void operator () (ParamType) const
 	{
+		Trace(L"BeginParameterSet");
 		Bindings.BeginParameterSet();
 	}
 
@@ -250,6 +258,7 @@ struct EndParameterSet
 	template <typename ParamType>
 	void operator () (ParamType) const
 	{
+		Trace(L"EndParameterSet");
 		Bindings.EndParameterSet();
 	}
 
@@ -301,6 +310,7 @@ struct BeginReturnSet
 	template <typename ParamType>
 	void operator () (ParamType) const
 	{
+		Trace(L"BeginReturnSet");
 		Bindings.BeginReturnSet();
 	}
 
@@ -316,6 +326,7 @@ struct EndReturnSet
 	template <typename ParamType>
 	void operator () (ParamType) const
 	{
+		Trace(L"EndReturnSet");
 		Bindings.EndReturnSet();
 	}
 
@@ -402,6 +413,7 @@ struct BeginStatementParams
 	template <typename ParamType>
 	void operator () (ParamType) const
 	{
+		Trace(L"BeginStatementParams");
 		Bindings.BeginStatementParams();
 	}
 
@@ -451,6 +463,7 @@ struct CompleteStatement
 	template <typename ParamType>
 	void operator () (ParamType) const
 	{
+		Trace(L"CompleteStatement");
 		Bindings.CompleteStatement();
 	}
 
@@ -483,6 +496,7 @@ struct BeginParenthetical
 	template <typename ParamType>
 	void operator () (ParamType) const
 	{
+		Trace(L"BeginParenthetical");
 		Bindings.BeginParenthetical();
 	}
 
@@ -534,6 +548,7 @@ struct EmitPendingCode
 	template <typename ParamType>
 	void operator () (ParamType) const
 	{
+		Trace(L"EmitPendingCode");
 		Bindings.EmitPendingCode();
 	}
 
