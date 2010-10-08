@@ -166,6 +166,15 @@ void ByteCodeEmitter::EndChain()
 	EmitInstruction(Bytecode::Instructions::EndChain);
 }
 
+//
+// Emit an instruction to invoke an entity's meta-control logic
+//
+void ByteCodeEmitter::InvokeMetacontrol(Bytecode::EntityTag tag)
+{
+	EmitInstruction(Bytecode::Instructions::InvokeMeta);
+	EmitEntityTag(tag);
+}
+
 
 //
 // Emit a header describing a lexical scope

@@ -205,6 +205,10 @@ void Serializer::Write(const std::wstring& filename) const
 			outfile << L"ENDCHAIN\n";
 			break;
 
+		case Bytecode::Instructions::InvokeMeta:
+			outfile << L"META " << traverser.ReadEntityTag() << L"\n";
+			break;
+
 		case Bytecode::Instructions::PoolString:
 			outfile << L"POOL_STR " << traverser.Read<StringHandle>() << L" ";
 			outfile << traverser.ReadTerminatedString() << L"\n";

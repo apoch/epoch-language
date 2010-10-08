@@ -61,11 +61,13 @@ struct SkipGrammar : public boost::spirit::classic::grammar<SkipGrammar>
 //
 struct FundamentalGrammar : public boost::spirit::classic::grammar<FundamentalGrammar>
 {
-	FundamentalGrammar(SemanticActionInterface& bindings, const InfixTable& infixidentifiers, const std::set<std::wstring>& customentities, const std::set<std::wstring>& chainedentities)
+	FundamentalGrammar(SemanticActionInterface& bindings, const InfixTable& infixidentifiers, const std::set<std::wstring>& customentities, const std::set<std::wstring>& chainedentities, const std::set<std::wstring>& postfixentities, const std::set<std::wstring>& postfixclosers)
 		: Bindings(bindings),
 		  InfixIdentifiers(infixidentifiers),
 		  CustomEntities(customentities),
-		  ChainedEntities(chainedentities)
+		  ChainedEntities(chainedentities),
+		  PostfixEntities(postfixentities),
+		  PostfixClosers(postfixclosers)
 	{ }
 
 	template <typename ScannerType>
@@ -171,7 +173,7 @@ struct FundamentalGrammar : public boost::spirit::classic::grammar<FundamentalGr
 				  (
 					TypeMismatchExceptionGuard
 					(
-						((Entity) | (Assignment) | (Statement[FinalizeStatement(self.Bindings)]) | InnerCodeBlock)
+						((Entity) | (PostfixEntity) | (Assignment) | (Statement[FinalizeStatement(self.Bindings)]) | InnerCodeBlock)
 					)[GeneralExceptionHandler(self.Bindings)]
 				  )[GeneralExceptionHandler(self.Bindings)]
 				;
@@ -187,14 +189,22 @@ struct FundamentalGrammar : public boost::spirit::classic::grammar<FundamentalGr
 			Entity
 				= (EntityIdentifier[BeginEntityChain(self.Bindings)][StoreEntityTypeByString(self.Bindings)][BeginEntityParams(self.Bindings)]
 				  >> !(OPENPARENS >> (Expression[PushStatementParam(self.Bindings)] % COMMA) >> CLOSEPARENS)
-				  >> OPENBRACE[CompleteEntityParams(self.Bindings)] >> (*CodeBlockEntry) >> CLOSEBRACE[EndLexicalScope(self.Bindings)]
+				  >> OPENBRACE[CompleteEntityParams(self.Bindings, false)] >> (*CodeBlockEntry) >> CLOSEBRACE[EndLexicalScope(self.Bindings)]
 				  >> *ChainedEntity)[EndEntityChain(self.Bindings)]
 				;
 
 			ChainedEntity
 				= (ChainedEntityIdentifier[StoreEntityTypeByString(self.Bindings)][BeginEntityParams(self.Bindings)]
 				  >> !(OPENPARENS >> (Expression[PushStatementParam(self.Bindings)] % COMMA) >> CLOSEPARENS)
-				  >> OPENBRACE[CompleteEntityParams(self.Bindings)] >> (*CodeBlockEntry) >> CLOSEBRACE[EndLexicalScope(self.Bindings)])
+				  >> OPENBRACE[CompleteEntityParams(self.Bindings, false)] >> (*CodeBlockEntry) >> CLOSEBRACE[EndLexicalScope(self.Bindings)])
+				;
+
+			PostfixEntity
+				= (PostfixEntityOpenerIdentifier[BeginEntityChain(self.Bindings)][StoreEntityTypeByString(self.Bindings)][BeginEntityParams(self.Bindings)]
+				  >> !(OPENPARENS >> (Expression[PushStatementParam(self.Bindings)] % COMMA) >> CLOSEPARENS)
+				  >> OPENBRACE[CompleteEntityParams(self.Bindings, false)] >> (*CodeBlockEntry) >> CLOSEBRACE
+				  >> PostfixEntityCloserIdentifier[StoreEntityPostfixByString(self.Bindings)][BeginEntityParams(self.Bindings)]
+				  >> OPENPARENS >> Expression[PushStatementParam(self.Bindings)] >> CLOSEPARENS[CompleteEntityParams(self.Bindings, true)][InvokePostfixMetacontrol(self.Bindings)])[EndEntityChain(self.Bindings)]
 				;
 
 			MetaEntity
@@ -214,6 +224,12 @@ struct FundamentalGrammar : public boost::spirit::classic::grammar<FundamentalGr
 
 			for(std::set<std::wstring>::const_iterator iter = self.ChainedEntities.begin(); iter != self.ChainedEntities.end(); ++iter)
 				AddChainedEntity(*PooledNarrowStrings.insert(narrow(*iter)).first);
+
+			for(std::set<std::wstring>::const_iterator iter = self.PostfixEntities.begin(); iter != self.PostfixEntities.end(); ++iter)
+				AddPostfixEntity(*PooledNarrowStrings.insert(narrow(*iter)).first);
+
+			for(std::set<std::wstring>::const_iterator iter = self.PostfixClosers.begin(); iter != self.PostfixClosers.end(); ++iter)
+				AddPostfixCloser(*PooledNarrowStrings.insert(narrow(*iter)).first);
 		}
 
 		boost::spirit::classic::chlit<> COLON, OPENPARENS, CLOSEPARENS, OPENBRACE, CLOSEBRACE, COMMA, QUOTE, NEGATE;
@@ -247,12 +263,15 @@ struct FundamentalGrammar : public boost::spirit::classic::grammar<FundamentalGr
 		boost::spirit::classic::rule<ScannerType> MetaEntity;
 		boost::spirit::classic::rule<ScannerType> Entity;
 		boost::spirit::classic::rule<ScannerType> ChainedEntity;
+		boost::spirit::classic::rule<ScannerType> PostfixEntity;
 
 		boost::spirit::classic::rule<ScannerType> Program;
 
 		boost::spirit::classic::stored_rule<ScannerType> InfixIdentifier;
 		boost::spirit::classic::stored_rule<ScannerType> EntityIdentifier;
 		boost::spirit::classic::stored_rule<ScannerType> ChainedEntityIdentifier;
+		boost::spirit::classic::stored_rule<ScannerType> PostfixEntityOpenerIdentifier;
+		boost::spirit::classic::stored_rule<ScannerType> PostfixEntityCloserIdentifier;
 
 		boost::spirit::classic::guard<RecoverableException> GeneralExceptionGuard;
 		boost::spirit::classic::guard<TypeMismatchException> TypeMismatchExceptionGuard;
@@ -291,12 +310,30 @@ struct FundamentalGrammar : public boost::spirit::classic::grammar<FundamentalGr
 		{
 			ChainedEntityIdentifier = boost::spirit::classic::strlit<>(entityname.c_str()) | ChainedEntityIdentifier.copy();
 		}
+
+		//
+		// Register a postfix entity
+		//
+		void AddPostfixEntity(const std::string& entityname)
+		{
+			PostfixEntityOpenerIdentifier = boost::spirit::classic::strlit<>(entityname.c_str()) | PostfixEntityOpenerIdentifier.copy();
+		}
+
+		//
+		// Register a postfix entity closer
+		//
+		void AddPostfixCloser(const std::string& entityname)
+		{
+			PostfixEntityCloserIdentifier = boost::spirit::classic::strlit<>(entityname.c_str()) | PostfixEntityCloserIdentifier.copy();
+		}
 	};
 
 	SemanticActionInterface& Bindings;
 	const InfixTable& InfixIdentifiers;
 	const std::set<std::wstring>& CustomEntities;
 	const std::set<std::wstring>& ChainedEntities;
+	const std::set<std::wstring>& PostfixEntities;
+	const std::set<std::wstring>& PostfixClosers;
 
 };
 

@@ -80,9 +80,11 @@ public:
 	virtual void StoreEntityType(const std::wstring& identifier);
 	virtual void StoreEntityCode();
 	virtual void BeginEntityParams();
-	virtual void CompleteEntityParams();
+	virtual void CompleteEntityParams(bool ispostfixcloser);
 	virtual void BeginEntityChain();
 	virtual void EndEntityChain();
+	virtual void StoreEntityPostfix(const std::wstring& identifier);
+	virtual void InvokePostfixMetacontrol();
 
 	virtual void StoreInfix(const std::wstring& identifier);
 	virtual void PushInfixParam();
@@ -150,6 +152,8 @@ private:
 	std::wstring AllocateAnonymousScopeName();
 
 	StringHandle FindLexicalScopeName(const ScopeDescription* scope) const;
+
+	Bytecode::EntityTag LookupEntityTag(StringHandle identifier) const;
 
 // Internal tracking
 private:

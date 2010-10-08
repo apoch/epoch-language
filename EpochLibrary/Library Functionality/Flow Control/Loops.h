@@ -19,7 +19,7 @@ class StringPoolManager;
 namespace FlowControl
 {
 
-	void RegisterLoopEntities(EntityTable& entities, EntityTable& chainedentities, StringPoolManager& stringpool);
+	void RegisterLoopEntities(EntityTable& entities, EntityTable& chainedentities, EntityTable& postfixentities, EntityTable& postfixclosers, StringPoolManager& stringpool);
 
 }
 

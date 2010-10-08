@@ -41,6 +41,8 @@ CompileSession::CompileSession()
 	info.Precedences = &OperatorPrecedences;
 	info.Entities = &CustomEntities;
 	info.ChainedEntities = &ChainedEntities;
+	info.PostfixEntities = &PostfixEntities;
+	info.PostfixClosers = &PostfixClosers;
 	bindtocompiler(info, StringPool);
 }
 
@@ -103,7 +105,7 @@ size_t CompileSession::GetEmittedBufferSize() const
 //
 void CompileSession::CompileFunctions(const std::wstring& code, const std::wstring& filename)
 {
-	std::set<std::wstring> entitynames, chainedentitynames;
+	std::set<std::wstring> entitynames, chainedentitynames, postfixentitynames, postfixclosernames;
 	std::map<StringHandle, EntityDescription*> entitydescriptions;
 	for(EntityTable::iterator iter = CustomEntities.begin(); iter != CustomEntities.end(); ++iter)
 	{
@@ -117,6 +119,18 @@ void CompileSession::CompileFunctions(const std::wstring& code, const std::wstri
 		entitydescriptions[iter->first] = &(iter->second);
 	}
 
+	for(EntityTable::iterator iter = PostfixEntities.begin(); iter != PostfixEntities.end(); ++iter)
+	{
+		postfixentitynames.insert(StringPool.GetPooledString(iter->first));
+		entitydescriptions[iter->first] = &(iter->second);
+	}
+
+	for(EntityTable::iterator iter = PostfixClosers.begin(); iter != PostfixClosers.end(); ++iter)
+	{
+		postfixclosernames.insert(StringPool.GetPooledString(iter->first));
+		entitydescriptions[iter->first] = &(iter->second);
+	}
+
 	Bytecode::EntityTag customtag = Bytecode::EntityTags::CustomEntityBaseID;
 	for(std::map<StringHandle, EntityDescription*>::iterator iter = entitydescriptions.begin(); iter != entitydescriptions.end(); ++iter)
 	{
@@ -126,7 +140,7 @@ void CompileSession::CompileFunctions(const std::wstring& code, const std::wstri
 
 	ByteCodeEmitter emitter(ByteCodeBuffer);
 	CompilationSemantics semantics(emitter, *this);
-	Parser theparser(semantics, InfixIdentifiers, entitynames, chainedentitynames);
+	Parser theparser(semantics, InfixIdentifiers, entitynames, chainedentitynames, postfixentitynames, postfixclosernames);
 
 	if(!theparser.Parse(code, filename) || semantics.DidFail())
 		throw FatalException("Parsing failed!");
@@ -147,6 +161,18 @@ const EntityDescription& CompileSession::GetCustomEntityByTag(Bytecode::EntityTa
 	}
 
 	for(EntityTable::const_iterator iter = ChainedEntities.begin(); iter != ChainedEntities.end(); ++iter)
+	{
+		if(iter->second.Tag == tag)
+			return iter->second;
+	}
+
+	for(EntityTable::const_iterator iter = PostfixEntities.begin(); iter != PostfixEntities.end(); ++iter)
+	{
+		if(iter->second.Tag == tag)
+			return iter->second;
+	}
+
+	for(EntityTable::const_iterator iter = PostfixClosers.begin(); iter != PostfixClosers.end(); ++iter)
 	{
 		if(iter->second.Tag == tag)
 			return iter->second;

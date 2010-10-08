@@ -15,6 +15,7 @@
 
 #include "Library Functionality/Operators/Arithmetic.h"
 #include "Library Functionality/Operators/Comparison.h"
+#include "Library Functionality/Operators/Strings.h"
 
 #include "Library Functionality/Flow Control/Conditionals.h"
 #include "Library Functionality/Flow Control/Loops.h"
@@ -38,6 +39,7 @@ extern "C" void __stdcall RegisterLibraryContents(FunctionSignatureSet& function
 		TypeCasts::RegisterLibraryFunctions(functionsignatures, stringpool);
 		ArithmeticLibrary::RegisterLibraryFunctions(functionsignatures, stringpool);
 		ComparisonLibrary::RegisterLibraryFunctions(functionsignatures, stringpool);
+		StringLibrary::RegisterLibraryFunctions(functionsignatures, stringpool);
 		FlowControl::RegisterStrings(stringpool);
 	}
 	catch(...)
@@ -61,9 +63,10 @@ extern "C" void __stdcall BindToVirtualMachine(FunctionInvocationTable& function
 		TypeCasts::RegisterLibraryFunctions(functiontable, stringpool);
 		ArithmeticLibrary::RegisterLibraryFunctions(functiontable, stringpool);
 		ComparisonLibrary::RegisterLibraryFunctions(functiontable, stringpool);
+		StringLibrary::RegisterLibraryFunctions(functiontable, stringpool);
 
 		FlowControl::RegisterConditionalEntities(entities, entities, stringpool);
-		FlowControl::RegisterLoopEntities(entities, entities, stringpool);
+		FlowControl::RegisterLoopEntities(entities, entities, entities, entities, stringpool);
 	}
 	catch(...)
 	{
@@ -93,8 +96,11 @@ extern "C" void __stdcall BindToCompiler(CompilerInfoTable& info, StringPoolMana
 		ComparisonLibrary::RegisterLibraryFunctions(*info.FunctionHelpers);
 		ComparisonLibrary::RegisterInfixOperators(*info.InfixOperators, *info.Precedences, stringpool);
 
+		StringLibrary::RegisterLibraryFunctions(*info.FunctionHelpers);
+		StringLibrary::RegisterInfixOperators(*info.InfixOperators, *info.Precedences, stringpool);
+
 		FlowControl::RegisterConditionalEntities(*info.Entities, *info.ChainedEntities, stringpool);
-		FlowControl::RegisterLoopEntities(*info.Entities, *info.ChainedEntities, stringpool);
+		FlowControl::RegisterLoopEntities(*info.Entities, *info.ChainedEntities, *info.PostfixEntities, *info.PostfixClosers, stringpool);
 	}
 	catch(...)
 	{

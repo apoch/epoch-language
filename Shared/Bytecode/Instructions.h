@@ -32,10 +32,11 @@ namespace Bytecode
 		static const Instruction EndEntity = 0x0a;
 		static const Instruction BeginChain = 0x0b;
 		static const Instruction EndChain = 0x0c;
+		static const Instruction InvokeMeta = 0x0d;
 
-		static const Instruction PoolString = 0x0d;
-		static const Instruction DefineLexicalScope = 0x0e;
-		static const Instruction PatternMatch = 0x0f;
+		static const Instruction PoolString = 0x0e;
+		static const Instruction DefineLexicalScope = 0x0f;
+		static const Instruction PatternMatch = 0x10;
 
 	}
 

@@ -46,7 +46,7 @@ void Trace(const std::wstring& title)
 
 struct GeneralExceptionHandler
 {
-	GeneralExceptionHandler(SemanticActionInterface& bindings)
+	explicit GeneralExceptionHandler(SemanticActionInterface& bindings)
 		: Bindings(bindings)
 	{ }
 
@@ -70,7 +70,7 @@ struct GeneralExceptionHandler
 
 struct MissingFunctionBodyExceptionHandler
 {
-	MissingFunctionBodyExceptionHandler(SemanticActionInterface& bindings)
+	explicit MissingFunctionBodyExceptionHandler(SemanticActionInterface& bindings)
 		: Bindings(bindings)
 	{ }
 
@@ -88,7 +88,7 @@ struct MissingFunctionBodyExceptionHandler
 
 struct StoreString
 {
-	StoreString(SemanticActionInterface& bindings)
+	explicit StoreString(SemanticActionInterface& bindings)
 		: Bindings(bindings)
 	{ }
 
@@ -107,7 +107,7 @@ struct StoreString
 
 struct StoreIntegerLiteral
 {
-	StoreIntegerLiteral(SemanticActionInterface& bindings)
+	explicit StoreIntegerLiteral(SemanticActionInterface& bindings)
 		: Bindings(bindings)
 	{ }
 
@@ -132,7 +132,7 @@ struct StoreIntegerLiteral
 
 struct StoreStringLiteral
 {
-	StoreStringLiteral(SemanticActionInterface& bindings)
+	explicit StoreStringLiteral(SemanticActionInterface& bindings)
 		: Bindings(bindings)
 	{ }
 
@@ -171,7 +171,7 @@ struct StoreEntityType
 
 struct StoreEntityTypeByString
 {
-	StoreEntityTypeByString(SemanticActionInterface& bindings)
+	explicit StoreEntityTypeByString(SemanticActionInterface& bindings)
 		: Bindings(bindings)
 	{ }
 
@@ -186,9 +186,26 @@ struct StoreEntityTypeByString
 	SemanticActionInterface& Bindings;
 };
 
+struct StoreEntityPostfixByString
+{
+	explicit StoreEntityPostfixByString(SemanticActionInterface& bindings)
+		: Bindings(bindings)
+	{ }
+
+	template <typename IteratorType>
+	void operator () (IteratorType begin, IteratorType end) const
+	{
+		Trace(L"StoreEntityPostfixByString", begin, end);
+		Bindings.SetParsePosition(end);
+		Bindings.StoreEntityPostfix(std::wstring(begin, end));
+	}
+
+	SemanticActionInterface& Bindings;
+};
+
 struct StoreEntityCode
 {
-	StoreEntityCode(SemanticActionInterface& bindings)
+	explicit StoreEntityCode(SemanticActionInterface& bindings)
 		: Bindings(bindings)
 	{ }
 
@@ -205,7 +222,7 @@ struct StoreEntityCode
 
 struct BeginEntityChain
 {
-	BeginEntityChain(SemanticActionInterface& bindings)
+	explicit BeginEntityChain(SemanticActionInterface& bindings)
 		: Bindings(bindings)
 	{ }
 
@@ -222,7 +239,7 @@ struct BeginEntityChain
 
 struct EndEntityChain
 {
-	EndEntityChain(SemanticActionInterface& bindings)
+	explicit EndEntityChain(SemanticActionInterface& bindings)
 		: Bindings(bindings)
 	{ }
 
@@ -237,9 +254,25 @@ struct EndEntityChain
 	SemanticActionInterface& Bindings;
 };
 
+struct InvokePostfixMetacontrol
+{
+	explicit InvokePostfixMetacontrol(SemanticActionInterface& bindings)
+		: Bindings(bindings)
+	{ }
+
+	template <typename ParamType>
+	void operator () (ParamType) const
+	{
+		Trace(L"InvokePostfixMetacontrol");
+		Bindings.InvokePostfixMetacontrol();
+	}
+
+	SemanticActionInterface& Bindings;
+};
+
 struct StoreInfix
 {
-	StoreInfix(SemanticActionInterface& bindings)
+	explicit StoreInfix(SemanticActionInterface& bindings)
 		: Bindings(bindings)
 	{ }
 
@@ -257,7 +290,7 @@ struct StoreInfix
 
 struct CompleteInfix
 {
-	CompleteInfix(SemanticActionInterface& bindings)
+	explicit CompleteInfix(SemanticActionInterface& bindings)
 		: Bindings(bindings)
 	{ }
 
@@ -274,7 +307,7 @@ struct CompleteInfix
 
 struct FinalizeInfix
 {
-	FinalizeInfix(SemanticActionInterface& bindings)
+	explicit FinalizeInfix(SemanticActionInterface& bindings)
 		: Bindings(bindings)
 	{ }
 
@@ -291,7 +324,7 @@ struct FinalizeInfix
 
 struct BeginParameterSet
 {
-	BeginParameterSet(SemanticActionInterface& bindings)
+	explicit BeginParameterSet(SemanticActionInterface& bindings)
 		: Bindings(bindings)
 	{ }
 
@@ -307,7 +340,7 @@ struct BeginParameterSet
 
 struct EndParameterSet
 {
-	EndParameterSet(SemanticActionInterface& bindings)
+	explicit EndParameterSet(SemanticActionInterface& bindings)
 		: Bindings(bindings)
 	{ }
 
@@ -323,7 +356,7 @@ struct EndParameterSet
 
 struct RegisterParameterType
 {
-	RegisterParameterType(SemanticActionInterface& bindings)
+	explicit RegisterParameterType(SemanticActionInterface& bindings)
 		: Bindings(bindings)
 	{ }
 
@@ -341,7 +374,7 @@ struct RegisterParameterType
 
 struct RegisterParameterName
 {
-	RegisterParameterName(SemanticActionInterface& bindings)
+	explicit RegisterParameterName(SemanticActionInterface& bindings)
 		: Bindings(bindings)
 	{ }
 
@@ -359,7 +392,7 @@ struct RegisterParameterName
 
 struct BeginReturnSet
 {
-	BeginReturnSet(SemanticActionInterface& bindings)
+	explicit BeginReturnSet(SemanticActionInterface& bindings)
 		: Bindings(bindings)
 	{ }
 
@@ -375,7 +408,7 @@ struct BeginReturnSet
 
 struct EndReturnSet
 {
-	EndReturnSet(SemanticActionInterface& bindings)
+	explicit EndReturnSet(SemanticActionInterface& bindings)
 		: Bindings(bindings)
 	{ }
 
@@ -391,7 +424,7 @@ struct EndReturnSet
 
 struct RegisterReturnType
 {
-	RegisterReturnType(SemanticActionInterface& bindings)
+	explicit RegisterReturnType(SemanticActionInterface& bindings)
 		: Bindings(bindings)
 	{ }
 
@@ -409,7 +442,7 @@ struct RegisterReturnType
 
 struct RegisterReturnName
 {
-	RegisterReturnName(SemanticActionInterface& bindings)
+	explicit RegisterReturnName(SemanticActionInterface& bindings)
 		: Bindings(bindings)
 	{ }
 
@@ -427,7 +460,7 @@ struct RegisterReturnName
 
 struct RegisterReturnValue
 {
-	RegisterReturnValue(SemanticActionInterface& bindings)
+	explicit RegisterReturnValue(SemanticActionInterface& bindings)
 		: Bindings(bindings)
 	{ }
 
@@ -444,7 +477,7 @@ struct RegisterReturnValue
 
 struct BeginStatement
 {
-	BeginStatement(SemanticActionInterface& bindings)
+	explicit BeginStatement(SemanticActionInterface& bindings)
 		: Bindings(bindings)
 	{ }
 
@@ -462,7 +495,7 @@ struct BeginStatement
 
 struct BeginStatementParams
 {
-	BeginStatementParams(SemanticActionInterface& bindings)
+	explicit BeginStatementParams(SemanticActionInterface& bindings)
 		: Bindings(bindings)
 	{ }
 
@@ -478,7 +511,7 @@ struct BeginStatementParams
 
 struct BeginEntityParams
 {
-	BeginEntityParams(SemanticActionInterface& bindings)
+	explicit BeginEntityParams(SemanticActionInterface& bindings)
 		: Bindings(bindings)
 	{ }
 
@@ -494,7 +527,7 @@ struct BeginEntityParams
 
 struct PushStatementParam
 {
-	PushStatementParam(SemanticActionInterface& bindings)
+	explicit PushStatementParam(SemanticActionInterface& bindings)
 		: Bindings(bindings)
 	{ }
 
@@ -511,7 +544,7 @@ struct PushStatementParam
 
 struct PushInfixParam
 {
-	PushInfixParam(SemanticActionInterface& bindings)
+	explicit PushInfixParam(SemanticActionInterface& bindings)
 		: Bindings(bindings)
 	{ }
 
@@ -528,7 +561,7 @@ struct PushInfixParam
 
 struct CompleteStatement
 {
-	CompleteStatement(SemanticActionInterface& bindings)
+	explicit CompleteStatement(SemanticActionInterface& bindings)
 		: Bindings(bindings)
 	{ }
 
@@ -544,23 +577,25 @@ struct CompleteStatement
 
 struct CompleteEntityParams
 {
-	CompleteEntityParams(SemanticActionInterface& bindings)
-		: Bindings(bindings)
+	CompleteEntityParams(SemanticActionInterface& bindings, bool ispostfixcloser)
+		: Bindings(bindings),
+		  IsPostfixCloser(ispostfixcloser)
 	{ }
 
 	template <typename ParamType>
 	void operator () (ParamType) const
 	{
 		Trace(L"CompleteEntityParams");
-		Bindings.CompleteEntityParams();
+		Bindings.CompleteEntityParams(IsPostfixCloser);
 	}
 
 	SemanticActionInterface& Bindings;
+	bool IsPostfixCloser;
 };
 
 struct FinalizeStatement
 {
-	FinalizeStatement(SemanticActionInterface& bindings)
+	explicit FinalizeStatement(SemanticActionInterface& bindings)
 		: Bindings(bindings)
 	{ }
 
@@ -577,7 +612,7 @@ struct FinalizeStatement
 
 struct BeginParenthetical
 {
-	BeginParenthetical(SemanticActionInterface& bindings)
+	explicit BeginParenthetical(SemanticActionInterface& bindings)
 		: Bindings(bindings)
 	{ }
 
@@ -593,7 +628,7 @@ struct BeginParenthetical
 
 struct EndParenthetical
 {
-	EndParenthetical(SemanticActionInterface& bindings)
+	explicit EndParenthetical(SemanticActionInterface& bindings)
 		: Bindings(bindings)
 	{ }
 
@@ -611,7 +646,7 @@ struct EndParenthetical
 
 struct BeginLexicalScope
 {
-	BeginLexicalScope(SemanticActionInterface& bindings)
+	explicit BeginLexicalScope(SemanticActionInterface& bindings)
 		: Bindings(bindings)
 	{ }
 
@@ -627,7 +662,7 @@ struct BeginLexicalScope
 
 struct EndLexicalScope
 {
-	EndLexicalScope(SemanticActionInterface& bindings)
+	explicit EndLexicalScope(SemanticActionInterface& bindings)
 		: Bindings(bindings)
 	{ }
 
@@ -644,7 +679,7 @@ struct EndLexicalScope
 
 struct Finalize
 {
-	Finalize(SemanticActionInterface& bindings)
+	explicit Finalize(SemanticActionInterface& bindings)
 		: Bindings(bindings)
 	{ }
 
@@ -662,7 +697,7 @@ struct Finalize
 
 struct EmitPendingCode
 {
-	EmitPendingCode(SemanticActionInterface& bindings)
+	explicit EmitPendingCode(SemanticActionInterface& bindings)
 		: Bindings(bindings)
 	{ }
 
@@ -687,7 +722,7 @@ struct EmitPendingCode
 
 struct BeginAssignment
 {
-	BeginAssignment(SemanticActionInterface& bindings)
+	explicit BeginAssignment(SemanticActionInterface& bindings)
 		: Bindings(bindings)
 	{ }
 
@@ -704,7 +739,7 @@ struct BeginAssignment
 
 struct CompleteAssignment
 {
-	CompleteAssignment(SemanticActionInterface& bindings)
+	explicit CompleteAssignment(SemanticActionInterface& bindings)
 		: Bindings(bindings)
 	{ }
 
@@ -722,7 +757,7 @@ struct CompleteAssignment
 
 struct RegisterPatternMatchedParameter
 {
-	RegisterPatternMatchedParameter(SemanticActionInterface& bindings)
+	explicit RegisterPatternMatchedParameter(SemanticActionInterface& bindings)
 		: Bindings(bindings)
 	{ }
 

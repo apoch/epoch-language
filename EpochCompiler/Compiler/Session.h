@@ -59,6 +59,8 @@ public:
 	std::multimap<int, StringHandle> OperatorPrecedences;
 	EntityTable CustomEntities;
 	EntityTable ChainedEntities;
+	EntityTable PostfixEntities;
+	EntityTable PostfixClosers;
 
 // Internal helpers
 private:

@@ -51,5 +51,7 @@ struct CompilerInfoTable
 	std::map<StringHandle, std::set<StringHandle> >* Overloads;
 	EntityTable* Entities;
 	EntityTable* ChainedEntities;
+	EntityTable* PostfixEntities;
+	EntityTable* PostfixClosers;
 };
 

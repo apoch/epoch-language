@@ -2,7 +2,7 @@
 // The Epoch Language Project
 // Epoch Standard Library
 //
-// Library routines for comparison operators
+// Library routines for string-handling operators
 //
 
 #pragma once
@@ -17,7 +17,7 @@
 class StringPoolManager;
 
 
-namespace ComparisonLibrary
+namespace StringLibrary
 {
 
 	void RegisterLibraryFunctions(FunctionSignatureSet& signatureset, StringPoolManager& stringpool);

@@ -290,6 +290,32 @@
 					RelativePath=".\Library Functionality\Operators\Precedences.h"
 					>
 				</File>
+				<File
+					RelativePath=".\Library Functionality\Operators\Strings.cpp"
+					>
+					<FileConfiguration
+						Name="Debug|Win32"
+						>
+						<Tool
+							Name="VCCLCompilerTool"
+							ObjectFile="$(IntDir)\$(InputName)1.obj"
+							XMLDocumentationFileName="$(IntDir)\$(InputName)1.xdc"
+						/>
+					</FileConfiguration>
+					<FileConfiguration
+						Name="Release|Win32"
+						>
+						<Tool
+							Name="VCCLCompilerTool"
+							ObjectFile="$(IntDir)\$(InputName)1.obj"
+							XMLDocumentationFileName="$(IntDir)\$(InputName)1.xdc"
+						/>
+					</FileConfiguration>
+				</File>
+				<File
+					RelativePath=".\Library Functionality\Operators\Strings.h"
+					>
+				</File>
 			</Filter>
 			<Filter
 				Name="Flow Control"

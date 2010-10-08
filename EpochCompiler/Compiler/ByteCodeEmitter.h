@@ -66,6 +66,8 @@ public:
 	void BeginChain();
 	void EndChain();
 
+	void InvokeMetacontrol(Bytecode::EntityTag tag);
+
 	void DefineLexicalScope(StringHandle name, StringHandle parent, size_t variablecount);
 	void LexicalScopeEntry(StringHandle varname, VM::EpochTypeID vartype, VariableOrigin origin);
 

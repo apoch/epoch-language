@@ -33,9 +33,11 @@ public:
 	virtual void StoreEntityType(const std::wstring& identifier) = 0;
 	virtual void StoreEntityCode() = 0;
 	virtual void BeginEntityParams() = 0;
-	virtual void CompleteEntityParams() = 0;
+	virtual void CompleteEntityParams(bool ispostfixcloser) = 0;
 	virtual void BeginEntityChain() = 0;
 	virtual void EndEntityChain() = 0;
+	virtual void StoreEntityPostfix(const std::wstring& identifier) = 0;
+	virtual void InvokePostfixMetacontrol() = 0;
 
 	virtual void StoreInfix(const std::wstring& identifier) = 0;
 	virtual void PushInfixParam() = 0;

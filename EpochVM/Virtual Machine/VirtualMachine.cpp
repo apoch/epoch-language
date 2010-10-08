@@ -389,9 +389,9 @@ void ExecutionContext::Execute(const ScopeDescription* scope)
 						Variables->PushLocalsOntoStack(*this);
 						onexit.ScopesToCleanUp.push_back(Variables);
 					}
-					else if(code == ENTITYRET_SKIP_ENTITY || code == ENTITYRET_PASS_TO_NEXT_LINK_IN_CHAIN)
+					else if(code == ENTITYRET_PASS_TO_NEXT_LINK_IN_CHAIN)
 						InstructionOffset = OwnerVM.GetEntityEndOffset(originaloffset) + 1;
-					else if(code == ENTITYRET_SKIP_CHAIN)
+					else if(code == ENTITYRET_EXIT_CHAIN)
 						InstructionOffset = OwnerVM.GetChainEndOffset(chainoffsets.top());
 					else if(code == ENTITYRET_EXECUTE_AND_REPEAT_ENTIRE_CHAIN)
 					{
@@ -429,6 +429,33 @@ void ExecutionContext::Execute(const ScopeDescription* scope)
 		case Bytecode::Instructions::EndChain:
 			chainoffsets.pop();
 			chainrepeats.pop();
+			break;
+
+		case Bytecode::Instructions::InvokeMeta:
+			{
+				Bytecode::EntityTag tag = static_cast<Bytecode::EntityTag>(Fetch<Integer32>());
+				EntityReturnCode code = OwnerVM.GetEntityMetaControl(tag)(*this);
+
+				switch(code)
+				{
+				case ENTITYRET_EXIT_CHAIN:
+					InstructionOffset = OwnerVM.GetChainEndOffset(chainoffsets.top());
+					if(!onexit.ScopesToCleanUp.empty())
+						Variables = onexit.CleanUpTopmostScope();
+					break;
+
+				case ENTITYRET_PASS_TO_NEXT_LINK_IN_CHAIN:
+				case ENTITYRET_EXECUTE_CURRENT_LINK_IN_CHAIN:
+					break;
+				
+				case ENTITYRET_EXECUTE_AND_REPEAT_ENTIRE_CHAIN:
+					chainrepeats.top() = true;
+					break;
+
+				default:
+					throw FatalException("Invalid return code from entity meta-control");
+				}
+			}
 			break;
 
 
@@ -588,6 +615,7 @@ void ExecutionContext::Load()
 
 		// Single-bye operations with one payload field
 		case Bytecode::Instructions::Pop:
+		case Bytecode::Instructions::InvokeMeta:
 			Fetch<Integer32>();
 			break;
 

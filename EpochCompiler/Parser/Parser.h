@@ -20,11 +20,13 @@ class Parser
 {
 // Construction
 public:
-	Parser(SemanticActionInterface& semantics, const InfixTable& infixtable, const std::set<std::wstring>& customentities, const std::set<std::wstring>& chainedentities)
+	Parser(SemanticActionInterface& semantics, const InfixTable& infixtable, const std::set<std::wstring>& customentities, const std::set<std::wstring>& chainedentities, const std::set<std::wstring>& postfixentities, const std::set<std::wstring>& postfixclosers)
 		: SemanticActions(semantics),
 		  InfixIdentifiers(infixtable),
 		  CustomEntities(customentities),
-		  ChainedEntities(chainedentities)
+		  ChainedEntities(chainedentities),
+		  PostfixEntities(postfixentities),
+		  PostfixClosers(postfixclosers)
 	{ }
 
 // Parsing operations
@@ -37,5 +39,7 @@ private:
 	const InfixTable& InfixIdentifiers;
 	const std::set<std::wstring>& CustomEntities;
 	const std::set<std::wstring>& ChainedEntities;
+	const std::set<std::wstring>& PostfixEntities;
+	const std::set<std::wstring>& PostfixClosers;
 };
 
