@@ -48,13 +48,21 @@ void VirtualMachine::InitStandardLibraries()
 {
 	HINSTANCE dllhandle = Marshaling::TheDLLPool.OpenDLL(L"EpochLibrary.DLL");
 
-	typedef void (__stdcall *bindtovmptr)(FunctionInvocationTable&, StringPoolManager&);
+	typedef void (__stdcall *bindtovmptr)(FunctionInvocationTable&, EntityTable&, StringPoolManager&);
 	bindtovmptr bindtovm = reinterpret_cast<bindtovmptr>(::GetProcAddress(dllhandle, "BindToVirtualMachine"));
 
 	if(!bindtovm)
 		throw FatalException("Failed to load Epoch standard library");
 
-	bindtovm(GlobalFunctions, StringPool);
+	bindtovm(GlobalFunctions, Entities, StringPool);
+
+
+	Bytecode::EntityTag customtag = Bytecode::EntityTags::CustomEntityBaseID;
+	for(EntityTable::iterator iter = Entities.begin(); iter != Entities.end(); ++iter)
+	{
+		if(iter->second.Tag == Bytecode::EntityTags::Invalid)
+			iter->second.Tag = ++customtag;
+	}
 }
 
 
@@ -347,6 +355,7 @@ void ExecutionContext::Execute(const ScopeDescription* scope)
 
 		case Bytecode::Instructions::BeginEntity:
 			{
+				size_t originaloffset = InstructionOffset - 1;
 				Bytecode::EntityTag tag = static_cast<Bytecode::EntityTag>(Fetch<Integer32>());
 				StringHandle name = Fetch<StringHandle>();
 
@@ -366,12 +375,33 @@ void ExecutionContext::Execute(const ScopeDescription* scope)
 					Variables->PushLocalsOntoStack(*this);
 					onexit.ScopesToCleanUp.push_back(Variables);
 				}
+				else
+				{
+					EntityReturnCode code = OwnerVM.GetEntityMetaControl(tag)(*this);
+					if(code == ENTITYRET_EXECUTE_CURRENT_LINK_IN_CHAIN)
+					{
+						scope = &OwnerVM.GetScopeDescription(name);
+						Variables = new ActiveScope(*scope, Variables);
+						Variables->BindParametersToStack(*this);
+						Variables->PushLocalsOntoStack(*this);
+						onexit.ScopesToCleanUp.push_back(Variables);
+					}
+					else
+						InstructionOffset = OwnerVM.GetEntityEndOffset(originaloffset) + 1;
+				}
 			}
 			break;
 
 		case Bytecode::Instructions::EndEntity:
 			if(!onexit.ScopesToCleanUp.empty())
 				Variables = onexit.CleanUpTopmostScope();
+			break;
+
+			
+		case Bytecode::Instructions::BeginChain:
+			break;
+
+		case Bytecode::Instructions::EndChain:
 			break;
 
 
@@ -453,6 +483,7 @@ void ExecutionContext::Execute(const ScopeDescription* scope)
 void ExecutionContext::Load()
 {
 	std::stack<Bytecode::EntityTag> entitytypes;
+	std::stack<size_t> entitybeginoffsets;
 
 	InstructionOffset = 0;
 	while(InstructionOffset < CodeBufferSize)
@@ -468,11 +499,20 @@ void ExecutionContext::Load()
 				StringHandle name = Fetch<StringHandle>();
 				if(entitytypes.top() == Bytecode::EntityTags::Function || entitytypes.top() == Bytecode::EntityTags::PatternMatchingResolver)
 					OwnerVM.AddFunction(name, originaloffset);
+				entitybeginoffsets.push(originaloffset);
 			}
 			break;
 
 		case Bytecode::Instructions::EndEntity:
 			entitytypes.pop();
+			OwnerVM.MapEntityBeginEndOffsets(entitybeginoffsets.top(), InstructionOffset - 1);
+			entitybeginoffsets.pop();
+			break;
+
+		case Bytecode::Instructions::BeginChain:
+			break;
+
+		case Bytecode::Instructions::EndChain:
 			break;
 
 		case Bytecode::Instructions::PoolString:
@@ -560,5 +600,49 @@ void ExecutionContext::Load()
 			throw FatalException("Invalid bytecode operation");
 		}
 	}
+}
+
+
+//-------------------------------------------------------------------------------
+// Entities
+//-------------------------------------------------------------------------------
+
+//
+// Store the begin and end bytecode offsets of an entity
+//
+// This is used for handling custom entities; an entity's handler can instruct the VM
+// to skip, execute, or even repeat an entity's code body, based on the type of entity
+// involved, the expressions passed to the entity, and so on. This allows for entities
+// to handle things like flow control for the language.
+//
+void VirtualMachine::MapEntityBeginEndOffsets(size_t beginoffset, size_t endoffset)
+{
+	EntityOffsets[beginoffset] = endoffset;
+}
+
+//
+// Retrieve the end offset of the entity at the specified begin offset
+//
+size_t VirtualMachine::GetEntityEndOffset(size_t beginoffset) const
+{
+	std::map<size_t, size_t>::const_iterator iter = EntityOffsets.find(beginoffset);
+	if(iter == EntityOffsets.end())
+		throw FatalException("Failed to cache end offset of an entity, or an invalid entity begin offset was requested");
+
+	return iter->second;
+}
+
+//
+// Retrieve the meta control handler for an entity tag type
+//
+EntityMetaControl VirtualMachine::GetEntityMetaControl(Bytecode::EntityTag tag) const
+{
+	for(EntityTable::const_iterator iter = Entities.begin(); iter != Entities.end(); ++iter)
+	{
+		if(iter->second.Tag == tag)
+			return iter->second.MetaControl;
+	}
+
+	throw FatalException("Invalid entity type tag - no meta control could be looked up");
 }
 

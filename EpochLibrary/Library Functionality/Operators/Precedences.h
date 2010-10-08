@@ -10,4 +10,4 @@
 
 static const int PRECEDENCE_ADDSUBTRACT = 5;
 static const int PRECEDENCE_MULTIPLYDIVIDE = 10;
-
+static const int PRECEDENCE_COMPARISON = 0;

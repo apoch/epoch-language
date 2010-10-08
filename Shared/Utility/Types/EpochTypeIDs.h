@@ -20,6 +20,7 @@ namespace VM
 
 		EpochType_Void,
 		EpochType_Integer,
+		EpochType_Boolean,
 		EpochType_String,
 	};
 }

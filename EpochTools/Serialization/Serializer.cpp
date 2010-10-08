@@ -197,6 +197,14 @@ void Serializer::Write(const std::wstring& filename) const
 			outfile << L"ENDENTITY\n";
 			break;
 
+		case Bytecode::Instructions::BeginChain:
+			outfile << L"CHAIN\n";
+			break;
+
+		case Bytecode::Instructions::EndChain:
+			outfile << L"ENDCHAIN\n";
+			break;
+
 		case Bytecode::Instructions::PoolString:
 			outfile << L"POOL_STR " << traverser.Read<StringHandle>() << L" ";
 			outfile << traverser.ReadTerminatedString() << L"\n";

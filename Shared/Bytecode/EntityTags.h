@@ -22,9 +22,12 @@ namespace Bytecode
 	namespace EntityTags
 	{
 
-		static const EntityTag Function = 0x00;
-		static const EntityTag PatternMatchingResolver = 0x01;
-		static const EntityTag FreeBlock = 0x02;
+		static const EntityTag Invalid = 0x00;
+		static const EntityTag Function = 0x01;
+		static const EntityTag PatternMatchingResolver = 0x02;
+		static const EntityTag FreeBlock = 0x03;
+
+		static const EntityTag CustomEntityBaseID = 0x10;
 
 	}
 

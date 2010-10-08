@@ -23,17 +23,24 @@ CompileSession::CompileSession()
 {
 	HINSTANCE dllhandle = Marshaling::TheDLLPool.OpenDLL(L"EpochLibrary.DLL");
 
-	typedef void (__stdcall *registerlibraryptr)(FunctionSignatureSet&, StringPoolManager&);
+	typedef void (__stdcall *registerlibraryptr)(FunctionSignatureSet&, EntityTable&, StringPoolManager&);
 	registerlibraryptr registerlibrary = reinterpret_cast<registerlibraryptr>(::GetProcAddress(dllhandle, "RegisterLibraryContents"));
 
-	typedef void (__stdcall *bindtocompilerptr)(FunctionCompileHelperTable&, InfixTable&, PrecedenceTable&, StringPoolManager&, std::map<StringHandle, std::set<StringHandle> >&);
+	typedef void (__stdcall *bindtocompilerptr)(CompilerInfoTable&, StringPoolManager&);
 	bindtocompilerptr bindtocompiler = reinterpret_cast<bindtocompilerptr>(::GetProcAddress(dllhandle, "BindToCompiler"));
 
 	if(!registerlibrary || !bindtocompiler)
 		throw FatalException("Failed to load Epoch standard library");
 
-	registerlibrary(FunctionSignatures, StringPool);
-	bindtocompiler(CompileTimeHelpers, InfixIdentifiers, OperatorPrecedences, StringPool, FunctionOverloadNames);
+	registerlibrary(FunctionSignatures, CustomEntities, StringPool);
+
+	CompilerInfoTable info;
+	info.FunctionHelpers = &CompileTimeHelpers;
+	info.InfixOperators = &InfixIdentifiers;
+	info.Overloads = &FunctionOverloadNames;
+	info.Precedences = &OperatorPrecedences;
+	info.Entities = &CustomEntities;
+	bindtocompiler(info, StringPool);
 }
 
 
@@ -95,9 +102,20 @@ size_t CompileSession::GetEmittedBufferSize() const
 //
 void CompileSession::CompileFunctions(const std::wstring& code, const std::wstring& filename)
 {
+	Bytecode::EntityTag customtag = Bytecode::EntityTags::CustomEntityBaseID;
+
+	std::set<std::wstring> entitynames;
+	for(EntityTable::iterator iter = CustomEntities.begin(); iter != CustomEntities.end(); ++iter)
+	{
+		if(iter->second.Tag == Bytecode::EntityTags::Invalid)
+			iter->second.Tag = ++customtag;
+
+		entitynames.insert(StringPool.GetPooledString(iter->first));
+	}
+
 	ByteCodeEmitter emitter(ByteCodeBuffer);
 	CompilationSemantics semantics(emitter, *this);
-	Parser theparser(semantics, InfixIdentifiers);
+	Parser theparser(semantics, InfixIdentifiers, entitynames);
 
 	if(!theparser.Parse(code, filename) || semantics.DidFail())
 		throw FatalException("Parsing failed!");
@@ -105,3 +123,17 @@ void CompileSession::CompileFunctions(const std::wstring& code, const std::wstri
 	semantics.SanityCheck();
 }
 
+
+//
+// Retrieve the entity descriptor of the entity type with the given tag
+//
+const EntityDescription& CompileSession::GetCustomEntityByTag(Bytecode::EntityTag tag) const
+{
+	for(EntityTable::const_iterator iter = CustomEntities.begin(); iter != CustomEntities.end(); ++iter)
+	{
+		if(iter->second.Tag == tag)
+			return iter->second;
+	}
+
+	throw FatalException("Invalid entity tag - could not retrieve descriptor");
+}

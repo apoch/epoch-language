@@ -16,6 +16,8 @@
 
 #include "Libraries/Library.h"
 
+#include "Bytecode/EntityTags.h"
+
 #include <list>
 
 
@@ -44,6 +46,10 @@ public:
 	const void* GetEmittedBuffer() const;
 	size_t GetEmittedBufferSize() const;
 
+// Entity management
+public:
+	const EntityDescription& GetCustomEntityByTag(Bytecode::EntityTag tag) const;
+
 // Publicly visible tracking
 public:
 	FunctionSignatureSet FunctionSignatures;
@@ -51,6 +57,7 @@ public:
 	FunctionCompileHelperTable CompileTimeHelpers;
 	StringPoolManager StringPool;
 	std::multimap<int, StringHandle> OperatorPrecedences;
+	EntityTable CustomEntities;
 
 // Internal helpers
 private:

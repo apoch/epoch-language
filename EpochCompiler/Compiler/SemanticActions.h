@@ -77,7 +77,12 @@ public:
 	virtual void StoreStringLiteral(const std::wstring& value);
 
 	virtual void StoreEntityType(Bytecode::EntityTag typetag);
+	virtual void StoreEntityType(const std::wstring& identifier);
 	virtual void StoreEntityCode();
+	virtual void BeginEntityParams();
+	virtual void CompleteEntityParams();
+	virtual void BeginEntityChain();
+	virtual void EndEntityChain();
 
 	virtual void StoreInfix(const std::wstring& identifier);
 	virtual void PushInfixParam();

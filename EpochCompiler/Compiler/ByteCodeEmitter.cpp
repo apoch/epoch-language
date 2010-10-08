@@ -151,6 +151,23 @@ void ByteCodeEmitter::ExitEntity()
 }
 
 //
+// Emit an instruction denoting that we are entering an entity chain
+//
+void ByteCodeEmitter::BeginChain()
+{
+	EmitInstruction(Bytecode::Instructions::BeginChain);
+}
+
+//
+// Emit an instruction denoting that we are exiting an entity chain
+//
+void ByteCodeEmitter::EndChain()
+{
+	EmitInstruction(Bytecode::Instructions::EndChain);
+}
+
+
+//
 // Emit a header describing a lexical scope
 //
 // Lexical scope metadata consists of a declaration instruction, the handle to the

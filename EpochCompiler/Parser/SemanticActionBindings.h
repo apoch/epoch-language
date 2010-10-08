@@ -169,6 +169,23 @@ struct StoreEntityType
 	Bytecode::EntityTag TypeTag;
 };
 
+struct StoreEntityTypeByString
+{
+	StoreEntityTypeByString(SemanticActionInterface& bindings)
+		: Bindings(bindings)
+	{ }
+
+	template <typename IteratorType>
+	void operator () (IteratorType begin, IteratorType end) const
+	{
+		Trace(L"StoreEntityTypeByString", begin, end);
+		Bindings.SetParsePosition(end);
+		Bindings.StoreEntityType(std::wstring(begin, end));
+	}
+
+	SemanticActionInterface& Bindings;
+};
+
 struct StoreEntityCode
 {
 	StoreEntityCode(SemanticActionInterface& bindings)
@@ -181,6 +198,40 @@ struct StoreEntityCode
 		Trace(L"StoreEntityCode", begin, end);
 		Bindings.SetParsePosition(end);
 		Bindings.StoreEntityCode();
+	}
+
+	SemanticActionInterface& Bindings;
+};
+
+struct BeginEntityChain
+{
+	BeginEntityChain(SemanticActionInterface& bindings)
+		: Bindings(bindings)
+	{ }
+
+	template <typename IteratorType>
+	void operator () (IteratorType begin, IteratorType end) const
+	{
+		Trace(L"BeginEntityChain", begin, end);
+		Bindings.SetParsePosition(end);
+		Bindings.BeginEntityChain();
+	}
+
+	SemanticActionInterface& Bindings;
+};
+
+struct EndEntityChain
+{
+	EndEntityChain(SemanticActionInterface& bindings)
+		: Bindings(bindings)
+	{ }
+
+	template <typename IteratorType>
+	void operator () (IteratorType begin, IteratorType end) const
+	{
+		Trace(L"EndEntityChain", begin, end);
+		Bindings.SetParsePosition(end);
+		Bindings.EndEntityChain();
 	}
 
 	SemanticActionInterface& Bindings;
@@ -425,6 +476,22 @@ struct BeginStatementParams
 	SemanticActionInterface& Bindings;
 };
 
+struct BeginEntityParams
+{
+	BeginEntityParams(SemanticActionInterface& bindings)
+		: Bindings(bindings)
+	{ }
+
+	template <typename IteratorType>
+	void operator () (IteratorType begin, IteratorType end) const
+	{
+		Trace(L"BeginEntityParams");
+		Bindings.BeginEntityParams();
+	}
+
+	SemanticActionInterface& Bindings;
+};
+
 struct PushStatementParam
 {
 	PushStatementParam(SemanticActionInterface& bindings)
@@ -470,6 +537,22 @@ struct CompleteStatement
 	{
 		Trace(L"CompleteStatement");
 		Bindings.CompleteStatement();
+	}
+
+	SemanticActionInterface& Bindings;
+};
+
+struct CompleteEntityParams
+{
+	CompleteEntityParams(SemanticActionInterface& bindings)
+		: Bindings(bindings)
+	{ }
+
+	template <typename ParamType>
+	void operator () (ParamType) const
+	{
+		Trace(L"CompleteEntityParams");
+		Bindings.CompleteEntityParams();
 	}
 
 	SemanticActionInterface& Bindings;

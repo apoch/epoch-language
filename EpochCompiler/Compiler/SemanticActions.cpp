@@ -117,6 +117,25 @@ void CompilationSemantics::StoreEntityType(Bytecode::EntityTag typetag)
 }
 
 //
+// Shift a custom entity type tag onto the entity type tag stack
+//
+// Custom entities are used to implement things like flow control, threading, and so on.
+// A custom entity attaches a set of parameters (similar to a function's parameters) to
+// a code block.
+//
+void CompilationSemantics::StoreEntityType(const std::wstring& identifier)
+{
+	EntityTable::const_iterator iter = Session.CustomEntities.find(Session.StringPool.Pool(identifier));
+	if(iter == Session.CustomEntities.end())
+		Throw(RecoverableException("Invalid entity"));
+
+	EntityTypeTags.push(iter->second.Tag);
+
+	TemporaryString = identifier;
+}
+
+
+//
 // Flag the end of an entity code block and update parser state accordingly
 //
 // This routine emits any necessary epilog code for the entity, as well as shifts the internal
@@ -152,6 +171,9 @@ void CompilationSemantics::StoreEntityCode()
 			}
 			break;
 
+		//
+		// The entity being processed is a free-standing code block.
+		//
 		case Bytecode::EntityTags::FreeBlock:
 			EmitterStack.top()->ExitEntity();
 			break;
@@ -159,8 +181,14 @@ void CompilationSemantics::StoreEntityCode()
 		//
 		// Error case: the entity tag is not recognized. Fatal.
 		//
-		default:
+		case Bytecode::EntityTags::Invalid:
 			throw FatalException("Invalid entity type tag");
+
+		//
+		// The entity tag must be a custom entity.
+		//
+		default:
+			EmitterStack.top()->ExitEntity();
 		}
 	}
 
@@ -968,6 +996,115 @@ void CompilationSemantics::CompleteAssignment()
 	}
 	AssignmentTargets.pop();
 	StatementParamCount.pop();
+}
+
+
+//-------------------------------------------------------------------------------
+// Entity invocation
+//-------------------------------------------------------------------------------
+
+//
+// Signal the beginning of a set of parameters passed to an entity invocation
+//
+void CompilationSemantics::BeginEntityParams()
+{
+	BeginStatementParams();
+}
+
+//
+// Signal the end of a set of parameters for an entity invocation
+//
+void CompilationSemantics::CompleteEntityParams()
+{
+	std::wstring entityname = StatementNames.top();
+	StringHandle entitynamehandle = Session.StringPool.Pool(entityname);
+
+	StatementNames.pop();
+	StatementParamCount.pop();
+
+	std::wstring anonymousname = AllocateAnonymousScopeName();
+	StringHandle anonymousnamehandle = Session.StringPool.Pool(anonymousname);
+	CurrentEntities.push(anonymousname);
+
+	LexicalScopeDescriptions.insert(std::make_pair(anonymousnamehandle, ScopeDescription(&LexicalScopeDescriptions.find(LexicalScopeStack.top())->second)));
+	LexicalScopeStack.push(anonymousnamehandle);
+
+	if(!IsPrepass)
+	{
+		InfixOperators.pop();
+		InfixOperands.pop();
+
+		bool valid = true;
+		const std::vector<CompileTimeParameter>& entityparams = Session.GetCustomEntityByTag(EntityTypeTags.top()).Parameters;
+
+		if(CompileTimeParameters.top().size() == entityparams.size())
+		{
+			for(size_t i = 0; i < CompileTimeParameters.top().size(); ++i)
+			{
+				if(CompileTimeParameters.top()[i].Type == VM::EpochType_Identifier)
+				{
+					if(GetLexicalScopeDescription(LexicalScopeStack.top()).GetVariableTypeByID(CompileTimeParameters.top()[i].Payload.StringHandleValue) != entityparams[i].Type)
+					{
+						valid = false;
+						break;
+					}
+				}
+				else if(CompileTimeParameters.top()[i].Type == VM::EpochType_Expression)
+				{
+					if(CompileTimeParameters.top()[i].ExpressionType != entityparams[i].Type)
+					{
+						valid = false;
+						break;
+					}
+				}
+				else if(CompileTimeParameters.top()[i].Type != entityparams[i].Type)
+				{
+					valid = false;
+					break;
+				}
+			}
+		}
+		else
+			valid = false;
+
+		if(valid)
+		{
+			for(std::vector<CompileTimeParameter>::const_iterator iter = CompileTimeParameters.top().begin(); iter != CompileTimeParameters.top().end(); ++iter)
+				EmitInfixOperand(*EmitterStack.top(), *iter);
+
+			EmitterStack.top()->EnterEntity(EntityTypeTags.top(), anonymousnamehandle);
+		}
+		
+		CompileTimeParameters.pop();
+
+		PendingEmitters.pop();
+		PendingEmissionBuffers.pop();
+
+		if(!valid)
+			Throw(RecoverableException("Incorrect parameters to " + narrow(entityname)));
+	}
+}
+
+//
+// Signal the beginning of an entity chain
+//
+// Entity chains are used for implementing entity logic which needs to be executed
+// multiple times, or needs to pass on through one of multiple potential handlers.
+// This includes loops, if/elseif/else blocks, and switches.
+//
+void CompilationSemantics::BeginEntityChain()
+{
+	if(!IsPrepass)
+		EmitterStack.top()->BeginChain();
+}
+
+//
+// Signal the end of an entity chain
+//
+void CompilationSemantics::EndEntityChain()
+{
+	if(!IsPrepass)
+		EmitterStack.top()->EndChain();
 }
 
 

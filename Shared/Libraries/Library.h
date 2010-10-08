@@ -9,6 +9,7 @@
 
 
 // Dependencies
+#include "Metadata/EntityDescription.h"
 #include "Metadata/CompileTimeParams.h"
 #include "Utility/Types/IDTypes.h"
 
@@ -27,6 +28,8 @@ namespace VM
 }
 
 
+
+
 // Handy type shortcuts
 typedef void (*EpochFunctionPtr)(StringHandle namehandle, VM::ExecutionContext& context);
 typedef std::map<StringHandle, EpochFunctionPtr> FunctionInvocationTable;
@@ -36,4 +39,16 @@ typedef std::map<std::wstring, CompilerHelperPtr> FunctionCompileHelperTable;
 
 typedef std::set<std::wstring> InfixTable;
 typedef std::multimap<int, StringHandle> PrecedenceTable;
+
+typedef std::map<StringHandle, EntityDescription> EntityTable;
+
+
+struct CompilerInfoTable
+{
+	FunctionCompileHelperTable* FunctionHelpers;
+	InfixTable* InfixOperators;
+	PrecedenceTable* Precedences;
+	std::map<StringHandle, std::set<StringHandle> >* Overloads;
+	EntityTable* Entities;
+};
 

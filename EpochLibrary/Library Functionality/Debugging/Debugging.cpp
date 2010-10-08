@@ -14,6 +14,7 @@
 #include "Utility/NoDupeMap.h"
 
 #include "User Interface/Output.h"
+#include "User Interface/Input.h"
 
 #include "Virtual Machine/VirtualMachine.h"
 
@@ -27,6 +28,7 @@ using namespace DebugLibrary;
 void DebugLibrary::RegisterLibraryFunctions(FunctionInvocationTable& table, StringPoolManager& stringpool)
 {
 	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"debugwritestring"), DebugLibrary::WriteString));
+	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"debugreadstring"), DebugLibrary::ReadString));
 }
 
 //
@@ -38,6 +40,11 @@ void DebugLibrary::RegisterLibraryFunctions(FunctionSignatureSet& signatureset, 
 		FunctionSignature signature;
 		signature.AddParameter(L"str", VM::EpochType_String);
 		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"debugwritestring"), signature));
+	}
+	{
+		FunctionSignature signature;
+		signature.SetReturnType(VM::EpochType_String);
+		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"debugreadstring"), signature));
 	}
 }
 
@@ -59,5 +66,15 @@ void DebugLibrary::WriteString(StringHandle functionname, VM::ExecutionContext& 
 
 	UI::OutputStream stream;
 	stream << UI::lightblue << L"DEBUG: " << UI::resetcolor << context.OwnerVM.GetPooledString(handle) << std::endl;
+}
+
+//
+// Read a string from the debug console
+//
+void DebugLibrary::ReadString(StringHandle functionname, VM::ExecutionContext& context)
+{
+	UI::Input input;
+	StringHandle handle = context.OwnerVM.PoolString(input.BlockingRead());
+	context.State.Stack.PushValue(handle);
 }
 

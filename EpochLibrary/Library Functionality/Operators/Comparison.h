@@ -2,7 +2,7 @@
 // The Epoch Language Project
 // Epoch Standard Library
 //
-// Library routines for debugging purposes
+// Library routines for comparison operators
 //
 
 #pragma once
@@ -16,21 +16,18 @@
 // Forward declarations
 class StringPoolManager;
 
-namespace VM
-{
-	class ExecutionContext;
-}
 
-
-namespace DebugLibrary
+namespace ComparisonLibrary
 {
 
 	void RegisterLibraryFunctions(FunctionSignatureSet& signatureset, StringPoolManager& stringpool);
 	void RegisterLibraryFunctions(FunctionInvocationTable& table, StringPoolManager& stringpool);
 	void RegisterLibraryFunctions(FunctionCompileHelperTable& table);
 
-	void WriteString(StringHandle functionname, VM::ExecutionContext& context);
-	void ReadString(StringHandle functionname, VM::ExecutionContext& context);
+	void RegisterInfixOperators(InfixTable& infixtable, PrecedenceTable& precedences, StringPoolManager& stringpool);
+
+
+	void IntegerEquality(StringHandle functionname, VM::ExecutionContext& context);
 
 }
 

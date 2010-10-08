@@ -279,7 +279,35 @@
 					>
 				</File>
 				<File
+					RelativePath=".\Library Functionality\Operators\Comparison.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\Library Functionality\Operators\Comparison.h"
+					>
+				</File>
+				<File
 					RelativePath=".\Library Functionality\Operators\Precedences.h"
+					>
+				</File>
+			</Filter>
+			<Filter
+				Name="Flow Control"
+				>
+				<File
+					RelativePath=".\Library Functionality\Flow Control\Conditionals.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\Library Functionality\Flow Control\Conditionals.h"
+					>
+				</File>
+				<File
+					RelativePath=".\Library Functionality\Flow Control\StringPooling.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\Library Functionality\Flow Control\StringPooling.h"
 					>
 				</File>
 			</Filter>
@@ -404,6 +432,10 @@
 				</File>
 				<File
 					RelativePath="..\Shared\Metadata\CompileTimeParams.h"
+					>
+				</File>
+				<File
+					RelativePath="..\Shared\Metadata\EntityDescription.h"
 					>
 				</File>
 				<File

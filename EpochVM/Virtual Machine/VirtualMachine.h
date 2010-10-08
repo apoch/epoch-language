@@ -80,6 +80,13 @@ namespace VM
 
 		size_t GetFunctionInstructionOffset(StringHandle functionname) const;
 
+	// Entity management
+	public:
+		void MapEntityBeginEndOffsets(size_t beginoffset, size_t endoffset);
+		size_t GetEntityEndOffset(size_t beginoffset) const;
+
+		EntityMetaControl GetEntityMetaControl(Bytecode::EntityTag tag) const;
+
 	// Lexical scopes
 	public:
 		void AddLexicalScope(StringHandle name);
@@ -93,6 +100,8 @@ namespace VM
 		FunctionInvocationTable GlobalFunctions;
 		std::map<StringHandle, size_t> GlobalFunctionOffsets;
 		std::map<StringHandle, ScopeDescription> LexicalScopeDescriptions;
+		EntityTable Entities;
+		std::map<size_t, size_t> EntityOffsets;
 	};
 
 

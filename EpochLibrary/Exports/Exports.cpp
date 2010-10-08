@@ -8,9 +8,16 @@
 #include "pch.h"
 
 #include "Library Functionality/Debugging/Debugging.h"
+
 #include "Library Functionality/Type Constructors/Primitives.h"
+
 #include "Library Functionality/Type Casting/Typecasts.h"
+
 #include "Library Functionality/Operators/Arithmetic.h"
+#include "Library Functionality/Operators/Comparison.h"
+
+#include "Library Functionality/Flow Control/Conditionals.h"
+#include "Library Functionality/Flow Control/StringPooling.h"
 
 #include "Virtual Machine/VirtualMachine.h"
 
@@ -21,7 +28,7 @@
 // This process includes setting up the function signatures and pooling string
 // identifiers for all library entities, types, constants, and so on.
 //
-extern "C" void __stdcall RegisterLibraryContents(FunctionSignatureSet& functionsignatures, StringPoolManager& stringpool)
+extern "C" void __stdcall RegisterLibraryContents(FunctionSignatureSet& functionsignatures, EntityTable& entities, StringPoolManager& stringpool)
 {
 	try
 	{
@@ -29,6 +36,8 @@ extern "C" void __stdcall RegisterLibraryContents(FunctionSignatureSet& function
 		TypeConstructors::RegisterLibraryFunctions(functionsignatures, stringpool);
 		TypeCasts::RegisterLibraryFunctions(functionsignatures, stringpool);
 		ArithmeticLibrary::RegisterLibraryFunctions(functionsignatures, stringpool);
+		ComparisonLibrary::RegisterLibraryFunctions(functionsignatures, stringpool);
+		FlowControl::RegisterStrings(stringpool);
 	}
 	catch(...)
 	{
@@ -42,7 +51,7 @@ extern "C" void __stdcall RegisterLibraryContents(FunctionSignatureSet& function
 // Strings are pooled in the VM's internal string pool, and functions
 // are registered in the VM's global function dispatch table.
 //
-extern "C" void __stdcall BindToVirtualMachine(FunctionInvocationTable& functiontable, StringPoolManager& stringpool)
+extern "C" void __stdcall BindToVirtualMachine(FunctionInvocationTable& functiontable, EntityTable& entities, StringPoolManager& stringpool)
 {
 	try
 	{
@@ -50,6 +59,9 @@ extern "C" void __stdcall BindToVirtualMachine(FunctionInvocationTable& function
 		TypeConstructors::RegisterLibraryFunctions(functiontable, stringpool);
 		TypeCasts::RegisterLibraryFunctions(functiontable, stringpool);
 		ArithmeticLibrary::RegisterLibraryFunctions(functiontable, stringpool);
+		ComparisonLibrary::RegisterLibraryFunctions(functiontable, stringpool);
+
+		FlowControl::RegisterConditionalEntities(entities, stringpool);
 	}
 	catch(...)
 	{
@@ -63,18 +75,23 @@ extern "C" void __stdcall BindToVirtualMachine(FunctionInvocationTable& function
 // Strings are pooled in the compiler's internal string pool, syntax extensions
 // are registered, and compile-time code helpers are bound.
 //
-extern "C" void __stdcall BindToCompiler(FunctionCompileHelperTable& functiontable, InfixTable& infixtable, PrecedenceTable& precedences, StringPoolManager& stringpool, std::map<StringHandle, std::set<StringHandle> >& overloadmap)
+extern "C" void __stdcall BindToCompiler(CompilerInfoTable& info, StringPoolManager& stringpool)
 {
 	try
 	{
-		DebugLibrary::RegisterLibraryFunctions(functiontable);
-		TypeConstructors::RegisterLibraryFunctions(functiontable);
+		DebugLibrary::RegisterLibraryFunctions(*info.FunctionHelpers);
+		TypeConstructors::RegisterLibraryFunctions(*info.FunctionHelpers);
 
-		TypeCasts::RegisterLibraryFunctions(functiontable);
-		TypeCasts::RegisterLibraryOverloads(overloadmap, stringpool);
+		TypeCasts::RegisterLibraryFunctions(*info.FunctionHelpers);
+		TypeCasts::RegisterLibraryOverloads(*info.Overloads, stringpool);
 
-		ArithmeticLibrary::RegisterLibraryFunctions(functiontable);
-		ArithmeticLibrary::RegisterInfixOperators(infixtable, precedences, stringpool);
+		ArithmeticLibrary::RegisterLibraryFunctions(*info.FunctionHelpers);
+		ArithmeticLibrary::RegisterInfixOperators(*info.InfixOperators, *info.Precedences, stringpool);
+
+		ComparisonLibrary::RegisterLibraryFunctions(*info.FunctionHelpers);
+		ComparisonLibrary::RegisterInfixOperators(*info.InfixOperators, *info.Precedences, stringpool);
+
+		FlowControl::RegisterConditionalEntities(*info.Entities, stringpool);
 	}
 	catch(...)
 	{

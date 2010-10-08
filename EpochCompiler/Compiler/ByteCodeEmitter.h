@@ -63,6 +63,9 @@ public:
 	void EnterEntity(Bytecode::EntityTag tag, StringHandle name);
 	void ExitEntity();
 
+	void BeginChain();
+	void EndChain();
+
 	void DefineLexicalScope(StringHandle name, StringHandle parent, size_t variablecount);
 	void LexicalScopeEntry(StringHandle varname, VM::EpochTypeID vartype, VariableOrigin origin);
 

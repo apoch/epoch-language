@@ -254,6 +254,10 @@
 				Name="Bytecode"
 				>
 				<File
+					RelativePath="..\Shared\Bytecode\EntityTags.h"
+					>
+				</File>
+				<File
 					RelativePath="..\Shared\Bytecode\Instructions.h"
 					>
 				</File>
