@@ -125,9 +125,14 @@ void CompilationSemantics::StoreEntityType(Bytecode::EntityTag typetag)
 //
 void CompilationSemantics::StoreEntityType(const std::wstring& identifier)
 {
-	EntityTable::const_iterator iter = Session.CustomEntities.find(Session.StringPool.Pool(identifier));
+	StringHandle handle = Session.StringPool.Pool(identifier);
+	EntityTable::const_iterator iter = Session.CustomEntities.find(handle);
 	if(iter == Session.CustomEntities.end())
-		Throw(RecoverableException("Invalid entity"));
+	{
+		iter = Session.ChainedEntities.find(handle);
+		if(iter == Session.ChainedEntities.end())
+			Throw(RecoverableException("Invalid entity"));
+	}
 
 	EntityTypeTags.push(iter->second.Tag);
 

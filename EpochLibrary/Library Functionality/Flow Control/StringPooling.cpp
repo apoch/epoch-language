@@ -15,4 +15,6 @@
 void FlowControl::RegisterStrings(StringPoolManager& stringpool)
 {
 	stringpool.Pool(L"if");
+	stringpool.Pool(L"elseif");
+	stringpool.Pool(L"else");
 }

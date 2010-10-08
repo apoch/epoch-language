@@ -36,7 +36,7 @@ bool Parser::Parse(const std::wstring& code, const std::wstring& filename)
     position_iterator<const char*> end;
 
 	SemanticActions.SetPrepassMode(true);
-	FundamentalGrammar grammar(SemanticActions, InfixIdentifiers, CustomEntities);
+	FundamentalGrammar grammar(SemanticActions, InfixIdentifiers, CustomEntities, ChainedEntities);
     SkipGrammar skip;
 
 	parse_info<position_iterator<const char*> > result;

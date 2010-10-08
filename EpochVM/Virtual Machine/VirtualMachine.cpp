@@ -48,13 +48,13 @@ void VirtualMachine::InitStandardLibraries()
 {
 	HINSTANCE dllhandle = Marshaling::TheDLLPool.OpenDLL(L"EpochLibrary.DLL");
 
-	typedef void (__stdcall *bindtovmptr)(FunctionInvocationTable&, EntityTable&, StringPoolManager&);
+	typedef void (__stdcall *bindtovmptr)(FunctionInvocationTable&, EntityTable&, EntityTable&, StringPoolManager&);
 	bindtovmptr bindtovm = reinterpret_cast<bindtovmptr>(::GetProcAddress(dllhandle, "BindToVirtualMachine"));
 
 	if(!bindtovm)
 		throw FatalException("Failed to load Epoch standard library");
 
-	bindtovm(GlobalFunctions, Entities, StringPool);
+	bindtovm(GlobalFunctions, Entities, Entities, StringPool);
 
 
 	Bytecode::EntityTag customtag = Bytecode::EntityTags::CustomEntityBaseID;
@@ -276,6 +276,8 @@ void ExecutionContext::Execute(const ScopeDescription* scope)
 	// By default, assume everything is alright
 	State.Result.ResultType = ExecutionResult::EXEC_RESULT_OK;
 
+	std::stack<size_t> chainoffsets;
+
 	// Run the given chunk of code
 	while(State.Result.ResultType == ExecutionResult::EXEC_RESULT_OK && InstructionOffset < CodeBufferSize)
 	{
@@ -395,13 +397,17 @@ void ExecutionContext::Execute(const ScopeDescription* scope)
 		case Bytecode::Instructions::EndEntity:
 			if(!onexit.ScopesToCleanUp.empty())
 				Variables = onexit.CleanUpTopmostScope();
+			if(!chainoffsets.empty())
+				InstructionOffset = OwnerVM.GetChainEndOffset(chainoffsets.top());
 			break;
 
 			
 		case Bytecode::Instructions::BeginChain:
+			chainoffsets.push(InstructionOffset - 1);
 			break;
 
 		case Bytecode::Instructions::EndChain:
+			chainoffsets.pop();
 			break;
 
 
@@ -484,6 +490,7 @@ void ExecutionContext::Load()
 {
 	std::stack<Bytecode::EntityTag> entitytypes;
 	std::stack<size_t> entitybeginoffsets;
+	std::stack<size_t> chainbeginoffsets;
 
 	InstructionOffset = 0;
 	while(InstructionOffset < CodeBufferSize)
@@ -510,9 +517,15 @@ void ExecutionContext::Load()
 			break;
 
 		case Bytecode::Instructions::BeginChain:
+			{
+				size_t originaloffset = InstructionOffset - 1;
+				chainbeginoffsets.push(originaloffset);
+			}
 			break;
 
 		case Bytecode::Instructions::EndChain:
+			OwnerVM.MapChainBeginEndOffsets(chainbeginoffsets.top(), InstructionOffset - 1);
+			chainbeginoffsets.pop();
 			break;
 
 		case Bytecode::Instructions::PoolString:
@@ -621,6 +634,14 @@ void VirtualMachine::MapEntityBeginEndOffsets(size_t beginoffset, size_t endoffs
 }
 
 //
+// Store the begin and end bytecode offsets of an entity chain
+//
+void VirtualMachine::MapChainBeginEndOffsets(size_t beginoffset, size_t endoffset)
+{
+	ChainOffsets[beginoffset] = endoffset;
+}
+
+//
 // Retrieve the end offset of the entity at the specified begin offset
 //
 size_t VirtualMachine::GetEntityEndOffset(size_t beginoffset) const
@@ -628,6 +649,18 @@ size_t VirtualMachine::GetEntityEndOffset(size_t beginoffset) const
 	std::map<size_t, size_t>::const_iterator iter = EntityOffsets.find(beginoffset);
 	if(iter == EntityOffsets.end())
 		throw FatalException("Failed to cache end offset of an entity, or an invalid entity begin offset was requested");
+
+	return iter->second;
+}
+
+//
+// Retrieve the end offset of the entity chain at the specified begin offset
+//
+size_t VirtualMachine::GetChainEndOffset(size_t beginoffset) const
+{
+	std::map<size_t, size_t>::const_iterator iter = ChainOffsets.find(beginoffset);
+	if(iter == ChainOffsets.end())
+		throw FatalException("Failed to cache end offset of an entity chain, or an invalid entity chain begin offset was requested");
 
 	return iter->second;
 }

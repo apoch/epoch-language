@@ -50,5 +50,6 @@ struct CompilerInfoTable
 	PrecedenceTable* Precedences;
 	std::map<StringHandle, std::set<StringHandle> >* Overloads;
 	EntityTable* Entities;
+	EntityTable* ChainedEntities;
 };
 

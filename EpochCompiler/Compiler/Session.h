@@ -58,6 +58,7 @@ public:
 	StringPoolManager StringPool;
 	std::multimap<int, StringHandle> OperatorPrecedences;
 	EntityTable CustomEntities;
+	EntityTable ChainedEntities;
 
 // Internal helpers
 private:

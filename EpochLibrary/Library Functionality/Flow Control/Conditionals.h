@@ -19,7 +19,7 @@ class StringPoolManager;
 namespace FlowControl
 {
 
-	void RegisterConditionalEntities(EntityTable& entities, StringPoolManager& stringpool);
+	void RegisterConditionalEntities(EntityTable& entities, EntityTable& chainedentities, StringPoolManager& stringpool);
 
 }
 

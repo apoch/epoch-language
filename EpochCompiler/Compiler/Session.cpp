@@ -23,7 +23,7 @@ CompileSession::CompileSession()
 {
 	HINSTANCE dllhandle = Marshaling::TheDLLPool.OpenDLL(L"EpochLibrary.DLL");
 
-	typedef void (__stdcall *registerlibraryptr)(FunctionSignatureSet&, EntityTable&, StringPoolManager&);
+	typedef void (__stdcall *registerlibraryptr)(FunctionSignatureSet&, StringPoolManager&);
 	registerlibraryptr registerlibrary = reinterpret_cast<registerlibraryptr>(::GetProcAddress(dllhandle, "RegisterLibraryContents"));
 
 	typedef void (__stdcall *bindtocompilerptr)(CompilerInfoTable&, StringPoolManager&);
@@ -32,7 +32,7 @@ CompileSession::CompileSession()
 	if(!registerlibrary || !bindtocompiler)
 		throw FatalException("Failed to load Epoch standard library");
 
-	registerlibrary(FunctionSignatures, CustomEntities, StringPool);
+	registerlibrary(FunctionSignatures, StringPool);
 
 	CompilerInfoTable info;
 	info.FunctionHelpers = &CompileTimeHelpers;
@@ -40,6 +40,7 @@ CompileSession::CompileSession()
 	info.Overloads = &FunctionOverloadNames;
 	info.Precedences = &OperatorPrecedences;
 	info.Entities = &CustomEntities;
+	info.ChainedEntities = &ChainedEntities;
 	bindtocompiler(info, StringPool);
 }
 
@@ -104,7 +105,7 @@ void CompileSession::CompileFunctions(const std::wstring& code, const std::wstri
 {
 	Bytecode::EntityTag customtag = Bytecode::EntityTags::CustomEntityBaseID;
 
-	std::set<std::wstring> entitynames;
+	std::set<std::wstring> entitynames, chainedentitynames;
 	for(EntityTable::iterator iter = CustomEntities.begin(); iter != CustomEntities.end(); ++iter)
 	{
 		if(iter->second.Tag == Bytecode::EntityTags::Invalid)
@@ -113,9 +114,17 @@ void CompileSession::CompileFunctions(const std::wstring& code, const std::wstri
 		entitynames.insert(StringPool.GetPooledString(iter->first));
 	}
 
+	for(EntityTable::iterator iter = ChainedEntities.begin(); iter != ChainedEntities.end(); ++iter)
+	{
+		if(iter->second.Tag == Bytecode::EntityTags::Invalid)
+			iter->second.Tag = ++customtag;
+
+		chainedentitynames.insert(StringPool.GetPooledString(iter->first));
+	}
+
 	ByteCodeEmitter emitter(ByteCodeBuffer);
 	CompilationSemantics semantics(emitter, *this);
-	Parser theparser(semantics, InfixIdentifiers, entitynames);
+	Parser theparser(semantics, InfixIdentifiers, entitynames, chainedentitynames);
 
 	if(!theparser.Parse(code, filename) || semantics.DidFail())
 		throw FatalException("Parsing failed!");
@@ -130,6 +139,12 @@ void CompileSession::CompileFunctions(const std::wstring& code, const std::wstri
 const EntityDescription& CompileSession::GetCustomEntityByTag(Bytecode::EntityTag tag) const
 {
 	for(EntityTable::const_iterator iter = CustomEntities.begin(); iter != CustomEntities.end(); ++iter)
+	{
+		if(iter->second.Tag == tag)
+			return iter->second;
+	}
+
+	for(EntityTable::const_iterator iter = ChainedEntities.begin(); iter != ChainedEntities.end(); ++iter)
 	{
 		if(iter->second.Tag == tag)
 			return iter->second;

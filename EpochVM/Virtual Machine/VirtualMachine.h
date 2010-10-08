@@ -83,7 +83,9 @@ namespace VM
 	// Entity management
 	public:
 		void MapEntityBeginEndOffsets(size_t beginoffset, size_t endoffset);
+		void MapChainBeginEndOffsets(size_t beginoffset, size_t endoffset);
 		size_t GetEntityEndOffset(size_t beginoffset) const;
+		size_t GetChainEndOffset(size_t beginoffset) const;
 
 		EntityMetaControl GetEntityMetaControl(Bytecode::EntityTag tag) const;
 
@@ -102,6 +104,7 @@ namespace VM
 		std::map<StringHandle, ScopeDescription> LexicalScopeDescriptions;
 		EntityTable Entities;
 		std::map<size_t, size_t> EntityOffsets;
+		std::map<size_t, size_t> ChainOffsets;
 	};
 
 

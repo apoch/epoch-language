@@ -28,7 +28,7 @@
 // This process includes setting up the function signatures and pooling string
 // identifiers for all library entities, types, constants, and so on.
 //
-extern "C" void __stdcall RegisterLibraryContents(FunctionSignatureSet& functionsignatures, EntityTable& entities, StringPoolManager& stringpool)
+extern "C" void __stdcall RegisterLibraryContents(FunctionSignatureSet& functionsignatures, StringPoolManager& stringpool)
 {
 	try
 	{
@@ -51,7 +51,7 @@ extern "C" void __stdcall RegisterLibraryContents(FunctionSignatureSet& function
 // Strings are pooled in the VM's internal string pool, and functions
 // are registered in the VM's global function dispatch table.
 //
-extern "C" void __stdcall BindToVirtualMachine(FunctionInvocationTable& functiontable, EntityTable& entities, StringPoolManager& stringpool)
+extern "C" void __stdcall BindToVirtualMachine(FunctionInvocationTable& functiontable, EntityTable& entities, EntityTable& chainedentities, StringPoolManager& stringpool)
 {
 	try
 	{
@@ -61,7 +61,7 @@ extern "C" void __stdcall BindToVirtualMachine(FunctionInvocationTable& function
 		ArithmeticLibrary::RegisterLibraryFunctions(functiontable, stringpool);
 		ComparisonLibrary::RegisterLibraryFunctions(functiontable, stringpool);
 
-		FlowControl::RegisterConditionalEntities(entities, stringpool);
+		FlowControl::RegisterConditionalEntities(entities, entities, stringpool);
 	}
 	catch(...)
 	{
@@ -91,7 +91,7 @@ extern "C" void __stdcall BindToCompiler(CompilerInfoTable& info, StringPoolMana
 		ComparisonLibrary::RegisterLibraryFunctions(*info.FunctionHelpers);
 		ComparisonLibrary::RegisterInfixOperators(*info.InfixOperators, *info.Precedences, stringpool);
 
-		FlowControl::RegisterConditionalEntities(*info.Entities, stringpool);
+		FlowControl::RegisterConditionalEntities(*info.Entities, *info.ChainedEntities, stringpool);
 	}
 	catch(...)
 	{

@@ -61,10 +61,11 @@ struct SkipGrammar : public boost::spirit::classic::grammar<SkipGrammar>
 //
 struct FundamentalGrammar : public boost::spirit::classic::grammar<FundamentalGrammar>
 {
-	FundamentalGrammar(SemanticActionInterface& bindings, const InfixTable& infixidentifiers, const std::set<std::wstring>& customentities)
+	FundamentalGrammar(SemanticActionInterface& bindings, const InfixTable& infixidentifiers, const std::set<std::wstring>& customentities, const std::set<std::wstring>& chainedentities)
 		: Bindings(bindings),
 		  InfixIdentifiers(infixidentifiers),
-		  CustomEntities(customentities)
+		  CustomEntities(customentities),
+		  ChainedEntities(chainedentities)
 	{ }
 
 	template <typename ScannerType>
@@ -210,6 +211,9 @@ struct FundamentalGrammar : public boost::spirit::classic::grammar<FundamentalGr
 
 			for(std::set<std::wstring>::const_iterator iter = self.CustomEntities.begin(); iter != self.CustomEntities.end(); ++iter)
 				AddInlineEntity(*PooledNarrowStrings.insert(narrow(*iter)).first);
+
+			for(std::set<std::wstring>::const_iterator iter = self.ChainedEntities.begin(); iter != self.ChainedEntities.end(); ++iter)
+				AddChainedEntity(*PooledNarrowStrings.insert(narrow(*iter)).first);
 		}
 
 		boost::spirit::classic::chlit<> COLON, OPENPARENS, CLOSEPARENS, OPENBRACE, CLOSEBRACE, COMMA, QUOTE, NEGATE;
@@ -279,11 +283,20 @@ struct FundamentalGrammar : public boost::spirit::classic::grammar<FundamentalGr
 		{
 			EntityIdentifier = boost::spirit::classic::strlit<>(entityname.c_str()) | EntityIdentifier.copy();
 		}
+
+		//
+		// Register a chained entity
+		//
+		void AddChainedEntity(const std::string& entityname)
+		{
+			ChainedEntityIdentifier = boost::spirit::classic::strlit<>(entityname.c_str()) | ChainedEntityIdentifier.copy();
+		}
 	};
 
 	SemanticActionInterface& Bindings;
 	const InfixTable& InfixIdentifiers;
 	const std::set<std::wstring>& CustomEntities;
+	const std::set<std::wstring>& ChainedEntities;
 
 };
 

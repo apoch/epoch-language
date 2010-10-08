@@ -28,13 +28,18 @@ namespace
 
 		return ENTITYRET_PASS_TO_NEXT_LINK_IN_CHAIN;
 	}
+
+	EntityReturnCode ConditionalElseMetaControl(VM::ExecutionContext& context)
+	{
+		return ENTITYRET_EXECUTE_CURRENT_LINK_IN_CHAIN;
+	}
 }
 
 
 //
 // Register conditional flow control entities with the compiler/VM
 //
-void FlowControl::RegisterConditionalEntities(EntityTable& entities, StringPoolManager& stringpool)
+void FlowControl::RegisterConditionalEntities(EntityTable& entities, EntityTable& chainedentities, StringPoolManager& stringpool)
 {
 	{
 		EntityDescription entity;
@@ -42,6 +47,19 @@ void FlowControl::RegisterConditionalEntities(EntityTable& entities, StringPoolM
 		entity.MetaControl = ConditionalMetaControl;
 		entity.Parameters.push_back(CompileTimeParameter(L"condition", VM::EpochType_Boolean));
 		AddToMapNoDupe(entities, std::make_pair(stringpool.Pool(L"if"), entity));
+	}
+	{
+		EntityDescription entity;
+		entity.Tag = Bytecode::EntityTags::Invalid;
+		entity.MetaControl = ConditionalMetaControl;
+		entity.Parameters.push_back(CompileTimeParameter(L"condition", VM::EpochType_Boolean));
+		AddToMapNoDupe(chainedentities, std::make_pair(stringpool.Pool(L"elseif"), entity));
+	}
+	{
+		EntityDescription entity;
+		entity.Tag = Bytecode::EntityTags::Invalid;
+		entity.MetaControl = ConditionalElseMetaControl;
+		AddToMapNoDupe(chainedentities, std::make_pair(stringpool.Pool(L"else"), entity));
 	}
 }
 
