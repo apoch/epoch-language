@@ -28,6 +28,7 @@ using namespace ComparisonLibrary;
 void ComparisonLibrary::RegisterLibraryFunctions(FunctionInvocationTable& table, StringPoolManager& stringpool)
 {
 	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"=="), ComparisonLibrary::IntegerEquality));
+	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L">"), ComparisonLibrary::IntegerGreaterThan));
 }
 
 //
@@ -41,6 +42,13 @@ void ComparisonLibrary::RegisterLibraryFunctions(FunctionSignatureSet& signature
 		signature.AddParameter(L"i2", VM::EpochType_Integer);
 		signature.SetReturnType(VM::EpochType_Boolean);
 		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"=="), signature));
+	}
+	{
+		FunctionSignature signature;
+		signature.AddParameter(L"i1", VM::EpochType_Integer);
+		signature.AddParameter(L"i2", VM::EpochType_Integer);
+		signature.SetReturnType(VM::EpochType_Boolean);
+		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L">"), signature));
 	}
 }
 
@@ -63,6 +71,11 @@ void ComparisonLibrary::RegisterInfixOperators(InfixTable& infixtable, Precedenc
 		AddToSetNoDupe(infixtable, stringpool.GetPooledString(handle));
 		precedences.insert(std::make_pair(PRECEDENCE_COMPARISON, handle));
 	}
+	{
+		StringHandle handle = stringpool.Pool(L">");
+		AddToSetNoDupe(infixtable, stringpool.GetPooledString(handle));
+		precedences.insert(std::make_pair(PRECEDENCE_COMPARISON, handle));
+	}
 }
 
 
@@ -75,4 +88,16 @@ void ComparisonLibrary::IntegerEquality(StringHandle functionname, VM::Execution
 	Integer32 p1 = context.State.Stack.PopValue<Integer32>();
 
 	context.State.Stack.PushValue(p1 == p2);
+}
+
+
+//
+// Compare two integers to see if one is greater than the other
+//
+void ComparisonLibrary::IntegerGreaterThan(StringHandle functionname, VM::ExecutionContext& context)
+{
+	Integer32 p2 = context.State.Stack.PopValue<Integer32>();
+	Integer32 p1 = context.State.Stack.PopValue<Integer32>();
+
+	context.State.Stack.PushValue(p1 > p2);
 }

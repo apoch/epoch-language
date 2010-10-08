@@ -303,6 +303,14 @@
 					>
 				</File>
 				<File
+					RelativePath=".\Library Functionality\Flow Control\Loops.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\Library Functionality\Flow Control\Loops.h"
+					>
+				</File>
+				<File
 					RelativePath=".\Library Functionality\Flow Control\StringPooling.cpp"
 					>
 				</File>

@@ -277,6 +277,7 @@ void ExecutionContext::Execute(const ScopeDescription* scope)
 	State.Result.ResultType = ExecutionResult::EXEC_RESULT_OK;
 
 	std::stack<size_t> chainoffsets;
+	std::stack<bool> chainrepeats;
 
 	// Run the given chunk of code
 	while(State.Result.ResultType == ExecutionResult::EXEC_RESULT_OK && InstructionOffset < CodeBufferSize)
@@ -388,8 +389,21 @@ void ExecutionContext::Execute(const ScopeDescription* scope)
 						Variables->PushLocalsOntoStack(*this);
 						onexit.ScopesToCleanUp.push_back(Variables);
 					}
-					else
+					else if(code == ENTITYRET_SKIP_ENTITY || code == ENTITYRET_PASS_TO_NEXT_LINK_IN_CHAIN)
 						InstructionOffset = OwnerVM.GetEntityEndOffset(originaloffset) + 1;
+					else if(code == ENTITYRET_SKIP_CHAIN)
+						InstructionOffset = OwnerVM.GetChainEndOffset(chainoffsets.top());
+					else if(code == ENTITYRET_EXECUTE_AND_REPEAT_ENTIRE_CHAIN)
+					{
+						chainrepeats.top() = true;
+						scope = &OwnerVM.GetScopeDescription(name);
+						Variables = new ActiveScope(*scope, Variables);
+						Variables->BindParametersToStack(*this);
+						Variables->PushLocalsOntoStack(*this);
+						onexit.ScopesToCleanUp.push_back(Variables);
+					}
+					else
+						throw FatalException("Invalid return code from entity meta-control");
 				}
 			}
 			break;
@@ -398,16 +412,23 @@ void ExecutionContext::Execute(const ScopeDescription* scope)
 			if(!onexit.ScopesToCleanUp.empty())
 				Variables = onexit.CleanUpTopmostScope();
 			if(!chainoffsets.empty())
-				InstructionOffset = OwnerVM.GetChainEndOffset(chainoffsets.top());
+			{
+				if(chainrepeats.top())
+					InstructionOffset = chainoffsets.top() + 1;
+				else
+					InstructionOffset = OwnerVM.GetChainEndOffset(chainoffsets.top());
+			}
 			break;
 
 			
 		case Bytecode::Instructions::BeginChain:
 			chainoffsets.push(InstructionOffset - 1);
+			chainrepeats.push(false);
 			break;
 
 		case Bytecode::Instructions::EndChain:
 			chainoffsets.pop();
+			chainrepeats.pop();
 			break;
 
 

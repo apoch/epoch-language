@@ -17,6 +17,7 @@
 #include "Library Functionality/Operators/Comparison.h"
 
 #include "Library Functionality/Flow Control/Conditionals.h"
+#include "Library Functionality/Flow Control/Loops.h"
 #include "Library Functionality/Flow Control/StringPooling.h"
 
 #include "Virtual Machine/VirtualMachine.h"
@@ -62,6 +63,7 @@ extern "C" void __stdcall BindToVirtualMachine(FunctionInvocationTable& function
 		ComparisonLibrary::RegisterLibraryFunctions(functiontable, stringpool);
 
 		FlowControl::RegisterConditionalEntities(entities, entities, stringpool);
+		FlowControl::RegisterLoopEntities(entities, entities, stringpool);
 	}
 	catch(...)
 	{
@@ -92,6 +94,7 @@ extern "C" void __stdcall BindToCompiler(CompilerInfoTable& info, StringPoolMana
 		ComparisonLibrary::RegisterInfixOperators(*info.InfixOperators, *info.Precedences, stringpool);
 
 		FlowControl::RegisterConditionalEntities(*info.Entities, *info.ChainedEntities, stringpool);
+		FlowControl::RegisterLoopEntities(*info.Entities, *info.ChainedEntities, stringpool);
 	}
 	catch(...)
 	{

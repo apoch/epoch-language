@@ -103,23 +103,25 @@ size_t CompileSession::GetEmittedBufferSize() const
 //
 void CompileSession::CompileFunctions(const std::wstring& code, const std::wstring& filename)
 {
-	Bytecode::EntityTag customtag = Bytecode::EntityTags::CustomEntityBaseID;
-
 	std::set<std::wstring> entitynames, chainedentitynames;
+	std::map<StringHandle, EntityDescription*> entitydescriptions;
 	for(EntityTable::iterator iter = CustomEntities.begin(); iter != CustomEntities.end(); ++iter)
 	{
-		if(iter->second.Tag == Bytecode::EntityTags::Invalid)
-			iter->second.Tag = ++customtag;
-
 		entitynames.insert(StringPool.GetPooledString(iter->first));
+		entitydescriptions[iter->first] = &(iter->second);
 	}
 
 	for(EntityTable::iterator iter = ChainedEntities.begin(); iter != ChainedEntities.end(); ++iter)
 	{
-		if(iter->second.Tag == Bytecode::EntityTags::Invalid)
-			iter->second.Tag = ++customtag;
-
 		chainedentitynames.insert(StringPool.GetPooledString(iter->first));
+		entitydescriptions[iter->first] = &(iter->second);
+	}
+
+	Bytecode::EntityTag customtag = Bytecode::EntityTags::CustomEntityBaseID;
+	for(std::map<StringHandle, EntityDescription*>::iterator iter = entitydescriptions.begin(); iter != entitydescriptions.end(); ++iter)
+	{
+		if(iter->second->Tag == Bytecode::EntityTags::Invalid)
+			iter->second->Tag = ++customtag;
 	}
 
 	ByteCodeEmitter emitter(ByteCodeBuffer);

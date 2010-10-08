@@ -28,6 +28,7 @@ namespace ComparisonLibrary
 
 
 	void IntegerEquality(StringHandle functionname, VM::ExecutionContext& context);
+	void IntegerGreaterThan(StringHandle functionname, VM::ExecutionContext& context);
 
 }
 
