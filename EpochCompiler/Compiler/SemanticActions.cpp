@@ -317,7 +317,7 @@ void CompilationSemantics::FinalizeInfix()
 
 			std::vector<CompileTimeParameter> flatoperandlist;
 
-			for(std::vector<std::vector<CompileTimeParameter> >::iterator operandsetiter = InfixOperands.top().begin(); operandsetiter != InfixOperands.top().end(); ++operandsetiter)
+			for(std::vector<std::vector<CompileTimeParameter> >::const_iterator operandsetiter = InfixOperands.top().begin(); operandsetiter != InfixOperands.top().end(); ++operandsetiter)
 			{
 				for(std::vector<CompileTimeParameter>::const_iterator operanditer = operandsetiter->begin(); operanditer != operandsetiter->end(); ++operanditer)
 					flatoperandlist.push_back(*operanditer);
