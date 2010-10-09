@@ -39,27 +39,27 @@ namespace
 //
 // Register conditional flow control entities with the compiler/VM
 //
-void FlowControl::RegisterConditionalEntities(EntityTable& entities, EntityTable& chainedentities, StringPoolManager& stringpool)
+void FlowControl::RegisterConditionalEntities(EntityTable& entities, EntityTable& chainedentities, StringPoolManager& stringpool, Bytecode::EntityTag& tagindex)
 {
 	{
 		EntityDescription entity;
-		entity.Tag = Bytecode::EntityTags::Invalid;
+		entity.StringName = stringpool.Pool(L"if");
 		entity.MetaControl = ConditionalMetaControl;
 		entity.Parameters.push_back(CompileTimeParameter(L"condition", VM::EpochType_Boolean));
-		AddToMapNoDupe(entities, std::make_pair(stringpool.Pool(L"if"), entity));
+		AddToMapNoDupe(entities, std::make_pair(++tagindex, entity));
 	}
 	{
 		EntityDescription entity;
-		entity.Tag = Bytecode::EntityTags::Invalid;
+		entity.StringName = stringpool.Pool(L"elseif");
 		entity.MetaControl = ConditionalMetaControl;
 		entity.Parameters.push_back(CompileTimeParameter(L"condition", VM::EpochType_Boolean));
-		AddToMapNoDupe(chainedentities, std::make_pair(stringpool.Pool(L"elseif"), entity));
+		AddToMapNoDupe(chainedentities, std::make_pair(++tagindex, entity));
 	}
 	{
 		EntityDescription entity;
-		entity.Tag = Bytecode::EntityTags::Invalid;
+		entity.StringName = stringpool.Pool(L"else");
 		entity.MetaControl = ConditionalElseMetaControl;
-		AddToMapNoDupe(chainedentities, std::make_pair(stringpool.Pool(L"else"), entity));
+		AddToMapNoDupe(chainedentities, std::make_pair(++tagindex, entity));
 	}
 }
 

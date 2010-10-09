@@ -40,7 +40,7 @@ typedef std::map<std::wstring, CompilerHelperPtr> FunctionCompileHelperTable;
 typedef std::set<std::wstring> InfixTable;
 typedef std::multimap<int, StringHandle> PrecedenceTable;
 
-typedef std::map<StringHandle, EntityDescription> EntityTable;
+typedef std::map<Bytecode::EntityTag, EntityDescription> EntityTable;
 
 
 struct CompilerInfoTable

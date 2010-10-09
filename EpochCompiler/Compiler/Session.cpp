@@ -26,13 +26,15 @@ CompileSession::CompileSession()
 	typedef void (__stdcall *registerlibraryptr)(FunctionSignatureSet&, StringPoolManager&);
 	registerlibraryptr registerlibrary = reinterpret_cast<registerlibraryptr>(::GetProcAddress(dllhandle, "RegisterLibraryContents"));
 
-	typedef void (__stdcall *bindtocompilerptr)(CompilerInfoTable&, StringPoolManager&);
+	typedef void (__stdcall *bindtocompilerptr)(CompilerInfoTable&, StringPoolManager&, Bytecode::EntityTag&);
 	bindtocompilerptr bindtocompiler = reinterpret_cast<bindtocompilerptr>(::GetProcAddress(dllhandle, "BindToCompiler"));
 
 	if(!registerlibrary || !bindtocompiler)
 		throw FatalException("Failed to load Epoch standard library");
 
 	registerlibrary(FunctionSignatures, StringPool);
+
+	Bytecode::EntityTag customtag = Bytecode::EntityTags::CustomEntityBaseID;
 
 	CompilerInfoTable info;
 	info.FunctionHelpers = &CompileTimeHelpers;
@@ -43,7 +45,7 @@ CompileSession::CompileSession()
 	info.ChainedEntities = &ChainedEntities;
 	info.PostfixEntities = &PostfixEntities;
 	info.PostfixClosers = &PostfixClosers;
-	bindtocompiler(info, StringPool);
+	bindtocompiler(info, StringPool, customtag);
 }
 
 
@@ -106,37 +108,17 @@ size_t CompileSession::GetEmittedBufferSize() const
 void CompileSession::CompileFunctions(const std::wstring& code, const std::wstring& filename)
 {
 	std::set<std::wstring> entitynames, chainedentitynames, postfixentitynames, postfixclosernames;
-	std::map<StringHandle, EntityDescription*> entitydescriptions;
 	for(EntityTable::iterator iter = CustomEntities.begin(); iter != CustomEntities.end(); ++iter)
-	{
-		entitynames.insert(StringPool.GetPooledString(iter->first));
-		entitydescriptions[iter->first] = &(iter->second);
-	}
+		entitynames.insert(StringPool.GetPooledString(iter->second.StringName));
 
 	for(EntityTable::iterator iter = ChainedEntities.begin(); iter != ChainedEntities.end(); ++iter)
-	{
-		chainedentitynames.insert(StringPool.GetPooledString(iter->first));
-		entitydescriptions[iter->first] = &(iter->second);
-	}
+		chainedentitynames.insert(StringPool.GetPooledString(iter->second.StringName));
 
 	for(EntityTable::iterator iter = PostfixEntities.begin(); iter != PostfixEntities.end(); ++iter)
-	{
-		postfixentitynames.insert(StringPool.GetPooledString(iter->first));
-		entitydescriptions[iter->first] = &(iter->second);
-	}
+		postfixentitynames.insert(StringPool.GetPooledString(iter->second.StringName));
 
 	for(EntityTable::iterator iter = PostfixClosers.begin(); iter != PostfixClosers.end(); ++iter)
-	{
-		postfixclosernames.insert(StringPool.GetPooledString(iter->first));
-		entitydescriptions[iter->first] = &(iter->second);
-	}
-
-	Bytecode::EntityTag customtag = Bytecode::EntityTags::CustomEntityBaseID;
-	for(std::map<StringHandle, EntityDescription*>::iterator iter = entitydescriptions.begin(); iter != entitydescriptions.end(); ++iter)
-	{
-		if(iter->second->Tag == Bytecode::EntityTags::Invalid)
-			iter->second->Tag = ++customtag;
-	}
+		postfixclosernames.insert(StringPool.GetPooledString(iter->second.StringName));
 
 	ByteCodeEmitter emitter(ByteCodeBuffer);
 	CompilationSemantics semantics(emitter, *this);
@@ -154,29 +136,21 @@ void CompileSession::CompileFunctions(const std::wstring& code, const std::wstri
 //
 const EntityDescription& CompileSession::GetCustomEntityByTag(Bytecode::EntityTag tag) const
 {
-	for(EntityTable::const_iterator iter = CustomEntities.begin(); iter != CustomEntities.end(); ++iter)
-	{
-		if(iter->second.Tag == tag)
-			return iter->second;
-	}
+	EntityTable::const_iterator iter = CustomEntities.find(tag);
+	if(iter != CustomEntities.end())
+		return iter->second;
 
-	for(EntityTable::const_iterator iter = ChainedEntities.begin(); iter != ChainedEntities.end(); ++iter)
-	{
-		if(iter->second.Tag == tag)
-			return iter->second;
-	}
+	iter = ChainedEntities.find(tag);
+	if(iter != ChainedEntities.end())
+		return iter->second;
 
-	for(EntityTable::const_iterator iter = PostfixEntities.begin(); iter != PostfixEntities.end(); ++iter)
-	{
-		if(iter->second.Tag == tag)
-			return iter->second;
-	}
+	iter = PostfixEntities.find(tag);
+	if(iter != PostfixEntities.end())
+		return iter->second;
 
-	for(EntityTable::const_iterator iter = PostfixClosers.begin(); iter != PostfixClosers.end(); ++iter)
-	{
-		if(iter->second.Tag == tag)
-			return iter->second;
-	}
+	iter = PostfixClosers.find(tag);
+	if(iter != PostfixClosers.end())
+		return iter->second;
 
 	throw FatalException("Invalid entity tag - could not retrieve descriptor");
 }

@@ -48,21 +48,14 @@ void VirtualMachine::InitStandardLibraries()
 {
 	HINSTANCE dllhandle = Marshaling::TheDLLPool.OpenDLL(L"EpochLibrary.DLL");
 
-	typedef void (__stdcall *bindtovmptr)(FunctionInvocationTable&, EntityTable&, EntityTable&, StringPoolManager&);
+	typedef void (__stdcall *bindtovmptr)(FunctionInvocationTable&, EntityTable&, EntityTable&, StringPoolManager&, Bytecode::EntityTag&);
 	bindtovmptr bindtovm = reinterpret_cast<bindtovmptr>(::GetProcAddress(dllhandle, "BindToVirtualMachine"));
 
 	if(!bindtovm)
 		throw FatalException("Failed to load Epoch standard library");
 
-	bindtovm(GlobalFunctions, Entities, Entities, StringPool);
-
-
 	Bytecode::EntityTag customtag = Bytecode::EntityTags::CustomEntityBaseID;
-	for(EntityTable::iterator iter = Entities.begin(); iter != Entities.end(); ++iter)
-	{
-		if(iter->second.Tag == Bytecode::EntityTags::Invalid)
-			iter->second.Tag = ++customtag;
-	}
+	bindtovm(GlobalFunctions, Entities, Entities, StringPool, customtag);
 }
 
 
@@ -719,11 +712,9 @@ size_t VirtualMachine::GetChainEndOffset(size_t beginoffset) const
 //
 EntityMetaControl VirtualMachine::GetEntityMetaControl(Bytecode::EntityTag tag) const
 {
-	for(EntityTable::const_iterator iter = Entities.begin(); iter != Entities.end(); ++iter)
-	{
-		if(iter->second.Tag == tag)
-			return iter->second.MetaControl;
-	}
+	EntityTable::const_iterator iter = Entities.find(tag);
+	if(iter != Entities.end())
+		return iter->second.MetaControl;
 
 	throw FatalException("Invalid entity type tag - no meta control could be looked up");
 }

@@ -38,7 +38,7 @@ class EntityDescription
 {
 // Public properties
 public:
-	Bytecode::EntityTag Tag;
+	StringHandle StringName;
 	EntityMetaControl MetaControl;
 	std::vector<CompileTimeParameter> Parameters;
 };

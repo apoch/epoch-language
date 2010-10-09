@@ -1683,21 +1683,29 @@ StringHandle CompilationSemantics::FindLexicalScopeName(const ScopeDescription* 
 //
 Bytecode::EntityTag CompilationSemantics::LookupEntityTag(StringHandle identifier) const
 {
-	EntityTable::const_iterator iter = Session.CustomEntities.find(identifier);
-	if(iter != Session.CustomEntities.end())
-		return iter->second.Tag;
+	for(EntityTable::const_iterator iter = Session.CustomEntities.begin(); iter != Session.CustomEntities.end(); ++iter)
+	{
+		if(iter->second.StringName == identifier)
+			return iter->first;
+	}
 
-	iter = Session.ChainedEntities.find(identifier);
-	if(iter != Session.ChainedEntities.end())
-		return iter->second.Tag;
+	for(EntityTable::const_iterator iter = Session.ChainedEntities.begin(); iter != Session.ChainedEntities.end(); ++iter)
+	{
+		if(iter->second.StringName == identifier)
+			return iter->first;
+	}
 
-	iter = Session.PostfixEntities.find(identifier);
-	if(iter != Session.PostfixEntities.end())
-		return iter->second.Tag;
+	for(EntityTable::const_iterator iter = Session.PostfixEntities.begin(); iter != Session.PostfixEntities.end(); ++iter)
+	{
+		if(iter->second.StringName == identifier)
+			return iter->first;
+	}
 
-	iter = Session.PostfixClosers.find(identifier);
-	if(iter != Session.PostfixClosers.end())
-		return iter->second.Tag;
+	for(EntityTable::const_iterator iter = Session.PostfixClosers.begin(); iter != Session.PostfixClosers.end(); ++iter)
+	{
+		if(iter->second.StringName == identifier)
+			return iter->first;
+	}
 
 	Throw(RecoverableException("Invalid entity"));
 

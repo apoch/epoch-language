@@ -54,7 +54,7 @@ extern "C" void __stdcall RegisterLibraryContents(FunctionSignatureSet& function
 // Strings are pooled in the VM's internal string pool, and functions
 // are registered in the VM's global function dispatch table.
 //
-extern "C" void __stdcall BindToVirtualMachine(FunctionInvocationTable& functiontable, EntityTable& entities, EntityTable& chainedentities, StringPoolManager& stringpool)
+extern "C" void __stdcall BindToVirtualMachine(FunctionInvocationTable& functiontable, EntityTable& entities, EntityTable& chainedentities, StringPoolManager& stringpool, Bytecode::EntityTag& tagindex)
 {
 	try
 	{
@@ -65,8 +65,8 @@ extern "C" void __stdcall BindToVirtualMachine(FunctionInvocationTable& function
 		ComparisonLibrary::RegisterLibraryFunctions(functiontable, stringpool);
 		StringLibrary::RegisterLibraryFunctions(functiontable, stringpool);
 
-		FlowControl::RegisterConditionalEntities(entities, entities, stringpool);
-		FlowControl::RegisterLoopEntities(entities, entities, entities, entities, stringpool);
+		FlowControl::RegisterConditionalEntities(entities, entities, stringpool, tagindex);
+		FlowControl::RegisterLoopEntities(entities, entities, entities, entities, stringpool, tagindex);
 	}
 	catch(...)
 	{
@@ -80,7 +80,7 @@ extern "C" void __stdcall BindToVirtualMachine(FunctionInvocationTable& function
 // Strings are pooled in the compiler's internal string pool, syntax extensions
 // are registered, and compile-time code helpers are bound.
 //
-extern "C" void __stdcall BindToCompiler(CompilerInfoTable& info, StringPoolManager& stringpool)
+extern "C" void __stdcall BindToCompiler(CompilerInfoTable& info, StringPoolManager& stringpool, Bytecode::EntityTag& tagindex)
 {
 	try
 	{
@@ -99,8 +99,8 @@ extern "C" void __stdcall BindToCompiler(CompilerInfoTable& info, StringPoolMana
 		StringLibrary::RegisterLibraryFunctions(*info.FunctionHelpers);
 		StringLibrary::RegisterInfixOperators(*info.InfixOperators, *info.Precedences, stringpool);
 
-		FlowControl::RegisterConditionalEntities(*info.Entities, *info.ChainedEntities, stringpool);
-		FlowControl::RegisterLoopEntities(*info.Entities, *info.ChainedEntities, *info.PostfixEntities, *info.PostfixClosers, stringpool);
+		FlowControl::RegisterConditionalEntities(*info.Entities, *info.ChainedEntities, stringpool, tagindex);
+		FlowControl::RegisterLoopEntities(*info.Entities, *info.ChainedEntities, *info.PostfixEntities, *info.PostfixClosers, stringpool, tagindex);
 	}
 	catch(...)
 	{

@@ -48,26 +48,26 @@ namespace
 //
 // Register loop flow control entities with the compiler/VM
 //
-void FlowControl::RegisterLoopEntities(EntityTable& entities, EntityTable& chainedentities, EntityTable& postfixentities, EntityTable& postfixclosers, StringPoolManager& stringpool)
+void FlowControl::RegisterLoopEntities(EntityTable& entities, EntityTable& chainedentities, EntityTable& postfixentities, EntityTable& postfixclosers, StringPoolManager& stringpool, Bytecode::EntityTag& tagindex)
 {
 	{
 		EntityDescription entity;
-		entity.Tag = Bytecode::EntityTags::Invalid;
+		entity.StringName = stringpool.Pool(L"while");
 		entity.MetaControl = WhileMetaControl;
 		entity.Parameters.push_back(CompileTimeParameter(L"condition", VM::EpochType_Boolean));
-		AddToMapNoDupe(entities, std::make_pair(stringpool.Pool(L"dowhile"), entity));
+		AddToMapNoDupe(entities, std::make_pair(++tagindex, entity));
 	}
 	{
 		EntityDescription entity;
-		entity.Tag = Bytecode::EntityTags::Invalid;
+		entity.StringName = stringpool.Pool(L"do");
 		entity.MetaControl = DoWhileMetaControl;
-		AddToMapNoDupe(postfixentities, std::make_pair(stringpool.Pool(L"do"), entity));
+		AddToMapNoDupe(postfixentities, std::make_pair(++tagindex, entity));
 
 		EntityDescription closer;
-		closer.Tag = Bytecode::EntityTags::Invalid;
+		closer.StringName = stringpool.Pool(L"while");
 		closer.MetaControl = DoWhileCloserMetaControl;
 		closer.Parameters.push_back(CompileTimeParameter(L"condition", VM::EpochType_Boolean));
-		AddToMapNoDupe(postfixclosers, std::make_pair(stringpool.Pool(L"while"), closer));
+		AddToMapNoDupe(postfixclosers, std::make_pair(++tagindex, closer));
 	}
 }
 
