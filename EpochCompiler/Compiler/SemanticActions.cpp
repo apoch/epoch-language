@@ -248,9 +248,6 @@ void CompilationSemantics::StoreInfix(const std::wstring& identifier)
 	StatementNames.push(identifier);
 	StatementParamCount.push(0);
 
-	if(!IsPrepass)
-		CompileTimeParameters.push(std::vector<CompileTimeParameter>());
-
 	PushParam(L"@@infixresult");
 }
 
@@ -275,16 +272,11 @@ void CompilationSemantics::CompleteInfix()
 	{
 		if(!IsPrepass)
 		{
-			InfixOperands.top().push_back(CompileTimeParameters.top());
-			CompileTimeParameters.pop();
-			if(!CompileTimeParameters.empty())
-			{
-				FunctionSignatureSet::const_iterator iter = Session.FunctionSignatures.find(infixstatementnamehandle);
-				if(iter == Session.FunctionSignatures.end())
-					throw FatalException("Unknown statement, cannot complete parsing");
+			FunctionSignatureSet::const_iterator iter = Session.FunctionSignatures.find(infixstatementnamehandle);
+			if(iter == Session.FunctionSignatures.end())
+				throw FatalException("Unknown statement, cannot complete parsing");
 
-				StatementTypes.push(iter->second.GetReturnType());
-			}
+			StatementTypes.push(iter->second.GetReturnType());
 		}
 	}
 	else
@@ -295,8 +287,6 @@ void CompilationSemantics::CompleteInfix()
 			throw FatalException("Unknown statement, cannot complete parsing");
 
 		StatementTypes.push(iter->second.GetReturnType());
-		if(!IsPrepass)
-			InfixOperands.top().push_back(CompileTimeParameters.top());
 	}
 
 	if(!IsPrepass)
@@ -312,19 +302,15 @@ void CompilationSemantics::FinalizeInfix()
 	{
 		if(!InfixOperators.empty() && !InfixOperators.top().empty())
 		{
-			while(InfixOperands.top().empty())
-				InfixOperands.pop();
-
 			std::vector<CompileTimeParameter> flatoperandlist;
 
-			for(std::vector<std::vector<CompileTimeParameter> >::const_iterator operandsetiter = InfixOperands.top().begin(); operandsetiter != InfixOperands.top().end(); ++operandsetiter)
-			{
-				for(std::vector<CompileTimeParameter>::const_iterator operanditer = operandsetiter->begin(); operanditer != operandsetiter->end(); ++operanditer)
-					flatoperandlist.push_back(*operanditer);
-			}
+			for(std::vector<CompileTimeParameter>::const_iterator operanditer = CompileTimeParameters.top().begin() + StatementParamCount.top(); operanditer != CompileTimeParameters.top().end(); ++operanditer)
+				flatoperandlist.push_back(*operanditer);
 
 			if(!flatoperandlist.empty())
 			{
+				size_t numoperandscollapsed = flatoperandlist.size();
+
 				for(std::multimap<int, StringHandle>::const_reverse_iterator precedenceiter = Session.OperatorPrecedences.rbegin(); precedenceiter != Session.OperatorPrecedences.rend(); ++precedenceiter)
 				{
 					int precedence = precedenceiter->first;
@@ -366,15 +352,13 @@ void CompilationSemantics::FinalizeInfix()
 					} while(collapsed);
 				}
 
+				CompileTimeParameters.top().erase(CompileTimeParameters.top().end() - numoperandscollapsed, CompileTimeParameters.top().end());
+
 				CompileTimeParameter ctparam(L"@@infixresult", VM::EpochType_Expression);
 				ctparam.ExpressionType = StatementTypes.top();
 				ctparam.ExpressionContents.swap(flatoperandlist[0].ExpressionContents);
 				CompileTimeParameters.top().push_back(ctparam);
 			}
-		}
-		else if(!InfixOperands.empty() && !InfixOperands.top().empty())
-		{
-			CompileTimeParameters.top().push_back(InfixOperands.top().back().back());
 		}
 	}
 }
@@ -387,9 +371,8 @@ void CompilationSemantics::BeginParenthetical()
 	if(!IsPrepass)
 	{
 		InfixOperators.push(std::vector<StringHandle>());
-		InfixOperands.push(std::vector<std::vector<CompileTimeParameter> >());
-
 		CompileTimeParameters.push(std::vector<CompileTimeParameter>());
+		StatementParamCount.push(0);
 	}
 }
 
@@ -404,10 +387,9 @@ void CompilationSemantics::EndParenthetical()
 	{
 		CompileTimeParameter ctparam = CompileTimeParameters.top().back();
 		InfixOperators.pop();
-		InfixOperands.pop();
 		CompileTimeParameters.pop();
-		if(!CompileTimeParameters.empty())
-			InfixOperands.top().push_back(std::vector<CompileTimeParameter>(1, ctparam));
+		CompileTimeParameters.top().push_back(ctparam);
+		StatementParamCount.pop();
 	}
 }
 
@@ -557,7 +539,8 @@ void CompilationSemantics::BeginReturnSet()
 		EmitterStack.push(&PendingEmitters.top());
 
 		InfixOperators.push(std::vector<StringHandle>());
-		InfixOperands.push(std::vector<std::vector<CompileTimeParameter> >());
+		CompileTimeParameters.push(std::vector<CompileTimeParameter>());
+		StatementParamCount.push(0);
 	}
 }
 
@@ -610,7 +593,8 @@ void CompilationSemantics::EndReturnSet()
 		EmitterStack.pop();
 
 		InfixOperators.pop();
-		InfixOperands.pop();
+		CompileTimeParameters.c.clear();
+		StatementParamCount.pop();
 	}
 
 	FunctionSignatureStack.pop();
@@ -781,7 +765,6 @@ void CompilationSemantics::BeginStatementParams()
 	{
 		CompileTimeParameters.push(std::vector<CompileTimeParameter>());
 		InfixOperators.push(std::vector<StringHandle>());
-		InfixOperands.push(std::vector<std::vector<CompileTimeParameter> >());
 
 		PendingEmissionBuffers.push(std::vector<Byte>());
 		PendingEmitters.push(ByteCodeEmitter(PendingEmissionBuffers.top()));
@@ -811,7 +794,6 @@ void CompilationSemantics::CompleteStatement()
 	if(!IsPrepass)
 	{
 		InfixOperators.pop();
-		InfixOperands.pop();
 
 		VM::EpochTypeID outerexpectedtype = WalkCallChainForExpectedType(StatementNames.size() - 1);
 
@@ -913,9 +895,7 @@ void CompilationSemantics::CompleteStatement()
 			CompileTimeParameter ctparam(L"@@expression", VM::EpochType_Expression);
 			ctparam.ExpressionType = fsiter->second.GetReturnType();
 			ctparam.ExpressionContents = PendingEmissionBuffers.top();
-			
-			if(!InfixOperands.empty())
-				InfixOperands.top().push_back(std::vector<CompileTimeParameter>(1, ctparam));
+			CompileTimeParameters.top().push_back(ctparam);
 		}
 		else
 			EmitterStack.top()->EmitBuffer(PendingEmissionBuffers.top());
@@ -974,7 +954,6 @@ void CompilationSemantics::BeginAssignment()
 	{
 		CompileTimeParameters.push(std::vector<CompileTimeParameter>());
 		InfixOperators.push(std::vector<StringHandle>());
-		InfixOperands.push(std::vector<std::vector<CompileTimeParameter> >());
 
 		PendingEmissionBuffers.push(std::vector<Byte>());
 		PendingEmitters.push(ByteCodeEmitter(PendingEmissionBuffers.top()));
@@ -1002,7 +981,6 @@ void CompilationSemantics::CompleteAssignment()
 
 		PendingEmitters.pop();
 		PendingEmissionBuffers.pop();
-		InfixOperands.pop();
 		InfixOperators.pop();
 
 		EmitterStack.top()->AssignVariable(AssignmentTargets.top());
@@ -1066,7 +1044,6 @@ void CompilationSemantics::CompleteEntityParams(bool ispostfixcloser)
 	if(!IsPrepass)
 	{
 		InfixOperators.pop();
-		InfixOperands.pop();
 
 		bool valid = true;
 		const std::vector<CompileTimeParameter>& entityparams = Session.GetCustomEntityByTag(EntityTypeTags.top()).Parameters;
@@ -1161,7 +1138,6 @@ void CompilationSemantics::PushStatementParam()
 	if(!IsPrepass)
 	{
 		InfixOperators.top().clear();
-		InfixOperands.top().clear();
 		PendingEmissionBuffers.top().clear();
 	}
 }
@@ -1757,6 +1733,6 @@ void CompilationSemantics::SanityCheck() const
 	if(!Strings.empty() || !EntityTypeTags.empty() || !IntegerLiterals.empty() || !StringLiterals.empty() || !FunctionSignatureStack.empty()
 	|| !StatementNames.empty() || !StatementParamCount.empty() || !StatementTypes.empty() || !LexicalScopeStack.empty() || !CompileTimeParameters.empty()
 	|| !CurrentEntities.empty() || !FunctionReturnVars.empty() || !PendingEmissionBuffers.empty() || !PendingEmitters.empty() || !AssignmentTargets.empty()
-	|| !PushedItemTypes.empty() || !ReturnsIncludedStatement.empty() || !FunctionReturnTypeNames.empty() || !InfixOperators.empty() || !InfixOperands.empty())
+	|| !PushedItemTypes.empty() || !ReturnsIncludedStatement.empty() || !FunctionReturnTypeNames.empty() || !InfixOperators.empty())
 		throw FatalException("Parser leaked a resource");
 }

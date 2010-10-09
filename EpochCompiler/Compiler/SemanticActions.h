@@ -208,7 +208,6 @@ private:
 	std::multimap<StringHandle, StringHandle> OriginalFunctionsForPatternResolution;
 
 	std::stack<std::vector<StringHandle> > InfixOperators;
-	std::stack<std::vector<std::vector<CompileTimeParameter> > > InfixOperands;
 
 	size_t AnonymousScopeCounter;
 };
