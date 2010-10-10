@@ -74,7 +74,7 @@ namespace
 	// helper adds the variable itself and its type metadata to the current
 	// lexical scope.
 	//
-	void CompileConstructorPrimitive(ScopeDescription& scope, const std::vector<CompileTimeParameter>& compiletimeparams)
+	void CompileConstructorPrimitive(ScopeDescription& scope, const CompileTimeParameterVector& compiletimeparams)
 	{
 		VM::EpochTypeID effectivetype = compiletimeparams[1].Type;
 		if(effectivetype == VM::EpochType_Identifier)

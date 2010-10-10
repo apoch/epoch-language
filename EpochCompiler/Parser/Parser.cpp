@@ -23,7 +23,7 @@ using namespace boost::spirit::classic;
 //
 bool Parser::Parse(const std::wstring& code, const std::wstring& filename)
 {
-	std::vector<char> memblock;
+	ByteBuffer memblock;
 	memblock.reserve(code.length() + 20);		// paranoia padding
 
 	std::string narrowedcode = narrow(code);

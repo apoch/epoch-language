@@ -51,6 +51,19 @@ private:
 		ITEMTYPE_REALLITERAL,
 	};
 
+// Handy type shortcuts
+private:
+	typedef std::vector<VM::EpochTypeID> TypeVector;
+	typedef std::vector<std::wstring> StringVector;
+	typedef std::vector<StringHandle> StringHandles;
+
+	typedef std::pair<StringHandle, size_t> UnaryOperatorAndOffset;
+	typedef std::vector<UnaryOperatorAndOffset> UnaryOperatorVector;
+
+	typedef std::multimap<StringHandle, StringHandle> AllOverloadsMap;
+
+	typedef std::map<StringHandle, FunctionSignature> FunctionSignatureMap;
+
 // Construction
 public:
 	CompilationSemantics(ByteCodeEmitter& emitter, CompileSession& session)
@@ -154,12 +167,12 @@ private:
 	void Throw(const ExceptionT& exception) const;
 
 	StringHandle AllocateNewOverloadedFunctionName(StringHandle originalname);
-	void RemapFunctionToOverload(const std::vector<CompileTimeParameter>& params, size_t paramoffset, const std::vector<VM::EpochTypeID>& possiblereturntypes, std::wstring& out_remappedname, StringHandle& out_remappednamehandle) const;
-	void GetAllMatchingOverloads(const std::vector<CompileTimeParameter>& params, size_t paramoffset, const std::vector<VM::EpochTypeID>& possiblereturntypes, const std::wstring& originalname, StringHandle originalnamehandle, std::vector<std::wstring>& out_names, std::vector<StringHandle>& out_namehandles) const;
+	void RemapFunctionToOverload(const CompileTimeParameterVector& params, size_t paramoffset, const TypeVector& possiblereturntypes, std::wstring& out_remappedname, StringHandle& out_remappednamehandle) const;
+	void GetAllMatchingOverloads(const CompileTimeParameterVector& params, size_t paramoffset, const TypeVector& possiblereturntypes, const std::wstring& originalname, StringHandle originalnamehandle, StringVector& out_names, StringHandles& out_namehandles) const;
 
 	std::wstring GetPatternMatchResolverName(const std::wstring& originalname) const;
 
-	std::vector<VM::EpochTypeID> WalkCallChainForExpectedTypes(size_t index) const;
+	TypeVector WalkCallChainForExpectedTypes(size_t index) const;
 
 	int GetOperatorPrecedence(StringHandle operatorname) const;
 
@@ -205,17 +218,17 @@ private:
 	std::wstring TemporaryString;
 
 	std::stack<StringHandle> LexicalScopeStack;
-	std::map<StringHandle, ScopeDescription> LexicalScopeDescriptions;
+	ScopeMap LexicalScopeDescriptions;
 
 	std::stack<ItemType> PushedItemTypes;
 
-	std::stack<std::vector<CompileTimeParameter> > CompileTimeParameters;
+	std::stack<CompileTimeParameterVector> CompileTimeParameters;
 
 	std::stack<std::wstring> CurrentEntities;
 	std::stack<std::wstring> FunctionReturnTypeNames;
 	std::stack<StringHandle> FunctionReturnVars;
 
-	std::stack<std::vector<Byte> > PendingEmissionBuffers;
+	std::stack<ByteBuffer> PendingEmissionBuffers;
 	std::stack<ByteCodeEmitter> PendingEmitters;
 
 	std::stack<StringHandle> AssignmentTargets;
@@ -228,11 +241,12 @@ private:
 	bool InsideParameterList;
 	bool NeedsPatternResolver;
 
-	std::map<StringHandle, FunctionSignature> NeededPatternResolvers;
-	std::multimap<StringHandle, StringHandle> OriginalFunctionsForPatternResolution;
+	FunctionSignatureMap NeededPatternResolvers;
+	AllOverloadsMap OriginalFunctionsForPatternResolution;
 
-	std::stack<std::vector<StringHandle> > InfixOperators;
-	std::stack<std::vector<std::pair<StringHandle, size_t> > > UnaryOperators;
+	std::stack<StringHandles> InfixOperators;
+
+	std::stack<UnaryOperatorVector> UnaryOperators;
 
 	size_t AnonymousScopeCounter;
 };

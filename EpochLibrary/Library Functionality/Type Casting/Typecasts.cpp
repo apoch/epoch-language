@@ -126,7 +126,7 @@ void TypeCasts::RegisterLibraryFunctions(FunctionSignatureSet& signatureset, Str
 //
 // Register the list of overloads used by functions in this library module
 //
-void TypeCasts::RegisterLibraryOverloads(std::map<StringHandle, std::set<StringHandle> >& overloadmap, StringPoolManager& stringpool)
+void TypeCasts::RegisterLibraryOverloads(OverloadMap& overloadmap, StringPoolManager& stringpool)
 {
 	{
 		StringHandle functionnamehandle = stringpool.Pool(L"cast");

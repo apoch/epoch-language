@@ -26,18 +26,20 @@ namespace VM
 }
 
 
-
-
 // Handy type shortcuts
 typedef void (*EpochFunctionPtr)(StringHandle namehandle, VM::ExecutionContext& context);
 typedef std::map<StringHandle, EpochFunctionPtr> FunctionInvocationTable;
 
-typedef void (*CompilerHelperPtr)(ScopeDescription& scope, const std::vector<CompileTimeParameter>& compiletimeparams);
+typedef void (*CompilerHelperPtr)(ScopeDescription& scope, const CompileTimeParameterVector& compiletimeparams);
 typedef std::map<std::wstring, CompilerHelperPtr> FunctionCompileHelperTable;
 
 typedef std::multimap<int, StringHandle> PrecedenceTable;
 
 typedef std::map<Bytecode::EntityTag, EntityDescription> EntityTable;
+
+typedef std::set<StringHandle> StringHandleSet;
+
+typedef std::map<StringHandle, StringHandleSet> OverloadMap;
 
 
 struct CompilerInfoTable
@@ -49,7 +51,7 @@ struct CompilerInfoTable
 	StringSet* PostOperators;
 	StringSet* OpAssignOperators;
 	PrecedenceTable* Precedences;
-	std::map<StringHandle, std::set<StringHandle> >* Overloads;
+	OverloadMap* Overloads;
 	EntityTable* Entities;
 	EntityTable* ChainedEntities;
 	EntityTable* PostfixEntities;

@@ -135,6 +135,7 @@ protected:
 
 // Internal storage
 protected:
-	std::vector<AllocBlock> AllocBlocks;
+	typedef std::vector<AllocBlock> AllocBlockVector;
+	AllocBlockVector AllocBlocks;
 };
 

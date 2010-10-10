@@ -59,7 +59,7 @@ void BooleanLibrary::RegisterLibraryFunctions(FunctionSignatureSet& signatureset
 //
 // Register the list of overloads used by functions in this library module
 //
-void BooleanLibrary::RegisterLibraryOverloads(std::map<StringHandle, std::set<StringHandle> >& overloadmap, StringPoolManager& stringpool)
+void BooleanLibrary::RegisterLibraryOverloads(OverloadMap& overloadmap, StringPoolManager& stringpool)
 {
 	{
 		StringHandle functionnamehandle = stringpool.Pool(L"!");

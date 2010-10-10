@@ -338,7 +338,7 @@ void ByteCodeEmitter::PoolString(StringHandle handle, const std::wstring& litera
 // This is mostly useful if another emitter has cached some instructions to a separate
 // stream, and the contents of that stream are to be injected into this one.
 //
-void ByteCodeEmitter::EmitBuffer(const std::vector<Byte>& buffer)
+void ByteCodeEmitter::EmitBuffer(const ByteBuffer& buffer)
 {
 	Buffer.insert(Buffer.end(), buffer.begin(), buffer.end());
 }

@@ -29,6 +29,6 @@ namespace TypeCasts
 	void RegisterLibraryFunctions(FunctionSignatureSet& signatureset, StringPoolManager& stringpool);
 	void RegisterLibraryFunctions(FunctionInvocationTable& table, StringPoolManager& stringpool);
 
-	void RegisterLibraryOverloads(std::map<StringHandle, std::set<StringHandle> >& overloadmap, StringPoolManager& stringpool);
+	void RegisterLibraryOverloads(OverloadMap& overloadmap, StringPoolManager& stringpool);
 
 }

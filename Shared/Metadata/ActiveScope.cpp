@@ -29,7 +29,7 @@ void ActiveScope::BindParametersToStack(const VM::ExecutionContext& context)
 {
 	char* stackpointer = reinterpret_cast<char*>(context.State.Stack.GetCurrentTopOfStack());
 
-	for(std::vector<ScopeDescription::VariableEntry>::const_reverse_iterator iter = OriginalScope.Variables.rbegin(); iter != OriginalScope.Variables.rend(); ++iter)
+	for(ScopeDescription::VariableVector::const_reverse_iterator iter = OriginalScope.Variables.rbegin(); iter != OriginalScope.Variables.rend(); ++iter)
 	{
 		if(iter->Origin == VARIABLE_ORIGIN_PARAMETER)
 		{
@@ -44,7 +44,7 @@ void ActiveScope::BindParametersToStack(const VM::ExecutionContext& context)
 //
 void ActiveScope::PushLocalsOntoStack(VM::ExecutionContext& context)
 {
-	for(std::vector<ScopeDescription::VariableEntry>::const_iterator iter = OriginalScope.Variables.begin(); iter != OriginalScope.Variables.end(); ++iter)
+	for(ScopeDescription::VariableVector::const_iterator iter = OriginalScope.Variables.begin(); iter != OriginalScope.Variables.end(); ++iter)
 	{
 		if(iter->Origin == VARIABLE_ORIGIN_LOCAL || iter->Origin == VARIABLE_ORIGIN_RETURN)
 		{
@@ -63,7 +63,7 @@ void ActiveScope::PopScopeOffStack(VM::ExecutionContext& context)
 {
 	size_t usedspace = 0;
 
-	for(std::vector<ScopeDescription::VariableEntry>::const_iterator iter = OriginalScope.Variables.begin(); iter != OriginalScope.Variables.end(); ++iter)
+	for(ScopeDescription::VariableVector::const_iterator iter = OriginalScope.Variables.begin(); iter != OriginalScope.Variables.end(); ++iter)
 		usedspace += VM::GetStorageSize(iter->Type);
 
 	context.State.Stack.Pop(usedspace);
@@ -204,7 +204,7 @@ void ActiveScope::CopyToRegister(StringHandle variableid, Register& targetregist
 //
 bool ActiveScope::HasReturnVariable() const
 {
-	for(std::vector<ScopeDescription::VariableEntry>::const_iterator iter = OriginalScope.Variables.begin(); iter != OriginalScope.Variables.end(); ++iter)
+	for(ScopeDescription::VariableVector::const_iterator iter = OriginalScope.Variables.begin(); iter != OriginalScope.Variables.end(); ++iter)
 	{
 		if(iter->Origin == VARIABLE_ORIGIN_RETURN)
 			return true;

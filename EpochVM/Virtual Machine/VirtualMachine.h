@@ -96,15 +96,20 @@ namespace VM
 		const ScopeDescription& GetScopeDescription(StringHandle name) const;
 		ScopeDescription& GetScopeDescription(StringHandle name);
 
+	// Handy type shortcuts
+	private:
+		typedef std::map<StringHandle, size_t> OffsetMap;
+		typedef std::map<size_t, size_t> BeginEndOffsetMap;
+
 	// Internal state tracking
 	private:
 		StringPoolManager StringPool;
 		FunctionInvocationTable GlobalFunctions;
-		std::map<StringHandle, size_t> GlobalFunctionOffsets;
-		std::map<StringHandle, ScopeDescription> LexicalScopeDescriptions;
+		OffsetMap GlobalFunctionOffsets;
+		ScopeMap LexicalScopeDescriptions;
 		EntityTable Entities;
-		std::map<size_t, size_t> EntityOffsets;
-		std::map<size_t, size_t> ChainOffsets;
+		BeginEndOffsetMap EntityOffsets;
+		BeginEndOffsetMap ChainOffsets;
 	};
 
 

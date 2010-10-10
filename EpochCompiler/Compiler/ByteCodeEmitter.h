@@ -24,6 +24,10 @@
 class FunctionSignature;
 
 
+// Handy type shortcuts
+typedef std::vector<Byte> ByteBuffer;
+
+
 //
 // Wrapper class for generating bytecode sequences
 //
@@ -35,7 +39,7 @@ class ByteCodeEmitter
 {
 // Construction
 public:
-	explicit ByteCodeEmitter(std::vector<Byte>& buffer)
+	explicit ByteCodeEmitter(ByteBuffer& buffer)
 		: Buffer(buffer)
 	{ }
 
@@ -89,7 +93,7 @@ public:
 
 // Additional helpers for writing to the data stream
 public:
-	void EmitBuffer(const std::vector<Byte>& buffer);
+	void EmitBuffer(const ByteBuffer& buffer);
 
 // Internal helpers
 private:
@@ -129,7 +133,7 @@ private:
 
 // Internal tracking
 private:
-	std::vector<Byte>& Buffer;
+	ByteBuffer& Buffer;
 };
 
 

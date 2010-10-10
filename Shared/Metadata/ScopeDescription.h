@@ -14,6 +14,7 @@
 
 #include <string>
 #include <vector>
+#include <map>
 
 
 enum VariableOrigin
@@ -76,10 +77,15 @@ private:
 
 // Internal tracking
 private:
-	std::vector<VariableEntry> Variables;
+	typedef std::vector<VariableEntry> VariableVector;
+	VariableVector Variables;
 
 // Permit activated scopes to access internal data
 public:
 	friend class ActiveScope;
 };
+
+
+// Handy type shortcuts
+typedef std::map<StringHandle, ScopeDescription> ScopeMap;
 

@@ -152,7 +152,7 @@ void VirtualMachine::InvokeFunction(StringHandle namehandle, ExecutionContext& c
 //
 size_t VirtualMachine::GetFunctionInstructionOffset(StringHandle functionname) const
 {
-	std::map<StringHandle, size_t>::const_iterator iter = GlobalFunctionOffsets.find(functionname);
+	OffsetMap::const_iterator iter = GlobalFunctionOffsets.find(functionname);
 	if(iter == GlobalFunctionOffsets.end())
 		throw InvalidIdentifierException("No function with that identifier was found");
 
@@ -173,7 +173,7 @@ void VirtualMachine::AddLexicalScope(StringHandle name)
 //
 const ScopeDescription& VirtualMachine::GetScopeDescription(StringHandle name) const
 {
-	std::map<StringHandle, ScopeDescription>::const_iterator iter = LexicalScopeDescriptions.find(name);
+	ScopeMap::const_iterator iter = LexicalScopeDescriptions.find(name);
 	if(iter == LexicalScopeDescriptions.end())
 		throw InvalidIdentifierException("No lexical scope has been attached to the given identifier");
 
@@ -184,7 +184,7 @@ const ScopeDescription& VirtualMachine::GetScopeDescription(StringHandle name) c
 //
 ScopeDescription& VirtualMachine::GetScopeDescription(StringHandle name)
 {
-	std::map<StringHandle, ScopeDescription>::iterator iter = LexicalScopeDescriptions.find(name);
+	ScopeMap::iterator iter = LexicalScopeDescriptions.find(name);
 	if(iter == LexicalScopeDescriptions.end())
 		throw InvalidIdentifierException("No lexical scope has been attached to the given identifier");
 
@@ -702,7 +702,7 @@ void VirtualMachine::MapChainBeginEndOffsets(size_t beginoffset, size_t endoffse
 //
 size_t VirtualMachine::GetEntityEndOffset(size_t beginoffset) const
 {
-	std::map<size_t, size_t>::const_iterator iter = EntityOffsets.find(beginoffset);
+	BeginEndOffsetMap::const_iterator iter = EntityOffsets.find(beginoffset);
 	if(iter == EntityOffsets.end())
 		throw FatalException("Failed to cache end offset of an entity, or an invalid entity begin offset was requested");
 
@@ -714,7 +714,7 @@ size_t VirtualMachine::GetEntityEndOffset(size_t beginoffset) const
 //
 size_t VirtualMachine::GetChainEndOffset(size_t beginoffset) const
 {
-	std::map<size_t, size_t>::const_iterator iter = ChainOffsets.find(beginoffset);
+	BeginEndOffsetMap::const_iterator iter = ChainOffsets.find(beginoffset);
 	if(iter == ChainOffsets.end())
 		throw FatalException("Failed to cache end offset of an entity chain, or an invalid entity chain begin offset was requested");
 

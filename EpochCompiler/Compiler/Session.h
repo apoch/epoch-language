@@ -53,10 +53,10 @@ public:
 // Publicly visible tracking
 public:
 	FunctionSignatureSet FunctionSignatures;
-	std::map<StringHandle, std::set<StringHandle> > FunctionOverloadNames;
+	OverloadMap FunctionOverloadNames;
 	FunctionCompileHelperTable CompileTimeHelpers;
 	StringPoolManager StringPool;
-	std::multimap<int, StringHandle> OperatorPrecedences;
+	PrecedenceTable OperatorPrecedences;
 	EntityTable CustomEntities;
 	EntityTable ChainedEntities;
 	EntityTable PostfixEntities;
@@ -69,7 +69,7 @@ private:
 // Internal tracking
 private:
 	std::list<std::pair<std::wstring, std::wstring> > SourceBlocksAndFileNames;
-	std::vector<Byte> ByteCodeBuffer;
+	ByteBuffer ByteCodeBuffer;
 	IdentifierTable Identifiers;
 };
 

@@ -287,7 +287,7 @@ void CompilationSemantics::CompleteInfix()
 		std::wstring infixstatementname = StatementNames.top();
 		StringHandle infixstatementnamehandle = Session.StringPool.Pool(infixstatementname);
 
-		RemapFunctionToOverload(CompileTimeParameters.top(), StatementParamCount.top(), std::vector<VM::EpochTypeID>(), infixstatementname, infixstatementnamehandle);
+		RemapFunctionToOverload(CompileTimeParameters.top(), StatementParamCount.top(), TypeVector(), infixstatementname, infixstatementnamehandle);
 
 		if(!StatementNames.empty())
 		{
@@ -326,16 +326,16 @@ void CompilationSemantics::FinalizeInfix()
 
 		if(!InfixOperators.empty() && !InfixOperators.top().empty())
 		{
-			std::vector<CompileTimeParameter> flatoperandlist;
+			CompileTimeParameterVector flatoperandlist;
 
-			for(std::vector<CompileTimeParameter>::const_iterator operanditer = CompileTimeParameters.top().begin() + StatementParamCount.top(); operanditer != CompileTimeParameters.top().end(); ++operanditer)
+			for(CompileTimeParameterVector::const_iterator operanditer = CompileTimeParameters.top().begin() + StatementParamCount.top(); operanditer != CompileTimeParameters.top().end(); ++operanditer)
 				flatoperandlist.push_back(*operanditer);
 
 			if(!flatoperandlist.empty())
 			{
 				size_t numoperandscollapsed = flatoperandlist.size();
 
-				for(std::multimap<int, StringHandle>::const_reverse_iterator precedenceiter = Session.OperatorPrecedences.rbegin(); precedenceiter != Session.OperatorPrecedences.rend(); ++precedenceiter)
+				for(PrecedenceTable::const_reverse_iterator precedenceiter = Session.OperatorPrecedences.rbegin(); precedenceiter != Session.OperatorPrecedences.rend(); ++precedenceiter)
 				{
 					int precedence = precedenceiter->first;
 					bool collapsed;
@@ -343,15 +343,15 @@ void CompilationSemantics::FinalizeInfix()
 					{
 						collapsed = false;
 
-						std::vector<CompileTimeParameter>::iterator operanditer = flatoperandlist.begin();
-						for(std::vector<StringHandle>::iterator operatoriter = InfixOperators.top().begin(); operatoriter != InfixOperators.top().end(); ++operatoriter)
+						CompileTimeParameterVector::iterator operanditer = flatoperandlist.begin();
+						for(StringHandles::iterator operatoriter = InfixOperators.top().begin(); operatoriter != InfixOperators.top().end(); ++operatoriter)
 						{
 							if(GetOperatorPrecedence(*operatoriter) == precedence)
 							{
-								std::vector<Byte> buffer;
+								ByteBuffer buffer;
 								ByteCodeEmitter emitter(buffer);
 
-								std::vector<CompileTimeParameter>::iterator firstoperanditer = operanditer;
+								CompileTimeParameterVector::iterator firstoperanditer = operanditer;
 								VM::EpochTypeID op1type = GetEffectiveType(*operanditer);
 
 								EmitInfixOperand(emitter, *operanditer);
@@ -359,7 +359,7 @@ void CompilationSemantics::FinalizeInfix()
 								VM::EpochTypeID op2type = GetEffectiveType(*operanditer);
 								EmitInfixOperand(emitter, *operanditer);
 
-								std::vector<CompileTimeParameter>::iterator secondoperanditer = operanditer;
+								CompileTimeParameterVector::iterator secondoperanditer = operanditer;
 								++operanditer;
 								emitter.Invoke(*operatoriter);
 
@@ -398,9 +398,9 @@ void CompilationSemantics::BeginParenthetical()
 {
 	if(!IsPrepass)
 	{
-		InfixOperators.push(std::vector<StringHandle>());
-		UnaryOperators.push(std::vector<std::pair<StringHandle, size_t> >());
-		CompileTimeParameters.push(std::vector<CompileTimeParameter>());
+		InfixOperators.push(StringHandles());
+		UnaryOperators.push(UnaryOperatorVector());
+		CompileTimeParameters.push(CompileTimeParameterVector());
 		StatementParamCount.push(0);
 	}
 }
@@ -447,9 +447,9 @@ void CompilationSemantics::CollapseUnaryOperators()
 	if(!UnaryOperators.empty() && !UnaryOperators.top().empty())
 	{
 		unsigned numcollapsed = 0;
-		for(std::vector<std::pair<StringHandle, size_t> >::const_iterator iter = UnaryOperators.top().begin(); iter != UnaryOperators.top().end(); ++iter)
+		for(UnaryOperatorVector::const_iterator iter = UnaryOperators.top().begin(); iter != UnaryOperators.top().end(); ++iter)
 		{
-			std::vector<Byte> buffer;
+			ByteBuffer buffer;
 			ByteCodeEmitter emitter(buffer);
 
 			size_t ctparamindex = iter->second;
@@ -460,8 +460,8 @@ void CompilationSemantics::CollapseUnaryOperators()
 			
 			StringHandle outhandle = iter->first;
 			std::wstring outname = Session.StringPool.GetPooledString(outhandle);
-			std::vector<CompileTimeParameter> paramvec(1, CompileTimeParameters.top()[ctparamindex]);
-			RemapFunctionToOverload(paramvec, 0, std::vector<VM::EpochTypeID>(), outname, outhandle);
+			CompileTimeParameterVector paramvec(1, CompileTimeParameters.top()[ctparamindex]);
+			RemapFunctionToOverload(paramvec, 0, TypeVector(), outname, outhandle);
 			emitter.Invoke(outhandle);
 
 			CompileTimeParameter ctparam(L"@@unaryresult", VM::EpochType_Expression);
@@ -501,11 +501,11 @@ void CompilationSemantics::RegisterPreOperand(const std::wstring& identifier)
 
 		VM::EpochTypeID variabletype = LexicalScopeDescriptions.find(LexicalScopeStack.top())->second.GetVariableTypeByID(operandhandle);
 
-		std::vector<CompileTimeParameter> ctparams;
+		CompileTimeParameterVector ctparams;
 		ctparams.push_back(CompileTimeParameter(L"@@preoperand", VM::EpochType_Identifier));
-		RemapFunctionToOverload(ctparams, 0, std::vector<VM::EpochTypeID>(1, variabletype), operatorname, operatornamehandle);
+		RemapFunctionToOverload(ctparams, 0, TypeVector(1, variabletype), operatorname, operatornamehandle);
 
-		std::vector<Byte> buffer;
+		ByteBuffer buffer;
 		ByteCodeEmitter emitter(buffer);
 
 		emitter.PushStringLiteral(operandhandle);
@@ -543,11 +543,11 @@ void CompilationSemantics::RegisterPostOperator(const std::wstring& identifier)
 
 		VM::EpochTypeID variabletype = LexicalScopeDescriptions.find(LexicalScopeStack.top())->second.GetVariableTypeByID(operandhandle);
 
-		std::vector<CompileTimeParameter> ctparams;
+		CompileTimeParameterVector ctparams;
 		ctparams.push_back(CompileTimeParameter(L"@@preoperand", VM::EpochType_Identifier));
-		RemapFunctionToOverload(ctparams, 0, std::vector<VM::EpochTypeID>(1, variabletype), operatorname, operatornamehandle);
+		RemapFunctionToOverload(ctparams, 0, TypeVector(1, variabletype), operatorname, operatornamehandle);
 
-		std::vector<Byte> buffer;
+		ByteBuffer buffer;
 		ByteCodeEmitter emitter(buffer);
 
 		emitter.PushVariableValue(operandhandle);
@@ -642,7 +642,7 @@ void CompilationSemantics::RegisterParameterName(const std::wstring& name)
 	
 	if(!IsPrepass)
 	{
-		std::map<StringHandle, ScopeDescription>::iterator iter = LexicalScopeDescriptions.find(LexicalScopeStack.top());
+		ScopeMap::iterator iter = LexicalScopeDescriptions.find(LexicalScopeStack.top());
 		if(iter == LexicalScopeDescriptions.end())
 			throw FatalException("No lexical scope has been registered for the identifier \"" + narrow(Session.StringPool.GetPooledString(LexicalScopeStack.top())) + "\"");
 		
@@ -701,7 +701,7 @@ void CompilationSemantics::RegisterPatternMatchedParameter()
 
 	if(!IsPrepass)
 	{
-		std::map<StringHandle, ScopeDescription>::iterator iter = LexicalScopeDescriptions.find(LexicalScopeStack.top());
+		ScopeMap::iterator iter = LexicalScopeDescriptions.find(LexicalScopeStack.top());
 		if(iter == LexicalScopeDescriptions.end())
 			throw FatalException("No lexical scope has been registered for the identifier \"" + narrow(Session.StringPool.GetPooledString(LexicalScopeStack.top())) + "\"");
 		
@@ -731,13 +731,13 @@ void CompilationSemantics::BeginReturnSet()
 	ReturnsIncludedStatement.push(false);
 	if(!IsPrepass)
 	{
-		PendingEmissionBuffers.push(std::vector<Byte>());
+		PendingEmissionBuffers.push(ByteBuffer());
 		PendingEmitters.push(ByteCodeEmitter(PendingEmissionBuffers.top()));
 		EmitterStack.push(&PendingEmitters.top());
 
-		InfixOperators.push(std::vector<StringHandle>());
-		UnaryOperators.push(std::vector<std::pair<StringHandle, size_t> >());
-		CompileTimeParameters.push(std::vector<CompileTimeParameter>());
+		InfixOperators.push(StringHandles());
+		UnaryOperators.push(UnaryOperatorVector());
+		CompileTimeParameters.push(CompileTimeParameterVector());
 		StatementParamCount.push(0);
 	}
 }
@@ -841,7 +841,7 @@ void CompilationSemantics::RegisterReturnValue()
 	// Shift output into a temporary buffer so it can be injected at the top of the entity's code
 	if(!IsPrepass)
 	{
-		PendingEmissionBuffers.push(std::vector<Byte>());
+		PendingEmissionBuffers.push(ByteBuffer());
 		PendingEmitters.push(ByteCodeEmitter(PendingEmissionBuffers.top()));
 	}
 
@@ -1028,11 +1028,11 @@ void CompilationSemantics::BeginStatementParams()
 	StatementParamCount.push(0);
 	if(!IsPrepass)
 	{
-		CompileTimeParameters.push(std::vector<CompileTimeParameter>());
-		InfixOperators.push(std::vector<StringHandle>());
-		UnaryOperators.push(std::vector<std::pair<StringHandle, size_t> >());
+		CompileTimeParameters.push(CompileTimeParameterVector());
+		InfixOperators.push(StringHandles());
+		UnaryOperators.push(UnaryOperatorVector());
 
-		PendingEmissionBuffers.push(std::vector<Byte>());
+		PendingEmissionBuffers.push(ByteBuffer());
 		PendingEmitters.push(ByteCodeEmitter(PendingEmissionBuffers.top()));
 	}
 }
@@ -1062,7 +1062,7 @@ void CompilationSemantics::CompleteStatement()
 		InfixOperators.pop();
 		UnaryOperators.pop();
 
-		std::vector<VM::EpochTypeID> outerexpectedtypes = WalkCallChainForExpectedTypes(StatementNames.size() - 1);
+		TypeVector outerexpectedtypes = WalkCallChainForExpectedTypes(StatementNames.size() - 1);
 		RemapFunctionToOverload(CompileTimeParameters.top(), 0, outerexpectedtypes, statementname, statementnamehandle);
 
 		FunctionCompileHelperTable::const_iterator fchiter = CompileTimeHelpers.find(statementname);
@@ -1091,7 +1091,7 @@ void CompilationSemantics::CompleteStatement()
 						PendingEmitters.top().PushStringLiteral(CompileTimeParameters.top()[i].Payload.StringHandleValue);
 					else
 					{
-						std::map<StringHandle, ScopeDescription>::const_iterator iter = LexicalScopeDescriptions.find(LexicalScopeStack.top());
+						ScopeMap::const_iterator iter = LexicalScopeDescriptions.find(LexicalScopeStack.top());
 						if(iter == LexicalScopeDescriptions.end())
 							throw FatalException("No lexical scope has been registered for the identifier \"" + narrow(Session.StringPool.GetPooledString(LexicalScopeStack.top())) + "\"");
 
@@ -1240,11 +1240,11 @@ void CompilationSemantics::BeginAssignment()
 	TemporaryString.clear();
 	if(!IsPrepass)
 	{
-		CompileTimeParameters.push(std::vector<CompileTimeParameter>());
-		InfixOperators.push(std::vector<StringHandle>());
-		UnaryOperators.push(std::vector<std::pair<StringHandle, size_t> >());
+		CompileTimeParameters.push(CompileTimeParameterVector());
+		InfixOperators.push(StringHandles());
+		UnaryOperators.push(UnaryOperatorVector());
 
-		PendingEmissionBuffers.push(std::vector<Byte>());
+		PendingEmissionBuffers.push(ByteBuffer());
 		PendingEmitters.push(ByteCodeEmitter(PendingEmissionBuffers.top()));
 	}
 }
@@ -1268,11 +1268,11 @@ void CompilationSemantics::BeginOpAssignment(const std::wstring &identifier)
 	{
 		CompileTimeParameter ctparam(L"@@lhs", VM::EpochType_Identifier);
 		ctparam.Payload.StringHandleValue = AssignmentTargets.top();
-		CompileTimeParameters.push(std::vector<CompileTimeParameter>(1, ctparam));
-		InfixOperators.push(std::vector<StringHandle>());
-		UnaryOperators.push(std::vector<std::pair<StringHandle, size_t> >());
+		CompileTimeParameters.push(CompileTimeParameterVector(1, ctparam));
+		InfixOperators.push(StringHandles());
+		UnaryOperators.push(UnaryOperatorVector());
 
-		PendingEmissionBuffers.push(std::vector<Byte>());
+		PendingEmissionBuffers.push(ByteBuffer());
 		PendingEmitters.push(ByteCodeEmitter(PendingEmissionBuffers.top()));
 	}
 }
@@ -1298,7 +1298,7 @@ void CompilationSemantics::CompleteAssignment()
 		{
 			std::wstring assignmentop = StatementNames.top();
 			StringHandle assignmentophandle = Session.StringPool.Pool(assignmentop);
-			RemapFunctionToOverload(CompileTimeParameters.top(), 0, std::vector<VM::EpochTypeID>(1, expressiontype), assignmentop, assignmentophandle);
+			RemapFunctionToOverload(CompileTimeParameters.top(), 0, TypeVector(1, expressiontype), assignmentop, assignmentophandle);
 
 			EmitterStack.top()->Invoke(assignmentophandle);
 		}
@@ -1373,7 +1373,7 @@ void CompilationSemantics::CompleteEntityParams(bool ispostfixcloser)
 		UnaryOperators.pop();
 
 		bool valid = true;
-		const std::vector<CompileTimeParameter>& entityparams = Session.GetCustomEntityByTag(EntityTypeTags.top()).Parameters;
+		const CompileTimeParameterVector& entityparams = Session.GetCustomEntityByTag(EntityTypeTags.top()).Parameters;
 
 		if(CompileTimeParameters.top().size() == entityparams.size())
 		{
@@ -1407,7 +1407,7 @@ void CompilationSemantics::CompleteEntityParams(bool ispostfixcloser)
 
 		if(valid)
 		{
-			for(std::vector<CompileTimeParameter>::const_iterator iter = CompileTimeParameters.top().begin(); iter != CompileTimeParameters.top().end(); ++iter)
+			for(CompileTimeParameterVector::const_iterator iter = CompileTimeParameters.top().begin(); iter != CompileTimeParameters.top().end(); ++iter)
 				EmitInfixOperand(*EmitterStack.top(), *iter);
 
 			if(!ispostfixcloser)
@@ -1619,15 +1619,15 @@ void CompilationSemantics::Finalize()
 	if(!IsPrepass)
 	{
 		// Generate any pattern-matching resolver functions needed
-		for(std::map<StringHandle, FunctionSignature>::const_iterator iter = NeededPatternResolvers.begin(); iter != NeededPatternResolvers.end(); ++iter)
+		for(FunctionSignatureMap::const_iterator iter = NeededPatternResolvers.begin(); iter != NeededPatternResolvers.end(); ++iter)
 		{
 			EmitterStack.top()->DefineLexicalScope(iter->first, 0, iter->second.GetNumParameters());
 			for(size_t i = 0; i < iter->second.GetNumParameters(); ++i)
 				EmitterStack.top()->LexicalScopeEntry(Session.StringPool.Pool(iter->second.GetParameter(i).Name), iter->second.GetParameter(i).Type, VARIABLE_ORIGIN_PARAMETER);
 
 			EmitterStack.top()->EnterPatternResolver(iter->first);
-			std::pair<std::multimap<StringHandle, StringHandle>::const_iterator, std::multimap<StringHandle, StringHandle>::const_iterator> range = OriginalFunctionsForPatternResolution.equal_range(iter->first);
-			for(std::multimap<StringHandle, StringHandle>::const_iterator originalfunciter = range.first; originalfunciter != range.second; ++originalfunciter)
+			std::pair<AllOverloadsMap::const_iterator, AllOverloadsMap::const_iterator> range = OriginalFunctionsForPatternResolution.equal_range(iter->first);
+			for(AllOverloadsMap::const_iterator originalfunciter = range.first; originalfunciter != range.second; ++originalfunciter)
 				EmitterStack.top()->ResolvePattern(originalfunciter->second, Session.FunctionSignatures.find(originalfunciter->second)->second);
 			EmitterStack.top()->ExitPatternResolver();
 		}
@@ -1635,7 +1635,7 @@ void CompilationSemantics::Finalize()
 		for(std::map<StringHandle, std::wstring>::const_iterator iter = Session.StringPool.GetInternalPool().begin(); iter != Session.StringPool.GetInternalPool().end(); ++iter)
 			EmitterStack.top()->PoolString(iter->first, iter->second);
 
-		for(std::map<StringHandle, ScopeDescription>::const_iterator iter = LexicalScopeDescriptions.begin(); iter != LexicalScopeDescriptions.end(); ++iter)
+		for(ScopeMap::const_iterator iter = LexicalScopeDescriptions.begin(); iter != LexicalScopeDescriptions.end(); ++iter)
 		{
 			EmitterStack.top()->DefineLexicalScope(iter->first, FindLexicalScopeName(iter->second.ParentScope), iter->second.GetVariableCount());
 			for(size_t i = 0; i < iter->second.GetVariableCount(); ++i)
@@ -1666,7 +1666,7 @@ void CompilationSemantics::AddLexicalScope(StringHandle scopename)
 //
 ScopeDescription& CompilationSemantics::GetLexicalScopeDescription(StringHandle scopename)
 {
-	std::map<StringHandle, ScopeDescription>::iterator iter = LexicalScopeDescriptions.find(scopename);
+	ScopeMap::iterator iter = LexicalScopeDescriptions.find(scopename);
 	if(iter == LexicalScopeDescriptions.end())
 		throw InvalidIdentifierException("No lexical scope has been attached to this identifier");
 
@@ -1687,7 +1687,7 @@ ScopeDescription& CompilationSemantics::GetLexicalScopeDescription(StringHandle 
 //
 StringHandle CompilationSemantics::AllocateNewOverloadedFunctionName(StringHandle originalname)
 {
-	std::set<StringHandle>& overloadednames = Session.FunctionOverloadNames[originalname];
+	StringHandleSet& overloadednames = Session.FunctionOverloadNames[originalname];
 	if(overloadednames.empty())
 	{
 		overloadednames.insert(originalname);
@@ -1704,10 +1704,10 @@ StringHandle CompilationSemantics::AllocateNewOverloadedFunctionName(StringHandl
 //
 // Given a set of parameters, look up the appropriate matching function overload
 //
-void CompilationSemantics::RemapFunctionToOverload(const std::vector<CompileTimeParameter>& params, size_t paramoffset, const std::vector<VM::EpochTypeID>& possiblereturntypes, std::wstring& out_remappedname, StringHandle& out_remappednamehandle) const
+void CompilationSemantics::RemapFunctionToOverload(const CompileTimeParameterVector& params, size_t paramoffset, const TypeVector& possiblereturntypes, std::wstring& out_remappedname, StringHandle& out_remappednamehandle) const
 {
-	std::vector<std::wstring> matchingnames;
-	std::vector<StringHandle> matchingnamehandles;
+	StringVector matchingnames;
+	StringHandles matchingnamehandles;
 
 	GetAllMatchingOverloads(params, paramoffset, possiblereturntypes, out_remappedname, out_remappednamehandle, matchingnames, matchingnamehandles);
 
@@ -1725,9 +1725,9 @@ void CompilationSemantics::RemapFunctionToOverload(const std::vector<CompileTime
 }
 
 
-void CompilationSemantics::GetAllMatchingOverloads(const std::vector<CompileTimeParameter>& params, size_t paramoffset, const std::vector<VM::EpochTypeID>& possiblereturntypes, const std::wstring& originalname, StringHandle originalnamehandle, std::vector<std::wstring>& out_names, std::vector<StringHandle>& out_namehandles) const
+void CompilationSemantics::GetAllMatchingOverloads(const CompileTimeParameterVector& params, size_t paramoffset, const TypeVector& possiblereturntypes, const std::wstring& originalname, StringHandle originalnamehandle, StringVector& out_names, StringHandles& out_namehandles) const
 {
-	std::map<StringHandle, std::set<StringHandle> >::const_iterator overloadsiter = Session.FunctionOverloadNames.find(originalnamehandle);
+	OverloadMap::const_iterator overloadsiter = Session.FunctionOverloadNames.find(originalnamehandle);
 	if(overloadsiter == Session.FunctionOverloadNames.end())
 	{
 		out_names.push_back(originalname);
@@ -1739,8 +1739,8 @@ void CompilationSemantics::GetAllMatchingOverloads(const std::vector<CompileTime
 	bool differingreturntypes = false;
 	bool remaptopatternresolver = false;
 
-	const std::set<StringHandle>& overloadednames = overloadsiter->second;
-	for(std::set<StringHandle>::const_iterator iter = overloadednames.begin(); iter != overloadednames.end(); ++iter)
+	const StringHandleSet& overloadednames = overloadsiter->second;
+	for(StringHandleSet::const_iterator iter = overloadednames.begin(); iter != overloadednames.end(); ++iter)
 	{
 		FunctionSignatureSet::const_iterator signatureiter = Session.FunctionSignatures.find(*iter);
 		if(signatureiter == Session.FunctionSignatures.end())
@@ -1749,7 +1749,7 @@ void CompilationSemantics::GetAllMatchingOverloads(const std::vector<CompileTime
 		if(!possiblereturntypes.empty())
 		{
 			bool diff = true;
-			for(std::vector<VM::EpochTypeID>::const_iterator returntypeiter = possiblereturntypes.begin(); returntypeiter != possiblereturntypes.end(); ++returntypeiter)
+			for(TypeVector::const_iterator returntypeiter = possiblereturntypes.begin(); returntypeiter != possiblereturntypes.end(); ++returntypeiter)
 			{
 				if(signatureiter->second.GetReturnType() == *returntypeiter)
 				{
@@ -1763,9 +1763,9 @@ void CompilationSemantics::GetAllMatchingOverloads(const std::vector<CompileTime
 		}
 	}
 
-	std::set<StringHandle> matches;
+	StringHandleSet matches;
 
-	for(std::set<StringHandle>::const_iterator iter = overloadednames.begin(); iter != overloadednames.end(); ++iter)
+	for(StringHandleSet::const_iterator iter = overloadednames.begin(); iter != overloadednames.end(); ++iter)
 	{
 		FunctionSignatureSet::const_iterator signatureiter = Session.FunctionSignatures.find(*iter);
 
@@ -1775,7 +1775,7 @@ void CompilationSemantics::GetAllMatchingOverloads(const std::vector<CompileTime
 		if(!possiblereturntypes.empty())
 		{
 			bool matchesreturntype = false;
-			for(std::vector<VM::EpochTypeID>::const_iterator returntypeiter = possiblereturntypes.begin(); returntypeiter != possiblereturntypes.end(); ++returntypeiter)
+			for(TypeVector::const_iterator returntypeiter = possiblereturntypes.begin(); returntypeiter != possiblereturntypes.end(); ++returntypeiter)
 			{
 				if(signatureiter->second.GetReturnType() == *returntypeiter)
 				{
@@ -1832,7 +1832,7 @@ void CompilationSemantics::GetAllMatchingOverloads(const std::vector<CompileTime
 				{
 					if(signatureiter->second.GetParameter(i - paramoffset).Type != VM::EpochType_Identifier)
 					{
-						std::map<StringHandle, ScopeDescription>::const_iterator iter = LexicalScopeDescriptions.find(LexicalScopeStack.top());
+						ScopeMap::const_iterator iter = LexicalScopeDescriptions.find(LexicalScopeStack.top());
 						if(iter == LexicalScopeDescriptions.end())
 							throw FatalException("No lexical scope has been registered for the identifier \"" + narrow(Session.StringPool.GetPooledString(LexicalScopeStack.top())) + "\"");
 
@@ -1891,7 +1891,7 @@ void CompilationSemantics::GetAllMatchingOverloads(const std::vector<CompileTime
 		return;
 	}
 
-	for(std::set<StringHandle>::const_iterator iter = matches.begin(); iter != matches.end(); ++iter)
+	for(StringHandleSet::const_iterator iter = matches.begin(); iter != matches.end(); ++iter)
 	{
 		out_names.push_back(Session.StringPool.GetPooledString(*iter));
 		out_namehandles.push_back(*iter);
@@ -1955,31 +1955,31 @@ std::wstring CompilationSemantics::GetPatternMatchResolverName(const std::wstrin
 // is used to allow function overloads to differ only by their return types, where
 // the expected type is used to infer which overload should be invoked.
 //
-std::vector<VM::EpochTypeID> CompilationSemantics::WalkCallChainForExpectedTypes(size_t index) const
+CompilationSemantics::TypeVector CompilationSemantics::WalkCallChainForExpectedTypes(size_t index) const
 {
 	if(StatementNames.empty() || StatementNames.c.size() <= index)
-		return std::vector<VM::EpochTypeID>();
+		return TypeVector();
 
 	std::wstring name = StatementNames.c.at(index);
 
 	if(name == L"=")
 	{
-		return std::vector<VM::EpochTypeID>(1, LexicalScopeDescriptions.find(LexicalScopeStack.top())->second.GetVariableTypeByID(AssignmentTargets.top()));
+		return TypeVector(1, LexicalScopeDescriptions.find(LexicalScopeStack.top())->second.GetVariableTypeByID(AssignmentTargets.top()));
 	}
 	else
 	{
 		StringHandle namehandle = Session.StringPool.Pool(name);
 		unsigned paramindex = StatementParamCount.c.at(index);
 
-		std::vector<VM::EpochTypeID> outerexpectedtypes;
+		TypeVector outerexpectedtypes;
 		if(index > 0)
 			outerexpectedtypes = WalkCallChainForExpectedTypes(index - 1);
 
-		std::vector<std::wstring> outnames;
-		std::vector<StringHandle> outnamehandles;
+		StringVector outnames;
+		StringHandles outnamehandles;
 		GetAllMatchingOverloads(CompileTimeParameters.c.at(index), paramindex, outerexpectedtypes, name, namehandle, outnames, outnamehandles);
 
-		std::vector<VM::EpochTypeID> ret;
+		TypeVector ret;
 
 		for(size_t i = 0; i < outnames.size(); ++i)
 		{
@@ -2000,7 +2000,7 @@ std::vector<VM::EpochTypeID> CompilationSemantics::WalkCallChainForExpectedTypes
 //
 int CompilationSemantics::GetOperatorPrecedence(StringHandle operatorname) const
 {
-	for(std::multimap<int, StringHandle>::const_iterator iter = Session.OperatorPrecedences.begin(); iter != Session.OperatorPrecedences.end(); ++iter)
+	for(PrecedenceTable::const_iterator iter = Session.OperatorPrecedences.begin(); iter != Session.OperatorPrecedences.end(); ++iter)
 	{
 		if(iter->second == operatorname)
 			return iter->first;
@@ -2072,7 +2072,7 @@ void CompilationSemantics::SetPrepassMode(bool isprepass)
 //
 StringHandle CompilationSemantics::FindLexicalScopeName(const ScopeDescription* scope) const
 {
-	for(std::map<StringHandle, ScopeDescription>::const_iterator iter = LexicalScopeDescriptions.begin(); iter != LexicalScopeDescriptions.end(); ++iter)
+	for(ScopeMap::const_iterator iter = LexicalScopeDescriptions.begin(); iter != LexicalScopeDescriptions.end(); ++iter)
 	{
 		if(&iter->second == scope)
 			return iter->first;

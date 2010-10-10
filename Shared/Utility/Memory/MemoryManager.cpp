@@ -50,7 +50,7 @@ UnalignedMemoryAllocator::UnalignedMemoryAllocator(size_t initialblocksize)
 //
 UnalignedMemoryAllocator::~UnalignedMemoryAllocator()
 {
-	for(std::vector<AllocBlock>::iterator iter = AllocBlocks.begin(); iter != AllocBlocks.end(); ++iter)
+	for(AllocBlockVector::iterator iter = AllocBlocks.begin(); iter != AllocBlocks.end(); ++iter)
 		::HeapFree(GetSingleGlobalHeapManager().GetHeap(), 0, iter->Storage);
 }
 
@@ -77,7 +77,7 @@ void UnalignedMemoryAllocator::AllocateBlock(size_t numbytes)
 //
 void* UnalignedMemoryAllocator::CommitMemory(size_t numbytes)
 {
-	for(std::vector<AllocBlock>::iterator iter = AllocBlocks.begin(); iter != AllocBlocks.end(); ++iter)
+	for(AllocBlockVector::iterator iter = AllocBlocks.begin(); iter != AllocBlocks.end(); ++iter)
 	{
 		AllocBlock& block = *iter;
 		if(block.FreeOffset + numbytes <= block.NumBytes)

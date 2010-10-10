@@ -28,7 +28,7 @@ void ScopeDescription::AddVariable(const std::wstring& identifier, StringHandle 
 //
 bool ScopeDescription::HasVariable(const std::wstring& identifier) const
 {
-	for(std::vector<VariableEntry>::const_iterator iter = Variables.begin(); iter != Variables.end(); ++iter)
+	for(VariableVector::const_iterator iter = Variables.begin(); iter != Variables.end(); ++iter)
 	{
 		if(iter->Identifier == identifier)
 			return true;
@@ -53,7 +53,7 @@ const std::wstring& ScopeDescription::GetVariableName(size_t index) const
 //
 VM::EpochTypeID ScopeDescription::GetVariableTypeByID(StringHandle variableid) const
 {
-	for(std::vector<VariableEntry>::const_iterator iter = Variables.begin(); iter != Variables.end(); ++iter)
+	for(VariableVector::const_iterator iter = Variables.begin(); iter != Variables.end(); ++iter)
 	{
 		if(iter->IdentifierHandle == variableid)
 			return iter->Type;

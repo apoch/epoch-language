@@ -46,8 +46,7 @@ public:
 
 // Internal tracking
 private:
-	std::vector<CompileTimeParameter> Parameters;
-
+	CompileTimeParameterVector Parameters;
 	VM::EpochTypeID ReturnType;
 };
 

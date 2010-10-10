@@ -26,7 +26,7 @@ namespace ArithmeticLibrary
 	void RegisterInfixOperators(StringSet& infixtable, PrecedenceTable& precedences, StringPoolManager& stringpool);
 	void RegisterUnaryOperators(StringSet& unaryprefixes, StringSet& preoperators, StringSet& postoperators, StringPoolManager& stringpool);
 	void RegisterOpAssignOperators(StringSet& operators, StringPoolManager& stringpool);
-	void RegisterLibraryOverloads(std::map<StringHandle, std::set<StringHandle> >& overloadmap, StringPoolManager& stringpool);
+	void RegisterLibraryOverloads(OverloadMap& overloadmap, StringPoolManager& stringpool);
 
 }
 

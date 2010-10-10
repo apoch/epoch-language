@@ -231,7 +231,7 @@ void ComparisonLibrary::RegisterInfixOperators(StringSet& infixtable, Precedence
 //
 // Register the list of overloads used by functions in this library module
 //
-void ComparisonLibrary::RegisterLibraryOverloads(std::map<StringHandle, std::set<StringHandle> >& overloadmap, StringPoolManager& stringpool)
+void ComparisonLibrary::RegisterLibraryOverloads(OverloadMap& overloadmap, StringPoolManager& stringpool)
 {
 	{
 		StringHandle functionnamehandle = stringpool.Pool(L"==");

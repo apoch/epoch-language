@@ -18,6 +18,10 @@
 #include <vector>
 
 
+// Handy type shortcuts
+typedef std::vector<Byte> ByteBuffer;
+
+
 struct CompileTimeParameter
 {
 	// Constructor for convenience
@@ -41,8 +45,8 @@ struct CompileTimeParameter
 
 	std::wstring StringPayload;
 
-	std::vector<Byte> ExpressionContents;
+	ByteBuffer ExpressionContents;
 };
 
 
-
+typedef std::vector<CompileTimeParameter> CompileTimeParameterVector;

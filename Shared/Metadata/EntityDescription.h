@@ -40,6 +40,6 @@ class EntityDescription
 public:
 	StringHandle StringName;
 	EntityMetaControl MetaControl;
-	std::vector<CompileTimeParameter> Parameters;
+	CompileTimeParameterVector Parameters;
 };
 

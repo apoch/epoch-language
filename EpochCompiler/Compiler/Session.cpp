@@ -123,7 +123,7 @@ size_t CompileSession::GetEmittedBufferSize() const
 //
 void CompileSession::CompileFunctions(const std::wstring& code, const std::wstring& filename)
 {
-	std::set<std::wstring> entitynames, chainedentitynames, postfixentitynames, postfixclosernames;
+	StringSet entitynames, chainedentitynames, postfixentitynames, postfixclosernames;
 	for(EntityTable::iterator iter = CustomEntities.begin(); iter != CustomEntities.end(); ++iter)
 		entitynames.insert(StringPool.GetPooledString(iter->second.StringName));
 

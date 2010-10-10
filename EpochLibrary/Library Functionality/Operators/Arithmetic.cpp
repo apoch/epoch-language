@@ -436,7 +436,7 @@ void ArithmeticLibrary::RegisterUnaryOperators(StringSet& unaryprefixes, StringS
 //
 // Register the list of overloads used by functions in this library module
 //
-void ArithmeticLibrary::RegisterLibraryOverloads(std::map<StringHandle, std::set<StringHandle> >& overloadmap, StringPoolManager& stringpool)
+void ArithmeticLibrary::RegisterLibraryOverloads(OverloadMap& overloadmap, StringPoolManager& stringpool)
 {
 	{
 		StringHandle functionnamehandle = stringpool.Pool(L"!");
