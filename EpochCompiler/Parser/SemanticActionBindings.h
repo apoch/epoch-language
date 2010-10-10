@@ -778,6 +778,23 @@ struct BeginAssignment
 	SemanticActionInterface& Bindings;
 };
 
+struct BeginOpAssignment
+{
+	explicit BeginOpAssignment(SemanticActionInterface& bindings)
+		: Bindings(bindings)
+	{ }
+
+	template <typename IteratorType>
+	void operator () (IteratorType begin, IteratorType end) const
+	{
+		Trace(L"BeginOpAssignment", begin, end);
+		Bindings.SetParsePosition(end);
+		Bindings.BeginOpAssignment(std::wstring(begin, end));
+	}
+
+	SemanticActionInterface& Bindings;
+};
+
 struct CompleteAssignment
 {
 	explicit CompleteAssignment(SemanticActionInterface& bindings)

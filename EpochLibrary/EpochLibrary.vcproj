@@ -489,6 +489,10 @@
 					>
 				</File>
 				<File
+					RelativePath="..\Shared\Metadata\IdentifierTable.h"
+					>
+				</File>
+				<File
 					RelativePath="..\Shared\Metadata\Register.cpp"
 					>
 				</File>

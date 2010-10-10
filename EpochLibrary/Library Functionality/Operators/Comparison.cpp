@@ -100,7 +100,7 @@ void ComparisonLibrary::RegisterLibraryFunctions(FunctionSignatureSet& signature
 //
 // Bind the library to the infix operator table
 //
-void ComparisonLibrary::RegisterInfixOperators(InfixTable& infixtable, PrecedenceTable& precedences, StringPoolManager& stringpool)
+void ComparisonLibrary::RegisterInfixOperators(StringSet& infixtable, PrecedenceTable& precedences, StringPoolManager& stringpool)
 {
 	{
 		StringHandle handle = stringpool.Pool(L"==");

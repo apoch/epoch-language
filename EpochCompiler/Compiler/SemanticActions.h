@@ -117,6 +117,7 @@ public:
 	virtual void EndParenthetical();
 
 	virtual void BeginAssignment();
+	virtual void BeginOpAssignment(const std::wstring& identifier);
 	virtual void CompleteAssignment();
 
 	virtual void Finalize();

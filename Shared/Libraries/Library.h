@@ -11,12 +11,10 @@
 // Dependencies
 #include "Metadata/EntityDescription.h"
 #include "Metadata/CompileTimeParams.h"
+#include "Metadata/IdentifierTable.h"
 #include "Utility/Types/IDTypes.h"
 
 #include <map>
-#include <set>
-#include <string>
-#include <vector>
 
 
 // Forward declarations
@@ -37,7 +35,6 @@ typedef std::map<StringHandle, EpochFunctionPtr> FunctionInvocationTable;
 typedef void (*CompilerHelperPtr)(ScopeDescription& scope, const std::vector<CompileTimeParameter>& compiletimeparams);
 typedef std::map<std::wstring, CompilerHelperPtr> FunctionCompileHelperTable;
 
-typedef std::set<std::wstring> InfixTable;
 typedef std::multimap<int, StringHandle> PrecedenceTable;
 
 typedef std::map<Bytecode::EntityTag, EntityDescription> EntityTable;
@@ -46,8 +43,9 @@ typedef std::map<Bytecode::EntityTag, EntityDescription> EntityTable;
 struct CompilerInfoTable
 {
 	FunctionCompileHelperTable* FunctionHelpers;
-	InfixTable* InfixOperators;
-	std::set<std::wstring>* UnaryPrefixes;
+	StringSet* InfixOperators;
+	StringSet* UnaryPrefixes;
+	StringSet* OpAssignOperators;
 	PrecedenceTable* Precedences;
 	std::map<StringHandle, std::set<StringHandle> >* Overloads;
 	EntityTable* Entities;

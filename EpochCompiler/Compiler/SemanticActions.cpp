@@ -1088,6 +1088,32 @@ void CompilationSemantics::BeginAssignment()
 }
 
 //
+// Begin parsing an assignment that has additional side effects
+//
+void CompilationSemantics::BeginOpAssignment(const std::wstring &identifier)
+{
+	if(!IsPrepass)
+	{
+		if(!LexicalScopeDescriptions[LexicalScopeStack.top()].HasVariable(TemporaryString))
+			Throw(RecoverableException("The variable \"" + narrow(TemporaryString) + "\" is not defined in this scope"));
+	}
+
+	StatementNames.push(identifier);
+	StatementParamCount.push(0);
+	AssignmentTargets.push(Session.StringPool.Pool(TemporaryString));
+	TemporaryString.clear();
+	if(!IsPrepass)
+	{
+		CompileTimeParameters.push(std::vector<CompileTimeParameter>());
+		InfixOperators.push(std::vector<StringHandle>());
+		UnaryOperators.push(std::vector<std::pair<StringHandle, size_t> >());
+
+		PendingEmissionBuffers.push(std::vector<Byte>());
+		PendingEmitters.push(ByteCodeEmitter(PendingEmissionBuffers.top()));
+	}
+}
+
+//
 // Finish parsing an assignment operation
 //
 // This function is invoked once both the left and right sides of the expression have been parsed,
@@ -1095,16 +1121,28 @@ void CompilationSemantics::BeginAssignment()
 //
 void CompilationSemantics::CompleteAssignment()
 {
-	StatementNames.pop();
 	if(!IsPrepass)
 	{
-		EmitInfixOperand(*EmitterStack.top(), CompileTimeParameters.top().back());
-
 		VM::EpochTypeID expressiontype = CompileTimeParameters.top().back().Type;
 		if(expressiontype == VM::EpochType_Expression)
 			expressiontype = CompileTimeParameters.top().back().ExpressionType;
 		else if(expressiontype == VM::EpochType_Identifier)
 			expressiontype = LexicalScopeDescriptions.find(LexicalScopeStack.top())->second.GetVariableTypeByID(CompileTimeParameters.top().back().Payload.StringHandleValue);
+
+
+		if(StatementNames.top() != L"=")
+			EmitterStack.top()->PushStringLiteral(AssignmentTargets.top());
+			
+		EmitInfixOperand(*EmitterStack.top(), CompileTimeParameters.top().back());
+
+		if(StatementNames.top() != L"=")
+		{
+			std::wstring assignmentop = StatementNames.top();
+			StringHandle assignmentophandle = Session.StringPool.Pool(assignmentop);
+			RemapFunctionToOverload(CompileTimeParameters.top(), expressiontype, false, assignmentop, assignmentophandle);
+
+			EmitterStack.top()->Invoke(assignmentophandle);
+		}
 
 		PendingEmitters.pop();
 		PendingEmissionBuffers.pop();
@@ -1130,6 +1168,7 @@ void CompilationSemantics::CompleteAssignment()
 			Throw(TypeMismatchException("Right hand side of assignment does not match variable type"));
 		}
 	}
+	StatementNames.pop();
 	AssignmentTargets.pop();
 	StatementParamCount.pop();
 }

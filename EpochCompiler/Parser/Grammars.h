@@ -61,14 +61,9 @@ struct SkipGrammar : public boost::spirit::classic::grammar<SkipGrammar>
 //
 struct FundamentalGrammar : public boost::spirit::classic::grammar<FundamentalGrammar>
 {
-	FundamentalGrammar(SemanticActionInterface& bindings, const InfixTable& infixidentifiers, const std::set<std::wstring>& unaryprefixes, const std::set<std::wstring>& customentities, const std::set<std::wstring>& chainedentities, const std::set<std::wstring>& postfixentities, const std::set<std::wstring>& postfixclosers)
+	FundamentalGrammar(SemanticActionInterface& bindings, const IdentifierTable& identifiers)
 		: Bindings(bindings),
-		  InfixIdentifiers(infixidentifiers),
-		  UnaryPrefixes(unaryprefixes),
-		  CustomEntities(customentities),
-		  ChainedEntities(chainedentities),
-		  PostfixEntities(postfixentities),
-		  PostfixClosers(postfixclosers)
+		  Identifiers(identifiers)
 	{ }
 
 	template <typename ScannerType>
@@ -178,7 +173,9 @@ struct FundamentalGrammar : public boost::spirit::classic::grammar<FundamentalGr
 				;
 
 			Assignment
-				= (StringIdentifier[BeginStatement(self.Bindings)] >> ASSIGN[BeginAssignment(self.Bindings)] >> ExpressionOrAssignment[CompleteAssignment(self.Bindings)])
+				= (StringIdentifier[BeginStatement(self.Bindings)]
+				>> (ASSIGN[BeginAssignment(self.Bindings)] | OpAssignmentIdentifier[BeginOpAssignment(self.Bindings)])
+				>> ExpressionOrAssignment[CompleteAssignment(self.Bindings)])
 				;
 
 			CodeBlockEntry
@@ -229,23 +226,26 @@ struct FundamentalGrammar : public boost::spirit::classic::grammar<FundamentalGr
 				= (*MetaEntity)[Finalize(self.Bindings)]
 				;
 
-			for(InfixTable::const_iterator iter = self.InfixIdentifiers.begin(); iter != self.InfixIdentifiers.end(); ++iter)
+			for(StringSet::const_iterator iter = self.Identifiers.InfixOperators.begin(); iter != self.Identifiers.InfixOperators.end(); ++iter)
 				AddInfixOperator(*PooledNarrowStrings.insert(narrow(*iter)).first);
 
-			for(std::set<std::wstring>::const_iterator iter = self.UnaryPrefixes.begin(); iter != self.UnaryPrefixes.end(); ++iter)
+			for(StringSet::const_iterator iter = self.Identifiers.UnaryPrefixes.begin(); iter != self.Identifiers.UnaryPrefixes.end(); ++iter)
 				AddUnaryPrefix(*PooledNarrowStrings.insert(narrow(*iter)).first);
 
-			for(std::set<std::wstring>::const_iterator iter = self.CustomEntities.begin(); iter != self.CustomEntities.end(); ++iter)
+			for(StringSet::const_iterator iter = self.Identifiers.CustomEntities.begin(); iter != self.Identifiers.CustomEntities.end(); ++iter)
 				AddInlineEntity(*PooledNarrowStrings.insert(narrow(*iter)).first);
 
-			for(std::set<std::wstring>::const_iterator iter = self.ChainedEntities.begin(); iter != self.ChainedEntities.end(); ++iter)
+			for(StringSet::const_iterator iter = self.Identifiers.ChainedEntities.begin(); iter != self.Identifiers.ChainedEntities.end(); ++iter)
 				AddChainedEntity(*PooledNarrowStrings.insert(narrow(*iter)).first);
 
-			for(std::set<std::wstring>::const_iterator iter = self.PostfixEntities.begin(); iter != self.PostfixEntities.end(); ++iter)
+			for(StringSet::const_iterator iter = self.Identifiers.PostfixEntities.begin(); iter != self.Identifiers.PostfixEntities.end(); ++iter)
 				AddPostfixEntity(*PooledNarrowStrings.insert(narrow(*iter)).first);
 
-			for(std::set<std::wstring>::const_iterator iter = self.PostfixClosers.begin(); iter != self.PostfixClosers.end(); ++iter)
+			for(StringSet::const_iterator iter = self.Identifiers.PostfixClosers.begin(); iter != self.Identifiers.PostfixClosers.end(); ++iter)
 				AddPostfixCloser(*PooledNarrowStrings.insert(narrow(*iter)).first);
+
+			for(StringSet::const_iterator iter = self.Identifiers.OpAssignmentIdentifiers.begin(); iter != self.Identifiers.OpAssignmentIdentifiers.end(); ++iter)
+				AddOpAssignOperator(*PooledNarrowStrings.insert(narrow(*iter)).first);
 		}
 
 		boost::spirit::classic::chlit<> COLON, OPENPARENS, CLOSEPARENS, OPENBRACE, CLOSEBRACE, COMMA, QUOTE, NEGATE;
@@ -284,6 +284,7 @@ struct FundamentalGrammar : public boost::spirit::classic::grammar<FundamentalGr
 
 		boost::spirit::classic::rule<ScannerType> Program;
 
+		boost::spirit::classic::stored_rule<ScannerType> OpAssignmentIdentifier;
 		boost::spirit::classic::stored_rule<ScannerType> InfixIdentifier;
 		boost::spirit::classic::stored_rule<ScannerType> UnaryPrefixIdentifier;
 		boost::spirit::classic::stored_rule<ScannerType> EntityIdentifier;
@@ -352,15 +353,18 @@ struct FundamentalGrammar : public boost::spirit::classic::grammar<FundamentalGr
 		{
 			PostfixEntityCloserIdentifier = boost::spirit::classic::strlit<>(entityname.c_str()) | PostfixEntityCloserIdentifier.copy();
 		}
+
+		//
+		// Register an op-assign operator
+		//
+		void AddOpAssignOperator(const std::string& identifier)
+		{
+			OpAssignmentIdentifier = boost::spirit::classic::strlit<>(identifier.c_str()) | OpAssignmentIdentifier.copy();
+		}
 	};
 
 	SemanticActionInterface& Bindings;
-	const InfixTable& InfixIdentifiers;
-	const std::set<std::wstring>& UnaryPrefixes;
-	const std::set<std::wstring>& CustomEntities;
-	const std::set<std::wstring>& ChainedEntities;
-	const std::set<std::wstring>& PostfixEntities;
-	const std::set<std::wstring>& PostfixClosers;
+	const IdentifierTable& Identifiers;
 
 };
 

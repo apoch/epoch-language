@@ -16,6 +16,7 @@
 #include "Libraries/Library.h"
 
 #include "Virtual Machine/VirtualMachine.h"
+#include "Metadata/ActiveScope.h"
 
 
 
@@ -77,6 +78,31 @@ namespace
 		context.State.Stack.PushValue(~p);
 	}
 
+
+	//
+	// Read a variable's value, add a value to it, then return the result
+	//
+	void AddAssign(StringHandle functionname, VM::ExecutionContext& context)
+	{
+		Integer32 value = context.State.Stack.PopValue<Integer32>();
+		StringHandle identifier = context.State.Stack.PopValue<StringHandle>();
+		context.Variables->PushOntoStack(identifier, context.State.Stack);
+		context.State.Stack.PushValue(value);
+		AddIntegers(functionname, context);
+	}
+
+	//
+	// Read a variable's value, subtract a value from it, then return the result
+	//
+	void SubtractAssign(StringHandle functionname, VM::ExecutionContext& context)
+	{
+		Integer32 value = context.State.Stack.PopValue<Integer32>();
+		StringHandle identifier = context.State.Stack.PopValue<StringHandle>();
+		context.Variables->PushOntoStack(identifier, context.State.Stack);
+		context.State.Stack.PushValue(value);
+		SubtractIntegers(functionname, context);
+	}
+
 }
 
 
@@ -92,6 +118,9 @@ void ArithmeticLibrary::RegisterLibraryFunctions(FunctionInvocationTable& table,
 	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"/"), DivideIntegers));
 
 	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"!@@integer"), BitwiseIntegerNot));
+
+	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"+="), AddAssign));
+	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"-="), SubtractAssign));
 }
 
 //
@@ -134,12 +163,27 @@ void ArithmeticLibrary::RegisterLibraryFunctions(FunctionSignatureSet& signature
 		signature.SetReturnType(VM::EpochType_Integer);
 		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"!@@integer"), signature));
 	}
+
+	{
+		FunctionSignature signature;
+		signature.AddParameter(L"identifier", VM::EpochType_Identifier);
+		signature.AddParameter(L"i", VM::EpochType_Integer);
+		signature.SetReturnType(VM::EpochType_Integer);
+		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"+="), signature));
+	}
+	{
+		FunctionSignature signature;
+		signature.AddParameter(L"identifier", VM::EpochType_Identifier);
+		signature.AddParameter(L"i", VM::EpochType_Integer);
+		signature.SetReturnType(VM::EpochType_Integer);
+		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"-="), signature));
+	}
 }
 
 //
 // Bind the library to the infix operator table
 //
-void ArithmeticLibrary::RegisterInfixOperators(InfixTable& infixtable, PrecedenceTable& precedences, StringPoolManager& stringpool)
+void ArithmeticLibrary::RegisterInfixOperators(StringSet& infixtable, PrecedenceTable& precedences, StringPoolManager& stringpool)
 {
 	{
 		StringHandle handle = stringpool.Pool(L"+");
@@ -182,6 +226,21 @@ void ArithmeticLibrary::RegisterLibraryOverloads(std::map<StringHandle, std::set
 	{
 		StringHandle functionnamehandle = stringpool.Pool(L"!");
 		overloadmap[functionnamehandle].insert(stringpool.Pool(L"!@@integer"));
+	}
+}
+
+//
+// Register the list of operation-assignment operators provided by this library module
+//
+void ArithmeticLibrary::RegisterOpAssignOperators(StringSet& operators, StringPoolManager& stringpool)
+{
+	{
+		StringHandle handle = stringpool.Pool(L"+=");
+		AddToSetNoDupe(operators, stringpool.GetPooledString(handle));
+	}
+	{
+		StringHandle handle = stringpool.Pool(L"-=");
+		AddToSetNoDupe(operators, stringpool.GetPooledString(handle));
 	}
 }
 

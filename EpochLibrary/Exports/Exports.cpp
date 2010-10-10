@@ -93,6 +93,7 @@ extern "C" void __stdcall BindToCompiler(CompilerInfoTable& info, StringPoolMana
 
 		ArithmeticLibrary::RegisterInfixOperators(*info.InfixOperators, *info.Precedences, stringpool);
 		ArithmeticLibrary::RegisterUnaryOperators(*info.UnaryPrefixes, stringpool);
+		ArithmeticLibrary::RegisterOpAssignOperators(*info.OpAssignOperators, stringpool);
 		ArithmeticLibrary::RegisterLibraryOverloads(*info.Overloads, stringpool);
 
 		BooleanLibrary::RegisterLibraryOverloads(*info.Overloads, stringpool);
@@ -109,5 +110,6 @@ extern "C" void __stdcall BindToCompiler(CompilerInfoTable& info, StringPoolMana
 		::MessageBox(0, L"Fatal error while registering Epoch standard library", L"Epoch Exception", MB_ICONSTOP);
 	}
 }
+
 
 

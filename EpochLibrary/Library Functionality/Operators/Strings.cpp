@@ -57,7 +57,7 @@ void StringLibrary::RegisterLibraryFunctions(FunctionSignatureSet& signatureset,
 //
 // Bind the library to the infix operator table
 //
-void StringLibrary::RegisterInfixOperators(InfixTable& infixtable, PrecedenceTable& precedences, StringPoolManager& stringpool)
+void StringLibrary::RegisterInfixOperators(StringSet& infixtable, PrecedenceTable& precedences, StringPoolManager& stringpool)
 {
 	{
 		StringHandle handle = stringpool.Pool(L";");

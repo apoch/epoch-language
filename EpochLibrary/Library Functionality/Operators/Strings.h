@@ -23,7 +23,7 @@ namespace StringLibrary
 	void RegisterLibraryFunctions(FunctionSignatureSet& signatureset, StringPoolManager& stringpool);
 	void RegisterLibraryFunctions(FunctionInvocationTable& table, StringPoolManager& stringpool);
 
-	void RegisterInfixOperators(InfixTable& infixtable, PrecedenceTable& precedences, StringPoolManager& stringpool);
+	void RegisterInfixOperators(StringSet& infixtable, PrecedenceTable& precedences, StringPoolManager& stringpool);
 
 }
 
