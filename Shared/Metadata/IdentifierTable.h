@@ -19,6 +19,8 @@ struct IdentifierTable
 {
 	StringSet InfixOperators;
 	StringSet UnaryPrefixes;
+	StringSet PreOperators;
+	StringSet PostOperators;
 	StringSet OpAssignmentIdentifiers;
 	StringSet CustomEntities;
 	StringSet ChainedEntities;

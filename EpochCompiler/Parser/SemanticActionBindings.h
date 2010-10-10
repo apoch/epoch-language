@@ -21,7 +21,7 @@
 #include <iostream>
 #endif
 
-#define PARSER_TRACING
+//#define PARSER_TRACING
 
 template <typename IteratorType>
 void Trace(const std::wstring& title, IteratorType begin, IteratorType end)
@@ -61,6 +61,38 @@ struct GeneralExceptionHandler
         // Move past the broken line and continue parsing
         while(thescanner.first.get_position().line <= pos.line)
                 ++thescanner;
+
+		Bindings.Fail();
+
+		return boost::spirit::classic::error_status<>(boost::spirit::classic::error_status<>::retry);
+	}
+
+	SemanticActionInterface& Bindings;
+};
+
+struct MalformedStatementExceptionHandler
+{
+	explicit MalformedStatementExceptionHandler(SemanticActionInterface& bindings)
+		: Bindings(bindings)
+	{ }
+
+	template <typename ScannerType, typename ErrorType>
+	boost::spirit::classic::error_status<> operator () (const ScannerType& thescanner, const ErrorType& theerror) const
+	{
+		boost::spirit::classic::file_position pos = theerror.where.get_position();
+
+		char token = *theerror.where;
+		if(token == '}')
+			return boost::spirit::classic::error_status<>(boost::spirit::classic::error_status<>::accept);
+		
+		std::wcout << L"Error in file \"" << StripPath(widen(pos.file)) << L"\" on line " << pos.line << L":\n";
+		std::wcout << theerror.descriptor.what() << std::endl << std::endl;
+
+		// Move past the broken line and continue parsing
+		while(thescanner.first.get_position().line <= pos.line)
+				++thescanner;
+
+		Bindings.Fail();
 
 		return boost::spirit::classic::error_status<>(boost::spirit::classic::error_status<>::retry);
 	}
@@ -825,6 +857,75 @@ struct RegisterPatternMatchedParameter
 		Trace(L"RegisterPatternMatchedParameter", begin, end);
 		Bindings.SetParsePosition(end);
 		Bindings.RegisterPatternMatchedParameter();
+	}
+
+	SemanticActionInterface& Bindings;
+};
+
+
+struct RegisterPreOperator
+{
+	explicit RegisterPreOperator(SemanticActionInterface& bindings)
+		: Bindings(bindings)
+	{ }
+
+	template <typename IteratorType>
+	void operator () (IteratorType begin, IteratorType end) const
+	{
+		Trace(L"RegisterPreOperator", begin, end);
+		Bindings.SetParsePosition(end);
+		Bindings.RegisterPreOperator(std::wstring(begin, end));
+	}
+
+	SemanticActionInterface& Bindings;
+};
+
+struct RegisterPreOperand
+{
+	explicit RegisterPreOperand(SemanticActionInterface& bindings)
+		: Bindings(bindings)
+	{ }
+
+	template <typename IteratorType>
+	void operator () (IteratorType begin, IteratorType end) const
+	{
+		Trace(L"RegisterPreOperand", begin, end);
+		Bindings.SetParsePosition(end);
+		Bindings.RegisterPreOperand(std::wstring(begin, end));
+	}
+
+	SemanticActionInterface& Bindings;
+};
+
+struct RegisterPostOperator
+{
+	explicit RegisterPostOperator(SemanticActionInterface& bindings)
+		: Bindings(bindings)
+	{ }
+
+	template <typename IteratorType>
+	void operator () (IteratorType begin, IteratorType end) const
+	{
+		Trace(L"RegisterPostOperator", begin, end);
+		Bindings.SetParsePosition(end);
+		Bindings.RegisterPostOperator(std::wstring(begin, end));
+	}
+
+	SemanticActionInterface& Bindings;
+};
+
+struct RegisterPostOperand
+{
+	explicit RegisterPostOperand(SemanticActionInterface& bindings)
+		: Bindings(bindings)
+	{ }
+
+	template <typename IteratorType>
+	void operator () (IteratorType begin, IteratorType end) const
+	{
+		Trace(L"RegisterPostOperand", begin, end);
+		Bindings.SetParsePosition(end);
+		Bindings.RegisterPostOperand(std::wstring(begin, end));
 	}
 
 	SemanticActionInterface& Bindings;

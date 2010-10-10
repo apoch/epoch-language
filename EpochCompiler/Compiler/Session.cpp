@@ -41,6 +41,8 @@ CompileSession::CompileSession()
 	info.InfixOperators = &Identifiers.InfixOperators;
 	info.OpAssignOperators = &Identifiers.OpAssignmentIdentifiers;
 	info.UnaryPrefixes = &Identifiers.UnaryPrefixes;
+	info.PreOperators = &Identifiers.PreOperators;
+	info.PostOperators = &Identifiers.PostOperators;
 	info.Overloads = &FunctionOverloadNames;
 	info.Precedences = &OperatorPrecedences;
 	info.Entities = &CustomEntities;

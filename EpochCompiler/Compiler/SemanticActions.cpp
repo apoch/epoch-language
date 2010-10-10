@@ -467,6 +467,111 @@ void CompilationSemantics::CollapseUnaryOperators()
 }
 
 
+//
+// Register the operator of a pre-operator expression
+//
+void CompilationSemantics::RegisterPreOperator(const std::wstring& identifier)
+{
+	if(!IsPrepass)
+		TemporaryString = identifier;
+}
+
+//
+// Register the operand of a pre-operator expression
+//
+void CompilationSemantics::RegisterPreOperand(const std::wstring& identifier)
+{
+	if(!IsPrepass)
+	{
+		std::wstring operatorname = TemporaryString;
+		StringHandle operatornamehandle = Session.StringPool.Pool(operatorname);
+
+		std::vector<CompileTimeParameter> ctparams;
+		ctparams.push_back(CompileTimeParameter(L"@@preoperand", VM::EpochType_Identifier));
+		RemapFunctionToOverload(ctparams, VM::EpochType_Error, false, operatorname, operatornamehandle);
+
+		// TODO - validate type of the variable involved
+		// TODO - validate that the variable involved exists!
+
+		std::vector<Byte> buffer;
+		ByteCodeEmitter emitter(buffer);
+
+		StringHandle operandhandle = Session.StringPool.Pool(identifier);
+		emitter.PushStringLiteral(operandhandle);
+		emitter.Invoke(operatornamehandle);
+		emitter.AssignVariable(operandhandle);
+		emitter.PushVariableValue(operandhandle);
+
+		// TODO - push actual type
+		StatementTypes.push(VM::EpochType_Integer);
+
+		if(!CompileTimeParameters.empty())
+		{
+			CompileTimeParameter ctparam(L"@@preoperation", VM::EpochType_Expression);
+			ctparam.ExpressionType = VM::EpochType_Integer;
+			ctparam.ExpressionContents.swap(buffer);
+			CompileTimeParameters.top().push_back(ctparam);
+		}
+		else
+			EmitterStack.top()->EmitBuffer(buffer);
+	}
+
+	PushedItemTypes.push(ITEMTYPE_STATEMENT);
+}
+
+//
+// Register the operator of a post-operator expression
+//
+void CompilationSemantics::RegisterPostOperator(const std::wstring& identifier)
+{
+	if(!IsPrepass)
+	{
+		std::wstring operatorname = identifier;
+		StringHandle operatornamehandle = Session.StringPool.Pool(operatorname);
+
+		std::vector<CompileTimeParameter> ctparams;
+		ctparams.push_back(CompileTimeParameter(L"@@postoperand", VM::EpochType_Identifier));
+		RemapFunctionToOverload(ctparams, VM::EpochType_Error, false, operatorname, operatornamehandle);
+
+		// TODO - validate type of the variable involved
+		// TODO - validate that the variable involved exists!
+
+		std::vector<Byte> buffer;
+		ByteCodeEmitter emitter(buffer);
+
+		StringHandle operandhandle = Session.StringPool.Pool(TemporaryString);
+		emitter.PushVariableValue(operandhandle);
+		emitter.PushStringLiteral(operandhandle);
+		emitter.Invoke(operatornamehandle);
+		emitter.AssignVariable(operandhandle);
+
+		// TODO - push actual type
+		StatementTypes.push(VM::EpochType_Integer);
+
+		if(!CompileTimeParameters.empty())
+		{
+			CompileTimeParameter ctparam(L"@@postoperation", VM::EpochType_Expression);
+			ctparam.ExpressionType = VM::EpochType_Integer;
+			ctparam.ExpressionContents.swap(buffer);
+			CompileTimeParameters.top().push_back(ctparam);
+		}
+		else
+			EmitterStack.top()->EmitBuffer(buffer);
+	}
+
+	PushedItemTypes.push(ITEMTYPE_STATEMENT);
+}
+
+//
+// Register the operand of a post-operator expression
+//
+void CompilationSemantics::RegisterPostOperand(const std::wstring& identifier)
+{
+	if(!IsPrepass)
+		TemporaryString = identifier;
+}
+
+
 //-------------------------------------------------------------------------------
 // Entity parameter definitions
 //-------------------------------------------------------------------------------

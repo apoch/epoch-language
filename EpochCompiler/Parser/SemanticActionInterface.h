@@ -23,6 +23,8 @@
 class SemanticActionInterface
 {
 public:
+	virtual void Fail() = 0;
+
 	virtual void SetPrepassMode(bool isprepass) = 0;
 
 	virtual void StoreString(const std::wstring& name) = 0;
@@ -44,7 +46,12 @@ public:
 	virtual void PushInfixParam() = 0;
 	virtual void CompleteInfix() = 0;
 	virtual void FinalizeInfix() = 0;
-	
+
+	virtual void RegisterPreOperator(const std::wstring& identifier) = 0;
+	virtual void RegisterPreOperand(const std::wstring& identifier) = 0;
+	virtual void RegisterPostOperator(const std::wstring& identifier) = 0;
+	virtual void RegisterPostOperand(const std::wstring& identifier) = 0;
+
 	virtual void StoreUnaryPrefixOperator(const std::wstring& identifier) = 0;
 
 	virtual void BeginParameterSet() = 0;

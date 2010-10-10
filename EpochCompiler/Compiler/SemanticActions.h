@@ -71,6 +71,9 @@ public:
 
 // Semantic action implementations (implementation of SemanticActionInterface)
 public:
+	virtual void Fail()
+	{ Failed = true; }
+
 	virtual void SetPrepassMode(bool isprepass);
 
 	virtual void StoreString(const std::wstring& strliteral);
@@ -92,6 +95,11 @@ public:
 	virtual void PushInfixParam();
 	virtual void CompleteInfix();
 	virtual void FinalizeInfix();
+
+	virtual void RegisterPreOperator(const std::wstring& identifier);
+	virtual void RegisterPreOperand(const std::wstring& identifier);
+	virtual void RegisterPostOperator(const std::wstring& identifier);
+	virtual void RegisterPostOperand(const std::wstring& identifier);
 
 	virtual void StoreUnaryPrefixOperator(const std::wstring& identifier);
 

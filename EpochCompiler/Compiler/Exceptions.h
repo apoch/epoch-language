@@ -53,3 +53,21 @@ public:
 	}
 };
 
+
+//
+// Exception used to indicate a syntax error of some kind in a statement
+//
+class MalformedStatementException : public RecoverableException
+{
+// Construction
+public:
+	explicit MalformedStatementException(const char* message) : RecoverableException(message) { }
+	explicit MalformedStatementException(const std::string& message) : RecoverableException(message) { }
+
+// Helpers for making error reporting more friendly
+public:
+	virtual const char* GetErrorPrologue() const
+	{
+		return "Expected a statement or code control entity.";
+	}
+};

@@ -92,7 +92,7 @@ extern "C" void __stdcall BindToCompiler(CompilerInfoTable& info, StringPoolMana
 		TypeCasts::RegisterLibraryOverloads(*info.Overloads, stringpool);
 
 		ArithmeticLibrary::RegisterInfixOperators(*info.InfixOperators, *info.Precedences, stringpool);
-		ArithmeticLibrary::RegisterUnaryOperators(*info.UnaryPrefixes, stringpool);
+		ArithmeticLibrary::RegisterUnaryOperators(*info.UnaryPrefixes, *info.PreOperators, *info.PostOperators, stringpool);
 		ArithmeticLibrary::RegisterOpAssignOperators(*info.OpAssignOperators, stringpool);
 		ArithmeticLibrary::RegisterLibraryOverloads(*info.Overloads, stringpool);
 

@@ -103,6 +103,28 @@ namespace
 		SubtractIntegers(functionname, context);
 	}
 
+
+	//
+	// Increment a variable's value by one
+	//
+	void Increment(StringHandle functionname, VM::ExecutionContext& context)
+	{
+		StringHandle identifier = context.State.Stack.PopValue<StringHandle>();
+		context.Variables->PushOntoStack(identifier, context.State.Stack);
+		context.State.Stack.PushValue(1);
+		AddIntegers(functionname, context);
+	}
+
+	//
+	// Decrement a variable's value by one
+	//
+	void Decrement(StringHandle functionname, VM::ExecutionContext& context)
+	{
+		StringHandle identifier = context.State.Stack.PopValue<StringHandle>();
+		context.Variables->PushOntoStack(identifier, context.State.Stack);
+		context.State.Stack.PushValue(1);
+		SubtractIntegers(functionname, context);
+	}
 }
 
 
@@ -121,6 +143,9 @@ void ArithmeticLibrary::RegisterLibraryFunctions(FunctionInvocationTable& table,
 
 	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"+="), AddAssign));
 	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"-="), SubtractAssign));
+
+	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"++"), Increment));
+	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"--"), Decrement));
 }
 
 //
@@ -178,6 +203,19 @@ void ArithmeticLibrary::RegisterLibraryFunctions(FunctionSignatureSet& signature
 		signature.SetReturnType(VM::EpochType_Integer);
 		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"-="), signature));
 	}
+
+	{
+		FunctionSignature signature;
+		signature.AddParameter(L"identifier", VM::EpochType_Identifier);
+		signature.SetReturnType(VM::EpochType_Integer);
+		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"++"), signature));
+	}
+	{
+		FunctionSignature signature;
+		signature.AddParameter(L"identifier", VM::EpochType_Identifier);
+		signature.SetReturnType(VM::EpochType_Integer);
+		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"--"), signature));
+	}
 }
 
 //
@@ -210,11 +248,22 @@ void ArithmeticLibrary::RegisterInfixOperators(StringSet& infixtable, Precedence
 //
 // Register the list of unary operators provided by the library module
 //
-void ArithmeticLibrary::RegisterUnaryOperators(std::set<std::wstring>& unaryprefixes, StringPoolManager& stringpool)
+void ArithmeticLibrary::RegisterUnaryOperators(StringSet& unaryprefixes, StringSet& preoperators, StringSet& postoperators, StringPoolManager& stringpool)
 {
 	{
 		StringHandle handle = stringpool.Pool(L"!");
 		AddToSetNoDupe(unaryprefixes, stringpool.GetPooledString(handle));
+	}
+
+	{
+		StringHandle handle = stringpool.Pool(L"++");
+		AddToSetNoDupe(preoperators, stringpool.GetPooledString(handle));
+		AddToSetNoDupe(postoperators, stringpool.GetPooledString(handle));
+	}
+	{
+		StringHandle handle = stringpool.Pool(L"--");
+		AddToSetNoDupe(preoperators, stringpool.GetPooledString(handle));
+		AddToSetNoDupe(postoperators, stringpool.GetPooledString(handle));
 	}
 }
 

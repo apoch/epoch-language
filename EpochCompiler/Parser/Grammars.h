@@ -88,7 +88,9 @@ struct FundamentalGrammar : public boost::spirit::classic::grammar<FundamentalGr
 				EPOCH_TRUE("true"),
 				EPOCH_FALSE("false"),
 
-				ExpectFunctionBody(0)
+				ExpectFunctionBody(0),
+
+				ExpectWellFormedStatement(MalformedStatementException("Expected a statement or code control entity"))
 		{
 			using namespace boost::spirit::classic;
 
@@ -155,6 +157,8 @@ struct FundamentalGrammar : public boost::spirit::classic::grammar<FundamentalGr
 					Statement
 					| (OPENPARENS[BeginParenthetical(self.Bindings)] >> Expression >> CLOSEPARENS)[EndParenthetical(self.Bindings)]
 					| Literal
+					| PreOperatorStatement
+					| PostOperatorStatement
 					| StringIdentifier[StoreString(self.Bindings)]
 				   )
 				;
@@ -165,6 +169,14 @@ struct FundamentalGrammar : public boost::spirit::classic::grammar<FundamentalGr
 
 			Statement
 				= (StringIdentifier[BeginStatement(self.Bindings)] >> OPENPARENS[BeginStatementParams(self.Bindings)] >> (!((Expression[PushStatementParam(self.Bindings)]) % COMMA)) >> CLOSEPARENS[CompleteStatement(self.Bindings)])
+				;
+
+			PreOperatorStatement
+				= PreOperator[RegisterPreOperator(self.Bindings)] >> StringIdentifier[RegisterPreOperand(self.Bindings)]
+				;
+
+			PostOperatorStatement
+				= StringIdentifier[RegisterPostOperand(self.Bindings)] >> PostOperator[RegisterPostOperator(self.Bindings)]
 				;
 
 			ExpressionOrAssignment
@@ -183,7 +195,10 @@ struct FundamentalGrammar : public boost::spirit::classic::grammar<FundamentalGr
 				  (
 					TypeMismatchExceptionGuard
 					(
-						((Entity) | (PostfixEntity) | (Assignment) | (Statement[FinalizeStatement(self.Bindings)]) | InnerCodeBlock)
+						MalformedStatementExceptionGuard
+						(
+							ExpectWellFormedStatement((Entity) | (PostfixEntity) | (Assignment) | ((PreOperatorStatement) | (PostOperatorStatement) | (Statement))[FinalizeStatement(self.Bindings)] | InnerCodeBlock)
+						)[MalformedStatementExceptionHandler(self.Bindings)]
 					)[GeneralExceptionHandler(self.Bindings)]
 				  )[GeneralExceptionHandler(self.Bindings)]
 				;
@@ -193,7 +208,7 @@ struct FundamentalGrammar : public boost::spirit::classic::grammar<FundamentalGr
 				;
 
 			CodeBlock
-				= OPENBRACE[EmitPendingCode(self.Bindings)] >> (*CodeBlockEntry) >> CLOSEBRACE
+				= (OPENBRACE[EmitPendingCode(self.Bindings)] >> (*CodeBlockEntry) >> CLOSEBRACE)
 				;
 
 			Entity
@@ -232,6 +247,12 @@ struct FundamentalGrammar : public boost::spirit::classic::grammar<FundamentalGr
 			for(StringSet::const_iterator iter = self.Identifiers.UnaryPrefixes.begin(); iter != self.Identifiers.UnaryPrefixes.end(); ++iter)
 				AddUnaryPrefix(*PooledNarrowStrings.insert(narrow(*iter)).first);
 
+			for(StringSet::const_iterator iter = self.Identifiers.PreOperators.begin(); iter != self.Identifiers.PreOperators.end(); ++iter)
+				AddPreOperator(*PooledNarrowStrings.insert(narrow(*iter)).first);
+
+			for(StringSet::const_iterator iter = self.Identifiers.PostOperators.begin(); iter != self.Identifiers.PostOperators.end(); ++iter)
+				AddPostOperator(*PooledNarrowStrings.insert(narrow(*iter)).first);
+
 			for(StringSet::const_iterator iter = self.Identifiers.CustomEntities.begin(); iter != self.Identifiers.CustomEntities.end(); ++iter)
 				AddInlineEntity(*PooledNarrowStrings.insert(narrow(*iter)).first);
 
@@ -263,6 +284,8 @@ struct FundamentalGrammar : public boost::spirit::classic::grammar<FundamentalGr
 		boost::spirit::classic::rule<ScannerType> Expression;
 		boost::spirit::classic::rule<ScannerType> ExpressionOrAssignment;
 		boost::spirit::classic::rule<ScannerType> Statement;
+		boost::spirit::classic::rule<ScannerType> PreOperatorStatement;
+		boost::spirit::classic::rule<ScannerType> PostOperatorStatement;
 		boost::spirit::classic::rule<ScannerType> Assignment;
 
 		boost::spirit::classic::rule<ScannerType> VariableType;
@@ -287,6 +310,8 @@ struct FundamentalGrammar : public boost::spirit::classic::grammar<FundamentalGr
 		boost::spirit::classic::stored_rule<ScannerType> OpAssignmentIdentifier;
 		boost::spirit::classic::stored_rule<ScannerType> InfixIdentifier;
 		boost::spirit::classic::stored_rule<ScannerType> UnaryPrefixIdentifier;
+		boost::spirit::classic::stored_rule<ScannerType> PreOperator;
+		boost::spirit::classic::stored_rule<ScannerType> PostOperator;
 		boost::spirit::classic::stored_rule<ScannerType> EntityIdentifier;
 		boost::spirit::classic::stored_rule<ScannerType> ChainedEntityIdentifier;
 		boost::spirit::classic::stored_rule<ScannerType> PostfixEntityOpenerIdentifier;
@@ -294,6 +319,9 @@ struct FundamentalGrammar : public boost::spirit::classic::grammar<FundamentalGr
 
 		boost::spirit::classic::guard<RecoverableException> GeneralExceptionGuard;
 		boost::spirit::classic::guard<TypeMismatchException> TypeMismatchExceptionGuard;
+
+		boost::spirit::classic::guard<MalformedStatementException> MalformedStatementExceptionGuard;
+		boost::spirit::classic::assertion<MalformedStatementException> ExpectWellFormedStatement;
 
 		boost::spirit::classic::guard<int> MissingFunctionBodyExceptionGuard;
 		boost::spirit::classic::assertion<int> ExpectFunctionBody;
@@ -320,6 +348,22 @@ struct FundamentalGrammar : public boost::spirit::classic::grammar<FundamentalGr
 		void AddUnaryPrefix(const std::string& opname)
 		{
 			UnaryPrefixIdentifier = boost::spirit::classic::strlit<>(opname.c_str()) | UnaryPrefixIdentifier.copy();
+		}
+
+		//
+		// Register a pre-operator
+		//
+		void AddPreOperator(const std::string& opname)
+		{
+			PreOperator = boost::spirit::classic::strlit<>(opname.c_str()) | PreOperator.copy();
+		}
+
+		//
+		// Register a post-operator
+		//
+		void AddPostOperator(const std::string& opname)
+		{
+			PostOperator = boost::spirit::classic::strlit<>(opname.c_str()) | PostOperator.copy();
 		}
 
 		//

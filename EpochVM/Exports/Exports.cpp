@@ -11,6 +11,8 @@
 
 #include "Utility/Memory/MemoryManager.h"
 
+#include "Utility/Strings.h"
+
 
 //
 // Wrapper for executing a block of bytecode
@@ -26,6 +28,10 @@ extern "C" void __stdcall ExecuteByteCode(const void* bytecodebuffer, size_t siz
 		VM::VirtualMachine vm;
 		vm.InitStandardLibraries();
 		vm.ExecuteByteCode(reinterpret_cast<const Bytecode::Instruction*>(bytecodebuffer), size);
+	}
+	catch(std::exception& e)
+	{
+		::MessageBox(0, widen(e.what()).c_str(), L"Epoch Exception", MB_ICONSTOP);
 	}
 	catch(...)
 	{
