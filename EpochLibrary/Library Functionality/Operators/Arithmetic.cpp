@@ -82,7 +82,7 @@ namespace
 	//
 	// Read a variable's value, add a value to it, then return the result
 	//
-	void AddAssign(StringHandle functionname, VM::ExecutionContext& context)
+	void AddAssignInteger(StringHandle functionname, VM::ExecutionContext& context)
 	{
 		Integer32 value = context.State.Stack.PopValue<Integer32>();
 		StringHandle identifier = context.State.Stack.PopValue<StringHandle>();
@@ -94,7 +94,7 @@ namespace
 	//
 	// Read a variable's value, subtract a value from it, then return the result
 	//
-	void SubtractAssign(StringHandle functionname, VM::ExecutionContext& context)
+	void SubtractAssignInteger(StringHandle functionname, VM::ExecutionContext& context)
 	{
 		Integer32 value = context.State.Stack.PopValue<Integer32>();
 		StringHandle identifier = context.State.Stack.PopValue<StringHandle>();
@@ -107,7 +107,7 @@ namespace
 	//
 	// Increment a variable's value by one
 	//
-	void Increment(StringHandle functionname, VM::ExecutionContext& context)
+	void IncrementInteger(StringHandle functionname, VM::ExecutionContext& context)
 	{
 		StringHandle identifier = context.State.Stack.PopValue<StringHandle>();
 		context.Variables->PushOntoStack(identifier, context.State.Stack);
@@ -118,12 +118,106 @@ namespace
 	//
 	// Decrement a variable's value by one
 	//
-	void Decrement(StringHandle functionname, VM::ExecutionContext& context)
+	void DecrementInteger(StringHandle functionname, VM::ExecutionContext& context)
 	{
 		StringHandle identifier = context.State.Stack.PopValue<StringHandle>();
 		context.Variables->PushOntoStack(identifier, context.State.Stack);
 		context.State.Stack.PushValue(1);
 		SubtractIntegers(functionname, context);
+	}
+
+
+	//
+	// Sum two numbers and return the result
+	//
+	void AddReals(StringHandle functionname, VM::ExecutionContext& context)
+	{
+		Real32 p2 = context.State.Stack.PopValue<Real32>();
+		Real32 p1 = context.State.Stack.PopValue<Real32>();
+
+		context.State.Stack.PushValue(p1 + p2);
+	}
+
+
+	//
+	// Subtract two numbers and return the result
+	//
+	void SubtractReals(StringHandle functionname, VM::ExecutionContext& context)
+	{
+		Real32 p2 = context.State.Stack.PopValue<Real32>();
+		Real32 p1 = context.State.Stack.PopValue<Real32>();
+
+		context.State.Stack.PushValue(p1 - p2);
+	}
+
+	//
+	// Multiply two numbers and return the result
+	//
+	void MultiplyReals(StringHandle functionname, VM::ExecutionContext& context)
+	{
+		Real32 p2 = context.State.Stack.PopValue<Real32>();
+		Real32 p1 = context.State.Stack.PopValue<Real32>();
+
+		context.State.Stack.PushValue(p1 * p2);
+	}
+
+	//
+	// Divide two numbers and return the result
+	//
+	void DivideReals(StringHandle functionname, VM::ExecutionContext& context)
+	{
+		Real32 p2 = context.State.Stack.PopValue<Real32>();
+		Real32 p1 = context.State.Stack.PopValue<Real32>();
+
+		context.State.Stack.PushValue(p1 / p2);
+	}
+
+
+	//
+	// Read a variable's value, add a value to it, then return the result
+	//
+	void AddAssignReal(StringHandle functionname, VM::ExecutionContext& context)
+	{
+		Real32 value = context.State.Stack.PopValue<Real32>();
+		StringHandle identifier = context.State.Stack.PopValue<StringHandle>();
+		context.Variables->PushOntoStack(identifier, context.State.Stack);
+		context.State.Stack.PushValue(value);
+		AddReals(functionname, context);
+	}
+
+	//
+	// Read a variable's value, subtract a value from it, then return the result
+	//
+	void SubtractAssignReal(StringHandle functionname, VM::ExecutionContext& context)
+	{
+		Real32 value = context.State.Stack.PopValue<Real32>();
+		StringHandle identifier = context.State.Stack.PopValue<StringHandle>();
+		context.Variables->PushOntoStack(identifier, context.State.Stack);
+		context.State.Stack.PushValue(value);
+		SubtractReals(functionname, context);
+	}
+
+
+	//
+	// Increment a variable's value by one
+	//
+	void IncrementReal(StringHandle functionname, VM::ExecutionContext& context)
+	{
+		StringHandle identifier = context.State.Stack.PopValue<StringHandle>();
+		context.Variables->PushOntoStack(identifier, context.State.Stack);
+		context.State.Stack.PushValue(1);
+		AddReals(functionname, context);
+	}
+
+	//
+	// Decrement a variable's value by one
+	//
+	void DecrementReal(StringHandle functionname, VM::ExecutionContext& context)
+	{
+		StringHandle identifier = context.State.Stack.PopValue<StringHandle>();
+		context.Variables->PushOntoStack(identifier, context.State.Stack);
+		context.State.Stack.PushValue(1);
+		SubtractReals(functionname, context);
 	}
 }
 
@@ -134,18 +228,29 @@ namespace
 //
 void ArithmeticLibrary::RegisterLibraryFunctions(FunctionInvocationTable& table, StringPoolManager& stringpool)
 {
-	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"+"), AddIntegers));
-	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"-"), SubtractIntegers));
-	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"*"), MultiplyIntegers));
-	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"/"), DivideIntegers));
+	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"+@@integer"), AddIntegers));
+	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"-@@integer"), SubtractIntegers));
+	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"*@@integer"), MultiplyIntegers));
+	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"/@@integer"), DivideIntegers));
+
+	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"+@@real"), AddReals));
+	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"-@@real"), SubtractReals));
+	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"*@@real"), MultiplyReals));
+	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"/@@real"), DivideReals));
 
 	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"!@@integer"), BitwiseIntegerNot));
 
-	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"+="), AddAssign));
-	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"-="), SubtractAssign));
+	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"+=@@integer"), AddAssignInteger));
+	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"-=@@integer"), SubtractAssignInteger));
 
-	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"++"), Increment));
-	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"--"), Decrement));
+	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"+=@@real"), AddAssignReal));
+	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"-=@@real"), SubtractAssignReal));
+
+	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"++@@integer"), IncrementInteger));
+	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"--@@integer"), DecrementInteger));
+
+	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"++@@real"), IncrementReal));
+	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"--@@real"), DecrementReal));
 }
 
 //
@@ -158,28 +263,57 @@ void ArithmeticLibrary::RegisterLibraryFunctions(FunctionSignatureSet& signature
 		signature.AddParameter(L"i1", VM::EpochType_Integer);
 		signature.AddParameter(L"i2", VM::EpochType_Integer);
 		signature.SetReturnType(VM::EpochType_Integer);
-		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"+"), signature));
+		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"+@@integer"), signature));
 	}
 	{
 		FunctionSignature signature;
 		signature.AddParameter(L"i1", VM::EpochType_Integer);
 		signature.AddParameter(L"i2", VM::EpochType_Integer);
 		signature.SetReturnType(VM::EpochType_Integer);
-		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"-"), signature));
+		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"-@@integer"), signature));
 	}
 	{
 		FunctionSignature signature;
 		signature.AddParameter(L"i1", VM::EpochType_Integer);
 		signature.AddParameter(L"i2", VM::EpochType_Integer);
 		signature.SetReturnType(VM::EpochType_Integer);
-		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"*"), signature));
+		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"*@@integer"), signature));
 	}
 	{
 		FunctionSignature signature;
 		signature.AddParameter(L"i1", VM::EpochType_Integer);
 		signature.AddParameter(L"i2", VM::EpochType_Integer);
 		signature.SetReturnType(VM::EpochType_Integer);
-		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"/"), signature));
+		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"/@@integer"), signature));
+	}
+
+	{
+		FunctionSignature signature;
+		signature.AddParameter(L"i1", VM::EpochType_Real);
+		signature.AddParameter(L"i2", VM::EpochType_Real);
+		signature.SetReturnType(VM::EpochType_Real);
+		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"+@@real"), signature));
+	}
+	{
+		FunctionSignature signature;
+		signature.AddParameter(L"i1", VM::EpochType_Real);
+		signature.AddParameter(L"i2", VM::EpochType_Real);
+		signature.SetReturnType(VM::EpochType_Real);
+		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"-@@real"), signature));
+	}
+	{
+		FunctionSignature signature;
+		signature.AddParameter(L"i1", VM::EpochType_Real);
+		signature.AddParameter(L"i2", VM::EpochType_Real);
+		signature.SetReturnType(VM::EpochType_Real);
+		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"*@@real"), signature));
+	}
+	{
+		FunctionSignature signature;
+		signature.AddParameter(L"i1", VM::EpochType_Real);
+		signature.AddParameter(L"i2", VM::EpochType_Real);
+		signature.SetReturnType(VM::EpochType_Real);
+		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"/@@real"), signature));
 	}
 
 	{
@@ -194,27 +328,55 @@ void ArithmeticLibrary::RegisterLibraryFunctions(FunctionSignatureSet& signature
 		signature.AddParameter(L"identifier", VM::EpochType_Identifier);
 		signature.AddParameter(L"i", VM::EpochType_Integer);
 		signature.SetReturnType(VM::EpochType_Integer);
-		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"+="), signature));
+		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"+=@@integer"), signature));
 	}
 	{
 		FunctionSignature signature;
 		signature.AddParameter(L"identifier", VM::EpochType_Identifier);
 		signature.AddParameter(L"i", VM::EpochType_Integer);
 		signature.SetReturnType(VM::EpochType_Integer);
-		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"-="), signature));
+		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"-=@@integer"), signature));
+	}
+
+	{
+		FunctionSignature signature;
+		signature.AddParameter(L"identifier", VM::EpochType_Identifier);
+		signature.AddParameter(L"i", VM::EpochType_Real);
+		signature.SetReturnType(VM::EpochType_Real);
+		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"+=@@real"), signature));
+	}
+	{
+		FunctionSignature signature;
+		signature.AddParameter(L"identifier", VM::EpochType_Identifier);
+		signature.AddParameter(L"i", VM::EpochType_Real);
+		signature.SetReturnType(VM::EpochType_Real);
+		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"-=@@real"), signature));
 	}
 
 	{
 		FunctionSignature signature;
 		signature.AddParameter(L"identifier", VM::EpochType_Identifier);
 		signature.SetReturnType(VM::EpochType_Integer);
-		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"++"), signature));
+		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"++@@integer"), signature));
 	}
 	{
 		FunctionSignature signature;
 		signature.AddParameter(L"identifier", VM::EpochType_Identifier);
 		signature.SetReturnType(VM::EpochType_Integer);
-		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"--"), signature));
+		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"--@@integer"), signature));
+	}
+
+	{
+		FunctionSignature signature;
+		signature.AddParameter(L"identifier", VM::EpochType_Identifier);
+		signature.SetReturnType(VM::EpochType_Real);
+		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"++@@real"), signature));
+	}
+	{
+		FunctionSignature signature;
+		signature.AddParameter(L"identifier", VM::EpochType_Identifier);
+		signature.SetReturnType(VM::EpochType_Real);
+		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"--@@real"), signature));
 	}
 }
 
@@ -226,22 +388,26 @@ void ArithmeticLibrary::RegisterInfixOperators(StringSet& infixtable, Precedence
 	{
 		StringHandle handle = stringpool.Pool(L"+");
 		AddToSetNoDupe(infixtable, stringpool.GetPooledString(handle));
-		precedences.insert(std::make_pair(PRECEDENCE_ADDSUBTRACT, handle));
+		precedences.insert(std::make_pair(PRECEDENCE_ADDSUBTRACT, stringpool.Pool(L"+@@integer")));
+		precedences.insert(std::make_pair(PRECEDENCE_ADDSUBTRACT, stringpool.Pool(L"+@@real")));
 	}
 	{
 		StringHandle handle = stringpool.Pool(L"-");
 		AddToSetNoDupe(infixtable, stringpool.GetPooledString(handle));
-		precedences.insert(std::make_pair(PRECEDENCE_ADDSUBTRACT, handle));
+		precedences.insert(std::make_pair(PRECEDENCE_ADDSUBTRACT, stringpool.Pool(L"-@@integer")));
+		precedences.insert(std::make_pair(PRECEDENCE_ADDSUBTRACT, stringpool.Pool(L"-@@real")));
 	}
 	{
 		StringHandle handle = stringpool.Pool(L"*");
 		AddToSetNoDupe(infixtable, stringpool.GetPooledString(handle));
-		precedences.insert(std::make_pair(PRECEDENCE_MULTIPLYDIVIDE, handle));
+		precedences.insert(std::make_pair(PRECEDENCE_MULTIPLYDIVIDE, stringpool.Pool(L"*@@integer")));
+		precedences.insert(std::make_pair(PRECEDENCE_MULTIPLYDIVIDE, stringpool.Pool(L"*@@real")));
 	}
 	{
 		StringHandle handle = stringpool.Pool(L"/");
 		AddToSetNoDupe(infixtable, stringpool.GetPooledString(handle));
-		precedences.insert(std::make_pair(PRECEDENCE_MULTIPLYDIVIDE, handle));
+		precedences.insert(std::make_pair(PRECEDENCE_MULTIPLYDIVIDE, stringpool.Pool(L"/@@integer")));
+		precedences.insert(std::make_pair(PRECEDENCE_MULTIPLYDIVIDE, stringpool.Pool(L"/@@real")));
 	}
 }
 
@@ -275,6 +441,46 @@ void ArithmeticLibrary::RegisterLibraryOverloads(std::map<StringHandle, std::set
 	{
 		StringHandle functionnamehandle = stringpool.Pool(L"!");
 		overloadmap[functionnamehandle].insert(stringpool.Pool(L"!@@integer"));
+	}
+	{
+		StringHandle functionnamehandle = stringpool.Pool(L"+");
+		overloadmap[functionnamehandle].insert(stringpool.Pool(L"+@@integer"));
+		overloadmap[functionnamehandle].insert(stringpool.Pool(L"+@@real"));
+	}
+	{
+		StringHandle functionnamehandle = stringpool.Pool(L"-");
+		overloadmap[functionnamehandle].insert(stringpool.Pool(L"-@@integer"));
+		overloadmap[functionnamehandle].insert(stringpool.Pool(L"-@@real"));
+	}
+	{
+		StringHandle functionnamehandle = stringpool.Pool(L"*");
+		overloadmap[functionnamehandle].insert(stringpool.Pool(L"*@@integer"));
+		overloadmap[functionnamehandle].insert(stringpool.Pool(L"*@@real"));
+	}
+	{
+		StringHandle functionnamehandle = stringpool.Pool(L"/");
+		overloadmap[functionnamehandle].insert(stringpool.Pool(L"/@@integer"));
+		overloadmap[functionnamehandle].insert(stringpool.Pool(L"/@@real"));
+	}
+	{
+		StringHandle functionnamehandle = stringpool.Pool(L"+=");
+		overloadmap[functionnamehandle].insert(stringpool.Pool(L"+=@@integer"));
+		overloadmap[functionnamehandle].insert(stringpool.Pool(L"+=@@real"));
+	}
+	{
+		StringHandle functionnamehandle = stringpool.Pool(L"-=");
+		overloadmap[functionnamehandle].insert(stringpool.Pool(L"-=@@integer"));
+		overloadmap[functionnamehandle].insert(stringpool.Pool(L"-=@@real"));
+	}
+	{
+		StringHandle functionnamehandle = stringpool.Pool(L"++");
+		overloadmap[functionnamehandle].insert(stringpool.Pool(L"++@@integer"));
+		overloadmap[functionnamehandle].insert(stringpool.Pool(L"++@@real"));
+	}
+	{
+		StringHandle functionnamehandle = stringpool.Pool(L"--");
+		overloadmap[functionnamehandle].insert(stringpool.Pool(L"--@@integer"));
+		overloadmap[functionnamehandle].insert(stringpool.Pool(L"--@@real"));
 	}
 }
 

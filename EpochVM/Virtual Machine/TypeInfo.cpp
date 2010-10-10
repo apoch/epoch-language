@@ -10,6 +10,7 @@
 #include "Virtual Machine/TypeInfo.h"
 
 #include "Utility/Types/IntegerTypes.h"
+#include "Utility/Types/RealTypes.h"
 #include "Utility/Types/IDTypes.h"
 
 #include <exception>
@@ -30,6 +31,7 @@ size_t VM::GetStorageSize(EpochTypeID type)
 	case EpochType_Integer:				return sizeof(Integer32);
 	case EpochType_String:				return sizeof(StringHandle);
 	case EpochType_Boolean:				return sizeof(bool);
+	case EpochType_Real:				return sizeof(Real32);
 
 	default:
 		throw FatalException("Unable to determine the size of this variable/structure member");

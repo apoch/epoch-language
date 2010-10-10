@@ -11,8 +11,9 @@
 // Dependencies
 #include "Metadata/ScopeDescription.h"
 
-#include "Utility/Types/IntegerTypes.h"
 #include "Utility/Types/EpochTypeIDs.h"
+#include "Utility/Types/IntegerTypes.h"
+#include "Utility/Types/RealTypes.h"
 #include "Utility/Types/IDTypes.h"
 
 #include "Bytecode/Instructions.h"
@@ -50,6 +51,7 @@ public:
 	void PushIntegerLiteral(Integer32 value);
 	void PushStringLiteral(StringHandle handle);
 	void PushBooleanLiteral(bool value);
+	void PushRealLiteral(Real32 value);
 	void PushVariableValue(StringHandle variablename);
 
 	void PopStack(VM::EpochTypeID type);
@@ -102,6 +104,7 @@ private:
 	void EmitRawValue(Integer32 value);
 	void EmitRawValue(HandleType value);
 	void EmitRawValue(const std::wstring& value);
+	void EmitRawValue(Real32 value);
 
 	void PrependBytes(unsigned numbytes, const void* bytes);
 
@@ -128,4 +131,5 @@ private:
 private:
 	std::vector<Byte>& Buffer;
 };
+
 

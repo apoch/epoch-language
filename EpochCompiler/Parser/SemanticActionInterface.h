@@ -15,6 +15,7 @@
 
 // Dependencies
 #include "Utility/Types/IntegerTypes.h"
+#include "Utility/Types/RealTypes.h"
 #include "Bytecode/EntityTags.h"
 
 #include <boost/spirit/include/classic_position_iterator.hpp>
@@ -31,6 +32,7 @@ public:
 	virtual void StoreIntegerLiteral(Integer32 value) = 0;
 	virtual void StoreStringLiteral(const std::wstring& value) = 0;
 	virtual void StoreBooleanLiteral(bool value) = 0;
+	virtual void StoreRealLiteral(Real32 value) = 0;
 
 	virtual void StoreEntityType(Bytecode::EntityTag typetag) = 0;
 	virtual void StoreEntityType(const std::wstring& identifier) = 0;

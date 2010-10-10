@@ -11,6 +11,7 @@
 // Dependencies
 #include "Utility/Types/EpochTypeIDs.h"
 #include "Utility/Types/IntegerTypes.h"
+#include "Utility/Types/RealTypes.h"
 #include "Utility/Types/IDTypes.h"
 
 
@@ -28,6 +29,8 @@ public:
 public:
 	void Set(Integer32 value);
 	void Set(StringHandle value);
+	void Set(bool value);
+	void Set(Real32 value);
 
 // Stack interaction
 public:
@@ -39,10 +42,13 @@ private:
 	{
 		Integer32 Value_Integer32;
 		StringHandle Value_StringHandle;
+		bool Value_Boolean;
+		Real32 Value_Real;
 	};
 
 	VM::EpochTypeID Type;
 };
+
 
 
 

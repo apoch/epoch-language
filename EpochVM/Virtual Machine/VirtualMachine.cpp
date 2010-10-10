@@ -320,6 +320,13 @@ void ExecutionContext::Execute(const ScopeDescription* scope)
 					}
 					break;
 
+				case EpochType_Real:
+					{
+						Real32 value = Fetch<Real32>();
+						State.Stack.PushValue(value);
+					}
+					break;
+
 				default:
 					throw NotImplementedException("Cannot execute PUSH instruction: unsupported type");
 				}

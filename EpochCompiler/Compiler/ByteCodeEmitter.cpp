@@ -97,6 +97,16 @@ void ByteCodeEmitter::PushBooleanLiteral(bool value)
 }
 
 //
+// Emit code for pushing a real literal onto the stack
+//
+void ByteCodeEmitter::PushRealLiteral(Real32 value)
+{
+	EmitInstruction(Bytecode::Instructions::Push);
+	EmitTypeAnnotation(VM::EpochType_Real);
+	EmitRawValue(value);
+}
+
+//
 // Emit code for reading a variable's value and pushing the value onto the stack
 //
 void ByteCodeEmitter::PushVariableValue(StringHandle variablename)
@@ -433,6 +443,14 @@ void ByteCodeEmitter::EmitRawValue(const std::wstring& value)
 void ByteCodeEmitter::EmitRawValue(bool value)
 {
 	Buffer.push_back(value ? 1 : 0);
+}
+
+//
+// Append a real to the stream
+//
+void ByteCodeEmitter::EmitRawValue(Real32 value)
+{
+	EmitRawValue(*reinterpret_cast<Integer32*>(&value));
 }
 
 //

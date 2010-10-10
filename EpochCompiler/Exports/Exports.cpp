@@ -9,6 +9,8 @@
 
 #include "Compiler/Session.h"
 
+#include "Utility/Strings.h"
+
 
 //
 // Wrapper for converting an in-memory source code buffer to bytecode
@@ -26,6 +28,11 @@ extern "C" void* __stdcall CompileSourceToByteCode(const wchar_t* filename, cons
 		session->AddCompileBlock(source, filename);
 		session->EmitByteCode();
 		return session.release();
+	}
+	catch(const std::exception& e)
+	{
+		::MessageBox(0, widen(e.what()).c_str(), L"Epoch Exception", MB_ICONSTOP);
+		return NULL;
 	}
 	catch(...)
 	{

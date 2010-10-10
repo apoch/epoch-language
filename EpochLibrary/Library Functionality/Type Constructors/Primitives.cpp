@@ -16,6 +16,7 @@
 
 #include "Utility/Types/EpochTypeIDs.h"
 #include "Utility/Types/IntegerTypes.h"
+#include "Utility/Types/RealTypes.h"
 #include "Utility/StringPool.h"
 #include "Utility/NoDupeMap.h"
 
@@ -56,6 +57,17 @@ namespace
 		context.Variables->Write(identifierhandle, value);
 	}
 
+	//
+	// Construct a real variable in memory
+	//
+	void ConstructReal(StringHandle functionname, VM::ExecutionContext& context)
+	{
+		Real32 value = context.State.Stack.PopValue<Real32>();
+		StringHandle identifierhandle = context.State.Stack.PopValue<StringHandle>();
+
+		context.Variables->Write(identifierhandle, value);
+	}
+
 
 	//
 	// Compile-time helper: when a variable definition is encountered, this
@@ -83,6 +95,7 @@ void TypeConstructors::RegisterLibraryFunctions(FunctionInvocationTable& table, 
 	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"integer"), ConstructInteger));
 	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"string"), ConstructString));
 	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"boolean"), ConstructBoolean));
+	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"real"), ConstructReal));
 }
 
 //
@@ -108,6 +121,12 @@ void TypeConstructors::RegisterLibraryFunctions(FunctionSignatureSet& signatures
 		signature.AddParameter(L"value", VM::EpochType_Boolean);
 		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"boolean"), signature));
 	}
+	{
+		FunctionSignature signature;
+		signature.AddParameter(L"identifier", VM::EpochType_Identifier);
+		signature.AddParameter(L"value", VM::EpochType_Real);
+		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"real"), signature));
+	}
 }
 
 //
@@ -118,6 +137,7 @@ void TypeConstructors::RegisterLibraryFunctions(FunctionCompileHelperTable& tabl
 	AddToMapNoDupe(table, std::make_pair(L"integer", CompileConstructorPrimitive));
 	AddToMapNoDupe(table, std::make_pair(L"string", CompileConstructorPrimitive));
 	AddToMapNoDupe(table, std::make_pair(L"boolean", CompileConstructorPrimitive));
+	AddToMapNoDupe(table, std::make_pair(L"real", CompileConstructorPrimitive));
 }
 
 

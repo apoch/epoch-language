@@ -11,6 +11,8 @@
 
 #include "Virtual Machine/VirtualMachine.h"
 
+#include "Utility/Types/RealTypes.h"
+
 #include "Utility/StringPool.h"
 #include "Utility/NoDupeMap.h"
 
@@ -59,6 +61,18 @@ namespace
 
 		context.State.Stack.PushValue(result);
 	}
+
+	void CastRealToString(StringHandle functionname, ExecutionContext& context)
+	{
+		Real32 value = context.State.Stack.PopValue<Real32>();
+		StringHandle targettype = context.State.Stack.PopValue<StringHandle>();
+
+		std::wostringstream converter;
+		converter << value;
+		StringHandle result = context.OwnerVM.PoolString(converter.str());
+
+		context.State.Stack.PushValue(result);
+	}
 }
 
 
@@ -70,6 +84,7 @@ void TypeCasts::RegisterLibraryFunctions(FunctionInvocationTable& table, StringP
 	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"cast@@integer_to_string"), CastIntegerToString));
 	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"cast@@string_to_integer"), CastStringToInteger));
 	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"cast@@boolean_to_string"), CastBooleanToString));
+	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"cast@@real_to_string"), CastRealToString));
 }
 
 //
@@ -98,6 +113,13 @@ void TypeCasts::RegisterLibraryFunctions(FunctionSignatureSet& signatureset, Str
 		signature.SetReturnType(VM::EpochType_String);
 		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"cast@@boolean_to_string"), signature));
 	}
+	{
+		FunctionSignature signature;
+		signature.AddPatternMatchedParameterIdentifier(stringpool.Pool(L"string"));
+		signature.AddParameter(L"value", EpochType_Real);
+		signature.SetReturnType(VM::EpochType_String);
+		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"cast@@real_to_string"), signature));
+	}
 }
 
 
@@ -111,6 +133,7 @@ void TypeCasts::RegisterLibraryOverloads(std::map<StringHandle, std::set<StringH
 		overloadmap[functionnamehandle].insert(stringpool.Pool(L"cast@@integer_to_string"));
 		overloadmap[functionnamehandle].insert(stringpool.Pool(L"cast@@string_to_integer"));
 		overloadmap[functionnamehandle].insert(stringpool.Pool(L"cast@@boolean_to_string"));
+		overloadmap[functionnamehandle].insert(stringpool.Pool(L"cast@@real_to_string"));
 	}
 }
 

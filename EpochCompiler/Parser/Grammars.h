@@ -76,13 +76,18 @@ struct FundamentalGrammar : public boost::spirit::classic::grammar<FundamentalGr
 				CLOSEPARENS(')'),
 				OPENBRACE('{'),
 				CLOSEBRACE('}'),
+				PERIOD('.'),
 				COMMA(','),
 				QUOTE('\"'),
 				NEGATE('-'),
 
 				MAPARROW("->"),
+				
 				INTEGER("integer"),
 				STRING("string"),
+				BOOLEAN("boolean"),
+				REAL("real"),
+
 				ASSIGN("="),
 
 				EPOCH_TRUE("true"),
@@ -101,6 +106,9 @@ struct FundamentalGrammar : public boost::spirit::classic::grammar<FundamentalGr
 				]
 				;
 
+			RealLiteral
+				= (!NEGATE) >> (+(digit_p)) >> PERIOD >> (+(digit_p))
+				;
 
 			IntegerLiteral
 				= (!NEGATE) >> (+(digit_p))
@@ -119,6 +127,8 @@ struct FundamentalGrammar : public boost::spirit::classic::grammar<FundamentalGr
 			VariableType
 				= INTEGER
 				| STRING
+				| BOOLEAN
+				| REAL
 				;
 
 			
@@ -146,7 +156,8 @@ struct FundamentalGrammar : public boost::spirit::classic::grammar<FundamentalGr
 
 
 			Literal
-				= IntegerLiteral[StoreIntegerLiteral(self.Bindings)]
+				= RealLiteral[StoreRealLiteral(self.Bindings)]
+				| IntegerLiteral[StoreIntegerLiteral(self.Bindings)]
 				| StringLiteral[StoreStringLiteral(self.Bindings)]
 				| BooleanLiteral[StoreBooleanLiteral(self.Bindings)]
 				;
@@ -269,15 +280,16 @@ struct FundamentalGrammar : public boost::spirit::classic::grammar<FundamentalGr
 				AddOpAssignOperator(*PooledNarrowStrings.insert(narrow(*iter)).first);
 		}
 
-		boost::spirit::classic::chlit<> COLON, OPENPARENS, CLOSEPARENS, OPENBRACE, CLOSEBRACE, COMMA, QUOTE, NEGATE;
+		boost::spirit::classic::chlit<> COLON, OPENPARENS, CLOSEPARENS, OPENBRACE, CLOSEBRACE, PERIOD, COMMA, QUOTE, NEGATE;
 
-		boost::spirit::classic::strlit<> MAPARROW, INTEGER, STRING, ASSIGN, EPOCH_TRUE, EPOCH_FALSE;
+		boost::spirit::classic::strlit<> MAPARROW, INTEGER, STRING, BOOLEAN, REAL, ASSIGN, EPOCH_TRUE, EPOCH_FALSE;
 
 		boost::spirit::classic::rule<ScannerType> StringIdentifier;
 
 		boost::spirit::classic::rule<ScannerType> StringLiteral;
 		boost::spirit::classic::rule<ScannerType> IntegerLiteral;
 		boost::spirit::classic::rule<ScannerType> BooleanLiteral;
+		boost::spirit::classic::rule<ScannerType> RealLiteral;
 		boost::spirit::classic::rule<ScannerType> Literal;
 
 		boost::spirit::classic::rule<ScannerType> ExpressionComponent;

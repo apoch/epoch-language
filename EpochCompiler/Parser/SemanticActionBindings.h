@@ -205,6 +205,31 @@ struct StoreBooleanLiteral
 	SemanticActionInterface& Bindings;
 };
 
+struct StoreRealLiteral
+{
+	explicit StoreRealLiteral(SemanticActionInterface& bindings)
+		: Bindings(bindings)
+	{ }
+
+	template <typename IteratorType>
+	void operator () (IteratorType begin, IteratorType end) const
+	{
+		Trace(L"StoreRealLiteral", begin, end);
+		Bindings.SetParsePosition(end);
+
+		std::wstring str(begin, end);
+		Real32 value;
+
+		std::wstringstream conversion;
+		conversion << str;
+		conversion >> value;
+
+		Bindings.StoreRealLiteral(value);
+	}
+
+	SemanticActionInterface& Bindings;
+};
+
 
 struct StoreEntityType
 {

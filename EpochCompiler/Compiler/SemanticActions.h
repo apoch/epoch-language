@@ -48,6 +48,7 @@ private:
 		ITEMTYPE_STRINGLITERAL,
 		ITEMTYPE_INTEGERLITERAL,
 		ITEMTYPE_BOOLEANLITERAL,
+		ITEMTYPE_REALLITERAL,
 	};
 
 // Construction
@@ -80,6 +81,7 @@ public:
 	virtual void StoreIntegerLiteral(Integer32 value);
 	virtual void StoreStringLiteral(const std::wstring& value);
 	virtual void StoreBooleanLiteral(bool value);
+	virtual void StoreRealLiteral(Real32 value);
 
 	virtual void StoreEntityType(Bytecode::EntityTag typetag);
 	virtual void StoreEntityType(const std::wstring& identifier);
@@ -152,11 +154,12 @@ private:
 	void Throw(const ExceptionT& exception) const;
 
 	StringHandle AllocateNewOverloadedFunctionName(StringHandle originalname);
-	void RemapFunctionToOverload(const std::vector<CompileTimeParameter>& params, VM::EpochTypeID expectedreturntype, bool allowpartialparamsets, std::wstring& out_remappedname, StringHandle& out_remappednamehandle) const;
+	void RemapFunctionToOverload(const std::vector<CompileTimeParameter>& params, size_t paramoffset, const std::vector<VM::EpochTypeID>& possiblereturntypes, std::wstring& out_remappedname, StringHandle& out_remappednamehandle) const;
+	void GetAllMatchingOverloads(const std::vector<CompileTimeParameter>& params, size_t paramoffset, const std::vector<VM::EpochTypeID>& possiblereturntypes, const std::wstring& originalname, StringHandle originalnamehandle, std::vector<std::wstring>& out_names, std::vector<StringHandle>& out_namehandles) const;
 
 	std::wstring GetPatternMatchResolverName(const std::wstring& originalname) const;
 
-	VM::EpochTypeID WalkCallChainForExpectedType(size_t index) const;
+	std::vector<VM::EpochTypeID> WalkCallChainForExpectedTypes(size_t index) const;
 
 	int GetOperatorPrecedence(StringHandle operatorname) const;
 
@@ -186,6 +189,7 @@ private:
 	std::stack<Integer32> IntegerLiterals;
 	std::stack<StringHandle> StringLiterals;
 	std::stack<bool> BooleanLiterals;
+	std::stack<Real32> RealLiterals;
 
 	std::stack<FunctionSignature> FunctionSignatureStack;
 	VM::EpochTypeID ParamType;

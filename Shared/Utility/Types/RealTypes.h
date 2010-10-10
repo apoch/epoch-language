@@ -8,4 +8,6 @@
 #pragma once
 
 
-typedef float Real;
+typedef float Real32;
+typedef double Real64;
+

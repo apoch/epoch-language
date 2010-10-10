@@ -99,6 +99,7 @@ extern "C" void __stdcall BindToCompiler(CompilerInfoTable& info, StringPoolMana
 		BooleanLibrary::RegisterLibraryOverloads(*info.Overloads, stringpool);
 
 		ComparisonLibrary::RegisterInfixOperators(*info.InfixOperators, *info.Precedences, stringpool);
+		ComparisonLibrary::RegisterLibraryOverloads(*info.Overloads, stringpool);
 
 		StringLibrary::RegisterInfixOperators(*info.InfixOperators, *info.Precedences, stringpool);
 

@@ -50,6 +50,18 @@ CompileSession::CompileSession()
 	info.PostfixEntities = &PostfixEntities;
 	info.PostfixClosers = &PostfixClosers;
 	bindtocompiler(info, StringPool, customtag);
+
+	for(EntityTable::const_iterator iter = CustomEntities.begin(); iter != CustomEntities.end(); ++iter)
+		Identifiers.CustomEntities.insert(StringPool.GetPooledString(iter->second.StringName));
+
+	for(EntityTable::const_iterator iter = ChainedEntities.begin(); iter != ChainedEntities.end(); ++iter)
+		Identifiers.ChainedEntities.insert(StringPool.GetPooledString(iter->second.StringName));
+
+	for(EntityTable::const_iterator iter = PostfixEntities.begin(); iter != PostfixEntities.end(); ++iter)
+		Identifiers.PostfixEntities.insert(StringPool.GetPooledString(iter->second.StringName));
+
+	for(EntityTable::const_iterator iter = PostfixClosers.begin(); iter != PostfixClosers.end(); ++iter)
+		Identifiers.PostfixClosers.insert(StringPool.GetPooledString(iter->second.StringName));
 }
 
 

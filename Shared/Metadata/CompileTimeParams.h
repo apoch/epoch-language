@@ -11,6 +11,7 @@
 // Dependencies
 #include "Utility/Types/EpochTypeIDs.h"
 #include "Utility/Types/IntegerTypes.h"
+#include "Utility/Types/RealTypes.h"
 #include "Utility/Types/IDTypes.h"
 
 #include <string>
@@ -35,6 +36,7 @@ struct CompileTimeParameter
 		Integer32 IntegerValue;
 		StringHandle StringHandleValue;
 		bool BooleanValue;
+		Real32 RealValue;
 	} Payload;
 
 	std::wstring StringPayload;
