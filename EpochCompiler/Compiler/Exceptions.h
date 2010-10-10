@@ -21,13 +21,6 @@ class TypeMismatchException : public RecoverableException
 public:
 	explicit TypeMismatchException(const char* message) : RecoverableException(message) { }
 	explicit TypeMismatchException(const std::string& message) : RecoverableException(message) { }
-
-// Helpers for making error reporting more friendly
-public:
-	virtual const char* GetErrorPrologue() const
-	{
-		return "The provided data type is not compatible with the expected data type.";
-	}
 };
 
 
@@ -44,13 +37,6 @@ class ParameterException : public RecoverableException
 public:
 	explicit ParameterException(const char* message) : RecoverableException(message) { }
 	explicit ParameterException(const std::string& message) : RecoverableException(message) { }
-
-// Helpers for making error reporting more friendly
-public:
-	virtual const char* GetErrorPrologue() const
-	{
-		return "The function parameters provided do not match the expected parameters.";
-	}
 };
 
 
@@ -63,11 +49,4 @@ class MalformedStatementException : public RecoverableException
 public:
 	explicit MalformedStatementException(const char* message) : RecoverableException(message) { }
 	explicit MalformedStatementException(const std::string& message) : RecoverableException(message) { }
-
-// Helpers for making error reporting more friendly
-public:
-	virtual const char* GetErrorPrologue() const
-	{
-		return "Expected a statement or code control entity.";
-	}
 };

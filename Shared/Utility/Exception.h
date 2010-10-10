@@ -29,10 +29,6 @@ public:
 		: exception(message.c_str())
 	{
 	}
-
-// Helpers for making error reporting more friendly
-public:
-	virtual const char* GetErrorPrologue() const = 0;
 };
 
 
@@ -50,13 +46,6 @@ class FatalException : public Exception
 public:
 	explicit FatalException(const char* message) : Exception(message) { }
 	explicit FatalException(const std::string& message) : Exception(message) { }
-
-// Helpers for making error reporting more friendly
-public:
-	virtual const char* GetErrorPrologue() const
-	{
-		return "The Epoch language subsystem has encountered an unrecoverable error.";
-	}
 };
 
 
@@ -69,13 +58,6 @@ class RecoverableException : public Exception
 public:
 	explicit RecoverableException(const char* message) : Exception(message) { }
 	explicit RecoverableException(const std::string& message) : Exception(message) { }
-
-// Helpers for making error reporting more friendly
-public:
-	virtual const char* GetErrorPrologue() const
-	{
-		return "The Epoch language subsystem has encountered an error; this situation should have been recoverable but for some reason was not handled.";
-	}
 };
 
 
@@ -88,13 +70,6 @@ class MemoryException : public FatalException
 public:
 	explicit MemoryException(const char* message) : FatalException(message) { }
 	explicit MemoryException(const std::string& message) : FatalException(message) { }
-
-// Helpers for making error reporting more friendly
-public:
-	virtual const char* GetErrorPrologue() const
-	{
-		return "The Epoch memory manager has encountered an error.";
-	}
 };
 
 
@@ -107,13 +82,6 @@ class FileException : public RecoverableException
 public:
 	explicit FileException(const char* message) : RecoverableException(message) { }
 	explicit FileException(const std::string& message) : RecoverableException(message) { }
-
-// Helpers for making error reporting more friendly
-public:
-	virtual const char* GetErrorPrologue() const
-	{
-		return "The Epoch subsystem encountered a file I/O error.";
-	}
 };
 
 
@@ -126,13 +94,6 @@ class NotImplementedException : public FatalException
 public:
 	explicit NotImplementedException(const char* message) : FatalException(message) { }
 	explicit NotImplementedException(const std::string& message) : FatalException(message) { }
-
-// Helpers for making error reporting more friendly
-public:
-	virtual const char* GetErrorPrologue() const
-	{
-		return "The Epoch subsystem attempted to make use of a feature which has not yet been implemented.";
-	}
 };
 
 
@@ -145,13 +106,6 @@ class InvalidIdentifierException : public RecoverableException
 public:
 	explicit InvalidIdentifierException(const char* message) : RecoverableException(message) { }
 	explicit InvalidIdentifierException(const std::string& message) : RecoverableException(message) { }
-
-// Helpers for making error reporting more friendly
-public:
-	virtual const char* GetErrorPrologue() const
-	{
-		return "A program identifier is invalid or inactive in the current scope.";
-	}
 };
 
 
@@ -164,12 +118,5 @@ class CompileSettingsException : public FatalException
 public:
 	explicit CompileSettingsException(const char* message) : FatalException(message) { }
 	explicit CompileSettingsException(const std::string& message) : FatalException(message) { }
-
-// Helpers for making error reporting more friendly
-public:
-	virtual const char* GetErrorPrologue() const
-	{
-		return "The Epoch subsystem has been compiled incorrectly or in an inconsistent manner.";
-	}
 };
 

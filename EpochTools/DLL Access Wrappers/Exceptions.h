@@ -22,13 +22,6 @@ namespace DLLAccess
 	public:
 		explicit DLLException(const char* message) : FatalException(message) { }
 		explicit DLLException(const std::string& message) : FatalException(message) { }
-
-	// Helpers for making error reporting more friendly
-	public:
-		virtual const char* GetErrorPrologue() const
-		{
-			return "The Epoch language subsystem failed to load a critical component.";
-		}
 	};
 
 }

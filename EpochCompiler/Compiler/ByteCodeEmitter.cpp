@@ -118,6 +118,10 @@ void ByteCodeEmitter::PushVariableValue(StringHandle variablename)
 //
 // Emit code for popping a given number of bytes off the stack
 //
+// Note that we do not store the number of bytes to pop directly; instead, we
+// store a type annotation, and the size of that type is determined at runtime
+// and used to pop the stack.
+//
 void ByteCodeEmitter::PopStack(VM::EpochTypeID type)
 {
 	EmitInstruction(Bytecode::Instructions::Pop);
@@ -130,7 +134,7 @@ void ByteCodeEmitter::PopStack(VM::EpochTypeID type)
 //-------------------------------------------------------------------------------
 
 //
-// Emit code for invoking a specific function
+// Emit code for invoking a specific function or operator
 //
 void ByteCodeEmitter::Invoke(StringHandle functionname)
 {
@@ -151,9 +155,14 @@ void ByteCodeEmitter::Halt()
 // Entities and lexical scopes
 //-------------------------------------------------------------------------------
 
-
 //
 // Emit a generic entity body header
+//
+// Entities are used for flow control, standalone lexical scopes, compilation directives,
+// and so on. Essentially anything with parameters/return values and attached code is an
+// entity in the Epoch system. Entering an entity has the effect of activating the lexical
+// scope attached to that entity, as well as optionally performing some meta-control code
+// to accomplish things like flow control.
 //
 void ByteCodeEmitter::EnterEntity(Bytecode::EntityTag tag, StringHandle name)
 {
@@ -165,6 +174,9 @@ void ByteCodeEmitter::EnterEntity(Bytecode::EntityTag tag, StringHandle name)
 //
 // Emit a generic entity exit
 //
+// Entity exit instructions are used to know when to clean up the local variable stack and
+// destruct any objects that need to go out of scope.
+//
 void ByteCodeEmitter::ExitEntity()
 {
 	EmitInstruction(Bytecode::Instructions::EndEntity);
@@ -172,6 +184,12 @@ void ByteCodeEmitter::ExitEntity()
 
 //
 // Emit an instruction denoting that we are entering an entity chain
+//
+// Entity chaining is used to allow control flow to optionally pass between one or more
+// entities in a chain. This can be used to accomplish if/elseif/else statements, loops,
+// exception handlers, switches, and so on. The chain-begin instruction is used to note
+// where the instruction pointer should be placed should the meta-control code select to
+// repeat the chain, as is the case during loop execution for instance.
 //
 void ByteCodeEmitter::BeginChain()
 {
@@ -181,6 +199,9 @@ void ByteCodeEmitter::BeginChain()
 //
 // Emit an instruction denoting that we are exiting an entity chain
 //
+// Entity chain exit instructions are used to know where to jump the instruction pointer
+// when a chain is finished executing.
+//
 void ByteCodeEmitter::EndChain()
 {
 	EmitInstruction(Bytecode::Instructions::EndChain);
@@ -188,6 +209,10 @@ void ByteCodeEmitter::EndChain()
 
 //
 // Emit an instruction to invoke an entity's meta-control logic
+//
+// This is sometimes done independently of entering an entity (which is the usual time for
+// executing meta-control code); for example, do-while loops invoke the meta-control at the
+// end of the loop rather than the beginning, to enforce a minimum of one iteration.
 //
 void ByteCodeEmitter::InvokeMetacontrol(Bytecode::EntityTag tag)
 {
@@ -201,7 +226,8 @@ void ByteCodeEmitter::InvokeMetacontrol(Bytecode::EntityTag tag)
 //
 // Lexical scope metadata consists of a declaration instruction, the handle to the
 // scope's internal name (e.g. the name of a function, or a generated name for nested
-// scopes within a function, etc.), and the number of data members in the scope.
+// scopes within a function, etc.), the handle to the scope's parent name, and the
+// number of data members in the scope.
 //
 void ByteCodeEmitter::DefineLexicalScope(StringHandle name, StringHandle parent, size_t variablecount)
 {
@@ -268,7 +294,7 @@ void ByteCodeEmitter::ResolvePattern(StringHandle dispatchfunction, const Functi
 		if(signature.GetParameter(i).Name == L"@@patternmatched")
 		{
 			// Dump information about this parameter so we can check its value
-			EmitRawValue(static_cast<Byte>(1));
+			EmitRawValue(true);
 			switch(signature.GetParameter(i).Type)
 			{
 			case VM::EpochType_Integer:
@@ -282,7 +308,7 @@ void ByteCodeEmitter::ResolvePattern(StringHandle dispatchfunction, const Functi
 		else
 		{
 			// Signal that we can ignore this parameter for function matching purposes
-			EmitRawValue(static_cast<Byte>(0));
+			EmitRawValue(false);
 		}
 	}
 }

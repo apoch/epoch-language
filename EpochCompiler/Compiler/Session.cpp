@@ -83,7 +83,8 @@ void CompileSession::EmitByteCode()
 
 	// All global initialization/startup code goes into the beginning of the buffer.
 	// This allows the VM to just pick the start of the buffer as its current instruction
-	// pointer, and then crank away.
+	// pointer, and then crank away. The setup code, e.g. for pooling string literals,
+	// will be prepended to the buffer by the compiler during code compilation.
 
 	// Once all setup code has been executed, we invoke the entrypoint function. At this
 	// point, user code is in full control of execution flow within the VM.

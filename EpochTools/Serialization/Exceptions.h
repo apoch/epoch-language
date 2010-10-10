@@ -23,13 +23,6 @@ namespace Serialization
 	public:
 		explicit SerializationException(const char* message) : FatalException(message) { }
 		explicit SerializationException(const std::string& message) : FatalException(message) { }
-
-	// Helpers for making error reporting more friendly
-	public:
-		virtual const char* GetErrorPrologue() const
-		{
-			return "Serialization of compiled code failed due to an internal error.";
-		}
 	};
 
 }

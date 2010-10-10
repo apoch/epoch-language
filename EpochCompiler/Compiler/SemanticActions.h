@@ -27,8 +27,12 @@
 
 #include "Compiler/Session.h"
 #include "Compiler/ByteCodeEmitter.h"
+#include "Compiler/Exceptions.h"
 
 #include <stack>
+
+#include <boost/spirit/include/classic_exceptions.hpp>
+#include <boost/spirit/include/classic_position_iterator.hpp>
 
 
 //
@@ -63,6 +67,12 @@ private:
 	typedef std::multimap<StringHandle, StringHandle> AllOverloadsMap;
 
 	typedef std::map<StringHandle, FunctionSignature> FunctionSignatureMap;
+
+	typedef boost::spirit::classic::position_iterator<const char*> PosIteratorT;
+	typedef boost::spirit::classic::parser_error<TypeMismatchException, PosIteratorT> SpiritCompatibleTypeMismatchException;
+
+	typedef std::pair<PosIteratorT, StringHandle> OverloadPositionPair;
+	typedef std::list<OverloadPositionPair> OverloadPositionList;
 
 // Construction
 public:
@@ -234,9 +244,9 @@ private:
 	std::stack<StringHandle> AssignmentTargets;
 	std::stack<bool> ReturnsIncludedStatement;
 
-	boost::spirit::classic::position_iterator<const char*> ParsePosition;
+	PosIteratorT ParsePosition;
 
-	std::list<std::pair<boost::spirit::classic::position_iterator<const char*>, StringHandle> > OverloadDefinitions;
+	OverloadPositionList OverloadDefinitions;
 
 	bool InsideParameterList;
 	bool NeedsPatternResolver;
