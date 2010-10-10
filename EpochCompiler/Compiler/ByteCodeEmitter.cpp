@@ -87,6 +87,16 @@ void ByteCodeEmitter::PushStringLiteral(StringHandle handle)
 }
 
 //
+// Emit code for pushing a boolean literal onto the stack
+//
+void ByteCodeEmitter::PushBooleanLiteral(bool value)
+{
+	EmitInstruction(Bytecode::Instructions::Push);
+	EmitTypeAnnotation(VM::EpochType_Boolean);
+	EmitRawValue(value);
+}
+
+//
 // Emit code for reading a variable's value and pushing the value onto the stack
 //
 void ByteCodeEmitter::PushVariableValue(StringHandle variablename)
@@ -415,6 +425,14 @@ void ByteCodeEmitter::EmitRawValue(HandleType value)
 void ByteCodeEmitter::EmitRawValue(const std::wstring& value)
 {
 	std::copy(reinterpret_cast<const Byte*>(value.c_str()), reinterpret_cast<const Byte*>(value.c_str() + value.length() + 1), std::back_inserter(Buffer));
+}
+
+//
+// Append a boolean to the stream
+//
+void ByteCodeEmitter::EmitRawValue(bool value)
+{
+	Buffer.push_back(value ? 1 : 0);
 }
 
 //

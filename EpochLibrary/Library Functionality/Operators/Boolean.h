@@ -2,7 +2,7 @@
 // The Epoch Language Project
 // Epoch Standard Library
 //
-// Library routines for constructing variables of built-in primitive types
+// Library routines for boolean operators
 //
 
 #pragma once
@@ -14,21 +14,16 @@
 
 
 // Forward declarations
-class ScopeDescription;
 class StringPoolManager;
 
-namespace VM
-{
-	class ExecutionContext;
-}
 
-
-namespace TypeConstructors
+namespace BooleanLibrary
 {
 
 	void RegisterLibraryFunctions(FunctionSignatureSet& signatureset, StringPoolManager& stringpool);
 	void RegisterLibraryFunctions(FunctionInvocationTable& table, StringPoolManager& stringpool);
-	void RegisterLibraryFunctions(FunctionCompileHelperTable& table);
+
+	void RegisterLibraryOverloads(std::map<StringHandle, std::set<StringHandle> >& overloadmap, StringPoolManager& stringpool);
 
 }
 

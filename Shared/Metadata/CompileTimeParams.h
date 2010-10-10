@@ -34,6 +34,7 @@ struct CompileTimeParameter
 	{
 		Integer32 IntegerValue;
 		StringHandle StringHandleValue;
+		bool BooleanValue;
 	} Payload;
 
 	std::wstring StringPayload;

@@ -20,7 +20,59 @@
 #include "Utility/NoDupeMap.h"
 
 
-using namespace TypeConstructors;
+namespace
+{
+
+	//
+	// Construct an integer variable in memory
+	//
+	void ConstructInteger(StringHandle functionname, VM::ExecutionContext& context)
+	{
+		Integer32 value = context.State.Stack.PopValue<Integer32>();
+		StringHandle identifierhandle = context.State.Stack.PopValue<StringHandle>();
+
+		context.Variables->Write(identifierhandle, value);
+	}
+
+	//
+	// Construct a string variable in memory
+	//
+	void ConstructString(StringHandle functionname, VM::ExecutionContext& context)
+	{
+		StringHandle value = context.State.Stack.PopValue<StringHandle>();
+		StringHandle identifierhandle = context.State.Stack.PopValue<StringHandle>();
+
+		context.Variables->Write(identifierhandle, value);
+	}
+
+	//
+	// Construct a boolean variable in memory
+	//
+	void ConstructBoolean(StringHandle functionname, VM::ExecutionContext& context)
+	{
+		bool value = context.State.Stack.PopValue<bool>();
+		StringHandle identifierhandle = context.State.Stack.PopValue<StringHandle>();
+
+		context.Variables->Write(identifierhandle, value);
+	}
+
+
+	//
+	// Compile-time helper: when a variable definition is encountered, this
+	// helper adds the variable itself and its type metadata to the current
+	// lexical scope.
+	//
+	void CompileConstructorPrimitive(ScopeDescription& scope, const std::vector<CompileTimeParameter>& compiletimeparams)
+	{
+		VM::EpochTypeID effectivetype = compiletimeparams[1].Type;
+		if(effectivetype == VM::EpochType_Identifier)
+			effectivetype = scope.GetVariableTypeByID(compiletimeparams[1].Payload.StringHandleValue);
+		else if(effectivetype == VM::EpochType_Expression)
+			effectivetype = compiletimeparams[1].ExpressionType;
+		scope.AddVariable(compiletimeparams[0].StringPayload, compiletimeparams[0].Payload.StringHandleValue, effectivetype, VARIABLE_ORIGIN_LOCAL);
+	}
+
+}
 
 
 //
@@ -28,8 +80,9 @@ using namespace TypeConstructors;
 //
 void TypeConstructors::RegisterLibraryFunctions(FunctionInvocationTable& table, StringPoolManager& stringpool)
 {
-	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"integer"), TypeConstructors::ConstructInteger));
-	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"string"), TypeConstructors::ConstructString));
+	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"integer"), ConstructInteger));
+	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"string"), ConstructString));
+	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"boolean"), ConstructBoolean));
 }
 
 //
@@ -49,6 +102,12 @@ void TypeConstructors::RegisterLibraryFunctions(FunctionSignatureSet& signatures
 		signature.AddParameter(L"value", VM::EpochType_String);
 		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"string"), signature));
 	}
+	{
+		FunctionSignature signature;
+		signature.AddParameter(L"identifier", VM::EpochType_Identifier);
+		signature.AddParameter(L"value", VM::EpochType_Boolean);
+		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"boolean"), signature));
+	}
 }
 
 //
@@ -56,45 +115,9 @@ void TypeConstructors::RegisterLibraryFunctions(FunctionSignatureSet& signatures
 //
 void TypeConstructors::RegisterLibraryFunctions(FunctionCompileHelperTable& table)
 {
-	AddToMapNoDupe(table, std::make_pair(L"integer", TypeConstructors::CompileConstructorPrimitive));
-	AddToMapNoDupe(table, std::make_pair(L"string", TypeConstructors::CompileConstructorPrimitive));
+	AddToMapNoDupe(table, std::make_pair(L"integer", CompileConstructorPrimitive));
+	AddToMapNoDupe(table, std::make_pair(L"string", CompileConstructorPrimitive));
+	AddToMapNoDupe(table, std::make_pair(L"boolean", CompileConstructorPrimitive));
 }
 
 
-//
-// Construct an integer variable in memory
-//
-void TypeConstructors::ConstructInteger(StringHandle functionname, VM::ExecutionContext& context)
-{
-	Integer32 value = context.State.Stack.PopValue<Integer32>();
-	StringHandle identifierhandle = context.State.Stack.PopValue<StringHandle>();
-
-	context.Variables->Write(identifierhandle, value);
-}
-
-//
-// Construct a string variable in memory
-//
-void TypeConstructors::ConstructString(StringHandle functionname, VM::ExecutionContext& context)
-{
-	StringHandle value = context.State.Stack.PopValue<StringHandle>();
-	StringHandle identifierhandle = context.State.Stack.PopValue<StringHandle>();
-
-	context.Variables->Write(identifierhandle, value);
-}
-
-
-//
-// Compile-time helper: when a variable definition is encountered, this
-// helper adds the variable itself and its type metadata to the current
-// lexical scope.
-//
-void TypeConstructors::CompileConstructorPrimitive(ScopeDescription& scope, const std::vector<CompileTimeParameter>& compiletimeparams)
-{
-	VM::EpochTypeID effectivetype = compiletimeparams[1].Type;
-	if(effectivetype == VM::EpochType_Identifier)
-		effectivetype = scope.GetVariableTypeByID(compiletimeparams[1].Payload.StringHandleValue);
-	else if(effectivetype == VM::EpochType_Expression)
-		effectivetype = compiletimeparams[1].ExpressionType;
-	scope.AddVariable(compiletimeparams[0].StringPayload, compiletimeparams[0].Payload.StringHandleValue, effectivetype, VARIABLE_ORIGIN_LOCAL);
-}

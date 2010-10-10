@@ -49,15 +49,6 @@ void DebugLibrary::RegisterLibraryFunctions(FunctionSignatureSet& signatureset, 
 }
 
 //
-// Bind the library to the compiler's internal semantic action table
-//
-void DebugLibrary::RegisterLibraryFunctions(FunctionCompileHelperTable& table)
-{
-	// Nothing to do for this library
-}
-
-
-//
 // Write a string to the debug output
 //
 void DebugLibrary::WriteString(StringHandle functionname, VM::ExecutionContext& context)

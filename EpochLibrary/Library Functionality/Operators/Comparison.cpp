@@ -96,14 +96,6 @@ void ComparisonLibrary::RegisterLibraryFunctions(FunctionSignatureSet& signature
 	}
 }
 
-//
-// Bind the library to the compiler's internal semantic action table
-//
-void ComparisonLibrary::RegisterLibraryFunctions(FunctionCompileHelperTable& table)
-{
-	// Nothing to do for this library
-}
-
 
 //
 // Bind the library to the infix operator table

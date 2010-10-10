@@ -70,6 +70,15 @@ void CompilationSemantics::StoreStringLiteral(const std::wstring& value)
 }
 
 //
+// Shift a boolean literal onto the boolean literal stack
+//
+void CompilationSemantics::StoreBooleanLiteral(bool value)
+{
+	BooleanLiterals.push(value);
+	PushedItemTypes.push(ITEMTYPE_BOOLEANLITERAL);
+}
+
+//
 // Shift an entity type tag onto the entity type tag stack
 //
 // Entity type tags are used to help generate prolog and epilog code for each entity,
@@ -552,6 +561,11 @@ void CompilationSemantics::RegisterPatternMatchedParameter()
 		StringLiterals.pop();
 		break;
 
+	case ITEMTYPE_BOOLEANLITERAL:
+		throw NotImplementedException("Pattern matching on this parameter type is not implemented");
+		BooleanLiterals.pop();
+		break;
+
 	case ITEMTYPE_STATEMENT:
 		throw NotImplementedException("Pattern matching on general expressions is not implemented");
 		StatementNames.pop();
@@ -781,6 +795,39 @@ void CompilationSemantics::RegisterReturnValue()
 			Throw(TypeMismatchException("The function is defined as returning a string but the provided default return value is not of string type."));
 		break;
 
+	case VM::EpochType_Boolean:
+		if(PushedItemTypes.top() == ITEMTYPE_BOOLEANLITERAL)
+		{
+			if(!IsPrepass)
+				PendingEmitters.top().PushBooleanLiteral(BooleanLiterals.top());
+			BooleanLiterals.pop();
+		}
+		else if(PushedItemTypes.top() == ITEMTYPE_STRING)
+		{
+			StringHandle varhandle = Session.StringPool.Pool(Strings.top());
+			Strings.pop();
+
+			VM::EpochTypeID vartype = FunctionSignatureStack.top().GetParameter(Session.StringPool.GetPooledString(varhandle)).Type;
+			if(vartype != VM::EpochType_Boolean)
+				Throw(TypeMismatchException("The function is defined as returning a boolean but the provided default return value is not of a boolean type."));
+
+			if(!IsPrepass)
+				PendingEmitters.top().PushVariableValue(varhandle);
+		}
+		else if(PushedItemTypes.top() == ITEMTYPE_STATEMENT)
+		{
+			if(!IsPrepass)
+			{
+				if(StatementTypes.top() != VM::EpochType_Boolean)
+					Throw(TypeMismatchException("The function is defined as returning a boolean but the provided default return value is not of a boolean type."));
+			}
+
+			ReturnsIncludedStatement.top() = true;
+		}
+		else
+			Throw(TypeMismatchException("The function is defined as returning a boolean but the provided default return value is not of a boolean type."));
+		break;
+
 	default:
 		throw NotImplementedException("Unsupported function return type in CompilationSemantics::RegisterReturnValue");
 	}
@@ -932,6 +979,17 @@ void CompilationSemantics::CompleteStatement()
 				case VM::EpochType_String:
 					if(fsiter->second.GetParameter(i).Type == VM::EpochType_String)
 						PendingEmitters.top().PushStringLiteral(CompileTimeParameters.top()[i].Payload.StringHandleValue);
+					else
+					{
+						std::wostringstream errormsg;
+						errormsg << L"Parameter " << (i + 1) << L" to function \"" << statementname << L"\" is of the wrong type";
+						Throw(RecoverableException(narrow(errormsg.str())));
+					}
+					break;
+
+				case VM::EpochType_Boolean:
+					if(fsiter->second.GetParameter(i).Type == VM::EpochType_Boolean)
+						PendingEmitters.top().PushBooleanLiteral(CompileTimeParameters.top()[i].Payload.BooleanValue);
 					else
 					{
 						std::wostringstream errormsg;
@@ -1271,6 +1329,16 @@ void CompilationSemantics::PushParam(const std::wstring& paramname)
 		}
 		break;
 
+	case ITEMTYPE_BOOLEANLITERAL:
+		{
+			CompileTimeParameter ctparam(paramname, VM::EpochType_Boolean);
+			ctparam.Payload.BooleanValue = BooleanLiterals.top();
+			BooleanLiterals.pop();
+			if(!IsPrepass)
+				CompileTimeParameters.top().push_back(ctparam);
+		}
+		break;
+
 	default:
 		throw NotImplementedException("The parser stack contains something we aren't ready to handle in CompilationSemantics::PushParam");
 	}
@@ -1315,6 +1383,11 @@ bool CompilationSemantics::CheckParameterValidity(VM::EpochTypeID expectedtype)
 	
 	case ITEMTYPE_INTEGERLITERAL:
 		if(expectedtype != VM::EpochType_Integer)
+			return false;
+		break;
+
+	case ITEMTYPE_BOOLEANLITERAL:
+		if(expectedtype != VM::EpochType_Boolean)
 			return false;
 		break;
 
@@ -1622,6 +1695,8 @@ VM::EpochTypeID CompilationSemantics::LookupTypeName(const std::wstring& type) c
 		return VM::EpochType_Integer;
 	else if(type == L"string")
 		return VM::EpochType_String;
+	else if(type == L"boolean")
+		return VM::EpochType_Boolean;
 
 	throw NotImplementedException("Cannot map the type name \"" + narrow(type) + "\" to an internal type ID");
 }
@@ -1702,6 +1777,10 @@ void CompilationSemantics::EmitInfixOperand(ByteCodeEmitter& emitter, const Comp
 
 	case VM::EpochType_String:
 		emitter.PushIntegerLiteral(ctparam.Payload.StringHandleValue);
+		break;
+
+	case VM::EpochType_Boolean:
+		emitter.PushBooleanLiteral(ctparam.Payload.BooleanValue);
 		break;
 
 	case VM::EpochType_Identifier:
@@ -1814,6 +1893,7 @@ void CompilationSemantics::SanityCheck() const
 	if(!Strings.empty() || !EntityTypeTags.empty() || !IntegerLiterals.empty() || !StringLiterals.empty() || !FunctionSignatureStack.empty()
 	|| !StatementNames.empty() || !StatementParamCount.empty() || !StatementTypes.empty() || !LexicalScopeStack.empty() || !CompileTimeParameters.empty()
 	|| !CurrentEntities.empty() || !FunctionReturnVars.empty() || !PendingEmissionBuffers.empty() || !PendingEmitters.empty() || !AssignmentTargets.empty()
-	|| !PushedItemTypes.empty() || !ReturnsIncludedStatement.empty() || !FunctionReturnTypeNames.empty() || !InfixOperators.empty() || !UnaryOperators.empty())
+	|| !PushedItemTypes.empty() || !ReturnsIncludedStatement.empty() || !FunctionReturnTypeNames.empty() || !InfixOperators.empty() || !UnaryOperators.empty()
+	|| !BooleanLiterals.empty())
 		throw FatalException("Parser leaked a resource");
 }

@@ -22,7 +22,6 @@ namespace ComparisonLibrary
 
 	void RegisterLibraryFunctions(FunctionSignatureSet& signatureset, StringPoolManager& stringpool);
 	void RegisterLibraryFunctions(FunctionInvocationTable& table, StringPoolManager& stringpool);
-	void RegisterLibraryFunctions(FunctionCompileHelperTable& table);
 
 	void RegisterInfixOperators(InfixTable& infixtable, PrecedenceTable& precedences, StringPoolManager& stringpool);
 

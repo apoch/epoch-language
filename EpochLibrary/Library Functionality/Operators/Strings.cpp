@@ -55,15 +55,6 @@ void StringLibrary::RegisterLibraryFunctions(FunctionSignatureSet& signatureset,
 }
 
 //
-// Bind the library to the compiler's internal semantic action table
-//
-void StringLibrary::RegisterLibraryFunctions(FunctionCompileHelperTable& table)
-{
-	// Nothing to do for this library
-}
-
-
-//
 // Bind the library to the infix operator table
 //
 void StringLibrary::RegisterInfixOperators(InfixTable& infixtable, PrecedenceTable& precedences, StringPoolManager& stringpool)

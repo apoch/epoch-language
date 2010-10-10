@@ -137,15 +137,6 @@ void ArithmeticLibrary::RegisterLibraryFunctions(FunctionSignatureSet& signature
 }
 
 //
-// Bind the library to the compiler's internal semantic action table
-//
-void ArithmeticLibrary::RegisterLibraryFunctions(FunctionCompileHelperTable& table)
-{
-	// Nothing to do for this library
-}
-
-
-//
 // Bind the library to the infix operator table
 //
 void ArithmeticLibrary::RegisterInfixOperators(InfixTable& infixtable, PrecedenceTable& precedences, StringPoolManager& stringpool)

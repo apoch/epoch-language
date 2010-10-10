@@ -14,6 +14,7 @@
 #include "Library Functionality/Type Casting/Typecasts.h"
 
 #include "Library Functionality/Operators/Arithmetic.h"
+#include "Library Functionality/Operators/Boolean.h"
 #include "Library Functionality/Operators/Comparison.h"
 #include "Library Functionality/Operators/Strings.h"
 
@@ -38,6 +39,7 @@ extern "C" void __stdcall RegisterLibraryContents(FunctionSignatureSet& function
 		TypeConstructors::RegisterLibraryFunctions(functionsignatures, stringpool);
 		TypeCasts::RegisterLibraryFunctions(functionsignatures, stringpool);
 		ArithmeticLibrary::RegisterLibraryFunctions(functionsignatures, stringpool);
+		BooleanLibrary::RegisterLibraryFunctions(functionsignatures, stringpool);
 		ComparisonLibrary::RegisterLibraryFunctions(functionsignatures, stringpool);
 		StringLibrary::RegisterLibraryFunctions(functionsignatures, stringpool);
 		FlowControl::RegisterStrings(stringpool);
@@ -62,6 +64,7 @@ extern "C" void __stdcall BindToVirtualMachine(FunctionInvocationTable& function
 		TypeConstructors::RegisterLibraryFunctions(functiontable, stringpool);
 		TypeCasts::RegisterLibraryFunctions(functiontable, stringpool);
 		ArithmeticLibrary::RegisterLibraryFunctions(functiontable, stringpool);
+		BooleanLibrary::RegisterLibraryFunctions(functiontable, stringpool);
 		ComparisonLibrary::RegisterLibraryFunctions(functiontable, stringpool);
 		StringLibrary::RegisterLibraryFunctions(functiontable, stringpool);
 
@@ -84,21 +87,18 @@ extern "C" void __stdcall BindToCompiler(CompilerInfoTable& info, StringPoolMana
 {
 	try
 	{
-		DebugLibrary::RegisterLibraryFunctions(*info.FunctionHelpers);
 		TypeConstructors::RegisterLibraryFunctions(*info.FunctionHelpers);
 
-		TypeCasts::RegisterLibraryFunctions(*info.FunctionHelpers);
 		TypeCasts::RegisterLibraryOverloads(*info.Overloads, stringpool);
 
-		ArithmeticLibrary::RegisterLibraryFunctions(*info.FunctionHelpers);
 		ArithmeticLibrary::RegisterInfixOperators(*info.InfixOperators, *info.Precedences, stringpool);
 		ArithmeticLibrary::RegisterUnaryOperators(*info.UnaryPrefixes, stringpool);
 		ArithmeticLibrary::RegisterLibraryOverloads(*info.Overloads, stringpool);
 
-		ComparisonLibrary::RegisterLibraryFunctions(*info.FunctionHelpers);
+		BooleanLibrary::RegisterLibraryOverloads(*info.Overloads, stringpool);
+
 		ComparisonLibrary::RegisterInfixOperators(*info.InfixOperators, *info.Precedences, stringpool);
 
-		StringLibrary::RegisterLibraryFunctions(*info.FunctionHelpers);
 		StringLibrary::RegisterInfixOperators(*info.InfixOperators, *info.Precedences, stringpool);
 
 		FlowControl::RegisterConditionalEntities(*info.Entities, *info.ChainedEntities, stringpool, tagindex);

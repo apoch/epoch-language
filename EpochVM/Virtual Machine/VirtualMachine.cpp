@@ -313,6 +313,13 @@ void ExecutionContext::Execute(const ScopeDescription* scope)
 					}
 					break;
 
+				case EpochType_Boolean:
+					{
+						bool value = Fetch<bool>();
+						State.Stack.PushValue(value);
+					}
+					break;
+
 				default:
 					throw NotImplementedException("Cannot execute PUSH instruction: unsupported type");
 				}

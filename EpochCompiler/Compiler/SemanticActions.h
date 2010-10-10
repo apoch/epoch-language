@@ -47,6 +47,7 @@ private:
 		ITEMTYPE_STRING,
 		ITEMTYPE_STRINGLITERAL,
 		ITEMTYPE_INTEGERLITERAL,
+		ITEMTYPE_BOOLEANLITERAL,
 	};
 
 // Construction
@@ -75,6 +76,7 @@ public:
 	virtual void StoreString(const std::wstring& strliteral);
 	virtual void StoreIntegerLiteral(Integer32 value);
 	virtual void StoreStringLiteral(const std::wstring& value);
+	virtual void StoreBooleanLiteral(bool value);
 
 	virtual void StoreEntityType(Bytecode::EntityTag typetag);
 	virtual void StoreEntityType(const std::wstring& identifier);
@@ -174,6 +176,7 @@ private:
 
 	std::stack<Integer32> IntegerLiterals;
 	std::stack<StringHandle> StringLiterals;
+	std::stack<bool> BooleanLiterals;
 
 	std::stack<FunctionSignature> FunctionSignatureStack;
 	VM::EpochTypeID ParamType;

@@ -49,6 +49,7 @@ public:
 public:
 	void PushIntegerLiteral(Integer32 value);
 	void PushStringLiteral(StringHandle handle);
+	void PushBooleanLiteral(bool value);
 	void PushVariableValue(StringHandle variablename);
 
 	void PopStack(VM::EpochTypeID type);
@@ -96,6 +97,7 @@ private:
 	void EmitTypeAnnotation(VM::EpochTypeID type);
 	void EmitEntityTag(Bytecode::EntityTag tag);
 
+	void EmitRawValue(bool value);
 	void EmitRawValue(Byte value);
 	void EmitRawValue(Integer32 value);
 	void EmitRawValue(HandleType value);

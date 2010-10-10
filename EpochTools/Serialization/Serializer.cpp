@@ -147,6 +147,10 @@ void Serializer::Write(const std::wstring& filename) const
 					outfile << L"PUSH_INT " << traverser.Read<Integer32>() << L"\n";
 					break;
 
+				case VM::EpochType_Boolean:
+					outfile << L"PUSH_BOOL " << traverser.Read<bool>() << L"\n";
+					break;
+
 				case VM::EpochType_String:
 					outfile << L"PUSH_STR " << traverser.Read<StringHandle>() << L"\n";
 					break;

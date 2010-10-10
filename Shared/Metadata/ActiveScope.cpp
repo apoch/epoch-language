@@ -108,6 +108,13 @@ void ActiveScope::PushOntoStack(StringHandle variableid, StackSpace& stack) cons
 		}
 		break;
 
+	case VM::EpochType_Boolean:
+		{
+			bool* value = reinterpret_cast<bool*>(GetVariableStorageLocation(variableid));
+			stack.PushValue(*value);
+		}
+		break;
+
 	default:
 		throw NotImplementedException("Unsupported data type in ActiveScope::PushOntoStack");
 	}

@@ -90,6 +90,9 @@ struct FundamentalGrammar : public boost::spirit::classic::grammar<FundamentalGr
 				STRING("string"),
 				ASSIGN("="),
 
+				EPOCH_TRUE("true"),
+				EPOCH_FALSE("false"),
+
 				ExpectFunctionBody(0)
 		{
 			using namespace boost::spirit::classic;
@@ -108,6 +111,11 @@ struct FundamentalGrammar : public boost::spirit::classic::grammar<FundamentalGr
 
 			StringLiteral
 				= QUOTE >> *(anychar_p - QUOTE) >> QUOTE
+				;
+
+			BooleanLiteral
+				= EPOCH_TRUE
+				| EPOCH_FALSE
 				;
 
 
@@ -143,10 +151,11 @@ struct FundamentalGrammar : public boost::spirit::classic::grammar<FundamentalGr
 			Literal
 				= IntegerLiteral[StoreIntegerLiteral(self.Bindings)]
 				| StringLiteral[StoreStringLiteral(self.Bindings)]
+				| BooleanLiteral[StoreBooleanLiteral(self.Bindings)]
 				;
 
 			ExpressionComponent
-				= !(UnaryPrefixIdentifier[StoreUnaryPrefixOperator(self.Bindings)])
+				= *(UnaryPrefixIdentifier[StoreUnaryPrefixOperator(self.Bindings)])
 				>> (
 					Statement
 					| (OPENPARENS[BeginParenthetical(self.Bindings)] >> Expression >> CLOSEPARENS)[EndParenthetical(self.Bindings)]
@@ -241,12 +250,13 @@ struct FundamentalGrammar : public boost::spirit::classic::grammar<FundamentalGr
 
 		boost::spirit::classic::chlit<> COLON, OPENPARENS, CLOSEPARENS, OPENBRACE, CLOSEBRACE, COMMA, QUOTE, NEGATE;
 
-		boost::spirit::classic::strlit<> MAPARROW, INTEGER, STRING, ASSIGN;
+		boost::spirit::classic::strlit<> MAPARROW, INTEGER, STRING, ASSIGN, EPOCH_TRUE, EPOCH_FALSE;
 
 		boost::spirit::classic::rule<ScannerType> StringIdentifier;
 
 		boost::spirit::classic::rule<ScannerType> StringLiteral;
 		boost::spirit::classic::rule<ScannerType> IntegerLiteral;
+		boost::spirit::classic::rule<ScannerType> BooleanLiteral;
 		boost::spirit::classic::rule<ScannerType> Literal;
 
 		boost::spirit::classic::rule<ScannerType> ExpressionComponent;

@@ -28,6 +28,7 @@ public:
 	virtual void StoreString(const std::wstring& name) = 0;
 	virtual void StoreIntegerLiteral(Integer32 value) = 0;
 	virtual void StoreStringLiteral(const std::wstring& value) = 0;
+	virtual void StoreBooleanLiteral(bool value) = 0;
 
 	virtual void StoreEntityType(Bytecode::EntityTag typetag) = 0;
 	virtual void StoreEntityType(const std::wstring& identifier) = 0;

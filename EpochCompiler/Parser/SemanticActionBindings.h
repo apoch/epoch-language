@@ -149,6 +149,30 @@ struct StoreStringLiteral
 	SemanticActionInterface& Bindings;
 };
 
+struct StoreBooleanLiteral
+{
+	explicit StoreBooleanLiteral(SemanticActionInterface& bindings)
+		: Bindings(bindings)
+	{ }
+
+	template <typename IteratorType>
+	void operator () (IteratorType begin, IteratorType end) const
+	{
+		Trace(L"StoreBooleanLiteral", begin, end);
+		Bindings.SetParsePosition(end);
+
+		std::wstring str(begin, end);
+		if(str == L"true")
+			Bindings.StoreBooleanLiteral(true);
+		else if(str == L"false")
+			Bindings.StoreBooleanLiteral(false);
+		else
+			throw FatalException("Invalid boolean literal");
+	}
+
+	SemanticActionInterface& Bindings;
+};
+
 
 struct StoreEntityType
 {
