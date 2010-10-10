@@ -92,6 +92,8 @@ extern "C" void __stdcall BindToCompiler(CompilerInfoTable& info, StringPoolMana
 
 		ArithmeticLibrary::RegisterLibraryFunctions(*info.FunctionHelpers);
 		ArithmeticLibrary::RegisterInfixOperators(*info.InfixOperators, *info.Precedences, stringpool);
+		ArithmeticLibrary::RegisterUnaryOperators(*info.UnaryPrefixes, stringpool);
+		ArithmeticLibrary::RegisterLibraryOverloads(*info.Overloads, stringpool);
 
 		ComparisonLibrary::RegisterLibraryFunctions(*info.FunctionHelpers);
 		ComparisonLibrary::RegisterInfixOperators(*info.InfixOperators, *info.Precedences, stringpool);

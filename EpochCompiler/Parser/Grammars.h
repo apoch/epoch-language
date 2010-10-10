@@ -61,9 +61,10 @@ struct SkipGrammar : public boost::spirit::classic::grammar<SkipGrammar>
 //
 struct FundamentalGrammar : public boost::spirit::classic::grammar<FundamentalGrammar>
 {
-	FundamentalGrammar(SemanticActionInterface& bindings, const InfixTable& infixidentifiers, const std::set<std::wstring>& customentities, const std::set<std::wstring>& chainedentities, const std::set<std::wstring>& postfixentities, const std::set<std::wstring>& postfixclosers)
+	FundamentalGrammar(SemanticActionInterface& bindings, const InfixTable& infixidentifiers, const std::set<std::wstring>& unaryprefixes, const std::set<std::wstring>& customentities, const std::set<std::wstring>& chainedentities, const std::set<std::wstring>& postfixentities, const std::set<std::wstring>& postfixclosers)
 		: Bindings(bindings),
 		  InfixIdentifiers(infixidentifiers),
+		  UnaryPrefixes(unaryprefixes),
 		  CustomEntities(customentities),
 		  ChainedEntities(chainedentities),
 		  PostfixEntities(postfixentities),
@@ -145,10 +146,13 @@ struct FundamentalGrammar : public boost::spirit::classic::grammar<FundamentalGr
 				;
 
 			ExpressionComponent
-				= Statement
-				| (OPENPARENS[BeginParenthetical(self.Bindings)] >> Expression >> CLOSEPARENS)[EndParenthetical(self.Bindings)]
-				| Literal
-				| StringIdentifier[StoreString(self.Bindings)]
+				= !(UnaryPrefixIdentifier[StoreUnaryPrefixOperator(self.Bindings)])
+				>> (
+					Statement
+					| (OPENPARENS[BeginParenthetical(self.Bindings)] >> Expression >> CLOSEPARENS)[EndParenthetical(self.Bindings)]
+					| Literal
+					| StringIdentifier[StoreString(self.Bindings)]
+				   )
 				;
 
 			Expression
@@ -219,6 +223,9 @@ struct FundamentalGrammar : public boost::spirit::classic::grammar<FundamentalGr
 			for(InfixTable::const_iterator iter = self.InfixIdentifiers.begin(); iter != self.InfixIdentifiers.end(); ++iter)
 				AddInfixOperator(*PooledNarrowStrings.insert(narrow(*iter)).first);
 
+			for(std::set<std::wstring>::const_iterator iter = self.UnaryPrefixes.begin(); iter != self.UnaryPrefixes.end(); ++iter)
+				AddUnaryPrefix(*PooledNarrowStrings.insert(narrow(*iter)).first);
+
 			for(std::set<std::wstring>::const_iterator iter = self.CustomEntities.begin(); iter != self.CustomEntities.end(); ++iter)
 				AddInlineEntity(*PooledNarrowStrings.insert(narrow(*iter)).first);
 
@@ -268,6 +275,7 @@ struct FundamentalGrammar : public boost::spirit::classic::grammar<FundamentalGr
 		boost::spirit::classic::rule<ScannerType> Program;
 
 		boost::spirit::classic::stored_rule<ScannerType> InfixIdentifier;
+		boost::spirit::classic::stored_rule<ScannerType> UnaryPrefixIdentifier;
 		boost::spirit::classic::stored_rule<ScannerType> EntityIdentifier;
 		boost::spirit::classic::stored_rule<ScannerType> ChainedEntityIdentifier;
 		boost::spirit::classic::stored_rule<ScannerType> PostfixEntityOpenerIdentifier;
@@ -293,6 +301,14 @@ struct FundamentalGrammar : public boost::spirit::classic::grammar<FundamentalGr
 		void AddInfixOperator(const std::string& opname)
 		{
 			InfixIdentifier = boost::spirit::classic::strlit<>(opname.c_str()) | InfixIdentifier.copy();
+		}
+
+		//
+		// Register a unary prefix operator
+		//
+		void AddUnaryPrefix(const std::string& opname)
+		{
+			UnaryPrefixIdentifier = boost::spirit::classic::strlit<>(opname.c_str()) | UnaryPrefixIdentifier.copy();
 		}
 
 		//
@@ -330,6 +346,7 @@ struct FundamentalGrammar : public boost::spirit::classic::grammar<FundamentalGr
 
 	SemanticActionInterface& Bindings;
 	const InfixTable& InfixIdentifiers;
+	const std::set<std::wstring>& UnaryPrefixes;
 	const std::set<std::wstring>& CustomEntities;
 	const std::set<std::wstring>& ChainedEntities;
 	const std::set<std::wstring>& PostfixEntities;

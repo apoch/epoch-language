@@ -21,7 +21,7 @@
 #include <iostream>
 #endif
 
-//#define PARSER_TRACING
+#define PARSER_TRACING
 
 template <typename IteratorType>
 void Trace(const std::wstring& title, IteratorType begin, IteratorType end)
@@ -317,6 +317,23 @@ struct FinalizeInfix
 		Trace(L"FinalizeInfix", begin, end);
 		Bindings.SetParsePosition(end);
 		Bindings.FinalizeInfix();
+	}
+
+	SemanticActionInterface& Bindings;
+};
+
+struct StoreUnaryPrefixOperator
+{
+	explicit StoreUnaryPrefixOperator(SemanticActionInterface& bindings)
+		: Bindings(bindings)
+	{ }
+
+	template <typename IteratorType>
+	void operator () (IteratorType begin, IteratorType end) const
+	{
+		Trace(L"StoreUnaryPrefixOperator", begin, end);
+		Bindings.SetParsePosition(end);
+		Bindings.StoreUnaryPrefixOperator(std::wstring(begin, end));
 	}
 
 	SemanticActionInterface& Bindings;

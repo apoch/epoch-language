@@ -39,6 +39,7 @@ CompileSession::CompileSession()
 	CompilerInfoTable info;
 	info.FunctionHelpers = &CompileTimeHelpers;
 	info.InfixOperators = &InfixIdentifiers;
+	info.UnaryPrefixes = &UnaryPrefixes;
 	info.Overloads = &FunctionOverloadNames;
 	info.Precedences = &OperatorPrecedences;
 	info.Entities = &CustomEntities;
@@ -122,7 +123,7 @@ void CompileSession::CompileFunctions(const std::wstring& code, const std::wstri
 
 	ByteCodeEmitter emitter(ByteCodeBuffer);
 	CompilationSemantics semantics(emitter, *this);
-	Parser theparser(semantics, InfixIdentifiers, entitynames, chainedentitynames, postfixentitynames, postfixclosernames);
+	Parser theparser(semantics, InfixIdentifiers, UnaryPrefixes, entitynames, chainedentitynames, postfixentitynames, postfixclosernames);
 
 	if(!theparser.Parse(code, filename) || semantics.DidFail())
 		throw FatalException("Parsing failed!");

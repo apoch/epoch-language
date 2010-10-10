@@ -71,5 +71,6 @@ private:
 	std::list<std::pair<std::wstring, std::wstring> > SourceBlocksAndFileNames;
 	std::vector<Byte> ByteCodeBuffer;
 	InfixTable InfixIdentifiers;
+	std::set<std::wstring> UnaryPrefixes;
 };
 

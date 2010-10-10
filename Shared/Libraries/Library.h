@@ -47,6 +47,7 @@ struct CompilerInfoTable
 {
 	FunctionCompileHelperTable* FunctionHelpers;
 	InfixTable* InfixOperators;
+	std::set<std::wstring>* UnaryPrefixes;
 	PrecedenceTable* Precedences;
 	std::map<StringHandle, std::set<StringHandle> >* Overloads;
 	EntityTable* Entities;

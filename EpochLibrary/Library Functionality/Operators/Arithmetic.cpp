@@ -18,7 +18,66 @@
 #include "Virtual Machine/VirtualMachine.h"
 
 
-using namespace ArithmeticLibrary;
+
+namespace
+{
+	
+	//
+	// Sum two numbers and return the result
+	//
+	void AddIntegers(StringHandle functionname, VM::ExecutionContext& context)
+	{
+		Integer32 p2 = context.State.Stack.PopValue<Integer32>();
+		Integer32 p1 = context.State.Stack.PopValue<Integer32>();
+
+		context.State.Stack.PushValue(p1 + p2);
+	}
+
+
+	//
+	// Subtract two numbers and return the result
+	//
+	void SubtractIntegers(StringHandle functionname, VM::ExecutionContext& context)
+	{
+		Integer32 p2 = context.State.Stack.PopValue<Integer32>();
+		Integer32 p1 = context.State.Stack.PopValue<Integer32>();
+
+		context.State.Stack.PushValue(p1 - p2);
+	}
+
+	//
+	// Multiply two numbers and return the result
+	//
+	void MultiplyIntegers(StringHandle functionname, VM::ExecutionContext& context)
+	{
+		Integer32 p2 = context.State.Stack.PopValue<Integer32>();
+		Integer32 p1 = context.State.Stack.PopValue<Integer32>();
+
+		context.State.Stack.PushValue(p1 * p2);
+	}
+
+	//
+	// Divide two numbers and return the result
+	//
+	void DivideIntegers(StringHandle functionname, VM::ExecutionContext& context)
+	{
+		Integer32 p2 = context.State.Stack.PopValue<Integer32>();
+		Integer32 p1 = context.State.Stack.PopValue<Integer32>();
+
+		context.State.Stack.PushValue(p1 / p2);
+	}
+
+
+	//
+	// Compute the bitwise negation of an operand
+	//
+	void BitwiseIntegerNot(StringHandle functionname, VM::ExecutionContext& context)
+	{
+		Integer32 p = context.State.Stack.PopValue<Integer32>();
+		context.State.Stack.PushValue(~p);
+	}
+
+}
 
 
 
@@ -27,10 +86,12 @@ using namespace ArithmeticLibrary;
 //
 void ArithmeticLibrary::RegisterLibraryFunctions(FunctionInvocationTable& table, StringPoolManager& stringpool)
 {
-	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"+"), ArithmeticLibrary::AddIntegers));
-	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"-"), ArithmeticLibrary::SubtractIntegers));
-	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"*"), ArithmeticLibrary::MultiplyIntegers));
-	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"/"), ArithmeticLibrary::DivideIntegers));
+	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"+"), AddIntegers));
+	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"-"), SubtractIntegers));
+	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"*"), MultiplyIntegers));
+	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"/"), DivideIntegers));
+
+	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"!@@integer"), BitwiseIntegerNot));
 }
 
 //
@@ -65,6 +126,13 @@ void ArithmeticLibrary::RegisterLibraryFunctions(FunctionSignatureSet& signature
 		signature.AddParameter(L"i2", VM::EpochType_Integer);
 		signature.SetReturnType(VM::EpochType_Integer);
 		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"/"), signature));
+	}
+
+	{
+		FunctionSignature signature;
+		signature.AddParameter(L"i", VM::EpochType_Integer);
+		signature.SetReturnType(VM::EpochType_Integer);
+		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"!@@integer"), signature));
 	}
 }
 
@@ -104,49 +172,25 @@ void ArithmeticLibrary::RegisterInfixOperators(InfixTable& infixtable, Precedenc
 	}
 }
 
-
-
 //
-// Sum two numbers and return the result
+// Register the list of unary operators provided by the library module
 //
-void ArithmeticLibrary::AddIntegers(StringHandle functionname, VM::ExecutionContext& context)
+void ArithmeticLibrary::RegisterUnaryOperators(std::set<std::wstring>& unaryprefixes, StringPoolManager& stringpool)
 {
-	Integer32 p2 = context.State.Stack.PopValue<Integer32>();
-	Integer32 p1 = context.State.Stack.PopValue<Integer32>();
-
-	context.State.Stack.PushValue(p1 + p2);
-}
-
-
-//
-// Subtract two numbers and return the result
-//
-void ArithmeticLibrary::SubtractIntegers(StringHandle functionname, VM::ExecutionContext& context)
-{
-	Integer32 p2 = context.State.Stack.PopValue<Integer32>();
-	Integer32 p1 = context.State.Stack.PopValue<Integer32>();
-
-	context.State.Stack.PushValue(p1 - p2);
+	{
+		StringHandle handle = stringpool.Pool(L"!");
+		AddToSetNoDupe(unaryprefixes, stringpool.GetPooledString(handle));
+	}
 }
 
 //
-// Multiply two numbers and return the result
+// Register the list of overloads used by functions in this library module
 //
-void ArithmeticLibrary::MultiplyIntegers(StringHandle functionname, VM::ExecutionContext& context)
+void ArithmeticLibrary::RegisterLibraryOverloads(std::map<StringHandle, std::set<StringHandle> >& overloadmap, StringPoolManager& stringpool)
 {
-	Integer32 p2 = context.State.Stack.PopValue<Integer32>();
-	Integer32 p1 = context.State.Stack.PopValue<Integer32>();
-
-	context.State.Stack.PushValue(p1 * p2);
+	{
+		StringHandle functionnamehandle = stringpool.Pool(L"!");
+		overloadmap[functionnamehandle].insert(stringpool.Pool(L"!@@integer"));
+	}
 }
 
-//
-// Divide two numbers and return the result
-//
-void ArithmeticLibrary::DivideIntegers(StringHandle functionname, VM::ExecutionContext& context)
-{
-	Integer32 p2 = context.State.Stack.PopValue<Integer32>();
-	Integer32 p1 = context.State.Stack.PopValue<Integer32>();
-
-	context.State.Stack.PushValue(p1 / p2);
-}

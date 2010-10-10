@@ -43,6 +43,8 @@ public:
 	virtual void PushInfixParam() = 0;
 	virtual void CompleteInfix() = 0;
 	virtual void FinalizeInfix() = 0;
+	
+	virtual void StoreUnaryPrefixOperator(const std::wstring& identifier) = 0;
 
 	virtual void BeginParameterSet() = 0;
 	virtual void EndParameterSet() = 0;

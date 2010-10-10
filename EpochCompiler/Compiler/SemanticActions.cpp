@@ -300,6 +300,8 @@ void CompilationSemantics::FinalizeInfix()
 {
 	if(!IsPrepass)
 	{
+		CollapseUnaryOperators();
+
 		if(!InfixOperators.empty() && !InfixOperators.top().empty())
 		{
 			std::vector<CompileTimeParameter> flatoperandlist;
@@ -371,6 +373,7 @@ void CompilationSemantics::BeginParenthetical()
 	if(!IsPrepass)
 	{
 		InfixOperators.push(std::vector<StringHandle>());
+		UnaryOperators.push(std::vector<std::pair<StringHandle, size_t> >());
 		CompileTimeParameters.push(std::vector<CompileTimeParameter>());
 		StatementParamCount.push(0);
 	}
@@ -387,9 +390,70 @@ void CompilationSemantics::EndParenthetical()
 	{
 		CompileTimeParameter ctparam = CompileTimeParameters.top().back();
 		InfixOperators.pop();
+		UnaryOperators.pop();
 		CompileTimeParameters.pop();
 		CompileTimeParameters.top().push_back(ctparam);
 		StatementParamCount.pop();
+	}
+}
+
+
+//-------------------------------------------------------------------------------
+// Unary and pre/post-operators
+//-------------------------------------------------------------------------------
+
+//
+// Register a unary prefix operator
+//
+// These operators have no side effects; they simply perform a unary computation.
+//
+void CompilationSemantics::StoreUnaryPrefixOperator(const std::wstring& identifier)
+{
+	if(!IsPrepass)
+		UnaryOperators.top().push_back(std::make_pair(Session.StringPool.Pool(identifier), CompileTimeParameters.top().size()));
+}
+
+//
+// Collapse unary operators into flat expressions
+//
+void CompilationSemantics::CollapseUnaryOperators()
+{
+	if(!UnaryOperators.empty() && !UnaryOperators.top().empty())
+	{
+		unsigned numcollapsed = 0;
+		for(std::vector<std::pair<StringHandle, size_t> >::const_iterator iter = UnaryOperators.top().begin(); iter != UnaryOperators.top().end(); ++iter)
+		{
+			std::vector<Byte> buffer;
+			ByteCodeEmitter emitter(buffer);
+
+			size_t ctparamindex = iter->second;
+			if(ctparamindex >= CompileTimeParameters.top().size())
+				break;
+
+			EmitInfixOperand(emitter, CompileTimeParameters.top()[ctparamindex]);
+			
+			StringHandle outhandle = iter->first;
+			std::wstring outname = Session.StringPool.GetPooledString(outhandle);
+			std::vector<CompileTimeParameter> paramvec(1, CompileTimeParameters.top()[ctparamindex]);
+			RemapFunctionToOverload(paramvec, VM::EpochType_Error, false, outname, outhandle);
+			emitter.Invoke(outhandle);
+
+			VM::EpochTypeID expressiontype = CompileTimeParameters.top()[ctparamindex].Type;
+			if(expressiontype == VM::EpochType_Identifier)
+				expressiontype = LexicalScopeDescriptions.find(LexicalScopeStack.top())->second.GetVariableTypeByID(CompileTimeParameters.top()[ctparamindex].Payload.StringHandleValue);
+			else if(expressiontype == VM::EpochType_Expression)
+				expressiontype = CompileTimeParameters.top()[ctparamindex].ExpressionType;
+
+			CompileTimeParameter ctparam(L"@@unaryresult", VM::EpochType_Expression);
+			ctparam.ExpressionType = expressiontype;
+			ctparam.ExpressionContents.swap(buffer);
+			CompileTimeParameters.top()[ctparamindex] = ctparam;
+
+			++numcollapsed;
+		}
+
+		if(numcollapsed)
+			UnaryOperators.top().erase(UnaryOperators.top().begin(), UnaryOperators.top().begin() + numcollapsed);
 	}
 }
 
@@ -539,6 +603,7 @@ void CompilationSemantics::BeginReturnSet()
 		EmitterStack.push(&PendingEmitters.top());
 
 		InfixOperators.push(std::vector<StringHandle>());
+		UnaryOperators.push(std::vector<std::pair<StringHandle, size_t> >());
 		CompileTimeParameters.push(std::vector<CompileTimeParameter>());
 		StatementParamCount.push(0);
 	}
@@ -593,6 +658,7 @@ void CompilationSemantics::EndReturnSet()
 		EmitterStack.pop();
 
 		InfixOperators.pop();
+		UnaryOperators.pop();
 		CompileTimeParameters.c.clear();
 		StatementParamCount.pop();
 	}
@@ -765,6 +831,7 @@ void CompilationSemantics::BeginStatementParams()
 	{
 		CompileTimeParameters.push(std::vector<CompileTimeParameter>());
 		InfixOperators.push(std::vector<StringHandle>());
+		UnaryOperators.push(std::vector<std::pair<StringHandle, size_t> >());
 
 		PendingEmissionBuffers.push(std::vector<Byte>());
 		PendingEmitters.push(ByteCodeEmitter(PendingEmissionBuffers.top()));
@@ -794,6 +861,7 @@ void CompilationSemantics::CompleteStatement()
 	if(!IsPrepass)
 	{
 		InfixOperators.pop();
+		UnaryOperators.pop();
 
 		VM::EpochTypeID outerexpectedtype = WalkCallChainForExpectedType(StatementNames.size() - 1);
 
@@ -954,6 +1022,7 @@ void CompilationSemantics::BeginAssignment()
 	{
 		CompileTimeParameters.push(std::vector<CompileTimeParameter>());
 		InfixOperators.push(std::vector<StringHandle>());
+		UnaryOperators.push(std::vector<std::pair<StringHandle, size_t> >());
 
 		PendingEmissionBuffers.push(std::vector<Byte>());
 		PendingEmitters.push(ByteCodeEmitter(PendingEmissionBuffers.top()));
@@ -982,6 +1051,7 @@ void CompilationSemantics::CompleteAssignment()
 		PendingEmitters.pop();
 		PendingEmissionBuffers.pop();
 		InfixOperators.pop();
+		UnaryOperators.pop();
 
 		EmitterStack.top()->AssignVariable(AssignmentTargets.top());
 		CompileTimeParameters.pop();
@@ -1044,6 +1114,7 @@ void CompilationSemantics::CompleteEntityParams(bool ispostfixcloser)
 	if(!IsPrepass)
 	{
 		InfixOperators.pop();
+		UnaryOperators.pop();
 
 		bool valid = true;
 		const std::vector<CompileTimeParameter>& entityparams = Session.GetCustomEntityByTag(EntityTypeTags.top()).Parameters;
@@ -1137,7 +1208,9 @@ void CompilationSemantics::PushStatementParam()
 
 	if(!IsPrepass)
 	{
+		CollapseUnaryOperators();
 		InfixOperators.top().clear();
+		UnaryOperators.top().clear();
 		PendingEmissionBuffers.top().clear();
 	}
 }
@@ -1741,6 +1814,6 @@ void CompilationSemantics::SanityCheck() const
 	if(!Strings.empty() || !EntityTypeTags.empty() || !IntegerLiterals.empty() || !StringLiterals.empty() || !FunctionSignatureStack.empty()
 	|| !StatementNames.empty() || !StatementParamCount.empty() || !StatementTypes.empty() || !LexicalScopeStack.empty() || !CompileTimeParameters.empty()
 	|| !CurrentEntities.empty() || !FunctionReturnVars.empty() || !PendingEmissionBuffers.empty() || !PendingEmitters.empty() || !AssignmentTargets.empty()
-	|| !PushedItemTypes.empty() || !ReturnsIncludedStatement.empty() || !FunctionReturnTypeNames.empty() || !InfixOperators.empty())
+	|| !PushedItemTypes.empty() || !ReturnsIncludedStatement.empty() || !FunctionReturnTypeNames.empty() || !InfixOperators.empty() || !UnaryOperators.empty())
 		throw FatalException("Parser leaked a resource");
 }

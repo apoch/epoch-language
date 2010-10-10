@@ -25,12 +25,8 @@ namespace ArithmeticLibrary
 	void RegisterLibraryFunctions(FunctionCompileHelperTable& table);
 
 	void RegisterInfixOperators(InfixTable& infixtable, PrecedenceTable& precedences, StringPoolManager& stringpool);
-
-
-	void AddIntegers(StringHandle functionname, VM::ExecutionContext& context);
-	void SubtractIntegers(StringHandle functionname, VM::ExecutionContext& context);
-	void MultiplyIntegers(StringHandle functionname, VM::ExecutionContext& context);
-	void DivideIntegers(StringHandle functionname, VM::ExecutionContext& context);
+	void RegisterUnaryOperators(std::set<std::wstring>& unaryprefixes, StringPoolManager& stringpool);
+	void RegisterLibraryOverloads(std::map<StringHandle, std::set<StringHandle> >& overloadmap, StringPoolManager& stringpool);
 
 }
 

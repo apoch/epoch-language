@@ -91,6 +91,8 @@ public:
 	virtual void CompleteInfix();
 	virtual void FinalizeInfix();
 
+	virtual void StoreUnaryPrefixOperator(const std::wstring& identifier);
+
 	virtual void BeginParameterSet();
 	virtual void EndParameterSet();
 	virtual void RegisterParameterType(const std::wstring& type);
@@ -155,6 +157,8 @@ private:
 
 	Bytecode::EntityTag LookupEntityTag(StringHandle identifier) const;
 
+	void CollapseUnaryOperators();
+
 // Internal tracking
 private:
 	bool IsPrepass;
@@ -208,6 +212,7 @@ private:
 	std::multimap<StringHandle, StringHandle> OriginalFunctionsForPatternResolution;
 
 	std::stack<std::vector<StringHandle> > InfixOperators;
+	std::stack<std::vector<std::pair<StringHandle, size_t> > > UnaryOperators;
 
 	size_t AnonymousScopeCounter;
 };
