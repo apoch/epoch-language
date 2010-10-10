@@ -173,6 +173,10 @@ private:
 
 	void CollapseUnaryOperators();
 
+	void VerifyInfixOperandTypes(StringHandle infixoperator, VM::EpochTypeID op1type, VM::EpochTypeID op2type);
+
+	VM::EpochTypeID GetEffectiveType(const CompileTimeParameter& param) const;
+
 // Internal tracking
 private:
 	bool IsPrepass;

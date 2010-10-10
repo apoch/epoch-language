@@ -22,10 +22,13 @@
 
 #include "Utility/Strings.h"
 
+#include "Utility/Files/FilesAndPaths.h"
+
 #include <boost/spirit/include/classic_exceptions.hpp>
 #include <boost/spirit/include/classic_position_iterator.hpp>
 
 #include <sstream>
+#include <iostream>
 
 
 // Handy type shortcuts
@@ -317,7 +320,6 @@ void CompilationSemantics::CompleteInfix()
 //
 void CompilationSemantics::FinalizeInfix()
 {
-	// TODO - check types of operands against the selected operator overloads!
 	if(!IsPrepass)
 	{
 		CollapseUnaryOperators();
@@ -350,14 +352,18 @@ void CompilationSemantics::FinalizeInfix()
 								ByteCodeEmitter emitter(buffer);
 
 								std::vector<CompileTimeParameter>::iterator firstoperanditer = operanditer;
+								VM::EpochTypeID op1type = GetEffectiveType(*operanditer);
 
 								EmitInfixOperand(emitter, *operanditer);
 								++operanditer;
+								VM::EpochTypeID op2type = GetEffectiveType(*operanditer);
 								EmitInfixOperand(emitter, *operanditer);
 
 								std::vector<CompileTimeParameter>::iterator secondoperanditer = operanditer;
 								++operanditer;
 								emitter.Invoke(*operatoriter);
+
+								VerifyInfixOperandTypes(*operatoriter, op1type, op2type);
 
 								firstoperanditer->Type = VM::EpochType_Expression;
 								firstoperanditer->ExpressionContents.swap(buffer);
@@ -458,14 +464,8 @@ void CompilationSemantics::CollapseUnaryOperators()
 			RemapFunctionToOverload(paramvec, 0, std::vector<VM::EpochTypeID>(), outname, outhandle);
 			emitter.Invoke(outhandle);
 
-			VM::EpochTypeID expressiontype = CompileTimeParameters.top()[ctparamindex].Type;
-			if(expressiontype == VM::EpochType_Identifier)
-				expressiontype = LexicalScopeDescriptions.find(LexicalScopeStack.top())->second.GetVariableTypeByID(CompileTimeParameters.top()[ctparamindex].Payload.StringHandleValue);
-			else if(expressiontype == VM::EpochType_Expression)
-				expressiontype = CompileTimeParameters.top()[ctparamindex].ExpressionType;
-
 			CompileTimeParameter ctparam(L"@@unaryresult", VM::EpochType_Expression);
-			ctparam.ExpressionType = expressiontype;
+			ctparam.ExpressionType = GetEffectiveType(CompileTimeParameters.top()[ctparamindex]);
 			ctparam.ExpressionContents.swap(buffer);
 			CompileTimeParameters.top()[ctparamindex] = ctparam;
 
@@ -497,24 +497,23 @@ void CompilationSemantics::RegisterPreOperand(const std::wstring& identifier)
 		std::wstring operatorname = TemporaryString;
 		StringHandle operatornamehandle = Session.StringPool.Pool(operatorname);
 
+		StringHandle operandhandle = Session.StringPool.Pool(identifier);
+
+		VM::EpochTypeID variabletype = LexicalScopeDescriptions.find(LexicalScopeStack.top())->second.GetVariableTypeByID(operandhandle);
+
 		std::vector<CompileTimeParameter> ctparams;
 		ctparams.push_back(CompileTimeParameter(L"@@preoperand", VM::EpochType_Identifier));
-		RemapFunctionToOverload(ctparams, 0, std::vector<VM::EpochTypeID>(), operatorname, operatornamehandle);
-
-		// TODO - validate type of the variable involved
-		// TODO - validate that the variable involved exists!
+		RemapFunctionToOverload(ctparams, 0, std::vector<VM::EpochTypeID>(1, variabletype), operatorname, operatornamehandle);
 
 		std::vector<Byte> buffer;
 		ByteCodeEmitter emitter(buffer);
 
-		StringHandle operandhandle = Session.StringPool.Pool(identifier);
 		emitter.PushStringLiteral(operandhandle);
 		emitter.Invoke(operatornamehandle);
 		emitter.AssignVariable(operandhandle);
 		emitter.PushVariableValue(operandhandle);
 
-		// TODO - push actual type
-		StatementTypes.push(VM::EpochType_Integer);
+		StatementTypes.push(variabletype);
 
 		if(!CompileTimeParameters.empty())
 		{
@@ -540,28 +539,27 @@ void CompilationSemantics::RegisterPostOperator(const std::wstring& identifier)
 		std::wstring operatorname = identifier;
 		StringHandle operatornamehandle = Session.StringPool.Pool(operatorname);
 
-		std::vector<CompileTimeParameter> ctparams;
-		ctparams.push_back(CompileTimeParameter(L"@@postoperand", VM::EpochType_Identifier));
-		RemapFunctionToOverload(ctparams, 0, std::vector<VM::EpochTypeID>(), operatorname, operatornamehandle);
+		StringHandle operandhandle = Session.StringPool.Pool(TemporaryString);
 
-		// TODO - validate type of the variable involved
-		// TODO - validate that the variable involved exists!
+		VM::EpochTypeID variabletype = LexicalScopeDescriptions.find(LexicalScopeStack.top())->second.GetVariableTypeByID(operandhandle);
+
+		std::vector<CompileTimeParameter> ctparams;
+		ctparams.push_back(CompileTimeParameter(L"@@preoperand", VM::EpochType_Identifier));
+		RemapFunctionToOverload(ctparams, 0, std::vector<VM::EpochTypeID>(1, variabletype), operatorname, operatornamehandle);
 
 		std::vector<Byte> buffer;
 		ByteCodeEmitter emitter(buffer);
 
-		StringHandle operandhandle = Session.StringPool.Pool(TemporaryString);
 		emitter.PushVariableValue(operandhandle);
 		emitter.PushStringLiteral(operandhandle);
 		emitter.Invoke(operatornamehandle);
 		emitter.AssignVariable(operandhandle);
 
-		// TODO - push actual type
-		StatementTypes.push(VM::EpochType_Integer);
+		StatementTypes.push(variabletype);
 
 		if(!CompileTimeParameters.empty())
 		{
-			CompileTimeParameter ctparam(L"@@postoperation", VM::EpochType_Expression);
+			CompileTimeParameter ctparam(L"@@preoperation", VM::EpochType_Expression);
 			ctparam.ExpressionType = VM::EpochType_Integer;
 			ctparam.ExpressionContents.swap(buffer);
 			CompileTimeParameters.top().push_back(ctparam);
@@ -1289,12 +1287,7 @@ void CompilationSemantics::CompleteAssignment()
 {
 	if(!IsPrepass)
 	{
-		VM::EpochTypeID expressiontype = CompileTimeParameters.top().back().Type;
-		if(expressiontype == VM::EpochType_Expression)
-			expressiontype = CompileTimeParameters.top().back().ExpressionType;
-		else if(expressiontype == VM::EpochType_Identifier)
-			expressiontype = LexicalScopeDescriptions.find(LexicalScopeStack.top())->second.GetVariableTypeByID(CompileTimeParameters.top().back().Payload.StringHandleValue);
-
+		VM::EpochTypeID expressiontype = GetEffectiveType(CompileTimeParameters.top().back());
 
 		if(StatementNames.top() != L"=")
 			EmitterStack.top()->PushStringLiteral(AssignmentTargets.top());
@@ -2122,6 +2115,42 @@ Bytecode::EntityTag CompilationSemantics::LookupEntityTag(StringHandle identifie
 	// Just to satisfy compilers which can't tell that Throw() will bail us out
 	return Bytecode::EntityTags::Invalid;
 }
+
+//
+// Validate parameters to an infix operator, emitting error messages if applicable
+//
+void CompilationSemantics::VerifyInfixOperandTypes(StringHandle infixoperator, VM::EpochTypeID op1type, VM::EpochTypeID op2type)
+{
+	if(Session.FunctionSignatures.find(infixoperator)->second.GetParameter(0).Type != op1type)
+	{
+		std::wcout << L"Error in file \"" << StripPath(widen(ParsePosition.get_position().file)) << L"\" on line " << ParsePosition.get_position().line << L":\n";
+		std::wcout << L"The left hand side of the operator " << Session.StringPool.GetPooledString(infixoperator) << " is of the wrong type" << std::endl << std::endl;
+
+		Fail();
+	}
+
+	if(Session.FunctionSignatures.find(infixoperator)->second.GetParameter(1).Type != op2type)
+	{
+		std::wcout << L"Error in file \"" << StripPath(widen(ParsePosition.get_position().file)) << L"\" on line " << ParsePosition.get_position().line << L":\n";
+		std::wcout << L"The right hand side of the operator " << Session.StringPool.GetPooledString(infixoperator) << " is of the wrong type" << std::endl << std::endl;
+
+		Fail();
+	}
+}
+
+//
+// Determine the effective type of a literal, expression, or variable
+//
+VM::EpochTypeID CompilationSemantics::GetEffectiveType(const CompileTimeParameter& param) const
+{
+	if(param.Type == VM::EpochType_Identifier)
+		return LexicalScopeDescriptions.find(LexicalScopeStack.top())->second.GetVariableTypeByID(param.Payload.StringHandleValue);
+	else if(param.Type == VM::EpochType_Expression)
+		return param.ExpressionType;
+
+	return param.Type;
+}
+
 
 //-------------------------------------------------------------------------------
 // Safety/debug checks

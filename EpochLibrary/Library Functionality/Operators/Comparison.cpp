@@ -88,6 +88,29 @@ namespace
 
 		context.State.Stack.PushValue(p1 < p2);
 	}
+
+
+	//
+	// Compare two reals to see if one is greater than the other
+	//
+	void RealGreaterThan(StringHandle functionname, VM::ExecutionContext& context)
+	{
+		Real32 p2 = context.State.Stack.PopValue<Real32>();
+		Real32 p1 = context.State.Stack.PopValue<Real32>();
+
+		context.State.Stack.PushValue(p1 > p2);
+	}
+
+	//
+	// Compare two reals to see if one is less than the other
+	//
+	void RealLessThan(StringHandle functionname, VM::ExecutionContext& context)
+	{
+		Real32 p2 = context.State.Stack.PopValue<Real32>();
+		Real32 p1 = context.State.Stack.PopValue<Real32>();
+
+		context.State.Stack.PushValue(p1 < p2);
+	}
 }
 
 
@@ -101,8 +124,10 @@ void ComparisonLibrary::RegisterLibraryFunctions(FunctionInvocationTable& table,
 	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"!=@@integer"), IntegerInequality));
 	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"==@@boolean"), BooleanEquality));
 	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"!=@@boolean"), BooleanInequality));
-	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L">"), IntegerGreaterThan));
-	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"<"), IntegerLessThan));
+	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L">@@integer"), IntegerGreaterThan));
+	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"<@@integer"), IntegerLessThan));
+	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L">@@real"), RealGreaterThan));
+	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"<@@real"), RealLessThan));
 }
 
 //
@@ -144,14 +169,29 @@ void ComparisonLibrary::RegisterLibraryFunctions(FunctionSignatureSet& signature
 		signature.AddParameter(L"i1", VM::EpochType_Integer);
 		signature.AddParameter(L"i2", VM::EpochType_Integer);
 		signature.SetReturnType(VM::EpochType_Boolean);
-		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L">"), signature));
+		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L">@@integer"), signature));
 	}
 	{
 		FunctionSignature signature;
 		signature.AddParameter(L"i1", VM::EpochType_Integer);
 		signature.AddParameter(L"i2", VM::EpochType_Integer);
 		signature.SetReturnType(VM::EpochType_Boolean);
-		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"<"), signature));
+		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"<@@integer"), signature));
+	}
+
+	{
+		FunctionSignature signature;
+		signature.AddParameter(L"i1", VM::EpochType_Real);
+		signature.AddParameter(L"i2", VM::EpochType_Real);
+		signature.SetReturnType(VM::EpochType_Boolean);
+		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L">@@real"), signature));
+	}
+	{
+		FunctionSignature signature;
+		signature.AddParameter(L"i1", VM::EpochType_Real);
+		signature.AddParameter(L"i2", VM::EpochType_Real);
+		signature.SetReturnType(VM::EpochType_Boolean);
+		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"<@@real"), signature));
 	}
 }
 
@@ -176,12 +216,14 @@ void ComparisonLibrary::RegisterInfixOperators(StringSet& infixtable, Precedence
 	{
 		StringHandle handle = stringpool.Pool(L">");
 		AddToSetNoDupe(infixtable, stringpool.GetPooledString(handle));
-		precedences.insert(std::make_pair(PRECEDENCE_COMPARISON, handle));
+		precedences.insert(std::make_pair(PRECEDENCE_COMPARISON, stringpool.Pool(L">@@integer")));
+		precedences.insert(std::make_pair(PRECEDENCE_COMPARISON, stringpool.Pool(L">@@real")));
 	}
 	{
 		StringHandle handle = stringpool.Pool(L"<");
 		AddToSetNoDupe(infixtable, stringpool.GetPooledString(handle));
-		precedences.insert(std::make_pair(PRECEDENCE_COMPARISON, handle));
+		precedences.insert(std::make_pair(PRECEDENCE_COMPARISON, stringpool.Pool(L"<@@integer")));
+		precedences.insert(std::make_pair(PRECEDENCE_COMPARISON, stringpool.Pool(L"<@@real")));
 	}
 }
 
@@ -200,5 +242,15 @@ void ComparisonLibrary::RegisterLibraryOverloads(std::map<StringHandle, std::set
 		StringHandle functionnamehandle = stringpool.Pool(L"!=");
 		overloadmap[functionnamehandle].insert(stringpool.Pool(L"!=@@integer"));
 		overloadmap[functionnamehandle].insert(stringpool.Pool(L"!=@@boolean"));
+	}
+	{
+		StringHandle functionnamehandle = stringpool.Pool(L">");
+		overloadmap[functionnamehandle].insert(stringpool.Pool(L">@@integer"));
+		overloadmap[functionnamehandle].insert(stringpool.Pool(L">@@real"));
+	}
+	{
+		StringHandle functionnamehandle = stringpool.Pool(L"<");
+		overloadmap[functionnamehandle].insert(stringpool.Pool(L"<@@integer"));
+		overloadmap[functionnamehandle].insert(stringpool.Pool(L"<@@real"));
 	}
 }
