@@ -787,12 +787,6 @@ void CompilationSemantics::BeginReturnSet()
 //
 void CompilationSemantics::EndReturnSet()
 {
-	if(ReturnsIncludedStatement.top())
-	{
-		if(!IsPrepass)
-			CompileTimeParameters.c.clear();
-	}
-
 	if(IsPrepass)
 	{
 		Session.FunctionSignatures.insert(std::make_pair(LexicalScopeStack.top(), FunctionSignatureStack.top()));
@@ -821,6 +815,9 @@ void CompilationSemantics::EndReturnSet()
 	}
 	else
 	{
+		if(ReturnsIncludedStatement.top() && !CompileTimeParameters.empty() && !CompileTimeParameters.top().empty())
+			EmitInfixOperand(*EmitterStack.top(), CompileTimeParameters.top().back());
+
 		EmitPendingCode();
 		EmitterStack.pop();
 

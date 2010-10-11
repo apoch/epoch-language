@@ -385,6 +385,10 @@ void ExecutionContext::Execute(const ScopeDescription* scope)
 					Variables->PushLocalsOntoStack(*this);
 					onexit.ScopesToCleanUp.push_back(Variables);
 				}
+				else if(tag == Bytecode::EntityTags::PatternMatchingResolver)
+				{
+					// Do nothing
+				}
 				else
 				{
 					EntityReturnCode code = OwnerVM.GetEntityMetaControl(tag)(*this);
