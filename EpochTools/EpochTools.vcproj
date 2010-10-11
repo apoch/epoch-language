@@ -214,6 +214,10 @@
 				RelativePath=".\pch.h"
 				>
 			</File>
+			<File
+				RelativePath=".\resource.h"
+				>
+			</File>
 		</Filter>
 		<Filter
 			Name="Shared"
@@ -331,6 +335,14 @@
 				>
 			</File>
 		</Filter>
+		<File
+			RelativePath=".\Epoch.ico"
+			>
+		</File>
+		<File
+			RelativePath=".\EpochTools.rc"
+			>
+		</File>
 	</Files>
 	<Globals>
 	</Globals>

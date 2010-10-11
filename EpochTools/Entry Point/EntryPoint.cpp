@@ -8,6 +8,7 @@
 #include "pch.h"
 
 #include "User Interface/Output.h"
+#include "User Interface/Input.h"
 
 #include "DLL Access Wrappers/Compiler.h"
 #include "DLL Access Wrappers/VM.h"
@@ -119,6 +120,13 @@ int _tmain(int argc, _TCHAR* argv[])
 			{
 				output << L"Unknown error!" << std::endl;
 			}
+		}
+		else if(parameters[i] == L"/pause")
+		{
+			output << L"\n\nPress enter to continue..." << std::endl;
+			
+			UI::Input input;
+			input.BlockingRead();
 		}
 	}
 
