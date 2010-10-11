@@ -177,8 +177,8 @@ private:
 	void Throw(const ExceptionT& exception) const;
 
 	StringHandle AllocateNewOverloadedFunctionName(StringHandle originalname);
-	void RemapFunctionToOverload(const CompileTimeParameterVector& params, size_t paramoffset, const TypeVector& possiblereturntypes, std::wstring& out_remappedname, StringHandle& out_remappednamehandle) const;
-	void GetAllMatchingOverloads(const CompileTimeParameterVector& params, size_t paramoffset, const TypeVector& possiblereturntypes, const std::wstring& originalname, StringHandle originalnamehandle, StringVector& out_names, StringHandles& out_namehandles) const;
+	void RemapFunctionToOverload(const CompileTimeParameterVector& params, size_t paramoffset, size_t paramlimit, const TypeVector& possiblereturntypes, std::wstring& out_remappedname, StringHandle& out_remappednamehandle) const;
+	void GetAllMatchingOverloads(const CompileTimeParameterVector& params, size_t paramoffset, size_t paramlimit, const TypeVector& possiblereturntypes, const std::wstring& originalname, StringHandle originalnamehandle, StringVector& out_names, StringHandles& out_namehandles) const;
 
 	std::wstring GetPatternMatchResolverName(const std::wstring& originalname) const;
 

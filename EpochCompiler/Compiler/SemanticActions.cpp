@@ -25,6 +25,7 @@
 
 #include <sstream>
 #include <iostream>
+#include <limits>
 
 
 
@@ -292,7 +293,7 @@ void CompilationSemantics::CompleteInfix()
 		std::wstring infixstatementname = StatementNames.top();
 		StringHandle infixstatementnamehandle = Session.StringPool.Pool(infixstatementname);
 
-		RemapFunctionToOverload(CompileTimeParameters.top(), StatementParamCount.top(), TypeVector(), infixstatementname, infixstatementnamehandle);
+		RemapFunctionToOverload(CompileTimeParameters.top(), StatementParamCount.top(), 2, TypeVector(), infixstatementname, infixstatementnamehandle);
 
 		FunctionSignatureSet::const_iterator iter = Session.FunctionSignatures.find(infixstatementnamehandle);
 		if(iter == Session.FunctionSignatures.end())
@@ -374,6 +375,7 @@ void CompilationSemantics::FinalizeInfix()
 								VerifyInfixOperandTypes(*operatoriter, op1type, op2type);
 
 								firstoperanditer->Type = VM::EpochType_Expression;
+								firstoperanditer->ExpressionType = Session.FunctionSignatures.find(*operatoriter)->second.GetReturnType();
 								firstoperanditer->ExpressionContents.swap(buffer);
 
 								flatoperandlist.erase(secondoperanditer);
@@ -477,7 +479,7 @@ void CompilationSemantics::CollapseUnaryOperators()
 			StringHandle outhandle = iter->first;
 			std::wstring outname = Session.StringPool.GetPooledString(outhandle);
 			CompileTimeParameterVector paramvec(1, originalparam);
-			RemapFunctionToOverload(paramvec, 0, TypeVector(), outname, outhandle);
+			RemapFunctionToOverload(paramvec, 0, std::numeric_limits<size_t>::max(), TypeVector(), outname, outhandle);
 			emitter.Invoke(outhandle);
 
 			CompileTimeParameter ctparam(L"@@unaryresult", VM::EpochType_Expression);
@@ -526,7 +528,7 @@ void CompilationSemantics::RegisterPreOperand(const std::wstring& identifier)
 
 		CompileTimeParameterVector ctparams;
 		ctparams.push_back(CompileTimeParameter(L"@@preoperand", VM::EpochType_Identifier));
-		RemapFunctionToOverload(ctparams, 0, TypeVector(1, variabletype), operatorname, operatornamehandle);
+		RemapFunctionToOverload(ctparams, 0, 1, TypeVector(1, variabletype), operatorname, operatornamehandle);
 
 		ByteBuffer buffer;
 		ByteCodeEmitter emitter(buffer);
@@ -571,7 +573,7 @@ void CompilationSemantics::RegisterPostOperator(const std::wstring& identifier)
 
 		CompileTimeParameterVector ctparams;
 		ctparams.push_back(CompileTimeParameter(L"@@preoperand", VM::EpochType_Identifier));
-		RemapFunctionToOverload(ctparams, 0, TypeVector(1, variabletype), operatorname, operatornamehandle);
+		RemapFunctionToOverload(ctparams, 0, 1, TypeVector(1, variabletype), operatorname, operatornamehandle);
 
 		ByteBuffer buffer;
 		ByteCodeEmitter emitter(buffer);
@@ -1095,7 +1097,7 @@ void CompilationSemantics::CompleteStatement()
 		UnaryOperators.pop();
 
 		TypeVector outerexpectedtypes = WalkCallChainForExpectedTypes(StatementNames.size() - 1);
-		RemapFunctionToOverload(CompileTimeParameters.top(), 0, outerexpectedtypes, statementname, statementnamehandle);
+		RemapFunctionToOverload(CompileTimeParameters.top(), 0, std::numeric_limits<size_t>::max(), outerexpectedtypes, statementname, statementnamehandle);
 
 		FunctionCompileHelperTable::const_iterator fchiter = CompileTimeHelpers.find(statementname);
 		if(fchiter != CompileTimeHelpers.end())
@@ -1334,7 +1336,7 @@ void CompilationSemantics::CompleteAssignment()
 		{
 			std::wstring assignmentop = StatementNames.top();
 			StringHandle assignmentophandle = Session.StringPool.Pool(assignmentop);
-			RemapFunctionToOverload(CompileTimeParameters.top(), 0, TypeVector(1, expressiontype), assignmentop, assignmentophandle);
+			RemapFunctionToOverload(CompileTimeParameters.top(), 0, 2, TypeVector(1, expressiontype), assignmentop, assignmentophandle);
 
 			EmitterStack.top()->Invoke(assignmentophandle);
 		}
@@ -1742,12 +1744,12 @@ StringHandle CompilationSemantics::AllocateNewOverloadedFunctionName(StringHandl
 //
 // Given a set of parameters, look up the appropriate matching function overload
 //
-void CompilationSemantics::RemapFunctionToOverload(const CompileTimeParameterVector& params, size_t paramoffset, const TypeVector& possiblereturntypes, std::wstring& out_remappedname, StringHandle& out_remappednamehandle) const
+void CompilationSemantics::RemapFunctionToOverload(const CompileTimeParameterVector& params, size_t paramoffset, size_t paramlimit, const TypeVector& possiblereturntypes, std::wstring& out_remappedname, StringHandle& out_remappednamehandle) const
 {
 	StringVector matchingnames;
 	StringHandles matchingnamehandles;
 
-	GetAllMatchingOverloads(params, paramoffset, possiblereturntypes, out_remappedname, out_remappednamehandle, matchingnames, matchingnamehandles);
+	GetAllMatchingOverloads(params, paramoffset, paramlimit, possiblereturntypes, out_remappedname, out_remappednamehandle, matchingnames, matchingnamehandles);
 
 	if(!matchingnamehandles.empty())
 	{
@@ -1763,7 +1765,7 @@ void CompilationSemantics::RemapFunctionToOverload(const CompileTimeParameterVec
 }
 
 
-void CompilationSemantics::GetAllMatchingOverloads(const CompileTimeParameterVector& params, size_t paramoffset, const TypeVector& possiblereturntypes, const std::wstring& originalname, StringHandle originalnamehandle, StringVector& out_names, StringHandles& out_namehandles) const
+void CompilationSemantics::GetAllMatchingOverloads(const CompileTimeParameterVector& params, size_t paramoffset, size_t paramlimit, const TypeVector& possiblereturntypes, const std::wstring& originalname, StringHandle originalnamehandle, StringVector& out_names, StringHandles& out_namehandles) const
 {
 	OverloadMap::const_iterator overloadsiter = Session.FunctionOverloadNames.find(originalnamehandle);
 	if(overloadsiter == Session.FunctionOverloadNames.end())
@@ -1807,7 +1809,8 @@ void CompilationSemantics::GetAllMatchingOverloads(const CompileTimeParameterVec
 	{
 		FunctionSignatureSet::const_iterator signatureiter = Session.FunctionSignatures.find(*iter);
 
-		if((params.size() - paramoffset) > signatureiter->second.GetNumParameters())
+		size_t numparams = std::min(params.size() - paramoffset, paramlimit);
+		if(numparams > signatureiter->second.GetNumParameters())
 			continue;
 
 		if(!possiblereturntypes.empty())
@@ -1828,7 +1831,7 @@ void CompilationSemantics::GetAllMatchingOverloads(const CompileTimeParameterVec
 
 		bool matched = true;
 		bool patternsucceeded = true;
-		for(size_t i = paramoffset; i < params.size(); ++i)
+		for(size_t i = paramoffset; i < std::min(params.size(), paramoffset + paramlimit); ++i)
 		{
 			if(signatureiter->second.GetParameter(i - paramoffset).Name == L"@@patternmatched")
 			{
@@ -2015,7 +2018,7 @@ CompilationSemantics::TypeVector CompilationSemantics::WalkCallChainForExpectedT
 
 		StringVector outnames;
 		StringHandles outnamehandles;
-		GetAllMatchingOverloads(CompileTimeParameters.c.at(index), paramindex, outerexpectedtypes, name, namehandle, outnames, outnamehandles);
+		GetAllMatchingOverloads(CompileTimeParameters.c.at(index), paramindex, std::numeric_limits<size_t>::max(), outerexpectedtypes, name, namehandle, outnames, outnamehandles);
 
 		TypeVector ret;
 
