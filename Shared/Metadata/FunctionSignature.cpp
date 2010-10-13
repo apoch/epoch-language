@@ -62,7 +62,7 @@ void FunctionSignature::SetReturnType(VM::EpochTypeID type)
 //
 // Retrieve the parameter at the given index
 //
-const CompileTimeParameter& FunctionSignature::GetParameter(unsigned index) const
+const CompileTimeParameter& FunctionSignature::GetParameter(size_t index) const
 {
 	return Parameters[index];
 }
@@ -92,7 +92,7 @@ size_t FunctionSignature::FindParameter(const std::wstring& name) const
 //
 // Retrieve the function signature at the given parameter index
 //
-const FunctionSignature& FunctionSignature::GetFunctionSignature(unsigned index) const
+const FunctionSignature& FunctionSignature::GetFunctionSignature(size_t index) const
 {
 	return FunctionSignatures[index];
 }
@@ -100,7 +100,7 @@ const FunctionSignature& FunctionSignature::GetFunctionSignature(unsigned index)
 //
 // Set the value of the function signature at the given parameter index
 //
-void FunctionSignature::SetFunctionSignature(unsigned index, const FunctionSignature& signature)
+void FunctionSignature::SetFunctionSignature(size_t index, const FunctionSignature& signature)
 {
 	FunctionSignatures[index] = signature;
 }

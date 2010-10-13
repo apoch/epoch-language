@@ -57,6 +57,7 @@ public:
 	void PushBooleanLiteral(bool value);
 	void PushRealLiteral(Real32 value);
 	void PushVariableValue(StringHandle variablename);
+	void PushBufferHandle(BufferHandle handle);
 
 	void PopStack(VM::EpochTypeID type);
 

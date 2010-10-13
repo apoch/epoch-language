@@ -35,13 +35,13 @@ public:
 	
 // Inspection interface
 public:
-	const CompileTimeParameter& GetParameter(unsigned index) const;
+	const CompileTimeParameter& GetParameter(size_t index) const;
 	const CompileTimeParameter& GetParameter(const std::wstring& name) const;
 
 	size_t FindParameter(const std::wstring& name) const;
 
-	const FunctionSignature& GetFunctionSignature(unsigned index) const;
-	void SetFunctionSignature(unsigned index, const FunctionSignature& signature);
+	const FunctionSignature& GetFunctionSignature(size_t index) const;
+	void SetFunctionSignature(size_t index, const FunctionSignature& signature);
 
 	VM::EpochTypeID GetReturnType() const
 	{ return ReturnType; }

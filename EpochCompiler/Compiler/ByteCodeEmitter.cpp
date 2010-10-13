@@ -116,6 +116,16 @@ void ByteCodeEmitter::PushVariableValue(StringHandle variablename)
 }
 
 //
+// Emit code for pushing a buffer handle onto the stack
+//
+void ByteCodeEmitter::PushBufferHandle(BufferHandle handle)
+{
+	EmitInstruction(Bytecode::Instructions::Push);
+	EmitTypeAnnotation(VM::EpochType_Buffer);
+	EmitRawValue(handle);
+}
+
+//
 // Emit code for popping a given number of bytes off the stack
 //
 // Note that we do not store the number of bytes to pop directly; instead, we

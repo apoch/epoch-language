@@ -110,6 +110,28 @@ StringHandle VirtualMachine::GetPooledStringHandle(const std::wstring& value)
 }
 
 //
+// Retrieve a buffer pointer from the list of allocated buffers
+//
+void* VirtualMachine::GetBuffer(BufferHandle handle)
+{
+	std::map<StringHandle, std::vector<Byte> >::iterator iter = Buffers.find(handle);
+	if(iter == Buffers.end())
+		throw FatalException("Invalid buffer handle");
+
+	return &iter->second[0];
+}
+
+//
+// Allocate a data buffer and return its handle
+//
+BufferHandle VirtualMachine::AllocateBuffer(size_t size)
+{
+	BufferHandle ret = ++CurrentBufferHandle;
+	Buffers[ret].swap(std::vector<Byte>(size, 0));
+	return ret;
+}
+
+//
 // Add a function to the global namespace
 //
 void VirtualMachine::AddFunction(StringHandle name, EpochFunctionPtr funcptr)
@@ -352,6 +374,13 @@ void ExecutionContext::Execute(const ScopeDescription* scope)
 					{
 						Real32 value = Fetch<Real32>();
 						State.Stack.PushValue(value);
+					}
+					break;
+
+				case EpochType_Buffer:
+					{
+						BufferHandle handle = Fetch<BufferHandle>();
+						State.Stack.PushValue(handle);
 					}
 					break;
 

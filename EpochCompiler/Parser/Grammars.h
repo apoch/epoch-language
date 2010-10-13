@@ -89,6 +89,7 @@ struct FundamentalGrammar : public boost::spirit::classic::grammar<FundamentalGr
 				STRING("string"),
 				BOOLEAN("boolean"),
 				REAL("real"),
+				BUFFER("buffer"),
 
 				ASSIGN("="),
 
@@ -131,6 +132,7 @@ struct FundamentalGrammar : public boost::spirit::classic::grammar<FundamentalGr
 				| STRING
 				| BOOLEAN
 				| REAL
+				| BUFFER
 				;
 
 			
@@ -294,7 +296,7 @@ struct FundamentalGrammar : public boost::spirit::classic::grammar<FundamentalGr
 
 		boost::spirit::classic::chlit<> COLON, OPENPARENS, CLOSEPARENS, OPENBRACE, CLOSEBRACE, OPENBRACKET, CLOSEBRACKET, PERIOD, COMMA, QUOTE, NEGATE;
 
-		boost::spirit::classic::strlit<> MAPARROW, INTEGER, STRING, BOOLEAN, REAL, ASSIGN, EPOCH_TRUE, EPOCH_FALSE;
+		boost::spirit::classic::strlit<> MAPARROW, INTEGER, STRING, BOOLEAN, REAL, BUFFER, ASSIGN, EPOCH_TRUE, EPOCH_FALSE;
 
 		boost::spirit::classic::rule<ScannerType> StringIdentifier;
 

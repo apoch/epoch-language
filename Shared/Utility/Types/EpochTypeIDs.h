@@ -23,7 +23,9 @@ namespace VM
 		EpochType_Integer,
 		EpochType_Boolean,
 		EpochType_String,
-		EpochType_Real
+		EpochType_Real,
+
+		EpochType_Buffer,
 	};
 }
 

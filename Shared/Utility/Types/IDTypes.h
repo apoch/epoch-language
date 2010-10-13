@@ -12,3 +12,5 @@ typedef size_t HandleType;
 
 
 typedef HandleType StringHandle;
+typedef HandleType BufferHandle;
+

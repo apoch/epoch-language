@@ -33,10 +33,19 @@ void Register::Set(Integer32 value)
 //
 // Set the value of the register to a string handle
 //
-void Register::Set(StringHandle value)
+void Register::SetString(StringHandle value)
 {
 	Value_StringHandle = value;
 	Type = VM::EpochType_String;
+}
+
+//
+// Set the value of the register to a buffer handle
+//
+void Register::SetBuffer(BufferHandle value)
+{
+	Value_BufferHandle = value;
+	Type = VM::EpochType_Buffer;
 }
 
 //
@@ -82,6 +91,10 @@ void Register::PushOntoStack(StackSpace& stack) const
 
 	case VM::EpochType_Real:
 		stack.PushValue(Value_Real);
+		break;
+
+	case VM::EpochType_Buffer:
+		stack.PushValue(Value_BufferHandle);
 		break;
 
 	default:

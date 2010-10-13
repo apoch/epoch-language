@@ -543,7 +543,7 @@ void CompilationSemantics::RegisterPreOperand(const std::wstring& identifier)
 		if(!CompileTimeParameters.empty())
 		{
 			CompileTimeParameter ctparam(L"@@preoperation", VM::EpochType_Expression);
-			ctparam.ExpressionType = VM::EpochType_Integer;
+			ctparam.ExpressionType = variabletype;
 			ctparam.ExpressionContents.swap(buffer);
 			CompileTimeParameters.top().push_back(ctparam);
 		}
@@ -588,7 +588,7 @@ void CompilationSemantics::RegisterPostOperator(const std::wstring& identifier)
 		if(!CompileTimeParameters.empty())
 		{
 			CompileTimeParameter ctparam(L"@@preoperation", VM::EpochType_Expression);
-			ctparam.ExpressionType = VM::EpochType_Integer;
+			ctparam.ExpressionType = variabletype;
 			ctparam.ExpressionContents.swap(buffer);
 			CompileTimeParameters.top().push_back(ctparam);
 		}
@@ -1098,7 +1098,7 @@ void CompilationSemantics::CompleteStatement()
 
 		FunctionCompileHelperTable::const_iterator fchiter = CompileTimeHelpers.find(statementname);
 		if(fchiter != CompileTimeHelpers.end())
-			fchiter->second(GetLexicalScopeDescription(LexicalScopeStack.top()), CompileTimeParameters.top());
+			fchiter->second(statementname, GetLexicalScopeDescription(LexicalScopeStack.top()), CompileTimeParameters.top());
 
 		bool indirectinvoke = false;
 
@@ -1215,6 +1215,17 @@ void CompilationSemantics::CompleteStatement()
 				case VM::EpochType_Real:
 					if(fs->GetParameter(i).Type == VM::EpochType_Real)
 						PendingEmitters.top().PushRealLiteral(CompileTimeParameters.top()[i].Payload.RealValue);
+					else
+					{
+						std::wostringstream errormsg;
+						errormsg << L"Parameter " << (i + 1) << L" to function \"" << statementname << L"\" is of the wrong type";
+						Throw(RecoverableException(narrow(errormsg.str())));
+					}
+					break;
+
+				case VM::EpochType_Buffer:
+					if(fs->GetParameter(i).Type == VM::EpochType_Buffer)
+						PendingEmitters.top().PushBufferHandle(CompileTimeParameters.top()[i].Payload.BufferHandleValue);
 					else
 					{
 						std::wostringstream errormsg;
@@ -1624,58 +1635,6 @@ void CompilationSemantics::PushParam(const std::wstring& paramname)
 	}
 
 	PushedItemTypes.pop();
-}
-
-//
-// Helper routine for type-checking parameters
-//
-bool CompilationSemantics::CheckParameterValidity(VM::EpochTypeID expectedtype)
-{
-	if(PushedItemTypes.empty())
-		throw ParameterException("Expected at least one parameter here, but none have been provided");
-
-	switch(PushedItemTypes.top())
-	{
-	case ITEMTYPE_STATEMENT:
-		if(StatementTypes.empty())
-			return false;
-		else if(StatementTypes.top() != expectedtype)
-		{
-			StatementTypes.pop();
-			return false;
-		}
-		break;
-
-	case ITEMTYPE_STRING:
-		if(expectedtype != VM::EpochType_Identifier)
-		{
-			if(GetLexicalScopeDescription(LexicalScopeStack.top()).HasVariable(Strings.top()))
-				return (GetLexicalScopeDescription(LexicalScopeStack.top()).GetVariableTypeByID(Session.StringPool.Pool(Strings.top())) == expectedtype);
-
-			return false;
-		}
-		break;
-
-	case ITEMTYPE_STRINGLITERAL:
-		if(expectedtype != VM::EpochType_String)
-			return false;
-		break;
-	
-	case ITEMTYPE_INTEGERLITERAL:
-		if(expectedtype != VM::EpochType_Integer)
-			return false;
-		break;
-
-	case ITEMTYPE_BOOLEANLITERAL:
-		if(expectedtype != VM::EpochType_Boolean)
-			return false;
-		break;
-
-	default:
-		throw FatalException("Unrecognized ItemType value in LastPushedItemType, parser is probably broken");
-	}
-
-	return true;
 }
 
 
@@ -2179,6 +2138,8 @@ VM::EpochTypeID CompilationSemantics::LookupTypeName(const std::wstring& type) c
 		return VM::EpochType_Boolean;
 	else if(type == L"real")
 		return VM::EpochType_Real;
+	else if(type == L"buffer")
+		return VM::EpochType_Buffer;
 
 	throw NotImplementedException("Cannot map the type name \"" + narrow(type) + "\" to an internal type ID");
 }
@@ -2283,6 +2244,10 @@ void CompilationSemantics::EmitInfixOperand(ByteCodeEmitter& emitter, const Comp
 
 	case VM::EpochType_Expression:
 		emitter.EmitBuffer(ctparam.ExpressionContents);
+		break;
+
+	case VM::EpochType_Buffer:
+		emitter.PushBufferHandle(ctparam.Payload.BufferHandleValue);
 		break;
 
 	default:

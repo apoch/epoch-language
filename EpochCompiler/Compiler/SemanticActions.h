@@ -176,8 +176,6 @@ public:
 
 // Internal helpers
 private:
-	bool CheckParameterValidity(VM::EpochTypeID expectedtype);
-
 	void AddLexicalScope(StringHandle scopename);
 	ScopeDescription& GetLexicalScopeDescription(StringHandle scopename);
 

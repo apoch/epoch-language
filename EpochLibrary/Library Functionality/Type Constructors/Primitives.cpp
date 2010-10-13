@@ -68,16 +68,30 @@ namespace
 		context.Variables->Write(identifierhandle, value);
 	}
 
+	//
+	// Construct a buffer in memory
+	//
+	void ConstructBuffer(StringHandle functionname, VM::ExecutionContext& context)
+	{
+		Integer32 size = context.State.Stack.PopValue<Integer32>();
+		StringHandle identifierhandle = context.State.Stack.PopValue<StringHandle>();
+
+		BufferHandle bufferhandle = context.OwnerVM.AllocateBuffer(size);
+		context.Variables->Write(identifierhandle, bufferhandle);
+	}
+
 
 	//
 	// Compile-time helper: when a variable definition is encountered, this
 	// helper adds the variable itself and its type metadata to the current
 	// lexical scope.
 	//
-	void CompileConstructorPrimitive(ScopeDescription& scope, const CompileTimeParameterVector& compiletimeparams)
+	void CompileConstructorPrimitive(const std::wstring& functionname, ScopeDescription& scope, const CompileTimeParameterVector& compiletimeparams)
 	{
 		VM::EpochTypeID effectivetype = compiletimeparams[1].Type;
-		if(effectivetype == VM::EpochType_Identifier)
+		if(functionname == L"buffer")
+			effectivetype = VM::EpochType_Buffer;
+		else if(effectivetype == VM::EpochType_Identifier)
 			effectivetype = scope.GetVariableTypeByID(compiletimeparams[1].Payload.StringHandleValue);
 		else if(effectivetype == VM::EpochType_Expression)
 			effectivetype = compiletimeparams[1].ExpressionType;
@@ -96,6 +110,7 @@ void TypeConstructors::RegisterLibraryFunctions(FunctionInvocationTable& table, 
 	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"string"), ConstructString));
 	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"boolean"), ConstructBoolean));
 	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"real"), ConstructReal));
+	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"buffer"), ConstructBuffer));
 }
 
 //
@@ -127,6 +142,12 @@ void TypeConstructors::RegisterLibraryFunctions(FunctionSignatureSet& signatures
 		signature.AddParameter(L"value", VM::EpochType_Real);
 		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"real"), signature));
 	}
+	{
+		FunctionSignature signature;
+		signature.AddParameter(L"identifier", VM::EpochType_Identifier);
+		signature.AddParameter(L"size", VM::EpochType_Integer);
+		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"buffer"), signature));
+	}
 }
 
 //
@@ -138,6 +159,7 @@ void TypeConstructors::RegisterLibraryFunctions(FunctionCompileHelperTable& tabl
 	AddToMapNoDupe(table, std::make_pair(L"string", CompileConstructorPrimitive));
 	AddToMapNoDupe(table, std::make_pair(L"boolean", CompileConstructorPrimitive));
 	AddToMapNoDupe(table, std::make_pair(L"real", CompileConstructorPrimitive));
+	AddToMapNoDupe(table, std::make_pair(L"buffer", CompileConstructorPrimitive));
 }
 
 

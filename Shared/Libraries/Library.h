@@ -30,7 +30,7 @@ namespace VM
 typedef void (*EpochFunctionPtr)(StringHandle namehandle, VM::ExecutionContext& context);
 typedef std::map<StringHandle, EpochFunctionPtr> FunctionInvocationTable;
 
-typedef void (*CompilerHelperPtr)(ScopeDescription& scope, const CompileTimeParameterVector& compiletimeparams);
+typedef void (*CompilerHelperPtr)(const std::wstring& functionname, ScopeDescription& scope, const CompileTimeParameterVector& compiletimeparams);
 typedef std::map<std::wstring, CompilerHelperPtr> FunctionCompileHelperTable;
 
 typedef std::multimap<int, StringHandle> PrecedenceTable;

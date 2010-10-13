@@ -28,9 +28,11 @@ public:
 // Value assignment
 public:
 	void Set(Integer32 value);
-	void Set(StringHandle value);
 	void Set(bool value);
 	void Set(Real32 value);
+
+	void SetString(StringHandle value);
+	void SetBuffer(BufferHandle value);
 
 // Stack interaction
 public:
@@ -42,6 +44,7 @@ private:
 	{
 		Integer32 Value_Integer32;
 		StringHandle Value_StringHandle;
+		BufferHandle Value_BufferHandle;
 		bool Value_Boolean;
 		Real32 Value_Real;
 	};

@@ -155,6 +155,10 @@ void Serializer::Write(const std::wstring& filename) const
 					outfile << L"PUSH_STR " << traverser.Read<StringHandle>() << L"\n";
 					break;
 
+				case VM::EpochType_Buffer:
+					outfile << L"PUSH_BUFFER " << traverser.Read<BufferHandle>() << L"\n";
+					break;
+
 				default:
 					throw SerializationException("Failed to serialize unknown type annotation");
 				}

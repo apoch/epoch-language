@@ -92,6 +92,10 @@ void ActiveScope::WriteFromStack(StringHandle variableid, StackSpace& stack)
 		Write(variableid, stack.PopValue<Real32>());
 		break;
 
+	case VM::EpochType_Buffer:
+		Write(variableid, stack.PopValue<BufferHandle>());
+		break;
+
 	default:
 		throw NotImplementedException("Unsupported data type in ActiveScope::WriteFromStack");
 	}
@@ -128,6 +132,13 @@ void ActiveScope::PushOntoStack(StringHandle variableid, StackSpace& stack) cons
 	case VM::EpochType_Real:
 		{
 			Real32* value = reinterpret_cast<Real32*>(GetVariableStorageLocation(variableid));
+			stack.PushValue(*value);
+		}
+		break;
+
+	case VM::EpochType_Buffer:
+		{
+			BufferHandle* value = reinterpret_cast<BufferHandle*>(GetVariableStorageLocation(variableid));
 			stack.PushValue(*value);
 		}
 		break;
@@ -176,7 +187,7 @@ void ActiveScope::CopyToRegister(StringHandle variableid, Register& targetregist
 	case VM::EpochType_String:
 		{
 			StringHandle* value = reinterpret_cast<StringHandle*>(GetVariableStorageLocation(variableid));
-			targetregister.Set(*value);
+			targetregister.SetString(*value);
 		}
 		break;
 
@@ -191,6 +202,13 @@ void ActiveScope::CopyToRegister(StringHandle variableid, Register& targetregist
 		{
 			Real32* value = reinterpret_cast<Real32*>(GetVariableStorageLocation(variableid));
 			targetregister.Set(*value);
+		}
+		break;
+
+	case VM::EpochType_Buffer:
+		{
+			BufferHandle* value = reinterpret_cast<BufferHandle*>(GetVariableStorageLocation(variableid));
+			targetregister.SetBuffer(*value);
 		}
 		break;
 

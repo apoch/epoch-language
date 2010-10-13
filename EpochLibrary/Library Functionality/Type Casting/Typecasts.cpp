@@ -73,6 +73,17 @@ namespace
 
 		context.State.Stack.PushValue(result);
 	}
+
+	void CastBufferToString(StringHandle functionname, ExecutionContext& context)
+	{
+		BufferHandle bufferhandle = context.State.Stack.PopValue<BufferHandle>();
+		StringHandle targettype = context.State.Stack.PopValue<StringHandle>();
+
+		std::wstring str(reinterpret_cast<wchar_t*>(context.OwnerVM.GetBuffer(bufferhandle)));
+		StringHandle result = context.OwnerVM.PoolString(str);
+
+		context.State.Stack.PushValue(result);
+	}
 }
 
 
@@ -85,6 +96,7 @@ void TypeCasts::RegisterLibraryFunctions(FunctionInvocationTable& table, StringP
 	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"cast@@string_to_integer"), CastStringToInteger));
 	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"cast@@boolean_to_string"), CastBooleanToString));
 	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"cast@@real_to_string"), CastRealToString));
+	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"cast@@buffer_to_string"), CastBufferToString));
 }
 
 //
@@ -120,6 +132,13 @@ void TypeCasts::RegisterLibraryFunctions(FunctionSignatureSet& signatureset, Str
 		signature.SetReturnType(VM::EpochType_String);
 		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"cast@@real_to_string"), signature));
 	}
+	{
+		FunctionSignature signature;
+		signature.AddPatternMatchedParameterIdentifier(stringpool.Pool(L"string"));
+		signature.AddParameter(L"value", EpochType_Buffer);
+		signature.SetReturnType(VM::EpochType_String);
+		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"cast@@buffer_to_string"), signature));
+	}
 }
 
 
@@ -134,6 +153,7 @@ void TypeCasts::RegisterLibraryOverloads(OverloadMap& overloadmap, StringPoolMan
 		overloadmap[functionnamehandle].insert(stringpool.Pool(L"cast@@string_to_integer"));
 		overloadmap[functionnamehandle].insert(stringpool.Pool(L"cast@@boolean_to_string"));
 		overloadmap[functionnamehandle].insert(stringpool.Pool(L"cast@@real_to_string"));
+		overloadmap[functionnamehandle].insert(stringpool.Pool(L"cast@@buffer_to_string"));
 	}
 }
 

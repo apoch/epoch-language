@@ -43,6 +43,7 @@ struct CompileTimeParameter
 	{
 		Integer32 IntegerValue;
 		StringHandle StringHandleValue;
+		BufferHandle BufferHandleValue;
 		bool BooleanValue;
 		Real32 RealValue;
 	} Payload;

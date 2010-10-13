@@ -56,6 +56,13 @@ namespace VM
 	//
 	class VirtualMachine
 	{
+	// Construction
+	public:
+		VirtualMachine()
+			: CurrentBufferHandle(0)
+		{
+		}
+
 	// Initialization
 	public:
 		void InitStandardLibraries();
@@ -70,6 +77,9 @@ namespace VM
 		void PoolString(StringHandle handle, const std::wstring& stringdata);
 		const std::wstring& GetPooledString(StringHandle handle) const;
 		StringHandle GetPooledStringHandle(const std::wstring& value);
+
+		void* GetBuffer(BufferHandle handle);
+		BufferHandle AllocateBuffer(size_t size);
 
 	// Functions
 	public:
@@ -110,6 +120,9 @@ namespace VM
 		EntityTable Entities;
 		BeginEndOffsetMap EntityOffsets;
 		BeginEndOffsetMap ChainOffsets;
+
+		BufferHandle CurrentBufferHandle;
+		std::map<StringHandle, std::vector<Byte> > Buffers;
 	};
 
 
