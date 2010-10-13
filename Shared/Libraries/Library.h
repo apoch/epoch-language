@@ -42,6 +42,17 @@ typedef std::set<StringHandle> StringHandleSet;
 typedef std::map<StringHandle, StringHandleSet> OverloadMap;
 
 
+
+struct TagHelperReturn
+{
+	std::wstring InvokeRuntimeFunction;
+};
+
+
+typedef TagHelperReturn (*FunctionTagHelperPtr)(StringHandle functionname, const CompileTimeParameterVector& compiletimeparams, bool isprepass);
+typedef std::map<std::wstring, FunctionTagHelperPtr> FunctionTagHelperTable;
+
+
 struct CompilerInfoTable
 {
 	FunctionCompileHelperTable* FunctionHelpers;
@@ -56,5 +67,5 @@ struct CompilerInfoTable
 	EntityTable* ChainedEntities;
 	EntityTable* PostfixEntities;
 	EntityTable* PostfixClosers;
+	FunctionTagHelperTable* FunctionTagHelpers;
 };
-

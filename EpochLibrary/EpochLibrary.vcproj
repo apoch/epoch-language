@@ -353,6 +353,18 @@
 					>
 				</File>
 			</Filter>
+			<Filter
+				Name="Function Tags"
+				>
+				<File
+					RelativePath=".\Library Functionality\Function Tags\Externals.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\Library Functionality\Function Tags\Externals.h"
+					>
+				</File>
+			</Filter>
 		</Filter>
 		<Filter
 			Name="Shared"

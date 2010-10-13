@@ -76,6 +76,8 @@ struct FundamentalGrammar : public boost::spirit::classic::grammar<FundamentalGr
 				CLOSEPARENS(')'),
 				OPENBRACE('{'),
 				CLOSEBRACE('}'),
+				OPENBRACKET('['),
+				CLOSEBRACKET(']'),
 				PERIOD('.'),
 				COMMA(','),
 				QUOTE('\"'),
@@ -244,8 +246,12 @@ struct FundamentalGrammar : public boost::spirit::classic::grammar<FundamentalGr
 				;
 
 			MetaEntity
-				= StringIdentifier[StoreString(self.Bindings)] >> COLON >> ParameterList >> MAPARROW >> ReturnList[StoreEntityType(self.Bindings, Bytecode::EntityTags::Function)]
+				= GeneralExceptionGuard
+				  (
+					StringIdentifier[StoreString(self.Bindings)] >> COLON >> ParameterList >> MAPARROW >> ReturnList[StoreEntityType(self.Bindings, Bytecode::EntityTags::Function)]
+					>> !(OPENBRACKET >> *((StringIdentifier[BeginFunctionTag(self.Bindings)] >> !(OPENPARENS >> (Literal % COMMA) >> CLOSEPARENS))[CompleteFunctionTag(self.Bindings)]) >> CLOSEBRACKET)
 					>> MissingFunctionBodyExceptionGuard(ExpectFunctionBody(CodeBlock[StoreEntityCode(self.Bindings)]))[MissingFunctionBodyExceptionHandler(self.Bindings)]
+				  )[GeneralExceptionHandler(self.Bindings)]
 				;
 
 			Program
@@ -280,7 +286,7 @@ struct FundamentalGrammar : public boost::spirit::classic::grammar<FundamentalGr
 				AddOpAssignOperator(*PooledNarrowStrings.insert(narrow(*iter)).first);
 		}
 
-		boost::spirit::classic::chlit<> COLON, OPENPARENS, CLOSEPARENS, OPENBRACE, CLOSEBRACE, PERIOD, COMMA, QUOTE, NEGATE;
+		boost::spirit::classic::chlit<> COLON, OPENPARENS, CLOSEPARENS, OPENBRACE, CLOSEBRACE, OPENBRACKET, CLOSEBRACKET, PERIOD, COMMA, QUOTE, NEGATE;
 
 		boost::spirit::classic::strlit<> MAPARROW, INTEGER, STRING, BOOLEAN, REAL, ASSIGN, EPOCH_TRUE, EPOCH_FALSE;
 

@@ -49,6 +49,10 @@ bool Parser::Parse(const std::wstring& code, const std::wstring& filename)
 	// Sanity check to make sure the parser is in a clean state
 	SemanticActions.SanityCheck();
 
+	// Don't do the second pass if prepass failed
+	if(SemanticActions.DidFail())
+		return false;
+
 	// Second pass: traverse into each function and generate the corresponding bytecode
 	SemanticActions.SetPrepassMode(false);
 	result = parse(start, end, grammar >> end_p, skip);

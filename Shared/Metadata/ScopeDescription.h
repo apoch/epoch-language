@@ -46,6 +46,7 @@ public:
 	bool HasVariable(const std::wstring& identifier) const;
 
 	const std::wstring& GetVariableName(size_t index) const;
+	StringHandle GetVariableNameHandle(size_t index) const;
 	VM::EpochTypeID GetVariableTypeByID(StringHandle variableid) const;
 	VM::EpochTypeID GetVariableTypeByIndex(size_t index) const;
 	VariableOrigin GetVariableOrigin(size_t index) const;

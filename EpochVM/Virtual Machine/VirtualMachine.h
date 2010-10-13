@@ -167,6 +167,7 @@ namespace VM
 		MachineState State;
 		ActiveScope* Variables;
 		VirtualMachine& OwnerVM;
+		std::stack<StringHandle> InvokedFunctionStack;
 
 	// Internal state
 	private:

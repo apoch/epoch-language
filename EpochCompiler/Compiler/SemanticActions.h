@@ -88,15 +88,13 @@ public:
 		EmitterStack.push(&MasterEmitter);
 	}
 
-// Check if everything went smooth
-public:
-	bool DidFail() const
-	{ return Failed; }
-
-// Semantic action implementations (implementation of SemanticActionInterface)
+	// Semantic action implementations (implementation of SemanticActionInterface)
 public:
 	virtual void Fail()
 	{ Failed = true; }
+
+	virtual bool DidFail() const
+	{ return Failed; }
 
 	virtual void SetPrepassMode(bool isprepass);
 
@@ -140,6 +138,9 @@ public:
 	virtual void RegisterReturnName(const std::wstring& name);
 	virtual void RegisterReturnValue();
 
+	virtual void BeginFunctionTag(const std::wstring& tagname);
+	virtual void CompleteFunctionTag();
+
 	virtual void BeginStatement(const std::wstring& statementname);
 	virtual void BeginStatementParams();
 	virtual void PushStatementParam();
@@ -159,8 +160,11 @@ public:
 
 	virtual void SanityCheck() const;
 
-	virtual void SetParsePosition(const boost::spirit::classic::position_iterator<const char*>& iterator)
+	virtual void SetParsePosition(const PosIteratorT& iterator)
 	{ ParsePosition = iterator; }
+
+	virtual const PosIteratorT& GetParsePosition() const
+	{ return ParsePosition; }
 
 // Internal helpers
 private:
@@ -199,6 +203,8 @@ private:
 	void VerifyInfixOperandTypes(StringHandle infixoperator, VM::EpochTypeID op1type, VM::EpochTypeID op2type);
 
 	VM::EpochTypeID GetEffectiveType(const CompileTimeParameter& param) const;
+
+	void CleanAllPushedItems();
 
 // Internal tracking
 private:

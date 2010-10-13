@@ -49,6 +49,14 @@ const std::wstring& ScopeDescription::GetVariableName(size_t index) const
 }
 
 //
+// Retrieve the string handle of the identifier of the variable at the given index in the scope
+//
+StringHandle ScopeDescription::GetVariableNameHandle(size_t index) const
+{
+	return Variables[index].IdentifierHandle;
+}
+
+//
 // Retrieve the type of a variable given its identifier handle
 //
 VM::EpochTypeID ScopeDescription::GetVariableTypeByID(StringHandle variableid) const

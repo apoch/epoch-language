@@ -240,13 +240,31 @@ void ExecutionContext::Execute(const ScopeDescription* scope)
 				while(!ScopesToCleanUp.empty())
 					ThisPtr->Variables = CleanUpTopmostScope();
 
-				ThisPtr->Variables->PopScopeOffStack(*ThisPtr);
+				try
+				{
+					ThisPtr->Variables->PopScopeOffStack(*ThisPtr);
+				}
+				catch(...)
+				{
+					// The stack will be bogus, but we'll do our best to recover and not leak memory
+					ThisPtr->State.Result.ResultType = ExecutionResult::EXEC_RESULT_HALT;
+				}
+
 				bool hasreturn = ThisPtr->Variables->HasReturnVariable();
 				ActiveScope* parent = ThisPtr->Variables->ParentScope;
 				delete ThisPtr->Variables;
 				ThisPtr->Variables = parent;
 				if(hasreturn)
-					ThisPtr->State.ReturnValueRegister.PushOntoStack(ThisPtr->State.Stack);
+				{
+					try
+					{
+						ThisPtr->State.ReturnValueRegister.PushOntoStack(ThisPtr->State.Stack);
+					}
+					catch(...)
+					{
+						ThisPtr->State.Result.ResultType = ExecutionResult::EXEC_RESULT_HALT;
+					}
+				}
 			}
 		}
 
@@ -254,7 +272,17 @@ void ExecutionContext::Execute(const ScopeDescription* scope)
 		{
 			ActiveScope* activescope = ScopesToCleanUp.back();
 			ActiveScope* parent = activescope->ParentScope;
-			activescope->PopScopeOffStack(*ThisPtr);
+			
+			try
+			{
+				activescope->PopScopeOffStack(*ThisPtr);
+			}
+			catch(...)
+			{
+				// The stack will be bogus, but we'll do our best to recover and not leak memory
+				ThisPtr->State.Result.ResultType = ExecutionResult::EXEC_RESULT_HALT;
+			}
+
 			delete activescope;
 			ScopesToCleanUp.pop_back();
 			return parent;
@@ -357,7 +385,9 @@ void ExecutionContext::Execute(const ScopeDescription* scope)
 		case Bytecode::Instructions::Invoke:	// Invoke a built-in or user-defined function
 			{
 				StringHandle functionname = Fetch<StringHandle>();
+				InvokedFunctionStack.push(functionname);
 				OwnerVM.InvokeFunction(functionname, *this);
+				InvokedFunctionStack.pop();
 				if(State.Result.ResultType != ExecutionResult::EXEC_RESULT_OK)
 					return;
 			}

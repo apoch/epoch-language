@@ -1938,6 +1938,85 @@ void CompilationSemantics::GetAllMatchingOverloads(const CompileTimeParameterVec
 
 
 //-------------------------------------------------------------------------------
+// Function tagging
+//-------------------------------------------------------------------------------
+
+//
+// Note the beginning of a function tag
+//
+// Function tags are used to annotate functions and give them special properties or behaviors.
+// For instance, a function can be tagged as "external" to link it to a function in a separate
+// C-compatible DLL interface, or "pure" to prohibit the use of side effects in the code body.
+//
+void CompilationSemantics::BeginFunctionTag(const std::wstring& tagname)
+{
+	TemporaryString = tagname;
+}
+
+//
+// End a function tag and process its parameters, if any
+//
+void CompilationSemantics::CompleteFunctionTag()
+{
+	FunctionTagHelperTable::const_iterator iter = Session.FunctionTagHelpers.find(TemporaryString);
+	if(iter != Session.FunctionTagHelpers.end())
+	{
+		CompileTimeParameterVector ctparams;
+		while(!PushedItemTypes.empty())
+		{
+			CompileTimeParameter ctparam(L"@@tagparam", VM::EpochType_Error);
+
+			switch(PushedItemTypes.top())
+			{
+			case ITEMTYPE_STRINGLITERAL:
+				ctparam.Type = VM::EpochType_String;
+				ctparam.StringPayload = Session.StringPool.GetPooledString(StringLiterals.top());
+				StringLiterals.pop();
+				break;
+
+			case ITEMTYPE_INTEGERLITERAL:
+				ctparam.Type = VM::EpochType_Integer;
+				ctparam.Payload.IntegerValue = IntegerLiterals.top();
+				IntegerLiterals.pop();
+				break;
+
+			case ITEMTYPE_BOOLEANLITERAL:
+				ctparam.Type = VM::EpochType_Boolean;
+				ctparam.Payload.BooleanValue = BooleanLiterals.top();
+				BooleanLiterals.pop();
+				break;
+
+			case ITEMTYPE_REALLITERAL:
+				ctparam.Type = VM::EpochType_Real;
+				ctparam.Payload.RealValue = RealLiterals.top();
+				RealLiterals.pop();
+				break;
+
+			default:
+				Throw(RecoverableException("Invalid parameter to function tag"));
+			}
+
+			ctparams.insert(ctparams.begin(), ctparam);
+			PushedItemTypes.pop();
+		}
+
+		TagHelperReturn ret = iter->second(LexicalScopeStack.top(), ctparams, IsPrepass);
+		if(!ret.InvokeRuntimeFunction.empty())
+			PendingEmitters.top().Invoke(Session.StringPool.Pool(ret.InvokeRuntimeFunction));
+	}
+	else
+	{
+		EntityTypeTags.pop();
+		CurrentEntities.pop();
+		LexicalScopeStack.pop();
+		CleanAllPushedItems();
+		Fail();
+		Throw(RecoverableException("Invalid function tag"));
+	}
+}
+
+
+//-------------------------------------------------------------------------------
 // Additional helpers
 //-------------------------------------------------------------------------------
 
@@ -2187,6 +2266,47 @@ VM::EpochTypeID CompilationSemantics::GetEffectiveType(const CompileTimeParamete
 		return param.ExpressionType;
 
 	return param.Type;
+}
+
+//
+// Clear the parser stacks
+//
+void CompilationSemantics::CleanAllPushedItems()
+{
+	while(!PushedItemTypes.empty())
+	{
+		switch(PushedItemTypes.top())
+		{
+		case ITEMTYPE_STATEMENT:
+			// Nothing to pop
+			break;
+
+		case ITEMTYPE_STRING:
+			Strings.pop();
+			break;
+
+		case ITEMTYPE_STRINGLITERAL:
+			StringLiterals.pop();
+			break;
+
+		case ITEMTYPE_INTEGERLITERAL:
+			IntegerLiterals.pop();
+			break;
+
+		case ITEMTYPE_BOOLEANLITERAL:
+			BooleanLiterals.pop();
+			break;
+
+		case ITEMTYPE_REALLITERAL:
+			RealLiterals.pop();
+			break;
+
+		default:
+			throw FatalException("Invalid entry on parser stack");
+		}
+
+		PushedItemTypes.pop();
+	}
 }
 
 

@@ -25,6 +25,7 @@ class SemanticActionInterface
 {
 public:
 	virtual void Fail() = 0;
+	virtual bool DidFail() const = 0;
 
 	virtual void SetPrepassMode(bool isprepass) = 0;
 
@@ -68,6 +69,9 @@ public:
 	virtual void RegisterReturnName(const std::wstring& name) = 0;
 	virtual void RegisterReturnValue() = 0;
 
+	virtual void BeginFunctionTag(const std::wstring& tagname) = 0;
+	virtual void CompleteFunctionTag() = 0;
+
 	virtual void BeginStatement(const std::wstring& statementname) = 0;
 	virtual void BeginStatementParams() = 0;
 	virtual void PushStatementParam() = 0;
@@ -88,5 +92,6 @@ public:
 	virtual void SanityCheck() const = 0;
 
 	virtual void SetParsePosition(const boost::spirit::classic::position_iterator<const char*>& iterator) = 0;
+	virtual const boost::spirit::classic::position_iterator<const char*>& GetParsePosition() const = 0;
 };
 

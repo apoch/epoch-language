@@ -49,6 +49,7 @@ CompileSession::CompileSession()
 	info.ChainedEntities = &ChainedEntities;
 	info.PostfixEntities = &PostfixEntities;
 	info.PostfixClosers = &PostfixClosers;
+	info.FunctionTagHelpers = &FunctionTagHelpers;
 	bindtocompiler(info, StringPool, customtag);
 
 	for(EntityTable::const_iterator iter = CustomEntities.begin(); iter != CustomEntities.end(); ++iter)

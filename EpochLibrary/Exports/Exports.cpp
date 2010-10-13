@@ -22,6 +22,8 @@
 #include "Library Functionality/Flow Control/Loops.h"
 #include "Library Functionality/Flow Control/StringPooling.h"
 
+#include "Library Functionality/Function Tags/Externals.h"
+
 #include "Virtual Machine/VirtualMachine.h"
 
 
@@ -43,6 +45,8 @@ extern "C" void __stdcall RegisterLibraryContents(FunctionSignatureSet& function
 		ComparisonLibrary::RegisterLibraryFunctions(functionsignatures, stringpool);
 		StringLibrary::RegisterLibraryFunctions(functionsignatures, stringpool);
 		FlowControl::RegisterStrings(stringpool);
+
+		FunctionTags::RegisterExternalTag(functionsignatures, stringpool);
 	}
 	catch(...)
 	{
@@ -70,6 +74,8 @@ extern "C" void __stdcall BindToVirtualMachine(FunctionInvocationTable& function
 
 		FlowControl::RegisterConditionalEntities(entities, entities, stringpool, tagindex);
 		FlowControl::RegisterLoopEntities(entities, entities, entities, entities, stringpool, tagindex);
+
+		FunctionTags::RegisterExternalTag(functiontable, stringpool);
 	}
 	catch(...)
 	{
@@ -105,6 +111,8 @@ extern "C" void __stdcall BindToCompiler(CompilerInfoTable& info, StringPoolMana
 
 		FlowControl::RegisterConditionalEntities(*info.Entities, *info.ChainedEntities, stringpool, tagindex);
 		FlowControl::RegisterLoopEntities(*info.Entities, *info.ChainedEntities, *info.PostfixEntities, *info.PostfixClosers, stringpool, tagindex);
+
+		FunctionTags::RegisterExternalTagHelper(*info.FunctionTagHelpers);
 	}
 	catch(...)
 	{

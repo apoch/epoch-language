@@ -42,21 +42,15 @@ public:
 // Variable manipulation interface
 public:
 	template <typename T>
+	T Read(StringHandle variableid)
+	{
+		return *reinterpret_cast<T*>(GetVariableStorageLocation(variableid));
+	}
+
+	template <typename T>
 	void Write(StringHandle variableid, T value)
 	{
-		std::map<StringHandle, void*>::const_iterator iter = VariableStorageLocations.find(variableid);
-		if(iter == VariableStorageLocations.end())
-		{
-			if(ParentScope)
-			{
-				ParentScope->Write(variableid, value);
-				return;
-			}
-
-			throw InvalidIdentifierException("Requested variable has not been bound to any storage in this scope");
-		}
-
-		*reinterpret_cast<T*>(iter->second) = value;
+		*reinterpret_cast<T*>(GetVariableStorageLocation(variableid)) = value;
 	}
 
 	void WriteFromStack(StringHandle variableid, StackSpace& stack);
@@ -70,6 +64,11 @@ public:
 // State queries
 public:
 	bool HasReturnVariable() const;
+
+// Access to original definition metadata
+public:
+	const ScopeDescription& GetOriginalDescription() const
+	{ return OriginalScope; }
 
 // Access to parent scope
 public:

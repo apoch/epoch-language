@@ -61,6 +61,7 @@ public:
 	EntityTable ChainedEntities;
 	EntityTable PostfixEntities;
 	EntityTable PostfixClosers;
+	FunctionTagHelperTable FunctionTagHelpers;
 
 // Internal helpers
 private:

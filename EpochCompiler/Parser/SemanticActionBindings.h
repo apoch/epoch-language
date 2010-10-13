@@ -59,7 +59,7 @@ struct GeneralExceptionHandler
 		std::wcout << theerror.descriptor.what() << std::endl << std::endl;
 
         // Move past the broken line and continue parsing
-        while(thescanner.first.get_position().line <= pos.line)
+        while(thescanner.first.get_position().line <= Bindings.GetParsePosition().get_position().line)
                 ++thescanner;
 
 		Bindings.Fail();
@@ -951,6 +951,41 @@ struct RegisterPostOperand
 		Trace(L"RegisterPostOperand", begin, end);
 		Bindings.SetParsePosition(end);
 		Bindings.RegisterPostOperand(std::wstring(begin, end));
+	}
+
+	SemanticActionInterface& Bindings;
+};
+
+
+struct BeginFunctionTag
+{
+	explicit BeginFunctionTag(SemanticActionInterface& bindings)
+		: Bindings(bindings)
+	{ }
+
+	template <typename IteratorType>
+	void operator () (IteratorType begin, IteratorType end) const
+	{
+		Trace(L"BeginFunctionTag", begin, end);
+		Bindings.SetParsePosition(end);
+		Bindings.BeginFunctionTag(std::wstring(begin, end));
+	}
+
+	SemanticActionInterface& Bindings;
+};
+
+struct CompleteFunctionTag
+{
+	explicit CompleteFunctionTag(SemanticActionInterface& bindings)
+		: Bindings(bindings)
+	{ }
+
+	template <typename IteratorType>
+	void operator () (IteratorType begin, IteratorType end) const
+	{
+		Trace(L"CompleteFunctionTag", begin, end);
+		Bindings.SetParsePosition(end);
+		Bindings.CompleteFunctionTag();
 	}
 
 	SemanticActionInterface& Bindings;
