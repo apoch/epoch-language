@@ -27,6 +27,7 @@ size_t VM::GetStorageSize(EpochTypeID type)
 	switch(type)
 	{
 	case EpochType_Identifier:			return sizeof(StringHandle);
+	case EpochType_Function:			return sizeof(StringHandle);
 
 	case EpochType_Integer:				return sizeof(Integer32);
 	case EpochType_String:				return sizeof(StringHandle);

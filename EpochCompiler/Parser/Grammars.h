@@ -135,8 +135,14 @@ struct FundamentalGrammar : public boost::spirit::classic::grammar<FundamentalGr
 
 			
 			ParameterDeclaration
-				= VariableType[RegisterParameterType(self.Bindings)] >> OPENPARENS >> StringIdentifier[RegisterParameterName(self.Bindings)] >> CLOSEPARENS
-				| Expression[RegisterPatternMatchedParameter(self.Bindings)]
+				= (
+					StringIdentifier[StoreHigherOrderFunctionName(self.Bindings)] >> COLON >> OPENPARENS[BeginHigherOrderFunctionParams(self.Bindings)]
+					>> !(VariableType[RegisterHigherOrderFunctionParam(self.Bindings)] % COMMA) >> CLOSEPARENS[EndHigherOrderFunctionParams(self.Bindings)]
+					>> MAPARROW >> OPENPARENS[BeginHigherOrderFunctionReturns(self.Bindings)] >> !(VariableType[RegisterHigherOrderFunctionReturn(self.Bindings)])
+					>> CLOSEPARENS[EndHigherOrderFunctionReturns(self.Bindings)]
+				  )
+				| (VariableType[RegisterParameterType(self.Bindings)] >> OPENPARENS >> StringIdentifier[RegisterParameterName(self.Bindings)] >> CLOSEPARENS)
+				| (Expression[RegisterPatternMatchedParameter(self.Bindings)])
 				;
 
 

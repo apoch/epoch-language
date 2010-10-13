@@ -210,7 +210,7 @@ void CompilationSemantics::StoreEntityCode()
 		//
 		case Bytecode::EntityTags::Function:
 			{
-				FunctionSignatureSet::const_iterator iter = Session.FunctionSignatures.find(Session.StringPool.Pool(CurrentEntities.top()));
+				FunctionSignatureSet::const_iterator iter = Session.FunctionSignatures.find(LexicalScopeStack.top());
 				if(iter == Session.FunctionSignatures.end())
 					throw FatalException("Failed to locate function being finalized");
 
@@ -1100,12 +1100,28 @@ void CompilationSemantics::CompleteStatement()
 		if(fchiter != CompileTimeHelpers.end())
 			fchiter->second(GetLexicalScopeDescription(LexicalScopeStack.top()), CompileTimeParameters.top());
 
-		FunctionSignatureSet::const_iterator fsiter = Session.FunctionSignatures.find(statementnamehandle);
-		if(fsiter == Session.FunctionSignatures.end())
-			Throw(RecoverableException("The function \"" + narrow(statementname) + "\" is not defined in this scope"));
+		bool indirectinvoke = false;
+
+		const FunctionSignature* fs = NULL;
+		{
+			FunctionSignatureSet::const_iterator fsiter = Session.FunctionSignatures.find(statementnamehandle);
+			if(fsiter == Session.FunctionSignatures.end())
+			{
+				if(GetLexicalScopeDescription(LexicalScopeStack.top()).HasVariable(statementname) && GetLexicalScopeDescription(LexicalScopeStack.top()).GetVariableTypeByID(statementnamehandle) == VM::EpochType_Function)
+				{
+					const FunctionSignature& signature = Session.FunctionSignatures.find(LexicalScopeStack.top())->second;
+					fs = &signature.GetFunctionSignature(signature.FindParameter(statementname));
+					indirectinvoke = true;
+				}
+				else
+					Throw(RecoverableException("The function \"" + narrow(statementname) + "\" is not defined in this scope"));
+			}
+			else
+				fs = &fsiter->second;
+		}
 
 		// Validate the parameters we've been given against the parameters to this overload
-		if(CompileTimeParameters.top().size() == fsiter->second.GetNumParameters())
+		if(CompileTimeParameters.top().size() == fs->GetNumParameters())
 		{
 			for(size_t i = 0; i < CompileTimeParameters.top().size(); ++i)
 			{
@@ -1118,7 +1134,7 @@ void CompilationSemantics::CompleteStatement()
 					Throw(RecoverableException("Parameter has no type; cannot be passed to this function"));
 
 				case VM::EpochType_Identifier:
-					if(fsiter->second.GetParameter(i).Type == VM::EpochType_Identifier)
+					if(fs->GetParameter(i).Type == VM::EpochType_Identifier)
 						PendingEmitters.top().PushStringLiteral(CompileTimeParameters.top()[i].Payload.StringHandleValue);
 					else
 					{
@@ -1126,18 +1142,34 @@ void CompilationSemantics::CompleteStatement()
 						if(iter == LexicalScopeDescriptions.end())
 							throw FatalException("No lexical scope has been registered for the identifier \"" + narrow(Session.StringPool.GetPooledString(LexicalScopeStack.top())) + "\"");
 
-						if(!iter->second.HasVariable(CompileTimeParameters.top()[i].StringPayload))
-							Throw(RecoverableException("No variable by the name \"" + narrow(CompileTimeParameters.top()[i].StringPayload) + "\" was found in this scope"));
+						if(fs->GetParameter(i).Type == VM::EpochType_Function)
+						{
+							FunctionSignatureSet::const_iterator fsiter = Session.FunctionSignatures.find(CompileTimeParameters.top()[i].Payload.StringHandleValue);
+							if(fsiter == Session.FunctionSignatures.end())
+								Throw(RecoverableException("No function by the name \"" + narrow(CompileTimeParameters.top()[i].StringPayload) + "\" was found in this scope"));
 
-						if(iter->second.GetVariableTypeByID(CompileTimeParameters.top()[i].Payload.StringHandleValue) != fsiter->second.GetParameter(i).Type)
-							Throw(RecoverableException("The variable \"" + narrow(CompileTimeParameters.top()[i].StringPayload) + "\" has the wrong type to be used for this parameter"));
+							if(!fsiter->second.Matches(fs->GetFunctionSignature(i)))
+								Throw(RecoverableException("No overload of \"" + narrow(CompileTimeParameters.top()[i].StringPayload) + "\" matches the function requirements"));
 
-						PendingEmitters.top().PushVariableValue(CompileTimeParameters.top()[i].Payload.StringHandleValue);
+							PendingEmitters.top().PushStringLiteral(CompileTimeParameters.top()[i].Payload.StringHandleValue);
+						}
+						else
+						{
+							if(iter->second.HasVariable(CompileTimeParameters.top()[i].StringPayload))
+							{
+								if(iter->second.GetVariableTypeByID(CompileTimeParameters.top()[i].Payload.StringHandleValue) != fs->GetParameter(i).Type)
+									Throw(RecoverableException("The variable \"" + narrow(CompileTimeParameters.top()[i].StringPayload) + "\" has the wrong type to be used for this parameter"));
+
+								PendingEmitters.top().PushVariableValue(CompileTimeParameters.top()[i].Payload.StringHandleValue);
+							}
+							else
+								Throw(RecoverableException("No variable by the name \"" + narrow(CompileTimeParameters.top()[i].StringPayload) + "\" was found in this scope"));
+						}
 					}
 					break;
 
 				case VM::EpochType_Expression:
-					if(fsiter->second.GetParameter(i).Type == CompileTimeParameters.top()[i].ExpressionType)
+					if(fs->GetParameter(i).Type == CompileTimeParameters.top()[i].ExpressionType)
 						PendingEmitters.top().EmitBuffer(CompileTimeParameters.top()[i].ExpressionContents);
 					else
 					{
@@ -1148,7 +1180,7 @@ void CompilationSemantics::CompleteStatement()
 					break;
 
 				case VM::EpochType_Integer:
-					if(fsiter->second.GetParameter(i).Type == VM::EpochType_Integer)
+					if(fs->GetParameter(i).Type == VM::EpochType_Integer)
 						PendingEmitters.top().PushIntegerLiteral(CompileTimeParameters.top()[i].Payload.IntegerValue);
 					else
 					{
@@ -1159,7 +1191,7 @@ void CompilationSemantics::CompleteStatement()
 					break;
 
 				case VM::EpochType_String:
-					if(fsiter->second.GetParameter(i).Type == VM::EpochType_String)
+					if(fs->GetParameter(i).Type == VM::EpochType_String)
 						PendingEmitters.top().PushStringLiteral(CompileTimeParameters.top()[i].Payload.StringHandleValue);
 					else
 					{
@@ -1170,7 +1202,7 @@ void CompilationSemantics::CompleteStatement()
 					break;
 
 				case VM::EpochType_Boolean:
-					if(fsiter->second.GetParameter(i).Type == VM::EpochType_Boolean)
+					if(fs->GetParameter(i).Type == VM::EpochType_Boolean)
 						PendingEmitters.top().PushBooleanLiteral(CompileTimeParameters.top()[i].Payload.BooleanValue);
 					else
 					{
@@ -1181,7 +1213,7 @@ void CompilationSemantics::CompleteStatement()
 					break;
 
 				case VM::EpochType_Real:
-					if(fsiter->second.GetParameter(i).Type == VM::EpochType_Real)
+					if(fs->GetParameter(i).Type == VM::EpochType_Real)
 						PendingEmitters.top().PushRealLiteral(CompileTimeParameters.top()[i].Payload.RealValue);
 					else
 					{
@@ -1199,20 +1231,23 @@ void CompilationSemantics::CompleteStatement()
 		else
 		{
 			std::wostringstream errormsg;
-			errormsg << L"The function \"" << statementname << L"\" expects " << fsiter->second.GetNumParameters() << L" parameters, but ";
+			errormsg << L"The function \"" << statementname << L"\" expects " << fs->GetNumParameters() << L" parameters, but ";
 			errormsg << CompileTimeParameters.top().size() << L" were provided";
 			Throw(RecoverableException(narrow(errormsg.str())));
 		}
 
-		StatementTypes.push(fsiter->second.GetReturnType());
+		StatementTypes.push(fs->GetReturnType());
 
-		PendingEmitters.top().Invoke(statementnamehandle);
+		if(indirectinvoke)
+			PendingEmitters.top().InvokeIndirect(statementnamehandle);
+		else
+			PendingEmitters.top().Invoke(statementnamehandle);
 
 		CompileTimeParameters.pop();
 		if(!CompileTimeParameters.empty())
 		{
 			CompileTimeParameter ctparam(L"@@expression", VM::EpochType_Expression);
-			ctparam.ExpressionType = fsiter->second.GetReturnType();
+			ctparam.ExpressionType = fs->GetReturnType();
 			ctparam.ExpressionContents = PendingEmissionBuffers.top();
 			CompileTimeParameters.top().push_back(ctparam);
 		}
@@ -1874,14 +1909,30 @@ void CompilationSemantics::GetAllMatchingOverloads(const CompileTimeParameterVec
 						if(iter == LexicalScopeDescriptions.end())
 							throw FatalException("No lexical scope has been registered for the identifier \"" + narrow(Session.StringPool.GetPooledString(LexicalScopeStack.top())) + "\"");
 
-						if(!iter->second.HasVariable(params[i].StringPayload))
-							Throw(RecoverableException("No variable by the name \"" + narrow(params[i].StringPayload) + "\" was found in this scope"));
-
-						if(iter->second.GetVariableTypeByID(params[i].Payload.StringHandleValue) != signatureiter->second.GetParameter(i - paramoffset).Type)
+						if(signatureiter->second.GetParameter(i - paramoffset).Type == VM::EpochType_Function)
 						{
-							patternsucceeded = false;
-							matched = false;
-							break;
+							FunctionSignatureSet::const_iterator funciter = Session.FunctionSignatures.find(params[i].Payload.StringHandleValue);
+							if(funciter == Session.FunctionSignatures.end())
+								Throw(RecoverableException("No function by the name \"" + narrow(params[i].StringPayload) + "\" was found in this scope"));
+
+							if(!funciter->second.Matches(signatureiter->second.GetFunctionSignature(i - paramoffset)))
+							{
+								patternsucceeded = false;
+								matched = false;
+								break;
+							}
+						}
+						else
+						{
+							if(!iter->second.HasVariable(params[i].StringPayload))
+								Throw(RecoverableException("No variable by the name \"" + narrow(params[i].StringPayload) + "\" was found in this scope"));
+
+							if(iter->second.GetVariableTypeByID(params[i].Payload.StringHandleValue) != signatureiter->second.GetParameter(i - paramoffset).Type)
+							{
+								patternsucceeded = false;
+								matched = false;
+								break;
+							}
 						}
 					}
 				}
@@ -2013,6 +2064,81 @@ void CompilationSemantics::CompleteFunctionTag()
 		Fail();
 		Throw(RecoverableException("Invalid function tag"));
 	}
+}
+
+
+//-------------------------------------------------------------------------------
+// Higher order functions
+//-------------------------------------------------------------------------------
+
+//
+// Store the name of a higher order function parameter
+//
+// This must simply hold the name in a temporary string as we have not yet finished recognizing the
+// higher-order function declaration in the parser.
+//
+void CompilationSemantics::StoreHigherOrderFunctionName(const std::wstring& functionname)
+{
+	TemporaryString = functionname;
+}
+
+//
+// Register the beginning of the parameter list for a higher-order function
+//
+void CompilationSemantics::BeginHigherOrderFunctionParams()
+{
+	HigherOrderFunctionSignatures.push(FunctionSignature());
+}
+
+//
+// Register the end of the parameter list for a higher-order function
+//
+void CompilationSemantics::EndHigherOrderFunctionParams()
+{
+}
+
+//
+// Register a parameter in the parameter list of a higher-order function
+//
+void CompilationSemantics::RegisterHigherOrderFunctionParam(const std::wstring& nameoftype)
+{
+	HigherOrderFunctionSignatures.top().AddParameter(L"@@higherorderparam", LookupTypeName(nameoftype));
+}
+
+//
+// Register the beginning of the return list for a higher-order function
+//
+void CompilationSemantics::BeginHigherOrderFunctionReturns()
+{
+}
+
+//
+// Register the end of the return list for a higher-order function
+//
+void CompilationSemantics::EndHigherOrderFunctionReturns()
+{
+	FunctionSignatureStack.top().AddParameter(TemporaryString, VM::EpochType_Function);
+
+	if(!IsPrepass)
+	{
+		ScopeMap::iterator iter = LexicalScopeDescriptions.find(LexicalScopeStack.top());
+		if(iter == LexicalScopeDescriptions.end())
+			throw FatalException("No lexical scope has been registered for the identifier \"" + narrow(Session.StringPool.GetPooledString(LexicalScopeStack.top())) + "\"");
+		
+		iter->second.AddVariable(TemporaryString, Session.StringPool.Pool(TemporaryString), VM::EpochType_Function, VARIABLE_ORIGIN_PARAMETER);
+	}
+	else
+		FunctionSignatureStack.top().SetFunctionSignature(FunctionSignatureStack.top().GetNumParameters() - 1, HigherOrderFunctionSignatures.top());
+
+	HigherOrderFunctionSignatures.pop();
+}
+
+//
+// Register a return value in the return list of a higher-order function
+//
+void CompilationSemantics::RegisterHigherOrderFunctionReturn(const std::wstring& nameoftype)
+{
+	HigherOrderFunctionSignatures.top().SetReturnType(LookupTypeName(nameoftype));
 }
 
 
@@ -2339,6 +2465,8 @@ void CompilationSemantics::SanityCheck() const
 	|| !StatementNames.empty() || !StatementParamCount.empty() || !StatementTypes.empty() || !LexicalScopeStack.empty() || !CompileTimeParameters.empty()
 	|| !CurrentEntities.empty() || !FunctionReturnVars.empty() || !PendingEmissionBuffers.empty() || !PendingEmitters.empty() || !AssignmentTargets.empty()
 	|| !PushedItemTypes.empty() || !ReturnsIncludedStatement.empty() || !FunctionReturnTypeNames.empty() || !InfixOperators.empty() || !UnaryOperators.empty()
-	|| !BooleanLiterals.empty())
+	|| !BooleanLiterals.empty() || !HigherOrderFunctionSignatures.empty())
+	{
 		throw FatalException("Parser leaked a resource");
+	}
 }

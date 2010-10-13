@@ -9,6 +9,8 @@
 
 #include "Metadata/FunctionSignature.h"
 
+#include "Utility/StringPool.h"
+
 
 //
 // Construct and initialize a function signature wrapper
@@ -24,6 +26,7 @@ FunctionSignature::FunctionSignature()
 void FunctionSignature::AddParameter(const std::wstring& name, VM::EpochTypeID type)
 {
 	Parameters.push_back(CompileTimeParameter(name, type));
+	FunctionSignatures.push_back(FunctionSignature());
 }
 
 //
@@ -34,6 +37,7 @@ void FunctionSignature::AddPatternMatchedParameter(Integer32 literalvalue)
 	CompileTimeParameter ctparam(L"@@patternmatched", VM::EpochType_Integer);
 	ctparam.Payload.IntegerValue = literalvalue;
 	Parameters.push_back(ctparam);
+	FunctionSignatures.push_back(FunctionSignature());
 }
 
 //
@@ -44,6 +48,7 @@ void FunctionSignature::AddPatternMatchedParameterIdentifier(StringHandle identi
 	CompileTimeParameter ctparam(L"@@patternmatched", VM::EpochType_Identifier);
 	ctparam.Payload.StringHandleValue = identifier;
 	Parameters.push_back(ctparam);
+	FunctionSignatures.push_back(FunctionSignature());
 }
 
 //
@@ -67,12 +72,62 @@ const CompileTimeParameter& FunctionSignature::GetParameter(unsigned index) cons
 //
 const CompileTimeParameter& FunctionSignature::GetParameter(const std::wstring& name) const
 {
+	return GetParameter(FindParameter(name));
+}
+
+//
+// Locate the index of the parameter with the given name
+//
+size_t FunctionSignature::FindParameter(const std::wstring& name) const
+{
 	for(size_t i = 0; i < Parameters.size(); ++i)
 	{
 		if(Parameters[i].Name == name)
-			return Parameters[i];
+			return i;
 	}
 
 	throw FatalException("Invalid parameter name");
+}
+
+//
+// Retrieve the function signature at the given parameter index
+//
+const FunctionSignature& FunctionSignature::GetFunctionSignature(unsigned index) const
+{
+	return FunctionSignatures[index];
+}
+
+//
+// Set the value of the function signature at the given parameter index
+//
+void FunctionSignature::SetFunctionSignature(unsigned index, const FunctionSignature& signature)
+{
+	FunctionSignatures[index] = signature;
+}
+
+//
+// Determine if two function signatures match
+//
+bool FunctionSignature::Matches(const FunctionSignature& rhs) const
+{
+	if(ReturnType != rhs.ReturnType)
+		return false;
+
+	if(Parameters.size() != rhs.Parameters.size())
+		return false;
+
+	for(size_t i = 0; i < Parameters.size(); ++i)
+	{
+		if(Parameters[i].Type != rhs.Parameters[i].Type)
+			return false;
+
+		if(Parameters[i].Type == VM::EpochType_Function)
+		{
+			if(!FunctionSignatures[i].Matches(rhs.FunctionSignatures[i]))
+				return false;
+		}
+	}
+
+	return true;
 }
 

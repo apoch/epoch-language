@@ -63,6 +63,7 @@ public:
 // Flow control
 public:
 	void Invoke(StringHandle functionname);
+	void InvokeIndirect(StringHandle varname);
 	void Halt();
 
 // Entities and lexical scopes

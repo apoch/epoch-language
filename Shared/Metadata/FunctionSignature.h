@@ -38,18 +38,25 @@ public:
 	const CompileTimeParameter& GetParameter(unsigned index) const;
 	const CompileTimeParameter& GetParameter(const std::wstring& name) const;
 
+	size_t FindParameter(const std::wstring& name) const;
+
+	const FunctionSignature& GetFunctionSignature(unsigned index) const;
+	void SetFunctionSignature(unsigned index, const FunctionSignature& signature);
+
 	VM::EpochTypeID GetReturnType() const
 	{ return ReturnType; }
 
 	size_t GetNumParameters() const
 	{ return Parameters.size(); }
 
+	bool Matches(const FunctionSignature& rhs) const;
+
 // Internal tracking
 private:
 	CompileTimeParameterVector Parameters;
+	std::vector<FunctionSignature> FunctionSignatures;
 	VM::EpochTypeID ReturnType;
 };
 
 
-typedef std::multimap<StringHandle, FunctionSignature> FunctionSignatureSet;
-
+typedef std::map<StringHandle, FunctionSignature> FunctionSignatureSet;

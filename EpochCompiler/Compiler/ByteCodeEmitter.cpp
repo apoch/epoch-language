@@ -143,6 +143,15 @@ void ByteCodeEmitter::Invoke(StringHandle functionname)
 }
 
 //
+// Emit code for invoking a specific function indirectly via a variable
+//
+void ByteCodeEmitter::InvokeIndirect(StringHandle varname)
+{
+	EmitInstruction(Bytecode::Instructions::InvokeIndirect);
+	EmitRawValue(varname);
+}
+
+//
 // Emit an instruction which halts execution of the VM
 //
 void ByteCodeEmitter::Halt()

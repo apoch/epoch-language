@@ -231,6 +231,23 @@ struct StoreRealLiteral
 };
 
 
+struct StoreHigherOrderFunctionName
+{
+	explicit StoreHigherOrderFunctionName(SemanticActionInterface& bindings)
+		: Bindings(bindings)
+	{ }
+
+	template <typename IteratorType>
+	void operator () (IteratorType begin, IteratorType end) const
+	{
+		Trace(L"StoreHigherOrderFunctionName", begin, end);
+		Bindings.SetParsePosition(end);
+		Bindings.StoreHigherOrderFunctionName(std::wstring(begin, end));
+	}
+
+	SemanticActionInterface& Bindings;
+};
+
 struct StoreEntityType
 {
 	StoreEntityType(SemanticActionInterface& bindings, Bytecode::EntityTag typetag)
@@ -990,3 +1007,106 @@ struct CompleteFunctionTag
 
 	SemanticActionInterface& Bindings;
 };
+
+
+struct BeginHigherOrderFunctionParams
+{
+	explicit BeginHigherOrderFunctionParams(SemanticActionInterface& bindings)
+		: Bindings(bindings)
+	{ }
+
+	template <typename ParamType>
+	void operator () (ParamType) const
+	{
+		Trace(L"BeginHigherOrderFunctionParams");
+		Bindings.BeginHigherOrderFunctionParams();
+	}
+
+	SemanticActionInterface& Bindings;
+};
+
+struct EndHigherOrderFunctionParams
+{
+	explicit EndHigherOrderFunctionParams(SemanticActionInterface& bindings)
+		: Bindings(bindings)
+	{ }
+
+	template <typename ParamType>
+	void operator () (ParamType) const
+	{
+		Trace(L"EndHigherOrderFunctionParams");
+		Bindings.EndHigherOrderFunctionParams();
+	}
+
+	SemanticActionInterface& Bindings;
+};
+
+struct RegisterHigherOrderFunctionParam
+{
+	explicit RegisterHigherOrderFunctionParam(SemanticActionInterface& bindings)
+		: Bindings(bindings)
+	{ }
+
+	template <typename IteratorType>
+	void operator () (IteratorType begin, IteratorType end) const
+	{
+		Trace(L"EndHigherOrderFunctionParams", begin, end);
+		Bindings.SetParsePosition(end);
+		Bindings.RegisterHigherOrderFunctionParam(std::wstring(begin, end));
+	}
+
+	SemanticActionInterface& Bindings;
+};
+
+
+
+struct BeginHigherOrderFunctionReturns
+{
+	explicit BeginHigherOrderFunctionReturns(SemanticActionInterface& bindings)
+		: Bindings(bindings)
+	{ }
+
+	template <typename ParamType>
+	void operator () (ParamType) const
+	{
+		Trace(L"BeginHigherOrderFunctionReturns");
+		Bindings.BeginHigherOrderFunctionReturns();
+	}
+
+	SemanticActionInterface& Bindings;
+};
+
+struct EndHigherOrderFunctionReturns
+{
+	explicit EndHigherOrderFunctionReturns(SemanticActionInterface& bindings)
+		: Bindings(bindings)
+	{ }
+
+	template <typename ParamType>
+	void operator () (ParamType) const
+	{
+		Trace(L"EndHigherOrderFunctionReturns");
+		Bindings.EndHigherOrderFunctionReturns();
+	}
+
+	SemanticActionInterface& Bindings;
+};
+
+struct RegisterHigherOrderFunctionReturn
+{
+	explicit RegisterHigherOrderFunctionReturn(SemanticActionInterface& bindings)
+		: Bindings(bindings)
+	{ }
+
+	template <typename IteratorType>
+	void operator () (IteratorType begin, IteratorType end) const
+	{
+		Trace(L"EndHigherOrderFunctionReturns", begin, end);
+		Bindings.SetParsePosition(end);
+		Bindings.RegisterHigherOrderFunctionReturn(std::wstring(begin, end));
+	}
+
+	SemanticActionInterface& Bindings;
+};
+
+

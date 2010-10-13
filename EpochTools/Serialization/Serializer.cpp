@@ -180,6 +180,10 @@ void Serializer::Write(const std::wstring& filename) const
 			outfile << L"INVOKE " << traverser.Read<StringHandle>() << L"\n";
 			break;
 
+		case Bytecode::Instructions::InvokeIndirect:
+			outfile << L"INVOKE_INDIRECT " << traverser.Read<StringHandle>() << L"\n";
+			break;
+
 		case Bytecode::Instructions::Return:
 			outfile << L"RETURN\n";
 			break;

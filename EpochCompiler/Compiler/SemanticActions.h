@@ -132,6 +132,14 @@ public:
 	virtual void RegisterParameterName(const std::wstring& name);
 	virtual void RegisterPatternMatchedParameter();
 
+	virtual void StoreHigherOrderFunctionName(const std::wstring& functionname);
+	virtual void BeginHigherOrderFunctionParams();
+	virtual void EndHigherOrderFunctionParams();
+	virtual void RegisterHigherOrderFunctionParam(const std::wstring& nameoftype);
+	virtual void BeginHigherOrderFunctionReturns();
+	virtual void EndHigherOrderFunctionReturns();
+	virtual void RegisterHigherOrderFunctionReturn(const std::wstring& nameoftype);
+
 	virtual void BeginReturnSet();
 	virtual void EndReturnSet();
 	virtual void RegisterReturnType(const std::wstring& type);
@@ -225,6 +233,7 @@ private:
 	std::stack<Real32> RealLiterals;
 
 	std::stack<FunctionSignature> FunctionSignatureStack;
+	std::stack<FunctionSignature> HigherOrderFunctionSignatures;
 	VM::EpochTypeID ParamType;
 
 	std::stack<std::wstring> StatementNames;

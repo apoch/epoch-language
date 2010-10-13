@@ -18,6 +18,10 @@
 #include <vector>
 
 
+// Forward declarations
+class FunctionSignature;
+
+
 // Handy type shortcuts
 typedef std::vector<Byte> ByteBuffer;
 

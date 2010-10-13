@@ -63,6 +63,14 @@ public:
 	virtual void RegisterParameterName(const std::wstring& name) = 0;
 	virtual void RegisterPatternMatchedParameter() = 0;
 
+	virtual void StoreHigherOrderFunctionName(const std::wstring& functionname) = 0;
+	virtual void BeginHigherOrderFunctionParams() = 0;
+	virtual void EndHigherOrderFunctionParams() = 0;
+	virtual void RegisterHigherOrderFunctionParam(const std::wstring& nameoftype) = 0;
+	virtual void BeginHigherOrderFunctionReturns() = 0;
+	virtual void EndHigherOrderFunctionReturns() = 0;
+	virtual void RegisterHigherOrderFunctionReturn(const std::wstring& nameoftype) = 0;
+
 	virtual void BeginReturnSet() = 0;
 	virtual void EndReturnSet() = 0;
 	virtual void RegisterReturnType(const std::wstring& type) = 0;

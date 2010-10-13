@@ -393,6 +393,18 @@ void ExecutionContext::Execute(const ScopeDescription* scope)
 			}
 			break;
 
+		case Bytecode::Instructions::InvokeIndirect:
+			{
+				StringHandle varname = Fetch<StringHandle>();
+				StringHandle functionname = Variables->Read<StringHandle>(varname);
+				InvokedFunctionStack.push(functionname);
+				OwnerVM.InvokeFunction(functionname, *this);
+				InvokedFunctionStack.pop();
+				if(State.Result.ResultType != ExecutionResult::EXEC_RESULT_OK)
+					return;
+			}
+			break;
+
 		case Bytecode::Instructions::BeginEntity:
 			{
 				size_t originaloffset = InstructionOffset - 1;
@@ -670,6 +682,7 @@ void ExecutionContext::Load()
 		case Bytecode::Instructions::Read:
 		case Bytecode::Instructions::Assign:
 		case Bytecode::Instructions::Invoke:
+		case Bytecode::Instructions::InvokeIndirect:
 		case Bytecode::Instructions::SetRetVal:
 			Fetch<StringHandle>();
 			break;

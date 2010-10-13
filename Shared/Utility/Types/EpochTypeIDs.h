@@ -17,6 +17,7 @@ namespace VM
 		
 		EpochType_Identifier,
 		EpochType_Expression,
+		EpochType_Function,
 
 		EpochType_Void,
 		EpochType_Integer,

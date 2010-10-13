@@ -9,6 +9,8 @@
 
 
 // Dependencies
+#include "Metadata/FunctionSignature.h"
+
 #include "Utility/Types/EpochTypeIDs.h"
 #include "Utility/Types/IDTypes.h"
 
