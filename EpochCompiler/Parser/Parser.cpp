@@ -9,7 +9,8 @@
 
 #include "Parser/Parser.h"
 #include "Parser/Grammars.h"
-#include "Parser/SemanticActionInterface.h"
+
+#include "Compilation/SemanticActionInterface.h"
 
 #include "Utility/Strings.h"
 

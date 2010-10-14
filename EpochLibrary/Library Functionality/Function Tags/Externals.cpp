@@ -391,14 +391,16 @@ FinishLoop:
 
 		_asm
 		{
-			cmp rettype, EpochType_Integer
+			mov eax, EpochType_Integer
+			cmp rettype, eax
 			jne TypeIsBoolean
 			call ebx
 			mov integerret, eax
 			jmp IntegerReturn
 
 TypeIsBoolean:
-			cmp rettype, EpochType_Boolean
+			mov eax, EpochType_Boolean
+			cmp rettype, eax
 			jne TypeIsNull
 			call ebx
 			test eax, eax
@@ -410,7 +412,8 @@ BoolIsFalse:
 			jmp BooleanReturn
 
 TypeIsNull:
-			cmp rettype, EpochType_Void
+			mov eax, EpochType_Void
+			cmp rettype, eax
 			jne Vomit
 			call ebx
 			jmp NullReturn

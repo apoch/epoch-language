@@ -13,7 +13,7 @@
 
 
 // Dependencies
-#include "Parser/SemanticActionInterface.h"
+#include "Compilation/SemanticActionInterface.h"
 
 #include "Utility/StringPool.h"
 #include "Utility/Types/EpochTypeIDs.h"
@@ -22,6 +22,7 @@
 #include "Metadata/FunctionSignature.h"
 #include "Metadata/ScopeDescription.h"
 #include "Metadata/CompileTimeParams.h"
+#include "Metadata/StructureDefinition.h"
 
 #include "Libraries/Library.h"
 
@@ -74,6 +75,11 @@ private:
 	typedef std::pair<PosIteratorT, StringHandle> OverloadPositionPair;
 	typedef std::list<OverloadPositionPair> OverloadPositionList;
 
+	typedef std::map<VM::EpochTypeID, StructureDefinition> StructureDefinitionMap;
+	typedef std::map<StringHandle, VM::EpochTypeID> StructureNameMap;
+	typedef std::pair<VM::EpochTypeID, StringHandle> StructureMemberTypeNamePair;
+	typedef std::vector<StructureMemberTypeNamePair> StructureMemberList;
+
 // Construction
 public:
 	CompilationSemantics(ByteCodeEmitter& emitter, CompileSession& session)
@@ -83,7 +89,8 @@ public:
 		  CompileTimeHelpers(session.CompileTimeHelpers),
 		  Failed(false),
 		  InsideParameterList(false),
-		  AnonymousScopeCounter(0)
+		  AnonymousScopeCounter(0),
+		  CustomTypeIDCounter(VM::EpochType_CustomBase)
 	{
 		EmitterStack.push(&MasterEmitter);
 	}
@@ -97,6 +104,8 @@ public:
 	{ return Failed; }
 
 	virtual void SetPrepassMode(bool isprepass);
+	virtual bool GetPrepassMode() const
+	{ return IsPrepass; }
 
 	virtual void StoreString(const std::wstring& strliteral);
 	virtual void StoreIntegerLiteral(Integer32 value);
@@ -162,6 +171,11 @@ public:
 	virtual void BeginOpAssignment(const std::wstring& identifier);
 	virtual void CompleteAssignment();
 
+	virtual void StoreStructureName(const std::wstring& identifier);
+	virtual const std::wstring& CreateStructureType();
+	virtual void StoreStructureMemberType(const std::wstring& type);
+	virtual void RegisterStructureMember(const std::wstring& identifier);
+
 	virtual void Finalize();
 
 	virtual void EmitPendingCode();
@@ -174,14 +188,14 @@ public:
 	virtual const PosIteratorT& GetParsePosition() const
 	{ return ParsePosition; }
 
+	virtual VM::EpochTypeID LookupTypeName(const std::wstring& name) const;
+
 // Internal helpers
 private:
 	void AddLexicalScope(StringHandle scopename);
 	ScopeDescription& GetLexicalScopeDescription(StringHandle scopename);
 
 	void PushParam(const std::wstring& paramname);
-
-	VM::EpochTypeID LookupTypeName(const std::wstring& name) const;
 
 	template <typename ExceptionT>
 	void Throw(const ExceptionT& exception) const;
@@ -272,5 +286,11 @@ private:
 	std::stack<UnaryOperatorVector> UnaryOperators;
 
 	size_t AnonymousScopeCounter;
+
+	VM::EpochTypeID CustomTypeIDCounter;
+	StructureDefinitionMap Structures;
+	StructureNameMap StructureNames;
+	VM::EpochTypeID StructureMemberType;
+	StructureMemberList StructureMembers;
 };
 

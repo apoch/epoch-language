@@ -8,24 +8,29 @@
 #pragma once
 
 
+// Dependencies
+#include "Utility/Types/IntegerTypes.h"
+
+
 namespace VM
 {
 	// Built-in variable types
-	enum EpochTypeID
-	{
-		EpochType_Error,
+	typedef Integer32 EpochTypeID;
+
+	static const EpochTypeID EpochType_Error = 0;
 		
-		EpochType_Identifier,
-		EpochType_Expression,
-		EpochType_Function,
+	static const EpochTypeID EpochType_Identifier = 1;
+	static const EpochTypeID EpochType_Expression = 2;
+	static const EpochTypeID EpochType_Function = 3;
 
-		EpochType_Void,
-		EpochType_Integer,
-		EpochType_Boolean,
-		EpochType_String,
-		EpochType_Real,
+	static const EpochTypeID EpochType_Void = 4;
+	static const EpochTypeID EpochType_Integer = 5;
+	static const EpochTypeID EpochType_Boolean = 6;
+	static const EpochTypeID EpochType_String = 7;
+	static const EpochTypeID EpochType_Real = 8;
 
-		EpochType_Buffer,
-	};
+	static const EpochTypeID EpochType_Buffer = 9;
+
+	static const EpochTypeID EpochType_CustomBase = 10;			// Must be the highest type ID
 }
 

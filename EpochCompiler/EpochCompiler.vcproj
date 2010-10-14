@@ -345,12 +345,24 @@
 					RelativePath="..\Shared\Metadata\ScopeDescription.h"
 					>
 				</File>
+				<File
+					RelativePath="..\Shared\Metadata\StructureDefinition.h"
+					>
+				</File>
 			</Filter>
 			<Filter
 				Name="Libraries"
 				>
 				<File
 					RelativePath="..\Shared\Libraries\Library.h"
+					>
+				</File>
+			</Filter>
+			<Filter
+				Name="Compilation"
+				>
+				<File
+					RelativePath="..\Shared\Compilation\SemanticActionInterface.h"
 					>
 				</File>
 			</Filter>
@@ -404,10 +416,6 @@
 			</File>
 			<File
 				RelativePath=".\Parser\SemanticActionBindings.h"
-				>
-			</File>
-			<File
-				RelativePath=".\Parser\SemanticActionInterface.h"
 				>
 			</File>
 		</Filter>

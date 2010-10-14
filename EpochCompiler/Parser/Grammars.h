@@ -91,6 +91,8 @@ struct FundamentalGrammar : public boost::spirit::classic::grammar<FundamentalGr
 				REAL("real"),
 				BUFFER("buffer"),
 
+				STRUCTURE("structure"),
+
 				ASSIGN("="),
 
 				EPOCH_TRUE("true"),
@@ -253,8 +255,16 @@ struct FundamentalGrammar : public boost::spirit::classic::grammar<FundamentalGr
 				  >> OPENPARENS >> Expression[PushStatementParam(self.Bindings)] >> CLOSEPARENS[CompleteEntityParams(self.Bindings, true)][InvokePostfixMetacontrol(self.Bindings)])[EndEntityChain(self.Bindings)]
 				;
 
+			StructureMember
+				= VariableType[StoreStructureMemberType(self.Bindings)] >> OPENPARENS >> StringIdentifier[RegisterStructureMember(self.Bindings)] >> CLOSEPARENS
+				;
+
 			MetaEntity
 				= GeneralExceptionGuard
+				  (
+					STRUCTURE >> StringIdentifier[StoreStructureName(self.Bindings)] >> COLON >> OPENPARENS >> (StructureMember % COMMA) >> CLOSEPARENS[CreateStructureType<definition<ScannerType> >(*this, self.Bindings)]
+				  )[GeneralExceptionHandler(self.Bindings)]
+				| GeneralExceptionGuard
 				  (
 					StringIdentifier[StoreString(self.Bindings)] >> COLON >> ParameterList >> MAPARROW >> ReturnList[StoreEntityType(self.Bindings, Bytecode::EntityTags::Function)]
 					>> !(OPENBRACKET >> *((StringIdentifier[BeginFunctionTag(self.Bindings)] >> !(OPENPARENS >> (Literal % COMMA) >> CLOSEPARENS))[CompleteFunctionTag(self.Bindings)]) >> CLOSEBRACKET)
@@ -296,7 +306,7 @@ struct FundamentalGrammar : public boost::spirit::classic::grammar<FundamentalGr
 
 		boost::spirit::classic::chlit<> COLON, OPENPARENS, CLOSEPARENS, OPENBRACE, CLOSEBRACE, OPENBRACKET, CLOSEBRACKET, PERIOD, COMMA, QUOTE, NEGATE;
 
-		boost::spirit::classic::strlit<> MAPARROW, INTEGER, STRING, BOOLEAN, REAL, BUFFER, ASSIGN, EPOCH_TRUE, EPOCH_FALSE;
+		boost::spirit::classic::strlit<> MAPARROW, INTEGER, STRING, BOOLEAN, REAL, BUFFER, STRUCTURE, ASSIGN, EPOCH_TRUE, EPOCH_FALSE;
 
 		boost::spirit::classic::rule<ScannerType> StringIdentifier;
 
@@ -314,8 +324,6 @@ struct FundamentalGrammar : public boost::spirit::classic::grammar<FundamentalGr
 		boost::spirit::classic::rule<ScannerType> PostOperatorStatement;
 		boost::spirit::classic::rule<ScannerType> Assignment;
 
-		boost::spirit::classic::rule<ScannerType> VariableType;
-
 		boost::spirit::classic::rule<ScannerType> ParameterDeclaration;
 		boost::spirit::classic::rule<ScannerType> ReturnDeclaration;
 
@@ -325,6 +333,8 @@ struct FundamentalGrammar : public boost::spirit::classic::grammar<FundamentalGr
 		boost::spirit::classic::rule<ScannerType> CodeBlockEntry;
 		boost::spirit::classic::rule<ScannerType> CodeBlock;
 		boost::spirit::classic::rule<ScannerType> InnerCodeBlock;
+		
+		boost::spirit::classic::rule<ScannerType> StructureMember;
 
 		boost::spirit::classic::rule<ScannerType> MetaEntity;
 		boost::spirit::classic::rule<ScannerType> Entity;
@@ -342,6 +352,8 @@ struct FundamentalGrammar : public boost::spirit::classic::grammar<FundamentalGr
 		boost::spirit::classic::stored_rule<ScannerType> ChainedEntityIdentifier;
 		boost::spirit::classic::stored_rule<ScannerType> PostfixEntityOpenerIdentifier;
 		boost::spirit::classic::stored_rule<ScannerType> PostfixEntityCloserIdentifier;
+
+		boost::spirit::classic::stored_rule<ScannerType> VariableType;
 
 		boost::spirit::classic::guard<RecoverableException> GeneralExceptionGuard;
 		boost::spirit::classic::guard<TypeMismatchException> TypeMismatchExceptionGuard;
@@ -430,6 +442,19 @@ struct FundamentalGrammar : public boost::spirit::classic::grammar<FundamentalGr
 		void AddOpAssignOperator(const std::string& identifier)
 		{
 			OpAssignmentIdentifier = boost::spirit::classic::strlit<>(identifier.c_str()) | OpAssignmentIdentifier.copy();
+		}
+
+		//
+		// Register a variable type name
+		//
+		void AddVariableType(const std::string& identifier)
+		{
+			VariableType = boost::spirit::classic::strlit<>(identifier.c_str()) | VariableType.copy();
+		}
+
+		void AddVariableType(const std::wstring& identifier)
+		{
+			AddVariableType(*PooledNarrowStrings.insert(narrow(identifier)).first);
 		}
 	};
 

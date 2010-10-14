@@ -31,11 +31,11 @@ extern "C" void __stdcall ExecuteByteCode(const void* bytecodebuffer, size_t siz
 	}
 	catch(std::exception& e)
 	{
-		::MessageBox(0, widen(e.what()).c_str(), L"Epoch Exception", MB_ICONSTOP);
+		::MessageBox(0, widen(e.what()).c_str(), L"Epoch Execution Exception", MB_ICONSTOP);
 	}
 	catch(...)
 	{
-		::MessageBox(0, L"Exception occurred during execution", L"Epoch Exception", MB_ICONSTOP);
+		::MessageBox(0, L"Exception occurred during execution", L"Epoch Execution Exception", MB_ICONSTOP);
 	}
 }
 
@@ -50,7 +50,7 @@ extern "C" HeapManager* __stdcall GetHeapManager()
 	}
 	catch(...)
 	{
-		::MessageBox(0, L"Failed to retrieve global heap manager", L"Epoch Exception", MB_ICONSTOP);
+		::MessageBox(0, L"Failed to retrieve global heap manager", L"Epoch Memory Exception", MB_ICONSTOP);
 		return NULL;
 	}
 }

@@ -14,6 +14,8 @@
 #include "Metadata/ScopeDescription.h"
 #include "Metadata/ActiveScope.h"
 
+#include "Compilation/SemanticActionInterface.h"
+
 #include "Utility/Types/EpochTypeIDs.h"
 #include "Utility/Types/IntegerTypes.h"
 #include "Utility/Types/RealTypes.h"
@@ -86,15 +88,9 @@ namespace
 	// helper adds the variable itself and its type metadata to the current
 	// lexical scope.
 	//
-	void CompileConstructorPrimitive(const std::wstring& functionname, ScopeDescription& scope, const CompileTimeParameterVector& compiletimeparams)
+	void CompileConstructorPrimitive(const std::wstring& functionname, SemanticActionInterface& semantics, ScopeDescription& scope, const CompileTimeParameterVector& compiletimeparams)
 	{
-		VM::EpochTypeID effectivetype = compiletimeparams[1].Type;
-		if(functionname == L"buffer")
-			effectivetype = VM::EpochType_Buffer;
-		else if(effectivetype == VM::EpochType_Identifier)
-			effectivetype = scope.GetVariableTypeByID(compiletimeparams[1].Payload.StringHandleValue);
-		else if(effectivetype == VM::EpochType_Expression)
-			effectivetype = compiletimeparams[1].ExpressionType;
+		VM::EpochTypeID effectivetype = semantics.LookupTypeName(functionname);
 		scope.AddVariable(compiletimeparams[0].StringPayload, compiletimeparams[0].Payload.StringHandleValue, effectivetype, VARIABLE_ORIGIN_LOCAL);
 	}
 

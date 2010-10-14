@@ -10,7 +10,7 @@
 
 
 // Dependencies
-#include "Parser/SemanticActionInterface.h"
+#include "Compilation/SemanticActionInterface.h"
 
 #include "Bytecode/EntityTags.h"
 
@@ -1110,3 +1110,73 @@ struct RegisterHigherOrderFunctionReturn
 };
 
 
+struct StoreStructureName
+{
+	explicit StoreStructureName(SemanticActionInterface& bindings)
+		: Bindings(bindings)
+	{ }
+
+	template <typename IteratorType>
+	void operator () (IteratorType begin, IteratorType end) const
+	{
+		Trace(L"StoreStructureName", begin, end);
+		Bindings.SetParsePosition(end);
+		Bindings.StoreStructureName(std::wstring(begin, end));
+	}
+
+	SemanticActionInterface& Bindings;
+};
+
+template<typename ParserT>
+struct CreateStructureType
+{
+	explicit CreateStructureType(ParserT& parser, SemanticActionInterface& bindings)
+		: Bindings(bindings),
+		  TheParser(parser)
+	{ }
+
+	template <typename ParamType>
+	void operator () (ParamType) const
+	{
+		Trace(L"CreateStructureType");
+		if(Bindings.GetPrepassMode())
+			TheParser.AddVariableType(Bindings.CreateStructureType());
+	}
+
+	SemanticActionInterface& Bindings;
+	ParserT& TheParser;
+};
+
+struct StoreStructureMemberType
+{
+	explicit StoreStructureMemberType(SemanticActionInterface& bindings)
+		: Bindings(bindings)
+	{ }
+
+	template <typename IteratorType>
+	void operator () (IteratorType begin, IteratorType end) const
+	{
+		Trace(L"StoreStructureMemberType", begin, end);
+		Bindings.SetParsePosition(end);
+		Bindings.StoreStructureMemberType(std::wstring(begin, end));
+	}
+
+	SemanticActionInterface& Bindings;
+};
+
+struct RegisterStructureMember
+{
+	explicit RegisterStructureMember(SemanticActionInterface& bindings)
+		: Bindings(bindings)
+	{ }
+
+	template <typename IteratorType>
+	void operator () (IteratorType begin, IteratorType end) const
+	{
+		Trace(L"RegisterStructureMember", begin, end);
+		Bindings.SetParsePosition(end);
+		Bindings.RegisterStructureMember(std::wstring(begin, end));
+	}
+
+	SemanticActionInterface& Bindings;
+};

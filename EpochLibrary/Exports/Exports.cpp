@@ -50,7 +50,7 @@ extern "C" void __stdcall RegisterLibraryContents(FunctionSignatureSet& function
 	}
 	catch(...)
 	{
-		::MessageBox(0, L"Fatal error while registering Epoch standard library", L"Epoch Exception", MB_ICONSTOP);
+		::MessageBox(0, L"Fatal error while registering Epoch standard library", L"Epoch Initialization Exception", MB_ICONSTOP);
 	}
 }
 
@@ -79,7 +79,7 @@ extern "C" void __stdcall BindToVirtualMachine(FunctionInvocationTable& function
 	}
 	catch(...)
 	{
-		::MessageBox(0, L"Fatal error while registering Epoch standard library", L"Epoch Exception", MB_ICONSTOP);
+		::MessageBox(0, L"Fatal error while registering Epoch standard library", L"Epoch Initialization Exception", MB_ICONSTOP);
 	}
 }
 
@@ -116,7 +116,7 @@ extern "C" void __stdcall BindToCompiler(CompilerInfoTable& info, StringPoolMana
 	}
 	catch(...)
 	{
-		::MessageBox(0, L"Fatal error while registering Epoch standard library", L"Epoch Exception", MB_ICONSTOP);
+		::MessageBox(0, L"Fatal error while registering Epoch standard library", L"Epoch Initialization Exception", MB_ICONSTOP);
 	}
 }
 

@@ -20,6 +20,7 @@
 #include "Metadata/FunctionSignature.h"
 
 #include "Utility/Strings.h"
+#include "Utility/NoDupeMap.h"
 
 #include "Utility/Files/FilesAndPaths.h"
 
@@ -1098,7 +1099,7 @@ void CompilationSemantics::CompleteStatement()
 
 		FunctionCompileHelperTable::const_iterator fchiter = CompileTimeHelpers.find(statementname);
 		if(fchiter != CompileTimeHelpers.end())
-			fchiter->second(statementname, GetLexicalScopeDescription(LexicalScopeStack.top()), CompileTimeParameters.top());
+			fchiter->second(statementname, *this, GetLexicalScopeDescription(LexicalScopeStack.top()), CompileTimeParameters.top());
 
 		bool indirectinvoke = false;
 
@@ -2101,6 +2102,86 @@ void CompilationSemantics::RegisterHigherOrderFunctionReturn(const std::wstring&
 }
 
 
+
+//-------------------------------------------------------------------------------
+// Structures
+//-------------------------------------------------------------------------------
+
+namespace
+{
+	void CompileConstructorStructure(const std::wstring& functionname, SemanticActionInterface& semantics, ScopeDescription& scope, const CompileTimeParameterVector& compiletimeparams)
+	{
+		scope.AddVariable(compiletimeparams[0].StringPayload, compiletimeparams[0].Payload.StringHandleValue, semantics.LookupTypeName(functionname), VARIABLE_ORIGIN_LOCAL);
+	}
+}
+
+//
+// Save off the name of a structure so it can be used later to register the type
+//
+void CompilationSemantics::StoreStructureName(const std::wstring& identifier)
+{
+	TemporaryString = identifier;
+}
+
+//
+// Save off the name of a structure member's type so we can register the member later
+//
+void CompilationSemantics::StoreStructureMemberType(const std::wstring& type)
+{
+	if(IsPrepass)
+		StructureMemberType = LookupTypeName(type);
+}
+
+//
+// Register a structure member
+//
+void CompilationSemantics::RegisterStructureMember(const std::wstring& identifier)
+{
+	if(IsPrepass)
+		StructureMembers.push_back(StructureMemberTypeNamePair(StructureMemberType, Session.StringPool.Pool(identifier)));
+}
+
+//
+// Assemble the parsed structure members into a final type definition and register it
+//
+const std::wstring& CompilationSemantics::CreateStructureType()
+{
+	if(!IsPrepass)
+		throw FatalException("Semantic action triggered in compilation phase which should only occur during prepass phase!");
+
+	StringHandle idhandle = Session.StringPool.Pool(TemporaryString);
+	VM::EpochTypeID type = ++CustomTypeIDCounter;
+
+	Structures[type] = StructureDefinition();
+	StructureNames[idhandle] = type;
+
+	// Now register a constructor function for the type
+	CompileTimeHelpers[TemporaryString] = CompileConstructorStructure;
+
+	FunctionSignature signature;
+	signature.AddParameter(L"identifier", VM::EpochType_Identifier);
+	LexicalScopeDescriptions[idhandle].AddVariable(L"identifier", Session.StringPool.Pool(L"identifier"), VM::EpochType_Identifier, VARIABLE_ORIGIN_PARAMETER);
+
+	// Add parameters for each structure member
+	for(StructureMemberList::const_iterator iter = StructureMembers.begin(); iter != StructureMembers.end(); ++iter)
+	{
+		const std::wstring& identifier = Session.StringPool.GetPooledString(iter->second);
+		signature.AddParameter(identifier, iter->first);
+		LexicalScopeDescriptions[idhandle].AddVariable(identifier, iter->second, iter->first, VARIABLE_ORIGIN_PARAMETER);
+	}
+	StructureMembers.clear();
+
+	AddToMapNoDupe(Session.FunctionSignatures, std::make_pair(idhandle, signature));
+
+	EmitterStack.top()->EnterFunction(idhandle);
+	// TODO - emit code to initialize the structure using the passed parameters
+	EmitterStack.top()->ExitFunction();
+
+	return Session.StringPool.GetPooledString(idhandle);
+}
+
+
+
 //-------------------------------------------------------------------------------
 // Additional helpers
 //-------------------------------------------------------------------------------
@@ -2140,6 +2221,11 @@ VM::EpochTypeID CompilationSemantics::LookupTypeName(const std::wstring& type) c
 		return VM::EpochType_Real;
 	else if(type == L"buffer")
 		return VM::EpochType_Buffer;
+
+	StringHandle handle = Session.StringPool.Pool(type);
+	StructureNameMap::const_iterator iter = StructureNames.find(handle);
+	if(iter != StructureNames.end())
+		return iter->second;
 
 	throw NotImplementedException("Cannot map the type name \"" + narrow(type) + "\" to an internal type ID");
 }
@@ -2430,7 +2516,7 @@ void CompilationSemantics::SanityCheck() const
 	|| !StatementNames.empty() || !StatementParamCount.empty() || !StatementTypes.empty() || !LexicalScopeStack.empty() || !CompileTimeParameters.empty()
 	|| !CurrentEntities.empty() || !FunctionReturnVars.empty() || !PendingEmissionBuffers.empty() || !PendingEmitters.empty() || !AssignmentTargets.empty()
 	|| !PushedItemTypes.empty() || !ReturnsIncludedStatement.empty() || !FunctionReturnTypeNames.empty() || !InfixOperators.empty() || !UnaryOperators.empty()
-	|| !BooleanLiterals.empty() || !HigherOrderFunctionSignatures.empty())
+	|| !BooleanLiterals.empty() || !HigherOrderFunctionSignatures.empty() || !StructureMembers.empty())
 	{
 		throw FatalException("Parser leaked a resource");
 	}
