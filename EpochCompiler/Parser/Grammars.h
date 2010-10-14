@@ -278,6 +278,10 @@ struct FundamentalGrammar : public boost::spirit::classic::grammar<FundamentalGr
 				= (*MetaEntity)[Finalize(self.Bindings)]
 				;
 
+			InfixIdentifier
+				= PERIOD
+				;
+
 			for(StringSet::const_iterator iter = self.Identifiers.InfixOperators.begin(); iter != self.Identifiers.InfixOperators.end(); ++iter)
 				AddInfixOperator(*PooledNarrowStrings.insert(narrow(*iter)).first);
 

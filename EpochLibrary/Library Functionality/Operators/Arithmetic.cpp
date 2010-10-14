@@ -8,7 +8,6 @@
 #include "pch.h"
 
 #include "Library Functionality/Operators/Arithmetic.h"
-#include "Library Functionality/Operators/Precedences.h"
 
 #include "Utility/StringPool.h"
 #include "Utility/NoDupeMap.h"
@@ -16,7 +15,9 @@
 #include "Libraries/Library.h"
 
 #include "Virtual Machine/VirtualMachine.h"
+
 #include "Metadata/ActiveScope.h"
+#include "Metadata/Precedences.h"
 
 
 

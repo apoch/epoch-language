@@ -18,6 +18,7 @@
 #include "Compiler/ByteCodeEmitter.h"
 
 #include "Metadata/FunctionSignature.h"
+#include "Metadata/Precedences.h"
 
 #include "Utility/Strings.h"
 #include "Utility/NoDupeMap.h"
@@ -294,7 +295,7 @@ void CompilationSemantics::CompleteInfix()
 		std::wstring infixstatementname = StatementNames.top();
 		StringHandle infixstatementnamehandle = Session.StringPool.Pool(infixstatementname);
 
-		RemapFunctionToOverload(CompileTimeParameters.top(), StatementParamCount.top(), 2, TypeVector(), infixstatementname, infixstatementnamehandle);
+		RemapFunctionToOverload(CompileTimeParameters.top(), StatementParamCount.top() - 1, 2, TypeVector(), infixstatementname, infixstatementnamehandle);
 
 		FunctionSignatureSet::const_iterator iter = Session.FunctionSignatures.find(infixstatementnamehandle);
 		if(iter == Session.FunctionSignatures.end())
@@ -354,6 +355,8 @@ void CompilationSemantics::FinalizeInfix()
 						{
 							if(GetOperatorPrecedence(*operatoriter) == precedenceiter->first)
 							{
+								bool ismemberaccess = (GetOperatorPrecedence(*operatoriter) == PRECEDENCE_MEMBERACCESS);
+
 								// Perform the actual reduction, taking care to clean up the
 								// list of pending operators as we eliminate subexpressions.
 								ByteBuffer buffer;
@@ -366,8 +369,11 @@ void CompilationSemantics::FinalizeInfix()
 
 								++operanditer;
 
-								VM::EpochTypeID op2type = GetEffectiveType(*operanditer);
-								EmitInfixOperand(emitter, *operanditer);
+								VM::EpochTypeID op2type = ismemberaccess ? VM::EpochType_Identifier : GetEffectiveType(*operanditer);
+								if(ismemberaccess)
+									emitter.PushStringLiteral(operanditer->Payload.StringHandleValue);
+								else
+									EmitInfixOperand(emitter, *operanditer);
 
 								CompileTimeParameterVector::iterator secondoperanditer = operanditer;
 								++operanditer;
@@ -1957,6 +1963,7 @@ void CompilationSemantics::GetAllMatchingOverloads(const CompileTimeParameterVec
 			{
 				if(patternsucceeded)
 				{
+					remaptopatternresolver = false;
 					matches.insert(*iter);
 					break;
 				}
@@ -2206,14 +2213,29 @@ const std::wstring& CompilationSemantics::CreateStructureType()
 		signature.AddParameter(identifier, iter->first, false);
 		LexicalScopeDescriptions[idhandle].AddVariable(identifier, iter->second, iter->first, false, VARIABLE_ORIGIN_PARAMETER);
 	}
-	StructureMembers.clear();
 
 	AddToMapNoDupe(Session.FunctionSignatures, std::make_pair(idhandle, signature));
 
+	// Create constructor
 	EmitterStack.top()->EnterFunction(idhandle);
 	// TODO - emit code to initialize the structure using the passed parameters
 	EmitterStack.top()->ExitFunction();
 
+
+	// Create member accessors
+	for(StructureMemberList::const_iterator iter = StructureMembers.begin(); iter != StructureMembers.end(); ++iter)
+	{
+		FunctionSignature signature;
+		signature.AddParameter(L"identifier", type, true);
+		signature.AddPatternMatchedParameterIdentifier(iter->second);
+		signature.SetReturnType(iter->first);
+		StringHandle overloadidhandle = Session.StringPool.Pool(L".@@" + TemporaryString + L"@@" + Session.StringPool.GetPooledString(iter->second));
+		AddToMapNoDupe(Session.FunctionSignatures, std::make_pair(overloadidhandle, signature));
+		Session.FunctionOverloadNames[Session.StringPool.Pool(L".")].insert(overloadidhandle);
+		Session.OperatorPrecedences.insert(std::make_pair(PRECEDENCE_MEMBERACCESS, overloadidhandle));
+	}
+
+	StructureMembers.clear();
 	return Session.StringPool.GetPooledString(idhandle);
 }
 

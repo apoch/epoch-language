@@ -295,10 +295,6 @@
 					>
 				</File>
 				<File
-					RelativePath=".\Library Functionality\Operators\Precedences.h"
-					>
-				</File>
-				<File
 					RelativePath=".\Library Functionality\Operators\Strings.cpp"
 					>
 					<FileConfiguration
