@@ -33,8 +33,19 @@ void ActiveScope::BindParametersToStack(const VM::ExecutionContext& context)
 	{
 		if(iter->Origin == VARIABLE_ORIGIN_PARAMETER)
 		{
-			VariableStorageLocations[context.OwnerVM.GetPooledStringHandle(iter->Identifier)] = stackpointer;
-			stackpointer += VM::GetStorageSize(iter->Type);
+			if(iter->IsReference)
+			{
+				StringHandle target = *reinterpret_cast<StringHandle*>(stackpointer);
+				stackpointer += sizeof(StringHandle);
+				ActiveScope* ownerscope = *reinterpret_cast<ActiveScope**>(stackpointer);
+				stackpointer += sizeof(void*);
+				BindReference(iter->IdentifierHandle, ownerscope, target);
+			}
+			else
+			{
+				VariableStorageLocations[context.OwnerVM.GetPooledStringHandle(iter->Identifier)] = stackpointer;
+				stackpointer += VM::GetStorageSize(iter->Type);
+			}
 		}
 	}
 }
@@ -64,7 +75,12 @@ void ActiveScope::PopScopeOffStack(VM::ExecutionContext& context)
 	size_t usedspace = 0;
 
 	for(ScopeDescription::VariableVector::const_iterator iter = OriginalScope.Variables.begin(); iter != OriginalScope.Variables.end(); ++iter)
-		usedspace += VM::GetStorageSize(iter->Type);
+	{
+		if(iter->IsReference)
+			usedspace += sizeof(StringHandle) + sizeof(void*);
+		else
+			usedspace += VM::GetStorageSize(iter->Type);
+	}
 
 	context.State.Stack.Pop(usedspace);
 }
@@ -74,6 +90,12 @@ void ActiveScope::PopScopeOffStack(VM::ExecutionContext& context)
 //
 void ActiveScope::WriteFromStack(StringHandle variableid, StackSpace& stack)
 {
+	if(OriginalScope.IsReference(OriginalScope.GetVariableIndex(variableid)))
+	{
+		WriteBoundReferenceFromStack(variableid, stack);
+		return;
+	}
+
 	switch(OriginalScope.GetVariableTypeByID(variableid))
 	{
 	case VM::EpochType_Integer:
@@ -102,10 +124,28 @@ void ActiveScope::WriteFromStack(StringHandle variableid, StackSpace& stack)
 }
 
 //
+// Write the topmost entry on the stack into the slot referred to by a reference variable
+//
+void ActiveScope::WriteBoundReferenceFromStack(StringHandle variableid, StackSpace& stack)
+{
+	ReferenceBindingMap::const_iterator iter = BoundReferences.find(variableid);
+	if(iter == BoundReferences.end())
+		throw FatalException("Unbound reference");
+
+	iter->second.first->WriteFromStack(iter->second.second, stack);
+}
+
+//
 // Push a variable's value onto the top of the given stack
 //
 void ActiveScope::PushOntoStack(StringHandle variableid, StackSpace& stack) const
 {
+	if(OriginalScope.IsReference(OriginalScope.GetVariableIndex(variableid)))
+	{
+		PushOntoStackDeref(variableid, stack);
+		return;
+	}
+
 	switch(OriginalScope.GetVariableTypeByID(variableid))
 	{
 	case VM::EpochType_Integer:
@@ -163,6 +203,18 @@ void ActiveScope::PushOntoStack(StringHandle variableid, StackSpace& stack) cons
 		}
 		break;
 	}
+}
+
+//
+// Dereference a variable and push the resultant value onto the stack
+//
+void ActiveScope::PushOntoStackDeref(StringHandle variableid, StackSpace& stack) const
+{
+	ReferenceBindingMap::const_iterator iter = BoundReferences.find(variableid);
+	if(iter == BoundReferences.end())
+		throw FatalException("Unbound reference");
+
+	iter->second.first->PushOntoStack(iter->second.second, stack);
 }
 
 
@@ -248,4 +300,13 @@ bool ActiveScope::HasReturnVariable() const
 	return false;
 }
 
+
+//
+// Bind a reference variable to a target
+//
+void ActiveScope::BindReference(StringHandle referencename, ActiveScope* ownerscope, StringHandle referencetarget)
+{
+	BoundReferences[referencename].first = ownerscope;
+	BoundReferences[referencename].second = referencetarget;
+}
 

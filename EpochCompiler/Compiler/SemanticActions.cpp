@@ -663,6 +663,7 @@ void CompilationSemantics::EndParameterSet()
 void CompilationSemantics::RegisterParameterType(const std::wstring& type)
 {
 	ParamType = LookupTypeName(type);
+	ParamIsReference = false;
 }
 
 //
@@ -673,7 +674,7 @@ void CompilationSemantics::RegisterParameterType(const std::wstring& type)
 //
 void CompilationSemantics::RegisterParameterName(const std::wstring& name)
 {
-	FunctionSignatureStack.top().AddParameter(name, ParamType);
+	FunctionSignatureStack.top().AddParameter(name, ParamType, ParamIsReference);
 	
 	if(!IsPrepass)
 	{
@@ -681,7 +682,7 @@ void CompilationSemantics::RegisterParameterName(const std::wstring& name)
 		if(iter == LexicalScopeDescriptions.end())
 			throw FatalException("No lexical scope has been registered for the identifier \"" + narrow(Session.StringPool.GetPooledString(LexicalScopeStack.top())) + "\"");
 		
-		iter->second.AddVariable(name, Session.StringPool.Pool(name), ParamType, VARIABLE_ORIGIN_PARAMETER);
+		iter->second.AddVariable(name, Session.StringPool.Pool(name), ParamType, ParamIsReference, VARIABLE_ORIGIN_PARAMETER);
 	}
 }
 
@@ -740,8 +741,16 @@ void CompilationSemantics::RegisterPatternMatchedParameter()
 		if(iter == LexicalScopeDescriptions.end())
 			throw FatalException("No lexical scope has been registered for the identifier \"" + narrow(Session.StringPool.GetPooledString(LexicalScopeStack.top())) + "\"");
 		
-		iter->second.AddVariable(L"@@patternmatched", Session.StringPool.Pool(L"@@patternmatched"), paramtype, VARIABLE_ORIGIN_PARAMETER);
+		iter->second.AddVariable(L"@@patternmatched", Session.StringPool.Pool(L"@@patternmatched"), paramtype, false, VARIABLE_ORIGIN_PARAMETER);
 	}
+}
+
+//
+// Register that a parameter should have reference semantics
+//
+void CompilationSemantics::RegisterParameterIsReference()
+{
+	ParamIsReference = true;
 }
 
 
@@ -857,7 +866,7 @@ void CompilationSemantics::RegisterReturnName(const std::wstring& name)
 		StringHandle namehandle = Session.StringPool.Pool(name);
 		FunctionReturnVars.push(namehandle);
 		PendingEmitters.top().PushStringLiteral(namehandle);
-		LexicalScopeDescriptions.find(LexicalScopeStack.top())->second.AddVariable(name, namehandle, FunctionSignatureStack.top().GetReturnType(), VARIABLE_ORIGIN_RETURN);
+		LexicalScopeDescriptions.find(LexicalScopeStack.top())->second.AddVariable(name, namehandle, FunctionSignatureStack.top().GetReturnType(), false, VARIABLE_ORIGIN_RETURN);
 	}
 }
 
@@ -897,7 +906,12 @@ void CompilationSemantics::RegisterReturnValue()
 				Throw(TypeMismatchException("The function is defined as returning an integer but the provided default return value is not of an integer type."));
 
 			if(!IsPrepass)
-				PendingEmitters.top().PushVariableValue(varhandle);
+			{
+				if(FunctionSignatureStack.top().GetParameter(Session.StringPool.GetPooledString(varhandle)).IsReference)
+					throw NotImplementedException("Support for returning references is not implemented");
+				else
+					PendingEmitters.top().PushVariableValue(varhandle);
+			}
 		}
 		else if(PushedItemTypes.top() == ITEMTYPE_STATEMENT)
 		{
@@ -930,7 +944,12 @@ void CompilationSemantics::RegisterReturnValue()
 				Throw(TypeMismatchException("The function is defined as returning a string but the provided default return value is not of string type."));
 
 			if(!IsPrepass)
-				PendingEmitters.top().PushVariableValue(varhandle);
+			{
+				if(FunctionSignatureStack.top().GetParameter(Session.StringPool.GetPooledString(varhandle)).IsReference)
+					throw NotImplementedException("Support for returning references is not implemented");
+				else
+					PendingEmitters.top().PushVariableValue(varhandle);
+			}
 		}
 		else if(PushedItemTypes.top() == ITEMTYPE_STATEMENT)
 		{
@@ -963,7 +982,12 @@ void CompilationSemantics::RegisterReturnValue()
 				Throw(TypeMismatchException("The function is defined as returning a boolean but the provided default return value is not of a boolean type."));
 
 			if(!IsPrepass)
-				PendingEmitters.top().PushVariableValue(varhandle);
+			{
+				if(FunctionSignatureStack.top().GetParameter(Session.StringPool.GetPooledString(varhandle)).IsReference)
+					throw NotImplementedException("Support for returning references is not implemented");
+				else
+					PendingEmitters.top().PushVariableValue(varhandle);
+			}
 		}
 		else if(PushedItemTypes.top() == ITEMTYPE_STATEMENT)
 		{
@@ -996,7 +1020,12 @@ void CompilationSemantics::RegisterReturnValue()
 				Throw(TypeMismatchException("The function is defined as returning a real but the provided default return value is not of a real type."));
 
 			if(!IsPrepass)
-				PendingEmitters.top().PushVariableValue(varhandle);
+			{
+				if(FunctionSignatureStack.top().GetParameter(Session.StringPool.GetPooledString(varhandle)).IsReference)
+					throw NotImplementedException("Support for returning references is not implemented");
+				else
+					PendingEmitters.top().PushVariableValue(varhandle);
+			}
 		}
 		else if(PushedItemTypes.top() == ITEMTYPE_STATEMENT)
 		{
@@ -1161,7 +1190,10 @@ void CompilationSemantics::CompleteStatement()
 								if(iter->second.GetVariableTypeByID(CompileTimeParameters.top()[i].Payload.StringHandleValue) != fs->GetParameter(i).Type)
 									Throw(RecoverableException("The variable \"" + narrow(CompileTimeParameters.top()[i].StringPayload) + "\" has the wrong type to be used for this parameter"));
 
-								PendingEmitters.top().PushVariableValue(CompileTimeParameters.top()[i].Payload.StringHandleValue);
+								if(fs->GetParameter(i).IsReference)
+									PendingEmitters.top().BindReference(CompileTimeParameters.top()[i].Payload.StringHandleValue);
+								else
+									PendingEmitters.top().PushVariableValue(CompileTimeParameters.top()[i].Payload.StringHandleValue);
 							}
 							else
 								Throw(RecoverableException("No variable by the name \"" + narrow(CompileTimeParameters.top()[i].StringPayload) + "\" was found in this scope"));
@@ -1171,7 +1203,12 @@ void CompilationSemantics::CompleteStatement()
 
 				case VM::EpochType_Expression:
 					if(fs->GetParameter(i).Type == CompileTimeParameters.top()[i].ExpressionType)
-						PendingEmitters.top().EmitBuffer(CompileTimeParameters.top()[i].ExpressionContents);
+					{
+						if(fs->GetParameter(i).IsReference)
+							throw(NotImplementedException("Support for reference expressions is not implemented"));
+						else
+							PendingEmitters.top().EmitBuffer(CompileTimeParameters.top()[i].ExpressionContents);
+					}
 					else
 					{
 						std::wostringstream errormsg;
@@ -1655,7 +1692,7 @@ void CompilationSemantics::Finalize()
 		{
 			EmitterStack.top()->DefineLexicalScope(iter->first, 0, iter->second.GetNumParameters());
 			for(size_t i = 0; i < iter->second.GetNumParameters(); ++i)
-				EmitterStack.top()->LexicalScopeEntry(Session.StringPool.Pool(iter->second.GetParameter(i).Name), iter->second.GetParameter(i).Type, VARIABLE_ORIGIN_PARAMETER);
+				EmitterStack.top()->LexicalScopeEntry(Session.StringPool.Pool(iter->second.GetParameter(i).Name), iter->second.GetParameter(i).Type, iter->second.GetParameter(i).IsReference, VARIABLE_ORIGIN_PARAMETER);
 
 			EmitterStack.top()->EnterPatternResolver(iter->first);
 			std::pair<AllOverloadsMap::const_iterator, AllOverloadsMap::const_iterator> range = OriginalFunctionsForPatternResolution.equal_range(iter->first);
@@ -1671,7 +1708,7 @@ void CompilationSemantics::Finalize()
 		{
 			EmitterStack.top()->DefineLexicalScope(iter->first, FindLexicalScopeName(iter->second.ParentScope), iter->second.GetVariableCount());
 			for(size_t i = 0; i < iter->second.GetVariableCount(); ++i)
-				EmitterStack.top()->LexicalScopeEntry(Session.StringPool.Pool(iter->second.GetVariableName(i)), iter->second.GetVariableTypeByIndex(i), iter->second.GetVariableOrigin(i));
+				EmitterStack.top()->LexicalScopeEntry(Session.StringPool.Pool(iter->second.GetVariableName(i)), iter->second.GetVariableTypeByIndex(i), iter->second.IsReference(i), iter->second.GetVariableOrigin(i));
 		}
 	}
 }
@@ -2062,7 +2099,7 @@ void CompilationSemantics::EndHigherOrderFunctionParams()
 //
 void CompilationSemantics::RegisterHigherOrderFunctionParam(const std::wstring& nameoftype)
 {
-	HigherOrderFunctionSignatures.top().AddParameter(L"@@higherorderparam", LookupTypeName(nameoftype));
+	HigherOrderFunctionSignatures.top().AddParameter(L"@@higherorderparam", LookupTypeName(nameoftype), false);
 }
 
 //
@@ -2077,7 +2114,7 @@ void CompilationSemantics::BeginHigherOrderFunctionReturns()
 //
 void CompilationSemantics::EndHigherOrderFunctionReturns()
 {
-	FunctionSignatureStack.top().AddParameter(TemporaryString, VM::EpochType_Function);
+	FunctionSignatureStack.top().AddParameter(TemporaryString, VM::EpochType_Function, false);
 
 	if(!IsPrepass)
 	{
@@ -2085,7 +2122,7 @@ void CompilationSemantics::EndHigherOrderFunctionReturns()
 		if(iter == LexicalScopeDescriptions.end())
 			throw FatalException("No lexical scope has been registered for the identifier \"" + narrow(Session.StringPool.GetPooledString(LexicalScopeStack.top())) + "\"");
 		
-		iter->second.AddVariable(TemporaryString, Session.StringPool.Pool(TemporaryString), VM::EpochType_Function, VARIABLE_ORIGIN_PARAMETER);
+		iter->second.AddVariable(TemporaryString, Session.StringPool.Pool(TemporaryString), VM::EpochType_Function, false, VARIABLE_ORIGIN_PARAMETER);
 	}
 	else
 		FunctionSignatureStack.top().SetFunctionSignature(FunctionSignatureStack.top().GetNumParameters() - 1, HigherOrderFunctionSignatures.top());
@@ -2111,7 +2148,7 @@ namespace
 {
 	void CompileConstructorStructure(const std::wstring& functionname, SemanticActionInterface& semantics, ScopeDescription& scope, const CompileTimeParameterVector& compiletimeparams)
 	{
-		scope.AddVariable(compiletimeparams[0].StringPayload, compiletimeparams[0].Payload.StringHandleValue, semantics.LookupTypeName(functionname), VARIABLE_ORIGIN_LOCAL);
+		scope.AddVariable(compiletimeparams[0].StringPayload, compiletimeparams[0].Payload.StringHandleValue, semantics.LookupTypeName(functionname), false, VARIABLE_ORIGIN_LOCAL);
 	}
 }
 
@@ -2159,15 +2196,15 @@ const std::wstring& CompilationSemantics::CreateStructureType()
 	CompileTimeHelpers[TemporaryString] = CompileConstructorStructure;
 
 	FunctionSignature signature;
-	signature.AddParameter(L"identifier", VM::EpochType_Identifier);
-	LexicalScopeDescriptions[idhandle].AddVariable(L"identifier", Session.StringPool.Pool(L"identifier"), VM::EpochType_Identifier, VARIABLE_ORIGIN_PARAMETER);
+	signature.AddParameter(L"identifier", VM::EpochType_Identifier, false);
+	LexicalScopeDescriptions[idhandle].AddVariable(L"identifier", Session.StringPool.Pool(L"identifier"), VM::EpochType_Identifier, false, VARIABLE_ORIGIN_PARAMETER);
 
 	// Add parameters for each structure member
 	for(StructureMemberList::const_iterator iter = StructureMembers.begin(); iter != StructureMembers.end(); ++iter)
 	{
 		const std::wstring& identifier = Session.StringPool.GetPooledString(iter->second);
-		signature.AddParameter(identifier, iter->first);
-		LexicalScopeDescriptions[idhandle].AddVariable(identifier, iter->second, iter->first, VARIABLE_ORIGIN_PARAMETER);
+		signature.AddParameter(identifier, iter->first, false);
+		LexicalScopeDescriptions[idhandle].AddVariable(identifier, iter->second, iter->first, false, VARIABLE_ORIGIN_PARAMETER);
 	}
 	StructureMembers.clear();
 

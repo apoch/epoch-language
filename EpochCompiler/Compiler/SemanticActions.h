@@ -140,6 +140,7 @@ public:
 	virtual void RegisterParameterType(const std::wstring& type);
 	virtual void RegisterParameterName(const std::wstring& name);
 	virtual void RegisterPatternMatchedParameter();
+	virtual void RegisterParameterIsReference();
 
 	virtual void StoreHigherOrderFunctionName(const std::wstring& functionname);
 	virtual void BeginHigherOrderFunctionParams();
@@ -292,5 +293,7 @@ private:
 	StructureNameMap StructureNames;
 	VM::EpochTypeID StructureMemberType;
 	StructureMemberList StructureMembers;
+
+	bool ParamIsReference;
 };
 

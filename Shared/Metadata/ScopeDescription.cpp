@@ -15,12 +15,12 @@
 //
 // Add a variable to a lexical scope
 //
-void ScopeDescription::AddVariable(const std::wstring& identifier, StringHandle identifierhandle, VM::EpochTypeID type, VariableOrigin origin)
+void ScopeDescription::AddVariable(const std::wstring& identifier, StringHandle identifierhandle, VM::EpochTypeID type, bool isreference, VariableOrigin origin)
 {
 	if(HasVariable(identifier))
 		throw InvalidIdentifierException("Duplicate/shadowed identifiers are not permitted - the identifier \"" + narrow(identifier) + "\" is already in use in this scope or some containing scope.");
 
-	Variables.push_back(VariableEntry(identifier, identifierhandle, type, origin));
+	Variables.push_back(VariableEntry(identifier, identifierhandle, type, isreference, origin));
 }
 
 //
@@ -57,6 +57,38 @@ StringHandle ScopeDescription::GetVariableNameHandle(size_t index) const
 }
 
 //
+// Retrieve the index of the variable with the given identifier
+//
+size_t ScopeDescription::GetVariableIndex(const std::wstring& identifier) const
+{
+	size_t i = 0;
+	for(VariableVector::const_iterator iter = Variables.begin(); iter != Variables.end(); ++iter)
+	{
+		if(iter->Identifier == identifier)
+			return i;
+
+		++i;
+	}
+
+	throw FatalException("Invalid variable identifier");
+}
+
+size_t ScopeDescription::GetVariableIndex(StringHandle identifier) const
+{
+	size_t i = 0;
+	for(VariableVector::const_iterator iter = Variables.begin(); iter != Variables.end(); ++iter)
+	{
+		if(iter->IdentifierHandle == identifier)
+			return i;
+
+		++i;
+	}
+
+	throw FatalException("Invalid variable identifier");
+}
+
+
+//
 // Retrieve the type of a variable given its identifier handle
 //
 VM::EpochTypeID ScopeDescription::GetVariableTypeByID(StringHandle variableid) const
@@ -89,3 +121,10 @@ VariableOrigin ScopeDescription::GetVariableOrigin(size_t index) const
 	return Variables[index].Origin;
 }
 
+//
+// Determine if the variable at the given index is a reference type
+//
+bool ScopeDescription::IsReference(size_t index) const
+{
+	return Variables[index].IsReference;
+}

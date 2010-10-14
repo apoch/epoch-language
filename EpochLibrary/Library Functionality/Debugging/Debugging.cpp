@@ -38,7 +38,7 @@ void DebugLibrary::RegisterLibraryFunctions(FunctionSignatureSet& signatureset, 
 {
 	{
 		FunctionSignature signature;
-		signature.AddParameter(L"str", VM::EpochType_String);
+		signature.AddParameter(L"str", VM::EpochType_String, false);
 		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"debugwritestring"), signature));
 	}
 	{

@@ -54,8 +54,14 @@ public:
 	}
 
 	void WriteFromStack(StringHandle variableid, StackSpace& stack);
+	void WriteBoundReferenceFromStack(StringHandle variableid, StackSpace& stack);
 
 	void PushOntoStack(StringHandle variableid, StackSpace& stack) const;
+	void PushOntoStackDeref(StringHandle variableid, StackSpace& stack) const;
+
+// References
+public:
+	void BindReference(StringHandle referencename, ActiveScope* ownerscope, StringHandle referencetarget);
 
 // Interaction with registers
 public:
@@ -83,5 +89,9 @@ private:
 	const ScopeDescription& OriginalScope;
 
 	std::map<StringHandle, void*> VariableStorageLocations;
+	
+	typedef std::pair<ActiveScope*, StringHandle> ReferenceScopeAndTarget;
+	typedef std::map<StringHandle, ReferenceScopeAndTarget> ReferenceBindingMap;
+	ReferenceBindingMap BoundReferences;
 };
 

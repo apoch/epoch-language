@@ -14,6 +14,8 @@
 #include "Bytecode/EntityTags.h"
 
 #include "Utility/Types/IntegerTypes.h"
+#include "Utility/Types/IDTypes.h"
+#include "Utility/Types/RealTypes.h"
 #include "Utility/Types/EpochTypeIDs.h"
 
 #include <fstream>
@@ -141,10 +143,15 @@ void Serializer::Write(const std::wstring& filename) const
 					throw SerializationException("Failed to serialize untyped PUSH operand");
 		
 				case VM::EpochType_Identifier:
+				case VM::EpochType_CustomBase:
 					throw SerializationException("Failed to serialize incorrect PUSH operand");
 
 				case VM::EpochType_Integer:
 					outfile << L"PUSH_INT " << traverser.Read<Integer32>() << L"\n";
+					break;
+
+				case VM::EpochType_Real:
+					outfile << L"PUSH_REAL " << traverser.Read<Real32>() << L"\n";
 					break;
 
 				case VM::EpochType_Boolean:
@@ -160,9 +167,14 @@ void Serializer::Write(const std::wstring& filename) const
 					break;
 
 				default:
-					throw SerializationException("Failed to serialize unknown type annotation");
+					outfile << L"PUSH " << type << L" ";
+					outfile << traverser.Read<StructureHandle>() << L"\n";
 				}
 			}
+			break;
+
+		case Bytecode::Instructions::BindRef:
+			outfile << L"BINDREF " << traverser.Read<StringHandle>() << L"\n";
 			break;
 
 		case Bytecode::Instructions::Pop:
@@ -237,6 +249,7 @@ void Serializer::Write(const std::wstring& filename) const
 					outfile << traverser.Read<StringHandle>() << L" ";
 					outfile << traverser.ReadTypeAnnotation() << L" ";
 					outfile << traverser.Read<Integer32>() << L" ";
+					outfile << traverser.Read<bool>() << L" ";
 				}
 				outfile << L"\n";
 			}

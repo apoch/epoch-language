@@ -64,6 +64,7 @@ public:
 	virtual void RegisterParameterType(const std::wstring& type) = 0;
 	virtual void RegisterParameterName(const std::wstring& name) = 0;
 	virtual void RegisterPatternMatchedParameter() = 0;
+	virtual void RegisterParameterIsReference() = 0;
 
 	virtual void StoreHigherOrderFunctionName(const std::wstring& functionname) = 0;
 	virtual void BeginHigherOrderFunctionParams() = 0;

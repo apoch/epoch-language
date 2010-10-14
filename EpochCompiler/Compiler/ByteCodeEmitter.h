@@ -59,6 +59,8 @@ public:
 	void PushVariableValue(StringHandle variablename);
 	void PushBufferHandle(BufferHandle handle);
 
+	void BindReference(StringHandle variablename);
+
 	void PopStack(VM::EpochTypeID type);
 
 // Flow control
@@ -78,7 +80,7 @@ public:
 	void InvokeMetacontrol(Bytecode::EntityTag tag);
 
 	void DefineLexicalScope(StringHandle name, StringHandle parent, size_t variablecount);
-	void LexicalScopeEntry(StringHandle varname, VM::EpochTypeID vartype, VariableOrigin origin);
+	void LexicalScopeEntry(StringHandle varname, VM::EpochTypeID vartype, bool isreference, VariableOrigin origin);
 
 // Pattern matching
 public:

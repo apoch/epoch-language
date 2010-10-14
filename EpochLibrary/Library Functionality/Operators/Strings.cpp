@@ -47,8 +47,8 @@ void StringLibrary::RegisterLibraryFunctions(FunctionSignatureSet& signatureset,
 {
 	{
 		FunctionSignature signature;
-		signature.AddParameter(L"s1", VM::EpochType_String);
-		signature.AddParameter(L"s2", VM::EpochType_String);
+		signature.AddParameter(L"s1", VM::EpochType_String, false);
+		signature.AddParameter(L"s2", VM::EpochType_String, false);
 		signature.SetReturnType(VM::EpochType_String);
 		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L";"), signature));
 	}

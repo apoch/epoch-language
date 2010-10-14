@@ -487,6 +487,23 @@ struct RegisterParameterType
 	SemanticActionInterface& Bindings;
 };
 
+struct RegisterParameterIsReference
+{
+	explicit RegisterParameterIsReference(SemanticActionInterface& bindings)
+		: Bindings(bindings)
+	{ }
+
+	template <typename IteratorType>
+	void operator () (IteratorType begin, IteratorType end) const
+	{
+		Trace(L"RegisterParameterIsReference", begin, end);
+		Bindings.SetParsePosition(end);
+		Bindings.RegisterParameterIsReference();
+	}
+
+	SemanticActionInterface& Bindings;
+};
+
 struct RegisterParameterName
 {
 	explicit RegisterParameterName(SemanticActionInterface& bindings)

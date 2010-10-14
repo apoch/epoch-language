@@ -23,10 +23,11 @@ FunctionSignature::FunctionSignature()
 //
 // Add a parameter with the given name and data type to the function signature
 //
-void FunctionSignature::AddParameter(const std::wstring& name, VM::EpochTypeID type)
+void FunctionSignature::AddParameter(const std::wstring& name, VM::EpochTypeID type, bool isreference)
 {
 	Parameters.push_back(CompileTimeParameter(name, type));
 	FunctionSignatures.push_back(FunctionSignature());
+	Parameters.back().IsReference = isreference;
 }
 
 //

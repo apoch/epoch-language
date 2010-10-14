@@ -390,6 +390,14 @@ void ExecutionContext::Execute(const ScopeDescription* scope)
 			}
 			break;
 
+		case Bytecode::Instructions::BindRef:
+			{
+				StringHandle target = Fetch<StringHandle>();
+				State.Stack.PushValue(Variables);
+				State.Stack.PushValue(target);
+			}
+			break;
+
 		case Bytecode::Instructions::Pop:		// Pop some stuff off the stack
 			{
 				EpochTypeID poppedtype = Fetch<EpochTypeID>();
@@ -556,6 +564,7 @@ void ExecutionContext::Execute(const ScopeDescription* scope)
 					Fetch<StringHandle>();
 					Fetch<EpochTypeID>();
 					Fetch<VariableOrigin>();
+					Fetch<bool>();
 				}
 			}
 			break;
@@ -682,8 +691,9 @@ void ExecutionContext::Load()
 					StringHandle entryname = Fetch<StringHandle>();
 					EpochTypeID type = Fetch<EpochTypeID>();
 					VariableOrigin origin = Fetch<VariableOrigin>();
+					bool isreference = Fetch<bool>();
 
-					scope.AddVariable(OwnerVM.GetPooledString(entryname), entryname, type, origin);
+					scope.AddVariable(OwnerVM.GetPooledString(entryname), entryname, type, isreference, origin);
 				}
 			}
 			break;
@@ -698,13 +708,13 @@ void ExecutionContext::Load()
 		// Single-bye operations with one payload field
 		case Bytecode::Instructions::Pop:
 		case Bytecode::Instructions::InvokeMeta:
-			Fetch<Integer32>();
+			Fetch<EpochTypeID>();
 			break;
 
 		// Operations with two payload fields
 		case Bytecode::Instructions::Push:
-			Fetch<Integer32>();
-			Fetch<Integer32>();
+			Fetch<EpochTypeID>();
+			Fetch<StringHandle>();
 			break;
 
 		// Operations with string payload fields
@@ -713,6 +723,7 @@ void ExecutionContext::Load()
 		case Bytecode::Instructions::Invoke:
 		case Bytecode::Instructions::InvokeIndirect:
 		case Bytecode::Instructions::SetRetVal:
+		case Bytecode::Instructions::BindRef:
 			Fetch<StringHandle>();
 			break;
 

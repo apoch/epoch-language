@@ -41,7 +41,7 @@ public:
 
 // Configuration interface
 public:
-	void AddVariable(const std::wstring& identifier, StringHandle identifierhandle, VM::EpochTypeID type, VariableOrigin origin);
+	void AddVariable(const std::wstring& identifier, StringHandle identifierhandle, VM::EpochTypeID type, bool isreference, VariableOrigin origin);
 
 // Inspection interface
 public:
@@ -49,9 +49,12 @@ public:
 
 	const std::wstring& GetVariableName(size_t index) const;
 	StringHandle GetVariableNameHandle(size_t index) const;
+	size_t GetVariableIndex(const std::wstring& identifier) const;
+	size_t GetVariableIndex(StringHandle identifier) const;
 	VM::EpochTypeID GetVariableTypeByID(StringHandle variableid) const;
 	VM::EpochTypeID GetVariableTypeByIndex(size_t index) const;
 	VariableOrigin GetVariableOrigin(size_t index) const;
+	bool IsReference(size_t index) const;
 
 	size_t GetVariableCount() const
 	{ return Variables.size(); }
@@ -65,17 +68,19 @@ private:
 	struct VariableEntry
 	{
 		// Constructor for convenience
-		VariableEntry(const std::wstring& identifier, StringHandle identifierhandle, VM::EpochTypeID type, VariableOrigin origin)
+		VariableEntry(const std::wstring& identifier, StringHandle identifierhandle, VM::EpochTypeID type, bool isreference, VariableOrigin origin)
 			: Identifier(identifier),
 			  IdentifierHandle(identifierhandle),
 			  Type(type),
-			  Origin(origin)
+			  Origin(origin),
+			  IsReference(isreference)
 		{ }
 
 		std::wstring Identifier;
 		StringHandle IdentifierHandle;
 		VM::EpochTypeID Type;
 		VariableOrigin Origin;
+		bool IsReference;
 	};
 
 // Internal tracking

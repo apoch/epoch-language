@@ -126,6 +126,15 @@ void ByteCodeEmitter::PushBufferHandle(BufferHandle handle)
 }
 
 //
+// Emit code for binding a reference parameter to a given variable
+//
+void ByteCodeEmitter::BindReference(StringHandle variablename)
+{
+	EmitInstruction(Bytecode::Instructions::BindRef);
+	EmitRawValue(variablename);
+}
+
+//
 // Emit code for popping a given number of bytes off the stack
 //
 // Note that we do not store the number of bytes to pop directly; instead, we
@@ -262,11 +271,12 @@ void ByteCodeEmitter::DefineLexicalScope(StringHandle name, StringHandle parent,
 // Each descriptor consists of the member's identifier handle, its type annotation, and
 // a flag specifying its origin (e.g. local variable, parameter to a function, etc.).
 //
-void ByteCodeEmitter::LexicalScopeEntry(StringHandle varname, VM::EpochTypeID vartype, VariableOrigin origin)
+void ByteCodeEmitter::LexicalScopeEntry(StringHandle varname, VM::EpochTypeID vartype, bool isreference, VariableOrigin origin)
 {
 	EmitRawValue(varname);
 	EmitRawValue(vartype);
 	EmitRawValue(origin);
+	EmitRawValue(isreference);
 }
 
 

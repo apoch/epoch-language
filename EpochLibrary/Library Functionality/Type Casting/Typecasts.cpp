@@ -107,35 +107,35 @@ void TypeCasts::RegisterLibraryFunctions(FunctionSignatureSet& signatureset, Str
 	{
 		FunctionSignature signature;
 		signature.AddPatternMatchedParameterIdentifier(stringpool.Pool(L"string"));
-		signature.AddParameter(L"value", EpochType_Integer);
+		signature.AddParameter(L"value", EpochType_Integer, false);
 		signature.SetReturnType(VM::EpochType_String);
 		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"cast@@integer_to_string"), signature));
 	}
 	{
 		FunctionSignature signature;
 		signature.AddPatternMatchedParameterIdentifier(stringpool.Pool(L"integer"));
-		signature.AddParameter(L"value", EpochType_String);
+		signature.AddParameter(L"value", EpochType_String, false);
 		signature.SetReturnType(VM::EpochType_Integer);
 		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"cast@@string_to_integer"), signature));
 	}
 	{
 		FunctionSignature signature;
 		signature.AddPatternMatchedParameterIdentifier(stringpool.Pool(L"string"));
-		signature.AddParameter(L"value", EpochType_Boolean);
+		signature.AddParameter(L"value", EpochType_Boolean, false);
 		signature.SetReturnType(VM::EpochType_String);
 		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"cast@@boolean_to_string"), signature));
 	}
 	{
 		FunctionSignature signature;
 		signature.AddPatternMatchedParameterIdentifier(stringpool.Pool(L"string"));
-		signature.AddParameter(L"value", EpochType_Real);
+		signature.AddParameter(L"value", EpochType_Real, false);
 		signature.SetReturnType(VM::EpochType_String);
 		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"cast@@real_to_string"), signature));
 	}
 	{
 		FunctionSignature signature;
 		signature.AddPatternMatchedParameterIdentifier(stringpool.Pool(L"string"));
-		signature.AddParameter(L"value", EpochType_Buffer);
+		signature.AddParameter(L"value", EpochType_Buffer, false);
 		signature.SetReturnType(VM::EpochType_String);
 		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"cast@@buffer_to_string"), signature));
 	}

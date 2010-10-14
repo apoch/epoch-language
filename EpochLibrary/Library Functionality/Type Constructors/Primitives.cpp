@@ -91,7 +91,7 @@ namespace
 	void CompileConstructorPrimitive(const std::wstring& functionname, SemanticActionInterface& semantics, ScopeDescription& scope, const CompileTimeParameterVector& compiletimeparams)
 	{
 		VM::EpochTypeID effectivetype = semantics.LookupTypeName(functionname);
-		scope.AddVariable(compiletimeparams[0].StringPayload, compiletimeparams[0].Payload.StringHandleValue, effectivetype, VARIABLE_ORIGIN_LOCAL);
+		scope.AddVariable(compiletimeparams[0].StringPayload, compiletimeparams[0].Payload.StringHandleValue, effectivetype, false, VARIABLE_ORIGIN_LOCAL);
 	}
 
 }
@@ -116,32 +116,32 @@ void TypeConstructors::RegisterLibraryFunctions(FunctionSignatureSet& signatures
 {
 	{
 		FunctionSignature signature;
-		signature.AddParameter(L"identifier", VM::EpochType_Identifier);
-		signature.AddParameter(L"value", VM::EpochType_Integer);
+		signature.AddParameter(L"identifier", VM::EpochType_Identifier, false);
+		signature.AddParameter(L"value", VM::EpochType_Integer, false);
 		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"integer"), signature));
 	}
 	{
 		FunctionSignature signature;
-		signature.AddParameter(L"identifier", VM::EpochType_Identifier);
-		signature.AddParameter(L"value", VM::EpochType_String);
+		signature.AddParameter(L"identifier", VM::EpochType_Identifier, false);
+		signature.AddParameter(L"value", VM::EpochType_String, false);
 		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"string"), signature));
 	}
 	{
 		FunctionSignature signature;
-		signature.AddParameter(L"identifier", VM::EpochType_Identifier);
-		signature.AddParameter(L"value", VM::EpochType_Boolean);
+		signature.AddParameter(L"identifier", VM::EpochType_Identifier, false);
+		signature.AddParameter(L"value", VM::EpochType_Boolean, false);
 		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"boolean"), signature));
 	}
 	{
 		FunctionSignature signature;
-		signature.AddParameter(L"identifier", VM::EpochType_Identifier);
-		signature.AddParameter(L"value", VM::EpochType_Real);
+		signature.AddParameter(L"identifier", VM::EpochType_Identifier, false);
+		signature.AddParameter(L"value", VM::EpochType_Real, false);
 		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"real"), signature));
 	}
 	{
 		FunctionSignature signature;
-		signature.AddParameter(L"identifier", VM::EpochType_Identifier);
-		signature.AddParameter(L"size", VM::EpochType_Integer);
+		signature.AddParameter(L"identifier", VM::EpochType_Identifier, false);
+		signature.AddParameter(L"size", VM::EpochType_Integer, false);
 		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"buffer"), signature));
 	}
 }

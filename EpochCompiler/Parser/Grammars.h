@@ -98,6 +98,8 @@ struct FundamentalGrammar : public boost::spirit::classic::grammar<FundamentalGr
 				EPOCH_TRUE("true"),
 				EPOCH_FALSE("false"),
 
+				REFERENCE("ref"),
+
 				ExpectFunctionBody(0),
 
 				ExpectWellFormedStatement(MalformedStatementException("Expected a statement or code control entity"))
@@ -145,7 +147,7 @@ struct FundamentalGrammar : public boost::spirit::classic::grammar<FundamentalGr
 					>> MAPARROW >> OPENPARENS[BeginHigherOrderFunctionReturns(self.Bindings)] >> !(VariableType[RegisterHigherOrderFunctionReturn(self.Bindings)])
 					>> CLOSEPARENS[EndHigherOrderFunctionReturns(self.Bindings)]
 				  )
-				| (VariableType[RegisterParameterType(self.Bindings)] >> OPENPARENS >> StringIdentifier[RegisterParameterName(self.Bindings)] >> CLOSEPARENS)
+				| (VariableType[RegisterParameterType(self.Bindings)] >> !REFERENCE[RegisterParameterIsReference(self.Bindings)] >> OPENPARENS >> StringIdentifier[RegisterParameterName(self.Bindings)] >> CLOSEPARENS)
 				| (Expression[RegisterPatternMatchedParameter(self.Bindings)])
 				;
 
@@ -306,7 +308,7 @@ struct FundamentalGrammar : public boost::spirit::classic::grammar<FundamentalGr
 
 		boost::spirit::classic::chlit<> COLON, OPENPARENS, CLOSEPARENS, OPENBRACE, CLOSEBRACE, OPENBRACKET, CLOSEBRACKET, PERIOD, COMMA, QUOTE, NEGATE;
 
-		boost::spirit::classic::strlit<> MAPARROW, INTEGER, STRING, BOOLEAN, REAL, BUFFER, STRUCTURE, ASSIGN, EPOCH_TRUE, EPOCH_FALSE;
+		boost::spirit::classic::strlit<> MAPARROW, INTEGER, STRING, BOOLEAN, REAL, BUFFER, STRUCTURE, ASSIGN, EPOCH_TRUE, EPOCH_FALSE, REFERENCE;
 
 		boost::spirit::classic::rule<ScannerType> StringIdentifier;
 

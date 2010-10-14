@@ -51,6 +51,8 @@ struct CompileTimeParameter
 	std::wstring StringPayload;
 
 	ByteBuffer ExpressionContents;
+
+	bool IsReference;
 };
 
 
