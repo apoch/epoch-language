@@ -32,7 +32,8 @@ struct CompileTimeParameter
 	CompileTimeParameter(const std::wstring& name, VM::EpochTypeID type)
 		: Name(name),
 		  Type(type),
-		  ExpressionType(VM::EpochType_Error)
+		  ExpressionType(VM::EpochType_Error),
+		  IsReference(false)
 	{ }
 
 	std::wstring Name;

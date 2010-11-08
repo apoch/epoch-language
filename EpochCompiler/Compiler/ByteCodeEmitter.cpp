@@ -344,20 +344,76 @@ void ByteCodeEmitter::ResolvePattern(StringHandle dispatchfunction, const Functi
 
 
 //-------------------------------------------------------------------------------
-// Utility instructions
+// Structures
 //-------------------------------------------------------------------------------
 
+//
+// Emit an instruction which allocates a new structure on the freestore
+//
+void ByteCodeEmitter::AllocateStructure(StringHandle descriptionname)
+{
+	EmitInstruction(Bytecode::Instructions::AllocStructure);
+	EmitRawValue(descriptionname);
+}
+
+//
+// Emit a meta-data instruction for defining a POD data structure
+//
+void ByteCodeEmitter::DefineStructure(StringHandle identifier, size_t nummembers)
+{
+	EmitInstruction(Bytecode::Instructions::DefineStructure);
+	EmitRawValue(identifier);
+	EmitRawValue(nummembers);
+}
+
+//
+// Emit meta-data describing a structure member
+//
+void ByteCodeEmitter::StructureMember(StringHandle identifier, VM::EpochTypeID type)
+{
+	EmitRawValue(identifier);
+	EmitTypeAnnotation(type);
+}
+
+//
+// Emit an instruction to copy a value from a structure into the return value register
+//
+void ByteCodeEmitter::CopyFromStructure(StringHandle structurevariable, StringHandle membervariable)
+{
+	EmitInstruction(Bytecode::Instructions::CopyFromStructure);
+	EmitRawValue(structurevariable);
+	EmitRawValue(membervariable);
+}
+
+//
+// Emit an instruction to copy a value from the stack into a structure member
+//
+void ByteCodeEmitter::AssignStructure(StringHandle structurevariable, StringHandle membername)
+{
+	EmitInstruction(Bytecode::Instructions::CopyToStructure);
+	EmitRawValue(structurevariable);
+	EmitRawValue(membername);
+}
+
+
+//-------------------------------------------------------------------------------
+// Utility instructions
+//-------------------------------------------------------------------------------
 
 //
 // Emit an instruction for assigning the contents of the top of the stack into a variable
 //
-// The instruction contains a payload consisting of the handle to the variable whose value
-// is to be set by the operation.
-//
-void ByteCodeEmitter::AssignVariable(StringHandle variablename)
+void ByteCodeEmitter::AssignVariable()
 {
 	EmitInstruction(Bytecode::Instructions::Assign);
-	EmitRawValue(variablename);
+}
+
+//
+// Emit an instruction for copying the value of a referenced variable onto the stack
+//
+void ByteCodeEmitter::ReadReferenceOntoStack()
+{
+	EmitInstruction(Bytecode::Instructions::ReadRef);
 }
 
 //

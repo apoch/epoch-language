@@ -8,7 +8,6 @@
 #include "pch.h"
 
 #include "Library Functionality/Operators/Boolean.h"
-#include "Library Functionality/Operators/Precedences.h"
 
 #include "Utility/StringPool.h"
 #include "Utility/NoDupeMap.h"
@@ -17,6 +16,7 @@
 
 #include "Virtual Machine/VirtualMachine.h"
 
+#include "Metadata/Precedences.h"
 
 
 namespace

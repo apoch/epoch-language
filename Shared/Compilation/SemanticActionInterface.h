@@ -95,6 +95,7 @@ public:
 	virtual void BeginAssignment() = 0;
 	virtual void BeginOpAssignment(const std::wstring& identifier) = 0;
 	virtual void CompleteAssignment() = 0;
+	virtual void RegisterAssignmentMember(const std::wstring& identifier) = 0;
 
 	virtual void StoreStructureName(const std::wstring& identifier) = 0;
 	virtual const std::wstring& CreateStructureType() = 0;

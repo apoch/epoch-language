@@ -34,6 +34,8 @@ public:
 	void SetString(StringHandle value);
 	void SetBuffer(BufferHandle value);
 
+	void SetStructure(StructureHandle value, VM::EpochTypeID typetag);
+
 // Stack interaction
 public:
 	void PushOntoStack(StackSpace& stack) const;
@@ -45,6 +47,7 @@ private:
 		Integer32 Value_Integer32;
 		StringHandle Value_StringHandle;
 		BufferHandle Value_BufferHandle;
+		StructureHandle Value_StructureHandle;
 		bool Value_Boolean;
 		Real32 Value_Real;
 	};

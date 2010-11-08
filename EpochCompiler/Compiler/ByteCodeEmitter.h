@@ -89,9 +89,18 @@ public:
 
 	void ResolvePattern(StringHandle dispatchfunction, const FunctionSignature& signature);
 
+// Structures
+public:
+	void AllocateStructure(StringHandle descriptionname);
+	void DefineStructure(StringHandle identifier, size_t nummembers);
+	void StructureMember(StringHandle identifier, VM::EpochTypeID type);
+	void CopyFromStructure(StringHandle structurevariable, StringHandle membervariable);
+	void AssignStructure(StringHandle structurevariable, StringHandle membername);
+
 // Utility instructions
 public:
-	void AssignVariable(StringHandle variablename);
+	void AssignVariable();
+	void ReadReferenceOntoStack();
 
 	void PoolString(StringHandle handle, const std::wstring& literalvalue);
 

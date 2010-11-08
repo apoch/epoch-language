@@ -66,6 +66,14 @@ void Register::Set(Real32 value)
 	Type = VM::EpochType_Real;
 }
 
+//
+// Set the value of the register to a structure
+//
+void Register::SetStructure(StructureHandle value, VM::EpochTypeID typetag)
+{
+	Value_StructureHandle = value;
+	Type = typetag;
+}
 
 //
 // Push the contents of the register onto the given stack
@@ -75,6 +83,7 @@ void Register::PushOntoStack(StackSpace& stack) const
 	switch(Type)
 	{
 	case VM::EpochType_Error:
+	case VM::EpochType_Void:
 		throw FatalException("Register is empty; cannot push its value onto the stack");
 
 	case VM::EpochType_Integer:
@@ -82,6 +91,7 @@ void Register::PushOntoStack(StackSpace& stack) const
 		break;
 
 	case VM::EpochType_String:
+	case VM::EpochType_Identifier:
 		stack.PushValue(Value_StringHandle);
 		break;
 
@@ -98,7 +108,8 @@ void Register::PushOntoStack(StackSpace& stack) const
 		break;
 
 	default:
-		throw NotImplementedException("Unsupported data type in Register::PushOntoStack");
+		stack.PushValue(Value_StructureHandle);
+		break;
 	}
 }
 

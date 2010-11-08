@@ -11,6 +11,8 @@
 // Dependencies
 #include "Metadata/ScopeDescription.h"
 #include "Metadata/Register.h"
+#include "Metadata/ActiveStructure.h"
+#include "Metadata/StructureDefinition.h"
 
 #include "Libraries/Library.h"
 
@@ -31,6 +33,7 @@
 
 // Forward declarations
 class ActiveScope;
+class StructureDefinition;
 
 
 namespace VM
@@ -59,7 +62,8 @@ namespace VM
 	// Construction
 	public:
 		VirtualMachine()
-			: CurrentBufferHandle(0)
+			: CurrentBufferHandle(0),
+			  CurrentStructureHandle(0)
 		{
 		}
 
@@ -80,6 +84,11 @@ namespace VM
 
 		void* GetBuffer(BufferHandle handle);
 		BufferHandle AllocateBuffer(size_t size);
+
+		ActiveStructure& GetStructure(StructureHandle handle);
+		StructureHandle AllocateStructure(const StructureDefinition& description);
+
+		const StructureDefinition& GetStructureDefinition(StringHandle identifier) const;
 
 	// Functions
 	public:
@@ -106,6 +115,10 @@ namespace VM
 		const ScopeDescription& GetScopeDescription(StringHandle name) const;
 		ScopeDescription& GetScopeDescription(StringHandle name);
 
+	// Public tracking
+	public:
+		std::map<StringHandle, StructureDefinition> StructureDefinitions;
+
 	// Handy type shortcuts
 	private:
 		typedef std::map<StringHandle, size_t> OffsetMap;
@@ -122,7 +135,10 @@ namespace VM
 		BeginEndOffsetMap ChainOffsets;
 
 		BufferHandle CurrentBufferHandle;
-		std::map<StringHandle, std::vector<Byte> > Buffers;
+		std::map<BufferHandle, std::vector<Byte> > Buffers;
+
+		StructureHandle CurrentStructureHandle;
+		std::map<StructureHandle, ActiveStructure> ActiveStructures;
 	};
 
 

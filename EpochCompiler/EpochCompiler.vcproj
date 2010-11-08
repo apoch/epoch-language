@@ -40,7 +40,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories=".\;..\Shared\"
+				AdditionalIncludeDirectories=".\;..\Shared\;..\EpochVM\"
 				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_USRDLL;EPOCHCOMPILER_EXPORTS;BOOST_EXCEPTION_DISABLE"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
@@ -322,6 +322,10 @@
 				Name="Metadata"
 				>
 				<File
+					RelativePath="..\Shared\Metadata\ActiveStructure.h"
+					>
+				</File>
+				<File
 					RelativePath="..\Shared\Metadata\CompileTimeParams.h"
 					>
 				</File>
@@ -347,6 +351,10 @@
 				</File>
 				<File
 					RelativePath="..\Shared\Metadata\ScopeDescription.h"
+					>
+				</File>
+				<File
+					RelativePath="..\Shared\Metadata\StructureDefinition.cpp"
 					>
 				</File>
 				<File
@@ -422,6 +430,22 @@
 				RelativePath=".\Parser\SemanticActionBindings.h"
 				>
 			</File>
+		</Filter>
+		<Filter
+			Name="VM Linkage"
+			>
+			<Filter
+				Name="Virtual Machine"
+				>
+				<File
+					RelativePath="..\EpochVM\Virtual Machine\TypeInfo.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\EpochVM\Virtual Machine\TypeInfo.h"
+					>
+				</File>
+			</Filter>
 		</Filter>
 	</Files>
 	<Globals>

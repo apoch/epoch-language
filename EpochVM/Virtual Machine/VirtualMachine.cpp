@@ -19,6 +19,7 @@
 
 #include <limits>
 #include <list>
+#include <iostream>
 
 
 using namespace VM;
@@ -266,9 +267,16 @@ void ExecutionContext::Execute(const ScopeDescription* scope)
 				{
 					ThisPtr->Variables->PopScopeOffStack(*ThisPtr);
 				}
+				catch(const std::exception& e)
+				{
+					// The stack will be bogus, but we'll do our best to recover and not leak memory
+					std::wcout << L"VM error: " << e.what() << L"\n";
+					ThisPtr->State.Result.ResultType = ExecutionResult::EXEC_RESULT_HALT;
+				}
 				catch(...)
 				{
 					// The stack will be bogus, but we'll do our best to recover and not leak memory
+					std::wcout << L"Stack error!\n";
 					ThisPtr->State.Result.ResultType = ExecutionResult::EXEC_RESULT_HALT;
 				}
 
@@ -282,8 +290,14 @@ void ExecutionContext::Execute(const ScopeDescription* scope)
 					{
 						ThisPtr->State.ReturnValueRegister.PushOntoStack(ThisPtr->State.Stack);
 					}
+					catch(const std::exception& e)
+					{
+						std::wcout << L"VM error: " << e.what() << L"\n";
+						ThisPtr->State.Result.ResultType = ExecutionResult::EXEC_RESULT_HALT;
+					}
 					catch(...)
 					{
+						std::wcout << L"Stack error!\n";
 						ThisPtr->State.Result.ResultType = ExecutionResult::EXEC_RESULT_HALT;
 					}
 				}
@@ -302,6 +316,7 @@ void ExecutionContext::Execute(const ScopeDescription* scope)
 			catch(...)
 			{
 				// The stack will be bogus, but we'll do our best to recover and not leak memory
+				std::wcout << L"Stack error!\n";
 				ThisPtr->State.Result.ResultType = ExecutionResult::EXEC_RESULT_HALT;
 			}
 
@@ -341,6 +356,85 @@ void ExecutionContext::Execute(const ScopeDescription* scope)
 			{
 				StringHandle variablename = Fetch<StringHandle>();
 				Variables->CopyToRegister(variablename, State.ReturnValueRegister);
+			}
+			break;
+
+		case Bytecode::Instructions::CopyFromStructure:
+			{
+				StringHandle variablename = Fetch<StringHandle>();
+				StringHandle membername = Fetch<StringHandle>();
+				
+				StructureHandle readstruct = Variables->Read<StructureHandle>(variablename);
+				StringHandle actualmember = Variables->Read<StringHandle>(membername);
+
+				ActiveStructure& structure = OwnerVM.GetStructure(readstruct);
+
+				size_t memberindex = structure.Definition.FindMember(actualmember);
+				switch(structure.Definition.GetMemberType(memberindex))
+				{
+				case EpochType_Integer:
+					State.ReturnValueRegister.Set(structure.ReadMember<Integer32>(memberindex));
+					break;
+
+				case EpochType_Boolean:
+					State.ReturnValueRegister.Set(structure.ReadMember<bool>(memberindex));
+					break;
+
+				case EpochType_Buffer:
+					State.ReturnValueRegister.SetBuffer(structure.ReadMember<Integer32>(memberindex));
+					break;
+
+				case EpochType_Real:
+					State.ReturnValueRegister.Set(structure.ReadMember<Real32>(memberindex));
+					break;
+
+				case EpochType_String:
+					State.ReturnValueRegister.SetString(structure.ReadMember<StringHandle>(memberindex));
+					break;
+
+				default:
+					State.ReturnValueRegister.SetStructure(structure.ReadMember<StructureHandle>(memberindex), structure.Definition.GetMemberType(memberindex));
+					break;
+				}
+			}
+			break;
+
+		case Bytecode::Instructions::CopyToStructure:
+			{
+				StringHandle variablename = Fetch<StringHandle>();
+				StringHandle actualmember = Fetch<StringHandle>();
+				
+				StructureHandle readstruct = Variables->Read<StructureHandle>(variablename);
+
+				ActiveStructure& structure = OwnerVM.GetStructure(readstruct);
+
+				size_t memberindex = structure.Definition.FindMember(actualmember);
+				switch(structure.Definition.GetMemberType(memberindex))
+				{
+				case EpochType_Integer:
+					structure.WriteMember(memberindex, State.Stack.PopValue<Integer32>());
+					break;
+
+				case EpochType_Boolean:
+					structure.WriteMember(memberindex, State.Stack.PopValue<bool>());
+					break;
+
+				case EpochType_Buffer:
+					structure.WriteMember(memberindex, State.Stack.PopValue<BufferHandle>());
+					break;
+
+				case EpochType_Real:
+					structure.WriteMember(memberindex, State.Stack.PopValue<Real32>());
+					break;
+
+				case EpochType_String:
+					structure.WriteMember(memberindex, State.Stack.PopValue<StringHandle>());
+					break;
+
+				default:
+					structure.WriteMember(memberindex, State.Stack.PopValue<StructureHandle>());
+					break;
+				}
 			}
 			break;
 
@@ -393,8 +487,16 @@ void ExecutionContext::Execute(const ScopeDescription* scope)
 		case Bytecode::Instructions::BindRef:
 			{
 				StringHandle target = Fetch<StringHandle>();
-				State.Stack.PushValue(Variables);
-				State.Stack.PushValue(target);
+				if(Variables->GetOriginalDescription().IsReference(Variables->GetOriginalDescription().GetVariableIndex(target)))
+				{
+					State.Stack.PushValue(Variables->GetReferenceType(target));
+					State.Stack.PushValue(Variables->GetReferenceTarget(target));
+				}
+				else
+				{
+					State.Stack.PushValue(Variables->GetOriginalDescription().GetVariableTypeByID(target));
+					State.Stack.PushValue(Variables->GetVariableStorageLocation(target));
+				}
 			}
 			break;
 
@@ -412,10 +514,19 @@ void ExecutionContext::Execute(const ScopeDescription* scope)
 			}
 			break;
 
+		case Bytecode::Instructions::ReadRef:	// Read a reference's target value and place it on the stack
+			{
+				void* targetstorage = State.Stack.PopValue<void*>();
+				EpochTypeID targettype = State.Stack.PopValue<EpochTypeID>();
+				Variables->PushOntoStack(targetstorage, targettype, State.Stack);
+			}
+			break;
+
 		case Bytecode::Instructions::Assign:	// Write a value to a variable's position on the stack
 			{
-				StringHandle variablename = Fetch<StringHandle>();
-				Variables->WriteFromStack(variablename, State.Stack);
+				void* targetstorage = State.Stack.PopValue<void*>();
+				EpochTypeID targettype = State.Stack.PopValue<EpochTypeID>();
+				Variables->WriteFromStack(targetstorage, targettype, State.Stack);
 			}
 			break;
 
@@ -611,6 +722,13 @@ void ExecutionContext::Execute(const ScopeDescription* scope)
 				}
 			}
 			break;
+
+		case Bytecode::Instructions::AllocStructure:
+			{
+				StringHandle structuredescription = Fetch<StringHandle>();
+				State.Stack.PushValue(OwnerVM.AllocateStructure(OwnerVM.GetStructureDefinition(structuredescription)));
+			}
+			break;
 		
 		default:
 			throw FatalException("Invalid bytecode operation");
@@ -698,11 +816,27 @@ void ExecutionContext::Load()
 			}
 			break;
 
+		case Bytecode::Instructions::DefineStructure:
+			{
+				StringHandle structurename = Fetch<StringHandle>();
+				size_t numentries = Fetch<size_t>();
+
+				for(size_t i = 0; i < numentries; ++i)
+				{
+					StringHandle identifier = Fetch<StringHandle>();
+					EpochTypeID type = Fetch<EpochTypeID>();
+					OwnerVM.StructureDefinitions[structurename].AddMember(identifier, type);
+				}
+			}
+			break;
+
 
 		// Single-byte operations with no payload
 		case Bytecode::Instructions::Halt:
 		case Bytecode::Instructions::NoOp:
 		case Bytecode::Instructions::Return:
+		case Bytecode::Instructions::Assign:
+		case Bytecode::Instructions::ReadRef:
 			break;
 
 		// Single-bye operations with one payload field
@@ -717,13 +851,19 @@ void ExecutionContext::Load()
 			Fetch<StringHandle>();
 			break;
 
+		case Bytecode::Instructions::CopyFromStructure:
+		case Bytecode::Instructions::CopyToStructure:
+			Fetch<StringHandle>();
+			Fetch<StringHandle>();
+			break;
+
 		// Operations with string payload fields
 		case Bytecode::Instructions::Read:
-		case Bytecode::Instructions::Assign:
 		case Bytecode::Instructions::Invoke:
 		case Bytecode::Instructions::InvokeIndirect:
 		case Bytecode::Instructions::SetRetVal:
 		case Bytecode::Instructions::BindRef:
+		case Bytecode::Instructions::AllocStructure:
 			Fetch<StringHandle>();
 			break;
 
@@ -818,5 +958,35 @@ EntityMetaControl VirtualMachine::GetEntityMetaControl(Bytecode::EntityTag tag) 
 		return iter->second.MetaControl;
 
 	throw FatalException("Invalid entity type tag - no meta control could be looked up");
+}
+
+
+//-------------------------------------------------------------------------------
+// Structure management
+//-------------------------------------------------------------------------------
+
+StructureHandle VirtualMachine::AllocateStructure(const StructureDefinition &description)
+{
+	++CurrentStructureHandle;
+	ActiveStructures.insert(std::make_pair(CurrentStructureHandle, ActiveStructure(description))); 
+	return CurrentStructureHandle;
+}
+
+const StructureDefinition& VirtualMachine::GetStructureDefinition(StringHandle identifier) const
+{
+	std::map<StringHandle, StructureDefinition>::const_iterator iter = StructureDefinitions.find(identifier);
+	if(iter == StructureDefinitions.end())
+		throw FatalException("Invalid structure description handle");
+
+	return iter->second;
+}
+
+ActiveStructure& VirtualMachine::GetStructure(StructureHandle handle)
+{
+	std::map<StructureHandle, ActiveStructure>::iterator iter = ActiveStructures.find(handle);
+	if(iter == ActiveStructures.end())
+		throw FatalException("Invalid structure handle");
+
+	return iter->second;
 }
 

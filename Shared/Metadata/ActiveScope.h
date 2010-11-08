@@ -11,6 +11,7 @@
 // Dependencies
 #include "Utility/Types/IntegerTypes.h"
 #include "Utility/Types/IDTypes.h"
+#include "Utility/Types/EpochTypeIDs.h"
 
 #include <map>
 
@@ -44,24 +45,53 @@ public:
 	template <typename T>
 	T Read(StringHandle variableid)
 	{
-		return *reinterpret_cast<T*>(GetVariableStorageLocation(variableid));
+		if(OriginalScope.IsReference(OriginalScope.GetVariableIndex(variableid)))
+		{
+			ReferenceBindingMap::const_iterator iter = BoundReferences.find(variableid);
+			if(iter == BoundReferences.end())
+				throw FatalException("Unbound reference");
+
+			return *reinterpret_cast<T*>(iter->second.first);
+		}
+		else
+			return *reinterpret_cast<T*>(GetVariableStorageLocation(variableid));
 	}
 
 	template <typename T>
 	void Write(StringHandle variableid, T value)
 	{
-		*reinterpret_cast<T*>(GetVariableStorageLocation(variableid)) = value;
+		if(OriginalScope.IsReference(OriginalScope.GetVariableIndex(variableid)))
+		{
+			ReferenceBindingMap::const_iterator iter = BoundReferences.find(variableid);
+			if(iter == BoundReferences.end())
+				throw FatalException("Unbound reference");
+
+			Write(iter->second.first, value);
+		}
+		else
+			*reinterpret_cast<T*>(GetVariableStorageLocation(variableid)) = value;
 	}
 
+	template <typename T>
+	void Write(void* storage, T value)
+	{
+		*reinterpret_cast<T*>(storage) = value;
+	}
+
+	void WriteFromStack(void* targetstorage, VM::EpochTypeID targettype, StackSpace& stack);
 	void WriteFromStack(StringHandle variableid, StackSpace& stack);
 	void WriteBoundReferenceFromStack(StringHandle variableid, StackSpace& stack);
 
+	void PushOntoStack(void* targetstorage, VM::EpochTypeID targettype, StackSpace& stack) const;
 	void PushOntoStack(StringHandle variableid, StackSpace& stack) const;
 	void PushOntoStackDeref(StringHandle variableid, StackSpace& stack) const;
 
 // References
 public:
-	void BindReference(StringHandle referencename, ActiveScope* ownerscope, StringHandle referencetarget);
+	void BindReference(StringHandle referencename, void* targetstorage, VM::EpochTypeID targettype);
+
+	void* GetReferenceTarget(StringHandle referencename) const;
+	VM::EpochTypeID GetReferenceType(StringHandle referencename) const;
 
 // Interaction with registers
 public:
@@ -80,8 +110,8 @@ public:
 public:
 	ActiveScope* ParentScope;
 
-// Internal helpers
-private:
+// Storage access
+public:
 	void* GetVariableStorageLocation(StringHandle variableid) const;
 
 // Internal tracking
@@ -90,8 +120,8 @@ private:
 
 	std::map<StringHandle, void*> VariableStorageLocations;
 	
-	typedef std::pair<ActiveScope*, StringHandle> ReferenceScopeAndTarget;
-	typedef std::map<StringHandle, ReferenceScopeAndTarget> ReferenceBindingMap;
+	typedef std::pair<void*, VM::EpochTypeID> ReferenceStorageAndType;
+	typedef std::map<StringHandle, ReferenceStorageAndType> ReferenceBindingMap;
 	ReferenceBindingMap BoundReferences;
 };
 

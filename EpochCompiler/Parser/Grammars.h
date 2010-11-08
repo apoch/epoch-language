@@ -211,6 +211,7 @@ struct FundamentalGrammar : public boost::spirit::classic::grammar<FundamentalGr
 
 			Assignment
 				= (StringIdentifier[BeginStatement(self.Bindings)]
+				>> *(PERIOD >> StringIdentifier[RegisterAssignmentMember(self.Bindings)])
 				>> (ASSIGN[BeginAssignment(self.Bindings)] | OpAssignmentIdentifier[BeginOpAssignment(self.Bindings)])
 				>> ExpressionOrAssignment[CompleteAssignment(self.Bindings)])
 				;

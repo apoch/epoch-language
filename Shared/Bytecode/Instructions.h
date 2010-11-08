@@ -40,6 +40,13 @@ namespace Bytecode
 		static const Instruction DefineLexicalScope = 0x11;
 		static const Instruction PatternMatch = 0x12;
 
+		static const Instruction AllocStructure = 0x13;
+		static const Instruction DefineStructure = 0x14;
+		static const Instruction CopyFromStructure = 0x15;
+		static const Instruction CopyToStructure = 0x16;
+
+		static const Instruction ReadRef = 0x17;
+
 	}
 
 }

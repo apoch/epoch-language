@@ -1197,3 +1197,20 @@ struct RegisterStructureMember
 
 	SemanticActionInterface& Bindings;
 };
+
+struct RegisterAssignmentMember
+{
+	explicit RegisterAssignmentMember(SemanticActionInterface& bindings)
+		: Bindings(bindings)
+	{ }
+
+	template <typename IteratorType>
+	void operator () (IteratorType begin, IteratorType end) const
+	{
+		Trace(L"RegisterAssignmentMember", begin, end);
+		Bindings.SetParsePosition(end);
+		Bindings.RegisterAssignmentMember(std::wstring(begin, end));
+	}
+
+	SemanticActionInterface& Bindings;
+};

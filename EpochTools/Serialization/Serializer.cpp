@@ -20,7 +20,6 @@
 
 #include <fstream>
 
-
 using namespace Serialization;
 
 
@@ -188,8 +187,12 @@ void Serializer::Write(const std::wstring& filename) const
 			outfile << L"READ " << traverser.Read<StringHandle>() << L"\n";
 			break;
 
+		case Bytecode::Instructions::ReadRef:
+			outfile << L"READREF\n";
+			break;
+
 		case Bytecode::Instructions::Assign:
-			outfile << L"WRITE " << traverser.Read<StringHandle>() << L"\n";
+			outfile << L"WRITE\n";
 			break;
 
 		case Bytecode::Instructions::Invoke:
@@ -287,6 +290,39 @@ void Serializer::Write(const std::wstring& filename) const
 				}
 			}
 			outfile << L"\n";
+			break;
+
+		case Bytecode::Instructions::AllocStructure:
+			outfile << L"ALLOCSTRUCT " << traverser.Read<StringHandle>() << L"\n";
+			break;
+
+		case Bytecode::Instructions::DefineStructure:
+			{
+				outfile << L"STRUCT " << traverser.Read<StringHandle>();
+				size_t nummembers = traverser.Read<size_t>();
+				outfile << L" " << nummembers << L" ";
+				for(size_t i = 0; i < nummembers; ++i)
+				{
+					StringHandle identifier = traverser.Read<StringHandle>();
+					VM::EpochTypeID type = traverser.Read<VM::EpochTypeID>();
+					outfile << identifier << L" " << type << L" ";
+				}
+				outfile << L"\n";
+			}
+			break;
+
+		case Bytecode::Instructions::CopyFromStructure:
+			{
+				outfile << L"SETRETSTRUCT " << traverser.Read<StringHandle>();
+				outfile << L" " << traverser.Read<StringHandle>() << L"\n";
+			}
+			break;
+
+		case Bytecode::Instructions::CopyToStructure:
+			{
+				outfile << L"SETSTRUCT " << traverser.Read<StringHandle>();
+				outfile << L" " << traverser.Read<StringHandle>() << L"\n";
+			}
 			break;
 
 		default:

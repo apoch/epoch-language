@@ -516,6 +516,14 @@
 					RelativePath="..\Shared\Metadata\ScopeDescription.h"
 					>
 				</File>
+				<File
+					RelativePath="..\Shared\Metadata\StructureDefinition.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\Shared\Metadata\StructureDefinition.h"
+					>
+				</File>
 			</Filter>
 			<Filter
 				Name="Configuration"

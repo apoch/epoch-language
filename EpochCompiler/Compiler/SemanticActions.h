@@ -171,6 +171,7 @@ public:
 	virtual void BeginAssignment();
 	virtual void BeginOpAssignment(const std::wstring& identifier);
 	virtual void CompleteAssignment();
+	virtual void RegisterAssignmentMember(const std::wstring& identifier);
 
 	virtual void StoreStructureName(const std::wstring& identifier);
 	virtual const std::wstring& CreateStructureType();
@@ -190,6 +191,20 @@ public:
 	{ return ParsePosition; }
 
 	virtual VM::EpochTypeID LookupTypeName(const std::wstring& name) const;
+
+// Internal helper structures
+private:
+	struct AssignmentTarget
+	{
+		explicit AssignmentTarget(StringHandle variable)
+			: Variable(variable)
+		{ }
+
+		void EmitReferenceBindings(ByteCodeEmitter& emitter) const;
+
+		StringHandle Variable;
+		std::vector<StringHandle> Members;
+	};
 
 // Internal helpers
 private:
@@ -224,6 +239,7 @@ private:
 	void VerifyInfixOperandTypes(StringHandle infixoperator, VM::EpochTypeID op1type, VM::EpochTypeID op2type);
 
 	VM::EpochTypeID GetEffectiveType(const CompileTimeParameter& param) const;
+	VM::EpochTypeID GetEffectiveType(const AssignmentTarget& assignmenttarget) const;
 
 	void CleanAllPushedItems();
 
@@ -269,7 +285,8 @@ private:
 	std::stack<ByteBuffer> PendingEmissionBuffers;
 	std::stack<ByteCodeEmitter> PendingEmitters;
 
-	std::stack<StringHandle> AssignmentTargets;
+	std::stack<AssignmentTarget> AssignmentTargets;
+
 	std::stack<bool> ReturnsIncludedStatement;
 
 	PosIteratorT ParsePosition;

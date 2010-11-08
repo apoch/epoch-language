@@ -35,11 +35,11 @@ void ActiveScope::BindParametersToStack(const VM::ExecutionContext& context)
 		{
 			if(iter->IsReference)
 			{
-				StringHandle target = *reinterpret_cast<StringHandle*>(stackpointer);
-				stackpointer += sizeof(StringHandle);
-				ActiveScope* ownerscope = *reinterpret_cast<ActiveScope**>(stackpointer);
+				void* targetstorage = *reinterpret_cast<void**>(stackpointer);
 				stackpointer += sizeof(void*);
-				BindReference(iter->IdentifierHandle, ownerscope, target);
+				VM::EpochTypeID targettype = *reinterpret_cast<VM::EpochTypeID*>(stackpointer);
+				stackpointer += sizeof(VM::EpochTypeID);
+				BindReference(iter->IdentifierHandle, targetstorage, targettype);
 			}
 			else
 			{
@@ -86,6 +86,39 @@ void ActiveScope::PopScopeOffStack(VM::ExecutionContext& context)
 }
 
 //
+// Write the topmost stack entry into a given arbitrary storage location
+//
+void ActiveScope::WriteFromStack(void* targetstorage, VM::EpochTypeID targettype, StackSpace& stack)
+{
+	switch(targettype)
+	{
+	case VM::EpochType_Integer:
+		Write(targetstorage, stack.PopValue<Integer32>());
+		break;
+
+	case VM::EpochType_String:
+		Write(targetstorage, stack.PopValue<StringHandle>());
+		break;
+
+	case VM::EpochType_Boolean:
+		Write(targetstorage, stack.PopValue<bool>());
+		break;
+
+	case VM::EpochType_Real:
+		Write(targetstorage, stack.PopValue<Real32>());
+		break;
+
+	case VM::EpochType_Buffer:
+		Write(targetstorage, stack.PopValue<BufferHandle>());
+		break;
+
+	default:
+		Write(targetstorage, stack.PopValue<StructureHandle>());
+		break;
+	}
+}
+
+//
 // Write the topmost stack entry into the given variable's storage location
 //
 void ActiveScope::WriteFromStack(StringHandle variableid, StackSpace& stack)
@@ -96,31 +129,7 @@ void ActiveScope::WriteFromStack(StringHandle variableid, StackSpace& stack)
 		return;
 	}
 
-	switch(OriginalScope.GetVariableTypeByID(variableid))
-	{
-	case VM::EpochType_Integer:
-		Write(variableid, stack.PopValue<Integer32>());
-		break;
-
-	case VM::EpochType_String:
-		Write(variableid, stack.PopValue<StringHandle>());
-		break;
-
-	case VM::EpochType_Boolean:
-		Write(variableid, stack.PopValue<bool>());
-		break;
-
-	case VM::EpochType_Real:
-		Write(variableid, stack.PopValue<Real32>());
-		break;
-
-	case VM::EpochType_Buffer:
-		Write(variableid, stack.PopValue<BufferHandle>());
-		break;
-
-	default:
-		throw NotImplementedException("Unsupported data type in ActiveScope::WriteFromStack");
-	}
+	WriteFromStack(GetVariableStorageLocation(variableid), OriginalScope.GetVariableTypeByID(variableid), stack);
 }
 
 //
@@ -132,7 +141,71 @@ void ActiveScope::WriteBoundReferenceFromStack(StringHandle variableid, StackSpa
 	if(iter == BoundReferences.end())
 		throw FatalException("Unbound reference");
 
-	iter->second.first->WriteFromStack(iter->second.second, stack);
+	WriteFromStack(iter->second.first, iter->second.second, stack);
+}
+
+//
+// Push data from an arbitrary location onto the stack
+//
+void ActiveScope::PushOntoStack(void* targetstorage, VM::EpochTypeID targettype, StackSpace& stack) const
+{
+	switch(targettype)
+	{
+	case VM::EpochType_Integer:
+		{
+			Integer32* value = reinterpret_cast<Integer32*>(targetstorage);
+			stack.PushValue(*value);
+		}
+		break;
+
+	case VM::EpochType_String:
+		{
+			StringHandle* value = reinterpret_cast<StringHandle*>(targetstorage);
+			stack.PushValue(*value);
+		}
+		break;
+
+	case VM::EpochType_Boolean:
+		{
+			bool* value = reinterpret_cast<bool*>(targetstorage);
+			stack.PushValue(*value);
+		}
+		break;
+
+	case VM::EpochType_Real:
+		{
+			Real32* value = reinterpret_cast<Real32*>(targetstorage);
+			stack.PushValue(*value);
+		}
+		break;
+
+	case VM::EpochType_Buffer:
+		{
+			BufferHandle* value = reinterpret_cast<BufferHandle*>(targetstorage);
+			stack.PushValue(*value);
+		}
+		break;
+
+	case VM::EpochType_Function:
+		{
+			StringHandle* value = reinterpret_cast<StringHandle*>(targetstorage);
+			stack.PushValue(*value);
+		}
+		break;
+
+	case VM::EpochType_Error:
+	case VM::EpochType_Expression:
+	case VM::EpochType_Void:
+	case VM::EpochType_CustomBase:
+		throw NotImplementedException("Unsupported data type in ActiveScope::PushOntoStack");
+
+	default:
+		{
+			StructureHandle* value = reinterpret_cast<StructureHandle*>(targetstorage);
+			stack.PushValue(*value);
+		}
+		break;
+	}
 }
 
 //
@@ -146,63 +219,7 @@ void ActiveScope::PushOntoStack(StringHandle variableid, StackSpace& stack) cons
 		return;
 	}
 
-	switch(OriginalScope.GetVariableTypeByID(variableid))
-	{
-	case VM::EpochType_Integer:
-		{
-			Integer32* value = reinterpret_cast<Integer32*>(GetVariableStorageLocation(variableid));
-			stack.PushValue(*value);
-		}
-		break;
-
-	case VM::EpochType_String:
-		{
-			StringHandle* value = reinterpret_cast<StringHandle*>(GetVariableStorageLocation(variableid));
-			stack.PushValue(*value);
-		}
-		break;
-
-	case VM::EpochType_Boolean:
-		{
-			bool* value = reinterpret_cast<bool*>(GetVariableStorageLocation(variableid));
-			stack.PushValue(*value);
-		}
-		break;
-
-	case VM::EpochType_Real:
-		{
-			Real32* value = reinterpret_cast<Real32*>(GetVariableStorageLocation(variableid));
-			stack.PushValue(*value);
-		}
-		break;
-
-	case VM::EpochType_Buffer:
-		{
-			BufferHandle* value = reinterpret_cast<BufferHandle*>(GetVariableStorageLocation(variableid));
-			stack.PushValue(*value);
-		}
-		break;
-
-	case VM::EpochType_Function:
-		{
-			StringHandle* value = reinterpret_cast<StringHandle*>(GetVariableStorageLocation(variableid));
-			stack.PushValue(*value);
-		}
-		break;
-
-	case VM::EpochType_Error:
-	case VM::EpochType_Expression:
-	case VM::EpochType_Void:
-	case VM::EpochType_CustomBase:
-		throw NotImplementedException("Unsupported data type in ActiveScope::PushOntoStack");
-
-	default:
-		{
-			StructureHandle* value = reinterpret_cast<StructureHandle*>(GetVariableStorageLocation(variableid));
-			stack.PushValue(*value);
-		}
-		break;
-	}
+	PushOntoStack(GetVariableStorageLocation(variableid), OriginalScope.GetVariableTypeByID(variableid), stack);
 }
 
 //
@@ -214,7 +231,7 @@ void ActiveScope::PushOntoStackDeref(StringHandle variableid, StackSpace& stack)
 	if(iter == BoundReferences.end())
 		throw FatalException("Unbound reference");
 
-	iter->second.first->PushOntoStack(iter->second.second, stack);
+	PushOntoStack(iter->second.first, iter->second.second, stack);
 }
 
 
@@ -253,6 +270,7 @@ void ActiveScope::CopyToRegister(StringHandle variableid, Register& targetregist
 		}
 		break;
 
+	case VM::EpochType_Identifier:
 	case VM::EpochType_String:
 		{
 			StringHandle* value = reinterpret_cast<StringHandle*>(GetVariableStorageLocation(variableid));
@@ -282,7 +300,11 @@ void ActiveScope::CopyToRegister(StringHandle variableid, Register& targetregist
 		break;
 
 	default:
-		throw NotImplementedException("Unsupported data type in ActiveScope::CopyToRegister");
+		{
+			StructureHandle* value = reinterpret_cast<StructureHandle*>(GetVariableStorageLocation(variableid));
+			targetregister.SetStructure(*value, OriginalScope.GetVariableTypeByID(variableid));
+		}
+		break;
 	}
 }
 
@@ -304,9 +326,27 @@ bool ActiveScope::HasReturnVariable() const
 //
 // Bind a reference variable to a target
 //
-void ActiveScope::BindReference(StringHandle referencename, ActiveScope* ownerscope, StringHandle referencetarget)
+void ActiveScope::BindReference(StringHandle referencename, void* targetstorage, VM::EpochTypeID targettype)
 {
-	BoundReferences[referencename].first = ownerscope;
-	BoundReferences[referencename].second = referencetarget;
+	BoundReferences[referencename].first = targetstorage;
+	BoundReferences[referencename].second = targettype;
+}
+
+void* ActiveScope::GetReferenceTarget(StringHandle referencename) const
+{
+	ReferenceBindingMap::const_iterator iter = BoundReferences.find(referencename);
+	if(iter == BoundReferences.end())
+		throw FatalException("Unbound reference");
+
+	return iter->second.first;
+}
+
+VM::EpochTypeID ActiveScope::GetReferenceType(StringHandle referencename) const
+{
+	ReferenceBindingMap::const_iterator iter = BoundReferences.find(referencename);
+	if(iter == BoundReferences.end())
+		throw FatalException("Unbound reference");
+
+	return iter->second.second;
 }
 
