@@ -270,6 +270,7 @@ private:
 	std::stack<VM::EpochTypeID> StatementTypes;
 
 	std::wstring TemporaryString;
+	StringHandles TemporaryMemberList;
 
 	std::stack<StringHandle> LexicalScopeStack;
 	ScopeMap LexicalScopeDescriptions;

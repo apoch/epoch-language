@@ -1371,8 +1371,11 @@ void CompilationSemantics::BeginAssignment()
 
 	StatementNames.push(L"=");
 	StatementParamCount.push(0);
+	
 	AssignmentTargets.push(AssignmentTarget(Session.StringPool.Pool(TemporaryString)));
+	AssignmentTargets.top().Members.swap(TemporaryMemberList);
 	TemporaryString.clear();
+
 	if(!IsPrepass)
 	{
 		CompileTimeParameters.push(CompileTimeParameterVector());
@@ -1397,8 +1400,11 @@ void CompilationSemantics::BeginOpAssignment(const std::wstring &identifier)
 
 	StatementNames.push(identifier);
 	StatementParamCount.push(0);
+
 	AssignmentTargets.push(AssignmentTarget(Session.StringPool.Pool(TemporaryString)));
+	AssignmentTargets.top().Members.swap(TemporaryMemberList);
 	TemporaryString.clear();
+
 	if(!IsPrepass)
 	{
 		InfixOperators.push(StringHandles());
@@ -1419,7 +1425,7 @@ void CompilationSemantics::CompleteAssignment()
 {
 	if(!IsPrepass)
 	{
-		VM::EpochTypeID expressiontype = GetEffectiveType(AssignmentTargets.top());
+		VM::EpochTypeID expressiontype = CompileTimeParameters.top().back().Type;
 
 		if(StatementNames.top() != L"=")
 		{
@@ -1444,11 +1450,12 @@ void CompilationSemantics::CompleteAssignment()
 		UnaryOperators.pop();
 
 		AssignmentTargets.top().EmitReferenceBindings(*EmitterStack.top());
-		EmitterStack.top()->AssignVariable();
+		if(AssignmentTargets.top().Members.empty())
+			EmitterStack.top()->AssignVariable();
 		CompileTimeParameters.pop();
 		StatementTypes.c.clear();
 
-		// Check for chained assignments
+		// Check for chained assignments
 		if(AssignmentTargets.size() > 1)
 		{
 			CompileTimeParameter ctparam(L"@@chainedassignment", VM::EpochType_Expression);
@@ -1478,7 +1485,7 @@ void CompilationSemantics::CompleteAssignment()
 //
 void CompilationSemantics::RegisterAssignmentMember(const std::wstring& identifier)
 {
-	// TODO - implement support for assigning into structure members
+	TemporaryMemberList.push_back(Session.StringPool.Pool(identifier));
 }
 
 //-------------------------------------------------------------------------------
@@ -1606,8 +1613,7 @@ void CompilationSemantics::EndEntityChain()
 //
 void CompilationSemantics::PushStatementParam()
 {
-	//if(!StatementParamCount.empty())
-		PushParam(L"@@passedparam");
+	PushParam(L"@@passedparam");
 
 	if(!IsPrepass)
 	{
@@ -1623,8 +1629,7 @@ void CompilationSemantics::PushStatementParam()
 //
 void CompilationSemantics::PushInfixParam()
 {
-	//if(!StatementParamCount.empty())
-		PushParam(L"@@infixoperand");
+	PushParam(L"@@infixoperand");
 }
 
 //
@@ -2549,8 +2554,13 @@ VM::EpochTypeID CompilationSemantics::GetEffectiveType(const CompileTimeParamete
 //
 VM::EpochTypeID CompilationSemantics::GetEffectiveType(const AssignmentTarget& assignmenttarget) const
 {
-	// TODO - add support for structure members
-	return LexicalScopeDescriptions.find(LexicalScopeStack.top())->second.GetVariableTypeByID(assignmenttarget.Variable);
+	VM::EpochTypeID vartype = LexicalScopeDescriptions.find(LexicalScopeStack.top())->second.GetVariableTypeByID(assignmenttarget.Variable);
+	if (assignmenttarget.Members.empty())
+		return vartype;
+
+	// TODO - support nested structures
+	const StructureDefinition& structdef = Structures.find(vartype)->second;
+	return structdef.GetMemberType(structdef.FindMember(assignmenttarget.Members.front()));
 }
 
 //
@@ -2601,8 +2611,13 @@ void CompilationSemantics::CleanAllPushedItems()
 //
 void CompilationSemantics::AssignmentTarget::EmitReferenceBindings(ByteCodeEmitter& emitter) const
 {
-	// TODO - emit member bindings for structure member assignments
-	emitter.BindReference(Variable);
+	if(Members.empty())
+		emitter.BindReference(Variable);
+	else
+	{
+		// TODO - rewrite to support nested structures
+		emitter.AssignStructure(Variable, Members.front());
+	}
 }
 
 
