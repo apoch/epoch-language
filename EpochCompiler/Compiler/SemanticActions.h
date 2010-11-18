@@ -107,6 +107,7 @@ public:
 	virtual bool GetPrepassMode() const
 	{ return IsPrepass; }
 
+	virtual void StoreTemporaryString(const std::wstring& str);
 	virtual void StoreString(const std::wstring& strliteral);
 	virtual void StoreIntegerLiteral(Integer32 value);
 	virtual void StoreStringLiteral(const std::wstring& value);
@@ -127,6 +128,8 @@ public:
 	virtual void PushInfixParam();
 	virtual void CompleteInfix();
 	virtual void FinalizeInfix();
+
+	virtual void StoreMember(const std::wstring& member);
 
 	virtual void RegisterPreOperator(const std::wstring& identifier);
 	virtual void RegisterPreOperand(const std::wstring& identifier);
@@ -201,6 +204,7 @@ private:
 		{ }
 
 		void EmitReferenceBindings(ByteCodeEmitter& emitter) const;
+		void EmitCurrentValue(ByteCodeEmitter& emitter, const ScopeDescription& activescope, const StructureNameMap& structurenames, StringPoolManager& stringpool) const;
 
 		StringHandle Variable;
 		std::vector<StringHandle> Members;
@@ -313,5 +317,7 @@ private:
 	StructureMemberList StructureMembers;
 
 	bool ParamIsReference;
+
+	std::wstring PreOperatorString;
 };
 

@@ -135,6 +135,18 @@ void ByteCodeEmitter::BindReference(StringHandle variablename)
 }
 
 //
+// Emit code for binding a reference to a given structure member
+//
+// Assumes that the structure holding the member is already bound
+// as a reference prior to this instruction!
+//
+void ByteCodeEmitter::BindStructureReference(StringHandle membername)
+{
+	EmitInstruction(Bytecode::Instructions::BindMemberRef);
+	EmitRawValue(membername);
+}
+
+//
 // Emit code for popping a given number of bytes off the stack
 //
 // Note that we do not store the number of bytes to pop directly; instead, we

@@ -31,6 +31,7 @@ public:
 	virtual void SetPrepassMode(bool isprepass) = 0;
 	virtual bool GetPrepassMode() const = 0;
 
+	virtual void StoreTemporaryString(const std::wstring& str) = 0;
 	virtual void StoreString(const std::wstring& name) = 0;
 	virtual void StoreIntegerLiteral(Integer32 value) = 0;
 	virtual void StoreStringLiteral(const std::wstring& value) = 0;
@@ -51,6 +52,8 @@ public:
 	virtual void PushInfixParam() = 0;
 	virtual void CompleteInfix() = 0;
 	virtual void FinalizeInfix() = 0;
+
+	virtual void StoreMember(const std::wstring& member) = 0;
 
 	virtual void RegisterPreOperator(const std::wstring& identifier) = 0;
 	virtual void RegisterPreOperand(const std::wstring& identifier) = 0;

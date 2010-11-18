@@ -36,6 +36,19 @@
 //-------------------------------------------------------------------------------
 
 //
+// Store a temporary string in the temporary string slot
+//
+// Often we must pass over the same tokens multiple times in the course of determining
+// what production rules a given token set matches. In order to prevent false positives,
+// we allow the parser to store a temporary token in a special slot for later retrieval
+// once the correct production is matched.
+//
+void CompilationSemantics::StoreTemporaryString(const std::wstring& str)
+{
+	TemporaryString = str;
+}
+
+//
 // Shift a string token onto the general string stack
 //
 // Tokens can represent anything from function calls to flow control keywords to
@@ -256,6 +269,27 @@ void CompilationSemantics::StoreEntityCode()
 	LexicalScopeStack.pop();
 }
 
+//
+// Store a member access reference used in certain expression types
+//
+// The member access operator . is a special case infix operator with syntactic significance
+// to the parser. Specifically, we need to recognize its presence when performing certain
+// operations such as pre-increment and so on. This function helps ensure that the correct
+// sequence of member accesses is tracked, particularly for dealing with nested structures.
+//
+void CompilationSemantics::StoreMember(const std::wstring& member)
+{
+	if(!IsPrepass)
+	{
+		if(!TemporaryString.empty())
+		{
+			AssignmentTargets.push(AssignmentTarget(Session.StringPool.Pool(TemporaryString)));
+			TemporaryString.clear();
+		}
+
+		AssignmentTargets.top().Members.push_back(Session.StringPool.Pool(member));
+	}
+}
 
 
 //-------------------------------------------------------------------------------
@@ -516,7 +550,7 @@ void CompilationSemantics::CollapseUnaryOperators()
 void CompilationSemantics::RegisterPreOperator(const std::wstring& identifier)
 {
 	if(!IsPrepass)
-		TemporaryString = identifier;
+		PreOperatorString = identifier;
 }
 
 //
@@ -525,29 +559,25 @@ void CompilationSemantics::RegisterPreOperator(const std::wstring& identifier)
 // At this point we have both an operator and an operand, so we can successfully
 // check for type validity and emit any necessary code.
 //
-void CompilationSemantics::RegisterPreOperand(const std::wstring& identifier)
+void CompilationSemantics::RegisterPreOperand(const std::wstring& expression)
 {
 	if(!IsPrepass)
 	{
-		std::wstring operatorname = TemporaryString;
+		std::wstring operatorname = PreOperatorString;
 		StringHandle operatornamehandle = Session.StringPool.Pool(operatorname);
 
-		StringHandle operandhandle = Session.StringPool.Pool(identifier);
+		VM::EpochTypeID variabletype = GetEffectiveType(AssignmentTargets.top());
 
-		VM::EpochTypeID variabletype = LexicalScopeDescriptions.find(LexicalScopeStack.top())->second.GetVariableTypeByID(operandhandle);
-
-		CompileTimeParameterVector ctparams;
-		ctparams.push_back(CompileTimeParameter(L"@@preoperand", VM::EpochType_Identifier));
-		RemapFunctionToOverload(ctparams, 0, 1, TypeVector(1, variabletype), operatorname, operatornamehandle);
+		RemapFunctionToOverload(CompileTimeParameterVector(), 0, 1, TypeVector(1, variabletype), operatorname, operatornamehandle);
 
 		ByteBuffer buffer;
 		ByteCodeEmitter emitter(buffer);
 
-		emitter.PushStringLiteral(operandhandle);
+		AssignmentTargets.top().EmitCurrentValue(emitter, LexicalScopeDescriptions.find(LexicalScopeStack.top())->second, StructureNames, Session.StringPool);
 		emitter.Invoke(operatornamehandle);
-		emitter.BindReference(operandhandle);
+		AssignmentTargets.top().EmitReferenceBindings(emitter);
 		emitter.AssignVariable();
-		emitter.PushVariableValue(operandhandle);
+		AssignmentTargets.top().EmitCurrentValue(emitter, LexicalScopeDescriptions.find(LexicalScopeStack.top())->second, StructureNames, Session.StringPool);
 
 		StatementTypes.push(variabletype);
 
@@ -560,6 +590,8 @@ void CompilationSemantics::RegisterPreOperand(const std::wstring& identifier)
 		}
 		else
 			EmitterStack.top()->EmitBuffer(buffer);
+
+		AssignmentTargets.pop();
 	}
 
 	PushedItemTypes.push(ITEMTYPE_STATEMENT);
@@ -578,21 +610,18 @@ void CompilationSemantics::RegisterPostOperator(const std::wstring& identifier)
 		std::wstring operatorname = identifier;
 		StringHandle operatornamehandle = Session.StringPool.Pool(operatorname);
 
-		StringHandle operandhandle = Session.StringPool.Pool(TemporaryString);
+		VM::EpochTypeID variabletype = GetEffectiveType(AssignmentTargets.top());
 
-		VM::EpochTypeID variabletype = LexicalScopeDescriptions.find(LexicalScopeStack.top())->second.GetVariableTypeByID(operandhandle);
-
-		CompileTimeParameterVector ctparams;
-		ctparams.push_back(CompileTimeParameter(L"@@preoperand", VM::EpochType_Identifier));
-		RemapFunctionToOverload(ctparams, 0, 1, TypeVector(1, variabletype), operatorname, operatornamehandle);
+		RemapFunctionToOverload(CompileTimeParameterVector(), 0, 1, TypeVector(1, variabletype), operatorname, operatornamehandle);
 
 		ByteBuffer buffer;
 		ByteCodeEmitter emitter(buffer);
 
-		emitter.PushVariableValue(operandhandle);
-		emitter.PushStringLiteral(operandhandle);
+		// Yes, we need to push this twice!
+		AssignmentTargets.top().EmitCurrentValue(emitter, LexicalScopeDescriptions.find(LexicalScopeStack.top())->second, StructureNames, Session.StringPool);
+		AssignmentTargets.top().EmitCurrentValue(emitter, LexicalScopeDescriptions.find(LexicalScopeStack.top())->second, StructureNames, Session.StringPool);
 		emitter.Invoke(operatornamehandle);
-		emitter.BindReference(operandhandle);
+		AssignmentTargets.top().EmitReferenceBindings(emitter);
 		emitter.AssignVariable();
 
 		StatementTypes.push(variabletype);
@@ -606,6 +635,8 @@ void CompilationSemantics::RegisterPostOperator(const std::wstring& identifier)
 		}
 		else
 			EmitterStack.top()->EmitBuffer(buffer);
+
+		AssignmentTargets.pop();
 	}
 
 	PushedItemTypes.push(ITEMTYPE_STATEMENT);
@@ -1347,6 +1378,7 @@ void CompilationSemantics::FinalizeStatement()
 	}
 
 	PushedItemTypes.pop();
+	TemporaryMemberList.clear();
 }
 
 
@@ -1363,28 +1395,7 @@ void CompilationSemantics::FinalizeStatement()
 //
 void CompilationSemantics::BeginAssignment()
 {
-	if(!IsPrepass)
-	{
-		if(!LexicalScopeDescriptions[LexicalScopeStack.top()].HasVariable(TemporaryString))
-			Throw(RecoverableException("The variable \"" + narrow(TemporaryString) + "\" is not defined in this scope"));
-	}
-
-	StatementNames.push(L"=");
-	StatementParamCount.push(0);
-	
-	AssignmentTargets.push(AssignmentTarget(Session.StringPool.Pool(TemporaryString)));
-	AssignmentTargets.top().Members.swap(TemporaryMemberList);
-	TemporaryString.clear();
-
-	if(!IsPrepass)
-	{
-		CompileTimeParameters.push(CompileTimeParameterVector());
-		InfixOperators.push(StringHandles());
-		UnaryOperators.push(UnaryOperatorVector());
-
-		PendingEmissionBuffers.push(ByteBuffer());
-		PendingEmitters.push(ByteCodeEmitter(PendingEmissionBuffers.top()));
-	}
+	BeginOpAssignment(L"=");
 }
 
 //
@@ -1407,6 +1418,7 @@ void CompilationSemantics::BeginOpAssignment(const std::wstring &identifier)
 
 	if(!IsPrepass)
 	{
+		CompileTimeParameters.push(CompileTimeParameterVector(1, CompileTimeParameter(L"lhs", GetEffectiveType(AssignmentTargets.top()))));
 		InfixOperators.push(StringHandles());
 		UnaryOperators.push(UnaryOperatorVector());
 
@@ -1428,10 +1440,7 @@ void CompilationSemantics::CompleteAssignment()
 		VM::EpochTypeID expressiontype = CompileTimeParameters.top().back().Type;
 
 		if(StatementNames.top() != L"=")
-		{
-			// TODO - reimplement op-assignment support
-			//EmitterStack.top()->PushStringLiteral(AssignmentTargets.top().Variable);
-		}
+			AssignmentTargets.top().EmitCurrentValue(*EmitterStack.top(), LexicalScopeDescriptions.find(LexicalScopeStack.top())->second, StructureNames, Session.StringPool);
 
 		EmitInfixOperand(*EmitterStack.top(), CompileTimeParameters.top().back());
 
@@ -1450,8 +1459,7 @@ void CompilationSemantics::CompleteAssignment()
 		UnaryOperators.pop();
 
 		AssignmentTargets.top().EmitReferenceBindings(*EmitterStack.top());
-		if(AssignmentTargets.top().Members.empty())
-			EmitterStack.top()->AssignVariable();
+		EmitterStack.top()->AssignVariable();
 		CompileTimeParameters.pop();
 		StatementTypes.c.clear();
 
@@ -2611,12 +2619,44 @@ void CompilationSemantics::CleanAllPushedItems()
 //
 void CompilationSemantics::AssignmentTarget::EmitReferenceBindings(ByteCodeEmitter& emitter) const
 {
+	emitter.BindReference(Variable);
+
+	for(StringHandles::const_iterator iter = Members.begin(); iter != Members.end(); ++iter)
+		emitter.BindStructureReference(*iter);
+}
+
+//
+// Build a sequence of bytecode instructions that emits the value of the assignment target
+//
+// Used for op-assignments and chained assignments
+//
+void CompilationSemantics::AssignmentTarget::EmitCurrentValue(ByteCodeEmitter& emitter, const ScopeDescription& activescope, const StructureNameMap& structurenames, StringPoolManager& stringpool) const
+{
 	if(Members.empty())
-		emitter.BindReference(Variable);
+		emitter.PushVariableValue(Variable);
 	else
 	{
 		// TODO - rewrite to support nested structures
-		emitter.AssignStructure(Variable, Members.front());
+		VM::EpochTypeID structuretype = activescope.GetVariableTypeByID(Variable);
+		StringHandle structurename = 0;
+
+		for(StructureNameMap::const_iterator iter = structurenames.begin(); iter != structurenames.end(); ++iter)
+		{
+			if(iter->second == structuretype)
+			{
+				structurename = iter->first;
+				break;
+			}
+		}
+
+		if(!structurename)
+			throw FatalException("Invalid structure ID");
+
+		StringHandle overloadidhandle = stringpool.Pool(L".@@" + stringpool.GetPooledString(structurename) + L"@@" + stringpool.GetPooledString(Members.front()));		
+		
+		emitter.PushVariableValue(Variable);
+		emitter.PushStringLiteral(Members.front());
+		emitter.Invoke(overloadidhandle);
 	}
 }
 

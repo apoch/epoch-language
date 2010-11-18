@@ -60,6 +60,7 @@ public:
 	void PushBufferHandle(BufferHandle handle);
 
 	void BindReference(StringHandle variablename);
+	void BindStructureReference(StringHandle membername);
 
 	void PopStack(VM::EpochTypeID type);
 

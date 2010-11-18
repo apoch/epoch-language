@@ -118,6 +118,25 @@ struct MissingFunctionBodyExceptionHandler
 };
 
 
+struct StoreTemporaryString
+{
+	explicit StoreTemporaryString(SemanticActionInterface& bindings)
+		: Bindings(bindings)
+	{ }
+
+	template <typename IteratorType>
+	void operator () (IteratorType begin, IteratorType end) const
+	{
+		Trace(L"StoreTemporaryString", begin, end);
+		Bindings.SetParsePosition(end);
+
+		std::wstring str(begin, end);
+		Bindings.StoreTemporaryString(str);
+	}
+
+	SemanticActionInterface& Bindings;
+};
+
 struct StoreString
 {
 	explicit StoreString(SemanticActionInterface& bindings)
@@ -1210,6 +1229,25 @@ struct RegisterAssignmentMember
 		Trace(L"RegisterAssignmentMember", begin, end);
 		Bindings.SetParsePosition(end);
 		Bindings.RegisterAssignmentMember(std::wstring(begin, end));
+	}
+
+	SemanticActionInterface& Bindings;
+};
+
+struct StoreMember
+{
+	explicit StoreMember(SemanticActionInterface& bindings)
+		: Bindings(bindings)
+	{ }
+
+	template <typename IteratorType>
+	void operator () (IteratorType begin, IteratorType end) const
+	{
+		Trace(L"StoreMember", begin, end);
+		Bindings.SetParsePosition(end);
+
+		std::wstring str(begin, end);
+		Bindings.StoreMember(str);
 	}
 
 	SemanticActionInterface& Bindings;

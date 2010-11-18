@@ -176,6 +176,10 @@ void Serializer::Write(const std::wstring& filename) const
 			outfile << L"BINDREF " << traverser.Read<StringHandle>() << L"\n";
 			break;
 
+		case Bytecode::Instructions::BindMemberRef:
+			outfile << L"BINDMEMBERREF " << traverser.Read<StringHandle>() << L"\n";
+			break;
+
 		case Bytecode::Instructions::Pop:
 			{
 				VM::EpochTypeID type = traverser.ReadTypeAnnotation();

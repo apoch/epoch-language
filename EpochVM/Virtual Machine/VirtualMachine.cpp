@@ -500,6 +500,28 @@ void ExecutionContext::Execute(const ScopeDescription* scope)
 			}
 			break;
 
+		case Bytecode::Instructions::BindMemberRef:
+			{
+				StringHandle member = Fetch<StringHandle>();
+
+				void* storagelocation = State.Stack.PopValue<void*>();
+				EpochTypeID structuretype = State.Stack.PopValue<EpochTypeID>();
+
+				StructureHandle* phandle = reinterpret_cast<StructureHandle*>(storagelocation);
+				StructureHandle handle = *phandle;
+
+				ActiveStructure& structure = OwnerVM.GetStructure(handle);
+				const StructureDefinition& definition = structure.Definition;
+				size_t memberindex = definition.FindMember(member);
+				size_t offset = definition.GetMemberOffset(memberindex);
+
+				storagelocation = &(structure.Storage[0]) + offset;
+
+				State.Stack.PushValue(definition.GetMemberType(memberindex));
+				State.Stack.PushValue(storagelocation);
+			}
+			break;
+
 		case Bytecode::Instructions::Pop:		// Pop some stuff off the stack
 			{
 				EpochTypeID poppedtype = Fetch<EpochTypeID>();
@@ -864,6 +886,7 @@ void ExecutionContext::Load()
 		case Bytecode::Instructions::SetRetVal:
 		case Bytecode::Instructions::BindRef:
 		case Bytecode::Instructions::AllocStructure:
+		case Bytecode::Instructions::BindMemberRef:
 			Fetch<StringHandle>();
 			break;
 

@@ -180,16 +180,14 @@ struct FundamentalGrammar : public boost::spirit::classic::grammar<FundamentalGr
 				= *(UnaryPrefixIdentifier[StoreUnaryPrefixOperator(self.Bindings)])
 				>> (
 					Statement
-					| (OPENPARENS[BeginParenthetical(self.Bindings)] >> Expression >> CLOSEPARENS)[EndParenthetical(self.Bindings)]
+					| (OPENPARENS[BeginParenthetical(self.Bindings)] >> (PreOperatorStatement | PostOperatorStatement | Expression)>> CLOSEPARENS)[EndParenthetical(self.Bindings)]
 					| Literal
-					| PreOperatorStatement
-					| PostOperatorStatement
 					| StringIdentifier[StoreString(self.Bindings)]
 				   )
 				;
 
 			Expression
-				= (ExpressionComponent >> (*(InfixIdentifier[StoreInfix(self.Bindings)] >> ExpressionComponent[PushInfixParam(self.Bindings)])[CompleteInfix(self.Bindings)]))[FinalizeInfix(self.Bindings)]
+				= (ExpressionComponent >> (*((InfixIdentifier - PreOperator - PostOperator)[StoreInfix(self.Bindings)] >> ExpressionComponent[PushInfixParam(self.Bindings)])[CompleteInfix(self.Bindings)]))[FinalizeInfix(self.Bindings)]
 				;
 
 			Statement
@@ -197,11 +195,15 @@ struct FundamentalGrammar : public boost::spirit::classic::grammar<FundamentalGr
 				;
 
 			PreOperatorStatement
-				= PreOperator[RegisterPreOperator(self.Bindings)] >> StringIdentifier[RegisterPreOperand(self.Bindings)]
+				= PreOperator[RegisterPreOperator(self.Bindings)]
+			      >> StringIdentifier[StoreTemporaryString(self.Bindings)]
+				  >> (*(PERIOD >> StringIdentifier[StoreMember(self.Bindings)]))[RegisterPreOperand(self.Bindings)]
 				;
 
 			PostOperatorStatement
-				= StringIdentifier[RegisterPostOperand(self.Bindings)] >> PostOperator[RegisterPostOperator(self.Bindings)]
+				= StringIdentifier[StoreTemporaryString(self.Bindings)]
+			      >> (*(PERIOD >> StringIdentifier[StoreMember(self.Bindings)]))[RegisterPostOperand(self.Bindings)]
+				  >> PostOperator[RegisterPostOperator(self.Bindings)]
 				;
 
 			ExpressionOrAssignment

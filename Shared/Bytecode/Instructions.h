@@ -46,6 +46,7 @@ namespace Bytecode
 		static const Instruction CopyToStructure = 0x16;
 
 		static const Instruction ReadRef = 0x17;
+		static const Instruction BindMemberRef = 0x18;
 
 	}
 
