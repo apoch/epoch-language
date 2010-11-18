@@ -330,13 +330,6 @@ void CompilationSemantics::CompleteInfix()
 		std::wstring infixstatementname = StatementNames.top();
 		StringHandle infixstatementnamehandle = Session.StringPool.Pool(infixstatementname);
 
-		RemapFunctionToOverload(CompileTimeParameters.top(), StatementParamCount.top(), 2, TypeVector(), infixstatementname, infixstatementnamehandle);
-
-		FunctionSignatureSet::const_iterator iter = Session.FunctionSignatures.find(infixstatementnamehandle);
-		if(iter == Session.FunctionSignatures.end())
-			throw FatalException("Unknown statement, cannot complete parsing");
-
-		StatementTypes.push(iter->second.GetReturnType());
 		InfixOperators.top().push_back(infixstatementnamehandle);
 	}
 
@@ -385,11 +378,19 @@ void CompilationSemantics::FinalizeInfix()
 						collapsed = false;
 
 						CompileTimeParameterVector::iterator operanditer = flatoperandlist.begin();
-						for(StringHandles::iterator operatoriter = InfixOperators.top().begin(); operatoriter != InfixOperators.top().end(); ++operatoriter)
+						for(StringHandles::iterator unmappedoperatoriter = InfixOperators.top().begin(); unmappedoperatoriter != InfixOperators.top().end(); ++unmappedoperatoriter)
 						{
-							if(GetOperatorPrecedence(*operatoriter) == precedenceiter->first)
+							StringHandle infixstatementnamehandle = *unmappedoperatoriter;
+							std::wstring infixstatementname = Session.StringPool.GetPooledString(infixstatementnamehandle);
+							RemapFunctionToOverload(flatoperandlist, operanditer - flatoperandlist.begin(), 2, TypeVector(), infixstatementname, infixstatementnamehandle);
+
+							FunctionSignatureSet::const_iterator funcsigiter = Session.FunctionSignatures.find(infixstatementnamehandle);
+							if(funcsigiter == Session.FunctionSignatures.end())
+								throw FatalException("Unknown statement, cannot complete parsing");
+
+							if(GetOperatorPrecedence(infixstatementnamehandle) == precedenceiter->first)
 							{
-								bool ismemberaccess = (GetOperatorPrecedence(*operatoriter) == PRECEDENCE_MEMBERACCESS);
+								bool ismemberaccess = (GetOperatorPrecedence(infixstatementnamehandle) == PRECEDENCE_MEMBERACCESS);
 
 								// Perform the actual reduction, taking care to clean up the
 								// list of pending operators as we eliminate subexpressions.
@@ -411,16 +412,16 @@ void CompilationSemantics::FinalizeInfix()
 
 								CompileTimeParameterVector::iterator secondoperanditer = operanditer;
 								++operanditer;
-								emitter.Invoke(*operatoriter);
+								emitter.Invoke(infixstatementnamehandle);
 
-								VerifyInfixOperandTypes(*operatoriter, op1type, op2type);
+								VerifyInfixOperandTypes(infixstatementnamehandle, op1type, op2type);
 
 								firstoperanditer->Type = VM::EpochType_Expression;
-								firstoperanditer->ExpressionType = Session.FunctionSignatures.find(*operatoriter)->second.GetReturnType();
+								firstoperanditer->ExpressionType = Session.FunctionSignatures.find(infixstatementnamehandle)->second.GetReturnType();
 								firstoperanditer->ExpressionContents.swap(buffer);
 
 								flatoperandlist.erase(secondoperanditer);
-								InfixOperators.top().erase(operatoriter);
+								InfixOperators.top().erase(unmappedoperatoriter);
 
 								collapsed = true;
 								break;
@@ -436,7 +437,7 @@ void CompilationSemantics::FinalizeInfix()
 
 				// Shift the final expression onto the compile time parameter list
 				CompileTimeParameter ctparam(L"@@infixresult", VM::EpochType_Expression);
-				ctparam.ExpressionType = StatementTypes.top();
+				ctparam.ExpressionType = flatoperandlist[0].ExpressionType;
 				ctparam.ExpressionContents.swap(flatoperandlist[0].ExpressionContents);
 				CompileTimeParameters.top().push_back(ctparam);
 			}
@@ -573,11 +574,11 @@ void CompilationSemantics::RegisterPreOperand(const std::wstring& expression)
 		ByteBuffer buffer;
 		ByteCodeEmitter emitter(buffer);
 
-		AssignmentTargets.top().EmitCurrentValue(emitter, LexicalScopeDescriptions.find(LexicalScopeStack.top())->second, StructureNames, Session.StringPool);
+		AssignmentTargets.top().EmitCurrentValue(emitter, LexicalScopeDescriptions.find(LexicalScopeStack.top())->second, Structures, StructureNames, Session.StringPool);
 		emitter.Invoke(operatornamehandle);
 		AssignmentTargets.top().EmitReferenceBindings(emitter);
 		emitter.AssignVariable();
-		AssignmentTargets.top().EmitCurrentValue(emitter, LexicalScopeDescriptions.find(LexicalScopeStack.top())->second, StructureNames, Session.StringPool);
+		AssignmentTargets.top().EmitCurrentValue(emitter, LexicalScopeDescriptions.find(LexicalScopeStack.top())->second, Structures, StructureNames, Session.StringPool);
 
 		StatementTypes.push(variabletype);
 
@@ -618,8 +619,8 @@ void CompilationSemantics::RegisterPostOperator(const std::wstring& identifier)
 		ByteCodeEmitter emitter(buffer);
 
 		// Yes, we need to push this twice!
-		AssignmentTargets.top().EmitCurrentValue(emitter, LexicalScopeDescriptions.find(LexicalScopeStack.top())->second, StructureNames, Session.StringPool);
-		AssignmentTargets.top().EmitCurrentValue(emitter, LexicalScopeDescriptions.find(LexicalScopeStack.top())->second, StructureNames, Session.StringPool);
+		AssignmentTargets.top().EmitCurrentValue(emitter, LexicalScopeDescriptions.find(LexicalScopeStack.top())->second, Structures, StructureNames, Session.StringPool);
+		AssignmentTargets.top().EmitCurrentValue(emitter, LexicalScopeDescriptions.find(LexicalScopeStack.top())->second, Structures, StructureNames, Session.StringPool);
 		emitter.Invoke(operatornamehandle);
 		AssignmentTargets.top().EmitReferenceBindings(emitter);
 		emitter.AssignVariable();
@@ -1440,7 +1441,7 @@ void CompilationSemantics::CompleteAssignment()
 		VM::EpochTypeID expressiontype = CompileTimeParameters.top().back().Type;
 
 		if(StatementNames.top() != L"=")
-			AssignmentTargets.top().EmitCurrentValue(*EmitterStack.top(), LexicalScopeDescriptions.find(LexicalScopeStack.top())->second, StructureNames, Session.StringPool);
+			AssignmentTargets.top().EmitCurrentValue(*EmitterStack.top(), LexicalScopeDescriptions.find(LexicalScopeStack.top())->second, Structures, StructureNames, Session.StringPool);
 
 		EmitInfixOperand(*EmitterStack.top(), CompileTimeParameters.top().back());
 
@@ -2633,33 +2634,35 @@ void CompilationSemantics::AssignmentTarget::EmitReferenceBindings(ByteCodeEmitt
 //
 // Used for op-assignments and chained assignments
 //
-void CompilationSemantics::AssignmentTarget::EmitCurrentValue(ByteCodeEmitter& emitter, const ScopeDescription& activescope, const StructureNameMap& structurenames, StringPoolManager& stringpool) const
+void CompilationSemantics::AssignmentTarget::EmitCurrentValue(ByteCodeEmitter& emitter, const ScopeDescription& activescope, const StructureDefinitionMap& structures, const StructureNameMap& structurenames, StringPoolManager& stringpool) const
 {
-	if(Members.empty())
-		emitter.PushVariableValue(Variable);
-	else
+	emitter.PushVariableValue(Variable);
+
+	if(!Members.empty())
 	{
-		// TODO - rewrite to support nested structures
 		VM::EpochTypeID structuretype = activescope.GetVariableTypeByID(Variable);
-		StringHandle structurename = 0;
 
-		for(StructureNameMap::const_iterator iter = structurenames.begin(); iter != structurenames.end(); ++iter)
+		for(StringHandles::const_iterator memberiter = Members.begin(); memberiter != Members.end(); ++memberiter)
 		{
-			if(iter->second == structuretype)
+			StringHandle structurename = 0;
+			for(StructureNameMap::const_iterator iter = structurenames.begin(); iter != structurenames.end(); ++iter)
 			{
-				structurename = iter->first;
-				break;
+				if(iter->second == structuretype)
+				{
+					structurename = iter->first;
+					break;
+				}
 			}
+
+			if(!structurename)
+				throw FatalException("Invalid structure ID");
+
+			StringHandle overloadidhandle = stringpool.Pool(L".@@" + stringpool.GetPooledString(structurename) + L"@@" + stringpool.GetPooledString(*memberiter));		
+			emitter.PushStringLiteral(*memberiter);
+			emitter.Invoke(overloadidhandle);
+
+			structuretype = structures.find(structuretype)->second.GetMemberType(structures.find(structuretype)->second.FindMember(*memberiter));
 		}
-
-		if(!structurename)
-			throw FatalException("Invalid structure ID");
-
-		StringHandle overloadidhandle = stringpool.Pool(L".@@" + stringpool.GetPooledString(structurename) + L"@@" + stringpool.GetPooledString(Members.front()));		
-		
-		emitter.PushVariableValue(Variable);
-		emitter.PushStringLiteral(Members.front());
-		emitter.Invoke(overloadidhandle);
 	}
 }
 

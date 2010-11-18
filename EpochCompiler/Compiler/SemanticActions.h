@@ -204,7 +204,7 @@ private:
 		{ }
 
 		void EmitReferenceBindings(ByteCodeEmitter& emitter) const;
-		void EmitCurrentValue(ByteCodeEmitter& emitter, const ScopeDescription& activescope, const StructureNameMap& structurenames, StringPoolManager& stringpool) const;
+		void EmitCurrentValue(ByteCodeEmitter& emitter, const ScopeDescription& activescope, const StructureDefinitionMap& structures, const StructureNameMap& structurenames, StringPoolManager& stringpool) const;
 
 		StringHandle Variable;
 		std::vector<StringHandle> Members;
