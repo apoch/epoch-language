@@ -2566,9 +2566,12 @@ VM::EpochTypeID CompilationSemantics::GetEffectiveType(const AssignmentTarget& a
 	if (assignmenttarget.Members.empty())
 		return vartype;
 
-	// TODO - support nested structures
-	const StructureDefinition& structdef = Structures.find(vartype)->second;
-	return structdef.GetMemberType(structdef.FindMember(assignmenttarget.Members.front()));
+	for(StringHandles::const_iterator iter = assignmenttarget.Members.begin(); iter != assignmenttarget.Members.end(); ++iter)
+	{
+		const StructureDefinition& structdef = Structures.find(vartype)->second;
+		vartype = structdef.GetMemberType(structdef.FindMember(*iter));
+	}
+	return vartype;
 }
 
 //
