@@ -60,6 +60,9 @@ int _tmain(int argc, _TCHAR* argv[])
 			try
 			{
 				std::wstring filename(parameters[i]);
+
+				output << L"Executing: " << filename << L"\n" << std::endl;
+
 				std::wstring source = Files::Load(filename);
 				
 				DLLAccess::CompilerAccess compileraccess;
@@ -101,6 +104,9 @@ int _tmain(int argc, _TCHAR* argv[])
 
 			try
 			{
+				output << L"Compiling: " << infilename << L"\n";
+				output << L"   Output: " << outfilename << L"\n" << std::endl;
+
 				std::wstring source = Files::Load(infilename);
 				
 				DLLAccess::CompilerAccess compileraccess;
