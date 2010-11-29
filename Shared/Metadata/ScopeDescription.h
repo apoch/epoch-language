@@ -49,12 +49,11 @@ public:
 
 	const std::wstring& GetVariableName(size_t index) const;
 	StringHandle GetVariableNameHandle(size_t index) const;
-	size_t GetVariableIndex(const std::wstring& identifier) const;
-	size_t GetVariableIndex(StringHandle identifier) const;
 	VM::EpochTypeID GetVariableTypeByID(StringHandle variableid) const;
 	VM::EpochTypeID GetVariableTypeByIndex(size_t index) const;
 	VariableOrigin GetVariableOrigin(size_t index) const;
 	bool IsReference(size_t index) const;
+	bool IsReferenceByID(StringHandle variableid) const;
 
 	size_t GetVariableCount() const
 	{ return Variables.size(); }

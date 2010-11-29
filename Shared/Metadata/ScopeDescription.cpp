@@ -57,38 +57,6 @@ StringHandle ScopeDescription::GetVariableNameHandle(size_t index) const
 }
 
 //
-// Retrieve the index of the variable with the given identifier
-//
-size_t ScopeDescription::GetVariableIndex(const std::wstring& identifier) const
-{
-	size_t i = 0;
-	for(VariableVector::const_iterator iter = Variables.begin(); iter != Variables.end(); ++iter)
-	{
-		if(iter->Identifier == identifier)
-			return i;
-
-		++i;
-	}
-
-	throw FatalException("Invalid variable identifier");
-}
-
-size_t ScopeDescription::GetVariableIndex(StringHandle identifier) const
-{
-	size_t i = 0;
-	for(VariableVector::const_iterator iter = Variables.begin(); iter != Variables.end(); ++iter)
-	{
-		if(iter->IdentifierHandle == identifier)
-			return i;
-
-		++i;
-	}
-
-	throw FatalException("Invalid variable identifier");
-}
-
-
-//
 // Retrieve the type of a variable given its identifier handle
 //
 VM::EpochTypeID ScopeDescription::GetVariableTypeByID(StringHandle variableid) const
@@ -127,4 +95,21 @@ VariableOrigin ScopeDescription::GetVariableOrigin(size_t index) const
 bool ScopeDescription::IsReference(size_t index) const
 {
 	return Variables[index].IsReference;
+}
+
+//
+// Determine if the variable with the given identifier is a reference type
+//
+bool ScopeDescription::IsReferenceByID(StringHandle variableid) const
+{
+	for(VariableVector::const_iterator iter = Variables.begin(); iter != Variables.end(); ++iter)
+	{
+		if(iter->IdentifierHandle == variableid)
+			return iter->IsReference;
+	}
+
+	if(ParentScope)
+		return ParentScope->IsReferenceByID(variableid);
+
+	throw InvalidIdentifierException("Could not determine if variable is of reference type - identifier is not valid in this scope");
 }

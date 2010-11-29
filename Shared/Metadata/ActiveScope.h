@@ -45,7 +45,7 @@ public:
 	template <typename T>
 	T Read(StringHandle variableid)
 	{
-		if(OriginalScope.IsReference(OriginalScope.GetVariableIndex(variableid)))
+		if(OriginalScope.IsReferenceByID(variableid))
 		{
 			ReferenceBindingMap::const_iterator iter = BoundReferences.find(variableid);
 			if(iter == BoundReferences.end())
@@ -60,7 +60,7 @@ public:
 	template <typename T>
 	void Write(StringHandle variableid, T value)
 	{
-		if(OriginalScope.IsReference(OriginalScope.GetVariableIndex(variableid)))
+		if(OriginalScope.IsReferenceByID(variableid))
 		{
 			ReferenceBindingMap::const_iterator iter = BoundReferences.find(variableid);
 			if(iter == BoundReferences.end())

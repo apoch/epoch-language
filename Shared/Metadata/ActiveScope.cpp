@@ -123,7 +123,7 @@ void ActiveScope::WriteFromStack(void* targetstorage, VM::EpochTypeID targettype
 //
 void ActiveScope::WriteFromStack(StringHandle variableid, StackSpace& stack)
 {
-	if(OriginalScope.IsReference(OriginalScope.GetVariableIndex(variableid)))
+	if(OriginalScope.IsReferenceByID(variableid))
 	{
 		WriteBoundReferenceFromStack(variableid, stack);
 		return;
@@ -213,7 +213,7 @@ void ActiveScope::PushOntoStack(void* targetstorage, VM::EpochTypeID targettype,
 //
 void ActiveScope::PushOntoStack(StringHandle variableid, StackSpace& stack) const
 {
-	if(OriginalScope.IsReference(OriginalScope.GetVariableIndex(variableid)))
+	if(OriginalScope.IsReferenceByID(variableid))
 	{
 		PushOntoStackDeref(variableid, stack);
 		return;

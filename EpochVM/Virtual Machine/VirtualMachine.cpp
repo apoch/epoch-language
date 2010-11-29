@@ -487,7 +487,7 @@ void ExecutionContext::Execute(const ScopeDescription* scope)
 		case Bytecode::Instructions::BindRef:
 			{
 				StringHandle target = Fetch<StringHandle>();
-				if(Variables->GetOriginalDescription().IsReference(Variables->GetOriginalDescription().GetVariableIndex(target)))
+				if(Variables->GetOriginalDescription().IsReferenceByID(target))
 				{
 					State.Stack.PushValue(Variables->GetReferenceType(target));
 					State.Stack.PushValue(Variables->GetReferenceTarget(target));
