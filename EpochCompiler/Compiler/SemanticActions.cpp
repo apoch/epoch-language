@@ -953,7 +953,7 @@ void CompilationSemantics::RegisterReturnValue()
 				if(FunctionSignatureStack.top().GetParameter(Session.StringPool.GetPooledString(varhandle)).IsReference)
 					throw NotImplementedException("Support for returning references is not implemented");
 				else
-					PendingEmitters.top().PushVariableValue(varhandle);
+					PendingEmitters.top().PushVariableValue(varhandle, vartype);
 			}
 		}
 		else if(PushedItemTypes.top() == ITEMTYPE_STATEMENT)
@@ -991,7 +991,7 @@ void CompilationSemantics::RegisterReturnValue()
 				if(FunctionSignatureStack.top().GetParameter(Session.StringPool.GetPooledString(varhandle)).IsReference)
 					throw NotImplementedException("Support for returning references is not implemented");
 				else
-					PendingEmitters.top().PushVariableValue(varhandle);
+					PendingEmitters.top().PushVariableValue(varhandle, vartype);
 			}
 		}
 		else if(PushedItemTypes.top() == ITEMTYPE_STATEMENT)
@@ -1029,7 +1029,7 @@ void CompilationSemantics::RegisterReturnValue()
 				if(FunctionSignatureStack.top().GetParameter(Session.StringPool.GetPooledString(varhandle)).IsReference)
 					throw NotImplementedException("Support for returning references is not implemented");
 				else
-					PendingEmitters.top().PushVariableValue(varhandle);
+					PendingEmitters.top().PushVariableValue(varhandle, vartype);
 			}
 		}
 		else if(PushedItemTypes.top() == ITEMTYPE_STATEMENT)
@@ -1067,7 +1067,7 @@ void CompilationSemantics::RegisterReturnValue()
 				if(FunctionSignatureStack.top().GetParameter(Session.StringPool.GetPooledString(varhandle)).IsReference)
 					throw NotImplementedException("Support for returning references is not implemented");
 				else
-					PendingEmitters.top().PushVariableValue(varhandle);
+					PendingEmitters.top().PushVariableValue(varhandle, vartype);
 			}
 		}
 		else if(PushedItemTypes.top() == ITEMTYPE_STATEMENT)
@@ -1241,7 +1241,7 @@ void CompilationSemantics::CompleteStatement()
 								if(fs->GetParameter(i).IsReference)
 									PendingEmitters.top().BindReference(CompileTimeParameters.top()[i].Payload.StringHandleValue);
 								else
-									PendingEmitters.top().PushVariableValue(CompileTimeParameters.top()[i].Payload.StringHandleValue);
+									PendingEmitters.top().PushVariableValue(CompileTimeParameters.top()[i].Payload.StringHandleValue, GetEffectiveType(CompileTimeParameters.top()[i]));
 							}
 							else
 								Throw(RecoverableException("No variable by the name \"" + narrow(CompileTimeParameters.top()[i].StringPayload) + "\" was found in this scope"));
@@ -1438,7 +1438,7 @@ void CompilationSemantics::CompleteAssignment()
 {
 	if(!IsPrepass)
 	{
-		VM::EpochTypeID expressiontype = CompileTimeParameters.top().back().Type;
+		VM::EpochTypeID expressiontype = GetEffectiveType(CompileTimeParameters.top().back());
 
 		if(StatementNames.top() != L"=")
 			AssignmentTargets.top().EmitCurrentValue(*EmitterStack.top(), LexicalScopeDescriptions.find(LexicalScopeStack.top())->second, Structures, StructureNames, Session.StringPool);
@@ -2262,7 +2262,7 @@ const std::wstring& CompilationSemantics::CreateStructureType()
 	EmitterStack.top()->AssignVariable();
 	for(StructureMemberList::const_iterator iter = StructureMembers.begin(); iter != StructureMembers.end(); ++iter)
 	{
-		EmitterStack.top()->PushVariableValue(iter->second);
+		EmitterStack.top()->PushVariableValue(iter->second, iter->first);
 		EmitterStack.top()->AssignStructure(Session.StringPool.Pool(L"identifier"), iter->second);
 	}
 	EmitterStack.top()->ExitFunction();
@@ -2438,7 +2438,7 @@ void CompilationSemantics::EmitInfixOperand(ByteCodeEmitter& emitter, const Comp
 		break;
 
 	case VM::EpochType_Identifier:
-		emitter.PushVariableValue(ctparam.Payload.StringHandleValue);
+		emitter.PushVariableValue(ctparam.Payload.StringHandleValue, LexicalScopeDescriptions.find(LexicalScopeStack.top())->second.GetVariableTypeByID(ctparam.Payload.StringHandleValue));
 		break;
 
 	case VM::EpochType_Expression:
@@ -2636,7 +2636,7 @@ void CompilationSemantics::AssignmentTarget::EmitReferenceBindings(ByteCodeEmitt
 //
 void CompilationSemantics::AssignmentTarget::EmitCurrentValue(ByteCodeEmitter& emitter, const ScopeDescription& activescope, const StructureDefinitionMap& structures, const StructureNameMap& structurenames, StringPoolManager& stringpool) const
 {
-	emitter.PushVariableValue(Variable);
+	emitter.PushVariableValue(Variable, activescope.GetVariableTypeByID(Variable));
 
 	if(!Members.empty())
 	{

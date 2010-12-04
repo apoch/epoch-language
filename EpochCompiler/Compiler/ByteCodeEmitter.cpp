@@ -109,9 +109,19 @@ void ByteCodeEmitter::PushRealLiteral(Real32 value)
 //
 // Emit code for reading a variable's value and pushing the value onto the stack
 //
-void ByteCodeEmitter::PushVariableValue(StringHandle variablename)
+// Note that some types have special modifications to their semantics for consistency, so it is
+// mandatory to know the variable type when emitting this code. For instance, marshaled buffers
+// are referenced by handle numbers internally, but copied on accesses in order to create value
+// versus handle/reference semantics when used by the programmer. Similar logic helps to ensure
+// that structure/object copy constructors are invoked cleanly, and so on.
+//
+void ByteCodeEmitter::PushVariableValue(StringHandle variablename, VM::EpochTypeID type)
 {
-	EmitInstruction(Bytecode::Instructions::Read);
+	if(type == VM::EpochType_Buffer)
+		EmitInstruction(Bytecode::Instructions::CopyBuffer);
+	else
+		EmitInstruction(Bytecode::Instructions::Read);
+	
 	EmitRawValue(variablename);
 }
 

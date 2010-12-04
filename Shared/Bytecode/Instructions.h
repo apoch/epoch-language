@@ -48,6 +48,8 @@ namespace Bytecode
 		static const Instruction ReadRef = 0x17;
 		static const Instruction BindMemberRef = 0x18;
 
+		static const Instruction CopyBuffer = 0x19;
+
 	}
 
 }

@@ -84,6 +84,7 @@ namespace VM
 
 		void* GetBuffer(BufferHandle handle);
 		BufferHandle AllocateBuffer(size_t size);
+		BufferHandle CloneBuffer(BufferHandle handle);
 
 		ActiveStructure& GetStructure(StructureHandle handle);
 		StructureHandle AllocateStructure(const StructureDefinition& description);

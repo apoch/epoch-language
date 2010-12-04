@@ -78,7 +78,7 @@ namespace
 		Integer32 size = context.State.Stack.PopValue<Integer32>();
 		StringHandle identifierhandle = context.State.Stack.PopValue<StringHandle>();
 
-		BufferHandle bufferhandle = context.OwnerVM.AllocateBuffer(size);
+		BufferHandle bufferhandle = context.OwnerVM.AllocateBuffer((size + 1) * sizeof(wchar_t));
 		context.Variables->Write(identifierhandle, bufferhandle);
 	}
 

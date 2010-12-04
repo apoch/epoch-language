@@ -133,6 +133,20 @@ BufferHandle VirtualMachine::AllocateBuffer(size_t size)
 }
 
 //
+// Allocate a copy of an existing data buffer and return the new handle
+//
+BufferHandle VirtualMachine::CloneBuffer(BufferHandle handle)
+{
+	std::map<StringHandle, std::vector<Byte> >::const_iterator iter = Buffers.find(handle);
+	if(iter == Buffers.end())
+		throw FatalException("Invalid buffer handle");
+
+	BufferHandle ret = ++CurrentBufferHandle;
+	Buffers[ret].swap(std::vector<Byte>(iter->second.begin(), iter->second.end()));
+	return ret;
+}
+
+//
 // Add a function to the global namespace
 //
 void VirtualMachine::AddFunction(StringHandle name, EpochFunctionPtr funcptr)
@@ -751,6 +765,15 @@ void ExecutionContext::Execute(const ScopeDescription* scope)
 				State.Stack.PushValue(OwnerVM.AllocateStructure(OwnerVM.GetStructureDefinition(structuredescription)));
 			}
 			break;
+
+		case Bytecode::Instructions::CopyBuffer:
+			{
+				StringHandle identifier = Fetch<StringHandle>();
+				BufferHandle originalbuffer = Variables->Read<BufferHandle>(identifier);
+				BufferHandle copiedbuffer = OwnerVM.CloneBuffer(originalbuffer);
+				State.Stack.PushValue(copiedbuffer);
+			}
+			break;
 		
 		default:
 			throw FatalException("Invalid bytecode operation");
@@ -887,6 +910,7 @@ void ExecutionContext::Load()
 		case Bytecode::Instructions::BindRef:
 		case Bytecode::Instructions::AllocStructure:
 		case Bytecode::Instructions::BindMemberRef:
+		case Bytecode::Instructions::CopyBuffer:
 			Fetch<StringHandle>();
 			break;
 

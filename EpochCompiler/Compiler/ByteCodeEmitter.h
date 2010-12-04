@@ -56,7 +56,7 @@ public:
 	void PushStringLiteral(StringHandle handle);
 	void PushBooleanLiteral(bool value);
 	void PushRealLiteral(Real32 value);
-	void PushVariableValue(StringHandle variablename);
+	void PushVariableValue(StringHandle variablename, VM::EpochTypeID type);
 	void PushBufferHandle(BufferHandle handle);
 
 	void BindReference(StringHandle variablename);
@@ -97,6 +97,10 @@ public:
 	void StructureMember(StringHandle identifier, VM::EpochTypeID type);
 	void CopyFromStructure(StringHandle structurevariable, StringHandle membervariable);
 	void AssignStructure(StringHandle structurevariable, StringHandle membername);
+
+// Buffers
+public:
+	void CopyBuffer(StringHandle identifier);
 
 // Utility instructions
 public:
