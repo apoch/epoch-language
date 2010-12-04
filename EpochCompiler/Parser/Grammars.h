@@ -202,7 +202,7 @@ struct FundamentalGrammar : public boost::spirit::classic::grammar<FundamentalGr
 
 			PostOperatorStatement
 				= StringIdentifier[StoreTemporaryString(self.Bindings)]
-			      >> (*(PERIOD >> StringIdentifier[StoreMember(self.Bindings)]))[RegisterPostOperand(self.Bindings)]
+			      >> (*(PERIOD >> StringIdentifier[StoreMember(self.Bindings)]))
 				  >> PostOperator[RegisterPostOperator(self.Bindings)]
 				;
 

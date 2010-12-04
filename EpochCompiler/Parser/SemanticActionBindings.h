@@ -992,24 +992,6 @@ struct RegisterPostOperator
 	SemanticActionInterface& Bindings;
 };
 
-struct RegisterPostOperand
-{
-	explicit RegisterPostOperand(SemanticActionInterface& bindings)
-		: Bindings(bindings)
-	{ }
-
-	template <typename IteratorType>
-	void operator () (IteratorType begin, IteratorType end) const
-	{
-		Trace(L"RegisterPostOperand", begin, end);
-		Bindings.SetParsePosition(end);
-		Bindings.RegisterPostOperand(std::wstring(begin, end));
-	}
-
-	SemanticActionInterface& Bindings;
-};
-
-
 struct BeginFunctionTag
 {
 	explicit BeginFunctionTag(SemanticActionInterface& bindings)

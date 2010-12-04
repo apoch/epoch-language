@@ -891,11 +891,6 @@ void ExecutionContext::Load()
 			break;
 
 		// Operations with two payload fields
-		case Bytecode::Instructions::Push:
-			Fetch<EpochTypeID>();
-			Fetch<StringHandle>();
-			break;
-
 		case Bytecode::Instructions::CopyFromStructure:
 		case Bytecode::Instructions::CopyToStructure:
 			Fetch<StringHandle>();
@@ -915,6 +910,21 @@ void ExecutionContext::Load()
 			break;
 
 		// Operations that take a bit of special processing, but we are still ignoring
+		case Bytecode::Instructions::Push:
+			{
+				EpochTypeID pushedtype = Fetch<EpochTypeID>();
+				switch(pushedtype)
+				{
+				case EpochType_Integer:			Fetch<Integer32>();			break;
+				case EpochType_String:			Fetch<StringHandle>();		break;
+				case EpochType_Boolean:			Fetch<bool>();				break;
+				case EpochType_Real:			Fetch<Real32>();			break;
+				case EpochType_Buffer:			Fetch<BufferHandle>();		break;
+				default:						Fetch<StructureHandle>();	break;
+				}
+			}
+			break;
+
 		case Bytecode::Instructions::PatternMatch:
 			{
 				Fetch<StringHandle>();

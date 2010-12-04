@@ -567,6 +567,12 @@ void CompilationSemantics::RegisterPreOperand(const std::wstring& expression)
 		std::wstring operatorname = PreOperatorString;
 		StringHandle operatornamehandle = Session.StringPool.Pool(operatorname);
 
+		if(!TemporaryString.empty())
+		{
+			AssignmentTargets.push(AssignmentTarget(Session.StringPool.Pool(TemporaryString)));
+			TemporaryString.clear();
+		}
+
 		VM::EpochTypeID variabletype = GetEffectiveType(AssignmentTargets.top());
 
 		RemapFunctionToOverload(CompileTimeParameterVector(), 0, 1, TypeVector(1, variabletype), operatorname, operatornamehandle);
@@ -611,6 +617,12 @@ void CompilationSemantics::RegisterPostOperator(const std::wstring& identifier)
 		std::wstring operatorname = identifier;
 		StringHandle operatornamehandle = Session.StringPool.Pool(operatorname);
 
+		if(AssignmentTargets.empty() && !TemporaryString.empty())
+		{
+			AssignmentTargets.push(AssignmentTarget(Session.StringPool.Pool(TemporaryString)));
+			TemporaryString.clear();
+		}
+
 		VM::EpochTypeID variabletype = GetEffectiveType(AssignmentTargets.top());
 
 		RemapFunctionToOverload(CompileTimeParameterVector(), 0, 1, TypeVector(1, variabletype), operatorname, operatornamehandle);
@@ -641,19 +653,6 @@ void CompilationSemantics::RegisterPostOperator(const std::wstring& identifier)
 	}
 
 	PushedItemTypes.push(ITEMTYPE_STATEMENT);
-}
-
-//
-// Register the operand of a post-operator expression
-//
-// Just save the operand's identifier into the temporary string slot, because
-// there's a good chance we won't actually match a post-operator in the parse
-// input, in which case we need to refrain from befouling the parser state.
-//
-void CompilationSemantics::RegisterPostOperand(const std::wstring& identifier)
-{
-	if(!IsPrepass)
-		TemporaryString = identifier;
 }
 
 
@@ -1419,7 +1418,11 @@ void CompilationSemantics::BeginOpAssignment(const std::wstring &identifier)
 
 	if(!IsPrepass)
 	{
-		CompileTimeParameters.push(CompileTimeParameterVector(1, CompileTimeParameter(L"lhs", GetEffectiveType(AssignmentTargets.top()))));
+		if(identifier == L"=")
+			CompileTimeParameters.push(CompileTimeParameterVector());
+		else
+			CompileTimeParameters.push(CompileTimeParameterVector(1, CompileTimeParameter(L"lhs", GetEffectiveType(AssignmentTargets.top()))));
+
 		InfixOperators.push(StringHandles());
 		UnaryOperators.push(UnaryOperatorVector());
 
@@ -2426,7 +2429,7 @@ void CompilationSemantics::EmitInfixOperand(ByteCodeEmitter& emitter, const Comp
 		break;
 
 	case VM::EpochType_String:
-		emitter.PushIntegerLiteral(ctparam.Payload.StringHandleValue);
+		emitter.PushStringLiteral(ctparam.Payload.StringHandleValue);
 		break;
 
 	case VM::EpochType_Boolean:

@@ -58,7 +58,6 @@ public:
 	virtual void RegisterPreOperator(const std::wstring& identifier) = 0;
 	virtual void RegisterPreOperand(const std::wstring& identifier) = 0;
 	virtual void RegisterPostOperator(const std::wstring& identifier) = 0;
-	virtual void RegisterPostOperand(const std::wstring& identifier) = 0;
 
 	virtual void StoreUnaryPrefixOperator(const std::wstring& identifier) = 0;
 
