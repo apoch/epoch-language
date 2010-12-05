@@ -79,8 +79,6 @@ public:
 	}
 
 	void WriteFromStack(void* targetstorage, VM::EpochTypeID targettype, StackSpace& stack);
-	void WriteFromStack(StringHandle variableid, StackSpace& stack);
-	void WriteBoundReferenceFromStack(StringHandle variableid, StackSpace& stack);
 
 	void PushOntoStack(void* targetstorage, VM::EpochTypeID targettype, StackSpace& stack) const;
 	void PushOntoStack(StringHandle variableid, StackSpace& stack) const;

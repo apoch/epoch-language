@@ -28,6 +28,7 @@ namespace
 		StringHandle rethandle = context.OwnerVM.PoolString(ret);
 
 		context.State.Stack.PushValue(rethandle);
+		context.TickStringGarbageCollector();
 	}
 }
 

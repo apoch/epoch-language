@@ -62,7 +62,7 @@ void ActiveScope::PushLocalsOntoStack(VM::ExecutionContext& context)
 			size_t size = VM::GetStorageSize(iter->Type);
 			context.State.Stack.Push(size);
 
-			VariableStorageLocations[context.OwnerVM.GetPooledStringHandle(iter->Identifier)] = context.State.Stack.GetCurrentTopOfStack();
+			VariableStorageLocations[iter->IdentifierHandle] = context.State.Stack.GetCurrentTopOfStack();
 		}
 	}
 }
@@ -116,32 +116,6 @@ void ActiveScope::WriteFromStack(void* targetstorage, VM::EpochTypeID targettype
 		Write(targetstorage, stack.PopValue<StructureHandle>());
 		break;
 	}
-}
-
-//
-// Write the topmost stack entry into the given variable's storage location
-//
-void ActiveScope::WriteFromStack(StringHandle variableid, StackSpace& stack)
-{
-	if(OriginalScope.IsReferenceByID(variableid))
-	{
-		WriteBoundReferenceFromStack(variableid, stack);
-		return;
-	}
-
-	WriteFromStack(GetVariableStorageLocation(variableid), OriginalScope.GetVariableTypeByID(variableid), stack);
-}
-
-//
-// Write the topmost entry on the stack into the slot referred to by a reference variable
-//
-void ActiveScope::WriteBoundReferenceFromStack(StringHandle variableid, StackSpace& stack)
-{
-	ReferenceBindingMap::const_iterator iter = BoundReferences.find(variableid);
-	if(iter == BoundReferences.end())
-		throw FatalException("Unbound reference");
-
-	WriteFromStack(iter->second.first, iter->second.second, stack);
 }
 
 //
@@ -234,7 +208,6 @@ void ActiveScope::PushOntoStackDeref(StringHandle variableid, StackSpace& stack)
 	PushOntoStack(iter->second.first, iter->second.second, stack);
 }
 
-
 //
 // Retrieve the storage location in memory of the given variable
 //
@@ -244,16 +217,17 @@ void ActiveScope::PushOntoStackDeref(StringHandle variableid, StackSpace& stack)
 //
 void* ActiveScope::GetVariableStorageLocation(StringHandle variableid) const
 {
-	std::map<StringHandle, void*>::const_iterator iter = VariableStorageLocations.find(variableid);
-	if(iter == VariableStorageLocations.end())
+	const ActiveScope* thisptr = this;
+	while(thisptr)
 	{
-		if(ParentScope)
-			return ParentScope->GetVariableStorageLocation(variableid);
+		std::map<StringHandle, void*>::const_iterator iter = thisptr->VariableStorageLocations.find(variableid);
+		if(iter != thisptr->VariableStorageLocations.end())
+			return iter->second;
 
-		throw InvalidIdentifierException("Variable ID has not been mapped to a storage location in this scope");
+		thisptr = thisptr->ParentScope;
 	}
 
-	return iter->second;
+	throw InvalidIdentifierException("Variable ID has not been mapped to a storage location in this scope");
 }
 
 //

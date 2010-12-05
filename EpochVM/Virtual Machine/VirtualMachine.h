@@ -27,6 +27,7 @@
 #include "Bytecode/Instructions.h"
 
 #include <map>
+#include <set>
 #include <stack>
 #include <string>
 
@@ -99,6 +100,7 @@ namespace VM
 		void InvokeFunction(StringHandle functionname, ExecutionContext& context);
 
 		size_t GetFunctionInstructionOffset(StringHandle functionname) const;
+		size_t GetFunctionInstructionOffsetNoThrow(StringHandle functionname) const;
 
 	// Entity management
 	public:
@@ -116,6 +118,15 @@ namespace VM
 		const ScopeDescription& GetScopeDescription(StringHandle name) const;
 		ScopeDescription& GetScopeDescription(StringHandle name);
 
+	// Use sparingly! Only intended for access by the garbage collector
+	public:
+		StringPoolManager& PrivateGetRawStringPool()
+		{ return PrivateStringPool; }
+
+		const std::map<StructureHandle, ActiveStructure>& PrivateGetStructurePool()
+		{ return ActiveStructures; }
+
+
 	// Public tracking
 	public:
 		std::map<StringHandle, StructureDefinition> StructureDefinitions;
@@ -127,7 +138,7 @@ namespace VM
 
 	// Internal state tracking
 	private:
-		StringPoolManager StringPool;
+		StringPoolManager PrivateStringPool;
 		FunctionInvocationTable GlobalFunctions;
 		OffsetMap GlobalFunctionOffsets;
 		ScopeMap LexicalScopeDescriptions;
@@ -199,6 +210,18 @@ namespace VM
 		VirtualMachine& OwnerVM;
 		std::stack<StringHandle> InvokedFunctionStack;
 
+	// Internal helpers for garbage collection
+	public:
+		void CollectGarbage();
+
+		void CollectGarbage_Buffers();
+		void CollectGarbage_Strings();
+		void CollectGarbage_Structures();
+
+		void TickBufferGarbageCollector();
+		void TickStringGarbageCollector();
+		void TickStructureGarbageCollector();
+
 	// Internal state
 	private:
 		const Bytecode::Instruction* CodeBuffer;
@@ -206,6 +229,12 @@ namespace VM
 		size_t InstructionOffset;
 
 		std::stack<size_t> InstructionOffsetStack;
+
+		size_t GarbageTick_Buffers;
+		size_t GarbageTick_Strings;
+		size_t GarbageTick_Structures;
+
+		std::set<StringHandle> StaticallyReferencedStrings;
 	};
 
 }

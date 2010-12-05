@@ -458,7 +458,7 @@ struct FundamentalGrammar : public boost::spirit::classic::grammar<FundamentalGr
 		//
 		void AddVariableType(const std::string& identifier)
 		{
-			VariableType = boost::spirit::classic::strlit<>(identifier.c_str()) | VariableType.copy();
+			VariableType = VariableType.copy() | boost::spirit::classic::strlit<>(identifier.c_str());
 		}
 
 		void AddVariableType(const std::wstring& identifier)

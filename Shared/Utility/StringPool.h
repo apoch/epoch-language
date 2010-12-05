@@ -13,6 +13,7 @@
 #include "Utility/Threading/Synchronization.h"
 
 #include <map>
+#include <set>
 #include <string>
 
 
@@ -25,6 +26,7 @@ public:
 // Pooling interface
 public:
 	StringHandle Pool(const std::wstring& stringdata);
+	StringHandle PoolFast(const std::wstring& stringdata);
 	void Pool(StringHandle handle, const std::wstring& stringdata);
 
 	const std::wstring& GetPooledString(StringHandle handle) const;
@@ -33,6 +35,10 @@ public:
 public:
 	const std::map<StringHandle, std::wstring>& GetInternalPool() const
 	{ return PooledStrings; }
+
+// Garbage collection interface
+public:
+	void GarbageCollect(const std::set<StringHandle>& livehandles);
 
 // Internal tracking
 private:

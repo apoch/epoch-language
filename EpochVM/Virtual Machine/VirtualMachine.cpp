@@ -56,7 +56,7 @@ void VirtualMachine::InitStandardLibraries()
 		throw FatalException("Failed to load Epoch standard library");
 
 	Bytecode::EntityTag customtag = Bytecode::EntityTags::CustomEntityBaseID;
-	bindtovm(GlobalFunctions, Entities, Entities, StringPool, customtag);
+	bindtovm(GlobalFunctions, Entities, Entities, PrivateStringPool, customtag);
 }
 
 
@@ -83,7 +83,7 @@ ExecutionResult VirtualMachine::ExecuteByteCode(const Bytecode::Instruction* buf
 //
 StringHandle VirtualMachine::PoolString(const std::wstring& stringdata)
 {
-	return StringPool.Pool(stringdata);
+	return PrivateStringPool.PoolFast(stringdata);
 }
 
 //
@@ -91,7 +91,7 @@ StringHandle VirtualMachine::PoolString(const std::wstring& stringdata)
 //
 void VirtualMachine::PoolString(StringHandle handle, const std::wstring& stringdata)
 {
-	StringPool.Pool(handle, stringdata);
+	PrivateStringPool.Pool(handle, stringdata);
 }
 
 //
@@ -99,7 +99,7 @@ void VirtualMachine::PoolString(StringHandle handle, const std::wstring& stringd
 //
 const std::wstring& VirtualMachine::GetPooledString(StringHandle handle) const
 {
-	return StringPool.GetPooledString(handle);
+	return PrivateStringPool.GetPooledString(handle);
 }
 
 //
@@ -107,7 +107,7 @@ const std::wstring& VirtualMachine::GetPooledString(StringHandle handle) const
 //
 StringHandle VirtualMachine::GetPooledStringHandle(const std::wstring& value)
 {
-	return StringPool.Pool(value);
+	return PrivateStringPool.Pool(value);
 }
 
 //
@@ -196,6 +196,15 @@ size_t VirtualMachine::GetFunctionInstructionOffset(StringHandle functionname) c
 	return iter->second;
 }
 
+size_t VirtualMachine::GetFunctionInstructionOffsetNoThrow(StringHandle functionname) const
+{
+	OffsetMap::const_iterator iter = GlobalFunctionOffsets.find(functionname);
+	if(iter == GlobalFunctionOffsets.end())
+		return 0;
+
+	return iter->second;
+}
+
 
 //
 // Add metadata for a lexical scope
@@ -237,7 +246,11 @@ ExecutionContext::ExecutionContext(VirtualMachine& ownervm, const Bytecode::Inst
 	  CodeBuffer(codebuffer),
 	  CodeBufferSize(codesize),
 	  InstructionOffset(0),
-	  Variables(NULL)
+	  Variables(NULL),
+	  GarbageTick_Buffers(0),
+	  GarbageTick_Strings(0),
+	  GarbageTick_Structures(0)
+
 {
 	Load();
 	InstructionOffset = 0;
@@ -265,84 +278,88 @@ void ExecutionContext::Execute(size_t offset, const ScopeDescription& scope)
 //
 void ExecutionContext::Execute(const ScopeDescription* scope)
 {
-	// Automatically cleanup the stack if needed
+	// Automatically cleanup the stack as needed
+	struct autoexit_scope
+	{
+		autoexit_scope(ExecutionContext* thisptr, ActiveScope* scope) : ThisPtr(thisptr), ScopePtr(scope) { }
+
+		~autoexit_scope()
+		{
+			ThisPtr->Variables->PopScopeOffStack(*ThisPtr);
+		}
+
+		ExecutionContext* ThisPtr;
+		ActiveScope* ScopePtr;
+	};
+
+	struct autoexit_functionscopes
+	{
+		explicit autoexit_functionscopes(ExecutionContext* thisptr) : ThisPtr(thisptr) { }
+
+		~autoexit_functionscopes()
+		{
+			while(!Scopes.empty())
+			{
+				delete Scopes.top();
+				Scopes.pop();
+			}
+
+			bool hasreturn = ThisPtr->Variables->HasReturnVariable();
+			ActiveScope* parent = ThisPtr->Variables->ParentScope;
+			delete ThisPtr->Variables;
+			ThisPtr->Variables = parent;
+			if(hasreturn)
+			{
+				ThisPtr->State.ReturnValueRegister.PushOntoStack(ThisPtr->State.Stack);
+			}
+		}
+
+		std::stack<autoexit_scope*> Scopes;
+
+		ExecutionContext* ThisPtr;
+	};
+
 	struct autoexit
 	{
-		autoexit(ExecutionContext* thisptr) : ThisPtr(thisptr), DoCleanup(false) { }
+		explicit autoexit(ExecutionContext* thisptr) : ThisPtr(thisptr) { }
 
 		~autoexit()
 		{
-			if(DoCleanup)
-			{
-				while(!ScopesToCleanUp.empty())
-					ThisPtr->Variables = CleanUpTopmostScope();
-
-				try
-				{
-					ThisPtr->Variables->PopScopeOffStack(*ThisPtr);
-				}
-				catch(const std::exception& e)
-				{
-					// The stack will be bogus, but we'll do our best to recover and not leak memory
-					std::wcout << L"VM error: " << e.what() << L"\n";
-					ThisPtr->State.Result.ResultType = ExecutionResult::EXEC_RESULT_HALT;
-				}
-				catch(...)
-				{
-					// The stack will be bogus, but we'll do our best to recover and not leak memory
-					std::wcout << L"Stack error!\n";
-					ThisPtr->State.Result.ResultType = ExecutionResult::EXEC_RESULT_HALT;
-				}
-
-				bool hasreturn = ThisPtr->Variables->HasReturnVariable();
-				ActiveScope* parent = ThisPtr->Variables->ParentScope;
-				delete ThisPtr->Variables;
-				ThisPtr->Variables = parent;
-				if(hasreturn)
-				{
-					try
-					{
-						ThisPtr->State.ReturnValueRegister.PushOntoStack(ThisPtr->State.Stack);
-					}
-					catch(const std::exception& e)
-					{
-						std::wcout << L"VM error: " << e.what() << L"\n";
-						ThisPtr->State.Result.ResultType = ExecutionResult::EXEC_RESULT_HALT;
-					}
-					catch(...)
-					{
-						std::wcout << L"Stack error!\n";
-						ThisPtr->State.Result.ResultType = ExecutionResult::EXEC_RESULT_HALT;
-					}
-				}
-			}
+			while(!FunctionScopes.empty())
+				UnwindOutermostFunctionStack();
 		}
 
-		ActiveScope* CleanUpTopmostScope()
+		void SetNewFunctionUnwindPoint()
 		{
-			ActiveScope* activescope = ScopesToCleanUp.back();
-			ActiveScope* parent = activescope->ParentScope;
-			
-			try
-			{
-				activescope->PopScopeOffStack(*ThisPtr);
-			}
-			catch(...)
-			{
-				// The stack will be bogus, but we'll do our best to recover and not leak memory
-				std::wcout << L"Stack error!\n";
-				ThisPtr->State.Result.ResultType = ExecutionResult::EXEC_RESULT_HALT;
-			}
-
-			delete activescope;
-			ScopesToCleanUp.pop_back();
-			return parent;
+			FunctionScopes.push(new autoexit_functionscopes(ThisPtr));
 		}
 
-		std::list<ActiveScope*> ScopesToCleanUp;
+		void UnwindOutermostFunctionStack()
+		{
+			delete FunctionScopes.top();
+			FunctionScopes.pop();
+		}
+
+		void CleanUpScope(ActiveScope* scope)
+		{
+			if(FunctionScopes.empty())
+				SetNewFunctionUnwindPoint();
+
+			FunctionScopes.top()->Scopes.push(new autoexit_scope(ThisPtr, scope));
+		}
+
+		void CleanUpTopmostScope()
+		{
+			if(!FunctionScopes.empty() && !FunctionScopes.top()->Scopes.empty())
+			{
+				delete FunctionScopes.top()->Scopes.top();
+				FunctionScopes.top()->Scopes.pop();
+			}
+		}
+
+		std::stack<autoexit_functionscopes*> FunctionScopes;
 
 		ExecutionContext* ThisPtr;
-		bool DoCleanup;
 	} onexit(this);
 
 	// By default, assume everything is alright
@@ -358,13 +375,19 @@ void ExecutionContext::Execute(const ScopeDescription* scope)
 		{
 		case Bytecode::Instructions::Halt:		// Halt the machine
 			State.Result.ResultType = ExecutionResult::EXEC_RESULT_HALT;
-			return;
+			break;
 
 		case Bytecode::Instructions::NoOp:		// Do nothing for a cycle
 			break;
 
 		case Bytecode::Instructions::Return:	// Return execution control to the parent context
-			return;
+			CollectGarbage();
+			onexit.UnwindOutermostFunctionStack();
+			scope = &Variables->GetOriginalDescription();
+			InstructionOffset = InstructionOffsetStack.top();
+			InstructionOffsetStack.pop();
+			InvokedFunctionStack.pop();
+			break;
 
 		case Bytecode::Instructions::SetRetVal:	// Set return value register
 			{
@@ -570,10 +593,20 @@ void ExecutionContext::Execute(const ScopeDescription* scope)
 			{
 				StringHandle functionname = Fetch<StringHandle>();
 				InvokedFunctionStack.push(functionname);
-				OwnerVM.InvokeFunction(functionname, *this);
-				InvokedFunctionStack.pop();
-				if(State.Result.ResultType != ExecutionResult::EXEC_RESULT_OK)
-					return;
+
+				size_t internaloffset = OwnerVM.GetFunctionInstructionOffsetNoThrow(functionname);
+				if(internaloffset)
+				{
+					InstructionOffsetStack.push(InstructionOffset);
+
+					InstructionOffset = internaloffset;
+					scope = &OwnerVM.GetScopeDescription(functionname);
+				}
+				else
+				{
+					OwnerVM.InvokeFunction(functionname, *this);
+					InvokedFunctionStack.pop();
+				}
 			}
 			break;
 
@@ -584,8 +617,6 @@ void ExecutionContext::Execute(const ScopeDescription* scope)
 				InvokedFunctionStack.push(functionname);
 				OwnerVM.InvokeFunction(functionname, *this);
 				InvokedFunctionStack.pop();
-				if(State.Result.ResultType != ExecutionResult::EXEC_RESULT_OK)
-					return;
 			}
 			break;
 
@@ -597,11 +628,11 @@ void ExecutionContext::Execute(const ScopeDescription* scope)
 
 				if(tag == Bytecode::EntityTags::Function)
 				{
+					onexit.SetNewFunctionUnwindPoint();
 					Variables = new ActiveScope(*scope, Variables);
 					Variables->BindParametersToStack(*this);
 					Variables->PushLocalsOntoStack(*this);
-
-					onexit.DoCleanup = true;
+					onexit.CleanUpScope(Variables);
 				}
 				else if(tag == Bytecode::EntityTags::FreeBlock)
 				{
@@ -609,7 +640,7 @@ void ExecutionContext::Execute(const ScopeDescription* scope)
 					Variables = new ActiveScope(*scope, Variables);
 					Variables->BindParametersToStack(*this);
 					Variables->PushLocalsOntoStack(*this);
-					onexit.ScopesToCleanUp.push_back(Variables);
+					onexit.CleanUpScope(Variables);
 				}
 				else if(tag == Bytecode::EntityTags::PatternMatchingResolver)
 				{
@@ -624,7 +655,7 @@ void ExecutionContext::Execute(const ScopeDescription* scope)
 						Variables = new ActiveScope(*scope, Variables);
 						Variables->BindParametersToStack(*this);
 						Variables->PushLocalsOntoStack(*this);
-						onexit.ScopesToCleanUp.push_back(Variables);
+						onexit.CleanUpScope(Variables);
 					}
 					else if(code == ENTITYRET_PASS_TO_NEXT_LINK_IN_CHAIN)
 						InstructionOffset = OwnerVM.GetEntityEndOffset(originaloffset) + 1;
@@ -637,7 +668,7 @@ void ExecutionContext::Execute(const ScopeDescription* scope)
 						Variables = new ActiveScope(*scope, Variables);
 						Variables->BindParametersToStack(*this);
 						Variables->PushLocalsOntoStack(*this);
-						onexit.ScopesToCleanUp.push_back(Variables);
+						onexit.CleanUpScope(Variables);
 					}
 					else
 						throw FatalException("Invalid return code from entity meta-control");
@@ -646,8 +677,7 @@ void ExecutionContext::Execute(const ScopeDescription* scope)
 			break;
 
 		case Bytecode::Instructions::EndEntity:
-			if(!onexit.ScopesToCleanUp.empty())
-				Variables = onexit.CleanUpTopmostScope();
+			onexit.CleanUpTopmostScope();
 			if(!chainoffsets.empty())
 			{
 				if(chainrepeats.top())
@@ -655,6 +685,7 @@ void ExecutionContext::Execute(const ScopeDescription* scope)
 				else
 					InstructionOffset = OwnerVM.GetChainEndOffset(chainoffsets.top());
 			}
+			CollectGarbage();
 			break;
 
 			
@@ -677,8 +708,7 @@ void ExecutionContext::Execute(const ScopeDescription* scope)
 				{
 				case ENTITYRET_EXIT_CHAIN:
 					InstructionOffset = OwnerVM.GetChainEndOffset(chainoffsets.top());
-					if(!onexit.ScopesToCleanUp.empty())
-						Variables = onexit.CleanUpTopmostScope();
+					onexit.CleanUpTopmostScope();
 					break;
 
 				case ENTITYRET_PASS_TO_NEXT_LINK_IN_CHAIN:
@@ -752,6 +782,8 @@ void ExecutionContext::Execute(const ScopeDescription* scope)
 
 				if(matchedpattern)
 				{
+					// TODO - rewrite pattern matching logic to use recursionless VM model
+
 					// Jump execution into the original function, taking care to remove the dispatcher from the call stack
 					Execute(OwnerVM.GetFunctionInstructionOffset(originalfunction), OwnerVM.GetScopeDescription(originalfunction));
 					return;
@@ -786,7 +818,9 @@ void ExecutionContext::Execute(const ScopeDescription* scope)
 // Pre-process the bytecode stream and load certain bits of metadata needed for execution
 //
 // At the moment this primarily deals with loading functions from the bytecode stream and
-// caching their instruction offsets so we can invoke them on demand during execution.
+// caching their instruction offsets so we can invoke them on demand during execution. We
+// also need to record the set of all statically referenced string handles, so that there
+// is no requirement to reparse the code itself when doing garbage collection.
 //
 void ExecutionContext::Load()
 {
@@ -953,6 +987,11 @@ void ExecutionContext::Load()
 			throw FatalException("Invalid bytecode operation");
 		}
 	}
+
+	// Pre-mark all statically referenced string handles
+	// This helps speed up garbage collection a bit
+	for(std::map<StringHandle, std::wstring>::const_iterator iter = OwnerVM.PrivateGetRawStringPool().GetInternalPool().begin(); iter != OwnerVM.PrivateGetRawStringPool().GetInternalPool().end(); ++iter)
+		StaticallyReferencedStrings.insert(iter->first);
 }
 
 
@@ -1045,5 +1084,103 @@ ActiveStructure& VirtualMachine::GetStructure(StructureHandle handle)
 		throw FatalException("Invalid structure handle");
 
 	return iter->second;
+}
+
+
+//-------------------------------------------------------------------------------
+// Garbage collection
+//-------------------------------------------------------------------------------
+
+void ExecutionContext::CollectGarbage()
+{
+	if(GarbageTick_Buffers > 1024)
+	{
+		CollectGarbage_Buffers();
+		GarbageTick_Buffers = 0;
+	}
+
+	if(GarbageTick_Strings > 1024)
+	{
+		CollectGarbage_Strings();
+		GarbageTick_Strings = 0;
+	}
+
+	if(GarbageTick_Structures > 1024)
+	{
+		CollectGarbage_Structures();
+		GarbageTick_Structures = 0;
+	}
+}
+
+
+void ExecutionContext::TickBufferGarbageCollector()
+{
+	++GarbageTick_Buffers;
+}
+
+void ExecutionContext::TickStringGarbageCollector()
+{
+	++GarbageTick_Strings;
+}
+
+void ExecutionContext::TickStructureGarbageCollector()
+{
+	++GarbageTick_Structures;
+}
+
+
+void ExecutionContext::CollectGarbage_Buffers()
+{
+	// TODO - mark/sweep the program memory space for buffer handles
+}
+
+void ExecutionContext::CollectGarbage_Strings()
+{
+	// Begin with the set of known static string references, as parsed from the code during load phase
+	// This is done to ensure that statically referenced strings are never discarded by the collector.
+	std::set<StringHandle> livehandles = StaticallyReferencedStrings;
+
+	// Traverse the active stack, starting in the current frame and unwinding upwards to the root code
+	// invocation, marking each local string variable as holding the applicable string reference.
+	ActiveScope* scope = Variables;
+	while(scope)
+	{
+		const ScopeDescription& description = scope->GetOriginalDescription();
+		size_t numvars = description.GetVariableCount();
+		for(size_t i = 0; i < numvars; ++i)
+		{
+			EpochTypeID vartype = description.GetVariableTypeByIndex(i);
+			if(vartype == EpochType_String)
+			{
+				StringHandle marked = scope->Read<StringHandle>(description.GetVariableNameHandle(i));
+				livehandles.insert(marked);
+			}
+		}
+
+		scope = scope->ParentScope;
+	}
+
+	// Traverse the free-store of structures, marking each applicable structure field as holding a
+	// reference to the pointed-to string handle.
+	for(std::map<StructureHandle, ActiveStructure>::const_iterator iter = OwnerVM.PrivateGetStructurePool().begin(); iter != OwnerVM.PrivateGetStructurePool().end(); ++iter)
+	{
+		const StructureDefinition& definition = iter->second.Definition;
+		for(size_t i = 0; i < definition.GetNumMembers(); ++i)
+		{
+			if(definition.GetMemberType(i) == EpochType_String)
+			{
+				StringHandle marked = iter->second.ReadMember<StringHandle>(i);
+				livehandles.insert(marked);
+			}
+		}
+	}
+
+	// Now that the list of live handles is known, we can collect all unused string memory.
+	OwnerVM.PrivateGetRawStringPool().GarbageCollect(livehandles);
+}
+
+void ExecutionContext::CollectGarbage_Structures()
+{
+	// TODO - mark/sweep the program memory space for structure handles
 }
 

@@ -118,7 +118,7 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalIncludeDirectories=".\;..\Shared\"
+				AdditionalIncludeDirectories=".\;..\Shared\;..\EpochVM\"
 				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;EPOCHCOMPILER_EXPORTS"
 				RuntimeLibrary="2"
 				UsePrecompiledHeader="2"

@@ -67,5 +67,6 @@ void DebugLibrary::ReadString(StringHandle functionname, VM::ExecutionContext& c
 	UI::Input input;
 	StringHandle handle = context.OwnerVM.PoolString(input.BlockingRead());
 	context.State.Stack.PushValue(handle);
+	context.TickStringGarbageCollector();
 }
 

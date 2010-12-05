@@ -35,6 +35,19 @@ StringHandle StringPoolManager::Pool(const std::wstring& stringdata)
 			return iter->first;
 	}
 
+	return PoolFast(stringdata);
+}
+
+//
+// Add a string to the pool, permitting duplicate entries
+//
+// The entry is added to the pool regardless of content, and its newly allocated handle
+// is returned as quickly as possible.
+//
+StringHandle StringPoolManager::PoolFast(const std::wstring& stringdata)
+{
+	Threads::CriticalSection::Auto lock(CritSec);
+
 	StringHandle handle = ++CurrentPooledStringHandle;
 	PooledStrings.insert(std::make_pair(handle, stringdata));
 	return handle;
@@ -69,3 +82,18 @@ const std::wstring& StringPoolManager::GetPooledString(StringHandle handle) cons
 
 	return iter->second;
 }
+
+//
+// Discard all handles NOT in the given set of live handles
+//
+void StringPoolManager::GarbageCollect(const std::set<StringHandle>& livehandles)
+{
+	for(std::map<StringHandle, std::wstring>::iterator iter = PooledStrings.begin(); iter != PooledStrings.end(); )
+	{
+		if(livehandles.find(iter->first) == livehandles.end())
+			iter = PooledStrings.erase(iter);
+		else
+			++iter;
+	}
+}
+

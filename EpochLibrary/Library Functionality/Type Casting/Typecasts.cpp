@@ -34,6 +34,7 @@ namespace
 		StringHandle result = context.OwnerVM.PoolString(converter.str());
 
 		context.State.Stack.PushValue(result);
+		context.TickStringGarbageCollector();
 	}
 
 	void CastStringToInteger(StringHandle functionname, ExecutionContext& context)
@@ -60,6 +61,7 @@ namespace
 			result = context.OwnerVM.PoolString(L"false");
 
 		context.State.Stack.PushValue(result);
+		context.TickStringGarbageCollector();
 	}
 
 	void CastRealToString(StringHandle functionname, ExecutionContext& context)
@@ -72,6 +74,7 @@ namespace
 		StringHandle result = context.OwnerVM.PoolString(converter.str());
 
 		context.State.Stack.PushValue(result);
+		context.TickStringGarbageCollector();
 	}
 
 	void CastBufferToString(StringHandle functionname, ExecutionContext& context)
@@ -83,6 +86,7 @@ namespace
 		StringHandle result = context.OwnerVM.PoolString(str);
 
 		context.State.Stack.PushValue(result);
+		context.TickStringGarbageCollector();
 	}
 }
 

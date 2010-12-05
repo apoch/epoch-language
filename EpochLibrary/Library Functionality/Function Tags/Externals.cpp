@@ -218,7 +218,8 @@ namespace
 					{
 						StringHandle handle = context->OwnerVM.PoolString(*reinterpret_cast<wchar_t**>(esp));
 						context->State.Stack.PushValue<StringHandle>(handle);
-						esp += sizeof(StringHandle);
+						context->TickStringGarbageCollector();
+						esp += sizeof(wchar_t*);
 					}
 					break;
 
