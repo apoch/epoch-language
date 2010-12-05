@@ -54,6 +54,21 @@ StringHandle StringPoolManager::PoolFast(const std::wstring& stringdata)
 }
 
 //
+// Add a string to the pool, permitting duplicate entries
+//
+// The entry is added to the pool regardless of content, swapping any existing entry's
+// data into the passed string destructively for faster access.
+//
+StringHandle StringPoolManager::PoolFastDestructive(std::wstring& stringdata)
+{
+	Threads::CriticalSection::Auto lock(CritSec);
+
+	StringHandle handle = ++CurrentPooledStringHandle;
+	PooledStrings[handle].swap(stringdata);
+	return handle;
+}
+
+//
 // Assign the given handle to a string entry
 //
 // Replacing an existing string entry with a different string value is not permitted.

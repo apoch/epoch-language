@@ -27,6 +27,7 @@ public:
 public:
 	StringHandle Pool(const std::wstring& stringdata);
 	StringHandle PoolFast(const std::wstring& stringdata);
+	StringHandle PoolFastDestructive(std::wstring& stringdata);
 	void Pool(StringHandle handle, const std::wstring& stringdata);
 
 	const std::wstring& GetPooledString(StringHandle handle) const;

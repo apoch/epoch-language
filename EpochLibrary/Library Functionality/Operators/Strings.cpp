@@ -25,7 +25,7 @@ namespace
 		StringHandle p1 = context.State.Stack.PopValue<StringHandle>();
 
 		std::wstring ret = context.OwnerVM.GetPooledString(p1) + context.OwnerVM.GetPooledString(p2);
-		StringHandle rethandle = context.OwnerVM.PoolString(ret);
+		StringHandle rethandle = context.OwnerVM.PoolStringDestructive(ret);
 
 		context.State.Stack.PushValue(rethandle);
 		context.TickStringGarbageCollector();

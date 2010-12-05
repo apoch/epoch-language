@@ -31,7 +31,7 @@ namespace
 
 		std::wostringstream converter;
 		converter << value;
-		StringHandle result = context.OwnerVM.PoolString(converter.str());
+		StringHandle result = context.OwnerVM.PoolStringDestructive(converter.str());
 
 		context.State.Stack.PushValue(result);
 		context.TickStringGarbageCollector();
@@ -71,7 +71,7 @@ namespace
 
 		std::wostringstream converter;
 		converter << value;
-		StringHandle result = context.OwnerVM.PoolString(converter.str());
+		StringHandle result = context.OwnerVM.PoolStringDestructive(converter.str());
 
 		context.State.Stack.PushValue(result);
 		context.TickStringGarbageCollector();
@@ -83,7 +83,7 @@ namespace
 		StringHandle targettype = context.State.Stack.PopValue<StringHandle>();
 
 		std::wstring str(reinterpret_cast<wchar_t*>(context.OwnerVM.GetBuffer(bufferhandle)));
-		StringHandle result = context.OwnerVM.PoolString(str);
+		StringHandle result = context.OwnerVM.PoolStringDestructive(str);
 
 		context.State.Stack.PushValue(result);
 		context.TickStringGarbageCollector();

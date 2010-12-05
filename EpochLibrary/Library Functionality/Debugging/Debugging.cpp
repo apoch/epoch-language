@@ -65,7 +65,7 @@ void DebugLibrary::WriteString(StringHandle functionname, VM::ExecutionContext& 
 void DebugLibrary::ReadString(StringHandle functionname, VM::ExecutionContext& context)
 {
 	UI::Input input;
-	StringHandle handle = context.OwnerVM.PoolString(input.BlockingRead());
+	StringHandle handle = context.OwnerVM.PoolStringDestructive(input.BlockingRead());
 	context.State.Stack.PushValue(handle);
 	context.TickStringGarbageCollector();
 }

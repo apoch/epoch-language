@@ -87,6 +87,14 @@ StringHandle VirtualMachine::PoolString(const std::wstring& stringdata)
 }
 
 //
+// Store a string in the global string pool, using the fast/destructive mode
+//
+StringHandle VirtualMachine::PoolStringDestructive(std::wstring& stringdata)
+{
+	return PrivateStringPool.PoolFastDestructive(stringdata);
+}
+
+//
 // Store a string in the global string pool
 //
 void VirtualMachine::PoolString(StringHandle handle, const std::wstring& stringdata)

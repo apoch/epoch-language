@@ -43,7 +43,7 @@ void ActiveScope::BindParametersToStack(const VM::ExecutionContext& context)
 			}
 			else
 			{
-				VariableStorageLocations[context.OwnerVM.GetPooledStringHandle(iter->Identifier)] = stackpointer;
+				VariableStorageLocations[iter->IdentifierHandle] = stackpointer;
 				stackpointer += VM::GetStorageSize(iter->Type);
 			}
 		}
