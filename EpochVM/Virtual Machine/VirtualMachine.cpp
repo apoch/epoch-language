@@ -286,6 +286,14 @@ void ExecutionContext::Execute(const ScopeDescription* scope)
 		~autoexit_scope()
 		{
 			ThisPtr->Variables->PopScopeOffStack(*ThisPtr);
+			bool hasreturn = ThisPtr->Variables->HasReturnVariable();
+			ActiveScope* parent = ThisPtr->Variables->ParentScope;
+			delete ThisPtr->Variables;
+			ThisPtr->Variables = parent;
+			if(hasreturn)
+			{
+				ThisPtr->State.ReturnValueRegister.PushOntoStack(ThisPtr->State.Stack);
+			}
 		}
 
 		ExecutionContext* ThisPtr;
@@ -302,15 +310,6 @@ void ExecutionContext::Execute(const ScopeDescription* scope)
 			{
 				delete Scopes.top();
 				Scopes.pop();
-			}
-
-			bool hasreturn = ThisPtr->Variables->HasReturnVariable();
-			ActiveScope* parent = ThisPtr->Variables->ParentScope;
-			delete ThisPtr->Variables;
-			ThisPtr->Variables = parent;
-			if(hasreturn)
-			{
-				ThisPtr->State.ReturnValueRegister.PushOntoStack(ThisPtr->State.Stack);
 			}
 		}
 
@@ -383,7 +382,10 @@ void ExecutionContext::Execute(const ScopeDescription* scope)
 		case Bytecode::Instructions::Return:	// Return execution control to the parent context
 			CollectGarbage();
 			onexit.UnwindOutermostFunctionStack();
-			scope = &Variables->GetOriginalDescription();
+			if(Variables)
+				scope = &Variables->GetOriginalDescription();
+			else
+				scope = NULL;
 			InstructionOffset = InstructionOffsetStack.top();
 			InstructionOffsetStack.pop();
 			InvokedFunctionStack.pop();
@@ -678,6 +680,7 @@ void ExecutionContext::Execute(const ScopeDescription* scope)
 
 		case Bytecode::Instructions::EndEntity:
 			onexit.CleanUpTopmostScope();
+			scope = &Variables->GetOriginalDescription();
 			if(!chainoffsets.empty())
 			{
 				if(chainrepeats.top())
@@ -709,6 +712,7 @@ void ExecutionContext::Execute(const ScopeDescription* scope)
 				case ENTITYRET_EXIT_CHAIN:
 					InstructionOffset = OwnerVM.GetChainEndOffset(chainoffsets.top());
 					onexit.CleanUpTopmostScope();
+					scope = &Variables->GetOriginalDescription();
 					break;
 
 				case ENTITYRET_PASS_TO_NEXT_LINK_IN_CHAIN:
