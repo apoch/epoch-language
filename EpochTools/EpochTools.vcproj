@@ -335,14 +335,150 @@
 				>
 			</File>
 		</Filter>
-		<File
-			RelativePath=".\Epoch.ico"
+		<Filter
+			Name="Linker"
 			>
-		</File>
-		<File
-			RelativePath=".\EpochTools.rc"
+			<File
+				RelativePath=".\Linker\Linker.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Linker\Linker.h"
+				>
+			</File>
+			<File
+				RelativePath=".\Linker\LinkWriter.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Linker\LinkWriter.h"
+				>
+			</File>
+		</Filter>
+		<Filter
+			Name="Section Managers"
 			>
-		</File>
+			<File
+				RelativePath=".\Section Managers\Code.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Section Managers\Code.h"
+				>
+			</File>
+			<File
+				RelativePath=".\Section Managers\Data.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Section Managers\Data.h"
+				>
+			</File>
+			<File
+				RelativePath=".\Section Managers\EpochData.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Section Managers\EpochData.h"
+				>
+			</File>
+			<File
+				RelativePath=".\Section Managers\PEHeader.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Section Managers\PEHeader.h"
+				>
+			</File>
+			<File
+				RelativePath=".\Section Managers\PESections.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Section Managers\PESections.h"
+				>
+			</File>
+			<File
+				RelativePath=".\Section Managers\Resources.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Section Managers\Resources.h"
+				>
+			</File>
+			<File
+				RelativePath=".\Section Managers\Thunk.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Section Managers\Thunk.h"
+				>
+			</File>
+		</Filter>
+		<Filter
+			Name="Resource Compiler"
+			>
+			<File
+				RelativePath=".\Resource Compiler\ResourceDirectory.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Resource Compiler\ResourceDirectory.h"
+				>
+			</File>
+			<File
+				RelativePath=".\Resource Compiler\ResourceEmitter.h"
+				>
+			</File>
+			<File
+				RelativePath=".\Resource Compiler\ResourceScript.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Resource Compiler\ResourceScript.h"
+				>
+			</File>
+			<File
+				RelativePath=".\Resource Compiler\ResourceTypes.h"
+				>
+			</File>
+			<Filter
+				Name="Resource Types"
+				>
+				<File
+					RelativePath=".\Resource Compiler\Resource Types\Icons.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\Resource Compiler\Resource Types\Icons.h"
+					>
+				</File>
+				<File
+					RelativePath=".\Resource Compiler\Resource Types\Menus.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\Resource Compiler\Resource Types\Menus.h"
+					>
+				</File>
+			</Filter>
+		</Filter>
+		<Filter
+			Name="Embedded Resources"
+			>
+			<File
+				RelativePath=".\Embedded Resources\EmbeddedStrings.h"
+				>
+			</File>
+			<File
+				RelativePath=".\Epoch.ico"
+				>
+			</File>
+			<File
+				RelativePath=".\EpochTools.rc"
+				>
+			</File>
+		</Filter>
 	</Files>
 	<Globals>
 	</Globals>

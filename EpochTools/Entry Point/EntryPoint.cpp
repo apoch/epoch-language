@@ -17,7 +17,10 @@
 
 #include "Utility/Files/Files.h"
 
+#include "Linker/Linker.h"
+
 #include <vector>
+#include <fstream>
 
 
 // Prototypes
@@ -117,6 +120,56 @@ int _tmain(int argc, _TCHAR* argv[])
 					Serialization::Serializer serializer(compileraccess, bytecodebufferhandle);
 					serializer.Write(outfilename);
 				}
+			}
+			catch(std::exception& e)
+			{
+				output << L"Error: " << e.what() << std::endl;
+			}
+			catch(...)
+			{
+				output << L"Unknown error!" << std::endl;
+			}
+		}
+		else if(parameters[i] == L"/build")
+		{
+			didwork = true;
+
+			if(++i >= parameters.size())
+			{
+				output << L"Error: expected a filename after /build option\n\n";
+				break;
+			}
+
+			try
+			{
+				std::wstring filename(parameters[i]);
+
+				output << L"Building: " << filename << L"\n" << std::endl;
+
+				/////
+				// TODO - compile actual code here
+
+				std::wstring sourcefilename(L"d:\\epoch\\programs\\projects\\exedemo\\exedemo.epoch");
+				std::wstring source = Files::Load(sourcefilename);
+				
+				DLLAccess::CompilerAccess compileraccess;
+				DLLAccess::CompiledByteCodeHandle bytecodebufferhandle = compileraccess.CompileSourceToByteCode(sourcefilename, source);
+
+				if(bytecodebufferhandle)
+				{
+					const void* pdata = compileraccess.GetByteCode(bytecodebufferhandle);
+					size_t size = compileraccess.GetByteCodeSize(bytecodebufferhandle);
+
+					std::ofstream outfile(L"d:\\foo.easm", std::ios::binary);
+					outfile.write(reinterpret_cast<const char*>(pdata), static_cast<std::streamsize>(size));
+				}
+
+				/////
+				
+
+				Linker link;
+				link.GenerateSections();
+				link.CommitFile();
 			}
 			catch(std::exception& e)
 			{

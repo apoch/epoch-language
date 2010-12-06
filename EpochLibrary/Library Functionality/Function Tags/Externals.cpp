@@ -421,11 +421,11 @@ TypeIsNull:
 		}
 
 IntegerReturn:
-		context.Variables->Write<Integer32>(context.OwnerVM.PoolString(L"ret"), integerret);
+		context.Variables->Write<Integer32>(context.OwnerVM.GetPooledStringHandle(L"ret"), integerret);
 		return;
 
 BooleanReturn:
-		context.Variables->Write<bool>(context.OwnerVM.PoolString(L"ret"), (integerret != 0 ? true : false));
+		context.Variables->Write<bool>(context.OwnerVM.GetPooledStringHandle(L"ret"), (integerret != 0 ? true : false));
 		return;
 
 NullReturn:
