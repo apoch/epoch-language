@@ -60,7 +60,7 @@ extern "C" void __stdcall RegisterLibraryContents(FunctionSignatureSet& function
 // Strings are pooled in the VM's internal string pool, and functions
 // are registered in the VM's global function dispatch table.
 //
-extern "C" void __stdcall BindToVirtualMachine(FunctionInvocationTable& functiontable, EntityTable& entities, EntityTable& chainedentities, StringPoolManager& stringpool, Bytecode::EntityTag& tagindex)
+extern "C" void __stdcall BindToVirtualMachine(FunctionInvocationTable& functiontable, EntityTable& entities, EntityTable& chainedentities, StringPoolManager& stringpool, Bytecode::EntityTag& tagindex, EpochFunctionPtr marshalfunction)
 {
 	try
 	{
@@ -75,7 +75,7 @@ extern "C" void __stdcall BindToVirtualMachine(FunctionInvocationTable& function
 		FlowControl::RegisterConditionalEntities(entities, entities, stringpool, tagindex);
 		FlowControl::RegisterLoopEntities(entities, entities, entities, entities, stringpool, tagindex);
 
-		FunctionTags::RegisterExternalTag(functiontable, stringpool);
+		FunctionTags::RegisterExternalTag(marshalfunction, functiontable, stringpool);
 	}
 	catch(...)
 	{

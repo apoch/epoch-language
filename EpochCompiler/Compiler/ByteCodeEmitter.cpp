@@ -460,6 +460,24 @@ void ByteCodeEmitter::PoolString(StringHandle handle, const std::wstring& litera
 }
 
 
+//
+// Emit an entity metadata tag to the stream
+//
+// Metadata tags are used for things like controlling if a function is marshaled to an
+// external piece of code, and so on; many are compile-time only and therefore do not
+// need to be directly compiled into the final code, but some are useful in the binary
+// itself, and will be emitted via this function.
+//
+void ByteCodeEmitter::TagData(StringHandle entityname, const std::wstring& tag, const std::vector<std::wstring>& tagdata)
+{
+	EmitInstruction(Bytecode::Instructions::Tag);
+	EmitRawValue(entityname);
+	EmitRawValue(tagdata.size());
+	EmitTerminatedString(tag);
+	for(std::vector<std::wstring>::const_iterator iter = tagdata.begin(); iter != tagdata.end(); ++iter)
+		EmitTerminatedString(*iter);
+}
+
 
 //-------------------------------------------------------------------------------
 // Additional stream writing routines

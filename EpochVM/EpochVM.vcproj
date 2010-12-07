@@ -231,6 +231,14 @@
 			Name="Virtual Machine"
 			>
 			<File
+				RelativePath=".\Virtual Machine\Marshaling.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Virtual Machine\Marshaling.h"
+				>
+			</File>
+			<File
 				RelativePath=".\Virtual Machine\TypeInfo.cpp"
 				>
 			</File>

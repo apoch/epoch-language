@@ -47,6 +47,8 @@ typedef std::map<StringHandle, StringHandleSet> OverloadMap;
 struct TagHelperReturn
 {
 	std::wstring InvokeRuntimeFunction;
+	std::wstring MetaTag;
+	std::vector<std::wstring> MetaTagData;
 };
 
 

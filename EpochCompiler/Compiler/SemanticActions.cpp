@@ -2099,6 +2099,9 @@ void CompilationSemantics::CompleteFunctionTag()
 		TagHelperReturn ret = iter->second(LexicalScopeStack.top(), ctparams, IsPrepass);
 		if(!ret.InvokeRuntimeFunction.empty())
 			PendingEmitters.top().Invoke(Session.StringPool.Pool(ret.InvokeRuntimeFunction));
+
+		if(!ret.MetaTag.empty())
+			EmitterStack.top()->TagData(LexicalScopeStack.top(), ret.MetaTag, ret.MetaTagData);
 	}
 	else
 	{

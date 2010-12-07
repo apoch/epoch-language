@@ -50,6 +50,8 @@ namespace Bytecode
 
 		static const Instruction CopyBuffer = 0x19;
 
+		static const Instruction Tag = 0x1a;
+
 	}
 
 }

@@ -557,6 +557,14 @@
 				Name="Virtual Machine"
 				>
 				<File
+					RelativePath="..\EpochVM\Virtual Machine\Marshaling.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\EpochVM\Virtual Machine\Marshaling.h"
+					>
+				</File>
+				<File
 					RelativePath="..\EpochVM\Virtual Machine\TypeInfo.cpp"
 					>
 				</File>

@@ -333,6 +333,18 @@ void Serializer::Write(const std::wstring& filename) const
 			outfile << L"COPY_BUFFER " << traverser.Read<StringHandle>() << L"\n";
 			break;
 
+		case Bytecode::Instructions::Tag:
+			{
+				outfile << L"TAG " << traverser.Read<StringHandle>() << L" ";
+				size_t numitems = traverser.Read<size_t>();
+				outfile << numitems << L" ";
+				outfile << traverser.ReadTerminatedString() << L" ";
+				for(size_t i = 0; i < numitems; ++i)
+					outfile << traverser.ReadTerminatedString() << L" ";
+				outfile << L"\n";
+			}
+			break;
+
 		default:
 			throw SerializationException("Failed to serialize unknown opcode");
 		}

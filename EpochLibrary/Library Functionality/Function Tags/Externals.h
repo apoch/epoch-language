@@ -26,7 +26,7 @@ namespace FunctionTags
 {
 
 	void RegisterExternalTag(FunctionSignatureSet& signatureset, StringPoolManager& stringpool);
-	void RegisterExternalTag(FunctionInvocationTable& table, StringPoolManager& stringpool);
+	void RegisterExternalTag(EpochFunctionPtr marshalfunction, FunctionInvocationTable& table, StringPoolManager& stringpool);
 
 	void RegisterExternalTagHelper(FunctionTagHelperTable& table);
 

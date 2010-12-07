@@ -109,6 +109,8 @@ public:
 
 	void PoolString(StringHandle handle, const std::wstring& literalvalue);
 
+	void TagData(StringHandle entityname, const std::wstring& tag, const std::vector<std::wstring>& tagdata);
+
 // Additional helpers for writing to the data stream
 public:
 	void EmitBuffer(const ByteBuffer& buffer);

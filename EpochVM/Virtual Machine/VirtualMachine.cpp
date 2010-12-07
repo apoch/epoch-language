@@ -9,6 +9,7 @@
 
 #include "Virtual Machine/VirtualMachine.h"
 #include "Virtual Machine/TypeInfo.h"
+#include "Virtual Machine/Marshaling.h"
 
 #include "Metadata/ActiveScope.h"
 
@@ -49,14 +50,16 @@ void VirtualMachine::InitStandardLibraries()
 {
 	HINSTANCE dllhandle = Marshaling::TheDLLPool.OpenDLL(L"EpochLibrary.DLL");
 
-	typedef void (__stdcall *bindtovmptr)(FunctionInvocationTable&, EntityTable&, EntityTable&, StringPoolManager&, Bytecode::EntityTag&);
+	typedef void (__stdcall *bindtovmptr)(FunctionInvocationTable&, EntityTable&, EntityTable&, StringPoolManager&, Bytecode::EntityTag&, EpochFunctionPtr);
 	bindtovmptr bindtovm = reinterpret_cast<bindtovmptr>(::GetProcAddress(dllhandle, "BindToVirtualMachine"));
 
 	if(!bindtovm)
 		throw FatalException("Failed to load Epoch standard library");
 
+	void ExternalDispatch(StringHandle functionname, VM::ExecutionContext& context);
+
 	Bytecode::EntityTag customtag = Bytecode::EntityTags::CustomEntityBaseID;
-	bindtovm(GlobalFunctions, Entities, Entities, PrivateStringPool, customtag);
+	bindtovm(GlobalFunctions, Entities, Entities, PrivateStringPool, customtag, ExternalDispatch);
 }
 
 
@@ -818,6 +821,16 @@ void ExecutionContext::Execute(const ScopeDescription* scope)
 				State.Stack.PushValue(copiedbuffer);
 			}
 			break;
+
+		case Bytecode::Instructions::Tag:
+			{
+				Fetch<StringHandle>();		// Fetch entity to which tag is attached
+				size_t tagdatacount = Fetch<size_t>();
+				Fetch<std::wstring>();		// Fetch tag itself
+				for(size_t i = 0; i < tagdatacount; ++i)
+					Fetch<std::wstring>();	// Fetch tag data
+			}
+			break;
 		
 		default:
 			throw FatalException("Invalid bytecode operation");
@@ -918,6 +931,27 @@ void ExecutionContext::Load()
 					EpochTypeID type = Fetch<EpochTypeID>();
 					OwnerVM.StructureDefinitions[structurename].AddMember(identifier, type);
 				}
+			}
+			break;
+
+		case Bytecode::Instructions::Tag:
+			{
+				StringHandle entity = Fetch<StringHandle>();
+				size_t tagdatacount = Fetch<size_t>();
+				std::vector<std::wstring> metadata;
+				std::wstring tag = Fetch<std::wstring>();
+				for(size_t i = 0; i < tagdatacount; ++i)
+					metadata.push_back(Fetch<std::wstring>());
+
+				if(tag == L"external")
+				{
+					if(tagdatacount != 2)
+						throw FatalException("Incorrect number of metadata tag parameters for external marshaled function");
+
+					RegisterMarshaledExternalFunction(entity, metadata[0], metadata[1]);
+				}
+				else
+					throw FatalException("Unrecognized entity meta-tag in bytecode");
 			}
 			break;
 
