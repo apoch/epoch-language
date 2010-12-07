@@ -298,6 +298,8 @@ void CodeGenerator::Emit(Linker& linker, LinkWriter& writer)
 	writer.EmitByte(0x68);			// PUSH <size of bytecode>
 	writer.EmitDWORD(2000);			// TODO - write actual bytecode size
 
+	// TODO - test this code again, jump targets are probably borked
+
 	writer.EmitByte(0x8d);			// LEA EDX, DWORD PTR DS:[ESI+<code location offset>]
 	writer.EmitByte(0x96);
 	writer.EmitDWORD(linker.GetSectionManager().GetSection(".epoch").Location);
