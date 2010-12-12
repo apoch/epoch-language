@@ -928,6 +928,10 @@ void CompilationSemantics::RegisterReturnValue()
 		PendingEmitters.push(ByteCodeEmitter(PendingEmissionBuffers.top()));
 	}
 
+	// Abort if the function is void
+	if(FunctionSignatureStack.top().GetReturnType() == VM::EpochType_Void)
+		return;
+
 	// Perform type validation and housekeeping
 	switch(FunctionSignatureStack.top().GetReturnType())
 	{

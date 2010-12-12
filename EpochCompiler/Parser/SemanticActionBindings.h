@@ -615,11 +615,10 @@ struct RegisterReturnValue
 		: Bindings(bindings)
 	{ }
 
-	template <typename IteratorType>
-	void operator () (IteratorType begin, IteratorType end) const
+	template <typename ParamType>
+	void operator () (ParamType) const
 	{
-		Trace(L"RegisterReturnValue", begin, end);
-		Bindings.SetParsePosition(end);
+		Trace(L"RegisterReturnValue");
 		Bindings.RegisterReturnValue();
 	}
 

@@ -160,12 +160,12 @@ struct FundamentalGrammar : public boost::spirit::classic::grammar<FundamentalGr
 			ReturnDeclaration
 				= TypeMismatchExceptionGuard
 				  (
-					VariableType[RegisterReturnType(self.Bindings)] >> OPENPARENS >> StringIdentifier[RegisterReturnName(self.Bindings)] >> COMMA >> Expression[RegisterReturnValue(self.Bindings)] >> CLOSEPARENS
+					VariableType[RegisterReturnType(self.Bindings)] >> OPENPARENS >> StringIdentifier[RegisterReturnName(self.Bindings)] >> COMMA >> Expression >> CLOSEPARENS
 				  )[GeneralExceptionHandler(self.Bindings)]
 				;
 
 			ReturnList
-				= OPENPARENS[BeginReturnSet(self.Bindings)] >> !ReturnDeclaration >> CLOSEPARENS[EndReturnSet(self.Bindings)]
+				= OPENPARENS[BeginReturnSet(self.Bindings)] >> !ReturnDeclaration >> CLOSEPARENS[RegisterReturnValue(self.Bindings)][EndReturnSet(self.Bindings)]
 				;
 
 
