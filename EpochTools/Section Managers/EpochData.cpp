@@ -54,6 +54,9 @@ void EpochCode::Emit(Linker& linker, LinkWriter& writer)
 	std::ifstream infile(Filename.c_str(), std::ios::binary);
 	infile.unsetf(std::ios::skipws);
 
+	if(!infile)
+		throw FatalException("Failed to load intermediate binary file");
+
 	unsigned char byte;
 	while(infile >> byte)
 		writer.EmitByte(byte);

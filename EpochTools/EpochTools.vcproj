@@ -292,6 +292,14 @@
 						RelativePath="..\Shared\Utility\Files\Files.h"
 						>
 					</File>
+					<File
+						RelativePath="..\Shared\Utility\Files\FilesAndPaths.cpp"
+						>
+					</File>
+					<File
+						RelativePath="..\Shared\Utility\Files\FilesAndPaths.h"
+						>
+					</File>
 				</Filter>
 			</Filter>
 		</Filter>
@@ -476,6 +484,18 @@
 			</File>
 			<File
 				RelativePath=".\EpochTools.rc"
+				>
+			</File>
+		</Filter>
+		<Filter
+			Name="Project Files"
+			>
+			<File
+				RelativePath=".\Project Files\Project.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Project Files\Project.h"
 				>
 			</File>
 		</Filter>

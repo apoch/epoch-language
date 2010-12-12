@@ -15,6 +15,8 @@
 #include "Resource Compiler/ResourceDirectory.h"
 #include "Resource Compiler/ResourceScript.h"
 
+#include "Project Files/Project.h"
+
 #include <iostream>
 
 
@@ -25,7 +27,7 @@ using namespace ResourceCompiler;
 // Construct and initialize the resource section manager
 //
 Resources::Resources(Linker& linker)
-	: Script(std::list<std::wstring>())		// TODO - get project resource file list for script
+	: Script(linker.TheProject.GetResourceFileList())
 {
 }
 

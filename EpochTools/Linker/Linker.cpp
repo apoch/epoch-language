@@ -38,8 +38,10 @@ const DWORD Linker::ImageBaseAddress = 0x400000;
 //
 // Construct and initialize the link operation manager
 //
-Linker::Linker()
-	: CodeSize(0),
+Linker::Linker(const Projects::Project& project)
+	: TheProject(project),
+	
+	  CodeSize(0),
 	  DataSize(0),
 
 	  EntryPointAddress(0),
@@ -70,7 +72,7 @@ Linker::Linker()
 	SectionManagers.push_back(new Resources(*this));
 	TheResourceManager = dynamic_cast<Resources*>(SectionManagers.back());
 
-	SectionManagers.push_back(new EpochCode(L"d:\\foo.easm"));			// TODO - use real file name from project
+	SectionManagers.push_back(new EpochCode(TheProject.GetBinaryFileName(TheProject.GetSourceFileList().front())));
 }
 
 //
@@ -102,13 +104,13 @@ void Linker::GenerateSections()
 //
 void Linker::CommitFile()
 {
-	std::ofstream outstream("D:\\foo.exe", std::ios::binary);			// TODO - use real output filename from project
+	std::ofstream outstream(TheProject.GetQualifiedOutputFilename().c_str(), std::ios::binary);
 	if(!outstream)
 		throw FileException("Cannot open output file for writing");
 
 	outstream.unsetf(std::ios::skipws);
 
-	if(false)			// TODO - set console mode based on project settings
+	if(TheProject.GetUsesConsoleFlag())
 		HeaderManager->SetConsoleMode();
 
 	LinkWriter writer(outstream);
@@ -170,8 +172,8 @@ DWORD Linker::GetBaseAddress() const
 //
 DWORD Linker::GetEpochCodeSize() const
 {
-	boost::intmax_t size = boost::filesystem::file_size("d:\\foo.easm");		// TODO - use real intermediate file names
-	return RoundUpToFilePadding(static_cast<DWORD>(size));
+	boost::intmax_t size = boost::filesystem::file_size(TheProject.GetBinaryFileName(TheProject.GetSourceFileList().front()));
+	return static_cast<DWORD>(size);
 }
 
 

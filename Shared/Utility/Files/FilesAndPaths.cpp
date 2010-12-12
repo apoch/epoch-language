@@ -8,6 +8,8 @@
 #include "pch.h"
 #include "Utility/Files/FilesAndPaths.h"
 
+#include <vector>
+
 
 //
 // Helper for stripping file extensions

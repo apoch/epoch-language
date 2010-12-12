@@ -16,8 +16,11 @@
 #include "Serialization/Serializer.h"
 
 #include "Utility/Files/Files.h"
+#include "Utility/Files/FilesAndPaths.h"
 
 #include "Linker/Linker.h"
+
+#include "Project Files/Project.h"
 
 #include <vector>
 #include <fstream>
@@ -143,33 +146,49 @@ int _tmain(int argc, _TCHAR* argv[])
 			try
 			{
 				std::wstring filename(parameters[i]);
+				std::wstring projectpath = StripFilename(filename);
+				if(*projectpath.rbegin() != L'\\')
+					projectpath += L'\\';
 
 				output << L"Building: " << filename << L"\n" << std::endl;
 
-				/////
-				// TODO - compile actual code here
+				Projects::Project project(filename);
 
-				std::wstring sourcefilename(L"d:\\epoch\\programs\\projects\\exedemo\\exedemo.epoch");
-				std::wstring source = Files::Load(sourcefilename);
-				
-				DLLAccess::CompilerAccess compileraccess;
-				DLLAccess::CompiledByteCodeHandle bytecodebufferhandle = compileraccess.CompileSourceToByteCode(sourcefilename, source);
+				bool compilationsuccess = true;
 
-				if(bytecodebufferhandle)
+				const std::list<std::wstring>& sourcefiles = project.GetSourceFileList();
+				for(std::list<std::wstring>::const_iterator iter = sourcefiles.begin(); iter != sourcefiles.end(); ++iter)
 				{
-					const void* pdata = compileraccess.GetByteCode(bytecodebufferhandle);
-					size_t size = compileraccess.GetByteCodeSize(bytecodebufferhandle);
+					std::wstring source = Files::Load(projectpath + *iter);
+					
+					DLLAccess::CompilerAccess compileraccess;
+					DLLAccess::CompiledByteCodeHandle bytecodebufferhandle = compileraccess.CompileSourceToByteCode(*iter, source);
 
-					std::ofstream outfile(L"d:\\foo.easm", std::ios::binary);
-					outfile.write(reinterpret_cast<const char*>(pdata), static_cast<std::streamsize>(size));
+					if(bytecodebufferhandle)
+					{
+						const void* pdata = compileraccess.GetByteCode(bytecodebufferhandle);
+						size_t size = compileraccess.GetByteCodeSize(bytecodebufferhandle);
+
+						std::wstring intermediatefile = project.GetBinaryFileName(*iter);
+						std::ofstream outfile(intermediatefile.c_str(), std::ios::binary);
+						if(outfile)
+							outfile.write(reinterpret_cast<const char*>(pdata), static_cast<std::streamsize>(size));
+						else
+						{
+							output << L"Error: failed to open output intermediate file\n" << intermediatefile << L"\n\n";
+							compilationsuccess = false;
+						}
+					}
+					else
+						compilationsuccess = false;
 				}
 
-				/////
-				
-
-				Linker link;
-				link.GenerateSections();
-				link.CommitFile();
+				if(compilationsuccess)
+				{
+					Linker link(project);
+					link.GenerateSections();
+					link.CommitFile();
+				}
 			}
 			catch(std::exception& e)
 			{

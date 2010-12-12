@@ -20,6 +20,8 @@ class LinkWriter;
 
 
 // Dependencies
+#include "Project Files/Project.h"
+
 #include <list>
 
 
@@ -53,7 +55,7 @@ class Linker
 {
 // Construction and destruction
 public:
-	Linker();
+	explicit Linker(const Projects::Project& project);
 	~Linker();
 
 // EXE generation interface
@@ -93,6 +95,10 @@ public:
 	DWORD GetVirtualAlignment() const;
 
 	DWORD GetVirtualImageSize() const;
+
+// Publicly visible tracking
+public:
+	const Projects::Project& TheProject;
 
 // Internal tracking
 private:
