@@ -2340,12 +2340,16 @@ const std::wstring& CompilationSemantics::CreateStructureType()
 	LexicalScopeDescriptions[idhandle].AddVariable(L"identifier", Session.StringPool.Pool(L"identifier"), VM::EpochType_Identifier, true, VARIABLE_ORIGIN_PARAMETER);
 
 	// Add parameters for each structure member
+	size_t index = 1;		// Account for the fact that the constructed variable's identifier occupies slot 0
 	for(StructureMemberList::const_iterator iter = StructureMembers.begin(); iter != StructureMembers.end(); ++iter)
 	{
 		const std::wstring& identifier = Session.StringPool.GetPooledString(iter->second);
 		signature.AddParameter(identifier, iter->first, false);
+		if(iter->first == VM::EpochType_Function)
+			signature.SetFunctionSignature(index, StructureFunctionSignatures.find(identifier)->second);
 		Structures[type].AddMember(iter->second, iter->first);
 		LexicalScopeDescriptions[idhandle].AddVariable(identifier, iter->second, iter->first, false, VARIABLE_ORIGIN_PARAMETER);
+		++index;
 	}
 
 	AddToMapNoDupe(Session.FunctionSignatures, std::make_pair(idhandle, signature));

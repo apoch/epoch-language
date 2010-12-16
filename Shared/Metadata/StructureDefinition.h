@@ -38,7 +38,7 @@ public:
 // Additional accessors
 public:
 	size_t GetSize() const
-	{ return Offset; }
+	{ return Offset; }			// TODO - calculate CORRECT size for nested structs that need to be marshaled (maybe as a separate function?)
 
 // Internal helper
 private:
