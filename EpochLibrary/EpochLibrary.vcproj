@@ -361,6 +361,18 @@
 					>
 				</File>
 			</Filter>
+			<Filter
+				Name="Marshaling"
+				>
+				<File
+					RelativePath=".\Library Functionality\Marshaling\MarshalingLibrary.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\Library Functionality\Marshaling\MarshalingLibrary.h"
+					>
+				</File>
+			</Filter>
 		</Filter>
 		<Filter
 			Name="Shared"

@@ -91,7 +91,7 @@ namespace VM
 		ActiveStructure& GetStructure(StructureHandle handle);
 		StructureHandle AllocateStructure(const StructureDefinition& description);
 
-		const StructureDefinition& GetStructureDefinition(StringHandle identifier) const;
+		const StructureDefinition& GetStructureDefinition(EpochTypeID vartype) const;
 
 	// Functions
 	public:
@@ -135,7 +135,7 @@ namespace VM
 
 	// Public tracking
 	public:
-		std::map<StringHandle, StructureDefinition> StructureDefinitions;
+		std::map<EpochTypeID, StructureDefinition> StructureDefinitions;
 
 	// Handy type shortcuts
 	private:

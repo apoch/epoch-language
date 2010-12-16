@@ -93,8 +93,8 @@ public:
 
 // Structures
 public:
-	void AllocateStructure(StringHandle descriptionname);
-	void DefineStructure(StringHandle identifier, size_t nummembers);
+	void AllocateStructure(VM::EpochTypeID descriptiontype);
+	void DefineStructure(VM::EpochTypeID type, size_t nummembers);
 	void StructureMember(StringHandle identifier, VM::EpochTypeID type);
 	void CopyFromStructure(StringHandle structurevariable, StringHandle membervariable);
 	void AssignStructure(StringHandle structurevariable, StringHandle membername);

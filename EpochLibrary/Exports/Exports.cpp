@@ -24,6 +24,8 @@
 
 #include "Library Functionality/Function Tags/Externals.h"
 
+#include "Library Functionality/Marshaling/MarshalingLibrary.h"
+
 #include "Virtual Machine/VirtualMachine.h"
 
 
@@ -47,6 +49,8 @@ extern "C" void __stdcall RegisterLibraryContents(FunctionSignatureSet& function
 		FlowControl::RegisterStrings(stringpool);
 
 		FunctionTags::RegisterExternalTag(functionsignatures, stringpool);
+
+		MarshalingLibrary::RegisterLibraryFunctions(functionsignatures, stringpool);
 	}
 	catch(...)
 	{
@@ -76,6 +80,8 @@ extern "C" void __stdcall BindToVirtualMachine(FunctionInvocationTable& function
 		FlowControl::RegisterLoopEntities(entities, entities, entities, entities, stringpool, tagindex);
 
 		FunctionTags::RegisterExternalTag(marshalfunction, functiontable, stringpool);
+
+		MarshalingLibrary::RegisterLibraryFunctions(functiontable, stringpool);
 	}
 	catch(...)
 	{

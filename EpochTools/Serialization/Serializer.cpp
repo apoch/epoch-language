@@ -297,18 +297,18 @@ void Serializer::Write(const std::wstring& filename) const
 			break;
 
 		case Bytecode::Instructions::AllocStructure:
-			outfile << L"ALLOCSTRUCT " << traverser.Read<StringHandle>() << L"\n";
+			outfile << L"ALLOCSTRUCT " << traverser.ReadTypeAnnotation() << L"\n";
 			break;
 
 		case Bytecode::Instructions::DefineStructure:
 			{
-				outfile << L"STRUCT " << traverser.Read<StringHandle>();
+				outfile << L"STRUCT " << traverser.ReadTypeAnnotation();
 				size_t nummembers = traverser.Read<size_t>();
 				outfile << L" " << nummembers << L" ";
 				for(size_t i = 0; i < nummembers; ++i)
 				{
 					StringHandle identifier = traverser.Read<StringHandle>();
-					VM::EpochTypeID type = traverser.Read<VM::EpochTypeID>();
+					VM::EpochTypeID type = traverser.ReadTypeAnnotation();
 					outfile << identifier << L" " << type << L" ";
 				}
 				outfile << L"\n";

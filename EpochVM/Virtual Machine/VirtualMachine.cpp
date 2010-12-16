@@ -808,7 +808,7 @@ void ExecutionContext::Execute(const ScopeDescription* scope)
 
 		case Bytecode::Instructions::AllocStructure:
 			{
-				StringHandle structuredescription = Fetch<StringHandle>();
+				EpochTypeID structuredescription = Fetch<EpochTypeID>();
 				State.Stack.PushValue(OwnerVM.AllocateStructure(OwnerVM.GetStructureDefinition(structuredescription)));
 				TickStructureGarbageCollector();
 			}
@@ -924,14 +924,14 @@ void ExecutionContext::Load()
 
 		case Bytecode::Instructions::DefineStructure:
 			{
-				StringHandle structurename = Fetch<StringHandle>();
+				EpochTypeID structuretypeid = Fetch<EpochTypeID>();
 				size_t numentries = Fetch<size_t>();
 
 				for(size_t i = 0; i < numentries; ++i)
 				{
 					StringHandle identifier = Fetch<StringHandle>();
 					EpochTypeID type = Fetch<EpochTypeID>();
-					OwnerVM.StructureDefinitions[structurename].AddMember(identifier, type);
+					OwnerVM.StructureDefinitions[structuretypeid].AddMember(identifier, type);
 				}
 			}
 			break;
@@ -969,6 +969,7 @@ void ExecutionContext::Load()
 		// Single-bye operations with one payload field
 		case Bytecode::Instructions::Pop:
 		case Bytecode::Instructions::InvokeMeta:
+		case Bytecode::Instructions::AllocStructure:
 			Fetch<EpochTypeID>();
 			break;
 
@@ -985,7 +986,6 @@ void ExecutionContext::Load()
 		case Bytecode::Instructions::InvokeIndirect:
 		case Bytecode::Instructions::SetRetVal:
 		case Bytecode::Instructions::BindRef:
-		case Bytecode::Instructions::AllocStructure:
 		case Bytecode::Instructions::BindMemberRef:
 		case Bytecode::Instructions::CopyBuffer:
 			Fetch<StringHandle>();
@@ -1116,9 +1116,9 @@ StructureHandle VirtualMachine::AllocateStructure(const StructureDefinition &des
 	return CurrentStructureHandle;
 }
 
-const StructureDefinition& VirtualMachine::GetStructureDefinition(StringHandle identifier) const
+const StructureDefinition& VirtualMachine::GetStructureDefinition(EpochTypeID type) const
 {
-	std::map<StringHandle, StructureDefinition>::const_iterator iter = StructureDefinitions.find(identifier);
+	std::map<EpochTypeID, StructureDefinition>::const_iterator iter = StructureDefinitions.find(type);
 	if(iter == StructureDefinitions.end())
 		throw FatalException("Invalid structure description handle");
 

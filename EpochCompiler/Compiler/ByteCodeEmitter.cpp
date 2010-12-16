@@ -389,19 +389,19 @@ void ByteCodeEmitter::ResolvePattern(StringHandle dispatchfunction, const Functi
 //
 // Emit an instruction which allocates a new structure on the freestore
 //
-void ByteCodeEmitter::AllocateStructure(StringHandle descriptionname)
+void ByteCodeEmitter::AllocateStructure(VM::EpochTypeID descriptiontype)
 {
 	EmitInstruction(Bytecode::Instructions::AllocStructure);
-	EmitRawValue(descriptionname);
+	EmitTypeAnnotation(descriptiontype);
 }
 
 //
 // Emit a meta-data instruction for defining a POD data structure
 //
-void ByteCodeEmitter::DefineStructure(StringHandle identifier, size_t nummembers)
+void ByteCodeEmitter::DefineStructure(VM::EpochTypeID type, size_t nummembers)
 {
 	EmitInstruction(Bytecode::Instructions::DefineStructure);
-	EmitRawValue(identifier);
+	EmitTypeAnnotation(type);
 	EmitRawValue(nummembers);
 }
 
