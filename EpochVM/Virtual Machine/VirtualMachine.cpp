@@ -797,11 +797,10 @@ void ExecutionContext::Execute(const ScopeDescription* scope)
 
 				if(matchedpattern)
 				{
-					// TODO - rewrite pattern matching logic to use recursionless VM model
+					size_t internaloffset = OwnerVM.GetFunctionInstructionOffset(originalfunction);
 
-					// Jump execution into the original function, taking care to remove the dispatcher from the call stack
-					Execute(OwnerVM.GetFunctionInstructionOffset(originalfunction), OwnerVM.GetScopeDescription(originalfunction));
-					return;
+					InstructionOffset = internaloffset;
+					scope = &OwnerVM.GetScopeDescription(originalfunction);
 				}
 			}
 			break;

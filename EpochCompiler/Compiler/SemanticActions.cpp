@@ -928,7 +928,8 @@ void CompilationSemantics::RegisterReturnValue()
 		PendingEmitters.push(ByteCodeEmitter(PendingEmissionBuffers.top()));
 	}
 
-	// Abort if the function is void
+	// Abort if the function is void (we don't need to type-check the return value, and
+	// there's nothing to clean up in the parser state since there's no return expression)
 	if(FunctionSignatureStack.top().GetReturnType() == VM::EpochType_Void)
 		return;
 
@@ -1911,6 +1912,7 @@ void CompilationSemantics::GetAllMatchingOverloads(const CompileTimeParameterVec
 
 		bool matched = true;
 		bool patternsucceeded = true;
+		bool patternsucceededonvalue = false;
 		for(size_t i = paramoffset; i < std::min(params.size(), paramoffset + paramlimit); ++i)
 		{
 			if(signatureiter->second.GetParameter(i - paramoffset).Name == L"@@patternmatched")
@@ -1921,6 +1923,8 @@ void CompilationSemantics::GetAllMatchingOverloads(const CompileTimeParameterVec
 				case VM::EpochType_Integer:
 					if(signatureiter->second.GetParameter(i - paramoffset).Payload.IntegerValue != params[i].Payload.IntegerValue)
 						patternsucceeded = false;
+					else
+						patternsucceededonvalue = true;
 					break;
 
 				// If an identifier is passed, we have to check if the overload wants an identifier or a variable
@@ -1930,6 +1934,8 @@ void CompilationSemantics::GetAllMatchingOverloads(const CompileTimeParameterVec
 					{
 						if(signatureiter->second.GetParameter(i - paramoffset).Payload.StringHandleValue != params[i].Payload.StringHandleValue)
 							patternsucceeded = false;
+						else
+							patternsucceededonvalue = true;
 					}
 					else
 						patternsucceeded = false;
@@ -2008,9 +2014,12 @@ void CompilationSemantics::GetAllMatchingOverloads(const CompileTimeParameterVec
 			{
 				if(patternsucceeded)
 				{
-					remaptopatternresolver = false;
-					matches.insert(*iter);
-					break;
+					if(patternsucceededonvalue)
+					{
+						remaptopatternresolver = false;
+						matches.insert(*iter);
+						break;
+					}
 				}
 				else if(!differingreturntypes)
 					remaptopatternresolver = true;
