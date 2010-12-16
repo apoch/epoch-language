@@ -119,6 +119,11 @@ namespace VM
 		const ScopeDescription& GetScopeDescription(StringHandle name) const;
 		ScopeDescription& GetScopeDescription(StringHandle name);
 
+	// Garbage collection
+	public:
+		void GarbageCollectBuffers(const std::set<BufferHandle>& livehandles);
+		void GarbageCollectStructures(const std::set<StructureHandle>& livehandles);
+
 	// Use sparingly! Only intended for access by the garbage collector
 	public:
 		StringPoolManager& PrivateGetRawStringPool()
@@ -222,6 +227,9 @@ namespace VM
 		void TickBufferGarbageCollector();
 		void TickStringGarbageCollector();
 		void TickStructureGarbageCollector();
+
+		template <typename HandleType, typename ValidatorT>
+		void MarkAndSweep(ValidatorT validator, std::set<HandleType>& livehandles);
 
 	// Internal state
 	private:

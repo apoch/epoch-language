@@ -8,6 +8,7 @@
 #include "pch.h"
 
 #include "Utility/StringPool.h"
+#include "Utility/EraseDeadHandles.h"
 
 
 //
@@ -103,12 +104,6 @@ const std::wstring& StringPoolManager::GetPooledString(StringHandle handle) cons
 //
 void StringPoolManager::GarbageCollect(const std::set<StringHandle>& livehandles)
 {
-	for(std::map<StringHandle, std::wstring>::iterator iter = PooledStrings.begin(); iter != PooledStrings.end(); )
-	{
-		if(livehandles.find(iter->first) == livehandles.end())
-			iter = PooledStrings.erase(iter);
-		else
-			++iter;
-	}
+	EraseDeadHandles(PooledStrings, livehandles);
 }
 

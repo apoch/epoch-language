@@ -17,6 +17,7 @@
 #include "Bytecode/EntityTags.h"
 
 #include "Utility/DLLPool.h"
+#include "Utility/EraseDeadHandles.h"
 
 #include <limits>
 #include <list>
@@ -809,6 +810,7 @@ void ExecutionContext::Execute(const ScopeDescription* scope)
 			{
 				StringHandle structuredescription = Fetch<StringHandle>();
 				State.Stack.PushValue(OwnerVM.AllocateStructure(OwnerVM.GetStructureDefinition(structuredescription)));
+				TickStructureGarbageCollector();
 			}
 			break;
 
@@ -818,6 +820,7 @@ void ExecutionContext::Execute(const ScopeDescription* scope)
 				BufferHandle originalbuffer = Variables->Read<BufferHandle>(identifier);
 				BufferHandle copiedbuffer = OwnerVM.CloneBuffer(originalbuffer);
 				State.Stack.PushValue(copiedbuffer);
+				TickBufferGarbageCollector();
 			}
 			break;
 
@@ -1174,19 +1177,32 @@ void ExecutionContext::TickStructureGarbageCollector()
 }
 
 
-void ExecutionContext::CollectGarbage_Buffers()
+namespace
 {
-	// TODO - mark/sweep the program memory space for buffer handles
+
+	bool ValidatorStrings(EpochTypeID vartype)
+	{
+		return (vartype == EpochType_String);
+	}
+
+	bool ValidatorBuffers(EpochTypeID vartype)
+	{
+		return (vartype == EpochType_Buffer);
+	}
+
+	bool ValidatorStructures(EpochTypeID vartype)
+	{
+		return (vartype > EpochType_CustomBase);
+	}
+
 }
 
-void ExecutionContext::CollectGarbage_Strings()
-{
-	// Begin with the set of known static string references, as parsed from the code during load phase
-	// This is done to ensure that statically referenced strings are never discarded by the collector.
-	std::set<StringHandle> livehandles = StaticallyReferencedStrings;
 
-	// Traverse the active stack, starting in the current frame and unwinding upwards to the root code
-	// invocation, marking each local string variable as holding the applicable string reference.
+template <typename HandleType, typename ValidatorT>
+void ExecutionContext::MarkAndSweep(ValidatorT validator, std::set<HandleType>& livehandles)
+{
+	// Traverse the active stack, starting in the current frame and unwinding upwards to the
+	// root code invocation, marking each local variable as holding the applicable reference
 	ActiveScope* scope = Variables;
 	while(scope)
 	{
@@ -1195,9 +1211,9 @@ void ExecutionContext::CollectGarbage_Strings()
 		for(size_t i = 0; i < numvars; ++i)
 		{
 			EpochTypeID vartype = description.GetVariableTypeByIndex(i);
-			if(vartype == EpochType_String)
+			if(validator(vartype))
 			{
-				StringHandle marked = scope->Read<StringHandle>(description.GetVariableNameHandle(i));
+				HandleType marked = scope->Read<HandleType>(description.GetVariableNameHandle(i));
 				livehandles.insert(marked);
 			}
 		}
@@ -1212,13 +1228,35 @@ void ExecutionContext::CollectGarbage_Strings()
 		const StructureDefinition& definition = iter->second.Definition;
 		for(size_t i = 0; i < definition.GetNumMembers(); ++i)
 		{
-			if(definition.GetMemberType(i) == EpochType_String)
+			if(validator(definition.GetMemberType(i)))
 			{
-				StringHandle marked = iter->second.ReadMember<StringHandle>(i);
+				HandleType marked = iter->second.ReadMember<HandleType>(i);
 				livehandles.insert(marked);
 			}
 		}
 	}
+}
+
+
+void ExecutionContext::CollectGarbage_Buffers()
+{
+	std::set<BufferHandle> livehandles;
+
+	// Traverse active scopes/structures for variables holding buffer references
+	MarkAndSweep<BufferHandle>(ValidatorBuffers, livehandles);
+
+	// Now garbage collect all buffers which are not live
+	OwnerVM.GarbageCollectBuffers(livehandles);
+}
+
+void ExecutionContext::CollectGarbage_Strings()
+{
+	// Begin with the set of known static string references, as parsed from the code during load phase
+	// This is done to ensure that statically referenced strings are never discarded by the collector.
+	std::set<StringHandle> livehandles = StaticallyReferencedStrings;
+
+	// Traverse active scopes/structures for variables holding string references
+	MarkAndSweep<StringHandle>(ValidatorStrings, livehandles);
 
 	// Now that the list of live handles is known, we can collect all unused string memory.
 	OwnerVM.PrivateGetRawStringPool().GarbageCollect(livehandles);
@@ -1226,6 +1264,25 @@ void ExecutionContext::CollectGarbage_Strings()
 
 void ExecutionContext::CollectGarbage_Structures()
 {
-	// TODO - mark/sweep the program memory space for structure handles
+	std::set<StructureHandle> livehandles;
+
+	// Traverse active scopes/structures for variables holding structure references
+	MarkAndSweep<StructureHandle>(ValidatorStructures, livehandles);
+
+	// Now garbage collect all structures which are not live
+	OwnerVM.GarbageCollectStructures(livehandles);
 }
+
+
+void VirtualMachine::GarbageCollectBuffers(const std::set<BufferHandle>& livehandles)
+{
+	EraseDeadHandles(Buffers, livehandles);
+}
+
+
+void VirtualMachine::GarbageCollectStructures(const std::set<StructureHandle>& livehandles)
+{
+	EraseDeadHandles(ActiveStructures, livehandles);
+}
+
 

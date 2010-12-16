@@ -80,6 +80,7 @@ namespace
 
 		BufferHandle bufferhandle = context.OwnerVM.AllocateBuffer((size + 1) * sizeof(wchar_t));
 		context.Variables->Write(identifierhandle, bufferhandle);
+		context.TickBufferGarbageCollector();
 	}
 
 

@@ -306,6 +306,10 @@
 					>
 				</File>
 				<File
+					RelativePath="..\Shared\Utility\EraseDeadHandles.h"
+					>
+				</File>
+				<File
 					RelativePath="..\Shared\Utility\Exception.h"
 					>
 				</File>
