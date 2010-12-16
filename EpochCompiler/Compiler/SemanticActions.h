@@ -179,6 +179,9 @@ public:
 	virtual const std::wstring& CreateStructureType();
 	virtual void StoreStructureMemberType(const std::wstring& type);
 	virtual void RegisterStructureMember(const std::wstring& identifier);
+	virtual void RegisterStructureMemberIsFunction();
+	virtual void RegisterStructureFunctionRefParam(const std::wstring& paramtypename);
+	virtual void RegisterStructureFunctionRefReturn(const std::wstring& returntypename);
 
 	virtual void Finalize();
 
@@ -309,11 +312,13 @@ private:
 
 	size_t AnonymousScopeCounter;
 
+	std::wstring StructureName;
 	VM::EpochTypeID CustomTypeIDCounter;
 	StructureDefinitionMap Structures;
 	StructureNameMap StructureNames;
 	VM::EpochTypeID StructureMemberType;
 	StructureMemberList StructureMembers;
+	std::map<std::wstring, FunctionSignature> StructureFunctionSignatures;
 
 	bool ParamIsReference;
 

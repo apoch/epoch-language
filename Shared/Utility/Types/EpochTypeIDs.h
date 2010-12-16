@@ -28,9 +28,10 @@ namespace VM
 	static const EpochTypeID EpochType_Boolean = 6;
 	static const EpochTypeID EpochType_String = 7;
 	static const EpochTypeID EpochType_Real = 8;
+	static const EpochTypeID EpochType_Integer16 = 9;
 
-	static const EpochTypeID EpochType_Buffer = 9;
+	static const EpochTypeID EpochType_Buffer = 10;
 
-	static const EpochTypeID EpochType_CustomBase = 10;			// Must be the highest type ID
+	static const EpochTypeID EpochType_CustomBase = 20;			// Must be the highest type ID
 }
 

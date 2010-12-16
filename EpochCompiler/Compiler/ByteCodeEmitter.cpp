@@ -11,6 +11,7 @@
 
 #include "Metadata/FunctionSignature.h"
 
+#include <sstream>
 
 
 //-------------------------------------------------------------------------------
@@ -74,6 +75,22 @@ void ByteCodeEmitter::PushIntegerLiteral(Integer32 value)
 	EmitInstruction(Bytecode::Instructions::Push);
 	EmitTypeAnnotation(VM::EpochType_Integer);
 	EmitRawValue(value);
+}
+
+//
+// Emit code for pushing a 16-bit integer literal onto the stack
+//
+void ByteCodeEmitter::PushInteger16Literal(Integer32 value)
+{
+	Integer16 value16 = 0;
+	std::wstringstream conversion;
+	conversion << value;
+	if(!(conversion >> value16))
+		throw FatalException("Overflow in integer16 value");
+
+	EmitInstruction(Bytecode::Instructions::Push);
+	EmitTypeAnnotation(VM::EpochType_Integer16);
+	EmitRawValue(value16);
 }
 
 //
@@ -567,6 +584,15 @@ void ByteCodeEmitter::EmitRawValue(Integer32 value)
 	Buffer.push_back(static_cast<Byte>(static_cast<unsigned char>(value >> 8) & 0xff));
 	Buffer.push_back(static_cast<Byte>(static_cast<unsigned char>(value >> 16) & 0xff));
 	Buffer.push_back(static_cast<Byte>(static_cast<unsigned char>(value >> 24) & 0xff));
+}
+
+//
+// Append a 16-bit integer value to the stream, in little-endian order
+//
+void ByteCodeEmitter::EmitRawValue(Integer16 value)
+{
+	Buffer.push_back(static_cast<Byte>(static_cast<unsigned char>(value) & 0xff));
+	Buffer.push_back(static_cast<Byte>(static_cast<unsigned char>(value >> 8) & 0xff));
 }
 
 //

@@ -53,6 +53,7 @@ public:
 // Stack operations
 public:
 	void PushIntegerLiteral(Integer32 value);
+	void PushInteger16Literal(Integer32 value);
 	void PushStringLiteral(StringHandle handle);
 	void PushBooleanLiteral(bool value);
 	void PushRealLiteral(Real32 value);
@@ -126,6 +127,7 @@ private:
 	void EmitRawValue(bool value);
 	void EmitRawValue(Byte value);
 	void EmitRawValue(Integer32 value);
+	void EmitRawValue(Integer16 value);
 	void EmitRawValue(HandleType value);
 	void EmitRawValue(const std::wstring& value);
 	void EmitRawValue(Real32 value);

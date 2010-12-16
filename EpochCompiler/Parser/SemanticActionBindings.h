@@ -1233,3 +1233,60 @@ struct StoreMember
 
 	SemanticActionInterface& Bindings;
 };
+
+
+struct RegisterStructureMemberIsFunction
+{
+	explicit RegisterStructureMemberIsFunction(SemanticActionInterface& bindings)
+		: Bindings(bindings)
+	{ }
+
+	template <typename ParamType>
+	void operator () (ParamType) const
+	{
+		Trace(L"RegisterStructureMemberIsFunction");
+		Bindings.RegisterStructureMemberIsFunction();
+	}
+
+	SemanticActionInterface& Bindings;
+};
+
+struct RegisterStructureFunctionRefParam
+{
+	explicit RegisterStructureFunctionRefParam(SemanticActionInterface& bindings)
+		: Bindings(bindings)
+	{ }
+
+	template <typename IteratorType>
+	void operator () (IteratorType begin, IteratorType end) const
+	{
+		Trace(L"RegisterStructureFunctionRefParam", begin, end);
+		Bindings.SetParsePosition(end);
+
+		std::wstring str(begin, end);
+		Bindings.RegisterStructureFunctionRefParam(str);
+	}
+
+	SemanticActionInterface& Bindings;
+};
+
+struct RegisterStructureFunctionRefReturn
+{
+	explicit RegisterStructureFunctionRefReturn(SemanticActionInterface& bindings)
+		: Bindings(bindings)
+	{ }
+
+	template <typename IteratorType>
+	void operator () (IteratorType begin, IteratorType end) const
+	{
+		Trace(L"RegisterStructureFunctionRefReturn", begin, end);
+		Bindings.SetParsePosition(end);
+
+		std::wstring str(begin, end);
+		Bindings.RegisterStructureFunctionRefReturn(str);
+	}
+
+	SemanticActionInterface& Bindings;
+};
+
+

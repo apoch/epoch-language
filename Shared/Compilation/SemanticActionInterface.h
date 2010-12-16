@@ -103,6 +103,9 @@ public:
 	virtual const std::wstring& CreateStructureType() = 0;
 	virtual void StoreStructureMemberType(const std::wstring& type) = 0;
 	virtual void RegisterStructureMember(const std::wstring& identifier) = 0;
+	virtual void RegisterStructureMemberIsFunction() = 0;
+	virtual void RegisterStructureFunctionRefParam(const std::wstring& paramtypename) = 0;
+	virtual void RegisterStructureFunctionRefReturn(const std::wstring& returntypename) = 0;
 
 	virtual void Finalize() = 0;
 

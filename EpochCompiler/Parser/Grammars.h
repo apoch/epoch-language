@@ -85,6 +85,7 @@ struct FundamentalGrammar : public boost::spirit::classic::grammar<FundamentalGr
 
 				MAPARROW("->"),
 				
+				INTEGER16("integer16"),
 				INTEGER("integer"),
 				STRING("string"),
 				BOOLEAN("boolean"),
@@ -132,7 +133,8 @@ struct FundamentalGrammar : public boost::spirit::classic::grammar<FundamentalGr
 
 
 			VariableType
-				= INTEGER
+				= INTEGER16
+				| INTEGER
 				| STRING
 				| BOOLEAN
 				| REAL
@@ -261,7 +263,11 @@ struct FundamentalGrammar : public boost::spirit::classic::grammar<FundamentalGr
 				;
 
 			StructureMember
-				= VariableType[StoreStructureMemberType(self.Bindings)] >> OPENPARENS >> StringIdentifier[RegisterStructureMember(self.Bindings)] >> CLOSEPARENS
+				= ((StringIdentifier - VariableType)[StoreTemporaryString(self.Bindings)] >> COLON >>
+					OPENPARENS[RegisterStructureMemberIsFunction(self.Bindings)] >> !(VariableType[RegisterStructureFunctionRefParam(self.Bindings)] % COMMA) >> CLOSEPARENS
+					>> MAPARROW >> OPENPARENS >> (!VariableType[RegisterStructureFunctionRefReturn(self.Bindings)]) >> CLOSEPARENS
+				  )
+				| (VariableType[StoreStructureMemberType(self.Bindings)] >> OPENPARENS >> StringIdentifier[RegisterStructureMember(self.Bindings)] >> CLOSEPARENS)
 				;
 
 			MetaEntity
@@ -315,7 +321,7 @@ struct FundamentalGrammar : public boost::spirit::classic::grammar<FundamentalGr
 
 		boost::spirit::classic::chlit<> COLON, OPENPARENS, CLOSEPARENS, OPENBRACE, CLOSEBRACE, OPENBRACKET, CLOSEBRACKET, PERIOD, COMMA, QUOTE, NEGATE;
 
-		boost::spirit::classic::strlit<> MAPARROW, INTEGER, STRING, BOOLEAN, REAL, BUFFER, STRUCTURE, ASSIGN, EPOCH_TRUE, EPOCH_FALSE, REFERENCE;
+		boost::spirit::classic::strlit<> MAPARROW, INTEGER16, INTEGER, STRING, BOOLEAN, REAL, BUFFER, STRUCTURE, ASSIGN, EPOCH_TRUE, EPOCH_FALSE, REFERENCE;
 
 		boost::spirit::classic::rule<ScannerType> StringIdentifier;
 

@@ -974,6 +974,44 @@ void CompilationSemantics::RegisterReturnValue()
 			Throw(TypeMismatchException("The function is defined as returning an integer but the provided default return value is not of an integer type."));
 		break;
 
+	case VM::EpochType_Integer16:
+		if(PushedItemTypes.top() == ITEMTYPE_INTEGERLITERAL)
+		{
+			if(!IsPrepass)
+				PendingEmitters.top().PushInteger16Literal(IntegerLiterals.top());
+			IntegerLiterals.pop();
+		}
+		else if(PushedItemTypes.top() == ITEMTYPE_STRING)
+		{
+			StringHandle varhandle = Session.StringPool.Pool(Strings.top());
+			Strings.pop();
+
+			VM::EpochTypeID vartype = FunctionSignatureStack.top().GetParameter(Session.StringPool.GetPooledString(varhandle)).Type;
+			if(vartype != VM::EpochType_Integer16)
+				Throw(TypeMismatchException("The function is defined as returning an integer16 but the provided default return value is not of an integer16 type."));
+
+			if(!IsPrepass)
+			{
+				if(FunctionSignatureStack.top().GetParameter(Session.StringPool.GetPooledString(varhandle)).IsReference)
+					throw NotImplementedException("Support for returning references is not implemented");
+				else
+					PendingEmitters.top().PushVariableValue(varhandle, vartype);
+			}
+		}
+		else if(PushedItemTypes.top() == ITEMTYPE_STATEMENT)
+		{
+			if(!IsPrepass)
+			{
+				if(StatementTypes.top() != VM::EpochType_Integer16)
+					Throw(TypeMismatchException("The function is defined as returning an integer16 but the provided default return value is not of an integer16 type."));
+			}
+
+			ReturnsIncludedStatement.top() = true;
+		}
+		else
+			Throw(TypeMismatchException("The function is defined as returning an integer16 but the provided default return value is not of an integer16 type."));
+		break;
+
 	case VM::EpochType_String:
 		if(PushedItemTypes.top() == ITEMTYPE_STRINGLITERAL)
 		{
@@ -2221,7 +2259,7 @@ namespace
 //
 void CompilationSemantics::StoreStructureName(const std::wstring& identifier)
 {
-	TemporaryString = identifier;
+	StructureName = identifier;
 }
 
 //
@@ -2243,6 +2281,44 @@ void CompilationSemantics::RegisterStructureMember(const std::wstring& identifie
 }
 
 //
+// Register that a structure member is a function reference
+//
+void CompilationSemantics::RegisterStructureMemberIsFunction()
+{
+	if(IsPrepass)
+		HigherOrderFunctionSignatures.push(FunctionSignature());
+}
+
+//
+// Register a parameter passed to a function reference stored in a structure member
+//
+void CompilationSemantics::RegisterStructureFunctionRefParam(const std::wstring& paramtypename)
+{
+	if(IsPrepass)
+		HigherOrderFunctionSignatures.top().AddParameter(L"@@param", LookupTypeName(paramtypename), false);
+}
+
+//
+// Register the return type of a function reference stored in a structure member
+//
+void CompilationSemantics::RegisterStructureFunctionRefReturn(const std::wstring& returntypename)
+{
+	if(IsPrepass)
+	{
+		HigherOrderFunctionSignatures.top().SetReturnType(LookupTypeName(returntypename));
+
+		// TODO - validate that the structure member name is unique
+		// TODO - support void functions in structure members
+
+		StructureMembers.push_back(StructureMemberTypeNamePair(VM::EpochType_Function, Session.StringPool.Pool(TemporaryString)));
+		StructureFunctionSignatures[TemporaryString] = HigherOrderFunctionSignatures.top();
+		TemporaryString.clear();
+
+		HigherOrderFunctionSignatures.pop();
+	}
+}
+
+//
 // Assemble the parsed structure members into a final type definition and register it
 //
 const std::wstring& CompilationSemantics::CreateStructureType()
@@ -2250,14 +2326,14 @@ const std::wstring& CompilationSemantics::CreateStructureType()
 	if(!IsPrepass)
 		throw FatalException("Semantic action triggered in compilation phase which should only occur during prepass phase!");
 
-	StringHandle idhandle = Session.StringPool.Pool(TemporaryString);
+	StringHandle idhandle = Session.StringPool.Pool(StructureName);
 	VM::EpochTypeID type = ++CustomTypeIDCounter;
 
 	Structures[type] = StructureDefinition();
 	StructureNames[idhandle] = type;
 
 	// Now register a constructor function for the type
-	CompileTimeHelpers[TemporaryString] = CompileConstructorStructure;
+	CompileTimeHelpers[StructureName] = CompileConstructorStructure;
 
 	FunctionSignature signature;
 	signature.AddParameter(L"identifier", VM::EpochType_Identifier, true);
@@ -2294,7 +2370,7 @@ const std::wstring& CompilationSemantics::CreateStructureType()
 		signature.AddParameter(L"identifier", type, false);
 		signature.AddPatternMatchedParameterIdentifier(iter->second);
 		signature.SetReturnType(iter->first);
-		StringHandle overloadidhandle = Session.StringPool.Pool(L".@@" + TemporaryString + L"@@" + Session.StringPool.GetPooledString(iter->second));
+		StringHandle overloadidhandle = Session.StringPool.Pool(L".@@" + StructureName + L"@@" + Session.StringPool.GetPooledString(iter->second));
 		AddToMapNoDupe(Session.FunctionSignatures, std::make_pair(overloadidhandle, signature));
 		Session.FunctionOverloadNames[Session.StringPool.Pool(L".")].insert(overloadidhandle);
 		Session.OperatorPrecedences.insert(std::make_pair(PRECEDENCE_MEMBERACCESS, overloadidhandle));
@@ -2309,6 +2385,7 @@ const std::wstring& CompilationSemantics::CreateStructureType()
 	}
 
 	StructureMembers.clear();
+	StructureFunctionSignatures.clear();			// TODO - add support for signature validation of function references in structure members
 	return Session.StringPool.GetPooledString(idhandle);
 }
 
@@ -2345,6 +2422,8 @@ VM::EpochTypeID CompilationSemantics::LookupTypeName(const std::wstring& type) c
 {
 	if(type == L"integer")
 		return VM::EpochType_Integer;
+	else if(type == L"integer16")
+		return VM::EpochType_Integer16;
 	else if(type == L"string")
 		return VM::EpochType_String;
 	else if(type == L"boolean")
@@ -2715,7 +2794,7 @@ void CompilationSemantics::SanityCheck() const
 	|| !StatementNames.empty() || !StatementParamCount.empty() || !StatementTypes.empty() || !LexicalScopeStack.empty() || !CompileTimeParameters.empty()
 	|| !CurrentEntities.empty() || !FunctionReturnVars.empty() || !PendingEmissionBuffers.empty() || !PendingEmitters.empty() || !AssignmentTargets.empty()
 	|| !PushedItemTypes.empty() || !ReturnsIncludedStatement.empty() || !FunctionReturnTypeNames.empty() || !InfixOperators.empty() || !UnaryOperators.empty()
-	|| !BooleanLiterals.empty() || !HigherOrderFunctionSignatures.empty() || !StructureMembers.empty())
+	|| !BooleanLiterals.empty() || !HigherOrderFunctionSignatures.empty() || !StructureMembers.empty() || !StructureFunctionSignatures.empty())
 	{
 		throw FatalException("Parser leaked a resource");
 	}
