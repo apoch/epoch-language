@@ -1,0 +1,6 @@
+LIBRARY	"EpochLexer"
+EXPORTS
+	GetLexerCount		@1
+	GetLexerName		@2
+	GetLexerFactory		@3
+
