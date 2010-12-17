@@ -38,7 +38,7 @@ namespace
 	//
 	void FunctionInvocationHelper(StringHandle namehandle, ExecutionContext& context)
 	{
-		context.Execute(context.OwnerVM.GetFunctionInstructionOffset(namehandle), context.OwnerVM.GetScopeDescription(namehandle));
+		context.Execute(context.OwnerVM.GetFunctionInstructionOffset(namehandle), context.OwnerVM.GetScopeDescription(namehandle), true);
 	}
 
 }
@@ -70,7 +70,7 @@ void VirtualMachine::InitStandardLibraries()
 ExecutionResult VirtualMachine::ExecuteByteCode(const Bytecode::Instruction* buffer, size_t size)
 {
 	std::auto_ptr<ExecutionContext> context(new ExecutionContext(*this, buffer, size));
-	context->Execute(NULL);
+	context->Execute(NULL, false);
 	ExecutionResult result = context->GetExecutionResult();
 
 #ifdef _DEBUG
@@ -132,6 +132,18 @@ void* VirtualMachine::GetBuffer(BufferHandle handle)
 		throw FatalException("Invalid buffer handle");
 
 	return &iter->second[0];
+}
+
+//
+// Retrive the size of the given buffer, in bytes
+//
+size_t VirtualMachine::GetBufferSize(BufferHandle handle) const
+{
+	std::map<StringHandle, std::vector<Byte> >::const_iterator iter = Buffers.find(handle);
+	if(iter == Buffers.end())
+		throw FatalException("Invalid buffer handle");
+
+	return iter->second.size();
 }
 
 //
@@ -271,15 +283,12 @@ ExecutionContext::ExecutionContext(VirtualMachine& ownervm, const Bytecode::Inst
 //
 // Shift a function onto the call stack and invoke the corresponding code
 //
-void ExecutionContext::Execute(size_t offset, const ScopeDescription& scope)
+void ExecutionContext::Execute(size_t offset, const ScopeDescription& scope, bool returnonfunctionexit)
 {
 	InstructionOffsetStack.push(InstructionOffset);
 
 	InstructionOffset = offset;
-	Execute(&scope);
-
-	InstructionOffset = InstructionOffsetStack.top();
-	InstructionOffsetStack.pop();
+	Execute(&scope, returnonfunctionexit);
 }
 
 //
@@ -288,7 +297,7 @@ void ExecutionContext::Execute(size_t offset, const ScopeDescription& scope)
 // The reason will be provided in the attached execution context data,
 // as well as any other contextual information, eg. exception payloads.
 //
-void ExecutionContext::Execute(const ScopeDescription* scope)
+void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunctionexit)
 {
 	// Automatically cleanup the stack as needed
 	struct autoexit_scope
@@ -347,8 +356,11 @@ void ExecutionContext::Execute(const ScopeDescription* scope)
 
 		void UnwindOutermostFunctionStack()
 		{
-			delete FunctionScopes.top();
-			FunctionScopes.pop();
+			if(!FunctionScopes.empty())
+			{
+				delete FunctionScopes.top();
+				FunctionScopes.pop();
+			}
 		}
 
 		void CleanUpScope(ActiveScope* scope)
@@ -378,6 +390,9 @@ void ExecutionContext::Execute(const ScopeDescription* scope)
 
 	std::stack<size_t> chainoffsets;
 	std::stack<bool> chainrepeats;
+	std::stack<bool> returnonfunctionexitstack;
+
+	returnonfunctionexitstack.push(returnonfunctionexit);
 
 	// Run the given chunk of code
 	while(State.Result.ResultType == ExecutionResult::EXEC_RESULT_OK && InstructionOffset < CodeBufferSize)
@@ -400,7 +415,10 @@ void ExecutionContext::Execute(const ScopeDescription* scope)
 				scope = NULL;
 			InstructionOffset = InstructionOffsetStack.top();
 			InstructionOffsetStack.pop();
+			if(returnonfunctionexitstack.top())
+				return;
 			InvokedFunctionStack.pop();
+			returnonfunctionexitstack.pop();
 			break;
 
 		case Bytecode::Instructions::SetRetVal:	// Set return value register
@@ -497,6 +515,13 @@ void ExecutionContext::Execute(const ScopeDescription* scope)
 				case EpochType_Integer:
 					{
 						Integer32 value = Fetch<Integer32>();
+						State.Stack.PushValue(value);
+					}
+					break;
+
+				case EpochType_Integer16:
+					{
+						Integer16 value = Fetch<Integer16>();
 						State.Stack.PushValue(value);
 					}
 					break;
@@ -615,11 +640,16 @@ void ExecutionContext::Execute(const ScopeDescription* scope)
 
 					InstructionOffset = internaloffset;
 					scope = &OwnerVM.GetScopeDescription(functionname);
+
+					returnonfunctionexitstack.push(false);
 				}
 				else
 				{
 					OwnerVM.InvokeFunction(functionname, *this);
 					InvokedFunctionStack.pop();
+
+					if(State.Result.ResultType == ExecutionResult::EXEC_RESULT_HALT)
+						throw FatalException("Unexpected VM halt");
 				}
 			}
 			break;
@@ -931,7 +961,10 @@ void ExecutionContext::Load()
 				{
 					StringHandle identifier = Fetch<StringHandle>();
 					EpochTypeID type = Fetch<EpochTypeID>();
-					OwnerVM.StructureDefinitions[structuretypeid].AddMember(identifier, type);
+					const StructureDefinition* structdefinition = NULL;
+					if(type > EpochType_CustomBase)
+						structdefinition = &OwnerVM.GetStructureDefinition(type);
+					OwnerVM.StructureDefinitions[structuretypeid].AddMember(identifier, type, structdefinition);
 				}
 			}
 			break;
@@ -998,6 +1031,7 @@ void ExecutionContext::Load()
 				switch(pushedtype)
 				{
 				case EpochType_Integer:			Fetch<Integer32>();			break;
+				case EpochType_Integer16:		Fetch<Integer16>();			break;
 				case EpochType_String:			Fetch<StringHandle>();		break;
 				case EpochType_Boolean:			Fetch<bool>();				break;
 				case EpochType_Real:			Fetch<Real32>();			break;
@@ -1197,10 +1231,11 @@ namespace
 
 }
 
-
 template <typename HandleType, typename ValidatorT>
 void ExecutionContext::MarkAndSweep(ValidatorT validator, std::set<HandleType>& livehandles)
 {
+	// TODO - BUG BUG BUG - we need to handle values on the stack which are NOT bound into local variables, e.g. temporary expressions
+
 	// Traverse the active stack, starting in the current frame and unwinding upwards to the
 	// root code invocation, marking each local variable as holding the applicable reference
 	ActiveScope* scope = Variables;
@@ -1245,6 +1280,10 @@ void ExecutionContext::CollectGarbage_Buffers()
 	// Traverse active scopes/structures for variables holding buffer references
 	MarkAndSweep<BufferHandle>(ValidatorBuffers, livehandles);
 
+	// Check the return value register to be safe
+	if(ValidatorBuffers(State.ReturnValueRegister.Type))
+		livehandles.insert(State.ReturnValueRegister.Value_BufferHandle);
+
 	// Now garbage collect all buffers which are not live
 	OwnerVM.GarbageCollectBuffers(livehandles);
 }
@@ -1258,6 +1297,10 @@ void ExecutionContext::CollectGarbage_Strings()
 	// Traverse active scopes/structures for variables holding string references
 	MarkAndSweep<StringHandle>(ValidatorStrings, livehandles);
 
+	// Check the return value register to be safe
+	if(ValidatorStrings(State.ReturnValueRegister.Type))
+		livehandles.insert(State.ReturnValueRegister.Value_StringHandle);
+
 	// Now that the list of live handles is known, we can collect all unused string memory.
 	OwnerVM.PrivateGetRawStringPool().GarbageCollect(livehandles);
 }
@@ -1268,6 +1311,10 @@ void ExecutionContext::CollectGarbage_Structures()
 
 	// Traverse active scopes/structures for variables holding structure references
 	MarkAndSweep<StructureHandle>(ValidatorStructures, livehandles);
+
+	// Check the return value register to be safe
+	if(ValidatorStructures(State.ReturnValueRegister.Type))
+		livehandles.insert(State.ReturnValueRegister.Value_StructureHandle);
 
 	// Now garbage collect all structures which are not live
 	OwnerVM.GarbageCollectStructures(livehandles);

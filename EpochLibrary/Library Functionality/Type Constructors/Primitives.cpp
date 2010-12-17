@@ -38,6 +38,17 @@ namespace
 	}
 
 	//
+	// Construct an integer16 variable in memory
+	//
+	void ConstructInteger16(StringHandle functionname, VM::ExecutionContext& context)
+	{
+		Integer16 value = context.State.Stack.PopValue<Integer16>();
+		StringHandle identifierhandle = context.State.Stack.PopValue<StringHandle>();
+
+		context.Variables->Write(identifierhandle, value);
+	}
+
+	//
 	// Construct a string variable in memory
 	//
 	void ConstructString(StringHandle functionname, VM::ExecutionContext& context)
@@ -104,6 +115,7 @@ namespace
 void TypeConstructors::RegisterLibraryFunctions(FunctionInvocationTable& table, StringPoolManager& stringpool)
 {
 	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"integer"), ConstructInteger));
+	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"integer16"), ConstructInteger16));
 	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"string"), ConstructString));
 	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"boolean"), ConstructBoolean));
 	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"real"), ConstructReal));
@@ -120,6 +132,12 @@ void TypeConstructors::RegisterLibraryFunctions(FunctionSignatureSet& signatures
 		signature.AddParameter(L"identifier", VM::EpochType_Identifier, false);
 		signature.AddParameter(L"value", VM::EpochType_Integer, false);
 		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"integer"), signature));
+	}
+	{
+		FunctionSignature signature;
+		signature.AddParameter(L"identifier", VM::EpochType_Identifier, false);
+		signature.AddParameter(L"value", VM::EpochType_Integer16, false);
+		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"integer16"), signature));
 	}
 	{
 		FunctionSignature signature;
@@ -153,6 +171,7 @@ void TypeConstructors::RegisterLibraryFunctions(FunctionSignatureSet& signatures
 void TypeConstructors::RegisterLibraryFunctions(FunctionCompileHelperTable& table)
 {
 	AddToMapNoDupe(table, std::make_pair(L"integer", CompileConstructorPrimitive));
+	AddToMapNoDupe(table, std::make_pair(L"integer16", CompileConstructorPrimitive));
 	AddToMapNoDupe(table, std::make_pair(L"string", CompileConstructorPrimitive));
 	AddToMapNoDupe(table, std::make_pair(L"boolean", CompileConstructorPrimitive));
 	AddToMapNoDupe(table, std::make_pair(L"real", CompileConstructorPrimitive));

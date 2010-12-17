@@ -326,26 +326,22 @@ void ArithmeticLibrary::RegisterInfixOperators(StringSet& infixtable, Precedence
 	{
 		StringHandle handle = stringpool.Pool(L"+");
 		AddToSetNoDupe(infixtable, stringpool.GetPooledString(handle));
-		precedences.insert(std::make_pair(PRECEDENCE_ADDSUBTRACT, stringpool.Pool(L"+@@integer")));
-		precedences.insert(std::make_pair(PRECEDENCE_ADDSUBTRACT, stringpool.Pool(L"+@@real")));
+		precedences.insert(std::make_pair(PRECEDENCE_ADDSUBTRACT, handle));
 	}
 	{
 		StringHandle handle = stringpool.Pool(L"-");
 		AddToSetNoDupe(infixtable, stringpool.GetPooledString(handle));
-		precedences.insert(std::make_pair(PRECEDENCE_ADDSUBTRACT, stringpool.Pool(L"-@@integer")));
-		precedences.insert(std::make_pair(PRECEDENCE_ADDSUBTRACT, stringpool.Pool(L"-@@real")));
+		precedences.insert(std::make_pair(PRECEDENCE_ADDSUBTRACT, handle));
 	}
 	{
 		StringHandle handle = stringpool.Pool(L"*");
 		AddToSetNoDupe(infixtable, stringpool.GetPooledString(handle));
-		precedences.insert(std::make_pair(PRECEDENCE_MULTIPLYDIVIDE, stringpool.Pool(L"*@@integer")));
-		precedences.insert(std::make_pair(PRECEDENCE_MULTIPLYDIVIDE, stringpool.Pool(L"*@@real")));
+		precedences.insert(std::make_pair(PRECEDENCE_MULTIPLYDIVIDE, handle));
 	}
 	{
 		StringHandle handle = stringpool.Pool(L"/");
 		AddToSetNoDupe(infixtable, stringpool.GetPooledString(handle));
-		precedences.insert(std::make_pair(PRECEDENCE_MULTIPLYDIVIDE, stringpool.Pool(L"/@@integer")));
-		precedences.insert(std::make_pair(PRECEDENCE_MULTIPLYDIVIDE, stringpool.Pool(L"/@@real")));
+		precedences.insert(std::make_pair(PRECEDENCE_MULTIPLYDIVIDE, handle));
 	}
 }
 

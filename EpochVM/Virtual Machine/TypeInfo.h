@@ -15,4 +15,5 @@
 namespace VM
 {
 	size_t GetStorageSize(VM::EpochTypeID type);
+	size_t GetMarshaledSize(VM::EpochTypeID type);
 }

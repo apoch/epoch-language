@@ -30,6 +30,7 @@ size_t VM::GetStorageSize(EpochTypeID type)
 	case EpochType_Function:			return sizeof(StringHandle);
 
 	case EpochType_Integer:				return sizeof(Integer32);
+	case EpochType_Integer16:			return sizeof(Integer16);
 	case EpochType_String:				return sizeof(StringHandle);
 	case EpochType_Boolean:				return sizeof(bool);
 	case EpochType_Real:				return sizeof(Real32);
@@ -44,5 +45,28 @@ size_t VM::GetStorageSize(EpochTypeID type)
 
 	default:
 		return sizeof(StructureHandle);
+	}
+}
+
+//
+// Given a type ID, determine the amount of storage space needed when the data is marshaled to C
+//
+size_t VM::GetMarshaledSize(EpochTypeID type)
+{
+	switch(type)
+	{
+	case EpochType_Identifier:			return sizeof(wchar_t*);
+	case EpochType_Function:			return sizeof(void*);
+
+	case EpochType_Integer:				return sizeof(Integer32);
+	case EpochType_Integer16:			return sizeof(Integer16);
+	case EpochType_String:				return sizeof(wchar_t*);
+	case EpochType_Boolean:				return sizeof(Integer32);
+	case EpochType_Real:				return sizeof(Real32);
+
+	case EpochType_Buffer:				return sizeof(wchar_t*);
+
+	default:
+		throw FatalException("Unable to determine the size of this variable/structure member");
 	}
 }

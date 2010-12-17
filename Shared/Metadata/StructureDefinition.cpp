@@ -15,10 +15,15 @@
 //
 // Add a data member to the structure
 //
-void StructureDefinition::AddMember(StringHandle identifier, VM::EpochTypeID type)
+void StructureDefinition::AddMember(StringHandle identifier, VM::EpochTypeID type, const StructureDefinition* structdefinition)
 {
 	Members.push_back(MemberRecord(identifier, type, Offset));
 	Offset += VM::GetStorageSize(type);
+
+	if(type > VM::EpochType_CustomBase)
+		MarshaledSize += structdefinition->GetMarshaledSize();
+	else
+		MarshaledSize += VM::GetMarshaledSize(type);
 }
 
 

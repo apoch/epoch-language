@@ -20,12 +20,13 @@ class StructureDefinition
 // Construction
 public:
 	StructureDefinition()
-		: Offset(0)
+		: Offset(0),
+		  MarshaledSize(0)
 	{ }
 
 // Member configuration
 public:
-	void AddMember(StringHandle identifier, VM::EpochTypeID type);
+	void AddMember(StringHandle identifier, VM::EpochTypeID type, const StructureDefinition* structdefinition);
 
 // Member accessors
 public:
@@ -38,7 +39,10 @@ public:
 // Additional accessors
 public:
 	size_t GetSize() const
-	{ return Offset; }			// TODO - calculate CORRECT size for nested structs that need to be marshaled (maybe as a separate function?)
+	{ return Offset; }
+
+	size_t GetMarshaledSize() const
+	{ return MarshaledSize; }
 
 // Internal helper
 private:
@@ -61,5 +65,6 @@ private:
 private:
 	MemberList Members;
 	size_t Offset;
+	size_t MarshaledSize;
 };
 

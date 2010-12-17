@@ -27,6 +27,7 @@ public:
 
 // Value assignment
 public:
+	void Set(Integer16 value);
 	void Set(Integer32 value);
 	void Set(bool value);
 	void Set(Real32 value);
@@ -40,10 +41,11 @@ public:
 public:
 	void PushOntoStack(StackSpace& stack) const;
 
-// Internal tracking
-private:
+// Value tracking
+public:
 	union
 	{
+		Integer16 Value_Integer16;
 		Integer32 Value_Integer32;
 		StringHandle Value_StringHandle;
 		BufferHandle Value_BufferHandle;

@@ -250,6 +250,126 @@ namespace
 		}
 	}
 
+
+	bool MarshalStructureDataIntoBuffer(VM::ExecutionContext& context, const ActiveStructure& structure, const StructureDefinition& definition, Byte* buffer)
+	{
+		using namespace VM;
+
+		for(size_t j = 0; j < definition.GetNumMembers(); ++j)
+		{
+			EpochTypeID membertype = definition.GetMemberType(j);
+			switch(membertype)
+			{
+			case EpochType_Integer:
+				*reinterpret_cast<Integer32*>(buffer) = structure.ReadMember<Integer32>(j);
+				buffer += sizeof(Integer32);
+				break;
+
+			case EpochType_Boolean:
+				*reinterpret_cast<Integer32*>(buffer) = (structure.ReadMember<bool>(j) ? 1 : 0);
+				buffer += sizeof(Integer32);
+				break;
+
+			case EpochType_String:
+				*reinterpret_cast<const wchar_t**>(buffer) = context.OwnerVM.GetPooledString(structure.ReadMember<StringHandle>(j)).c_str();
+				buffer += sizeof(const wchar_t*);
+				break;
+
+			case EpochType_Function:
+				*reinterpret_cast<void**>(buffer) = MarshalControl.RequestMarshaledCallback(context, structure.ReadMember<StringHandle>(j));
+				buffer += sizeof(void*);
+				break;
+
+			default:
+				if(membertype > EpochType_CustomBase)
+				{
+					StructureHandle structurehandle = structure.ReadMember<StructureHandle>(j);
+					const ActiveStructure& nestedstructure = context.OwnerVM.GetStructure(structurehandle);
+					const StructureDefinition& nesteddefinition = context.OwnerVM.GetStructureDefinition(definition.GetMemberType(j));
+
+					if(!MarshalStructureDataIntoBuffer(context, nestedstructure, nesteddefinition, buffer))
+						return false;
+
+					buffer += nesteddefinition.GetMarshaledSize();
+				}
+				else
+					return false;
+			}
+		}
+
+		return true;
+	}
+
+	void MarshalBufferIntoStructureData(VM::ExecutionContext& context, ActiveStructure& structure, const StructureDefinition& definition, const Byte* buffer)
+	{
+		using namespace VM;
+
+		for(size_t j = 0; j < definition.GetNumMembers(); ++j)
+		{
+			EpochTypeID membertype = definition.GetMemberType(j);
+			switch(membertype)
+			{
+			case EpochType_Integer:
+				structure.WriteMember(j, *reinterpret_cast<const Integer32*>(buffer));
+				buffer += sizeof(Integer32);
+				break;
+
+			case EpochType_Boolean:
+				structure.WriteMember(j, (*reinterpret_cast<const Integer32*>(buffer)) ? true : false);
+				buffer += sizeof(Integer32);
+				break;
+
+			case EpochType_String:
+				{
+					std::wstring str(*reinterpret_cast<const wchar_t* const*>(buffer));
+					structure.WriteMember(j, context.OwnerVM.PoolStringDestructive(str));
+					buffer += sizeof(const wchar_t*);
+				}
+				break;
+
+			case EpochType_Function:
+				// Function pointers are not marshaled currently
+				buffer += sizeof(void*);
+				break;
+
+			default:
+				if(membertype > EpochType_CustomBase)
+				{
+					StructureHandle structurehandle = structure.ReadMember<StructureHandle>(j);
+					ActiveStructure& nestedstructure = context.OwnerVM.GetStructure(structurehandle);
+					const StructureDefinition& nesteddefinition = context.OwnerVM.GetStructureDefinition(definition.GetMemberType(j));
+
+					MarshalBufferIntoStructureData(context, nestedstructure, nesteddefinition, buffer);
+					buffer += nesteddefinition.GetMarshaledSize();
+				}
+			}
+		}
+	}
+
+	struct MarshaledStructureRecord
+	{
+		bool IsReference;
+		Byte* Buffer;
+		ActiveStructure* Structure;
+
+		MarshaledStructureRecord(bool isref, Byte* buffer, ActiveStructure& structure)
+			: IsReference(isref), Buffer(buffer), Structure(&structure)
+		{ }
+	};
+
+	void MarshalBuffersIntoStructures(VM::ExecutionContext& context, const std::vector<MarshaledStructureRecord>& records)
+	{
+		for(std::vector<MarshaledStructureRecord>::const_iterator iter = records.begin(); iter != records.end(); ++iter)
+		{
+			// Only marshal data for structures passed by reference
+			if(!iter->IsReference)
+				continue;
+
+			const StructureDefinition& definition = iter->Structure->Definition;
+			const Byte* buffer = iter->Buffer;
+			MarshalBufferIntoStructureData(context, *(iter->Structure), definition, buffer);
+		}
+	}
 }
 
 //
@@ -292,7 +412,11 @@ void ExternalDispatch(StringHandle functionname, VM::ExecutionContext& context)
 	};
 	std::vector<pushrec> stufftopush;
 
+	std::vector<std::vector<Byte> > structurebuffers;
+	std::vector<MarshaledStructureRecord> marshaledstructures;
+
 	Integer32 integerret;
+	Integer16 integer16ret;
 
 	size_t retindex = std::numeric_limits<size_t>::max();
 
@@ -302,7 +426,8 @@ void ExternalDispatch(StringHandle functionname, VM::ExecutionContext& context)
 		VariableOrigin origin = description.GetVariableOrigin(i);
 		if(origin == VARIABLE_ORIGIN_PARAMETER)
 		{
-			switch(description.GetVariableTypeByIndex(i))
+			EpochTypeID vartype = description.GetVariableTypeByIndex(i);
+			switch(vartype)
 			{
 			case EpochType_Integer:
 				stufftopush.push_back(pushrec(context.Variables->Read<Integer32>(description.GetVariableNameHandle(i)), false));
@@ -343,8 +468,28 @@ void ExternalDispatch(StringHandle functionname, VM::ExecutionContext& context)
 				break;
 
 			default:
-				context.State.Result.ResultType = ExecutionResult::EXEC_RESULT_HALT;
-				return;
+				if(vartype > EpochType_CustomBase)
+				{
+					StructureHandle structurehandle = context.Variables->Read<StructureHandle>(description.GetVariableNameHandle(i));
+					ActiveStructure& structure = context.OwnerVM.GetStructure(structurehandle);
+
+					const StructureDefinition& definition = context.OwnerVM.GetStructureDefinition(vartype);
+					structurebuffers.push_back(std::vector<Byte>(definition.GetMarshaledSize(), 0));
+
+					if(!MarshalStructureDataIntoBuffer(context, structure, definition, &structurebuffers.back()[0]))
+					{
+						context.State.Result.ResultType = ExecutionResult::EXEC_RESULT_HALT;
+						return;
+					}
+
+					marshaledstructures.push_back(MarshaledStructureRecord(description.IsReference(i), &structurebuffers.back()[0], structure));
+					stufftopush.push_back(pushrec(reinterpret_cast<UINT_PTR>(&structurebuffers.back()[0]), false));
+				}
+				else
+				{
+					context.State.Result.ResultType = ExecutionResult::EXEC_RESULT_HALT;
+					return;
+				}
 			}
 		}
 		else if(origin == VARIABLE_ORIGIN_RETURN)
@@ -365,11 +510,11 @@ void ExternalDispatch(StringHandle functionname, VM::ExecutionContext& context)
 			mov ebx, address
 
 			mov eax, [theptr]
-			mov edx, eax
-			add edx, 4
 			mov ecx, pushstuffsize
 
 BatchPushLoop:
+			mov edx, eax
+			add edx, 4
 			cmp [edx], 0
 			jnz Push16
 			push [eax]
@@ -393,10 +538,18 @@ FinishLoop:
 	{
 		mov eax, EpochType_Integer
 		cmp rettype, eax
-		jne TypeIsBoolean
+		jne TypeIsInteger16
 		call ebx
 		mov integerret, eax
 		jmp IntegerReturn
+
+TypeIsInteger16:
+		mov eax, EpochType_Integer16
+		cmp rettype, eax
+		jne TypeIsBoolean
+		call ebx
+		mov integer16ret, ax
+		jmp Integer16Return
 
 TypeIsBoolean:
 		mov eax, EpochType_Boolean
@@ -420,14 +573,22 @@ TypeIsNull:
 	}
 
 IntegerReturn:
+	MarshalBuffersIntoStructures(context, marshaledstructures);
 	context.Variables->Write<Integer32>(context.OwnerVM.GetPooledStringHandle(L"ret"), integerret);
 	return;
 
+Integer16Return:
+	MarshalBuffersIntoStructures(context, marshaledstructures);
+	context.Variables->Write<Integer16>(context.OwnerVM.GetPooledStringHandle(L"ret"), integer16ret);
+	return;
+
 BooleanReturn:
+	MarshalBuffersIntoStructures(context, marshaledstructures);
 	context.Variables->Write<bool>(context.OwnerVM.GetPooledStringHandle(L"ret"), (integerret != 0 ? true : false));
 	return;
 
 NullReturn:
+	MarshalBuffersIntoStructures(context, marshaledstructures);
 	return;
 
 Vomit:

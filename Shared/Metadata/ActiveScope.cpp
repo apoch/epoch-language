@@ -235,11 +235,19 @@ void* ActiveScope::GetVariableStorageLocation(StringHandle variableid) const
 //
 void ActiveScope::CopyToRegister(StringHandle variableid, Register& targetregister) const
 {
-	switch(OriginalScope.GetVariableTypeByID(variableid))
+	VM::EpochTypeID variabletype = OriginalScope.GetVariableTypeByID(variableid);
+	switch(variabletype)
 	{
 	case VM::EpochType_Integer:
 		{
 			Integer32* value = reinterpret_cast<Integer32*>(GetVariableStorageLocation(variableid));
+			targetregister.Set(*value);
+		}
+		break;
+
+	case VM::EpochType_Integer16:
+		{
+			Integer16* value = reinterpret_cast<Integer16*>(GetVariableStorageLocation(variableid));
 			targetregister.Set(*value);
 		}
 		break;
@@ -275,6 +283,9 @@ void ActiveScope::CopyToRegister(StringHandle variableid, Register& targetregist
 
 	default:
 		{
+			if(variabletype <= VM::EpochType_CustomBase)
+				throw FatalException("Unsupported type when assigning to register");
+
 			StructureHandle* value = reinterpret_cast<StructureHandle*>(GetVariableStorageLocation(variableid));
 			targetregister.SetStructure(*value, OriginalScope.GetVariableTypeByID(variableid));
 		}

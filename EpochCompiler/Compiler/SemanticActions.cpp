@@ -380,17 +380,17 @@ void CompilationSemantics::FinalizeInfix()
 						CompileTimeParameterVector::iterator operanditer = flatoperandlist.begin();
 						for(StringHandles::iterator unmappedoperatoriter = InfixOperators.top().begin(); unmappedoperatoriter != InfixOperators.top().end(); ++unmappedoperatoriter)
 						{
-							StringHandle infixstatementnamehandle = *unmappedoperatoriter;
-							std::wstring infixstatementname = Session.StringPool.GetPooledString(infixstatementnamehandle);
-							RemapFunctionToOverload(flatoperandlist, operanditer - flatoperandlist.begin(), 2, TypeVector(), infixstatementname, infixstatementnamehandle);
-
-							FunctionSignatureSet::const_iterator funcsigiter = Session.FunctionSignatures.find(infixstatementnamehandle);
-							if(funcsigiter == Session.FunctionSignatures.end())
-								throw FatalException("Unknown statement, cannot complete parsing");
-
-							if(GetOperatorPrecedence(infixstatementnamehandle) == precedenceiter->first)
+							if(GetOperatorPrecedence(*unmappedoperatoriter) == precedenceiter->first)
 							{
-								bool ismemberaccess = (GetOperatorPrecedence(infixstatementnamehandle) == PRECEDENCE_MEMBERACCESS);
+								StringHandle infixstatementnamehandle = *unmappedoperatoriter;
+								std::wstring infixstatementname = Session.StringPool.GetPooledString(infixstatementnamehandle);
+								RemapFunctionToOverload(flatoperandlist, operanditer - flatoperandlist.begin(), 2, TypeVector(), infixstatementname, infixstatementnamehandle);
+
+								FunctionSignatureSet::const_iterator funcsigiter = Session.FunctionSignatures.find(infixstatementnamehandle);
+								if(funcsigiter == Session.FunctionSignatures.end())
+									throw FatalException("Unknown statement, cannot complete parsing");
+
+								bool ismemberaccess = (GetOperatorPrecedence(*unmappedoperatoriter) == PRECEDENCE_MEMBERACCESS);
 
 								// Perform the actual reduction, taking care to clean up the
 								// list of pending operators as we eliminate subexpressions.
@@ -2347,7 +2347,10 @@ const std::wstring& CompilationSemantics::CreateStructureType()
 		signature.AddParameter(identifier, iter->first, false);
 		if(iter->first == VM::EpochType_Function)
 			signature.SetFunctionSignature(index, StructureFunctionSignatures.find(identifier)->second);
-		Structures[type].AddMember(iter->second, iter->first);
+		const StructureDefinition* structdefinition = NULL;
+		if(iter->first > VM::EpochType_CustomBase)
+			structdefinition = &Structures[iter->first];
+		Structures[type].AddMember(iter->second, iter->first, structdefinition);
 		LexicalScopeDescriptions[idhandle].AddVariable(identifier, iter->second, iter->first, false, VARIABLE_ORIGIN_PARAMETER);
 		++index;
 	}
@@ -2377,7 +2380,6 @@ const std::wstring& CompilationSemantics::CreateStructureType()
 		StringHandle overloadidhandle = Session.StringPool.Pool(L".@@" + StructureName + L"@@" + Session.StringPool.GetPooledString(iter->second));
 		AddToMapNoDupe(Session.FunctionSignatures, std::make_pair(overloadidhandle, signature));
 		Session.FunctionOverloadNames[Session.StringPool.Pool(L".")].insert(overloadidhandle);
-		Session.OperatorPrecedences.insert(std::make_pair(PRECEDENCE_MEMBERACCESS, overloadidhandle));
 
 		EmitterStack.top()->EnterFunction(overloadidhandle);
 		EmitterStack.top()->CopyFromStructure(Session.StringPool.Pool(L"identifier"), Session.StringPool.Pool(L"member"));
@@ -2489,11 +2491,25 @@ CompilationSemantics::TypeVector CompilationSemantics::WalkCallChainForExpectedT
 		for(size_t i = 0; i < outnames.size(); ++i)
 		{
 			FunctionSignatureSet::const_iterator iter = Session.FunctionSignatures.find(outnamehandles[i]);
-			if(iter == Session.FunctionSignatures.end())
-				Throw(RecoverableException("The function \"" + narrow(name) + "\" is not defined in this scope"));
-
-			ret.push_back(iter->second.GetParameter(paramindex).Type);
+			if(iter != Session.FunctionSignatures.end())
+				ret.push_back(iter->second.GetParameter(paramindex).Type);
+			else
+			{
+				try
+				{
+					const EntityDescription& entitydescription = Session.GetCustomEntityByName(outnamehandles[i]);
+					if(entitydescription.Parameters.size() > paramindex)
+						ret.push_back(entitydescription.Parameters[paramindex].Type);
+				}
+				catch(InvalidIdentifierException&)
+				{
+					// Must not have been a valid entity! Just keep going.
+				}
+			}
 		}
+
+		if(ret.empty())
+			Throw(RecoverableException("The function \"" + narrow(name) + "\" is not defined in this scope"));
 
 		return ret;
 	}

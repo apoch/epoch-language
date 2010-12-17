@@ -195,7 +195,6 @@ void ComparisonLibrary::RegisterLibraryFunctions(FunctionSignatureSet& signature
 	}
 }
 
-
 //
 // Bind the library to the infix operator table
 //
@@ -204,26 +203,22 @@ void ComparisonLibrary::RegisterInfixOperators(StringSet& infixtable, Precedence
 	{
 		StringHandle handle = stringpool.Pool(L"==");
 		AddToSetNoDupe(infixtable, stringpool.GetPooledString(handle));
-		precedences.insert(std::make_pair(PRECEDENCE_COMPARISON, stringpool.Pool(L"==@@integer")));
-		precedences.insert(std::make_pair(PRECEDENCE_COMPARISON, stringpool.Pool(L"==@@boolean")));
+		precedences.insert(std::make_pair(PRECEDENCE_COMPARISON, handle));
 	}
 	{
 		StringHandle handle = stringpool.Pool(L"!=");
 		AddToSetNoDupe(infixtable, stringpool.GetPooledString(handle));
-		precedences.insert(std::make_pair(PRECEDENCE_COMPARISON, stringpool.Pool(L"!=@@integer")));
-		precedences.insert(std::make_pair(PRECEDENCE_COMPARISON, stringpool.Pool(L"!=@@boolean")));
+		precedences.insert(std::make_pair(PRECEDENCE_COMPARISON, handle));
 	}
 	{
 		StringHandle handle = stringpool.Pool(L">");
 		AddToSetNoDupe(infixtable, stringpool.GetPooledString(handle));
-		precedences.insert(std::make_pair(PRECEDENCE_COMPARISON, stringpool.Pool(L">@@integer")));
-		precedences.insert(std::make_pair(PRECEDENCE_COMPARISON, stringpool.Pool(L">@@real")));
+		precedences.insert(std::make_pair(PRECEDENCE_COMPARISON, handle));
 	}
 	{
 		StringHandle handle = stringpool.Pool(L"<");
 		AddToSetNoDupe(infixtable, stringpool.GetPooledString(handle));
-		precedences.insert(std::make_pair(PRECEDENCE_COMPARISON, stringpool.Pool(L"<@@integer")));
-		precedences.insert(std::make_pair(PRECEDENCE_COMPARISON, stringpool.Pool(L"<@@real")));
+		precedences.insert(std::make_pair(PRECEDENCE_COMPARISON, handle));
 	}
 }
 

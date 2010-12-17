@@ -85,6 +85,7 @@ namespace VM
 		StringHandle GetPooledStringHandle(const std::wstring& value);
 
 		void* GetBuffer(BufferHandle handle);
+		size_t GetBufferSize(BufferHandle handle) const;
 		BufferHandle AllocateBuffer(size_t size);
 		BufferHandle CloneBuffer(BufferHandle handle);
 
@@ -178,8 +179,8 @@ namespace VM
 
 	// Execution interface
 	public:
-		void Execute(const ScopeDescription* scope);
-		void Execute(size_t offset, const ScopeDescription& scope);
+		void Execute(const ScopeDescription* scope, bool returnonfunctionexit);
+		void Execute(size_t offset, const ScopeDescription& scope, bool returnonfunctionexit);
 
 	// State accessors
 	public:

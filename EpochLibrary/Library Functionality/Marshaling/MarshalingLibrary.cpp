@@ -28,7 +28,7 @@ namespace
 		if(vartype < VM::EpochType_CustomBase)
 			context.State.Stack.PushValue(VM::GetStorageSize(vartype));
 		else if(vartype > VM::EpochType_CustomBase)
-			context.State.Stack.PushValue(context.OwnerVM.GetStructureDefinition(vartype).GetSize());
+			context.State.Stack.PushValue(context.OwnerVM.GetStructureDefinition(vartype).GetMarshaledSize());
 		else
 			context.State.Stack.PushValue(0);
 	}

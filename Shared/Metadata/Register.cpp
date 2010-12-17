@@ -31,6 +31,15 @@ void Register::Set(Integer32 value)
 }
 
 //
+// Set the value of the register to a 16-bit integer
+//
+void Register::Set(Integer16 value)
+{
+	Value_Integer16 = value;
+	Type = VM::EpochType_Integer16;
+}
+
+//
 // Set the value of the register to a string handle
 //
 void Register::SetString(StringHandle value)
@@ -90,6 +99,10 @@ void Register::PushOntoStack(StackSpace& stack) const
 		stack.PushValue(Value_Integer32);
 		break;
 
+	case VM::EpochType_Integer16:
+		stack.PushValue(Value_Integer16);
+		break;
+
 	case VM::EpochType_String:
 	case VM::EpochType_Identifier:
 		stack.PushValue(Value_StringHandle);
@@ -108,6 +121,9 @@ void Register::PushOntoStack(StackSpace& stack) const
 		break;
 
 	default:
+		if(Type <= VM::EpochType_CustomBase)
+			throw FatalException("Unsupported type when pushing register value onto stack");
+
 		stack.PushValue(Value_StructureHandle);
 		break;
 	}

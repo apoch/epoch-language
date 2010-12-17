@@ -15,6 +15,8 @@
 
 #include "Utility/DLLPool.h"
 
+#include "Metadata/Precedences.h"
+
 
 //
 // Construct a compilation session wrapper and initialize the standard library
@@ -63,6 +65,8 @@ CompileSession::CompileSession()
 
 	for(EntityTable::const_iterator iter = PostfixClosers.begin(); iter != PostfixClosers.end(); ++iter)
 		Identifiers.PostfixClosers.insert(StringPool.GetPooledString(iter->second.StringName));
+
+	OperatorPrecedences.insert(std::make_pair(PRECEDENCE_MEMBERACCESS, StringPool.Pool(L".")));
 }
 
 
@@ -172,3 +176,36 @@ const EntityDescription& CompileSession::GetCustomEntityByTag(Bytecode::EntityTa
 
 	throw FatalException("Invalid entity tag - could not retrieve descriptor");
 }
+
+//
+// Retrieve the entity descriptor of the entity type with the given name
+//
+const EntityDescription& CompileSession::GetCustomEntityByName(StringHandle name) const
+{
+	for(EntityTable::const_iterator iter = CustomEntities.begin(); iter != CustomEntities.end(); ++iter)
+	{
+		if(iter->second.StringName == name)
+			return iter->second;
+	}
+
+	for(EntityTable::const_iterator iter = ChainedEntities.begin(); iter != ChainedEntities.end(); ++iter)
+	{
+		if(iter->second.StringName == name)
+			return iter->second;
+	}
+
+	for(EntityTable::const_iterator iter = PostfixEntities.begin(); iter != PostfixEntities.end(); ++iter)
+	{
+		if(iter->second.StringName == name)
+			return iter->second;
+	}
+
+	for(EntityTable::const_iterator iter = PostfixClosers.begin(); iter != PostfixClosers.end(); ++iter)
+	{
+		if(iter->second.StringName == name)
+			return iter->second;
+	}
+
+	throw InvalidIdentifierException("Invalid entity name");
+}
+

@@ -48,6 +48,7 @@ public:
 
 // Entity management
 public:
+	const EntityDescription& GetCustomEntityByName(StringHandle name) const;
 	const EntityDescription& GetCustomEntityByTag(Bytecode::EntityTag tag) const;
 
 // Publicly visible tracking
