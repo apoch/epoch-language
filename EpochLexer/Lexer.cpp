@@ -117,7 +117,7 @@ void __stdcall EpochLexer::Lex(unsigned int startPos, int lengthDoc, int initSty
 
 	StyleContext sc(startPos, lengthDoc, initStyle, styler);
 
-	for(; sc.More(); sc.Forward())
+	for(; ; sc.Forward())
 	{
 		switch(sc.state)
 		{
@@ -178,7 +178,11 @@ void __stdcall EpochLexer::Lex(unsigned int startPos, int lengthDoc, int initSty
 				sc.SetState(SCE_EPOCH_DEFAULT);
 			break;
 		}
+
+		if(!sc.More())
+			break;
 	}
+	sc.SetState(SCE_EPOCH_DEFAULT);
 	sc.Complete();
 }
 
