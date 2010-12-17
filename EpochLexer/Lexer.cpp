@@ -24,6 +24,7 @@ static const int SCE_EPOCH_TYPE = 2;
 static const int SCE_EPOCH_STRINGLITERAL = 3;
 static const int SCE_EPOCH_SYMBOL = 4;
 static const int SCE_EPOCH_LITERAL = 5;
+static const int SCE_EPOCH_UDT = 6;
 
 
 namespace
@@ -44,6 +45,12 @@ namespace
 		);
 	}
 
+	bool IsUserDefinedTypeKeyword(const char* rawtoken)
+	{
+		std::string token(rawtoken);
+		return false;
+	}
+
 	bool IsLiteralKeyword(const char* rawtoken)
 	{
 		std::string token(rawtoken);
@@ -53,6 +60,13 @@ namespace
 		   token == "true"
 		|| token == "false"
 		);
+	}
+
+	bool IsTypeDeclarationKeyword(const char* rawtoken)
+	{
+		std::string token(rawtoken);
+
+		return (token == "structure");
 	}
 
 }
@@ -154,6 +168,10 @@ void __stdcall EpochLexer::Lex(unsigned int startPos, int lengthDoc, int initSty
 					sc.ChangeState(SCE_EPOCH_TYPE);
 				else if(IsLiteralKeyword(token))
 					sc.ChangeState(SCE_EPOCH_LITERAL);
+				else if(IsTypeDeclarationKeyword(token))
+					sc.ChangeState(SCE_EPOCH_DEFAULT);
+				else if(IsUserDefinedTypeKeyword(token))
+					sc.ChangeState(SCE_EPOCH_UDT);
 				else
 					sc.ChangeState(SCE_EPOCH_DEFAULT);
 
