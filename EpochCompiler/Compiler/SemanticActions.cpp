@@ -1246,7 +1246,7 @@ void CompilationSemantics::CompleteStatement()
 					throw FatalException("Parameter's type is explicitly flagged as invalid");
 
 				case VM::EpochType_Void:
-					Throw(RecoverableException("Parameter has no type; cannot be passed to this function"));
+					Throw(ParameterException("Parameter has no type; cannot be passed to this function"));
 
 				case VM::EpochType_Identifier:
 					if(fs->GetParameter(i).Type == VM::EpochType_Identifier)
@@ -1278,7 +1278,7 @@ void CompilationSemantics::CompleteStatement()
 							if(iter->second.HasVariable(CompileTimeParameters.top()[i].StringPayload))
 							{
 								if(iter->second.GetVariableTypeByID(CompileTimeParameters.top()[i].Payload.StringHandleValue) != fs->GetParameter(i).Type)
-									Throw(RecoverableException("The variable \"" + narrow(CompileTimeParameters.top()[i].StringPayload) + "\" has the wrong type to be used for this parameter"));
+									Throw(TypeMismatchException("The variable \"" + narrow(CompileTimeParameters.top()[i].StringPayload) + "\" has the wrong type to be used for this parameter"));
 
 								if(fs->GetParameter(i).IsReference)
 									PendingEmitters.top().BindReference(CompileTimeParameters.top()[i].Payload.StringHandleValue);
@@ -1303,7 +1303,7 @@ void CompilationSemantics::CompleteStatement()
 					{
 						std::wostringstream errormsg;
 						errormsg << L"Parameter " << (i + 1) << L" to function \"" << statementname << L"\" is of the wrong type";
-						Throw(RecoverableException(narrow(errormsg.str())));
+						Throw(TypeMismatchException(narrow(errormsg.str())));
 					}
 					break;
 
@@ -1314,7 +1314,7 @@ void CompilationSemantics::CompleteStatement()
 					{
 						std::wostringstream errormsg;
 						errormsg << L"Parameter " << (i + 1) << L" to function \"" << statementname << L"\" is of the wrong type";
-						Throw(RecoverableException(narrow(errormsg.str())));
+						Throw(TypeMismatchException(narrow(errormsg.str())));
 					}
 					break;
 
@@ -1325,7 +1325,7 @@ void CompilationSemantics::CompleteStatement()
 					{
 						std::wostringstream errormsg;
 						errormsg << L"Parameter " << (i + 1) << L" to function \"" << statementname << L"\" is of the wrong type";
-						Throw(RecoverableException(narrow(errormsg.str())));
+						Throw(TypeMismatchException(narrow(errormsg.str())));
 					}
 					break;
 
@@ -1336,7 +1336,7 @@ void CompilationSemantics::CompleteStatement()
 					{
 						std::wostringstream errormsg;
 						errormsg << L"Parameter " << (i + 1) << L" to function \"" << statementname << L"\" is of the wrong type";
-						Throw(RecoverableException(narrow(errormsg.str())));
+						Throw(TypeMismatchException(narrow(errormsg.str())));
 					}
 					break;
 
@@ -1347,7 +1347,7 @@ void CompilationSemantics::CompleteStatement()
 					{
 						std::wostringstream errormsg;
 						errormsg << L"Parameter " << (i + 1) << L" to function \"" << statementname << L"\" is of the wrong type";
-						Throw(RecoverableException(narrow(errormsg.str())));
+						Throw(TypeMismatchException(narrow(errormsg.str())));
 					}
 					break;
 
@@ -1358,7 +1358,7 @@ void CompilationSemantics::CompleteStatement()
 					{
 						std::wostringstream errormsg;
 						errormsg << L"Parameter " << (i + 1) << L" to function \"" << statementname << L"\" is of the wrong type";
-						Throw(RecoverableException(narrow(errormsg.str())));
+						Throw(TypeMismatchException(narrow(errormsg.str())));
 					}
 					break;
 
@@ -1372,7 +1372,7 @@ void CompilationSemantics::CompleteStatement()
 			std::wostringstream errormsg;
 			errormsg << L"The function \"" << statementname << L"\" expects " << fs->GetNumParameters() << L" parameters, but ";
 			errormsg << CompileTimeParameters.top().size() << L" were provided";
-			Throw(RecoverableException(narrow(errormsg.str())));
+			Throw(ParameterException(narrow(errormsg.str())));
 		}
 
 		StatementTypes.push(fs->GetReturnType());
@@ -1632,7 +1632,7 @@ void CompilationSemantics::CompleteEntityParams(bool ispostfixcloser)
 		PendingEmissionBuffers.pop();
 
 		if(!valid)
-			Throw(RecoverableException("Incorrect parameters to " + narrow(entityname)));
+			Throw(ParameterException("Incorrect parameters to " + narrow(entityname)));
 	}
 }
 
