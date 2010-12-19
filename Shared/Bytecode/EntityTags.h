@@ -9,6 +9,9 @@
 // and so on. They are not instructions for the VM; therefore they may
 // overlap instruction values, and the VM is not expected to correctly
 // execute any of the metadata (that's the job of the parser/loader).
+// Note that for some cases the metadata does have semantic importance
+// to the VM, such as distinguishing between vanilla functions and the
+// magic resolver functions used for pattern matching.
 //
 
 #pragma once

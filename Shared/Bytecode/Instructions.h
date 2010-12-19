@@ -11,6 +11,12 @@
 namespace Bytecode
 {
 
+	// We prefer a direct use of a byte to the use of an enum because we don't
+	// always want an enum's semantics during compilation of the compiler/VM.
+	// For instance, we may wish to define custom instructions at some point
+	// which do not fit into preset enum values but should still occupy a single
+	// byte of space. This also helps to ensure that we don't accidentally widen
+	// the enum past a byte and cause havoc with code that assumes byte widths.
 	typedef unsigned char Instruction;
 
 	namespace Instructions

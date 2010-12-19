@@ -4,6 +4,10 @@
 //
 // Wrapper class for managing an active structure in memory
 //
+// Note that this class does not do any type checking or direct validation of
+// other invariants; it is merely a safe wrapper for the VM implementation to
+// access the raw memory storage used by a structure instance (aka object).
+//
 
 #pragma once
 

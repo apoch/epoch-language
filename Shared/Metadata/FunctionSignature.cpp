@@ -91,7 +91,7 @@ size_t FunctionSignature::FindParameter(const std::wstring& name) const
 }
 
 //
-// Retrieve the function signature at the given parameter index
+// Retrieve the function signature at the given parameter index (for higher-order functions)
 //
 const FunctionSignature& FunctionSignature::GetFunctionSignature(size_t index) const
 {
@@ -99,7 +99,7 @@ const FunctionSignature& FunctionSignature::GetFunctionSignature(size_t index) c
 }
 
 //
-// Set the value of the function signature at the given parameter index
+// Set the value of the function signature at the given parameter index (for higher-order functions)
 //
 void FunctionSignature::SetFunctionSignature(size_t index, const FunctionSignature& signature)
 {

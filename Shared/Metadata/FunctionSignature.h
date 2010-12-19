@@ -32,7 +32,9 @@ public:
 	void AddPatternMatchedParameterIdentifier(StringHandle identifier);
 	
 	void SetReturnType(VM::EpochTypeID type);
-	
+
+	void SetFunctionSignature(size_t index, const FunctionSignature& signature);
+
 // Inspection interface
 public:
 	const CompileTimeParameter& GetParameter(size_t index) const;
@@ -41,7 +43,6 @@ public:
 	size_t FindParameter(const std::wstring& name) const;
 
 	const FunctionSignature& GetFunctionSignature(size_t index) const;
-	void SetFunctionSignature(size_t index, const FunctionSignature& signature);
 
 	VM::EpochTypeID GetReturnType() const
 	{ return ReturnType; }

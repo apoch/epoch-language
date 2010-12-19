@@ -4,6 +4,11 @@
 //
 // Interface for handling compile-time code execution
 //
+// Note that we sort of ended up abusing this interface a bit in the compiler,
+// and use it for compile-time representation of all kinds of things, like parsed
+// expressions and so on. While its chief purpose remains invocation of code to
+// be executed at compile-time, its usage is overloaded somewhat.
+//
 
 #pragma once
 

@@ -43,7 +43,13 @@ typedef std::set<StringHandle> StringHandleSet;
 typedef std::map<StringHandle, StringHandleSet> OverloadMap;
 
 
-
+//
+// This structure encapsulates the data associated with function tags, allowing
+// the tag parser helper to attach metadata to a function for storage in final
+// compiled bytecode. It also allows runtime functions to be invoked magically
+// when the function is called, which provides a handy mechanism for marshaling
+// calls to external APIs.
+//
 struct TagHelperReturn
 {
 	std::wstring InvokeRuntimeFunction;
@@ -56,6 +62,14 @@ typedef TagHelperReturn (*FunctionTagHelperPtr)(StringHandle functionname, const
 typedef std::map<std::wstring, FunctionTagHelperPtr> FunctionTagHelperTable;
 
 
+//
+// Convenience structure holding a set of information needed for compilation
+//
+// Note that in most cases this will consist purely of pointers bound to another
+// object, such as a CompileSession, which stores all the data indirectly. This
+// is mainly useful for providing a succinct interface for passing the various
+// pointers into external library DLLs.
+//
 struct CompilerInfoTable
 {
 	FunctionCompileHelperTable* FunctionHelpers;

@@ -44,6 +44,9 @@ size_t VM::GetStorageSize(EpochTypeID type)
 		throw FatalException("Unable to determine the size of this variable/structure member");
 
 	default:
+		if(type <= EpochType_CustomBase)
+			throw NotImplementedException("Unsupported data type in VM::GetStorageSize()");
+
 		return sizeof(StructureHandle);
 	}
 }
@@ -67,6 +70,6 @@ size_t VM::GetMarshaledSize(EpochTypeID type)
 	case EpochType_Buffer:				return sizeof(wchar_t*);
 
 	default:
-		throw FatalException("Unable to determine the size of this variable/structure member");
+		throw FatalException("Unable to determine the marshaled size of this variable/structure member");
 	}
 }

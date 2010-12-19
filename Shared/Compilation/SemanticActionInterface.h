@@ -8,6 +8,10 @@
 // of code actions that the parsing process invokes. For example, we can bind
 // a parser to a compiler, which emits executable bytecode; alternatively, we
 // could bind a parser to a static analysis system for validation, and so on.
+// Semi-incremental parsing techniques can also be used (with clever abuse of
+// boost::spirit's exception-based error handling), which makes such features
+// as syntax highlighting much easier to implement using a unified underlying
+// grammar/parser framework.
 //
 
 #pragma once
