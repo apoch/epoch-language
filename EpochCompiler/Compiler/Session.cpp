@@ -129,19 +129,6 @@ size_t CompileSession::GetEmittedBufferSize() const
 //
 void CompileSession::CompileFunctions(const std::wstring& code, const std::wstring& filename)
 {
-	StringSet entitynames, chainedentitynames, postfixentitynames, postfixclosernames;
-	for(EntityTable::iterator iter = CustomEntities.begin(); iter != CustomEntities.end(); ++iter)
-		entitynames.insert(StringPool.GetPooledString(iter->second.StringName));
-
-	for(EntityTable::iterator iter = ChainedEntities.begin(); iter != ChainedEntities.end(); ++iter)
-		chainedentitynames.insert(StringPool.GetPooledString(iter->second.StringName));
-
-	for(EntityTable::iterator iter = PostfixEntities.begin(); iter != PostfixEntities.end(); ++iter)
-		postfixentitynames.insert(StringPool.GetPooledString(iter->second.StringName));
-
-	for(EntityTable::iterator iter = PostfixClosers.begin(); iter != PostfixClosers.end(); ++iter)
-		postfixclosernames.insert(StringPool.GetPooledString(iter->second.StringName));
-
 	ByteCodeEmitter emitter(ByteCodeBuffer);
 	CompilationSemantics semantics(emitter, *this);
 	Parser theparser(semantics, Identifiers);
