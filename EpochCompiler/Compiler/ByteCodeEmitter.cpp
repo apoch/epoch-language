@@ -39,6 +39,10 @@ void ByteCodeEmitter::EnterFunction(StringHandle functionname)
 // Functions always exit with a RETURN instruction to ensure that control flow will
 // always progress back to the caller once execution of the attached code block is
 // completed. Following the RETURN instruction is an entity terminator declaration.
+// Note that the entity terminator is not executed directly as is the case with most
+// entities such as loops or conditionals; instead, it is used primarily by the VM
+// as a sort of book-keeping token. In particular it is useful for the Epoch-ASM
+// serializer for handling code indentation levels.
 //
 void ByteCodeEmitter::ExitFunction()
 {
@@ -54,7 +58,12 @@ void ByteCodeEmitter::ExitFunction()
 // using a special instruction; this function emits that instruction followed by the
 // handle of the variable that contains the value to copy into the register. The contents
 // of the register are automatically pushed onto the stack by the VM when the function
-// finishes execution (for applicable, non-void functions).
+// finishes execution (for applicable, non-void functions). This implicit push allows
+// for easy chaining of expressions and function calls, e.g. where one function's value
+// is passed as a parameter to another function without being copied to an intermediate
+// variable. The only downside to this approach is the necessity of manually popping the
+// stack if/when the return value of a function is ignored, but this is considered a
+// minor cost compared to the convenience and efficiency of the register overall.
 //
 void ByteCodeEmitter::SetReturnRegister(StringHandle variablename)
 {
@@ -70,6 +79,13 @@ void ByteCodeEmitter::SetReturnRegister(StringHandle variablename)
 //
 // Emit code for pushing a 32-bit integer literal onto the stack
 //
+// The stack push instruction accepts a type annotation, which informs the VM
+// how many bytes of bytecode to read to retrieve the value that is to be pushed.
+// Additionally, this annotation can be used for reference-counting temporary
+// values on the stack, which is useful for preventing the garbage collector from
+// prematurely collecting objects which are temporarily valid on the stack but
+// might become actual garbage soon.
+//
 void ByteCodeEmitter::PushIntegerLiteral(Integer32 value)
 {
 	EmitInstruction(Bytecode::Instructions::Push);
@@ -79,6 +95,11 @@ void ByteCodeEmitter::PushIntegerLiteral(Integer32 value)
 
 //
 // Emit code for pushing a 16-bit integer literal onto the stack
+//
+// Note that we accept an Integer32 parameter and explicitly convert it to an
+// Integer16 within the function. This is done to ensure that the value is not
+// truncated silently by the compiler, and that any overflows can be caught and
+// generate appropriate errors statically at compile-time.
 //
 void ByteCodeEmitter::PushInteger16Literal(Integer32 value)
 {
@@ -95,6 +116,11 @@ void ByteCodeEmitter::PushInteger16Literal(Integer32 value)
 
 //
 // Emit code for pushing a string literal handle onto the stack
+//
+// String resources are garbage collected and referred to via handles. Strings
+// are immutable data, so it is not necessary to provide copy-on-use semantics
+// for string variables in the Epoch language. This is in direct contrast with
+// the buffer datatype, which is mutable, handle-referenced, and copy-on-use.
 //
 void ByteCodeEmitter::PushStringLiteral(StringHandle handle)
 {
@@ -130,7 +156,9 @@ void ByteCodeEmitter::PushRealLiteral(Real32 value)
 // mandatory to know the variable type when emitting this code. For instance, marshaled buffers
 // are referenced by handle numbers internally, but copied on accesses in order to create value
 // versus handle/reference semantics when used by the programmer. Similar logic helps to ensure
-// that structure/object copy constructors are invoked cleanly, and so on.
+// that structure/object copy constructors are invoked cleanly, and so on. Also worth noting is
+// the fact that the emitted code discards the provided type information, because we can always
+// emit the correct instructions to perform the required semantics at runtime.
 //
 void ByteCodeEmitter::PushVariableValue(StringHandle variablename, VM::EpochTypeID type)
 {
@@ -145,6 +173,12 @@ void ByteCodeEmitter::PushVariableValue(StringHandle variablename, VM::EpochType
 //
 // Emit code for pushing a buffer handle onto the stack
 //
+// Buffers are garbage collected resources with copy-on-use semantics. They are intended
+// primarily for marshaling data and strings to other languages/FFIs. Their use can be
+// somewhat finicky due to the semantics involved, and they can easily become a performance
+// liability if misused. However, they remain a powerful tool in the Epoch toolbox largely
+// because of their many applications in communicating with external C-type APIs.
+//
 void ByteCodeEmitter::PushBufferHandle(BufferHandle handle)
 {
 	EmitInstruction(Bytecode::Instructions::Push);
@@ -154,6 +188,12 @@ void ByteCodeEmitter::PushBufferHandle(BufferHandle handle)
 
 //
 // Emit code for binding a reference parameter to a given variable
+//
+// This is used when passing variables into functions which have ref parameters. Essentially
+// we pass on the stack a type annotation and a pointer to the raw storage where the variable's
+// actual value can be read and stored; the invoked function resolves this reference as needed,
+// essentially performing the required indirection automatically. This instruction is used in
+// place of a standard stack push to push the reference binding data onto the stack.
 //
 void ByteCodeEmitter::BindReference(StringHandle variablename)
 {
@@ -167,6 +207,10 @@ void ByteCodeEmitter::BindReference(StringHandle variablename)
 // Assumes that the structure holding the member is already bound
 // as a reference prior to this instruction!
 //
+// This is used when passing a structure member to a function taking a ref parameter, in a
+// mechanism very similar to that used by BindReference. However, this is designed to permit
+// chained usage, so that nested structures can be supported with one instruction opcode.
+//
 void ByteCodeEmitter::BindStructureReference(StringHandle membername)
 {
 	EmitInstruction(Bytecode::Instructions::BindMemberRef);
@@ -176,9 +220,11 @@ void ByteCodeEmitter::BindStructureReference(StringHandle membername)
 //
 // Emit code for popping a given number of bytes off the stack
 //
-// Note that we do not store the number of bytes to pop directly; instead, we
+// Note that we do not store the number of bytes to pop; instead, we choose to
 // store a type annotation, and the size of that type is determined at runtime
-// and used to pop the stack.
+// and used to pop the stack. This is primarily useful for handling structures
+// and marshaled datatypes, where the compiler may not know the data size, but
+// the VM will.
 //
 void ByteCodeEmitter::PopStack(VM::EpochTypeID type)
 {
@@ -194,6 +240,14 @@ void ByteCodeEmitter::PopStack(VM::EpochTypeID type)
 //
 // Emit code for invoking a specific function or operator
 //
+// The vast majority of VM operation is centered around invoking functions.
+// We have deliberately minimized the number of instructions in the VM set,
+// meaning that most functionality is implemented via the standard library,
+// which uses function invocation to trigger the bulk of the work. Although
+// this setup has proven simple to implement, it does leave us with a large
+// number of optimization opportunities for mitigating the overhead of many
+// function invocations.
+//
 void ByteCodeEmitter::Invoke(StringHandle functionname)
 {
 	EmitInstruction(Bytecode::Instructions::Invoke);
@@ -203,6 +257,9 @@ void ByteCodeEmitter::Invoke(StringHandle functionname)
 //
 // Emit code for invoking a specific function indirectly via a variable
 //
+// This is used for binding functions into variables and parameters, primarily
+// for supporting higher-order functions and lexical closures.
+//
 void ByteCodeEmitter::InvokeIndirect(StringHandle varname)
 {
 	EmitInstruction(Bytecode::Instructions::InvokeIndirect);
@@ -211,6 +268,11 @@ void ByteCodeEmitter::InvokeIndirect(StringHandle varname)
 
 //
 // Emit an instruction which halts execution of the VM
+//
+// Halting is considered an emergency exit and should be avoided in most
+// non-exceptional cases. Note that in the current VM implementation, a
+// halt is silent, and will not inform the user as to why the program just
+// vanished suddenly.
 //
 void ByteCodeEmitter::Halt()
 {
@@ -267,7 +329,8 @@ void ByteCodeEmitter::BeginChain()
 // Emit an instruction denoting that we are exiting an entity chain
 //
 // Entity chain exit instructions are used to know where to jump the instruction pointer
-// when a chain is finished executing.
+// when a chain is finished executing. The VM preprocesses the locations of these chain
+// instructions so that it can cache the offsets for faster execution.
 //
 void ByteCodeEmitter::EndChain()
 {
@@ -289,7 +352,7 @@ void ByteCodeEmitter::InvokeMetacontrol(Bytecode::EntityTag tag)
 
 
 //
-// Emit a header describing a lexical scope
+// Emit a header for describing a lexical scope
 //
 // Lexical scope metadata consists of a declaration instruction, the handle to the
 // scope's internal name (e.g. the name of a function, or a generated name for nested
@@ -326,6 +389,11 @@ void ByteCodeEmitter::LexicalScopeEntry(StringHandle varname, VM::EpochTypeID va
 //
 // Enter a special entity which is used for runtime pattern matching on function parameters
 //
+// These entities behave similarly to functions, but do not carry explicitly attached lexical
+// scopes or code blocks. As such they are designed to appear and disappear on the call stack
+// transparently. Pattern resolvers are typically called when it is not possible to determine
+// which function should be called statically. Pattern match failures result in exceptions.
+//
 void ByteCodeEmitter::EnterPatternResolver(StringHandle functionname)
 {
 	EmitInstruction(Bytecode::Instructions::BeginEntity);
@@ -335,6 +403,11 @@ void ByteCodeEmitter::EnterPatternResolver(StringHandle functionname)
 
 //
 // Terminate an entity used for pattern matching
+//
+// Much like a function end, this is intended mainly for a catch-all in case things go
+// poorly. In general, it is considered a runtime error for a pattern match to fail. A
+// point of similarity to function ends is that the entity end instruction isn't meant
+// to be executed, but rather only used for book-keeping.
 //
 void ByteCodeEmitter::ExitPatternResolver()
 {
@@ -396,7 +469,11 @@ void ByteCodeEmitter::AllocateStructure(VM::EpochTypeID descriptiontype)
 }
 
 //
-// Emit a meta-data instruction for defining a POD data structure
+// Emit a meta-data instruction for defining a data structure
+//
+// Structure definitions are provided to the VM in order to facilitate such things as
+// garbage collection (so it is known which fields are references to other resources,
+// etc.) and efficient marshaling.
 //
 void ByteCodeEmitter::DefineStructure(VM::EpochTypeID type, size_t nummembers)
 {
@@ -408,6 +485,8 @@ void ByteCodeEmitter::DefineStructure(VM::EpochTypeID type, size_t nummembers)
 //
 // Emit meta-data describing a structure member
 //
+// This presently consists of the identifier handle of the member, and its type.
+//
 void ByteCodeEmitter::StructureMember(StringHandle identifier, VM::EpochTypeID type)
 {
 	EmitRawValue(identifier);
@@ -416,6 +495,20 @@ void ByteCodeEmitter::StructureMember(StringHandle identifier, VM::EpochTypeID t
 
 //
 // Emit an instruction to copy a value from a structure into the return value register
+//
+// We use a special instruction here to facilitate generic member accessor functions via the
+// overloaded . (member-access) operator. Structure members are read via these functions,
+// which are used to provide dynamic guarantees as required by the type system, where static
+// checks cannot suffice. They are also useful for ticking over the garbage collector as well
+// as providing correct copy-on-use semantics where necessary.
+//
+// There is an opportunity for optimization here, where the cost of the accessor function
+// invocation can be eliminated by inlining the copy-from-structure instruction and then
+// explicitly pushing the register contents on to the stack.
+//
+// See the discussion above on the return value register for details on its implementation
+// and purpose.
+//
 //
 void ByteCodeEmitter::CopyFromStructure(StringHandle structurevariable, StringHandle membervariable)
 {
@@ -426,6 +519,10 @@ void ByteCodeEmitter::CopyFromStructure(StringHandle structurevariable, StringHa
 
 //
 // Emit an instruction to copy a value from the stack into a structure member
+//
+// Since structures are kept on the freestore and not on the stack, it is necessary to facilitate
+// writes to structure members via this instruction. This essentially just copies the data from
+// the stack-based storage location into the freestore storage location of the member itself.
 //
 void ByteCodeEmitter::AssignStructure(StringHandle structurevariable, StringHandle membername)
 {
@@ -442,6 +539,13 @@ void ByteCodeEmitter::AssignStructure(StringHandle structurevariable, StringHand
 //
 // Emit an instruction for assigning the contents of the top of the stack into a variable
 //
+// Note that this is not necessarily the same as just copying from one stack location to another.
+// This assignment might transcend local scopes, such as in the case with references, or even
+// entire callstacks, as is the case with lexical closures and first-class functions. This op
+// assumes that the stack has been prepared with a reference binding (see BindRef) which specifies
+// where exactly to write the stack value, and what type of data to copy. Therefore the op itself
+// carries no metadata.
+//
 void ByteCodeEmitter::AssignVariable()
 {
 	EmitInstruction(Bytecode::Instructions::Assign);
@@ -449,6 +553,11 @@ void ByteCodeEmitter::AssignVariable()
 
 //
 // Emit an instruction for copying the value of a referenced variable onto the stack
+//
+// In most circumstances this operation is not necessary; however, it occasionally proves useful,
+// as is the case when performing chained assignments such as a=b=c. The stack is assumed to have
+// been prepared with a reference binding (see BindRef) so that the target storage and type are
+// known. Thus the op carries no metadata.
 //
 void ByteCodeEmitter::ReadReferenceOntoStack()
 {
@@ -470,7 +579,11 @@ void ByteCodeEmitter::PoolString(StringHandle handle, const std::wstring& litera
 {
 	// Note that we are using prepend operations here instead of the typical append operations
 	// This means that we need to specify the fields backwards to get them to appear in the
-	// desired order in the final byte stream.
+	// desired order in the final byte stream. This is done to ensure that the operations always
+	// appear at the top of the program, as required by the language spec, without doing any
+	// nasty caching or reordering. Note however that the prepend can be very expensive when
+	// dealing with large sets of bytecode, so a more optimal solution may be desirable for the
+	// future, such as a two-part assembly of bytecode followed by a concatenation on access.
 	PrependRawValue(literalvalue);
 	PrependRawValue(handle);
 	PrependInstruction(Bytecode::Instructions::PoolString);
@@ -531,6 +644,9 @@ void ByteCodeEmitter::EmitInstruction(Bytecode::Instruction instruction)
 
 //
 // Append a null-terminated wide string to the stream
+//
+// This is provided as distinct from the EmitRawValue overload in order to make the code a
+// bit clearer and more readable.
 //
 void ByteCodeEmitter::EmitTerminatedString(const std::wstring& value)
 {
@@ -627,6 +743,9 @@ void ByteCodeEmitter::EmitRawValue(bool value)
 //
 void ByteCodeEmitter::EmitRawValue(Real32 value)
 {
+	// Cheat and just use the integer version. Note that we're doing a
+	// reinterpretation of the raw bits here so there is no need to
+	// worry about truncation or rounding errors.
 	EmitRawValue(*reinterpret_cast<Integer32*>(&value));
 }
 

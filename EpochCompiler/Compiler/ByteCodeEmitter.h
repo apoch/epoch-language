@@ -71,7 +71,7 @@ public:
 	void InvokeIndirect(StringHandle varname);
 	void Halt();
 
-// Entities and lexical scopes
+// Entities
 public:
 	void EnterEntity(Bytecode::EntityTag tag, StringHandle name);
 	void ExitEntity();
@@ -81,6 +81,8 @@ public:
 
 	void InvokeMetacontrol(Bytecode::EntityTag tag);
 
+// Lexical scope metadata
+public:
 	void DefineLexicalScope(StringHandle name, StringHandle parent, size_t variablecount);
 	void LexicalScopeEntry(StringHandle varname, VM::EpochTypeID vartype, bool isreference, VariableOrigin origin);
 
