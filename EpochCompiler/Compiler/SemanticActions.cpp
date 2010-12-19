@@ -369,6 +369,16 @@ void CompilationSemantics::FinalizeInfix()
 				// Iterate through the list of known operator precedences, highest first
 				for(PrecedenceTable::const_reverse_iterator precedenceiter = Session.OperatorPrecedences.rbegin(); precedenceiter != Session.OperatorPrecedences.rend(); ++precedenceiter)
 				{
+					// We must note if we are handling the magic . member access operator, because
+					// if so, we should not evaluate the identifiers given to us, but rather pass
+					// them along raw to the . operator overload in question. For instance, in the
+					// expression foo.bar, we don't want to evaluate foo OR bar, but rather pass
+					// the two identifiers "foo" and "bar" to the . operator for final evaluation.
+					// Note that it may be possible (indeed, even desirable) to make this a more
+					// general mechanism, whereby the operator overload's parameters are checked to
+					// see if the overload expects identifiers; but for now this hack will suffice.
+					bool ismemberaccess = (precedenceiter->first == PRECEDENCE_MEMBERACCESS);
+
 					// Repeatedly reduce expressions to single operands, until no more operators
 					// at this precedence level are encountered. This ensures that sequences of
 					// operations with the same precedence are all reduced simultaneously.
@@ -380,6 +390,11 @@ void CompilationSemantics::FinalizeInfix()
 						CompileTimeParameterVector::iterator operanditer = flatoperandlist.begin();
 						for(StringHandles::iterator unmappedoperatoriter = InfixOperators.top().begin(); unmappedoperatoriter != InfixOperators.top().end(); ++unmappedoperatoriter)
 						{
+							// Note here that we look up predecenes based on the operator symbol itself, not the
+							// resolved overload of the operator. The result is that all operator overloads will
+							// have the same precedence (which is nice for consistency). This also means that we
+							// don't have to manually define a precedence for all the . operator overloads which
+							// get generated for structure member accesses.
 							if(GetOperatorPrecedence(*unmappedoperatoriter) == precedenceiter->first)
 							{
 								StringHandle infixstatementnamehandle = *unmappedoperatoriter;
@@ -389,8 +404,6 @@ void CompilationSemantics::FinalizeInfix()
 								FunctionSignatureSet::const_iterator funcsigiter = Session.FunctionSignatures.find(infixstatementnamehandle);
 								if(funcsigiter == Session.FunctionSignatures.end())
 									throw FatalException("Unknown statement, cannot complete parsing");
-
-								bool ismemberaccess = (GetOperatorPrecedence(*unmappedoperatoriter) == PRECEDENCE_MEMBERACCESS);
 
 								// Perform the actual reduction, taking care to clean up the
 								// list of pending operators as we eliminate subexpressions.
@@ -544,9 +557,11 @@ void CompilationSemantics::CollapseUnaryOperators()
 //
 // Register the operator of a pre-operator expression
 //
-// We simply save the operator's identifier in the temporary string slot, since
+// We simply save the operator's identifier in a temporary string slot, since
 // it is possible that we might fail to find a valid operand, in which case we
-// don't want to garbage up the parser state with bogus data.
+// don't want to garbage up the parser state with bogus data. Note that we
+// can't use "the" temporary string slot, because we might need that for other
+// purposes, such as member access operators and parentheticals.
 //
 void CompilationSemantics::RegisterPreOperator(const std::wstring& identifier)
 {
@@ -630,7 +645,11 @@ void CompilationSemantics::RegisterPostOperator(const std::wstring& identifier)
 		ByteBuffer buffer;
 		ByteCodeEmitter emitter(buffer);
 
-		// Yes, we need to push this twice!
+		// Yes, we need to push this twice! (Once, the value is passed on to the operator
+		// itself for invocation; the second push [or rather the one which happens first,
+		// and appears lower on the stack] is used to hold the initial value of the expression
+		// so that the subsequent code can read off the value safely, in keeping with the
+		// traditional semantics of a post operator.)
 		AssignmentTargets.top().EmitCurrentValue(emitter, LexicalScopeDescriptions.find(LexicalScopeStack.top())->second, Structures, StructureNames, Session.StringPool);
 		AssignmentTargets.top().EmitCurrentValue(emitter, LexicalScopeDescriptions.find(LexicalScopeStack.top())->second, Structures, StructureNames, Session.StringPool);
 		emitter.Invoke(operatornamehandle);
@@ -890,6 +909,7 @@ void CompilationSemantics::RegisterReturnType(const std::wstring& type)
 {
 	if(!IsPrepass)
 		FunctionReturnTypeNames.push(type);
+
 	FunctionSignatureStack.top().SetReturnType(LookupTypeName(type));
 }
 
@@ -1442,7 +1462,11 @@ void CompilationSemantics::BeginAssignment()
 }
 
 //
-// Begin parsing an assignment that has additional side effects
+// Begin parsing an assignment, which may have additional side effects
+//
+// Note that for simplicity we invoke this function from BeginAssignment for regular assignments
+// with no additional side effects. This is handled explicitly by not setting up compile-time
+// parameter metadata for plain old assignments.
 //
 void CompilationSemantics::BeginOpAssignment(const std::wstring &identifier)
 {
@@ -1680,7 +1704,7 @@ void CompilationSemantics::PushStatementParam()
 }
 
 //
-// Queue a parameter passed to a statement for later validation, incrementing the passed parameter count as we go
+// Queue a parameter that is part of an infix expression for later validation, incrementing the passed parameter count as we go
 //
 void CompilationSemantics::PushInfixParam()
 {
@@ -1784,9 +1808,11 @@ void CompilationSemantics::Finalize()
 			EmitterStack.top()->ExitPatternResolver();
 		}
 
+		// Pool string literals and identifiers
 		for(std::map<StringHandle, std::wstring>::const_reverse_iterator iter = Session.StringPool.GetInternalPool().rbegin(); iter != Session.StringPool.GetInternalPool().rend(); ++iter)
 			EmitterStack.top()->PoolString(iter->first, iter->second);
 
+		// Generate lexical scope metadata
 		for(ScopeMap::const_iterator iter = LexicalScopeDescriptions.begin(); iter != LexicalScopeDescriptions.end(); ++iter)
 		{
 			EmitterStack.top()->DefineLexicalScope(iter->first, FindLexicalScopeName(iter->second.ParentScope), iter->second.GetVariableCount());
@@ -1794,6 +1820,7 @@ void CompilationSemantics::Finalize()
 				EmitterStack.top()->LexicalScopeEntry(Session.StringPool.Pool(iter->second.GetVariableName(i)), iter->second.GetVariableTypeByIndex(i), iter->second.IsReference(i), iter->second.GetVariableOrigin(i));
 		}
 
+		// Generate structure definition metadata
 		for(StructureDefinitionMap::const_iterator iter = Structures.begin(); iter != Structures.end(); ++iter)
 		{
 			EmitterStack.top()->DefineStructure(iter->first, iter->second.GetNumMembers());
@@ -1883,7 +1910,9 @@ void CompilationSemantics::RemapFunctionToOverload(const CompileTimeParameterVec
 	Throw(RecoverableException("No function overload for \"" + narrow(out_remappedname) + "\" takes a matching parameter set"));
 }
 
-
+//
+// Retrieve a list of all overloads which match the given criteria
+//
 void CompilationSemantics::GetAllMatchingOverloads(const CompileTimeParameterVector& params, size_t paramoffset, size_t paramlimit, const TypeVector& possiblereturntypes, const std::wstring& originalname, StringHandle originalnamehandle, StringVector& out_names, StringHandles& out_namehandles) const
 {
 	OverloadMap::const_iterator overloadsiter = Session.FunctionOverloadNames.find(originalnamehandle);
@@ -2194,6 +2223,7 @@ void CompilationSemantics::BeginHigherOrderFunctionParams()
 //
 void CompilationSemantics::EndHigherOrderFunctionParams()
 {
+	// Nothing to do at this point
 }
 
 //
@@ -2209,6 +2239,7 @@ void CompilationSemantics::RegisterHigherOrderFunctionParam(const std::wstring& 
 //
 void CompilationSemantics::BeginHigherOrderFunctionReturns()
 {
+	// Aaaand still nothing to do
 }
 
 //
