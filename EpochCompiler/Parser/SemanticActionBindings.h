@@ -5,6 +5,16 @@
 // Functors for binding the parser grammar's semantic actions
 // to the actual semantic action interface we use internally.
 //
+// These functors are provided for three reasons. First, they
+// allow us to bind state to the semantic actions easily, via
+// the common Bindings reference member (which points to some
+// instance of a SemanticActionInterface-derived object). The
+// templates in use also allow us to abstract out the type of
+// parser iterator etc. used by the underlying spirit grammar
+// in order to make the binding interface more type-agnostic.
+// Lastly, this provides a convenient debug point for tracing
+// the parser's execution by hand, when that is required.
+//
 
 #pragma once
 

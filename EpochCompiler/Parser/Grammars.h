@@ -291,6 +291,12 @@ struct FundamentalGrammar : public boost::spirit::classic::grammar<FundamentalGr
 				= PERIOD
 				;
 
+			//
+			// Set up dynamic parser rules to handle all the custom identifiers and symbols
+			// that might be needed to parse the given program, e.g. operators, entities,
+			// and so on. This permits programs and external libraries to create their own
+			// operators, entities, etc. etc. for extending the language itself.
+			//
 			for(StringSet::const_iterator iter = self.Identifiers.InfixOperators.begin(); iter != self.Identifiers.InfixOperators.end(); ++iter)
 				AddInfixOperator(*PooledNarrowStrings.insert(narrow(*iter)).first);
 

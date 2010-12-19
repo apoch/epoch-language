@@ -50,7 +50,8 @@ CompilerAccess::~CompilerAccess()
 CompiledByteCodeHandle CompilerAccess::CompileSourceToByteCode(const std::wstring& filename, const std::wstring& source)
 {
 	CompiledByteCodeHandle handle = DoCompileSource(filename.c_str(), source.c_str(), source.length());
-	ByteCodeBuffers.insert(handle);
+	if(handle)
+		ByteCodeBuffers.insert(handle);
 	return handle;
 }
 
@@ -60,6 +61,9 @@ CompiledByteCodeHandle CompilerAccess::CompileSourceToByteCode(const std::wstrin
 //
 const void* CompilerAccess::GetByteCode(CompiledByteCodeHandle handle) const
 {
+	if(!handle)
+		return NULL;
+
 	return DoGetByteCodeBuffer(handle);
 }
 
@@ -68,6 +72,9 @@ const void* CompilerAccess::GetByteCode(CompiledByteCodeHandle handle) const
 //
 size_t CompilerAccess::GetByteCodeSize(CompiledByteCodeHandle handle) const
 {
+	if(!handle)
+		return 0;
+
 	return DoGetByteCodeBufferSize(handle);
 }
 
