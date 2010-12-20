@@ -1,6 +1,6 @@
 //
 // The Epoch Language Project
-// FUGUE Virtual Machine
+// EPOCHVM Virtual Machine
 //
 // Memory management subsystems. These classes handle the internal
 // memory allocations and services for the virtual machine.

@@ -1,6 +1,6 @@
 //
 // The Epoch Language Project
-// FUGUE Virtual Machine
+// EPOCHVM Virtual Machine
 //
 // Implementation of memory management subsystems.
 //

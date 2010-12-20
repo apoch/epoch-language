@@ -365,10 +365,6 @@
 					Name="Memory"
 					>
 					<File
-						RelativePath="..\Shared\Utility\Memory\Heap.cpp"
-						>
-					</File>
-					<File
 						RelativePath="..\Shared\Utility\Memory\Heap.h"
 						>
 					</File>
