@@ -20,6 +20,13 @@
 
 namespace
 {
+	//
+	// Concatenate two strings and return the result
+	//
+	// Note that this function allocates a new string and therefore should tick the
+	// garbage collector to ensure that the allocation is taken into account when it
+	// comes time to decide when to collect garbage again.
+	//
 	void StringConcatenation(StringHandle functionname, VM::ExecutionContext& context)
 	{
 		StringHandle p2 = context.State.Stack.PopValue<StringHandle>();
@@ -32,14 +39,21 @@ namespace
 		context.TickStringGarbageCollector();
 	}
 
+	//
+	// Retrieve the length (in characters, not bytes!) of a string
+	//
 	void StringLength(StringHandle functionname, VM::ExecutionContext& context)
 	{
 		StringHandle p = context.State.Stack.PopValue<StringHandle>();
 		context.State.Stack.PushValue(context.OwnerVM.GetPooledString(p).length());
 	}
 
+	//
+	// Narrow a string into a byte buffer; typically useful for marshaling strings to APIs that expect narrow strings
+	//
 	void NarrowString(StringHandle functionname, VM::ExecutionContext& context)
 	{
+		// TODO - modify this to return an allocated buffer of the correct size
 		void* bufferrefstorage = context.State.Stack.PopValue<void*>();
 		VM::EpochTypeID bufferreftype = context.State.Stack.PopValue<VM::EpochTypeID>();
 

@@ -96,6 +96,10 @@ void ActiveScope::WriteFromStack(void* targetstorage, VM::EpochTypeID targettype
 		Write(targetstorage, stack.PopValue<Integer32>());
 		break;
 
+	case VM::EpochType_Integer16:
+		Write(targetstorage, stack.PopValue<Integer16>());
+		break;
+
 	case VM::EpochType_String:
 		Write(targetstorage, stack.PopValue<StringHandle>());
 		break;
@@ -113,10 +117,28 @@ void ActiveScope::WriteFromStack(void* targetstorage, VM::EpochTypeID targettype
 		break;
 
 	default:
+		if(targettype <= VM::EpochType_CustomBase)
+			throw NotImplementedException("Unsupported type in ActiveScope::WriteFromStack");
+		
 		Write(targetstorage, stack.PopValue<StructureHandle>());
 		break;
 	}
 }
+
+
+//
+// Internal helper to minimize code redundancy
+//
+namespace
+{
+	template <typename T>
+	void DoTypedPush(StackSpace& stack, void* targetstorage)
+	{
+		T* value = reinterpret_cast<T*>(targetstorage);
+		stack.PushValue<T>(*value);
+	}
+}
+
 
 //
 // Push data from an arbitrary location onto the stack
@@ -125,59 +147,18 @@ void ActiveScope::PushOntoStack(void* targetstorage, VM::EpochTypeID targettype,
 {
 	switch(targettype)
 	{
-	case VM::EpochType_Integer:
-		{
-			Integer32* value = reinterpret_cast<Integer32*>(targetstorage);
-			stack.PushValue(*value);
-		}
-		break;
-
-	case VM::EpochType_String:
-		{
-			StringHandle* value = reinterpret_cast<StringHandle*>(targetstorage);
-			stack.PushValue(*value);
-		}
-		break;
-
-	case VM::EpochType_Boolean:
-		{
-			bool* value = reinterpret_cast<bool*>(targetstorage);
-			stack.PushValue(*value);
-		}
-		break;
-
-	case VM::EpochType_Real:
-		{
-			Real32* value = reinterpret_cast<Real32*>(targetstorage);
-			stack.PushValue(*value);
-		}
-		break;
-
-	case VM::EpochType_Buffer:
-		{
-			BufferHandle* value = reinterpret_cast<BufferHandle*>(targetstorage);
-			stack.PushValue(*value);
-		}
-		break;
-
-	case VM::EpochType_Function:
-		{
-			StringHandle* value = reinterpret_cast<StringHandle*>(targetstorage);
-			stack.PushValue(*value);
-		}
-		break;
-
-	case VM::EpochType_Error:
-	case VM::EpochType_Expression:
-	case VM::EpochType_Void:
-	case VM::EpochType_CustomBase:
-		throw NotImplementedException("Unsupported data type in ActiveScope::PushOntoStack");
-
+	case VM::EpochType_Integer:			DoTypedPush<Integer32>(stack, targetstorage);		break;
+	case VM::EpochType_Integer16:		DoTypedPush<Integer16>(stack, targetstorage);		break;
+	case VM::EpochType_String:			DoTypedPush<StringHandle>(stack, targetstorage);	break;
+	case VM::EpochType_Boolean:			DoTypedPush<bool>(stack, targetstorage);			break;
+	case VM::EpochType_Real:			DoTypedPush<Real32>(stack, targetstorage);			break;
+	case VM::EpochType_Buffer:			DoTypedPush<BufferHandle>(stack, targetstorage);	break;
+	case VM::EpochType_Function:		DoTypedPush<StringHandle>(stack, targetstorage);	break;
 	default:
-		{
-			StructureHandle* value = reinterpret_cast<StructureHandle*>(targetstorage);
-			stack.PushValue(*value);
-		}
+		if(targettype <= VM::EpochType_CustomBase)
+			throw NotImplementedException("Unsupported data type in ActiveScope::PushOntoStack");
+
+		DoTypedPush<StructureHandle>(stack, targetstorage);
 		break;
 	}
 }
@@ -317,6 +298,9 @@ void ActiveScope::BindReference(StringHandle referencename, void* targetstorage,
 	BoundReferences[referencename].second = targettype;
 }
 
+//
+// Retrieve the storage location pointed to by a reference variable
+//
 void* ActiveScope::GetReferenceTarget(StringHandle referencename) const
 {
 	ReferenceBindingMap::const_iterator iter = BoundReferences.find(referencename);
@@ -326,6 +310,9 @@ void* ActiveScope::GetReferenceTarget(StringHandle referencename) const
 	return iter->second.first;
 }
 
+//
+// Retrieve the underlying type of a reference variable
+//
 VM::EpochTypeID ActiveScope::GetReferenceType(StringHandle referencename) const
 {
 	ReferenceBindingMap::const_iterator iter = BoundReferences.find(referencename);

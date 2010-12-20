@@ -19,7 +19,33 @@
 #include "Virtual Machine/VirtualMachine.h"
 
 
-using namespace DebugLibrary;
+
+namespace
+{
+
+	//
+	// Write a string to the debug output
+	//
+	void WriteString(StringHandle functionname, VM::ExecutionContext& context)
+	{
+		StringHandle handle = context.State.Stack.PopValue<StringHandle>();
+
+		UI::OutputStream stream;
+		stream << UI::lightblue << L"DEBUG: " << UI::resetcolor << context.OwnerVM.GetPooledString(handle) << std::endl;
+	}
+
+	//
+	// Read a string from the debug console
+	//
+	void ReadString(StringHandle functionname, VM::ExecutionContext& context)
+	{
+		UI::Input input;
+		StringHandle handle = context.OwnerVM.PoolStringDestructive(input.BlockingRead());
+		context.State.Stack.PushValue(handle);
+		context.TickStringGarbageCollector();
+	}
+
+}
 
 
 //
@@ -27,8 +53,8 @@ using namespace DebugLibrary;
 //
 void DebugLibrary::RegisterLibraryFunctions(FunctionInvocationTable& table, StringPoolManager& stringpool)
 {
-	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"debugwritestring"), DebugLibrary::WriteString));
-	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"debugreadstring"), DebugLibrary::ReadString));
+	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"debugwritestring"), WriteString));
+	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"debugreadstring"), ReadString));
 }
 
 //
@@ -46,27 +72,5 @@ void DebugLibrary::RegisterLibraryFunctions(FunctionSignatureSet& signatureset, 
 		signature.SetReturnType(VM::EpochType_String);
 		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"debugreadstring"), signature));
 	}
-}
-
-//
-// Write a string to the debug output
-//
-void DebugLibrary::WriteString(StringHandle functionname, VM::ExecutionContext& context)
-{
-	StringHandle handle = context.State.Stack.PopValue<StringHandle>();
-
-	UI::OutputStream stream;
-	stream << UI::lightblue << L"DEBUG: " << UI::resetcolor << context.OwnerVM.GetPooledString(handle) << std::endl;
-}
-
-//
-// Read a string from the debug console
-//
-void DebugLibrary::ReadString(StringHandle functionname, VM::ExecutionContext& context)
-{
-	UI::Input input;
-	StringHandle handle = context.OwnerVM.PoolStringDestructive(input.BlockingRead());
-	context.State.Stack.PushValue(handle);
-	context.TickStringGarbageCollector();
 }
 

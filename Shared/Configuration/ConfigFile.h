@@ -2,7 +2,7 @@
 // The Epoch Language Project
 // Shared Library Code
 //
-// Wrapper for accessing the Fugue configuration file
+// Wrapper for accessing the Epoch configuration file
 //
 
 #pragma once
@@ -35,7 +35,7 @@ namespace Config
 		template <typename T>
 		T ReadConfig(const std::wstring& keyname) const
 		{
-			T retval;
+			T retval = T();
 
 			KeyValueMap::const_iterator iter = Values.find(keyname);
 			if(iter == Values.end())

@@ -28,8 +28,5 @@ namespace DebugLibrary
 	void RegisterLibraryFunctions(FunctionSignatureSet& signatureset, StringPoolManager& stringpool);
 	void RegisterLibraryFunctions(FunctionInvocationTable& table, StringPoolManager& stringpool);
 
-	void WriteString(StringHandle functionname, VM::ExecutionContext& context);
-	void ReadString(StringHandle functionname, VM::ExecutionContext& context);
-
 }
 

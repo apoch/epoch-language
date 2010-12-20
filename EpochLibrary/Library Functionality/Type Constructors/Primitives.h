@@ -14,13 +14,7 @@
 
 
 // Forward declarations
-class ScopeDescription;
 class StringPoolManager;
-
-namespace VM
-{
-	class ExecutionContext;
-}
 
 
 namespace TypeConstructors

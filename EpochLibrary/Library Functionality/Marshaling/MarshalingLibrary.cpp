@@ -20,13 +20,18 @@
 
 namespace
 {
+	//
+	// Retrieve the size (in bytes) required to marshal a given variable into C APIs.
+	//
+	// Automatically accounts for structures, nested structures, field padding, etc. etc.
+	//
 	void SizeOf(StringHandle functionname, VM::ExecutionContext& context)
 	{
 		StringHandle identifier = context.State.Stack.PopValue<StringHandle>();
 		VM::EpochTypeID vartype = context.Variables->GetOriginalDescription().GetVariableTypeByID(identifier);
 
 		if(vartype < VM::EpochType_CustomBase)
-			context.State.Stack.PushValue(VM::GetStorageSize(vartype));
+			context.State.Stack.PushValue(VM::GetMarshaledSize(vartype));
 		else if(vartype > VM::EpochType_CustomBase)
 			context.State.Stack.PushValue(context.OwnerVM.GetStructureDefinition(vartype).GetMarshaledSize());
 		else

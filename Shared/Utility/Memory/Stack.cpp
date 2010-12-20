@@ -1,16 +1,9 @@
 //
 // The Epoch Language Project
-// FUGUE Virtual Machine
+// Epoch Virtual Machine
 //
 // Implementation of the basic push-down, downward-growing stack
 // used during execution of code within the virtual machine.
-//
-// Note that we do not provide methods for directly pushing or
-// popping values onto and off the stack. Instead, we push/pop
-// the requisite number of bytes, and callers are responsible
-// for retrieving newly allocated stack addresses. This safely
-// and cleanly decouples the stack from any client code, and
-// allows any form of data to be stored without code overhead.
 //
 
 

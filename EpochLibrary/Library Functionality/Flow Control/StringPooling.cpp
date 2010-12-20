@@ -12,6 +12,12 @@
 #include "Utility/StringPool.h"
 
 
+//
+// Register all the strings used by the flow control library
+//
+// This is done here to ensure that strings are always registered in a consistent
+// order, which avoids issues with handle collisions when pooling strings in the VM.
+//
 void FlowControl::RegisterStrings(StringPoolManager& stringpool)
 {
 	stringpool.Pool(L"if");

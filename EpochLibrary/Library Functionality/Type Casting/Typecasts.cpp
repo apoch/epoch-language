@@ -24,6 +24,11 @@ using namespace VM;
 
 namespace
 {
+	//
+	// Cast an integer value into a string
+	//
+	// Should tick the garbage collector, since it allocates a new string.
+	//
 	void CastIntegerToString(StringHandle functionname, ExecutionContext& context)
 	{
 		Integer32 value = context.State.Stack.PopValue<Integer32>();
@@ -37,18 +42,28 @@ namespace
 		context.TickStringGarbageCollector();
 	}
 
+	//
+	// Parse a string, expecting an integer value represented therein, and return the result
+	//
 	void CastStringToInteger(StringHandle functionname, ExecutionContext& context)
 	{
 		StringHandle stringhandle = context.State.Stack.PopValue<StringHandle>();
 		StringHandle targettype = context.State.Stack.PopValue<StringHandle>();
 
 		std::wstringstream converter(context.OwnerVM.GetPooledString(stringhandle));
-		Integer32 result;
+		Integer32 result = 0;
 		converter >> result;
+
+		// TODO - runtime conversion exception on failure?
 
 		context.State.Stack.PushValue(result);
 	}
 
+	//
+	// Convert a boolean value into a string representation ("true" or "false")
+	//
+	// Ticks over the garbage collector, since it allocates a new string for the result
+	//
 	void CastBooleanToString(StringHandle functionname, ExecutionContext& context)
 	{
 		bool value = context.State.Stack.PopValue<bool>();
@@ -64,6 +79,11 @@ namespace
 		context.TickStringGarbageCollector();
 	}
 
+	//
+	// Convert a real number to string format
+	//
+	// Ticks over the garbage collector.
+	//
 	void CastRealToString(StringHandle functionname, ExecutionContext& context)
 	{
 		Real32 value = context.State.Stack.PopValue<Real32>();
@@ -77,6 +97,12 @@ namespace
 		context.TickStringGarbageCollector();
 	}
 
+	//
+	// Convert a byte buffer into a string, assuming the byte buffer represents
+	// a sequence of bytes that directly maps to a string value!
+	//
+	// Ticks over the garbage collector.
+	//
 	void CastBufferToString(StringHandle functionname, ExecutionContext& context)
 	{
 		BufferHandle bufferhandle = context.State.Stack.PopValue<BufferHandle>();

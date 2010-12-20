@@ -1,6 +1,6 @@
 //
 // The Epoch Language Project
-// FUGUE Virtual Machine
+// Shared Library Code
 //
 // Configurable runtime options for the virtual machine.
 // These options can usually be set either dynamically while the engine
@@ -17,9 +17,6 @@ namespace Config
 
 	void LoadFromConfigFile();
 
-
-	extern bool TraceParserExecution;
-	extern bool TraceValidatorExecution;
 
 	extern size_t StackSize;
 

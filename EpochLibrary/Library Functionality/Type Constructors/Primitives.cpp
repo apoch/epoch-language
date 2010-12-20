@@ -84,6 +84,13 @@ namespace
 	//
 	// Construct a buffer in memory
 	//
+	// Note that unlike primitives which can be constructed and initialized from default
+	// literal values in the code, buffers cannot be specified as literals; this means
+	// that the constructor does not accept a literal buffer argument, but instead a
+	// size value in characters (not bytes!) which the buffer should allocate space for.
+	// Since this constructor allocates memory in the form of a buffer, it should tick
+	// over the garbage collector.
+	//
 	void ConstructBuffer(StringHandle functionname, VM::ExecutionContext& context)
 	{
 		Integer32 size = context.State.Stack.PopValue<Integer32>();

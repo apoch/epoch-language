@@ -21,6 +21,15 @@ namespace
 	//
 	// Register a function tagged as an external
 	//
+	// In the prepass compilation phase, this simply attaches some metadata to the function entity,
+	// which is emitted into the final compiled code byte stream. This metadata is used to track
+	// the specific DLL and function that should be invoked by the marshaling system. In the final
+	// compilation pass, we signal the compiler to automatically invoke the magic @@external code,
+	// which takes care of actually marshaling the call to the external DLL. Note that it is not
+	// required that the function return immediately after invoking @@external; it is permissible
+	// to define a code body for the function which performs additional logic after the marshaled
+	// call returns.
+	//
 	TagHelperReturn ExternalHelper(StringHandle functionname, const CompileTimeParameterVector& compiletimeparams, bool isprepass)
 	{
 		TagHelperReturn ret;

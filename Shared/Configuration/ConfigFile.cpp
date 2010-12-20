@@ -2,7 +2,7 @@
 // The Epoch Language Project
 // Shared Library Code
 //
-// Wrapper for accessing the Fugue configuration file
+// Wrapper for accessing the Epoch configuration file
 //
 
 #include "pch.h"
@@ -23,13 +23,13 @@ using namespace Config;
 //
 // Note that this is designed to fail safely and quietly; should anything
 // go wrong during the config load process, there will *not* be any error
-// indication! Since the Fugue virtual machine uses this config file when
+// indication! Since the Epoch virtual machine uses this config file when
 // running compiled Epoch .EXE programs, it's best not to alarm end users
 // if something happens.
 //
 ConfigReader::ConfigReader()
 {
-	std::wstring filename = SpecialPaths::GetAppDataPath() + L"\\fugue.cfg";
+	std::wstring filename = SpecialPaths::GetAppDataPath() + L"\\epoch.cfg";
 
 	try
 	{

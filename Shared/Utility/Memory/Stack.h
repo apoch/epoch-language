@@ -1,6 +1,6 @@
 //
 // The Epoch Language Project
-// FUGUE Virtual Machine
+// Epoch Virtual Machine
 //
 // Definition of the basic push-down, downward-growing stack
 // used during execution of code within the virtual machine.
