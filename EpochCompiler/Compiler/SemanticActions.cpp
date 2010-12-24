@@ -2363,42 +2363,14 @@ const std::wstring& CompilationSemantics::CreateStructureType()
 	Structures[type] = StructureDefinition();
 	StructureNames[idhandle] = type;
 
+	StringHandle varconstructorname = AllocateNewOverloadedFunctionName(idhandle);
+	StringHandle anonconstructorname = AllocateNewOverloadedFunctionName(idhandle);
+
 	// Now register a constructor function for the type
-	CompileTimeHelpers[StructureName] = CompileConstructorStructure;
+	CompileTimeHelpers[Session.StringPool.GetPooledString(varconstructorname)] = CompileConstructorStructure;
 
-	FunctionSignature signature;
-	signature.AddParameter(L"identifier", VM::EpochType_Identifier, true);
-	LexicalScopeDescriptions[idhandle].AddVariable(L"identifier", Session.StringPool.Pool(L"identifier"), VM::EpochType_Identifier, true, VARIABLE_ORIGIN_PARAMETER);
-
-	// Add parameters for each structure member
-	size_t index = 1;		// Account for the fact that the constructed variable's identifier occupies slot 0
-	for(StructureMemberList::const_iterator iter = StructureMembers.begin(); iter != StructureMembers.end(); ++iter)
-	{
-		const std::wstring& identifier = Session.StringPool.GetPooledString(iter->second);
-		signature.AddParameter(identifier, iter->first, false);
-		if(iter->first == VM::EpochType_Function)
-			signature.SetFunctionSignature(index, StructureFunctionSignatures.find(identifier)->second);
-		const StructureDefinition* structdefinition = NULL;
-		if(iter->first > VM::EpochType_CustomBase)
-			structdefinition = &Structures[iter->first];
-		Structures[type].AddMember(iter->second, iter->first, structdefinition);
-		LexicalScopeDescriptions[idhandle].AddVariable(identifier, iter->second, iter->first, false, VARIABLE_ORIGIN_PARAMETER);
-		++index;
-	}
-
-	AddToMapNoDupe(Session.FunctionSignatures, std::make_pair(idhandle, signature));
-
-	// Create constructor
-	EmitterStack.top()->EnterFunction(idhandle);
-	EmitterStack.top()->AllocateStructure(type);
-	EmitterStack.top()->BindReference(Session.StringPool.Pool(L"identifier"));
-	EmitterStack.top()->AssignVariable();
-	for(StructureMemberList::const_iterator iter = StructureMembers.begin(); iter != StructureMembers.end(); ++iter)
-	{
-		EmitterStack.top()->PushVariableValue(iter->second, iter->first);
-		EmitterStack.top()->AssignStructure(Session.StringPool.Pool(L"identifier"), iter->second);
-	}
-	EmitterStack.top()->ExitFunction();
+	GenerateConstructor(varconstructorname, type, true);
+	GenerateConstructor(anonconstructorname, type, false);
 
 
 	// Create member accessors
@@ -2426,6 +2398,67 @@ const std::wstring& CompilationSemantics::CreateStructureType()
 	return Session.StringPool.GetPooledString(idhandle);
 }
 
+//
+// Generate a constructor (possibly anonymous) for a structure type
+//
+void CompilationSemantics::GenerateConstructor(StringHandle constructorname, VM::EpochTypeID type, bool takesidentifier)
+{
+	FunctionSignature signature;
+	if(takesidentifier)
+	{
+		signature.AddParameter(L"identifier", VM::EpochType_Identifier, true);
+		LexicalScopeDescriptions[constructorname].AddVariable(L"identifier", Session.StringPool.Pool(L"identifier"), VM::EpochType_Identifier, true, VARIABLE_ORIGIN_PARAMETER);
+	}
+
+	// Add parameters for each structure member
+	size_t index = takesidentifier ? 1 : 0;		// Account for the fact that the constructed variable's identifier occupies slot 0
+	for(StructureMemberList::const_iterator iter = StructureMembers.begin(); iter != StructureMembers.end(); ++iter)
+	{
+		const std::wstring& identifier = Session.StringPool.GetPooledString(iter->second);
+		signature.AddParameter(identifier, iter->first, false);
+		if(iter->first == VM::EpochType_Function)
+			signature.SetFunctionSignature(index, StructureFunctionSignatures.find(identifier)->second);
+		const StructureDefinition* structdefinition = NULL;
+		if(iter->first > VM::EpochType_CustomBase)
+			structdefinition = &Structures[iter->first];
+		Structures[type].AddMember(iter->second, iter->first, structdefinition);
+		LexicalScopeDescriptions[constructorname].AddVariable(identifier, iter->second, iter->first, false, VARIABLE_ORIGIN_PARAMETER);
+		++index;
+	}
+
+	signature.SetReturnType(type);
+	AddToMapNoDupe(Session.FunctionSignatures, std::make_pair(constructorname, signature));
+
+	// Create constructor
+	EmitterStack.top()->EnterFunction(constructorname);
+	EmitterStack.top()->AllocateStructure(type);
+
+	StringHandle targetvariable = 0;
+	if(takesidentifier)
+		targetvariable = Session.StringPool.Pool(L"identifier");
+	else
+	{
+		targetvariable = Session.StringPool.Pool(L"@@anonymous");
+		LexicalScopeDescriptions[constructorname].AddVariable(L"@@anonymous", targetvariable, type, false, VARIABLE_ORIGIN_LOCAL);
+
+		StringHandle rethandle = Session.StringPool.Pool(L"ret");
+		LexicalScopeDescriptions[constructorname].AddVariable(L"ret", rethandle, type, false, VARIABLE_ORIGIN_RETURN);
+	}
+
+	EmitterStack.top()->BindReference(targetvariable);
+	EmitterStack.top()->AssignVariable();
+
+	for(StructureMemberList::const_iterator iter = StructureMembers.begin(); iter != StructureMembers.end(); ++iter)
+	{
+		EmitterStack.top()->PushVariableValue(iter->second, iter->first);
+		EmitterStack.top()->AssignStructure(targetvariable, iter->second);
+	}
+
+	if(!takesidentifier)
+		EmitterStack.top()->SetReturnRegister(targetvariable);
+
+	EmitterStack.top()->ExitFunction();
+}
 
 
 //-------------------------------------------------------------------------------

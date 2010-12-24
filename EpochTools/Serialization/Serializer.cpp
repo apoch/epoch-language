@@ -106,6 +106,10 @@ void Serializer::Write(const std::wstring& filename) const
 	size_t indent = 0;
 
 	std::wofstream outfile(filename.c_str());
+
+	if(!outfile)
+		throw FileException("Failed to write to output file");
+
 	while(!traverser.EndOfBuffer())
 	{
 		outfile.width(sizeof(traverser.Offset) * 2);		// size of offset (e.g. 4 bytes) times 8 bits per byte divided by 4 bits per hex couplet

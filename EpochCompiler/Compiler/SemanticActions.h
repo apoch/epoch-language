@@ -249,6 +249,8 @@ private:
 
 	void CleanAllPushedItems();
 
+	void GenerateConstructor(StringHandle constructorname, VM::EpochTypeID type, bool takesidentifier);
+
 // Internal tracking
 private:
 	bool IsPrepass;

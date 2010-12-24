@@ -123,6 +123,8 @@ int _tmain(int argc, _TCHAR* argv[])
 					Serialization::Serializer serializer(compileraccess, bytecodebufferhandle);
 					serializer.Write(outfilename);
 				}
+				else
+					throw FatalException("Compilation failed!");
 			}
 			catch(std::exception& e)
 			{
