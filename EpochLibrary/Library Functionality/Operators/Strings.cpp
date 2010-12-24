@@ -53,24 +53,18 @@ namespace
 	//
 	void NarrowString(StringHandle functionname, VM::ExecutionContext& context)
 	{
-		// TODO - modify this to return an allocated buffer of the correct size
-		void* bufferrefstorage = context.State.Stack.PopValue<void*>();
-		VM::EpochTypeID bufferreftype = context.State.Stack.PopValue<VM::EpochTypeID>();
-
-		if(bufferreftype != VM::EpochType_Buffer)
-			throw FatalException("Passed a non-buffer parameter as a reference to narrowstring()");
-
-		BufferHandle destbuffer = *reinterpret_cast<BufferHandle*>(bufferrefstorage);
 		StringHandle sourcestringhandle = context.State.Stack.PopValue<StringHandle>();
 
 		const std::wstring& sourcestring = context.OwnerVM.GetPooledString(sourcestringhandle);
 
 		std::string narrowed(narrow(sourcestring));
 
-		if(context.OwnerVM.GetBufferSize(destbuffer) <= narrowed.length())
-			throw FatalException("Buffer overflow during string narrow conversion");
+		BufferHandle destbuffer = context.OwnerVM.AllocateBuffer(narrowed.length() + 1);
+		void* storage = context.OwnerVM.GetBuffer(destbuffer);
+		memcpy(storage, narrowed.c_str(), narrowed.length());
 
-		memcpy(context.OwnerVM.GetBuffer(destbuffer), narrowed.c_str(), narrowed.length());
+		context.State.Stack.PushValue(destbuffer);
+		context.TickBufferGarbageCollector();
 	}
 }
 
@@ -106,7 +100,7 @@ void StringLibrary::RegisterLibraryFunctions(FunctionSignatureSet& signatureset,
 	{
 		FunctionSignature signature;
 		signature.AddParameter(L"s", VM::EpochType_String, false);
-		signature.AddParameter(L"b", VM::EpochType_Buffer, true);
+		signature.SetReturnType(VM::EpochType_Buffer);
 		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"narrowstring"), signature));
 	}
 }

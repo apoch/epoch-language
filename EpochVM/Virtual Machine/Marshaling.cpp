@@ -18,25 +18,41 @@
 #include "Utility/Strings.h"
 
 #include <limits>
+#include <list>
 
 
 namespace
 {
 
+	// Prototype of the function which invokes Epoch callbacks
 	UInteger32 __stdcall CallbackInvoke(UByte* espsave, VM::ExecutionContext* context, StringHandle callbackfunction);
 
 
+	//
+	// Record for tracking the external library and function
+	// that should be invoked by a given [external] tagged
+	// Epoch function
+	//
 	struct DLLInvocationInfo
 	{
 		std::wstring DLLName;
 		std::wstring FunctionName;
 	};
 
+	// Map function names to the corresponding invocation record
 	std::map<StringHandle, DLLInvocationInfo> DLLInvocationMap;
+
 
 	//
 	// Helper stub for saving stack information when a callback is invoked.
-	// This information is used to read parameters off the stack.
+	// This information is used to read parameters off the stack. It is critical
+	// that the compiler not emit any prologue or epilogue code for this routine
+	// since we need to preserve certain register and pointer values for later
+	// retrieval. Note that the callback marshaling stub saves the important
+	// context-pointer and function name handle in the eax and edx registers,
+	// respectively, on x86 architectures. See the comments on the function
+	// MarshalingController::RequestMarshaledCallback for details on how this
+	// automatically generated pre-callback code works.
 	//
 	void __declspec(naked) CallbackEntryPoint()
 	{
@@ -60,6 +76,7 @@ namespace
 		typedef std::map<StringHandle, void*> MarshalingMapT;
 		MarshalingMapT MarshaledCallbackMap;
 
+		// Record describing each allocated stub buffer
 		struct StubSpaceRecord
 		{
 			void* StartOfSpace;
@@ -71,6 +88,9 @@ namespace
 		Threads::CriticalSection MarshalingCriticalSection;
 
 	public:
+		//
+		// When the controller is destructed, automatically clean up all generated stubs
+		//
 		~MarshalingController()
 		{
 			Threads::CriticalSection::Auto mutex(MarshalingCriticalSection);
@@ -85,7 +105,9 @@ namespace
 
 	private:
 		//
-		// Helper functions which allocate memory as needed for dynamically generated shims
+		// Allocate a new chunk of space for generated callback shims
+		//
+		// WARNING: assumes the critical section is already entered!
 		//
 		void* AllocNewStubSpace()
 		{
@@ -96,6 +118,11 @@ namespace
 			return rec.NextAvailableSlot;
 		}
 
+		//
+		// Retrieve the next available slot for generating a new callback shim
+		//
+		// WARNING: assumes the critical section is already entered!
+		//
 		void* GetStubSpace()
 		{
 			if(StubSpaceList.empty())
@@ -124,8 +151,18 @@ namespace
 		// given Epoch function. The address of the stub is returned and can
 		// be handed off to external code as the callback function.
 		//
+		// Each generated stub or shim contains a sequence of machine code
+		// instructions which perform two central tasks: first, we push some
+		// hard-coded parameters onto the stack, then we invoke the callback
+		// helper function CallbackEntryPoint defined above. The parameters
+		// provide the execution context and Epoch callback function name
+		// which should be used to resume execution.
+		//
 		void* RequestMarshaledCallback(VM::ExecutionContext& context, StringHandle callbackfunction)
 		{
+			if(sizeof(UINT_PTR) != 4)
+				throw CompileSettingsException("Marshaling code is only implemented for 32-bit callbacks");
+
 			Threads::CriticalSection::Auto mutex(MarshalingCriticalSection);
 
 			// Check if we have already generated a stub for this function
@@ -172,6 +209,7 @@ namespace
 		}
 	};
 
+	// Instantiate a controller for marshaling callbacks
 	MarshalingController MarshalControl;
 
 
@@ -185,7 +223,7 @@ namespace
 		// in order to reach the actual first parameter. This
 		// is because of the local variable defined in the
 		// callback stub, which uses a stack slot.
-		UByte* esp = espsave + 4;
+		UByte* esp = espsave + sizeof(void*);
 
 		VM::EpochTypeID resulttype = VM::EpochType_Void;
 		const ScopeDescription& description = context->OwnerVM.GetScopeDescription(callbackfunction);
@@ -198,24 +236,24 @@ namespace
 				switch(description.GetVariableTypeByIndex(i))
 				{
 				case VM::EpochType_Boolean:
-					context->State.Stack.PushValue<bool>(*reinterpret_cast<bool*>(esp));
-					esp += sizeof(bool);
+					context->State.Stack.PushValue<bool>(*reinterpret_cast<Integer32*>(esp) != 0 ? true : false);
+					esp += sizeof(Integer32);
 					break;
 
 				case VM::EpochType_Integer:
-					context->State.Stack.PushValue<Integer32>(*reinterpret_cast<Integer32*>(esp));
+					context->State.Stack.PushValue(*reinterpret_cast<Integer32*>(esp));
 					esp += sizeof(Integer32);
 					break;
 
 				case VM::EpochType_Real:
-					context->State.Stack.PushValue<Real32>(*reinterpret_cast<Real32*>(esp));
+					context->State.Stack.PushValue(*reinterpret_cast<Real32*>(esp));
 					esp += sizeof(Real32);
 					break;
 
 				case VM::EpochType_String:
 					{
 						StringHandle handle = context->OwnerVM.PoolString(*reinterpret_cast<wchar_t**>(esp));
-						context->State.Stack.PushValue<StringHandle>(handle);
+						context->State.Stack.PushValue(handle);
 						context->TickStringGarbageCollector();
 						esp += sizeof(wchar_t*);
 					}
@@ -251,6 +289,13 @@ namespace
 	}
 
 
+	//
+	// Create a special data buffer that contains the marshaled (converted)
+	// form of an Epoch structure, suitable for interoperability with standard
+	// C/C++ structures. Note that this may modify the memory layout to deal
+	// with certain issues like padding and alignment. This function may call
+	// itself recursively to deal with nested structures.
+	//
 	bool MarshalStructureDataIntoBuffer(VM::ExecutionContext& context, const ActiveStructure& structure, const StructureDefinition& definition, Byte* buffer)
 	{
 		using namespace VM;
@@ -300,6 +345,9 @@ namespace
 		return true;
 	}
 
+	//
+	// Convert a buffer containing a mutated C/C++ structure back into Epoch format
+	//
 	void MarshalBufferIntoStructureData(VM::ExecutionContext& context, ActiveStructure& structure, const StructureDefinition& definition, const Byte* buffer)
 	{
 		using namespace VM;
@@ -328,7 +376,9 @@ namespace
 				break;
 
 			case EpochType_Function:
-				// Function pointers are not marshaled currently
+				// Function pointers are not marshaled back to Epoch form, currently.
+				// This would require an additional interop layer that dynamically
+				// relinks Epoch callback functions into their modified targets.
 				buffer += sizeof(void*);
 				break;
 
@@ -346,27 +396,35 @@ namespace
 		}
 	}
 
+	//
+	// Record for tracking buffers associated with marshaled data structures
+	//
 	struct MarshaledStructureRecord
 	{
 		bool IsReference;
-		Byte* Buffer;
+		std::vector<Byte> Buffer;
 		ActiveStructure* Structure;
 
-		MarshaledStructureRecord(bool isref, Byte* buffer, ActiveStructure& structure)
+		MarshaledStructureRecord(bool isref, const std::vector<Byte>& buffer, ActiveStructure& structure)
 			: IsReference(isref), Buffer(buffer), Structure(&structure)
 		{ }
 	};
 
-	void MarshalBuffersIntoStructures(VM::ExecutionContext& context, const std::vector<MarshaledStructureRecord>& records)
+	//
+	// Given a set of structure marshaling records, perform the actual data
+	// format conversions for retrieving mutated structures that were passed
+	// to the external API by reference from Epoch code.
+	//
+	void MarshalBuffersIntoStructures(VM::ExecutionContext& context, const std::list<MarshaledStructureRecord>& records)
 	{
-		for(std::vector<MarshaledStructureRecord>::const_iterator iter = records.begin(); iter != records.end(); ++iter)
+		for(std::list<MarshaledStructureRecord>::const_iterator iter = records.begin(); iter != records.end(); ++iter)
 		{
 			// Only marshal data for structures passed by reference
 			if(!iter->IsReference)
 				continue;
 
 			const StructureDefinition& definition = iter->Structure->Definition;
-			const Byte* buffer = iter->Buffer;
+			const Byte* buffer = &iter->Buffer[0];
 			MarshalBufferIntoStructureData(context, *(iter->Structure), definition, buffer);
 		}
 	}
@@ -379,6 +437,13 @@ void ExternalDispatch(StringHandle functionname, VM::ExecutionContext& context)
 {
 	using namespace VM;
 
+	// Placeholders for storing off the external function's return value
+	Integer32 integerret;
+	Integer16 integer16ret;
+
+	// We use the name of the calling function to map us to the correct external.
+	// This is because the calling function itself is the one that was originally
+	// tagged as external and associated with the correct DLL/function names.
 	StringHandle callingfunction = context.InvokedFunctionStack.c.at(context.InvokedFunctionStack.c.size() - 2);
 	std::map<StringHandle, DLLInvocationInfo>::const_iterator iter = DLLInvocationMap.find(callingfunction);
 	if(iter == DLLInvocationMap.end())
@@ -387,6 +452,7 @@ void ExternalDispatch(StringHandle functionname, VM::ExecutionContext& context)
 		return;
 	}
 
+	// Now open the DLL and load the corresponding function we wish to invoke
 	HINSTANCE hdll = Marshaling::TheDLLPool.OpenDLL(iter->second.DLLName);
 	if(!hdll)
 	{
@@ -401,6 +467,9 @@ void ExternalDispatch(StringHandle functionname, VM::ExecutionContext& context)
 		return;
 	}
 
+
+	// Record for tracking what we will push onto the stack for parameters to the external function
+	// This is done to minimize the amount of code that must be implemented manually in assembly
 	struct pushrec
 	{
 		UINT_PTR Contents;
@@ -410,16 +479,26 @@ void ExternalDispatch(StringHandle functionname, VM::ExecutionContext& context)
 			: Contents(contents), Is16Bit(is16bit)
 		{ }
 	};
+
+	// Track all the stuff we will push onto the native stack
 	std::vector<pushrec> stufftopush;
 
-	std::vector<std::vector<Byte> > structurebuffers;
-	std::vector<MarshaledStructureRecord> marshaledstructures;
+	// Track information for marshaled data structures
+	// We don't use a vector here to avoid reallocation of the
+	// memory used for tracking the members of the container,
+	// which would invalidate the cached buffer pointers
+	std::list<MarshaledStructureRecord> marshaledstructures;
 
-	Integer32 integerret;
-	Integer16 integer16ret;
-
+	// Cache the index of the function return variable for placing the external
+	// function's return value into the appropriate Epoch variable when done
 	size_t retindex = std::numeric_limits<size_t>::max();
 
+	// Look for parameters that should be passed on to the external function
+	// Remember that we use an Epoch-implemented wrapper function with a special
+	// tag to implement this, so the Epoch wrapper's parameters become the actual
+	// parameters given to the external function. Note that as a downside of the
+	// lack of type information for externals, getting the function signature
+	// incorrect can have dire consequences.
 	const ScopeDescription& description = context.Variables->GetOriginalDescription();
 	for(int i = static_cast<int>(description.GetVariableCount()) - 1; i >= 0; --i)
 	{
@@ -433,10 +512,15 @@ void ExternalDispatch(StringHandle functionname, VM::ExecutionContext& context)
 				stufftopush.push_back(pushrec(context.Variables->Read<Integer32>(description.GetVariableNameHandle(i)), false));
 				break;
 
+			case EpochType_Integer16:
+				stufftopush.push_back(pushrec(context.Variables->Read<Integer16>(description.GetVariableNameHandle(i)), true));
+				break;
+
 			case EpochType_Real:
 				// This is not a mistake: we read the value as an Integer32, but in reality
 				// we're holding a float's data. The bits will be garbage if interpreted as
-				// an integer, but the value won't be cast to integer and rounded off.
+				// an integer, but the value won't be cast to integer and rounded off. This
+				// can be thought of as a convoluted wrapper for reinterpret_cast<>.
 				stufftopush.push_back(pushrec(context.Variables->Read<Integer32>(description.GetVariableNameHandle(i)), false));
 				break;
 
@@ -474,16 +558,16 @@ void ExternalDispatch(StringHandle functionname, VM::ExecutionContext& context)
 					ActiveStructure& structure = context.OwnerVM.GetStructure(structurehandle);
 
 					const StructureDefinition& definition = context.OwnerVM.GetStructureDefinition(vartype);
-					structurebuffers.push_back(std::vector<Byte>(definition.GetMarshaledSize(), 0));
+					std::vector<Byte> structbuffer(definition.GetMarshaledSize(), 0);
 
-					if(!MarshalStructureDataIntoBuffer(context, structure, definition, &structurebuffers.back()[0]))
+					if(!MarshalStructureDataIntoBuffer(context, structure, definition, &structbuffer[0]))
 					{
 						context.State.Result.ResultType = ExecutionResult::EXEC_RESULT_HALT;
 						return;
 					}
 
-					marshaledstructures.push_back(MarshaledStructureRecord(description.IsReference(i), &structurebuffers.back()[0], structure));
-					stufftopush.push_back(pushrec(reinterpret_cast<UINT_PTR>(&structurebuffers.back()[0]), false));
+					marshaledstructures.push_back(MarshaledStructureRecord(description.IsReference(i), structbuffer, structure));
+					stufftopush.push_back(pushrec(reinterpret_cast<UINT_PTR>(&marshaledstructures.back().Buffer[0]), false));
 				}
 				else
 				{
@@ -496,10 +580,16 @@ void ExternalDispatch(StringHandle functionname, VM::ExecutionContext& context)
 			retindex = i;
 	}
 
+	// Determine the expected return type of the function
 	int rettype = EpochType_Void;
+	StringHandle retname = 0;
 	if(retindex < description.GetVariableCount())
+	{
 		rettype = description.GetVariableTypeByIndex(retindex);
+		retname = description.GetVariableNameHandle(retindex);
+	}
 
+	// Push the actual parameters for the function onto the native stack
 	if(!stufftopush.empty())
 	{
 		size_t pushstuffsize = stufftopush.size();
@@ -534,6 +624,7 @@ FinishLoop:
 		__asm mov ebx, address
 
 
+	// Call the function and store off the appropriate return value
 	_asm
 	{
 		mov eax, EpochType_Integer
@@ -574,17 +665,17 @@ TypeIsNull:
 
 IntegerReturn:
 	MarshalBuffersIntoStructures(context, marshaledstructures);
-	context.Variables->Write<Integer32>(context.OwnerVM.GetPooledStringHandle(L"ret"), integerret);
+	context.Variables->Write<Integer32>(retname, integerret);
 	return;
 
 Integer16Return:
 	MarshalBuffersIntoStructures(context, marshaledstructures);
-	context.Variables->Write<Integer16>(context.OwnerVM.GetPooledStringHandle(L"ret"), integer16ret);
+	context.Variables->Write<Integer16>(retname, integer16ret);
 	return;
 
 BooleanReturn:
 	MarshalBuffersIntoStructures(context, marshaledstructures);
-	context.Variables->Write<bool>(context.OwnerVM.GetPooledStringHandle(L"ret"), (integerret != 0 ? true : false));
+	context.Variables->Write<bool>(retname, (integerret != 0 ? true : false));
 	return;
 
 NullReturn:
@@ -596,6 +687,9 @@ Vomit:
 }
 
 
+//
+// Register a tagged external function so we can track what DLL and function to invoke
+//
 void VM::RegisterMarshaledExternalFunction(StringHandle functionname, const std::wstring& dllname, const std::wstring& externalfunctionname)
 {
 	DLLInvocationInfo info;
