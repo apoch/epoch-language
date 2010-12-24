@@ -2426,7 +2426,9 @@ void CompilationSemantics::GenerateConstructor(StringHandle constructorname, VM:
 		++index;
 	}
 
-	signature.SetReturnType(type);
+	if(!takesidentifier)
+		signature.SetReturnType(type);
+
 	AddToMapNoDupe(Session.FunctionSignatures, std::make_pair(constructorname, signature));
 
 	// Create constructor

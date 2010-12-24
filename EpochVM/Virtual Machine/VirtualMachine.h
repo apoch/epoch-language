@@ -91,6 +91,7 @@ namespace VM
 
 		ActiveStructure& GetStructure(StructureHandle handle);
 		StructureHandle AllocateStructure(const StructureDefinition& description);
+		StructureHandle DeepCopy(StructureHandle handle);
 
 		const StructureDefinition& GetStructureDefinition(EpochTypeID vartype) const;
 

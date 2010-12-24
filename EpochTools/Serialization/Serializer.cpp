@@ -340,6 +340,10 @@ void Serializer::Write(const std::wstring& filename) const
 		case Bytecode::Instructions::CopyBuffer:
 			outfile << L"COPY_BUFFER " << traverser.Read<StringHandle>() << L"\n";
 			break;
+			
+		case Bytecode::Instructions::CopyStructure:
+			outfile << L"COPY_STRUCT " << traverser.Read<StringHandle>() << L"\n";
+			break;
 
 		case Bytecode::Instructions::Tag:
 			{

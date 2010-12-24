@@ -101,10 +101,6 @@ public:
 	void CopyFromStructure(StringHandle structurevariable, StringHandle membervariable);
 	void AssignStructure(StringHandle structurevariable, StringHandle membername);
 
-// Buffers
-public:
-	void CopyBuffer(StringHandle identifier);
-
 // Utility instructions
 public:
 	void AssignVariable();

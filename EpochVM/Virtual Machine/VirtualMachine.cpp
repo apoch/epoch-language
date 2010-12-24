@@ -854,6 +854,16 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 			}
 			break;
 
+		case Bytecode::Instructions::CopyStructure:
+			{
+				StringHandle identifier = Fetch<StringHandle>();
+				StructureHandle originalstructure = Variables->Read<StructureHandle>(identifier);
+				StructureHandle copiedstructure = OwnerVM.DeepCopy(originalstructure);
+				State.Stack.PushValue(copiedstructure);
+				TickStructureGarbageCollector();
+			}
+			break;
+
 		case Bytecode::Instructions::Tag:
 			{
 				Fetch<StringHandle>();		// Fetch entity to which tag is attached
@@ -1021,6 +1031,7 @@ void ExecutionContext::Load()
 		case Bytecode::Instructions::BindRef:
 		case Bytecode::Instructions::BindMemberRef:
 		case Bytecode::Instructions::CopyBuffer:
+		case Bytecode::Instructions::CopyStructure:
 			Fetch<StringHandle>();
 			break;
 
@@ -1166,6 +1177,40 @@ ActiveStructure& VirtualMachine::GetStructure(StructureHandle handle)
 		throw FatalException("Invalid structure handle");
 
 	return iter->second;
+}
+
+StructureHandle VirtualMachine::DeepCopy(StructureHandle handle)
+{
+	const ActiveStructure& original = GetStructure(handle);
+	StructureHandle clonedhandle = AllocateStructure(original.Definition);
+	ActiveStructure& clone = GetStructure(clonedhandle);
+
+	for(size_t i = 0; i < original.Definition.GetNumMembers(); ++i)
+	{
+		EpochTypeID membertype = original.Definition.GetMemberType(i);
+
+		switch(membertype)
+		{
+		case EpochType_Boolean:			clone.WriteMember(i, original.ReadMember<bool>(i));					break;
+		case EpochType_Buffer:			clone.WriteMember(i, CloneBuffer(original.ReadMember<bool>(i)));	break;
+		case EpochType_Function:		clone.WriteMember(i, original.ReadMember<StringHandle>(i));			break;
+		case EpochType_Identifier:		clone.WriteMember(i, original.ReadMember<StringHandle>(i));			break;
+		case EpochType_Integer:			clone.WriteMember(i, original.ReadMember<Integer32>(i));			break;
+		case EpochType_Integer16:		clone.WriteMember(i, original.ReadMember<Integer16>(i));			break;
+		case EpochType_Real:			clone.WriteMember(i, original.ReadMember<Real32>(i));				break;
+		case EpochType_String:			clone.WriteMember(i, original.ReadMember<StringHandle>(i));			break;
+
+		default:
+			if(membertype > VM::EpochType_CustomBase)
+				clone.WriteMember(i, DeepCopy(original.ReadMember<StructureHandle>(i)));
+			else
+				throw FatalException("Invalid structure member data type; cannot deep copy");
+
+			break;
+		}
+	}
+
+	return clonedhandle;
 }
 
 

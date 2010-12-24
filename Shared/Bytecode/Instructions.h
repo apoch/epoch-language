@@ -58,6 +58,8 @@ namespace Bytecode
 
 		static const Instruction Tag = 0x1a;
 
+		static const Instruction CopyStructure = 0x1b;
+
 	}
 
 }

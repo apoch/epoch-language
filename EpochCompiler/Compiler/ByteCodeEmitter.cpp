@@ -164,6 +164,8 @@ void ByteCodeEmitter::PushVariableValue(StringHandle variablename, VM::EpochType
 {
 	if(type == VM::EpochType_Buffer)
 		EmitInstruction(Bytecode::Instructions::CopyBuffer);
+	else if(type > VM::EpochType_CustomBase)
+		EmitInstruction(Bytecode::Instructions::CopyStructure);
 	else
 		EmitInstruction(Bytecode::Instructions::Read);
 	
