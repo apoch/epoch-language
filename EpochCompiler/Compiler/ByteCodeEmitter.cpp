@@ -173,7 +173,16 @@ void ByteCodeEmitter::PushVariableValue(StringHandle variablename, VM::EpochType
 }
 
 //
-// TODO - documentation
+// Push the value contained by a variable regardless of its type
+//
+// Typically if we push a variable containing a reference to a structure or buffer or
+// some other handle-controlled resource, we perform a copy operation to provide the
+// correct value semantics for the variable rather than implicit reference semantics.
+// (This is done for consistency across the language and to make it possible to control
+// reference semantics correctly with explicit use of the "ref" keyword.) However, in
+// certain cases (such as when passing handles to constructors for initialization) we
+// do not wish to deep copy the variable, but instead operate on its handle directly.
+// This function allows us to access the handle transparently without copying.
 //
 void ByteCodeEmitter::PushVariableValueNoCopy(StringHandle variablename)
 {
@@ -571,7 +580,13 @@ void ByteCodeEmitter::AssignVariable()
 }
 
 //
-// TODO - document this
+// Emit an instruction for assigning into a variable indirectly given its identifier
+//
+// Similar to the AssignVariable() function, this emits an instruction for copying variable
+// values (raw values, i.e. including handles sans deep copies) from one location to another.
+// However, instead of assuming a reference binding has been established, we assume that an
+// indentifier for a variable in the currently active scope is on the stack. This permits the
+// assignment of values into newly constructed variables and other indirections.
 //
 void ByteCodeEmitter::AssignVariableThroughIdentifier()
 {

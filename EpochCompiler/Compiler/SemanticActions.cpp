@@ -247,7 +247,6 @@ void CompilationSemantics::StoreEntityCode()
 
 					StringHandle retnamehandle = scope.GetVariableNameHandle(retindex);
 
-					// TODO - detect this correctly!
 					if(ConstructorNames.find(LexicalScopeStack.top()) != ConstructorNames.end())
 					{
 						size_t idparamindex = std::numeric_limits<size_t>::max();
