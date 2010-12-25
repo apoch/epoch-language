@@ -91,6 +91,7 @@ struct FundamentalGrammar : public boost::spirit::classic::grammar<FundamentalGr
 				BOOLEAN("boolean"),
 				REAL("real"),
 				BUFFER("buffer"),
+				IDENTIFIER("identifier"),
 
 				STRUCTURE("structure"),
 
@@ -139,6 +140,7 @@ struct FundamentalGrammar : public boost::spirit::classic::grammar<FundamentalGr
 				| BOOLEAN
 				| REAL
 				| BUFFER
+				| IDENTIFIER
 				;
 
 			
@@ -160,14 +162,11 @@ struct FundamentalGrammar : public boost::spirit::classic::grammar<FundamentalGr
 
 
 			ReturnDeclaration
-				= TypeMismatchExceptionGuard
-				  (
-					VariableType[RegisterReturnType(self.Bindings)] >> OPENPARENS >> StringIdentifier[RegisterReturnName(self.Bindings)] >> COMMA >> Expression >> CLOSEPARENS
-				  )[GeneralExceptionHandler(self.Bindings)]
+				= Statement[FinalizeStatement(self.Bindings)]
 				;
 
 			ReturnList
-				= OPENPARENS[BeginReturnSet(self.Bindings)] >> !ReturnDeclaration >> CLOSEPARENS[RegisterReturnValue(self.Bindings)][EndReturnSet(self.Bindings)]
+				= OPENPARENS[BeginReturnSet(self.Bindings)] >> !ReturnDeclaration >> CLOSEPARENS[EndReturnSet(self.Bindings)]
 				;
 
 
@@ -278,7 +277,7 @@ struct FundamentalGrammar : public boost::spirit::classic::grammar<FundamentalGr
 				| GeneralExceptionGuard
 				  (
 					StringIdentifier[StoreString(self.Bindings)] >> COLON >> ParameterList >> MAPARROW >> ReturnList[StoreEntityType(self.Bindings, Bytecode::EntityTags::Function)]
-					>> !(OPENBRACKET >> *((StringIdentifier[BeginFunctionTag(self.Bindings)] >> !(OPENPARENS >> (Literal % COMMA) >> CLOSEPARENS))[CompleteFunctionTag(self.Bindings)]) >> CLOSEBRACKET)
+					>> !(OPENBRACKET >> *((StringIdentifier[BeginFunctionTag(self.Bindings)] >> !(OPENPARENS >> ((Literal | StringIdentifier) % COMMA) >> CLOSEPARENS))[CompleteFunctionTag(self.Bindings)]) >> CLOSEBRACKET)
 					>> MissingFunctionBodyExceptionGuard(ExpectFunctionBody(CodeBlock[StoreEntityCode(self.Bindings)]))[MissingFunctionBodyExceptionHandler(self.Bindings)]
 				  )[GeneralExceptionHandler(self.Bindings)]
 				;
@@ -327,7 +326,7 @@ struct FundamentalGrammar : public boost::spirit::classic::grammar<FundamentalGr
 
 		boost::spirit::classic::chlit<> COLON, OPENPARENS, CLOSEPARENS, OPENBRACE, CLOSEBRACE, OPENBRACKET, CLOSEBRACKET, PERIOD, COMMA, QUOTE, NEGATE;
 
-		boost::spirit::classic::strlit<> MAPARROW, INTEGER16, INTEGER, STRING, BOOLEAN, REAL, BUFFER, STRUCTURE, ASSIGN, EPOCH_TRUE, EPOCH_FALSE, REFERENCE;
+		boost::spirit::classic::strlit<> MAPARROW, INTEGER16, INTEGER, STRING, BOOLEAN, REAL, BUFFER, STRUCTURE, ASSIGN, EPOCH_TRUE, EPOCH_FALSE, REFERENCE, IDENTIFIER;
 
 		boost::spirit::classic::rule<ScannerType> StringIdentifier;
 

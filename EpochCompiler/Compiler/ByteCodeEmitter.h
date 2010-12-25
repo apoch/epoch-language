@@ -58,9 +58,11 @@ public:
 	void PushBooleanLiteral(bool value);
 	void PushRealLiteral(Real32 value);
 	void PushVariableValue(StringHandle variablename, VM::EpochTypeID type);
+	void PushVariableValueNoCopy(StringHandle variablename);
 	void PushBufferHandle(BufferHandle handle);
 
 	void BindReference(StringHandle variablename);
+	void BindReferenceIndirect();
 	void BindStructureReference(StringHandle membername);
 
 	void PopStack(VM::EpochTypeID type);
@@ -104,6 +106,7 @@ public:
 // Utility instructions
 public:
 	void AssignVariable();
+	void AssignVariableThroughIdentifier();
 	void ReadReferenceOntoStack();
 
 	void PoolString(StringHandle handle, const std::wstring& literalvalue);

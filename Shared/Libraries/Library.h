@@ -32,7 +32,7 @@ typedef void (*EpochFunctionPtr)(StringHandle namehandle, VM::ExecutionContext& 
 typedef std::map<StringHandle, EpochFunctionPtr> FunctionInvocationTable;
 
 typedef void (*CompilerHelperPtr)(const std::wstring& functionname, SemanticActionInterface& semantics, ScopeDescription& scope, const CompileTimeParameterVector& compiletimeparams);
-typedef std::map<std::wstring, CompilerHelperPtr> FunctionCompileHelperTable;
+typedef std::map<StringHandle, CompilerHelperPtr> FunctionCompileHelperTable;
 
 typedef std::multimap<int, StringHandle> PrecedenceTable;
 
@@ -52,9 +52,18 @@ typedef std::map<StringHandle, StringHandleSet> OverloadMap;
 //
 struct TagHelperReturn
 {
+	TagHelperReturn()
+		: LinkToCompileTimeHelper(NULL),
+		  SetConstructorFunction(0)
+	{
+	}
+
 	std::wstring InvokeRuntimeFunction;
 	std::wstring MetaTag;
 	std::vector<std::wstring> MetaTagData;
+
+	CompilerHelperPtr LinkToCompileTimeHelper;
+	StringHandle SetConstructorFunction;
 };
 
 

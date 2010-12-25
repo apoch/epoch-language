@@ -583,58 +583,6 @@ struct EndReturnSet
 	SemanticActionInterface& Bindings;
 };
 
-struct RegisterReturnType
-{
-	explicit RegisterReturnType(SemanticActionInterface& bindings)
-		: Bindings(bindings)
-	{ }
-
-	template <typename IteratorType>
-	void operator () (IteratorType begin, IteratorType end) const
-	{
-		Trace(L"RegisterReturnType", begin, end);
-		Bindings.SetParsePosition(end);
-		std::wstring str(begin, end);
-		Bindings.RegisterReturnType(str);
-	}
-
-	SemanticActionInterface& Bindings;
-};
-
-struct RegisterReturnName
-{
-	explicit RegisterReturnName(SemanticActionInterface& bindings)
-		: Bindings(bindings)
-	{ }
-
-	template <typename IteratorType>
-	void operator () (IteratorType begin, IteratorType end) const
-	{
-		Trace(L"RegisterReturnName", begin, end);
-		Bindings.SetParsePosition(end);
-		std::wstring str(begin, end);
-		Bindings.RegisterReturnName(str);
-	}
-
-	SemanticActionInterface& Bindings;
-};
-
-struct RegisterReturnValue
-{
-	explicit RegisterReturnValue(SemanticActionInterface& bindings)
-		: Bindings(bindings)
-	{ }
-
-	template <typename ParamType>
-	void operator () (ParamType) const
-	{
-		Trace(L"RegisterReturnValue");
-		Bindings.RegisterReturnValue();
-	}
-
-	SemanticActionInterface& Bindings;
-};
-
 struct BeginStatement
 {
 	explicit BeginStatement(SemanticActionInterface& bindings)

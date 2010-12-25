@@ -353,6 +353,14 @@
 				Name="Function Tags"
 				>
 				<File
+					RelativePath=".\Library Functionality\Function Tags\Constructors.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\Library Functionality\Function Tags\Constructors.h"
+					>
+				</File>
+				<File
 					RelativePath=".\Library Functionality\Function Tags\Externals.cpp"
 					>
 				</File>

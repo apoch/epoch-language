@@ -173,6 +173,15 @@ void ByteCodeEmitter::PushVariableValue(StringHandle variablename, VM::EpochType
 }
 
 //
+// TODO - documentation
+//
+void ByteCodeEmitter::PushVariableValueNoCopy(StringHandle variablename)
+{
+	EmitInstruction(Bytecode::Instructions::Read);
+	EmitRawValue(variablename);
+}
+
+//
 // Emit code for pushing a buffer handle onto the stack
 //
 // Buffers are garbage collected resources with copy-on-use semantics. They are intended
@@ -199,8 +208,16 @@ void ByteCodeEmitter::PushBufferHandle(BufferHandle handle)
 //
 void ByteCodeEmitter::BindReference(StringHandle variablename)
 {
+	PushStringLiteral(variablename);
 	EmitInstruction(Bytecode::Instructions::BindRef);
-	EmitRawValue(variablename);
+}
+
+//
+// Bind a reference, assuming the referred variable identifier is already on the stack
+//
+void ByteCodeEmitter::BindReferenceIndirect()
+{
+	EmitInstruction(Bytecode::Instructions::BindRef);
 }
 
 //
@@ -551,6 +568,14 @@ void ByteCodeEmitter::AssignStructure(StringHandle structurevariable, StringHand
 void ByteCodeEmitter::AssignVariable()
 {
 	EmitInstruction(Bytecode::Instructions::Assign);
+}
+
+//
+// TODO - document this
+//
+void ByteCodeEmitter::AssignVariableThroughIdentifier()
+{
+	EmitInstruction(Bytecode::Instructions::AssignThroughIdentifier);
 }
 
 //

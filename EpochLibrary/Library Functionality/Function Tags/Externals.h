@@ -16,11 +16,6 @@
 // Forward declarations
 class StringPoolManager;
 
-namespace VM
-{
-	class ExecutionContext;
-}
-
 
 namespace FunctionTags
 {

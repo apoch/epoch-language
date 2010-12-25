@@ -82,9 +82,7 @@ public:
 
 	virtual void BeginReturnSet() = 0;
 	virtual void EndReturnSet() = 0;
-	virtual void RegisterReturnType(const std::wstring& type) = 0;
-	virtual void RegisterReturnName(const std::wstring& name) = 0;
-	virtual void RegisterReturnValue() = 0;
+	virtual bool IsInReturnDeclaration() const = 0;
 
 	virtual void BeginFunctionTag(const std::wstring& tagname) = 0;
 	virtual void CompleteFunctionTag() = 0;

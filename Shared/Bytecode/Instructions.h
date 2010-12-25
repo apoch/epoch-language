@@ -60,6 +60,8 @@ namespace Bytecode
 
 		static const Instruction CopyStructure = 0x1b;
 
+		static const Instruction AssignThroughIdentifier = 0x1c;
+
 	}
 
 }

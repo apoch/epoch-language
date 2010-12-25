@@ -89,6 +89,7 @@ public:
 		  CompileTimeHelpers(session.CompileTimeHelpers),
 		  Failed(false),
 		  InsideParameterList(false),
+		  ParsingReturnDeclaration(false),
 		  AnonymousScopeCounter(0),
 		  CustomTypeIDCounter(VM::EpochType_CustomBase)
 	{
@@ -154,9 +155,7 @@ public:
 
 	virtual void BeginReturnSet();
 	virtual void EndReturnSet();
-	virtual void RegisterReturnType(const std::wstring& type);
-	virtual void RegisterReturnName(const std::wstring& name);
-	virtual void RegisterReturnValue();
+	virtual bool IsInReturnDeclaration() const;
 
 	virtual void BeginFunctionTag(const std::wstring& tagname);
 	virtual void CompleteFunctionTag();
@@ -223,8 +222,8 @@ private:
 	void Throw(const ExceptionT& exception) const;
 
 	StringHandle AllocateNewOverloadedFunctionName(StringHandle originalname);
-	void RemapFunctionToOverload(const CompileTimeParameterVector& params, size_t paramoffset, size_t paramlimit, const TypeVector& possiblereturntypes, std::wstring& out_remappedname, StringHandle& out_remappednamehandle) const;
-	void GetAllMatchingOverloads(const CompileTimeParameterVector& params, size_t paramoffset, size_t paramlimit, const TypeVector& possiblereturntypes, const std::wstring& originalname, StringHandle originalnamehandle, StringVector& out_names, StringHandles& out_namehandles) const;
+	void RemapFunctionToOverload(const CompileTimeParameterVector& params, size_t paramoffset, size_t knownparams, size_t paramlimit, const TypeVector& possiblereturntypes, std::wstring& out_remappedname, StringHandle& out_remappednamehandle) const;
+	void GetAllMatchingOverloads(const CompileTimeParameterVector& params, size_t paramoffset, size_t knownparams, size_t paramlimit, const TypeVector& possiblereturntypes, const std::wstring& originalname, StringHandle originalnamehandle, StringVector& out_names, StringHandles& out_namehandles) const;
 
 	std::wstring GetPatternMatchResolverName(const std::wstring& originalname) const;
 
@@ -288,21 +287,18 @@ private:
 	std::stack<CompileTimeParameterVector> CompileTimeParameters;
 
 	std::stack<std::wstring> CurrentEntities;
-	std::stack<std::wstring> FunctionReturnTypeNames;
-	std::stack<StringHandle> FunctionReturnVars;
 
 	std::stack<ByteBuffer> PendingEmissionBuffers;
 	std::stack<ByteCodeEmitter> PendingEmitters;
 
 	std::stack<AssignmentTarget> AssignmentTargets;
 
-	std::stack<bool> ReturnsIncludedStatement;
-
 	PosIteratorT ParsePosition;
 
 	OverloadPositionList OverloadDefinitions;
 
 	bool InsideParameterList;
+	bool ParsingReturnDeclaration;
 	bool NeedsPatternResolver;
 
 	FunctionSignatureMap NeededPatternResolvers;
@@ -325,5 +321,7 @@ private:
 	bool ParamIsReference;
 
 	std::wstring PreOperatorString;
+
+	StringHandleSet ConstructorNames;
 };
 

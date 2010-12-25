@@ -196,3 +196,20 @@ const EntityDescription& CompileSession::GetCustomEntityByName(StringHandle name
 	throw InvalidIdentifierException("Invalid entity name");
 }
 
+
+//
+// Given a handle to a mangled overload name, return the handle to the original function name
+//
+// Returns the given handle if the original function cannot be located
+//
+StringHandle CompileSession::GetOverloadRawName(StringHandle mangled) const
+{
+	for(OverloadMap::const_iterator iter = FunctionOverloadNames.begin(); iter != FunctionOverloadNames.end(); ++iter)
+	{
+		if(iter->second.find(mangled) != iter->second.end())
+			return iter->first;
+	}
+
+	return mangled;
+}
+

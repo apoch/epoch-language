@@ -109,8 +109,9 @@ namespace
 	//
 	void CompileConstructorPrimitive(const std::wstring& functionname, SemanticActionInterface& semantics, ScopeDescription& scope, const CompileTimeParameterVector& compiletimeparams)
 	{
+		VariableOrigin origin = (semantics.IsInReturnDeclaration() ? VARIABLE_ORIGIN_RETURN : VARIABLE_ORIGIN_LOCAL);
 		VM::EpochTypeID effectivetype = semantics.LookupTypeName(functionname);
-		scope.AddVariable(compiletimeparams[0].StringPayload, compiletimeparams[0].Payload.StringHandleValue, effectivetype, false, VARIABLE_ORIGIN_LOCAL);
+		scope.AddVariable(compiletimeparams[0].StringPayload, compiletimeparams[0].Payload.StringHandleValue, effectivetype, false, origin);
 	}
 
 }
@@ -175,14 +176,14 @@ void TypeConstructors::RegisterLibraryFunctions(FunctionSignatureSet& signatures
 //
 // Bind the library to the compiler's internal semantic action table
 //
-void TypeConstructors::RegisterLibraryFunctions(FunctionCompileHelperTable& table)
+void TypeConstructors::RegisterLibraryFunctions(FunctionCompileHelperTable& table, StringPoolManager& stringpool)
 {
-	AddToMapNoDupe(table, std::make_pair(L"integer", CompileConstructorPrimitive));
-	AddToMapNoDupe(table, std::make_pair(L"integer16", CompileConstructorPrimitive));
-	AddToMapNoDupe(table, std::make_pair(L"string", CompileConstructorPrimitive));
-	AddToMapNoDupe(table, std::make_pair(L"boolean", CompileConstructorPrimitive));
-	AddToMapNoDupe(table, std::make_pair(L"real", CompileConstructorPrimitive));
-	AddToMapNoDupe(table, std::make_pair(L"buffer", CompileConstructorPrimitive));
+	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"integer"), CompileConstructorPrimitive));
+	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"integer16"), CompileConstructorPrimitive));
+	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"string"), CompileConstructorPrimitive));
+	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"boolean"), CompileConstructorPrimitive));
+	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"real"), CompileConstructorPrimitive));
+	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"buffer"), CompileConstructorPrimitive));
 }
 
 

@@ -181,7 +181,7 @@ void Serializer::Write(const std::wstring& filename) const
 			break;
 
 		case Bytecode::Instructions::BindRef:
-			outfile << L"BINDREF " << traverser.Read<StringHandle>() << L"\n";
+			outfile << L"BINDREF\n";
 			break;
 
 		case Bytecode::Instructions::BindMemberRef:
@@ -205,6 +205,10 @@ void Serializer::Write(const std::wstring& filename) const
 
 		case Bytecode::Instructions::Assign:
 			outfile << L"WRITE\n";
+			break;
+
+		case Bytecode::Instructions::AssignThroughIdentifier:
+			outfile << L"WRITETHROUGHID\n";
 			break;
 
 		case Bytecode::Instructions::Invoke:

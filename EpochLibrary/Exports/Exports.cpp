@@ -23,6 +23,7 @@
 #include "Library Functionality/Flow Control/StringPooling.h"
 
 #include "Library Functionality/Function Tags/Externals.h"
+#include "Library Functionality/Function Tags/Constructors.h"
 
 #include "Library Functionality/Marshaling/MarshalingLibrary.h"
 
@@ -99,7 +100,7 @@ extern "C" void __stdcall BindToCompiler(CompilerInfoTable& info, StringPoolMana
 {
 	try
 	{
-		TypeConstructors::RegisterLibraryFunctions(*info.FunctionHelpers);
+		TypeConstructors::RegisterLibraryFunctions(*info.FunctionHelpers, stringpool);
 
 		TypeCasts::RegisterLibraryOverloads(*info.Overloads, stringpool);
 
@@ -119,6 +120,7 @@ extern "C" void __stdcall BindToCompiler(CompilerInfoTable& info, StringPoolMana
 		FlowControl::RegisterLoopEntities(*info.Entities, *info.ChainedEntities, *info.PostfixEntities, *info.PostfixClosers, stringpool, tagindex);
 
 		FunctionTags::RegisterExternalTagHelper(*info.FunctionTagHelpers);
+		FunctionTags::RegisterConstructorTagHelper(*info.FunctionTagHelpers);
 	}
 	catch(...)
 	{

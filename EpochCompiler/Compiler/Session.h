@@ -51,6 +51,10 @@ public:
 	const EntityDescription& GetCustomEntityByName(StringHandle name) const;
 	const EntityDescription& GetCustomEntityByTag(Bytecode::EntityTag tag) const;
 
+// Overload management
+public:
+	StringHandle GetOverloadRawName(StringHandle mangled) const;
+
 // Publicly visible tracking
 public:
 	FunctionSignatureSet FunctionSignatures;
