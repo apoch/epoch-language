@@ -450,7 +450,10 @@ void CompilationSemantics::FinalizeInfix()
 								CompileTimeParameterVector::iterator firstoperanditer = operanditer;
 
 								VM::EpochTypeID op1type = GetEffectiveType(*operanditer);
-								EmitInfixOperand(emitter, *operanditer);
+								if(ismemberaccess)
+									emitter.PushVariableValueNoCopy(operanditer->Payload.StringHandleValue);
+								else
+									EmitInfixOperand(emitter, *operanditer);
 
 								++operanditer;
 
@@ -2185,15 +2188,12 @@ const std::wstring& CompilationSemantics::CreateStructureType()
 	for(StructureMemberList::const_iterator iter = StructureMembers.begin(); iter != StructureMembers.end(); ++iter)
 	{
 		FunctionSignature signature;
-		signature.AddParameter(L"identifier", type, false);
+		signature.AddParameter(L"identifier", type, true);
 		signature.AddPatternMatchedParameterIdentifier(iter->second);
 		signature.SetReturnType(iter->first);
 		StringHandle overloadidhandle = Session.StringPool.Pool(L".@@" + StructureName + L"@@" + Session.StringPool.GetPooledString(iter->second));
 		AddToMapNoDupe(Session.FunctionSignatures, std::make_pair(overloadidhandle, signature));
 		Session.FunctionOverloadNames[Session.StringPool.Pool(L".")].insert(overloadidhandle);
-
-
-		// TODO - figure out why this insists on generating COPYSTRUCT instructions on the member access calls
 
 		EmitterStack.top()->EnterFunction(overloadidhandle);
 		EmitterStack.top()->CopyFromStructure(Session.StringPool.Pool(L"identifier"), Session.StringPool.Pool(L"member"));
