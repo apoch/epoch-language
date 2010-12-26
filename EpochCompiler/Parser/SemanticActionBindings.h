@@ -1247,4 +1247,21 @@ struct RegisterStructureFunctionRefReturn
 	SemanticActionInterface& Bindings;
 };
 
+struct FinalizeReturnExpression
+{
+	explicit FinalizeReturnExpression(SemanticActionInterface& bindings)
+		: Bindings(bindings)
+	{ }
+
+	template <typename IteratorType>
+	void operator () (IteratorType begin, IteratorType end) const
+	{
+		Trace(L"FinalizeReturnExpression", begin, end);
+		Bindings.SetParsePosition(end);
+		Bindings.FinalizeReturnExpression();
+	}
+
+	SemanticActionInterface& Bindings;
+};
+
 

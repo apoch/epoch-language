@@ -50,3 +50,19 @@ public:
 	explicit MalformedStatementException(const char* message) : RecoverableException(message) { }
 	explicit MalformedStatementException(const std::string& message) : RecoverableException(message) { }
 };
+
+
+//
+// Exception used to indicate a recoverable failure to perform type inference
+//
+// The typical reaction to this exception is to make another compile pass to
+// attempt to gather more type data. If a pass is completed without resolving
+// any type information, leaving unfinished inferences, the compiler aborts.
+//
+class InferenceFailureException : public RecoverableException
+{
+// Construction
+public:
+	explicit InferenceFailureException(const char* message) : RecoverableException(message) { }
+	explicit InferenceFailureException(const std::string& message) : RecoverableException(message) { }
+};

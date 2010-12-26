@@ -81,6 +81,7 @@ public:
 	virtual void RegisterHigherOrderFunctionReturn(const std::wstring& nameoftype) = 0;
 
 	virtual void BeginReturnSet() = 0;
+	virtual void FinalizeReturnExpression() = 0;
 	virtual void EndReturnSet() = 0;
 	virtual bool IsInReturnDeclaration() const = 0;
 
@@ -119,5 +120,7 @@ public:
 	virtual const boost::spirit::classic::position_iterator<const char*>& GetParsePosition() const = 0;
 
 	virtual VM::EpochTypeID LookupTypeName(const std::wstring& name) const = 0;
+
+	virtual bool InferenceComplete() const = 0;
 };
 

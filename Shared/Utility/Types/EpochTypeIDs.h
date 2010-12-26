@@ -35,6 +35,8 @@ namespace VM
 
 	static const EpochTypeID EpochType_Buffer = 10;
 
+	static const EpochTypeID EpochType_Infer = 11;
+
 	// Custom types (i.e. structures)
 	static const EpochTypeID EpochType_CustomBase = 20;			// Must be the highest type ID
 }

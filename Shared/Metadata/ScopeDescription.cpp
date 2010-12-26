@@ -113,3 +113,17 @@ bool ScopeDescription::IsReferenceByID(StringHandle variableid) const
 
 	throw InvalidIdentifierException("Could not determine if variable is of reference type - identifier is not valid in this scope");
 }
+
+//
+// Determine if the scope contains an allocated slot for a return value variable
+//
+bool ScopeDescription::HasReturnVariable() const
+{
+	for(VariableVector::const_iterator iter = Variables.begin(); iter != Variables.end(); ++iter)
+	{
+		if(iter->Origin == VARIABLE_ORIGIN_RETURN)
+			return true;
+	}
+
+	return false;
+}

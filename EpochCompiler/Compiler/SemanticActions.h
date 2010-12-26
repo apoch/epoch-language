@@ -91,7 +91,9 @@ public:
 		  InsideParameterList(false),
 		  ParsingReturnDeclaration(false),
 		  AnonymousScopeCounter(0),
-		  CustomTypeIDCounter(VM::EpochType_CustomBase)
+		  CustomTypeIDCounter(VM::EpochType_CustomBase),
+		  PassCount(0),
+		  IsInferenceComplete(true)
 	{
 		EmitterStack.push(&MasterEmitter);
 	}
@@ -154,6 +156,7 @@ public:
 	virtual void RegisterHigherOrderFunctionReturn(const std::wstring& nameoftype);
 
 	virtual void BeginReturnSet();
+	virtual void FinalizeReturnExpression();
 	virtual void EndReturnSet();
 	virtual bool IsInReturnDeclaration() const;
 
@@ -196,6 +199,8 @@ public:
 
 	virtual VM::EpochTypeID LookupTypeName(const std::wstring& name) const;
 
+	virtual bool InferenceComplete() const;
+
 // Internal helper structures
 private:
 	struct AssignmentTarget
@@ -216,7 +221,7 @@ private:
 	void AddLexicalScope(StringHandle scopename);
 	ScopeDescription& GetLexicalScopeDescription(StringHandle scopename);
 
-	void PushParam(const std::wstring& paramname);
+	void PushParam(const std::wstring& paramname, bool overrideprepass = false);
 
 	template <typename ExceptionT>
 	void Throw(const ExceptionT& exception) const;
@@ -254,6 +259,8 @@ private:
 private:
 	bool IsPrepass;
 	bool Failed;
+	bool IsInferenceComplete;
+	size_t PassCount;
 
 	std::stack<ByteCodeEmitter*> EmitterStack;
 	ByteCodeEmitter& MasterEmitter;

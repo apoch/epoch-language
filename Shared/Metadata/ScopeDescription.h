@@ -58,6 +58,8 @@ public:
 	size_t GetVariableCount() const
 	{ return Variables.size(); }
 
+	bool HasReturnVariable() const;
+
 // Public properties
 public:
 	ScopeDescription* ParentScope;

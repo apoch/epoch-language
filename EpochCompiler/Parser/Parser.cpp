@@ -12,6 +12,8 @@
 
 #include "Compilation/SemanticActionInterface.h"
 
+#include "Metadata/FunctionSignature.h"
+
 #include "Utility/Strings.h"
 
 
@@ -42,23 +44,37 @@ bool Parser::Parse(const std::wstring& code, const std::wstring& filename)
 
 	parse_info<position_iterator<const char*> > result;
 
-	// First pass: build up the list of entities defined in the code
-	result = parse(start, end, grammar >> end_p, skip);
-	if(!result.full)
-		return false;
+	try
+	{
+		// First pass: build up the list of entities defined in the code
+		result = parse(start, end, grammar >> end_p, skip);
+		if(!result.full)
+			return false;
 
-	// Sanity check to make sure the parser is in a clean state
-	SemanticActions.SanityCheck();
+		// Sanity check to make sure the parser is in a clean state
+		SemanticActions.SanityCheck();
 
-	// Don't do the second pass if prepass failed
-	if(SemanticActions.DidFail())
-		return false;
+		// Don't do the second pass if prepass failed
+		if(SemanticActions.DidFail())
+			return false;
 
-	// Second pass: traverse into each function and generate the corresponding bytecode
-	SemanticActions.SetPrepassMode(false);
-	result = parse(start, end, grammar >> end_p, skip);
-	if(!result.full)
-		return false;
+		// Second pass: traverse into each function and generate the corresponding bytecode
+		do
+		{
+			SemanticActions.SetPrepassMode(false);
+			result = parse(start, end, grammar >> end_p, skip);
+			if(!result.full)
+				return false;
+		} while(!SemanticActions.InferenceComplete());
+	}
+	catch(const parser_error<ParameterException, position_iterator<const char*> >& e)
+	{
+		throw e.descriptor;
+	}
+	catch(const parser_error<TypeMismatchException, position_iterator<const char*> >& e)
+	{
+		throw e.descriptor;
+	}
 
 	return true;
 }

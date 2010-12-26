@@ -162,7 +162,7 @@ struct FundamentalGrammar : public boost::spirit::classic::grammar<FundamentalGr
 
 
 			ReturnDeclaration
-				= Statement[FinalizeStatement(self.Bindings)]
+				= Expression[FinalizeReturnExpression(self.Bindings)]
 				;
 
 			ReturnList
