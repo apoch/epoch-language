@@ -2333,9 +2333,6 @@ void CompilationSemantics::RegisterStructureFunctionRefReturn(const std::wstring
 	{
 		HigherOrderFunctionSignatures.top().SetReturnType(LookupTypeName(returntypename));
 
-		// TODO - validate that the structure member name is unique
-		// TODO - support void functions in structure members
-
 		StructureMembers.push_back(StructureMemberTypeNamePair(VM::EpochType_Function, Session.StringPool.Pool(TemporaryString)));
 		StructureFunctionSignatures[TemporaryString] = HigherOrderFunctionSignatures.top();
 		TemporaryString.clear();
@@ -2357,6 +2354,28 @@ const std::wstring& CompilationSemantics::CreateStructureType()
 
 	Structures[type] = StructureDefinition();
 	StructureNames[idhandle] = type;
+
+	// Validate members and build the compile-time definition of the structure
+	{
+		StringHandleSet membernames;
+		for(StructureMemberList::const_iterator iter = StructureMembers.begin(); iter != StructureMembers.end(); ++iter)
+		{
+			if(membernames.find(iter->second) != membernames.end())
+			{
+				StructureMembers.clear();
+				StructureFunctionSignatures.clear();
+
+				Throw(RecoverableException("Aggregate type members must all have unique names"));
+			}
+
+			membernames.insert(iter->second);
+
+			const StructureDefinition* structdefinition = NULL;
+			if(iter->first > VM::EpochType_CustomBase)
+				structdefinition = &Structures[iter->first];
+			Structures[type].AddMember(iter->second, iter->first, structdefinition);
+		}
+	}
 
 	StringHandle varconstructorname = AllocateNewOverloadedFunctionName(idhandle);
 	StringHandle anonconstructorname = AllocateNewOverloadedFunctionName(idhandle);
@@ -2413,10 +2432,6 @@ void CompilationSemantics::GenerateConstructor(StringHandle constructorname, VM:
 		signature.AddParameter(identifier, iter->first, false);
 		if(iter->first == VM::EpochType_Function)
 			signature.SetFunctionSignature(index, StructureFunctionSignatures.find(identifier)->second);
-		const StructureDefinition* structdefinition = NULL;
-		if(iter->first > VM::EpochType_CustomBase)
-			structdefinition = &Structures[iter->first];
-		Structures[type].AddMember(iter->second, iter->first, structdefinition);
 		LexicalScopeDescriptions[constructorname].AddVariable(identifier, iter->second, iter->first, false, VARIABLE_ORIGIN_PARAMETER);
 		++index;
 	}
@@ -2503,6 +2518,8 @@ VM::EpochTypeID CompilationSemantics::LookupTypeName(const std::wstring& type) c
 		return VM::EpochType_Buffer;
 	else if(type == L"identifier")
 		return VM::EpochType_Identifier;
+	else if(type == L"void")
+		return VM::EpochType_Void;
 
 	StringHandle handle = Session.GetOverloadRawName(Session.StringPool.Pool(type));
 	StructureNameMap::const_iterator iter = StructureNames.find(handle);

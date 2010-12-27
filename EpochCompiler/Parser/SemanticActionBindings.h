@@ -1247,6 +1247,22 @@ struct RegisterStructureFunctionRefReturn
 	SemanticActionInterface& Bindings;
 };
 
+struct RegisterStructureFunctionRefReturnVoid
+{
+	explicit RegisterStructureFunctionRefReturnVoid(SemanticActionInterface& bindings)
+		: Bindings(bindings)
+	{ }
+
+	template <typename ParamType>
+	void operator () (ParamType) const
+	{
+		Trace(L"RegisterStructureFunctionRefReturnVoid");
+		Bindings.RegisterStructureFunctionRefReturn(L"void");
+	}
+
+	SemanticActionInterface& Bindings;
+};
+
 struct FinalizeReturnExpression
 {
 	explicit FinalizeReturnExpression(SemanticActionInterface& bindings)

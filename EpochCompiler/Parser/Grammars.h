@@ -264,7 +264,11 @@ struct FundamentalGrammar : public boost::spirit::classic::grammar<FundamentalGr
 			StructureMember
 				= ((StringIdentifier - VariableType)[StoreTemporaryString(self.Bindings)] >> COLON >>
 					OPENPARENS[RegisterStructureMemberIsFunction(self.Bindings)] >> !(VariableType[RegisterStructureFunctionRefParam(self.Bindings)] % COMMA) >> CLOSEPARENS
-					>> MAPARROW >> OPENPARENS >> (!VariableType[RegisterStructureFunctionRefReturn(self.Bindings)]) >> CLOSEPARENS
+					>> MAPARROW >> OPENPARENS >>
+					 (
+						(VariableType[RegisterStructureFunctionRefReturn(self.Bindings)] >> CLOSEPARENS)
+					  | (CLOSEPARENS[RegisterStructureFunctionRefReturnVoid(self.Bindings)])
+					 )
 				  )
 				| (VariableType[StoreStructureMemberType(self.Bindings)] >> OPENPARENS >> StringIdentifier[RegisterStructureMember(self.Bindings)] >> CLOSEPARENS)
 				;
