@@ -102,6 +102,8 @@ struct FundamentalGrammar : public boost::spirit::classic::grammar<FundamentalGr
 
 				REFERENCE("ref"),
 
+				HEXPREFIX("0x"),
+
 				ExpectFunctionBody(0),
 
 				ExpectWellFormedStatement(MalformedStatementException("Expected a statement or code control entity"))
@@ -121,6 +123,10 @@ struct FundamentalGrammar : public boost::spirit::classic::grammar<FundamentalGr
 
 			IntegerLiteral
 				= (!NEGATE) >> (+(digit_p))
+				;
+
+			HexLiteral
+				= HEXPREFIX >> (+(hex_p))
 				;
 
 			StringLiteral
@@ -171,7 +177,8 @@ struct FundamentalGrammar : public boost::spirit::classic::grammar<FundamentalGr
 
 
 			Literal
-				= RealLiteral[StoreRealLiteral(self.Bindings)]
+				= HexLiteral[StoreHexLiteral(self.Bindings)]
+				| RealLiteral[StoreRealLiteral(self.Bindings)]
 				| IntegerLiteral[StoreIntegerLiteral(self.Bindings)]
 				| StringLiteral[StoreStringLiteral(self.Bindings)]
 				| BooleanLiteral[StoreBooleanLiteral(self.Bindings)]
@@ -330,7 +337,7 @@ struct FundamentalGrammar : public boost::spirit::classic::grammar<FundamentalGr
 
 		boost::spirit::classic::chlit<> COLON, OPENPARENS, CLOSEPARENS, OPENBRACE, CLOSEBRACE, OPENBRACKET, CLOSEBRACKET, PERIOD, COMMA, QUOTE, NEGATE;
 
-		boost::spirit::classic::strlit<> MAPARROW, INTEGER16, INTEGER, STRING, BOOLEAN, REAL, BUFFER, STRUCTURE, ASSIGN, EPOCH_TRUE, EPOCH_FALSE, REFERENCE, IDENTIFIER;
+		boost::spirit::classic::strlit<> MAPARROW, INTEGER16, INTEGER, STRING, BOOLEAN, REAL, BUFFER, STRUCTURE, ASSIGN, EPOCH_TRUE, EPOCH_FALSE, REFERENCE, IDENTIFIER, HEXPREFIX;
 
 		boost::spirit::classic::rule<ScannerType> StringIdentifier;
 
@@ -338,6 +345,7 @@ struct FundamentalGrammar : public boost::spirit::classic::grammar<FundamentalGr
 		boost::spirit::classic::rule<ScannerType> IntegerLiteral;
 		boost::spirit::classic::rule<ScannerType> BooleanLiteral;
 		boost::spirit::classic::rule<ScannerType> RealLiteral;
+		boost::spirit::classic::rule<ScannerType> HexLiteral;
 		boost::spirit::classic::rule<ScannerType> Literal;
 
 		boost::spirit::classic::rule<ScannerType> ExpressionComponent;

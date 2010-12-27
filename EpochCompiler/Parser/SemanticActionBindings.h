@@ -191,6 +191,32 @@ struct StoreIntegerLiteral
 	SemanticActionInterface& Bindings;
 };
 
+struct StoreHexLiteral
+{
+	explicit StoreHexLiteral(SemanticActionInterface& bindings)
+		: Bindings(bindings)
+	{ }
+
+	template <typename IteratorType>
+	void operator () (IteratorType begin, IteratorType end) const
+	{
+		Trace(L"StoreHexLiteral", begin, end);
+		Bindings.SetParsePosition(end);
+
+		std::wstring str(begin, end);
+		unsigned int value = 0;		// Permit literals that don't necessarily fit in a signed int
+
+		std::wstringstream conversion;
+		conversion << std::hex << str;
+		if(!(conversion >> value))
+			throw FatalException("Invalid hex literal");
+
+		Bindings.StoreIntegerLiteral(static_cast<Integer32>(value));
+	}
+
+	SemanticActionInterface& Bindings;
+};
+
 struct StoreStringLiteral
 {
 	explicit StoreStringLiteral(SemanticActionInterface& bindings)
