@@ -24,6 +24,8 @@
 
 #include "Utility/StringPool.h"
 
+#include "Utility/Threading/Synchronization.h"
+
 #include "Bytecode/Instructions.h"
 
 #include <map>
@@ -159,6 +161,9 @@ namespace VM
 
 		StructureHandle CurrentStructureHandle;
 		std::map<StructureHandle, ActiveStructure> ActiveStructures;
+
+		Threads::CriticalSection BufferCritSec;
+		Threads::CriticalSection StructureCritSec;
 	};
 
 

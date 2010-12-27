@@ -127,6 +127,8 @@ StringHandle VirtualMachine::GetPooledStringHandle(const std::wstring& value)
 //
 void* VirtualMachine::GetBuffer(BufferHandle handle)
 {
+	Threads::CriticalSection::Auto lock(BufferCritSec);
+
 	std::map<StringHandle, std::vector<Byte> >::iterator iter = Buffers.find(handle);
 	if(iter == Buffers.end())
 		throw FatalException("Invalid buffer handle");
@@ -139,6 +141,8 @@ void* VirtualMachine::GetBuffer(BufferHandle handle)
 //
 size_t VirtualMachine::GetBufferSize(BufferHandle handle) const
 {
+	Threads::CriticalSection::Auto lock(BufferCritSec);
+
 	std::map<StringHandle, std::vector<Byte> >::const_iterator iter = Buffers.find(handle);
 	if(iter == Buffers.end())
 		throw FatalException("Invalid buffer handle");
@@ -151,6 +155,8 @@ size_t VirtualMachine::GetBufferSize(BufferHandle handle) const
 //
 BufferHandle VirtualMachine::AllocateBuffer(size_t size)
 {
+	Threads::CriticalSection::Auto lock(BufferCritSec);
+
 	BufferHandle ret = ++CurrentBufferHandle;
 	Buffers[ret].swap(std::vector<Byte>(size, 0));
 	return ret;
@@ -161,6 +167,8 @@ BufferHandle VirtualMachine::AllocateBuffer(size_t size)
 //
 BufferHandle VirtualMachine::CloneBuffer(BufferHandle handle)
 {
+	Threads::CriticalSection::Auto lock(BufferCritSec);
+
 	std::map<StringHandle, std::vector<Byte> >::const_iterator iter = Buffers.find(handle);
 	if(iter == Buffers.end())
 		throw FatalException("Invalid buffer handle");
@@ -1173,6 +1181,8 @@ EntityMetaControl VirtualMachine::GetEntityMetaControl(Bytecode::EntityTag tag) 
 
 StructureHandle VirtualMachine::AllocateStructure(const StructureDefinition &description)
 {
+	Threads::CriticalSection::Auto lock(StructureCritSec);
+
 	++CurrentStructureHandle;
 	ActiveStructures.insert(std::make_pair(CurrentStructureHandle, ActiveStructure(description))); 
 	return CurrentStructureHandle;
@@ -1180,6 +1190,8 @@ StructureHandle VirtualMachine::AllocateStructure(const StructureDefinition &des
 
 const StructureDefinition& VirtualMachine::GetStructureDefinition(EpochTypeID type) const
 {
+	Threads::CriticalSection::Auto lock(StructureCritSec);
+
 	std::map<EpochTypeID, StructureDefinition>::const_iterator iter = StructureDefinitions.find(type);
 	if(iter == StructureDefinitions.end())
 		throw FatalException("Invalid structure description handle");
@@ -1189,6 +1201,8 @@ const StructureDefinition& VirtualMachine::GetStructureDefinition(EpochTypeID ty
 
 ActiveStructure& VirtualMachine::GetStructure(StructureHandle handle)
 {
+	Threads::CriticalSection::Auto lock(StructureCritSec);
+
 	std::map<StructureHandle, ActiveStructure>::iterator iter = ActiveStructures.find(handle);
 	if(iter == ActiveStructures.end())
 		throw FatalException("Invalid structure handle");
@@ -1198,6 +1212,8 @@ ActiveStructure& VirtualMachine::GetStructure(StructureHandle handle)
 
 StructureHandle VirtualMachine::DeepCopy(StructureHandle handle)
 {
+	Threads::CriticalSection::Auto lock(StructureCritSec);
+
 	const ActiveStructure& original = GetStructure(handle);
 	StructureHandle clonedhandle = AllocateStructure(original.Definition);
 	ActiveStructure& clone = GetStructure(clonedhandle);
