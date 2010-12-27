@@ -111,7 +111,7 @@ void FunctionSignature::SetFunctionSignature(size_t index, const FunctionSignatu
 //
 bool FunctionSignature::Matches(const FunctionSignature& rhs) const
 {
-	if(ReturnType != rhs.ReturnType)
+	if(ReturnType != rhs.ReturnType && ReturnType != VM::EpochType_Infer && rhs.ReturnType != VM::EpochType_Infer)
 		return false;
 
 	if(Parameters.size() != rhs.Parameters.size())
@@ -119,7 +119,7 @@ bool FunctionSignature::Matches(const FunctionSignature& rhs) const
 
 	for(size_t i = 0; i < Parameters.size(); ++i)
 	{
-		if(Parameters[i].Type != rhs.Parameters[i].Type)
+		if(Parameters[i].Type != rhs.Parameters[i].Type && Parameters[i].Type != VM::EpochType_Infer && rhs.Parameters[i].Type != VM::EpochType_Infer)
 			return false;
 
 		if(Parameters[i].Type == VM::EpochType_Function)

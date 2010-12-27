@@ -1007,71 +1007,62 @@ bool CompilationSemantics::IsInReturnDeclaration() const
 //
 void CompilationSemantics::FinalizeReturnExpression()
 {
-	if(StatementNames.empty())
+	// We just have an expression; create an anonymous return variable and copy the expression value into it
+	if(PushedItemTypes.top() == ITEMTYPE_STATEMENT)
 	{
-		// We just have an expression; create an anonymous return variable and copy the expression value into it
-		if(PushedItemTypes.top() == ITEMTYPE_STATEMENT)
+		if(!IsPrepass)
 		{
-			if(!IsPrepass)
-			{
-				VM::EpochTypeID rettype;
+			VM::EpochTypeID rettype;
 
-				if(!CompileTimeParameters.top().empty())
-					rettype = GetEffectiveType(CompileTimeParameters.top().back());
-				else
-					rettype = StatementTypes.top();
-
-				if(rettype != VM::EpochType_Infer && rettype != VM::EpochType_Void)
-				{
-					FunctionSignature& signature = Session.FunctionSignatures.find(LexicalScopeStack.top())->second;
-					ScopeDescription& scope = LexicalScopeDescriptions.find(LexicalScopeStack.top())->second;
-
-					signature.SetReturnType(rettype);
-
-					if(InferenceComplete())
-					{
-						if(!CompileTimeParameters.top().empty())
-							EmitInfixOperand(*EmitterStack.top(), CompileTimeParameters.top().back());
-					}
-				}
-
-				StatementParamCount.pop();
-			}
+			if(!CompileTimeParameters.top().empty())
+				rettype = GetEffectiveType(CompileTimeParameters.top().back());
 			else
-				FunctionSignatureStack.top().SetReturnType(VM::EpochType_Infer);
+				rettype = StatementTypes.top();
 
-			PushedItemTypes.pop();
+			if(rettype != VM::EpochType_Infer && rettype != VM::EpochType_Void)
+			{
+				FunctionSignature& signature = Session.FunctionSignatures.find(LexicalScopeStack.top())->second;
+				ScopeDescription& scope = LexicalScopeDescriptions.find(LexicalScopeStack.top())->second;
+
+				signature.SetReturnType(rettype);
+
+				if(InferenceComplete())
+				{
+					if(!CompileTimeParameters.top().empty())
+						EmitInfixOperand(*EmitterStack.top(), CompileTimeParameters.top().back());
+				}
+			}
+
+			StatementParamCount.pop();
 		}
 		else
-		{
-			CompileTimeParameters.push(CompileTimeParameterVector());
-			PushParam(L"@@anonymousret", true);
-			VM::EpochTypeID rettype = GetEffectiveType(CompileTimeParameters.top().back());
-			if(IsPrepass)
-			{
-				ScopeDescription& scope = LexicalScopeDescriptions.find(LexicalScopeStack.top())->second;
-				scope.AddVariable(L"@@anonymousret", Session.StringPool.Pool(L"@@anonymousret"), rettype, false, VARIABLE_ORIGIN_RETURN);
-				FunctionSignatureStack.top().SetReturnType(rettype);
-			}
-			else if(InferenceComplete())
-			{
-				EmitInfixOperand(*EmitterStack.top(), CompileTimeParameters.top().back());
-				EmitterStack.top()->BindReference(Session.StringPool.Pool(L"@@anonymousret"));
-				EmitterStack.top()->AssignVariable();
-			}
+			FunctionSignatureStack.top().SetReturnType(VM::EpochType_Infer);
 
-			CompileTimeParameters.pop();
-		}
-
-		while(!StatementTypes.empty())
-			StatementTypes.pop();
+		PushedItemTypes.pop();
 	}
 	else
 	{
-		// We have a full statement; we must differentiate between a constructor and a general function call
-		// TODO
-		int foo = 42;
+		CompileTimeParameters.push(CompileTimeParameterVector());
+		PushParam(L"@@anonymousret", true);
+		VM::EpochTypeID rettype = GetEffectiveType(CompileTimeParameters.top().back());
+		if(IsPrepass)
+		{
+			ScopeDescription& scope = LexicalScopeDescriptions.find(LexicalScopeStack.top())->second;
+			scope.AddVariable(L"@@anonymousret", Session.StringPool.Pool(L"@@anonymousret"), rettype, false, VARIABLE_ORIGIN_RETURN);
+			FunctionSignatureStack.top().SetReturnType(rettype);
+		}
+		else if(InferenceComplete())
+		{
+			EmitInfixOperand(*EmitterStack.top(), CompileTimeParameters.top().back());
+			EmitterStack.top()->BindReference(Session.StringPool.Pool(L"@@anonymousret"));
+			EmitterStack.top()->AssignVariable();
+		}
+
+		CompileTimeParameters.pop();
 	}
+
+	while(!StatementTypes.empty())
+		StatementTypes.pop();
 }
 
 
@@ -1151,6 +1142,9 @@ void CompilationSemantics::CompleteStatement()
 
 		try
 		{
+			const FunctionSignature* fs = NULL;
+			bool indirectinvoke = false;
+
 			TypeVector outerexpectedtypes = WalkCallChainForExpectedTypes(StatementParamCount.top());
 			RemapFunctionToOverload(CompileTimeParameters.top(), 0, StatementParamCount.top(), std::numeric_limits<size_t>::max(), outerexpectedtypes, statementname, statementnamehandle);
 
@@ -1159,172 +1153,167 @@ void CompilationSemantics::CompleteStatement()
 				FunctionCompileHelperTable::const_iterator fchiter = CompileTimeHelpers.find(statementnamehandle);
 				if(fchiter != CompileTimeHelpers.end())
 					fchiter->second(statementname, *this, GetLexicalScopeDescription(LexicalScopeStack.top()), CompileTimeParameters.top());
-			}
 
-			bool indirectinvoke = false;
-
-			const FunctionSignature* fs = NULL;
-			{
-				FunctionSignatureSet::const_iterator fsiter = Session.FunctionSignatures.find(statementnamehandle);
-				if(fsiter == Session.FunctionSignatures.end())
 				{
-					if(GetLexicalScopeDescription(LexicalScopeStack.top()).HasVariable(statementname) && GetLexicalScopeDescription(LexicalScopeStack.top()).GetVariableTypeByID(statementnamehandle) == VM::EpochType_Function)
+					FunctionSignatureSet::const_iterator fsiter = Session.FunctionSignatures.find(statementnamehandle);
+					if(fsiter == Session.FunctionSignatures.end())
 					{
-						const FunctionSignature& signature = Session.FunctionSignatures.find(LexicalScopeStack.top())->second;
-						fs = &signature.GetFunctionSignature(signature.FindParameter(statementname));
-						indirectinvoke = true;
+						if(GetLexicalScopeDescription(LexicalScopeStack.top()).HasVariable(statementname) && GetLexicalScopeDescription(LexicalScopeStack.top()).GetVariableTypeByID(statementnamehandle) == VM::EpochType_Function)
+						{
+							const FunctionSignature& signature = Session.FunctionSignatures.find(LexicalScopeStack.top())->second;
+							fs = &signature.GetFunctionSignature(signature.FindParameter(statementname));
+							indirectinvoke = true;
+						}
+						else
+							Throw(RecoverableException("The function \"" + narrow(statementname) + "\" is not defined in this scope"));
 					}
 					else
-						Throw(RecoverableException("The function \"" + narrow(statementname) + "\" is not defined in this scope"));
+						fs = &fsiter->second;
 				}
-				else
-					fs = &fsiter->second;
-			}
 
-			// Validate the parameters we've been given against the parameters to this overload
-			if(CompileTimeParameters.top().size() == fs->GetNumParameters())
-			{
-				for(size_t i = 0; i < CompileTimeParameters.top().size(); ++i)
+				// Validate the parameters we've been given against the parameters to this overload
+				if(CompileTimeParameters.top().size() == fs->GetNumParameters())
 				{
-					switch(CompileTimeParameters.top()[i].Type)
+					for(size_t i = 0; i < CompileTimeParameters.top().size(); ++i)
 					{
-					case VM::EpochType_Error:
-						throw FatalException("Parameter's type is explicitly flagged as invalid");
-
-					case VM::EpochType_Infer:
-						break;
-
-					case VM::EpochType_Void:
-						Throw(ParameterException("Parameter has no type; cannot be passed to this function"));
-
-					case VM::EpochType_Identifier:
-						if(fs->GetParameter(i).Type == VM::EpochType_Identifier)
+						switch(CompileTimeParameters.top()[i].Type)
 						{
-							if(fs->GetParameter(i).IsReference)
-								PendingEmitters.top().BindReference(CompileTimeParameters.top()[i].Payload.StringHandleValue);
-							else
-								PendingEmitters.top().PushStringLiteral(CompileTimeParameters.top()[i].Payload.StringHandleValue);
-						}
-						else
-						{
-							ScopeMap::const_iterator iter = LexicalScopeDescriptions.find(LexicalScopeStack.top());
-							if(iter == LexicalScopeDescriptions.end())
-								throw FatalException("No lexical scope has been registered for the identifier \"" + narrow(Session.StringPool.GetPooledString(LexicalScopeStack.top())) + "\"");
+						case VM::EpochType_Error:
+							throw FatalException("Parameter's type is explicitly flagged as invalid");
 
-							if(fs->GetParameter(i).Type == VM::EpochType_Function)
+						case VM::EpochType_Infer:
+							break;
+
+						case VM::EpochType_Void:
+							Throw(ParameterException("Parameter has no type; cannot be passed to this function"));
+
+						case VM::EpochType_Identifier:
+							if(fs->GetParameter(i).Type == VM::EpochType_Identifier)
 							{
-								FunctionSignatureSet::const_iterator fsiter = Session.FunctionSignatures.find(CompileTimeParameters.top()[i].Payload.StringHandleValue);
-								if(fsiter == Session.FunctionSignatures.end())
-									Throw(RecoverableException("No function by the name \"" + narrow(CompileTimeParameters.top()[i].StringPayload) + "\" was found in this scope"));
-
-								if(!fsiter->second.Matches(fs->GetFunctionSignature(i)))
-									Throw(RecoverableException("No overload of \"" + narrow(CompileTimeParameters.top()[i].StringPayload) + "\" matches the function requirements"));
-
-								PendingEmitters.top().PushStringLiteral(CompileTimeParameters.top()[i].Payload.StringHandleValue);
+								if(fs->GetParameter(i).IsReference)
+									PendingEmitters.top().BindReference(CompileTimeParameters.top()[i].Payload.StringHandleValue);
+								else
+									PendingEmitters.top().PushStringLiteral(CompileTimeParameters.top()[i].Payload.StringHandleValue);
 							}
 							else
 							{
-								if(iter->second.HasVariable(CompileTimeParameters.top()[i].StringPayload))
-								{
-									if(iter->second.GetVariableTypeByID(CompileTimeParameters.top()[i].Payload.StringHandleValue) != fs->GetParameter(i).Type)
-										Throw(TypeMismatchException("The variable \"" + narrow(CompileTimeParameters.top()[i].StringPayload) + "\" has the wrong type to be used for this parameter"));
+								ScopeMap::const_iterator iter = LexicalScopeDescriptions.find(LexicalScopeStack.top());
+								if(iter == LexicalScopeDescriptions.end())
+									throw FatalException("No lexical scope has been registered for the identifier \"" + narrow(Session.StringPool.GetPooledString(LexicalScopeStack.top())) + "\"");
 
-									if(fs->GetParameter(i).IsReference)
-										PendingEmitters.top().BindReference(CompileTimeParameters.top()[i].Payload.StringHandleValue);
-									else
-										PendingEmitters.top().PushVariableValue(CompileTimeParameters.top()[i].Payload.StringHandleValue, GetEffectiveType(CompileTimeParameters.top()[i]));
+								if(fs->GetParameter(i).Type == VM::EpochType_Function)
+								{
+									FunctionSignatureSet::const_iterator fsiter = Session.FunctionSignatures.find(CompileTimeParameters.top()[i].Payload.StringHandleValue);
+									if(fsiter == Session.FunctionSignatures.end())
+										Throw(RecoverableException("No function by the name \"" + narrow(CompileTimeParameters.top()[i].StringPayload) + "\" was found in this scope"));
+
+									if(!fsiter->second.Matches(fs->GetFunctionSignature(i)))
+										Throw(RecoverableException("No overload of \"" + narrow(CompileTimeParameters.top()[i].StringPayload) + "\" matches the function requirements"));
+
+									PendingEmitters.top().PushStringLiteral(CompileTimeParameters.top()[i].Payload.StringHandleValue);
 								}
 								else
-									Throw(RecoverableException("No variable by the name \"" + narrow(CompileTimeParameters.top()[i].StringPayload) + "\" was found in this scope"));
+								{
+									if(iter->second.HasVariable(CompileTimeParameters.top()[i].StringPayload))
+									{
+										if(iter->second.GetVariableTypeByID(CompileTimeParameters.top()[i].Payload.StringHandleValue) != fs->GetParameter(i).Type)
+											Throw(TypeMismatchException("The variable \"" + narrow(CompileTimeParameters.top()[i].StringPayload) + "\" has the wrong type to be used for this parameter"));
+
+										if(fs->GetParameter(i).IsReference)
+											PendingEmitters.top().BindReference(CompileTimeParameters.top()[i].Payload.StringHandleValue);
+										else
+											PendingEmitters.top().PushVariableValue(CompileTimeParameters.top()[i].Payload.StringHandleValue, GetEffectiveType(CompileTimeParameters.top()[i]));
+									}
+									else
+										Throw(RecoverableException("No variable by the name \"" + narrow(CompileTimeParameters.top()[i].StringPayload) + "\" was found in this scope"));
+								}
 							}
-						}
-						break;
+							break;
 
-					case VM::EpochType_Expression:
-						if(fs->GetParameter(i).Type == CompileTimeParameters.top()[i].ExpressionType)
-						{
-							if(fs->GetParameter(i).IsReference)
-								throw(NotImplementedException("Support for reference expressions is not implemented"));
+						case VM::EpochType_Expression:
+							if(fs->GetParameter(i).Type == CompileTimeParameters.top()[i].ExpressionType)
+							{
+								if(fs->GetParameter(i).IsReference)
+									throw(NotImplementedException("Support for reference expressions is not implemented"));
+								else
+									PendingEmitters.top().EmitBuffer(CompileTimeParameters.top()[i].ExpressionContents);
+							}
+							else if(CompileTimeParameters.top()[i].ExpressionType != VM::EpochType_Infer)
+							{
+								std::wostringstream errormsg;
+								errormsg << L"Parameter " << (i + 1) << L" to function \"" << statementname << L"\" is of the wrong type";
+								Throw(TypeMismatchException(narrow(errormsg.str())));
+							}
+							break;
+
+						case VM::EpochType_Integer:
+							if(fs->GetParameter(i).Type == VM::EpochType_Integer)
+								PendingEmitters.top().PushIntegerLiteral(CompileTimeParameters.top()[i].Payload.IntegerValue);
 							else
-								PendingEmitters.top().EmitBuffer(CompileTimeParameters.top()[i].ExpressionContents);
-						}
-						else if(CompileTimeParameters.top()[i].ExpressionType != VM::EpochType_Infer)
-						{
-							std::wostringstream errormsg;
-							errormsg << L"Parameter " << (i + 1) << L" to function \"" << statementname << L"\" is of the wrong type";
-							Throw(TypeMismatchException(narrow(errormsg.str())));
-						}
-						break;
+							{
+								std::wostringstream errormsg;
+								errormsg << L"Parameter " << (i + 1) << L" to function \"" << statementname << L"\" is of the wrong type";
+								Throw(TypeMismatchException(narrow(errormsg.str())));
+							}
+							break;
 
-					case VM::EpochType_Integer:
-						if(fs->GetParameter(i).Type == VM::EpochType_Integer)
-							PendingEmitters.top().PushIntegerLiteral(CompileTimeParameters.top()[i].Payload.IntegerValue);
-						else
-						{
-							std::wostringstream errormsg;
-							errormsg << L"Parameter " << (i + 1) << L" to function \"" << statementname << L"\" is of the wrong type";
-							Throw(TypeMismatchException(narrow(errormsg.str())));
-						}
-						break;
+						case VM::EpochType_String:
+							if(fs->GetParameter(i).Type == VM::EpochType_String)
+								PendingEmitters.top().PushStringLiteral(CompileTimeParameters.top()[i].Payload.StringHandleValue);
+							else
+							{
+								std::wostringstream errormsg;
+								errormsg << L"Parameter " << (i + 1) << L" to function \"" << statementname << L"\" is of the wrong type";
+								Throw(TypeMismatchException(narrow(errormsg.str())));
+							}
+							break;
 
-					case VM::EpochType_String:
-						if(fs->GetParameter(i).Type == VM::EpochType_String)
-							PendingEmitters.top().PushStringLiteral(CompileTimeParameters.top()[i].Payload.StringHandleValue);
-						else
-						{
-							std::wostringstream errormsg;
-							errormsg << L"Parameter " << (i + 1) << L" to function \"" << statementname << L"\" is of the wrong type";
-							Throw(TypeMismatchException(narrow(errormsg.str())));
-						}
-						break;
+						case VM::EpochType_Boolean:
+							if(fs->GetParameter(i).Type == VM::EpochType_Boolean)
+								PendingEmitters.top().PushBooleanLiteral(CompileTimeParameters.top()[i].Payload.BooleanValue);
+							else
+							{
+								std::wostringstream errormsg;
+								errormsg << L"Parameter " << (i + 1) << L" to function \"" << statementname << L"\" is of the wrong type";
+								Throw(TypeMismatchException(narrow(errormsg.str())));
+							}
+							break;
 
-					case VM::EpochType_Boolean:
-						if(fs->GetParameter(i).Type == VM::EpochType_Boolean)
-							PendingEmitters.top().PushBooleanLiteral(CompileTimeParameters.top()[i].Payload.BooleanValue);
-						else
-						{
-							std::wostringstream errormsg;
-							errormsg << L"Parameter " << (i + 1) << L" to function \"" << statementname << L"\" is of the wrong type";
-							Throw(TypeMismatchException(narrow(errormsg.str())));
-						}
-						break;
+						case VM::EpochType_Real:
+							if(fs->GetParameter(i).Type == VM::EpochType_Real)
+								PendingEmitters.top().PushRealLiteral(CompileTimeParameters.top()[i].Payload.RealValue);
+							else
+							{
+								std::wostringstream errormsg;
+								errormsg << L"Parameter " << (i + 1) << L" to function \"" << statementname << L"\" is of the wrong type";
+								Throw(TypeMismatchException(narrow(errormsg.str())));
+							}
+							break;
 
-					case VM::EpochType_Real:
-						if(fs->GetParameter(i).Type == VM::EpochType_Real)
-							PendingEmitters.top().PushRealLiteral(CompileTimeParameters.top()[i].Payload.RealValue);
-						else
-						{
-							std::wostringstream errormsg;
-							errormsg << L"Parameter " << (i + 1) << L" to function \"" << statementname << L"\" is of the wrong type";
-							Throw(TypeMismatchException(narrow(errormsg.str())));
-						}
-						break;
+						case VM::EpochType_Buffer:
+							if(fs->GetParameter(i).Type == VM::EpochType_Buffer)
+								PendingEmitters.top().PushBufferHandle(CompileTimeParameters.top()[i].Payload.BufferHandleValue);
+							else
+							{
+								std::wostringstream errormsg;
+								errormsg << L"Parameter " << (i + 1) << L" to function \"" << statementname << L"\" is of the wrong type";
+								Throw(TypeMismatchException(narrow(errormsg.str())));
+							}
+							break;
 
-					case VM::EpochType_Buffer:
-						if(fs->GetParameter(i).Type == VM::EpochType_Buffer)
-							PendingEmitters.top().PushBufferHandle(CompileTimeParameters.top()[i].Payload.BufferHandleValue);
-						else
-						{
-							std::wostringstream errormsg;
-							errormsg << L"Parameter " << (i + 1) << L" to function \"" << statementname << L"\" is of the wrong type";
-							Throw(TypeMismatchException(narrow(errormsg.str())));
+						default:
+							throw NotImplementedException("Support for parameters of this type is not implemented");
 						}
-						break;
-
-					default:
-						throw NotImplementedException("Support for parameters of this type is not implemented");
 					}
 				}
-			}
-			else
-			{
-				std::wostringstream errormsg;
-				errormsg << L"The function \"" << statementname << L"\" expects " << fs->GetNumParameters() << L" parameters, but ";
-				errormsg << CompileTimeParameters.top().size() << L" were provided";
-				Throw(ParameterException(narrow(errormsg.str())));
+				else
+					Throw(ParameterException("Incorrect number of parameters"));
 			}
 
-			StatementTypes.push(fs->GetReturnType());
+			if(fs)
+				StatementTypes.push(fs->GetReturnType());
+			else
+				StatementTypes.push(VM::EpochType_Infer);
 
 			if(indirectinvoke)
 				PendingEmitters.top().InvokeIndirect(statementnamehandle);
@@ -1350,13 +1339,21 @@ void CompilationSemantics::CompleteStatement()
 				CompileTimeParameters.pop();
 				if(!CompileTimeParameters.empty())
 				{
-					if(fs->GetReturnType() == VM::EpochType_Void)
-						Throw(RecoverableException("Function does not return a value, cannot be used in an expression"));
+					if(fs)
+					{
+						if(fs->GetReturnType() == VM::EpochType_Void)
+							Throw(RecoverableException("Function does not return a value, cannot be used in an expression"));
 
-					CompileTimeParameter ctparam(L"@@expression", VM::EpochType_Expression);
-					ctparam.ExpressionType = fs->GetReturnType();
-					ctparam.ExpressionContents = PendingEmissionBuffers.top();
-					CompileTimeParameters.top().push_back(ctparam);
+						CompileTimeParameter ctparam(L"@@expression", VM::EpochType_Expression);
+						ctparam.ExpressionType = fs->GetReturnType();
+						ctparam.ExpressionContents = PendingEmissionBuffers.top();
+						CompileTimeParameters.top().push_back(ctparam);
+					}
+					else
+					{
+						CompileTimeParameter ctparam(L"@@inferredexpression", VM::EpochType_Infer);
+						CompileTimeParameters.top().push_back(ctparam);
+					}
 				}
 				else if(InferenceComplete())
 					EmitterStack.top()->EmitBuffer(PendingEmissionBuffers.top());
@@ -1873,7 +1870,7 @@ void CompilationSemantics::RemapFunctionToOverload(const CompileTimeParameterVec
 
 			// Note that the parser is not intended to catch this exception,
 			// so we intentionally do not wrap it via the Throw() function.
-			if(numinferred == matchingnamehandles.size())
+			if(numinferred > 0)
 				throw InferenceFailureException("Failed to infer types");
 
 			size_t limit = std::min(paramoffset + paramlimit, params.size());
@@ -2246,7 +2243,7 @@ void CompilationSemantics::EndHigherOrderFunctionReturns()
 {
 	FunctionSignatureStack.top().AddParameter(TemporaryString, VM::EpochType_Function, false);
 
-	if(!IsPrepass)
+	if((!IsPrepass) && InferenceComplete())
 	{
 		ScopeMap::iterator iter = LexicalScopeDescriptions.find(LexicalScopeStack.top());
 		if(iter == LexicalScopeDescriptions.end())
@@ -2750,7 +2747,12 @@ void CompilationSemantics::VerifyInfixOperandTypes(StringHandle infixoperator, V
 VM::EpochTypeID CompilationSemantics::GetEffectiveType(const CompileTimeParameter& param) const
 {
 	if(param.Type == VM::EpochType_Identifier)
+	{
+		if(Session.FunctionSignatures.find(param.Payload.StringHandleValue) != Session.FunctionSignatures.end())
+			return VM::EpochType_Function;
+
 		return LexicalScopeDescriptions.find(LexicalScopeStack.top())->second.GetVariableTypeByID(param.Payload.StringHandleValue);
+	}
 	else if(param.Type == VM::EpochType_Expression)
 		return param.ExpressionType;
 
