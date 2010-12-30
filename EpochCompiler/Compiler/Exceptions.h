@@ -66,3 +66,50 @@ public:
 	explicit InferenceFailureException(const char* message) : RecoverableException(message) { }
 	explicit InferenceFailureException(const std::string& message) : RecoverableException(message) { }
 };
+
+
+//
+// Exception used to indicate that an undefined symbol was encountered
+//
+// This is virtually always recoverable, in that we want to keep compiling as much
+// code as we can and continue to look for semantic errors as we go.
+//
+class UndefinedSymbolException : public RecoverableException
+{
+// Construction
+public:
+	explicit UndefinedSymbolException(const char* message) : RecoverableException(message) { }
+	explicit UndefinedSymbolException(const std::string& message) : RecoverableException(message) { }
+};
+
+//
+// Exception used to indicate a symbol definition collision
+//
+// This is recoverable in the sense that we want to continue looking for additional
+// semantic errors through the rest of the program. Usually this arises if two identical
+// functions or structures have been defined.
+//
+class SymbolRedefinitionException : public RecoverableException
+{
+// Construction
+public:
+	explicit SymbolRedefinitionException(const char* message) : RecoverableException(message) { }
+	explicit SymbolRedefinitionException(const std::string& message) : RecoverableException(message) { }
+};
+
+
+//
+// Exception used to indicate a problem with a function tag
+//
+// This is recoverable in the sense that we want to continue looking for additional
+// semantic errors through the rest of the program.
+//
+class FunctionTagException : public RecoverableException
+{
+// Construction
+public:
+	explicit FunctionTagException(const char* message) : RecoverableException(message) { }
+	explicit FunctionTagException(const std::string& message) : RecoverableException(message) { }
+};
+
+

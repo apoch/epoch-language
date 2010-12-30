@@ -490,7 +490,7 @@ void CompilationSemantics::FinalizeInfix()
 									firstoperanditer->ExpressionContents.swap(buffer);
 
 									if(firstoperanditer->ExpressionType == VM::EpochType_Void)
-										Throw(RecoverableException("Void functions cannot participate in infix expressions"));
+										Throw(TypeMismatchException("Void functions cannot participate in infix expressions"));
 
 									flatoperandlist.erase(secondoperanditer);
 									InfixOperators.top().erase(unmappedoperatoriter);
@@ -1170,7 +1170,7 @@ void CompilationSemantics::CompleteStatement()
 							indirectinvoke = true;
 						}
 						else
-							Throw(RecoverableException("The function \"" + narrow(statementname) + "\" is not defined in this scope"));
+							Throw(UndefinedSymbolException("The function \"" + narrow(statementname) + "\" is not defined in this scope"));
 					}
 					else
 						fs = &fsiter->second;
@@ -1210,10 +1210,10 @@ void CompilationSemantics::CompleteStatement()
 								{
 									FunctionSignatureSet::const_iterator fsiter = Session.FunctionSignatures.find(CompileTimeParameters.top()[i].Payload.StringHandleValue);
 									if(fsiter == Session.FunctionSignatures.end())
-										Throw(RecoverableException("No function by the name \"" + narrow(CompileTimeParameters.top()[i].StringPayload) + "\" was found in this scope"));
+										Throw(UndefinedSymbolException("No function by the name \"" + narrow(CompileTimeParameters.top()[i].StringPayload) + "\" was found in this scope"));
 
 									if(!fsiter->second.Matches(fs->GetFunctionSignature(i)))
-										Throw(RecoverableException("No overload of \"" + narrow(CompileTimeParameters.top()[i].StringPayload) + "\" matches the function requirements"));
+										Throw(TypeMismatchException("No overload of \"" + narrow(CompileTimeParameters.top()[i].StringPayload) + "\" matches the function requirements"));
 
 									PendingEmitters.top().PushStringLiteral(CompileTimeParameters.top()[i].Payload.StringHandleValue);
 								}
@@ -1230,7 +1230,7 @@ void CompilationSemantics::CompleteStatement()
 											PendingEmitters.top().PushVariableValue(CompileTimeParameters.top()[i].Payload.StringHandleValue, GetEffectiveType(CompileTimeParameters.top()[i]));
 									}
 									else
-										Throw(RecoverableException("No variable by the name \"" + narrow(CompileTimeParameters.top()[i].StringPayload) + "\" was found in this scope"));
+										Throw(UndefinedSymbolException("No variable by the name \"" + narrow(CompileTimeParameters.top()[i].StringPayload) + "\" was found in this scope"));
 								}
 							}
 							break;
@@ -1239,7 +1239,7 @@ void CompilationSemantics::CompleteStatement()
 							if(fs->GetParameter(i).Type == CompileTimeParameters.top()[i].ExpressionType)
 							{
 								if(fs->GetParameter(i).IsReference)
-									throw(NotImplementedException("Support for reference expressions is not implemented"));
+									throw NotImplementedException("Support for reference expressions is not implemented");
 								else
 									PendingEmitters.top().EmitBuffer(CompileTimeParameters.top()[i].ExpressionContents);
 							}
@@ -1349,7 +1349,7 @@ void CompilationSemantics::CompleteStatement()
 					if(fs)
 					{
 						if(fs->GetReturnType() == VM::EpochType_Void)
-							Throw(RecoverableException("Function does not return a value, cannot be used in an expression"));
+							Throw(TypeMismatchException("Function does not return a value, cannot be used in an expression"));
 
 						CompileTimeParameter ctparam(L"@@expression", VM::EpochType_Expression);
 						ctparam.ExpressionType = fs->GetReturnType();
@@ -1438,7 +1438,7 @@ void CompilationSemantics::BeginOpAssignment(const std::wstring &identifier)
 	if((!IsPrepass) && InferenceComplete())
 	{
 		if(!LexicalScopeDescriptions[LexicalScopeStack.top()].HasVariable(TemporaryString))
-			Throw(RecoverableException("The variable \"" + narrow(TemporaryString) + "\" is not defined in this scope"));
+			Throw(UndefinedSymbolException("The variable \"" + narrow(TemporaryString) + "\" is not defined in this scope"));
 	}
 
 	StatementNames.push(identifier);
@@ -1822,7 +1822,7 @@ void CompilationSemantics::Finalize()
 void CompilationSemantics::AddLexicalScope(StringHandle scopename)
 {
 	if(LexicalScopeDescriptions.find(scopename) != LexicalScopeDescriptions.end())
-		Throw(RecoverableException("An entity with the identifier \"" + narrow(Session.StringPool.GetPooledString(scopename)) + "\" has already been defined"));
+		Throw(SymbolRedefinitionException("An entity with the identifier \"" + narrow(Session.StringPool.GetPooledString(scopename)) + "\" has already been defined"));
 	
 	LexicalScopeDescriptions.insert(std::make_pair(scopename, ScopeDescription()));
 	LexicalScopeStack.push(scopename);
@@ -1903,7 +1903,7 @@ void CompilationSemantics::RemapFunctionToOverload(const CompileTimeParameterVec
 					throw InferenceFailureException("Failed to infer parameter type");
 			}
 
-			Throw(RecoverableException("Multiple overloads matched for \"" + narrow(out_remappedname) + "\" - not sure which one to call"));
+			Throw(ParameterException("Multiple overloads matched for \"" + narrow(out_remappedname) + "\" - not sure which one to call"));
 		}
 
 		out_remappednamehandle = matchingnamehandles.front();
@@ -1911,7 +1911,7 @@ void CompilationSemantics::RemapFunctionToOverload(const CompileTimeParameterVec
 		return;
 	}
 
-	Throw(RecoverableException("No function overload for \"" + narrow(out_remappedname) + "\" takes a matching parameter set"));
+	Throw(ParameterException("No function overload for \"" + narrow(out_remappedname) + "\" takes a matching parameter set"));
 }
 
 //
@@ -2041,7 +2041,7 @@ void CompilationSemantics::GetAllMatchingOverloads(const CompileTimeParameterVec
 						{
 							FunctionSignatureSet::const_iterator funciter = Session.FunctionSignatures.find(params[i].Payload.StringHandleValue);
 							if(funciter == Session.FunctionSignatures.end())
-								Throw(RecoverableException("No function by the name \"" + narrow(params[i].StringPayload) + "\" was found in this scope"));
+								Throw(UndefinedSymbolException("No function by the name \"" + narrow(params[i].StringPayload) + "\" was found in this scope"));
 
 							if(!funciter->second.Matches(signatureiter->second.GetFunctionSignature(i - paramoffset)))
 							{
@@ -2183,7 +2183,7 @@ void CompilationSemantics::CompleteFunctionTag()
 				break;
 
 			default:
-				Throw(RecoverableException("Invalid parameter to function tag"));
+				Throw(FunctionTagException("Invalid parameter to function tag"));
 			}
 
 			ctparams.insert(ctparams.begin(), ctparam);
@@ -2210,7 +2210,7 @@ void CompilationSemantics::CompleteFunctionTag()
 		LexicalScopeStack.pop();
 		CleanAllPushedItems();
 		Fail();
-		Throw(RecoverableException("Invalid function tag"));
+		Throw(FunctionTagException("Invalid function tag"));
 	}
 }
 
@@ -2391,7 +2391,7 @@ const std::wstring& CompilationSemantics::CreateStructureType()
 				StructureMembers.clear();
 				StructureFunctionSignatures.clear();
 
-				Throw(RecoverableException("Aggregate type members must all have unique names"));
+				Throw(SymbolRedefinitionException("Aggregate type members must all have unique names"));
 			}
 
 			membernames.insert(iter->second);
@@ -2618,7 +2618,7 @@ CompilationSemantics::TypeVector CompilationSemantics::WalkCallChainForExpectedT
 		}
 
 		if(ret.empty())
-			Throw(RecoverableException("The function \"" + narrow(name) + "\" is not defined in this scope"));
+			Throw(UndefinedSymbolException("The function \"" + narrow(name) + "\" is not defined in this scope"));
 
 		return ret;
 	}

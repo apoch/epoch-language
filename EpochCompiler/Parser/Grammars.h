@@ -288,13 +288,32 @@ struct FundamentalGrammar : public boost::spirit::classic::grammar<FundamentalGr
 				| GeneralExceptionGuard
 				  (
 					StringIdentifier[StoreString(self.Bindings)] >> COLON >> ParameterList >> MAPARROW >> ReturnList[StoreEntityType(self.Bindings, Bytecode::EntityTags::Function)]
-					>> !(OPENBRACKET >> *((StringIdentifier[BeginFunctionTag(self.Bindings)] >> !(OPENPARENS >> ((Literal | StringIdentifier) % COMMA) >> CLOSEPARENS))[CompleteFunctionTag(self.Bindings)]) >> CLOSEBRACKET)
+					>>
+						FunctionTagExceptionGuard
+						(
+							!(OPENBRACKET >>
+								*((StringIdentifier[BeginFunctionTag(self.Bindings)]
+									>> !(OPENPARENS >> ((Literal | StringIdentifier) % COMMA) >> CLOSEPARENS))[CompleteFunctionTag(self.Bindings)])
+								>> CLOSEBRACKET)
+						)[GeneralExceptionHandler(self.Bindings)]
 					>> MissingFunctionBodyExceptionGuard(ExpectFunctionBody(CodeBlock[StoreEntityCode(self.Bindings)]))[MissingFunctionBodyExceptionHandler(self.Bindings)]
 				  )[GeneralExceptionHandler(self.Bindings)]
 				;
 
 			Program
-				= (*MetaEntity)[Finalize(self.Bindings)]
+				= TypeMismatchExceptionGuard
+				  (
+					UndefinedSymbolExceptionGuard
+					(
+					  ParameterExceptionGuard
+					  (
+					    SymbolRedefinitionExceptionGuard
+						(
+							(*MetaEntity)[Finalize(self.Bindings)]
+						)[GeneralExceptionHandler(self.Bindings)]
+					  )[GeneralExceptionHandler(self.Bindings)]
+					)[GeneralExceptionHandler(self.Bindings)]
+				  )[GeneralExceptionHandler(self.Bindings)]
 				;
 
 			InfixIdentifier
@@ -389,6 +408,10 @@ struct FundamentalGrammar : public boost::spirit::classic::grammar<FundamentalGr
 
 		boost::spirit::classic::guard<RecoverableException> GeneralExceptionGuard;
 		boost::spirit::classic::guard<TypeMismatchException> TypeMismatchExceptionGuard;
+		boost::spirit::classic::guard<UndefinedSymbolException> UndefinedSymbolExceptionGuard;
+		boost::spirit::classic::guard<ParameterException> ParameterExceptionGuard;
+		boost::spirit::classic::guard<SymbolRedefinitionException> SymbolRedefinitionExceptionGuard;
+		boost::spirit::classic::guard<FunctionTagException> FunctionTagExceptionGuard;
 
 		boost::spirit::classic::guard<MalformedStatementException> MalformedStatementExceptionGuard;
 		boost::spirit::classic::assertion<MalformedStatementException> ExpectWellFormedStatement;
