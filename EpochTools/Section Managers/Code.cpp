@@ -52,8 +52,8 @@ void CodeGenerator::Emit(Linker& linker, LinkWriter& writer)
 	writer.EmitByte(0xec);
 	writer.EmitDWORD(0x404);
 
-	writer.EmitByte(0x68);			// PUSH "fuguedll.dll"
-	writer.EmitDWORD(linker.GetBaseAddress() + data.GetOffsetOfWideString(STRINGS_FUGUEDLLNAME, linker));
+	writer.EmitByte(0x68);			// PUSH "epochvm.dll"
+	writer.EmitDWORD(linker.GetBaseAddress() + data.GetOffsetOfWideString(STRINGS_VMDLLNAME, linker));
 
 	writer.EmitByte(0xff);			// CALL DWORD PTR DS:[<LoadLibraryW>]
 	writer.EmitByte(0x15);
@@ -71,8 +71,8 @@ void CodeGenerator::Emit(Linker& linker, LinkWriter& writer)
 	writer.EmitByte(0x68);			// PUSH <Epoch Subsystem>
 	writer.EmitDWORD(linker.GetBaseAddress() + data.GetOffsetOfWideString(STRINGS_EPOCHSUBSYSTEM, linker));
 
-	writer.EmitByte(0x68);			// PUSH <Failed to load Fugue...>
-	writer.EmitDWORD(linker.GetBaseAddress() + data.GetOffsetOfWideString(STRINGS_FAILEDFUGUEDLL, linker));
+	writer.EmitByte(0x68);			// PUSH <Failed to load VM...>
+	writer.EmitDWORD(linker.GetBaseAddress() + data.GetOffsetOfWideString(STRINGS_FAILEDVMDLL, linker));
 
 	writer.EmitByte(0x50);			// PUSH EAX
 
@@ -81,7 +81,7 @@ void CodeGenerator::Emit(Linker& linker, LinkWriter& writer)
 	writer.EmitDWORD(thunk.GetThunkAddress("MessageBoxW") + linker.GetBaseAddress());
 
 	writer.EmitByte(0xe9);			// JMP <exit>
-	writer.EmitDWORD(0xea);
+	writer.EmitDWORD(0xef);
 
 	writer.EmitByte(0x55);			// PUSH EBP
 
@@ -119,7 +119,7 @@ void CodeGenerator::Emit(Linker& linker, LinkWriter& writer)
 	writer.EmitDWORD(thunk.GetThunkAddress("MessageBoxW") + linker.GetBaseAddress());
 
 	writer.EmitByte(0xe9);			// JMP <exit>
-	writer.EmitDWORD(0xc1);
+	writer.EmitDWORD(0xc6);
 
 	writer.EmitByte(0x53);			// PUSH EBX
 	writer.EmitByte(0x68);			// PUSH 1ff
@@ -195,7 +195,7 @@ void CodeGenerator::Emit(Linker& linker, LinkWriter& writer)
 	writer.EmitDWORD(thunk.GetThunkAddress("MessageBoxW") + linker.GetBaseAddress());
 
 	writer.EmitByte(0xeb);			// JMP SHORT <exit>
-	writer.EmitByte(0x76);
+	writer.EmitByte(0x7b);
 
 	writer.EmitByte(0x57);			// PUSH EDI
 
@@ -245,7 +245,7 @@ void CodeGenerator::Emit(Linker& linker, LinkWriter& writer)
 	writer.EmitDWORD(thunk.GetThunkAddress("MessageBoxW") + linker.GetBaseAddress());
 
 	writer.EmitByte(0xeb);			// JMP SHORT <exit>
-	writer.EmitByte(0x48);
+	writer.EmitByte(0x4d);
 
 	writer.EmitByte(0x56);			// PUSH ESI
 
@@ -293,12 +293,10 @@ void CodeGenerator::Emit(Linker& linker, LinkWriter& writer)
 	writer.EmitDWORD(thunk.GetThunkAddress("MessageBoxW") + linker.GetBaseAddress());
 
 	writer.EmitByte(0xeb);			// JMP SHORT <exit>
-	writer.EmitByte(0x1c);
+	writer.EmitByte(0x21);
 
 	writer.EmitByte(0x68);			// PUSH <size of bytecode>
 	writer.EmitDWORD(linker.GetEpochCodeSize());
-
-	// TODO - test this code again, jump targets are probably borked
 
 	writer.EmitByte(0x8d);			// LEA EDX, DWORD PTR DS:[ESI+<code location offset>]
 	writer.EmitByte(0x96);

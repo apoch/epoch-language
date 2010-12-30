@@ -9,9 +9,9 @@
 
 
 #define EMBEDDED_STRING_TABLE											\
-	STRING(STRINGS_FUGUEDLLNAME, L"epochvm.dll")						\
+	STRING(STRINGS_VMDLLNAME, L"epochvm.dll")							\
 	STRING(STRINGS_EPOCHSUBSYSTEM, L"Epoch Subsystem")					\
-	STRING(STRINGS_FAILEDFUGUEDLL, L"Failed to load Epoch Virtual Machine DLL; ensure that EpochVM.DLL is present.") \
+	STRING(STRINGS_FAILEDVMDLL, L"Failed to load Epoch Virtual Machine DLL; ensure that EpochVM.DLL is present.") \
 	STRING(STRINGS_EXECUTEBINBUFFER, "ExecuteByteCode")					\
 	STRING(STRINGS_FAILEDFUNCTIONS, L"One or more Epoch service functions could not be loaded from EpochVM.DLL; please ensure the latest version of Epoch is present.") \
 	STRING(STRINGS_FAILEDEXE, L"Failed to open .EXE for reading")		\
