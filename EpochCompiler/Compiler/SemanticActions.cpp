@@ -445,6 +445,11 @@ void CompilationSemantics::FinalizeInfix()
 							{
 								try
 								{
+									// It's a little bit sloppy to use an exception here for flow control;
+									// however, it saves us a little bit of code complexity and I'm lazy.
+									if(!InferenceComplete())
+										throw InferenceFailureException("Cannot elaborate infix expression until all type inference passes are done");
+
 									StringHandle infixstatementnamehandle = *unmappedoperatoriter;
 									std::wstring infixstatementname = Session.StringPool.GetPooledString(infixstatementnamehandle);
 									RemapFunctionToOverload(flatoperandlist, operanditer - flatoperandlist.begin(), 2, 2, TypeVector(), infixstatementname, infixstatementnamehandle);
@@ -1249,6 +1254,8 @@ void CompilationSemantics::CompleteStatement()
 						case VM::EpochType_Integer:
 							if(fs->GetParameter(i).Type == VM::EpochType_Integer)
 								PendingEmitters.top().PushIntegerLiteral(CompileTimeParameters.top()[i].Payload.IntegerValue);
+							else if(fs->GetParameter(i).Type == VM::EpochType_Integer16)
+								PendingEmitters.top().PushInteger16Literal(CompileTimeParameters.top()[i].Payload.IntegerValue);
 							else
 							{
 								std::wostringstream errormsg;
@@ -1428,7 +1435,7 @@ void CompilationSemantics::BeginAssignment()
 //
 void CompilationSemantics::BeginOpAssignment(const std::wstring &identifier)
 {
-	if(!IsPrepass)
+	if((!IsPrepass) && InferenceComplete())
 	{
 		if(!LexicalScopeDescriptions[LexicalScopeStack.top()].HasVariable(TemporaryString))
 			Throw(RecoverableException("The variable \"" + narrow(TemporaryString) + "\" is not defined in this scope"));
@@ -1443,10 +1450,13 @@ void CompilationSemantics::BeginOpAssignment(const std::wstring &identifier)
 
 	if(!IsPrepass)
 	{
-		if(identifier == L"=")
-			CompileTimeParameters.push(CompileTimeParameterVector());
-		else
-			CompileTimeParameters.push(CompileTimeParameterVector(1, CompileTimeParameter(L"lhs", GetEffectiveType(AssignmentTargets.top()))));
+		if(InferenceComplete())
+		{
+			if(identifier == L"=")
+				CompileTimeParameters.push(CompileTimeParameterVector());
+			else
+				CompileTimeParameters.push(CompileTimeParameterVector(1, CompileTimeParameter(L"lhs", GetEffectiveType(AssignmentTargets.top()))));
+		}
 
 		InfixOperators.push(StringHandles());
 		UnaryOperators.push(UnaryOperatorVector());
@@ -1464,52 +1474,62 @@ void CompilationSemantics::BeginOpAssignment(const std::wstring &identifier)
 //
 void CompilationSemantics::CompleteAssignment()
 {
-	if((!IsPrepass) && InferenceComplete())
+	if(!IsPrepass)
 	{
-		VM::EpochTypeID expressiontype = GetEffectiveType(CompileTimeParameters.top().back());
-
-		if(StatementNames.top() != L"=")
-			AssignmentTargets.top().EmitCurrentValue(*EmitterStack.top(), LexicalScopeDescriptions.find(LexicalScopeStack.top())->second, Structures, StructureNames, Session.StringPool);
-
-		EmitInfixOperand(*EmitterStack.top(), CompileTimeParameters.top().back());
-
-		if(StatementNames.top() != L"=")
+		if(InferenceComplete())
 		{
-			std::wstring assignmentop = StatementNames.top();
-			StringHandle assignmentophandle = Session.StringPool.Pool(assignmentop);
-			RemapFunctionToOverload(CompileTimeParameters.top(), 0, 2, 2, TypeVector(1, expressiontype), assignmentop, assignmentophandle);
+			VM::EpochTypeID expressiontype = GetEffectiveType(CompileTimeParameters.top().back());
 
-			EmitterStack.top()->Invoke(assignmentophandle);
+			if(StatementNames.top() != L"=")
+				AssignmentTargets.top().EmitCurrentValue(*EmitterStack.top(), LexicalScopeDescriptions.find(LexicalScopeStack.top())->second, Structures, StructureNames, Session.StringPool);
+
+			EmitInfixOperand(*EmitterStack.top(), CompileTimeParameters.top().back());
+
+			if(StatementNames.top() != L"=")
+			{
+				std::wstring assignmentop = StatementNames.top();
+				StringHandle assignmentophandle = Session.StringPool.Pool(assignmentop);
+				RemapFunctionToOverload(CompileTimeParameters.top(), 0, 2, 2, TypeVector(1, expressiontype), assignmentop, assignmentophandle);
+
+				EmitterStack.top()->Invoke(assignmentophandle);
+			}
+
+			PendingEmitters.pop();
+			PendingEmissionBuffers.pop();
+			InfixOperators.pop();
+			UnaryOperators.pop();
+
+			AssignmentTargets.top().EmitReferenceBindings(*EmitterStack.top());
+			EmitterStack.top()->AssignVariable();
+			CompileTimeParameters.pop();
+			StatementTypes.c.clear();
+
+			// Check for chained assignments
+			if(AssignmentTargets.size() > 1)
+			{
+				CompileTimeParameter ctparam(L"@@chainedassignment", VM::EpochType_Expression);
+				ByteBuffer buffer;
+				ByteCodeEmitter emitter(buffer);
+				AssignmentTargets.top().EmitReferenceBindings(emitter);
+				emitter.ReadReferenceOntoStack();
+				ctparam.ExpressionContents.swap(buffer);
+				CompileTimeParameters.top().push_back(ctparam);
+			}
+
+			if(expressiontype != GetEffectiveType(AssignmentTargets.top()))
+			{
+				StatementNames.pop();
+				AssignmentTargets.pop();
+				StatementParamCount.pop();
+				Throw(TypeMismatchException("Right hand side of assignment does not match variable type"));
+			}
 		}
-
-		PendingEmitters.pop();
-		PendingEmissionBuffers.pop();
-		InfixOperators.pop();
-		UnaryOperators.pop();
-
-		AssignmentTargets.top().EmitReferenceBindings(*EmitterStack.top());
-		EmitterStack.top()->AssignVariable();
-		CompileTimeParameters.pop();
-		StatementTypes.c.clear();
-
-		// Check for chained assignments
-		if(AssignmentTargets.size() > 1)
+		else
 		{
-			CompileTimeParameter ctparam(L"@@chainedassignment", VM::EpochType_Expression);
-			ByteBuffer buffer;
-			ByteCodeEmitter emitter(buffer);
-			AssignmentTargets.top().EmitReferenceBindings(emitter);
-			emitter.ReadReferenceOntoStack();
-			ctparam.ExpressionContents.swap(buffer);
-			CompileTimeParameters.top().push_back(ctparam);
-		}
-
-		if(expressiontype != GetEffectiveType(AssignmentTargets.top()))
-		{
-			StatementNames.pop();
-			AssignmentTargets.pop();
-			StatementParamCount.pop();
-			Throw(TypeMismatchException("Right hand side of assignment does not match variable type"));
+			PendingEmitters.pop();
+			PendingEmissionBuffers.pop();
+			InfixOperators.pop();
+			UnaryOperators.pop();
 		}
 	}
 	StatementNames.pop();
@@ -1567,37 +1587,40 @@ void CompilationSemantics::CompleteEntityParams(bool ispostfixcloser)
 		UnaryOperators.pop();
 
 		bool valid = true;
-		const CompileTimeParameterVector& entityparams = Session.GetCustomEntityByTag(EntityTypeTags.top()).Parameters;
-
-		if(CompileTimeParameters.top().size() == entityparams.size())
+		if(InferenceComplete())
 		{
-			for(size_t i = 0; i < CompileTimeParameters.top().size(); ++i)
+			const CompileTimeParameterVector& entityparams = Session.GetCustomEntityByTag(EntityTypeTags.top()).Parameters;
+
+			if(CompileTimeParameters.top().size() == entityparams.size())
 			{
-				if(CompileTimeParameters.top()[i].Type == VM::EpochType_Identifier)
+				for(size_t i = 0; i < CompileTimeParameters.top().size(); ++i)
 				{
-					if(GetLexicalScopeDescription(LexicalScopeStack.top()).GetVariableTypeByID(CompileTimeParameters.top()[i].Payload.StringHandleValue) != entityparams[i].Type)
+					if(CompileTimeParameters.top()[i].Type == VM::EpochType_Identifier)
+					{
+						if(GetLexicalScopeDescription(LexicalScopeStack.top()).GetVariableTypeByID(CompileTimeParameters.top()[i].Payload.StringHandleValue) != entityparams[i].Type)
+						{
+							valid = false;
+							break;
+						}
+					}
+					else if(CompileTimeParameters.top()[i].Type == VM::EpochType_Expression)
+					{
+						if(CompileTimeParameters.top()[i].ExpressionType != entityparams[i].Type)
+						{
+							valid = false;
+							break;
+						}
+					}
+					else if(CompileTimeParameters.top()[i].Type != entityparams[i].Type)
 					{
 						valid = false;
 						break;
 					}
-				}
-				else if(CompileTimeParameters.top()[i].Type == VM::EpochType_Expression)
-				{
-					if(CompileTimeParameters.top()[i].ExpressionType != entityparams[i].Type)
-					{
-						valid = false;
-						break;
-					}
-				}
-				else if(CompileTimeParameters.top()[i].Type != entityparams[i].Type)
-				{
-					valid = false;
-					break;
 				}
 			}
+			else
+				valid = false;
 		}
-		else
-			valid = false;
 
 		if(valid && InferenceComplete())
 		{
@@ -2029,18 +2052,21 @@ void CompilationSemantics::GetAllMatchingOverloads(const CompileTimeParameterVec
 						}
 						else
 						{
-							if(!iter->second.HasVariable(params[i].StringPayload))
+							if(InferenceComplete())
 							{
-								patternsucceeded = false;
-								matched = false;
-								break;
-							}
+								if(!iter->second.HasVariable(params[i].StringPayload))
+								{
+									patternsucceeded = false;
+									matched = false;
+									break;
+								}
 
-							if(iter->second.GetVariableTypeByID(params[i].Payload.StringHandleValue) != signatureiter->second.GetParameter(i - paramoffset).Type)
-							{
-								patternsucceeded = false;
-								matched = false;
-								break;
+								if(iter->second.GetVariableTypeByID(params[i].Payload.StringHandleValue) != signatureiter->second.GetParameter(i - paramoffset).Type)
+								{
+									patternsucceeded = false;
+									matched = false;
+									break;
+								}
 							}
 						}
 					}
@@ -2768,7 +2794,14 @@ VM::EpochTypeID CompilationSemantics::GetEffectiveType(const CompileTimeParamete
 		if(Session.FunctionSignatures.find(param.Payload.StringHandleValue) != Session.FunctionSignatures.end())
 			return VM::EpochType_Function;
 
-		return LexicalScopeDescriptions.find(LexicalScopeStack.top())->second.GetVariableTypeByID(param.Payload.StringHandleValue);
+		const ScopeDescription& scope = LexicalScopeDescriptions.find(LexicalScopeStack.top())->second;
+		if(!InferenceComplete())
+		{
+			if(!scope.HasVariable(Session.StringPool.GetPooledString(param.Payload.StringHandleValue)))
+				return VM::EpochType_Infer;
+		}
+
+		return scope.GetVariableTypeByID(param.Payload.StringHandleValue);
 	}
 	else if(param.Type == VM::EpochType_Expression)
 		return param.ExpressionType;

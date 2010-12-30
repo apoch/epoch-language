@@ -67,7 +67,7 @@ namespace Config
 
 
 		//
-		// Read the requesting configuration option's string value
+		// Read the requested configuration option's string value
 		//
 		// We specialize for strings in order to allow white space
 		// in the value; the above implementation based on streams
