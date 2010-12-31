@@ -257,6 +257,9 @@ private:
 
 	void GenerateConstructor(StringHandle constructorname, VM::EpochTypeID type, bool takesidentifier);
 
+	const FunctionSignature& GetFunctionSignature(const AssignmentTarget& assignmenttarget) const;
+	const FunctionSignature& GetFunctionSignature(const CompileTimeParameter& ctparam) const;
+
 // Internal tracking
 private:
 	bool IsPrepass;

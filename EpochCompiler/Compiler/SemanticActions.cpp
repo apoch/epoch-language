@@ -436,7 +436,7 @@ void CompilationSemantics::FinalizeInfix()
 						CompileTimeParameterVector::iterator operanditer = flatoperandlist.begin();
 						for(StringHandles::iterator unmappedoperatoriter = InfixOperators.top().begin(); unmappedoperatoriter != InfixOperators.top().end(); ++unmappedoperatoriter)
 						{
-							// Note here that we look up predecenes based on the operator symbol itself, not the
+							// Note here that we look up precedences using the original operator symbol, not the
 							// resolved overload of the operator. The result is that all operator overloads will
 							// have the same precedence (which is nice for consistency). This also means that we
 							// don't have to manually define a precedence for all the . operator overloads which
@@ -1484,7 +1484,14 @@ void CompilationSemantics::CompleteAssignment()
 	{
 		if(InferenceComplete())
 		{
+			bool invalid = false;
 			VM::EpochTypeID expressiontype = GetEffectiveType(CompileTimeParameters.top().back());
+
+			if(expressiontype == VM::EpochType_Function)
+			{
+				if(!GetFunctionSignature(AssignmentTargets.top()).Matches(GetFunctionSignature(CompileTimeParameters.top().back())))
+					invalid = true;
+			}
 
 			if(StatementNames.top() != L"=")
 				AssignmentTargets.top().EmitCurrentValue(*EmitterStack.top(), LexicalScopeDescriptions.find(LexicalScopeStack.top())->second, Structures, StructureNames, Session.StringPool);
@@ -1521,8 +1528,11 @@ void CompilationSemantics::CompleteAssignment()
 				ctparam.ExpressionContents.swap(buffer);
 				CompileTimeParameters.top().push_back(ctparam);
 			}
-
+			
 			if(expressiontype != GetEffectiveType(AssignmentTargets.top()))
+				invalid = true;
+
+			if(invalid)
 			{
 				StatementNames.pop();
 				AssignmentTargets.pop();
@@ -1718,6 +1728,15 @@ void CompilationSemantics::PushParam(const std::wstring& paramname, bool overrid
 			ctparam.StringPayload = Strings.top();
 			ctparam.Payload.StringHandleValue = handle;
 			Strings.pop();
+			
+			if(InferenceComplete())
+			{
+				if(Session.FunctionSignatures.find(handle) != Session.FunctionSignatures.end())
+					ctparam.FunctionSignaturePtr = &Session.FunctionSignatures.find(handle)->second;
+				else if(LexicalScopeDescriptions.find(LexicalScopeStack.top())->second.HasVariable(ctparam.StringPayload) && LexicalScopeDescriptions.find(LexicalScopeStack.top())->second.GetVariableTypeByID(handle) == VM::EpochType_Function)
+					ctparam.FunctionSignaturePtr = &(Session.FunctionSignatures.find(LexicalScopeStack.top())->second.GetFunctionSignature(Session.FunctionSignatures.find(LexicalScopeStack.top())->second.FindParameter(ctparam.StringPayload)));
+			}
+
 			if((!IsPrepass) || overrideprepass)
 				CompileTimeParameters.top().push_back(ctparam);
 		}
@@ -2599,7 +2618,7 @@ CompilationSemantics::TypeVector CompilationSemantics::WalkCallChainForExpectedT
 					if(entitydescription.Parameters.size() > paramindex)
 						ret.push_back(entitydescription.Parameters[paramindex].Type);
 				}
-				catch(InvalidIdentifierException&)
+				catch(const InvalidIdentifierException&)
 				{
 					// Must not have been a valid entity! Just keep going.
 				}
@@ -2921,6 +2940,66 @@ void CompilationSemantics::AssignmentTarget::EmitCurrentValue(ByteCodeEmitter& e
 bool CompilationSemantics::InferenceComplete() const
 {
 	return IsInferenceComplete;
+}
+
+
+//
+// Retrieve the function signature corresponding to the given l-value
+//
+// Assignment targets can be either simple variables or (possibly nested) structure members.
+// This function provides a uniform, succinct interface for looking up the function signature
+// assigned to l-values of either sort, for l-values of Function type.
+//
+const FunctionSignature& CompilationSemantics::GetFunctionSignature(const AssignmentTarget& assignmenttarget) const
+{
+	const ScopeDescription& scope = LexicalScopeDescriptions.find(LexicalScopeStack.top())->second;
+
+	if(assignmenttarget.Members.empty())
+	{
+		const std::wstring& varname = Session.StringPool.GetPooledString(assignmenttarget.Variable);
+		if(!scope.HasVariable(varname))
+			Throw(InvalidIdentifierException("Cannot assign to this variable, identifier not recognized"));
+
+		if(scope.GetVariableTypeByID(assignmenttarget.Variable) != VM::EpochType_Function)
+			Throw(RecoverableException("Cannot assign a function into this variable, type mismatch"));
+
+		return Session.FunctionSignatures.find(LexicalScopeStack.top())->second.GetFunctionSignature(Session.FunctionSignatures.find(LexicalScopeStack.top())->second.FindParameter(varname));
+	}
+
+	VM::EpochTypeID structuretype = scope.GetVariableTypeByID(assignmenttarget.Variable);
+	VM::EpochTypeID previoustype = structuretype;
+
+	for(StringHandles::const_iterator memberiter = assignmenttarget.Members.begin(); memberiter != assignmenttarget.Members.end(); ++memberiter)
+	{
+		StringHandle structurename = 0;
+		for(StructureNameMap::const_iterator iter = StructureNames.begin(); iter != StructureNames.end(); ++iter)
+		{
+			if(iter->second == structuretype)
+			{
+				structurename = iter->first;
+				break;
+			}
+		}
+
+		if(!structurename)
+			throw FatalException("Invalid structure ID");
+
+		previoustype = structuretype;
+		structuretype = Structures.find(structuretype)->second.GetMemberType(Structures.find(structuretype)->second.FindMember(*memberiter));
+	}
+
+	if(structuretype != VM::EpochType_Function)
+		throw FatalException("Member is not a function reference, type mismatch");
+
+	return Structures.find(previoustype)->second.FunctionSignatures.find(assignmenttarget.Members.back())->second;
+}
+
+//
+// This overload works much like the one above, except operating on a compile-time parameter object
+//
+const FunctionSignature& CompilationSemantics::GetFunctionSignature(const CompileTimeParameter& ctparam) const
+{
+	return *ctparam.FunctionSignaturePtr;
 }
 
 

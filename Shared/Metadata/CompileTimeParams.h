@@ -38,7 +38,8 @@ struct CompileTimeParameter
 		: Name(name),
 		  Type(type),
 		  ExpressionType(VM::EpochType_Error),
-		  IsReference(false)
+		  IsReference(false),
+		  FunctionSignaturePtr(NULL)
 	{ }
 
 	std::wstring Name;
@@ -59,6 +60,8 @@ struct CompileTimeParameter
 	ByteBuffer ExpressionContents;
 
 	bool IsReference;
+
+	const FunctionSignature* FunctionSignaturePtr;
 };
 
 

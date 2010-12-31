@@ -897,7 +897,7 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 			}
 		}
 	}
-	catch(std::exception& e)
+	catch(const std::exception& e)
 	{
 		std::wcout << e.what() << std::endl;
 		State.Result.ResultType = ExecutionResult::EXEC_RESULT_HALT;

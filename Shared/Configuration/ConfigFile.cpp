@@ -54,7 +54,7 @@ ConfigReader::ConfigReader()
 			Values.insert(KeyValuePair(keyname, value));
 		}
 	}
-	catch(std::exception&)
+	catch(const std::exception&)
 	{
 		return;
 	}

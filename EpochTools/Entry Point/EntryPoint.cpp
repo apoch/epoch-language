@@ -80,7 +80,7 @@ int _tmain(int argc, _TCHAR* argv[])
 					vmaccess.ExecuteByteCode(compileraccess.GetByteCode(bytecodebufferhandle), compileraccess.GetByteCodeSize(bytecodebufferhandle));
 				}
 			}
-			catch(std::exception& e)
+			catch(const std::exception& e)
 			{
 				output << L"Error: " << e.what() << std::endl;
 			}
@@ -126,7 +126,7 @@ int _tmain(int argc, _TCHAR* argv[])
 				else
 					throw FatalException("Compilation failed!");
 			}
-			catch(std::exception& e)
+			catch(const std::exception& e)
 			{
 				output << L"Error: " << e.what() << std::endl;
 			}
@@ -192,7 +192,7 @@ int _tmain(int argc, _TCHAR* argv[])
 					link.CommitFile();
 				}
 			}
-			catch(std::exception& e)
+			catch(const std::exception& e)
 			{
 				output << L"Error: " << e.what() << std::endl;
 			}

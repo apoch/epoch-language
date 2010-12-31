@@ -29,7 +29,7 @@ extern "C" void __stdcall ExecuteByteCode(const void* bytecodebuffer, size_t siz
 		vm.InitStandardLibraries();
 		vm.ExecuteByteCode(reinterpret_cast<const Bytecode::Instruction*>(bytecodebuffer), size);
 	}
-	catch(std::exception& e)
+	catch(const std::exception& e)
 	{
 		::MessageBox(0, widen(e.what()).c_str(), L"Epoch Execution Exception", MB_ICONSTOP);
 	}
