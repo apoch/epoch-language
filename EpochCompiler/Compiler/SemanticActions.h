@@ -23,6 +23,7 @@
 #include "Metadata/ScopeDescription.h"
 #include "Metadata/CompileTimeParams.h"
 #include "Metadata/StructureDefinition.h"
+#include "Metadata/LRValue.h"
 
 #include "Libraries/Library.h"
 
@@ -75,8 +76,6 @@ private:
 	typedef std::pair<PosIteratorT, StringHandle> OverloadPositionPair;
 	typedef std::list<OverloadPositionPair> OverloadPositionList;
 
-	typedef std::map<VM::EpochTypeID, StructureDefinition> StructureDefinitionMap;
-	typedef std::map<StringHandle, VM::EpochTypeID> StructureNameMap;
 	typedef std::pair<VM::EpochTypeID, StringHandle> StructureMemberTypeNamePair;
 	typedef std::vector<StructureMemberTypeNamePair> StructureMemberList;
 
@@ -203,21 +202,6 @@ public:
 
 	virtual void CleanUpBrokenStatement();
 
-// Internal helper structures
-private:
-	struct AssignmentTarget
-	{
-		explicit AssignmentTarget(StringHandle variable)
-			: Variable(variable)
-		{ }
-
-		void EmitReferenceBindings(ByteCodeEmitter& emitter) const;
-		void EmitCurrentValue(ByteCodeEmitter& emitter, const ScopeDescription& activescope, const StructureDefinitionMap& structures, const StructureNameMap& structurenames, StringPoolManager& stringpool) const;
-
-		StringHandle Variable;
-		std::vector<StringHandle> Members;
-	};
-
 // Internal helpers
 private:
 	void AddLexicalScope(StringHandle scopename);
@@ -229,7 +213,7 @@ private:
 	void Throw(const ExceptionT& exception) const;
 
 	StringHandle AllocateNewOverloadedFunctionName(StringHandle originalname);
-	void RemapFunctionToOverload(const CompileTimeParameterVector& params, size_t paramoffset, size_t knownparams, size_t paramlimit, const TypeVector& possiblereturntypes, std::wstring& out_remappedname, StringHandle& out_remappednamehandle) const;
+	void RemapFunctionToOverload(const CompileTimeParameterVector& params, size_t paramoffset, size_t knownparams, size_t paramlimit, const TypeVector& possiblereturntypes, bool allowinference, std::wstring& out_remappedname, StringHandle& out_remappednamehandle) const;
 	void GetAllMatchingOverloads(const CompileTimeParameterVector& params, size_t paramoffset, size_t knownparams, size_t paramlimit, const TypeVector& possiblereturntypes, const std::wstring& originalname, StringHandle originalnamehandle, StringVector& out_names, StringHandles& out_namehandles) const;
 
 	std::wstring GetPatternMatchResolverName(const std::wstring& originalname) const;
@@ -246,19 +230,23 @@ private:
 
 	Bytecode::EntityTag LookupEntityTag(StringHandle identifier) const;
 
+	void CollapseMemberAccesses();
 	void CollapseUnaryOperators();
 
 	void VerifyInfixOperandTypes(StringHandle infixoperator, VM::EpochTypeID op1type, VM::EpochTypeID op2type);
 
 	VM::EpochTypeID GetEffectiveType(const CompileTimeParameter& param) const;
-	VM::EpochTypeID GetEffectiveType(const AssignmentTarget& assignmenttarget) const;
+	VM::EpochTypeID GetEffectiveType(const LRValue& assignmenttarget) const;
 
 	void CleanAllPushedItems();
 
 	void GenerateConstructor(StringHandle constructorname, VM::EpochTypeID type, bool takesidentifier);
 
-	const FunctionSignature& GetFunctionSignature(const AssignmentTarget& assignmenttarget) const;
+	const FunctionSignature& GetFunctionSignature(const LRValue& assignmenttarget) const;
 	const FunctionSignature& GetFunctionSignature(const CompileTimeParameter& ctparam) const;
+
+	void EmitReferenceBindings(ByteCodeEmitter& emitter, const LRValue& lrvalue) const;
+	void EmitCurrentValue(ByteCodeEmitter& emitter, const LRValue& lrvalue);
 
 // Internal tracking
 private:
@@ -303,7 +291,7 @@ private:
 	std::stack<ByteBuffer> PendingEmissionBuffers;
 	std::stack<ByteCodeEmitter> PendingEmitters;
 
-	std::stack<AssignmentTarget> AssignmentTargets;
+	std::stack<LRValue> AssignmentTargets;
 
 	PosIteratorT ParsePosition;
 

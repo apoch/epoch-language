@@ -342,6 +342,10 @@
 					>
 				</File>
 				<File
+					RelativePath="..\Shared\Metadata\LRValue.h"
+					>
+				</File>
+				<File
 					RelativePath="..\Shared\Metadata\Precedences.h"
 					>
 				</File>

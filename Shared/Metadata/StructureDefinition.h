@@ -15,6 +15,7 @@
 #include "Metadata/FunctionSignature.h"
 
 #include <vector>
+#include <map>
 
 
 class StructureDefinition
@@ -74,3 +75,7 @@ private:
 	size_t MarshaledSize;
 };
 
+
+// Handy type shortcuts
+typedef std::map<VM::EpochTypeID, StructureDefinition> StructureDefinitionMap;
+typedef std::map<StringHandle, VM::EpochTypeID> StructureNameMap;

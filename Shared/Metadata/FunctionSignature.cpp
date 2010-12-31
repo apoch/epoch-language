@@ -47,7 +47,7 @@ void FunctionSignature::AddPatternMatchedParameter(Integer32 literalvalue)
 void FunctionSignature::AddPatternMatchedParameterIdentifier(StringHandle identifier)
 {
 	CompileTimeParameter ctparam(L"@@patternmatched", VM::EpochType_Identifier);
-	ctparam.Payload.StringHandleValue = identifier;
+	ctparam.LRValueContents.Identifier = identifier;
 	Parameters.push_back(ctparam);
 	FunctionSignatures.push_back(FunctionSignature());
 }

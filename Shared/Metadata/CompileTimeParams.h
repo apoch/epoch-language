@@ -19,6 +19,8 @@
 #include "Utility/Types/RealTypes.h"
 #include "Utility/Types/IDTypes.h"
 
+#include "Metadata/LRValue.h"
+
 #include <string>
 #include <vector>
 
@@ -38,8 +40,7 @@ struct CompileTimeParameter
 		: Name(name),
 		  Type(type),
 		  ExpressionType(VM::EpochType_Error),
-		  IsReference(false),
-		  FunctionSignaturePtr(NULL)
+		  IsReference(false)
 	{ }
 
 	std::wstring Name;
@@ -49,7 +50,7 @@ struct CompileTimeParameter
 	union PayloadUnion
 	{
 		Integer32 IntegerValue;
-		StringHandle StringHandleValue;
+		StringHandle LiteralStringHandleValue;
 		BufferHandle BufferHandleValue;
 		bool BooleanValue;
 		Real32 RealValue;
@@ -58,10 +59,9 @@ struct CompileTimeParameter
 	std::wstring StringPayload;
 
 	ByteBuffer ExpressionContents;
+	LRValue LRValueContents;
 
 	bool IsReference;
-
-	const FunctionSignature* FunctionSignaturePtr;
 };
 
 

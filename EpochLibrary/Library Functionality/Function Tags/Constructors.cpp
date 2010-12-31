@@ -33,7 +33,7 @@ namespace
 
 		VariableOrigin origin = (semantics.IsInReturnDeclaration() ? VARIABLE_ORIGIN_RETURN : VARIABLE_ORIGIN_LOCAL);
 		VM::EpochTypeID effectivetype = semantics.LookupTypeName(functionname);
-		scope.AddVariable(compiletimeparams[0].StringPayload, compiletimeparams[0].Payload.StringHandleValue, effectivetype, false, origin);
+		scope.AddVariable(compiletimeparams[0].StringPayload, compiletimeparams[0].LRValueContents.Identifier, effectivetype, false, origin);
 	}
 
 	//

@@ -329,7 +329,7 @@ void CompilationSemantics::StoreMember(const std::wstring& member)
 	{
 		if(!TemporaryString.empty())
 		{
-			AssignmentTargets.push(AssignmentTarget(Session.StringPool.Pool(TemporaryString)));
+			AssignmentTargets.push(LRValue(Session.StringPool.Pool(TemporaryString)));
 			TemporaryString.clear();
 		}
 
@@ -386,7 +386,13 @@ void CompilationSemantics::CompleteInfix()
 //
 // Finalize an infix expression
 //
-// First we invoke CollapseUnaryOperators() to reduce all unary subexpressions (e.g. of the form !foo)
+// First we must reduce all member access chains (of the form foo.bar.baz) into singular entities. This is to
+// guarantee that member accesses always have the highest precedence, even over unary operators. We also use
+// this to unify the representation of accessed members and individual primitive variables, so that we don't
+// need to handle member accesses with special-case logic later on; their type information etc. is bound into
+// the appropriate AST nodes so that we can operate on member-accesses and primitives uniformly.
+//
+// Next, we invoke CollapseUnaryOperators() to reduce all unary subexpressions (e.g. of the form !foo)
 // into single operands with expression-type payloads. Then, we iteratively reduce operator/operand pairings
 // into single operands, with higher-precedence operators reduced first, maintaining a left-to-right order of
 // evaluation. This reduction results in the entire infix expression being simplified to a single compile
@@ -396,6 +402,7 @@ void CompilationSemantics::FinalizeInfix()
 {
 	if(!IsPrepass)
 	{
+		CollapseMemberAccesses();
 		CollapseUnaryOperators();
 
 		if(!InfixOperators.empty() && !InfixOperators.top().empty())
@@ -415,16 +422,6 @@ void CompilationSemantics::FinalizeInfix()
 				// Iterate through the list of known operator precedences, highest first
 				for(PrecedenceTable::const_reverse_iterator precedenceiter = Session.OperatorPrecedences.rbegin(); precedenceiter != Session.OperatorPrecedences.rend(); ++precedenceiter)
 				{
-					// We must note if we are handling the magic . member access operator, because
-					// if so, we should not evaluate the identifiers given to us, but rather pass
-					// them along raw to the . operator overload in question. For instance, in the
-					// expression foo.bar, we don't want to evaluate foo OR bar, but rather pass
-					// the two identifiers "foo" and "bar" to the . operator for final evaluation.
-					// Note that it may be possible (indeed, even desirable) to make this a more
-					// general mechanism, whereby the operator overload's parameters are checked to
-					// see if the overload expects identifiers; but for now this hack will suffice.
-					bool ismemberaccess = (precedenceiter->first == PRECEDENCE_MEMBERACCESS);
-
 					// Repeatedly reduce expressions to single operands, until no more operators
 					// at this precedence level are encountered. This ensures that sequences of
 					// operations with the same precedence are all reduced simultaneously.
@@ -438,9 +435,7 @@ void CompilationSemantics::FinalizeInfix()
 						{
 							// Note here that we look up precedences using the original operator symbol, not the
 							// resolved overload of the operator. The result is that all operator overloads will
-							// have the same precedence (which is nice for consistency). This also means that we
-							// don't have to manually define a precedence for all the . operator overloads which
-							// get generated for structure member accesses.
+							// have the same precedence (which is nice for consistency).
 							if(GetOperatorPrecedence(*unmappedoperatoriter) == precedenceiter->first)
 							{
 								try
@@ -452,7 +447,7 @@ void CompilationSemantics::FinalizeInfix()
 
 									StringHandle infixstatementnamehandle = *unmappedoperatoriter;
 									std::wstring infixstatementname = Session.StringPool.GetPooledString(infixstatementnamehandle);
-									RemapFunctionToOverload(flatoperandlist, operanditer - flatoperandlist.begin(), 2, 2, TypeVector(), infixstatementname, infixstatementnamehandle);
+									RemapFunctionToOverload(flatoperandlist, operanditer - flatoperandlist.begin(), 2, 2, TypeVector(), true, infixstatementname, infixstatementnamehandle);
 
 									FunctionSignatureSet::const_iterator funcsigiter = Session.FunctionSignatures.find(infixstatementnamehandle);
 									if(funcsigiter == Session.FunctionSignatures.end())
@@ -466,18 +461,12 @@ void CompilationSemantics::FinalizeInfix()
 									CompileTimeParameterVector::iterator firstoperanditer = operanditer;
 
 									VM::EpochTypeID op1type = GetEffectiveType(*operanditer);
-									if(ismemberaccess)
-										emitter.PushVariableValueNoCopy(operanditer->Payload.StringHandleValue);
-									else
-										EmitInfixOperand(emitter, *operanditer);
+									EmitInfixOperand(emitter, *operanditer);
 
 									++operanditer;
 
-									VM::EpochTypeID op2type = ismemberaccess ? VM::EpochType_Identifier : GetEffectiveType(*operanditer);
-									if(ismemberaccess)
-										emitter.PushStringLiteral(operanditer->Payload.StringHandleValue);
-									else
-										EmitInfixOperand(emitter, *operanditer);
+									VM::EpochTypeID op2type = GetEffectiveType(*operanditer);
+									EmitInfixOperand(emitter, *operanditer);
 
 									CompileTimeParameterVector::iterator secondoperanditer = operanditer;
 									++operanditer;
@@ -539,6 +528,49 @@ void CompilationSemantics::FinalizeInfix()
 
 	if(!StatementParamCount.empty())
 		++StatementParamCount.top();
+}
+
+//
+// Collapse member-access sequences (e.g. foo.bar.baz) into singular nodes
+//
+// This helps unify the access of type information for members as well as primitive
+// variables, thus substantially reducing the complexity of the compiler, as far as
+// member accesses are concerned.
+//
+void CompilationSemantics::CollapseMemberAccesses()
+{
+	if(!InfixOperators.empty() && !InfixOperators.top().empty())
+	{
+		const StringHandle memberaccesshandle = Session.StringPool.Pool(L".");
+
+		// Repeatedly reduce member accesses from left to right until all are collapsed
+		bool collapsed;
+		do
+		{
+			collapsed = false;
+
+			CompileTimeParameterVector::iterator operanditer = CompileTimeParameters.top().begin() + StatementParamCount.top();
+			for(StringHandles::iterator unmappedoperatoriter = InfixOperators.top().begin(); unmappedoperatoriter != InfixOperators.top().end(); ++unmappedoperatoriter)
+			{
+				if(*unmappedoperatoriter == memberaccesshandle)
+				{
+					CompileTimeParameterVector::iterator secondoperanditer = operanditer;
+					++secondoperanditer;
+
+					operanditer->LRValueContents.Members.push_back(secondoperanditer->LRValueContents.Identifier);
+					std::copy(secondoperanditer->LRValueContents.Members.begin(), secondoperanditer->LRValueContents.Members.end(), std::back_inserter(operanditer->LRValueContents.Members));
+
+					CompileTimeParameters.top().erase(secondoperanditer);
+					InfixOperators.top().erase(unmappedoperatoriter);
+
+					collapsed = true;
+					break;
+				}
+				else
+					++operanditer;
+			}
+		} while(collapsed);
+	}
 }
 
 //
@@ -617,7 +649,7 @@ void CompilationSemantics::CollapseUnaryOperators()
 			StringHandle outhandle = iter->first;
 			std::wstring outname = Session.StringPool.GetPooledString(outhandle);
 			CompileTimeParameterVector paramvec(1, originalparam);
-			RemapFunctionToOverload(paramvec, 0, 1, std::numeric_limits<size_t>::max(), TypeVector(), outname, outhandle);
+			RemapFunctionToOverload(paramvec, 0, 1, std::numeric_limits<size_t>::max(), TypeVector(), true, outname, outhandle);
 			emitter.Invoke(outhandle);
 
 			CompileTimeParameter ctparam(L"@@unaryresult", VM::EpochType_Expression);
@@ -664,22 +696,22 @@ void CompilationSemantics::RegisterPreOperand(const std::wstring& expression)
 
 		if(!TemporaryString.empty())
 		{
-			AssignmentTargets.push(AssignmentTarget(Session.StringPool.Pool(TemporaryString)));
+			AssignmentTargets.push(LRValue(Session.StringPool.Pool(TemporaryString)));
 			TemporaryString.clear();
 		}
 
 		VM::EpochTypeID variabletype = GetEffectiveType(AssignmentTargets.top());
 
-		RemapFunctionToOverload(CompileTimeParameterVector(), 0, 1, 1, TypeVector(1, variabletype), operatorname, operatornamehandle);
+		RemapFunctionToOverload(CompileTimeParameterVector(), 0, 0, 0, TypeVector(1, variabletype), false, operatorname, operatornamehandle);
 
 		ByteBuffer buffer;
 		ByteCodeEmitter emitter(buffer);
 
-		AssignmentTargets.top().EmitCurrentValue(emitter, LexicalScopeDescriptions.find(LexicalScopeStack.top())->second, Structures, StructureNames, Session.StringPool);
+		EmitCurrentValue(emitter, AssignmentTargets.top());
 		emitter.Invoke(operatornamehandle);
-		AssignmentTargets.top().EmitReferenceBindings(emitter);
+		EmitReferenceBindings(emitter, AssignmentTargets.top());
 		emitter.AssignVariable();
-		AssignmentTargets.top().EmitCurrentValue(emitter, LexicalScopeDescriptions.find(LexicalScopeStack.top())->second, Structures, StructureNames, Session.StringPool);
+		EmitCurrentValue(emitter, AssignmentTargets.top());
 
 		StatementTypes.push(variabletype);
 
@@ -714,13 +746,13 @@ void CompilationSemantics::RegisterPostOperator(const std::wstring& identifier)
 
 		if(AssignmentTargets.empty() && !TemporaryString.empty())
 		{
-			AssignmentTargets.push(AssignmentTarget(Session.StringPool.Pool(TemporaryString)));
+			AssignmentTargets.push(LRValue(Session.StringPool.Pool(TemporaryString)));
 			TemporaryString.clear();
 		}
 
 		VM::EpochTypeID variabletype = GetEffectiveType(AssignmentTargets.top());
 
-		RemapFunctionToOverload(CompileTimeParameterVector(), 0, 1, 1, TypeVector(1, variabletype), operatorname, operatornamehandle);
+		RemapFunctionToOverload(CompileTimeParameterVector(), 0, 0, 0, TypeVector(1, variabletype), false, operatorname, operatornamehandle);
 
 		ByteBuffer buffer;
 		ByteCodeEmitter emitter(buffer);
@@ -730,10 +762,10 @@ void CompilationSemantics::RegisterPostOperator(const std::wstring& identifier)
 		// and appears lower on the stack] is used to hold the initial value of the expression
 		// so that the subsequent code can read off the value safely, in keeping with the
 		// traditional semantics of a post operator.)
-		AssignmentTargets.top().EmitCurrentValue(emitter, LexicalScopeDescriptions.find(LexicalScopeStack.top())->second, Structures, StructureNames, Session.StringPool);
-		AssignmentTargets.top().EmitCurrentValue(emitter, LexicalScopeDescriptions.find(LexicalScopeStack.top())->second, Structures, StructureNames, Session.StringPool);
+		EmitCurrentValue(emitter, AssignmentTargets.top());
+		EmitCurrentValue(emitter, AssignmentTargets.top());
 		emitter.Invoke(operatornamehandle);
-		AssignmentTargets.top().EmitReferenceBindings(emitter);
+		EmitReferenceBindings(emitter, AssignmentTargets.top());
 		emitter.AssignVariable();
 
 		StatementTypes.push(variabletype);
@@ -1153,7 +1185,7 @@ void CompilationSemantics::CompleteStatement()
 			if(InferenceComplete())
 			{
 				TypeVector outerexpectedtypes = WalkCallChainForExpectedTypes(StatementParamCount.top());
-				RemapFunctionToOverload(CompileTimeParameters.top(), 0, StatementParamCount.top(), std::numeric_limits<size_t>::max(), outerexpectedtypes, statementname, statementnamehandle);
+				RemapFunctionToOverload(CompileTimeParameters.top(), 0, StatementParamCount.top(), std::numeric_limits<size_t>::max(), outerexpectedtypes, true, statementname, statementnamehandle);
 				
 				FunctionCompileHelperTable::const_iterator fchiter = CompileTimeHelpers.find(statementnamehandle);
 				if(fchiter != CompileTimeHelpers.end())
@@ -1196,9 +1228,14 @@ void CompilationSemantics::CompleteStatement()
 							if(fs->GetParameter(i).Type == VM::EpochType_Identifier)
 							{
 								if(fs->GetParameter(i).IsReference)
-									PendingEmitters.top().BindReference(CompileTimeParameters.top()[i].Payload.StringHandleValue);
+									EmitReferenceBindings(PendingEmitters.top(), CompileTimeParameters.top()[i].LRValueContents);
 								else
-									PendingEmitters.top().PushStringLiteral(CompileTimeParameters.top()[i].Payload.StringHandleValue);
+								{
+									if(!CompileTimeParameters.top()[i].LRValueContents.Members.empty())
+										throw NotImplementedException("Passing members as identifiers is not supported");
+
+									PendingEmitters.top().PushStringLiteral(CompileTimeParameters.top()[i].LRValueContents.Identifier);
+								}
 							}
 							else
 							{
@@ -1208,26 +1245,26 @@ void CompilationSemantics::CompleteStatement()
 
 								if(fs->GetParameter(i).Type == VM::EpochType_Function)
 								{
-									FunctionSignatureSet::const_iterator fsiter = Session.FunctionSignatures.find(CompileTimeParameters.top()[i].Payload.StringHandleValue);
+									FunctionSignatureSet::const_iterator fsiter = Session.FunctionSignatures.find(CompileTimeParameters.top()[i].LRValueContents.Identifier);
 									if(fsiter == Session.FunctionSignatures.end())
 										Throw(InvalidIdentifierException("No function by the name \"" + narrow(CompileTimeParameters.top()[i].StringPayload) + "\" was found in this scope"));
 
 									if(!fsiter->second.Matches(fs->GetFunctionSignature(i)))
 										Throw(TypeMismatchException("No overload of \"" + narrow(CompileTimeParameters.top()[i].StringPayload) + "\" matches the function requirements"));
 
-									PendingEmitters.top().PushStringLiteral(CompileTimeParameters.top()[i].Payload.StringHandleValue);
+									PendingEmitters.top().PushStringLiteral(CompileTimeParameters.top()[i].LRValueContents.Identifier);
 								}
 								else
 								{
 									if(iter->second.HasVariable(CompileTimeParameters.top()[i].StringPayload))
 									{
-										if(iter->second.GetVariableTypeByID(CompileTimeParameters.top()[i].Payload.StringHandleValue) != fs->GetParameter(i).Type)
+										if(GetEffectiveType(CompileTimeParameters.top()[i]) != fs->GetParameter(i).Type)
 											Throw(TypeMismatchException("The variable \"" + narrow(CompileTimeParameters.top()[i].StringPayload) + "\" has the wrong type to be used for this parameter"));
 
 										if(fs->GetParameter(i).IsReference)
-											PendingEmitters.top().BindReference(CompileTimeParameters.top()[i].Payload.StringHandleValue);
+											EmitReferenceBindings(PendingEmitters.top(), CompileTimeParameters.top()[i].LRValueContents);
 										else
-											PendingEmitters.top().PushVariableValue(CompileTimeParameters.top()[i].Payload.StringHandleValue, GetEffectiveType(CompileTimeParameters.top()[i]));
+											EmitCurrentValue(PendingEmitters.top(), CompileTimeParameters.top()[i].LRValueContents);
 									}
 									else
 										Throw(InvalidIdentifierException("No variable by the name \"" + narrow(CompileTimeParameters.top()[i].StringPayload) + "\" was found in this scope"));
@@ -1266,7 +1303,7 @@ void CompilationSemantics::CompleteStatement()
 
 						case VM::EpochType_String:
 							if(fs->GetParameter(i).Type == VM::EpochType_String)
-								PendingEmitters.top().PushStringLiteral(CompileTimeParameters.top()[i].Payload.StringHandleValue);
+								PendingEmitters.top().PushStringLiteral(CompileTimeParameters.top()[i].Payload.LiteralStringHandleValue);
 							else
 							{
 								std::wostringstream errormsg;
@@ -1448,7 +1485,7 @@ void CompilationSemantics::BeginOpAssignment(const std::wstring &identifier)
 	StatementNames.push(identifier);
 	StatementParamCount.push(0);
 
-	AssignmentTargets.push(AssignmentTarget(Session.StringPool.Pool(TemporaryString)));
+	AssignmentTargets.push(LRValue(Session.StringPool.Pool(TemporaryString)));
 	AssignmentTargets.top().Members.swap(TemporaryMemberList);
 	TemporaryString.clear();
 
@@ -1494,7 +1531,7 @@ void CompilationSemantics::CompleteAssignment()
 			}
 
 			if(StatementNames.top() != L"=")
-				AssignmentTargets.top().EmitCurrentValue(*EmitterStack.top(), LexicalScopeDescriptions.find(LexicalScopeStack.top())->second, Structures, StructureNames, Session.StringPool);
+				EmitCurrentValue(*EmitterStack.top(), AssignmentTargets.top());
 
 			EmitInfixOperand(*EmitterStack.top(), CompileTimeParameters.top().back());
 
@@ -1502,7 +1539,7 @@ void CompilationSemantics::CompleteAssignment()
 			{
 				std::wstring assignmentop = StatementNames.top();
 				StringHandle assignmentophandle = Session.StringPool.Pool(assignmentop);
-				RemapFunctionToOverload(CompileTimeParameters.top(), 0, 2, 2, TypeVector(1, expressiontype), assignmentop, assignmentophandle);
+				RemapFunctionToOverload(CompileTimeParameters.top(), 0, 2, 2, TypeVector(1, expressiontype), false, assignmentop, assignmentophandle);
 
 				EmitterStack.top()->Invoke(assignmentophandle);
 			}
@@ -1512,7 +1549,7 @@ void CompilationSemantics::CompleteAssignment()
 			InfixOperators.pop();
 			UnaryOperators.pop();
 
-			AssignmentTargets.top().EmitReferenceBindings(*EmitterStack.top());
+			EmitReferenceBindings(*EmitterStack.top(), AssignmentTargets.top());
 			EmitterStack.top()->AssignVariable();
 			CompileTimeParameters.pop();
 			StatementTypes.c.clear();
@@ -1523,7 +1560,7 @@ void CompilationSemantics::CompleteAssignment()
 				CompileTimeParameter ctparam(L"@@chainedassignment", VM::EpochType_Expression);
 				ByteBuffer buffer;
 				ByteCodeEmitter emitter(buffer);
-				AssignmentTargets.top().EmitReferenceBindings(emitter);
+				EmitReferenceBindings(emitter, AssignmentTargets.top());
 				emitter.ReadReferenceOntoStack();
 				ctparam.ExpressionContents.swap(buffer);
 				CompileTimeParameters.top().push_back(ctparam);
@@ -1614,7 +1651,7 @@ void CompilationSemantics::CompleteEntityParams(bool ispostfixcloser)
 				{
 					if(CompileTimeParameters.top()[i].Type == VM::EpochType_Identifier)
 					{
-						if(GetLexicalScopeDescription(LexicalScopeStack.top()).GetVariableTypeByID(CompileTimeParameters.top()[i].Payload.StringHandleValue) != entityparams[i].Type)
+						if(GetLexicalScopeDescription(LexicalScopeStack.top()).GetVariableTypeByID(CompileTimeParameters.top()[i].LRValueContents.Identifier) != entityparams[i].Type)
 						{
 							valid = false;
 							break;
@@ -1726,16 +1763,8 @@ void CompilationSemantics::PushParam(const std::wstring& paramname, bool overrid
 			CompileTimeParameter ctparam(paramname, VM::EpochType_Identifier);
 			StringHandle handle = Session.StringPool.Pool(Strings.top());
 			ctparam.StringPayload = Strings.top();
-			ctparam.Payload.StringHandleValue = handle;
+			ctparam.LRValueContents.Identifier = handle;
 			Strings.pop();
-			
-			if(InferenceComplete())
-			{
-				if(Session.FunctionSignatures.find(handle) != Session.FunctionSignatures.end())
-					ctparam.FunctionSignaturePtr = &Session.FunctionSignatures.find(handle)->second;
-				else if(LexicalScopeDescriptions.find(LexicalScopeStack.top())->second.HasVariable(ctparam.StringPayload) && LexicalScopeDescriptions.find(LexicalScopeStack.top())->second.GetVariableTypeByID(handle) == VM::EpochType_Function)
-					ctparam.FunctionSignaturePtr = &(Session.FunctionSignatures.find(LexicalScopeStack.top())->second.GetFunctionSignature(Session.FunctionSignatures.find(LexicalScopeStack.top())->second.FindParameter(ctparam.StringPayload)));
-			}
 
 			if((!IsPrepass) || overrideprepass)
 				CompileTimeParameters.top().push_back(ctparam);
@@ -1745,7 +1774,7 @@ void CompilationSemantics::PushParam(const std::wstring& paramname, bool overrid
 	case ITEMTYPE_STRINGLITERAL:
 		{
 			CompileTimeParameter ctparam(paramname, VM::EpochType_String);
-			ctparam.Payload.StringHandleValue = StringLiterals.top();
+			ctparam.Payload.LiteralStringHandleValue = StringLiterals.top();
 			StringLiterals.pop();
 			if((!IsPrepass) || overrideprepass)
 				CompileTimeParameters.top().push_back(ctparam);
@@ -1897,13 +1926,14 @@ StringHandle CompilationSemantics::AllocateNewOverloadedFunctionName(StringHandl
 //
 // Given a set of parameters, look up the appropriate matching function overload
 //
-void CompilationSemantics::RemapFunctionToOverload(const CompileTimeParameterVector& params, size_t paramoffset, size_t knownparams, size_t paramlimit, const TypeVector& possiblereturntypes, std::wstring& out_remappedname, StringHandle& out_remappednamehandle) const
+void CompilationSemantics::RemapFunctionToOverload(const CompileTimeParameterVector& params, size_t paramoffset, size_t knownparams, size_t paramlimit, const TypeVector& possiblereturntypes, bool allowinference, std::wstring& out_remappedname, StringHandle& out_remappednamehandle) const
 {
 	StringVector matchingnames;
 	StringHandles matchingnamehandles;
 
 	TypeVector typeswithinference(possiblereturntypes);
-	typeswithinference.push_back(VM::EpochType_Infer);
+	if(allowinference)
+		typeswithinference.push_back(VM::EpochType_Infer);
 	GetAllMatchingOverloads(params, paramoffset, knownparams, paramlimit, typeswithinference, out_remappedname, out_remappednamehandle, matchingnames, matchingnamehandles);
 
 	if(!matchingnamehandles.empty())
@@ -2008,7 +2038,7 @@ void CompilationSemantics::GetAllMatchingOverloads(const CompileTimeParameterVec
 				case VM::EpochType_Identifier:
 					if(signatureiter->second.GetParameter(i - paramoffset).Type == VM::EpochType_Identifier)
 					{
-						if(signatureiter->second.GetParameter(i - paramoffset).Payload.StringHandleValue != params[i].Payload.StringHandleValue)
+						if(signatureiter->second.GetParameter(i - paramoffset).LRValueContents.Identifier != params[i].LRValueContents.Identifier)
 							patternsucceeded = false;
 						else
 							patternsucceededonvalue = true;
@@ -2035,13 +2065,9 @@ void CompilationSemantics::GetAllMatchingOverloads(const CompileTimeParameterVec
 				{
 					if(signatureiter->second.GetParameter(i - paramoffset).Type != VM::EpochType_Identifier)
 					{
-						ScopeMap::const_iterator iter = LexicalScopeDescriptions.find(LexicalScopeStack.top());
-						if(iter == LexicalScopeDescriptions.end())
-							throw FatalException("No lexical scope has been registered for the identifier \"" + narrow(Session.StringPool.GetPooledString(LexicalScopeStack.top())) + "\"");
-
 						if(signatureiter->second.GetParameter(i - paramoffset).Type == VM::EpochType_Function)
 						{
-							FunctionSignatureSet::const_iterator funciter = Session.FunctionSignatures.find(params[i].Payload.StringHandleValue);
+							FunctionSignatureSet::const_iterator funciter = Session.FunctionSignatures.find(params[i].LRValueContents.Identifier);
 							if(funciter == Session.FunctionSignatures.end())
 								Throw(InvalidIdentifierException("No function by the name \"" + narrow(params[i].StringPayload) + "\" was found in this scope"));
 
@@ -2058,7 +2084,7 @@ void CompilationSemantics::GetAllMatchingOverloads(const CompileTimeParameterVec
 							{
 								try
 								{
-									if(iter->second.GetVariableTypeByID(params[i].Payload.StringHandleValue) != signatureiter->second.GetParameter(i - paramoffset).Type)
+									if(GetEffectiveType(params[i]) != signatureiter->second.GetParameter(i - paramoffset).Type)
 									{
 										patternsucceeded = false;
 										matched = false;
@@ -2304,7 +2330,7 @@ namespace
 	void CompileConstructorStructure(const std::wstring& functionname, SemanticActionInterface& semantics, ScopeDescription& scope, const CompileTimeParameterVector& compiletimeparams)
 	{
 		VariableOrigin origin = (semantics.IsInReturnDeclaration() ? VARIABLE_ORIGIN_RETURN : VARIABLE_ORIGIN_LOCAL);
-		scope.AddVariable(compiletimeparams[0].StringPayload, compiletimeparams[0].Payload.StringHandleValue, semantics.LookupTypeName(functionname), false, origin);
+		scope.AddVariable(compiletimeparams[0].StringPayload, compiletimeparams[0].LRValueContents.Identifier, semantics.LookupTypeName(functionname), false, origin);
 	}
 }
 
@@ -2661,7 +2687,7 @@ void CompilationSemantics::EmitInfixOperand(ByteCodeEmitter& emitter, const Comp
 		break;
 
 	case VM::EpochType_String:
-		emitter.PushStringLiteral(ctparam.Payload.StringHandleValue);
+		emitter.PushStringLiteral(ctparam.Payload.LiteralStringHandleValue);
 		break;
 
 	case VM::EpochType_Boolean:
@@ -2676,9 +2702,9 @@ void CompilationSemantics::EmitInfixOperand(ByteCodeEmitter& emitter, const Comp
 		{
 			const ScopeDescription& scope = LexicalScopeDescriptions.find(LexicalScopeStack.top())->second;
 			if(scope.HasVariable(ctparam.StringPayload))
-				emitter.PushVariableValue(ctparam.Payload.StringHandleValue, scope.GetVariableTypeByID(ctparam.Payload.StringHandleValue));
-			else if(LexicalScopeDescriptions.find(ctparam.Payload.StringHandleValue) != LexicalScopeDescriptions.end())
-				emitter.PushVariableValue(ctparam.Payload.StringHandleValue, VM::EpochType_Function);
+				EmitCurrentValue(emitter, ctparam.LRValueContents);
+			else if(LexicalScopeDescriptions.find(ctparam.LRValueContents.Identifier) != LexicalScopeDescriptions.end())
+				emitter.PushVariableValue(ctparam.LRValueContents.Identifier, VM::EpochType_Function);
 			else
 				Throw(InvalidIdentifierException("Variable or function does not exist in this scope"));
 		}
@@ -2807,17 +2833,10 @@ VM::EpochTypeID CompilationSemantics::GetEffectiveType(const CompileTimeParamete
 {
 	if(param.Type == VM::EpochType_Identifier)
 	{
-		if(Session.FunctionSignatures.find(param.Payload.StringHandleValue) != Session.FunctionSignatures.end())
+		if(Session.FunctionSignatures.find(param.LRValueContents.Identifier) != Session.FunctionSignatures.end())
 			return VM::EpochType_Function;
 
-		const ScopeDescription& scope = LexicalScopeDescriptions.find(LexicalScopeStack.top())->second;
-		if(!InferenceComplete())
-		{
-			if(!scope.HasVariable(Session.StringPool.GetPooledString(param.Payload.StringHandleValue)))
-				return VM::EpochType_Infer;
-		}
-
-		return scope.GetVariableTypeByID(param.Payload.StringHandleValue);
+		return GetEffectiveType(param.LRValueContents);
 	}
 	else if(param.Type == VM::EpochType_Expression)
 		return param.ExpressionType;
@@ -2826,15 +2845,15 @@ VM::EpochTypeID CompilationSemantics::GetEffectiveType(const CompileTimeParamete
 }
 
 //
-// Determine the effective type of an assignment target
+// Determine the effective type of an lvalue or rvalue
 //
-VM::EpochTypeID CompilationSemantics::GetEffectiveType(const AssignmentTarget& assignmenttarget) const
+VM::EpochTypeID CompilationSemantics::GetEffectiveType(const LRValue& lrvalue) const
 {
-	VM::EpochTypeID vartype = LexicalScopeDescriptions.find(LexicalScopeStack.top())->second.GetVariableTypeByID(assignmenttarget.Variable);
-	if (assignmenttarget.Members.empty())
+	VM::EpochTypeID vartype = LexicalScopeDescriptions.find(LexicalScopeStack.top())->second.GetVariableTypeByID(lrvalue.Identifier);
+	if(lrvalue.Members.empty())
 		return vartype;
 
-	for(StringHandles::const_iterator iter = assignmenttarget.Members.begin(); iter != assignmenttarget.Members.end(); ++iter)
+	for(StringHandles::const_iterator iter = lrvalue.Members.begin(); iter != lrvalue.Members.end(); ++iter)
 	{
 		const StructureDefinition& structdef = Structures.find(vartype)->second;
 		vartype = structdef.GetMemberType(structdef.FindMember(*iter));
@@ -2885,35 +2904,36 @@ void CompilationSemantics::CleanAllPushedItems()
 }
 
 //
-// Build a sequence of bytecode instructions that binds a reference to the assignment target
+// Build a sequence of bytecode instructions that binds a reference to the given lvalue
 //
 // This function wraps both individual-variable assignments and nested structure member assignments.
 //
-void CompilationSemantics::AssignmentTarget::EmitReferenceBindings(ByteCodeEmitter& emitter) const
+void CompilationSemantics::EmitReferenceBindings(ByteCodeEmitter& emitter, const LRValue& lrvalue) const
 {
-	emitter.BindReference(Variable);
+	emitter.BindReference(lrvalue.Identifier);
 
-	for(StringHandles::const_iterator iter = Members.begin(); iter != Members.end(); ++iter)
+	for(StringHandles::const_iterator iter = lrvalue.Members.begin(); iter != lrvalue.Members.end(); ++iter)
 		emitter.BindStructureReference(*iter);
 }
 
 //
-// Build a sequence of bytecode instructions that emits the value of the assignment target
+// Build a sequence of bytecode instructions that emits the value of the given rvalue
 //
 // Used for op-assignments and chained assignments
 //
-void CompilationSemantics::AssignmentTarget::EmitCurrentValue(ByteCodeEmitter& emitter, const ScopeDescription& activescope, const StructureDefinitionMap& structures, const StructureNameMap& structurenames, StringPoolManager& stringpool) const
+void CompilationSemantics::EmitCurrentValue(ByteCodeEmitter& emitter, const LRValue& lrvalue)
 {
-	emitter.PushVariableValue(Variable, activescope.GetVariableTypeByID(Variable));
+	const ScopeDescription& activescope = LexicalScopeDescriptions.find(LexicalScopeStack.top())->second;
+	emitter.PushVariableValueNoCopy(lrvalue.Identifier);
 
-	if(!Members.empty())
+	if(!lrvalue.Members.empty())
 	{
-		VM::EpochTypeID structuretype = activescope.GetVariableTypeByID(Variable);
+		VM::EpochTypeID structuretype = activescope.GetVariableTypeByID(lrvalue.Identifier);
 
-		for(StringHandles::const_iterator memberiter = Members.begin(); memberiter != Members.end(); ++memberiter)
+		for(StringHandles::const_iterator memberiter = lrvalue.Members.begin(); memberiter != lrvalue.Members.end(); ++memberiter)
 		{
 			StringHandle structurename = 0;
-			for(StructureNameMap::const_iterator iter = structurenames.begin(); iter != structurenames.end(); ++iter)
+			for(StructureNameMap::const_iterator iter = StructureNames.begin(); iter != StructureNames.end(); ++iter)
 			{
 				if(iter->second == structuretype)
 				{
@@ -2925,11 +2945,11 @@ void CompilationSemantics::AssignmentTarget::EmitCurrentValue(ByteCodeEmitter& e
 			if(!structurename)
 				throw FatalException("Invalid structure ID");
 
-			StringHandle overloadidhandle = stringpool.Pool(L".@@" + stringpool.GetPooledString(structurename) + L"@@" + stringpool.GetPooledString(*memberiter));		
+			StringHandle overloadidhandle = Session.StringPool.Pool(L".@@" + Session.StringPool.GetPooledString(structurename) + L"@@" + Session.StringPool.GetPooledString(*memberiter));		
 			emitter.PushStringLiteral(*memberiter);
 			emitter.Invoke(overloadidhandle);
 
-			structuretype = structures.find(structuretype)->second.GetMemberType(structures.find(structuretype)->second.FindMember(*memberiter));
+			structuretype = Structures.find(structuretype)->second.GetMemberType(Structures.find(structuretype)->second.FindMember(*memberiter));
 		}
 	}
 }
@@ -2950,26 +2970,26 @@ bool CompilationSemantics::InferenceComplete() const
 // This function provides a uniform, succinct interface for looking up the function signature
 // assigned to l-values of either sort, for l-values of Function type.
 //
-const FunctionSignature& CompilationSemantics::GetFunctionSignature(const AssignmentTarget& assignmenttarget) const
+const FunctionSignature& CompilationSemantics::GetFunctionSignature(const LRValue& lrvalue) const
 {
 	const ScopeDescription& scope = LexicalScopeDescriptions.find(LexicalScopeStack.top())->second;
 
-	if(assignmenttarget.Members.empty())
+	if(lrvalue.Members.empty())
 	{
-		const std::wstring& varname = Session.StringPool.GetPooledString(assignmenttarget.Variable);
+		const std::wstring& varname = Session.StringPool.GetPooledString(lrvalue.Identifier);
 		if(!scope.HasVariable(varname))
 			Throw(InvalidIdentifierException("Cannot assign to this variable, identifier not recognized"));
 
-		if(scope.GetVariableTypeByID(assignmenttarget.Variable) != VM::EpochType_Function)
+		if(scope.GetVariableTypeByID(lrvalue.Identifier) != VM::EpochType_Function)
 			Throw(RecoverableException("Cannot assign a function into this variable, type mismatch"));
 
 		return Session.FunctionSignatures.find(LexicalScopeStack.top())->second.GetFunctionSignature(Session.FunctionSignatures.find(LexicalScopeStack.top())->second.FindParameter(varname));
 	}
 
-	VM::EpochTypeID structuretype = scope.GetVariableTypeByID(assignmenttarget.Variable);
+	VM::EpochTypeID structuretype = scope.GetVariableTypeByID(lrvalue.Identifier);
 	VM::EpochTypeID previoustype = structuretype;
 
-	for(StringHandles::const_iterator memberiter = assignmenttarget.Members.begin(); memberiter != assignmenttarget.Members.end(); ++memberiter)
+	for(StringHandles::const_iterator memberiter = lrvalue.Members.begin(); memberiter != lrvalue.Members.end(); ++memberiter)
 	{
 		StringHandle structurename = 0;
 		for(StructureNameMap::const_iterator iter = StructureNames.begin(); iter != StructureNames.end(); ++iter)
@@ -2991,7 +3011,7 @@ const FunctionSignature& CompilationSemantics::GetFunctionSignature(const Assign
 	if(structuretype != VM::EpochType_Function)
 		throw FatalException("Member is not a function reference, type mismatch");
 
-	return Structures.find(previoustype)->second.FunctionSignatures.find(assignmenttarget.Members.back())->second;
+	return Structures.find(previoustype)->second.FunctionSignatures.find(lrvalue.Members.back())->second;
 }
 
 //
@@ -2999,7 +3019,7 @@ const FunctionSignature& CompilationSemantics::GetFunctionSignature(const Assign
 //
 const FunctionSignature& CompilationSemantics::GetFunctionSignature(const CompileTimeParameter& ctparam) const
 {
-	return *ctparam.FunctionSignaturePtr;
+	return GetFunctionSignature(ctparam.LRValueContents);
 }
 
 
