@@ -122,5 +122,7 @@ public:
 	virtual VM::EpochTypeID LookupTypeName(const std::wstring& name) const = 0;
 
 	virtual bool InferenceComplete() const = 0;
+
+	virtual void CleanUpBrokenStatement() = 0;
 };
 

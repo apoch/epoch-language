@@ -1150,11 +1150,11 @@ void CompilationSemantics::CompleteStatement()
 			const FunctionSignature* fs = NULL;
 			bool indirectinvoke = false;
 
-			TypeVector outerexpectedtypes = WalkCallChainForExpectedTypes(StatementParamCount.top());
-			RemapFunctionToOverload(CompileTimeParameters.top(), 0, StatementParamCount.top(), std::numeric_limits<size_t>::max(), outerexpectedtypes, statementname, statementnamehandle);
-
 			if(InferenceComplete())
 			{
+				TypeVector outerexpectedtypes = WalkCallChainForExpectedTypes(StatementParamCount.top());
+				RemapFunctionToOverload(CompileTimeParameters.top(), 0, StatementParamCount.top(), std::numeric_limits<size_t>::max(), outerexpectedtypes, statementname, statementnamehandle);
+				
 				FunctionCompileHelperTable::const_iterator fchiter = CompileTimeHelpers.find(statementnamehandle);
 				if(fchiter != CompileTimeHelpers.end())
 					fchiter->second(statementname, *this, GetLexicalScopeDescription(LexicalScopeStack.top()), CompileTimeParameters.top());
@@ -1170,7 +1170,7 @@ void CompilationSemantics::CompleteStatement()
 							indirectinvoke = true;
 						}
 						else
-							Throw(UndefinedSymbolException("The function \"" + narrow(statementname) + "\" is not defined in this scope"));
+							Throw(InvalidIdentifierException("The function \"" + narrow(statementname) + "\" is not defined in this scope"));
 					}
 					else
 						fs = &fsiter->second;
@@ -1210,7 +1210,7 @@ void CompilationSemantics::CompleteStatement()
 								{
 									FunctionSignatureSet::const_iterator fsiter = Session.FunctionSignatures.find(CompileTimeParameters.top()[i].Payload.StringHandleValue);
 									if(fsiter == Session.FunctionSignatures.end())
-										Throw(UndefinedSymbolException("No function by the name \"" + narrow(CompileTimeParameters.top()[i].StringPayload) + "\" was found in this scope"));
+										Throw(InvalidIdentifierException("No function by the name \"" + narrow(CompileTimeParameters.top()[i].StringPayload) + "\" was found in this scope"));
 
 									if(!fsiter->second.Matches(fs->GetFunctionSignature(i)))
 										Throw(TypeMismatchException("No overload of \"" + narrow(CompileTimeParameters.top()[i].StringPayload) + "\" matches the function requirements"));
@@ -1230,7 +1230,7 @@ void CompilationSemantics::CompleteStatement()
 											PendingEmitters.top().PushVariableValue(CompileTimeParameters.top()[i].Payload.StringHandleValue, GetEffectiveType(CompileTimeParameters.top()[i]));
 									}
 									else
-										Throw(UndefinedSymbolException("No variable by the name \"" + narrow(CompileTimeParameters.top()[i].StringPayload) + "\" was found in this scope"));
+										Throw(InvalidIdentifierException("No variable by the name \"" + narrow(CompileTimeParameters.top()[i].StringPayload) + "\" was found in this scope"));
 								}
 							}
 							break;
@@ -1349,7 +1349,11 @@ void CompilationSemantics::CompleteStatement()
 					if(fs)
 					{
 						if(fs->GetReturnType() == VM::EpochType_Void)
-							Throw(TypeMismatchException("Function does not return a value, cannot be used in an expression"));
+						{
+							std::wcout << L"Error in file \"" << StripPath(widen(ParsePosition.get_position().file)) << L"\" on line " << ParsePosition.get_position().line << L":\n";
+							std::wcout << L"The function \"" << statementname << "\" is void; cannot be used as an expression or parameter\n" << std::endl;							
+							Fail();
+						}
 
 						CompileTimeParameter ctparam(L"@@expression", VM::EpochType_Expression);
 						ctparam.ExpressionType = fs->GetReturnType();
@@ -1438,7 +1442,7 @@ void CompilationSemantics::BeginOpAssignment(const std::wstring &identifier)
 	if((!IsPrepass) && InferenceComplete())
 	{
 		if(!LexicalScopeDescriptions[LexicalScopeStack.top()].HasVariable(TemporaryString))
-			Throw(UndefinedSymbolException("The variable \"" + narrow(TemporaryString) + "\" is not defined in this scope"));
+			Throw(InvalidIdentifierException("The variable \"" + narrow(TemporaryString) + "\" is not defined in this scope"));
 	}
 
 	StatementNames.push(identifier);
@@ -1457,6 +1461,8 @@ void CompilationSemantics::BeginOpAssignment(const std::wstring &identifier)
 			else
 				CompileTimeParameters.push(CompileTimeParameterVector(1, CompileTimeParameter(L"lhs", GetEffectiveType(AssignmentTargets.top()))));
 		}
+		else
+			CompileTimeParameters.push(CompileTimeParameterVector());
 
 		InfixOperators.push(StringHandles());
 		UnaryOperators.push(UnaryOperatorVector());
@@ -1530,6 +1536,7 @@ void CompilationSemantics::CompleteAssignment()
 			PendingEmissionBuffers.pop();
 			InfixOperators.pop();
 			UnaryOperators.pop();
+			CompileTimeParameters.pop();
 		}
 	}
 	StatementNames.pop();
@@ -1928,35 +1935,11 @@ void CompilationSemantics::GetAllMatchingOverloads(const CompileTimeParameterVec
 	}
 
 	bool patternmatching = false;
-	bool differingreturntypes = false;
 	bool remaptopatternresolver = false;
-
-	const StringHandleSet& overloadednames = overloadsiter->second;
-	for(StringHandleSet::const_iterator iter = overloadednames.begin(); iter != overloadednames.end(); ++iter)
-	{
-		FunctionSignatureSet::const_iterator signatureiter = Session.FunctionSignatures.find(*iter);
-		if(signatureiter == Session.FunctionSignatures.end())
-			throw FatalException("Tried to map a function overload to an undefined function signature");
-
-		if(!possiblereturntypes.empty())
-		{
-			bool diff = true;
-			for(TypeVector::const_iterator returntypeiter = possiblereturntypes.begin(); returntypeiter != possiblereturntypes.end(); ++returntypeiter)
-			{
-				if(signatureiter->second.GetReturnType() == *returntypeiter)
-				{
-					diff = false;
-					break;
-				}
-			}
-
-			if(diff)
-				differingreturntypes = true;
-		}
-	}
 
 	StringHandleSet matches;
 
+	const StringHandleSet& overloadednames = overloadsiter->second;
 	for(StringHandleSet::const_iterator iter = overloadednames.begin(); iter != overloadednames.end(); ++iter)
 	{
 		FunctionSignatureSet::const_iterator signatureiter = Session.FunctionSignatures.find(*iter);
@@ -2041,7 +2024,7 @@ void CompilationSemantics::GetAllMatchingOverloads(const CompileTimeParameterVec
 						{
 							FunctionSignatureSet::const_iterator funciter = Session.FunctionSignatures.find(params[i].Payload.StringHandleValue);
 							if(funciter == Session.FunctionSignatures.end())
-								Throw(UndefinedSymbolException("No function by the name \"" + narrow(params[i].StringPayload) + "\" was found in this scope"));
+								Throw(InvalidIdentifierException("No function by the name \"" + narrow(params[i].StringPayload) + "\" was found in this scope"));
 
 							if(!funciter->second.Matches(signatureiter->second.GetFunctionSignature(i - paramoffset)))
 							{
@@ -2054,18 +2037,18 @@ void CompilationSemantics::GetAllMatchingOverloads(const CompileTimeParameterVec
 						{
 							if(InferenceComplete())
 							{
-								if(!iter->second.HasVariable(params[i].StringPayload))
+								try
 								{
-									patternsucceeded = false;
-									matched = false;
-									break;
+									if(iter->second.GetVariableTypeByID(params[i].Payload.StringHandleValue) != signatureiter->second.GetParameter(i - paramoffset).Type)
+									{
+										patternsucceeded = false;
+										matched = false;
+										break;
+									}
 								}
-
-								if(iter->second.GetVariableTypeByID(params[i].Payload.StringHandleValue) != signatureiter->second.GetParameter(i - paramoffset).Type)
+								catch(const InvalidIdentifierException& e)
 								{
-									patternsucceeded = false;
-									matched = false;
-									break;
+									Throw(e);
 								}
 							}
 						}
@@ -2102,7 +2085,7 @@ void CompilationSemantics::GetAllMatchingOverloads(const CompileTimeParameterVec
 						break;
 					}
 				}
-				else //if(!differingreturntypes)
+				else
 					remaptopatternresolver = true;
 			}
 			else
@@ -2359,8 +2342,9 @@ void CompilationSemantics::RegisterStructureFunctionRefReturn(const std::wstring
 	{
 		HigherOrderFunctionSignatures.top().SetReturnType(LookupTypeName(returntypename));
 
-		StructureMembers.push_back(StructureMemberTypeNamePair(VM::EpochType_Function, Session.StringPool.Pool(TemporaryString)));
-		StructureFunctionSignatures[TemporaryString] = HigherOrderFunctionSignatures.top();
+		StringHandle membernamehandle = Session.StringPool.Pool(TemporaryString);
+		StructureMembers.push_back(StructureMemberTypeNamePair(VM::EpochType_Function, membernamehandle));
+		StructureFunctionSignatures[membernamehandle] = HigherOrderFunctionSignatures.top();
 		TemporaryString.clear();
 
 		HigherOrderFunctionSignatures.pop();
@@ -2401,6 +2385,8 @@ const std::wstring& CompilationSemantics::CreateStructureType()
 				structdefinition = &Structures[iter->first];
 			Structures[type].AddMember(iter->second, iter->first, structdefinition);
 		}
+
+		Structures[type].FunctionSignatures.swap(StructureFunctionSignatures);
 	}
 
 	StringHandle varconstructorname = AllocateNewOverloadedFunctionName(idhandle);
@@ -2434,7 +2420,7 @@ const std::wstring& CompilationSemantics::CreateStructureType()
 	}
 
 	StructureMembers.clear();
-	StructureFunctionSignatures.clear();			// TODO - add support for signature validation of function references in structure members
+	StructureFunctionSignatures.clear();
 	return Session.StringPool.GetPooledString(idhandle);
 }
 
@@ -2457,7 +2443,7 @@ void CompilationSemantics::GenerateConstructor(StringHandle constructorname, VM:
 		const std::wstring& identifier = Session.StringPool.GetPooledString(iter->second);
 		signature.AddParameter(identifier, iter->first, false);
 		if(iter->first == VM::EpochType_Function)
-			signature.SetFunctionSignature(index, StructureFunctionSignatures.find(identifier)->second);
+			signature.SetFunctionSignature(index, Structures.find(type)->second.FunctionSignatures.find(iter->second)->second);
 		LexicalScopeDescriptions[constructorname].AddVariable(identifier, iter->second, iter->first, false, VARIABLE_ORIGIN_PARAMETER);
 		++index;
 	}
@@ -2579,7 +2565,10 @@ CompilationSemantics::TypeVector CompilationSemantics::WalkCallChainForExpectedT
 
 	if(name == L"=")
 	{
-		return TypeVector(1, GetEffectiveType(AssignmentTargets.top()));
+		if(InferenceComplete())
+			return TypeVector(1, GetEffectiveType(AssignmentTargets.top()));
+
+		return TypeVector(1, VM::EpochType_Infer);
 	}
 	else
 	{
@@ -2618,7 +2607,7 @@ CompilationSemantics::TypeVector CompilationSemantics::WalkCallChainForExpectedT
 		}
 
 		if(ret.empty())
-			Throw(UndefinedSymbolException("The function \"" + narrow(name) + "\" is not defined in this scope"));
+			Throw(InvalidIdentifierException("The function \"" + narrow(name) + "\" is not defined in this scope"));
 
 		return ret;
 	}
@@ -2665,7 +2654,15 @@ void CompilationSemantics::EmitInfixOperand(ByteCodeEmitter& emitter, const Comp
 		break;
 
 	case VM::EpochType_Identifier:
-		emitter.PushVariableValue(ctparam.Payload.StringHandleValue, LexicalScopeDescriptions.find(LexicalScopeStack.top())->second.GetVariableTypeByID(ctparam.Payload.StringHandleValue));
+		{
+			const ScopeDescription& scope = LexicalScopeDescriptions.find(LexicalScopeStack.top())->second;
+			if(scope.HasVariable(ctparam.StringPayload))
+				emitter.PushVariableValue(ctparam.Payload.StringHandleValue, scope.GetVariableTypeByID(ctparam.Payload.StringHandleValue));
+			else if(LexicalScopeDescriptions.find(ctparam.Payload.StringHandleValue) != LexicalScopeDescriptions.end())
+				emitter.PushVariableValue(ctparam.Payload.StringHandleValue, VM::EpochType_Function);
+			else
+				Throw(InvalidIdentifierException("Variable or function does not exist in this scope"));
+		}
 		break;
 
 	case VM::EpochType_Expression:
@@ -2925,6 +2922,18 @@ bool CompilationSemantics::InferenceComplete() const
 {
 	return IsInferenceComplete;
 }
+
+
+//-------------------------------------------------------------------------------
+// Error recovery
+//-------------------------------------------------------------------------------
+
+void CompilationSemantics::CleanUpBrokenStatement()
+{
+	if(!CompileTimeParameters.empty())
+		CompileTimeParameters.pop();
+}
+
 
 
 //-------------------------------------------------------------------------------

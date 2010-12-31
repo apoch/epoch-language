@@ -201,6 +201,8 @@ public:
 
 	virtual bool InferenceComplete() const;
 
+	virtual void CleanUpBrokenStatement();
+
 // Internal helper structures
 private:
 	struct AssignmentTarget
@@ -323,7 +325,7 @@ private:
 	StructureNameMap StructureNames;
 	VM::EpochTypeID StructureMemberType;
 	StructureMemberList StructureMembers;
-	std::map<std::wstring, FunctionSignature> StructureFunctionSignatures;
+	FunctionSignatureSet StructureFunctionSignatures;
 
 	bool ParamIsReference;
 

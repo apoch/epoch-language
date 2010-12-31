@@ -199,7 +199,16 @@ struct FundamentalGrammar : public boost::spirit::classic::grammar<FundamentalGr
 				;
 
 			Statement
-				= (StringIdentifier[BeginStatement(self.Bindings)] >> OPENPARENS[BeginStatementParams(self.Bindings)] >> (!((Expression[PushStatementParam(self.Bindings)]) % COMMA)) >> CLOSEPARENS[CompleteStatement(self.Bindings)])
+				= TypeMismatchExceptionGuard
+				  (
+				    ParameterExceptionGuard
+				    (
+				      InvalidIdentifierExceptionGuard
+				      (
+					    (StringIdentifier[BeginStatement(self.Bindings)] >> OPENPARENS[BeginStatementParams(self.Bindings)] >> (!((Expression[PushStatementParam(self.Bindings)]) % COMMA)) >> CLOSEPARENS[CompleteStatement(self.Bindings)])
+				      )[GeneralAcceptingExceptionHandler(self.Bindings)]
+				    )[GeneralAcceptingExceptionHandler(self.Bindings)]
+				  )[GeneralAcceptingExceptionHandler(self.Bindings)]
 				;
 
 			PreOperatorStatement
@@ -220,23 +229,31 @@ struct FundamentalGrammar : public boost::spirit::classic::grammar<FundamentalGr
 				;
 
 			Assignment
-				= (StringIdentifier[BeginStatement(self.Bindings)]
-				>> *(PERIOD >> StringIdentifier[RegisterAssignmentMember(self.Bindings)])
-				>> (ASSIGN[BeginAssignment(self.Bindings)] | OpAssignmentIdentifier[BeginOpAssignment(self.Bindings)])
-				>> ExpressionOrAssignment[CompleteAssignment(self.Bindings)])
+				= TypeMismatchExceptionGuard
+				  (
+				    InvalidIdentifierExceptionGuard
+				    (
+					  (StringIdentifier[BeginStatement(self.Bindings)]
+					  >> *(PERIOD >> StringIdentifier[RegisterAssignmentMember(self.Bindings)])
+					  >> (ASSIGN[BeginAssignment(self.Bindings)] | OpAssignmentIdentifier[BeginOpAssignment(self.Bindings)])
+					  >> ExpressionOrAssignment[CompleteAssignment(self.Bindings)])
+				    )[GeneralAcceptingExceptionHandler(self.Bindings)]
+				  )[GeneralAcceptingExceptionHandler(self.Bindings)]
 				;
 
 			CodeBlockEntry
-				= GeneralExceptionGuard
+				= 
 				  (
 					TypeMismatchExceptionGuard
 					(
-						MalformedStatementExceptionGuard
+					  InvalidIdentifierExceptionGuard
+					  (
 						(
-							ExpectWellFormedStatement((Entity) | (PostfixEntity) | (Assignment) | ((PreOperatorStatement) | (PostOperatorStatement) | (Statement))[FinalizeStatement(self.Bindings)] | InnerCodeBlock)
-						)[MalformedStatementExceptionHandler(self.Bindings)]
+							((Entity) | (PostfixEntity) | (Assignment) | ((PreOperatorStatement) | (PostOperatorStatement) | (Statement))[FinalizeStatement(self.Bindings)] | InnerCodeBlock)
+						)
+					  )[GeneralAcceptingExceptionHandler(self.Bindings)]
 					)[GeneralExceptionHandler(self.Bindings)]
-				  )[GeneralExceptionHandler(self.Bindings)]
+				  )
 				;
 
 			InnerCodeBlock
@@ -281,11 +298,11 @@ struct FundamentalGrammar : public boost::spirit::classic::grammar<FundamentalGr
 				;
 
 			MetaEntity
-				= GeneralExceptionGuard
+				= 
 				  (
 					STRUCTURE >> StringIdentifier[StoreStructureName(self.Bindings)] >> COLON >> OPENPARENS >> (StructureMember % COMMA) >> CLOSEPARENS[CreateStructureType<definition<ScannerType> >(*this, self.Bindings)]
-				  )[GeneralExceptionHandler(self.Bindings)]
-				| GeneralExceptionGuard
+				  )
+				| 
 				  (
 					StringIdentifier[StoreString(self.Bindings)] >> COLON >> ParameterList >> MAPARROW >> ReturnList[StoreEntityType(self.Bindings, Bytecode::EntityTags::Function)]
 					>>
@@ -297,13 +314,13 @@ struct FundamentalGrammar : public boost::spirit::classic::grammar<FundamentalGr
 								>> CLOSEBRACKET)
 						)[GeneralExceptionHandler(self.Bindings)]
 					>> MissingFunctionBodyExceptionGuard(ExpectFunctionBody(CodeBlock[StoreEntityCode(self.Bindings)]))[MissingFunctionBodyExceptionHandler(self.Bindings)]
-				  )[GeneralExceptionHandler(self.Bindings)]
+				  )
 				;
 
 			Program
 				= TypeMismatchExceptionGuard
 				  (
-					UndefinedSymbolExceptionGuard
+					InvalidIdentifierExceptionGuard
 					(
 					  ParameterExceptionGuard
 					  (
@@ -312,7 +329,7 @@ struct FundamentalGrammar : public boost::spirit::classic::grammar<FundamentalGr
 							(*MetaEntity)[Finalize(self.Bindings)]
 						)[GeneralExceptionHandler(self.Bindings)]
 					  )[GeneralExceptionHandler(self.Bindings)]
-					)[GeneralExceptionHandler(self.Bindings)]
+					)[GeneralAcceptingExceptionHandler(self.Bindings)]
 				  )[GeneralExceptionHandler(self.Bindings)]
 				;
 
@@ -406,9 +423,8 @@ struct FundamentalGrammar : public boost::spirit::classic::grammar<FundamentalGr
 
 		boost::spirit::classic::stored_rule<ScannerType> VariableType;
 
-		boost::spirit::classic::guard<RecoverableException> GeneralExceptionGuard;
 		boost::spirit::classic::guard<TypeMismatchException> TypeMismatchExceptionGuard;
-		boost::spirit::classic::guard<UndefinedSymbolException> UndefinedSymbolExceptionGuard;
+		boost::spirit::classic::guard<InvalidIdentifierException> InvalidIdentifierExceptionGuard;
 		boost::spirit::classic::guard<ParameterException> ParameterExceptionGuard;
 		boost::spirit::classic::guard<SymbolRedefinitionException> SymbolRedefinitionExceptionGuard;
 		boost::spirit::classic::guard<FunctionTagException> FunctionTagExceptionGuard;

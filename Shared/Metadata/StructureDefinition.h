@@ -12,6 +12,8 @@
 #include "Utility/Types/IDTypes.h"
 #include "Utility/Types/EpochTypeIDs.h"
 
+#include "Metadata/FunctionSignature.h"
+
 #include <vector>
 
 
@@ -43,6 +45,10 @@ public:
 
 	size_t GetMarshaledSize() const
 	{ return MarshaledSize; }
+
+// Public tracking
+public:
+	FunctionSignatureSet FunctionSignatures;
 
 // Internal helper
 private:

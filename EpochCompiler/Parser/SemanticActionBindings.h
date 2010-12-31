@@ -69,8 +69,8 @@ struct GeneralExceptionHandler
 		std::wcout << theerror.descriptor.what() << std::endl << std::endl;
 
         // Move past the broken line and continue parsing
-        while(thescanner.first.get_position().line <= Bindings.GetParsePosition().get_position().line)
-                ++thescanner;
+        while(thescanner.first.get_position().line <= pos.line)
+			++thescanner;
 
 		Bindings.Fail();
 
@@ -100,7 +100,7 @@ struct MalformedStatementExceptionHandler
 
 		// Move past the broken line and continue parsing
 		while(thescanner.first.get_position().line <= pos.line)
-				++thescanner;
+			++thescanner;
 
 		Bindings.Fail();
 
@@ -125,6 +125,39 @@ struct MissingFunctionBodyExceptionHandler
 	}
 
 	SemanticActionInterface& Bindings;
+};
+
+struct GeneralAcceptingExceptionHandler
+{
+	explicit GeneralAcceptingExceptionHandler(SemanticActionInterface& bindings, bool cleanup = true)
+		: Bindings(bindings),
+		  Cleanup(cleanup)
+	{ }
+
+	template <typename ScannerType, typename ErrorType>
+	boost::spirit::classic::error_status<> operator () (const ScannerType& thescanner, const ErrorType& theerror) const
+	{
+		boost::spirit::classic::file_position pos = theerror.where.get_position();
+
+		std::wcout << L"Error in file \"" << StripPath(widen(pos.file)) << L"\" on line " << pos.line << L":\n";
+		std::wcout << theerror.descriptor.what() << std::endl << std::endl;
+
+		// Move past the broken line and continue parsing
+		while(thescanner.first.get_position().line <= pos.line)
+			++thescanner;
+
+		if(Cleanup)
+			Bindings.CleanUpBrokenStatement();
+
+		Bindings.Fail();
+
+		// Note that we ACCEPT the broken line so as not to trigger a MalformedStatementException,
+		// which would cause us to re-parse the same broken code again, and repeat the errors
+		return boost::spirit::classic::error_status<>(boost::spirit::classic::error_status<>::accept, 0);
+	}
+
+	SemanticActionInterface& Bindings;
+	bool Cleanup;
 };
 
 
