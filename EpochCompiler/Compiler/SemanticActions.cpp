@@ -1574,6 +1574,7 @@ void CompilationSemantics::CompleteAssignment()
 				StatementNames.pop();
 				AssignmentTargets.pop();
 				StatementParamCount.pop();
+				TemporaryMemberList.clear();
 				Throw(TypeMismatchException("Right hand side of assignment does not match variable type"));
 			}
 		}
@@ -2924,10 +2925,11 @@ void CompilationSemantics::EmitReferenceBindings(ByteCodeEmitter& emitter, const
 void CompilationSemantics::EmitCurrentValue(ByteCodeEmitter& emitter, const LRValue& lrvalue)
 {
 	const ScopeDescription& activescope = LexicalScopeDescriptions.find(LexicalScopeStack.top())->second;
-	emitter.PushVariableValueNoCopy(lrvalue.Identifier);
 
 	if(!lrvalue.Members.empty())
 	{
+		emitter.PushVariableValueNoCopy(lrvalue.Identifier);
+
 		VM::EpochTypeID structuretype = activescope.GetVariableTypeByID(lrvalue.Identifier);
 
 		for(StringHandles::const_iterator memberiter = lrvalue.Members.begin(); memberiter != lrvalue.Members.end(); ++memberiter)
@@ -2952,6 +2954,8 @@ void CompilationSemantics::EmitCurrentValue(ByteCodeEmitter& emitter, const LRVa
 			structuretype = Structures.find(structuretype)->second.GetMemberType(Structures.find(structuretype)->second.FindMember(*memberiter));
 		}
 	}
+	else
+		emitter.PushVariableValue(lrvalue.Identifier, GetEffectiveType(lrvalue));
 }
 
 //
@@ -2976,6 +2980,10 @@ const FunctionSignature& CompilationSemantics::GetFunctionSignature(const LRValu
 
 	if(lrvalue.Members.empty())
 	{
+		FunctionSignatureSet::const_iterator iter = Session.FunctionSignatures.find(lrvalue.Identifier);
+		if(iter != Session.FunctionSignatures.end())
+			return iter->second;
+
 		const std::wstring& varname = Session.StringPool.GetPooledString(lrvalue.Identifier);
 		if(!scope.HasVariable(varname))
 			Throw(InvalidIdentifierException("Cannot assign to this variable, identifier not recognized"));
