@@ -2953,6 +2953,11 @@ void CompilationSemantics::EmitCurrentValue(ByteCodeEmitter& emitter, const LRVa
 
 			structuretype = Structures.find(structuretype)->second.GetMemberType(Structures.find(structuretype)->second.FindMember(*memberiter));
 		}
+
+		if(structuretype == VM::EpochType_Buffer)
+			emitter.CopyBuffer();
+		else if(structuretype > VM::EpochType_CustomBase)
+			emitter.CopyStructure();
 	}
 	else
 		emitter.PushVariableValue(lrvalue.Identifier, GetEffectiveType(lrvalue));

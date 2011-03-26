@@ -102,6 +102,11 @@ public:
 	void StructureMember(StringHandle identifier, VM::EpochTypeID type);
 	void CopyFromStructure(StringHandle structurevariable, StringHandle membervariable);
 	void AssignStructure(StringHandle structurevariable, StringHandle membername);
+	void CopyStructure();
+
+// Buffers
+public:
+	void CopyBuffer();
 
 // Utility instructions
 public:

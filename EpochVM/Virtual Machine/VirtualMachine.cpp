@@ -864,8 +864,7 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 
 			case Bytecode::Instructions::CopyBuffer:
 				{
-					StringHandle identifier = Fetch<StringHandle>();
-					BufferHandle originalbuffer = Variables->Read<BufferHandle>(identifier);
+					BufferHandle originalbuffer = State.Stack.PopValue<BufferHandle>();
 					BufferHandle copiedbuffer = OwnerVM.CloneBuffer(originalbuffer);
 					State.Stack.PushValue(copiedbuffer);
 					TickBufferGarbageCollector();
@@ -874,8 +873,7 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 
 			case Bytecode::Instructions::CopyStructure:
 				{
-					StringHandle identifier = Fetch<StringHandle>();
-					StructureHandle originalstructure = Variables->Read<StructureHandle>(identifier);
+					StructureHandle originalstructure = State.Stack.PopValue<StructureHandle>();
 					StructureHandle copiedstructure = OwnerVM.DeepCopy(originalstructure);
 					State.Stack.PushValue(copiedstructure);
 					TickStructureGarbageCollector();
@@ -1033,6 +1031,8 @@ void ExecutionContext::Load()
 		case Bytecode::Instructions::AssignThroughIdentifier:
 		case Bytecode::Instructions::ReadRef:
 		case Bytecode::Instructions::BindRef:
+		case Bytecode::Instructions::CopyBuffer:
+		case Bytecode::Instructions::CopyStructure:
 			break;
 
 		// Single-bye operations with one payload field
@@ -1055,8 +1055,6 @@ void ExecutionContext::Load()
 		case Bytecode::Instructions::InvokeIndirect:
 		case Bytecode::Instructions::SetRetVal:
 		case Bytecode::Instructions::BindMemberRef:
-		case Bytecode::Instructions::CopyBuffer:
-		case Bytecode::Instructions::CopyStructure:
 			Fetch<StringHandle>();
 			break;
 

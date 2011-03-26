@@ -162,14 +162,13 @@ void ByteCodeEmitter::PushRealLiteral(Real32 value)
 //
 void ByteCodeEmitter::PushVariableValue(StringHandle variablename, VM::EpochTypeID type)
 {
-	if(type == VM::EpochType_Buffer)
-		EmitInstruction(Bytecode::Instructions::CopyBuffer);
-	else if(type > VM::EpochType_CustomBase)
-		EmitInstruction(Bytecode::Instructions::CopyStructure);
-	else
-		EmitInstruction(Bytecode::Instructions::Read);
-	
+	EmitInstruction(Bytecode::Instructions::Read);
 	EmitRawValue(variablename);
+
+	if(type == VM::EpochType_Buffer)
+		CopyBuffer();
+	else if(type > VM::EpochType_CustomBase)
+		CopyStructure();
 }
 
 //
@@ -557,6 +556,31 @@ void ByteCodeEmitter::AssignStructure(StringHandle structurevariable, StringHand
 	EmitInstruction(Bytecode::Instructions::CopyToStructure);
 	EmitRawValue(structurevariable);
 	EmitRawValue(membername);
+}
+
+//
+// Emit an instruction to deep copy a structure
+//
+// Requires that the handle of the structure be pushed onto the stack prior to the instruction
+//
+void ByteCodeEmitter::CopyStructure()
+{
+	EmitInstruction(Bytecode::Instructions::CopyStructure);
+}
+
+
+//-------------------------------------------------------------------------------
+// Buffer instructions
+//-------------------------------------------------------------------------------
+
+//
+// Emit an instruction to clone a buffer
+//
+// Requires that the handle of the buffer be pushed onto the stack prior to the instruction
+//
+void ByteCodeEmitter::CopyBuffer()
+{
+	EmitInstruction(Bytecode::Instructions::CopyBuffer);
 }
 
 
