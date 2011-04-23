@@ -74,7 +74,7 @@ Project::Project(const std::wstring& filename)
 				if(line.empty() || infile.eof())
 					break;
 
-				SourceFiles.push_back(line);
+				SourceFiles.push_back(WorkingPath + line);
 			}
 		}
 		else if(line == L"[resources]")
@@ -85,7 +85,7 @@ Project::Project(const std::wstring& filename)
 				if(line.empty() || infile.eof())
 					break;
 
-				ResourceFiles.push_back(line);
+				ResourceFiles.push_back(WorkingPath + line);
 			}
 		}
 		else if(line == L"[output]")

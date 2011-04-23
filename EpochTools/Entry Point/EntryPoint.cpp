@@ -148,10 +148,6 @@ int _tmain(int argc, _TCHAR* argv[])
 			try
 			{
 				std::wstring filename(parameters[i]);
-				std::wstring projectpath = StripFilename(filename);
-				if(*projectpath.rbegin() != L'\\')
-					projectpath += L'\\';
-
 				output << L"Building: " << filename << L"\n" << std::endl;
 
 				Projects::Project project(filename);
@@ -161,7 +157,7 @@ int _tmain(int argc, _TCHAR* argv[])
 				const std::list<std::wstring>& sourcefiles = project.GetSourceFileList();
 				for(std::list<std::wstring>::const_iterator iter = sourcefiles.begin(); iter != sourcefiles.end(); ++iter)
 				{
-					std::wstring source = Files::Load(projectpath + *iter);
+					std::wstring source = Files::Load(*iter);
 					
 					DLLAccess::CompilerAccess compileraccess;
 					DLLAccess::CompiledByteCodeHandle bytecodebufferhandle = compileraccess.CompileSourceToByteCode(*iter, source);
