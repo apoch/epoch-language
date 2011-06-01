@@ -213,8 +213,8 @@ struct FundamentalGrammar : public boost::spirit::classic::grammar<FundamentalGr
 
 			PreOperatorStatement
 				= PreOperator[RegisterPreOperator(self.Bindings)]
-			      >> StringIdentifier[StoreTemporaryString(self.Bindings)]
-				  >> (*(PERIOD >> StringIdentifier[StoreMember(self.Bindings)]))[RegisterPreOperand(self.Bindings)]
+			      >> (StringIdentifier[StoreTemporaryString(self.Bindings)]
+				  >> (*(PERIOD >> StringIdentifier[StoreMember(self.Bindings)])))[RegisterPreOperand(self.Bindings)]
 				;
 
 			PostOperatorStatement

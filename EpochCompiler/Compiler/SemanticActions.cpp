@@ -596,6 +596,8 @@ void CompilationSemantics::EndParenthetical()
 {
 	if(!IsPrepass)
 	{
+		FinalizeInfix();
+
 		CompileTimeParameter ctparam = CompileTimeParameters.top().back();
 		InfixOperators.pop();
 		UnaryOperators.pop();
@@ -689,43 +691,55 @@ void CompilationSemantics::RegisterPreOperator(const std::wstring& identifier)
 //
 void CompilationSemantics::RegisterPreOperand(const std::wstring& expression)
 {
-	if((!IsPrepass) && InferenceComplete())
+	if(!IsPrepass)
 	{
-		std::wstring operatorname = PreOperatorString;
-		StringHandle operatornamehandle = Session.StringPool.Pool(operatorname);
-
-		if(!TemporaryString.empty())
+		if(InferenceComplete())
 		{
-			AssignmentTargets.push(LRValue(Session.StringPool.Pool(TemporaryString)));
-			TemporaryString.clear();
-		}
+			std::wstring operatorname = PreOperatorString;
+			StringHandle operatornamehandle = Session.StringPool.Pool(operatorname);
 
-		VM::EpochTypeID variabletype = GetEffectiveType(AssignmentTargets.top());
+			if(!TemporaryString.empty())
+			{
+				AssignmentTargets.push(LRValue(Session.StringPool.Pool(TemporaryString)));
+				TemporaryString.clear();
+			}
 
-		RemapFunctionToOverload(CompileTimeParameterVector(), 0, 0, 0, TypeVector(1, variabletype), false, operatorname, operatornamehandle);
+			VM::EpochTypeID variabletype = GetEffectiveType(AssignmentTargets.top());
 
-		ByteBuffer buffer;
-		ByteCodeEmitter emitter(buffer);
+			RemapFunctionToOverload(CompileTimeParameterVector(), 0, 0, 0, TypeVector(1, variabletype), false, operatorname, operatornamehandle);
 
-		EmitCurrentValue(emitter, AssignmentTargets.top());
-		emitter.Invoke(operatornamehandle);
-		EmitReferenceBindings(emitter, AssignmentTargets.top());
-		emitter.AssignVariable();
-		EmitCurrentValue(emitter, AssignmentTargets.top());
+			ByteBuffer buffer;
+			ByteCodeEmitter emitter(buffer);
 
-		StatementTypes.push(variabletype);
+			EmitCurrentValue(emitter, AssignmentTargets.top());
+			emitter.Invoke(operatornamehandle);
+			EmitReferenceBindings(emitter, AssignmentTargets.top());
+			emitter.AssignVariable();
+			EmitCurrentValue(emitter, AssignmentTargets.top());
 
-		if(!CompileTimeParameters.empty())
-		{
-			CompileTimeParameter ctparam(L"@@preoperation", VM::EpochType_Expression);
-			ctparam.ExpressionType = variabletype;
-			ctparam.ExpressionContents.swap(buffer);
-			CompileTimeParameters.top().push_back(ctparam);
+			StatementTypes.push(variabletype);
+
+			if(!CompileTimeParameters.empty())
+			{
+				CompileTimeParameter ctparam(L"@@preoperation", VM::EpochType_Expression);
+				ctparam.ExpressionType = variabletype;
+				ctparam.ExpressionContents.swap(buffer);
+				CompileTimeParameters.top().push_back(ctparam);
+			}
+			else
+				EmitterStack.top()->EmitBuffer(buffer);
+
+			AssignmentTargets.pop();
 		}
 		else
-			EmitterStack.top()->EmitBuffer(buffer);
-
-		AssignmentTargets.pop();
+		{
+			if(!CompileTimeParameters.empty())
+			{
+				CompileTimeParameter ctparam(L"@@preoperation", VM::EpochType_Expression);
+				ctparam.ExpressionType = VM::EpochType_Infer;
+				CompileTimeParameters.top().push_back(ctparam);
+			}
+		}
 	}
 
 	PushedItemTypes.push(ITEMTYPE_STATEMENT);
@@ -739,48 +753,60 @@ void CompilationSemantics::RegisterPreOperand(const std::wstring& expression)
 //
 void CompilationSemantics::RegisterPostOperator(const std::wstring& identifier)
 {
-	if((!IsPrepass) && InferenceComplete())
+	if(!IsPrepass)
 	{
-		std::wstring operatorname = identifier;
-		StringHandle operatornamehandle = Session.StringPool.Pool(operatorname);
-
-		if(AssignmentTargets.empty() && !TemporaryString.empty())
+		if(InferenceComplete())
 		{
-			AssignmentTargets.push(LRValue(Session.StringPool.Pool(TemporaryString)));
-			TemporaryString.clear();
-		}
+			std::wstring operatorname = identifier;
+			StringHandle operatornamehandle = Session.StringPool.Pool(operatorname);
 
-		VM::EpochTypeID variabletype = GetEffectiveType(AssignmentTargets.top());
+			if(AssignmentTargets.empty() && !TemporaryString.empty())
+			{
+				AssignmentTargets.push(LRValue(Session.StringPool.Pool(TemporaryString)));
+				TemporaryString.clear();
+			}
 
-		RemapFunctionToOverload(CompileTimeParameterVector(), 0, 0, 0, TypeVector(1, variabletype), false, operatorname, operatornamehandle);
+			VM::EpochTypeID variabletype = GetEffectiveType(AssignmentTargets.top());
 
-		ByteBuffer buffer;
-		ByteCodeEmitter emitter(buffer);
+			RemapFunctionToOverload(CompileTimeParameterVector(), 0, 0, 0, TypeVector(1, variabletype), false, operatorname, operatornamehandle);
 
-		// Yes, we need to push this twice! (Once, the value is passed on to the operator
-		// itself for invocation; the second push [or rather the one which happens first,
-		// and appears lower on the stack] is used to hold the initial value of the expression
-		// so that the subsequent code can read off the value safely, in keeping with the
-		// traditional semantics of a post operator.)
-		EmitCurrentValue(emitter, AssignmentTargets.top());
-		EmitCurrentValue(emitter, AssignmentTargets.top());
-		emitter.Invoke(operatornamehandle);
-		EmitReferenceBindings(emitter, AssignmentTargets.top());
-		emitter.AssignVariable();
+			ByteBuffer buffer;
+			ByteCodeEmitter emitter(buffer);
 
-		StatementTypes.push(variabletype);
+			// Yes, we need to push this twice! (Once, the value is passed on to the operator
+			// itself for invocation; the second push [or rather the one which happens first,
+			// and appears lower on the stack] is used to hold the initial value of the expression
+			// so that the subsequent code can read off the value safely, in keeping with the
+			// traditional semantics of a post operator.)
+			EmitCurrentValue(emitter, AssignmentTargets.top());
+			EmitCurrentValue(emitter, AssignmentTargets.top());
+			emitter.Invoke(operatornamehandle);
+			EmitReferenceBindings(emitter, AssignmentTargets.top());
+			emitter.AssignVariable();
 
-		if(!CompileTimeParameters.empty())
-		{
-			CompileTimeParameter ctparam(L"@@preoperation", VM::EpochType_Expression);
-			ctparam.ExpressionType = variabletype;
-			ctparam.ExpressionContents.swap(buffer);
-			CompileTimeParameters.top().push_back(ctparam);
+			StatementTypes.push(variabletype);
+
+			if(!CompileTimeParameters.empty())
+			{
+				CompileTimeParameter ctparam(L"@@postoperation", VM::EpochType_Expression);
+				ctparam.ExpressionType = variabletype;
+				ctparam.ExpressionContents.swap(buffer);
+				CompileTimeParameters.top().push_back(ctparam);
+			}
+			else
+				EmitterStack.top()->EmitBuffer(buffer);
+
+			AssignmentTargets.pop();
 		}
 		else
-			EmitterStack.top()->EmitBuffer(buffer);
-
-		AssignmentTargets.pop();
+		{
+			if(!CompileTimeParameters.empty())
+			{
+				CompileTimeParameter ctparam(L"@@postoperation", VM::EpochType_Expression);
+				ctparam.ExpressionType = VM::EpochType_Infer;
+				CompileTimeParameters.top().push_back(ctparam);
+			}
+		}
 	}
 
 	PushedItemTypes.push(ITEMTYPE_STATEMENT);
