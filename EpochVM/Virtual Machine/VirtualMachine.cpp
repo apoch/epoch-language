@@ -1208,6 +1208,9 @@ EntityMetaControl VirtualMachine::GetEntityMetaControl(Bytecode::EntityTag tag) 
 // Structure management
 //-------------------------------------------------------------------------------
 
+//
+// Allocate memory for a structure instance on the freestore
+//
 StructureHandle VirtualMachine::AllocateStructure(const StructureDefinition &description)
 {
 	Threads::CriticalSection::Auto lock(StructureCritSec);
@@ -1217,6 +1220,9 @@ StructureHandle VirtualMachine::AllocateStructure(const StructureDefinition &des
 	return handle;
 }
 
+//
+// Get the definition metadata for the structure with the given type ID number
+//
 const StructureDefinition& VirtualMachine::GetStructureDefinition(EpochTypeID type) const
 {
 	Threads::CriticalSection::Auto lock(StructureCritSec);
@@ -1228,6 +1234,9 @@ const StructureDefinition& VirtualMachine::GetStructureDefinition(EpochTypeID ty
 	return iter->second;
 }
 
+//
+// Look up actual structure instance data in memory given a handle
+//
 ActiveStructure& VirtualMachine::GetStructure(StructureHandle handle)
 {
 	Threads::CriticalSection::Auto lock(StructureCritSec);
@@ -1239,6 +1248,9 @@ ActiveStructure& VirtualMachine::GetStructure(StructureHandle handle)
 	return iter->second;
 }
 
+//
+// Deep copy a structure and all of its contents, including strings, buffers, and other structures
+//
 StructureHandle VirtualMachine::DeepCopy(StructureHandle handle)
 {
 	Threads::CriticalSection::Auto lock(StructureCritSec);
@@ -1280,6 +1292,9 @@ StructureHandle VirtualMachine::DeepCopy(StructureHandle handle)
 // Garbage collection
 //-------------------------------------------------------------------------------
 
+//
+// If the garbage collectors have ticked over, perform collection routines
+//
 void ExecutionContext::CollectGarbage()
 {
 	if(GarbageTick_Buffers > 1024)
@@ -1302,22 +1317,36 @@ void ExecutionContext::CollectGarbage()
 }
 
 
+//
+// Tick the garbage collection counter for buffer allocations
+//
 void ExecutionContext::TickBufferGarbageCollector()
 {
 	++GarbageTick_Buffers;
 }
 
+//
+// Tick the garbage collection counter for string allocations
+//
 void ExecutionContext::TickStringGarbageCollector()
 {
 	++GarbageTick_Strings;
 }
 
+//
+// Tick the garbage collection counter for structure allocations
+//
 void ExecutionContext::TickStructureGarbageCollector()
 {
 	++GarbageTick_Structures;
 }
 
 
+
+//
+// Helper functions for validating if a piece of garbage is of
+// the type being collected (see the MarkAndSweep function)
+//
 namespace
 {
 
@@ -1338,6 +1367,14 @@ namespace
 
 }
 
+//
+// Simple implementation of a mark-and-sweep garbage collection system
+//
+// Given a handle type, a validator (see above), and a set of known live handles,
+// explores the freestore and stack to find all reachable (live) handles; when the
+// function exits, the live handle list will contain all reachable handles which
+// should NOT be garbage collected. Everything else can be freed without issues.
+//
 template <typename HandleType, typename ValidatorT>
 void ExecutionContext::MarkAndSweep(ValidatorT validator, std::set<HandleType>& livehandles)
 {
@@ -1379,7 +1416,9 @@ void ExecutionContext::MarkAndSweep(ValidatorT validator, std::set<HandleType>& 
 	}
 }
 
-
+//
+// Perform garbage collection traversal for buffer data
+//
 void ExecutionContext::CollectGarbage_Buffers()
 {
 	std::set<BufferHandle> livehandles;
@@ -1395,6 +1434,9 @@ void ExecutionContext::CollectGarbage_Buffers()
 	OwnerVM.GarbageCollectBuffers(livehandles);
 }
 
+//
+// Perform garbage collection traversal for string data
+//
 void ExecutionContext::CollectGarbage_Strings()
 {
 	// Begin with the set of known static string references, as parsed from the code during load phase
@@ -1412,6 +1454,9 @@ void ExecutionContext::CollectGarbage_Strings()
 	OwnerVM.PrivateGetRawStringPool().GarbageCollect(livehandles);
 }
 
+//
+// Perform garbage collection traversal for structure data
+//
 void ExecutionContext::CollectGarbage_Structures()
 {
 	std::set<StructureHandle> livehandles;
@@ -1428,18 +1473,30 @@ void ExecutionContext::CollectGarbage_Structures()
 }
 
 
+//
+// Garbage collection disposal routine for buffer data
+//
 void VirtualMachine::GarbageCollectBuffers(const std::set<BufferHandle>& livehandles)
 {
 	EraseDeadHandles(Buffers, livehandles);
 }
 
-
+//
+// Garbage collection disposal routine for structure data
+//
 void VirtualMachine::GarbageCollectStructures(const std::set<StructureHandle>& livehandles)
 {
 	EraseDeadHandles(ActiveStructures, livehandles);
 }
 
 
+//-------------------------------------------------------------------------------
+// Debug hooks
+//-------------------------------------------------------------------------------
+
+//
+// Generate a textual snapshot of the VM's state
+//
 std::wstring VirtualMachine::DebugSnapshot() const
 {
 	std::wostringstream report;
@@ -1458,3 +1515,4 @@ std::wstring VirtualMachine::DebugSnapshot() const
 	
 	return report.str();
 }
+
