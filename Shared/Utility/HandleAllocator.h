@@ -36,8 +36,7 @@ public:
 		if(container.empty())
 			return 1;
 
-		// Order of operations is significant here! Otherwise we risk overflow
-		const HandleT maxhandle = (std::numeric_limits<HandleT>::max() / 4) * 3;
+		const HandleT maxhandle = GetMaxHandleValue();
 
 		// If we haven't run out of monotonically allocated handles, then we
 		// can simply increment the last provided handle value and return it
@@ -47,32 +46,46 @@ public:
 
 		// Otherwise, we need to do a quick search of the container looking
 		// for the first unused handle value we can return
-		return SearchForUnusedHandle(container, largestusedhandle / 2);
+		HandleT ret = SearchForUnusedHandle(container, 1, largestusedhandle);
+		if(!ret)
+			throw Exception("Handle values exhausted!");
+
+		return ret;
 	}
 
 private:
 	//
+	// Compute the largest safe handle value we can use
+	//
+	static HandleT GetMaxHandleValue()
+	{
+		// Order of operations is significant here! Otherwise we risk overflow
+		return (std::numeric_limits<HandleT>::max() / 4) * 3;
+	}
+
+	//
 	// Search for an unused handle value in a given container
 	//
 	template <class ContainerT>
-	HandleT SearchForUnusedHandle(const ContainerT& container, HandleT pivot)
+	HandleT SearchForUnusedHandle(const ContainerT& container, HandleT min, HandleT max)
 	{
+		if(min >= max)
+			return 0;
+
+		HandleT pivot = ((max - min) / 2) + min;	// Order of operations is necessary to prevent overflow!
 		ContainerT::const_iterator iter = container.lower_bound(pivot);
 		if(iter->first != pivot)
 			return pivot;
 
-		if(pivot > 1)
-		{
-			HandleT attempt = SearchForUnusedHandle(container, pivot / 2);
-			if(attempt)
-				return attempt;
-		}
+		HandleT attempt = SearchForUnusedHandle(container, min, pivot - 1);
+		if(attempt)
+			return attempt;
 
-		HandleT nextpivot = (pivot / 2) * 3;
-		if((nextpivot < pivot) || (nextpivot > (std::numeric_limits<HandleT>::max() / 4) * 3))
-			return 0;
+		attempt = SearchForUnusedHandle(container, pivot + 1, max);
+		if(attempt)
+			return attempt;
 
-		return SearchForUnusedHandle(container, nextpivot);
+		return 0;
 	}
 };
 

@@ -55,3 +55,17 @@ extern "C" HeapManager* __stdcall GetHeapManager()
 	}
 }
 
+//
+// Enable the visual debug interface of the VM
+//
+extern "C" void __stdcall EnableVisualDebugger()
+{
+	try
+	{
+		VM::VirtualMachine::EnableVisualDebugger();
+	}
+	catch(...)
+	{
+		::MessageBox(0, L"Failed to load visual debugger for Epoch VM", L"Epoch Internal Error", MB_ICONSTOP);
+	}
+}

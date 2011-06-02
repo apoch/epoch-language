@@ -19,6 +19,10 @@
 #include "Utility/DLLPool.h"
 #include "Utility/EraseDeadHandles.h"
 
+#ifdef EPOCHVM_VISUAL_DEBUGGER
+#include "Visual Debugger/VisualDebugger.h"
+#endif
+
 #include <limits>
 #include <list>
 #include <iostream>
@@ -26,6 +30,17 @@
 
 
 using namespace VM;
+
+
+#ifdef EPOCHVM_VISUAL_DEBUGGER
+
+//
+// Static variables for the virtual machine class
+//
+bool VirtualMachine::VisualDebuggerEnabled = false;
+
+#endif
+
 
 
 namespace
@@ -44,6 +59,29 @@ namespace
 
 }
 
+
+//
+// Construct and initialize a virtual machine
+//
+// Mainly useful for forking the visual debugger thread as necessary
+//
+VirtualMachine::VirtualMachine()
+{
+#ifdef EPOCHVM_VISUAL_DEBUGGER
+	if(VisualDebuggerEnabled)
+		VisualDebugger::ForkDebuggerThread(this);
+#endif
+}
+
+//
+// Enable the display and operation of the visual VM debugger
+//
+void VirtualMachine::EnableVisualDebugger()
+{
+#ifdef EPOCHVM_VISUAL_DEBUGGER
+	VisualDebuggerEnabled = true;
+#endif
+}
 
 //
 // Initialize the bindings of standard library functions
@@ -150,7 +188,7 @@ BufferHandle VirtualMachine::AllocateBuffer(size_t size)
 {
 	Threads::CriticalSection::Auto lock(BufferCritSec);
 
-	BufferHandle ret = ++CurrentBufferHandle;
+	BufferHandle ret = BufferHandleAlloc.AllocateHandle(Buffers);
 	Buffers[ret].swap(std::vector<Byte>(size, 0));
 	return ret;
 }
@@ -166,7 +204,7 @@ BufferHandle VirtualMachine::CloneBuffer(BufferHandle handle)
 	if(iter == Buffers.end())
 		throw FatalException("Invalid buffer handle");
 
-	BufferHandle ret = ++CurrentBufferHandle;
+	BufferHandle ret = BufferHandleAlloc.AllocateHandle(Buffers);
 	Buffers[ret].swap(std::vector<Byte>(iter->second.begin(), iter->second.end()));
 	return ret;
 }
@@ -1174,9 +1212,9 @@ StructureHandle VirtualMachine::AllocateStructure(const StructureDefinition &des
 {
 	Threads::CriticalSection::Auto lock(StructureCritSec);
 
-	++CurrentStructureHandle;
-	ActiveStructures.insert(std::make_pair(CurrentStructureHandle, ActiveStructure(description))); 
-	return CurrentStructureHandle;
+	StructureHandle handle = StructureHandleAlloc.AllocateHandle(ActiveStructures);
+	ActiveStructures.insert(std::make_pair(handle, ActiveStructure(description))); 
+	return handle;
 }
 
 const StructureDefinition& VirtualMachine::GetStructureDefinition(EpochTypeID type) const
@@ -1402,3 +1440,21 @@ void VirtualMachine::GarbageCollectStructures(const std::set<StructureHandle>& l
 }
 
 
+std::wstring VirtualMachine::DebugSnapshot() const
+{
+	std::wostringstream report;
+
+#ifdef EPOCHVM_VISUAL_DEBUGGER
+
+	// Amass snapshot data of the string pool
+	{
+		Threads::CriticalSection::Auto lock(PrivateStringPool.CritSec);
+		report << L"STRING POOL CONTENTS\r\n";
+		const std::map<StringHandle, std::wstring>& pool = PrivateStringPool.GetInternalPool();
+		for(std::map<StringHandle, std::wstring>::const_iterator iter = pool.begin(); iter != pool.end(); ++iter)
+			report << iter->first << L"\t" << iter->second << L"\r\n";
+	}
+#endif
+	
+	return report.str();
+}

@@ -149,6 +149,7 @@
 			/>
 			<Tool
 				Name="VCManifestTool"
+				AdditionalManifestFiles="EpochToolsManifest.xml"
 			/>
 			<Tool
 				Name="VCXDCMakeTool"
@@ -484,6 +485,10 @@
 			</File>
 			<File
 				RelativePath=".\EpochTools.rc"
+				>
+			</File>
+			<File
+				RelativePath=".\EpochToolsManifest.xml"
 				>
 			</File>
 		</Filter>

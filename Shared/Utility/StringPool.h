@@ -41,6 +41,9 @@ public:
 private:
 	HandleAllocator<StringHandle> HandleAlloc;
 	std::map<StringHandle, std::wstring> PooledStrings;
+
+// Public access to the critical section, for direct access purposes
+public:
 	Threads::CriticalSection CritSec;
 };
 

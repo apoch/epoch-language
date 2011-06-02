@@ -204,6 +204,11 @@ int _tmain(int argc, _TCHAR* argv[])
 			UI::Input input;
 			input.BlockingRead();
 		}
+		else if(parameters[i] == L"/vmdebug")
+		{
+			DLLAccess::VMAccess vmaccess;
+			vmaccess.EnableVisualDebugger();
+		}
 	}
 
 	if(!didwork)
@@ -221,6 +226,9 @@ namespace
 		output << L"Available options:\n";
 		output << L"  /execute filename.epoch           - Run the specified Epoch program\n";
 		output << L"  /compile filename.epoch out.easm  - Compile the specified program to the file out.easm\n";
+		output << L"  /build project.eprj				- Build the specified Epoch project\n";
+		output << L"  /pause							- Pause for Enter key (can be repeated)\n";
+		output << L"  /vmdebug							- Enable visual debug of the VM (SLOW)\n";
 		output << std::endl;
 	}
 }

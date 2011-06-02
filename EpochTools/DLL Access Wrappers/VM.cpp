@@ -25,8 +25,9 @@ VMAccess::VMAccess()
 	HINSTANCE dllhandle = Marshaling::TheDLLPool.OpenDLL(L"EpochVM.DLL");
 
 	DoExecByteCode = reinterpret_cast<ExecuteByteCodePtr>(::GetProcAddress(dllhandle, "ExecuteByteCode"));
+	DoEnableVisualDebugger = reinterpret_cast<EnableVisualDebuggerPtr>(::GetProcAddress(dllhandle, "EnableVisualDebugger"));
 
-	if(!DoExecByteCode)
+	if(!DoExecByteCode || !DoEnableVisualDebugger)
 		throw DLLException("Failed to load Epoch Virtual Machine");
 }
 
@@ -37,3 +38,12 @@ void VMAccess::ExecuteByteCode(const void* buffer, size_t size)
 {
 	DoExecByteCode(buffer, size);
 }
+
+//
+// Enable the visual debug facility of the virtual machine
+//
+void VMAccess::EnableVisualDebugger()
+{
+	DoEnableVisualDebugger();
+}
+

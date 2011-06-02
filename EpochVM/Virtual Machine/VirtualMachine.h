@@ -62,13 +62,13 @@ namespace VM
 	//
 	class VirtualMachine
 	{
+	// Special access for enabling the visual debug thread
+	public:
+		static void EnableVisualDebugger();
+
 	// Construction
 	public:
-		VirtualMachine()
-			: CurrentBufferHandle(0),
-			  CurrentStructureHandle(0)
-		{
-		}
+		VirtualMachine();
 
 	// Initialization
 	public:
@@ -136,6 +136,11 @@ namespace VM
 		{ return ActiveStructures; }
 
 
+	// Debug assistance
+	public:
+		std::wstring DebugSnapshot() const;
+
+
 	// Public tracking
 	public:
 		std::map<EpochTypeID, StructureDefinition> StructureDefinitions;
@@ -155,14 +160,18 @@ namespace VM
 		BeginEndOffsetMap EntityOffsets;
 		BeginEndOffsetMap ChainOffsets;
 
-		BufferHandle CurrentBufferHandle;
+		HandleAllocator<BufferHandle> BufferHandleAlloc;
 		std::map<BufferHandle, std::vector<Byte> > Buffers;
 
-		StructureHandle CurrentStructureHandle;
+		HandleAllocator<StructureHandle> StructureHandleAlloc;
 		std::map<StructureHandle, ActiveStructure> ActiveStructures;
 
 		Threads::CriticalSection BufferCritSec;
 		Threads::CriticalSection StructureCritSec;
+
+	// Static state tracking
+	private:
+		static bool VisualDebuggerEnabled;
 	};
 
 
