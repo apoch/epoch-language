@@ -24,7 +24,8 @@ static const int SCE_EPOCH_TYPE = 2;				// Built-in type keywords
 static const int SCE_EPOCH_STRINGLITERAL = 3;		// String literals
 static const int SCE_EPOCH_SYMBOL = 4;				// Special syntactically significant symbols
 static const int SCE_EPOCH_LITERAL = 5;				// Non-string (i.e. numeric and boolean) literals
-static const int SCE_EPOCH_UDT = 6;					// User-defined types
+static const int SCE_EPOCH_HEXLITERAL = 6;			// Hexadecimal literals
+static const int SCE_EPOCH_UDT = 7;					// User-defined types
 
 
 namespace
@@ -208,6 +209,11 @@ void __stdcall EpochLexer::Lex(unsigned int startPos, int lengthDoc, int initSty
 				sc.SetState(SCE_EPOCH_SYMBOL);
 				sc.Forward();
 			}
+			else if(sc.ch == '0' && sc.chNext == 'x')	// Check for hexadecimal literals
+			{
+				sc.SetState(SCE_EPOCH_HEXLITERAL);
+				sc.Forward();
+			}
 			else if(isalpha(sc.ch))						// Check for string tokens (see SCE_EPOCH_TYPE handler)
 				sc.SetState(SCE_EPOCH_TYPE);
 			else if(isdigit(sc.ch) || (sc.ch == '-' && isdigit(sc.chNext)))			// Lastly, check for numeric literals
@@ -267,6 +273,12 @@ void __stdcall EpochLexer::Lex(unsigned int startPos, int lengthDoc, int initSty
 		// Literals are terminated with a byte that is not a digit or decimal.
 		case SCE_EPOCH_LITERAL:
 			if(!isdigit(sc.ch) && sc.ch != '.')
+				sc.SetState(SCE_EPOCH_DEFAULT);
+			break;
+
+		// Hex literals are terminated with a byte that is not a hex digit
+		case SCE_EPOCH_HEXLITERAL:
+			if(!isdigit(sc.ch) && ((sc.ch < 'A' || sc.ch > 'F') && (sc.ch < 'a' || sc.ch > 'f')))
 				sc.SetState(SCE_EPOCH_DEFAULT);
 			break;
 		}

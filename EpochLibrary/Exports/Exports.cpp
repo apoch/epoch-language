@@ -27,8 +27,6 @@
 
 #include "Library Functionality/Marshaling/MarshalingLibrary.h"
 
-#include "Virtual Machine/VirtualMachine.h"
-
 
 //
 // Register the contents of this Epoch library
