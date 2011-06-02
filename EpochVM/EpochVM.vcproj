@@ -314,6 +314,10 @@
 					>
 				</File>
 				<File
+					RelativePath="..\Shared\Utility\HandleAllocator.h"
+					>
+				</File>
+				<File
 					RelativePath="..\Shared\Utility\StringPool.cpp"
 					>
 				</File>

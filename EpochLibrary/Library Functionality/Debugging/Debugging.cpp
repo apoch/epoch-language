@@ -40,7 +40,7 @@ namespace
 	void ReadString(StringHandle functionname, VM::ExecutionContext& context)
 	{
 		UI::Input input;
-		StringHandle handle = context.OwnerVM.PoolStringDestructive(input.BlockingRead());
+		StringHandle handle = context.OwnerVM.PoolString(input.BlockingRead());
 		context.State.Stack.PushValue(handle);
 		context.TickStringGarbageCollector();
 	}

@@ -81,7 +81,6 @@ namespace VM
 	// Handle-managed resources
 	public:
 		StringHandle PoolString(const std::wstring& stringdata);
-		StringHandle PoolStringDestructive(std::wstring& stringdata);
 		void PoolString(StringHandle handle, const std::wstring& stringdata);
 		const std::wstring& GetPooledString(StringHandle handle) const;
 		StringHandle GetPooledStringHandle(const std::wstring& value);

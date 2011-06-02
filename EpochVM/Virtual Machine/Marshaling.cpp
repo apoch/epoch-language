@@ -370,7 +370,7 @@ namespace
 			case EpochType_String:
 				{
 					std::wstring str(*reinterpret_cast<const wchar_t* const*>(buffer));
-					structure.WriteMember(j, context.OwnerVM.PoolStringDestructive(str));
+					structure.WriteMember(j, context.OwnerVM.PoolString(str));
 					buffer += sizeof(const wchar_t*);
 				}
 				break;

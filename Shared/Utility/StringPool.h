@@ -11,6 +11,7 @@
 // Dependencies
 #include "Utility/Types/IDTypes.h"
 #include "Utility/Threading/Synchronization.h"
+#include "Utility/HandleAllocator.h"
 
 #include <map>
 #include <set>
@@ -19,15 +20,10 @@
 
 class StringPoolManager
 {
-// Construction
-public:
-	StringPoolManager();
-
 // Pooling interface
 public:
 	StringHandle Pool(const std::wstring& stringdata);
 	StringHandle PoolFast(const std::wstring& stringdata);
-	StringHandle PoolFastDestructive(std::wstring& stringdata);
 	void Pool(StringHandle handle, const std::wstring& stringdata);
 
 	const std::wstring& GetPooledString(StringHandle handle) const;
@@ -43,7 +39,7 @@ public:
 
 // Internal tracking
 private:
-	StringHandle CurrentPooledStringHandle;
+	HandleAllocator<StringHandle> HandleAlloc;
 	std::map<StringHandle, std::wstring> PooledStrings;
 	Threads::CriticalSection CritSec;
 };

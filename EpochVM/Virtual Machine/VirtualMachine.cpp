@@ -22,6 +22,7 @@
 #include <limits>
 #include <list>
 #include <iostream>
+#include <sstream>
 
 
 using namespace VM;
@@ -88,14 +89,6 @@ ExecutionResult VirtualMachine::ExecuteByteCode(const Bytecode::Instruction* buf
 StringHandle VirtualMachine::PoolString(const std::wstring& stringdata)
 {
 	return PrivateStringPool.PoolFast(stringdata);
-}
-
-//
-// Store a string in the global string pool, using the fast/destructive mode
-//
-StringHandle VirtualMachine::PoolStringDestructive(std::wstring& stringdata)
-{
-	return PrivateStringPool.PoolFastDestructive(stringdata);
 }
 
 //
