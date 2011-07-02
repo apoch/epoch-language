@@ -11,6 +11,8 @@
 
 #include "Linker/LinkWriter.h"
 
+#include "Utility/Strings.h"
+
 
 using namespace ResourceCompiler;
 
@@ -33,12 +35,12 @@ MenuEmitter::MenuEmitter(std::wistream& in)
 //
 // Write a menu resource to disk
 //
-void MenuEmitter::Emit(LinkWriter& writer)
+void MenuEmitter::Emit(LinkWriter& writer) const
 {
 	writer.EmitWORD(0x00);		// Version, reserved
 	writer.EmitWORD(0x00);		// Header size, reserved
 
-	for(std::list<MenuEntry>::iterator iter = Root.SubEntries.begin(); iter != Root.SubEntries.end(); ++iter)
+	for(std::list<MenuEntry>::const_iterator iter = Root.SubEntries.begin(); iter != Root.SubEntries.end(); ++iter)
 		iter->Emit(writer);
 }
 
@@ -47,7 +49,7 @@ void MenuEmitter::Emit(LinkWriter& writer)
 //
 DWORD MenuEmitter::GetSize() const
 {
-	return Root.GetTotalSize() + sizeof(DWORD);
+	return Root.GetTotalSize();
 }
 
 
@@ -103,7 +105,7 @@ void MenuEntry::LoadFromStream(std::wistream& in, std::list<MenuEntry>& entries)
 			entry.IsLast = false;
 			entry.ID = 0;
 			std::getline(in, entry.Text);
-			entry.Text = StripQuotes(entry.Text);
+			entry.Text = StripQuotes(StripWhitespace(entry.Text));
 
 			entries.push_back(entry);
 			LoadFromStream(in, entries.back().SubEntries);
@@ -117,7 +119,7 @@ void MenuEntry::LoadFromStream(std::wistream& in, std::list<MenuEntry>& entries)
 			{
 				in.ignore();
 				std::getline(in, entry.Text);
-				entry.Text = StripQuotes(entry.Text);
+				entry.Text = StripQuotes(StripWhitespace(entry.Text));
 			}
 			entry.IsLast = false;
 
@@ -138,7 +140,7 @@ void MenuEntry::LoadFromStream(std::wistream& in, std::list<MenuEntry>& entries)
 //
 // Write the menu entry tree into the compiled file
 //
-void MenuEntry::Emit(LinkWriter& writer)
+void MenuEntry::Emit(LinkWriter& writer) const
 {
 	WORD flags = 0;
 	if(IsPopup)
@@ -155,7 +157,7 @@ void MenuEntry::Emit(LinkWriter& writer)
 	
 	writer.EmitWideString(Text);
 
-	for(std::list<MenuEntry>::iterator iter = SubEntries.begin(); iter != SubEntries.end(); ++iter)
+	for(std::list<MenuEntry>::const_iterator iter = SubEntries.begin(); iter != SubEntries.end(); ++iter)
 		iter->Emit(writer);
 }
 

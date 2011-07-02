@@ -24,7 +24,7 @@ namespace ResourceCompiler
 		{ }
 
 	public:
-		virtual void Emit(LinkWriter& writer) = 0;
+		virtual void Emit(LinkWriter& writer) const = 0;
 		virtual DWORD GetSize() const = 0;
 
 		virtual void SetOffset(DWORD offset)

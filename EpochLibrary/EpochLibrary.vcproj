@@ -62,7 +62,9 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
+				AdditionalDependencies="EpochVM.lib"
 				LinkIncremental="2"
+				AdditionalLibraryDirectories="$(OutDir)"
 				ModuleDefinitionFile="Exports/Exports.def"
 				GenerateDebugInformation="true"
 				SubSystem="2"
@@ -577,23 +579,11 @@
 				Name="Virtual Machine"
 				>
 				<File
-					RelativePath="..\EpochVM\Virtual Machine\Marshaling.cpp"
-					>
-				</File>
-				<File
 					RelativePath="..\EpochVM\Virtual Machine\Marshaling.h"
 					>
 				</File>
 				<File
-					RelativePath="..\EpochVM\Virtual Machine\TypeInfo.cpp"
-					>
-				</File>
-				<File
 					RelativePath="..\EpochVM\Virtual Machine\TypeInfo.h"
-					>
-				</File>
-				<File
-					RelativePath="..\EpochVM\Virtual Machine\VirtualMachine.cpp"
 					>
 				</File>
 				<File

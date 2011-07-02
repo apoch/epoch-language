@@ -100,7 +100,7 @@ void ThunkManager::Generate(Linker& linker)
 //
 // Write thunk tables into the executable
 //
-void ThunkManager::Emit(Linker& linker, LinkWriter& writer)
+void ThunkManager::Emit(Linker& linker, LinkWriter& writer) const
 {
 	std::wcout << L"Writing thunk tables... ";
 
@@ -109,9 +109,9 @@ void ThunkManager::Emit(Linker& linker, LinkWriter& writer)
 
 	DWORD virtualaddress = linker.RoundUpToVirtualPadding(baseaddress);
 
-	for(std::map<std::string, DWORD>::iterator iter = Libraries.begin(); iter != Libraries.end(); ++iter)
+	for(std::map<std::string, DWORD>::const_iterator iter = Libraries.begin(); iter != Libraries.end(); ++iter)
 	{
-		for(std::map<std::string, std::pair<DWORD, std::string> >::iterator funciter = Functions.begin(); funciter != Functions.end(); ++funciter)
+		for(std::map<std::string, std::pair<DWORD, std::string> >::const_iterator funciter = Functions.begin(); funciter != Functions.end(); ++funciter)
 		{
 			if(funciter->second.second == iter->first)
 			{
@@ -125,10 +125,10 @@ void ThunkManager::Emit(Linker& linker, LinkWriter& writer)
 		virtualaddress += static_cast<DWORD>(iter->first.length()) + 1;
 	}
 
-	for(std::map<std::string, DWORD>::iterator iter = Libraries.begin(); iter != Libraries.end(); ++iter)
+	for(std::map<std::string, DWORD>::const_iterator iter = Libraries.begin(); iter != Libraries.end(); ++iter)
 	{
 		LibraryThunkSpots[iter->first].first = virtualaddress;
-		for(std::map<std::string, std::pair<DWORD, std::string> >::iterator funciter = Functions.begin(); funciter != Functions.end(); ++funciter)
+		for(std::map<std::string, std::pair<DWORD, std::string> >::const_iterator funciter = Functions.begin(); funciter != Functions.end(); ++funciter)
 		{
 			if(funciter->second.second == iter->first)
 			{
@@ -140,10 +140,10 @@ void ThunkManager::Emit(Linker& linker, LinkWriter& writer)
 		virtualaddress += sizeof(DWORD);
 	}
 
-	for(std::map<std::string, DWORD>::iterator iter = Libraries.begin(); iter != Libraries.end(); ++iter)
+	for(std::map<std::string, DWORD>::const_iterator iter = Libraries.begin(); iter != Libraries.end(); ++iter)
 	{
 		LibraryRewriteThunkSpots[iter->first].first = virtualaddress;
-		for(std::map<std::string, std::pair<DWORD, std::string> >::iterator funciter = Functions.begin(); funciter != Functions.end(); ++funciter)
+		for(std::map<std::string, std::pair<DWORD, std::string> >::const_iterator funciter = Functions.begin(); funciter != Functions.end(); ++funciter)
 		{
 			if(funciter->second.second == iter->first)
 			{
@@ -157,7 +157,7 @@ void ThunkManager::Emit(Linker& linker, LinkWriter& writer)
 
 	writer.Pad(baseaddress + GetThunkTableOffset());
 
-	for(std::map<std::string, DWORD>::iterator iter = Libraries.begin(); iter != Libraries.end(); ++iter)
+	for(std::map<std::string, DWORD>::const_iterator iter = Libraries.begin(); iter != Libraries.end(); ++iter)
 	{
 		IMAGE_IMPORT_DESCRIPTOR descriptor;
 		::ZeroMemory(&descriptor, sizeof(descriptor));

@@ -45,7 +45,7 @@ void EpochCode::Generate(Linker& linker)
 //
 // Write code into the executable
 //
-void EpochCode::Emit(Linker& linker, LinkWriter& writer)
+void EpochCode::Emit(Linker& linker, LinkWriter& writer) const
 {
 	std::wcout << L"Writing Epoch code block... ";
 

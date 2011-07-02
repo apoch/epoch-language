@@ -22,6 +22,7 @@ namespace ResourceCompiler
 
 	// Forward declarations
 	class ResourceEmitter;
+	class DirectoryLeaf;
 
 
 	//
@@ -30,16 +31,26 @@ namespace ResourceCompiler
 	class DirectoryBase
 	{
 	public:
-		~DirectoryBase()
+		virtual ~DirectoryBase()
 		{ }
 
 	public:
 		virtual DWORD GetSize() const = 0;
-		virtual void Emit(LinkWriter& writer, bool pointstoleaf, DWORD virtualbaseaddress) = 0;
-		virtual bool SetOffset(DWORD offset)
-		{ return false; }
+		virtual void EmitAll(LinkWriter& writer, DWORD virtualbaseaddress) const = 0;
+		virtual void EmitSelf(LinkWriter& writer, DWORD virtualbaseaddress) const = 0;
 
-		static DWORD GetSizeStatic();
+		virtual void SetOffsetsAll(DWORD& offset) = 0;
+		virtual void SetOffsetsSelf(DWORD& offset) = 0;
+		
+		void AccumulateOffsets(DWORD& offset);
+		bool PointsToLeaf() const;
+
+		void AccumulateLeaves(std::list<DirectoryLeaf*>& leaves) const;
+
+		void EmitChildren(LinkWriter& writer, DWORD virtualbaseaddress) const;
+		void SetOffsetsChildren(DWORD& offset);
+
+		std::list<DirectoryBase*> Children;
 	};
 
 
@@ -50,7 +61,7 @@ namespace ResourceCompiler
 	{
 	// Construction
 	public:
-		DirectoryHeader(DWORD characteristics, DWORD timedatestamp, WORD majorversion, WORD minorversion, WORD numnamedentries, WORD numidentries);
+		DirectoryHeader(DWORD characteristics, DWORD timedatestamp, WORD majorversion, WORD minorversion);
 
 	// Directory header fields
 	public:
@@ -58,15 +69,14 @@ namespace ResourceCompiler
 		DWORD TimeDateStamp;
 		WORD MajorVersion;
 		WORD MinorVersion;
-		WORD NumNamedEntries;
-		WORD NumIDEntries;
 
 	// DirectoryBase interface
 	public:
 		virtual DWORD GetSize() const;
-		virtual void Emit(LinkWriter& writer, bool pointstoleaf, DWORD virtualbaseaddress);
-
-		static DWORD GetSizeStatic();
+		virtual void EmitAll(LinkWriter& writer, DWORD virtualbaseaddress) const;
+		virtual void EmitSelf(LinkWriter& writer, DWORD virtualbaseaddress) const;
+		virtual void SetOffsetsAll(DWORD& offset);
+		virtual void SetOffsetsSelf(DWORD& offset);
 	};
 
 	class DirectoryEntry : public DirectoryBase
@@ -83,18 +93,17 @@ namespace ResourceCompiler
 	// DirectoryBase interface
 	public:
 		virtual DWORD GetSize() const;
-		virtual void Emit(LinkWriter& writer, bool pointstoleaf, DWORD virtualbaseaddress);
-		virtual bool SetOffset(DWORD offset)
-		{ OffsetToData = offset; return true; }
-
-		static DWORD GetSizeStatic();
+		virtual void EmitAll(LinkWriter& writer, DWORD virtualbaseaddress) const;
+		virtual void EmitSelf(LinkWriter& writer, DWORD virtualbaseaddress) const;
+		virtual void SetOffsetsAll(DWORD& offset);
+		virtual void SetOffsetsSelf(DWORD& offset);
 	};
 
 	class DirectoryLeaf : public DirectoryBase
 	{
 	// Construction
 	public:
-		DirectoryLeaf(DWORD offsettodata, DWORD size, DWORD codepage, DWORD boundresid);
+		DirectoryLeaf(DWORD offsettodata, DWORD size, DWORD codepage);
 
 	// Directory leaf fields
 	public:
@@ -102,14 +111,14 @@ namespace ResourceCompiler
 		DWORD Size;
 		DWORD CodePage;
 		DWORD Reserved;
-		DWORD BoundResourceID;
 
 	// Directory leaf interface
 	public:
-		DWORD GetSize() const;
-		void Emit(LinkWriter& writer, bool pointstoleaf, DWORD virtualbaseaddress);
-
-		static DWORD GetSizeStatic();
+		virtual DWORD GetSize() const;
+		virtual void EmitAll(LinkWriter& writer, DWORD virtualbaseaddress) const;
+		virtual void EmitSelf(LinkWriter& writer, DWORD virtualbaseaddress) const;
+		virtual void SetOffsetsAll(DWORD& offset);
+		virtual void SetOffsetsSelf(DWORD& offset);
 	};
 
 
@@ -130,19 +139,28 @@ namespace ResourceCompiler
 
 	// Linker interface
 	public:
-		void Emit(LinkWriter& writer, DWORD virtualbaseaddress);
+		void Emit(LinkWriter& writer, DWORD virtualbaseaddress) const;
 		DWORD GetSize() const;
+
+	// Internal helpers
+	private:
+		struct ResourceRecord
+		{
+			ResourceRecord(DWORD type, DWORD id, DWORD language, ResourceEmitter* emitter)
+				: Type(type), ID(id), Language(language), Emitter(emitter)
+			{ }
+
+			DWORD Type;
+			DWORD ID;
+			DWORD Language;
+			ResourceEmitter* Emitter;
+		};
 
 	// Internal tracking
 	private:
-		std::list<DirectoryBase*> RootTier;
-		std::list<DirectoryBase*> IDTier;
-		std::list<DirectoryBase*> LanguageTier;
-		std::list<DirectoryBase*> LeafTier;
+		std::list<ResourceRecord> ResourceRecords;
 
-		std::map<DWORD, ResourceEmitter*> ResourceEmitters;
-
-		DirectoryHeader* RootTierHeader;
+		DirectoryHeader* RootTier;
 
 		DWORD DirectorySize;
 		DWORD ResourceSize;

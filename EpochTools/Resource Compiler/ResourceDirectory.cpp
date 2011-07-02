@@ -15,17 +15,64 @@
 
 using namespace ResourceCompiler;
 
+//
+// Accumulate the total offset from the beginning of a directory node to the end of all of its descendants
+//
+void DirectoryBase::AccumulateOffsets(DWORD& offset)
+{
+	offset += GetSize();
+	for(std::list<DirectoryBase*>::const_iterator iter = Children.begin(); iter != Children.end(); ++iter)
+		(*iter)->AccumulateOffsets(offset);
+}
+
+bool DirectoryBase::PointsToLeaf() const
+{
+	if(Children.empty())
+		return false;
+
+	if(Children.size() == 1)
+	{
+		DirectoryBase* b = Children.back();
+		return (dynamic_cast<DirectoryLeaf*>(b) != NULL);
+	}
+
+	return false;
+}
+
+//
+// Build a list of each leaf node in the tree
+//
+void DirectoryBase::AccumulateLeaves(std::list<DirectoryLeaf*>& leaves) const
+{
+	if(dynamic_cast<const DirectoryLeaf*>(this))
+		leaves.push_back(const_cast<DirectoryLeaf*>(dynamic_cast<const DirectoryLeaf*>(this)));
+
+	for(std::list<DirectoryBase*>::const_iterator iter = Children.begin(); iter != Children.end(); ++iter)
+		(*iter)->AccumulateLeaves(leaves);
+}
+
+
+void DirectoryBase::EmitChildren(LinkWriter& writer, DWORD virtualbaseaddress) const
+{
+	for(std::list<DirectoryBase*>::const_iterator iter = Children.begin(); iter != Children.end(); ++iter)
+		(*iter)->EmitAll(writer, virtualbaseaddress);
+}
+
+void DirectoryBase::SetOffsetsChildren(DWORD& offset)
+{
+	for(std::list<DirectoryBase*>::const_iterator iter = Children.begin(); iter != Children.end(); ++iter)
+		(*iter)->SetOffsetsAll(offset);
+}
+
 
 //
 // Construct and initialize a resource directory header structure
 //
-DirectoryHeader::DirectoryHeader(DWORD characteristics, DWORD timedatestamp, WORD majorversion, WORD minorversion, WORD numnamedentries, WORD numidentries)
+DirectoryHeader::DirectoryHeader(DWORD characteristics, DWORD timedatestamp, WORD majorversion, WORD minorversion)
 	: Characteristics(characteristics),
 	  TimeDateStamp(timedatestamp),
 	  MajorVersion(majorversion),
-	  MinorVersion(minorversion),
-	  NumNamedEntries(numnamedentries),
-	  NumIDEntries(numidentries)
+	  MinorVersion(minorversion)
 {
 }
 
@@ -34,25 +81,50 @@ DirectoryHeader::DirectoryHeader(DWORD characteristics, DWORD timedatestamp, WOR
 //
 DWORD DirectoryHeader::GetSize() const
 {
-	return GetSizeStatic();
-}
-
-DWORD DirectoryHeader::GetSizeStatic()
-{
 	return (sizeof(DWORD) * 2) + (sizeof(WORD) * 4);
 }
 
 //
 // Write a resource directory structure to disk
 //
-void DirectoryHeader::Emit(LinkWriter& writer, bool pointstoleaf, DWORD virtualbaseaddress)
+void DirectoryHeader::EmitSelf(LinkWriter& writer, DWORD virtualbaseaddress) const
 {
 	writer.EmitDWORD(Characteristics);
 	writer.EmitDWORD(TimeDateStamp);
 	writer.EmitWORD(MajorVersion);
 	writer.EmitWORD(MinorVersion);
-	writer.EmitWORD(NumNamedEntries);
-	writer.EmitWORD(NumIDEntries);
+	writer.EmitWORD(0);
+	writer.EmitWORD(static_cast<WORD>(Children.size()));
+}
+
+void DirectoryHeader::EmitAll(LinkWriter& writer, DWORD virtualbaseaddress) const
+{
+	EmitSelf(writer, virtualbaseaddress);
+
+	for(std::list<DirectoryBase*>::const_iterator iter = Children.begin(); iter != Children.end(); ++iter)
+		(*iter)->EmitSelf(writer, virtualbaseaddress);
+
+	for(std::list<DirectoryBase*>::const_iterator iter = Children.begin(); iter != Children.end(); ++iter)
+		(*iter)->EmitChildren(writer, virtualbaseaddress);
+}
+
+void DirectoryHeader::SetOffsetsSelf(DWORD& offset)
+{
+	offset += GetSize();
+}
+
+void DirectoryHeader::SetOffsetsAll(DWORD& offset)
+{
+	SetOffsetsSelf(offset);
+
+	for(std::list<DirectoryBase*>::const_iterator iter = Children.begin(); iter != Children.end(); ++iter)
+		offset += (*iter)->GetSize();
+
+	for(std::list<DirectoryBase*>::const_iterator iter = Children.begin(); iter != Children.end(); ++iter)
+	{
+		(*iter)->SetOffsetsSelf(offset);
+		(*iter)->SetOffsetsChildren(offset);
+	}
 }
 
 
@@ -70,21 +142,31 @@ DirectoryEntry::DirectoryEntry(DWORD name, DWORD offsettodata)
 //
 DWORD DirectoryEntry::GetSize() const
 {
-	return GetSizeStatic();
-}
-
-DWORD DirectoryEntry::GetSizeStatic()
-{
 	return sizeof(DWORD) * 2;
 }
 
 //
 // Write a resource directory entry to disk
 //
-void DirectoryEntry::Emit(LinkWriter& writer, bool pointstoleaf, DWORD virtualbaseaddress)
+void DirectoryEntry::EmitSelf(LinkWriter& writer, DWORD virtualbaseaddress) const
 {
 	writer.EmitDWORD(Name);
-	writer.EmitDWORD(OffsetToData | (pointstoleaf ? 0 : 0x80000000));		// Set the high-order bit to flag a node entry (as opposed to a leaf entry)
+	writer.EmitDWORD(OffsetToData | (PointsToLeaf() ? 0 : 0x80000000));		// Set the high-order bit to flag a node entry (as opposed to a leaf entry)
+}
+
+void DirectoryEntry::EmitAll(LinkWriter& writer, DWORD virtualbaseaddress) const
+{
+	// Nothing to do, the header took care of writing us in the correct order
+}
+
+void DirectoryEntry::SetOffsetsSelf(DWORD& offset)
+{
+	OffsetToData = offset;
+}
+
+void DirectoryEntry::SetOffsetsAll(DWORD& offset)
+{
+	// Nothing to do
 }
 
 //
@@ -93,12 +175,11 @@ void DirectoryEntry::Emit(LinkWriter& writer, bool pointstoleaf, DWORD virtualba
 // Leaf entries provide the actual offset and size of the
 // given resource data, along with other useful info
 //
-DirectoryLeaf::DirectoryLeaf(DWORD offsettodata, DWORD size, DWORD codepage, DWORD boundresid)
+DirectoryLeaf::DirectoryLeaf(DWORD offsettodata, DWORD size, DWORD codepage)
 	: OffsetToData(offsettodata),
 	  Size(size),
 	  CodePage(codepage),
-	  Reserved(0),
-	  BoundResourceID(boundresid)
+	  Reserved(0)
 {
 }
 
@@ -107,11 +188,6 @@ DirectoryLeaf::DirectoryLeaf(DWORD offsettodata, DWORD size, DWORD codepage, DWO
 //
 DWORD DirectoryLeaf::GetSize() const
 {
-	return GetSizeStatic();
-}
-
-DWORD DirectoryLeaf::GetSizeStatic()
-{
 	return sizeof(DWORD) * 4;
 }
 
@@ -119,7 +195,7 @@ DWORD DirectoryLeaf::GetSizeStatic()
 //
 // Write the leaf entry to disk
 //
-void DirectoryLeaf::Emit(LinkWriter& writer, bool pointstoleaf, DWORD virtualbaseaddress)
+void DirectoryLeaf::EmitSelf(LinkWriter& writer, DWORD virtualbaseaddress) const
 {
 	writer.EmitDWORD(OffsetToData + virtualbaseaddress);
 	writer.EmitDWORD(Size);
@@ -127,16 +203,27 @@ void DirectoryLeaf::Emit(LinkWriter& writer, bool pointstoleaf, DWORD virtualbas
 	writer.EmitDWORD(Reserved);
 }
 
+void DirectoryLeaf::EmitAll(LinkWriter& writer, DWORD virtualbaseaddress) const
+{
+	EmitSelf(writer, virtualbaseaddress);
+}
 
+void DirectoryLeaf::SetOffsetsSelf(DWORD& offset)
+{
+	offset += GetSize();
+}
+
+void DirectoryLeaf::SetOffsetsAll(DWORD& offset)
+{
+	SetOffsetsSelf(offset);
+}
 
 //
 // Construct and initialize the resource directory tracker
 //
 ResourceDirectory::ResourceDirectory()
+	: RootTier(NULL)
 {
-	std::auto_ptr<DirectoryHeader> ptr(new DirectoryHeader(0, 0, 0, 0, 0, 0));
-	RootTierHeader = ptr.get();
-	RootTier.push_back(ptr.release());
 }
 
 //
@@ -144,20 +231,10 @@ ResourceDirectory::ResourceDirectory()
 //
 ResourceDirectory::~ResourceDirectory()
 {
-	for(std::list<DirectoryBase*>::iterator iter = RootTier.begin(); iter != RootTier.end(); ++iter)
-		delete *iter;
+	delete RootTier;
 
-	for(std::list<DirectoryBase*>::iterator iter = IDTier.begin(); iter != IDTier.end(); ++iter)
-		delete *iter;
-
-	for(std::list<DirectoryBase*>::iterator iter = LanguageTier.begin(); iter != LanguageTier.end(); ++iter)
-		delete *iter;
-
-	for(std::list<DirectoryBase*>::iterator iter = LeafTier.begin(); iter != LeafTier.end(); ++iter)
-		delete *iter;
-
-	for(std::map<DWORD, ResourceEmitter*>::iterator iter = ResourceEmitters.begin(); iter != ResourceEmitters.end(); ++iter)
-		delete iter->second;
+	for(std::list<ResourceRecord>::iterator iter = ResourceRecords.begin(); iter != ResourceRecords.end(); ++iter)
+		delete iter->Emitter;
 }
 
 //
@@ -168,26 +245,7 @@ ResourceDirectory::~ResourceDirectory()
 //
 void ResourceDirectory::AddResource(DWORD type, DWORD id, DWORD language, ResourceEmitter* emitter)
 {
-	if(ResourceEmitters.find(id) != ResourceEmitters.end())
-	{
-		delete emitter;
-		std::ostringstream msg;
-		msg << "Resource ID " << id << " is already in use!";
-		throw Exception(msg.str());
-	}
-
-	ResourceEmitters[id] = emitter;
-
-	++RootTierHeader->NumIDEntries;
-	RootTier.push_back(new DirectoryEntry(type, 0));
-
-	IDTier.push_back(new DirectoryHeader(0, 0, 0, 0, 0, 1));
-	IDTier.push_back(new DirectoryEntry(id, 0));
-
-	LanguageTier.push_back(new DirectoryHeader(0, 0, 0, 0, 0, 1));
-	LanguageTier.push_back(new DirectoryEntry(language, 0));
-
-	LeafTier.push_back(new DirectoryLeaf(0, emitter->GetSize(), 0, id));
+	ResourceRecords.push_back(ResourceRecord(type, id, language, emitter));
 }
 
 //
@@ -196,55 +254,73 @@ void ResourceDirectory::AddResource(DWORD type, DWORD id, DWORD language, Resour
 //
 void ResourceDirectory::ComputeOffsets()
 {
+	std::map<const ResourceRecord*, DirectoryLeaf*> offsetmap;
+
+	// First build the tree of resource directory nodes
+	std::set<DWORD> resourcetypes;
+
+	for(std::list<ResourceRecord>::const_iterator iter = ResourceRecords.begin(); iter != ResourceRecords.end(); ++iter)
+		resourcetypes.insert(iter->Type);
+
+	delete RootTier;
+	RootTier = new DirectoryHeader(0, 0, 0, 0);
+
+	for(std::set<DWORD>::const_iterator typeiter = resourcetypes.begin(); typeiter != resourcetypes.end(); ++typeiter)
+	{
+		DWORD restype = *typeiter;
+
+		RootTier->Children.push_back(new DirectoryEntry(restype, 0));
+		DirectoryBase* typeentry = RootTier->Children.back();
+		typeentry->Children.push_back(new DirectoryHeader(0, 0, 0, 0));
+		DirectoryBase* typeheader = typeentry->Children.back();
+
+		for(std::list<ResourceRecord>::const_iterator iter = ResourceRecords.begin(); iter != ResourceRecords.end(); ++iter)
+		{
+			if(iter->Type == restype)
+			{
+				DWORD resid = iter->ID;
+
+				typeheader->Children.push_back(new DirectoryEntry(resid, 0));
+				DirectoryBase* identry = typeheader->Children.back();
+				identry->Children.push_back(new DirectoryHeader(0, 0, 0, 0));
+				DirectoryBase* idheader = identry->Children.back();
+				
+				for(std::list<ResourceRecord>::const_iterator iter = ResourceRecords.begin(); iter != ResourceRecords.end(); ++iter)
+				{
+					if(iter->Type == restype && iter->ID == resid)
+					{
+						idheader->Children.push_back(new DirectoryEntry(iter->Language, 0));
+						DirectoryBase* langentry = idheader->Children.back();
+						langentry->Children.push_back(new DirectoryLeaf(0, iter->Emitter->GetSize(), 0));
+
+						offsetmap.insert(std::make_pair(&(*iter), static_cast<DirectoryLeaf*>(langentry->Children.back())));
+					}
+				}
+			}
+		}
+	}
+
+	DWORD treeoffset = 0;
+	RootTier->SetOffsetsAll(treeoffset);
+
 	DWORD offset = 0;
+	RootTier->AccumulateOffsets(offset);
 
-	// Compute the offset of the end of the root block
-	offset = DirectoryHeader::GetSizeStatic() + DirectoryEntry::GetSizeStatic() * (RootTierHeader->NumIDEntries + RootTierHeader->NumNamedEntries);
-
-	// Populate offset fields of records in the root tier
-	for(std::list<DirectoryBase*>::const_iterator iter = RootTier.begin(); iter != RootTier.end(); ++iter)
-	{
-		if((*iter)->SetOffset(offset))
-			offset += DirectoryHeader::GetSizeStatic() + DirectoryEntry::GetSizeStatic();
-	}
-
-	// Populate offset fields of records in the ID tier
-	for(std::list<DirectoryBase*>::const_iterator iter = IDTier.begin(); iter != IDTier.end(); ++iter)
-	{
-		if((*iter)->SetOffset(offset))
-			offset += DirectoryHeader::GetSizeStatic() + DirectoryEntry::GetSizeStatic();
-	}
-
-	// Populate offset fields of records in the language tier
-	for(std::list<DirectoryBase*>::const_iterator iter = LanguageTier.begin(); iter != LanguageTier.end(); ++iter)
-	{
-		if((*iter)->SetOffset(offset))
-			offset += DirectoryLeaf::GetSizeStatic();
-	}
+	if(treeoffset != offset)
+		throw Exception("Mismatched offsets during resource compilation");
 
 	DirectorySize = offset;
 	ResourceSize = 0;
 
 	// Now compute resource data offsets
-	for(std::map<DWORD, ResourceEmitter*>::iterator iter = ResourceEmitters.begin(); iter != ResourceEmitters.end(); ++iter)
+	for(std::list<ResourceRecord>::iterator iter = ResourceRecords.begin(); iter != ResourceRecords.end(); ++iter)
 	{
 		// Update leaf entry with correct relative offset
-		for(std::list<DirectoryBase*>::const_iterator leafiter = LeafTier.begin(); leafiter != LeafTier.end(); ++leafiter)
-		{
-			DirectoryLeaf* leaf = dynamic_cast<DirectoryLeaf*>(*leafiter);
-			if(leaf == NULL)
-				throw Exception("Resource directory leaf list contains a non-leaf node!");
+		offsetmap.find(&(*iter))->second->OffsetToData = offset;
 
-			if(leaf->BoundResourceID == iter->first)
-			{
-				leaf->OffsetToData = offset;
-				break;
-			}
-		}
-
-		iter->second->SetOffset(offset);
-		offset += iter->second->GetSize();
-		ResourceSize += iter->second->GetSize();
+		iter->Emitter->SetOffset(offset);
+		offset += iter->Emitter->GetSize();
+		ResourceSize += iter->Emitter->GetSize();
 	}
 }
 
@@ -260,21 +336,11 @@ DWORD ResourceDirectory::GetSize() const
 //
 // Emit the resource directory and all resources to disk
 //
-void ResourceDirectory::Emit(LinkWriter& writer, DWORD virtualbaseaddress)
+void ResourceDirectory::Emit(LinkWriter& writer, DWORD virtualbaseaddress) const
 {
-	for(std::list<DirectoryBase*>::const_iterator iter = RootTier.begin(); iter != RootTier.end(); ++iter)
-		(*iter)->Emit(writer, false, virtualbaseaddress);
+	RootTier->EmitAll(writer, virtualbaseaddress);
 
-	for(std::list<DirectoryBase*>::const_iterator iter = IDTier.begin(); iter != IDTier.end(); ++iter)
-		(*iter)->Emit(writer, false, virtualbaseaddress);
-
-	for(std::list<DirectoryBase*>::const_iterator iter = LanguageTier.begin(); iter != LanguageTier.end(); ++iter)
-		(*iter)->Emit(writer, true, virtualbaseaddress);
-
-	for(std::list<DirectoryBase*>::const_iterator iter = LeafTier.begin(); iter != LeafTier.end(); ++iter)
-		(*iter)->Emit(writer, false, virtualbaseaddress);
-
-	for(std::map<DWORD, ResourceEmitter*>::const_iterator iter = ResourceEmitters.begin(); iter != ResourceEmitters.end(); ++iter)
-		iter->second->Emit(writer);
+	for(std::list<ResourceRecord>::const_iterator iter = ResourceRecords.begin(); iter != ResourceRecords.end(); ++iter)
+		iter->Emitter->Emit(writer);
 }
 

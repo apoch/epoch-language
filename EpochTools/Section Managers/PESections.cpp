@@ -36,7 +36,7 @@ void PESectionManager::Generate(Linker& linker)
 //
 // Write final section table to the executable
 //
-void PESectionManager::Emit(Linker& linker, LinkWriter& writer)
+void PESectionManager::Emit(Linker& linker, LinkWriter& writer) const
 {
 	std::wcout << L"Writing section headers... ";
 

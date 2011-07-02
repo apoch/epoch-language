@@ -14,6 +14,9 @@
 #include "Resource Compiler/Resource Types/Icons.h"
 #include "Resource Compiler/Resource Types/Menus.h"
 
+#include "Utility/Files/FilesAndPaths.h"
+#include "Utility/Strings.h"
+
 #include <fstream>
 
 
@@ -39,8 +42,8 @@ ResourceScript::ResourceScript(const std::list<std::wstring>& resourcefiles)
 //
 ResourceScript::~ResourceScript()
 {
-	for(std::multimap<DWORD, IconEmitter*>::iterator iter = IconEmitters.begin(); iter != IconEmitters.end(); ++iter)
-		delete iter->second;
+	for(std::set<IconUnpacker*>::iterator iter = IconUnpackers.begin(); iter != IconUnpackers.end(); ++iter)
+		delete *iter;
 }
 
 
@@ -58,16 +61,16 @@ void ResourceScript::ProcessScriptFile(const std::wstring& filename)
 		if(infile.eof())
 			break;
 
+		line = StripWhitespace(line);
+
 		if(line.empty())
 			continue;
 
 		DWORD restype;
 		if(line == L"[icon]")
-			restype = RESTYPE_ICON;
+			restype = RESTYPE_ICONGROUP;
 		else if(line == L"[menu]")
 			restype = RESTYPE_MENU;
-		else if(line == L"[icongroup]")
-			restype = RESTYPE_ICONGROUP;
 		else
 			throw Exception("Invalid directive in resource script");
 
@@ -76,6 +79,7 @@ void ResourceScript::ProcessScriptFile(const std::wstring& filename)
 		do
 		{
 			std::getline(infile, line);
+			line = StripWhitespace(line);
 		} while(!line.empty() && !infile.eof());
 	}
 }
@@ -110,41 +114,35 @@ void ResourceScript::LoadResourceIntoDirectory(DWORD type, const std::wstring& f
 	std::wstring directive;
 
 	infile >> directive;
-	if(directive != L"id")
+	if(StripWhitespace(directive) != L"id")
 		throw Exception("Expected resource ID");
 	infile >> id;
 	
 	infile >> directive;
-	if(directive != L"language")
+	if(StripWhitespace(directive) != L"language")
 		throw Exception("Expected resource language");
 	infile >> language;
 
 	switch(type)
 	{
-	case RESTYPE_ICON:
+	case RESTYPE_ICONGROUP:
 		{
-			DWORD group;
 			std::wstring sourcefile;
 
 			infile >> directive;
-			if(directive != L"group")
-				throw Exception("Expected icon group ID");
-			infile >> group;
-
-			infile >> directive;
-			if(directive != L"source")
+			if(StripWhitespace(directive) != L"source")
 				throw Exception("Expected icon source file");
 			infile.ignore();
 			std::getline(infile, sourcefile);
 
-			sourcefile = StripQuotes(sourcefile);
+			sourcefile = StripFilename(filename) + StripQuotes(StripWhitespace(sourcefile));
 
-			emitter.reset(new IconEmitter(sourcefile));
+			std::auto_ptr<IconUnpacker> unpacker(new IconUnpacker(sourcefile, id, language));
+			unpacker->CreateResources(directory, GroupMemberships);
+			IconUnpackers.insert(unpacker.release());
+
+			emitter.reset(new IconGroupEmitter(id, GroupMemberships));
 		}
-		break;
-
-	case RESTYPE_ICONGROUP:
-		emitter.reset(new IconGroupEmitter(id, IconEmitters));
 		break;
 
 	case RESTYPE_MENU:
@@ -164,6 +162,7 @@ void ResourceScript::LoadResourceIntoDirectory(DWORD type, const std::wstring& f
 
 //
 // Helper for removing quotes from around a string
+// TODO - move into a centralized location and optimize
 //
 std::wstring StripQuotes(const std::wstring& str)
 {

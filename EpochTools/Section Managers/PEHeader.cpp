@@ -28,7 +28,7 @@ void PEHeaderSection::Generate(Linker& linker)
 //
 // Emit the actual PE header data to the output file
 //
-void PEHeaderSection::Emit(Linker& linker, LinkWriter& writer)
+void PEHeaderSection::Emit(Linker& linker, LinkWriter& writer) const
 {
 	std::wcout << L"Writing PE headers... ";
 

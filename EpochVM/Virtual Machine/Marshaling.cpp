@@ -440,6 +440,7 @@ void ExternalDispatch(StringHandle functionname, VM::ExecutionContext& context)
 	// Placeholders for storing off the external function's return value
 	Integer32 integerret;
 	Integer16 integer16ret;
+	const wchar_t* stringret;
 
 	// We use the name of the calling function to map us to the correct external.
 	// This is because the calling function itself is the one that was originally
@@ -645,7 +646,7 @@ TypeIsInteger16:
 TypeIsBoolean:
 		mov eax, EpochType_Boolean
 		cmp rettype, eax
-		jne TypeIsNull
+		jne TypeIsString
 		call ebx
 		test eax, eax
 		jz BoolIsFalse
@@ -654,6 +655,14 @@ TypeIsBoolean:
 BoolIsFalse:
 		mov integerret, 0
 		jmp BooleanReturn
+
+TypeIsString:
+		mov eax, EpochType_String
+		cmp rettype, eax
+		jne TypeIsNull
+		call ebx
+		mov stringret, eax
+		jmp StringReturn
 
 TypeIsNull:
 		mov eax, EpochType_Void
@@ -676,6 +685,12 @@ Integer16Return:
 BooleanReturn:
 	MarshalBuffersIntoStructures(context, marshaledstructures);
 	context.Variables->Write<bool>(retname, (integerret != 0 ? true : false));
+	return;
+
+StringReturn:
+	MarshalBuffersIntoStructures(context, marshaledstructures);
+	StringHandle rethandle = context.OwnerVM.PoolString(stringret);
+	context.Variables->Write<StringHandle>(retname, rethandle);
 	return;
 
 NullReturn:

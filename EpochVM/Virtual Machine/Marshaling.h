@@ -9,6 +9,7 @@
 
 
 // Dependencies
+#include "Virtual Machine/ExportDef.h"
 #include "Utility/Types/IDTypes.h"
 
 

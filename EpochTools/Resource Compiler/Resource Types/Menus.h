@@ -28,7 +28,7 @@ namespace ResourceCompiler
 
 		DWORD GetTotalSize() const;
 		void LoadFromStream(std::wistream& in, std::list<MenuEntry>& entrylist);
-		void Emit(LinkWriter& writer);
+		void Emit(LinkWriter& writer) const;
 	};
 
 
@@ -40,7 +40,7 @@ namespace ResourceCompiler
 
 	// Resource emitter interface
 	public:
-		virtual void Emit(LinkWriter& writer);
+		virtual void Emit(LinkWriter& writer) const;
 		virtual DWORD GetSize() const;
 
 	// Internal tracking

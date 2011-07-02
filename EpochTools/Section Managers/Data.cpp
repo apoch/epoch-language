@@ -54,7 +54,7 @@ void PEData::Generate(Linker& linker)
 //
 // Write string tables into the executable
 //
-void PEData::Emit(Linker& linker, LinkWriter& writer)
+void PEData::Emit(Linker& linker, LinkWriter& writer) const
 {
 	std::wcout << L"Writing string lookup tables... ";
 

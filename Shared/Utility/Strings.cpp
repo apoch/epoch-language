@@ -92,6 +92,9 @@ std::wstring StripWhitespace(const std::wstring& str)
 	size_t pos = str.find_first_not_of(whitespacechars);
 	size_t endpos = str.find_last_not_of(whitespacechars);
 
+	if((pos == std::wstring::npos) || (endpos == std::wstring::npos))
+		return L"";
+
 	return str.substr(pos, endpos - pos + 1);
 }
 

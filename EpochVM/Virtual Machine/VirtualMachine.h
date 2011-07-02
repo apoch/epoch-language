@@ -7,8 +7,9 @@
 
 #pragma once
 
-
 // Dependencies
+#include "Virtual Machine/ExportDef.h"
+
 #include "Metadata/ScopeDescription.h"
 #include "Metadata/Register.h"
 #include "Metadata/ActiveStructure.h"
@@ -80,21 +81,21 @@ namespace VM
 
 	// Handle-managed resources
 	public:
-		StringHandle PoolString(const std::wstring& stringdata);
+		EPOCHVM StringHandle PoolString(const std::wstring& stringdata);
 		void PoolString(StringHandle handle, const std::wstring& stringdata);
-		const std::wstring& GetPooledString(StringHandle handle) const;
+		EPOCHVM const std::wstring& GetPooledString(StringHandle handle) const;
 		StringHandle GetPooledStringHandle(const std::wstring& value);
 
-		void* GetBuffer(BufferHandle handle);
+		EPOCHVM void* GetBuffer(BufferHandle handle);
 		size_t GetBufferSize(BufferHandle handle) const;
-		BufferHandle AllocateBuffer(size_t size);
+		EPOCHVM BufferHandle AllocateBuffer(size_t size);
 		BufferHandle CloneBuffer(BufferHandle handle);
 
 		ActiveStructure& GetStructure(StructureHandle handle);
 		StructureHandle AllocateStructure(const StructureDefinition& description);
 		StructureHandle DeepCopy(StructureHandle handle);
 
-		const StructureDefinition& GetStructureDefinition(EpochTypeID vartype) const;
+		EPOCHVM const StructureDefinition& GetStructureDefinition(EpochTypeID vartype) const;
 
 	// Functions
 	public:
@@ -239,9 +240,9 @@ namespace VM
 		void CollectGarbage_Strings();
 		void CollectGarbage_Structures();
 
-		void TickBufferGarbageCollector();
-		void TickStringGarbageCollector();
-		void TickStructureGarbageCollector();
+		EPOCHVM void TickBufferGarbageCollector();
+		EPOCHVM void TickStringGarbageCollector();
+		EPOCHVM void TickStructureGarbageCollector();
 
 		template <typename HandleType, typename ValidatorT>
 		void MarkAndSweep(ValidatorT validator, std::set<HandleType>& livehandles);

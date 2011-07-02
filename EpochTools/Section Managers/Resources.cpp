@@ -57,7 +57,7 @@ void Resources::Generate(Linker& linker)
 //
 // Write resources into the executable
 //
-void Resources::Emit(Linker& linker, LinkWriter& writer)
+void Resources::Emit(Linker& linker, LinkWriter& writer) const
 {
 	std::wcout << L"Writing resources... ";
 

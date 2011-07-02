@@ -8,13 +8,14 @@
 #include "pch.h"
 
 #include "Resource Compiler/Resource Types/Icons.h"
+#include "Resource Compiler/ResourceDirectory.h"
+#include "Resource Compiler/ResourceTypes.h"
 
 #include "Linker/LinkWriter.h"
 
 #include "Utility/Types/IntegerTypes.h"
 
 #include <fstream>
-#include <vector>
 
 
 using namespace ResourceCompiler;
@@ -25,15 +26,7 @@ using namespace ResourceCompiler;
 //
 
 #pragma pack(push)
-#pragma pack(2)
-
-struct IconImage
-{
-	BITMAPINFOHEADER Header;
-	RGBQUAD Colors[1];
-	BYTE XOR[1];
-	BYTE AND[1];
-};
+#pragma pack(1)
 
 struct ResourceIconDirectoryEntry
 {
@@ -51,17 +44,114 @@ struct ResourceIconDirectoryEntry
 
 
 //
+// Construct and initialize an icon group membership helper
+//
+IconGroupMemberships::IconGroupMemberships()
+	: CurrentID(0)
+{
+}
+
+//
+// Allocate a new icon ID and associate it with the given group
+//
+DWORD IconGroupMemberships::AllocateID(DWORD group, size_t imageindex, const IconUnpacker* unpacker)
+{
+	++CurrentID;
+	Memberships.insert(std::make_pair(group, CurrentID));
+	Indexes.insert(std::make_pair(CurrentID, imageindex));
+	Unpackers.insert(std::make_pair(CurrentID, unpacker));
+	return CurrentID;
+}
+
+//
+// Get the number of members in a given group
+//
+size_t IconGroupMemberships::GetMembershipCount(DWORD group) const
+{
+	return Memberships.count(group);
+}
+
+//
+// Emit the membership data for a given group
+//
+void IconGroupMemberships::EmitMembershipsForGroup(DWORD group, LinkWriter& writer) const
+{
+	std::pair<std::multimap<DWORD, DWORD>::const_iterator, std::multimap<DWORD, DWORD>::const_iterator> range = Memberships.equal_range(group);
+	for(std::multimap<DWORD, DWORD>::const_iterator iter = range.first; iter != range.second; ++iter)
+	{
+		std::map<DWORD, size_t>::const_iterator indexiter = Indexes.find(iter->second);
+		if(indexiter == Indexes.end())
+			throw Exception("Internal failure in IconGroupMemberships - no icon index found for the given icon ID");
+
+		size_t index = indexiter->second;
+
+		std::map<DWORD, const IconUnpacker*>::const_iterator unpackeriter = Unpackers.find(iter->second);
+		if(unpackeriter == Unpackers.end())
+			throw Exception("Internal failure in IconGroupMemberships - no unpacker found for the given icon ID");
+
+		const IconUnpacker& unpacker = *(unpackeriter->second);
+
+		ResourceIconDirectoryEntry entry;
+		entry.Width = unpacker.Directory[index].Width;
+		entry.Height = unpacker.Directory[index].Height;
+		entry.ColorCount = unpacker.Directory[index].ColorCount;
+		entry.Reserved = 0x00;
+		entry.Planes = unpacker.Directory[index].Planes;
+		entry.BitCount = unpacker.Directory[index].BitCount;
+		entry.BytesInResource = unpacker.Directory[index].BytesInResource;
+		entry.ID = static_cast<WORD>(iter->second);
+		writer.EmitBlob(&entry, sizeof(entry));
+	}
+}
+
+
+//
+// Construct and initialize an icon unpacking helper
+//
+IconUnpacker::IconUnpacker(const std::wstring& filename, DWORD group, DWORD language)
+	: FileName(filename),
+	  Group(group),
+	  Language(language)
+{
+	std::ifstream infile(filename.c_str(), std::ios::binary);
+	if(!infile)
+		throw Exception("FAILED to compile .ico resource!");
+
+	infile.read(reinterpret_cast<Byte*>(&DirectoryHeader), sizeof(DirectoryHeader));
+
+	if(DirectoryHeader.Type != 0x01)
+		throw Exception("FAILED to compile .ico resource, doesn't appear to be a valid icon");
+
+	if(DirectoryHeader.Count == 0)
+		throw Exception("FAILED to compile .ico resource, doesn't appear to contain any images");
+
+	Directory.resize(DirectoryHeader.Count);
+	infile.read(reinterpret_cast<Byte*>(&Directory[0]), static_cast<std::streamsize>(sizeof(IconDirectoryEntry) * Directory.size()));
+}
+
+//
+// Unpack an icon and convert it into the emitters used in a resource directory wrapper
+//
+void IconUnpacker::CreateResources(ResourceDirectory& directory, IconGroupMemberships& memberships) const
+{
+	for(size_t i = 0; i < Directory.size(); ++i)
+	{
+		std::auto_ptr<IconEmitter> emitter(new IconEmitter(FileName, Directory[i].ImageOffset, Directory[i].BytesInResource));
+		directory.AddResource(RESTYPE_ICON, memberships.AllocateID(Group, i, this), Language, emitter.release());
+	}
+}
+
+
+//
 // Write an icon group record to disk
 //
-void IconGroupEmitter::Emit(LinkWriter& writer)
+void IconGroupEmitter::Emit(LinkWriter& writer) const
 {
 	writer.EmitWORD(0);						// Reserved
 	writer.EmitWORD(1);						// Type (1 == icon)
-	writer.EmitWORD(static_cast<WORD>(Memberships.count(ID)));
+	writer.EmitWORD(static_cast<WORD>(Memberships.GetMembershipCount(ID)));
 
-	std::pair<std::multimap<DWORD, IconEmitter*>::const_iterator, std::multimap<DWORD, IconEmitter*>::const_iterator> range = Memberships.equal_range(ID);
-	for(std::multimap<DWORD, IconEmitter*>::const_iterator iter = range.first; iter != range.second; ++iter)
-		iter->second->EmitGroupEntry(writer);
+	Memberships.EmitMembershipsForGroup(ID, writer);
 }
 
 //
@@ -69,41 +159,32 @@ void IconGroupEmitter::Emit(LinkWriter& writer)
 //
 DWORD IconGroupEmitter::GetSize() const
 {
-	return static_cast<DWORD>((sizeof(WORD) * 3 + sizeof(DWORD) + 4) * Memberships.count(ID) + sizeof(WORD) * 3);
+	return static_cast<DWORD>(sizeof(ResourceIconDirectoryEntry) * Memberships.GetMembershipCount(ID) + sizeof(WORD) * 3);
 }
 
 
 //
 // Construct and initialize an icon emitter
 //
-IconEmitter::IconEmitter(const std::wstring& filename)
-	: Filename(filename)
+IconEmitter::IconEmitter(const std::wstring& filename, unsigned offset, unsigned size)
+	: Filename(filename),
+	  ImageOffset(offset),
+	  ImageSize(size)
 {
-	std::ifstream infile(Filename.c_str(), std::ios::binary);
-	if(!infile)
-		throw Exception("FAILED to compile .ico resource!");
-
-	infile.read(reinterpret_cast<Byte*>(&Directory), sizeof(Directory));
-
-	if(Directory.Type != 0x01)
-		throw Exception("FAILED to compile .ico resource, doesn't appear to be a valid icon");
 }
 
 //
 // Write an icon resource to disk
 //
-void IconEmitter::Emit(LinkWriter& writer)
+void IconEmitter::Emit(LinkWriter& writer) const
 {
 	// We already validated the file in the ctor so we just assume it's still fine
 	std::ifstream infile(Filename.c_str(), std::ios::binary);
 
-	for(unsigned i = 0; i < Directory.Count; ++i)
-	{
-		infile.seekg(Directory.Entries[i].ImageOffset);
-		std::vector<Byte> innerbuffer(Directory.Entries[i].BytesInResource);
-		infile.read(&innerbuffer[0], static_cast<std::streamsize>(innerbuffer.size()));
-		writer.EmitBlob(&innerbuffer[0], innerbuffer.size());
-	}
+	infile.seekg(ImageOffset);
+	std::vector<Byte> innerbuffer(ImageSize);
+	infile.read(&innerbuffer[0], static_cast<std::streamsize>(innerbuffer.size()));
+	writer.EmitBlob(&innerbuffer[0], innerbuffer.size());
 }
 
 //
@@ -111,33 +192,7 @@ void IconEmitter::Emit(LinkWriter& writer)
 //
 DWORD IconEmitter::GetSize() const
 {
-	DWORD size = 0;
-	for(unsigned i = 0; i < Directory.Count; ++i)
-		size += Directory.Entries[i].BytesInResource;
-
-	return size;
+	return ImageSize;
 }
 
-
-//
-// Write icon metadata block - this is written as part of the
-// icon group resource data, so we have to do it separately
-// from the actual icon image data.
-//
-void IconEmitter::EmitGroupEntry(LinkWriter& writer)
-{
-	for(unsigned i = 0; i < Directory.Count; ++i)
-	{
-		ResourceIconDirectoryEntry entry;
-		entry.Width = Directory.Entries[i].Width;
-		entry.Height = Directory.Entries[i].Height;
-		entry.ColorCount = Directory.Entries[i].ColorCount;
-		entry.Reserved = 0x00;
-		entry.Planes = Directory.Entries[i].Planes;
-		entry.BitCount = Directory.Entries[i].BitCount;
-		entry.BytesInResource = Directory.Entries[i].BytesInResource;
-		entry.ID = i + 1;
-		writer.EmitBlob(&entry, sizeof(entry));
-	}
-}
 

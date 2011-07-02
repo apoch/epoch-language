@@ -9,8 +9,11 @@
 
 
 // Dependencies
+#include "Resource Compiler/Resource Types/Icons.h"
+
 #include <list>
 #include <map>
+#include <set>
 
 
 namespace ResourceCompiler
@@ -18,12 +21,12 @@ namespace ResourceCompiler
 
 	// Forward declarations
 	class ResourceDirectory;
-	class IconEmitter;
+	class IconUnpacker;
 
 
 	class ResourceScript
 	{
-	// Construction
+	// Construction and destruction
 	public:
 		explicit ResourceScript(const std::list<std::wstring>& resourcefiles);
 		~ResourceScript();
@@ -52,7 +55,8 @@ namespace ResourceCompiler
 		};
 
 		std::multimap<DWORD, OffsetInfo> ResourceOffsets;
-		std::multimap<DWORD, IconEmitter*> IconEmitters;
+		std::set<IconUnpacker*> IconUnpackers;
+		IconGroupMemberships GroupMemberships;
 	};
 
 }

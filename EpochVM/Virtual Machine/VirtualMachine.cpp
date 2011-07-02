@@ -124,7 +124,7 @@ ExecutionResult VirtualMachine::ExecuteByteCode(const Bytecode::Instruction* buf
 //
 // Store a string in the global string pool, allocating an ID as necessary
 //
-StringHandle VirtualMachine::PoolString(const std::wstring& stringdata)
+EPOCHVM StringHandle VirtualMachine::PoolString(const std::wstring& stringdata)
 {
 	return PrivateStringPool.PoolFast(stringdata);
 }
@@ -140,7 +140,7 @@ void VirtualMachine::PoolString(StringHandle handle, const std::wstring& stringd
 //
 // Retrieve a pooled string from the global pool
 //
-const std::wstring& VirtualMachine::GetPooledString(StringHandle handle) const
+EPOCHVM const std::wstring& VirtualMachine::GetPooledString(StringHandle handle) const
 {
 	return PrivateStringPool.GetPooledString(handle);
 }
@@ -156,7 +156,7 @@ StringHandle VirtualMachine::GetPooledStringHandle(const std::wstring& value)
 //
 // Retrieve a buffer pointer from the list of allocated buffers
 //
-void* VirtualMachine::GetBuffer(BufferHandle handle)
+EPOCHVM void* VirtualMachine::GetBuffer(BufferHandle handle)
 {
 	Threads::CriticalSection::Auto lock(BufferCritSec);
 
@@ -184,7 +184,7 @@ size_t VirtualMachine::GetBufferSize(BufferHandle handle) const
 //
 // Allocate a data buffer and return its handle
 //
-BufferHandle VirtualMachine::AllocateBuffer(size_t size)
+EPOCHVM BufferHandle VirtualMachine::AllocateBuffer(size_t size)
 {
 	Threads::CriticalSection::Auto lock(BufferCritSec);
 
@@ -928,7 +928,7 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 	}
 	catch(const std::exception& e)
 	{
-		std::wcout << e.what() << std::endl;
+		::MessageBoxA(0, e.what(), "Epoch VM Exception", MB_ICONSTOP);
 		State.Result.ResultType = ExecutionResult::EXEC_RESULT_HALT;
 	}
 }
@@ -1223,7 +1223,7 @@ StructureHandle VirtualMachine::AllocateStructure(const StructureDefinition &des
 //
 // Get the definition metadata for the structure with the given type ID number
 //
-const StructureDefinition& VirtualMachine::GetStructureDefinition(EpochTypeID type) const
+EPOCHVM const StructureDefinition& VirtualMachine::GetStructureDefinition(EpochTypeID type) const
 {
 	Threads::CriticalSection::Auto lock(StructureCritSec);
 
@@ -1320,7 +1320,7 @@ void ExecutionContext::CollectGarbage()
 //
 // Tick the garbage collection counter for buffer allocations
 //
-void ExecutionContext::TickBufferGarbageCollector()
+EPOCHVM void ExecutionContext::TickBufferGarbageCollector()
 {
 	++GarbageTick_Buffers;
 }
@@ -1328,7 +1328,7 @@ void ExecutionContext::TickBufferGarbageCollector()
 //
 // Tick the garbage collection counter for string allocations
 //
-void ExecutionContext::TickStringGarbageCollector()
+EPOCHVM void ExecutionContext::TickStringGarbageCollector()
 {
 	++GarbageTick_Strings;
 }
@@ -1336,7 +1336,7 @@ void ExecutionContext::TickStringGarbageCollector()
 //
 // Tick the garbage collection counter for structure allocations
 //
-void ExecutionContext::TickStructureGarbageCollector()
+EPOCHVM void ExecutionContext::TickStructureGarbageCollector()
 {
 	++GarbageTick_Structures;
 }

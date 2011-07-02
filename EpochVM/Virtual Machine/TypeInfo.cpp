@@ -22,7 +22,7 @@ using namespace VM;
 //
 // Given a type ID, determine the amount of storage space needed
 //
-size_t VM::GetStorageSize(EpochTypeID type)
+EPOCHVM size_t VM::GetStorageSize(EpochTypeID type)
 {
 	switch(type)
 	{
@@ -54,7 +54,7 @@ size_t VM::GetStorageSize(EpochTypeID type)
 //
 // Given a type ID, determine the amount of storage space needed when the data is marshaled to C
 //
-size_t VM::GetMarshaledSize(EpochTypeID type)
+EPOCHVM size_t VM::GetMarshaledSize(EpochTypeID type)
 {
 	switch(type)
 	{

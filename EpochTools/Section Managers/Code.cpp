@@ -40,7 +40,7 @@ void CodeGenerator::Generate(Linker& linker)
 //
 // Write binary machine code into the executable
 //
-void CodeGenerator::Emit(Linker& linker, LinkWriter& writer)
+void CodeGenerator::Emit(Linker& linker, LinkWriter& writer) const
 {
 	std::wcout << L"Writing Epoch launcher code... ";
 	const ThunkManager& thunk = linker.GetThunkManager();

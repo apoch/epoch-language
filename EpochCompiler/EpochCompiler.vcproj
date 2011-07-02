@@ -442,10 +442,6 @@
 				Name="Virtual Machine"
 				>
 				<File
-					RelativePath="..\EpochVM\Virtual Machine\TypeInfo.cpp"
-					>
-				</File>
-				<File
 					RelativePath="..\EpochVM\Virtual Machine\TypeInfo.h"
 					>
 				</File>

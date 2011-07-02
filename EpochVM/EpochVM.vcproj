@@ -219,6 +219,10 @@
 			Name="Exports"
 			>
 			<File
+				RelativePath=".\Virtual Machine\ExportDef.h"
+				>
+			</File>
+			<File
 				RelativePath=".\Exports\Exports.cpp"
 				>
 			</File>

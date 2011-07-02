@@ -22,7 +22,7 @@ class ThunkManager : public LinkerSectionManager
 // Section manager interface
 public:
 	virtual void Generate(Linker& linker);
-	virtual void Emit(Linker& linker, LinkWriter& writer);
+	virtual void Emit(Linker& linker, LinkWriter& writer) const;
 
 	virtual bool RepresentsPESection() const;
 
@@ -40,9 +40,9 @@ private:
 
 // Internal tracking
 private:
-	std::map<std::string, DWORD> Libraries;
-	std::map<std::string, std::pair<DWORD, DWORD> > LibraryThunkSpots;
-	std::map<std::string, std::pair<DWORD, DWORD> > LibraryRewriteThunkSpots;
+	mutable std::map<std::string, DWORD> Libraries;
+	mutable std::map<std::string, std::pair<DWORD, DWORD> > LibraryThunkSpots;
+	mutable std::map<std::string, std::pair<DWORD, DWORD> > LibraryRewriteThunkSpots;
 	std::map<std::string, std::pair<DWORD, std::string> > Functions;
 	std::map<std::string, DWORD> FunctionThunkLocations;
 	DWORD DataSize;

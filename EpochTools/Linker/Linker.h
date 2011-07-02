@@ -41,7 +41,7 @@ public:
 // Section manager interface
 public:
 	virtual void Generate(Linker& linker) = 0;
-	virtual void Emit(Linker& linker, LinkWriter& writer) = 0;
+	virtual void Emit(Linker& linker, LinkWriter& writer) const = 0;
 
 	virtual bool RepresentsPESection() const = 0;
 };

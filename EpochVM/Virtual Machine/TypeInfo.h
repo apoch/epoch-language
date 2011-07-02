@@ -9,11 +9,12 @@
 
 
 // Dependencies
+#include "Virtual Machine/ExportDef.h"
 #include "Utility/Types/EpochTypeIDs.h"
 
 
 namespace VM
 {
-	size_t GetStorageSize(VM::EpochTypeID type);
-	size_t GetMarshaledSize(VM::EpochTypeID type);
+	EPOCHVM size_t GetStorageSize(VM::EpochTypeID type);
+	EPOCHVM size_t GetMarshaledSize(VM::EpochTypeID type);
 }
