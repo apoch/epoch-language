@@ -53,6 +53,13 @@ DWORD MenuEmitter::GetSize() const
 }
 
 
+MenuEntry::MenuEntry()
+	: IsPopup(false),
+	  IsLast(false),
+	  ID(0)
+{
+}
+
 //
 // Obtain the size of a menu entry, including all of its children
 // Note that this is the size the resource will consume on disk
@@ -78,6 +85,10 @@ DWORD MenuEntry::GetTotalSize() const
 //
 void MenuEntry::LoadFromStream(std::wistream& in, std::list<MenuEntry>& entries)
 {
+	ID = 0;
+	IsPopup = true;
+	IsLast = false;
+
 	std::wstring token;
 	in >> token;
 
@@ -128,7 +139,8 @@ void MenuEntry::LoadFromStream(std::wistream& in, std::list<MenuEntry>& entries)
 		else if(token == L"separator")
 		{
 			MenuEntry entry;
-			entry.IsPopup = entry.IsLast = false;
+			entry.IsPopup = false;
+			entry.IsLast = false;
 			entry.ID = 0;
 			entries.push_back(entry);
 		}

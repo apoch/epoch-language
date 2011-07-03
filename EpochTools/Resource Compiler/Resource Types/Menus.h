@@ -20,6 +20,8 @@ namespace ResourceCompiler
 
 	struct MenuEntry
 	{
+		MenuEntry();
+
 		bool IsPopup;
 		bool IsLast;
 		WORD ID;
@@ -27,8 +29,9 @@ namespace ResourceCompiler
 		std::list<MenuEntry> SubEntries;
 
 		DWORD GetTotalSize() const;
-		void LoadFromStream(std::wistream& in, std::list<MenuEntry>& entrylist);
 		void Emit(LinkWriter& writer) const;
+
+		void LoadFromStream(std::wistream& in, std::list<MenuEntry>& entrylist);
 	};
 
 

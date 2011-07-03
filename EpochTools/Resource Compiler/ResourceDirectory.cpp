@@ -222,7 +222,9 @@ void DirectoryLeaf::SetOffsetsAll(DWORD& offset)
 // Construct and initialize the resource directory tracker
 //
 ResourceDirectory::ResourceDirectory()
-	: RootTier(NULL)
+	: RootTier(NULL),
+	  ResourceSize(0),
+	  DirectorySize(0)
 {
 }
 
