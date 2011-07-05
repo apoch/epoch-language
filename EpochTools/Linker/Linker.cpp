@@ -54,25 +54,14 @@ Linker::Linker(const Projects::Project& project)
 	  TheResourceManager(NULL)
 {
 	// Note that the ordering here is important - it controls the order of the final EXE output!
-	SectionManagers.push_back(new PEHeaderSection);
-	HeaderManager = dynamic_cast<PEHeaderSection*>(SectionManagers.back());
+	HeaderManager = AddSectionManager(new PEHeaderSection);
+	SectionManager = AddSectionManager(new PESectionManager(RoundUpToVirtualPadding(HeaderManager->GetHeaderSize())));
+	TheThunkManager = AddSectionManager(new ThunkManager);
+	TheCodeManager = AddSectionManager(new CodeGenerator);
+	TheDataManager = AddSectionManager(new PEData);
+	TheResourceManager = AddSectionManager(new Resources(*this));
 
-	SectionManagers.push_back(new PESectionManager(RoundUpToVirtualPadding(HeaderManager->GetHeaderSize())));
-	SectionManager = dynamic_cast<PESectionManager*>(SectionManagers.back());
-
-	SectionManagers.push_back(new ThunkManager);
-	TheThunkManager = dynamic_cast<ThunkManager*>(SectionManagers.back());
-
-	SectionManagers.push_back(new CodeGenerator);
-	TheCodeManager = dynamic_cast<CodeGenerator*>(SectionManagers.back());
-
-	SectionManagers.push_back(new PEData);
-	TheDataManager = dynamic_cast<PEData*>(SectionManagers.back());
-
-	SectionManagers.push_back(new Resources(*this));
-	TheResourceManager = dynamic_cast<Resources*>(SectionManagers.back());
-
-	SectionManagers.push_back(new EpochCode(TheProject.GetBinaryFileName(TheProject.GetSourceFileList().front())));
+	AddSectionManager(new EpochCode(TheProject.GetBinaryFileName(TheProject.GetSourceFileList().front())));
 }
 
 //

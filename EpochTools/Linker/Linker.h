@@ -100,6 +100,15 @@ public:
 public:
 	const Projects::Project& TheProject;
 
+// Internal helpers
+private:
+	template <typename SectionManagerT>
+	SectionManagerT* AddSectionManager(SectionManagerT* manager)
+	{
+		SectionManagers.push_back(manager);
+		return manager;
+	}
+
 // Internal tracking
 private:
 	std::list<LinkerSectionManager*> SectionManagers;
