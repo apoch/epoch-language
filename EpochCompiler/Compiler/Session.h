@@ -67,6 +67,7 @@ public:
 	EntityTable PostfixEntities;
 	EntityTable PostfixClosers;
 	FunctionTagHelperTable FunctionTagHelpers;
+	StringHandle GlobalScopeName;
 
 // Internal helpers
 private:

@@ -95,6 +95,8 @@ struct FundamentalGrammar : public boost::spirit::classic::grammar<FundamentalGr
 
 				STRUCTURE("structure"),
 
+				GLOBAL("global"),
+
 				ASSIGN("="),
 
 				EPOCH_TRUE("true"),
@@ -304,6 +306,10 @@ struct FundamentalGrammar : public boost::spirit::classic::grammar<FundamentalGr
 				  )
 				| 
 				  (
+				    GLOBAL[PrepareForGlobalBlock(self.Bindings)] >> CodeBlock[StoreEntityCode(self.Bindings)]
+				  )
+			    |
+				  (
 					StringIdentifier[StoreString(self.Bindings)] >> COLON >> ParameterList >> MAPARROW >> ReturnList[StoreEntityType(self.Bindings, Bytecode::EntityTags::Function)]
 					>>
 						FunctionTagExceptionGuard
@@ -373,7 +379,7 @@ struct FundamentalGrammar : public boost::spirit::classic::grammar<FundamentalGr
 
 		boost::spirit::classic::chlit<> COLON, OPENPARENS, CLOSEPARENS, OPENBRACE, CLOSEBRACE, OPENBRACKET, CLOSEBRACKET, PERIOD, COMMA, QUOTE, NEGATE;
 
-		boost::spirit::classic::strlit<> MAPARROW, INTEGER16, INTEGER, STRING, BOOLEAN, REAL, BUFFER, STRUCTURE, ASSIGN, EPOCH_TRUE, EPOCH_FALSE, REFERENCE, IDENTIFIER, HEXPREFIX;
+		boost::spirit::classic::strlit<> MAPARROW, INTEGER16, INTEGER, STRING, BOOLEAN, REAL, BUFFER, STRUCTURE, ASSIGN, EPOCH_TRUE, EPOCH_FALSE, REFERENCE, IDENTIFIER, HEXPREFIX, GLOBAL;
 
 		boost::spirit::classic::rule<ScannerType> StringIdentifier;
 

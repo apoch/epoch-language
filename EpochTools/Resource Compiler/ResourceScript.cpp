@@ -23,10 +23,6 @@
 using namespace ResourceCompiler;
 
 
-// Prototypes
-std::wstring StripQuotes(const std::wstring& str);
-
-
 //
 // Construct and initialize a resource script wrapper
 //
@@ -159,24 +155,4 @@ void ResourceScript::LoadResourceIntoDirectory(DWORD type, const std::wstring& f
 	directory.AddResource(type, id, language, emitter.release());
 }
 
-
-//
-// Helper for removing quotes from around a string
-// TODO - move into a centralized location and optimize
-//
-std::wstring StripQuotes(const std::wstring& str)
-{
-	std::wstring ret(str);
-
-	if(ret.empty())
-		return ret;
-
-	if(ret[0] == L'\"')
-		ret = ret.substr(1);
-
-	if(*ret.rbegin() == L'\"')
-		ret = ret.substr(0, ret.length() - 1);
-
-	return ret;
-}
 

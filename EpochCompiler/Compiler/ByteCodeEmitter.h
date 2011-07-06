@@ -76,6 +76,7 @@ public:
 // Entities
 public:
 	void EnterEntity(Bytecode::EntityTag tag, StringHandle name);
+	void PrependEntity(Bytecode::EntityTag tag, StringHandle name);
 	void ExitEntity();
 
 	void BeginChain();
@@ -158,10 +159,13 @@ private:
 
 	void PrependInstruction(Bytecode::Instruction instruction);
 
+	void PrependEntityTag(Bytecode::EntityTag tag);
+
 
 // Internal tracking
 private:
 	ByteBuffer& Buffer;
 };
+
 
 

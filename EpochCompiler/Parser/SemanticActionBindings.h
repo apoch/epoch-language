@@ -1340,3 +1340,20 @@ struct FinalizeReturnExpression
 };
 
 
+
+struct PrepareForGlobalBlock
+{
+	explicit PrepareForGlobalBlock(SemanticActionInterface& bindings)
+		: Bindings(bindings)
+	{ }
+
+	template <typename IteratorType>
+	void operator () (IteratorType begin, IteratorType end) const
+	{
+		Trace(L"PrepareForGlobalBlock", begin, end);
+		Bindings.SetParsePosition(end);
+		Bindings.PrepareForGlobalBlock();
+	}
+
+	SemanticActionInterface& Bindings;
+};

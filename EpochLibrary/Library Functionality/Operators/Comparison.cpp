@@ -32,6 +32,15 @@ namespace
 		context.State.Stack.PushValue(p1 == p2);
 	}
 
+	void Integer16Equality(StringHandle functionname, VM::ExecutionContext& context)
+	{
+		Integer16 p2 = context.State.Stack.PopValue<Integer16>();
+		Integer16 p1 = context.State.Stack.PopValue<Integer16>();
+
+		context.State.Stack.PushValue(p1 == p2);
+	}
+
+
 	//
 	// Compare two integers for inequality
 	//
@@ -121,6 +130,7 @@ namespace
 void ComparisonLibrary::RegisterLibraryFunctions(FunctionInvocationTable& table, StringPoolManager& stringpool)
 {
 	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"==@@integer"), IntegerEquality));
+	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"==@@integer16"), Integer16Equality));
 	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"!=@@integer"), IntegerInequality));
 	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"==@@boolean"), BooleanEquality));
 	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"!=@@boolean"), BooleanInequality));
@@ -141,6 +151,13 @@ void ComparisonLibrary::RegisterLibraryFunctions(FunctionSignatureSet& signature
 		signature.AddParameter(L"i2", VM::EpochType_Integer, false);
 		signature.SetReturnType(VM::EpochType_Boolean);
 		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"==@@integer"), signature));
+	}
+	{
+		FunctionSignature signature;
+		signature.AddParameter(L"i1", VM::EpochType_Integer16, false);
+		signature.AddParameter(L"i2", VM::EpochType_Integer16, false);
+		signature.SetReturnType(VM::EpochType_Boolean);
+		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"==@@integer16"), signature));
 	}
 	{
 		FunctionSignature signature;
@@ -231,6 +248,7 @@ void ComparisonLibrary::RegisterLibraryOverloads(OverloadMap& overloadmap, Strin
 	{
 		StringHandle functionnamehandle = stringpool.Pool(L"==");
 		overloadmap[functionnamehandle].insert(stringpool.Pool(L"==@@integer"));
+		overloadmap[functionnamehandle].insert(stringpool.Pool(L"==@@integer16"));
 		overloadmap[functionnamehandle].insert(stringpool.Pool(L"==@@boolean"));
 	}
 	{
@@ -249,3 +267,4 @@ void ComparisonLibrary::RegisterLibraryOverloads(OverloadMap& overloadmap, Strin
 		overloadmap[functionnamehandle].insert(stringpool.Pool(L"<@@real"));
 	}
 }
+

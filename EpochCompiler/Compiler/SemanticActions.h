@@ -139,6 +139,8 @@ public:
 
 	virtual void StoreUnaryPrefixOperator(const std::wstring& identifier);
 
+	virtual void PrepareForGlobalBlock();
+
 	virtual void BeginParameterSet();
 	virtual void EndParameterSet();
 	virtual void RegisterParameterType(const std::wstring& type);

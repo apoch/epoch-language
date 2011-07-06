@@ -327,6 +327,13 @@ void ByteCodeEmitter::EnterEntity(Bytecode::EntityTag tag, StringHandle name)
 	EmitRawValue(name);
 }
 
+void ByteCodeEmitter::PrependEntity(Bytecode::EntityTag tag, StringHandle name)
+{
+	PrependRawValue(name);
+	PrependEntityTag(tag);
+	PrependInstruction(Bytecode::Instructions::BeginEntity);
+}
+
 //
 // Emit a generic entity exit
 //
@@ -863,4 +870,11 @@ void ByteCodeEmitter::PrependInstruction(Bytecode::Instruction instruction)
 	PrependRawValue(byteval);
 }
 
+void ByteCodeEmitter::PrependEntityTag(Bytecode::EntityTag tag)
+{
+	if(sizeof(Bytecode::EntityTag) > sizeof(Integer32))
+		throw CompileSettingsException("Truncation of type annotation in bytecode emitter");
 
+	Integer32 intval = static_cast<Integer32>(tag);
+	PrependRawValue(intval);
+}

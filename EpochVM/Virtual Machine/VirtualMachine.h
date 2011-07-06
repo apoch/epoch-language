@@ -52,6 +52,7 @@ namespace VM
 		{
 			EXEC_RESULT_OK,			// Code terminated normally
 			EXEC_RESULT_HALT,		// VM encountered a HALT instruction
+			EXEC_RESULT_RETURN,		// Return to calling context
 		};
 
 		ExecResultType ResultType;

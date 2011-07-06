@@ -22,6 +22,7 @@
 // Construct a compilation session wrapper and initialize the standard library
 //
 CompileSession::CompileSession()
+	: GlobalScopeName(0)
 {
 	HINSTANCE dllhandle = Marshaling::TheDLLPool.OpenDLL(L"EpochLibrary.DLL");
 
@@ -95,7 +96,7 @@ void CompileSession::EmitByteCode()
 	// point, user code is in full control of execution flow within the VM.
 	ByteCodeEmitter emitter(ByteCodeBuffer);
 	emitter.Invoke(StringPool.Pool(L"entrypoint"));
-	emitter.Halt();
+	emitter.Halt(); 
 
 	// Now that the VM's startup stub is written out, we can begin emitting the actual
 	// code for the program being compiled. This simply starts by enumerating all of the
@@ -104,6 +105,9 @@ void CompileSession::EmitByteCode()
 	// functions.
 	for(std::list<std::pair<std::wstring, std::wstring> >::const_iterator iter = SourceBlocksAndFileNames.begin(); iter != SourceBlocksAndFileNames.end(); ++iter)
 		CompileFunctions(iter->first, iter->second);
+
+	if(GlobalScopeName)
+		emitter.PrependEntity(Bytecode::EntityTags::Globals, GlobalScopeName);
 }
 
 

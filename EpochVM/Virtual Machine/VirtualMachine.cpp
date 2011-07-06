@@ -448,18 +448,7 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 				break;
 
 			case Bytecode::Instructions::Return:	// Return execution control to the parent context
-				CollectGarbage();
-				onexit.UnwindOutermostFunctionStack();
-				if(Variables)
-					scope = &Variables->GetOriginalDescription();
-				else
-					scope = NULL;
-				InstructionOffset = InstructionOffsetStack.top();
-				InstructionOffsetStack.pop();
-				if(returnonfunctionexitstack.top())
-					return;
-				InvokedFunctionStack.pop();
-				returnonfunctionexitstack.pop();
+				State.Result.ResultType = ExecutionResult::EXEC_RESULT_RETURN;
 				break;
 
 			case Bytecode::Instructions::SetRetVal:	// Set return value register
@@ -735,6 +724,14 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 						Variables->PushLocalsOntoStack(*this);
 						onexit.CleanUpScope(Variables);
 					}
+					else if(tag == Bytecode::EntityTags::Globals)
+					{
+						scope = &OwnerVM.GetScopeDescription(name);
+						Variables = new ActiveScope(*scope, Variables);
+						Variables->BindParametersToStack(*this);
+						Variables->PushLocalsOntoStack(*this);
+						onexit.CleanUpScope(Variables);
+					}
 					else if(tag == Bytecode::EntityTags::PatternMatchingResolver)
 					{
 						// Do nothing
@@ -923,6 +920,24 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 			
 			default:
 				throw FatalException("Invalid bytecode operation");
+			}
+
+			if(State.Result.ResultType == ExecutionResult::EXEC_RESULT_RETURN)
+			{
+				State.Result.ResultType = ExecutionResult::EXEC_RESULT_OK;
+
+				CollectGarbage();
+				onexit.UnwindOutermostFunctionStack();
+				if(Variables)
+					scope = &Variables->GetOriginalDescription();
+				else
+					scope = NULL;
+				InstructionOffset = InstructionOffsetStack.top();
+				InstructionOffsetStack.pop();
+				if(returnonfunctionexitstack.top())
+					return;
+				InvokedFunctionStack.pop();
+				returnonfunctionexitstack.pop();
 			}
 		}
 	}

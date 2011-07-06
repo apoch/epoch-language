@@ -18,6 +18,7 @@
 #include "Library Functionality/Operators/Comparison.h"
 #include "Library Functionality/Operators/Strings.h"
 
+#include "Library Functionality/Flow Control/FlowControl.h"
 #include "Library Functionality/Flow Control/Conditionals.h"
 #include "Library Functionality/Flow Control/Loops.h"
 #include "Library Functionality/Flow Control/StringPooling.h"
@@ -26,6 +27,8 @@
 #include "Library Functionality/Function Tags/Constructors.h"
 
 #include "Library Functionality/Marshaling/MarshalingLibrary.h"
+
+#include "Library Functionality/Command Line/CommandLine.h"
 
 
 //
@@ -45,11 +48,14 @@ extern "C" void __stdcall RegisterLibraryContents(FunctionSignatureSet& function
 		BooleanLibrary::RegisterLibraryFunctions(functionsignatures, stringpool);
 		ComparisonLibrary::RegisterLibraryFunctions(functionsignatures, stringpool);
 		StringLibrary::RegisterLibraryFunctions(functionsignatures, stringpool);
+		FlowControl::RegisterLibraryFunctions(functionsignatures, stringpool);
 		FlowControl::RegisterStrings(stringpool);
 
 		FunctionTags::RegisterExternalTag(functionsignatures, stringpool);
 
 		MarshalingLibrary::RegisterLibraryFunctions(functionsignatures, stringpool);
+
+		CommandLineLibrary::RegisterLibraryFunctions(functionsignatures, stringpool);
 	}
 	catch(...)
 	{
@@ -75,12 +81,15 @@ extern "C" void __stdcall BindToVirtualMachine(FunctionInvocationTable& function
 		ComparisonLibrary::RegisterLibraryFunctions(functiontable, stringpool);
 		StringLibrary::RegisterLibraryFunctions(functiontable, stringpool);
 
+		FlowControl::RegisterLibraryFunctions(functiontable, stringpool);
 		FlowControl::RegisterConditionalEntities(entities, entities, stringpool, tagindex);
 		FlowControl::RegisterLoopEntities(entities, entities, entities, entities, stringpool, tagindex);
 
 		FunctionTags::RegisterExternalTag(marshalfunction, functiontable, stringpool);
 
 		MarshalingLibrary::RegisterLibraryFunctions(functiontable, stringpool);
+
+		CommandLineLibrary::RegisterLibraryFunctions(functiontable, stringpool);
 	}
 	catch(...)
 	{

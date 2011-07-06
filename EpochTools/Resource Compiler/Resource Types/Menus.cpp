@@ -18,12 +18,6 @@ using namespace ResourceCompiler;
 
 
 //
-// Prototypes
-//
-std::wstring StripQuotes(const std::wstring& str);
-
-
-//
 // Construct and initialize a menu resource wrapper
 //
 MenuEmitter::MenuEmitter(std::wistream& in)

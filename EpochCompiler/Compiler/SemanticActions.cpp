@@ -144,6 +144,26 @@ void CompilationSemantics::StoreEntityType(Bytecode::EntityTag typetag)
 		break;
 
 	//
+	// The entity is a global code block.
+	//
+	case Bytecode::EntityTags::Globals:
+		{
+			if(IsPrepass)
+			{
+				if(Session.GlobalScopeName)
+					throw FatalException("Multiple global blocks are currently not supported.");
+			}
+
+			std::wstring anonymousname = AllocateAnonymousScopeName();
+			Session.GlobalScopeName = Session.StringPool.Pool(anonymousname);
+
+			CurrentEntities.push(anonymousname);
+			LexicalScopeDescriptions.insert(std::make_pair(Session.GlobalScopeName, ScopeDescription()));
+			LexicalScopeStack.push(Session.GlobalScopeName);
+		}
+		break;
+
+	//
 	// Handle the error case where the type tag is not recognized. This
 	// generally indicates a catastrophic failure in the parser setup,
 	// because custom entities are handled separately; so we throw a
@@ -293,6 +313,12 @@ void CompilationSemantics::StoreEntityCode()
 		//
 		case Bytecode::EntityTags::FreeBlock:
 			EmitterStack.top()->ExitEntity();
+			break;
+
+		//
+		// The entity is a global code block. No epilogue code is needed.
+		//
+		case Bytecode::EntityTags::Globals:
 			break;
 
 		//
@@ -646,13 +672,16 @@ void CompilationSemantics::CollapseUnaryOperators()
 				break;
 
 			const CompileTimeParameter& originalparam = CompileTimeParameters.top()[ctparamindex];
-			EmitInfixOperand(emitter, originalparam);
+			if(InferenceComplete())
+			{
+				EmitInfixOperand(emitter, originalparam);
 			
-			StringHandle outhandle = iter->first;
-			std::wstring outname = Session.StringPool.GetPooledString(outhandle);
-			CompileTimeParameterVector paramvec(1, originalparam);
-			RemapFunctionToOverload(paramvec, 0, 1, std::numeric_limits<size_t>::max(), TypeVector(), true, outname, outhandle);
-			emitter.Invoke(outhandle);
+				StringHandle outhandle = iter->first;
+				std::wstring outname = Session.StringPool.GetPooledString(outhandle);
+				CompileTimeParameterVector paramvec(1, originalparam);
+				RemapFunctionToOverload(paramvec, 0, 1, std::numeric_limits<size_t>::max(), TypeVector(), true, outname, outhandle);
+				emitter.Invoke(outhandle);
+			}
 
 			CompileTimeParameter ctparam(L"@@unaryresult", VM::EpochType_Expression);
 			ctparam.ExpressionType = GetEffectiveType(originalparam);
@@ -1875,9 +1904,20 @@ void CompilationSemantics::Finalize()
 		for(std::map<StringHandle, std::wstring>::const_reverse_iterator iter = Session.StringPool.GetInternalPool().rbegin(); iter != Session.StringPool.GetInternalPool().rend(); ++iter)
 			EmitterStack.top()->PoolString(iter->first, iter->second);
 
+		if(Session.GlobalScopeName)
+		{
+			ScopeMap::const_iterator iter = LexicalScopeDescriptions.find(Session.GlobalScopeName);
+			EmitterStack.top()->DefineLexicalScope(Session.GlobalScopeName, FindLexicalScopeName(iter->second.ParentScope), iter->second.GetVariableCount());
+			for(size_t i = 0; i < iter->second.GetVariableCount(); ++i)
+				EmitterStack.top()->LexicalScopeEntry(Session.StringPool.Pool(iter->second.GetVariableName(i)), iter->second.GetVariableTypeByIndex(i), iter->second.IsReference(i), iter->second.GetVariableOrigin(i));
+		}
+
 		// Generate lexical scope metadata
 		for(ScopeMap::const_iterator iter = LexicalScopeDescriptions.begin(); iter != LexicalScopeDescriptions.end(); ++iter)
 		{
+			if(iter->first == Session.GlobalScopeName)
+				continue;
+
 			EmitterStack.top()->DefineLexicalScope(iter->first, FindLexicalScopeName(iter->second.ParentScope), iter->second.GetVariableCount());
 			for(size_t i = 0; i < iter->second.GetVariableCount(); ++i)
 				EmitterStack.top()->LexicalScopeEntry(Session.StringPool.Pool(iter->second.GetVariableName(i)), iter->second.GetVariableTypeByIndex(i), iter->second.IsReference(i), iter->second.GetVariableOrigin(i));
@@ -1906,7 +1946,11 @@ void CompilationSemantics::AddLexicalScope(StringHandle scopename)
 	if(LexicalScopeDescriptions.find(scopename) != LexicalScopeDescriptions.end())
 		Throw(SymbolRedefinitionException("An entity with the identifier \"" + narrow(Session.StringPool.GetPooledString(scopename)) + "\" has already been defined"));
 	
-	LexicalScopeDescriptions.insert(std::make_pair(scopename, ScopeDescription()));
+	ScopeDescription* parent = NULL;
+	if(Session.GlobalScopeName)
+		parent = &LexicalScopeDescriptions.find(Session.GlobalScopeName)->second;
+
+	LexicalScopeDescriptions.insert(std::make_pair(scopename, ScopeDescription(parent)));
 	LexicalScopeStack.push(scopename);
 }
 
@@ -3059,6 +3103,16 @@ const FunctionSignature& CompilationSemantics::GetFunctionSignature(const LRValu
 const FunctionSignature& CompilationSemantics::GetFunctionSignature(const CompileTimeParameter& ctparam) const
 {
 	return GetFunctionSignature(ctparam.LRValueContents);
+}
+
+
+//-------------------------------------------------------------------------------
+// Global data
+//-------------------------------------------------------------------------------
+
+void CompilationSemantics::PrepareForGlobalBlock()
+{
+	StoreEntityType(Bytecode::EntityTags::Globals);
 }
 
 

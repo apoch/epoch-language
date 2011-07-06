@@ -337,6 +337,14 @@
 					>
 				</File>
 				<File
+					RelativePath=".\Library Functionality\Flow Control\FlowControl.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\Library Functionality\Flow Control\FlowControl.h"
+					>
+				</File>
+				<File
 					RelativePath=".\Library Functionality\Flow Control\Loops.cpp"
 					>
 				</File>
@@ -382,6 +390,18 @@
 				</File>
 				<File
 					RelativePath=".\Library Functionality\Marshaling\MarshalingLibrary.h"
+					>
+				</File>
+			</Filter>
+			<Filter
+				Name="Command Line"
+				>
+				<File
+					RelativePath=".\Library Functionality\Command Line\CommandLine.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\Library Functionality\Command Line\CommandLine.h"
 					>
 				</File>
 			</Filter>

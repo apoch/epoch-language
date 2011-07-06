@@ -65,6 +65,8 @@ public:
 
 	virtual void StoreUnaryPrefixOperator(const std::wstring& identifier) = 0;
 
+	virtual void PrepareForGlobalBlock() = 0;
+
 	virtual void BeginParameterSet() = 0;
 	virtual void EndParameterSet() = 0;
 	virtual void RegisterParameterType(const std::wstring& type) = 0;

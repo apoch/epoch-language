@@ -410,6 +410,16 @@ namespace
 		{ }
 	};
 
+	struct MarshaledIntegerRecord
+	{
+		Integer32 Holder;
+		size_t VariableIndex;
+
+		MarshaledIntegerRecord(Integer32 value, size_t index)
+			: Holder(value), VariableIndex(index)
+		{ }
+	};
+
 	//
 	// Given a set of structure marshaling records, perform the actual data
 	// format conversions for retrieving mutated structures that were passed
@@ -490,6 +500,8 @@ void ExternalDispatch(StringHandle functionname, VM::ExecutionContext& context)
 	// which would invalidate the cached buffer pointers
 	std::list<MarshaledStructureRecord> marshaledstructures;
 
+	std::list<MarshaledIntegerRecord> marshaledintegers;
+
 	// Cache the index of the function return variable for placing the external
 	// function's return value into the appropriate Epoch variable when done
 	size_t retindex = std::numeric_limits<size_t>::max();
@@ -510,7 +522,13 @@ void ExternalDispatch(StringHandle functionname, VM::ExecutionContext& context)
 			switch(vartype)
 			{
 			case EpochType_Integer:
-				stufftopush.push_back(pushrec(context.Variables->Read<Integer32>(description.GetVariableNameHandle(i)), false));
+				if(description.IsReference(i))
+				{
+					marshaledintegers.push_back(MarshaledIntegerRecord(context.Variables->Read<Integer32>(description.GetVariableNameHandle(i)), i));
+					stufftopush.push_back(pushrec(reinterpret_cast<UINT_PTR>(&marshaledintegers.back().Holder), false));
+				}
+				else
+					stufftopush.push_back(pushrec(context.Variables->Read<Integer32>(description.GetVariableNameHandle(i)), false));
 				break;
 
 			case EpochType_Integer16:
@@ -598,8 +616,6 @@ void ExternalDispatch(StringHandle functionname, VM::ExecutionContext& context)
 
 		_asm
 		{
-			mov ebx, address
-
 			mov eax, [theptr]
 			mov ecx, pushstuffsize
 
@@ -621,8 +637,6 @@ FinishLoop:
 			jnz BatchPushLoop
 		}
 	}
-	else
-		__asm mov ebx, address
 
 
 	// Call the function and store off the appropriate return value
@@ -631,7 +645,7 @@ FinishLoop:
 		mov eax, EpochType_Integer
 		cmp rettype, eax
 		jne TypeIsInteger16
-		call ebx
+		call address
 		mov integerret, eax
 		jmp IntegerReturn
 
@@ -639,7 +653,7 @@ TypeIsInteger16:
 		mov eax, EpochType_Integer16
 		cmp rettype, eax
 		jne TypeIsBoolean
-		call ebx
+		call address
 		mov integer16ret, ax
 		jmp Integer16Return
 
@@ -647,7 +661,7 @@ TypeIsBoolean:
 		mov eax, EpochType_Boolean
 		cmp rettype, eax
 		jne TypeIsString
-		call ebx
+		call address
 		test eax, eax
 		jz BoolIsFalse
 		mov integerret, 1
@@ -660,7 +674,7 @@ TypeIsString:
 		mov eax, EpochType_String
 		cmp rettype, eax
 		jne TypeIsNull
-		call ebx
+		call address
 		mov stringret, eax
 		jmp StringReturn
 
@@ -668,9 +682,12 @@ TypeIsNull:
 		mov eax, EpochType_Void
 		cmp rettype, eax
 		jne Vomit
-		call ebx
+		call address
 		jmp NullReturn
 	}
+
+	// TODO - marshal integers back into Epoch memory space
+	// TODO - implement marshaling for references to other primitive types
 
 IntegerReturn:
 	MarshalBuffersIntoStructures(context, marshaledstructures);

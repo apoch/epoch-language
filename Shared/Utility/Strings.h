@@ -16,3 +16,4 @@ char narrow(wchar_t c);
 
 std::wstring StripWhitespace(const std::wstring& str);
 
+std::wstring StripQuotes(const std::wstring& str);
