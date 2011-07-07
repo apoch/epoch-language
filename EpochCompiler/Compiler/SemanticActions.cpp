@@ -160,6 +160,8 @@ void CompilationSemantics::StoreEntityType(Bytecode::EntityTag typetag)
 			CurrentEntities.push(anonymousname);
 			LexicalScopeDescriptions.insert(std::make_pair(Session.GlobalScopeName, ScopeDescription()));
 			LexicalScopeStack.push(Session.GlobalScopeName);
+			if((!IsPrepass) && InferenceComplete())
+				EmitterStack.push(&EntryEmitter);
 		}
 		break;
 
@@ -319,6 +321,7 @@ void CompilationSemantics::StoreEntityCode()
 		// The entity is a global code block. No epilogue code is needed.
 		//
 		case Bytecode::EntityTags::Globals:
+			EmitterStack.pop();
 			break;
 
 		//
@@ -1901,34 +1904,23 @@ void CompilationSemantics::Finalize()
 		}
 
 		// Pool string literals and identifiers
-		for(std::map<StringHandle, std::wstring>::const_reverse_iterator iter = Session.StringPool.GetInternalPool().rbegin(); iter != Session.StringPool.GetInternalPool().rend(); ++iter)
-			EmitterStack.top()->PoolString(iter->first, iter->second);
-
-		if(Session.GlobalScopeName)
-		{
-			ScopeMap::const_iterator iter = LexicalScopeDescriptions.find(Session.GlobalScopeName);
-			EmitterStack.top()->DefineLexicalScope(Session.GlobalScopeName, FindLexicalScopeName(iter->second.ParentScope), iter->second.GetVariableCount());
-			for(size_t i = 0; i < iter->second.GetVariableCount(); ++i)
-				EmitterStack.top()->LexicalScopeEntry(Session.StringPool.Pool(iter->second.GetVariableName(i)), iter->second.GetVariableTypeByIndex(i), iter->second.IsReference(i), iter->second.GetVariableOrigin(i));
-		}
+		for(std::map<StringHandle, std::wstring>::const_iterator iter = Session.StringPool.GetInternalPool().begin(); iter != Session.StringPool.GetInternalPool().end(); ++iter)
+			InitEmitter.PoolString(iter->first, iter->second);
 
 		// Generate lexical scope metadata
 		for(ScopeMap::const_iterator iter = LexicalScopeDescriptions.begin(); iter != LexicalScopeDescriptions.end(); ++iter)
 		{
-			if(iter->first == Session.GlobalScopeName)
-				continue;
-
-			EmitterStack.top()->DefineLexicalScope(iter->first, FindLexicalScopeName(iter->second.ParentScope), iter->second.GetVariableCount());
+			InitEmitter.DefineLexicalScope(iter->first, FindLexicalScopeName(iter->second.ParentScope), iter->second.GetVariableCount());
 			for(size_t i = 0; i < iter->second.GetVariableCount(); ++i)
-				EmitterStack.top()->LexicalScopeEntry(Session.StringPool.Pool(iter->second.GetVariableName(i)), iter->second.GetVariableTypeByIndex(i), iter->second.IsReference(i), iter->second.GetVariableOrigin(i));
+				InitEmitter.LexicalScopeEntry(Session.StringPool.Pool(iter->second.GetVariableName(i)), iter->second.GetVariableTypeByIndex(i), iter->second.IsReference(i), iter->second.GetVariableOrigin(i));
 		}
 
 		// Generate structure definition metadata
 		for(StructureDefinitionMap::const_iterator iter = Structures.begin(); iter != Structures.end(); ++iter)
 		{
-			EmitterStack.top()->DefineStructure(iter->first, iter->second.GetNumMembers());
+			InitEmitter.DefineStructure(iter->first, iter->second.GetNumMembers());
 			for(size_t i = 0; i < iter->second.GetNumMembers(); ++i)
-				EmitterStack.top()->StructureMember(iter->second.GetMemberName(i), iter->second.GetMemberType(i));
+				InitEmitter.StructureMember(iter->second.GetMemberName(i), iter->second.GetMemberType(i));
 		}
 	}
 }

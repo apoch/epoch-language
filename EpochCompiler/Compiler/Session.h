@@ -76,7 +76,10 @@ private:
 // Internal tracking
 private:
 	std::list<std::pair<std::wstring, std::wstring> > SourceBlocksAndFileNames;
-	ByteBuffer ByteCodeBuffer;
+	ByteBuffer InitializationByteCode;
+	ByteBuffer EntryByteCode;
+	ByteBuffer GeneralByteCode;
+	ByteBuffer FinalByteCode;
 	IdentifierTable Identifiers;
 };
 

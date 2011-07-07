@@ -103,7 +103,7 @@ void ByteCodeEmitter::PushIntegerLiteral(Integer32 value)
 //
 void ByteCodeEmitter::PushInteger16Literal(Integer32 value)
 {
-	Integer16 value16 = 0;
+	UInteger16 value16 = 0;
 	std::wstringstream conversion;
 	conversion << value;
 	if(!(conversion >> value16))
@@ -111,7 +111,7 @@ void ByteCodeEmitter::PushInteger16Literal(Integer32 value)
 
 	EmitInstruction(Bytecode::Instructions::Push);
 	EmitTypeAnnotation(VM::EpochType_Integer16);
-	EmitRawValue(value16);
+	EmitRawValue(static_cast<Integer16>(value16));
 }
 
 //
@@ -650,16 +650,9 @@ void ByteCodeEmitter::ReadReferenceOntoStack()
 //
 void ByteCodeEmitter::PoolString(StringHandle handle, const std::wstring& literalvalue)
 {
-	// Note that we are using prepend operations here instead of the typical append operations
-	// This means that we need to specify the fields backwards to get them to appear in the
-	// desired order in the final byte stream. This is done to ensure that the operations always
-	// appear at the top of the program, as required by the language spec, without doing any
-	// nasty caching or reordering. Note however that the prepend can be very expensive when
-	// dealing with large sets of bytecode, so a more optimal solution may be desirable for the
-	// future, such as a two-part assembly of bytecode followed by a concatenation on access.
-	PrependRawValue(literalvalue);
-	PrependRawValue(handle);
-	PrependInstruction(Bytecode::Instructions::PoolString);
+	EmitInstruction(Bytecode::Instructions::PoolString);
+	EmitRawValue(handle);
+	EmitRawValue(literalvalue);
 }
 
 

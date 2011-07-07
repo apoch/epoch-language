@@ -310,6 +310,11 @@ namespace
 				buffer += sizeof(Integer32);
 				break;
 
+			case EpochType_Integer16:
+				*reinterpret_cast<Integer16*>(buffer) = structure.ReadMember<Integer16>(j);
+				buffer += sizeof(Integer16);
+				break;
+
 			case EpochType_Boolean:
 				*reinterpret_cast<Integer32*>(buffer) = (structure.ReadMember<bool>(j) ? 1 : 0);
 				buffer += sizeof(Integer32);
@@ -322,6 +327,11 @@ namespace
 
 			case EpochType_Function:
 				*reinterpret_cast<void**>(buffer) = MarshalControl.RequestMarshaledCallback(context, structure.ReadMember<StringHandle>(j));
+				buffer += sizeof(void*);
+				break;
+
+			case EpochType_Buffer:
+				*reinterpret_cast<void**>(buffer) = context.OwnerVM.GetBuffer(structure.ReadMember<BufferHandle>(j));
 				buffer += sizeof(void*);
 				break;
 
@@ -362,6 +372,11 @@ namespace
 				buffer += sizeof(Integer32);
 				break;
 
+			case EpochType_Integer16:
+				structure.WriteMember(j, *reinterpret_cast<const Integer16*>(buffer));
+				buffer += sizeof(Integer16);
+				break;
+
 			case EpochType_Boolean:
 				structure.WriteMember(j, (*reinterpret_cast<const Integer32*>(buffer)) ? true : false);
 				buffer += sizeof(Integer32);
@@ -382,6 +397,12 @@ namespace
 				buffer += sizeof(void*);
 				break;
 
+			case EpochType_Buffer:
+				// Buffers are passed as pointers to raw data and if mutated by the
+				// external function will not need to be marshaled back manually
+				buffer += sizeof(void*);
+				break;
+
 			default:
 				if(membertype > EpochType_CustomBase)
 				{
@@ -391,6 +412,11 @@ namespace
 
 					MarshalBufferIntoStructureData(context, nestedstructure, nesteddefinition, buffer);
 					buffer += nesteddefinition.GetMarshaledSize();
+				}
+				else
+				{
+					context.State.Result.ResultType = VM::ExecutionResult::EXEC_RESULT_HALT;
+					return;
 				}
 			}
 		}

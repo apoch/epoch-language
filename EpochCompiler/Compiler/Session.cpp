@@ -85,20 +85,20 @@ void CompileSession::AddCompileBlock(const std::wstring& source, const std::wstr
 //
 void CompileSession::EmitByteCode()
 {
-	ByteCodeBuffer.clear();
+	InitializationByteCode.clear();
+	EntryByteCode.clear();
+	GeneralByteCode.clear();
+	FinalByteCode.clear();
 
 	// All global initialization/startup code goes into the beginning of the buffer.
 	// This allows the VM to just pick the start of the buffer as its current instruction
 	// pointer, and then crank away. The setup code, e.g. for pooling string literals,
 	// will be prepended to the buffer by the compiler during code compilation.
 
-	// Once all setup code has been executed, we invoke the entrypoint function. At this
-	// point, user code is in full control of execution flow within the VM.
-	ByteCodeEmitter emitter(ByteCodeBuffer);
-	emitter.Invoke(StringPool.Pool(L"entrypoint"));
-	emitter.Halt(); 
+	// Next is the entry stub, which initializes globals, runs any code in the global
+	// blocks, and then invokes the entrypoint function.
 
-	// Now that the VM's startup stub is written out, we can begin emitting the actual
+	// Once the VM's startup stub is written out, we can begin emitting the actual byte
 	// code for the program being compiled. This simply starts by enumerating all of the
 	// user-defined functions at global scope. To accomplish this, we will traverse the
 	// set of code blocks that have been provided, and compile each one's global-scoped
@@ -106,8 +106,22 @@ void CompileSession::EmitByteCode()
 	for(std::list<std::pair<std::wstring, std::wstring> >::const_iterator iter = SourceBlocksAndFileNames.begin(); iter != SourceBlocksAndFileNames.end(); ++iter)
 		CompileFunctions(iter->first, iter->second);
 
+	ByteCodeEmitter entryemitter(EntryByteCode);
+
 	if(GlobalScopeName)
-		emitter.PrependEntity(Bytecode::EntityTags::Globals, GlobalScopeName);
+		entryemitter.PrependEntity(Bytecode::EntityTags::Globals, GlobalScopeName);
+
+	entryemitter.Invoke(StringPool.Pool(L"entrypoint"));
+	entryemitter.Halt();
+
+	FinalByteCode.reserve(InitializationByteCode.size() + EntryByteCode.size() + GeneralByteCode.size());
+	std::copy(InitializationByteCode.begin(), InitializationByteCode.end(), std::back_inserter(FinalByteCode));
+	std::copy(EntryByteCode.begin(), EntryByteCode.end(), std::back_inserter(FinalByteCode));
+	std::copy(GeneralByteCode.begin(), GeneralByteCode.end(), std::back_inserter(FinalByteCode));
+
+	InitializationByteCode.swap(ByteBuffer());
+	EntryByteCode.swap(ByteBuffer());
+	GeneralByteCode.swap(ByteBuffer());
 }
 
 
@@ -116,7 +130,7 @@ void CompileSession::EmitByteCode()
 //
 const void* CompileSession::GetEmittedBuffer() const
 {
-	return &ByteCodeBuffer[0];
+	return &FinalByteCode[0];
 }
 
 //
@@ -124,7 +138,7 @@ const void* CompileSession::GetEmittedBuffer() const
 //
 size_t CompileSession::GetEmittedBufferSize() const
 {
-	return ByteCodeBuffer.size();
+	return FinalByteCode.size();
 }
 
 
@@ -133,8 +147,11 @@ size_t CompileSession::GetEmittedBufferSize() const
 //
 void CompileSession::CompileFunctions(const std::wstring& code, const std::wstring& filename)
 {
-	ByteCodeEmitter emitter(ByteCodeBuffer);
-	CompilationSemantics semantics(emitter, *this);
+	ByteCodeEmitter initemitter(InitializationByteCode);
+	ByteCodeEmitter globalemitter(EntryByteCode);
+	ByteCodeEmitter emitter(GeneralByteCode);
+
+	CompilationSemantics semantics(initemitter, globalemitter, emitter, *this);
 	Parser theparser(semantics, Identifiers);
 
 	if(!theparser.Parse(code, filename) || semantics.DidFail())

@@ -405,6 +405,36 @@
 					>
 				</File>
 			</Filter>
+			<Filter
+				Name="Strings"
+				>
+				<File
+					RelativePath=".\Library Functionality\Strings\Strings.cpp"
+					>
+					<FileConfiguration
+						Name="Debug|Win32"
+						>
+						<Tool
+							Name="VCCLCompilerTool"
+							ObjectFile="$(IntDir)\$(InputName)2.obj"
+							XMLDocumentationFileName="$(IntDir)\$(InputName)2.xdc"
+						/>
+					</FileConfiguration>
+					<FileConfiguration
+						Name="Release|Win32"
+						>
+						<Tool
+							Name="VCCLCompilerTool"
+							ObjectFile="$(IntDir)\$(InputName)2.obj"
+							XMLDocumentationFileName="$(IntDir)\$(InputName)2.xdc"
+						/>
+					</FileConfiguration>
+				</File>
+				<File
+					RelativePath=".\Library Functionality\Strings\Strings.h"
+					>
+				</File>
+			</Filter>
 		</Filter>
 		<Filter
 			Name="Shared"

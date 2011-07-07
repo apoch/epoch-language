@@ -469,10 +469,15 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 					ActiveStructure& structure = OwnerVM.GetStructure(readstruct);
 
 					size_t memberindex = structure.Definition.FindMember(actualmember);
-					switch(structure.Definition.GetMemberType(memberindex))
+					EpochTypeID membertype = structure.Definition.GetMemberType(memberindex);
+					switch(membertype)
 					{
 					case EpochType_Integer:
 						State.ReturnValueRegister.Set(structure.ReadMember<Integer32>(memberindex));
+						break;
+
+					case EpochType_Integer16:
+						State.ReturnValueRegister.Set(structure.ReadMember<Integer16>(memberindex));
 						break;
 
 					case EpochType_Boolean:
@@ -492,6 +497,9 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 						break;
 
 					default:
+						if(membertype < EpochType_CustomBase)
+							throw FatalException("Unhandled structure member type");
+
 						State.ReturnValueRegister.SetStructure(structure.ReadMember<StructureHandle>(memberindex), structure.Definition.GetMemberType(memberindex));
 						break;
 					}
@@ -508,10 +516,15 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 					ActiveStructure& structure = OwnerVM.GetStructure(readstruct);
 
 					size_t memberindex = structure.Definition.FindMember(actualmember);
-					switch(structure.Definition.GetMemberType(memberindex))
+					EpochTypeID membertype = structure.Definition.GetMemberType(memberindex);
+					switch(membertype)
 					{
 					case EpochType_Integer:
 						structure.WriteMember(memberindex, State.Stack.PopValue<Integer32>());
+						break;
+
+					case EpochType_Integer16:
+						structure.WriteMember(memberindex, State.Stack.PopValue<Integer16>());
 						break;
 
 					case EpochType_Boolean:
@@ -530,7 +543,14 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 						structure.WriteMember(memberindex, State.Stack.PopValue<StringHandle>());
 						break;
 
+					case EpochType_Function:
+						structure.WriteMember(memberindex, State.Stack.PopValue<StringHandle>());
+						break;
+
 					default:
+						if(membertype < EpochType_CustomBase)
+							throw FatalException("Unhandled structure member type");
+
 						structure.WriteMember(memberindex, State.Stack.PopValue<StructureHandle>());
 						break;
 					}
@@ -838,6 +858,19 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 				}
 				break;
 
+			case Bytecode::Instructions::DefineStructure:
+				{
+					Fetch<EpochTypeID>();
+					size_t numentries = Fetch<size_t>();
+
+					for(size_t i = 0; i < numentries; ++i)
+					{
+						Fetch<StringHandle>();
+						Fetch<EpochTypeID>();
+					}
+				}
+				break;
+
 			case Bytecode::Instructions::PatternMatch:
 				{
 					const char* stackptr = reinterpret_cast<const char*>(State.Stack.GetCurrentTopOfStack());
@@ -919,7 +952,7 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 				break;
 			
 			default:
-				throw FatalException("Invalid bytecode operation");
+				throw FatalException("Invalid bytecode operation during execution");
 			}
 
 			if(State.Result.ResultType == ExecutionResult::EXEC_RESULT_RETURN)
@@ -1146,7 +1179,7 @@ void ExecutionContext::Load()
 			break;
 		
 		default:
-			throw FatalException("Invalid bytecode operation");
+			throw FatalException("Invalid bytecode operation detected during load");
 		}
 	}
 

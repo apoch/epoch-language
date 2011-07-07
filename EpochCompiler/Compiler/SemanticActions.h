@@ -81,8 +81,10 @@ private:
 
 // Construction
 public:
-	CompilationSemantics(ByteCodeEmitter& emitter, CompileSession& session)
-		: MasterEmitter(emitter),
+	CompilationSemantics(ByteCodeEmitter& initemitter, ByteCodeEmitter& entryemitter, ByteCodeEmitter& emitter, CompileSession& session)
+		: GeneralEmitter(emitter),
+		  InitEmitter(initemitter),
+		  EntryEmitter(entryemitter),
 		  Session(session),
 		  IsPrepass(true),
 		  CompileTimeHelpers(session.CompileTimeHelpers),
@@ -94,7 +96,7 @@ public:
 		  PassCount(0),
 		  IsInferenceComplete(true)
 	{
-		EmitterStack.push(&MasterEmitter);
+		EmitterStack.push(&GeneralEmitter);
 	}
 
 	// Semantic action implementations (implementation of SemanticActionInterface)
@@ -258,7 +260,9 @@ private:
 	size_t PassCount;
 
 	std::stack<ByteCodeEmitter*> EmitterStack;
-	ByteCodeEmitter& MasterEmitter;
+	ByteCodeEmitter& GeneralEmitter;
+	ByteCodeEmitter& EntryEmitter;
+	ByteCodeEmitter& InitEmitter;
 	CompileSession& Session;
 	FunctionCompileHelperTable& CompileTimeHelpers;
 

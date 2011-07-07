@@ -30,6 +30,8 @@
 
 #include "Library Functionality/Command Line/CommandLine.h"
 
+#include "Library Functionality/Strings/Strings.h"
+
 
 //
 // Register the contents of this Epoch library
@@ -56,6 +58,7 @@ extern "C" void __stdcall RegisterLibraryContents(FunctionSignatureSet& function
 		MarshalingLibrary::RegisterLibraryFunctions(functionsignatures, stringpool);
 
 		CommandLineLibrary::RegisterLibraryFunctions(functionsignatures, stringpool);
+		StringFunctionLibrary::RegisterLibraryFunctions(functionsignatures, stringpool);
 	}
 	catch(...)
 	{
@@ -90,6 +93,7 @@ extern "C" void __stdcall BindToVirtualMachine(FunctionInvocationTable& function
 		MarshalingLibrary::RegisterLibraryFunctions(functiontable, stringpool);
 
 		CommandLineLibrary::RegisterLibraryFunctions(functiontable, stringpool);
+		StringFunctionLibrary::RegisterLibraryFunctions(functiontable, stringpool);
 	}
 	catch(...)
 	{

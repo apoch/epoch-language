@@ -9,6 +9,7 @@ typedef int Integer32;
 typedef unsigned UInteger32;
 
 typedef short Integer16;
+typedef unsigned short UInteger16;
 
 typedef char Byte;
 typedef unsigned char UByte;
