@@ -88,7 +88,7 @@ namespace VM
 		StringHandle GetPooledStringHandle(const std::wstring& value);
 
 		EPOCHVM void* GetBuffer(BufferHandle handle);
-		size_t GetBufferSize(BufferHandle handle) const;
+		EPOCHVM size_t GetBufferSize(BufferHandle handle) const;
 		EPOCHVM BufferHandle AllocateBuffer(size_t size);
 		BufferHandle CloneBuffer(BufferHandle handle);
 

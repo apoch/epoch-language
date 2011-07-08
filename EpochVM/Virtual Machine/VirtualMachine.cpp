@@ -170,7 +170,7 @@ EPOCHVM void* VirtualMachine::GetBuffer(BufferHandle handle)
 //
 // Retrive the size of the given buffer, in bytes
 //
-size_t VirtualMachine::GetBufferSize(BufferHandle handle) const
+EPOCHVM size_t VirtualMachine::GetBufferSize(BufferHandle handle) const
 {
 	Threads::CriticalSection::Auto lock(BufferCritSec);
 

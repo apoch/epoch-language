@@ -108,7 +108,7 @@ namespace
 		BufferHandle bufferhandle = context.State.Stack.PopValue<BufferHandle>();
 		StringHandle targettype = context.State.Stack.PopValue<StringHandle>();
 
-		std::wstring str(reinterpret_cast<wchar_t*>(context.OwnerVM.GetBuffer(bufferhandle)));
+		std::wstring str(reinterpret_cast<wchar_t*>(context.OwnerVM.GetBuffer(bufferhandle)), context.OwnerVM.GetBufferSize(bufferhandle));
 		StringHandle result = context.OwnerVM.PoolString(str);
 
 		context.State.Stack.PushValue(result);
