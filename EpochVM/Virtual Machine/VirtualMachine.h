@@ -92,7 +92,7 @@ namespace VM
 		EPOCHVM BufferHandle AllocateBuffer(size_t size);
 		BufferHandle CloneBuffer(BufferHandle handle);
 
-		ActiveStructure& GetStructure(StructureHandle handle);
+		EPOCHVM ActiveStructure& GetStructure(StructureHandle handle);
 		StructureHandle AllocateStructure(const StructureDefinition& description);
 		StructureHandle DeepCopy(StructureHandle handle);
 

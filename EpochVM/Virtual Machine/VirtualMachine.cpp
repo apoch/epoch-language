@@ -1285,7 +1285,7 @@ EPOCHVM const StructureDefinition& VirtualMachine::GetStructureDefinition(EpochT
 //
 // Look up actual structure instance data in memory given a handle
 //
-ActiveStructure& VirtualMachine::GetStructure(StructureHandle handle)
+EPOCHVM ActiveStructure& VirtualMachine::GetStructure(StructureHandle handle)
 {
 	Threads::CriticalSection::Auto lock(StructureCritSec);
 

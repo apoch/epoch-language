@@ -356,73 +356,6 @@ namespace
 	}
 
 	//
-	// Convert a buffer containing a mutated C/C++ structure back into Epoch format
-	//
-	void MarshalBufferIntoStructureData(VM::ExecutionContext& context, ActiveStructure& structure, const StructureDefinition& definition, const Byte* buffer)
-	{
-		using namespace VM;
-
-		for(size_t j = 0; j < definition.GetNumMembers(); ++j)
-		{
-			EpochTypeID membertype = definition.GetMemberType(j);
-			switch(membertype)
-			{
-			case EpochType_Integer:
-				structure.WriteMember(j, *reinterpret_cast<const Integer32*>(buffer));
-				buffer += sizeof(Integer32);
-				break;
-
-			case EpochType_Integer16:
-				structure.WriteMember(j, *reinterpret_cast<const Integer16*>(buffer));
-				buffer += sizeof(Integer16);
-				break;
-
-			case EpochType_Boolean:
-				structure.WriteMember(j, (*reinterpret_cast<const Integer32*>(buffer)) ? true : false);
-				buffer += sizeof(Integer32);
-				break;
-
-			case EpochType_String:
-				{
-					std::wstring str(*reinterpret_cast<const wchar_t* const*>(buffer));
-					structure.WriteMember(j, context.OwnerVM.PoolString(str));
-					buffer += sizeof(const wchar_t*);
-				}
-				break;
-
-			case EpochType_Function:
-				// Function pointers are not marshaled back to Epoch form, currently.
-				// This would require an additional interop layer that dynamically
-				// relinks Epoch callback functions into their modified targets.
-				buffer += sizeof(void*);
-				break;
-
-			case EpochType_Buffer:
-				// Buffers are passed as pointers to raw data and if mutated by the
-				// external function will not need to be marshaled back manually
-				buffer += sizeof(void*);
-				break;
-
-			default:
-				if(membertype > EpochType_CustomBase)
-				{
-					StructureHandle structurehandle = structure.ReadMember<StructureHandle>(j);
-					ActiveStructure& nestedstructure = context.OwnerVM.GetStructure(structurehandle);
-					const StructureDefinition& nesteddefinition = context.OwnerVM.GetStructureDefinition(definition.GetMemberType(j));
-
-					MarshalBufferIntoStructureData(context, nestedstructure, nesteddefinition, buffer);
-					buffer += nesteddefinition.GetMarshaledSize();
-				}
-				else
-				{
-					context.State.Result.ResultType = VM::ExecutionResult::EXEC_RESULT_HALT;
-					return;
-				}
-			}
-		}
-	}
-
-	//
 	// Record for tracking buffers associated with marshaled data structures
 	//
 	struct MarshaledStructureRecord
@@ -787,4 +720,78 @@ void VM::RegisterMarshaledExternalFunction(StringHandle functionname, const std:
 	info.DLLName = dllname;
 	info.FunctionName = externalfunctionname;
 	DLLInvocationMap[functionname] = info;
+}
+
+
+//
+// Convert a buffer containing a mutated C/C++ structure back into Epoch format
+//
+EPOCHVM void VM::MarshalBufferIntoStructureData(VM::ExecutionContext& context, ActiveStructure& structure, const StructureDefinition& definition, const Byte* buffer)
+{
+	using namespace VM;
+
+	for(size_t j = 0; j < definition.GetNumMembers(); ++j)
+	{
+		EpochTypeID membertype = definition.GetMemberType(j);
+		switch(membertype)
+		{
+		case EpochType_Integer:
+			structure.WriteMember(j, *reinterpret_cast<const Integer32*>(buffer));
+			buffer += sizeof(Integer32);
+			break;
+
+		case EpochType_Integer16:
+			structure.WriteMember(j, *reinterpret_cast<const Integer16*>(buffer));
+			buffer += sizeof(Integer16);
+			break;
+
+		case EpochType_Boolean:
+			structure.WriteMember(j, (*reinterpret_cast<const Integer32*>(buffer)) ? true : false);
+			buffer += sizeof(Integer32);
+			break;
+
+		case EpochType_String:
+			{
+				const wchar_t* const* ptr = reinterpret_cast<const wchar_t* const*>(buffer);
+				if(ptr && *ptr)
+				{
+					std::wstring str(*ptr);
+					structure.WriteMember(j, context.OwnerVM.PoolString(str));
+				}
+				else
+					structure.WriteMember(j, context.OwnerVM.PoolString(L""));
+				buffer += sizeof(const wchar_t*);
+			}
+			break;
+
+		case EpochType_Function:
+			// Function pointers are not marshaled back to Epoch form, currently.
+			// This would require an additional interop layer that dynamically
+			// relinks Epoch callback functions into their modified targets.
+			buffer += sizeof(void*);
+			break;
+
+		case EpochType_Buffer:
+			// Buffers are passed as pointers to raw data and if mutated by the
+			// external function will not need to be marshaled back manually
+			buffer += sizeof(void*);
+			break;
+
+		default:
+			if(membertype > EpochType_CustomBase)
+			{
+				StructureHandle structurehandle = structure.ReadMember<StructureHandle>(j);
+				ActiveStructure& nestedstructure = context.OwnerVM.GetStructure(structurehandle);
+				const StructureDefinition& nesteddefinition = context.OwnerVM.GetStructureDefinition(definition.GetMemberType(j));
+
+				MarshalBufferIntoStructureData(context, nestedstructure, nesteddefinition, buffer);
+				buffer += nesteddefinition.GetMarshaledSize();
+			}
+			else
+			{
+				context.State.Result.ResultType = VM::ExecutionResult::EXEC_RESULT_HALT;
+				return;
+			}
+		}
+	}
 }

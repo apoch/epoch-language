@@ -14,6 +14,7 @@
 #include "Scintilla/LexAccessor.h"
 #include "Scintilla/Accessor.h"
 #include "Scintilla/StyleContext.h"
+#include "Scintilla/Scintilla.h"
 
 #include <string>
 
@@ -30,6 +31,14 @@ static const int SCE_EPOCH_UDT = 7;					// User-defined types
 
 namespace
 {
+
+	//
+	// Determine if a given character is whitespace
+	//
+	bool IsWhitespaceChar(char c)
+	{
+		return (c == '\r' || c == '\n' || c == '\t' || c == ' ');
+	}
 
 	//
 	// Determine if a given token corresponds to a built-in type keyword
@@ -296,7 +305,84 @@ void __stdcall EpochLexer::Lex(unsigned int startPos, int lengthDoc, int initSty
 //
 void __stdcall EpochLexer::Fold(unsigned int startPos, int lengthDoc, int initStyle, IDocument* pAccess)
 {
-	// TODO - implement support for folding in the Epoch lexer
+	Accessor styler(pAccess, NULL);
+	styler.StartAt(startPos);
+
+	int curline = styler.GetLine(startPos);
+	unsigned endpos = startPos + lengthDoc;
+	int visiblechars = 0;
+	
+	int levelprev = styler.LevelAt(curline) & SC_FOLDLEVELNUMBERMASK;
+	int levelcur = levelprev;
+
+	char chnext = styler[startPos];
+
+	bool isbracealone = false;
+	bool modifiedlevel = false;
+
+	for(unsigned i = startPos; i < endpos; ++i)
+	{
+		char ch = chnext;
+		chnext = styler.SafeGetCharAt(i + 1);
+		int style = styler.StyleAt(i);
+		bool ateol = (ch == '\r' && chnext != '\n') || (ch == '\n');
+
+		if(style != SCE_EPOCH_COMMENT && style != SCE_EPOCH_STRINGLITERAL)
+		{
+			if(ch == '{')
+			{
+				++levelcur;
+				if(visiblechars > 0)
+					isbracealone = false;
+				else
+					isbracealone = true;
+
+				modifiedlevel = true;
+			}
+			else if(ch == '}')
+			{
+				--levelcur;
+				modifiedlevel = true;
+			}
+		}
+
+		if(ateol || (i == endpos - 1))
+		{
+			if(levelcur > levelprev)
+			{
+				if(isbracealone)
+					styler.SetLevel(curline, levelcur);
+				else
+					styler.SetLevel(curline, levelprev);
+
+				int effectiveline = curline - (curline && isbracealone ? 1 : 0);
+				styler.SetLevel(effectiveline, styler.LevelAt(effectiveline) | SC_FOLDLEVELHEADERFLAG);
+			}
+			else if(levelcur < levelprev)
+				styler.SetLevel(curline, levelprev);
+			else
+			{
+				if(modifiedlevel && isbracealone)
+				{
+					if(curline)
+					{
+						styler.SetLevel(curline - 1, styler.LevelAt(curline - 1) | SC_FOLDLEVELHEADERFLAG);
+						styler.SetLevel(curline, levelcur + 1);
+					}
+				}
+				else
+					styler.SetLevel(curline, levelcur);
+			}
+
+			++curline;
+			levelprev = levelcur;
+			visiblechars = 0;
+			isbracealone = false;
+		}
+
+		if(!IsWhitespaceChar(ch))
+			++visiblechars;
+	}
 }
 
 //
@@ -306,4 +392,3 @@ void* __stdcall EpochLexer::PrivateCall(int operation, void* pointer)
 {
 	return NULL;
 }
-
