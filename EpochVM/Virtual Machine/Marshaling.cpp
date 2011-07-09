@@ -436,12 +436,12 @@ namespace
 		{ }
 	};
 
-	struct MarshaledIntegerRecord
+	struct MarshaledBooleanRecord
 	{
 		Integer32 Holder;
 		size_t VariableIndex;
 
-		MarshaledIntegerRecord(Integer32 value, size_t index)
+		MarshaledBooleanRecord(Integer32 value, size_t index)
 			: Holder(value), VariableIndex(index)
 		{ }
 	};
@@ -526,7 +526,11 @@ void ExternalDispatch(StringHandle functionname, VM::ExecutionContext& context)
 	// which would invalidate the cached buffer pointers
 	std::list<MarshaledStructureRecord> marshaledstructures;
 
-	std::list<MarshaledIntegerRecord> marshaledintegers;
+	// Booleans are promoted from 1 byte to a full 32-bit dword
+	// since that is what most Win32 APIs expect. So we must
+	// specifically ensure that we have enough bits available
+	// when passing booleans by reference to externals
+	std::list<MarshaledBooleanRecord> marshaledbooleans;
 
 	// Cache the index of the function return variable for placing the external
 	// function's return value into the appropriate Epoch variable when done
@@ -545,79 +549,110 @@ void ExternalDispatch(StringHandle functionname, VM::ExecutionContext& context)
 		if(origin == VARIABLE_ORIGIN_PARAMETER)
 		{
 			EpochTypeID vartype = description.GetVariableTypeByIndex(i);
-			switch(vartype)
+			StringHandle varname = description.GetVariableNameHandle(i);
+			if(vartype > EpochType_CustomBase)
 			{
-			case EpochType_Integer:
-				if(description.IsReference(i))
-				{
-					marshaledintegers.push_back(MarshaledIntegerRecord(context.Variables->Read<Integer32>(description.GetVariableNameHandle(i)), i));
-					stufftopush.push_back(pushrec(reinterpret_cast<UINT_PTR>(&marshaledintegers.back().Holder), false));
-				}
-				else
-					stufftopush.push_back(pushrec(context.Variables->Read<Integer32>(description.GetVariableNameHandle(i)), false));
-				break;
+				StructureHandle structurehandle = context.Variables->Read<StructureHandle>(varname);
+				ActiveStructure& structure = context.OwnerVM.GetStructure(structurehandle);
 
-			case EpochType_Integer16:
-				stufftopush.push_back(pushrec(context.Variables->Read<Integer16>(description.GetVariableNameHandle(i)), true));
-				break;
+				const StructureDefinition& definition = context.OwnerVM.GetStructureDefinition(vartype);
+				std::vector<Byte> structbuffer(definition.GetMarshaledSize(), 0);
 
-			case EpochType_Real:
-				// This is not a mistake: we read the value as an Integer32, but in reality
-				// we're holding a float's data. The bits will be garbage if interpreted as
-				// an integer, but the value won't be cast to integer and rounded off. This
-				// can be thought of as a convoluted wrapper for reinterpret_cast<>.
-				stufftopush.push_back(pushrec(context.Variables->Read<Integer32>(description.GetVariableNameHandle(i)), false));
-				break;
-
-			case EpochType_Boolean:
-				stufftopush.push_back(pushrec(context.Variables->Read<bool>(description.GetVariableNameHandle(i)) ? 1 : 0, false));
-				break;
-
-			case EpochType_String:
-				{
-					StringHandle handle = context.Variables->Read<StringHandle>(description.GetVariableNameHandle(i));
-					const wchar_t* cstr = context.OwnerVM.GetPooledString(handle).c_str();
-					stufftopush.push_back(pushrec(reinterpret_cast<UINT_PTR>(cstr), false));
-				}
-				break;
-
-			case EpochType_Buffer:
-				{
-					BufferHandle handle = context.Variables->Read<BufferHandle>(description.GetVariableNameHandle(i));
-					const void* buffer = context.OwnerVM.GetBuffer(handle);
-					stufftopush.push_back(pushrec(reinterpret_cast<UINT_PTR>(buffer), false));
-				}
-				break;
-
-			case EpochType_Function:
-				{
-					StringHandle functionname = context.Variables->Read<StringHandle>(description.GetVariableNameHandle(i));
-					stufftopush.push_back(pushrec(reinterpret_cast<UINT_PTR>(MarshalControl.RequestMarshaledCallback(context, functionname)), false));
-				}
-				break;
-
-			default:
-				if(vartype > EpochType_CustomBase)
-				{
-					StructureHandle structurehandle = context.Variables->Read<StructureHandle>(description.GetVariableNameHandle(i));
-					ActiveStructure& structure = context.OwnerVM.GetStructure(structurehandle);
-
-					const StructureDefinition& definition = context.OwnerVM.GetStructureDefinition(vartype);
-					std::vector<Byte> structbuffer(definition.GetMarshaledSize(), 0);
-
-					if(!MarshalStructureDataIntoBuffer(context, structure, definition, &structbuffer[0]))
-					{
-						context.State.Result.ResultType = ExecutionResult::EXEC_RESULT_HALT;
-						return;
-					}
-
-					marshaledstructures.push_back(MarshaledStructureRecord(description.IsReference(i), structbuffer, structure));
-					stufftopush.push_back(pushrec(reinterpret_cast<UINT_PTR>(&marshaledstructures.back().Buffer[0]), false));
-				}
-				else
+				if(!MarshalStructureDataIntoBuffer(context, structure, definition, &structbuffer[0]))
 				{
 					context.State.Result.ResultType = ExecutionResult::EXEC_RESULT_HALT;
 					return;
+				}
+
+				marshaledstructures.push_back(MarshaledStructureRecord(description.IsReference(i), structbuffer, structure));
+				stufftopush.push_back(pushrec(reinterpret_cast<UINT_PTR>(&marshaledstructures.back().Buffer[0]), false));
+			}
+			else
+			{
+				if(description.IsReference(i))
+				{
+					if(vartype == EpochType_Boolean)
+					{
+						marshaledbooleans.push_back(MarshaledBooleanRecord(context.Variables->Read<bool>(varname) ? 1 : 0, i));
+						stufftopush.push_back(pushrec(reinterpret_cast<UINT_PTR>(&marshaledbooleans.back()), false));
+					}
+					else if(vartype == EpochType_String || vartype == EpochType_Function || vartype >= EpochType_CustomBase)
+					{
+						// It is HIGHLY unsafe to pass strings to externals!
+						// Therefore if you must pass a mutable string, use a buffer type instead.
+
+						// Functions cannot be passed by reference.
+
+						// Structures should not make it in here since the above clause should catch them
+						context.State.Result.ResultType = VM::ExecutionResult::EXEC_RESULT_HALT;
+						return;
+					}
+					else if(vartype == EpochType_Buffer)
+					{
+						// Allow the buffer to be manipulated directly
+						// The programmer is responsibe for ensuring the external does not overflow the buffer!
+						BufferHandle handle = context.Variables->Read<BufferHandle>(varname);
+						const void* buffer = context.OwnerVM.GetBuffer(handle);
+						stufftopush.push_back(pushrec(reinterpret_cast<UINT_PTR>(buffer), false));
+					}
+					else
+						stufftopush.push_back(pushrec(reinterpret_cast<UINT_PTR>(context.Variables->GetVariableStorageLocation(varname)), false));
+				}
+				else
+				{
+					switch(vartype)
+					{
+					case EpochType_Integer:
+						stufftopush.push_back(pushrec(context.Variables->Read<Integer32>(varname), false));
+						break;
+
+					case EpochType_Integer16:
+						stufftopush.push_back(pushrec(context.Variables->Read<Integer16>(varname), true));
+						break;
+
+					case EpochType_Real:
+						// This is not a mistake: we read the value as an Integer32, but in reality
+						// we're holding a float's data. The bits will be garbage if interpreted as
+						// an integer, but the value won't be cast to integer and rounded off. This
+						// can be thought of as a convoluted wrapper for reinterpret_cast<>.
+						stufftopush.push_back(pushrec(context.Variables->Read<Integer32>(varname), false));
+						break;
+
+					case EpochType_Boolean:
+						stufftopush.push_back(pushrec(context.Variables->Read<bool>(varname) ? 1 : 0, false));
+						break;
+
+					case EpochType_String:
+						{
+							StringHandle handle = context.Variables->Read<StringHandle>(varname);
+							const wchar_t* cstr = context.OwnerVM.GetPooledString(handle).c_str();
+							stufftopush.push_back(pushrec(reinterpret_cast<UINT_PTR>(cstr), false));
+						}
+						break;
+
+					case EpochType_Buffer:
+						{
+							// Hand off a clone of the buffer so that the callee cannot mutate it
+							// The garbage collector will reclaim the buffer once the callee returns
+							// Therefore, if the buffer must persist beyond the call to the external,
+							// ensure that it is passed by reference!
+							BufferHandle handle = context.Variables->Read<BufferHandle>(varname);
+							const void* buffer = context.OwnerVM.GetBuffer(context.OwnerVM.CloneBuffer(handle));
+							stufftopush.push_back(pushrec(reinterpret_cast<UINT_PTR>(buffer), false));
+						}
+						break;
+
+					case EpochType_Function:
+						{
+							StringHandle functionname = context.Variables->Read<StringHandle>(varname);
+							stufftopush.push_back(pushrec(reinterpret_cast<UINT_PTR>(MarshalControl.RequestMarshaledCallback(context, functionname)), false));
+						}
+						break;
+
+					default:
+						context.State.Result.ResultType = ExecutionResult::EXEC_RESULT_HALT;
+						return;
+					}
 				}
 			}
 		}
@@ -712,36 +747,34 @@ TypeIsNull:
 		jmp NullReturn
 	}
 
-	// TODO - marshal integers back into Epoch memory space
-	// TODO - implement marshaling for references to other primitive types
-
 IntegerReturn:
-	MarshalBuffersIntoStructures(context, marshaledstructures);
 	context.Variables->Write<Integer32>(retname, integerret);
-	return;
+	goto MarshalBackToEpoch;
 
 Integer16Return:
-	MarshalBuffersIntoStructures(context, marshaledstructures);
 	context.Variables->Write<Integer16>(retname, integer16ret);
-	return;
+	goto MarshalBackToEpoch;
 
 BooleanReturn:
-	MarshalBuffersIntoStructures(context, marshaledstructures);
 	context.Variables->Write<bool>(retname, (integerret != 0 ? true : false));
-	return;
+	goto MarshalBackToEpoch;
 
 StringReturn:
-	MarshalBuffersIntoStructures(context, marshaledstructures);
 	StringHandle rethandle = context.OwnerVM.PoolString(stringret);
 	context.Variables->Write<StringHandle>(retname, rethandle);
-	return;
+	goto MarshalBackToEpoch;
 
 NullReturn:
-	MarshalBuffersIntoStructures(context, marshaledstructures);
-	return;
+	goto MarshalBackToEpoch;
 
 Vomit:
 	context.State.Result.ResultType = ExecutionResult::EXEC_RESULT_HALT;
+	return;
+
+MarshalBackToEpoch:
+	MarshalBuffersIntoStructures(context, marshaledstructures);
+	for(std::list<MarshaledBooleanRecord>::const_iterator iter = marshaledbooleans.begin(); iter != marshaledbooleans.end(); ++iter)
+		context.Variables->Write(description.GetVariableNameHandle(iter->VariableIndex), iter->Holder != 0);
 }
 
 

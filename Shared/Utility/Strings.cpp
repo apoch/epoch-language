@@ -100,7 +100,6 @@ std::wstring StripWhitespace(const std::wstring& str)
 
 //
 // Helper for removing quotes from around a string
-// TODO - optimize
 //
 std::wstring StripQuotes(const std::wstring& str)
 {
@@ -109,11 +108,8 @@ std::wstring StripQuotes(const std::wstring& str)
 	if(ret.empty())
 		return ret;
 
-	if(ret[0] == L'\"')
-		ret = ret.substr(1);
+	size_t beginpos = (ret[0] == L'\"') ? 1 : 0;
+	size_t length = (*ret.rbegin() == L'\"') ? ret.length() - 1 : ret.length();
 
-	if(*ret.rbegin() == L'\"')
-		ret = ret.substr(0, ret.length() - 1);
-
-	return ret;
+	return ret.substr(beginpos, length - beginpos);
 }
