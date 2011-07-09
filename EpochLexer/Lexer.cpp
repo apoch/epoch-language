@@ -27,6 +27,7 @@ static const int SCE_EPOCH_SYMBOL = 4;				// Special syntactically significant s
 static const int SCE_EPOCH_LITERAL = 5;				// Non-string (i.e. numeric and boolean) literals
 static const int SCE_EPOCH_HEXLITERAL = 6;			// Hexadecimal literals
 static const int SCE_EPOCH_UDT = 7;					// User-defined types
+static const int SCE_EPOCH_KEYWORD = 8;				// Keywords
 
 
 namespace
@@ -85,11 +86,20 @@ namespace
 	//
 	// Determine if a keyword is used for defining a user-defined type or alias
 	//
-	bool IsTypeDeclarationKeyword(const char* rawtoken)
+	bool IsGeneralKeyword(const char* rawtoken)
 	{
 		std::string token(rawtoken);
 
-		return (token == "structure");
+		return
+		(
+		   token == "structure"
+		|| token == "if"
+		|| token == "while"
+		|| token == "do"
+		|| token == "else"
+		|| token == "elseif"
+		|| token == "global"
+		);
 	}
 
 }
@@ -251,8 +261,8 @@ void __stdcall EpochLexer::Lex(unsigned int startPos, int lengthDoc, int initSty
 					sc.ChangeState(SCE_EPOCH_TYPE);
 				else if(IsLiteralKeyword(token))
 					sc.ChangeState(SCE_EPOCH_LITERAL);
-				else if(IsTypeDeclarationKeyword(token))
-					sc.ChangeState(SCE_EPOCH_DEFAULT);
+				else if(IsGeneralKeyword(token))
+					sc.ChangeState(SCE_EPOCH_KEYWORD);
 				else if(IsUserDefinedTypeKeyword(token))
 					sc.ChangeState(SCE_EPOCH_UDT);
 				else
