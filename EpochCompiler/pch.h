@@ -30,4 +30,8 @@
 
 // Options for Boost
 #define BOOST_EXECPTION_DISABLE
+#define BOOST_SPIRIT_UNICODE
 
+// We include spirit here for better grammar/parser build times
+#include <boost/spirit/include/qi.hpp>
+#include <boost/spirit/include/qi_match_auto.hpp>

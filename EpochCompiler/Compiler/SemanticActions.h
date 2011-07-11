@@ -33,9 +33,6 @@
 
 #include <stack>
 
-#include <boost/spirit/include/classic_exceptions.hpp>
-#include <boost/spirit/include/classic_position_iterator.hpp>
-
 
 //
 // Wrapper class for handling semantic actions from the Epoch parser and passing on
@@ -70,8 +67,8 @@ private:
 
 	typedef std::map<StringHandle, FunctionSignature> FunctionSignatureMap;
 
-	typedef boost::spirit::classic::position_iterator<const char*> PosIteratorT;
-	typedef boost::spirit::classic::parser_error<TypeMismatchException, PosIteratorT> SpiritCompatibleTypeMismatchException;
+	typedef std::wstring::const_iterator PosIteratorT;
+	//typedef boost::spirit::classic::parser_error<TypeMismatchException, PosIteratorT> SpiritCompatibleTypeMismatchException;
 
 	typedef std::pair<PosIteratorT, StringHandle> OverloadPositionPair;
 	typedef std::list<OverloadPositionPair> OverloadPositionList;

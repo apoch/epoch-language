@@ -12,6 +12,6 @@ http://www.microsoft.com/
 Boost
 -----
 
-Version 1.38.0
+Version 1.46.1
 http://www.boost.org/
 

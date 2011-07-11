@@ -1445,8 +1445,10 @@ void CompilationSemantics::CompleteStatement()
 					{
 						if(fs->GetReturnType() == VM::EpochType_Void)
 						{
-							std::wcout << L"Error in file \"" << StripPath(widen(ParsePosition.get_position().file)) << L"\" on line " << ParsePosition.get_position().line << L":\n";
-							std::wcout << L"The function \"" << statementname << "\" is void; cannot be used as an expression or parameter\n" << std::endl;							
+							// TODO
+							std::wcout << L"Error in file" << std::endl;
+							//std::wcout << L"Error in file \"" << StripPath(widen(ParsePosition.get_position().file)) << L"\" on line " << ParsePosition.get_position().line << L":\n";
+							//std::wcout << L"The function \"" << statementname << "\" is void; cannot be used as an expression or parameter\n" << std::endl;							
 							Fail();
 						}
 
@@ -2874,16 +2876,20 @@ void CompilationSemantics::VerifyInfixOperandTypes(StringHandle infixoperator, V
 {
 	if(Session.FunctionSignatures.find(infixoperator)->second.GetParameter(0).Type != op1type)
 	{
-		std::wcout << L"Error in file \"" << StripPath(widen(ParsePosition.get_position().file)) << L"\" on line " << ParsePosition.get_position().line << L":\n";
-		std::wcout << L"The left hand side of the operator " << Session.StringPool.GetPooledString(infixoperator) << " is of the wrong type" << std::endl << std::endl;
+		// TODO
+		std::wcout << L"Error in file" << std::endl;
+		//std::wcout << L"Error in file \"" << StripPath(widen(ParsePosition.get_position().file)) << L"\" on line " << ParsePosition.get_position().line << L":\n";
+		//std::wcout << L"The left hand side of the operator " << Session.StringPool.GetPooledString(infixoperator) << " is of the wrong type" << std::endl << std::endl;
 
 		Fail();
 	}
 
 	if(Session.FunctionSignatures.find(infixoperator)->second.GetParameter(1).Type != op2type)
 	{
-		std::wcout << L"Error in file \"" << StripPath(widen(ParsePosition.get_position().file)) << L"\" on line " << ParsePosition.get_position().line << L":\n";
-		std::wcout << L"The right hand side of the operator " << Session.StringPool.GetPooledString(infixoperator) << " is of the wrong type" << std::endl << std::endl;
+		// TODO
+		std::wcout << L"Error in file" << std::endl;
+		//std::wcout << L"Error in file \"" << StripPath(widen(ParsePosition.get_position().file)) << L"\" on line " << ParsePosition.get_position().line << L":\n";
+		//std::wcout << L"The right hand side of the operator " << Session.StringPool.GetPooledString(infixoperator) << " is of the wrong type" << std::endl << std::endl;
 
 		Fail();
 	}
@@ -3134,7 +3140,9 @@ void CompilationSemantics::CleanUpBrokenStatement()
 template <typename ExceptionT>
 void CompilationSemantics::Throw(const ExceptionT& exception) const
 {
-	boost::spirit::classic::throw_<ExceptionT, PosIteratorT>(ParsePosition, exception);
+	throw exception;
+	// TODO
+	//boost::spirit::classic::throw_<ExceptionT, PosIteratorT>(ParsePosition, exception);
 }
 
 //

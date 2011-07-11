@@ -17,7 +17,7 @@
 #include "Utility/Strings.h"
 
 
-using namespace boost::spirit::classic;
+using namespace boost::spirit::qi;
 
 
 //
@@ -26,31 +26,21 @@ using namespace boost::spirit::classic;
 //
 bool Parser::Parse(const std::wstring& code, const std::wstring& filename)
 {
-	ByteBuffer memblock;
-	memblock.reserve(code.length() + 20);		// paranoia padding
-
-	std::string narrowedcode = narrow(code);
-	std::copy(narrowedcode.begin(), narrowedcode.end(), std::back_inserter(memblock));
-
-	// The parser prefers to have trailing whitespace, for whatever reason.
-	memblock.push_back('\n');
-
-	position_iterator<const char*> start(&memblock[0], &memblock[0] + memblock.size() - 1, narrow(filename));
-    position_iterator<const char*> end;
-
 	SemanticActions.SetPrepassMode(true);
-	FundamentalGrammar grammar(SemanticActions, Identifiers);
+	FundamentalGrammar grammar(Identifiers);
     SkipGrammar skip;
 
-	parse_info<position_iterator<const char*> > result;
+	std::wstring::const_iterator iter = code.begin();
+	std::wstring::const_iterator end = code.end();
 
 	try
 	{
 		// First pass: build up the list of entities defined in the code
-		result = parse(start, end, grammar >> end_p, skip);
-		if(!result.full)
+		AST::Program program;
+		bool result = phrase_parse(iter, end, grammar, skip, program);
+		if(!result || (iter != end))
 			return false;
-
+/*
 		// Sanity check to make sure the parser is in a clean state
 		SemanticActions.SanityCheck();
 
@@ -61,19 +51,18 @@ bool Parser::Parse(const std::wstring& code, const std::wstring& filename)
 		// Second pass: traverse into each function and generate the corresponding bytecode
 		do
 		{
+			AST::Program program;
 			SemanticActions.SetPrepassMode(false);
-			result = parse(start, end, grammar >> end_p, skip);
-			if(!result.full)
+			iter = code.begin();
+			bool result = phrase_parse(iter, end, grammar, skip, program);
+			if(!result || (iter != end))
 				return false;
 		} while(!SemanticActions.InferenceComplete());
+		*/
 	}
-	catch(const parser_error<ParameterException, position_iterator<const char*> >& e)
+	catch(...)
 	{
-		throw e.descriptor;
-	}
-	catch(const parser_error<TypeMismatchException, position_iterator<const char*> >& e)
-	{
-		throw e.descriptor;
+		throw FatalException("Exception during parse");
 	}
 
 	return true;

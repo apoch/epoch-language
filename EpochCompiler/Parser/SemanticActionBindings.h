@@ -53,7 +53,7 @@ void Trace(const std::wstring& title)
 #endif
 }
 
-
+/*
 struct GeneralExceptionHandler
 {
 	explicit GeneralExceptionHandler(SemanticActionInterface& bindings)
@@ -61,9 +61,9 @@ struct GeneralExceptionHandler
 	{ }
 
 	template <typename ScannerType, typename ErrorType>
-	boost::spirit::classic::error_status<> operator () (const ScannerType& thescanner, const ErrorType& theerror) const
+	boost::spirit::error_status<> operator () (const ScannerType& thescanner, const ErrorType& theerror) const
 	{
-		boost::spirit::classic::file_position pos = theerror.where.get_position();
+		boost::spirit::file_position pos = theerror.where.get_position();
 
 		std::wcout << L"Error in file \"" << StripPath(widen(pos.file)) << L"\" on line " << pos.line << L":\n";
 		std::wcout << theerror.descriptor.what() << std::endl << std::endl;
@@ -159,7 +159,7 @@ struct GeneralAcceptingExceptionHandler
 	SemanticActionInterface& Bindings;
 	bool Cleanup;
 };
-
+*/
 
 struct StoreTemporaryString
 {
@@ -850,11 +850,11 @@ struct Finalize
 		: Bindings(bindings)
 	{ }
 
-	template <typename IteratorType>
-	void operator () (IteratorType begin, IteratorType end) const
+	template <typename AttributeT>
+	void operator () (const AttributeT&, boost::spirit::qi::unused_type, boost::spirit::qi::unused_type) const
 	{
-		Trace(L"Finalize", begin, end);
-		Bindings.SetParsePosition(end);
+		//Trace(L"Finalize", begin, end);
+		//Bindings.SetParsePosition(end);
 		Bindings.Finalize();
 	}
 
@@ -1159,26 +1159,6 @@ struct StoreStructureName
 	}
 
 	SemanticActionInterface& Bindings;
-};
-
-template<typename ParserT>
-struct CreateStructureType
-{
-	explicit CreateStructureType(ParserT& parser, SemanticActionInterface& bindings)
-		: Bindings(bindings),
-		  TheParser(parser)
-	{ }
-
-	template <typename ParamType>
-	void operator () (ParamType) const
-	{
-		Trace(L"CreateStructureType");
-		if(Bindings.GetPrepassMode())
-			TheParser.AddVariableType(Bindings.CreateStructureType());
-	}
-
-	SemanticActionInterface& Bindings;
-	ParserT& TheParser;
 };
 
 struct StoreStructureMemberType

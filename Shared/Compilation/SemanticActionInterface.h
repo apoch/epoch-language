@@ -23,7 +23,7 @@
 #include "Utility/Types/EpochTypeIDs.h"
 #include "Bytecode/EntityTags.h"
 
-#include <boost/spirit/include/classic_position_iterator.hpp>
+#include <boost/spirit/include/support_line_pos_iterator.hpp>
 
 
 class SemanticActionInterface
@@ -118,8 +118,8 @@ public:
 
 	virtual void SanityCheck() const = 0;
 
-	virtual void SetParsePosition(const boost::spirit::classic::position_iterator<const char*>& iterator) = 0;
-	virtual const boost::spirit::classic::position_iterator<const char*>& GetParsePosition() const = 0;
+	virtual void SetParsePosition(const std::wstring::const_iterator& iterator) = 0;
+	virtual const std::wstring::const_iterator& GetParsePosition() const = 0;
 
 	virtual VM::EpochTypeID LookupTypeName(const std::wstring& name) const = 0;
 

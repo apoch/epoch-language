@@ -39,6 +39,7 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
+				AdditionalOptions="/Zm216"
 				Optimization="0"
 				AdditionalIncludeDirectories=".\;..\Shared\;..\EpochVM\"
 				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_USRDLL;EPOCHCOMPILER_EXPORTS;BOOST_EXCEPTION_DISABLE"
@@ -387,6 +388,14 @@
 			Name="Compiler"
 			>
 			<File
+				RelativePath=".\Compiler\AbstractSyntaxTree.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Compiler\AbstractSyntaxTree.h"
+				>
+			</File>
+			<File
 				RelativePath=".\Compiler\ByteCodeEmitter.cpp"
 				>
 			</File>
@@ -419,7 +428,39 @@
 			Name="Parser"
 			>
 			<File
+				RelativePath=".\Parser\CodeBlockGrammar.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Parser\CodeBlockGrammar.h"
+				>
+			</File>
+			<File
+				RelativePath=".\Parser\FunctionDefinitionGrammar.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Parser\FunctionDefinitionGrammar.h"
+				>
+			</File>
+			<File
+				RelativePath=".\Parser\GlobalGrammar.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Parser\GlobalGrammar.h"
+				>
+			</File>
+			<File
 				RelativePath=".\Parser\Grammars.h"
+				>
+			</File>
+			<File
+				RelativePath=".\Parser\LiteralGrammar.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Parser\LiteralGrammar.h"
 				>
 			</File>
 			<File
@@ -432,6 +473,22 @@
 			</File>
 			<File
 				RelativePath=".\Parser\SemanticActionBindings.h"
+				>
+			</File>
+			<File
+				RelativePath=".\Parser\SkipGrammar.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Parser\SkipGrammar.h"
+				>
+			</File>
+			<File
+				RelativePath=".\Parser\UtilityGrammar.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Parser\UtilityGrammar.h"
 				>
 			</File>
 		</Filter>
