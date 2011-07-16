@@ -5,13 +5,14 @@
 
 struct CodeBlockGrammar;
 struct UtilityGrammar;
+struct ExpressionGrammar;
 
 
 struct FunctionDefinitionGrammar : public boost::spirit::qi::grammar<std::wstring::const_iterator, boost::spirit::char_encoding::standard_wide, SkipGrammar, AST::Function()>
 {
 	typedef std::wstring::const_iterator IteratorT;
 
-	FunctionDefinitionGrammar(const CodeBlockGrammar& codeblockgrammar, const UtilityGrammar& identifiergrammar);
+	FunctionDefinitionGrammar(const CodeBlockGrammar& codeblockgrammar, const UtilityGrammar& identifiergrammar, const ExpressionGrammar& expressiongrammar);
 
 
 	template <typename AttributeT>
@@ -20,20 +21,18 @@ struct FunctionDefinitionGrammar : public boost::spirit::qi::grammar<std::wstrin
 		typedef typename boost::spirit::qi::rule<IteratorT, boost::spirit::char_encoding::standard_wide, SkipGrammar, AttributeT> type;
 	};
 
-	typedef Rule<boost::spirit::qi::unused_type>::type RuleType;
-
-	RuleType ParamTypeSpec;
-	RuleType ReturnTypeSpec;
-	RuleType ParameterFunctionRef;
-	Rule<AST::FunctionParameter()>::type ParameterSpec;
+	Rule<AST::ParamTypeList()>::type ParamTypeSpec;
+	Rule<AST::IdentifierT()>::type ReturnTypeSpec;
+	Rule<AST::FunctionReferenceSignature()>::type ParameterFunctionRef;
+	Rule<AST::NamedFunctionParameter()>::type ParameterSpec;
 
 	Rule<AST::FunctionParameter()>::type ParameterDeclaration;
-	RuleType ReturnDeclaration;
+	Rule<AST::Deferred<AST::Expression>()>::type ReturnDeclaration;
 
-	Rule<std::vector<AST::FunctionParameter>()>::type ParameterList;
-	RuleType ReturnList;
-	RuleType FunctionTagList;
-	RuleType FunctionTagSpec;
+	Rule<std::list<AST::FunctionParameter>()>::type ParameterList;
+	Rule<AST::Deferred<AST::Expression>()>::type ReturnList;
+	Rule<AST::FunctionTagList()>::type FunctionTagList;
+	Rule<AST::FunctionTag()>::type FunctionTagSpec;
 
 	Rule<AST::Function()>::type FunctionDefinition;
 };

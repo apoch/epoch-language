@@ -1,8 +1,9 @@
 #pragma once
 
 #include "Parser/SkipGrammar.h"
+#include "Compiler/AbstractSyntaxTree.h"
 
-struct UtilityGrammar : public boost::spirit::qi::grammar<std::wstring::const_iterator, boost::spirit::char_encoding::standard_wide, SkipGrammar, std::wstring()>
+struct UtilityGrammar : public boost::spirit::qi::grammar<std::wstring::const_iterator, boost::spirit::char_encoding::standard_wide, SkipGrammar, AST::IdentifierT()>
 {
 	typedef std::wstring::const_iterator IteratorT;
 
@@ -16,6 +17,6 @@ struct UtilityGrammar : public boost::spirit::qi::grammar<std::wstring::const_it
 	};
 
 
-	Rule<std::wstring()>::type StringIdentifier;
+	Rule<AST::IdentifierT()>::type StringIdentifier;
 };
 

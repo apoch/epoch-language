@@ -16,19 +16,22 @@
 
 #include "Utility/Strings.h"
 
+#include "Utility/Profiling.h"
+
 
 using namespace boost::spirit::qi;
+
+#include <iostream>
 
 
 //
 // Parse a given block of code, invoking the bound set of
 // semantic actions during the parse process
 //
-bool Parser::Parse(const std::wstring& code, const std::wstring& filename)
+bool Parser::Parse(const std::wstring& code, const std::wstring& filename, AST::Program& program) const
 {
-	SemanticActions.SetPrepassMode(true);
 	FundamentalGrammar grammar(Identifiers);
-    SkipGrammar skip;
+	SkipGrammar skip;
 
 	std::wstring::const_iterator iter = code.begin();
 	std::wstring::const_iterator end = code.end();
@@ -36,29 +39,24 @@ bool Parser::Parse(const std::wstring& code, const std::wstring& filename)
 	try
 	{
 		// First pass: build up the list of entities defined in the code
-		AST::Program program;
-		bool result = phrase_parse(iter, end, grammar, skip, program);
-		if(!result || (iter != end))
-			return false;
-/*
-		// Sanity check to make sure the parser is in a clean state
-		SemanticActions.SanityCheck();
-
-		// Don't do the second pass if prepass failed
-		if(SemanticActions.DidFail())
-			return false;
-
-		// Second pass: traverse into each function and generate the corresponding bytecode
-		do
+		while(true)
 		{
-			AST::Program program;
-			SemanticActions.SetPrepassMode(false);
+			Profiling::Timer timer;
+			timer.Begin();
+
+			program = AST::Program();
+			std::wcout << L"Parsing... ";
 			iter = code.begin();
 			bool result = phrase_parse(iter, end, grammar, skip, program);
 			if(!result || (iter != end))
+			{
+				std::wcout << L"FAILED!" << std::endl;
 				return false;
-		} while(!SemanticActions.InferenceComplete());
-		*/
+			}
+
+			timer.End();
+			std::wcout << L"finished in " << timer.GetTimeMs() << L"ms" << std::endl;
+		}
 	}
 	catch(...)
 	{

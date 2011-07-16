@@ -18,6 +18,8 @@
 
 #include "Bytecode/EntityTags.h"
 
+#include "Compiler/AbstractSyntaxTree.h"
+
 #include <list>
 
 
@@ -32,6 +34,7 @@ class CompileSession
 // Construction
 public:
 	CompileSession();
+	~CompileSession();
 
 // Tracking of code blocks to compile
 public:
@@ -71,7 +74,7 @@ public:
 
 // Internal helpers
 private:
-	void CompileFunctions(const std::wstring& codeblock, const std::wstring& filename);
+	void CompileFile(const std::wstring& codeblock, const std::wstring& filename);
 
 // Internal tracking
 private:
@@ -81,5 +84,7 @@ private:
 	ByteBuffer GeneralByteCode;
 	ByteBuffer FinalByteCode;
 	IdentifierTable Identifiers;
+
+	AST::Program* TheProgram;
 };
 

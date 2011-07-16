@@ -119,6 +119,7 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
+				AdditionalOptions="/Zm216"
 				AdditionalIncludeDirectories=".\;..\Shared\;..\EpochVM\"
 				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;EPOCHCOMPILER_EXPORTS"
 				RuntimeLibrary="2"
@@ -259,6 +260,14 @@
 					>
 				</File>
 				<File
+					RelativePath="..\Shared\Utility\Profiling.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\Shared\Utility\Profiling.h"
+					>
+				</File>
+				<File
 					RelativePath="..\Shared\Utility\StringPool.cpp"
 					>
 				</File>
@@ -388,19 +397,19 @@
 			Name="Compiler"
 			>
 			<File
-				RelativePath=".\Compiler\AbstractSyntaxTree.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\Compiler\AbstractSyntaxTree.h"
-				>
-			</File>
-			<File
 				RelativePath=".\Compiler\ByteCodeEmitter.cpp"
 				>
 			</File>
 			<File
 				RelativePath=".\Compiler\ByteCodeEmitter.h"
+				>
+			</File>
+			<File
+				RelativePath=".\Compiler\Diagnostics.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Diagnostics.h"
 				>
 			</File>
 			<File
@@ -423,6 +432,26 @@
 				RelativePath=".\Compiler\Session.h"
 				>
 			</File>
+			<Filter
+				Name="Abstract Syntax Tree"
+				>
+				<File
+					RelativePath=".\Compiler\AbstractSyntaxTree.h"
+					>
+				</File>
+				<File
+					RelativePath=".\Compiler\ASTDump.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\Compiler\ASTDump.h"
+					>
+				</File>
+				<File
+					RelativePath=".\Compiler\ASTTraversal.h"
+					>
+				</File>
+			</Filter>
 		</Filter>
 		<Filter
 			Name="Parser"
@@ -433,6 +462,22 @@
 			</File>
 			<File
 				RelativePath=".\Parser\CodeBlockGrammar.h"
+				>
+			</File>
+			<File
+				RelativePath=".\Parser\EntityGrammar.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Parser\EntityGrammar.h"
+				>
+			</File>
+			<File
+				RelativePath=".\Parser\ExpressionGrammar.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Parser\ExpressionGrammar.h"
 				>
 			</File>
 			<File
@@ -461,6 +506,10 @@
 			</File>
 			<File
 				RelativePath=".\Parser\LiteralGrammar.h"
+				>
+			</File>
+			<File
+				RelativePath=".\Parser\OperatorGrammar.h"
 				>
 			</File>
 			<File

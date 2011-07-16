@@ -24,6 +24,8 @@
 #include "Parser/FunctionDefinitionGrammar.h"
 #include "Parser/CodeBlockGrammar.h"
 #include "Parser/UtilityGrammar.h"
+#include "Parser/ExpressionGrammar.h"
+#include "Parser/EntityGrammar.h"
 
 
 struct FundamentalGrammar : public boost::spirit::qi::grammar<std::wstring::const_iterator, boost::spirit::char_encoding::standard_wide, SkipGrammar, AST::Program()>
@@ -32,11 +34,15 @@ struct FundamentalGrammar : public boost::spirit::qi::grammar<std::wstring::cons
 
 	explicit FundamentalGrammar(const IdentifierTable& identifiers)
 		: FundamentalGrammar::base_type(StartRule),
-		  TheFunctionDefinitionGrammar(TheCodeBlockGrammar, TheIdentifierGrammar),
-		  TheGlobalGrammar(TheFunctionDefinitionGrammar),
+		  TheExpressionGrammar(TheLiteralGrammar, TheIdentifierGrammar),
+		  TheCodeBlockGrammar(TheExpressionGrammar, TheEntityGrammar),
+		  TheFunctionDefinitionGrammar(TheCodeBlockGrammar, TheIdentifierGrammar, TheExpressionGrammar),
+		  TheGlobalGrammar(TheFunctionDefinitionGrammar, TheIdentifierGrammar, TheCodeBlockGrammar),
 		  Identifiers(identifiers)
 	{
 		StartRule %= TheGlobalGrammar;
+
+		TheEntityGrammar.InitRecursivePortion(TheExpressionGrammar, TheCodeBlockGrammar);
 
 		//
 		// Set up dynamic parser rules to handle all the custom identifiers and symbols
@@ -77,47 +83,13 @@ struct FundamentalGrammar : public boost::spirit::qi::grammar<std::wstring::cons
 	{
 		typedef typename boost::spirit::qi::rule<IteratorT, boost::spirit::char_encoding::standard_wide, SkipGrammar, AttributeT> type;
 	};
-
-	typedef Rule<boost::spirit::qi::unused_type>::type RuleType;
-
-	RuleType ExpressionComponent;
-	RuleType Expression;
-	RuleType ExpressionOrAssignment;
-	RuleType Statement;
-	RuleType PreOperatorStatement;
-	RuleType PostOperatorStatement;
-	RuleType Assignment;
 	
-	RuleType CodeBlockEntry;
-	RuleType CodeBlock;
-	RuleType InnerCodeBlock;
-	
-	RuleType StructureMember;
-	RuleType StructureMemberFunctionRef;
-	RuleType StructureMemberVariable;
-
-	RuleType Entity;
-	RuleType ChainedEntity;
-	RuleType PostfixEntity;
-
 	Rule<AST::Program()>::type StartRule;
 
-	RuleType OpAssignmentIdentifier;
-	RuleType InfixIdentifier;
-	RuleType UnaryPrefixIdentifier;
-	RuleType PreOperator;
-	RuleType PostOperator;
-	RuleType EntityIdentifier;
-	RuleType ChainedEntityIdentifier;
-	RuleType PostfixEntityOpenerIdentifier;
-	RuleType PostfixEntityCloserIdentifier;
-
-	RuleType Parenthetical;
-	RuleType EntityParams;
-	RuleType MemberAccess;
-	RuleType AnyStatement;
-
 	UtilityGrammar TheIdentifierGrammar;
+	LiteralGrammar TheLiteralGrammar;
+	ExpressionGrammar TheExpressionGrammar;
+	EntityGrammar TheEntityGrammar;
 	CodeBlockGrammar TheCodeBlockGrammar;
 	FunctionDefinitionGrammar TheFunctionDefinitionGrammar;
 	GlobalGrammar TheGlobalGrammar;
@@ -128,7 +100,7 @@ struct FundamentalGrammar : public boost::spirit::qi::grammar<std::wstring::cons
 	//
 	void AddInfixOperator(const std::wstring& opname)
 	{
-		InfixIdentifier = boost::spirit::qi::lit(opname.c_str()) | InfixIdentifier.copy();
+		TheExpressionGrammar.InfixIdentifier.add(opname.c_str());
 	}
 
 	//
@@ -136,7 +108,7 @@ struct FundamentalGrammar : public boost::spirit::qi::grammar<std::wstring::cons
 	//
 	void AddUnaryPrefix(const std::wstring& opname)
 	{
-		UnaryPrefixIdentifier = boost::spirit::qi::lit(opname.c_str()) | UnaryPrefixIdentifier.copy();
+		TheExpressionGrammar.UnaryPrefixIdentifier.add(opname.c_str());
 	}
 
 	//
@@ -144,7 +116,7 @@ struct FundamentalGrammar : public boost::spirit::qi::grammar<std::wstring::cons
 	//
 	void AddPreOperator(const std::wstring& opname)
 	{
-		PreOperator = boost::spirit::qi::lit(opname.c_str()) | PreOperator.copy();
+		TheExpressionGrammar.PreOperator.add(opname.c_str());
 	}
 
 	//
@@ -152,7 +124,7 @@ struct FundamentalGrammar : public boost::spirit::qi::grammar<std::wstring::cons
 	//
 	void AddPostOperator(const std::wstring& opname)
 	{
-		PostOperator = boost::spirit::qi::lit(opname.c_str()) | PostOperator.copy();
+		TheExpressionGrammar.PostOperator.add(opname.c_str());
 	}
 
 	//
@@ -160,7 +132,7 @@ struct FundamentalGrammar : public boost::spirit::qi::grammar<std::wstring::cons
 	//
 	void AddInlineEntity(const std::wstring& entityname)
 	{
-		EntityIdentifier = boost::spirit::qi::lit(entityname.c_str()) | EntityIdentifier.copy();
+		TheEntityGrammar.EntityIdentifier.add(entityname, entityname);
 	}
 
 	//
@@ -168,7 +140,7 @@ struct FundamentalGrammar : public boost::spirit::qi::grammar<std::wstring::cons
 	//
 	void AddChainedEntity(const std::wstring& entityname)
 	{
-		ChainedEntityIdentifier = boost::spirit::qi::lit(entityname.c_str()) | ChainedEntityIdentifier.copy();
+		TheEntityGrammar.ChainedEntityIdentifier.add(entityname.c_str());
 	}
 
 	//
@@ -176,7 +148,7 @@ struct FundamentalGrammar : public boost::spirit::qi::grammar<std::wstring::cons
 	//
 	void AddPostfixEntity(const std::wstring& entityname)
 	{
-		PostfixEntityOpenerIdentifier = boost::spirit::qi::lit(entityname.c_str()) | PostfixEntityOpenerIdentifier.copy();
+		TheEntityGrammar.PostfixEntityOpenerIdentifier.add(entityname);
 	}
 
 	//
@@ -184,7 +156,7 @@ struct FundamentalGrammar : public boost::spirit::qi::grammar<std::wstring::cons
 	//
 	void AddPostfixCloser(const std::wstring& entityname)
 	{
-		PostfixEntityCloserIdentifier = boost::spirit::qi::lit(entityname.c_str()) | PostfixEntityCloserIdentifier.copy();
+		TheEntityGrammar.PostfixEntityCloserIdentifier.add(entityname);
 	}
 
 	//
@@ -192,7 +164,7 @@ struct FundamentalGrammar : public boost::spirit::qi::grammar<std::wstring::cons
 	//
 	void AddOpAssignOperator(const std::wstring& identifier)
 	{
-		OpAssignmentIdentifier = boost::spirit::qi::lit(identifier.c_str()) | OpAssignmentIdentifier.copy();
+		TheExpressionGrammar.OpAssignmentIdentifier.add(identifier);
 	}
 
 	const IdentifierTable& Identifiers;

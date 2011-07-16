@@ -10,28 +10,23 @@
 
 // Dependencies
 #include "Libraries/Library.h"
-
-
-// Forward declarations
-class SemanticActionInterface;
+#include "Compiler/AbstractSyntaxTree.h"
 
 
 class Parser
 {
 // Construction
 public:
-	Parser(SemanticActionInterface& semantics, const IdentifierTable& identifiers)
-		: SemanticActions(semantics),
-		  Identifiers(identifiers)
+	explicit Parser(const IdentifierTable& identifiers)
+		: Identifiers(identifiers)
 	{ }
 
 // Parsing operations
 public:
-	bool Parse(const std::wstring& code, const std::wstring& filename);
+	bool Parse(const std::wstring& code, const std::wstring& filename, AST::Program& out) const;
 
 // Internal tracking
 private:
-	SemanticActionInterface& SemanticActions;
 	const IdentifierTable& Identifiers;
 };
 

@@ -14,6 +14,7 @@
 #include <map>
 #include <set>
 #include <vector>
+#include <list>
 
 
 // Platform-specific stuff
@@ -27,11 +28,23 @@
 #include "Utility/Exception.h"
 
 
-
 // Options for Boost
 #define BOOST_EXECPTION_DISABLE
 #define BOOST_SPIRIT_UNICODE
+#define BOOST_SPIRIT_DONT_USE_MPL_ASSERT_MSG 1		// Avoid nasty linker glitch in mpl
+
 
 // We include spirit here for better grammar/parser build times
 #include <boost/spirit/include/qi.hpp>
 #include <boost/spirit/include/qi_match_auto.hpp>
+#include <boost/spirit/include/qi_symbols.hpp>
+
+#include <boost/variant.hpp>
+
+#include <boost/fusion/adapted.hpp>
+
+#include <boost/optional.hpp>
+
+#include <boost/shared_ptr.hpp>
+
+

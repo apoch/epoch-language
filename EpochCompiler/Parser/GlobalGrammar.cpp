@@ -4,40 +4,25 @@
 
 #include "Parser/GlobalGrammar.h"
 #include "Parser/FunctionDefinitionGrammar.h"
+#include "Parser/UtilityGrammar.h"
+#include "Parser/CodeBlockGrammar.h"
 
 #include "Libraries/Library.h"
 
 
-GlobalGrammar::GlobalGrammar(const FunctionDefinitionGrammar& funcdefgrammar)
+GlobalGrammar::GlobalGrammar(const FunctionDefinitionGrammar& funcdefgrammar, const UtilityGrammar& identifiergrammar, const CodeBlockGrammar& codeblockgrammar)
 	: GlobalGrammar::base_type(Program),
 	  TheFunctionDefinitionGrammar(funcdefgrammar)
 {
 	using namespace boost::spirit::qi;
 
-	/*InfixIdentifier = L'.';
-	PreOperatorStatement = PreOperator >> MemberAccess;
-	PostOperatorStatement = MemberAccess >> PostOperator;
-	Parenthetical = L'(' >> (PreOperatorStatement | PostOperatorStatement | Expression) >> L')';
-	ExpressionComponent = *(UnaryPrefixIdentifier) >> (Statement | Parenthetical | Literal | StringIdentifier);
-	Expression = ExpressionComponent >> (*((InfixIdentifier - PreOperator - PostOperator) >> ExpressionComponent));
-	Statement = StringIdentifier >> EntityParams;
-	ExpressionOrAssignment = Assignment | Expression;
-	MemberAccess = StringIdentifier >> *(L'.' >> StringIdentifier);
-	Assignment = MemberAccess >> (L'=' | OpAssignmentIdentifier) >> ExpressionOrAssignment;
-	AnyStatement = PreOperatorStatement | PostOperatorStatement | Statement;
-	CodeBlockEntry = Entity | PostfixEntity | Assignment | AnyStatement | InnerCodeBlock;
-	InnerCodeBlock = L'{' >> (*CodeBlockEntry) >> L'}';
-	EntityParams = L'(' >> -(Expression % L',') >> L')';
-	Entity = EntityIdentifier >> -EntityParams >> InnerCodeBlock >> *ChainedEntity;
-	ChainedEntity = ChainedEntityIdentifier >> -EntityParams >> InnerCodeBlock;
-	PostfixEntity = PostfixEntityOpenerIdentifier >> -EntityParams >> InnerCodeBlock >> PostfixEntityCloserIdentifier >> L'(' >> Expression >> L')';
-	StructureMemberFunctionRef = (StringIdentifier) >> L':' >> ParamTypeSpec >> L"->" >> ReturnTypeSpec;
-	StructureMemberVariable = (StringIdentifier >> L'(' >> StringIdentifier >> L')');
-	StructureMember = StructureMemberFunctionRef | StructureMemberVariable;
-	StructureDefinition = L"structure" >> StringIdentifier >> char_(L':') >> L'(' >> (StructureMember % L',') >> L')';
-	GlobalDefinition = L"global" >> CodeBlock;
-	FunctionTagSpec = (StringIdentifier >> -(L'(' >> ((Literal | StringIdentifier) % L',') >> L')'));
-	FunctionTagList = L"[" >> *FunctionTagSpec >> L"]";*/
-	MetaEntity %= /*StructureDefinition | GlobalDefinition |*/ TheFunctionDefinitionGrammar;
+	ParamTypeSpec %= L'(' >> -(raw[identifiergrammar] % L',') >> L')';
+	ReturnTypeSpec %= raw[L'(' >> -(raw[identifiergrammar]) >> L')'];
+	StructureMemberFunctionRef %= (raw[identifiergrammar]) >> L':' >> ParamTypeSpec >> L"->" >> ReturnTypeSpec;
+	StructureMemberVariable %= (raw[identifiergrammar] >> L'(' >> raw[identifiergrammar] >> L')');
+	StructureMember %= StructureMemberFunctionRef | StructureMemberVariable;
+	StructureDefinition %= L"structure" >> raw[identifiergrammar] >> lit(L":") >> L'(' >> (StructureMember % L',') >> L')';
+	GlobalDefinition %= L"global" >> codeblockgrammar;
+	MetaEntity %= StructureDefinition | GlobalDefinition | TheFunctionDefinitionGrammar;
 	Program %= *MetaEntity;
 }

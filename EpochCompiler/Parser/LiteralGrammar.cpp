@@ -7,33 +7,19 @@ LiteralGrammar::LiteralGrammar()
 {
 	using namespace boost::spirit::qi;
 
-	HexLiteral
-		= L"0x" >> (+(hex))
-		;
+	BooleanLiteral.add
+		(L"true", true)
+		(L"false", false);
 
-	RealLiteral
-		= (-char_(L'-')) >> (+(digit)) >> L'.' >> (+(digit))
-		;
-
-	IntegerLiteral
-		= (-char_(L'-')) >> (+(digit))
-		;
-
-	StringLiteral
-		= L'\"' >> lexeme[*(char_ - L'\"')] >> L'\"'
-		;
-
-	BooleanLiteral
-		= lit(L"true")
-		| lit(L"false")
-		;
+	HexLiteral %= L"0x" >> hex;
+	StringLiteral %= L'\"' >> raw[lexeme[*(char_ - L'\"')]] >> L'\"';
 
 	Literal
-		= HexLiteral
-		| RealLiteral
-		| IntegerLiteral
-		| StringLiteral
-		| BooleanLiteral
+		%= HexLiteral
+		 | Real32Parser
+		 | Integer32Parser
+		 | StringLiteral
+		 | BooleanLiteral
 		;
 }
 

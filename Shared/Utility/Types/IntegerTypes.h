@@ -5,6 +5,8 @@
 // Platform-specific definitions for integer type widths
 //
 
+typedef __int64 Integer64;
+
 typedef int Integer32;
 typedef unsigned UInteger32;
 

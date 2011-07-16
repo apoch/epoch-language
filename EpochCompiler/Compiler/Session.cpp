@@ -10,6 +10,7 @@
 #include "Compiler/Session.h"
 #include "Compiler/SemanticActions.h"
 #include "Compiler/ByteCodeEmitter.h"
+#include "Compiler/AbstractSyntaxTree.h"
 
 #include "Parser/Parser.h"
 
@@ -17,12 +18,15 @@
 
 #include "Metadata/Precedences.h"
 
+#include "Compiler/Diagnostics.h"
+
 
 //
 // Construct a compilation session wrapper and initialize the standard library
 //
 CompileSession::CompileSession()
-	: GlobalScopeName(0)
+	: GlobalScopeName(0),
+	  TheProgram(NULL)
 {
 	HINSTANCE dllhandle = Marshaling::TheDLLPool.OpenDLL(L"EpochLibrary.DLL");
 
@@ -70,6 +74,11 @@ CompileSession::CompileSession()
 	OperatorPrecedences.insert(std::make_pair(PRECEDENCE_MEMBERACCESS, StringPool.Pool(L".")));
 }
 
+CompileSession::~CompileSession()
+{
+	delete TheProgram;
+}
+
 
 //
 // Add a code block to the compilation session
@@ -85,33 +94,25 @@ void CompileSession::AddCompileBlock(const std::wstring& source, const std::wstr
 //
 void CompileSession::EmitByteCode()
 {
+	delete TheProgram;
+	TheProgram = new AST::Program;
+
 	InitializationByteCode.clear();
 	EntryByteCode.clear();
 	GeneralByteCode.clear();
 	FinalByteCode.clear();
 
-	// All global initialization/startup code goes into the beginning of the buffer.
-	// This allows the VM to just pick the start of the buffer as its current instruction
-	// pointer, and then crank away. The setup code, e.g. for pooling string literals,
-	// will be prepended to the buffer by the compiler during code compilation.
-
-	// Next is the entry stub, which initializes globals, runs any code in the global
-	// blocks, and then invokes the entrypoint function.
-
-	// Once the VM's startup stub is written out, we can begin emitting the actual byte
-	// code for the program being compiled. This simply starts by enumerating all of the
-	// user-defined functions at global scope. To accomplish this, we will traverse the
-	// set of code blocks that have been provided, and compile each one's global-scoped
-	// functions.
 	for(std::list<std::pair<std::wstring, std::wstring> >::const_iterator iter = SourceBlocksAndFileNames.begin(); iter != SourceBlocksAndFileNames.end(); ++iter)
-		CompileFunctions(iter->first, iter->second);
+		CompileFile(iter->first, iter->second);
+
+	DumpASTForProgram(*TheProgram);
 
 	ByteCodeEmitter entryemitter(EntryByteCode);
 
 	if(GlobalScopeName)
 		entryemitter.PrependEntity(Bytecode::EntityTags::Globals, GlobalScopeName);
 
-	entryemitter.Invoke(StringPool.Pool(L"entrypoint"));
+	//entryemitter.Invoke(StringPool.Pool(L"entrypoint"));
 	entryemitter.Halt();
 
 	FinalByteCode.reserve(InitializationByteCode.size() + EntryByteCode.size() + GeneralByteCode.size());
@@ -145,19 +146,12 @@ size_t CompileSession::GetEmittedBufferSize() const
 //
 // Compile all global-scoped functions in the given code block
 //
-void CompileSession::CompileFunctions(const std::wstring& code, const std::wstring& filename)
+void CompileSession::CompileFile(const std::wstring& code, const std::wstring& filename)
 {
-	ByteCodeEmitter initemitter(InitializationByteCode);
-	ByteCodeEmitter globalemitter(EntryByteCode);
-	ByteCodeEmitter emitter(GeneralByteCode);
+	Parser theparser(Identifiers);
 
-	CompilationSemantics semantics(initemitter, globalemitter, emitter, *this);
-	Parser theparser(semantics, Identifiers);
-
-	if(!theparser.Parse(code, filename) || semantics.DidFail())
+	if(!theparser.Parse(code, filename, *TheProgram))
 		throw FatalException("Parsing failed!");
-
-	semantics.SanityCheck();
 }
 
 

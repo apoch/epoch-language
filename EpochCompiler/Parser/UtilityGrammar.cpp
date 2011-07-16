@@ -7,6 +7,6 @@ UtilityGrammar::UtilityGrammar()
 {
 	using namespace boost::spirit::qi;
 
-	StringIdentifier %= lexeme[((alpha) >> *(alnum | L'_'))];
+	StringIdentifier %= raw[lexeme[((alpha) >> *(alnum | L'_'))]];
 }
 
