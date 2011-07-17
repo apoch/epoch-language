@@ -31,9 +31,9 @@ namespace ASTTraverse
 		}
 
 		template <typename EntryActionT, typename ExitActionT, typename T>
-		void Do(EntryActionT& entryaction, std::list<T>& nodes, ExitActionT& exitaction)
+		void Do(EntryActionT& entryaction, std::vector<T>& nodes, ExitActionT& exitaction)
 		{
-			for(std::list<T>::iterator iter = nodes.begin(); iter != nodes.end(); ++iter)
+			for(std::vector<T>::iterator iter = nodes.begin(); iter != nodes.end(); ++iter)
 				Do(entryaction, *iter, exitaction);
 		}
 

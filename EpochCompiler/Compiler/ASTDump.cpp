@@ -29,6 +29,12 @@ namespace
 			TheStream << L"Literal \"" << value << L"\"";
 		}
 
+		template <typename T, typename PtrT>
+		void operator () (AST::Deferred<T, PtrT>& deferred)
+		{
+			(*this)(*deferred.Content);
+		}
+
 		void operator () (AST::Undefined&)
 		{
 			TheStream << L"**UNDEFINED**";
@@ -189,7 +195,7 @@ void DumpToStream::ExitHelper::operator () (AST::Expression& expression)
 
 void DumpToStream::EntryHelper::operator () (AST::ExpressionComponent& exprcomponent)
 {
-	for(std::list<AST::IdentifierT>::const_iterator iter = exprcomponent.UnaryPrefixes.Content->begin(); iter != exprcomponent.UnaryPrefixes.Content->end(); ++iter)
+	for(std::vector<AST::IdentifierT>::const_iterator iter = exprcomponent.UnaryPrefixes.Content->begin(); iter != exprcomponent.UnaryPrefixes.Content->end(); ++iter)
 		self->TheStream << *iter << L" ";
 
 	VariantDumpVisitor visitor(*self, self->TheStream);
@@ -269,7 +275,7 @@ void DumpToStream::EntryHelper::operator () (AST::FunctionReferenceSignature& re
 	self->TheStream << L" with parameter types:" << std::endl;
 	++self->Indentation;
 
-	for(std::list<AST::IdentifierT>::const_iterator iter = refsig.ParamTypes.begin(); iter != refsig.ParamTypes.end(); ++iter)
+	for(std::vector<AST::IdentifierT>::const_iterator iter = refsig.ParamTypes.Content->begin(); iter != refsig.ParamTypes.Content->end(); ++iter)
 	{
 		self->Indent();
 		self->TheStream << *iter << std::endl;

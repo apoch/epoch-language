@@ -121,7 +121,7 @@
 				Name="VCCLCompilerTool"
 				AdditionalOptions="/Zm216"
 				AdditionalIncludeDirectories=".\;..\Shared\;..\EpochVM\"
-				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;EPOCHCOMPILER_EXPORTS"
+				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;EPOCHCOMPILER_EXPORTS;_SECURE_SCL=0"
 				RuntimeLibrary="2"
 				UsePrecompiledHeader="2"
 				PrecompiledHeaderThrough="pch.h"
@@ -435,6 +435,10 @@
 			<Filter
 				Name="Abstract Syntax Tree"
 				>
+				<File
+					RelativePath=".\Compiler\AbstractSyntaxTree.cpp"
+					>
+				</File>
 				<File
 					RelativePath=".\Compiler\AbstractSyntaxTree.h"
 					>

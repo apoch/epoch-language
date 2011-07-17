@@ -31,7 +31,7 @@ struct GlobalGrammar : public boost::spirit::qi::grammar<std::wstring::const_ite
 	Rule<AST::CodeBlock()>::type GlobalDefinition;
 	Rule<AST::MetaEntity()>::type MetaEntity;
 
-	Rule<std::list<AST::IdentifierT>()>::type ParamTypeSpec;
+	Rule<std::vector<AST::IdentifierT>()>::type ParamTypeSpec;
 	Rule<AST::IdentifierT()>::type ReturnTypeSpec;
 
 	const FunctionDefinitionGrammar& TheFunctionDefinitionGrammar;

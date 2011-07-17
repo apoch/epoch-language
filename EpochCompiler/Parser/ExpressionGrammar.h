@@ -9,7 +9,7 @@ struct LiteralGrammar;
 struct UtilityGrammar;
 
 
-struct ExpressionGrammar : public boost::spirit::qi::grammar<std::wstring::const_iterator, boost::spirit::char_encoding::standard_wide, SkipGrammar, AST::Deferred<AST::Expression>()>
+struct ExpressionGrammar : public boost::spirit::qi::grammar<std::wstring::const_iterator, boost::spirit::char_encoding::standard_wide, SkipGrammar, AST::Deferred<AST::Expression, boost::intrusive_ptr<AST::Expression> >()>
 {
 	typedef std::wstring::const_iterator IteratorT;
 
@@ -23,24 +23,24 @@ struct ExpressionGrammar : public boost::spirit::qi::grammar<std::wstring::const
 	};
 
 	Rule<AST::Statement()>::type Statement;
-	Rule<AST::Deferred<AST::PreOperatorStatement>()>::type PreOperatorStatement;
-	Rule<AST::Deferred<AST::PostOperatorStatement>()>::type PostOperatorStatement;
+	Rule<AST::Deferred<AST::PreOperatorStatement, boost::intrusive_ptr<AST::PreOperatorStatement> >()>::type PreOperatorStatement;
+	Rule<AST::Deferred<AST::PostOperatorStatement, boost::intrusive_ptr<AST::PostOperatorStatement> >()>::type PostOperatorStatement;
 	
 	Rule<AST::Assignment()>::type Assignment;
 	Rule<AST::IdentifierT()>::type AssignmentOperator;
 
 	Rule<AST::Parenthetical()>::type Parenthetical;
-	Rule<std::list<AST::Deferred<AST::Expression> >()>::type EntityParams;
+	Rule<std::vector<AST::Deferred<AST::Expression, boost::intrusive_ptr<AST::Expression> > >()>::type EntityParams;
 	Rule<AST::MemberAccess()>::type MemberAccess;
 
-	Rule<AST::Deferred<AST::ExpressionFragment>()>::type ExpressionFragment;
-	Rule<AST::Deferred<AST::ExpressionComponent>()>::type ExpressionComponent;
-	Rule<AST::Deferred<AST::Expression>()>::type Expression;
+	Rule<AST::Deferred<AST::ExpressionFragment, boost::intrusive_ptr<AST::ExpressionFragment> >()>::type ExpressionFragment;
+	Rule<AST::Deferred<AST::ExpressionComponent, boost::intrusive_ptr<AST::ExpressionComponent> >()>::type ExpressionComponent;
+	Rule<AST::Deferred<AST::Expression, boost::intrusive_ptr<AST::Expression> >()>::type Expression;
 	Rule<AST::ExpressionOrAssignment()>::type ExpressionOrAssignment;
 
 	Rule<AST::AnyStatement()>::type AnyStatement;
 	
-	Rule<std::list<AST::IdentifierT>()>::type Prefixes;
+	Rule<std::vector<AST::IdentifierT>()>::type Prefixes;
 
 	SymbolTable PreOperator;
 	SymbolTable PostOperator;
