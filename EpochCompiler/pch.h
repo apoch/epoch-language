@@ -39,6 +39,8 @@
 #include <boost/spirit/include/qi_match_auto.hpp>
 #include <boost/spirit/include/qi_symbols.hpp>
 
+#include <boost/spirit/include/lex_lexertl.hpp>
+
 #include <boost/variant.hpp>
 
 #include <boost/fusion/adapted.hpp>

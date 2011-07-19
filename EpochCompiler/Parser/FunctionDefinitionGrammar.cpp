@@ -6,22 +6,22 @@
 #include "Parser/ExpressionGrammar.h"
 
 
-FunctionDefinitionGrammar::FunctionDefinitionGrammar(const CodeBlockGrammar& codeblockgrammar, const UtilityGrammar& identifiergrammar, const ExpressionGrammar& expressiongrammar)
+FunctionDefinitionGrammar::FunctionDefinitionGrammar(const Lexer::EpochLexerT& lexer, const CodeBlockGrammar& codeblockgrammar, const UtilityGrammar& identifiergrammar, const ExpressionGrammar& expressiongrammar)
 	: FunctionDefinitionGrammar::base_type(FunctionDefinition)
 {
 	using namespace boost::spirit::qi;
 
-	ParamTypeSpec = L'(' >> -(identifiergrammar % L',') >> L')';
-	ReturnTypeSpec = raw[L'(' >> -(raw[identifiergrammar]) >> L')'];
-	ParameterFunctionRef = identifiergrammar >> L':' >> ParamTypeSpec >> L"->" >> ReturnTypeSpec;
-	ParameterSpec %= identifiergrammar >> -lit(L"ref") >> L'(' >> identifiergrammar >> L')';
+	ParamTypeSpec = lexer.OpenParens >> -(identifiergrammar % lexer.Comma) >> lexer.CloseParens;
+	ReturnTypeSpec = lexer.OpenParens >> -(identifiergrammar) >> lexer.CloseParens;
+	ParameterFunctionRef = identifiergrammar >> lexer.Colon >> ParamTypeSpec >> lexer.Arrow >> ReturnTypeSpec;
+	ParameterSpec %= identifiergrammar >> -lexer.Ref >> lexer.OpenParens >> identifiergrammar >> lexer.CloseParens;
 	ParameterDeclaration %= ParameterFunctionRef | ParameterSpec | expressiongrammar;
-	ParameterList %= L'(' >> (-(ParameterDeclaration % L',')) >> L')';
+	ParameterList %= lexer.OpenParens >> (-(ParameterDeclaration % lexer.Comma)) >> lexer.CloseParens;
 	ReturnDeclaration %= expressiongrammar;
-	ReturnList %= L'(' >> -ReturnDeclaration >> L')';
+	ReturnList %= lexer.OpenParens >> -ReturnDeclaration >> lexer.CloseParens;
 
-	FunctionTagSpec = (identifiergrammar >> -(L'(' >> ((expressiongrammar) % L',') >> L')'));
-	FunctionTagList = L"[" >> *FunctionTagSpec >> L"]";
+	FunctionTagSpec = (identifiergrammar >> -(lexer.OpenParens >> ((expressiongrammar) % lexer.Comma) >> lexer.CloseParens));
+	FunctionTagList = lexer.OpenBrace >> *FunctionTagSpec >> lexer.CloseBrace;
 
-	FunctionDefinition %= identifiergrammar >> L':' >> ParameterList >> L"->" >> ReturnList >> -FunctionTagList >> codeblockgrammar;
+	FunctionDefinition %= identifiergrammar >> lexer.Colon >> ParameterList >> lexer.Arrow >> ReturnList >> -FunctionTagList >> codeblockgrammar;
 }

@@ -1,31 +1,28 @@
 #pragma once
 
-#include "Parser/SkipGrammar.h"
-
 #include "Compiler/AbstractSyntaxTree.h"
+
+#include "Lexer/Lexer.h"
 
 
 struct ExpressionGrammar;
 struct CodeBlockGrammar;
 
 
-struct EntityGrammar : public boost::spirit::qi::grammar<std::wstring::const_iterator, boost::spirit::char_encoding::standard_wide, SkipGrammar, AST::AnyEntity()>
+struct EntityGrammar : public boost::spirit::qi::grammar<Lexer::TokenIterT, boost::spirit::char_encoding::standard_wide, AST::AnyEntity()>
 {
-	typedef std::wstring::const_iterator IteratorT;
+	typedef Lexer::TokenIterT IteratorT;
 
 	EntityGrammar();
 
-	void InitRecursivePortion(const ExpressionGrammar& expressiongrammar, const CodeBlockGrammar& codeblockgrammar);
+	void InitRecursivePortion(const Lexer::EpochLexerT& lexer, const ExpressionGrammar& expressiongrammar, const CodeBlockGrammar& codeblockgrammar);
 
 
 	template <typename AttributeT>
 	struct Rule
 	{
-		typedef typename boost::spirit::qi::rule<IteratorT, boost::spirit::char_encoding::standard_wide, SkipGrammar, AttributeT> type;
+		typedef typename boost::spirit::qi::rule<IteratorT, boost::spirit::char_encoding::standard_wide, AttributeT> type;
 	};
-
-	// TODO - this is redundant with OperatorGrammar.h :: SymbolTable
-	typedef boost::spirit::qi::symbols<wchar_t, AST::IdentifierT> Symbols;
 
 	Rule<AST::Entity()>::type Entity;
 	Rule<AST::ChainedEntity()>::type ChainedEntity;
@@ -33,9 +30,13 @@ struct EntityGrammar : public boost::spirit::qi::grammar<std::wstring::const_ite
 
 	Rule<AST::AnyEntity()>::type AnyEntity;
 
-	Symbols EntityIdentifier;
-	Symbols ChainedEntityIdentifier;
-	Symbols PostfixEntityOpenerIdentifier;
-	Symbols PostfixEntityCloserIdentifier;
+	Rule<AST::IdentifierT()>::type EntityIdentifierMatch;
+	Rule<AST::IdentifierT()>::type ChainedEntityIdentifierMatch;
+
+	typedef boost::spirit::qi::symbols<wchar_t, AST::IdentifierT> SymbolTable;
+	SymbolTable EntityIdentifierSymbols;
+	SymbolTable ChainedEntityIdentifierSymbols;
+	SymbolTable PostfixEntitySymbols;
+	SymbolTable PostfixEntityCloserSymbols;
 };
 

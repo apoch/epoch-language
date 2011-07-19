@@ -1,28 +1,29 @@
 #pragma once
 
-#include "Parser/SkipGrammar.h"
 #include "Parser/OperatorGrammar.h"
 
 #include "Compiler/AbstractSyntaxTree.h"
+
+#include "Lexer/Lexer.h"
 
 struct LiteralGrammar;
 struct UtilityGrammar;
 
 
-struct ExpressionGrammar : public boost::spirit::qi::grammar<std::wstring::const_iterator, boost::spirit::char_encoding::standard_wide, SkipGrammar, AST::Deferred<AST::Expression, boost::intrusive_ptr<AST::Expression> >()>
+struct ExpressionGrammar : public boost::spirit::qi::grammar<Lexer::TokenIterT, boost::spirit::char_encoding::standard_wide, AST::Deferred<AST::Expression, boost::intrusive_ptr<AST::Expression> >()>
 {
-	typedef std::wstring::const_iterator IteratorT;
+	typedef Lexer::TokenIterT IteratorT;
 
-	ExpressionGrammar(const LiteralGrammar& literalgrammar, const UtilityGrammar& identifiergrammar);
+	ExpressionGrammar(const Lexer::EpochLexerT& lexer, const LiteralGrammar& literalgrammar, const UtilityGrammar& identifiergrammar);
 
 
 	template <typename AttributeT>
 	struct Rule
 	{
-		typedef typename boost::spirit::qi::rule<IteratorT, boost::spirit::char_encoding::standard_wide, SkipGrammar, AttributeT> type;
+		typedef typename boost::spirit::qi::rule<IteratorT, boost::spirit::char_encoding::standard_wide, AttributeT> type;
 	};
 
-	Rule<AST::Statement()>::type Statement;
+	Rule<AST::Deferred<AST::Statement, boost::intrusive_ptr<AST::Statement> >()>::type Statement;
 	Rule<AST::Deferred<AST::PreOperatorStatement, boost::intrusive_ptr<AST::PreOperatorStatement> >()>::type PreOperatorStatement;
 	Rule<AST::Deferred<AST::PostOperatorStatement, boost::intrusive_ptr<AST::PostOperatorStatement> >()>::type PostOperatorStatement;
 	
@@ -30,6 +31,8 @@ struct ExpressionGrammar : public boost::spirit::qi::grammar<std::wstring::const
 	Rule<AST::IdentifierT()>::type AssignmentOperator;
 
 	Rule<AST::Parenthetical()>::type Parenthetical;
+	Rule<boost::spirit::qi::unused_type>::type EntityParamsEmpty;
+	Rule<std::vector<AST::Deferred<AST::Expression, boost::intrusive_ptr<AST::Expression> > >()>::type EntityParamsInner;
 	Rule<std::vector<AST::Deferred<AST::Expression, boost::intrusive_ptr<AST::Expression> > >()>::type EntityParams;
 	Rule<AST::MemberAccess()>::type MemberAccess;
 
@@ -42,10 +45,11 @@ struct ExpressionGrammar : public boost::spirit::qi::grammar<std::wstring::const
 	
 	Rule<std::vector<AST::IdentifierT>()>::type Prefixes;
 
-	SymbolTable PreOperator;
-	SymbolTable PostOperator;
-	SymbolTable OpAssignmentIdentifier;
-	SymbolTable InfixIdentifier;
-	SymbolTable UnaryPrefixIdentifier;
+	typedef boost::spirit::qi::symbols<wchar_t, AST::IdentifierT> SymbolTable;
+	SymbolTable PreOperatorSymbols;
+	SymbolTable PostOperatorSymbols;
+	SymbolTable PrefixSymbols;
+	SymbolTable InfixSymbols;
+	SymbolTable OpAssignSymbols;
 };
 

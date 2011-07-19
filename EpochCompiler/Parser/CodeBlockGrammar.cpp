@@ -5,14 +5,14 @@
 #include "Parser/EntityGrammar.h"
 
 
-CodeBlockGrammar::CodeBlockGrammar(const ExpressionGrammar& expressiongrammar, const EntityGrammar& entitygrammar)
+CodeBlockGrammar::CodeBlockGrammar(const Lexer::EpochLexerT& lexer, const ExpressionGrammar& expressiongrammar, const EntityGrammar& entitygrammar)
 	: CodeBlockGrammar::base_type(CodeBlock)
 {
 	using namespace boost::spirit::qi;
 
 	CodeBlockEntry %= entitygrammar | expressiongrammar.Assignment | expressiongrammar.AnyStatement | InnerCodeBlock;
 	
-	InnerCodeBlock %= L'{' >> (*CodeBlockEntry) >> L'}';
+	InnerCodeBlock %= lexer.OpenBracket >> (*CodeBlockEntry) >> lexer.CloseBracket;
 	CodeBlock %= -InnerCodeBlock;
 }
 

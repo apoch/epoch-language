@@ -119,10 +119,15 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalOptions="/Zm216"
+				AdditionalOptions="/Zm230"
+				EnableIntrinsicFunctions="true"
+				FavorSizeOrSpeed="1"
 				AdditionalIncludeDirectories=".\;..\Shared\;..\EpochVM\"
 				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;EPOCHCOMPILER_EXPORTS;_SECURE_SCL=0"
+				StringPooling="true"
 				RuntimeLibrary="2"
+				BufferSecurityCheck="false"
+				EnableEnhancedInstructionSet="1"
 				UsePrecompiledHeader="2"
 				PrecompiledHeaderThrough="pch.h"
 				WarningLevel="3"
@@ -501,6 +506,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\Parser\GrammarDebugger.h"
+				>
+			</File>
+			<File
 				RelativePath=".\Parser\Grammars.h"
 				>
 			</File>
@@ -556,6 +565,22 @@
 					>
 				</File>
 			</Filter>
+		</Filter>
+		<Filter
+			Name="Lexer"
+			>
+			<File
+				RelativePath=".\Lexer\AdaptTokenDirective.h"
+				>
+			</File>
+			<File
+				RelativePath=".\Lexer\Lexer.h"
+				>
+			</File>
+			<File
+				RelativePath=".\Lexer\Lexer.inl"
+				>
+			</File>
 		</Filter>
 	</Files>
 	<Globals>

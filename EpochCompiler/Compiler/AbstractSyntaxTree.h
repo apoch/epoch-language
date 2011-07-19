@@ -31,6 +31,15 @@ namespace AST
 	void intrusive_ptr_add_ref(struct PostOperatorStatement* expr);
 	void intrusive_ptr_release(struct PostOperatorStatement* expr);
 
+	void intrusive_ptr_add_ref(struct IdentifierListRaw* expr);
+	void intrusive_ptr_release(struct IdentifierListRaw* expr);
+
+	void intrusive_ptr_add_ref(struct ExpressionComponentInternal* expr);
+	void intrusive_ptr_release(struct ExpressionComponentInternal* expr);
+
+	void intrusive_ptr_add_ref(struct Statement* expr);
+	void intrusive_ptr_release(struct Statement* expr);
+
 
 	template <typename T, typename PointerType = boost::shared_ptr<T> >
 	struct Deferred
@@ -96,7 +105,7 @@ namespace AST
 				return *(Owner->Contents);
 			}
 
-			T* operator -> ()
+			T* operator -> () const
 			{
 				if(!Owner->Contents)
 				{
@@ -110,19 +119,142 @@ namespace AST
 			Deferred* Owner;
 		} Content;
 
-	private:
-		PointerType Contents;
+	protected:
+		mutable PointerType Contents;
+	};
+
+	template <typename T, typename PointerType = boost::shared_ptr<T> >
+	struct DeferredContainer
+	{
+		typedef typename T::ContainedT::value_type value_type;
+		typedef typename T::ContainedT::iterator iterator;
+
+		DeferredContainer()
+			: Contents(reinterpret_cast<T*>(NULL))
+		{
+			Content.Owner = this;
+		}
+
+		DeferredContainer(const T& expr)
+			: Contents(new T(expr))
+		{
+			Content.Owner = this;
+		}
+
+		DeferredContainer(const DeferredContainer& rhs)
+			: Contents(rhs.Contents)
+		{
+			Content.Owner = this;
+		}
+
+		template <typename VariantContentT>
+		DeferredContainer(const VariantContentT& content)
+			: Contents(new T(content))
+		{
+			Content.Owner = this;
+		}
+
+		operator T ()
+		{
+			if(Contents)
+				return *Contents;
+
+			return T();
+		}
+
+		operator T () const
+		{
+			if(Contents)
+				return *Contents;
+
+			return T();
+		}
+
+		DeferredContainer& operator = (const DeferredContainer& rhs)
+		{
+			if(this != &rhs)
+				Contents = rhs.Contents;
+			return *this;
+		}
+
+		void insert(const iterator& pos, const value_type& value)
+		{
+			Content->Container.insert(pos, value);
+		}
+
+		iterator begin()
+		{
+			return Content->Container.begin();
+		}
+
+		iterator end()
+		{
+			return Content->Container.end();
+		}
+
+		struct SafeContentAccess
+		{
+			T& operator * () const
+			{
+				if(!Owner->Contents)
+				{
+					PointerType copy(new T());
+					Owner->Contents = copy;
+				}
+
+				return *(Owner->Contents);
+			}
+
+			T* operator -> () const
+			{
+				if(!Owner->Contents)
+				{
+					PointerType copy(new T());
+					Owner->Contents = copy;
+				}
+
+				return Owner->Contents.get();
+			}
+
+			DeferredContainer* Owner;
+		} Content;
+
+	protected:
+		mutable PointerType Contents;
 	};
 
 
-	struct Undefined { Undefined() { } };
+	struct Undefined
+	{
+		Undefined() { }
+		Undefined(const boost::spirit::unused_type&) { }
+	};
 
 	typedef boost::iterator_range<std::wstring::const_iterator> IdentifierT;
 	typedef boost::iterator_range<std::wstring::const_iterator> LiteralStringT;
 
 	typedef boost::variant<Undefined, Integer32, UInteger32, Real32, LiteralStringT, bool> LiteralToken;
 
-	typedef std::vector<AST::IdentifierT> MemberAccess;
+	struct IdentifierListRaw
+	{
+		typedef std::vector<AST::IdentifierT> ContainedT;
+
+		ContainedT Container;
+
+		long RefCount;
+
+		IdentifierListRaw()
+			: RefCount(0)
+		{ }
+
+	// Non-copyable
+	private:
+		IdentifierListRaw(const IdentifierListRaw&);
+		IdentifierListRaw& operator = (const IdentifierListRaw&);
+	};
+
+	typedef DeferredContainer<IdentifierListRaw, boost::intrusive_ptr<IdentifierListRaw> > IdentifierList;
+	typedef IdentifierList MemberAccess;
 
 	typedef boost::variant
 		<
@@ -137,7 +269,7 @@ namespace AST
 			Undefined,
 			boost::recursive_wrapper<Deferred<struct PreOperatorStatement, boost::intrusive_ptr<PreOperatorStatement> > >,
 			boost::recursive_wrapper<Deferred<struct PostOperatorStatement, boost::intrusive_ptr<PostOperatorStatement> > >,
-			boost::recursive_wrapper<struct Statement>
+			boost::recursive_wrapper<Deferred<struct Statement, boost::intrusive_ptr<Statement> > >
 		> AnyStatement;
 
 	typedef boost::variant
@@ -145,14 +277,37 @@ namespace AST
 			Undefined,
 			boost::recursive_wrapper<IdentifierT>,
 			boost::recursive_wrapper<LiteralToken>,
-			boost::recursive_wrapper<struct Statement>,
+			boost::recursive_wrapper<Deferred<struct Statement, boost::intrusive_ptr<Statement> > >,
 			boost::recursive_wrapper<Parenthetical>
-		> ExpressionComponentInternal;
+		> ExpressionComponentInternalVariant;
+
+	struct ExpressionComponentInternal
+	{
+		ExpressionComponentInternalVariant V;
+
+		long RefCount;
+
+		ExpressionComponentInternal()
+			: RefCount(0)
+		{ }
+
+		template <typename T>
+		ExpressionComponentInternal(const T& v)
+			: V(v),
+			  RefCount(0)
+		{
+		}
+
+	// Non-copyable
+	private:
+		ExpressionComponentInternal(const ExpressionComponentInternal&);
+		ExpressionComponentInternal& operator = (const ExpressionComponentInternal&);
+	};
 
 	struct ExpressionComponent
 	{
-		Deferred<std::vector<IdentifierT> > UnaryPrefixes;
-		ExpressionComponentInternal Component;
+		IdentifierList UnaryPrefixes;
+		Deferred<ExpressionComponentInternal, boost::intrusive_ptr<ExpressionComponentInternal> > Component;
 
 		long RefCount;
 
@@ -214,12 +369,23 @@ namespace AST
 	{
 		IdentifierT Identifier;
 		std::vector<Deferred<Expression, boost::intrusive_ptr<Expression> > > Params;
+
+		Statement()
+			: RefCount(0)
+		{ }
+
+		long RefCount;
+
+	// Non-copyable
+	private:
+		Statement(const Statement&);
+		Statement& operator = (const Statement&);
 	};
 
 	struct PreOperatorStatement
 	{
 		IdentifierT Operator;
-		Deferred<MemberAccess> Operand;
+		MemberAccess Operand;
 
 		PreOperatorStatement()
 			: RefCount(0)
@@ -235,7 +401,7 @@ namespace AST
 
 	struct PostOperatorStatement
 	{
-		Deferred<MemberAccess> Operand;
+		MemberAccess Operand;
 		IdentifierT Operator;
 
 		PostOperatorStatement()
@@ -261,7 +427,7 @@ namespace AST
 
 	struct Assignment
 	{
-		Deferred<std::vector<IdentifierT> > LHS;
+		IdentifierList LHS;
 		IdentifierT Operator;
 		ExpressionOrAssignment RHS;
 	};
@@ -351,7 +517,7 @@ namespace AST
 	struct StructureMemberFunctionRef
 	{
 		IdentifierT Name;
-		Deferred<std::vector<IdentifierT> > ParamTypes;
+		IdentifierList ParamTypes;
 		IdentifierT ReturnType;
 	};
 
@@ -373,7 +539,7 @@ namespace AST
 	struct FunctionReferenceSignature
 	{
 		IdentifierT Identifier;
-		Deferred<std::vector<IdentifierT> > ParamTypes;
+		IdentifierList ParamTypes;
 		IdentifierT ReturnType;
 	};
 
@@ -385,7 +551,7 @@ namespace AST
 			Function
 		> MetaEntity;
 
-	typedef std::vector<IdentifierT> ParamTypeList;
+	typedef IdentifierList ParamTypeList;
 
 	
 	typedef std::vector<MetaEntity> Program;
@@ -404,13 +570,21 @@ BOOST_FUSION_ADAPT_STRUCT
 	(AST::CodeBlock, Code)
 )
 
+typedef AST::Deferred<AST::ExpressionComponentInternal, boost::intrusive_ptr<AST::ExpressionComponentInternal> > DeferredECI;
+
+BOOST_FUSION_ADAPT_STRUCT
+(
+	DeferredECI,
+	(AST::ExpressionComponentInternalVariant, Content->V)
+)
+
 typedef AST::Deferred<AST::ExpressionComponent, boost::intrusive_ptr<AST::ExpressionComponent> > ExpressionComponentDeferred;
 
 BOOST_FUSION_ADAPT_STRUCT
 (
 	ExpressionComponentDeferred,
-	(AST::Deferred<std::vector<AST::IdentifierT> >, Content->UnaryPrefixes)
-	(AST::ExpressionComponentInternal, Content->Component)
+	(AST::IdentifierList, Content->UnaryPrefixes)
+	(DeferredECI, Content->Component)
 )
 
 typedef AST::Deferred<AST::ExpressionFragment, boost::intrusive_ptr<AST::ExpressionFragment> > ExpressionFragmentDeferred;
@@ -430,12 +604,13 @@ BOOST_FUSION_ADAPT_STRUCT
 )
 
 typedef std::vector<AST::Deferred<AST::Expression, boost::intrusive_ptr<AST::Expression> > > ExpressionListT;
+typedef AST::Deferred<AST::Statement, boost::intrusive_ptr<AST::Statement> > DeferredStatement;
 
 BOOST_FUSION_ADAPT_STRUCT
 (
-	AST::Statement,
-	(AST::IdentifierT, Identifier)
-	(ExpressionListT, Params)
+	DeferredStatement,
+	(AST::IdentifierT, Content->Identifier)
+	(ExpressionListT, Content->Params)
 )
 
 typedef AST::Deferred<AST::PreOperatorStatement, boost::intrusive_ptr<AST::PreOperatorStatement> > PreOperatorStatementDeferred;
@@ -444,7 +619,7 @@ BOOST_FUSION_ADAPT_STRUCT
 (
 	PreOperatorStatementDeferred,
 	(AST::IdentifierT, Content->Operator)
-	(AST::Deferred<std::vector<AST::IdentifierT> >, Content->Operand)
+	(AST::IdentifierList, Content->Operand)
 )
 
 typedef AST::Deferred<AST::PostOperatorStatement, boost::intrusive_ptr<AST::PostOperatorStatement> > PostOperatorStatementDeferred;
@@ -452,14 +627,14 @@ typedef AST::Deferred<AST::PostOperatorStatement, boost::intrusive_ptr<AST::Post
 BOOST_FUSION_ADAPT_STRUCT
 (
 	PostOperatorStatementDeferred,
-	(AST::Deferred<std::vector<AST::IdentifierT> >, Content->Operand)
+	(AST::IdentifierList, Content->Operand)
 	(AST::IdentifierT, Content->Operator)
 )
 
 BOOST_FUSION_ADAPT_STRUCT
 (
 	AST::Assignment,
-	(AST::Deferred<std::vector<AST::IdentifierT> >, LHS)
+	(AST::IdentifierList, LHS)
 	(AST::IdentifierT, Operator)
 	(AST::ExpressionOrAssignment, RHS)
 )
@@ -498,7 +673,7 @@ BOOST_FUSION_ADAPT_STRUCT
 (
 	AST::StructureMemberFunctionRef,
 	(AST::IdentifierT, Name)
-	(AST::Deferred<std::vector<AST::IdentifierT> >, ParamTypes)
+	(AST::IdentifierList, ParamTypes)
 	(AST::IdentifierT, ReturnType)
 )
 
@@ -527,7 +702,7 @@ BOOST_FUSION_ADAPT_STRUCT
 (
 	AST::FunctionReferenceSignature,
 	(AST::IdentifierT, Identifier)
-	(AST::Deferred<std::vector<AST::IdentifierT> >, ParamTypes)
+	(AST::IdentifierList, ParamTypes)
 	(AST::IdentifierT, ReturnType)
 )
 
@@ -544,3 +719,8 @@ BOOST_FUSION_ADAPT_STRUCT
 	(std::vector<AST::Deferred<AST::CodeBlockEntry> >, Entries)
 )
 
+BOOST_FUSION_ADAPT_STRUCT
+(
+	AST::IdentifierList,
+	(std::vector<AST::IdentifierT>, Content->Container)
+)

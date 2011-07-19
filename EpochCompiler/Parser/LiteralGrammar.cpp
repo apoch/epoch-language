@@ -2,7 +2,10 @@
 #include "Parser/LiteralGrammar.h"
 
 
-LiteralGrammar::LiteralGrammar()
+boost::spirit::qi::rule<Lexer::TokenIterT, boost::spirit::char_encoding::standard_wide, boost::spirit::qi::unused_type> ConsumeAnything;
+
+
+LiteralGrammar::LiteralGrammar(const Lexer::EpochLexerT& lexer)
 	: LiteralGrammar::base_type(Literal)
 {
 	using namespace boost::spirit::qi;
@@ -11,15 +14,19 @@ LiteralGrammar::LiteralGrammar()
 		(L"true", true)
 		(L"false", false);
 
-	HexLiteral %= L"0x" >> hex;
-	StringLiteral %= L'\"' >> raw[lexeme[*(char_ - L'\"')]] >> L'\"';
+	//HexLiteral %= lexer.Hex >> hex;
+	StringLiteral %= lexer.StringLiteral;
 
-	Literal
+	ConsumeAnything = lexer.HexLiteral | lexer.RealLiteral | lexer.IntegerLiteral | lexer.StringLiteral;
+
+	Literal = ConsumeAnything;
+		/*
 		%= HexLiteral
 		 | Real32Parser
 		 | Integer32Parser
 		 | StringLiteral
 		 | BooleanLiteral
-		;
+		 | ConsumeAnything
+		;*/
 }
 

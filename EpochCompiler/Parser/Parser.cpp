@@ -10,7 +10,8 @@
 #include "Parser/Parser.h"
 #include "Parser/Grammars.h"
 
-#include "Compilation/SemanticActionInterface.h"
+#include "Lexer/Lexer.h"
+#include "Lexer/Lexer.inl"
 
 #include "Metadata/FunctionSignature.h"
 
@@ -20,6 +21,7 @@
 
 
 using namespace boost::spirit::qi;
+using namespace boost::spirit::lex;
 
 #include <iostream>
 
@@ -30,8 +32,8 @@ using namespace boost::spirit::qi;
 //
 bool Parser::Parse(const std::wstring& code, const std::wstring& filename, AST::Program& program) const
 {
-	FundamentalGrammar grammar(Identifiers);
-	SkipGrammar skip;
+	Lexer::EpochLexerT lexer;
+	FundamentalGrammar grammar(lexer, Identifiers);
 
 	std::wstring::const_iterator iter = code.begin();
 	std::wstring::const_iterator end = code.end();
@@ -47,7 +49,7 @@ bool Parser::Parse(const std::wstring& code, const std::wstring& filename, AST::
 			program = AST::Program();
 			std::wcout << L"Parsing... ";
 			iter = code.begin();
-			bool result = phrase_parse(iter, end, grammar, skip, program);
+			bool result = tokenize_and_parse(iter, end, lexer, grammar, program);
 			if(!result || (iter != end))
 			{
 				std::wcout << L"FAILED!" << std::endl;

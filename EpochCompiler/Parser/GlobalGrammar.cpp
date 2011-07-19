@@ -10,19 +10,19 @@
 #include "Libraries/Library.h"
 
 
-GlobalGrammar::GlobalGrammar(const FunctionDefinitionGrammar& funcdefgrammar, const UtilityGrammar& identifiergrammar, const CodeBlockGrammar& codeblockgrammar)
+GlobalGrammar::GlobalGrammar(const Lexer::EpochLexerT& lexer, const FunctionDefinitionGrammar& funcdefgrammar, const UtilityGrammar& identifiergrammar, const CodeBlockGrammar& codeblockgrammar)
 	: GlobalGrammar::base_type(Program),
 	  TheFunctionDefinitionGrammar(funcdefgrammar)
 {
 	using namespace boost::spirit::qi;
 
-	ParamTypeSpec %= L'(' >> -(raw[identifiergrammar] % L',') >> L')';
-	ReturnTypeSpec %= raw[L'(' >> -(raw[identifiergrammar]) >> L')'];
-	StructureMemberFunctionRef %= (raw[identifiergrammar]) >> L':' >> ParamTypeSpec >> L"->" >> ReturnTypeSpec;
-	StructureMemberVariable %= (raw[identifiergrammar] >> L'(' >> raw[identifiergrammar] >> L')');
+	ParamTypeSpec %= lexer.OpenParens >> -(identifiergrammar % lexer.Comma) >> lexer.CloseParens;
+	ReturnTypeSpec %= lexer.OpenParens >> -(identifiergrammar) >> lexer.CloseParens;
+	StructureMemberFunctionRef %= (identifiergrammar) >> lexer.Colon >> ParamTypeSpec >> lexer.Arrow >> ReturnTypeSpec;
+	StructureMemberVariable %= (identifiergrammar >> lexer.OpenParens >> identifiergrammar >> lexer.CloseParens);
 	StructureMember %= StructureMemberFunctionRef | StructureMemberVariable;
-	StructureDefinition %= L"structure" >> raw[identifiergrammar] >> lit(L":") >> L'(' >> (StructureMember % L',') >> L')';
-	GlobalDefinition %= L"global" >> codeblockgrammar;
+	StructureDefinition %= lexer.StructureDef >> identifiergrammar >> lexer.Colon >> lexer.OpenParens >> (StructureMember % lexer.Comma) >> lexer.CloseParens;
+	GlobalDefinition %= lexer.GlobalDef >> codeblockgrammar;
 	MetaEntity %= StructureDefinition | GlobalDefinition | TheFunctionDefinitionGrammar;
 	Program %= *MetaEntity;
 }

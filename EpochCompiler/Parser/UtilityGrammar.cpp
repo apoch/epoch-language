@@ -2,11 +2,11 @@
 #include "Parser/UtilityGrammar.h"
 
 
-UtilityGrammar::UtilityGrammar()
+UtilityGrammar::UtilityGrammar(const Lexer::EpochLexerT& lexer)
 	: UtilityGrammar::base_type(StringIdentifier)
 {
 	using namespace boost::spirit::qi;
 
-	StringIdentifier %= raw[lexeme[((alpha) >> *(alnum | L'_'))]];
+	StringIdentifier %= lexer.StringIdentifier;
 }
 

@@ -38,6 +38,18 @@ namespace ASTTraverse
 		}
 
 		template <typename EntryActionT, typename ExitActionT>
+		void Do(EntryActionT& entryaction, AST::Structure& structure, ExitActionT& exitaction)
+		{
+			entryaction(structure);
+			for(std::vector<AST::StructureMember>::iterator iter = structure.Members.begin(); iter != structure.Members.end(); ++iter)
+			{
+				VariantVisitor<EntryActionT, ExitActionT> visitor(*this, entryaction, exitaction);
+				boost::apply_visitor(visitor, *iter);
+			}
+			exitaction(structure);
+		}
+
+		template <typename EntryActionT, typename ExitActionT>
 		void Do(EntryActionT& entryaction, AST::Statement& statement, ExitActionT& exitaction)
 		{
 			entryaction(statement);
@@ -76,6 +88,17 @@ namespace ASTTraverse
 			Do(entryaction, entity.Parameters, exitaction);
 			Do(entryaction, entity.Code, exitaction);
 			Do(entryaction, entity.Chain, exitaction);
+			exitaction(entity);
+		}
+
+		template <typename EntryActionT, typename ExitActionT>
+		void Do(EntryActionT& entryaction, AST::PostfixEntity& entity, ExitActionT& exitaction)
+		{
+			entryaction(entity);
+			Do(entryaction, entity.Parameters, exitaction);
+			Do(entryaction, entity.Code, exitaction);
+			Do(entryaction, entity.PostfixIdentifier, exitaction);
+			Do(entryaction, entity.PostfixParameters, exitaction);
 			exitaction(entity);
 		}
 

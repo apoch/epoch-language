@@ -1,21 +1,20 @@
 #pragma once
 
-#include "Parser/SkipGrammar.h"
-
 #include "Compiler/AbstractSyntaxTree.h"
+#include "Lexer/Lexer.h"
 
 
-struct LiteralGrammar : public boost::spirit::qi::grammar<std::wstring::const_iterator, boost::spirit::char_encoding::standard_wide, SkipGrammar, AST::LiteralToken()>
+struct LiteralGrammar : public boost::spirit::qi::grammar<Lexer::TokenIterT, boost::spirit::char_encoding::standard_wide, AST::LiteralToken()>
 {
-	typedef std::wstring::const_iterator IteratorT;
+	typedef Lexer::TokenIterT IteratorT;
 
-	LiteralGrammar();
+	explicit LiteralGrammar(const Lexer::EpochLexerT& lexer);
 
 
 	template <typename AttributeT>
 	struct Rule
 	{
-		typedef typename boost::spirit::qi::rule<IteratorT, boost::spirit::char_encoding::standard_wide, SkipGrammar, AttributeT> type;
+		typedef typename boost::spirit::qi::rule<IteratorT, boost::spirit::char_encoding::standard_wide, AttributeT> type;
 	};
 
 	Rule<AST::LiteralStringT()>::type StringLiteral;

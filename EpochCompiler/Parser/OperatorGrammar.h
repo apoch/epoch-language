@@ -6,3 +6,4 @@
 struct SymbolTable : public boost::spirit::qi::symbols<wchar_t, AST::IdentifierT>
 {
 };
+

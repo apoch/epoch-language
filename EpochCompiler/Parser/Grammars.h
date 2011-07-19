@@ -18,7 +18,8 @@
 #include "Compiler/AbstractSyntaxTree.h"
 #include "Compiler/Exceptions.h"
 
-#include "Parser/SkipGrammar.h"
+#include "Lexer/Lexer.h"
+
 #include "Parser/LiteralGrammar.h"
 #include "Parser/GlobalGrammar.h"
 #include "Parser/FunctionDefinitionGrammar.h"
@@ -28,21 +29,22 @@
 #include "Parser/EntityGrammar.h"
 
 
-struct FundamentalGrammar : public boost::spirit::qi::grammar<std::wstring::const_iterator, boost::spirit::char_encoding::standard_wide, SkipGrammar, AST::Program()>
+struct FundamentalGrammar : public boost::spirit::qi::grammar<Lexer::TokenIterT, boost::spirit::char_encoding::standard_wide, AST::Program()>
 {
-	typedef std::wstring::const_iterator IteratorT;
+	typedef Lexer::TokenIterT IteratorT;
 
-	explicit FundamentalGrammar(const IdentifierTable& identifiers)
+	FundamentalGrammar(Lexer::EpochLexerT& lexer, const IdentifierTable& identifiers)
 		: FundamentalGrammar::base_type(StartRule),
-		  TheExpressionGrammar(TheLiteralGrammar, TheIdentifierGrammar),
-		  TheCodeBlockGrammar(TheExpressionGrammar, TheEntityGrammar),
-		  TheFunctionDefinitionGrammar(TheCodeBlockGrammar, TheIdentifierGrammar, TheExpressionGrammar),
-		  TheGlobalGrammar(TheFunctionDefinitionGrammar, TheIdentifierGrammar, TheCodeBlockGrammar),
+		  TheLexer(lexer),
+		  TheIdentifierGrammar(lexer),
+		  TheLiteralGrammar(lexer),
+		  TheExpressionGrammar(lexer, TheLiteralGrammar, TheIdentifierGrammar),
+		  TheCodeBlockGrammar(lexer, TheExpressionGrammar, TheEntityGrammar),
+		  TheFunctionDefinitionGrammar(lexer, TheCodeBlockGrammar, TheIdentifierGrammar, TheExpressionGrammar),
+		  TheGlobalGrammar(lexer, TheFunctionDefinitionGrammar, TheIdentifierGrammar, TheCodeBlockGrammar),
 		  Identifiers(identifiers)
 	{
 		StartRule %= TheGlobalGrammar;
-
-		TheEntityGrammar.InitRecursivePortion(TheExpressionGrammar, TheCodeBlockGrammar);
 
 		//
 		// Set up dynamic parser rules to handle all the custom identifiers and symbols
@@ -76,15 +78,19 @@ struct FundamentalGrammar : public boost::spirit::qi::grammar<std::wstring::cons
 
 		for(StringSet::const_iterator iter = Identifiers.OpAssignmentIdentifiers.begin(); iter != Identifiers.OpAssignmentIdentifiers.end(); ++iter)
 			AddOpAssignOperator(*iter);
+
+		TheEntityGrammar.InitRecursivePortion(lexer, TheExpressionGrammar, TheCodeBlockGrammar);
 	}
 
 	template <typename AttributeT>
 	struct Rule
 	{
-		typedef typename boost::spirit::qi::rule<IteratorT, boost::spirit::char_encoding::standard_wide, SkipGrammar, AttributeT> type;
+		typedef typename boost::spirit::qi::rule<IteratorT, boost::spirit::char_encoding::standard_wide, AttributeT> type;
 	};
 	
 	Rule<AST::Program()>::type StartRule;
+
+	Lexer::EpochLexerT& TheLexer;
 
 	UtilityGrammar TheIdentifierGrammar;
 	LiteralGrammar TheLiteralGrammar;
@@ -100,7 +106,7 @@ struct FundamentalGrammar : public boost::spirit::qi::grammar<std::wstring::cons
 	//
 	void AddInfixOperator(const std::wstring& opname)
 	{
-		TheExpressionGrammar.InfixIdentifier.add(opname.c_str());
+		TheExpressionGrammar.InfixSymbols.add(opname);
 	}
 
 	//
@@ -108,7 +114,7 @@ struct FundamentalGrammar : public boost::spirit::qi::grammar<std::wstring::cons
 	//
 	void AddUnaryPrefix(const std::wstring& opname)
 	{
-		TheExpressionGrammar.UnaryPrefixIdentifier.add(opname.c_str());
+		TheExpressionGrammar.PrefixSymbols.add(opname);
 	}
 
 	//
@@ -116,7 +122,7 @@ struct FundamentalGrammar : public boost::spirit::qi::grammar<std::wstring::cons
 	//
 	void AddPreOperator(const std::wstring& opname)
 	{
-		TheExpressionGrammar.PreOperator.add(opname.c_str());
+		TheExpressionGrammar.PreOperatorSymbols.add(opname);
 	}
 
 	//
@@ -124,7 +130,7 @@ struct FundamentalGrammar : public boost::spirit::qi::grammar<std::wstring::cons
 	//
 	void AddPostOperator(const std::wstring& opname)
 	{
-		TheExpressionGrammar.PostOperator.add(opname.c_str());
+		TheExpressionGrammar.PostOperatorSymbols.add(opname);
 	}
 
 	//
@@ -132,7 +138,7 @@ struct FundamentalGrammar : public boost::spirit::qi::grammar<std::wstring::cons
 	//
 	void AddInlineEntity(const std::wstring& entityname)
 	{
-		TheEntityGrammar.EntityIdentifier.add(entityname, entityname);
+		TheEntityGrammar.EntityIdentifierSymbols.add(entityname);
 	}
 
 	//
@@ -140,7 +146,7 @@ struct FundamentalGrammar : public boost::spirit::qi::grammar<std::wstring::cons
 	//
 	void AddChainedEntity(const std::wstring& entityname)
 	{
-		TheEntityGrammar.ChainedEntityIdentifier.add(entityname.c_str());
+		TheEntityGrammar.ChainedEntityIdentifierSymbols.add(entityname);
 	}
 
 	//
@@ -148,7 +154,7 @@ struct FundamentalGrammar : public boost::spirit::qi::grammar<std::wstring::cons
 	//
 	void AddPostfixEntity(const std::wstring& entityname)
 	{
-		TheEntityGrammar.PostfixEntityOpenerIdentifier.add(entityname);
+		TheEntityGrammar.PostfixEntitySymbols.add(entityname);
 	}
 
 	//
@@ -156,7 +162,7 @@ struct FundamentalGrammar : public boost::spirit::qi::grammar<std::wstring::cons
 	//
 	void AddPostfixCloser(const std::wstring& entityname)
 	{
-		TheEntityGrammar.PostfixEntityCloserIdentifier.add(entityname);
+		TheEntityGrammar.PostfixEntityCloserSymbols.add(entityname);
 	}
 
 	//
@@ -164,7 +170,7 @@ struct FundamentalGrammar : public boost::spirit::qi::grammar<std::wstring::cons
 	//
 	void AddOpAssignOperator(const std::wstring& identifier)
 	{
-		TheExpressionGrammar.OpAssignmentIdentifier.add(identifier);
+		TheExpressionGrammar.OpAssignSymbols.add(identifier);
 	}
 
 	const IdentifierTable& Identifiers;
