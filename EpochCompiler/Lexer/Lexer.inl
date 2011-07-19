@@ -18,6 +18,9 @@ namespace Lexer
 		IntegerLiteral = L"[\\-]?[0-9]+";
 		RealLiteral = L"[\\-]?[0-9]+\".\"[0-9]+";
 
+		Whitespace = L"\\s+";
+		self += Whitespace[boost::spirit::lex::_pass = boost::spirit::lex::pass_flags::pass_ignore];
+
 		Comment = L"\"//\".*$";
 		self += Comment[boost::spirit::lex::_pass = boost::spirit::lex::pass_flags::pass_ignore];
 
@@ -34,30 +37,27 @@ namespace Lexer
 		OpenBrace = L"\\[";
 		CloseBrace = L"\\]";
 
-		Whitespace = L"\\s+";
-		self += Whitespace[boost::spirit::lex::_pass = boost::spirit::lex::pass_flags::pass_ignore];
-
 		self.add
-			(StructureDef)
-			(GlobalDef)
-			(OpenBracket)
-			(CloseBracket)
+			(Comma)
 			(OpenParens)
 			(CloseParens)
-			(Dot)
-			(Comma)
+			(OpenBracket)
+			(CloseBracket)
 			(Equals)
+			(Dot)
 			(Colon)
 			(Arrow)
-			(Ref)
 			(OpenBrace)
 			(CloseBrace)
+			(L"[\\.\\+\\-=\\!]+")
 			(IntegerLiteral)
 			(HexLiteral)
 			(RealLiteral)
 			(StringLiteral)
+			(Ref)
+			(StructureDef)
+			(GlobalDef)
 			(StringIdentifier)
-			(L"[\\.\\+\\-=\\!]+")
 			(L".", ID_ANY)
 		;
 	}

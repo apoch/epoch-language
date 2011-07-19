@@ -25,7 +25,7 @@ struct EntityGrammar : public boost::spirit::qi::grammar<Lexer::TokenIterT, boos
 	};
 
 	Rule<AST::Entity()>::type Entity;
-	Rule<AST::ChainedEntity()>::type ChainedEntity;
+	Rule<std::vector<AST::ChainedEntity>()>::type ChainedEntities;
 	Rule<AST::PostfixEntity()>::type PostfixEntity;
 
 	Rule<AST::AnyEntity()>::type AnyEntity;

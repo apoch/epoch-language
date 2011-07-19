@@ -26,7 +26,7 @@ struct FunctionDefinitionGrammar : public boost::spirit::qi::grammar<Lexer::Toke
 	Rule<AST::NamedFunctionParameter()>::type ParameterSpec;
 
 	Rule<AST::FunctionParameter()>::type ParameterDeclaration;
-	Rule<AST::Deferred<AST::Expression, boost::intrusive_ptr<AST::Expression> >()>::type ReturnDeclaration;
+	Rule<boost::spirit::qi::unused_type>::type EmptyReturns;
 
 	Rule<std::vector<AST::FunctionParameter>()>::type ParameterList;
 	Rule<AST::Deferred<AST::Expression, boost::intrusive_ptr<AST::Expression> >()>::type ReturnList;

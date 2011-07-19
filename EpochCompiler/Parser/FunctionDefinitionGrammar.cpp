@@ -17,8 +17,8 @@ FunctionDefinitionGrammar::FunctionDefinitionGrammar(const Lexer::EpochLexerT& l
 	ParameterSpec %= identifiergrammar >> -lexer.Ref >> lexer.OpenParens >> identifiergrammar >> lexer.CloseParens;
 	ParameterDeclaration %= ParameterFunctionRef | ParameterSpec | expressiongrammar;
 	ParameterList %= lexer.OpenParens >> (-(ParameterDeclaration % lexer.Comma)) >> lexer.CloseParens;
-	ReturnDeclaration %= expressiongrammar;
-	ReturnList %= lexer.OpenParens >> -ReturnDeclaration >> lexer.CloseParens;
+	EmptyReturns %= lexer.CloseParens;
+	ReturnList %= lexer.OpenParens >> (EmptyReturns | (expressiongrammar >> lexer.CloseParens));
 
 	FunctionTagSpec = (identifiergrammar >> -(lexer.OpenParens >> ((expressiongrammar) % lexer.Comma) >> lexer.CloseParens));
 	FunctionTagList = lexer.OpenBrace >> *FunctionTagSpec >> lexer.CloseBrace;

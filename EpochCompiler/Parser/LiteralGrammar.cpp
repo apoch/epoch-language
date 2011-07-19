@@ -10,23 +10,6 @@ LiteralGrammar::LiteralGrammar(const Lexer::EpochLexerT& lexer)
 {
 	using namespace boost::spirit::qi;
 
-	BooleanLiteral.add
-		(L"true", true)
-		(L"false", false);
-
-	//HexLiteral %= lexer.Hex >> hex;
-	StringLiteral %= lexer.StringLiteral;
-
-	ConsumeAnything = lexer.HexLiteral | lexer.RealLiteral | lexer.IntegerLiteral | lexer.StringLiteral;
-
-	Literal = ConsumeAnything;
-		/*
-		%= HexLiteral
-		 | Real32Parser
-		 | Integer32Parser
-		 | StringLiteral
-		 | BooleanLiteral
-		 | ConsumeAnything
-		;*/
+	Literal = lexer.StringLiteral | lexer.HexLiteral | lexer.RealLiteral | lexer.IntegerLiteral;
 }
 

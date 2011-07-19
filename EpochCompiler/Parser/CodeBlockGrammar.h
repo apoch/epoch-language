@@ -23,6 +23,7 @@ struct CodeBlockGrammar : public boost::spirit::qi::grammar<Lexer::TokenIterT, b
 	};
 
 
+	Rule<boost::spirit::qi::unused_type>::type Empty;
 	Rule<AST::Deferred<AST::CodeBlockEntry>()>::type CodeBlockEntry;
 	Rule<AST::CodeBlock()>::type InnerCodeBlock;
 	Rule<AST::CodeBlock()>::type CodeBlock;

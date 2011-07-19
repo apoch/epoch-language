@@ -21,8 +21,8 @@ void EntityGrammar::InitRecursivePortion(const Lexer::EpochLexerT& lexer, const 
 	EntityIdentifierMatch = adapttokens[EntityIdentifierSymbols];
 	ChainedEntityIdentifierMatch = adapttokens[ChainedEntityIdentifierSymbols];
 
-	ChainedEntity %= ChainedEntityIdentifierMatch >> -expressiongrammar.EntityParams >> codeblockgrammar.InnerCodeBlock;
-	Entity %= EntityIdentifierMatch >> -expressiongrammar.EntityParams >> codeblockgrammar.InnerCodeBlock >> *ChainedEntity;
+	ChainedEntities %= (+(ChainedEntityIdentifierMatch >> -expressiongrammar.EntityParams >> codeblockgrammar.InnerCodeBlock)) | omit[eps];
+	Entity %= EntityIdentifierMatch >> expressiongrammar.EntityParams >> codeblockgrammar.InnerCodeBlock >> ChainedEntities;
 	PostfixEntity %= adapttokens[PostfixEntitySymbols] >> -expressiongrammar.EntityParams >> codeblockgrammar.InnerCodeBlock >> adapttokens[PostfixEntityCloserSymbols] >> expressiongrammar.EntityParams;
 
 	AnyEntity %= Entity | PostfixEntity;
