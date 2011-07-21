@@ -24,15 +24,18 @@ ExpressionGrammar::ExpressionGrammar(const Lexer::EpochLexerT& lexer, const Lite
 	EntityParams %= lexer.OpenParens >> (EntityParamsEmpty | EntityParamsInner);
 	Statement %= lexer.StringIdentifier >> EntityParams;
 
-	Prefixes %= *adapttokens[PrefixSymbols];
-	ExpressionComponent %= Prefixes >> (Parenthetical | literalgrammar | Statement | as<AST::IdentifierT>()[lexer.StringIdentifier]);
+	Prefixes %= +adapttokens[PrefixSymbols];
+	ExpressionChunk = (Parenthetical | literalgrammar | Statement | as<AST::IdentifierT>()[lexer.StringIdentifier]);
+	ExpressionComponent %= ExpressionChunk | (Prefixes >> ExpressionChunk);
 	ExpressionFragment %= (adapttokens[InfixSymbols] >> ExpressionComponent);
 	Expression %= ExpressionComponent >> *ExpressionFragment;
 
 	AssignmentOperator %= (lexer.Equals | adapttokens[OpAssignSymbols]);
-	Assignment %= MemberAccess >> AssignmentOperator >> ExpressionOrAssignment;
+	SimpleAssignment %= (as<AST::IdentifierT>()[lexer.StringIdentifier] >> AssignmentOperator >> ExpressionOrAssignment);
+	MemberAssignment %= (MemberAccess >> AssignmentOperator >> ExpressionOrAssignment);
+	Assignment %= SimpleAssignment | MemberAssignment;
 	ExpressionOrAssignment %= Assignment | Expression;
 
-	AnyStatement = PreOperatorStatement | PostOperatorStatement | Statement;
+	AnyStatement = Statement | PreOperatorStatement | PostOperatorStatement;
 }
 

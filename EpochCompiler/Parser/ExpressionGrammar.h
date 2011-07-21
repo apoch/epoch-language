@@ -26,6 +26,8 @@ struct ExpressionGrammar : public boost::spirit::qi::grammar<Lexer::TokenIterT, 
 	Rule<AST::Deferred<AST::PreOperatorStatement, boost::intrusive_ptr<AST::PreOperatorStatement> >()>::type PreOperatorStatement;
 	Rule<AST::Deferred<AST::PostOperatorStatement, boost::intrusive_ptr<AST::PostOperatorStatement> >()>::type PostOperatorStatement;
 	
+	Rule<DeferredSimpleAssignment()>::type SimpleAssignment;
+	Rule<DeferredAssignment()>::type MemberAssignment;
 	Rule<DeferredAssignment()>::type Assignment;
 	Rule<AST::IdentifierT()>::type AssignmentOperator;
 
@@ -35,6 +37,7 @@ struct ExpressionGrammar : public boost::spirit::qi::grammar<Lexer::TokenIterT, 
 	Rule<ExpressionListT()>::type EntityParams;
 	Rule<AST::MemberAccess()>::type MemberAccess;
 
+	Rule<AST::Deferred<AST::ExpressionComponentInternal, boost::intrusive_ptr<AST::ExpressionComponentInternal> >()>::type ExpressionChunk;
 	Rule<AST::Deferred<AST::ExpressionFragment, boost::intrusive_ptr<AST::ExpressionFragment> >()>::type ExpressionFragment;
 	Rule<AST::Deferred<AST::ExpressionComponent, boost::intrusive_ptr<AST::ExpressionComponent> >()>::type ExpressionComponent;
 	Rule<AST::Deferred<AST::Expression, boost::intrusive_ptr<AST::Expression> >()>::type Expression;

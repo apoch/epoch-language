@@ -123,6 +123,18 @@ void AST::intrusive_ptr_release(Assignment* ast)
 }
 
 
+void AST::intrusive_ptr_add_ref(SimpleAssignment* ast)
+{
+	++ast->RefCount;
+}
+
+void AST::intrusive_ptr_release(SimpleAssignment* ast)
+{
+	if(--ast->RefCount == 0)
+		Deallocate(ast);
+}
+
+
 void AST::intrusive_ptr_add_ref(ChainedEntity* entity)
 {
 	++entity->RefCount;
@@ -144,6 +156,18 @@ void AST::intrusive_ptr_release(FunctionParameter* param)
 {
 	if(--param->RefCount == 0)
 		Deallocate(param);
+}
+
+
+void AST::intrusive_ptr_add_ref(Entity* entity)
+{
+	++entity->RefCount;
+}
+
+void AST::intrusive_ptr_release(Entity* entity)
+{
+	if(--entity->RefCount == 0)
+		Deallocate(entity);
 }
 
 
