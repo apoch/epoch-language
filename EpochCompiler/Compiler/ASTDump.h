@@ -35,10 +35,10 @@ namespace ASTTraverse
 				(*this)(*deferred.Content);
 			}
 
-			template <typename T>
-			void operator () (std::vector<T>& container)
+			template <typename T, typename AllocT>
+			void operator () (std::vector<T, AllocT>& container)
 			{
-				for(std::vector<T>::iterator iter = container.begin(); iter != container.end(); ++iter)
+				for(std::vector<T, AllocT>::iterator iter = container.begin(); iter != container.end(); ++iter)
 					(*this)(*iter);
 			}
 
@@ -85,12 +85,11 @@ namespace ASTTraverse
 
 		struct ExitHelper
 		{
-			/*template <typename T>
+			template <typename T>
 			void operator() (T& node)
 			{
 				UnknownNodeType(typeid(T).name());
 			}
-			*/
 
 			template <typename T, typename PtrT>
 			void operator () (AST::Deferred<T, PtrT>& deferred)

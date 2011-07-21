@@ -119,7 +119,7 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalOptions="/Zm230"
+				AdditionalOptions="/Zm300"
 				EnableIntrinsicFunctions="true"
 				FavorSizeOrSpeed="1"
 				AdditionalIncludeDirectories=".\;..\Shared\;..\EpochVM\"
@@ -332,6 +332,18 @@
 						>
 					</File>
 				</Filter>
+				<Filter
+					Name="Memory"
+					>
+					<File
+						RelativePath="..\Shared\Utility\Memory\OneWayAllocator.cpp"
+						>
+					</File>
+					<File
+						RelativePath="..\Shared\Utility\Memory\OneWayAllocator.h"
+						>
+					</File>
+				</Filter>
 			</Filter>
 			<Filter
 				Name="Metadata"
@@ -535,22 +547,6 @@
 			</File>
 			<File
 				RelativePath=".\Parser\SemanticActionBindings.h"
-				>
-			</File>
-			<File
-				RelativePath=".\Parser\SkipGrammar.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\Parser\SkipGrammar.h"
-				>
-			</File>
-			<File
-				RelativePath=".\Parser\UtilityGrammar.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\Parser\UtilityGrammar.h"
 				>
 			</File>
 		</Filter>

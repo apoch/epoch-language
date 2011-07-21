@@ -9,7 +9,7 @@ struct ExpressionGrammar;
 struct EntityGrammar;
 
 
-struct CodeBlockGrammar : public boost::spirit::qi::grammar<Lexer::TokenIterT, boost::spirit::char_encoding::standard_wide, AST::CodeBlock()>
+struct CodeBlockGrammar : public boost::spirit::qi::grammar<Lexer::TokenIterT, boost::spirit::char_encoding::standard_wide, AST::CodeBlockDeferred()>
 {
 	typedef Lexer::TokenIterT IteratorT;
 
@@ -25,7 +25,7 @@ struct CodeBlockGrammar : public boost::spirit::qi::grammar<Lexer::TokenIterT, b
 
 	Rule<boost::spirit::qi::unused_type>::type Empty;
 	Rule<AST::Deferred<AST::CodeBlockEntry>()>::type CodeBlockEntry;
-	Rule<AST::CodeBlock()>::type InnerCodeBlock;
-	Rule<AST::CodeBlock()>::type CodeBlock;
+	Rule<AST::CodeBlockDeferred()>::type InnerCodeBlock;
+	Rule<AST::CodeBlockDeferred()>::type CodeBlock;
 };
 

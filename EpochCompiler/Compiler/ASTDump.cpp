@@ -199,7 +199,7 @@ void DumpToStream::EntryHelper::operator () (AST::FunctionParameter& param)
 	++self->Indentation;
 
 	VariantDumpVisitor visitor(*self, self->TheStream);
-	boost::apply_visitor(visitor, param);
+	boost::apply_visitor(visitor, param.V);
 }
 
 void DumpToStream::ExitHelper::operator () (AST::FunctionParameter& param)
@@ -234,7 +234,7 @@ void DumpToStream::ExitHelper::operator () (AST::Expression& expression)
 
 void DumpToStream::EntryHelper::operator () (AST::ExpressionComponent& exprcomponent)
 {
-	for(std::vector<AST::IdentifierT>::const_iterator iter = exprcomponent.UnaryPrefixes.Content->Container.begin(); iter != exprcomponent.UnaryPrefixes.Content->Container.end(); ++iter)
+	for(std::vector<AST::IdentifierT, Memory::OneWayAlloc<AST::IdentifierT> >::const_iterator iter = exprcomponent.UnaryPrefixes.Content->Container.begin(); iter != exprcomponent.UnaryPrefixes.Content->Container.end(); ++iter)
 		self->TheStream << *iter << L" ";
 
 	VariantDumpVisitor visitor(*self, self->TheStream);
@@ -271,7 +271,7 @@ void DumpToStream::EntryHelper::operator () (AST::PreOperatorStatement& statemen
 {
 	self->Indent();
 	self->TheStream << L"Preopstatement " << statement.Operator;
-	for(std::vector<AST::IdentifierT>::const_iterator iter = statement.Operand.Content->Container.begin(); iter != statement.Operand.Content->Container.end(); ++iter)
+	for(std::vector<AST::IdentifierT, Memory::OneWayAlloc<AST::IdentifierT> >::const_iterator iter = statement.Operand.Content->Container.begin(); iter != statement.Operand.Content->Container.end(); ++iter)
 		self->TheStream << L" " << *iter;
 	self->TheStream << std::endl;
 }
@@ -284,7 +284,7 @@ void DumpToStream::EntryHelper::operator () (AST::PostOperatorStatement& stateme
 {
 	self->Indent();
 	self->TheStream << L"Postopstatement ";
-	for(std::vector<AST::IdentifierT>::const_iterator iter = statement.Operand.Content->Container.begin(); iter != statement.Operand.Content->Container.end(); ++iter)
+	for(std::vector<AST::IdentifierT, Memory::OneWayAlloc<AST::IdentifierT> >::const_iterator iter = statement.Operand.Content->Container.begin(); iter != statement.Operand.Content->Container.end(); ++iter)
 		self->TheStream << L" " << *iter;
 	self->TheStream  << statement.Operator << L" " << std::endl;
 }
@@ -397,7 +397,7 @@ void DumpToStream::EntryHelper::operator () (AST::FunctionReferenceSignature& re
 	self->TheStream << L" with parameter types:" << std::endl;
 	++self->Indentation;
 
-	for(std::vector<AST::IdentifierT>::const_iterator iter = refsig.ParamTypes.Content->Container.begin(); iter != refsig.ParamTypes.Content->Container.end(); ++iter)
+	for(std::vector<AST::IdentifierT, Memory::OneWayAlloc<AST::IdentifierT> >::const_iterator iter = refsig.ParamTypes.Content->Container.begin(); iter != refsig.ParamTypes.Content->Container.end(); ++iter)
 	{
 		self->Indent();
 		self->TheStream << *iter << std::endl;

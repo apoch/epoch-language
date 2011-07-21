@@ -30,10 +30,10 @@ namespace ASTTraverse
 			exitaction(node);
 		}
 
-		template <typename EntryActionT, typename ExitActionT, typename T>
-		void Do(EntryActionT& entryaction, std::vector<T>& nodes, ExitActionT& exitaction)
+		template <typename EntryActionT, typename ExitActionT, typename T, typename AllocT>
+		void Do(EntryActionT& entryaction, std::vector<T, AllocT>& nodes, ExitActionT& exitaction)
 		{
-			for(std::vector<T>::iterator iter = nodes.begin(); iter != nodes.end(); ++iter)
+			for(std::vector<T, AllocT>::iterator iter = nodes.begin(); iter != nodes.end(); ++iter)
 				Do(entryaction, *iter, exitaction);
 		}
 
@@ -41,7 +41,7 @@ namespace ASTTraverse
 		void Do(EntryActionT& entryaction, AST::Structure& structure, ExitActionT& exitaction)
 		{
 			entryaction(structure);
-			for(std::vector<AST::StructureMember>::iterator iter = structure.Members.begin(); iter != structure.Members.end(); ++iter)
+			for(std::vector<AST::StructureMember, Memory::OneWayAlloc<AST::StructureMember> >::iterator iter = structure.Members.begin(); iter != structure.Members.end(); ++iter)
 			{
 				VariantVisitor<EntryActionT, ExitActionT> visitor(*this, entryaction, exitaction);
 				boost::apply_visitor(visitor, *iter);

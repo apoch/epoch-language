@@ -4,7 +4,6 @@
 #include "Lexer/Lexer.h"
 
 struct FunctionDefinitionGrammar;
-struct UtilityGrammar;
 struct CodeBlockGrammar;
 
 
@@ -12,7 +11,7 @@ struct GlobalGrammar : public boost::spirit::qi::grammar<Lexer::TokenIterT, boos
 {
 	typedef Lexer::TokenIterT IteratorT;
 
-	GlobalGrammar(const Lexer::EpochLexerT& lexer, const FunctionDefinitionGrammar& funcdefgrammar, const UtilityGrammar& identifiergrammar, const CodeBlockGrammar& codeblockgrammar);
+	GlobalGrammar(const Lexer::EpochLexerT& lexer, const FunctionDefinitionGrammar& funcdefgrammar, const CodeBlockGrammar& codeblockgrammar);
 
 
 	template <typename AttributeT>
@@ -28,10 +27,10 @@ struct GlobalGrammar : public boost::spirit::qi::grammar<Lexer::TokenIterT, boos
 	Rule<AST::StructureMemberVariable()>::type StructureMemberVariable;
 
 	Rule<AST::Structure()>::type StructureDefinition;
-	Rule<AST::CodeBlock()>::type GlobalDefinition;
+	Rule<AST::CodeBlockDeferred()>::type GlobalDefinition;
 	Rule<AST::MetaEntity()>::type MetaEntity;
 
-	Rule<std::vector<AST::IdentifierT>()>::type ParamTypeSpec;
+	Rule<std::vector<AST::IdentifierT, Memory::OneWayAlloc<AST::IdentifierT> >()>::type ParamTypeSpec;
 	Rule<AST::IdentifierT()>::type ReturnTypeSpec;
 
 	const FunctionDefinitionGrammar& TheFunctionDefinitionGrammar;

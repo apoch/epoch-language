@@ -24,7 +24,6 @@
 #include "Parser/GlobalGrammar.h"
 #include "Parser/FunctionDefinitionGrammar.h"
 #include "Parser/CodeBlockGrammar.h"
-#include "Parser/UtilityGrammar.h"
 #include "Parser/ExpressionGrammar.h"
 #include "Parser/EntityGrammar.h"
 
@@ -36,12 +35,11 @@ struct FundamentalGrammar : public boost::spirit::qi::grammar<Lexer::TokenIterT,
 	FundamentalGrammar(Lexer::EpochLexerT& lexer, const IdentifierTable& identifiers)
 		: FundamentalGrammar::base_type(StartRule),
 		  TheLexer(lexer),
-		  TheIdentifierGrammar(lexer),
 		  TheLiteralGrammar(lexer),
-		  TheExpressionGrammar(lexer, TheLiteralGrammar, TheIdentifierGrammar),
+		  TheExpressionGrammar(lexer, TheLiteralGrammar),
 		  TheCodeBlockGrammar(lexer, TheExpressionGrammar, TheEntityGrammar),
-		  TheFunctionDefinitionGrammar(lexer, TheCodeBlockGrammar, TheIdentifierGrammar, TheExpressionGrammar),
-		  TheGlobalGrammar(lexer, TheFunctionDefinitionGrammar, TheIdentifierGrammar, TheCodeBlockGrammar),
+		  TheFunctionDefinitionGrammar(lexer, TheCodeBlockGrammar, TheExpressionGrammar),
+		  TheGlobalGrammar(lexer, TheFunctionDefinitionGrammar, TheCodeBlockGrammar),
 		  Identifiers(identifiers)
 	{
 		StartRule %= TheGlobalGrammar;
@@ -92,7 +90,6 @@ struct FundamentalGrammar : public boost::spirit::qi::grammar<Lexer::TokenIterT,
 
 	Lexer::EpochLexerT& TheLexer;
 
-	UtilityGrammar TheIdentifierGrammar;
 	LiteralGrammar TheLiteralGrammar;
 	ExpressionGrammar TheExpressionGrammar;
 	EntityGrammar TheEntityGrammar;

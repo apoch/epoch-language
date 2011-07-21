@@ -2,19 +2,18 @@
 
 #include "Parser/ExpressionGrammar.h"
 #include "Parser/LiteralGrammar.h"
-#include "Parser/UtilityGrammar.h"
 
 #include "Lexer/AdaptTokenDirective.h"
 
 
-ExpressionGrammar::ExpressionGrammar(const Lexer::EpochLexerT& lexer, const LiteralGrammar& literalgrammar, const UtilityGrammar& identifiergrammar)
+ExpressionGrammar::ExpressionGrammar(const Lexer::EpochLexerT& lexer, const LiteralGrammar& literalgrammar)
 	: ExpressionGrammar::base_type(Expression)
 {
 	using namespace boost::spirit::qi;
 
 	InfixSymbols.add(L".");
 
-	MemberAccess %= identifiergrammar % lexer.Dot;
+	MemberAccess %= lexer.StringIdentifier % lexer.Dot;
 
 	PreOperatorStatement %= adapttokens[PreOperatorSymbols] >> MemberAccess;
 	PostOperatorStatement %= MemberAccess >> adapttokens[PostOperatorSymbols];
@@ -23,10 +22,10 @@ ExpressionGrammar::ExpressionGrammar(const Lexer::EpochLexerT& lexer, const Lite
 	EntityParamsInner %= (Expression % lexer.Comma) >> lexer.CloseParens;
 	EntityParamsEmpty = lexer.CloseParens;
 	EntityParams %= lexer.OpenParens >> (EntityParamsEmpty | EntityParamsInner);
-	Statement %= identifiergrammar >> EntityParams;
+	Statement %= lexer.StringIdentifier >> EntityParams;
 
 	Prefixes %= *adapttokens[PrefixSymbols];
-	ExpressionComponent %= Prefixes >> (Statement | Parenthetical | literalgrammar | identifiergrammar);
+	ExpressionComponent %= Prefixes >> (Parenthetical | literalgrammar | Statement | as<AST::IdentifierT>()[lexer.StringIdentifier]);
 	ExpressionFragment %= (adapttokens[InfixSymbols] >> ExpressionComponent);
 	Expression %= ExpressionComponent >> *ExpressionFragment;
 

@@ -7,14 +7,13 @@
 #include "Lexer/Lexer.h"
 
 struct LiteralGrammar;
-struct UtilityGrammar;
 
 
 struct ExpressionGrammar : public boost::spirit::qi::grammar<Lexer::TokenIterT, boost::spirit::char_encoding::standard_wide, AST::Deferred<AST::Expression, boost::intrusive_ptr<AST::Expression> >()>
 {
 	typedef Lexer::TokenIterT IteratorT;
 
-	ExpressionGrammar(const Lexer::EpochLexerT& lexer, const LiteralGrammar& literalgrammar, const UtilityGrammar& identifiergrammar);
+	ExpressionGrammar(const Lexer::EpochLexerT& lexer, const LiteralGrammar& literalgrammar);
 
 
 	template <typename AttributeT>
@@ -27,13 +26,13 @@ struct ExpressionGrammar : public boost::spirit::qi::grammar<Lexer::TokenIterT, 
 	Rule<AST::Deferred<AST::PreOperatorStatement, boost::intrusive_ptr<AST::PreOperatorStatement> >()>::type PreOperatorStatement;
 	Rule<AST::Deferred<AST::PostOperatorStatement, boost::intrusive_ptr<AST::PostOperatorStatement> >()>::type PostOperatorStatement;
 	
-	Rule<AST::Assignment()>::type Assignment;
+	Rule<DeferredAssignment()>::type Assignment;
 	Rule<AST::IdentifierT()>::type AssignmentOperator;
 
 	Rule<AST::Parenthetical()>::type Parenthetical;
 	Rule<boost::spirit::qi::unused_type>::type EntityParamsEmpty;
-	Rule<std::vector<AST::Deferred<AST::Expression, boost::intrusive_ptr<AST::Expression> > >()>::type EntityParamsInner;
-	Rule<std::vector<AST::Deferred<AST::Expression, boost::intrusive_ptr<AST::Expression> > >()>::type EntityParams;
+	Rule<ExpressionListT()>::type EntityParamsInner;
+	Rule<ExpressionListT()>::type EntityParams;
 	Rule<AST::MemberAccess()>::type MemberAccess;
 
 	Rule<AST::Deferred<AST::ExpressionFragment, boost::intrusive_ptr<AST::ExpressionFragment> >()>::type ExpressionFragment;
@@ -43,7 +42,7 @@ struct ExpressionGrammar : public boost::spirit::qi::grammar<Lexer::TokenIterT, 
 
 	Rule<AST::AnyStatement()>::type AnyStatement;
 	
-	Rule<std::vector<AST::IdentifierT>()>::type Prefixes;
+	Rule<std::vector<AST::IdentifierT, Memory::OneWayAlloc<AST::IdentifierT> >()>::type Prefixes;
 
 	typedef boost::spirit::qi::symbols<wchar_t, AST::IdentifierT> SymbolTable;
 	SymbolTable PreOperatorSymbols;

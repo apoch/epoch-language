@@ -12,9 +12,68 @@
 #include "Utility/Types/IntegerTypes.h"
 #include "Utility/Types/RealTypes.h"
 
+#include "Utility/Memory/OneWayAllocator.h"
+
 
 namespace AST
 {
+
+	template <typename T>
+	inline T* Allocate()
+	{
+		return new T;
+	}
+
+	template <typename T>
+	void Deallocate(T* ptr)
+	{
+		delete ptr;
+	}
+
+	struct Expression;
+	struct ExpressionComponent;
+	struct ExpressionFragment;
+	struct PreOperatorStatement;
+	struct PostOperatorStatement;
+	struct IdentifierListRaw;
+	struct ExpressionComponentInternal;
+	struct Statement;
+	struct FunctionReferenceSignature;
+	struct Assignment;
+	struct ChainedEntity;
+	struct FunctionParameter;
+	struct PostfixEntity;
+	struct CodeBlock;
+
+	template<> inline Expression* Allocate<struct Expression>() { return Memory::OneWayAllocateObject<Expression>(1); }
+	template<> inline ExpressionComponent* Allocate<struct ExpressionComponent>() { return Memory::OneWayAllocateObject<ExpressionComponent>(1); }
+	template<> inline ExpressionFragment* Allocate<struct ExpressionFragment>() { return Memory::OneWayAllocateObject<ExpressionFragment>(1); }
+	template<> inline PreOperatorStatement* Allocate<struct PreOperatorStatement>() { return Memory::OneWayAllocateObject<PreOperatorStatement>(1); }
+	template<> inline PostOperatorStatement* Allocate<struct PostOperatorStatement>() { return Memory::OneWayAllocateObject<PostOperatorStatement>(1); }
+	template<> inline IdentifierListRaw* Allocate<struct IdentifierListRaw>() { return Memory::OneWayAllocateObject<IdentifierListRaw>(1); }
+	template<> inline ExpressionComponentInternal* Allocate<struct ExpressionComponentInternal>() { return Memory::OneWayAllocateObject<ExpressionComponentInternal>(1); }
+	template<> inline Statement* Allocate<struct Statement>() { return Memory::OneWayAllocateObject<Statement>(1); }
+	template<> inline FunctionReferenceSignature* Allocate<FunctionReferenceSignature>() { return Memory::OneWayAllocateObject<FunctionReferenceSignature>(1); }
+	template<> inline Assignment* Allocate<Assignment>() { return Memory::OneWayAllocateObject<Assignment>(1); }
+	template<> inline ChainedEntity* Allocate<ChainedEntity>() { return Memory::OneWayAllocateObject<ChainedEntity>(1); }
+	template<> inline FunctionParameter* Allocate<FunctionParameter>() { return Memory::OneWayAllocateObject<FunctionParameter>(1); }
+	template<> inline PostfixEntity* Allocate<PostfixEntity>() { return Memory::OneWayAllocateObject<PostfixEntity>(1); }
+	template<> inline CodeBlock* Allocate<CodeBlock>() { return Memory::OneWayAllocateObject<CodeBlock>(1); }
+
+	template<> inline void Deallocate(Expression* p) { Memory::OneWayRecordDeallocObject<Expression>(p); }
+	template<> inline void Deallocate(ExpressionComponent* p) { Memory::OneWayRecordDeallocObject<ExpressionComponent>(p); }
+	template<> inline void Deallocate(ExpressionFragment* p) { Memory::OneWayRecordDeallocObject<ExpressionFragment>(p); }
+	template<> inline void Deallocate(PreOperatorStatement* p) { Memory::OneWayRecordDeallocObject<PreOperatorStatement>(p); }
+	template<> inline void Deallocate(PostOperatorStatement* p) { Memory::OneWayRecordDeallocObject<PostOperatorStatement>(p); }
+	template<> inline void Deallocate(IdentifierListRaw* p) { Memory::OneWayRecordDeallocObject<IdentifierListRaw>(p); }
+	template<> inline void Deallocate(ExpressionComponentInternal* p) { Memory::OneWayRecordDeallocObject<ExpressionComponentInternal>(p); }
+	template<> inline void Deallocate(Statement* p) { Memory::OneWayRecordDeallocObject<Statement>(p); }
+	template<> inline void Deallocate(FunctionReferenceSignature* p) { Memory::OneWayRecordDeallocObject<FunctionReferenceSignature>(p); }
+	template<> inline void Deallocate(Assignment* p) { Memory::OneWayRecordDeallocObject<Assignment>(p); }
+	template<> inline void Deallocate(ChainedEntity* p) { Memory::OneWayRecordDeallocObject<ChainedEntity>(p); }
+	template<> inline void Deallocate(FunctionParameter* p) { Memory::OneWayRecordDeallocObject<FunctionParameter>(p); }
+	template<> inline void Deallocate(PostfixEntity* p) { Memory::OneWayRecordDeallocObject<PostfixEntity>(p); }
+	template<> inline void Deallocate(CodeBlock* p) { Memory::OneWayRecordDeallocObject<CodeBlock>(p); }
 
 	void intrusive_ptr_add_ref(struct Expression* expr);
 	void intrusive_ptr_release(struct Expression* expr);
@@ -40,6 +99,24 @@ namespace AST
 	void intrusive_ptr_add_ref(struct Statement* expr);
 	void intrusive_ptr_release(struct Statement* expr);
 
+	void intrusive_ptr_add_ref(struct FunctionReferenceSignature* expr);
+	void intrusive_ptr_release(struct FunctionReferenceSignature* expr);
+
+	void intrusive_ptr_add_ref(struct Assignment* expr);
+	void intrusive_ptr_release(struct Assignment* expr);
+
+	void intrusive_ptr_add_ref(struct ChainedEntity* entity);
+	void intrusive_ptr_release(struct ChainedEntity* entity);
+
+	void intrusive_ptr_add_ref(struct FunctionParameter* param);
+	void intrusive_ptr_release(struct FunctionParameter* param);
+
+	void intrusive_ptr_add_ref(struct PostfixEntity* entity);
+	void intrusive_ptr_release(struct PostfixEntity* entity);
+
+	void intrusive_ptr_add_ref(struct CodeBlock* block);
+	void intrusive_ptr_release(struct CodeBlock* block);
+
 
 	template <typename T, typename PointerType = boost::shared_ptr<T> >
 	struct Deferred
@@ -51,7 +128,7 @@ namespace AST
 		}
 
 		Deferred(const T& expr)
-			: Contents(new T(expr))
+			: Contents(new (Allocate<T>()) T(expr))
 		{
 			Content.Owner = this;
 		}
@@ -64,7 +141,7 @@ namespace AST
 
 		template <typename VariantContentT>
 		Deferred(const VariantContentT& content)
-			: Contents(new T(content))
+			: Contents(new (Allocate<T>()) T(content))
 		{
 			Content.Owner = this;
 		}
@@ -97,10 +174,7 @@ namespace AST
 			T& operator * () const
 			{
 				if(!Owner->Contents)
-				{
-					PointerType copy(new T());
-					Owner->Contents = copy;
-				}
+					Owner->Contents.reset(new (Allocate<T>()) T());
 
 				return *(Owner->Contents);
 			}
@@ -108,10 +182,7 @@ namespace AST
 			T* operator -> () const
 			{
 				if(!Owner->Contents)
-				{
-					PointerType copy(new T());
-					Owner->Contents = copy;
-				}
+					Owner->Contents.reset(new (Allocate<T>()) T());
 
 				return Owner->Contents.get();
 			}
@@ -136,7 +207,7 @@ namespace AST
 		}
 
 		DeferredContainer(const T& expr)
-			: Contents(new T(expr))
+			: Contents(new (Allocate<T>()) T(expr))
 		{
 			Content.Owner = this;
 		}
@@ -149,7 +220,7 @@ namespace AST
 
 		template <typename VariantContentT>
 		DeferredContainer(const VariantContentT& content)
-			: Contents(new T(content))
+			: Contents(new (Allocate<T>()) T(content))
 		{
 			Content.Owner = this;
 		}
@@ -197,10 +268,7 @@ namespace AST
 			T& operator * () const
 			{
 				if(!Owner->Contents)
-				{
-					PointerType copy(new T());
-					Owner->Contents = copy;
-				}
+					Owner->Contents.reset(new (Allocate<T>()) T());
 
 				return *(Owner->Contents);
 			}
@@ -208,10 +276,7 @@ namespace AST
 			T* operator -> () const
 			{
 				if(!Owner->Contents)
-				{
-					PointerType copy(new T());
-					Owner->Contents = copy;
-				}
+					Owner->Contents.reset(new (Allocate<T>()) T());
 
 				return Owner->Contents.get();
 			}
@@ -237,7 +302,7 @@ namespace AST
 
 	struct IdentifierListRaw
 	{
-		typedef std::vector<AST::IdentifierT> ContainedT;
+		typedef std::vector<AST::IdentifierT, Memory::OneWayAlloc<AST::IdentifierT> > ContainedT;
 
 		ContainedT Container;
 
@@ -259,26 +324,26 @@ namespace AST
 	typedef boost::variant
 		<
 			Undefined,
-			boost::recursive_wrapper<Deferred<struct PreOperatorStatement, boost::intrusive_ptr<PreOperatorStatement> > >,
-			boost::recursive_wrapper<Deferred<struct PostOperatorStatement, boost::intrusive_ptr<PostOperatorStatement> > >,
-			boost::recursive_wrapper<Deferred<struct Expression, boost::intrusive_ptr<Expression> > >
+			Deferred<struct PreOperatorStatement, boost::intrusive_ptr<PreOperatorStatement> >,
+			Deferred<struct PostOperatorStatement, boost::intrusive_ptr<PostOperatorStatement> >,
+			Deferred<struct Expression, boost::intrusive_ptr<Expression> >
 		> Parenthetical;
 
 	typedef boost::variant
 		<
 			Undefined,
-			boost::recursive_wrapper<Deferred<struct PreOperatorStatement, boost::intrusive_ptr<PreOperatorStatement> > >,
-			boost::recursive_wrapper<Deferred<struct PostOperatorStatement, boost::intrusive_ptr<PostOperatorStatement> > >,
-			boost::recursive_wrapper<Deferred<struct Statement, boost::intrusive_ptr<Statement> > >
+			Deferred<struct PreOperatorStatement, boost::intrusive_ptr<PreOperatorStatement> >,
+			Deferred<struct PostOperatorStatement, boost::intrusive_ptr<PostOperatorStatement> >,
+			Deferred<struct Statement, boost::intrusive_ptr<Statement> >
 		> AnyStatement;
 
 	typedef boost::variant
 		<
 			Undefined,
-			boost::recursive_wrapper<IdentifierT>,
-			boost::recursive_wrapper<LiteralToken>,
-			boost::recursive_wrapper<Deferred<struct Statement, boost::intrusive_ptr<Statement> > >,
-			boost::recursive_wrapper<Parenthetical>
+			IdentifierT,
+			LiteralToken,
+			Deferred<struct Statement, boost::intrusive_ptr<Statement> >,
+			Parenthetical
 		> ExpressionComponentInternalVariant;
 
 	struct ExpressionComponentInternal
@@ -346,7 +411,7 @@ namespace AST
 	struct Expression
 	{
 		Deferred<ExpressionComponent, boost::intrusive_ptr<ExpressionComponent> > First;
-		std::vector<Deferred<ExpressionFragment, boost::intrusive_ptr<ExpressionFragment> > > Remaining;
+		std::vector<Deferred<ExpressionFragment, boost::intrusive_ptr<ExpressionFragment> >, Memory::OneWayAlloc<Deferred<ExpressionFragment, boost::intrusive_ptr<ExpressionFragment> > > > Remaining;
 
 		long RefCount;
 
@@ -368,7 +433,7 @@ namespace AST
 	struct Statement
 	{
 		IdentifierT Identifier;
-		std::vector<Deferred<Expression, boost::intrusive_ptr<Expression> > > Params;
+		std::vector<Deferred<Expression, boost::intrusive_ptr<Expression> >, Memory::OneWayAlloc<Deferred<Expression, boost::intrusive_ptr<Expression> > > > Params;
 
 		Statement()
 			: RefCount(0)
@@ -420,8 +485,8 @@ namespace AST
 	typedef boost::variant
 		<
 			Undefined,
-			boost::recursive_wrapper<Deferred<Expression, boost::intrusive_ptr<Expression> > >,
-			boost::recursive_wrapper<struct Assignment>
+			Deferred<Expression, boost::intrusive_ptr<Expression> >,
+			Deferred<Assignment, boost::intrusive_ptr<Assignment> >
 		> ExpressionOrAssignment;
 
 
@@ -430,6 +495,17 @@ namespace AST
 		IdentifierList LHS;
 		IdentifierT Operator;
 		ExpressionOrAssignment RHS;
+
+		long RefCount;
+
+		Assignment()
+			: RefCount(0)
+		{ }
+
+	// Non-copyable
+	private:
+		Assignment(const Assignment&);
+		Assignment& operator = (const Assignment&);
 	};
 
 	struct NamedFunctionParameter
@@ -443,69 +519,129 @@ namespace AST
 			Undefined,
 			NamedFunctionParameter,
 			Deferred<Expression, boost::intrusive_ptr<Expression> >,
-			boost::recursive_wrapper<struct FunctionReferenceSignature>
-		> FunctionParameter;
+			Deferred<struct FunctionReferenceSignature, boost::intrusive_ptr<FunctionReferenceSignature> >
+		> FunctionParameterVariant;
+
+	struct FunctionParameter
+	{
+		FunctionParameterVariant V;
+
+		long RefCount;
+
+		FunctionParameter()
+			: RefCount(0)
+		{ }
+
+		FunctionParameter(const FunctionParameterVariant& v)
+			: V(v),
+			  RefCount(0)
+		{ }
+
+	// Non-copyable
+	private:
+		FunctionParameter(const FunctionParameter&);
+		FunctionParameter& operator = (const FunctionParameter&);
+	};
+
+	typedef Deferred<FunctionParameter, boost::intrusive_ptr<FunctionParameter> > FunctionParameterDeferred;
 
 	typedef boost::variant
 		<
 			Undefined,
-			boost::recursive_wrapper<struct Entity>,
-			boost::recursive_wrapper<struct PostfixEntity>
+			Deferred<struct Entity>,
+			Deferred<struct PostfixEntity, boost::intrusive_ptr<PostfixEntity> >
 		> AnyEntity;
 
 	typedef boost::variant
 		<
 			Undefined,
 			AnyEntity,
-			Assignment,
+			Deferred<Assignment, boost::intrusive_ptr<Assignment> >,
 			AnyStatement,
-			boost::recursive_wrapper<struct CodeBlock>
+			Deferred<CodeBlock, boost::intrusive_ptr<CodeBlock> >
 		> CodeBlockEntry;
 
 	struct CodeBlock
 	{
-		std::vector<Deferred<CodeBlockEntry> > Entries;
+		std::vector<Deferred<CodeBlockEntry>, Memory::OneWayAlloc<Deferred<CodeBlockEntry> > > Entries;
+
+		long RefCount;
+
+		CodeBlock()
+			: RefCount(0)
+		{ }
+
+	// Non-copyable
+	private:
+		CodeBlock(const CodeBlock&);
+		CodeBlock& operator = (const CodeBlock&);
 	};
+
+	typedef Deferred<CodeBlock, boost::intrusive_ptr<CodeBlock> > CodeBlockDeferred;
 
 	struct ChainedEntity
 	{
 		IdentifierT Identifier;
-		std::vector<Deferred<Expression, boost::intrusive_ptr<Expression> > > Parameters;
-		CodeBlock Code;
+		std::vector<Deferred<Expression, boost::intrusive_ptr<Expression> >, Memory::OneWayAlloc<Deferred<Expression, boost::intrusive_ptr<Expression> > > > Parameters;
+		CodeBlockDeferred Code;
+
+		long RefCount;
+
+		ChainedEntity()
+			: RefCount(0)
+		{ }
+
+	// Non-copyable
+	private:
+		ChainedEntity(const ChainedEntity&);
+		ChainedEntity& operator = (const ChainedEntity&);
 	};
+
+	typedef Deferred<ChainedEntity, boost::intrusive_ptr<ChainedEntity> > ChainedEntityDeferred;
 
 	struct Entity
 	{
 		IdentifierT Identifier;
-		std::vector<Deferred<Expression, boost::intrusive_ptr<Expression> > > Parameters;
-		CodeBlock Code;
-		std::vector<ChainedEntity> Chain;
+		std::vector<Deferred<Expression, boost::intrusive_ptr<Expression> >, Memory::OneWayAlloc<Deferred<Expression, boost::intrusive_ptr<Expression> > > > Parameters;
+		CodeBlockDeferred Code;
+		std::vector<ChainedEntityDeferred, Memory::OneWayAlloc<ChainedEntityDeferred> > Chain;
 	};
 
 	struct PostfixEntity
 	{
 		IdentifierT Identifier;
-		std::vector<Deferred<Expression, boost::intrusive_ptr<Expression> > > Parameters;
-		CodeBlock Code;
+		std::vector<Deferred<Expression, boost::intrusive_ptr<Expression> >, Memory::OneWayAlloc<Deferred<Expression, boost::intrusive_ptr<Expression> > > > Parameters;
+		CodeBlockDeferred Code;
 		IdentifierT PostfixIdentifier;
-		std::vector<Deferred<Expression, boost::intrusive_ptr<Expression> > > PostfixParameters;
+		std::vector<Deferred<Expression, boost::intrusive_ptr<Expression> >, Memory::OneWayAlloc<Deferred<Expression, boost::intrusive_ptr<Expression> > > > PostfixParameters;
+
+		long RefCount;
+
+		PostfixEntity()
+			: RefCount(0)
+		{ }
+
+	// Non-copyable
+	private:
+		PostfixEntity(const PostfixEntity&);
+		PostfixEntity& operator = (const PostfixEntity&);
 	};
 
 	struct FunctionTag
 	{
 		IdentifierT TagName;
-		std::vector<Deferred<Expression, boost::intrusive_ptr<Expression> > > Parameters;
+		std::vector<Deferred<Expression, boost::intrusive_ptr<Expression> >, Memory::OneWayAlloc<Deferred<Expression, boost::intrusive_ptr<Expression> > > > Parameters;
 	};
 
-	typedef std::vector<FunctionTag> FunctionTagList;
+	typedef std::vector<FunctionTag, Memory::OneWayAlloc<FunctionTag> > FunctionTagList;
 
 	struct Function
 	{
 		IdentifierT Name;
-		std::vector<FunctionParameter> Parameters;
+		std::vector<FunctionParameterDeferred, Memory::OneWayAlloc<FunctionParameterDeferred> > Parameters;
 		Deferred<Expression, boost::intrusive_ptr<Expression> > Return;
 		FunctionTagList Tags;
-		CodeBlock Code;
+		CodeBlockDeferred Code;
 	};
 
 	struct StructureMemberVariable
@@ -533,7 +669,7 @@ namespace AST
 	struct Structure
 	{
 		IdentifierT Identifier;
-		std::vector<StructureMember> Members;
+		std::vector<StructureMember, Memory::OneWayAlloc<StructureMember> > Members;
 	};
 
 	struct FunctionReferenceSignature
@@ -541,33 +677,45 @@ namespace AST
 		IdentifierT Identifier;
 		IdentifierList ParamTypes;
 		IdentifierT ReturnType;
+
+		FunctionReferenceSignature()
+			: RefCount(0)
+		{ }
+
+		long RefCount;
+
+	// Non-copyable
+	private:
+		FunctionReferenceSignature(const FunctionReferenceSignature&);
+		FunctionReferenceSignature& operator = (const FunctionReferenceSignature&);
 	};
 
 	typedef boost::variant
 		<
 			Undefined,
 			Structure,
-			CodeBlock,
+			CodeBlockDeferred,
 			Function
 		> MetaEntity;
 
 	typedef IdentifierList ParamTypeList;
 
 	
-	typedef std::vector<MetaEntity> Program;
+	typedef std::vector<MetaEntity, Memory::OneWayAlloc<MetaEntity> > Program;
 }
 
 
 typedef AST::Deferred<AST::Expression, boost::intrusive_ptr<AST::Expression> > ExpressionDeferred;
+typedef std::vector<AST::FunctionParameterDeferred, Memory::OneWayAlloc<AST::FunctionParameterDeferred> > FunctionParamVec;
 
 BOOST_FUSION_ADAPT_STRUCT
 (
 	AST::Function,
 	(AST::IdentifierT, Name)
-	(std::vector<AST::FunctionParameter>, Parameters)
+	(FunctionParamVec, Parameters)
 	(ExpressionDeferred, Return)
 	(AST::FunctionTagList, Tags)
-	(AST::CodeBlock, Code)
+	(AST::CodeBlockDeferred, Code)
 )
 
 typedef AST::Deferred<AST::ExpressionComponentInternal, boost::intrusive_ptr<AST::ExpressionComponentInternal> > DeferredECI;
@@ -596,14 +744,16 @@ BOOST_FUSION_ADAPT_STRUCT
 	(ExpressionComponentDeferred, Content->Component)
 )
 
+typedef std::vector<ExpressionFragmentDeferred, Memory::OneWayAlloc<ExpressionFragmentDeferred> > ExpressionFragmentDeferredVec;
+
 BOOST_FUSION_ADAPT_STRUCT
 (
 	ExpressionDeferred,
 	(ExpressionComponentDeferred, Content->First)
-	(std::vector<ExpressionFragmentDeferred>, Content->Remaining)
+	(ExpressionFragmentDeferredVec, Content->Remaining)
 )
 
-typedef std::vector<AST::Deferred<AST::Expression, boost::intrusive_ptr<AST::Expression> > > ExpressionListT;
+typedef std::vector<AST::Deferred<AST::Expression, boost::intrusive_ptr<AST::Expression> >, Memory::OneWayAlloc<AST::Deferred<AST::Expression, boost::intrusive_ptr<AST::Expression> > > > ExpressionListT;
 typedef AST::Deferred<AST::Statement, boost::intrusive_ptr<AST::Statement> > DeferredStatement;
 
 BOOST_FUSION_ADAPT_STRUCT
@@ -631,42 +781,45 @@ BOOST_FUSION_ADAPT_STRUCT
 	(AST::IdentifierT, Content->Operator)
 )
 
-BOOST_FUSION_ADAPT_STRUCT
-(
-	AST::Assignment,
-	(AST::IdentifierList, LHS)
-	(AST::IdentifierT, Operator)
-	(AST::ExpressionOrAssignment, RHS)
-)
-
-
-
+typedef AST::Deferred<AST::Assignment, boost::intrusive_ptr<AST::Assignment> > DeferredAssignment;
 
 BOOST_FUSION_ADAPT_STRUCT
 (
-	AST::ChainedEntity,
-	(AST::IdentifierT, Identifier)
-	(ExpressionListT, Parameters)
-	(AST::CodeBlock, Code)
+	DeferredAssignment,
+	(AST::IdentifierList, Content->LHS)
+	(AST::IdentifierT, Content->Operator)
+	(AST::ExpressionOrAssignment, Content->RHS)
 )
 
 BOOST_FUSION_ADAPT_STRUCT
 (
-	AST::Entity,
-	(AST::IdentifierT, Identifier)
-	(ExpressionListT, Parameters)
-	(AST::CodeBlock, Code)
-	(std::vector<AST::ChainedEntity>, Chain)
+	AST::ChainedEntityDeferred,
+	(AST::IdentifierT, Content->Identifier)
+	(ExpressionListT, Content->Parameters)
+	(AST::CodeBlockDeferred, Content->Code)
 )
+
+typedef std::vector<AST::ChainedEntityDeferred, Memory::OneWayAlloc<AST::ChainedEntityDeferred> > ChainedEntityVec;
 
 BOOST_FUSION_ADAPT_STRUCT
 (
-	AST::PostfixEntity,
-	(AST::IdentifierT, Identifier)
-	(ExpressionListT, Parameters)
-	(AST::CodeBlock, Code)
-	(AST::IdentifierT, PostfixIdentifier)
-	(ExpressionListT, PostfixParameters)
+	AST::Deferred<AST::Entity>,
+	(AST::IdentifierT, Content->Identifier)
+	(ExpressionListT, Content->Parameters)
+	(AST::CodeBlockDeferred, Content->Code)
+	(ChainedEntityVec, Content->Chain)
+)
+
+typedef AST::Deferred<AST::PostfixEntity, boost::intrusive_ptr<AST::PostfixEntity> > DeferredPostfixEntity;
+
+BOOST_FUSION_ADAPT_STRUCT
+(
+	DeferredPostfixEntity,
+	(AST::IdentifierT, Content->Identifier)
+	(ExpressionListT, Content->Parameters)
+	(AST::CodeBlockDeferred, Content->Code)
+	(AST::IdentifierT, Content->PostfixIdentifier)
+	(ExpressionListT, Content->PostfixParameters)
 )
 
 BOOST_FUSION_ADAPT_STRUCT
@@ -691,19 +844,23 @@ BOOST_FUSION_ADAPT_STRUCT
 	(AST::IdentifierT, Name)
 )
 
+typedef std::vector<AST::StructureMember, Memory::OneWayAlloc<AST::StructureMember> > StructureMemberVec;
+
 BOOST_FUSION_ADAPT_STRUCT
 (
 	AST::Structure,
 	(AST::IdentifierT, Identifier)
-	(std::vector<AST::StructureMember>, Members)
+	(StructureMemberVec, Members)
 )
+
+typedef AST::Deferred<AST::FunctionReferenceSignature, boost::intrusive_ptr<AST::FunctionReferenceSignature> > DeferredFunctionRefSig;
 
 BOOST_FUSION_ADAPT_STRUCT
 (
-	AST::FunctionReferenceSignature,
-	(AST::IdentifierT, Identifier)
-	(AST::IdentifierList, ParamTypes)
-	(AST::IdentifierT, ReturnType)
+	DeferredFunctionRefSig,
+	(AST::IdentifierT, Content->Identifier)
+	(AST::IdentifierList, Content->ParamTypes)
+	(AST::IdentifierT, Content->ReturnType)
 )
 
 BOOST_FUSION_ADAPT_STRUCT
@@ -713,14 +870,18 @@ BOOST_FUSION_ADAPT_STRUCT
 	(ExpressionListT, Parameters)
 )
 
+typedef std::vector<AST::Deferred<AST::CodeBlockEntry>, Memory::OneWayAlloc<AST::Deferred<AST::CodeBlockEntry> > > CodeBlockEntryVec;
+
 BOOST_FUSION_ADAPT_STRUCT
 (
-	AST::CodeBlock,
-	(std::vector<AST::Deferred<AST::CodeBlockEntry> >, Entries)
+	AST::CodeBlockDeferred,
+	(CodeBlockEntryVec, Content->Entries)
 )
+
+typedef std::vector<AST::IdentifierT, Memory::OneWayAlloc<AST::IdentifierT> > IdentifierVec;
 
 BOOST_FUSION_ADAPT_STRUCT
 (
 	AST::IdentifierList,
-	(std::vector<AST::IdentifierT>, Content->Container)
+	(IdentifierVec, Content->Container)
 )

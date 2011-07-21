@@ -24,9 +24,9 @@ struct EntityGrammar : public boost::spirit::qi::grammar<Lexer::TokenIterT, boos
 		typedef typename boost::spirit::qi::rule<IteratorT, boost::spirit::char_encoding::standard_wide, AttributeT> type;
 	};
 
-	Rule<AST::Entity()>::type Entity;
-	Rule<std::vector<AST::ChainedEntity>()>::type ChainedEntities;
-	Rule<AST::PostfixEntity()>::type PostfixEntity;
+	Rule<AST::Deferred<AST::Entity>()>::type Entity;
+	Rule<std::vector<AST::ChainedEntityDeferred, Memory::OneWayAlloc<AST::ChainedEntityDeferred> >()>::type ChainedEntities;
+	Rule<DeferredPostfixEntity()>::type PostfixEntity;
 
 	Rule<AST::AnyEntity()>::type AnyEntity;
 

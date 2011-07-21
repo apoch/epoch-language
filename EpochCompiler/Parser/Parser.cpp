@@ -46,10 +46,12 @@ bool Parser::Parse(const std::wstring& code, const std::wstring& filename, AST::
 			Profiling::Timer timer;
 			timer.Begin();
 
-			program = AST::Program();
+			program.swap(AST::Program());
+			Memory::DisposeOneWayBlocks();
+
 			std::wcout << L"Parsing... ";
 			iter = code.begin();
-			bool result = tokenize_and_parse(iter, end, lexer, grammar, program);
+			bool result = tokenize_and_parse(iter, end, lexer, grammar);
 			if(!result || (iter != end))
 			{
 				std::wcout << L"FAILED!" << std::endl;

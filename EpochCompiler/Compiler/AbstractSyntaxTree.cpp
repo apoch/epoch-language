@@ -5,95 +5,167 @@
 
 void AST::intrusive_ptr_add_ref(Expression* expr)
 {
-	::InterlockedIncrement(&expr->RefCount);
+	++expr->RefCount;
 }
 
 void AST::intrusive_ptr_release(Expression* expr)
 {
-	if(::InterlockedDecrement(&expr->RefCount) == 0)
-		delete expr;
+	if(--expr->RefCount == 0)
+		Deallocate(expr);
 }
 
 
 void AST::intrusive_ptr_add_ref(ExpressionComponent* expr)
 {
-	::InterlockedIncrement(&expr->RefCount);
+	++expr->RefCount;
 }
 
 void AST::intrusive_ptr_release(ExpressionComponent* expr)
 {
-	if(::InterlockedDecrement(&expr->RefCount) == 0)
-		delete expr;
+	if(--expr->RefCount == 0)
+		Deallocate(expr);
 }
 
 
 void AST::intrusive_ptr_add_ref(ExpressionFragment* expr)
 {
-	::InterlockedIncrement(&expr->RefCount);
+	++expr->RefCount;
 }
 
 void AST::intrusive_ptr_release(ExpressionFragment* expr)
 {
-	if(::InterlockedDecrement(&expr->RefCount) == 0)
-		delete expr;
+	if(--expr->RefCount == 0)
+		Deallocate(expr);
 }
 
 
 void AST::intrusive_ptr_add_ref(PreOperatorStatement* stmt)
 {
-	::InterlockedIncrement(&stmt->RefCount);
+	++stmt->RefCount;
 }
 
 void AST::intrusive_ptr_release(PreOperatorStatement* stmt)
 {
-	if(::InterlockedDecrement(&stmt->RefCount) == 0)
-		delete stmt;
+	if(--stmt->RefCount == 0)
+		Deallocate(stmt);
 }
 
 
 void AST::intrusive_ptr_add_ref(PostOperatorStatement* stmt)
 {
-	::InterlockedIncrement(&stmt->RefCount);
+	++stmt->RefCount;
 }
 
 void AST::intrusive_ptr_release(PostOperatorStatement* stmt)
 {
-	if(::InterlockedDecrement(&stmt->RefCount) == 0)
-		delete stmt;
+	if(--stmt->RefCount == 0)
+		Deallocate(stmt);
 }
 
 
 void AST::intrusive_ptr_add_ref(IdentifierListRaw* ids)
 {
-	::InterlockedIncrement(&ids->RefCount);
+	++ids->RefCount;
 }
 
 void AST::intrusive_ptr_release(IdentifierListRaw* ids)
 {
-	if(::InterlockedDecrement(&ids->RefCount) == 0)
-		delete ids;
+	if(--ids->RefCount == 0)
+		Deallocate(ids);
 }
 
 
 void AST::intrusive_ptr_add_ref(ExpressionComponentInternal* eci)
 {
-	::InterlockedIncrement(&eci->RefCount);
+	++eci->RefCount;
 }
 
 void AST::intrusive_ptr_release(ExpressionComponentInternal* eci)
 {
-	if(::InterlockedDecrement(&eci->RefCount) == 0)
-		delete eci;
+	if(--eci->RefCount == 0)
+		Deallocate(eci);
 }
 
 
 void AST::intrusive_ptr_add_ref(Statement* stmt)
 {
-	::InterlockedIncrement(&stmt->RefCount);
+	++stmt->RefCount;
 }
 
 void AST::intrusive_ptr_release(Statement* stmt)
 {
-	if(::InterlockedDecrement(&stmt->RefCount) == 0)
-		delete stmt;
+	if(--stmt->RefCount == 0)
+		Deallocate(stmt);
+}
+
+
+void AST::intrusive_ptr_add_ref(FunctionReferenceSignature* sig)
+{
+	++sig->RefCount;
+}
+
+void AST::intrusive_ptr_release(FunctionReferenceSignature* sig)
+{
+	if(--sig->RefCount == 0)
+		Deallocate(sig);
+}
+
+
+void AST::intrusive_ptr_add_ref(Assignment* ast)
+{
+	++ast->RefCount;
+}
+
+void AST::intrusive_ptr_release(Assignment* ast)
+{
+	if(--ast->RefCount == 0)
+		Deallocate(ast);
+}
+
+
+void AST::intrusive_ptr_add_ref(ChainedEntity* entity)
+{
+	++entity->RefCount;
+}
+
+void AST::intrusive_ptr_release(ChainedEntity* entity)
+{
+	if(--entity->RefCount == 0)
+		Deallocate(entity);
+}
+
+
+void AST::intrusive_ptr_add_ref(FunctionParameter* param)
+{
+	++param->RefCount;
+}
+
+void AST::intrusive_ptr_release(FunctionParameter* param)
+{
+	if(--param->RefCount == 0)
+		Deallocate(param);
+}
+
+
+void AST::intrusive_ptr_add_ref(PostfixEntity* entity)
+{
+	++entity->RefCount;
+}
+
+void AST::intrusive_ptr_release(PostfixEntity* entity)
+{
+	if(--entity->RefCount == 0)
+		Deallocate(entity);
+}
+
+
+void AST::intrusive_ptr_add_ref(CodeBlock* block)
+{
+	++block->RefCount;
+}
+
+void AST::intrusive_ptr_release(CodeBlock* block)
+{
+	if(--block->RefCount == 0)
+		Deallocate(block);
 }
