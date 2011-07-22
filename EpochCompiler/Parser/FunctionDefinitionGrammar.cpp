@@ -4,6 +4,9 @@
 #include "Parser/CodeBlockGrammar.h"
 #include "Parser/ExpressionGrammar.h"
 
+#include "Compiler/Abstract Syntax Tree/Statement.h"
+#include "Compiler/Abstract Syntax Tree/Entities.h"
+
 
 FunctionDefinitionGrammar::FunctionDefinitionGrammar(const Lexer::EpochLexerT& lexer, const CodeBlockGrammar& codeblockgrammar, const ExpressionGrammar& expressiongrammar)
 	: FunctionDefinitionGrammar::base_type(FunctionDefinition)

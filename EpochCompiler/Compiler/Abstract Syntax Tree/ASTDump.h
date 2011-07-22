@@ -1,7 +1,12 @@
 #pragma once
 
 
-#include "Compiler/ASTTraversal.h"
+#include "Compiler/Abstract Syntax Tree/ASTTraversal.h"
+
+#include "Compiler/Abstract Syntax Tree/Undefined.h"
+#include "Compiler/Abstract Syntax Tree/Structures.h"
+#include "Compiler/Abstract Syntax Tree/Function.h"
+#include "Compiler/Abstract Syntax Tree/Assignment.h"
 
 #include <ostream>
 

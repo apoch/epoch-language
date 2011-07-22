@@ -10,7 +10,7 @@
 
 // Dependencies
 #include "Libraries/Library.h"
-#include "Compiler/AbstractSyntaxTree.h"
+#include "Compiler/Abstract Syntax Tree/AbstractSyntaxTree.h"
 
 
 class Parser

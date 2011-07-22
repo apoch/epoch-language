@@ -16,27 +16,6 @@ namespace boost { namespace spirit
 
 namespace boost { namespace spirit { namespace qi
 {
-	namespace
-	{
-		template <typename IterT>
-		struct extractionvisitor : public boost::static_visitor<>
-		{
-			extractionvisitor(IterT& first, IterT& last)
-				: First(first),
-				  Last(last)
-			{ }
-
-			void operator () (const boost::iterator_range<IterT>& range)
-			{
-				First = range.begin();
-				Last = range.end();
-			}
-
-			IterT& First;
-			IterT& Last;
-		};
-	}
-
     using spirit::adapttokens;
     using spirit::adapttokens_type;
 
@@ -60,11 +39,8 @@ namespace boost { namespace spirit { namespace qi
         {
             qi::skip_over(first, last, skipper);
 
-			std::wstring::const_iterator tokenfirst;
-			std::wstring::const_iterator tokenlast;
-
-			extractionvisitor<std::wstring::const_iterator> extractor(tokenfirst, tokenlast);
-			first->value().apply_visitor(extractor);
+			std::wstring::const_iterator tokenfirst = first->value().begin();
+			std::wstring::const_iterator tokenlast = first->value().end();
 
             if (subject.parse(tokenfirst, tokenlast, context, skipper, unused) && (tokenfirst == tokenlast))
             {

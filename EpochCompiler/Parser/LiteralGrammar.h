@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Compiler/AbstractSyntaxTree.h"
+#include "Compiler/Abstract Syntax Tree/Literals.h"
 #include "Lexer/Lexer.h"
 
 

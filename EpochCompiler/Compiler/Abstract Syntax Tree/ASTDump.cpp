@@ -1,6 +1,11 @@
 #include "pch.h"
 
-#include "Compiler/ASTDump.h"
+#include "Compiler/Abstract Syntax Tree/ASTDump.h"
+#include "Compiler/Abstract Syntax Tree/Literals.h"
+#include "Compiler/Abstract Syntax Tree/Parenthetical.h"
+#include "Compiler/Abstract Syntax Tree/Expression.h"
+#include "Compiler/Abstract Syntax Tree/Statement.h"
+#include "Compiler/Abstract Syntax Tree/Entities.h"
 
 #include <iterator>
 
@@ -439,3 +444,4 @@ void DumpToStream::Indent()
 {
 	std::fill_n(std::ostream_iterator<wchar_t, wchar_t>(TheStream), Indentation, L' ');
 }
+

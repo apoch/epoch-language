@@ -8,6 +8,9 @@
 
 #include "Lexer/AdaptTokenDirective.h"
 
+#include "Compiler/Abstract Syntax Tree/Statement.h"
+#include "Compiler/Abstract Syntax Tree/FunctionParameter.h"
+
 
 EntityGrammar::EntityGrammar()
 	: EntityGrammar::base_type(AnyEntity)
@@ -25,7 +28,7 @@ void EntityGrammar::InitRecursivePortion(const Lexer::EpochLexerT& lexer, const 
 	Entity %= EntityIdentifierMatch >> expressiongrammar.EntityParams >> codeblockgrammar.InnerCodeBlock >> ChainedEntities;
 	PostfixEntity %= adapttokens[PostfixEntitySymbols] >> -expressiongrammar.EntityParams >> codeblockgrammar.InnerCodeBlock >> adapttokens[PostfixEntityCloserSymbols] >> expressiongrammar.EntityParams;
 
-	AnyEntity %= Entity | PostfixEntity;
+	AnyEntity %= &(adapttokens[EntityIdentifierSymbols | PostfixEntitySymbols]) >> (Entity | PostfixEntity);
 
 	/*
 	GrammarDebugger debugger;

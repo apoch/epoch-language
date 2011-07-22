@@ -15,9 +15,6 @@ namespace Lexer
 		ID_ANY = boost::spirit::lex::min_token_id + 10,
 	};
 
-	typedef boost::spirit::lex::lexertl::token<std::wstring::const_iterator, boost::mpl::vector<boost::iterator_range<std::wstring::const_iterator> > > TokenType;
-	typedef boost::spirit::lex::lexertl::actor_lexer<TokenType> LexerType;
-
 	template <typename LexerT>
 	struct EpochLexer : public boost::spirit::lex::lexer<LexerT>
 	{
@@ -51,6 +48,9 @@ namespace Lexer
 		ConsumedToken Comment;
 		ConsumedToken Whitespace;
 	};
+
+	typedef boost::spirit::lex::lexertl::token<std::wstring::const_iterator> TokenType;
+	typedef boost::spirit::lex::lexertl::actor_lexer<TokenType> LexerType;
 
 	typedef EpochLexer<LexerType> EpochLexerT;
 	typedef EpochLexerT::iterator_type TokenIterT;

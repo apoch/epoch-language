@@ -1,6 +1,15 @@
+// Note: don't use a shared base class for this, because that means evil virtual destructors
+
 #include "pch.h"
 
-#include "Compiler/AbstractSyntaxTree.h"
+#include "Compiler/Abstract Syntax Tree/RefCounting.h"
+#include "Compiler/Abstract Syntax Tree/Expression.h"
+#include "Compiler/Abstract Syntax Tree/Entities.h"
+#include "Compiler/Abstract Syntax Tree/Statement.h"
+#include "Compiler/Abstract Syntax Tree/Identifiers.h"
+#include "Compiler/Abstract Syntax Tree/FunctionParameter.h"
+#include "Compiler/Abstract Syntax Tree/Assignment.h"
+#include "Compiler/Abstract Syntax Tree/CodeBlock.h"
 
 
 void AST::intrusive_ptr_add_ref(Expression* expr)
@@ -192,4 +201,16 @@ void AST::intrusive_ptr_release(CodeBlock* block)
 {
 	if(--block->RefCount == 0)
 		Deallocate(block);
+}
+
+
+void AST::intrusive_ptr_add_ref(NamedFunctionParameter* nfp)
+{
+	++nfp->RefCount;
+}
+
+void AST::intrusive_ptr_release(NamedFunctionParameter* nfp)
+{
+	if(--nfp->RefCount == 0)
+		Deallocate(nfp);
 }

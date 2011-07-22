@@ -8,6 +8,13 @@
 #pragma once
 
 
+// Forward declarations
+namespace AST
+{
+	struct Program;
+}
+
+
 // Dependencies
 #include "Utility/Types/IntegerTypes.h"
 #include "Utility/StringPool.h"
@@ -17,8 +24,6 @@
 #include "Libraries/Library.h"
 
 #include "Bytecode/EntityTags.h"
-
-#include "Compiler/AbstractSyntaxTree.h"
 
 #include <list>
 

@@ -2,7 +2,9 @@
 
 #include "Parser/OperatorGrammar.h"
 
-#include "Compiler/AbstractSyntaxTree.h"
+#include "Compiler/Abstract Syntax Tree/Expression.h"
+#include "Compiler/Abstract Syntax Tree/Assignment.h"
+#include "Compiler/Abstract Syntax Tree/AnyStatement.h"
 
 #include "Lexer/Lexer.h"
 
@@ -26,16 +28,16 @@ struct ExpressionGrammar : public boost::spirit::qi::grammar<Lexer::TokenIterT, 
 	Rule<AST::Deferred<AST::PreOperatorStatement, boost::intrusive_ptr<AST::PreOperatorStatement> >()>::type PreOperatorStatement;
 	Rule<AST::Deferred<AST::PostOperatorStatement, boost::intrusive_ptr<AST::PostOperatorStatement> >()>::type PostOperatorStatement;
 	
-	Rule<DeferredSimpleAssignment()>::type SimpleAssignment;
-	Rule<DeferredAssignment()>::type MemberAssignment;
-	Rule<DeferredAssignment()>::type Assignment;
+	Rule<AST::DeferredSimpleAssignment()>::type SimpleAssignment;
+	Rule<AST::DeferredAssignment()>::type MemberAssignment;
+	Rule<AST::DeferredAssignment()>::type Assignment;
 	Rule<AST::IdentifierT()>::type AssignmentOperator;
 
 	Rule<AST::Parenthetical()>::type Parenthetical;
 	Rule<boost::spirit::qi::unused_type>::type EntityParamsEmpty;
-	Rule<ExpressionListT()>::type EntityParamsInner;
-	Rule<ExpressionListT()>::type EntityParams;
-	Rule<AST::MemberAccess()>::type MemberAccess;
+	Rule<AST::DeferredExpressionVector()>::type EntityParamsInner;
+	Rule<AST::DeferredExpressionVector()>::type EntityParams;
+	Rule<AST::IdentifierList()>::type MemberAccess;
 
 	Rule<AST::Deferred<AST::ExpressionComponentInternal, boost::intrusive_ptr<AST::ExpressionComponentInternal> >()>::type ExpressionChunk;
 	Rule<AST::Deferred<AST::ExpressionFragment, boost::intrusive_ptr<AST::ExpressionFragment> >()>::type ExpressionFragment;

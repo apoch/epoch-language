@@ -5,6 +5,11 @@
 
 #include "Lexer/AdaptTokenDirective.h"
 
+#include "Compiler/Abstract Syntax Tree/Statement.h"
+#include "Compiler/Abstract Syntax Tree/FunctionParameter.h"
+#include "Compiler/Abstract Syntax Tree/Entities.h"
+#include "Compiler/Abstract Syntax Tree/CodeBlock.h"
+
 
 ExpressionGrammar::ExpressionGrammar(const Lexer::EpochLexerT& lexer, const LiteralGrammar& literalgrammar)
 	: ExpressionGrammar::base_type(Expression)
@@ -24,7 +29,7 @@ ExpressionGrammar::ExpressionGrammar(const Lexer::EpochLexerT& lexer, const Lite
 	EntityParams %= lexer.OpenParens >> (EntityParamsEmpty | EntityParamsInner);
 	Statement %= lexer.StringIdentifier >> EntityParams;
 
-	Prefixes %= +adapttokens[PrefixSymbols];
+	Prefixes %= adapttokens[+PrefixSymbols];
 	ExpressionChunk = (Parenthetical | literalgrammar | Statement | as<AST::IdentifierT>()[lexer.StringIdentifier]);
 	ExpressionComponent %= ExpressionChunk | (Prefixes >> ExpressionChunk);
 	ExpressionFragment %= (adapttokens[InfixSymbols] >> ExpressionComponent);
@@ -36,6 +41,6 @@ ExpressionGrammar::ExpressionGrammar(const Lexer::EpochLexerT& lexer, const Lite
 	Assignment %= SimpleAssignment | MemberAssignment;
 	ExpressionOrAssignment %= Assignment | Expression;
 
-	AnyStatement = Statement | PreOperatorStatement | PostOperatorStatement;
+	AnyStatement = PreOperatorStatement | Statement | PostOperatorStatement;
 }
 

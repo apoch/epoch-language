@@ -6,6 +6,10 @@
 #include "Parser/FunctionDefinitionGrammar.h"
 #include "Parser/CodeBlockGrammar.h"
 
+#include "Compiler/Abstract Syntax Tree/Statement.h"
+#include "Compiler/Abstract Syntax Tree/Assignment.h"
+#include "Compiler/Abstract Syntax Tree/Entities.h"
+
 #include "Libraries/Library.h"
 
 
@@ -20,8 +24,10 @@ GlobalGrammar::GlobalGrammar(const Lexer::EpochLexerT& lexer, const FunctionDefi
 	StructureMemberFunctionRef %= (lexer.StringIdentifier) >> lexer.Colon >> ParamTypeSpec >> lexer.Arrow >> ReturnTypeSpec;
 	StructureMemberVariable %= (lexer.StringIdentifier >> lexer.OpenParens >> lexer.StringIdentifier >> lexer.CloseParens);
 	StructureMember %= StructureMemberVariable | StructureMemberFunctionRef;
-	StructureDefinition %= lexer.StructureDef >> lexer.StringIdentifier >> lexer.Colon >> lexer.OpenParens >> (StructureMember % lexer.Comma) >> lexer.CloseParens;
+	StructureMembers %= (StructureMember % lexer.Comma);
+	StructureDefinition %= lexer.StructureDef >> lexer.StringIdentifier >> lexer.Colon >> lexer.OpenParens >> StructureMembers >> lexer.CloseParens;
 	GlobalDefinition %= lexer.GlobalDef >> codeblockgrammar.InnerCodeBlock;
 	MetaEntity %= GlobalDefinition | StructureDefinition | TheFunctionDefinitionGrammar;
-	Program %= *MetaEntity;
+	MetaEntities %= *MetaEntity;
+	Program = MetaEntities;
 }

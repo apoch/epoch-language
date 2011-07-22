@@ -13,6 +13,8 @@
 #include "Lexer/Lexer.h"
 #include "Lexer/Lexer.inl"
 
+#include "Compiler/Abstract Syntax Tree/Statement.h"
+
 #include "Metadata/FunctionSignature.h"
 
 #include "Utility/Strings.h"
@@ -46,7 +48,7 @@ bool Parser::Parse(const std::wstring& code, const std::wstring& filename, AST::
 			Profiling::Timer timer;
 			timer.Begin();
 
-			program.swap(AST::Program());
+			program = AST::Program();
 			Memory::DisposeOneWayBlocks();
 
 			std::wcout << L"Parsing... ";

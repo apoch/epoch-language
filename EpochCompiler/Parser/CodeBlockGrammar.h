@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Compiler/AbstractSyntaxTree.h"
+#include "Compiler/Abstract Syntax Tree/CodeBlock.h"
 
 #include "Lexer/Lexer.h"
 
@@ -9,7 +9,7 @@ struct ExpressionGrammar;
 struct EntityGrammar;
 
 
-struct CodeBlockGrammar : public boost::spirit::qi::grammar<Lexer::TokenIterT, boost::spirit::char_encoding::standard_wide, AST::CodeBlockDeferred()>
+struct CodeBlockGrammar : public boost::spirit::qi::grammar<Lexer::TokenIterT, boost::spirit::char_encoding::standard_wide, AST::DeferredCodeBlock()>
 {
 	typedef Lexer::TokenIterT IteratorT;
 
@@ -25,7 +25,7 @@ struct CodeBlockGrammar : public boost::spirit::qi::grammar<Lexer::TokenIterT, b
 
 	Rule<boost::spirit::qi::unused_type>::type Empty;
 	Rule<AST::Deferred<AST::CodeBlockEntry>()>::type CodeBlockEntry;
-	Rule<AST::CodeBlockDeferred()>::type InnerCodeBlock;
-	Rule<AST::CodeBlockDeferred()>::type CodeBlock;
+	Rule<AST::DeferredCodeBlock()>::type InnerCodeBlock;
+	Rule<AST::DeferredCodeBlock()>::type CodeBlock;
 };
 

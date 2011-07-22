@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Compiler/AbstractSyntaxTree.h"
+#include "Compiler/Abstract Syntax Tree/Entities.h"
 
 #include "Lexer/Lexer.h"
 
@@ -24,9 +24,9 @@ struct EntityGrammar : public boost::spirit::qi::grammar<Lexer::TokenIterT, boos
 		typedef typename boost::spirit::qi::rule<IteratorT, boost::spirit::char_encoding::standard_wide, AttributeT> type;
 	};
 
-	Rule<DeferredEntity()>::type Entity;
-	Rule<std::vector<AST::ChainedEntityDeferred, Memory::OneWayAlloc<AST::ChainedEntityDeferred> >()>::type ChainedEntities;
-	Rule<DeferredPostfixEntity()>::type PostfixEntity;
+	Rule<AST::DeferredEntity()>::type Entity;
+	Rule<AST::ChainedEntityVector()>::type ChainedEntities;
+	Rule<AST::DeferredPostfixEntity()>::type PostfixEntity;
 
 	Rule<AST::AnyEntity()>::type AnyEntity;
 

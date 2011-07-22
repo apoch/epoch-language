@@ -453,23 +453,87 @@
 				Name="Abstract Syntax Tree"
 				>
 				<File
-					RelativePath=".\Compiler\AbstractSyntaxTree.cpp"
+					RelativePath=".\Compiler\Abstract Syntax Tree\AbstractSyntaxTree.h"
 					>
 				</File>
 				<File
-					RelativePath=".\Compiler\AbstractSyntaxTree.h"
+					RelativePath=".\Compiler\Abstract Syntax Tree\AnyStatement.h"
 					>
 				</File>
 				<File
-					RelativePath=".\Compiler\ASTDump.cpp"
+					RelativePath=".\Compiler\Abstract Syntax Tree\Assignment.h"
 					>
 				</File>
 				<File
-					RelativePath=".\Compiler\ASTDump.h"
+					RelativePath=".\Compiler\Abstract Syntax Tree\ASTDump.cpp"
 					>
 				</File>
 				<File
-					RelativePath=".\Compiler\ASTTraversal.h"
+					RelativePath=".\Compiler\Abstract Syntax Tree\ASTDump.h"
+					>
+				</File>
+				<File
+					RelativePath=".\Compiler\Abstract Syntax Tree\ASTTraversal.h"
+					>
+				</File>
+				<File
+					RelativePath=".\Compiler\Abstract Syntax Tree\CodeBlock.h"
+					>
+				</File>
+				<File
+					RelativePath=".\Compiler\Abstract Syntax Tree\DeferredNode.h"
+					>
+				</File>
+				<File
+					RelativePath=".\Compiler\Abstract Syntax Tree\Entities.h"
+					>
+				</File>
+				<File
+					RelativePath=".\Compiler\Abstract Syntax Tree\Expression.h"
+					>
+				</File>
+				<File
+					RelativePath=".\Compiler\Abstract Syntax Tree\Forwards.h"
+					>
+				</File>
+				<File
+					RelativePath=".\Compiler\Abstract Syntax Tree\Function.h"
+					>
+				</File>
+				<File
+					RelativePath=".\Compiler\Abstract Syntax Tree\FunctionParameter.h"
+					>
+				</File>
+				<File
+					RelativePath=".\Compiler\Abstract Syntax Tree\Identifiers.h"
+					>
+				</File>
+				<File
+					RelativePath=".\Compiler\Abstract Syntax Tree\Literals.h"
+					>
+				</File>
+				<File
+					RelativePath=".\Compiler\Abstract Syntax Tree\Parenthetical.h"
+					>
+				</File>
+				<File
+					RelativePath=".\Compiler\Abstract Syntax Tree\RefCounting.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\Compiler\Abstract Syntax Tree\RefCounting.h"
+					>
+				</File>
+				<File
+					RelativePath=".\Compiler\Abstract Syntax Tree\Statement.h"
+					>
+				</File>
+				<File
+					RelativePath=".\Compiler\Abstract Syntax Tree\Structures.h"
+					>
+				</File>
+				<File
+					RelativePath=".\Compiler\Abstract Syntax Tree\Undefined.h"
 					>
 				</File>
 			</Filter>

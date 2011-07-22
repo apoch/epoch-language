@@ -1,12 +1,12 @@
 #pragma once
-#include "Compiler/AbstractSyntaxTree.h"
+#include "Compiler/Abstract Syntax Tree/Function.h"
 #include "Lexer/Lexer.h"
 
 struct CodeBlockGrammar;
 struct ExpressionGrammar;
 
 
-struct FunctionDefinitionGrammar : public boost::spirit::qi::grammar<Lexer::TokenIterT, boost::spirit::char_encoding::standard_wide, AST::Function()>
+struct FunctionDefinitionGrammar : public boost::spirit::qi::grammar<Lexer::TokenIterT, boost::spirit::char_encoding::standard_wide, AST::Deferred<AST::Function>()>
 {
 	typedef Lexer::TokenIterT IteratorT;
 
@@ -19,20 +19,20 @@ struct FunctionDefinitionGrammar : public boost::spirit::qi::grammar<Lexer::Toke
 		typedef typename boost::spirit::qi::rule<IteratorT, boost::spirit::char_encoding::standard_wide, AttributeT> type;
 	};
 
-	Rule<AST::ParamTypeList()>::type ParamTypeSpec;
+	Rule<AST::IdentifierList()>::type ParamTypeSpec;
 	Rule<AST::IdentifierT()>::type ReturnTypeSpec;
-	Rule<DeferredFunctionRefSig()>::type ParameterFunctionRef;
-	Rule<AST::NamedFunctionParameter()>::type ParameterSpec;
+	Rule<AST::DeferredFunctionRefSig()>::type ParameterFunctionRef;
+	Rule<AST::DeferredNamedFunctionParameter()>::type ParameterSpec;
 
-	Rule<AST::FunctionParameterDeferred()>::type ParameterDeclaration;
+	Rule<AST::DeferredFunctionParameter()>::type ParameterDeclaration;
 	Rule<boost::spirit::qi::unused_type>::type EmptyReturns;
 	Rule<boost::spirit::qi::unused_type>::type EmptyParams;
 
-	Rule<std::vector<AST::FunctionParameterDeferred, Memory::OneWayAlloc<AST::FunctionParameterDeferred> >()>::type ParameterList;
+	Rule<std::vector<AST::DeferredFunctionParameter, Memory::OneWayAlloc<AST::DeferredFunctionParameter> >()>::type ParameterList;
 	Rule<AST::Deferred<AST::Expression, boost::intrusive_ptr<AST::Expression> >()>::type ReturnList;
 	Rule<AST::FunctionTagList()>::type FunctionTagList;
 	Rule<AST::FunctionTag()>::type FunctionTagSpec;
 
-	Rule<AST::Function()>::type FunctionDefinition;
+	Rule<AST::Deferred<AST::Function>()>::type FunctionDefinition;
 };
 

@@ -1,6 +1,10 @@
 #pragma once
 
-#include "Compiler/AbstractSyntaxTree.h"
+#include "Compiler/Abstract Syntax Tree/AbstractSyntaxTree.h"
+#include "Compiler/Abstract Syntax Tree/CodeBlock.h"
+#include "Compiler/Abstract Syntax Tree/AnyStatement.h"
+#include "Compiler/Abstract Syntax Tree/Identifiers.h"
+
 
 namespace ASTTraverse
 {

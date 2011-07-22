@@ -1,7 +1,6 @@
 #include "pch.h"
 #include "Parser/LiteralGrammar.h"
 
-
 boost::spirit::qi::rule<Lexer::TokenIterT, boost::spirit::char_encoding::standard_wide, boost::spirit::qi::unused_type> ConsumeAnything;
 
 
