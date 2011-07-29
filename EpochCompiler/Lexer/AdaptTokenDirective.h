@@ -44,6 +44,7 @@ namespace boost { namespace spirit { namespace qi
 
             if (subject.parse(tokenfirst, tokenlast, context, skipper, unused) && (tokenfirst == tokenlast))
             {
+				spirit::traits::assign_to(first->value().begin(), first->value().end(), attr);
 				++first;
                 return true;
             }

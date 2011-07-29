@@ -23,7 +23,7 @@ namespace AST
 	typedef boost::variant
 		<
 			Undefined,
-			Deferred<Structure>,
+			DeferredStructure,
 			DeferredCodeBlock,
 			Deferred<Function>
 		> MetaEntity;

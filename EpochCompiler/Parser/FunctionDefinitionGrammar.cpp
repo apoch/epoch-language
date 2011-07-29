@@ -6,6 +6,7 @@
 
 #include "Compiler/Abstract Syntax Tree/Statement.h"
 #include "Compiler/Abstract Syntax Tree/Entities.h"
+#include "Compiler/Abstract Syntax Tree/Structures.h"
 
 
 FunctionDefinitionGrammar::FunctionDefinitionGrammar(const Lexer::EpochLexerT& lexer, const CodeBlockGrammar& codeblockgrammar, const ExpressionGrammar& expressiongrammar)

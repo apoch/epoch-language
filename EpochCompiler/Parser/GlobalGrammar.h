@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Compiler/Abstract Syntax Tree/AbstractSyntaxTree.h"
+#include "Compiler/Abstract Syntax Tree/Program.h"
 #include "Compiler/Abstract Syntax Tree/Structures.h"
 #include "Compiler/Abstract Syntax Tree/Expression.h"
 #include "Lexer/Lexer.h"
@@ -30,7 +30,7 @@ struct GlobalGrammar : public boost::spirit::qi::grammar<Lexer::TokenIterT, boos
 	Rule<AST::Deferred<AST::StructureMemberFunctionRef>()>::type StructureMemberFunctionRef;
 	Rule<AST::Deferred<AST::StructureMemberVariable>()>::type StructureMemberVariable;
 
-	Rule<AST::Deferred<AST::Structure>()>::type StructureDefinition;
+	Rule<AST::DeferredStructure()>::type StructureDefinition;
 	Rule<AST::DeferredCodeBlock()>::type GlobalDefinition;
 	Rule<AST::MetaEntity()>::type MetaEntity;
 

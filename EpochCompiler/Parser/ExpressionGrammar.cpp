@@ -9,6 +9,7 @@
 #include "Compiler/Abstract Syntax Tree/FunctionParameter.h"
 #include "Compiler/Abstract Syntax Tree/Entities.h"
 #include "Compiler/Abstract Syntax Tree/CodeBlock.h"
+#include "Compiler/Abstract Syntax Tree/Structures.h"
 
 
 ExpressionGrammar::ExpressionGrammar(const Lexer::EpochLexerT& lexer, const LiteralGrammar& literalgrammar)
@@ -29,13 +30,14 @@ ExpressionGrammar::ExpressionGrammar(const Lexer::EpochLexerT& lexer, const Lite
 	EntityParams %= lexer.OpenParens >> (EntityParamsEmpty | EntityParamsInner);
 	Statement %= lexer.StringIdentifier >> EntityParams;
 
-	Prefixes %= adapttokens[+PrefixSymbols];
+	Prefix %= adapttokens[PrefixSymbols];
+	Prefixes %= +Prefix;
 	ExpressionChunk = (Parenthetical | literalgrammar | Statement | as<AST::IdentifierT>()[lexer.StringIdentifier]);
 	ExpressionComponent %= ExpressionChunk | (Prefixes >> ExpressionChunk);
 	ExpressionFragment %= (adapttokens[InfixSymbols] >> ExpressionComponent);
 	Expression %= ExpressionComponent >> *ExpressionFragment;
 
-	AssignmentOperator %= (lexer.Equals | adapttokens[OpAssignSymbols]);
+	AssignmentOperator %= (as<AST::IdentifierT>()[lexer.Equals] | adapttokens[OpAssignSymbols]);
 	SimpleAssignment %= (as<AST::IdentifierT>()[lexer.StringIdentifier] >> AssignmentOperator >> ExpressionOrAssignment);
 	MemberAssignment %= (MemberAccess >> AssignmentOperator >> ExpressionOrAssignment);
 	Assignment %= SimpleAssignment | MemberAssignment;

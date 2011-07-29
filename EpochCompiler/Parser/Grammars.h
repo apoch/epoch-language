@@ -15,7 +15,7 @@
 
 #include "Libraries/Library.h"
 
-#include "Compiler/Abstract Syntax Tree/AbstractSyntaxTree.h"
+#include "Compiler/Abstract Syntax Tree/Program.h"
 #include "Compiler/Exceptions.h"
 
 #include "Lexer/Lexer.h"

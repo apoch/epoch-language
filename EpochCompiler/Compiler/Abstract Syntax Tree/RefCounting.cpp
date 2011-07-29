@@ -10,6 +10,7 @@
 #include "Compiler/Abstract Syntax Tree/FunctionParameter.h"
 #include "Compiler/Abstract Syntax Tree/Assignment.h"
 #include "Compiler/Abstract Syntax Tree/CodeBlock.h"
+#include "Compiler/Abstract Syntax Tree/Structures.h"
 
 
 void AST::intrusive_ptr_add_ref(Expression* expr)
@@ -213,4 +214,16 @@ void AST::intrusive_ptr_release(NamedFunctionParameter* nfp)
 {
 	if(--nfp->RefCount == 0)
 		Deallocate(nfp);
+}
+
+
+void AST::intrusive_ptr_add_ref(Structure* st)
+{
+	++st->RefCount;
+}
+
+void AST::intrusive_ptr_release(Structure* st)
+{
+	if(--st->RefCount == 0)
+		Deallocate(st);
 }

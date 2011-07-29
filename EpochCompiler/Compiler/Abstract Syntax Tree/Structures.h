@@ -31,6 +31,17 @@ namespace AST
 	{
 		IdentifierT Identifier;
 		std::vector<StructureMember, Memory::OneWayAlloc<StructureMember> > Members;
+
+		long RefCount;
+
+		Structure()
+			: RefCount(0)
+		{ }
+
+	// Non-copyable
+	private:
+		Structure(const Structure&);
+		Structure& operator = (const Structure&);
 	};
 
 
@@ -55,7 +66,7 @@ typedef std::vector<AST::StructureMember, Memory::OneWayAlloc<AST::StructureMemb
 
 BOOST_FUSION_ADAPT_STRUCT
 (
-	AST::Deferred<AST::Structure>,
+	AST::DeferredStructure,
 	(AST::IdentifierT, Content->Identifier)
 	(StructureMemberVec, Content->Members)
 )

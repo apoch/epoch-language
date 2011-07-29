@@ -27,12 +27,12 @@ namespace ASTTraverse
 
 		struct EntryHelper
 		{
-			/*
 			template <typename T>
 			void operator () (T& node)
 			{
-				UnknownNodeType(typeid(T).name());
-			}*/
+				self->Indent();
+				self->TheStream << node << std::endl;
+			}
 
 			template <typename T, typename PtrT>
 			void operator () (AST::Deferred<T, PtrT>& deferred)
@@ -83,8 +83,6 @@ namespace ASTTraverse
 
 			void operator () (Markers::FunctionReturnExpression& marker);
 
-			void UnknownNodeType(const char* name) const;
-
 			DumpToStream* self;
 		} Entry;
 
@@ -93,7 +91,7 @@ namespace ASTTraverse
 			template <typename T>
 			void operator() (T& node)
 			{
-				UnknownNodeType(typeid(T).name());
+				// Ignored!
 			}
 
 			template <typename T, typename PtrT>
@@ -119,7 +117,7 @@ namespace ASTTraverse
 
 			void operator () (AST::Expression& expression);
 			void operator () (AST::ExpressionComponent& exprcomponent);
-			void operator () (AST::ExpressionFragment& exprfragment) { }
+			void operator () (AST::ExpressionFragment& exprfragment);
 
 			void operator () (AST::Assignment& assignment);
 			
@@ -127,15 +125,13 @@ namespace ASTTraverse
 			void operator () (AST::PreOperatorStatement& statement);
 			void operator () (AST::PostOperatorStatement& statement);
 			void operator () (AST::CodeBlock& block);
-			void operator () (AST::CodeBlockEntry& entry) { }
+			void operator () (AST::CodeBlockEntry& entry);
 
 			void operator () (AST::Entity& entity);
 			void operator () (AST::PostfixEntity& entity);
 			void operator () (AST::ChainedEntity& entity);
 
 			void operator () (Markers::FunctionReturnExpression& marker);
-
-			void UnknownNodeType(const char* name) const;
 
 			DumpToStream* self;
 		} Exit;

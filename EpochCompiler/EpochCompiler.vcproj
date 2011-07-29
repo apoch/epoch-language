@@ -39,7 +39,7 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalOptions="/Zm216"
+				AdditionalOptions="/Zm300"
 				Optimization="0"
 				AdditionalIncludeDirectories=".\;..\Shared\;..\EpochVM\"
 				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_USRDLL;EPOCHCOMPILER_EXPORTS;BOOST_EXCEPTION_DISABLE"
@@ -426,7 +426,7 @@
 				>
 			</File>
 			<File
-				RelativePath=".\Diagnostics.h"
+				RelativePath=".\Compiler\Diagnostics.h"
 				>
 			</File>
 			<File
@@ -452,10 +452,6 @@
 			<Filter
 				Name="Abstract Syntax Tree"
 				>
-				<File
-					RelativePath=".\Compiler\Abstract Syntax Tree\AbstractSyntaxTree.h"
-					>
-				</File>
 				<File
 					RelativePath=".\Compiler\Abstract Syntax Tree\AnyStatement.h"
 					>
@@ -513,7 +509,15 @@
 					>
 				</File>
 				<File
+					RelativePath=".\Compiler\Abstract Syntax Tree\NoThrows.h"
+					>
+				</File>
+				<File
 					RelativePath=".\Compiler\Abstract Syntax Tree\Parenthetical.h"
+					>
+				</File>
+				<File
+					RelativePath=".\Compiler\Abstract Syntax Tree\Program.h"
 					>
 				</File>
 				<File

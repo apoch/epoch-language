@@ -1,3 +1,12 @@
+//
+// The Epoch Language Project
+// EPOCHCOMPILER Compiler Toolchain
+//
+// AST traverser implementation that simply dumps the AST contents
+// into human-readable textual format. Supports output to anything
+// that is a std::wostream.
+//
+
 #include "pch.h"
 
 #include "Compiler/Abstract Syntax Tree/ASTDump.h"
@@ -7,130 +16,16 @@
 #include "Compiler/Abstract Syntax Tree/Statement.h"
 #include "Compiler/Abstract Syntax Tree/Entities.h"
 
-#include <iterator>
+#include <iterator>			// for std::fill_n
 
 
 using namespace ASTTraverse;
 
 
-namespace
-{
-	struct VariantDumpVisitor : public boost::static_visitor<>
-	{
-		VariantDumpVisitor(DumpToStream& dumper, std::wostream& stream)
-			: TheDumper(dumper),
-			  TheStream(stream){ }
-
-		template <typename T>
-		void Recurse(T& node)
-		{
-			VariantDumpVisitor subvisitor(TheDumper, TheStream);
-			boost::apply_visitor(subvisitor, node);
-		}
-
-		template <typename T>
-		void operator () (T& value)
-		{
-			TheStream << L"Literal \"" << value << L"\"";
-		}
-
-		template <typename T, typename PtrT>
-		void operator () (AST::Deferred<T, PtrT>& deferred)
-		{
-			(*this)(*deferred.Content);
-		}
-
-		void operator () (AST::Undefined&)
-		{
-			TheStream << L"**UNDEFINED**";
-		}
-
-		void operator () (AST::Expression& expression)
-		{
-			TheDumper.TheTraverser.Do(TheDumper.Entry, expression, TheDumper.Exit);
-		}
-
-		void operator () (AST::PreOperatorStatement& statement)
-		{
-			TheDumper.TheTraverser.Do(TheDumper.Entry, statement, TheDumper.Exit);
-		}
-
-		void operator () (AST::PostOperatorStatement& statement)
-		{
-			TheDumper.TheTraverser.Do(TheDumper.Entry, statement, TheDumper.Exit);
-		}
-
-		void operator () (AST::Statement& statement)
-		{
-			TheDumper.TheTraverser.Do(TheDumper.Entry, statement, TheDumper.Exit);
-		}
-
-		void operator () (AST::Entity& entity)
-		{
-			TheDumper.TheTraverser.Do(TheDumper.Entry, entity, TheDumper.Exit);
-		}
-
-		void operator () (AST::PostfixEntity& entity)
-		{
-			TheDumper.TheTraverser.Do(TheDumper.Entry, entity, TheDumper.Exit);
-		}
-
-		void operator () (AST::CodeBlock& block)
-		{
-			TheDumper.TheTraverser.Do(TheDumper.Entry, block, TheDumper.Exit);
-		}
-
-		void operator () (AST::Assignment& assignment)
-		{
-			TheDumper.TheTraverser.Do(TheDumper.Entry, assignment, TheDumper.Exit);
-		}
-
-		void operator () (AST::NamedFunctionParameter& parameter)
-		{
-			TheDumper.TheTraverser.Do(TheDumper.Entry, parameter, TheDumper.Exit);
-		}
-
-		void operator () (AST::FunctionReferenceSignature& signature)
-		{
-			TheDumper.TheTraverser.Do(TheDumper.Entry, signature, TheDumper.Exit);
-		}
-
-		void operator () (AST::LiteralToken& token)
-		{
-			Recurse(token);
-		}
-
-		void operator () (AST::Parenthetical& parenthetical)
-		{
-			Recurse(parenthetical);
-		}
-
-		void operator () (AST::CodeBlockEntry& codeblockentry)
-		{
-			Recurse(codeblockentry);
-		}
-
-		void operator () (AST::AnyEntity& anyentity)
-		{
-			Recurse(anyentity);
-		}
-
-		void operator () (AST::AnyStatement& anystatement)
-		{
-			Recurse(anystatement);
-		}
-
-	private:
-		DumpToStream& TheDumper;
-		std::wostream& TheStream;
-	};
-}
-
-
 void DumpToStream::EntryHelper::operator () (AST::Undefined&)
 {
-	self->Indent();
-	self->TheStream << L"*** UNDEFINED ***" << std::endl;
+	// Don't output anything; this generally should only happen
+	// for statements with no parameters, e.g. foo()
 }
 
 
@@ -168,7 +63,6 @@ void DumpToStream::EntryHelper::operator () (AST::StructureMemberVariable& varia
 {
 	self->Indent();
 	self->TheStream << L"Member variable " << variable.Name << L" of type " << variable.Type << std::endl;
-	++self->Indentation;
 }
 
 void DumpToStream::EntryHelper::operator () (AST::StructureMemberFunctionRef& funcref)
@@ -176,7 +70,6 @@ void DumpToStream::EntryHelper::operator () (AST::StructureMemberFunctionRef& fu
 	self->Indent();
 	self->TheStream << L"Function reference " << funcref.Name << std::endl;
 	// TODO - dump the signature here
-	++self->Indentation;
 }
 
 
@@ -202,9 +95,6 @@ void DumpToStream::EntryHelper::operator () (AST::FunctionParameter& param)
 	self->Indent();
 	self->TheStream << L"Parameter" << std::endl;
 	++self->Indentation;
-
-	VariantDumpVisitor visitor(*self, self->TheStream);
-	boost::apply_visitor(visitor, param.V);
 }
 
 void DumpToStream::ExitHelper::operator () (AST::FunctionParameter& param)
@@ -226,7 +116,6 @@ void DumpToStream::EntryHelper::operator () (AST::Expression& expression)
 	self->Indent();
 	self->TheStream << L"Expression" << std::endl;
 	++self->Indentation;
-	self->Indent();
 }
 
 void DumpToStream::ExitHelper::operator () (AST::Expression& expression)
@@ -239,22 +128,30 @@ void DumpToStream::ExitHelper::operator () (AST::Expression& expression)
 
 void DumpToStream::EntryHelper::operator () (AST::ExpressionComponent& exprcomponent)
 {
-	for(std::vector<AST::IdentifierT, Memory::OneWayAlloc<AST::IdentifierT> >::const_iterator iter = exprcomponent.UnaryPrefixes.Content->Container.begin(); iter != exprcomponent.UnaryPrefixes.Content->Container.end(); ++iter)
-		self->TheStream << *iter << L" ";
-
-	VariantDumpVisitor visitor(*self, self->TheStream);
-	boost::apply_visitor(visitor, exprcomponent.Component.Content->V);
+	self->Indent();
+	self->TheStream << L"Expression component" << std::endl;
+	++self->Indentation;
 }
 
 void DumpToStream::ExitHelper::operator () (AST::ExpressionComponent& exprcomponent)
 {
-	self->TheStream << std::endl;
+	--self->Indentation;
+	self->Indent();
+	self->TheStream << L"End of component" << std::endl;
 }
 
 void DumpToStream::EntryHelper::operator () (AST::ExpressionFragment& exprfragment)
 {
-	self->TheStream << exprfragment.Operator;
-	(*this)(exprfragment.Component);
+	self->Indent();
+	self->TheStream << L"Expression fragment" << std::endl;
+	++self->Indentation;
+}
+
+void DumpToStream::ExitHelper::operator () (AST::ExpressionFragment& exprfragment)
+{
+	--self->Indentation;
+	self->Indent();
+	self->TheStream << L"End of fragment" << std::endl;
 }
 
 
@@ -301,10 +198,10 @@ void DumpToStream::ExitHelper::operator () (AST::PostOperatorStatement& statemen
 void DumpToStream::EntryHelper::operator () (AST::CodeBlockEntry& blockentry)
 {
 	self->Indent();
+}
 
-	VariantDumpVisitor visitor(*self, self->TheStream);
-	boost::apply_visitor(visitor, blockentry);
-
+void DumpToStream::ExitHelper::operator () (AST::CodeBlockEntry& blockentry)
+{
 	self->TheStream << std::endl;
 }
 
@@ -326,25 +223,23 @@ void DumpToStream::ExitHelper::operator () (AST::CodeBlock& block)
 
 void DumpToStream::EntryHelper::operator () (AST::Assignment& assignment)
 {
+	self->Indent();
 	self->TheStream << L"Assignment using " << assignment.Operator << std::endl;
 	++self->Indentation;
-	(*this)(assignment.LHS.Content->Container);
-
-	VariantDumpVisitor visitor(*self, self->TheStream);
-	boost::apply_visitor(visitor, assignment.RHS);
 }
 
 void DumpToStream::ExitHelper::operator () (AST::Assignment& assignment)
 {
 	--self->Indentation;
 	self->Indent();
-	self->TheStream << L"End of assignment";
+	self->TheStream << L"End of assignment" << std::endl;
 }
 
 
 
 void DumpToStream::EntryHelper::operator () (AST::Entity& entity)
 {
+	self->Indent();
 	self->TheStream << L"Entity " << entity.Identifier << std::endl;
 	++self->Indentation;
 }
@@ -353,12 +248,13 @@ void DumpToStream::ExitHelper::operator () (AST::Entity& entity)
 {
 	--self->Indentation;
 	self->Indent();
-	self->TheStream << L"End of entity";
+	self->TheStream << L"End of entity" << std::endl;
 }
 
 
 void DumpToStream::EntryHelper::operator () (AST::ChainedEntity& entity)
 {
+	self->Indent();
 	self->TheStream << L"Chained Entity " << entity.Identifier << std::endl;
 	++self->Indentation;
 }
@@ -367,12 +263,13 @@ void DumpToStream::ExitHelper::operator () (AST::ChainedEntity& entity)
 {
 	--self->Indentation;
 	self->Indent();
-	self->TheStream << L"End of chained entity";
+	self->TheStream << L"End of chained entity" << std::endl;
 }
 
 
 void DumpToStream::EntryHelper::operator () (AST::PostfixEntity& entity)
 {
+	self->Indent();
 	self->TheStream << L"Postfix Entity " << entity.Identifier << std::endl;
 	++self->Indentation;
 }
@@ -381,13 +278,14 @@ void DumpToStream::ExitHelper::operator () (AST::PostfixEntity& entity)
 {
 	--self->Indentation;
 	self->Indent();
-	self->TheStream << L"End of postfix entity";
+	self->TheStream << L"End of postfix entity" << std::endl;
 }
 
 
 void DumpToStream::EntryHelper::operator () (AST::IdentifierT& identifier)
 {
-	self->TheStream << identifier;
+	self->Indent();
+	self->TheStream << identifier << std::endl;
 }
 
 void DumpToStream::ExitHelper::operator () (AST::IdentifierT& identifier)
@@ -426,16 +324,6 @@ void DumpToStream::ExitHelper::operator () (Markers::FunctionReturnExpression&)
 	--self->Indentation;
 	self->Indent();
 	self->TheStream << L"End of return" << std::endl;
-}
-
-void DumpToStream::EntryHelper::UnknownNodeType(const char* name) const
-{
-	self->Indent();
-	self->TheStream << L"*** Unknown node type " << name << std::endl;
-}
-
-void DumpToStream::ExitHelper::UnknownNodeType(const char* name) const
-{
 }
 
 

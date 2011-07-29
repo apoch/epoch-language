@@ -29,5 +29,5 @@ GlobalGrammar::GlobalGrammar(const Lexer::EpochLexerT& lexer, const FunctionDefi
 	GlobalDefinition %= lexer.GlobalDef >> codeblockgrammar.InnerCodeBlock;
 	MetaEntity %= GlobalDefinition | StructureDefinition | TheFunctionDefinitionGrammar;
 	MetaEntities %= *MetaEntity;
-	Program = MetaEntities;
+	Program %= MetaEntities;
 }

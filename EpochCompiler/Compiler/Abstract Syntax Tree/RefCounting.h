@@ -34,6 +34,7 @@ namespace AST
 	template<> inline PostfixEntity* Allocate<PostfixEntity>() { return Memory::OneWayAllocateObject<PostfixEntity>(1); }
 	template<> inline CodeBlock* Allocate<CodeBlock>() { return Memory::OneWayAllocateObject<CodeBlock>(1); }
 	template<> inline NamedFunctionParameter* Allocate<NamedFunctionParameter>() { return Memory::OneWayAllocateObject<NamedFunctionParameter>(1); }
+	template<> inline Structure* Allocate<Structure>() { return Memory::OneWayAllocateObject<Structure>(1); }
 
 	template<> inline void Deallocate(Expression* p) { Memory::OneWayRecordDeallocObject<Expression>(p); }
 	template<> inline void Deallocate(ExpressionComponent* p) { Memory::OneWayRecordDeallocObject<ExpressionComponent>(p); }
@@ -52,6 +53,7 @@ namespace AST
 	template<> inline void Deallocate(PostfixEntity* p) { Memory::OneWayRecordDeallocObject<PostfixEntity>(p); }
 	template<> inline void Deallocate(CodeBlock* p) { Memory::OneWayRecordDeallocObject<CodeBlock>(p); }
 	template<> inline void Deallocate(NamedFunctionParameter* p) { Memory::OneWayRecordDeallocObject<NamedFunctionParameter>(p); }
+	template<> inline void Deallocate(Structure* p) { Memory::OneWayRecordDeallocObject<Structure>(p); }
 
 	void intrusive_ptr_add_ref(Expression* expr);
 	void intrusive_ptr_release(Expression* expr);
@@ -103,6 +105,9 @@ namespace AST
 
 	void intrusive_ptr_add_ref(NamedFunctionParameter* nfp);
 	void intrusive_ptr_release(NamedFunctionParameter* nfp);
+
+	void intrusive_ptr_add_ref(Structure* st);
+	void intrusive_ptr_release(Structure* st);
 
 }
 

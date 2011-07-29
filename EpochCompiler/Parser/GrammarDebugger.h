@@ -3,6 +3,8 @@
 
 #include <iostream>
 
+#include "Compiler/Abstract Syntax Tree/ASTDump.h"
+
 
 struct GrammarDebugger
 {
@@ -24,6 +26,10 @@ struct GrammarDebugger
 		else if(state == boost::spirit::qi::successful_parse)
 		{
 			std::wcout << L"SUCCESS" << std::endl;
+
+			ASTTraverse::Traverser traverse;
+			ASTTraverse::DumpToStream dump(std::wcout, traverse);
+			traverse.Do(dump.Entry, boost::fusion::at_c<0>(context.attributes), dump.Exit);
 		}
 		else
 		{

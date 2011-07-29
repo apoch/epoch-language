@@ -36,15 +36,16 @@ namespace AST
 	typedef Deferred<PostfixEntity, boost::intrusive_ptr<PostfixEntity> > DeferredPostfixEntity;
 	typedef Deferred<CodeBlock, boost::intrusive_ptr<CodeBlock> > DeferredCodeBlock;
 	typedef Deferred<ChainedEntity, boost::intrusive_ptr<ChainedEntity> > DeferredChainedEntity;
-	typedef Deferred<PostfixEntity, boost::intrusive_ptr<PostfixEntity> > DeferredPostfixEntity;
 	typedef Deferred<ExpressionComponent, boost::intrusive_ptr<ExpressionComponent> > DeferredExpressionComponent;
 	typedef Deferred<ExpressionFragment, boost::intrusive_ptr<ExpressionFragment> > DeferredExpressionFragment;
 	typedef Deferred<FunctionParameter, boost::intrusive_ptr<FunctionParameter> > DeferredFunctionParameter;
 	typedef Deferred<FunctionReferenceSignature, boost::intrusive_ptr<FunctionReferenceSignature> > DeferredFunctionRefSig;
 	typedef Deferred<NamedFunctionParameter, boost::intrusive_ptr<NamedFunctionParameter> > DeferredNamedFunctionParameter;
+	typedef Deferred<Structure, boost::intrusive_ptr<Structure> > DeferredStructure;
 
 	typedef std::vector<DeferredExpressionFragment, Memory::OneWayAlloc<DeferredExpressionFragment> > DeferredExpressionFragmentVector;
 	typedef std::vector<DeferredExpression, Memory::OneWayAlloc<DeferredExpression> > DeferredExpressionVector;
 
 }
 
+#include "Compiler/Abstract Syntax Tree/NoThrows.h"

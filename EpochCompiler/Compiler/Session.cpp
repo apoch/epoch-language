@@ -18,6 +18,7 @@
 #include "Compiler/Abstract Syntax Tree/CodeBlock.h"
 #include "Compiler/Abstract Syntax Tree/Entities.h"
 #include "Compiler/Abstract Syntax Tree/FunctionParameter.h"
+#include "Compiler/Abstract Syntax Tree/Structures.h"
 
 #include "Parser/Parser.h"
 

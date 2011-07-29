@@ -32,12 +32,13 @@ namespace Lexer
 		ConsumedToken CloseParens;
 		ConsumedToken Dot;
 		ConsumedToken Comma;
-		ConsumedToken Equals;
 		ConsumedToken Colon;
 		ConsumedToken Arrow;
 		ConsumedToken Ref;
 		ConsumedToken OpenBrace;
 		ConsumedToken CloseBrace;
+
+		Token Equals;
 
 		Token StringIdentifier;
 		Token StringLiteral;

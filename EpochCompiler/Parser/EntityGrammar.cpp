@@ -4,12 +4,11 @@
 #include "Parser/ExpressionGrammar.h"
 #include "Parser/CodeBlockGrammar.h"
 
-#include "Parser/GrammarDebugger.h"
-
 #include "Lexer/AdaptTokenDirective.h"
 
 #include "Compiler/Abstract Syntax Tree/Statement.h"
 #include "Compiler/Abstract Syntax Tree/FunctionParameter.h"
+#include "Compiler/Abstract Syntax Tree/Structures.h"
 
 
 EntityGrammar::EntityGrammar()
@@ -29,15 +28,5 @@ void EntityGrammar::InitRecursivePortion(const Lexer::EpochLexerT& lexer, const 
 	PostfixEntity %= adapttokens[PostfixEntitySymbols] >> -expressiongrammar.EntityParams >> codeblockgrammar.InnerCodeBlock >> adapttokens[PostfixEntityCloserSymbols] >> expressiongrammar.EntityParams;
 
 	AnyEntity %= &(adapttokens[EntityIdentifierSymbols | PostfixEntitySymbols]) >> (Entity | PostfixEntity);
-
-	/*
-	GrammarDebugger debugger;
-	Entity.name("Entity");
-	debug(Entity, debugger);
-	PostfixEntity.name("PostfixEntity");
-	debug(PostfixEntity, debugger);
-	ChainedEntity.name("ChainedEntity");
-	debug(ChainedEntity, debugger);
-	*/
 }
 

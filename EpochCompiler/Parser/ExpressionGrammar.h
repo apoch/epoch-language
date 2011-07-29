@@ -47,6 +47,7 @@ struct ExpressionGrammar : public boost::spirit::qi::grammar<Lexer::TokenIterT, 
 
 	Rule<AST::AnyStatement()>::type AnyStatement;
 	
+	Rule<AST::IdentifierT()>::type Prefix;
 	Rule<std::vector<AST::IdentifierT, Memory::OneWayAlloc<AST::IdentifierT> >()>::type Prefixes;
 
 	typedef boost::spirit::qi::symbols<wchar_t, AST::IdentifierT> SymbolTable;

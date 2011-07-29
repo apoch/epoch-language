@@ -43,7 +43,7 @@ bool Parser::Parse(const std::wstring& code, const std::wstring& filename, AST::
 	try
 	{
 		// First pass: build up the list of entities defined in the code
-		while(true)
+		//while(true)
 		{
 			Profiling::Timer timer;
 			timer.Begin();
@@ -53,7 +53,7 @@ bool Parser::Parse(const std::wstring& code, const std::wstring& filename, AST::
 
 			std::wcout << L"Parsing... ";
 			iter = code.begin();
-			bool result = tokenize_and_parse(iter, end, lexer, grammar);
+			bool result = tokenize_and_parse(iter, end, lexer, grammar, program);
 			if(!result || (iter != end))
 			{
 				std::wcout << L"FAILED!" << std::endl;
