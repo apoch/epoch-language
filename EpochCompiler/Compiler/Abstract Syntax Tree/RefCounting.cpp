@@ -1,4 +1,13 @@
-// Note: don't use a shared base class for this, because that means evil virtual destructors
+//
+// The Epoch Language Project
+// EPOCHCOMPILER Compiler Toolchain
+//
+// Reference counting implementation for AST nodes
+//
+// Note that we prefer a series of free functions per AST node type
+// over a shared base class, because this approach avoids the need
+// for expensive virtual destructors.
+//
 
 #include "pch.h"
 

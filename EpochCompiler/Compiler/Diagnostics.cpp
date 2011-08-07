@@ -21,7 +21,7 @@ void DumpASTForProgram(AST::Program& program)
 {
 	std::wofstream outfile(L"c:\\epoch\\foo.txt");
 
-	ASTTraverse::Traverser traverse(program);
-	ASTTraverse::DumpToStream dump(outfile, traverse);
-	traverse.PerformActions(dump.Entry, dump.Exit);
+	ASTTraverse::DumpToStream dump(outfile);
+	ASTTraverse::Traverser traverse;
+	traverse.Do(dump.Entry, program, dump.Exit);
 }

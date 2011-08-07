@@ -22,13 +22,37 @@
 using namespace ASTTraverse;
 
 
+//
+// Begin traversing a node with no defined type
+//
+// There are two primary situations in which this can occur. First, and most
+// common, is when an optional AST fragment is omitted; for instance, when
+// invoking a function with no parameters, the parameters branch of the AST
+// will be Undefined.
+//
+// The second possible situation is if the parser has failed to synthesize
+// a correct attribute for the AST nodes; this should generally be caught as
+// a parse error and we should never get as far as walking the AST.
+//
+// In the former case, we don't want to emit anything, because that's the
+// most valid representation of "nothing." In the latter case, it would be
+// nice to throw an error, but unfortunately we don't have enough context to
+// differentiate the two scenarios as this point, so we'll just be silent.
+//
 void DumpToStream::EntryHelper::operator () (AST::Undefined&)
 {
-	// Don't output anything; this generally should only happen
-	// for statements with no parameters, e.g. foo()
+	// Don't output anything
 }
 
 
+//
+// Begin traversing a program node, which represents the root of the AST
+//
+// In practice we will only usually see one Program per, well, program;
+// however, this might change in the future as support for separate compilation
+// is added to the compiler. Therefore we do not enforce the assumption that
+// Program nodes are singular.
+//
 void DumpToStream::EntryHelper::operator () (AST::Program& program)
 {
 	self->Indent();
@@ -36,6 +60,9 @@ void DumpToStream::EntryHelper::operator () (AST::Program& program)
 	++self->Indentation;
 }
 
+//
+// Finish traversing a program node
+//
 void DumpToStream::ExitHelper::operator () (AST::Program& program)
 {
 	--self->Indentation;
@@ -44,6 +71,9 @@ void DumpToStream::ExitHelper::operator () (AST::Program& program)
 }
 
 
+//
+// Begin traversing a structure definition node
+//
 void DumpToStream::EntryHelper::operator () (AST::Structure& structure)
 {
 	self->Indent();
@@ -51,6 +81,9 @@ void DumpToStream::EntryHelper::operator () (AST::Structure& structure)
 	++self->Indentation;
 }
 
+//
+// Finish traversing a structure definition node
+//
 void DumpToStream::ExitHelper::operator () (AST::Structure& structure)
 {
 	--self->Indentation;
@@ -59,12 +92,18 @@ void DumpToStream::ExitHelper::operator () (AST::Structure& structure)
 }
 
 
+//
+// Traverse a node defining a member variable in a structure
+//
 void DumpToStream::EntryHelper::operator () (AST::StructureMemberVariable& variable)
 {
 	self->Indent();
 	self->TheStream << L"Member variable " << variable.Name << L" of type " << variable.Type << std::endl;
 }
 
+//
+// Traverse a node defining a member function reference in a structure
+//
 void DumpToStream::EntryHelper::operator () (AST::StructureMemberFunctionRef& funcref)
 {
 	self->Indent();
@@ -73,8 +112,9 @@ void DumpToStream::EntryHelper::operator () (AST::StructureMemberFunctionRef& fu
 }
 
 
-
-
+//
+// Begin traversing a node that defines a function
+//
 void DumpToStream::EntryHelper::operator () (AST::Function& function)
 {
 	self->Indent();
@@ -82,6 +122,9 @@ void DumpToStream::EntryHelper::operator () (AST::Function& function)
 	++self->Indentation;
 }
 
+//
+// Finish traversing a node that defines a function
+//
 void DumpToStream::ExitHelper::operator () (AST::Function& function)
 {
 	--self->Indentation;
@@ -90,6 +133,9 @@ void DumpToStream::ExitHelper::operator () (AST::Function& function)
 }
 
 
+//
+// Begin traversing a node that defines a function parameter
+//
 void DumpToStream::EntryHelper::operator () (AST::FunctionParameter& param)
 {
 	self->Indent();
@@ -97,6 +143,9 @@ void DumpToStream::EntryHelper::operator () (AST::FunctionParameter& param)
 	++self->Indentation;
 }
 
+//
+// Finish traversing a node that defines a function parameter
+//
 void DumpToStream::ExitHelper::operator () (AST::FunctionParameter& param)
 {
 	--self->Indentation;
@@ -104,6 +153,13 @@ void DumpToStream::ExitHelper::operator () (AST::FunctionParameter& param)
 	self->TheStream << L"End of parameter" << std::endl;
 }
 
+
+//
+// Traverse a node that corresponds to a named function parameter
+//
+// We can safely treat these as leaf nodes, hence the direct access of the
+// node's properties to retrieve its contents.
+//
 void DumpToStream::EntryHelper::operator () (AST::NamedFunctionParameter& param)
 {
 	self->Indent();
@@ -111,6 +167,9 @@ void DumpToStream::EntryHelper::operator () (AST::NamedFunctionParameter& param)
 }
 
 
+//
+// Begin traversing a node that corresponds to an expression
+//
 void DumpToStream::EntryHelper::operator () (AST::Expression& expression)
 {
 	self->Indent();
@@ -118,6 +177,9 @@ void DumpToStream::EntryHelper::operator () (AST::Expression& expression)
 	++self->Indentation;
 }
 
+//
+// Finish traversing an expression node
+//
 void DumpToStream::ExitHelper::operator () (AST::Expression& expression)
 {
 	--self->Indentation;
@@ -125,7 +187,9 @@ void DumpToStream::ExitHelper::operator () (AST::Expression& expression)
 	self->TheStream << L"End of expression" << std::endl;
 }
 
-
+//
+// Begin traversing an expression component node (see AST definitions for details)
+//
 void DumpToStream::EntryHelper::operator () (AST::ExpressionComponent& exprcomponent)
 {
 	self->Indent();
@@ -133,6 +197,9 @@ void DumpToStream::EntryHelper::operator () (AST::ExpressionComponent& exprcompo
 	++self->Indentation;
 }
 
+//
+// Finish traversing an expression component node
+//
 void DumpToStream::ExitHelper::operator () (AST::ExpressionComponent& exprcomponent)
 {
 	--self->Indentation;
@@ -140,6 +207,9 @@ void DumpToStream::ExitHelper::operator () (AST::ExpressionComponent& exprcompon
 	self->TheStream << L"End of component" << std::endl;
 }
 
+//
+// Begin traversing an expression fragment node (see AST definitions for details)
+//
 void DumpToStream::EntryHelper::operator () (AST::ExpressionFragment& exprfragment)
 {
 	self->Indent();
@@ -147,6 +217,9 @@ void DumpToStream::EntryHelper::operator () (AST::ExpressionFragment& exprfragme
 	++self->Indentation;
 }
 
+//
+// Finish traversing an expression fragment node
+//
 void DumpToStream::ExitHelper::operator () (AST::ExpressionFragment& exprfragment)
 {
 	--self->Indentation;
@@ -155,6 +228,9 @@ void DumpToStream::ExitHelper::operator () (AST::ExpressionFragment& exprfragmen
 }
 
 
+//
+// Begin traversing a statement node
+//
 void DumpToStream::EntryHelper::operator () (AST::Statement& statement)
 {
 	self->Indent();
@@ -162,6 +238,9 @@ void DumpToStream::EntryHelper::operator () (AST::Statement& statement)
 	++self->Indentation;
 }
 
+//
+// Finish traversing a statement node
+//
 void DumpToStream::ExitHelper::operator () (AST::Statement& statement)
 {
 	--self->Indentation;
@@ -169,42 +248,52 @@ void DumpToStream::ExitHelper::operator () (AST::Statement& statement)
 	self->TheStream << L"End of statement" << std::endl;
 }
 
+
+//
+// Begin traversing a node corresponding to a pre-operation statement
+//
 void DumpToStream::EntryHelper::operator () (AST::PreOperatorStatement& statement)
 {
 	self->Indent();
-	self->TheStream << L"Preopstatement " << statement.Operator;
-	for(std::vector<AST::IdentifierT, Memory::OneWayAlloc<AST::IdentifierT> >::const_iterator iter = statement.Operand.Content->Container.begin(); iter != statement.Operand.Content->Container.end(); ++iter)
-		self->TheStream << L" " << *iter;
-	self->TheStream << std::endl;
+	self->TheStream << L"Preopstatement " << statement.Operator << std::endl;
+	++self->Indentation;
 }
 
+//
+// Finish traversing a node corresponding to a pre-operation statement
+//
 void DumpToStream::ExitHelper::operator () (AST::PreOperatorStatement& statement)
 {
+	--self->Indentation;
+	self->Indent();
+	self->TheStream << L"End of preopstatement" << std::endl;
 }
 
+
+//
+// Begin traversing a node corresponding to a post-operation statement
+//
 void DumpToStream::EntryHelper::operator () (AST::PostOperatorStatement& statement)
 {
 	self->Indent();
-	self->TheStream << L"Postopstatement ";
-	for(std::vector<AST::IdentifierT, Memory::OneWayAlloc<AST::IdentifierT> >::const_iterator iter = statement.Operand.Content->Container.begin(); iter != statement.Operand.Content->Container.end(); ++iter)
-		self->TheStream << L" " << *iter;
-	self->TheStream  << statement.Operator << L" " << std::endl;
+	self->TheStream << L"Postopstatement " << statement.Operator << std::endl;
+	++self->Indentation;
 }
 
+//
+// Finish traversing a node corresponding to a post-operation statement
+//
 void DumpToStream::ExitHelper::operator () (AST::PostOperatorStatement& statement)
 {
-}
-
-void DumpToStream::EntryHelper::operator () (AST::CodeBlockEntry& blockentry)
-{
+	--self->Indentation;
 	self->Indent();
+	self->TheStream << L"End of postopstatement" << std::endl;
 }
 
-void DumpToStream::ExitHelper::operator () (AST::CodeBlockEntry& blockentry)
-{
-	self->TheStream << std::endl;
-}
 
+//
+// Begin traversing a node containing a code block
+//
 void DumpToStream::EntryHelper::operator () (AST::CodeBlock& block)
 {
 	self->Indent();
@@ -212,6 +301,9 @@ void DumpToStream::EntryHelper::operator () (AST::CodeBlock& block)
 	++self->Indentation;
 }
 
+//
+// Finish traversing a code block node
+//
 void DumpToStream::ExitHelper::operator () (AST::CodeBlock& block)
 {
 	--self->Indentation;
@@ -220,7 +312,9 @@ void DumpToStream::ExitHelper::operator () (AST::CodeBlock& block)
 }
 
 
-
+//
+// Begin traversing a node corresponding to an assignment
+//
 void DumpToStream::EntryHelper::operator () (AST::Assignment& assignment)
 {
 	self->Indent();
@@ -228,6 +322,9 @@ void DumpToStream::EntryHelper::operator () (AST::Assignment& assignment)
 	++self->Indentation;
 }
 
+//
+// Finish traversing a node corresponding to an assignment
+//
 void DumpToStream::ExitHelper::operator () (AST::Assignment& assignment)
 {
 	--self->Indentation;
@@ -236,7 +333,9 @@ void DumpToStream::ExitHelper::operator () (AST::Assignment& assignment)
 }
 
 
-
+//
+// Begin traversing a node representing an entity invocation
+//
 void DumpToStream::EntryHelper::operator () (AST::Entity& entity)
 {
 	self->Indent();
@@ -244,6 +343,9 @@ void DumpToStream::EntryHelper::operator () (AST::Entity& entity)
 	++self->Indentation;
 }
 
+//
+// Finish traversing a node representing an entity invocation
+//
 void DumpToStream::ExitHelper::operator () (AST::Entity& entity)
 {
 	--self->Indentation;
@@ -251,7 +353,9 @@ void DumpToStream::ExitHelper::operator () (AST::Entity& entity)
 	self->TheStream << L"End of entity" << std::endl;
 }
 
-
+//
+// Begin traversing a node containing a chained entity invocation
+//
 void DumpToStream::EntryHelper::operator () (AST::ChainedEntity& entity)
 {
 	self->Indent();
@@ -259,6 +363,9 @@ void DumpToStream::EntryHelper::operator () (AST::ChainedEntity& entity)
 	++self->Indentation;
 }
 
+//
+// Finish traversing a node containing a chained entity invocation
+//
 void DumpToStream::ExitHelper::operator () (AST::ChainedEntity& entity)
 {
 	--self->Indentation;
@@ -266,7 +373,9 @@ void DumpToStream::ExitHelper::operator () (AST::ChainedEntity& entity)
 	self->TheStream << L"End of chained entity" << std::endl;
 }
 
-
+//
+// Begin traversing a postfix entity invocation node
+//
 void DumpToStream::EntryHelper::operator () (AST::PostfixEntity& entity)
 {
 	self->Indent();
@@ -274,6 +383,9 @@ void DumpToStream::EntryHelper::operator () (AST::PostfixEntity& entity)
 	++self->Indentation;
 }
 
+//
+// Finish traversing a postfix entity invocation node
+//
 void DumpToStream::ExitHelper::operator () (AST::PostfixEntity& entity)
 {
 	--self->Indentation;
@@ -282,17 +394,29 @@ void DumpToStream::ExitHelper::operator () (AST::PostfixEntity& entity)
 }
 
 
+//
+// Traverse a node containing an identifier
+//
+// Note that this is not necessarily always a leaf node; identifiers can
+// be attached to entity invocations, function calls, etc. and therefore
+// this needs to be able to handle all situations in which an identifier
+// might appear.
+//
 void DumpToStream::EntryHelper::operator () (AST::IdentifierT& identifier)
 {
 	self->Indent();
 	self->TheStream << identifier << std::endl;
 }
 
-void DumpToStream::ExitHelper::operator () (AST::IdentifierT& identifier)
-{
-}
 
-
+//
+// Traverse a node representing a function reference signature; this is
+// typically used when passing function references to higher-order functions
+// in the program being compiled.
+//
+// We can safely treat this as an atomic leaf node, hence the direct access
+// of the node's properties when generating output.
+//
 void DumpToStream::EntryHelper::operator () (AST::FunctionReferenceSignature& refsig)
 {
 	self->Indent();
@@ -312,6 +436,10 @@ void DumpToStream::EntryHelper::operator () (AST::FunctionReferenceSignature& re
 }
 
 
+//
+// Traverse a special marker that indicates the subsequent nodes belong
+// to the return expression definition of a function
+//
 void DumpToStream::EntryHelper::operator () (Markers::FunctionReturnExpression&)
 {
 	self->Indent();
@@ -319,6 +447,9 @@ void DumpToStream::EntryHelper::operator () (Markers::FunctionReturnExpression&)
 	++self->Indentation;
 }
 
+//
+// Finish traversing a function's return expression
+//
 void DumpToStream::ExitHelper::operator () (Markers::FunctionReturnExpression&)
 {
 	--self->Indentation;
@@ -327,7 +458,9 @@ void DumpToStream::ExitHelper::operator () (Markers::FunctionReturnExpression&)
 }
 
 
-
+//
+// Helper function: indent the output to the current level
+//
 void DumpToStream::Indent()
 {
 	std::fill_n(std::ostream_iterator<wchar_t, wchar_t>(TheStream), Indentation, L' ');

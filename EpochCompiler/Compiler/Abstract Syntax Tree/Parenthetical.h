@@ -1,14 +1,30 @@
+//
+// The Epoch Language Project
+// EPOCHCOMPILER Compiler Toolchain
+//
+// AST nodes for parenthetical expressions
+//
+
 #pragma once
+
+
+// Dependencies
+#include "Compiler/Abstract Syntax Tree/Forwards.h"
+
 
 namespace AST
 {
 
+	//
+	// A parenthetical can consist of a pre-operation statement,
+	// post-operation statement, or full expression.
+	//
 	typedef boost::variant
 		<
 			Undefined,
-			Deferred<PreOperatorStatement, boost::intrusive_ptr<PreOperatorStatement> >,
-			Deferred<PostOperatorStatement, boost::intrusive_ptr<PostOperatorStatement> >,
-			Deferred<Expression, boost::intrusive_ptr<Expression> >
+			DeferredPreOperatorStatement,
+			DeferredPostOperatorStatement,
+			DeferredExpression
 		> Parenthetical;
 
 }

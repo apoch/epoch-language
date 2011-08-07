@@ -1,5 +1,19 @@
+//
+// The Epoch Language Project
+// EPOCHCOMPILER Compiler Toolchain
+//
+// Definitions for informing boost::variant that various AST node
+// constructors will never throw exceptions. This permits the variants
+// containing those node types to avoid excess heap allocations and
+// generally optimizes the behavior of the variants.
+//
+// See http://www.boost.org/doc/libs/1_47_0/doc/html/variant/design.html
+//
+
 #pragma once
 
+
+// Dependencies
 #include "Compiler/Abstract Syntax Tree/Undefined.h"
 
 

@@ -1,14 +1,36 @@
+//
+// The Epoch Language Project
+// EPOCHCOMPILER Compiler Toolchain
+//
+// AST nodes for identifiers and lists of identifiers
+//
+
 #pragma once
 
+
+// Dependencies
 #include "Compiler/Abstract Syntax Tree/RefCounting.h"
 #include "Utility/Memory/OneWayAllocator.h"
 #include "Lexer/Lexer.h"
 
+
 namespace AST
 {
 
+	//
+	// An identifier is simply a pair of iterators pointing
+	// into the original code text buffer, thus eliminating
+	// the overhead of making a string copy of every single
+	// identifier in the program.
+	//
 	typedef boost::iterator_range<std::wstring::const_iterator> IdentifierT;
 
+	//
+	// An identifier list is simply a container of identifiers
+	//
+	// The benefits of using the nested container and the deferred
+	// wrapper are not entirely clear, and this may go away.
+	//
 	struct IdentifierListRaw
 	{
 		typedef std::vector<AST::IdentifierT, Memory::OneWayAlloc<AST::IdentifierT> > ContainedT;
@@ -32,9 +54,16 @@ namespace AST
 		IdentifierListRaw& operator = (const IdentifierListRaw&);
 	};
 
+	//
+	// Deferred wrapper for an identifier list
+	//
 	typedef DeferredContainer<IdentifierListRaw, boost::intrusive_ptr<IdentifierListRaw> > IdentifierList;
 
 }
+
+//
+// Adapters for treating our AST node structures as boost::fusion sequences
+//
 
 typedef std::vector<AST::IdentifierT, Memory::OneWayAlloc<AST::IdentifierT> > IdentifierVec;
 

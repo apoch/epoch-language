@@ -1,21 +1,45 @@
+//
+// The Epoch Language Project
+// EPOCHCOMPILER Compiler Toolchain
+//
+// AST nodes for expressions and their constituent parts
+//
+
 #pragma once
 
+
+// Dependencies
 #include "Compiler/Abstract Syntax Tree/Undefined.h"
 #include "Compiler/Abstract Syntax Tree/Identifiers.h"
 #include "Compiler/Abstract Syntax Tree/Literals.h"
 #include "Compiler/Abstract Syntax Tree/Parenthetical.h"
 
+
 namespace AST
 {
+	//
+	// Variant describing a component of an expression
+	//
+	// This can consist of:
+	//		- A lone identifier, such as a variable
+	//		- A literal value
+	//		- A statement, i.e. foo(params)
+	//		- A parenthetical expression
+	//
 	typedef boost::variant
 		<
 			Undefined,
 			IdentifierT,
 			LiteralToken,
-			Deferred<struct Statement, boost::intrusive_ptr<Statement> >,
+			DeferredStatement,
 			Parenthetical
 		> ExpressionComponentInternalVariant;
 
+	//
+	// Refcountable wrapper for an expression component variant
+	//
+	// This is ugly and might need to go away.
+	//
 	struct ExpressionComponentInternal
 	{
 		ExpressionComponentInternalVariant V;
@@ -39,6 +63,13 @@ namespace AST
 		ExpressionComponentInternal& operator = (const ExpressionComponentInternal&);
 	};
 
+	//
+	// AST node representing a component of an expression
+	//
+	// A component consists of one of the above variants, coupled with
+	// an optional set of unary prefix operators that are applied to
+	// the component term itself.
+	//
 	struct ExpressionComponent
 	{
 		typedef Deferred<ExpressionComponentInternal, boost::intrusive_ptr<ExpressionComponentInternal> > DeferredInternal;
@@ -68,6 +99,12 @@ namespace AST
 		ExpressionComponent& operator = (const ExpressionComponent&);
 	};
 
+	//
+	// Fragment of an expression
+	//
+	// A fragment joins an infix operator with the term on the right-hand
+	// side of the operation, which is an expression component
+	//
 	struct ExpressionFragment
 	{
 		IdentifierT Operator;
@@ -85,6 +122,10 @@ namespace AST
 		ExpressionFragment& operator = (const ExpressionFragment&);
 	};
 
+	//
+	// An expression consists of a component followed by
+	// zero or more expression fragments
+	//
 	struct Expression
 	{
 		DeferredExpressionComponent First;
@@ -109,6 +150,9 @@ namespace AST
 
 }
 
+//
+// Adapters for treating our AST node structures as boost::fusion sequences
+//
 
 BOOST_FUSION_ADAPT_STRUCT
 (

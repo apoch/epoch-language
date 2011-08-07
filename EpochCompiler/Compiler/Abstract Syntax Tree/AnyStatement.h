@@ -7,6 +7,7 @@
 
 #pragma once
 
+
 // Dependencies
 #include "Compiler/Abstract Syntax Tree/Undefined.h"
 #include "Compiler/Abstract Syntax Tree/RefCounting.h"

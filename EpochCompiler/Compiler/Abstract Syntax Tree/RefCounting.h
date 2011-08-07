@@ -1,7 +1,17 @@
+//
+// The Epoch Language Project
+// EPOCHCOMPILER Compiler Toolchain
+//
+// Reference counting and allocation declarations for AST nodes
+//
+
 #pragma once
 
+
+// Dependencies
 #include "Utility/Memory/OneWayAllocator.h"
 #include "Compiler/Abstract Syntax Tree/Forwards.h"
+
 
 namespace AST
 {
@@ -36,24 +46,24 @@ namespace AST
 	template<> inline NamedFunctionParameter* Allocate<NamedFunctionParameter>() { return Memory::OneWayAllocateObject<NamedFunctionParameter>(1); }
 	template<> inline Structure* Allocate<Structure>() { return Memory::OneWayAllocateObject<Structure>(1); }
 
-	template<> inline void Deallocate(Expression* p) { Memory::OneWayRecordDeallocObject<Expression>(p); }
-	template<> inline void Deallocate(ExpressionComponent* p) { Memory::OneWayRecordDeallocObject<ExpressionComponent>(p); }
-	template<> inline void Deallocate(ExpressionFragment* p) { Memory::OneWayRecordDeallocObject<ExpressionFragment>(p); }
-	template<> inline void Deallocate(PreOperatorStatement* p) { Memory::OneWayRecordDeallocObject<PreOperatorStatement>(p); }
-	template<> inline void Deallocate(PostOperatorStatement* p) { Memory::OneWayRecordDeallocObject<PostOperatorStatement>(p); }
-	template<> inline void Deallocate(IdentifierListRaw* p) { Memory::OneWayRecordDeallocObject<IdentifierListRaw>(p); }
-	template<> inline void Deallocate(ExpressionComponentInternal* p) { Memory::OneWayRecordDeallocObject<ExpressionComponentInternal>(p); }
-	template<> inline void Deallocate(Statement* p) { Memory::OneWayRecordDeallocObject<Statement>(p); }
-	template<> inline void Deallocate(FunctionReferenceSignature* p) { Memory::OneWayRecordDeallocObject<FunctionReferenceSignature>(p); }
-	template<> inline void Deallocate(Assignment* p) { Memory::OneWayRecordDeallocObject<Assignment>(p); }
-	template<> inline void Deallocate(SimpleAssignment* p) { Memory::OneWayRecordDeallocObject<SimpleAssignment>(p); }
-	template<> inline void Deallocate(ChainedEntity* p) { Memory::OneWayRecordDeallocObject<ChainedEntity>(p); }
-	template<> inline void Deallocate(FunctionParameter* p) { Memory::OneWayRecordDeallocObject<FunctionParameter>(p); }
-	template<> inline void Deallocate(Entity* p) { Memory::OneWayRecordDeallocObject<Entity>(p); }
-	template<> inline void Deallocate(PostfixEntity* p) { Memory::OneWayRecordDeallocObject<PostfixEntity>(p); }
-	template<> inline void Deallocate(CodeBlock* p) { Memory::OneWayRecordDeallocObject<CodeBlock>(p); }
-	template<> inline void Deallocate(NamedFunctionParameter* p) { Memory::OneWayRecordDeallocObject<NamedFunctionParameter>(p); }
-	template<> inline void Deallocate(Structure* p) { Memory::OneWayRecordDeallocObject<Structure>(p); }
+	template<> inline void Deallocate(Expression* p) { Memory::OneWayRecordDeallocObject(p); }
+	template<> inline void Deallocate(ExpressionComponent* p) { Memory::OneWayRecordDeallocObject(p); }
+	template<> inline void Deallocate(ExpressionFragment* p) { Memory::OneWayRecordDeallocObject(p); }
+	template<> inline void Deallocate(PreOperatorStatement* p) { Memory::OneWayRecordDeallocObject(p); }
+	template<> inline void Deallocate(PostOperatorStatement* p) { Memory::OneWayRecordDeallocObject(p); }
+	template<> inline void Deallocate(IdentifierListRaw* p) { Memory::OneWayRecordDeallocObject(p); }
+	template<> inline void Deallocate(ExpressionComponentInternal* p) { Memory::OneWayRecordDeallocObject(p); }
+	template<> inline void Deallocate(Statement* p) { Memory::OneWayRecordDeallocObject(p); }
+	template<> inline void Deallocate(FunctionReferenceSignature* p) { Memory::OneWayRecordDeallocObject(p); }
+	template<> inline void Deallocate(Assignment* p) { Memory::OneWayRecordDeallocObject(p); }
+	template<> inline void Deallocate(SimpleAssignment* p) { Memory::OneWayRecordDeallocObject(p); }
+	template<> inline void Deallocate(ChainedEntity* p) { Memory::OneWayRecordDeallocObject(p); }
+	template<> inline void Deallocate(FunctionParameter* p) { Memory::OneWayRecordDeallocObject(p); }
+	template<> inline void Deallocate(Entity* p) { Memory::OneWayRecordDeallocObject(p); }
+	template<> inline void Deallocate(PostfixEntity* p) { Memory::OneWayRecordDeallocObject(p); }
+	template<> inline void Deallocate(CodeBlock* p) { Memory::OneWayRecordDeallocObject(p); }
+	template<> inline void Deallocate(NamedFunctionParameter* p) { Memory::OneWayRecordDeallocObject(p); }
+	template<> inline void Deallocate(Structure* p) { Memory::OneWayRecordDeallocObject(p); }
 
 	void intrusive_ptr_add_ref(Expression* expr);
 	void intrusive_ptr_release(Expression* expr);

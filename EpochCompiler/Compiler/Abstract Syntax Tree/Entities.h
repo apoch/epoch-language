@@ -1,5 +1,14 @@
+//
+// The Epoch Language Project
+// EPOCHCOMPILER Compiler Toolchain
+//
+// AST nodes for entity invocations of all forms
+//
+
 #pragma once
 
+
+// Dependencies
 #include "Compiler/Abstract Syntax Tree/Identifiers.h"
 #include "Compiler/Abstract Syntax Tree/CodeBlock.h"
 
@@ -7,6 +16,13 @@
 namespace AST
 {
 
+	//
+	// AST node for a chained entity invocation
+	//
+	// Chained invocations appear after a normal entity invocation and can be
+	// repeated an arbitrary number of times, until ending with an optional
+	// termination entity. The canonical example is if/elseif/else.
+	//
 	struct ChainedEntity
 	{
 		IdentifierT Identifier;
@@ -25,8 +41,15 @@ namespace AST
 		ChainedEntity& operator = (const ChainedEntity&);
 	};
 
-	typedef std::vector<AST::DeferredChainedEntity, Memory::OneWayAlloc<AST::DeferredChainedEntity> > ChainedEntityVector;
-
+	//
+	// AST node representing an entity invocation
+	//
+	// Entities are used to extend flow control and provide other metaprogramming
+	// constructs for Epoch programs. The most common use case is to supply syntactic
+	// forms for certain idiomatic tasks such as loops, conditionals, exception
+	// handlers, and so on. Entities represent a tricky parsing problem but also a
+	// fundamentally powerful aspect of Epoch's design.
+	//
 	struct Entity
 	{
 		IdentifierT Identifier;
@@ -46,6 +69,13 @@ namespace AST
 		Entity& operator = (const Entity&);
 	};
 
+	//
+	// AST node representing a postfix entity invocation
+	//
+	// Standard entity invocations take parameters prior to the attached code
+	// block, such as if, for, while, and so on. Postfix entities, by contrast,
+	// accept parameters after the code block, as in do/while loops.
+	//
 	struct PostfixEntity
 	{
 		IdentifierT Identifier;
@@ -67,6 +97,10 @@ namespace AST
 	};
 
 }
+
+//
+// Adapters for treating our AST node structures as boost::fusion sequences
+//
 
 BOOST_FUSION_ADAPT_STRUCT
 (

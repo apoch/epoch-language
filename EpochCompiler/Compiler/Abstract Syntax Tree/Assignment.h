@@ -7,6 +7,7 @@
 
 #pragma once
 
+
 // Dependencies
 #include "Compiler/Abstract Syntax Tree/Identifiers.h"
 

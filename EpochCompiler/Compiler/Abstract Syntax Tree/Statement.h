@@ -1,12 +1,29 @@
+//
+// The Epoch Language Project
+// EPOCHCOMPILER Compiler Toolchain
+//
+// AST nodes for Epoch statements
+//
+
 #pragma once
+
+
+// Dependencies
+#include "Compiler/Abstract Syntax Tree/Forwards.h"
+
 
 namespace AST
 {
 
+	//
+	// A regular statement consists of an identifier
+	// and a sequence of parameters; this comprises
+	// the Epoch function call syntax.
+	//
 	struct Statement
 	{
 		IdentifierT Identifier;
-		std::vector<Deferred<Expression, boost::intrusive_ptr<Expression> >, Memory::OneWayAlloc<Deferred<Expression, boost::intrusive_ptr<Expression> > > > Params;
+		std::vector<DeferredExpression, Memory::OneWayAlloc<DeferredExpression> > Params;
 
 		Statement()
 			: RefCount(0)
@@ -20,6 +37,10 @@ namespace AST
 		Statement& operator = (const Statement&);
 	};
 
+	//
+	// A pre-operation statement is an operator followed by
+	// an identifier (or a sequence of member accesses)
+	//
 	struct PreOperatorStatement
 	{
 		IdentifierT Operator;
@@ -37,6 +58,10 @@ namespace AST
 		PreOperatorStatement& operator = (const PreOperatorStatement&);
 	};
 
+	//
+	// A post-operation statement is an identifier (or a
+	// sequence of member accesses) followed by an operator
+	//
 	struct PostOperatorStatement
 	{
 		IdentifierList Operand;
@@ -56,6 +81,9 @@ namespace AST
 
 }
 
+//
+// Adapters for treating our AST node structures as boost::fusion sequences
+//
 
 BOOST_FUSION_ADAPT_STRUCT
 (

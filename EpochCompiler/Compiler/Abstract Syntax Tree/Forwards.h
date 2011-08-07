@@ -1,6 +1,16 @@
+//
+// The Epoch Language Project
+// EPOCHCOMPILER Compiler Toolchain
+//
+// Forward declarations of AST nodes and their deferred forms
+//
+
 #pragma once
 
+
+// Dependencies
 #include "Compiler/Abstract Syntax Tree/DeferredNode.h"
+
 
 namespace AST
 {
@@ -45,7 +55,9 @@ namespace AST
 
 	typedef std::vector<DeferredExpressionFragment, Memory::OneWayAlloc<DeferredExpressionFragment> > DeferredExpressionFragmentVector;
 	typedef std::vector<DeferredExpression, Memory::OneWayAlloc<DeferredExpression> > DeferredExpressionVector;
+	typedef std::vector<DeferredChainedEntity, Memory::OneWayAlloc<DeferredChainedEntity> > ChainedEntityVector;
 
 }
 
+// Auxiliary definitions
 #include "Compiler/Abstract Syntax Tree/NoThrows.h"

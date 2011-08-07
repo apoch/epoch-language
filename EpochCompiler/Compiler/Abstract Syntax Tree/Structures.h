@@ -1,16 +1,32 @@
+//
+// The Epoch Language Project
+// EPOCHCOMPILER Compiler Toolchain
+//
+// AST nodes for structure definitions
+//
+
 #pragma once
 
+
+// Dependencies
 #include "Compiler/Abstract Syntax Tree/Identifiers.h"
+
 
 namespace AST
 {
 
+	//
+	// A simple structure member variable
+	//
 	struct StructureMemberVariable
 	{
 		IdentifierT Type;
 		IdentifierT Name;
 	};
 
+	//
+	// A function reference member variable
+	//
 	struct StructureMemberFunctionRef
 	{
 		IdentifierT Name;
@@ -19,6 +35,9 @@ namespace AST
 	};
 
 
+	//
+	// Variant including any legal structure member
+	//
 	typedef boost::variant
 		<
 			Undefined,
@@ -27,6 +46,9 @@ namespace AST
 		> StructureMember;
 
 
+	//
+	// AST node representing a complete structure definition
+	//
 	struct Structure
 	{
 		IdentifierT Identifier;
@@ -46,6 +68,10 @@ namespace AST
 
 
 }
+
+//
+// Adapters for treating our AST node structures as boost::fusion sequences
+//
 
 BOOST_FUSION_ADAPT_STRUCT
 (
