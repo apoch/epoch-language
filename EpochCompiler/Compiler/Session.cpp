@@ -19,6 +19,7 @@
 #include "Compiler/Abstract Syntax Tree/Entities.h"
 #include "Compiler/Abstract Syntax Tree/FunctionParameter.h"
 #include "Compiler/Abstract Syntax Tree/Structures.h"
+#include "Compiler/Abstract Syntax Tree/Function.h"
 
 #include "Parser/Parser.h"
 

@@ -20,6 +20,7 @@
 #include "Compiler/Abstract Syntax Tree/Assignment.h"
 #include "Compiler/Abstract Syntax Tree/CodeBlock.h"
 #include "Compiler/Abstract Syntax Tree/Structures.h"
+#include "Compiler/Abstract Syntax Tree/Function.h"
 
 
 void AST::intrusive_ptr_add_ref(Expression* expr)
@@ -235,4 +236,16 @@ void AST::intrusive_ptr_release(Structure* st)
 {
 	if(--st->RefCount == 0)
 		Deallocate(st);
+}
+
+
+void AST::intrusive_ptr_add_ref(Function* fn)
+{
+	++fn->RefCount;
+}
+
+void AST::intrusive_ptr_release(Function* fn)
+{
+	if(--fn->RefCount == 0)
+		Deallocate(fn);
 }

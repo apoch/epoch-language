@@ -6,7 +6,7 @@ struct CodeBlockGrammar;
 struct ExpressionGrammar;
 
 
-struct FunctionDefinitionGrammar : public boost::spirit::qi::grammar<Lexer::TokenIterT, boost::spirit::char_encoding::standard_wide, AST::Deferred<AST::Function>()>
+struct FunctionDefinitionGrammar : public boost::spirit::qi::grammar<Lexer::TokenIterT, boost::spirit::char_encoding::standard_wide, AST::DeferredFunction()>
 {
 	typedef Lexer::TokenIterT IteratorT;
 
@@ -29,10 +29,10 @@ struct FunctionDefinitionGrammar : public boost::spirit::qi::grammar<Lexer::Toke
 	Rule<boost::spirit::qi::unused_type>::type EmptyParams;
 
 	Rule<std::vector<AST::DeferredFunctionParameter, Memory::OneWayAlloc<AST::DeferredFunctionParameter> >()>::type ParameterList;
-	Rule<AST::Deferred<AST::Expression, boost::intrusive_ptr<AST::Expression> >()>::type ReturnList;
+	Rule<AST::DeferredExpression()>::type ReturnList;
 	Rule<AST::FunctionTagList()>::type FunctionTagList;
 	Rule<AST::FunctionTag()>::type FunctionTagSpec;
 
-	Rule<AST::Deferred<AST::Function>()>::type FunctionDefinition;
+	Rule<AST::DeferredFunction()>::type FunctionDefinition;
 };
 

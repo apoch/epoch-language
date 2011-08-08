@@ -129,7 +129,7 @@ namespace AST
 	struct Expression
 	{
 		DeferredExpressionComponent First;
-		std::vector<DeferredExpressionFragment, Memory::OneWayAlloc<Deferred<ExpressionFragment, boost::intrusive_ptr<ExpressionFragment> > > > Remaining;
+		std::vector<DeferredExpressionFragment, Memory::OneWayAlloc<DeferredExpressionFragment> > Remaining;
 
 		long RefCount;
 

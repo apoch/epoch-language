@@ -11,7 +11,7 @@
 struct LiteralGrammar;
 
 
-struct ExpressionGrammar : public boost::spirit::qi::grammar<Lexer::TokenIterT, boost::spirit::char_encoding::standard_wide, AST::Deferred<AST::Expression, boost::intrusive_ptr<AST::Expression> >()>
+struct ExpressionGrammar : public boost::spirit::qi::grammar<Lexer::TokenIterT, boost::spirit::char_encoding::standard_wide, AST::DeferredExpression()>
 {
 	typedef Lexer::TokenIterT IteratorT;
 
@@ -24,9 +24,9 @@ struct ExpressionGrammar : public boost::spirit::qi::grammar<Lexer::TokenIterT, 
 		typedef typename boost::spirit::qi::rule<IteratorT, boost::spirit::char_encoding::standard_wide, AttributeT> type;
 	};
 
-	Rule<AST::Deferred<AST::Statement, boost::intrusive_ptr<AST::Statement> >()>::type Statement;
-	Rule<AST::Deferred<AST::PreOperatorStatement, boost::intrusive_ptr<AST::PreOperatorStatement> >()>::type PreOperatorStatement;
-	Rule<AST::Deferred<AST::PostOperatorStatement, boost::intrusive_ptr<AST::PostOperatorStatement> >()>::type PostOperatorStatement;
+	Rule<AST::DeferredStatement()>::type Statement;
+	Rule<AST::DeferredPreOperatorStatement()>::type PreOperatorStatement;
+	Rule<AST::DeferredPostOperatorStatement()>::type PostOperatorStatement;
 	
 	Rule<AST::DeferredSimpleAssignment()>::type SimpleAssignment;
 	Rule<AST::DeferredAssignment()>::type MemberAssignment;
@@ -40,9 +40,9 @@ struct ExpressionGrammar : public boost::spirit::qi::grammar<Lexer::TokenIterT, 
 	Rule<AST::IdentifierList()>::type MemberAccess;
 
 	Rule<AST::Deferred<AST::ExpressionComponentInternal, boost::intrusive_ptr<AST::ExpressionComponentInternal> >()>::type ExpressionChunk;
-	Rule<AST::Deferred<AST::ExpressionFragment, boost::intrusive_ptr<AST::ExpressionFragment> >()>::type ExpressionFragment;
-	Rule<AST::Deferred<AST::ExpressionComponent, boost::intrusive_ptr<AST::ExpressionComponent> >()>::type ExpressionComponent;
-	Rule<AST::Deferred<AST::Expression, boost::intrusive_ptr<AST::Expression> >()>::type Expression;
+	Rule<AST::DeferredExpressionFragment()>::type ExpressionFragment;
+	Rule<AST::DeferredExpressionComponent()>::type ExpressionComponent;
+	Rule<AST::DeferredExpression()>::type Expression;
 	Rule<AST::ExpressionOrAssignment()>::type ExpressionOrAssignment;
 
 	Rule<AST::AnyStatement()>::type AnyStatement;

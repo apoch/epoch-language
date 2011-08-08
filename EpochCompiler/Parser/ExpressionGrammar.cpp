@@ -10,6 +10,7 @@
 #include "Compiler/Abstract Syntax Tree/Entities.h"
 #include "Compiler/Abstract Syntax Tree/CodeBlock.h"
 #include "Compiler/Abstract Syntax Tree/Structures.h"
+#include "Compiler/Abstract Syntax Tree/Function.h"
 
 
 ExpressionGrammar::ExpressionGrammar(const Lexer::EpochLexerT& lexer, const LiteralGrammar& literalgrammar)

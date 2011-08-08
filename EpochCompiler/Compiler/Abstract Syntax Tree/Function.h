@@ -44,9 +44,20 @@ namespace AST
 	{
 		IdentifierT Name;
 		FunctionParamVec Parameters;
-		Deferred<Expression, boost::intrusive_ptr<Expression> > Return;
+		DeferredExpression Return;
 		FunctionTagList Tags;
 		DeferredCodeBlock Code;
+
+		Function()
+			: RefCount(0)
+		{ }
+
+		long RefCount;
+
+	// Non-copyable
+	private:
+		Function(const Function&);
+		Function& operator = (const Function&);
 	};
 
 }
@@ -57,7 +68,7 @@ namespace AST
 
 BOOST_FUSION_ADAPT_STRUCT
 (
-	AST::Deferred<AST::Function>,
+	AST::DeferredFunction,
 	(AST::IdentifierT, Content->Name)
 	(AST::FunctionParamVec, Content->Parameters)
 	(AST::DeferredExpression, Content->Return)

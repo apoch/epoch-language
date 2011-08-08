@@ -52,6 +52,7 @@ namespace AST
 	typedef Deferred<FunctionReferenceSignature, boost::intrusive_ptr<FunctionReferenceSignature> > DeferredFunctionRefSig;
 	typedef Deferred<NamedFunctionParameter, boost::intrusive_ptr<NamedFunctionParameter> > DeferredNamedFunctionParameter;
 	typedef Deferred<Structure, boost::intrusive_ptr<Structure> > DeferredStructure;
+	typedef Deferred<Function, boost::intrusive_ptr<Function> > DeferredFunction;
 
 	typedef std::vector<DeferredExpressionFragment, Memory::OneWayAlloc<DeferredExpressionFragment> > DeferredExpressionFragmentVector;
 	typedef std::vector<DeferredExpression, Memory::OneWayAlloc<DeferredExpression> > DeferredExpressionVector;

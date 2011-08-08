@@ -117,5 +117,17 @@ namespace boost
 	{
 	};
 
+	template <>
+	struct has_nothrow_copy<AST::DeferredChainedEntity>
+		: mpl::true_
+	{
+	};
+
+	template <>
+	struct has_nothrow_copy<AST::DeferredStructure>
+		: mpl::true_
+	{
+	};
+
 }
 

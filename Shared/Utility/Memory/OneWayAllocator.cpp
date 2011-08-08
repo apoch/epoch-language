@@ -3,8 +3,6 @@
 #include "Utility/Memory/OneWayAllocator.h"
 #include "Utility/Types/IntegerTypes.h"
 
-#include <iostream>
-
 
 namespace
 {
@@ -20,12 +18,24 @@ namespace
 	static const size_t BLOCKSIZE = 25 * 1024 * 1024;		// nMB blocks
 
 	Integer64 TotalAllocSize = 0;
+
+#ifdef DEBUG_ALLOCATOR
+	std::map<const char*, long> AllocTable;
+#endif
 }
 
 
+#ifdef DEBUG_ALLOCATOR
+void* Memory::OneWayAllocate(size_t bytes, size_t count, const char* type)
+#else
 void* Memory::OneWayAllocate(size_t bytes)
+#endif
 {
 	TotalAllocSize += bytes;
+
+#ifdef DEBUG_ALLOCATOR
+	AllocTable[type] += count;
+#endif
 
 	if(Blocks.empty() || Blocks.back().RemainingSize < bytes)
 	{
@@ -58,9 +68,17 @@ void* Memory::OneWayAllocate(size_t bytes)
 	}
 }
 
+#ifdef DEBUG_ALLOCATOR
+void Memory::OneWayRecordDealloc(size_t bytes, size_t count, const char* type)
+#else
 void Memory::OneWayRecordDealloc(size_t bytes)
+#endif
 {
 	TotalAllocSize -= bytes;
+
+#ifdef DEBUG_ALLOCATOR
+	AllocTable[type] -= count;
+#endif
 }
 
 void Memory::DisposeOneWayBlocks()

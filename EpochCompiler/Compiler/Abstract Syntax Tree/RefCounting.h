@@ -22,7 +22,7 @@ namespace AST
 	}
 
 	template <typename T>
-	void Deallocate(T* ptr)
+	inline void Deallocate(T* ptr)
 	{
 		delete ptr;
 	}
@@ -45,6 +45,7 @@ namespace AST
 	template<> inline CodeBlock* Allocate<CodeBlock>() { return Memory::OneWayAllocateObject<CodeBlock>(1); }
 	template<> inline NamedFunctionParameter* Allocate<NamedFunctionParameter>() { return Memory::OneWayAllocateObject<NamedFunctionParameter>(1); }
 	template<> inline Structure* Allocate<Structure>() { return Memory::OneWayAllocateObject<Structure>(1); }
+	template<> inline Function* Allocate<Function>() { return Memory::OneWayAllocateObject<Function>(1); }
 
 	template<> inline void Deallocate(Expression* p) { Memory::OneWayRecordDeallocObject(p); }
 	template<> inline void Deallocate(ExpressionComponent* p) { Memory::OneWayRecordDeallocObject(p); }
@@ -64,6 +65,7 @@ namespace AST
 	template<> inline void Deallocate(CodeBlock* p) { Memory::OneWayRecordDeallocObject(p); }
 	template<> inline void Deallocate(NamedFunctionParameter* p) { Memory::OneWayRecordDeallocObject(p); }
 	template<> inline void Deallocate(Structure* p) { Memory::OneWayRecordDeallocObject(p); }
+	template<> inline void Deallocate(Function* p) { Memory::OneWayRecordDeallocObject(p); }
 
 	void intrusive_ptr_add_ref(Expression* expr);
 	void intrusive_ptr_release(Expression* expr);
@@ -118,6 +120,9 @@ namespace AST
 
 	void intrusive_ptr_add_ref(Structure* st);
 	void intrusive_ptr_release(Structure* st);
+
+	void intrusive_ptr_add_ref(Function* st);
+	void intrusive_ptr_release(Function* st);
 
 }
 

@@ -1,24 +1,39 @@
 #pragma once
 
+//#define DEBUG_ALLOCATOR
+
 namespace Memory
 {
 
+#ifdef DEBUG_ALLOCATOR
+	void* OneWayAllocate(size_t bytes, size_t count, const char* type);
+	void OneWayRecordDealloc(size_t bytes, size_t count, const char* type);
+#else
 	void* OneWayAllocate(size_t bytes);
 	void OneWayRecordDealloc(size_t bytes);
+#endif
 
 	void DisposeOneWayBlocks();
 
 	template <typename T>
 	T* OneWayAllocateObject(size_t count)
 	{
+#ifdef DEBUG_ALLOCATOR
+		return reinterpret_cast<T*>(OneWayAllocate(sizeof(T) * count, count, typeid(T).name()));
+#else
 		return reinterpret_cast<T*>(OneWayAllocate(sizeof(T) * count));
+#endif
 	}
 
 	template <typename T>
 	void OneWayRecordDeallocObject(T* p)
 	{
 		p->~T();
+#ifdef DEBUG_ALLOCATOR
+		OneWayRecordDealloc(sizeof(T), 1, typeid(T).name());
+#else
 		OneWayRecordDealloc(sizeof(T));
+#endif
 	}
 
 
@@ -53,12 +68,20 @@ namespace Memory
 
 		pointer allocate(size_type cnt, typename std::allocator<void>::const_pointer = 0)
 		{
+#ifdef DEBUG_ALLOCATOR
+			return reinterpret_cast<pointer>(OneWayAllocate(cnt * sizeof(T), cnt, typeid(T).name()));
+#else
 			return reinterpret_cast<pointer>(OneWayAllocate(cnt * sizeof(T)));
+#endif
 		}
 
 		void deallocate(pointer p, size_type count)
 		{
+#ifdef DEBUG_ALLOCATOR
+			OneWayRecordDealloc(count * sizeof(T), count, typeid(T).name());
+#else
 			OneWayRecordDealloc(count * sizeof(T));
+#endif
 		}
 
 		size_type max_size() const

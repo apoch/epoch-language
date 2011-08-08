@@ -34,6 +34,8 @@ using namespace boost::spirit::lex;
 //
 bool Parser::Parse(const std::wstring& code, const std::wstring& filename, AST::Program& program) const
 {
+	std::auto_ptr<AST::Program> ptr(NULL);
+
 	Lexer::EpochLexerT lexer;
 	FundamentalGrammar grammar(lexer, Identifiers);
 
@@ -43,17 +45,17 @@ bool Parser::Parse(const std::wstring& code, const std::wstring& filename, AST::
 	try
 	{
 		// First pass: build up the list of entities defined in the code
-		//while(true)
+		while(true)
 		{
 			Profiling::Timer timer;
 			timer.Begin();
 
-			program = AST::Program();
+			ptr.reset(new AST::Program);
 			Memory::DisposeOneWayBlocks();
 
 			std::wcout << L"Parsing... ";
 			iter = code.begin();
-			bool result = tokenize_and_parse(iter, end, lexer, grammar, program);
+			bool result = tokenize_and_parse(iter, end, lexer, grammar, *ptr);
 			if(!result || (iter != end))
 			{
 				std::wcout << L"FAILED!" << std::endl;
@@ -68,6 +70,9 @@ bool Parser::Parse(const std::wstring& code, const std::wstring& filename, AST::
 	{
 		throw FatalException("Exception during parse");
 	}
+
+	if(ptr.get())
+		program = *ptr;
 
 	return true;
 }

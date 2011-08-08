@@ -26,7 +26,7 @@ namespace AST
 	struct ChainedEntity
 	{
 		IdentifierT Identifier;
-		std::vector<DeferredExpression, Memory::OneWayAlloc<DeferredExpression> > Parameters;
+		DeferredExpressionVector Parameters;
 		DeferredCodeBlock Code;
 
 		long RefCount;
@@ -53,7 +53,7 @@ namespace AST
 	struct Entity
 	{
 		IdentifierT Identifier;
-		std::vector<DeferredExpression, Memory::OneWayAlloc<DeferredExpression> > Parameters;
+		DeferredExpressionVector Parameters;
 		DeferredCodeBlock Code;
 		ChainedEntityVector Chain;
 
@@ -79,10 +79,10 @@ namespace AST
 	struct PostfixEntity
 	{
 		IdentifierT Identifier;
-		std::vector<Deferred<Expression, boost::intrusive_ptr<Expression> >, Memory::OneWayAlloc<Deferred<Expression, boost::intrusive_ptr<Expression> > > > Parameters;
+		DeferredExpressionVector Parameters;
 		DeferredCodeBlock Code;
 		IdentifierT PostfixIdentifier;
-		std::vector<Deferred<Expression, boost::intrusive_ptr<Expression> >, Memory::OneWayAlloc<Deferred<Expression, boost::intrusive_ptr<Expression> > > > PostfixParameters;
+		DeferredExpressionVector PostfixParameters;
 
 		long RefCount;
 
