@@ -38,7 +38,7 @@ namespace AST
 	//
 	// Refcountable wrapper for an expression component variant
 	//
-	// This is ugly and might need to go away.
+	// This is ugly but has shown measurable performance benefits.
 	//
 	struct ExpressionComponentInternal
 	{

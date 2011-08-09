@@ -28,8 +28,12 @@ namespace AST
 	//
 	// An identifier list is simply a container of identifiers
 	//
-	// The benefits of using the nested container and the deferred
-	// wrapper are not entirely clear, and this may go away.
+	// Since identifier lists are very common (every expression
+	// supports a set of unary prefixes, which is an identifier
+	// list; structure member accesses are identifier lists) it
+	// makes sense to defer the construction of the vector that
+	// holds the identifiers for as long as possible. Using the
+	// below structure has proven to be a net performance win.
 	//
 	struct IdentifierListRaw
 	{

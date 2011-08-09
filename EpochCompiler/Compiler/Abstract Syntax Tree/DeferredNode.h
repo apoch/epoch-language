@@ -141,32 +141,52 @@ namespace AST
 	//
 	// Deferred construction wrapper for containers
 	//
-	// The benefit of this is questionable. It might go away.
+	// This is primarily intended to support deferred construction
+	// of identifier lists (see Identifiers.h) which, being highly
+	// common, benefit from postponing construction for as long as
+	// possible. Measurements indicate that this is a net win.
 	//
 	template <typename T, typename PointerType = boost::shared_ptr<T> >
 	struct DeferredContainer
 	{
+		// Type shortcuts for treating this as if it were itself a container
 		typedef typename T::ContainedT::value_type value_type;
 		typedef typename T::ContainedT::iterator iterator;
 
+		//
+		// Default construction
+		//
 		DeferredContainer()
 			: Contents(reinterpret_cast<T*>(NULL))
 		{
 			Content.Owner = this;
 		}
 
+		//
+		// Construction from the wrapped type
+		//
 		DeferredContainer(const T& expr)
 			: Contents(new (Allocate<T>()) T(expr))
 		{
 			Content.Owner = this;
 		}
 
+		//
+		// Copy construction
+		//
 		DeferredContainer(const DeferredContainer& rhs)
 			: Contents(rhs.Contents)
 		{
 			Content.Owner = this;
 		}
 
+		//
+		// Construction from a pair of some indeterminate values
+		//
+		// This is predominantly used when an iterator range is passed
+		// to the constructor; to make the wrapper look as if it holds
+		// an underlying iterator pair, we use this constructor.
+		//
 		template <typename ContentOfSomeKind>
 		DeferredContainer(const ContentOfSomeKind& a, const ContentOfSomeKind& b)
 			: Contents(new (Allocate<T>()) T())
@@ -175,13 +195,9 @@ namespace AST
 			Contents->Container.push_back(value_type(a, b));
 		}
 
-		template <typename VariantContentT>
-		DeferredContainer(const VariantContentT& content)
-			: Contents(new (Allocate<T>()) T(content))
-		{
-			Content.Owner = this;
-		}
-
+		//
+		// Assignment operator
+		//
 		DeferredContainer& operator = (const DeferredContainer& rhs)
 		{
 			if(this != &rhs)
@@ -189,28 +205,51 @@ namespace AST
 			return *this;
 		}
 
+		//
+		// Support insertion as if this were itself a container
+		//
 		void insert(const iterator& pos, const value_type& value)
 		{
 			Content->Container.insert(pos, value);
 		}
 
+		//
+		// Retrieve a starting iterator as if this were itself a container
+		//
 		iterator begin()
 		{
 			return Content->Container.begin();
 		}
 
+		//
+		// Retrieve an ending iterator as if this were itself a container
+		//
 		iterator end()
 		{
 			return Content->Container.end();
 		}
 
+		//
+		// Check if the wrapped container is empty
+		//
 		bool empty() const
 		{
 			return Content->Container.empty();
 		}
 
+		//
+		// Wrapper for accessing the content safely
+		//
+		// Constructs a default node in the parent wrapper if necessary,
+		// or simply returns the existing content of the wrapper. This
+		// helper is necessary for exposing a compatible interface with
+		// boost::fusion adapters.
+		//
 		struct SafeContentAccess
 		{
+			//
+			// Dereference operator
+			//
 			T& operator * () const
 			{
 				if(!Owner->Contents)
@@ -219,6 +258,9 @@ namespace AST
 				return *(Owner->Contents);
 			}
 
+			//
+			// Indirection operator
+			//
 			T* operator -> () const
 			{
 				if(!Owner->Contents)
@@ -227,9 +269,11 @@ namespace AST
 				return Owner->Contents.get();
 			}
 
+			// Linkage to the owning wrapper
 			DeferredContainer* Owner;
 		} Content;
 
+	// Internal state
 	protected:
 		mutable PointerType Contents;
 	};
