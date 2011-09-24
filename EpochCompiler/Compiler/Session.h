@@ -9,10 +9,8 @@
 
 
 // Forward declarations
-namespace AST
-{
-	struct Program;
-}
+namespace AST { struct Program; }
+namespace IRSemantics { class Program; }
 
 
 // Dependencies
@@ -59,10 +57,6 @@ public:
 	const EntityDescription& GetCustomEntityByName(StringHandle name) const;
 	const EntityDescription& GetCustomEntityByTag(Bytecode::EntityTag tag) const;
 
-// Overload management
-public:
-	StringHandle GetOverloadRawName(StringHandle mangled) const;
-
 // Publicly visible tracking
 public:
 	FunctionSignatureSet FunctionSignatures;
@@ -75,7 +69,6 @@ public:
 	EntityTable PostfixEntities;
 	EntityTable PostfixClosers;
 	FunctionTagHelperTable FunctionTagHelpers;
-	StringHandle GlobalScopeName;
 
 // Internal helpers
 private:
@@ -84,12 +77,13 @@ private:
 // Internal tracking
 private:
 	std::list<std::pair<std::wstring, std::wstring> > SourceBlocksAndFileNames;
-	ByteBuffer InitializationByteCode;
-	ByteBuffer EntryByteCode;
-	ByteBuffer GeneralByteCode;
+	
+	AST::Program* ASTProgram;
+	IRSemantics::Program* SemanticProgram;
 	ByteBuffer FinalByteCode;
+
 	IdentifierTable Identifiers;
 
-	AST::Program* TheProgram;
+	CompilerInfoTable InfoTable;
 };
 

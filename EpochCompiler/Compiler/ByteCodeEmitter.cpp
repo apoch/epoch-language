@@ -327,13 +327,6 @@ void ByteCodeEmitter::EnterEntity(Bytecode::EntityTag tag, StringHandle name)
 	EmitRawValue(name);
 }
 
-void ByteCodeEmitter::PrependEntity(Bytecode::EntityTag tag, StringHandle name)
-{
-	PrependRawValue(name);
-	PrependEntityTag(tag);
-	PrependInstruction(Bytecode::Instructions::BeginEntity);
-}
-
 //
 // Emit a generic entity exit
 //

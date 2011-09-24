@@ -27,6 +27,7 @@ public:
 	void Pool(StringHandle handle, const std::wstring& stringdata);
 
 	const std::wstring& GetPooledString(StringHandle handle) const;
+	StringHandle Find(const std::wstring& stringdata) const;
 
 // Direct access to pool, primarily for serialization purposes
 public:

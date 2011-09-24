@@ -1,0 +1,849 @@
+//
+// The Epoch Language Project
+// EPOCHCOMPILER Compiler Toolchain
+//
+// AST traverser declaration for the compilation pass which
+// performs semantic validation and type inference on the
+// input program code. This traverser converts the AST into
+// an intermediate representation (IR) which is then used
+// by the compiler to perform semantic checks etc.
+//
+
+#include "pch.h"
+
+#include "Compiler/Passes/SemanticValidation.h"
+
+#include "Compiler/Abstract Syntax Tree/Literals.h"
+#include "Compiler/Abstract Syntax Tree/Parenthetical.h"
+#include "Compiler/Abstract Syntax Tree/Expression.h"
+#include "Compiler/Abstract Syntax Tree/Statement.h"
+#include "Compiler/Abstract Syntax Tree/Entities.h"
+
+#include "Compiler/Intermediate Representations/Semantic Validation/Program.h"
+#include "Compiler/Intermediate Representations/Semantic Validation/Structure.h"
+#include "Compiler/Intermediate Representations/Semantic Validation/Function.h"
+#include "Compiler/Intermediate Representations/Semantic Validation/Expression.h"
+#include "Compiler/Intermediate Representations/Semantic Validation/Assignment.h"
+#include "Compiler/Intermediate Representations/Semantic Validation/Statement.h"
+#include "Compiler/Intermediate Representations/Semantic Validation/CodeBlock.h"
+#include "Compiler/Intermediate Representations/Semantic Validation/Entity.h"
+
+#include "Utility/Strings.h"
+
+#include <algorithm>
+
+
+//
+// Internal helpers
+//
+namespace
+{
+
+	struct StringPooler
+	{
+		StringPooler(IRSemantics::Program& program, std::vector<StringHandle>& vec)
+			: Program(program),
+			  Container(vec)
+		{ }
+
+		void operator () (const AST::IdentifierT& identifier)
+		{
+			StringHandle handle = Program.AddString(std::wstring(identifier.begin(), identifier.end()));
+			Container.push_back(handle);
+		}
+
+	private:
+		IRSemantics::Program& Program;
+		std::vector<StringHandle>& Container;
+	};
+
+}
+
+
+//
+// Validate semantics for a program
+//
+IRSemantics::Program* CompilerPasses::ValidateSemantics(AST::Program& program, StringPoolManager& strings, const CompilerInfoTable& infotable)
+{
+	ASTTraverse::CompilePassSemantics pass(strings, infotable);
+	ASTTraverse::DoTraversal(pass, program);
+	if(pass.Validate())
+		return pass.DetachProgram();
+
+	return NULL;
+}
+
+
+using namespace ASTTraverse;
+
+
+//
+// Destruct and clean up a program semantic verification pass
+//
+CompilePassSemantics::~CompilePassSemantics()
+{
+	for(std::list<IRSemantics::Structure*>::iterator iter = CurrentStructures.begin(); iter != CurrentStructures.end(); ++iter)
+		delete *iter;
+
+	for(std::list<IRSemantics::Function*>::iterator iter = CurrentFunctions.begin(); iter != CurrentFunctions.end(); ++iter)
+		delete *iter;
+
+	for(std::list<IRSemantics::Expression*>::iterator iter = CurrentExpressions.begin(); iter != CurrentExpressions.end(); ++iter)
+		delete *iter;
+
+	for(std::list<IRSemantics::ExpressionComponent*>::iterator iter = CurrentExpressionComponents.begin(); iter != CurrentExpressionComponents.end(); ++iter)
+		delete *iter;
+
+	for(std::list<IRSemantics::ExpressionFragment*>::iterator iter = CurrentExpressionFragments.begin(); iter != CurrentExpressionFragments.end(); ++iter)
+		delete *iter;
+
+	for(std::list<IRSemantics::Assignment*>::iterator iter = CurrentAssignments.begin(); iter != CurrentAssignments.end(); ++iter)
+		delete *iter;
+
+	for(std::list<IRSemantics::Statement*>::iterator iter = CurrentStatements.begin(); iter != CurrentStatements.end(); ++iter)
+		delete *iter;
+
+	for(std::list<IRSemantics::CodeBlock*>::iterator iter = CurrentCodeBlocks.begin(); iter != CurrentCodeBlocks.end(); ++iter)
+		delete *iter;
+
+	for(std::list<IRSemantics::Entity*>::iterator iter = CurrentEntities.begin(); iter != CurrentEntities.end(); ++iter)
+		delete *iter;
+
+	for(std::list<IRSemantics::Entity*>::iterator iter = CurrentChainedEntities.begin(); iter != CurrentChainedEntities.end(); ++iter)
+		delete *iter;
+
+	for(std::list<IRSemantics::Entity*>::iterator iter = CurrentPostfixEntities.begin(); iter != CurrentPostfixEntities.end(); ++iter)
+		delete *iter;
+
+	delete CurrentProgram;
+}
+
+//
+// Validate a program
+//
+bool CompilePassSemantics::Validate() const
+{
+	if(CurrentProgram)
+		return CurrentProgram->Validate();
+
+	return false;
+}
+
+//
+// Detach and return the converted program IR
+//
+IRSemantics::Program* CompilePassSemantics::DetachProgram()
+{
+	IRSemantics::Program* p = NULL;
+	std::swap(p, CurrentProgram);
+	return p;
+}
+
+
+//
+// Begin traversing a node with no defined type
+//
+void CompilePassSemantics::EntryHelper::operator () (AST::Undefined&)
+{
+	if (self->StateStack.empty() || !self->InFunctionReturn)
+		throw std::exception("Undefined AST node in unexpected location");		// TODO - better exceptions
+}
+
+
+//
+// Begin traversing a program node, which represents the root of the AST
+//
+void CompilePassSemantics::EntryHelper::operator () (AST::Program& program)
+{
+	// TODO - better exceptions
+	if(self->CurrentProgram)
+		throw std::exception("Reentrancy");
+
+	self->StateStack.push(CompilePassSemantics::STATE_PROGRAM);
+	self->CurrentProgram = new IRSemantics::Program(self->Strings, self->InfoTable);
+}
+
+//
+// Finish traversing a program node
+//
+void CompilePassSemantics::ExitHelper::operator () (AST::Program& program)
+{
+	self->StateStack.pop();
+}
+
+
+//
+// Begin traversing a structure definition node
+//
+void CompilePassSemantics::EntryHelper::operator () (AST::Structure& structure)
+{
+	self->CurrentStructures.push_back(new IRSemantics::Structure);
+}
+
+//
+// Finish traversing a structure definition node
+//
+void CompilePassSemantics::ExitHelper::operator () (AST::Structure& structure)
+{
+	if(self->CurrentStructures.size() == 1)
+	{
+		std::auto_ptr<IRSemantics::Structure> irstruct(self->CurrentStructures.back());
+		self->CurrentStructures.pop_back();
+		
+		StringHandle name = self->CurrentProgram->AddString(std::wstring(structure.Identifier.begin(), structure.Identifier.end()));
+		self->CurrentProgram->AddStructure(name, irstruct.release());
+	}
+	else
+		throw std::exception("Nested structures not implemented");	// TODO - better exceptions
+}
+
+
+//
+// Traverse a node defining a member variable in a structure
+//
+void CompilePassSemantics::EntryHelper::operator () (AST::StructureMemberVariable& variable)
+{
+	if(self->CurrentStructures.empty())
+		throw std::exception("Invalid parse state");		// TODO - better exceptions
+
+	StringHandle name = self->CurrentProgram->AddString(std::wstring(variable.Name.begin(), variable.Name.end()));
+	StringHandle type = self->CurrentProgram->AddString(std::wstring(variable.Type.begin(), variable.Type.end()));
+
+	std::auto_ptr<IRSemantics::StructureMemberVariable> member(new IRSemantics::StructureMemberVariable(type));
+	self->CurrentStructures.back()->AddMember(name, member.release());
+}
+
+//
+// Traverse a node defining a member function reference in a structure
+//
+void CompilePassSemantics::EntryHelper::operator () (AST::StructureMemberFunctionRef& funcref)
+{
+	if(self->CurrentStructures.empty())
+		throw std::exception("Invalid parse state");		// TODO - better exceptions
+
+	StringHandle name = self->CurrentProgram->AddString(std::wstring(funcref.Name.begin(), funcref.Name.end()));
+	StringHandle returntype = self->CurrentProgram->AddString(std::wstring(funcref.ReturnType.begin(), funcref.ReturnType.end()));
+
+	std::vector<StringHandle> paramtypes;
+	std::for_each(funcref.ParamTypes.begin(), funcref.ParamTypes.end(), StringPooler(*self->CurrentProgram, paramtypes));
+
+	std::auto_ptr<IRSemantics::StructureMemberFunctionReference> member(new IRSemantics::StructureMemberFunctionReference(paramtypes, returntype));
+	self->CurrentStructures.back()->AddMember(name, member.release());
+}
+
+
+//
+// Begin traversing a node that defines a function
+//
+void CompilePassSemantics::EntryHelper::operator () (AST::Function& function)
+{
+	self->StateStack.push(CompilePassSemantics::STATE_FUNCTION);
+	self->CurrentFunctions.push_back(new IRSemantics::Function);
+}
+
+//
+// Finish traversing a node that defines a function
+//
+void CompilePassSemantics::ExitHelper::operator () (AST::Function& function)
+{
+	self->StateStack.pop();
+
+	if(self->CurrentFunctions.size() == 1)
+	{
+		std::auto_ptr<IRSemantics::Function> irfunc(self->CurrentFunctions.back());
+		self->CurrentFunctions.pop_back();
+		
+		StringHandle name = self->CurrentProgram->CreateFunctionOverload(std::wstring(function.Name.begin(), function.Name.end()));
+		self->CurrentProgram->AddFunction(name, irfunc.release());
+	}
+	else
+		throw std::exception("Nested functions not implemented");	// TODO - better exceptions
+}
+
+
+//
+// Begin traversing a node that defines a function parameter
+//
+void CompilePassSemantics::EntryHelper::operator () (AST::FunctionParameter& param)
+{
+	self->StateStack.push(STATE_FUNCTION_PARAM);
+}
+
+//
+// Finish traversing a node that defines a function parameter
+//
+void CompilePassSemantics::ExitHelper::operator () (AST::FunctionParameter& param)
+{
+	self->StateStack.pop();
+}
+
+
+//
+// Traverse a node that corresponds to a named function parameter
+//
+// We can safely treat these as leaf nodes, hence the direct access of the
+// node's properties to retrieve its contents.
+//
+void CompilePassSemantics::EntryHelper::operator () (AST::NamedFunctionParameter& param)
+{
+	if(self->CurrentFunctions.empty())
+		throw std::exception("Invalid parse state");		// TODO - better exceptions
+
+	StringHandle name = self->CurrentProgram->AddString(std::wstring(param.Name.begin(), param.Name.end()));
+	StringHandle type = self->CurrentProgram->AddString(std::wstring(param.Type.begin(), param.Type.end()));
+
+	std::auto_ptr<IRSemantics::FunctionParamNamed> irparam(new IRSemantics::FunctionParamNamed(type));
+	self->CurrentFunctions.back()->AddParameter(name, irparam.release());
+}
+
+
+//
+// Begin traversing a node that corresponds to an expression
+//
+void CompilePassSemantics::EntryHelper::operator () (AST::Expression& expression)
+{
+	self->StateStack.push(CompilePassSemantics::STATE_EXPRESSION);
+}
+
+//
+// Finish traversing an expression node
+//
+void CompilePassSemantics::ExitHelper::operator () (AST::Expression& expression)
+{
+	self->StateStack.pop();
+
+	switch(self->StateStack.top())
+	{
+	default:
+	case CompilePassSemantics::STATE_UNKNOWN:
+		throw std::exception("Invalid parse state");		// TODO - better exceptions
+
+	case CompilePassSemantics::STATE_STATEMENT:
+		if(self->CurrentStatements.empty())
+			throw std::exception("Invalid parse state");	// TODO - better exceptions
+
+		self->CurrentStatements.back()->AddParameter(self->CurrentExpressions.back());
+		self->CurrentExpressions.pop_back();
+		break;
+
+	case CompilePassSemantics::STATE_ASSIGNMENT:
+		if(self->CurrentAssignments.empty())
+			throw std::exception("Invalid parse state");	// TODO - better exceptions
+
+		self->CurrentAssignments.back()->SetRHS(new IRSemantics::AssignmentChainExpression(self->CurrentExpressions.back()));
+		self->CurrentExpressions.pop_back();
+		break;
+
+	case CompilePassSemantics::STATE_ENTITY:
+		self->CurrentEntities.back()->AddParameter(self->CurrentExpressions.back());
+		self->CurrentExpressions.pop_back();
+		break;
+
+	case CompilePassSemantics::STATE_CHAINED_ENTITY:
+		self->CurrentChainedEntities.back()->AddParameter(self->CurrentExpressions.back());
+		self->CurrentExpressions.pop_back();
+		break;
+
+	case CompilePassSemantics::STATE_FUNCTION_RETURN:
+		// Nothing needs to be done; leave the expression on the state stack
+		// When the FunctionReturnExpression marker is exited it will handle the expression correctly
+		break;
+
+	case CompilePassSemantics::STATE_FUNCTION_PARAM:
+		if(self->CurrentFunctions.empty())
+			throw std::exception("Invalid parse state");	// TODO - better exceptions
+
+		{
+			StringHandle paramname = self->CurrentProgram->AllocateAnonymousParamName();
+
+			std::auto_ptr<IRSemantics::FunctionParamExpression> irparam(new IRSemantics::FunctionParamExpression(self->CurrentExpressions.back()));
+			self->CurrentExpressions.pop_back();
+
+			self->CurrentFunctions.back()->AddParameter(paramname, irparam.release());
+		}
+		break;
+	}
+}
+
+//
+// Begin traversing an expression component node (see AST definitions for details)
+//
+void CompilePassSemantics::EntryHelper::operator () (AST::ExpressionComponent& exprcomponent)
+{
+	self->StateStack.push(CompilePassSemantics::STATE_EXPRESSION_COMPONENT);
+
+	std::vector<StringHandle> prefixes;
+	std::for_each(exprcomponent.UnaryPrefixes.begin(), exprcomponent.UnaryPrefixes.end(), StringPooler(*self->CurrentProgram, prefixes));
+
+	self->CurrentExpressionComponents.push_back(new IRSemantics::ExpressionComponent(prefixes));
+}
+
+//
+// Finish traversing an expression component node
+//
+void CompilePassSemantics::ExitHelper::operator () (AST::ExpressionComponent& exprcomponent)
+{
+	self->StateStack.pop();
+
+	switch(self->StateStack.top())
+	{
+	default:
+		throw std::exception("Invalid parse state");		// TODO - better exceptions
+
+	case CompilePassSemantics::STATE_EXPRESSION:
+		{
+			std::auto_ptr<IRSemantics::Expression> irexpr(new IRSemantics::Expression(self->CurrentExpressionComponents.back()));
+			self->CurrentExpressionComponents.pop_back();
+			self->CurrentExpressions.push_back(irexpr.release());
+		}
+		break;
+	}
+}
+
+//
+// Begin traversing an expression fragment node (see AST definitions for details)
+//
+void CompilePassSemantics::EntryHelper::operator () (AST::ExpressionFragment& exprfragment)
+{
+	self->StateStack.push(CompilePassSemantics::STATE_EXPRESSION_FRAGMENT);
+}
+
+//
+// Finish traversing an expression fragment node
+//
+void CompilePassSemantics::ExitHelper::operator () (AST::ExpressionFragment& exprfragment)
+{
+	self->StateStack.pop();
+
+	StringHandle opname = self->CurrentProgram->AddString(std::wstring(exprfragment.Operator.begin(), exprfragment.Operator.end()));
+
+	self->CurrentExpressions.back()->AddFragment(new IRSemantics::ExpressionFragment(opname, self->CurrentExpressionComponents.back()));
+	self->CurrentExpressionComponents.pop_back();
+}
+
+
+//
+// Begin traversing a statement node
+//
+void CompilePassSemantics::EntryHelper::operator () (AST::Statement& statement)
+{
+	StringHandle namehandle = self->CurrentProgram->AddString(std::wstring(statement.Identifier.begin(), statement.Identifier.end()));
+
+	self->StateStack.push(CompilePassSemantics::STATE_STATEMENT);
+	self->CurrentStatements.push_back(new IRSemantics::Statement(namehandle));
+}
+
+//
+// Finish traversing a statement node
+//
+void CompilePassSemantics::ExitHelper::operator () (AST::Statement& statement)
+{
+	self->StateStack.pop();
+
+	switch(self->StateStack.top())
+	{
+	case CompilePassSemantics::STATE_EXPRESSION_COMPONENT:
+		self->CurrentExpressionComponents.back()->SetAtom(new IRSemantics::ExpressionAtomStatement(self->CurrentStatements.back()));
+		self->CurrentStatements.pop_back();
+		break;
+
+	case CompilePassSemantics::STATE_CODE_BLOCK:
+		self->CurrentCodeBlocks.back()->AddEntry(new IRSemantics::CodeBlockStatementEntry(self->CurrentStatements.back()));
+		self->CurrentStatements.pop_back();
+		break;
+
+	default:
+		throw std::exception("Invalid parse state");			// TODO - better exceptions
+	}
+}
+
+
+//
+// Begin traversing a node corresponding to a pre-operation statement
+//
+void CompilePassSemantics::EntryHelper::operator () (AST::PreOperatorStatement& statement)
+{
+	self->StateStack.push(CompilePassSemantics::STATE_PREOP_STATEMENT);
+}
+
+//
+// Finish traversing a node corresponding to a pre-operation statement
+//
+void CompilePassSemantics::ExitHelper::operator () (AST::PreOperatorStatement& statement)
+{
+	self->StateStack.pop();
+
+	StringHandle operatorname = self->CurrentProgram->AddString(std::wstring(statement.Operator.begin(), statement.Operator.end()));
+
+	std::vector<StringHandle> operand;
+	std::for_each(statement.Operand.begin(), statement.Operand.end(), StringPooler(*self->CurrentProgram, operand));
+
+	std::auto_ptr<IRSemantics::PreOpStatement> irstatement(new IRSemantics::PreOpStatement(operatorname, operand));
+
+	switch(self->StateStack.top())
+	{
+	case CompilePassSemantics::STATE_EXPRESSION_COMPONENT:
+		{
+			std::auto_ptr<IRSemantics::ParentheticalPreOp> irparenthetical(new IRSemantics::ParentheticalPreOp(irstatement.release()));
+			self->CurrentExpressionComponents.back()->SetAtom(new IRSemantics::ExpressionAtomParenthetical(irparenthetical.release()));
+		}
+		break;
+
+	case CompilePassSemantics::STATE_CODE_BLOCK:
+		self->CurrentCodeBlocks.back()->AddEntry(new IRSemantics::CodeBlockPreOpStatementEntry(irstatement.release()));
+		break;
+
+	default:
+		throw std::exception("Invalid parse state");			// TODO - better exceptions
+	}
+}
+
+
+//
+// Begin traversing a node corresponding to a post-operation statement
+//
+void CompilePassSemantics::EntryHelper::operator () (AST::PostOperatorStatement& statement)
+{
+	self->StateStack.push(CompilePassSemantics::STATE_POSTOP_STATEMENT);
+}
+
+//
+// Finish traversing a node corresponding to a post-operation statement
+//
+void CompilePassSemantics::ExitHelper::operator () (AST::PostOperatorStatement& statement)
+{
+	self->StateStack.pop();
+
+	StringHandle operatorname = self->CurrentProgram->AddString(std::wstring(statement.Operator.begin(), statement.Operator.end()));
+
+	std::vector<StringHandle> operand;
+	std::for_each(statement.Operand.begin(), statement.Operand.end(), StringPooler(*self->CurrentProgram, operand));
+
+	std::auto_ptr<IRSemantics::PostOpStatement> irstatement(new IRSemantics::PostOpStatement(operand, operatorname));
+
+	switch(self->StateStack.top())
+	{
+	case CompilePassSemantics::STATE_EXPRESSION_COMPONENT:
+		{
+			std::auto_ptr<IRSemantics::ParentheticalPostOp> irparenthetical(new IRSemantics::ParentheticalPostOp(irstatement.release()));
+			self->CurrentExpressionComponents.back()->SetAtom(new IRSemantics::ExpressionAtomParenthetical(irparenthetical.release()));
+		}
+		break;
+
+	case CompilePassSemantics::STATE_CODE_BLOCK:
+		self->CurrentCodeBlocks.back()->AddEntry(new IRSemantics::CodeBlockPostOpStatementEntry(irstatement.release()));
+		break;
+
+	default:
+		throw std::exception("Invalid parse state");			// TODO - better exceptions
+	}
+}
+
+
+//
+// Begin traversing a node containing a code block
+//
+void CompilePassSemantics::EntryHelper::operator () (AST::CodeBlock& block)
+{
+	self->StateStack.push(CompilePassSemantics::STATE_CODE_BLOCK);
+	self->CurrentCodeBlocks.push_back(new IRSemantics::CodeBlock);
+}
+
+//
+// Finish traversing a code block node
+//
+void CompilePassSemantics::ExitHelper::operator () (AST::CodeBlock& block)
+{
+	self->CurrentProgram->AllocateLexicalScopeName(self->CurrentCodeBlocks.back());
+
+	self->StateStack.pop();
+	
+	switch(self->StateStack.top())
+	{
+	case CompilePassSemantics::STATE_CODE_BLOCK:
+		self->CurrentCodeBlocks.back()->AddEntry(new IRSemantics::CodeBlockInnerBlockEntry(self->CurrentCodeBlocks.back()));
+		break;
+
+	case CompilePassSemantics::STATE_FUNCTION:
+		self->CurrentFunctions.back()->SetCode(self->CurrentCodeBlocks.back());
+		break;
+
+	case CompilePassSemantics::STATE_PROGRAM:
+		self->CurrentProgram->AddGlobalCodeBlock(self->CurrentCodeBlocks.back());
+		break;
+
+	case CompilePassSemantics::STATE_ENTITY:
+		self->CurrentEntities.back()->SetCode(self->CurrentCodeBlocks.back());
+		break;
+
+	case CompilePassSemantics::STATE_CHAINED_ENTITY:
+		self->CurrentChainedEntities.back()->SetCode(self->CurrentCodeBlocks.back());
+		break;
+
+	default:
+		throw std::exception("Invalid parse state");				// TODO - better exceptions
+	}
+
+	self->CurrentCodeBlocks.pop_back();
+}
+
+
+//
+// Begin traversing a node corresponding to an assignment
+//
+void CompilePassSemantics::EntryHelper::operator () (AST::Assignment& assignment)
+{
+	CompilePassSemantics::States state = self->StateStack.top();
+
+	self->StateStack.push(CompilePassSemantics::STATE_ASSIGNMENT);
+
+	StringHandle opname = self->CurrentProgram->AddString(std::wstring(assignment.Operator.begin(), assignment.Operator.end()));
+
+	std::vector<StringHandle> lhs;
+	std::for_each(assignment.LHS.begin(), assignment.LHS.end(), StringPooler(*self->CurrentProgram, lhs));
+
+	switch(state)
+	{
+	case CompilePassSemantics::STATE_CODE_BLOCK:
+		self->CurrentAssignments.push_back(new IRSemantics::Assignment(lhs, opname));
+		break;
+
+	case CompilePassSemantics::STATE_ASSIGNMENT:
+		{
+			std::auto_ptr<IRSemantics::Assignment> irassignment(new IRSemantics::Assignment(lhs, opname));
+			std::auto_ptr<IRSemantics::AssignmentChainAssignment> irassignmentchain(new IRSemantics::AssignmentChainAssignment(irassignment.release()));
+			self->CurrentAssignments.back()->SetRHSRecursive(irassignmentchain.release());
+		}
+		break;
+
+	default:
+		throw std::exception("Invalid parse state");			// TODO - better exceptions
+	}
+}
+
+//
+// Finish traversing a node corresponding to an assignment
+//
+void CompilePassSemantics::ExitHelper::operator () (AST::Assignment& assignment)
+{
+	self->StateStack.pop();
+	
+	if(self->StateStack.top() != CompilePassSemantics::STATE_CODE_BLOCK)
+		throw std::exception("Invalid parse state");			// TODO - better exceptions
+
+	self->CurrentCodeBlocks.back()->AddEntry(new IRSemantics::CodeBlockAssignmentEntry(self->CurrentAssignments.back()));
+	self->CurrentAssignments.pop_back();
+}
+
+
+//
+// Begin traversing a node representing an entity invocation
+//
+void CompilePassSemantics::EntryHelper::operator () (AST::Entity& entity)
+{
+	StringHandle entityname = self->CurrentProgram->AddString(std::wstring(entity.Identifier.begin(), entity.Identifier.end()));
+
+	self->StateStack.push(CompilePassSemantics::STATE_ENTITY);
+	self->CurrentEntities.push_back(new IRSemantics::Entity(entityname));
+}
+
+//
+// Finish traversing a node representing an entity invocation
+//
+void CompilePassSemantics::ExitHelper::operator () (AST::Entity& entity)
+{
+	self->StateStack.pop();
+	
+	switch(self->StateStack.top())
+	{
+	case CompilePassSemantics::STATE_CODE_BLOCK:
+		self->CurrentCodeBlocks.back()->AddEntry(new IRSemantics::CodeBlockEntityEntry(self->CurrentEntities.back()));
+		self->CurrentEntities.pop_back();
+		break;
+
+	default:
+		throw std::exception("Invalid parse state");			// TODO - better exceptions
+	}
+}
+
+//
+// Begin traversing a node containing a chained entity invocation
+//
+void CompilePassSemantics::EntryHelper::operator () (AST::ChainedEntity& entity)
+{
+	StringHandle entityname = self->CurrentProgram->AddString(std::wstring(entity.Identifier.begin(), entity.Identifier.end()));
+
+	self->StateStack.push(CompilePassSemantics::STATE_CHAINED_ENTITY);
+	self->CurrentChainedEntities.push_back(new IRSemantics::Entity(entityname));
+}
+
+//
+// Finish traversing a node containing a chained entity invocation
+//
+void CompilePassSemantics::ExitHelper::operator () (AST::ChainedEntity& entity)
+{
+	self->StateStack.pop();
+	
+	if(self->StateStack.top() != CompilePassSemantics::STATE_ENTITY)
+		throw std::exception("Invalid parse state");
+
+	self->CurrentEntities.back()->AddChain(self->CurrentChainedEntities.back());
+	self->CurrentChainedEntities.pop_back();
+}
+
+//
+// Begin traversing a postfix entity invocation node
+//
+void CompilePassSemantics::EntryHelper::operator () (AST::PostfixEntity& entity)
+{
+	StringHandle entityname = self->CurrentProgram->AddString(std::wstring(entity.Identifier.begin(), entity.Identifier.end()));
+
+	self->StateStack.push(CompilePassSemantics::STATE_POSTFIX_ENTITY);
+	self->CurrentPostfixEntities.push_back(new IRSemantics::Entity(entityname));
+}
+
+//
+// Finish traversing a postfix entity invocation node
+//
+void CompilePassSemantics::ExitHelper::operator () (AST::PostfixEntity& entity)
+{
+	self->StateStack.pop();
+	
+	switch(self->StateStack.top())
+	{
+	case CompilePassSemantics::STATE_CODE_BLOCK:
+		self->CurrentCodeBlocks.back()->AddEntry(new IRSemantics::CodeBlockEntityEntry(self->CurrentPostfixEntities.back()));
+		self->CurrentPostfixEntities.pop_back();
+		break;
+
+	default:
+		throw std::exception("Invalid parse state");			// TODO - better exceptions
+	}
+}
+
+
+//
+// Traverse a node containing an identifier
+//
+// Note that this is not necessarily always a leaf node; identifiers can
+// be attached to entity invocations, function calls, etc. and therefore
+// this needs to be able to handle all situations in which an identifier
+// might appear.
+//
+void CompilePassSemantics::EntryHelper::operator () (AST::IdentifierT& identifier)
+{
+	std::wstring raw(identifier.begin(), identifier.end());
+
+	std::auto_ptr<IRSemantics::ExpressionAtom> iratom(NULL);
+
+	if(raw.length() > 2 && *raw.begin() == L'\"' && *raw.rbegin() == L'\"')
+	{
+		StringHandle handle = self->CurrentProgram->AddString(StripQuotes(raw));
+		iratom.reset(new IRSemantics::ExpressionAtomLiteralString(handle));
+	}
+	else if(raw == L"true")
+		iratom.reset(new IRSemantics::ExpressionAtomLiteralBoolean(true));
+	else if(raw == L"false")
+		iratom.reset(new IRSemantics::ExpressionAtomLiteralBoolean(false));
+	else if(raw.find(L'.') != std::wstring::npos)
+	{
+		Real32 literalfloat;
+
+		std::wistringstream convert(raw);
+		if(!(convert >> literalfloat))
+			throw std::exception("Invalid floating point literal");
+		
+		iratom.reset(new IRSemantics::ExpressionAtomLiteralReal32(literalfloat));
+	}
+	else
+	{
+		UInteger32 literalint;
+
+		std::wistringstream convert(raw);
+		if(convert >> literalint)
+			iratom.reset(new IRSemantics::ExpressionAtomLiteralInteger32(static_cast<Integer32>(literalint)));
+		else
+		{
+			StringHandle handle = self->CurrentProgram->AddString(raw);
+			iratom.reset(new IRSemantics::ExpressionAtomIdentifier(handle));
+		}
+	}
+
+	if(!iratom.get())
+		throw std::exception("Unrecognized literal/token");			// TODO - better exceptions
+
+	switch(self->StateStack.top())
+	{
+	case CompilePassSemantics::STATE_ASSIGNMENT:
+		{
+			std::auto_ptr<IRSemantics::ExpressionComponent> ircomponent(new IRSemantics::ExpressionComponent(std::vector<StringHandle>()));
+			ircomponent->SetAtom(iratom.release());
+			std::auto_ptr<IRSemantics::Expression> irexpression(new IRSemantics::Expression(ircomponent.release()));
+			self->CurrentAssignments.back()->SetRHS(new IRSemantics::AssignmentChainExpression(irexpression.release()));
+		}
+		break;
+
+	case CompilePassSemantics::STATE_EXPRESSION_COMPONENT:
+		self->CurrentExpressionComponents.back()->SetAtom(iratom.release());
+		break;
+
+	case CompilePassSemantics::STATE_EXPRESSION_FRAGMENT:
+		self->CurrentExpressionComponents.push_back(new IRSemantics::ExpressionComponent(std::vector<StringHandle>()));
+		self->CurrentExpressionComponents.back()->SetAtom(iratom.release());
+		break;
+
+	default:
+		throw std::exception("Invalid parse state");			// TODO - better exceptions
+	}
+}
+
+
+//
+// Traverse a node representing a function reference signature; this is
+// typically used when passing function references to higher-order functions
+// in the program being compiled.
+//
+// We can safely treat this as an atomic leaf node, hence the direct access
+// of the node's properties when generating output.
+//
+void CompilePassSemantics::EntryHelper::operator () (AST::FunctionReferenceSignature& refsig)
+{
+	if(self->CurrentFunctions.empty())
+		throw std::exception("Invalid parse state");		// TODO - better exceptions
+
+	StringHandle name = self->CurrentProgram->AddString(std::wstring(refsig.Identifier.begin(), refsig.Identifier.end()));
+	StringHandle returntype = self->CurrentProgram->AddString(std::wstring(refsig.ReturnType.begin(), refsig.ReturnType.end()));
+
+	std::vector<StringHandle> paramtypes;
+	std::for_each(refsig.ParamTypes.begin(), refsig.ParamTypes.end(), StringPooler(*self->CurrentProgram, paramtypes));
+
+	std::auto_ptr<IRSemantics::FunctionParamFuncRef> irparam(new IRSemantics::FunctionParamFuncRef(paramtypes, returntype));
+	self->CurrentFunctions.back()->AddParameter(name, irparam.release());
+}
+
+
+//
+// Traverse a special marker that indicates the subsequent nodes belong
+// to the return expression definition of a function
+//
+void CompilePassSemantics::EntryHelper::operator () (Markers::FunctionReturnExpression&)
+{
+	self->StateStack.push(CompilePassSemantics::STATE_FUNCTION_RETURN);
+	self->InFunctionReturn = true;
+}
+
+//
+// Finish traversing a function's return expression
+//
+void CompilePassSemantics::ExitHelper::operator () (Markers::FunctionReturnExpression&)
+{
+	if(self->CurrentFunctions.empty())
+		throw std::exception("Invalid parse state");			// TODO - better exceptions
+
+	self->CurrentFunctions.back()->SetReturnExpression(self->CurrentExpressions.back());
+	self->CurrentExpressions.pop_back();
+
+	self->StateStack.pop();
+	self->InFunctionReturn = false;
+}
+

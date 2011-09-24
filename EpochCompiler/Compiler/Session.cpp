@@ -8,7 +8,6 @@
 #include "pch.h"
 
 #include "Compiler/Session.h"
-#include "Compiler/SemanticActions.h"
 #include "Compiler/ByteCodeEmitter.h"
 
 #include "Compiler/Abstract Syntax Tree/Identifiers.h"
@@ -21,21 +20,29 @@
 #include "Compiler/Abstract Syntax Tree/Structures.h"
 #include "Compiler/Abstract Syntax Tree/Function.h"
 
+#include "Compiler/Intermediate Representations/Semantic Validation/Program.h"
+
+#include "Compiler/Passes/SemanticValidation.h"
+#include "Compiler/Passes/CodeGeneration.h"
+
 #include "Parser/Parser.h"
 
 #include "Utility/DLLPool.h"
+#include "Utility/Profiling.h"
 
 #include "Metadata/Precedences.h"
 
 #include "Compiler/Diagnostics.h"
+
+#include <iostream>
 
 
 //
 // Construct a compilation session wrapper and initialize the standard library
 //
 CompileSession::CompileSession()
-	: GlobalScopeName(0),
-	  TheProgram(NULL)
+	: ASTProgram(NULL),
+	  SemanticProgram(NULL)
 {
 	HINSTANCE dllhandle = Marshaling::TheDLLPool.OpenDLL(L"EpochLibrary.DLL");
 
@@ -52,21 +59,20 @@ CompileSession::CompileSession()
 
 	Bytecode::EntityTag customtag = Bytecode::EntityTags::CustomEntityBaseID;
 
-	CompilerInfoTable info;
-	info.FunctionHelpers = &CompileTimeHelpers;
-	info.InfixOperators = &Identifiers.InfixOperators;
-	info.OpAssignOperators = &Identifiers.OpAssignmentIdentifiers;
-	info.UnaryPrefixes = &Identifiers.UnaryPrefixes;
-	info.PreOperators = &Identifiers.PreOperators;
-	info.PostOperators = &Identifiers.PostOperators;
-	info.Overloads = &FunctionOverloadNames;
-	info.Precedences = &OperatorPrecedences;
-	info.Entities = &CustomEntities;
-	info.ChainedEntities = &ChainedEntities;
-	info.PostfixEntities = &PostfixEntities;
-	info.PostfixClosers = &PostfixClosers;
-	info.FunctionTagHelpers = &FunctionTagHelpers;
-	bindtocompiler(info, StringPool, customtag);
+	InfoTable.FunctionHelpers = &CompileTimeHelpers;
+	InfoTable.InfixOperators = &Identifiers.InfixOperators;
+	InfoTable.OpAssignOperators = &Identifiers.OpAssignmentIdentifiers;
+	InfoTable.UnaryPrefixes = &Identifiers.UnaryPrefixes;
+	InfoTable.PreOperators = &Identifiers.PreOperators;
+	InfoTable.PostOperators = &Identifiers.PostOperators;
+	InfoTable.Overloads = &FunctionOverloadNames;
+	InfoTable.Precedences = &OperatorPrecedences;
+	InfoTable.Entities = &CustomEntities;
+	InfoTable.ChainedEntities = &ChainedEntities;
+	InfoTable.PostfixEntities = &PostfixEntities;
+	InfoTable.PostfixClosers = &PostfixClosers;
+	InfoTable.FunctionTagHelpers = &FunctionTagHelpers;
+	bindtocompiler(InfoTable, StringPool, customtag);
 
 	for(EntityTable::const_iterator iter = CustomEntities.begin(); iter != CustomEntities.end(); ++iter)
 		Identifiers.CustomEntities.insert(StringPool.GetPooledString(iter->second.StringName));
@@ -85,7 +91,8 @@ CompileSession::CompileSession()
 
 CompileSession::~CompileSession()
 {
-	delete TheProgram;
+	delete ASTProgram;
+	delete SemanticProgram;
 }
 
 
@@ -103,35 +110,24 @@ void CompileSession::AddCompileBlock(const std::wstring& source, const std::wstr
 //
 void CompileSession::EmitByteCode()
 {
-	delete TheProgram;
-	TheProgram = new AST::Program;
+	delete ASTProgram;
+	ASTProgram = new AST::Program;
 
-	InitializationByteCode.clear();
-	EntryByteCode.clear();
-	GeneralByteCode.clear();
 	FinalByteCode.clear();
 
 	for(std::list<std::pair<std::wstring, std::wstring> >::const_iterator iter = SourceBlocksAndFileNames.begin(); iter != SourceBlocksAndFileNames.end(); ++iter)
 		CompileFile(iter->first, iter->second);
 
-	DumpASTForProgram(*TheProgram);
+	Profiling::Timer timer;
+	timer.Begin();
 
-	ByteCodeEmitter entryemitter(EntryByteCode);
+	std::wcout << L"Generating code... ";
 
-	if(GlobalScopeName)
-		entryemitter.PrependEntity(Bytecode::EntityTags::Globals, GlobalScopeName);
+	ByteCodeEmitter emitter(FinalByteCode);
+	CompilerPasses::GenerateCode(*SemanticProgram, emitter);
 
-	//entryemitter.Invoke(StringPool.Pool(L"entrypoint"));
-	entryemitter.Halt();
-
-	FinalByteCode.reserve(InitializationByteCode.size() + EntryByteCode.size() + GeneralByteCode.size());
-	std::copy(InitializationByteCode.begin(), InitializationByteCode.end(), std::back_inserter(FinalByteCode));
-	std::copy(EntryByteCode.begin(), EntryByteCode.end(), std::back_inserter(FinalByteCode));
-	std::copy(GeneralByteCode.begin(), GeneralByteCode.end(), std::back_inserter(FinalByteCode));
-
-	InitializationByteCode.swap(ByteBuffer());
-	EntryByteCode.swap(ByteBuffer());
-	GeneralByteCode.swap(ByteBuffer());
+	timer.End();
+	std::wcout << L"finished in " << timer.GetTimeMs() << L"ms" << std::endl;
 }
 
 
@@ -140,6 +136,9 @@ void CompileSession::EmitByteCode()
 //
 const void* CompileSession::GetEmittedBuffer() const
 {
+	if(FinalByteCode.empty())
+		throw std::exception("Empty bytecode buffer");
+
 	return &FinalByteCode[0];
 }
 
@@ -153,14 +152,29 @@ size_t CompileSession::GetEmittedBufferSize() const
 
 
 //
-// Compile all global-scoped functions in the given code block
+// Compile all source in the given code block
 //
 void CompileSession::CompileFile(const std::wstring& code, const std::wstring& filename)
 {
 	Parser theparser(Identifiers);
 
-	if(!theparser.Parse(code, filename, *TheProgram))
+	if(!theparser.Parse(code, filename, *ASTProgram))
 		throw FatalException("Parsing failed!");
+
+	delete SemanticProgram;
+	SemanticProgram = NULL;
+
+	std::wcout << L"Validating semantics... ";
+	Profiling::Timer timer;
+	timer.Begin();
+
+	SemanticProgram = CompilerPasses::ValidateSemantics(*ASTProgram, StringPool, InfoTable);
+
+	timer.End();
+	std::wcout << L"finished in " << timer.GetTimeMs() << L"ms" << std::endl;
+
+	if(!SemanticProgram)
+		throw FatalException("Semantic checking failed!");
 }
 
 
@@ -218,22 +232,5 @@ const EntityDescription& CompileSession::GetCustomEntityByName(StringHandle name
 	}
 
 	throw InvalidIdentifierException("Invalid entity name");
-}
-
-
-//
-// Given a handle to a mangled overload name, return the handle to the original function name
-//
-// Returns the given handle if the original function cannot be located
-//
-StringHandle CompileSession::GetOverloadRawName(StringHandle mangled) const
-{
-	for(OverloadMap::const_iterator iter = FunctionOverloadNames.begin(); iter != FunctionOverloadNames.end(); ++iter)
-	{
-		if(iter->second.find(mangled) != iter->second.end())
-			return iter->first;
-	}
-
-	return mangled;
 }
 

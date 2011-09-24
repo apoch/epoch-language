@@ -49,6 +49,7 @@
 				UsePrecompiledHeader="2"
 				PrecompiledHeaderThrough="pch.h"
 				WarningLevel="3"
+				WarnAsError="true"
 				Detect64BitPortabilityProblems="false"
 				DebugInformationFormat="4"
 			/>
@@ -131,6 +132,7 @@
 				UsePrecompiledHeader="2"
 				PrecompiledHeaderThrough="pch.h"
 				WarningLevel="3"
+				WarnAsError="true"
 				Detect64BitPortabilityProblems="false"
 				DebugInformationFormat="3"
 			/>
@@ -434,14 +436,6 @@
 				>
 			</File>
 			<File
-				RelativePath=".\Compiler\SemanticActions.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\Compiler\SemanticActions.h"
-				>
-			</File>
-			<File
 				RelativePath=".\Compiler\Session.cpp"
 				>
 			</File>
@@ -541,6 +535,98 @@
 					>
 				</File>
 			</Filter>
+			<Filter
+				Name="Intermediate Representations"
+				>
+				<Filter
+					Name="Semantic Validation"
+					>
+					<File
+						RelativePath=".\Compiler\Intermediate Representations\Semantic Validation\Assignment.cpp"
+						>
+					</File>
+					<File
+						RelativePath=".\Compiler\Intermediate Representations\Semantic Validation\Assignment.h"
+						>
+					</File>
+					<File
+						RelativePath=".\Compiler\Intermediate Representations\Semantic Validation\CodeBlock.cpp"
+						>
+					</File>
+					<File
+						RelativePath=".\Compiler\Intermediate Representations\Semantic Validation\CodeBlock.h"
+						>
+					</File>
+					<File
+						RelativePath=".\Compiler\Intermediate Representations\Semantic Validation\Entity.cpp"
+						>
+					</File>
+					<File
+						RelativePath=".\Compiler\Intermediate Representations\Semantic Validation\Entity.h"
+						>
+					</File>
+					<File
+						RelativePath=".\Compiler\Intermediate Representations\Semantic Validation\Expression.cpp"
+						>
+					</File>
+					<File
+						RelativePath=".\Compiler\Intermediate Representations\Semantic Validation\Expression.h"
+						>
+					</File>
+					<File
+						RelativePath=".\Compiler\Intermediate Representations\Semantic Validation\Function.cpp"
+						>
+					</File>
+					<File
+						RelativePath=".\Compiler\Intermediate Representations\Semantic Validation\Function.h"
+						>
+					</File>
+					<File
+						RelativePath=".\Compiler\Intermediate Representations\Semantic Validation\Program.cpp"
+						>
+					</File>
+					<File
+						RelativePath=".\Compiler\Intermediate Representations\Semantic Validation\Program.h"
+						>
+					</File>
+					<File
+						RelativePath=".\Compiler\Intermediate Representations\Semantic Validation\Statement.cpp"
+						>
+					</File>
+					<File
+						RelativePath=".\Compiler\Intermediate Representations\Semantic Validation\Statement.h"
+						>
+					</File>
+					<File
+						RelativePath=".\Compiler\Intermediate Representations\Semantic Validation\Structure.cpp"
+						>
+					</File>
+					<File
+						RelativePath=".\Compiler\Intermediate Representations\Semantic Validation\Structure.h"
+						>
+					</File>
+				</Filter>
+			</Filter>
+			<Filter
+				Name="Passes"
+				>
+				<File
+					RelativePath=".\Compiler\Passes\CodeGeneration.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\Compiler\Passes\CodeGeneration.h"
+					>
+				</File>
+				<File
+					RelativePath=".\Compiler\Passes\SemanticValidation.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\Compiler\Passes\SemanticValidation.h"
+					>
+				</File>
+			</Filter>
 		</Filter>
 		<Filter
 			Name="Parser"
@@ -611,10 +697,6 @@
 			</File>
 			<File
 				RelativePath=".\Parser\Parser.h"
-				>
-			</File>
-			<File
-				RelativePath=".\Parser\SemanticActionBindings.h"
 				>
 			</File>
 		</Filter>

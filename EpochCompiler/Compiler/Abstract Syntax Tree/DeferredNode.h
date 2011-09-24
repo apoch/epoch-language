@@ -152,6 +152,7 @@ namespace AST
 		// Type shortcuts for treating this as if it were itself a container
 		typedef typename T::ContainedT::value_type value_type;
 		typedef typename T::ContainedT::iterator iterator;
+		typedef typename T::ContainedT::const_iterator const_iterator;
 
 		//
 		// Default construction

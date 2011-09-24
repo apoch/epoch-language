@@ -45,7 +45,7 @@ bool Parser::Parse(const std::wstring& code, const std::wstring& filename, AST::
 	try
 	{
 		// First pass: build up the list of entities defined in the code
-		while(true)
+		//while(true)
 		{
 			Profiling::Timer timer;
 			timer.Begin();

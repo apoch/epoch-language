@@ -76,7 +76,6 @@ public:
 // Entities
 public:
 	void EnterEntity(Bytecode::EntityTag tag, StringHandle name);
-	void PrependEntity(Bytecode::EntityTag tag, StringHandle name);
 	void ExitEntity();
 
 	void BeginChain();

@@ -2,12 +2,33 @@
 // The Epoch Language Project
 // EPOCHCOMPILER Compiler Toolchain
 //
-// AST traverser declaration that simply dumps the AST contents
-// into human-readable textual format. Supports output to anything
-// that is a std::wostream.
+// AST traverser declaration for the compilation pass which
+// performs semantic validation and type inference on the
+// input program code. This traverser converts the AST into
+// an intermediate representation (IR) which is then used
+// by the compiler to perform semantic checks etc.
 //
 
 #pragma once
+
+
+// Forward declarations
+namespace IRSemantics
+{
+	class Program;
+	class Structure;
+	class Function;
+	class Expression;
+	class ExpressionComponent;
+	class ExpressionFragment;
+	class Assignment;
+	class Statement;
+	class CodeBlock;
+	class Entity;
+}
+
+class StringPoolManager;
+struct CompilerInfoTable;
 
 
 // Dependencies
@@ -18,64 +39,58 @@
 #include "Compiler/Abstract Syntax Tree/Function.h"
 #include "Compiler/Abstract Syntax Tree/Assignment.h"
 
-#include <ostream>
+#include <stack>
 
 
 namespace ASTTraverse
 {
 
 	//
-	// Callback wrappers expose two sets of functors, one for entering
-	// AST branches, and one for exiting them. These are passed to the
-	// traverser itself by the calling code to accomplish traversal of
-	// the AST. In this way the traversal logic remains fully generic,
-	// and the application-specific callback logic can remain agnostic
-	// about the actual structure of the AST.
+	// Traverser for converting to the IR used for semantic validation
 	//
-	struct DumpToStream
+	struct CompilePassSemantics
 	{
 		//
-		// Construct a dump wrapper and bind it to the stream and traverser
+		// Construct the traverser
 		//
-		explicit DumpToStream(std::wostream& stream)
-			: TheStream(stream),
-			  Indentation(0)
+		CompilePassSemantics(StringPoolManager& strings, const CompilerInfoTable& infotable)
+			: CurrentProgram(NULL),
+			  InFunctionReturn(false),
+			  Strings(strings),
+			  InfoTable(infotable)
 		{
 			Entry.self = this;
 			Exit.self = this;
+
+			StateStack.push(STATE_UNKNOWN);
 		}
+
+		// Destruction
+		~CompilePassSemantics();
+
+		// Validation
+		bool Validate() const;
+
+		// Attached program retrieval
+		IRSemantics::Program* DetachProgram();
 
 		//
 		// Node entry functor
 		//
-		// This functor is called (via overloads) every time an AST node is
-		// entered by the tree traversal. It is primarily used for changing
-		// the state of the callback wrapper according to the nature of the
-		// current AST branch.
-		//
 		struct EntryHelper
 		{
 			//
-			// Catch-all overload for handling literals that can be
-			// output directly to the stream, generally because they
-			// are leaf nodes and have no children that need to be
-			// handled or formatted in the output.
-			//
-			// A compile error here indicates that something is trying
-			// to pass an AST node type to the functor, but there is
-			// no suitable overload matching that AST node type. Add a
-			// function overload for that node type.
+			// Catch-all overload
 			//
 			template <typename T>
 			void operator () (T& node)
 			{
-				self->Indent();
-				self->TheStream << node << std::endl;
+				// TODO - better exceptions
+				throw std::exception("Failure in parser");
 			}
 
 			//
-			// Catch-all for unwrapping deferred AST nodes. See the
-			// definition file for the Deferred wrapper for details.
+			// Catch-all for unwrapping deferred AST nodes
 			//
 			template <typename T, typename PtrT>
 			void operator () (AST::Deferred<T, PtrT>& deferred)
@@ -121,25 +136,19 @@ namespace ASTTraverse
 
 			void operator () (Markers::FunctionReturnExpression& marker);
 
-		// Internal binding to the owning DumpToStream object
+		// Internal binding to the owning CompilePassSemantics object
 		private:
-			DumpToStream* self;
-			friend struct DumpToStream;
+			CompilePassSemantics* self;
+			friend struct CompilePassSemantics;
 		} Entry;
 
 		//
 		// Node exit functor
 		//
-		// Used for resetting state in the callback wrapper when a branch
-		// of the AST is done being traversed.
-		//
 		struct ExitHelper
 		{
 			//
-			// Generic fallback; any node we don't recognize we
-			// will just ignore. This means it is very important
-			// to overload for every AST node type that affects
-			// the state of the callback wrapper via EntryHelper.
+			// Generic fallback; ignore anything we don't recognize
 			//
 			template <typename T>
 			void operator() (T& node)
@@ -169,7 +178,7 @@ namespace ASTTraverse
 			void operator () (AST::ExpressionFragment& exprfragment);
 
 			void operator () (AST::Assignment& assignment);
-			
+
 			void operator () (AST::Statement& statement);
 			void operator () (AST::PreOperatorStatement& statement);
 			void operator () (AST::PostOperatorStatement& statement);
@@ -185,21 +194,63 @@ namespace ASTTraverse
 
 			void operator () (Markers::FunctionReturnExpression& marker);
 
-		// Internal bindings to the owning DumpToStream object
+		// Internal bindings to the owning CompilePassSemantics object
 		private:
-			DumpToStream* self;
-			friend struct DumpToStream;
+			CompilePassSemantics* self;
+			friend struct CompilePassSemantics;
 		} Exit;
-
-	// Internal helpers
-	private:
-		void Indent();
 
 	// Internal state
 	private:
-		std::wostream& TheStream;
-		unsigned Indentation;
+		IRSemantics::Program* CurrentProgram;
+
+		std::list<IRSemantics::Structure*> CurrentStructures;
+		std::list<IRSemantics::Function*> CurrentFunctions;
+		std::list<IRSemantics::Expression*> CurrentExpressions;
+		std::list<IRSemantics::ExpressionComponent*> CurrentExpressionComponents;
+		std::list<IRSemantics::ExpressionFragment*> CurrentExpressionFragments;
+		std::list<IRSemantics::Assignment*> CurrentAssignments;
+		std::list<IRSemantics::Statement*> CurrentStatements;
+		std::list<IRSemantics::CodeBlock*> CurrentCodeBlocks;
+		std::list<IRSemantics::Entity*> CurrentEntities;
+		std::list<IRSemantics::Entity*> CurrentChainedEntities;
+		std::list<IRSemantics::Entity*> CurrentPostfixEntities;
+
+		enum States
+		{
+			STATE_UNKNOWN,
+			STATE_PROGRAM,
+			STATE_FUNCTION,
+			STATE_FUNCTION_PARAM,
+			STATE_FUNCTION_RETURN,
+			STATE_EXPRESSION,
+			STATE_EXPRESSION_COMPONENT,
+			STATE_EXPRESSION_FRAGMENT,
+			STATE_STATEMENT,
+			STATE_PREOP_STATEMENT,
+			STATE_POSTOP_STATEMENT,
+			STATE_ASSIGNMENT,
+			STATE_CODE_BLOCK,
+			STATE_ENTITY,
+			STATE_POSTFIX_ENTITY,
+			STATE_CHAINED_ENTITY,
+		};
+
+		std::stack<States> StateStack;
+
+		bool InFunctionReturn;
+
+		StringPoolManager& Strings;
+		const CompilerInfoTable& InfoTable;
 	};
+
+}
+
+
+namespace CompilerPasses
+{
+
+	IRSemantics::Program* ValidateSemantics(AST::Program& program, StringPoolManager& strings, const CompilerInfoTable& infotable);
 
 }
 

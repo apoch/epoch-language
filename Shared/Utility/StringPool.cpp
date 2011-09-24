@@ -74,10 +74,28 @@ const std::wstring& StringPoolManager::GetPooledString(StringHandle handle) cons
 }
 
 //
+// Find a particular string, assuming it has already been pooled
+//
+StringHandle StringPoolManager::Find(const std::wstring& stringdata) const
+{
+	Threads::CriticalSection::Auto lock(CritSec);
+
+	for(std::map<StringHandle, std::wstring>::const_iterator iter = PooledStrings.begin(); iter != PooledStrings.end(); ++iter)
+	{
+		if(iter->second == stringdata)
+			return iter->first;
+	}
+
+	throw RecoverableException("String not pooled yet");
+}
+
+//
 // Discard all handles NOT in the given set of live handles
 //
 void StringPoolManager::GarbageCollect(const std::set<StringHandle>& livehandles)
 {
+	Threads::CriticalSection::Auto lock(CritSec);
+
 	EraseDeadHandles(PooledStrings, livehandles);
 }
 

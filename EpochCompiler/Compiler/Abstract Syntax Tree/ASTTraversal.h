@@ -257,7 +257,6 @@ namespace ASTTraverse
 		void Do(EntryActionT& entryaction, AST::ExpressionFragment& fragment, ExitActionT& exitaction)
 		{
 			entryaction(fragment);
-			Do(entryaction, fragment.Operator, exitaction);
 			Do(entryaction, fragment.Component.Content->Component.Content->V, exitaction);
 			exitaction(fragment);
 		}
@@ -269,7 +268,14 @@ namespace ASTTraverse
 		void Do(EntryActionT& entryaction, AST::Assignment& assignment, ExitActionT& exitaction)
 		{
 			entryaction(assignment);
-			Do(entryaction, assignment.LHS, exitaction);
+			Do(entryaction, assignment.RHS, exitaction);
+			exitaction(assignment);
+		}
+
+		template <typename EntryActionT, typename ExitActionT>
+		void Do(EntryActionT& entryaction, AST::SimpleAssignment& assignment, ExitActionT& exitaction)
+		{
+			entryaction(assignment);
 			Do(entryaction, assignment.RHS, exitaction);
 			exitaction(assignment);
 		}
@@ -319,7 +325,6 @@ namespace ASTTraverse
 		void Do(EntryActionT& entryaction, AST::ChainedEntity& entity, ExitActionT& exitaction)
 		{
 			entryaction(entity);
-			Do(entryaction, entity.Identifier, exitaction);
 			Do(entryaction, entity.Parameters, exitaction);
 			Do(entryaction, entity.Code, exitaction);
 			exitaction(entity);
@@ -391,6 +396,14 @@ namespace ASTTraverse
 			ExitActionT& Exit;
 		};
 	};
+
+
+	template <typename TraverserT>
+	void DoTraversal(TraverserT& tr, AST::Program& program)
+	{
+		ASTTraverse::Traverser traverse;
+		traverse.Do(tr.Entry, program, tr.Exit);
+	}
 
 }
 
