@@ -9,8 +9,12 @@
 
 
 // Dependencies
+#include "Compiler/ExportDef.h"
+
 #include "Utility/Types/IDTypes.h"
 #include "Utility/Types/EpochTypeIDs.h"
+
+#include "Metadata/ScopeDescription.h"
 
 
 namespace IRSemantics
@@ -21,7 +25,9 @@ namespace IRSemantics
 	class Statement;
 	class PreOpStatement;
 	class PostOpStatement;
+	class CodeBlock;
 	class Entity;
+	class Program;
 
 
 	class CodeBlockEntry
@@ -30,15 +36,22 @@ namespace IRSemantics
 	public:
 		virtual ~CodeBlockEntry()
 		{ }
+
+	// Validation
+	public:
+		virtual bool Validate(const Program& program) const = 0;
+
+	// Compile time code execution
+	public:
+		virtual bool CompileTimeCodeExecution(Program& program, CodeBlock& activescope)
+		{ return true; }
 	};
 
 	class CodeBlock
 	{
 	// Construction and destruction
 	public:
-		CodeBlock()
-		{ }
-
+		explicit CodeBlock(ScopeDescription* scope);
 		~CodeBlock();
 
 	// Non-copyable
@@ -55,11 +68,24 @@ namespace IRSemantics
 
 	// Lexical scopes
 	public:
+		EPOCHCOMPILER void AddVariable(const std::wstring& identifier, StringHandle identifierhandle, VM::EpochTypeID type, bool isreference, VariableOrigin origin);
 		VM::EpochTypeID GetVariableTypeByID(StringHandle identifier) const;
+
+		ScopeDescription* GetScope()
+		{ return Scope; }
+
+	// Validation
+	public:
+		bool Validate(const IRSemantics::Program& program) const;
+
+	// Compile time code execution
+	public:
+		bool CompileTimeCodeExecution(IRSemantics::Program& program);
 
 	// Internal state
 	private:
 		std::vector<CodeBlockEntry*> Entries;
+		ScopeDescription* Scope;
 	};
 
 
@@ -74,6 +100,10 @@ namespace IRSemantics
 	private:
 		CodeBlockAssignmentEntry(const CodeBlockAssignmentEntry& other);
 		CodeBlockAssignmentEntry& operator = (const CodeBlockAssignmentEntry& rhs);
+
+	// Validation
+	public:
+		virtual bool Validate(const IRSemantics::Program& program) const;
 
 	// Property access
 	public:
@@ -97,6 +127,14 @@ namespace IRSemantics
 		CodeBlockStatementEntry(const CodeBlockStatementEntry& other);
 		CodeBlockStatementEntry& operator = (const CodeBlockStatementEntry& rhs);
 
+	// Validation
+	public:
+		virtual bool Validate(const IRSemantics::Program& program) const;
+
+	// Compile time code execution
+	public:
+		virtual bool CompileTimeCodeExecution(IRSemantics::Program& program, CodeBlock& activescope);
+
 	// Statement access
 	public:
 		const Statement& GetStatement() const
@@ -118,6 +156,10 @@ namespace IRSemantics
 	private:
 		CodeBlockPreOpStatementEntry(const CodeBlockPreOpStatementEntry& other);
 		CodeBlockPreOpStatementEntry& operator = (const CodeBlockPreOpStatementEntry& rhs);
+
+	// Validation
+	public:
+		virtual bool Validate(const IRSemantics::Program& program) const;
 
 	// Statement access
 	public:
@@ -141,6 +183,10 @@ namespace IRSemantics
 		CodeBlockPostOpStatementEntry(const CodeBlockPostOpStatementEntry& other);
 		CodeBlockPostOpStatementEntry& operator = (const CodeBlockPostOpStatementEntry& rhs);
 
+	// Validation
+	public:
+		virtual bool Validate(const IRSemantics::Program& program) const;
+
 	// Statement access
 	public:
 		const PostOpStatement& GetStatement() const
@@ -163,6 +209,14 @@ namespace IRSemantics
 		CodeBlockInnerBlockEntry(const CodeBlockInnerBlockEntry& other);
 		CodeBlockInnerBlockEntry& operator = (const CodeBlockInnerBlockEntry& rhs);
 
+	// Validation
+	public:
+		virtual bool Validate(const IRSemantics::Program& program) const;
+
+	// Compile time code execution
+	public:
+		virtual bool CompileTimeCodeExecution(IRSemantics::Program& program, CodeBlock& activescope);
+
 	// Internal code access
 	public:
 		const CodeBlock& GetCode() const
@@ -184,6 +238,14 @@ namespace IRSemantics
 	private:
 		CodeBlockEntityEntry(const CodeBlockEntityEntry& other);
 		CodeBlockEntityEntry& operator = (const CodeBlockEntityEntry& rhs);
+
+	// Validation
+	public:
+		virtual bool Validate(const IRSemantics::Program& program) const;
+
+	// Compile time code execution
+	public:
+		virtual bool CompileTimeCodeExecution(IRSemantics::Program& program, CodeBlock& activescope);
 
 	// Accessors
 	public:

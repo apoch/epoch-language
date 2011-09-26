@@ -45,13 +45,15 @@ void Structure::AddMember(StringHandle name, StructureMember* member)
 //
 bool Structure::Validate(const Program& program) const
 {
+	bool valid = true;
+
 	for(std::vector<std::pair<StringHandle, StructureMember*> >::const_iterator iter = Members.begin(); iter != Members.end(); ++iter)
 	{
 		if(!iter->second->Validate(program))
-			return false;
+			valid = false;
 	}
 
-	return true;
+	return valid;
 }
 
 
@@ -76,15 +78,17 @@ VM::EpochTypeID StructureMemberVariable::GetEpochType(const Program& program) co
 //
 bool StructureMemberFunctionReference::Validate(const Program& program) const
 {
+	bool valid = true;
+
 	if(program.LookupType(ReturnType) == VM::EpochType_Error)
-		return false;
+		valid = false;
 
 	for(std::vector<StringHandle>::const_iterator iter = ParamTypes.begin(); iter != ParamTypes.end(); ++iter)
 	{
 		if(program.LookupType(*iter) == VM::EpochType_Error)
-			return false;
+			valid = false;
 	}
 	
-	return true;
+	return valid;
 }
 

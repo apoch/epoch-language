@@ -63,18 +63,92 @@ void Function::SetCode(CodeBlock* code)
 	Code = code;
 }
 
+bool Function::IsParameterLocalVariable(StringHandle name) const
+{
+	for(std::vector<Param>::const_iterator iter = Parameters.begin(); iter != Parameters.end(); ++iter)
+	{
+		if(iter->Name == name)
+			return iter->Parameter->IsLocalVariable();
+	}
+
+	throw std::exception("Invalid parameter name");			// TODO - better exceptions
+}
+
+bool Function::IsParameterReference(StringHandle name) const
+{
+	for(std::vector<Param>::const_iterator iter = Parameters.begin(); iter != Parameters.end(); ++iter)
+	{
+		if(iter->Name == name)
+			return iter->Parameter->IsReference();
+	}
+
+	throw std::exception("Invalid parameter name");			// TODO - better exceptions
+}
+
+VM::EpochTypeID Function::GetParameterType(StringHandle name, const IRSemantics::Program& program) const
+{
+	for(std::vector<Param>::const_iterator iter = Parameters.begin(); iter != Parameters.end(); ++iter)
+	{
+		if(iter->Name == name)
+			return iter->Parameter->GetParamType(program);
+	}
+
+	throw std::exception("Invalid parameter name");			// TODO - better exceptions
+}
+
+std::vector<StringHandle> Function::GetParameterNames() const
+{
+	std::vector<StringHandle> ret;
+	ret.reserve(Parameters.size());
+
+	for(std::vector<Param>::const_iterator iter = Parameters.begin(); iter != Parameters.end(); ++iter)
+		ret.push_back(iter->Name);
+
+	return ret;
+}
+
+
 //
 // Validate a function definition
 //
 bool Function::Validate(const IRSemantics::Program& program) const
 {
+	bool valid = true;
+
 	for(std::vector<Param>::const_iterator iter = Parameters.begin(); iter != Parameters.end(); ++iter)
 	{
 		if(!iter->Parameter->Validate(program))
+			valid = false;
+	}
+
+	if(Return)
+	{
+		if(!Return->Validate(program))
+			valid = false;
+	}
+
+	if(Code)
+	{
+		if(!Code->Validate(program))
+			valid = false;
+	}
+
+	return valid;
+}
+
+
+bool Function::CompileTimeCodeExecution(Program& program)
+{
+	if(Return)
+	{
+		if(!Return->CompileTimeCodeExecution(program))
 			return false;
 	}
 
-	return true;
+	if(!Code)
+		return true;
+
+	return Code->CompileTimeCodeExecution(program);
 }
 
 
@@ -86,21 +160,28 @@ bool FunctionParamNamed::Validate(const IRSemantics::Program& program) const
 	return (program.LookupType(MyType) != VM::EpochType_Error);
 }
 
+VM::EpochTypeID FunctionParamNamed::GetParamType(const IRSemantics::Program& program) const
+{
+	return program.LookupType(MyType);
+}
+
 //
 // Validate a higher order function parameter
 //
 bool FunctionParamFuncRef::Validate(const IRSemantics::Program& program) const
 {
+	bool valid = true;
+
 	if(program.LookupType(ReturnType) == VM::EpochType_Error)
-		return false;
+		valid = false;
 
 	for(std::vector<StringHandle>::const_iterator iter = ParamTypes.begin(); iter != ParamTypes.end(); ++iter)
 	{
 		if(program.LookupType(*iter) == VM::EpochType_Error)
-			return false;
+			valid = false;
 	}
 
-	return true;
+	return valid;
 }
 
 //
@@ -122,3 +203,10 @@ FunctionParamExpression::~FunctionParamExpression()
 	delete MyExpression;
 }
 
+VM::EpochTypeID FunctionParamExpression::GetParamType(const IRSemantics::Program& program) const
+{
+	if(!MyExpression)
+		return VM::EpochType_Error;
+
+	return MyExpression->GetEpochType(program);
+}

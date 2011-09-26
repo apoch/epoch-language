@@ -53,7 +53,7 @@ namespace ASTTraverse
 		//
 		// Construct the traverser
 		//
-		CompilePassSemantics(StringPoolManager& strings, const CompilerInfoTable& infotable)
+		CompilePassSemantics(StringPoolManager& strings, CompilerInfoTable& infotable)
 			: CurrentProgram(NULL),
 			  InFunctionReturn(false),
 			  Strings(strings),
@@ -67,6 +67,9 @@ namespace ASTTraverse
 
 		// Destruction
 		~CompilePassSemantics();
+
+		// Compile-time code execution
+		bool CompileTimeCodeExecution();
 
 		// Validation
 		bool Validate() const;
@@ -241,7 +244,7 @@ namespace ASTTraverse
 		bool InFunctionReturn;
 
 		StringPoolManager& Strings;
-		const CompilerInfoTable& InfoTable;
+		CompilerInfoTable& InfoTable;
 	};
 
 }
@@ -250,7 +253,7 @@ namespace ASTTraverse
 namespace CompilerPasses
 {
 
-	IRSemantics::Program* ValidateSemantics(AST::Program& program, StringPoolManager& strings, const CompilerInfoTable& infotable);
+	IRSemantics::Program* ValidateSemantics(AST::Program& program, StringPoolManager& strings, CompilerInfoTable& infotable);
 
 }
 

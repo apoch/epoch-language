@@ -9,12 +9,15 @@
 
 #include "Library Functionality/Type Constructors/Primitives.h"
 
+#include "Compiler/Intermediate Representations/Semantic Validation/Statement.h"
+#include "Compiler/Intermediate Representations/Semantic Validation/Expression.h"
+#include "Compiler/Intermediate Representations/Semantic Validation/CodeBlock.h"
+#include "Compiler/Intermediate Representations/Semantic Validation/Program.h"
+
 #include "Virtual Machine/VirtualMachine.h"
 
 #include "Metadata/ScopeDescription.h"
 #include "Metadata/ActiveScope.h"
-
-#include "Compilation/SemanticActionInterface.h"
 
 #include "Utility/Types/EpochTypeIDs.h"
 #include "Utility/Types/IntegerTypes.h"
@@ -107,11 +110,13 @@ namespace
 	// helper adds the variable itself and its type metadata to the current
 	// lexical scope.
 	//
-	void CompileConstructorPrimitive(const std::wstring& functionname, SemanticActionInterface& semantics, ScopeDescription& scope, const CompileTimeParameterVector& compiletimeparams)
+	void CompileConstructorPrimitive(IRSemantics::Statement& statement, IRSemantics::Program& program, IRSemantics::CodeBlock& activescope, bool inreturnexpr)
 	{
-		VariableOrigin origin = (semantics.IsInReturnDeclaration() ? VARIABLE_ORIGIN_RETURN : VARIABLE_ORIGIN_LOCAL);
-		VM::EpochTypeID effectivetype = semantics.LookupTypeName(functionname);
-		scope.AddVariable(compiletimeparams[0].StringPayload, compiletimeparams[0].LRValueContents.Identifier, effectivetype, false, origin);
+		const IRSemantics::ExpressionAtomIdentifier* atom = dynamic_cast<const IRSemantics::ExpressionAtomIdentifier*>(statement.GetParameters()[0]->GetFirst().GetAtom());
+
+		VariableOrigin origin = (inreturnexpr ? VARIABLE_ORIGIN_RETURN : VARIABLE_ORIGIN_LOCAL);
+		VM::EpochTypeID effectivetype = program.LookupType(statement.GetName());
+		activescope.AddVariable(program.GetString(atom->GetIdentifier()), atom->GetIdentifier(), effectivetype, false, origin);
 	}
 
 }

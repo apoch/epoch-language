@@ -10,6 +10,7 @@
 
 // Dependencies
 #include "Utility/Types/IDTypes.h"
+#include "Utility/Types/EpochTypeIDs.h"
 
 #include <vector>
 
@@ -29,15 +30,6 @@ namespace IRSemantics
 	//
 	class FunctionParam
 	{
-	// Constants
-	public:
-		enum Type
-		{
-			Named,
-			FunctionRef,
-			Expression,
-		};
-
 	// Destruction
 	public:
 		virtual ~FunctionParam()
@@ -45,7 +37,9 @@ namespace IRSemantics
 
 	// Function parameter interface
 	public:
-		virtual Type GetParamType() const = 0;
+		virtual VM::EpochTypeID GetParamType(const IRSemantics::Program& program) const = 0;
+		virtual bool IsLocalVariable() const = 0;
+		virtual bool IsReference() const = 0;
 		virtual bool Validate(const IRSemantics::Program& program) const = 0;
 	};
 
@@ -56,20 +50,27 @@ namespace IRSemantics
 	{
 	// Construction
 	public:
-		explicit FunctionParamNamed(StringHandle type)
-			: MyType(type)
+		FunctionParamNamed(StringHandle type, bool isreference)
+			: MyType(type),
+			  IsRef(isreference)
 		{ }
 
 	// Function parameter interface
 	public:
-		virtual Type GetParamType() const
-		{ return FunctionParam::Named; }
+		virtual VM::EpochTypeID GetParamType(const IRSemantics::Program& program) const;
+
+		virtual bool IsLocalVariable() const
+		{ return true; }
+
+		virtual bool IsReference() const
+		{ return IsRef; }
 
 		virtual bool Validate(const IRSemantics::Program& program) const;
 
 	// Internal state
 	private:
 		StringHandle MyType;
+		bool IsRef;
 	};
 
 	//
@@ -86,8 +87,14 @@ namespace IRSemantics
 
 	// Function parameter interface
 	public:
-		virtual Type GetParamType() const
-		{ return FunctionParam::FunctionRef; }
+		virtual VM::EpochTypeID GetParamType(const IRSemantics::Program& program) const
+		{ return VM::EpochType_Function; }
+
+		virtual bool IsLocalVariable() const
+		{ return true; }
+
+		virtual bool IsReference() const
+		{ return false; }
 
 		virtual bool Validate(const IRSemantics::Program& program) const;
 
@@ -117,8 +124,13 @@ namespace IRSemantics
 
 	// Function parameter interface
 	public:
-		virtual Type GetParamType() const
-		{ return FunctionParam::Expression; }
+		virtual VM::EpochTypeID GetParamType(const IRSemantics::Program& program) const;
+
+		virtual bool IsLocalVariable() const
+		{ return false; }
+
+		virtual bool IsReference() const
+		{ return false; }
 
 		virtual bool Validate(const IRSemantics::Program& program) const;
 
@@ -152,6 +164,12 @@ namespace IRSemantics
 	public:
 		void AddParameter(StringHandle name, FunctionParam* param);
 
+		std::vector<StringHandle> GetParameterNames() const;
+
+		bool IsParameterLocalVariable(StringHandle name) const;
+		VM::EpochTypeID GetParameterType(StringHandle name, const IRSemantics::Program& program) const;
+		bool IsParameterReference(StringHandle name) const;
+
 	// Returns
 	public:
 		void SetReturnExpression(Expression* expression);
@@ -160,12 +178,19 @@ namespace IRSemantics
 	public:
 		void SetCode(CodeBlock* code);
 
+		CodeBlock* GetCode()
+		{ return Code; }
+
 		const CodeBlock* GetCode() const
 		{ return Code; }
 
 	// Validation
 	public:
 		bool Validate(const IRSemantics::Program& program) const;
+
+	// Compile time code execution
+	public:
+		bool CompileTimeCodeExecution(IRSemantics::Program& program);
 
 	// Internal state
 	private:

@@ -28,6 +28,8 @@
 #include "Compiler/Intermediate Representations/Semantic Validation/CodeBlock.h"
 #include "Compiler/Intermediate Representations/Semantic Validation/Entity.h"
 
+#include "Libraries/Library.h"
+
 #include "Utility/Strings.h"
 
 #include <algorithm>
@@ -57,20 +59,45 @@ namespace
 		std::vector<StringHandle>& Container;
 	};
 
+
+	//
+	// Compile-time helper: when a variable definition is encountered, this
+	// helper adds the variable itself and its type metadata to the current
+	// lexical scope.
+	//
+	void CompileConstructorStructure(IRSemantics::Statement& statement, IRSemantics::Program& program, IRSemantics::CodeBlock& activescope, bool inreturnexpr)
+	{
+		const IRSemantics::ExpressionAtomIdentifier* atom = dynamic_cast<const IRSemantics::ExpressionAtomIdentifier*>(statement.GetParameters()[0]->GetFirst().GetAtom());
+
+		VariableOrigin origin = (inreturnexpr ? VARIABLE_ORIGIN_RETURN : VARIABLE_ORIGIN_LOCAL);
+		VM::EpochTypeID effectivetype = program.LookupType(statement.GetName());
+		activescope.AddVariable(program.GetString(atom->GetIdentifier()), atom->GetIdentifier(), effectivetype, false, origin);
+	}
+
 }
 
 
 //
 // Validate semantics for a program
 //
-IRSemantics::Program* CompilerPasses::ValidateSemantics(AST::Program& program, StringPoolManager& strings, const CompilerInfoTable& infotable)
+IRSemantics::Program* CompilerPasses::ValidateSemantics(AST::Program& program, StringPoolManager& strings, CompilerInfoTable& infotable)
 {
+	// Construct the semantic analysis pass
 	ASTTraverse::CompilePassSemantics pass(strings, infotable);
+	
+	// Traverse the AST and convert it into the semantic IR
 	ASTTraverse::DoTraversal(pass, program);
-	if(pass.Validate())
-		return pass.DetachProgram();
 
-	return NULL;
+	// Perform compile-time code execution, e.g. constructors for populating lexical scopes
+	if(!pass.CompileTimeCodeExecution())
+		return NULL;
+
+	// Perform type validation
+	if(!pass.Validate())
+		return NULL;
+
+	// Success!
+	return pass.DetachProgram();
 }
 
 
@@ -116,6 +143,17 @@ CompilePassSemantics::~CompilePassSemantics()
 		delete *iter;
 
 	delete CurrentProgram;
+}
+
+//
+// Perform compile-time code execution on a program
+//
+bool CompilePassSemantics::CompileTimeCodeExecution()
+{
+	if(CurrentProgram)
+		return CurrentProgram->CompileTimeCodeExecution();
+
+	return false;
 }
 
 //
@@ -192,6 +230,7 @@ void CompilePassSemantics::ExitHelper::operator () (AST::Structure& structure)
 		
 		StringHandle name = self->CurrentProgram->AddString(std::wstring(structure.Identifier.begin(), structure.Identifier.end()));
 		self->CurrentProgram->AddStructure(name, irstruct.release());
+		self->CurrentProgram->InfoTable.FunctionHelpers->insert(std::make_pair(name, &CompileConstructorStructure));
 	}
 	else
 		throw std::exception("Nested structures not implemented");	// TODO - better exceptions
@@ -248,13 +287,28 @@ void CompilePassSemantics::ExitHelper::operator () (AST::Function& function)
 {
 	self->StateStack.pop();
 
+	if(!self->CurrentFunctions.back()->GetCode())
+	{
+		std::auto_ptr<ScopeDescription> lexicalscope(new ScopeDescription(self->CurrentProgram->GetGlobalScope()));
+		self->CurrentFunctions.back()->SetCode(new IRSemantics::CodeBlock(lexicalscope.release()));
+	}
+
+	const std::vector<StringHandle>& params = self->CurrentFunctions.back()->GetParameterNames();
+	for(std::vector<StringHandle>::const_iterator iter = params.begin(); iter != params.end(); ++iter)
+	{
+		if(self->CurrentFunctions.back()->IsParameterLocalVariable(*iter))
+		{
+			VM::EpochTypeID type = self->CurrentFunctions.back()->GetParameterType(*iter, *self->CurrentProgram);
+			bool isref = self->CurrentFunctions.back()->IsParameterReference(*iter);
+			self->CurrentFunctions.back()->GetCode()->AddVariable(self->CurrentProgram->GetString(*iter), *iter, type, isref, VARIABLE_ORIGIN_PARAMETER);
+		}
+	}
+
 	if(self->CurrentFunctions.size() == 1)
 	{
-		std::auto_ptr<IRSemantics::Function> irfunc(self->CurrentFunctions.back());
-		self->CurrentFunctions.pop_back();
-		
 		StringHandle name = self->CurrentProgram->CreateFunctionOverload(std::wstring(function.Name.begin(), function.Name.end()));
-		self->CurrentProgram->AddFunction(name, irfunc.release());
+		self->CurrentProgram->AddFunction(name, self->CurrentFunctions.back());
+		self->CurrentFunctions.pop_back();
 	}
 	else
 		throw std::exception("Nested functions not implemented");	// TODO - better exceptions
@@ -292,7 +346,8 @@ void CompilePassSemantics::EntryHelper::operator () (AST::NamedFunctionParameter
 	StringHandle name = self->CurrentProgram->AddString(std::wstring(param.Name.begin(), param.Name.end()));
 	StringHandle type = self->CurrentProgram->AddString(std::wstring(param.Type.begin(), param.Type.end()));
 
-	std::auto_ptr<IRSemantics::FunctionParamNamed> irparam(new IRSemantics::FunctionParamNamed(type));
+	// TODO - support for ref params
+	std::auto_ptr<IRSemantics::FunctionParamNamed> irparam(new IRSemantics::FunctionParamNamed(type, false));
 	self->CurrentFunctions.back()->AddParameter(name, irparam.release());
 }
 
@@ -545,8 +600,25 @@ void CompilePassSemantics::ExitHelper::operator () (AST::PostOperatorStatement& 
 //
 void CompilePassSemantics::EntryHelper::operator () (AST::CodeBlock& block)
 {
+	std::auto_ptr<ScopeDescription> lexicalscope(NULL);
+
+	switch(self->StateStack.top())
+	{
+	case CompilePassSemantics::STATE_PROGRAM:
+		lexicalscope.reset(self->CurrentProgram->GetGlobalScope());
+		break;
+
+	case CompilePassSemantics::STATE_FUNCTION:
+		lexicalscope.reset(new ScopeDescription(self->CurrentProgram->GetGlobalScope()));
+		break;
+
+	default:
+		lexicalscope.reset(new ScopeDescription(self->CurrentCodeBlocks.back()->GetScope()));
+		break;
+	}
+
 	self->StateStack.push(CompilePassSemantics::STATE_CODE_BLOCK);
-	self->CurrentCodeBlocks.push_back(new IRSemantics::CodeBlock);
+	self->CurrentCodeBlocks.push_back(new IRSemantics::CodeBlock(lexicalscope.release()));
 }
 
 //
@@ -736,7 +808,7 @@ void CompilePassSemantics::EntryHelper::operator () (AST::IdentifierT& identifie
 
 	std::auto_ptr<IRSemantics::ExpressionAtom> iratom(NULL);
 
-	if(raw.length() > 2 && *raw.begin() == L'\"' && *raw.rbegin() == L'\"')
+	if(raw.length() >= 2 && *raw.begin() == L'\"' && *raw.rbegin() == L'\"')
 	{
 		StringHandle handle = self->CurrentProgram->AddString(StripQuotes(raw));
 		iratom.reset(new IRSemantics::ExpressionAtomLiteralString(handle));

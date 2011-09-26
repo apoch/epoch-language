@@ -228,6 +228,10 @@
 			Name="Exports"
 			>
 			<File
+				RelativePath=".\Compiler\ExportDef.h"
+				>
+			</File>
+			<File
 				RelativePath=".\Exports\Exports.cpp"
 				>
 			</File>

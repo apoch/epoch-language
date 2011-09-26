@@ -17,6 +17,8 @@
 
 #include "Compiler/Abstract Syntax Tree/Undefined.h"
 
+#include "Compiler/Abstract Syntax Tree/CodeBlock.h"
+
 
 namespace AST
 {
@@ -30,7 +32,7 @@ namespace AST
 		<
 			Undefined,
 			DeferredStructure,
-			DeferredCodeBlock,
+			DeferredCodeBlockEntry,
 			DeferredFunction
 		> MetaEntity;
 	

@@ -31,7 +31,7 @@ struct GlobalGrammar : public boost::spirit::qi::grammar<Lexer::TokenIterT, boos
 	Rule<AST::Deferred<AST::StructureMemberVariable>()>::type StructureMemberVariable;
 
 	Rule<AST::DeferredStructure()>::type StructureDefinition;
-	Rule<AST::DeferredCodeBlock()>::type GlobalDefinition;
+	Rule<AST::DeferredCodeBlockEntry()>::type GlobalDefinition;
 	Rule<AST::MetaEntity()>::type MetaEntity;
 
 	Rule<std::vector<AST::IdentifierT, Memory::OneWayAlloc<AST::IdentifierT> >()>::type ParamTypeSpec;

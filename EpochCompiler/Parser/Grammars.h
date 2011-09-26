@@ -9,8 +9,6 @@
 
 
 // Dependencies
-#include "Parser/SemanticActionBindings.h"
-
 #include "Bytecode/EntityTags.h"
 
 #include "Libraries/Library.h"

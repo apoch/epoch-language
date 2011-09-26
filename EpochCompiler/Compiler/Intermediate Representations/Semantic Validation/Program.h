@@ -9,10 +9,14 @@
 
 
 // Dependencies
+#include "Compiler/ExportDef.h"
+
 #include "Utility/Types/IDTypes.h"
 #include "Utility/Types/EpochTypeIDs.h"
 
 #include "Bytecode/EntityTags.h"
+
+#include "Metadata/ScopeDescription.h"
 
 #include <vector>
 #include <map>
@@ -39,7 +43,7 @@ namespace IRSemantics
 	{
 	// Construction and destruction
 	public:
-		Program(StringPoolManager& strings, const CompilerInfoTable& infotable);
+		Program(StringPoolManager& strings, CompilerInfoTable& infotable);
 		~Program();
 
 	// Non-copyable
@@ -50,7 +54,7 @@ namespace IRSemantics
 	// String pooling
 	public:
 		StringHandle AddString(const std::wstring& str);
-		const std::wstring& GetString(StringHandle handle) const;
+		EPOCHCOMPILER const std::wstring& GetString(StringHandle handle) const;
 		
 		const StringPoolManager& GetStringPool() const
 		{ return Strings; }
@@ -89,13 +93,19 @@ namespace IRSemantics
 		size_t GetNumGlobalCodeBlocks() const;
 		StringHandle GetGlobalCodeBlockName(size_t index) const;
 
+		ScopeDescription* GetGlobalScope();
+
 	// Type alias lookup
 	public:
-		VM::EpochTypeID LookupType(StringHandle name) const;
+		EPOCHCOMPILER VM::EpochTypeID LookupType(StringHandle name) const;
 
 	// Entities
 	public:
 		Bytecode::EntityTag GetEntityTag(StringHandle entityname) const;
+
+	// Compile-time code execution
+	public:
+		bool CompileTimeCodeExecution();
 
 	// Validation
 	public:
@@ -107,10 +117,13 @@ namespace IRSemantics
 		static std::wstring GenerateLexicalScopeName(const CodeBlock* blockptr);
 		static std::wstring GenerateStructureMemberAccessOverloadName(const std::wstring& structurename, const std::wstring& membername);
 
+	// Accessible state
+	public:
+		CompilerInfoTable& InfoTable;
+
 	// Internal state
 	private:
 		StringPoolManager& Strings;
-		const CompilerInfoTable& InfoTable;
 
 		std::map<StringHandle, Structure*> Structures;
 		std::map<StringHandle, VM::EpochTypeID> StructureTypes;
@@ -123,6 +136,10 @@ namespace IRSemantics
 
 		unsigned CounterAnonParam;
 		unsigned CounterLexicalScope;
+
+		ScopeMap LexicalScopes;
+
+		ScopeDescription* GlobalScope;
 	};
 
 }

@@ -18,8 +18,12 @@
 
 
 // Forward declarations
-class ScopeDescription;
-class SemanticActionInterface;
+namespace IRSemantics
+{
+	class Statement;
+	class CodeBlock;
+	class Program;
+}
 
 namespace VM
 {
@@ -31,7 +35,7 @@ namespace VM
 typedef void (*EpochFunctionPtr)(StringHandle namehandle, VM::ExecutionContext& context);
 typedef std::map<StringHandle, EpochFunctionPtr> FunctionInvocationTable;
 
-typedef void (*CompilerHelperPtr)(const std::wstring& functionname, SemanticActionInterface& semantics, ScopeDescription& scope, const CompileTimeParameterVector& compiletimeparams);
+typedef void (*CompilerHelperPtr)(IRSemantics::Statement& statement, IRSemantics::Program& program, IRSemantics::CodeBlock& activescope, bool inreturnexpr);
 typedef std::map<StringHandle, CompilerHelperPtr> FunctionCompileHelperTable;
 
 typedef std::multimap<int, StringHandle> PrecedenceTable;

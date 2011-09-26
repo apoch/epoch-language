@@ -19,6 +19,8 @@ namespace IRSemantics
 
 	// Forward declarations
 	class Expression;
+	class CodeBlock;
+	class Program;
 
 
 	class Statement
@@ -39,6 +41,14 @@ namespace IRSemantics
 
 		const std::vector<Expression*>& GetParameters() const
 		{ return Parameters; }
+
+	// Validation
+	public:
+		bool Validate(const Program& program) const;
+
+	// Compile time code execution
+	public:
+		bool CompileTimeCodeExecution(Program& program, CodeBlock& activescope, bool inreturnexpr);
 
 	// Internal state
 	private:

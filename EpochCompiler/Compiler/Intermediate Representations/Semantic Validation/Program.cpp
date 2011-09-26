@@ -25,12 +25,13 @@ using namespace IRSemantics;
 //
 // Construct and initialize a program
 //
-Program::Program(StringPoolManager& strings, const CompilerInfoTable& infotable)
+Program::Program(StringPoolManager& strings, CompilerInfoTable& infotable)
 	: CounterAnonParam(0),
 	  CounterLexicalScope(0),
 	  Strings(strings),
 	  StructureTypeCounter(VM::EpochType_CustomBase),
-	  InfoTable(infotable)
+	  InfoTable(infotable),
+	  GlobalScope(NULL)
 {
 }
 
@@ -47,6 +48,8 @@ Program::~Program()
 
 	for(std::vector<CodeBlock*>::iterator iter = GlobalCodeBlocks.begin(); iter != GlobalCodeBlocks.end(); ++iter)
 		delete *iter;
+
+	delete GlobalScope;
 }
 
 
@@ -159,14 +162,46 @@ StringHandle Program::GetGlobalCodeBlockName(size_t index) const
 //
 bool Program::Validate() const
 {
+	bool valid = true;
+
 	for(std::map<StringHandle, Structure*>::const_iterator iter = Structures.begin(); iter != Structures.end(); ++iter)
 	{
 		if(!iter->second->Validate(*this))
+			valid = false;
+	}
+
+	for(std::vector<CodeBlock*>::const_iterator iter = GlobalCodeBlocks.begin(); iter != GlobalCodeBlocks.end(); ++iter)
+	{
+		if(!(*iter)->Validate(*this))
+			valid = false;
+	}
+
+	for(std::map<StringHandle, Function*>::const_iterator iter = Functions.begin(); iter != Functions.end(); ++iter)
+	{
+		if(!iter->second->Validate(*this))
+			valid = false;
+	}
+
+	return valid;
+}
+
+bool Program::CompileTimeCodeExecution()
+{
+	for(std::vector<CodeBlock*>::iterator iter = GlobalCodeBlocks.begin(); iter != GlobalCodeBlocks.end(); ++iter)
+	{
+		if(!(*iter)->CompileTimeCodeExecution(*this))
+			return false;
+	}
+
+	for(std::map<StringHandle, Function*>::iterator iter = Functions.begin(); iter != Functions.end(); ++iter)
+	{
+		if(!iter->second->CompileTimeCodeExecution(*this))
 			return false;
 	}
 
 	return true;
 }
+
 
 //
 // Allocate a name for an anonymous function parameter (usually an expression)
@@ -299,3 +334,11 @@ Bytecode::EntityTag Program::GetEntityTag(StringHandle identifier) const
 	throw std::exception("Invalid entity");			// TODO - better exceptions
 }
 
+
+ScopeDescription* Program::GetGlobalScope()
+{
+	if(!GlobalScope)
+		GlobalScope = new ScopeDescription;
+
+	return GlobalScope;
+}

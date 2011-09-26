@@ -11,7 +11,10 @@
 
 #include "Metadata/ScopeDescription.h"
 
-#include "Compilation/SemanticActionInterface.h"
+#include "Compiler/Intermediate Representations/Semantic Validation/Statement.h"
+#include "Compiler/Intermediate Representations/Semantic Validation/Expression.h"
+#include "Compiler/Intermediate Representations/Semantic Validation/CodeBlock.h"
+#include "Compiler/Intermediate Representations/Semantic Validation/Program.h"
 
 #include "Utility/StringPool.h"
 #include "Utility/NoDupeMap.h"
@@ -26,14 +29,16 @@ namespace
 	// lexical scope. This function is specifically intended for such cases
 	// as overloaded structure constructors.
 	//
-	void ConstructorCompileHelper(const std::wstring& functionname, SemanticActionInterface& semantics, ScopeDescription& scope, const CompileTimeParameterVector& compiletimeparams)
+	void ConstructorCompileHelper(IRSemantics::Statement& statement, IRSemantics::Program& program, IRSemantics::CodeBlock& activescope, bool inreturnexpr)
 	{
-		if(compiletimeparams[0].Type != VM::EpochType_Identifier)
+		if(statement.GetParameters()[0]->GetEpochType(program) != VM::EpochType_Identifier)
 			throw RecoverableException("Functions tagged as constructors must accept an identifier as their first parameter");
 
-		VariableOrigin origin = (semantics.IsInReturnDeclaration() ? VARIABLE_ORIGIN_RETURN : VARIABLE_ORIGIN_LOCAL);
-		VM::EpochTypeID effectivetype = semantics.LookupTypeName(functionname);
-		scope.AddVariable(compiletimeparams[0].StringPayload, compiletimeparams[0].LRValueContents.Identifier, effectivetype, false, origin);
+		const IRSemantics::ExpressionAtomIdentifier* atom = dynamic_cast<const IRSemantics::ExpressionAtomIdentifier*>(statement.GetParameters()[0]->GetFirst().GetAtom());
+
+		VariableOrigin origin = (inreturnexpr ? VARIABLE_ORIGIN_RETURN : VARIABLE_ORIGIN_LOCAL);
+		VM::EpochTypeID effectivetype = program.LookupType(statement.GetName());
+		activescope.AddVariable(program.GetString(atom->GetIdentifier()), atom->GetIdentifier(), effectivetype, false, origin);
 	}
 
 	//

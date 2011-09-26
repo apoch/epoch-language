@@ -49,3 +49,53 @@ void Entity::AddChain(Entity* entity)
 	Chain.push_back(entity);
 }
 
+
+bool Entity::Validate(const Program& program) const
+{
+	bool valid = true;
+
+	for(std::vector<Expression*>::const_iterator iter = Parameters.begin(); iter != Parameters.end(); ++iter)
+	{
+		if(!(*iter)->Validate(program))
+			valid = false;
+	}
+
+	for(std::vector<Entity*>::const_iterator iter = Chain.begin(); iter != Chain.end(); ++iter)
+	{
+		if(!(*iter)->Validate(program))
+			valid = false;
+	}
+
+	if(!Code)
+		valid = false;
+	else
+	{
+		if(!Code->Validate(program))
+			valid = false;
+	}
+
+	return valid;
+}
+
+bool Entity::CompileTimeCodeExecution(Program& program)
+{
+	for(std::vector<Expression*>::iterator iter = Parameters.begin(); iter != Parameters.end(); ++iter)
+	{
+		if(!(*iter)->CompileTimeCodeExecution(program))
+			return false;
+	}
+
+	if(!Code)
+		return false;
+
+	if(!Code->CompileTimeCodeExecution(program))
+		return false;
+
+	for(std::vector<Entity*>::iterator iter = Chain.begin(); iter != Chain.end(); ++iter)
+	{
+		if(!(*iter)->CompileTimeCodeExecution(program))
+			return false;
+	}
+
+	return true;
+}

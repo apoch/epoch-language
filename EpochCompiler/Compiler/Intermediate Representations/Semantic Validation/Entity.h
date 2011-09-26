@@ -18,6 +18,7 @@ namespace IRSemantics
 	// Forward declarations
 	class CodeBlock;
 	class Expression;
+	class Program;
 
 
 	class Entity
@@ -57,6 +58,14 @@ namespace IRSemantics
 	public:
 		StringHandle GetName() const
 		{ return Name; }
+
+	// Validation
+	public:
+		bool Validate(const Program& program) const;
+
+	// Compile time code execution
+	public:
+		bool CompileTimeCodeExecution(Program& program);
 
 	// Internal state
 	private:

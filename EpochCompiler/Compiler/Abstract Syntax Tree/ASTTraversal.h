@@ -331,6 +331,17 @@ namespace ASTTraverse
 		}
 
 		//
+		// Traverse a function parameter
+		//
+		template <typename EntryActionT, typename ExitActionT>
+		void Do(EntryActionT& entryaction, AST::FunctionParameter& param, ExitActionT& exitaction)
+		{
+			entryaction(param);
+			Do(entryaction, param.V, exitaction);
+			exitaction(param);
+		}
+
+		//
 		// Traverse a function definition
 		//
 		template <typename EntryActionT, typename ExitActionT>

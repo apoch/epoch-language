@@ -22,6 +22,19 @@ bool Expression::Validate(const Program& program) const
 }
 
 
+bool Expression::CompileTimeCodeExecution(Program& program)
+{
+	// TODO - compile time code execution for expressions
+	return true;
+}
+
+VM::EpochTypeID Expression::GetEpochType(const Program& program) const
+{
+	// TODO - implement typed expressions
+	return VM::EpochType_Error;
+}
+
+
 ExpressionComponent::ExpressionComponent(const std::vector<StringHandle>& prefixes)
 	: UnaryPrefixes(prefixes),
 	  Atom(NULL)

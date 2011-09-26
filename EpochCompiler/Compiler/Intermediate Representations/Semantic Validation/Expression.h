@@ -9,9 +9,12 @@
 
 
 // Dependencies
+#include "Compiler/ExportDef.h"
+
 #include "Utility/Types/IDTypes.h"
 #include "Utility/Types/IntegerTypes.h"
 #include "Utility/Types/RealTypes.h"
+#include "Utility/Types/EpochTypeIDs.h"
 
 #include <vector>
 
@@ -102,9 +105,17 @@ namespace IRSemantics
 		const std::vector<ExpressionFragment*>& GetRemaining() const
 		{ return Remaining; }
 
+	// Type system
+	public:
+		EPOCHCOMPILER VM::EpochTypeID GetEpochType(const Program& program) const;
+
 	// Validation
 	public:
 		bool Validate(const Program& program) const;
+
+	// Compile time code execution
+	public:
+		bool CompileTimeCodeExecution(Program& program);
 
 	// Internal state
 	private:

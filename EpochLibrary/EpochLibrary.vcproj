@@ -40,7 +40,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories=".\;..\Shared\;..\EpochVM\"
+				AdditionalIncludeDirectories=".\;..\Shared\;..\EpochVM\;..\EpochCompiler\"
 				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_USRDLL;EPOCHLIBRARY_EXPORTS"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
@@ -120,7 +120,7 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalIncludeDirectories=".\;..\Shared\;..\EpochVM\"
+				AdditionalIncludeDirectories=".\;..\Shared\;..\EpochVM\;..\EpochCompiler\"
 				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;EPOCHLIBRARY_EXPORTS"
 				RuntimeLibrary="2"
 				UsePrecompiledHeader="2"
