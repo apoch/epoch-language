@@ -11,13 +11,17 @@
 #include "Compiler/Intermediate Representations/Semantic Validation/Assignment.h"
 #include "Compiler/Intermediate Representations/Semantic Validation/Statement.h"
 #include "Compiler/Intermediate Representations/Semantic Validation/Entity.h"
+#include "Compiler/Intermediate Representations/Semantic Validation/Program.h"
+
+#include "Compiler/Intermediate Representations/Semantic Validation/InferenceContext.h"
 
 
 using namespace IRSemantics;
 
 
-CodeBlock::CodeBlock(ScopeDescription* scope)
-	: Scope(scope)
+CodeBlock::CodeBlock(ScopeDescription* scope, bool ownsscope)
+	: Scope(scope),
+	  OwnsScope(ownsscope)
 {
 	if(!Scope)
 		throw std::exception("Code block must be bound to a scope!");		// TODO - better exceptions
@@ -28,7 +32,8 @@ CodeBlock::~CodeBlock()
 	for(std::vector<CodeBlockEntry*>::iterator iter = Entries.begin(); iter != Entries.end(); ++iter)
 		delete *iter;
 
-	delete Scope;
+	if (OwnsScope)
+		delete Scope;
 }
 
 void CodeBlock::AddEntry(CodeBlockEntry* entry)
@@ -71,6 +76,35 @@ bool CodeBlock::CompileTimeCodeExecution(Program& program)
 	return true;
 }
 
+bool CodeBlock::TypeInference(Program& program, InferenceContext& context)
+{
+	StringHandle thisblockname;
+	switch(context.State)
+	{
+	case InferenceContext::CONTEXT_GLOBAL:
+		thisblockname = program.GetGlobalCodeBlockName(0);			// TODO - indexed global code blocks
+		break;
+
+	case InferenceContext::CONTEXT_FUNCTION:
+	case InferenceContext::CONTEXT_CODE_BLOCK:
+		thisblockname = program.FindLexicalScopeName(this);
+		break;
+
+	default:
+		throw std::exception("Invalid inference context");		// TODO - better exceptions
+	}
+
+	InferenceContext newcontext(thisblockname, InferenceContext::CONTEXT_CODE_BLOCK);
+
+	for(std::vector<CodeBlockEntry*>::iterator iter = Entries.begin(); iter != Entries.end(); ++iter)
+	{
+		if(!(*iter)->TypeInference(program, *this, newcontext))
+			return false;
+	}
+	
+	return true;
+}
+
 
 CodeBlockAssignmentEntry::CodeBlockAssignmentEntry(Assignment* assignment)
 	: MyAssignment(assignment)
@@ -84,8 +118,18 @@ CodeBlockAssignmentEntry::~CodeBlockAssignmentEntry()
 
 bool CodeBlockAssignmentEntry::Validate(const Program& program) const
 {
-	// TODO - type validation on assigments
-	return true;
+	if(!MyAssignment)
+		return false;
+
+	return MyAssignment->Validate(program);
+}
+
+bool CodeBlockAssignmentEntry::TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context)
+{
+	if(!MyAssignment)
+		return false;
+
+	return MyAssignment->TypeInference(program, activescope, context);
 }
 
 
@@ -115,6 +159,14 @@ bool CodeBlockStatementEntry::CompileTimeCodeExecution(Program& program, CodeBlo
 	return MyStatement->CompileTimeCodeExecution(program, activescope, false);
 }
 
+bool CodeBlockStatementEntry::TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context)
+{
+	if(!MyStatement)
+		return false;
+
+	return MyStatement->TypeInference(program, activescope, context);
+}
+
 
 CodeBlockPreOpStatementEntry::CodeBlockPreOpStatementEntry(PreOpStatement* statement)
 	: MyStatement(statement)
@@ -132,6 +184,14 @@ bool CodeBlockPreOpStatementEntry::Validate(const Program& program) const
 	return true;
 }
 
+bool CodeBlockPreOpStatementEntry::TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context)
+{
+	if(!MyStatement)
+		return false;
+
+	return MyStatement->TypeInference(program, activescope, context);
+}
+
 
 CodeBlockPostOpStatementEntry::CodeBlockPostOpStatementEntry(PostOpStatement* statement)
 	: MyStatement(statement)
@@ -147,6 +207,14 @@ bool CodeBlockPostOpStatementEntry::Validate(const Program& program) const
 {
 	// TODO - type validation on postops
 	return true;
+}
+
+bool CodeBlockPostOpStatementEntry::TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context)
+{
+	if(!MyStatement)
+		return false;
+
+	return MyStatement->TypeInference(program, activescope, context);
 }
 
 
@@ -176,6 +244,14 @@ bool CodeBlockInnerBlockEntry::CompileTimeCodeExecution(Program& program, CodeBl
 	return MyCodeBlock->CompileTimeCodeExecution(program);
 }
 
+bool CodeBlockInnerBlockEntry::TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context)
+{
+	if(!MyCodeBlock)
+		return false;
+
+	return MyCodeBlock->TypeInference(program, context);
+}
+
 
 CodeBlockEntityEntry::CodeBlockEntityEntry(Entity* entity)
 	: MyEntity(entity)
@@ -200,6 +276,14 @@ bool CodeBlockEntityEntry::CompileTimeCodeExecution(Program& program, CodeBlock&
 	if(!MyEntity)
 		return false;
 
-	return MyEntity->CompileTimeCodeExecution(program);
+	return MyEntity->CompileTimeCodeExecution(program, activescope);
+}
+
+bool CodeBlockEntityEntry::TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context)
+{
+	if(!MyEntity)
+		return false;
+
+	return MyEntity->TypeInference(program, activescope, context);
 }
 

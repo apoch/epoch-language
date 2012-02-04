@@ -21,6 +21,7 @@ namespace IRSemantics
 	class Expression;
 	class CodeBlock;
 	class Program;
+	struct InferenceContext;
 
 
 	class Statement
@@ -50,6 +51,10 @@ namespace IRSemantics
 	public:
 		bool CompileTimeCodeExecution(Program& program, CodeBlock& activescope, bool inreturnexpr);
 
+	// Type inference
+	public:
+		bool TypeInference(IRSemantics::Program& program, CodeBlock& activescope, InferenceContext& context);
+
 	// Internal state
 	private:
 		StringHandle Name;
@@ -74,6 +79,10 @@ namespace IRSemantics
 		const std::vector<StringHandle>& GetOperand() const
 		{ return Operand; }
 
+	// Type inference
+	public:
+		bool TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context);
+
 	// Internal state
 	private:
 		StringHandle OperatorName;
@@ -96,6 +105,10 @@ namespace IRSemantics
 
 		const std::vector<StringHandle>& GetOperand() const
 		{ return Operand; }
+
+	// Type inference
+	public:
+		bool TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context);
 
 	// Internal state
 	private:

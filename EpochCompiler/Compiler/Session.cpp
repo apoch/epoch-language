@@ -34,7 +34,7 @@
 
 #include "Compiler/Diagnostics.h"
 
-#include <iostream>
+#include <iostream>			// TODO - replace with UI wrappers
 
 
 //
@@ -170,7 +170,7 @@ void CompileSession::CompileFile(const std::wstring& code, const std::wstring& f
 	Profiling::Timer timer;
 	timer.Begin();
 
-	SemanticProgram = CompilerPasses::ValidateSemantics(*ASTProgram, StringPool, InfoTable);
+	SemanticProgram = CompilerPasses::ValidateSemantics(*ASTProgram, StringPool, *this);
 
 	timer.End();
 	std::wcout << L"finished in " << timer.GetTimeMs() << L"ms" << std::endl;

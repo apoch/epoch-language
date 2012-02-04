@@ -23,6 +23,7 @@ namespace IRSemantics
 	class Program;
 	class CodeBlock;
 	class Expression;
+	struct InferenceContext;
 
 
 	//
@@ -160,6 +161,11 @@ namespace IRSemantics
 		Function(const Function& other);
 		Function& operator = (const Function& rhs);
 
+	// Name
+	public:
+		void SetName(StringHandle name)
+		{ Name = name; }
+
 	// Parameters
 	public:
 		void AddParameter(StringHandle name, FunctionParam* param);
@@ -192,8 +198,14 @@ namespace IRSemantics
 	public:
 		bool CompileTimeCodeExecution(IRSemantics::Program& program);
 
+	// Type inference
+	public:
+		bool TypeInference(IRSemantics::Program& program, InferenceContext& context);
+
 	// Internal state
 	private:
+		StringHandle Name;
+
 		CodeBlock* Code;
 		Expression* Return;
 

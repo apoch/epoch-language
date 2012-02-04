@@ -77,11 +77,11 @@ bool Entity::Validate(const Program& program) const
 	return valid;
 }
 
-bool Entity::CompileTimeCodeExecution(Program& program)
+bool Entity::CompileTimeCodeExecution(Program& program, CodeBlock& activescope)
 {
 	for(std::vector<Expression*>::iterator iter = Parameters.begin(); iter != Parameters.end(); ++iter)
 	{
-		if(!(*iter)->CompileTimeCodeExecution(program))
+		if(!(*iter)->CompileTimeCodeExecution(program, activescope))
 			return false;
 	}
 
@@ -93,7 +93,33 @@ bool Entity::CompileTimeCodeExecution(Program& program)
 
 	for(std::vector<Entity*>::iterator iter = Chain.begin(); iter != Chain.end(); ++iter)
 	{
-		if(!(*iter)->CompileTimeCodeExecution(program))
+		if(!(*iter)->CompileTimeCodeExecution(program, activescope))
+			return false;
+	}
+
+	return true;
+}
+
+bool Entity::TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context)
+{
+	size_t i = 0;
+	for(std::vector<Expression*>::iterator iter = Parameters.begin(); iter != Parameters.end(); ++iter)
+	{
+		if(!(*iter)->TypeInference(program, activescope, context, i))
+			return false;
+
+		++i;
+	}
+
+	if(!Code)
+		return false;
+
+	if(!Code->TypeInference(program, context))
+		return false;
+
+	for(std::vector<Entity*>::iterator iter = Chain.begin(); iter != Chain.end(); ++iter)
+	{
+		if(!(*iter)->TypeInference(program, activescope, context))
 			return false;
 	}
 

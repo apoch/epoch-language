@@ -10,6 +10,7 @@
 
 // Dependencies
 #include "Utility/Types/IDTypes.h"
+#include "Utility/Types/EpochTypeIDs.h"
 
 #include <vector>
 
@@ -19,6 +20,9 @@ namespace IRSemantics
 
 	// Forward declarations
 	class Expression;
+	class CodeBlock;
+	class Program;
+	struct InferenceContext;
 
 
 	class AssignmentChain
@@ -35,6 +39,10 @@ namespace IRSemantics
 
 		virtual void SetRHSRecursive(AssignmentChain* rhs)
 		{ }
+
+		virtual VM::EpochTypeID GetEpochType(const Program& program) const = 0;
+
+		virtual bool TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context) = 0;
 	};
 
 	class Assignment
@@ -62,8 +70,19 @@ namespace IRSemantics
 		const AssignmentChain* GetRHS() const
 		{ return RHS; }
 
+		AssignmentChain* GetRHS()
+		{ return RHS; }
+
 		StringHandle GetOperatorName() const
 		{ return OperatorName; }
+
+	// Validation
+	public:
+		bool Validate(const Program& program) const;
+
+	// Type inference
+	public:
+		bool TypeInference(IRSemantics::Program& program, CodeBlock& activescope, InferenceContext& context);
 
 	// Internal state
 	private:
@@ -90,6 +109,11 @@ namespace IRSemantics
 		const Expression& GetExpression() const
 		{ return *MyExpression; }
 
+	// Chain interface
+	public:
+		virtual VM::EpochTypeID GetEpochType(const Program& program) const;
+		virtual bool TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context);
+
 	// Internal state
 	private:
 		Expression* MyExpression;
@@ -113,6 +137,10 @@ namespace IRSemantics
 		{ return true; }
 
 		virtual void SetRHSRecursive(AssignmentChain* rhs);
+
+		virtual VM::EpochTypeID GetEpochType(const Program& program) const;
+
+		virtual bool TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context);
 
 	// Access to assignment
 	public:

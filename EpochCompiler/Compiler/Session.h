@@ -69,6 +69,7 @@ public:
 	EntityTable PostfixEntities;
 	EntityTable PostfixClosers;
 	FunctionTagHelperTable FunctionTagHelpers;
+	CompilerInfoTable InfoTable;
 
 // Internal helpers
 private:
@@ -83,7 +84,5 @@ private:
 	ByteBuffer FinalByteCode;
 
 	IdentifierTable Identifiers;
-
-	CompilerInfoTable InfoTable;
 };
 

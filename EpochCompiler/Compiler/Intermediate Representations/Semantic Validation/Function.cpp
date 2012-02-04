@@ -141,7 +141,10 @@ bool Function::CompileTimeCodeExecution(Program& program)
 {
 	if(Return)
 	{
-		if(!Return->CompileTimeCodeExecution(program))
+		if(!Code)
+			return false;
+
+		if(!Return->CompileTimeCodeExecution(program, *Code))
 			return false;
 	}
 
@@ -150,6 +153,23 @@ bool Function::CompileTimeCodeExecution(Program& program)
 
 	return Code->CompileTimeCodeExecution(program);
 }
+
+
+bool Function::TypeInference(Program& program, InferenceContext& context)
+{
+	if(!Code)
+		return true;
+
+	if(Return)
+	{
+		if(!Return->TypeInference(program, *Code, context, 0))
+			return false;
+	}
+
+	InferenceContext newcontext(Name, InferenceContext::CONTEXT_FUNCTION);
+	return Code->TypeInference(program, newcontext);
+}
+
 
 
 //

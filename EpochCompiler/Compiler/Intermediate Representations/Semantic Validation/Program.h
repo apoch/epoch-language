@@ -11,6 +11,8 @@
 // Dependencies
 #include "Compiler/ExportDef.h"
 
+#include "Compiler/Intermediate Representations/Semantic Validation/InferenceContext.h"
+
 #include "Utility/Types/IDTypes.h"
 #include "Utility/Types/EpochTypeIDs.h"
 
@@ -24,7 +26,7 @@
 
 // Forward declarations
 class StringPoolManager;
-struct CompilerInfoTable;
+class CompileSession;
 
 
 namespace IRSemantics
@@ -43,7 +45,7 @@ namespace IRSemantics
 	{
 	// Construction and destruction
 	public:
-		Program(StringPoolManager& strings, CompilerInfoTable& infotable);
+		Program(StringPoolManager& strings, CompileSession& session);
 		~Program();
 
 	// Non-copyable
@@ -71,6 +73,7 @@ namespace IRSemantics
 		StringHandle CreateFunctionOverload(const std::wstring& name);
 
 		void AddFunction(StringHandle name, Function* function);
+		bool HasFunction(StringHandle name) const;
 
 		const std::map<StringHandle, Function*>& GetFunctions() const
 		{ return Functions; }
@@ -107,19 +110,25 @@ namespace IRSemantics
 	public:
 		bool CompileTimeCodeExecution();
 
+	// Type inference
+	public:
+		bool TypeInference();
+		InferenceContext::PossibleParameterTypes GetExpectedTypesForStatement(StringHandle name) const;
+
 	// Validation
 	public:
 		bool Validate() const;
 
 	// Internal helpers
 	private:
+		std::wstring GenerateFunctionOverloadName(StringHandle name, size_t index) const;
 		static std::wstring GenerateAnonymousGlobalScopeName(size_t index);
 		static std::wstring GenerateLexicalScopeName(const CodeBlock* blockptr);
 		static std::wstring GenerateStructureMemberAccessOverloadName(const std::wstring& structurename, const std::wstring& membername);
 
 	// Accessible state
 	public:
-		CompilerInfoTable& InfoTable;
+		CompileSession& Session;
 
 	// Internal state
 	private:

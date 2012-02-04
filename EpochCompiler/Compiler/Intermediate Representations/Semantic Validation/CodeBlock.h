@@ -28,6 +28,7 @@ namespace IRSemantics
 	class CodeBlock;
 	class Entity;
 	class Program;
+	struct InferenceContext;
 
 
 	class CodeBlockEntry
@@ -45,13 +46,17 @@ namespace IRSemantics
 	public:
 		virtual bool CompileTimeCodeExecution(Program& program, CodeBlock& activescope)
 		{ return true; }
+
+	// Type inference
+	public:
+		virtual bool TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context) = 0;
 	};
 
 	class CodeBlock
 	{
 	// Construction and destruction
 	public:
-		explicit CodeBlock(ScopeDescription* scope);
+		explicit CodeBlock(ScopeDescription* scope, bool ownsscope = true);
 		~CodeBlock();
 
 	// Non-copyable
@@ -82,10 +87,15 @@ namespace IRSemantics
 	public:
 		bool CompileTimeCodeExecution(IRSemantics::Program& program);
 
+	// Type inference
+	public:
+		bool TypeInference(IRSemantics::Program& program, InferenceContext& context);
+
 	// Internal state
 	private:
 		std::vector<CodeBlockEntry*> Entries;
 		ScopeDescription* Scope;
+		bool OwnsScope;
 	};
 
 
@@ -104,6 +114,10 @@ namespace IRSemantics
 	// Validation
 	public:
 		virtual bool Validate(const IRSemantics::Program& program) const;
+
+	// Type inference
+	public:
+		virtual bool TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context);
 
 	// Property access
 	public:
@@ -135,6 +149,10 @@ namespace IRSemantics
 	public:
 		virtual bool CompileTimeCodeExecution(IRSemantics::Program& program, CodeBlock& activescope);
 
+	// Type inference
+	public:
+		virtual bool TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context);
+
 	// Statement access
 	public:
 		const Statement& GetStatement() const
@@ -161,6 +179,10 @@ namespace IRSemantics
 	public:
 		virtual bool Validate(const IRSemantics::Program& program) const;
 
+	// Type inference
+	public:
+		virtual bool TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context);
+
 	// Statement access
 	public:
 		const PreOpStatement& GetStatement() const
@@ -186,6 +208,10 @@ namespace IRSemantics
 	// Validation
 	public:
 		virtual bool Validate(const IRSemantics::Program& program) const;
+
+	// Type inference
+	public:
+		virtual bool TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context);
 
 	// Statement access
 	public:
@@ -217,6 +243,10 @@ namespace IRSemantics
 	public:
 		virtual bool CompileTimeCodeExecution(IRSemantics::Program& program, CodeBlock& activescope);
 
+	// Type inference
+	public:
+		virtual bool TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context);
+
 	// Internal code access
 	public:
 		const CodeBlock& GetCode() const
@@ -246,6 +276,10 @@ namespace IRSemantics
 	// Compile time code execution
 	public:
 		virtual bool CompileTimeCodeExecution(IRSemantics::Program& program, CodeBlock& activescope);
+
+	// Type inference
+	public:
+		virtual bool TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context);
 
 	// Accessors
 	public:

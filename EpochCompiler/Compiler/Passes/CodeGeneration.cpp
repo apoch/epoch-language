@@ -27,7 +27,7 @@
 namespace
 {
 	void Generate(const IRSemantics::CodeBlock& codeblock, const IRSemantics::Program& program, ByteCodeEmitter& emitter);
-	void EmitStatement(ByteCodeEmitter& emitter, const IRSemantics::Statement& statement, const IRSemantics::CodeBlock& activescope);
+	void EmitStatement(ByteCodeEmitter& emitter, const IRSemantics::Statement& statement, const IRSemantics::CodeBlock& activescope, const IRSemantics::Program& program);
 
 
 	void BindReference(ByteCodeEmitter& emitter, const std::vector<StringHandle>& identifiers)
@@ -73,9 +73,8 @@ namespace
 		}
 	}
 
-	void EmitExpressionComponent(ByteCodeEmitter& emitter, const IRSemantics::ExpressionComponent& component, const IRSemantics::CodeBlock& activescope)
+	void EmitExpressionAtom(ByteCodeEmitter& emitter, const IRSemantics::ExpressionAtom* rawatom, const IRSemantics::CodeBlock& activescope, const IRSemantics::Program& program)
 	{
-		const IRSemantics::ExpressionAtom* rawatom = component.GetAtom();
 		if(!rawatom)
 			throw std::exception("Bogus lack of atom");			// TODO - better exceptions
 		else if(const IRSemantics::ExpressionAtomParenthetical* atom = dynamic_cast<const IRSemantics::ExpressionAtomParenthetical*>(rawatom))
@@ -84,7 +83,14 @@ namespace
 		}
 		else if(const IRSemantics::ExpressionAtomIdentifier* atom = dynamic_cast<const IRSemantics::ExpressionAtomIdentifier*>(rawatom))
 		{
-			emitter.PushVariableValue(atom->GetIdentifier(), activescope.GetVariableTypeByID(atom->GetIdentifier()));
+			if(program.HasFunction(atom->GetIdentifier()))
+				emitter.PushStringLiteral(atom->GetIdentifier());
+			else
+				emitter.PushVariableValue(atom->GetIdentifier(), activescope.GetVariableTypeByID(atom->GetIdentifier()));
+		}
+		else if(const IRSemantics::ExpressionAtomOperator* atom = dynamic_cast<const IRSemantics::ExpressionAtomOperator*>(rawatom))
+		{
+			emitter.Invoke(atom->GetIdentifier());
 		}
 		else if(const IRSemantics::ExpressionAtomLiteralString* atom = dynamic_cast<const IRSemantics::ExpressionAtomLiteralString*>(rawatom))
 		{
@@ -104,37 +110,26 @@ namespace
 		}
 		else if(const IRSemantics::ExpressionAtomStatement* atom = dynamic_cast<const IRSemantics::ExpressionAtomStatement*>(rawatom))
 		{
-			EmitStatement(emitter, atom->GetStatement(), activescope);
+			EmitStatement(emitter, atom->GetStatement(), activescope, program);
 		}
 		else
 			throw std::exception("Bogus expression atom");		// TODO - better exceptions
-
-		const std::vector<StringHandle>& prefixes = component.GetPrefixes();
-		for(std::vector<StringHandle>::const_iterator iter = prefixes.begin(); iter != prefixes.end(); ++iter)
-		{
-			// TODO - handle overloads
-			emitter.Invoke(*iter);
-		}
 	}
 
-	void EmitExpressionFragment(ByteCodeEmitter& emitter, const IRSemantics::ExpressionFragment& fragment)
+	void EmitExpression(ByteCodeEmitter& emitter, const IRSemantics::Expression& expression, const IRSemantics::CodeBlock& activescope, const IRSemantics::Program& program)
 	{
-		// TODO
-		// TODO - operator precedence reordering
+		// TODO - have semantic layer reorder the expression for operator precedence prior to code generation
+
+		const std::vector<IRSemantics::ExpressionAtom*>& rawatoms = expression.GetAtoms();
+		for(std::vector<IRSemantics::ExpressionAtom*>::const_iterator iter = rawatoms.begin(); iter != rawatoms.end(); ++iter)
+			EmitExpressionAtom(emitter, *iter, activescope, program);
 	}
 
-	void EmitExpression(ByteCodeEmitter& emitter, const IRSemantics::Expression& expression, const IRSemantics::CodeBlock& activescope)
-	{
-		EmitExpressionComponent(emitter, expression.GetFirst(), activescope);
-		for(std::vector<IRSemantics::ExpressionFragment*>::const_iterator iter = expression.GetRemaining().begin(); iter != expression.GetRemaining().end(); ++iter)
-			EmitExpressionFragment(emitter, **iter);
-	}
-
-	void EmitStatement(ByteCodeEmitter& emitter, const IRSemantics::Statement& statement, const IRSemantics::CodeBlock& activescope)
+	void EmitStatement(ByteCodeEmitter& emitter, const IRSemantics::Statement& statement, const IRSemantics::CodeBlock& activescope, const IRSemantics::Program& program)
 	{
 		const std::vector<IRSemantics::Expression*>& params = statement.GetParameters();
 		for(std::vector<IRSemantics::Expression*>::const_iterator paramiter = params.begin(); paramiter != params.end(); ++paramiter)
-			EmitExpression(emitter, **paramiter, activescope);
+			EmitExpression(emitter, **paramiter, activescope, program);
 
 		// TODO - handle overloads
 		emitter.Invoke(statement.GetName());
@@ -149,7 +144,7 @@ namespace
 			throw std::exception("Bogus data in assignment");	// TODO - better exceptions
 		else if(const IRSemantics::AssignmentChainExpression* rhsexpression = dynamic_cast<const IRSemantics::AssignmentChainExpression*>(rhs))
 		{
-			EmitExpression(emitter, rhsexpression->GetExpression(), activescope);
+			EmitExpression(emitter, rhsexpression->GetExpression(), activescope, program);
 		}
 		else if(const IRSemantics::AssignmentChainAssignment* rhsassignment = dynamic_cast<const IRSemantics::AssignmentChainAssignment*>(rhs))
 		{
@@ -178,7 +173,7 @@ namespace
 	{
 		const std::vector<IRSemantics::Expression*>& params = entity.GetParameters();
 		for(std::vector<IRSemantics::Expression*>::const_iterator iter = params.begin(); iter != params.end(); ++iter)
-			EmitExpression(emitter, **iter, activescope);
+			EmitExpression(emitter, **iter, activescope, program);
 
 		// TODO - handle postfix entities
 
@@ -202,7 +197,7 @@ namespace
 			}
 			else if(const IRSemantics::CodeBlockStatementEntry* entry = dynamic_cast<const IRSemantics::CodeBlockStatementEntry*>(baseentry))
 			{
-				EmitStatement(emitter, entry->GetStatement(), codeblock);
+				EmitStatement(emitter, entry->GetStatement(), codeblock, program);
 			}
 			else if(const IRSemantics::CodeBlockPreOpStatementEntry* entry = dynamic_cast<const IRSemantics::CodeBlockPreOpStatementEntry*>(baseentry))
 			{
@@ -264,6 +259,20 @@ bool CompilerPasses::GenerateCode(const IRSemantics::Program& program, ByteCodeE
 	for(std::map<StringHandle, std::wstring>::const_iterator iter = stringpool.begin(); iter != stringpool.end(); ++iter)
 		emitter.PoolString(iter->first, iter->second);
 
+	const std::map<StringHandle, IRSemantics::Structure*>& structures = program.GetStructures();
+	for(std::map<StringHandle, IRSemantics::Structure*>::const_iterator iter = structures.begin(); iter != structures.end(); ++iter)
+	{
+		const std::vector<std::pair<StringHandle, IRSemantics::StructureMember*> >& members = iter->second->GetMembers();
+		emitter.DefineStructure(iter->first, members.size());
+		for(std::vector<std::pair<StringHandle, IRSemantics::StructureMember*> >::const_iterator memberiter = members.begin(); memberiter != members.end(); ++memberiter)
+			emitter.StructureMember(memberiter->first, memberiter->second->GetEpochType(program));
+	}
+
+
+	// TODO - emit lexical scope metadata
+	// TODO - emit function tag metadata
+
+
 	size_t numglobalblocks = program.GetNumGlobalCodeBlocks();
 	for(size_t i = 0; i < numglobalblocks; ++i)
 	{
@@ -288,20 +297,6 @@ bool CompilerPasses::GenerateCode(const IRSemantics::Program& program, ByteCodeE
 
 	for(size_t i = 0; i < numglobalblocks; ++i)
 		emitter.ExitEntity();
-
-	
-	const std::map<StringHandle, IRSemantics::Structure*>& structures = program.GetStructures();
-	for(std::map<StringHandle, IRSemantics::Structure*>::const_iterator iter = structures.begin(); iter != structures.end(); ++iter)
-	{
-		const std::vector<std::pair<StringHandle, IRSemantics::StructureMember*> >& members = iter->second->GetMembers();
-		emitter.DefineStructure(iter->first, members.size());
-		for(std::vector<std::pair<StringHandle, IRSemantics::StructureMember*> >::const_iterator memberiter = members.begin(); memberiter != members.end(); ++memberiter)
-			emitter.StructureMember(memberiter->first, memberiter->second->GetEpochType(program));
-	}
-
-
-	// TODO - emit lexical scope metadata
-	// TODO - emit function tag metadata
 
 	return true;
 }

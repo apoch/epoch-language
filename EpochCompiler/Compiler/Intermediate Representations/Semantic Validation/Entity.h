@@ -19,6 +19,7 @@ namespace IRSemantics
 	class CodeBlock;
 	class Expression;
 	class Program;
+	struct InferenceContext;
 
 
 	class Entity
@@ -65,7 +66,11 @@ namespace IRSemantics
 
 	// Compile time code execution
 	public:
-		bool CompileTimeCodeExecution(Program& program);
+		bool CompileTimeCodeExecution(Program& program, CodeBlock& activescope);
+
+	// Type inference
+	public:
+		bool TypeInference(IRSemantics::Program& program, CodeBlock& activescope, InferenceContext& context);
 
 	// Internal state
 	private:

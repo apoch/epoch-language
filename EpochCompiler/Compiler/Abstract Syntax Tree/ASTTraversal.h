@@ -119,6 +119,7 @@ namespace ASTTraverse
 	namespace Markers
 	{
 		struct FunctionReturnExpression { };
+		struct ExpressionComponentPrefixes { };
 	}
 
 	//
@@ -245,7 +246,9 @@ namespace ASTTraverse
 		void Do(EntryActionT& entryaction, AST::ExpressionComponent& component, ExitActionT& exitaction)
 		{
 			entryaction(component);
+			entryaction(Markers::ExpressionComponentPrefixes());
 			Do(entryaction, component.UnaryPrefixes, exitaction);
+			exitaction(Markers::ExpressionComponentPrefixes());
 			Do(entryaction, component.Component.Content->V, exitaction);
 			exitaction(component);
 		}

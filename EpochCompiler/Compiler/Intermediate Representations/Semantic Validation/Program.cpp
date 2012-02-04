@@ -12,7 +12,7 @@
 #include "Compiler/Intermediate Representations/Semantic Validation/Structure.h"
 #include "Compiler/Intermediate Representations/Semantic Validation/CodeBlock.h"
 
-#include "Libraries/Library.h"
+#include "Compiler/Session.h"
 
 #include "Utility/StringPool.h"
 
@@ -25,12 +25,12 @@ using namespace IRSemantics;
 //
 // Construct and initialize a program
 //
-Program::Program(StringPoolManager& strings, CompilerInfoTable& infotable)
+Program::Program(StringPoolManager& strings, CompileSession& session)
 	: CounterAnonParam(0),
 	  CounterLexicalScope(0),
 	  Strings(strings),
 	  StructureTypeCounter(VM::EpochType_CustomBase),
-	  InfoTable(infotable),
+	  Session(session),
 	  GlobalScope(NULL)
 {
 }
@@ -95,13 +95,18 @@ StringHandle Program::CreateFunctionOverload(const std::wstring& name)
 {
 	StringHandle handle = AddString(name);
 	unsigned counter = FunctionOverloadCounters[handle]++;
-	if(counter == 0)
-		return handle;
+	return AddString(GenerateFunctionOverloadName(handle, counter));
+}
+
+std::wstring Program::GenerateFunctionOverloadName(StringHandle name, size_t index) const
+{
+	if(index == 0)
+		return GetString(name);
 
 	std::wostringstream format;
-	format << name << L"@@overload@" << counter;
+	format << GetString(name) << L"@@overload@" << index;
 
-	return AddString(format.str());
+	return format.str();
 }
 
 
@@ -117,6 +122,14 @@ void Program::AddFunction(StringHandle name, Function* function)
 	}
 
 	Functions.insert(std::make_pair(name, function));
+}
+
+//
+// Determine if the program contains a function by the given name
+//
+bool Program::HasFunction(StringHandle name) const
+{
+	return (Functions.find(name) != Functions.end());
 }
 
 //
@@ -183,6 +196,25 @@ bool Program::Validate() const
 	}
 
 	return valid;
+}
+
+bool Program::TypeInference()
+{
+	InferenceContext context(0, InferenceContext::CONTEXT_GLOBAL);
+
+	for(std::vector<CodeBlock*>::iterator iter = GlobalCodeBlocks.begin(); iter != GlobalCodeBlocks.end(); ++iter)
+	{
+		if(!(*iter)->TypeInference(*this, context))
+			return false;
+	}
+
+	for(std::map<StringHandle, Function*>::iterator iter = Functions.begin(); iter != Functions.end(); ++iter)
+	{
+		if(!iter->second->TypeInference(*this, context))
+			return false;
+	}
+
+	return true;
 }
 
 bool Program::CompileTimeCodeExecution()
@@ -307,25 +339,25 @@ std::wstring Program::GenerateStructureMemberAccessOverloadName(const std::wstri
 
 Bytecode::EntityTag Program::GetEntityTag(StringHandle identifier) const
 {
-	for(EntityTable::const_iterator iter = InfoTable.Entities->begin(); iter != InfoTable.Entities->end(); ++iter)
+	for(EntityTable::const_iterator iter = Session.InfoTable.Entities->begin(); iter != Session.InfoTable.Entities->end(); ++iter)
 	{
 		if(iter->second.StringName == identifier)
 			return iter->first;
 	}
 
-	for(EntityTable::const_iterator iter = InfoTable.ChainedEntities->begin(); iter != InfoTable.ChainedEntities->end(); ++iter)
+	for(EntityTable::const_iterator iter = Session.InfoTable.ChainedEntities->begin(); iter != Session.InfoTable.ChainedEntities->end(); ++iter)
 	{
 		if(iter->second.StringName == identifier)
 			return iter->first;
 	}
 
-	for(EntityTable::const_iterator iter = InfoTable.PostfixEntities->begin(); iter != InfoTable.PostfixEntities->end(); ++iter)
+	for(EntityTable::const_iterator iter = Session.InfoTable.PostfixEntities->begin(); iter != Session.InfoTable.PostfixEntities->end(); ++iter)
 	{
 		if(iter->second.StringName == identifier)
 			return iter->first;
 	}
 
-	for(EntityTable::const_iterator iter = InfoTable.PostfixClosers->begin(); iter != InfoTable.PostfixClosers->end(); ++iter)
+	for(EntityTable::const_iterator iter = Session.InfoTable.PostfixClosers->begin(); iter != Session.InfoTable.PostfixClosers->end(); ++iter)
 	{
 		if(iter->second.StringName == identifier)
 			return iter->first;
@@ -342,3 +374,43 @@ ScopeDescription* Program::GetGlobalScope()
 
 	return GlobalScope;
 }
+
+
+InferenceContext::PossibleParameterTypes Program::GetExpectedTypesForStatement(StringHandle name) const
+{
+	std::map<StringHandle, unsigned>::const_iterator iter = FunctionOverloadCounters.find(name);
+	if(iter != FunctionOverloadCounters.end())
+	{
+		InferenceContext::PossibleParameterTypes ret;
+		ret.reserve(iter->second);
+
+		for(size_t i = 0; i < iter->second; ++i)
+		{
+			StringHandle overloadname = Strings.Find(GenerateFunctionOverloadName(name, i));
+			std::map<StringHandle, Function*>::const_iterator funciter = Functions.find(overloadname);
+			if(funciter == Functions.end())
+				throw std::exception("Bogus overload");				// TODO - better exceptions
+
+			ret.push_back(InferenceContext::TypePossibilities());
+
+			std::vector<StringHandle> paramnames = funciter->second->GetParameterNames();
+			for(std::vector<StringHandle>::const_iterator paramiter = paramnames.begin(); paramiter != paramnames.end(); ++paramiter)
+				ret.back().push_back(funciter->second->GetParameterType(*paramiter, *this));
+		}
+
+		return ret;
+	}
+
+	FunctionSignatureSet::const_iterator fsigiter = Session.FunctionSignatures.find(name);
+	if(fsigiter != Session.FunctionSignatures.end())
+	{
+		InferenceContext::PossibleParameterTypes ret(1, InferenceContext::TypePossibilities());
+		for(size_t i = 0; i < fsigiter->second.GetNumParameters(); ++i)
+			ret.back().push_back(fsigiter->second.GetParameter(i).Type);
+
+		return ret;
+	}
+
+	throw std::exception("Invalid function name");			// TODO - better exceptions
+}
+

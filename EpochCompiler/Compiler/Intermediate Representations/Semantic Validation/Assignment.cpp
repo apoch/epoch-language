@@ -48,6 +48,17 @@ void Assignment::SetRHSRecursive(AssignmentChain* rhs)
 	}
 }
 
+bool Assignment::Validate(const Program& program) const
+{
+	// TODO - assignment type validation
+	return true;
+}
+
+bool Assignment::TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context)
+{
+	return RHS->TypeInference(program, activescope, context);
+}
+
 
 AssignmentChainExpression::AssignmentChainExpression(Expression* expression)
 	: MyExpression(expression)
@@ -57,6 +68,16 @@ AssignmentChainExpression::AssignmentChainExpression(Expression* expression)
 AssignmentChainExpression::~AssignmentChainExpression()
 {
 	delete MyExpression;
+}
+
+VM::EpochTypeID AssignmentChainExpression::GetEpochType(const Program& program) const
+{
+	return MyExpression->GetEpochType(program);
+}
+
+bool AssignmentChainExpression::TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context)
+{
+	return MyExpression->TypeInference(program, activescope, context, 0);
 }
 
 
@@ -76,3 +97,12 @@ void AssignmentChainAssignment::SetRHSRecursive(AssignmentChain* rhs)
 	MyAssignment->SetRHSRecursive(rhs);
 }
 
+VM::EpochTypeID AssignmentChainAssignment::GetEpochType(const Program& program) const
+{
+	return MyAssignment->GetRHS()->GetEpochType(program);
+}
+
+bool AssignmentChainAssignment::TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context)
+{
+	return MyAssignment->GetRHS()->TypeInference(program, activescope, context);
+}

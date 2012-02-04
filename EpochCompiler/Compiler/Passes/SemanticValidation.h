@@ -19,8 +19,7 @@ namespace IRSemantics
 	class Structure;
 	class Function;
 	class Expression;
-	class ExpressionComponent;
-	class ExpressionFragment;
+	class ExpressionAtom;
 	class Assignment;
 	class Statement;
 	class CodeBlock;
@@ -28,7 +27,7 @@ namespace IRSemantics
 }
 
 class StringPoolManager;
-struct CompilerInfoTable;
+class CompileSession;
 
 
 // Dependencies
@@ -53,11 +52,11 @@ namespace ASTTraverse
 		//
 		// Construct the traverser
 		//
-		CompilePassSemantics(StringPoolManager& strings, CompilerInfoTable& infotable)
+		CompilePassSemantics(StringPoolManager& strings, CompileSession& session)
 			: CurrentProgram(NULL),
 			  InFunctionReturn(false),
 			  Strings(strings),
-			  InfoTable(infotable)
+			  Session(session)
 		{
 			Entry.self = this;
 			Exit.self = this;
@@ -70,6 +69,9 @@ namespace ASTTraverse
 
 		// Compile-time code execution
 		bool CompileTimeCodeExecution();
+
+		// Type inference
+		bool TypeInference();
 
 		// Validation
 		bool Validate() const;
@@ -138,6 +140,7 @@ namespace ASTTraverse
 			//
 
 			void operator () (Markers::FunctionReturnExpression& marker);
+			void operator () (Markers::ExpressionComponentPrefixes& marker);
 
 		// Internal binding to the owning CompilePassSemantics object
 		private:
@@ -196,6 +199,7 @@ namespace ASTTraverse
 			//
 
 			void operator () (Markers::FunctionReturnExpression& marker);
+			void operator () (Markers::ExpressionComponentPrefixes& marker);
 
 		// Internal bindings to the owning CompilePassSemantics object
 		private:
@@ -210,8 +214,7 @@ namespace ASTTraverse
 		std::list<IRSemantics::Structure*> CurrentStructures;
 		std::list<IRSemantics::Function*> CurrentFunctions;
 		std::list<IRSemantics::Expression*> CurrentExpressions;
-		std::list<IRSemantics::ExpressionComponent*> CurrentExpressionComponents;
-		std::list<IRSemantics::ExpressionFragment*> CurrentExpressionFragments;
+		std::list<IRSemantics::ExpressionAtom*> CurrentExpressionAtoms;
 		std::list<IRSemantics::Assignment*> CurrentAssignments;
 		std::list<IRSemantics::Statement*> CurrentStatements;
 		std::list<IRSemantics::CodeBlock*> CurrentCodeBlocks;
@@ -228,6 +231,7 @@ namespace ASTTraverse
 			STATE_FUNCTION_RETURN,
 			STATE_EXPRESSION,
 			STATE_EXPRESSION_COMPONENT,
+			STATE_EXPRESSION_COMPONENT_PREFIXES,
 			STATE_EXPRESSION_FRAGMENT,
 			STATE_STATEMENT,
 			STATE_PREOP_STATEMENT,
@@ -244,7 +248,7 @@ namespace ASTTraverse
 		bool InFunctionReturn;
 
 		StringPoolManager& Strings;
-		CompilerInfoTable& InfoTable;
+		CompileSession& Session;
 	};
 
 }
@@ -253,7 +257,7 @@ namespace ASTTraverse
 namespace CompilerPasses
 {
 
-	IRSemantics::Program* ValidateSemantics(AST::Program& program, StringPoolManager& strings, CompilerInfoTable& infotable);
+	IRSemantics::Program* ValidateSemantics(AST::Program& program, StringPoolManager& strings, CompileSession& session);
 
 }
 

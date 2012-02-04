@@ -26,7 +26,9 @@ namespace IRSemantics
 	class Statement;
 	class PreOpStatement;
 	class PostOpStatement;
+	class CodeBlock;
 	class Program;
+	struct InferenceContext;
 
 
 	class ExpressionAtom
@@ -35,75 +37,20 @@ namespace IRSemantics
 	public:
 		virtual ~ExpressionAtom()
 		{ }
+
+	// Atom interface
+	public:
+		virtual VM::EpochTypeID GetEpochType(const Program& program) const = 0;
+		virtual bool TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, size_t index) = 0;
 	};
 
-
-	class ExpressionComponent
-	{
-	// Construction and destruction
-	public:
-		explicit ExpressionComponent(const std::vector<StringHandle>& prefixes);
-		~ExpressionComponent();
-
-	// Non-copyable
-	private:
-		ExpressionComponent(const ExpressionComponent& other);
-		ExpressionComponent& operator = (const ExpressionComponent& rhs);
-
-	// Adjustment of assigned atom
-	public:
-		void SetAtom(ExpressionAtom* atom);
-
-	// Accessors
-	public:
-		const std::vector<StringHandle>& GetPrefixes() const
-		{ return UnaryPrefixes; }
-
-		const ExpressionAtom* GetAtom() const
-		{ return Atom; }
-
-	// Internal state
-	private:
-		std::vector<StringHandle> UnaryPrefixes;
-		ExpressionAtom* Atom;
-	};
-
-	class ExpressionFragment
-	{
-	// Construction and destruction
-	public:
-		ExpressionFragment(StringHandle operatorname, ExpressionComponent* component);
-		~ExpressionFragment();
-
-	// Non-copyable
-	private:
-		ExpressionFragment(const ExpressionFragment& other);
-		ExpressionFragment& operator = (const ExpressionFragment& rhs);
-
-	// Internal state
-	private:
-		StringHandle OperatorName;
-		ExpressionComponent* Component;
-	};
 
 	class Expression
 	{
 	// Construction and destruction
 	public:
-		explicit Expression(ExpressionComponent* first);
+		Expression();
 		~Expression();
-
-	// Addition of fragments
-	public:
-		void AddFragment(ExpressionFragment* fragment);
-
-	// Accessors
-	public:
-		const ExpressionComponent& GetFirst() const
-		{ return *First; }
-
-		const std::vector<ExpressionFragment*>& GetRemaining() const
-		{ return Remaining; }
 
 	// Type system
 	public:
@@ -115,12 +62,27 @@ namespace IRSemantics
 
 	// Compile time code execution
 	public:
-		bool CompileTimeCodeExecution(Program& program);
+		bool CompileTimeCodeExecution(Program& program, CodeBlock& activescope);
+
+	// Type inference
+	public:
+		bool TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, size_t index);
+
+	// Atom access and manipulation
+	public:
+		void AddAtom(ExpressionAtom* atom);
+
+		const std::vector<ExpressionAtom*>& GetAtoms() const
+		{ return Atoms; }
+
+	// Internal helpers
+	private:
+		void Coalesce(Program& program, CodeBlock& activescope);
 
 	// Internal state
 	private:
-		ExpressionComponent* First;
-		std::vector<ExpressionFragment*> Remaining;
+		std::vector<ExpressionAtom*> Atoms;
+		VM::EpochTypeID InferredType;
 	};
 
 
@@ -180,6 +142,11 @@ namespace IRSemantics
 		ExpressionAtomParenthetical(const ExpressionAtomParenthetical& other);
 		ExpressionAtomParenthetical& operator = (const ExpressionAtomParenthetical& rhs);
 
+	// Atom interface
+	public:
+		virtual VM::EpochTypeID GetEpochType(const Program& program) const;
+		virtual bool TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, size_t index);
+
 	// Internal state
 	private:
 		Parenthetical* MyParenthetical;
@@ -197,6 +164,34 @@ namespace IRSemantics
 	public:
 		StringHandle GetIdentifier() const
 		{ return Identifier; }
+
+	// Atom interface
+	public:
+		virtual VM::EpochTypeID GetEpochType(const Program& program) const;
+		virtual bool TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, size_t index);
+
+	// Internal state
+	private:
+		StringHandle Identifier;
+	};
+
+	class ExpressionAtomOperator : public ExpressionAtom
+	{
+	// Construction
+	public:
+		explicit ExpressionAtomOperator(StringHandle identifier)
+			: Identifier(identifier)
+		{ }
+
+	// Accessors
+	public:
+		StringHandle GetIdentifier() const
+		{ return Identifier; }
+
+	// Atom interface
+	public:
+		virtual VM::EpochTypeID GetEpochType(const Program& program) const;
+		virtual bool TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, size_t index);
 
 	// Internal state
 	private:
@@ -216,6 +211,11 @@ namespace IRSemantics
 		StringHandle GetValue() const
 		{ return Handle; }
 
+	// Atom interface
+	public:
+		virtual VM::EpochTypeID GetEpochType(const Program& program) const;
+		virtual bool TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, size_t index);
+
 	// Internal state
 	private:
 		StringHandle Handle;
@@ -233,6 +233,11 @@ namespace IRSemantics
 	public:
 		bool GetValue() const
 		{ return Value; }
+
+	// Atom interface
+	public:
+		virtual VM::EpochTypeID GetEpochType(const Program& program) const;
+		virtual bool TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, size_t index);
 
 	// Internal state
 	private:
@@ -252,6 +257,11 @@ namespace IRSemantics
 		Integer32 GetValue() const
 		{ return Value; }
 
+	// Atom interface
+	public:
+		virtual VM::EpochTypeID GetEpochType(const Program& program) const;
+		virtual bool TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, size_t index);
+
 	// Internal state
 	private:
 		Integer32 Value;
@@ -270,6 +280,11 @@ namespace IRSemantics
 		Real32 GetValue() const
 		{ return Value; }
 
+	// Atom interface
+	public:
+		virtual VM::EpochTypeID GetEpochType(const Program& program) const;
+		virtual bool TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, size_t index);
+
 	// Internal state
 	private:
 		Real32 Value;
@@ -286,6 +301,11 @@ namespace IRSemantics
 	private:
 		ExpressionAtomStatement(const ExpressionAtomStatement& other);
 		ExpressionAtomStatement& operator = (const ExpressionAtomStatement& rhs);
+
+	// Atom interface
+	public:
+		virtual VM::EpochTypeID GetEpochType(const Program& program) const;
+		virtual bool TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, size_t index);
 
 	// Accessors
 	public:

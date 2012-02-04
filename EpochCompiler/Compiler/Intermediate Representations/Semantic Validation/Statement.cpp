@@ -11,7 +11,9 @@
 #include "Compiler/Intermediate Representations/Semantic Validation/Expression.h"
 #include "Compiler/Intermediate Representations/Semantic Validation/Program.h"
 
-#include "Libraries/Library.h"
+#include "Compiler/Intermediate Representations/Semantic Validation/InferenceContext.h"
+
+#include "Compiler/Session.h"
 
 
 using namespace IRSemantics;
@@ -51,10 +53,59 @@ bool Statement::Validate(const Program& program) const
 
 bool Statement::CompileTimeCodeExecution(Program& program, CodeBlock& activescope, bool inreturnexpr)
 {
-	FunctionCompileHelperTable::const_iterator fchiter = program.InfoTable.FunctionHelpers->find(Name);
-	if(fchiter != program.InfoTable.FunctionHelpers->end())
+	for(std::vector<Expression*>::iterator iter = Parameters.begin(); iter != Parameters.end(); ++iter)
+	{
+		if(!(*iter)->CompileTimeCodeExecution(program, activescope))
+			return false;
+	}
+
+	FunctionCompileHelperTable::const_iterator fchiter = program.Session.InfoTable.FunctionHelpers->find(Name);
+	if(fchiter != program.Session.InfoTable.FunctionHelpers->end())
 		fchiter->second(*this, program, activescope, inreturnexpr);
 
+	return true;
+}
+
+bool Statement::TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context)
+{
+	InferenceContext newcontext(Name, InferenceContext::CONTEXT_STATEMENT);
+
+	switch(context.State)
+	{
+	case InferenceContext::CONTEXT_CODE_BLOCK:
+		newcontext.ExpectedTypes.push_back(program.GetExpectedTypesForStatement(Name));
+		break;
+
+	case InferenceContext::CONTEXT_STATEMENT:
+		newcontext.ExpectedTypes.push_back(program.GetExpectedTypesForStatement(context.ContextName));
+		break;
+
+	default:
+		throw std::exception("Invalid inference context");				// TODO - better exceptions
+	}
+
+	size_t i = 0;
+	for(std::vector<Expression*>::iterator iter = Parameters.begin(); iter != Parameters.end(); ++iter)
+	{
+		if(!(*iter)->TypeInference(program, activescope, newcontext, i))
+			return false;
+
+		++i;
+	}
+
+	return true;
+}
+
+
+bool PreOpStatement::TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context)
+{
+	// TODO - type inference on preops
+	return true;
+}
+
+bool PostOpStatement::TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context)
+{
+	// TODO - type inference on postops
 	return true;
 }
 

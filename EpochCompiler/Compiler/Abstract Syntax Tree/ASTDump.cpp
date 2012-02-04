@@ -458,6 +458,17 @@ void DumpToStream::ExitHelper::operator () (Markers::FunctionReturnExpression&)
 }
 
 
+void DumpToStream::EntryHelper::operator () (Markers::ExpressionComponentPrefixes&)
+{
+	// Nothing to do
+}
+
+void DumpToStream::ExitHelper::operator () (Markers::ExpressionComponentPrefixes&)
+{
+	// Nothing to do
+}
+
+
 //
 // Helper function: indent the output to the current level
 //

@@ -28,7 +28,7 @@
 #include "Compiler/Intermediate Representations/Semantic Validation/CodeBlock.h"
 #include "Compiler/Intermediate Representations/Semantic Validation/Entity.h"
 
-#include "Libraries/Library.h"
+#include "Compiler/Session.h"
 
 #include "Utility/Strings.h"
 
@@ -67,7 +67,7 @@ namespace
 	//
 	void CompileConstructorStructure(IRSemantics::Statement& statement, IRSemantics::Program& program, IRSemantics::CodeBlock& activescope, bool inreturnexpr)
 	{
-		const IRSemantics::ExpressionAtomIdentifier* atom = dynamic_cast<const IRSemantics::ExpressionAtomIdentifier*>(statement.GetParameters()[0]->GetFirst().GetAtom());
+		const IRSemantics::ExpressionAtomIdentifier* atom = dynamic_cast<const IRSemantics::ExpressionAtomIdentifier*>(statement.GetParameters()[0]->GetAtoms()[0]);
 
 		VariableOrigin origin = (inreturnexpr ? VARIABLE_ORIGIN_RETURN : VARIABLE_ORIGIN_LOCAL);
 		VM::EpochTypeID effectivetype = program.LookupType(statement.GetName());
@@ -80,16 +80,20 @@ namespace
 //
 // Validate semantics for a program
 //
-IRSemantics::Program* CompilerPasses::ValidateSemantics(AST::Program& program, StringPoolManager& strings, CompilerInfoTable& infotable)
+IRSemantics::Program* CompilerPasses::ValidateSemantics(AST::Program& program, StringPoolManager& strings, CompileSession& session)
 {
 	// Construct the semantic analysis pass
-	ASTTraverse::CompilePassSemantics pass(strings, infotable);
+	ASTTraverse::CompilePassSemantics pass(strings, session);
 	
 	// Traverse the AST and convert it into the semantic IR
 	ASTTraverse::DoTraversal(pass, program);
 
 	// Perform compile-time code execution, e.g. constructors for populating lexical scopes
 	if(!pass.CompileTimeCodeExecution())
+		return NULL;
+
+	// Perform type inference and decorate the IR with type information
+	if(!pass.TypeInference())
 		return NULL;
 
 	// Perform type validation
@@ -116,12 +120,6 @@ CompilePassSemantics::~CompilePassSemantics()
 		delete *iter;
 
 	for(std::list<IRSemantics::Expression*>::iterator iter = CurrentExpressions.begin(); iter != CurrentExpressions.end(); ++iter)
-		delete *iter;
-
-	for(std::list<IRSemantics::ExpressionComponent*>::iterator iter = CurrentExpressionComponents.begin(); iter != CurrentExpressionComponents.end(); ++iter)
-		delete *iter;
-
-	for(std::list<IRSemantics::ExpressionFragment*>::iterator iter = CurrentExpressionFragments.begin(); iter != CurrentExpressionFragments.end(); ++iter)
 		delete *iter;
 
 	for(std::list<IRSemantics::Assignment*>::iterator iter = CurrentAssignments.begin(); iter != CurrentAssignments.end(); ++iter)
@@ -152,6 +150,17 @@ bool CompilePassSemantics::CompileTimeCodeExecution()
 {
 	if(CurrentProgram)
 		return CurrentProgram->CompileTimeCodeExecution();
+
+	return false;
+}
+
+//
+// Perform type inference/type decoration on a program
+//
+bool CompilePassSemantics::TypeInference()
+{
+	if(CurrentProgram)
+		return CurrentProgram->TypeInference();
 
 	return false;
 }
@@ -198,7 +207,7 @@ void CompilePassSemantics::EntryHelper::operator () (AST::Program& program)
 		throw std::exception("Reentrancy");
 
 	self->StateStack.push(CompilePassSemantics::STATE_PROGRAM);
-	self->CurrentProgram = new IRSemantics::Program(self->Strings, self->InfoTable);
+	self->CurrentProgram = new IRSemantics::Program(self->Strings, self->Session);
 }
 
 //
@@ -229,8 +238,17 @@ void CompilePassSemantics::ExitHelper::operator () (AST::Structure& structure)
 		self->CurrentStructures.pop_back();
 		
 		StringHandle name = self->CurrentProgram->AddString(std::wstring(structure.Identifier.begin(), structure.Identifier.end()));
+		self->CurrentProgram->Session.InfoTable.FunctionHelpers->insert(std::make_pair(name, &CompileConstructorStructure));
+		
+		FunctionSignature signature;
+		signature.AddParameter(L"id", VM::EpochType_Identifier, false);
+		const std::vector<std::pair<StringHandle, IRSemantics::StructureMember*> >& members = irstruct->GetMembers();
+		for(std::vector<std::pair<StringHandle, IRSemantics::StructureMember*> >::const_iterator iter = members.begin(); iter != members.end(); ++iter)
+			signature.AddParameter(self->CurrentProgram->GetString(iter->first), iter->second->GetEpochType(*self->CurrentProgram), false);
+
+		self->CurrentProgram->Session.FunctionSignatures.insert(std::make_pair(name, signature));
+
 		self->CurrentProgram->AddStructure(name, irstruct.release());
-		self->CurrentProgram->InfoTable.FunctionHelpers->insert(std::make_pair(name, &CompileConstructorStructure));
 	}
 	else
 		throw std::exception("Nested structures not implemented");	// TODO - better exceptions
@@ -358,6 +376,7 @@ void CompilePassSemantics::EntryHelper::operator () (AST::NamedFunctionParameter
 void CompilePassSemantics::EntryHelper::operator () (AST::Expression& expression)
 {
 	self->StateStack.push(CompilePassSemantics::STATE_EXPRESSION);
+	self->CurrentExpressions.push_back(new IRSemantics::Expression);
 }
 
 //
@@ -427,10 +446,7 @@ void CompilePassSemantics::EntryHelper::operator () (AST::ExpressionComponent& e
 {
 	self->StateStack.push(CompilePassSemantics::STATE_EXPRESSION_COMPONENT);
 
-	std::vector<StringHandle> prefixes;
-	std::for_each(exprcomponent.UnaryPrefixes.begin(), exprcomponent.UnaryPrefixes.end(), StringPooler(*self->CurrentProgram, prefixes));
-
-	self->CurrentExpressionComponents.push_back(new IRSemantics::ExpressionComponent(prefixes));
+	// TODO - decompose expression chain from AST into atoms
 }
 
 //
@@ -446,11 +462,7 @@ void CompilePassSemantics::ExitHelper::operator () (AST::ExpressionComponent& ex
 		throw std::exception("Invalid parse state");		// TODO - better exceptions
 
 	case CompilePassSemantics::STATE_EXPRESSION:
-		{
-			std::auto_ptr<IRSemantics::Expression> irexpr(new IRSemantics::Expression(self->CurrentExpressionComponents.back()));
-			self->CurrentExpressionComponents.pop_back();
-			self->CurrentExpressions.push_back(irexpr.release());
-		}
+		// TODO - push new expression onto stack with active atom
 		break;
 	}
 }
@@ -461,6 +473,9 @@ void CompilePassSemantics::ExitHelper::operator () (AST::ExpressionComponent& ex
 void CompilePassSemantics::EntryHelper::operator () (AST::ExpressionFragment& exprfragment)
 {
 	self->StateStack.push(CompilePassSemantics::STATE_EXPRESSION_FRAGMENT);
+
+	StringHandle opname = self->CurrentProgram->AddString(std::wstring(exprfragment.Operator.begin(), exprfragment.Operator.end()));	
+	self->CurrentExpressions.back()->AddAtom(new IRSemantics::ExpressionAtomOperator(opname));
 }
 
 //
@@ -469,11 +484,6 @@ void CompilePassSemantics::EntryHelper::operator () (AST::ExpressionFragment& ex
 void CompilePassSemantics::ExitHelper::operator () (AST::ExpressionFragment& exprfragment)
 {
 	self->StateStack.pop();
-
-	StringHandle opname = self->CurrentProgram->AddString(std::wstring(exprfragment.Operator.begin(), exprfragment.Operator.end()));
-
-	self->CurrentExpressions.back()->AddFragment(new IRSemantics::ExpressionFragment(opname, self->CurrentExpressionComponents.back()));
-	self->CurrentExpressionComponents.pop_back();
 }
 
 
@@ -498,7 +508,8 @@ void CompilePassSemantics::ExitHelper::operator () (AST::Statement& statement)
 	switch(self->StateStack.top())
 	{
 	case CompilePassSemantics::STATE_EXPRESSION_COMPONENT:
-		self->CurrentExpressionComponents.back()->SetAtom(new IRSemantics::ExpressionAtomStatement(self->CurrentStatements.back()));
+		// TODO
+		//self->CurrentExpressionComponents.back()->SetAtom(new IRSemantics::ExpressionAtomStatement(self->CurrentStatements.back()));
 		self->CurrentStatements.pop_back();
 		break;
 
@@ -539,8 +550,9 @@ void CompilePassSemantics::ExitHelper::operator () (AST::PreOperatorStatement& s
 	{
 	case CompilePassSemantics::STATE_EXPRESSION_COMPONENT:
 		{
-			std::auto_ptr<IRSemantics::ParentheticalPreOp> irparenthetical(new IRSemantics::ParentheticalPreOp(irstatement.release()));
-			self->CurrentExpressionComponents.back()->SetAtom(new IRSemantics::ExpressionAtomParenthetical(irparenthetical.release()));
+			// TODO
+			//std::auto_ptr<IRSemantics::ParentheticalPreOp> irparenthetical(new IRSemantics::ParentheticalPreOp(irstatement.release()));
+			//self->CurrentExpressionComponents.back()->SetAtom(new IRSemantics::ExpressionAtomParenthetical(irparenthetical.release()));
 		}
 		break;
 
@@ -580,8 +592,9 @@ void CompilePassSemantics::ExitHelper::operator () (AST::PostOperatorStatement& 
 	{
 	case CompilePassSemantics::STATE_EXPRESSION_COMPONENT:
 		{
-			std::auto_ptr<IRSemantics::ParentheticalPostOp> irparenthetical(new IRSemantics::ParentheticalPostOp(irstatement.release()));
-			self->CurrentExpressionComponents.back()->SetAtom(new IRSemantics::ExpressionAtomParenthetical(irparenthetical.release()));
+			// TODO
+			//std::auto_ptr<IRSemantics::ParentheticalPostOp> irparenthetical(new IRSemantics::ParentheticalPostOp(irstatement.release()));
+			//self->CurrentExpressionComponents.back()->SetAtom(new IRSemantics::ExpressionAtomParenthetical(irparenthetical.release()));
 		}
 		break;
 
@@ -600,25 +613,27 @@ void CompilePassSemantics::ExitHelper::operator () (AST::PostOperatorStatement& 
 //
 void CompilePassSemantics::EntryHelper::operator () (AST::CodeBlock& block)
 {
-	std::auto_ptr<ScopeDescription> lexicalscope(NULL);
+	bool owned = true;
+	ScopeDescription* lexicalscope = NULL;
 
 	switch(self->StateStack.top())
 	{
 	case CompilePassSemantics::STATE_PROGRAM:
-		lexicalscope.reset(self->CurrentProgram->GetGlobalScope());
+		lexicalscope = self->CurrentProgram->GetGlobalScope();
+		owned = false;
 		break;
 
 	case CompilePassSemantics::STATE_FUNCTION:
-		lexicalscope.reset(new ScopeDescription(self->CurrentProgram->GetGlobalScope()));
+		lexicalscope = new ScopeDescription(self->CurrentProgram->GetGlobalScope());
 		break;
 
 	default:
-		lexicalscope.reset(new ScopeDescription(self->CurrentCodeBlocks.back()->GetScope()));
+		lexicalscope = new ScopeDescription(self->CurrentCodeBlocks.back()->GetScope());
 		break;
 	}
 
+	self->CurrentCodeBlocks.push_back(new IRSemantics::CodeBlock(lexicalscope, owned));
 	self->StateStack.push(CompilePassSemantics::STATE_CODE_BLOCK);
-	self->CurrentCodeBlocks.push_back(new IRSemantics::CodeBlock(lexicalscope.release()));
 }
 
 //
@@ -847,21 +862,28 @@ void CompilePassSemantics::EntryHelper::operator () (AST::IdentifierT& identifie
 	switch(self->StateStack.top())
 	{
 	case CompilePassSemantics::STATE_ASSIGNMENT:
+		// TODO
+		/*
 		{
 			std::auto_ptr<IRSemantics::ExpressionComponent> ircomponent(new IRSemantics::ExpressionComponent(std::vector<StringHandle>()));
 			ircomponent->SetAtom(iratom.release());
 			std::auto_ptr<IRSemantics::Expression> irexpression(new IRSemantics::Expression(ircomponent.release()));
 			self->CurrentAssignments.back()->SetRHS(new IRSemantics::AssignmentChainExpression(irexpression.release()));
 		}
+		*/
+		break;
+
+	case CompilePassSemantics::STATE_EXPRESSION_COMPONENT_PREFIXES:
+		self->CurrentExpressions.back()->AddAtom(new IRSemantics::ExpressionAtomOperator(dynamic_cast<IRSemantics::ExpressionAtomIdentifier*>(iratom.get())->GetIdentifier()));
 		break;
 
 	case CompilePassSemantics::STATE_EXPRESSION_COMPONENT:
-		self->CurrentExpressionComponents.back()->SetAtom(iratom.release());
+	case CompilePassSemantics::STATE_EXPRESSION_FRAGMENT:
+		self->CurrentExpressions.back()->AddAtom(iratom.release());
 		break;
 
-	case CompilePassSemantics::STATE_EXPRESSION_FRAGMENT:
-		self->CurrentExpressionComponents.push_back(new IRSemantics::ExpressionComponent(std::vector<StringHandle>()));
-		self->CurrentExpressionComponents.back()->SetAtom(iratom.release());
+	case CompilePassSemantics::STATE_FUNCTION:
+		self->CurrentFunctions.back()->SetName(self->CurrentProgram->AddString(raw));
 		break;
 
 	default:
@@ -919,3 +941,13 @@ void CompilePassSemantics::ExitHelper::operator () (Markers::FunctionReturnExpre
 	self->InFunctionReturn = false;
 }
 
+
+void CompilePassSemantics::EntryHelper::operator () (Markers::ExpressionComponentPrefixes&)
+{
+	self->StateStack.push(CompilePassSemantics::STATE_EXPRESSION_COMPONENT_PREFIXES);
+}
+
+void CompilePassSemantics::ExitHelper::operator () (Markers::ExpressionComponentPrefixes&)
+{
+	self->StateStack.pop();
+}

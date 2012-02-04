@@ -415,6 +415,30 @@
 					>
 				</File>
 			</Filter>
+			<Filter
+				Name="User Interface"
+				>
+				<File
+					RelativePath="..\Shared\User Interface\Input.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\Shared\User Interface\Input.h"
+					>
+				</File>
+				<File
+					RelativePath="..\Shared\User Interface\Output.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\Shared\User Interface\Output.h"
+					>
+				</File>
+				<File
+					RelativePath="..\Shared\User Interface\OutputStream.inl"
+					>
+				</File>
+			</Filter>
 		</Filter>
 		<Filter
 			Name="Compiler"
@@ -583,6 +607,10 @@
 					</File>
 					<File
 						RelativePath=".\Compiler\Intermediate Representations\Semantic Validation\Function.h"
+						>
+					</File>
+					<File
+						RelativePath=".\Compiler\Intermediate Representations\Semantic Validation\InferenceContext.h"
 						>
 					</File>
 					<File

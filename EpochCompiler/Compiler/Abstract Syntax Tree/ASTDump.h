@@ -120,6 +120,7 @@ namespace ASTTraverse
 			//
 
 			void operator () (Markers::FunctionReturnExpression& marker);
+			void operator () (Markers::ExpressionComponentPrefixes& marker);
 
 		// Internal binding to the owning DumpToStream object
 		private:
@@ -184,6 +185,7 @@ namespace ASTTraverse
 			//
 
 			void operator () (Markers::FunctionReturnExpression& marker);
+			void operator () (Markers::ExpressionComponentPrefixes& marker);
 
 		// Internal bindings to the owning DumpToStream object
 		private:
