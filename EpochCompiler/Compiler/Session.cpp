@@ -42,7 +42,8 @@
 //
 CompileSession::CompileSession()
 	: ASTProgram(NULL),
-	  SemanticProgram(NULL)
+	  SemanticProgram(NULL),
+	  ErrorCount(0)
 {
 	HINSTANCE dllhandle = Marshaling::TheDLLPool.OpenDLL(L"EpochLibrary.DLL");
 
@@ -173,7 +174,7 @@ void CompileSession::CompileFile(const std::wstring& code, const std::wstring& f
 	SemanticProgram = CompilerPasses::ValidateSemantics(*ASTProgram, StringPool, *this);
 
 	timer.End();
-	std::wcout << L"finished in " << timer.GetTimeMs() << L"ms" << std::endl;
+	std::wcout << L"finished in " << timer.GetTimeMs() << L"ms with " << ErrorCount << " error(s)" << std::endl;
 
 	if(!SemanticProgram)
 		throw FatalException("Semantic checking failed!");

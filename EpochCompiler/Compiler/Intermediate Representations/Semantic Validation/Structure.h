@@ -130,7 +130,11 @@ namespace IRSemantics
 
 	// Validation
 	public:
-		bool Validate(const IRSemantics::Program& program) const;
+		bool Validate(const Program& program) const;
+
+	// Compile time code execution
+	public:
+		bool CompileTimeCodeExecution(StringHandle myname, Program& program);
 
 	// Internal state
 	private:

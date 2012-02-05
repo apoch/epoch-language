@@ -13,7 +13,7 @@
 #include "Utility/Threading/Synchronization.h"
 #include "Utility/HandleAllocator.h"
 
-#include <map>
+#include <boost/unordered_map.hpp>
 #include <set>
 #include <string>
 
@@ -31,7 +31,7 @@ public:
 
 // Direct access to pool, primarily for serialization purposes
 public:
-	const std::map<StringHandle, std::wstring>& GetInternalPool() const
+	const boost::unordered_map<StringHandle, std::wstring>& GetInternalPool() const
 	{ return PooledStrings; }
 
 // Garbage collection interface
@@ -41,7 +41,7 @@ public:
 // Internal tracking
 private:
 	HandleAllocator<StringHandle> HandleAlloc;
-	std::map<StringHandle, std::wstring> PooledStrings;
+	boost::unordered_map<StringHandle, std::wstring> PooledStrings;
 
 // Public access to the critical section, for direct access purposes
 public:

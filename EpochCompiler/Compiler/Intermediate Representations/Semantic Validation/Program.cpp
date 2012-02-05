@@ -40,7 +40,7 @@ Program::Program(StringPoolManager& strings, CompileSession& session)
 //
 Program::~Program()
 {
-	for(std::map<StringHandle, Function*>::iterator iter = Functions.begin(); iter != Functions.end(); ++iter)
+	for(boost::unordered_map<StringHandle, Function*>::iterator iter = Functions.begin(); iter != Functions.end(); ++iter)
 		delete iter->second;
 
 	for(std::map<StringHandle, Structure*>::iterator iter = Structures.begin(); iter != Structures.end(); ++iter)
@@ -58,7 +58,14 @@ Program::~Program()
 //
 StringHandle Program::AddString(const std::wstring& str)
 {
-	return Strings.Pool(str);
+	StringHandle ret = IdentifierCache.Find(str);
+	if(!ret)
+	{
+		ret = Strings.Pool(str);
+		IdentifierCache.Add(str, ret);
+	}
+	
+	return ret;
 }
 
 const std::wstring& Program::GetString(StringHandle handle) const
@@ -84,7 +91,10 @@ void Program::AddStructure(StringHandle name, Structure* structure)
 	const std::wstring& structurename = GetString(name);
 	const std::vector<std::pair<StringHandle, StructureMember*> >& members = structure->GetMembers();
 	for(std::vector<std::pair<StringHandle, StructureMember*> >::const_iterator iter = members.begin(); iter != members.end(); ++iter)
-		AddString(GenerateStructureMemberAccessOverloadName(structurename, GetString(iter->first)));
+	{
+		std::wstring overloadname = GenerateStructureMemberAccessOverloadName(structurename, GetString(iter->first));
+		StructureMemberAccessOverloadNameCache.Add(std::make_pair(name, iter->first), Strings.PoolFast(overloadname));
+	}
 }
 
 
@@ -95,7 +105,9 @@ StringHandle Program::CreateFunctionOverload(const std::wstring& name)
 {
 	StringHandle handle = AddString(name);
 	unsigned counter = FunctionOverloadCounters[handle]++;
-	return AddString(GenerateFunctionOverloadName(handle, counter));
+	StringHandle ret = AddString(GenerateFunctionOverloadName(handle, counter));
+	FunctionOverloadNameCache.Add(std::make_pair(handle, counter), ret);
+	return ret;
 }
 
 std::wstring Program::GenerateFunctionOverloadName(StringHandle name, size_t index) const
@@ -189,7 +201,7 @@ bool Program::Validate() const
 			valid = false;
 	}
 
-	for(std::map<StringHandle, Function*>::const_iterator iter = Functions.begin(); iter != Functions.end(); ++iter)
+	for(boost::unordered_map<StringHandle, Function*>::const_iterator iter = Functions.begin(); iter != Functions.end(); ++iter)
 	{
 		if(!iter->second->Validate(*this))
 			valid = false;
@@ -208,7 +220,7 @@ bool Program::TypeInference()
 			return false;
 	}
 
-	for(std::map<StringHandle, Function*>::iterator iter = Functions.begin(); iter != Functions.end(); ++iter)
+	for(boost::unordered_map<StringHandle, Function*>::iterator iter = Functions.begin(); iter != Functions.end(); ++iter)
 	{
 		if(!iter->second->TypeInference(*this, context))
 			return false;
@@ -219,13 +231,19 @@ bool Program::TypeInference()
 
 bool Program::CompileTimeCodeExecution()
 {
+	for(std::map<StringHandle, Structure*>::iterator iter = Structures.begin(); iter != Structures.end(); ++iter)
+	{
+		if(!iter->second->CompileTimeCodeExecution(iter->first, *this))
+			return false;
+	}
+
 	for(std::vector<CodeBlock*>::iterator iter = GlobalCodeBlocks.begin(); iter != GlobalCodeBlocks.end(); ++iter)
 	{
 		if(!(*iter)->CompileTimeCodeExecution(*this))
 			return false;
 	}
 
-	for(std::map<StringHandle, Function*>::iterator iter = Functions.begin(); iter != Functions.end(); ++iter)
+	for(boost::unordered_map<StringHandle, Function*>::iterator iter = Functions.begin(); iter != Functions.end(); ++iter)
 	{
 		if(!iter->second->CompileTimeCodeExecution(*this))
 			return false;
@@ -242,7 +260,7 @@ StringHandle Program::AllocateAnonymousParamName()
 {
 	std::wostringstream name;
 	name << L"@@anonparam@" << (++CounterAnonParam);
-	return AddString(name.str());
+	return Strings.PoolFast(name.str());
 }
 
 std::wstring Program::GenerateAnonymousGlobalScopeName(size_t index)
@@ -255,12 +273,14 @@ std::wstring Program::GenerateAnonymousGlobalScopeName(size_t index)
 
 StringHandle Program::AllocateLexicalScopeName(const CodeBlock* blockptr)
 {
-	return AddString(GenerateLexicalScopeName(blockptr));
+	StringHandle ret = Strings.PoolFast(GenerateLexicalScopeName(blockptr));
+	LexicalScopeNameCache.Add(blockptr, ret);
+	return ret;
 }
 
 StringHandle Program::FindLexicalScopeName(const CodeBlock* blockptr) const
 {
-	return Strings.Find(GenerateLexicalScopeName(blockptr));
+	return LexicalScopeNameCache.Find(blockptr);
 }
 
 std::wstring Program::GenerateLexicalScopeName(const CodeBlock* blockptr)
@@ -328,7 +348,7 @@ StringHandle Program::GetNameOfStructureType(VM::EpochTypeID structuretype) cons
 
 StringHandle Program::FindStructureMemberAccessOverload(StringHandle structurename, StringHandle membername) const
 {
-	return Strings.Find(GenerateStructureMemberAccessOverloadName(GetString(structurename), GetString(membername)));
+	return StructureMemberAccessOverloadNameCache.Find(std::make_pair(structurename, membername));
 }
 
 std::wstring Program::GenerateStructureMemberAccessOverloadName(const std::wstring& structurename, const std::wstring& membername)
@@ -378,7 +398,7 @@ ScopeDescription* Program::GetGlobalScope()
 
 InferenceContext::PossibleParameterTypes Program::GetExpectedTypesForStatement(StringHandle name) const
 {
-	std::map<StringHandle, unsigned>::const_iterator iter = FunctionOverloadCounters.find(name);
+	boost::unordered_map<StringHandle, unsigned>::const_iterator iter = FunctionOverloadCounters.find(name);
 	if(iter != FunctionOverloadCounters.end())
 	{
 		InferenceContext::PossibleParameterTypes ret;
@@ -386,8 +406,8 @@ InferenceContext::PossibleParameterTypes Program::GetExpectedTypesForStatement(S
 
 		for(size_t i = 0; i < iter->second; ++i)
 		{
-			StringHandle overloadname = Strings.Find(GenerateFunctionOverloadName(name, i));
-			std::map<StringHandle, Function*>::const_iterator funciter = Functions.find(overloadname);
+			StringHandle overloadname = i ? FunctionOverloadNameCache.Find(std::make_pair(name, i)) : name;
+			boost::unordered_map<StringHandle, Function*>::const_iterator funciter = Functions.find(overloadname);
 			if(funciter == Functions.end())
 				throw std::exception("Bogus overload");				// TODO - better exceptions
 
@@ -401,12 +421,32 @@ InferenceContext::PossibleParameterTypes Program::GetExpectedTypesForStatement(S
 		return ret;
 	}
 
+	OverloadMap::const_iterator ovmapiter = Session.FunctionOverloadNames.find(name);
+	if(ovmapiter != Session.FunctionOverloadNames.end())
+	{
+		InferenceContext::PossibleParameterTypes ret(ovmapiter->second.size(), InferenceContext::TypePossibilities());
+		size_t i = 0;
+		for(StringHandleSet::const_iterator oviter = ovmapiter->second.begin(); oviter != ovmapiter->second.end(); ++oviter)
+		{
+			FunctionSignatureSet::const_iterator fsigiter = Session.FunctionSignatures.find(*oviter);
+			if(fsigiter != Session.FunctionSignatures.end())
+			{
+				for(size_t j = 0; j < fsigiter->second.GetNumParameters(); ++j)
+					ret[i].push_back(fsigiter->second.GetParameter(j).Type);
+			}
+
+			++i;
+		}
+		
+		return ret;
+	}
+
 	FunctionSignatureSet::const_iterator fsigiter = Session.FunctionSignatures.find(name);
 	if(fsigiter != Session.FunctionSignatures.end())
 	{
 		InferenceContext::PossibleParameterTypes ret(1, InferenceContext::TypePossibilities());
 		for(size_t i = 0; i < fsigiter->second.GetNumParameters(); ++i)
-			ret.back().push_back(fsigiter->second.GetParameter(i).Type);
+			ret.front().push_back(fsigiter->second.GetParameter(i).Type);
 
 		return ret;
 	}

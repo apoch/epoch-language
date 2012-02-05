@@ -81,7 +81,7 @@ bool Entity::CompileTimeCodeExecution(Program& program, CodeBlock& activescope)
 {
 	for(std::vector<Expression*>::iterator iter = Parameters.begin(); iter != Parameters.end(); ++iter)
 	{
-		if(!(*iter)->CompileTimeCodeExecution(program, activescope))
+		if(!(*iter)->CompileTimeCodeExecution(program, activescope, false))
 			return false;
 	}
 

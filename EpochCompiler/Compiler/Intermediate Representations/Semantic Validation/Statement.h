@@ -10,6 +10,7 @@
 
 // Dependencies
 #include "Utility/Types/IDTypes.h"
+#include "Utility/Types/EpochTypeIDs.h"
 
 #include <vector>
 
@@ -55,10 +56,16 @@ namespace IRSemantics
 	public:
 		bool TypeInference(IRSemantics::Program& program, CodeBlock& activescope, InferenceContext& context);
 
+	// Type system
+	public:
+		VM::EpochTypeID GetEpochType(const Program& program) const
+		{ return MyType; }
+
 	// Internal state
 	private:
 		StringHandle Name;
 		std::vector<Expression*> Parameters;
+		VM::EpochTypeID MyType;
 	};
 
 
@@ -68,7 +75,8 @@ namespace IRSemantics
 	public:
 		PreOpStatement(StringHandle operatorname, const std::vector<StringHandle> operand)
 			: OperatorName(operatorname),
-			  Operand(operand)
+			  Operand(operand),
+			  MyType(VM::EpochType_Error)
 		{ }
 
 	// Property access
@@ -83,10 +91,16 @@ namespace IRSemantics
 	public:
 		bool TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context);
 
+	// Type system
+	public:
+		VM::EpochTypeID GetEpochType(const Program& program) const
+		{ return MyType; }
+
 	// Internal state
 	private:
 		StringHandle OperatorName;
 		std::vector<StringHandle> Operand;
+		VM::EpochTypeID MyType;
 	};
 
 	class PostOpStatement
@@ -95,7 +109,8 @@ namespace IRSemantics
 	public:
 		PostOpStatement(const std::vector<StringHandle> operand, StringHandle operatorname)
 			: Operand(operand),
-			  OperatorName(operatorname)
+			  OperatorName(operatorname),
+			  MyType(VM::EpochType_Error)
 		{ }
 
 	// Property access
@@ -110,10 +125,16 @@ namespace IRSemantics
 	public:
 		bool TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context);
 
+	// Type system
+	public:
+		VM::EpochTypeID GetEpochType(const Program& program) const
+		{ return MyType; }
+
 	// Internal state
 	private:
 		std::vector<StringHandle> Operand;
 		StringHandle OperatorName;
+		VM::EpochTypeID MyType;
 	};
 
 }

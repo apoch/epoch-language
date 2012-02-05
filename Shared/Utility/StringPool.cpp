@@ -21,7 +21,7 @@ StringHandle StringPoolManager::Pool(const std::wstring& stringdata)
 {
 	Threads::CriticalSection::Auto lock(CritSec);
 
-	for(std::map<StringHandle, std::wstring>::const_iterator iter = PooledStrings.begin(); iter != PooledStrings.end(); ++iter)
+	for(boost::unordered_map<StringHandle, std::wstring>::const_iterator iter = PooledStrings.begin(); iter != PooledStrings.end(); ++iter)
 	{
 		if(iter->second == stringdata)
 			return iter->first;
@@ -54,7 +54,7 @@ void StringPoolManager::Pool(StringHandle handle, const std::wstring& stringdata
 {
 	Threads::CriticalSection::Auto lock(CritSec);
 
-	std::pair<std::map<StringHandle, std::wstring>::iterator, bool> ret = PooledStrings.insert(std::make_pair(handle, stringdata));
+	std::pair<boost::unordered_map<StringHandle, std::wstring>::iterator, bool> ret = PooledStrings.insert(std::make_pair(handle, stringdata));
 	if(!ret.second && ret.first->second != stringdata)
 		throw RecoverableException("Tried to replace a pooled string with a different value!");
 }
@@ -66,7 +66,7 @@ const std::wstring& StringPoolManager::GetPooledString(StringHandle handle) cons
 {
 	Threads::CriticalSection::Auto lock(CritSec);
 
-	std::map<StringHandle, std::wstring>::const_iterator iter = PooledStrings.find(handle);
+	boost::unordered_map<StringHandle, std::wstring>::const_iterator iter = PooledStrings.find(handle);
 	if(iter == PooledStrings.end())
 		throw RecoverableException("String handle does not correspond to any previously pooled string");
 
@@ -80,7 +80,7 @@ StringHandle StringPoolManager::Find(const std::wstring& stringdata) const
 {
 	Threads::CriticalSection::Auto lock(CritSec);
 
-	for(std::map<StringHandle, std::wstring>::const_iterator iter = PooledStrings.begin(); iter != PooledStrings.end(); ++iter)
+	for(boost::unordered_map<StringHandle, std::wstring>::const_iterator iter = PooledStrings.begin(); iter != PooledStrings.end(); ++iter)
 	{
 		if(iter->second == stringdata)
 			return iter->first;

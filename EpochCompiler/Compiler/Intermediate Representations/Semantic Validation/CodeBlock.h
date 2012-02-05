@@ -79,6 +79,9 @@ namespace IRSemantics
 		ScopeDescription* GetScope()
 		{ return Scope; }
 
+		const ScopeDescription* GetScope() const
+		{ return Scope; }
+
 	// Validation
 	public:
 		bool Validate(const IRSemantics::Program& program) const;

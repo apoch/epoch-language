@@ -113,31 +113,31 @@ using namespace ASTTraverse;
 //
 CompilePassSemantics::~CompilePassSemantics()
 {
-	for(std::list<IRSemantics::Structure*>::iterator iter = CurrentStructures.begin(); iter != CurrentStructures.end(); ++iter)
+	for(std::vector<IRSemantics::Structure*>::iterator iter = CurrentStructures.begin(); iter != CurrentStructures.end(); ++iter)
 		delete *iter;
 
-	for(std::list<IRSemantics::Function*>::iterator iter = CurrentFunctions.begin(); iter != CurrentFunctions.end(); ++iter)
+	for(std::vector<IRSemantics::Function*>::iterator iter = CurrentFunctions.begin(); iter != CurrentFunctions.end(); ++iter)
 		delete *iter;
 
-	for(std::list<IRSemantics::Expression*>::iterator iter = CurrentExpressions.begin(); iter != CurrentExpressions.end(); ++iter)
+	for(std::vector<IRSemantics::Expression*>::iterator iter = CurrentExpressions.begin(); iter != CurrentExpressions.end(); ++iter)
 		delete *iter;
 
-	for(std::list<IRSemantics::Assignment*>::iterator iter = CurrentAssignments.begin(); iter != CurrentAssignments.end(); ++iter)
+	for(std::vector<IRSemantics::Assignment*>::iterator iter = CurrentAssignments.begin(); iter != CurrentAssignments.end(); ++iter)
 		delete *iter;
 
-	for(std::list<IRSemantics::Statement*>::iterator iter = CurrentStatements.begin(); iter != CurrentStatements.end(); ++iter)
+	for(std::vector<IRSemantics::Statement*>::iterator iter = CurrentStatements.begin(); iter != CurrentStatements.end(); ++iter)
 		delete *iter;
 
-	for(std::list<IRSemantics::CodeBlock*>::iterator iter = CurrentCodeBlocks.begin(); iter != CurrentCodeBlocks.end(); ++iter)
+	for(std::vector<IRSemantics::CodeBlock*>::iterator iter = CurrentCodeBlocks.begin(); iter != CurrentCodeBlocks.end(); ++iter)
 		delete *iter;
 
-	for(std::list<IRSemantics::Entity*>::iterator iter = CurrentEntities.begin(); iter != CurrentEntities.end(); ++iter)
+	for(std::vector<IRSemantics::Entity*>::iterator iter = CurrentEntities.begin(); iter != CurrentEntities.end(); ++iter)
 		delete *iter;
 
-	for(std::list<IRSemantics::Entity*>::iterator iter = CurrentChainedEntities.begin(); iter != CurrentChainedEntities.end(); ++iter)
+	for(std::vector<IRSemantics::Entity*>::iterator iter = CurrentChainedEntities.begin(); iter != CurrentChainedEntities.end(); ++iter)
 		delete *iter;
 
-	for(std::list<IRSemantics::Entity*>::iterator iter = CurrentPostfixEntities.begin(); iter != CurrentPostfixEntities.end(); ++iter)
+	for(std::vector<IRSemantics::Entity*>::iterator iter = CurrentPostfixEntities.begin(); iter != CurrentPostfixEntities.end(); ++iter)
 		delete *iter;
 
 	delete CurrentProgram;
@@ -445,8 +445,6 @@ void CompilePassSemantics::ExitHelper::operator () (AST::Expression& expression)
 void CompilePassSemantics::EntryHelper::operator () (AST::ExpressionComponent& exprcomponent)
 {
 	self->StateStack.push(CompilePassSemantics::STATE_EXPRESSION_COMPONENT);
-
-	// TODO - decompose expression chain from AST into atoms
 }
 
 //
@@ -455,16 +453,6 @@ void CompilePassSemantics::EntryHelper::operator () (AST::ExpressionComponent& e
 void CompilePassSemantics::ExitHelper::operator () (AST::ExpressionComponent& exprcomponent)
 {
 	self->StateStack.pop();
-
-	switch(self->StateStack.top())
-	{
-	default:
-		throw std::exception("Invalid parse state");		// TODO - better exceptions
-
-	case CompilePassSemantics::STATE_EXPRESSION:
-		// TODO - push new expression onto stack with active atom
-		break;
-	}
 }
 
 //
@@ -508,8 +496,7 @@ void CompilePassSemantics::ExitHelper::operator () (AST::Statement& statement)
 	switch(self->StateStack.top())
 	{
 	case CompilePassSemantics::STATE_EXPRESSION_COMPONENT:
-		// TODO
-		//self->CurrentExpressionComponents.back()->SetAtom(new IRSemantics::ExpressionAtomStatement(self->CurrentStatements.back()));
+		self->CurrentExpressions.back()->AddAtom(new IRSemantics::ExpressionAtomStatement(self->CurrentStatements.back()));
 		self->CurrentStatements.pop_back();
 		break;
 
@@ -550,9 +537,8 @@ void CompilePassSemantics::ExitHelper::operator () (AST::PreOperatorStatement& s
 	{
 	case CompilePassSemantics::STATE_EXPRESSION_COMPONENT:
 		{
-			// TODO
-			//std::auto_ptr<IRSemantics::ParentheticalPreOp> irparenthetical(new IRSemantics::ParentheticalPreOp(irstatement.release()));
-			//self->CurrentExpressionComponents.back()->SetAtom(new IRSemantics::ExpressionAtomParenthetical(irparenthetical.release()));
+			std::auto_ptr<IRSemantics::ParentheticalPreOp> irparenthetical(new IRSemantics::ParentheticalPreOp(irstatement.release()));
+			self->CurrentExpressions.back()->AddAtom(new IRSemantics::ExpressionAtomParenthetical(irparenthetical.release()));
 		}
 		break;
 
@@ -592,9 +578,8 @@ void CompilePassSemantics::ExitHelper::operator () (AST::PostOperatorStatement& 
 	{
 	case CompilePassSemantics::STATE_EXPRESSION_COMPONENT:
 		{
-			// TODO
-			//std::auto_ptr<IRSemantics::ParentheticalPostOp> irparenthetical(new IRSemantics::ParentheticalPostOp(irstatement.release()));
-			//self->CurrentExpressionComponents.back()->SetAtom(new IRSemantics::ExpressionAtomParenthetical(irparenthetical.release()));
+			std::auto_ptr<IRSemantics::ParentheticalPostOp> irparenthetical(new IRSemantics::ParentheticalPostOp(irstatement.release()));
+			self->CurrentExpressions.back()->AddAtom(new IRSemantics::ExpressionAtomParenthetical(irparenthetical.release()));
 		}
 		break;
 
@@ -819,7 +804,7 @@ void CompilePassSemantics::ExitHelper::operator () (AST::PostfixEntity& entity)
 //
 void CompilePassSemantics::EntryHelper::operator () (AST::IdentifierT& identifier)
 {
-	std::wstring raw(identifier.begin(), identifier.end());
+	Substring raw(identifier.begin(), identifier.end());
 
 	std::auto_ptr<IRSemantics::ExpressionAtom> iratom(NULL);
 

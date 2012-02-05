@@ -83,7 +83,7 @@ namespace
 		}
 		else if(const IRSemantics::ExpressionAtomIdentifier* atom = dynamic_cast<const IRSemantics::ExpressionAtomIdentifier*>(rawatom))
 		{
-			if(program.HasFunction(atom->GetIdentifier()))
+			if(program.HasFunction(atom->GetIdentifier()) || (program.LookupType(atom->GetIdentifier()) != VM::EpochType_Error))
 				emitter.PushStringLiteral(atom->GetIdentifier());
 			else
 				emitter.PushVariableValue(atom->GetIdentifier(), activescope.GetVariableTypeByID(atom->GetIdentifier()));
@@ -254,9 +254,9 @@ namespace
 bool CompilerPasses::GenerateCode(const IRSemantics::Program& program, ByteCodeEmitter& emitter)
 {
 	const StringPoolManager& strings = program.GetStringPool();
-	const std::map<StringHandle, std::wstring>& stringpool = strings.GetInternalPool();
+	const boost::unordered_map<StringHandle, std::wstring>& stringpool = strings.GetInternalPool();
 
-	for(std::map<StringHandle, std::wstring>::const_iterator iter = stringpool.begin(); iter != stringpool.end(); ++iter)
+	for(boost::unordered_map<StringHandle, std::wstring>::const_iterator iter = stringpool.begin(); iter != stringpool.end(); ++iter)
 		emitter.PoolString(iter->first, iter->second);
 
 	const std::map<StringHandle, IRSemantics::Structure*>& structures = program.GetStructures();
@@ -283,8 +283,8 @@ bool CompilerPasses::GenerateCode(const IRSemantics::Program& program, ByteCodeE
 	emitter.Invoke(strings.Find(L"entrypoint"));
 	emitter.Halt();
 	
-	const std::map<StringHandle, IRSemantics::Function*>& functions = program.GetFunctions();
-	for(std::map<StringHandle, IRSemantics::Function*>::const_iterator iter = functions.begin(); iter != functions.end(); ++iter)
+	const boost::unordered_map<StringHandle, IRSemantics::Function*>& functions = program.GetFunctions();
+	for(boost::unordered_map<StringHandle, IRSemantics::Function*>::const_iterator iter = functions.begin(); iter != functions.end(); ++iter)
 	{
 		emitter.EnterFunction(iter->first);
 

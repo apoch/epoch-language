@@ -22,6 +22,7 @@
 
 #include <vector>
 #include <map>
+#include <boost/unordered_map.hpp>
 
 
 // Forward declarations
@@ -36,6 +37,35 @@ namespace IRSemantics
 	class Function;
 	class Structure;
 	class CodeBlock;
+
+
+	namespace impl
+	{
+		template<typename T>
+		class StringCache
+		{
+		private:
+			typedef boost::unordered_map<T, StringHandle> CacheType;
+
+		public:
+			StringHandle Find(const T& key) const
+			{
+				CacheType::const_iterator iter = Cache.find(key);
+				if(iter == Cache.end())
+					return 0;
+
+				return iter->second;
+			}
+
+			void Add(const T& key, StringHandle str)
+			{
+				Cache[key] = str;
+			}
+
+		private:
+			CacheType Cache;
+		};
+	}
 
 
 	//
@@ -75,7 +105,7 @@ namespace IRSemantics
 		void AddFunction(StringHandle name, Function* function);
 		bool HasFunction(StringHandle name) const;
 
-		const std::map<StringHandle, Function*>& GetFunctions() const
+		const boost::unordered_map<StringHandle, Function*>& GetFunctions() const
 		{ return Functions; }
 
 	// Manipulation of associated structures
@@ -138,8 +168,8 @@ namespace IRSemantics
 		std::map<StringHandle, VM::EpochTypeID> StructureTypes;
 		VM::EpochTypeID StructureTypeCounter;
 
-		std::map<StringHandle, Function*> Functions;
-		std::map<StringHandle, unsigned> FunctionOverloadCounters;
+		boost::unordered_map<StringHandle, Function*> Functions;
+		boost::unordered_map<StringHandle, unsigned> FunctionOverloadCounters;
 
 		std::vector<CodeBlock*> GlobalCodeBlocks;
 
@@ -149,6 +179,13 @@ namespace IRSemantics
 		ScopeMap LexicalScopes;
 
 		ScopeDescription* GlobalScope;
+
+	// String lookup caches
+	private:
+		impl::StringCache<std::pair<StringHandle, size_t> > FunctionOverloadNameCache;
+		impl::StringCache<std::pair<StringHandle, StringHandle> > StructureMemberAccessOverloadNameCache;
+		impl::StringCache<const CodeBlock*> LexicalScopeNameCache;
+		impl::StringCache<std::wstring> IdentifierCache;
 	};
 
 }

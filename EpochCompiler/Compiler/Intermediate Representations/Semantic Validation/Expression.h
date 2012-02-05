@@ -42,6 +42,7 @@ namespace IRSemantics
 	public:
 		virtual VM::EpochTypeID GetEpochType(const Program& program) const = 0;
 		virtual bool TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, size_t index) = 0;
+		virtual bool CompileTimeCodeExecution(Program& program, CodeBlock& activescope, bool inreturnexpr) = 0;
 	};
 
 
@@ -62,7 +63,7 @@ namespace IRSemantics
 
 	// Compile time code execution
 	public:
-		bool CompileTimeCodeExecution(Program& program, CodeBlock& activescope);
+		bool CompileTimeCodeExecution(Program& program, CodeBlock& activescope, bool inreturnexpr);
 
 	// Type inference
 	public:
@@ -83,6 +84,7 @@ namespace IRSemantics
 	private:
 		std::vector<ExpressionAtom*> Atoms;
 		VM::EpochTypeID InferredType;
+		bool Coalesced;
 	};
 
 
@@ -92,6 +94,15 @@ namespace IRSemantics
 	public:
 		virtual ~Parenthetical()
 		{ }
+
+	// Type system
+	public:
+		virtual VM::EpochTypeID GetEpochType(const Program& program) const = 0;
+		virtual bool TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context) const = 0;
+
+	// Compile time code execution
+	public:
+		virtual bool CompileTimeCodeExecution(Program& program, CodeBlock& activescope, bool inreturnexpr) = 0;
 	};
 
 
@@ -106,6 +117,15 @@ namespace IRSemantics
 	private:
 		ParentheticalPreOp(const ParentheticalPreOp& other);
 		ParentheticalPreOp& operator = (const ParentheticalPreOp& rhs);
+
+	// Type system
+	public:
+		virtual VM::EpochTypeID GetEpochType(const Program& program) const;
+		virtual bool TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context) const;
+
+	// Compile time code execution
+	public:
+		bool CompileTimeCodeExecution(Program& program, CodeBlock& activescope, bool inreturnexpr);
 
 	// Internal state
 	private:
@@ -123,6 +143,15 @@ namespace IRSemantics
 	private:
 		ParentheticalPostOp(const ParentheticalPostOp& other);
 		ParentheticalPostOp& operator = (const ParentheticalPostOp& rhs);
+
+	// Compile time code execution
+	public:
+		bool CompileTimeCodeExecution(Program& program, CodeBlock& activescope, bool inreturnexpr);
+
+	// Type system
+	public:
+		virtual VM::EpochTypeID GetEpochType(const Program& program) const;
+		virtual bool TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context) const;
 
 	// Internal state
 	private:
@@ -146,6 +175,7 @@ namespace IRSemantics
 	public:
 		virtual VM::EpochTypeID GetEpochType(const Program& program) const;
 		virtual bool TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, size_t index);
+		virtual bool CompileTimeCodeExecution(Program& program, CodeBlock& activescope, bool inreturnexpr);
 
 	// Internal state
 	private:
@@ -157,7 +187,8 @@ namespace IRSemantics
 	// Construction
 	public:
 		explicit ExpressionAtomIdentifier(StringHandle identifier)
-			: Identifier(identifier)
+			: Identifier(identifier),
+			  MyType(VM::EpochType_Error)
 		{ }
 
 	// Accessors
@@ -169,10 +200,12 @@ namespace IRSemantics
 	public:
 		virtual VM::EpochTypeID GetEpochType(const Program& program) const;
 		virtual bool TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, size_t index);
+		virtual bool CompileTimeCodeExecution(Program& program, CodeBlock& activescope, bool inreturnexpr);
 
 	// Internal state
 	private:
 		StringHandle Identifier;
+		VM::EpochTypeID MyType;
 	};
 
 	class ExpressionAtomOperator : public ExpressionAtom
@@ -192,6 +225,13 @@ namespace IRSemantics
 	public:
 		virtual VM::EpochTypeID GetEpochType(const Program& program) const;
 		virtual bool TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, size_t index);
+		virtual bool CompileTimeCodeExecution(Program& program, CodeBlock& activescope, bool inreturnexpr);
+
+	// Additional type inference support
+	public:
+		bool IsOperatorUnary(const Program& program) const;
+		VM::EpochTypeID DetermineOperatorReturnType(Program& program, VM::EpochTypeID lhstype, VM::EpochTypeID rhstype) const;
+		VM::EpochTypeID DetermineUnaryReturnType(Program& program, VM::EpochTypeID operandtype) const;
 
 	// Internal state
 	private:
@@ -215,6 +255,7 @@ namespace IRSemantics
 	public:
 		virtual VM::EpochTypeID GetEpochType(const Program& program) const;
 		virtual bool TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, size_t index);
+		virtual bool CompileTimeCodeExecution(Program& program, CodeBlock& activescope, bool inreturnexpr);
 
 	// Internal state
 	private:
@@ -238,6 +279,7 @@ namespace IRSemantics
 	public:
 		virtual VM::EpochTypeID GetEpochType(const Program& program) const;
 		virtual bool TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, size_t index);
+		virtual bool CompileTimeCodeExecution(Program& program, CodeBlock& activescope, bool inreturnexpr);
 
 	// Internal state
 	private:
@@ -261,6 +303,7 @@ namespace IRSemantics
 	public:
 		virtual VM::EpochTypeID GetEpochType(const Program& program) const;
 		virtual bool TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, size_t index);
+		virtual bool CompileTimeCodeExecution(Program& program, CodeBlock& activescope, bool inreturnexpr);
 
 	// Internal state
 	private:
@@ -284,6 +327,7 @@ namespace IRSemantics
 	public:
 		virtual VM::EpochTypeID GetEpochType(const Program& program) const;
 		virtual bool TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, size_t index);
+		virtual bool CompileTimeCodeExecution(Program& program, CodeBlock& activescope, bool inreturnexpr);
 
 	// Internal state
 	private:
@@ -306,6 +350,7 @@ namespace IRSemantics
 	public:
 		virtual VM::EpochTypeID GetEpochType(const Program& program) const;
 		virtual bool TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, size_t index);
+		virtual bool CompileTimeCodeExecution(Program& program, CodeBlock& activescope, bool inreturnexpr);
 
 	// Accessors
 	public:
@@ -315,6 +360,36 @@ namespace IRSemantics
 	// Internal state
 	private:
 		Statement* MyStatement;
+	};
+
+
+	class ExpressionAtomTypeWrapper : public ExpressionAtom
+	{
+	// Construction
+	public:
+		explicit ExpressionAtomTypeWrapper(VM::EpochTypeID type)
+			: MyType(type)
+		{ }
+
+	// Non-copyable
+	private:
+		ExpressionAtomTypeWrapper(const ExpressionAtomTypeWrapper& other);
+		ExpressionAtomTypeWrapper& operator = (const ExpressionAtomTypeWrapper& rhs);
+
+	// Atom interface
+	public:
+		virtual VM::EpochTypeID GetEpochType(const Program& program) const
+		{ return MyType; }
+
+		virtual bool TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, size_t index)
+		{ return true; }
+
+		virtual bool CompileTimeCodeExecution(Program& program, CodeBlock& activescope, bool inreturnexpr)
+		{ return true; }
+
+	// Internal state
+	private:
+		VM::EpochTypeID MyType;
 	};
 
 }

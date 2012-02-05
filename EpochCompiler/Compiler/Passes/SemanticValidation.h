@@ -211,16 +211,15 @@ namespace ASTTraverse
 	private:
 		IRSemantics::Program* CurrentProgram;
 
-		std::list<IRSemantics::Structure*> CurrentStructures;
-		std::list<IRSemantics::Function*> CurrentFunctions;
-		std::list<IRSemantics::Expression*> CurrentExpressions;
-		std::list<IRSemantics::ExpressionAtom*> CurrentExpressionAtoms;
-		std::list<IRSemantics::Assignment*> CurrentAssignments;
-		std::list<IRSemantics::Statement*> CurrentStatements;
-		std::list<IRSemantics::CodeBlock*> CurrentCodeBlocks;
-		std::list<IRSemantics::Entity*> CurrentEntities;
-		std::list<IRSemantics::Entity*> CurrentChainedEntities;
-		std::list<IRSemantics::Entity*> CurrentPostfixEntities;
+		std::vector<IRSemantics::Structure*> CurrentStructures;
+		std::vector<IRSemantics::Function*> CurrentFunctions;
+		std::vector<IRSemantics::Expression*> CurrentExpressions;
+		std::vector<IRSemantics::Assignment*> CurrentAssignments;
+		std::vector<IRSemantics::Statement*> CurrentStatements;
+		std::vector<IRSemantics::CodeBlock*> CurrentCodeBlocks;
+		std::vector<IRSemantics::Entity*> CurrentEntities;
+		std::vector<IRSemantics::Entity*> CurrentChainedEntities;
+		std::vector<IRSemantics::Entity*> CurrentPostfixEntities;
 
 		enum States
 		{

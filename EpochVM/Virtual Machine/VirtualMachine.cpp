@@ -1185,7 +1185,7 @@ void ExecutionContext::Load()
 
 	// Pre-mark all statically referenced string handles
 	// This helps speed up garbage collection a bit
-	for(std::map<StringHandle, std::wstring>::const_iterator iter = OwnerVM.PrivateGetRawStringPool().GetInternalPool().begin(); iter != OwnerVM.PrivateGetRawStringPool().GetInternalPool().end(); ++iter)
+	for(boost::unordered_map<StringHandle, std::wstring>::const_iterator iter = OwnerVM.PrivateGetRawStringPool().GetInternalPool().begin(); iter != OwnerVM.PrivateGetRawStringPool().GetInternalPool().end(); ++iter)
 		StaticallyReferencedStrings.insert(iter->first);
 }
 
@@ -1555,8 +1555,8 @@ std::wstring VirtualMachine::DebugSnapshot() const
 	{
 		Threads::CriticalSection::Auto lock(PrivateStringPool.CritSec);
 		report << L"STRING POOL CONTENTS\r\n";
-		const std::map<StringHandle, std::wstring>& pool = PrivateStringPool.GetInternalPool();
-		for(std::map<StringHandle, std::wstring>::const_iterator iter = pool.begin(); iter != pool.end(); ++iter)
+		const boost::unordered_map<StringHandle, std::wstring>& pool = PrivateStringPool.GetInternalPool();
+		for(boost::unordered_map<StringHandle, std::wstring>::const_iterator iter = pool.begin(); iter != pool.end(); ++iter)
 			report << iter->first << L"\t" << iter->second << L"\r\n";
 	}
 #endif

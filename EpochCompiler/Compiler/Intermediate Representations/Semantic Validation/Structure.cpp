@@ -8,6 +8,9 @@
 #include "pch.h"
 
 #include "Compiler/Intermediate Representations/Semantic Validation/Structure.h"
+#include "Compiler/Intermediate Representations/Semantic Validation/Expression.h"
+#include "Compiler/Intermediate Representations/Semantic Validation/CodeBlock.h"
+#include "Compiler/Intermediate Representations/Semantic Validation/Function.h"
 #include "Compiler/Intermediate Representations/Semantic Validation/Program.h"
 
 
@@ -54,6 +57,30 @@ bool Structure::Validate(const Program& program) const
 	}
 
 	return valid;
+}
+
+
+bool Structure::CompileTimeCodeExecution(StringHandle myname, Program& program)
+{
+	for(std::vector<std::pair<StringHandle, StructureMember*> >::const_iterator iter = Members.begin(); iter != Members.end(); ++iter)
+	{
+		// TODO - make auto-generated functions suitable for code generation
+		StringHandle funcname = program.FindStructureMemberAccessOverload(myname, iter->first);
+
+		std::auto_ptr<Function> func(new Function);
+		std::auto_ptr<Expression> retexpr(new Expression);
+		retexpr->AddAtom(new ExpressionAtomTypeWrapper(iter->second->GetEpochType(program)));
+		func->SetReturnExpression(retexpr.release());
+
+		std::auto_ptr<ScopeDescription> scope(new ScopeDescription(program.GetGlobalScope()));
+		std::auto_ptr<CodeBlock> codeblock(new CodeBlock(scope.release()));
+		program.AllocateLexicalScopeName(codeblock.get());
+		func->SetCode(codeblock.release());
+
+		program.AddFunction(funcname, func.release());
+	}
+
+	return true;
 }
 
 

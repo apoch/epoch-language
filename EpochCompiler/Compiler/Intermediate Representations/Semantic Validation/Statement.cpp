@@ -9,6 +9,8 @@
 
 #include "Compiler/Intermediate Representations/Semantic Validation/Statement.h"
 #include "Compiler/Intermediate Representations/Semantic Validation/Expression.h"
+#include "Compiler/Intermediate Representations/Semantic Validation/CodeBlock.h"
+#include "Compiler/Intermediate Representations/Semantic Validation/Function.h"
 #include "Compiler/Intermediate Representations/Semantic Validation/Program.h"
 
 #include "Compiler/Intermediate Representations/Semantic Validation/InferenceContext.h"
@@ -20,7 +22,8 @@ using namespace IRSemantics;
 
 
 Statement::Statement(StringHandle name)
-	: Name(name)
+	: Name(name),
+	  MyType(VM::EpochType_Infer)
 {
 }
 
@@ -55,7 +58,7 @@ bool Statement::CompileTimeCodeExecution(Program& program, CodeBlock& activescop
 {
 	for(std::vector<Expression*>::iterator iter = Parameters.begin(); iter != Parameters.end(); ++iter)
 	{
-		if(!(*iter)->CompileTimeCodeExecution(program, activescope))
+		if(!(*iter)->CompileTimeCodeExecution(program, activescope, inreturnexpr))
 			return false;
 	}
 
@@ -80,6 +83,12 @@ bool Statement::TypeInference(Program& program, CodeBlock& activescope, Inferenc
 		newcontext.ExpectedTypes.push_back(program.GetExpectedTypesForStatement(context.ContextName));
 		break;
 
+	case InferenceContext::CONTEXT_EXPRESSION:
+	case InferenceContext::CONTEXT_FUNCTION_RETURN:
+		// TODO - this is broken, evaluate the actual operators involved and use them w/ overload resolution
+		newcontext.ExpectedTypes.push_back(program.GetExpectedTypesForStatement(Name));
+		break;
+
 	default:
 		throw std::exception("Invalid inference context");				// TODO - better exceptions
 	}
@@ -93,19 +102,64 @@ bool Statement::TypeInference(Program& program, CodeBlock& activescope, Inferenc
 		++i;
 	}
 
+	// TODO - handle overloading
+	if(context.State == InferenceContext::CONTEXT_FUNCTION_RETURN)
+		MyType = program.LookupType(Name);
+	else
+	{
+		if(program.HasFunction(Name))
+		{
+			InferenceContext funccontext(0, InferenceContext::CONTEXT_GLOBAL);
+			Function* func = program.GetFunctions().find(Name)->second;
+			func->TypeInference(program, funccontext);
+			MyType = func->GetReturnType(program);
+		}
+		else
+		{
+			OverloadMap::const_iterator ovmapiter = program.Session.FunctionOverloadNames.find(Name);
+			if(ovmapiter != program.Session.FunctionOverloadNames.end())
+				MyType = program.Session.FunctionSignatures.find(*ovmapiter->second.begin())->second.GetReturnType();
+			else
+				MyType = program.Session.FunctionSignatures.find(Name)->second.GetReturnType();
+		}
+	}
+
 	return true;
+}
+
+
+namespace
+{
+	VM::EpochTypeID InferMemberAccessType(const std::vector<StringHandle>& accesslist, const Program& program, const CodeBlock& activescope)
+	{
+		if(accesslist.empty())
+			return VM::EpochType_Error;
+
+		std::vector<StringHandle>::const_iterator iter = accesslist.begin();
+		VM::EpochTypeID thetype = activescope.GetScope()->GetVariableTypeByID(*iter);
+
+		while(++iter != accesslist.end())
+		{
+			StringHandle structurename = program.GetNameOfStructureType(thetype);
+			StringHandle memberaccessname = program.FindStructureMemberAccessOverload(structurename, *iter);
+			
+			thetype = program.GetStructureMemberType(structurename, memberaccessname);
+		}
+
+		return thetype;
+	}
 }
 
 
 bool PreOpStatement::TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context)
 {
-	// TODO - type inference on preops
-	return true;
+	MyType = InferMemberAccessType(Operand, program, activescope);
+	return (MyType != VM::EpochType_Error);
 }
 
 bool PostOpStatement::TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context)
 {
-	// TODO - type inference on postops
-	return true;
+	MyType = InferMemberAccessType(Operand, program, activescope);
+	return (MyType != VM::EpochType_Error);
 }
 

@@ -78,6 +78,7 @@ bool CodeBlock::CompileTimeCodeExecution(Program& program)
 
 bool CodeBlock::TypeInference(Program& program, InferenceContext& context)
 {
+	/*
 	StringHandle thisblockname;
 	switch(context.State)
 	{
@@ -92,9 +93,9 @@ bool CodeBlock::TypeInference(Program& program, InferenceContext& context)
 
 	default:
 		throw std::exception("Invalid inference context");		// TODO - better exceptions
-	}
+	}*/
 
-	InferenceContext newcontext(thisblockname, InferenceContext::CONTEXT_CODE_BLOCK);
+	InferenceContext newcontext(0, InferenceContext::CONTEXT_CODE_BLOCK);
 
 	for(std::vector<CodeBlockEntry*>::iterator iter = Entries.begin(); iter != Entries.end(); ++iter)
 	{

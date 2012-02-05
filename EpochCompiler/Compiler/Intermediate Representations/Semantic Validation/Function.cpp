@@ -54,6 +54,14 @@ void Function::SetReturnExpression(IRSemantics::Expression* expression)
 	Return = expression;
 }
 
+VM::EpochTypeID Function::GetReturnType(const Program& program) const
+{
+	if(Return)
+		return Return->GetEpochType(program);
+
+	return VM::EpochType_Void;
+}
+
 //
 // Set a function's code body
 //
@@ -144,7 +152,7 @@ bool Function::CompileTimeCodeExecution(Program& program)
 		if(!Code)
 			return false;
 
-		if(!Return->CompileTimeCodeExecution(program, *Code))
+		if(!Return->CompileTimeCodeExecution(program, *Code, true))
 			return false;
 	}
 
@@ -157,12 +165,18 @@ bool Function::CompileTimeCodeExecution(Program& program)
 
 bool Function::TypeInference(Program& program, InferenceContext& context)
 {
+	if(InferenceDone)
+		return true;
+
+	InferenceDone = true;
+
 	if(!Code)
 		return true;
 
 	if(Return)
 	{
-		if(!Return->TypeInference(program, *Code, context, 0))
+		InferenceContext newcontext(Name, InferenceContext::CONTEXT_FUNCTION_RETURN);
+		if(!Return->TypeInference(program, *Code, newcontext, 0))
 			return false;
 	}
 

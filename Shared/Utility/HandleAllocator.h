@@ -24,6 +24,11 @@ template <typename HandleT>
 class HandleAllocator
 {
 public:
+	HandleAllocator()
+		: CurrentMonotonic(1)
+	{ }
+
+public:
 	//
 	// Allocate a handle safely, using the given container as a guide of
 	// which handle values are already in use. Assumes the container has
@@ -40,13 +45,12 @@ public:
 
 		// If we haven't run out of monotonically allocated handles, then we
 		// can simply increment the last provided handle value and return it
-		HandleT largestusedhandle = container.rbegin()->first;
-		if(largestusedhandle < maxhandle)
-			return ++largestusedhandle;
+		if(CurrentMonotonic < maxhandle)
+			return ++CurrentMonotonic;
 
 		// Otherwise, we need to do a quick search of the container looking
 		// for the first unused handle value we can return
-		HandleT ret = SearchForUnusedHandle(container, 1, largestusedhandle);
+		HandleT ret = SearchForUnusedHandle(container, 1, CurrentMonotonic);
 		if(!ret)
 			throw Exception("Handle values exhausted!");
 
@@ -73,8 +77,8 @@ private:
 			return 0;
 
 		HandleT pivot = ((max - min) / 2) + min;	// Order of operations is necessary to prevent overflow!
-		ContainerT::const_iterator iter = container.lower_bound(pivot);
-		if(iter->first != pivot)
+		ContainerT::const_iterator iter = container.find(pivot);
+		if(iter == container.end())
 			return pivot;
 
 		HandleT attempt = SearchForUnusedHandle(container, min, pivot - 1);
@@ -87,5 +91,7 @@ private:
 
 		return 0;
 	}
+
+	HandleT CurrentMonotonic;
 };
 

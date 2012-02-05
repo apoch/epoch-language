@@ -151,7 +151,8 @@ namespace IRSemantics
 	public:
 		Function()
 			: Code(NULL),
-			  Return(NULL)
+			  Return(NULL),
+			  InferenceDone(false)
 		{ }
 
 		~Function();
@@ -176,9 +177,13 @@ namespace IRSemantics
 		VM::EpochTypeID GetParameterType(StringHandle name, const IRSemantics::Program& program) const;
 		bool IsParameterReference(StringHandle name) const;
 
+		size_t GetNumParameters() const
+		{ return Parameters.size(); }
+
 	// Returns
 	public:
 		void SetReturnExpression(Expression* expression);
+		VM::EpochTypeID GetReturnType(const Program& program) const;
 
 	// Inner code
 	public:
@@ -221,6 +226,7 @@ namespace IRSemantics
 		};
 
 		std::vector<Param> Parameters;
+		bool InferenceDone;
 	};
 
 }
