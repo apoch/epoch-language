@@ -212,8 +212,9 @@ namespace IRSemantics
 	{
 	// Construction
 	public:
-		explicit ExpressionAtomOperator(StringHandle identifier)
-			: Identifier(identifier)
+		ExpressionAtomOperator(StringHandle identifier, bool ismemberaccess)
+			: Identifier(identifier),
+			  IsMemberAccessFlag(ismemberaccess)
 		{ }
 
 	// Accessors
@@ -233,9 +234,13 @@ namespace IRSemantics
 		VM::EpochTypeID DetermineOperatorReturnType(Program& program, VM::EpochTypeID lhstype, VM::EpochTypeID rhstype) const;
 		VM::EpochTypeID DetermineUnaryReturnType(Program& program, VM::EpochTypeID operandtype) const;
 
+		bool IsMemberAccess() const
+		{ return IsMemberAccessFlag; }
+
 	// Internal state
 	private:
 		StringHandle Identifier;
+		bool IsMemberAccessFlag;
 	};
 
 	class ExpressionAtomLiteralString : public ExpressionAtom

@@ -462,8 +462,9 @@ void CompilePassSemantics::EntryHelper::operator () (AST::ExpressionFragment& ex
 {
 	self->StateStack.push(CompilePassSemantics::STATE_EXPRESSION_FRAGMENT);
 
-	StringHandle opname = self->CurrentProgram->AddString(std::wstring(exprfragment.Operator.begin(), exprfragment.Operator.end()));	
-	self->CurrentExpressions.back()->AddAtom(new IRSemantics::ExpressionAtomOperator(opname));
+	std::wstring token(exprfragment.Operator.begin(), exprfragment.Operator.end());
+	StringHandle opname = self->CurrentProgram->AddString(token);
+	self->CurrentExpressions.back()->AddAtom(new IRSemantics::ExpressionAtomOperator(opname, token == L"."));
 }
 
 //
@@ -859,7 +860,7 @@ void CompilePassSemantics::EntryHelper::operator () (AST::IdentifierT& identifie
 		break;
 
 	case CompilePassSemantics::STATE_EXPRESSION_COMPONENT_PREFIXES:
-		self->CurrentExpressions.back()->AddAtom(new IRSemantics::ExpressionAtomOperator(dynamic_cast<IRSemantics::ExpressionAtomIdentifier*>(iratom.get())->GetIdentifier()));
+		self->CurrentExpressions.back()->AddAtom(new IRSemantics::ExpressionAtomOperator(dynamic_cast<IRSemantics::ExpressionAtomIdentifier*>(iratom.get())->GetIdentifier(), false));
 		break;
 
 	case CompilePassSemantics::STATE_EXPRESSION_COMPONENT:

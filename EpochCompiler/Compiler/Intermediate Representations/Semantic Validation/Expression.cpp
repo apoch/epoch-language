@@ -94,8 +94,7 @@ namespace
 			const ExpressionAtomOperator* opatom = dynamic_cast<const ExpressionAtomOperator*>(atoms[index]);
 			if(opatom)
 			{
-				// TODO - this is a stupid hackish mess, clean it up
-				if(program.GetString(opatom->GetIdentifier()).substr(0, 3) == L".@@")
+				if(opatom->IsMemberAccess())
 				{
 					Function* func = program.GetFunctions().find(opatom->GetIdentifier())->second;
 					InferenceContext context(0, InferenceContext::CONTEXT_GLOBAL);
@@ -208,7 +207,7 @@ void Expression::Coalesce(Program& program, CodeBlock& activescope)
 				StringHandle memberaccessname = program.FindStructureMemberAccessOverload(structurename, opid->GetIdentifier());
 
 				delete opatom;
-				*iter = new ExpressionAtomOperator(memberaccessname);
+				*iter = new ExpressionAtomOperator(memberaccessname, true);
 
 				delete *nextiter;
 				Atoms.erase(nextiter);

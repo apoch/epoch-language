@@ -34,7 +34,7 @@
 
 #include "Compiler/Diagnostics.h"
 
-#include <iostream>			// TODO - replace with UI wrappers
+#include "User Interface/Output.h"
 
 
 //
@@ -124,13 +124,14 @@ void CompileSession::EmitByteCode()
 	Profiling::Timer timer;
 	timer.Begin();
 
-	std::wcout << L"Generating code... ";
+	UI::OutputStream output;
+	output << L"Generating code... ";
 
 	ByteCodeEmitter emitter(FinalByteCode);
 	CompilerPasses::GenerateCode(*SemanticProgram, emitter);
 
 	timer.End();
-	std::wcout << L"finished in " << timer.GetTimeMs() << L"ms" << std::endl;
+	output << L"finished in " << timer.GetTimeMs() << L"ms" << std::endl;
 }
 
 
@@ -167,14 +168,15 @@ void CompileSession::CompileFile(const std::wstring& code, const std::wstring& f
 	delete SemanticProgram;
 	SemanticProgram = NULL;
 
-	std::wcout << L"Validating semantics... ";
+	UI::OutputStream output;
+	output << L"Validating semantics... ";
 	Profiling::Timer timer;
 	timer.Begin();
 
 	SemanticProgram = CompilerPasses::ValidateSemantics(*ASTProgram, StringPool, *this);
 
 	timer.End();
-	std::wcout << L"finished in " << timer.GetTimeMs() << L"ms with " << ErrorCount << " error(s)" << std::endl;
+	output << L"finished in " << timer.GetTimeMs() << L"ms with " << ErrorCount << " error(s)" << std::endl;
 
 	if(!SemanticProgram)
 		throw FatalException("Semantic checking failed!");
