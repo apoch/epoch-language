@@ -13,6 +13,7 @@
 #include "Compiler/Intermediate Representations/Semantic Validation/CodeBlock.h"
 
 #include "Compiler/Session.h"
+#include "Compiler/Exceptions.h"
 
 #include "Utility/StringPool.h"
 
@@ -82,7 +83,7 @@ void Program::AddStructure(StringHandle name, Structure* structure)
 	if(Structures.find(name) != Structures.end())
 	{
 		delete structure;
-		throw std::exception("Duplicate structure name");		// TODO - better exceptions
+		throw std::exception("Duplicate structure name");		// TODO - this should not be an exception
 	}
 
 	Structures.insert(std::make_pair(name, structure));
@@ -130,7 +131,7 @@ void Program::AddFunction(StringHandle name, Function* function)
 	if(Functions.find(name) != Functions.end())
 	{
 		delete function;
-		throw std::exception("Duplicate function name");		// TODO - better exceptions
+		throw std::exception("Duplicate function name");		// TODO - this should not be an exception
 	}
 
 	Functions.insert(std::make_pair(name, function));
@@ -161,7 +162,16 @@ size_t Program::AddGlobalCodeBlock(CodeBlock* code)
 const CodeBlock& Program::GetGlobalCodeBlock(size_t index) const
 {
 	if(index >= GlobalCodeBlocks.size())
-		throw std::exception("Invalid global code block index");		// TODO - better exceptions
+	{
+		//
+		// This is a failure on the part of the caller.
+		//
+		// Callers should pay attention to how many global code blocks
+		// have been defined and make sure they don't ask for one that
+		// doesn't exist. See GetNumGlobalCodeBlocks().
+		//
+		throw InternalException("Requested a global code block index that has not been defined");
+	}
 
 	return *GlobalCodeBlocks[index];
 }
@@ -323,7 +333,19 @@ VM::EpochTypeID Program::GetStructureMemberType(StringHandle structurename, Stri
 {
 	std::map<StringHandle, Structure*>::const_iterator iter = Structures.find(structurename);
 	if(iter == Structures.end())
-		throw std::exception("Invalid structure identifier");			// TODO - better exceptions
+	{
+		//
+		// This should occur only when something has gone horribly
+		// wrong in the parsing system, i.e. there is a logic bug
+		// in the compiler implementation itself.
+		//
+		// Essentially this means someone thought they had a token
+		// that was bound to a structure type definition, but either
+		// it never was, or we forgot the type definition metadata
+		// somehow during compilation.
+		//
+		throw InternalException("String handle does not correspond to any known structure type");
+	}
 
 	const std::vector<std::pair<StringHandle, StructureMember*> >& members = iter->second->GetMembers();
 	for(std::vector<std::pair<StringHandle, StructureMember*> >::const_iterator memberiter = members.begin(); memberiter != members.end(); ++memberiter)
@@ -332,7 +354,19 @@ VM::EpochTypeID Program::GetStructureMemberType(StringHandle structurename, Stri
 			return memberiter->second->GetEpochType(*this);
 	}
 	
-	throw std::exception("Invalid structure member");				// TODO - better exceptions
+	//
+	// This is also limited to logic bugs in the compiler.
+	//
+	// We should not attempt to access a structure member's type
+	// if the structure has no members by that name. Semantic
+	// checking should have first determined that the member does
+	// not exist, prior to ever asking for the type information.
+	//
+	// Further, semantic checking should have failed once the
+	// missing member was detected, preventing any further type
+	// validation surrounding the faulty expression.
+	//
+	throw InternalException("Structure type does not provide any members by this name");
 }
 
 StringHandle Program::GetNameOfStructureType(VM::EpochTypeID structuretype) const
@@ -343,7 +377,17 @@ StringHandle Program::GetNameOfStructureType(VM::EpochTypeID structuretype) cons
 			return iter->first;
 	}
 
-	throw std::exception("Invalid structure type ID");					// TODO - better exceptions
+	//
+	// This catches a potential logic bug in the compiler implementation.
+	//
+	// If a structure has been allocated a type ID, that type ID should never
+	// be able to exist without being also bound to an identifier, even if that
+	// identifier is just an automatically generated magic anonymous token.
+	//
+	// Callers cannot be faulted directly for this exception; the problem most
+	// likely lies elsewhere in the structure type handling code.
+	//
+	throw InternalException("Type ID is not bound to any known identifier");
 }
 
 StringHandle Program::FindStructureMemberAccessOverload(StringHandle structurename, StringHandle membername) const
@@ -383,7 +427,15 @@ Bytecode::EntityTag Program::GetEntityTag(StringHandle identifier) const
 			return iter->first;
 	}
 
-	throw std::exception("Invalid entity");			// TODO - better exceptions
+	//
+	// This represents a failure in the parser.
+	//
+	// The parser should reject any code which attempts to utilize an undefined
+	// entity. By the time we reach semantic validation, it should no longer be
+	// possible to refer to an entity identifier which doesn't have any backing
+	// descriptor data (including the entity type-tag we're retrieving here).
+	//
+	throw InternalException("String handle does not correspond to any known type of entity");
 }
 
 
@@ -409,7 +461,19 @@ InferenceContext::PossibleParameterTypes Program::GetExpectedTypesForStatement(S
 			StringHandle overloadname = i ? FunctionOverloadNameCache.Find(std::make_pair(name, i)) : name;
 			boost::unordered_map<StringHandle, Function*>::const_iterator funciter = Functions.find(overloadname);
 			if(funciter == Functions.end())
-				throw std::exception("Bogus overload");				// TODO - better exceptions
+			{
+				//
+				// This is a critical internal failure. A function overload name
+				// has been registered but the corresponding definition of the
+				// function cannot be located.
+				//
+				// Examine the handling of overload registration, name resolution,
+				// and definition storage. We should not reach the phase of type
+				// inference until all function definitions have been visited by
+				// AST traversal in prior semantic validation passes.
+				//
+				throw InternalException("Function overload registered but definition not found");
+			}
 
 			ret.push_back(InferenceContext::TypePossibilities());
 
@@ -451,6 +515,7 @@ InferenceContext::PossibleParameterTypes Program::GetExpectedTypesForStatement(S
 		return ret;
 	}
 
-	throw std::exception("Invalid function name");			// TODO - better exceptions
+	// TODO - this should not be an exception. Record a semantic error instead.
+	throw std::exception("Invalid function name");
 }
 

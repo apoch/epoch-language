@@ -16,6 +16,7 @@
 #include "Compiler/Intermediate Representations/Semantic Validation/InferenceContext.h"
 
 #include "Compiler/Session.h"
+#include "Compiler/Exceptions.h"
 
 
 using namespace IRSemantics;
@@ -90,7 +91,19 @@ bool Statement::TypeInference(Program& program, CodeBlock& activescope, Inferenc
 		break;
 
 	default:
-		throw std::exception("Invalid inference context");				// TODO - better exceptions
+		//
+		// This is a parser failure or the result of incomplete
+		// language feature implementation. The statement node
+		// in the AST has occurred in a context in which type
+		// inference cannot be performed because the context is
+		// not recognized by one of the above switch cases.
+		//
+		// Check to ensure the statement node is placed in a
+		// valid location in the AST, that AST traversal is not
+		// broken in some way, and that any new/partially done
+		// language features are handled appropriately above.
+		//
+		throw InternalException("Statement type inference failure - unrecognized context");
 	}
 
 	size_t i = 0;

@@ -12,6 +12,8 @@
 #include "Compiler/Intermediate Representations/Semantic Validation/Expression.h"
 #include "Compiler/Intermediate Representations/Semantic Validation/Program.h"
 
+#include "Compiler/Exceptions.h"
+
 
 using namespace IRSemantics;
 
@@ -38,7 +40,7 @@ void Function::AddParameter(StringHandle name, FunctionParam* param)
 		if(iter->Name == name)
 		{
 			delete param;
-			throw std::exception("Duplicate function parameter name");		// TODO - better exceptions
+			throw std::exception("Duplicate function parameter name");		// TODO - this should not be an exception
 		}
 	}
 
@@ -79,7 +81,8 @@ bool Function::IsParameterLocalVariable(StringHandle name) const
 			return iter->Parameter->IsLocalVariable();
 	}
 
-	throw std::exception("Invalid parameter name");			// TODO - better exceptions
+	// TODO - ensure this exception cannot be thrown by simply malforming code
+	throw InternalException("Provided string handle does not correspond to a parameter of this function");
 }
 
 bool Function::IsParameterReference(StringHandle name) const
@@ -90,7 +93,8 @@ bool Function::IsParameterReference(StringHandle name) const
 			return iter->Parameter->IsReference();
 	}
 
-	throw std::exception("Invalid parameter name");			// TODO - better exceptions
+	// TODO - ensure this exception cannot be thrown by simply malforming code
+	throw InternalException("Provided string handle does not correspond to a parameter of this function");
 }
 
 VM::EpochTypeID Function::GetParameterType(StringHandle name, const IRSemantics::Program& program) const
@@ -101,7 +105,8 @@ VM::EpochTypeID Function::GetParameterType(StringHandle name, const IRSemantics:
 			return iter->Parameter->GetParamType(program);
 	}
 
-	throw std::exception("Invalid parameter name");			// TODO - better exceptions
+	// TODO - ensure this exception cannot be thrown by simply malforming code
+	throw InternalException("Provided string handle does not correspond to a parameter of this function");
 }
 
 std::vector<StringHandle> Function::GetParameterNames() const

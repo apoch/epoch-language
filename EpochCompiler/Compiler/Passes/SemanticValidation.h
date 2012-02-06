@@ -38,6 +38,8 @@ class CompileSession;
 #include "Compiler/Abstract Syntax Tree/Function.h"
 #include "Compiler/Abstract Syntax Tree/Assignment.h"
 
+#include "Compiler/Exceptions.h"
+
 #include <stack>
 
 
@@ -90,8 +92,15 @@ namespace ASTTraverse
 			template <typename T>
 			void operator () (T& node)
 			{
-				// TODO - better exceptions
-				throw std::exception("Failure in parser");
+				//
+				// This is a mismatch between the parser and the
+				// IR generation/AST traversal logic. An AST node
+				// class exists and has been traversed but it is
+				// not recognized correctly by any of the overloads
+				// below. Ensure that the AST feature in question
+				// is fully implemented.
+				//
+				throw InternalException("Unrecognized AST node type");
 			}
 
 			//

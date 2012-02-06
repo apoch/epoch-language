@@ -21,6 +21,8 @@
 
 #include "Compiler/ByteCodeEmitter.h"
 
+#include "Compiler/Exceptions.h"
+
 #include "Utility/StringPool.h"
 
 
@@ -33,7 +35,17 @@ namespace
 	void BindReference(ByteCodeEmitter& emitter, const std::vector<StringHandle>& identifiers)
 	{
 		if(identifiers.empty())
-			throw std::exception("Cannot bind reference; no lvalue");		// TODO - better exceptions
+		{
+			//
+			// This represents a failure of the parser and/or semantic
+			// validation passes (or later passes) over the AST/IRs.
+			//
+			// A reference can only be bound if there is an identifier
+			// or structure member access (potentially nested) to act
+			// as an appropriate l-value.
+			//
+			throw InternalException("Cannot bind reference to non-existent l-value");
+		}
 
 		emitter.BindReference(identifiers[0]);
 		
@@ -44,7 +56,19 @@ namespace
 	void PushValue(ByteCodeEmitter& emitter, const std::vector<StringHandle>& identifiers, const IRSemantics::Program& program, const IRSemantics::CodeBlock& activescope)
 	{
 		if(identifiers.empty())
-			throw std::exception("Cannot push value; no rvalue");			// TODO - better exceptions
+		{
+			//
+			// This represents a failure of the parser and/or semantic
+			// validation passes (or later passes) over the AST/IRs.
+			//
+			// In order to push a value onto the stack, we need either
+			// an immediate value or an r-value expression. This function
+			// is only intended to handle r-values which are primitive
+			// variables or structure member accesses (which might be
+			// nested).
+			//
+			throw InternalException("Cannot push the value referred to by a non-existent r-value");
+		}
 
 		if(identifiers.size() == 1)
 		{
@@ -76,7 +100,17 @@ namespace
 	void EmitExpressionAtom(ByteCodeEmitter& emitter, const IRSemantics::ExpressionAtom* rawatom, const IRSemantics::CodeBlock& activescope, const IRSemantics::Program& program)
 	{
 		if(!rawatom)
-			throw std::exception("Bogus lack of atom");			// TODO - better exceptions
+		{
+			//
+			// This is a failure of the AST traversal/IR generation.
+			//
+			// Expressions are composed of atoms in the final IR,
+			// and a null atom should never occur. No-ops should
+			// be represented by a special class of atom should
+			// they be necessary.
+			//
+			throw InternalException("IR contains a null expression atom");
+		}
 		else if(const IRSemantics::ExpressionAtomParenthetical* atom = dynamic_cast<const IRSemantics::ExpressionAtomParenthetical*>(rawatom))
 		{
 			// TODO - emit parenthetical
@@ -113,7 +147,20 @@ namespace
 			EmitStatement(emitter, atom->GetStatement(), activescope, program);
 		}
 		else
-			throw std::exception("Bogus expression atom");		// TODO - better exceptions
+		{
+			//
+			// This is most likely to occur in the presence of
+			// incompletely implemented language features. An
+			// expression atom is of a type not deduced by any
+			// of the above handlers, which represents a gap in
+			// the implementation.
+			//
+			// Implement the correct handler for the atom type
+			// or fix the IR generation which produces the bogus
+			// results.
+			//
+			throw InternalException("IR contains an unrecognized expression atom");
+		}
 	}
 
 	void EmitExpression(ByteCodeEmitter& emitter, const IRSemantics::Expression& expression, const IRSemantics::CodeBlock& activescope, const IRSemantics::Program& program)
@@ -141,7 +188,14 @@ namespace
 
 		const IRSemantics::AssignmentChain* rhs = assignment.GetRHS();
 		if(!rhs)
-			throw std::exception("Bogus data in assignment");	// TODO - better exceptions
+		{
+			//
+			// This is an IR generation failure. Assignments must
+			// always have a valid RHS of some nature. Null pointers
+			// are not legitimate occurrences here.
+			//
+			throw InternalException("Assignment detected with no right hand side");
+		}
 		else if(const IRSemantics::AssignmentChainExpression* rhsexpression = dynamic_cast<const IRSemantics::AssignmentChainExpression*>(rhs))
 		{
 			EmitExpression(emitter, rhsexpression->GetExpression(), activescope, program);
@@ -150,6 +204,18 @@ namespace
 		{
 			GenerateAssignment(emitter, rhsassignment->GetAssignment(), program, activescope);
 			pushlhs = true;
+		}
+		else
+		{
+			//
+			// This is likely an incomplete language feature.
+			//
+			// Assignment right hand sides should be of a type
+			// handled by one of the above detection checks. A
+			// RHS which does not fit is either bogus or needs
+			// to be implemented correctly.
+			//
+			throw InternalException("Assignment right hand side is not recognized in IR");
 		}
 
 		if(program.GetString(assignment.GetOperatorName()) != L"=")
@@ -190,7 +256,17 @@ namespace
 			const IRSemantics::CodeBlockEntry* baseentry = *iter;
 			
 			if(!baseentry)
-				throw std::exception("Bogus data in parse tree");		// TODO - better exceptions
+			{
+				//
+				// This is a failure of IR generation.
+				//
+				// Code blocks should never contain pointers which
+				// are null. Ensure that the entry is being parsed
+				// correctly and that IR generation is implemented
+				// for any associated language features.
+				//
+				throw InternalException("Code block contains a null entry");
+			}
 			else if(const IRSemantics::CodeBlockAssignmentEntry* entry = dynamic_cast<const IRSemantics::CodeBlockAssignmentEntry*>(baseentry))
 			{
 				GenerateAssignment(emitter, entry->GetAssignment(), program, codeblock);
@@ -244,7 +320,15 @@ namespace
 			}
 			else
 			{
-				throw std::exception("Unrecognized entry type");		// TODO - better exceptions
+				//
+				// This is probably a missing language feature.
+				//
+				// IR generation has produced an entry in a code block
+				// which is not recognized by any of the above detection
+				// checks. Ensure that the IR generator is correct and
+				// that any associated features are implemented above.
+				//
+				throw InternalException("Unrecognized entry in code block");
 			}
 		}
 	}

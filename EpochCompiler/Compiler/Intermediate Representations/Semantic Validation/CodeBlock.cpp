@@ -15,6 +15,8 @@
 
 #include "Compiler/Intermediate Representations/Semantic Validation/InferenceContext.h"
 
+#include "Compiler/Exceptions.h"
+
 
 using namespace IRSemantics;
 
@@ -24,7 +26,23 @@ CodeBlock::CodeBlock(ScopeDescription* scope, bool ownsscope)
 	  OwnsScope(ownsscope)
 {
 	if(!Scope)
-		throw std::exception("Code block must be bound to a scope!");		// TODO - better exceptions
+	{
+		//
+		// This exception catches potential mistakes in the calling code.
+		//
+		// Code blocks are conceptually bound to scopes and cannot be created
+		// or managed without an associated scope descriptor, even if the
+		// scope itself is empty of any contents.
+		//
+		// Ownership semantics can vary - in some cases the code block owns
+		// the scope descriptor and must free it upon destruction. However,
+		// it is also possible for the scope to be shared, e.g. for global
+		// scoped variable declaration blocks, or separately compiled namespace
+		// implementations. We do not use a shared_ptr here in order to make
+		// sure that the semantics are clearly expressed and followed.
+		//
+		throw InternalException("Contract failure: all code blocks must be bound to a non-null scope descriptor");
+	}
 }
 
 CodeBlock::~CodeBlock()

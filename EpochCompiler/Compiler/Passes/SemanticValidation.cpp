@@ -193,7 +193,24 @@ IRSemantics::Program* CompilePassSemantics::DetachProgram()
 void CompilePassSemantics::EntryHelper::operator () (AST::Undefined&)
 {
 	if (self->StateStack.empty() || !self->InFunctionReturn)
-		throw std::exception("Undefined AST node in unexpected location");		// TODO - better exceptions
+	{
+		//
+		// This is a failure of the parser to properly
+		// capture incorrect programs prior to being
+		// submitted for semantic validation.
+		//
+		// Undefined nodes are permitted in two situations:
+		//  1. Empty programs
+		//  2. Void function return expressions
+		//
+		// Any other presence of an undefined node represents
+		// a mistake in the parser. Ensure that parser errors
+		// are detected correctly and that programs which are
+		// not fully parsed can not be submitted for semantic
+		// validation passes.
+		//
+		throw InternalException("Undefined AST node in unexpected context");
+	}
 }
 
 
@@ -202,9 +219,20 @@ void CompilePassSemantics::EntryHelper::operator () (AST::Undefined&)
 //
 void CompilePassSemantics::EntryHelper::operator () (AST::Program& program)
 {
-	// TODO - better exceptions
 	if(self->CurrentProgram)
-		throw std::exception("Reentrancy");
+	{
+		//
+		// The parser has generated a program which contains
+		// either a cyclic reference to itself or to another
+		// AST. This is undesirable behavior; the parser can
+		// produce multiple AST fragments for the purpose of
+		// separate compilation but they must be merged into
+		// a single program-wide AST prior to the performing
+		// semantic analysis, or submitted as fully separate
+		// tree structures within a compilation session.
+		//
+		throw InternalException("Re-entrant AST detected");
+	}
 
 	self->StateStack.push(CompilePassSemantics::STATE_PROGRAM);
 	self->CurrentProgram = new IRSemantics::Program(self->Strings, self->Session);
@@ -251,7 +279,16 @@ void CompilePassSemantics::ExitHelper::operator () (AST::Structure& structure)
 		self->CurrentProgram->AddStructure(name, irstruct.release());
 	}
 	else
-		throw std::exception("Nested structures not implemented");	// TODO - better exceptions
+	{
+		//
+		// This is plain and simple a missing language feature.
+		//
+		// Nested structure definitions have been parsed and sent
+		// to the AST for semantic validation, but the above code
+		// is not configured to handle this. Implement the code.
+		//
+		throw InternalException("Support for nested structure definitions is not implemented.");
+	}
 }
 
 
@@ -261,7 +298,18 @@ void CompilePassSemantics::ExitHelper::operator () (AST::Structure& structure)
 void CompilePassSemantics::EntryHelper::operator () (AST::StructureMemberVariable& variable)
 {
 	if(self->CurrentStructures.empty())
-		throw std::exception("Invalid parse state");		// TODO - better exceptions
+	{
+		//
+		// This is a failure of the AST traversal.
+		//
+		// A structure member variable definition node has
+		// been submitted for semantic validation, but not
+		// in the context of a structure definition.
+		//
+		// Examine the AST generation and traversal logic.
+		//
+		throw InternalException("Attempted to traverse a structure member AST node in an invalid context");
+	}
 
 	StringHandle name = self->CurrentProgram->AddString(std::wstring(variable.Name.begin(), variable.Name.end()));
 	StringHandle type = self->CurrentProgram->AddString(std::wstring(variable.Type.begin(), variable.Type.end()));
@@ -276,7 +324,21 @@ void CompilePassSemantics::EntryHelper::operator () (AST::StructureMemberVariabl
 void CompilePassSemantics::EntryHelper::operator () (AST::StructureMemberFunctionRef& funcref)
 {
 	if(self->CurrentStructures.empty())
-		throw std::exception("Invalid parse state");		// TODO - better exceptions
+	{
+		//
+		// This is a failure of the AST traversal.
+		//
+		// A structure member variable definition node has
+		// been submitted for semantic validation, but not
+		// in the context of a structure definition.
+		//
+		// Specifically, the member variable is a function
+		// reference with the associated signature.
+		//
+		// Examine the AST generation and traversal logic.
+		//
+		throw InternalException("Attempted to traverse a structure member AST node in an invalid context");
+	}
 
 	StringHandle name = self->CurrentProgram->AddString(std::wstring(funcref.Name.begin(), funcref.Name.end()));
 	StringHandle returntype = self->CurrentProgram->AddString(std::wstring(funcref.ReturnType.begin(), funcref.ReturnType.end()));
@@ -329,7 +391,17 @@ void CompilePassSemantics::ExitHelper::operator () (AST::Function& function)
 		self->CurrentFunctions.pop_back();
 	}
 	else
-		throw std::exception("Nested functions not implemented");	// TODO - better exceptions
+	{
+		//
+		// This is just a missing language feature.
+		//
+		// Nested/inner functions should be supported eventually,
+		// and in this case the parser has generated an AST which
+		// contains such a function, but the above code isn't set
+		// up to handle it.
+		//
+		throw InternalException("A nested (inner) function was produced by the parser, but support is not implemented");
+	}
 }
 
 
@@ -359,7 +431,19 @@ void CompilePassSemantics::ExitHelper::operator () (AST::FunctionParameter& para
 void CompilePassSemantics::EntryHelper::operator () (AST::NamedFunctionParameter& param)
 {
 	if(self->CurrentFunctions.empty())
-		throw std::exception("Invalid parse state");		// TODO - better exceptions
+	{
+		//
+		// This is a failure of the AST traversal.
+		//
+		// A function parameter definition node has been
+		// traversed outside the context of a function
+		// definition.
+		//
+		// Examine the AST generation and traversal logic.
+		//
+		throw InternalException("Attempted to traverse a function parameter definition AST node in an invalid context");
+	}
+
 
 	StringHandle name = self->CurrentProgram->AddString(std::wstring(param.Name.begin(), param.Name.end()));
 	StringHandle type = self->CurrentProgram->AddString(std::wstring(param.Type.begin(), param.Type.end()));

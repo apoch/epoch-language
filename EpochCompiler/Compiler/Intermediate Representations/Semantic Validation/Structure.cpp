@@ -36,7 +36,7 @@ void Structure::AddMember(StringHandle name, StructureMember* member)
 		if(name == iter->first)
 		{
 			delete member;
-			throw std::exception("Duplicate structure member");		// TODO - better exceptions
+			throw std::exception("Duplicate structure member");		// TODO - this should not be an exception
 		}
 	}
 
