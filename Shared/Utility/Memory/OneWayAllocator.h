@@ -57,11 +57,11 @@ namespace Memory
 		};
 
 	public:
-		explicit OneWayAlloc() {}
+		OneWayAlloc() {}
 		~OneWayAlloc() {}
-		explicit OneWayAlloc(OneWayAlloc const&) {}
+		OneWayAlloc(OneWayAlloc const&) {}
 		template<typename U>
-		explicit OneWayAlloc(OneWayAlloc<U> const&) {}
+		OneWayAlloc(OneWayAlloc<U> const&) {}
 
 		pointer address(reference r) { return &r; }
 		const_pointer address(const_reference r) { return &r; }

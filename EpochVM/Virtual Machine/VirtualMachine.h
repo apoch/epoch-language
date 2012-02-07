@@ -231,7 +231,7 @@ namespace VM
 		MachineState State;
 		ActiveScope* Variables;
 		VirtualMachine& OwnerVM;
-		std::stack<StringHandle> InvokedFunctionStack;
+		std::deque<StringHandle> InvokedFunctionStack;
 
 	// Internal helpers for garbage collection
 	public:

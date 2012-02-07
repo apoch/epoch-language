@@ -414,7 +414,7 @@ void ExternalDispatch(StringHandle functionname, VM::ExecutionContext& context)
 	// We use the name of the calling function to map us to the correct external.
 	// This is because the calling function itself is the one that was originally
 	// tagged as external and associated with the correct DLL/function names.
-	StringHandle callingfunction = context.InvokedFunctionStack.c.at(context.InvokedFunctionStack.c.size() - 2);
+	StringHandle callingfunction = context.InvokedFunctionStack.at(context.InvokedFunctionStack.size() - 2);
 	std::map<StringHandle, DLLInvocationInfo>::const_iterator iter = DLLInvocationMap.find(callingfunction);
 	if(iter == DLLInvocationMap.end())
 	{

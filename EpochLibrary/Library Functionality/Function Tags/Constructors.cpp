@@ -67,6 +67,6 @@ namespace
 //
 void FunctionTags::RegisterConstructorTagHelper(FunctionTagHelperTable& table)
 {
-	AddToMapNoDupe(table, std::make_pair(L"constructor", ConstructorTagHelper));
+	AddToMapNoDupe(table, std::make_pair(L"constructor", &ConstructorTagHelper));
 }
 

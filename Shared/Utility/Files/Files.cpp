@@ -11,7 +11,7 @@
 #include "Utility/Strings.h"
 
 #include <fstream>
-
+#include <iterator>
 
 //
 // Wrapper for loading a file's contents into a string

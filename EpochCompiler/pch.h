@@ -7,7 +7,7 @@
 //
 
 #pragma once
-
+#pragma warning(disable : 4503)
 
 // Standard C++ library stuff
 #include <string>

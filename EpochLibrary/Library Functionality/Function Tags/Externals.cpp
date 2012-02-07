@@ -71,6 +71,6 @@ void FunctionTags::RegisterExternalTag(EpochFunctionPtr marshalfunction, Functio
 //
 void FunctionTags::RegisterExternalTagHelper(FunctionTagHelperTable& table)
 {
-	AddToMapNoDupe(table, std::make_pair(L"external", ExternalHelper));
+	AddToMapNoDupe(table, std::make_pair(L"external", &ExternalHelper));
 }
 

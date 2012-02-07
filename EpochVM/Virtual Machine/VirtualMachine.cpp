@@ -231,7 +231,7 @@ void VirtualMachine::AddFunction(StringHandle name, size_t instructionoffset)
 	if(GlobalFunctionOffsets.find(name) != GlobalFunctionOffsets.end())
 		throw FatalException("Global function code offset has already been cached, but function was not found in the global namespace");
 	
-	GlobalFunctions.insert(std::make_pair(name, FunctionInvocationHelper));
+	GlobalFunctions.insert(std::make_pair(name, &FunctionInvocationHelper));
 	GlobalFunctionOffsets.insert(std::make_pair(name, instructionoffset));
 }
 
@@ -689,7 +689,7 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 			case Bytecode::Instructions::Invoke:	// Invoke a built-in or user-defined function
 				{
 					StringHandle functionname = Fetch<StringHandle>();
-					InvokedFunctionStack.push(functionname);
+					InvokedFunctionStack.push_back(functionname);
 
 					size_t internaloffset = OwnerVM.GetFunctionInstructionOffsetNoThrow(functionname);
 					if(internaloffset)
@@ -704,7 +704,7 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 					else
 					{
 						OwnerVM.InvokeFunction(functionname, *this);
-						InvokedFunctionStack.pop();
+						InvokedFunctionStack.pop_back();
 
 						if(State.Result.ResultType == ExecutionResult::EXEC_RESULT_HALT)
 							throw FatalException("Unexpected VM halt");
@@ -716,9 +716,9 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 				{
 					StringHandle varname = Fetch<StringHandle>();
 					StringHandle functionname = Variables->Read<StringHandle>(varname);
-					InvokedFunctionStack.push(functionname);
+					InvokedFunctionStack.push_back(functionname);
 					OwnerVM.InvokeFunction(functionname, *this);
-					InvokedFunctionStack.pop();
+					InvokedFunctionStack.pop_back();
 				}
 				break;
 
@@ -969,7 +969,7 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 				InstructionOffsetStack.pop();
 				if(returnonfunctionexitstack.top())
 					return;
-				InvokedFunctionStack.pop();
+				InvokedFunctionStack.pop_back();
 				returnonfunctionexitstack.pop();
 			}
 		}
