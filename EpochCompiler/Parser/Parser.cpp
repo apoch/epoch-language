@@ -32,7 +32,7 @@ using namespace boost::spirit::lex;
 // Parse a given block of code, invoking the bound set of
 // semantic actions during the parse process
 //
-bool Parser::Parse(const std::wstring& code, const std::wstring& filename, AST::Program& program) const
+bool Parser::Parse(const std::wstring& code, const std::wstring& filename, AST::Program*& program) const
 {
 	std::auto_ptr<AST::Program> ptr(NULL);
 
@@ -50,8 +50,8 @@ bool Parser::Parse(const std::wstring& code, const std::wstring& filename, AST::
 			Profiling::Timer timer;
 			timer.Begin();
 
-			ptr.reset(new AST::Program);
 			Memory::DisposeOneWayBlocks();
+			ptr.reset(new AST::Program);
 
 			std::wcout << L"Parsing... ";
 			iter = code.begin();
@@ -66,13 +66,17 @@ bool Parser::Parse(const std::wstring& code, const std::wstring& filename, AST::
 			std::wcout << L"finished in " << timer.GetTimeMs() << L"ms" << std::endl;
 		}
 	}
+	catch(std::exception& ex)
+	{
+		throw FatalException(std::string("Exception during parse: ") + ex.what());
+	}
 	catch(...)
 	{
 		throw FatalException("Exception during parse");
 	}
 
 	if(ptr.get())
-		program = *ptr;
+		program = ptr.release();
 
 	return true;
 }

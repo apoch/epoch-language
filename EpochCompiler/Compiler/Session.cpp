@@ -45,13 +45,13 @@ CompileSession::CompileSession()
 	  SemanticProgram(NULL),
 	  ErrorCount(0)
 {
-	HINSTANCE dllhandle = Marshaling::TheDLLPool.OpenDLL(L"EpochLibrary.DLL");
+	Marshaling::DLLPool::DLLPoolHandle dllhandle = Marshaling::TheDLLPool.OpenDLL(L"EpochLibrary.DLL");
 
-	typedef void (__stdcall *registerlibraryptr)(FunctionSignatureSet&, StringPoolManager&);
-	registerlibraryptr registerlibrary = reinterpret_cast<registerlibraryptr>(::GetProcAddress(dllhandle, "RegisterLibraryContents"));
+	typedef void (STDCALL *registerlibraryptr)(FunctionSignatureSet&, StringPoolManager&);
+	registerlibraryptr registerlibrary = Marshaling::DLLPool::GetFunction<registerlibraryptr>(dllhandle, "RegisterLibraryContents");
 
-	typedef void (__stdcall *bindtocompilerptr)(CompilerInfoTable&, StringPoolManager&, Bytecode::EntityTag&);
-	bindtocompilerptr bindtocompiler = reinterpret_cast<bindtocompilerptr>(::GetProcAddress(dllhandle, "BindToCompiler"));
+	typedef void (STDCALL *bindtocompilerptr)(CompilerInfoTable&, StringPoolManager&, Bytecode::EntityTag&);
+	bindtocompilerptr bindtocompiler = Marshaling::DLLPool::GetFunction<bindtocompilerptr>(dllhandle, "BindToCompiler");
 
 	if(!registerlibrary || !bindtocompiler)
 		throw FatalException("Failed to load Epoch standard library");
@@ -112,7 +112,6 @@ void CompileSession::AddCompileBlock(const std::wstring& source, const std::wstr
 void CompileSession::EmitByteCode()
 {
 	delete ASTProgram;
-	ASTProgram = new AST::Program;
 
 	FinalByteCode.clear();
 
@@ -162,7 +161,7 @@ void CompileSession::CompileFile(const std::wstring& code, const std::wstring& f
 {
 	Parser theparser(Identifiers);
 
-	if(!theparser.Parse(code, filename, *ASTProgram))
+	if(!theparser.Parse(code, filename, ASTProgram))
 		throw FatalException("Parsing failed!");
 
 	delete SemanticProgram;

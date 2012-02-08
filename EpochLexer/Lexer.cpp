@@ -121,7 +121,7 @@ EpochLexer::~EpochLexer()
 // code delete the object directly in order to avoid nastiness with different
 // compiler versions/implementations of memory management/etc. between DLLs.
 //
-void __stdcall EpochLexer::Release()
+void STDCALL EpochLexer::Release()
 {
 	delete this;
 }
@@ -129,7 +129,7 @@ void __stdcall EpochLexer::Release()
 //
 // Retrieve the version number of the lexer. We're lazy and just return 1.
 //
-int __stdcall EpochLexer::Version() const
+int STDCALL EpochLexer::Version() const
 {
 	return 1;
 }
@@ -137,7 +137,7 @@ int __stdcall EpochLexer::Version() const
 //
 // Return a list of all defined property names. Currently unused.
 //
-const char* __stdcall EpochLexer::PropertyNames()
+const char* STDCALL EpochLexer::PropertyNames()
 {
 	return "";
 }
@@ -145,7 +145,7 @@ const char* __stdcall EpochLexer::PropertyNames()
 //
 // Return the type of the given property. Currently unused.
 //
-int __stdcall EpochLexer::PropertyType(const char* name)
+int STDCALL EpochLexer::PropertyType(const char* name)
 {
 	return 0;
 }
@@ -153,7 +153,7 @@ int __stdcall EpochLexer::PropertyType(const char* name)
 //
 // Return the description of the given property. Currently unused.
 //
-const char* __stdcall EpochLexer::DescribeProperty(const char* name)
+const char* STDCALL EpochLexer::DescribeProperty(const char* name)
 {
 	return "";
 }
@@ -161,7 +161,7 @@ const char* __stdcall EpochLexer::DescribeProperty(const char* name)
 //
 // Set a property's value; currently unused and just pretends to succeeed.
 //
-int __stdcall EpochLexer::PropertySet(const char* key, const char* val)
+int STDCALL EpochLexer::PropertySet(const char* key, const char* val)
 {
 	return -1;
 }
@@ -169,7 +169,7 @@ int __stdcall EpochLexer::PropertySet(const char* key, const char* val)
 //
 // Return the descriptions of the word-lists used for syntax highlighting; currently unused.
 //
-const char* __stdcall EpochLexer::DescribeWordListSets()
+const char* STDCALL EpochLexer::DescribeWordListSets()
 {
 	return "";
 }
@@ -177,7 +177,7 @@ const char* __stdcall EpochLexer::DescribeWordListSets()
 //
 // Set a word list's contents. Currently unused and just pretends to succeed.
 //
-int __stdcall EpochLexer::WordListSet(int n, const char* wl)
+int STDCALL EpochLexer::WordListSet(int n, const char* wl)
 {
 	return -1;
 }
@@ -202,7 +202,7 @@ int __stdcall EpochLexer::WordListSet(int n, const char* wl)
 // retroactively change the state we were in based on the value of the token itself. This is done via
 // the ChangeState function, and can be seen notably in the handler for SCE_EPOCH_TYPE.
 //
-void __stdcall EpochLexer::Lex(unsigned int startPos, int lengthDoc, int initStyle, IDocument* pAccess)
+void STDCALL EpochLexer::Lex(unsigned int startPos, int lengthDoc, int initStyle, IDocument* pAccess)
 {
 	// Set up the handful of access interfaces needed for getting at the document itself
 	Accessor styler(pAccess, NULL);
@@ -313,7 +313,7 @@ void __stdcall EpochLexer::Lex(unsigned int startPos, int lengthDoc, int initSty
 //
 // Parse the document and set up folding (collapsable blocks)
 //
-void __stdcall EpochLexer::Fold(unsigned int startPos, int lengthDoc, int initStyle, IDocument* pAccess)
+void STDCALL EpochLexer::Fold(unsigned int startPos, int lengthDoc, int initStyle, IDocument* pAccess)
 {
 	Accessor styler(pAccess, NULL);
 	styler.StartAt(startPos);
@@ -398,7 +398,7 @@ void __stdcall EpochLexer::Fold(unsigned int startPos, int lengthDoc, int initSt
 //
 // Unused mystery function.
 //
-void* __stdcall EpochLexer::PrivateCall(int operation, void* pointer)
+void* STDCALL EpochLexer::PrivateCall(int operation, void* pointer)
 {
 	return NULL;
 }

@@ -88,10 +88,10 @@ void VirtualMachine::EnableVisualDebugger()
 //
 void VirtualMachine::InitStandardLibraries()
 {
-	HINSTANCE dllhandle = Marshaling::TheDLLPool.OpenDLL(L"EpochLibrary.DLL");
+	Marshaling::DLLPool::DLLPoolHandle dllhandle = Marshaling::TheDLLPool.OpenDLL(L"EpochLibrary.DLL");
 
-	typedef void (__stdcall *bindtovmptr)(FunctionInvocationTable&, EntityTable&, EntityTable&, StringPoolManager&, Bytecode::EntityTag&, EpochFunctionPtr);
-	bindtovmptr bindtovm = reinterpret_cast<bindtovmptr>(::GetProcAddress(dllhandle, "BindToVirtualMachine"));
+	typedef void (STDCALL *bindtovmptr)(FunctionInvocationTable&, EntityTable&, EntityTable&, StringPoolManager&, Bytecode::EntityTag&, EpochFunctionPtr);
+	bindtovmptr bindtovm = Marshaling::DLLPool::GetFunction<bindtovmptr>(dllhandle, "BindToVirtualMachine");
 
 	if(!bindtovm)
 		throw FatalException("Failed to load Epoch standard library");

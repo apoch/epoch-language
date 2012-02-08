@@ -24,7 +24,7 @@
 
 #include <windows.h>
 #include <tchar.h>
-
+#define STDCALL __stdcall
 
 // Epoch project standard shared code
 #include "Utility/Exception.h"

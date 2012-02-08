@@ -22,10 +22,10 @@ using namespace DLLAccess;
 //
 VMAccess::VMAccess()
 {
-	HINSTANCE dllhandle = Marshaling::TheDLLPool.OpenDLL(L"EpochVM.DLL");
+	Marshaling::DLLPool::DLLPoolHandle dllhandle = Marshaling::TheDLLPool.OpenDLL(L"EpochVM.DLL");
 
-	DoExecByteCode = reinterpret_cast<ExecuteByteCodePtr>(::GetProcAddress(dllhandle, "ExecuteByteCode"));
-	DoEnableVisualDebugger = reinterpret_cast<EnableVisualDebuggerPtr>(::GetProcAddress(dllhandle, "EnableVisualDebugger"));
+	DoExecByteCode = Marshaling::DLLPool::GetFunction<ExecuteByteCodePtr>(dllhandle, "ExecuteByteCode");
+	DoEnableVisualDebugger = Marshaling::DLLPool::GetFunction<EnableVisualDebuggerPtr>(dllhandle, "EnableVisualDebugger");
 
 	if(!DoExecByteCode || !DoEnableVisualDebugger)
 		throw DLLException("Failed to load Epoch Virtual Machine");

@@ -35,10 +35,10 @@ namespace DLLAccess
 
 	// Internal type definitions for function pointers
 	private:
-		typedef CompiledByteCodeHandle (__stdcall *CompileSourceToByteCodePtr)(const wchar_t*, const void*, size_t);
-		typedef const void* (__stdcall *GetByteCodeBufferPtr)(CompiledByteCodeHandle);
-		typedef size_t (__stdcall *GetByteCodeBufferSizePtr)(CompiledByteCodeHandle);
-		typedef void (__stdcall *FreeByteCodeBufferPtr)(CompiledByteCodeHandle);
+		typedef CompiledByteCodeHandle (STDCALL *CompileSourceToByteCodePtr)(const wchar_t*, const void*, size_t);
+		typedef const void* (STDCALL *GetByteCodeBufferPtr)(CompiledByteCodeHandle);
+		typedef size_t (STDCALL *GetByteCodeBufferSizePtr)(CompiledByteCodeHandle);
+		typedef void (STDCALL *FreeByteCodeBufferPtr)(CompiledByteCodeHandle);
 
 	// Internal function pointers bound to the DLL
 	private:

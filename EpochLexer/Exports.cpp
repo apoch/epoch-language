@@ -13,7 +13,7 @@
 //
 // Query interface: how many lexers are implemented in this DLL?
 //
-extern "C" int __stdcall GetLexerCount()
+extern "C" int STDCALL GetLexerCount()
 {
 	return 1;
 }
@@ -21,7 +21,7 @@ extern "C" int __stdcall GetLexerCount()
 //
 // Query interface: what's the name of the lexer with the given index?
 //
-extern "C" void __stdcall GetLexerName(unsigned index, char* name, int bufferlength)
+extern "C" void STDCALL GetLexerName(unsigned index, char* name, int bufferlength)
 {
 	if(!name)
 		return;
@@ -39,7 +39,7 @@ extern "C" void __stdcall GetLexerName(unsigned index, char* name, int bufferlen
 //
 // Factory interface: access the factory function that generates new lexer objects
 //
-extern "C" void* __stdcall GetLexerFactory(unsigned index)
+extern "C" void* STDCALL GetLexerFactory(unsigned index)
 {
 	if(index == 0)
 		return FactoryFunction;

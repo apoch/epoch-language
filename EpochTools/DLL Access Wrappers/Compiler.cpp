@@ -22,12 +22,12 @@ using namespace DLLAccess;
 //
 CompilerAccess::CompilerAccess()
 {
-	HINSTANCE dllhandle = Marshaling::TheDLLPool.OpenDLL(L"EpochCompiler.DLL");
+	Marshaling::DLLPool::DLLPoolHandle dllhandle = Marshaling::TheDLLPool.OpenDLL(L"EpochCompiler.DLL");
 
-	DoCompileSource = reinterpret_cast<CompileSourceToByteCodePtr>(::GetProcAddress(dllhandle, "CompileSourceToByteCode"));
-	DoGetByteCodeBuffer = reinterpret_cast<GetByteCodeBufferPtr>(::GetProcAddress(dllhandle, "GetByteCodeBuffer"));
-	DoGetByteCodeBufferSize = reinterpret_cast<GetByteCodeBufferSizePtr>(::GetProcAddress(dllhandle, "GetByteCodeBufferSize"));
-	DoFreeByteCodeBuffer = reinterpret_cast<FreeByteCodeBufferPtr>(::GetProcAddress(dllhandle, "FreeByteCodeBuffer"));
+	DoCompileSource = Marshaling::DLLPool::GetFunction<CompileSourceToByteCodePtr>(dllhandle, "CompileSourceToByteCode");
+	DoGetByteCodeBuffer = Marshaling::DLLPool::GetFunction<GetByteCodeBufferPtr>(dllhandle, "GetByteCodeBuffer");
+	DoGetByteCodeBufferSize = Marshaling::DLLPool::GetFunction<GetByteCodeBufferSizePtr>(dllhandle, "GetByteCodeBufferSize");
+	DoFreeByteCodeBuffer = Marshaling::DLLPool::GetFunction<FreeByteCodeBufferPtr>(dllhandle, "FreeByteCodeBuffer");
 
 	if(!DoCompileSource || !DoGetByteCodeBuffer || !DoGetByteCodeBufferSize || !DoFreeByteCodeBuffer)
 		throw DLLException("Failed to load Epoch compiler");

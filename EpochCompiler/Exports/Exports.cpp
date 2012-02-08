@@ -19,7 +19,7 @@
 // client code, as well as to prevent having to mess with throwing
 // exceptions across DLL boundaries.
 //
-extern "C" void* __stdcall CompileSourceToByteCode(const wchar_t* filename, const void* sourcecodebuffer, size_t sourcesize)
+extern "C" void* STDCALL CompileSourceToByteCode(const wchar_t* filename, const void* sourcecodebuffer, size_t sourcesize)
 {
 	try
 	{
@@ -45,7 +45,7 @@ extern "C" void* __stdcall CompileSourceToByteCode(const wchar_t* filename, cons
 //
 // Free the bytecode associated with the given handle
 //
-extern "C" void __stdcall FreeByteCodeBuffer(void* handle)
+extern "C" void STDCALL FreeByteCodeBuffer(void* handle)
 {
 	try
 	{
@@ -60,7 +60,7 @@ extern "C" void __stdcall FreeByteCodeBuffer(void* handle)
 //
 // Retrieve the memory buffer associated with a given handle
 //
-extern "C" const void* __stdcall GetByteCodeBuffer(void* handle)
+extern "C" const void* STDCALL GetByteCodeBuffer(void* handle)
 {
 	try
 	{
@@ -75,7 +75,7 @@ extern "C" const void* __stdcall GetByteCodeBuffer(void* handle)
 //
 // Retrieve the size of the memory buffer associated with a given handle
 //
-extern "C" size_t __stdcall GetByteCodeBufferSize(void* handle)
+extern "C" size_t STDCALL GetByteCodeBufferSize(void* handle)
 {
 	try
 	{

@@ -25,7 +25,7 @@ namespace
 {
 
 	// Prototype of the function which invokes Epoch callbacks
-	UInteger32 __stdcall CallbackInvoke(UByte* espsave, VM::ExecutionContext* context, StringHandle callbackfunction);
+	UInteger32 STDCALL CallbackInvoke(UByte* espsave, VM::ExecutionContext* context, StringHandle callbackfunction);
 
 
 	//
@@ -217,7 +217,7 @@ namespace
 	// Actually invoke the Epoch function, taking care to
 	// provide the correct parameters from the stack.
 	//
-	UInteger32 __stdcall CallbackInvoke(UByte* espsave, VM::ExecutionContext* context, StringHandle callbackfunction)
+	UInteger32 STDCALL CallbackInvoke(UByte* espsave, VM::ExecutionContext* context, StringHandle callbackfunction)
 	{
 		// We need to increment past the stored value of ESP
 		// in order to reach the actual first parameter. This
@@ -269,7 +269,7 @@ namespace
 		// The Epoch function's return value is used to determine
 		// how we leave this shim. We need to clean up local
 		// variables from the stack as well as pass on the return
-		// value (in the EAX register, as per __stdcall). In
+		// value (in the EAX register, as per STDCALL). In
 		// order to make sure all the housekeeping is done correctly,
 		// we let the compiler generate the return code for us.
 		switch(resulttype)
@@ -423,14 +423,14 @@ void ExternalDispatch(StringHandle functionname, VM::ExecutionContext& context)
 	}
 
 	// Now open the DLL and load the corresponding function we wish to invoke
-	HINSTANCE hdll = Marshaling::TheDLLPool.OpenDLL(iter->second.DLLName);
+	Marshaling::DLLPool::DLLPoolHandle hdll = Marshaling::TheDLLPool.OpenDLL(iter->second.DLLName);
 	if(!hdll)
 	{
 		context.State.Result.ResultType = ExecutionResult::EXEC_RESULT_HALT;
 		return;
 	}
 
-	void* address = ::GetProcAddress(hdll, narrow(iter->second.FunctionName).c_str());
+	void* address = Marshaling::DLLPool::GetFunction<void*>(hdll, narrow(iter->second.FunctionName).c_str());
 	if(!address)
 	{
 		context.State.Result.ResultType = ExecutionResult::EXEC_RESULT_HALT;

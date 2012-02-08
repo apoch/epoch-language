@@ -7,14 +7,8 @@
 
 #pragma once
 
-
-// Dependencies
-#include "Compiler/Abstract Syntax Tree/DeferredNode.h"
-
-
 namespace AST
 {
-
 	struct Expression;
 	struct ExpressionComponent;
 	struct ExpressionFragment;
@@ -36,6 +30,59 @@ namespace AST
 	struct Function;
 	struct NamedFunctionParameter;
 
+	template <typename T>
+	inline T* Allocate();
+
+	template <typename T>
+	inline void Deallocate(T* ptr);
+
+	template<> inline Expression* Allocate<Expression>();
+	template<> inline ExpressionComponent* Allocate<ExpressionComponent>();
+	template<> inline ExpressionFragment* Allocate<ExpressionFragment>();
+	template<> inline PreOperatorStatement* Allocate<PreOperatorStatement>();
+	template<> inline PostOperatorStatement* Allocate<PostOperatorStatement>();
+	template<> inline IdentifierListRaw* Allocate<IdentifierListRaw>();
+	template<> inline ExpressionComponentInternal* Allocate<ExpressionComponentInternal>();
+	template<> inline Statement* Allocate<Statement>();
+	template<> inline FunctionReferenceSignature* Allocate<FunctionReferenceSignature>();
+	template<> inline Assignment* Allocate<Assignment>();
+	template<> inline SimpleAssignment* Allocate<SimpleAssignment>();
+	template<> inline ChainedEntity* Allocate<ChainedEntity>();
+	template<> inline FunctionParameter* Allocate<FunctionParameter>();
+	template<> inline Entity* Allocate<Entity>();
+	template<> inline PostfixEntity* Allocate<PostfixEntity>();
+	template<> inline CodeBlock* Allocate<CodeBlock>();
+	template<> inline NamedFunctionParameter* Allocate<NamedFunctionParameter>();
+	template<> inline Structure* Allocate<Structure>();
+	template<> inline Function* Allocate<Function>();
+
+	template<> inline void Deallocate(Expression* p);
+	template<> inline void Deallocate(ExpressionComponent* p);
+	template<> inline void Deallocate(ExpressionFragment* p);
+	template<> inline void Deallocate(PreOperatorStatement* p);
+	template<> inline void Deallocate(PostOperatorStatement* p);
+	template<> inline void Deallocate(IdentifierListRaw* p);
+	template<> inline void Deallocate(ExpressionComponentInternal* p);
+	template<> inline void Deallocate(Statement* p);
+	template<> inline void Deallocate(FunctionReferenceSignature* p);
+	template<> inline void Deallocate(Assignment* p);
+	template<> inline void Deallocate(SimpleAssignment* p);
+	template<> inline void Deallocate(ChainedEntity* p);
+	template<> inline void Deallocate(FunctionParameter* p);
+	template<> inline void Deallocate(Entity* p);
+	template<> inline void Deallocate(PostfixEntity* p);
+	template<> inline void Deallocate(CodeBlock* p);
+	template<> inline void Deallocate(NamedFunctionParameter* p);
+	template<> inline void Deallocate(Structure* p);
+	template<> inline void Deallocate(Function* p);
+}
+
+// Dependencies
+#include "Compiler/Abstract Syntax Tree/DeferredNode.h"
+
+
+namespace AST
+{
 	typedef Deferred<PreOperatorStatement, boost::intrusive_ptr<PreOperatorStatement> > DeferredPreOperatorStatement;
 	typedef Deferred<PostOperatorStatement, boost::intrusive_ptr<PostOperatorStatement> > DeferredPostOperatorStatement;
 	typedef Deferred<Statement, boost::intrusive_ptr<Statement> > DeferredStatement;
@@ -57,7 +104,6 @@ namespace AST
 	typedef std::vector<DeferredExpressionFragment, Memory::OneWayAlloc<DeferredExpressionFragment> > DeferredExpressionFragmentVector;
 	typedef std::vector<DeferredExpression, Memory::OneWayAlloc<DeferredExpression> > DeferredExpressionVector;
 	typedef std::vector<DeferredChainedEntity, Memory::OneWayAlloc<DeferredChainedEntity> > ChainedEntityVector;
-
 }
 
 // Auxiliary definitions

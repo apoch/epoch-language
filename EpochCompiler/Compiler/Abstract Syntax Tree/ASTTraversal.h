@@ -35,6 +35,11 @@
 #include "Compiler/Abstract Syntax Tree/AnyStatement.h"
 #include "Compiler/Abstract Syntax Tree/Identifiers.h"
 
+#include "Compiler/Abstract Syntax Tree/Assignment.h"
+#include "Compiler/Abstract Syntax Tree/Entities.h"
+#include "Compiler/Abstract Syntax Tree/Function.h"
+#include "Compiler/Abstract Syntax Tree/Statement.h"
+#include "Compiler/Abstract Syntax Tree/Structures.h"
 
 namespace ASTTraverse
 {
@@ -212,7 +217,7 @@ namespace ASTTraverse
 		template <typename EntryActionT, typename ExitActionT, typename T, typename AllocT>
 		void Do(EntryActionT& entryaction, std::vector<T, AllocT>& nodes, ExitActionT& exitaction)
 		{
-			for(std::vector<T, AllocT>::iterator iter = nodes.begin(); iter != nodes.end(); ++iter)
+			for(typename std::vector<T, AllocT>::iterator iter = nodes.begin(); iter != nodes.end(); ++iter)
 				Do(entryaction, *iter, exitaction);
 		}
 
@@ -246,9 +251,11 @@ namespace ASTTraverse
 		void Do(EntryActionT& entryaction, AST::ExpressionComponent& component, ExitActionT& exitaction)
 		{
 			entryaction(component);
-			entryaction(Markers::ExpressionComponentPrefixes());
+			Markers::ExpressionComponentPrefixes prefixes = Markers::ExpressionComponentPrefixes();
+			entryaction(prefixes);
 			Do(entryaction, component.UnaryPrefixes, exitaction);
-			exitaction(Markers::ExpressionComponentPrefixes());
+			prefixes = Markers::ExpressionComponentPrefixes();
+			exitaction(prefixes);
 			Do(entryaction, component.Component.Content->V, exitaction);
 			exitaction(component);
 		}

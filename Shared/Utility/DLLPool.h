@@ -27,19 +27,21 @@ namespace Marshaling
 	{
 	// Destruction
 	public:
+		typedef HINSTANCE DLLPoolHandle;
+
 		~DLLPool()
 		{
-			for(std::map<std::wstring, HINSTANCE>::iterator iter = LoadedDLLs.begin(); iter != LoadedDLLs.end(); ++iter)
+			for(std::map<std::wstring, DLLPoolHandle>::iterator iter = LoadedDLLs.begin(); iter != LoadedDLLs.end(); ++iter)
 				::FreeLibrary(iter->second);
 		}
 
 	// DLL loading interface
 	public:
-		HINSTANCE OpenDLL(const std::wstring& name)
+		DLLPoolHandle OpenDLL(const std::wstring& name)
 		{
 			Threads::CriticalSection::Auto lock(CritSec);
 			
-			std::map<std::wstring, HINSTANCE>::const_iterator iter = LoadedDLLs.find(name);
+			std::map<std::wstring, DLLPoolHandle>::const_iterator iter = LoadedDLLs.find(name);
 			if(iter != LoadedDLLs.end())
 				return iter->second;
 
@@ -57,9 +59,14 @@ namespace Marshaling
 			return (LoadedDLLs.find(name) != LoadedDLLs.end());
 		}
 
+		template<class Signature>
+		static Signature GetFunction(DLLPoolHandle handle, std::string const& name)
+		{
+			return reinterpret_cast<Signature>(::GetProcAddress(handle, name.c_str()));
+		}
 	// Internal tracking
 	private:
-		std::map<std::wstring, HINSTANCE> LoadedDLLs;
+		std::map<std::wstring, DLLPoolHandle> LoadedDLLs;
 		Threads::CriticalSection CritSec;
 	};
 

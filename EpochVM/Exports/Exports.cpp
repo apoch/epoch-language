@@ -21,7 +21,7 @@
 // client code, as well as to prevent having to mess with throwing
 // exceptions across DLL boundaries.
 //
-extern "C" void __stdcall ExecuteByteCode(const void* bytecodebuffer, size_t size)
+extern "C" void STDCALL ExecuteByteCode(const void* bytecodebuffer, size_t size)
 {
 	try
 	{
@@ -42,7 +42,7 @@ extern "C" void __stdcall ExecuteByteCode(const void* bytecodebuffer, size_t siz
 //
 // Permit external access to our heap manager, for shared memory allocation and garbage collection purposes
 //
-extern "C" HeapManager* __stdcall GetHeapManager()
+extern "C" HeapManager* STDCALL GetHeapManager()
 {
 	try
 	{
@@ -58,7 +58,7 @@ extern "C" HeapManager* __stdcall GetHeapManager()
 //
 // Enable the visual debug interface of the VM
 //
-extern "C" void __stdcall EnableVisualDebugger()
+extern "C" void STDCALL EnableVisualDebugger()
 {
 	try
 	{

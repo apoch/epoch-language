@@ -24,8 +24,8 @@ namespace DLLAccess
 
 	// Internal type definitions for function pointers
 	private:
-		typedef void (__stdcall *ExecuteByteCodePtr)(const void*, size_t);
-		typedef void (__stdcall *EnableVisualDebuggerPtr)();
+		typedef void (STDCALL *ExecuteByteCodePtr)(const void*, size_t);
+		typedef void (STDCALL *EnableVisualDebuggerPtr)();
 
 	// Internal function pointers bound to the DLL
 	private:

@@ -35,10 +35,10 @@ HeapManager& GetSingleGlobalHeapManager()
 	
 	if(!SharedHeapManager)
 	{
-		HINSTANCE dllhandle = Marshaling::TheDLLPool.OpenDLL(L"EpochVM.DLL");
+		Marshaling::DLLPool::DLLPoolHandle dllhandle = Marshaling::TheDLLPool.OpenDLL(L"EpochVM.DLL");
 
-		typedef HeapManager* (__stdcall *getheapmanagerptr)();
-		getheapmanagerptr getheapmanager = reinterpret_cast<getheapmanagerptr>(::GetProcAddress(dllhandle, "GetHeapManager"));
+		typedef HeapManager* (STDCALL *getheapmanagerptr)();
+		getheapmanagerptr getheapmanager = Marshaling::DLLPool::GetFunction<getheapmanagerptr>(dllhandle, "GetHeapManager");
 
 		if(!getheapmanager)
 			throw FatalException("Failed to load Epoch virtual machine");

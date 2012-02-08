@@ -23,6 +23,7 @@
 
 #include <windows.h>
 
+#define STDCALL __stdcall
 
 // Epoch project standard code
 #include "Utility/Exception.h"

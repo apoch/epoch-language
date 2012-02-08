@@ -39,7 +39,7 @@
 // This process includes setting up the function signatures and pooling string
 // identifiers for all library entities, types, constants, and so on.
 //
-extern "C" void __stdcall RegisterLibraryContents(FunctionSignatureSet& functionsignatures, StringPoolManager& stringpool)
+extern "C" void STDCALL RegisterLibraryContents(FunctionSignatureSet& functionsignatures, StringPoolManager& stringpool)
 {
 	try
 	{
@@ -72,7 +72,7 @@ extern "C" void __stdcall RegisterLibraryContents(FunctionSignatureSet& function
 // Strings are pooled in the VM's internal string pool, and functions
 // are registered in the VM's global function dispatch table.
 //
-extern "C" void __stdcall BindToVirtualMachine(FunctionInvocationTable& functiontable, EntityTable& entities, EntityTable& chainedentities, StringPoolManager& stringpool, Bytecode::EntityTag& tagindex, EpochFunctionPtr marshalfunction)
+extern "C" void STDCALL BindToVirtualMachine(FunctionInvocationTable& functiontable, EntityTable& entities, EntityTable& chainedentities, StringPoolManager& stringpool, Bytecode::EntityTag& tagindex, EpochFunctionPtr marshalfunction)
 {
 	try
 	{
@@ -107,7 +107,7 @@ extern "C" void __stdcall BindToVirtualMachine(FunctionInvocationTable& function
 // Strings are pooled in the compiler's internal string pool, syntax extensions
 // are registered, and compile-time code helpers are bound.
 //
-extern "C" void __stdcall BindToCompiler(CompilerInfoTable& info, StringPoolManager& stringpool, Bytecode::EntityTag& tagindex)
+extern "C" void STDCALL BindToCompiler(CompilerInfoTable& info, StringPoolManager& stringpool, Bytecode::EntityTag& tagindex)
 {
 	try
 	{

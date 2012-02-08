@@ -25,16 +25,16 @@ private:
 
 // ILexer interface functions
 public:
-	virtual void __stdcall Release();
-	virtual int __stdcall Version() const;
-	virtual const char* __stdcall PropertyNames();
-	virtual int __stdcall PropertyType(const char* name);
-	virtual const char* __stdcall DescribeProperty(const char* name);
-	virtual int __stdcall PropertySet(const char* key, const char* val);
-	virtual const char* __stdcall DescribeWordListSets();
-	virtual int __stdcall WordListSet(int n, const char* wl);
-	virtual void __stdcall Lex(unsigned int startPos, int lengthDoc, int initStyle, IDocument* pAccess);
-	virtual void __stdcall Fold(unsigned int startPos, int lengthDoc, int initStyle, IDocument* pAccess);
-	virtual void* __stdcall PrivateCall(int operation, void* pointer);
+	virtual void STDCALL Release();
+	virtual int STDCALL Version() const;
+	virtual const char* STDCALL PropertyNames();
+	virtual int STDCALL PropertyType(const char* name);
+	virtual const char* STDCALL DescribeProperty(const char* name);
+	virtual int STDCALL PropertySet(const char* key, const char* val);
+	virtual const char* STDCALL DescribeWordListSets();
+	virtual int STDCALL WordListSet(int n, const char* wl);
+	virtual void STDCALL Lex(unsigned int startPos, int lengthDoc, int initStyle, IDocument* pAccess);
+	virtual void STDCALL Fold(unsigned int startPos, int lengthDoc, int initStyle, IDocument* pAccess);
+	virtual void* STDCALL PrivateCall(int operation, void* pointer);
 };
 
