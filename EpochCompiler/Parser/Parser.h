@@ -23,7 +23,7 @@ public:
 
 // Parsing operations
 public:
-	bool Parse(const std::wstring& code, const std::wstring& filename, AST::Program& out) const;
+	bool Parse(const std::wstring& code, const std::wstring& filename, AST::Program*& out) const;
 
 // Internal tracking
 private:
