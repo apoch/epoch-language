@@ -11,7 +11,6 @@
 // Dependencies
 #include "Utility/Types/IntegerTypes.h"
 
-
 namespace Profiling
 {
 

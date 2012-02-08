@@ -23,14 +23,23 @@ std::wstring widen(const std::string& str)
 	const char* cstr = str.c_str();
 	size_t len = str.length() + 1;
 	size_t reqsize = 0;
+#ifdef BOOST_WINDOWS
 	if(mbstowcs_s(&reqsize, NULL, 0, cstr, len) != 0)
+#else
+    reqsize = mbstowcs(0, cstr, len);
+    if(reqsize == -1)
+#endif
 		throw RecoverableException("Cannot widen string - invalid character detected");
 
 	if(!reqsize)
 		throw RecoverableException("Failed to widen string");
 
 	std::vector<wchar_t> buffer(reqsize, 0);
+#ifdef BOOST_WINDOWS
 	if(mbstowcs_s(NULL, &buffer[0], len, cstr, len) != 0)
+#else
+    if(mbstowcs(&buffer[0], cstr, len) == -1)
+#endif
 		throw RecoverableException("Cannot widen string - invalid character detected");
 
 	return std::wstring(buffer.begin(), buffer.end() - 1);
@@ -55,15 +64,24 @@ std::string narrow(const std::wstring& str)
 	const wchar_t* cstr = str.c_str();
 	size_t len = str.length() + 1;
 	size_t reqsize = 0;
+#ifdef BOOST_WINDOWS
 	if(wcstombs_s(&reqsize, NULL, 0, cstr, len) != 0)
+#else
+    reqsize = wcstombs(NULL, cstr, len);
+    if(reqsize == (size_t)-1)
+#endif
 		throw RecoverableException("Cannot narrow string - invalid character detected");
 
 	if(!reqsize)
 		throw RecoverableException("Failed to narrow string");
 
 	std::vector<Byte> buffer(reqsize, 0);
+#ifdef BOOST_WINDOWS
 	if(wcstombs_s(NULL, &buffer[0], len, cstr, len) != 0)
-		throw RecoverableException("Cannot narrow string - invalid character detected");
+#else
+    if(wcstombs(&buffer[0], cstr, len) != -1)
+#endif
+        throw RecoverableException("Cannot narrow string - invalid character detected");
 
 	return std::string(buffer.begin(), buffer.end() - 1);
 }
@@ -74,7 +92,11 @@ std::string narrow(const std::wstring& str)
 char narrow(wchar_t c)
 {
 	char ret;
+#ifdef BOOST_WINDOWS
 	wctomb_s(NULL, &ret, c, 1);
+#else
+    wctomb(&ret, c);
+#endif
 	return ret;
 }
 

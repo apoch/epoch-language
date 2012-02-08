@@ -50,7 +50,11 @@ namespace Threads
 
 	// Internal tracking
 	private:
+#ifdef BOOST_WINDOWS
 		CRITICAL_SECTION CritSec;
+#else
+        mutable pthread_mutex_t CritSec;
+#endif
 	};
 
 }

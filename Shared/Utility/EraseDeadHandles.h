@@ -11,7 +11,7 @@
 template <typename MapType, typename SetType>
 void EraseDeadHandles(MapType& data, const SetType& livehandles)
 {
-	for(MapType::iterator iter = data.begin(); iter != data.end(); )
+	for(typename MapType::iterator iter = data.begin(); iter != data.end(); )
 	{
 		if(livehandles.find(iter->first) == livehandles.end())
 			iter = data.erase(iter);

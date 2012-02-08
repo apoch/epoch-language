@@ -9,6 +9,7 @@ namespace Lexer
 	template <typename LexerT>
 	EpochLexer<LexerT>::EpochLexer()
 	{
+    
 		StructureDef = L"\"structure\"";
 		GlobalDef = L"\"global\"";
 
@@ -19,10 +20,10 @@ namespace Lexer
 		RealLiteral = L"[\\-]?[0-9]+\".\"[0-9]+";
 
 		Whitespace = L"\\s+";
-		self += Whitespace[boost::spirit::lex::_pass = boost::spirit::lex::pass_flags::pass_ignore];
+        this->self += Whitespace[boost::spirit::lex::_pass = boost::spirit::lex::pass_flags::pass_ignore];
 
 		Comment = L"\"//\".*$";
-		self += Comment[boost::spirit::lex::_pass = boost::spirit::lex::pass_flags::pass_ignore];
+        this->self += Comment[boost::spirit::lex::_pass = boost::spirit::lex::pass_flags::pass_ignore];
 
 		OpenBracket = L"\\{";
 		CloseBracket = L"\\}";
@@ -37,7 +38,7 @@ namespace Lexer
 		OpenBrace = L"\\[";
 		CloseBrace = L"\\]";
 
-		self.add
+		this->self.add
 			(Comma)
 			(OpenParens)
 			(CloseParens)

@@ -50,7 +50,7 @@ namespace IRSemantics
 		public:
 			StringHandle Find(const T& key) const
 			{
-				CacheType::const_iterator iter = Cache.find(key);
+                typename CacheType::const_iterator iter = Cache.find(key);
 				if(iter == Cache.end())
 					return 0;
 

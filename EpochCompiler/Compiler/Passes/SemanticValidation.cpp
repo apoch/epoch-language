@@ -474,11 +474,11 @@ void CompilePassSemantics::ExitHelper::operator () (AST::Expression& expression)
 	{
 	default:
 	case CompilePassSemantics::STATE_UNKNOWN:
-		throw std::exception("Invalid parse state");		// TODO - better exceptions
+		throw std::runtime_error("Invalid parse state");		// TODO - better exceptions
 
 	case CompilePassSemantics::STATE_STATEMENT:
 		if(self->CurrentStatements.empty())
-			throw std::exception("Invalid parse state");	// TODO - better exceptions
+			throw std::runtime_error("Invalid parse state");	// TODO - better exceptions
 
 		self->CurrentStatements.back()->AddParameter(self->CurrentExpressions.back());
 		self->CurrentExpressions.pop_back();
@@ -486,7 +486,7 @@ void CompilePassSemantics::ExitHelper::operator () (AST::Expression& expression)
 
 	case CompilePassSemantics::STATE_ASSIGNMENT:
 		if(self->CurrentAssignments.empty())
-			throw std::exception("Invalid parse state");	// TODO - better exceptions
+			throw std::runtime_error("Invalid parse state");	// TODO - better exceptions
 
 		self->CurrentAssignments.back()->SetRHS(new IRSemantics::AssignmentChainExpression(self->CurrentExpressions.back()));
 		self->CurrentExpressions.pop_back();
@@ -509,7 +509,7 @@ void CompilePassSemantics::ExitHelper::operator () (AST::Expression& expression)
 
 	case CompilePassSemantics::STATE_FUNCTION_PARAM:
 		if(self->CurrentFunctions.empty())
-			throw std::exception("Invalid parse state");	// TODO - better exceptions
+			throw std::runtime_error("Invalid parse state");	// TODO - better exceptions
 
 		{
 			StringHandle paramname = self->CurrentProgram->AllocateAnonymousParamName();
@@ -591,7 +591,7 @@ void CompilePassSemantics::ExitHelper::operator () (AST::Statement& statement)
 		break;
 
 	default:
-		throw std::exception("Invalid parse state");			// TODO - better exceptions
+		throw std::runtime_error("Invalid parse state");			// TODO - better exceptions
 	}
 }
 
@@ -632,7 +632,7 @@ void CompilePassSemantics::ExitHelper::operator () (AST::PreOperatorStatement& s
 		break;
 
 	default:
-		throw std::exception("Invalid parse state");			// TODO - better exceptions
+		throw std::runtime_error("Invalid parse state");			// TODO - better exceptions
 	}
 }
 
@@ -673,7 +673,7 @@ void CompilePassSemantics::ExitHelper::operator () (AST::PostOperatorStatement& 
 		break;
 
 	default:
-		throw std::exception("Invalid parse state");			// TODO - better exceptions
+		throw std::runtime_error("Invalid parse state");			// TODO - better exceptions
 	}
 }
 
@@ -738,7 +738,7 @@ void CompilePassSemantics::ExitHelper::operator () (AST::CodeBlock& block)
 		break;
 
 	default:
-		throw std::exception("Invalid parse state");				// TODO - better exceptions
+		throw std::runtime_error("Invalid parse state");				// TODO - better exceptions
 	}
 
 	self->CurrentCodeBlocks.pop_back();
@@ -774,7 +774,7 @@ void CompilePassSemantics::EntryHelper::operator () (AST::Assignment& assignment
 		break;
 
 	default:
-		throw std::exception("Invalid parse state");			// TODO - better exceptions
+		throw std::runtime_error("Invalid parse state");			// TODO - better exceptions
 	}
 }
 
@@ -786,7 +786,7 @@ void CompilePassSemantics::ExitHelper::operator () (AST::Assignment& assignment)
 	self->StateStack.pop();
 	
 	if(self->StateStack.top() != CompilePassSemantics::STATE_CODE_BLOCK)
-		throw std::exception("Invalid parse state");			// TODO - better exceptions
+		throw std::runtime_error("Invalid parse state");			// TODO - better exceptions
 
 	self->CurrentCodeBlocks.back()->AddEntry(new IRSemantics::CodeBlockAssignmentEntry(self->CurrentAssignments.back()));
 	self->CurrentAssignments.pop_back();
@@ -819,7 +819,7 @@ void CompilePassSemantics::ExitHelper::operator () (AST::Entity& entity)
 		break;
 
 	default:
-		throw std::exception("Invalid parse state");			// TODO - better exceptions
+		throw std::runtime_error("Invalid parse state");			// TODO - better exceptions
 	}
 }
 
@@ -842,7 +842,7 @@ void CompilePassSemantics::ExitHelper::operator () (AST::ChainedEntity& entity)
 	self->StateStack.pop();
 	
 	if(self->StateStack.top() != CompilePassSemantics::STATE_ENTITY)
-		throw std::exception("Invalid parse state");
+		throw std::runtime_error("Invalid parse state");
 
 	self->CurrentEntities.back()->AddChain(self->CurrentChainedEntities.back());
 	self->CurrentChainedEntities.pop_back();
@@ -874,7 +874,7 @@ void CompilePassSemantics::ExitHelper::operator () (AST::PostfixEntity& entity)
 		break;
 
 	default:
-		throw std::exception("Invalid parse state");			// TODO - better exceptions
+		throw std::runtime_error("Invalid parse state");			// TODO - better exceptions
 	}
 }
 
@@ -908,7 +908,7 @@ void CompilePassSemantics::EntryHelper::operator () (AST::IdentifierT& identifie
 
 		std::wistringstream convert(raw);
 		if(!(convert >> literalfloat))
-			throw std::exception("Invalid floating point literal");
+			throw std::runtime_error("Invalid floating point literal");
 		
 		iratom.reset(new IRSemantics::ExpressionAtomLiteralReal32(literalfloat));
 	}
@@ -927,7 +927,7 @@ void CompilePassSemantics::EntryHelper::operator () (AST::IdentifierT& identifie
 	}
 
 	if(!iratom.get())
-		throw std::exception("Unrecognized literal/token");			// TODO - better exceptions
+		throw std::runtime_error("Unrecognized literal/token");			// TODO - better exceptions
 
 	switch(self->StateStack.top())
 	{
@@ -957,7 +957,7 @@ void CompilePassSemantics::EntryHelper::operator () (AST::IdentifierT& identifie
 		break;
 
 	default:
-		throw std::exception("Invalid parse state");			// TODO - better exceptions
+		throw std::runtime_error("Invalid parse state");			// TODO - better exceptions
 	}
 }
 
@@ -973,7 +973,7 @@ void CompilePassSemantics::EntryHelper::operator () (AST::IdentifierT& identifie
 void CompilePassSemantics::EntryHelper::operator () (AST::FunctionReferenceSignature& refsig)
 {
 	if(self->CurrentFunctions.empty())
-		throw std::exception("Invalid parse state");		// TODO - better exceptions
+		throw std::runtime_error("Invalid parse state");		// TODO - better exceptions
 
 	StringHandle name = self->CurrentProgram->AddString(std::wstring(refsig.Identifier.begin(), refsig.Identifier.end()));
 	StringHandle returntype = self->CurrentProgram->AddString(std::wstring(refsig.ReturnType.begin(), refsig.ReturnType.end()));
@@ -1002,7 +1002,7 @@ void CompilePassSemantics::EntryHelper::operator () (Markers::FunctionReturnExpr
 void CompilePassSemantics::ExitHelper::operator () (Markers::FunctionReturnExpression&)
 {
 	if(self->CurrentFunctions.empty())
-		throw std::exception("Invalid parse state");			// TODO - better exceptions
+		throw std::runtime_error("Invalid parse state");			// TODO - better exceptions
 
 	self->CurrentFunctions.back()->SetReturnExpression(self->CurrentExpressions.back());
 	self->CurrentExpressions.pop_back();

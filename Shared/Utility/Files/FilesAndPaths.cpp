@@ -66,10 +66,14 @@ std::wstring ShortenPathName(const std::wstring& path)
 {
 	if(path.empty())
 		return L"";
-
+#ifdef BOOST_WINDOWS
 	DWORD size = ::GetShortPathName(path.c_str(), NULL, 0) + 2;
 	std::vector<wchar_t> buffer(size, L'\0');
 	::GetShortPathName(path.c_str(), &buffer[0], size);
 	return std::wstring(buffer.begin(), buffer.end() - 3);	// strip NULL terminator
+#else
+    return path;
+#warning Implement for *NIX
+#endif
 }
 

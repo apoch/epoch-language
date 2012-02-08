@@ -48,8 +48,7 @@ namespace AST
 		{ }
 
 		IdentifierListRaw(const IdentifierT& identifier)
-			: RefCount(0),
-			  Container(1, identifier)
+			: Container(1, identifier), RefCount(0)
 		{ }
 
 	// Non-copyable

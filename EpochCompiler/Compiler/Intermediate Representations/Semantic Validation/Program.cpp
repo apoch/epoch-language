@@ -83,7 +83,7 @@ void Program::AddStructure(StringHandle name, Structure* structure)
 	if(Structures.find(name) != Structures.end())
 	{
 		delete structure;
-		throw std::exception("Duplicate structure name");		// TODO - this should not be an exception
+		throw std::runtime_error("Duplicate structure name");		// TODO - this should not be an exception
 	}
 
 	Structures.insert(std::make_pair(name, structure));
@@ -131,7 +131,7 @@ void Program::AddFunction(StringHandle name, Function* function)
 	if(Functions.find(name) != Functions.end())
 	{
 		delete function;
-		throw std::exception("Duplicate function name");		// TODO - this should not be an exception
+		throw std::runtime_error("Duplicate function name");		// TODO - this should not be an exception
 	}
 
 	Functions.insert(std::make_pair(name, function));
@@ -516,6 +516,6 @@ InferenceContext::PossibleParameterTypes Program::GetExpectedTypesForStatement(S
 	}
 
 	// TODO - this should not be an exception. Record a semantic error instead.
-	throw std::exception("Invalid function name");
+	throw std::runtime_error("Invalid function name");
 }
 

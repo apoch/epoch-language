@@ -84,7 +84,7 @@ void Memory::OneWayRecordDealloc(size_t bytes)
 void Memory::DisposeOneWayBlocks()
 {
 	if(TotalAllocSize != 0)
-		throw std::exception("Memory leaked from one-way allocator");
+		throw std::runtime_error("Memory leaked from one-way allocator");
 
 	for(std::list<Block>::iterator iter = Blocks.begin(); iter != Blocks.end(); ++iter)
 		delete [] iter->AllocatedBuffer;

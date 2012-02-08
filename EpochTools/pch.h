@@ -7,6 +7,7 @@
 //
 
 #pragma once
+#include <boost/config.hpp>
 
 // Standard C++ Library headers
 #include <string>

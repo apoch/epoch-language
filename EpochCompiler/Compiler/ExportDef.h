@@ -7,8 +7,12 @@
 
 #pragma once
 
+#ifdef BOOST_WINDOWS
 #ifdef EPOCHCOMPILER_EXPORTS
 #define EPOCHCOMPILER __declspec(dllexport)
 #else
 #define EPOCHCOMPILER __declspec(dllimport)
+#endif
+#else
+#define EPOCHCOMPILER
 #endif

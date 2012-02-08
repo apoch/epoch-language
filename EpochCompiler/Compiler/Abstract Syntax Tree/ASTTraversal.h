@@ -40,10 +40,11 @@
 #include "Compiler/Abstract Syntax Tree/Function.h"
 #include "Compiler/Abstract Syntax Tree/Statement.h"
 #include "Compiler/Abstract Syntax Tree/Structures.h"
+#include "Compiler/Abstract Syntax Tree/Expression.h"
 
 namespace ASTTraverse
 {
-
+    struct Traverser;
 	//
 	// Internal implementation details
 	//
@@ -76,41 +77,11 @@ namespace ASTTraverse
 
 			enum PerformCheck
 			{
-				CheckResult = (sizeof(TestDummy<T>(NULL)) == sizeof(yes))
+				value = (sizeof(TestDummy<T>(NULL)) == sizeof(yes))
 			};
 		};
 
-		//
-		// Dummy helper for making the EnableIf stuff work
-		//
-		struct EnableDummy
-		{ };
-
-		//
-		// Enablement helper; provides a typedef if the conversion
-		// parameter passed in is true, and omits the typedef if
-		// that parameter is false
-		//
-		template <bool>
-		struct EnableIfVariantHelper;
-
-		template <>
-		struct EnableIfVariantHelper<true>
-		{
-			typedef EnableDummy type;
-		};
-
-		template <>
-		struct EnableIfVariantHelper<false>
-		{ };
-
-		//
-		// Template metafunction for checking if a type is a boost::variant
-		//
-		template <typename T>
-		struct EnableIfVariant : public EnableIfVariantHelper<IsVariantType<T>::CheckResult>
-		{ };
-	}
+    }
 
 	//
 	// Special dummy markers used for indicating to the callback
@@ -155,27 +126,9 @@ namespace ASTTraverse
 		// ambiguity in the presence of other potential overloads.
 		//
 		template <typename EntryActionT, typename ExitActionT, typename NodeT>
-		void Do(EntryActionT& entryaction, NodeT& node, ExitActionT& exitaction, ...)
+		void Do(EntryActionT& entryaction, NodeT& node, ExitActionT& exitaction)
 		{
-			entryaction(node);
-			exitaction(node);
-		}
-
-		//
-		// Traverse a node wrapped in a variant
-		//
-		// Makes use of the helper VariantVisitor (see below) to do
-		// the actual unwrapping. Uses some template metaprogramming
-		// to do compile-time reflection on the passed node type, in
-		// an effort to ensure that only boost::variant objects are
-		// handed to this overload. See the notes on EnableIfVariant
-		// above for details.
-		//
-		template <typename EntryActionT, typename ExitActionT, typename NodeT>
-		void Do(EntryActionT& entryaction, NodeT& node, ExitActionT& exitaction, typename EnableIfVariant<NodeT>::type& = EnableDummy())
-		{
-			VariantVisitor<EntryActionT, ExitActionT> visitor(*this, entryaction, exitaction);
-			boost::apply_visitor(visitor, node);			
+            DoerDispatcher<NodeT, IsVariantType<NodeT>::value>::Do(this, entryaction, node, exitaction);
 		}
 
 		//
@@ -359,9 +312,11 @@ namespace ASTTraverse
 		{
 			entryaction(function);
 			Do(entryaction, function.Parameters, exitaction);
-			entryaction(Markers::FunctionReturnExpression());
+            Markers::FunctionReturnExpression marker = Markers::FunctionReturnExpression();
+			entryaction(marker);
 			Do(entryaction, function.Return, exitaction);
-			exitaction(Markers::FunctionReturnExpression());
+            marker = Markers::FunctionReturnExpression();
+			exitaction(marker);
 			Do(entryaction, function.Code, exitaction);
 			exitaction(function);
 		}
@@ -389,6 +344,28 @@ namespace ASTTraverse
 		}
 
 	private:
+
+        template<class NodeT, bool IsVariant>
+        struct DoerDispatcher
+        {
+            template<typename EntryActionT, typename ExitActionT>
+            static void Do(Traverser* t, EntryActionT& entryaction, NodeT& node, ExitActionT& exitaction) 
+            {
+                entryaction(node);
+                exitaction(node);
+            }
+        };
+
+        template<class NodeT>
+        struct DoerDispatcher<NodeT, true>
+        {
+            template<typename EntryActionT, typename ExitActionT>
+            static void Do(Traverser* t, EntryActionT& entryaction, NodeT& node, ExitActionT& exitaction) 
+            {
+			    VariantVisitor<EntryActionT, ExitActionT> visitor(*t, entryaction, exitaction);
+			    boost::apply_visitor(visitor, node);			
+            }
+        };
 		//
 		// Helper visitor for unwrapping boost::variants
 		//

@@ -2,42 +2,42 @@
 // The Epoch Language Project
 // Shared Library Code
 //
-// Basic exception wrapper class.
+// Basic std::runtime_error wrapper class.
 //
 
 #pragma once
 
 
 // Dependencies
-#include <exception>
+#include <stdexcept>
 #include <string>
 
 
 //
-// Base exception class used for internal exception handling
+// Base std::runtime_error class used for internal std::runtime_error handling
 //
-class Exception : public std::exception
+class Exception : public std::runtime_error
 {
 // Construction
 public:
 	explicit Exception(const char* message)
-		: exception(message)
+		: std::runtime_error(message)
 	{
 	}
 
 	explicit Exception(const std::string& message)
-		: exception(message.c_str())
+		: std::runtime_error(message.c_str())
 	{
 	}
 };
 
 
 //
-// Fatal exception class; these should in general only be caught if it
+// Fatal std::runtime_error class; these should in general only be caught if it
 // is necessary to use the catch to clean something up, and then bail.
 // In other words, a thrown FatalException should always terminate the
 // current process sooner or later, although note that the program may
-// elect to catch the exception and restart a driver loop or something
+// elect to catch the std::runtime_error and restart a driver loop or something
 // similar in order to continue execution.
 //
 class FatalException : public Exception
@@ -50,7 +50,7 @@ public:
 
 
 //
-// Recoverable exception wrapper
+// Recoverable std::runtime_error wrapper
 //
 class RecoverableException : public Exception
 {
@@ -86,7 +86,7 @@ public:
 
 
 //
-// Special exception for reporting features which are not yet implemented
+// Special std::runtime_error for reporting features which are not yet implemented
 //
 class NotImplementedException : public FatalException
 {

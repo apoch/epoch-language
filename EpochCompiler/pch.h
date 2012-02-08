@@ -7,7 +7,11 @@
 //
 
 #pragma once
+#include <boost/config.hpp>
+
+#ifdef BOOST_WINDOWS
 #pragma warning(disable : 4503)
+#endif
 
 // Standard C++ library stuff
 #include <string>
@@ -16,7 +20,7 @@
 #include <vector>
 #include <list>
 
-
+#ifdef BOOST_WINDOWS
 // Platform-specific stuff
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX
@@ -24,6 +28,11 @@
 #include <windows.h>
 
 #define STDCALL __stdcall
+#else
+#include <dlfcn.h>
+#include <pthread.h>
+#define STDCALL
+#endif
 
 // Epoch project standard code
 #include "Utility/Exception.h"

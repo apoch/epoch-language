@@ -77,7 +77,7 @@ private:
 			return 0;
 
 		HandleT pivot = ((max - min) / 2) + min;	// Order of operations is necessary to prevent overflow!
-		ContainerT::const_iterator iter = container.find(pivot);
+		typename ContainerT::const_iterator iter = container.find(pivot);
 		if(iter == container.end())
 			return pivot;
 

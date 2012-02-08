@@ -40,7 +40,7 @@ void Function::AddParameter(StringHandle name, FunctionParam* param)
 		if(iter->Name == name)
 		{
 			delete param;
-			throw std::exception("Duplicate function parameter name");		// TODO - this should not be an exception
+			throw std::runtime_error("Duplicate function parameter name");		// TODO - this should not be an exception
 		}
 	}
 

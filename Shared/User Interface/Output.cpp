@@ -25,14 +25,22 @@ Threads::CriticalSection ConsoleCriticalSection;
 //
 void UI::OutputMessage(const wchar_t* message)
 {
+#ifdef BOOST_WINDOWS
 	Threads::CriticalSection::Auto mutex(ConsoleCriticalSection);
 	WriteConsole(::GetStdHandle(STD_OUTPUT_HANDLE), message, static_cast<DWORD>(wcslen(message)), NULL, NULL);
+#else
+#warning Implement for *NIX
+#endif
 }
 
 void UI::OutputMessage(const std::wstring& message)
 {
+#ifdef BOOST_WINDOWS
 	Threads::CriticalSection::Auto mutex(ConsoleCriticalSection);
 	WriteConsole(::GetStdHandle(STD_OUTPUT_HANDLE), message.c_str(), static_cast<DWORD>(message.length()), NULL, NULL);
+#else
+#warning Implement for *NIX
+#endif
 }
 
 //
@@ -40,7 +48,8 @@ void UI::OutputMessage(const std::wstring& message)
 //
 void UI::SetOutputColor(OutputColor color)
 {
-	WORD bits;
+#ifdef BOOST_WINDOWS
+    WORD bits;
 
 	switch(color)
 	{
@@ -59,5 +68,8 @@ void UI::SetOutputColor(OutputColor color)
 		Threads::CriticalSection::Auto mutex(ConsoleCriticalSection);
 		::SetConsoleTextAttribute(::GetStdHandle(STD_OUTPUT_HANDLE), bits);
 	}
+#else
+#warning Implement for *NIX
+#endif
 }
 

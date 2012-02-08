@@ -10,6 +10,10 @@
 #include "Utility/Profiling.h"
 
 
+#ifndef BOOST_WINDOWS
+#include <sys/time.h>
+#endif
+
 using namespace Profiling;
 
 
@@ -18,26 +22,42 @@ Timer::Timer()
 	  BeginCount(0),
 	  EndCount(0)
 {
-	LARGE_INTEGER freq;
+#ifdef BOOST_WINDOWS
+    LARGE_INTEGER freq;
 	::QueryPerformanceFrequency(&freq);
 
 	Frequency = freq.QuadPart;
+#else
+    Frequency = 1000000;
+#endif
 }
 
 void Timer::Begin()
 {
+#ifdef BOOST_WINDOWS
 	LARGE_INTEGER counter;
 	::QueryPerformanceCounter(&counter);
 
 	BeginCount = counter.QuadPart;
+#else
+    timeval start;
+    gettimeofday(&start, 0);
+    BeginCount = start.tv_usec;
+#endif
 }
 
 void Timer::End()
 {
+#ifdef BOOST_WINDOWS
 	LARGE_INTEGER counter;
 	::QueryPerformanceCounter(&counter);
 
 	EndCount = counter.QuadPart;
+#else
+    timeval stop;
+    gettimeofday(&stop, 0);
+    EndCount = stop.tv_usec;
+#endif
 }
 
 Integer64 Timer::GetTimeMs() const

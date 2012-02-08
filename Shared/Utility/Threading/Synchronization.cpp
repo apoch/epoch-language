@@ -22,7 +22,11 @@ using namespace Threads;
 //
 CriticalSection::CriticalSection()
 {
+#ifdef BOOST_WINDOWS
 	::InitializeCriticalSection(&CritSec);
+#else
+    pthread_mutex_init(&CritSec, 0);
+#endif
 }
 
 
@@ -31,7 +35,11 @@ CriticalSection::CriticalSection()
 //
 CriticalSection::~CriticalSection()
 {
+#ifdef BOOST_WINDOWS
 	::DeleteCriticalSection(&CritSec);
+#else
+    pthread_mutex_destroy(&CritSec);
+#endif
 }
 
 //
@@ -41,7 +49,11 @@ void CriticalSection::Enter() const
 {
 	// This is an evil cast, but we do it anyways so that critical section holders
 	// can lock safely in const member functions.
+#ifdef BOOST_WINDOWS
 	::EnterCriticalSection(const_cast<LPCRITICAL_SECTION>(&CritSec));
+#else
+    pthread_mutex_lock(&CritSec);
+#endif
 }
 
 //
@@ -51,6 +63,10 @@ void CriticalSection::Exit() const
 {
 	// This is an evil cast, but we do it anyways so that critical section holders
 	// can lock safely in const member functions.
+#ifdef BOOST_WINDOWS
 	::LeaveCriticalSection(const_cast<LPCRITICAL_SECTION>(&CritSec));
+#else
+    pthread_mutex_unlock(&CritSec);
+#endif
 }
 

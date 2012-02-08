@@ -77,9 +77,8 @@ namespace AST
 		{ }
 
 		Assignment(const DeferredSimpleAssignment& simple)
-			: RefCount(0),
-			  Operator(simple.Content->Operator),
-			  RHS(simple.Content->RHS)
+			: Operator(simple.Content->Operator),
+			  RHS(simple.Content->RHS), RefCount(0)
 		{
 			LHS.Content->Container.push_back(simple.Content->LHS);
 		}

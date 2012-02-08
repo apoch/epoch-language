@@ -7,6 +7,7 @@
 //
 
 #pragma once
+#include <boost/config.hpp>
 
 
 // Platform-specific stuff

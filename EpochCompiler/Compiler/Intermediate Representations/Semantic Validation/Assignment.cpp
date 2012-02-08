@@ -18,9 +18,9 @@ using namespace IRSemantics;
 
 
 Assignment::Assignment(const std::vector<StringHandle>& lhs, StringHandle operatorname)
-	: RHS(NULL),
-	  LHS(lhs),
-	  OperatorName(operatorname)
+	: LHS(lhs),
+	  OperatorName(operatorname),
+	  RHS(NULL)
 {
 }
 

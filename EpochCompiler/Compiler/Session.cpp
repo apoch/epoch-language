@@ -140,7 +140,7 @@ void CompileSession::EmitByteCode()
 const void* CompileSession::GetEmittedBuffer() const
 {
 	if(FinalByteCode.empty())
-		throw std::exception("Empty bytecode buffer");
+		throw std::runtime_error("Empty bytecode buffer");
 
 	return &FinalByteCode[0];
 }

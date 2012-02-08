@@ -16,8 +16,7 @@ using namespace IRSemantics;
 
 
 Entity::Entity(StringHandle name)
-	: Code(NULL),
-	  Name(name)
+	: Name(name), Code(NULL)
 {
 }
 
