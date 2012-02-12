@@ -61,7 +61,6 @@ namespace IRSemantics
 
 	// Control of right-hand-side of assignment
 	public:
-		void SetRHS(AssignmentChain* rhs);
 		void SetRHSRecursive(AssignmentChain* rhs);
 
 	// Access to properties

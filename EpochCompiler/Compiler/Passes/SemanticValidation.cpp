@@ -522,7 +522,7 @@ void CompilePassSemantics::ExitHelper::operator () (AST::Expression& expression)
 			throw InternalException("Parser thinks it is traversing an assignment, but no assignments are actively being parsed");
 		}
 
-		self->CurrentAssignments.back()->SetRHS(new IRSemantics::AssignmentChainExpression(self->CurrentExpressions.back()));
+		self->CurrentAssignments.back()->SetRHSRecursive(new IRSemantics::AssignmentChainExpression(self->CurrentExpressions.back()));
 		self->CurrentExpressions.pop_back();
 		break;
 
@@ -640,7 +640,15 @@ void CompilePassSemantics::ExitHelper::operator () (AST::Statement& statement)
 		break;
 
 	default:
-		throw std::runtime_error("Invalid parse state");			// TODO - better exceptions
+		//
+		// This is probably a missing language feature.
+		//
+		// An expression AST node has been traversed but its
+		// surrounding context was not explicitly handled by
+		// one of the above cases. Ensure the AST generation
+		// is correct and that the context is supported.
+		//
+		throw InternalException("Expression occurs in an unrecognized context");
 	}
 }
 
@@ -859,7 +867,15 @@ void CompilePassSemantics::EntryHelper::operator () (AST::Assignment& assignment
 		break;
 
 	default:
-		throw std::runtime_error("Invalid parse state");			// TODO - better exceptions
+		//
+		// This is probably a missing language feature.
+		//
+		// An assignment AST node has been traversed but its
+		// surrounding context was not explicitly handled by
+		// one of the above cases. Ensure the AST generation
+		// is correct and that the context is supported.
+		//
+		throw InternalException("Assignment occurs in unrecognized context");
 	}
 }
 
@@ -870,11 +886,27 @@ void CompilePassSemantics::ExitHelper::operator () (AST::Assignment& assignment)
 {
 	self->StateStack.pop();
 	
-	if(self->StateStack.top() != CompilePassSemantics::STATE_CODE_BLOCK)
-		throw std::runtime_error("Invalid parse state");			// TODO - better exceptions
-
-	self->CurrentCodeBlocks.back()->AddEntry(new IRSemantics::CodeBlockAssignmentEntry(self->CurrentAssignments.back()));
-	self->CurrentAssignments.pop_back();
+	if(self->StateStack.top() == CompilePassSemantics::STATE_CODE_BLOCK)
+	{
+		self->CurrentCodeBlocks.back()->AddEntry(new IRSemantics::CodeBlockAssignmentEntry(self->CurrentAssignments.back()));
+		self->CurrentAssignments.pop_back();
+	}
+	else if(self->StateStack.top() == CompilePassSemantics::STATE_ASSIGNMENT)
+	{
+		// TODO
+	}
+	else
+	{
+		//
+		// This is probably a missing language feature.
+		//
+		// An assignment AST node has been traversed but its
+		// surrounding context was not explicitly handled by
+		// one of the above cases. Ensure the AST generation
+		// is correct and that the context is supported.
+		//
+		throw InternalException("Assignment occurs in unrecognized context");
+	}
 }
 
 
@@ -1020,7 +1052,7 @@ void CompilePassSemantics::EntryHelper::operator () (AST::IdentifierT& identifie
 		{
 			std::auto_ptr<IRSemantics::Expression> irexpression(new IRSemantics::Expression());
 			irexpression->AddAtom(iratom.release());
-			self->CurrentAssignments.back()->SetRHS(new IRSemantics::AssignmentChainExpression(irexpression.release()));
+			self->CurrentAssignments.back()->SetRHSRecursive(new IRSemantics::AssignmentChainExpression(irexpression.release()));
 		}
 		break;
 

@@ -175,6 +175,7 @@ namespace IRSemantics
 
 		bool IsParameterLocalVariable(StringHandle name) const;
 		VM::EpochTypeID GetParameterType(StringHandle name, const IRSemantics::Program& program) const;
+		VM::EpochTypeID GetParameterTypeByIndex(size_t index, const IRSemantics::Program& program) const;
 		bool IsParameterReference(StringHandle name) const;
 
 		size_t GetNumParameters() const

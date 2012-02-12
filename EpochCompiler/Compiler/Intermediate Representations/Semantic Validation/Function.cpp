@@ -109,6 +109,11 @@ VM::EpochTypeID Function::GetParameterType(StringHandle name, const IRSemantics:
 	throw InternalException("Provided string handle does not correspond to a parameter of this function");
 }
 
+VM::EpochTypeID Function::GetParameterTypeByIndex(size_t index, const IRSemantics::Program& program) const
+{
+	return Parameters[index].Parameter->GetParamType(program);
+}
+
 std::vector<StringHandle> Function::GetParameterNames() const
 {
 	std::vector<StringHandle> ret;

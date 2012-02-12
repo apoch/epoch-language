@@ -150,13 +150,10 @@ bool Statement::TypeInference(Program& program, CodeBlock& activescope, Inferenc
 				
 				if(func->GetNumParameters() == Parameters.size())
 				{
-					// TODO - optimize this?
-					std::vector<StringHandle> paramnames = func->GetParameterNames();
-
 					bool match = true;
 					for(size_t j = 0; j < Parameters.size(); ++j)
 					{
-						if(func->GetParameterType(paramnames[j], program) != Parameters[j]->GetEpochType(program))
+						if(func->GetParameterTypeByIndex(j, program) != Parameters[j]->GetEpochType(program))
 						{
 							match = false;
 							break;
@@ -174,9 +171,34 @@ bool Statement::TypeInference(Program& program, CodeBlock& activescope, Inferenc
 		}
 		else
 		{
-			OverloadMap::const_iterator ovmapiter = program.Session.FunctionOverloadNames.find(Name);
-			if(ovmapiter != program.Session.FunctionOverloadNames.end())
-				MyType = program.Session.FunctionSignatures.find(*ovmapiter->second.begin())->second.GetReturnType();
+			OverloadMap::const_iterator overloadmapiter = program.Session.FunctionOverloadNames.find(Name);
+			if(overloadmapiter != program.Session.FunctionOverloadNames.end())
+			{
+				const StringHandleSet& overloads = overloadmapiter->second;
+				for(StringHandleSet::const_iterator overloaditer = overloads.begin(); overloaditer != overloads.end(); ++overloaditer)
+				{
+					const FunctionSignature& funcsig = program.Session.FunctionSignatures.find(*overloaditer)->second;
+					if(funcsig.GetNumParameters() == Parameters.size())
+					{
+						bool match = true;
+						for(size_t i = 0; i < Parameters.size(); ++i)
+						{
+							if(funcsig.GetParameter(i).Type != Parameters[i]->GetEpochType(program))
+							{
+								match = false;
+								break;
+							}
+						}
+
+						if(match)
+						{
+							Name = *overloaditer;
+							MyType = funcsig.GetReturnType();
+							break;
+						}
+					}
+				}
+			}
 			else
 				MyType = program.Session.FunctionSignatures.find(Name)->second.GetReturnType();
 		}

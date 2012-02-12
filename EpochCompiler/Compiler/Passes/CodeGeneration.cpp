@@ -221,38 +221,7 @@ namespace
 			EmitExpression(emitter, **paramiter, activescope, program);
 		}
 
-
-		// TODO - move this overload resolution logic to statement type inference where it belongs
-		StringHandle overloadname = statement.GetName();
-		OverloadMap::const_iterator overloadmapiter = program.Session.FunctionOverloadNames.find(overloadname);
-		if(overloadmapiter != program.Session.FunctionOverloadNames.end())
-		{
-			const StringHandleSet& overloads = overloadmapiter->second;
-			for(StringHandleSet::const_iterator overloaditer = overloads.begin(); overloaditer != overloads.end(); ++overloaditer)
-			{
-				const FunctionSignature& funcsig = program.Session.FunctionSignatures.find(*overloaditer)->second;
-				if(funcsig.GetNumParameters() == paramtypes.size())
-				{
-					bool match = true;
-					for(size_t i = 0; i < paramtypes.size(); ++i)
-					{
-						if(funcsig.GetParameter(i).Type != paramtypes[i])
-						{
-							match = false;
-							break;
-						}
-					}
-
-					if(match)
-					{
-						overloadname = *overloaditer;
-						break;
-					}
-				}
-			}
-		}
-
-		emitter.Invoke(overloadname);
+		emitter.Invoke(statement.GetName());
 	}
 
 	void GenerateAssignment(ByteCodeEmitter& emitter, const IRSemantics::Assignment& assignment, const IRSemantics::Program& program, const IRSemantics::CodeBlock& activescope)
@@ -458,7 +427,19 @@ bool CompilerPasses::GenerateCode(const IRSemantics::Program& program, ByteCodeE
 		{
 			if(!code)
 			{
-				throw std::runtime_error("No code on function with return type not void");	// TODO - better exceptions
+				//
+				// This is probably a bug in the IR generation.
+				//
+				// At the IR level, all functions have code bodies, even if
+				// they are empty. This is done to support the lexical scope
+				// data needed for parameters and return values to exist on
+				// the stack when invoking such a function.
+				//
+				// Most of the code generation logic assumes that this is
+				// upheld by the IR layer, so a missing code body is a fatal
+				// failure at this point.
+				//
+				throw InternalException("Function has no attached code body");
 			}
 
 			bool found = false;
@@ -474,7 +455,21 @@ bool CompilerPasses::GenerateCode(const IRSemantics::Program& program, ByteCodeE
 			}
 
 			if(!found)
-				throw std::runtime_error("Couldn't find return variable");		// TODO - better exceptions
+			{
+				//
+				// This is probably a broken language feature.
+				//
+				// First thing to check is if the function is returning
+				// a literal expression (i.e. anonymous return) instead
+				// an explicitly named return, which should actually be
+				// handled by generating a mangled variable name rather
+				// than having no return variable.
+				//
+				// Outside of that, make sure the IR generation is sane
+				// and producing lexical scope data correctly.
+				//
+				throw InternalException("Function is not void but has no defined return variable");
+			}
 		}
 
 		emitter.ExitFunction();

@@ -37,12 +37,6 @@ Assignment::~Assignment()
 	delete RHS;
 }
 
-void Assignment::SetRHS(AssignmentChain* rhs)
-{
-	delete RHS;
-	RHS = rhs;
-}
-
 void Assignment::SetRHSRecursive(AssignmentChain* rhs)
 {
 	if(RHS)
@@ -73,6 +67,7 @@ void Assignment::SetRHSRecursive(AssignmentChain* rhs)
 	}
 	else
 	{
+		delete RHS;
 		RHS = rhs;
 	}
 }
@@ -161,7 +156,7 @@ VM::EpochTypeID AssignmentChainAssignment::GetEpochType(const Program& program) 
 
 bool AssignmentChainAssignment::TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context)
 {
-	return MyAssignment->GetRHS()->TypeInference(program, activescope, context);
+	return MyAssignment->TypeInference(program, activescope, context);
 }
 
 bool AssignmentChainAssignment::Validate(const Program& program) const
