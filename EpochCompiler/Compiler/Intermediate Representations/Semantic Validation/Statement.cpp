@@ -183,6 +183,7 @@ bool PreOpStatement::TypeInference(Program& program, CodeBlock& activescope, Inf
 
 		if(sigiter->second.GetNumParameters() == 1 && sigiter->second.GetParameter(0).Type == operandtype)
 		{
+			OperatorName = *iter;
 			MyType = sigiter->second.GetReturnType();
 			break;
 		}
@@ -237,6 +238,7 @@ bool PostOpStatement::TypeInference(Program& program, CodeBlock& activescope, In
 
 		if(sigiter->second.GetNumParameters() == 1 && sigiter->second.GetParameter(0).Type == operandtype)
 		{
+			OperatorName = *iter;
 			MyType = sigiter->second.GetReturnType();
 			break;
 		}

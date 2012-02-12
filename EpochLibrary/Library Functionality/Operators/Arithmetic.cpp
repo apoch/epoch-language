@@ -297,22 +297,26 @@ void ArithmeticLibrary::RegisterLibraryFunctions(FunctionSignatureSet& signature
 
 	{
 		FunctionSignature signature;
+		signature.AddParameter(L"operand", VM::EpochType_Integer, false);
 		signature.SetReturnType(VM::EpochType_Integer);
 		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"++@@integer"), signature));
 	}
 	{
 		FunctionSignature signature;
+		signature.AddParameter(L"operand", VM::EpochType_Integer, false);
 		signature.SetReturnType(VM::EpochType_Integer);
 		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"--@@integer"), signature));
 	}
 
 	{
 		FunctionSignature signature;
+		signature.AddParameter(L"operand", VM::EpochType_Real, false);
 		signature.SetReturnType(VM::EpochType_Real);
 		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"++@@real"), signature));
 	}
 	{
 		FunctionSignature signature;
+		signature.AddParameter(L"operand", VM::EpochType_Real, false);
 		signature.SetReturnType(VM::EpochType_Real);
 		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"--@@real"), signature));
 	}

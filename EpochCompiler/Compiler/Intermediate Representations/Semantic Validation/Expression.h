@@ -127,6 +127,11 @@ namespace IRSemantics
 	public:
 		bool CompileTimeCodeExecution(Program& program, CodeBlock& activescope, bool inreturnexpr);
 
+	// State access
+	public:
+		const PreOpStatement* GetStatement() const
+		{ return MyStatement; }
+
 	// Internal state
 	private:
 		PreOpStatement* MyStatement;
@@ -153,6 +158,11 @@ namespace IRSemantics
 		virtual VM::EpochTypeID GetEpochType(const Program& program) const;
 		virtual bool TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context) const;
 
+	// State access
+	public:
+		const PostOpStatement* GetStatement() const
+		{ return MyStatement; }
+
 	// Internal state
 	private:
 		PostOpStatement* MyStatement;
@@ -176,6 +186,10 @@ namespace IRSemantics
 		virtual VM::EpochTypeID GetEpochType(const Program& program) const;
 		virtual bool TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, size_t index);
 		virtual bool CompileTimeCodeExecution(Program& program, CodeBlock& activescope, bool inreturnexpr);
+
+	// State access
+		const Parenthetical* GetParenthetical() const
+		{ return MyParenthetical; }
 
 	// Internal state
 	private:

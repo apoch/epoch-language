@@ -99,6 +99,30 @@ namespace
 		}
 	}
 
+	void EmitPreOpStatement(ByteCodeEmitter& emitter, const IRSemantics::PreOpStatement& statement, const IRSemantics::CodeBlock& codeblock, const IRSemantics::Program& program)
+	{
+		PushValue(emitter, statement.GetOperand(), program, codeblock);
+		emitter.Invoke(statement.GetOperatorName());
+		BindReference(emitter, statement.GetOperand());
+		emitter.AssignVariable();
+		PushValue(emitter, statement.GetOperand(), program, codeblock);
+	}
+
+	void EmitPostOpStatement(ByteCodeEmitter& emitter, const IRSemantics::PostOpStatement& statement, const IRSemantics::CodeBlock& codeblock, const IRSemantics::Program& program)
+	{
+		// Yes, we need to push this twice! (Once, the value is passed on to the operator
+		// itself for invocation; the second push [or rather the one which happens first,
+		// and appears lower on the stack] is used to hold the initial value of the expression
+		// so that the subsequent code can read off the value safely, in keeping with the
+		// traditional semantics of a post operator.)
+		PushValue(emitter, statement.GetOperand(), program, codeblock);
+		PushValue(emitter, statement.GetOperand(), program, codeblock);
+
+		emitter.Invoke(statement.GetOperatorName());
+		BindReference(emitter, statement.GetOperand());
+		emitter.AssignVariable();
+	}
+
 	void EmitExpressionAtom(ByteCodeEmitter& emitter, const IRSemantics::ExpressionAtom* rawatom, const IRSemantics::CodeBlock& activescope, const IRSemantics::Program& program)
 	{
 		if(!rawatom)
@@ -115,7 +139,16 @@ namespace
 		}
 		else if(const IRSemantics::ExpressionAtomParenthetical* atom = dynamic_cast<const IRSemantics::ExpressionAtomParenthetical*>(rawatom))
 		{
-			// TODO - emit parenthetical
+			const IRSemantics::Parenthetical* parenthetical = atom->GetParenthetical();
+			if(const IRSemantics::ParentheticalPreOp* preop = dynamic_cast<const IRSemantics::ParentheticalPreOp*>(parenthetical))
+				EmitPreOpStatement(emitter, *preop->GetStatement(), activescope, program);
+			else if(const IRSemantics::ParentheticalPostOp* postop = dynamic_cast<const IRSemantics::ParentheticalPostOp*>(parenthetical))
+				EmitPostOpStatement(emitter, *postop->GetStatement(), activescope, program);
+			else
+			{
+				// TODO
+				throw std::runtime_error("Arbitrary parenthetical expressions not implemented");
+			}
 		}
 		else if(const IRSemantics::ExpressionAtomIdentifier* atom = dynamic_cast<const IRSemantics::ExpressionAtomIdentifier*>(rawatom))
 		{
@@ -326,27 +359,13 @@ namespace
 			}
 			else if(const IRSemantics::CodeBlockPreOpStatementEntry* entry = dynamic_cast<const IRSemantics::CodeBlockPreOpStatementEntry*>(baseentry))
 			{
-				PushValue(emitter, entry->GetStatement().GetOperand(), program, codeblock);
-				// TODO - handle overloads
-				emitter.Invoke(entry->GetStatement().GetOperatorName());
-				BindReference(emitter, entry->GetStatement().GetOperand());
-				emitter.AssignVariable();
-				PushValue(emitter, entry->GetStatement().GetOperand(), program, codeblock);
+				EmitPreOpStatement(emitter, entry->GetStatement(), codeblock, program);
+				emitter.PopStack(entry->GetStatement().GetEpochType(program));
 			}
 			else if(const IRSemantics::CodeBlockPostOpStatementEntry* entry = dynamic_cast<const IRSemantics::CodeBlockPostOpStatementEntry*>(baseentry))
 			{
-				// Yes, we need to push this twice! (Once, the value is passed on to the operator
-				// itself for invocation; the second push [or rather the one which happens first,
-				// and appears lower on the stack] is used to hold the initial value of the expression
-				// so that the subsequent code can read off the value safely, in keeping with the
-				// traditional semantics of a post operator.)
-				PushValue(emitter, entry->GetStatement().GetOperand(), program, codeblock);
-				PushValue(emitter, entry->GetStatement().GetOperand(), program, codeblock);
-
-				// TODO - handle overloads
-				emitter.Invoke(entry->GetStatement().GetOperatorName());
-				BindReference(emitter, entry->GetStatement().GetOperand());
-				emitter.AssignVariable();
+				EmitPostOpStatement(emitter, entry->GetStatement(), codeblock, program);
+				emitter.PopStack(entry->GetStatement().GetEpochType(program));
 			}
 			else if(const IRSemantics::CodeBlockInnerBlockEntry* entry = dynamic_cast<const IRSemantics::CodeBlockInnerBlockEntry*>(baseentry))
 			{
