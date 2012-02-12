@@ -185,6 +185,9 @@ bool Function::TypeInference(Program& program, InferenceContext& context)
 			return false;
 	}
 
+	program.AddScope(Code->GetScope());		// TODO - better solution than aliasing the scope
+	program.AddScope(Code->GetScope(), Name);
+
 	InferenceContext newcontext(Name, InferenceContext::CONTEXT_FUNCTION);
 	return Code->TypeInference(program, newcontext);
 }

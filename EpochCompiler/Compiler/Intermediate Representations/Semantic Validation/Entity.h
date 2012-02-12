@@ -60,6 +60,12 @@ namespace IRSemantics
 		StringHandle GetName() const
 		{ return Name; }
 
+		StringHandle GetPostfixIdentifier() const
+		{ return PostfixName; }
+
+		void SetPostfixIdentifier(StringHandle name)
+		{ PostfixName = name; }
+
 	// Validation
 	public:
 		bool Validate(const Program& program) const;
@@ -75,6 +81,7 @@ namespace IRSemantics
 	// Internal state
 	private:
 		StringHandle Name;
+		StringHandle PostfixName;
 		CodeBlock* Code;
 		std::vector<Expression*> Parameters;
 		std::vector<Entity*> Chain;

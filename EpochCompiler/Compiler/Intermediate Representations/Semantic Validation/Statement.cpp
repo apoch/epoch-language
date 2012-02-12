@@ -15,6 +15,8 @@
 
 #include "Compiler/Intermediate Representations/Semantic Validation/InferenceContext.h"
 
+#include "Compiler/Intermediate Representations/Semantic Validation/Helpers.h"
+
 #include "Compiler/Session.h"
 #include "Compiler/Exceptions.h"
 
@@ -141,38 +143,109 @@ bool Statement::TypeInference(Program& program, CodeBlock& activescope, Inferenc
 }
 
 
-namespace
-{
-	VM::EpochTypeID InferMemberAccessType(const std::vector<StringHandle>& accesslist, const Program& program, const CodeBlock& activescope)
-	{
-		if(accesslist.empty())
-			return VM::EpochType_Error;
-
-		std::vector<StringHandle>::const_iterator iter = accesslist.begin();
-		VM::EpochTypeID thetype = activescope.GetScope()->GetVariableTypeByID(*iter);
-
-		while(++iter != accesslist.end())
-		{
-			StringHandle structurename = program.GetNameOfStructureType(thetype);
-			StringHandle memberaccessname = program.FindStructureMemberAccessOverload(structurename, *iter);
-			
-			thetype = program.GetStructureMemberType(structurename, memberaccessname);
-		}
-
-		return thetype;
-	}
-}
-
-
 bool PreOpStatement::TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context)
 {
-	MyType = InferMemberAccessType(Operand, program, activescope);
+	VM::EpochTypeID operandtype = InferMemberAccessType(Operand, program, activescope);
+	if(operandtype == VM::EpochType_Error)
+		return false;
+
+	StringHandleSet functionstocheck;
+
+	const OverloadMap& overloads = *program.Session.InfoTable.Overloads;
+	OverloadMap::const_iterator iter = overloads.find(OperatorName);
+	if(iter == overloads.end())
+		functionstocheck.insert(OperatorName);
+	else
+		functionstocheck = iter->second;
+
+	if(functionstocheck.empty())
+	{
+		//
+		// This is probably a failure of the library or whoever
+		// wrote the preop implementation. The operator has been
+		// registered in the grammar but not the overloads table,
+		// so we can't figure out what parameters it takes.
+		//
+		throw InternalException("Preoperator defined in the grammar but no implementations could be located");
+	}
+
+	for(StringHandleSet::const_iterator iter = functionstocheck.begin(); iter != functionstocheck.end(); ++iter)
+	{
+		FunctionSignatureSet::const_iterator sigiter = program.Session.FunctionSignatures.find(*iter);
+		if(sigiter == program.Session.FunctionSignatures.end())
+		{
+			//
+			// This is another failure of the operator implementation.
+			// The signature for the operator cannot be found.
+			//
+			throw InternalException("Preoperator defined but no signature provided");
+		}
+
+		if(sigiter->second.GetNumParameters() == 1 && sigiter->second.GetParameter(0).Type == operandtype)
+		{
+			MyType = sigiter->second.GetReturnType();
+			break;
+		}
+	}
+
 	return (MyType != VM::EpochType_Error);
 }
+
+bool PreOpStatement::Validate(const Program& program) const
+{
+	return MyType != VM::EpochType_Error;
+}
+
 
 bool PostOpStatement::TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context)
 {
-	MyType = InferMemberAccessType(Operand, program, activescope);
+	VM::EpochTypeID operandtype = InferMemberAccessType(Operand, program, activescope);
+	if(operandtype == VM::EpochType_Error)
+		return false;
+
+	StringHandleSet functionstocheck;
+
+	const OverloadMap& overloads = *program.Session.InfoTable.Overloads;
+	OverloadMap::const_iterator iter = overloads.find(OperatorName);
+	if(iter == overloads.end())
+		functionstocheck.insert(OperatorName);
+	else
+		functionstocheck = iter->second;
+
+	if(functionstocheck.empty())
+	{
+		//
+		// This is probably a failure of the library or whoever
+		// wrote the postop implementation. The operator has been
+		// registered in the grammar but not the overloads table,
+		// so we can't figure out what parameters it takes.
+		//
+		throw InternalException("Postoperator defined in the grammar but no implementations could be located");
+	}
+
+	for(StringHandleSet::const_iterator iter = functionstocheck.begin(); iter != functionstocheck.end(); ++iter)
+	{
+		FunctionSignatureSet::const_iterator sigiter = program.Session.FunctionSignatures.find(*iter);
+		if(sigiter == program.Session.FunctionSignatures.end())
+		{
+			//
+			// This is another failure of the operator implementation.
+			// The signature for the operator cannot be found.
+			//
+			throw InternalException("Postoperator defined but no signature provided");
+		}
+
+		if(sigiter->second.GetNumParameters() == 1 && sigiter->second.GetParameter(0).Type == operandtype)
+		{
+			MyType = sigiter->second.GetReturnType();
+			break;
+		}
+	}
+
 	return (MyType != VM::EpochType_Error);
 }
 
+bool PostOpStatement::Validate(const Program& program) const
+{
+	return MyType != VM::EpochType_Error;
+}

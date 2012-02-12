@@ -103,7 +103,7 @@ bool CodeBlock::TypeInference(Program& program, InferenceContext& context)
 		if(!(*iter)->TypeInference(program, *this, newcontext))
 			return false;
 	}
-	
+
 	return true;
 }
 
@@ -182,8 +182,7 @@ CodeBlockPreOpStatementEntry::~CodeBlockPreOpStatementEntry()
 
 bool CodeBlockPreOpStatementEntry::Validate(const Program& program) const
 {
-	// TODO - type validation on preops
-	return true;
+	return MyStatement->Validate(program);
 }
 
 bool CodeBlockPreOpStatementEntry::TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context)
@@ -207,8 +206,7 @@ CodeBlockPostOpStatementEntry::~CodeBlockPostOpStatementEntry()
 
 bool CodeBlockPostOpStatementEntry::Validate(const Program& program) const
 {
-	// TODO - type validation on postops
-	return true;
+	return MyStatement->Validate(program);
 }
 
 bool CodeBlockPostOpStatementEntry::TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context)
@@ -251,6 +249,7 @@ bool CodeBlockInnerBlockEntry::TypeInference(Program& program, CodeBlock& active
 	if(!MyCodeBlock)
 		return false;
 
+	program.AddScope(MyCodeBlock->GetScope());
 	return MyCodeBlock->TypeInference(program, context);
 }
 

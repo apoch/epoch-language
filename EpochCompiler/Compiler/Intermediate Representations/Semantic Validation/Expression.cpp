@@ -141,6 +141,7 @@ bool Expression::TypeInference(Program& program, CodeBlock& activescope, Inferen
 	Coalesce(program, activescope);
 
 	InferenceContext newcontext(0, InferenceContext::CONTEXT_EXPRESSION);
+	newcontext.ExpectedTypes = context.ExpectedTypes;
 	InferenceContext& selectedcontext = context.State == InferenceContext::CONTEXT_FUNCTION_RETURN ? context : newcontext;
 
 	bool result = true;
@@ -152,6 +153,70 @@ bool Expression::TypeInference(Program& program, CodeBlock& activescope, Inferen
 
 	if(!result)
 		return false;
+
+	// Perform operator precedence reordering
+	// TODO - proper operator precedence, right now this is just a hacky postfix reorder
+	for(std::vector<ExpressionAtom*>::iterator iter = Atoms.begin(); iter != Atoms.end(); ++iter)
+	{
+		ExpressionAtomOperator* opatom = dynamic_cast<ExpressionAtomOperator*>(*iter);
+		if(!opatom)
+			continue;
+
+		OverloadMap::const_iterator overloadmapiter = program.Session.FunctionOverloadNames.find(opatom->GetIdentifier());
+
+		std::vector<ExpressionAtom*>::iterator nextiter = iter;
+		++nextiter;
+		
+		VM::EpochTypeID typerhs = (*nextiter)->GetEpochType(program);
+
+		if(program.Session.InfoTable.UnaryPrefixes->find(program.GetString(opatom->GetIdentifier())) != program.Session.InfoTable.UnaryPrefixes->end())
+		{
+			if(overloadmapiter != program.Session.FunctionOverloadNames.end())
+			{
+				const StringHandleSet& overloads = overloadmapiter->second;
+				for(StringHandleSet::const_iterator overloaditer = overloads.begin(); overloaditer != overloads.end(); ++overloaditer)
+				{
+					const FunctionSignature& overloadsig = program.Session.FunctionSignatures.find(*overloaditer)->second;
+					if(overloadsig.GetNumParameters() == 1)
+					{
+						if(overloadsig.GetParameter(0).Type == typerhs)
+						{
+							opatom->SetIdentifier(*overloaditer);
+							break;
+						}
+					}
+				}
+			}
+		}
+		else
+		{
+			if(overloadmapiter != program.Session.FunctionOverloadNames.end())
+			{
+				std::vector<ExpressionAtom*>::iterator previter = iter;
+				--previter;
+
+				VM::EpochTypeID typelhs = (*previter)->GetEpochType(program);
+
+				const StringHandleSet& overloads = overloadmapiter->second;
+				for(StringHandleSet::const_iterator overloaditer = overloads.begin(); overloaditer != overloads.end(); ++overloaditer)
+				{
+					const FunctionSignature& overloadsig = program.Session.FunctionSignatures.find(*overloaditer)->second;
+					if(overloadsig.GetNumParameters() == 2)
+					{
+						if(overloadsig.GetParameter(0).Type == typelhs && overloadsig.GetParameter(1).Type == typerhs)
+						{
+							opatom->SetIdentifier(*overloaditer);
+							break;
+						}
+					}
+				}
+			}
+		}
+
+		std::swap(*iter, *nextiter);
+
+		iter = nextiter;
+	}
 
 	InferredType = VM::EpochType_Void;
 	size_t i = 0;
@@ -181,6 +246,7 @@ void Expression::Coalesce(Program& program, CodeBlock& activescope)
 	if(Atoms.empty())
 		return;
 
+	// Flatten member accesses
 	bool completed;
 	do
 	{
@@ -342,7 +408,13 @@ bool ExpressionAtomIdentifier::TypeInference(Program& program, CodeBlock& active
 	else if(program.LookupType(Identifier) != VM::EpochType_Error)
 		MyType = VM::EpochType_Identifier;
 	else
-		MyType = activescope.GetScope()->GetVariableTypeByID(Identifier);
+	{
+		// TODO - enumerate possible types and perform actual inference
+		if(!context.ExpectedTypes.empty() && context.ExpectedTypes.back()[0][index] == VM::EpochType_Identifier)
+			MyType = VM::EpochType_Identifier;
+		else
+			MyType = activescope.GetScope()->GetVariableTypeByID(Identifier);
+	}
 
 	return true;
 }

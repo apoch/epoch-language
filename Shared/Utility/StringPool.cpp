@@ -57,6 +57,8 @@ void StringPoolManager::Pool(StringHandle handle, const std::wstring& stringdata
 	std::pair<boost::unordered_map<StringHandle, std::wstring>::iterator, bool> ret = PooledStrings.insert(std::make_pair(handle, stringdata));
 	if(!ret.second && ret.first->second != stringdata)
 		throw RecoverableException("Tried to replace a pooled string with a different value!");
+
+	HandleAlloc.BumpHandle(handle);
 }
 
 //

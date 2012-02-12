@@ -153,6 +153,7 @@ size_t Program::AddGlobalCodeBlock(CodeBlock* code)
 	size_t index = GlobalCodeBlocks.size();
 	AddString(GenerateAnonymousGlobalScopeName(index));
 	GlobalCodeBlocks.push_back(code);
+	AddScope(code->GetScope());
 	return index;
 }
 
@@ -283,20 +284,25 @@ std::wstring Program::GenerateAnonymousGlobalScopeName(size_t index)
 
 StringHandle Program::AllocateLexicalScopeName(const CodeBlock* blockptr)
 {
-	StringHandle ret = Strings.PoolFast(GenerateLexicalScopeName(blockptr));
-	LexicalScopeNameCache.Add(blockptr, ret);
+	StringHandle ret = Strings.PoolFast(GenerateLexicalScopeName(blockptr->GetScope()));
+	LexicalScopeNameCache.Add(blockptr->GetScope(), ret);
 	return ret;
 }
 
 StringHandle Program::FindLexicalScopeName(const CodeBlock* blockptr) const
 {
-	return LexicalScopeNameCache.Find(blockptr);
+	return LexicalScopeNameCache.Find(blockptr->GetScope());
 }
 
-std::wstring Program::GenerateLexicalScopeName(const CodeBlock* blockptr)
+StringHandle Program::FindLexicalScopeName(const ScopeDescription* scopeptr) const
+{
+	return LexicalScopeNameCache.Find(scopeptr);
+}
+
+std::wstring Program::GenerateLexicalScopeName(const ScopeDescription* scopeptr)
 {
 	std::wostringstream name;
-	name << L"@@codeblock@" << blockptr;
+	name << L"@@scope@" << scopeptr;
 	return name.str();
 }
 
@@ -517,5 +523,15 @@ InferenceContext::PossibleParameterTypes Program::GetExpectedTypesForStatement(S
 
 	// TODO - this should not be an exception. Record a semantic error instead.
 	throw std::runtime_error("Invalid function name");
+}
+
+void Program::AddScope(ScopeDescription* scope)
+{
+	AddScope(scope, LexicalScopeNameCache.Find(scope));
+}
+
+void Program::AddScope(ScopeDescription* scope, StringHandle name)
+{
+	LexicalScopes.insert(std::make_pair(name, scope));
 }
 

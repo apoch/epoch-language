@@ -21,6 +21,8 @@
 
 #include "Compiler/ByteCodeEmitter.h"
 
+#include "Compiler/Session.h"
+
 #include "Compiler/Exceptions.h"
 
 #include "Utility/StringPool.h"
@@ -120,7 +122,12 @@ namespace
 			if(program.HasFunction(atom->GetIdentifier()) || (program.LookupType(atom->GetIdentifier()) != VM::EpochType_Error))
 				emitter.PushStringLiteral(atom->GetIdentifier());
 			else
-				emitter.PushVariableValue(atom->GetIdentifier(), activescope.GetVariableTypeByID(atom->GetIdentifier()));
+			{
+				if(atom->GetEpochType(program) == VM::EpochType_Identifier)
+					emitter.PushStringLiteral(atom->GetIdentifier());
+				else
+					emitter.PushVariableValue(atom->GetIdentifier(), activescope.GetVariableTypeByID(atom->GetIdentifier()));
+			}
 		}
 		else if(const IRSemantics::ExpressionAtomOperator* atom = dynamic_cast<const IRSemantics::ExpressionAtomOperator*>(rawatom))
 		{
@@ -165,8 +172,6 @@ namespace
 
 	void EmitExpression(ByteCodeEmitter& emitter, const IRSemantics::Expression& expression, const IRSemantics::CodeBlock& activescope, const IRSemantics::Program& program)
 	{
-		// TODO - have semantic layer reorder the expression for operator precedence prior to code generation
-
 		const std::vector<IRSemantics::ExpressionAtom*>& rawatoms = expression.GetAtoms();
 		for(std::vector<IRSemantics::ExpressionAtom*>::const_iterator iter = rawatoms.begin(); iter != rawatoms.end(); ++iter)
 			EmitExpressionAtom(emitter, *iter, activescope, program);
@@ -174,17 +179,55 @@ namespace
 
 	void EmitStatement(ByteCodeEmitter& emitter, const IRSemantics::Statement& statement, const IRSemantics::CodeBlock& activescope, const IRSemantics::Program& program)
 	{
+		std::vector<VM::EpochTypeID> paramtypes;
+
 		const std::vector<IRSemantics::Expression*>& params = statement.GetParameters();
 		for(std::vector<IRSemantics::Expression*>::const_iterator paramiter = params.begin(); paramiter != params.end(); ++paramiter)
+		{
+			paramtypes.push_back((*paramiter)->GetEpochType(program));
 			EmitExpression(emitter, **paramiter, activescope, program);
+		}
 
-		// TODO - handle overloads
-		emitter.Invoke(statement.GetName());
+		// TODO - handle user overloads
+
+		StringHandle overloadname = statement.GetName();
+		OverloadMap::const_iterator overloadmapiter = program.Session.FunctionOverloadNames.find(overloadname);
+		if(overloadmapiter != program.Session.FunctionOverloadNames.end())
+		{
+			const StringHandleSet& overloads = overloadmapiter->second;
+			for(StringHandleSet::const_iterator overloaditer = overloads.begin(); overloaditer != overloads.end(); ++overloaditer)
+			{
+				const FunctionSignature& funcsig = program.Session.FunctionSignatures.find(*overloaditer)->second;
+				if(funcsig.GetNumParameters() == paramtypes.size())
+				{
+					bool match = true;
+					for(size_t i = 0; i < paramtypes.size(); ++i)
+					{
+						if(funcsig.GetParameter(i).Type != paramtypes[i])
+						{
+							match = false;
+							break;
+						}
+					}
+
+					if(match)
+					{
+						overloadname = *overloaditer;
+						break;
+					}
+				}
+			}
+		}
+
+		emitter.Invoke(overloadname);
 	}
 
 	void GenerateAssignment(ByteCodeEmitter& emitter, const IRSemantics::Assignment& assignment, const IRSemantics::Program& program, const IRSemantics::CodeBlock& activescope)
 	{
 		bool pushlhs = false;
+
+		if(program.GetString(assignment.GetOperatorName()) != L"=")
+			PushValue(emitter, assignment.GetLHS(), program, activescope);
 
 		const IRSemantics::AssignmentChain* rhs = assignment.GetRHS();
 		if(!rhs)
@@ -219,11 +262,7 @@ namespace
 		}
 
 		if(program.GetString(assignment.GetOperatorName()) != L"=")
-		{
-			PushValue(emitter, assignment.GetLHS(), program, activescope);
-			// TODO - handle overloads
 			emitter.Invoke(assignment.GetOperatorName());
-		}
 
 		BindReference(emitter, assignment.GetLHS());
 		emitter.AssignVariable();
@@ -242,6 +281,7 @@ namespace
 			EmitExpression(emitter, **iter, activescope, program);
 
 		// TODO - handle postfix entities
+		//emitter.InvokeMetacontrol(program.GetEntityTag(entity.GetName()));
 
 		emitter.EnterEntity(program.GetEntityTag(entity.GetName()), program.FindLexicalScopeName(&entity.GetCode()));
 		Generate(entity.GetCode(), program, emitter);
@@ -353,7 +393,15 @@ bool CompilerPasses::GenerateCode(const IRSemantics::Program& program, ByteCodeE
 	}
 
 
-	// TODO - emit lexical scope metadata
+	const IRSemantics::ScopePtrMap& scopes = program.GetScopes();
+	for(IRSemantics::ScopePtrMap::const_reverse_iterator iter = scopes.rbegin(); iter != scopes.rend(); ++iter)
+	{
+		emitter.DefineLexicalScope(iter->first, program.FindLexicalScopeName(iter->second->ParentScope), iter->second->GetVariableCount());
+		for(size_t i = 0; i < iter->second->GetVariableCount(); ++i)
+			emitter.LexicalScopeEntry(strings.Find(iter->second->GetVariableName(i)), iter->second->GetVariableTypeByIndex(i), iter->second->IsReference(i), iter->second->GetVariableOrigin(i));
+	}
+
+
 	// TODO - emit function tag metadata
 
 
@@ -371,10 +419,35 @@ bool CompilerPasses::GenerateCode(const IRSemantics::Program& program, ByteCodeE
 	for(boost::unordered_map<StringHandle, IRSemantics::Function*>::const_iterator iter = functions.begin(); iter != functions.end(); ++iter)
 	{
 		emitter.EnterFunction(iter->first);
+		if(iter->second->GetReturnType(program) != VM::EpochType_Void)
+			EmitExpression(emitter, *iter->second->GetReturnExpression(), *iter->second->GetCode(), program);
 
 		const IRSemantics::CodeBlock* code = iter->second->GetCode();
 		if(code)
 			Generate(*code, program, emitter);
+
+		if(iter->second->GetReturnType(program) != VM::EpochType_Void)
+		{
+			if(!code)
+			{
+				throw std::runtime_error("No code on function with return type not void");	// TODO - better exceptions
+			}
+
+			bool found = false;
+			const ScopeDescription* scope = code->GetScope();
+			for(size_t i = 0; i < scope->GetVariableCount(); ++i)
+			{
+				if(scope->GetVariableOrigin(i) == VARIABLE_ORIGIN_RETURN)
+				{
+					emitter.SetReturnRegister(scope->GetVariableNameHandle(i));
+					found = true;
+					break;
+				}
+			}
+
+			if(!found)
+				throw std::runtime_error("Couldn't find return variable");		// TODO - better exceptions
+		}
 
 		emitter.ExitFunction();
 	}

@@ -311,6 +311,7 @@ namespace ASTTraverse
 		void Do(EntryActionT& entryaction, AST::Function& function, ExitActionT& exitaction)
 		{
 			entryaction(function);
+			Do(entryaction, function.Name, exitaction);
 			Do(entryaction, function.Parameters, exitaction);
             Markers::FunctionReturnExpression marker = Markers::FunctionReturnExpression();
 			entryaction(marker);

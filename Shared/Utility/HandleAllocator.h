@@ -57,6 +57,12 @@ public:
 		return ret;
 	}
 
+	void BumpHandle(HandleT handle)
+	{
+		if(handle > CurrentMonotonic)
+			CurrentMonotonic = handle;
+	}
+
 private:
 	//
 	// Compute the largest safe handle value we can use

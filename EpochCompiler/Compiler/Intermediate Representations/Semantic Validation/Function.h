@@ -183,6 +183,10 @@ namespace IRSemantics
 	// Returns
 	public:
 		void SetReturnExpression(Expression* expression);
+
+		const Expression* GetReturnExpression() const
+		{ return Return; }
+
 		VM::EpochTypeID GetReturnType(const Program& program) const;
 
 	// Inner code

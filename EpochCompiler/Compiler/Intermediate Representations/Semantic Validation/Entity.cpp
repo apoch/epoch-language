@@ -10,13 +10,14 @@
 #include "Compiler/Intermediate Representations/Semantic Validation/Entity.h"
 #include "Compiler/Intermediate Representations/Semantic Validation/CodeBlock.h"
 #include "Compiler/Intermediate Representations/Semantic Validation/Expression.h"
+#include "Compiler/Intermediate Representations/Semantic Validation/Program.h"
 
 
 using namespace IRSemantics;
 
 
 Entity::Entity(StringHandle name)
-	: Name(name), Code(NULL)
+	: Name(name), Code(NULL), PostfixName(0)
 {
 }
 
@@ -101,10 +102,12 @@ bool Entity::CompileTimeCodeExecution(Program& program, CodeBlock& activescope)
 
 bool Entity::TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context)
 {
+	InferenceContext newcontext(0, InferenceContext::CONTEXT_ENTITY_PARAM);
+
 	size_t i = 0;
 	for(std::vector<Expression*>::iterator iter = Parameters.begin(); iter != Parameters.end(); ++iter)
 	{
-		if(!(*iter)->TypeInference(program, activescope, context, i))
+		if(!(*iter)->TypeInference(program, activescope, newcontext, i))
 			return false;
 
 		++i;
@@ -122,5 +125,6 @@ bool Entity::TypeInference(Program& program, CodeBlock& activescope, InferenceCo
 			return false;
 	}
 
+	program.AddScope(Code->GetScope());
 	return true;
 }

@@ -34,6 +34,7 @@ namespace IRSemantics
 			CONTEXT_STATEMENT,
 			CONTEXT_EXPRESSION,
 			CONTEXT_ENTITY_PARAM,
+			CONTEXT_ASSIGNMENT,
 		};
 
 		StringHandle ContextName;

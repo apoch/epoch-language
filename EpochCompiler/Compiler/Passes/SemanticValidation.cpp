@@ -474,11 +474,34 @@ void CompilePassSemantics::ExitHelper::operator () (AST::Expression& expression)
 	{
 	default:
 	case CompilePassSemantics::STATE_UNKNOWN:
-		throw std::runtime_error("Invalid parse state");		// TODO - better exceptions
+		//
+		// This is most likely a failure in the AST traversal
+		// implementation; either we have explicitly stated
+		// that the state of traversal is unknown (which should
+		// never occur) or we are in a state not specifically
+		// handled by another case.
+		//
+		// Examine the current state and why the AST traverser
+		// is reporting that state. If necessary, implement
+		// support for expression nodes appearing in that state.
+		// Otherwise, fix the AST so it doesn't traverse over
+		// expression nodes in that particular way.
+		//
+		throw InternalException("Parse state is explicitly unknown or otherwise unrecognized");
 
 	case CompilePassSemantics::STATE_STATEMENT:
 		if(self->CurrentStatements.empty())
-			throw std::runtime_error("Invalid parse state");	// TODO - better exceptions
+		{
+			//
+			// For some reason the AST traversal logic thinks
+			// that we should be inside a statement, but for
+			// some other reason, no statement has been placed
+			// on the active statements list.
+			//
+			// This is probably an egregious bug in the parser.
+			//
+			throw InternalException("Parser thinks it is traversing a statement, but no statements are actively being parsed");
+		}
 
 		self->CurrentStatements.back()->AddParameter(self->CurrentExpressions.back());
 		self->CurrentExpressions.pop_back();
@@ -486,7 +509,17 @@ void CompilePassSemantics::ExitHelper::operator () (AST::Expression& expression)
 
 	case CompilePassSemantics::STATE_ASSIGNMENT:
 		if(self->CurrentAssignments.empty())
-			throw std::runtime_error("Invalid parse state");	// TODO - better exceptions
+		{
+			//
+			// For some reason the AST traversal logic thinks
+			// that we should be inside an assignment, but for
+			// some other reason, no assignment has been placed
+			// on the active assignments list.
+			//
+			// This is probably an egregious bug in the parser.
+			//
+			throw InternalException("Parser thinks it is traversing an assignment, but no assignments are actively being parsed");
+		}
 
 		self->CurrentAssignments.back()->SetRHS(new IRSemantics::AssignmentChainExpression(self->CurrentExpressions.back()));
 		self->CurrentExpressions.pop_back();
@@ -502,6 +535,11 @@ void CompilePassSemantics::ExitHelper::operator () (AST::Expression& expression)
 		self->CurrentExpressions.pop_back();
 		break;
 
+	case CompilePassSemantics::STATE_POSTFIX_ENTITY:
+		self->CurrentPostfixEntities.back()->AddParameter(self->CurrentExpressions.back());
+		self->CurrentExpressions.pop_back();
+		break;
+
 	case CompilePassSemantics::STATE_FUNCTION_RETURN:
 		// Nothing needs to be done; leave the expression on the state stack
 		// When the FunctionReturnExpression marker is exited it will handle the expression correctly
@@ -509,8 +547,18 @@ void CompilePassSemantics::ExitHelper::operator () (AST::Expression& expression)
 
 	case CompilePassSemantics::STATE_FUNCTION_PARAM:
 		if(self->CurrentFunctions.empty())
-			throw std::runtime_error("Invalid parse state");	// TODO - better exceptions
-
+		{
+			//
+			// For some reason the AST traversal logic thinks
+			// that we should be inside a function definition,
+			// but for some other reason, no function has been
+			// placed on the active functions list.
+			//
+			// This is probably an egregious bug in the parser.
+			//
+			throw InternalException("Parser thinks it is traversing a function definition, but no functions are actively being parsed");
+		}
+		else
 		{
 			StringHandle paramname = self->CurrentProgram->AllocateAnonymousParamName();
 
@@ -632,7 +680,18 @@ void CompilePassSemantics::ExitHelper::operator () (AST::PreOperatorStatement& s
 		break;
 
 	default:
-		throw std::runtime_error("Invalid parse state");			// TODO - better exceptions
+		//
+		// This is probably a missing feature.
+		//
+		// A pre-operator statement (i.e. of the form ++x) has appeared
+		// in the AST in some context which is not explicitly handled by
+		// any of the above cases.
+		//
+		// Implement support for preop statements in the appropriate
+		// context, or fix the AST to not generate these nodes in that
+		// context to begin with.
+		//
+		throw InternalException("Pre-operator statement appears in an unrecognized AST location");
 	}
 }
 
@@ -673,7 +732,18 @@ void CompilePassSemantics::ExitHelper::operator () (AST::PostOperatorStatement& 
 		break;
 
 	default:
-		throw std::runtime_error("Invalid parse state");			// TODO - better exceptions
+		//
+		// This is probably a missing feature.
+		//
+		// A post-operator statement (i.e. of the form x++) has appeared
+		// in the AST in some context which is not explicitly handled by
+		// any of the above cases.
+		//
+		// Implement support for postop statements in the appropriate
+		// context, or fix the AST to not generate these nodes in that
+		// context to begin with.
+		//
+		throw InternalException("Post-operator statement appears in an unrecognized AST location");
 	}
 }
 
@@ -737,8 +807,22 @@ void CompilePassSemantics::ExitHelper::operator () (AST::CodeBlock& block)
 		self->CurrentChainedEntities.back()->SetCode(self->CurrentCodeBlocks.back());
 		break;
 
+	case CompilePassSemantics::STATE_POSTFIX_ENTITY:
+		self->CurrentPostfixEntities.back()->SetCode(self->CurrentCodeBlocks.back());
+		break;
+
 	default:
-		throw std::runtime_error("Invalid parse state");				// TODO - better exceptions
+		//
+		// This is probably a missing feature.
+		//
+		// A code block has appeared in the AST in some context which
+		// is not explicitly handled by any of the above cases.
+		//
+		// Implement support for code blocks in the appropriate context
+		// or fix the AST to not generate these nodes in that context
+		// to begin with.
+		//
+		throw InternalException("Code block appears in an unrecognized AST location");
 	}
 
 	self->CurrentCodeBlocks.pop_back();
@@ -842,7 +926,7 @@ void CompilePassSemantics::ExitHelper::operator () (AST::ChainedEntity& entity)
 	self->StateStack.pop();
 	
 	if(self->StateStack.top() != CompilePassSemantics::STATE_ENTITY)
-		throw std::runtime_error("Invalid parse state");
+		throw std::runtime_error("Invalid parse state");		// TODO - better exceptions
 
 	self->CurrentEntities.back()->AddChain(self->CurrentChainedEntities.back());
 	self->CurrentChainedEntities.pop_back();
@@ -932,15 +1016,11 @@ void CompilePassSemantics::EntryHelper::operator () (AST::IdentifierT& identifie
 	switch(self->StateStack.top())
 	{
 	case CompilePassSemantics::STATE_ASSIGNMENT:
-		// TODO
-		/*
 		{
-			std::auto_ptr<IRSemantics::ExpressionComponent> ircomponent(new IRSemantics::ExpressionComponent(std::vector<StringHandle>()));
-			ircomponent->SetAtom(iratom.release());
-			std::auto_ptr<IRSemantics::Expression> irexpression(new IRSemantics::Expression(ircomponent.release()));
+			std::auto_ptr<IRSemantics::Expression> irexpression(new IRSemantics::Expression());
+			irexpression->AddAtom(iratom.release());
 			self->CurrentAssignments.back()->SetRHS(new IRSemantics::AssignmentChainExpression(irexpression.release()));
 		}
-		*/
 		break;
 
 	case CompilePassSemantics::STATE_EXPRESSION_COMPONENT_PREFIXES:
@@ -954,6 +1034,10 @@ void CompilePassSemantics::EntryHelper::operator () (AST::IdentifierT& identifie
 
 	case CompilePassSemantics::STATE_FUNCTION:
 		self->CurrentFunctions.back()->SetName(self->CurrentProgram->AddString(raw));
+		break;
+
+	case CompilePassSemantics::STATE_POSTFIX_ENTITY:
+		self->CurrentPostfixEntities.back()->SetPostfixIdentifier(self->CurrentProgram->AddString(raw));
 		break;
 
 	default:

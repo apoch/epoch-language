@@ -39,6 +39,9 @@ namespace IRSemantics
 	class CodeBlock;
 
 
+	typedef std::map<StringHandle, const ScopeDescription*> ScopePtrMap;
+
+
 	namespace impl
 	{
 		template<typename T>
@@ -97,6 +100,7 @@ namespace IRSemantics
 
 		StringHandle AllocateLexicalScopeName(const CodeBlock* blockptr);
 		StringHandle FindLexicalScopeName(const CodeBlock* blockptr) const;
+		StringHandle FindLexicalScopeName(const ScopeDescription* scopeptr) const;
 
 	// Manipulation of associated functions
 	public:
@@ -107,6 +111,14 @@ namespace IRSemantics
 
 		const boost::unordered_map<StringHandle, Function*>& GetFunctions() const
 		{ return Functions; }
+
+	// Access to lexical scopes
+	public:
+		const ScopePtrMap& GetScopes() const
+		{ return LexicalScopes; }
+
+		void AddScope(ScopeDescription* scope);
+		void AddScope(ScopeDescription* scope, StringHandle name);
 
 	// Manipulation of associated structures
 	public:
@@ -153,7 +165,7 @@ namespace IRSemantics
 	private:
 		std::wstring GenerateFunctionOverloadName(StringHandle name, size_t index) const;
 		static std::wstring GenerateAnonymousGlobalScopeName(size_t index);
-		static std::wstring GenerateLexicalScopeName(const CodeBlock* blockptr);
+		static std::wstring GenerateLexicalScopeName(const ScopeDescription* scopeptr);
 		static std::wstring GenerateStructureMemberAccessOverloadName(const std::wstring& structurename, const std::wstring& membername);
 
 	// Accessible state
@@ -176,7 +188,7 @@ namespace IRSemantics
 		unsigned CounterAnonParam;
 		unsigned CounterLexicalScope;
 
-		ScopeMap LexicalScopes;
+		ScopePtrMap LexicalScopes;
 
 		ScopeDescription* GlobalScope;
 
@@ -184,7 +196,7 @@ namespace IRSemantics
 	private:
 		impl::StringCache<std::pair<StringHandle, size_t> > FunctionOverloadNameCache;
 		impl::StringCache<std::pair<StringHandle, StringHandle> > StructureMemberAccessOverloadNameCache;
-		impl::StringCache<const CodeBlock*> LexicalScopeNameCache;
+		impl::StringCache<const ScopeDescription*> LexicalScopeNameCache;
 		impl::StringCache<std::wstring> IdentifierCache;
 	};
 

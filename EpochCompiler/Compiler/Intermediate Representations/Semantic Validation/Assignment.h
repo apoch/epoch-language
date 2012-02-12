@@ -43,6 +43,8 @@ namespace IRSemantics
 		virtual VM::EpochTypeID GetEpochType(const Program& program) const = 0;
 
 		virtual bool TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context) = 0;
+
+		virtual bool Validate(const Program& program) const = 0;
 	};
 
 	class Assignment
@@ -89,6 +91,7 @@ namespace IRSemantics
 		std::vector<StringHandle> LHS;
 		StringHandle OperatorName;
 		AssignmentChain* RHS;
+		VM::EpochTypeID LHSType;
 	};
 
 
@@ -113,6 +116,7 @@ namespace IRSemantics
 	public:
 		virtual VM::EpochTypeID GetEpochType(const Program& program) const;
 		virtual bool TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context);
+		virtual bool Validate(const Program& program) const;
 
 	// Internal state
 	private:
@@ -141,6 +145,8 @@ namespace IRSemantics
 		virtual VM::EpochTypeID GetEpochType(const Program& program) const;
 
 		virtual bool TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context);
+		
+		virtual bool Validate(const Program& program) const;
 
 	// Access to assignment
 	public:

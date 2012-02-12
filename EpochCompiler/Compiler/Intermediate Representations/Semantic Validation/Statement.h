@@ -96,6 +96,10 @@ namespace IRSemantics
 		VM::EpochTypeID GetEpochType(const Program& program) const
 		{ return MyType; }
 
+	// Validation
+	public:
+		bool Validate(const Program& program) const;
+
 	// Internal state
 	private:
 		StringHandle OperatorName;
@@ -129,6 +133,10 @@ namespace IRSemantics
 	public:
 		VM::EpochTypeID GetEpochType(const Program& program) const
 		{ return MyType; }
+
+	// Validation
+	public:
+		bool Validate(const Program& program) const;
 
 	// Internal state
 	private:

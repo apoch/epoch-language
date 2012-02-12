@@ -222,6 +222,9 @@ namespace IRSemantics
 		StringHandle GetIdentifier() const
 		{ return Identifier; }
 
+		void SetIdentifier(StringHandle identifier)
+		{ Identifier = identifier; }
+
 	// Atom interface
 	public:
 		virtual VM::EpochTypeID GetEpochType(const Program& program) const;

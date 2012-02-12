@@ -9,6 +9,13 @@
 
 #include "Compiler/Intermediate Representations/Semantic Validation/Assignment.h"
 #include "Compiler/Intermediate Representations/Semantic Validation/Expression.h"
+#include "Compiler/Intermediate Representations/Semantic Validation/Program.h"
+
+#include "Compiler/Intermediate Representations/Semantic Validation/Helpers.h"
+
+#include "Compiler/Intermediate Representations/Semantic Validation/InferenceContext.h"
+
+#include "Compiler/Session.h"
 
 #include "Compiler/Exceptions.h"
 
@@ -20,7 +27,8 @@ using namespace IRSemantics;
 Assignment::Assignment(const std::vector<StringHandle>& lhs, StringHandle operatorname)
 	: LHS(lhs),
 	  OperatorName(operatorname),
-	  RHS(NULL)
+	  RHS(NULL),
+	  LHSType(VM::EpochType_Error)
 {
 }
 
@@ -71,13 +79,35 @@ void Assignment::SetRHSRecursive(AssignmentChain* rhs)
 
 bool Assignment::Validate(const Program& program) const
 {
-	// TODO - assignment type validation
-	return true;
+	bool valid = (LHSType == RHS->GetEpochType(program)) && (LHSType != VM::EpochType_Error);
+	return valid && RHS->Validate(program);
 }
 
 bool Assignment::TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context)
 {
-	return RHS->TypeInference(program, activescope, context);
+	LHSType = InferMemberAccessType(LHS, program, activescope);
+	if(!RHS->TypeInference(program, activescope, context))
+		return false;
+
+	OverloadMap::const_iterator iter = program.Session.FunctionOverloadNames.find(OperatorName);
+	if(iter != program.Session.FunctionOverloadNames.end())
+	{
+		const StringHandleSet& overloads = iter->second;
+		for(StringHandleSet::const_iterator overloaditer = overloads.begin(); overloaditer != overloads.end(); ++overloaditer)
+		{
+			const FunctionSignature& overloadsig = program.Session.FunctionSignatures.find(*overloaditer)->second;
+			if(overloadsig.GetNumParameters() == 2)
+			{
+				if(overloadsig.GetParameter(0).Type == LHSType && overloadsig.GetParameter(1).Type == RHS->GetEpochType(program))
+				{
+					OperatorName = *overloaditer;
+					break;
+				}
+			}
+		}
+	}
+
+	return true;
 }
 
 
@@ -98,7 +128,13 @@ VM::EpochTypeID AssignmentChainExpression::GetEpochType(const Program& program) 
 
 bool AssignmentChainExpression::TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context)
 {
-	return MyExpression->TypeInference(program, activescope, context, 0);
+	InferenceContext newcontext(0, InferenceContext::CONTEXT_ASSIGNMENT);
+	return MyExpression->TypeInference(program, activescope, newcontext, 0);
+}
+
+bool AssignmentChainExpression::Validate(const Program& program) const
+{
+	return MyExpression->Validate(program);
 }
 
 
@@ -127,3 +163,9 @@ bool AssignmentChainAssignment::TypeInference(Program& program, CodeBlock& activ
 {
 	return MyAssignment->GetRHS()->TypeInference(program, activescope, context);
 }
+
+bool AssignmentChainAssignment::Validate(const Program& program) const
+{
+	return MyAssignment->Validate(program);
+}
+
