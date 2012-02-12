@@ -427,6 +427,19 @@ Bytecode::EntityTag Program::GetEntityTag(StringHandle identifier) const
 			return iter->first;
 	}
 
+	//
+	// This represents a failure in the parser.
+	//
+	// The parser should reject any code which attempts to utilize an undefined
+	// entity. By the time we reach semantic validation, it should no longer be
+	// possible to refer to an entity identifier which doesn't have any backing
+	// descriptor data (including the entity type-tag we're retrieving here).
+	//
+	throw InternalException("String handle does not correspond to any known type of entity");
+}
+
+Bytecode::EntityTag Program::GetEntityCloserTag(StringHandle identifier) const
+{
 	for(EntityTable::const_iterator iter = Session.InfoTable.PostfixClosers->begin(); iter != Session.InfoTable.PostfixClosers->end(); ++iter)
 	{
 		if(iter->second.StringName == identifier)
@@ -441,7 +454,7 @@ Bytecode::EntityTag Program::GetEntityTag(StringHandle identifier) const
 	// possible to refer to an entity identifier which doesn't have any backing
 	// descriptor data (including the entity type-tag we're retrieving here).
 	//
-	throw InternalException("String handle does not correspond to any known type of entity");
+	throw InternalException("String handle does not correspond to any known type of entity closer");
 }
 
 

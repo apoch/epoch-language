@@ -118,7 +118,7 @@ void CompileSession::EmitByteCode()
 	for(std::list<std::pair<std::wstring, std::wstring> >::const_iterator iter = SourceBlocksAndFileNames.begin(); iter != SourceBlocksAndFileNames.end(); ++iter)
 		CompileFile(iter->first, iter->second);
 
-	DumpASTForProgram(*ASTProgram);
+	//DumpASTForProgram(*ASTProgram);
 
 	Profiling::Timer timer;
 	timer.Begin();

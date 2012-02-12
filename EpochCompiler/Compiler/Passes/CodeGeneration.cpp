@@ -276,15 +276,24 @@ namespace
 
 	void Generate(const IRSemantics::Entity& entity, const IRSemantics::Program& program, const IRSemantics::CodeBlock& activescope, ByteCodeEmitter& emitter)
 	{
-		const std::vector<IRSemantics::Expression*>& params = entity.GetParameters();
-		for(std::vector<IRSemantics::Expression*>::const_iterator iter = params.begin(); iter != params.end(); ++iter)
-			EmitExpression(emitter, **iter, activescope, program);
-
-		// TODO - handle postfix entities
-		//emitter.InvokeMetacontrol(program.GetEntityTag(entity.GetName()));
+		if(!entity.GetPostfixIdentifier())
+		{
+			const std::vector<IRSemantics::Expression*>& params = entity.GetParameters();
+			for(std::vector<IRSemantics::Expression*>::const_iterator iter = params.begin(); iter != params.end(); ++iter)
+				EmitExpression(emitter, **iter, activescope, program);
+		}
 
 		emitter.EnterEntity(program.GetEntityTag(entity.GetName()), program.FindLexicalScopeName(&entity.GetCode()));
 		Generate(entity.GetCode(), program, emitter);
+
+		if(entity.GetPostfixIdentifier())
+		{
+			const std::vector<IRSemantics::Expression*>& params = entity.GetParameters();
+			for(std::vector<IRSemantics::Expression*>::const_iterator iter = params.begin(); iter != params.end(); ++iter)
+				EmitExpression(emitter, **iter, activescope, program);
+			emitter.InvokeMetacontrol(program.GetEntityCloserTag(entity.GetPostfixIdentifier()));
+		}
+
 		emitter.ExitEntity();
 	}
 

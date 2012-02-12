@@ -147,6 +147,7 @@ namespace IRSemantics
 	// Entities
 	public:
 		Bytecode::EntityTag GetEntityTag(StringHandle entityname) const;
+		Bytecode::EntityTag GetEntityCloserTag(StringHandle entityname) const;
 
 	// Compile-time code execution
 	public:
