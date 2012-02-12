@@ -388,6 +388,7 @@ void CompilePassSemantics::ExitHelper::operator () (AST::Function& function)
 	{
 		StringHandle name = self->CurrentProgram->CreateFunctionOverload(std::wstring(function.Name.begin(), function.Name.end()));
 		self->CurrentProgram->AddFunction(name, self->CurrentFunctions.back());
+		self->CurrentFunctions.back()->SetName(name);
 		self->CurrentFunctions.pop_back();
 	}
 	else

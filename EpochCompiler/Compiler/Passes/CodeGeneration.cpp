@@ -221,8 +221,8 @@ namespace
 			EmitExpression(emitter, **paramiter, activescope, program);
 		}
 
-		// TODO - handle user overloads
 
+		// TODO - move this overload resolution logic to statement type inference where it belongs
 		StringHandle overloadname = statement.GetName();
 		OverloadMap::const_iterator overloadmapiter = program.Session.FunctionOverloadNames.find(overloadname);
 		if(overloadmapiter != program.Session.FunctionOverloadNames.end())

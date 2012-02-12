@@ -109,6 +109,9 @@ namespace IRSemantics
 		void AddFunction(StringHandle name, Function* function);
 		bool HasFunction(StringHandle name) const;
 
+		unsigned GetNumFunctionOverloads(StringHandle name) const;
+		StringHandle GetFunctionOverloadName(StringHandle rawname, unsigned overloadindex) const;
+
 		const boost::unordered_map<StringHandle, Function*>& GetFunctions() const
 		{ return Functions; }
 

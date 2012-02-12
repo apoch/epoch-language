@@ -166,7 +166,7 @@ bool CodeBlockStatementEntry::TypeInference(Program& program, CodeBlock& actives
 	if(!MyStatement)
 		return false;
 
-	return MyStatement->TypeInference(program, activescope, context);
+	return MyStatement->TypeInference(program, activescope, context, 0);
 }
 
 

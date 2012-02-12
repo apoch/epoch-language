@@ -54,7 +54,7 @@ namespace IRSemantics
 
 	// Type inference
 	public:
-		bool TypeInference(IRSemantics::Program& program, CodeBlock& activescope, InferenceContext& context);
+		bool TypeInference(IRSemantics::Program& program, CodeBlock& activescope, InferenceContext& context, size_t index);
 
 	// Type system
 	public:

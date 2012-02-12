@@ -111,6 +111,20 @@ StringHandle Program::CreateFunctionOverload(const std::wstring& name)
 	return ret;
 }
 
+unsigned Program::GetNumFunctionOverloads(StringHandle name) const
+{
+	boost::unordered_map<StringHandle, unsigned>::const_iterator iter = FunctionOverloadCounters.find(name);
+	if(iter == FunctionOverloadCounters.end())
+		return 0;
+
+	return iter->second;
+}
+
+StringHandle Program::GetFunctionOverloadName(StringHandle rawname, unsigned overloadindex) const
+{
+	return FunctionOverloadNameCache.Find(std::make_pair(rawname, overloadindex));
+}
+
 std::wstring Program::GenerateFunctionOverloadName(StringHandle name, size_t index) const
 {
 	if(index == 0)

@@ -306,7 +306,7 @@ VM::EpochTypeID ExpressionAtomStatement::GetEpochType(const Program& program) co
 
 bool ExpressionAtomStatement::TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, size_t index)
 {
-	return MyStatement->TypeInference(program, activescope, context);
+	return MyStatement->TypeInference(program, activescope, context, index);
 }
 
 bool ExpressionAtomStatement::CompileTimeCodeExecution(Program& program, CodeBlock& activescope, bool inreturnexpr)

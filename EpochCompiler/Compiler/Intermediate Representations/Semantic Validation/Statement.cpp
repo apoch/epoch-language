@@ -72,7 +72,7 @@ bool Statement::CompileTimeCodeExecution(Program& program, CodeBlock& activescop
 	return true;
 }
 
-bool Statement::TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context)
+bool Statement::TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, size_t index)
 {
 	InferenceContext newcontext(Name, InferenceContext::CONTEXT_STATEMENT);
 
@@ -117,7 +117,6 @@ bool Statement::TypeInference(Program& program, CodeBlock& activescope, Inferenc
 		++i;
 	}
 
-	// TODO - handle overloading
 	if(context.State == InferenceContext::CONTEXT_FUNCTION_RETURN)
 		MyType = program.LookupType(Name);
 	else
@@ -125,9 +124,53 @@ bool Statement::TypeInference(Program& program, CodeBlock& activescope, Inferenc
 		if(program.HasFunction(Name))
 		{
 			InferenceContext funccontext(0, InferenceContext::CONTEXT_GLOBAL);
-			Function* func = program.GetFunctions().find(Name)->second;
-			func->TypeInference(program, funccontext);
-			MyType = func->GetReturnType(program);
+			unsigned overloadcount = program.GetNumFunctionOverloads(Name);
+			for(unsigned i = 0; i < overloadcount; ++i)
+			{
+				StringHandle overloadname = program.GetFunctionOverloadName(Name, i);
+				Function* func = program.GetFunctions().find(overloadname)->second;
+				func->TypeInference(program, funccontext);
+
+				if(!context.ExpectedTypes.empty())
+				{
+					bool matchedreturn = false;
+					const InferenceContext::PossibleParameterTypes& possibles = context.ExpectedTypes.back();
+					for(size_t j = 0; j < possibles.size(); ++j)
+					{
+						if(possibles[j][index] == func->GetReturnType(program))
+						{
+							matchedreturn = true;
+							break;
+						}
+					}
+
+					if(!matchedreturn)
+						continue;
+				}
+				
+				if(func->GetNumParameters() == Parameters.size())
+				{
+					// TODO - optimize this?
+					std::vector<StringHandle> paramnames = func->GetParameterNames();
+
+					bool match = true;
+					for(size_t j = 0; j < Parameters.size(); ++j)
+					{
+						if(func->GetParameterType(paramnames[j], program) != Parameters[j]->GetEpochType(program))
+						{
+							match = false;
+							break;
+						}
+					}
+					
+					if(match)
+					{
+						Name = overloadname;
+						MyType = func->GetReturnType(program);
+						break;
+					}
+				}
+			}
 		}
 		else
 		{
