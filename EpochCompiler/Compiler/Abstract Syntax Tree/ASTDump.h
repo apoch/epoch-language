@@ -193,12 +193,12 @@ namespace ASTTraverse
 			friend struct DumpToStream;
 		} Exit;
 
-	// Internal helpers
-	private:
+	// Helpers
+	public:
 		void Indent();
 
-	// Internal state
-	private:
+	// State
+	public:
 		std::wostream& TheStream;
 		unsigned Indentation;
 	};

@@ -23,229 +23,83 @@
 #include "Compiler/Abstract Syntax Tree/Function.h"
 
 
-void AST::intrusive_ptr_add_ref(Expression* expr)
+namespace
 {
-	++expr->RefCount;
-}
+	//
+	// Helper for adding to a reference count
+	//
+	template<typename T>
+	void AddRef(T* p)
+	{
+		++p->RefCount;
+	}
 
-void AST::intrusive_ptr_release(Expression* expr)
-{
-	if(--expr->RefCount == 0)
-		Deallocate(expr);
-}
-
-
-void AST::intrusive_ptr_add_ref(ExpressionComponent* expr)
-{
-	++expr->RefCount;
-}
-
-void AST::intrusive_ptr_release(ExpressionComponent* expr)
-{
-	if(--expr->RefCount == 0)
-		Deallocate(expr);
-}
-
-
-void AST::intrusive_ptr_add_ref(ExpressionFragment* expr)
-{
-	++expr->RefCount;
-}
-
-void AST::intrusive_ptr_release(ExpressionFragment* expr)
-{
-	if(--expr->RefCount == 0)
-		Deallocate(expr);
+	//
+	// Helper for releasing a referenced object
+	//
+	template<typename T>
+	void ReleaseRef(T* p)
+	{
+		if(--p->RefCount == 0)
+			Deallocate(p);
+	}
 }
 
 
-void AST::intrusive_ptr_add_ref(PreOperatorStatement* stmt)
-{
-	++stmt->RefCount;
-}
+void AST::intrusive_ptr_add_ref(IdentifierListRaw* ids)				{ AddRef(ids); }
+void AST::intrusive_ptr_release(IdentifierListRaw* ids)				{ ReleaseRef(ids); }
 
-void AST::intrusive_ptr_release(PreOperatorStatement* stmt)
-{
-	if(--stmt->RefCount == 0)
-		Deallocate(stmt);
-}
+void AST::intrusive_ptr_add_ref(Expression* expr)					{ AddRef(expr); }
+void AST::intrusive_ptr_release(Expression* expr)					{ ReleaseRef(expr); }
 
+void AST::intrusive_ptr_add_ref(ExpressionComponent* expr)			{ AddRef(expr); }
+void AST::intrusive_ptr_release(ExpressionComponent* expr)			{ ReleaseRef(expr); }
 
-void AST::intrusive_ptr_add_ref(PostOperatorStatement* stmt)
-{
-	++stmt->RefCount;
-}
+void AST::intrusive_ptr_add_ref(ExpressionComponentInternal* eci)	{ AddRef(eci); }
+void AST::intrusive_ptr_release(ExpressionComponentInternal* eci)	{ ReleaseRef(eci); }
 
-void AST::intrusive_ptr_release(PostOperatorStatement* stmt)
-{
-	if(--stmt->RefCount == 0)
-		Deallocate(stmt);
-}
+void AST::intrusive_ptr_add_ref(ExpressionFragment* expr)			{ AddRef(expr); }
+void AST::intrusive_ptr_release(ExpressionFragment* expr)			{ ReleaseRef(expr); }
 
+void AST::intrusive_ptr_add_ref(PreOperatorStatement* stmt)			{ AddRef(stmt); }
+void AST::intrusive_ptr_release(PreOperatorStatement* stmt)			{ ReleaseRef(stmt); }
 
-void AST::intrusive_ptr_add_ref(IdentifierListRaw* ids)
-{
-	++ids->RefCount;
-}
+void AST::intrusive_ptr_add_ref(PostOperatorStatement* stmt)		{ AddRef(stmt); }
+void AST::intrusive_ptr_release(PostOperatorStatement* stmt)		{ ReleaseRef(stmt); }
 
-void AST::intrusive_ptr_release(IdentifierListRaw* ids)
-{
-	if(--ids->RefCount == 0)
-		Deallocate(ids);
-}
+void AST::intrusive_ptr_add_ref(Statement* stmt)					{ AddRef(stmt); }
+void AST::intrusive_ptr_release(Statement* stmt)					{ ReleaseRef(stmt); }
 
+void AST::intrusive_ptr_add_ref(Assignment* ast)					{ AddRef(ast); }
+void AST::intrusive_ptr_release(Assignment* ast)					{ ReleaseRef(ast); }
 
-void AST::intrusive_ptr_add_ref(ExpressionComponentInternal* eci)
-{
-	++eci->RefCount;
-}
+void AST::intrusive_ptr_add_ref(SimpleAssignment* ast)				{ AddRef(ast); }
+void AST::intrusive_ptr_release(SimpleAssignment* ast)				{ ReleaseRef(ast); }
 
-void AST::intrusive_ptr_release(ExpressionComponentInternal* eci)
-{
-	if(--eci->RefCount == 0)
-		Deallocate(eci);
-}
+void AST::intrusive_ptr_add_ref(ChainedEntity* entity)				{ AddRef(entity); }
+void AST::intrusive_ptr_release(ChainedEntity* entity)				{ ReleaseRef(entity); }
 
+void AST::intrusive_ptr_add_ref(Entity* entity)						{ AddRef(entity); }
+void AST::intrusive_ptr_release(Entity* entity)						{ ReleaseRef(entity); }
 
-void AST::intrusive_ptr_add_ref(Statement* stmt)
-{
-	++stmt->RefCount;
-}
+void AST::intrusive_ptr_add_ref(PostfixEntity* entity)				{ AddRef(entity); }
+void AST::intrusive_ptr_release(PostfixEntity* entity)				{ ReleaseRef(entity); }
 
-void AST::intrusive_ptr_release(Statement* stmt)
-{
-	if(--stmt->RefCount == 0)
-		Deallocate(stmt);
-}
+void AST::intrusive_ptr_add_ref(CodeBlock* block)					{ AddRef(block); }
+void AST::intrusive_ptr_release(CodeBlock* block)					{ ReleaseRef(block); }
 
+void AST::intrusive_ptr_add_ref(Function* fn)						{ AddRef(fn); }
+void AST::intrusive_ptr_release(Function* fn)						{ ReleaseRef(fn); }
 
-void AST::intrusive_ptr_add_ref(FunctionReferenceSignature* sig)
-{
-	++sig->RefCount;
-}
+void AST::intrusive_ptr_add_ref(FunctionParameter* param)			{ AddRef(param); }
+void AST::intrusive_ptr_release(FunctionParameter* param)			{ ReleaseRef(param); }
 
-void AST::intrusive_ptr_release(FunctionReferenceSignature* sig)
-{
-	if(--sig->RefCount == 0)
-		Deallocate(sig);
-}
+void AST::intrusive_ptr_add_ref(NamedFunctionParameter* nfp)		{ AddRef(nfp); }
+void AST::intrusive_ptr_release(NamedFunctionParameter* nfp)		{ ReleaseRef(nfp); }
 
+void AST::intrusive_ptr_add_ref(Structure* st)						{ AddRef(st); }
+void AST::intrusive_ptr_release(Structure* st)						{ ReleaseRef(st); }
 
-void AST::intrusive_ptr_add_ref(Assignment* ast)
-{
-	++ast->RefCount;
-}
+void AST::intrusive_ptr_add_ref(FunctionReferenceSignature* sig)	{ AddRef(sig); }
+void AST::intrusive_ptr_release(FunctionReferenceSignature* sig)	{ ReleaseRef(sig); }
 
-void AST::intrusive_ptr_release(Assignment* ast)
-{
-	if(--ast->RefCount == 0)
-		Deallocate(ast);
-}
-
-
-void AST::intrusive_ptr_add_ref(SimpleAssignment* ast)
-{
-	++ast->RefCount;
-}
-
-void AST::intrusive_ptr_release(SimpleAssignment* ast)
-{
-	if(--ast->RefCount == 0)
-		Deallocate(ast);
-}
-
-
-void AST::intrusive_ptr_add_ref(ChainedEntity* entity)
-{
-	++entity->RefCount;
-}
-
-void AST::intrusive_ptr_release(ChainedEntity* entity)
-{
-	if(--entity->RefCount == 0)
-		Deallocate(entity);
-}
-
-
-void AST::intrusive_ptr_add_ref(FunctionParameter* param)
-{
-	++param->RefCount;
-}
-
-void AST::intrusive_ptr_release(FunctionParameter* param)
-{
-	if(--param->RefCount == 0)
-		Deallocate(param);
-}
-
-
-void AST::intrusive_ptr_add_ref(Entity* entity)
-{
-	++entity->RefCount;
-}
-
-void AST::intrusive_ptr_release(Entity* entity)
-{
-	if(--entity->RefCount == 0)
-		Deallocate(entity);
-}
-
-
-void AST::intrusive_ptr_add_ref(PostfixEntity* entity)
-{
-	++entity->RefCount;
-}
-
-void AST::intrusive_ptr_release(PostfixEntity* entity)
-{
-	if(--entity->RefCount == 0)
-		Deallocate(entity);
-}
-
-
-void AST::intrusive_ptr_add_ref(CodeBlock* block)
-{
-	++block->RefCount;
-}
-
-void AST::intrusive_ptr_release(CodeBlock* block)
-{
-	if(--block->RefCount == 0)
-		Deallocate(block);
-}
-
-
-void AST::intrusive_ptr_add_ref(NamedFunctionParameter* nfp)
-{
-	++nfp->RefCount;
-}
-
-void AST::intrusive_ptr_release(NamedFunctionParameter* nfp)
-{
-	if(--nfp->RefCount == 0)
-		Deallocate(nfp);
-}
-
-
-void AST::intrusive_ptr_add_ref(Structure* st)
-{
-	++st->RefCount;
-}
-
-void AST::intrusive_ptr_release(Structure* st)
-{
-	if(--st->RefCount == 0)
-		Deallocate(st);
-}
-
-
-void AST::intrusive_ptr_add_ref(Function* fn)
-{
-	++fn->RefCount;
-}
-
-void AST::intrusive_ptr_release(Function* fn)
-{
-	if(--fn->RefCount == 0)
-		Deallocate(fn);
-}

@@ -45,6 +45,8 @@
 namespace ASTTraverse
 {
     struct Traverser;
+
+
 	//
 	// Internal implementation details
 	//
@@ -346,6 +348,9 @@ namespace ASTTraverse
 
 	private:
 
+		//
+		// General case: perform traversal actions for a leaf node
+		//
         template<class NodeT, bool IsVariant>
         struct DoerDispatcher
         {
@@ -357,6 +362,9 @@ namespace ASTTraverse
             }
         };
 
+		//
+		// Special case: unwrap a variant and traverse its contents
+		//
         template<class NodeT>
         struct DoerDispatcher<NodeT, true>
         {
@@ -367,6 +375,8 @@ namespace ASTTraverse
 			    boost::apply_visitor(visitor, node);			
             }
         };
+
+
 		//
 		// Helper visitor for unwrapping boost::variants
 		//
@@ -397,6 +407,9 @@ namespace ASTTraverse
 	};
 
 
+	//
+	// Simple wrapper function for encapsulating traversal operations
+	//
 	template <typename TraverserT>
 	void DoTraversal(TraverserT& tr, AST::Program& program)
 	{

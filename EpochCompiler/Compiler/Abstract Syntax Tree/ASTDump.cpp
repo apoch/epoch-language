@@ -23,6 +23,94 @@ using namespace ASTTraverse;
 
 
 //
+// Helper functions for reducing boilerplate code
+//
+namespace
+{
+
+	//
+	// Pad to the current indentation level, output some raw text,
+	// then increase the indentation level for subsequent lines.
+	//
+	void PrintAndIndent(DumpToStream* self, const wchar_t* plaintext)
+	{
+		self->Indent();
+		self->TheStream << plaintext << std::endl;
+		++self->Indentation;
+	}
+
+	//
+	// Variant of the above for outputting an identifier with the text
+	//
+	void PrintAndIndent(DumpToStream* self, const wchar_t* plaintext, const AST::IdentifierT& identifier)
+	{
+		self->Indent();
+		self->TheStream << plaintext << identifier << std::endl;
+		++self->Indentation;
+	}
+
+	//
+	// Variant of the above with suffix text
+	//
+	void PrintAndIndent(DumpToStream* self, const wchar_t* plaintext, const AST::IdentifierT& identifier, const wchar_t* suffixtext)
+	{
+		self->Indent();
+		self->TheStream << plaintext << identifier << suffixtext << std::endl;
+		++self->Indentation;
+	}
+
+	//
+	// Print a line involving two identifiers separated with some text
+	//
+	void Print(DumpToStream* self, const wchar_t* leadertext, const AST::IdentifierT& firstidentifier, const wchar_t* conjunctiontext, const AST::IdentifierT& secondidentifier)
+	{
+		self->Indent();
+		self->TheStream << leadertext << firstidentifier << conjunctiontext << secondidentifier << std::endl;
+	}
+
+	//
+	// Print a lone identifier
+	//
+	void Print(DumpToStream* self, const AST::IdentifierT& identifier)
+	{
+		self->Indent();
+		self->TheStream << identifier << std::endl;
+	}
+
+	//
+	// Print a sequence of identifiers
+	//
+	void Print(DumpToStream* self, const AST::IdentifierList& identifiers)
+	{
+		for(AST::IdentifierList::const_iterator iter = identifiers.Content->Container.begin(); iter != identifiers.Content->Container.end(); ++iter)
+			Print(self, *iter);
+	}
+
+	//
+	// Decrease the current indentation level, pad to that level,
+	// then output some raw text.
+	//
+	void UnindentAndPrint(DumpToStream* self, const wchar_t* plaintext)
+	{
+		--self->Indentation;
+		self->Indent();
+		self->TheStream << plaintext << std::endl;
+	}
+
+	//
+	// Variant of the above, including an identifier
+	//
+	void UnindentAndPrint(DumpToStream* self, const wchar_t* plaintext, const AST::IdentifierT& identifier)
+	{
+		--self->Indentation;
+		self->Indent();
+		self->TheStream << plaintext << identifier << std::endl;
+	}
+
+}
+
+
+//
 // Begin traversing a node with no defined type
 //
 // There are two primary situations in which this can occur. First, and most
@@ -55,9 +143,7 @@ void DumpToStream::EntryHelper::operator () (AST::Undefined&)
 //
 void DumpToStream::EntryHelper::operator () (AST::Program& program)
 {
-	self->Indent();
-	self->TheStream << L"Program AST" << std::endl;
-	++self->Indentation;
+	PrintAndIndent(self, L"Program AST");
 }
 
 //
@@ -65,9 +151,7 @@ void DumpToStream::EntryHelper::operator () (AST::Program& program)
 //
 void DumpToStream::ExitHelper::operator () (AST::Program& program)
 {
-	--self->Indentation;
-	self->Indent();
-	self->TheStream << L"End of program" << std::endl;
+	UnindentAndPrint(self, L"End of program");
 }
 
 
@@ -76,9 +160,7 @@ void DumpToStream::ExitHelper::operator () (AST::Program& program)
 //
 void DumpToStream::EntryHelper::operator () (AST::Structure& structure)
 {
-	self->Indent();
-	self->TheStream << L"Structure " << structure.Identifier << std::endl;
-	++self->Indentation;
+	PrintAndIndent(self, L"Structure ", structure.Identifier);
 }
 
 //
@@ -86,9 +168,7 @@ void DumpToStream::EntryHelper::operator () (AST::Structure& structure)
 //
 void DumpToStream::ExitHelper::operator () (AST::Structure& structure)
 {
-	--self->Indentation;
-	self->Indent();
-	self->TheStream << L"End of structure" << std::endl;
+	UnindentAndPrint(self, L"End of structure");
 }
 
 
@@ -97,8 +177,7 @@ void DumpToStream::ExitHelper::operator () (AST::Structure& structure)
 //
 void DumpToStream::EntryHelper::operator () (AST::StructureMemberVariable& variable)
 {
-	self->Indent();
-	self->TheStream << L"Member variable " << variable.Name << L" of type " << variable.Type << std::endl;
+	Print(self, L"Member variable ", variable.Name, L" of type ", variable.Type);
 }
 
 //
@@ -106,9 +185,9 @@ void DumpToStream::EntryHelper::operator () (AST::StructureMemberVariable& varia
 //
 void DumpToStream::EntryHelper::operator () (AST::StructureMemberFunctionRef& funcref)
 {
-	self->Indent();
-	self->TheStream << L"Function reference " << funcref.Name << std::endl;
-	// TODO - dump the signature here
+	PrintAndIndent(self, L"Function reference named ", funcref.Name, L" with parameter types:");
+	Print(self, funcref.ParamTypes);
+	UnindentAndPrint(self, L"Returning ", funcref.ReturnType);
 }
 
 
@@ -117,9 +196,7 @@ void DumpToStream::EntryHelper::operator () (AST::StructureMemberFunctionRef& fu
 //
 void DumpToStream::EntryHelper::operator () (AST::Function& function)
 {
-	self->Indent();
-	self->TheStream << L"Function " << function.Name << std::endl;
-	++self->Indentation;
+	PrintAndIndent(self, L"Function ", function.Name);
 }
 
 //
@@ -127,9 +204,7 @@ void DumpToStream::EntryHelper::operator () (AST::Function& function)
 //
 void DumpToStream::ExitHelper::operator () (AST::Function& function)
 {
-	--self->Indentation;
-	self->Indent();
-	self->TheStream << L"End of function " << function.Name << std::endl;
+	UnindentAndPrint(self, L"End of function ", function.Name);
 }
 
 
@@ -138,9 +213,7 @@ void DumpToStream::ExitHelper::operator () (AST::Function& function)
 //
 void DumpToStream::EntryHelper::operator () (AST::FunctionParameter& param)
 {
-	self->Indent();
-	self->TheStream << L"Parameter" << std::endl;
-	++self->Indentation;
+	PrintAndIndent(self, L"Parameter");
 }
 
 //
@@ -148,9 +221,7 @@ void DumpToStream::EntryHelper::operator () (AST::FunctionParameter& param)
 //
 void DumpToStream::ExitHelper::operator () (AST::FunctionParameter& param)
 {
-	--self->Indentation;
-	self->Indent();
-	self->TheStream << L"End of parameter" << std::endl;
+	UnindentAndPrint(self, L"End of parameter");
 }
 
 
@@ -162,8 +233,7 @@ void DumpToStream::ExitHelper::operator () (AST::FunctionParameter& param)
 //
 void DumpToStream::EntryHelper::operator () (AST::NamedFunctionParameter& param)
 {
-	self->Indent();
-	self->TheStream << param.Name << L" of type " << param.Type << std::endl;
+	Print(self, L"Parameter ", param.Name, L" of type ", param.Type);
 }
 
 
@@ -172,9 +242,7 @@ void DumpToStream::EntryHelper::operator () (AST::NamedFunctionParameter& param)
 //
 void DumpToStream::EntryHelper::operator () (AST::Expression& expression)
 {
-	self->Indent();
-	self->TheStream << L"Expression" << std::endl;
-	++self->Indentation;
+	PrintAndIndent(self, L"Expression");
 }
 
 //
@@ -182,9 +250,7 @@ void DumpToStream::EntryHelper::operator () (AST::Expression& expression)
 //
 void DumpToStream::ExitHelper::operator () (AST::Expression& expression)
 {
-	--self->Indentation;
-	self->Indent();
-	self->TheStream << L"End of expression" << std::endl;
+	UnindentAndPrint(self, L"End of expression");
 }
 
 //
@@ -192,9 +258,7 @@ void DumpToStream::ExitHelper::operator () (AST::Expression& expression)
 //
 void DumpToStream::EntryHelper::operator () (AST::ExpressionComponent& exprcomponent)
 {
-	self->Indent();
-	self->TheStream << L"Expression component" << std::endl;
-	++self->Indentation;
+	PrintAndIndent(self, L"Expression component");
 }
 
 //
@@ -202,9 +266,7 @@ void DumpToStream::EntryHelper::operator () (AST::ExpressionComponent& exprcompo
 //
 void DumpToStream::ExitHelper::operator () (AST::ExpressionComponent& exprcomponent)
 {
-	--self->Indentation;
-	self->Indent();
-	self->TheStream << L"End of component" << std::endl;
+	UnindentAndPrint(self, L"End of component");
 }
 
 //
@@ -212,9 +274,7 @@ void DumpToStream::ExitHelper::operator () (AST::ExpressionComponent& exprcompon
 //
 void DumpToStream::EntryHelper::operator () (AST::ExpressionFragment& exprfragment)
 {
-	self->Indent();
-	self->TheStream << L"Expression fragment" << std::endl;
-	++self->Indentation;
+	PrintAndIndent(self, L"Expression fragment");
 }
 
 //
@@ -222,9 +282,7 @@ void DumpToStream::EntryHelper::operator () (AST::ExpressionFragment& exprfragme
 //
 void DumpToStream::ExitHelper::operator () (AST::ExpressionFragment& exprfragment)
 {
-	--self->Indentation;
-	self->Indent();
-	self->TheStream << L"End of fragment" << std::endl;
+	UnindentAndPrint(self, L"End of fragment");
 }
 
 
@@ -233,9 +291,7 @@ void DumpToStream::ExitHelper::operator () (AST::ExpressionFragment& exprfragmen
 //
 void DumpToStream::EntryHelper::operator () (AST::Statement& statement)
 {
-	self->Indent();
-	self->TheStream << L"Statement " << statement.Identifier << std::endl;
-	++self->Indentation;
+	PrintAndIndent(self, L"Statement ", statement.Identifier);
 }
 
 //
@@ -243,9 +299,7 @@ void DumpToStream::EntryHelper::operator () (AST::Statement& statement)
 //
 void DumpToStream::ExitHelper::operator () (AST::Statement& statement)
 {
-	--self->Indentation;
-	self->Indent();
-	self->TheStream << L"End of statement" << std::endl;
+	UnindentAndPrint(self, L"End of statement");
 }
 
 
@@ -254,9 +308,7 @@ void DumpToStream::ExitHelper::operator () (AST::Statement& statement)
 //
 void DumpToStream::EntryHelper::operator () (AST::PreOperatorStatement& statement)
 {
-	self->Indent();
-	self->TheStream << L"Preopstatement " << statement.Operator << std::endl;
-	++self->Indentation;
+	PrintAndIndent(self, L"Preopstatement ", statement.Operator);
 }
 
 //
@@ -264,9 +316,7 @@ void DumpToStream::EntryHelper::operator () (AST::PreOperatorStatement& statemen
 //
 void DumpToStream::ExitHelper::operator () (AST::PreOperatorStatement& statement)
 {
-	--self->Indentation;
-	self->Indent();
-	self->TheStream << L"End of preopstatement" << std::endl;
+	UnindentAndPrint(self, L"End of preopstatement");
 }
 
 
@@ -275,9 +325,7 @@ void DumpToStream::ExitHelper::operator () (AST::PreOperatorStatement& statement
 //
 void DumpToStream::EntryHelper::operator () (AST::PostOperatorStatement& statement)
 {
-	self->Indent();
-	self->TheStream << L"Postopstatement " << statement.Operator << std::endl;
-	++self->Indentation;
+	PrintAndIndent(self, L"Postopstatement ", statement.Operator);
 }
 
 //
@@ -285,9 +333,7 @@ void DumpToStream::EntryHelper::operator () (AST::PostOperatorStatement& stateme
 //
 void DumpToStream::ExitHelper::operator () (AST::PostOperatorStatement& statement)
 {
-	--self->Indentation;
-	self->Indent();
-	self->TheStream << L"End of postopstatement" << std::endl;
+	UnindentAndPrint(self, L"End of postopstatement");
 }
 
 
@@ -296,9 +342,7 @@ void DumpToStream::ExitHelper::operator () (AST::PostOperatorStatement& statemen
 //
 void DumpToStream::EntryHelper::operator () (AST::CodeBlock& block)
 {
-	self->Indent();
-	self->TheStream << L"Code block" << std::endl;
-	++self->Indentation;
+	PrintAndIndent(self, L"Code block");
 }
 
 //
@@ -306,9 +350,7 @@ void DumpToStream::EntryHelper::operator () (AST::CodeBlock& block)
 //
 void DumpToStream::ExitHelper::operator () (AST::CodeBlock& block)
 {
-	--self->Indentation;
-	self->Indent();
-	self->TheStream << L"End of block" << std::endl;
+	UnindentAndPrint(self, L"End of block");
 }
 
 
@@ -317,9 +359,7 @@ void DumpToStream::ExitHelper::operator () (AST::CodeBlock& block)
 //
 void DumpToStream::EntryHelper::operator () (AST::Assignment& assignment)
 {
-	self->Indent();
-	self->TheStream << L"Assignment using " << assignment.Operator << std::endl;
-	++self->Indentation;
+	PrintAndIndent(self, L"Assignment using ", assignment.Operator);
 }
 
 //
@@ -327,9 +367,7 @@ void DumpToStream::EntryHelper::operator () (AST::Assignment& assignment)
 //
 void DumpToStream::ExitHelper::operator () (AST::Assignment& assignment)
 {
-	--self->Indentation;
-	self->Indent();
-	self->TheStream << L"End of assignment" << std::endl;
+	UnindentAndPrint(self, L"End of assignment");
 }
 
 
@@ -338,9 +376,7 @@ void DumpToStream::ExitHelper::operator () (AST::Assignment& assignment)
 //
 void DumpToStream::EntryHelper::operator () (AST::Entity& entity)
 {
-	self->Indent();
-	self->TheStream << L"Entity " << entity.Identifier << std::endl;
-	++self->Indentation;
+	PrintAndIndent(self, L"Entity ", entity.Identifier);
 }
 
 //
@@ -348,9 +384,7 @@ void DumpToStream::EntryHelper::operator () (AST::Entity& entity)
 //
 void DumpToStream::ExitHelper::operator () (AST::Entity& entity)
 {
-	--self->Indentation;
-	self->Indent();
-	self->TheStream << L"End of entity" << std::endl;
+	UnindentAndPrint(self, L"End of entity");
 }
 
 //
@@ -358,9 +392,7 @@ void DumpToStream::ExitHelper::operator () (AST::Entity& entity)
 //
 void DumpToStream::EntryHelper::operator () (AST::ChainedEntity& entity)
 {
-	self->Indent();
-	self->TheStream << L"Chained Entity " << entity.Identifier << std::endl;
-	++self->Indentation;
+	PrintAndIndent(self, L"Chained Entity ", entity.Identifier);
 }
 
 //
@@ -368,9 +400,7 @@ void DumpToStream::EntryHelper::operator () (AST::ChainedEntity& entity)
 //
 void DumpToStream::ExitHelper::operator () (AST::ChainedEntity& entity)
 {
-	--self->Indentation;
-	self->Indent();
-	self->TheStream << L"End of chained entity" << std::endl;
+	UnindentAndPrint(self, L"End of chained entity");
 }
 
 //
@@ -378,9 +408,7 @@ void DumpToStream::ExitHelper::operator () (AST::ChainedEntity& entity)
 //
 void DumpToStream::EntryHelper::operator () (AST::PostfixEntity& entity)
 {
-	self->Indent();
-	self->TheStream << L"Postfix Entity " << entity.Identifier << std::endl;
-	++self->Indentation;
+	PrintAndIndent(self, L"Postfix Entity ", entity.Identifier);
 }
 
 //
@@ -388,9 +416,7 @@ void DumpToStream::EntryHelper::operator () (AST::PostfixEntity& entity)
 //
 void DumpToStream::ExitHelper::operator () (AST::PostfixEntity& entity)
 {
-	--self->Indentation;
-	self->Indent();
-	self->TheStream << L"End of postfix entity" << std::endl;
+	UnindentAndPrint(self, L"End of postfix entity");
 }
 
 
@@ -404,8 +430,7 @@ void DumpToStream::ExitHelper::operator () (AST::PostfixEntity& entity)
 //
 void DumpToStream::EntryHelper::operator () (AST::IdentifierT& identifier)
 {
-	self->Indent();
-	self->TheStream << identifier << std::endl;
+	Print(self, identifier);
 }
 
 
@@ -419,20 +444,9 @@ void DumpToStream::EntryHelper::operator () (AST::IdentifierT& identifier)
 //
 void DumpToStream::EntryHelper::operator () (AST::FunctionReferenceSignature& refsig)
 {
-	self->Indent();
-	self->TheStream << L"Function signature named " << refsig.Identifier;
-	self->TheStream << L" with parameter types:" << std::endl;
-	++self->Indentation;
-
-	for(std::vector<AST::IdentifierT, Memory::OneWayAlloc<AST::IdentifierT> >::const_iterator iter = refsig.ParamTypes.Content->Container.begin(); iter != refsig.ParamTypes.Content->Container.end(); ++iter)
-	{
-		self->Indent();
-		self->TheStream << *iter << std::endl;
-	}
-
-	--self->Indentation;
-	self->Indent();
-	self->TheStream << L"Returning " << refsig.ReturnType << std::endl;
+	PrintAndIndent(self, L"Function signature named ", refsig.Identifier, L" with parameter types:");
+	Print(self, refsig.ParamTypes);
+	UnindentAndPrint(self, L"Returning ", refsig.ReturnType);
 }
 
 
@@ -442,9 +456,7 @@ void DumpToStream::EntryHelper::operator () (AST::FunctionReferenceSignature& re
 //
 void DumpToStream::EntryHelper::operator () (Markers::FunctionReturnExpression&)
 {
-	self->Indent();
-	self->TheStream << L"Function return" << std::endl;
-	++self->Indentation;
+	PrintAndIndent(self, L"Function return");
 }
 
 //
@@ -452,17 +464,24 @@ void DumpToStream::EntryHelper::operator () (Markers::FunctionReturnExpression&)
 //
 void DumpToStream::ExitHelper::operator () (Markers::FunctionReturnExpression&)
 {
-	--self->Indentation;
-	self->Indent();
-	self->TheStream << L"End of return" << std::endl;
+	UnindentAndPrint(self, L"End of return");
 }
 
 
+//
+// Traverse a special marker that indicates we are entering a list of
+// prefix operators applied to an expression component.
+//
+// There is nothing particularly special to do here.
+//
 void DumpToStream::EntryHelper::operator () (Markers::ExpressionComponentPrefixes&)
 {
 	// Nothing to do
 }
 
+//
+// Finish traversing unary prefixes
+//
 void DumpToStream::ExitHelper::operator () (Markers::ExpressionComponentPrefixes&)
 {
 	// Nothing to do
