@@ -12,22 +12,22 @@
 #include "Utility/Memory/Stack.h"
 #include "Utility/Memory/MemoryManager.h"
 
-#include "Configuration/RuntimeOptions.h"
-
 
 //
 // WARNING - this code makes a platform-dependent assumption that char is 1 byte
 //
+
+static const unsigned STACK_SIZE = 4 * 1024 * 1024;
 
 //
 // Construct a stack and allocate the default amount of space.
 //
 StackSpace::StackSpace()
 {
-	StackAllocation = ::HeapAlloc(GetSingleGlobalHeapManager().GetHeap(), 0, Config::StackSize);
-	CurrentStackPointer = EndOfStackAllocation = reinterpret_cast<Byte*>(StackAllocation) + Config::StackSize;
+	StackAllocation = ::HeapAlloc(GetSingleGlobalHeapManager().GetHeap(), 0, STACK_SIZE);
+	CurrentStackPointer = EndOfStackAllocation = reinterpret_cast<Byte*>(StackAllocation) + STACK_SIZE;
 #ifdef _DEBUG
-	memset(StackAllocation, 0xee, Config::StackSize);
+	memset(StackAllocation, 0xee, STACK_SIZE);
 #endif
 }
 
