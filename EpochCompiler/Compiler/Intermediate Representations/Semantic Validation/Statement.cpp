@@ -52,9 +52,7 @@ bool Statement::Validate(const Program& program) const
 			valid = false;
 	}
 
-	// TODO - validate overloads etc.
-
-	return valid;
+	return valid && (MyType != VM::EpochType_Infer) && (MyType != VM::EpochType_Error);
 }
 
 bool Statement::CompileTimeCodeExecution(Program& program, CodeBlock& activescope, bool inreturnexpr)

@@ -373,10 +373,6 @@
 					Name="Memory"
 					>
 					<File
-						RelativePath="..\Shared\Utility\Memory\Heap.h"
-						>
-					</File>
-					<File
 						RelativePath="..\Shared\Utility\Memory\MemoryManager.cpp"
 						>
 					</File>

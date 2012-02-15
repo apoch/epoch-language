@@ -893,7 +893,7 @@ void CompilePassSemantics::ExitHelper::operator () (AST::Assignment& assignment)
 	}
 	else if(self->StateStack.top() == CompilePassSemantics::STATE_ASSIGNMENT)
 	{
-		// TODO
+		// Nothing to do
 	}
 	else
 	{
