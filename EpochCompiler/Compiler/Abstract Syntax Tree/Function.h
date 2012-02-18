@@ -10,6 +10,7 @@
 
 // Dependencies
 #include "Compiler/Abstract Syntax Tree/FunctionParameter.h"
+#include "Compiler/Abstract Syntax Tree/Expression.h"
 
 
 namespace AST
@@ -44,7 +45,7 @@ namespace AST
 	{
 		IdentifierT Name;
 		FunctionParamVec Parameters;
-		DeferredExpression Return;
+		OptionalExpression Return;
 		FunctionTagList Tags;
 		DeferredCodeBlock Code;
 
@@ -71,7 +72,7 @@ BOOST_FUSION_ADAPT_STRUCT
 	AST::DeferredFunction,
 	(AST::IdentifierT, Content->Name)
 	(AST::FunctionParamVec, Content->Parameters)
-	(AST::DeferredExpression, Content->Return)
+	(AST::OptionalExpression, Content->Return)
 	(AST::FunctionTagList, Content->Tags)
 	(AST::DeferredCodeBlock, Content->Code)
 )

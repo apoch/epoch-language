@@ -46,6 +46,7 @@ public:
 // Inspection interface
 public:
 	bool HasVariable(const std::wstring& identifier) const;
+	bool HasVariable(StringHandle identifier) const;
 
 	const std::wstring& GetVariableName(size_t index) const;
 	StringHandle GetVariableNameHandle(size_t index) const;

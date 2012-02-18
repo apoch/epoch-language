@@ -156,7 +156,7 @@ namespace
 				emitter.PushStringLiteral(atom->GetIdentifier());
 			else
 			{
-				if(atom->GetEpochType(program) == VM::EpochType_Identifier)
+				if(atom->GetEpochType(program) == VM::EpochType_Identifier || atom->GetEpochType(program) == VM::EpochType_Function)
 					emitter.PushStringLiteral(atom->GetIdentifier());
 				else
 					emitter.PushVariableValue(atom->GetIdentifier(), activescope.GetVariableTypeByID(atom->GetIdentifier()));
@@ -221,7 +221,10 @@ namespace
 			EmitExpression(emitter, **paramiter, activescope, program);
 		}
 
-		emitter.Invoke(statement.GetName());
+		if(activescope.GetScope()->HasVariable(statement.GetName()) && activescope.GetScope()->GetVariableTypeByID(statement.GetName()) == VM::EpochType_Function)
+			emitter.InvokeIndirect(statement.GetName());
+		else
+			emitter.Invoke(statement.GetName());
 	}
 
 	void GenerateAssignment(ByteCodeEmitter& emitter, const IRSemantics::Assignment& assignment, const IRSemantics::Program& program, const IRSemantics::CodeBlock& activescope)

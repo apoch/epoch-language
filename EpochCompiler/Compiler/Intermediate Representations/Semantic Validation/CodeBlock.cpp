@@ -97,6 +97,7 @@ bool CodeBlock::CompileTimeCodeExecution(Program& program)
 bool CodeBlock::TypeInference(Program& program, InferenceContext& context)
 {
 	InferenceContext newcontext(0, InferenceContext::CONTEXT_CODE_BLOCK);
+	newcontext.FunctionName = context.FunctionName;
 
 	for(std::vector<CodeBlockEntry*>::iterator iter = Entries.begin(); iter != Entries.end(); ++iter)
 	{

@@ -124,6 +124,7 @@ VM::EpochTypeID AssignmentChainExpression::GetEpochType(const Program& program) 
 bool AssignmentChainExpression::TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context)
 {
 	InferenceContext newcontext(0, InferenceContext::CONTEXT_ASSIGNMENT);
+	newcontext.FunctionName = context.FunctionName;
 	return MyExpression->TypeInference(program, activescope, newcontext, 0);
 }
 

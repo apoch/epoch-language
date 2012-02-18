@@ -40,6 +40,20 @@ bool ScopeDescription::HasVariable(const std::wstring& identifier) const
 	return false;
 }
 
+bool ScopeDescription::HasVariable(StringHandle identifier) const
+{
+	for(VariableVector::const_iterator iter = Variables.begin(); iter != Variables.end(); ++iter)
+	{
+		if(iter->IdentifierHandle == identifier)
+			return true;
+	}
+
+	if(ParentScope)
+		return ParentScope->HasVariable(identifier);
+
+	return false;
+}
+
 //
 // Retrieve the identifier of the variable at the given index in the scope
 //

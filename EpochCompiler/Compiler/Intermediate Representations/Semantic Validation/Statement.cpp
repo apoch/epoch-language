@@ -73,21 +73,22 @@ bool Statement::CompileTimeCodeExecution(Program& program, CodeBlock& activescop
 bool Statement::TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, size_t index)
 {
 	InferenceContext newcontext(Name, InferenceContext::CONTEXT_STATEMENT);
+	newcontext.FunctionName = context.FunctionName;
 
 	switch(context.State)
 	{
 	case InferenceContext::CONTEXT_CODE_BLOCK:
-		newcontext.ExpectedTypes.push_back(program.GetExpectedTypesForStatement(Name));
+		newcontext.ExpectedTypes.push_back(program.GetExpectedTypesForStatement(Name, *activescope.GetScope(), context.FunctionName));
 		break;
 
 	case InferenceContext::CONTEXT_STATEMENT:
-		newcontext.ExpectedTypes.push_back(program.GetExpectedTypesForStatement(context.ContextName));
+		newcontext.ExpectedTypes.push_back(program.GetExpectedTypesForStatement(context.ContextName, *activescope.GetScope(), context.FunctionName));
 		break;
 
 	case InferenceContext::CONTEXT_EXPRESSION:
 	case InferenceContext::CONTEXT_FUNCTION_RETURN:
 		// TODO - this is broken, evaluate the actual operators involved and use them w/ overload resolution
-		newcontext.ExpectedTypes.push_back(program.GetExpectedTypesForStatement(Name));
+		newcontext.ExpectedTypes.push_back(program.GetExpectedTypesForStatement(Name, *activescope.GetScope(), context.FunctionName));
 		break;
 
 	default:
@@ -198,7 +199,16 @@ bool Statement::TypeInference(Program& program, CodeBlock& activescope, Inferenc
 				}
 			}
 			else
-				MyType = program.Session.FunctionSignatures.find(Name)->second.GetReturnType();
+			{
+				FunctionSignatureSet::const_iterator funciter = program.Session.FunctionSignatures.find(Name);
+				if(funciter != program.Session.FunctionSignatures.end())
+					MyType = funciter->second.GetReturnType();
+				else
+				{
+					Function* func = program.GetFunctions().find(context.FunctionName)->second;
+					MyType = func->GetParameterSignatureType(Name, program);
+				}
+			}
 		}
 	}
 

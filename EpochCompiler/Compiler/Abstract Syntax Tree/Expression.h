@@ -148,6 +148,16 @@ namespace AST
 		Expression& operator = (const Expression&);
 	};
 
+
+	//
+	// An optional expression might be undefined
+	//
+	typedef boost::variant
+		<
+			Undefined,
+			DeferredExpression
+		> OptionalExpression;
+
 }
 
 //

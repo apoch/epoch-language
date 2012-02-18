@@ -103,6 +103,7 @@ bool Entity::CompileTimeCodeExecution(Program& program, CodeBlock& activescope)
 bool Entity::TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context)
 {
 	InferenceContext newcontext(0, InferenceContext::CONTEXT_ENTITY_PARAM);
+	newcontext.FunctionName = context.FunctionName;
 
 	size_t i = 0;
 	for(std::vector<Expression*>::iterator iter = Parameters.begin(); iter != Parameters.end(); ++iter)

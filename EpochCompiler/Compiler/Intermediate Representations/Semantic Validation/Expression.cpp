@@ -140,7 +140,8 @@ bool Expression::TypeInference(Program& program, CodeBlock& activescope, Inferen
 {
 	Coalesce(program, activescope);
 
-	InferenceContext newcontext(0, InferenceContext::CONTEXT_EXPRESSION);
+	InferenceContext newcontext(context.ContextName, InferenceContext::CONTEXT_EXPRESSION);
+	newcontext.FunctionName = context.FunctionName;
 	newcontext.ExpectedTypes = context.ExpectedTypes;
 	InferenceContext& selectedcontext = context.State == InferenceContext::CONTEXT_FUNCTION_RETURN ? context : newcontext;
 
@@ -412,6 +413,8 @@ bool ExpressionAtomIdentifier::TypeInference(Program& program, CodeBlock& active
 		// TODO - enumerate possible types and perform actual inference
 		if(!context.ExpectedTypes.empty() && context.ExpectedTypes.back()[0][index] == VM::EpochType_Identifier)
 			MyType = VM::EpochType_Identifier;
+		else if(!context.ExpectedTypes.empty() && context.ExpectedTypes.back()[0][index] == VM::EpochType_Function)
+			MyType = VM::EpochType_Function;
 		else
 			MyType = activescope.GetScope()->GetVariableTypeByID(Identifier);
 	}

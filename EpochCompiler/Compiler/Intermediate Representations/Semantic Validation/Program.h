@@ -159,7 +159,7 @@ namespace IRSemantics
 	// Type inference
 	public:
 		bool TypeInference();
-		InferenceContext::PossibleParameterTypes GetExpectedTypesForStatement(StringHandle name) const;
+		InferenceContext::PossibleParameterTypes GetExpectedTypesForStatement(StringHandle name, const ScopeDescription& scope, StringHandle contextname) const;
 
 	// Validation
 	public:

@@ -481,8 +481,34 @@ ScopeDescription* Program::GetGlobalScope()
 }
 
 
-InferenceContext::PossibleParameterTypes Program::GetExpectedTypesForStatement(StringHandle name) const
+InferenceContext::PossibleParameterTypes Program::GetExpectedTypesForStatement(StringHandle name, const ScopeDescription& scope, StringHandle contextname) const
 {
+	if(scope.HasVariable(name) && scope.GetVariableTypeByID(name) == VM::EpochType_Function)
+	{
+		boost::unordered_map<StringHandle, Function*>::const_iterator funciter = Functions.find(contextname);
+		if(funciter == Functions.end())
+		{
+			//
+			// This is a critical internal failure. A function overload name
+			// has been registered but the corresponding definition of the
+			// function cannot be located.
+			//
+			// Examine the handling of overload registration, name resolution,
+			// and definition storage. We should not reach the phase of type
+			// inference until all function definitions have been visited by
+			// AST traversal in prior semantic validation passes.
+			//
+			throw InternalException("Function overload registered but definition not found");
+		}
+		
+		InferenceContext::PossibleParameterTypes ret(1, InferenceContext::TypePossibilities());
+
+		VM::EpochTypeID rettype = funciter->second->GetParameterSignatureType(name, *this);
+		ret.back().push_back(rettype);
+
+		return ret;
+	}
+
 	boost::unordered_map<StringHandle, unsigned>::const_iterator iter = FunctionOverloadCounters.find(name);
 	if(iter != FunctionOverloadCounters.end())
 	{

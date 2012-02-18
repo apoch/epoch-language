@@ -99,6 +99,11 @@ namespace IRSemantics
 
 		virtual bool Validate(const IRSemantics::Program& program) const;
 
+	// Additional inspection
+	public:
+		StringHandle GetReturnType() const
+		{ return ReturnType; }
+
 	// Internal state
 	private:
 		std::vector<StringHandle> ParamTypes;
@@ -177,6 +182,8 @@ namespace IRSemantics
 		VM::EpochTypeID GetParameterType(StringHandle name, const IRSemantics::Program& program) const;
 		VM::EpochTypeID GetParameterTypeByIndex(size_t index, const IRSemantics::Program& program) const;
 		bool IsParameterReference(StringHandle name) const;
+
+		VM::EpochTypeID GetParameterSignatureType(StringHandle name, const IRSemantics::Program& program) const;
 
 		size_t GetNumParameters() const
 		{ return Parameters.size(); }

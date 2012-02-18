@@ -12,6 +12,7 @@
 #include "Compiler/Abstract Syntax Tree/Undefined.h"
 #include "Compiler/Abstract Syntax Tree/Identifiers.h"
 #include "Compiler/Abstract Syntax Tree/Forwards.h"
+#include "Compiler/Abstract Syntax Tree/OptionalIdentifier.h"
 
 
 namespace AST
@@ -93,7 +94,7 @@ namespace AST
 	{
 		IdentifierT Identifier;
 		IdentifierList ParamTypes;
-		IdentifierT ReturnType;
+		OptionalIdentifier ReturnType;
 
 		FunctionReferenceSignature()
 			: RefCount(0)
@@ -131,6 +132,6 @@ BOOST_FUSION_ADAPT_STRUCT
 	AST::DeferredFunctionRefSig,
 	(AST::IdentifierT, Content->Identifier)
 	(AST::IdentifierList, Content->ParamTypes)
-	(AST::IdentifierT, Content->ReturnType)
+	(AST::OptionalIdentifier, Content->ReturnType)
 )
 

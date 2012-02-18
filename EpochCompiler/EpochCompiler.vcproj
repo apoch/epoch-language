@@ -535,6 +535,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\Compiler\Abstract Syntax Tree\OptionalIdentifier.h"
+					>
+				</File>
+				<File
 					RelativePath=".\Compiler\Abstract Syntax Tree\Parenthetical.h"
 					>
 				</File>

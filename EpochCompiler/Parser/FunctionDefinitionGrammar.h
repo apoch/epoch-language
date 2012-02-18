@@ -20,16 +20,14 @@ struct FunctionDefinitionGrammar : public boost::spirit::qi::grammar<Lexer::Toke
 	};
 
 	Rule<AST::IdentifierList()>::type ParamTypeSpec;
-	Rule<AST::IdentifierT()>::type ReturnTypeSpec;
+	Rule<AST::OptionalIdentifier()>::type ReturnTypeSpec;
 	Rule<AST::DeferredFunctionRefSig()>::type ParameterFunctionRef;
 	Rule<AST::DeferredNamedFunctionParameter()>::type ParameterSpec;
 
 	Rule<AST::DeferredFunctionParameter()>::type ParameterDeclaration;
-	Rule<boost::spirit::qi::unused_type>::type EmptyReturns;
-	Rule<boost::spirit::qi::unused_type>::type EmptyParams;
 
 	Rule<std::vector<AST::DeferredFunctionParameter, Memory::OneWayAlloc<AST::DeferredFunctionParameter> >()>::type ParameterList;
-	Rule<AST::DeferredExpression()>::type ReturnList;
+	Rule<AST::OptionalExpression()>::type ReturnList;
 	Rule<AST::FunctionTagList()>::type FunctionTagList;
 	Rule<AST::FunctionTag()>::type FunctionTagSpec;
 

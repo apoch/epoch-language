@@ -14,18 +14,16 @@ FunctionDefinitionGrammar::FunctionDefinitionGrammar(const Lexer::EpochLexerT& l
 {
 	using namespace boost::spirit::qi;
 
-	ParamTypeSpec = lexer.OpenParens >> -(as<AST::IdentifierT>()[lexer.StringIdentifier] % lexer.Comma) >> lexer.CloseParens;
-	ReturnTypeSpec = lexer.OpenParens >> -(lexer.StringIdentifier) >> lexer.CloseParens;
-	ParameterFunctionRef = lexer.StringIdentifier >> lexer.Colon >> ParamTypeSpec >> lexer.Arrow >> ReturnTypeSpec;
-	ParameterSpec %= lexer.StringIdentifier >> -lexer.Ref >> lexer.OpenParens >> lexer.StringIdentifier >> lexer.CloseParens;
+	ParamTypeSpec = lexer.StringIdentifier % lexer.Comma;
+	ReturnTypeSpec = (-(lexer.Arrow >> lexer.StringIdentifier)) | omit[eps];
+	ParameterFunctionRef = lexer.OpenParens >> lexer.StringIdentifier >> lexer.Colon >> -ParamTypeSpec >> ReturnTypeSpec >> lexer.CloseParens;
+	ParameterSpec %= lexer.StringIdentifier >> -lexer.Ref >> lexer.StringIdentifier;
 	ParameterDeclaration %= ParameterSpec | ParameterFunctionRef | expressiongrammar;
-	EmptyParams = lexer.CloseParens;
-	ParameterList %= lexer.OpenParens >> (EmptyParams | ((ParameterDeclaration % lexer.Comma) >> lexer.CloseParens));
-	EmptyReturns %= lexer.CloseParens;
-	ReturnList %= lexer.OpenParens >> (EmptyReturns | (expressiongrammar >> lexer.CloseParens));
+	ParameterList %= ParameterDeclaration % lexer.Comma;
+	ReturnList %= lexer.Arrow >> expressiongrammar;
 
-	FunctionTagSpec = (lexer.StringIdentifier >> -(lexer.OpenParens >> ((expressiongrammar) % lexer.Comma) >> lexer.CloseParens));
+	FunctionTagSpec = (lexer.StringIdentifier >> -((expressiongrammar) % lexer.Comma));
 	FunctionTagList = (lexer.OpenBrace >> *FunctionTagSpec >> lexer.CloseBrace) | omit[eps];
 
-	FunctionDefinition %= lexer.StringIdentifier >> lexer.Colon >> ParameterList >> lexer.Arrow >> ReturnList >> FunctionTagList >> codeblockgrammar;
+	FunctionDefinition %= lexer.StringIdentifier >> lexer.Colon >> -ParameterList >> -ReturnList >> FunctionTagList >> codeblockgrammar;
 }

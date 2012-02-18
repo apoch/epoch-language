@@ -41,6 +41,8 @@ namespace IRSemantics
 		TypeListStack ExpectedTypes;
 		ContextStates State;
 
+		StringHandle FunctionName;
+
 		// Construction
 		InferenceContext(StringHandle name, ContextStates state)
 			: ContextName(name),

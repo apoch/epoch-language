@@ -1093,7 +1093,9 @@ void CompilePassSemantics::EntryHelper::operator () (AST::FunctionReferenceSigna
 		throw std::runtime_error("Invalid parse state");		// TODO - better exceptions
 
 	StringHandle name = self->CurrentProgram->AddString(std::wstring(refsig.Identifier.begin(), refsig.Identifier.end()));
-	StringHandle returntype = self->CurrentProgram->AddString(std::wstring(refsig.ReturnType.begin(), refsig.ReturnType.end()));
+	StringHandle returntype = 0;//self->CurrentProgram->AddString(std::wstring(refsig.ReturnType.begin(), refsig.ReturnType.end()));
+
+	// TODO - fix higher order functions
 
 	std::vector<StringHandle> paramtypes;
 	std::for_each(refsig.ParamTypes.begin(), refsig.ParamTypes.end(), StringPooler(*self->CurrentProgram, paramtypes));
@@ -1121,8 +1123,11 @@ void CompilePassSemantics::ExitHelper::operator () (Markers::FunctionReturnExpre
 	if(self->CurrentFunctions.empty())
 		throw std::runtime_error("Invalid parse state");			// TODO - better exceptions
 
-	self->CurrentFunctions.back()->SetReturnExpression(self->CurrentExpressions.back());
-	self->CurrentExpressions.pop_back();
+	if(!self->CurrentExpressions.empty())
+	{
+		self->CurrentFunctions.back()->SetReturnExpression(self->CurrentExpressions.back());
+		self->CurrentExpressions.pop_back();
+	}
 
 	self->StateStack.pop();
 	self->InFunctionReturn = false;

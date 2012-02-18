@@ -446,7 +446,8 @@ void DumpToStream::EntryHelper::operator () (AST::FunctionReferenceSignature& re
 {
 	PrintAndIndent(self, L"Function signature named ", refsig.Identifier, L" with parameter types:");
 	Print(self, refsig.ParamTypes);
-	UnindentAndPrint(self, L"Returning ", refsig.ReturnType);
+	UnindentAndPrint(self, L"Returning");
+	// TODO - fix AST dump of function reference signature return type
 }
 
 

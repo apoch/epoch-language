@@ -186,6 +186,7 @@ bool Function::TypeInference(Program& program, InferenceContext& context)
 	if(Return)
 	{
 		InferenceContext newcontext(Name, InferenceContext::CONTEXT_FUNCTION_RETURN);
+		newcontext.FunctionName = Name;
 		if(!Return->TypeInference(program, *Code, newcontext, 0))
 			return false;
 	}
@@ -194,6 +195,7 @@ bool Function::TypeInference(Program& program, InferenceContext& context)
 	program.AddScope(Code->GetScope(), Name);
 
 	InferenceContext newcontext(Name, InferenceContext::CONTEXT_FUNCTION);
+	newcontext.FunctionName = Name;
 	return Code->TypeInference(program, newcontext);
 }
 
@@ -219,7 +221,7 @@ bool FunctionParamFuncRef::Validate(const IRSemantics::Program& program) const
 {
 	bool valid = true;
 
-	if(program.LookupType(ReturnType) == VM::EpochType_Error)
+	if(ReturnType && program.LookupType(ReturnType) == VM::EpochType_Error)
 		valid = false;
 
 	for(std::vector<StringHandle>::const_iterator iter = ParamTypes.begin(); iter != ParamTypes.end(); ++iter)
@@ -256,4 +258,23 @@ VM::EpochTypeID FunctionParamExpression::GetParamType(const IRSemantics::Program
 		return VM::EpochType_Error;
 
 	return MyExpression->GetEpochType(program);
+}
+
+
+VM::EpochTypeID Function::GetParameterSignatureType(StringHandle name, const IRSemantics::Program& program) const
+{
+	for(std::vector<Param>::const_iterator iter = Parameters.begin(); iter != Parameters.end(); ++iter)
+	{
+		if(iter->Name == name)
+		{
+			StringHandle rettypename = dynamic_cast<const FunctionParamFuncRef*>(iter->Parameter)->GetReturnType();
+			if(!rettypename)
+				return VM::EpochType_Void;
+
+			return program.LookupType(rettypename);
+		}
+	}
+
+	// TODO - ensure this exception cannot be thrown by simply malforming code
+	throw InternalException("Provided string handle does not correspond to a parameter of this function");
 }
