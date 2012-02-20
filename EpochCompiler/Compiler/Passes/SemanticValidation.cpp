@@ -192,16 +192,24 @@ IRSemantics::Program* CompilePassSemantics::DetachProgram()
 //
 void CompilePassSemantics::EntryHelper::operator () (AST::Undefined&)
 {
-	if (self->StateStack.empty() || !self->InFunctionReturn)
+	if(self->StateStack.empty() || !self->InFunctionReturn)
 	{
+		if(!self->StateStack.empty())
+		{
+			if(self->StateStack.top() == STATE_FUNCTION)
+			return;
+		}
+
 		//
 		// This is a failure of the parser to properly
 		// capture incorrect programs prior to being
 		// submitted for semantic validation.
 		//
-		// Undefined nodes are permitted in two situations:
+		// Undefined nodes are permitted in four situations:
 		//  1. Empty programs
 		//  2. Void function return expressions
+		//  3. Empty function tag specifiers
+		//  4. Omitted function code blocks
 		//
 		// Any other presence of an undefined node represents
 		// a mistake in the parser. Ensure that parser errors

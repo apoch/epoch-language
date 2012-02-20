@@ -19,6 +19,6 @@ CodeBlockGrammar::CodeBlockGrammar(const Lexer::EpochLexerT& lexer, const Expres
 	
 	Empty = lexer.CloseBracket;
 	InnerCodeBlock %= lexer.OpenBracket >> (Empty | (+CodeBlockEntry >> lexer.CloseBracket));
-	CodeBlock %= -InnerCodeBlock;
+	CodeBlock %= InnerCodeBlock;
 }
 

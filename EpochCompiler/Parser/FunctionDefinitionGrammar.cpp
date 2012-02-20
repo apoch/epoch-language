@@ -23,7 +23,7 @@ FunctionDefinitionGrammar::FunctionDefinitionGrammar(const Lexer::EpochLexerT& l
 	ReturnList %= lexer.Arrow >> expressiongrammar;
 
 	FunctionTagSpec = (lexer.StringIdentifier >> -((expressiongrammar) % lexer.Comma));
-	FunctionTagList = (lexer.OpenBrace >> *FunctionTagSpec >> lexer.CloseBrace) | omit[eps];
+	FunctionTagList = (lexer.OpenBrace >> *FunctionTagSpec >> lexer.CloseBrace);
 
-	FunctionDefinition %= lexer.StringIdentifier >> lexer.Colon >> -ParameterList >> -ReturnList >> FunctionTagList >> codeblockgrammar;
+	FunctionDefinition %= lexer.StringIdentifier >> lexer.Colon >> -ParameterList >> -ReturnList >> -FunctionTagList >> -codeblockgrammar;
 }

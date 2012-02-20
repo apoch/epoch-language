@@ -39,10 +39,13 @@ namespace boost { namespace spirit { namespace qi
         {
             qi::skip_over(first, last, skipper);
 
+			if(first == last)
+				return false;
+
 			std::wstring::const_iterator tokenfirst = first->value().begin();
 			std::wstring::const_iterator tokenlast = first->value().end();
 
-            if (subject.parse(tokenfirst, tokenlast, context, skipper, unused) && (tokenfirst == tokenlast))
+            if(subject.parse(tokenfirst, tokenlast, context, skipper, unused) && (tokenfirst == tokenlast))
             {
 				spirit::traits::assign_to(first->value().begin(), first->value().end(), attr);
 				++first;
@@ -55,7 +58,6 @@ namespace boost { namespace spirit { namespace qi
         info what(Context& context) const
         {
             return info("adapttokens", subject.what(context));
-
         }
 
         Subject subject;

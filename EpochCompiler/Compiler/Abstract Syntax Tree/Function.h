@@ -11,6 +11,7 @@
 // Dependencies
 #include "Compiler/Abstract Syntax Tree/FunctionParameter.h"
 #include "Compiler/Abstract Syntax Tree/Expression.h"
+#include "Compiler/Abstract Syntax Tree/CodeBlock.h"
 
 
 namespace AST
@@ -34,6 +35,12 @@ namespace AST
 	//
 	typedef std::vector<FunctionTag, Memory::OneWayAlloc<FunctionTag> > FunctionTagList;
 
+	typedef boost::variant
+		<
+			Undefined,
+			FunctionTagList
+		> OptionalFunctionTags;
+
 
 	//
 	// A function definition
@@ -46,8 +53,8 @@ namespace AST
 		IdentifierT Name;
 		FunctionParamVec Parameters;
 		OptionalExpression Return;
-		FunctionTagList Tags;
-		DeferredCodeBlock Code;
+		OptionalFunctionTags Tags;
+		OptionalCodeBlock Code;
 
 		Function()
 			: RefCount(0)
@@ -73,8 +80,8 @@ BOOST_FUSION_ADAPT_STRUCT
 	(AST::IdentifierT, Content->Name)
 	(AST::FunctionParamVec, Content->Parameters)
 	(AST::OptionalExpression, Content->Return)
-	(AST::FunctionTagList, Content->Tags)
-	(AST::DeferredCodeBlock, Content->Code)
+	(AST::OptionalFunctionTags, Content->Tags)
+	(AST::OptionalCodeBlock, Content->Code)
 )
 
 BOOST_FUSION_ADAPT_STRUCT

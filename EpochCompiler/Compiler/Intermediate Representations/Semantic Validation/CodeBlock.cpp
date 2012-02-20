@@ -50,7 +50,7 @@ CodeBlock::~CodeBlock()
 	for(std::vector<CodeBlockEntry*>::iterator iter = Entries.begin(); iter != Entries.end(); ++iter)
 		delete *iter;
 
-	if (OwnsScope)
+	if(OwnsScope)
 		delete Scope;
 }
 

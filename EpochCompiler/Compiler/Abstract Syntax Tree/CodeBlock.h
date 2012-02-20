@@ -77,6 +77,12 @@ namespace AST
 		CodeBlock& operator = (const CodeBlock&);
 	};
 
+	typedef boost::variant
+		<
+			Undefined,
+			DeferredCodeBlock
+		> OptionalCodeBlock;
+
 }
 
 //
