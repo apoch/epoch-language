@@ -7,8 +7,14 @@
 
 #pragma once
 
+
+// Dependencies
+#include <vector>
+
+
 namespace Files
 {
 	std::wstring Load(const std::wstring& filename);
+	std::vector<std::wstring> GetMatchingFiles(const std::wstring& filespec);
 }
 

@@ -31,20 +31,12 @@ extern "C" void* STDCALL CompileSourceToByteCode(const wchar_t* filename, const 
 	}
 	catch(const std::exception& e)
 	{
-#ifdef BOOST_WINDOWS
-		::MessageBox(0, widen(e.what()).c_str(), L"Epoch Compilation Exception", MB_ICONSTOP);
-#else
-        std::wcerr<<e.what()<<std::endl;
-#endif
+        std::wcerr << e.what() << std::endl;
         return NULL;
 	}
 	catch(...)
 	{
-#ifdef BOOST_WINDOWS
-		::MessageBox(0, L"Exception occurred during compilation", L"Epoch Compilation Exception", MB_ICONSTOP);
-#else
-        std::wcerr<<L"Exception occurred during compilation"<<std::endl;
-#endif
+        std::wcerr << L"Exception occurred during compilation" << std::endl;
         return NULL;
 	}
 }
@@ -61,11 +53,7 @@ extern "C" void STDCALL FreeByteCodeBuffer(void* handle)
 	}
 	catch(...)
 	{
-#ifdef BOOST_WINDOWS
-		::MessageBox(0, L"Exception occurred while freeing code buffer", L"Epoch Compilation Exception", MB_ICONSTOP);
-#else
-        std::wcerr<<L"Exception occurred while freeing code buffer"<<std::endl;
-#endif
+        std::wcerr << L"Exception occurred while freeing code buffer" << std::endl;
 	}
 }
 

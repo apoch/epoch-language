@@ -53,43 +53,7 @@ int _tmain(int argc, _TCHAR* argv[])
 	bool didwork = false;
 	for(size_t i = 0; i < parameters.size(); ++i)
 	{
-		if(parameters[i] == L"/execute")
-		{
-			didwork = true;
-
-			if(++i >= parameters.size())
-			{
-				output << L"Error: expected a filename after /execute option\n\n";
-				break;
-			}
-
-			try
-			{
-				std::wstring filename(parameters[i]);
-
-				output << L"Executing: " << filename << L"\n" << std::endl;
-
-				std::wstring source = Files::Load(filename);
-				
-				DLLAccess::CompilerAccess compileraccess;
-				DLLAccess::CompiledByteCodeHandle bytecodebufferhandle = compileraccess.CompileSourceToByteCode(filename, source);
-
-				if(bytecodebufferhandle)
-				{
-					DLLAccess::VMAccess vmaccess;
-					vmaccess.ExecuteByteCode(compileraccess.GetByteCode(bytecodebufferhandle), compileraccess.GetByteCodeSize(bytecodebufferhandle));
-				}
-			}
-			catch(const std::exception& e)
-			{
-				output << L"Error: " << e.what() << std::endl;
-			}
-			catch(...)
-			{
-				output << L"Unknown error!" << std::endl;
-			}
-		}
-		else if(parameters[i] == L"/compile")
+		if(parameters[i] == L"/compile")
 		{
 			didwork = true;
 
@@ -208,6 +172,44 @@ int _tmain(int argc, _TCHAR* argv[])
 		{
 			DLLAccess::VMAccess vmaccess;
 			vmaccess.EnableVisualDebugger();
+		}
+		else
+		{
+			didwork = true;
+
+			try
+			{
+				std::wstring filespec(parameters[i]);
+
+				std::vector<std::wstring> files = Files::GetMatchingFiles(filespec);
+				for(std::vector<std::wstring>::const_iterator iter = files.begin(); iter != files.end(); ++iter)
+				{
+					const std::wstring& filename = *iter;
+
+					output << L"Executing: " << filename << L"\n" << std::endl;
+
+					std::wstring source = Files::Load(filename);
+					
+					DLLAccess::CompilerAccess compileraccess;
+					DLLAccess::CompiledByteCodeHandle bytecodebufferhandle = compileraccess.CompileSourceToByteCode(filename, source);
+
+					if(bytecodebufferhandle)
+					{
+						DLLAccess::VMAccess vmaccess;
+						vmaccess.ExecuteByteCode(compileraccess.GetByteCode(bytecodebufferhandle), compileraccess.GetByteCodeSize(bytecodebufferhandle));
+					}
+
+					output << L"\n\n" << std::endl;
+				}
+			}
+			catch(const std::exception& e)
+			{
+				output << L"Error: " << e.what() << std::endl;
+			}
+			catch(...)
+			{
+				output << L"Unknown error!" << std::endl;
+			}
 		}
 	}
 

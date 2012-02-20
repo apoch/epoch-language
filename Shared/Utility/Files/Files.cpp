@@ -8,6 +8,7 @@
 #include "pch.h"
 
 #include "Utility/Files/Files.h"
+#include "Utility/Files/FilesAndPaths.h"
 #include "Utility/Strings.h"
 
 #include <fstream>
@@ -28,4 +29,30 @@ std::wstring Files::Load(const std::wstring& filename)
 	return std::wstring(std::istream_iterator<wchar_t, wchar_t>(infile), std::istream_iterator<wchar_t, wchar_t>());
 }
 
+//
+// Wrapper for finding all files matching a specification (supports wildcards)
+//
+std::vector<std::wstring> Files::GetMatchingFiles(const std::wstring& filespec)
+{
+	std::vector<std::wstring> ret;
+
+#ifdef BOOST_WINDOWS
+	std::wstring path = StripFilename(filespec);
+
+	WIN32_FIND_DATA find;
+	HANDLE findhandle = ::FindFirstFile(filespec.c_str(), &find);
+	if(findhandle != INVALID_HANDLE_VALUE)
+	{
+		do
+		{
+			ret.push_back(path + std::wstring(find.cFileName));
+		}
+		while(::FindNextFile(findhandle, &find));
+	}
+#else
+#warning Implement on non-Windows platforms
+#endif
+
+	return ret;
+}
 
