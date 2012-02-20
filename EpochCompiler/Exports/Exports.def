@@ -1,0 +1,7 @@
+LIBRARY	"EpochCompiler"
+EXPORTS
+	CompileSourceToByteCode		@1
+	GetByteCodeBuffer			@2
+	GetByteCodeBufferSize		@3
+	FreeByteCodeBuffer			@4
+
