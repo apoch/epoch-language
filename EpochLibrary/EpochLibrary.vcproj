@@ -506,18 +506,6 @@
 						>
 					</File>
 				</Filter>
-				<Filter
-					Name="Files and Paths"
-					>
-					<File
-						RelativePath="..\Shared\Utility\Files\SpecialPaths.cpp"
-						>
-					</File>
-					<File
-						RelativePath="..\Shared\Utility\Files\SpecialPaths.h"
-						>
-					</File>
-				</Filter>
 			</Filter>
 			<Filter
 				Name="User Interface"
@@ -596,26 +584,6 @@
 				</File>
 				<File
 					RelativePath="..\Shared\Metadata\StructureDefinition.h"
-					>
-				</File>
-			</Filter>
-			<Filter
-				Name="Configuration"
-				>
-				<File
-					RelativePath="..\Shared\Configuration\ConfigFile.cpp"
-					>
-				</File>
-				<File
-					RelativePath="..\Shared\Configuration\ConfigFile.h"
-					>
-				</File>
-				<File
-					RelativePath="..\Shared\Configuration\RuntimeOptions.cpp"
-					>
-				</File>
-				<File
-					RelativePath="..\Shared\Configuration\RuntimeOptions.h"
 					>
 				</File>
 			</Filter>
