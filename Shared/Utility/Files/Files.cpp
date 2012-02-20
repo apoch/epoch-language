@@ -14,6 +14,8 @@
 #include <fstream>
 #include <iterator>
 
+#include <boost/filesystem.hpp>
+#include <boost/regex.hpp>
 //
 // Wrapper for loading a file's contents into a string
 //
@@ -34,24 +36,43 @@ std::wstring Files::Load(const std::wstring& filename)
 //
 std::vector<std::wstring> Files::GetMatchingFiles(const std::wstring& filespec)
 {
+	using namespace boost::filesystem;
 	std::vector<std::wstring> ret;
 
-#ifdef BOOST_WINDOWS
-	std::wstring path = StripFilename(filespec);
-
-	WIN32_FIND_DATA find;
-	HANDLE findhandle = ::FindFirstFile(filespec.c_str(), &find);
-	if(findhandle != INVALID_HANDLE_VALUE)
-	{
-		do
-		{
-			ret.push_back(path + std::wstring(find.cFileName));
+	path p = path(filespec);
+	if(exists(p)) {
+		if(is_regular_file(p)) {
+			ret.push_back(p.generic_wstring());
+		} else if(is_directory(p)) {
+			directory_iterator endItor, itor(p);
+			while(itor != endItor) {
+				if(itor->path().extension() == L".epoch")
+					ret.push_back(itor->path().generic_wstring());
+				++itor;
+			}
 		}
-		while(::FindNextFile(findhandle, &find));
+	} else {
+		const boost::wregex esc( _T("[\\^\\.\\$\\|\\(\\)\\[\\]\\+\\?\\/\\\\]") );
+		const std::wstring rep( _T("\\\\\\1&") );
+		const boost::wregex esc2(L"[\\*]");
+		const std::wstring rep2(L".\\1&");
+		const std::wstring tmp = boost::regex_replace(p.filename().generic_wstring(), esc, rep, boost::match_default | boost::format_sed);
+		const std::wstring filterMatch = boost::regex_replace(tmp, esc2, rep2, boost::match_default | boost::format_sed);
+		boost::wregex filter = boost::wregex(filterMatch);
+
+		p.remove_filename();
+		p = absolute(p);
+		if(exists(p) && is_directory(p)) {
+			directory_iterator endItor, itor(p);
+			
+			while(itor != endItor) {
+				boost::wsmatch what;
+				if(boost::regex_match(itor->path().generic_wstring(), what, filter))
+					ret.push_back(itor->path().generic_wstring());
+				++itor;
+			}
+		}
 	}
-#else
-#warning Implement on non-Windows platforms
-#endif
 
 	return ret;
 }
