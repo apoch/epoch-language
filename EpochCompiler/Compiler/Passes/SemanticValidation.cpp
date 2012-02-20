@@ -140,6 +140,9 @@ CompilePassSemantics::~CompilePassSemantics()
 	for(std::vector<IRSemantics::Entity*>::iterator iter = CurrentPostfixEntities.begin(); iter != CurrentPostfixEntities.end(); ++iter)
 		delete *iter;
 
+	for(std::vector<IRSemantics::FunctionParamFuncRef*>::iterator iter = CurrentFunctionSignatures.begin(); iter != CurrentFunctionSignatures.end(); ++iter)
+		delete *iter;
+
 	delete CurrentProgram;
 }
 
@@ -196,7 +199,7 @@ void CompilePassSemantics::EntryHelper::operator () (AST::Undefined&)
 	{
 		if(!self->StateStack.empty())
 		{
-			if(self->StateStack.top() == STATE_FUNCTION)
+			if(self->StateStack.top() == STATE_FUNCTION || self->StateStack.top() == STATE_STRUCTURE_FUNCTION_RETURN)
 			return;
 		}
 
@@ -348,14 +351,17 @@ void CompilePassSemantics::EntryHelper::operator () (AST::StructureMemberFunctio
 		throw InternalException("Attempted to traverse a structure member AST node in an invalid context");
 	}
 
+	self->StateStack.push(CompilePassSemantics::STATE_STRUCTURE_FUNCTION);
+	self->CurrentStructureFunctions.push_back(new IRSemantics::StructureMemberFunctionReference);
+}
+
+void CompilePassSemantics::ExitHelper::operator () (AST::StructureMemberFunctionRef& funcref)
+{
 	StringHandle name = self->CurrentProgram->AddString(std::wstring(funcref.Name.begin(), funcref.Name.end()));
-	StringHandle returntype = self->CurrentProgram->AddString(std::wstring(funcref.ReturnType.begin(), funcref.ReturnType.end()));
 
-	std::vector<StringHandle> paramtypes;
-	std::for_each(funcref.ParamTypes.begin(), funcref.ParamTypes.end(), StringPooler(*self->CurrentProgram, paramtypes));
-
-	std::auto_ptr<IRSemantics::StructureMemberFunctionReference> member(new IRSemantics::StructureMemberFunctionReference(paramtypes, returntype));
-	self->CurrentStructures.back()->AddMember(name, member.release());
+	self->CurrentStructures.back()->AddMember(name, self->CurrentStructureFunctions.back());
+	self->CurrentStructureFunctions.pop_back();
+	self->StateStack.pop();
 }
 
 
@@ -1077,6 +1083,22 @@ void CompilePassSemantics::EntryHelper::operator () (AST::IdentifierT& identifie
 		self->CurrentFunctions.back()->SetName(self->CurrentProgram->AddString(raw));
 		break;
 
+	case CompilePassSemantics::STATE_FUNCTION_SIGNATURE_PARAMS:
+		self->CurrentFunctionSignatures.back()->AddParam(self->CurrentProgram->AddString(raw));
+		break;
+
+	case CompilePassSemantics::STATE_FUNCTION_SIGNATURE_RETURN:
+		self->CurrentFunctionSignatures.back()->SetReturnType(self->CurrentProgram->AddString(raw));
+		break;
+
+	case CompilePassSemantics::STATE_STRUCTURE_FUNCTION_PARAMS:
+		self->CurrentStructureFunctions.back()->AddParam(self->CurrentProgram->AddString(raw));
+		break;
+
+	case CompilePassSemantics::STATE_STRUCTURE_FUNCTION_RETURN:
+		self->CurrentStructureFunctions.back()->SetReturnType(self->CurrentProgram->AddString(raw));
+		break;
+
 	case CompilePassSemantics::STATE_POSTFIX_ENTITY:
 		self->CurrentPostfixEntities.back()->SetPostfixIdentifier(self->CurrentProgram->AddString(raw));
 		break;
@@ -1092,24 +1114,24 @@ void CompilePassSemantics::EntryHelper::operator () (AST::IdentifierT& identifie
 // typically used when passing function references to higher-order functions
 // in the program being compiled.
 //
-// We can safely treat this as an atomic leaf node, hence the direct access
-// of the node's properties when generating output.
+// Note that function reference signatures are not leaf nodes!
 //
 void CompilePassSemantics::EntryHelper::operator () (AST::FunctionReferenceSignature& refsig)
 {
 	if(self->CurrentFunctions.empty())
 		throw std::runtime_error("Invalid parse state");		// TODO - better exceptions
 
+	self->StateStack.push(CompilePassSemantics::STATE_FUNCTION_SIGNATURE);
+
+	self->CurrentFunctionSignatures.push_back(new IRSemantics::FunctionParamFuncRef);
+}
+
+void CompilePassSemantics::ExitHelper::operator () (AST::FunctionReferenceSignature& refsig)
+{
 	StringHandle name = self->CurrentProgram->AddString(std::wstring(refsig.Identifier.begin(), refsig.Identifier.end()));
-	StringHandle returntype = 0;//self->CurrentProgram->AddString(std::wstring(refsig.ReturnType.begin(), refsig.ReturnType.end()));
-
-	// TODO - fix higher order functions
-
-	std::vector<StringHandle> paramtypes;
-	std::for_each(refsig.ParamTypes.begin(), refsig.ParamTypes.end(), StringPooler(*self->CurrentProgram, paramtypes));
-
-	std::auto_ptr<IRSemantics::FunctionParamFuncRef> irparam(new IRSemantics::FunctionParamFuncRef(paramtypes, returntype));
-	self->CurrentFunctions.back()->AddParameter(name, irparam.release());
+	self->CurrentFunctions.back()->AddParameter(name, self->CurrentFunctionSignatures.back());
+	self->CurrentFunctionSignatures.pop_back();
+	self->StateStack.pop();
 }
 
 
@@ -1148,6 +1170,49 @@ void CompilePassSemantics::EntryHelper::operator () (Markers::ExpressionComponen
 }
 
 void CompilePassSemantics::ExitHelper::operator () (Markers::ExpressionComponentPrefixes&)
+{
+	self->StateStack.pop();
+}
+
+
+void CompilePassSemantics::EntryHelper::operator () (Markers::FunctionSignatureParams&)
+{
+	self->StateStack.push(CompilePassSemantics::STATE_FUNCTION_SIGNATURE_PARAMS);
+}
+
+void CompilePassSemantics::ExitHelper::operator () (Markers::FunctionSignatureParams&)
+{
+	self->StateStack.pop();
+}
+
+void CompilePassSemantics::EntryHelper::operator () (Markers::FunctionSignatureReturn&)
+{
+	self->StateStack.push(CompilePassSemantics::STATE_FUNCTION_SIGNATURE_RETURN);
+}
+
+void CompilePassSemantics::ExitHelper::operator () (Markers::FunctionSignatureReturn&)
+{
+	self->StateStack.pop();
+}
+
+
+
+void CompilePassSemantics::EntryHelper::operator () (Markers::StructureFunctionParams&)
+{
+	self->StateStack.push(CompilePassSemantics::STATE_STRUCTURE_FUNCTION_PARAMS);
+}
+
+void CompilePassSemantics::ExitHelper::operator () (Markers::StructureFunctionParams&)
+{
+	self->StateStack.pop();
+}
+
+void CompilePassSemantics::EntryHelper::operator () (Markers::StructureFunctionReturn&)
+{
+	self->StateStack.push(CompilePassSemantics::STATE_STRUCTURE_FUNCTION_RETURN);
+}
+
+void CompilePassSemantics::ExitHelper::operator () (Markers::StructureFunctionReturn&)
 {
 	self->StateStack.pop();
 }

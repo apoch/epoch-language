@@ -17,6 +17,7 @@ namespace IRSemantics
 {
 	class Program;
 	class Structure;
+	class StructureMemberFunctionReference;
 	class Function;
 	class Expression;
 	class ExpressionAtom;
@@ -24,6 +25,7 @@ namespace IRSemantics
 	class Statement;
 	class CodeBlock;
 	class Entity;
+	class FunctionParamFuncRef;
 }
 
 class StringPoolManager;
@@ -150,6 +152,10 @@ namespace ASTTraverse
 
 			void operator () (Markers::FunctionReturnExpression& marker);
 			void operator () (Markers::ExpressionComponentPrefixes& marker);
+			void operator () (Markers::FunctionSignatureParams& marker);
+			void operator () (Markers::FunctionSignatureReturn& marker);
+			void operator () (Markers::StructureFunctionParams& marker);
+			void operator () (Markers::StructureFunctionReturn& marker);
 
 		// Internal binding to the owning CompilePassSemantics object
 		private:
@@ -185,12 +191,16 @@ namespace ASTTraverse
 			//
 
 			void operator () (AST::Structure& structure);
+			void operator () (AST::StructureMemberFunctionRef& funcref);
+
 			void operator () (AST::Program& program);
 			void operator () (AST::Function& function);
 			void operator () (AST::FunctionParameter& param);
 			void operator () (AST::Expression& expression);
 			void operator () (AST::ExpressionComponent& exprcomponent);
 			void operator () (AST::ExpressionFragment& exprfragment);
+
+			void operator () (AST::FunctionReferenceSignature& refsig);
 
 			void operator () (AST::Assignment& assignment);
 
@@ -209,6 +219,10 @@ namespace ASTTraverse
 
 			void operator () (Markers::FunctionReturnExpression& marker);
 			void operator () (Markers::ExpressionComponentPrefixes& marker);
+			void operator () (Markers::FunctionSignatureParams& marker);
+			void operator () (Markers::FunctionSignatureReturn& marker);
+			void operator () (Markers::StructureFunctionParams& marker);
+			void operator () (Markers::StructureFunctionReturn& marker);
 
 		// Internal bindings to the owning CompilePassSemantics object
 		private:
@@ -229,6 +243,8 @@ namespace ASTTraverse
 		std::vector<IRSemantics::Entity*> CurrentEntities;
 		std::vector<IRSemantics::Entity*> CurrentChainedEntities;
 		std::vector<IRSemantics::Entity*> CurrentPostfixEntities;
+		std::vector<IRSemantics::FunctionParamFuncRef*> CurrentFunctionSignatures;
+		std::vector<IRSemantics::StructureMemberFunctionReference*> CurrentStructureFunctions;
 
 		enum States
 		{
@@ -237,6 +253,9 @@ namespace ASTTraverse
 			STATE_FUNCTION,
 			STATE_FUNCTION_PARAM,
 			STATE_FUNCTION_RETURN,
+			STATE_FUNCTION_SIGNATURE,
+			STATE_FUNCTION_SIGNATURE_PARAMS,
+			STATE_FUNCTION_SIGNATURE_RETURN,
 			STATE_EXPRESSION,
 			STATE_EXPRESSION_COMPONENT,
 			STATE_EXPRESSION_COMPONENT_PREFIXES,
@@ -249,6 +268,9 @@ namespace ASTTraverse
 			STATE_ENTITY,
 			STATE_POSTFIX_ENTITY,
 			STATE_CHAINED_ENTITY,
+			STATE_STRUCTURE_FUNCTION,
+			STATE_STRUCTURE_FUNCTION_PARAMS,
+			STATE_STRUCTURE_FUNCTION_RETURN,
 		};
 
 		std::stack<States> StateStack;

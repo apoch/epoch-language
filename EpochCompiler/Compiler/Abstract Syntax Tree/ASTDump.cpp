@@ -186,8 +186,6 @@ void DumpToStream::EntryHelper::operator () (AST::StructureMemberVariable& varia
 void DumpToStream::EntryHelper::operator () (AST::StructureMemberFunctionRef& funcref)
 {
 	PrintAndIndent(self, L"Function reference named ", funcref.Name, L" with parameter types:");
-	Print(self, funcref.ParamTypes);
-	UnindentAndPrint(self, L"Returning ", funcref.ReturnType);
 }
 
 
@@ -484,6 +482,28 @@ void DumpToStream::EntryHelper::operator () (Markers::ExpressionComponentPrefixe
 // Finish traversing unary prefixes
 //
 void DumpToStream::ExitHelper::operator () (Markers::ExpressionComponentPrefixes&)
+{
+	// Nothing to do
+}
+
+
+
+void DumpToStream::EntryHelper::operator () (Markers::FunctionSignatureParams&)
+{
+	// Nothing to do
+}
+
+void DumpToStream::ExitHelper::operator () (Markers::FunctionSignatureParams&)
+{
+	// Nothing to do
+}
+
+void DumpToStream::EntryHelper::operator () (Markers::FunctionSignatureReturn&)
+{
+	// Nothing to do
+}
+
+void DumpToStream::ExitHelper::operator () (Markers::FunctionSignatureReturn&)
 {
 	// Nothing to do
 }

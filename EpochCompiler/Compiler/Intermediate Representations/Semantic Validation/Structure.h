@@ -82,9 +82,8 @@ namespace IRSemantics
 	{
 	// Construction
 	public:
-		StructureMemberFunctionReference(const std::vector<StringHandle>& paramtypes, StringHandle returntype)
-			: ReturnType(returntype),
-			  ParamTypes(paramtypes)
+		StructureMemberFunctionReference()
+			: ReturnType(VM::EpochType_Void)
 		{ }
 
 	// Structure member interface
@@ -96,6 +95,19 @@ namespace IRSemantics
 		{ return VM::EpochType_Function; }
 
 		virtual bool Validate(const IRSemantics::Program& program) const;
+
+	// Mutation
+	public:
+		void AddParam(StringHandle type)
+		{ ParamTypes.push_back(type); }
+
+		void SetReturnType(StringHandle type)
+		{ ReturnType = type; }
+
+	// Additional inspection
+	public:
+		StringHandle GetReturnType() const
+		{ return ReturnType; }
 
 	// Internal state
 	private:

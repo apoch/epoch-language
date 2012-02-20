@@ -19,13 +19,13 @@ GlobalGrammar::GlobalGrammar(const Lexer::EpochLexerT& lexer, const FunctionDefi
 {
 	using namespace boost::spirit::qi;
 
-	ParamTypeSpec %= lexer.OpenParens >> -(as<AST::IdentifierT>()[lexer.StringIdentifier] % lexer.Comma) >> lexer.CloseParens;
-	ReturnTypeSpec %= lexer.OpenParens >> -(lexer.StringIdentifier) >> lexer.CloseParens;
-	StructureMemberFunctionRef %= (lexer.StringIdentifier) >> lexer.Colon >> ParamTypeSpec >> lexer.Arrow >> ReturnTypeSpec;
-	StructureMemberVariable %= (lexer.StringIdentifier >> lexer.OpenParens >> lexer.StringIdentifier >> lexer.CloseParens);
+	ParamTypeSpec %= -(as<AST::IdentifierT>()[lexer.StringIdentifier] % lexer.Comma);
+	ReturnTypeSpec %= lexer.Arrow >> lexer.StringIdentifier;
+	StructureMemberFunctionRef %= lexer.OpenParens >> (lexer.StringIdentifier) >> lexer.Colon >> ParamTypeSpec >> -ReturnTypeSpec >> lexer.CloseParens;
+	StructureMemberVariable %= (lexer.StringIdentifier >> lexer.StringIdentifier);
 	StructureMember %= StructureMemberVariable | StructureMemberFunctionRef;
 	StructureMembers %= (StructureMember % lexer.Comma);
-	StructureDefinition %= lexer.StructureDef >> lexer.StringIdentifier >> lexer.Colon >> lexer.OpenParens >> StructureMembers >> lexer.CloseParens;
+	StructureDefinition %= lexer.StructureDef >> lexer.StringIdentifier >> lexer.Colon >> StructureMembers;
 	GlobalDefinition %= lexer.GlobalDef >> codeblockgrammar.InnerCodeBlock;
 	MetaEntity %= GlobalDefinition | StructureDefinition | TheFunctionDefinitionGrammar;
 	MetaEntities %= *MetaEntity;

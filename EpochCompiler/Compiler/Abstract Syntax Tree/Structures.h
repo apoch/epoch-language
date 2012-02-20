@@ -10,6 +10,7 @@
 
 // Dependencies
 #include "Compiler/Abstract Syntax Tree/Identifiers.h"
+#include "Compiler/Abstract Syntax Tree/OptionalIdentifier.h"
 
 
 namespace AST
@@ -31,7 +32,7 @@ namespace AST
 	{
 		IdentifierT Name;
 		IdentifierList ParamTypes;
-		IdentifierT ReturnType;
+		OptionalIdentifier ReturnType;
 	};
 
 
@@ -78,7 +79,7 @@ BOOST_FUSION_ADAPT_STRUCT
 	AST::Deferred<AST::StructureMemberFunctionRef>,
 	(AST::IdentifierT, Content->Name)
 	(AST::IdentifierList, Content->ParamTypes)
-	(AST::IdentifierT, Content->ReturnType)
+	(AST::OptionalIdentifier, Content->ReturnType)
 )
 
 BOOST_FUSION_ADAPT_STRUCT

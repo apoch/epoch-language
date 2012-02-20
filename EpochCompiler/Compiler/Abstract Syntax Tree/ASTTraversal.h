@@ -98,6 +98,10 @@ namespace ASTTraverse
 	{
 		struct FunctionReturnExpression { };
 		struct ExpressionComponentPrefixes { };
+		struct FunctionSignatureParams { };
+		struct FunctionSignatureReturn { };
+		struct StructureFunctionParams { };
+		struct StructureFunctionReturn { };
 	}
 
 	//
@@ -296,6 +300,27 @@ namespace ASTTraverse
 		}
 
 		//
+		// Traverse a higher-order function parameter
+		//
+		template <typename EntryActionT, typename ExitActionT>
+		void Do(EntryActionT& entryaction, AST::FunctionReferenceSignature& signature, ExitActionT& exitaction)
+		{
+			entryaction(signature);
+
+			Markers::FunctionSignatureParams parammarker;
+			entryaction(parammarker);
+			Do(entryaction, signature.ParamTypes, exitaction);
+			exitaction(parammarker);
+
+			Markers::FunctionSignatureReturn retmarker;
+			entryaction(retmarker);
+			Do(entryaction, signature.ReturnType, exitaction);
+			exitaction(retmarker);
+
+			exitaction(signature);
+		}
+
+		//
 		// Traverse a function parameter
 		//
 		template <typename EntryActionT, typename ExitActionT>
@@ -322,6 +347,27 @@ namespace ASTTraverse
 			exitaction(marker);
 			Do(entryaction, function.Code, exitaction);
 			exitaction(function);
+		}
+
+		//
+		// Traverse a structure member which is a function reference
+		//
+		template <typename EntryActionT, typename ExitActionT>
+		void Do(EntryActionT& entryaction, AST::StructureMemberFunctionRef& signature, ExitActionT& exitaction)
+		{
+			entryaction(signature);
+
+			Markers::StructureFunctionParams parammarker;
+			entryaction(parammarker);
+			Do(entryaction, signature.ParamTypes, exitaction);
+			exitaction(parammarker);
+
+			Markers::StructureFunctionReturn retmarker;
+			entryaction(retmarker);
+			Do(entryaction, signature.ReturnType, exitaction);
+			exitaction(retmarker);
+
+			exitaction(signature);
 		}
 
 		//

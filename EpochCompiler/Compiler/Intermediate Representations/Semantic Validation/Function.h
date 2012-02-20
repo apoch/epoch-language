@@ -81,9 +81,8 @@ namespace IRSemantics
 	{
 	// Construction
 	public:
-		FunctionParamFuncRef(const std::vector<StringHandle>& paramtypes, StringHandle returntype)
-			: ParamTypes(paramtypes),
-			  ReturnType(returntype)
+		FunctionParamFuncRef()
+			: ReturnType(VM::EpochType_Void)
 		{ }
 
 	// Function parameter interface
@@ -98,6 +97,14 @@ namespace IRSemantics
 		{ return false; }
 
 		virtual bool Validate(const IRSemantics::Program& program) const;
+
+	// Mutation
+	public:
+		void AddParam(StringHandle type)
+		{ ParamTypes.push_back(type); }
+
+		void SetReturnType(StringHandle type)
+		{ ReturnType = type; }
 
 	// Additional inspection
 	public:
