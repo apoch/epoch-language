@@ -186,6 +186,10 @@ namespace
 		{
 			EmitStatement(emitter, atom->GetStatement(), activescope, program);
 		}
+		else if(const IRSemantics::ExpressionAtomCopyFromStructure* atom = dynamic_cast<const IRSemantics::ExpressionAtomCopyFromStructure*>(rawatom))
+		{
+			emitter.CopyFromStructure(program.FindString(L"identifier"), program.FindString(L"member"));
+		}
 		else
 		{
 			//
@@ -375,6 +379,27 @@ namespace
 			}
 		}
 	}
+
+	void EmitConstructor(ByteCodeEmitter& emitter, StringHandle name, const IRSemantics::Structure& structure, const IRSemantics::Program& program)
+	{
+		emitter.DefineLexicalScope(name, program.FindLexicalScopeName(program.GetGlobalScope()), structure.GetMembers().size() + 1);
+		emitter.LexicalScopeEntry(program.FindString(L"identifier"), VM::EpochType_Identifier, true, VARIABLE_ORIGIN_PARAMETER);
+		for(size_t i = 0; i < structure.GetMembers().size(); ++i)
+			emitter.LexicalScopeEntry(structure.GetMembers()[i].first, structure.GetMembers()[i].second->GetEpochType(program), false, VARIABLE_ORIGIN_PARAMETER);
+
+		emitter.EnterFunction(name);
+		emitter.AllocateStructure(program.LookupType(name));
+		emitter.BindReference(program.FindString(L"identifier"));
+		emitter.AssignVariable();
+
+		for(size_t i = 0; i < structure.GetMembers().size(); ++i)
+		{
+			emitter.PushVariableValue(structure.GetMembers()[i].second->GetEpochType(program), structure.GetMembers()[i].first);
+			emitter.AssignStructure(program.FindString(L"identifier"), structure.GetMembers()[i].second->GetEpochType(program));
+		}
+
+		emitter.ExitFunction();
+	}
 }
 
 
@@ -480,6 +505,11 @@ bool CompilerPasses::GenerateCode(const IRSemantics::Program& program, ByteCodeE
 
 		emitter.ExitFunction();
 	}
+
+	// Generate constructors for structures
+	// TODO - implement anonymous temporaries
+	for(std::map<StringHandle, IRSemantics::Structure*>::const_iterator iter = structures.begin(); iter != structures.end(); ++iter)
+		EmitConstructor(emitter, iter->first, *iter->second, program);
 
 	for(size_t i = 0; i < numglobalblocks; ++i)
 		emitter.ExitEntity();

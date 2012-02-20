@@ -160,7 +160,7 @@ bool Expression::TypeInference(Program& program, CodeBlock& activescope, Inferen
 	for(std::vector<ExpressionAtom*>::iterator iter = Atoms.begin(); iter != Atoms.end(); ++iter)
 	{
 		ExpressionAtomOperator* opatom = dynamic_cast<ExpressionAtomOperator*>(*iter);
-		if(!opatom)
+		if(!opatom || opatom->IsMemberAccess())
 			continue;
 
 		OverloadMap::const_iterator overloadmapiter = program.Session.FunctionOverloadNames.find(opatom->GetIdentifier());

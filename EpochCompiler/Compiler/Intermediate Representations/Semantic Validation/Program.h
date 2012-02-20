@@ -89,6 +89,7 @@ namespace IRSemantics
 	// String pooling
 	public:
 		StringHandle AddString(const std::wstring& str);
+		StringHandle FindString(const std::wstring& str) const;
 		EPOCHCOMPILER const std::wstring& GetString(StringHandle handle) const;
 		
 		const StringPoolManager& GetStringPool() const

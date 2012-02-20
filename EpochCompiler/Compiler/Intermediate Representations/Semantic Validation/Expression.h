@@ -385,18 +385,18 @@ namespace IRSemantics
 	};
 
 
-	class ExpressionAtomTypeWrapper : public ExpressionAtom
+	class ExpressionAtomCopyFromStructure : public ExpressionAtom
 	{
 	// Construction
 	public:
-		explicit ExpressionAtomTypeWrapper(VM::EpochTypeID type)
+		explicit ExpressionAtomCopyFromStructure(VM::EpochTypeID type)
 			: MyType(type)
 		{ }
 
 	// Non-copyable
 	private:
-		ExpressionAtomTypeWrapper(const ExpressionAtomTypeWrapper& other);
-		ExpressionAtomTypeWrapper& operator = (const ExpressionAtomTypeWrapper& rhs);
+		ExpressionAtomCopyFromStructure(const ExpressionAtomCopyFromStructure& other);
+		ExpressionAtomCopyFromStructure& operator = (const ExpressionAtomCopyFromStructure& rhs);
 
 	// Atom interface
 	public:

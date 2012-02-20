@@ -69,6 +69,11 @@ StringHandle Program::AddString(const std::wstring& str)
 	return ret;
 }
 
+StringHandle Program::FindString(const std::wstring& str) const
+{
+	return IdentifierCache.Find(str);
+}
+
 const std::wstring& Program::GetString(StringHandle handle) const
 {
 	return Strings.GetPooledString(handle);
