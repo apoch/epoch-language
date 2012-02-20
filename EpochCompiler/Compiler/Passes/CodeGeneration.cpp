@@ -328,6 +328,9 @@ namespace
 			else if(const IRSemantics::CodeBlockStatementEntry* entry = dynamic_cast<const IRSemantics::CodeBlockStatementEntry*>(baseentry))
 			{
 				EmitStatement(emitter, entry->GetStatement(), codeblock, program);
+				VM::EpochTypeID rettype = entry->GetStatement().GetEpochType(program);
+				if(rettype != VM::EpochType_Void)
+					emitter.PopStack(rettype);
 			}
 			else if(const IRSemantics::CodeBlockPreOpStatementEntry* entry = dynamic_cast<const IRSemantics::CodeBlockPreOpStatementEntry*>(baseentry))
 			{
