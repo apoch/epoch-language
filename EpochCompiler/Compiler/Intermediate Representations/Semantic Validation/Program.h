@@ -142,7 +142,7 @@ namespace IRSemantics
 		size_t GetNumGlobalCodeBlocks() const;
 		StringHandle GetGlobalCodeBlockName(size_t index) const;
 
-		ScopeDescription* GetGlobalScope();
+		ScopeDescription* GetGlobalScope() const;
 
 	// Type alias lookup
 	public:

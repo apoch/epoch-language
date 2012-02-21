@@ -32,7 +32,7 @@ Program::Program(StringPoolManager& strings, CompileSession& session)
 	  Strings(strings),
 	  StructureTypeCounter(VM::EpochType_CustomBase),
 	  Session(session),
-	  GlobalScope(NULL)
+	  GlobalScope(new ScopeDescription())
 {
 }
 
@@ -488,11 +488,8 @@ Bytecode::EntityTag Program::GetEntityCloserTag(StringHandle identifier) const
 }
 
 
-ScopeDescription* Program::GetGlobalScope()
+ScopeDescription* Program::GetGlobalScope() const
 {
-	if(!GlobalScope)
-		GlobalScope = new ScopeDescription;
-
 	return GlobalScope;
 }
 
