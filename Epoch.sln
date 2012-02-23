@@ -1,14 +1,14 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 9.00
-# Visual Studio 2005
+# Visual C++ Express 2005
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "EpochTools", "EpochTools\EpochTools.vcproj", "{607F0DF4-9791-41CC-A648-B830D4C61EE0}"
-	ProjectSection(WebsiteProperties) = preProject
-		Debug.AspNetCompiler.Debug = "True"
-		Release.AspNetCompiler.Debug = "False"
-	EndProjectSection
 	ProjectSection(ProjectDependencies) = postProject
 		{1AFB3B3C-B2BE-4941-8EC3-E75F998A0B86} = {1AFB3B3C-B2BE-4941-8EC3-E75F998A0B86}
 		{AAB8EDA4-D37F-475B-9CEB-2BBBD5799B3B} = {AAB8EDA4-D37F-475B-9CEB-2BBBD5799B3B}
+	EndProjectSection
+	ProjectSection(WebsiteProperties) = preProject
+		Debug.AspNetCompiler.Debug = "True"
+		Release.AspNetCompiler.Debug = "False"
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "EpochVM", "EpochVM\EpochVM.vcproj", "{AAB8EDA4-D37F-475B-9CEB-2BBBD5799B3B}"
@@ -18,21 +18,21 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "EpochVM", "EpochVM\EpochVM.
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "EpochCompiler", "EpochCompiler\EpochCompiler.vcproj", "{1AFB3B3C-B2BE-4941-8EC3-E75F998A0B86}"
-	ProjectSection(WebsiteProperties) = preProject
-		Debug.AspNetCompiler.Debug = "True"
-		Release.AspNetCompiler.Debug = "False"
-	EndProjectSection
 	ProjectSection(ProjectDependencies) = postProject
 		{AAB8EDA4-D37F-475B-9CEB-2BBBD5799B3B} = {AAB8EDA4-D37F-475B-9CEB-2BBBD5799B3B}
 	EndProjectSection
-EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "EpochLibrary", "EpochLibrary\EpochLibrary.vcproj", "{DEBFFDDA-9C4A-4778-969A-6EF29781F97A}"
 	ProjectSection(WebsiteProperties) = preProject
 		Debug.AspNetCompiler.Debug = "True"
 		Release.AspNetCompiler.Debug = "False"
 	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "EpochLibrary", "EpochLibrary\EpochLibrary.vcproj", "{DEBFFDDA-9C4A-4778-969A-6EF29781F97A}"
 	ProjectSection(ProjectDependencies) = postProject
 		{1AFB3B3C-B2BE-4941-8EC3-E75F998A0B86} = {1AFB3B3C-B2BE-4941-8EC3-E75F998A0B86}
+	EndProjectSection
+	ProjectSection(WebsiteProperties) = preProject
+		Debug.AspNetCompiler.Debug = "True"
+		Release.AspNetCompiler.Debug = "False"
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "EpochLexer", "EpochLexer\EpochLexer.vcproj", "{18209046-31CC-4775-ADC5-0AF40BF6C035}"
@@ -40,6 +40,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "EpochLexer", "EpochLexer\Ep
 		Debug.AspNetCompiler.Debug = "True"
 		Release.AspNetCompiler.Debug = "False"
 	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "EpochTests", "EpochTests\EpochTests.vcproj", "{7ED35E07-BA10-4CE5-B1E7-958AB964C99B}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -67,6 +69,10 @@ Global
 		{18209046-31CC-4775-ADC5-0AF40BF6C035}.Debug|Win32.Build.0 = Debug|Win32
 		{18209046-31CC-4775-ADC5-0AF40BF6C035}.Release|Win32.ActiveCfg = Release|Win32
 		{18209046-31CC-4775-ADC5-0AF40BF6C035}.Release|Win32.Build.0 = Release|Win32
+		{7ED35E07-BA10-4CE5-B1E7-958AB964C99B}.Debug|Win32.ActiveCfg = Debug|Win32
+		{7ED35E07-BA10-4CE5-B1E7-958AB964C99B}.Debug|Win32.Build.0 = Debug|Win32
+		{7ED35E07-BA10-4CE5-B1E7-958AB964C99B}.Release|Win32.ActiveCfg = Release|Win32
+		{7ED35E07-BA10-4CE5-B1E7-958AB964C99B}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

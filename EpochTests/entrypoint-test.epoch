@@ -1,0 +1,4 @@
+entrypoint :
+{
+	print("Hello world")
+}

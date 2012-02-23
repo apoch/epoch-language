@@ -1,0 +1,197 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{DEBFFDDA-9C4A-4778-969A-6EF29781F97A}</ProjectGuid>
+    <RootNamespace>EpochLibrary</RootNamespace>
+    <Keyword>Win32Proj</Keyword>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <CharacterSet>Unicode</CharacterSet>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <_ProjectFileVersion>10.0.40219.1</_ProjectFileVersion>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">..\Bin\$(Configuration)\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">..\Build\$(ProjectName)$(Configuration)\</IntDir>
+    <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</LinkIncremental>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">..\Bin\$(Configuration)\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">..\Build\$(ProjectName)$(Configuration)\</IntDir>
+    <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</LinkIncremental>
+    <CodeAnalysisRuleSet Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">AllRules.ruleset</CodeAnalysisRuleSet>
+    <CodeAnalysisRules Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" />
+    <CodeAnalysisRuleAssemblies Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" />
+    <CodeAnalysisRuleSet Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">AllRules.ruleset</CodeAnalysisRuleSet>
+    <CodeAnalysisRules Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" />
+    <CodeAnalysisRuleAssemblies Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" />
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <Optimization>Disabled</Optimization>
+      <AdditionalIncludeDirectories>.\;..\Shared\;..\EpochVM\;..\EpochCompiler\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_USRDLL;EPOCHLIBRARY_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <MinimalRebuild>true</MinimalRebuild>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>EpochVM.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(OutDir);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <ModuleDefinitionFile>Exports/Exports.def</ModuleDefinitionFile>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <SubSystem>Windows</SubSystem>
+      <TargetMachine>MachineX86</TargetMachine>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>.\;..\Shared\;..\EpochVM\;..\EpochCompiler\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;EPOCHLIBRARY_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>EpochVM.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(OutDir);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <ModuleDefinitionFile>Exports/Exports.def</ModuleDefinitionFile>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <SubSystem>Windows</SubSystem>
+      <OptimizeReferences>true</OptimizeReferences>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <TargetMachine>MachineX86</TargetMachine>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="EntryPoint.cpp" />
+    <ClCompile Include="pch.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">pch.h</PrecompiledHeaderFile>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="Exports\Exports.cpp" />
+    <ClCompile Include="Library Functionality\Debugging\Debugging.cpp" />
+    <ClCompile Include="Library Functionality\Type Constructors\Primitives.cpp" />
+    <ClCompile Include="Library Functionality\Type Casting\Typecasts.cpp" />
+    <ClCompile Include="Library Functionality\Operators\Arithmetic.cpp" />
+    <ClCompile Include="Library Functionality\Operators\Boolean.cpp" />
+    <ClCompile Include="Library Functionality\Operators\Comparison.cpp" />
+    <ClCompile Include="Library Functionality\Operators\Strings.cpp">
+      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(IntDir)%(Filename)1.obj</ObjectFileName>
+      <XMLDocumentationFileName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(IntDir)%(Filename)1.xdc</XMLDocumentationFileName>
+      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(IntDir)%(Filename)1.obj</ObjectFileName>
+      <XMLDocumentationFileName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(IntDir)%(Filename)1.xdc</XMLDocumentationFileName>
+    </ClCompile>
+    <ClCompile Include="Library Functionality\Flow Control\Conditionals.cpp" />
+    <ClCompile Include="Library Functionality\Flow Control\FlowControl.cpp" />
+    <ClCompile Include="Library Functionality\Flow Control\Loops.cpp" />
+    <ClCompile Include="Library Functionality\Flow Control\StringPooling.cpp" />
+    <ClCompile Include="Library Functionality\Function Tags\Constructors.cpp" />
+    <ClCompile Include="Library Functionality\Function Tags\Externals.cpp" />
+    <ClCompile Include="Library Functionality\Marshaling\MarshalingLibrary.cpp" />
+    <ClCompile Include="Library Functionality\Command Line\CommandLine.cpp" />
+    <ClCompile Include="Library Functionality\Strings\Strings.cpp">
+      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(IntDir)%(Filename)2.obj</ObjectFileName>
+      <XMLDocumentationFileName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(IntDir)%(Filename)2.xdc</XMLDocumentationFileName>
+      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(IntDir)%(Filename)2.obj</ObjectFileName>
+      <XMLDocumentationFileName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(IntDir)%(Filename)2.xdc</XMLDocumentationFileName>
+    </ClCompile>
+    <ClCompile Include="..\Shared\Utility\DLLPool.cpp" />
+    <ClCompile Include="..\Shared\Utility\StringPool.cpp" />
+    <ClCompile Include="..\Shared\Utility\Strings.cpp" />
+    <ClCompile Include="..\Shared\Utility\Memory\Stack.cpp" />
+    <ClCompile Include="..\Shared\Utility\Threading\Synchronization.cpp" />
+    <ClCompile Include="..\Shared\User Interface\Input.cpp" />
+    <ClCompile Include="..\Shared\User Interface\Output.cpp" />
+    <ClCompile Include="..\Shared\Metadata\ActiveScope.cpp" />
+    <ClCompile Include="..\Shared\Metadata\FunctionSignature.cpp" />
+    <ClCompile Include="..\Shared\Metadata\Register.cpp" />
+    <ClCompile Include="..\Shared\Metadata\ScopeDescription.cpp" />
+    <ClCompile Include="..\Shared\Metadata\StructureDefinition.cpp" />
+    <ClCompile Include="VM Linkage\HeapAccess.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="pch.h" />
+    <ClInclude Include="Library Functionality\Debugging\Debugging.h" />
+    <ClInclude Include="Library Functionality\Type Constructors\Primitives.h" />
+    <ClInclude Include="Library Functionality\Type Casting\Typecasts.h" />
+    <ClInclude Include="Library Functionality\Operators\Arithmetic.h" />
+    <ClInclude Include="Library Functionality\Operators\Boolean.h" />
+    <ClInclude Include="Library Functionality\Operators\Comparison.h" />
+    <ClInclude Include="Library Functionality\Operators\Strings.h" />
+    <ClInclude Include="Library Functionality\Flow Control\Conditionals.h" />
+    <ClInclude Include="Library Functionality\Flow Control\FlowControl.h" />
+    <ClInclude Include="Library Functionality\Flow Control\Loops.h" />
+    <ClInclude Include="Library Functionality\Flow Control\StringPooling.h" />
+    <ClInclude Include="Library Functionality\Function Tags\Constructors.h" />
+    <ClInclude Include="Library Functionality\Function Tags\Externals.h" />
+    <ClInclude Include="Library Functionality\Marshaling\MarshalingLibrary.h" />
+    <ClInclude Include="Library Functionality\Command Line\CommandLine.h" />
+    <ClInclude Include="Library Functionality\Strings\Strings.h" />
+    <ClInclude Include="..\Shared\Libraries\Library.h" />
+    <ClInclude Include="..\Shared\Utility\DLLPool.h" />
+    <ClInclude Include="..\Shared\Utility\Exception.h" />
+    <ClInclude Include="..\Shared\Utility\NoDupeMap.h" />
+    <ClInclude Include="..\Shared\Utility\StringPool.h" />
+    <ClInclude Include="..\Shared\Utility\Strings.h" />
+    <ClInclude Include="..\Shared\Utility\Memory\Stack.h" />
+    <ClInclude Include="..\Shared\Utility\Threading\Synchronization.h" />
+    <ClInclude Include="..\Shared\User Interface\Input.h" />
+    <ClInclude Include="..\Shared\User Interface\Output.h" />
+    <ClInclude Include="..\Shared\Metadata\ActiveScope.h" />
+    <ClInclude Include="..\Shared\Metadata\CompileTimeParams.h" />
+    <ClInclude Include="..\Shared\Metadata\EntityDescription.h" />
+    <ClInclude Include="..\Shared\Metadata\FunctionSignature.h" />
+    <ClInclude Include="..\Shared\Metadata\IdentifierTable.h" />
+    <ClInclude Include="..\Shared\Metadata\Register.h" />
+    <ClInclude Include="..\Shared\Metadata\ScopeDescription.h" />
+    <ClInclude Include="..\Shared\Metadata\StructureDefinition.h" />
+    <ClInclude Include="..\EpochVM\Virtual Machine\Marshaling.h" />
+    <ClInclude Include="..\EpochVM\Virtual Machine\TypeInfo.h" />
+    <ClInclude Include="..\EpochVM\Virtual Machine\VirtualMachine.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Exports\Exports.def" />
+    <None Include="..\Shared\User Interface\OutputStream.inl" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\EpochCompiler\EpochCompiler.vcxproj">
+      <Project>{1afb3b3c-b2be-4941-8ec3-e75f998a0b86}</Project>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

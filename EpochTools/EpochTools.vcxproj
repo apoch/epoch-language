@@ -1,0 +1,181 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{607F0DF4-9791-41CC-A648-B830D4C61EE0}</ProjectGuid>
+    <RootNamespace>EpochTools</RootNamespace>
+    <Keyword>Win32Proj</Keyword>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <CharacterSet>Unicode</CharacterSet>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <_ProjectFileVersion>10.0.40219.1</_ProjectFileVersion>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">..\Bin\$(Configuration)\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">..\Build\$(ProjectName)$(Configuration)\</IntDir>
+    <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</LinkIncremental>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">..\Bin\$(Configuration)\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">..\Build\$(ProjectName)$(Configuration)\</IntDir>
+    <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</LinkIncremental>
+    <CodeAnalysisRuleSet Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">AllRules.ruleset</CodeAnalysisRuleSet>
+    <CodeAnalysisRules Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" />
+    <CodeAnalysisRuleAssemblies Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" />
+    <CodeAnalysisRuleSet Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">AllRules.ruleset</CodeAnalysisRuleSet>
+    <CodeAnalysisRules Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" />
+    <CodeAnalysisRuleAssemblies Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" />
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <Optimization>Disabled</Optimization>
+      <AdditionalIncludeDirectories>.\;..\Shared\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <MinimalRebuild>true</MinimalRebuild>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
+    </ClCompile>
+    <Link>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <SubSystem>Console</SubSystem>
+      <TargetMachine>MachineX86</TargetMachine>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>.\;..\Shared\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+    </ClCompile>
+    <Link>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <SubSystem>Console</SubSystem>
+      <OptimizeReferences>true</OptimizeReferences>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <TargetMachine>MachineX86</TargetMachine>
+    </Link>
+    <Manifest>
+      <AdditionalManifestFiles>EpochToolsManifest.xml;%(AdditionalManifestFiles)</AdditionalManifestFiles>
+    </Manifest>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="Entry Point\EntryPoint.cpp" />
+    <ClCompile Include="pch.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">pch.h</PrecompiledHeaderFile>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">pch.h</PrecompiledHeaderFile>
+    </ClCompile>
+    <ClCompile Include="..\Shared\User Interface\Input.cpp" />
+    <ClCompile Include="..\Shared\User Interface\Output.cpp" />
+    <ClCompile Include="..\Shared\Utility\DLLPool.cpp" />
+    <ClCompile Include="..\Shared\Utility\Strings.cpp" />
+    <ClCompile Include="..\Shared\Utility\Threading\Synchronization.cpp" />
+    <ClCompile Include="..\Shared\Utility\Files\Files.cpp" />
+    <ClCompile Include="..\Shared\Utility\Files\FilesAndPaths.cpp" />
+    <ClCompile Include="DLL Access Wrappers\Compiler.cpp" />
+    <ClCompile Include="DLL Access Wrappers\VM.cpp" />
+    <ClCompile Include="Serialization\Serializer.cpp" />
+    <ClCompile Include="Linker\Linker.cpp" />
+    <ClCompile Include="Linker\LinkWriter.cpp" />
+    <ClCompile Include="Section Managers\Code.cpp" />
+    <ClCompile Include="Section Managers\Data.cpp" />
+    <ClCompile Include="Section Managers\EpochData.cpp" />
+    <ClCompile Include="Section Managers\PEHeader.cpp" />
+    <ClCompile Include="Section Managers\PESections.cpp" />
+    <ClCompile Include="Section Managers\Resources.cpp" />
+    <ClCompile Include="Section Managers\Thunk.cpp" />
+    <ClCompile Include="Resource Compiler\ResourceDirectory.cpp" />
+    <ClCompile Include="Resource Compiler\ResourceScript.cpp" />
+    <ClCompile Include="Resource Compiler\Resource Types\Icons.cpp" />
+    <ClCompile Include="Resource Compiler\Resource Types\Menus.cpp" />
+    <ClCompile Include="Project Files\Project.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="pch.h" />
+    <ClInclude Include="resource.h" />
+    <ClInclude Include="..\Shared\User Interface\Input.h" />
+    <ClInclude Include="..\Shared\User Interface\Output.h" />
+    <ClInclude Include="..\Shared\Utility\DLLPool.h" />
+    <ClInclude Include="..\Shared\Utility\Exception.h" />
+    <ClInclude Include="..\Shared\Utility\Strings.h" />
+    <ClInclude Include="..\Shared\Utility\Threading\Synchronization.h" />
+    <ClInclude Include="..\Shared\Utility\Files\Files.h" />
+    <ClInclude Include="..\Shared\Utility\Files\FilesAndPaths.h" />
+    <ClInclude Include="DLL Access Wrappers\Compiler.h" />
+    <ClInclude Include="DLL Access Wrappers\Exceptions.h" />
+    <ClInclude Include="DLL Access Wrappers\VM.h" />
+    <ClInclude Include="Serialization\Exceptions.h" />
+    <ClInclude Include="Serialization\Serializer.h" />
+    <ClInclude Include="Linker\Linker.h" />
+    <ClInclude Include="Linker\LinkWriter.h" />
+    <ClInclude Include="Section Managers\Code.h" />
+    <ClInclude Include="Section Managers\Data.h" />
+    <ClInclude Include="Section Managers\EpochData.h" />
+    <ClInclude Include="Section Managers\PEHeader.h" />
+    <ClInclude Include="Section Managers\PESections.h" />
+    <ClInclude Include="Section Managers\Resources.h" />
+    <ClInclude Include="Section Managers\Thunk.h" />
+    <ClInclude Include="Resource Compiler\ResourceDirectory.h" />
+    <ClInclude Include="Resource Compiler\ResourceEmitter.h" />
+    <ClInclude Include="Resource Compiler\ResourceScript.h" />
+    <ClInclude Include="Resource Compiler\ResourceTypes.h" />
+    <ClInclude Include="Resource Compiler\Resource Types\Icons.h" />
+    <ClInclude Include="Resource Compiler\Resource Types\Menus.h" />
+    <ClInclude Include="Embedded Resources\EmbeddedStrings.h" />
+    <ClInclude Include="Project Files\Project.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\Shared\User Interface\OutputStream.inl" />
+    <None Include="Epoch.ico" />
+    <None Include="EpochToolsManifest.xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="EpochTools.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\EpochCompiler\EpochCompiler.vcxproj">
+      <Project>{1afb3b3c-b2be-4941-8ec3-e75f998a0b86}</Project>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    </ProjectReference>
+    <ProjectReference Include="..\EpochVM\EpochVM.vcxproj">
+      <Project>{aab8eda4-d37f-475b-9ceb-2bbbd5799b3b}</Project>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

@@ -1,0 +1,246 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Entry Point">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Precompiled Header">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hpp;hxx;hm;inl;inc;xsd</Extensions>
+    </Filter>
+    <Filter Include="Shared">
+      <UniqueIdentifier>{e619bb1d-8aac-415b-87b0-04da6af2273e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shared\User Interface">
+      <UniqueIdentifier>{156a31a3-d2ef-4a5b-b805-7ce02f6b31bc}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shared\Utility">
+      <UniqueIdentifier>{6956d755-0acf-4cb6-afa6-7765084e21b9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shared\Utility\Threading">
+      <UniqueIdentifier>{97584f88-5fe8-494c-aa4b-e5afaebc924f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shared\Utility\Files">
+      <UniqueIdentifier>{598f824c-3b5e-4f3a-984b-eda1ffb6c998}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="DLL Access Wrappers">
+      <UniqueIdentifier>{b6656ff2-e5f7-49f4-8611-f1bc9c335589}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Serialization">
+      <UniqueIdentifier>{45e90ed0-687b-4aa3-9faf-8b820c176928}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Linker">
+      <UniqueIdentifier>{18d67986-824b-4b71-b668-ac7e20149ad9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Section Managers">
+      <UniqueIdentifier>{303c2d47-7cf3-43c1-967d-b62c6347c7e2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resource Compiler">
+      <UniqueIdentifier>{6e4eb582-b837-4607-b576-2650340ab80a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resource Compiler\Resource Types">
+      <UniqueIdentifier>{259408b1-a7c8-47e9-9f93-8310ce741797}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Embedded Resources">
+      <UniqueIdentifier>{6198aa05-a65b-4794-be24-a17ea1f144f9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Project Files">
+      <UniqueIdentifier>{a9f226b1-c9f8-4555-8d28-21beea0ffe88}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Entry Point\EntryPoint.cpp">
+      <Filter>Entry Point</Filter>
+    </ClCompile>
+    <ClCompile Include="pch.cpp">
+      <Filter>Precompiled Header</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Shared\User Interface\Input.cpp">
+      <Filter>Shared\User Interface</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Shared\User Interface\Output.cpp">
+      <Filter>Shared\User Interface</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Shared\Utility\DLLPool.cpp">
+      <Filter>Shared\Utility</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Shared\Utility\Strings.cpp">
+      <Filter>Shared\Utility</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Shared\Utility\Threading\Synchronization.cpp">
+      <Filter>Shared\Utility\Threading</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Shared\Utility\Files\Files.cpp">
+      <Filter>Shared\Utility\Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Shared\Utility\Files\FilesAndPaths.cpp">
+      <Filter>Shared\Utility\Files</Filter>
+    </ClCompile>
+    <ClCompile Include="DLL Access Wrappers\Compiler.cpp">
+      <Filter>DLL Access Wrappers</Filter>
+    </ClCompile>
+    <ClCompile Include="DLL Access Wrappers\VM.cpp">
+      <Filter>DLL Access Wrappers</Filter>
+    </ClCompile>
+    <ClCompile Include="Serialization\Serializer.cpp">
+      <Filter>Serialization</Filter>
+    </ClCompile>
+    <ClCompile Include="Linker\Linker.cpp">
+      <Filter>Linker</Filter>
+    </ClCompile>
+    <ClCompile Include="Linker\LinkWriter.cpp">
+      <Filter>Linker</Filter>
+    </ClCompile>
+    <ClCompile Include="Section Managers\Code.cpp">
+      <Filter>Section Managers</Filter>
+    </ClCompile>
+    <ClCompile Include="Section Managers\Data.cpp">
+      <Filter>Section Managers</Filter>
+    </ClCompile>
+    <ClCompile Include="Section Managers\EpochData.cpp">
+      <Filter>Section Managers</Filter>
+    </ClCompile>
+    <ClCompile Include="Section Managers\PEHeader.cpp">
+      <Filter>Section Managers</Filter>
+    </ClCompile>
+    <ClCompile Include="Section Managers\PESections.cpp">
+      <Filter>Section Managers</Filter>
+    </ClCompile>
+    <ClCompile Include="Section Managers\Resources.cpp">
+      <Filter>Section Managers</Filter>
+    </ClCompile>
+    <ClCompile Include="Section Managers\Thunk.cpp">
+      <Filter>Section Managers</Filter>
+    </ClCompile>
+    <ClCompile Include="Resource Compiler\ResourceDirectory.cpp">
+      <Filter>Resource Compiler</Filter>
+    </ClCompile>
+    <ClCompile Include="Resource Compiler\ResourceScript.cpp">
+      <Filter>Resource Compiler</Filter>
+    </ClCompile>
+    <ClCompile Include="Resource Compiler\Resource Types\Icons.cpp">
+      <Filter>Resource Compiler\Resource Types</Filter>
+    </ClCompile>
+    <ClCompile Include="Resource Compiler\Resource Types\Menus.cpp">
+      <Filter>Resource Compiler\Resource Types</Filter>
+    </ClCompile>
+    <ClCompile Include="Project Files\Project.cpp">
+      <Filter>Project Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="pch.h">
+      <Filter>Precompiled Header</Filter>
+    </ClInclude>
+    <ClInclude Include="resource.h">
+      <Filter>Precompiled Header</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Shared\User Interface\Input.h">
+      <Filter>Shared\User Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Shared\User Interface\Output.h">
+      <Filter>Shared\User Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Shared\Utility\DLLPool.h">
+      <Filter>Shared\Utility</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Shared\Utility\Exception.h">
+      <Filter>Shared\Utility</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Shared\Utility\Strings.h">
+      <Filter>Shared\Utility</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Shared\Utility\Threading\Synchronization.h">
+      <Filter>Shared\Utility\Threading</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Shared\Utility\Files\Files.h">
+      <Filter>Shared\Utility\Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Shared\Utility\Files\FilesAndPaths.h">
+      <Filter>Shared\Utility\Files</Filter>
+    </ClInclude>
+    <ClInclude Include="DLL Access Wrappers\Compiler.h">
+      <Filter>DLL Access Wrappers</Filter>
+    </ClInclude>
+    <ClInclude Include="DLL Access Wrappers\Exceptions.h">
+      <Filter>DLL Access Wrappers</Filter>
+    </ClInclude>
+    <ClInclude Include="DLL Access Wrappers\VM.h">
+      <Filter>DLL Access Wrappers</Filter>
+    </ClInclude>
+    <ClInclude Include="Serialization\Exceptions.h">
+      <Filter>Serialization</Filter>
+    </ClInclude>
+    <ClInclude Include="Serialization\Serializer.h">
+      <Filter>Serialization</Filter>
+    </ClInclude>
+    <ClInclude Include="Linker\Linker.h">
+      <Filter>Linker</Filter>
+    </ClInclude>
+    <ClInclude Include="Linker\LinkWriter.h">
+      <Filter>Linker</Filter>
+    </ClInclude>
+    <ClInclude Include="Section Managers\Code.h">
+      <Filter>Section Managers</Filter>
+    </ClInclude>
+    <ClInclude Include="Section Managers\Data.h">
+      <Filter>Section Managers</Filter>
+    </ClInclude>
+    <ClInclude Include="Section Managers\EpochData.h">
+      <Filter>Section Managers</Filter>
+    </ClInclude>
+    <ClInclude Include="Section Managers\PEHeader.h">
+      <Filter>Section Managers</Filter>
+    </ClInclude>
+    <ClInclude Include="Section Managers\PESections.h">
+      <Filter>Section Managers</Filter>
+    </ClInclude>
+    <ClInclude Include="Section Managers\Resources.h">
+      <Filter>Section Managers</Filter>
+    </ClInclude>
+    <ClInclude Include="Section Managers\Thunk.h">
+      <Filter>Section Managers</Filter>
+    </ClInclude>
+    <ClInclude Include="Resource Compiler\ResourceDirectory.h">
+      <Filter>Resource Compiler</Filter>
+    </ClInclude>
+    <ClInclude Include="Resource Compiler\ResourceEmitter.h">
+      <Filter>Resource Compiler</Filter>
+    </ClInclude>
+    <ClInclude Include="Resource Compiler\ResourceScript.h">
+      <Filter>Resource Compiler</Filter>
+    </ClInclude>
+    <ClInclude Include="Resource Compiler\ResourceTypes.h">
+      <Filter>Resource Compiler</Filter>
+    </ClInclude>
+    <ClInclude Include="Resource Compiler\Resource Types\Icons.h">
+      <Filter>Resource Compiler\Resource Types</Filter>
+    </ClInclude>
+    <ClInclude Include="Resource Compiler\Resource Types\Menus.h">
+      <Filter>Resource Compiler\Resource Types</Filter>
+    </ClInclude>
+    <ClInclude Include="Embedded Resources\EmbeddedStrings.h">
+      <Filter>Embedded Resources</Filter>
+    </ClInclude>
+    <ClInclude Include="Project Files\Project.h">
+      <Filter>Project Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\Shared\User Interface\OutputStream.inl">
+      <Filter>Shared\User Interface</Filter>
+    </None>
+    <None Include="Epoch.ico">
+      <Filter>Embedded Resources</Filter>
+    </None>
+    <None Include="EpochToolsManifest.xml">
+      <Filter>Embedded Resources</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="EpochTools.rc">
+      <Filter>Embedded Resources</Filter>
+    </ResourceCompile>
+  </ItemGroup>
+</Project>
