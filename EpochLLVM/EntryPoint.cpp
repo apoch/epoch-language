@@ -6,42 +6,31 @@ int _tmain(int argc, _TCHAR* argv[])
 
 	InitializeNativeTarget();
 
-	LLVMContext& Context = getGlobalContext();
+	LLVMContext& context = getGlobalContext();
 
-	Module* module = new Module("EpochJIT", Context);
+	Module* module = new Module("EpochJIT", context);
 
-	IRBuilder<> Builder(Context);
+	IRBuilder<> builder(context);
 
-	std::map<std::string, Value*> NamedValues;
-
-
-	std::vector<Type*> args(1, Type::getInt32Ty(Context));
-	FunctionType* functype = FunctionType::get(Type::getInt32Ty(Context), args, false);
+	std::vector<Type*> args(1, Type::getInt32Ty(context));
+	FunctionType* functype = FunctionType::get(Type::getInt32Ty(context), args, false);
 
 	Function* func = Function::Create(functype, Function::ExternalLinkage, "answer", module);
 
-	std::vector<std::string> Args;
-	Args.push_back("a");
+	func->arg_begin()->setName("a");
 
-	unsigned Idx = 0;
-	for(Function::arg_iterator AI = func->arg_begin(); Idx != Args.size(); ++AI, ++Idx)
-	{
-		AI->setName(Args[Idx]);
-		NamedValues[Args[Idx]] = AI;
-	}
-
-	BasicBlock* block = BasicBlock::Create(Context, "entry", func);
-	Builder.SetInsertPoint(block);
+	BasicBlock* block = BasicBlock::Create(context, "entry", func);
+	builder.SetInsertPoint(block);
 
 	std::vector<Type*> noargs;
-	FunctionType* getstufffunctype = FunctionType::get(Type::getInt32Ty(Context), noargs, false);
+	FunctionType* getstufffunctype = FunctionType::get(Type::getInt32Ty(context), noargs, false);
 	Function* getstufffunc = Function::Create(getstufffunctype, Function::ExternalLinkage, "getstuff", module);
 
-	Value* stuff = Builder.CreateCall(getstufffunc);
+	Value* stuff = builder.CreateCall(getstufffunc, "stuff");
 
-	Value* addition = Builder.CreateAdd(NamedValues["a"], stuff, "addtmp");
+	Value* addition = builder.CreateAdd(func->arg_begin(), stuff, "addition");
 
-	Builder.CreateRet(addition);
+	builder.CreateRet(addition);
 
 	verifyFunction(*func);
 
