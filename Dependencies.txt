@@ -15,3 +15,11 @@ Boost
 Version 1.47.0
 http://www.boost.org/
 
+
+
+LLVM
+----
+
+Version 3.0
+http://www.llvm.org/
+
