@@ -11,6 +11,7 @@
 // Dependencies
 #include "Compiler/Abstract Syntax Tree/FunctionParameter.h"
 #include "Compiler/Abstract Syntax Tree/Expression.h"
+#include "Compiler/Abstract Syntax Tree/Assignment.h"
 #include "Compiler/Abstract Syntax Tree/CodeBlock.h"
 
 
@@ -43,6 +44,16 @@ namespace AST
 
 
 	//
+	// Returns can be either a variable initialization or expression
+	//
+	typedef boost::variant
+		<
+			Undefined,
+			DeferredInitialization,
+			DeferredExpression
+		> OptionalReturn;
+
+	//
 	// A function definition
 	//
 	// This includes the function's name, its parameter set,
@@ -52,7 +63,7 @@ namespace AST
 	{
 		IdentifierT Name;
 		FunctionParamVec Parameters;
-		OptionalExpression Return;
+		OptionalReturn Return;
 		OptionalFunctionTags Tags;
 		OptionalCodeBlock Code;
 
@@ -79,7 +90,7 @@ BOOST_FUSION_ADAPT_STRUCT
 	AST::DeferredFunction,
 	(AST::IdentifierT, Content->Name)
 	(AST::FunctionParamVec, Content->Parameters)
-	(AST::OptionalExpression, Content->Return)
+	(AST::OptionalReturn, Content->Return)
 	(AST::OptionalFunctionTags, Content->Tags)
 	(AST::OptionalCodeBlock, Content->Code)
 )

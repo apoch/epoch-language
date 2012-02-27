@@ -199,8 +199,13 @@ void CompilePassSemantics::EntryHelper::operator () (AST::Undefined&)
 	{
 		if(!self->StateStack.empty())
 		{
-			if(self->StateStack.top() == STATE_FUNCTION || self->StateStack.top() == STATE_STRUCTURE_FUNCTION_RETURN)
-			return;
+			switch(self->StateStack.top())
+			{
+			case STATE_FUNCTION:
+			case STATE_STRUCTURE_FUNCTION_RETURN:
+			case STATE_FUNCTION_SIGNATURE_RETURN:
+				return;
+			}
 		}
 
 		//
@@ -911,6 +916,60 @@ void CompilePassSemantics::ExitHelper::operator () (AST::Assignment& assignment)
 		// is correct and that the context is supported.
 		//
 		throw InternalException("Assignment occurs in unrecognized context");
+	}
+}
+
+//
+// Begin traversing a node corresponding to an initialization
+//
+void CompilePassSemantics::EntryHelper::operator () (AST::Initialization& initialization)
+{
+	CompilePassSemantics::States state = self->StateStack.top();
+
+	self->StateStack.push(CompilePassSemantics::STATE_STATEMENT);
+
+	StringHandle type = self->CurrentProgram->AddString(std::wstring(initialization.TypeSpecifier.begin(), initialization.TypeSpecifier.end()));
+	StringHandle lhs = self->CurrentProgram->AddString(std::wstring(initialization.LHS.begin(), initialization.LHS.end()));
+
+	self->CurrentStatements.push_back(new IRSemantics::Statement(type));
+	std::auto_ptr<IRSemantics::Expression> param(new IRSemantics::Expression());
+	param->AddAtom(new IRSemantics::ExpressionAtomIdentifier(lhs));
+	self->CurrentStatements.back()->AddParameter(param.release());
+}
+
+//
+// Finish traversing a node corresponding to an initialization
+//
+void CompilePassSemantics::ExitHelper::operator () (AST::Initialization& initialization)
+{
+	self->StateStack.pop();
+	
+	switch(self->StateStack.top())
+	{
+	case CompilePassSemantics::STATE_CODE_BLOCK:
+		self->CurrentCodeBlocks.back()->AddEntry(new IRSemantics::CodeBlockStatementEntry(self->CurrentStatements.back()));
+		self->CurrentStatements.pop_back();
+		break;
+
+	case CompilePassSemantics::STATE_FUNCTION_RETURN:
+		{
+			std::auto_ptr<IRSemantics::Expression> expression(new IRSemantics::Expression);
+			expression->AddAtom(new IRSemantics::ExpressionAtomStatement(self->CurrentStatements.back()));
+			self->CurrentStatements.pop_back();
+			self->CurrentFunctions.back()->SetReturnExpression(expression.release());
+		}
+		break;
+
+	default:
+		//
+		// This is probably a missing language feature.
+		//
+		// An initialization AST node has been traversed but
+		// its surrounding context was not explicitly handled
+		// by one of the above cases. Ensure the AST generation
+		// is correct and that the context is supported.
+		//
+		throw InternalException("Initialization occurs in an unrecognized context");
 	}
 }
 

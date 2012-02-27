@@ -70,6 +70,12 @@ namespace boost
 	};
 
 	template <>
+	struct has_nothrow_copy<AST::DeferredInitialization>
+		: mpl::true_
+	{
+	};
+
+	template <>
 	struct has_nothrow_copy<AST::DeferredEntity>
 		: mpl::true_
 	{

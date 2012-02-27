@@ -76,6 +76,9 @@ void AST::intrusive_ptr_release(Assignment* ast)					{ ReleaseRef(ast); }
 void AST::intrusive_ptr_add_ref(SimpleAssignment* ast)				{ AddRef(ast); }
 void AST::intrusive_ptr_release(SimpleAssignment* ast)				{ ReleaseRef(ast); }
 
+void AST::intrusive_ptr_add_ref(Initialization* init)				{ AddRef(init); }
+void AST::intrusive_ptr_release(Initialization* init)				{ ReleaseRef(init); }
+
 void AST::intrusive_ptr_add_ref(ChainedEntity* entity)				{ AddRef(entity); }
 void AST::intrusive_ptr_release(ChainedEntity* entity)				{ ReleaseRef(entity); }
 

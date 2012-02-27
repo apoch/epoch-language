@@ -89,6 +89,38 @@ namespace AST
 		Assignment& operator = (const Assignment&);
 	};
 
+	//
+	// Variable initializations are like simple assignments
+	// except they include a type specifier. The operator
+	// is also always simply = and not some other operator.
+	//
+	struct Initialization
+	{
+		IdentifierT TypeSpecifier;
+		IdentifierT LHS;
+		DeferredExpressionVector RHS;
+
+		long RefCount;
+
+		Initialization()
+			: RefCount(0)
+		{ }
+
+	// Non-copyable
+	private:
+		Initialization(const Initialization&);
+		Initialization& operator = (const Initialization&);
+	};
+
+	//
+	// An optional initialization might be undefined
+	//
+	typedef boost::variant
+		<
+			Undefined,
+			DeferredInitialization
+		> OptionalInitialization;
+
 }
 
 //
@@ -111,3 +143,10 @@ BOOST_FUSION_ADAPT_STRUCT
 	(AST::ExpressionOrAssignment, Content->RHS)
 )
 
+BOOST_FUSION_ADAPT_STRUCT
+(
+	AST::DeferredInitialization,
+	(AST::IdentifierT, Content->TypeSpecifier)
+	(AST::IdentifierT, Content->LHS)
+	(AST::DeferredExpressionVector, Content->RHS)
+)

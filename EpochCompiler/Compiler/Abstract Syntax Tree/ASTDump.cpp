@@ -68,6 +68,12 @@ namespace
 		self->TheStream << leadertext << firstidentifier << conjunctiontext << secondidentifier << std::endl;
 	}
 
+	void PrintAndIndent(DumpToStream* self, const wchar_t* leadertext, const AST::IdentifierT& firstidentifier, const wchar_t* conjunctiontext, const AST::IdentifierT& secondidentifier)
+	{
+		Print(self, leadertext, firstidentifier, conjunctiontext, secondidentifier);
+		++self->Indentation;
+	}
+
 	//
 	// Print a lone identifier
 	//
@@ -366,6 +372,23 @@ void DumpToStream::EntryHelper::operator () (AST::Assignment& assignment)
 void DumpToStream::ExitHelper::operator () (AST::Assignment& assignment)
 {
 	UnindentAndPrint(self, L"End of assignment");
+}
+
+
+//
+// Begin traversing a node corresponding to an initialization
+//
+void DumpToStream::EntryHelper::operator () (AST::Initialization& initialization)
+{
+	PrintAndIndent(self, L"Initialization of variable ", initialization.LHS, L" with type ", initialization.TypeSpecifier);
+}
+
+//
+// Finish traversing a node corresponding to an initialization
+//
+void DumpToStream::ExitHelper::operator () (AST::Initialization& initialization)
+{
+	UnindentAndPrint(self, L"End of initialization");
 }
 
 

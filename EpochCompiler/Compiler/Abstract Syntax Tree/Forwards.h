@@ -20,6 +20,7 @@ namespace AST
 	struct FunctionReferenceSignature;
 	struct Assignment;
 	struct SimpleAssignment;
+	struct Initialization;
 	struct ChainedEntity;
 	struct FunctionParameter;
 	struct PostfixEntity;
@@ -47,6 +48,7 @@ namespace AST
 	template<> inline FunctionReferenceSignature* Allocate<FunctionReferenceSignature>();
 	template<> inline Assignment* Allocate<Assignment>();
 	template<> inline SimpleAssignment* Allocate<SimpleAssignment>();
+	template<> inline Initialization* Allocate<Initialization>();
 	template<> inline ChainedEntity* Allocate<ChainedEntity>();
 	template<> inline FunctionParameter* Allocate<FunctionParameter>();
 	template<> inline Entity* Allocate<Entity>();
@@ -67,6 +69,7 @@ namespace AST
 	template<> inline void Deallocate(FunctionReferenceSignature* p);
 	template<> inline void Deallocate(Assignment* p);
 	template<> inline void Deallocate(SimpleAssignment* p);
+	template<> inline void Deallocate(Initialization* p);
 	template<> inline void Deallocate(ChainedEntity* p);
 	template<> inline void Deallocate(FunctionParameter* p);
 	template<> inline void Deallocate(Entity* p);
@@ -89,6 +92,7 @@ namespace AST
 	typedef Deferred<Expression, boost::intrusive_ptr<Expression> > DeferredExpression;
 	typedef Deferred<Assignment, boost::intrusive_ptr<Assignment> > DeferredAssignment;
 	typedef Deferred<SimpleAssignment, boost::intrusive_ptr<SimpleAssignment> > DeferredSimpleAssignment;
+	typedef Deferred<Initialization, boost::intrusive_ptr<Initialization> > DeferredInitialization;
 	typedef Deferred<Entity, boost::intrusive_ptr<Entity> > DeferredEntity;
 	typedef Deferred<PostfixEntity, boost::intrusive_ptr<PostfixEntity> > DeferredPostfixEntity;
 	typedef Deferred<CodeBlock, boost::intrusive_ptr<CodeBlock> > DeferredCodeBlock;

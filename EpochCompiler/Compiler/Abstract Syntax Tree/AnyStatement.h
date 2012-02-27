@@ -30,7 +30,8 @@ namespace AST
 			Undefined,
 			DeferredPreOperatorStatement,
 			DeferredPostOperatorStatement,
-			DeferredStatement
+			DeferredStatement,
+			DeferredInitialization
 		> AnyStatement;
 
 }

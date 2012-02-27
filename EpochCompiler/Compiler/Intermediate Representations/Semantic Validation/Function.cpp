@@ -278,3 +278,31 @@ VM::EpochTypeID Function::GetParameterSignatureType(StringHandle name, const IRS
 	// TODO - ensure this exception cannot be thrown by simply malforming code
 	throw InternalException("Provided string handle does not correspond to a parameter of this function");
 }
+
+bool Function::DoesParameterSignatureMatch(size_t index, const FunctionSignature& signature, const IRSemantics::Program& program) const
+{
+	const FunctionParamFuncRef* param = dynamic_cast<const FunctionParamFuncRef*>(Parameters[index].Parameter);
+	StringHandle nameoftype = param->GetReturnType();
+	VM::EpochTypeID type = nameoftype ? program.LookupType(nameoftype) : VM::EpochType_Void;
+	if(type != signature.GetReturnType())
+		return false;
+
+	const std::vector<StringHandle>& paramtypes = param->GetParamTypes();
+	if(paramtypes.size() != signature.GetNumParameters())
+		return false;
+
+	for(size_t i = 0; i < paramtypes.size(); ++i)
+	{
+		const CompileTimeParameter& parameter = signature.GetParameter(i);
+		if(parameter.Type != program.LookupType(paramtypes[i]))
+			return false;
+
+		if(parameter.Type == VM::EpochType_Function)
+		{
+			throw std::runtime_error("Not implemented");		// TODO - better exceptions
+		}
+	}
+
+	return true;
+}
+

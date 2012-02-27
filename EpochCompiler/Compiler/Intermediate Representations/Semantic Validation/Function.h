@@ -15,6 +15,8 @@
 #include <vector>
 
 
+class FunctionSignature;
+
 
 namespace IRSemantics
 {
@@ -111,7 +113,7 @@ namespace IRSemantics
 	// Construction
 	public:
 		FunctionParamFuncRef()
-			: ReturnType(VM::EpochType_Void)
+			: ReturnType(0)
 		{ }
 
 	// Function parameter interface
@@ -139,6 +141,9 @@ namespace IRSemantics
 	public:
 		StringHandle GetReturnType() const
 		{ return ReturnType; }
+
+		const std::vector<StringHandle>& GetParamTypes() const
+		{ return ParamTypes; }
 
 	// Internal state
 	private:
@@ -220,6 +225,7 @@ namespace IRSemantics
 		VM::EpochTypeID GetParameterTypeByIndex(size_t index, const IRSemantics::Program& program) const;
 		bool IsParameterReference(StringHandle name) const;
 
+		bool DoesParameterSignatureMatch(size_t index, const FunctionSignature& signature, const IRSemantics::Program& program) const;
 		VM::EpochTypeID GetParameterSignatureType(StringHandle name, const IRSemantics::Program& program) const;
 
 		size_t GetNumParameters() const

@@ -38,6 +38,7 @@ namespace AST
 	template<> inline FunctionReferenceSignature* Allocate<FunctionReferenceSignature>()	{ return Memory::OneWayAllocateObject<FunctionReferenceSignature>(1); }
 	template<> inline Assignment* Allocate<Assignment>()									{ return Memory::OneWayAllocateObject<Assignment>(1); }
 	template<> inline SimpleAssignment* Allocate<SimpleAssignment>()						{ return Memory::OneWayAllocateObject<SimpleAssignment>(1); }
+	template<> inline Initialization* Allocate<Initialization>()							{ return Memory::OneWayAllocateObject<Initialization>(1); }
 	template<> inline ChainedEntity* Allocate<ChainedEntity>()								{ return Memory::OneWayAllocateObject<ChainedEntity>(1); }
 	template<> inline FunctionParameter* Allocate<FunctionParameter>()						{ return Memory::OneWayAllocateObject<FunctionParameter>(1); }
 	template<> inline Entity* Allocate<Entity>()											{ return Memory::OneWayAllocateObject<Entity>(1); }
@@ -58,6 +59,7 @@ namespace AST
 	template<> inline void Deallocate(FunctionReferenceSignature* p)	{ Memory::OneWayRecordDeallocObject(p); }
 	template<> inline void Deallocate(Assignment* p)					{ Memory::OneWayRecordDeallocObject(p); }
 	template<> inline void Deallocate(SimpleAssignment* p)				{ Memory::OneWayRecordDeallocObject(p); }
+	template<> inline void Deallocate(Initialization* p)				{ Memory::OneWayRecordDeallocObject(p); }
 	template<> inline void Deallocate(ChainedEntity* p)					{ Memory::OneWayRecordDeallocObject(p); }
 	template<> inline void Deallocate(FunctionParameter* p)				{ Memory::OneWayRecordDeallocObject(p); }
 	template<> inline void Deallocate(Entity* p)						{ Memory::OneWayRecordDeallocObject(p); }
@@ -99,6 +101,9 @@ namespace AST
 
 	void intrusive_ptr_add_ref(SimpleAssignment* expr);
 	void intrusive_ptr_release(SimpleAssignment* expr);
+
+	void intrusive_ptr_add_ref(Initialization* init);
+	void intrusive_ptr_release(Initialization* init);
 
 	void intrusive_ptr_add_ref(Entity* entity);
 	void intrusive_ptr_release(Entity* entity);

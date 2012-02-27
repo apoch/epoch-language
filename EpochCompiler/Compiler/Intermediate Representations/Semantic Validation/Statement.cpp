@@ -152,10 +152,32 @@ bool Statement::TypeInference(Program& program, CodeBlock& activescope, Inferenc
 					bool match = true;
 					for(size_t j = 0; j < Parameters.size(); ++j)
 					{
-						if(func->GetParameterTypeByIndex(j, program) != Parameters[j]->GetEpochType(program))
+						VM::EpochTypeID thisparamtype = func->GetParameterTypeByIndex(j, program);
+						if(thisparamtype != Parameters[j]->GetEpochType(program))
 						{
 							match = false;
 							break;
+						}
+
+						// Validate function signatures
+						if(thisparamtype == VM::EpochType_Function)
+						{
+							const ExpressionAtomIdentifier* identifieratom = dynamic_cast<const ExpressionAtomIdentifier*>(Parameters[j]->GetAtoms()[0]);
+							StringHandle identifier = identifieratom->GetIdentifier();
+
+							if(program.HasFunction(identifier))
+							{
+								// TODO
+							}
+							else
+							{
+								const FunctionSignature& funcsig = program.Session.FunctionSignatures.find(identifier)->second;
+								if(!func->DoesParameterSignatureMatch(j, funcsig, program))
+								{
+									match = false;
+									break;
+								}
+							}
 						}
 					}
 					

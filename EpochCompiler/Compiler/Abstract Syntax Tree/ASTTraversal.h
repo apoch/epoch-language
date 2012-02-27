@@ -249,6 +249,14 @@ namespace ASTTraverse
 			exitaction(assignment);
 		}
 
+		template <typename EntryActionT, typename ExitActionT>
+		void Do(EntryActionT& entryaction, AST::Initialization& initialization, ExitActionT& exitaction)
+		{
+			entryaction(initialization);
+			Do(entryaction, initialization.RHS, exitaction);
+			exitaction(initialization);
+		}
+
 		//
 		// Traverse a block of code
 		//
