@@ -32,3 +32,5 @@
 // Epoch project standard code
 #include "Utility/Exception.h"
 
+
+#define STATIC_ASSERT(expr)			enum { dummy = 1/static_cast<int>(!!(expr)) }

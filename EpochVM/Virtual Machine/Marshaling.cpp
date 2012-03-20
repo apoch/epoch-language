@@ -160,8 +160,7 @@ namespace
 		//
 		void* RequestMarshaledCallback(VM::ExecutionContext& context, StringHandle callbackfunction)
 		{
-			if(sizeof(UINT_PTR) != 4)
-				throw CompileSettingsException("Marshaling code is only implemented for 32-bit callbacks");
+			STATIC_ASSERT(sizeof(UINT_PTR) == 4);
 
 			Threads::CriticalSection::Auto mutex(MarshalingCriticalSection);
 
@@ -402,7 +401,7 @@ namespace
 //
 // Dispatch execution to an external DLL function
 //
-void ExternalDispatch(StringHandle functionname, VM::ExecutionContext& context)
+void ExternalDispatch(StringHandle, VM::ExecutionContext& context)
 {
 	using namespace VM;
 

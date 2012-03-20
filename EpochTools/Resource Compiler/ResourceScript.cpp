@@ -23,6 +23,16 @@
 using namespace ResourceCompiler;
 
 
+namespace
+{
+	bool ReadLine(std::wistream& stream, std::wstring& out)
+	{
+		std::getline(stream, out);
+		return !stream.eof();
+	}
+}
+
+
 //
 // Construct and initialize a resource script wrapper
 //
@@ -49,14 +59,9 @@ void ResourceScript::ProcessScriptFile(const std::wstring& filename)
 	if(!infile)
 		throw FileException("Failed to open resource script file");
 
-	while(true)
+	std::wstring line;
+	while(ReadLine(infile, line))
 	{
-		std::wstring line;
-		std::getline(infile, line);
-
-		if(infile.eof())
-			break;
-
 		line = StripWhitespace(line);
 
 		if(line.empty())
@@ -96,7 +101,7 @@ void ResourceScript::AddResourcesToDirectory(ResourceDirectory& directory)
 //
 // Read resource information out of the script file and add a corresponding resource to the directory
 //
-void ResourceScript::LoadResourceIntoDirectory(DWORD type, const std::wstring& filename, size_t offset, ResourceDirectory& directory)
+void ResourceScript::LoadResourceIntoDirectory(DWORD type, const std::wstring& filename, std::streamoff offset, ResourceDirectory& directory)
 {
 	DWORD id, language;
 	std::auto_ptr<ResourceEmitter> emitter(NULL);
@@ -105,7 +110,7 @@ void ResourceScript::LoadResourceIntoDirectory(DWORD type, const std::wstring& f
 	if(!infile)
 		throw FileException("Failed to open resource script file");
 
-	infile.seekg(static_cast<std::streamoff>(offset));
+	infile.seekg(offset);
 
 	std::wstring directive;
 

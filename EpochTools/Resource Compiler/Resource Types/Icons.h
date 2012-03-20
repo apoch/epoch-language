@@ -131,6 +131,11 @@ namespace ResourceCompiler
 			: ID(id), Memberships(groupmemberships)
 		{ }
 
+	// Non-copyable
+	private:
+		IconGroupEmitter(const IconGroupEmitter& rhs);
+		IconGroupEmitter& operator = (const IconGroupEmitter& rhs);
+
 	// Resource emitter interface
 	public:
 		virtual void Emit(LinkWriter& writer) const;

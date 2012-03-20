@@ -41,7 +41,7 @@ namespace
 	// simply tells the VM to run the current chain link. Actually exiting the loop
 	// is handled by the postfix entity in DoWhileCloserMetaControl().
 	//
-	EntityReturnCode DoWhileMetaControl(VM::ExecutionContext& context)
+	EntityReturnCode DoWhileMetaControl(VM::ExecutionContext&)
 	{
 		return ENTITYRET_EXECUTE_CURRENT_LINK_IN_CHAIN;
 	}
@@ -71,7 +71,7 @@ namespace
 //
 // Register loop flow control entities with the compiler/VM
 //
-void FlowControl::RegisterLoopEntities(EntityTable& entities, EntityTable& chainedentities, EntityTable& postfixentities, EntityTable& postfixclosers, StringPoolManager& stringpool, Bytecode::EntityTag& tagindex)
+void FlowControl::RegisterLoopEntities(EntityTable& entities, EntityTable&, EntityTable& postfixentities, EntityTable& postfixclosers, StringPoolManager& stringpool, Bytecode::EntityTag& tagindex)
 {
 	{
 		EntityDescription entity;

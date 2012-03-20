@@ -23,7 +23,7 @@ namespace
 	//
 	// Unescape a string (convert \x sequences into single bytes)
 	//
-	void UnescapeString(StringHandle functionname, VM::ExecutionContext& context)
+	void UnescapeString(StringHandle, VM::ExecutionContext& context)
 	{
 		const std::wstring& original = context.OwnerVM.GetPooledString(context.State.Stack.PopValue<StringHandle>());
 

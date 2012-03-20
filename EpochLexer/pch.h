@@ -9,9 +9,10 @@
 #include <boost/config.hpp>
 
 #define WIN32_LEAN_AND_MEAN
-
-// This is a PHENOMENALLY bad idea.
-#define _CRT_SECURE_NO_WARNINGS
+#define NOMINMAX
 
 #include <windows.h>
 #define STDCALL __stdcall
+
+
+#define ref(identifier)			((void)(identifier))

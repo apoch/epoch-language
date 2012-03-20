@@ -54,6 +54,10 @@ namespace
 			Container.push_back(handle);
 		}
 
+	// Assignment prohibited
+	private:
+		StringPooler& operator = (const StringPooler& rhs);
+
 	private:
 		IRSemantics::Program& Program;
 		std::vector<StringHandle>& Container;
@@ -233,7 +237,7 @@ void CompilePassSemantics::EntryHelper::operator () (AST::Undefined&)
 //
 // Begin traversing a program node, which represents the root of the AST
 //
-void CompilePassSemantics::EntryHelper::operator () (AST::Program& program)
+void CompilePassSemantics::EntryHelper::operator () (AST::Program&)
 {
 	if(self->CurrentProgram)
 	{
@@ -257,7 +261,7 @@ void CompilePassSemantics::EntryHelper::operator () (AST::Program& program)
 //
 // Finish traversing a program node
 //
-void CompilePassSemantics::ExitHelper::operator () (AST::Program& program)
+void CompilePassSemantics::ExitHelper::operator () (AST::Program&)
 {
 	self->StateStack.pop();
 }
@@ -266,7 +270,7 @@ void CompilePassSemantics::ExitHelper::operator () (AST::Program& program)
 //
 // Begin traversing a structure definition node
 //
-void CompilePassSemantics::EntryHelper::operator () (AST::Structure& structure)
+void CompilePassSemantics::EntryHelper::operator () (AST::Structure&)
 {
 	self->CurrentStructures.push_back(new IRSemantics::Structure);
 }
@@ -328,7 +332,7 @@ void CompilePassSemantics::EntryHelper::operator () (AST::StructureMemberVariabl
 //
 // Traverse a node defining a member function reference in a structure
 //
-void CompilePassSemantics::EntryHelper::operator () (AST::StructureMemberFunctionRef& funcref)
+void CompilePassSemantics::EntryHelper::operator () (AST::StructureMemberFunctionRef&)
 {
 	if(self->CurrentStructures.empty())
 	{
@@ -364,7 +368,7 @@ void CompilePassSemantics::ExitHelper::operator () (AST::StructureMemberFunction
 //
 // Begin traversing a node that defines a function
 //
-void CompilePassSemantics::EntryHelper::operator () (AST::Function& function)
+void CompilePassSemantics::EntryHelper::operator () (AST::Function&)
 {
 	self->StateStack.push(CompilePassSemantics::STATE_FUNCTION);
 	self->CurrentFunctions.push_back(new IRSemantics::Function);
@@ -419,7 +423,7 @@ void CompilePassSemantics::ExitHelper::operator () (AST::Function& function)
 //
 // Begin traversing a node that defines a function parameter
 //
-void CompilePassSemantics::EntryHelper::operator () (AST::FunctionParameter& param)
+void CompilePassSemantics::EntryHelper::operator () (AST::FunctionParameter&)
 {
 	self->StateStack.push(STATE_FUNCTION_PARAM);
 }
@@ -427,7 +431,7 @@ void CompilePassSemantics::EntryHelper::operator () (AST::FunctionParameter& par
 //
 // Finish traversing a node that defines a function parameter
 //
-void CompilePassSemantics::ExitHelper::operator () (AST::FunctionParameter& param)
+void CompilePassSemantics::ExitHelper::operator () (AST::FunctionParameter&)
 {
 	self->StateStack.pop();
 }
@@ -468,7 +472,7 @@ void CompilePassSemantics::EntryHelper::operator () (AST::NamedFunctionParameter
 //
 // Begin traversing a node that corresponds to an expression
 //
-void CompilePassSemantics::EntryHelper::operator () (AST::Expression& expression)
+void CompilePassSemantics::EntryHelper::operator () (AST::Expression&)
 {
 	self->StateStack.push(CompilePassSemantics::STATE_EXPRESSION);
 	self->CurrentExpressions.push_back(new IRSemantics::Expression);
@@ -477,7 +481,7 @@ void CompilePassSemantics::EntryHelper::operator () (AST::Expression& expression
 //
 // Finish traversing an expression node
 //
-void CompilePassSemantics::ExitHelper::operator () (AST::Expression& expression)
+void CompilePassSemantics::ExitHelper::operator () (AST::Expression&)
 {
 	self->StateStack.pop();
 
@@ -585,7 +589,7 @@ void CompilePassSemantics::ExitHelper::operator () (AST::Expression& expression)
 //
 // Begin traversing an expression component node (see AST definitions for details)
 //
-void CompilePassSemantics::EntryHelper::operator () (AST::ExpressionComponent& exprcomponent)
+void CompilePassSemantics::EntryHelper::operator () (AST::ExpressionComponent&)
 {
 	self->StateStack.push(CompilePassSemantics::STATE_EXPRESSION_COMPONENT);
 }
@@ -593,7 +597,7 @@ void CompilePassSemantics::EntryHelper::operator () (AST::ExpressionComponent& e
 //
 // Finish traversing an expression component node
 //
-void CompilePassSemantics::ExitHelper::operator () (AST::ExpressionComponent& exprcomponent)
+void CompilePassSemantics::ExitHelper::operator () (AST::ExpressionComponent&)
 {
 	self->StateStack.pop();
 }
@@ -613,7 +617,7 @@ void CompilePassSemantics::EntryHelper::operator () (AST::ExpressionFragment& ex
 //
 // Finish traversing an expression fragment node
 //
-void CompilePassSemantics::ExitHelper::operator () (AST::ExpressionFragment& exprfragment)
+void CompilePassSemantics::ExitHelper::operator () (AST::ExpressionFragment&)
 {
 	self->StateStack.pop();
 }
@@ -633,7 +637,7 @@ void CompilePassSemantics::EntryHelper::operator () (AST::Statement& statement)
 //
 // Finish traversing a statement node
 //
-void CompilePassSemantics::ExitHelper::operator () (AST::Statement& statement)
+void CompilePassSemantics::ExitHelper::operator () (AST::Statement&)
 {
 	self->StateStack.pop();
 
@@ -666,7 +670,7 @@ void CompilePassSemantics::ExitHelper::operator () (AST::Statement& statement)
 //
 // Begin traversing a node corresponding to a pre-operation statement
 //
-void CompilePassSemantics::EntryHelper::operator () (AST::PreOperatorStatement& statement)
+void CompilePassSemantics::EntryHelper::operator () (AST::PreOperatorStatement&)
 {
 	self->StateStack.push(CompilePassSemantics::STATE_PREOP_STATEMENT);
 }
@@ -718,7 +722,7 @@ void CompilePassSemantics::ExitHelper::operator () (AST::PreOperatorStatement& s
 //
 // Begin traversing a node corresponding to a post-operation statement
 //
-void CompilePassSemantics::EntryHelper::operator () (AST::PostOperatorStatement& statement)
+void CompilePassSemantics::EntryHelper::operator () (AST::PostOperatorStatement&)
 {
 	self->StateStack.push(CompilePassSemantics::STATE_POSTOP_STATEMENT);
 }
@@ -770,7 +774,7 @@ void CompilePassSemantics::ExitHelper::operator () (AST::PostOperatorStatement& 
 //
 // Begin traversing a node containing a code block
 //
-void CompilePassSemantics::EntryHelper::operator () (AST::CodeBlock& block)
+void CompilePassSemantics::EntryHelper::operator () (AST::CodeBlock&)
 {
 	bool owned = true;
 	ScopeDescription* lexicalscope = NULL;
@@ -798,7 +802,7 @@ void CompilePassSemantics::EntryHelper::operator () (AST::CodeBlock& block)
 //
 // Finish traversing a code block node
 //
-void CompilePassSemantics::ExitHelper::operator () (AST::CodeBlock& block)
+void CompilePassSemantics::ExitHelper::operator () (AST::CodeBlock&)
 {
 	self->CurrentProgram->AllocateLexicalScopeName(self->CurrentCodeBlocks.back());
 
@@ -892,7 +896,7 @@ void CompilePassSemantics::EntryHelper::operator () (AST::Assignment& assignment
 //
 // Finish traversing a node corresponding to an assignment
 //
-void CompilePassSemantics::ExitHelper::operator () (AST::Assignment& assignment)
+void CompilePassSemantics::ExitHelper::operator () (AST::Assignment&)
 {
 	self->StateStack.pop();
 	
@@ -924,8 +928,6 @@ void CompilePassSemantics::ExitHelper::operator () (AST::Assignment& assignment)
 //
 void CompilePassSemantics::EntryHelper::operator () (AST::Initialization& initialization)
 {
-	CompilePassSemantics::States state = self->StateStack.top();
-
 	self->StateStack.push(CompilePassSemantics::STATE_STATEMENT);
 
 	StringHandle type = self->CurrentProgram->AddString(std::wstring(initialization.TypeSpecifier.begin(), initialization.TypeSpecifier.end()));
@@ -940,7 +942,7 @@ void CompilePassSemantics::EntryHelper::operator () (AST::Initialization& initia
 //
 // Finish traversing a node corresponding to an initialization
 //
-void CompilePassSemantics::ExitHelper::operator () (AST::Initialization& initialization)
+void CompilePassSemantics::ExitHelper::operator () (AST::Initialization&)
 {
 	self->StateStack.pop();
 	
@@ -988,7 +990,7 @@ void CompilePassSemantics::EntryHelper::operator () (AST::Entity& entity)
 //
 // Finish traversing a node representing an entity invocation
 //
-void CompilePassSemantics::ExitHelper::operator () (AST::Entity& entity)
+void CompilePassSemantics::ExitHelper::operator () (AST::Entity&)
 {
 	self->StateStack.pop();
 	
@@ -1018,7 +1020,7 @@ void CompilePassSemantics::EntryHelper::operator () (AST::ChainedEntity& entity)
 //
 // Finish traversing a node containing a chained entity invocation
 //
-void CompilePassSemantics::ExitHelper::operator () (AST::ChainedEntity& entity)
+void CompilePassSemantics::ExitHelper::operator () (AST::ChainedEntity&)
 {
 	self->StateStack.pop();
 	
@@ -1043,7 +1045,7 @@ void CompilePassSemantics::EntryHelper::operator () (AST::PostfixEntity& entity)
 //
 // Finish traversing a postfix entity invocation node
 //
-void CompilePassSemantics::ExitHelper::operator () (AST::PostfixEntity& entity)
+void CompilePassSemantics::ExitHelper::operator () (AST::PostfixEntity&)
 {
 	self->StateStack.pop();
 	
@@ -1166,7 +1168,7 @@ void CompilePassSemantics::EntryHelper::operator () (AST::IdentifierT& identifie
 //
 // Note that function reference signatures are not leaf nodes!
 //
-void CompilePassSemantics::EntryHelper::operator () (AST::FunctionReferenceSignature& refsig)
+void CompilePassSemantics::EntryHelper::operator () (AST::FunctionReferenceSignature&)
 {
 	if(self->CurrentFunctions.empty())
 		throw std::runtime_error("Invalid parse state");		// TODO - better exceptions

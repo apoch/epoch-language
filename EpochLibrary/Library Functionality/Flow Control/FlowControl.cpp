@@ -23,7 +23,7 @@ namespace
 	//
 	// Return to the calling context
 	//
-	void Return(StringHandle functionname, VM::ExecutionContext& context)
+	void Return(StringHandle, VM::ExecutionContext& context)
 	{
 		context.State.Result.ResultType = VM::ExecutionResult::EXEC_RESULT_RETURN;
 	}

@@ -17,7 +17,7 @@ EntityGrammar::EntityGrammar()
 {
 }
 
-void EntityGrammar::InitRecursivePortion(const Lexer::EpochLexerT& lexer, const ExpressionGrammar& expressiongrammar, const CodeBlockGrammar& codeblockgrammar)
+void EntityGrammar::InitRecursivePortion(const ExpressionGrammar& expressiongrammar, const CodeBlockGrammar& codeblockgrammar)
 {
 	using namespace boost::spirit::qi;
 

@@ -237,7 +237,7 @@ bool CodeBlockInnerBlockEntry::Validate(const Program& program) const
 	return MyCodeBlock->Validate(program);
 }
 
-bool CodeBlockInnerBlockEntry::CompileTimeCodeExecution(Program& program, CodeBlock& activescope)
+bool CodeBlockInnerBlockEntry::CompileTimeCodeExecution(Program& program, CodeBlock&)
 {
 	if(!MyCodeBlock)
 		return false;
@@ -245,7 +245,7 @@ bool CodeBlockInnerBlockEntry::CompileTimeCodeExecution(Program& program, CodeBl
 	return MyCodeBlock->CompileTimeCodeExecution(program);
 }
 
-bool CodeBlockInnerBlockEntry::TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context)
+bool CodeBlockInnerBlockEntry::TypeInference(Program& program, CodeBlock&, InferenceContext& context)
 {
 	if(!MyCodeBlock)
 		return false;

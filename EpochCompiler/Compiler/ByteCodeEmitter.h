@@ -43,6 +43,11 @@ public:
 		: Buffer(buffer)
 	{ }
 
+// Non-copyable
+private:
+	ByteCodeEmitter(const ByteCodeEmitter& rhs);
+	ByteCodeEmitter& operator = (const ByteCodeEmitter& rhs);
+
 // Functions
 public:
 	void EnterFunction(StringHandle functionname);

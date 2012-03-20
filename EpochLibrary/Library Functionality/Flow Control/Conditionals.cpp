@@ -52,7 +52,7 @@ namespace
 	// we need perform no additional checking or logic here, and can unconditionally
 	// execute the code attached to the else block.
 	//
-	EntityReturnCode ConditionalElseMetaControl(VM::ExecutionContext& context)
+	EntityReturnCode ConditionalElseMetaControl(VM::ExecutionContext&)
 	{
 		return ENTITYRET_EXECUTE_CURRENT_LINK_IN_CHAIN;
 	}

@@ -25,7 +25,7 @@ namespace
 	//
 	// Compute the logical negation of an operand
 	//
-	void BooleanNot(StringHandle functionname, VM::ExecutionContext& context)
+	void BooleanNot(StringHandle, VM::ExecutionContext& context)
 	{
 		bool p = context.State.Stack.PopValue<bool>();
 		context.State.Stack.PushValue(!p);

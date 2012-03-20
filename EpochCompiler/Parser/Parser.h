@@ -21,6 +21,11 @@ public:
 		: Identifiers(identifiers)
 	{ }
 
+// Non-copyable
+private:
+	Parser(const Parser& rhs);
+	Parser& operator = (const Parser& rhs);
+
 // Parsing operations
 public:
 	bool Parse(const std::wstring& code, const std::wstring& filename, AST::Program*& out) const;

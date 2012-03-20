@@ -18,6 +18,24 @@
 using namespace Projects;
 
 
+namespace
+{
+	bool ReadLine(std::wistream& stream, std::wstring& out)
+	{
+		std::getline(stream, out);
+		return !stream.eof();
+	}
+
+	bool ReadNonBlankLine(std::wistream& stream, std::wstring& out)
+	{
+		if(!ReadLine(stream, out))
+			return false;
+
+		return !out.empty();
+	}
+}
+
+
 //
 // Construct a project wrapper for a stand-alone Epoch source file with no resources
 //
@@ -60,42 +78,22 @@ Project::Project(const std::wstring& filename)
 	if(!infile)
 		throw FileException("Unable to open project file");
 
-	while(true)
+	while(ReadLine(infile, line))
 	{
-		std::getline(infile, line);
-		if(infile.eof())
-			break;
-
 		if(line == L"[source]")
 		{
-			while(true)
-			{
-				std::getline(infile, line);
-				if(line.empty() || infile.eof())
-					break;
-
+			while(ReadNonBlankLine(infile, line))
 				SourceFiles.push_back(WorkingPath + line);
-			}
 		}
 		else if(line == L"[resources]")
 		{
-			while(true)
-			{
-				std::getline(infile, line);
-				if(line.empty() || infile.eof())
-					break;
-
+			while(ReadNonBlankLine(infile, line))
 				ResourceFiles.push_back(WorkingPath + line);
-			}
 		}
 		else if(line == L"[output]")
 		{
-			while(true)
+			while(ReadNonBlankLine(infile, line))
 			{
-				std::getline(infile, line);
-				if(line.empty() || infile.eof())
-					break;
-
 				size_t spacepos = line.find(L' ');
 				if(spacepos == std::wstring::npos || spacepos >= line.length() - 1)
 					throw Exception("Invalid directive in [output] block");
@@ -121,12 +119,8 @@ Project::Project(const std::wstring& filename)
 		}
 		else if(line == L"[options]")
 		{
-			while(true)
+			while(ReadNonBlankLine(infile, line))
 			{
-				std::getline(infile, line);
-				if(line.empty() || infile.eof())
-					break;
-
 				if(line == L"use-console")
 					UsesConsole = true;
 			}

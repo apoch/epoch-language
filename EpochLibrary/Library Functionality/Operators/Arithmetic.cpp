@@ -27,7 +27,7 @@ namespace
 	//
 	// Sum two numbers and return the result
 	//
-	void AddIntegers(StringHandle functionname, VM::ExecutionContext& context)
+	void AddIntegers(StringHandle, VM::ExecutionContext& context)
 	{
 		Integer32 p2 = context.State.Stack.PopValue<Integer32>();
 		Integer32 p1 = context.State.Stack.PopValue<Integer32>();
@@ -39,7 +39,7 @@ namespace
 	//
 	// Subtract two numbers and return the result
 	//
-	void SubtractIntegers(StringHandle functionname, VM::ExecutionContext& context)
+	void SubtractIntegers(StringHandle, VM::ExecutionContext& context)
 	{
 		Integer32 p2 = context.State.Stack.PopValue<Integer32>();
 		Integer32 p1 = context.State.Stack.PopValue<Integer32>();
@@ -50,7 +50,7 @@ namespace
 	//
 	// Multiply two numbers and return the result
 	//
-	void MultiplyIntegers(StringHandle functionname, VM::ExecutionContext& context)
+	void MultiplyIntegers(StringHandle, VM::ExecutionContext& context)
 	{
 		Integer32 p2 = context.State.Stack.PopValue<Integer32>();
 		Integer32 p1 = context.State.Stack.PopValue<Integer32>();
@@ -61,7 +61,7 @@ namespace
 	//
 	// Divide two numbers and return the result
 	//
-	void DivideIntegers(StringHandle functionname, VM::ExecutionContext& context)
+	void DivideIntegers(StringHandle, VM::ExecutionContext& context)
 	{
 		Integer32 p2 = context.State.Stack.PopValue<Integer32>();
 		Integer32 p1 = context.State.Stack.PopValue<Integer32>();
@@ -73,7 +73,7 @@ namespace
 	//
 	// Compute the bitwise negation of an operand
 	//
-	void BitwiseIntegerNot(StringHandle functionname, VM::ExecutionContext& context)
+	void BitwiseIntegerNot(StringHandle, VM::ExecutionContext& context)
 	{
 		Integer32 p = context.State.Stack.PopValue<Integer32>();
 		context.State.Stack.PushValue(~p);
@@ -101,7 +101,7 @@ namespace
 	//
 	// Sum two numbers and return the result
 	//
-	void AddReals(StringHandle functionname, VM::ExecutionContext& context)
+	void AddReals(StringHandle, VM::ExecutionContext& context)
 	{
 		Real32 p2 = context.State.Stack.PopValue<Real32>();
 		Real32 p1 = context.State.Stack.PopValue<Real32>();
@@ -113,7 +113,7 @@ namespace
 	//
 	// Subtract two numbers and return the result
 	//
-	void SubtractReals(StringHandle functionname, VM::ExecutionContext& context)
+	void SubtractReals(StringHandle, VM::ExecutionContext& context)
 	{
 		Real32 p2 = context.State.Stack.PopValue<Real32>();
 		Real32 p1 = context.State.Stack.PopValue<Real32>();
@@ -124,7 +124,7 @@ namespace
 	//
 	// Multiply two numbers and return the result
 	//
-	void MultiplyReals(StringHandle functionname, VM::ExecutionContext& context)
+	void MultiplyReals(StringHandle, VM::ExecutionContext& context)
 	{
 		Real32 p2 = context.State.Stack.PopValue<Real32>();
 		Real32 p1 = context.State.Stack.PopValue<Real32>();
@@ -135,7 +135,7 @@ namespace
 	//
 	// Divide two numbers and return the result
 	//
-	void DivideReals(StringHandle functionname, VM::ExecutionContext& context)
+	void DivideReals(StringHandle, VM::ExecutionContext& context)
 	{
 		Real32 p2 = context.State.Stack.PopValue<Real32>();
 		Real32 p1 = context.State.Stack.PopValue<Real32>();

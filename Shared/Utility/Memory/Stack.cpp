@@ -75,11 +75,6 @@ void StackSpace::Pop(size_t numbytes)
 	CurrentStackPointer = reinterpret_cast<Byte*>(CurrentStackPointer) + numbytes;
 	if(CurrentStackPointer > EndOfStackAllocation)
 	{
-#ifdef _DEBUG
-		// For debug purposes, calculate how much excess space was popped
-		ptrdiff_t diff = reinterpret_cast<Byte*>(CurrentStackPointer) - reinterpret_cast<Byte*>(EndOfStackAllocation);
-#endif
-
 		CurrentStackPointer = EndOfStackAllocation;
 		throw MemoryException("Popped too much off the stack");
 	}

@@ -83,12 +83,7 @@ void LinkWriter::EmitBlob(void* data, size_t size)
 void LinkWriter::Pad(std::streamsize size, unsigned char byte)
 {
 	if(OutputStream.tellp() > size)
-	{
-#ifdef _DEBUG
-		std::streamsize curpos = OutputStream.tellp();			// Just so we can read the value during debugging
-#endif
 		throw Exception("Already wrote past the end of padding area; aborting!");
-	}
 
 	while(OutputStream.tellp() < size)
 		OutputStream << byte;
@@ -99,5 +94,5 @@ void LinkWriter::Pad(std::streamsize size, unsigned char byte)
 //
 DWORD LinkWriter::GetOffset() const
 {
-	return OutputStream.tellp();
+	return static_cast<DWORD>(OutputStream.tellp());
 }

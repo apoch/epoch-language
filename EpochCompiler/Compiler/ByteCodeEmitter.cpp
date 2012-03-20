@@ -14,6 +14,9 @@
 #include <sstream>
 
 
+#define STATIC_ASSERT(expr)			enum { dummy = 1/static_cast<int>(!!(expr)) }
+
+
 //-------------------------------------------------------------------------------
 // Functions
 //-------------------------------------------------------------------------------
@@ -694,8 +697,7 @@ void ByteCodeEmitter::EmitBuffer(const ByteBuffer& buffer)
 //
 void ByteCodeEmitter::EmitInstruction(Bytecode::Instruction instruction)
 {
-	if(sizeof(Bytecode::Instruction) > sizeof(Byte))
-		throw CompileSettingsException("Truncation of instruction in bytecode emitter");
+	STATIC_ASSERT(sizeof(Bytecode::Instruction) <= sizeof(Byte));
 
 	Byte byteval = static_cast<Byte>(instruction);
 	EmitRawValue(byteval);
@@ -720,8 +722,7 @@ void ByteCodeEmitter::EmitTerminatedString(const std::wstring& value)
 //
 void ByteCodeEmitter::EmitTypeAnnotation(VM::EpochTypeID type)
 {
-	if(sizeof(VM::EpochTypeID) > sizeof(Integer32))
-		throw CompileSettingsException("Truncation of type annotation in bytecode emitter");
+	STATIC_ASSERT(sizeof(VM::EpochTypeID) <= sizeof(Integer32));
 
 	Integer32 intval = static_cast<Integer32>(type);
 	EmitRawValue(intval);
@@ -735,8 +736,7 @@ void ByteCodeEmitter::EmitTypeAnnotation(VM::EpochTypeID type)
 //
 void ByteCodeEmitter::EmitEntityTag(Bytecode::EntityTag tag)
 {
-	if(sizeof(Bytecode::EntityTag) > sizeof(Integer32))
-		throw CompileSettingsException("Truncation of type annotation in bytecode emitter");
+	STATIC_ASSERT(sizeof(Bytecode::EntityTag) <= sizeof(Integer32));
 
 	Integer32 intval = static_cast<Integer32>(tag);
 	EmitRawValue(intval);
@@ -775,8 +775,7 @@ void ByteCodeEmitter::EmitRawValue(Integer16 value)
 //
 void ByteCodeEmitter::EmitRawValue(HandleType value)
 {
-	if(sizeof(HandleType) != sizeof(Integer32))
-		throw CompileSettingsException("Mismatched type sizes in bytecode emitter");
+	STATIC_ASSERT(sizeof(HandleType) == sizeof(Integer32));
 
 	EmitRawValue(static_cast<Integer32>(value));
 }
@@ -837,8 +836,7 @@ void ByteCodeEmitter::PrependRawValue(const std::wstring& value)
 //
 void ByteCodeEmitter::PrependTypeAnnotation(VM::EpochTypeID type)
 {
-	if(sizeof(VM::EpochTypeID) > sizeof(Integer32))
-		throw CompileSettingsException("Truncation of type annotation in bytecode emitter");
+	STATIC_ASSERT(sizeof(VM::EpochTypeID) <= sizeof(Integer32));
 
 	Integer32 intval = static_cast<Integer32>(type);
 	PrependRawValue(intval);
@@ -849,8 +847,7 @@ void ByteCodeEmitter::PrependTypeAnnotation(VM::EpochTypeID type)
 //
 void ByteCodeEmitter::PrependInstruction(Bytecode::Instruction instruction)
 {
-	if(sizeof(Bytecode::Instruction) > sizeof(Byte))
-		throw CompileSettingsException("Truncation of instruction in bytecode emitter");
+	STATIC_ASSERT(sizeof(Bytecode::Instruction) <= sizeof(Byte));
 
 	Byte byteval = static_cast<Byte>(instruction);
 	PrependRawValue(byteval);
@@ -858,8 +855,7 @@ void ByteCodeEmitter::PrependInstruction(Bytecode::Instruction instruction)
 
 void ByteCodeEmitter::PrependEntityTag(Bytecode::EntityTag tag)
 {
-	if(sizeof(Bytecode::EntityTag) > sizeof(Integer32))
-		throw CompileSettingsException("Truncation of type annotation in bytecode emitter");
+	STATIC_ASSERT(sizeof(Bytecode::EntityTag) <= sizeof(Integer32));
 
 	Integer32 intval = static_cast<Integer32>(tag);
 	PrependRawValue(intval);

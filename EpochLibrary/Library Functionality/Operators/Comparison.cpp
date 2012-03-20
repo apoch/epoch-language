@@ -24,7 +24,7 @@ namespace
 	//
 	// Compare two integers for equality
 	//
-	void IntegerEquality(StringHandle functionname, VM::ExecutionContext& context)
+	void IntegerEquality(StringHandle, VM::ExecutionContext& context)
 	{
 		Integer32 p2 = context.State.Stack.PopValue<Integer32>();
 		Integer32 p1 = context.State.Stack.PopValue<Integer32>();
@@ -32,7 +32,7 @@ namespace
 		context.State.Stack.PushValue(p1 == p2);
 	}
 
-	void Integer16Equality(StringHandle functionname, VM::ExecutionContext& context)
+	void Integer16Equality(StringHandle, VM::ExecutionContext& context)
 	{
 		Integer16 p2 = context.State.Stack.PopValue<Integer16>();
 		Integer16 p1 = context.State.Stack.PopValue<Integer16>();
@@ -44,7 +44,7 @@ namespace
 	//
 	// Compare two integers for inequality
 	//
-	void IntegerInequality(StringHandle functionname, VM::ExecutionContext& context)
+	void IntegerInequality(StringHandle, VM::ExecutionContext& context)
 	{
 		Integer32 p2 = context.State.Stack.PopValue<Integer32>();
 		Integer32 p1 = context.State.Stack.PopValue<Integer32>();
@@ -56,7 +56,7 @@ namespace
 	//
 	// Compare two booleans for equality
 	//
-	void BooleanEquality(StringHandle functionname, VM::ExecutionContext& context)
+	void BooleanEquality(StringHandle, VM::ExecutionContext& context)
 	{
 		bool p2 = context.State.Stack.PopValue<bool>();
 		bool p1 = context.State.Stack.PopValue<bool>();
@@ -67,7 +67,7 @@ namespace
 	//
 	// Compare two booleans for inequality
 	//
-	void BooleanInequality(StringHandle functionname, VM::ExecutionContext& context)
+	void BooleanInequality(StringHandle, VM::ExecutionContext& context)
 	{
 		bool p2 = context.State.Stack.PopValue<bool>();
 		bool p1 = context.State.Stack.PopValue<bool>();
@@ -79,7 +79,7 @@ namespace
 	//
 	// Compare two integers to see if one is greater than the other
 	//
-	void IntegerGreaterThan(StringHandle functionname, VM::ExecutionContext& context)
+	void IntegerGreaterThan(StringHandle, VM::ExecutionContext& context)
 	{
 		Integer32 p2 = context.State.Stack.PopValue<Integer32>();
 		Integer32 p1 = context.State.Stack.PopValue<Integer32>();
@@ -90,7 +90,7 @@ namespace
 	//
 	// Compare two integers to see if one is less than the other
 	//
-	void IntegerLessThan(StringHandle functionname, VM::ExecutionContext& context)
+	void IntegerLessThan(StringHandle, VM::ExecutionContext& context)
 	{
 		Integer32 p2 = context.State.Stack.PopValue<Integer32>();
 		Integer32 p1 = context.State.Stack.PopValue<Integer32>();
@@ -102,7 +102,7 @@ namespace
 	//
 	// Compare two reals to see if one is greater than the other
 	//
-	void RealGreaterThan(StringHandle functionname, VM::ExecutionContext& context)
+	void RealGreaterThan(StringHandle, VM::ExecutionContext& context)
 	{
 		Real32 p2 = context.State.Stack.PopValue<Real32>();
 		Real32 p1 = context.State.Stack.PopValue<Real32>();
@@ -113,7 +113,7 @@ namespace
 	//
 	// Compare two reals to see if one is less than the other
 	//
-	void RealLessThan(StringHandle functionname, VM::ExecutionContext& context)
+	void RealLessThan(StringHandle, VM::ExecutionContext& context)
 	{
 		Real32 p2 = context.State.Stack.PopValue<Real32>();
 		Real32 p1 = context.State.Stack.PopValue<Real32>();

@@ -286,7 +286,7 @@ bool Statement::TypeInference(Program& program, CodeBlock& activescope, Inferenc
 }
 
 
-bool PreOpStatement::TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context)
+bool PreOpStatement::TypeInference(Program& program, CodeBlock& activescope, InferenceContext&)
 {
 	VM::EpochTypeID operandtype = InferMemberAccessType(Operand, program, activescope);
 	if(operandtype == VM::EpochType_Error)
@@ -335,13 +335,13 @@ bool PreOpStatement::TypeInference(Program& program, CodeBlock& activescope, Inf
 	return (MyType != VM::EpochType_Error);
 }
 
-bool PreOpStatement::Validate(const Program& program) const
+bool PreOpStatement::Validate(const Program&) const
 {
 	return MyType != VM::EpochType_Error;
 }
 
 
-bool PostOpStatement::TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context)
+bool PostOpStatement::TypeInference(Program& program, CodeBlock& activescope, InferenceContext&)
 {
 	VM::EpochTypeID operandtype = InferMemberAccessType(Operand, program, activescope);
 	if(operandtype == VM::EpochType_Error)
@@ -390,7 +390,7 @@ bool PostOpStatement::TypeInference(Program& program, CodeBlock& activescope, In
 	return (MyType != VM::EpochType_Error);
 }
 
-bool PostOpStatement::Validate(const Program& program) const
+bool PostOpStatement::Validate(const Program&) const
 {
 	return MyType != VM::EpochType_Error;
 }

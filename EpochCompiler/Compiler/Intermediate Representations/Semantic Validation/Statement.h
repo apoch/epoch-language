@@ -58,7 +58,7 @@ namespace IRSemantics
 
 	// Type system
 	public:
-		VM::EpochTypeID GetEpochType(const Program& program) const
+		VM::EpochTypeID GetEpochType(const Program&) const
 		{ return MyType; }
 
 	// Internal state
@@ -93,7 +93,7 @@ namespace IRSemantics
 
 	// Type system
 	public:
-		VM::EpochTypeID GetEpochType(const Program& program) const
+		VM::EpochTypeID GetEpochType(const Program&) const
 		{ return MyType; }
 
 	// Validation
@@ -131,7 +131,7 @@ namespace IRSemantics
 
 	// Type system
 	public:
-		VM::EpochTypeID GetEpochType(const Program& program) const
+		VM::EpochTypeID GetEpochType(const Program&) const
 		{ return MyType; }
 
 	// Validation

@@ -19,7 +19,7 @@
 //
 // Generate the headers section. We don't really have anything to do.
 //
-void PEHeaderSection::Generate(Linker& linker)
+void PEHeaderSection::Generate(Linker&)
 {
 	std::wcout << L"Generating PE headers... OK\n";
 }

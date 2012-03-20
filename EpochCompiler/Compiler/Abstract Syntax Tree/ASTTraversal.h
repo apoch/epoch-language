@@ -409,7 +409,7 @@ namespace ASTTraverse
         struct DoerDispatcher
         {
             template<typename EntryActionT, typename ExitActionT>
-            static void Do(Traverser* t, EntryActionT& entryaction, NodeT& node, ExitActionT& exitaction) 
+            static void Do(Traverser*, EntryActionT& entryaction, NodeT& node, ExitActionT& exitaction) 
             {
                 entryaction(node);
                 exitaction(node);
@@ -452,6 +452,11 @@ namespace ASTTraverse
 			{
 				self.Do(Entry, value, Exit);
 			}
+
+		// Non-copyable
+		private:
+			VariantVisitor(const VariantVisitor& rhs);
+			VariantVisitor& operator = (const VariantVisitor& rhs);
 
 		private:
 			Traverser& self;

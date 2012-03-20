@@ -44,6 +44,11 @@ namespace Threads
 				BoundCritSec.Exit();
 			}
 
+		// Non-copyable
+		private:
+			Auto(const Auto& rhs);
+			Auto& operator = (const Auto& rhs);
+
 		private:
 			const CriticalSection& BoundCritSec;
 		};

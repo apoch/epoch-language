@@ -91,7 +91,7 @@ namespace IRSemantics
 		virtual Type GetMemberType() const
 		{ return StructureMember::FunctionReference; }
 
-		virtual VM::EpochTypeID GetEpochType(const IRSemantics::Program& program) const
+		virtual VM::EpochTypeID GetEpochType(const IRSemantics::Program&) const
 		{ return VM::EpochType_Function; }
 
 		virtual bool Validate(const IRSemantics::Program& program) const;

@@ -46,7 +46,7 @@ namespace
 	//
 	// Links the constructor function to a special compile-time helper that 
 	//
-	TagHelperReturn ConstructorTagHelper(StringHandle functionname, const CompileTimeParameterVector& compiletimeparams, bool isprepass)
+	TagHelperReturn ConstructorTagHelper(StringHandle functionname, const CompileTimeParameterVector&, bool isprepass)
 	{
 		TagHelperReturn ret;
 

@@ -146,7 +146,7 @@ char *PropSetSimple::Expanded(const char *key) const {
 	std::string val = Get(key);
 	ExpandAllInPlace(*this, val, 100, VarChain(key));
 	char *ret = new char [val.size() + 1];
-	strcpy(ret, val.c_str());
+	memcpy(ret, val.c_str(), val.length() + 1);
 	return ret;
 }
 
@@ -154,7 +154,7 @@ int PropSetSimple::GetExpanded(const char *key, char *result) const {
 	char *val = Expanded(key);
 	const int n = static_cast<int>(strlen(val));
 	if (result) {
-		strcpy(result, val);
+		memcpy(result, val, n + 1);
 	}
 	delete []val;
 	return n;	// Not including NUL

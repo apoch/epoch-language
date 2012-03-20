@@ -75,7 +75,7 @@ namespace Memory
 #endif
 		}
 
-		void deallocate(pointer p, size_type count)
+		void deallocate(pointer, size_type count)
 		{
 #ifdef DEBUG_ALLOCATOR
 			OneWayRecordDealloc(count * sizeof(T), count, typeid(T).name());
@@ -96,6 +96,7 @@ namespace Memory
 
 		void destroy(pointer p)
 		{
+			((void)(p));		// This is sadly necessary because for some reason the destructor call goes away for some types
 			p->~T();
 		}
 

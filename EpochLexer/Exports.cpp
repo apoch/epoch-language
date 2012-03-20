@@ -9,6 +9,8 @@
 
 #include "Factory.h"
 
+#include <algorithm>
+
 
 //
 // Query interface: how many lexers are implemented in this DLL?
@@ -23,7 +25,7 @@ extern "C" int STDCALL GetLexerCount()
 //
 extern "C" void STDCALL GetLexerName(unsigned index, char* name, int bufferlength)
 {
-	if(!name)
+	if(!name || bufferlength <= 0)
 		return;
 
 	*name = 0;
@@ -31,8 +33,7 @@ extern "C" void STDCALL GetLexerName(unsigned index, char* name, int bufferlengt
 	if(index == 0)
 	{
 		const char* lexername = "epoch";
-		if(bufferlength > static_cast<int>(strlen(lexername)))
-			strncpy(name, lexername, bufferlength - 1);
+		memcpy(name, lexername, std::min(static_cast<unsigned>(bufferlength), strlen(lexername) + 1));
 	}
 }
 

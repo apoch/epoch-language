@@ -27,7 +27,7 @@ DWORD PESectionManager::GetEndOfLastSection() const
 //
 // Generate any information needed to fill in the file section
 //
-void PESectionManager::Generate(Linker& linker)
+void PESectionManager::Generate(Linker&)
 {
 	std::wcout << L"Generating section headers... OK\n";
 }
@@ -36,7 +36,7 @@ void PESectionManager::Generate(Linker& linker)
 //
 // Write final section table to the executable
 //
-void PESectionManager::Emit(Linker& linker, LinkWriter& writer) const
+void PESectionManager::Emit(Linker&, LinkWriter& writer) const
 {
 	std::wcout << L"Writing section headers... ";
 

@@ -88,7 +88,7 @@ namespace
 	//
 	// Determine if the command line is sane
 	//
-	void IsCmdLineSane(StringHandle functionname, VM::ExecutionContext& context)
+	void IsCmdLineSane(StringHandle, VM::ExecutionContext& context)
 	{
 		context.State.Stack.PushValue(!ParseCommandLine().empty());
 	}
@@ -96,7 +96,7 @@ namespace
 	//
 	// Retrieve the number of parameters in the command line (including the process name)
 	//
-	void GetCmdLineCount(StringHandle functionname, VM::ExecutionContext& context)
+	void GetCmdLineCount(StringHandle, VM::ExecutionContext& context)
 	{
 		std::vector<std::wstring> cmdline(ParseCommandLine());
 		context.State.Stack.PushValue(cmdline.size());
@@ -105,7 +105,7 @@ namespace
 	//
 	// Retrieve the token at the given index in the command line stream
 	//
-	void GetCmdLineToken(StringHandle functionname, VM::ExecutionContext& context)
+	void GetCmdLineToken(StringHandle, VM::ExecutionContext& context)
 	{
 		std::vector<std::wstring> cmdline(ParseCommandLine());
 		size_t index = static_cast<size_t>(context.State.Stack.PopValue<Integer32>());

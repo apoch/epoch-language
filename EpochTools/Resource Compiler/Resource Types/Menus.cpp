@@ -89,10 +89,8 @@ void MenuEntry::LoadFromStream(std::wistream& in, std::list<MenuEntry>& entries)
 	if(token != L"{")
 		throw Exception("Incorrect or corrupted menu resource");
 
-	while(true)
+	while(in >> token)
 	{
-		in >> token;
-
 		if(in.eof() || token == L"}")
 		{
 			if(!entries.empty())

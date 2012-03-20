@@ -13,6 +13,8 @@
 #include <stdio.h>
 #include <stdarg.h>
 
+#include <algorithm>
+
 #include "WordList.h"
 
 #ifdef SCI_NAMESPACE
@@ -100,8 +102,9 @@ static void SortWordList(char **words, unsigned int len) {
 
 void WordList::Set(const char *s) {
 	Clear();
-	list = new char[strlen(s) + 1];
-	strcpy(list, s);
+	size_t slen = strlen(s) + 1;
+	list = new char[slen];
+	memcpy(list, s, slen);
 	words = ArrayFromWordList(list, &len, onlyLineEnds);
 	SortWordList(words, len);
 	for (unsigned int k = 0; k < (sizeof(starts) / sizeof(starts[0])); k++)

@@ -30,7 +30,7 @@ namespace
 	// to define a code body for the function which performs additional logic after the marshaled
 	// call returns.
 	//
-	TagHelperReturn ExternalHelper(StringHandle functionname, const CompileTimeParameterVector& compiletimeparams, bool isprepass)
+	TagHelperReturn ExternalHelper(StringHandle, const CompileTimeParameterVector& compiletimeparams, bool isprepass)
 	{
 		TagHelperReturn ret;
 

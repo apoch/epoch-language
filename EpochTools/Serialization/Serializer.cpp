@@ -34,6 +34,11 @@ public:
 		: Buffer(buffer), Size(size), Offset(0)
 	{ }
 
+// Non-copyable
+private:
+	BufferTraverser(const BufferTraverser& rhs);
+	BufferTraverser& operator = (const BufferTraverser& rhs);
+
 // Read interface
 public:
 	template <typename T>

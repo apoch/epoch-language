@@ -29,6 +29,10 @@ public:
 		  Storage(definition.GetSize(), 0)
 	{ }
 
+// Assignment prohibited
+private:
+	ActiveStructure& operator = (const ActiveStructure& rhs);
+
 // Data access
 public:
 	template<typename T>

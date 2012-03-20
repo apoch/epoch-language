@@ -22,6 +22,11 @@ class LinkWriter
 public:
 	explicit LinkWriter(std::ofstream& outputstream);
 
+// Non-copyable
+private:
+	LinkWriter(const LinkWriter& rhs);
+	LinkWriter& operator = (const LinkWriter& rhs);
+
 // Writing interface
 public:
 	void EmitByte(unsigned char out);

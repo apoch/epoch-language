@@ -26,7 +26,7 @@ namespace
 	//
 	// Automatically accounts for structures, nested structures, field padding, etc. etc.
 	//
-	void SizeOf(StringHandle functionname, VM::ExecutionContext& context)
+	void SizeOf(StringHandle, VM::ExecutionContext& context)
 	{
 		StringHandle identifier = context.State.Stack.PopValue<StringHandle>();
 		VM::EpochTypeID vartype = context.Variables->GetOriginalDescription().GetVariableTypeByID(identifier);
@@ -42,7 +42,7 @@ namespace
 	//
 	// Marshal a structure from an external pointer into Epoch
 	//
-	void MarshalStructure(StringHandle functionname, VM::ExecutionContext& context)
+	void MarshalStructure(StringHandle, VM::ExecutionContext& context)
 	{
 		// WARNING - 64-bit compatibility issue here
 		UINT_PTR pointer = static_cast<UINT_PTR>(context.State.Stack.PopValue<Integer32>());

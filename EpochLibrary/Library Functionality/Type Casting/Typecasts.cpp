@@ -29,10 +29,10 @@ namespace
 	//
 	// Should tick the garbage collector, since it allocates a new string.
 	//
-	void CastIntegerToString(StringHandle functionname, ExecutionContext& context)
+	void CastIntegerToString(StringHandle, ExecutionContext& context)
 	{
 		Integer32 value = context.State.Stack.PopValue<Integer32>();
-		StringHandle targettype = context.State.Stack.PopValue<StringHandle>();
+		context.State.Stack.PopValue<StringHandle>();
 
 		std::wostringstream converter;
 		converter << value;
@@ -45,10 +45,10 @@ namespace
 	//
 	// Parse a string, expecting an integer value represented therein, and return the result
 	//
-	void CastStringToInteger(StringHandle functionname, ExecutionContext& context)
+	void CastStringToInteger(StringHandle, ExecutionContext& context)
 	{
 		StringHandle stringhandle = context.State.Stack.PopValue<StringHandle>();
-		StringHandle targettype = context.State.Stack.PopValue<StringHandle>();
+		context.State.Stack.PopValue<StringHandle>();
 
 		std::wstringstream converter(context.OwnerVM.GetPooledString(stringhandle));
 		Integer32 result = 0;
@@ -64,10 +64,10 @@ namespace
 	//
 	// Ticks over the garbage collector, since it allocates a new string for the result
 	//
-	void CastBooleanToString(StringHandle functionname, ExecutionContext& context)
+	void CastBooleanToString(StringHandle, ExecutionContext& context)
 	{
 		bool value = context.State.Stack.PopValue<bool>();
-		StringHandle targettype = context.State.Stack.PopValue<StringHandle>();
+		context.State.Stack.PopValue<StringHandle>();
 
 		StringHandle result;
 		if(value)
@@ -84,10 +84,10 @@ namespace
 	//
 	// Ticks over the garbage collector.
 	//
-	void CastRealToString(StringHandle functionname, ExecutionContext& context)
+	void CastRealToString(StringHandle, ExecutionContext& context)
 	{
 		Real32 value = context.State.Stack.PopValue<Real32>();
-		StringHandle targettype = context.State.Stack.PopValue<StringHandle>();
+		context.State.Stack.PopValue<StringHandle>();
 
 		std::wostringstream converter;
 		converter << value;
@@ -103,10 +103,10 @@ namespace
 	//
 	// Ticks over the garbage collector.
 	//
-	void CastBufferToString(StringHandle functionname, ExecutionContext& context)
+	void CastBufferToString(StringHandle, ExecutionContext& context)
 	{
 		BufferHandle bufferhandle = context.State.Stack.PopValue<BufferHandle>();
-		StringHandle targettype = context.State.Stack.PopValue<StringHandle>();
+		context.State.Stack.PopValue<StringHandle>();
 
 		std::wstring str(reinterpret_cast<wchar_t*>(context.OwnerVM.GetBuffer(bufferhandle)), context.OwnerVM.GetBufferSize(bufferhandle));
 		StringHandle result = context.OwnerVM.PoolString(str);

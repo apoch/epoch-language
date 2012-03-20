@@ -71,6 +71,12 @@ namespace ASTTraverse
 		// Destruction
 		~CompilePassSemantics();
 
+	// Non-copyable
+	private:
+		CompilePassSemantics(const CompilePassSemantics& rhs);
+		CompilePassSemantics& operator = (const CompilePassSemantics& rhs);
+
+	public:
 		// Compile-time code execution
 		bool CompileTimeCodeExecution();
 
@@ -92,7 +98,7 @@ namespace ASTTraverse
 			// Catch-all overload
 			//
 			template <typename T>
-			void operator () (T& node)
+			void operator () (T&)
 			{
 				//
 				// This is a mismatch between the parser and the
@@ -173,7 +179,7 @@ namespace ASTTraverse
 			// Generic fallback; ignore anything we don't recognize
 			//
 			template <typename T>
-			void operator() (T& node)
+			void operator() (T&)
 			{
 				// Ignored!
 			}

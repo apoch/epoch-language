@@ -286,7 +286,7 @@ DWORD DirectoryHeader::GetSize() const
 //
 // Write a resource directory structure to disk
 //
-void DirectoryHeader::EmitSelf(LinkWriter& writer, DWORD virtualbaseaddress) const
+void DirectoryHeader::EmitSelf(LinkWriter& writer, DWORD) const
 {
 	writer.EmitDWORD(Characteristics);
 	writer.EmitDWORD(TimeDateStamp);
@@ -377,13 +377,13 @@ DWORD DirectoryEntry::GetSize() const
 //
 // Write a resource directory entry to disk
 //
-void DirectoryEntry::EmitSelf(LinkWriter& writer, DWORD virtualbaseaddress) const
+void DirectoryEntry::EmitSelf(LinkWriter& writer, DWORD) const
 {
 	writer.EmitDWORD(Name);
 	writer.EmitDWORD(OffsetToData | (PointsToLeaf() ? 0 : 0x80000000));		// Set the high-order bit to flag a node entry (as opposed to a leaf entry)
 }
 
-void DirectoryEntry::EmitAll(LinkWriter& writer, DWORD virtualbaseaddress) const
+void DirectoryEntry::EmitAll(LinkWriter&, DWORD) const
 {
 	// Nothing to do, the header took care of writing us in the correct order
 }
@@ -393,7 +393,7 @@ void DirectoryEntry::SetOffsetsSelf(DWORD& offset)
 	OffsetToData = offset;
 }
 
-void DirectoryEntry::SetOffsetsAll(DWORD& offset)
+void DirectoryEntry::SetOffsetsAll(DWORD&)
 {
 	// Nothing to do
 }

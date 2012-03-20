@@ -147,7 +147,7 @@ void DumpToStream::EntryHelper::operator () (AST::Undefined&)
 // is added to the compiler. Therefore we do not enforce the assumption that
 // Program nodes are singular.
 //
-void DumpToStream::EntryHelper::operator () (AST::Program& program)
+void DumpToStream::EntryHelper::operator () (AST::Program&)
 {
 	PrintAndIndent(self, L"Program AST");
 }
@@ -155,7 +155,7 @@ void DumpToStream::EntryHelper::operator () (AST::Program& program)
 //
 // Finish traversing a program node
 //
-void DumpToStream::ExitHelper::operator () (AST::Program& program)
+void DumpToStream::ExitHelper::operator () (AST::Program&)
 {
 	UnindentAndPrint(self, L"End of program");
 }
@@ -172,7 +172,7 @@ void DumpToStream::EntryHelper::operator () (AST::Structure& structure)
 //
 // Finish traversing a structure definition node
 //
-void DumpToStream::ExitHelper::operator () (AST::Structure& structure)
+void DumpToStream::ExitHelper::operator () (AST::Structure&)
 {
 	UnindentAndPrint(self, L"End of structure");
 }
@@ -215,7 +215,7 @@ void DumpToStream::ExitHelper::operator () (AST::Function& function)
 //
 // Begin traversing a node that defines a function parameter
 //
-void DumpToStream::EntryHelper::operator () (AST::FunctionParameter& param)
+void DumpToStream::EntryHelper::operator () (AST::FunctionParameter&)
 {
 	PrintAndIndent(self, L"Parameter");
 }
@@ -223,7 +223,7 @@ void DumpToStream::EntryHelper::operator () (AST::FunctionParameter& param)
 //
 // Finish traversing a node that defines a function parameter
 //
-void DumpToStream::ExitHelper::operator () (AST::FunctionParameter& param)
+void DumpToStream::ExitHelper::operator () (AST::FunctionParameter&)
 {
 	UnindentAndPrint(self, L"End of parameter");
 }
@@ -244,7 +244,7 @@ void DumpToStream::EntryHelper::operator () (AST::NamedFunctionParameter& param)
 //
 // Begin traversing a node that corresponds to an expression
 //
-void DumpToStream::EntryHelper::operator () (AST::Expression& expression)
+void DumpToStream::EntryHelper::operator () (AST::Expression&)
 {
 	PrintAndIndent(self, L"Expression");
 }
@@ -252,7 +252,7 @@ void DumpToStream::EntryHelper::operator () (AST::Expression& expression)
 //
 // Finish traversing an expression node
 //
-void DumpToStream::ExitHelper::operator () (AST::Expression& expression)
+void DumpToStream::ExitHelper::operator () (AST::Expression&)
 {
 	UnindentAndPrint(self, L"End of expression");
 }
@@ -260,7 +260,7 @@ void DumpToStream::ExitHelper::operator () (AST::Expression& expression)
 //
 // Begin traversing an expression component node (see AST definitions for details)
 //
-void DumpToStream::EntryHelper::operator () (AST::ExpressionComponent& exprcomponent)
+void DumpToStream::EntryHelper::operator () (AST::ExpressionComponent&)
 {
 	PrintAndIndent(self, L"Expression component");
 }
@@ -268,7 +268,7 @@ void DumpToStream::EntryHelper::operator () (AST::ExpressionComponent& exprcompo
 //
 // Finish traversing an expression component node
 //
-void DumpToStream::ExitHelper::operator () (AST::ExpressionComponent& exprcomponent)
+void DumpToStream::ExitHelper::operator () (AST::ExpressionComponent&)
 {
 	UnindentAndPrint(self, L"End of component");
 }
@@ -276,7 +276,7 @@ void DumpToStream::ExitHelper::operator () (AST::ExpressionComponent& exprcompon
 //
 // Begin traversing an expression fragment node (see AST definitions for details)
 //
-void DumpToStream::EntryHelper::operator () (AST::ExpressionFragment& exprfragment)
+void DumpToStream::EntryHelper::operator () (AST::ExpressionFragment&)
 {
 	PrintAndIndent(self, L"Expression fragment");
 }
@@ -284,7 +284,7 @@ void DumpToStream::EntryHelper::operator () (AST::ExpressionFragment& exprfragme
 //
 // Finish traversing an expression fragment node
 //
-void DumpToStream::ExitHelper::operator () (AST::ExpressionFragment& exprfragment)
+void DumpToStream::ExitHelper::operator () (AST::ExpressionFragment&)
 {
 	UnindentAndPrint(self, L"End of fragment");
 }
@@ -301,7 +301,7 @@ void DumpToStream::EntryHelper::operator () (AST::Statement& statement)
 //
 // Finish traversing a statement node
 //
-void DumpToStream::ExitHelper::operator () (AST::Statement& statement)
+void DumpToStream::ExitHelper::operator () (AST::Statement&)
 {
 	UnindentAndPrint(self, L"End of statement");
 }
@@ -318,7 +318,7 @@ void DumpToStream::EntryHelper::operator () (AST::PreOperatorStatement& statemen
 //
 // Finish traversing a node corresponding to a pre-operation statement
 //
-void DumpToStream::ExitHelper::operator () (AST::PreOperatorStatement& statement)
+void DumpToStream::ExitHelper::operator () (AST::PreOperatorStatement&)
 {
 	UnindentAndPrint(self, L"End of preopstatement");
 }
@@ -335,7 +335,7 @@ void DumpToStream::EntryHelper::operator () (AST::PostOperatorStatement& stateme
 //
 // Finish traversing a node corresponding to a post-operation statement
 //
-void DumpToStream::ExitHelper::operator () (AST::PostOperatorStatement& statement)
+void DumpToStream::ExitHelper::operator () (AST::PostOperatorStatement&)
 {
 	UnindentAndPrint(self, L"End of postopstatement");
 }
@@ -344,7 +344,7 @@ void DumpToStream::ExitHelper::operator () (AST::PostOperatorStatement& statemen
 //
 // Begin traversing a node containing a code block
 //
-void DumpToStream::EntryHelper::operator () (AST::CodeBlock& block)
+void DumpToStream::EntryHelper::operator () (AST::CodeBlock&)
 {
 	PrintAndIndent(self, L"Code block");
 }
@@ -352,7 +352,7 @@ void DumpToStream::EntryHelper::operator () (AST::CodeBlock& block)
 //
 // Finish traversing a code block node
 //
-void DumpToStream::ExitHelper::operator () (AST::CodeBlock& block)
+void DumpToStream::ExitHelper::operator () (AST::CodeBlock&)
 {
 	UnindentAndPrint(self, L"End of block");
 }
@@ -369,7 +369,7 @@ void DumpToStream::EntryHelper::operator () (AST::Assignment& assignment)
 //
 // Finish traversing a node corresponding to an assignment
 //
-void DumpToStream::ExitHelper::operator () (AST::Assignment& assignment)
+void DumpToStream::ExitHelper::operator () (AST::Assignment&)
 {
 	UnindentAndPrint(self, L"End of assignment");
 }
@@ -386,7 +386,7 @@ void DumpToStream::EntryHelper::operator () (AST::Initialization& initialization
 //
 // Finish traversing a node corresponding to an initialization
 //
-void DumpToStream::ExitHelper::operator () (AST::Initialization& initialization)
+void DumpToStream::ExitHelper::operator () (AST::Initialization&)
 {
 	UnindentAndPrint(self, L"End of initialization");
 }
@@ -403,7 +403,7 @@ void DumpToStream::EntryHelper::operator () (AST::Entity& entity)
 //
 // Finish traversing a node representing an entity invocation
 //
-void DumpToStream::ExitHelper::operator () (AST::Entity& entity)
+void DumpToStream::ExitHelper::operator () (AST::Entity&)
 {
 	UnindentAndPrint(self, L"End of entity");
 }
@@ -419,7 +419,7 @@ void DumpToStream::EntryHelper::operator () (AST::ChainedEntity& entity)
 //
 // Finish traversing a node containing a chained entity invocation
 //
-void DumpToStream::ExitHelper::operator () (AST::ChainedEntity& entity)
+void DumpToStream::ExitHelper::operator () (AST::ChainedEntity&)
 {
 	UnindentAndPrint(self, L"End of chained entity");
 }
@@ -435,7 +435,7 @@ void DumpToStream::EntryHelper::operator () (AST::PostfixEntity& entity)
 //
 // Finish traversing a postfix entity invocation node
 //
-void DumpToStream::ExitHelper::operator () (AST::PostfixEntity& entity)
+void DumpToStream::ExitHelper::operator () (AST::PostfixEntity&)
 {
 	UnindentAndPrint(self, L"End of postfix entity");
 }

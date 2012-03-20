@@ -27,7 +27,7 @@ namespace
 	// garbage collector to ensure that the allocation is taken into account when it
 	// comes time to decide when to collect garbage again.
 	//
-	void StringConcatenation(StringHandle functionname, VM::ExecutionContext& context)
+	void StringConcatenation(StringHandle, VM::ExecutionContext& context)
 	{
 		StringHandle p2 = context.State.Stack.PopValue<StringHandle>();
 		StringHandle p1 = context.State.Stack.PopValue<StringHandle>();
@@ -42,7 +42,7 @@ namespace
 	//
 	// Retrieve the length (in characters, not bytes!) of a string
 	//
-	void StringLength(StringHandle functionname, VM::ExecutionContext& context)
+	void StringLength(StringHandle, VM::ExecutionContext& context)
 	{
 		StringHandle p = context.State.Stack.PopValue<StringHandle>();
 		context.State.Stack.PushValue(context.OwnerVM.GetPooledString(p).length());
@@ -51,7 +51,7 @@ namespace
 	//
 	// Narrow a string into a byte buffer; typically useful for marshaling strings to APIs that expect narrow strings
 	//
-	void NarrowString(StringHandle functionname, VM::ExecutionContext& context)
+	void NarrowString(StringHandle, VM::ExecutionContext& context)
 	{
 		StringHandle sourcestringhandle = context.State.Stack.PopValue<StringHandle>();
 

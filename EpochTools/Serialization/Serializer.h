@@ -21,6 +21,11 @@ namespace Serialization
 	public:
 		Serializer(const DLLAccess::CompilerAccess& compileraccess, DLLAccess::CompiledByteCodeHandle bytecodehandle);
 
+	// Non-copyable
+	private:
+		Serializer(const Serializer& rhs);
+		Serializer& operator = (const Serializer& rhs);
+
 	// Writer interface
 	public:
 		void Write(const std::wstring& filename) const;

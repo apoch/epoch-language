@@ -58,6 +58,11 @@ public:
 	explicit Linker(const Projects::Project& project);
 	~Linker();
 
+// Non-copyable
+private:
+	Linker(const Linker& rhs);
+	Linker& operator = (const Linker& rhs);
+
 // EXE generation interface
 public:
 	void GenerateSections();

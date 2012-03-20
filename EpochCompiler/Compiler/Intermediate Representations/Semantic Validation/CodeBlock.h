@@ -44,7 +44,7 @@ namespace IRSemantics
 
 	// Compile time code execution
 	public:
-		virtual bool CompileTimeCodeExecution(Program& program, CodeBlock& activescope)
+		virtual bool CompileTimeCodeExecution(Program&, CodeBlock&)
 		{ return true; }
 
 	// Type inference

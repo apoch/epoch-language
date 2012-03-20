@@ -147,6 +147,7 @@ const char* STDCALL EpochLexer::PropertyNames()
 //
 int STDCALL EpochLexer::PropertyType(const char* name)
 {
+	ref(name);
 	return 0;
 }
 
@@ -155,6 +156,7 @@ int STDCALL EpochLexer::PropertyType(const char* name)
 //
 const char* STDCALL EpochLexer::DescribeProperty(const char* name)
 {
+	ref(name);
 	return "";
 }
 
@@ -163,6 +165,8 @@ const char* STDCALL EpochLexer::DescribeProperty(const char* name)
 //
 int STDCALL EpochLexer::PropertySet(const char* key, const char* val)
 {
+	ref(key);
+	ref(val);
 	return -1;
 }
 
@@ -179,6 +183,8 @@ const char* STDCALL EpochLexer::DescribeWordListSets()
 //
 int STDCALL EpochLexer::WordListSet(int n, const char* wl)
 {
+	ref(n);
+	ref(wl);
 	return -1;
 }
 
@@ -315,6 +321,8 @@ void STDCALL EpochLexer::Lex(unsigned int startPos, int lengthDoc, int initStyle
 //
 void STDCALL EpochLexer::Fold(unsigned int startPos, int lengthDoc, int initStyle, IDocument* pAccess)
 {
+	ref(initStyle);
+
 	Accessor styler(pAccess, NULL);
 	styler.StartAt(startPos);
 
@@ -400,5 +408,8 @@ void STDCALL EpochLexer::Fold(unsigned int startPos, int lengthDoc, int initStyl
 //
 void* STDCALL EpochLexer::PrivateCall(int operation, void* pointer)
 {
+	ref(operation);
+	ref(pointer);
+
 	return NULL;
 }

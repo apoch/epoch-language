@@ -193,6 +193,11 @@ namespace VM
 	public:
 		ExecutionContext(VirtualMachine& owner, const Bytecode::Instruction* codebuffer, size_t codesize);
 
+	// Non-copyable
+	private:
+		ExecutionContext(const ExecutionContext& rhs);
+		ExecutionContext& operator = (const ExecutionContext& rhs);
+
 	// Execution interface
 	public:
 		void Execute(const ScopeDescription* scope, bool returnonfunctionexit);

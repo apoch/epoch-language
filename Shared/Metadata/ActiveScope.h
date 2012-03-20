@@ -32,6 +32,11 @@ public:
 		  ParentScope(parent)
 	{ }
 
+// Non-copyable
+private:
+	ActiveScope(const ActiveScope& rhs);
+	ActiveScope& operator = (const ActiveScope& rhs);
+
 // Interface for attaching scope to actual memory storage
 public:
 	void BindParametersToStack(const VM::ExecutionContext& context);

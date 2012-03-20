@@ -87,7 +87,7 @@ namespace IRSemantics
 
 	// Function parameter interface
 	public:
-		virtual VM::EpochTypeID GetParamType(const IRSemantics::Program& program) const
+		virtual VM::EpochTypeID GetParamType(const IRSemantics::Program&) const
 		{ return MyType; }
 
 		virtual bool IsLocalVariable() const
@@ -96,7 +96,7 @@ namespace IRSemantics
 		virtual bool IsReference() const
 		{ return IsRef; }
 
-		virtual bool Validate(const IRSemantics::Program& program) const
+		virtual bool Validate(const IRSemantics::Program&) const
 		{ return true; }
 
 	// Internal state
@@ -118,7 +118,7 @@ namespace IRSemantics
 
 	// Function parameter interface
 	public:
-		virtual VM::EpochTypeID GetParamType(const IRSemantics::Program& program) const
+		virtual VM::EpochTypeID GetParamType(const IRSemantics::Program&) const
 		{ return VM::EpochType_Function; }
 
 		virtual bool IsLocalVariable() const

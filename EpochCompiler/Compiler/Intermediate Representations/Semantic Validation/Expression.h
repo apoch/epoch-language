@@ -413,13 +413,13 @@ namespace IRSemantics
 
 	// Atom interface
 	public:
-		virtual VM::EpochTypeID GetEpochType(const Program& program) const
+		virtual VM::EpochTypeID GetEpochType(const Program&) const
 		{ return MyType; }
 
-		virtual bool TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, size_t index)
+		virtual bool TypeInference(Program&, CodeBlock&, InferenceContext&, size_t)
 		{ return true; }
 
-		virtual bool CompileTimeCodeExecution(Program& program, CodeBlock& activescope, bool inreturnexpr)
+		virtual bool CompileTimeCodeExecution(Program&, CodeBlock&, bool)
 		{ return true; }
 
 	// Inspection
@@ -450,13 +450,13 @@ namespace IRSemantics
 
 	// Atom interface
 	public:
-		virtual VM::EpochTypeID GetEpochType(const Program& program) const
+		virtual VM::EpochTypeID GetEpochType(const Program&) const
 		{ return MyType; }
 
-		virtual bool TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, size_t index)
+		virtual bool TypeInference(Program&, CodeBlock&, InferenceContext&, size_t)
 		{ return true; }
 
-		virtual bool CompileTimeCodeExecution(Program& program, CodeBlock& activescope, bool inreturnexpr)
+		virtual bool CompileTimeCodeExecution(Program&, CodeBlock&, bool)
 		{ return true; }
 
 	// Inspection

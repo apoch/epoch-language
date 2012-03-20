@@ -44,6 +44,10 @@
 #define BOOST_SPIRIT_DONT_USE_MPL_ASSERT_MSG 1		// Avoid nasty linker glitch in mpl
 
 
+#pragma warning(push)
+#pragma warning(disable: 4512)		// Boost is naughty about copy constructors and assignment operators...
+#pragma warning(disable: 4127)		// ...and also constant conditional expressions...
+
 // We include spirit here for better grammar/parser build times
 #include <boost/spirit/include/qi.hpp>
 #include <boost/spirit/include/qi_match_auto.hpp>
@@ -59,3 +63,5 @@
 
 #include <boost/shared_ptr.hpp>
 #include <boost/intrusive_ptr.hpp>
+
+#pragma warning(pop)

@@ -15,7 +15,7 @@ struct EntityGrammar : public boost::spirit::qi::grammar<Lexer::TokenIterT, boos
 
 	EntityGrammar();
 
-	void InitRecursivePortion(const Lexer::EpochLexerT& lexer, const ExpressionGrammar& expressiongrammar, const CodeBlockGrammar& codeblockgrammar);
+	void InitRecursivePortion(const ExpressionGrammar& expressiongrammar, const CodeBlockGrammar& codeblockgrammar);
 
 
 	template <typename AttributeT>

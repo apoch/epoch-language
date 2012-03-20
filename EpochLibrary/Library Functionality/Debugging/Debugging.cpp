@@ -26,7 +26,7 @@ namespace
 	//
 	// Write a string to the debug output
 	//
-	void WriteString(StringHandle functionname, VM::ExecutionContext& context)
+	void WriteString(StringHandle, VM::ExecutionContext& context)
 	{
 		StringHandle handle = context.State.Stack.PopValue<StringHandle>();
 
@@ -37,7 +37,7 @@ namespace
 	//
 	// Read a string from the debug console
 	//
-	void ReadString(StringHandle functionname, VM::ExecutionContext& context)
+	void ReadString(StringHandle, VM::ExecutionContext& context)
 	{
 		UI::Input input;
 		StringHandle handle = context.OwnerVM.PoolString(input.BlockingRead());

@@ -74,7 +74,7 @@ struct FundamentalGrammar : public boost::spirit::qi::grammar<Lexer::TokenIterT,
 		for(StringSet::const_iterator iter = Identifiers.OpAssignmentIdentifiers.begin(); iter != Identifiers.OpAssignmentIdentifiers.end(); ++iter)
 			AddOpAssignOperator(*iter);
 
-		TheEntityGrammar.InitRecursivePortion(lexer, TheExpressionGrammar, TheCodeBlockGrammar);
+		TheEntityGrammar.InitRecursivePortion(TheExpressionGrammar, TheCodeBlockGrammar);
 	}
 
 	template <typename AttributeT>

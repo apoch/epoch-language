@@ -173,7 +173,7 @@ bool Function::CompileTimeCodeExecution(Program& program)
 }
 
 
-bool Function::TypeInference(Program& program, InferenceContext& context)
+bool Function::TypeInference(Program& program, InferenceContext&)
 {
 	if(InferenceDone)
 		return true;

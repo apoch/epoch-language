@@ -37,7 +37,7 @@ namespace IRSemantics
 		virtual bool CanChainToAssignment() const
 		{ return false; }
 
-		virtual void SetRHSRecursive(AssignmentChain* rhs)
+		virtual void SetRHSRecursive(AssignmentChain*)
 		{ }
 
 		virtual VM::EpochTypeID GetEpochType(const Program& program) const = 0;

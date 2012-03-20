@@ -44,6 +44,12 @@ namespace ASTTraverse
 			Entry.self = this;
 			Exit.self = this;
 		}
+		
+	// Assignment prohibited
+	private:
+		DumpToStream& operator = (const DumpToStream& rhs);
+
+	public:
 
 		//
 		// Node entry functor
@@ -124,8 +130,8 @@ namespace ASTTraverse
 			void operator () (Markers::ExpressionComponentPrefixes& marker);
 			void operator () (Markers::FunctionSignatureParams& marker);
 			void operator () (Markers::FunctionSignatureReturn& marker);
-			void operator () (Markers::StructureFunctionParams& marker) { }
-			void operator () (Markers::StructureFunctionReturn& marker) { }
+			void operator () (Markers::StructureFunctionParams&) { }
+			void operator () (Markers::StructureFunctionReturn&) { }
 
 		// Internal binding to the owning DumpToStream object
 		private:
@@ -148,7 +154,7 @@ namespace ASTTraverse
 			// the state of the callback wrapper via EntryHelper.
 			//
 			template <typename T>
-			void operator() (T& node)
+			void operator() (T&)
 			{
 				// Ignored!
 			}
@@ -194,8 +200,8 @@ namespace ASTTraverse
 			void operator () (Markers::ExpressionComponentPrefixes& marker);
 			void operator () (Markers::FunctionSignatureParams& marker);
 			void operator () (Markers::FunctionSignatureReturn& marker);
-			void operator () (Markers::StructureFunctionParams& marker) { }
-			void operator () (Markers::StructureFunctionReturn& marker) { }
+			void operator () (Markers::StructureFunctionParams&) { }
+			void operator () (Markers::StructureFunctionReturn&) { }
 
 		// Internal bindings to the owning DumpToStream object
 		private:

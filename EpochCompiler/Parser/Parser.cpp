@@ -32,7 +32,7 @@ using namespace boost::spirit::lex;
 // Parse a given block of code, invoking the bound set of
 // semantic actions during the parse process
 //
-bool Parser::Parse(const std::wstring& code, const std::wstring& filename, AST::Program*& program) const
+bool Parser::Parse(const std::wstring& code, const std::wstring& /*filename*/, AST::Program*& program) const
 {
 	std::auto_ptr<AST::Program> ptr(NULL);
 

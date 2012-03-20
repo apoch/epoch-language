@@ -227,7 +227,7 @@ bool Expression::TypeInference(Program& program, CodeBlock& activescope, Inferen
 	return true;
 }
 
-VM::EpochTypeID Expression::GetEpochType(const Program& program) const
+VM::EpochTypeID Expression::GetEpochType(const Program&) const
 {
 	return InferredType;
 }
@@ -363,7 +363,7 @@ VM::EpochTypeID ExpressionAtomParenthetical::GetEpochType(const Program& program
 	return VM::EpochType_Error;
 }
 
-bool ExpressionAtomParenthetical::TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, size_t index)
+bool ExpressionAtomParenthetical::TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, size_t)
 {
 	return MyParenthetical->TypeInference(program, activescope, context);
 }
@@ -394,7 +394,7 @@ bool ParentheticalPreOp::TypeInference(Program& program, CodeBlock& activescope,
 	return MyStatement->TypeInference(program, activescope, context);
 }
 
-bool ParentheticalPreOp::CompileTimeCodeExecution(Program& program, CodeBlock& activescope, bool inreturnexpr)
+bool ParentheticalPreOp::CompileTimeCodeExecution(Program&, CodeBlock&, bool)
 {
 	return true;
 }
@@ -420,13 +420,13 @@ bool ParentheticalPostOp::TypeInference(Program& program, CodeBlock& activescope
 	return MyStatement->TypeInference(program, activescope, context);
 }
 
-bool ParentheticalPostOp::CompileTimeCodeExecution(Program& program, CodeBlock& activescope, bool inreturnexpr)
+bool ParentheticalPostOp::CompileTimeCodeExecution(Program&, CodeBlock&, bool)
 {
 	return true;
 }
 
 
-VM::EpochTypeID ExpressionAtomIdentifier::GetEpochType(const Program& program) const
+VM::EpochTypeID ExpressionAtomIdentifier::GetEpochType(const Program&) const
 {
 	return MyType;
 }
@@ -451,24 +451,24 @@ bool ExpressionAtomIdentifier::TypeInference(Program& program, CodeBlock& active
 	return true;
 }
 
-bool ExpressionAtomIdentifier::CompileTimeCodeExecution(Program& program, CodeBlock& activescope, bool inreturnexpr)
+bool ExpressionAtomIdentifier::CompileTimeCodeExecution(Program&, CodeBlock&, bool)
 {
 	// No op
 	return true;
 }
 
 
-VM::EpochTypeID ExpressionAtomOperator::GetEpochType(const Program& program) const
+VM::EpochTypeID ExpressionAtomOperator::GetEpochType(const Program&) const
 {
 	return VM::EpochType_Error;
 }
 
-bool ExpressionAtomOperator::TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, size_t index)
+bool ExpressionAtomOperator::TypeInference(Program&, CodeBlock&, InferenceContext&, size_t)
 {
 	return true;
 }
 
-bool ExpressionAtomOperator::CompileTimeCodeExecution(Program& program, CodeBlock& activescope, bool inreturnexpr)
+bool ExpressionAtomOperator::CompileTimeCodeExecution(Program&, CodeBlock&, bool)
 {
 	// No op
 	return true;
@@ -584,67 +584,67 @@ VM::EpochTypeID ExpressionAtomOperator::DetermineUnaryReturnType(Program& progra
 }
 
 
-VM::EpochTypeID ExpressionAtomLiteralInteger32::GetEpochType(const Program& program) const
+VM::EpochTypeID ExpressionAtomLiteralInteger32::GetEpochType(const Program&) const
 {
 	return VM::EpochType_Integer;
 }
 
-bool ExpressionAtomLiteralInteger32::TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, size_t index)
+bool ExpressionAtomLiteralInteger32::TypeInference(Program&, CodeBlock&, InferenceContext&, size_t)
 {
 	return true;
 }
 
-bool ExpressionAtomLiteralInteger32::CompileTimeCodeExecution(Program& program, CodeBlock& activescope, bool inreturnexpr)
+bool ExpressionAtomLiteralInteger32::CompileTimeCodeExecution(Program&, CodeBlock&, bool)
 {
 	// No op
 	return true;
 }
 
-VM::EpochTypeID ExpressionAtomLiteralReal32::GetEpochType(const Program& program) const
+VM::EpochTypeID ExpressionAtomLiteralReal32::GetEpochType(const Program&) const
 {
 	return VM::EpochType_Real;
 }
 
-bool ExpressionAtomLiteralReal32::TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, size_t index)
+bool ExpressionAtomLiteralReal32::TypeInference(Program&, CodeBlock&, InferenceContext&, size_t)
 {
 	return true;
 }
 
-bool ExpressionAtomLiteralReal32::CompileTimeCodeExecution(Program& program, CodeBlock& activescope, bool inreturnexpr)
+bool ExpressionAtomLiteralReal32::CompileTimeCodeExecution(Program&, CodeBlock&, bool)
 {
 	// No op
 	return true;
 }
 
 
-VM::EpochTypeID ExpressionAtomLiteralBoolean::GetEpochType(const Program& program) const
+VM::EpochTypeID ExpressionAtomLiteralBoolean::GetEpochType(const Program&) const
 {
 	return VM::EpochType_Boolean;
 }
 
-bool ExpressionAtomLiteralBoolean::TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, size_t index)
+bool ExpressionAtomLiteralBoolean::TypeInference(Program&, CodeBlock&, InferenceContext&, size_t)
 {
 	return true;
 }
 
-bool ExpressionAtomLiteralBoolean::CompileTimeCodeExecution(Program& program, CodeBlock& activescope, bool inreturnexpr)
+bool ExpressionAtomLiteralBoolean::CompileTimeCodeExecution(Program&, CodeBlock&, bool)
 {
 	// No op
 	return true;
 }
 
 
-VM::EpochTypeID ExpressionAtomLiteralString::GetEpochType(const Program& program) const
+VM::EpochTypeID ExpressionAtomLiteralString::GetEpochType(const Program&) const
 {
 	return VM::EpochType_String;
 }
 
-bool ExpressionAtomLiteralString::TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, size_t index)
+bool ExpressionAtomLiteralString::TypeInference(Program&, CodeBlock&, InferenceContext&, size_t)
 {
 	return true;
 }
 
-bool ExpressionAtomLiteralString::CompileTimeCodeExecution(Program& program, CodeBlock& activescope, bool inreturnexpr)
+bool ExpressionAtomLiteralString::CompileTimeCodeExecution(Program&, CodeBlock&, bool)
 {
 	// No op
 	return true;

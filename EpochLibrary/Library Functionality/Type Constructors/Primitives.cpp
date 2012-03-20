@@ -32,7 +32,7 @@ namespace
 	//
 	// Construct an integer variable in memory
 	//
-	void ConstructInteger(StringHandle functionname, VM::ExecutionContext& context)
+	void ConstructInteger(StringHandle, VM::ExecutionContext& context)
 	{
 		Integer32 value = context.State.Stack.PopValue<Integer32>();
 		StringHandle identifierhandle = context.State.Stack.PopValue<StringHandle>();
@@ -43,7 +43,7 @@ namespace
 	//
 	// Construct an integer16 variable in memory
 	//
-	void ConstructInteger16(StringHandle functionname, VM::ExecutionContext& context)
+	void ConstructInteger16(StringHandle, VM::ExecutionContext& context)
 	{
 		Integer16 value = context.State.Stack.PopValue<Integer16>();
 		StringHandle identifierhandle = context.State.Stack.PopValue<StringHandle>();
@@ -54,7 +54,7 @@ namespace
 	//
 	// Construct a string variable in memory
 	//
-	void ConstructString(StringHandle functionname, VM::ExecutionContext& context)
+	void ConstructString(StringHandle, VM::ExecutionContext& context)
 	{
 		StringHandle value = context.State.Stack.PopValue<StringHandle>();
 		StringHandle identifierhandle = context.State.Stack.PopValue<StringHandle>();
@@ -65,7 +65,7 @@ namespace
 	//
 	// Construct a boolean variable in memory
 	//
-	void ConstructBoolean(StringHandle functionname, VM::ExecutionContext& context)
+	void ConstructBoolean(StringHandle, VM::ExecutionContext& context)
 	{
 		bool value = context.State.Stack.PopValue<bool>();
 		StringHandle identifierhandle = context.State.Stack.PopValue<StringHandle>();
@@ -76,7 +76,7 @@ namespace
 	//
 	// Construct a real variable in memory
 	//
-	void ConstructReal(StringHandle functionname, VM::ExecutionContext& context)
+	void ConstructReal(StringHandle, VM::ExecutionContext& context)
 	{
 		Real32 value = context.State.Stack.PopValue<Real32>();
 		StringHandle identifierhandle = context.State.Stack.PopValue<StringHandle>();
@@ -94,7 +94,7 @@ namespace
 	// Since this constructor allocates memory in the form of a buffer, it should tick
 	// over the garbage collector.
 	//
-	void ConstructBuffer(StringHandle functionname, VM::ExecutionContext& context)
+	void ConstructBuffer(StringHandle, VM::ExecutionContext& context)
 	{
 		Integer32 size = context.State.Stack.PopValue<Integer32>();
 		StringHandle identifierhandle = context.State.Stack.PopValue<StringHandle>();
