@@ -227,6 +227,7 @@ namespace IRSemantics
 
 		bool DoesParameterSignatureMatch(size_t index, const FunctionSignature& signature, const IRSemantics::Program& program) const;
 		VM::EpochTypeID GetParameterSignatureType(StringHandle name, const IRSemantics::Program& program) const;
+		FunctionSignature GetParameterSignature(StringHandle name, const IRSemantics::Program& program) const;
 
 		size_t GetNumParameters() const
 		{ return Parameters.size(); }
@@ -245,6 +246,10 @@ namespace IRSemantics
 
 		bool IsReturnRegisterSuppressed() const
 		{ return SuppressReturn; }
+
+	// Signatures
+	public:
+		FunctionSignature GetFunctionSignature(const Program& program) const;
 
 	// Inner code
 	public:

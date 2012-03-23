@@ -92,11 +92,11 @@ int _tmain(int argc, _TCHAR* argv[])
 			}
 			catch(const std::exception& e)
 			{
-				output << L"Error: " << e.what() << std::endl;
+				output << UI::lightred << L"Error: " << e.what() << UI::white << std::endl;
 			}
 			catch(...)
 			{
-				output << L"Unknown error!" << std::endl;
+				output << UI::lightred << L"Unknown error!" << UI::white << std::endl;
 			}
 		}
 		else if(parameters[i] == L"/build")
@@ -137,7 +137,7 @@ int _tmain(int argc, _TCHAR* argv[])
 							outfile.write(reinterpret_cast<const char*>(pdata), static_cast<std::streamsize>(size));
 						else
 						{
-							output << L"Error: failed to open output intermediate file\n" << intermediatefile << L"\n\n";
+							output << UI::lightred << L"Error: failed to open output intermediate file\n" << intermediatefile << L"\n\n" << UI::white;
 							compilationsuccess = false;
 						}
 					}
@@ -154,11 +154,11 @@ int _tmain(int argc, _TCHAR* argv[])
 			}
 			catch(const std::exception& e)
 			{
-				output << L"Error: " << e.what() << std::endl;
+				output << UI::lightred << L"Error: " << e.what() << UI::white << std::endl;
 			}
 			catch(...)
 			{
-				output << L"Unknown error!" << std::endl;
+				output << UI::lightred << L"Unknown error!" << UI::white << std::endl;
 			}
 		}
 		else if(parameters[i] == L"/pause")
@@ -204,11 +204,11 @@ int _tmain(int argc, _TCHAR* argv[])
 			}
 			catch(const std::exception& e)
 			{
-				output << L"Error: " << e.what() << std::endl;
+				output << UI::lightred << L"Error: " << e.what() << UI::white << std::endl;
 			}
 			catch(...)
 			{
-				output << L"Unknown error!" << std::endl;
+				output << UI::lightred << L"Unknown error!" << UI::white << std::endl;
 			}
 		}
 	}

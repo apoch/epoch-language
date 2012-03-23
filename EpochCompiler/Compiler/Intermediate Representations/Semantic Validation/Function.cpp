@@ -306,3 +306,58 @@ bool Function::DoesParameterSignatureMatch(size_t index, const FunctionSignature
 	return true;
 }
 
+
+FunctionSignature Function::GetParameterSignature(StringHandle name, const IRSemantics::Program& program) const
+{
+	for(std::vector<Param>::const_iterator iter = Parameters.begin(); iter != Parameters.end(); ++iter)
+	{
+		if(iter->Name == name)
+		{
+			FunctionSignature ret;
+			const FunctionParamFuncRef* param = dynamic_cast<const FunctionParamFuncRef*>(iter->Parameter);
+			if(!param)
+				return ret;
+
+			StringHandle nameoftype = param->GetReturnType();
+			VM::EpochTypeID type = nameoftype ? program.LookupType(nameoftype) : VM::EpochType_Void;
+			ret.SetReturnType(type);
+
+			const std::vector<StringHandle>& paramtypes = param->GetParamTypes();
+			for(size_t i = 0; i < paramtypes.size(); ++i)
+			{
+				VM::EpochTypeID paramtype = program.LookupType(paramtypes[i]);
+				ret.AddParameter(L"@@internal", paramtype, false);
+			}
+
+			return ret;
+		}
+	}
+
+	// TODO - ensure this exception cannot be thrown by simply malforming code
+	throw InternalException("Provided string handle does not correspond to a parameter of this function");
+}
+
+
+FunctionSignature Function::GetFunctionSignature(const Program& program) const
+{
+	FunctionSignature ret;
+
+	ret.SetReturnType(GetReturnType(program));
+
+	size_t index = 0;
+	for(std::vector<Param>::const_iterator iter = Parameters.begin(); iter != Parameters.end(); ++iter)
+	{
+		VM::EpochTypeID paramtype = iter->Parameter->GetParamType(program);
+		if(!iter->Parameter->IsLocalVariable())
+			throw InternalException("Not implemented");		// TODO - support for pattern matching
+
+		ret.AddParameter(program.GetString(iter->Name), paramtype, iter->Parameter->IsReference());
+		if(paramtype == VM::EpochType_Function)
+			ret.SetFunctionSignature(index, GetParameterSignature(iter->Name, program));
+
+		++index;
+	}
+
+	return ret;
+}
+

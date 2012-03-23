@@ -9,6 +9,8 @@
 
 #include "Compiler/Session.h"
 
+#include "User Interface/Output.h"
+
 #include "Utility/Strings.h"
 
 
@@ -21,6 +23,8 @@
 //
 extern "C" void* STDCALL CompileSourceToByteCode(const wchar_t* filename, const void* sourcecodebuffer, size_t sourcesize)
 {
+	UI::OutputStream output;
+
 	try
 	{
 		std::wstring source(reinterpret_cast<std::wstring::const_pointer>(sourcecodebuffer), sourcesize);
@@ -31,12 +35,12 @@ extern "C" void* STDCALL CompileSourceToByteCode(const wchar_t* filename, const 
 	}
 	catch(const std::exception& e)
 	{
-        std::wcerr << e.what() << std::endl;
+        output << UI::lightred << e.what() << UI::white << std::endl;
         return NULL;
 	}
 	catch(...)
 	{
-        std::wcerr << L"Exception occurred during compilation" << std::endl;
+        output << UI::lightred << L"Exception occurred during compilation" << UI::white << std::endl;
         return NULL;
 	}
 }

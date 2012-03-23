@@ -12,6 +12,8 @@
 #include "Utility/Types/IDTypes.h"
 #include "Utility/Types/EpochTypeIDs.h"
 
+#include "Metadata/FunctionSignature.h"
+
 #include <list>
 #include <vector>
 
@@ -24,6 +26,10 @@ namespace IRSemantics
 		typedef std::vector<VM::EpochTypeID> TypePossibilities;
 		typedef std::vector<TypePossibilities> PossibleParameterTypes;
 		typedef std::list<PossibleParameterTypes> TypeListStack;
+
+		typedef std::vector<FunctionSignature> SignaturePossibilities;
+		typedef std::vector<SignaturePossibilities> PossibleSignatureSet;
+		typedef std::list<PossibleSignatureSet> SignatureStack;
 
 		enum ContextStates
 		{
@@ -39,6 +45,7 @@ namespace IRSemantics
 
 		StringHandle ContextName;
 		TypeListStack ExpectedTypes;
+		SignatureStack ExpectedSignatures;
 		ContextStates State;
 
 		StringHandle FunctionName;

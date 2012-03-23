@@ -143,6 +143,7 @@ bool Expression::TypeInference(Program& program, CodeBlock& activescope, Inferen
 	InferenceContext newcontext(context.ContextName, InferenceContext::CONTEXT_EXPRESSION);
 	newcontext.FunctionName = context.FunctionName;
 	newcontext.ExpectedTypes = context.ExpectedTypes;
+	newcontext.ExpectedSignatures = context.ExpectedSignatures;
 	InferenceContext& selectedcontext = context.State == InferenceContext::CONTEXT_FUNCTION_RETURN ? context : newcontext;
 
 	bool result = true;
@@ -433,20 +434,63 @@ VM::EpochTypeID ExpressionAtomIdentifier::GetEpochType(const Program&) const
 
 bool ExpressionAtomIdentifier::TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, size_t index)
 {
-	if(program.HasFunction(Identifier))
-		MyType = VM::EpochType_Function;
-	else if(program.LookupType(Identifier) != VM::EpochType_Error)
-		MyType = VM::EpochType_Identifier;
-	else
+	StringHandle resolvedidentifier = Identifier;
+	unsigned matches = 0;
+	VM::EpochTypeID vartype = activescope.GetScope()->HasVariable(Identifier) ? activescope.GetScope()->GetVariableTypeByID(Identifier) : VM::EpochType_Infer;
+
+	if(!context.ExpectedTypes.empty())
 	{
-		// TODO - enumerate possible types and perform actual inference
-		if(!context.ExpectedTypes.empty() && context.ExpectedTypes.back()[0][index] == VM::EpochType_Identifier)
-			MyType = VM::EpochType_Identifier;
-		else if(!context.ExpectedTypes.empty() && context.ExpectedTypes.back()[0][index] == VM::EpochType_Function)
-			MyType = VM::EpochType_Function;
-		else
-			MyType = activescope.GetScope()->GetVariableTypeByID(Identifier);
+		const InferenceContext::PossibleParameterTypes& types = context.ExpectedTypes.back();
+		for(size_t i = 0; i < types.size(); ++i)
+		{
+			VM::EpochTypeID paramtype = types[i][index];
+			if(paramtype == VM::EpochType_Identifier)
+			{
+				MyType = VM::EpochType_Identifier;
+				++matches;
+			}
+			else if(paramtype == VM::EpochType_Function)
+			{
+				FunctionSignatureSet::const_iterator fsigiter = program.Session.FunctionSignatures.find(Identifier);
+				if(fsigiter != program.Session.FunctionSignatures.end())
+				{
+					if(context.ExpectedSignatures.back()[i][index].Matches(fsigiter->second))
+					{
+						MyType = VM::EpochType_Function;
+						++matches;
+					}
+				}
+				else if(program.HasFunction(Identifier))
+				{
+					unsigned overloadcount = program.GetNumFunctionOverloads(Identifier);
+					for(unsigned j = 0; j < overloadcount; ++j)
+					{
+						StringHandle overloadname = program.GetFunctionOverloadName(Identifier, j);
+						Function* func = program.GetFunctions().find(overloadname)->second;
+
+						func->TypeInference(program, context);
+						FunctionSignature sig = func->GetFunctionSignature(program);
+						if(context.ExpectedSignatures.back()[i][index].Matches(sig))
+						{
+							resolvedidentifier = overloadname;
+							MyType = VM::EpochType_Function;
+							++matches;
+						}
+					}
+				}
+			}
+			else if(paramtype == vartype)
+			{
+				MyType = vartype;
+				++matches;
+			}
+		}
 	}
+
+	if(matches != 1)
+		MyType = vartype;		// This will correctly handle structure types and fall back to Infer if all else fails
+	else
+		Identifier = resolvedidentifier;
 
 	return true;
 }

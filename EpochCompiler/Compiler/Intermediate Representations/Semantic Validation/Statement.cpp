@@ -79,16 +79,19 @@ bool Statement::TypeInference(Program& program, CodeBlock& activescope, Inferenc
 	{
 	case InferenceContext::CONTEXT_CODE_BLOCK:
 		newcontext.ExpectedTypes.push_back(program.GetExpectedTypesForStatement(Name, *activescope.GetScope(), context.FunctionName));
+		newcontext.ExpectedSignatures.push_back(program.GetExpectedSignaturesForStatement(Name, *activescope.GetScope(), context.FunctionName));
 		break;
 
 	case InferenceContext::CONTEXT_STATEMENT:
 		newcontext.ExpectedTypes.push_back(program.GetExpectedTypesForStatement(context.ContextName, *activescope.GetScope(), context.FunctionName));
+		newcontext.ExpectedSignatures.push_back(program.GetExpectedSignaturesForStatement(context.ContextName, *activescope.GetScope(), context.FunctionName));
 		break;
 
 	case InferenceContext::CONTEXT_EXPRESSION:
 	case InferenceContext::CONTEXT_FUNCTION_RETURN:
 		// TODO - this is broken, evaluate the actual operators involved and use them w/ overload resolution
 		newcontext.ExpectedTypes.push_back(program.GetExpectedTypesForStatement(Name, *activescope.GetScope(), context.FunctionName));
+		newcontext.ExpectedSignatures.push_back(program.GetExpectedSignaturesForStatement(Name, *activescope.GetScope(), context.FunctionName));
 		break;
 
 	default:

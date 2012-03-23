@@ -591,6 +591,102 @@ InferenceContext::PossibleParameterTypes Program::GetExpectedTypesForStatement(S
 	throw std::runtime_error("Invalid function name");
 }
 
+InferenceContext::PossibleSignatureSet Program::GetExpectedSignaturesForStatement(StringHandle name, const ScopeDescription& scope, StringHandle contextname) const
+{
+	if(scope.HasVariable(name) && scope.GetVariableTypeByID(name) == VM::EpochType_Function)
+	{
+		boost::unordered_map<StringHandle, Function*>::const_iterator funciter = Functions.find(contextname);
+		if(funciter == Functions.end())
+		{
+			//
+			// This is a critical internal failure. A function overload name
+			// has been registered but the corresponding definition of the
+			// function cannot be located.
+			//
+			// Examine the handling of overload registration, name resolution,
+			// and definition storage. We should not reach the phase of type
+			// inference until all function definitions have been visited by
+			// AST traversal in prior semantic validation passes.
+			//
+			throw InternalException("Function overload registered but definition not found");
+		}
+		
+		InferenceContext::PossibleSignatureSet ret(1, InferenceContext::SignaturePossibilities());
+		ret.back().push_back(funciter->second->GetParameterSignature(name, *this));
+
+		return ret;
+	}
+
+	boost::unordered_map<StringHandle, unsigned>::const_iterator iter = FunctionOverloadCounters.find(name);
+	if(iter != FunctionOverloadCounters.end())
+	{
+		InferenceContext::PossibleSignatureSet ret;
+		ret.reserve(iter->second);
+
+		for(size_t i = 0; i < iter->second; ++i)
+		{
+			StringHandle overloadname = i ? FunctionOverloadNameCache.Find(std::make_pair(name, i)) : name;
+			boost::unordered_map<StringHandle, Function*>::const_iterator funciter = Functions.find(overloadname);
+			if(funciter == Functions.end())
+			{
+				//
+				// This is a critical internal failure. A function overload name
+				// has been registered but the corresponding definition of the
+				// function cannot be located.
+				//
+				// Examine the handling of overload registration, name resolution,
+				// and definition storage. We should not reach the phase of type
+				// inference until all function definitions have been visited by
+				// AST traversal in prior semantic validation passes.
+				//
+				throw InternalException("Function overload registered but definition not found");
+			}
+
+			ret.push_back(InferenceContext::SignaturePossibilities());
+
+			std::vector<StringHandle> paramnames = funciter->second->GetParameterNames();
+			for(std::vector<StringHandle>::const_iterator paramiter = paramnames.begin(); paramiter != paramnames.end(); ++paramiter)
+				ret.back().push_back(funciter->second->GetParameterSignature(*paramiter, *this));
+		}
+
+		return ret;
+	}
+
+	OverloadMap::const_iterator ovmapiter = Session.FunctionOverloadNames.find(name);
+	if(ovmapiter != Session.FunctionOverloadNames.end())
+	{
+		InferenceContext::PossibleSignatureSet ret(ovmapiter->second.size(), InferenceContext::SignaturePossibilities());
+		size_t i = 0;
+		for(StringHandleSet::const_iterator oviter = ovmapiter->second.begin(); oviter != ovmapiter->second.end(); ++oviter)
+		{
+			FunctionSignatureSet::const_iterator fsigiter = Session.FunctionSignatures.find(*oviter);
+			if(fsigiter != Session.FunctionSignatures.end())
+			{
+				for(size_t j = 0; j < fsigiter->second.GetNumParameters(); ++j)
+					ret[i].push_back(fsigiter->second.GetFunctionSignature(j));
+			}
+
+			++i;
+		}
+		
+		return ret;
+	}
+
+	FunctionSignatureSet::const_iterator fsigiter = Session.FunctionSignatures.find(name);
+	if(fsigiter != Session.FunctionSignatures.end())
+	{
+		InferenceContext::PossibleSignatureSet ret(1, InferenceContext::SignaturePossibilities());
+		for(size_t i = 0; i < fsigiter->second.GetNumParameters(); ++i)
+			ret.front().push_back(fsigiter->second.GetFunctionSignature(i));
+
+		return ret;
+	}
+
+	// TODO - this should not be an exception. Record a semantic error instead.
+	throw std::runtime_error("Invalid function name");
+}
+
+
 void Program::AddScope(ScopeDescription* scope)
 {
 	AddScope(scope, LexicalScopeNameCache.Find(scope));
