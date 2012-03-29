@@ -12,3 +12,6 @@ VTune/*
 *.aps
 _ReSharper*
 *.user
+ipch/*
+*.sdf
+*.opensdf
