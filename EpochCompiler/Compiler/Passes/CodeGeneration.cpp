@@ -227,7 +227,20 @@ namespace
 		bool needsrefbind = false;
 		const std::vector<IRSemantics::ExpressionAtom*>& rawatoms = expression.GetAtoms();
 		for(std::vector<IRSemantics::ExpressionAtom*>::const_iterator iter = rawatoms.begin(); iter != rawatoms.end(); ++iter)
-			needsrefbind |= EmitExpressionAtom(emitter, *iter, activescope, program, !needsrefbind);
+		{
+			ByteBuffer atombuffer;
+			ByteCodeEmitter atomemitter(atombuffer);
+			bool thisatomneedsrefbind = EmitExpressionAtom(atomemitter, *iter, activescope, program, !needsrefbind);
+			if(thisatomneedsrefbind)
+				needsrefbind = true;
+			else if(needsrefbind)
+			{
+				emitter.ReadReferenceOntoStack();
+				needsrefbind = false;
+			}
+
+			emitter.EmitBuffer(atombuffer);
+		}
 
 		if(needsrefbind)
 			emitter.ReadReferenceOntoStack();

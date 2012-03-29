@@ -168,8 +168,8 @@ namespace
 
 					ret = opatom->DetermineUnaryReturnType(program, operandtype);
 				}
-
-				break;
+				else
+					break;
 			}
 			else
 				ret = atoms[index++]->GetEpochType(program);
