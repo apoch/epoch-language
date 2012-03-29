@@ -247,6 +247,12 @@ void ByteCodeEmitter::BindStructureReference(StringHandle membername)
 	EmitRawValue(membername);
 }
 
+void ByteCodeEmitter::BindStructureReferenceByHandle(StringHandle membername)
+{
+	EmitInstruction(Bytecode::Instructions::BindMemberByHandle);
+	EmitRawValue(membername);
+}
+
 //
 // Emit code for popping a given number of bytes off the stack
 //

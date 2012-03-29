@@ -124,7 +124,7 @@ namespace
 		emitter.AssignVariable();
 	}
 
-	void EmitExpressionAtom(ByteCodeEmitter& emitter, const IRSemantics::ExpressionAtom* rawatom, const IRSemantics::CodeBlock& activescope, const IRSemantics::Program& program)
+	bool EmitExpressionAtom(ByteCodeEmitter& emitter, const IRSemantics::ExpressionAtom* rawatom, const IRSemantics::CodeBlock& activescope, const IRSemantics::Program& program, bool firstmember)
 	{
 		if(!rawatom)
 		{
@@ -197,8 +197,11 @@ namespace
 		}
 		else if(const IRSemantics::ExpressionAtomBindReference* atom = dynamic_cast<const IRSemantics::ExpressionAtomBindReference*>(rawatom))
 		{
-			emitter.BindStructureReference(atom->GetIdentifier());
-			emitter.ReadReferenceOntoStack();
+			if(firstmember)
+				emitter.BindStructureReferenceByHandle(atom->GetIdentifier());
+			else
+				emitter.BindStructureReference(atom->GetIdentifier());
+			return true;
 		}
 		else
 		{
@@ -215,13 +218,19 @@ namespace
 			//
 			throw InternalException("IR contains an unrecognized expression atom");
 		}
+
+		return false;
 	}
 
 	void EmitExpression(ByteCodeEmitter& emitter, const IRSemantics::Expression& expression, const IRSemantics::CodeBlock& activescope, const IRSemantics::Program& program)
 	{
+		bool needsrefbind = false;
 		const std::vector<IRSemantics::ExpressionAtom*>& rawatoms = expression.GetAtoms();
 		for(std::vector<IRSemantics::ExpressionAtom*>::const_iterator iter = rawatoms.begin(); iter != rawatoms.end(); ++iter)
-			EmitExpressionAtom(emitter, *iter, activescope, program);
+			needsrefbind |= EmitExpressionAtom(emitter, *iter, activescope, program, !needsrefbind);
+
+		if(needsrefbind)
+			emitter.ReadReferenceOntoStack();
 	}
 
 	void EmitStatement(ByteCodeEmitter& emitter, const IRSemantics::Statement& statement, const IRSemantics::CodeBlock& activescope, const IRSemantics::Program& program)

@@ -62,6 +62,8 @@ namespace Bytecode
 
 		static const Instruction AssignThroughIdentifier = 0x1c;
 
+		static const Instruction BindMemberByHandle = 0x1d;
+
 	}
 
 }

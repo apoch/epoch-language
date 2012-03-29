@@ -69,6 +69,7 @@ public:
 	void BindReference(StringHandle variablename);
 	void BindReferenceIndirect();
 	void BindStructureReference(StringHandle membername);
+	void BindStructureReferenceByHandle(StringHandle membername);
 
 	void PopStack(VM::EpochTypeID type);
 

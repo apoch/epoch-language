@@ -19,10 +19,8 @@ namespace IRSemantics
 
 		while(++iter != accesslist.end())
 		{
-			StringHandle structurename = program.GetNameOfStructureType(thetype);
-			StringHandle memberaccessname = program.FindStructureMemberAccessOverload(structurename, *iter);
-			
-			thetype = program.GetStructureMemberType(structurename, memberaccessname);
+			StringHandle structurename = program.GetNameOfStructureType(thetype);			
+			thetype = program.GetStructureMemberType(structurename, *iter);
 		}
 
 		return thetype;

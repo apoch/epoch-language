@@ -305,7 +305,6 @@ void Expression::Coalesce(Program& program, CodeBlock& activescope)
 					*iter = new ExpressionAtomBindReference(opid->GetIdentifier(), structuretype);
 
 					delete *nextiter;
-					//*nextiter = new ExpressionAtomOperator(memberaccessname, true);
 					Atoms.erase(nextiter);
 				}
 

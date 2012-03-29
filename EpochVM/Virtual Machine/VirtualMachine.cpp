@@ -630,10 +630,27 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 				{
 					StringHandle member = Fetch<StringHandle>();
 
-					//void* storagelocation = State.Stack.PopValue<void*>();
-					//EpochTypeID structuretype = State.Stack.PopValue<EpochTypeID>();
+					void* storagelocation = State.Stack.PopValue<void*>();
+					State.Stack.PopValue<EpochTypeID>();
 
-					//StructureHandle* phandle = reinterpret_cast<StructureHandle*>(storagelocation);
+					StructureHandle* phandle = reinterpret_cast<StructureHandle*>(storagelocation);
+					StructureHandle handle = *phandle;
+
+					ActiveStructure& structure = OwnerVM.GetStructure(handle);
+					const StructureDefinition& definition = structure.Definition;
+					size_t memberindex = definition.FindMember(member);
+					size_t offset = definition.GetMemberOffset(memberindex);
+
+					void* memberstoragelocation = &(structure.Storage[0]) + offset;
+
+					State.Stack.PushValue(definition.GetMemberType(memberindex));
+					State.Stack.PushValue(memberstoragelocation);
+				}
+				break;
+
+			case Bytecode::Instructions::BindMemberByHandle:
+				{
+					StringHandle member = Fetch<StringHandle>();
 					StructureHandle handle = State.Stack.PopValue<StructureHandle>();
 
 					ActiveStructure& structure = OwnerVM.GetStructure(handle);
@@ -641,10 +658,10 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 					size_t memberindex = definition.FindMember(member);
 					size_t offset = definition.GetMemberOffset(memberindex);
 
-					void* storagelocation = &(structure.Storage[0]) + offset;
+					void* memberstoragelocation = &(structure.Storage[0]) + offset;
 
 					State.Stack.PushValue(definition.GetMemberType(memberindex));
-					State.Stack.PushValue(storagelocation);
+					State.Stack.PushValue(memberstoragelocation);
 				}
 				break;
 
@@ -1134,6 +1151,7 @@ void ExecutionContext::Load()
 		case Bytecode::Instructions::InvokeIndirect:
 		case Bytecode::Instructions::SetRetVal:
 		case Bytecode::Instructions::BindMemberRef:
+		case Bytecode::Instructions::BindMemberByHandle:
 			Fetch<StringHandle>();
 			break;
 
