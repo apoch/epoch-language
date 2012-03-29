@@ -133,6 +133,50 @@ namespace
 
 		return ret;
 	}
+
+	VM::EpochTypeID WalkAtomsForTypePartial(const std::vector<ExpressionAtom*>& atoms, Program& program, size_t& index, VM::EpochTypeID lastknowntype)
+	{
+		VM::EpochTypeID ret = lastknowntype;
+
+		while(index < atoms.size())
+		{
+			if(ret == VM::EpochType_Infer)
+			{
+				index = atoms.size();
+				break;
+			}
+
+			const ExpressionAtomOperator* opatom = dynamic_cast<const ExpressionAtomOperator*>(atoms[index]);
+			if(opatom)
+			{
+				if(opatom->IsMemberAccess())
+				{
+					Function* func = program.GetFunctions().find(opatom->GetIdentifier())->second;
+					InferenceContext context(0, InferenceContext::CONTEXT_GLOBAL);
+					func->TypeInference(program, context);
+					ret = func->GetReturnType(program);
+					++index;
+				}
+				else if(opatom->IsOperatorUnary(program))
+				{
+					VM::EpochTypeID operandtype = WalkAtomsForType(atoms, program, ++index, ret);
+					if(operandtype == VM::EpochType_Infer)
+					{
+						index = atoms.size();
+						break;
+					}
+
+					ret = opatom->DetermineUnaryReturnType(program, operandtype);
+				}
+
+				break;
+			}
+			else
+				ret = atoms[index++]->GetEpochType(program);
+		}
+
+		return ret;
+	}
 }
 
 
@@ -156,8 +200,8 @@ bool Expression::TypeInference(Program& program, CodeBlock& activescope, Inferen
 	if(!result)
 		return false;
 
-	// Perform operator precedence reordering
-	// TODO - proper operator precedence, right now this is just a hacky postfix reorder
+	// Perform operator overload resolution
+	unsigned idx = 0;
 	for(std::vector<ExpressionAtom*>::iterator iter = Atoms.begin(); iter != Atoms.end(); ++iter)
 	{
 		ExpressionAtomOperator* opatom = dynamic_cast<ExpressionAtomOperator*>(*iter);
@@ -166,10 +210,9 @@ bool Expression::TypeInference(Program& program, CodeBlock& activescope, Inferen
 
 		OverloadMap::const_iterator overloadmapiter = program.Session.FunctionOverloadNames.find(opatom->GetIdentifier());
 
-		std::vector<ExpressionAtom*>::iterator nextiter = iter;
-		++nextiter;
-		
-		VM::EpochTypeID typerhs = (*nextiter)->GetEpochType(program);
+		VM::EpochTypeID typerhs = VM::EpochType_Error;
+		unsigned rhsidx = iter - Atoms.begin() + 1;
+		typerhs = WalkAtomsForType(Atoms, program, rhsidx, typerhs);
 
 		if(program.Session.InfoTable.UnaryPrefixes->find(program.GetString(opatom->GetIdentifier())) != program.Session.InfoTable.UnaryPrefixes->end())
 		{
@@ -194,11 +237,10 @@ bool Expression::TypeInference(Program& program, CodeBlock& activescope, Inferen
 		{
 			if(overloadmapiter != program.Session.FunctionOverloadNames.end())
 			{
-				std::vector<ExpressionAtom*>::iterator previter = iter;
-				--previter;
+				VM::EpochTypeID typelhs = VM::EpochType_Error;
+				typelhs = WalkAtomsForTypePartial(Atoms, program, idx, typelhs);
 
-				VM::EpochTypeID typelhs = (*previter)->GetEpochType(program);
-
+				bool found = false;
 				const StringHandleSet& overloads = overloadmapiter->second;
 				for(StringHandleSet::const_iterator overloaditer = overloads.begin(); overloaditer != overloads.end(); ++overloaditer)
 				{
@@ -208,15 +250,30 @@ bool Expression::TypeInference(Program& program, CodeBlock& activescope, Inferen
 						if(overloadsig.GetParameter(0).Type == typelhs && overloadsig.GetParameter(1).Type == typerhs)
 						{
 							opatom->SetIdentifier(*overloaditer);
+							found = true;
 							break;
 						}
 					}
 				}
+
+				if(!found)
+					return false;
 			}
 		}
+	}
 
+	// Perform operator precedence reordering
+	// TODO - proper operator precedence, right now this is just a hacky postfix reorder
+	for(std::vector<ExpressionAtom*>::iterator iter = Atoms.begin(); iter != Atoms.end(); ++iter)
+	{
+		ExpressionAtomOperator* opatom = dynamic_cast<ExpressionAtomOperator*>(*iter);
+		if(!opatom || opatom->IsMemberAccess())
+			continue;
+
+		std::vector<ExpressionAtom*>::iterator nextiter = iter;
+		++nextiter;
+		
 		std::swap(*iter, *nextiter);
-
 		iter = nextiter;
 	}
 

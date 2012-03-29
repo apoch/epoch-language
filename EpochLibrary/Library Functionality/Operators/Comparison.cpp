@@ -294,7 +294,6 @@ void ComparisonLibrary::RegisterLibraryOverloads(OverloadMap& overloadmap, Strin
 	{
 		StringHandle functionnamehandle = stringpool.Pool(L"!=");
 		overloadmap[functionnamehandle].insert(stringpool.Pool(L"!=@@integer"));
-		overloadmap[functionnamehandle].insert(stringpool.Pool(L"!=@@integer16"));
 		overloadmap[functionnamehandle].insert(stringpool.Pool(L"!=@@boolean"));
 		overloadmap[functionnamehandle].insert(stringpool.Pool(L"!=@@string"));
 	}
