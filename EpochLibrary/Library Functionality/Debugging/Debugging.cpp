@@ -45,6 +45,21 @@ namespace
 		context.TickStringGarbageCollector();
 	}
 
+	//
+	// Simple assertion mechanism
+	//
+	void Assert(StringHandle, VM::ExecutionContext& context)
+	{
+		bool value = context.State.Stack.PopValue<bool>();
+
+		if(!value)
+		{
+			context.State.Result.ResultType = VM::ExecutionResult::EXEC_RESULT_HALT;
+			UI::OutputStream output;
+			output << UI::lightred << "Assertion failure" << UI::white << std::endl;
+		}
+	}
+
 }
 
 
@@ -55,6 +70,7 @@ void DebugLibrary::RegisterLibraryFunctions(FunctionInvocationTable& table, Stri
 {
 	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"debugwritestring"), WriteString));
 	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"debugreadstring"), ReadString));
+	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"assert"), Assert));
 }
 
 //
@@ -71,6 +87,11 @@ void DebugLibrary::RegisterLibraryFunctions(FunctionSignatureSet& signatureset, 
 		FunctionSignature signature;
 		signature.SetReturnType(VM::EpochType_String);
 		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"debugreadstring"), signature));
+	}
+	{
+		FunctionSignature signature;
+		signature.AddParameter(L"value", VM::EpochType_Boolean, false);
+		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"assert"), signature));
 	}
 }
 

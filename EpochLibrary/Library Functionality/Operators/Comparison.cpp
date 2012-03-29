@@ -120,6 +120,29 @@ namespace
 
 		context.State.Stack.PushValue(p1 < p2);
 	}
+
+
+	//
+	// Compare two strings for equality
+	//
+	void StringEquality(StringHandle, VM::ExecutionContext& context)
+	{
+		StringHandle p2 = context.State.Stack.PopValue<StringHandle>();
+		StringHandle p1 = context.State.Stack.PopValue<StringHandle>();
+
+		context.State.Stack.PushValue((p1 == p2) || (context.OwnerVM.GetPooledString(p1) == context.OwnerVM.GetPooledString(p2)));
+	}
+
+	//
+	// Compare two strings for inequality
+	//
+	void StringInequality(StringHandle, VM::ExecutionContext& context)
+	{
+		StringHandle p2 = context.State.Stack.PopValue<StringHandle>();
+		StringHandle p1 = context.State.Stack.PopValue<StringHandle>();
+
+		context.State.Stack.PushValue((p1 != p2) && (context.OwnerVM.GetPooledString(p1) != context.OwnerVM.GetPooledString(p2)));
+	}
 }
 
 
@@ -134,6 +157,8 @@ void ComparisonLibrary::RegisterLibraryFunctions(FunctionInvocationTable& table,
 	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"!=@@integer"), IntegerInequality));
 	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"==@@boolean"), BooleanEquality));
 	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"!=@@boolean"), BooleanInequality));
+	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"==@@string"), StringEquality));
+	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"!=@@string"), StringInequality));
 	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L">@@integer"), IntegerGreaterThan));
 	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"<@@integer"), IntegerLessThan));
 	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L">@@real"), RealGreaterThan));
@@ -179,6 +204,20 @@ void ComparisonLibrary::RegisterLibraryFunctions(FunctionSignatureSet& signature
 		signature.AddParameter(L"i2", VM::EpochType_Boolean, false);
 		signature.SetReturnType(VM::EpochType_Boolean);
 		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"!=@@boolean"), signature));
+	}
+	{
+		FunctionSignature signature;
+		signature.AddParameter(L"i1", VM::EpochType_String, false);
+		signature.AddParameter(L"i2", VM::EpochType_String, false);
+		signature.SetReturnType(VM::EpochType_Boolean);
+		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"==@@string"), signature));
+	}
+	{
+		FunctionSignature signature;
+		signature.AddParameter(L"i1", VM::EpochType_String, false);
+		signature.AddParameter(L"i2", VM::EpochType_String, false);
+		signature.SetReturnType(VM::EpochType_Boolean);
+		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"!=@@string"), signature));
 	}
 
 	{
@@ -250,11 +289,14 @@ void ComparisonLibrary::RegisterLibraryOverloads(OverloadMap& overloadmap, Strin
 		overloadmap[functionnamehandle].insert(stringpool.Pool(L"==@@integer"));
 		overloadmap[functionnamehandle].insert(stringpool.Pool(L"==@@integer16"));
 		overloadmap[functionnamehandle].insert(stringpool.Pool(L"==@@boolean"));
+		overloadmap[functionnamehandle].insert(stringpool.Pool(L"==@@string"));
 	}
 	{
 		StringHandle functionnamehandle = stringpool.Pool(L"!=");
 		overloadmap[functionnamehandle].insert(stringpool.Pool(L"!=@@integer"));
+		overloadmap[functionnamehandle].insert(stringpool.Pool(L"!=@@integer16"));
 		overloadmap[functionnamehandle].insert(stringpool.Pool(L"!=@@boolean"));
+		overloadmap[functionnamehandle].insert(stringpool.Pool(L"!=@@string"));
 	}
 	{
 		StringHandle functionnamehandle = stringpool.Pool(L">");

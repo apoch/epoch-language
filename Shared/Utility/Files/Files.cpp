@@ -16,6 +16,8 @@
 
 #include <boost/filesystem.hpp>
 #include <boost/regex.hpp>
+
+
 //
 // Wrapper for loading a file's contents into a string
 //
@@ -34,7 +36,7 @@ std::wstring Files::Load(const std::wstring& filename)
 //
 // Wrapper for finding all files matching a specification (supports wildcards)
 //
-std::vector<std::wstring> Files::GetMatchingFiles(const std::wstring& filespec)
+std::vector<std::wstring> Files::GetMatchingFiles(const std::wstring& filespec, bool recurse)
 {
 	using namespace boost::filesystem;
 	std::vector<std::wstring> ret;
@@ -43,11 +45,11 @@ std::vector<std::wstring> Files::GetMatchingFiles(const std::wstring& filespec)
 	if(exists(p)) {
 		if(is_regular_file(p)) {
 			ret.push_back(p.generic_wstring());
-		} else if(is_directory(p)) {
+		} else if(recurse && is_directory(p)) {
 			directory_iterator endItor, itor(p);
 			while(itor != endItor) {
-				if(itor->path().extension() == L".epoch")
-					ret.push_back(itor->path().generic_wstring());
+				std::vector<std::wstring> contents = GetMatchingFiles(itor->path().generic_wstring(), true);
+				std::copy(contents.begin(), contents.end(), std::back_inserter(ret));
 				++itor;
 			}
 		}

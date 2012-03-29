@@ -38,6 +38,8 @@ namespace
 //
 int _tmain(int argc, _TCHAR* argv[])
 {
+	bool recurse = false;
+
 	UI::OutputStream output;
 	output << L"Epoch Language Project\nCommand line tools interface\n\n";
 	output.Flush();
@@ -173,6 +175,10 @@ int _tmain(int argc, _TCHAR* argv[])
 			DLLAccess::VMAccess vmaccess;
 			vmaccess.EnableVisualDebugger();
 		}
+		else if(parameters[i] == L"/recurse")
+		{
+			recurse = true;
+		}
 		else
 		{
 			didwork = true;
@@ -181,7 +187,7 @@ int _tmain(int argc, _TCHAR* argv[])
 			{
 				std::wstring filespec(parameters[i]);
 
-				std::vector<std::wstring> files = Files::GetMatchingFiles(filespec);
+				std::vector<std::wstring> files = Files::GetMatchingFiles(filespec, recurse);
 				for(std::vector<std::wstring>::const_iterator iter = files.begin(); iter != files.end(); ++iter)
 				{
 					const std::wstring& filename = *iter;
