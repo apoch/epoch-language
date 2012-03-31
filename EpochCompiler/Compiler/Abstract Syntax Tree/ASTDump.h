@@ -133,6 +133,8 @@ namespace ASTTraverse
 			void operator () (Markers::StructureFunctionParams&) { }
 			void operator () (Markers::StructureFunctionReturn&) { }
 
+			void operator () (AST::RefTag&) { }
+
 		// Internal binding to the owning DumpToStream object
 		private:
 			DumpToStream* self;

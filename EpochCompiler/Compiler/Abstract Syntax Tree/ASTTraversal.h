@@ -329,6 +329,17 @@ namespace ASTTraverse
 		}
 
 		//
+		// Traverse a named function parameter
+		//
+		template <typename EntryActionT, typename ExitActionT>
+		void Do(EntryActionT& entryaction, AST::NamedFunctionParameter& param, ExitActionT& exitaction)
+		{
+			entryaction(param);
+			Do(entryaction, param.IsReference, exitaction);
+			exitaction(param);
+		}
+
+		//
 		// Traverse a function parameter
 		//
 		template <typename EntryActionT, typename ExitActionT>

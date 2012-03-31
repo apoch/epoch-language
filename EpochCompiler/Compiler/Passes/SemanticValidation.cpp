@@ -443,7 +443,12 @@ void CompilePassSemantics::ExitHelper::operator () (AST::FunctionParameter&)
 // We can safely treat these as leaf nodes, hence the direct access of the
 // node's properties to retrieve its contents.
 //
-void CompilePassSemantics::EntryHelper::operator () (AST::NamedFunctionParameter& param)
+void CompilePassSemantics::EntryHelper::operator () (AST::NamedFunctionParameter&)
+{
+	self->IsParamRef = false;
+}
+
+void CompilePassSemantics::ExitHelper::operator () (AST::NamedFunctionParameter& param)
 {
 	if(self->CurrentFunctions.empty())
 	{
@@ -463,8 +468,7 @@ void CompilePassSemantics::EntryHelper::operator () (AST::NamedFunctionParameter
 	StringHandle name = self->CurrentProgram->AddString(std::wstring(param.Name.begin(), param.Name.end()));
 	StringHandle type = self->CurrentProgram->AddString(std::wstring(param.Type.begin(), param.Type.end()));
 
-	// TODO - support for ref params
-	std::auto_ptr<IRSemantics::FunctionParamNamed> irparam(new IRSemantics::FunctionParamNamed(type, false));
+	std::auto_ptr<IRSemantics::FunctionParamNamed> irparam(new IRSemantics::FunctionParamNamed(type, self->IsParamRef));
 	self->CurrentFunctions.back()->AddParameter(name, irparam.release());
 }
 
@@ -1267,4 +1271,9 @@ void CompilePassSemantics::EntryHelper::operator () (Markers::StructureFunctionR
 void CompilePassSemantics::ExitHelper::operator () (Markers::StructureFunctionReturn&)
 {
 	self->StateStack.pop();
+}
+
+void CompilePassSemantics::EntryHelper::operator () (AST::RefTag&)
+{
+	self->IsParamRef = true;
 }

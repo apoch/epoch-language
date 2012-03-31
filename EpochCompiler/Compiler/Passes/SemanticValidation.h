@@ -164,6 +164,8 @@ namespace ASTTraverse
 			void operator () (Markers::StructureFunctionParams& marker);
 			void operator () (Markers::StructureFunctionReturn& marker);
 
+			void operator () (AST::RefTag& tag);
+
 		// Internal binding to the owning CompilePassSemantics object
 		private:
 			CompilePassSemantics* self;
@@ -208,6 +210,8 @@ namespace ASTTraverse
 			void operator () (AST::ExpressionFragment& exprfragment);
 
 			void operator () (AST::FunctionReferenceSignature& refsig);
+
+			void operator () (AST::NamedFunctionParameter& param);
 
 			void operator () (AST::Assignment& assignment);
 			void operator () (AST::Initialization& initialization);
@@ -284,6 +288,7 @@ namespace ASTTraverse
 		std::stack<States> StateStack;
 
 		bool InFunctionReturn;
+		bool IsParamRef;
 
 		StringPoolManager& Strings;
 		CompileSession& Session;
