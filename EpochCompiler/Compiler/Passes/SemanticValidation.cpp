@@ -208,6 +208,7 @@ void CompilePassSemantics::EntryHelper::operator () (AST::Undefined&)
 			case STATE_FUNCTION:
 			case STATE_STRUCTURE_FUNCTION_RETURN:
 			case STATE_FUNCTION_SIGNATURE_RETURN:
+			case STATE_FUNCTION_PARAM:
 				return;
 			}
 		}
@@ -217,11 +218,12 @@ void CompilePassSemantics::EntryHelper::operator () (AST::Undefined&)
 		// capture incorrect programs prior to being
 		// submitted for semantic validation.
 		//
-		// Undefined nodes are permitted in four situations:
+		// Undefined nodes are permitted in five situations:
 		//  1. Empty programs
 		//  2. Void function return expressions
 		//  3. Empty function tag specifiers
 		//  4. Omitted function code blocks
+		//  5. Omitted "ref" tag on function parameters
 		//
 		// Any other presence of an undefined node represents
 		// a mistake in the parser. Ensure that parser errors
