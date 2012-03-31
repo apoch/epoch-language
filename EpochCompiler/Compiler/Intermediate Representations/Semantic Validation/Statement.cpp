@@ -89,7 +89,6 @@ bool Statement::TypeInference(Program& program, CodeBlock& activescope, Inferenc
 
 	case InferenceContext::CONTEXT_EXPRESSION:
 	case InferenceContext::CONTEXT_FUNCTION_RETURN:
-		// TODO - this is broken, evaluate the actual operators involved and use them w/ overload resolution
 		newcontext.ExpectedTypes.push_back(program.GetExpectedTypesForStatement(Name, *activescope.GetScope(), context.FunctionName));
 		newcontext.ExpectedSignatures.push_back(program.GetExpectedSignaturesForStatement(Name, *activescope.GetScope(), context.FunctionName));
 		break;

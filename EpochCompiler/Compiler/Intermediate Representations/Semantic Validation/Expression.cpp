@@ -193,12 +193,63 @@ bool Expression::TypeInference(Program& program, CodeBlock& activescope, Inferen
 	bool result = true;
 	for(std::vector<ExpressionAtom*>::iterator iter = Atoms.begin(); iter != Atoms.end(); ++iter)
 	{
-		if(!(*iter)->TypeInference(program, activescope, selectedcontext, index))
-			result = false;
-	}
+		ExpressionAtomOperator* opatom = dynamic_cast<ExpressionAtomOperator*>(*iter);
+		if(opatom && opatom->IsOperatorUnary(program) && !opatom->IsMemberAccess())
+		{
+			if(!(*iter)->TypeInference(program, activescope, selectedcontext, index))
+				result = false;
 
-	if(!result)
-		return false;
+			newcontext.ContextName = opatom->GetIdentifier();
+			newcontext.ExpectedTypes.clear();
+			newcontext.ExpectedTypes.push_back(program.GetExpectedTypesForStatement(opatom->GetIdentifier(), *activescope.GetScope(), context.ContextName));
+			newcontext.ExpectedSignatures.clear();
+			newcontext.ExpectedSignatures.push_back(program.GetExpectedSignaturesForStatement(opatom->GetIdentifier(), *activescope.GetScope(), context.ContextName));
+		}
+		else if(opatom && !opatom->IsMemberAccess())
+		{
+			if(!(*iter)->TypeInference(program, activescope, selectedcontext, index))
+				result = false;
+
+			std::vector<ExpressionAtom*>::iterator nextiter = iter;
+			++nextiter;
+			if(nextiter != Atoms.end())
+			{
+				newcontext.ContextName = opatom->GetIdentifier();
+				newcontext.ExpectedTypes.clear();
+				newcontext.ExpectedTypes.push_back(program.GetExpectedTypesForStatement(opatom->GetIdentifier(), *activescope.GetScope(), context.ContextName));
+				newcontext.ExpectedSignatures.clear();
+				newcontext.ExpectedSignatures.push_back(program.GetExpectedSignaturesForStatement(opatom->GetIdentifier(), *activescope.GetScope(), context.ContextName));
+
+				if(!(*nextiter)->TypeInference(program, activescope, newcontext, 1))
+					result = false;
+
+				iter = nextiter;
+			}
+
+			continue;
+		}
+
+		std::vector<ExpressionAtom*>::iterator nextiter = iter;
+		++nextiter;
+		if(nextiter != Atoms.end())
+		{
+			ExpressionAtomOperator* nextopatom = dynamic_cast<ExpressionAtomOperator*>(*nextiter);
+			if(nextopatom && !nextopatom->IsMemberAccess() && !nextopatom->IsOperatorUnary(program))
+			{
+				InferenceContext atomcontext(nextopatom->GetIdentifier(), InferenceContext::CONTEXT_EXPRESSION);
+				atomcontext.FunctionName = context.FunctionName;
+				atomcontext.ExpectedTypes.push_back(program.GetExpectedTypesForStatement(nextopatom->GetIdentifier(), *activescope.GetScope(), context.ContextName));
+				atomcontext.ExpectedSignatures.push_back(program.GetExpectedSignaturesForStatement(nextopatom->GetIdentifier(), *activescope.GetScope(), context.ContextName));
+				if(!(*iter)->TypeInference(program, activescope, atomcontext, 0))
+					result = false;
+			}
+		}
+		else
+		{
+			if(!(*iter)->TypeInference(program, activescope, selectedcontext, index))
+				result = false;
+		}
+	}
 
 	// Perform operator overload resolution
 	unsigned idx = 0;
@@ -276,6 +327,9 @@ bool Expression::TypeInference(Program& program, CodeBlock& activescope, Inferen
 		std::swap(*iter, *nextiter);
 		iter = nextiter;
 	}
+
+	if(!result)
+		return false;
 
 	InferredType = VM::EpochType_Void;
 	size_t i = 0;
