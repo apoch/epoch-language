@@ -68,8 +68,8 @@ namespace
 //
 void DebugLibrary::RegisterLibraryFunctions(FunctionInvocationTable& table, StringPoolManager& stringpool)
 {
-	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"debugwritestring"), WriteString));
-	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"debugreadstring"), ReadString));
+	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"print"), WriteString));
+	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"read"), ReadString));
 	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"assert"), Assert));
 }
 
@@ -81,12 +81,12 @@ void DebugLibrary::RegisterLibraryFunctions(FunctionSignatureSet& signatureset, 
 	{
 		FunctionSignature signature;
 		signature.AddParameter(L"str", VM::EpochType_String, false);
-		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"debugwritestring"), signature));
+		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"print"), signature));
 	}
 	{
 		FunctionSignature signature;
 		signature.SetReturnType(VM::EpochType_String);
-		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"debugreadstring"), signature));
+		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"read"), signature));
 	}
 	{
 		FunctionSignature signature;
