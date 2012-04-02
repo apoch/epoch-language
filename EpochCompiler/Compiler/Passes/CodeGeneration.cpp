@@ -475,8 +475,18 @@ bool CompilerPasses::GenerateCode(const IRSemantics::Program& program, ByteCodeE
 
 
 	const IRSemantics::ScopePtrMap& scopes = program.GetScopes();
-	for(IRSemantics::ScopePtrMap::const_reverse_iterator iter = scopes.rbegin(); iter != scopes.rend(); ++iter)
+	DependencyGraph<StringHandle> scopedependencies;
+	for(IRSemantics::ScopePtrMap::const_iterator iter = scopes.begin(); iter != scopes.end(); ++iter)
 	{
+		scopedependencies.Register(iter->first);
+		if(iter->second->ParentScope)
+			scopedependencies.AddDependency(iter->first, program.FindLexicalScopeName(iter->second->ParentScope));
+	}
+
+	std::vector<StringHandle> scopeorder = scopedependencies.Resolve();
+	for(std::vector<StringHandle>::const_iterator orderiter = scopeorder.begin(); orderiter != scopeorder.end(); ++orderiter)
+	{
+		IRSemantics::ScopePtrMap::const_iterator iter = scopes.find(*orderiter);
 		emitter.DefineLexicalScope(iter->first, program.FindLexicalScopeName(iter->second->ParentScope), iter->second->GetVariableCount());
 		for(size_t i = 0; i < iter->second->GetVariableCount(); ++i)
 			emitter.LexicalScopeEntry(strings.Find(iter->second->GetVariableName(i)), iter->second->GetVariableTypeByIndex(i), iter->second->IsReference(i), iter->second->GetVariableOrigin(i));
@@ -507,7 +517,7 @@ bool CompilerPasses::GenerateCode(const IRSemantics::Program& program, ByteCodeE
 	size_t numglobalblocks = program.GetNumGlobalCodeBlocks();
 	for(size_t i = 0; i < numglobalblocks; ++i)
 	{
-		emitter.EnterEntity(Bytecode::EntityTags::Globals, program.GetGlobalCodeBlockName(i));
+		emitter.EnterEntity(Bytecode::EntityTags::Globals, program.FindLexicalScopeName(program.GetGlobalCodeBlock(i).GetScope()));
 		Generate(program.GetGlobalCodeBlock(i), program, emitter);
 	}
 
