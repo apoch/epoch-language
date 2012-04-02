@@ -28,7 +28,7 @@ namespace AST
 	struct FunctionTag
 	{
 		IdentifierT TagName;
-		DeferredExpressionVector Parameters;
+		std::vector<LiteralToken> Parameters;
 	};
 
 	//
@@ -99,5 +99,5 @@ BOOST_FUSION_ADAPT_STRUCT
 (
 	AST::FunctionTag,
 	(AST::IdentifierT, TagName)
-	(AST::DeferredExpressionVector, Parameters)
+	(std::vector<AST::LiteralToken>, Parameters)
 )

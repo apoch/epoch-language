@@ -147,6 +147,9 @@ CompilePassSemantics::~CompilePassSemantics()
 	for(std::vector<IRSemantics::FunctionParamFuncRef*>::iterator iter = CurrentFunctionSignatures.begin(); iter != CurrentFunctionSignatures.end(); ++iter)
 		delete *iter;
 
+	for(std::vector<IRSemantics::FunctionTag*>::iterator iter = CurrentFunctionTags.begin(); iter != CurrentFunctionTags.end(); ++iter)
+		delete *iter;
+
 	delete CurrentProgram;
 }
 
@@ -472,6 +475,23 @@ void CompilePassSemantics::ExitHelper::operator () (AST::NamedFunctionParameter&
 
 	std::auto_ptr<IRSemantics::FunctionParamNamed> irparam(new IRSemantics::FunctionParamNamed(type, self->IsParamRef));
 	self->CurrentFunctions.back()->AddParameter(name, irparam.release());
+}
+
+
+void CompilePassSemantics::EntryHelper::operator () (AST::FunctionTag&)
+{
+	self->StateStack.push(CompilePassSemantics::STATE_FUNCTION_TAG);
+	self->CurrentFunctionTags.push_back(new IRSemantics::FunctionTag);
+}
+
+void CompilePassSemantics::ExitHelper::operator () (AST::FunctionTag&)
+{
+	self->CurrentFunctions.back()->AddTag(*self->CurrentFunctionTags.back());
+
+	self->StateStack.pop();
+	self->StateStack.pop();
+	delete self->CurrentFunctionTags.back();
+	self->CurrentFunctionTags.pop_back();
 }
 
 
@@ -1159,6 +1179,15 @@ void CompilePassSemantics::EntryHelper::operator () (AST::IdentifierT& identifie
 
 	case CompilePassSemantics::STATE_POSTFIX_ENTITY:
 		self->CurrentPostfixEntities.back()->SetPostfixIdentifier(self->CurrentProgram->AddString(raw));
+		break;
+
+	case CompilePassSemantics::STATE_FUNCTION_TAG:
+		self->CurrentFunctionTags.back()->TagName = self->CurrentProgram->AddString(raw);
+		self->StateStack.push(CompilePassSemantics::STATE_FUNCTION_TAG_PARAM);
+		break;
+
+	case CompilePassSemantics::STATE_FUNCTION_TAG_PARAM:
+		self->CurrentFunctionTags.back()->Parameters.push_back(iratom->ConvertToCompileTimeParam(*self->CurrentProgram));
 		break;
 
 	default:

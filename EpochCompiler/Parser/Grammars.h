@@ -35,7 +35,7 @@ struct FundamentalGrammar : public boost::spirit::qi::grammar<Lexer::TokenIterT,
 		  TheLiteralGrammar(lexer),
 		  TheExpressionGrammar(lexer, TheLiteralGrammar),
 		  TheCodeBlockGrammar(lexer, TheExpressionGrammar, TheEntityGrammar),
-		  TheFunctionDefinitionGrammar(lexer, TheCodeBlockGrammar, TheExpressionGrammar),
+		  TheFunctionDefinitionGrammar(lexer, TheCodeBlockGrammar, TheExpressionGrammar, TheLiteralGrammar),
 		  TheGlobalGrammar(lexer, TheFunctionDefinitionGrammar, TheCodeBlockGrammar),
 		  Identifiers(identifiers)
 	{

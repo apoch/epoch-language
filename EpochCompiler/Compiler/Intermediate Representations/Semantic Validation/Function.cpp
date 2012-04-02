@@ -361,3 +361,9 @@ FunctionSignature Function::GetFunctionSignature(const Program& program) const
 	return ret;
 }
 
+
+void Function::AddTag(const FunctionTag& tag)
+{
+	Tags.push_back(tag);
+}
+

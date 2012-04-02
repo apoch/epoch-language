@@ -754,6 +754,13 @@ bool ExpressionAtomLiteralInteger32::CompileTimeCodeExecution(Program&, CodeBloc
 	return true;
 }
 
+CompileTimeParameter ExpressionAtomLiteralInteger32::ConvertToCompileTimeParam(const Program&) const
+{
+	CompileTimeParameter ret(L"@@autoctp", VM::EpochType_Integer);
+	ret.Payload.IntegerValue = Value;
+	return ret;
+}
+
 VM::EpochTypeID ExpressionAtomLiteralReal32::GetEpochType(const Program&) const
 {
 	return VM::EpochType_Real;
@@ -770,6 +777,12 @@ bool ExpressionAtomLiteralReal32::CompileTimeCodeExecution(Program&, CodeBlock&,
 	return true;
 }
 
+CompileTimeParameter ExpressionAtomLiteralReal32::ConvertToCompileTimeParam(const Program&) const
+{
+	CompileTimeParameter ret(L"@@autoctp", VM::EpochType_Real);
+	ret.Payload.RealValue = Value;
+	return ret;
+}
 
 VM::EpochTypeID ExpressionAtomLiteralBoolean::GetEpochType(const Program&) const
 {
@@ -787,6 +800,14 @@ bool ExpressionAtomLiteralBoolean::CompileTimeCodeExecution(Program&, CodeBlock&
 	return true;
 }
 
+CompileTimeParameter ExpressionAtomLiteralBoolean::ConvertToCompileTimeParam(const Program&) const
+{
+	CompileTimeParameter ret(L"@@autoctp", VM::EpochType_Boolean);
+	ret.Payload.BooleanValue = Value;
+	return ret;
+}
+
+
 
 VM::EpochTypeID ExpressionAtomLiteralString::GetEpochType(const Program&) const
 {
@@ -802,4 +823,12 @@ bool ExpressionAtomLiteralString::CompileTimeCodeExecution(Program&, CodeBlock&,
 {
 	// No op
 	return true;
+}
+
+CompileTimeParameter ExpressionAtomLiteralString::ConvertToCompileTimeParam(const Program& program) const
+{
+	CompileTimeParameter ret(L"@@autoctp", VM::EpochType_String);
+	ret.Payload.LiteralStringHandleValue = Handle;
+	ret.StringPayload = program.GetString(Handle);
+	return ret;
 }

@@ -16,6 +16,8 @@
 #include "Utility/Types/RealTypes.h"
 #include "Utility/Types/EpochTypeIDs.h"
 
+#include "Metadata/CompileTimeParams.h"
+
 #include <vector>
 
 
@@ -43,6 +45,7 @@ namespace IRSemantics
 		virtual VM::EpochTypeID GetEpochType(const Program& program) const = 0;
 		virtual bool TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, size_t index) = 0;
 		virtual bool CompileTimeCodeExecution(Program& program, CodeBlock& activescope, bool inreturnexpr) = 0;
+		virtual CompileTimeParameter ConvertToCompileTimeParam(const Program& program) const = 0;
 	};
 
 
@@ -189,6 +192,9 @@ namespace IRSemantics
 		virtual VM::EpochTypeID GetEpochType(const Program& program) const;
 		virtual bool TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, size_t index);
 		virtual bool CompileTimeCodeExecution(Program& program, CodeBlock& activescope, bool inreturnexpr);
+		
+		virtual CompileTimeParameter ConvertToCompileTimeParam(const Program&) const
+		{ throw std::runtime_error("Invalid atom for compile time param"); }
 
 	// State access
 		const Parenthetical* GetParenthetical() const
@@ -218,6 +224,9 @@ namespace IRSemantics
 		virtual VM::EpochTypeID GetEpochType(const Program& program) const;
 		virtual bool TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, size_t index);
 		virtual bool CompileTimeCodeExecution(Program& program, CodeBlock& activescope, bool inreturnexpr);
+		
+		virtual CompileTimeParameter ConvertToCompileTimeParam(const Program&) const
+		{ throw std::runtime_error("Invalid atom for compile time param"); }
 
 	// Internal state
 	private:
@@ -256,6 +265,9 @@ namespace IRSemantics
 		virtual VM::EpochTypeID GetEpochType(const Program& program) const;
 		virtual bool TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, size_t index);
 		virtual bool CompileTimeCodeExecution(Program& program, CodeBlock& activescope, bool inreturnexpr);
+		
+		virtual CompileTimeParameter ConvertToCompileTimeParam(const Program&) const
+		{ throw std::runtime_error("Invalid atom for compile time param"); }
 
 	// Additional type inference support
 	public:
@@ -290,6 +302,7 @@ namespace IRSemantics
 		virtual VM::EpochTypeID GetEpochType(const Program& program) const;
 		virtual bool TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, size_t index);
 		virtual bool CompileTimeCodeExecution(Program& program, CodeBlock& activescope, bool inreturnexpr);
+		virtual CompileTimeParameter ConvertToCompileTimeParam(const Program& program) const;
 
 	// Internal state
 	private:
@@ -314,6 +327,7 @@ namespace IRSemantics
 		virtual VM::EpochTypeID GetEpochType(const Program& program) const;
 		virtual bool TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, size_t index);
 		virtual bool CompileTimeCodeExecution(Program& program, CodeBlock& activescope, bool inreturnexpr);
+		virtual CompileTimeParameter ConvertToCompileTimeParam(const Program& program) const;
 
 	// Internal state
 	private:
@@ -338,6 +352,7 @@ namespace IRSemantics
 		virtual VM::EpochTypeID GetEpochType(const Program& program) const;
 		virtual bool TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, size_t index);
 		virtual bool CompileTimeCodeExecution(Program& program, CodeBlock& activescope, bool inreturnexpr);
+		virtual CompileTimeParameter ConvertToCompileTimeParam(const Program& program) const;
 
 	// Internal state
 	private:
@@ -362,6 +377,7 @@ namespace IRSemantics
 		virtual VM::EpochTypeID GetEpochType(const Program& program) const;
 		virtual bool TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, size_t index);
 		virtual bool CompileTimeCodeExecution(Program& program, CodeBlock& activescope, bool inreturnexpr);
+		virtual CompileTimeParameter ConvertToCompileTimeParam(const Program& program) const;
 
 	// Internal state
 	private:
@@ -385,6 +401,9 @@ namespace IRSemantics
 		virtual VM::EpochTypeID GetEpochType(const Program& program) const;
 		virtual bool TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, size_t index);
 		virtual bool CompileTimeCodeExecution(Program& program, CodeBlock& activescope, bool inreturnexpr);
+		
+		virtual CompileTimeParameter ConvertToCompileTimeParam(const Program&) const
+		{ throw std::runtime_error("Invalid atom type for compile time parameter"); }
 
 	// Accessors
 	public:
@@ -421,6 +440,9 @@ namespace IRSemantics
 
 		virtual bool CompileTimeCodeExecution(Program&, CodeBlock&, bool)
 		{ return true; }
+		
+		virtual CompileTimeParameter ConvertToCompileTimeParam(const Program&) const
+		{ throw std::runtime_error("Invalid atom type for compile time parameter"); }
 
 	// Inspection
 	public:
@@ -458,6 +480,9 @@ namespace IRSemantics
 
 		virtual bool CompileTimeCodeExecution(Program&, CodeBlock&, bool)
 		{ return true; }
+		
+		virtual CompileTimeParameter ConvertToCompileTimeParam(const Program&) const
+		{ throw std::runtime_error("Invalid atom type for compile time parameter"); }
 
 	// Inspection
 	public:

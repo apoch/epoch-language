@@ -163,7 +163,6 @@
     <ClInclude Include="..\Shared\Metadata\CompileTimeParams.h" />
     <ClInclude Include="..\Shared\Metadata\EntityDescription.h" />
     <ClInclude Include="..\Shared\Metadata\FunctionSignature.h" />
-    <ClInclude Include="..\Shared\Metadata\LRValue.h" />
     <ClInclude Include="..\Shared\Metadata\Precedences.h" />
     <ClInclude Include="..\Shared\Metadata\ScopeDescription.h" />
     <ClInclude Include="..\Shared\Metadata\StructureDefinition.h" />

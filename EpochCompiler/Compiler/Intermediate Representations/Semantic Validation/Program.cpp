@@ -71,7 +71,11 @@ StringHandle Program::AddString(const std::wstring& str)
 
 StringHandle Program::FindString(const std::wstring& str) const
 {
-	return IdentifierCache.Find(str);
+	StringHandle cached = IdentifierCache.Find(str);
+	if(cached)
+		return cached;
+
+	return Strings.Find(str);
 }
 
 const std::wstring& Program::GetString(StringHandle handle) const

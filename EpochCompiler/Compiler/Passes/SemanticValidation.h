@@ -26,6 +26,7 @@ namespace IRSemantics
 	class CodeBlock;
 	class Entity;
 	class FunctionParamFuncRef;
+	struct FunctionTag;
 }
 
 class StringPoolManager;
@@ -136,6 +137,7 @@ namespace ASTTraverse
 			void operator () (AST::FunctionParameter& param);
 			void operator () (AST::NamedFunctionParameter& param);
 			void operator () (AST::FunctionReferenceSignature& refsig);
+			void operator () (AST::FunctionTag& tag);
 
 			void operator () (AST::Assignment& assignment);
 			void operator () (AST::Initialization& initialization);
@@ -212,6 +214,7 @@ namespace ASTTraverse
 			void operator () (AST::FunctionReferenceSignature& refsig);
 
 			void operator () (AST::NamedFunctionParameter& param);
+			void operator () (AST::FunctionTag& tag);
 
 			void operator () (AST::Assignment& assignment);
 			void operator () (AST::Initialization& initialization);
@@ -257,6 +260,7 @@ namespace ASTTraverse
 		std::vector<IRSemantics::Entity*> CurrentPostfixEntities;
 		std::vector<IRSemantics::FunctionParamFuncRef*> CurrentFunctionSignatures;
 		std::vector<IRSemantics::StructureMemberFunctionReference*> CurrentStructureFunctions;
+		std::vector<IRSemantics::FunctionTag*> CurrentFunctionTags;
 
 		enum States
 		{
@@ -268,6 +272,8 @@ namespace ASTTraverse
 			STATE_FUNCTION_SIGNATURE,
 			STATE_FUNCTION_SIGNATURE_PARAMS,
 			STATE_FUNCTION_SIGNATURE_RETURN,
+			STATE_FUNCTION_TAG,
+			STATE_FUNCTION_TAG_PARAM,
 			STATE_EXPRESSION,
 			STATE_EXPRESSION_COMPONENT,
 			STATE_EXPRESSION_COMPONENT_PREFIXES,

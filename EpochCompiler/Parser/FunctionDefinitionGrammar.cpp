@@ -3,13 +3,14 @@
 
 #include "Parser/CodeBlockGrammar.h"
 #include "Parser/ExpressionGrammar.h"
+#include "Parser/LiteralGrammar.h"
 
 #include "Compiler/Abstract Syntax Tree/Statement.h"
 #include "Compiler/Abstract Syntax Tree/Entities.h"
 #include "Compiler/Abstract Syntax Tree/Structures.h"
 
 
-FunctionDefinitionGrammar::FunctionDefinitionGrammar(const Lexer::EpochLexerT& lexer, const CodeBlockGrammar& codeblockgrammar, const ExpressionGrammar& expressiongrammar)
+FunctionDefinitionGrammar::FunctionDefinitionGrammar(const Lexer::EpochLexerT& lexer, const CodeBlockGrammar& codeblockgrammar, const ExpressionGrammar& expressiongrammar, const LiteralGrammar& literalgrammar)
 	: FunctionDefinitionGrammar::base_type(FunctionDefinition)
 {
 	using namespace boost::spirit::qi;
@@ -23,7 +24,7 @@ FunctionDefinitionGrammar::FunctionDefinitionGrammar(const Lexer::EpochLexerT& l
 	ParameterList %= ParameterDeclaration % lexer.Comma;
 	ReturnList %= lexer.Arrow >> (expressiongrammar.VariableDeclaration | expressiongrammar);
 
-	FunctionTagSpec = (lexer.StringIdentifier >> -((expressiongrammar) % lexer.Comma));
+	FunctionTagSpec = (lexer.StringIdentifier >> -(lexer.OpenParens >> ((literalgrammar) % lexer.Comma) >> lexer.CloseParens));
 	FunctionTagList = (lexer.OpenBrace >> *FunctionTagSpec >> lexer.CloseBrace);
 
 	FunctionDefinition %= lexer.StringIdentifier >> lexer.Colon >> -ParameterList >> -ReturnList >> -FunctionTagList >> -codeblockgrammar;

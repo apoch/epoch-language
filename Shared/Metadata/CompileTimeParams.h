@@ -19,8 +19,6 @@
 #include "Utility/Types/RealTypes.h"
 #include "Utility/Types/IDTypes.h"
 
-#include "Metadata/LRValue.h"
-
 #include <string>
 #include <vector>
 
@@ -29,23 +27,17 @@
 class FunctionSignature;
 
 
-// Handy type shortcuts
-typedef std::vector<Byte> ByteBuffer;
-
-
 struct CompileTimeParameter
 {
 	// Constructor for convenience
 	CompileTimeParameter(const std::wstring& name, VM::EpochTypeID type)
 		: Name(name),
 		  Type(type),
-		  ExpressionType(VM::EpochType_Error),
 		  IsReference(false)
 	{ }
 
 	std::wstring Name;
 	VM::EpochTypeID Type;
-	VM::EpochTypeID ExpressionType;
 
 	union PayloadUnion
 	{
@@ -57,9 +49,6 @@ struct CompileTimeParameter
 	} Payload;
 
 	std::wstring StringPayload;
-
-	ByteBuffer ExpressionContents;
-	LRValue LRValueContents;
 
 	bool IsReference;
 };

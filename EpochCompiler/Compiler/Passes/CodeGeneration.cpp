@@ -483,7 +483,25 @@ bool CompilerPasses::GenerateCode(const IRSemantics::Program& program, ByteCodeE
 	}
 
 
-	// TODO - emit function tag metadata
+	const boost::unordered_map<StringHandle, IRSemantics::Function*>& functions = program.GetFunctions();
+	for(boost::unordered_map<StringHandle, IRSemantics::Function*>::const_iterator iter = functions.begin(); iter != functions.end(); ++iter)
+	{
+		const std::vector<IRSemantics::FunctionTag>& tags = iter->second->GetTags();
+		for(std::vector<IRSemantics::FunctionTag>::const_iterator tagiter = tags.begin(); tagiter != tags.end(); ++tagiter)
+		{
+			FunctionTagHelperTable::const_iterator helperiter = program.Session.FunctionTagHelpers.find(program.GetString(tagiter->TagName));
+			if(helperiter != program.Session.FunctionTagHelpers.end())
+			{
+				TagHelperReturn help = helperiter->second(iter->first, tagiter->Parameters, true);
+				emitter.TagData(iter->first, help.MetaTag, help.MetaTagData);
+			}
+			else
+			{
+				// TODO - flag semantic error instead
+				throw std::runtime_error("Unrecognized function tag");
+			}
+		}
+	}
 
 
 	size_t numglobalblocks = program.GetNumGlobalCodeBlocks();
@@ -496,12 +514,28 @@ bool CompilerPasses::GenerateCode(const IRSemantics::Program& program, ByteCodeE
 	emitter.Invoke(strings.Find(L"entrypoint"));
 	emitter.Halt();
 	
-	const boost::unordered_map<StringHandle, IRSemantics::Function*>& functions = program.GetFunctions();
 	for(boost::unordered_map<StringHandle, IRSemantics::Function*>::const_iterator iter = functions.begin(); iter != functions.end(); ++iter)
 	{
 		emitter.EnterFunction(iter->first);
 		if(iter->second->GetReturnType(program) != VM::EpochType_Void)
 			EmitExpression(emitter, *iter->second->GetReturnExpression(), *iter->second->GetCode(), program);
+
+		const std::vector<IRSemantics::FunctionTag>& tags = iter->second->GetTags();
+		for(std::vector<IRSemantics::FunctionTag>::const_iterator tagiter = tags.begin(); tagiter != tags.end(); ++tagiter)
+		{
+			FunctionTagHelperTable::const_iterator helperiter = program.Session.FunctionTagHelpers.find(program.GetString(tagiter->TagName));
+			if(helperiter != program.Session.FunctionTagHelpers.end())
+			{
+				TagHelperReturn help = helperiter->second(iter->first, tagiter->Parameters, false);
+				if(!help.InvokeRuntimeFunction.empty())
+					emitter.Invoke(program.FindString(help.InvokeRuntimeFunction));
+			}
+			else
+			{
+				// TODO - flag semantic error instead
+				throw std::runtime_error("Unrecognized function tag");
+			}
+		}
 
 		const IRSemantics::CodeBlock* code = iter->second->GetCode();
 		if(code)

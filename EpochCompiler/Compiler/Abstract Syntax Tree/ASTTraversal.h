@@ -351,6 +351,18 @@ namespace ASTTraverse
 		}
 
 		//
+		// Traverse a function tag
+		//
+		template <typename EntryActionT, typename ExitActionT>
+		void Do(EntryActionT& entryaction, AST::FunctionTag& tag, ExitActionT& exitaction)
+		{
+			entryaction(tag);
+			Do(entryaction, tag.TagName, exitaction);
+			Do(entryaction, tag.Parameters, exitaction);
+			exitaction(tag);
+		}
+
+		//
 		// Traverse a function definition
 		//
 		template <typename EntryActionT, typename ExitActionT>
@@ -364,6 +376,7 @@ namespace ASTTraverse
 			Do(entryaction, function.Return, exitaction);
             marker = Markers::FunctionReturnExpression();
 			exitaction(marker);
+			Do(entryaction, function.Tags, exitaction);
 			Do(entryaction, function.Code, exitaction);
 			exitaction(function);
 		}

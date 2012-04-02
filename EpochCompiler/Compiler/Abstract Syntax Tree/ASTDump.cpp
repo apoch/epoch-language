@@ -241,6 +241,17 @@ void DumpToStream::EntryHelper::operator () (AST::NamedFunctionParameter& param)
 }
 
 
+void DumpToStream::EntryHelper::operator () (AST::FunctionTag& tag)
+{
+	PrintAndIndent(self, L"Tag ", tag.TagName);
+}
+
+void DumpToStream::ExitHelper::operator () (AST::FunctionTag&)
+{
+	UnindentAndPrint(self, L"End of tag");
+}
+
+
 //
 // Begin traversing a node that corresponds to an expression
 //

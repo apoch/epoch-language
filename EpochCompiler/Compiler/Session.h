@@ -26,6 +26,9 @@ namespace IRSemantics { class Program; }
 #include <list>
 
 
+typedef std::vector<char> ByteBuffer;
+
+
 //
 // A compilation session maps one program's source code to one executable
 // binary bytecode buffer. Note that there may be multiple source code

@@ -12,6 +12,8 @@
 #include "Utility/Types/IDTypes.h"
 #include "Utility/Types/EpochTypeIDs.h"
 
+#include "Metadata/CompileTimeParams.h"
+
 #include <vector>
 
 
@@ -187,6 +189,12 @@ namespace IRSemantics
 	};
 
 
+	struct FunctionTag
+	{
+		StringHandle TagName;
+		CompileTimeParameterVector Parameters;
+	};
+
 
 	//
 	// Wrapper for functions
@@ -273,6 +281,13 @@ namespace IRSemantics
 	public:
 		bool TypeInference(IRSemantics::Program& program, InferenceContext& context);
 
+	// Tags
+	public:
+		void AddTag(const FunctionTag& tag);
+
+		const std::vector<FunctionTag>& GetTags() const
+		{ return Tags; }
+
 	// Internal state
 	private:
 		StringHandle Name;
@@ -295,6 +310,8 @@ namespace IRSemantics
 		bool InferenceDone;
 
 		bool SuppressReturn;
+
+		std::vector<FunctionTag> Tags;
 	};
 
 }

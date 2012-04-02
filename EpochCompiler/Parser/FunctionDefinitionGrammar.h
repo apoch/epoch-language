@@ -4,13 +4,14 @@
 
 struct CodeBlockGrammar;
 struct ExpressionGrammar;
+struct LiteralGrammar;
 
 
 struct FunctionDefinitionGrammar : public boost::spirit::qi::grammar<Lexer::TokenIterT, boost::spirit::char_encoding::standard_wide, AST::DeferredFunction()>
 {
 	typedef Lexer::TokenIterT IteratorT;
 
-	FunctionDefinitionGrammar(const Lexer::EpochLexerT& lexer, const CodeBlockGrammar& codeblockgrammar, const ExpressionGrammar& expressiongrammar);
+	FunctionDefinitionGrammar(const Lexer::EpochLexerT& lexer, const CodeBlockGrammar& codeblockgrammar, const ExpressionGrammar& expressiongrammar, const LiteralGrammar& literalgrammar);
 
 
 	template <typename AttributeT>
