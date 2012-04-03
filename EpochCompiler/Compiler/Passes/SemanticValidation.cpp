@@ -32,6 +32,8 @@
 
 #include "Utility/Strings.h"
 
+#include "User Interface/Output.h"
+
 #include <algorithm>
 
 
@@ -84,10 +86,10 @@ namespace
 //
 // Validate semantics for a program
 //
-IRSemantics::Program* CompilerPasses::ValidateSemantics(AST::Program& program, StringPoolManager& strings, CompileSession& session)
+IRSemantics::Program* CompilerPasses::ValidateSemantics(AST::Program& program, const std::wstring::const_iterator& sourcebegin, const std::wstring::const_iterator& sourceend, StringPoolManager& strings, CompileSession& session)
 {
 	// Construct the semantic analysis pass
-	ASTTraverse::CompilePassSemantics pass(strings, session);
+	ASTTraverse::CompilePassSemantics pass(strings, session, sourcebegin, sourceend);
 	
 	// Traverse the AST and convert it into the semantic IR
 	ASTTraverse::DoTraversal(pass, program);
@@ -658,6 +660,8 @@ void CompilePassSemantics::EntryHelper::operator () (AST::Statement& statement)
 
 	self->StateStack.push(CompilePassSemantics::STATE_STATEMENT);
 	self->CurrentStatements.push_back(new IRSemantics::Statement(namehandle));
+
+	self->CurrentStatements.back()->Position = self->FindPosition(statement.Identifier);
 }
 
 //
@@ -963,6 +967,8 @@ void CompilePassSemantics::EntryHelper::operator () (AST::Initialization& initia
 	std::auto_ptr<IRSemantics::Expression> param(new IRSemantics::Expression());
 	param->AddAtom(new IRSemantics::ExpressionAtomIdentifier(lhs));
 	self->CurrentStatements.back()->AddParameter(param.release());
+
+	self->CurrentStatements.back()->Position = self->FindPosition(initialization.TypeSpecifier);
 }
 
 //
@@ -1098,7 +1104,7 @@ void CompilePassSemantics::ExitHelper::operator () (AST::PostfixEntity&)
 //
 void CompilePassSemantics::EntryHelper::operator () (AST::IdentifierT& identifier)
 {
-	Substring raw(identifier.begin(), identifier.end());
+	Substring<positertype> raw(identifier.begin(), identifier.end());
 
 	std::auto_ptr<IRSemantics::ExpressionAtom> iratom(NULL);
 
@@ -1123,15 +1129,31 @@ void CompilePassSemantics::EntryHelper::operator () (AST::IdentifierT& identifie
 	}
 	else
 	{
-		UInteger32 literalint;
+		if(raw.length() > 2 && (*raw.begin() == L'0') && (*(raw.begin() + 1) == L'x'))
+		{
+			UInteger32 literalint;
 
-		std::wistringstream convert(raw);
-		if(convert >> literalint)
-			iratom.reset(new IRSemantics::ExpressionAtomLiteralInteger32(static_cast<Integer32>(literalint)));
+			std::wstring hexstr(raw);
+			hexstr = hexstr.substr(2);
+			std::wistringstream convert(hexstr);
+			convert >> std::hex;
+			if(convert >> literalint)
+				iratom.reset(new IRSemantics::ExpressionAtomLiteralInteger32(static_cast<Integer32>(literalint)));
+			else
+				throw std::runtime_error("Bad hex");
+		}
 		else
 		{
-			StringHandle handle = self->CurrentProgram->AddString(raw);
-			iratom.reset(new IRSemantics::ExpressionAtomIdentifier(handle));
+			UInteger32 literalint;
+
+			std::wistringstream convert(raw);
+			if(convert >> literalint)
+				iratom.reset(new IRSemantics::ExpressionAtomLiteralInteger32(static_cast<Integer32>(literalint)));
+			else
+			{
+				StringHandle handle = self->CurrentProgram->AddString(raw);
+				iratom.reset(new IRSemantics::ExpressionAtomIdentifier(handle));
+			}
 		}
 	}
 
@@ -1307,4 +1329,20 @@ void CompilePassSemantics::ExitHelper::operator () (Markers::StructureFunctionRe
 void CompilePassSemantics::EntryHelper::operator () (AST::RefTag&)
 {
 	self->IsParamRef = true;
+}
+
+
+unsigned CompilePassSemantics::FindPosition(const AST::IdentifierT& /*identifier*/)
+{
+	return 0;
+	/*
+	unsigned line = 1;
+	unsigned delta = identifier.begin() - SourceBegin;
+	for(unsigned offset = 0; offset < delta; ++offset)
+	{
+		if(*(SourceBegin + offset) == L'\n')
+			++line;
+	}
+
+	return line;*/
 }

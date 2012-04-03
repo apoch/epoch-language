@@ -313,30 +313,45 @@ bool Expression::TypeInference(Program& program, CodeBlock& activescope, Inferen
 		}
 	}
 
-	// Perform operator precedence reordering
-	// TODO - proper operator precedence, right now this is just a hacky postfix reorder
-	for(std::vector<ExpressionAtom*>::iterator iter = Atoms.begin(); iter != Atoms.end(); ++iter)
-	{
-		ExpressionAtomOperator* opatom = dynamic_cast<ExpressionAtomOperator*>(*iter);
-		if(!opatom || opatom->IsMemberAccess())
-			continue;
-
-		std::vector<ExpressionAtom*>::iterator nextiter = iter;
-		++nextiter;
-		
-		std::swap(*iter, *nextiter);
-		iter = nextiter;
-	}
-
 	if(!result)
+	{
+		UI::OutputStream output;
+		output << UI::lightred << "Expression atoms failed type inference" << UI::white << std::endl;
 		return false;
+	}
 
 	InferredType = VM::EpochType_Void;
 	size_t i = 0;
 	while(i < Atoms.size())
 		InferredType = WalkAtomsForType(Atoms, program, i, InferredType);
 
-	return true;
+	result = (InferredType != VM::EpochType_Infer && InferredType != VM::EpochType_Error);
+	if(!result)
+	{
+		UI::OutputStream output;
+		output << UI::lightred << "Expression failed type inference" << UI::white << std::endl;
+	}
+
+	// Perform operator precedence reordering
+	// TODO - proper operator precedence, right now this is just a hacky postfix reorder
+	for(size_t i = 0; i < Atoms.size(); ++i)
+	{
+		ExpressionAtomOperator* opatom = dynamic_cast<ExpressionAtomOperator*>(Atoms[i]);
+		if(!opatom || opatom->IsMemberAccess())
+			continue;
+
+		Atoms.erase(Atoms.begin() + i);
+		if(dynamic_cast<ExpressionAtomIdentifierReference*>(Atoms[i++]))
+		{
+			ExpressionAtomOperator* nextopatom = dynamic_cast<ExpressionAtomOperator*>(Atoms[i]);
+			while(nextopatom && nextopatom->IsMemberAccess() && ++i < Atoms.size())
+				nextopatom = dynamic_cast<ExpressionAtomOperator*>(Atoms[i]);
+		}
+	
+		Atoms.insert(Atoms.begin() + i, opatom);
+	}
+
+	return result;
 }
 
 VM::EpochTypeID Expression::GetEpochType(const Program&) const
@@ -545,8 +560,10 @@ VM::EpochTypeID ExpressionAtomIdentifier::GetEpochType(const Program&) const
 bool ExpressionAtomIdentifier::TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, size_t index)
 {
 	StringHandle resolvedidentifier = Identifier;
-	unsigned matches = 0;
 	VM::EpochTypeID vartype = activescope.GetScope()->HasVariable(Identifier) ? activescope.GetScope()->GetVariableTypeByID(Identifier) : VM::EpochType_Infer;
+	
+	std::set<VM::EpochTypeID> possibletypes;
+	unsigned signaturematches = 0;
 
 	if(!context.ExpectedTypes.empty())
 	{
@@ -556,8 +573,7 @@ bool ExpressionAtomIdentifier::TypeInference(Program& program, CodeBlock& active
 			VM::EpochTypeID paramtype = types[i][index];
 			if(paramtype == VM::EpochType_Identifier)
 			{
-				MyType = VM::EpochType_Identifier;
-				++matches;
+				possibletypes.insert(VM::EpochType_Identifier);
 			}
 			else if(paramtype == VM::EpochType_Function)
 			{
@@ -566,8 +582,8 @@ bool ExpressionAtomIdentifier::TypeInference(Program& program, CodeBlock& active
 				{
 					if(context.ExpectedSignatures.back()[i][index].Matches(fsigiter->second))
 					{
-						MyType = VM::EpochType_Function;
-						++matches;
+						possibletypes.insert(VM::EpochType_Function);
+						++signaturematches;
 					}
 				}
 				else if(program.HasFunction(Identifier))
@@ -583,26 +599,45 @@ bool ExpressionAtomIdentifier::TypeInference(Program& program, CodeBlock& active
 						if(context.ExpectedSignatures.back()[i][index].Matches(sig))
 						{
 							resolvedidentifier = overloadname;
-							MyType = VM::EpochType_Function;
-							++matches;
+							possibletypes.insert(VM::EpochType_Function);
+							++signaturematches;
 						}
 					}
 				}
 			}
 			else if(paramtype == vartype)
 			{
-				MyType = vartype;
-				++matches;
+				possibletypes.insert(vartype);
 			}
 		}
 	}
 
-	if(matches != 1)
+	if(possibletypes.size() != 1)
 		MyType = vartype;		// This will correctly handle structure types and fall back to Infer if all else fails
 	else
-		Identifier = resolvedidentifier;
+	{
+		if(*possibletypes.begin() == VM::EpochType_Function)
+		{
+			if(signaturematches == 1)
+			{
+				Identifier = resolvedidentifier;
+				MyType = VM::EpochType_Function;
+			}
+			else
+				MyType = vartype;
+		}
+		else
+			MyType = *possibletypes.begin();
+	}
 
-	return true;
+	bool success = (MyType != VM::EpochType_Infer && MyType != VM::EpochType_Error);
+	if(!success)
+	{
+		UI::OutputStream output;
+		output << UI::lightred << L"Cannot infer type of identifier \"" << program.GetString(Identifier) << L"\"" << UI::white << std::endl;
+	}
+
+	return success;
 }
 
 bool ExpressionAtomIdentifier::CompileTimeCodeExecution(Program&, CodeBlock&, bool)

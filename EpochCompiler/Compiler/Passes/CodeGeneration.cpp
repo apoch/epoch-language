@@ -479,7 +479,7 @@ bool CompilerPasses::GenerateCode(const IRSemantics::Program& program, ByteCodeE
 	for(IRSemantics::ScopePtrMap::const_iterator iter = scopes.begin(); iter != scopes.end(); ++iter)
 	{
 		scopedependencies.Register(iter->first);
-		if(iter->second->ParentScope)
+		if(iter->second->ParentScope && program.FindLexicalScopeName(iter->second->ParentScope))
 			scopedependencies.AddDependency(iter->first, program.FindLexicalScopeName(iter->second->ParentScope));
 	}
 

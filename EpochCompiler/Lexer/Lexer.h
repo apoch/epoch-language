@@ -8,6 +8,9 @@
 #pragma once
 
 
+typedef std::wstring::const_iterator positertype;
+
+
 namespace Lexer
 {
 	enum tokenids 
@@ -19,7 +22,7 @@ namespace Lexer
 	struct EpochLexer : public boost::spirit::lex::lexer<LexerT>
 	{
 		typedef boost::spirit::lex::token_def<boost::spirit::lex::omit, wchar_t> ConsumedToken;
-		typedef boost::spirit::lex::token_def<boost::iterator_range<std::wstring::const_iterator>, wchar_t> Token;
+		typedef boost::spirit::lex::token_def<boost::iterator_range<positertype>, wchar_t> Token;
 
 		EpochLexer();
 
@@ -50,7 +53,7 @@ namespace Lexer
 		ConsumedToken Whitespace;
 	};
 
-	typedef boost::spirit::lex::lexertl::token<std::wstring::const_iterator> TokenType;
+	typedef boost::spirit::lex::lexertl::token<positertype> TokenType;
 	typedef boost::spirit::lex::lexertl::actor_lexer<TokenType> LexerType;
 
 	typedef EpochLexer<LexerType> EpochLexerT;

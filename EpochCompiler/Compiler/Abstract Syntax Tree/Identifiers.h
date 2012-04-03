@@ -23,7 +23,7 @@ namespace AST
 	// the overhead of making a string copy of every single
 	// identifier in the program.
 	//
-	typedef boost::iterator_range<std::wstring::const_iterator> IdentifierT;
+	typedef boost::iterator_range<positertype> IdentifierT;
 
 	//
 	// An identifier list is simply a container of identifiers

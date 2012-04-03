@@ -496,6 +496,10 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 						State.ReturnValueRegister.SetString(structure.ReadMember<StringHandle>(memberindex));
 						break;
 
+					case EpochType_Function:
+						State.ReturnValueRegister.SetFunction(structure.ReadMember<StringHandle>(memberindex));
+						break;
+
 					default:
 						if(membertype < EpochType_CustomBase)
 							throw FatalException("Unhandled structure member type");

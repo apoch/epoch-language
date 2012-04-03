@@ -172,7 +172,7 @@ void CompileSession::CompileFile(const std::wstring& code, const std::wstring& f
 	Profiling::Timer timer;
 	timer.Begin();
 
-	SemanticProgram = CompilerPasses::ValidateSemantics(*ASTProgram, StringPool, *this);
+	SemanticProgram = CompilerPasses::ValidateSemantics(*ASTProgram, code.begin(), code.end(), StringPool, *this);
 
 	timer.End();
 	output << L"finished in " << timer.GetTimeMs() << L"ms with " << ErrorCount << " error(s)" << std::endl;

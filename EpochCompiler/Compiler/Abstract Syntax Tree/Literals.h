@@ -14,6 +14,8 @@
 
 #include "Compiler/Abstract Syntax Tree/Undefined.h"
 
+#include "Lexer/Lexer.h"
+
 
 namespace AST
 {
@@ -24,7 +26,7 @@ namespace AST
 	// a copy of each literal being created every time the AST
 	// node is propagated during parsing.
 	//
-	typedef boost::iterator_range<std::wstring::const_iterator> LiteralStringT;
+	typedef boost::iterator_range<positertype> LiteralStringT;
 
 	//
 	// Literal tokens can take one of several base types

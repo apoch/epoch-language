@@ -398,6 +398,19 @@ namespace
 	}
 }
 
+// Record for tracking what we will push onto the stack for parameters to the external function
+// This is done to minimize the amount of code that must be implemented manually in assembly
+struct pushrec
+{
+	UINT_PTR Contents;
+	int Is16Bit;
+
+	pushrec(UINT_PTR contents, int is16bit)
+		: Contents(contents), Is16Bit(is16bit)
+	{ }
+};
+
+
 //
 // Dispatch execution to an external DLL function
 //
@@ -435,19 +448,6 @@ void ExternalDispatch(StringHandle, VM::ExecutionContext& context)
 		context.State.Result.ResultType = ExecutionResult::EXEC_RESULT_HALT;
 		return;
 	}
-
-
-	// Record for tracking what we will push onto the stack for parameters to the external function
-	// This is done to minimize the amount of code that must be implemented manually in assembly
-	struct pushrec
-	{
-		UINT_PTR Contents;
-		int Is16Bit;
-
-		pushrec(UINT_PTR contents, int is16bit)
-			: Contents(contents), Is16Bit(is16bit)
-		{ }
-	};
 
 	// Track all the stuff we will push onto the native stack
 	std::vector<pushrec> stufftopush;

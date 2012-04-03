@@ -12,6 +12,8 @@
 #include "Utility/Types/IDTypes.h"
 #include "Utility/Types/EpochTypeIDs.h"
 
+#include "Metadata/FunctionSignature.h"
+
 #include <map>
 #include <vector>
 
@@ -108,6 +110,8 @@ namespace IRSemantics
 	public:
 		StringHandle GetReturnType() const
 		{ return ReturnType; }
+
+		FunctionSignature GetSignature(const IRSemantics::Program& program) const;
 
 	// Internal state
 	private:

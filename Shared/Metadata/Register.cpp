@@ -75,6 +75,12 @@ void Register::Set(Real32 value)
 	Type = VM::EpochType_Real;
 }
 
+void Register::SetFunction(StringHandle value)
+{
+	Value_StringHandle = value;
+	Type = VM::EpochType_Function;
+}
+
 //
 // Set the value of the register to a structure
 //
@@ -105,6 +111,7 @@ void Register::PushOntoStack(StackSpace& stack) const
 
 	case VM::EpochType_String:
 	case VM::EpochType_Identifier:
+	case VM::EpochType_Function:
 		stack.PushValue(Value_StringHandle);
 		break;
 

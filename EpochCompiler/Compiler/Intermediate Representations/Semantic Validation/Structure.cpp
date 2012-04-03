@@ -65,10 +65,20 @@ bool Structure::Validate(const Program& program) const
 
 bool Structure::CompileTimeCodeExecution(StringHandle myname, Program& program)
 {
+	size_t i = 0;
 	FunctionSignature signature;
 	signature.AddParameter(L"id", VM::EpochType_Identifier, true);
 	for(std::vector<std::pair<StringHandle, StructureMember*> >::const_iterator iter = Members.begin(); iter != Members.end(); ++iter)
+	{
 		signature.AddParameter(program.GetString(iter->first), iter->second->GetEpochType(program), false);
+		++i;
+
+		if(iter->second->GetMemberType() == StructureMember::FunctionReference)
+		{
+			const StructureMemberFunctionReference* funcref = dynamic_cast<const StructureMemberFunctionReference*>(iter->second);
+			signature.SetFunctionSignature(i, funcref->GetSignature(program));
+		}
+	}
 
 	program.Session.FunctionSignatures.insert(std::make_pair(myname, signature));
 
@@ -134,5 +144,16 @@ bool StructureMemberFunctionReference::Validate(const Program& program) const
 	}
 	
 	return valid;
+}
+
+FunctionSignature StructureMemberFunctionReference::GetSignature(const Program& program) const
+{
+	FunctionSignature ret;
+	ret.SetReturnType(program.LookupType(ReturnType));
+	for(std::vector<StringHandle>::const_iterator iter = ParamTypes.begin(); iter != ParamTypes.end(); ++iter)
+	{
+		ret.AddParameter(L"@@auto", program.LookupType(*iter), false);
+	}
+	return ret;
 }
 

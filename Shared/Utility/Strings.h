@@ -19,11 +19,12 @@ std::wstring StripWhitespace(const std::wstring& str);
 std::wstring StripQuotes(const std::wstring& str);
 
 
+template <typename IterT>
 class Substring
 {
 // Construction
 public:
-	Substring(const std::wstring::const_iterator& begin, const std::wstring::const_iterator& end)
+	Substring(const IterT& begin, const IterT& end)
 		: BeginIter(begin),
 		  EndIter(end),
 		  RBeginIter(begin == end ? end : end - 1)
@@ -34,16 +35,16 @@ public:
 	size_t length() const
 	{ return EndIter - BeginIter; }
 
-	const std::wstring::const_iterator& begin() const
+	const IterT& begin() const
 	{ return BeginIter; }
 
-	const std::wstring::const_iterator& rbegin() const
+	const IterT& rbegin() const
 	{ return RBeginIter; }
 
 	size_t find(wchar_t c) const
 	{
 		size_t p = 0;
-		for(std::wstring::const_iterator iter = BeginIter; iter != EndIter; ++iter)
+		for(IterT iter = BeginIter; iter != EndIter; ++iter)
 		{
 			if(*iter == c)
 				return p;
@@ -59,7 +60,7 @@ public:
 
 	bool operator == (const wchar_t* rhs) const
 	{
-		std::wstring::const_iterator iter = BeginIter;
+		IterT iter = BeginIter;
 		while(*rhs)
 		{
 			if(*rhs != *iter)
@@ -79,7 +80,7 @@ public:
 	}
 
 private:
-	std::wstring::const_iterator BeginIter, EndIter;
-	std::wstring::const_iterator RBeginIter;
+	IterT BeginIter, EndIter;
+	IterT RBeginIter;
 };
 

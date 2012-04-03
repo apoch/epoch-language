@@ -20,6 +20,8 @@
 #include "Compiler/Session.h"
 #include "Compiler/Exceptions.h"
 
+#include "User Interface/Output.h"
+
 
 using namespace IRSemantics;
 
@@ -52,7 +54,14 @@ bool Statement::Validate(const Program& program) const
 			valid = false;
 	}
 
-	return valid && (MyType != VM::EpochType_Infer) && (MyType != VM::EpochType_Error);
+	valid = valid && (MyType != VM::EpochType_Infer) && (MyType != VM::EpochType_Error);
+	if(!valid)
+	{
+		UI::OutputStream output;
+		output << UI::lightred << "Statement on line " << Position << " failed validation" << UI::white << std::endl;
+	}
+
+	return valid;
 }
 
 bool Statement::CompileTimeCodeExecution(Program& program, CodeBlock& activescope, bool inreturnexpr)
@@ -164,6 +173,8 @@ bool Statement::TypeInference(Program& program, CodeBlock& activescope, Inferenc
 						// Validate function signatures
 						if(thisparamtype == VM::EpochType_Function)
 						{
+							/*
+							// TODO - this is broken if the expression atoms refer to a structure member
 							const ExpressionAtomIdentifier* identifieratom = dynamic_cast<const ExpressionAtomIdentifier*>(Parameters[j]->GetAtoms()[0]);
 							StringHandle identifier = identifieratom->GetIdentifier();
 
@@ -179,7 +190,7 @@ bool Statement::TypeInference(Program& program, CodeBlock& activescope, Inferenc
 									match = false;
 									break;
 								}
-							}
+							}*/
 						}
 					}
 					
@@ -284,7 +295,14 @@ bool Statement::TypeInference(Program& program, CodeBlock& activescope, Inferenc
 		}
 	}
 
-	return MyType != VM::EpochType_Infer;
+	bool valid = MyType != VM::EpochType_Infer;
+	if(!valid)
+	{
+		UI::OutputStream output;
+		output << UI::lightred << "Statement on line " << Position << " failed type inference" << UI::white << std::endl;
+	}
+
+	return valid;
 }
 
 

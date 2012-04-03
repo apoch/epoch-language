@@ -55,6 +55,8 @@
 
 #include <boost/spirit/include/lex_lexertl.hpp>
 
+#include <boost/spirit/include/classic_position_iterator.hpp>
+
 #include <boost/variant.hpp>
 
 #include <boost/fusion/adapted.hpp>

@@ -39,8 +39,8 @@ bool Parser::Parse(const std::wstring& code, const std::wstring& /*filename*/, A
 	Lexer::EpochLexerT lexer;
 	FundamentalGrammar grammar(lexer, Identifiers);
 
-	std::wstring::const_iterator iter = code.begin();
-	std::wstring::const_iterator end = code.end();
+	positertype iter(code.begin());
+	positertype end(code.end());
 
 	try
 	{
@@ -54,7 +54,6 @@ bool Parser::Parse(const std::wstring& code, const std::wstring& /*filename*/, A
 			ptr.reset(new AST::Program);
 
 			std::wcout << L"Parsing... ";
-			iter = code.begin();
 			bool result = tokenize_and_parse(iter, end, lexer, grammar, *ptr);
 			if(!result || (iter != end))
 			{

@@ -57,11 +57,13 @@ namespace ASTTraverse
 		//
 		// Construct the traverser
 		//
-		CompilePassSemantics(StringPoolManager& strings, CompileSession& session)
+		CompilePassSemantics(StringPoolManager& strings, CompileSession& session, const std::wstring::const_iterator& sourcebegin, const std::wstring::const_iterator& sourceend)
 			: CurrentProgram(NULL),
 			  InFunctionReturn(false),
 			  Strings(strings),
-			  Session(session)
+			  Session(session),
+			  SourceBegin(sourcebegin),
+			  SourceEnd(sourceend)
 		{
 			Entry.self = this;
 			Exit.self = this;
@@ -245,8 +247,15 @@ namespace ASTTraverse
 			friend struct CompilePassSemantics;
 		} Exit;
 
+	// Additional helper routes
+	public:
+		unsigned FindPosition(const AST::IdentifierT& identifier);
+
 	// Internal state
 	private:
+		const std::wstring::const_iterator& SourceBegin;
+		const std::wstring::const_iterator& SourceEnd;
+
 		IRSemantics::Program* CurrentProgram;
 
 		std::vector<IRSemantics::Structure*> CurrentStructures;
@@ -306,7 +315,7 @@ namespace ASTTraverse
 namespace CompilerPasses
 {
 
-	IRSemantics::Program* ValidateSemantics(AST::Program& program, StringPoolManager& strings, CompileSession& session);
+	IRSemantics::Program* ValidateSemantics(AST::Program& program, const std::wstring::const_iterator& sourcebegin, const std::wstring::const_iterator& sourceend, StringPoolManager& strings, CompileSession& session);
 
 }
 

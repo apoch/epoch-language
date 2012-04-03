@@ -61,6 +61,10 @@ namespace IRSemantics
 		VM::EpochTypeID GetEpochType(const Program&) const
 		{ return MyType; }
 
+	// Parser position
+	public:
+		unsigned Position;
+
 	// Internal state
 	private:
 		StringHandle Name;

@@ -37,6 +37,8 @@ public:
 
 	void SetStructure(StructureHandle value, VM::EpochTypeID typetag);
 
+	void SetFunction(StringHandle value);
+
 // Stack interaction
 public:
 	void PushOntoStack(StackSpace& stack) const;

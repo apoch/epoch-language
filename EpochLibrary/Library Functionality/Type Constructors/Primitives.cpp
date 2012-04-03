@@ -45,7 +45,8 @@ namespace
 	//
 	void ConstructInteger16(StringHandle, VM::ExecutionContext& context)
 	{
-		Integer16 value = context.State.Stack.PopValue<Integer16>();
+		// TODO - this is disgusting. We should be emitting code that correctly pushes a 16-bit integer.
+		Integer16 value = static_cast<Integer16>(context.State.Stack.PopValue<Integer32>());
 		StringHandle identifierhandle = context.State.Stack.PopValue<StringHandle>();
 
 		context.Variables->Write(identifierhandle, value);
@@ -149,7 +150,7 @@ void TypeConstructors::RegisterLibraryFunctions(FunctionSignatureSet& signatures
 	{
 		FunctionSignature signature;
 		signature.AddParameter(L"identifier", VM::EpochType_Identifier, false);
-		signature.AddParameter(L"value", VM::EpochType_Integer16, false);
+		signature.AddParameter(L"value", VM::EpochType_Integer, false);
 		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"integer16"), signature));
 	}
 	{

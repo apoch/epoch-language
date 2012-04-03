@@ -42,8 +42,8 @@ namespace boost { namespace spirit { namespace qi
 			if(first == last)
 				return false;
 
-			std::wstring::const_iterator tokenfirst = first->value().begin();
-			std::wstring::const_iterator tokenlast = first->value().end();
+			positertype tokenfirst = first->value().begin();
+			positertype tokenlast = first->value().end();
 
             if(subject.parse(tokenfirst, tokenlast, context, skipper, unused) && (tokenfirst == tokenlast))
             {
