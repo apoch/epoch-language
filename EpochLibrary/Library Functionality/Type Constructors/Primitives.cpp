@@ -40,6 +40,16 @@ namespace
 		context.Variables->Write(identifierhandle, value);
 	}
 
+	void ConstructIntegerJIT(char** stack, void* context)
+	{
+		Integer32 value = *reinterpret_cast<Integer32*>(*stack);
+		(*stack) += sizeof(Integer32);
+		StringHandle identifierhandle = *reinterpret_cast<StringHandle*>(*stack);
+		(*stack) += sizeof(StringHandle);
+
+		reinterpret_cast<VM::ExecutionContext*>(context)->Variables->Write(identifierhandle, value);
+	}
+
 	//
 	// Construct an integer16 variable in memory
 	//
@@ -193,3 +203,7 @@ void TypeConstructors::RegisterLibraryFunctions(FunctionCompileHelperTable& tabl
 }
 
 
+void TypeConstructors::RegisterJITTable(JITTable& table, StringPoolManager& stringpool)
+{
+	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"integer"), ConstructIntegerJIT));
+}

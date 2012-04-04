@@ -36,6 +36,16 @@ namespace
 	}
 
 
+	void AddIntegersJIT(char** stack, void*)
+	{
+		Integer32 p2 = *reinterpret_cast<Integer32*>(*stack);
+		(*stack) += sizeof(Integer32);
+		Integer32 p1 = *reinterpret_cast<Integer32*>(*stack);
+		
+		*reinterpret_cast<Integer32*>(*stack) = (p1 + p2);
+	}
+
+
 	//
 	// Subtract two numbers and return the result
 	//
@@ -56,6 +66,15 @@ namespace
 		Integer32 p1 = context.State.Stack.PopValue<Integer32>();
 
 		context.State.Stack.PushValue(p1 * p2);
+	}
+
+	void MultiplyIntegersJIT(char** stack, void*)
+	{
+		Integer32 p2 = *reinterpret_cast<Integer32*>(*stack);
+		(*stack) += sizeof(Integer32);
+		Integer32 p1 = *reinterpret_cast<Integer32*>(*stack);
+		
+		*reinterpret_cast<Integer32*>(*stack) = (p1 * p2);
 	}
 
 	//
@@ -435,5 +454,11 @@ void ArithmeticLibrary::RegisterOpAssignOperators(StringSet& operators, StringPo
 		StringHandle handle = stringpool.Pool(L"-=");
 		AddToSetNoDupe(operators, stringpool.GetPooledString(handle));
 	}
+}
+
+void ArithmeticLibrary::RegisterJITTable(JITTable& table, StringPoolManager& stringpool)
+{
+	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"+@@integer"), AddIntegersJIT));
+	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"*@@integer"), MultiplyIntegersJIT));
 }
 

@@ -1,0 +1,1 @@
+JITExecPtr JITByteCode(const Bytecode::Instruction* bytecode, size_t beginoffset, size_t endoffset);

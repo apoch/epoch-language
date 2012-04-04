@@ -137,12 +137,12 @@ void CompileSession::EmitByteCode()
 //
 // Retrieve the actual bytecode buffer generated during compilation
 //
-const void* CompileSession::GetEmittedBuffer() const
+void* CompileSession::GetEmittedBuffer() const
 {
 	if(FinalByteCode.empty())
 		throw std::runtime_error("Empty bytecode buffer");
 
-	return &FinalByteCode[0];
+	return const_cast<void*>(reinterpret_cast<const void*>(&FinalByteCode[0]));
 }
 
 //

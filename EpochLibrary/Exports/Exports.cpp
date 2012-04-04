@@ -25,6 +25,7 @@
 
 #include "Library Functionality/Function Tags/Externals.h"
 #include "Library Functionality/Function Tags/Constructors.h"
+#include "Library Functionality/Function Tags/Native.h"
 
 #include "Library Functionality/Marshaling/MarshalingLibrary.h"
 
@@ -54,6 +55,7 @@ extern "C" void STDCALL RegisterLibraryContents(FunctionSignatureSet& functionsi
 		FlowControl::RegisterStrings(stringpool);
 
 		FunctionTags::RegisterExternalTag(functionsignatures, stringpool);
+		FunctionTags::RegisterNativeTag(functionsignatures, stringpool);
 
 		MarshalingLibrary::RegisterLibraryFunctions(functionsignatures, stringpool);
 
@@ -72,7 +74,7 @@ extern "C" void STDCALL RegisterLibraryContents(FunctionSignatureSet& functionsi
 // Strings are pooled in the VM's internal string pool, and functions
 // are registered in the VM's global function dispatch table.
 //
-extern "C" void STDCALL BindToVirtualMachine(FunctionInvocationTable& functiontable, EntityTable& entities, EntityTable&, StringPoolManager& stringpool, Bytecode::EntityTag& tagindex, EpochFunctionPtr marshalfunction)
+extern "C" void STDCALL BindToVirtualMachine(FunctionInvocationTable& functiontable, EntityTable& entities, EntityTable&, StringPoolManager& stringpool, Bytecode::EntityTag& tagindex, EpochFunctionPtr marshalfunction, JITTable& jittable)
 {
 	try
 	{
@@ -89,11 +91,15 @@ extern "C" void STDCALL BindToVirtualMachine(FunctionInvocationTable& functionta
 		FlowControl::RegisterLoopEntities(entities, entities, entities, entities, stringpool, tagindex);
 
 		FunctionTags::RegisterExternalTag(marshalfunction, functiontable, stringpool);
+		FunctionTags::RegisterNativeTag(marshalfunction, functiontable, stringpool);
 
 		MarshalingLibrary::RegisterLibraryFunctions(functiontable, stringpool);
 
 		CommandLineLibrary::RegisterLibraryFunctions(functiontable, stringpool);
 		StringFunctionLibrary::RegisterLibraryFunctions(functiontable, stringpool);
+
+		ArithmeticLibrary::RegisterJITTable(jittable, stringpool);
+		TypeConstructors::RegisterJITTable(jittable, stringpool);
 	}
 	catch(...)
 	{
@@ -132,6 +138,7 @@ extern "C" void STDCALL BindToCompiler(CompilerInfoTable& info, StringPoolManage
 
 		FunctionTags::RegisterExternalTagHelper(*info.FunctionTagHelpers);
 		FunctionTags::RegisterConstructorTagHelper(*info.FunctionTagHelpers);
+		FunctionTags::RegisterNativeTagHelper(*info.FunctionTagHelpers);
 	}
 	catch(...)
 	{

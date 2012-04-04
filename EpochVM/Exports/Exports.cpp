@@ -21,13 +21,13 @@
 // client code, as well as to prevent having to mess with throwing
 // exceptions across DLL boundaries.
 //
-extern "C" void STDCALL ExecuteByteCode(const void* bytecodebuffer, size_t size)
+extern "C" void STDCALL ExecuteByteCode(void* bytecodebuffer, size_t size)
 {
 	try
 	{
 		VM::VirtualMachine vm;
 		vm.InitStandardLibraries();
-		vm.ExecuteByteCode(reinterpret_cast<const Bytecode::Instruction*>(bytecodebuffer), size);
+		vm.ExecuteByteCode(reinterpret_cast<Bytecode::Instruction*>(bytecodebuffer), size);
 	}
 	catch(const std::exception& e)
 	{

@@ -59,7 +59,7 @@ CompiledByteCodeHandle CompilerAccess::CompileSourceToByteCode(const std::wstrin
 //
 // Given a bytecode buffer handle, return a pointer to the corresponding memory buffer
 //
-const void* CompilerAccess::GetByteCode(CompiledByteCodeHandle handle) const
+void* CompilerAccess::GetByteCode(CompiledByteCodeHandle handle) const
 {
 	if(!handle)
 		return NULL;

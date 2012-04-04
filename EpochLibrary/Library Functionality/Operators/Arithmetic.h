@@ -28,5 +28,7 @@ namespace ArithmeticLibrary
 	void RegisterOpAssignOperators(StringSet& operators, StringPoolManager& stringpool);
 	void RegisterLibraryOverloads(OverloadMap& overloadmap, StringPoolManager& stringpool);
 
+	void RegisterJITTable(JITTable& table, StringPoolManager& stringpool);
+
 }
 

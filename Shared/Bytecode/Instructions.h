@@ -64,6 +64,8 @@ namespace Bytecode
 
 		static const Instruction BindMemberByHandle = 0x1d;
 
+		static const Instruction InvokeNative = 0x1e;
+
 	}
 
 }

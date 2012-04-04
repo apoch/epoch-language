@@ -11,6 +11,8 @@
 #include "Virtual Machine/TypeInfo.h"
 #include "Virtual Machine/Marshaling.h"
 
+#include "JIT/JIT.h"
+
 #include "Metadata/ActiveScope.h"
 
 #include "Bytecode/Instructions.h"
@@ -90,7 +92,7 @@ void VirtualMachine::InitStandardLibraries()
 {
 	Marshaling::DLLPool::DLLPoolHandle dllhandle = Marshaling::TheDLLPool.OpenDLL(L"EpochLibrary.DLL");
 
-	typedef void (STDCALL *bindtovmptr)(FunctionInvocationTable&, EntityTable&, EntityTable&, StringPoolManager&, Bytecode::EntityTag&, EpochFunctionPtr);
+	typedef void (STDCALL *bindtovmptr)(FunctionInvocationTable&, EntityTable&, EntityTable&, StringPoolManager&, Bytecode::EntityTag&, EpochFunctionPtr, JITTable&);
 	bindtovmptr bindtovm = Marshaling::DLLPool::GetFunction<bindtovmptr>(dllhandle, "BindToVirtualMachine");
 
 	if(!bindtovm)
@@ -99,14 +101,14 @@ void VirtualMachine::InitStandardLibraries()
 	void ExternalDispatch(StringHandle functionname, VM::ExecutionContext& context);
 
 	Bytecode::EntityTag customtag = Bytecode::EntityTags::CustomEntityBaseID;
-	bindtovm(GlobalFunctions, Entities, Entities, PrivateStringPool, customtag, ExternalDispatch);
+	bindtovm(GlobalFunctions, Entities, Entities, PrivateStringPool, customtag, ExternalDispatch, JITHelpers);
 }
 
 
 //
 // Execute a block of bytecode from memory
 //
-ExecutionResult VirtualMachine::ExecuteByteCode(const Bytecode::Instruction* buffer, size_t size)
+ExecutionResult VirtualMachine::ExecuteByteCode(Bytecode::Instruction* buffer, size_t size)
 {
 	std::auto_ptr<ExecutionContext> context(new ExecutionContext(*this, buffer, size));
 	context->Execute(NULL, false);
@@ -304,7 +306,7 @@ ScopeDescription& VirtualMachine::GetScopeDescription(StringHandle name)
 //
 // Initialize a virtual machine execution context
 //
-ExecutionContext::ExecutionContext(VirtualMachine& ownervm, const Bytecode::Instruction* codebuffer, size_t codesize)
+ExecutionContext::ExecutionContext(VirtualMachine& ownervm, Bytecode::Instruction* codebuffer, size_t codesize)
 	: OwnerVM(ownervm),
 	  CodeBuffer(codebuffer),
 	  CodeBufferSize(codesize),
@@ -317,6 +319,9 @@ ExecutionContext::ExecutionContext(VirtualMachine& ownervm, const Bytecode::Inst
 {
 	Load();
 	InstructionOffset = 0;
+
+	void JITTest();
+	JITTest();
 }
 
 //
@@ -743,6 +748,13 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 				}
 				break;
 
+			case Bytecode::Instructions::InvokeNative:
+				{
+					StringHandle target = Fetch<StringHandle>();
+					OwnerVM.JITHelpers.find(target)->second(State.Stack.GetMutableStackPtr(), this);
+				}
+				break;
+
 			case Bytecode::Instructions::BeginEntity:
 				{
 					size_t originaloffset = InstructionOffset - 1;
@@ -1017,6 +1029,9 @@ void ExecutionContext::Load()
 	std::stack<size_t> entitybeginoffsets;
 	std::stack<size_t> chainbeginoffsets;
 
+	std::vector<StringHandle> jitworklist;
+	std::map<StringHandle, size_t> entityoffsetmap;
+
 	InstructionOffset = 0;
 	while(InstructionOffset < CodeBufferSize)
 	{
@@ -1032,6 +1047,7 @@ void ExecutionContext::Load()
 				if(entitytypes.top() == Bytecode::EntityTags::Function || entitytypes.top() == Bytecode::EntityTags::PatternMatchingResolver)
 					OwnerVM.AddFunction(name, originaloffset);
 				entitybeginoffsets.push(originaloffset);
+				entityoffsetmap[name] = originaloffset;
 			}
 			break;
 
@@ -1117,6 +1133,11 @@ void ExecutionContext::Load()
 
 					RegisterMarshaledExternalFunction(entity, metadata[0], metadata[1]);
 				}
+				else if(tag == L"native")
+				{
+					jitworklist.push_back(entity);
+					OwnerVM.JITHelpers[entity] = 0;		// Flag the entity so subsequent bytecode will be converted to InvokeNative on this func
+				}
 				else
 					throw FatalException("Unrecognized entity meta-tag in bytecode");
 			}
@@ -1151,12 +1172,23 @@ void ExecutionContext::Load()
 
 		// Operations with string payload fields
 		case Bytecode::Instructions::Read:
-		case Bytecode::Instructions::Invoke:
 		case Bytecode::Instructions::InvokeIndirect:
 		case Bytecode::Instructions::SetRetVal:
 		case Bytecode::Instructions::BindMemberRef:
 		case Bytecode::Instructions::BindMemberByHandle:
+		case Bytecode::Instructions::InvokeNative:
 			Fetch<StringHandle>();
+			break;
+
+		// Operations we might want to muck with
+		case Bytecode::Instructions::Invoke:
+			{
+				size_t originaloffset = InstructionOffset - 1;
+				StringHandle target = Fetch<StringHandle>();
+
+				if(OwnerVM.JITHelpers.find(target) != OwnerVM.JITHelpers.end())
+					CodeBuffer[originaloffset] = Bytecode::Instructions::InvokeNative;
+			}
 			break;
 
 		// Operations that take a bit of special processing, but we are still ignoring
@@ -1209,6 +1241,15 @@ void ExecutionContext::Load()
 	// This helps speed up garbage collection a bit
 	for(boost::unordered_map<StringHandle, std::wstring>::const_iterator iter = OwnerVM.PrivateGetRawStringPool().GetInternalPool().begin(); iter != OwnerVM.PrivateGetRawStringPool().GetInternalPool().end(); ++iter)
 		StaticallyReferencedStrings.insert(iter->first);
+
+	// JIT-compile everything that needs it
+	for(std::vector<StringHandle>::const_iterator iter = jitworklist.begin(); iter != jitworklist.end(); ++iter)
+	{
+		size_t beginoffset = entityoffsetmap[*iter];
+		size_t endoffset = OwnerVM.GetEntityEndOffset(beginoffset);
+
+		JITCompileByteCode(*iter, beginoffset, endoffset);
+	}
 }
 
 
@@ -1586,3 +1627,92 @@ std::wstring VirtualMachine::DebugSnapshot() const
 	return report.str();
 }
 
+
+
+void ExecutionContext::JITCompileByteCode(StringHandle entity, size_t beginoffset, size_t endoffset)
+{
+	OwnerVM.JITHelpers[entity] = JITByteCode(CodeBuffer, beginoffset, endoffset);
+}
+
+void JITInvoke(char** stack, void* context, StringHandle target)
+{
+	reinterpret_cast<ExecutionContext*>(context)->OwnerVM.JITHelpers[target](stack, context);
+}
+
+void JITRead(char** stack, void* context, StringHandle target)
+{
+	// TODO - type safety
+	Integer32 value = reinterpret_cast<ExecutionContext*>(context)->Variables->Read<Integer32>(target);
+	(*stack) -= sizeof(value);
+	*reinterpret_cast<Integer32*>(*stack) = value;
+}
+
+void JITWrite(char** stack, void* context)
+{
+	// TODO - type safety
+	void* targetstorage = *reinterpret_cast<void**>(*stack);
+	(*stack) += sizeof(void*);
+	EpochTypeID targettype = *reinterpret_cast<EpochTypeID*>(*stack);
+	(*stack) += sizeof(EpochTypeID);
+	reinterpret_cast<ExecutionContext*>(context)->Variables->WriteFromStack(targetstorage, targettype, reinterpret_cast<ExecutionContext*>(context)->State.Stack);
+}
+
+void JITBindRef(char** stack, void* context)
+{
+	ExecutionContext* ec = reinterpret_cast<ExecutionContext*>(context);
+
+	StringHandle target = *reinterpret_cast<EpochTypeID*>(*stack);
+	(*stack) += sizeof(StringHandle);
+
+	if(ec->Variables->GetOriginalDescription().IsReferenceByID(target))
+	{
+		ec->State.Stack.PushValue(ec->Variables->GetReferenceType(target));
+		ec->State.Stack.PushValue(ec->Variables->GetReferenceTarget(target));
+	}
+	else
+	{
+		ec->State.Stack.PushValue(ec->Variables->GetOriginalDescription().GetVariableTypeByID(target));
+		ec->State.Stack.PushValue(ec->Variables->GetVariableStorageLocation(target));
+	}
+}
+
+
+void JITBeginEntity(void* context, StringHandle entity)
+{
+	reinterpret_cast<ExecutionContext*>(context)->BeginEntity(entity);
+}
+
+void JITEndEntity(void* context)
+{
+	reinterpret_cast<ExecutionContext*>(context)->EndEntity();
+}
+
+void JITSetRegister(void* context, StringHandle variable)
+{
+	ExecutionContext* ec = reinterpret_cast<ExecutionContext*>(context);
+	ec->Variables->CopyToRegister(variable, ec->State.ReturnValueRegister);
+}
+
+
+void ExecutionContext::BeginEntity(StringHandle entity)
+{
+	const ScopeDescription* scope = &OwnerVM.GetScopeDescription(entity);
+	Variables = new ActiveScope(*scope, Variables);
+	Variables->BindParametersToStack(*this);
+	Variables->PushLocalsOntoStack(*this);
+	JITInvokedScopes.push(Variables);
+}
+
+
+void ExecutionContext::EndEntity()
+{
+	Variables->PopScopeOffStack(*this);
+	bool hasreturn = Variables->HasReturnVariable();
+
+	Variables = Variables->ParentScope;
+	delete JITInvokedScopes.top();
+	JITInvokedScopes.pop();
+
+	if(hasreturn)
+		State.ReturnValueRegister.PushOntoStack(State.Stack);
+}

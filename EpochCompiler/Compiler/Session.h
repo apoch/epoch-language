@@ -52,7 +52,7 @@ public:
 
 // Access to compiled bytecode
 public:
-	const void* GetEmittedBuffer() const;
+	void* GetEmittedBuffer() const;
 	size_t GetEmittedBufferSize() const;
 
 // Entity management

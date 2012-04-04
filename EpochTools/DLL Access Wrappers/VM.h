@@ -19,12 +19,12 @@ namespace DLLAccess
 
 	// DLL interface
 	public:
-		void ExecuteByteCode(const void* buffer, size_t size);
+		void ExecuteByteCode(void* buffer, size_t size);
 		void EnableVisualDebugger();
 
 	// Internal type definitions for function pointers
 	private:
-		typedef void (STDCALL *ExecuteByteCodePtr)(const void*, size_t);
+		typedef void (STDCALL *ExecuteByteCodePtr)(void*, size_t);
 		typedef void (STDCALL *EnableVisualDebuggerPtr)();
 
 	// Internal function pointers bound to the DLL

@@ -9,6 +9,9 @@
 #pragma once
 #include <boost/config.hpp>
 
+#pragma warning(push)
+#pragma warning(disable: 4996)		// unsafe usage of std::copy
+
 // Standard C++ library stuff
 #include <string>
 #include <sstream>
@@ -34,3 +37,35 @@
 
 
 #define STATIC_ASSERT(expr)			enum { dummy = 1/static_cast<int>(!!(expr)) }
+
+
+// LLVM
+#pragma warning(push)
+#pragma warning(disable: 4800)		// coercion to bool
+#pragma warning(disable: 4146)		// unary minus on unsigned
+#pragma warning(disable: 4355)		// "this" in initializer list
+#pragma warning(disable: 4512)		// cannot generate assignment operator
+#pragma warning(disable: 4127)		// conditional expression is constant
+#pragma warning(disable: 4245)		// signed/unsigned mismatch
+#pragma warning(disable: 4244)		// conversion might lose data
+
+#define SUPPORT_DATATYPES_H 1
+#define END_WITH_NULL
+
+#include <stdint.h>
+
+#include "llvm/DerivedTypes.h"
+#include "llvm/ExecutionEngine/ExecutionEngine.h"
+#include "llvm/ExecutionEngine/JIT.h"
+#include "llvm/LLVMContext.h"
+#include "llvm/Module.h"
+#include "llvm/PassManager.h"
+#include "llvm/Analysis/Verifier.h"
+#include "llvm/Analysis/Passes.h"
+#include "llvm/Target/TargetData.h"
+#include "llvm/Transforms/Scalar.h"
+#include "llvm/Support/IRBuilder.h"
+#include "llvm/Support/TargetSelect.h"
+
+#pragma warning(pop)
+#pragma warning(pop)

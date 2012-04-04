@@ -418,11 +418,6 @@ void ExternalDispatch(StringHandle, VM::ExecutionContext& context)
 {
 	using namespace VM;
 
-	// Placeholders for storing off the external function's return value
-	Integer32 integerret;
-	Integer16 integer16ret;
-	const wchar_t* stringret;
-
 	// We use the name of the calling function to map us to the correct external.
 	// This is because the calling function itself is the one that was originally
 	// tagged as external and associated with the correct DLL/function names.
@@ -449,6 +444,17 @@ void ExternalDispatch(StringHandle, VM::ExecutionContext& context)
 		return;
 	}
 
+	MarshalIntoNativeCode(context, context.Variables->GetOriginalDescription(), address);
+}
+
+
+void VM::MarshalIntoNativeCode(VM::ExecutionContext& context, const ScopeDescription& scope, void* address)
+{
+	// Placeholders for storing off the external function's return value
+	Integer32 integerret;
+	Integer16 integer16ret;
+	const wchar_t* stringret;
+
 	// Track all the stuff we will push onto the native stack
 	std::vector<pushrec> stufftopush;
 
@@ -474,14 +480,13 @@ void ExternalDispatch(StringHandle, VM::ExecutionContext& context)
 	// parameters given to the external function. Note that as a downside of the
 	// lack of type information for externals, getting the function signature
 	// incorrect can have dire consequences.
-	const ScopeDescription& description = context.Variables->GetOriginalDescription();
-	for(int i = static_cast<int>(description.GetVariableCount()) - 1; i >= 0; --i)
+	for(int i = static_cast<int>(scope.GetVariableCount()) - 1; i >= 0; --i)
 	{
-		VariableOrigin origin = description.GetVariableOrigin(i);
+		VariableOrigin origin = scope.GetVariableOrigin(i);
 		if(origin == VARIABLE_ORIGIN_PARAMETER)
 		{
-			EpochTypeID vartype = description.GetVariableTypeByIndex(i);
-			StringHandle varname = description.GetVariableNameHandle(i);
+			EpochTypeID vartype = scope.GetVariableTypeByIndex(i);
+			StringHandle varname = scope.GetVariableNameHandle(i);
 			if(vartype > EpochType_CustomBase)
 			{
 				StructureHandle structurehandle = context.Variables->Read<StructureHandle>(varname);
@@ -496,12 +501,12 @@ void ExternalDispatch(StringHandle, VM::ExecutionContext& context)
 					return;
 				}
 
-				marshaledstructures.push_back(MarshaledStructureRecord(description.IsReference(i), structbuffer, structure));
+				marshaledstructures.push_back(MarshaledStructureRecord(scope.IsReference(i), structbuffer, structure));
 				stufftopush.push_back(pushrec(reinterpret_cast<UINT_PTR>(&marshaledstructures.back().Buffer[0]), false));
 			}
 			else
 			{
-				if(description.IsReference(i))
+				if(scope.IsReference(i))
 				{
 					if(vartype == EpochType_Boolean)
 					{
@@ -595,10 +600,10 @@ void ExternalDispatch(StringHandle, VM::ExecutionContext& context)
 	// Determine the expected return type of the function
 	int rettype = EpochType_Void;
 	StringHandle retname = 0;
-	if(retindex < description.GetVariableCount())
+	if(retindex < scope.GetVariableCount())
 	{
-		rettype = description.GetVariableTypeByIndex(retindex);
-		retname = description.GetVariableNameHandle(retindex);
+		rettype = scope.GetVariableTypeByIndex(retindex);
+		retname = scope.GetVariableNameHandle(retindex);
 	}
 
 	// Push the actual parameters for the function onto the native stack
@@ -706,7 +711,7 @@ Vomit:
 MarshalBackToEpoch:
 	MarshalBuffersIntoStructures(context, marshaledstructures);
 	for(std::list<MarshaledBooleanRecord>::const_iterator iter = marshaledbooleans.begin(); iter != marshaledbooleans.end(); ++iter)
-		context.Variables->Write(description.GetVariableNameHandle(iter->VariableIndex), iter->Holder != 0);
+		context.Variables->Write(scope.GetVariableNameHandle(iter->VariableIndex), iter->Holder != 0);
 }
 
 

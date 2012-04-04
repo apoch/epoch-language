@@ -64,7 +64,7 @@ extern "C" void STDCALL FreeByteCodeBuffer(void* handle)
 //
 // Retrieve the memory buffer associated with a given handle
 //
-extern "C" const void* STDCALL GetByteCodeBuffer(void* handle)
+extern "C" void* STDCALL GetByteCodeBuffer(void* handle)
 {
 	try
 	{

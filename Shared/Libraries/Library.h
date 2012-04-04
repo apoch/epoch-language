@@ -47,6 +47,10 @@ typedef std::set<StringHandle> StringHandleSet;
 typedef std::map<StringHandle, StringHandleSet> OverloadMap;
 
 
+typedef void (*JITExecPtr)(char** stack, void* context);
+typedef std::map<StringHandle, JITExecPtr> JITTable;
+
+
 //
 // This structure encapsulates the data associated with function tags, allowing
 // the tag parser helper to attach metadata to a function for storage in final

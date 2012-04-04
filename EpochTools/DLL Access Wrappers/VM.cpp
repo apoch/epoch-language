@@ -34,7 +34,7 @@ VMAccess::VMAccess()
 //
 // Execute a block of bytecode that has been mapped into memory.
 //
-void VMAccess::ExecuteByteCode(const void* buffer, size_t size)
+void VMAccess::ExecuteByteCode(void* buffer, size_t size)
 {
 	DoExecByteCode(buffer, size);
 }

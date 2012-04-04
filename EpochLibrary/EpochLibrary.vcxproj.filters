@@ -167,6 +167,9 @@
     <ClCompile Include="VM Linkage\HeapAccess.cpp">
       <Filter>VM Linkage</Filter>
     </ClCompile>
+    <ClCompile Include="Library Functionality\Function Tags\Native.cpp">
+      <Filter>Library Functionality\Function Tags</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h">
@@ -282,6 +285,9 @@
     </ClInclude>
     <ClInclude Include="..\EpochVM\Virtual Machine\VirtualMachine.h">
       <Filter>VM Linkage\Virtual Machine</Filter>
+    </ClInclude>
+    <ClInclude Include="Library Functionality\Function Tags\Native.h">
+      <Filter>Library Functionality\Function Tags</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -130,7 +130,7 @@ int _tmain(int argc, _TCHAR* argv[])
 
 					if(bytecodebufferhandle)
 					{
-						const void* pdata = compileraccess.GetByteCode(bytecodebufferhandle);
+						void* pdata = compileraccess.GetByteCode(bytecodebufferhandle);
 						size_t size = compileraccess.GetByteCodeSize(bytecodebufferhandle);
 
 						std::wstring intermediatefile = project.GetBinaryFileName(*iter);

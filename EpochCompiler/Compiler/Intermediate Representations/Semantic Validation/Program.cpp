@@ -520,9 +520,10 @@ InferenceContext::PossibleParameterTypes Program::GetExpectedTypesForStatement(S
 		
 		InferenceContext::PossibleParameterTypes ret(1, InferenceContext::TypePossibilities());
 
-		VM::EpochTypeID rettype = funciter->second->GetParameterSignatureType(name, *this);
-		ret.back().push_back(rettype);
-
+		FunctionSignature sig = funciter->second->GetParameterSignature(name, *this);
+		for(size_t i = 0; i < sig.GetNumParameters(); ++i)
+			ret.back().push_back(sig.GetParameter(i).Type);
+	
 		return ret;
 	}
 

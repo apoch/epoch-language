@@ -53,6 +53,9 @@ public:
 	void* GetCurrentTopOfStack() const
 	{ return CurrentStackPointer; }
 
+	char** GetMutableStackPtr()
+	{ return reinterpret_cast<char**>(&CurrentStackPointer); }
+
 	// WARNING - this code makes a platform-dependent assumption that char is 1 byte
 	void* GetOffsetIntoStack(size_t numbytes) const
 	{ return reinterpret_cast<Byte*>(CurrentStackPointer) + numbytes; }

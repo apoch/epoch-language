@@ -48,6 +48,9 @@
     <Filter Include="Visual Debugger">
       <UniqueIdentifier>{ba3b6eec-80a3-4cf2-bb29-fa9c05c2a098}</UniqueIdentifier>
     </Filter>
+    <Filter Include="JIT">
+      <UniqueIdentifier>{97690949-092e-4b3e-a2d6-b1a1478dd088}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Entry Point\EntryPoint.cpp">
@@ -112,6 +115,9 @@
     </ClCompile>
     <ClCompile Include="Visual Debugger\DebugThread.cpp">
       <Filter>Visual Debugger</Filter>
+    </ClCompile>
+    <ClCompile Include="JIT\JIT.cpp">
+      <Filter>JIT</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -201,6 +207,9 @@
     </ClInclude>
     <ClInclude Include="Visual Debugger\VisualDebugger.h">
       <Filter>Visual Debugger</Filter>
+    </ClInclude>
+    <ClInclude Include="JIT\JIT.h">
+      <Filter>JIT</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

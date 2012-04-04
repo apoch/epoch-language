@@ -78,7 +78,7 @@ namespace VM
 
 	// Code execution
 	public:
-		ExecutionResult ExecuteByteCode(const Bytecode::Instruction* buffer, size_t size);
+		ExecutionResult ExecuteByteCode(Bytecode::Instruction* buffer, size_t size);
 
 	// Handle-managed resources
 	public:
@@ -146,6 +146,7 @@ namespace VM
 	// Public tracking
 	public:
 		std::map<EpochTypeID, StructureDefinition> StructureDefinitions;
+		JITTable JITHelpers;
 
 	// Handy type shortcuts
 	private:
@@ -191,7 +192,7 @@ namespace VM
 	{
 	// Construction
 	public:
-		ExecutionContext(VirtualMachine& owner, const Bytecode::Instruction* codebuffer, size_t codesize);
+		ExecutionContext(VirtualMachine& owner, Bytecode::Instruction* codebuffer, size_t codesize);
 
 	// Non-copyable
 	private:
@@ -207,6 +208,11 @@ namespace VM
 	public:
 		ExecutionResult GetExecutionResult() const
 		{ return State.Result; }
+
+	// Entity/JIT interop helpers
+	public:
+		void BeginEntity(StringHandle entity);
+		void EndEntity();
 
 	// Internal helpers for initializing the context
 	private:
@@ -253,9 +259,13 @@ namespace VM
 		template <typename HandleType, typename ValidatorT>
 		void MarkAndSweep(ValidatorT validator, std::set<HandleType>& livehandles);
 
+	// Internal helpers for JIT compilation
+	private:
+		void JITCompileByteCode(StringHandle entity, size_t beginoffset, size_t endoffset);
+
 	// Internal state
 	private:
-		const Bytecode::Instruction* CodeBuffer;
+	    Bytecode::Instruction* CodeBuffer;
 		size_t CodeBufferSize;
 		size_t InstructionOffset;
 
@@ -266,6 +276,8 @@ namespace VM
 		size_t GarbageTick_Structures;
 
 		std::set<StringHandle> StaticallyReferencedStrings;
+
+		std::stack<ActiveScope*> JITInvokedScopes;
 	};
 
 }

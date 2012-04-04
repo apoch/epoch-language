@@ -30,13 +30,13 @@ namespace DLLAccess
 	public:
 		CompiledByteCodeHandle CompileSourceToByteCode(const std::wstring& filename, const std::wstring& source);
 
-		const void* GetByteCode(CompiledByteCodeHandle handle) const;
+		void* GetByteCode(CompiledByteCodeHandle handle) const;
 		size_t GetByteCodeSize(CompiledByteCodeHandle handle) const;
 
 	// Internal type definitions for function pointers
 	private:
 		typedef CompiledByteCodeHandle (STDCALL *CompileSourceToByteCodePtr)(const wchar_t*, const void*, size_t);
-		typedef const void* (STDCALL *GetByteCodeBufferPtr)(CompiledByteCodeHandle);
+		typedef void* (STDCALL *GetByteCodeBufferPtr)(CompiledByteCodeHandle);
 		typedef size_t (STDCALL *GetByteCodeBufferSizePtr)(CompiledByteCodeHandle);
 		typedef void (STDCALL *FreeByteCodeBufferPtr)(CompiledByteCodeHandle);
 
