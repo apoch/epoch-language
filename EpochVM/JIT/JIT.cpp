@@ -57,9 +57,15 @@ JITExecPtr JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instru
 
 	std::stack<Value*> valuesonstack;
 	std::stack<StringHandle> refsonstack;
+	std::stack<Bytecode::EntityTag> entitytypes;
 	
 	Value* retval = NULL;
 	unsigned numparams = 0;
+
+	// TODO - genericize
+	BasicBlock* chaincheck = BasicBlock::Create(context, "chaincheck", dostufffunc);
+					BasicBlock* entityblock = BasicBlock::Create(context, "entitybegin", dostufffunc);
+					BasicBlock* entityexit = BasicBlock::Create(context, "entityend", dostufffunc);
 
 	for(size_t offset = beginoffset; offset <= endoffset; )
 	{
@@ -67,56 +73,87 @@ JITExecPtr JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instru
 		{
 		case Bytecode::Instructions::BeginEntity:
 			{
-				// TODO - handle other entity types
-				Fetch<Integer32>(bytecode, offset);
+				Bytecode::EntityTag entitytype = Fetch<Integer32>(bytecode, offset);
+				entitytypes.push(entitytype);
 
-				StringHandle entityname = Fetch<StringHandle>(bytecode, offset);
-				
-				Value* stackptr = builder.CreateLoad(pstackptr, false);
-
-				const ScopeDescription& scope = ownervm.GetScopeDescription(entityname);
-				for(size_t i = scope.GetVariableCount(); i-- > 0; )
+				if(entitytype == 1)
 				{
-					switch(scope.GetVariableOrigin(i))
+					StringHandle entityname = Fetch<StringHandle>(bytecode, offset);
+				
+					Value* stackptr = builder.CreateLoad(pstackptr, false);
+
+					const ScopeDescription& scope = ownervm.GetScopeDescription(entityname);
+					for(size_t i = scope.GetVariableCount(); i-- > 0; )
 					{
-					case VARIABLE_ORIGIN_LOCAL:
-					case VARIABLE_ORIGIN_RETURN:
-						variablemap[scope.GetVariableNameHandle(i)] = builder.CreateAlloca(Type::getInt32Ty(context));
-						break;
-
-					case VARIABLE_ORIGIN_PARAMETER:
+						switch(scope.GetVariableOrigin(i))
 						{
-							Constant* offset = ConstantInt::get(Type::getInt32Ty(context), numparams);
-							++numparams;
+						case VARIABLE_ORIGIN_LOCAL:
+						case VARIABLE_ORIGIN_RETURN:
+							variablemap[scope.GetVariableNameHandle(i)] = builder.CreateAlloca(Type::getInt32Ty(context));
+							break;
 
-							Value* local = builder.CreateAlloca(Type::getInt32Ty(context));
-							variablemap[scope.GetVariableNameHandle(i)] = local;
-							Value* newstackptr = builder.CreateGEP(stackptr, offset);
-							Value* stackval = builder.CreateLoad(newstackptr, false);
-							builder.CreateStore(stackval, local, false);
+						case VARIABLE_ORIGIN_PARAMETER:
+							{
+								Constant* offset = ConstantInt::get(Type::getInt32Ty(context), numparams);
+								++numparams;
+
+								Value* local = builder.CreateAlloca(Type::getInt32Ty(context));
+								variablemap[scope.GetVariableNameHandle(i)] = local;
+								Value* newstackptr = builder.CreateGEP(stackptr, offset);
+								Value* stackval = builder.CreateLoad(newstackptr, false);
+								builder.CreateStore(stackval, local, false);
+							}
+							break;
 						}
-						break;
 					}
 				}
+				else if(entitytype == 20)
+				{
+					Fetch<StringHandle>(bytecode, offset);
+					builder.CreateCondBr(valuesonstack.top(), entityblock, entityexit);
+					valuesonstack.pop();
+					builder.SetInsertPoint(entityblock);
+				}
+				else
+					throw std::runtime_error("Oops");
 			}
 			break;
 
 		case Bytecode::Instructions::EndEntity:
 			{
-				// TODO - this is probably fucked up for void returns
-				if(!numparams)
-					throw std::runtime_error("Buggery.");
+				Bytecode::EntityTag tag = entitytypes.top();
+				entitytypes.pop();
+				if(tag == 1)
+				{
+					// TODO - this is probably fucked up for void returns
+					if(!numparams)
+						throw std::runtime_error("Buggery.");
 
-				//Constant* poplocalsoffset = ConstantInt::get(Type::getInt32Ty(context), numparams);
-				Value* stackptr = builder.CreateLoad(pstackptr, false);
-				//Value* restorestack = builder.CreateGEP(stackptr, poplocalsoffset);
+					//Constant* poplocalsoffset = ConstantInt::get(Type::getInt32Ty(context), numparams);
+					Value* stackptr = builder.CreateLoad(pstackptr, false);
+					//Value* restorestack = builder.CreateGEP(stackptr, poplocalsoffset);
 
-				Constant* offset = ConstantInt::get(Type::getInt32Ty(context), static_cast<unsigned>(-1));
-				Value* stackptr2 = builder.CreateGEP(stackptr, offset);
-				if(retval)
-					builder.CreateStore(retval, stackptr2, false);
-				builder.CreateStore(stackptr2, pstackptr, false);
+					Constant* offset = ConstantInt::get(Type::getInt32Ty(context), static_cast<unsigned>(numparams - 1));
+					Value* stackptr2 = builder.CreateGEP(stackptr, offset);
+					if(retval)
+						builder.CreateStore(retval, stackptr2, false);
+					builder.CreateStore(stackptr2, pstackptr, false);
+				}
+				else
+				{
+					builder.CreateBr(chaincheck);
+					builder.SetInsertPoint(entityexit);
+				}
 			}
+			break;
+
+		case Bytecode::Instructions::BeginChain:
+			builder.CreateBr(chaincheck);
+			builder.SetInsertPoint(chaincheck);
+			break;
+
+		case Bytecode::Instructions::EndChain:
+			// TODO - close out the current basic block
 			break;
 
 		case Bytecode::Instructions::Read:
@@ -175,6 +212,23 @@ JITExecPtr JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instru
 
 		case Bytecode::Instructions::Return:
 			// TODO - handle premature rets
+			break;
+
+		case Bytecode::Instructions::Invoke:
+			{
+				StringHandle target = Fetch<StringHandle>(bytecode, offset);
+				if(target == 41)
+				{
+					Value* p2 = valuesonstack.top();
+					valuesonstack.pop();
+					Value* p1 = valuesonstack.top();
+					valuesonstack.pop();
+					Value* flag = builder.CreateICmp(CmpInst::ICMP_SLT, p1, p2);
+					valuesonstack.push(flag);
+				}
+				else
+					throw std::runtime_error("Invalid function to invoke from native code");
+			}
 			break;
 
 		case Bytecode::Instructions::InvokeNative:
@@ -278,6 +332,10 @@ JITExecPtr JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instru
 				//builder.CreateStore(newstackptr, pstackptr, false);
 				valuesonstack.push(valueval);
 			}
+			break;
+
+		case Bytecode::Instructions::Pop:
+			valuesonstack.pop();
 			break;
 
 		default:
