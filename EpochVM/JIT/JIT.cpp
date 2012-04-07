@@ -55,7 +55,7 @@ JITExecPtr JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instru
 	
 	std::map<StringHandle, Value*> variablemap;
 
-	std::stack<Constant*> constantsonstack;
+	std::stack<Value*> valuesonstack;
 	std::stack<StringHandle> refsonstack;
 	
 	Value* retval = NULL;
@@ -72,6 +72,8 @@ JITExecPtr JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instru
 
 				StringHandle entityname = Fetch<StringHandle>(bytecode, offset);
 				
+				Value* stackptr = builder.CreateLoad(pstackptr, false);
+
 				const ScopeDescription& scope = ownervm.GetScopeDescription(entityname);
 				for(size_t i = scope.GetVariableCount(); i-- > 0; )
 				{
@@ -84,15 +86,13 @@ JITExecPtr JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instru
 
 					case VARIABLE_ORIGIN_PARAMETER:
 						{
+							Constant* offset = ConstantInt::get(Type::getInt32Ty(context), numparams);
 							++numparams;
-							Constant* offset = ConstantInt::get(Type::getInt32Ty(context), 1);
 
 							Value* local = builder.CreateAlloca(Type::getInt32Ty(context));
 							variablemap[scope.GetVariableNameHandle(i)] = local;
-							Value* stackptr = builder.CreateLoad(pstackptr, false);
 							Value* newstackptr = builder.CreateGEP(stackptr, offset);
-							builder.CreateStore(newstackptr, pstackptr, false);
-							Value* stackval = builder.CreateLoad(stackptr, false);
+							Value* stackval = builder.CreateLoad(newstackptr, false);
 							builder.CreateStore(stackval, local, false);
 						}
 						break;
@@ -122,28 +122,27 @@ JITExecPtr JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instru
 		case Bytecode::Instructions::Read:
 			{
 				StringHandle target = Fetch<StringHandle>(bytecode, offset);
-				Constant* offset = ConstantInt::get(Type::getInt32Ty(context), static_cast<unsigned>(-1));
+				//Constant* offset = ConstantInt::get(Type::getInt32Ty(context), static_cast<unsigned>(-1));
 
-				Value* stackptr = builder.CreateLoad(pstackptr, false);
-				Value* newstackptr = builder.CreateGEP(stackptr, offset);
+				//Value* stackptr = builder.CreateLoad(pstackptr, false);
+				//Value* newstackptr = builder.CreateGEP(stackptr, offset);
 				Value* varvalue = builder.CreateLoad(variablemap[target], false);
-				builder.CreateStore(varvalue, newstackptr, false);
-				builder.CreateStore(newstackptr, pstackptr, false);
-				constantsonstack.push(NULL);
+				//builder.CreateStore(varvalue, newstackptr, false);
+				//builder.CreateStore(newstackptr, pstackptr, false);
+				valuesonstack.push(varvalue);
 			}
 			break;
 
 		case Bytecode::Instructions::Assign:
 			{
 				// TODO
-				Constant* offset = ConstantInt::get(Type::getInt32Ty(context), 1);
+				//Constant* offset = ConstantInt::get(Type::getInt32Ty(context), 1);
 
-				Value* stackptr = builder.CreateLoad(pstackptr, false);
-				Value* v = builder.CreateLoad(stackptr, false);
-				builder.CreateStore(v, variablemap[refsonstack.top()], false);
-				Value* newstackptr = builder.CreateGEP(stackptr, offset);
-				builder.CreateStore(newstackptr, pstackptr, false);
-				constantsonstack.pop();
+				//Value* stackptr = builder.CreateLoad(pstackptr, false);
+				builder.CreateStore(valuesonstack.top(), variablemap[refsonstack.top()], false);
+				//Value* newstackptr = builder.CreateGEP(stackptr, offset);
+				//builder.CreateStore(newstackptr, pstackptr, false);
+				valuesonstack.pop();
 				refsonstack.pop();
 			}
 			break;
@@ -151,19 +150,19 @@ JITExecPtr JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instru
 		case Bytecode::Instructions::BindRef:
 			{
 				// TODO
-				Constant* offset = ConstantInt::get(Type::getInt32Ty(context), 1);
+				//Constant* offset = ConstantInt::get(Type::getInt32Ty(context), 1);
 
-				Value* stackptr = builder.CreateLoad(pstackptr, false);
-				Value* newstackptr = builder.CreateGEP(stackptr, offset);
-				builder.CreateStore(newstackptr, pstackptr, false);
+				//Value* stackptr = builder.CreateLoad(pstackptr, false);
+				//Value* newstackptr = builder.CreateGEP(stackptr, offset);
+				//builder.CreateStore(newstackptr, pstackptr, false);
 
-				Constant* c = constantsonstack.top();
+				Value* c = valuesonstack.top();
 
 				ConstantInt* cint = dyn_cast<ConstantInt>(c);
 				StringHandle vartarget = static_cast<StringHandle>(cint->getValue().getLimitedValue());
 				refsonstack.push(vartarget);
 
-				constantsonstack.pop();
+				valuesonstack.pop();
 			}
 			break;
 
@@ -183,48 +182,55 @@ JITExecPtr JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instru
 				StringHandle target = Fetch<StringHandle>(bytecode, offset);
 				if(target == 15)
 				{
-					Constant* offset = ConstantInt::get(Type::getInt32Ty(context), 1);
+					//Constant* offset = ConstantInt::get(Type::getInt32Ty(context), 1);
 
-					Value* stackptr = builder.CreateLoad(pstackptr, false);
-					Value* p2 = builder.CreateLoad(stackptr, false);
-					Value* p1ptr = builder.CreateGEP(stackptr, offset);
-					Value* p1 = builder.CreateLoad(p1ptr, false);
+					Value* p2 = valuesonstack.top();
+					valuesonstack.pop();
+					Value* p1 = valuesonstack.top();
+					valuesonstack.pop();
+
+					//Value* stackptr = builder.CreateLoad(pstackptr, false);
+					//Value* p2 = builder.CreateLoad(stackptr, false);
+					//Value* p1ptr = builder.CreateGEP(stackptr, offset);
+					//Value* p1 = builder.CreateLoad(p1ptr, false);
 					Value* result = builder.CreateAdd(p1, p2);
-					builder.CreateStore(result, p1ptr, false);
-					builder.CreateStore(p1ptr, pstackptr, false);
-					constantsonstack.pop();
-					constantsonstack.pop();
-					constantsonstack.push(NULL);
+					//builder.CreateStore(result, p1ptr, false);
+					//builder.CreateStore(p1ptr, pstackptr, false);
+					valuesonstack.push(result);
 				}
 				else if(target == 17)
 				{
-					Constant* offset = ConstantInt::get(Type::getInt32Ty(context), 1);
+					//Constant* offset = ConstantInt::get(Type::getInt32Ty(context), 1);
 
-					Value* stackptr = builder.CreateLoad(pstackptr, false);
-					Value* p2 = builder.CreateLoad(stackptr, false);
-					Value* p1ptr = builder.CreateGEP(stackptr, offset);
-					Value* p1 = builder.CreateLoad(p1ptr, false);
+					Value* p2 = valuesonstack.top();
+					valuesonstack.pop();
+					Value* p1 = valuesonstack.top();
+					valuesonstack.pop();
+
+					//Value* stackptr = builder.CreateLoad(pstackptr, false);
+					//Value* p2 = builder.CreateLoad(stackptr, false);
+					//Value* p1ptr = builder.CreateGEP(stackptr, offset);
+					//Value* p1 = builder.CreateLoad(p1ptr, false);
 					Value* result = builder.CreateMul(p1, p2);
-					builder.CreateStore(result, p1ptr, false);
-					builder.CreateStore(p1ptr, pstackptr, false);
-					constantsonstack.pop();
-					constantsonstack.pop();
-					constantsonstack.push(NULL);
+					//builder.CreateStore(result, p1ptr, false);
+					//builder.CreateStore(p1ptr, pstackptr, false);
+					valuesonstack.push(result);
 				}
 				else if(target == 4)
 				{
-					constantsonstack.pop();
-					Constant* c = constantsonstack.top();
-					constantsonstack.pop();
+					Value* p2 = valuesonstack.top();
+					valuesonstack.pop();
+					Value* c = valuesonstack.top();
+					valuesonstack.pop();
 
 					ConstantInt* cint = dyn_cast<ConstantInt>(c);
 					StringHandle vartarget = static_cast<StringHandle>(cint->getValue().getLimitedValue());
 
-					Constant* offset = ConstantInt::get(Type::getInt32Ty(context), 2);
-					Value* stackptr = builder.CreateLoad(pstackptr, false);
-					Value* p2 = builder.CreateLoad(stackptr, false);
-					Value* poppedptr = builder.CreateGEP(stackptr, offset);
-					builder.CreateStore(poppedptr, pstackptr, false);
+					//Constant* offset = ConstantInt::get(Type::getInt32Ty(context), 2);
+					//Value* stackptr = builder.CreateLoad(pstackptr, false);
+					//Value* p2 = builder.CreateLoad(stackptr, false);
+					//Value* poppedptr = builder.CreateGEP(stackptr, offset);
+					//builder.CreateStore(poppedptr, pstackptr, false);
 
 					builder.CreateStore(p2, variablemap[vartarget], false);
 				}
@@ -264,13 +270,13 @@ JITExecPtr JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instru
 					throw FatalException("Unsupported type for JIT compilation");
 				}
 
-				Constant* offset = ConstantInt::get(Type::getInt32Ty(context), static_cast<unsigned>(-1));
+				//Constant* offset = ConstantInt::get(Type::getInt32Ty(context), static_cast<unsigned>(-1));
 
-				Value* stackptr = builder.CreateLoad(pstackptr, false);
-				Value* newstackptr = builder.CreateGEP(stackptr, offset);
-				builder.CreateStore(valueval, newstackptr, false);
-				builder.CreateStore(newstackptr, pstackptr, false);
-				constantsonstack.push(valueval);
+				//Value* stackptr = builder.CreateLoad(pstackptr, false);
+				//Value* newstackptr = builder.CreateGEP(stackptr, offset);
+				//builder.CreateStore(valueval, newstackptr, false);
+				//builder.CreateStore(newstackptr, pstackptr, false);
+				valuesonstack.push(valueval);
 			}
 			break;
 

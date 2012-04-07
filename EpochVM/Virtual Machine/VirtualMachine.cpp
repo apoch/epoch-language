@@ -457,6 +457,7 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 				{
 					StringHandle variablename = Fetch<StringHandle>();
 					Variables->CopyToRegister(variablename, State.ReturnValueRegister);
+					continue;
 				}
 				break;
 
@@ -509,6 +510,8 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 						State.ReturnValueRegister.SetStructure(structure.ReadMember<StructureHandle>(memberindex), structure.Definition.GetMemberType(memberindex));
 						break;
 					}
+
+					continue;
 				}
 				break;
 
@@ -560,6 +563,8 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 						structure.WriteMember(memberindex, State.Stack.PopValue<StructureHandle>());
 						break;
 					}
+
+					continue;
 				}
 				break;
 
@@ -613,6 +618,8 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 					default:
 						throw NotImplementedException("Cannot execute PUSH instruction: unsupported type");
 					}
+
+					continue;
 				}
 				break;
 
@@ -629,6 +636,8 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 						State.Stack.PushValue(Variables->GetOriginalDescription().GetVariableTypeByID(target));
 						State.Stack.PushValue(Variables->GetVariableStorageLocation(target));
 					}
+
+					continue;
 				}
 				break;
 
@@ -651,6 +660,8 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 
 					State.Stack.PushValue(definition.GetMemberType(memberindex));
 					State.Stack.PushValue(memberstoragelocation);
+
+					continue;
 				}
 				break;
 
@@ -668,6 +679,8 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 
 					State.Stack.PushValue(definition.GetMemberType(memberindex));
 					State.Stack.PushValue(memberstoragelocation);
+
+					continue;
 				}
 				break;
 
@@ -675,6 +688,7 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 				{
 					EpochTypeID poppedtype = Fetch<EpochTypeID>();
 					State.Stack.Pop(GetStorageSize(poppedtype));
+					continue;
 				}
 				break;
 
@@ -682,6 +696,7 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 				{
 					StringHandle variablename = Fetch<StringHandle>();
 					Variables->PushOntoStack(variablename, State.Stack);
+					continue;
 				}
 				break;
 
@@ -690,6 +705,7 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 					void* targetstorage = State.Stack.PopValue<void*>();
 					EpochTypeID targettype = State.Stack.PopValue<EpochTypeID>();
 					Variables->PushOntoStack(targetstorage, targettype, State.Stack);
+					continue;
 				}
 				break;
 
@@ -698,6 +714,7 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 					void* targetstorage = State.Stack.PopValue<void*>();
 					EpochTypeID targettype = State.Stack.PopValue<EpochTypeID>();
 					Variables->WriteFromStack(targetstorage, targettype, State.Stack);
+					continue;
 				}
 				break;
 
@@ -706,6 +723,7 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 					EpochTypeID targettype = State.Stack.PopValue<EpochTypeID>();
 					StringHandle identifier = State.Stack.PopValue<StringHandle>();
 					Variables->WriteFromStack(Variables->GetVariableStorageLocation(identifier), targettype, State.Stack);
+					continue;
 				}
 				break;
 
@@ -813,6 +831,8 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 						else
 							throw FatalException("Invalid return code from entity meta-control");
 					}
+
+					continue;
 				}
 				break;
 
@@ -827,17 +847,20 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 						InstructionOffset = OwnerVM.GetChainEndOffset(chainoffsets.top());
 				}
 				CollectGarbage();
+				continue;
 				break;
 
 				
 			case Bytecode::Instructions::BeginChain:
 				chainoffsets.push(InstructionOffset - 1);
 				chainrepeats.push(false);
+				continue;
 				break;
 
 			case Bytecode::Instructions::EndChain:
 				chainoffsets.pop();
 				chainrepeats.pop();
+				continue;
 				break;
 
 			case Bytecode::Instructions::InvokeMeta:
@@ -865,12 +888,14 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 						throw FatalException("Invalid return code from entity meta-control");
 					}
 				}
+				continue;
 				break;
 
 
 			case Bytecode::Instructions::PoolString:
 				Fetch<StringHandle>();
 				Fetch<std::wstring>();
+				continue;
 				break;
 
 			case Bytecode::Instructions::DefineLexicalScope:
@@ -886,6 +911,7 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 						Fetch<bool>();
 					}
 				}
+				continue;
 				break;
 
 			case Bytecode::Instructions::DefineStructure:
@@ -899,6 +925,7 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 						Fetch<EpochTypeID>();
 					}
 				}
+				continue;
 				break;
 
 			case Bytecode::Instructions::PatternMatch:
@@ -950,6 +977,7 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 					EpochTypeID structuredescription = Fetch<EpochTypeID>();
 					State.Stack.PushValue(OwnerVM.AllocateStructure(OwnerVM.GetStructureDefinition(structuredescription)));
 					TickStructureGarbageCollector();
+					continue;
 				}
 				break;
 
@@ -959,6 +987,7 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 					BufferHandle copiedbuffer = OwnerVM.CloneBuffer(originalbuffer);
 					State.Stack.PushValue(copiedbuffer);
 					TickBufferGarbageCollector();
+					continue;
 				}
 				break;
 
@@ -968,6 +997,7 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 					StructureHandle copiedstructure = OwnerVM.DeepCopy(originalstructure);
 					State.Stack.PushValue(copiedstructure);
 					TickStructureGarbageCollector();
+					continue;
 				}
 				break;
 
@@ -978,6 +1008,8 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 					Fetch<std::wstring>();		// Fetch tag itself
 					for(size_t i = 0; i < tagdatacount; ++i)
 						Fetch<std::wstring>();	// Fetch tag data
+
+					continue;
 				}
 				break;
 			
