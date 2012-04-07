@@ -6,7 +6,13 @@
 
 #include "User Interface/Output.h"
 
+#include "Virtual Machine/VirtualMachine.h"
+
+#include "Metadata/ScopeDescription.h"
+
 #include <sstream>
+#include <map>
+#include <stack>
 
 template <typename T>
 T Fetch(const Bytecode::Instruction* bytecode, size_t& InstructionOffset)
@@ -17,7 +23,7 @@ T Fetch(const Bytecode::Instruction* bytecode, size_t& InstructionOffset)
 }
 
 
-JITExecPtr JITByteCode(const Bytecode::Instruction* bytecode, size_t beginoffset, size_t endoffset)
+JITExecPtr JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instruction* bytecode, size_t beginoffset, size_t endoffset)
 {
 	using namespace llvm;
 
@@ -30,92 +36,6 @@ JITExecPtr JITByteCode(const Bytecode::Instruction* bytecode, size_t beginoffset
 	Module* module = new Module(name.str().c_str(), context);
 
 	IRBuilder<> builder(context);
-
-
-	void JITInvoke(char** stack, void* context, StringHandle target);
-
-	std::vector<Type*> invokeargs;
-	invokeargs.push_back(IntegerType::get(context, 32));
-	invokeargs.push_back(IntegerType::get(context, 32));
-	invokeargs.push_back(IntegerType::get(context, 32));
-	FunctionType* invokefunctype = FunctionType::get(Type::getVoidTy(context), invokeargs, false);
-
-	PointerType* invokefuncptrtype = PointerType::get(invokefunctype, 0);
-	ConstantInt* invokefuncptrasint = ConstantInt::get(Type::getInt32Ty(context), (uint64_t)(JITInvoke));
-	Constant* invokefuncptr = ConstantExpr::getCast(Instruction::IntToPtr, invokefuncptrasint, invokefuncptrtype);
-
-
-	void JITRead(char** stack, void* context, StringHandle target);
-
-	std::vector<Type*> readargs;
-	readargs.push_back(IntegerType::get(context, 32));
-	readargs.push_back(IntegerType::get(context, 32));
-	readargs.push_back(IntegerType::get(context, 32));
-	FunctionType* readfunctype = FunctionType::get(Type::getVoidTy(context), readargs, false);
-
-	PointerType* readfuncptrtype = PointerType::get(readfunctype, 0);
-	ConstantInt* readfuncptrasint = ConstantInt::get(Type::getInt32Ty(context), (uint64_t)(JITRead));
-	Constant* readfuncptr = ConstantExpr::getCast(Instruction::IntToPtr, readfuncptrasint, readfuncptrtype);
-
-
-	void JITWrite(char** stack, void* context);
-
-	std::vector<Type*> writeargs;
-	writeargs.push_back(IntegerType::get(context, 32));
-	writeargs.push_back(IntegerType::get(context, 32));
-	FunctionType* writefunctype = FunctionType::get(Type::getVoidTy(context), writeargs, false);
-
-	PointerType* writefuncptrtype = PointerType::get(writefunctype, 0);
-	ConstantInt* writefuncptrasint = ConstantInt::get(Type::getInt32Ty(context), (uint64_t)(JITWrite));
-	Constant* writefuncptr = ConstantExpr::getCast(Instruction::IntToPtr, writefuncptrasint, writefuncptrtype);
-
-
-	void JITBindRef(char** stack, void* context);
-
-	std::vector<Type*> bindrefargs;
-	bindrefargs.push_back(IntegerType::get(context, 32));
-	bindrefargs.push_back(IntegerType::get(context, 32));
-	FunctionType* bindreffunctype = FunctionType::get(Type::getVoidTy(context), bindrefargs, false);
-
-	PointerType* bindreffuncptrtype = PointerType::get(bindreffunctype, 0);
-	ConstantInt* bindreffuncptrasint = ConstantInt::get(Type::getInt32Ty(context), (uint64_t)(JITBindRef));
-	Constant* bindreffuncptr = ConstantExpr::getCast(Instruction::IntToPtr, bindreffuncptrasint, bindreffuncptrtype);
-
-
-
-	void JITBeginEntity(void* context, StringHandle target);
-
-	std::vector<Type*> beginentityargs;
-	beginentityargs.push_back(IntegerType::get(context, 32));
-	beginentityargs.push_back(IntegerType::get(context, 32));
-	FunctionType* beginentityfunctype = FunctionType::get(Type::getVoidTy(context), beginentityargs, false);
-
-	PointerType* beginentityfuncptrtype = PointerType::get(beginentityfunctype, 0);
-	ConstantInt* beginentityfuncptrasint = ConstantInt::get(Type::getInt32Ty(context), (uint64_t)(JITBeginEntity));
-	Constant* beginentityfuncptr = ConstantExpr::getCast(Instruction::IntToPtr, beginentityfuncptrasint, beginentityfuncptrtype);
-
-
-	void JITEndEntity(void* context);
-
-	std::vector<Type*> endentityargs;
-	endentityargs.push_back(IntegerType::get(context, 32));
-	FunctionType* endentityfunctype = FunctionType::get(Type::getVoidTy(context), endentityargs, false);
-
-	PointerType* endentityfuncptrtype = PointerType::get(endentityfunctype, 0);
-	ConstantInt* endentityfuncptrasint = ConstantInt::get(Type::getInt32Ty(context), (uint64_t)(JITEndEntity));
-	Constant* endentityfuncptr = ConstantExpr::getCast(Instruction::IntToPtr, endentityfuncptrasint, endentityfuncptrtype);
-
-
-	void JITSetRegister(void* context, StringHandle variable);
-
-	std::vector<Type*> setregargs;
-	setregargs.push_back(IntegerType::get(context, 32));
-	setregargs.push_back(IntegerType::get(context, 32));
-	FunctionType* setregfunctype = FunctionType::get(Type::getVoidTy(context), setregargs, false);
-
-	PointerType* setregfuncptrtype = PointerType::get(setregfunctype, 0);
-	ConstantInt* setregfuncptrasint = ConstantInt::get(Type::getInt32Ty(context), (uint64_t)(JITSetRegister));
-	Constant* setregfuncptr = ConstantExpr::getCast(Instruction::IntToPtr, setregfuncptrasint, setregfuncptrtype);
 
 
 	std::vector<Type*> args;
@@ -132,6 +52,14 @@ JITExecPtr JITByteCode(const Bytecode::Instruction* bytecode, size_t beginoffset
 	PointerType* pstackptrtype = PointerType::get(stackptrtype, 0);
 
 	Value* pstackptr = builder.CreateIntToPtr(dostufffunc->arg_begin(), pstackptrtype);
+	
+	std::map<StringHandle, Value*> variablemap;
+
+	std::stack<Constant*> constantsonstack;
+	std::stack<StringHandle> refsonstack;
+	
+	Value* retval = NULL;
+	unsigned numparams = 0;
 
 	for(size_t offset = beginoffset; offset <= endoffset; )
 	{
@@ -143,69 +71,106 @@ JITExecPtr JITByteCode(const Bytecode::Instruction* bytecode, size_t beginoffset
 				Fetch<Integer32>(bytecode, offset);
 
 				StringHandle entityname = Fetch<StringHandle>(bytecode, offset);
-				Value* valueval = ConstantInt::get(Type::getInt32Ty(context), entityname);
+				
+				const ScopeDescription& scope = ownervm.GetScopeDescription(entityname);
+				for(size_t i = scope.GetVariableCount(); i-- > 0; )
+				{
+					switch(scope.GetVariableOrigin(i))
+					{
+					case VARIABLE_ORIGIN_LOCAL:
+					case VARIABLE_ORIGIN_RETURN:
+						variablemap[scope.GetVariableNameHandle(i)] = builder.CreateAlloca(Type::getInt32Ty(context));
+						break;
 
-				std::vector<Value*> args;
-				Function::arg_iterator iter = dostufffunc->arg_begin();
-				args.push_back((++iter));
-				args.push_back(valueval);
-				CallInst::Create(beginentityfuncptr, args, "", block);
+					case VARIABLE_ORIGIN_PARAMETER:
+						{
+							++numparams;
+							Constant* offset = ConstantInt::get(Type::getInt32Ty(context), 1);
+
+							Value* local = builder.CreateAlloca(Type::getInt32Ty(context));
+							variablemap[scope.GetVariableNameHandle(i)] = local;
+							Value* stackptr = builder.CreateLoad(pstackptr, false);
+							Value* newstackptr = builder.CreateGEP(stackptr, offset);
+							builder.CreateStore(newstackptr, pstackptr, false);
+							Value* stackval = builder.CreateLoad(stackptr, false);
+							builder.CreateStore(stackval, local, false);
+						}
+						break;
+					}
+				}
 			}
 			break;
 
 		case Bytecode::Instructions::EndEntity:
 			{
-				std::vector<Value*> args;
-				Function::arg_iterator iter = dostufffunc->arg_begin();
-				args.push_back((++iter));
-				CallInst::Create(endentityfuncptr, args, "", block);
+				// TODO - this is probably fucked up for void returns
+				if(!numparams)
+					throw std::runtime_error("Buggery.");
+
+				//Constant* poplocalsoffset = ConstantInt::get(Type::getInt32Ty(context), numparams);
+				Value* stackptr = builder.CreateLoad(pstackptr, false);
+				//Value* restorestack = builder.CreateGEP(stackptr, poplocalsoffset);
+
+				Constant* offset = ConstantInt::get(Type::getInt32Ty(context), static_cast<unsigned>(-1));
+				Value* stackptr2 = builder.CreateGEP(stackptr, offset);
+				if(retval)
+					builder.CreateStore(retval, stackptr2, false);
+				builder.CreateStore(stackptr2, pstackptr, false);
 			}
 			break;
 
 		case Bytecode::Instructions::Read:
 			{
 				StringHandle target = Fetch<StringHandle>(bytecode, offset);
-				Value* valueval = ConstantInt::get(Type::getInt32Ty(context), target);
+				Constant* offset = ConstantInt::get(Type::getInt32Ty(context), static_cast<unsigned>(-1));
 
-				std::vector<Value*> args;
-				Function::arg_iterator iter = dostufffunc->arg_begin();
-				args.push_back(iter);
-				args.push_back((++iter));
-				args.push_back(valueval);
-				CallInst::Create(readfuncptr, args, "", block);
+				Value* stackptr = builder.CreateLoad(pstackptr, false);
+				Value* newstackptr = builder.CreateGEP(stackptr, offset);
+				Value* varvalue = builder.CreateLoad(variablemap[target], false);
+				builder.CreateStore(varvalue, newstackptr, false);
+				builder.CreateStore(newstackptr, pstackptr, false);
+				constantsonstack.push(NULL);
 			}
 			break;
 
 		case Bytecode::Instructions::Assign:
 			{
-				std::vector<Value*> args;
-				Function::arg_iterator iter = dostufffunc->arg_begin();
-				args.push_back(iter);
-				args.push_back((++iter));
-				CallInst::Create(writefuncptr, args, "", block);
+				// TODO
+				Constant* offset = ConstantInt::get(Type::getInt32Ty(context), 1);
+
+				Value* stackptr = builder.CreateLoad(pstackptr, false);
+				Value* v = builder.CreateLoad(stackptr, false);
+				builder.CreateStore(v, variablemap[refsonstack.top()], false);
+				Value* newstackptr = builder.CreateGEP(stackptr, offset);
+				builder.CreateStore(newstackptr, pstackptr, false);
+				constantsonstack.pop();
+				refsonstack.pop();
 			}
 			break;
 
 		case Bytecode::Instructions::BindRef:
 			{
-				std::vector<Value*> args;
-				Function::arg_iterator iter = dostufffunc->arg_begin();
-				args.push_back(iter);
-				args.push_back((++iter));
-				CallInst::Create(bindreffuncptr, args, "", block);
+				// TODO
+				Constant* offset = ConstantInt::get(Type::getInt32Ty(context), 1);
+
+				Value* stackptr = builder.CreateLoad(pstackptr, false);
+				Value* newstackptr = builder.CreateGEP(stackptr, offset);
+				builder.CreateStore(newstackptr, pstackptr, false);
+
+				Constant* c = constantsonstack.top();
+
+				ConstantInt* cint = dyn_cast<ConstantInt>(c);
+				StringHandle vartarget = static_cast<StringHandle>(cint->getValue().getLimitedValue());
+				refsonstack.push(vartarget);
+
+				constantsonstack.pop();
 			}
 			break;
 
 		case Bytecode::Instructions::SetRetVal:
 			{
 				StringHandle value = Fetch<StringHandle>(bytecode, offset);
-				Value* valueval = ConstantInt::get(Type::getInt32Ty(context), value);
-
-				std::vector<Value*> args;
-				Function::arg_iterator iter = dostufffunc->arg_begin();
-				args.push_back((++iter));
-				args.push_back(valueval);
-				CallInst::Create(setregfuncptr, args, "", block);
+				retval = builder.CreateLoad(variablemap[value], false);
 			}
 			break;
 
@@ -227,6 +192,9 @@ JITExecPtr JITByteCode(const Bytecode::Instruction* bytecode, size_t beginoffset
 					Value* result = builder.CreateAdd(p1, p2);
 					builder.CreateStore(result, p1ptr, false);
 					builder.CreateStore(p1ptr, pstackptr, false);
+					constantsonstack.pop();
+					constantsonstack.pop();
+					constantsonstack.push(NULL);
 				}
 				else if(target == 17)
 				{
@@ -239,17 +207,30 @@ JITExecPtr JITByteCode(const Bytecode::Instruction* bytecode, size_t beginoffset
 					Value* result = builder.CreateMul(p1, p2);
 					builder.CreateStore(result, p1ptr, false);
 					builder.CreateStore(p1ptr, pstackptr, false);
+					constantsonstack.pop();
+					constantsonstack.pop();
+					constantsonstack.push(NULL);
+				}
+				else if(target == 4)
+				{
+					constantsonstack.pop();
+					Constant* c = constantsonstack.top();
+					constantsonstack.pop();
+
+					ConstantInt* cint = dyn_cast<ConstantInt>(c);
+					StringHandle vartarget = static_cast<StringHandle>(cint->getValue().getLimitedValue());
+
+					Constant* offset = ConstantInt::get(Type::getInt32Ty(context), 2);
+					Value* stackptr = builder.CreateLoad(pstackptr, false);
+					Value* p2 = builder.CreateLoad(stackptr, false);
+					Value* poppedptr = builder.CreateGEP(stackptr, offset);
+					builder.CreateStore(poppedptr, pstackptr, false);
+
+					builder.CreateStore(p2, variablemap[vartarget], false);
 				}
 				else
 				{
-					Value* valueval = ConstantInt::get(Type::getInt32Ty(context), target);
-
-					std::vector<Value*> args;
-					Function::arg_iterator iter = dostufffunc->arg_begin();
-					args.push_back(iter);
-					args.push_back((++iter));
-					args.push_back(valueval);
-					CallInst::Create(invokefuncptr, args, "", block);
+					throw std::runtime_error("Bollocks.");
 				}
 			}
 			break;
@@ -257,7 +238,7 @@ JITExecPtr JITByteCode(const Bytecode::Instruction* bytecode, size_t beginoffset
 		case Bytecode::Instructions::Push:
 			{
 				VM::EpochTypeID type = Fetch<VM::EpochTypeID>(bytecode, offset);
-				Value* valueval;
+				ConstantInt* valueval;
 
 				switch(type)
 				{
@@ -283,12 +264,13 @@ JITExecPtr JITByteCode(const Bytecode::Instruction* bytecode, size_t beginoffset
 					throw FatalException("Unsupported type for JIT compilation");
 				}
 
-				Constant* offset = ConstantInt::get(Type::getInt32Ty(context), -1);
+				Constant* offset = ConstantInt::get(Type::getInt32Ty(context), static_cast<unsigned>(-1));
 
 				Value* stackptr = builder.CreateLoad(pstackptr, false);
 				Value* newstackptr = builder.CreateGEP(stackptr, offset);
 				builder.CreateStore(valueval, newstackptr, false);
 				builder.CreateStore(newstackptr, pstackptr, false);
+				constantsonstack.push(valueval);
 			}
 			break;
 
@@ -313,6 +295,7 @@ JITExecPtr JITByteCode(const Bytecode::Instruction* bytecode, size_t beginoffset
   OurFPM.add(new TargetData(*ee->getTargetData()));
   // Provide basic AliasAnalysis support for GVN.
   OurFPM.add(createBasicAliasAnalysisPass());
+  OurFPM.add(createPromoteMemoryToRegisterPass());
   // Do simple "peephole" optimizations and bit-twiddling optzns.
   OurFPM.add(createInstructionCombiningPass());
   // Reassociate expressions.

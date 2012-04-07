@@ -1628,7 +1628,7 @@ std::wstring VirtualMachine::DebugSnapshot() const
 
 void ExecutionContext::JITCompileByteCode(StringHandle entity, size_t beginoffset, size_t endoffset)
 {
-	OwnerVM.JITHelpers[entity] = JITByteCode(CodeBuffer, beginoffset, endoffset);
+	OwnerVM.JITHelpers[entity] = JITByteCode(OwnerVM, CodeBuffer, beginoffset, endoffset);
 }
 
 void JITInvoke(char** stack, void* context, StringHandle target)

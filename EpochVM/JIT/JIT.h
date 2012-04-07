@@ -1,1 +1,1 @@
-JITExecPtr JITByteCode(const Bytecode::Instruction* bytecode, size_t beginoffset, size_t endoffset);
+JITExecPtr JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instruction* bytecode, size_t beginoffset, size_t endoffset);
