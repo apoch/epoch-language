@@ -8,61 +8,6 @@
 
 #include <sstream>
 
-
-void Push(char** stack, Integer32 value)
-{
-	(*stack) -= sizeof(value);
-	*reinterpret_cast<Integer32*>(*stack) = value;
-}
-
-
-void JITTest()
-{
-	/*
-	using namespace llvm;
-
-	InitializeNativeTarget();
-
-	LLVMContext& context = getGlobalContext();
-
-	Module* module = new Module("EpochJIT", context);
-
-	IRBuilder<> builder(context);
-
-	std::vector<Type*> args(1, Type::getInt32Ty(context));
-	FunctionType* functype = FunctionType::get(Type::getVoidTy(context), args, false);
-
-	std::vector<Type*> noargs;
-	FunctionType* dostufffunctype = FunctionType::get(Type::getVoidTy(context), noargs, false);
-	Function* dostufffunc = Function::Create(dostufffunctype, Function::ExternalLinkage, "dostuff", module);
-
-	BasicBlock* block = BasicBlock::Create(context, "entry", dostufffunc);
-	builder.SetInsertPoint(block);
-
-	Value* arg = ConstantInt::get(Type::getInt32Ty(context), 42);
-	PointerType* funcptrtype = PointerType::get(functype, 0);
-	ConstantInt* funcptrasint = ConstantInt::get(Type::getInt32Ty(context), (uint64_t)(Test));
-	Constant* funcptr = ConstantExpr::getCast(Instruction::IntToPtr, funcptrasint, funcptrtype);
-	CallInst::Create(funcptr, arg, "", block);
-	builder.CreateRetVoid();
-
-	verifyFunction(*dostufffunc);
-
-	module->dump();
-
-	std::string ErrStr;
-	ExecutionEngine* ee = EngineBuilder(module).setErrorStr(&ErrStr).create();
-	if(!ee)
-		return;
-
-	void* fptr = ee->getPointerToFunction(dostufffunc);
-	void (*fp)() = (void (*)())fptr;
-
-	fp();
-	*/
-}
-
-
 template <typename T>
 T Fetch(const Bytecode::Instruction* bytecode, size_t& InstructionOffset)
 {
@@ -85,16 +30,6 @@ JITExecPtr JITByteCode(const Bytecode::Instruction* bytecode, size_t beginoffset
 	Module* module = new Module(name.str().c_str(), context);
 
 	IRBuilder<> builder(context);
-
-	std::vector<Type*> pushargs;
-	pushargs.push_back(IntegerType::get(context, 32));
-	pushargs.push_back(IntegerType::get(context, 32));
-	FunctionType* pushfunctype = FunctionType::get(Type::getVoidTy(context), pushargs, false);
-
-	PointerType* pushfuncptrtype = PointerType::get(pushfunctype, 0);
-	ConstantInt* pushfuncptrasint = ConstantInt::get(Type::getInt32Ty(context), (uint64_t)(Push));
-	Constant* pushfuncptr = ConstantExpr::getCast(Instruction::IntToPtr, pushfuncptrasint, pushfuncptrtype);
-
 
 
 	void JITInvoke(char** stack, void* context, StringHandle target);
@@ -183,7 +118,6 @@ JITExecPtr JITByteCode(const Bytecode::Instruction* bytecode, size_t beginoffset
 	Constant* setregfuncptr = ConstantExpr::getCast(Instruction::IntToPtr, setregfuncptrasint, setregfuncptrtype);
 
 
-
 	std::vector<Type*> args;
 	args.push_back(IntegerType::get(context, 32));
 	args.push_back(IntegerType::get(context, 32));
@@ -193,6 +127,11 @@ JITExecPtr JITByteCode(const Bytecode::Instruction* bytecode, size_t beginoffset
 
 	BasicBlock* block = BasicBlock::Create(context, "entry", dostufffunc);
 	builder.SetInsertPoint(block);
+
+	PointerType* stackptrtype = PointerType::get(Type::getInt32Ty(context), 0);
+	PointerType* pstackptrtype = PointerType::get(stackptrtype, 0);
+
+	Value* pstackptr = builder.CreateIntToPtr(dostufffunc->arg_begin(), pstackptrtype);
 
 	for(size_t offset = beginoffset; offset <= endoffset; )
 	{
@@ -277,43 +216,62 @@ JITExecPtr JITByteCode(const Bytecode::Instruction* bytecode, size_t beginoffset
 		case Bytecode::Instructions::InvokeNative:
 			{
 				StringHandle target = Fetch<StringHandle>(bytecode, offset);
-				Value* valueval = ConstantInt::get(Type::getInt32Ty(context), target);
+				if(target == 15)
+				{
+					Constant* offset = ConstantInt::get(Type::getInt32Ty(context), 1);
 
-				std::vector<Value*> args;
-				Function::arg_iterator iter = dostufffunc->arg_begin();
-				args.push_back(iter);
-				args.push_back((++iter));
-				args.push_back(valueval);
-				CallInst::Create(invokefuncptr, args, "", block);
+					Value* stackptr = builder.CreateLoad(pstackptr, false);
+					Value* p2 = builder.CreateLoad(stackptr, false);
+					Value* p1ptr = builder.CreateGEP(stackptr, offset);
+					Value* p1 = builder.CreateLoad(p1ptr, false);
+					Value* result = builder.CreateAdd(p1, p2);
+					builder.CreateStore(result, p1ptr, false);
+					builder.CreateStore(p1ptr, pstackptr, false);
+				}
+				else if(target == 17)
+				{
+					Constant* offset = ConstantInt::get(Type::getInt32Ty(context), 1);
+
+					Value* stackptr = builder.CreateLoad(pstackptr, false);
+					Value* p2 = builder.CreateLoad(stackptr, false);
+					Value* p1ptr = builder.CreateGEP(stackptr, offset);
+					Value* p1 = builder.CreateLoad(p1ptr, false);
+					Value* result = builder.CreateMul(p1, p2);
+					builder.CreateStore(result, p1ptr, false);
+					builder.CreateStore(p1ptr, pstackptr, false);
+				}
+				else
+				{
+					Value* valueval = ConstantInt::get(Type::getInt32Ty(context), target);
+
+					std::vector<Value*> args;
+					Function::arg_iterator iter = dostufffunc->arg_begin();
+					args.push_back(iter);
+					args.push_back((++iter));
+					args.push_back(valueval);
+					CallInst::Create(invokefuncptr, args, "", block);
+				}
 			}
 			break;
 
 		case Bytecode::Instructions::Push:
 			{
 				VM::EpochTypeID type = Fetch<VM::EpochTypeID>(bytecode, offset);
+				Value* valueval;
+
 				switch(type)
 				{
 				case VM::EpochType_Integer:
 					{
 						Integer32 value = Fetch<Integer32>(bytecode, offset);
-						Value* valueval = ConstantInt::get(Type::getInt32Ty(context), value);
-
-						std::vector<Value*> args;
-						args.push_back(dostufffunc->arg_begin());
-						args.push_back(valueval);
-						CallInst::Create(pushfuncptr, args, "", block);
+						valueval = ConstantInt::get(Type::getInt32Ty(context), value);
 					}
 					break;
 
 				case VM::EpochType_String:
 					{
 						StringHandle value = Fetch<StringHandle>(bytecode, offset);
-						Value* valueval = ConstantInt::get(Type::getInt32Ty(context), value);
-
-						std::vector<Value*> args;
-						args.push_back(dostufffunc->arg_begin());
-						args.push_back(valueval);
-						CallInst::Create(pushfuncptr, args, "", block);
+						valueval = ConstantInt::get(Type::getInt32Ty(context), value);
 					}
 					break;
 
@@ -324,6 +282,13 @@ JITExecPtr JITByteCode(const Bytecode::Instruction* bytecode, size_t beginoffset
 				default:
 					throw FatalException("Unsupported type for JIT compilation");
 				}
+
+				Constant* offset = ConstantInt::get(Type::getInt32Ty(context), -1);
+
+				Value* stackptr = builder.CreateLoad(pstackptr, false);
+				Value* newstackptr = builder.CreateGEP(stackptr, offset);
+				builder.CreateStore(valueval, newstackptr, false);
+				builder.CreateStore(newstackptr, pstackptr, false);
 			}
 			break;
 
@@ -340,6 +305,28 @@ JITExecPtr JITByteCode(const Bytecode::Instruction* bytecode, size_t beginoffset
 	ExecutionEngine* ee = EngineBuilder(module).setErrorStr(&ErrStr).create();
 	if(!ee)
 		return 0;
+
+  FunctionPassManager OurFPM(module);
+
+  // Set up the optimizer pipeline.  Start with registering info about how the
+  // target lays out data structures.
+  OurFPM.add(new TargetData(*ee->getTargetData()));
+  // Provide basic AliasAnalysis support for GVN.
+  OurFPM.add(createBasicAliasAnalysisPass());
+  // Do simple "peephole" optimizations and bit-twiddling optzns.
+  OurFPM.add(createInstructionCombiningPass());
+  // Reassociate expressions.
+  OurFPM.add(createReassociatePass());
+  // Eliminate Common SubExpressions.
+  OurFPM.add(createGVNPass());
+  // Simplify the control flow graph (deleting unreachable blocks, etc).
+  OurFPM.add(createCFGSimplificationPass());
+
+  OurFPM.doInitialization();
+
+  OurFPM.run(*dostufffunc);
+
+	module->dump();
 
 	void* fptr = ee->getPointerToFunction(dostufffunc);
 	return (JITExecPtr)fptr;

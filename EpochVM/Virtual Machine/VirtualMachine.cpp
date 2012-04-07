@@ -319,9 +319,6 @@ ExecutionContext::ExecutionContext(VirtualMachine& ownervm, Bytecode::Instructio
 {
 	Load();
 	InstructionOffset = 0;
-
-	void JITTest();
-	JITTest();
 }
 
 //
