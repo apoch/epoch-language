@@ -66,6 +66,10 @@
 #include "llvm/Transforms/Scalar.h"
 #include "llvm/Support/IRBuilder.h"
 #include "llvm/Support/TargetSelect.h"
+#include "llvm/DefaultPasses.h"
+#include "llvm/PassManager.h"
+#include "llvm/Transforms/IPO.h"
+#include "llvm/ADT/SmallVector.h"
 
 #pragma warning(pop)
 #pragma warning(pop)

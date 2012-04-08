@@ -64,8 +64,8 @@ JITExecPtr JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instru
 
 	// TODO - genericize
 	BasicBlock* chaincheck = BasicBlock::Create(context, "chaincheck", dostufffunc);
-					BasicBlock* entityblock = BasicBlock::Create(context, "entitybegin", dostufffunc);
-					BasicBlock* entityexit = BasicBlock::Create(context, "entityend", dostufffunc);
+	BasicBlock* entityblock = BasicBlock::Create(context, "entitybegin", dostufffunc);
+	BasicBlock* entityexit = BasicBlock::Create(context, "entityend", dostufffunc);
 
 	for(size_t offset = beginoffset; offset <= endoffset; )
 	{
@@ -129,10 +129,7 @@ JITExecPtr JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instru
 					if(!numparams)
 						throw std::runtime_error("Buggery.");
 
-					//Constant* poplocalsoffset = ConstantInt::get(Type::getInt32Ty(context), numparams);
 					Value* stackptr = builder.CreateLoad(pstackptr, false);
-					//Value* restorestack = builder.CreateGEP(stackptr, poplocalsoffset);
-
 					Constant* offset = ConstantInt::get(Type::getInt32Ty(context), static_cast<unsigned>(numparams - 1));
 					Value* stackptr2 = builder.CreateGEP(stackptr, offset);
 					if(retval)
@@ -153,32 +150,20 @@ JITExecPtr JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instru
 			break;
 
 		case Bytecode::Instructions::EndChain:
-			// TODO - close out the current basic block
+			// TODO - support for multiple entities in a chain
 			break;
 
 		case Bytecode::Instructions::Read:
 			{
 				StringHandle target = Fetch<StringHandle>(bytecode, offset);
-				//Constant* offset = ConstantInt::get(Type::getInt32Ty(context), static_cast<unsigned>(-1));
-
-				//Value* stackptr = builder.CreateLoad(pstackptr, false);
-				//Value* newstackptr = builder.CreateGEP(stackptr, offset);
 				Value* varvalue = builder.CreateLoad(variablemap[target], false);
-				//builder.CreateStore(varvalue, newstackptr, false);
-				//builder.CreateStore(newstackptr, pstackptr, false);
 				valuesonstack.push(varvalue);
 			}
 			break;
 
 		case Bytecode::Instructions::Assign:
 			{
-				// TODO
-				//Constant* offset = ConstantInt::get(Type::getInt32Ty(context), 1);
-
-				//Value* stackptr = builder.CreateLoad(pstackptr, false);
 				builder.CreateStore(valuesonstack.top(), variablemap[refsonstack.top()], false);
-				//Value* newstackptr = builder.CreateGEP(stackptr, offset);
-				//builder.CreateStore(newstackptr, pstackptr, false);
 				valuesonstack.pop();
 				refsonstack.pop();
 			}
@@ -186,13 +171,6 @@ JITExecPtr JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instru
 
 		case Bytecode::Instructions::BindRef:
 			{
-				// TODO
-				//Constant* offset = ConstantInt::get(Type::getInt32Ty(context), 1);
-
-				//Value* stackptr = builder.CreateLoad(pstackptr, false);
-				//Value* newstackptr = builder.CreateGEP(stackptr, offset);
-				//builder.CreateStore(newstackptr, pstackptr, false);
-
 				Value* c = valuesonstack.top();
 
 				ConstantInt* cint = dyn_cast<ConstantInt>(c);
@@ -236,38 +214,20 @@ JITExecPtr JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instru
 				StringHandle target = Fetch<StringHandle>(bytecode, offset);
 				if(target == 15)
 				{
-					//Constant* offset = ConstantInt::get(Type::getInt32Ty(context), 1);
-
 					Value* p2 = valuesonstack.top();
 					valuesonstack.pop();
 					Value* p1 = valuesonstack.top();
 					valuesonstack.pop();
-
-					//Value* stackptr = builder.CreateLoad(pstackptr, false);
-					//Value* p2 = builder.CreateLoad(stackptr, false);
-					//Value* p1ptr = builder.CreateGEP(stackptr, offset);
-					//Value* p1 = builder.CreateLoad(p1ptr, false);
 					Value* result = builder.CreateAdd(p1, p2);
-					//builder.CreateStore(result, p1ptr, false);
-					//builder.CreateStore(p1ptr, pstackptr, false);
 					valuesonstack.push(result);
 				}
 				else if(target == 17)
 				{
-					//Constant* offset = ConstantInt::get(Type::getInt32Ty(context), 1);
-
 					Value* p2 = valuesonstack.top();
 					valuesonstack.pop();
 					Value* p1 = valuesonstack.top();
 					valuesonstack.pop();
-
-					//Value* stackptr = builder.CreateLoad(pstackptr, false);
-					//Value* p2 = builder.CreateLoad(stackptr, false);
-					//Value* p1ptr = builder.CreateGEP(stackptr, offset);
-					//Value* p1 = builder.CreateLoad(p1ptr, false);
 					Value* result = builder.CreateMul(p1, p2);
-					//builder.CreateStore(result, p1ptr, false);
-					//builder.CreateStore(p1ptr, pstackptr, false);
 					valuesonstack.push(result);
 				}
 				else if(target == 4)
@@ -279,12 +239,6 @@ JITExecPtr JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instru
 
 					ConstantInt* cint = dyn_cast<ConstantInt>(c);
 					StringHandle vartarget = static_cast<StringHandle>(cint->getValue().getLimitedValue());
-
-					//Constant* offset = ConstantInt::get(Type::getInt32Ty(context), 2);
-					//Value* stackptr = builder.CreateLoad(pstackptr, false);
-					//Value* p2 = builder.CreateLoad(stackptr, false);
-					//Value* poppedptr = builder.CreateGEP(stackptr, offset);
-					//builder.CreateStore(poppedptr, pstackptr, false);
 
 					builder.CreateStore(p2, variablemap[vartarget], false);
 				}
@@ -324,12 +278,7 @@ JITExecPtr JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instru
 					throw FatalException("Unsupported type for JIT compilation");
 				}
 
-				//Constant* offset = ConstantInt::get(Type::getInt32Ty(context), static_cast<unsigned>(-1));
-
-				//Value* stackptr = builder.CreateLoad(pstackptr, false);
-				//Value* newstackptr = builder.CreateGEP(stackptr, offset);
-				//builder.CreateStore(valueval, newstackptr, false);
-				//builder.CreateStore(newstackptr, pstackptr, false);
+				// TODO - type safety
 				valuesonstack.push(valueval);
 			}
 			break;
@@ -352,26 +301,63 @@ JITExecPtr JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instru
 	if(!ee)
 		return 0;
 
-  FunctionPassManager OurFPM(module);
+	FunctionPassManager OurFPM(module);
 
-  // Set up the optimizer pipeline.  Start with registering info about how the
-  // target lays out data structures.
-  OurFPM.add(new TargetData(*ee->getTargetData()));
-  // Provide basic AliasAnalysis support for GVN.
-  OurFPM.add(createBasicAliasAnalysisPass());
-  OurFPM.add(createPromoteMemoryToRegisterPass());
-  // Do simple "peephole" optimizations and bit-twiddling optzns.
-  OurFPM.add(createInstructionCombiningPass());
-  // Reassociate expressions.
-  OurFPM.add(createReassociatePass());
-  // Eliminate Common SubExpressions.
-  OurFPM.add(createGVNPass());
-  // Simplify the control flow graph (deleting unreachable blocks, etc).
-  OurFPM.add(createCFGSimplificationPass());
+	OurFPM.add(new TargetData(*ee->getTargetData()));
+	OurFPM.add(createTypeBasedAliasAnalysisPass());
+	OurFPM.add(createBasicAliasAnalysisPass());
+	OurFPM.add(createCFGSimplificationPass());
+	OurFPM.add(createScalarReplAggregatesPass());
+	OurFPM.add(createEarlyCSEPass());
+	OurFPM.add(createLowerExpectIntrinsicPass());
 
-  OurFPM.doInitialization();
+	OurFPM.doInitialization();
 
-  OurFPM.run(*dostufffunc);
+	OurFPM.run(*dostufffunc);
+
+
+	PassManager OurMPM;
+	OurMPM.add(new TargetData(*ee->getTargetData()));
+	OurMPM.add(createTypeBasedAliasAnalysisPass());
+	OurMPM.add(createBasicAliasAnalysisPass());
+	OurMPM.add(createGlobalOptimizerPass());
+	OurMPM.add(createIPSCCPPass());
+	OurMPM.add(createDeadArgEliminationPass());
+	OurMPM.add(createInstructionCombiningPass());
+	OurMPM.add(createCFGSimplificationPass());
+	OurMPM.add(createPruneEHPass());
+	OurMPM.add(createFunctionAttrsPass());
+	OurMPM.add(createArgumentPromotionPass());
+	OurMPM.add(createScalarReplAggregatesPass(-1, false));
+	OurMPM.add(createEarlyCSEPass());
+	OurMPM.add(createSimplifyLibCallsPass());
+	OurMPM.add(createJumpThreadingPass());
+	OurMPM.add(createCorrelatedValuePropagationPass());
+	OurMPM.add(createCFGSimplificationPass());
+	OurMPM.add(createInstructionCombiningPass());
+	OurMPM.add(createTailCallEliminationPass());
+	OurMPM.add(createCFGSimplificationPass());
+	OurMPM.add(createReassociatePass());
+	OurMPM.add(createLoopRotatePass());
+	OurMPM.add(createLICMPass());
+	OurMPM.add(createLoopUnswitchPass(false));
+	OurMPM.add(createInstructionCombiningPass());
+	OurMPM.add(createIndVarSimplifyPass());
+	OurMPM.add(createLoopIdiomPass());
+	OurMPM.add(createLoopDeletionPass());
+	OurMPM.add(createLoopUnrollPass());
+	OurMPM.add(createGVNPass());
+	OurMPM.add(createMemCpyOptPass());
+	OurMPM.add(createSCCPPass());
+	OurMPM.add(createInstructionCombiningPass());
+	OurMPM.add(createJumpThreadingPass());
+	OurMPM.add(createCorrelatedValuePropagationPass());
+	OurMPM.add(createDeadStoreEliminationPass());
+	OurMPM.add(createAggressiveDCEPass());
+	OurMPM.add(createCFGSimplificationPass());
+	OurMPM.add(createInstructionCombiningPass());
+
+	OurMPM.run(*module);
 
 	module->dump();
 
