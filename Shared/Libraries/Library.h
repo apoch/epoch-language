@@ -47,8 +47,10 @@ typedef std::set<StringHandle> StringHandleSet;
 typedef std::map<StringHandle, StringHandleSet> OverloadMap;
 
 
-typedef void (*JITExecPtr)(char** stack, void* context);
-typedef std::map<StringHandle, JITExecPtr> JITTable;
+namespace JIT
+{
+	struct JITTable;
+}
 
 
 //
@@ -103,3 +105,4 @@ struct CompilerInfoTable
 	EntityTable* PostfixClosers;
 	FunctionTagHelperTable* FunctionTagHelpers;
 };
+

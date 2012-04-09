@@ -37,9 +37,12 @@ JITExecPtr JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instru
 
 	IRBuilder<> builder(context);
 
+	PointerType* stackptrtype = PointerType::get(Type::getInt32Ty(context), 0);
+	PointerType* pstackptrtype = PointerType::get(stackptrtype, 0);
+
 
 	std::vector<Type*> args;
-	args.push_back(IntegerType::get(context, 32));
+	args.push_back(pstackptrtype);
 	args.push_back(IntegerType::get(context, 32));
 	FunctionType* dostufffunctype = FunctionType::get(Type::getVoidTy(context), args, false);
 
@@ -48,24 +51,15 @@ JITExecPtr JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instru
 	BasicBlock* block = BasicBlock::Create(context, "entry", dostufffunc);
 	builder.SetInsertPoint(block);
 
-	PointerType* stackptrtype = PointerType::get(Type::getInt32Ty(context), 0);
-	PointerType* pstackptrtype = PointerType::get(stackptrtype, 0);
-
-	Value* pstackptr = builder.CreateIntToPtr(dostufffunc->arg_begin(), pstackptrtype);
+	Value* pstackptr = dostufffunc->arg_begin();
 	
-	std::map<StringHandle, Value*> variablemap;
-
-	std::stack<Value*> valuesonstack;
-	std::stack<StringHandle> refsonstack;
-	std::stack<Bytecode::EntityTag> entitytypes;
+	JIT::JITContext jitcontext;
+	jitcontext.Builder = &builder;
+	jitcontext.FunctionExit = BasicBlock::Create(context, "exit", dostufffunc);
 	
 	Value* retval = NULL;
 	unsigned numparams = 0;
-
-	// TODO - genericize
-	BasicBlock* chaincheck = BasicBlock::Create(context, "chaincheck", dostufffunc);
-	BasicBlock* entityblock = BasicBlock::Create(context, "entitybegin", dostufffunc);
-	BasicBlock* entityexit = BasicBlock::Create(context, "entityend", dostufffunc);
+	unsigned numreturns = 0;
 
 	for(size_t offset = beginoffset; offset <= endoffset; )
 	{
@@ -74,12 +68,12 @@ JITExecPtr JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instru
 		case Bytecode::Instructions::BeginEntity:
 			{
 				Bytecode::EntityTag entitytype = Fetch<Integer32>(bytecode, offset);
-				entitytypes.push(entitytype);
+				jitcontext.EntityTypes.push(entitytype);
 
-				if(entitytype == 1)
-				{
-					StringHandle entityname = Fetch<StringHandle>(bytecode, offset);
-				
+				StringHandle entityname = Fetch<StringHandle>(bytecode, offset);
+
+				if(entitytype == Bytecode::EntityTags::Function)
+				{				
 					Value* stackptr = builder.CreateLoad(pstackptr, false);
 
 					const ScopeDescription& scope = ownervm.GetScopeDescription(entityname);
@@ -87,9 +81,12 @@ JITExecPtr JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instru
 					{
 						switch(scope.GetVariableOrigin(i))
 						{
-						case VARIABLE_ORIGIN_LOCAL:
 						case VARIABLE_ORIGIN_RETURN:
-							variablemap[scope.GetVariableNameHandle(i)] = builder.CreateAlloca(Type::getInt32Ty(context));
+							++numreturns;
+							// Deliberate fallthrough
+
+						case VARIABLE_ORIGIN_LOCAL:
+							jitcontext.VariableMap[scope.GetVariableNameHandle(i)] = builder.CreateAlloca(Type::getInt32Ty(context));
 							break;
 
 						case VARIABLE_ORIGIN_PARAMETER:
@@ -98,7 +95,7 @@ JITExecPtr JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instru
 								++numparams;
 
 								Value* local = builder.CreateAlloca(Type::getInt32Ty(context));
-								variablemap[scope.GetVariableNameHandle(i)] = local;
+								jitcontext.VariableMap[scope.GetVariableNameHandle(i)] = local;
 								Value* newstackptr = builder.CreateGEP(stackptr, offset);
 								Value* stackval = builder.CreateLoad(newstackptr, false);
 								builder.CreateStore(stackval, local, false);
@@ -107,46 +104,29 @@ JITExecPtr JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instru
 						}
 					}
 				}
-				else if(entitytype == 20)
-				{
-					Fetch<StringHandle>(bytecode, offset);
-					builder.CreateCondBr(valuesonstack.top(), entityblock, entityexit);
-					valuesonstack.pop();
-					builder.SetInsertPoint(entityblock);
-				}
 				else
-					throw std::runtime_error("Oops");
+					ownervm.JITHelpers.EntityHelpers.find(entitytype)->second(jitcontext);
 			}
 			break;
 
 		case Bytecode::Instructions::EndEntity:
 			{
-				Bytecode::EntityTag tag = entitytypes.top();
-				entitytypes.pop();
-				if(tag == 1)
+				Bytecode::EntityTag tag = jitcontext.EntityTypes.top();
+				jitcontext.EntityTypes.pop();
+				if(tag != Bytecode::EntityTags::Function)
 				{
-					// TODO - this is probably fucked up for void returns
-					if(!numparams)
-						throw std::runtime_error("Buggery.");
-
-					Value* stackptr = builder.CreateLoad(pstackptr, false);
-					Constant* offset = ConstantInt::get(Type::getInt32Ty(context), static_cast<unsigned>(numparams - 1));
-					Value* stackptr2 = builder.CreateGEP(stackptr, offset);
-					if(retval)
-						builder.CreateStore(retval, stackptr2, false);
-					builder.CreateStore(stackptr2, pstackptr, false);
-				}
-				else
-				{
-					builder.CreateBr(chaincheck);
-					builder.SetInsertPoint(entityexit);
+					builder.CreateBr(jitcontext.EntityCheck);
+					builder.SetInsertPoint(jitcontext.EntityExit);
 				}
 			}
 			break;
 
 		case Bytecode::Instructions::BeginChain:
-			builder.CreateBr(chaincheck);
-			builder.SetInsertPoint(chaincheck);
+			jitcontext.EntityCheck = BasicBlock::Create(context, "", dostufffunc);
+			jitcontext.EntityBody = BasicBlock::Create(context, "", dostufffunc);
+			jitcontext.EntityExit = BasicBlock::Create(context, "", dostufffunc);
+			builder.CreateBr(jitcontext.EntityCheck);
+			builder.SetInsertPoint(jitcontext.EntityCheck);
 			break;
 
 		case Bytecode::Instructions::EndChain:
@@ -156,103 +136,59 @@ JITExecPtr JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instru
 		case Bytecode::Instructions::Read:
 			{
 				StringHandle target = Fetch<StringHandle>(bytecode, offset);
-				Value* varvalue = builder.CreateLoad(variablemap[target], false);
-				valuesonstack.push(varvalue);
+				Value* varvalue = builder.CreateLoad(jitcontext.VariableMap[target], false);
+				jitcontext.ValuesOnStack.push(varvalue);
 			}
 			break;
 
 		case Bytecode::Instructions::Assign:
 			{
-				builder.CreateStore(valuesonstack.top(), variablemap[refsonstack.top()], false);
-				valuesonstack.pop();
-				refsonstack.pop();
+				builder.CreateStore(jitcontext.ValuesOnStack.top(), jitcontext.VariableMap[jitcontext.ReferencesOnStack.top()], false);
+				jitcontext.ValuesOnStack.pop();
+				jitcontext.ReferencesOnStack.pop();
 			}
 			break;
 
 		case Bytecode::Instructions::BindRef:
 			{
-				Value* c = valuesonstack.top();
+				Value* c = jitcontext.ValuesOnStack.top();
 
 				ConstantInt* cint = dyn_cast<ConstantInt>(c);
 				StringHandle vartarget = static_cast<StringHandle>(cint->getValue().getLimitedValue());
-				refsonstack.push(vartarget);
-
-				valuesonstack.pop();
+				jitcontext.ReferencesOnStack.push(vartarget);
+				jitcontext.ValuesOnStack.pop();
 			}
 			break;
 
 		case Bytecode::Instructions::SetRetVal:
 			{
 				StringHandle value = Fetch<StringHandle>(bytecode, offset);
-				retval = builder.CreateLoad(variablemap[value], false);
+				retval = builder.CreateLoad(jitcontext.VariableMap[value], false);
 			}
 			break;
 
 		case Bytecode::Instructions::Return:
-			// TODO - handle premature rets
+			builder.CreateBr(jitcontext.FunctionExit);
 			break;
 
 		case Bytecode::Instructions::Invoke:
 			{
 				StringHandle target = Fetch<StringHandle>(bytecode, offset);
-				if(target == 41)
-				{
-					Value* p2 = valuesonstack.top();
-					valuesonstack.pop();
-					Value* p1 = valuesonstack.top();
-					valuesonstack.pop();
-					Value* flag = builder.CreateICmp(CmpInst::ICMP_SLT, p1, p2);
-					valuesonstack.push(flag);
-				}
-				else
-					throw std::runtime_error("Invalid function to invoke from native code");
+				ownervm.JITHelpers.InvokeHelpers.find(target)->second(jitcontext);
 			}
 			break;
 
 		case Bytecode::Instructions::InvokeNative:
 			{
-				StringHandle target = Fetch<StringHandle>(bytecode, offset);
-				if(target == 15)
-				{
-					Value* p2 = valuesonstack.top();
-					valuesonstack.pop();
-					Value* p1 = valuesonstack.top();
-					valuesonstack.pop();
-					Value* result = builder.CreateAdd(p1, p2);
-					valuesonstack.push(result);
-				}
-				else if(target == 17)
-				{
-					Value* p2 = valuesonstack.top();
-					valuesonstack.pop();
-					Value* p1 = valuesonstack.top();
-					valuesonstack.pop();
-					Value* result = builder.CreateMul(p1, p2);
-					valuesonstack.push(result);
-				}
-				else if(target == 4)
-				{
-					Value* p2 = valuesonstack.top();
-					valuesonstack.pop();
-					Value* c = valuesonstack.top();
-					valuesonstack.pop();
-
-					ConstantInt* cint = dyn_cast<ConstantInt>(c);
-					StringHandle vartarget = static_cast<StringHandle>(cint->getValue().getLimitedValue());
-
-					builder.CreateStore(p2, variablemap[vartarget], false);
-				}
-				else
-				{
-					throw std::runtime_error("Bollocks.");
-				}
+				// TODO
+				throw std::runtime_error("Blargh!");
 			}
 			break;
 
 		case Bytecode::Instructions::Push:
 			{
 				VM::EpochTypeID type = Fetch<VM::EpochTypeID>(bytecode, offset);
-				ConstantInt* valueval;
+				Constant* valueval;
 
 				switch(type)
 				{
@@ -278,13 +214,12 @@ JITExecPtr JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instru
 					throw FatalException("Unsupported type for JIT compilation");
 				}
 
-				// TODO - type safety
-				valuesonstack.push(valueval);
+				jitcontext.ValuesOnStack.push(valueval);
 			}
 			break;
 
 		case Bytecode::Instructions::Pop:
-			valuesonstack.pop();
+			jitcontext.ValuesOnStack.pop();
 			break;
 
 		default:
@@ -292,8 +227,19 @@ JITExecPtr JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instru
 		}
 	}
 
-			
+	builder.SetInsertPoint(jitcontext.FunctionExit);
+
+	Value* stackptr = builder.CreateLoad(pstackptr, false);
+	Constant* offset = ConstantInt::get(Type::getInt32Ty(context), static_cast<unsigned>(numparams - numreturns));
+	Value* stackptr2 = builder.CreateGEP(stackptr, offset);
+	if(retval)
+		builder.CreateStore(retval, stackptr2, false);
+	builder.CreateStore(stackptr2, pstackptr, false);
+
 	builder.CreateRetVoid();
+
+	//module->dump();
+
 	verifyFunction(*dostufffunc);
 
 	std::string ErrStr;

@@ -16,6 +16,8 @@
 
 #include "Virtual Machine/VirtualMachine.h"
 
+#include "Libraries/LibraryJIT.h"
+
 #include "Metadata/ScopeDescription.h"
 #include "Metadata/ActiveScope.h"
 
@@ -40,14 +42,17 @@ namespace
 		context.Variables->Write(identifierhandle, value);
 	}
 
-	void ConstructIntegerJIT(char** stack, void* context)
+	void ConstructIntegerJIT(JIT::JITContext& context)
 	{
-		Integer32 value = *reinterpret_cast<Integer32*>(*stack);
-		(*stack) += sizeof(Integer32);
-		StringHandle identifierhandle = *reinterpret_cast<StringHandle*>(*stack);
-		(*stack) += sizeof(StringHandle);
+		llvm::Value* p2 = context.ValuesOnStack.top();
+		context.ValuesOnStack.pop();
+		llvm::Value* c = context.ValuesOnStack.top();
+		context.ValuesOnStack.pop();
 
-		reinterpret_cast<VM::ExecutionContext*>(context)->Variables->Write(identifierhandle, value);
+		llvm::ConstantInt* cint = llvm::dyn_cast<llvm::ConstantInt>(c);
+		StringHandle vartarget = static_cast<StringHandle>(cint->getValue().getLimitedValue());
+
+		reinterpret_cast<llvm::IRBuilder<>*>(context.Builder)->CreateStore(p2, context.VariableMap[vartarget], false);
 	}
 
 	//
@@ -203,7 +208,7 @@ void TypeConstructors::RegisterLibraryFunctions(FunctionCompileHelperTable& tabl
 }
 
 
-void TypeConstructors::RegisterJITTable(JITTable& table, StringPoolManager& stringpool)
+void TypeConstructors::RegisterJITTable(JIT::JITTable& table, StringPoolManager& stringpool)
 {
-	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"integer"), ConstructIntegerJIT));
+	AddToMapNoDupe(table.InvokeHelpers, std::make_pair(stringpool.Pool(L"integer"), &ConstructIntegerJIT));
 }

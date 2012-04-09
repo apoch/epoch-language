@@ -16,6 +16,7 @@
 #include "Metadata/StructureDefinition.h"
 
 #include "Libraries/Library.h"
+#include "Libraries/LibraryJIT.h"
 
 #include "Utility/Memory/Stack.h"
 
@@ -28,6 +29,8 @@
 #include "Utility/Threading/Synchronization.h"
 
 #include "Bytecode/Instructions.h"
+
+#include "JIT/JIT.h"
 
 #include <map>
 #include <set>
@@ -146,7 +149,8 @@ namespace VM
 	// Public tracking
 	public:
 		std::map<EpochTypeID, StructureDefinition> StructureDefinitions;
-		JITTable JITHelpers;
+		JIT::JITTable JITHelpers;
+		std::map<StringHandle, JITExecPtr> JITExecs;
 
 	// Handy type shortcuts
 	private:

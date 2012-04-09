@@ -74,7 +74,7 @@ extern "C" void STDCALL RegisterLibraryContents(FunctionSignatureSet& functionsi
 // Strings are pooled in the VM's internal string pool, and functions
 // are registered in the VM's global function dispatch table.
 //
-extern "C" void STDCALL BindToVirtualMachine(FunctionInvocationTable& functiontable, EntityTable& entities, EntityTable&, StringPoolManager& stringpool, Bytecode::EntityTag& tagindex, EpochFunctionPtr marshalfunction, JITTable& jittable)
+extern "C" void STDCALL BindToVirtualMachine(FunctionInvocationTable& functiontable, EntityTable& entities, EntityTable&, StringPoolManager& stringpool, Bytecode::EntityTag& tagindex, EpochFunctionPtr marshalfunction, JIT::JITTable& jittable)
 {
 	try
 	{
@@ -100,6 +100,9 @@ extern "C" void STDCALL BindToVirtualMachine(FunctionInvocationTable& functionta
 
 		ArithmeticLibrary::RegisterJITTable(jittable, stringpool);
 		TypeConstructors::RegisterJITTable(jittable, stringpool);
+		ComparisonLibrary::RegisterJITTable(jittable, stringpool);
+
+		FlowControl::RegisterLoopsJITTable(jittable, stringpool);
 	}
 	catch(...)
 	{

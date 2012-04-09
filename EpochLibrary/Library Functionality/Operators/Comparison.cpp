@@ -99,6 +99,17 @@ namespace
 	}
 
 
+	void IntegerLessThanJIT(JIT::JITContext& context)
+	{
+		llvm::Value* p2 = context.ValuesOnStack.top();
+		context.ValuesOnStack.pop();
+		llvm::Value* p1 = context.ValuesOnStack.top();
+		context.ValuesOnStack.pop();
+		llvm::Value* flag = reinterpret_cast<llvm::IRBuilder<>*>(context.Builder)->CreateICmp(llvm::CmpInst::ICMP_SLT, p1, p2);
+		context.ValuesOnStack.push(flag);
+	}
+
+
 	//
 	// Compare two reals to see if one is greater than the other
 	//
@@ -307,5 +318,10 @@ void ComparisonLibrary::RegisterLibraryOverloads(OverloadMap& overloadmap, Strin
 		overloadmap[functionnamehandle].insert(stringpool.Pool(L"<@@integer"));
 		overloadmap[functionnamehandle].insert(stringpool.Pool(L"<@@real"));
 	}
+}
+
+void ComparisonLibrary::RegisterJITTable(JIT::JITTable& table, StringPoolManager& stringpool)
+{
+	AddToMapNoDupe(table.InvokeHelpers, std::make_pair(stringpool.Pool(L"<@@integer"), IntegerLessThanJIT));
 }
 

@@ -13,6 +13,7 @@
 #include "Utility/NoDupeMap.h"
 
 #include "Libraries/Library.h"
+#include "Libraries/LibraryJIT.h"
 
 #include "Virtual Machine/VirtualMachine.h"
 
@@ -36,13 +37,14 @@ namespace
 	}
 
 
-	void AddIntegersJIT(char** stack, void*)
+	void AddIntegersJIT(JIT::JITContext& context)
 	{
-		Integer32 p2 = *reinterpret_cast<Integer32*>(*stack);
-		(*stack) += sizeof(Integer32);
-		Integer32 p1 = *reinterpret_cast<Integer32*>(*stack);
-		
-		*reinterpret_cast<Integer32*>(*stack) = (p1 + p2);
+		llvm::Value* p2 = context.ValuesOnStack.top();
+		context.ValuesOnStack.pop();
+		llvm::Value* p1 = context.ValuesOnStack.top();
+		context.ValuesOnStack.pop();
+		llvm::Value* result = reinterpret_cast<llvm::IRBuilder<>*>(context.Builder)->CreateAdd(p1, p2);
+		context.ValuesOnStack.push(result);
 	}
 
 
@@ -68,13 +70,14 @@ namespace
 		context.State.Stack.PushValue(p1 * p2);
 	}
 
-	void MultiplyIntegersJIT(char** stack, void*)
+	void MultiplyIntegersJIT(JIT::JITContext& context)
 	{
-		Integer32 p2 = *reinterpret_cast<Integer32*>(*stack);
-		(*stack) += sizeof(Integer32);
-		Integer32 p1 = *reinterpret_cast<Integer32*>(*stack);
-		
-		*reinterpret_cast<Integer32*>(*stack) = (p1 * p2);
+		llvm::Value* p2 = context.ValuesOnStack.top();
+		context.ValuesOnStack.pop();
+		llvm::Value* p1 = context.ValuesOnStack.top();
+		context.ValuesOnStack.pop();
+		llvm::Value* result = reinterpret_cast<llvm::IRBuilder<>*>(context.Builder)->CreateMul(p1, p2);
+		context.ValuesOnStack.push(result);
 	}
 
 	//
@@ -456,9 +459,9 @@ void ArithmeticLibrary::RegisterOpAssignOperators(StringSet& operators, StringPo
 	}
 }
 
-void ArithmeticLibrary::RegisterJITTable(JITTable& table, StringPoolManager& stringpool)
+void ArithmeticLibrary::RegisterJITTable(JIT::JITTable& table, StringPoolManager& stringpool)
 {
-	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"+@@integer"), AddIntegersJIT));
-	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"*@@integer"), MultiplyIntegersJIT));
+	AddToMapNoDupe(table.InvokeHelpers, std::make_pair(stringpool.Pool(L"+@@integer"), &AddIntegersJIT));
+	AddToMapNoDupe(table.InvokeHelpers, std::make_pair(stringpool.Pool(L"*@@integer"), &MultiplyIntegersJIT));
 }
 

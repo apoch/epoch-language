@@ -24,7 +24,7 @@ namespace TypeConstructors
 	void RegisterLibraryFunctions(FunctionInvocationTable& table, StringPoolManager& stringpool);
 	void RegisterLibraryFunctions(FunctionCompileHelperTable& table, StringPoolManager& stringpool);
 
-	void RegisterJITTable(JITTable& table, StringPoolManager& stringpool);
+	void RegisterJITTable(JIT::JITTable& table, StringPoolManager& stringpool);
 
 }
 

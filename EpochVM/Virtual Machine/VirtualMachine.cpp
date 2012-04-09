@@ -92,7 +92,7 @@ void VirtualMachine::InitStandardLibraries()
 {
 	Marshaling::DLLPool::DLLPoolHandle dllhandle = Marshaling::TheDLLPool.OpenDLL(L"EpochLibrary.DLL");
 
-	typedef void (STDCALL *bindtovmptr)(FunctionInvocationTable&, EntityTable&, EntityTable&, StringPoolManager&, Bytecode::EntityTag&, EpochFunctionPtr, JITTable&);
+	typedef void (STDCALL *bindtovmptr)(FunctionInvocationTable&, EntityTable&, EntityTable&, StringPoolManager&, Bytecode::EntityTag&, EpochFunctionPtr, JIT::JITTable&);
 	bindtovmptr bindtovm = Marshaling::DLLPool::GetFunction<bindtovmptr>(dllhandle, "BindToVirtualMachine");
 
 	if(!bindtovm)
@@ -766,7 +766,7 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 			case Bytecode::Instructions::InvokeNative:
 				{
 					StringHandle target = Fetch<StringHandle>();
-					OwnerVM.JITHelpers.find(target)->second(State.Stack.GetMutableStackPtr(), this);
+					OwnerVM.JITExecs.find(target)->second(State.Stack.GetMutableStackPtr(), this);
 				}
 				break;
 
@@ -1165,7 +1165,7 @@ void ExecutionContext::Load()
 				else if(tag == L"native")
 				{
 					jitworklist.push_back(entity);
-					OwnerVM.JITHelpers[entity] = 0;		// Flag the entity so subsequent bytecode will be converted to InvokeNative on this func
+					OwnerVM.JITExecs[entity] = 0;		// Flag the entity so subsequent bytecode will be converted to InvokeNative on this func
 				}
 				else
 					throw FatalException("Unrecognized entity meta-tag in bytecode");
@@ -1215,7 +1215,7 @@ void ExecutionContext::Load()
 				size_t originaloffset = InstructionOffset - 1;
 				StringHandle target = Fetch<StringHandle>();
 
-				if(OwnerVM.JITHelpers.find(target) != OwnerVM.JITHelpers.end())
+				if(OwnerVM.JITExecs.find(target) != OwnerVM.JITExecs.end())
 					CodeBuffer[originaloffset] = Bytecode::Instructions::InvokeNative;
 			}
 			break;
@@ -1660,12 +1660,12 @@ std::wstring VirtualMachine::DebugSnapshot() const
 
 void ExecutionContext::JITCompileByteCode(StringHandle entity, size_t beginoffset, size_t endoffset)
 {
-	OwnerVM.JITHelpers[entity] = JITByteCode(OwnerVM, CodeBuffer, beginoffset, endoffset);
+	OwnerVM.JITExecs[entity] = JITByteCode(OwnerVM, CodeBuffer, beginoffset, endoffset);
 }
 
 void JITInvoke(char** stack, void* context, StringHandle target)
 {
-	reinterpret_cast<ExecutionContext*>(context)->OwnerVM.JITHelpers[target](stack, context);
+	reinterpret_cast<ExecutionContext*>(context)->OwnerVM.JITExecs[target](stack, context);
 }
 
 void JITRead(char** stack, void* context, StringHandle target)

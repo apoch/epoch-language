@@ -66,7 +66,7 @@
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>EpochVM.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>EpochVM.lib;DebugLibsLLVMAnalysis.lib;DebugLibsLLVMArchive.lib;DebugLibsLLVMAsmParser.lib;DebugLibsLLVMAsmPrinter.lib;DebugLibsLLVMBitReader.lib;DebugLibsLLVMBitWriter.lib;DebugLibsLLVMCodeGen.lib;DebugLibsLLVMCore.lib;DebugLibsLLVMDebugInfo.lib;DebugLibsLLVMExecutionEngine.lib;DebugLibsLLVMInstCombine.lib;DebugLibsLLVMInstrumentation.lib;DebugLibsLLVMInterpreter.lib;DebugLibsLLVMipa.lib;DebugLibsLLVMipo.lib;DebugLibsLLVMJIT.lib;DebugLibsLLVMLinker.lib;DebugLibsLLVMMC.lib;DebugLibsLLVMMCDisassembler.lib;DebugLibsLLVMMCJIT.lib;DebugLibsLLVMMCParser.lib;DebugLibsLLVMObject.lib;DebugLibsLLVMRuntimeDyld.lib;DebugLibsLLVMScalarOpts.lib;DebugLibsLLVMSelectionDAG.lib;DebugLibsLLVMSupport.lib;DebugLibsLLVMTableGen.lib;DebugLibsLLVMTarget.lib;DebugLibsLLVMTransformUtils.lib;DebugLibsLLVMX86AsmParser.lib;DebugLibsLLVMX86AsmPrinter.lib;DebugLibsLLVMX86CodeGen.lib;DebugLibsLLVMX86Desc.lib;DebugLibsLLVMX86Disassembler.lib;DebugLibsLLVMX86Info.lib;DebugLibsLLVMX86Utils.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(OutDir);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <ModuleDefinitionFile>Exports/Exports.def</ModuleDefinitionFile>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -146,6 +146,7 @@
     <ClCompile Include="VM Linkage\HeapAccess.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\Shared\Libraries\LibraryJIT.h" />
     <ClInclude Include="Library Functionality\Function Tags\Native.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="Library Functionality\Debugging\Debugging.h" />

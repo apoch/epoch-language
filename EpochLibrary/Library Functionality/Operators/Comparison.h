@@ -26,5 +26,7 @@ namespace ComparisonLibrary
 	void RegisterInfixOperators(StringSet& infixtable, PrecedenceTable& precedences, StringPoolManager& stringpool);
 	void RegisterLibraryOverloads(OverloadMap& overloadmap, StringPoolManager& stringpool);
 
+	void RegisterJITTable(JIT::JITTable& table, StringPoolManager& stringpool);
+
 }
 
