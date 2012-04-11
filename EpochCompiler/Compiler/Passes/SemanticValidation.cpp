@@ -94,6 +94,12 @@ IRSemantics::Program* CompilerPasses::ValidateSemantics(AST::Program& program, c
 	// Traverse the AST and convert it into the semantic IR
 	ASTTraverse::DoTraversal(pass, program);
 
+	if(pass.Errors.HasErrors())
+	{
+		pass.Errors.DumpErrors();
+		return NULL;
+	}
+
 	// Perform compile-time code execution, e.g. constructors for populating lexical scopes
 	if(!pass.CompileTimeCodeExecution())
 		return NULL;
@@ -161,7 +167,7 @@ CompilePassSemantics::~CompilePassSemantics()
 bool CompilePassSemantics::CompileTimeCodeExecution()
 {
 	if(CurrentProgram)
-		return CurrentProgram->CompileTimeCodeExecution();
+		return CurrentProgram->CompileTimeCodeExecution(Errors);
 
 	return false;
 }
@@ -182,10 +188,16 @@ bool CompilePassSemantics::TypeInference()
 //
 bool CompilePassSemantics::Validate() const
 {
-	if(CurrentProgram)
-		return CurrentProgram->Validate();
+	if(!CurrentProgram)
+		return false;
 
-	return false;
+	if(!CurrentProgram->Validate() || Errors.HasErrors())
+	{
+		Errors.DumpErrors();
+		return false;
+	}
+
+	return true;
 }
 
 //
@@ -475,8 +487,10 @@ void CompilePassSemantics::ExitHelper::operator () (AST::NamedFunctionParameter&
 	StringHandle name = self->CurrentProgram->AddString(std::wstring(param.Name.begin(), param.Name.end()));
 	StringHandle type = self->CurrentProgram->AddString(std::wstring(param.Type.begin(), param.Type.end()));
 
+	self->ErrorContext = &param.Name;
 	std::auto_ptr<IRSemantics::FunctionParamNamed> irparam(new IRSemantics::FunctionParamNamed(type, self->IsParamRef));
-	self->CurrentFunctions.back()->AddParameter(name, irparam.release());
+	self->CurrentFunctions.back()->AddParameter(name, irparam.release(), self->Errors);
+	self->ErrorContext = NULL;
 }
 
 
@@ -608,7 +622,7 @@ void CompilePassSemantics::ExitHelper::operator () (AST::Expression&)
 			std::auto_ptr<IRSemantics::FunctionParamExpression> irparam(new IRSemantics::FunctionParamExpression(self->CurrentExpressions.back()));
 			self->CurrentExpressions.pop_back();
 
-			self->CurrentFunctions.back()->AddParameter(paramname, irparam.release());
+			self->CurrentFunctions.back()->AddParameter(paramname, irparam.release(), self->Errors);
 		}
 		break;
 	}
@@ -660,8 +674,6 @@ void CompilePassSemantics::EntryHelper::operator () (AST::Statement& statement)
 
 	self->StateStack.push(CompilePassSemantics::STATE_STATEMENT);
 	self->CurrentStatements.push_back(new IRSemantics::Statement(namehandle));
-
-	self->CurrentStatements.back()->Position = self->FindPosition(statement.Identifier);
 }
 
 //
@@ -967,8 +979,6 @@ void CompilePassSemantics::EntryHelper::operator () (AST::Initialization& initia
 	std::auto_ptr<IRSemantics::Expression> param(new IRSemantics::Expression());
 	param->AddAtom(new IRSemantics::ExpressionAtomIdentifier(lhs));
 	self->CurrentStatements.back()->AddParameter(param.release());
-
-	self->CurrentStatements.back()->Position = self->FindPosition(initialization.TypeSpecifier);
 }
 
 //
@@ -1238,7 +1248,7 @@ void CompilePassSemantics::EntryHelper::operator () (AST::FunctionReferenceSigna
 void CompilePassSemantics::ExitHelper::operator () (AST::FunctionReferenceSignature& refsig)
 {
 	StringHandle name = self->CurrentProgram->AddString(std::wstring(refsig.Identifier.begin(), refsig.Identifier.end()));
-	self->CurrentFunctions.back()->AddParameter(name, self->CurrentFunctionSignatures.back());
+	self->CurrentFunctions.back()->AddParameter(name, self->CurrentFunctionSignatures.back(), self->Errors);
 	self->CurrentFunctionSignatures.pop_back();
 	self->StateStack.pop();
 }
@@ -1332,17 +1342,63 @@ void CompilePassSemantics::EntryHelper::operator () (AST::RefTag&)
 }
 
 
-unsigned CompilePassSemantics::FindPosition(const AST::IdentifierT& /*identifier*/)
+size_t CompilePassSemantics::FindLine(const AST::IdentifierT& identifier) const
 {
-	return 0;
-	/*
-	unsigned line = 1;
-	unsigned delta = identifier.begin() - SourceBegin;
-	for(unsigned offset = 0; offset < delta; ++offset)
+	size_t line = 1;
+	size_t delta = identifier.begin() - SourceBegin;
+	for(size_t offset = 0; offset < delta; ++offset)
 	{
 		if(*(SourceBegin + offset) == L'\n')
 			++line;
 	}
 
-	return line;*/
+	return line;
 }
+
+size_t CompilePassSemantics::FindColumn(const AST::IdentifierT& identifier) const
+{
+	size_t column = 0;
+	size_t delta = identifier.begin() - SourceBegin;
+	for(size_t offset = 0; offset < delta; ++offset)
+	{
+		if(*(SourceBegin + offset) == L'\n')
+			column = 1;
+		else
+			++column;
+	}
+
+	return column;
+}
+
+std::wstring CompilePassSemantics::FindSource(const AST::IdentifierT& identifier) const
+{
+	size_t targetline = FindLine(identifier);
+	size_t line = 1;
+	size_t delta = identifier.begin() - SourceBegin;
+	for(size_t offset = 0; offset < delta; ++offset)
+	{
+		if(*(SourceBegin + offset) == L'\n')
+		{
+			if(++line == targetline)
+			{
+				size_t term = SourceEnd - SourceBegin;
+				size_t endoffset = offset;
+				while(++endoffset < term)
+				{
+					if(*(SourceBegin + endoffset) == L'\n')
+						break;
+				}
+				return std::wstring(SourceBegin + offset, SourceBegin + endoffset);
+			}
+		}
+	}
+
+	return L"<unknown>";
+}
+
+void CompilePassSemantics::UpdateContext(CompileErrors& errors) const
+{
+	if(ErrorContext)
+		errors.SetLocation(Session.FileName, FindLine(*ErrorContext), FindColumn(*ErrorContext), FindSource(*ErrorContext));
+}
+

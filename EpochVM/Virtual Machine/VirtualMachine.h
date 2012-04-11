@@ -213,11 +213,6 @@ namespace VM
 		ExecutionResult GetExecutionResult() const
 		{ return State.Result; }
 
-	// Entity/JIT interop helpers
-	public:
-		void BeginEntity(StringHandle entity);
-		void EndEntity();
-
 	// Internal helpers for initializing the context
 	private:
 		void Load();

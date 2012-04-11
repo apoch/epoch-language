@@ -18,6 +18,7 @@
 
 
 class FunctionSignature;
+class CompileErrors;
 
 
 namespace IRSemantics
@@ -224,7 +225,7 @@ namespace IRSemantics
 
 	// Parameters
 	public:
-		void AddParameter(StringHandle name, FunctionParam* param);
+		void AddParameter(StringHandle name, FunctionParam* param, CompileErrors& errors);
 
 		std::vector<StringHandle> GetParameterNames() const;
 

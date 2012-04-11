@@ -274,11 +274,11 @@ bool Program::TypeInference()
 	return true;
 }
 
-bool Program::CompileTimeCodeExecution()
+bool Program::CompileTimeCodeExecution(CompileErrors& errors)
 {
 	for(std::map<StringHandle, Structure*>::iterator iter = Structures.begin(); iter != Structures.end(); ++iter)
 	{
-		if(!iter->second->CompileTimeCodeExecution(iter->first, *this))
+		if(!iter->second->CompileTimeCodeExecution(iter->first, *this, errors))
 			return false;
 	}
 

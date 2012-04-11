@@ -100,6 +100,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Compiler\CompileErrors.cpp" />
     <ClCompile Include="Entry Point\EntryPoint.cpp" />
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
@@ -143,6 +144,7 @@
     <ClCompile Include="Parser\Parser.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Compiler\CompileErrors.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="Compiler\ExportDef.h" />
     <ClInclude Include="..\Shared\Bytecode\EntityTags.h" />

@@ -42,6 +42,7 @@ class CompileSession;
 #include "Compiler/Abstract Syntax Tree/Assignment.h"
 
 #include "Compiler/Exceptions.h"
+#include "Compiler/CompileErrors.h"
 
 #include <stack>
 
@@ -52,7 +53,7 @@ namespace ASTTraverse
 	//
 	// Traverser for converting to the IR used for semantic validation
 	//
-	struct CompilePassSemantics
+	struct CompilePassSemantics : public CompileErrorContextualizer
 	{
 		//
 		// Construct the traverser
@@ -63,12 +64,15 @@ namespace ASTTraverse
 			  Strings(strings),
 			  Session(session),
 			  SourceBegin(sourcebegin),
-			  SourceEnd(sourceend)
+			  SourceEnd(sourceend),
+			  ErrorContext(NULL)
 		{
 			Entry.self = this;
 			Exit.self = this;
 
 			StateStack.push(STATE_UNKNOWN);
+
+			Errors.GetContextFrom(this);
 		}
 
 		// Destruction
@@ -249,7 +253,9 @@ namespace ASTTraverse
 
 	// Additional helper routes
 	public:
-		unsigned FindPosition(const AST::IdentifierT& identifier);
+		size_t FindLine(const AST::IdentifierT& identifier) const;
+		size_t FindColumn(const AST::IdentifierT& identifier) const;
+		std::wstring FindSource(const AST::IdentifierT& identifier) const;
 
 	// Internal state
 	private:
@@ -307,6 +313,12 @@ namespace ASTTraverse
 
 		StringPoolManager& Strings;
 		CompileSession& Session;
+
+		AST::IdentifierT* ErrorContext;
+
+	public:
+		CompileErrors Errors;
+		virtual void UpdateContext(CompileErrors& errors) const;
 	};
 
 }

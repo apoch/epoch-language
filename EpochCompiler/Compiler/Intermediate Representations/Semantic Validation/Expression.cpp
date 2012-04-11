@@ -45,7 +45,6 @@ bool Expression::Validate(const Program& program) const
 		{
 			UI::OutputStream output;
 			output << L"Expression contains a type error" << std::endl;
-			++program.Session.ErrorCount;
 		}
 		return false;
 
@@ -53,7 +52,6 @@ bool Expression::Validate(const Program& program) const
 		{
 			UI::OutputStream output;
 			output << L"Type inference failed or otherwise incomplete" << std::endl;
-			++program.Session.ErrorCount;
 		}
 		return false;
 	}

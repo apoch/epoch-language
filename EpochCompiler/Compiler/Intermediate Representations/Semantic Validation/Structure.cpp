@@ -15,6 +15,7 @@
 #include "Compiler/Intermediate Representations/Semantic Validation/Program.h"
 
 #include "Compiler/Session.h"
+#include "Compiler/CompileErrors.h"
 
 
 using namespace IRSemantics;
@@ -63,7 +64,7 @@ bool Structure::Validate(const Program& program) const
 }
 
 
-bool Structure::CompileTimeCodeExecution(StringHandle myname, Program& program)
+bool Structure::CompileTimeCodeExecution(StringHandle myname, Program& program, CompileErrors& errors)
 {
 	size_t i = 0;
 	FunctionSignature signature;
@@ -101,7 +102,7 @@ bool Structure::CompileTimeCodeExecution(StringHandle myname, Program& program)
 		program.AllocateLexicalScopeName(codeblock.get());
 		func->SetCode(codeblock.release());
 		func->SetName(funcname);
-		func->AddParameter(program.FindString(L"identifier"), new FunctionParamNamedTyped(type, true));
+		func->AddParameter(program.FindString(L"identifier"), new FunctionParamNamedTyped(type, true), errors);
 		func->SuppressReturnRegister();
 
 		program.AddFunction(funcname, func.release());

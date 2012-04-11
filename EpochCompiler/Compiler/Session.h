@@ -74,9 +74,7 @@ public:
 	FunctionTagHelperTable FunctionTagHelpers;
 	CompilerInfoTable InfoTable;
 
-// Compilation error tracking
-public:
-	mutable unsigned ErrorCount;
+	std::wstring FileName;
 
 // Internal helpers
 private:

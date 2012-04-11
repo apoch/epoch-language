@@ -172,16 +172,10 @@ JITExecPtr JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instru
 			break;
 
 		case Bytecode::Instructions::Invoke:
+		case Bytecode::Instructions::InvokeNative:
 			{
 				StringHandle target = Fetch<StringHandle>(bytecode, offset);
 				ownervm.JITHelpers.InvokeHelpers.find(target)->second(jitcontext);
-			}
-			break;
-
-		case Bytecode::Instructions::InvokeNative:
-			{
-				// TODO
-				throw std::runtime_error("Blargh!");
 			}
 			break;
 

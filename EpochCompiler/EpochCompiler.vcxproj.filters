@@ -188,6 +188,9 @@
     <ClCompile Include="Parser\Parser.cpp">
       <Filter>Parser</Filter>
     </ClCompile>
+    <ClCompile Include="Compiler\CompileErrors.cpp">
+      <Filter>Compiler</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h">
@@ -420,6 +423,9 @@
     </ClInclude>
     <ClInclude Include="Lexer\Lexer.h">
       <Filter>Lexer</Filter>
+    </ClInclude>
+    <ClInclude Include="Compiler\CompileErrors.h">
+      <Filter>Compiler</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

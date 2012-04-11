@@ -13,6 +13,8 @@
 
 #include "Compiler/Intermediate Representations/Semantic Validation/InferenceContext.h"
 
+#include "Compiler/CompileErrors.h"
+
 #include "Utility/Types/IDTypes.h"
 #include "Utility/Types/EpochTypeIDs.h"
 
@@ -155,7 +157,7 @@ namespace IRSemantics
 
 	// Compile-time code execution
 	public:
-		bool CompileTimeCodeExecution();
+		bool CompileTimeCodeExecution(CompileErrors& errors);
 
 	// Type inference
 	public:

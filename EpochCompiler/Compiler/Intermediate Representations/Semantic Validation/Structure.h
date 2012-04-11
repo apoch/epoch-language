@@ -18,6 +18,9 @@
 #include <vector>
 
 
+class CompileErrors;
+
+
 namespace IRSemantics
 {
 
@@ -150,7 +153,7 @@ namespace IRSemantics
 
 	// Compile time code execution
 	public:
-		bool CompileTimeCodeExecution(StringHandle myname, Program& program);
+		bool CompileTimeCodeExecution(StringHandle myname, Program& program, CompileErrors& errors);
 
 	// Internal state
 	private:

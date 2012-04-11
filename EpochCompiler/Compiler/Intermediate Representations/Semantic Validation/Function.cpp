@@ -13,6 +13,7 @@
 #include "Compiler/Intermediate Representations/Semantic Validation/Program.h"
 
 #include "Compiler/Exceptions.h"
+#include "Compiler/CompileErrors.h"
 
 
 using namespace IRSemantics;
@@ -33,14 +34,14 @@ Function::~Function()
 //
 // Add a parameter to a function's signature
 //
-void Function::AddParameter(StringHandle name, FunctionParam* param)
+void Function::AddParameter(StringHandle name, FunctionParam* param, CompileErrors& errors)
 {
 	for(std::vector<Param>::const_iterator iter = Parameters.begin(); iter != Parameters.end(); ++iter)
 	{
 		if(iter->Name == name)
 		{
-			delete param;
-			throw std::runtime_error("Duplicate function parameter name");		// TODO - this should not be an exception
+			errors.SemanticError("Duplicate function parameter name");
+			return;
 		}
 	}
 
