@@ -208,7 +208,9 @@ namespace IRSemantics
 			: Code(NULL),
 			  Return(NULL),
 			  InferenceDone(false),
-			  SuppressReturn(false)
+			  SuppressReturn(false),
+			  Name(0),
+			  RawName(0)
 		{ }
 
 		~Function();
@@ -220,8 +222,17 @@ namespace IRSemantics
 
 	// Name
 	public:
+		StringHandle GetName() const
+		{ return Name; }
+
 		void SetName(StringHandle name)
 		{ Name = name; }
+		
+		StringHandle GetRawName() const
+		{ return RawName; }
+
+		void SetRawName(StringHandle rawname)
+		{ RawName = rawname; }
 
 	// Parameters
 	public:
@@ -292,6 +303,7 @@ namespace IRSemantics
 	// Internal state
 	private:
 		StringHandle Name;
+		StringHandle RawName;
 
 		CodeBlock* Code;
 		Expression* Return;

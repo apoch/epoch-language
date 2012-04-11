@@ -419,10 +419,14 @@ void CompilePassSemantics::ExitHelper::operator () (AST::Function& function)
 
 	if(self->CurrentFunctions.size() == 1)
 	{
-		StringHandle name = self->CurrentProgram->CreateFunctionOverload(std::wstring(function.Name.begin(), function.Name.end()));
-		self->CurrentProgram->AddFunction(name, self->CurrentFunctions.back());
+		std::wstring rawnamestr = std::wstring(function.Name.begin(), function.Name.end());
+		StringHandle rawname = self->CurrentProgram->AddString(rawnamestr);
+		self->ErrorContext = &function.Name;
+		StringHandle name = self->CurrentProgram->CreateFunctionOverload(rawnamestr);
+		self->CurrentProgram->AddFunction(name, rawname, self->CurrentFunctions.back(), self->Errors);
 		self->CurrentFunctions.back()->SetName(name);
 		self->CurrentFunctions.pop_back();
+		self->ErrorContext = NULL;
 	}
 	else
 	{

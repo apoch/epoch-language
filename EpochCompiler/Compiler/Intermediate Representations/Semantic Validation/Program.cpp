@@ -149,14 +149,36 @@ std::wstring Program::GenerateFunctionOverloadName(StringHandle name, size_t ind
 //
 // Add a function definition to the program
 //
-void Program::AddFunction(StringHandle name, Function* function)
+void Program::AddFunction(StringHandle name, StringHandle rawname, Function* function, CompileErrors& errors)
 {
 	if(Functions.find(name) != Functions.end())
 	{
 		delete function;
-		throw std::runtime_error("Duplicate function name");		// TODO - this should not be an exception
+
+		//
+		// This is a grevious error in the semantic IR generator.
+		//
+		// We have been given an overloaded function, but not generated
+		// an overload mangled name for it; overloads should have names
+		// automatically generated for them to aid in identification in
+		// the semantic checking layer.
+		//
+		throw InternalException("Duplicate function name; overload creation failed");
 	}
 
+	for(boost::unordered_map<StringHandle, Function*>::const_iterator iter = Functions.begin(); iter != Functions.end(); ++iter)
+	{
+		if(iter->second->GetRawName() != rawname)
+			continue;
+
+		if(iter->second->GetFunctionSignature(*this).Matches(function->GetFunctionSignature(*this)))
+		{
+			errors.SemanticError("Ambiguous function overload");
+			break;
+		}
+	}
+
+	function->SetRawName(rawname);
 	Functions.insert(std::make_pair(name, function));
 }
 

@@ -105,7 +105,7 @@ bool Structure::CompileTimeCodeExecution(StringHandle myname, Program& program, 
 		func->AddParameter(program.FindString(L"identifier"), new FunctionParamNamedTyped(type, true), errors);
 		func->SuppressReturnRegister();
 
-		program.AddFunction(funcname, func.release());
+		program.AddFunction(funcname, funcname, func.release(), errors);
 	}
 
 	return true;
