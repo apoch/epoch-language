@@ -128,7 +128,7 @@ namespace IRSemantics
 
 	// Manipulation of associated structures
 	public:
-		void AddStructure(StringHandle name, Structure* structure);
+		void AddStructure(StringHandle name, Structure* structure, CompileErrors& errors);
 
 		const std::map<StringHandle, Structure*>& GetStructures() const
 		{ return Structures; }

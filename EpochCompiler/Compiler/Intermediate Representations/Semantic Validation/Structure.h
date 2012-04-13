@@ -142,7 +142,7 @@ namespace IRSemantics
 
 	// Member manipulation
 	public:
-		void AddMember(StringHandle name, StructureMember* member);
+		void AddMember(StringHandle name, StructureMember* member, CompileErrors& errors);
 
 		const std::vector<std::pair<StringHandle, StructureMember*> >& GetMembers() const
 		{ return Members; }

@@ -33,14 +33,15 @@ Structure::~Structure()
 //
 // Add a member to a structure definition
 //
-void Structure::AddMember(StringHandle name, StructureMember* member)
+void Structure::AddMember(StringHandle name, StructureMember* member, CompileErrors& errors)
 {
 	for(std::vector<std::pair<StringHandle, StructureMember*> >::iterator iter = Members.begin(); iter != Members.end(); ++iter)
 	{
 		if(name == iter->first)
 		{
 			delete member;
-			throw std::runtime_error("Duplicate structure member");		// TODO - this should not be an exception
+			errors.SemanticError("Duplicate structure member name");
+			return;
 		}
 	}
 

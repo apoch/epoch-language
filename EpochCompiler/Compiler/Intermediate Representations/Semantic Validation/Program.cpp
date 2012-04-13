@@ -87,12 +87,13 @@ const std::wstring& Program::GetString(StringHandle handle) const
 //
 // Add a structure definition to the program
 //
-void Program::AddStructure(StringHandle name, Structure* structure)
+void Program::AddStructure(StringHandle name, Structure* structure, CompileErrors& errors)
 {
 	if(Structures.find(name) != Structures.end())
 	{
 		delete structure;
-		throw std::runtime_error("Duplicate structure name");		// TODO - this should not be an exception
+		errors.SemanticError("Duplicate structure name");
+		return;
 	}
 
 	Structures.insert(std::make_pair(name, structure));

@@ -306,7 +306,9 @@ void CompilePassSemantics::ExitHelper::operator () (AST::Structure& structure)
 		
 		StringHandle name = self->CurrentProgram->AddString(std::wstring(structure.Identifier.begin(), structure.Identifier.end()));
 		self->CurrentProgram->Session.InfoTable.FunctionHelpers->insert(std::make_pair(name, &CompileConstructorStructure));
-		self->CurrentProgram->AddStructure(name, irstruct.release());
+		self->ErrorContext = &structure.Identifier;
+		self->CurrentProgram->AddStructure(name, irstruct.release(), self->Errors);
+		self->ErrorContext = NULL;
 	}
 	else
 	{
@@ -345,7 +347,9 @@ void CompilePassSemantics::EntryHelper::operator () (AST::StructureMemberVariabl
 	StringHandle type = self->CurrentProgram->AddString(std::wstring(variable.Type.begin(), variable.Type.end()));
 
 	std::auto_ptr<IRSemantics::StructureMemberVariable> member(new IRSemantics::StructureMemberVariable(type));
-	self->CurrentStructures.back()->AddMember(name, member.release());
+	self->ErrorContext = &variable.Name;
+	self->CurrentStructures.back()->AddMember(name, member.release(), self->Errors);
+	self->ErrorContext = NULL;
 }
 
 //
@@ -378,7 +382,9 @@ void CompilePassSemantics::ExitHelper::operator () (AST::StructureMemberFunction
 {
 	StringHandle name = self->CurrentProgram->AddString(std::wstring(funcref.Name.begin(), funcref.Name.end()));
 
-	self->CurrentStructures.back()->AddMember(name, self->CurrentStructureFunctions.back());
+	self->ErrorContext = &funcref.Name;
+	self->CurrentStructures.back()->AddMember(name, self->CurrentStructureFunctions.back(), self->Errors);
+	self->ErrorContext = NULL;
 	self->CurrentStructureFunctions.pop_back();
 	self->StateStack.pop();
 }
@@ -1365,8 +1371,11 @@ size_t CompilePassSemantics::FindColumn(const AST::IdentifierT& identifier) cons
 	size_t delta = identifier.begin() - SourceBegin;
 	for(size_t offset = 0; offset < delta; ++offset)
 	{
-		if(*(SourceBegin + offset) == L'\n')
+		wchar_t c = *(SourceBegin + offset);
+		if(c == L'\n')
 			column = 1;
+		else if(c == L'\t')
+			column += 8;
 		else
 			++column;
 	}
