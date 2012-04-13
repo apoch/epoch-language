@@ -17,6 +17,9 @@
 #include "Metadata/ScopeDescription.h"
 
 
+class CompileErrors;
+
+
 namespace IRSemantics
 {
 
@@ -44,12 +47,12 @@ namespace IRSemantics
 
 	// Compile time code execution
 	public:
-		virtual bool CompileTimeCodeExecution(Program&, CodeBlock&)
+		virtual bool CompileTimeCodeExecution(Program&, CodeBlock&, CompileErrors&)
 		{ return true; }
 
 	// Type inference
 	public:
-		virtual bool TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context) = 0;
+		virtual bool TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, CompileErrors& errors) = 0;
 	};
 
 	class CodeBlock
@@ -88,11 +91,11 @@ namespace IRSemantics
 
 	// Compile time code execution
 	public:
-		bool CompileTimeCodeExecution(IRSemantics::Program& program);
+		bool CompileTimeCodeExecution(IRSemantics::Program& program, CompileErrors& errors);
 
 	// Type inference
 	public:
-		bool TypeInference(IRSemantics::Program& program, InferenceContext& context);
+		bool TypeInference(IRSemantics::Program& program, InferenceContext& context, CompileErrors& errors);
 
 	// Internal state
 	private:
@@ -120,7 +123,7 @@ namespace IRSemantics
 
 	// Type inference
 	public:
-		virtual bool TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context);
+		virtual bool TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, CompileErrors& errors);
 
 	// Property access
 	public:
@@ -150,11 +153,11 @@ namespace IRSemantics
 
 	// Compile time code execution
 	public:
-		virtual bool CompileTimeCodeExecution(IRSemantics::Program& program, CodeBlock& activescope);
+		virtual bool CompileTimeCodeExecution(IRSemantics::Program& program, CodeBlock& activescope, CompileErrors& errors);
 
 	// Type inference
 	public:
-		virtual bool TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context);
+		virtual bool TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, CompileErrors& errors);
 
 	// Statement access
 	public:
@@ -184,7 +187,7 @@ namespace IRSemantics
 
 	// Type inference
 	public:
-		virtual bool TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context);
+		virtual bool TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, CompileErrors& errors);
 
 	// Statement access
 	public:
@@ -214,7 +217,7 @@ namespace IRSemantics
 
 	// Type inference
 	public:
-		virtual bool TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context);
+		virtual bool TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, CompileErrors& errors);
 
 	// Statement access
 	public:
@@ -244,11 +247,11 @@ namespace IRSemantics
 
 	// Compile time code execution
 	public:
-		virtual bool CompileTimeCodeExecution(IRSemantics::Program& program, CodeBlock& activescope);
+		virtual bool CompileTimeCodeExecution(IRSemantics::Program& program, CodeBlock& activescope, CompileErrors& errors);
 
 	// Type inference
 	public:
-		virtual bool TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context);
+		virtual bool TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, CompileErrors& errors);
 
 	// Internal code access
 	public:
@@ -278,11 +281,11 @@ namespace IRSemantics
 
 	// Compile time code execution
 	public:
-		virtual bool CompileTimeCodeExecution(IRSemantics::Program& program, CodeBlock& activescope);
+		virtual bool CompileTimeCodeExecution(IRSemantics::Program& program, CodeBlock& activescope, CompileErrors& errors);
 
 	// Type inference
 	public:
-		virtual bool TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context);
+		virtual bool TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, CompileErrors& errors);
 
 	// Accessors
 	public:

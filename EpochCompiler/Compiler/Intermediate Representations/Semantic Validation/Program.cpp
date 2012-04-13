@@ -278,19 +278,19 @@ bool Program::Validate() const
 	return valid;
 }
 
-bool Program::TypeInference()
+bool Program::TypeInference(CompileErrors& errors)
 {
 	InferenceContext context(0, InferenceContext::CONTEXT_GLOBAL);
 
 	for(std::vector<CodeBlock*>::iterator iter = GlobalCodeBlocks.begin(); iter != GlobalCodeBlocks.end(); ++iter)
 	{
-		if(!(*iter)->TypeInference(*this, context))
+		if(!(*iter)->TypeInference(*this, context, errors))
 			return false;
 	}
 
 	for(boost::unordered_map<StringHandle, Function*>::iterator iter = Functions.begin(); iter != Functions.end(); ++iter)
 	{
-		if(!iter->second->TypeInference(*this, context))
+		if(!iter->second->TypeInference(*this, context, errors))
 			return false;
 	}
 
@@ -307,13 +307,13 @@ bool Program::CompileTimeCodeExecution(CompileErrors& errors)
 
 	for(std::vector<CodeBlock*>::iterator iter = GlobalCodeBlocks.begin(); iter != GlobalCodeBlocks.end(); ++iter)
 	{
-		if(!(*iter)->CompileTimeCodeExecution(*this))
+		if(!(*iter)->CompileTimeCodeExecution(*this, errors))
 			return false;
 	}
 
 	for(boost::unordered_map<StringHandle, Function*>::iterator iter = Functions.begin(); iter != Functions.end(); ++iter)
 	{
-		if(!iter->second->CompileTimeCodeExecution(*this))
+		if(!iter->second->CompileTimeCodeExecution(*this, errors))
 			return false;
 	}
 
@@ -521,7 +521,7 @@ ScopeDescription* Program::GetGlobalScope() const
 }
 
 
-InferenceContext::PossibleParameterTypes Program::GetExpectedTypesForStatement(StringHandle name, const ScopeDescription& scope, StringHandle contextname) const
+InferenceContext::PossibleParameterTypes Program::GetExpectedTypesForStatement(StringHandle name, const ScopeDescription& scope, StringHandle contextname, CompileErrors&) const
 {
 	if(scope.HasVariable(name) && scope.GetVariableTypeByID(name) == VM::EpochType_Function)
 	{
@@ -615,11 +615,11 @@ InferenceContext::PossibleParameterTypes Program::GetExpectedTypesForStatement(S
 		return ret;
 	}
 
-	// TODO - this should not be an exception. Record a semantic error instead.
-	throw std::runtime_error("Invalid function name");
+	//errors.SemanticError("Undefined function");
+	return InferenceContext::PossibleParameterTypes();
 }
 
-InferenceContext::PossibleSignatureSet Program::GetExpectedSignaturesForStatement(StringHandle name, const ScopeDescription& scope, StringHandle contextname) const
+InferenceContext::PossibleSignatureSet Program::GetExpectedSignaturesForStatement(StringHandle name, const ScopeDescription& scope, StringHandle contextname, CompileErrors&) const
 {
 	if(scope.HasVariable(name) && scope.GetVariableTypeByID(name) == VM::EpochType_Function)
 	{
@@ -710,8 +710,8 @@ InferenceContext::PossibleSignatureSet Program::GetExpectedSignaturesForStatemen
 		return ret;
 	}
 
-	// TODO - this should not be an exception. Record a semantic error instead.
-	throw std::runtime_error("Invalid function name");
+	//errors.SemanticError("Undefined function");
+	return InferenceContext::PossibleSignatureSet();
 }
 
 

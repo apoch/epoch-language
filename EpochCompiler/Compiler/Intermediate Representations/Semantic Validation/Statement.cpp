@@ -26,9 +26,10 @@
 using namespace IRSemantics;
 
 
-Statement::Statement(StringHandle name)
+Statement::Statement(StringHandle name, const AST::IdentifierT& identifier)
 	: Name(name),
-	  MyType(VM::EpochType_Infer)
+	  MyType(VM::EpochType_Error),
+	  OriginalIdentifier(identifier)
 {
 }
 
@@ -55,20 +56,14 @@ bool Statement::Validate(const Program& program) const
 	}
 
 	valid = valid && (MyType != VM::EpochType_Infer) && (MyType != VM::EpochType_Error);
-	if(!valid)
-	{
-		UI::OutputStream output;
-		output << UI::lightred << "Statement on line " << Position << " failed validation" << UI::white << std::endl;
-	}
-
 	return valid;
 }
 
-bool Statement::CompileTimeCodeExecution(Program& program, CodeBlock& activescope, bool inreturnexpr)
+bool Statement::CompileTimeCodeExecution(Program& program, CodeBlock& activescope, bool inreturnexpr, CompileErrors& errors)
 {
 	for(std::vector<Expression*>::iterator iter = Parameters.begin(); iter != Parameters.end(); ++iter)
 	{
-		if(!(*iter)->CompileTimeCodeExecution(program, activescope, inreturnexpr))
+		if(!(*iter)->CompileTimeCodeExecution(program, activescope, inreturnexpr, errors))
 			return false;
 	}
 
@@ -79,27 +74,28 @@ bool Statement::CompileTimeCodeExecution(Program& program, CodeBlock& activescop
 	return true;
 }
 
-bool Statement::TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, size_t index)
+bool Statement::TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, size_t index, CompileErrors& errors)
 {
+	if(MyType != VM::EpochType_Error)
+		return (MyType != VM::EpochType_Infer);
+
 	InferenceContext newcontext(Name, InferenceContext::CONTEXT_STATEMENT);
 	newcontext.FunctionName = context.FunctionName;
+
+	errors.SetContext(OriginalIdentifier);
 
 	switch(context.State)
 	{
 	case InferenceContext::CONTEXT_CODE_BLOCK:
-		newcontext.ExpectedTypes.push_back(program.GetExpectedTypesForStatement(Name, *activescope.GetScope(), context.FunctionName));
-		newcontext.ExpectedSignatures.push_back(program.GetExpectedSignaturesForStatement(Name, *activescope.GetScope(), context.FunctionName));
+	case InferenceContext::CONTEXT_EXPRESSION:
+	case InferenceContext::CONTEXT_FUNCTION_RETURN:
+		newcontext.ExpectedTypes.push_back(program.GetExpectedTypesForStatement(Name, *activescope.GetScope(), context.FunctionName, errors));
+		newcontext.ExpectedSignatures.push_back(program.GetExpectedSignaturesForStatement(Name, *activescope.GetScope(), context.FunctionName, errors));
 		break;
 
 	case InferenceContext::CONTEXT_STATEMENT:
-		newcontext.ExpectedTypes.push_back(program.GetExpectedTypesForStatement(context.ContextName, *activescope.GetScope(), context.FunctionName));
-		newcontext.ExpectedSignatures.push_back(program.GetExpectedSignaturesForStatement(context.ContextName, *activescope.GetScope(), context.FunctionName));
-		break;
-
-	case InferenceContext::CONTEXT_EXPRESSION:
-	case InferenceContext::CONTEXT_FUNCTION_RETURN:
-		newcontext.ExpectedTypes.push_back(program.GetExpectedTypesForStatement(Name, *activescope.GetScope(), context.FunctionName));
-		newcontext.ExpectedSignatures.push_back(program.GetExpectedSignaturesForStatement(Name, *activescope.GetScope(), context.FunctionName));
+		newcontext.ExpectedTypes.push_back(program.GetExpectedTypesForStatement(context.ContextName, *activescope.GetScope(), context.FunctionName, errors));
+		newcontext.ExpectedSignatures.push_back(program.GetExpectedSignaturesForStatement(context.ContextName, *activescope.GetScope(), context.FunctionName, errors));
 		break;
 
 	default:
@@ -121,7 +117,7 @@ bool Statement::TypeInference(Program& program, CodeBlock& activescope, Inferenc
 	size_t i = 0;
 	for(std::vector<Expression*>::iterator iter = Parameters.begin(); iter != Parameters.end(); ++iter)
 	{
-		if(!(*iter)->TypeInference(program, activescope, newcontext, i))
+		if(!(*iter)->TypeInference(program, activescope, newcontext, i, errors))
 			return false;
 
 		++i;
@@ -139,7 +135,7 @@ bool Statement::TypeInference(Program& program, CodeBlock& activescope, Inferenc
 			{
 				StringHandle overloadname = program.GetFunctionOverloadName(Name, i);
 				Function* func = program.GetFunctions().find(overloadname)->second;
-				func->TypeInference(program, funccontext);
+				func->TypeInference(program, funccontext, errors);
 
 				if(!context.ExpectedTypes.empty())
 				{
@@ -205,8 +201,8 @@ bool Statement::TypeInference(Program& program, CodeBlock& activescope, Inferenc
 							{
 								// TODO - bulletproof this a bit
 								std::auto_ptr<ExpressionAtomIdentifier> atom(dynamic_cast<ExpressionAtomIdentifier*>(Parameters[j]->GetAtoms()[0]));
-								Parameters[j]->GetAtoms()[0] = new ExpressionAtomIdentifierReference(atom->GetIdentifier());
-								Parameters[j]->GetAtoms()[0]->TypeInference(program, activescope, newcontext, j);
+								Parameters[j]->GetAtoms()[0] = new ExpressionAtomIdentifierReference(atom->GetIdentifier(), atom->GetOriginalIdentifier());
+								Parameters[j]->GetAtoms()[0]->TypeInference(program, activescope, newcontext, j, errors);
 							}
 						}
 
@@ -247,8 +243,8 @@ bool Statement::TypeInference(Program& program, CodeBlock& activescope, Inferenc
 								{
 									// TODO - bulletproof this a bit
 									std::auto_ptr<ExpressionAtomIdentifier> atom(dynamic_cast<ExpressionAtomIdentifier*>(Parameters[i]->GetAtoms()[0]));
-									Parameters[i]->GetAtoms()[0] = new ExpressionAtomIdentifierReference(atom->GetIdentifier());
-									Parameters[i]->GetAtoms()[0]->TypeInference(program, activescope, newcontext, i);
+									Parameters[i]->GetAtoms()[0] = new ExpressionAtomIdentifierReference(atom->GetIdentifier(), atom->GetOriginalIdentifier());
+									Parameters[i]->GetAtoms()[0]->TypeInference(program, activescope, newcontext, i, errors);
 								}
 							}
 
@@ -277,8 +273,8 @@ bool Statement::TypeInference(Program& program, CodeBlock& activescope, Inferenc
 							{
 								// TODO - bulletproof this a bit
 								std::auto_ptr<ExpressionAtomIdentifier> atom(dynamic_cast<ExpressionAtomIdentifier*>(Parameters[i]->GetAtoms()[0]));
-								Parameters[i]->GetAtoms()[0] = new ExpressionAtomIdentifierReference(atom->GetIdentifier());
-								Parameters[i]->GetAtoms()[0]->TypeInference(program, activescope, newcontext, i);
+								Parameters[i]->GetAtoms()[0] = new ExpressionAtomIdentifierReference(atom->GetIdentifier(), atom->GetOriginalIdentifier());
+								Parameters[i]->GetAtoms()[0]->TypeInference(program, activescope, newcontext, i, errors);
 							}
 						}
 
@@ -289,24 +285,21 @@ bool Statement::TypeInference(Program& program, CodeBlock& activescope, Inferenc
 				else
 				{
 					Function* func = program.GetFunctions().find(context.FunctionName)->second;
-					MyType = func->GetParameterSignatureType(Name, program);
+					if(func->HasParameter(Name))
+						MyType = func->GetParameterSignatureType(Name, program);
+					else
+						errors.SemanticError("Undefined function");
 				}
 			}
 		}
 	}
 
 	bool valid = MyType != VM::EpochType_Infer;
-	if(!valid)
-	{
-		UI::OutputStream output;
-		output << UI::lightred << "Statement on line " << Position << " failed type inference" << UI::white << std::endl;
-	}
-
 	return valid;
 }
 
 
-bool PreOpStatement::TypeInference(Program& program, CodeBlock& activescope, InferenceContext&)
+bool PreOpStatement::TypeInference(Program& program, CodeBlock& activescope, InferenceContext&, CompileErrors&)
 {
 	VM::EpochTypeID operandtype = InferMemberAccessType(Operand, program, activescope);
 	if(operandtype == VM::EpochType_Error)
@@ -361,7 +354,7 @@ bool PreOpStatement::Validate(const Program&) const
 }
 
 
-bool PostOpStatement::TypeInference(Program& program, CodeBlock& activescope, InferenceContext&)
+bool PostOpStatement::TypeInference(Program& program, CodeBlock& activescope, InferenceContext&, CompileErrors&)
 {
 	VM::EpochTypeID operandtype = InferMemberAccessType(Operand, program, activescope);
 	if(operandtype == VM::EpochType_Error)

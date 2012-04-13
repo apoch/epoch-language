@@ -144,6 +144,7 @@
     <ClCompile Include="Parser\Parser.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Compiler\Abstract Syntax Tree\IdentifierT.h" />
     <ClInclude Include="Compiler\CompileErrors.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="Compiler\ExportDef.h" />

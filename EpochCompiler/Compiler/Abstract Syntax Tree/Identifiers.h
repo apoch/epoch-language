@@ -12,18 +12,11 @@
 #include "Compiler/Abstract Syntax Tree/RefCounting.h"
 #include "Utility/Memory/OneWayAllocator.h"
 #include "Lexer/Lexer.h"
+#include "Compiler/Abstract Syntax Tree/IdentifierT.h"
 
 
 namespace AST
 {
-
-	//
-	// An identifier is simply a pair of iterators pointing
-	// into the original code text buffer, thus eliminating
-	// the overhead of making a string copy of every single
-	// identifier in the program.
-	//
-	typedef boost::iterator_range<positertype> IdentifierT;
 
 	//
 	// An identifier list is simply a container of identifiers

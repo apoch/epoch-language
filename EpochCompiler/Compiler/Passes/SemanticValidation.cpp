@@ -166,10 +166,17 @@ CompilePassSemantics::~CompilePassSemantics()
 //
 bool CompilePassSemantics::CompileTimeCodeExecution()
 {
-	if(CurrentProgram)
-		return CurrentProgram->CompileTimeCodeExecution(Errors);
+	if(!CurrentProgram)
+		return false;
 
-	return false;
+	bool result = CurrentProgram->CompileTimeCodeExecution(Errors);
+	if(!result || Errors.HasErrors())
+	{
+		Errors.DumpErrors();
+		return false;
+	}
+
+	return true;
 }
 
 //
@@ -177,10 +184,17 @@ bool CompilePassSemantics::CompileTimeCodeExecution()
 //
 bool CompilePassSemantics::TypeInference()
 {
-	if(CurrentProgram)
-		return CurrentProgram->TypeInference();
+	if(!CurrentProgram)
+		return false;
+	
+	bool result = CurrentProgram->TypeInference(Errors);
+	if(!result || Errors.HasErrors())
+	{
+		Errors.DumpErrors();
+		return false;
+	}
 
-	return false;
+	return true;
 }
 
 //
@@ -683,7 +697,7 @@ void CompilePassSemantics::EntryHelper::operator () (AST::Statement& statement)
 	StringHandle namehandle = self->CurrentProgram->AddString(std::wstring(statement.Identifier.begin(), statement.Identifier.end()));
 
 	self->StateStack.push(CompilePassSemantics::STATE_STATEMENT);
-	self->CurrentStatements.push_back(new IRSemantics::Statement(namehandle));
+	self->CurrentStatements.push_back(new IRSemantics::Statement(namehandle, statement.Identifier));
 }
 
 //
@@ -985,9 +999,9 @@ void CompilePassSemantics::EntryHelper::operator () (AST::Initialization& initia
 	StringHandle type = self->CurrentProgram->AddString(std::wstring(initialization.TypeSpecifier.begin(), initialization.TypeSpecifier.end()));
 	StringHandle lhs = self->CurrentProgram->AddString(std::wstring(initialization.LHS.begin(), initialization.LHS.end()));
 
-	self->CurrentStatements.push_back(new IRSemantics::Statement(type));
+	self->CurrentStatements.push_back(new IRSemantics::Statement(type, initialization.TypeSpecifier));
 	std::auto_ptr<IRSemantics::Expression> param(new IRSemantics::Expression());
-	param->AddAtom(new IRSemantics::ExpressionAtomIdentifier(lhs));
+	param->AddAtom(new IRSemantics::ExpressionAtomIdentifier(lhs, initialization.LHS));
 	self->CurrentStatements.back()->AddParameter(param.release());
 }
 
@@ -1172,7 +1186,7 @@ void CompilePassSemantics::EntryHelper::operator () (AST::IdentifierT& identifie
 			else
 			{
 				StringHandle handle = self->CurrentProgram->AddString(raw);
-				iratom.reset(new IRSemantics::ExpressionAtomIdentifier(handle));
+				iratom.reset(new IRSemantics::ExpressionAtomIdentifier(handle, identifier));
 			}
 		}
 	}
@@ -1413,5 +1427,10 @@ void CompilePassSemantics::UpdateContext(CompileErrors& errors) const
 {
 	if(ErrorContext)
 		errors.SetLocation(Session.FileName, FindLine(*ErrorContext), FindColumn(*ErrorContext), FindSource(*ErrorContext));
+}
+
+void CompilePassSemantics::UpdateFromContext(CompileErrors& errors, const AST::IdentifierT& context) const
+{
+	errors.SetLocation(Session.FileName, FindLine(context), FindColumn(context), FindSource(context));
 }
 

@@ -15,6 +15,9 @@
 #include <vector>
 
 
+class CompileErrors;
+
+
 namespace IRSemantics
 {
 
@@ -42,7 +45,7 @@ namespace IRSemantics
 
 		virtual VM::EpochTypeID GetEpochType(const Program& program) const = 0;
 
-		virtual bool TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context) = 0;
+		virtual bool TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, CompileErrors& errors) = 0;
 
 		virtual bool Validate(const Program& program) const = 0;
 	};
@@ -83,7 +86,7 @@ namespace IRSemantics
 
 	// Type inference
 	public:
-		bool TypeInference(IRSemantics::Program& program, CodeBlock& activescope, InferenceContext& context);
+		bool TypeInference(IRSemantics::Program& program, CodeBlock& activescope, InferenceContext& context, CompileErrors& errors);
 
 	// Internal state
 	private:
@@ -114,7 +117,7 @@ namespace IRSemantics
 	// Chain interface
 	public:
 		virtual VM::EpochTypeID GetEpochType(const Program& program) const;
-		virtual bool TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context);
+		virtual bool TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, CompileErrors& errors);
 		virtual bool Validate(const Program& program) const;
 
 	// Internal state
@@ -143,7 +146,7 @@ namespace IRSemantics
 
 		virtual VM::EpochTypeID GetEpochType(const Program& program) const;
 
-		virtual bool TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context);
+		virtual bool TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, CompileErrors& errors);
 		
 		virtual bool Validate(const Program& program) const;
 

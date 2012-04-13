@@ -427,6 +427,9 @@
     <ClInclude Include="Compiler\CompileErrors.h">
       <Filter>Compiler</Filter>
     </ClInclude>
+    <ClInclude Include="Compiler\Abstract Syntax Tree\IdentifierT.h">
+      <Filter>Compiler\Abstract Syntax Tree</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Exports\Exports.def">

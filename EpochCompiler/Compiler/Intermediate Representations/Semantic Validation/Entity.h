@@ -12,6 +12,9 @@
 #include "Utility/Types/IDTypes.h"
 
 
+class CompileErrors;
+
+
 namespace IRSemantics
 {
 
@@ -72,11 +75,11 @@ namespace IRSemantics
 
 	// Compile time code execution
 	public:
-		bool CompileTimeCodeExecution(Program& program, CodeBlock& activescope);
+		bool CompileTimeCodeExecution(Program& program, CodeBlock& activescope, CompileErrors& errors);
 
 	// Type inference
 	public:
-		bool TypeInference(IRSemantics::Program& program, CodeBlock& activescope, InferenceContext& context);
+		bool TypeInference(IRSemantics::Program& program, CodeBlock& activescope, InferenceContext& context, CompileErrors& errors);
 
 	// Internal state
 	private:

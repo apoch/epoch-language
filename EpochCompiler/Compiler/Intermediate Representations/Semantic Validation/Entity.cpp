@@ -77,30 +77,30 @@ bool Entity::Validate(const Program& program) const
 	return valid;
 }
 
-bool Entity::CompileTimeCodeExecution(Program& program, CodeBlock& activescope)
+bool Entity::CompileTimeCodeExecution(Program& program, CodeBlock& activescope, CompileErrors& errors)
 {
 	for(std::vector<Expression*>::iterator iter = Parameters.begin(); iter != Parameters.end(); ++iter)
 	{
-		if(!(*iter)->CompileTimeCodeExecution(program, activescope, false))
+		if(!(*iter)->CompileTimeCodeExecution(program, activescope, false, errors))
 			return false;
 	}
 
 	if(!Code)
 		return false;
 
-	if(!Code->CompileTimeCodeExecution(program))
+	if(!Code->CompileTimeCodeExecution(program, errors))
 		return false;
 
 	for(std::vector<Entity*>::iterator iter = Chain.begin(); iter != Chain.end(); ++iter)
 	{
-		if(!(*iter)->CompileTimeCodeExecution(program, activescope))
+		if(!(*iter)->CompileTimeCodeExecution(program, activescope, errors))
 			return false;
 	}
 
 	return true;
 }
 
-bool Entity::TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context)
+bool Entity::TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, CompileErrors& errors)
 {
 	InferenceContext newcontext(0, InferenceContext::CONTEXT_ENTITY_PARAM);
 	newcontext.FunctionName = context.FunctionName;
@@ -108,7 +108,7 @@ bool Entity::TypeInference(Program& program, CodeBlock& activescope, InferenceCo
 	size_t i = 0;
 	for(std::vector<Expression*>::iterator iter = Parameters.begin(); iter != Parameters.end(); ++iter)
 	{
-		if(!(*iter)->TypeInference(program, activescope, newcontext, i))
+		if(!(*iter)->TypeInference(program, activescope, newcontext, i, errors))
 			return false;
 
 		++i;
@@ -117,12 +117,12 @@ bool Entity::TypeInference(Program& program, CodeBlock& activescope, InferenceCo
 	if(!Code)
 		return false;
 
-	if(!Code->TypeInference(program, context))
+	if(!Code->TypeInference(program, context, errors))
 		return false;
 
 	for(std::vector<Entity*>::iterator iter = Chain.begin(); iter != Chain.end(); ++iter)
 	{
-		if(!(*iter)->TypeInference(program, activescope, context))
+		if(!(*iter)->TypeInference(program, activescope, context, errors))
 			return false;
 	}
 

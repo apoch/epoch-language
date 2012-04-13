@@ -319,6 +319,7 @@ namespace ASTTraverse
 	public:
 		CompileErrors Errors;
 		virtual void UpdateContext(CompileErrors& errors) const;
+		virtual void UpdateFromContext(CompileErrors& errors, const AST::IdentifierT& context) const;
 	};
 
 }

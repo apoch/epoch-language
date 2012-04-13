@@ -82,7 +82,6 @@ bool Function::IsParameterLocalVariable(StringHandle name) const
 			return iter->Parameter->IsLocalVariable();
 	}
 
-	// TODO - ensure this exception cannot be thrown by simply malforming code
 	throw InternalException("Provided string handle does not correspond to a parameter of this function");
 }
 
@@ -94,7 +93,6 @@ bool Function::IsParameterReference(StringHandle name) const
 			return iter->Parameter->IsReference();
 	}
 
-	// TODO - ensure this exception cannot be thrown by simply malforming code
 	throw InternalException("Provided string handle does not correspond to a parameter of this function");
 }
 
@@ -106,7 +104,6 @@ VM::EpochTypeID Function::GetParameterType(StringHandle name, const IRSemantics:
 			return iter->Parameter->GetParamType(program);
 	}
 
-	// TODO - ensure this exception cannot be thrown by simply malforming code
 	throw InternalException("Provided string handle does not correspond to a parameter of this function");
 }
 
@@ -124,6 +121,17 @@ std::vector<StringHandle> Function::GetParameterNames() const
 		ret.push_back(iter->Name);
 
 	return ret;
+}
+
+bool Function::HasParameter(StringHandle paramname) const
+{
+	for(std::vector<Param>::const_iterator iter = Parameters.begin(); iter != Parameters.end(); ++iter)
+	{
+		if(iter->Name == paramname)
+			return true;
+	}
+
+	return false;
 }
 
 
@@ -156,25 +164,25 @@ bool Function::Validate(const IRSemantics::Program& program) const
 }
 
 
-bool Function::CompileTimeCodeExecution(Program& program)
+bool Function::CompileTimeCodeExecution(Program& program, CompileErrors& errors)
 {
 	if(Return)
 	{
 		if(!Code)
 			return false;
 
-		if(!Return->CompileTimeCodeExecution(program, *Code, true))
+		if(!Return->CompileTimeCodeExecution(program, *Code, true, errors))
 			return false;
 	}
 
 	if(!Code)
 		return true;
 
-	return Code->CompileTimeCodeExecution(program);
+	return Code->CompileTimeCodeExecution(program, errors);
 }
 
 
-bool Function::TypeInference(Program& program, InferenceContext&)
+bool Function::TypeInference(Program& program, InferenceContext&, CompileErrors& errors)
 {
 	if(InferenceDone)
 		return true;
@@ -188,7 +196,7 @@ bool Function::TypeInference(Program& program, InferenceContext&)
 	{
 		InferenceContext newcontext(Name, InferenceContext::CONTEXT_FUNCTION_RETURN);
 		newcontext.FunctionName = Name;
-		if(!Return->TypeInference(program, *Code, newcontext, 0))
+		if(!Return->TypeInference(program, *Code, newcontext, 0, errors))
 			return false;
 	}
 
@@ -197,7 +205,7 @@ bool Function::TypeInference(Program& program, InferenceContext&)
 
 	InferenceContext newcontext(Name, InferenceContext::CONTEXT_FUNCTION);
 	newcontext.FunctionName = Name;
-	return Code->TypeInference(program, newcontext);
+	return Code->TypeInference(program, newcontext, errors);
 }
 
 
@@ -276,7 +284,6 @@ VM::EpochTypeID Function::GetParameterSignatureType(StringHandle name, const IRS
 		}
 	}
 
-	// TODO - ensure this exception cannot be thrown by simply malforming code
 	throw InternalException("Provided string handle does not correspond to a parameter of this function");
 }
 
@@ -334,7 +341,6 @@ FunctionSignature Function::GetParameterSignature(StringHandle name, const IRSem
 		}
 	}
 
-	// TODO - ensure this exception cannot be thrown by simply malforming code
 	throw InternalException("Provided string handle does not correspond to a parameter of this function");
 }
 

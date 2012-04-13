@@ -78,10 +78,10 @@ bool Assignment::Validate(const Program& program) const
 	return valid && RHS->Validate(program);
 }
 
-bool Assignment::TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context)
+bool Assignment::TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, CompileErrors& errors)
 {
 	LHSType = InferMemberAccessType(LHS, program, activescope);
-	if(!RHS->TypeInference(program, activescope, context))
+	if(!RHS->TypeInference(program, activescope, context, errors))
 		return false;
 
 	OverloadMap::const_iterator iter = program.Session.FunctionOverloadNames.find(OperatorName);
@@ -121,11 +121,11 @@ VM::EpochTypeID AssignmentChainExpression::GetEpochType(const Program& program) 
 	return MyExpression->GetEpochType(program);
 }
 
-bool AssignmentChainExpression::TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context)
+bool AssignmentChainExpression::TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, CompileErrors& errors)
 {
 	InferenceContext newcontext(0, InferenceContext::CONTEXT_ASSIGNMENT);
 	newcontext.FunctionName = context.FunctionName;
-	return MyExpression->TypeInference(program, activescope, newcontext, 0);
+	return MyExpression->TypeInference(program, activescope, newcontext, 0, errors);
 }
 
 bool AssignmentChainExpression::Validate(const Program& program) const
@@ -155,9 +155,9 @@ VM::EpochTypeID AssignmentChainAssignment::GetEpochType(const Program& program) 
 	return MyAssignment->GetRHS()->GetEpochType(program);
 }
 
-bool AssignmentChainAssignment::TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context)
+bool AssignmentChainAssignment::TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, CompileErrors& errors)
 {
-	return MyAssignment->TypeInference(program, activescope, context);
+	return MyAssignment->TypeInference(program, activescope, context, errors);
 }
 
 bool AssignmentChainAssignment::Validate(const Program& program) const

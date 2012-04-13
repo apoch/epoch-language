@@ -239,6 +239,7 @@ namespace IRSemantics
 		void AddParameter(StringHandle name, FunctionParam* param, CompileErrors& errors);
 
 		std::vector<StringHandle> GetParameterNames() const;
+		bool HasParameter(StringHandle paramname) const;
 
 		bool IsParameterLocalVariable(StringHandle name) const;
 		VM::EpochTypeID GetParameterType(StringHandle name, const IRSemantics::Program& program) const;
@@ -287,11 +288,11 @@ namespace IRSemantics
 
 	// Compile time code execution
 	public:
-		bool CompileTimeCodeExecution(IRSemantics::Program& program);
+		bool CompileTimeCodeExecution(IRSemantics::Program& program, CompileErrors& errors);
 
 	// Type inference
 	public:
-		bool TypeInference(IRSemantics::Program& program, InferenceContext& context);
+		bool TypeInference(IRSemantics::Program& program, InferenceContext& context, CompileErrors& errors);
 
 	// Tags
 	public:

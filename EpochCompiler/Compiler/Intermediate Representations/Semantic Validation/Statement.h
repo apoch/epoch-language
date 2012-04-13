@@ -12,7 +12,12 @@
 #include "Utility/Types/IDTypes.h"
 #include "Utility/Types/EpochTypeIDs.h"
 
+#include "Compiler/Abstract Syntax Tree/IdentifierT.h"
+
 #include <vector>
+
+
+class CompileErrors;
 
 
 namespace IRSemantics
@@ -29,8 +34,12 @@ namespace IRSemantics
 	{
 	// Construction and destruction
 	public:
-		explicit Statement(StringHandle name);
+		Statement(StringHandle name, const AST::IdentifierT& identifier);
 		~Statement();
+
+	// Non-assignable
+	private:
+		Statement& operator= (const Statement& rhs);
 
 	// Parameter control
 	public:
@@ -50,26 +59,23 @@ namespace IRSemantics
 
 	// Compile time code execution
 	public:
-		bool CompileTimeCodeExecution(Program& program, CodeBlock& activescope, bool inreturnexpr);
+		bool CompileTimeCodeExecution(Program& program, CodeBlock& activescope, bool inreturnexpr, CompileErrors& errors);
 
 	// Type inference
 	public:
-		bool TypeInference(IRSemantics::Program& program, CodeBlock& activescope, InferenceContext& context, size_t index);
+		bool TypeInference(IRSemantics::Program& program, CodeBlock& activescope, InferenceContext& context, size_t index, CompileErrors& errors);
 
 	// Type system
 	public:
 		VM::EpochTypeID GetEpochType(const Program&) const
 		{ return MyType; }
 
-	// Parser position
-	public:
-		unsigned Position;
-
 	// Internal state
 	private:
 		StringHandle Name;
 		std::vector<Expression*> Parameters;
 		VM::EpochTypeID MyType;
+		const AST::IdentifierT& OriginalIdentifier;
 	};
 
 
@@ -93,7 +99,7 @@ namespace IRSemantics
 
 	// Type inference
 	public:
-		bool TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context);
+		bool TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, CompileErrors& errors);
 
 	// Type system
 	public:
@@ -131,7 +137,7 @@ namespace IRSemantics
 
 	// Type inference
 	public:
-		bool TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context);
+		bool TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, CompileErrors& errors);
 
 	// Type system
 	public:

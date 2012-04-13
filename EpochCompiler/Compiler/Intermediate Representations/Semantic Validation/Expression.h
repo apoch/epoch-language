@@ -9,6 +9,8 @@
 
 
 // Dependencies
+#include "Compiler/Abstract Syntax Tree/IdentifierT.h"
+
 #include "Compiler/ExportDef.h"
 
 #include "Utility/Types/IDTypes.h"
@@ -19,6 +21,9 @@
 #include "Metadata/CompileTimeParams.h"
 
 #include <vector>
+
+
+class CompileErrors;
 
 
 namespace IRSemantics
@@ -43,8 +48,8 @@ namespace IRSemantics
 	// Atom interface
 	public:
 		virtual VM::EpochTypeID GetEpochType(const Program& program) const = 0;
-		virtual bool TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, size_t index) = 0;
-		virtual bool CompileTimeCodeExecution(Program& program, CodeBlock& activescope, bool inreturnexpr) = 0;
+		virtual bool TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, size_t index, CompileErrors& errors) = 0;
+		virtual bool CompileTimeCodeExecution(Program& program, CodeBlock& activescope, bool inreturnexpr, CompileErrors& errors) = 0;
 		virtual CompileTimeParameter ConvertToCompileTimeParam(const Program& program) const = 0;
 	};
 
@@ -66,11 +71,11 @@ namespace IRSemantics
 
 	// Compile time code execution
 	public:
-		bool CompileTimeCodeExecution(Program& program, CodeBlock& activescope, bool inreturnexpr);
+		bool CompileTimeCodeExecution(Program& program, CodeBlock& activescope, bool inreturnexpr, CompileErrors& errors);
 
 	// Type inference
 	public:
-		bool TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, size_t index);
+		bool TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, size_t index, CompileErrors& errors);
 
 	// Atom access and manipulation
 	public:
@@ -84,7 +89,7 @@ namespace IRSemantics
 
 	// Internal helpers
 	private:
-		void Coalesce(Program& program, CodeBlock& activescope);
+		void Coalesce(Program& program, CodeBlock& activescope, CompileErrors& errors);
 
 	// Internal state
 	private:
@@ -104,11 +109,11 @@ namespace IRSemantics
 	// Type system
 	public:
 		virtual VM::EpochTypeID GetEpochType(const Program& program) const = 0;
-		virtual bool TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context) const = 0;
+		virtual bool TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, CompileErrors& errors) const = 0;
 
 	// Compile time code execution
 	public:
-		virtual bool CompileTimeCodeExecution(Program& program, CodeBlock& activescope, bool inreturnexpr) = 0;
+		virtual bool CompileTimeCodeExecution(Program& program, CodeBlock& activescope, bool inreturnexpr, CompileErrors& errors) = 0;
 	};
 
 
@@ -127,11 +132,11 @@ namespace IRSemantics
 	// Type system
 	public:
 		virtual VM::EpochTypeID GetEpochType(const Program& program) const;
-		virtual bool TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context) const;
+		virtual bool TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, CompileErrors& errors) const;
 
 	// Compile time code execution
 	public:
-		bool CompileTimeCodeExecution(Program& program, CodeBlock& activescope, bool inreturnexpr);
+		bool CompileTimeCodeExecution(Program& program, CodeBlock& activescope, bool inreturnexpr, CompileErrors& errors);
 
 	// State access
 	public:
@@ -157,12 +162,12 @@ namespace IRSemantics
 
 	// Compile time code execution
 	public:
-		bool CompileTimeCodeExecution(Program& program, CodeBlock& activescope, bool inreturnexpr);
+		bool CompileTimeCodeExecution(Program& program, CodeBlock& activescope, bool inreturnexpr, CompileErrors& errors);
 
 	// Type system
 	public:
 		virtual VM::EpochTypeID GetEpochType(const Program& program) const;
-		virtual bool TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context) const;
+		virtual bool TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, CompileErrors& errors) const;
 
 	// State access
 	public:
@@ -190,8 +195,8 @@ namespace IRSemantics
 	// Atom interface
 	public:
 		virtual VM::EpochTypeID GetEpochType(const Program& program) const;
-		virtual bool TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, size_t index);
-		virtual bool CompileTimeCodeExecution(Program& program, CodeBlock& activescope, bool inreturnexpr);
+		virtual bool TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, size_t index, CompileErrors& errors);
+		virtual bool CompileTimeCodeExecution(Program& program, CodeBlock& activescope, bool inreturnexpr, CompileErrors& errors);
 		
 		virtual CompileTimeParameter ConvertToCompileTimeParam(const Program&) const
 		{ throw std::runtime_error("Invalid atom for compile time param"); }
@@ -209,21 +214,29 @@ namespace IRSemantics
 	{
 	// Construction
 	public:
-		explicit ExpressionAtomIdentifier(StringHandle identifier)
+		ExpressionAtomIdentifier(StringHandle identifier, const AST::IdentifierT& originalidentifier)
 			: Identifier(identifier),
-			  MyType(VM::EpochType_Error)
+			  MyType(VM::EpochType_Error),
+			  OriginalIdentifier(originalidentifier)
 		{ }
+
+	// Non-assignable
+	private:
+		ExpressionAtomIdentifier& operator = (const ExpressionAtomIdentifier& rhs);
 
 	// Accessors
 	public:
 		StringHandle GetIdentifier() const
 		{ return Identifier; }
 
+		const AST::IdentifierT& GetOriginalIdentifier() const
+		{ return OriginalIdentifier; }
+
 	// Atom interface
 	public:
 		virtual VM::EpochTypeID GetEpochType(const Program& program) const;
-		virtual bool TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, size_t index);
-		virtual bool CompileTimeCodeExecution(Program& program, CodeBlock& activescope, bool inreturnexpr);
+		virtual bool TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, size_t index, CompileErrors& errors);
+		virtual bool CompileTimeCodeExecution(Program& program, CodeBlock& activescope, bool inreturnexpr, CompileErrors& errors);
 		
 		virtual CompileTimeParameter ConvertToCompileTimeParam(const Program&) const
 		{ throw std::runtime_error("Invalid atom for compile time param"); }
@@ -232,14 +245,15 @@ namespace IRSemantics
 	private:
 		StringHandle Identifier;
 		VM::EpochTypeID MyType;
+		const AST::IdentifierT& OriginalIdentifier;
 	};
 
 	class ExpressionAtomIdentifierReference : public ExpressionAtomIdentifier
 	{
 	// Construction
 	public:
-		explicit ExpressionAtomIdentifierReference(StringHandle identifier)
-			: ExpressionAtomIdentifier(identifier)
+		ExpressionAtomIdentifierReference(StringHandle identifier, const AST::IdentifierT& originalidentifier)
+			: ExpressionAtomIdentifier(identifier, originalidentifier)
 		{ }
 	};
 
@@ -263,8 +277,8 @@ namespace IRSemantics
 	// Atom interface
 	public:
 		virtual VM::EpochTypeID GetEpochType(const Program& program) const;
-		virtual bool TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, size_t index);
-		virtual bool CompileTimeCodeExecution(Program& program, CodeBlock& activescope, bool inreturnexpr);
+		virtual bool TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, size_t index, CompileErrors& errors);
+		virtual bool CompileTimeCodeExecution(Program& program, CodeBlock& activescope, bool inreturnexpr, CompileErrors& errors);
 		
 		virtual CompileTimeParameter ConvertToCompileTimeParam(const Program&) const
 		{ throw std::runtime_error("Invalid atom for compile time param"); }
@@ -272,8 +286,8 @@ namespace IRSemantics
 	// Additional type inference support
 	public:
 		bool IsOperatorUnary(const Program& program) const;
-		VM::EpochTypeID DetermineOperatorReturnType(Program& program, VM::EpochTypeID lhstype, VM::EpochTypeID rhstype) const;
-		VM::EpochTypeID DetermineUnaryReturnType(Program& program, VM::EpochTypeID operandtype) const;
+		VM::EpochTypeID DetermineOperatorReturnType(Program& program, VM::EpochTypeID lhstype, VM::EpochTypeID rhstype, CompileErrors& errors) const;
+		VM::EpochTypeID DetermineUnaryReturnType(Program& program, VM::EpochTypeID operandtype, CompileErrors& errors) const;
 
 		bool IsMemberAccess() const
 		{ return IsMemberAccessFlag; }
@@ -300,8 +314,8 @@ namespace IRSemantics
 	// Atom interface
 	public:
 		virtual VM::EpochTypeID GetEpochType(const Program& program) const;
-		virtual bool TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, size_t index);
-		virtual bool CompileTimeCodeExecution(Program& program, CodeBlock& activescope, bool inreturnexpr);
+		virtual bool TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, size_t index, CompileErrors& errors);
+		virtual bool CompileTimeCodeExecution(Program& program, CodeBlock& activescope, bool inreturnexpr, CompileErrors& errors);
 		virtual CompileTimeParameter ConvertToCompileTimeParam(const Program& program) const;
 
 	// Internal state
@@ -325,8 +339,8 @@ namespace IRSemantics
 	// Atom interface
 	public:
 		virtual VM::EpochTypeID GetEpochType(const Program& program) const;
-		virtual bool TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, size_t index);
-		virtual bool CompileTimeCodeExecution(Program& program, CodeBlock& activescope, bool inreturnexpr);
+		virtual bool TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, size_t index, CompileErrors& errors);
+		virtual bool CompileTimeCodeExecution(Program& program, CodeBlock& activescope, bool inreturnexpr, CompileErrors& errors);
 		virtual CompileTimeParameter ConvertToCompileTimeParam(const Program& program) const;
 
 	// Internal state
@@ -350,8 +364,8 @@ namespace IRSemantics
 	// Atom interface
 	public:
 		virtual VM::EpochTypeID GetEpochType(const Program& program) const;
-		virtual bool TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, size_t index);
-		virtual bool CompileTimeCodeExecution(Program& program, CodeBlock& activescope, bool inreturnexpr);
+		virtual bool TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, size_t index, CompileErrors& errors);
+		virtual bool CompileTimeCodeExecution(Program& program, CodeBlock& activescope, bool inreturnexpr, CompileErrors& errors);
 		virtual CompileTimeParameter ConvertToCompileTimeParam(const Program& program) const;
 
 	// Internal state
@@ -375,8 +389,8 @@ namespace IRSemantics
 	// Atom interface
 	public:
 		virtual VM::EpochTypeID GetEpochType(const Program& program) const;
-		virtual bool TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, size_t index);
-		virtual bool CompileTimeCodeExecution(Program& program, CodeBlock& activescope, bool inreturnexpr);
+		virtual bool TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, size_t index, CompileErrors& errors);
+		virtual bool CompileTimeCodeExecution(Program& program, CodeBlock& activescope, bool inreturnexpr, CompileErrors& errors);
 		virtual CompileTimeParameter ConvertToCompileTimeParam(const Program& program) const;
 
 	// Internal state
@@ -399,8 +413,8 @@ namespace IRSemantics
 	// Atom interface
 	public:
 		virtual VM::EpochTypeID GetEpochType(const Program& program) const;
-		virtual bool TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, size_t index);
-		virtual bool CompileTimeCodeExecution(Program& program, CodeBlock& activescope, bool inreturnexpr);
+		virtual bool TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, size_t index, CompileErrors& errors);
+		virtual bool CompileTimeCodeExecution(Program& program, CodeBlock& activescope, bool inreturnexpr, CompileErrors& errors);
 		
 		virtual CompileTimeParameter ConvertToCompileTimeParam(const Program&) const
 		{ throw std::runtime_error("Invalid atom type for compile time parameter"); }
@@ -435,10 +449,10 @@ namespace IRSemantics
 		virtual VM::EpochTypeID GetEpochType(const Program&) const
 		{ return MyType; }
 
-		virtual bool TypeInference(Program&, CodeBlock&, InferenceContext&, size_t)
+		virtual bool TypeInference(Program&, CodeBlock&, InferenceContext&, size_t, CompileErrors&)
 		{ return true; }
 
-		virtual bool CompileTimeCodeExecution(Program&, CodeBlock&, bool)
+		virtual bool CompileTimeCodeExecution(Program&, CodeBlock&, bool, CompileErrors&)
 		{ return true; }
 		
 		virtual CompileTimeParameter ConvertToCompileTimeParam(const Program&) const
@@ -475,10 +489,10 @@ namespace IRSemantics
 		virtual VM::EpochTypeID GetEpochType(const Program&) const
 		{ return MyType; }
 
-		virtual bool TypeInference(Program&, CodeBlock&, InferenceContext&, size_t)
+		virtual bool TypeInference(Program&, CodeBlock&, InferenceContext&, size_t, CompileErrors&)
 		{ return true; }
 
-		virtual bool CompileTimeCodeExecution(Program&, CodeBlock&, bool)
+		virtual bool CompileTimeCodeExecution(Program&, CodeBlock&, bool, CompileErrors&)
 		{ return true; }
 		
 		virtual CompileTimeParameter ConvertToCompileTimeParam(const Program&) const

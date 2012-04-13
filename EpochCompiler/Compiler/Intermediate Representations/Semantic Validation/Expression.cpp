@@ -60,14 +60,14 @@ bool Expression::Validate(const Program& program) const
 }
 
 
-bool Expression::CompileTimeCodeExecution(Program& program, CodeBlock& activescope, bool inreturnexpr)
+bool Expression::CompileTimeCodeExecution(Program& program, CodeBlock& activescope, bool inreturnexpr, CompileErrors& errors)
 {
-	Coalesce(program, activescope);
+	Coalesce(program, activescope, errors);
 
 	bool result = true;
 	for(std::vector<ExpressionAtom*>::iterator iter = Atoms.begin(); iter != Atoms.end(); ++iter)
 	{
-		if(!(*iter)->CompileTimeCodeExecution(program, activescope, inreturnexpr))
+		if(!(*iter)->CompileTimeCodeExecution(program, activescope, inreturnexpr, errors))
 			result = false;
 	}
 
@@ -77,7 +77,7 @@ bool Expression::CompileTimeCodeExecution(Program& program, CodeBlock& activesco
 
 namespace
 {
-	VM::EpochTypeID WalkAtomsForType(const std::vector<ExpressionAtom*>& atoms, Program& program, size_t& index, VM::EpochTypeID lastknowntype)
+	VM::EpochTypeID WalkAtomsForType(const std::vector<ExpressionAtom*>& atoms, Program& program, size_t& index, VM::EpochTypeID lastknowntype, CompileErrors& errors)
 	{
 		VM::EpochTypeID ret = lastknowntype;
 
@@ -96,31 +96,31 @@ namespace
 				{
 					Function* func = program.GetFunctions().find(opatom->GetIdentifier())->second;
 					InferenceContext context(0, InferenceContext::CONTEXT_GLOBAL);
-					func->TypeInference(program, context);
+					func->TypeInference(program, context, errors);
 					ret = func->GetReturnType(program);
 					++index;
 				}
 				else if(opatom->IsOperatorUnary(program))
 				{
-					VM::EpochTypeID operandtype = WalkAtomsForType(atoms, program, ++index, ret);
+					VM::EpochTypeID operandtype = WalkAtomsForType(atoms, program, ++index, ret, errors);
 					if(operandtype == VM::EpochType_Infer)
 					{
 						index = atoms.size();
 						break;
 					}
 
-					ret = opatom->DetermineUnaryReturnType(program, operandtype);
+					ret = opatom->DetermineUnaryReturnType(program, operandtype, errors);
 				}
 				else
 				{
-					VM::EpochTypeID rhstype = WalkAtomsForType(atoms, program, ++index, ret);
+					VM::EpochTypeID rhstype = WalkAtomsForType(atoms, program, ++index, ret, errors);
 					if(rhstype == VM::EpochType_Infer)
 					{
 						index = atoms.size();
 						break;
 					}
 
-					ret = opatom->DetermineOperatorReturnType(program, ret, rhstype);
+					ret = opatom->DetermineOperatorReturnType(program, ret, rhstype, errors);
 				}
 
 				break;
@@ -132,7 +132,7 @@ namespace
 		return ret;
 	}
 
-	VM::EpochTypeID WalkAtomsForTypePartial(const std::vector<ExpressionAtom*>& atoms, Program& program, size_t& index, VM::EpochTypeID lastknowntype)
+	VM::EpochTypeID WalkAtomsForTypePartial(const std::vector<ExpressionAtom*>& atoms, Program& program, size_t& index, VM::EpochTypeID lastknowntype, CompileErrors& errors)
 	{
 		VM::EpochTypeID ret = lastknowntype;
 
@@ -151,20 +151,20 @@ namespace
 				{
 					Function* func = program.GetFunctions().find(opatom->GetIdentifier())->second;
 					InferenceContext context(0, InferenceContext::CONTEXT_GLOBAL);
-					func->TypeInference(program, context);
+					func->TypeInference(program, context, errors);
 					ret = func->GetReturnType(program);
 					++index;
 				}
 				else if(opatom->IsOperatorUnary(program))
 				{
-					VM::EpochTypeID operandtype = WalkAtomsForType(atoms, program, ++index, ret);
+					VM::EpochTypeID operandtype = WalkAtomsForType(atoms, program, ++index, ret, errors);
 					if(operandtype == VM::EpochType_Infer)
 					{
 						index = atoms.size();
 						break;
 					}
 
-					ret = opatom->DetermineUnaryReturnType(program, operandtype);
+					ret = opatom->DetermineUnaryReturnType(program, operandtype, errors);
 				}
 				else
 					break;
@@ -178,9 +178,9 @@ namespace
 }
 
 
-bool Expression::TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, size_t index)
+bool Expression::TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, size_t index, CompileErrors& errors)
 {
-	Coalesce(program, activescope);
+	Coalesce(program, activescope, errors);
 
 	InferenceContext newcontext(context.ContextName, InferenceContext::CONTEXT_EXPRESSION);
 	newcontext.FunctionName = context.FunctionName;
@@ -194,18 +194,18 @@ bool Expression::TypeInference(Program& program, CodeBlock& activescope, Inferen
 		ExpressionAtomOperator* opatom = dynamic_cast<ExpressionAtomOperator*>(*iter);
 		if(opatom && opatom->IsOperatorUnary(program) && !opatom->IsMemberAccess())
 		{
-			if(!(*iter)->TypeInference(program, activescope, selectedcontext, index))
+			if(!(*iter)->TypeInference(program, activescope, selectedcontext, index, errors))
 				result = false;
 
 			newcontext.ContextName = opatom->GetIdentifier();
 			newcontext.ExpectedTypes.clear();
-			newcontext.ExpectedTypes.push_back(program.GetExpectedTypesForStatement(opatom->GetIdentifier(), *activescope.GetScope(), context.ContextName));
+			newcontext.ExpectedTypes.push_back(program.GetExpectedTypesForStatement(opatom->GetIdentifier(), *activescope.GetScope(), context.ContextName, errors));
 			newcontext.ExpectedSignatures.clear();
-			newcontext.ExpectedSignatures.push_back(program.GetExpectedSignaturesForStatement(opatom->GetIdentifier(), *activescope.GetScope(), context.ContextName));
+			newcontext.ExpectedSignatures.push_back(program.GetExpectedSignaturesForStatement(opatom->GetIdentifier(), *activescope.GetScope(), context.ContextName, errors));
 		}
 		else if(opatom && !opatom->IsMemberAccess())
 		{
-			if(!(*iter)->TypeInference(program, activescope, selectedcontext, index))
+			if(!(*iter)->TypeInference(program, activescope, selectedcontext, index, errors))
 				result = false;
 
 			std::vector<ExpressionAtom*>::iterator nextiter = iter;
@@ -214,11 +214,11 @@ bool Expression::TypeInference(Program& program, CodeBlock& activescope, Inferen
 			{
 				newcontext.ContextName = opatom->GetIdentifier();
 				newcontext.ExpectedTypes.clear();
-				newcontext.ExpectedTypes.push_back(program.GetExpectedTypesForStatement(opatom->GetIdentifier(), *activescope.GetScope(), context.ContextName));
+				newcontext.ExpectedTypes.push_back(program.GetExpectedTypesForStatement(opatom->GetIdentifier(), *activescope.GetScope(), context.ContextName, errors));
 				newcontext.ExpectedSignatures.clear();
-				newcontext.ExpectedSignatures.push_back(program.GetExpectedSignaturesForStatement(opatom->GetIdentifier(), *activescope.GetScope(), context.ContextName));
+				newcontext.ExpectedSignatures.push_back(program.GetExpectedSignaturesForStatement(opatom->GetIdentifier(), *activescope.GetScope(), context.ContextName, errors));
 
-				if(!(*nextiter)->TypeInference(program, activescope, newcontext, 1))
+				if(!(*nextiter)->TypeInference(program, activescope, newcontext, 1, errors))
 					result = false;
 
 				iter = nextiter;
@@ -236,15 +236,15 @@ bool Expression::TypeInference(Program& program, CodeBlock& activescope, Inferen
 			{
 				InferenceContext atomcontext(nextopatom->GetIdentifier(), InferenceContext::CONTEXT_EXPRESSION);
 				atomcontext.FunctionName = context.FunctionName;
-				atomcontext.ExpectedTypes.push_back(program.GetExpectedTypesForStatement(nextopatom->GetIdentifier(), *activescope.GetScope(), context.ContextName));
-				atomcontext.ExpectedSignatures.push_back(program.GetExpectedSignaturesForStatement(nextopatom->GetIdentifier(), *activescope.GetScope(), context.ContextName));
-				if(!(*iter)->TypeInference(program, activescope, atomcontext, 0))
+				atomcontext.ExpectedTypes.push_back(program.GetExpectedTypesForStatement(nextopatom->GetIdentifier(), *activescope.GetScope(), context.ContextName, errors));
+				atomcontext.ExpectedSignatures.push_back(program.GetExpectedSignaturesForStatement(nextopatom->GetIdentifier(), *activescope.GetScope(), context.ContextName, errors));
+				if(!(*iter)->TypeInference(program, activescope, atomcontext, 0, errors))
 					result = false;
 			}
 		}
 		else
 		{
-			if(!(*iter)->TypeInference(program, activescope, selectedcontext, index))
+			if(!(*iter)->TypeInference(program, activescope, selectedcontext, index, errors))
 				result = false;
 		}
 	}
@@ -261,7 +261,7 @@ bool Expression::TypeInference(Program& program, CodeBlock& activescope, Inferen
 
 		VM::EpochTypeID typerhs = VM::EpochType_Error;
 		unsigned rhsidx = iter - Atoms.begin() + 1;
-		typerhs = WalkAtomsForType(Atoms, program, rhsidx, typerhs);
+		typerhs = WalkAtomsForType(Atoms, program, rhsidx, typerhs, errors);
 
 		if(program.Session.InfoTable.UnaryPrefixes->find(program.GetString(opatom->GetIdentifier())) != program.Session.InfoTable.UnaryPrefixes->end())
 		{
@@ -287,7 +287,7 @@ bool Expression::TypeInference(Program& program, CodeBlock& activescope, Inferen
 			if(overloadmapiter != program.Session.FunctionOverloadNames.end())
 			{
 				VM::EpochTypeID typelhs = VM::EpochType_Error;
-				typelhs = WalkAtomsForTypePartial(Atoms, program, idx, typelhs);
+				typelhs = WalkAtomsForTypePartial(Atoms, program, idx, typelhs, errors);
 
 				bool found = false;
 				const StringHandleSet& overloads = overloadmapiter->second;
@@ -312,23 +312,14 @@ bool Expression::TypeInference(Program& program, CodeBlock& activescope, Inferen
 	}
 
 	if(!result)
-	{
-		UI::OutputStream output;
-		output << UI::lightred << "Expression atoms failed type inference" << UI::white << std::endl;
 		return false;
-	}
 
 	InferredType = VM::EpochType_Void;
 	size_t i = 0;
 	while(i < Atoms.size())
-		InferredType = WalkAtomsForType(Atoms, program, i, InferredType);
+		InferredType = WalkAtomsForType(Atoms, program, i, InferredType, errors);
 
 	result = (InferredType != VM::EpochType_Infer && InferredType != VM::EpochType_Error);
-	if(!result)
-	{
-		UI::OutputStream output;
-		output << UI::lightred << "Expression failed type inference" << UI::white << std::endl;
-	}
 
 	// Perform operator precedence reordering
 	// TODO - proper operator precedence, right now this is just a hacky postfix reorder
@@ -362,7 +353,7 @@ void Expression::AddAtom(ExpressionAtom* atom)
 	Atoms.push_back(atom);
 }
 
-void Expression::Coalesce(Program& program, CodeBlock& activescope)
+void Expression::Coalesce(Program& program, CodeBlock& activescope, CompileErrors& errors)
 {
 	if(Coalesced)
 		return;
@@ -396,7 +387,7 @@ void Expression::Coalesce(Program& program, CodeBlock& activescope)
 				if(identifieratom)
 				{
 					structuretype = activescope.GetScope()->GetVariableTypeByID(identifieratom->GetIdentifier());
-					*previter = new ExpressionAtomIdentifierReference(identifieratom->GetIdentifier());
+					*previter = new ExpressionAtomIdentifierReference(identifieratom->GetIdentifier(), identifieratom->GetOriginalIdentifier());
 					delete identifieratom;
 
 					StringHandle structurename = program.GetNameOfStructureType(structuretype);
@@ -408,7 +399,7 @@ void Expression::Coalesce(Program& program, CodeBlock& activescope)
 					*iter = new ExpressionAtomOperator(memberaccessname, true);
 
 					InferenceContext newcontext(0, InferenceContext::CONTEXT_GLOBAL);
-					program.GetFunctions().find(memberaccessname)->second->TypeInference(program, newcontext);
+					program.GetFunctions().find(memberaccessname)->second->TypeInference(program, newcontext, errors);
 					structuretype = program.GetFunctions().find(memberaccessname)->second->GetReturnType(program);
 
 					delete *nextiter;
@@ -422,7 +413,7 @@ void Expression::Coalesce(Program& program, CodeBlock& activescope)
 					StringHandle memberaccessname = program.FindStructureMemberAccessOverload(structurename, opid->GetIdentifier());
 
 					InferenceContext newcontext(0, InferenceContext::CONTEXT_GLOBAL);
-					program.GetFunctions().find(memberaccessname)->second->TypeInference(program, newcontext);
+					program.GetFunctions().find(memberaccessname)->second->TypeInference(program, newcontext, errors);
 					structuretype = program.GetFunctions().find(memberaccessname)->second->GetReturnType(program);
 
 					delete opatom;
@@ -458,14 +449,14 @@ VM::EpochTypeID ExpressionAtomStatement::GetEpochType(const Program& program) co
 	return MyStatement->GetEpochType(program);
 }
 
-bool ExpressionAtomStatement::TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, size_t index)
+bool ExpressionAtomStatement::TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, size_t index, CompileErrors& errors)
 {
-	return MyStatement->TypeInference(program, activescope, context, index);
+	return MyStatement->TypeInference(program, activescope, context, index, errors);
 }
 
-bool ExpressionAtomStatement::CompileTimeCodeExecution(Program& program, CodeBlock& activescope, bool inreturnexpr)
+bool ExpressionAtomStatement::CompileTimeCodeExecution(Program& program, CodeBlock& activescope, bool inreturnexpr, CompileErrors& errors)
 {
-	return MyStatement->CompileTimeCodeExecution(program, activescope, inreturnexpr);
+	return MyStatement->CompileTimeCodeExecution(program, activescope, inreturnexpr, errors);
 }
 
 
@@ -487,14 +478,14 @@ VM::EpochTypeID ExpressionAtomParenthetical::GetEpochType(const Program& program
 	return VM::EpochType_Error;
 }
 
-bool ExpressionAtomParenthetical::TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, size_t)
+bool ExpressionAtomParenthetical::TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, size_t, CompileErrors& errors)
 {
-	return MyParenthetical->TypeInference(program, activescope, context);
+	return MyParenthetical->TypeInference(program, activescope, context, errors);
 }
 
-bool ExpressionAtomParenthetical::CompileTimeCodeExecution(Program& program, CodeBlock& activescope, bool inreturnexpr)
+bool ExpressionAtomParenthetical::CompileTimeCodeExecution(Program& program, CodeBlock& activescope, bool inreturnexpr, CompileErrors& errors)
 {
-	return MyParenthetical->CompileTimeCodeExecution(program, activescope, inreturnexpr);
+	return MyParenthetical->CompileTimeCodeExecution(program, activescope, inreturnexpr, errors);
 }
 
 
@@ -513,12 +504,12 @@ VM::EpochTypeID ParentheticalPreOp::GetEpochType(const Program& program) const
 	return MyStatement->GetEpochType(program);
 }
 
-bool ParentheticalPreOp::TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context) const
+bool ParentheticalPreOp::TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, CompileErrors& errors) const
 {
-	return MyStatement->TypeInference(program, activescope, context);
+	return MyStatement->TypeInference(program, activescope, context, errors);
 }
 
-bool ParentheticalPreOp::CompileTimeCodeExecution(Program&, CodeBlock&, bool)
+bool ParentheticalPreOp::CompileTimeCodeExecution(Program&, CodeBlock&, bool, CompileErrors&)
 {
 	return true;
 }
@@ -539,12 +530,12 @@ VM::EpochTypeID ParentheticalPostOp::GetEpochType(const Program& program) const
 	return MyStatement->GetEpochType(program);
 }
 
-bool ParentheticalPostOp::TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context) const
+bool ParentheticalPostOp::TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, CompileErrors& errors) const
 {
-	return MyStatement->TypeInference(program, activescope, context);
+	return MyStatement->TypeInference(program, activescope, context, errors);
 }
 
-bool ParentheticalPostOp::CompileTimeCodeExecution(Program&, CodeBlock&, bool)
+bool ParentheticalPostOp::CompileTimeCodeExecution(Program&, CodeBlock&, bool, CompileErrors&)
 {
 	return true;
 }
@@ -555,7 +546,7 @@ VM::EpochTypeID ExpressionAtomIdentifier::GetEpochType(const Program&) const
 	return MyType;
 }
 
-bool ExpressionAtomIdentifier::TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, size_t index)
+bool ExpressionAtomIdentifier::TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, size_t index, CompileErrors& errors)
 {
 	StringHandle resolvedidentifier = Identifier;
 	VM::EpochTypeID vartype = activescope.GetScope()->HasVariable(Identifier) ? activescope.GetScope()->GetVariableTypeByID(Identifier) : VM::EpochType_Infer;
@@ -592,7 +583,7 @@ bool ExpressionAtomIdentifier::TypeInference(Program& program, CodeBlock& active
 						StringHandle overloadname = program.GetFunctionOverloadName(Identifier, j);
 						Function* func = program.GetFunctions().find(overloadname)->second;
 
-						func->TypeInference(program, context);
+						func->TypeInference(program, context, errors);
 						FunctionSignature sig = func->GetFunctionSignature(program);
 						if(context.ExpectedSignatures.back()[i][index].Matches(sig))
 						{
@@ -631,14 +622,14 @@ bool ExpressionAtomIdentifier::TypeInference(Program& program, CodeBlock& active
 	bool success = (MyType != VM::EpochType_Infer && MyType != VM::EpochType_Error);
 	if(!success)
 	{
-		UI::OutputStream output;
-		output << UI::lightred << L"Cannot infer type of identifier \"" << program.GetString(Identifier) << L"\"" << UI::white << std::endl;
+		errors.SetContext(OriginalIdentifier);
+		errors.SemanticError("Unrecognized identifier");
 	}
 
 	return success;
 }
 
-bool ExpressionAtomIdentifier::CompileTimeCodeExecution(Program&, CodeBlock&, bool)
+bool ExpressionAtomIdentifier::CompileTimeCodeExecution(Program&, CodeBlock&, bool, CompileErrors&)
 {
 	// No op
 	return true;
@@ -650,12 +641,12 @@ VM::EpochTypeID ExpressionAtomOperator::GetEpochType(const Program&) const
 	return VM::EpochType_Error;
 }
 
-bool ExpressionAtomOperator::TypeInference(Program&, CodeBlock&, InferenceContext&, size_t)
+bool ExpressionAtomOperator::TypeInference(Program&, CodeBlock&, InferenceContext&, size_t, CompileErrors&)
 {
 	return true;
 }
 
-bool ExpressionAtomOperator::CompileTimeCodeExecution(Program&, CodeBlock&, bool)
+bool ExpressionAtomOperator::CompileTimeCodeExecution(Program&, CodeBlock&, bool, CompileErrors&)
 {
 	// No op
 	return true;
@@ -690,13 +681,13 @@ bool ExpressionAtomOperator::IsOperatorUnary(const Program& program) const
 	return false;
 }
 
-VM::EpochTypeID ExpressionAtomOperator::DetermineOperatorReturnType(Program& program, VM::EpochTypeID lhstype, VM::EpochTypeID rhstype) const
+VM::EpochTypeID ExpressionAtomOperator::DetermineOperatorReturnType(Program& program, VM::EpochTypeID lhstype, VM::EpochTypeID rhstype, CompileErrors& errors) const
 {
 	if(program.HasFunction(Identifier))
 	{
 		Function* func = program.GetFunctions().find(Identifier)->second;
 		InferenceContext context(0, InferenceContext::CONTEXT_GLOBAL);
-		func->TypeInference(program, context);
+		func->TypeInference(program, context, errors);
 		return func->GetReturnType(program);
 	}
 
@@ -730,13 +721,13 @@ VM::EpochTypeID ExpressionAtomOperator::DetermineOperatorReturnType(Program& pro
 	return VM::EpochType_Error;
 }
 
-VM::EpochTypeID ExpressionAtomOperator::DetermineUnaryReturnType(Program& program, VM::EpochTypeID operandtype) const
+VM::EpochTypeID ExpressionAtomOperator::DetermineUnaryReturnType(Program& program, VM::EpochTypeID operandtype, CompileErrors& errors) const
 {
 	if(program.HasFunction(Identifier))
 	{
 		Function* func = program.GetFunctions().find(Identifier)->second;
 		InferenceContext context(0, InferenceContext::CONTEXT_GLOBAL);
-		func->TypeInference(program, context);
+		func->TypeInference(program, context, errors);
 		return func->GetReturnType(program);
 	}
 
@@ -776,12 +767,12 @@ VM::EpochTypeID ExpressionAtomLiteralInteger32::GetEpochType(const Program&) con
 	return VM::EpochType_Integer;
 }
 
-bool ExpressionAtomLiteralInteger32::TypeInference(Program&, CodeBlock&, InferenceContext&, size_t)
+bool ExpressionAtomLiteralInteger32::TypeInference(Program&, CodeBlock&, InferenceContext&, size_t, CompileErrors&)
 {
 	return true;
 }
 
-bool ExpressionAtomLiteralInteger32::CompileTimeCodeExecution(Program&, CodeBlock&, bool)
+bool ExpressionAtomLiteralInteger32::CompileTimeCodeExecution(Program&, CodeBlock&, bool, CompileErrors&)
 {
 	// No op
 	return true;
@@ -799,12 +790,12 @@ VM::EpochTypeID ExpressionAtomLiteralReal32::GetEpochType(const Program&) const
 	return VM::EpochType_Real;
 }
 
-bool ExpressionAtomLiteralReal32::TypeInference(Program&, CodeBlock&, InferenceContext&, size_t)
+bool ExpressionAtomLiteralReal32::TypeInference(Program&, CodeBlock&, InferenceContext&, size_t, CompileErrors&)
 {
 	return true;
 }
 
-bool ExpressionAtomLiteralReal32::CompileTimeCodeExecution(Program&, CodeBlock&, bool)
+bool ExpressionAtomLiteralReal32::CompileTimeCodeExecution(Program&, CodeBlock&, bool, CompileErrors&)
 {
 	// No op
 	return true;
@@ -822,12 +813,12 @@ VM::EpochTypeID ExpressionAtomLiteralBoolean::GetEpochType(const Program&) const
 	return VM::EpochType_Boolean;
 }
 
-bool ExpressionAtomLiteralBoolean::TypeInference(Program&, CodeBlock&, InferenceContext&, size_t)
+bool ExpressionAtomLiteralBoolean::TypeInference(Program&, CodeBlock&, InferenceContext&, size_t, CompileErrors&)
 {
 	return true;
 }
 
-bool ExpressionAtomLiteralBoolean::CompileTimeCodeExecution(Program&, CodeBlock&, bool)
+bool ExpressionAtomLiteralBoolean::CompileTimeCodeExecution(Program&, CodeBlock&, bool, CompileErrors&)
 {
 	// No op
 	return true;
@@ -847,12 +838,12 @@ VM::EpochTypeID ExpressionAtomLiteralString::GetEpochType(const Program&) const
 	return VM::EpochType_String;
 }
 
-bool ExpressionAtomLiteralString::TypeInference(Program&, CodeBlock&, InferenceContext&, size_t)
+bool ExpressionAtomLiteralString::TypeInference(Program&, CodeBlock&, InferenceContext&, size_t, CompileErrors&)
 {
 	return true;
 }
 
-bool ExpressionAtomLiteralString::CompileTimeCodeExecution(Program&, CodeBlock&, bool)
+bool ExpressionAtomLiteralString::CompileTimeCodeExecution(Program&, CodeBlock&, bool, CompileErrors&)
 {
 	// No op
 	return true;

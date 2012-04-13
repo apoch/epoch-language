@@ -22,6 +22,9 @@
 #define STDCALL __stdcall
 
 
+#include <boost/range/iterator_range.hpp>
+
+
 #pragma warning(push)
 #pragma warning(disable: 4996)		// unsafe usage of std::copy
 
