@@ -165,29 +165,6 @@ bool Statement::TypeInference(Program& program, CodeBlock& activescope, Inferenc
 							match = false;
 							break;
 						}
-
-						// Validate function signatures
-						if(thisparamtype == VM::EpochType_Function)
-						{
-							/*
-							// TODO - this is broken if the expression atoms refer to a structure member
-							const ExpressionAtomIdentifier* identifieratom = dynamic_cast<const ExpressionAtomIdentifier*>(Parameters[j]->GetAtoms()[0]);
-							StringHandle identifier = identifieratom->GetIdentifier();
-
-							if(program.HasFunction(identifier))
-							{
-								// TODO
-							}
-							else
-							{
-								const FunctionSignature& funcsig = program.Session.FunctionSignatures.find(identifier)->second;
-								if(!func->DoesParameterSignatureMatch(j, funcsig, program))
-								{
-									match = false;
-									break;
-								}
-							}*/
-						}
 					}
 					
 					if(match)
@@ -252,6 +229,9 @@ bool Statement::TypeInference(Program& program, CodeBlock& activescope, Inferenc
 						}
 					}
 				}
+
+				if(MyType == VM::EpochType_Error || MyType == VM::EpochType_Infer)
+					errors.SemanticError("No matching overload");
 			}
 			else
 			{
@@ -280,6 +260,8 @@ bool Statement::TypeInference(Program& program, CodeBlock& activescope, Inferenc
 
 						if(match)
 							MyType = funciter->second.GetReturnType();
+						else
+							errors.SemanticError("No matching overload");
 					}
 				}
 				else
@@ -294,7 +276,7 @@ bool Statement::TypeInference(Program& program, CodeBlock& activescope, Inferenc
 		}
 	}
 
-	bool valid = MyType != VM::EpochType_Infer;
+	bool valid = (MyType != VM::EpochType_Infer && MyType != VM::EpochType_Error);
 	return valid;
 }
 

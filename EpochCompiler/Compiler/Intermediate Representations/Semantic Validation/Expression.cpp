@@ -42,17 +42,9 @@ bool Expression::Validate(const Program& program) const
 	switch(mytype)
 	{
 	case VM::EpochType_Error:
-		{
-			UI::OutputStream output;
-			output << L"Expression contains a type error" << std::endl;
-		}
 		return false;
 
 	case VM::EpochType_Infer:
-		{
-			UI::OutputStream output;
-			output << L"Type inference failed or otherwise incomplete" << std::endl;
-		}
 		return false;
 	}
 
@@ -548,8 +540,9 @@ VM::EpochTypeID ExpressionAtomIdentifier::GetEpochType(const Program&) const
 
 bool ExpressionAtomIdentifier::TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, size_t index, CompileErrors& errors)
 {
+	bool foundidentifier = activescope.GetScope()->HasVariable(Identifier);
 	StringHandle resolvedidentifier = Identifier;
-	VM::EpochTypeID vartype = activescope.GetScope()->HasVariable(Identifier) ? activescope.GetScope()->GetVariableTypeByID(Identifier) : VM::EpochType_Infer;
+	VM::EpochTypeID vartype = foundidentifier ? activescope.GetScope()->GetVariableTypeByID(Identifier) : VM::EpochType_Infer;
 	
 	std::set<VM::EpochTypeID> possibletypes;
 	unsigned signaturematches = 0;
@@ -566,12 +559,14 @@ bool ExpressionAtomIdentifier::TypeInference(Program& program, CodeBlock& active
 			}
 			else if(paramtype == VM::EpochType_Function)
 			{
+				possibletypes.insert(VM::EpochType_Function);
+
 				FunctionSignatureSet::const_iterator fsigiter = program.Session.FunctionSignatures.find(Identifier);
 				if(fsigiter != program.Session.FunctionSignatures.end())
 				{
+					foundidentifier = true;
 					if(context.ExpectedSignatures.back()[i][index].Matches(fsigiter->second))
 					{
-						possibletypes.insert(VM::EpochType_Function);
 						++signaturematches;
 					}
 				}
@@ -580,6 +575,7 @@ bool ExpressionAtomIdentifier::TypeInference(Program& program, CodeBlock& active
 					unsigned overloadcount = program.GetNumFunctionOverloads(Identifier);
 					for(unsigned j = 0; j < overloadcount; ++j)
 					{
+						foundidentifier = true;
 						StringHandle overloadname = program.GetFunctionOverloadName(Identifier, j);
 						Function* func = program.GetFunctions().find(overloadname)->second;
 
@@ -588,7 +584,6 @@ bool ExpressionAtomIdentifier::TypeInference(Program& program, CodeBlock& active
 						if(context.ExpectedSignatures.back()[i][index].Matches(sig))
 						{
 							resolvedidentifier = overloadname;
-							possibletypes.insert(VM::EpochType_Function);
 							++signaturematches;
 						}
 					}
@@ -602,7 +597,9 @@ bool ExpressionAtomIdentifier::TypeInference(Program& program, CodeBlock& active
 	}
 
 	if(possibletypes.size() != 1)
+	{
 		MyType = vartype;		// This will correctly handle structure types and fall back to Infer if all else fails
+	}
 	else
 	{
 		if(*possibletypes.begin() == VM::EpochType_Function)
@@ -623,9 +620,13 @@ bool ExpressionAtomIdentifier::TypeInference(Program& program, CodeBlock& active
 	if(!success)
 	{
 		errors.SetContext(OriginalIdentifier);
-		errors.SemanticError("Unrecognized identifier");
+		if(!foundidentifier)
+			errors.SemanticError("Unrecognized identifier");
+		else if(*possibletypes.begin() == VM::EpochType_Function)
+			errors.SemanticError("No matching functions");
+		else
+			errors.SemanticError("Type mismatch");
 	}
-
 	return success;
 }
 
