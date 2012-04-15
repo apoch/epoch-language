@@ -142,6 +142,8 @@ extern "C" void STDCALL BindToCompiler(CompilerInfoTable& info, StringPoolManage
 		FunctionTags::RegisterExternalTagHelper(*info.FunctionTagHelpers);
 		FunctionTags::RegisterConstructorTagHelper(*info.FunctionTagHelpers);
 		FunctionTags::RegisterNativeTagHelper(*info.FunctionTagHelpers);
+
+		StringFunctionLibrary::RegisterLibraryOverloads(*info.Overloads, stringpool);
 	}
 	catch(...)
 	{

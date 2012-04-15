@@ -187,6 +187,9 @@ bool Statement::TypeInference(Program& program, CodeBlock& activescope, Inferenc
 					}
 				}
 			}
+
+			if(MyType == VM::EpochType_Error || MyType == VM::EpochType_Infer)
+				errors.SemanticError("No matching overload");
 		}
 		else
 		{

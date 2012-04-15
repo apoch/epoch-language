@@ -54,6 +54,34 @@ namespace
 		context.TickStringGarbageCollector();
 	}
 
+
+	void Substring(StringHandle, VM::ExecutionContext& context)
+	{
+		Integer32 length = context.State.Stack.PopValue<Integer32>();
+		Integer32 start = context.State.Stack.PopValue<Integer32>();
+		StringHandle handle = context.State.Stack.PopValue<StringHandle>();
+
+		const std::wstring& str = context.OwnerVM.GetPooledString(handle);
+		std::wstring substring = str.substr(start, length);
+
+		StringHandle result = context.OwnerVM.PoolString(substring);
+		context.State.Stack.PushValue(result);
+		context.TickStringGarbageCollector();
+	}
+
+	void SubstringNoLength(StringHandle, VM::ExecutionContext& context)
+	{
+		Integer32 start = context.State.Stack.PopValue<Integer32>();
+		StringHandle handle = context.State.Stack.PopValue<StringHandle>();
+
+		const std::wstring& str = context.OwnerVM.GetPooledString(handle);
+		std::wstring substring = str.substr(start);
+
+		StringHandle result = context.OwnerVM.PoolString(substring);
+		context.State.Stack.PushValue(result);
+		context.TickStringGarbageCollector();
+	}
+
 }
 
 
@@ -63,6 +91,8 @@ namespace
 void StringFunctionLibrary::RegisterLibraryFunctions(FunctionInvocationTable& table, StringPoolManager& stringpool)
 {
 	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"unescape"), UnescapeString));
+	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"substring@@withlength"), Substring));
+	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"substring@@nolength"), SubstringNoLength));
 }
 
 //
@@ -75,6 +105,30 @@ void StringFunctionLibrary::RegisterLibraryFunctions(FunctionSignatureSet& signa
 		signature.AddParameter(L"str", VM::EpochType_String, false);
 		signature.SetReturnType(VM::EpochType_String);
 		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"unescape"), signature));
+	}
+	{
+		FunctionSignature signature;
+		signature.AddParameter(L"str", VM::EpochType_String, false);
+		signature.AddParameter(L"start", VM::EpochType_Integer, false);
+		signature.AddParameter(L"length", VM::EpochType_Integer, false);
+		signature.SetReturnType(VM::EpochType_String);
+		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"substring@@withlength"), signature));
+	}
+	{
+		FunctionSignature signature;
+		signature.AddParameter(L"str", VM::EpochType_String, false);
+		signature.AddParameter(L"start", VM::EpochType_Integer, false);
+		signature.SetReturnType(VM::EpochType_String);
+		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"substring@@nolength"), signature));
+	}
+}
+
+void StringFunctionLibrary::RegisterLibraryOverloads(OverloadMap& overloadmap, StringPoolManager& stringpool)
+{
+	{
+		StringHandle functionnamehandle = stringpool.Pool(L"substring");
+		overloadmap[functionnamehandle].insert(stringpool.Pool(L"substring@@withlength"));
+		overloadmap[functionnamehandle].insert(stringpool.Pool(L"substring@@nolength"));
 	}
 }
 
