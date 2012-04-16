@@ -114,6 +114,9 @@ bool Statement::TypeInference(Program& program, CodeBlock& activescope, Inferenc
 		throw InternalException("Statement type inference failure - unrecognized context");
 	}
 
+	if(context.State == InferenceContext::CONTEXT_FUNCTION_RETURN)
+		MyType = program.LookupType(Name);
+
 	size_t i = 0;
 	for(std::vector<Expression*>::iterator iter = Parameters.begin(); iter != Parameters.end(); ++iter)
 	{
@@ -123,9 +126,7 @@ bool Statement::TypeInference(Program& program, CodeBlock& activescope, Inferenc
 		++i;
 	}
 
-	if(context.State == InferenceContext::CONTEXT_FUNCTION_RETURN)
-		MyType = program.LookupType(Name);
-	else
+	if(context.State != InferenceContext::CONTEXT_FUNCTION_RETURN)
 	{
 		if(program.HasFunction(Name))
 		{

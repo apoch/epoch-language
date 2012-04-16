@@ -25,7 +25,8 @@ using namespace IRSemantics;
 Expression::Expression()
 	: InferredType(VM::EpochType_Error),
 	  Coalesced(false),
-	  AtomsArePatternMatchedLiteral(false)
+	  AtomsArePatternMatchedLiteral(false),
+	  InferenceDone(false)
 {
 }
 
@@ -175,11 +176,16 @@ bool Expression::TypeInference(Program& program, CodeBlock& activescope, Inferen
 {
 	Coalesce(program, activescope, errors);
 
-	InferenceContext newcontext(context.ContextName, InferenceContext::CONTEXT_EXPRESSION);
+	if(InferenceDone)
+		return true;
+
+	//InferenceDone = true;
+
+	InferenceContext::ContextStates state = context.State == InferenceContext::CONTEXT_FUNCTION_RETURN ? InferenceContext::CONTEXT_FUNCTION_RETURN : InferenceContext::CONTEXT_EXPRESSION;
+	InferenceContext newcontext(context.ContextName, state);
 	newcontext.FunctionName = context.FunctionName;
 	newcontext.ExpectedTypes = context.ExpectedTypes;
 	newcontext.ExpectedSignatures = context.ExpectedSignatures;
-	InferenceContext& selectedcontext = context.State == InferenceContext::CONTEXT_FUNCTION_RETURN ? context : newcontext;
 
 	bool result = true;
 	for(std::vector<ExpressionAtom*>::iterator iter = Atoms.begin(); iter != Atoms.end(); ++iter)
@@ -187,7 +193,7 @@ bool Expression::TypeInference(Program& program, CodeBlock& activescope, Inferen
 		ExpressionAtomOperator* opatom = dynamic_cast<ExpressionAtomOperator*>(*iter);
 		if(opatom && opatom->IsOperatorUnary(program) && !opatom->IsMemberAccess())
 		{
-			if(!(*iter)->TypeInference(program, activescope, selectedcontext, index, errors))
+			if(!(*iter)->TypeInference(program, activescope, newcontext, index, errors))
 				result = false;
 
 			newcontext.ContextName = opatom->GetIdentifier();
@@ -198,7 +204,7 @@ bool Expression::TypeInference(Program& program, CodeBlock& activescope, Inferen
 		}
 		else if(opatom && !opatom->IsMemberAccess())
 		{
-			if(!(*iter)->TypeInference(program, activescope, selectedcontext, index, errors))
+			if(!(*iter)->TypeInference(program, activescope, newcontext, index, errors))
 				result = false;
 
 			std::vector<ExpressionAtom*>::iterator nextiter = iter;
@@ -227,7 +233,7 @@ bool Expression::TypeInference(Program& program, CodeBlock& activescope, Inferen
 			ExpressionAtomOperator* nextopatom = dynamic_cast<ExpressionAtomOperator*>(*nextiter);
 			if(nextopatom && !nextopatom->IsMemberAccess() && !nextopatom->IsOperatorUnary(program))
 			{
-				InferenceContext atomcontext(nextopatom->GetIdentifier(), InferenceContext::CONTEXT_EXPRESSION);
+				InferenceContext atomcontext(nextopatom->GetIdentifier(), state);
 				atomcontext.FunctionName = context.FunctionName;
 				atomcontext.ExpectedTypes.push_back(program.GetExpectedTypesForStatement(nextopatom->GetIdentifier(), *activescope.GetScope(), context.ContextName, errors));
 				atomcontext.ExpectedSignatures.push_back(program.GetExpectedSignaturesForStatement(nextopatom->GetIdentifier(), *activescope.GetScope(), context.ContextName, errors));
@@ -237,7 +243,7 @@ bool Expression::TypeInference(Program& program, CodeBlock& activescope, Inferen
 		}
 		else
 		{
-			if(!(*iter)->TypeInference(program, activescope, selectedcontext, index, errors))
+			if(!(*iter)->TypeInference(program, activescope, newcontext, index, errors))
 				result = false;
 		}
 	}
@@ -314,6 +320,8 @@ bool Expression::TypeInference(Program& program, CodeBlock& activescope, Inferen
 
 	result = (InferredType != VM::EpochType_Infer && InferredType != VM::EpochType_Error);
 
+	InferenceDone = true;
+	
 	// Perform operator precedence reordering
 	// TODO - proper operator precedence, right now this is just a hacky postfix reorder
 	for(size_t i = 0; i < Atoms.size(); ++i)

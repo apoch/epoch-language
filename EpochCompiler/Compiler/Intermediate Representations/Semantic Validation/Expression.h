@@ -100,6 +100,7 @@ namespace IRSemantics
 		std::vector<ExpressionAtom*> Atoms;
 		VM::EpochTypeID InferredType;
 		bool Coalesced;
+		bool InferenceDone;
 	};
 
 

@@ -193,17 +193,21 @@ bool Function::TypeInference(Program& program, InferenceContext&, CompileErrors&
 	if(InferenceDone)
 		return true;
 
-	InferenceDone = true;
-
 	if(!Code)
+	{
+		InferenceDone = true;
 		return true;
+	}
 
 	if(Return)
 	{
 		InferenceContext newcontext(Name, InferenceContext::CONTEXT_FUNCTION_RETURN);
 		newcontext.FunctionName = Name;
 		if(!Return->TypeInference(program, *Code, newcontext, 0, errors))
+		{
+			InferenceDone = true;
 			return false;
+		}
 	}
 
 	bool result = true;
@@ -214,14 +218,19 @@ bool Function::TypeInference(Program& program, InferenceContext&, CompileErrors&
 	}
 
 	if(!result)
+	{
+		InferenceDone = true;
 		return false;
+	}
 
 	program.AddScope(Code->GetScope());		// TODO - better solution than aliasing the scope
 	program.AddScope(Code->GetScope(), Name);
 
 	InferenceContext newcontext(Name, InferenceContext::CONTEXT_FUNCTION);
 	newcontext.FunctionName = Name;
-	return Code->TypeInference(program, newcontext, errors);
+	result = Code->TypeInference(program, newcontext, errors);
+	InferenceDone = true;
+	return result;
 }
 
 
