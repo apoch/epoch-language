@@ -710,6 +710,7 @@ void CompilePassSemantics::ExitHelper::operator () (AST::Statement&)
 	switch(self->StateStack.top())
 	{
 	case CompilePassSemantics::STATE_EXPRESSION_COMPONENT:
+	case CompilePassSemantics::STATE_EXPRESSION_FRAGMENT:
 		self->CurrentExpressions.back()->AddAtom(new IRSemantics::ExpressionAtomStatement(self->CurrentStatements.back()));
 		self->CurrentStatements.pop_back();
 		break;
