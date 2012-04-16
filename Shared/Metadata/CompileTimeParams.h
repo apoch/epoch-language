@@ -33,7 +33,8 @@ struct CompileTimeParameter
 	CompileTimeParameter(const std::wstring& name, VM::EpochTypeID type)
 		: Name(name),
 		  Type(type),
-		  IsReference(false)
+		  IsReference(false),
+		  HasPayload(false)
 	{ }
 
 	std::wstring Name;
@@ -51,6 +52,7 @@ struct CompileTimeParameter
 	std::wstring StringPayload;
 
 	bool IsReference;
+	bool HasPayload;
 };
 
 

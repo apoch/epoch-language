@@ -47,6 +47,9 @@ namespace IRSemantics
 		virtual bool IsLocalVariable() const = 0;
 		virtual bool IsReference() const = 0;
 		virtual bool Validate(const IRSemantics::Program& program) const = 0;
+		virtual void AddToSignature(FunctionSignature& signature, const IRSemantics::Program& program) const = 0;
+		virtual bool TypeInference(IRSemantics::Program& program, CompileErrors& errors) = 0;
+		virtual bool PatternMatchValue(const CompileTimeParameter& param, const IRSemantics::Program& program) const = 0;
 	};
 
 	//
@@ -72,6 +75,14 @@ namespace IRSemantics
 		{ return IsRef; }
 
 		virtual bool Validate(const IRSemantics::Program& program) const;
+
+		virtual void AddToSignature(FunctionSignature& signature, const IRSemantics::Program& program) const;
+
+		virtual bool TypeInference(IRSemantics::Program&, CompileErrors&)
+		{ return true; }
+
+		virtual bool PatternMatchValue(const CompileTimeParameter&, const IRSemantics::Program&) const
+		{ return false; }
 
 	// Internal state
 	private:
@@ -102,6 +113,14 @@ namespace IRSemantics
 		virtual bool Validate(const IRSemantics::Program&) const
 		{ return true; }
 
+		virtual void AddToSignature(FunctionSignature& signature, const IRSemantics::Program& program) const;
+
+		virtual bool TypeInference(IRSemantics::Program&, CompileErrors&)
+		{ return true; }
+
+		virtual bool PatternMatchValue(const CompileTimeParameter&, const IRSemantics::Program&) const
+		{ return false; }
+
 	// Internal state
 	private:
 		VM::EpochTypeID MyType;
@@ -131,6 +150,14 @@ namespace IRSemantics
 		{ return false; }
 
 		virtual bool Validate(const IRSemantics::Program& program) const;
+
+		virtual void AddToSignature(FunctionSignature& signature, const IRSemantics::Program& program) const;
+
+		virtual bool TypeInference(IRSemantics::Program&, CompileErrors&)
+		{ return true; }
+
+		virtual bool PatternMatchValue(const CompileTimeParameter&, const IRSemantics::Program&) const
+		{ return false; }
 
 	// Mutation
 	public:
@@ -183,6 +210,12 @@ namespace IRSemantics
 		{ return false; }
 
 		virtual bool Validate(const IRSemantics::Program& program) const;
+
+		virtual void AddToSignature(FunctionSignature& signature, const IRSemantics::Program& program) const;
+
+		virtual bool TypeInference(IRSemantics::Program& program, CompileErrors& errors);
+
+		virtual bool PatternMatchValue(const CompileTimeParameter& param, const IRSemantics::Program& program) const;
 
 	// Internal state
 	private:
@@ -252,6 +285,8 @@ namespace IRSemantics
 
 		size_t GetNumParameters() const
 		{ return Parameters.size(); }
+
+		bool PatternMatchParameter(size_t index, const CompileTimeParameter& param, const IRSemantics::Program& program) const;
 
 	// Returns
 	public:

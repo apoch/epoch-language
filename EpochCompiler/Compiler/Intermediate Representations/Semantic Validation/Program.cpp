@@ -317,6 +317,34 @@ bool Program::CompileTimeCodeExecution(CompileErrors& errors)
 			return false;
 	}
 
+	for(std::multimap<StringHandle, StringHandle>::const_iterator iter = FunctionsWithStaticPatternMatching.begin(); iter != FunctionsWithStaticPatternMatching.end(); ++iter)
+	{
+		StringHandle rawname = iter->first;
+		StringHandle overloadname = iter->second;
+
+		const Function* function = Functions.find(overloadname)->second;
+		const FunctionSignature functionsignature = function->GetFunctionSignature(*this);
+		for(size_t i = 0; i < FunctionOverloadCounters[rawname]; ++i)
+		{
+			StringHandle thisoverloadname = GetFunctionOverloadName(rawname, i);
+			if(thisoverloadname == overloadname)
+				continue;
+
+			const Function* overload = Functions.find(thisoverloadname)->second;
+			if(functionsignature.MatchesDynamicPattern(overload->GetFunctionSignature(*this)))
+				FunctionsNeedingDynamicPatternMatching.insert(thisoverloadname);
+		}
+	}
+
+	for(std::set<StringHandle>::const_iterator iter = FunctionsNeedingDynamicPatternMatching.begin(); iter != FunctionsNeedingDynamicPatternMatching.end(); ++iter)
+	{
+		StringHandle funcname = *iter;
+		const std::wstring& funcnamestr = GetString(funcname);
+		std::wstring patternmatchername = GeneratePatternMatcherName(funcnamestr);
+		StringHandle pmnhandle = AddString(patternmatchername);
+		PatternMatcherNameCache.Add(funcname, pmnhandle);
+	}
+
 	return true;
 }
 
@@ -723,5 +751,25 @@ void Program::AddScope(ScopeDescription* scope)
 void Program::AddScope(ScopeDescription* scope, StringHandle name)
 {
 	LexicalScopes.insert(std::make_pair(name, scope));
+}
+
+void Program::MarkFunctionWithStaticPatternMatching(StringHandle rawname, StringHandle overloadname)
+{
+	FunctionsWithStaticPatternMatching.insert(std::make_pair(rawname, overloadname));
+}
+
+bool Program::FunctionNeedsDynamicPatternMatching(StringHandle overloadname) const
+{
+	return (FunctionsNeedingDynamicPatternMatching.count(overloadname) > 0);
+}
+
+StringHandle Program::GetDynamicPatternMatcherForFunction(StringHandle overloadname) const
+{
+	return PatternMatcherNameCache.Find(overloadname);
+}
+
+std::wstring Program::GeneratePatternMatcherName(const std::wstring& funcname)
+{
+	return funcname + L"@@patternmatch";
 }
 

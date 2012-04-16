@@ -930,10 +930,12 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 
 			case Bytecode::Instructions::PatternMatch:
 				{
-					const char* stackptr = reinterpret_cast<const char*>(State.Stack.GetCurrentTopOfStack());
+					char* stackptr = *State.Stack.GetMutableStackPtr();
+					char* destptr = stackptr;
 					bool matchedpattern = true;
 					StringHandle originalfunction = Fetch<StringHandle>();
 					size_t paramcount = Fetch<size_t>();
+					size_t instroffset = InstructionOffset;
 					for(size_t i = 0; i < paramcount; ++i)
 					{
 						EpochTypeID paramtype = Fetch<EpochTypeID>();
@@ -955,7 +957,7 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 								throw NotImplementedException("Support for pattern matching this function parameter type is not implemented");
 							}
 						}
-
+						
 						if(!matchedpattern)
 							break;
 
@@ -964,6 +966,25 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 
 					if(matchedpattern)
 					{
+						stackptr = destptr;
+						InstructionOffset = instroffset;
+						for(size_t i = 0; i < paramcount; ++i)
+						{
+							EpochTypeID paramtype = Fetch<EpochTypeID>();
+							bool needsmatch = (Fetch<Byte>() != 0);
+							if(needsmatch)
+							{
+								if(destptr != stackptr)
+									memcpy(destptr, stackptr, GetStorageSize(paramtype));
+							}
+							else
+								destptr += GetStorageSize(paramtype);
+
+							stackptr += GetStorageSize(paramtype);
+						}
+
+						State.Stack.Pop(stackptr - destptr);
+
 						size_t internaloffset = OwnerVM.GetFunctionInstructionOffset(originalfunction);
 
 						InstructionOffset = internaloffset;

@@ -118,6 +118,13 @@ namespace IRSemantics
 		const boost::unordered_map<StringHandle, Function*>& GetFunctions() const
 		{ return Functions; }
 
+		void MarkFunctionWithStaticPatternMatching(StringHandle rawname, StringHandle overloadname);
+		bool FunctionNeedsDynamicPatternMatching(StringHandle overloadname) const;
+		StringHandle GetDynamicPatternMatcherForFunction(StringHandle overloadname) const;
+
+		const std::set<StringHandle>& GetFunctionsNeedingDynamicPatternMatching() const
+		{ return FunctionsNeedingDynamicPatternMatching; }
+
 	// Access to lexical scopes
 	public:
 		const ScopePtrMap& GetScopes() const
@@ -175,6 +182,7 @@ namespace IRSemantics
 		static std::wstring GenerateAnonymousGlobalScopeName(size_t index);
 		static std::wstring GenerateLexicalScopeName(const ScopeDescription* scopeptr);
 		static std::wstring GenerateStructureMemberAccessOverloadName(const std::wstring& structurename, const std::wstring& membername);
+		static std::wstring GeneratePatternMatcherName(const std::wstring& funcname);
 
 	// Accessible state
 	public:
@@ -200,12 +208,16 @@ namespace IRSemantics
 
 		ScopeDescription* GlobalScope;
 
+		std::multimap<StringHandle, StringHandle> FunctionsWithStaticPatternMatching;
+		std::set<StringHandle> FunctionsNeedingDynamicPatternMatching;
+
 	// String lookup caches
 	private:
 		impl::StringCache<std::pair<StringHandle, size_t> > FunctionOverloadNameCache;
 		impl::StringCache<std::pair<StringHandle, StringHandle> > StructureMemberAccessOverloadNameCache;
 		impl::StringCache<const ScopeDescription*> LexicalScopeNameCache;
 		impl::StringCache<std::wstring> IdentifierCache;
+		impl::StringCache<StringHandle> PatternMatcherNameCache;
 	};
 
 }

@@ -248,17 +248,17 @@ namespace
 
 	void EmitStatement(ByteCodeEmitter& emitter, const IRSemantics::Statement& statement, const IRSemantics::CodeBlock& activescope, const IRSemantics::Program& program)
 	{
-		std::vector<VM::EpochTypeID> paramtypes;
-
 		const std::vector<IRSemantics::Expression*>& params = statement.GetParameters();
 		for(std::vector<IRSemantics::Expression*>::const_iterator paramiter = params.begin(); paramiter != params.end(); ++paramiter)
 		{
-			paramtypes.push_back((*paramiter)->GetEpochType(program));
-			EmitExpression(emitter, **paramiter, activescope, program);
+			if(!(*paramiter)->AtomsArePatternMatchedLiteral)
+				EmitExpression(emitter, **paramiter, activescope, program);
 		}
 
 		if(activescope.GetScope()->HasVariable(statement.GetName()) && activescope.GetScope()->GetVariableTypeByID(statement.GetName()) == VM::EpochType_Function)
 			emitter.InvokeIndirect(statement.GetName());
+		else if(program.FunctionNeedsDynamicPatternMatching(statement.GetName()))
+			emitter.Invoke(program.GetDynamicPatternMatcherForFunction(statement.GetName()));
 		else
 			emitter.Invoke(statement.GetName());
 	}
@@ -591,6 +591,26 @@ bool CompilerPasses::GenerateCode(const IRSemantics::Program& program, ByteCodeE
 	// TODO - implement anonymous temporaries
 	for(std::map<StringHandle, IRSemantics::Structure*>::const_iterator iter = structures.begin(); iter != structures.end(); ++iter)
 		EmitConstructor(emitter, iter->first, *iter->second, program);
+
+	const std::set<StringHandle>& funcsneedingpatternmatching = program.GetFunctionsNeedingDynamicPatternMatching();
+	for(std::set<StringHandle>::const_iterator iter = funcsneedingpatternmatching.begin(); iter != funcsneedingpatternmatching.end(); ++iter)
+	{
+		const IRSemantics::Function* thisfunc = functions.find(*iter)->second;
+		const FunctionSignature thisfuncsig = thisfunc->GetFunctionSignature(program);
+		StringHandle patternmatchername = program.GetDynamicPatternMatcherForFunction(*iter);
+		emitter.EnterPatternResolver(patternmatchername);
+		size_t numoverloads = program.GetNumFunctionOverloads(thisfunc->GetRawName());
+		for(size_t i = 0; i < numoverloads; ++i)
+		{
+			StringHandle overloadname = program.GetFunctionOverloadName(thisfunc->GetRawName(), i);
+			const IRSemantics::Function* thisoverload = functions.find(overloadname)->second;
+			const FunctionSignature overloadsig = thisoverload->GetFunctionSignature(program);
+			if(overloadsig.MatchesDynamicPattern(thisfuncsig))
+				emitter.ResolvePattern(overloadname, overloadsig);
+		}
+		emitter.ExitPatternResolver();
+		emitter.DefineLexicalScope(patternmatchername, 0, 0);
+	}
 
 	for(size_t i = 0; i < numglobalblocks; ++i)
 		emitter.ExitEntity();

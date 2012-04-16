@@ -37,6 +37,7 @@ void FunctionSignature::AddPatternMatchedParameter(Integer32 literalvalue)
 {
 	CompileTimeParameter ctparam(L"@@patternmatched", VM::EpochType_Integer);
 	ctparam.Payload.IntegerValue = literalvalue;
+	ctparam.HasPayload = true;
 	Parameters.push_back(ctparam);
 	FunctionSignatures.push_back(FunctionSignature());
 }
@@ -48,6 +49,7 @@ void FunctionSignature::AddPatternMatchedParameterIdentifier(StringHandle identi
 {
 	CompileTimeParameter ctparam(L"@@patternmatched", VM::EpochType_Identifier);
 	ctparam.Payload.LiteralStringHandleValue = identifier;
+	ctparam.HasPayload = true;
 	Parameters.push_back(ctparam);
 	FunctionSignatures.push_back(FunctionSignature());
 }
@@ -127,6 +129,64 @@ bool FunctionSignature::Matches(const FunctionSignature& rhs) const
 			if(!FunctionSignatures[i].Matches(rhs.FunctionSignatures[i]))
 				return false;
 		}
+
+		if(Parameters[i].HasPayload != rhs.Parameters[i].HasPayload)
+			return false;
+
+		if(Parameters[i].HasPayload)
+		{
+			switch(Parameters[i].Type)
+			{
+			case VM::EpochType_Boolean:
+				if(Parameters[i].Payload.BooleanValue != rhs.Parameters[i].Payload.BooleanValue)
+					return false;
+				break;
+
+			case VM::EpochType_Integer:
+				if(Parameters[i].Payload.IntegerValue != rhs.Parameters[i].Payload.IntegerValue)
+					return false;
+				break;
+
+			case VM::EpochType_String:
+				if(Parameters[i].StringPayload != rhs.Parameters[i].StringPayload)
+					return false;
+				break;
+
+			case VM::EpochType_Real:
+				if(Parameters[i].Payload.RealValue != rhs.Parameters[i].Payload.RealValue)
+					return false;
+				break;
+
+			default:
+				throw std::runtime_error("Not implemented");
+			}
+		}
+	}
+
+	return true;
+}
+
+bool FunctionSignature::MatchesDynamicPattern(const FunctionSignature& rhs) const
+{
+	if(ReturnType != rhs.ReturnType && ReturnType != VM::EpochType_Infer && rhs.ReturnType != VM::EpochType_Infer)
+		return false;
+
+	if(Parameters.size() != rhs.Parameters.size())
+		return false;
+
+	for(size_t i = 0; i < Parameters.size(); ++i)
+	{
+		if(Parameters[i].Type != rhs.Parameters[i].Type && Parameters[i].Type != VM::EpochType_Infer && rhs.Parameters[i].Type != VM::EpochType_Infer)
+			return false;
+
+		if(Parameters[i].Type == VM::EpochType_Function)
+		{
+			if(!FunctionSignatures[i].Matches(rhs.FunctionSignatures[i]))
+				return false;
+		}
+
+		if(rhs.Parameters[i].HasPayload)
+			return false;
 	}
 
 	return true;

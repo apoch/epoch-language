@@ -87,6 +87,10 @@ namespace IRSemantics
 		std::vector<ExpressionAtom*>& GetAtoms()
 		{ return Atoms; }
 
+	// Pattern matching helpers
+	public:
+		bool AtomsArePatternMatchedLiteral;
+
 	// Internal helpers
 	private:
 		void Coalesce(Program& program, CodeBlock& activescope, CompileErrors& errors);

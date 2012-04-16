@@ -51,6 +51,7 @@ public:
 	{ return Parameters.size(); }
 
 	bool Matches(const FunctionSignature& rhs) const;
+	bool MatchesDynamicPattern(const FunctionSignature& rhs) const;
 
 // Internal tracking
 private:

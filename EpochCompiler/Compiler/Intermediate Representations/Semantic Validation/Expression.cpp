@@ -24,7 +24,8 @@ using namespace IRSemantics;
 
 Expression::Expression()
 	: InferredType(VM::EpochType_Error),
-	  Coalesced(false)
+	  Coalesced(false),
+	  AtomsArePatternMatchedLiteral(false)
 {
 }
 
@@ -783,6 +784,7 @@ CompileTimeParameter ExpressionAtomLiteralInteger32::ConvertToCompileTimeParam(c
 {
 	CompileTimeParameter ret(L"@@autoctp", VM::EpochType_Integer);
 	ret.Payload.IntegerValue = Value;
+	ret.HasPayload = true;
 	return ret;
 }
 
@@ -806,6 +808,7 @@ CompileTimeParameter ExpressionAtomLiteralReal32::ConvertToCompileTimeParam(cons
 {
 	CompileTimeParameter ret(L"@@autoctp", VM::EpochType_Real);
 	ret.Payload.RealValue = Value;
+	ret.HasPayload = true;
 	return ret;
 }
 
@@ -829,6 +832,7 @@ CompileTimeParameter ExpressionAtomLiteralBoolean::ConvertToCompileTimeParam(con
 {
 	CompileTimeParameter ret(L"@@autoctp", VM::EpochType_Boolean);
 	ret.Payload.BooleanValue = Value;
+	ret.HasPayload = true;
 	return ret;
 }
 
@@ -855,5 +859,6 @@ CompileTimeParameter ExpressionAtomLiteralString::ConvertToCompileTimeParam(cons
 	CompileTimeParameter ret(L"@@autoctp", VM::EpochType_String);
 	ret.Payload.LiteralStringHandleValue = Handle;
 	ret.StringPayload = program.GetString(Handle);
+	ret.HasPayload = true;
 	return ret;
 }

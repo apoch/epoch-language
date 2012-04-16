@@ -156,6 +156,7 @@ bool Statement::TypeInference(Program& program, CodeBlock& activescope, Inferenc
 				
 				if(func->GetNumParameters() == Parameters.size())
 				{
+					FunctionSignature signature = func->GetFunctionSignature(program);
 					bool match = true;
 					for(size_t j = 0; j < Parameters.size(); ++j)
 					{
@@ -164,6 +165,24 @@ bool Statement::TypeInference(Program& program, CodeBlock& activescope, Inferenc
 						{
 							match = false;
 							break;
+						}
+
+						if(signature.GetParameter(j).HasPayload)
+						{
+							if(Parameters[j]->GetAtoms().size() == 1)
+							{
+								if(!func->PatternMatchParameter(j, Parameters[j]->GetAtoms()[0]->ConvertToCompileTimeParam(program), program))
+								{
+									match = false;
+									break;
+								}
+								Parameters[j]->AtomsArePatternMatchedLiteral = true;
+							}
+							else
+							{
+								match = false;
+								break;
+							}
 						}
 					}
 					

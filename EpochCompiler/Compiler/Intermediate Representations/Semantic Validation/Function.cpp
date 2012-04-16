@@ -175,6 +175,12 @@ bool Function::CompileTimeCodeExecution(Program& program, CompileErrors& errors)
 			return false;
 	}
 
+	for(std::vector<Param>::const_iterator iter = Parameters.begin(); iter != Parameters.end(); ++iter)
+	{
+		if(!iter->Parameter->IsLocalVariable())
+			program.MarkFunctionWithStaticPatternMatching(RawName, Name);
+	}
+
 	if(!Code)
 		return true;
 
@@ -199,6 +205,16 @@ bool Function::TypeInference(Program& program, InferenceContext&, CompileErrors&
 		if(!Return->TypeInference(program, *Code, newcontext, 0, errors))
 			return false;
 	}
+
+	bool result = true;
+	for(std::vector<Param>::iterator iter = Parameters.begin(); iter != Parameters.end(); ++iter)
+	{
+		if(!iter->Parameter->TypeInference(program, errors))
+			result = false;
+	}
+
+	if(!result)
+		return false;
 
 	program.AddScope(Code->GetScope());		// TODO - better solution than aliasing the scope
 	program.AddScope(Code->GetScope(), Name);
@@ -242,6 +258,11 @@ bool FunctionParamFuncRef::Validate(const IRSemantics::Program& program) const
 	return valid;
 }
 
+void FunctionParamFuncRef::AddToSignature(FunctionSignature&, const IRSemantics::Program&) const
+{
+	throw InternalException("Cannot pattern match on function signatures");
+}
+
 //
 // Validate an expression function parameter
 //
@@ -267,6 +288,47 @@ VM::EpochTypeID FunctionParamExpression::GetParamType(const IRSemantics::Program
 		return VM::EpochType_Error;
 
 	return MyExpression->GetEpochType(program);
+}
+
+void FunctionParamExpression::AddToSignature(FunctionSignature& signature, const IRSemantics::Program& program) const
+{
+	if(!MyExpression || MyExpression->GetAtoms().size() != 1)
+		throw InternalException("Cannot generate pattern matched parameter");
+
+	CompileTimeParameter value = MyExpression->GetAtoms()[0]->ConvertToCompileTimeParam(program);
+	switch(value.Type)
+	{
+	case VM::EpochType_Integer:
+		signature.AddPatternMatchedParameter(value.Payload.IntegerValue);
+		break;
+
+	default:
+		throw NotImplementedException("Support for pattern matching on this type is not implemented");
+	}
+}
+
+bool FunctionParamExpression::TypeInference(IRSemantics::Program& program, CompileErrors& errors)
+{
+	InferenceContext context(0, InferenceContext::CONTEXT_EXPRESSION);
+	ScopeDescription scope;
+	IRSemantics::CodeBlock fakeblock(&scope, false);
+	return MyExpression->TypeInference(program, fakeblock, context, 0, errors);
+}
+
+bool FunctionParamExpression::PatternMatchValue(const CompileTimeParameter& param, const IRSemantics::Program& program) const
+{
+	if(!MyExpression || MyExpression->GetAtoms().size() != 1)
+		throw InternalException("Cannot generate pattern matched parameter");
+
+	CompileTimeParameter value = MyExpression->GetAtoms()[0]->ConvertToCompileTimeParam(program);
+	switch(value.Type)
+	{
+	case VM::EpochType_Integer:
+		return param.Payload.IntegerValue == value.Payload.IntegerValue;
+		
+	default:
+		throw NotImplementedException("Support for pattern matching on this type is not implemented");
+	}
 }
 
 
@@ -355,12 +417,16 @@ FunctionSignature Function::GetFunctionSignature(const Program& program) const
 	for(std::vector<Param>::const_iterator iter = Parameters.begin(); iter != Parameters.end(); ++iter)
 	{
 		VM::EpochTypeID paramtype = iter->Parameter->GetParamType(program);
-		if(!iter->Parameter->IsLocalVariable())
-			throw InternalException("Not implemented");		// TODO - support for pattern matching
-
-		ret.AddParameter(program.GetString(iter->Name), paramtype, iter->Parameter->IsReference());
-		if(paramtype == VM::EpochType_Function)
-			ret.SetFunctionSignature(index, GetParameterSignature(iter->Name, program));
+		if(iter->Parameter->IsLocalVariable())
+		{
+			ret.AddParameter(program.GetString(iter->Name), paramtype, iter->Parameter->IsReference());
+			if(paramtype == VM::EpochType_Function)
+				ret.SetFunctionSignature(index, GetParameterSignature(iter->Name, program));
+		}
+		else
+		{
+			iter->Parameter->AddToSignature(ret, program);
+		}
 
 		++index;
 	}
@@ -374,3 +440,17 @@ void Function::AddTag(const FunctionTag& tag)
 	Tags.push_back(tag);
 }
 
+void FunctionParamNamedTyped::AddToSignature(FunctionSignature&, const IRSemantics::Program&) const
+{
+	throw InternalException("Cannot pattern match on this kind of function parameter");
+}
+
+void FunctionParamNamed::AddToSignature(FunctionSignature&, const IRSemantics::Program&) const
+{
+	throw InternalException("Cannot pattern match on this kind of function parameter");
+}
+
+bool Function::PatternMatchParameter(size_t index, const CompileTimeParameter& param, const IRSemantics::Program& program) const
+{
+	return Parameters[index].Parameter->PatternMatchValue(param, program);
+}
