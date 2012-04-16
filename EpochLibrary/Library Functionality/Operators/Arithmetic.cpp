@@ -352,22 +352,22 @@ void ArithmeticLibrary::RegisterInfixOperators(StringSet& infixtable, Precedence
 	{
 		StringHandle handle = stringpool.Pool(L"+");
 		AddToSetNoDupe(infixtable, stringpool.GetPooledString(handle));
-		precedences.insert(std::make_pair(PRECEDENCE_ADDSUBTRACT, handle));
+		AddToMapNoDupe(precedences, std::make_pair(handle, PRECEDENCE_ADDSUBTRACT));
 	}
 	{
 		StringHandle handle = stringpool.Pool(L"-");
 		AddToSetNoDupe(infixtable, stringpool.GetPooledString(handle));
-		precedences.insert(std::make_pair(PRECEDENCE_ADDSUBTRACT, handle));
+		AddToMapNoDupe(precedences, std::make_pair(handle, PRECEDENCE_ADDSUBTRACT));
 	}
 	{
 		StringHandle handle = stringpool.Pool(L"*");
 		AddToSetNoDupe(infixtable, stringpool.GetPooledString(handle));
-		precedences.insert(std::make_pair(PRECEDENCE_MULTIPLYDIVIDE, handle));
+		AddToMapNoDupe(precedences, std::make_pair(handle, PRECEDENCE_MULTIPLYDIVIDE));
 	}
 	{
 		StringHandle handle = stringpool.Pool(L"/");
 		AddToSetNoDupe(infixtable, stringpool.GetPooledString(handle));
-		precedences.insert(std::make_pair(PRECEDENCE_MULTIPLYDIVIDE, handle));
+		AddToMapNoDupe(precedences, std::make_pair(handle, PRECEDENCE_MULTIPLYDIVIDE));
 	}
 }
 

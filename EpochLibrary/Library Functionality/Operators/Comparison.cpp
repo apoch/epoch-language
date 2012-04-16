@@ -270,22 +270,22 @@ void ComparisonLibrary::RegisterInfixOperators(StringSet& infixtable, Precedence
 	{
 		StringHandle handle = stringpool.Pool(L"==");
 		AddToSetNoDupe(infixtable, stringpool.GetPooledString(handle));
-		precedences.insert(std::make_pair(PRECEDENCE_COMPARISON, handle));
+		AddToMapNoDupe(precedences, std::make_pair(handle, PRECEDENCE_COMPARISON));
 	}
 	{
 		StringHandle handle = stringpool.Pool(L"!=");
 		AddToSetNoDupe(infixtable, stringpool.GetPooledString(handle));
-		precedences.insert(std::make_pair(PRECEDENCE_COMPARISON, handle));
+		AddToMapNoDupe(precedences, std::make_pair(handle, PRECEDENCE_COMPARISON));
 	}
 	{
 		StringHandle handle = stringpool.Pool(L">");
 		AddToSetNoDupe(infixtable, stringpool.GetPooledString(handle));
-		precedences.insert(std::make_pair(PRECEDENCE_COMPARISON, handle));
+		AddToMapNoDupe(precedences, std::make_pair(handle, PRECEDENCE_COMPARISON));
 	}
 	{
 		StringHandle handle = stringpool.Pool(L"<");
 		AddToSetNoDupe(infixtable, stringpool.GetPooledString(handle));
-		precedences.insert(std::make_pair(PRECEDENCE_COMPARISON, handle));
+		AddToMapNoDupe(precedences, std::make_pair(handle, PRECEDENCE_COMPARISON));
 	}
 }
 

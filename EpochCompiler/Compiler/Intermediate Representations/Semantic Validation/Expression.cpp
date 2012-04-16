@@ -179,8 +179,6 @@ bool Expression::TypeInference(Program& program, CodeBlock& activescope, Inferen
 	if(InferenceDone)
 		return true;
 
-	//InferenceDone = true;
-
 	InferenceContext::ContextStates state = context.State == InferenceContext::CONTEXT_FUNCTION_RETURN ? InferenceContext::CONTEXT_FUNCTION_RETURN : InferenceContext::CONTEXT_EXPRESSION;
 	InferenceContext newcontext(context.ContextName, state);
 	newcontext.FunctionName = context.FunctionName;
@@ -306,6 +304,8 @@ bool Expression::TypeInference(Program& program, CodeBlock& activescope, Inferen
 
 				if(!found)
 					return false;
+
+				++idx;
 			}
 		}
 	}
@@ -321,25 +321,42 @@ bool Expression::TypeInference(Program& program, CodeBlock& activescope, Inferen
 	result = (InferredType != VM::EpochType_Infer && InferredType != VM::EpochType_Error);
 
 	InferenceDone = true;
-	
+
 	// Perform operator precedence reordering
-	// TODO - proper operator precedence, right now this is just a hacky postfix reorder
+	std::vector<ExpressionAtom*> outputqueue;
+	std::vector<ExpressionAtomOperator*> opstack;
 	for(size_t i = 0; i < Atoms.size(); ++i)
 	{
 		ExpressionAtomOperator* opatom = dynamic_cast<ExpressionAtomOperator*>(Atoms[i]);
-		if(!opatom || opatom->IsMemberAccess())
-			continue;
-
-		Atoms.erase(Atoms.begin() + i);
-		if(dynamic_cast<ExpressionAtomIdentifierReference*>(Atoms[i++]))
+		if(opatom)
 		{
-			ExpressionAtomOperator* nextopatom = dynamic_cast<ExpressionAtomOperator*>(Atoms[i]);
-			while(nextopatom && nextopatom->IsMemberAccess() && ++i < Atoms.size())
-				nextopatom = dynamic_cast<ExpressionAtomOperator*>(Atoms[i]);
+			while(!opstack.empty())
+			{
+				const ExpressionAtomOperator* opatom2 = opstack.back();
+				if(opatom->IsOperatorUnary(program))
+				{
+					if(opatom->GetOperatorPrecedence(program) >= opatom2->GetOperatorPrecedence(program))
+						break;
+				}
+				else
+				{
+					if(opatom->GetOperatorPrecedence(program) > opatom2->GetOperatorPrecedence(program))
+						break;
+				}
+			}
+			opstack.push_back(opatom);
 		}
-	
-		Atoms.insert(Atoms.begin() + i, opatom);
+		else
+		{
+			outputqueue.push_back(Atoms[i]);
+		}
 	}
+	while(!opstack.empty())
+	{
+		outputqueue.push_back(opstack.back());
+		opstack.pop_back();
+	}
+	outputqueue.swap(Atoms);
 
 	return result;
 }
@@ -870,3 +887,9 @@ CompileTimeParameter ExpressionAtomLiteralString::ConvertToCompileTimeParam(cons
 	ret.HasPayload = true;
 	return ret;
 }
+
+int ExpressionAtomOperator::GetOperatorPrecedence(const Program& program) const
+{
+	return program.Session.OperatorPrecedences.find(OriginalIdentifier)->second;
+}
+

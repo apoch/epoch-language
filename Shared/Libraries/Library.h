@@ -38,7 +38,7 @@ typedef std::map<StringHandle, EpochFunctionPtr> FunctionInvocationTable;
 typedef void (*CompilerHelperPtr)(IRSemantics::Statement& statement, IRSemantics::Program& program, IRSemantics::CodeBlock& activescope, bool inreturnexpr);
 typedef std::map<StringHandle, CompilerHelperPtr> FunctionCompileHelperTable;
 
-typedef std::multimap<int, StringHandle> PrecedenceTable;
+typedef std::map<StringHandle, int> PrecedenceTable;
 
 typedef std::map<Bytecode::EntityTag, EntityDescription> EntityTable;
 

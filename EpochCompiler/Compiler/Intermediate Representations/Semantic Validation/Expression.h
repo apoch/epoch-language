@@ -268,6 +268,7 @@ namespace IRSemantics
 	public:
 		ExpressionAtomOperator(StringHandle identifier, bool ismemberaccess)
 			: Identifier(identifier),
+			  OriginalIdentifier(identifier),
 			  IsMemberAccessFlag(ismemberaccess)
 		{ }
 
@@ -297,9 +298,14 @@ namespace IRSemantics
 		bool IsMemberAccess() const
 		{ return IsMemberAccessFlag; }
 
+	// Precedence
+	public:
+		int GetOperatorPrecedence(const Program& program) const;
+
 	// Internal state
 	private:
 		StringHandle Identifier;
+		StringHandle OriginalIdentifier;
 		bool IsMemberAccessFlag;
 	};
 
