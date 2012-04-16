@@ -101,6 +101,8 @@ namespace IRSemantics
 		VM::EpochTypeID InferredType;
 		bool Coalesced;
 		bool InferenceDone;
+		bool DoingInference;
+		bool InferenceRecursed;
 	};
 
 

@@ -18,7 +18,6 @@
 #include "User Interface/Output.h"
 
 
-
 using namespace IRSemantics;
 
 
@@ -26,7 +25,9 @@ Expression::Expression()
 	: InferredType(VM::EpochType_Error),
 	  Coalesced(false),
 	  AtomsArePatternMatchedLiteral(false),
-	  InferenceDone(false)
+	  InferenceDone(false),
+	  DoingInference(false),
+	  InferenceRecursed(false)
 {
 }
 
@@ -172,12 +173,47 @@ namespace
 }
 
 
+namespace
+{
+	struct AutoFlag
+	{
+		AutoFlag(bool& flag, bool& recursed)
+			: Flag(flag),
+			  Recursed(recursed),
+			  SetRecursion(false)
+		{
+			if(Flag)
+				SetRecursion = true;
+
+			Flag = true;
+		}
+
+		~AutoFlag()
+		{
+			Flag = false;
+			if(SetRecursion)
+				Recursed = true;
+		}
+
+	private:
+		AutoFlag& operator= (const AutoFlag& rhs);
+
+	private:
+		bool& Flag;
+		bool& Recursed;
+		bool SetRecursion;
+	};
+}
+
+
 bool Expression::TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, size_t index, CompileErrors& errors)
 {
 	Coalesce(program, activescope, errors);
 
 	if(InferenceDone)
 		return true;
+
+	AutoFlag cleanup(DoingInference, InferenceRecursed);
 
 	InferenceContext::ContextStates state = context.State == InferenceContext::CONTEXT_FUNCTION_RETURN ? InferenceContext::CONTEXT_FUNCTION_RETURN : InferenceContext::CONTEXT_EXPRESSION;
 	InferenceContext newcontext(context.ContextName, state);
@@ -205,6 +241,9 @@ bool Expression::TypeInference(Program& program, CodeBlock& activescope, Inferen
 			if(!(*iter)->TypeInference(program, activescope, newcontext, index, errors))
 				result = false;
 
+			if(InferenceRecursed)
+				return true;
+
 			std::vector<ExpressionAtom*>::iterator nextiter = iter;
 			++nextiter;
 			if(nextiter != Atoms.end())
@@ -217,6 +256,9 @@ bool Expression::TypeInference(Program& program, CodeBlock& activescope, Inferen
 
 				if(!(*nextiter)->TypeInference(program, activescope, newcontext, 1, errors))
 					result = false;
+
+				if(InferenceRecursed)
+					return true;
 
 				iter = nextiter;
 			}
@@ -237,12 +279,18 @@ bool Expression::TypeInference(Program& program, CodeBlock& activescope, Inferen
 				atomcontext.ExpectedSignatures.push_back(program.GetExpectedSignaturesForStatement(nextopatom->GetIdentifier(), *activescope.GetScope(), context.ContextName, errors));
 				if(!(*iter)->TypeInference(program, activescope, atomcontext, 0, errors))
 					result = false;
+
+				if(InferenceRecursed)
+					return true;
 			}
 		}
 		else
 		{
 			if(!(*iter)->TypeInference(program, activescope, newcontext, index, errors))
 				result = false;
+
+			if(InferenceRecursed)
+				return true;
 		}
 	}
 
@@ -320,15 +368,13 @@ bool Expression::TypeInference(Program& program, CodeBlock& activescope, Inferen
 
 	result = (InferredType != VM::EpochType_Infer && InferredType != VM::EpochType_Error);
 
-	InferenceDone = true;
-
 	// Perform operator precedence reordering
 	std::vector<ExpressionAtom*> outputqueue;
 	std::vector<ExpressionAtomOperator*> opstack;
 	for(size_t i = 0; i < Atoms.size(); ++i)
 	{
 		ExpressionAtomOperator* opatom = dynamic_cast<ExpressionAtomOperator*>(Atoms[i]);
-		if(opatom)
+		if(opatom && !opatom->IsMemberAccess())
 		{
 			while(!opstack.empty())
 			{
@@ -358,6 +404,7 @@ bool Expression::TypeInference(Program& program, CodeBlock& activescope, Inferen
 	}
 	outputqueue.swap(Atoms);
 
+	InferenceDone = true;
 	return result;
 }
 
