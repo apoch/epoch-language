@@ -606,6 +606,32 @@ bool ParentheticalPostOp::CompileTimeCodeExecution(Program&, CodeBlock&, bool, C
 }
 
 
+ParentheticalExpression::ParentheticalExpression(Expression* expression)
+	: MyExpression(expression)
+{
+}
+
+ParentheticalExpression::~ParentheticalExpression()
+{
+	delete MyExpression;
+}
+
+VM::EpochTypeID ParentheticalExpression::GetEpochType(const Program& program) const
+{
+	return MyExpression->GetEpochType(program);
+}
+
+bool ParentheticalExpression::TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, CompileErrors& errors) const
+{
+	return MyExpression->TypeInference(program, activescope, context, 0, errors);
+}
+
+bool ParentheticalExpression::CompileTimeCodeExecution(Program&, CodeBlock&, bool, CompileErrors&)
+{
+	return true;
+}
+
+
 VM::EpochTypeID ExpressionAtomIdentifier::GetEpochType(const Program&) const
 {
 	return MyType;

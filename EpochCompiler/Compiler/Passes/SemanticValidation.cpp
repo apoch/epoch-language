@@ -570,6 +570,17 @@ void CompilePassSemantics::ExitHelper::operator () (AST::Expression&)
 		//
 		throw InternalException("Parse state is explicitly unknown or otherwise unrecognized");
 
+	case CompilePassSemantics::STATE_EXPRESSION_COMPONENT:
+		{
+			std::auto_ptr<IRSemantics::Expression> expr(self->CurrentExpressions.back());
+			self->CurrentExpressions.pop_back();
+
+			std::auto_ptr<IRSemantics::Parenthetical> parenthetical(new IRSemantics::ParentheticalExpression(expr.release()));
+			std::auto_ptr<IRSemantics::ExpressionAtomParenthetical> atom(new IRSemantics::ExpressionAtomParenthetical(parenthetical.release()));
+			self->CurrentExpressions.back()->AddAtom(atom.release());
+		}
+		break;
+
 	case CompilePassSemantics::STATE_STATEMENT:
 		if(self->CurrentStatements.empty())
 		{

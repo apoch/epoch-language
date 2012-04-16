@@ -33,7 +33,7 @@ namespace
 {
 	void Generate(const IRSemantics::CodeBlock& codeblock, const IRSemantics::Program& program, ByteCodeEmitter& emitter);
 	void EmitStatement(ByteCodeEmitter& emitter, const IRSemantics::Statement& statement, const IRSemantics::CodeBlock& activescope, const IRSemantics::Program& program);
-
+	void EmitExpression(ByteCodeEmitter& emitter, const IRSemantics::Expression& expression, const IRSemantics::CodeBlock& activescope, const IRSemantics::Program& program);
 
 	void BindReference(ByteCodeEmitter& emitter, const std::vector<StringHandle>& identifiers)
 	{
@@ -145,10 +145,12 @@ namespace
 				EmitPreOpStatement(emitter, *preop->GetStatement(), activescope, program);
 			else if(const IRSemantics::ParentheticalPostOp* postop = dynamic_cast<const IRSemantics::ParentheticalPostOp*>(parenthetical))
 				EmitPostOpStatement(emitter, *postop->GetStatement(), activescope, program);
+			else if(const IRSemantics::ParentheticalExpression* expr = dynamic_cast<const IRSemantics::ParentheticalExpression*>(parenthetical))
+				EmitExpression(emitter, expr->GetExpression(), activescope, program);
 			else
 			{
-				// TODO
-				throw std::runtime_error("Arbitrary parenthetical expressions not implemented");
+				// TODO - document
+				throw InternalException("Invalid parenthetical contents");
 			}
 		}
 		else if(const IRSemantics::ExpressionAtomIdentifierReference* atom = dynamic_cast<const IRSemantics::ExpressionAtomIdentifierReference*>(rawatom))

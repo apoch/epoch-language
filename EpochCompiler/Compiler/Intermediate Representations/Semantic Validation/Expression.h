@@ -187,6 +187,38 @@ namespace IRSemantics
 	};
 
 
+	class ParentheticalExpression : public Parenthetical
+	{
+	// Construction and destruction
+	public:
+		explicit ParentheticalExpression(Expression* expression);
+		virtual ~ParentheticalExpression();
+
+	// Non-copyable
+	private:
+		ParentheticalExpression(const ParentheticalExpression& other);
+		ParentheticalExpression& operator = (const ParentheticalExpression& rhs);
+
+	// Type system
+	public:
+		virtual VM::EpochTypeID GetEpochType(const Program& program) const;
+		virtual bool TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, CompileErrors& errors) const;
+
+	// Compile time code execution
+	public:
+		bool CompileTimeCodeExecution(Program& program, CodeBlock& activescope, bool inreturnexpr, CompileErrors& errors);
+
+	// State access
+	public:
+		const Expression& GetExpression() const
+		{ return *MyExpression; }
+
+	// Internal state
+	private:
+		Expression* MyExpression;
+	};
+
+
 	class ExpressionAtomParenthetical : public ExpressionAtom
 	{
 	// Construction and destruction
