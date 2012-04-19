@@ -125,7 +125,7 @@ bool AssignmentChainExpression::TypeInference(Program& program, CodeBlock& activ
 {
 	InferenceContext newcontext(0, InferenceContext::CONTEXT_ASSIGNMENT);
 	newcontext.FunctionName = context.FunctionName;
-	return MyExpression->TypeInference(program, activescope, newcontext, 0, errors);
+	return MyExpression->TypeInference(program, activescope, newcontext, 0, 1, errors);
 }
 
 bool AssignmentChainExpression::Validate(const Program& program) const

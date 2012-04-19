@@ -125,7 +125,7 @@ bool Statement::TypeInference(Program& program, CodeBlock& activescope, Inferenc
 	size_t i = 0;
 	for(std::vector<Expression*>::iterator iter = Parameters.begin(); iter != Parameters.end(); ++iter)
 	{
-		if(!(*iter)->TypeInference(program, activescope, newcontext, i, errors))
+		if(!(*iter)->TypeInference(program, activescope, newcontext, i, Parameters.size(), errors))
 			return false;
 
 		++i;
@@ -212,7 +212,7 @@ bool Statement::TypeInference(Program& program, CodeBlock& activescope, Inferenc
 							// TODO - bulletproof this a bit
 							std::auto_ptr<ExpressionAtomIdentifier> atom(dynamic_cast<ExpressionAtomIdentifier*>(Parameters[j]->GetAtoms()[0]));
 							Parameters[j]->GetAtoms()[0] = new ExpressionAtomIdentifierReference(atom->GetIdentifier(), atom->GetOriginalIdentifier());
-							Parameters[j]->GetAtoms()[0]->TypeInference(program, activescope, newcontext, j, errors);
+							Parameters[j]->GetAtoms()[0]->TypeInference(program, activescope, newcontext, j, Parameters.size(), errors);
 						}
 					}
 
@@ -225,6 +225,7 @@ bool Statement::TypeInference(Program& program, CodeBlock& activescope, Inferenc
 		}
 		else
 		{
+			bool overloadfound = false;
 			OverloadMap::const_iterator overloadmapiter = program.Session.FunctionOverloadNames.find(Name);
 			if(overloadmapiter != program.Session.FunctionOverloadNames.end())
 			{
@@ -256,19 +257,18 @@ bool Statement::TypeInference(Program& program, CodeBlock& activescope, Inferenc
 									// TODO - bulletproof this a bit
 									std::auto_ptr<ExpressionAtomIdentifier> atom(dynamic_cast<ExpressionAtomIdentifier*>(Parameters[i]->GetAtoms()[0]));
 									Parameters[i]->GetAtoms()[0] = new ExpressionAtomIdentifierReference(atom->GetIdentifier(), atom->GetOriginalIdentifier());
-									Parameters[i]->GetAtoms()[0]->TypeInference(program, activescope, newcontext, i, errors);
+									Parameters[i]->GetAtoms()[0]->TypeInference(program, activescope, newcontext, i, Parameters.size(), errors);
 								}
 							}
 
+							overloadfound = true;
 							break;
 						}
 					}
 				}
-
-				if(MyType == VM::EpochType_Error || MyType == VM::EpochType_Infer)
-					errors.SemanticError("No matching overload");
 			}
-			else
+			
+			if(!overloadfound)
 			{
 				FunctionSignatureSet::const_iterator funciter = program.Session.FunctionSignatures.find(Name);
 				if(funciter != program.Session.FunctionSignatures.end())
@@ -289,7 +289,7 @@ bool Statement::TypeInference(Program& program, CodeBlock& activescope, Inferenc
 								// TODO - bulletproof this a bit
 								std::auto_ptr<ExpressionAtomIdentifier> atom(dynamic_cast<ExpressionAtomIdentifier*>(Parameters[i]->GetAtoms()[0]));
 								Parameters[i]->GetAtoms()[0] = new ExpressionAtomIdentifierReference(atom->GetIdentifier(), atom->GetOriginalIdentifier());
-								Parameters[i]->GetAtoms()[0]->TypeInference(program, activescope, newcontext, i, errors);
+								Parameters[i]->GetAtoms()[0]->TypeInference(program, activescope, newcontext, i, Parameters.size(), errors);
 							}
 						}
 

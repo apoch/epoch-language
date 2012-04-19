@@ -74,6 +74,8 @@ namespace
 	void CompileConstructorStructure(IRSemantics::Statement& statement, IRSemantics::Program& program, IRSemantics::CodeBlock& activescope, bool inreturnexpr)
 	{
 		const IRSemantics::ExpressionAtomIdentifier* atom = dynamic_cast<const IRSemantics::ExpressionAtomIdentifier*>(statement.GetParameters()[0]->GetAtoms()[0]);
+		if(!atom)
+			return;		// Anonymous temporaries
 
 		VariableOrigin origin = (inreturnexpr ? VARIABLE_ORIGIN_RETURN : VARIABLE_ORIGIN_LOCAL);
 		VM::EpochTypeID effectivetype = program.LookupType(statement.GetName());

@@ -108,7 +108,7 @@ bool Entity::TypeInference(Program& program, CodeBlock& activescope, InferenceCo
 	size_t i = 0;
 	for(std::vector<Expression*>::iterator iter = Parameters.begin(); iter != Parameters.end(); ++iter)
 	{
-		if(!(*iter)->TypeInference(program, activescope, newcontext, i, errors))
+		if(!(*iter)->TypeInference(program, activescope, newcontext, i, Parameters.size(), errors))
 			return false;
 
 		++i;

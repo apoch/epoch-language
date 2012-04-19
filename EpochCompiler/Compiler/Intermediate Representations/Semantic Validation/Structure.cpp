@@ -67,24 +67,50 @@ bool Structure::Validate(const Program& program) const
 
 bool Structure::CompileTimeCodeExecution(StringHandle myname, Program& program, CompileErrors& errors)
 {
-	size_t i = 0;
-	FunctionSignature signature;
-	signature.AddParameter(L"id", VM::EpochType_Identifier, true);
-	for(std::vector<std::pair<StringHandle, StructureMember*> >::const_iterator iter = Members.begin(); iter != Members.end(); ++iter)
+	// Generate standard constructor
 	{
-		signature.AddParameter(program.GetString(iter->first), iter->second->GetEpochType(program), false);
-		++i;
-
-		if(iter->second->GetMemberType() == StructureMember::FunctionReference)
+		size_t i = 0;
+		FunctionSignature signature;
+		signature.AddParameter(L"id", VM::EpochType_Identifier, true);
+		for(std::vector<std::pair<StringHandle, StructureMember*> >::const_iterator iter = Members.begin(); iter != Members.end(); ++iter)
 		{
-			const StructureMemberFunctionReference* funcref = dynamic_cast<const StructureMemberFunctionReference*>(iter->second);
-			signature.SetFunctionSignature(i, funcref->GetSignature(program));
+			signature.AddParameter(program.GetString(iter->first), iter->second->GetEpochType(program), false);
+			++i;
+
+			if(iter->second->GetMemberType() == StructureMember::FunctionReference)
+			{
+				const StructureMemberFunctionReference* funcref = dynamic_cast<const StructureMemberFunctionReference*>(iter->second);
+				signature.SetFunctionSignature(i, funcref->GetSignature(program));
+			}
 		}
+
+		ConstructorName = program.CreateFunctionOverload(program.GetString(myname));
+		program.Session.FunctionSignatures.insert(std::make_pair(ConstructorName, signature));
 	}
 
-	ConstructorName = program.CreateFunctionOverload(program.GetString(myname));
-	program.Session.FunctionSignatures.insert(std::make_pair(ConstructorName, signature));
+	// Generate anonymous constructor
+	{
+		size_t i = 0;
+		FunctionSignature signature;
+		for(std::vector<std::pair<StringHandle, StructureMember*> >::const_iterator iter = Members.begin(); iter != Members.end(); ++iter)
+		{
+			signature.AddParameter(program.GetString(iter->first), iter->second->GetEpochType(program), false);
 
+			if(iter->second->GetMemberType() == StructureMember::FunctionReference)
+			{
+				const StructureMemberFunctionReference* funcref = dynamic_cast<const StructureMemberFunctionReference*>(iter->second);
+				signature.SetFunctionSignature(i, funcref->GetSignature(program));
+			}
+
+			++i;
+		}
+		signature.SetReturnType(program.LookupType(myname));
+
+		AnonymousConstructorName = program.CreateFunctionOverload(program.GetString(myname));
+		program.Session.FunctionSignatures.insert(std::make_pair(AnonymousConstructorName, signature));
+	}
+
+	program.Session.FunctionOverloadNames[myname].insert(AnonymousConstructorName);
 
 	for(std::vector<std::pair<StringHandle, StructureMember*> >::const_iterator iter = Members.begin(); iter != Members.end(); ++iter)
 	{

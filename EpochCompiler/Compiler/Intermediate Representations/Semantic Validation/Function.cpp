@@ -226,7 +226,7 @@ bool Function::TypeInference(Program& program, InferenceContext&, CompileErrors&
 	{
 		InferenceContext newcontext(Name, InferenceContext::CONTEXT_FUNCTION_RETURN);
 		newcontext.FunctionName = Name;
-		if(!Return->TypeInference(program, *Code, newcontext, 0, errors))
+		if(!Return->TypeInference(program, *Code, newcontext, 0, 1, errors))
 		{
 			InferenceDone = true;
 			return false;
@@ -344,7 +344,7 @@ bool FunctionParamExpression::TypeInference(IRSemantics::Program& program, Compi
 	InferenceContext context(0, InferenceContext::CONTEXT_EXPRESSION);
 	ScopeDescription scope;
 	IRSemantics::CodeBlock fakeblock(&scope, false);
-	return MyExpression->TypeInference(program, fakeblock, context, 0, errors);
+	return MyExpression->TypeInference(program, fakeblock, context, 0, 1, errors);
 }
 
 bool FunctionParamExpression::PatternMatchValue(const CompileTimeParameter& param, const IRSemantics::Program& program) const

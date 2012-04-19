@@ -161,10 +161,14 @@ namespace IRSemantics
 		StringHandle GetConstructorName() const
 		{ return ConstructorName; }
 
+		StringHandle GetAnonymousConstructorName() const
+		{ return AnonymousConstructorName; }
+
 	// Internal state
 	private:
 		std::vector<std::pair<StringHandle, StructureMember*> > Members;
 		StringHandle ConstructorName;
+		StringHandle AnonymousConstructorName;
 	};
 
 }

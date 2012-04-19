@@ -587,27 +587,24 @@ InferenceContext::PossibleParameterTypes Program::GetExpectedTypesForStatement(S
 		for(size_t i = 0; i < iter->second; ++i)
 		{
 			StringHandle overloadname = i ? FunctionOverloadNameCache.Find(std::make_pair(name, i)) : name;
-			boost::unordered_map<StringHandle, Function*>::const_iterator funciter = Functions.find(overloadname);
-			if(funciter != Functions.end())
+			FunctionSignatureSet::const_iterator fsigiter = Session.FunctionSignatures.find(overloadname);
+			if(fsigiter != Session.FunctionSignatures.end())
 			{
 				ret.push_back(InferenceContext::TypePossibilities());
-				FunctionSignature signature = funciter->second->GetFunctionSignature(*this);
 
-				for(size_t j = 0; j < signature.GetNumParameters(); ++j)
-					ret.back().push_back(signature.GetParameter(j).Type);
-				//std::vector<StringHandle> paramnames = funciter->second->GetParameterNames();
-				//for(std::vector<StringHandle>::const_iterator paramiter = paramnames.begin(); paramiter != paramnames.end(); ++paramiter)
-				//	ret.back().push_back(funciter->second->GetParameterType(*paramiter, *this));
+				for(size_t j = 0; j < fsigiter->second.GetNumParameters(); ++j)
+					ret.back().push_back(fsigiter->second.GetParameter(j).Type);
 			}
 			else
 			{
-				FunctionSignatureSet::const_iterator fsigiter = Session.FunctionSignatures.find(overloadname);
-				if(fsigiter != Session.FunctionSignatures.end())
+				boost::unordered_map<StringHandle, Function*>::const_iterator funciter = Functions.find(overloadname);
+				if(funciter != Functions.end())
 				{
 					ret.push_back(InferenceContext::TypePossibilities());
+					FunctionSignature signature = funciter->second->GetFunctionSignature(*this);
 
-					for(size_t j = 0; j < fsigiter->second.GetNumParameters(); ++j)
-						ret.back().push_back(fsigiter->second.GetParameter(j).Type);
+					for(size_t j = 0; j < signature.GetNumParameters(); ++j)
+						ret.back().push_back(signature.GetParameter(j).Type);
 				}
 				else
 				{

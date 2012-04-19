@@ -434,6 +434,28 @@ namespace
 
 		emitter.ExitFunction();
 	}
+
+	void EmitAnonConstructor(ByteCodeEmitter& emitter, StringHandle name, StringHandle rawname, const IRSemantics::Structure& structure, const IRSemantics::Program& program)
+	{
+		emitter.DefineLexicalScope(name, 0, structure.GetMembers().size() + 1);
+		for(size_t i = 0; i < structure.GetMembers().size(); ++i)
+			emitter.LexicalScopeEntry(structure.GetMembers()[i].first, structure.GetMembers()[i].second->GetEpochType(program), false, VARIABLE_ORIGIN_PARAMETER);
+		emitter.LexicalScopeEntry(name, program.LookupType(rawname), false, VARIABLE_ORIGIN_RETURN);
+
+		emitter.EnterFunction(name);
+		emitter.AllocateStructure(program.LookupType(rawname));
+		emitter.BindReference(name);
+		emitter.AssignVariable();
+
+		for(size_t i = 0; i < structure.GetMembers().size(); ++i)
+		{
+			emitter.PushVariableValue(structure.GetMembers()[i].first, structure.GetMembers()[i].second->GetEpochType(program));
+			emitter.AssignStructure(name, structure.GetMembers()[i].first);
+		}
+
+		emitter.SetReturnRegister(name);
+		emitter.ExitFunction();
+	}
 }
 
 
@@ -613,9 +635,11 @@ bool CompilerPasses::GenerateCode(const IRSemantics::Program& program, ByteCodeE
 	}
 
 	// Generate constructors for structures
-	// TODO - implement anonymous temporaries
 	for(std::map<StringHandle, IRSemantics::Structure*>::const_iterator iter = structures.begin(); iter != structures.end(); ++iter)
+	{
 		EmitConstructor(emitter, iter->second->GetConstructorName(), iter->first, *iter->second, program);
+		EmitAnonConstructor(emitter, iter->second->GetAnonymousConstructorName(), iter->first, *iter->second, program);
+	}
 
 	const std::set<StringHandle>& funcsneedingpatternmatching = program.GetFunctionsNeedingDynamicPatternMatching();
 	for(std::set<StringHandle>::const_iterator iter = funcsneedingpatternmatching.begin(); iter != funcsneedingpatternmatching.end(); ++iter)
