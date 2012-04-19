@@ -118,7 +118,8 @@ bool Statement::TypeInference(Program& program, CodeBlock& activescope, Inferenc
 	if(context.State == InferenceContext::CONTEXT_FUNCTION_RETURN)
 	{
 		MyType = program.LookupType(Name);
-		Name = program.GetStructures().find(program.GetNameOfStructureType(MyType))->second->GetConstructorName();
+		if(MyType > VM::EpochType_CustomBase)
+			Name = program.GetStructures().find(program.GetNameOfStructureType(MyType))->second->GetConstructorName();
 	}
 
 	size_t i = 0;
@@ -130,7 +131,7 @@ bool Statement::TypeInference(Program& program, CodeBlock& activescope, Inferenc
 		++i;
 	}
 
-	//if(context.State != InferenceContext::CONTEXT_FUNCTION_RETURN)
+	if(context.State != InferenceContext::CONTEXT_FUNCTION_RETURN || MyType > VM::EpochType_CustomBase)
 	{
 		if(program.HasFunction(Name))
 		{
@@ -141,12 +142,14 @@ bool Statement::TypeInference(Program& program, CodeBlock& activescope, Inferenc
 				StringHandle overloadname = program.GetFunctionOverloadName(Name, i);
 				VM::EpochTypeID funcreturntype = VM::EpochType_Error;
 				FunctionSignature signature;
-				if(program.HasFunction(overloadname))
+				if(program.Session.FunctionSignatures.find(overloadname) != program.Session.FunctionSignatures.end())
+					signature = program.Session.FunctionSignatures.find(overloadname)->second;
+				else
 				{
 					Function* func = program.GetFunctions().find(overloadname)->second;
 					func->TypeInference(program, funccontext, errors);
+					signature = func->GetFunctionSignature(program);
 				}
-				signature = program.Session.FunctionSignatures.find(overloadname)->second;
 				funcreturntype = signature.GetReturnType();
 				if(signature.GetNumParameters() != Parameters.size())
 					continue;
