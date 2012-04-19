@@ -29,7 +29,7 @@ namespace
 	// lexical scope. This function is specifically intended for such cases
 	// as overloaded structure constructors.
 	//
-	void ConstructorCompileHelper(IRSemantics::Statement& statement, IRSemantics::Program& program, IRSemantics::CodeBlock& activescope, bool inreturnexpr)
+	void ConstructorCompileHelper(IRSemantics::Statement& statement, IRSemantics::Program& program, IRSemantics::CodeBlock& activescope, bool inreturnexpr, CompileErrors& errors)
 	{
 		if(statement.GetParameters()[0]->GetEpochType(program) != VM::EpochType_Identifier)
 			throw RecoverableException("Functions tagged as constructors must accept an identifier as their first parameter");
@@ -39,6 +39,10 @@ namespace
 		VariableOrigin origin = (inreturnexpr ? VARIABLE_ORIGIN_RETURN : VARIABLE_ORIGIN_LOCAL);
 		VM::EpochTypeID effectivetype = program.LookupType(statement.GetName());
 		activescope.AddVariable(program.GetString(atom->GetIdentifier()), atom->GetIdentifier(), effectivetype, false, origin);
+
+		if(program.HasFunction(atom->GetIdentifier()))
+			errors.SemanticError("Variable name shadows a function of the same name");
+		// TODO - check for shadowing of type names also!
 	}
 
 	//

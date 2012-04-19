@@ -110,7 +110,7 @@ namespace IRSemantics
 		StringHandle CreateFunctionOverload(const std::wstring& name);
 
 		void AddFunction(StringHandle name, StringHandle rawname, Function* function, CompileErrors& errors);
-		bool HasFunction(StringHandle name) const;
+		EPOCHCOMPILER bool HasFunction(StringHandle name) const;
 
 		unsigned GetNumFunctionOverloads(StringHandle name) const;
 		StringHandle GetFunctionOverloadName(StringHandle rawname, unsigned overloadindex) const;

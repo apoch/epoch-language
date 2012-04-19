@@ -69,6 +69,9 @@
     <Filter Include="VM Linkage\Virtual Machine">
       <UniqueIdentifier>{2a87aca0-3c38-478c-a041-83866931d060}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Compiler Dependencies">
+      <UniqueIdentifier>{7b2f4871-1458-47be-9e82-c333435f68cb}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="EntryPoint.cpp">
@@ -169,6 +172,9 @@
     </ClCompile>
     <ClCompile Include="Library Functionality\Function Tags\Native.cpp">
       <Filter>Library Functionality\Function Tags</Filter>
+    </ClCompile>
+    <ClCompile Include="..\EpochCompiler\Compiler\CompileErrors.cpp">
+      <Filter>Compiler Dependencies</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -291,6 +297,9 @@
     </ClInclude>
     <ClInclude Include="..\Shared\Libraries\LibraryJIT.h">
       <Filter>Shared\Libraries</Filter>
+    </ClInclude>
+    <ClInclude Include="..\EpochCompiler\Compiler\CompileErrors.h">
+      <Filter>Compiler Dependencies</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

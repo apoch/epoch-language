@@ -30,12 +30,14 @@ namespace VM
 	class ExecutionContext;
 }
 
+class CompileErrors;
+
 
 // Handy type shortcuts
 typedef void (*EpochFunctionPtr)(StringHandle namehandle, VM::ExecutionContext& context);
 typedef std::map<StringHandle, EpochFunctionPtr> FunctionInvocationTable;
 
-typedef void (*CompilerHelperPtr)(IRSemantics::Statement& statement, IRSemantics::Program& program, IRSemantics::CodeBlock& activescope, bool inreturnexpr);
+typedef void (*CompilerHelperPtr)(IRSemantics::Statement& statement, IRSemantics::Program& program, IRSemantics::CodeBlock& activescope, bool inreturnexpr, CompileErrors& errors);
 typedef std::map<StringHandle, CompilerHelperPtr> FunctionCompileHelperTable;
 
 typedef std::map<StringHandle, int> PrecedenceTable;

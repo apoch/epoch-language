@@ -126,13 +126,16 @@ namespace
 	// helper adds the variable itself and its type metadata to the current
 	// lexical scope.
 	//
-	void CompileConstructorPrimitive(IRSemantics::Statement& statement, IRSemantics::Program& program, IRSemantics::CodeBlock& activescope, bool inreturnexpr)
+	void CompileConstructorPrimitive(IRSemantics::Statement& statement, IRSemantics::Program& program, IRSemantics::CodeBlock& activescope, bool inreturnexpr, CompileErrors& errors)
 	{
 		const IRSemantics::ExpressionAtomIdentifier* atom = dynamic_cast<const IRSemantics::ExpressionAtomIdentifier*>(statement.GetParameters()[0]->GetAtoms()[0]);
 
 		VariableOrigin origin = (inreturnexpr ? VARIABLE_ORIGIN_RETURN : VARIABLE_ORIGIN_LOCAL);
 		VM::EpochTypeID effectivetype = program.LookupType(statement.GetName());
 		activescope.AddVariable(program.GetString(atom->GetIdentifier()), atom->GetIdentifier(), effectivetype, false, origin);
+
+		if(program.HasFunction(atom->GetIdentifier()))
+			errors.SemanticError("Variable name shadows a function of the same name");
 	}
 
 }

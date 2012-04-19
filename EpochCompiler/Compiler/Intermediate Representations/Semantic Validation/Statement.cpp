@@ -68,9 +68,10 @@ bool Statement::CompileTimeCodeExecution(Program& program, CodeBlock& activescop
 			return false;
 	}
 
+	errors.SetContext(OriginalIdentifier);
 	FunctionCompileHelperTable::const_iterator fchiter = program.Session.InfoTable.FunctionHelpers->find(Name);
 	if(fchiter != program.Session.InfoTable.FunctionHelpers->end())
-		fchiter->second(*this, program, activescope, inreturnexpr);
+		fchiter->second(*this, program, activescope, inreturnexpr, errors);
 
 	return true;
 }
