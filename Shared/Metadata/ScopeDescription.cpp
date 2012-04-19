@@ -24,6 +24,17 @@ void ScopeDescription::AddVariable(const std::wstring& identifier, StringHandle 
 }
 
 //
+// Add a variable to the beginning of a lexical scope
+//
+void ScopeDescription::PrependVariable(const std::wstring& identifier, StringHandle identifierhandle, VM::EpochTypeID type, bool isreference, VariableOrigin origin)
+{
+	if(HasVariable(identifier))
+		throw InvalidIdentifierException("Duplicate/shadowed identifiers are not permitted - the identifier \"" + narrow(identifier) + "\" is already in use in this scope or some containing scope.");
+
+	Variables.insert(Variables.begin(), VariableEntry(identifier, identifierhandle, type, isreference, origin));
+}
+
+//
 // Determine if the scope contains a variable with the given identifier
 //
 bool ScopeDescription::HasVariable(const std::wstring& identifier) const

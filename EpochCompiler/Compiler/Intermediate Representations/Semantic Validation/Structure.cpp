@@ -82,7 +82,8 @@ bool Structure::CompileTimeCodeExecution(StringHandle myname, Program& program, 
 		}
 	}
 
-	program.Session.FunctionSignatures.insert(std::make_pair(myname, signature));
+	ConstructorName = program.CreateFunctionOverload(program.GetString(myname));
+	program.Session.FunctionSignatures.insert(std::make_pair(ConstructorName, signature));
 
 
 	for(std::vector<std::pair<StringHandle, StructureMember*> >::const_iterator iter = Members.begin(); iter != Members.end(); ++iter)

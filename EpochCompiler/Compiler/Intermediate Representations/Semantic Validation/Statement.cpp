@@ -12,6 +12,7 @@
 #include "Compiler/Intermediate Representations/Semantic Validation/CodeBlock.h"
 #include "Compiler/Intermediate Representations/Semantic Validation/Function.h"
 #include "Compiler/Intermediate Representations/Semantic Validation/Program.h"
+#include "Compiler/Intermediate Representations/Semantic Validation/Structure.h"
 
 #include "Compiler/Intermediate Representations/Semantic Validation/InferenceContext.h"
 
@@ -115,7 +116,10 @@ bool Statement::TypeInference(Program& program, CodeBlock& activescope, Inferenc
 	}
 
 	if(context.State == InferenceContext::CONTEXT_FUNCTION_RETURN)
+	{
 		MyType = program.LookupType(Name);
+		Name = program.GetStructures().find(program.GetNameOfStructureType(MyType))->second->GetConstructorName();
+	}
 
 	size_t i = 0;
 	for(std::vector<Expression*>::iterator iter = Parameters.begin(); iter != Parameters.end(); ++iter)
@@ -126,7 +130,7 @@ bool Statement::TypeInference(Program& program, CodeBlock& activescope, Inferenc
 		++i;
 	}
 
-	if(context.State != InferenceContext::CONTEXT_FUNCTION_RETURN)
+	//if(context.State != InferenceContext::CONTEXT_FUNCTION_RETURN)
 	{
 		if(program.HasFunction(Name))
 		{
@@ -135,8 +139,17 @@ bool Statement::TypeInference(Program& program, CodeBlock& activescope, Inferenc
 			for(unsigned i = 0; i < overloadcount; ++i)
 			{
 				StringHandle overloadname = program.GetFunctionOverloadName(Name, i);
-				Function* func = program.GetFunctions().find(overloadname)->second;
-				func->TypeInference(program, funccontext, errors);
+				VM::EpochTypeID funcreturntype = VM::EpochType_Error;
+				FunctionSignature signature;
+				if(program.HasFunction(overloadname))
+				{
+					Function* func = program.GetFunctions().find(overloadname)->second;
+					func->TypeInference(program, funccontext, errors);
+				}
+				signature = program.Session.FunctionSignatures.find(overloadname)->second;
+				funcreturntype = signature.GetReturnType();
+				if(signature.GetNumParameters() != Parameters.size())
+					continue;
 
 				if(!context.ExpectedTypes.empty())
 				{
@@ -144,7 +157,7 @@ bool Statement::TypeInference(Program& program, CodeBlock& activescope, Inferenc
 					const InferenceContext::PossibleParameterTypes& possibles = context.ExpectedTypes.back();
 					for(size_t j = 0; j < possibles.size(); ++j)
 					{
-						if(possibles[j][index] == func->GetReturnType(program))
+						if(possibles[j][index] == funcreturntype)
 						{
 							matchedreturn = true;
 							break;
@@ -155,56 +168,52 @@ bool Statement::TypeInference(Program& program, CodeBlock& activescope, Inferenc
 						continue;
 				}
 				
-				if(func->GetNumParameters() == Parameters.size())
+				bool match = true;
+				for(size_t j = 0; j < Parameters.size(); ++j)
 				{
-					FunctionSignature signature = func->GetFunctionSignature(program);
-					bool match = true;
-					for(size_t j = 0; j < Parameters.size(); ++j)
+					VM::EpochTypeID thisparamtype = signature.GetParameter(j).Type;
+					if(thisparamtype != Parameters[j]->GetEpochType(program))
 					{
-						VM::EpochTypeID thisparamtype = func->GetParameterTypeByIndex(j, program);
-						if(thisparamtype != Parameters[j]->GetEpochType(program))
-						{
-							match = false;
-							break;
-						}
+						match = false;
+						break;
+					}
 
-						if(signature.GetParameter(j).HasPayload)
+					if(signature.GetParameter(j).HasPayload)
+					{
+						if(Parameters[j]->GetAtoms().size() == 1)
 						{
-							if(Parameters[j]->GetAtoms().size() == 1)
-							{
-								if(!func->PatternMatchParameter(j, Parameters[j]->GetAtoms()[0]->ConvertToCompileTimeParam(program), program))
-								{
-									match = false;
-									break;
-								}
-								Parameters[j]->AtomsArePatternMatchedLiteral = true;
-							}
-							else
+							if(!signature.GetParameter(j).PatternMatch(Parameters[j]->GetAtoms()[0]->ConvertToCompileTimeParam(program)))
 							{
 								match = false;
 								break;
 							}
+							Parameters[j]->AtomsArePatternMatchedLiteral = true;
 						}
-					}
-					
-					if(match)
-					{
-						Name = overloadname;
-						MyType = func->GetReturnType(program);
-
-						for(size_t j = 0; j < Parameters.size(); ++j)
+						else
 						{
-							if(func->IsParameterReference(func->GetParameterNames()[j]))
-							{
-								// TODO - bulletproof this a bit
-								std::auto_ptr<ExpressionAtomIdentifier> atom(dynamic_cast<ExpressionAtomIdentifier*>(Parameters[j]->GetAtoms()[0]));
-								Parameters[j]->GetAtoms()[0] = new ExpressionAtomIdentifierReference(atom->GetIdentifier(), atom->GetOriginalIdentifier());
-								Parameters[j]->GetAtoms()[0]->TypeInference(program, activescope, newcontext, j, errors);
-							}
+							match = false;
+							break;
 						}
-
-						break;
 					}
+				}
+					
+				if(match)
+				{
+					Name = overloadname;
+					MyType = funcreturntype;
+
+					for(size_t j = 0; j < Parameters.size(); ++j)
+					{
+						if(signature.GetParameter(j).IsReference)
+						{
+							// TODO - bulletproof this a bit
+							std::auto_ptr<ExpressionAtomIdentifier> atom(dynamic_cast<ExpressionAtomIdentifier*>(Parameters[j]->GetAtoms()[0]));
+							Parameters[j]->GetAtoms()[0] = new ExpressionAtomIdentifierReference(atom->GetIdentifier(), atom->GetOriginalIdentifier());
+							Parameters[j]->GetAtoms()[0]->TypeInference(program, activescope, newcontext, j, errors);
+						}
+					}
+
+					break;
 				}
 			}
 

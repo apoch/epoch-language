@@ -30,6 +30,13 @@ void FunctionSignature::AddParameter(const std::wstring& name, VM::EpochTypeID t
 	Parameters.back().IsReference = isreference;
 }
 
+void FunctionSignature::PrependParameter(const std::wstring& name, VM::EpochTypeID type, bool isreference)
+{
+	Parameters.insert(Parameters.begin(), CompileTimeParameter(name, type));
+	FunctionSignatures.insert(FunctionSignatures.begin(), FunctionSignature());
+	Parameters.front().IsReference = isreference;
+}
+
 //
 // Add a parameter that is used in pattern matching which has an integer literal type
 //

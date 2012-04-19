@@ -14,6 +14,9 @@
 
 #include "Compiler/Exceptions.h"
 #include "Compiler/CompileErrors.h"
+#include "Compiler/Session.h"
+
+#include "Libraries/Library.h"
 
 
 using namespace IRSemantics;
@@ -166,6 +169,26 @@ bool Function::Validate(const IRSemantics::Program& program) const
 
 bool Function::CompileTimeCodeExecution(Program& program, CompileErrors& errors)
 {
+	for(std::vector<FunctionTag>::const_iterator iter = Tags.begin(); iter != Tags.end(); ++iter)
+	{
+		FunctionTagHelperTable::const_iterator helperiter = program.Session.FunctionTagHelpers.find(program.GetString(iter->TagName));
+		if(helperiter != program.Session.FunctionTagHelpers.end())
+		{
+			TagHelperReturn help = helperiter->second(RawName, iter->Parameters, true);
+			if(help.LinkToCompileTimeHelper)
+				program.Session.CompileTimeHelpers.insert(std::make_pair(RawName, help.LinkToCompileTimeHelper));
+
+			if(help.SetConstructorFunction)
+			{
+				FunctionSignature signature = GetFunctionSignature(program);
+				signature.PrependParameter(L"@id", VM::EpochType_Identifier, false);
+				signature.SetReturnType(VM::EpochType_Void);
+				program.Session.FunctionSignatures[Name] = signature;
+				Code->GetScope()->PrependVariable(L"@id", program.AddString(L"@id"), VM::EpochType_Identifier, false, VARIABLE_ORIGIN_PARAMETER);
+			}
+		}
+	}
+
 	if(Return)
 	{
 		if(!Code)

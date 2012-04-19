@@ -131,6 +131,7 @@ namespace IRSemantics
 	// Construction and destruction
 	public:
 		Structure()
+			: ConstructorName(0)
 		{ }
 
 		~Structure();
@@ -155,9 +156,15 @@ namespace IRSemantics
 	public:
 		bool CompileTimeCodeExecution(StringHandle myname, Program& program, CompileErrors& errors);
 
+	// Inspection
+	public:
+		StringHandle GetConstructorName() const
+		{ return ConstructorName; }
+
 	// Internal state
 	private:
 		std::vector<std::pair<StringHandle, StructureMember*> > Members;
+		StringHandle ConstructorName;
 	};
 
 }

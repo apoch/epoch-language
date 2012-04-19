@@ -42,6 +42,7 @@ public:
 // Configuration interface
 public:
 	void AddVariable(const std::wstring& identifier, StringHandle identifierhandle, VM::EpochTypeID type, bool isreference, VariableOrigin origin);
+	void PrependVariable(const std::wstring& identifier, StringHandle identifierhandle, VM::EpochTypeID type, bool isreference, VariableOrigin origin);
 
 // Inspection interface
 public:

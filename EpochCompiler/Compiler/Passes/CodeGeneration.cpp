@@ -414,7 +414,7 @@ namespace
 		}
 	}
 
-	void EmitConstructor(ByteCodeEmitter& emitter, StringHandle name, const IRSemantics::Structure& structure, const IRSemantics::Program& program)
+	void EmitConstructor(ByteCodeEmitter& emitter, StringHandle name, StringHandle rawname, const IRSemantics::Structure& structure, const IRSemantics::Program& program)
 	{
 		emitter.DefineLexicalScope(name, 0, structure.GetMembers().size() + 1);
 		emitter.LexicalScopeEntry(program.FindString(L"identifier"), VM::EpochType_Identifier, true, VARIABLE_ORIGIN_PARAMETER);
@@ -422,7 +422,7 @@ namespace
 			emitter.LexicalScopeEntry(structure.GetMembers()[i].first, structure.GetMembers()[i].second->GetEpochType(program), false, VARIABLE_ORIGIN_PARAMETER);
 
 		emitter.EnterFunction(name);
-		emitter.AllocateStructure(program.LookupType(name));
+		emitter.AllocateStructure(program.LookupType(rawname));
 		emitter.BindReference(program.FindString(L"identifier"));
 		emitter.AssignVariable();
 
@@ -439,6 +439,8 @@ namespace
 
 bool CompilerPasses::GenerateCode(const IRSemantics::Program& program, ByteCodeEmitter& emitter)
 {
+	std::map<StringHandle, bool> isconstructor;
+
 	const StringPoolManager& strings = program.GetStringPool();
 	const boost::unordered_map<StringHandle, std::wstring>& stringpool = strings.GetInternalPool();
 
@@ -476,6 +478,31 @@ bool CompilerPasses::GenerateCode(const IRSemantics::Program& program, ByteCodeE
 	}
 
 
+	const boost::unordered_map<StringHandle, IRSemantics::Function*>& functions = program.GetFunctions();
+	for(boost::unordered_map<StringHandle, IRSemantics::Function*>::const_iterator iter = functions.begin(); iter != functions.end(); ++iter)
+	{
+		const std::vector<IRSemantics::FunctionTag>& tags = iter->second->GetTags();
+		for(std::vector<IRSemantics::FunctionTag>::const_iterator tagiter = tags.begin(); tagiter != tags.end(); ++tagiter)
+		{
+			if(program.GetString(tagiter->TagName) == L"constructor")
+				isconstructor[iter->first] = true;
+
+			FunctionTagHelperTable::const_iterator helperiter = program.Session.FunctionTagHelpers.find(program.GetString(tagiter->TagName));
+			if(helperiter != program.Session.FunctionTagHelpers.end())
+			{
+				TagHelperReturn help = helperiter->second(iter->first, tagiter->Parameters, true);
+				if(!help.MetaTag.empty())
+					emitter.TagData(iter->first, help.MetaTag, help.MetaTagData);
+			}
+			else
+			{
+				// TODO - flag semantic error instead
+				throw std::runtime_error("Unrecognized function tag");
+			}
+		}
+	}
+
+
 	const IRSemantics::ScopePtrMap& scopes = program.GetScopes();
 	DependencyGraph<StringHandle> scopedependencies;
 	for(IRSemantics::ScopePtrMap::const_iterator iter = scopes.begin(); iter != scopes.end(); ++iter)
@@ -491,27 +518,12 @@ bool CompilerPasses::GenerateCode(const IRSemantics::Program& program, ByteCodeE
 		IRSemantics::ScopePtrMap::const_iterator iter = scopes.find(*orderiter);
 		emitter.DefineLexicalScope(iter->first, program.FindLexicalScopeName(iter->second->ParentScope), iter->second->GetVariableCount());
 		for(size_t i = 0; i < iter->second->GetVariableCount(); ++i)
-			emitter.LexicalScopeEntry(strings.Find(iter->second->GetVariableName(i)), iter->second->GetVariableTypeByIndex(i), iter->second->IsReference(i), iter->second->GetVariableOrigin(i));
-	}
-
-
-	const boost::unordered_map<StringHandle, IRSemantics::Function*>& functions = program.GetFunctions();
-	for(boost::unordered_map<StringHandle, IRSemantics::Function*>::const_iterator iter = functions.begin(); iter != functions.end(); ++iter)
-	{
-		const std::vector<IRSemantics::FunctionTag>& tags = iter->second->GetTags();
-		for(std::vector<IRSemantics::FunctionTag>::const_iterator tagiter = tags.begin(); tagiter != tags.end(); ++tagiter)
 		{
-			FunctionTagHelperTable::const_iterator helperiter = program.Session.FunctionTagHelpers.find(program.GetString(tagiter->TagName));
-			if(helperiter != program.Session.FunctionTagHelpers.end())
-			{
-				TagHelperReturn help = helperiter->second(iter->first, tagiter->Parameters, true);
-				emitter.TagData(iter->first, help.MetaTag, help.MetaTagData);
-			}
-			else
-			{
-				// TODO - flag semantic error instead
-				throw std::runtime_error("Unrecognized function tag");
-			}
+			VariableOrigin origin = iter->second->GetVariableOrigin(i);
+			if(isconstructor[*orderiter] && origin == VARIABLE_ORIGIN_RETURN)
+				origin = VARIABLE_ORIGIN_LOCAL;
+
+			emitter.LexicalScopeEntry(strings.Find(iter->second->GetVariableName(i)), iter->second->GetVariableTypeByIndex(i), iter->second->IsReference(i), origin);
 		}
 	}
 
@@ -529,7 +541,8 @@ bool CompilerPasses::GenerateCode(const IRSemantics::Program& program, ByteCodeE
 	for(boost::unordered_map<StringHandle, IRSemantics::Function*>::const_iterator iter = functions.begin(); iter != functions.end(); ++iter)
 	{
 		emitter.EnterFunction(iter->first);
-		if(iter->second->GetReturnType(program) != VM::EpochType_Void)
+		VM::EpochTypeID rettype = iter->second->GetReturnType(program);
+		if(rettype != VM::EpochType_Void || isconstructor[iter->first])
 			EmitExpression(emitter, *iter->second->GetReturnExpression(), *iter->second->GetCode(), program);
 
 		const std::vector<IRSemantics::FunctionTag>& tags = iter->second->GetTags();
@@ -553,7 +566,7 @@ bool CompilerPasses::GenerateCode(const IRSemantics::Program& program, ByteCodeE
 		if(code)
 			Generate(*code, program, emitter);
 
-		if(iter->second->GetReturnType(program) != VM::EpochType_Void)
+		if(iter->second->GetReturnType(program) != VM::EpochType_Void || isconstructor[iter->first])
 		{
 			if(!code)
 			{
@@ -579,7 +592,17 @@ bool CompilerPasses::GenerateCode(const IRSemantics::Program& program, ByteCodeE
 				{
 					if(scope->GetVariableOrigin(i) == VARIABLE_ORIGIN_RETURN)
 					{
-						emitter.SetReturnRegister(scope->GetVariableNameHandle(i));
+						if(isconstructor[iter->first])
+						{
+							emitter.PushVariableValueNoCopy(scope->GetVariableNameHandle(i));
+							emitter.PushVariableValue(program.FindString(L"@id"), VM::EpochType_Identifier);
+							emitter.PushIntegerLiteral(scope->GetVariableTypeByIndex(i));
+							emitter.AssignVariableThroughIdentifier();
+						}
+						else
+						{
+							emitter.SetReturnRegister(scope->GetVariableNameHandle(i));
+						}
 						break;
 					}
 				}
@@ -592,7 +615,7 @@ bool CompilerPasses::GenerateCode(const IRSemantics::Program& program, ByteCodeE
 	// Generate constructors for structures
 	// TODO - implement anonymous temporaries
 	for(std::map<StringHandle, IRSemantics::Structure*>::const_iterator iter = structures.begin(); iter != structures.end(); ++iter)
-		EmitConstructor(emitter, iter->first, *iter->second, program);
+		EmitConstructor(emitter, iter->second->GetConstructorName(), iter->first, *iter->second, program);
 
 	const std::set<StringHandle>& funcsneedingpatternmatching = program.GetFunctionsNeedingDynamicPatternMatching();
 	for(std::set<StringHandle>::const_iterator iter = funcsneedingpatternmatching.begin(); iter != funcsneedingpatternmatching.end(); ++iter)

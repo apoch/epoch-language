@@ -571,6 +571,7 @@ void CompilePassSemantics::ExitHelper::operator () (AST::Expression&)
 		throw InternalException("Parse state is explicitly unknown or otherwise unrecognized");
 
 	case CompilePassSemantics::STATE_EXPRESSION_COMPONENT:
+	case CompilePassSemantics::STATE_EXPRESSION_FRAGMENT:
 		{
 			std::auto_ptr<IRSemantics::Expression> expr(self->CurrentExpressions.back());
 			self->CurrentExpressions.pop_back();

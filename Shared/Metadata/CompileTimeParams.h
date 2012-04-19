@@ -53,6 +53,20 @@ struct CompileTimeParameter
 
 	bool IsReference;
 	bool HasPayload;
+
+	bool PatternMatch(const CompileTimeParameter& rhs) const
+	{
+		if(Type != rhs.Type)
+			return false;
+
+		switch(Type)
+		{
+		case VM::EpochType_Integer:
+			return Payload.IntegerValue == rhs.Payload.IntegerValue;
+		}
+
+		return false;
+	}
 };
 
 

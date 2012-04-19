@@ -378,7 +378,7 @@ bool Expression::TypeInference(Program& program, CodeBlock& activescope, Inferen
 		{
 			while(!opstack.empty())
 			{
-				const ExpressionAtomOperator* opatom2 = opstack.back();
+				ExpressionAtomOperator* opatom2 = opstack.back();
 				if(opatom->IsOperatorUnary(program))
 				{
 					if(opatom->GetOperatorPrecedence(program) >= opatom2->GetOperatorPrecedence(program))
@@ -389,6 +389,9 @@ bool Expression::TypeInference(Program& program, CodeBlock& activescope, Inferen
 					if(opatom->GetOperatorPrecedence(program) > opatom2->GetOperatorPrecedence(program))
 						break;
 				}
+
+				outputqueue.push_back(opatom2);
+				opstack.pop_back();
 			}
 			opstack.push_back(opatom);
 		}
@@ -651,6 +654,9 @@ bool ExpressionAtomIdentifier::TypeInference(Program& program, CodeBlock& active
 		const InferenceContext::PossibleParameterTypes& types = context.ExpectedTypes.back();
 		for(size_t i = 0; i < types.size(); ++i)
 		{
+			if(types[i].size() <= index)
+				continue;
+
 			VM::EpochTypeID paramtype = types[i][index];
 			if(paramtype == VM::EpochType_Identifier)
 			{
