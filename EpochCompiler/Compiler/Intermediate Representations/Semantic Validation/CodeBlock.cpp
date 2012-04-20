@@ -83,17 +83,6 @@ bool CodeBlock::Validate(const Program& program) const
 	return valid;
 }
 
-bool CodeBlock::CompileTimeCodeExecution(Program& program, CompileErrors& errors)
-{
-	for(std::vector<CodeBlockEntry*>::iterator iter = Entries.begin(); iter != Entries.end(); ++iter)
-	{
-		if(!(*iter)->CompileTimeCodeExecution(program, *this, errors))
-			return false;
-	}
-	
-	return true;
-}
-
 bool CodeBlock::TypeInference(Program& program, InferenceContext& context, CompileErrors& errors)
 {
 	InferenceContext newcontext(0, InferenceContext::CONTEXT_CODE_BLOCK);
@@ -152,14 +141,6 @@ bool CodeBlockStatementEntry::Validate(const Program& program) const
 		return false;
 
 	return MyStatement->Validate(program);
-}
-
-bool CodeBlockStatementEntry::CompileTimeCodeExecution(Program& program, CodeBlock& activescope, CompileErrors& errors)
-{
-	if(!MyStatement)
-		return false;
-
-	return MyStatement->CompileTimeCodeExecution(program, activescope, false, errors);
 }
 
 bool CodeBlockStatementEntry::TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, CompileErrors& errors)
@@ -237,14 +218,6 @@ bool CodeBlockInnerBlockEntry::Validate(const Program& program) const
 	return MyCodeBlock->Validate(program);
 }
 
-bool CodeBlockInnerBlockEntry::CompileTimeCodeExecution(Program& program, CodeBlock&, CompileErrors& errors)
-{
-	if(!MyCodeBlock)
-		return false;
-
-	return MyCodeBlock->CompileTimeCodeExecution(program, errors);
-}
-
 bool CodeBlockInnerBlockEntry::TypeInference(Program& program, CodeBlock&, InferenceContext& context, CompileErrors& errors)
 {
 	if(!MyCodeBlock)
@@ -271,14 +244,6 @@ bool CodeBlockEntityEntry::Validate(const Program& program) const
 		return false;
 
 	return MyEntity->Validate(program);
-}
-
-bool CodeBlockEntityEntry::CompileTimeCodeExecution(Program& program, CodeBlock& activescope, CompileErrors& errors)
-{
-	if(!MyEntity)
-		return false;
-
-	return MyEntity->CompileTimeCodeExecution(program, activescope, errors);
 }
 
 bool CodeBlockEntityEntry::TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, CompileErrors& errors)

@@ -65,28 +65,22 @@ namespace
 		std::vector<StringHandle>& Container;
 	};
 
+}
 
-	//
-	// Compile-time helper: when a variable definition is encountered, this
-	// helper adds the variable itself and its type metadata to the current
-	// lexical scope.
-	//
-	void CompileConstructorStructure(IRSemantics::Statement& statement, IRSemantics::Program& program, IRSemantics::CodeBlock& activescope, bool inreturnexpr, CompileErrors& errors)
-	{
-		VM::EpochTypeID effectivetype = program.LookupType(statement.GetName());
+//
+// Compile-time helper: when a variable definition is encountered, this
+// helper adds the variable itself and its type metadata to the current
+// lexical scope.
+//
+void CompileConstructorStructure(IRSemantics::Statement& statement, IRSemantics::Program& program, IRSemantics::CodeBlock& activescope, bool inreturnexpr, CompileErrors& errors)
+{
+	const IRSemantics::ExpressionAtomIdentifier* atom = dynamic_cast<const IRSemantics::ExpressionAtomIdentifier*>(statement.GetParameters()[0]->GetAtoms()[0]);
+	VM::EpochTypeID effectivetype = program.LookupType(statement.GetRawName());
+	VariableOrigin origin = (inreturnexpr ? VARIABLE_ORIGIN_RETURN : VARIABLE_ORIGIN_LOCAL);
+	activescope.AddVariable(program.GetString(atom->GetIdentifier()), atom->GetIdentifier(), effectivetype, false, origin);
 
-		// Detect anonymous temporaries
-		if(program.GetStructures().find(statement.GetName())->second->GetMembers().size() != (statement.GetParameters().size() - 1))
-			return;
-
-		const IRSemantics::ExpressionAtomIdentifier* atom = dynamic_cast<const IRSemantics::ExpressionAtomIdentifier*>(statement.GetParameters()[0]->GetAtoms()[0]);
-		VariableOrigin origin = (inreturnexpr ? VARIABLE_ORIGIN_RETURN : VARIABLE_ORIGIN_LOCAL);
-		activescope.AddVariable(program.GetString(atom->GetIdentifier()), atom->GetIdentifier(), effectivetype, false, origin);
-
-		if(program.HasFunction(atom->GetIdentifier()))
-			errors.SemanticError("Variable name shadows a function of the same name");
-	}
-
+	if(program.HasFunction(atom->GetIdentifier()))
+		errors.SemanticError("Variable name shadows a function of the same name");
 }
 
 
@@ -326,7 +320,6 @@ void CompilePassSemantics::ExitHelper::operator () (AST::Structure& structure)
 		self->CurrentStructures.pop_back();
 		
 		StringHandle name = self->CurrentProgram->AddString(std::wstring(structure.Identifier.begin(), structure.Identifier.end()));
-		self->CurrentProgram->Session.InfoTable.FunctionHelpers->insert(std::make_pair(name, &CompileConstructorStructure));
 		self->ErrorContext = &structure.Identifier;
 		self->CurrentProgram->AddStructure(name, irstruct.release(), self->Errors);
 		self->ErrorContext = NULL;

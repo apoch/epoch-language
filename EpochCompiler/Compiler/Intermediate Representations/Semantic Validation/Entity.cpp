@@ -88,9 +88,6 @@ bool Entity::CompileTimeCodeExecution(Program& program, CodeBlock& activescope, 
 	if(!Code)
 		return false;
 
-	if(!Code->CompileTimeCodeExecution(program, errors))
-		return false;
-
 	for(std::vector<Entity*>::iterator iter = Chain.begin(); iter != Chain.end(); ++iter)
 	{
 		if(!(*iter)->CompileTimeCodeExecution(program, activescope, errors))
@@ -102,6 +99,8 @@ bool Entity::CompileTimeCodeExecution(Program& program, CodeBlock& activescope, 
 
 bool Entity::TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, CompileErrors& errors)
 {
+	CompileTimeCodeExecution(program, activescope, errors);
+
 	InferenceContext newcontext(0, InferenceContext::CONTEXT_ENTITY_PARAM);
 	newcontext.FunctionName = context.FunctionName;
 

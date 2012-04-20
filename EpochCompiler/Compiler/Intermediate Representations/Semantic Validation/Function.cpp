@@ -22,6 +22,10 @@
 using namespace IRSemantics;
 
 
+// External prototypes (yeah, I'm lazy)
+void CompileConstructorStructure(IRSemantics::Statement& statement, IRSemantics::Program& program, IRSemantics::CodeBlock& activescope, bool inreturnexpr, CompileErrors& errors);
+
+
 //
 // Destruct and clean up a function
 //
@@ -175,9 +179,6 @@ bool Function::CompileTimeCodeExecution(Program& program, CompileErrors& errors)
 		if(helperiter != program.Session.FunctionTagHelpers.end())
 		{
 			TagHelperReturn help = helperiter->second(RawName, iter->Parameters, true);
-			if(help.LinkToCompileTimeHelper)
-				program.Session.CompileTimeHelpers.insert(std::make_pair(RawName, help.LinkToCompileTimeHelper));
-
 			if(help.SetConstructorFunction)
 			{
 				FunctionSignature signature = GetFunctionSignature(program);
@@ -185,6 +186,8 @@ bool Function::CompileTimeCodeExecution(Program& program, CompileErrors& errors)
 				signature.SetReturnType(VM::EpochType_Void);
 				program.Session.FunctionSignatures[Name] = signature;
 				Code->GetScope()->PrependVariable(L"@id", program.AddString(L"@id"), VM::EpochType_Identifier, false, VARIABLE_ORIGIN_PARAMETER);
+
+				program.Session.InfoTable.FunctionHelpers->insert(std::make_pair(Name, &CompileConstructorStructure));
 			}
 		}
 		else
@@ -209,10 +212,7 @@ bool Function::CompileTimeCodeExecution(Program& program, CompileErrors& errors)
 			program.MarkFunctionWithStaticPatternMatching(RawName, Name);
 	}
 
-	if(!Code)
-		return true;
-
-	return Code->CompileTimeCodeExecution(program, errors);
+	return true;
 }
 
 

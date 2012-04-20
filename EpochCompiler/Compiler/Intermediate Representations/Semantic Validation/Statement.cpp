@@ -29,8 +29,10 @@ using namespace IRSemantics;
 
 Statement::Statement(StringHandle name, const AST::IdentifierT& identifier)
 	: Name(name),
+	  RawName(name),
 	  MyType(VM::EpochType_Error),
-	  OriginalIdentifier(identifier)
+	  OriginalIdentifier(identifier),
+	  CompileTimeCodeExecuted(false)
 {
 }
 
@@ -62,6 +64,11 @@ bool Statement::Validate(const Program& program) const
 
 bool Statement::CompileTimeCodeExecution(Program& program, CodeBlock& activescope, bool inreturnexpr, CompileErrors& errors)
 {
+	if(CompileTimeCodeExecuted)
+		return true;
+
+	CompileTimeCodeExecuted = true;
+
 	for(std::vector<Expression*>::iterator iter = Parameters.begin(); iter != Parameters.end(); ++iter)
 	{
 		if(!(*iter)->CompileTimeCodeExecution(program, activescope, inreturnexpr, errors))
@@ -325,7 +332,13 @@ bool Statement::TypeInference(Program& program, CodeBlock& activescope, Inferenc
 	}
 
 	bool valid = (MyType != VM::EpochType_Infer && MyType != VM::EpochType_Error);
-	return valid;
+	if(!valid)
+		return false;
+
+	if(!CompileTimeCodeExecution(program, activescope, context.ContextName == InferenceContext::CONTEXT_FUNCTION_RETURN, errors))
+		return false;
+
+	return true;
 }
 
 

@@ -50,6 +50,9 @@ namespace IRSemantics
 		StringHandle GetName() const
 		{ return Name; }
 
+		StringHandle GetRawName() const
+		{ return RawName; }
+
 		const std::vector<Expression*>& GetParameters() const
 		{ return Parameters; }
 
@@ -73,9 +76,11 @@ namespace IRSemantics
 	// Internal state
 	private:
 		StringHandle Name;
+		StringHandle RawName;
 		std::vector<Expression*> Parameters;
 		VM::EpochTypeID MyType;
 		const AST::IdentifierT& OriginalIdentifier;
+		bool CompileTimeCodeExecuted;
 	};
 
 

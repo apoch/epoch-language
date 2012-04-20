@@ -305,11 +305,12 @@ bool Program::CompileTimeCodeExecution(CompileErrors& errors)
 			return false;
 	}
 
-	for(std::vector<CodeBlock*>::iterator iter = GlobalCodeBlocks.begin(); iter != GlobalCodeBlocks.end(); ++iter)
+	// TODO - re-enable global stuffs
+	/*for(std::vector<CodeBlock*>::iterator iter = GlobalCodeBlocks.begin(); iter != GlobalCodeBlocks.end(); ++iter)
 	{
 		if(!(*iter)->CompileTimeCodeExecution(*this, errors))
 			return false;
-	}
+	}*/
 
 	for(boost::unordered_map<StringHandle, Function*>::iterator iter = Functions.begin(); iter != Functions.end(); ++iter)
 	{

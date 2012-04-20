@@ -45,11 +45,6 @@ namespace IRSemantics
 	public:
 		virtual bool Validate(const Program& program) const = 0;
 
-	// Compile time code execution
-	public:
-		virtual bool CompileTimeCodeExecution(Program&, CodeBlock&, CompileErrors&)
-		{ return true; }
-
 	// Type inference
 	public:
 		virtual bool TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, CompileErrors& errors) = 0;
@@ -88,10 +83,6 @@ namespace IRSemantics
 	// Validation
 	public:
 		bool Validate(const IRSemantics::Program& program) const;
-
-	// Compile time code execution
-	public:
-		bool CompileTimeCodeExecution(IRSemantics::Program& program, CompileErrors& errors);
 
 	// Type inference
 	public:
@@ -150,10 +141,6 @@ namespace IRSemantics
 	// Validation
 	public:
 		virtual bool Validate(const IRSemantics::Program& program) const;
-
-	// Compile time code execution
-	public:
-		virtual bool CompileTimeCodeExecution(IRSemantics::Program& program, CodeBlock& activescope, CompileErrors& errors);
 
 	// Type inference
 	public:
@@ -245,10 +232,6 @@ namespace IRSemantics
 	public:
 		virtual bool Validate(const IRSemantics::Program& program) const;
 
-	// Compile time code execution
-	public:
-		virtual bool CompileTimeCodeExecution(IRSemantics::Program& program, CodeBlock& activescope, CompileErrors& errors);
-
 	// Type inference
 	public:
 		virtual bool TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, CompileErrors& errors);
@@ -278,10 +261,6 @@ namespace IRSemantics
 	// Validation
 	public:
 		virtual bool Validate(const IRSemantics::Program& program) const;
-
-	// Compile time code execution
-	public:
-		virtual bool CompileTimeCodeExecution(IRSemantics::Program& program, CodeBlock& activescope, CompileErrors& errors);
 
 	// Type inference
 	public:

@@ -21,6 +21,10 @@
 using namespace IRSemantics;
 
 
+// External prototypes (yeah, I'm lazy)
+void CompileConstructorStructure(IRSemantics::Statement& statement, IRSemantics::Program& program, IRSemantics::CodeBlock& activescope, bool inreturnexpr, CompileErrors& errors);
+
+
 //
 // Destruct and clean up a structure definition wrapper
 //
@@ -86,6 +90,7 @@ bool Structure::CompileTimeCodeExecution(StringHandle myname, Program& program, 
 
 		ConstructorName = program.CreateFunctionOverload(program.GetString(myname));
 		program.Session.FunctionSignatures.insert(std::make_pair(ConstructorName, signature));
+		program.Session.InfoTable.FunctionHelpers->insert(std::make_pair(ConstructorName, &CompileConstructorStructure));
 	}
 
 	// Generate anonymous constructor
