@@ -664,11 +664,7 @@ bool ExpressionAtomIdentifier::TypeInference(Program& program, CodeBlock& active
 				continue;
 
 			VM::EpochTypeID paramtype = types[i][index];
-			if(paramtype == VM::EpochType_Identifier)
-			{
-				possibletypes.insert(VM::EpochType_Identifier);
-			}
-			else if(paramtype == VM::EpochType_Function)
+			if(paramtype == VM::EpochType_Function)
 			{
 				possibletypes.insert(VM::EpochType_Function);
 
@@ -703,6 +699,10 @@ bool ExpressionAtomIdentifier::TypeInference(Program& program, CodeBlock& active
 			else if(paramtype == vartype)
 			{
 				possibletypes.insert(vartype);
+			}
+			else if(paramtype == VM::EpochType_Identifier)
+			{
+				possibletypes.insert(VM::EpochType_Identifier);
 			}
 		}
 	}

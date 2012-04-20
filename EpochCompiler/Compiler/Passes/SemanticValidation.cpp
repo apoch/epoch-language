@@ -73,13 +73,14 @@ namespace
 	//
 	void CompileConstructorStructure(IRSemantics::Statement& statement, IRSemantics::Program& program, IRSemantics::CodeBlock& activescope, bool inreturnexpr, CompileErrors& errors)
 	{
-		// TODO - this is probably buggy. Consider temp(foo, 42) where foo is an existing variable.
-		const IRSemantics::ExpressionAtomIdentifier* atom = dynamic_cast<const IRSemantics::ExpressionAtomIdentifier*>(statement.GetParameters()[0]->GetAtoms()[0]);
-		if(!atom)
-			return;		// Anonymous temporaries
-
-		VariableOrigin origin = (inreturnexpr ? VARIABLE_ORIGIN_RETURN : VARIABLE_ORIGIN_LOCAL);
 		VM::EpochTypeID effectivetype = program.LookupType(statement.GetName());
+
+		// Detect anonymous temporaries
+		if(program.GetStructures().find(statement.GetName())->second->GetMembers().size() != (statement.GetParameters().size() - 1))
+			return;
+
+		const IRSemantics::ExpressionAtomIdentifier* atom = dynamic_cast<const IRSemantics::ExpressionAtomIdentifier*>(statement.GetParameters()[0]->GetAtoms()[0]);
+		VariableOrigin origin = (inreturnexpr ? VARIABLE_ORIGIN_RETURN : VARIABLE_ORIGIN_LOCAL);
 		activescope.AddVariable(program.GetString(atom->GetIdentifier()), atom->GetIdentifier(), effectivetype, false, origin);
 
 		if(program.HasFunction(atom->GetIdentifier()))
