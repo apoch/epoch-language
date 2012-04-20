@@ -210,10 +210,14 @@ bool Statement::TypeInference(Program& program, CodeBlock& activescope, Inferenc
 					{
 						if(signature.GetParameter(j).IsReference)
 						{
-							// TODO - bulletproof this a bit
 							std::auto_ptr<ExpressionAtomIdentifier> atom(dynamic_cast<ExpressionAtomIdentifier*>(Parameters[j]->GetAtoms()[0]));
-							Parameters[j]->GetAtoms()[0] = new ExpressionAtomIdentifierReference(atom->GetIdentifier(), atom->GetOriginalIdentifier());
-							Parameters[j]->GetAtoms()[0]->TypeInference(program, activescope, newcontext, j, Parameters.size(), errors);
+							if(atom.get())
+							{
+								Parameters[j]->GetAtoms()[0] = new ExpressionAtomIdentifierReference(atom->GetIdentifier(), atom->GetOriginalIdentifier());
+								Parameters[j]->GetAtoms()[0]->TypeInference(program, activescope, newcontext, j, Parameters.size(), errors);
+							}
+							else
+								errors.SemanticError("Parameter expects a reference, not a literal");
 						}
 					}
 
@@ -255,10 +259,14 @@ bool Statement::TypeInference(Program& program, CodeBlock& activescope, Inferenc
 							{
 								if(funcsig.GetParameter(i).IsReference)
 								{
-									// TODO - bulletproof this a bit
 									std::auto_ptr<ExpressionAtomIdentifier> atom(dynamic_cast<ExpressionAtomIdentifier*>(Parameters[i]->GetAtoms()[0]));
-									Parameters[i]->GetAtoms()[0] = new ExpressionAtomIdentifierReference(atom->GetIdentifier(), atom->GetOriginalIdentifier());
-									Parameters[i]->GetAtoms()[0]->TypeInference(program, activescope, newcontext, i, Parameters.size(), errors);
+									if(atom.get())
+									{
+										Parameters[i]->GetAtoms()[0] = new ExpressionAtomIdentifierReference(atom->GetIdentifier(), atom->GetOriginalIdentifier());
+										Parameters[i]->GetAtoms()[0]->TypeInference(program, activescope, newcontext, i, Parameters.size(), errors);
+									}
+									else
+										errors.SemanticError("Parameter expects a reference, not a literal");
 								}
 							}
 
@@ -287,10 +295,14 @@ bool Statement::TypeInference(Program& program, CodeBlock& activescope, Inferenc
 
 							if(funciter->second.GetParameter(i).IsReference)
 							{
-								// TODO - bulletproof this a bit
 								std::auto_ptr<ExpressionAtomIdentifier> atom(dynamic_cast<ExpressionAtomIdentifier*>(Parameters[i]->GetAtoms()[0]));
-								Parameters[i]->GetAtoms()[0] = new ExpressionAtomIdentifierReference(atom->GetIdentifier(), atom->GetOriginalIdentifier());
-								Parameters[i]->GetAtoms()[0]->TypeInference(program, activescope, newcontext, i, Parameters.size(), errors);
+								if(atom.get())
+								{
+									Parameters[i]->GetAtoms()[0] = new ExpressionAtomIdentifierReference(atom->GetIdentifier(), atom->GetOriginalIdentifier());
+									Parameters[i]->GetAtoms()[0]->TypeInference(program, activescope, newcontext, i, Parameters.size(), errors);
+								}
+								else
+									errors.SemanticError("Parameter expects a reference, not a literal");
 							}
 						}
 
