@@ -518,8 +518,11 @@ bool CompilerPasses::GenerateCode(const IRSemantics::Program& program, ByteCodeE
 			}
 			else
 			{
-				// TODO - flag semantic error instead
-				throw std::runtime_error("Unrecognized function tag");
+				//
+				// This is a failure of the semantic validation pass
+				// to correctly catch and flag an error on the tag.
+				//
+				throw InternalException("Unrecognized function tag");
 			}
 		}
 	}
@@ -579,8 +582,11 @@ bool CompilerPasses::GenerateCode(const IRSemantics::Program& program, ByteCodeE
 			}
 			else
 			{
-				// TODO - flag semantic error instead
-				throw std::runtime_error("Unrecognized function tag");
+				//
+				// This is a failure of the semantic validation pass
+				// to correctly catch and flag an error on the tag.
+				//
+				throw InternalException("Unrecognized function tag");
 			}
 		}
 

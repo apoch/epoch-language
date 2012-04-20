@@ -9,6 +9,8 @@
 
 
 // Dependencies
+#include "Compiler/Abstract Syntax Tree/IdentifierT.h"
+
 #include "Utility/Types/IDTypes.h"
 #include "Utility/Types/EpochTypeIDs.h"
 
@@ -227,6 +229,7 @@ namespace IRSemantics
 	{
 		StringHandle TagName;
 		CompileTimeParameterVector Parameters;
+		AST::IdentifierT OriginalTag;
 	};
 
 

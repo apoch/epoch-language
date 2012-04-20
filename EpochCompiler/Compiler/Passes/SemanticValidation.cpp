@@ -1258,6 +1258,7 @@ void CompilePassSemantics::EntryHelper::operator () (AST::IdentifierT& identifie
 
 	case CompilePassSemantics::STATE_FUNCTION_TAG:
 		self->CurrentFunctionTags.back()->TagName = self->CurrentProgram->AddString(raw);
+		self->CurrentFunctionTags.back()->OriginalTag = identifier;
 		self->StateStack.push(CompilePassSemantics::STATE_FUNCTION_TAG_PARAM);
 		break;
 

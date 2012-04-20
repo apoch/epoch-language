@@ -187,6 +187,11 @@ bool Function::CompileTimeCodeExecution(Program& program, CompileErrors& errors)
 				Code->GetScope()->PrependVariable(L"@id", program.AddString(L"@id"), VM::EpochType_Identifier, false, VARIABLE_ORIGIN_PARAMETER);
 			}
 		}
+		else
+		{
+			errors.SetContext(iter->OriginalTag);
+			errors.SemanticError("Unrecognized function tag");
+		}
 	}
 
 	if(Return)
