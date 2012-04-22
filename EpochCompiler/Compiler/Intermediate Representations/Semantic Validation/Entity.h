@@ -12,6 +12,7 @@
 #include "Utility/Types/IDTypes.h"
 
 
+// Forward declarations
 class CompileErrors;
 
 
@@ -25,6 +26,12 @@ namespace IRSemantics
 	struct InferenceContext;
 
 
+	//
+	// Class for representing an entity invocation in the IR
+	//
+	// This single class is responsible for both prefix and postfix form
+	// entity invocations, as well as entity chains.
+	//
 	class Entity
 	{
 	// Construction and destruction

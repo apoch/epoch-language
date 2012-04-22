@@ -21,6 +21,9 @@
 using namespace IRSemantics;
 
 
+//
+// Construct and initialize a code block IR node
+//
 CodeBlock::CodeBlock(ScopeDescription* scope, bool ownsscope)
 	: Scope(scope),
 	  OwnsScope(ownsscope)
@@ -45,6 +48,9 @@ CodeBlock::CodeBlock(ScopeDescription* scope, bool ownsscope)
 	}
 }
 
+//
+// Destruct and clean up a code block IR node
+//
 CodeBlock::~CodeBlock()
 {
 	for(std::vector<CodeBlockEntry*>::iterator iter = Entries.begin(); iter != Entries.end(); ++iter)
@@ -54,22 +60,38 @@ CodeBlock::~CodeBlock()
 		delete Scope;
 }
 
+
+//
+// Add an entry to the end of a code block body
+//
 void CodeBlock::AddEntry(CodeBlockEntry* entry)
 {
 	Entries.push_back(entry);
 }
 
 
+//
+// Obtain the type of a variable active in this code block's scope,
+// given the identifier handle of the variable. Might defer to any
+// number of ancestor scopes to locate the actual variable.
+//
 VM::EpochTypeID CodeBlock::GetVariableTypeByID(StringHandle identifier) const
 {
 	return Scope->GetVariableTypeByID(identifier);
 }
 
+//
+// Add a new variable to this code block's lexical scope
+//
 void CodeBlock::AddVariable(const std::wstring& identifier, StringHandle identifierhandle, VM::EpochTypeID type, bool isreference, VariableOrigin origin)
 {
 	Scope->AddVariable(identifier, identifierhandle, type, isreference, origin);
 }
 
+
+//
+// Perform code validation on all entries in this code block
+//
 bool CodeBlock::Validate(const Program& program) const
 {
 	bool valid = true;
@@ -83,6 +105,9 @@ bool CodeBlock::Validate(const Program& program) const
 	return valid;
 }
 
+//
+// Request all entries in the code block to perform type inference
+//
 bool CodeBlock::TypeInference(Program& program, InferenceContext& context, CompileErrors& errors)
 {
 	InferenceContext newcontext(0, InferenceContext::CONTEXT_CODE_BLOCK);
@@ -98,16 +123,25 @@ bool CodeBlock::TypeInference(Program& program, InferenceContext& context, Compi
 }
 
 
+//
+// Construct and initialize a wrapper for placing an Assignment IR node in a code block
+//
 CodeBlockAssignmentEntry::CodeBlockAssignmentEntry(Assignment* assignment)
 	: MyAssignment(assignment)
 {
 }
 
+//
+// Destruct and clean up an assignment wrapper entry
+//
 CodeBlockAssignmentEntry::~CodeBlockAssignmentEntry()
 {
 	delete MyAssignment;
 }
 
+//
+// Forward validation for an assignment entry to the actual IR node
+//
 bool CodeBlockAssignmentEntry::Validate(const Program& program) const
 {
 	if(!MyAssignment)
@@ -116,6 +150,9 @@ bool CodeBlockAssignmentEntry::Validate(const Program& program) const
 	return MyAssignment->Validate(program);
 }
 
+//
+// Forward type inference request for an assignment to the actual IR node
+//
 bool CodeBlockAssignmentEntry::TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, CompileErrors& errors)
 {
 	if(!MyAssignment)
@@ -125,16 +162,25 @@ bool CodeBlockAssignmentEntry::TypeInference(Program& program, CodeBlock& active
 }
 
 
+//
+// Construct and initialize a code block entry wrapper for a statement IR node
+//
 CodeBlockStatementEntry::CodeBlockStatementEntry(Statement* statement)
 	: MyStatement(statement)
 {
 }
 
+//
+// Destruct and clean up a statement code block entry wrapper
+//
 CodeBlockStatementEntry::~CodeBlockStatementEntry()
 {
 	delete MyStatement;
 }
 
+//
+// Forward validation request to the actual statement in the wrapper
+//
 bool CodeBlockStatementEntry::Validate(const Program& program) const
 {
 	if(!MyStatement)
@@ -143,6 +189,9 @@ bool CodeBlockStatementEntry::Validate(const Program& program) const
 	return MyStatement->Validate(program);
 }
 
+//
+// Forward type inference request to the actual statement in the wrapper
+//
 bool CodeBlockStatementEntry::TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, CompileErrors& errors)
 {
 	if(!MyStatement)
@@ -152,21 +201,33 @@ bool CodeBlockStatementEntry::TypeInference(Program& program, CodeBlock& actives
 }
 
 
+//
+// Construct and initialize a code block entry wrapper for a pre-operator statement (++foo)
+//
 CodeBlockPreOpStatementEntry::CodeBlockPreOpStatementEntry(PreOpStatement* statement)
 	: MyStatement(statement)
 {
 }
 
+//
+// Destruct and clean up a code block entry wrapper for a pre-operator statement
+//
 CodeBlockPreOpStatementEntry::~CodeBlockPreOpStatementEntry()
 {
 	delete MyStatement;
 }
 
+//
+// Forward validation request to the actual pre-operator statement in the wrapper 
+//
 bool CodeBlockPreOpStatementEntry::Validate(const Program& program) const
 {
 	return MyStatement->Validate(program);
 }
 
+//
+// Forward type inference request to the actual pre-operator statement in the wrapper
+//
 bool CodeBlockPreOpStatementEntry::TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, CompileErrors& errors)
 {
 	if(!MyStatement)
@@ -176,21 +237,33 @@ bool CodeBlockPreOpStatementEntry::TypeInference(Program& program, CodeBlock& ac
 }
 
 
+//
+// Construct and initialize a code block entry wrapper for a post-operator statement (foo++)
+//
 CodeBlockPostOpStatementEntry::CodeBlockPostOpStatementEntry(PostOpStatement* statement)
 	: MyStatement(statement)
 {
 }
 
+//
+// Destruct and clean up a post-operator statement wrapper
+//
 CodeBlockPostOpStatementEntry::~CodeBlockPostOpStatementEntry()
 {
 	delete MyStatement;
 }
 
+//
+// Forward validation request to the actual post-operator statement in the wrapper
+//
 bool CodeBlockPostOpStatementEntry::Validate(const Program& program) const
 {
 	return MyStatement->Validate(program);
 }
 
+//
+// Forward type inference request to the actual post-operator statement in the wrapper
+//
 bool CodeBlockPostOpStatementEntry::TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, CompileErrors& errors)
 {
 	if(!MyStatement)
@@ -200,16 +273,25 @@ bool CodeBlockPostOpStatementEntry::TypeInference(Program& program, CodeBlock& a
 }
 
 
+//
+// Construct and initialize a wrapper for an artificial lexical scope (inner code block)
+//
 CodeBlockInnerBlockEntry::CodeBlockInnerBlockEntry(CodeBlock* block)
 	: MyCodeBlock(block)
 {
 }
 
+//
+// Destruct and clean up an artificial scope wrapper
+//
 CodeBlockInnerBlockEntry::~CodeBlockInnerBlockEntry()
 {
 	delete MyCodeBlock;
 }
 
+//
+// Forward validation of an inner block to the actual code block IR node
+//
 bool CodeBlockInnerBlockEntry::Validate(const Program& program) const
 {
 	if(!MyCodeBlock)
@@ -218,6 +300,13 @@ bool CodeBlockInnerBlockEntry::Validate(const Program& program) const
 	return MyCodeBlock->Validate(program);
 }
 
+//
+// Forward type inference request for an inner block to the actual IR node
+//
+// As an auxiliary function, adds the scope data for the code block to
+// the program metadata so it can be found by the compiler and, later,
+// by the VM/runtime itself.
+//
 bool CodeBlockInnerBlockEntry::TypeInference(Program& program, CodeBlock&, InferenceContext& context, CompileErrors& errors)
 {
 	if(!MyCodeBlock)
@@ -228,16 +317,25 @@ bool CodeBlockInnerBlockEntry::TypeInference(Program& program, CodeBlock&, Infer
 }
 
 
+//
+// Construct and initialize a wrapper for an entity invocation
+//
 CodeBlockEntityEntry::CodeBlockEntityEntry(Entity* entity)
 	: MyEntity(entity)
 {
 }
 
+//
+// Destruct and clean up a wrapper for an entity invocation
+//
 CodeBlockEntityEntry::~CodeBlockEntityEntry()
 {
 	delete MyEntity;
 }
 
+//
+// Forward validation request to the actual entity invocation IR node
+//
 bool CodeBlockEntityEntry::Validate(const Program& program) const
 {
 	if(!MyEntity)
@@ -246,6 +344,9 @@ bool CodeBlockEntityEntry::Validate(const Program& program) const
 	return MyEntity->Validate(program);
 }
 
+//
+// Forward type inference request to the actual entity invocation IR node
+//
 bool CodeBlockEntityEntry::TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, CompileErrors& errors)
 {
 	if(!MyEntity)

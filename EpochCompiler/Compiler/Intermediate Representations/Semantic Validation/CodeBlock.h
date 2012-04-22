@@ -34,6 +34,17 @@ namespace IRSemantics
 	struct InferenceContext;
 
 
+	//
+	// Interface implemented by each code block entry wrapper class
+	//
+	// We store code block entries in wrappers so they can all be placed
+	// in a homogeneous container in the code block IR node itself, and
+	// we use the wrappers to forward requests for validation and type
+	// inference on to the actual contained IR nodes. This eliminates the
+	// need for all IR nodes to derive from a common base class just for
+	// the sake of storing them in a code block, although it does cost
+	// a small amount of runtime overhead.
+	//
 	class CodeBlockEntry
 	{
 	// Destruction
@@ -50,6 +61,10 @@ namespace IRSemantics
 		virtual bool TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, CompileErrors& errors) = 0;
 	};
 
+
+	//
+	// IR node class for storing a block of code
+	//
 	class CodeBlock
 	{
 	// Construction and destruction
@@ -69,7 +84,7 @@ namespace IRSemantics
 		const std::vector<CodeBlockEntry*>& GetEntries() const
 		{ return Entries; }
 
-	// Lexical scopes
+	// Lexical scope management
 	public:
 		EPOCHCOMPILER void AddVariable(const std::wstring& identifier, StringHandle identifierhandle, VM::EpochTypeID type, bool isreference, VariableOrigin origin);
 		VM::EpochTypeID GetVariableTypeByID(StringHandle identifier) const;
@@ -96,6 +111,10 @@ namespace IRSemantics
 	};
 
 
+	//
+	// Concrete wrapper class for an entry in a code block
+	// which forwards to an assignment IR node
+	//
 	class CodeBlockAssignmentEntry : public CodeBlockEntry
 	{
 	// Construction and destruction
@@ -126,6 +145,11 @@ namespace IRSemantics
 		Assignment* MyAssignment;
 	};
 
+
+	//
+	// Concrete wrapper class for an entry in a code block
+	// which forwards to a statement IR node
+	//
 	class CodeBlockStatementEntry : public CodeBlockEntry
 	{
 	// Construction and destruction
@@ -156,6 +180,11 @@ namespace IRSemantics
 		Statement* MyStatement;
 	};
 
+	
+	//
+	// Concrete wrapper class for an entry in a code block
+	// which forwards to a pre-operator IR node
+	//
 	class CodeBlockPreOpStatementEntry : public CodeBlockEntry
 	{
 	// Construction and destruction
@@ -186,6 +215,12 @@ namespace IRSemantics
 		PreOpStatement* MyStatement;
 	};
 
+
+
+	//
+	// Concrete wrapper class for an entry in a code block
+	// which forwards to a post-operator IR node
+	//
 	class CodeBlockPostOpStatementEntry : public CodeBlockEntry
 	{
 	// Construction and destruction
@@ -216,6 +251,11 @@ namespace IRSemantics
 		PostOpStatement* MyStatement;
 	};
 
+
+	//
+	// Concrete wrapper class for an entry in a code block
+	// which forwards to a nested code block IR node
+	//
 	class CodeBlockInnerBlockEntry : public CodeBlockEntry
 	{
 	// Construction and destruction
@@ -246,6 +286,11 @@ namespace IRSemantics
 		CodeBlock* MyCodeBlock;
 	};
 
+
+	//
+	// Concrete wrapper class for an entry in a code block
+	// which forwards to an entity invocation IR node
+	//
 	class CodeBlockEntityEntry : public CodeBlockEntry
 	{
 	// Construction and destruction
