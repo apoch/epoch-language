@@ -122,14 +122,8 @@
     <ClCompile Include="Compiler\ByteCodeEmitter.cpp">
       <Filter>Compiler</Filter>
     </ClCompile>
-    <ClCompile Include="Compiler\Diagnostics.cpp">
-      <Filter>Compiler</Filter>
-    </ClCompile>
     <ClCompile Include="Compiler\Session.cpp">
       <Filter>Compiler</Filter>
-    </ClCompile>
-    <ClCompile Include="Compiler\Abstract Syntax Tree\ASTDump.cpp">
-      <Filter>Compiler\Abstract Syntax Tree</Filter>
     </ClCompile>
     <ClCompile Include="Compiler\Abstract Syntax Tree\RefCounting.cpp">
       <Filter>Compiler\Abstract Syntax Tree</Filter>
@@ -277,9 +271,6 @@
     <ClInclude Include="Compiler\ByteCodeEmitter.h">
       <Filter>Compiler</Filter>
     </ClInclude>
-    <ClInclude Include="Compiler\Diagnostics.h">
-      <Filter>Compiler</Filter>
-    </ClInclude>
     <ClInclude Include="Compiler\Exceptions.h">
       <Filter>Compiler</Filter>
     </ClInclude>
@@ -290,9 +281,6 @@
       <Filter>Compiler\Abstract Syntax Tree</Filter>
     </ClInclude>
     <ClInclude Include="Compiler\Abstract Syntax Tree\Assignment.h">
-      <Filter>Compiler\Abstract Syntax Tree</Filter>
-    </ClInclude>
-    <ClInclude Include="Compiler\Abstract Syntax Tree\ASTDump.h">
       <Filter>Compiler\Abstract Syntax Tree</Filter>
     </ClInclude>
     <ClInclude Include="Compiler\Abstract Syntax Tree\ASTTraversal.h">
@@ -398,9 +386,6 @@
       <Filter>Parser</Filter>
     </ClInclude>
     <ClInclude Include="Parser\GlobalGrammar.h">
-      <Filter>Parser</Filter>
-    </ClInclude>
-    <ClInclude Include="Parser\GrammarDebugger.h">
       <Filter>Parser</Filter>
     </ClInclude>
     <ClInclude Include="Parser\Grammars.h">

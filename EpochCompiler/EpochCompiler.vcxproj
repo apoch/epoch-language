@@ -120,9 +120,7 @@
     <ClCompile Include="..\Shared\User Interface\Input.cpp" />
     <ClCompile Include="..\Shared\User Interface\Output.cpp" />
     <ClCompile Include="Compiler\ByteCodeEmitter.cpp" />
-    <ClCompile Include="Compiler\Diagnostics.cpp" />
     <ClCompile Include="Compiler\Session.cpp" />
-    <ClCompile Include="Compiler\Abstract Syntax Tree\ASTDump.cpp" />
     <ClCompile Include="Compiler\Abstract Syntax Tree\RefCounting.cpp" />
     <ClCompile Include="Compiler\Intermediate Representations\Semantic Validation\Assignment.cpp" />
     <ClCompile Include="Compiler\Intermediate Representations\Semantic Validation\CodeBlock.cpp" />
@@ -174,12 +172,10 @@
     <ClInclude Include="..\Shared\User Interface\Input.h" />
     <ClInclude Include="..\Shared\User Interface\Output.h" />
     <ClInclude Include="Compiler\ByteCodeEmitter.h" />
-    <ClInclude Include="Compiler\Diagnostics.h" />
     <ClInclude Include="Compiler\Exceptions.h" />
     <ClInclude Include="Compiler\Session.h" />
     <ClInclude Include="Compiler\Abstract Syntax Tree\AnyStatement.h" />
     <ClInclude Include="Compiler\Abstract Syntax Tree\Assignment.h" />
-    <ClInclude Include="Compiler\Abstract Syntax Tree\ASTDump.h" />
     <ClInclude Include="Compiler\Abstract Syntax Tree\ASTTraversal.h" />
     <ClInclude Include="Compiler\Abstract Syntax Tree\CodeBlock.h" />
     <ClInclude Include="Compiler\Abstract Syntax Tree\DeferredNode.h" />
@@ -215,7 +211,6 @@
     <ClInclude Include="Parser\ExpressionGrammar.h" />
     <ClInclude Include="Parser\FunctionDefinitionGrammar.h" />
     <ClInclude Include="Parser\GlobalGrammar.h" />
-    <ClInclude Include="Parser\GrammarDebugger.h" />
     <ClInclude Include="Parser\Grammars.h" />
     <ClInclude Include="Parser\LiteralGrammar.h" />
     <ClInclude Include="Parser\OperatorGrammar.h" />

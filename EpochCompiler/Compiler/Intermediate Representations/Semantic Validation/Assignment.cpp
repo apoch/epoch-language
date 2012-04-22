@@ -23,20 +23,30 @@
 using namespace IRSemantics;
 
 
-
-Assignment::Assignment(const std::vector<StringHandle>& lhs, StringHandle operatorname)
+//
+// Construct and initialize an assignment IR node
+//
+Assignment::Assignment(const std::vector<StringHandle>& lhs, StringHandle operatorname, const AST::IdentifierT& originallhs)
 	: LHS(lhs),
 	  OperatorName(operatorname),
 	  RHS(NULL),
-	  LHSType(VM::EpochType_Error)
+	  LHSType(VM::EpochType_Error),
+	  OriginalLHS(originallhs)
 {
 }
 
+//
+// Destruct and clean up an assignment IR node
+//
 Assignment::~Assignment()
 {
 	delete RHS;
 }
 
+//
+// Recursively traverse a chain of assignments and set
+// the farthest-right side to the given new chain
+//
 void Assignment::SetRHSRecursive(AssignmentChain* rhs)
 {
 	if(RHS)
@@ -72,12 +82,21 @@ void Assignment::SetRHSRecursive(AssignmentChain* rhs)
 	}
 }
 
+//
+// Type-validate an assignment
+//
 bool Assignment::Validate(const Program& program) const
 {
 	bool valid = (LHSType == RHS->GetEpochType(program)) && (LHSType != VM::EpochType_Error);
 	return valid && RHS->Validate(program);
 }
 
+//
+// Perform type inference actions on an assignment
+//
+// Includes operator overload resolution for op-assignment
+// forms such as "a += b".
+//
 bool Assignment::TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, CompileErrors& errors)
 {
 	LHSType = InferMemberAccessType(LHS, program, activescope);
@@ -102,25 +121,45 @@ bool Assignment::TypeInference(Program& program, CodeBlock& activescope, Inferen
 		}
 	}
 
+	if(LHSType != RHS->GetEpochType(program))
+	{
+		errors.SetContext(OriginalLHS);
+		errors.SemanticError("Left-hand side of assignment differs in type from right-hand side");
+	}
+
 	return true;
 }
 
 
+//
+// Construct and initialize the RHS of an assignment
+// which is terminated with an expression
+//
 AssignmentChainExpression::AssignmentChainExpression(Expression* expression)
 	: MyExpression(expression)
 {
 }
 
+//
+// Destruct and clean up a terminal RHS
+//
 AssignmentChainExpression::~AssignmentChainExpression()
 {
 	delete MyExpression;
 }
 
+//
+// Retrieve the type of an assignment RHS which
+// is a terminal expression
+//
 VM::EpochTypeID AssignmentChainExpression::GetEpochType(const Program& program) const
 {
 	return MyExpression->GetEpochType(program);
 }
 
+//
+// Perform type inference actions on a terminal assignment RHS
+//
 bool AssignmentChainExpression::TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, CompileErrors& errors)
 {
 	InferenceContext newcontext(0, InferenceContext::CONTEXT_ASSIGNMENT);
@@ -128,38 +167,64 @@ bool AssignmentChainExpression::TypeInference(Program& program, CodeBlock& activ
 	return MyExpression->TypeInference(program, activescope, newcontext, 0, 1, errors);
 }
 
+//
+// Validate the expression appearing on the RHS of an assignment
+//
 bool AssignmentChainExpression::Validate(const Program& program) const
 {
 	return MyExpression->Validate(program);
 }
 
 
-
+//
+// Construct and initialize an assignment which chains to another assignment
+//
+// This handles the "b" fragment of the assignment "a = b = 42"
+//
 AssignmentChainAssignment::AssignmentChainAssignment(Assignment* assignment)
 	: MyAssignment(assignment)
 {
 }
 
+//
+// Destruct and clean up a chained assignment
+//
 AssignmentChainAssignment::~AssignmentChainAssignment()
 {
 	delete MyAssignment;
 }
 
+//
+// Recursively traverse a chained assignment until
+// the current terminal LHS is found, and attach it
+// to the given RHS, which may not be terminal.
+//
 void AssignmentChainAssignment::SetRHSRecursive(AssignmentChain* rhs)
 {
 	MyAssignment->SetRHSRecursive(rhs);
 }
 
+//
+// Retrieve the type of the RHS of a chained assignment
+//
 VM::EpochTypeID AssignmentChainAssignment::GetEpochType(const Program& program) const
 {
 	return MyAssignment->GetRHS()->GetEpochType(program);
 }
 
+//
+// Pass along the request to perform type inference
+// to the next assignment in a chain
+//
 bool AssignmentChainAssignment::TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, CompileErrors& errors)
 {
 	return MyAssignment->TypeInference(program, activescope, context, errors);
 }
 
+//
+// Pass along the request to perform type validation
+// to the next assignment in a chain
+//
 bool AssignmentChainAssignment::Validate(const Program& program) const
 {
 	return MyAssignment->Validate(program);

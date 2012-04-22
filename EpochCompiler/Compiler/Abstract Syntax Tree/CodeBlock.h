@@ -77,6 +77,13 @@ namespace AST
 		CodeBlock& operator = (const CodeBlock&);
 	};
 
+	//
+	// AST node representing an optional code block
+	//
+	// Optional blocks (e.g. function bodies) may be present or
+	// omitted in the program source, and will be represented as
+	// Undefined nodes if not provided.
+	//
 	typedef boost::variant
 		<
 			Undefined,

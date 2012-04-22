@@ -9,6 +9,8 @@
 
 
 // Dependencies
+#include "Compiler/Abstract Syntax Tree/IdentifierT.h"
+
 #include "Utility/Types/IDTypes.h"
 #include "Utility/Types/EpochTypeIDs.h"
 
@@ -28,6 +30,12 @@ namespace IRSemantics
 	struct InferenceContext;
 
 
+	//
+	// Base class for representing the RHS of an assignment
+	//
+	// This can be terminal (i.e. the RHS is an expression) or
+	// non-terminal (i.e. the RHS is another assignment).
+	//
 	class AssignmentChain
 	{
 	// Destruction
@@ -50,11 +58,15 @@ namespace IRSemantics
 		virtual bool Validate(const Program& program) const = 0;
 	};
 
+
+	//
+	// IR node class for representing assignments
+	//
 	class Assignment
 	{
 	// Construction and destruction
 	public:
-		Assignment(const std::vector<StringHandle>& lhs, StringHandle operatorname);
+		Assignment(const std::vector<StringHandle>& lhs, StringHandle operatorname, const AST::IdentifierT& originallhs);
 		~Assignment();
 
 	// Non-copyable
@@ -94,9 +106,13 @@ namespace IRSemantics
 		StringHandle OperatorName;
 		AssignmentChain* RHS;
 		VM::EpochTypeID LHSType;
+		const AST::IdentifierT& OriginalLHS;
 	};
 
 
+	//
+	// Special form of assignment RHS which is terminal
+	//
 	class AssignmentChainExpression : public AssignmentChain
 	{
 	// Construction and destruction
@@ -125,6 +141,10 @@ namespace IRSemantics
 		Expression* MyExpression;
 	};
 
+
+	//
+	// Special form of assignment RHS which is non-terminal
+	//
 	class AssignmentChainAssignment : public AssignmentChain
 	{
 	// Construction and destruction

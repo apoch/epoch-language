@@ -32,8 +32,6 @@
 
 #include "Metadata/Precedences.h"
 
-#include "Compiler/Diagnostics.h"
-
 #include "User Interface/Output.h"
 
 

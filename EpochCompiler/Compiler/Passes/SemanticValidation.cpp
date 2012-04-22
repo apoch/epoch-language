@@ -948,12 +948,12 @@ void CompilePassSemantics::EntryHelper::operator () (AST::Assignment& assignment
 	switch(state)
 	{
 	case CompilePassSemantics::STATE_CODE_BLOCK:
-		self->CurrentAssignments.push_back(new IRSemantics::Assignment(lhs, opname));
+		self->CurrentAssignments.push_back(new IRSemantics::Assignment(lhs, opname, *assignment.LHS.begin()));
 		break;
 
 	case CompilePassSemantics::STATE_ASSIGNMENT:
 		{
-			std::auto_ptr<IRSemantics::Assignment> irassignment(new IRSemantics::Assignment(lhs, opname));
+			std::auto_ptr<IRSemantics::Assignment> irassignment(new IRSemantics::Assignment(lhs, opname, *assignment.LHS.begin()));
 			std::auto_ptr<IRSemantics::AssignmentChainAssignment> irassignmentchain(new IRSemantics::AssignmentChainAssignment(irassignment.release()));
 			self->CurrentAssignments.back()->SetRHSRecursive(irassignmentchain.release());
 		}

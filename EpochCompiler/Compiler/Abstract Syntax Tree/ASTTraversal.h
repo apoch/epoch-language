@@ -125,12 +125,6 @@ namespace ASTTraverse
 		// those child nodes can be traversed correctly. Traversal of
 		// child nodes should never be left to the callback functors.
 		//
-		// Note that the Evil Ellipsis is used here in order to demote
-		// this overload to the lowest priority class as per C++'s
-		// overload resolution rules. This ensures that the variant
-		// handling overload (see below) is tried first, and resolves
-		// ambiguity in the presence of other potential overloads.
-		//
 		template <typename EntryActionT, typename ExitActionT, typename NodeT>
 		void Do(EntryActionT& entryaction, NodeT& node, ExitActionT& exitaction)
 		{
@@ -241,6 +235,9 @@ namespace ASTTraverse
 			exitaction(assignment);
 		}
 
+		//
+		// Traverse a simple-LHS Epoch assignment
+		//
 		template <typename EntryActionT, typename ExitActionT>
 		void Do(EntryActionT& entryaction, AST::SimpleAssignment& assignment, ExitActionT& exitaction)
 		{
@@ -249,6 +246,9 @@ namespace ASTTraverse
 			exitaction(assignment);
 		}
 
+		//
+		// Traverse a variable initialization
+		//
 		template <typename EntryActionT, typename ExitActionT>
 		void Do(EntryActionT& entryaction, AST::Initialization& initialization, ExitActionT& exitaction)
 		{
