@@ -64,6 +64,9 @@ void Function::SetReturnExpression(IRSemantics::Expression* expression)
 	Return = expression;
 }
 
+//
+// Retrieve the return type of a function
+//
 VM::EpochTypeID Function::GetReturnType(const Program& program) const
 {
 	if(Return)
@@ -81,6 +84,11 @@ void Function::SetCode(CodeBlock* code)
 	Code = code;
 }
 
+//
+// Determine if a given parameter is a local variable
+// or not; primarily useful for differentiating between
+// actual formal parameters and pattern-matched values.
+//
 bool Function::IsParameterLocalVariable(StringHandle name) const
 {
 	for(std::vector<Param>::const_iterator iter = Parameters.begin(); iter != Parameters.end(); ++iter)
@@ -92,6 +100,10 @@ bool Function::IsParameterLocalVariable(StringHandle name) const
 	throw InternalException("Provided string handle does not correspond to a parameter of this function");
 }
 
+//
+// Determine if the given parameter is passed to the
+// function by reference.
+//
 bool Function::IsParameterReference(StringHandle name) const
 {
 	for(std::vector<Param>::const_iterator iter = Parameters.begin(); iter != Parameters.end(); ++iter)
@@ -103,6 +115,9 @@ bool Function::IsParameterReference(StringHandle name) const
 	throw InternalException("Provided string handle does not correspond to a parameter of this function");
 }
 
+//
+// Retrieve the type of the given parameter
+//
 VM::EpochTypeID Function::GetParameterType(StringHandle name, const IRSemantics::Program& program) const
 {
 	for(std::vector<Param>::const_iterator iter = Parameters.begin(); iter != Parameters.end(); ++iter)
@@ -114,11 +129,17 @@ VM::EpochTypeID Function::GetParameterType(StringHandle name, const IRSemantics:
 	throw InternalException("Provided string handle does not correspond to a parameter of this function");
 }
 
+//
+// Retrieve the type of a parameter, using its index instead of its name
+//
 VM::EpochTypeID Function::GetParameterTypeByIndex(size_t index, const IRSemantics::Program& program) const
 {
 	return Parameters[index].Parameter->GetParamType(program);
 }
 
+//
+// Retrieve a container of all the names of parameters to this function
+//
 std::vector<StringHandle> Function::GetParameterNames() const
 {
 	std::vector<StringHandle> ret;
@@ -130,6 +151,9 @@ std::vector<StringHandle> Function::GetParameterNames() const
 	return ret;
 }
 
+//
+// Determine if the given string handle corresponds to a parameter to this function
+//
 bool Function::HasParameter(StringHandle paramname) const
 {
 	for(std::vector<Param>::const_iterator iter = Parameters.begin(); iter != Parameters.end(); ++iter)
@@ -171,6 +195,17 @@ bool Function::Validate(const IRSemantics::Program& program) const
 }
 
 
+//
+// Perform compile-time code execution on a function
+//
+// Note that the function body is not requested to perform compile-time code
+// execution at this point; we wait to do so until the type inference pass
+// is performed in order to prevent variables from being used prior to
+// their point of definition in the program. Since variable definitions are
+// compile-time code that modifies the local lexical scope, if we perform
+// this process too soon, variables can be referenced anywhere in the scope
+// in which they are defined, rather than only after the point of definition.
+//
 bool Function::CompileTimeCodeExecution(Program& program, CompileErrors& errors)
 {
 	for(std::vector<FunctionTag>::const_iterator iter = Tags.begin(); iter != Tags.end(); ++iter)
@@ -215,7 +250,9 @@ bool Function::CompileTimeCodeExecution(Program& program, CompileErrors& errors)
 	return true;
 }
 
-
+//
+// Perform type inference on a function
+//
 bool Function::TypeInference(Program& program, InferenceContext&, CompileErrors& errors)
 {
 	if(InferenceDone)
@@ -261,114 +298,15 @@ bool Function::TypeInference(Program& program, InferenceContext&, CompileErrors&
 	return result;
 }
 
-
-
 //
-// Validate a named function parameter
+// Get the return type of a function signature passed
+// as a higher-order function to this function.
 //
-bool FunctionParamNamed::Validate(const IRSemantics::Program& program) const
-{
-	return (program.LookupType(MyType) != VM::EpochType_Error);
-}
-
-VM::EpochTypeID FunctionParamNamed::GetParamType(const IRSemantics::Program& program) const
-{
-	return program.LookupType(MyType);
-}
-
+// That's confusing, so here's what this does:
+//   - The function is passed a higher-order parameter foo
+//   - foo has some statically known signature
+//   - This function obtains foo's return type from that signature
 //
-// Validate a higher order function parameter
-//
-bool FunctionParamFuncRef::Validate(const IRSemantics::Program& program) const
-{
-	bool valid = true;
-
-	if(ReturnType && program.LookupType(ReturnType) == VM::EpochType_Error)
-		valid = false;
-
-	for(std::vector<StringHandle>::const_iterator iter = ParamTypes.begin(); iter != ParamTypes.end(); ++iter)
-	{
-		if(program.LookupType(*iter) == VM::EpochType_Error)
-			valid = false;
-	}
-
-	return valid;
-}
-
-void FunctionParamFuncRef::AddToSignature(FunctionSignature&, const IRSemantics::Program&) const
-{
-	throw InternalException("Cannot pattern match on function signatures");
-}
-
-//
-// Validate an expression function parameter
-//
-bool FunctionParamExpression::Validate(const IRSemantics::Program& program) const
-{
-	if(!MyExpression)
-		return false;
-
-	return MyExpression->Validate(program);
-}
-
-//
-// Destruct and clean up an expression function parameter
-//
-FunctionParamExpression::~FunctionParamExpression()
-{
-	delete MyExpression;
-}
-
-VM::EpochTypeID FunctionParamExpression::GetParamType(const IRSemantics::Program& program) const
-{
-	if(!MyExpression)
-		return VM::EpochType_Error;
-
-	return MyExpression->GetEpochType(program);
-}
-
-void FunctionParamExpression::AddToSignature(FunctionSignature& signature, const IRSemantics::Program& program) const
-{
-	if(!MyExpression || MyExpression->GetAtoms().size() != 1)
-		throw InternalException("Cannot generate pattern matched parameter");
-
-	CompileTimeParameter value = MyExpression->GetAtoms()[0]->ConvertToCompileTimeParam(program);
-	switch(value.Type)
-	{
-	case VM::EpochType_Integer:
-		signature.AddPatternMatchedParameter(value.Payload.IntegerValue);
-		break;
-
-	default:
-		throw NotImplementedException("Support for pattern matching on this type is not implemented");
-	}
-}
-
-bool FunctionParamExpression::TypeInference(IRSemantics::Program& program, CompileErrors& errors)
-{
-	InferenceContext context(0, InferenceContext::CONTEXT_EXPRESSION);
-	ScopeDescription scope;
-	IRSemantics::CodeBlock fakeblock(&scope, false);
-	return MyExpression->TypeInference(program, fakeblock, context, 0, 1, errors);
-}
-
-bool FunctionParamExpression::PatternMatchValue(const CompileTimeParameter& param, const IRSemantics::Program& program) const
-{
-	if(!MyExpression || MyExpression->GetAtoms().size() != 1)
-		throw InternalException("Cannot generate pattern matched parameter");
-
-	CompileTimeParameter value = MyExpression->GetAtoms()[0]->ConvertToCompileTimeParam(program);
-	switch(value.Type)
-	{
-	case VM::EpochType_Integer:
-		return param.Payload.IntegerValue == value.Payload.IntegerValue;
-		
-	default:
-		throw NotImplementedException("Support for pattern matching on this type is not implemented");
-	}
-}
-
-
 VM::EpochTypeID Function::GetParameterSignatureType(StringHandle name, const IRSemantics::Program& program) const
 {
 	for(std::vector<Param>::const_iterator iter = Parameters.begin(); iter != Parameters.end(); ++iter)
@@ -386,6 +324,16 @@ VM::EpochTypeID Function::GetParameterSignatureType(StringHandle name, const IRS
 	throw InternalException("Provided string handle does not correspond to a parameter of this function");
 }
 
+//
+// Determine if the given function signature is compatible
+// with the higher-order function signature of this function
+// passed in the given parameter slot.
+//
+// That's also confusing, so here's the breakdown:
+//   - Function takes a higher-order parameter foo
+//   - foo has a static signature
+//   - This function checks if another signature matches foo's signature
+//
 bool Function::DoesParameterSignatureMatch(size_t index, const FunctionSignature& signature, const IRSemantics::Program& program) const
 {
 	const FunctionParamFuncRef* param = dynamic_cast<const FunctionParamFuncRef*>(Parameters[index].Parameter);
@@ -413,7 +361,15 @@ bool Function::DoesParameterSignatureMatch(size_t index, const FunctionSignature
 	return true;
 }
 
-
+//
+// Retrieve the higher-order function signature of the
+// function parameter with the given name.
+//
+// All this stuff is confusing!
+//   - Function takes higher-order parameter foo
+//   - foo has a static signature
+//   - This returns foo's signature
+//
 FunctionSignature Function::GetParameterSignature(StringHandle name, const IRSemantics::Program& program) const
 {
 	for(std::vector<Param>::const_iterator iter = Parameters.begin(); iter != Parameters.end(); ++iter)
@@ -443,7 +399,9 @@ FunctionSignature Function::GetParameterSignature(StringHandle name, const IRSem
 	throw InternalException("Provided string handle does not correspond to a parameter of this function");
 }
 
-
+//
+// Get the complete signature of this function
+//
 FunctionSignature Function::GetFunctionSignature(const Program& program) const
 {
 	FunctionSignature ret;
@@ -471,23 +429,172 @@ FunctionSignature Function::GetFunctionSignature(const Program& program) const
 	return ret;
 }
 
+//
+// Perform static pattern matching on the parameter at
+// the given index. Checks if statically-known values
+// of function arguments match the formal patterns
+// specified in the function definition.
+//
+bool Function::PatternMatchParameter(size_t index, const CompileTimeParameter& param, const IRSemantics::Program& program) const
+{
+	return Parameters[index].Parameter->PatternMatchValue(param, program);
+}
 
+//
+// Add a tag to this function
+//
 void Function::AddTag(const FunctionTag& tag)
 {
 	Tags.push_back(tag);
 }
 
-void FunctionParamNamedTyped::AddToSignature(FunctionSignature&, const IRSemantics::Program&) const
+
+//
+// Validate a named function parameter
+//
+bool FunctionParamNamed::Validate(const IRSemantics::Program& program) const
+{
+	return (program.LookupType(MyType) != VM::EpochType_Error);
+}
+
+//
+// Get the type of a named function parameter
+//
+VM::EpochTypeID FunctionParamNamed::GetParamType(const IRSemantics::Program& program) const
+{
+	return program.LookupType(MyType);
+}
+
+//
+// Validate a higher order function parameter
+//
+bool FunctionParamFuncRef::Validate(const IRSemantics::Program& program) const
+{
+	bool valid = true;
+
+	if(ReturnType && program.LookupType(ReturnType) == VM::EpochType_Error)
+		valid = false;
+
+	for(std::vector<StringHandle>::const_iterator iter = ParamTypes.begin(); iter != ParamTypes.end(); ++iter)
+	{
+		if(program.LookupType(*iter) == VM::EpochType_Error)
+			valid = false;
+	}
+
+	return valid;
+}
+
+//
+// Reject attempts to pattern-match on functions
+//
+// This is a feature that might be implemented in the
+// future if demand is sufficient, but is currently
+// deemed too complex to bother with just yet.
+//
+void FunctionParamFuncRef::AddToSignature(FunctionSignature&, const IRSemantics::Program&) const
+{
+	throw InternalException("Cannot pattern match on function signatures");
+}
+
+//
+// Validate an expression function parameter
+//
+bool FunctionParamExpression::Validate(const IRSemantics::Program& program) const
+{
+	if(!MyExpression)
+		return false;
+
+	return MyExpression->Validate(program);
+}
+
+//
+// Destruct and clean up an expression function parameter
+//
+FunctionParamExpression::~FunctionParamExpression()
+{
+	delete MyExpression;
+}
+
+//
+// Get the type of an expression passed to a function
+//
+// Expressions are generally used as function formal parameters
+// when performing pattern matching.
+//
+VM::EpochTypeID FunctionParamExpression::GetParamType(const IRSemantics::Program& program) const
+{
+	if(!MyExpression)
+		return VM::EpochType_Error;
+
+	return MyExpression->GetEpochType(program);
+}
+
+//
+// Add an expression's compile-time form to a function signature
+// for enabling static pattern matching.
+//
+void FunctionParamExpression::AddToSignature(FunctionSignature& signature, const IRSemantics::Program& program) const
+{
+	if(!MyExpression || MyExpression->GetAtoms().size() != 1)
+		throw InternalException("Cannot generate pattern matched parameter");
+
+	CompileTimeParameter value = MyExpression->GetAtoms()[0]->ConvertToCompileTimeParam(program);
+	switch(value.Type)
+	{
+	case VM::EpochType_Integer:
+		signature.AddPatternMatchedParameter(value.Payload.IntegerValue);
+		break;
+
+	default:
+		throw NotImplementedException("Support for pattern matching on this type is not implemented");
+	}
+}
+
+//
+// Perform type inference on an expression passed to a function
+// as a formal parameter. Useful for identifying the types of
+// such parameters when validating pattern matching.
+//
+bool FunctionParamExpression::TypeInference(IRSemantics::Program& program, CompileErrors& errors)
+{
+	InferenceContext context(0, InferenceContext::CONTEXT_EXPRESSION);
+	ScopeDescription scope;
+	IRSemantics::CodeBlock fakeblock(&scope, false);
+	return MyExpression->TypeInference(program, fakeblock, context, 0, 1, errors);
+}
+
+//
+// Check if the given compile-time parameter matches
+// the pattern expected by this function parameter.
+//
+bool FunctionParamExpression::PatternMatchValue(const CompileTimeParameter& param, const IRSemantics::Program& program) const
+{
+	if(!MyExpression || MyExpression->GetAtoms().size() != 1)
+		throw InternalException("Cannot generate pattern matched parameter");
+
+	CompileTimeParameter value = MyExpression->GetAtoms()[0]->ConvertToCompileTimeParam(program);
+	switch(value.Type)
+	{
+	case VM::EpochType_Integer:
+		return param.Payload.IntegerValue == value.Payload.IntegerValue;
+		
+	default:
+		throw NotImplementedException("Support for pattern matching on this type is not implemented");
+	}
+}
+
+//
+// Nameless typed parameters cannot participate in pattern matching
+//
+void FunctionParamTyped::AddToSignature(FunctionSignature&, const IRSemantics::Program&) const
 {
 	throw InternalException("Cannot pattern match on this kind of function parameter");
 }
 
+//
+// Named parameters cannot participate in pattern matching
+//
 void FunctionParamNamed::AddToSignature(FunctionSignature&, const IRSemantics::Program&) const
 {
 	throw InternalException("Cannot pattern match on this kind of function parameter");
-}
-
-bool Function::PatternMatchParameter(size_t index, const CompileTimeParameter& param, const IRSemantics::Program& program) const
-{
-	return Parameters[index].Parameter->PatternMatchValue(param, program);
 }

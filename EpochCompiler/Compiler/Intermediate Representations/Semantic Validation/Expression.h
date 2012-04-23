@@ -12,6 +12,7 @@
 #include "Compiler/Abstract Syntax Tree/IdentifierT.h"
 
 #include "Compiler/ExportDef.h"
+#include "Compiler/Exceptions.h"
 
 #include "Utility/Types/IDTypes.h"
 #include "Utility/Types/IntegerTypes.h"
@@ -23,6 +24,7 @@
 #include <vector>
 
 
+// Forward declarations
 class CompileErrors;
 
 
@@ -38,6 +40,15 @@ namespace IRSemantics
 	struct InferenceContext;
 
 
+	//
+	// Base interface for all expression atoms
+	//
+	// Expressions are divided into atomic units in order to
+	// make manipulation, type inference, etc. simpler. They
+	// are converted from the component/fragment form of the
+	// AST into atomic form during the semantic IR pass, and
+	// manipulated as such during semantic analysis.
+	//
 	class ExpressionAtom
 	{
 	// Destruction
@@ -54,6 +65,9 @@ namespace IRSemantics
 	};
 
 
+	//
+	// IR node class for wrapping a complete expression
+	//
 	class Expression
 	{
 	// Construction and destruction
@@ -106,6 +120,14 @@ namespace IRSemantics
 	};
 
 
+	//
+	// Helper interface for representing parentheticals
+	//
+	// A parenthetical can be a complete expression, or a
+	// pre-operation statement, or a post-operation statement.
+	// These variants require different handling and are thus
+	// split among derived classes from this interface.
+	//
 	class Parenthetical
 	{
 	// Destruction
@@ -124,6 +146,9 @@ namespace IRSemantics
 	};
 
 
+	//
+	// Parenthetical wrapper for pre-operator statements
+	//
 	class ParentheticalPreOp : public Parenthetical
 	{
 	// Construction and destruction
@@ -155,6 +180,10 @@ namespace IRSemantics
 		PreOpStatement* MyStatement;
 	};
 
+
+	//
+	// Parenthetical wrapper for post-operator statements
+	//
 	class ParentheticalPostOp : public Parenthetical
 	{
 	// Construction and destruction
@@ -187,6 +216,9 @@ namespace IRSemantics
 	};
 
 
+	//
+	// Parenthetical wrapper for arbitrary expressions
+	//
 	class ParentheticalExpression : public Parenthetical
 	{
 	// Construction and destruction
@@ -219,6 +251,9 @@ namespace IRSemantics
 	};
 
 
+	//
+	// Expression atom wrapping a parenthetical expression/statement
+	//
 	class ExpressionAtomParenthetical : public ExpressionAtom
 	{
 	// Construction and destruction
@@ -249,6 +284,10 @@ namespace IRSemantics
 		Parenthetical* MyParenthetical;
 	};
 
+
+	//
+	// Expression atom wrapping a single identifier
+	//
 	class ExpressionAtomIdentifier : public ExpressionAtom
 	{
 	// Construction
@@ -287,6 +326,11 @@ namespace IRSemantics
 		const AST::IdentifierT& OriginalIdentifier;
 	};
 
+
+	//
+	// Special marker class used for signaling that an
+	// identifier should be handled as a reference.
+	//
 	class ExpressionAtomIdentifierReference : public ExpressionAtomIdentifier
 	{
 	// Construction
@@ -296,6 +340,10 @@ namespace IRSemantics
 		{ }
 	};
 
+
+	//
+	// Expression atom wrapper for operators
+	//
 	class ExpressionAtomOperator : public ExpressionAtom
 	{
 	// Construction
@@ -343,6 +391,10 @@ namespace IRSemantics
 		bool IsMemberAccessFlag;
 	};
 
+
+	//
+	// Expression atom wrapper for literal strings
+	//
 	class ExpressionAtomLiteralString : public ExpressionAtom
 	{
 	// Construction
@@ -368,6 +420,10 @@ namespace IRSemantics
 		StringHandle Handle;
 	};
 
+
+	//
+	// Expression atom wrapper for literal booleans
+	//
 	class ExpressionAtomLiteralBoolean : public ExpressionAtom
 	{
 	// Construction
@@ -393,6 +449,10 @@ namespace IRSemantics
 		bool Value;
 	};
 
+
+	//
+	// Expression atom wrapper for literal integers
+	//
 	class ExpressionAtomLiteralInteger32 : public ExpressionAtom
 	{
 	// Construction
@@ -418,6 +478,10 @@ namespace IRSemantics
 		Integer32 Value;
 	};
 
+
+	//
+	// Expression atom wrapper for literal reals
+	//
 	class ExpressionAtomLiteralReal32 : public ExpressionAtom
 	{
 	// Construction
@@ -443,6 +507,10 @@ namespace IRSemantics
 		Real32 Value;
 	};
 
+
+	//
+	// Expression atom wrapper for embedded statements/function invocations
+	//
 	class ExpressionAtomStatement : public ExpressionAtom
 	{
 	// Construction and destruction
@@ -475,6 +543,14 @@ namespace IRSemantics
 	};
 
 
+	//
+	// Special marker atom for indicating that data
+	// should be copied out of a structure member.
+	//
+	// This is not generated directly by the IR pass,
+	// but rather injected during code generation for
+	// certain automatically-created functions.
+	//
 	class ExpressionAtomCopyFromStructure : public ExpressionAtom
 	{
 	// Construction
@@ -515,6 +591,14 @@ namespace IRSemantics
 	};
 
 
+	//
+	// Special marker class for binding a reference to an identifier
+	//
+	// This is injected automatically by various passes and is not
+	// directly converted from the AST. Instead, it arises from
+	// semantic checks and manipulations on the IR. It exists primarily
+	// as an aid to code generation.
+	//
 	class ExpressionAtomBindReference : public ExpressionAtom
 	{
 	// Construction
@@ -541,7 +625,17 @@ namespace IRSemantics
 		{ return true; }
 		
 		virtual CompileTimeParameter ConvertToCompileTimeParam(const Program&) const
-		{ throw std::runtime_error("Invalid atom type for compile time parameter"); }
+		{
+			//
+			// This type of atom is a special marker and not a value, therefore
+			// it should never be converted to a compile-time parameter.
+			//
+			// Check the call stack and verify that the expression being converted
+			// to compile-time parameters is sane, and that this atom is actually
+			// legitimately placed.
+			//
+			throw InternalException("Invalid atom type for compile time parameter");
+		}
 
 	// Inspection
 	public:

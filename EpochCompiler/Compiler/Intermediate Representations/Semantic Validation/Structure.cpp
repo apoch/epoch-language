@@ -135,7 +135,7 @@ bool Structure::CompileTimeCodeExecution(StringHandle myname, Program& program, 
 		program.AllocateLexicalScopeName(codeblock.get());
 		func->SetCode(codeblock.release());
 		func->SetName(funcname);
-		func->AddParameter(program.FindString(L"identifier"), new FunctionParamNamedTyped(type, true), errors);
+		func->AddParameter(program.FindString(L"identifier"), new FunctionParamTyped(type, true), errors);
 		func->SuppressReturnRegister();
 
 		program.AddFunction(funcname, funcname, func.release(), errors);

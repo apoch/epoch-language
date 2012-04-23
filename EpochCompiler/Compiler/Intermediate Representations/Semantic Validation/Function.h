@@ -19,6 +19,7 @@
 #include <vector>
 
 
+// Forward declarations
 class FunctionSignature;
 class CompileErrors;
 
@@ -92,11 +93,14 @@ namespace IRSemantics
 		bool IsRef;
 	};
 
-	class FunctionParamNamedTyped : public FunctionParam
+	//
+	// Function parameter with just a known type but no given name
+	//
+	class FunctionParamTyped : public FunctionParam
 	{
 	// Construction
 	public:
-		FunctionParamNamedTyped(VM::EpochTypeID type, bool isreference)
+		FunctionParamTyped(VM::EpochTypeID type, bool isreference)
 			: MyType(type),
 			  IsRef(isreference)
 		{ }
@@ -225,6 +229,9 @@ namespace IRSemantics
 	};
 
 
+	//
+	// Wrapper for recording function tags
+	//
 	struct FunctionTag
 	{
 		StringHandle TagName;
