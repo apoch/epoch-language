@@ -30,7 +30,7 @@ Program::Program(StringPoolManager& strings, CompileSession& session)
 	: CounterAnonParam(0),
 	  CounterLexicalScope(0),
 	  Strings(strings),
-	  StructureTypeCounter(VM::EpochType_CustomBase),
+	  StructureTypeCounter(VM::EpochTypeFamily_Structure),
 	  Session(session),
 	  GlobalScope(new ScopeDescription())
 {
@@ -242,13 +242,13 @@ StringHandle Program::GetGlobalCodeBlockName(size_t index) const
 //
 // Validate a program
 //
-bool Program::Validate() const
+bool Program::Validate(CompileErrors& errors) const
 {
 	bool valid = true;
 
 	for(std::map<StringHandle, Structure*>::const_iterator iter = Structures.begin(); iter != Structures.end(); ++iter)
 	{
-		if(!iter->second->Validate(*this))
+		if(!iter->second->Validate(*this, errors))
 			valid = false;
 	}
 
@@ -268,7 +268,11 @@ bool Program::Validate() const
 	{
 		StringHandle entrypointhandle = Strings.Find(L"entrypoint");
 		if(Functions.find(entrypointhandle) == Functions.end())
+		{
+			errors.SetLocation(L"", 0, 0, L"");
+			errors.SemanticError("Program has no entrypoint function");
 			valid = false;
+		}
 	}
 	catch(const RecoverableException&)
 	{

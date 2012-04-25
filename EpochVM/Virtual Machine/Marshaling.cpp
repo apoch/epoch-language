@@ -335,7 +335,7 @@ namespace
 				break;
 
 			default:
-				if(membertype > EpochType_CustomBase)
+				if(VM::GetTypeFamily(membertype) == VM::EpochTypeFamily_Structure)
 				{
 					StructureHandle structurehandle = structure.ReadMember<StructureHandle>(j);
 					const ActiveStructure& nestedstructure = context.OwnerVM.GetStructure(structurehandle);
@@ -487,7 +487,7 @@ void VM::MarshalIntoNativeCode(VM::ExecutionContext& context, const ScopeDescrip
 		{
 			EpochTypeID vartype = scope.GetVariableTypeByIndex(i);
 			StringHandle varname = scope.GetVariableNameHandle(i);
-			if(vartype > EpochType_CustomBase)
+			if(VM::GetTypeFamily(vartype) == VM::EpochTypeFamily_Structure)
 			{
 				StructureHandle structurehandle = context.Variables->Read<StructureHandle>(varname);
 				ActiveStructure& structure = context.OwnerVM.GetStructure(structurehandle);
@@ -513,7 +513,7 @@ void VM::MarshalIntoNativeCode(VM::ExecutionContext& context, const ScopeDescrip
 						marshaledbooleans.push_back(MarshaledBooleanRecord(context.Variables->Read<bool>(varname) ? 1 : 0, i));
 						stufftopush.push_back(pushrec(reinterpret_cast<UINT_PTR>(&marshaledbooleans.back()), false));
 					}
-					else if(vartype == EpochType_String || vartype == EpochType_Function || vartype >= EpochType_CustomBase)
+					else if(vartype == EpochType_String || vartype == EpochType_Function || GetTypeFamily(vartype) == EpochTypeFamily_Structure)
 					{
 						// It is HIGHLY unsafe to pass strings to externals!
 						// Therefore if you must pass a mutable string, use a buffer type instead.
@@ -782,7 +782,7 @@ EPOCHVM void VM::MarshalBufferIntoStructureData(VM::ExecutionContext& context, A
 			break;
 
 		default:
-			if(membertype > EpochType_CustomBase)
+			if(GetTypeFamily(membertype) == EpochTypeFamily_Structure)
 			{
 				StructureHandle structurehandle = structure.ReadMember<StructureHandle>(j);
 				ActiveStructure& nestedstructure = context.OwnerVM.GetStructure(structurehandle);

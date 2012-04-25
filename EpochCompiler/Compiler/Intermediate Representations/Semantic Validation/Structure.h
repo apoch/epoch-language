@@ -9,6 +9,8 @@
 
 
 // Dependencies
+#include "Compiler/Abstract Syntax Tree/IdentifierT.h"
+
 #include "Utility/Types/IDTypes.h"
 #include "Utility/Types/EpochTypeIDs.h"
 
@@ -50,7 +52,7 @@ namespace IRSemantics
 	public:
 		virtual Type GetMemberType() const = 0;
 		virtual VM::EpochTypeID GetEpochType(const IRSemantics::Program& program) const = 0;
-		virtual bool Validate(const IRSemantics::Program& program) const = 0;
+		virtual bool Validate(const IRSemantics::Program& program, CompileErrors& errors) const = 0;
 	};
 
 
@@ -61,9 +63,15 @@ namespace IRSemantics
 	{
 	// Construction
 	public:
-		explicit StructureMemberVariable(StringHandle type)
-			: MyType(type)
+		StructureMemberVariable(StringHandle type, const AST::IdentifierT& typeidentifier)
+			: MyType(type),
+			  TypeIdentifier(typeidentifier)
 		{ }
+
+	// Non-copyable
+	private:
+		StructureMemberVariable(const StructureMemberVariable& rhs);
+		StructureMemberVariable& operator= (const StructureMemberVariable& rhs);
 
 	// Structure member interface
 	public:
@@ -72,11 +80,12 @@ namespace IRSemantics
 
 		virtual VM::EpochTypeID GetEpochType(const IRSemantics::Program& program) const;
 
-		virtual bool Validate(const IRSemantics::Program& program) const;
+		virtual bool Validate(const IRSemantics::Program& program, CompileErrors& errors) const;
 
 	// Internal state
 	private:
 		StringHandle MyType;
+		const AST::IdentifierT& TypeIdentifier;
 	};
 
 
@@ -87,9 +96,16 @@ namespace IRSemantics
 	{
 	// Construction
 	public:
-		StructureMemberFunctionReference()
-			: ReturnType(VM::EpochType_Void)
+		explicit StructureMemberFunctionReference(const AST::IdentifierT& functionidentifier)
+			: ReturnTypeName(0),
+			  ReturnTypeIdentifier(NULL),
+			  FunctionIdentifier(functionidentifier)
 		{ }
+
+	// Non-copyable
+	private:
+		StructureMemberFunctionReference(const StructureMemberFunctionReference& rhs);
+		StructureMemberFunctionReference& operator= (const StructureMemberFunctionReference& rhs);
 
 	// Structure member interface
 	public:
@@ -99,27 +115,26 @@ namespace IRSemantics
 		virtual VM::EpochTypeID GetEpochType(const IRSemantics::Program&) const
 		{ return VM::EpochType_Function; }
 
-		virtual bool Validate(const IRSemantics::Program& program) const;
+		virtual bool Validate(const IRSemantics::Program& program, CompileErrors& errors) const;
 
 	// Mutation
 	public:
-		void AddParam(StringHandle type)
-		{ ParamTypes.push_back(type); }
+		void AddParam(StringHandle type, const AST::IdentifierT* identifier)
+		{ ParamTypes.push_back(std::make_pair(type, identifier)); }
 
-		void SetReturnType(StringHandle type)
-		{ ReturnType = type; }
+		void SetReturnTypeName(StringHandle type, const AST::IdentifierT* identifier)
+		{ ReturnTypeName = type; ReturnTypeIdentifier = identifier; }
 
 	// Additional inspection
 	public:
-		StringHandle GetReturnType() const
-		{ return ReturnType; }
-
 		FunctionSignature GetSignature(const IRSemantics::Program& program) const;
 
 	// Internal state
 	private:
-		StringHandle ReturnType;
-		std::vector<StringHandle> ParamTypes;
+		const AST::IdentifierT& FunctionIdentifier;
+		StringHandle ReturnTypeName;
+		const AST::IdentifierT* ReturnTypeIdentifier;
+		std::vector<std::pair<StringHandle, const AST::IdentifierT*> > ParamTypes;
 	};
 
 
@@ -150,7 +165,7 @@ namespace IRSemantics
 
 	// Validation
 	public:
-		bool Validate(const Program& program) const;
+		bool Validate(const Program& program, CompileErrors& errors) const;
 
 	// Compile time code execution
 	public:

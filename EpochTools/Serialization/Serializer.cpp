@@ -151,7 +151,6 @@ void Serializer::Write(const std::wstring& filename) const
 					throw SerializationException("Failed to serialize untyped PUSH operand");
 		
 				case VM::EpochType_Identifier:
-				case VM::EpochType_CustomBase:
 					throw SerializationException("Failed to serialize incorrect PUSH operand");
 
 				case VM::EpochType_Integer:
@@ -179,8 +178,15 @@ void Serializer::Write(const std::wstring& filename) const
 					break;
 
 				default:
-					outfile << L"PUSH " << type << L" ";
-					outfile << traverser.Read<StructureHandle>() << L"\n";
+					if(VM::GetTypeFamily(type) == VM::EpochTypeFamily_Structure)
+					{
+						outfile << L"PUSH " << type << L" ";
+						outfile << traverser.Read<StructureHandle>() << L"\n";
+					}
+					else
+					{
+						throw SerializationException("Failed to serialize incorrect PUSH operand");
+					}
 				}
 			}
 			break;

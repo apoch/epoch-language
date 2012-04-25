@@ -126,7 +126,7 @@ bool Statement::TypeInference(Program& program, CodeBlock& activescope, Inferenc
 	if(context.State == InferenceContext::CONTEXT_FUNCTION_RETURN)
 	{
 		MyType = program.LookupType(Name);
-		if(MyType > VM::EpochType_CustomBase)
+		if(VM::GetTypeFamily(MyType) == VM::EpochTypeFamily_Structure)
 			Name = program.GetStructures().find(program.GetNameOfStructureType(MyType))->second->GetConstructorName();
 	}
 
@@ -139,7 +139,7 @@ bool Statement::TypeInference(Program& program, CodeBlock& activescope, Inferenc
 		++i;
 	}
 
-	if(context.State != InferenceContext::CONTEXT_FUNCTION_RETURN || MyType > VM::EpochType_CustomBase)
+	if(context.State != InferenceContext::CONTEXT_FUNCTION_RETURN || VM::GetTypeFamily(MyType) == VM::EpochTypeFamily_Structure)
 	{
 		if(program.HasFunction(Name))
 		{

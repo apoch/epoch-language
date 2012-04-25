@@ -38,13 +38,11 @@ EPOCHVM size_t VM::GetStorageSize(EpochTypeID type)
 	case EpochType_Buffer:				return sizeof(BufferHandle);
 
 	case EpochType_Error:
-	case EpochType_Expression:
 	case EpochType_Void:
-	case EpochType_CustomBase:
 		throw FatalException("Unable to determine the size of this variable/structure member");
 
 	default:
-		if(type <= EpochType_CustomBase)
+		if(VM::GetTypeFamily(type) != VM::EpochTypeFamily_Structure)
 			throw NotImplementedException("Unsupported data type in VM::GetStorageSize()");
 
 		return sizeof(StructureHandle);

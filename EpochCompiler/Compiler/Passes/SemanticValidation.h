@@ -91,7 +91,7 @@ namespace ASTTraverse
 		bool TypeInference();
 
 		// Validation
-		bool Validate() const;
+		bool Validate();
 
 		// Attached program retrieval
 		IRSemantics::Program* DetachProgram();

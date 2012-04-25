@@ -117,7 +117,7 @@ void ActiveScope::WriteFromStack(void* targetstorage, VM::EpochTypeID targettype
 		break;
 
 	default:
-		if(targettype <= VM::EpochType_CustomBase)
+		if(VM::GetTypeFamily(targettype) != VM::EpochTypeFamily_Structure)
 			throw NotImplementedException("Unsupported type in ActiveScope::WriteFromStack");
 		
 		Write(targetstorage, stack.PopValue<StructureHandle>());
@@ -156,7 +156,7 @@ void ActiveScope::PushOntoStack(void* targetstorage, VM::EpochTypeID targettype,
 	case VM::EpochType_Function:		DoTypedPush<StringHandle>(stack, targetstorage);	break;
 	case VM::EpochType_Identifier:		DoTypedPush<StringHandle>(stack, targetstorage);	break;
 	default:
-		if(targettype <= VM::EpochType_CustomBase)
+		if(VM::GetTypeFamily(targettype) != VM::EpochTypeFamily_Structure)
 			throw NotImplementedException("Unsupported data type in ActiveScope::PushOntoStack");
 
 		DoTypedPush<StructureHandle>(stack, targetstorage);
@@ -265,7 +265,7 @@ void ActiveScope::CopyToRegister(StringHandle variableid, Register& targetregist
 
 	default:
 		{
-			if(variabletype <= VM::EpochType_CustomBase)
+			if(VM::GetTypeFamily(variabletype) != VM::EpochTypeFamily_Structure)
 				throw FatalException("Unsupported type when assigning to register");
 
 			StructureHandle* value = reinterpret_cast<StructureHandle*>(GetVariableStorageLocation(variableid));

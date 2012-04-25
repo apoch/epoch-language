@@ -31,12 +31,12 @@ namespace
 		StringHandle identifier = context.State.Stack.PopValue<StringHandle>();
 		VM::EpochTypeID vartype = context.Variables->GetOriginalDescription().GetVariableTypeByID(identifier);
 
-		if(vartype < VM::EpochType_CustomBase)
+		if(VM::GetTypeFamily(vartype) == VM::EpochTypeFamily_Primitive)
 			context.State.Stack.PushValue(VM::GetMarshaledSize(vartype));
-		else if(vartype > VM::EpochType_CustomBase)
+		else if(VM::GetTypeFamily(vartype) == VM::EpochTypeFamily_Structure)
 			context.State.Stack.PushValue(context.OwnerVM.GetStructureDefinition(vartype).GetMarshaledSize());
 		else
-			context.State.Stack.PushValue(0);
+			context.State.Stack.PushValue(0);		// TODO - should this halt the VM instead?
 	}
 
 	//
@@ -49,7 +49,7 @@ namespace
 		StringHandle identifier = context.State.Stack.PopValue<StringHandle>();
 		VM::EpochTypeID vartype = context.Variables->GetOriginalDescription().GetVariableTypeByID(identifier);
 
-		if(vartype > VM::EpochType_CustomBase)
+		if(VM::GetTypeFamily(vartype) == VM::EpochTypeFamily_Structure)
 		{
 			const StructureDefinition& definition = context.OwnerVM.GetStructureDefinition(vartype);
 			StructureHandle structhandle = context.Variables->Read<StructureHandle>(identifier);

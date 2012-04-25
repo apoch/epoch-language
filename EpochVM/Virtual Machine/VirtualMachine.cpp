@@ -504,7 +504,7 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 						break;
 
 					default:
-						if(membertype < EpochType_CustomBase)
+						if(GetTypeFamily(membertype) != EpochTypeFamily_Structure)
 							throw FatalException("Unhandled structure member type");
 
 						State.ReturnValueRegister.SetStructure(structure.ReadMember<StructureHandle>(memberindex), structure.Definition.GetMemberType(memberindex));
@@ -557,7 +557,7 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 						break;
 
 					default:
-						if(membertype < EpochType_CustomBase)
+						if(GetTypeFamily(membertype) != EpochTypeFamily_Structure)
 							throw FatalException("Unhandled structure member type");
 
 						structure.WriteMember(memberindex, State.Stack.PopValue<StructureHandle>());
@@ -1160,7 +1160,7 @@ void ExecutionContext::Load()
 					StringHandle identifier = Fetch<StringHandle>();
 					EpochTypeID type = Fetch<EpochTypeID>();
 					const StructureDefinition* structdefinition = NULL;
-					if(type > EpochType_CustomBase)
+					if(GetTypeFamily(type) == EpochTypeFamily_Structure)
 						structdefinition = &OwnerVM.GetStructureDefinition(type);
 					OwnerVM.StructureDefinitions[structuretypeid].AddMember(identifier, type, structdefinition);
 				}
@@ -1436,7 +1436,7 @@ StructureHandle VirtualMachine::DeepCopy(StructureHandle handle)
 		case EpochType_String:			clone.WriteMember(i, original.ReadMember<StringHandle>(i));			break;
 
 		default:
-			if(membertype > VM::EpochType_CustomBase)
+			if(GetTypeFamily(membertype) == EpochTypeFamily_Structure)
 				clone.WriteMember(i, DeepCopy(original.ReadMember<StructureHandle>(i)));
 			else
 				throw FatalException("Invalid structure member data type; cannot deep copy");
@@ -1523,7 +1523,7 @@ namespace
 
 	bool ValidatorStructures(EpochTypeID vartype)
 	{
-		return (vartype > EpochType_CustomBase);
+		return (GetTypeFamily(vartype) == VM::EpochTypeFamily_Structure);
 	}
 
 }

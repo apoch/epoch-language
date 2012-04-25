@@ -86,7 +86,7 @@
       <TreatWarningAsError>true</TreatWarningAsError>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>EpochVM.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>EpochVM.lib;ReleaseLibsLLVMAnalysis.lib;ReleaseLibsLLVMArchive.lib;ReleaseLibsLLVMAsmParser.lib;ReleaseLibsLLVMAsmPrinter.lib;ReleaseLibsLLVMBitReader.lib;ReleaseLibsLLVMBitWriter.lib;ReleaseLibsLLVMCodeGen.lib;ReleaseLibsLLVMCore.lib;ReleaseLibsLLVMDebugInfo.lib;ReleaseLibsLLVMExecutionEngine.lib;ReleaseLibsLLVMInstCombine.lib;ReleaseLibsLLVMInstrumentation.lib;ReleaseLibsLLVMInterpreter.lib;ReleaseLibsLLVMipa.lib;ReleaseLibsLLVMipo.lib;ReleaseLibsLLVMJIT.lib;ReleaseLibsLLVMLinker.lib;ReleaseLibsLLVMMC.lib;ReleaseLibsLLVMMCDisassembler.lib;ReleaseLibsLLVMMCJIT.lib;ReleaseLibsLLVMMCParser.lib;ReleaseLibsLLVMObject.lib;ReleaseLibsLLVMRuntimeDyld.lib;ReleaseLibsLLVMScalarOpts.lib;ReleaseLibsLLVMSelectionDAG.lib;ReleaseLibsLLVMSupport.lib;ReleaseLibsLLVMTableGen.lib;ReleaseLibsLLVMTarget.lib;ReleaseLibsLLVMTransformUtils.lib;ReleaseLibsLLVMX86AsmParser.lib;ReleaseLibsLLVMX86AsmPrinter.lib;ReleaseLibsLLVMX86CodeGen.lib;ReleaseLibsLLVMX86Desc.lib;ReleaseLibsLLVMX86Disassembler.lib;ReleaseLibsLLVMX86Info.lib;ReleaseLibsLLVMX86Utils.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(OutDir);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <ModuleDefinitionFile>Exports/Exports.def</ModuleDefinitionFile>
       <GenerateDebugInformation>true</GenerateDebugInformation>

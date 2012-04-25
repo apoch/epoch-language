@@ -103,15 +103,27 @@ IRSemantics::Program* CompilerPasses::ValidateSemantics(AST::Program& program, c
 
 	// Perform compile-time code execution, e.g. constructors for populating lexical scopes
 	if(!pass.CompileTimeCodeExecution())
+	{
+		UI::OutputStream output;
+		output << UI::lightred << "Failed compiled time code execution!" << UI::white << std::endl;
 		return NULL;
+	}
 
 	// Perform type inference and decorate the IR with type information
 	if(!pass.TypeInference())
+	{
+		UI::OutputStream output;
+		output << UI::lightred << "Failed type inference!" << UI::white << std::endl;
 		return NULL;
+	}
 
 	// Perform type validation
 	if(!pass.Validate())
+	{
+		UI::OutputStream output;
+		output << UI::lightred << "Failed type validation!" << UI::white << std::endl;
 		return NULL;
+	}
 
 	// Success!
 	return pass.DetachProgram();
@@ -201,12 +213,12 @@ bool CompilePassSemantics::TypeInference()
 //
 // Validate a program
 //
-bool CompilePassSemantics::Validate() const
+bool CompilePassSemantics::Validate()
 {
 	if(!CurrentProgram)
 		return false;
 
-	if(!CurrentProgram->Validate() || Errors.HasErrors())
+	if(!CurrentProgram->Validate(Errors) || Errors.HasErrors())
 	{
 		Errors.DumpErrors();
 		return false;
@@ -360,7 +372,7 @@ void CompilePassSemantics::EntryHelper::operator () (AST::StructureMemberVariabl
 	StringHandle name = self->CurrentProgram->AddString(std::wstring(variable.Name.begin(), variable.Name.end()));
 	StringHandle type = self->CurrentProgram->AddString(std::wstring(variable.Type.begin(), variable.Type.end()));
 
-	std::auto_ptr<IRSemantics::StructureMemberVariable> member(new IRSemantics::StructureMemberVariable(type));
+	std::auto_ptr<IRSemantics::StructureMemberVariable> member(new IRSemantics::StructureMemberVariable(type, variable.Type));
 	self->ErrorContext = &variable.Name;
 	self->CurrentStructures.back()->AddMember(name, member.release(), self->Errors);
 	self->ErrorContext = NULL;
@@ -369,7 +381,7 @@ void CompilePassSemantics::EntryHelper::operator () (AST::StructureMemberVariabl
 //
 // Traverse a node defining a member function reference in a structure
 //
-void CompilePassSemantics::EntryHelper::operator () (AST::StructureMemberFunctionRef&)
+void CompilePassSemantics::EntryHelper::operator () (AST::StructureMemberFunctionRef& func)
 {
 	if(self->CurrentStructures.empty())
 	{
@@ -389,7 +401,7 @@ void CompilePassSemantics::EntryHelper::operator () (AST::StructureMemberFunctio
 	}
 
 	self->StateStack.push(CompilePassSemantics::STATE_STRUCTURE_FUNCTION);
-	self->CurrentStructureFunctions.push_back(new IRSemantics::StructureMemberFunctionReference);
+	self->CurrentStructureFunctions.push_back(new IRSemantics::StructureMemberFunctionReference(func.Name));
 }
 
 void CompilePassSemantics::ExitHelper::operator () (AST::StructureMemberFunctionRef& funcref)
@@ -1239,11 +1251,11 @@ void CompilePassSemantics::EntryHelper::operator () (AST::IdentifierT& identifie
 		break;
 
 	case CompilePassSemantics::STATE_STRUCTURE_FUNCTION_PARAMS:
-		self->CurrentStructureFunctions.back()->AddParam(self->CurrentProgram->AddString(raw));
+		self->CurrentStructureFunctions.back()->AddParam(self->CurrentProgram->AddString(raw), &identifier);
 		break;
 
 	case CompilePassSemantics::STATE_STRUCTURE_FUNCTION_RETURN:
-		self->CurrentStructureFunctions.back()->SetReturnType(self->CurrentProgram->AddString(raw));
+		self->CurrentStructureFunctions.back()->SetReturnTypeName(self->CurrentProgram->AddString(raw), &identifier);
 		break;
 
 	case CompilePassSemantics::STATE_POSTFIX_ENTITY:

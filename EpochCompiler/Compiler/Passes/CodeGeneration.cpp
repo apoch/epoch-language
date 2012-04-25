@@ -95,7 +95,7 @@ namespace
 
 			if(structuretype == VM::EpochType_Buffer)
 				emitter.CopyBuffer();
-			else if(structuretype > VM::EpochType_CustomBase)
+			else if(VM::GetTypeFamily(structuretype) == VM::EpochTypeFamily_Structure)
 				emitter.CopyStructure();
 		}
 	}
@@ -484,7 +484,7 @@ bool CompilerPasses::GenerateCode(const IRSemantics::Program& program, ByteCodeE
 		for(std::vector<std::pair<StringHandle, IRSemantics::StructureMember*> >::const_iterator memberiter = members.begin(); memberiter != members.end(); ++memberiter)
 		{
 			VM::EpochTypeID membertype = memberiter->second->GetEpochType(program);
-			if(membertype > VM::EpochType_CustomBase)
+			if(VM::GetTypeFamily(membertype) == VM::EpochTypeFamily_Structure)
 				structuredependencies.AddDependency(type, membertype);
 		}
 	}

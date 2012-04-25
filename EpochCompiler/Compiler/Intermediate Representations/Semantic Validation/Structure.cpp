@@ -55,13 +55,13 @@ void Structure::AddMember(StringHandle name, StructureMember* member, CompileErr
 //
 // Validate a structure definition
 //
-bool Structure::Validate(const Program& program) const
+bool Structure::Validate(const Program& program, CompileErrors& errors) const
 {
 	bool valid = true;
 
 	for(std::vector<std::pair<StringHandle, StructureMember*> >::const_iterator iter = Members.begin(); iter != Members.end(); ++iter)
 	{
-		if(!iter->second->Validate(program))
+		if(!iter->second->Validate(program, errors))
 			valid = false;
 	}
 
@@ -148,9 +148,16 @@ bool Structure::CompileTimeCodeExecution(StringHandle myname, Program& program, 
 //
 // Validate a variable structure member
 //
-bool StructureMemberVariable::Validate(const Program& program) const
+bool StructureMemberVariable::Validate(const Program& program, CompileErrors& errors) const
 {
-	return (program.LookupType(MyType) != VM::EpochType_Error);
+	if(program.LookupType(MyType) == VM::EpochType_Error)
+	{
+		errors.SetContext(TypeIdentifier);
+		errors.SemanticError("Unknown type");
+		return false;
+	}
+
+	return true;
 }
 
 
@@ -164,17 +171,33 @@ VM::EpochTypeID StructureMemberVariable::GetEpochType(const Program& program) co
 //
 // Validate a function reference structure member
 //
-bool StructureMemberFunctionReference::Validate(const Program& program) const
+bool StructureMemberFunctionReference::Validate(const Program& program, CompileErrors& errors) const
 {
 	bool valid = true;
 
-	if(program.LookupType(ReturnType) == VM::EpochType_Error)
-		valid = false;
-
-	for(std::vector<StringHandle>::const_iterator iter = ParamTypes.begin(); iter != ParamTypes.end(); ++iter)
+	if(ReturnTypeName && (program.LookupType(ReturnTypeName) == VM::EpochType_Error))
 	{
-		if(program.LookupType(*iter) == VM::EpochType_Error)
+		valid = false;
+		if(ReturnTypeIdentifier)
+		{
+			errors.SetContext(*ReturnTypeIdentifier);
+			errors.SemanticError("Unknown type");
+		}
+		else
+		{
+			errors.SetContext(FunctionIdentifier);
+			errors.SemanticError("Return type unknown");
+		}
+	}
+
+	for(std::vector<std::pair<StringHandle, const AST::IdentifierT*> >::const_iterator iter = ParamTypes.begin(); iter != ParamTypes.end(); ++iter)
+	{
+		if(program.LookupType(iter->first) == VM::EpochType_Error)
+		{
 			valid = false;
+			errors.SetContext(*iter->second);
+			errors.SemanticError("Unknown type");
+		}
 	}
 	
 	return valid;
@@ -183,10 +206,14 @@ bool StructureMemberFunctionReference::Validate(const Program& program) const
 FunctionSignature StructureMemberFunctionReference::GetSignature(const Program& program) const
 {
 	FunctionSignature ret;
-	ret.SetReturnType(program.LookupType(ReturnType));
-	for(std::vector<StringHandle>::const_iterator iter = ParamTypes.begin(); iter != ParamTypes.end(); ++iter)
+	if(ReturnTypeName)
+		ret.SetReturnType(program.LookupType(ReturnTypeName));
+	else
+		ret.SetReturnType(VM::EpochType_Void);
+
+	for(std::vector<std::pair<StringHandle, const AST::IdentifierT*> >::const_iterator iter = ParamTypes.begin(); iter != ParamTypes.end(); ++iter)
 	{
-		ret.AddParameter(L"@@auto", program.LookupType(*iter), false);
+		ret.AddParameter(L"@@auto", program.LookupType(iter->first), false);
 	}
 	return ret;
 }

@@ -174,7 +174,7 @@ namespace IRSemantics
 
 	// Validation
 	public:
-		bool Validate() const;
+		bool Validate(CompileErrors& errors) const;
 
 	// Internal helpers
 	private:
