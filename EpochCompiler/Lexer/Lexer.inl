@@ -13,6 +13,7 @@ namespace Lexer
 		StructureDef = L"\"structure\"";
 		GlobalDef = L"\"global\"";
 		AliasDef = L"\"alias\"";
+		UnitDef = L"\"type\"";
 
 		StringIdentifier = L"[a-zA-Z]\\w*";
 		StringLiteral = L"\\\"[^\\\"]*\\\"";
@@ -59,6 +60,7 @@ namespace Lexer
 			(StructureDef)
 			(GlobalDef)
 			(AliasDef)
+			(UnitDef)
 			(Ref)
 			(StringIdentifier)
 			(L".", ID_ANY)

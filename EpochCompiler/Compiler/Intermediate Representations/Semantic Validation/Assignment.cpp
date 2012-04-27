@@ -87,7 +87,7 @@ void Assignment::SetRHSRecursive(AssignmentChain* rhs)
 //
 bool Assignment::Validate(const Program& program) const
 {
-	bool valid = (LHSType == RHS->GetEpochType(program)) && (LHSType != VM::EpochType_Error);
+	bool valid = (LHSType != VM::EpochType_Error);
 	return valid && RHS->Validate(program);
 }
 
@@ -121,10 +121,15 @@ bool Assignment::TypeInference(Program& program, CodeBlock& activescope, Inferen
 		}
 	}
 
-	if(LHSType != RHS->GetEpochType(program))
+	VM::EpochTypeID RHSType = RHS->GetEpochType(program);
+	if(LHSType != RHSType)
 	{
-		errors.SetContext(OriginalLHS);
-		errors.SemanticError("Left-hand side of assignment differs in type from right-hand side");
+		if(VM::GetTypeFamily(LHSType) != VM::EpochTypeFamily_Unit || program.StrongTypeAliasRepresentations[LHSType] != RHSType)
+		{
+			errors.SetContext(OriginalLHS);
+			errors.SemanticError("Left-hand side of assignment differs in type from right-hand side");
+			LHSType = VM::EpochType_Error;
+		}
 	}
 
 	return true;

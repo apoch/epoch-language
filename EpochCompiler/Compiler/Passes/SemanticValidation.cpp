@@ -1329,6 +1329,38 @@ void CompilePassSemantics::EntryHelper::operator () (AST::TypeAlias& alias)
 	self->CurrentProgram->TypeAliases[aliasname] = representationtype;
 }
 
+
+void CompilePassSemantics::EntryHelper::operator () (AST::StrongTypeAlias& alias)
+{
+	StringHandle aliasname = self->CurrentProgram->AddString(std::wstring(alias.AliasName.begin(), alias.AliasName.end()));
+
+	if(self->CurrentProgram->LookupType(aliasname) != VM::EpochType_Error)
+	{
+		self->Errors.SetContext(alias.AliasName);
+		self->Errors.SemanticError("A type with this name already exists");
+		return;
+	}
+
+	StringHandle representationname = self->CurrentProgram->AddString(std::wstring(alias.RepresentationName.begin(), alias.RepresentationName.end()));
+	VM::EpochTypeID representationtype = self->CurrentProgram->LookupType(representationname);
+
+	if(representationtype == VM::EpochType_Error)
+	{
+		self->Errors.SetContext(alias.RepresentationName);
+		self->Errors.SemanticError("No type by this name was found");
+		return;
+	}
+
+	VM::EpochTypeID newtypeid = self->CurrentProgram->AllocateNewUnitTypeID();
+	self->CurrentProgram->StrongTypeAliasTypes[aliasname] = newtypeid;
+	self->CurrentProgram->StrongTypeAliasRepresentations[newtypeid] = representationtype;
+	self->CurrentProgram->StrongTypeAliasRepNames[newtypeid] = representationname;
+
+	self->CurrentProgram->Session.CompileTimeHelpers.insert(std::make_pair(aliasname, self->CurrentProgram->Session.CompileTimeHelpers.find(representationname)->second));
+	self->CurrentProgram->Session.FunctionSignatures.insert(std::make_pair(aliasname, self->CurrentProgram->Session.FunctionSignatures.find(representationname)->second));
+}
+
+
 //
 // Traverse a special marker that indicates the subsequent nodes belong
 // to the return expression definition of a function

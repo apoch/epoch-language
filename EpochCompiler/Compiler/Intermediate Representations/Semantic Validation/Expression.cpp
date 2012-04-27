@@ -130,7 +130,16 @@ namespace
 						break;
 					}
 
-					ret = opatom->DetermineUnaryReturnType(program, operandtype, errors);
+					VM::EpochTypeID underlyingtype = operandtype;
+					if(VM::GetTypeFamily(operandtype) == VM::EpochTypeFamily_Unit)
+					{
+						if(program.StrongTypeAliasRepresentations.find(operandtype) != program.StrongTypeAliasRepresentations.end())
+							underlyingtype = program.StrongTypeAliasRepresentations[operandtype];
+					}
+
+					ret = opatom->DetermineUnaryReturnType(program, underlyingtype, errors);
+					if(underlyingtype != operandtype)
+						ret = operandtype;
 				}
 				else
 				{
@@ -141,7 +150,26 @@ namespace
 						break;
 					}
 
-					ret = opatom->DetermineOperatorReturnType(program, ret, rhstype, errors);
+					VM::EpochTypeID originallhstype = ret;
+					VM::EpochTypeID underlyingtypelhs = ret;
+					if(VM::GetTypeFamily(ret) == VM::EpochTypeFamily_Unit)
+					{
+						if(program.StrongTypeAliasRepresentations.find(ret) != program.StrongTypeAliasRepresentations.end())
+							underlyingtypelhs = program.StrongTypeAliasRepresentations[ret];
+					}
+
+					VM::EpochTypeID underlyingtyperhs = rhstype;
+					if(VM::GetTypeFamily(rhstype) == VM::EpochTypeFamily_Unit)
+					{
+						if(program.StrongTypeAliasRepresentations.find(rhstype) != program.StrongTypeAliasRepresentations.end())
+							underlyingtyperhs = program.StrongTypeAliasRepresentations[rhstype];
+					}
+
+					ret = opatom->DetermineOperatorReturnType(program, underlyingtypelhs, underlyingtyperhs, errors);
+					if(underlyingtypelhs != originallhstype && ret == underlyingtypelhs)
+						ret = originallhstype;
+					else if(underlyingtyperhs != rhstype && ret == underlyingtyperhs)
+						ret = rhstype;
 				}
 
 				break;
@@ -192,7 +220,16 @@ namespace
 						break;
 					}
 
-					ret = opatom->DetermineUnaryReturnType(program, operandtype, errors);
+					VM::EpochTypeID underlyingtype = operandtype;
+					if(VM::GetTypeFamily(operandtype) == VM::EpochTypeFamily_Unit)
+					{
+						if(program.StrongTypeAliasRepresentations.find(operandtype) != program.StrongTypeAliasRepresentations.end())
+							underlyingtype = program.StrongTypeAliasRepresentations[operandtype];
+					}
+
+					ret = opatom->DetermineUnaryReturnType(program, underlyingtype, errors);
+					if(underlyingtype != operandtype)
+						ret = operandtype;
 				}
 				else
 					break;
@@ -398,6 +435,13 @@ bool Expression::TypeInference(Program& program, CodeBlock& activescope, Inferen
 		unsigned rhsidx = iter - Atoms.begin() + 1;
 		typerhs = WalkAtomsForType(Atoms, program, rhsidx, typerhs, errors);
 
+		VM::EpochTypeID underlyingtyperhs = typerhs;
+		if(VM::GetTypeFamily(typerhs) == VM::EpochTypeFamily_Unit)
+		{
+			if(program.StrongTypeAliasRepresentations.find(typerhs) != program.StrongTypeAliasRepresentations.end())
+				underlyingtyperhs = program.StrongTypeAliasRepresentations[typerhs];
+		}
+
 		if(program.Session.InfoTable.UnaryPrefixes->find(program.GetString(opatom->GetIdentifier())) != program.Session.InfoTable.UnaryPrefixes->end())
 		{
 			if(overloadmapiter != program.Session.FunctionOverloadNames.end())
@@ -424,6 +468,13 @@ bool Expression::TypeInference(Program& program, CodeBlock& activescope, Inferen
 				VM::EpochTypeID typelhs = VM::EpochType_Error;
 				typelhs = WalkAtomsForTypePartial(Atoms, program, idx, typelhs, errors);
 
+				VM::EpochTypeID underlyingtypelhs = typelhs;
+				if(VM::GetTypeFamily(typelhs) == VM::EpochTypeFamily_Unit)
+				{
+					if(program.StrongTypeAliasRepresentations.find(typelhs) != program.StrongTypeAliasRepresentations.end())
+						underlyingtypelhs = program.StrongTypeAliasRepresentations[typelhs];
+				}
+
 				bool found = false;
 				const StringHandleSet& overloads = overloadmapiter->second;
 				for(StringHandleSet::const_iterator overloaditer = overloads.begin(); overloaditer != overloads.end(); ++overloaditer)
@@ -434,6 +485,14 @@ bool Expression::TypeInference(Program& program, CodeBlock& activescope, Inferen
 						if(overloadsig.GetParameter(0).Type == typelhs && overloadsig.GetParameter(1).Type == typerhs)
 						{
 							opatom->SetIdentifier(*overloaditer);
+							found = true;
+							break;
+						}
+						else if(overloadsig.GetParameter(0).Type == underlyingtypelhs && overloadsig.GetParameter(1).Type == underlyingtyperhs)
+						{
+							opatom->SetIdentifier(*overloaditer);
+							if(opatom->DetermineOperatorReturnType(program, underlyingtypelhs, underlyingtyperhs, errors) == underlyingtypelhs)
+								opatom->OverrideType(typelhs);
 							found = true;
 							break;
 						}
@@ -503,6 +562,9 @@ bool Expression::TypeInference(Program& program, CodeBlock& activescope, Inferen
 	outputqueue.swap(Atoms);
 
 	InferenceDone = true;
+	if(!result)
+		errors.SemanticError("Type error in operands");
+
 	return result;
 }
 
@@ -846,6 +908,13 @@ bool ExpressionAtomIdentifier::TypeInference(Program& program, CodeBlock& active
 	bool foundidentifier = activescope.GetScope()->HasVariable(Identifier);
 	StringHandle resolvedidentifier = Identifier;
 	VM::EpochTypeID vartype = foundidentifier ? activescope.GetScope()->GetVariableTypeByID(Identifier) : VM::EpochType_Infer;
+	VM::EpochTypeID underlyingtype = vartype;
+
+	if(foundidentifier && VM::GetTypeFamily(vartype) == VM::EpochTypeFamily_Unit)
+	{
+		if(program.StrongTypeAliasRepresentations.find(vartype) != program.StrongTypeAliasRepresentations.end())
+			underlyingtype = program.StrongTypeAliasRepresentations[vartype];
+	}
 	
 	std::set<VM::EpochTypeID> possibletypes;
 	unsigned signaturematches = 0;
@@ -892,7 +961,7 @@ bool ExpressionAtomIdentifier::TypeInference(Program& program, CodeBlock& active
 					}
 				}
 			}
-			else if(paramtype == vartype)
+			else if(paramtype == underlyingtype)
 				possibletypes.insert(vartype);
 			else if(paramtype == VM::EpochType_Identifier)
 				possibletypes.insert(VM::EpochType_Identifier);
@@ -1019,6 +1088,9 @@ bool ExpressionAtomOperator::IsOperatorUnary(const Program& program) const
 //
 VM::EpochTypeID ExpressionAtomOperator::DetermineOperatorReturnType(Program& program, VM::EpochTypeID lhstype, VM::EpochTypeID rhstype, CompileErrors& errors) const
 {
+	if(OverriddenType != VM::EpochType_Error)
+		return OverriddenType;
+
 	if(program.HasFunction(Identifier))
 	{
 		Function* func = program.GetFunctions().find(Identifier)->second;
@@ -1065,6 +1137,9 @@ VM::EpochTypeID ExpressionAtomOperator::DetermineOperatorReturnType(Program& pro
 //
 VM::EpochTypeID ExpressionAtomOperator::DetermineUnaryReturnType(Program& program, VM::EpochTypeID operandtype, CompileErrors& errors) const
 {
+	if(OverriddenType != VM::EpochType_Error)
+		return OverriddenType;
+
 	if(program.HasFunction(Identifier))
 	{
 		Function* func = program.GetFunctions().find(Identifier)->second;
@@ -1112,19 +1187,30 @@ int ExpressionAtomOperator::GetOperatorPrecedence(const Program& program) const
 }
 
 
+// TODO - documentation is a lie now that we do strong typedefs on primitives
 //
 // Literal integers always have the same type
 //
 VM::EpochTypeID ExpressionAtomLiteralInteger32::GetEpochType(const Program&) const
 {
-	return VM::EpochType_Integer;
+	return MyType;
 }
 
 //
 // Literal integers do not need type inference
 //
-bool ExpressionAtomLiteralInteger32::TypeInference(Program&, CodeBlock&, InferenceContext&, size_t, size_t, CompileErrors&)
+bool ExpressionAtomLiteralInteger32::TypeInference(Program& program, CodeBlock&, InferenceContext& context, size_t index, size_t, CompileErrors&)
 {
+	for(size_t i = 0; i < context.ExpectedTypes.back().size(); ++i)
+	{
+		VM::EpochTypeID expectedtype = context.ExpectedTypes.back()[i][index];
+		if(VM::GetTypeFamily(expectedtype) == VM::EpochTypeFamily_Unit)
+		{
+			if(program.StrongTypeAliasRepresentations.find(expectedtype)->second == VM::EpochType_Integer)
+				MyType = expectedtype;
+		}
+	}
+
 	return true;
 }
 
@@ -1157,14 +1243,24 @@ CompileTimeParameter ExpressionAtomLiteralInteger32::ConvertToCompileTimeParam(c
 //
 VM::EpochTypeID ExpressionAtomLiteralReal32::GetEpochType(const Program&) const
 {
-	return VM::EpochType_Real;
+	return MyType;
 }
 
 //
 // Real literals do not need type inference
 //
-bool ExpressionAtomLiteralReal32::TypeInference(Program&, CodeBlock&, InferenceContext&, size_t, size_t, CompileErrors&)
+bool ExpressionAtomLiteralReal32::TypeInference(Program& program, CodeBlock&, InferenceContext& context, size_t index, size_t, CompileErrors&)
 {
+	for(size_t i = 0; i < context.ExpectedTypes.back().size(); ++i)
+	{
+		VM::EpochTypeID expectedtype = context.ExpectedTypes.back()[i][index];
+		if(VM::GetTypeFamily(expectedtype) == VM::EpochTypeFamily_Unit)
+		{
+			if(program.StrongTypeAliasRepresentations.find(expectedtype)->second == VM::EpochType_Real)
+				MyType = expectedtype;
+		}
+	}
+
 	return true;
 }
 

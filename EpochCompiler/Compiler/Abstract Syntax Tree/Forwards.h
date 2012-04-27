@@ -31,6 +31,7 @@ namespace AST
 	struct Function;
 	struct NamedFunctionParameter;
 	struct TypeAlias;
+	struct StrongTypeAlias;
 
 	template <typename T>
 	inline T* Allocate();
@@ -107,6 +108,7 @@ namespace AST
 	typedef Deferred<Function, boost::intrusive_ptr<Function> > DeferredFunction;
 	
 	typedef Deferred<TypeAlias, boost::shared_ptr<TypeAlias> > DeferredTypeAlias;
+	typedef Deferred<StrongTypeAlias, boost::shared_ptr<StrongTypeAlias> > DeferredStrongTypeAlias;
 
 	typedef std::vector<DeferredExpressionFragment, Memory::OneWayAlloc<DeferredExpressionFragment> > DeferredExpressionFragmentVector;
 	typedef std::vector<DeferredExpression, Memory::OneWayAlloc<DeferredExpression> > DeferredExpressionVector;

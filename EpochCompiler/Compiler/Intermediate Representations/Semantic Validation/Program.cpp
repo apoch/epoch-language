@@ -32,7 +32,8 @@ Program::Program(StringPoolManager& strings, CompileSession& session)
 	  Strings(strings),
 	  StructureTypeCounter(VM::EpochTypeFamily_Structure),
 	  Session(session),
-	  GlobalScope(new ScopeDescription())
+	  GlobalScope(new ScopeDescription()),
+	  CounterUnitTypeIDs(0)
 {
 }
 
@@ -426,6 +427,12 @@ VM::EpochTypeID Program::LookupType(StringHandle name) const
 	{
 		std::map<StringHandle, VM::EpochTypeID>::const_iterator iter = TypeAliases.find(name);
 		if(iter != TypeAliases.end())
+			return iter->second;
+	}
+
+	{
+		std::map<StringHandle, VM::EpochTypeID>::const_iterator iter = StrongTypeAliasTypes.find(name);
+		if(iter != StrongTypeAliasTypes.end())
 			return iter->second;
 	}
 

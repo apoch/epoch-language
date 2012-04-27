@@ -163,6 +163,7 @@ namespace ASTTraverse
 			void operator () (AST::ChainedEntity& entity);
 
 			void operator () (AST::TypeAlias& alias);
+			void operator () (AST::StrongTypeAlias& alias);
 
 			//
 			// Overloads for hint markers

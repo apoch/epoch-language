@@ -9,7 +9,7 @@
 
 
 // Dependencies
-#include "Compiler/Abstract Syntax Tree/IdentifierT.h"
+#include "Compiler/Abstract Syntax Tree/Identifiers.h"
 
 
 namespace AST
@@ -25,6 +25,18 @@ namespace AST
 		IdentifierT RepresentationName;
 	};
 
+	//
+	// A strong alias maps a custom type name onto an
+	// existing type's representation, but does not
+	// permit other types with the same representation
+	// to be interchanged with the newly defined type.
+	//
+	struct StrongTypeAlias
+	{
+		IdentifierT AliasName;
+		IdentifierT RepresentationName;
+	};
+
 }
 
 //
@@ -34,6 +46,13 @@ namespace AST
 BOOST_FUSION_ADAPT_STRUCT
 (
 	AST::DeferredTypeAlias,
+	(AST::IdentifierT, Content->AliasName)
+	(AST::IdentifierT, Content->RepresentationName)
+)
+
+BOOST_FUSION_ADAPT_STRUCT
+(
+	AST::DeferredStrongTypeAlias,
 	(AST::IdentifierT, Content->AliasName)
 	(AST::IdentifierT, Content->RepresentationName)
 )

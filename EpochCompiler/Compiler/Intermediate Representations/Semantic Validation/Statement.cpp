@@ -128,6 +128,8 @@ bool Statement::TypeInference(Program& program, CodeBlock& activescope, Inferenc
 		MyType = program.LookupType(Name);
 		if(VM::GetTypeFamily(MyType) == VM::EpochTypeFamily_Structure)
 			Name = program.GetStructures().find(program.GetNameOfStructureType(MyType))->second->GetConstructorName();
+		else if(VM::GetTypeFamily(MyType) == VM::EpochTypeFamily_Unit)
+			Name = program.StrongTypeAliasRepNames.find(MyType)->second;
 	}
 
 	size_t i = 0;
@@ -162,13 +164,21 @@ bool Statement::TypeInference(Program& program, CodeBlock& activescope, Inferenc
 				if(signature.GetNumParameters() != Parameters.size())
 					continue;
 
+				VM::EpochTypeID underlyingreturntype = funcreturntype;
+				if(VM::GetTypeFamily(funcreturntype) == VM::EpochTypeFamily_Unit)
+				{
+					if(program.StrongTypeAliasRepresentations.find(funcreturntype) != program.StrongTypeAliasRepresentations.end())
+						underlyingreturntype = program.StrongTypeAliasRepresentations[funcreturntype];
+				}
+
+
 				if(!context.ExpectedTypes.empty())
 				{
 					bool matchedreturn = false;
 					const InferenceContext::PossibleParameterTypes& possibles = context.ExpectedTypes.back();
 					for(size_t j = 0; j < possibles.size(); ++j)
 					{
-						if(possibles[j][index] == funcreturntype)
+						if(possibles[j][index] == funcreturntype || possibles[j][index] == underlyingreturntype)
 						{
 							matchedreturn = true;
 							break;
@@ -224,7 +234,10 @@ bool Statement::TypeInference(Program& program, CodeBlock& activescope, Inferenc
 								Parameters[j]->GetAtoms()[0]->TypeInference(program, activescope, newcontext, j, Parameters.size(), errors);
 							}
 							else
+							{
+								errors.SetContext(OriginalIdentifier);
 								errors.SemanticError("Parameter expects a reference, not a literal");
+							}
 						}
 					}
 
@@ -233,7 +246,10 @@ bool Statement::TypeInference(Program& program, CodeBlock& activescope, Inferenc
 			}
 
 			if(MyType == VM::EpochType_Error || MyType == VM::EpochType_Infer)
+			{
+				errors.SetContext(OriginalIdentifier);
 				errors.SemanticError("No matching overload");
+			}
 		}
 		else
 		{
@@ -273,7 +289,10 @@ bool Statement::TypeInference(Program& program, CodeBlock& activescope, Inferenc
 										Parameters[i]->GetAtoms()[0]->TypeInference(program, activescope, newcontext, i, Parameters.size(), errors);
 									}
 									else
+									{
+										errors.SetContext(OriginalIdentifier);
 										errors.SemanticError("Parameter expects a reference, not a literal");
+									}
 								}
 							}
 
@@ -309,14 +328,20 @@ bool Statement::TypeInference(Program& program, CodeBlock& activescope, Inferenc
 									Parameters[i]->GetAtoms()[0]->TypeInference(program, activescope, newcontext, i, Parameters.size(), errors);
 								}
 								else
+								{
+									errors.SetContext(OriginalIdentifier);
 									errors.SemanticError("Parameter expects a reference, not a literal");
+								}
 							}
 						}
 
 						if(match)
 							MyType = funciter->second.GetReturnType();
 						else
+						{
+							errors.SetContext(OriginalIdentifier);
 							errors.SemanticError("No matching overload");
+						}
 					}
 				}
 				else
@@ -325,7 +350,10 @@ bool Statement::TypeInference(Program& program, CodeBlock& activescope, Inferenc
 					if(func->HasParameter(Name))
 						MyType = func->GetParameterSignatureType(Name, program);
 					else
+					{
+						errors.SetContext(OriginalIdentifier);
 						errors.SemanticError("Undefined function");
+					}
 				}
 			}
 		}
@@ -380,7 +408,14 @@ bool PreOpStatement::TypeInference(Program& program, CodeBlock& activescope, Inf
 			throw InternalException("Preoperator defined but no signature provided");
 		}
 
-		if(sigiter->second.GetNumParameters() == 1 && sigiter->second.GetParameter(0).Type == operandtype)
+		VM::EpochTypeID underlyingtype = operandtype;
+		if(VM::GetTypeFamily(operandtype) == VM::EpochTypeFamily_Unit)
+		{
+			if(program.StrongTypeAliasRepresentations.find(operandtype) != program.StrongTypeAliasRepresentations.end())
+				underlyingtype = program.StrongTypeAliasRepresentations[operandtype];
+		}
+
+		if(sigiter->second.GetNumParameters() == 1 && sigiter->second.GetParameter(0).Type == underlyingtype)
 		{
 			OperatorName = *iter;
 			MyType = sigiter->second.GetReturnType();
@@ -435,7 +470,14 @@ bool PostOpStatement::TypeInference(Program& program, CodeBlock& activescope, In
 			throw InternalException("Postoperator defined but no signature provided");
 		}
 
-		if(sigiter->second.GetNumParameters() == 1 && sigiter->second.GetParameter(0).Type == operandtype)
+		VM::EpochTypeID underlyingtype = operandtype;
+		if(VM::GetTypeFamily(operandtype) == VM::EpochTypeFamily_Unit)
+		{
+			if(program.StrongTypeAliasRepresentations.find(operandtype) != program.StrongTypeAliasRepresentations.end())
+				underlyingtype = program.StrongTypeAliasRepresentations[operandtype];
+		}
+
+		if(sigiter->second.GetNumParameters() == 1 && sigiter->second.GetParameter(0).Type == underlyingtype)
 		{
 			OperatorName = *iter;
 			MyType = sigiter->second.GetReturnType();

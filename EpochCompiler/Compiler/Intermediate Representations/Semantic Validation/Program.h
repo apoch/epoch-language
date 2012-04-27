@@ -157,6 +157,11 @@ namespace IRSemantics
 	public:
 		EPOCHCOMPILER VM::EpochTypeID LookupType(StringHandle name) const;
 
+		VM::EpochTypeID AllocateNewUnitTypeID()
+		{
+			return (++CounterUnitTypeIDs) | VM::EpochTypeFamily_Unit;
+		}
+
 	// Entities
 	public:
 		Bytecode::EntityTag GetEntityTag(StringHandle entityname) const;
@@ -189,6 +194,10 @@ namespace IRSemantics
 		CompileSession& Session;
 		std::map<StringHandle, VM::EpochTypeID> TypeAliases;		// TODO - hide this behind a function?
 
+		std::map<StringHandle, VM::EpochTypeID> StrongTypeAliasTypes;	// TODO - hide this behind a function?
+		std::map<VM::EpochTypeID, VM::EpochTypeID> StrongTypeAliasRepresentations;
+		std::map<VM::EpochTypeID, StringHandle> StrongTypeAliasRepNames;
+
 	// Internal state
 	private:
 		StringPoolManager& Strings;
@@ -204,6 +213,7 @@ namespace IRSemantics
 
 		unsigned CounterAnonParam;
 		unsigned CounterLexicalScope;
+		unsigned CounterUnitTypeIDs;
 
 		ScopePtrMap LexicalScopes;
 

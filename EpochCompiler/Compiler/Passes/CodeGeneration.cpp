@@ -548,7 +548,10 @@ bool CompilerPasses::GenerateCode(const IRSemantics::Program& program, ByteCodeE
 			if(isconstructor[*orderiter] && origin == VARIABLE_ORIGIN_RETURN)
 				origin = VARIABLE_ORIGIN_LOCAL;
 
-			emitter.LexicalScopeEntry(strings.Find(iter->second->GetVariableName(i)), iter->second->GetVariableTypeByIndex(i), iter->second->IsReference(i), origin);
+			VM::EpochTypeID vartype = iter->second->GetVariableTypeByIndex(i);
+			if(VM::GetTypeFamily(vartype) == VM::EpochTypeFamily_Unit)
+				vartype = program.StrongTypeAliasRepresentations.find(vartype)->second;
+			emitter.LexicalScopeEntry(strings.Find(iter->second->GetVariableName(i)), vartype, iter->second->IsReference(i), origin);
 		}
 	}
 

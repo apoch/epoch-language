@@ -351,7 +351,8 @@ namespace IRSemantics
 		ExpressionAtomOperator(StringHandle identifier, bool ismemberaccess)
 			: Identifier(identifier),
 			  OriginalIdentifier(identifier),
-			  IsMemberAccessFlag(ismemberaccess)
+			  IsMemberAccessFlag(ismemberaccess),
+			  OverriddenType(VM::EpochType_Error)
 		{ }
 
 	// Accessors
@@ -380,6 +381,11 @@ namespace IRSemantics
 		bool IsMemberAccess() const
 		{ return IsMemberAccessFlag; }
 
+		void OverrideType(VM::EpochTypeID overridetype)
+		{
+			OverriddenType = overridetype;
+		}
+
 	// Precedence
 	public:
 		int GetOperatorPrecedence(const Program& program) const;
@@ -389,6 +395,7 @@ namespace IRSemantics
 		StringHandle Identifier;
 		StringHandle OriginalIdentifier;
 		bool IsMemberAccessFlag;
+		VM::EpochTypeID OverriddenType;
 	};
 
 
@@ -458,7 +465,8 @@ namespace IRSemantics
 	// Construction
 	public:
 		explicit ExpressionAtomLiteralInteger32(Integer32 value)
-			: Value(value)
+			: Value(value),
+			  MyType(VM::EpochType_Integer)
 		{ }
 
 	// Accessors
@@ -476,6 +484,7 @@ namespace IRSemantics
 	// Internal state
 	private:
 		Integer32 Value;
+		VM::EpochTypeID MyType;
 	};
 
 
@@ -487,7 +496,8 @@ namespace IRSemantics
 	// Construction
 	public:
 		explicit ExpressionAtomLiteralReal32(Real32 value)
-			: Value(value)
+			: Value(value),
+			  MyType(VM::EpochType_Real)
 		{ }
 
 	// Accessors
@@ -505,6 +515,7 @@ namespace IRSemantics
 	// Internal state
 	private:
 		Real32 Value;
+		VM::EpochTypeID MyType;
 	};
 
 

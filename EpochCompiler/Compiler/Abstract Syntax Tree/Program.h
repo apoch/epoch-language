@@ -34,7 +34,8 @@ namespace AST
 			DeferredStructure,
 			DeferredCodeBlockEntry,
 			DeferredFunction,
-			DeferredTypeAlias
+			DeferredTypeAlias,
+			DeferredStrongTypeAlias
 		> MetaEntity;
 	
 	//
