@@ -40,6 +40,7 @@ class CompileSession;
 #include "Compiler/Abstract Syntax Tree/Structures.h"
 #include "Compiler/Abstract Syntax Tree/Function.h"
 #include "Compiler/Abstract Syntax Tree/Assignment.h"
+#include "Compiler/Abstract Syntax Tree/TypeDefinitions.h"
 
 #include "Compiler/Exceptions.h"
 #include "Compiler/CompileErrors.h"
@@ -160,6 +161,8 @@ namespace ASTTraverse
 			void operator () (AST::Entity& entity);
 			void operator () (AST::PostfixEntity& entity);
 			void operator () (AST::ChainedEntity& entity);
+
+			void operator () (AST::TypeAlias& alias);
 
 			//
 			// Overloads for hint markers

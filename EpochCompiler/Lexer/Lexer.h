@@ -28,6 +28,7 @@ namespace Lexer
 
 		ConsumedToken StructureDef;
 		ConsumedToken GlobalDef;
+		ConsumedToken AliasDef;
 
 		ConsumedToken OpenBracket;
 		ConsumedToken CloseBracket;

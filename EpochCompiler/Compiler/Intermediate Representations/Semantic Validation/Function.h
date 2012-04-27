@@ -253,7 +253,8 @@ namespace IRSemantics
 			  InferenceDone(false),
 			  SuppressReturn(false),
 			  Name(0),
-			  RawName(0)
+			  RawName(0),
+			  AnonymousReturn(false)
 		{ }
 
 		~Function();
@@ -313,6 +314,9 @@ namespace IRSemantics
 		bool IsReturnRegisterSuppressed() const
 		{ return SuppressReturn; }
 
+		bool HasAnonymousReturn() const
+		{ return AnonymousReturn; }
+
 	// Signatures
 	public:
 		FunctionSignature GetFunctionSignature(const Program& program) const;
@@ -353,6 +357,8 @@ namespace IRSemantics
 
 		CodeBlock* Code;
 		Expression* Return;
+
+		bool AnonymousReturn;
 
 		struct Param
 		{

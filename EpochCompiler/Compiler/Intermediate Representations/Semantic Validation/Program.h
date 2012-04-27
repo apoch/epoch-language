@@ -187,6 +187,7 @@ namespace IRSemantics
 	// Accessible state
 	public:
 		CompileSession& Session;
+		std::map<StringHandle, VM::EpochTypeID> TypeAliases;		// TODO - hide this behind a function?
 
 	// Internal state
 	private:

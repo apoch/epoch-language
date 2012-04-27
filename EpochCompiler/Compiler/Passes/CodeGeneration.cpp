@@ -629,7 +629,15 @@ bool CompilerPasses::GenerateCode(const IRSemantics::Program& program, ByteCodeE
 						}
 						else
 						{
-							emitter.SetReturnRegister(scope->GetVariableNameHandle(i));
+							StringHandle varname = scope->GetVariableNameHandle(i);
+
+							if(iter->second->HasAnonymousReturn())
+							{
+								emitter.BindReference(varname);
+								emitter.AssignVariable();
+							}
+
+							emitter.SetReturnRegister(varname);
 						}
 						break;
 					}

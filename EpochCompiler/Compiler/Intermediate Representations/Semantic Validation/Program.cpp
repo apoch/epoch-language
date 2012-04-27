@@ -417,9 +417,17 @@ VM::EpochTypeID Program::LookupType(StringHandle name) const
 	else if(type == L"identifier")
 		return VM::EpochType_Identifier;
 
-	std::map<StringHandle, VM::EpochTypeID>::const_iterator iter = StructureTypes.find(name);
-	if(iter != StructureTypes.end())
-		return iter->second;
+	{
+		std::map<StringHandle, VM::EpochTypeID>::const_iterator iter = StructureTypes.find(name);
+		if(iter != StructureTypes.end())
+			return iter->second;
+	}
+	
+	{
+		std::map<StringHandle, VM::EpochTypeID>::const_iterator iter = TypeAliases.find(name);
+		if(iter != TypeAliases.end())
+			return iter->second;
+	}
 
 	return VM::EpochType_Error;
 }

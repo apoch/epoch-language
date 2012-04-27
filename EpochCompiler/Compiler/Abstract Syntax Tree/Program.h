@@ -33,7 +33,8 @@ namespace AST
 			Undefined,
 			DeferredStructure,
 			DeferredCodeBlockEntry,
-			DeferredFunction
+			DeferredFunction,
+			DeferredTypeAlias
 		> MetaEntity;
 	
 	//

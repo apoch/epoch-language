@@ -415,6 +415,9 @@
     <ClInclude Include="Compiler\Abstract Syntax Tree\IdentifierT.h">
       <Filter>Compiler\Abstract Syntax Tree</Filter>
     </ClInclude>
+    <ClInclude Include="Compiler\Abstract Syntax Tree\TypeDefinitions.h">
+      <Filter>Compiler\Abstract Syntax Tree</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Exports\Exports.def">

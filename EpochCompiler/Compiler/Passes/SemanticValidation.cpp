@@ -1304,6 +1304,31 @@ void CompilePassSemantics::ExitHelper::operator () (AST::FunctionReferenceSignat
 }
 
 
+
+void CompilePassSemantics::EntryHelper::operator () (AST::TypeAlias& alias)
+{
+	StringHandle aliasname = self->CurrentProgram->AddString(std::wstring(alias.AliasName.begin(), alias.AliasName.end()));
+
+	if(self->CurrentProgram->LookupType(aliasname) != VM::EpochType_Error)
+	{
+		self->Errors.SetContext(alias.AliasName);
+		self->Errors.SemanticError("A type with this name already exists");
+		return;
+	}
+
+	StringHandle representationname = self->CurrentProgram->AddString(std::wstring(alias.RepresentationName.begin(), alias.RepresentationName.end()));
+	VM::EpochTypeID representationtype = self->CurrentProgram->LookupType(representationname);
+
+	if(representationtype == VM::EpochType_Error)
+	{
+		self->Errors.SetContext(alias.RepresentationName);
+		self->Errors.SemanticError("No type by this name was found");
+		return;
+	}
+
+	self->CurrentProgram->TypeAliases[aliasname] = representationtype;
+}
+
 //
 // Traverse a special marker that indicates the subsequent nodes belong
 // to the return expression definition of a function

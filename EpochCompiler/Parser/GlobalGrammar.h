@@ -3,6 +3,7 @@
 #include "Compiler/Abstract Syntax Tree/Program.h"
 #include "Compiler/Abstract Syntax Tree/Structures.h"
 #include "Compiler/Abstract Syntax Tree/Expression.h"
+#include "Compiler/Abstract Syntax Tree/TypeDefinitions.h"
 #include "Lexer/Lexer.h"
 
 struct FunctionDefinitionGrammar;
@@ -38,4 +39,7 @@ struct GlobalGrammar : public boost::spirit::qi::grammar<Lexer::TokenIterT, boos
 	Rule<AST::IdentifierT()>::type ReturnTypeSpec;
 
 	const FunctionDefinitionGrammar& TheFunctionDefinitionGrammar;
+
+	Rule<AST::DeferredTypeAlias()>::type TypeAlias;
 };
+

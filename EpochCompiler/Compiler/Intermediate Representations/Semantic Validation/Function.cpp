@@ -273,6 +273,16 @@ bool Function::TypeInference(Program& program, InferenceContext&, CompileErrors&
 			InferenceDone = true;
 			return false;
 		}
+
+		VM::EpochTypeID rettype = Return->GetEpochType(program);
+		if(rettype != VM::EpochType_Void)
+		{
+			if(!Code->GetScope()->HasReturnVariable())
+			{
+				Code->AddVariable(L"@@anonymousret", program.AddString(L"@@anonymousret"), rettype, false, VARIABLE_ORIGIN_RETURN);
+				AnonymousReturn = true;
+			}
+		}
 	}
 
 	bool result = true;

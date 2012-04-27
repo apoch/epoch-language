@@ -27,7 +27,8 @@ GlobalGrammar::GlobalGrammar(const Lexer::EpochLexerT& lexer, const FunctionDefi
 	StructureMembers %= (StructureMember % lexer.Comma);
 	StructureDefinition %= lexer.StructureDef >> lexer.StringIdentifier >> lexer.Colon >> StructureMembers;
 	GlobalDefinition %= lexer.GlobalDef >> codeblockgrammar.InnerCodeBlock;
-	MetaEntity %= GlobalDefinition | StructureDefinition | TheFunctionDefinitionGrammar;
+	TypeAlias = lexer.AliasDef >> lexer.StringIdentifier >> omit[lexer.Equals] >> lexer.StringIdentifier;
+	MetaEntity %= GlobalDefinition | StructureDefinition | TheFunctionDefinitionGrammar | TypeAlias;
 	MetaEntities %= *MetaEntity;
 	Program %= MetaEntities;
 }
