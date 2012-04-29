@@ -37,6 +37,8 @@ EPOCHVM size_t VM::GetStorageSize(EpochTypeID type)
 
 	case EpochType_Buffer:				return sizeof(BufferHandle);
 
+	case EpochType_Nothing:				return 0;
+
 	case EpochType_Error:
 	case EpochType_Void:
 		throw FatalException("Unable to determine the size of this variable/structure member");

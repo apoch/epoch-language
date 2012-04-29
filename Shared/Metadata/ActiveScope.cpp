@@ -155,6 +155,7 @@ void ActiveScope::PushOntoStack(void* targetstorage, VM::EpochTypeID targettype,
 	case VM::EpochType_Buffer:			DoTypedPush<BufferHandle>(stack, targetstorage);	break;
 	case VM::EpochType_Function:		DoTypedPush<StringHandle>(stack, targetstorage);	break;
 	case VM::EpochType_Identifier:		DoTypedPush<StringHandle>(stack, targetstorage);	break;
+	case VM::EpochType_Nothing:			stack.Push(0);										break;
 	default:
 		if(VM::GetTypeFamily(targettype) != VM::EpochTypeFamily_Structure)
 			throw NotImplementedException("Unsupported data type in ActiveScope::PushOntoStack");

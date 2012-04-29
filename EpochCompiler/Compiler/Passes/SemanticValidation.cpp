@@ -1377,6 +1377,30 @@ void CompilePassSemantics::ExitHelper::operator () (AST::SumType&)
 }
 
 
+void CompilePassSemantics::EntryHelper::operator () (AST::Nothing&)
+{
+	if(self->CurrentFunctions.empty())
+	{
+		//
+		// This is a failure of the AST traversal.
+		//
+		// A function parameter definition node has been
+		// traversed outside the context of a function
+		// definition.
+		//
+		// Examine the AST generation and traversal logic.
+		//
+		throw InternalException("Attempted to traverse a function parameter definition AST node (\"nothing\") in an invalid context");
+	}
+
+
+	StringHandle type = self->CurrentProgram->AddString(L"nothing");
+
+	std::auto_ptr<IRSemantics::FunctionParamNamed> irparam(new IRSemantics::FunctionParamNamed(type, false));
+	self->CurrentFunctions.back()->AddParameter(type, irparam.release(), self->Errors);
+}
+
+
 //
 // Traverse a special marker that indicates the subsequent nodes belong
 // to the return expression definition of a function

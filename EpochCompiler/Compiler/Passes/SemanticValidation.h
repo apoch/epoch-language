@@ -147,6 +147,7 @@ namespace ASTTraverse
 			void operator () (AST::NamedFunctionParameter& param);
 			void operator () (AST::FunctionReferenceSignature& refsig);
 			void operator () (AST::FunctionTag& tag);
+			void operator () (AST::Nothing& nothing);
 
 			void operator () (AST::Assignment& assignment);
 			void operator () (AST::Initialization& initialization);

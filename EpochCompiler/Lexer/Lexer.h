@@ -52,6 +52,8 @@ namespace Lexer
 		Token HexLiteral;
 		Token RealLiteral;
 
+		Token Nothing;
+
 		ConsumedToken Comment;
 		ConsumedToken Whitespace;
 	};

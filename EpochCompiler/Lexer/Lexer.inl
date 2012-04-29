@@ -21,6 +21,8 @@ namespace Lexer
 		IntegerLiteral = L"[\\-]?[0-9]+";
 		RealLiteral = L"[\\-]?[0-9]+\".\"[0-9]+";
 
+		Nothing = L"\"nothing\"";
+
 		Whitespace = L"\\s+";
         this->self += Whitespace[boost::spirit::lex::_pass = boost::spirit::lex::pass_flags::pass_ignore];
 
@@ -64,6 +66,7 @@ namespace Lexer
 			(AliasDef)
 			(TypeDef)
 			(Ref)
+			(Nothing)
 			(StringIdentifier)
 			(L".", ID_ANY)
 		;

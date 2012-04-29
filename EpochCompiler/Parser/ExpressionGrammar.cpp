@@ -33,7 +33,7 @@ ExpressionGrammar::ExpressionGrammar(const Lexer::EpochLexerT& lexer, const Lite
 
 	Prefix %= adapttokens[PrefixSymbols];
 	Prefixes %= +Prefix;
-	ExpressionChunk = (Parenthetical | literalgrammar | Statement | as<AST::IdentifierT>()[lexer.StringIdentifier]);
+	ExpressionChunk = (Parenthetical | literalgrammar | Statement | as<AST::IdentifierT>()[lexer.StringIdentifier] | as<AST::IdentifierT>()[lexer.Nothing]);
 	ExpressionComponent %= ExpressionChunk | (Prefixes >> ExpressionChunk);
 	ExpressionFragment %= (adapttokens[InfixSymbols] >> ExpressionComponent);
 	Expression %= ExpressionComponent >> *ExpressionFragment;

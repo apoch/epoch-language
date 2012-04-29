@@ -121,6 +121,13 @@ namespace
 	}
 
 
+	void ConstructNothing(StringHandle, VM::ExecutionContext& context)
+	{
+		context.State.Stack.PopValue<Integer32>();
+		context.State.Stack.PopValue<StringHandle>();
+	}
+
+
 	//
 	// Compile-time helper: when a variable definition is encountered, this
 	// helper adds the variable itself and its type metadata to the current
@@ -164,6 +171,7 @@ void TypeConstructors::RegisterLibraryFunctions(FunctionInvocationTable& table, 
 	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"boolean"), ConstructBoolean));
 	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"real"), ConstructReal));
 	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"buffer"), ConstructBuffer));
+	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"nothing"), ConstructNothing));
 }
 
 //
@@ -207,6 +215,12 @@ void TypeConstructors::RegisterLibraryFunctions(FunctionSignatureSet& signatures
 		signature.AddParameter(L"size", VM::EpochType_Integer, false);
 		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"buffer"), signature));
 	}
+	{
+		FunctionSignature signature;
+		signature.AddParameter(L"identifier", VM::EpochType_Identifier, false);
+		signature.AddPatternMatchedParameterIdentifier(stringpool.Pool(L"nothing"));
+		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"nothing"), signature));
+	}
 }
 
 //
@@ -220,6 +234,7 @@ void TypeConstructors::RegisterLibraryFunctions(FunctionCompileHelperTable& tabl
 	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"boolean"), CompileConstructorPrimitive));
 	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"real"), CompileConstructorPrimitive));
 	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"buffer"), CompileConstructorPrimitive));
+	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"nothing"), CompileConstructorPrimitive));
 }
 
 

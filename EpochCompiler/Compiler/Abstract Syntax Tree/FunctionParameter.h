@@ -56,6 +56,11 @@ namespace AST
 		NamedFunctionParameter& operator = (const NamedFunctionParameter&);
 	};
 
+	struct Nothing
+	{
+		IdentifierT ShouldBeNothing;
+	};
+
 	//
 	// Variant describing any valid function parameter form
 	//
@@ -69,7 +74,8 @@ namespace AST
 			Undefined,
 			DeferredNamedFunctionParameter,
 			DeferredExpression,
-			DeferredFunctionRefSig
+			DeferredFunctionRefSig,
+			Nothing
 		> FunctionParameterVariant;
 
 	//
@@ -157,3 +163,8 @@ BOOST_FUSION_ADAPT_STRUCT
 	(AST::OptionalIdentifier, Content->ReturnType)
 )
 
+BOOST_FUSION_ADAPT_STRUCT
+(
+	AST::Nothing,
+	(AST::IdentifierT, ShouldBeNothing)
+)

@@ -35,5 +35,7 @@ struct FunctionDefinitionGrammar : public boost::spirit::qi::grammar<Lexer::Toke
 	Rule<AST::FunctionTag()>::type FunctionTagSpec;
 
 	Rule<AST::DeferredFunction()>::type FunctionDefinition;
+
+	Rule<AST::Nothing()>::type Nothing;
 };
 

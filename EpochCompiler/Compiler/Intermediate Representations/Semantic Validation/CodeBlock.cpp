@@ -113,13 +113,14 @@ bool CodeBlock::TypeInference(Program& program, InferenceContext& context, Compi
 	InferenceContext newcontext(0, InferenceContext::CONTEXT_CODE_BLOCK);
 	newcontext.FunctionName = context.FunctionName;
 
+	bool valid = true;
 	for(std::vector<CodeBlockEntry*>::iterator iter = Entries.begin(); iter != Entries.end(); ++iter)
 	{
 		if(!(*iter)->TypeInference(program, *this, newcontext, errors))
-			return false;
+			valid = false;
 	}
 
-	return true;
+	return valid;
 }
 
 

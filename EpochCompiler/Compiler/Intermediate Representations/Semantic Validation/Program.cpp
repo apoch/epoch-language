@@ -431,6 +431,8 @@ VM::EpochTypeID Program::LookupType(StringHandle name) const
 		return VM::EpochType_Buffer;
 	else if(type == L"identifier")
 		return VM::EpochType_Identifier;
+	else if(type == L"nothing")
+		return VM::EpochType_Nothing;
 
 	{
 		std::map<StringHandle, VM::EpochTypeID>::const_iterator iter = StructureTypes.find(name);
