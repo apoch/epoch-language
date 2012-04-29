@@ -33,7 +33,8 @@ Program::Program(StringPoolManager& strings, CompileSession& session)
 	  StructureTypeCounter(VM::EpochTypeFamily_Structure),
 	  Session(session),
 	  GlobalScope(new ScopeDescription()),
-	  CounterUnitTypeIDs(0)
+	  CounterUnitTypeIDs(0),
+	  CounterSumTypeIDs(0)
 {
 }
 
@@ -247,6 +248,19 @@ bool Program::Validate(CompileErrors& errors) const
 {
 	bool valid = true;
 
+	for(std::map<VM::EpochTypeID, std::set<StringHandle> >::const_iterator iter = SumTypeBaseTypes.begin(); iter != SumTypeBaseTypes.end(); ++iter)
+	{
+		for(std::set<StringHandle>::const_iterator setiter = iter->second.begin(); setiter != iter->second.end(); ++setiter)
+		{
+			if(LookupType(*setiter) == VM::EpochType_Error)
+			{
+				// TODO - set context
+				errors.SemanticError("Base type not defined");
+				valid = false;
+			}
+		}
+	}
+
 	for(std::map<StringHandle, Structure*>::const_iterator iter = Structures.begin(); iter != Structures.end(); ++iter)
 	{
 		if(!iter->second->Validate(*this, errors))
@@ -434,6 +448,12 @@ VM::EpochTypeID Program::LookupType(StringHandle name) const
 		std::map<StringHandle, VM::EpochTypeID>::const_iterator iter = StrongTypeAliasTypes.find(name);
 		if(iter != StrongTypeAliasTypes.end())
 			return iter->second;
+	}
+
+	{
+		std::map<StringHandle, StringHandle>::const_iterator iter = SumTypeConstructorNames.find(name);
+		if(iter != SumTypeConstructorNames.end())
+			return LookupType(iter->second);
 	}
 
 	return VM::EpochType_Error;
@@ -818,4 +838,55 @@ std::wstring Program::GeneratePatternMatcherName(const std::wstring& funcname)
 {
 	return funcname + L"@@patternmatch";
 }
+
+
+VM::EpochTypeID Program::AddSumType(const std::wstring& name, CompileErrors& errors)
+{
+	StringHandle namehandle = AddString(name);
+
+	if(LookupType(namehandle) != VM::EpochType_Error)
+		errors.SemanticError("Type name already in use");
+
+	VM::EpochTypeID type = (++CounterSumTypeIDs) | VM::EpochTypeFamily_SumType;
+	SumTypeNames[namehandle] = type;
+
+	return type;
+}
+
+void Program::AddSumTypeBase(VM::EpochTypeID sumtypeid, StringHandle basetypename)
+{
+	SumTypeBaseTypes[sumtypeid].insert(basetypename);
+
+	std::wostringstream overloadnamebuilder;
+	overloadnamebuilder << L"@@sumtypeconstructor@" << sumtypeid << L"@" << GetString(basetypename);
+	StringHandle sumtypeconstructorname = 0;
+	for(std::map<StringHandle, VM::EpochTypeID>::const_iterator iter = SumTypeNames.begin(); iter != SumTypeNames.end(); ++iter)
+	{
+		if(iter->second == sumtypeid)
+		{
+			sumtypeconstructorname = iter->first;
+			break;
+		}
+	}
+
+	if(!sumtypeconstructorname)
+		throw InternalException("Missing sum type name mapping");
+
+	StringHandle overloadname = AddString(overloadnamebuilder.str());
+	Session.FunctionOverloadNames[sumtypeconstructorname].insert(overloadname);
+
+	Session.CompileTimeHelpers.insert(std::make_pair(overloadname, Session.CompileTimeHelpers.find(basetypename)->second));
+	Session.FunctionSignatures.insert(std::make_pair(overloadname, Session.FunctionSignatures.find(basetypename)->second));
+	SumTypeConstructorNames[overloadname] = basetypename;
+}
+
+StringHandle Program::MapConstructorNameForSumType(StringHandle sumtypeoverloadname)
+{
+	std::map<StringHandle, StringHandle>::const_iterator iter = SumTypeConstructorNames.find(sumtypeoverloadname);
+	if(iter == SumTypeConstructorNames.end())
+		return sumtypeoverloadname;
+
+	return iter->second;
+}
+
 

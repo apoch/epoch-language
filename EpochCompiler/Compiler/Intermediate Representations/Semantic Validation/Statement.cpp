@@ -359,6 +359,8 @@ bool Statement::TypeInference(Program& program, CodeBlock& activescope, Inferenc
 		}
 	}
 
+	Name = program.MapConstructorNameForSumType(Name);
+
 	bool valid = (MyType != VM::EpochType_Infer && MyType != VM::EpochType_Error);
 	if(!valid)
 		return false;

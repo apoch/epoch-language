@@ -42,5 +42,6 @@ struct GlobalGrammar : public boost::spirit::qi::grammar<Lexer::TokenIterT, boos
 
 	Rule<AST::DeferredTypeAlias()>::type TypeAlias;
 	Rule<AST::DeferredStrongTypeAlias()>::type StrongTypeAlias;
+	Rule<AST::DeferredSumType()>::type SumType;
 };
 

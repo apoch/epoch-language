@@ -32,6 +32,7 @@ namespace AST
 	struct NamedFunctionParameter;
 	struct TypeAlias;
 	struct StrongTypeAlias;
+	struct SumType;
 
 	template <typename T>
 	inline T* Allocate();
@@ -109,6 +110,7 @@ namespace AST
 	
 	typedef Deferred<TypeAlias, boost::shared_ptr<TypeAlias> > DeferredTypeAlias;
 	typedef Deferred<StrongTypeAlias, boost::shared_ptr<StrongTypeAlias> > DeferredStrongTypeAlias;
+	typedef Deferred<SumType, boost::shared_ptr<SumType> > DeferredSumType;
 
 	typedef std::vector<DeferredExpressionFragment, Memory::OneWayAlloc<DeferredExpressionFragment> > DeferredExpressionFragmentVector;
 	typedef std::vector<DeferredExpression, Memory::OneWayAlloc<DeferredExpression> > DeferredExpressionVector;

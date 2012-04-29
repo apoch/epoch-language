@@ -177,6 +177,13 @@ namespace IRSemantics
 		InferenceContext::PossibleParameterTypes GetExpectedTypesForStatement(StringHandle name, const ScopeDescription& scope, StringHandle contextname, CompileErrors& errors) const;
 		InferenceContext::PossibleSignatureSet GetExpectedSignaturesForStatement(StringHandle name, const ScopeDescription& scope, StringHandle contextname, CompileErrors& errors) const;
 
+	// Type definitions
+	public:
+		VM::EpochTypeID AddSumType(const std::wstring& name, CompileErrors& errors);
+		void AddSumTypeBase(VM::EpochTypeID sumtypeid, StringHandle basetypename);
+
+		StringHandle MapConstructorNameForSumType(StringHandle sumtypeoverloadname);
+
 	// Validation
 	public:
 		bool Validate(CompileErrors& errors) const;
@@ -214,6 +221,7 @@ namespace IRSemantics
 		unsigned CounterAnonParam;
 		unsigned CounterLexicalScope;
 		unsigned CounterUnitTypeIDs;
+		unsigned CounterSumTypeIDs;
 
 		ScopePtrMap LexicalScopes;
 
@@ -221,6 +229,10 @@ namespace IRSemantics
 
 		std::multimap<StringHandle, StringHandle> FunctionsWithStaticPatternMatching;
 		std::set<StringHandle> FunctionsNeedingDynamicPatternMatching;
+
+		std::map<StringHandle, VM::EpochTypeID> SumTypeNames;
+		std::map<StringHandle, StringHandle> SumTypeConstructorNames;
+		std::map<VM::EpochTypeID, std::set<StringHandle> > SumTypeBaseTypes;
 
 	// String lookup caches
 	private:

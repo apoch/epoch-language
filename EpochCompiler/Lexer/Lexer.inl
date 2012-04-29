@@ -13,7 +13,7 @@ namespace Lexer
 		StructureDef = L"\"structure\"";
 		GlobalDef = L"\"global\"";
 		AliasDef = L"\"alias\"";
-		UnitDef = L"\"type\"";
+		TypeDef = L"\"type\"";
 
 		StringIdentifier = L"[a-zA-Z]\\w*";
 		StringLiteral = L"\\\"[^\\\"]*\\\"";
@@ -39,6 +39,7 @@ namespace Lexer
 		Ref = L"\"ref\"";
 		OpenBrace = L"\\[";
 		CloseBrace = L"\\]";
+		Pipe = L"\\|";
 
 		this->self.add
 			(Comma)
@@ -52,6 +53,7 @@ namespace Lexer
 			(Arrow)
 			(OpenBrace)
 			(CloseBrace)
+			(Pipe)
 			(HexLiteral)
 			(RealLiteral)
 			(StringLiteral)
@@ -60,7 +62,7 @@ namespace Lexer
 			(StructureDef)
 			(GlobalDef)
 			(AliasDef)
-			(UnitDef)
+			(TypeDef)
 			(Ref)
 			(StringIdentifier)
 			(L".", ID_ANY)

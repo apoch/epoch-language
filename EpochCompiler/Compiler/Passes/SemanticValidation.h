@@ -45,6 +45,8 @@ class CompileSession;
 #include "Compiler/Exceptions.h"
 #include "Compiler/CompileErrors.h"
 
+#include "Utility/Types/EpochTypeIDs.h"
+
 #include <stack>
 
 
@@ -164,6 +166,7 @@ namespace ASTTraverse
 
 			void operator () (AST::TypeAlias& alias);
 			void operator () (AST::StrongTypeAlias& alias);
+			void operator () (AST::SumType& sumtype);
 
 			//
 			// Overloads for hint markers
@@ -238,6 +241,8 @@ namespace ASTTraverse
 			void operator () (AST::PostfixEntity& entity);
 			void operator () (AST::ChainedEntity& entity);
 
+			void operator () (AST::SumType& sumtype);
+
 			//
 			// Overloads for hint markers
 			//
@@ -308,6 +313,7 @@ namespace ASTTraverse
 			STATE_STRUCTURE_FUNCTION,
 			STATE_STRUCTURE_FUNCTION_PARAMS,
 			STATE_STRUCTURE_FUNCTION_RETURN,
+			STATE_SUM_TYPE,
 		};
 
 		std::stack<States> StateStack;
@@ -319,6 +325,8 @@ namespace ASTTraverse
 		CompileSession& Session;
 
 		AST::IdentifierT* ErrorContext;
+
+		VM::EpochTypeID CurrentSumType;
 
 	public:
 		CompileErrors Errors;

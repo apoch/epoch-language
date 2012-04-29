@@ -28,8 +28,9 @@ GlobalGrammar::GlobalGrammar(const Lexer::EpochLexerT& lexer, const FunctionDefi
 	StructureDefinition %= lexer.StructureDef >> lexer.StringIdentifier >> lexer.Colon >> StructureMembers;
 	GlobalDefinition %= lexer.GlobalDef >> codeblockgrammar.InnerCodeBlock;
 	TypeAlias = lexer.AliasDef >> lexer.StringIdentifier >> omit[lexer.Equals] >> lexer.StringIdentifier;
-	StrongTypeAlias = lexer.UnitDef >> lexer.StringIdentifier >> lexer.Colon >> lexer.StringIdentifier;
-	MetaEntity %= GlobalDefinition | StructureDefinition | TheFunctionDefinitionGrammar | TypeAlias | StrongTypeAlias;
+	StrongTypeAlias = lexer.TypeDef >> lexer.StringIdentifier >> lexer.Colon >> lexer.StringIdentifier;
+	SumType = lexer.TypeDef >> lexer.StringIdentifier >> lexer.Colon >> (lexer.StringIdentifier % lexer.Pipe);
+	MetaEntity %= GlobalDefinition | StructureDefinition | TheFunctionDefinitionGrammar | TypeAlias | SumType | StrongTypeAlias;
 	MetaEntities %= *MetaEntity;
 	Program %= MetaEntities;
 }

@@ -175,6 +175,17 @@ namespace ASTTraverse
 		}
 
 		//
+		// Traverse a sum type definition
+		//
+		template <typename EntryActionT, typename ExitActionT>
+		void Do(EntryActionT& entryaction, AST::SumType& sumtype, ExitActionT& exitaction)
+		{
+			entryaction(sumtype);
+			Do(entryaction, sumtype.BaseTypes, exitaction);
+			exitaction(sumtype);
+		}
+
+		//
 		// Traverse an Epoch statement
 		//
 		template <typename EntryActionT, typename ExitActionT>

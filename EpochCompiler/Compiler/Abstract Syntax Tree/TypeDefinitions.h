@@ -37,6 +37,17 @@ namespace AST
 		IdentifierT RepresentationName;
 	};
 
+	//
+	// An algebraic sum type is a discriminated union
+	// of two or more other types. Any of the base
+	// types can be stored in the union, but only one
+	// at a time.
+	struct SumType
+	{
+		IdentifierT SumTypeName;
+		IdentifierList BaseTypes;
+	};
+
 }
 
 //
@@ -55,6 +66,13 @@ BOOST_FUSION_ADAPT_STRUCT
 	AST::DeferredStrongTypeAlias,
 	(AST::IdentifierT, Content->AliasName)
 	(AST::IdentifierT, Content->RepresentationName)
+)
+
+BOOST_FUSION_ADAPT_STRUCT
+(
+	AST::DeferredSumType,
+	(AST::IdentifierT, Content->SumTypeName)
+	(AST::IdentifierList, Content->BaseTypes)
 )
 
 // TODO - custom allocation for type definition nodes

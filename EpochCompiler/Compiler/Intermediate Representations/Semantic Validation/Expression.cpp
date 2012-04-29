@@ -994,6 +994,8 @@ bool ExpressionAtomIdentifier::TypeInference(Program& program, CodeBlock& active
 		errors.SetContext(OriginalIdentifier);
 		if(!foundidentifier)
 			errors.SemanticError("Unrecognized identifier");
+		else if(possibletypes.empty())
+			errors.SemanticError("Unrecognized type");
 		else if(*possibletypes.begin() == VM::EpochType_Function)
 			errors.SemanticError("No matching functions");
 		else

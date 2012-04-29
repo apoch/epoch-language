@@ -79,10 +79,11 @@ void CompileConstructorStructure(IRSemantics::Statement& statement, IRSemantics:
 	VariableOrigin origin = (inreturnexpr ? VARIABLE_ORIGIN_RETURN : VARIABLE_ORIGIN_LOCAL);
 	activescope.AddVariable(program.GetString(atom->GetIdentifier()), atom->GetIdentifier(), effectivetype, false, origin);
 
+	// TODO - copy all shadowing protection from whatever constructor implements it, to all other constructor helpers
+
 	if(program.HasFunction(atom->GetIdentifier()))
 		errors.SemanticError("Variable name shadows a function of the same name");
 }
-
 
 //
 // Validate semantics for a program
@@ -1272,6 +1273,10 @@ void CompilePassSemantics::EntryHelper::operator () (AST::IdentifierT& identifie
 		self->CurrentFunctionTags.back()->Parameters.push_back(iratom->ConvertToCompileTimeParam(*self->CurrentProgram));
 		break;
 
+	case CompilePassSemantics::STATE_SUM_TYPE:
+		self->CurrentProgram->AddSumTypeBase(self->CurrentSumType, self->CurrentProgram->AddString(raw));
+		break;
+
 	default:
 		throw std::runtime_error("Invalid parse state");			// TODO - better exceptions
 	}
@@ -1358,6 +1363,17 @@ void CompilePassSemantics::EntryHelper::operator () (AST::StrongTypeAlias& alias
 
 	self->CurrentProgram->Session.CompileTimeHelpers.insert(std::make_pair(aliasname, self->CurrentProgram->Session.CompileTimeHelpers.find(representationname)->second));
 	self->CurrentProgram->Session.FunctionSignatures.insert(std::make_pair(aliasname, self->CurrentProgram->Session.FunctionSignatures.find(representationname)->second));
+}
+
+void CompilePassSemantics::EntryHelper::operator () (AST::SumType& sumtype)
+{
+	self->StateStack.push(CompilePassSemantics::STATE_SUM_TYPE);
+	self->CurrentSumType = self->CurrentProgram->AddSumType(std::wstring(sumtype.SumTypeName.begin(), sumtype.SumTypeName.end()), self->Errors);
+}
+
+void CompilePassSemantics::ExitHelper::operator () (AST::SumType&)
+{
+	self->StateStack.pop();
 }
 
 
