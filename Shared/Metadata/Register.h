@@ -57,6 +57,7 @@ public:
 	};
 
 	VM::EpochTypeID Type;
+	bool SumType;
 };
 
 

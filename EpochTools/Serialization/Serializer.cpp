@@ -376,6 +376,36 @@ void Serializer::Write(const std::wstring& filename) const
 			}
 			break;
 
+		case Bytecode::Instructions::SumTypeDef:
+			{
+				VM::EpochTypeID sumtypeid = traverser.Read<VM::EpochTypeID>();
+				size_t numentries = traverser.Read<size_t>();
+
+				outfile << L"SUMTYPE " << sumtypeid << L" " << numentries;
+
+				for(size_t i = 0; i < numentries; ++i)
+				{
+					VM::EpochTypeID basetype = traverser.Read<VM::EpochTypeID>();
+					outfile << L" " << basetype;
+				}
+
+				outfile << L"\n";
+			}
+			break;
+
+		case Bytecode::Instructions::TypeMatch:
+			{
+				StringHandle dispatchfunction = traverser.Read<StringHandle>();
+				size_t numparams = traverser.Read<size_t>();
+
+				outfile << L"TYPEMATCH " << dispatchfunction << L" " << numparams;
+				for(size_t i = 0; i < numparams; ++i)
+					outfile << L" " << traverser.Read<VM::EpochTypeID>();
+
+				outfile << L"\n";
+			}
+			break;
+
 		default:
 			throw SerializationException("Failed to serialize unknown opcode");
 		}

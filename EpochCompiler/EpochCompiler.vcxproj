@@ -169,7 +169,6 @@
     <ClInclude Include="..\Shared\Metadata\ScopeDescription.h" />
     <ClInclude Include="..\Shared\Metadata\StructureDefinition.h" />
     <ClInclude Include="..\Shared\Libraries\Library.h" />
-    <ClInclude Include="..\Shared\Compilation\SemanticActionInterface.h" />
     <ClInclude Include="..\Shared\User Interface\Input.h" />
     <ClInclude Include="..\Shared\User Interface\Output.h" />
     <ClInclude Include="Compiler\ByteCodeEmitter.h" />

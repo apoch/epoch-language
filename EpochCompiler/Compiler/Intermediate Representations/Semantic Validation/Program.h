@@ -125,6 +125,9 @@ namespace IRSemantics
 		const std::set<StringHandle>& GetFunctionsNeedingDynamicPatternMatching() const
 		{ return FunctionsNeedingDynamicPatternMatching; }
 
+		const std::map<StringHandle, std::map<StringHandle, FunctionSignature> >& GetRequiredTypeMatchers() const
+		{ return RequiredTypeMatchers; }
+
 	// Access to lexical scopes
 	public:
 		const ScopePtrMap& GetScopes() const
@@ -183,6 +186,16 @@ namespace IRSemantics
 		void AddSumTypeBase(VM::EpochTypeID sumtypeid, StringHandle basetypename);
 
 		StringHandle MapConstructorNameForSumType(StringHandle sumtypeoverloadname);
+		bool SumTypeHasTypeAsBase(VM::EpochTypeID sumtypeid, VM::EpochTypeID basetype) const;
+
+		StringHandle AllocateTypeMatcher(StringHandle overloadname, const std::map<StringHandle, FunctionSignature>& matchingoverloads);
+
+		size_t GetNumSumTypeBases(VM::EpochTypeID sumtypeid) const
+		{
+			return SumTypeBaseTypeNames.find(sumtypeid)->second.size();
+		}
+
+		std::map<VM::EpochTypeID, std::set<VM::EpochTypeID> > GetSumTypes() const;
 
 	// Validation
 	public:
@@ -232,7 +245,10 @@ namespace IRSemantics
 
 		std::map<StringHandle, VM::EpochTypeID> SumTypeNames;
 		std::map<StringHandle, StringHandle> SumTypeConstructorNames;
-		std::map<VM::EpochTypeID, std::set<StringHandle> > SumTypeBaseTypes;
+		std::map<VM::EpochTypeID, std::set<StringHandle> > SumTypeBaseTypeNames;
+
+		std::map<StringHandle, StringHandle> OverloadTypeMatchers;
+		std::map<StringHandle, std::map<StringHandle, FunctionSignature> > RequiredTypeMatchers;
 
 	// String lookup caches
 	private:

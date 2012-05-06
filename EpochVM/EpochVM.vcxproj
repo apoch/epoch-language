@@ -121,6 +121,8 @@
     <ClCompile Include="Visual Debugger\DebugThread.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\Shared\Metadata\ActiveStructure.h" />
+    <ClInclude Include="..\Shared\Metadata\Variant.h" />
     <ClInclude Include="JIT\JIT.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="Virtual Machine\ExportDef.h" />

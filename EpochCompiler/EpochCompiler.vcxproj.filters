@@ -39,9 +39,6 @@
     <Filter Include="Shared\Libraries">
       <UniqueIdentifier>{29bfa9e8-1dc4-44a5-beb5-b83f270a4dec}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Shared\Compilation">
-      <UniqueIdentifier>{208e6369-0d83-4602-8d58-c521a2131279}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Shared\User Interface">
       <UniqueIdentifier>{93879983-6484-46a2-a572-26136bbf9f10}</UniqueIdentifier>
     </Filter>
@@ -258,9 +255,6 @@
     </ClInclude>
     <ClInclude Include="..\Shared\Libraries\Library.h">
       <Filter>Shared\Libraries</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Shared\Compilation\SemanticActionInterface.h">
-      <Filter>Shared\Compilation</Filter>
     </ClInclude>
     <ClInclude Include="..\Shared\User Interface\Input.h">
       <Filter>Shared\User Interface</Filter>

@@ -65,6 +65,7 @@ public:
 	void PushVariableValue(StringHandle variablename, VM::EpochTypeID type);
 	void PushVariableValueNoCopy(StringHandle variablename);
 	void PushBufferHandle(BufferHandle handle);
+	void PushTypeAnnotation(VM::EpochTypeID type);
 
 	void BindReference(StringHandle variablename);
 	void BindReferenceIndirect();
@@ -101,6 +102,13 @@ public:
 
 	void ResolvePattern(StringHandle dispatchfunction, const FunctionSignature& signature);
 
+// Type resolution
+public:
+	void EnterTypeResolver(StringHandle resolvername);
+	void ExitTypeResolver();
+
+	void ResolveTypes(StringHandle dispatchfunction, const FunctionSignature& signature);
+
 // Structures
 public:
 	void AllocateStructure(VM::EpochTypeID descriptiontype);
@@ -123,6 +131,8 @@ public:
 	void PoolString(StringHandle handle, const std::wstring& literalvalue);
 
 	void TagData(StringHandle entityname, const std::wstring& tag, const std::vector<std::wstring>& tagdata);
+
+	void DefineSumType(VM::EpochTypeID sumtypeid, const std::set<VM::EpochTypeID>& basetypes);
 
 // Additional helpers for writing to the data stream
 public:

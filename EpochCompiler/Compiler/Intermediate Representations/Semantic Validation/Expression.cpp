@@ -1201,10 +1201,13 @@ VM::EpochTypeID ExpressionAtomLiteralInteger32::GetEpochType(const Program&) con
 //
 // Literal integers do not need type inference
 //
-bool ExpressionAtomLiteralInteger32::TypeInference(Program& program, CodeBlock&, InferenceContext& context, size_t index, size_t, CompileErrors&)
+bool ExpressionAtomLiteralInteger32::TypeInference(Program& program, CodeBlock&, InferenceContext& context, size_t index, size_t maxindex, CompileErrors&)
 {
 	for(size_t i = 0; i < context.ExpectedTypes.back().size(); ++i)
 	{
+		if(context.ExpectedTypes.back()[i].size() < maxindex)
+			continue;
+
 		VM::EpochTypeID expectedtype = context.ExpectedTypes.back()[i][index];
 		if(VM::GetTypeFamily(expectedtype) == VM::EpochTypeFamily_Unit)
 		{

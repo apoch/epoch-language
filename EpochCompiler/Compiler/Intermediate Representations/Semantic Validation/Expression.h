@@ -659,5 +659,49 @@ namespace IRSemantics
 		VM::EpochTypeID MyType;
 	};
 
+
+
+	class ExpressionAtomTypeAnnotation : public ExpressionAtom
+	{
+	// Construction
+	public:
+		explicit ExpressionAtomTypeAnnotation(VM::EpochTypeID type)
+			: MyType(type)
+		{ }
+
+	// Non-copyable
+	private:
+		ExpressionAtomTypeAnnotation(const ExpressionAtomTypeAnnotation& other);
+		ExpressionAtomTypeAnnotation& operator = (const ExpressionAtomTypeAnnotation& rhs);
+
+	// Atom interface
+	public:
+		virtual VM::EpochTypeID GetEpochType(const Program&) const
+		{ return MyType; }
+
+		virtual bool TypeInference(Program&, CodeBlock&, InferenceContext&, size_t, size_t, CompileErrors&)
+		{ return true; }
+
+		virtual bool CompileTimeCodeExecution(Program&, CodeBlock&, bool, CompileErrors&)
+		{ return true; }
+		
+		virtual CompileTimeParameter ConvertToCompileTimeParam(const Program&) const
+		{
+			//
+			// This type of atom is a special marker and not a value, therefore
+			// it should never be converted to a compile-time parameter.
+			//
+			// Check the call stack and verify that the expression being converted
+			// to compile-time parameters is sane, and that this atom is actually
+			// legitimately placed.
+			//
+			throw InternalException("Invalid atom type for compile time parameter");
+		}
+
+	// Internal state
+	private:
+		VM::EpochTypeID MyType;
+	};
+
 }
 

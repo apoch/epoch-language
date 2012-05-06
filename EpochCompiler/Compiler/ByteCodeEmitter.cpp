@@ -866,3 +866,45 @@ void ByteCodeEmitter::PrependEntityTag(Bytecode::EntityTag tag)
 	Integer32 intval = static_cast<Integer32>(tag);
 	PrependRawValue(intval);
 }
+
+
+
+void ByteCodeEmitter::EnterTypeResolver(StringHandle resolvername)
+{
+	EmitInstruction(Bytecode::Instructions::BeginEntity);
+	EmitEntityTag(Bytecode::EntityTags::TypeResolver);
+	EmitRawValue(resolvername);
+}
+
+void ByteCodeEmitter::ExitTypeResolver()
+{
+	// TODO - throw a runtime exception instead of just halting the VM entirely
+	Halt();			// Just in case type resolution failed
+	EmitInstruction(Bytecode::Instructions::EndEntity);
+}
+
+void ByteCodeEmitter::ResolveTypes(StringHandle dispatchfunction, const FunctionSignature& signature)
+{
+	EmitInstruction(Bytecode::Instructions::TypeMatch);
+	EmitRawValue(dispatchfunction);
+	EmitRawValue(signature.GetNumParameters());
+	for(size_t i = 0; i < signature.GetNumParameters(); ++i)
+		EmitTypeAnnotation(signature.GetParameter(i).Type);
+}
+
+void ByteCodeEmitter::DefineSumType(VM::EpochTypeID sumtypeid, const std::set<VM::EpochTypeID>& basetypes)
+{
+	EmitInstruction(Bytecode::Instructions::SumTypeDef);
+	EmitTypeAnnotation(sumtypeid);
+	EmitRawValue(basetypes.size());
+	for(std::set<VM::EpochTypeID>::const_iterator iter = basetypes.begin(); iter != basetypes.end(); ++iter)
+		EmitTypeAnnotation(*iter);
+}
+
+void ByteCodeEmitter::PushTypeAnnotation(VM::EpochTypeID type)
+{
+	EmitInstruction(Bytecode::Instructions::Push);
+	EmitTypeAnnotation(VM::EpochType_Integer);
+	EmitRawValue(type);
+}
+

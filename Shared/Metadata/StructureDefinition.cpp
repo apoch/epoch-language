@@ -8,6 +8,7 @@
 #include "pch.h"
 
 #include "Metadata/StructureDefinition.h"
+#include "Metadata/Variant.h"
 
 #include "Virtual Machine/TypeInfo.h"
 
@@ -15,15 +16,24 @@
 //
 // Add a data member to the structure
 //
-void StructureDefinition::AddMember(StringHandle identifier, VM::EpochTypeID type, const StructureDefinition* structdefinition)
+void StructureDefinition::AddMember(StringHandle identifier, VM::EpochTypeID type, const StructureDefinition* structdefinition, const VariantDefinition* variantdefinition)
 {
-	Members.push_back(MemberRecord(identifier, type, Offset));
-	Offset += VM::GetStorageSize(type);
-
-	if(VM::GetTypeFamily(type) == VM::EpochTypeFamily_Structure)
-		MarshaledSize += structdefinition->GetMarshaledSize();
+	if(variantdefinition && VM::GetTypeFamily(type) == VM::EpochTypeFamily_SumType)
+	{
+		Members.push_back(MemberRecord(identifier, type, Offset));
+		Offset += variantdefinition->GetMaxSize();
+		MarshaledSize += variantdefinition->GetMaxSize();
+	}
 	else
-		MarshaledSize += VM::GetMarshaledSize(type);
+	{
+		Members.push_back(MemberRecord(identifier, type, Offset));
+		Offset += VM::GetStorageSize(type);
+
+		if(VM::GetTypeFamily(type) == VM::EpochTypeFamily_Structure)
+			MarshaledSize += structdefinition->GetMarshaledSize();
+		else
+			MarshaledSize += VM::GetMarshaledSize(type);
+	}
 }
 
 

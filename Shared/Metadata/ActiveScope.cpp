@@ -42,9 +42,19 @@ void ActiveScope::BindParametersToStack(const VM::ExecutionContext& context)
 				BindReference(iter->IdentifierHandle, targetstorage, targettype);
 			}
 			else
-			{
-				VariableStorageLocations[iter->IdentifierHandle] = stackpointer;
-				stackpointer += VM::GetStorageSize(iter->Type);
+			{				
+				if(VM::GetTypeFamily(iter->Type) == VM::EpochTypeFamily_SumType)
+				{
+					ActualTypes[iter->IdentifierHandle] = *reinterpret_cast<VM::EpochTypeID*>(stackpointer);
+					stackpointer += sizeof(VM::EpochTypeID);
+					VariableStorageLocations[iter->IdentifierHandle] = stackpointer;
+					stackpointer += VM::GetStorageSize(ActualTypes[iter->IdentifierHandle]);
+				}
+				else
+				{
+					VariableStorageLocations[iter->IdentifierHandle] = stackpointer;
+					stackpointer += VM::GetStorageSize(iter->Type);
+				}
 			}
 		}
 	}
@@ -59,10 +69,20 @@ void ActiveScope::PushLocalsOntoStack(VM::ExecutionContext& context)
 	{
 		if(iter->Origin == VARIABLE_ORIGIN_LOCAL || iter->Origin == VARIABLE_ORIGIN_RETURN)
 		{
-			size_t size = VM::GetStorageSize(iter->Type);
-			context.State.Stack.Push(size);
+			if(VM::GetTypeFamily(iter->Type) == VM::EpochTypeFamily_SumType)
+			{
+				size_t size = context.OwnerVM.VariantDefinitions.find(iter->Type)->second.GetMaxSize();
+				context.State.Stack.Push(size);
 
-			VariableStorageLocations[iter->IdentifierHandle] = context.State.Stack.GetCurrentTopOfStack();
+				VariableStorageLocations[iter->IdentifierHandle] = reinterpret_cast<char*>(context.State.Stack.GetCurrentTopOfStack()) + sizeof(VM::EpochTypeID);
+			}
+			else
+			{
+				size_t size = VM::GetStorageSize(iter->Type);
+				context.State.Stack.Push(size);
+
+				VariableStorageLocations[iter->IdentifierHandle] = context.State.Stack.GetCurrentTopOfStack();
+			}
 		}
 	}
 }
@@ -79,7 +99,22 @@ void ActiveScope::PopScopeOffStack(VM::ExecutionContext& context)
 		if(iter->IsReference)
 			usedspace += sizeof(StringHandle) + sizeof(void*);
 		else
-			usedspace += VM::GetStorageSize(iter->Type);
+		{
+			if(ActualTypes.find(iter->IdentifierHandle) != ActualTypes.end())
+			{
+				usedspace += VM::GetStorageSize(ActualTypes.find(iter->IdentifierHandle)->second);
+				usedspace += sizeof(VM::EpochTypeID);
+			}
+			else if(VM::GetTypeFamily(iter->Type) == VM::EpochTypeFamily_SumType)
+			{
+				usedspace += context.OwnerVM.VariantDefinitions.find(iter->Type)->second.GetMaxSize();
+
+				if(iter->Origin == VARIABLE_ORIGIN_PARAMETER)
+					usedspace += sizeof(VM::EpochTypeID);
+			}
+			else
+				usedspace += VM::GetStorageSize(iter->Type);
+		}
 	}
 
 	context.State.Stack.Pop(usedspace);
@@ -176,7 +211,14 @@ void ActiveScope::PushOntoStack(StringHandle variableid, StackSpace& stack) cons
 		return;
 	}
 
-	PushOntoStack(GetVariableStorageLocation(variableid), OriginalScope.GetVariableTypeByID(variableid), stack);
+	VM::EpochTypeID vartype = OriginalScope.GetVariableTypeByID(variableid);
+	if(VM::GetTypeFamily(vartype) == VM::EpochTypeFamily_SumType)
+	{
+		PushOntoStack(GetVariableStorageLocation(variableid), ActualTypes.find(variableid)->second, stack);
+		stack.PushValue(ActualTypes.find(variableid)->second);
+	}
+	else
+		PushOntoStack(GetVariableStorageLocation(variableid), vartype, stack);
 }
 
 //
@@ -218,6 +260,8 @@ void* ActiveScope::GetVariableStorageLocation(StringHandle variableid) const
 //
 void ActiveScope::CopyToRegister(StringHandle variableid, Register& targetregister) const
 {
+	targetregister.SumType = false;
+
 	VM::EpochTypeID variabletype = OriginalScope.GetVariableTypeByID(variableid);
 	switch(variabletype)
 	{

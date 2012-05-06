@@ -211,6 +211,12 @@
     <ClInclude Include="JIT\JIT.h">
       <Filter>JIT</Filter>
     </ClInclude>
+    <ClInclude Include="..\Shared\Metadata\Variant.h">
+      <Filter>Shared\Metadata</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Shared\Metadata\ActiveStructure.h">
+      <Filter>Shared\Metadata</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Exports\Exports.def">

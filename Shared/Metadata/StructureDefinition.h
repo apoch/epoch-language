@@ -18,6 +18,10 @@
 #include <map>
 
 
+// Forward declarations
+class VariantDefinition;
+
+
 class StructureDefinition
 {
 // Construction
@@ -29,7 +33,7 @@ public:
 
 // Member configuration
 public:
-	void AddMember(StringHandle identifier, VM::EpochTypeID type, const StructureDefinition* structdefinition);
+	void AddMember(StringHandle identifier, VM::EpochTypeID type, const StructureDefinition* structdefinition, const VariantDefinition* variantdefinition);
 
 // Member accessors
 public:

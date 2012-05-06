@@ -126,5 +126,7 @@ private:
 	typedef std::pair<void*, VM::EpochTypeID> ReferenceStorageAndType;
 	typedef std::map<StringHandle, ReferenceStorageAndType> ReferenceBindingMap;
 	ReferenceBindingMap BoundReferences;
+
+	std::map<StringHandle, VM::EpochTypeID> ActualTypes;
 };
 

@@ -16,7 +16,8 @@
 // Construct and initialize the register wrapper
 //
 Register::Register()
-	: Type(VM::EpochType_Error)
+	: Type(VM::EpochType_Error),
+	  SumType(false)
 {
 }
 
@@ -134,5 +135,8 @@ void Register::PushOntoStack(StackSpace& stack) const
 		stack.PushValue(Value_StructureHandle);
 		break;
 	}
+
+	if(SumType)
+		stack.PushValue(Type);
 }
 

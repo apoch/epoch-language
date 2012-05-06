@@ -205,6 +205,10 @@ namespace
 				emitter.BindStructureReference(atom->GetIdentifier());
 			return true;
 		}
+		else if(const IRSemantics::ExpressionAtomTypeAnnotation* atom = dynamic_cast<const IRSemantics::ExpressionAtomTypeAnnotation*>(rawatom))
+		{
+			emitter.PushTypeAnnotation(atom->GetEpochType(program));
+		}
 		else
 		{
 			//
@@ -469,6 +473,11 @@ bool CompilerPasses::GenerateCode(const IRSemantics::Program& program, ByteCodeE
 	for(boost::unordered_map<StringHandle, std::wstring>::const_iterator iter = stringpool.begin(); iter != stringpool.end(); ++iter)
 		emitter.PoolString(iter->first, iter->second);
 
+	std::map<VM::EpochTypeID, std::set<VM::EpochTypeID> > sumtypes = program.GetSumTypes();
+	for(std::map<VM::EpochTypeID, std::set<VM::EpochTypeID> >::const_iterator iter = sumtypes.begin(); iter != sumtypes.end(); ++iter)
+		emitter.DefineSumType(iter->first, iter->second);
+
+
 	DependencyGraph<VM::EpochTypeID> structuredependencies;
 	std::map<VM::EpochTypeID, IRSemantics::Structure*> typemap;
 
@@ -498,7 +507,6 @@ bool CompilerPasses::GenerateCode(const IRSemantics::Program& program, ByteCodeE
 		for(std::vector<std::pair<StringHandle, IRSemantics::StructureMember*> >::const_iterator memberiter = members.begin(); memberiter != members.end(); ++memberiter)
 			emitter.StructureMember(memberiter->first, memberiter->second->GetEpochType(program));
 	}
-
 
 	const boost::unordered_map<StringHandle, IRSemantics::Function*>& functions = program.GetFunctions();
 	for(boost::unordered_map<StringHandle, IRSemantics::Function*>::const_iterator iter = functions.begin(); iter != functions.end(); ++iter)
@@ -676,6 +684,19 @@ bool CompilerPasses::GenerateCode(const IRSemantics::Program& program, ByteCodeE
 		}
 		emitter.ExitPatternResolver();
 		emitter.DefineLexicalScope(patternmatchername, 0, 0);
+	}
+
+	const std::map<StringHandle, std::map<StringHandle, FunctionSignature> >& requiredtypematchers = program.GetRequiredTypeMatchers();
+	for(std::map<StringHandle, std::map<StringHandle, FunctionSignature> >::const_iterator iter = requiredtypematchers.begin(); iter != requiredtypematchers.end(); ++iter)
+	{
+		emitter.DefineLexicalScope(iter->first, 0, 0);
+		emitter.EnterTypeResolver(iter->first);
+		for(std::map<StringHandle, FunctionSignature>::const_iterator overloaditer = iter->second.begin(); overloaditer != iter->second.end(); ++overloaditer)
+		{
+			const FunctionSignature& sig = overloaditer->second;
+			emitter.ResolveTypes(overloaditer->first, sig);
+		}
+		emitter.ExitTypeResolver();
 	}
 
 	for(size_t i = 0; i < numglobalblocks; ++i)

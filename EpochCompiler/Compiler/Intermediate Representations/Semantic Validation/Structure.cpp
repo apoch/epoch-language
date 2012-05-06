@@ -78,7 +78,8 @@ bool Structure::CompileTimeCodeExecution(StringHandle myname, Program& program, 
 		signature.AddParameter(L"id", VM::EpochType_Identifier, true);
 		for(std::vector<std::pair<StringHandle, StructureMember*> >::const_iterator iter = Members.begin(); iter != Members.end(); ++iter)
 		{
-			signature.AddParameter(program.GetString(iter->first), iter->second->GetEpochType(program), false);
+			VM::EpochTypeID paramtype = iter->second->GetEpochType(program);
+			signature.AddParameter(program.GetString(iter->first), paramtype, false);
 			++i;
 
 			if(iter->second->GetMemberType() == StructureMember::FunctionReference)

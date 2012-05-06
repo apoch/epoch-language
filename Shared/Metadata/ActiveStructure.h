@@ -39,6 +39,10 @@ public:
 	T ReadMember(size_t index) const
 	{
 		const UByte* rawptr = &Storage[0] + Definition.GetMemberOffset(index);
+
+		if(VM::GetTypeFamily(Definition.GetMemberType(index)) == VM::EpochTypeFamily_SumType)
+			rawptr += sizeof(VM::EpochTypeID);
+
 		const T* ptr = reinterpret_cast<const T*>(rawptr);
 		return *ptr;
 	}
@@ -47,8 +51,26 @@ public:
 	void WriteMember(size_t index, T value)
 	{
 		UByte* rawptr = &Storage[0] + Definition.GetMemberOffset(index);
+
+		if(VM::GetTypeFamily(Definition.GetMemberType(index)) == VM::EpochTypeFamily_SumType)
+			rawptr += sizeof(VM::EpochTypeID);
+
 		T* ptr = reinterpret_cast<T*>(rawptr);
 		*ptr = value;
+	}
+
+	VM::EpochTypeID ReadSumTypeMemberType(size_t index) const
+	{
+		const UByte* rawptr = &Storage[0] + Definition.GetMemberOffset(index);
+		const VM::EpochTypeID* ptr = reinterpret_cast<const VM::EpochTypeID*>(rawptr);
+		return *ptr;
+	}
+
+	void WriteSumTypeMemberType(size_t index, VM::EpochTypeID type)
+	{
+		UByte* rawptr = &Storage[0] + Definition.GetMemberOffset(index);
+		VM::EpochTypeID* typeptr = reinterpret_cast<VM::EpochTypeID*>(rawptr);
+		*typeptr = type;
 	}
 
 // Original structure definition

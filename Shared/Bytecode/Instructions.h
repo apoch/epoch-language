@@ -66,6 +66,10 @@ namespace Bytecode
 
 		static const Instruction InvokeNative = 0x1e;
 
+		static const Instruction SumTypeDef = 0x1f;
+
+		static const Instruction TypeMatch = 0x20;
+
 	}
 
 }

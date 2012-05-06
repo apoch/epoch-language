@@ -473,6 +473,15 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 
 					size_t memberindex = structure.Definition.FindMember(membername);
 					EpochTypeID membertype = structure.Definition.GetMemberType(memberindex);
+
+					if(GetTypeFamily(membertype) == EpochTypeFamily_SumType)
+					{
+						membertype = structure.ReadSumTypeMemberType(memberindex);
+						State.ReturnValueRegister.SumType = true;
+					}
+					else
+						State.ReturnValueRegister.SumType = false;
+
 					switch(membertype)
 					{
 					case EpochType_Integer:
@@ -504,10 +513,11 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 						break;
 
 					default:
-						if(GetTypeFamily(membertype) != EpochTypeFamily_Structure)
+						if(GetTypeFamily(membertype) == EpochTypeFamily_Structure)
+							State.ReturnValueRegister.SetStructure(structure.ReadMember<StructureHandle>(memberindex), structure.Definition.GetMemberType(memberindex));
+						else
 							throw FatalException("Unhandled structure member type");
 
-						State.ReturnValueRegister.SetStructure(structure.ReadMember<StructureHandle>(memberindex), structure.Definition.GetMemberType(memberindex));
 						break;
 					}
 
@@ -526,43 +536,7 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 
 					size_t memberindex = structure.Definition.FindMember(actualmember);
 					EpochTypeID membertype = structure.Definition.GetMemberType(memberindex);
-					switch(membertype)
-					{
-					case EpochType_Integer:
-						structure.WriteMember(memberindex, State.Stack.PopValue<Integer32>());
-						break;
-
-					case EpochType_Integer16:
-						structure.WriteMember(memberindex, State.Stack.PopValue<Integer16>());
-						break;
-
-					case EpochType_Boolean:
-						structure.WriteMember(memberindex, State.Stack.PopValue<bool>());
-						break;
-
-					case EpochType_Buffer:
-						structure.WriteMember(memberindex, State.Stack.PopValue<BufferHandle>());
-						break;
-
-					case EpochType_Real:
-						structure.WriteMember(memberindex, State.Stack.PopValue<Real32>());
-						break;
-
-					case EpochType_String:
-						structure.WriteMember(memberindex, State.Stack.PopValue<StringHandle>());
-						break;
-
-					case EpochType_Function:
-						structure.WriteMember(memberindex, State.Stack.PopValue<StringHandle>());
-						break;
-
-					default:
-						if(GetTypeFamily(membertype) != EpochTypeFamily_Structure)
-							throw FatalException("Unhandled structure member type");
-
-						structure.WriteMember(memberindex, State.Stack.PopValue<StructureHandle>());
-						break;
-					}
+					WriteStructureMember(structure, memberindex, membertype);
 
 					continue;
 				}
@@ -800,7 +774,7 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 						Variables->PushLocalsOntoStack(*this);
 						onexit.CleanUpScope(Variables);
 					}
-					else if(tag == Bytecode::EntityTags::PatternMatchingResolver)
+					else if(tag == Bytecode::EntityTags::PatternMatchingResolver || tag == Bytecode::EntityTags::TypeResolver)
 					{
 						// Do nothing
 					}
@@ -1033,6 +1007,74 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 					continue;
 				}
 				break;
+
+			case Bytecode::Instructions::SumTypeDef:
+				{
+					Fetch<EpochTypeID>();
+					size_t numentries = Fetch<size_t>();
+
+					for(size_t i = 0; i < numentries; ++i)
+						Fetch<EpochTypeID>();
+				}
+				break;
+
+			case Bytecode::Instructions::TypeMatch:
+				{
+					StringHandle dispatchfunction = Fetch<StringHandle>();
+					size_t paramcount = Fetch<size_t>();
+
+					const char* stackptr = reinterpret_cast<const char*>(State.Stack.GetCurrentTopOfStack());
+
+					std::vector<EpochTypeID> providedtypes;
+					providedtypes.reserve(paramcount);
+					for(size_t i = 0; i < paramcount; ++i)
+					{
+						EpochTypeID paramtype = *reinterpret_cast<const EpochTypeID*>(stackptr);
+						providedtypes.push_back(paramtype);
+
+						stackptr += sizeof(EpochTypeID);
+						stackptr += GetStorageSize(paramtype);
+					}
+
+					std::reverse(providedtypes.begin(), providedtypes.end());
+
+					bool match = true;
+					for(size_t i = 0; i < paramcount; ++i)
+					{
+						EpochTypeID expectedtype = Fetch<EpochTypeID>();
+						EpochTypeID providedtype = providedtypes[i];
+						if(providedtype != expectedtype)
+						{
+							match = false;
+							break;
+						}
+					}
+
+					if(match)
+					{
+						char* destptr = const_cast<char*>(stackptr);
+
+						for(size_t i = providedtypes.size(); i-- > 0; )
+						{
+							EpochTypeID paramtype = providedtypes[i];
+							
+							stackptr -= GetStorageSize(paramtype);
+							destptr -= GetStorageSize(paramtype);
+
+							memcpy(destptr, stackptr, GetStorageSize(paramtype));							
+
+							stackptr -= sizeof(EpochTypeID);
+						}
+
+						State.Stack.Pop(destptr - stackptr);
+
+						size_t internaloffset = OwnerVM.GetFunctionInstructionOffset(dispatchfunction);
+
+						InstructionOffset = internaloffset;
+						scope = &OwnerVM.GetScopeDescription(dispatchfunction);
+					}
+				}
+				break;
 			
 			default:
 				throw FatalException("Invalid bytecode operation during execution");
@@ -1094,8 +1136,14 @@ void ExecutionContext::Load()
 				size_t originaloffset = InstructionOffset - 1;
 				entitytypes.push(Fetch<Integer32>());
 				StringHandle name = Fetch<StringHandle>();
-				if(entitytypes.top() == Bytecode::EntityTags::Function || entitytypes.top() == Bytecode::EntityTags::PatternMatchingResolver)
+				if(
+					  entitytypes.top() == Bytecode::EntityTags::Function
+				   || entitytypes.top() == Bytecode::EntityTags::PatternMatchingResolver
+				   || entitytypes.top() == Bytecode::EntityTags::TypeResolver
+				  )
+				{
 					OwnerVM.AddFunction(name, originaloffset);
+				}
 				entitybeginoffsets.push(originaloffset);
 				entityoffsetmap[name] = originaloffset;
 			}
@@ -1160,9 +1208,26 @@ void ExecutionContext::Load()
 					StringHandle identifier = Fetch<StringHandle>();
 					EpochTypeID type = Fetch<EpochTypeID>();
 					const StructureDefinition* structdefinition = NULL;
+					const VariantDefinition* variantdefinition = NULL;
 					if(GetTypeFamily(type) == EpochTypeFamily_Structure)
 						structdefinition = &OwnerVM.GetStructureDefinition(type);
-					OwnerVM.StructureDefinitions[structuretypeid].AddMember(identifier, type, structdefinition);
+					else if(GetTypeFamily(type) == EpochTypeFamily_SumType)
+						variantdefinition = &OwnerVM.VariantDefinitions.find(type)->second;
+					OwnerVM.StructureDefinitions[structuretypeid].AddMember(identifier, type, structdefinition, variantdefinition);
+				}
+			}
+			break;
+
+		case Bytecode::Instructions::SumTypeDef:
+			{
+				EpochTypeID sumtypeid = Fetch<EpochTypeID>();
+				size_t numentries = Fetch<size_t>();
+
+				for(size_t i = 0; i < numentries; ++i)
+				{
+					EpochTypeID basetype = Fetch<EpochTypeID>();
+					size_t basetypesize = GetStorageSize(basetype);
+					OwnerVM.VariantDefinitions[sumtypeid].AddBaseType(basetype, basetypesize);
 				}
 			}
 			break;
@@ -1279,6 +1344,15 @@ void ExecutionContext::Load()
 						}
 					}
 				}
+			}
+			break;
+
+		case Bytecode::Instructions::TypeMatch:
+			{
+				Fetch<StringHandle>();
+				size_t paramcount = Fetch<size_t>();
+				for(size_t i = 0; i < paramcount; ++i)
+					Fetch<EpochTypeID>();
 			}
 			break;
 		
@@ -1423,6 +1497,12 @@ StructureHandle VirtualMachine::DeepCopy(StructureHandle handle)
 	for(size_t i = 0; i < original.Definition.GetNumMembers(); ++i)
 	{
 		EpochTypeID membertype = original.Definition.GetMemberType(i);
+
+		if(GetTypeFamily(membertype) == VM::EpochTypeFamily_SumType)
+		{
+			membertype = original.ReadSumTypeMemberType(i);
+			clone.WriteSumTypeMemberType(i, membertype);
+		}
 
 		switch(membertype)
 		{
@@ -1684,3 +1764,50 @@ void ExecutionContext::JITCompileByteCode(StringHandle entity, size_t beginoffse
 	OwnerVM.JITExecs[entity] = JITByteCode(OwnerVM, CodeBuffer, beginoffset, endoffset);
 }
 
+void ExecutionContext::WriteStructureMember(ActiveStructure& structure, size_t memberindex, EpochTypeID membertype)
+{
+	switch(membertype)
+	{
+	case EpochType_Integer:
+		structure.WriteMember(memberindex, State.Stack.PopValue<Integer32>());
+		break;
+
+	case EpochType_Integer16:
+		structure.WriteMember(memberindex, State.Stack.PopValue<Integer16>());
+		break;
+
+	case EpochType_Boolean:
+		structure.WriteMember(memberindex, State.Stack.PopValue<bool>());
+		break;
+
+	case EpochType_Buffer:
+		structure.WriteMember(memberindex, State.Stack.PopValue<BufferHandle>());
+		break;
+
+	case EpochType_Real:
+		structure.WriteMember(memberindex, State.Stack.PopValue<Real32>());
+		break;
+
+	case EpochType_String:
+		structure.WriteMember(memberindex, State.Stack.PopValue<StringHandle>());
+		break;
+
+	case EpochType_Function:
+		structure.WriteMember(memberindex, State.Stack.PopValue<StringHandle>());
+		break;
+
+	default:
+		if(GetTypeFamily(membertype) == EpochTypeFamily_SumType)
+		{
+			EpochTypeID actualtype = State.Stack.PopValue<EpochTypeID>();
+			structure.WriteSumTypeMemberType(memberindex, actualtype);
+			WriteStructureMember(structure, memberindex, actualtype);
+		}
+		else if(GetTypeFamily(membertype) == EpochTypeFamily_Structure)
+			structure.WriteMember(memberindex, State.Stack.PopValue<StructureHandle>());
+		else
+			throw FatalException("Unhandled structure member type");
+
+		break;
+	}
+}

@@ -248,7 +248,7 @@ bool Program::Validate(CompileErrors& errors) const
 {
 	bool valid = true;
 
-	for(std::map<VM::EpochTypeID, std::set<StringHandle> >::const_iterator iter = SumTypeBaseTypes.begin(); iter != SumTypeBaseTypes.end(); ++iter)
+	for(std::map<VM::EpochTypeID, std::set<StringHandle> >::const_iterator iter = SumTypeBaseTypeNames.begin(); iter != SumTypeBaseTypeNames.end(); ++iter)
 	{
 		for(std::set<StringHandle>::const_iterator setiter = iter->second.begin(); setiter != iter->second.end(); ++setiter)
 		{
@@ -449,6 +449,12 @@ VM::EpochTypeID Program::LookupType(StringHandle name) const
 	{
 		std::map<StringHandle, VM::EpochTypeID>::const_iterator iter = StrongTypeAliasTypes.find(name);
 		if(iter != StrongTypeAliasTypes.end())
+			return iter->second;
+	}
+
+	{
+		std::map<StringHandle, VM::EpochTypeID>::const_iterator iter = SumTypeNames.find(name);
+		if(iter != SumTypeNames.end())
 			return iter->second;
 	}
 
@@ -857,7 +863,7 @@ VM::EpochTypeID Program::AddSumType(const std::wstring& name, CompileErrors& err
 
 void Program::AddSumTypeBase(VM::EpochTypeID sumtypeid, StringHandle basetypename)
 {
-	SumTypeBaseTypes[sumtypeid].insert(basetypename);
+	SumTypeBaseTypeNames[sumtypeid].insert(basetypename);
 
 	std::wostringstream overloadnamebuilder;
 	overloadnamebuilder << L"@@sumtypeconstructor@" << sumtypeid << L"@" << GetString(basetypename);
@@ -891,4 +897,43 @@ StringHandle Program::MapConstructorNameForSumType(StringHandle sumtypeoverloadn
 	return iter->second;
 }
 
+
+bool Program::SumTypeHasTypeAsBase(VM::EpochTypeID sumtypeid, VM::EpochTypeID basetype) const
+{
+	std::map<VM::EpochTypeID, std::set<StringHandle> >::const_iterator iter = SumTypeBaseTypeNames.find(sumtypeid);
+	for(std::set<StringHandle>::const_iterator btiter = iter->second.begin(); btiter != iter->second.end(); ++btiter)
+	{
+		if(LookupType(*btiter) == basetype)
+			return true;
+	}
+
+	return false;
+}
+
+
+StringHandle Program::AllocateTypeMatcher(StringHandle overloadname, const std::map<StringHandle, FunctionSignature>& matchingoverloads)
+{
+	if(OverloadTypeMatchers.find(overloadname) != OverloadTypeMatchers.end())
+		return OverloadTypeMatchers.find(overloadname)->second;
+
+	StringHandle matchername = AddString(GetString(overloadname) + L"@@typematcher");
+	OverloadTypeMatchers[overloadname] = matchername;
+
+	RequiredTypeMatchers.insert(std::make_pair(matchername, matchingoverloads));
+
+	return matchername;
+}
+
+std::map<VM::EpochTypeID, std::set<VM::EpochTypeID> > Program::GetSumTypes() const
+{
+	std::map<VM::EpochTypeID, std::set<VM::EpochTypeID> > ret;
+
+	for(std::map<VM::EpochTypeID, std::set<StringHandle> >::const_iterator iter = SumTypeBaseTypeNames.begin(); iter != SumTypeBaseTypeNames.end(); ++iter)
+	{
+		for(std::set<StringHandle>::const_iterator btiter = iter->second.begin(); btiter != iter->second.end(); ++btiter)
+			ret[iter->first].insert(LookupType(*btiter));
+	}
+
+	return ret;
+}
 

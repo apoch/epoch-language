@@ -14,6 +14,7 @@
 #include "Metadata/Register.h"
 #include "Metadata/ActiveStructure.h"
 #include "Metadata/StructureDefinition.h"
+#include "Metadata/Variant.h"
 
 #include "Libraries/Library.h"
 #include "Libraries/LibraryJIT.h"
@@ -152,6 +153,8 @@ namespace VM
 		JIT::JITTable JITHelpers;
 		std::map<StringHandle, JITExecPtr> JITExecs;
 
+		std::map<EpochTypeID, VariantDefinition> VariantDefinitions;
+
 	// Handy type shortcuts
 	private:
 		typedef std::map<StringHandle, size_t> OffsetMap;
@@ -261,6 +264,9 @@ namespace VM
 	// Internal helpers for JIT compilation
 	private:
 		void JITCompileByteCode(StringHandle entity, size_t beginoffset, size_t endoffset);
+
+	private:
+		void WriteStructureMember(ActiveStructure& structure, size_t memberindex, EpochTypeID membertype);
 
 	// Internal state
 	private:
