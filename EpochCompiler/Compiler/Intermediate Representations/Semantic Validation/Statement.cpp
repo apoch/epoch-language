@@ -154,6 +154,7 @@ bool Statement::TypeInference(Program& program, CodeBlock& activescope, Inferenc
 			bool generatetypematch = false;
 			bool preferpatternmatchoverloads = false;
 			std::map<StringHandle, FunctionSignature> matchingoverloads;
+			std::map<StringHandle, FunctionSignature> overloadswithsameparamcount;
 
 			InferenceContext funccontext(0, InferenceContext::CONTEXT_GLOBAL);
 			unsigned overloadcount = program.GetNumFunctionOverloads(Name);
@@ -203,6 +204,8 @@ bool Statement::TypeInference(Program& program, CodeBlock& activescope, Inferenc
 					if(!matchedreturn)
 						continue;
 				}
+
+				overloadswithsameparamcount.insert(std::make_pair(overloadname, signature));
 				
 				bool match = true;
 				for(size_t j = 0; j < Parameters.size(); ++j)
@@ -292,7 +295,8 @@ bool Statement::TypeInference(Program& program, CodeBlock& activescope, Inferenc
 				}
 			}
 
-			if(generatetypematch && matchingoverloads.size() < totalexpectedpermutations)
+			// TODO - this check is WEAK SAUCE. Improve it somehow.
+			if(generatetypematch && overloadcount < totalexpectedpermutations)
 			{
 				errors.SetContext(OriginalIdentifier);
 				errors.SemanticError("Missing at least one overload for handling sum type decomposition");
@@ -319,30 +323,7 @@ bool Statement::TypeInference(Program& program, CodeBlock& activescope, Inferenc
 				}
 			}
 
-			if(matchingoverloads.size() == 1)
-			{					
-				Name = matchingoverloads.begin()->first;
-				MyType = matchingoverloads.begin()->second.GetReturnType();
-
-				for(size_t j = 0; j < Parameters.size(); ++j)
-				{
-					if(matchingoverloads.begin()->second.GetParameter(j).IsReference)
-					{
-						std::auto_ptr<ExpressionAtomIdentifier> atom(dynamic_cast<ExpressionAtomIdentifier*>(Parameters[j]->GetAtoms()[0]));
-						if(atom.get())
-						{
-							Parameters[j]->GetAtoms()[0] = new ExpressionAtomIdentifierReference(atom->GetIdentifier(), atom->GetOriginalIdentifier());
-							Parameters[j]->GetAtoms()[0]->TypeInference(program, activescope, newcontext, j, Parameters.size(), errors);
-						}
-						else
-						{
-							errors.SetContext(OriginalIdentifier);
-							errors.SemanticError("Parameter expects a reference, not a literal");
-						}
-					}
-				}
-			}
-			else if(generatetypematch)
+			if(generatetypematch)
 			{
 				std::vector<bool> paramsarereferences(Parameters.size(), false);
 
@@ -414,7 +395,30 @@ bool Statement::TypeInference(Program& program, CodeBlock& activescope, Inferenc
 						Parameters[j]->AddAtom(new ExpressionAtomTypeAnnotation(Parameters[j]->GetEpochType(program)));
 				}
 
-				Name = program.AllocateTypeMatcher(RawName, matchingoverloads);
+				Name = program.AllocateTypeMatcher(RawName, overloadswithsameparamcount);
+			}
+			else if(matchingoverloads.size() == 1)
+			{					
+				Name = matchingoverloads.begin()->first;
+				MyType = matchingoverloads.begin()->second.GetReturnType();
+
+				for(size_t j = 0; j < Parameters.size(); ++j)
+				{
+					if(matchingoverloads.begin()->second.GetParameter(j).IsReference)
+					{
+						std::auto_ptr<ExpressionAtomIdentifier> atom(dynamic_cast<ExpressionAtomIdentifier*>(Parameters[j]->GetAtoms()[0]));
+						if(atom.get())
+						{
+							Parameters[j]->GetAtoms()[0] = new ExpressionAtomIdentifierReference(atom->GetIdentifier(), atom->GetOriginalIdentifier());
+							Parameters[j]->GetAtoms()[0]->TypeInference(program, activescope, newcontext, j, Parameters.size(), errors);
+						}
+						else
+						{
+							errors.SetContext(OriginalIdentifier);
+							errors.SemanticError("Parameter expects a reference, not a literal");
+						}
+					}
+				}
 			}
 
 			if(MyType == VM::EpochType_Error || MyType == VM::EpochType_Infer)
