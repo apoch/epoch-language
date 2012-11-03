@@ -83,6 +83,9 @@ namespace IRSemantics
 		const std::vector<StringHandle>& GetLHS() const
 		{ return LHS; }
 
+		const VM::EpochTypeID GetLHSType() const
+		{ return LHSType; }
+
 		const AssignmentChain* GetRHS() const
 		{ return RHS; }
 
@@ -99,6 +102,9 @@ namespace IRSemantics
 	// Type inference
 	public:
 		bool TypeInference(IRSemantics::Program& program, CodeBlock& activescope, InferenceContext& context, CompileErrors& errors);
+
+	public:
+		bool WantsTypeAnnotation;
 
 	// Internal state
 	private:

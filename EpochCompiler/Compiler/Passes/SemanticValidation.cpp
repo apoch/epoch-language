@@ -74,7 +74,7 @@ namespace
 //
 void CompileConstructorStructure(IRSemantics::Statement& statement, IRSemantics::Program& program, IRSemantics::CodeBlock& activescope, bool inreturnexpr, CompileErrors& errors)
 {
-	const IRSemantics::ExpressionAtomIdentifier* atom = dynamic_cast<const IRSemantics::ExpressionAtomIdentifier*>(statement.GetParameters()[0]->GetAtoms()[0]);
+	const IRSemantics::ExpressionAtomIdentifierBase* atom = dynamic_cast<const IRSemantics::ExpressionAtomIdentifierBase*>(statement.GetParameters()[0]->GetAtoms()[0]);
 	VM::EpochTypeID effectivetype = program.LookupType(statement.GetRawName());
 	VariableOrigin origin = (inreturnexpr ? VARIABLE_ORIGIN_RETURN : VARIABLE_ORIGIN_LOCAL);
 	activescope.AddVariable(program.GetString(atom->GetIdentifier()), atom->GetIdentifier(), effectivetype, false, origin);
@@ -84,6 +84,7 @@ void CompileConstructorStructure(IRSemantics::Statement& statement, IRSemantics:
 	if(program.HasFunction(atom->GetIdentifier()))
 		errors.SemanticError("Variable name shadows a function of the same name");
 }
+
 
 //
 // Validate semantics for a program
@@ -1379,25 +1380,30 @@ void CompilePassSemantics::ExitHelper::operator () (AST::SumType&)
 
 void CompilePassSemantics::EntryHelper::operator () (AST::Nothing&)
 {
-	if(self->CurrentFunctions.empty())
+	if(self->StateStack.top() == CompilePassSemantics::STATE_FUNCTION_PARAM)
 	{
-		//
-		// This is a failure of the AST traversal.
-		//
-		// A function parameter definition node has been
-		// traversed outside the context of a function
-		// definition.
-		//
-		// Examine the AST generation and traversal logic.
-		//
-		throw InternalException("Attempted to traverse a function parameter definition AST node (\"nothing\") in an invalid context");
+		if(self->CurrentFunctions.empty())
+		{
+			//
+			// This is a failure of the AST traversal.
+			//
+			// A function parameter definition node has been
+			// traversed outside the context of a function
+			// definition.
+			//
+			// Examine the AST generation and traversal logic.
+			//
+			throw InternalException("Attempted to traverse a function parameter definition AST node (\"nothing\") in an invalid context");
+		}
+
+
+		StringHandle type = self->CurrentProgram->AddString(L"nothing");
+
+		std::auto_ptr<IRSemantics::FunctionParamNamed> irparam(new IRSemantics::FunctionParamNamed(type, false));
+		self->CurrentFunctions.back()->AddParameter(type, irparam.release(), self->Errors);
 	}
-
-
-	StringHandle type = self->CurrentProgram->AddString(L"nothing");
-
-	std::auto_ptr<IRSemantics::FunctionParamNamed> irparam(new IRSemantics::FunctionParamNamed(type, false));
-	self->CurrentFunctions.back()->AddParameter(type, irparam.release(), self->Errors);
+	else
+		throw InternalException("Unexpected 'nothing'");
 }
 
 

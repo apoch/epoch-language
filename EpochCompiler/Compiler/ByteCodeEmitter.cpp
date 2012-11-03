@@ -626,6 +626,11 @@ void ByteCodeEmitter::AssignVariableThroughIdentifier()
 	EmitInstruction(Bytecode::Instructions::AssignThroughIdentifier);
 }
 
+void ByteCodeEmitter::AssignSumTypeVariable()
+{
+	EmitInstruction(Bytecode::Instructions::AssignSumType);
+}
+
 //
 // Emit an instruction for copying the value of a referenced variable onto the stack
 //
@@ -889,7 +894,10 @@ void ByteCodeEmitter::ResolveTypes(StringHandle dispatchfunction, const Function
 	EmitRawValue(dispatchfunction);
 	EmitRawValue(signature.GetNumParameters());
 	for(size_t i = 0; i < signature.GetNumParameters(); ++i)
+	{
+		EmitRawValue(signature.GetParameter(i).IsReference);
 		EmitTypeAnnotation(signature.GetParameter(i).Type);
+	}
 }
 
 void ByteCodeEmitter::DefineSumType(VM::EpochTypeID sumtypeid, const std::set<VM::EpochTypeID>& basetypes)
@@ -901,10 +909,20 @@ void ByteCodeEmitter::DefineSumType(VM::EpochTypeID sumtypeid, const std::set<VM
 		EmitTypeAnnotation(*iter);
 }
 
+void ByteCodeEmitter::ConstructSumType()
+{
+	EmitInstruction(Bytecode::Instructions::ConstructSumType);
+}
+
 void ByteCodeEmitter::PushTypeAnnotation(VM::EpochTypeID type)
 {
 	EmitInstruction(Bytecode::Instructions::Push);
 	EmitTypeAnnotation(VM::EpochType_Integer);
 	EmitRawValue(type);
+}
+
+void ByteCodeEmitter::TypeAnnotationFromRegister()
+{
+	EmitInstruction(Bytecode::Instructions::TypeFromRegister);
 }
 

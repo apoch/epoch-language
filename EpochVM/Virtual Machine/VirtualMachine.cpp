@@ -467,7 +467,6 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 					StringHandle membername = Fetch<StringHandle>();
 					
 					StructureHandle readstruct = Variables->Read<StructureHandle>(variablename);
-					//StringHandle actualmember = Variables->Read<StringHandle>(membername);
 
 					ActiveStructure& structure = OwnerVM.GetStructure(readstruct);
 
@@ -480,7 +479,9 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 						State.ReturnValueRegister.SumType = true;
 					}
 					else
+					{
 						State.ReturnValueRegister.SumType = false;
+					}
 
 					switch(membertype)
 					{
@@ -512,9 +513,13 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 						State.ReturnValueRegister.SetFunction(structure.ReadMember<StringHandle>(memberindex));
 						break;
 
+					case EpochType_Nothing:
+						State.ReturnValueRegister.Type = EpochType_Nothing;
+						break;
+
 					default:
 						if(GetTypeFamily(membertype) == EpochTypeFamily_Structure)
-							State.ReturnValueRegister.SetStructure(structure.ReadMember<StructureHandle>(memberindex), structure.Definition.GetMemberType(memberindex));
+							State.ReturnValueRegister.SetStructure(structure.ReadMember<StructureHandle>(memberindex), membertype);
 						else
 							throw FatalException("Unhandled structure member type");
 
@@ -607,7 +612,7 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 					}
 					else
 					{
-						State.Stack.PushValue(Variables->GetOriginalDescription().GetVariableTypeByID(target));
+						State.Stack.PushValue(Variables->GetActualType(target));
 						State.Stack.PushValue(Variables->GetVariableStorageLocation(target));
 					}
 
@@ -630,6 +635,9 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 					size_t memberindex = definition.FindMember(member);
 					size_t offset = definition.GetMemberOffset(memberindex);
 
+					if(GetTypeFamily(definition.GetMemberType(memberindex)) == EpochTypeFamily_SumType)
+						offset += sizeof(EpochTypeID);
+
 					void* memberstoragelocation = &(structure.Storage[0]) + offset;
 
 					State.Stack.PushValue(definition.GetMemberType(memberindex));
@@ -648,6 +656,9 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 					const StructureDefinition& definition = structure.Definition;
 					size_t memberindex = definition.FindMember(member);
 					size_t offset = definition.GetMemberOffset(memberindex);
+
+					if(GetTypeFamily(definition.GetMemberType(memberindex)) == EpochTypeFamily_SumType)
+						offset += sizeof(EpochTypeID);
 
 					void* memberstoragelocation = &(structure.Storage[0]) + offset;
 
@@ -697,6 +708,18 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 					EpochTypeID targettype = State.Stack.PopValue<EpochTypeID>();
 					StringHandle identifier = State.Stack.PopValue<StringHandle>();
 					Variables->WriteFromStack(Variables->GetVariableStorageLocation(identifier), targettype, State.Stack);
+					continue;
+				}
+				break;
+
+			case Bytecode::Instructions::AssignSumType:
+				{
+					void* targetstorage = State.Stack.PopValue<void*>();
+					State.Stack.PopValue<EpochTypeID>();
+					EpochTypeID actualtype = State.Stack.PopValue<EpochTypeID>();
+					Variables->WriteFromStack(targetstorage, actualtype, State.Stack);
+					void* typestorage = reinterpret_cast<char*>(targetstorage) - sizeof(EpochTypeID);
+					*reinterpret_cast<EpochTypeID*>(typestorage) = actualtype;
 					continue;
 				}
 				break;
@@ -1025,45 +1048,199 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 
 					const char* stackptr = reinterpret_cast<const char*>(State.Stack.GetCurrentTopOfStack());
 
-					std::vector<EpochTypeID> providedtypes;
-					providedtypes.reserve(paramcount);
+					std::vector<EpochTypeID> expectedtypes;
+					std::vector<bool> expectedisrefs;
+					std::vector<bool> providedrefs;
+					std::vector<bool> providednothing;
+					std::vector<bool> inlineref(paramcount, false);
+					std::vector<bool> providednothingref(paramcount, false);
+
+					expectedtypes.reserve(paramcount);
+					expectedisrefs.reserve(paramcount);
+
 					for(size_t i = 0; i < paramcount; ++i)
 					{
-						EpochTypeID paramtype = *reinterpret_cast<const EpochTypeID*>(stackptr);
-						providedtypes.push_back(paramtype);
+						bool isref = Fetch<bool>();
+						EpochTypeID expectedtype = Fetch<EpochTypeID>();
 
-						stackptr += sizeof(EpochTypeID);
-						stackptr += GetStorageSize(paramtype);
+						expectedtypes.push_back(expectedtype);
+						expectedisrefs.push_back(isref);
 					}
 
-					std::reverse(providedtypes.begin(), providedtypes.end());
+					std::reverse(expectedtypes.begin(), expectedtypes.end());
+					std::reverse(expectedisrefs.begin(), expectedisrefs.end());
 
 					bool match = true;
 					for(size_t i = 0; i < paramcount; ++i)
 					{
-						EpochTypeID expectedtype = Fetch<EpochTypeID>();
-						EpochTypeID providedtype = providedtypes[i];
-						if(providedtype != expectedtype)
+						EpochTypeID providedtype;
+						bool providedref = false;
+
+						if(!expectedisrefs[i])
+						{
+							providedtype = *reinterpret_cast<const EpochTypeID*>(stackptr);
+							while(GetTypeFamily(providedtype) == EpochTypeFamily_SumType)
+							{
+								stackptr += sizeof(EpochTypeID);
+								providedtype = *reinterpret_cast<const EpochTypeID*>(stackptr);
+							}
+
+							if(providedtype == EpochType_RefFlag)
+							{
+								providedref = true;
+								stackptr += sizeof(EpochTypeID);
+
+								if(expectedtypes[i] == EpochType_Nothing && *reinterpret_cast<const EpochTypeID*>(stackptr) == EpochType_Nothing)
+								{
+									providedtype = EpochType_Nothing;
+									stackptr += sizeof(EpochTypeID);
+								}
+								else
+								{
+									const void* reftarget = *reinterpret_cast<const void* const*>(stackptr);
+									stackptr += sizeof(void*);
+									EpochTypeID reftype = *reinterpret_cast<const EpochTypeID*>(stackptr);
+									if(reftype == EpochType_Nothing && expectedtypes[i] == EpochType_Nothing)
+									{
+										providedtype = reftype;
+										providednothingref[i] = true;
+									}
+									else if(GetTypeFamily(reftype) == EpochTypeFamily_SumType)
+									{
+										const UByte* reftypeptr = reinterpret_cast<const UByte*>(reftarget) - sizeof(EpochTypeID);
+										reftype = *reinterpret_cast<const EpochTypeID*>(reftypeptr);
+										if(reftype == EpochType_Nothing && expectedtypes[i] == EpochType_Nothing)
+											providedtype = reftype;
+										else
+										{
+											match = false;
+											break;
+										}
+									}
+									else
+									{
+										match = false;
+										break;
+									}
+								}
+							}
+							else if(expectedtypes[i] == EpochType_Nothing)
+								stackptr += sizeof(EpochTypeID);
+							else
+							{
+								stackptr += sizeof(EpochTypeID);
+								stackptr += GetStorageSize(providedtype);
+							}
+						}
+						else
+						{
+							EpochTypeID magic = *reinterpret_cast<const EpochTypeID*>(stackptr);
+							if(magic == EpochType_RefFlag)
+							{
+								providedref = true;
+								stackptr += sizeof(EpochTypeID);
+								const char* reftarget = *reinterpret_cast<const char* const*>(stackptr);
+								stackptr += sizeof(void*);
+								providedtype = *reinterpret_cast<const EpochTypeID*>(stackptr);
+
+								if(providedtype == EpochType_Nothing)
+									providednothingref[i] = true;
+
+								if(stackptr == reftarget)
+								{
+									stackptr += GetStorageSize(providedtype);
+									inlineref[i] = true;
+								}
+
+								stackptr += sizeof(EpochTypeID);
+
+								if(GetTypeFamily(providedtype) == EpochTypeFamily_SumType)
+								{
+									reftarget -= sizeof(EpochTypeID);
+									providedtype = *reinterpret_cast<const EpochTypeID*>(reftarget);
+								}
+							}
+							else
+							{
+								match = false;
+								break;
+							}
+						}
+
+						if(providedtype != expectedtypes[i])
 						{
 							match = false;
 							break;
 						}
+
+						providedrefs.push_back(providedref);
+						providednothing.push_back(providedtype == EpochType_Nothing);
 					}
 
 					if(match)
 					{
+						//
+						// Adjust the stack contents to copy out the type identifiers
+						// that were passed in to the type matching function, so that
+						// the dispatch target gets parameters in the expected format
+						// as if it were called directly.
+						//
+						// To accomplish this, we need to start at the final argument
+						// and work our way back up to the top of the stack. Luckily,
+						// we already know the offset of that argument, since we just
+						// got done walking *down* to find it.
+						//
+
 						char* destptr = const_cast<char*>(stackptr);
 
-						for(size_t i = providedtypes.size(); i-- > 0; )
+						for(size_t i = paramcount; i-- > 0; )
 						{
-							EpochTypeID paramtype = providedtypes[i];
-							
-							stackptr -= GetStorageSize(paramtype);
-							destptr -= GetStorageSize(paramtype);
+							EpochTypeID paramtype = expectedtypes[i];
+							bool isref = providedrefs[i];
 
-							memcpy(destptr, stackptr, GetStorageSize(paramtype));							
+							if(!isref)
+							{
+								size_t paramsize = GetStorageSize(paramtype);
+	
+								// Adjust upwards to find the offset of the argument's
+								// first byte on the stack. This assumes we start with
+								// stackptr pointing just past the end of the argument
+								// on the stack
+								stackptr -= paramsize;
 
-							stackptr -= sizeof(EpochTypeID);
+								// Adjust copy destination upwards accordingly
+								destptr -= paramsize;
+
+								// Copy the value of the argument down the stack
+								memcpy(destptr, stackptr, paramsize);
+
+								// Adjust the copy source to reflect the fact that we
+								// need to skip past the type annotation on the stack
+								stackptr -= sizeof(EpochTypeID);
+							}
+							else
+							{
+								const size_t REFERENCE_SIZE = sizeof(void*) + sizeof(EpochTypeID);
+
+								if(inlineref[i])
+									stackptr -= sizeof(EpochTypeID);
+
+								if(providednothing[i])
+								{
+									stackptr -= sizeof(EpochTypeID);
+
+									if(providednothingref[i])
+										stackptr -= sizeof(EpochTypeID);
+								}
+								else
+								{
+									destptr -= REFERENCE_SIZE;
+									stackptr -= REFERENCE_SIZE;
+									memcpy(destptr, stackptr, REFERENCE_SIZE);
+								}
+
+								stackptr -= sizeof(EpochTypeID);
+							}
 						}
 
 						State.Stack.Pop(destptr - stackptr);
@@ -1073,6 +1250,38 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 						InstructionOffset = internaloffset;
 						scope = &OwnerVM.GetScopeDescription(dispatchfunction);
 					}
+				}
+				break;
+
+			case Bytecode::Instructions::ConstructSumType:
+				{
+					EpochTypeID vartype = State.Stack.PopValue<EpochTypeID>();
+					size_t varsize = GetStorageSize(vartype);
+
+					const UByte* stackptr = reinterpret_cast<const UByte*>(State.Stack.GetCurrentTopOfStack());
+					const UByte* targetidptr = stackptr + varsize;
+
+					StringHandle targetid = *reinterpret_cast<const StringHandle*>(targetidptr);
+
+					UByte* varptr = reinterpret_cast<UByte*>(Variables->GetVariableStorageLocation(targetid));
+					UByte* typeptr = varptr - sizeof(EpochTypeID);
+					memcpy(varptr, stackptr, varsize);
+
+					*reinterpret_cast<EpochTypeID*>(typeptr) = vartype;
+
+					State.Stack.Pop(varsize + sizeof(StringHandle));
+
+					Variables->SetActualType(targetid, vartype);
+				}
+				break;
+
+			case Bytecode::Instructions::TypeFromRegister:
+				if(State.ReturnValueRegister.Type != EpochType_Nothing)
+				{
+					void* stackptr = State.Stack.GetCurrentTopOfStack();
+					if(!State.ReturnValueRegister.SumType)
+						State.Stack.PushValue(State.ReturnValueRegister.Type);
+					State.Stack.PushValue(stackptr);
 				}
 				break;
 			
@@ -1265,10 +1474,13 @@ void ExecutionContext::Load()
 		case Bytecode::Instructions::Return:
 		case Bytecode::Instructions::Assign:
 		case Bytecode::Instructions::AssignThroughIdentifier:
+		case Bytecode::Instructions::AssignSumType:
 		case Bytecode::Instructions::ReadRef:
 		case Bytecode::Instructions::BindRef:
 		case Bytecode::Instructions::CopyBuffer:
 		case Bytecode::Instructions::CopyStructure:
+		case Bytecode::Instructions::ConstructSumType:
+		case Bytecode::Instructions::TypeFromRegister:
 			break;
 
 		// Single-bye operations with one payload field
@@ -1352,7 +1564,10 @@ void ExecutionContext::Load()
 				Fetch<StringHandle>();
 				size_t paramcount = Fetch<size_t>();
 				for(size_t i = 0; i < paramcount; ++i)
+				{
+					Fetch<bool>();
 					Fetch<EpochTypeID>();
+				}
 			}
 			break;
 		
@@ -1514,6 +1729,7 @@ StructureHandle VirtualMachine::DeepCopy(StructureHandle handle)
 		case EpochType_Integer16:		clone.WriteMember(i, original.ReadMember<Integer16>(i));			break;
 		case EpochType_Real:			clone.WriteMember(i, original.ReadMember<Real32>(i));				break;
 		case EpochType_String:			clone.WriteMember(i, original.ReadMember<StringHandle>(i));			break;
+		case EpochType_Nothing:																				break;
 
 		default:
 			if(GetTypeFamily(membertype) == EpochTypeFamily_Structure)
@@ -1794,6 +2010,9 @@ void ExecutionContext::WriteStructureMember(ActiveStructure& structure, size_t m
 
 	case EpochType_Function:
 		structure.WriteMember(memberindex, State.Stack.PopValue<StringHandle>());
+		break;
+
+	case EpochType_Nothing:
 		break;
 
 	default:

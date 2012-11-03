@@ -159,14 +159,21 @@ namespace
 		}
 		else if(const IRSemantics::ExpressionAtomIdentifier* atom = dynamic_cast<const IRSemantics::ExpressionAtomIdentifier*>(rawatom))
 		{
-			if(program.HasFunction(atom->GetIdentifier()) || (program.LookupType(atom->GetIdentifier()) != VM::EpochType_Error))
-				emitter.PushStringLiteral(atom->GetIdentifier());
+			if(atom->GetEpochType(program) == VM::EpochType_Nothing)
+			{
+				// Do nothing!
+			}
 			else
 			{
-				if(atom->GetEpochType(program) == VM::EpochType_Identifier || atom->GetEpochType(program) == VM::EpochType_Function)
+				if(program.HasFunction(atom->GetIdentifier()) || (program.LookupType(atom->GetIdentifier()) != VM::EpochType_Error))
 					emitter.PushStringLiteral(atom->GetIdentifier());
 				else
-					emitter.PushVariableValue(atom->GetIdentifier(), activescope.GetVariableTypeByID(atom->GetIdentifier()));
+				{
+					if(atom->GetEpochType(program) == VM::EpochType_Identifier || atom->GetEpochType(program) == VM::EpochType_Function)
+						emitter.PushStringLiteral(atom->GetIdentifier());
+					else
+						emitter.PushVariableValue(atom->GetIdentifier(), activescope.GetVariableTypeByID(atom->GetIdentifier()));
+				}
 			}
 		}
 		else if(const IRSemantics::ExpressionAtomOperator* atom = dynamic_cast<const IRSemantics::ExpressionAtomOperator*>(rawatom))
@@ -208,6 +215,10 @@ namespace
 		else if(const IRSemantics::ExpressionAtomTypeAnnotation* atom = dynamic_cast<const IRSemantics::ExpressionAtomTypeAnnotation*>(rawatom))
 		{
 			emitter.PushTypeAnnotation(atom->GetEpochType(program));
+		}
+		else if(const IRSemantics::ExpressionAtomTypeAnnotationFromRegister* atom = dynamic_cast<const IRSemantics::ExpressionAtomTypeAnnotationFromRegister*>(rawatom))
+		{
+			emitter.TypeAnnotationFromRegister();
 		}
 		else
 		{
@@ -265,6 +276,8 @@ namespace
 			emitter.InvokeIndirect(statement.GetName());
 		else if(program.FunctionNeedsDynamicPatternMatching(statement.GetName()))
 			emitter.Invoke(program.GetDynamicPatternMatcherForFunction(statement.GetName()));
+		else if(VM::GetTypeFamily(program.LookupType(statement.GetName())) == VM::EpochTypeFamily_SumType)
+			emitter.ConstructSumType();
 		else
 			emitter.Invoke(statement.GetName());
 	}
@@ -311,8 +324,15 @@ namespace
 		if(program.GetString(assignment.GetOperatorName()) != L"=")
 			emitter.Invoke(assignment.GetOperatorName());
 
+		if(assignment.WantsTypeAnnotation)
+			emitter.PushTypeAnnotation(assignment.GetRHS()->GetEpochType(program));
+
 		BindReference(emitter, assignment.GetLHS());
-		emitter.AssignVariable();
+
+		if(VM::GetTypeFamily(assignment.GetLHSType()) == VM::EpochTypeFamily_SumType)
+			emitter.AssignSumTypeVariable();
+		else
+			emitter.AssignVariable();
 
 		if(pushlhs)
 		{
@@ -475,7 +495,9 @@ bool CompilerPasses::GenerateCode(const IRSemantics::Program& program, ByteCodeE
 
 	std::map<VM::EpochTypeID, std::set<VM::EpochTypeID> > sumtypes = program.GetSumTypes();
 	for(std::map<VM::EpochTypeID, std::set<VM::EpochTypeID> >::const_iterator iter = sumtypes.begin(); iter != sumtypes.end(); ++iter)
+	{
 		emitter.DefineSumType(iter->first, iter->second);
+	}
 
 
 	DependencyGraph<VM::EpochTypeID> structuredependencies;

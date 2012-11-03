@@ -258,21 +258,17 @@ bool Function::TypeInference(Program& program, InferenceContext&, CompileErrors&
 	if(InferenceDone)
 		return true;
 
+	InferenceDone = true;
+
 	if(!Code)
-	{
-		InferenceDone = true;
 		return true;
-	}
 
 	if(Return)
 	{
 		InferenceContext newcontext(Name, InferenceContext::CONTEXT_FUNCTION_RETURN);
 		newcontext.FunctionName = Name;
 		if(!Return->TypeInference(program, *Code, newcontext, 0, 1, errors))
-		{
-			InferenceDone = true;
 			return false;
-		}
 
 		VM::EpochTypeID rettype = Return->GetEpochType(program);
 		if(rettype != VM::EpochType_Void)
@@ -293,10 +289,7 @@ bool Function::TypeInference(Program& program, InferenceContext&, CompileErrors&
 	}
 
 	if(!result)
-	{
-		InferenceDone = true;
 		return false;
-	}
 
 	program.AddScope(Code->GetScope());		// TODO - better solution than aliasing the scope
 	program.AddScope(Code->GetScope(), Name);
@@ -304,7 +297,6 @@ bool Function::TypeInference(Program& program, InferenceContext&, CompileErrors&
 	InferenceContext newcontext(Name, InferenceContext::CONTEXT_FUNCTION);
 	newcontext.FunctionName = Name;
 	result = Code->TypeInference(program, newcontext, errors);
-	InferenceDone = true;
 	return result;
 }
 

@@ -31,7 +31,8 @@ Assignment::Assignment(const std::vector<StringHandle>& lhs, StringHandle operat
 	  OperatorName(operatorname),
 	  RHS(NULL),
 	  LHSType(VM::EpochType_Error),
-	  OriginalLHS(originallhs)
+	  OriginalLHS(originallhs),
+	  WantsTypeAnnotation(false)
 {
 }
 
@@ -124,7 +125,16 @@ bool Assignment::TypeInference(Program& program, CodeBlock& activescope, Inferen
 	VM::EpochTypeID RHSType = RHS->GetEpochType(program);
 	if(LHSType != RHSType)
 	{
-		if(VM::GetTypeFamily(LHSType) != VM::EpochTypeFamily_Unit || program.StrongTypeAliasRepresentations[LHSType] != RHSType)
+		if(VM::GetTypeFamily(LHSType) == VM::EpochTypeFamily_Unit && program.StrongTypeAliasRepresentations[LHSType] == RHSType)
+		{
+			// OK
+		}
+		else if(VM::GetTypeFamily(LHSType) == VM::EpochTypeFamily_SumType && program.SumTypeHasTypeAsBase(LHSType, RHSType))
+		{
+			// OK
+			WantsTypeAnnotation = true;
+		}
+		else
 		{
 			errors.SetContext(OriginalLHS);
 			errors.SemanticError("Left-hand side of assignment differs in type from right-hand side");

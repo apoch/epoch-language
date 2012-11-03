@@ -45,6 +45,8 @@ public:
 
 	void PopScopeOffStack(VM::ExecutionContext& context);
 
+	void SetActualType(StringHandle varname, VM::EpochTypeID type);
+
 // Variable manipulation interface
 public:
 	template <typename T>
@@ -103,6 +105,8 @@ public:
 // State queries
 public:
 	bool HasReturnVariable() const;
+
+	VM::EpochTypeID GetActualType(StringHandle varname) const;
 
 // Access to original definition metadata
 public:

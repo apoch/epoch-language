@@ -126,13 +126,17 @@ public:
 public:
 	void AssignVariable();
 	void AssignVariableThroughIdentifier();
+	void AssignSumTypeVariable();
 	void ReadReferenceOntoStack();
+	
+	void TypeAnnotationFromRegister();
 
 	void PoolString(StringHandle handle, const std::wstring& literalvalue);
 
 	void TagData(StringHandle entityname, const std::wstring& tag, const std::vector<std::wstring>& tagdata);
 
 	void DefineSumType(VM::EpochTypeID sumtypeid, const std::set<VM::EpochTypeID>& basetypes);
+	void ConstructSumType();
 
 // Additional helpers for writing to the data stream
 public:

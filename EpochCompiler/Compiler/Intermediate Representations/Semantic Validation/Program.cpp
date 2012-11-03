@@ -324,6 +324,68 @@ bool Program::CompileTimeCodeExecution(CompileErrors& errors)
 			return false;
 	}
 
+	for(std::map<VM::EpochTypeID, std::set<StringHandle> >::const_iterator iter = SumTypeBaseTypeNames.begin(); iter != SumTypeBaseTypeNames.end(); ++iter)
+	{
+		VM::EpochTypeID sumtypeid = iter->first;
+
+		// TODO - refactor a bit
+		//////////////////////////////////////
+		std::wostringstream overloadnamebuilder;
+		overloadnamebuilder << L"@@sumtypeconstructor@" << sumtypeid << L"@" << sumtypeid;
+		StringHandle sumtypeconstructorname = 0;
+		for(std::map<StringHandle, VM::EpochTypeID>::const_iterator niter = SumTypeNames.begin(); niter != SumTypeNames.end(); ++niter)
+		{
+			if(niter->second == sumtypeid)
+			{
+				sumtypeconstructorname = niter->first;
+				break;
+			}
+		}
+
+		if(!sumtypeconstructorname)
+			throw InternalException("Missing sum type name mapping");
+
+		StringHandle overloadname = AddString(overloadnamebuilder.str());
+		Session.FunctionOverloadNames[sumtypeconstructorname].insert(overloadname);
+
+		FunctionSignature signature;
+		signature.AddParameter(L"@id", VM::EpochType_Identifier, false);
+		signature.AddParameter(L"@value", sumtypeid, false);
+
+		// TODO - evil hackery here
+		Session.CompileTimeHelpers.insert(std::make_pair(sumtypeconstructorname, Session.CompileTimeHelpers.find(FindString(L"integer"))->second));
+		Session.FunctionSignatures.insert(std::make_pair(overloadname, signature));
+		SumTypeConstructorNames[overloadname] = sumtypeconstructorname;
+		//////////////////////////////////////
+
+		for(std::set<StringHandle>::const_iterator btiter = iter->second.begin(); btiter != iter->second.end(); ++btiter)
+		{
+			StringHandle basetypename = *btiter;
+
+			std::wostringstream overloadnamebuilder;
+			overloadnamebuilder << L"@@sumtypeconstructor@" << sumtypeid << L"@" << GetString(basetypename);
+			StringHandle sumtypeconstructorname = 0;
+			for(std::map<StringHandle, VM::EpochTypeID>::const_iterator iter = SumTypeNames.begin(); iter != SumTypeNames.end(); ++iter)
+			{
+				if(iter->second == sumtypeid)
+				{
+					sumtypeconstructorname = iter->first;
+					break;
+				}
+			}
+
+			if(!sumtypeconstructorname)
+				throw InternalException("Missing sum type name mapping");
+
+			StringHandle overloadname = AddString(overloadnamebuilder.str());
+			Session.FunctionOverloadNames[sumtypeconstructorname].insert(overloadname);
+
+			Session.CompileTimeHelpers.insert(std::make_pair(overloadname, Session.CompileTimeHelpers.find(basetypename)->second));
+			Session.FunctionSignatures.insert(std::make_pair(overloadname, Session.FunctionSignatures.find(basetypename)->second));
+			SumTypeConstructorNames[overloadname] = basetypename;
+		}
+	}
+
 	// TODO - re-enable global stuffs
 	/*for(std::vector<CodeBlock*>::iterator iter = GlobalCodeBlocks.begin(); iter != GlobalCodeBlocks.end(); ++iter)
 	{
@@ -864,28 +926,6 @@ VM::EpochTypeID Program::AddSumType(const std::wstring& name, CompileErrors& err
 void Program::AddSumTypeBase(VM::EpochTypeID sumtypeid, StringHandle basetypename)
 {
 	SumTypeBaseTypeNames[sumtypeid].insert(basetypename);
-
-	std::wostringstream overloadnamebuilder;
-	overloadnamebuilder << L"@@sumtypeconstructor@" << sumtypeid << L"@" << GetString(basetypename);
-	StringHandle sumtypeconstructorname = 0;
-	for(std::map<StringHandle, VM::EpochTypeID>::const_iterator iter = SumTypeNames.begin(); iter != SumTypeNames.end(); ++iter)
-	{
-		if(iter->second == sumtypeid)
-		{
-			sumtypeconstructorname = iter->first;
-			break;
-		}
-	}
-
-	if(!sumtypeconstructorname)
-		throw InternalException("Missing sum type name mapping");
-
-	StringHandle overloadname = AddString(overloadnamebuilder.str());
-	Session.FunctionOverloadNames[sumtypeconstructorname].insert(overloadname);
-
-	Session.CompileTimeHelpers.insert(std::make_pair(overloadname, Session.CompileTimeHelpers.find(basetypename)->second));
-	Session.FunctionSignatures.insert(std::make_pair(overloadname, Session.FunctionSignatures.find(basetypename)->second));
-	SumTypeConstructorNames[overloadname] = basetypename;
 }
 
 StringHandle Program::MapConstructorNameForSumType(StringHandle sumtypeoverloadname)

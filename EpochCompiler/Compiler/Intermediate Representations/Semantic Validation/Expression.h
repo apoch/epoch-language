@@ -288,11 +288,11 @@ namespace IRSemantics
 	//
 	// Expression atom wrapping a single identifier
 	//
-	class ExpressionAtomIdentifier : public ExpressionAtom
+	class ExpressionAtomIdentifierBase : public ExpressionAtom
 	{
 	// Construction
 	public:
-		ExpressionAtomIdentifier(StringHandle identifier, const AST::IdentifierT& originalidentifier)
+		ExpressionAtomIdentifierBase(StringHandle identifier, const AST::IdentifierT& originalidentifier)
 			: Identifier(identifier),
 			  MyType(VM::EpochType_Error),
 			  OriginalIdentifier(originalidentifier)
@@ -300,7 +300,7 @@ namespace IRSemantics
 
 	// Non-assignable
 	private:
-		ExpressionAtomIdentifier& operator = (const ExpressionAtomIdentifier& rhs);
+		ExpressionAtomIdentifierBase& operator = (const ExpressionAtomIdentifierBase& rhs);
 
 	// Accessors
 	public:
@@ -327,16 +327,26 @@ namespace IRSemantics
 	};
 
 
+	class ExpressionAtomIdentifier : public ExpressionAtomIdentifierBase
+	{
+	// Construction
+	public:
+		ExpressionAtomIdentifier(StringHandle identifier, const AST::IdentifierT& originalidentifier)
+			: ExpressionAtomIdentifierBase(identifier, originalidentifier)
+		{ }
+	};
+
+
 	//
 	// Special marker class used for signaling that an
 	// identifier should be handled as a reference.
 	//
-	class ExpressionAtomIdentifierReference : public ExpressionAtomIdentifier
+	class ExpressionAtomIdentifierReference : public ExpressionAtomIdentifierBase
 	{
 	// Construction
 	public:
 		ExpressionAtomIdentifierReference(StringHandle identifier, const AST::IdentifierT& originalidentifier)
-			: ExpressionAtomIdentifier(identifier, originalidentifier)
+			: ExpressionAtomIdentifierBase(identifier, originalidentifier)
 		{ }
 	};
 
@@ -701,6 +711,43 @@ namespace IRSemantics
 	// Internal state
 	private:
 		VM::EpochTypeID MyType;
+	};
+
+	class ExpressionAtomTypeAnnotationFromRegister : public ExpressionAtom
+	{
+	// Construction
+	public:
+		ExpressionAtomTypeAnnotationFromRegister()
+		{ }
+
+	// Non-copyable
+	private:
+		ExpressionAtomTypeAnnotationFromRegister(const ExpressionAtomTypeAnnotationFromRegister& other);
+		ExpressionAtomTypeAnnotationFromRegister& operator = (const ExpressionAtomTypeAnnotationFromRegister& rhs);
+
+	// Atom interface
+	public:
+		virtual VM::EpochTypeID GetEpochType(const Program&) const
+		{ return VM::EpochType_Error; }
+
+		virtual bool TypeInference(Program&, CodeBlock&, InferenceContext&, size_t, size_t, CompileErrors&)
+		{ return true; }
+
+		virtual bool CompileTimeCodeExecution(Program&, CodeBlock&, bool, CompileErrors&)
+		{ return true; }
+		
+		virtual CompileTimeParameter ConvertToCompileTimeParam(const Program&) const
+		{
+			//
+			// This type of atom is a special marker and not a value, therefore
+			// it should never be converted to a compile-time parameter.
+			//
+			// Check the call stack and verify that the expression being converted
+			// to compile-time parameters is sane, and that this atom is actually
+			// legitimately placed.
+			//
+			throw InternalException("Invalid atom type for compile time parameter");
+		}
 	};
 
 }

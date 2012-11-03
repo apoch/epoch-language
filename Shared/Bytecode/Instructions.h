@@ -70,6 +70,12 @@ namespace Bytecode
 
 		static const Instruction TypeMatch = 0x20;
 
+		static const Instruction ConstructSumType = 0x21;
+
+		static const Instruction TypeFromRegister = 0x22;
+
+		static const Instruction AssignSumType = 0x23;
+
 	}
 
 }

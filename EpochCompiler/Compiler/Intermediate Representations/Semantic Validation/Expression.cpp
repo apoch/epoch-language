@@ -891,7 +891,7 @@ bool ParentheticalExpression::CompileTimeCodeExecution(Program& program, CodeBlo
 // Note that this requires the atom to have undergone type
 // inference prior to the call, or results will be bogus.
 //
-VM::EpochTypeID ExpressionAtomIdentifier::GetEpochType(const Program&) const
+VM::EpochTypeID ExpressionAtomIdentifierBase::GetEpochType(const Program&) const
 {
 	return MyType;
 }
@@ -899,7 +899,7 @@ VM::EpochTypeID ExpressionAtomIdentifier::GetEpochType(const Program&) const
 //
 // Perform type inference on an identifier atom
 //
-bool ExpressionAtomIdentifier::TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, size_t index, size_t maxindex, CompileErrors& errors)
+bool ExpressionAtomIdentifierBase::TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, size_t index, size_t maxindex, CompileErrors& errors)
 {
 	// Early out to avoid duplicate inference work
 	if(MyType != VM::EpochType_Error)
@@ -908,6 +908,10 @@ bool ExpressionAtomIdentifier::TypeInference(Program& program, CodeBlock& active
 	bool foundidentifier = activescope.GetScope()->HasVariable(Identifier);
 	StringHandle resolvedidentifier = Identifier;
 	VM::EpochTypeID vartype = foundidentifier ? activescope.GetScope()->GetVariableTypeByID(Identifier) : VM::EpochType_Infer;
+
+	if(program.GetString(Identifier) == L"nothing")
+		vartype = VM::EpochType_Nothing;
+
 	VM::EpochTypeID underlyingtype = vartype;
 
 	if(foundidentifier && VM::GetTypeFamily(vartype) == VM::EpochTypeFamily_Unit)
@@ -1007,12 +1011,11 @@ bool ExpressionAtomIdentifier::TypeInference(Program& program, CodeBlock& active
 //
 // Identifier atoms do not need compile time code execution
 //
-bool ExpressionAtomIdentifier::CompileTimeCodeExecution(Program&, CodeBlock&, bool, CompileErrors&)
+bool ExpressionAtomIdentifierBase::CompileTimeCodeExecution(Program&, CodeBlock&, bool, CompileErrors&)
 {
 	// No op
 	return true;
 }
-
 
 //
 // Operator atoms do not inherently carry a type

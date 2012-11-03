@@ -141,7 +141,10 @@ bool Statement::TypeInference(Program& program, CodeBlock& activescope, Inferenc
 		++i;
 	}
 
-	if(context.State != InferenceContext::CONTEXT_FUNCTION_RETURN || VM::GetTypeFamily(MyType) == VM::EpochTypeFamily_Structure)
+	if(
+		   context.State != InferenceContext::CONTEXT_FUNCTION_RETURN
+		|| VM::GetTypeFamily(MyType) == VM::EpochTypeFamily_Structure
+	  )
 	{
 		if(program.HasFunction(Name))
 		{
@@ -184,6 +187,9 @@ bool Statement::TypeInference(Program& program, CodeBlock& activescope, Inferenc
 					const InferenceContext::PossibleParameterTypes& possibles = context.ExpectedTypes.back();
 					for(size_t j = 0; j < possibles.size(); ++j)
 					{
+						if(possibles[j].size() <= index)
+							continue;
+
 						if(possibles[j][index] == funcreturntype || possibles[j][index] == underlyingreturntype)
 						{
 							matchedreturn = true;
@@ -209,7 +215,7 @@ bool Statement::TypeInference(Program& program, CodeBlock& activescope, Inferenc
 								match = false;
 								break;
 							}
-							else
+							else if(VM::GetTypeFamily(providedparamtype) != VM::EpochTypeFamily_SumType)
 								Parameters[j]->AddAtom(new ExpressionAtomTypeAnnotation(providedparamtype));
 						}
 						else if(VM::GetTypeFamily(providedparamtype) == VM::EpochTypeFamily_SumType)
@@ -284,6 +290,8 @@ bool Statement::TypeInference(Program& program, CodeBlock& activescope, Inferenc
 			}
 			else if(generatetypematch)
 			{
+				std::vector<bool> paramsarereferences(Parameters.size(), false);
+
 				MyType = matchingoverloads.begin()->second.GetReturnType();
 				for(std::map<StringHandle, FunctionSignature>::const_iterator matchiter = matchingoverloads.begin(); matchiter != matchingoverloads.end(); ++matchiter)
 				{
@@ -292,21 +300,64 @@ bool Statement::TypeInference(Program& program, CodeBlock& activescope, Inferenc
 						errors.SetContext(OriginalIdentifier);
 						errors.SemanticError("A matching overload differs by return type, which will confuse run-time type dispatch");
 					}
+
+					for(size_t j = 0; j < Parameters.size(); ++j)
+					{
+						if(matchiter->second.GetParameter(j).IsReference != matchingoverloads.begin()->second.GetParameter(j).IsReference)
+						{
+							bool acceptsnothing = false;
+							for(std::map<StringHandle, FunctionSignature>::const_iterator matchiterinner = matchingoverloads.begin(); matchiterinner != matchingoverloads.end(); ++matchiterinner)
+							{
+								if(matchiterinner->second.GetParameter(j).Type == VM::EpochType_Nothing)
+								{
+									acceptsnothing = true;
+									break;
+								}
+							}
+							
+							if(!acceptsnothing)
+							{
+								errors.SetContext(OriginalIdentifier);
+								errors.SemanticError("A matching overload differs in accepting a parameter by reference or value");
+							}
+						}
+
+						if(matchiter->second.GetParameter(j).IsReference)
+							paramsarereferences[j] = true;
+					}
 				}
 
 				for(size_t j = 0; j < Parameters.size(); ++j)
 				{
-					std::auto_ptr<ExpressionAtomIdentifier> atom(dynamic_cast<ExpressionAtomIdentifier*>(Parameters[j]->GetAtoms()[0]));
-					if(atom.get())
+					if(paramsarereferences[j])
 					{
-						Parameters[j]->GetAtoms()[0] = new ExpressionAtomIdentifierReference(atom->GetIdentifier(), atom->GetOriginalIdentifier());
-						Parameters[j]->GetAtoms()[0]->TypeInference(program, activescope, newcontext, j, Parameters.size(), errors);
+						std::auto_ptr<ExpressionAtomIdentifier> atom(dynamic_cast<ExpressionAtomIdentifier*>(Parameters[j]->GetAtoms()[0]));
+						if(atom.get())
+						{
+							Parameters[j]->GetAtoms()[0] = new ExpressionAtomIdentifierReference(atom->GetIdentifier(), atom->GetOriginalIdentifier());
+							Parameters[j]->GetAtoms()[0]->TypeInference(program, activescope, newcontext, j, Parameters.size(), errors);
+							if(Parameters[j]->GetEpochType(program) != VM::EpochType_Nothing)
+								Parameters[j]->AddAtom(new ExpressionAtomTypeAnnotation(VM::EpochType_RefFlag));
+						}
+						else
+						{
+							if(Parameters[j]->GetAtoms().size() > 1)
+							{
+								if(Parameters[j]->GetEpochType(program) != VM::EpochType_Nothing)
+								{
+									Parameters[j]->AddAtom(new ExpressionAtomTypeAnnotationFromRegister);
+									Parameters[j]->AddAtom(new ExpressionAtomTypeAnnotation(VM::EpochType_RefFlag));
+								}
+							}
+							else
+							{
+								errors.SetContext(OriginalIdentifier);
+								errors.SemanticError("Parameter expects a reference, not a literal");
+							}
+						}
 					}
-					else
-					{
-						errors.SetContext(OriginalIdentifier);
-						errors.SemanticError("Parameter expects a reference, not a literal");
-					}
+					else if(VM::GetTypeFamily(Parameters[j]->GetEpochType(program)) != VM::EpochTypeFamily_SumType)
+						Parameters[j]->AddAtom(new ExpressionAtomTypeAnnotation(Parameters[j]->GetEpochType(program)));
 				}
 
 				Name = program.AllocateTypeMatcher(RawName, matchingoverloads);
@@ -344,7 +395,7 @@ bool Statement::TypeInference(Program& program, CodeBlock& activescope, Inferenc
 										match = false;
 										break;
 									}
-									else
+									else if(VM::GetTypeFamily(providedtype) != VM::EpochTypeFamily_SumType)
 										Parameters[i]->AddAtom(new ExpressionAtomTypeAnnotation(providedtype));
 								}
 								else
@@ -406,7 +457,7 @@ bool Statement::TypeInference(Program& program, CodeBlock& activescope, Inferenc
 										match = false;
 										break;
 									}
-									else
+									else if(VM::GetTypeFamily(providedparamtype) != VM::EpochTypeFamily_SumType)
 										Parameters[i]->AddAtom(new ExpressionAtomTypeAnnotation(providedparamtype));
 								}
 								else
@@ -415,25 +466,30 @@ bool Statement::TypeInference(Program& program, CodeBlock& activescope, Inferenc
 									break;
 								}
 							}
-
-							if(funciter->second.GetParameter(i).IsReference)
-							{
-								std::auto_ptr<ExpressionAtomIdentifier> atom(dynamic_cast<ExpressionAtomIdentifier*>(Parameters[i]->GetAtoms()[0]));
-								if(atom.get())
-								{
-									Parameters[i]->GetAtoms()[0] = new ExpressionAtomIdentifierReference(atom->GetIdentifier(), atom->GetOriginalIdentifier());
-									Parameters[i]->GetAtoms()[0]->TypeInference(program, activescope, newcontext, i, Parameters.size(), errors);
-								}
-								else
-								{
-									errors.SetContext(OriginalIdentifier);
-									errors.SemanticError("Parameter expects a reference, not a literal");
-								}
-							}
 						}
 
 						if(match)
+						{
 							MyType = funciter->second.GetReturnType();
+
+							for(size_t i = 0; i < Parameters.size(); ++i)
+							{
+								if(funciter->second.GetParameter(i).IsReference)
+								{
+									std::auto_ptr<ExpressionAtomIdentifier> atom(dynamic_cast<ExpressionAtomIdentifier*>(Parameters[i]->GetAtoms()[0]));
+									if(atom.get())
+									{
+										Parameters[i]->GetAtoms()[0] = new ExpressionAtomIdentifierReference(atom->GetIdentifier(), atom->GetOriginalIdentifier());
+										Parameters[i]->GetAtoms()[0]->TypeInference(program, activescope, newcontext, i, Parameters.size(), errors);
+									}
+									else
+									{
+										errors.SetContext(OriginalIdentifier);
+										errors.SemanticError("Parameter expects a reference, not a literal");
+									}
+								}
+							}
+						}
 						else
 						{
 							errors.SetContext(OriginalIdentifier);

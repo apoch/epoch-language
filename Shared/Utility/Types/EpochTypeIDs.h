@@ -41,6 +41,7 @@ namespace VM
 	static const EpochTypeID EpochType_Void		= 2 | EpochTypeFamily_Magic;
 	static const EpochTypeID EpochType_Function	= 3 | EpochTypeFamily_Magic;
 	static const EpochTypeID EpochType_Nothing	= 4 | EpochTypeFamily_Magic;
+	static const EpochTypeID EpochType_RefFlag	= 5 | EpochTypeFamily_Magic;
 
 	// Built-in primitives
 	static const EpochTypeID EpochType_Identifier = 0 | EpochTypeFamily_Primitive;

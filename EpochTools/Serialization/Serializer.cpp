@@ -226,6 +226,10 @@ void Serializer::Write(const std::wstring& filename) const
 			outfile << L"WRITETHROUGHID\n";
 			break;
 
+		case Bytecode::Instructions::AssignSumType:
+			outfile << L"WRITESUMTYPE\n";
+			break;
+
 		case Bytecode::Instructions::Invoke:
 			outfile << L"INVOKE " << traverser.Read<StringHandle>() << L"\n";
 			break;
@@ -400,10 +404,21 @@ void Serializer::Write(const std::wstring& filename) const
 
 				outfile << L"TYPEMATCH " << dispatchfunction << L" " << numparams;
 				for(size_t i = 0; i < numparams; ++i)
+				{
+					outfile << L" " << traverser.Read<bool>();
 					outfile << L" " << traverser.Read<VM::EpochTypeID>();
+				}
 
 				outfile << L"\n";
 			}
+			break;
+
+		case Bytecode::Instructions::ConstructSumType:
+			outfile << L"CONSTRUCTSUMTYPE\n";
+			break;
+
+		case Bytecode::Instructions::TypeFromRegister:
+			outfile << L"TYPEFROMREG\n";
 			break;
 
 		default:

@@ -97,10 +97,10 @@ void ActiveScope::PopScopeOffStack(VM::ExecutionContext& context)
 	for(ScopeDescription::VariableVector::const_iterator iter = OriginalScope.Variables.begin(); iter != OriginalScope.Variables.end(); ++iter)
 	{
 		if(iter->IsReference)
-			usedspace += sizeof(StringHandle) + sizeof(void*);
+			usedspace += sizeof(VM::EpochTypeID) + sizeof(void*);
 		else
 		{
-			if(ActualTypes.find(iter->IdentifierHandle) != ActualTypes.end())
+			if(iter->Origin == VARIABLE_ORIGIN_PARAMETER && ActualTypes.find(iter->IdentifierHandle) != ActualTypes.end())
 			{
 				usedspace += VM::GetStorageSize(ActualTypes.find(iter->IdentifierHandle)->second);
 				usedspace += sizeof(VM::EpochTypeID);
@@ -151,11 +151,22 @@ void ActiveScope::WriteFromStack(void* targetstorage, VM::EpochTypeID targettype
 		Write(targetstorage, stack.PopValue<BufferHandle>());
 		break;
 
+	case VM::EpochType_Nothing:
+		break;
+
 	default:
-		if(VM::GetTypeFamily(targettype) != VM::EpochTypeFamily_Structure)
+		if(VM::GetTypeFamily(targettype) == VM::EpochTypeFamily_Structure)
+			Write(targetstorage, stack.PopValue<StructureHandle>());
+		else if(VM::GetTypeFamily(targettype) == VM::EpochTypeFamily_SumType)
+		{
+			VM::EpochTypeID actualtype = stack.PopValue<VM::EpochTypeID>();
+			WriteFromStack(targetstorage, actualtype, stack);
+			char* storageptr = reinterpret_cast<char*>(targetstorage);
+			storageptr -= sizeof(VM::EpochTypeID);
+			*reinterpret_cast<VM::EpochTypeID*>(storageptr) = actualtype;
+		}
+		else
 			throw NotImplementedException("Unsupported type in ActiveScope::WriteFromStack");
-		
-		Write(targetstorage, stack.PopValue<StructureHandle>());
 		break;
 	}
 }
@@ -214,8 +225,19 @@ void ActiveScope::PushOntoStack(StringHandle variableid, StackSpace& stack) cons
 	VM::EpochTypeID vartype = OriginalScope.GetVariableTypeByID(variableid);
 	if(VM::GetTypeFamily(vartype) == VM::EpochTypeFamily_SumType)
 	{
-		PushOntoStack(GetVariableStorageLocation(variableid), ActualTypes.find(variableid)->second, stack);
-		stack.PushValue(ActualTypes.find(variableid)->second);
+		std::map<StringHandle, VM::EpochTypeID>::const_iterator iter = ActualTypes.find(variableid);
+		if(iter == ActualTypes.end())
+		{
+			//
+			// This is an internal failure of the VM to maintain type information.
+			//
+			throw FatalException("Missing actual type for sum typed variable in local scope");
+		}
+
+		VM::EpochTypeID actualtype = iter->second;
+
+		PushOntoStack(GetVariableStorageLocation(variableid), actualtype, stack);
+		stack.PushValue(actualtype);
 	}
 	else
 		PushOntoStack(GetVariableStorageLocation(variableid), vartype, stack);
@@ -310,11 +332,38 @@ void ActiveScope::CopyToRegister(StringHandle variableid, Register& targetregist
 
 	default:
 		{
-			if(VM::GetTypeFamily(variabletype) != VM::EpochTypeFamily_Structure)
-				throw FatalException("Unsupported type when assigning to register");
+			if(VM::GetTypeFamily(variabletype) == VM::EpochTypeFamily_Structure)
+			{
+				StructureHandle* value = reinterpret_cast<StructureHandle*>(GetVariableStorageLocation(variableid));
+				targetregister.SetStructure(*value, OriginalScope.GetVariableTypeByID(variableid));
+			}
+			else if(VM::GetTypeFamily(variabletype) == VM::EpochTypeFamily_SumType)
+			{
+				const UByte* storage = reinterpret_cast<const UByte*>(GetVariableStorageLocation(variableid));
+				const UByte* typestorage = storage - sizeof(VM::EpochTypeID);
+				targetregister.Type = *reinterpret_cast<const VM::EpochTypeID*>(typestorage);
+				switch(targetregister.Type)
+				{
+				case VM::EpochType_Boolean:		targetregister.Value_Boolean = *reinterpret_cast<const bool*>(storage);						break;
+				case VM::EpochType_Buffer:		targetregister.Value_BufferHandle = *reinterpret_cast<const BufferHandle*>(storage);		break;
+				case VM::EpochType_String:
+				case VM::EpochType_Identifier:	targetregister.Value_StringHandle = *reinterpret_cast<const StringHandle*>(storage);		break;
+				case VM::EpochType_Integer:		targetregister.Value_Integer32 = *reinterpret_cast<const Integer32*>(storage);				break;
+				case VM::EpochType_Integer16:	targetregister.Value_Integer16 = *reinterpret_cast<const Integer16*>(storage);				break;
+				case VM::EpochType_Nothing:		break;
+				case VM::EpochType_Real:		targetregister.Value_Real = *reinterpret_cast<const Real32*>(storage);						break;
+				default:
+					if(VM::GetTypeFamily(targetregister.Type) == VM::EpochTypeFamily_Structure)
+						targetregister.Value_StructureHandle = *reinterpret_cast<const StructureHandle*>(storage);
+					else
+						throw FatalException("Unsupported actual type of sum type");
 
-			StructureHandle* value = reinterpret_cast<StructureHandle*>(GetVariableStorageLocation(variableid));
-			targetregister.SetStructure(*value, OriginalScope.GetVariableTypeByID(variableid));
+					break;
+				}
+				targetregister.SumType = true;
+			}
+			else
+				throw FatalException("Unsupported type when assigning to register");
 		}
 		break;
 	}
@@ -366,5 +415,20 @@ VM::EpochTypeID ActiveScope::GetReferenceType(StringHandle referencename) const
 		throw FatalException("Unbound reference");
 
 	return iter->second.second;
+}
+
+VM::EpochTypeID ActiveScope::GetActualType(StringHandle varname) const
+{
+	std::map<StringHandle, VM::EpochTypeID>::const_iterator iter = ActualTypes.find(varname);
+	if(iter == ActualTypes.end())
+		return OriginalScope.GetVariableTypeByID(varname);
+
+	return iter->second;
+}
+
+
+void ActiveScope::SetActualType(StringHandle varname, VM::EpochTypeID type)
+{
+	ActualTypes[varname] = type;
 }
 
