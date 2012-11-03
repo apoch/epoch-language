@@ -1370,6 +1370,9 @@ void CompilePassSemantics::EntryHelper::operator () (AST::SumType& sumtype)
 {
 	self->StateStack.push(CompilePassSemantics::STATE_SUM_TYPE);
 	self->CurrentSumType = self->CurrentProgram->AddSumType(std::wstring(sumtype.SumTypeName.begin(), sumtype.SumTypeName.end()), self->Errors);
+	
+	std::wstring firstbaseraw(sumtype.FirstBaseType.begin(), sumtype.FirstBaseType.end());
+	self->CurrentProgram->AddSumTypeBase(self->CurrentSumType, self->CurrentProgram->AddString(firstbaseraw));
 }
 
 void CompilePassSemantics::ExitHelper::operator () (AST::SumType&)

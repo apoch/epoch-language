@@ -181,7 +181,7 @@ namespace ASTTraverse
 		void Do(EntryActionT& entryaction, AST::SumType& sumtype, ExitActionT& exitaction)
 		{
 			entryaction(sumtype);
-			Do(entryaction, sumtype.BaseTypes, exitaction);
+			Do(entryaction, sumtype.AdditionalBaseTypes, exitaction);
 			exitaction(sumtype);
 		}
 

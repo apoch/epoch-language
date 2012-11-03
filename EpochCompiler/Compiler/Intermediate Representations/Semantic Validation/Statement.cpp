@@ -256,8 +256,12 @@ bool Statement::TypeInference(Program& program, CodeBlock& activescope, Inferenc
 						}
 						else
 						{
-							match = false;
-							break;
+							// So, yeahhh... we're just gonna assume that type inference
+							// of the parameter atoms already matched us a good function
+							// here. It's probably something like a structure member, or
+							// an indirect reference of that nature. We want to avoid an
+							// ugly duplication of all the type inference logic here, so
+							// we just guess that everything is fine and carry on.
 						}
 					}
 

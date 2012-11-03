@@ -45,7 +45,8 @@ namespace AST
 	struct SumType
 	{
 		IdentifierT SumTypeName;
-		IdentifierList BaseTypes;
+		IdentifierT FirstBaseType;
+		IdentifierList AdditionalBaseTypes;
 	};
 
 }
@@ -72,7 +73,8 @@ BOOST_FUSION_ADAPT_STRUCT
 (
 	AST::DeferredSumType,
 	(AST::IdentifierT, Content->SumTypeName)
-	(AST::IdentifierList, Content->BaseTypes)
+	(AST::IdentifierT, Content->FirstBaseType)
+	(AST::IdentifierList, Content->AdditionalBaseTypes)
 )
 
 // TODO - custom allocation for type definition nodes
