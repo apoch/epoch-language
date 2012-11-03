@@ -98,6 +98,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\EpochCompiler\Compiler\CompileErrors.cpp" />
+    <ClCompile Include="..\Shared\Utility\Memory\MemoryManager.cpp" />
     <ClCompile Include="EntryPoint.cpp" />
     <ClCompile Include="Library Functionality\Function Tags\Native.cpp" />
     <ClCompile Include="pch.cpp">
@@ -149,6 +150,7 @@
   <ItemGroup>
     <ClInclude Include="..\EpochCompiler\Compiler\CompileErrors.h" />
     <ClInclude Include="..\Shared\Libraries\LibraryJIT.h" />
+    <ClInclude Include="..\Shared\Utility\Memory\MemoryManager.h" />
     <ClInclude Include="Library Functionality\Function Tags\Native.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="Library Functionality\Debugging\Debugging.h" />

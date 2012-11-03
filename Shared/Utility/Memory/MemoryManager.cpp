@@ -36,3 +36,14 @@ HeapManager::~HeapManager()
 	::HeapDestroy(HeapHandle);
 }
 
+
+void* HeapManager::Allocate(size_t bytes)
+{
+	return ::HeapAlloc(HeapHandle, 0, bytes);
+}
+
+void HeapManager::Deallocate(void* p)
+{
+	::HeapFree(HeapHandle, 0, p);
+}
+

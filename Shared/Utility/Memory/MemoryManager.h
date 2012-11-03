@@ -26,13 +26,10 @@ public:
 	HeapManager();
 	~HeapManager();
 
-// System parameter retrieval
+// Allocation and deallocation interface
 public:
-	HANDLE GetHeap() const
-	{ return HeapHandle; }
-
-	unsigned GetPageSize() const
-	{ return PageSize; }
+	void* Allocate(size_t bytes);
+	void Deallocate(void* p);
 
 // Global access to the heap wrapper
 public:
@@ -45,7 +42,7 @@ public:
 		return *GlobalHeapManager;
 	}
 
-// Internal storage
+// Internal storage (platform specific details)
 private:
 	HANDLE HeapHandle;
 	unsigned PageSize;

@@ -176,6 +176,9 @@
     <ClCompile Include="..\EpochCompiler\Compiler\CompileErrors.cpp">
       <Filter>Compiler Dependencies</Filter>
     </ClCompile>
+    <ClCompile Include="..\Shared\Utility\Memory\MemoryManager.cpp">
+      <Filter>Shared\Utility\Memory</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h">
@@ -300,6 +303,9 @@
     </ClInclude>
     <ClInclude Include="..\EpochCompiler\Compiler\CompileErrors.h">
       <Filter>Compiler Dependencies</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Shared\Utility\Memory\MemoryManager.h">
+      <Filter>Shared\Utility\Memory</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -24,7 +24,7 @@ static const unsigned STACK_SIZE = 4 * 1024 * 1024;
 //
 StackSpace::StackSpace()
 {
-	StackAllocation = ::HeapAlloc(GetSingleGlobalHeapManager().GetHeap(), 0, STACK_SIZE);
+	StackAllocation = GetSingleGlobalHeapManager().Allocate(STACK_SIZE);
 	CurrentStackPointer = EndOfStackAllocation = reinterpret_cast<Byte*>(StackAllocation) + STACK_SIZE;
 #ifdef _DEBUG
 	memset(StackAllocation, 0xee, STACK_SIZE);
@@ -36,7 +36,7 @@ StackSpace::StackSpace()
 //
 StackSpace::StackSpace(size_t numbytes)
 {
-	StackAllocation = ::HeapAlloc(GetSingleGlobalHeapManager().GetHeap(), 0, numbytes);
+	StackAllocation = GetSingleGlobalHeapManager().Allocate(numbytes);
 	CurrentStackPointer = EndOfStackAllocation = reinterpret_cast<Byte*>(StackAllocation) + numbytes;
 #ifdef _DEBUG
 	memset(StackAllocation, 0xee, numbytes);
@@ -48,7 +48,7 @@ StackSpace::StackSpace(size_t numbytes)
 //
 StackSpace::~StackSpace()
 {
-	::HeapFree(GetSingleGlobalHeapManager().GetHeap(), 0, StackAllocation);
+	GetSingleGlobalHeapManager().Deallocate(StackAllocation);
 }
 
 //
