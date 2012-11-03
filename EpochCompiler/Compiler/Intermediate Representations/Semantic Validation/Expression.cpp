@@ -938,32 +938,7 @@ bool ExpressionAtomIdentifierBase::TypeInference(Program& program, CodeBlock& ac
 			if(paramtype == VM::EpochType_Function)
 			{
 				possibletypes.insert(VM::EpochType_Function);
-
-				FunctionSignatureSet::const_iterator fsigiter = program.Session.FunctionSignatures.find(Identifier);
-				if(fsigiter != program.Session.FunctionSignatures.end())
-				{
-					foundidentifier = true;
-					if(context.ExpectedSignatures.back()[i][index].Matches(fsigiter->second))
-						++signaturematches;
-				}
-				else if(program.HasFunction(Identifier))
-				{
-					unsigned overloadcount = program.GetNumFunctionOverloads(Identifier);
-					for(unsigned j = 0; j < overloadcount; ++j)
-					{
-						foundidentifier = true;
-						StringHandle overloadname = program.GetFunctionOverloadName(Identifier, j);
-						Function* func = program.GetFunctions().find(overloadname)->second;
-
-						func->TypeInference(program, context, errors);
-						FunctionSignature sig = func->GetFunctionSignature(program);
-						if(context.ExpectedSignatures.back()[i][index].Matches(sig))
-						{
-							resolvedidentifier = overloadname;
-							++signaturematches;
-						}
-					}
-				}
+				signaturematches += program.FindMatchingFunctions(Identifier, context.ExpectedSignatures.back()[i][index], context, errors, resolvedidentifier);
 			}
 			else if(paramtype == underlyingtype)
 				possibletypes.insert(vartype);
@@ -1206,6 +1181,9 @@ VM::EpochTypeID ExpressionAtomLiteralInteger32::GetEpochType(const Program&) con
 //
 bool ExpressionAtomLiteralInteger32::TypeInference(Program& program, CodeBlock&, InferenceContext& context, size_t index, size_t maxindex, CompileErrors&)
 {
+	if(context.ExpectedTypes.empty())
+		return true;
+
 	for(size_t i = 0; i < context.ExpectedTypes.back().size(); ++i)
 	{
 		if(context.ExpectedTypes.back()[i].size() < maxindex)

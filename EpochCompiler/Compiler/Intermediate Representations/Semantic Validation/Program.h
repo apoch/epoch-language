@@ -128,6 +128,8 @@ namespace IRSemantics
 		const std::map<StringHandle, std::map<StringHandle, FunctionSignature> >& GetRequiredTypeMatchers() const
 		{ return RequiredTypeMatchers; }
 
+		unsigned FindMatchingFunctions(StringHandle identifier, const FunctionSignature& expectedsignature, InferenceContext& context, CompileErrors& errors, StringHandle& resolvedidentifier);
+
 	// Access to lexical scopes
 	public:
 		const ScopePtrMap& GetScopes() const

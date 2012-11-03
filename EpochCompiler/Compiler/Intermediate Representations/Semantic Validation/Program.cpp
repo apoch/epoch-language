@@ -977,3 +977,38 @@ std::map<VM::EpochTypeID, std::set<VM::EpochTypeID> > Program::GetSumTypes() con
 	return ret;
 }
 
+
+unsigned Program::FindMatchingFunctions(StringHandle identifier, const FunctionSignature& expectedsignature, InferenceContext& context, CompileErrors& errors, StringHandle& resolvedidentifier)
+{
+	bool foundidentifier = false;
+	unsigned signaturematches = 0;
+
+	FunctionSignatureSet::const_iterator fsigiter = Session.FunctionSignatures.find(identifier);
+	if(fsigiter != Session.FunctionSignatures.end())
+	{
+		foundidentifier = true;
+		if(expectedsignature.Matches(fsigiter->second))
+			++signaturematches;
+	}
+	else if(HasFunction(identifier))
+	{
+		unsigned overloadcount = GetNumFunctionOverloads(identifier);
+		for(unsigned j = 0; j < overloadcount; ++j)
+		{
+			foundidentifier = true;
+			StringHandle overloadname = GetFunctionOverloadName(identifier, j);
+			Function* func = GetFunctions().find(overloadname)->second;
+
+			func->TypeInference(*this, context, errors);
+			FunctionSignature sig = func->GetFunctionSignature(*this);
+			if(expectedsignature.Matches(sig))
+			{
+				resolvedidentifier = overloadname;
+				++signaturematches;
+			}
+		}
+	}
+
+	return signaturematches;
+}
+

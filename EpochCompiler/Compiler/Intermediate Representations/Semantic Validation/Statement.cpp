@@ -232,6 +232,31 @@ bool Statement::TypeInference(Program& program, CodeBlock& activescope, Inferenc
 							break;
 						}
 					}
+					else if(expectedparamtype == VM::EpochType_Function)
+					{
+						if(Parameters[j]->GetAtoms().size() == 1)
+						{
+							ExpressionAtomIdentifier* atom = dynamic_cast<ExpressionAtomIdentifier*>(Parameters[j]->GetAtoms().front());
+							if(!atom)
+							{
+								match = false;
+								break;
+							}
+
+							StringHandle resolvedidentifier;
+							unsigned signaturematches = program.FindMatchingFunctions(atom->GetIdentifier(), signature.GetFunctionSignature(j), context, errors, resolvedidentifier);
+							if(signaturematches != 1)
+							{
+								match = false;
+								break;
+							}
+						}
+						else
+						{
+							match = false;
+							break;
+						}
+					}
 
 					if(signature.GetParameter(j).HasPayload)
 					{
@@ -251,7 +276,7 @@ bool Statement::TypeInference(Program& program, CodeBlock& activescope, Inferenc
 						}
 					}
 				}
-					
+
 				if(match)
 				{
 					matchingoverloads.insert(std::make_pair(overloadname, signature));
