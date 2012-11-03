@@ -90,6 +90,8 @@ namespace IRSemantics
 	// Type inference
 	public:
 		bool TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, size_t index, size_t maxindex, CompileErrors& errors);
+		bool IsInferenceDone() const
+		{ return InferenceDone; }
 
 	// Atom access and manipulation
 	public:

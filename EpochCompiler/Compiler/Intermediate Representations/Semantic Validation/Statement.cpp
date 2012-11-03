@@ -130,6 +130,8 @@ bool Statement::TypeInference(Program& program, CodeBlock& activescope, Inferenc
 			Name = program.GetStructures().find(program.GetNameOfStructureType(MyType))->second->GetConstructorName();
 		else if(VM::GetTypeFamily(MyType) == VM::EpochTypeFamily_Unit)
 			Name = program.StrongTypeAliasRepNames.find(MyType)->second;
+
+		program.GetFunctions().find(context.FunctionName)->second->SetHintReturnType(MyType);
 	}
 
 	size_t i = 0;
@@ -150,6 +152,7 @@ bool Statement::TypeInference(Program& program, CodeBlock& activescope, Inferenc
 		{
 			unsigned totalexpectedpermutations = 1;
 			bool generatetypematch = false;
+			bool preferpatternmatchoverloads = false;
 			std::map<StringHandle, FunctionSignature> matchingoverloads;
 
 			InferenceContext funccontext(0, InferenceContext::CONTEXT_GLOBAL);
@@ -268,6 +271,7 @@ bool Statement::TypeInference(Program& program, CodeBlock& activescope, Inferenc
 								break;
 							}
 							Parameters[j]->AtomsArePatternMatchedLiteral = true;
+							preferpatternmatchoverloads = true;
 						}
 						else
 						{
@@ -288,6 +292,27 @@ bool Statement::TypeInference(Program& program, CodeBlock& activescope, Inferenc
 			{
 				errors.SetContext(OriginalIdentifier);
 				errors.SemanticError("Missing at least one overload for handling sum type decomposition");
+			}
+
+			if(preferpatternmatchoverloads && matchingoverloads.size() > 1)
+			{
+				for(std::map<StringHandle, FunctionSignature>::iterator stripiter = matchingoverloads.begin(); stripiter != matchingoverloads.end(); )
+				{
+					bool stripoverload = false;
+					for(size_t j = 0; j < stripiter->second.GetNumParameters(); ++j)
+					{
+						if(stripiter->second.GetParameter(j).HasPayload != Parameters[j]->AtomsArePatternMatchedLiteral)
+						{
+							stripoverload = true;
+							break;
+						}
+					}
+
+					if(stripoverload)
+						stripiter = matchingoverloads.erase(stripiter);
+					else
+						++stripiter;
+				}
 			}
 
 			if(matchingoverloads.size() == 1)

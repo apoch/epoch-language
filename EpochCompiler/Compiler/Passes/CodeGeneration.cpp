@@ -696,13 +696,33 @@ bool CompilerPasses::GenerateCode(const IRSemantics::Program& program, ByteCodeE
 		StringHandle patternmatchername = program.GetDynamicPatternMatcherForFunction(*iter);
 		emitter.EnterPatternResolver(patternmatchername);
 		size_t numoverloads = program.GetNumFunctionOverloads(thisfunc->GetRawName());
-		for(size_t i = 0; i < numoverloads; ++i)
+		for(size_t pass = 0; pass < 2; ++pass)
 		{
-			StringHandle overloadname = program.GetFunctionOverloadName(thisfunc->GetRawName(), i);
-			const IRSemantics::Function* thisoverload = functions.find(overloadname)->second;
-			const FunctionSignature overloadsig = thisoverload->GetFunctionSignature(program);
-			if(overloadsig.MatchesDynamicPattern(thisfuncsig))
-				emitter.ResolvePattern(overloadname, overloadsig);
+			bool preferliteralmatches = (pass == 0);
+
+			for(size_t i = 0; i < numoverloads; ++i)
+			{
+				StringHandle overloadname = program.GetFunctionOverloadName(thisfunc->GetRawName(), i);
+				const IRSemantics::Function* thisoverload = functions.find(overloadname)->second;
+				const FunctionSignature overloadsig = thisoverload->GetFunctionSignature(program);
+				if(overloadsig.MatchesDynamicPattern(thisfuncsig))
+				{
+					bool hasliterals = false;
+					for(size_t j = 0; j < overloadsig.GetNumParameters(); ++j)
+					{
+						if(overloadsig.GetParameter(j).HasPayload)
+						{
+							hasliterals = true;
+							break;
+						}
+					}
+
+					if(hasliterals != preferliteralmatches)
+						continue;
+
+					emitter.ResolvePattern(overloadname, overloadsig);
+				}
+			}
 		}
 		emitter.ExitPatternResolver();
 		emitter.DefineLexicalScope(patternmatchername, 0, 0);

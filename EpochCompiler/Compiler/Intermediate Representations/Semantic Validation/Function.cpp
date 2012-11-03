@@ -70,7 +70,12 @@ void Function::SetReturnExpression(IRSemantics::Expression* expression)
 VM::EpochTypeID Function::GetReturnType(const Program& program) const
 {
 	if(Return)
-		return Return->GetEpochType(program);
+	{
+		if(Return->IsInferenceDone())
+			return Return->GetEpochType(program);
+
+		return HintReturnType;
+	}
 
 	return VM::EpochType_Void;
 }

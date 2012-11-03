@@ -254,7 +254,8 @@ namespace IRSemantics
 			  SuppressReturn(false),
 			  Name(0),
 			  RawName(0),
-			  AnonymousReturn(false)
+			  AnonymousReturn(false),
+			  HintReturnType(VM::EpochType_Error)
 		{ }
 
 		~Function();
@@ -317,6 +318,9 @@ namespace IRSemantics
 		bool HasAnonymousReturn() const
 		{ return AnonymousReturn; }
 
+		void SetHintReturnType(VM::EpochTypeID rettype)
+		{ HintReturnType = rettype; }
+
 	// Signatures
 	public:
 		FunctionSignature GetFunctionSignature(const Program& program) const;
@@ -377,6 +381,8 @@ namespace IRSemantics
 		bool SuppressReturn;
 
 		std::vector<FunctionTag> Tags;
+
+		VM::EpochTypeID HintReturnType;
 	};
 
 }
