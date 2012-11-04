@@ -173,6 +173,9 @@ CompilePassSemantics::~CompilePassSemantics()
 	for(std::vector<IRSemantics::FunctionTag*>::iterator iter = CurrentFunctionTags.begin(); iter != CurrentFunctionTags.end(); ++iter)
 		delete *iter;
 
+	for(std::vector<CompileTimeParameterVector*>::iterator iter = CurrentTemplateArgs.begin(); iter != CurrentTemplateArgs.end(); ++iter)
+		delete *iter;
+
 	delete CurrentProgram;
 }
 
@@ -1278,6 +1281,10 @@ void CompilePassSemantics::EntryHelper::operator () (AST::IdentifierT& identifie
 		self->CurrentProgram->AddSumTypeBase(self->CurrentSumType, self->CurrentProgram->AddString(raw));
 		break;
 
+	case CompilePassSemantics::STATE_TEMPLATE_ARGS:
+		self->CurrentTemplateArgs.back()->push_back(iratom->ConvertToCompileTimeParam(*self->CurrentProgram));
+		break;
+
 	default:
 		throw std::runtime_error("Invalid parse state");			// TODO - better exceptions
 	}
@@ -1410,6 +1417,17 @@ void CompilePassSemantics::EntryHelper::operator () (AST::Nothing&)
 }
 
 
+void CompilePassSemantics::EntryHelper::operator () (AST::TemplateParameter& param)
+{
+	std::wstring metatype(param.Type.begin(), param.Type.end());
+	if(metatype != L"type")
+		throw NotImplementedException("This form of genericity is not implemented.");		// TODO - support more than just "type T" in template param lists
+
+	StringHandle paramname = self->CurrentProgram->AddString(std::wstring(param.Name.begin(), param.Name.end()));
+	self->CurrentStructures.back()->AddTemplateParameter(VM::EpochType_Wildcard, paramname);
+}
+
+
 //
 // Traverse a special marker that indicates the subsequent nodes belong
 // to the return expression definition of a function
@@ -1491,6 +1509,23 @@ void CompilePassSemantics::ExitHelper::operator () (Markers::StructureFunctionRe
 {
 	self->StateStack.pop();
 }
+
+
+
+void CompilePassSemantics::EntryHelper::operator () (Markers::TemplateArgs&)
+{
+	self->StateStack.push(CompilePassSemantics::STATE_TEMPLATE_ARGS);
+	self->CurrentTemplateArgs.push_back(new CompileTimeParameterVector);
+}
+
+void CompilePassSemantics::ExitHelper::operator () (Markers::TemplateArgs&)
+{
+	self->StateStack.pop();
+	self->CurrentStatements.back()->SetTemplateArgs(*self->CurrentTemplateArgs.back(), *self->CurrentProgram);
+	delete self->CurrentTemplateArgs.back();
+	self->CurrentTemplateArgs.pop_back();
+}
+
 
 void CompilePassSemantics::EntryHelper::operator () (AST::RefTag&)
 {

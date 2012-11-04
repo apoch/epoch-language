@@ -43,6 +43,8 @@ namespace Lexer
 		ConsumedToken OpenBrace;
 		ConsumedToken CloseBrace;
 		ConsumedToken Pipe;
+		ConsumedToken OpenAngleBracket;
+		ConsumedToken CloseAngleBracket;
 
 		Token Equals;
 

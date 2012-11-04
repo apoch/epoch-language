@@ -14,6 +14,8 @@
 
 #include "Compiler/Abstract Syntax Tree/IdentifierT.h"
 
+#include "Metadata/CompileTimeParams.h"
+
 #include <vector>
 
 
@@ -72,6 +74,10 @@ namespace IRSemantics
 	public:
 		VM::EpochTypeID GetEpochType(const Program&) const
 		{ return MyType; }
+
+	// Template support
+	public:
+		void SetTemplateArgs(const CompileTimeParameterVector& args, Program& program);
 
 	// Internal state
 	private:

@@ -10,6 +10,7 @@
 
 // Dependencies
 #include "Compiler/Abstract Syntax Tree/Identifiers.h"
+#include "Compiler/Abstract Syntax Tree/Expression.h"
 
 
 namespace AST
@@ -97,6 +98,7 @@ namespace AST
 	struct Initialization
 	{
 		IdentifierT TypeSpecifier;
+		OptionalTemplateArgumentList TemplateArgs;
 		IdentifierT LHS;
 		DeferredExpressionVector RHS;
 
@@ -147,6 +149,8 @@ BOOST_FUSION_ADAPT_STRUCT
 (
 	AST::DeferredInitialization,
 	(AST::IdentifierT, Content->TypeSpecifier)
+	(AST::OptionalTemplateArgumentList, Content->TemplateArgs)
 	(AST::IdentifierT, Content->LHS)
 	(AST::DeferredExpressionVector, Content->RHS)
 )
+

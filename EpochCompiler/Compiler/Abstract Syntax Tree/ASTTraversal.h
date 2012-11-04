@@ -102,6 +102,7 @@ namespace ASTTraverse
 		struct FunctionSignatureReturn { };
 		struct StructureFunctionParams { };
 		struct StructureFunctionReturn { };
+		struct TemplateArgs { };
 	}
 
 	//
@@ -264,6 +265,12 @@ namespace ASTTraverse
 		void Do(EntryActionT& entryaction, AST::Initialization& initialization, ExitActionT& exitaction)
 		{
 			entryaction(initialization);
+			
+			Markers::TemplateArgs marker;
+			entryaction(marker);
+			Do(entryaction, initialization.TemplateArgs, exitaction);
+			exitaction(marker);
+
 			Do(entryaction, initialization.RHS, exitaction);
 			exitaction(initialization);
 		}
@@ -420,6 +427,7 @@ namespace ASTTraverse
 		void Do(EntryActionT& entryaction, AST::Structure& structure, ExitActionT& exitaction)
 		{
 			entryaction(structure);
+			Do(entryaction, structure.TemplateParams, exitaction);
 			Do(entryaction, structure.Members, exitaction);
 			exitaction(structure);
 		}

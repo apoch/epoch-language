@@ -47,6 +47,8 @@ class CompileSession;
 
 #include "Utility/Types/EpochTypeIDs.h"
 
+#include "Metadata/CompileTimeParams.h"
+
 #include <stack>
 
 
@@ -169,6 +171,9 @@ namespace ASTTraverse
 			void operator () (AST::StrongTypeAlias& alias);
 			void operator () (AST::SumType& sumtype);
 
+			void operator () (AST::TemplateParameter& param);
+			void operator () (AST::TemplateArgument& arg);
+
 			//
 			// Overloads for hint markers
 			//
@@ -179,6 +184,7 @@ namespace ASTTraverse
 			void operator () (Markers::FunctionSignatureReturn& marker);
 			void operator () (Markers::StructureFunctionParams& marker);
 			void operator () (Markers::StructureFunctionReturn& marker);
+			void operator () (Markers::TemplateArgs& marker);
 
 			void operator () (AST::RefTag& tag);
 
@@ -254,6 +260,7 @@ namespace ASTTraverse
 			void operator () (Markers::FunctionSignatureReturn& marker);
 			void operator () (Markers::StructureFunctionParams& marker);
 			void operator () (Markers::StructureFunctionReturn& marker);
+			void operator () (Markers::TemplateArgs& marker);
 
 		// Internal bindings to the owning CompilePassSemantics object
 		private:
@@ -286,6 +293,7 @@ namespace ASTTraverse
 		std::vector<IRSemantics::FunctionParamFuncRef*> CurrentFunctionSignatures;
 		std::vector<IRSemantics::StructureMemberFunctionReference*> CurrentStructureFunctions;
 		std::vector<IRSemantics::FunctionTag*> CurrentFunctionTags;
+		std::vector<CompileTimeParameterVector*> CurrentTemplateArgs;
 
 		enum States
 		{
@@ -315,6 +323,7 @@ namespace ASTTraverse
 			STATE_STRUCTURE_FUNCTION_PARAMS,
 			STATE_STRUCTURE_FUNCTION_RETURN,
 			STATE_SUM_TYPE,
+			STATE_TEMPLATE_ARGS,
 		};
 
 		std::stack<States> StateStack;

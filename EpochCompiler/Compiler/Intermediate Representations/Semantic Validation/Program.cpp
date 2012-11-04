@@ -34,7 +34,8 @@ Program::Program(StringPoolManager& strings, CompileSession& session)
 	  Session(session),
 	  GlobalScope(new ScopeDescription()),
 	  CounterUnitTypeIDs(0),
-	  CounterSumTypeIDs(0)
+	  CounterSumTypeIDs(0),
+	  CounterTemplateInstantiations(0)
 {
 }
 
@@ -100,7 +101,13 @@ void Program::AddStructure(StringHandle name, Structure* structure, CompileError
 
 	Structures.insert(std::make_pair(name, structure));
 	StructureTypes.insert(std::make_pair(name, ++StructureTypeCounter));
+	
+	GenerateStructureFunctions(name, structure);
+}
 
+
+void Program::GenerateStructureFunctions(StringHandle name, Structure* structure)
+{
 	const std::wstring& structurename = GetString(name);
 	const std::vector<std::pair<StringHandle, StructureMember*> >& members = structure->GetMembers();
 	for(std::vector<std::pair<StringHandle, StructureMember*> >::const_iterator iter = members.begin(); iter != members.end(); ++iter)
@@ -324,6 +331,26 @@ bool Program::CompileTimeCodeExecution(CompileErrors& errors)
 			return false;
 	}
 
+	for(std::map<StringHandle, Structure*>::iterator iter = Structures.begin(); iter != Structures.end(); ++iter)
+	{
+		if(iter->second->IsTemplate())
+		{
+			const TemplateInstancesAndArguments& instances = TemplateInstantiations[iter->first];
+			if(instances.empty())
+			{
+				errors.SemanticError("Template never instantiated");
+				return false;
+			}
+
+			for(TemplateInstancesAndArguments::const_iterator instanceiter = instances.begin(); instanceiter != instances.end(); ++instanceiter)
+			{
+				if(!iter->second->InstantiateTemplate(instanceiter->first, instanceiter->second, *this, errors))
+					return false;
+			}
+		}
+	}
+
+
 	for(std::map<VM::EpochTypeID, std::set<StringHandle> >::const_iterator iter = SumTypeBaseTypeNames.begin(); iter != SumTypeBaseTypeNames.end(); ++iter)
 	{
 		VM::EpochTypeID sumtypeid = iter->first;
@@ -521,6 +548,12 @@ VM::EpochTypeID Program::LookupType(StringHandle name) const
 	}
 
 	{
+		std::map<StringHandle, VM::EpochTypeID>::const_iterator iter = TemplateInstanceNames.find(name);
+		if(iter != TemplateInstanceNames.end())
+			return iter->second;
+	}
+
+	{
 		std::map<StringHandle, StringHandle>::const_iterator iter = SumTypeConstructorNames.find(name);
 		if(iter != SumTypeConstructorNames.end())
 			return LookupType(iter->second);
@@ -573,6 +606,12 @@ VM::EpochTypeID Program::GetStructureMemberType(StringHandle structurename, Stri
 StringHandle Program::GetNameOfStructureType(VM::EpochTypeID structuretype) const
 {
 	for(std::map<StringHandle, VM::EpochTypeID>::const_iterator iter = StructureTypes.begin(); iter != StructureTypes.end(); ++iter)
+	{
+		if(iter->second == structuretype)
+			return iter->first;
+	}
+
+	for(std::map<StringHandle, VM::EpochTypeID>::const_iterator iter = TemplateInstanceNames.begin(); iter != TemplateInstanceNames.end(); ++iter)
 	{
 		if(iter->second == structuretype)
 			return iter->first;
@@ -1012,3 +1051,63 @@ unsigned Program::FindMatchingFunctions(StringHandle identifier, const FunctionS
 	return signaturematches;
 }
 
+
+StringHandle Program::InstantiateStructureTemplate(StringHandle templatename, const CompileTimeParameterVector& args)
+{
+	TemplateInstantiationMap::iterator iter = TemplateInstantiations.find(templatename);
+	if(iter != TemplateInstantiations.end())
+	{
+		TemplateInstancesAndArguments& instances = iter->second;
+
+		for(TemplateInstancesAndArguments::const_iterator instanceiter = instances.begin(); instanceiter != instances.end(); ++instanceiter)
+		{
+			if(args.size() != instanceiter->second.size())
+				continue;
+
+			bool match = true;
+			for(unsigned i = 0; i < args.size(); ++i)
+			{
+				if(!args[i].PatternMatch(instanceiter->second[i]))
+				{
+					match = false;
+					break;
+				}
+			}
+
+			if(match)
+				return instanceiter->first;
+		}
+	}
+
+	std::wstring mangled = GenerateTemplateMangledName();
+	StringHandle mangledname = AddString(mangled);
+	TemplateInstantiations[templatename].insert(std::make_pair(mangledname, args));
+	TemplateInstanceNames[mangledname] = CounterTemplateInstantiations | VM::EpochTypeFamily_TemplateInstance;
+
+	StringHandle constructorname = AddString(mangled + L"@@constructor");
+	StringHandle anonconstructorname = AddString(mangled + L"@@anonconstructor");
+
+	TemplateConstructorNameCache.Add(mangledname, constructorname);
+	TemplateAnonConstructorNameCache.Add(mangledname, anonconstructorname);
+
+	return mangledname;
+}
+
+
+std::wstring Program::GenerateTemplateMangledName()
+{
+	std::wostringstream formatter;
+	formatter << "@@templateinst@" << (CounterTemplateInstantiations++);
+	return formatter.str();
+}
+
+
+StringHandle Program::FindTemplateConstructorName(StringHandle instancename) const
+{
+	return TemplateConstructorNameCache.Find(instancename);
+}
+
+StringHandle Program::FindTemplateAnonConstructorName(StringHandle instancename) const
+{
+	return TemplateAnonConstructorNameCache.Find(instancename);
+}

@@ -155,7 +155,7 @@ void ActiveScope::WriteFromStack(void* targetstorage, VM::EpochTypeID targettype
 		break;
 
 	default:
-		if(VM::GetTypeFamily(targettype) == VM::EpochTypeFamily_Structure)
+		if(VM::GetTypeFamily(targettype) == VM::EpochTypeFamily_Structure || VM::GetTypeFamily(targettype) == VM::EpochTypeFamily_TemplateInstance)
 			Write(targetstorage, stack.PopValue<StructureHandle>());
 		else if(VM::GetTypeFamily(targettype) == VM::EpochTypeFamily_SumType)
 		{

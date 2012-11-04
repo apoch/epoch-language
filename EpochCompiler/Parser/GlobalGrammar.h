@@ -4,6 +4,7 @@
 #include "Compiler/Abstract Syntax Tree/Structures.h"
 #include "Compiler/Abstract Syntax Tree/Expression.h"
 #include "Compiler/Abstract Syntax Tree/TypeDefinitions.h"
+#include "Compiler/Abstract Syntax Tree/Templates.h"
 #include "Lexer/Lexer.h"
 
 struct FunctionDefinitionGrammar;
@@ -25,6 +26,9 @@ struct GlobalGrammar : public boost::spirit::qi::grammar<Lexer::TokenIterT, boos
 
 	Rule<AST::MetaEntityVector()>::type MetaEntities;
 	Rule<AST::Program()>::type Program;
+
+	Rule<AST::TemplateParameter()>::type TemplateParameter;
+	Rule<AST::TemplateParameterList()>::type TemplateParameterList;
 
 	Rule<AST::StructureMember()>::type StructureMember;
 	Rule<std::vector<AST::StructureMember, Memory::OneWayAlloc<AST::StructureMember> >()>::type StructureMembers;

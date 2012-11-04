@@ -319,7 +319,12 @@ namespace IRSemantics
 		virtual bool CompileTimeCodeExecution(Program& program, CodeBlock& activescope, bool inreturnexpr, CompileErrors& errors);
 		
 		virtual CompileTimeParameter ConvertToCompileTimeParam(const Program&) const
-		{ throw std::runtime_error("Invalid atom for compile time param"); }
+		{
+			CompileTimeParameter ret(L"@@identifier", VM::EpochType_Identifier);
+			ret.Payload.LiteralStringHandleValue = Identifier;
+
+			return ret;
+		}
 
 	// Internal state
 	private:

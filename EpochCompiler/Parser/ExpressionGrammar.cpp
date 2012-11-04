@@ -44,7 +44,14 @@ ExpressionGrammar::ExpressionGrammar(const Lexer::EpochLexerT& lexer, const Lite
 	Assignment %= SimpleAssignment | MemberAssignment;
 	ExpressionOrAssignment %= Assignment | Expression;
 
-	VariableDeclaration %= as<AST::IdentifierT>()[lexer.StringIdentifier] >> as<AST::IdentifierT>()[lexer.StringIdentifier] >> omit[lexer.Equals] >> (Expression % lexer.Comma);
+	TemplateArguments %= lexer.OpenAngleBracket >> ((literalgrammar | as<AST::IdentifierT>()[lexer.StringIdentifier] | as<AST::IdentifierT>()[lexer.Nothing]) % lexer.Comma) >> lexer.CloseAngleBracket;
+
+	VariableDeclaration %=
+		as<AST::IdentifierT>()[lexer.StringIdentifier]		>>
+		-TemplateArguments									>>
+		as<AST::IdentifierT>()[lexer.StringIdentifier]		>>
+		omit[lexer.Equals]									>>
+		(Expression % lexer.Comma)							;
 
 	AnyStatement = PreOperatorStatement | Statement | PostOperatorStatement | VariableDeclaration;
 }

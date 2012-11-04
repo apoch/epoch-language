@@ -57,6 +57,9 @@ void Structure::AddMember(StringHandle name, StructureMember* member, CompileErr
 //
 bool Structure::Validate(const Program& program, CompileErrors& errors) const
 {
+	if(IsTemplate())
+		return true;
+
 	bool valid = true;
 
 	for(std::vector<std::pair<StringHandle, StructureMember*> >::const_iterator iter = Members.begin(); iter != Members.end(); ++iter)
@@ -69,7 +72,7 @@ bool Structure::Validate(const Program& program, CompileErrors& errors) const
 }
 
 
-bool Structure::CompileTimeCodeExecution(StringHandle myname, Program& program, CompileErrors& errors)
+void Structure::GenerateConstructors(StringHandle myname, StringHandle constructorname, StringHandle anonconstructorname, const CompileTimeParameterVector& templateargs, Program& program, CompileErrors& errors) const
 {
 	// Generate standard constructor
 	{
@@ -79,6 +82,10 @@ bool Structure::CompileTimeCodeExecution(StringHandle myname, Program& program, 
 		for(std::vector<std::pair<StringHandle, StructureMember*> >::const_iterator iter = Members.begin(); iter != Members.end(); ++iter)
 		{
 			VM::EpochTypeID paramtype = iter->second->GetEpochType(program);
+
+			if(paramtype == VM::EpochType_Error)
+				paramtype = SubstituteTemplateParams(iter->first, templateargs, program);
+
 			signature.AddParameter(program.GetString(iter->first), paramtype, false);
 			++i;
 
@@ -89,9 +96,8 @@ bool Structure::CompileTimeCodeExecution(StringHandle myname, Program& program, 
 			}
 		}
 
-		ConstructorName = program.CreateFunctionOverload(program.GetString(myname));
-		program.Session.FunctionSignatures.insert(std::make_pair(ConstructorName, signature));
-		program.Session.InfoTable.FunctionHelpers->insert(std::make_pair(ConstructorName, &CompileConstructorStructure));
+		program.Session.FunctionSignatures.insert(std::make_pair(constructorname, signature));
+		program.Session.InfoTable.FunctionHelpers->insert(std::make_pair(constructorname, &CompileConstructorStructure));
 	}
 
 	// Generate anonymous constructor
@@ -100,7 +106,11 @@ bool Structure::CompileTimeCodeExecution(StringHandle myname, Program& program, 
 		FunctionSignature signature;
 		for(std::vector<std::pair<StringHandle, StructureMember*> >::const_iterator iter = Members.begin(); iter != Members.end(); ++iter)
 		{
-			signature.AddParameter(program.GetString(iter->first), iter->second->GetEpochType(program), false);
+			VM::EpochTypeID paramtype = iter->second->GetEpochType(program);
+			if(paramtype == VM::EpochType_Error)
+				paramtype = SubstituteTemplateParams(iter->first, templateargs, program);
+
+			signature.AddParameter(program.GetString(iter->first), paramtype, false);
 
 			if(iter->second->GetMemberType() == StructureMember::FunctionReference)
 			{
@@ -112,17 +122,18 @@ bool Structure::CompileTimeCodeExecution(StringHandle myname, Program& program, 
 		}
 		signature.SetReturnType(program.LookupType(myname));
 
-		AnonymousConstructorName = program.CreateFunctionOverload(program.GetString(myname));
-		program.Session.FunctionSignatures.insert(std::make_pair(AnonymousConstructorName, signature));
+		program.Session.FunctionSignatures.insert(std::make_pair(anonconstructorname, signature));
 	}
 
-	program.Session.FunctionOverloadNames[myname].insert(AnonymousConstructorName);
+	program.Session.FunctionOverloadNames[myname].insert(anonconstructorname);
 
 	for(std::vector<std::pair<StringHandle, StructureMember*> >::const_iterator iter = Members.begin(); iter != Members.end(); ++iter)
 	{
 		StringHandle funcname = program.FindStructureMemberAccessOverload(myname, iter->first);
 
 		VM::EpochTypeID type = iter->second->GetEpochType(program);
+		if(type == VM::EpochType_Error)
+			type = SubstituteTemplateParams(iter->first, templateargs, program);
 
 		std::auto_ptr<Function> func(new Function);
 		std::auto_ptr<Expression> retexpr(new Expression);
@@ -141,9 +152,65 @@ bool Structure::CompileTimeCodeExecution(StringHandle myname, Program& program, 
 
 		program.AddFunction(funcname, funcname, func.release(), errors);
 	}
+}
 
+
+VM::EpochTypeID Structure::SubstituteTemplateParams(StringHandle membername, const CompileTimeParameterVector& templateargs, const Program& program) const
+{
+	if(!IsTemplate())
+		return VM::EpochType_Error;
+
+	if(templateargs.size() != TemplateParams.size())
+		return VM::EpochType_Error;
+
+	for(std::vector<std::pair<StringHandle, StructureMember*> >::const_iterator iter = Members.begin(); iter != Members.end(); ++iter)
+	{
+		if(iter->first == membername)
+		{
+			if(iter->second->GetMemberType() == StructureMember::Variable)
+			{
+				const StructureMemberVariable* member = dynamic_cast<const StructureMemberVariable*>(iter->second);
+				if(member)
+				{
+					for(size_t i = 0; i < TemplateParams.size(); ++i)
+					{
+						if(member->GetNameOfType() == TemplateParams[i].first)
+							return program.LookupType(templateargs[i].Payload.LiteralStringHandleValue);
+					}
+
+					return member->GetEpochType(program);
+				}
+			}
+		}
+	}
+
+	return VM::EpochType_Error;
+}
+
+
+bool Structure::CompileTimeCodeExecution(StringHandle myname, Program& program, CompileErrors& errors)
+{
+	if(IsTemplate())
+		return true;
+
+	ConstructorName = program.CreateFunctionOverload(program.GetString(myname));
+	AnonymousConstructorName = program.CreateFunctionOverload(program.GetString(myname));
+	GenerateConstructors(myname, ConstructorName, AnonymousConstructorName, CompileTimeParameterVector(), program, errors);
 	return true;
 }
+
+bool Structure::InstantiateTemplate(StringHandle myname, const CompileTimeParameterVector& args, Program& program, CompileErrors& errors)
+{
+	if(!IsTemplate())
+		return false;
+
+	// TODO - sanity check (someplace, probably not here) that args matches our template param list
+
+	program.GenerateStructureFunctions(myname, this);
+	GenerateConstructors(myname, program.FindTemplateConstructorName(myname), program.FindTemplateAnonConstructorName(myname), args, program, errors);
+	return true;
+}
+
 
 
 //
@@ -217,5 +284,10 @@ FunctionSignature StructureMemberFunctionReference::GetSignature(const Program& 
 		ret.AddParameter(L"@@auto", program.LookupType(iter->first), false);
 	}
 	return ret;
+}
+
+void Structure::AddTemplateParameter(VM::EpochTypeID type, StringHandle name)
+{
+	TemplateParams.push_back(std::make_pair(name, type));
 }
 

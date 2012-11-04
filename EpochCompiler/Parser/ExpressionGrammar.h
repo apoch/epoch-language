@@ -28,6 +28,7 @@ struct ExpressionGrammar : public boost::spirit::qi::grammar<Lexer::TokenIterT, 
 	Rule<AST::DeferredPreOperatorStatement()>::type PreOperatorStatement;
 	Rule<AST::DeferredPostOperatorStatement()>::type PostOperatorStatement;
 
+	Rule<AST::TemplateArgumentList()>::type TemplateArguments;
 	Rule<AST::DeferredInitialization()>::type VariableDeclaration;
 	
 	Rule<AST::DeferredSimpleAssignment()>::type SimpleAssignment;

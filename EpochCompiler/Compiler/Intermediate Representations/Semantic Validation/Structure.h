@@ -15,6 +15,7 @@
 #include "Utility/Types/EpochTypeIDs.h"
 
 #include "Metadata/FunctionSignature.h"
+#include "Metadata/CompileTimeParams.h"
 
 #include <map>
 #include <vector>
@@ -28,7 +29,6 @@ namespace IRSemantics
 
 	// Forward declarations
 	class Program;
-
 
 	//
 	// Abstract base for structure members
@@ -81,6 +81,11 @@ namespace IRSemantics
 		virtual VM::EpochTypeID GetEpochType(const IRSemantics::Program& program) const;
 
 		virtual bool Validate(const IRSemantics::Program& program, CompileErrors& errors) const;
+
+	// Additional queries
+	public:
+		StringHandle GetNameOfType() const
+		{ return MyType; }
 
 	// Internal state
 	private:
@@ -163,6 +168,10 @@ namespace IRSemantics
 		const std::vector<std::pair<StringHandle, StructureMember*> >& GetMembers() const
 		{ return Members; }
 
+	// Template support
+	public:
+		void AddTemplateParameter(VM::EpochTypeID type, StringHandle name);
+
 	// Validation
 	public:
 		bool Validate(const Program& program, CompileErrors& errors) const;
@@ -170,6 +179,7 @@ namespace IRSemantics
 	// Compile time code execution
 	public:
 		bool CompileTimeCodeExecution(StringHandle myname, Program& program, CompileErrors& errors);
+		bool InstantiateTemplate(StringHandle myname, const CompileTimeParameterVector& args, Program& program, CompileErrors& errors);
 
 	// Inspection
 	public:
@@ -179,11 +189,24 @@ namespace IRSemantics
 		StringHandle GetAnonymousConstructorName() const
 		{ return AnonymousConstructorName; }
 
+		bool IsTemplate() const
+		{ return !TemplateParams.empty(); }
+
+	// Template helpers
+	public:
+		VM::EpochTypeID SubstituteTemplateParams(StringHandle membername, const CompileTimeParameterVector& templateargs, const Program& program) const;
+
+	// Internal helpers
+	private:
+		void GenerateConstructors(StringHandle myname, StringHandle constructorname, StringHandle anonconstructorname, const CompileTimeParameterVector& templateargs, Program& program, CompileErrors& errors) const;
+
 	// Internal state
 	private:
 		std::vector<std::pair<StringHandle, StructureMember*> > Members;
 		StringHandle ConstructorName;
 		StringHandle AnonymousConstructorName;
+
+		std::vector<std::pair<StringHandle, VM::EpochTypeID> > TemplateParams;
 	};
 
 }

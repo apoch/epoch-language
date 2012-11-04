@@ -42,6 +42,8 @@ namespace Lexer
 		OpenBrace = L"\\[";
 		CloseBrace = L"\\]";
 		Pipe = L"\\|";
+		OpenAngleBracket = L"\\<";
+		CloseAngleBracket = L"\\>";
 
 		this->self.add
 			(Comma)
@@ -56,6 +58,8 @@ namespace Lexer
 			(OpenBrace)
 			(CloseBrace)
 			(Pipe)
+			(OpenAngleBracket)
+			(CloseAngleBracket)
 			(HexLiteral)
 			(RealLiteral)
 			(StringLiteral)

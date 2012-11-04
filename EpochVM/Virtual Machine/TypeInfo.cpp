@@ -44,7 +44,7 @@ EPOCHVM size_t VM::GetStorageSize(EpochTypeID type)
 		throw FatalException("Unable to determine the size of this variable/structure member");
 
 	default:
-		if(VM::GetTypeFamily(type) != VM::EpochTypeFamily_Structure)
+		if(VM::GetTypeFamily(type) != VM::EpochTypeFamily_Structure && VM::GetTypeFamily(type) != VM::EpochTypeFamily_TemplateInstance)
 			throw NotImplementedException("Unsupported data type in VM::GetStorageSize()");
 
 		return sizeof(StructureHandle);

@@ -11,6 +11,7 @@
 // Dependencies
 #include "Compiler/Abstract Syntax Tree/Identifiers.h"
 #include "Compiler/Abstract Syntax Tree/OptionalIdentifier.h"
+#include "Compiler/Abstract Syntax Tree/Templates.h"
 
 
 namespace AST
@@ -53,6 +54,8 @@ namespace AST
 	struct Structure
 	{
 		IdentifierT Identifier;
+		OptionalTemplateParameterList TemplateParams;
+		
 		std::vector<StructureMember, Memory::OneWayAlloc<StructureMember> > Members;
 
 		long RefCount;
@@ -95,5 +98,6 @@ BOOST_FUSION_ADAPT_STRUCT
 (
 	AST::DeferredStructure,
 	(AST::IdentifierT, Content->Identifier)
+	(AST::OptionalTemplateParameterList, Content->TemplateParams)
 	(StructureMemberVec, Content->Members)
 )

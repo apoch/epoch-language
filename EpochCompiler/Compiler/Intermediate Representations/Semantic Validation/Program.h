@@ -78,6 +78,11 @@ namespace IRSemantics
 	//
 	class Program
 	{
+	// Handy type shortcuts
+	public:
+		typedef std::map<StringHandle, CompileTimeParameterVector> TemplateInstancesAndArguments;
+		typedef std::map<StringHandle, TemplateInstancesAndArguments> TemplateInstantiationMap;
+
 	// Construction and destruction
 	public:
 		Program(StringPoolManager& strings, CompileSession& session);
@@ -104,6 +109,9 @@ namespace IRSemantics
 		StringHandle AllocateLexicalScopeName(const CodeBlock* blockptr);
 		StringHandle FindLexicalScopeName(const CodeBlock* blockptr) const;
 		StringHandle FindLexicalScopeName(const ScopeDescription* scopeptr) const;
+
+		StringHandle FindTemplateConstructorName(StringHandle instancename) const;
+		StringHandle FindTemplateAnonConstructorName(StringHandle instancename) const;
 
 	// Manipulation of associated functions
 	public:
@@ -144,6 +152,8 @@ namespace IRSemantics
 
 		const std::map<StringHandle, Structure*>& GetStructures() const
 		{ return Structures; }
+
+		void GenerateStructureFunctions(StringHandle name, Structure* structure);
 
 		StringHandle GetNameOfStructureType(VM::EpochTypeID type) const;
 		VM::EpochTypeID GetStructureMemberType(StringHandle structurename, StringHandle membername) const;
@@ -203,9 +213,17 @@ namespace IRSemantics
 	public:
 		bool Validate(CompileErrors& errors) const;
 
+	// Templates
+	public:
+		StringHandle InstantiateStructureTemplate(StringHandle templatename, const CompileTimeParameterVector& args);
+
+		const TemplateInstantiationMap& GetTemplateInstantiations() const
+		{ return TemplateInstantiations; }
+
 	// Internal helpers
 	private:
 		std::wstring GenerateFunctionOverloadName(StringHandle name, size_t index) const;
+		std::wstring GenerateTemplateMangledName();
 		static std::wstring GenerateAnonymousGlobalScopeName(size_t index);
 		static std::wstring GenerateLexicalScopeName(const ScopeDescription* scopeptr);
 		static std::wstring GenerateStructureMemberAccessOverloadName(const std::wstring& structurename, const std::wstring& membername);
@@ -237,6 +255,7 @@ namespace IRSemantics
 		unsigned CounterLexicalScope;
 		unsigned CounterUnitTypeIDs;
 		unsigned CounterSumTypeIDs;
+		unsigned CounterTemplateInstantiations;
 
 		ScopePtrMap LexicalScopes;
 
@@ -252,6 +271,10 @@ namespace IRSemantics
 		std::map<StringHandle, StringHandle> OverloadTypeMatchers;
 		std::map<StringHandle, std::map<StringHandle, FunctionSignature> > RequiredTypeMatchers;
 
+		TemplateInstantiationMap TemplateInstantiations;
+
+		std::map<StringHandle, VM::EpochTypeID> TemplateInstanceNames;
+
 	// String lookup caches
 	private:
 		impl::StringCache<std::pair<StringHandle, size_t> > FunctionOverloadNameCache;
@@ -259,6 +282,8 @@ namespace IRSemantics
 		impl::StringCache<const ScopeDescription*> LexicalScopeNameCache;
 		impl::StringCache<std::wstring> IdentifierCache;
 		impl::StringCache<StringHandle> PatternMatcherNameCache;
+		impl::StringCache<StringHandle> TemplateConstructorNameCache;
+		impl::StringCache<StringHandle> TemplateAnonConstructorNameCache;
 	};
 
 }

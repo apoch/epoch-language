@@ -24,15 +24,15 @@ namespace VM
 	// and so on, as defined below.
 	typedef UInteger32 EpochTypeFamily;
 
-	static const EpochTypeFamily EpochTypeFamily_Magic     = (0x00000000);
-	static const EpochTypeFamily EpochTypeFamily_Primitive = (0x01000000);
-	static const EpochTypeFamily EpochTypeFamily_GC        = (0x02000000);
-	static const EpochTypeFamily EpochTypeFamily_Structure = (0x03000000);
-	static const EpochTypeFamily EpochTypeFamily_Alias     = (0x04000000);
-	static const EpochTypeFamily EpochTypeFamily_Unit      = (0x05000000);
-	static const EpochTypeFamily EpochTypeFamily_Tuple     = (0x06000000);
-	static const EpochTypeFamily EpochTypeFamily_SumType   = (0x07000000);
-	static const EpochTypeFamily EpochTypeFamily_Template  = (0x08000000);
+	static const EpochTypeFamily EpochTypeFamily_Magic				= (0x00000000);
+	static const EpochTypeFamily EpochTypeFamily_Primitive			= (0x01000000);
+	static const EpochTypeFamily EpochTypeFamily_GC					= (0x02000000);
+	static const EpochTypeFamily EpochTypeFamily_Structure			= (0x03000000);
+	static const EpochTypeFamily EpochTypeFamily_Alias				= (0x04000000);
+	static const EpochTypeFamily EpochTypeFamily_Unit				= (0x05000000);
+	static const EpochTypeFamily EpochTypeFamily_Tuple				= (0x06000000);
+	static const EpochTypeFamily EpochTypeFamily_SumType			= (0x07000000);
+	static const EpochTypeFamily EpochTypeFamily_TemplateInstance	= (0x08000000);
 
 
 	// Special types
@@ -42,6 +42,7 @@ namespace VM
 	static const EpochTypeID EpochType_Function	= 3 | EpochTypeFamily_Magic;
 	static const EpochTypeID EpochType_Nothing	= 4 | EpochTypeFamily_Magic;
 	static const EpochTypeID EpochType_RefFlag	= 5 | EpochTypeFamily_Magic;
+	static const EpochTypeID EpochType_Wildcard = 6 | EpochTypeFamily_Magic;
 
 	// Built-in primitives
 	static const EpochTypeID EpochType_Identifier = 0 | EpochTypeFamily_Primitive;

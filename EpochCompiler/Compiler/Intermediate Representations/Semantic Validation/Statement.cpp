@@ -583,6 +583,17 @@ bool Statement::TypeInference(Program& program, CodeBlock& activescope, Inferenc
 }
 
 
+void Statement::SetTemplateArgs(const CompileTimeParameterVector& args, Program& program)
+{
+	if(!args.empty())
+	{
+		RawName = program.InstantiateStructureTemplate(Name, args);
+		Name = program.FindTemplateConstructorName(RawName);
+	}
+}
+
+
+
 bool PreOpStatement::TypeInference(Program& program, CodeBlock& activescope, InferenceContext&, CompileErrors&)
 {
 	VM::EpochTypeID operandtype = InferMemberAccessType(Operand, program, activescope);
