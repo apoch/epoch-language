@@ -28,6 +28,7 @@ struct FunctionDefinitionGrammar : public boost::spirit::qi::grammar<Lexer::Toke
 	Rule<AST::RefTag()>::type RefTagRule;
 
 	Rule<AST::DeferredFunctionParameter()>::type ParameterDeclaration;
+	Rule<AST::TemplateArgumentList()>::type TemplateArguments;
 
 	Rule<std::vector<AST::DeferredFunctionParameter, Memory::OneWayAlloc<AST::DeferredFunctionParameter> >()>::type ParameterList;
 	Rule<AST::OptionalReturn()>::type ReturnList;

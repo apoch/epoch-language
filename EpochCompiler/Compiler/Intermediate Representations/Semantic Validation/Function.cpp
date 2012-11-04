@@ -123,23 +123,18 @@ bool Function::IsParameterReference(StringHandle name) const
 //
 // Retrieve the type of the given parameter
 //
-VM::EpochTypeID Function::GetParameterType(StringHandle name, const IRSemantics::Program& program) const
+VM::EpochTypeID Function::GetParameterType(StringHandle name, IRSemantics::Program& program, CompileErrors& errors) const
 {
 	for(std::vector<Param>::const_iterator iter = Parameters.begin(); iter != Parameters.end(); ++iter)
 	{
 		if(iter->Name == name)
+		{
+			iter->Parameter->TypeInference(program, errors);
 			return iter->Parameter->GetParamType(program);
+		}
 	}
 
 	throw InternalException("Provided string handle does not correspond to a parameter of this function");
-}
-
-//
-// Retrieve the type of a parameter, using its index instead of its name
-//
-VM::EpochTypeID Function::GetParameterTypeByIndex(size_t index, const IRSemantics::Program& program) const
-{
-	return Parameters[index].Parameter->GetParamType(program);
 }
 
 //
@@ -461,15 +456,27 @@ void Function::AddTag(const FunctionTag& tag)
 //
 bool FunctionParamNamed::Validate(const IRSemantics::Program& program) const
 {
-	return (program.LookupType(MyType) != VM::EpochType_Error);
+	return (GetParamType(program) != VM::EpochType_Error);
 }
 
 //
 // Get the type of a named function parameter
 //
-VM::EpochTypeID FunctionParamNamed::GetParamType(const IRSemantics::Program& program) const
+VM::EpochTypeID FunctionParamNamed::GetParamType(const IRSemantics::Program&) const
 {
-	return program.LookupType(MyType);
+	return MyActualType;
+}
+
+bool FunctionParamNamed::TypeInference(IRSemantics::Program& program, CompileErrors&)
+{
+	StringHandle name;
+	if(TemplateArgs.empty())
+		name = MyTypeName;
+	else
+		name = program.InstantiateStructureTemplate(MyTypeName, TemplateArgs);
+
+	MyActualType = program.LookupType(name);
+	return true;
 }
 
 //

@@ -15,12 +15,14 @@ FunctionDefinitionGrammar::FunctionDefinitionGrammar(const Lexer::EpochLexerT& l
 {
 	using namespace boost::spirit::qi;
 
+	TemplateArguments %= lexer.OpenAngleBracket >> ((literalgrammar | as<AST::IdentifierT>()[lexer.StringIdentifier] | as<AST::IdentifierT>()[lexer.Nothing]) % lexer.Comma) >> lexer.CloseAngleBracket;
+
 	RefTagRule = as<AST::IdentifierT>()[lexer.Ref];
 	Nothing = as<AST::IdentifierT>()[lexer.Nothing];
 	ParamTypeSpec = lexer.StringIdentifier % lexer.Comma;
 	ReturnTypeSpec %= (lexer.Arrow >> lexer.StringIdentifier) | attr(AST::Undefined());
 	ParameterFunctionRef = lexer.OpenParens >> lexer.StringIdentifier >> lexer.Colon >> -ParamTypeSpec >> ReturnTypeSpec >> lexer.CloseParens;
-	ParameterSpec %= lexer.StringIdentifier >> -RefTagRule >> lexer.StringIdentifier;
+	ParameterSpec %= lexer.StringIdentifier >> -TemplateArguments >> -RefTagRule >> lexer.StringIdentifier;
 	ParameterDeclaration %= Nothing | ParameterSpec | ParameterFunctionRef | expressiongrammar;
 	ParameterList %= ParameterDeclaration % lexer.Comma;
 	ReturnList %= lexer.Arrow >> (expressiongrammar.VariableDeclaration | expressiongrammar);

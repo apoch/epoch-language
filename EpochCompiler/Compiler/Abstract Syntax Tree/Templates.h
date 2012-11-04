@@ -10,6 +10,7 @@
 
 // Dependencies
 #include "Compiler/Abstract Syntax Tree/Identifiers.h"
+#include "Compiler/Abstract Syntax Tree/Literals.h"
 
 
 namespace AST
@@ -29,6 +30,24 @@ namespace AST
 			Undefined,
 			TemplateParameterList
 		> OptionalTemplateParameterList;
+
+
+	typedef boost::variant
+		<
+			Undefined,
+			IdentifierT,
+			LiteralToken
+		> TemplateArgument;
+
+
+	typedef std::vector<TemplateArgument> TemplateArgumentList;
+
+
+	typedef boost::variant
+		<
+			Undefined,
+			TemplateArgumentList
+		> OptionalTemplateArgumentList;
 
 }
 

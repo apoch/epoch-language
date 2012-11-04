@@ -62,8 +62,10 @@ namespace IRSemantics
 	{
 	// Construction
 	public:
-		FunctionParamNamed(StringHandle type, bool isreference)
-			: MyType(type),
+		FunctionParamNamed(StringHandle type, const CompileTimeParameterVector& templateargs, bool isreference)
+			: MyTypeName(type),
+			  TemplateArgs(templateargs),
+			  MyActualType(VM::EpochType_Error),
 			  IsRef(isreference)
 		{ }
 
@@ -81,16 +83,17 @@ namespace IRSemantics
 
 		virtual void AddToSignature(FunctionSignature& signature, const IRSemantics::Program& program) const;
 
-		virtual bool TypeInference(IRSemantics::Program&, CompileErrors&)
-		{ return true; }
+		virtual bool TypeInference(IRSemantics::Program& program, CompileErrors& errors);
 
 		virtual bool PatternMatchValue(const CompileTimeParameter&, const IRSemantics::Program&) const
 		{ return false; }
 
 	// Internal state
 	private:
-		StringHandle MyType;
+		StringHandle MyTypeName;
+		VM::EpochTypeID MyActualType;
 		bool IsRef;
+		CompileTimeParameterVector TemplateArgs;
 	};
 
 	//
@@ -287,8 +290,7 @@ namespace IRSemantics
 		bool HasParameter(StringHandle paramname) const;
 
 		bool IsParameterLocalVariable(StringHandle name) const;
-		VM::EpochTypeID GetParameterType(StringHandle name, const IRSemantics::Program& program) const;
-		VM::EpochTypeID GetParameterTypeByIndex(size_t index, const IRSemantics::Program& program) const;
+		VM::EpochTypeID GetParameterType(StringHandle name, IRSemantics::Program& program, CompileErrors& errors) const;
 		bool IsParameterReference(StringHandle name) const;
 
 		bool DoesParameterSignatureMatch(size_t index, const FunctionSignature& signature, const IRSemantics::Program& program) const;

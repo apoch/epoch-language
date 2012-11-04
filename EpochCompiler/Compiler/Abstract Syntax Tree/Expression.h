@@ -158,25 +158,6 @@ namespace AST
 			DeferredExpression
 		> OptionalExpression;
 
-
-
-	typedef boost::variant
-		<
-			Undefined,
-			IdentifierT,
-			LiteralToken
-		> TemplateArgument;
-
-
-	typedef std::vector<TemplateArgument> TemplateArgumentList;
-
-
-	typedef boost::variant
-		<
-			Undefined,
-			TemplateArgumentList
-		> OptionalTemplateArgumentList;
-
 }
 
 //

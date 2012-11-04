@@ -64,6 +64,7 @@ struct CompileTimeParameter
 		case VM::EpochType_Integer:
 			return Payload.IntegerValue == rhs.Payload.IntegerValue;
 
+		case VM::EpochType_Identifier:
 		case VM::EpochType_Wildcard:
 			return Payload.LiteralStringHandleValue == rhs.Payload.LiteralStringHandleValue;
 		}

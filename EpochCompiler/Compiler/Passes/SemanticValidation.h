@@ -295,6 +295,8 @@ namespace ASTTraverse
 		std::vector<IRSemantics::FunctionTag*> CurrentFunctionTags;
 		std::vector<CompileTimeParameterVector*> CurrentTemplateArgs;
 
+		CompileTimeParameterVector CurrentTemplateArgsScratch;
+
 		enum States
 		{
 			STATE_UNKNOWN,

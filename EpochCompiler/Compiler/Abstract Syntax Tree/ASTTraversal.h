@@ -353,6 +353,12 @@ namespace ASTTraverse
 		void Do(EntryActionT& entryaction, AST::NamedFunctionParameter& param, ExitActionT& exitaction)
 		{
 			entryaction(param);
+			
+			Markers::TemplateArgs marker;
+			entryaction(marker);
+			Do(entryaction, param.TemplateArgs, exitaction);
+			exitaction(marker);
+
 			Do(entryaction, param.IsReference, exitaction);
 			exitaction(param);
 		}

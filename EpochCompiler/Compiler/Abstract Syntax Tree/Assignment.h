@@ -11,6 +11,7 @@
 // Dependencies
 #include "Compiler/Abstract Syntax Tree/Identifiers.h"
 #include "Compiler/Abstract Syntax Tree/Expression.h"
+#include "Compiler/Abstract Syntax Tree/Templates.h"
 
 
 namespace AST

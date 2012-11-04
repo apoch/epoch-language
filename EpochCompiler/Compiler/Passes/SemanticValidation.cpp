@@ -448,7 +448,7 @@ void CompilePassSemantics::ExitHelper::operator () (AST::Function& function)
 	{
 		if(self->CurrentFunctions.back()->IsParameterLocalVariable(*iter))
 		{
-			VM::EpochTypeID type = self->CurrentFunctions.back()->GetParameterType(*iter, *self->CurrentProgram);
+			VM::EpochTypeID type = self->CurrentFunctions.back()->GetParameterType(*iter, *self->CurrentProgram, self->Errors);
 			bool isref = self->CurrentFunctions.back()->IsParameterReference(*iter);
 			self->CurrentFunctions.back()->GetCode()->AddVariable(self->CurrentProgram->GetString(*iter), *iter, type, isref, VARIABLE_ORIGIN_PARAMETER);
 		}
@@ -506,6 +506,7 @@ void CompilePassSemantics::ExitHelper::operator () (AST::FunctionParameter&)
 void CompilePassSemantics::EntryHelper::operator () (AST::NamedFunctionParameter&)
 {
 	self->IsParamRef = false;
+	self->CurrentTemplateArgsScratch.clear();
 }
 
 void CompilePassSemantics::ExitHelper::operator () (AST::NamedFunctionParameter& param)
@@ -529,7 +530,7 @@ void CompilePassSemantics::ExitHelper::operator () (AST::NamedFunctionParameter&
 	StringHandle type = self->CurrentProgram->AddString(std::wstring(param.Type.begin(), param.Type.end()));
 
 	self->ErrorContext = &param.Name;
-	std::auto_ptr<IRSemantics::FunctionParamNamed> irparam(new IRSemantics::FunctionParamNamed(type, self->IsParamRef));
+	std::auto_ptr<IRSemantics::FunctionParamNamed> irparam(new IRSemantics::FunctionParamNamed(type, self->CurrentTemplateArgsScratch, self->IsParamRef));
 	self->CurrentFunctions.back()->AddParameter(name, irparam.release(), self->Errors);
 	self->ErrorContext = NULL;
 }
@@ -1409,7 +1410,7 @@ void CompilePassSemantics::EntryHelper::operator () (AST::Nothing&)
 
 		StringHandle type = self->CurrentProgram->AddString(L"nothing");
 
-		std::auto_ptr<IRSemantics::FunctionParamNamed> irparam(new IRSemantics::FunctionParamNamed(type, false));
+		std::auto_ptr<IRSemantics::FunctionParamNamed> irparam(new IRSemantics::FunctionParamNamed(type, CompileTimeParameterVector(), false));
 		self->CurrentFunctions.back()->AddParameter(type, irparam.release(), self->Errors);
 	}
 	else
@@ -1521,7 +1522,21 @@ void CompilePassSemantics::EntryHelper::operator () (Markers::TemplateArgs&)
 void CompilePassSemantics::ExitHelper::operator () (Markers::TemplateArgs&)
 {
 	self->StateStack.pop();
-	self->CurrentStatements.back()->SetTemplateArgs(*self->CurrentTemplateArgs.back(), *self->CurrentProgram);
+	
+	switch(self->StateStack.top())
+	{
+	case CompilePassSemantics::STATE_STATEMENT:
+		self->CurrentStatements.back()->SetTemplateArgs(*self->CurrentTemplateArgs.back(), *self->CurrentProgram);
+		break;
+
+	case CompilePassSemantics::STATE_FUNCTION_PARAM:
+		self->CurrentTemplateArgsScratch = *self->CurrentTemplateArgs.back();
+		break;
+
+	default:
+		throw NotImplementedException("Template parameterization not handled in this situation yet");
+	}
+	
 	delete self->CurrentTemplateArgs.back();
 	self->CurrentTemplateArgs.pop_back();
 }

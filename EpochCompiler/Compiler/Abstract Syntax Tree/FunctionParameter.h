@@ -13,6 +13,7 @@
 #include "Compiler/Abstract Syntax Tree/Identifiers.h"
 #include "Compiler/Abstract Syntax Tree/Forwards.h"
 #include "Compiler/Abstract Syntax Tree/OptionalIdentifier.h"
+#include "Compiler/Abstract Syntax Tree/Templates.h"
 
 
 namespace AST
@@ -41,6 +42,7 @@ namespace AST
 	struct NamedFunctionParameter
 	{
 		IdentifierT Type;
+		OptionalTemplateArgumentList TemplateArgs;
 		OptionalRef IsReference;
 		IdentifierT Name;
 
@@ -151,6 +153,7 @@ BOOST_FUSION_ADAPT_STRUCT
 (
 	AST::DeferredNamedFunctionParameter,
 	(AST::IdentifierT, Content->Type)
+	(AST::OptionalTemplateArgumentList, Content->TemplateArgs)
 	(AST::OptionalRef, Content->IsReference)
 	(AST::IdentifierT, Content->Name)
 )
