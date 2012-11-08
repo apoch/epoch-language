@@ -10,7 +10,7 @@
 #include "Compiler/Intermediate Representations/Semantic Validation/Function.h"
 #include "Compiler/Intermediate Representations/Semantic Validation/CodeBlock.h"
 #include "Compiler/Intermediate Representations/Semantic Validation/Expression.h"
-#include "Compiler/Intermediate Representations/Semantic Validation/Program.h"
+#include "Compiler/Intermediate Representations/Semantic Validation/Namespace.h"
 
 #include "Compiler/Exceptions.h"
 #include "Compiler/CompileErrors.h"
@@ -23,7 +23,7 @@ using namespace IRSemantics;
 
 
 // External prototypes (yeah, I'm lazy)
-void CompileConstructorStructure(IRSemantics::Statement& statement, IRSemantics::Program& program, IRSemantics::CodeBlock& activescope, bool inreturnexpr, CompileErrors& errors);
+void CompileConstructorStructure(IRSemantics::Statement& statement, Namespace& curnamespace, IRSemantics::CodeBlock& activescope, bool inreturnexpr, CompileErrors& errors);
 
 
 //
@@ -67,12 +67,12 @@ void Function::SetReturnExpression(IRSemantics::Expression* expression)
 //
 // Retrieve the return type of a function
 //
-VM::EpochTypeID Function::GetReturnType(const Program& program) const
+VM::EpochTypeID Function::GetReturnType(const Namespace& curnamespace) const
 {
 	if(Return)
 	{
 		if(Return->IsInferenceDone())
-			return Return->GetEpochType(program);
+			return Return->GetEpochType(curnamespace);
 
 		return HintReturnType;
 	}
@@ -123,14 +123,14 @@ bool Function::IsParameterReference(StringHandle name) const
 //
 // Retrieve the type of the given parameter
 //
-VM::EpochTypeID Function::GetParameterType(StringHandle name, IRSemantics::Program& program, CompileErrors& errors) const
+VM::EpochTypeID Function::GetParameterType(StringHandle name, Namespace& curnamespace, CompileErrors& errors) const
 {
 	for(std::vector<Param>::const_iterator iter = Parameters.begin(); iter != Parameters.end(); ++iter)
 	{
 		if(iter->Name == name)
 		{
-			iter->Parameter->TypeInference(program, errors);
-			return iter->Parameter->GetParamType(program);
+			iter->Parameter->TypeInference(curnamespace, errors);
+			return iter->Parameter->GetParamType(curnamespace);
 		}
 	}
 
@@ -169,25 +169,25 @@ bool Function::HasParameter(StringHandle paramname) const
 //
 // Validate a function definition
 //
-bool Function::Validate(const IRSemantics::Program& program) const
+bool Function::Validate(const Namespace& curnamespace) const
 {
 	bool valid = true;
 
 	for(std::vector<Param>::const_iterator iter = Parameters.begin(); iter != Parameters.end(); ++iter)
 	{
-		if(!iter->Parameter->Validate(program))
+		if(!iter->Parameter->Validate(curnamespace))
 			valid = false;
 	}
 
 	if(Return)
 	{
-		if(!Return->Validate(program))
+		if(!Return->Validate(curnamespace))
 			valid = false;
 	}
 
 	if(Code)
 	{
-		if(!Code->Validate(program))
+		if(!Code->Validate(curnamespace))
 			valid = false;
 	}
 
@@ -206,23 +206,22 @@ bool Function::Validate(const IRSemantics::Program& program) const
 // this process too soon, variables can be referenced anywhere in the scope
 // in which they are defined, rather than only after the point of definition.
 //
-bool Function::CompileTimeCodeExecution(Program& program, CompileErrors& errors)
+bool Function::CompileTimeCodeExecution(Namespace& curnamespace, CompileErrors& errors)
 {
 	for(std::vector<FunctionTag>::const_iterator iter = Tags.begin(); iter != Tags.end(); ++iter)
 	{
-		FunctionTagHelperTable::const_iterator helperiter = program.Session.FunctionTagHelpers.find(program.GetString(iter->TagName));
-		if(helperiter != program.Session.FunctionTagHelpers.end())
+		if(curnamespace.FunctionTags.Exists(iter->TagName))
 		{
-			TagHelperReturn help = helperiter->second(RawName, iter->Parameters, true);
+			TagHelperReturn help = curnamespace.FunctionTags.GetHelper(iter->TagName)(RawName, iter->Parameters, true);
 			if(help.SetConstructorFunction)
 			{
-				FunctionSignature signature = GetFunctionSignature(program);
+				FunctionSignature signature = GetFunctionSignature(curnamespace);
 				signature.PrependParameter(L"@id", VM::EpochType_Identifier, false);
 				signature.SetReturnType(VM::EpochType_Void);
-				program.Session.FunctionSignatures[Name] = signature;
-				Code->GetScope()->PrependVariable(L"@id", program.AddString(L"@id"), VM::EpochType_Identifier, false, VARIABLE_ORIGIN_PARAMETER);
+				curnamespace.Functions.SetSignature(Name, signature);
+				Code->GetScope()->PrependVariable(L"@id", curnamespace.Strings.Pool(L"@id"), VM::EpochType_Identifier, false, VARIABLE_ORIGIN_PARAMETER);
 
-				program.Session.InfoTable.FunctionHelpers->insert(std::make_pair(Name, &CompileConstructorStructure));
+				curnamespace.Functions.SetCompileHelper(Name, &CompileConstructorStructure);
 			}
 		}
 		else
@@ -237,14 +236,14 @@ bool Function::CompileTimeCodeExecution(Program& program, CompileErrors& errors)
 		if(!Code)
 			return false;
 
-		if(!Return->CompileTimeCodeExecution(program, *Code, true, errors))
+		if(!Return->CompileTimeCodeExecution(curnamespace, *Code, true, errors))
 			return false;
 	}
 
 	for(std::vector<Param>::const_iterator iter = Parameters.begin(); iter != Parameters.end(); ++iter)
 	{
 		if(!iter->Parameter->IsLocalVariable())
-			program.MarkFunctionWithStaticPatternMatching(RawName, Name);
+			curnamespace.Functions.MarkFunctionWithStaticPatternMatching(RawName, Name);
 	}
 
 	return true;
@@ -253,7 +252,7 @@ bool Function::CompileTimeCodeExecution(Program& program, CompileErrors& errors)
 //
 // Perform type inference on a function
 //
-bool Function::TypeInference(Program& program, InferenceContext&, CompileErrors& errors)
+bool Function::TypeInference(Namespace& curnamespace, InferenceContext&, CompileErrors& errors)
 {
 	if(InferenceDone)
 		return true;
@@ -267,15 +266,15 @@ bool Function::TypeInference(Program& program, InferenceContext&, CompileErrors&
 	{
 		InferenceContext newcontext(Name, InferenceContext::CONTEXT_FUNCTION_RETURN);
 		newcontext.FunctionName = Name;
-		if(!Return->TypeInference(program, *Code, newcontext, 0, 1, errors))
+		if(!Return->TypeInference(curnamespace, *Code, newcontext, 0, 1, errors))
 			return false;
 
-		VM::EpochTypeID rettype = Return->GetEpochType(program);
+		VM::EpochTypeID rettype = Return->GetEpochType(curnamespace);
 		if(rettype != VM::EpochType_Void)
 		{
 			if(!Code->GetScope()->HasReturnVariable())
 			{
-				Code->AddVariable(L"@@anonymousret", program.AddString(L"@@anonymousret"), rettype, false, VARIABLE_ORIGIN_RETURN);
+				Code->AddVariable(L"@@anonymousret", curnamespace.Strings.Pool(L"@@anonymousret"), rettype, false, VARIABLE_ORIGIN_RETURN);
 				AnonymousReturn = true;
 			}
 		}
@@ -284,19 +283,19 @@ bool Function::TypeInference(Program& program, InferenceContext&, CompileErrors&
 	bool result = true;
 	for(std::vector<Param>::iterator iter = Parameters.begin(); iter != Parameters.end(); ++iter)
 	{
-		if(!iter->Parameter->TypeInference(program, errors))
+		if(!iter->Parameter->TypeInference(curnamespace, errors))
 			result = false;
 	}
 
 	if(!result)
 		return false;
 
-	program.AddScope(Code->GetScope());		// TODO - better solution than aliasing the scope
-	program.AddScope(Code->GetScope(), Name);
+	curnamespace.AddScope(Code->GetScope());		// TODO - better solution than aliasing the scope
+	curnamespace.AddScope(Code->GetScope(), Name);
 
 	InferenceContext newcontext(Name, InferenceContext::CONTEXT_FUNCTION);
 	newcontext.FunctionName = Name;
-	result = Code->TypeInference(program, newcontext, errors);
+	result = Code->TypeInference(curnamespace, newcontext, errors);
 	return result;
 }
 
@@ -309,7 +308,7 @@ bool Function::TypeInference(Program& program, InferenceContext&, CompileErrors&
 //   - foo has some statically known signature
 //   - This function obtains foo's return type from that signature
 //
-VM::EpochTypeID Function::GetParameterSignatureType(StringHandle name, const IRSemantics::Program& program) const
+VM::EpochTypeID Function::GetParameterSignatureType(StringHandle name, const Namespace& curnamespace) const
 {
 	for(std::vector<Param>::const_iterator iter = Parameters.begin(); iter != Parameters.end(); ++iter)
 	{
@@ -319,7 +318,7 @@ VM::EpochTypeID Function::GetParameterSignatureType(StringHandle name, const IRS
 			if(!rettypename)
 				return VM::EpochType_Void;
 
-			return program.LookupType(rettypename);
+			return curnamespace.Types.GetTypeByName(rettypename);
 		}
 	}
 
@@ -336,11 +335,11 @@ VM::EpochTypeID Function::GetParameterSignatureType(StringHandle name, const IRS
 //   - foo has a static signature
 //   - This function checks if another signature matches foo's signature
 //
-bool Function::DoesParameterSignatureMatch(size_t index, const FunctionSignature& signature, const IRSemantics::Program& program) const
+bool Function::DoesParameterSignatureMatch(size_t index, const FunctionSignature& signature, const Namespace& curnamespace) const
 {
 	const FunctionParamFuncRef* param = dynamic_cast<const FunctionParamFuncRef*>(Parameters[index].Parameter);
 	StringHandle nameoftype = param->GetReturnType();
-	VM::EpochTypeID type = nameoftype ? program.LookupType(nameoftype) : VM::EpochType_Void;
+	VM::EpochTypeID type = nameoftype ? curnamespace.Types.GetTypeByName(nameoftype) : VM::EpochType_Void;
 	if(type != signature.GetReturnType())
 		return false;
 
@@ -351,7 +350,7 @@ bool Function::DoesParameterSignatureMatch(size_t index, const FunctionSignature
 	for(size_t i = 0; i < paramtypes.size(); ++i)
 	{
 		const CompileTimeParameter& parameter = signature.GetParameter(i);
-		if(parameter.Type != program.LookupType(paramtypes[i]))
+		if(parameter.Type != curnamespace.Types.GetTypeByName(paramtypes[i]))
 			return false;
 
 		if(parameter.Type == VM::EpochType_Function)
@@ -372,7 +371,7 @@ bool Function::DoesParameterSignatureMatch(size_t index, const FunctionSignature
 //   - foo has a static signature
 //   - This returns foo's signature
 //
-FunctionSignature Function::GetParameterSignature(StringHandle name, const IRSemantics::Program& program) const
+FunctionSignature Function::GetParameterSignature(StringHandle name, const Namespace& curnamespace) const
 {
 	for(std::vector<Param>::const_iterator iter = Parameters.begin(); iter != Parameters.end(); ++iter)
 	{
@@ -384,13 +383,13 @@ FunctionSignature Function::GetParameterSignature(StringHandle name, const IRSem
 				return ret;
 
 			StringHandle nameoftype = param->GetReturnType();
-			VM::EpochTypeID type = nameoftype ? program.LookupType(nameoftype) : VM::EpochType_Void;
+			VM::EpochTypeID type = nameoftype ? curnamespace.Types.GetTypeByName(nameoftype) : VM::EpochType_Void;
 			ret.SetReturnType(type);
 
 			const std::vector<StringHandle>& paramtypes = param->GetParamTypes();
 			for(size_t i = 0; i < paramtypes.size(); ++i)
 			{
-				VM::EpochTypeID paramtype = program.LookupType(paramtypes[i]);
+				VM::EpochTypeID paramtype = curnamespace.Types.GetTypeByName(paramtypes[i]);
 				ret.AddParameter(L"@@internal", paramtype, false);
 			}
 
@@ -404,25 +403,25 @@ FunctionSignature Function::GetParameterSignature(StringHandle name, const IRSem
 //
 // Get the complete signature of this function
 //
-FunctionSignature Function::GetFunctionSignature(const Program& program) const
+FunctionSignature Function::GetFunctionSignature(const Namespace& curnamespace) const
 {
 	FunctionSignature ret;
 
-	ret.SetReturnType(GetReturnType(program));
+	ret.SetReturnType(GetReturnType(curnamespace));
 
 	size_t index = 0;
 	for(std::vector<Param>::const_iterator iter = Parameters.begin(); iter != Parameters.end(); ++iter)
 	{
-		VM::EpochTypeID paramtype = iter->Parameter->GetParamType(program);
+		VM::EpochTypeID paramtype = iter->Parameter->GetParamType(curnamespace);
 		if(iter->Parameter->IsLocalVariable())
 		{
-			ret.AddParameter(program.GetString(iter->Name), paramtype, iter->Parameter->IsReference());
+			ret.AddParameter(curnamespace.Strings.GetPooledString(iter->Name), paramtype, iter->Parameter->IsReference());
 			if(paramtype == VM::EpochType_Function)
-				ret.SetFunctionSignature(index, GetParameterSignature(iter->Name, program));
+				ret.SetFunctionSignature(index, GetParameterSignature(iter->Name, curnamespace));
 		}
 		else
 		{
-			iter->Parameter->AddToSignature(ret, program);
+			iter->Parameter->AddToSignature(ret, curnamespace);
 		}
 
 		++index;
@@ -437,9 +436,9 @@ FunctionSignature Function::GetFunctionSignature(const Program& program) const
 // of function arguments match the formal patterns
 // specified in the function definition.
 //
-bool Function::PatternMatchParameter(size_t index, const CompileTimeParameter& param, const IRSemantics::Program& program) const
+bool Function::PatternMatchParameter(size_t index, const CompileTimeParameter& param, const Namespace& curnamespace) const
 {
-	return Parameters[index].Parameter->PatternMatchValue(param, program);
+	return Parameters[index].Parameter->PatternMatchValue(param, curnamespace);
 }
 
 //
@@ -454,44 +453,44 @@ void Function::AddTag(const FunctionTag& tag)
 //
 // Validate a named function parameter
 //
-bool FunctionParamNamed::Validate(const IRSemantics::Program& program) const
+bool FunctionParamNamed::Validate(const Namespace& curnamespace) const
 {
-	return (GetParamType(program) != VM::EpochType_Error);
+	return (GetParamType(curnamespace) != VM::EpochType_Error);
 }
 
 //
 // Get the type of a named function parameter
 //
-VM::EpochTypeID FunctionParamNamed::GetParamType(const IRSemantics::Program&) const
+VM::EpochTypeID FunctionParamNamed::GetParamType(const Namespace&) const
 {
 	return MyActualType;
 }
 
-bool FunctionParamNamed::TypeInference(IRSemantics::Program& program, CompileErrors&)
+bool FunctionParamNamed::TypeInference(Namespace& curnamespace, CompileErrors&)
 {
 	StringHandle name;
 	if(TemplateArgs.empty())
 		name = MyTypeName;
 	else
-		name = program.InstantiateStructureTemplate(MyTypeName, TemplateArgs);
+		name = curnamespace.Types.Templates.InstantiateStructure(MyTypeName, TemplateArgs);
 
-	MyActualType = program.LookupType(name);
+	MyActualType = curnamespace.Types.GetTypeByName(name);
 	return true;
 }
 
 //
 // Validate a higher order function parameter
 //
-bool FunctionParamFuncRef::Validate(const IRSemantics::Program& program) const
+bool FunctionParamFuncRef::Validate(const Namespace& curnamespace) const
 {
 	bool valid = true;
 
-	if(ReturnType && program.LookupType(ReturnType) == VM::EpochType_Error)
+	if(ReturnType && curnamespace.Types.GetTypeByName(ReturnType) == VM::EpochType_Error)
 		valid = false;
 
 	for(std::vector<StringHandle>::const_iterator iter = ParamTypes.begin(); iter != ParamTypes.end(); ++iter)
 	{
-		if(program.LookupType(*iter) == VM::EpochType_Error)
+		if(curnamespace.Types.GetTypeByName(*iter) == VM::EpochType_Error)
 			valid = false;
 	}
 
@@ -505,7 +504,7 @@ bool FunctionParamFuncRef::Validate(const IRSemantics::Program& program) const
 // future if demand is sufficient, but is currently
 // deemed too complex to bother with just yet.
 //
-void FunctionParamFuncRef::AddToSignature(FunctionSignature&, const IRSemantics::Program&) const
+void FunctionParamFuncRef::AddToSignature(FunctionSignature&, const Namespace&) const
 {
 	throw InternalException("Cannot pattern match on function signatures");
 }
@@ -513,12 +512,12 @@ void FunctionParamFuncRef::AddToSignature(FunctionSignature&, const IRSemantics:
 //
 // Validate an expression function parameter
 //
-bool FunctionParamExpression::Validate(const IRSemantics::Program& program) const
+bool FunctionParamExpression::Validate(const Namespace& curnamespace) const
 {
 	if(!MyExpression)
 		return false;
 
-	return MyExpression->Validate(program);
+	return MyExpression->Validate(curnamespace);
 }
 
 //
@@ -535,24 +534,24 @@ FunctionParamExpression::~FunctionParamExpression()
 // Expressions are generally used as function formal parameters
 // when performing pattern matching.
 //
-VM::EpochTypeID FunctionParamExpression::GetParamType(const IRSemantics::Program& program) const
+VM::EpochTypeID FunctionParamExpression::GetParamType(const Namespace& curnamespace) const
 {
 	if(!MyExpression)
 		return VM::EpochType_Error;
 
-	return MyExpression->GetEpochType(program);
+	return MyExpression->GetEpochType(curnamespace);
 }
 
 //
 // Add an expression's compile-time form to a function signature
 // for enabling static pattern matching.
 //
-void FunctionParamExpression::AddToSignature(FunctionSignature& signature, const IRSemantics::Program& program) const
+void FunctionParamExpression::AddToSignature(FunctionSignature& signature, const Namespace& curnamespace) const
 {
 	if(!MyExpression || MyExpression->GetAtoms().size() != 1)
 		throw InternalException("Cannot generate pattern matched parameter");
 
-	CompileTimeParameter value = MyExpression->GetAtoms()[0]->ConvertToCompileTimeParam(program);
+	CompileTimeParameter value = MyExpression->GetAtoms()[0]->ConvertToCompileTimeParam(curnamespace);
 	switch(value.Type)
 	{
 	case VM::EpochType_Integer:
@@ -569,24 +568,24 @@ void FunctionParamExpression::AddToSignature(FunctionSignature& signature, const
 // as a formal parameter. Useful for identifying the types of
 // such parameters when validating pattern matching.
 //
-bool FunctionParamExpression::TypeInference(IRSemantics::Program& program, CompileErrors& errors)
+bool FunctionParamExpression::TypeInference(Namespace& curnamespace, CompileErrors& errors)
 {
 	InferenceContext context(0, InferenceContext::CONTEXT_EXPRESSION);
 	ScopeDescription scope;
 	IRSemantics::CodeBlock fakeblock(&scope, false);
-	return MyExpression->TypeInference(program, fakeblock, context, 0, 1, errors);
+	return MyExpression->TypeInference(curnamespace, fakeblock, context, 0, 1, errors);
 }
 
 //
 // Check if the given compile-time parameter matches
 // the pattern expected by this function parameter.
 //
-bool FunctionParamExpression::PatternMatchValue(const CompileTimeParameter& param, const IRSemantics::Program& program) const
+bool FunctionParamExpression::PatternMatchValue(const CompileTimeParameter& param, const Namespace& curnamespace) const
 {
 	if(!MyExpression || MyExpression->GetAtoms().size() != 1)
 		throw InternalException("Cannot generate pattern matched parameter");
 
-	CompileTimeParameter value = MyExpression->GetAtoms()[0]->ConvertToCompileTimeParam(program);
+	CompileTimeParameter value = MyExpression->GetAtoms()[0]->ConvertToCompileTimeParam(curnamespace);
 	switch(value.Type)
 	{
 	case VM::EpochType_Integer:
@@ -600,7 +599,7 @@ bool FunctionParamExpression::PatternMatchValue(const CompileTimeParameter& para
 //
 // Nameless typed parameters cannot participate in pattern matching
 //
-void FunctionParamTyped::AddToSignature(FunctionSignature&, const IRSemantics::Program&) const
+void FunctionParamTyped::AddToSignature(FunctionSignature&, const Namespace&) const
 {
 	throw InternalException("Cannot pattern match on this kind of function parameter");
 }
@@ -608,7 +607,7 @@ void FunctionParamTyped::AddToSignature(FunctionSignature&, const IRSemantics::P
 //
 // Named parameters cannot participate in pattern matching
 //
-void FunctionParamNamed::AddToSignature(FunctionSignature&, const IRSemantics::Program&) const
+void FunctionParamNamed::AddToSignature(FunctionSignature&, const Namespace&) const
 {
 	throw InternalException("Cannot pattern match on this kind of function parameter");
 }

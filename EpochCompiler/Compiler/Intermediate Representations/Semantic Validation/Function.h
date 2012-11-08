@@ -28,7 +28,7 @@ namespace IRSemantics
 {
 
 	// Forward declarations
-	class Program;
+	class Namespace;
 	class CodeBlock;
 	class Expression;
 	struct InferenceContext;
@@ -46,13 +46,13 @@ namespace IRSemantics
 
 	// Function parameter interface
 	public:
-		virtual VM::EpochTypeID GetParamType(const IRSemantics::Program& program) const = 0;
+		virtual VM::EpochTypeID GetParamType(const Namespace& curnamespace) const = 0;
 		virtual bool IsLocalVariable() const = 0;
 		virtual bool IsReference() const = 0;
-		virtual bool Validate(const IRSemantics::Program& program) const = 0;
-		virtual void AddToSignature(FunctionSignature& signature, const IRSemantics::Program& program) const = 0;
-		virtual bool TypeInference(IRSemantics::Program& program, CompileErrors& errors) = 0;
-		virtual bool PatternMatchValue(const CompileTimeParameter& param, const IRSemantics::Program& program) const = 0;
+		virtual bool Validate(const Namespace& curnamespace) const = 0;
+		virtual void AddToSignature(FunctionSignature& signature, const Namespace& curnamespace) const = 0;
+		virtual bool TypeInference(Namespace& curnamespace, CompileErrors& errors) = 0;
+		virtual bool PatternMatchValue(const CompileTimeParameter& param, const Namespace& curnamespace) const = 0;
 	};
 
 	//
@@ -71,7 +71,7 @@ namespace IRSemantics
 
 	// Function parameter interface
 	public:
-		virtual VM::EpochTypeID GetParamType(const IRSemantics::Program& program) const;
+		virtual VM::EpochTypeID GetParamType(const Namespace& curnamespace) const;
 
 		virtual bool IsLocalVariable() const
 		{ return true; }
@@ -79,13 +79,13 @@ namespace IRSemantics
 		virtual bool IsReference() const
 		{ return IsRef; }
 
-		virtual bool Validate(const IRSemantics::Program& program) const;
+		virtual bool Validate(const Namespace& curnamespace) const;
 
-		virtual void AddToSignature(FunctionSignature& signature, const IRSemantics::Program& program) const;
+		virtual void AddToSignature(FunctionSignature& signature, const Namespace& curnamespace) const;
 
-		virtual bool TypeInference(IRSemantics::Program& program, CompileErrors& errors);
+		virtual bool TypeInference(Namespace& curnamespace, CompileErrors& errors);
 
-		virtual bool PatternMatchValue(const CompileTimeParameter&, const IRSemantics::Program&) const
+		virtual bool PatternMatchValue(const CompileTimeParameter&, const Namespace&) const
 		{ return false; }
 
 	// Internal state
@@ -110,7 +110,7 @@ namespace IRSemantics
 
 	// Function parameter interface
 	public:
-		virtual VM::EpochTypeID GetParamType(const IRSemantics::Program&) const
+		virtual VM::EpochTypeID GetParamType(const Namespace&) const
 		{ return MyType; }
 
 		virtual bool IsLocalVariable() const
@@ -119,15 +119,15 @@ namespace IRSemantics
 		virtual bool IsReference() const
 		{ return IsRef; }
 
-		virtual bool Validate(const IRSemantics::Program&) const
+		virtual bool Validate(const Namespace&) const
 		{ return true; }
 
-		virtual void AddToSignature(FunctionSignature& signature, const IRSemantics::Program& program) const;
+		virtual void AddToSignature(FunctionSignature& signature, const Namespace& curnamespace) const;
 
-		virtual bool TypeInference(IRSemantics::Program&, CompileErrors&)
+		virtual bool TypeInference(Namespace&, CompileErrors&)
 		{ return true; }
 
-		virtual bool PatternMatchValue(const CompileTimeParameter&, const IRSemantics::Program&) const
+		virtual bool PatternMatchValue(const CompileTimeParameter&, const Namespace&) const
 		{ return false; }
 
 	// Internal state
@@ -149,7 +149,7 @@ namespace IRSemantics
 
 	// Function parameter interface
 	public:
-		virtual VM::EpochTypeID GetParamType(const IRSemantics::Program&) const
+		virtual VM::EpochTypeID GetParamType(const Namespace&) const
 		{ return VM::EpochType_Function; }
 
 		virtual bool IsLocalVariable() const
@@ -158,14 +158,14 @@ namespace IRSemantics
 		virtual bool IsReference() const
 		{ return false; }
 
-		virtual bool Validate(const IRSemantics::Program& program) const;
+		virtual bool Validate(const Namespace& curnamespace) const;
 
-		virtual void AddToSignature(FunctionSignature& signature, const IRSemantics::Program& program) const;
+		virtual void AddToSignature(FunctionSignature& signature, const Namespace& curnamespace) const;
 
-		virtual bool TypeInference(IRSemantics::Program&, CompileErrors&)
+		virtual bool TypeInference(Namespace&, CompileErrors&)
 		{ return true; }
 
-		virtual bool PatternMatchValue(const CompileTimeParameter&, const IRSemantics::Program&) const
+		virtual bool PatternMatchValue(const CompileTimeParameter&, const Namespace&) const
 		{ return false; }
 
 	// Mutation
@@ -210,7 +210,7 @@ namespace IRSemantics
 
 	// Function parameter interface
 	public:
-		virtual VM::EpochTypeID GetParamType(const IRSemantics::Program& program) const;
+		virtual VM::EpochTypeID GetParamType(const Namespace& curnamespace) const;
 
 		virtual bool IsLocalVariable() const
 		{ return false; }
@@ -218,13 +218,13 @@ namespace IRSemantics
 		virtual bool IsReference() const
 		{ return false; }
 
-		virtual bool Validate(const IRSemantics::Program& program) const;
+		virtual bool Validate(const Namespace& curnamespace) const;
 
-		virtual void AddToSignature(FunctionSignature& signature, const IRSemantics::Program& program) const;
+		virtual void AddToSignature(FunctionSignature& signature, const Namespace& curnamespace) const;
 
-		virtual bool TypeInference(IRSemantics::Program& program, CompileErrors& errors);
+		virtual bool TypeInference(Namespace& curnamespace, CompileErrors& errors);
 
-		virtual bool PatternMatchValue(const CompileTimeParameter& param, const IRSemantics::Program& program) const;
+		virtual bool PatternMatchValue(const CompileTimeParameter& param, const Namespace& curnamespace) const;
 
 	// Internal state
 	private:
@@ -290,17 +290,17 @@ namespace IRSemantics
 		bool HasParameter(StringHandle paramname) const;
 
 		bool IsParameterLocalVariable(StringHandle name) const;
-		VM::EpochTypeID GetParameterType(StringHandle name, IRSemantics::Program& program, CompileErrors& errors) const;
+		VM::EpochTypeID GetParameterType(StringHandle name, Namespace& curnamespace, CompileErrors& errors) const;
 		bool IsParameterReference(StringHandle name) const;
 
-		bool DoesParameterSignatureMatch(size_t index, const FunctionSignature& signature, const IRSemantics::Program& program) const;
-		VM::EpochTypeID GetParameterSignatureType(StringHandle name, const IRSemantics::Program& program) const;
-		FunctionSignature GetParameterSignature(StringHandle name, const IRSemantics::Program& program) const;
+		bool DoesParameterSignatureMatch(size_t index, const FunctionSignature& signature, const Namespace& curnamespace) const;
+		VM::EpochTypeID GetParameterSignatureType(StringHandle name, const Namespace& curnamespace) const;
+		FunctionSignature GetParameterSignature(StringHandle name, const Namespace& curnamespace) const;
 
 		size_t GetNumParameters() const
 		{ return Parameters.size(); }
 
-		bool PatternMatchParameter(size_t index, const CompileTimeParameter& param, const IRSemantics::Program& program) const;
+		bool PatternMatchParameter(size_t index, const CompileTimeParameter& param, const Namespace& curnamespace) const;
 
 	// Returns
 	public:
@@ -309,7 +309,7 @@ namespace IRSemantics
 		const Expression* GetReturnExpression() const
 		{ return Return; }
 
-		VM::EpochTypeID GetReturnType(const Program& program) const;
+		VM::EpochTypeID GetReturnType(const Namespace& curnamespace) const;
 
 		void SuppressReturnRegister()
 		{ SuppressReturn = true; }
@@ -325,7 +325,7 @@ namespace IRSemantics
 
 	// Signatures
 	public:
-		FunctionSignature GetFunctionSignature(const Program& program) const;
+		FunctionSignature GetFunctionSignature(const Namespace& curnamespace) const;
 
 	// Inner code
 	public:
@@ -339,15 +339,15 @@ namespace IRSemantics
 
 	// Validation
 	public:
-		bool Validate(const IRSemantics::Program& program) const;
+		bool Validate(const Namespace& curnamespace) const;
 
 	// Compile time code execution
 	public:
-		bool CompileTimeCodeExecution(IRSemantics::Program& program, CompileErrors& errors);
+		bool CompileTimeCodeExecution(Namespace& curnamespace, CompileErrors& errors);
 
 	// Type inference
 	public:
-		bool TypeInference(IRSemantics::Program& program, InferenceContext& context, CompileErrors& errors);
+		bool TypeInference(Namespace& curnamespace, InferenceContext& context, CompileErrors& errors);
 
 	// Tags
 	public:

@@ -101,6 +101,8 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Compiler\CompileErrors.cpp" />
+    <ClCompile Include="Compiler\Intermediate Representations\Semantic Validation\Namespace.cpp" />
+    <ClCompile Include="Compiler\Intermediate Representations\Semantic Validation\TypeSpace.cpp" />
     <ClCompile Include="Entry Point\EntryPoint.cpp" />
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
@@ -146,6 +148,8 @@
     <ClInclude Include="Compiler\Abstract Syntax Tree\Templates.h" />
     <ClInclude Include="Compiler\Abstract Syntax Tree\TypeDefinitions.h" />
     <ClInclude Include="Compiler\CompileErrors.h" />
+    <ClInclude Include="Compiler\Intermediate Representations\Semantic Validation\Namespace.h" />
+    <ClInclude Include="Compiler\Intermediate Representations\Semantic Validation\TypeSpace.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="Compiler\ExportDef.h" />
     <ClInclude Include="..\Shared\Bytecode\EntityTags.h" />

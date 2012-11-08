@@ -28,7 +28,7 @@ namespace IRSemantics
 {
 
 	// Forward declarations
-	class Program;
+	class Namespace;
 
 	//
 	// Abstract base for structure members
@@ -51,8 +51,8 @@ namespace IRSemantics
 	// Structure member interface
 	public:
 		virtual Type GetMemberType() const = 0;
-		virtual VM::EpochTypeID GetEpochType(const IRSemantics::Program& program) const = 0;
-		virtual bool Validate(const IRSemantics::Program& program, CompileErrors& errors) const = 0;
+		virtual VM::EpochTypeID GetEpochType(const Namespace& curnamespace) const = 0;
+		virtual bool Validate(const Namespace& curnamespace, CompileErrors& errors) const = 0;
 	};
 
 
@@ -78,9 +78,9 @@ namespace IRSemantics
 		virtual Type GetMemberType() const
 		{ return StructureMember::Variable; }
 
-		virtual VM::EpochTypeID GetEpochType(const IRSemantics::Program& program) const;
+		virtual VM::EpochTypeID GetEpochType(const Namespace& curnamespace) const;
 
-		virtual bool Validate(const IRSemantics::Program& program, CompileErrors& errors) const;
+		virtual bool Validate(const Namespace& curnamespace, CompileErrors& errors) const;
 
 	// Additional queries
 	public:
@@ -117,10 +117,10 @@ namespace IRSemantics
 		virtual Type GetMemberType() const
 		{ return StructureMember::FunctionReference; }
 
-		virtual VM::EpochTypeID GetEpochType(const IRSemantics::Program&) const
+		virtual VM::EpochTypeID GetEpochType(const Namespace&) const
 		{ return VM::EpochType_Function; }
 
-		virtual bool Validate(const IRSemantics::Program& program, CompileErrors& errors) const;
+		virtual bool Validate(const Namespace& curnamespace, CompileErrors& errors) const;
 
 	// Mutation
 	public:
@@ -132,7 +132,7 @@ namespace IRSemantics
 
 	// Additional inspection
 	public:
-		FunctionSignature GetSignature(const IRSemantics::Program& program) const;
+		FunctionSignature GetSignature(const Namespace& curnamespace) const;
 
 	// Internal state
 	private:
@@ -174,12 +174,12 @@ namespace IRSemantics
 
 	// Validation
 	public:
-		bool Validate(const Program& program, CompileErrors& errors) const;
+		bool Validate(const Namespace& curnamespace, CompileErrors& errors) const;
 
 	// Compile time code execution
 	public:
-		bool CompileTimeCodeExecution(StringHandle myname, Program& program, CompileErrors& errors);
-		bool InstantiateTemplate(StringHandle myname, const CompileTimeParameterVector& args, Program& program, CompileErrors& errors);
+		bool CompileTimeCodeExecution(StringHandle myname, Namespace& curnamespace, CompileErrors& errors);
+		bool InstantiateTemplate(StringHandle myname, const CompileTimeParameterVector& args, Namespace& curnamespace, CompileErrors& errors);
 
 	// Inspection
 	public:
@@ -194,11 +194,11 @@ namespace IRSemantics
 
 	// Template helpers
 	public:
-		VM::EpochTypeID SubstituteTemplateParams(StringHandle membername, const CompileTimeParameterVector& templateargs, const Program& program) const;
+		VM::EpochTypeID SubstituteTemplateParams(StringHandle membername, const CompileTimeParameterVector& templateargs, const Namespace& curnamespace) const;
 
 	// Internal helpers
 	private:
-		void GenerateConstructors(StringHandle myname, StringHandle constructorname, StringHandle anonconstructorname, const CompileTimeParameterVector& templateargs, Program& program, CompileErrors& errors) const;
+		void GenerateConstructors(StringHandle myname, StringHandle constructorname, StringHandle anonconstructorname, const CompileTimeParameterVector& templateargs, Namespace& curnamespace, CompileErrors& errors) const;
 
 	// Internal state
 	private:

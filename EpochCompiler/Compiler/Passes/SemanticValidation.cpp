@@ -72,16 +72,16 @@ namespace
 // helper adds the variable itself and its type metadata to the current
 // lexical scope.
 //
-void CompileConstructorStructure(IRSemantics::Statement& statement, IRSemantics::Program& program, IRSemantics::CodeBlock& activescope, bool inreturnexpr, CompileErrors& errors)
+void CompileConstructorStructure(IRSemantics::Statement& statement, IRSemantics::Namespace& curnamespace, IRSemantics::CodeBlock& activescope, bool inreturnexpr, CompileErrors& errors)
 {
 	const IRSemantics::ExpressionAtomIdentifierBase* atom = dynamic_cast<const IRSemantics::ExpressionAtomIdentifierBase*>(statement.GetParameters()[0]->GetAtoms()[0]);
-	VM::EpochTypeID effectivetype = program.LookupType(statement.GetRawName());
+	VM::EpochTypeID effectivetype = curnamespace.Types.GetTypeByName(statement.GetRawName());
 	VariableOrigin origin = (inreturnexpr ? VARIABLE_ORIGIN_RETURN : VARIABLE_ORIGIN_LOCAL);
-	activescope.AddVariable(program.GetString(atom->GetIdentifier()), atom->GetIdentifier(), effectivetype, false, origin);
+	activescope.AddVariable(curnamespace.Strings.GetPooledString(atom->GetIdentifier()), atom->GetIdentifier(), effectivetype, false, origin);
 
 	// TODO - copy all shadowing protection from whatever constructor implements it, to all other constructor helpers
 
-	if(program.HasFunction(atom->GetIdentifier()))
+	if(curnamespace.Functions.Exists(atom->GetIdentifier()))
 		errors.SemanticError("Variable name shadows a function of the same name");
 }
 
@@ -307,6 +307,7 @@ void CompilePassSemantics::EntryHelper::operator () (AST::Program&)
 
 	self->StateStack.push(CompilePassSemantics::STATE_PROGRAM);
 	self->CurrentProgram = new IRSemantics::Program(self->Strings, self->Session);
+	self->CurrentNamespace = &self->CurrentProgram->GlobalNamespace;
 }
 
 //
@@ -338,7 +339,7 @@ void CompilePassSemantics::ExitHelper::operator () (AST::Structure& structure)
 		
 		StringHandle name = self->CurrentProgram->AddString(std::wstring(structure.Identifier.begin(), structure.Identifier.end()));
 		self->ErrorContext = &structure.Identifier;
-		self->CurrentProgram->AddStructure(name, irstruct.release(), self->Errors);
+		self->CurrentNamespace->Types.Structures.Add(name, irstruct.release(), self->Errors);
 		self->ErrorContext = NULL;
 	}
 	else
@@ -439,7 +440,7 @@ void CompilePassSemantics::ExitHelper::operator () (AST::Function& function)
 
 	if(!self->CurrentFunctions.back()->GetCode())
 	{
-		std::auto_ptr<ScopeDescription> lexicalscope(new ScopeDescription(self->CurrentProgram->GetGlobalScope()));
+		std::auto_ptr<ScopeDescription> lexicalscope(new ScopeDescription(self->CurrentNamespace->GetGlobalScope()));
 		self->CurrentFunctions.back()->SetCode(new IRSemantics::CodeBlock(lexicalscope.release()));
 	}
 
@@ -448,7 +449,7 @@ void CompilePassSemantics::ExitHelper::operator () (AST::Function& function)
 	{
 		if(self->CurrentFunctions.back()->IsParameterLocalVariable(*iter))
 		{
-			VM::EpochTypeID type = self->CurrentFunctions.back()->GetParameterType(*iter, *self->CurrentProgram, self->Errors);
+			VM::EpochTypeID type = self->CurrentFunctions.back()->GetParameterType(*iter, *self->CurrentNamespace, self->Errors);
 			bool isref = self->CurrentFunctions.back()->IsParameterReference(*iter);
 			self->CurrentFunctions.back()->GetCode()->AddVariable(self->CurrentProgram->GetString(*iter), *iter, type, isref, VARIABLE_ORIGIN_PARAMETER);
 		}
@@ -459,8 +460,8 @@ void CompilePassSemantics::ExitHelper::operator () (AST::Function& function)
 		std::wstring rawnamestr = std::wstring(function.Name.begin(), function.Name.end());
 		StringHandle rawname = self->CurrentProgram->AddString(rawnamestr);
 		self->ErrorContext = &function.Name;
-		StringHandle name = self->CurrentProgram->CreateFunctionOverload(rawnamestr);
-		self->CurrentProgram->AddFunction(name, rawname, self->CurrentFunctions.back(), self->Errors);
+		StringHandle name = self->CurrentNamespace->Functions.CreateOverload(rawnamestr);
+		self->CurrentNamespace->Functions.Add(name, rawname, self->CurrentFunctions.back(), self->Errors);
 		self->CurrentFunctions.back()->SetName(name);
 		self->CurrentFunctions.pop_back();
 		self->ErrorContext = NULL;
@@ -671,7 +672,7 @@ void CompilePassSemantics::ExitHelper::operator () (AST::Expression&)
 		}
 		else
 		{
-			StringHandle paramname = self->CurrentProgram->AllocateAnonymousParamName();
+			StringHandle paramname = self->CurrentNamespace->AllocateAnonymousParamName();
 
 			std::auto_ptr<IRSemantics::FunctionParamExpression> irparam(new IRSemantics::FunctionParamExpression(self->CurrentExpressions.back()));
 			self->CurrentExpressions.pop_back();
@@ -879,12 +880,12 @@ void CompilePassSemantics::EntryHelper::operator () (AST::CodeBlock&)
 	switch(self->StateStack.top())
 	{
 	case CompilePassSemantics::STATE_PROGRAM:
-		lexicalscope = self->CurrentProgram->GetGlobalScope();
+		lexicalscope = self->CurrentNamespace->GetGlobalScope();
 		owned = false;
 		break;
 
 	case CompilePassSemantics::STATE_FUNCTION:
-		lexicalscope = new ScopeDescription(self->CurrentProgram->GetGlobalScope());
+		lexicalscope = new ScopeDescription(self->CurrentNamespace->GetGlobalScope());
 		break;
 
 	default:
@@ -901,7 +902,7 @@ void CompilePassSemantics::EntryHelper::operator () (AST::CodeBlock&)
 //
 void CompilePassSemantics::ExitHelper::operator () (AST::CodeBlock&)
 {
-	self->CurrentProgram->AllocateLexicalScopeName(self->CurrentCodeBlocks.back());
+	self->CurrentNamespace->AllocateLexicalScopeName(self->CurrentCodeBlocks.back());
 
 	self->StateStack.pop();
 	
@@ -916,7 +917,7 @@ void CompilePassSemantics::ExitHelper::operator () (AST::CodeBlock&)
 		break;
 
 	case CompilePassSemantics::STATE_PROGRAM:
-		self->CurrentProgram->AddGlobalCodeBlock(self->CurrentCodeBlocks.back());
+		self->CurrentNamespace->AddGlobalCodeBlock(self->CurrentCodeBlocks.back());
 		break;
 
 	case CompilePassSemantics::STATE_ENTITY:
@@ -1275,15 +1276,15 @@ void CompilePassSemantics::EntryHelper::operator () (AST::IdentifierT& identifie
 		break;
 
 	case CompilePassSemantics::STATE_FUNCTION_TAG_PARAM:
-		self->CurrentFunctionTags.back()->Parameters.push_back(iratom->ConvertToCompileTimeParam(*self->CurrentProgram));
+		self->CurrentFunctionTags.back()->Parameters.push_back(iratom->ConvertToCompileTimeParam(*self->CurrentNamespace));
 		break;
 
 	case CompilePassSemantics::STATE_SUM_TYPE:
-		self->CurrentProgram->AddSumTypeBase(self->CurrentSumType, self->CurrentProgram->AddString(raw));
+		self->CurrentNamespace->Types.SumTypes.AddBaseTypeToSumType(self->CurrentSumType, self->CurrentProgram->AddString(raw));
 		break;
 
 	case CompilePassSemantics::STATE_TEMPLATE_ARGS:
-		self->CurrentTemplateArgs.back()->push_back(iratom->ConvertToCompileTimeParam(*self->CurrentProgram));
+		self->CurrentTemplateArgs.back()->push_back(iratom->ConvertToCompileTimeParam(*self->CurrentNamespace));
 		break;
 
 	default:
@@ -1323,7 +1324,7 @@ void CompilePassSemantics::EntryHelper::operator () (AST::TypeAlias& alias)
 {
 	StringHandle aliasname = self->CurrentProgram->AddString(std::wstring(alias.AliasName.begin(), alias.AliasName.end()));
 
-	if(self->CurrentProgram->LookupType(aliasname) != VM::EpochType_Error)
+	if(self->CurrentNamespace->Types.GetTypeByName(aliasname) != VM::EpochType_Error)
 	{
 		self->Errors.SetContext(alias.AliasName);
 		self->Errors.SemanticError("A type with this name already exists");
@@ -1331,7 +1332,7 @@ void CompilePassSemantics::EntryHelper::operator () (AST::TypeAlias& alias)
 	}
 
 	StringHandle representationname = self->CurrentProgram->AddString(std::wstring(alias.RepresentationName.begin(), alias.RepresentationName.end()));
-	VM::EpochTypeID representationtype = self->CurrentProgram->LookupType(representationname);
+	VM::EpochTypeID representationtype = self->CurrentNamespace->Types.GetTypeByName(representationname);
 
 	if(representationtype == VM::EpochType_Error)
 	{
@@ -1340,7 +1341,7 @@ void CompilePassSemantics::EntryHelper::operator () (AST::TypeAlias& alias)
 		return;
 	}
 
-	self->CurrentProgram->TypeAliases[aliasname] = representationtype;
+	self->CurrentNamespace->Types.Aliases.AddWeakAlias(aliasname, representationtype);
 }
 
 
@@ -1348,7 +1349,7 @@ void CompilePassSemantics::EntryHelper::operator () (AST::StrongTypeAlias& alias
 {
 	StringHandle aliasname = self->CurrentProgram->AddString(std::wstring(alias.AliasName.begin(), alias.AliasName.end()));
 
-	if(self->CurrentProgram->LookupType(aliasname) != VM::EpochType_Error)
+	if(self->CurrentNamespace->Types.GetTypeByName(aliasname) != VM::EpochType_Error)
 	{
 		self->Errors.SetContext(alias.AliasName);
 		self->Errors.SemanticError("A type with this name already exists");
@@ -1356,7 +1357,7 @@ void CompilePassSemantics::EntryHelper::operator () (AST::StrongTypeAlias& alias
 	}
 
 	StringHandle representationname = self->CurrentProgram->AddString(std::wstring(alias.RepresentationName.begin(), alias.RepresentationName.end()));
-	VM::EpochTypeID representationtype = self->CurrentProgram->LookupType(representationname);
+	VM::EpochTypeID representationtype = self->CurrentNamespace->Types.GetTypeByName(representationname);
 
 	if(representationtype == VM::EpochType_Error)
 	{
@@ -1365,22 +1366,19 @@ void CompilePassSemantics::EntryHelper::operator () (AST::StrongTypeAlias& alias
 		return;
 	}
 
-	VM::EpochTypeID newtypeid = self->CurrentProgram->AllocateNewUnitTypeID();
-	self->CurrentProgram->StrongTypeAliasTypes[aliasname] = newtypeid;
-	self->CurrentProgram->StrongTypeAliasRepresentations[newtypeid] = representationtype;
-	self->CurrentProgram->StrongTypeAliasRepNames[newtypeid] = representationname;
+	self->CurrentNamespace->Types.Aliases.AddStrongAlias(aliasname, representationtype, representationname);
 
 	self->CurrentProgram->Session.CompileTimeHelpers.insert(std::make_pair(aliasname, self->CurrentProgram->Session.CompileTimeHelpers.find(representationname)->second));
-	self->CurrentProgram->Session.FunctionSignatures.insert(std::make_pair(aliasname, self->CurrentProgram->Session.FunctionSignatures.find(representationname)->second));
+	self->CurrentNamespace->Functions.SetSignature(aliasname, self->CurrentNamespace->Functions.GetSignature(representationname));
 }
 
 void CompilePassSemantics::EntryHelper::operator () (AST::SumType& sumtype)
 {
 	self->StateStack.push(CompilePassSemantics::STATE_SUM_TYPE);
-	self->CurrentSumType = self->CurrentProgram->AddSumType(std::wstring(sumtype.SumTypeName.begin(), sumtype.SumTypeName.end()), self->Errors);
+	self->CurrentSumType = self->CurrentNamespace->Types.SumTypes.Add(std::wstring(sumtype.SumTypeName.begin(), sumtype.SumTypeName.end()), self->Errors);
 	
 	std::wstring firstbaseraw(sumtype.FirstBaseType.begin(), sumtype.FirstBaseType.end());
-	self->CurrentProgram->AddSumTypeBase(self->CurrentSumType, self->CurrentProgram->AddString(firstbaseraw));
+	self->CurrentNamespace->Types.SumTypes.AddBaseTypeToSumType(self->CurrentSumType, self->CurrentProgram->AddString(firstbaseraw));
 }
 
 void CompilePassSemantics::ExitHelper::operator () (AST::SumType&)
@@ -1526,7 +1524,7 @@ void CompilePassSemantics::ExitHelper::operator () (Markers::TemplateArgs&)
 	switch(self->StateStack.top())
 	{
 	case CompilePassSemantics::STATE_STATEMENT:
-		self->CurrentStatements.back()->SetTemplateArgs(*self->CurrentTemplateArgs.back(), *self->CurrentProgram);
+		self->CurrentStatements.back()->SetTemplateArgs(*self->CurrentTemplateArgs.back(), *self->CurrentNamespace);
 		break;
 
 	case CompilePassSemantics::STATE_FUNCTION_PARAM:

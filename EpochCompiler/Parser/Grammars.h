@@ -47,6 +47,7 @@ struct FundamentalGrammar : public boost::spirit::qi::grammar<Lexer::TokenIterT,
 		// and so on. This permits programs and external libraries to create their own
 		// operators, entities, etc. etc. for extending the language itself.
 		//
+
 		for(StringSet::const_iterator iter = Identifiers.InfixOperators.begin(); iter != Identifiers.InfixOperators.end(); ++iter)
 			AddInfixOperator(*iter);
 

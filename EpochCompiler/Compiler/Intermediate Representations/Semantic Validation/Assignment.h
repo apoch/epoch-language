@@ -26,7 +26,7 @@ namespace IRSemantics
 	// Forward declarations
 	class Expression;
 	class CodeBlock;
-	class Program;
+	class Namespace;
 	struct InferenceContext;
 
 
@@ -51,11 +51,11 @@ namespace IRSemantics
 		virtual void SetRHSRecursive(AssignmentChain*)
 		{ }
 
-		virtual VM::EpochTypeID GetEpochType(const Program& program) const = 0;
+		virtual VM::EpochTypeID GetEpochType(const Namespace& curnamespace) const = 0;
 
-		virtual bool TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, CompileErrors& errors) = 0;
+		virtual bool TypeInference(Namespace& curnamespace, CodeBlock& activescope, InferenceContext& context, CompileErrors& errors) = 0;
 
-		virtual bool Validate(const Program& program) const = 0;
+		virtual bool Validate(const Namespace& curnamespace) const = 0;
 	};
 
 
@@ -97,11 +97,11 @@ namespace IRSemantics
 
 	// Validation
 	public:
-		bool Validate(const Program& program) const;
+		bool Validate(const Namespace& curnamespace) const;
 
 	// Type inference
 	public:
-		bool TypeInference(IRSemantics::Program& program, CodeBlock& activescope, InferenceContext& context, CompileErrors& errors);
+		bool TypeInference(Namespace& curnamespace, CodeBlock& activescope, InferenceContext& context, CompileErrors& errors);
 
 	public:
 		bool WantsTypeAnnotation;
@@ -138,9 +138,9 @@ namespace IRSemantics
 
 	// Chain interface
 	public:
-		virtual VM::EpochTypeID GetEpochType(const Program& program) const;
-		virtual bool TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, CompileErrors& errors);
-		virtual bool Validate(const Program& program) const;
+		virtual VM::EpochTypeID GetEpochType(const Namespace& curnamespace) const;
+		virtual bool TypeInference(Namespace& curnamespace, CodeBlock& activescope, InferenceContext& context, CompileErrors& errors);
+		virtual bool Validate(const Namespace& curnamespace) const;
 
 	// Internal state
 	private:
@@ -170,11 +170,11 @@ namespace IRSemantics
 
 		virtual void SetRHSRecursive(AssignmentChain* rhs);
 
-		virtual VM::EpochTypeID GetEpochType(const Program& program) const;
+		virtual VM::EpochTypeID GetEpochType(const Namespace& curnamespace) const;
 
-		virtual bool TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, CompileErrors& errors);
+		virtual bool TypeInference(Namespace& curnamespace, CodeBlock& activescope, InferenceContext& context, CompileErrors& errors);
 		
-		virtual bool Validate(const Program& program) const;
+		virtual bool Validate(const Namespace& curnamespace) const;
 
 	// Access to assignment
 	public:

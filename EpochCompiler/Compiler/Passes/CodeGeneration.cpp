@@ -11,6 +11,7 @@
 #include "Compiler/Passes/CodeGeneration.h"
 
 #include "Compiler/Intermediate Representations/Semantic Validation/Program.h"
+#include "Compiler/Intermediate Representations/Semantic Validation/Namespace.h"
 #include "Compiler/Intermediate Representations/Semantic Validation/Structure.h"
 #include "Compiler/Intermediate Representations/Semantic Validation/Function.h"
 #include "Compiler/Intermediate Representations/Semantic Validation/Expression.h"
@@ -31,9 +32,9 @@
 
 namespace
 {
-	void Generate(const IRSemantics::CodeBlock& codeblock, const IRSemantics::Program& program, ByteCodeEmitter& emitter);
-	void EmitStatement(ByteCodeEmitter& emitter, const IRSemantics::Statement& statement, const IRSemantics::CodeBlock& activescope, const IRSemantics::Program& program);
-	void EmitExpression(ByteCodeEmitter& emitter, const IRSemantics::Expression& expression, const IRSemantics::CodeBlock& activescope, const IRSemantics::Program& program);
+	void Generate(const IRSemantics::CodeBlock& codeblock, const IRSemantics::Namespace& curnamespace, ByteCodeEmitter& emitter);
+	void EmitStatement(ByteCodeEmitter& emitter, const IRSemantics::Statement& statement, const IRSemantics::CodeBlock& activescope, const IRSemantics::Namespace& curnamespace);
+	void EmitExpression(ByteCodeEmitter& emitter, const IRSemantics::Expression& expression, const IRSemantics::CodeBlock& activescope, const IRSemantics::Namespace& curnamespace);
 
 	void BindReference(ByteCodeEmitter& emitter, const std::vector<StringHandle>& identifiers)
 	{
@@ -56,7 +57,7 @@ namespace
 			emitter.BindStructureReference(identifiers[i]);
 	}
 
-	void PushValue(ByteCodeEmitter& emitter, const std::vector<StringHandle>& identifiers, const IRSemantics::Program& program, const IRSemantics::CodeBlock& activescope)
+	void PushValue(ByteCodeEmitter& emitter, const std::vector<StringHandle>& identifiers, const IRSemantics::Namespace& curnamespace, const IRSemantics::CodeBlock& activescope)
 	{
 		if(identifiers.empty())
 		{
@@ -84,13 +85,13 @@ namespace
 			VM::EpochTypeID structuretype = activescope.GetVariableTypeByID(identifiers[0]);
 			for(size_t i = 1; i < identifiers.size(); ++i)
 			{
-				StringHandle structurename = program.GetNameOfStructureType(structuretype);
-				StringHandle overloadidhandle = program.FindStructureMemberAccessOverload(structurename, identifiers[i]);
+				StringHandle structurename = curnamespace.Types.GetNameOfType(structuretype);
+				StringHandle overloadidhandle = curnamespace.Functions.FindStructureMemberAccessOverload(structurename, identifiers[i]);
 
 				emitter.PushStringLiteral(identifiers[i]);
 				emitter.Invoke(overloadidhandle);
 
-				structuretype = program.GetStructureMemberType(structurename, identifiers[i]);
+				structuretype = curnamespace.Types.Structures.GetMemberType(structurename, identifiers[i]);
 			}
 
 			if(structuretype == VM::EpochType_Buffer)
@@ -100,31 +101,31 @@ namespace
 		}
 	}
 
-	void EmitPreOpStatement(ByteCodeEmitter& emitter, const IRSemantics::PreOpStatement& statement, const IRSemantics::CodeBlock& codeblock, const IRSemantics::Program& program)
+	void EmitPreOpStatement(ByteCodeEmitter& emitter, const IRSemantics::PreOpStatement& statement, const IRSemantics::CodeBlock& codeblock, const IRSemantics::Namespace& curnamespace)
 	{
-		PushValue(emitter, statement.GetOperand(), program, codeblock);
+		PushValue(emitter, statement.GetOperand(), curnamespace, codeblock);
 		emitter.Invoke(statement.GetOperatorName());
 		BindReference(emitter, statement.GetOperand());
 		emitter.AssignVariable();
-		PushValue(emitter, statement.GetOperand(), program, codeblock);
+		PushValue(emitter, statement.GetOperand(), curnamespace, codeblock);
 	}
 
-	void EmitPostOpStatement(ByteCodeEmitter& emitter, const IRSemantics::PostOpStatement& statement, const IRSemantics::CodeBlock& codeblock, const IRSemantics::Program& program)
+	void EmitPostOpStatement(ByteCodeEmitter& emitter, const IRSemantics::PostOpStatement& statement, const IRSemantics::CodeBlock& codeblock, const IRSemantics::Namespace& curnamespace)
 	{
 		// Yes, we need to push this twice! (Once, the value is passed on to the operator
 		// itself for invocation; the second push [or rather the one which happens first,
 		// and appears lower on the stack] is used to hold the initial value of the expression
 		// so that the subsequent code can read off the value safely, in keeping with the
 		// traditional semantics of a post operator.)
-		PushValue(emitter, statement.GetOperand(), program, codeblock);
-		PushValue(emitter, statement.GetOperand(), program, codeblock);
+		PushValue(emitter, statement.GetOperand(), curnamespace, codeblock);
+		PushValue(emitter, statement.GetOperand(), curnamespace, codeblock);
 
 		emitter.Invoke(statement.GetOperatorName());
 		BindReference(emitter, statement.GetOperand());
 		emitter.AssignVariable();
 	}
 
-	bool EmitExpressionAtom(ByteCodeEmitter& emitter, const IRSemantics::ExpressionAtom* rawatom, const IRSemantics::CodeBlock& activescope, const IRSemantics::Program& program, bool firstmember)
+	bool EmitExpressionAtom(ByteCodeEmitter& emitter, const IRSemantics::ExpressionAtom* rawatom, const IRSemantics::CodeBlock& activescope, const IRSemantics::Namespace& curnamespace, bool firstmember)
 	{
 		if(!rawatom)
 		{
@@ -142,11 +143,11 @@ namespace
 		{
 			const IRSemantics::Parenthetical* parenthetical = atom->GetParenthetical();
 			if(const IRSemantics::ParentheticalPreOp* preop = dynamic_cast<const IRSemantics::ParentheticalPreOp*>(parenthetical))
-				EmitPreOpStatement(emitter, *preop->GetStatement(), activescope, program);
+				EmitPreOpStatement(emitter, *preop->GetStatement(), activescope, curnamespace);
 			else if(const IRSemantics::ParentheticalPostOp* postop = dynamic_cast<const IRSemantics::ParentheticalPostOp*>(parenthetical))
-				EmitPostOpStatement(emitter, *postop->GetStatement(), activescope, program);
+				EmitPostOpStatement(emitter, *postop->GetStatement(), activescope, curnamespace);
 			else if(const IRSemantics::ParentheticalExpression* expr = dynamic_cast<const IRSemantics::ParentheticalExpression*>(parenthetical))
-				EmitExpression(emitter, expr->GetExpression(), activescope, program);
+				EmitExpression(emitter, expr->GetExpression(), activescope, curnamespace);
 			else
 			{
 				// TODO - document
@@ -159,17 +160,17 @@ namespace
 		}
 		else if(const IRSemantics::ExpressionAtomIdentifier* atom = dynamic_cast<const IRSemantics::ExpressionAtomIdentifier*>(rawatom))
 		{
-			if(atom->GetEpochType(program) == VM::EpochType_Nothing)
+			if(atom->GetEpochType(curnamespace) == VM::EpochType_Nothing)
 			{
 				// Do nothing!
 			}
 			else
 			{
-				if(program.HasFunction(atom->GetIdentifier()) || (program.LookupType(atom->GetIdentifier()) != VM::EpochType_Error))
+				if(curnamespace.Functions.Exists(atom->GetIdentifier()) || (curnamespace.Types.GetTypeByName(atom->GetIdentifier()) != VM::EpochType_Error))
 					emitter.PushStringLiteral(atom->GetIdentifier());
 				else
 				{
-					if(atom->GetEpochType(program) == VM::EpochType_Identifier || atom->GetEpochType(program) == VM::EpochType_Function)
+					if(atom->GetEpochType(curnamespace) == VM::EpochType_Identifier || atom->GetEpochType(curnamespace) == VM::EpochType_Function)
 						emitter.PushStringLiteral(atom->GetIdentifier());
 					else
 						emitter.PushVariableValue(atom->GetIdentifier(), activescope.GetVariableTypeByID(atom->GetIdentifier()));
@@ -198,11 +199,11 @@ namespace
 		}
 		else if(const IRSemantics::ExpressionAtomStatement* atom = dynamic_cast<const IRSemantics::ExpressionAtomStatement*>(rawatom))
 		{
-			EmitStatement(emitter, atom->GetStatement(), activescope, program);
+			EmitStatement(emitter, atom->GetStatement(), activescope, curnamespace);
 		}
 		else if(const IRSemantics::ExpressionAtomCopyFromStructure* atom = dynamic_cast<const IRSemantics::ExpressionAtomCopyFromStructure*>(rawatom))
 		{
-			emitter.CopyFromStructure(program.FindString(L"identifier"), atom->GetMemberName());
+			emitter.CopyFromStructure(curnamespace.Strings.Find(L"identifier"), atom->GetMemberName());
 		}
 		else if(const IRSemantics::ExpressionAtomBindReference* atom = dynamic_cast<const IRSemantics::ExpressionAtomBindReference*>(rawatom))
 		{
@@ -214,7 +215,7 @@ namespace
 		}
 		else if(const IRSemantics::ExpressionAtomTypeAnnotation* atom = dynamic_cast<const IRSemantics::ExpressionAtomTypeAnnotation*>(rawatom))
 		{
-			emitter.PushTypeAnnotation(atom->GetEpochType(program));
+			emitter.PushTypeAnnotation(atom->GetEpochType(curnamespace));
 		}
 		else if(const IRSemantics::ExpressionAtomTypeAnnotationFromRegister* atom = dynamic_cast<const IRSemantics::ExpressionAtomTypeAnnotationFromRegister*>(rawatom))
 		{
@@ -239,7 +240,7 @@ namespace
 		return false;
 	}
 
-	void EmitExpression(ByteCodeEmitter& emitter, const IRSemantics::Expression& expression, const IRSemantics::CodeBlock& activescope, const IRSemantics::Program& program)
+	void EmitExpression(ByteCodeEmitter& emitter, const IRSemantics::Expression& expression, const IRSemantics::CodeBlock& activescope, const IRSemantics::Namespace& curnamespace)
 	{
 		bool needsrefbind = false;
 		const std::vector<IRSemantics::ExpressionAtom*>& rawatoms = expression.GetAtoms();
@@ -247,7 +248,7 @@ namespace
 		{
 			ByteBuffer atombuffer;
 			ByteCodeEmitter atomemitter(atombuffer);
-			bool thisatomneedsrefbind = EmitExpressionAtom(atomemitter, *iter, activescope, program, !needsrefbind);
+			bool thisatomneedsrefbind = EmitExpressionAtom(atomemitter, *iter, activescope, curnamespace, !needsrefbind);
 			if(thisatomneedsrefbind)
 				needsrefbind = true;
 			else if(needsrefbind)
@@ -263,31 +264,32 @@ namespace
 			emitter.ReadReferenceOntoStack();
 	}
 
-	void EmitStatement(ByteCodeEmitter& emitter, const IRSemantics::Statement& statement, const IRSemantics::CodeBlock& activescope, const IRSemantics::Program& program)
+	void EmitStatement(ByteCodeEmitter& emitter, const IRSemantics::Statement& statement, const IRSemantics::CodeBlock& activescope, const IRSemantics::Namespace& curnamespace)
 	{
 		const std::vector<IRSemantics::Expression*>& params = statement.GetParameters();
 		for(std::vector<IRSemantics::Expression*>::const_iterator paramiter = params.begin(); paramiter != params.end(); ++paramiter)
 		{
 			if(!(*paramiter)->AtomsArePatternMatchedLiteral)
-				EmitExpression(emitter, **paramiter, activescope, program);
+				EmitExpression(emitter, **paramiter, activescope, curnamespace);
 		}
 
 		if(activescope.GetScope()->HasVariable(statement.GetName()) && activescope.GetScope()->GetVariableTypeByID(statement.GetName()) == VM::EpochType_Function)
 			emitter.InvokeIndirect(statement.GetName());
-		else if(program.FunctionNeedsDynamicPatternMatching(statement.GetName()))
-			emitter.Invoke(program.GetDynamicPatternMatcherForFunction(statement.GetName()));
-		else if(VM::GetTypeFamily(program.LookupType(statement.GetName())) == VM::EpochTypeFamily_SumType)
+		else if(curnamespace.Functions.FunctionNeedsDynamicPatternMatching(statement.GetName()))
+			emitter.Invoke(curnamespace.Functions.GetDynamicPatternMatcherForFunction(statement.GetName()));
+		else if(VM::GetTypeFamily(curnamespace.Types.GetTypeByName(statement.GetName())) == VM::EpochTypeFamily_SumType)
 			emitter.ConstructSumType();
 		else
 			emitter.Invoke(statement.GetName());
 	}
 
-	void GenerateAssignment(ByteCodeEmitter& emitter, const IRSemantics::Assignment& assignment, const IRSemantics::Program& program, const IRSemantics::CodeBlock& activescope)
+	void GenerateAssignment(ByteCodeEmitter& emitter, const IRSemantics::Assignment& assignment, const IRSemantics::Namespace& curnamespace, const IRSemantics::CodeBlock& activescope)
 	{
 		bool pushlhs = false;
 
-		if(program.GetString(assignment.GetOperatorName()) != L"=")
-			PushValue(emitter, assignment.GetLHS(), program, activescope);
+		// TODO - eliminate these hard-coded string hacks
+		if(curnamespace.Strings.GetPooledString(assignment.GetOperatorName()) != L"=")
+			PushValue(emitter, assignment.GetLHS(), curnamespace, activescope);
 
 		const IRSemantics::AssignmentChain* rhs = assignment.GetRHS();
 		if(!rhs)
@@ -301,11 +303,11 @@ namespace
 		}
 		else if(const IRSemantics::AssignmentChainExpression* rhsexpression = dynamic_cast<const IRSemantics::AssignmentChainExpression*>(rhs))
 		{
-			EmitExpression(emitter, rhsexpression->GetExpression(), activescope, program);
+			EmitExpression(emitter, rhsexpression->GetExpression(), activescope, curnamespace);
 		}
 		else if(const IRSemantics::AssignmentChainAssignment* rhsassignment = dynamic_cast<const IRSemantics::AssignmentChainAssignment*>(rhs))
 		{
-			GenerateAssignment(emitter, rhsassignment->GetAssignment(), program, activescope);
+			GenerateAssignment(emitter, rhsassignment->GetAssignment(), curnamespace, activescope);
 			pushlhs = true;
 		}
 		else
@@ -321,11 +323,11 @@ namespace
 			throw InternalException("Assignment right hand side is not recognized in IR");
 		}
 
-		if(program.GetString(assignment.GetOperatorName()) != L"=")
+		if(curnamespace.Strings.GetPooledString(assignment.GetOperatorName()) != L"=")
 			emitter.Invoke(assignment.GetOperatorName());
 
 		if(assignment.WantsTypeAnnotation)
-			emitter.PushTypeAnnotation(assignment.GetRHS()->GetEpochType(program));
+			emitter.PushTypeAnnotation(assignment.GetRHS()->GetEpochType(curnamespace));
 
 		BindReference(emitter, assignment.GetLHS());
 
@@ -341,30 +343,30 @@ namespace
 		}
 	}
 
-	void Generate(const IRSemantics::Entity& entity, const IRSemantics::Program& program, const IRSemantics::CodeBlock& activescope, ByteCodeEmitter& emitter)
+	void Generate(const IRSemantics::Entity& entity, const IRSemantics::Namespace& curnamespace, const IRSemantics::CodeBlock& activescope, ByteCodeEmitter& emitter)
 	{
 		if(!entity.GetPostfixIdentifier())
 		{
 			const std::vector<IRSemantics::Expression*>& params = entity.GetParameters();
 			for(std::vector<IRSemantics::Expression*>::const_iterator iter = params.begin(); iter != params.end(); ++iter)
-				EmitExpression(emitter, **iter, activescope, program);
+				EmitExpression(emitter, **iter, activescope, curnamespace);
 		}
 
-		emitter.EnterEntity(program.GetEntityTag(entity.GetName()), program.FindLexicalScopeName(&entity.GetCode()));
-		Generate(entity.GetCode(), program, emitter);
+		emitter.EnterEntity(curnamespace.GetEntityTag(entity.GetName()), curnamespace.FindLexicalScopeName(&entity.GetCode()));
+		Generate(entity.GetCode(), curnamespace, emitter);
 
 		if(entity.GetPostfixIdentifier())
 		{
 			const std::vector<IRSemantics::Expression*>& params = entity.GetParameters();
 			for(std::vector<IRSemantics::Expression*>::const_iterator iter = params.begin(); iter != params.end(); ++iter)
-				EmitExpression(emitter, **iter, activescope, program);
-			emitter.InvokeMetacontrol(program.GetEntityCloserTag(entity.GetPostfixIdentifier()));
+				EmitExpression(emitter, **iter, activescope, curnamespace);
+			emitter.InvokeMetacontrol(curnamespace.GetEntityCloserTag(entity.GetPostfixIdentifier()));
 		}
 
 		emitter.ExitEntity();
 	}
 
-	void Generate(const IRSemantics::CodeBlock& codeblock, const IRSemantics::Program& program, ByteCodeEmitter& emitter)
+	void Generate(const IRSemantics::CodeBlock& codeblock, const IRSemantics::Namespace& curnamespace, ByteCodeEmitter& emitter)
 	{
 		const std::vector<IRSemantics::CodeBlockEntry*>& entries = codeblock.GetEntries();
 		for(std::vector<IRSemantics::CodeBlockEntry*>::const_iterator iter = entries.begin(); iter != entries.end(); ++iter)
@@ -385,41 +387,41 @@ namespace
 			}
 			else if(const IRSemantics::CodeBlockAssignmentEntry* entry = dynamic_cast<const IRSemantics::CodeBlockAssignmentEntry*>(baseentry))
 			{
-				GenerateAssignment(emitter, entry->GetAssignment(), program, codeblock);
+				GenerateAssignment(emitter, entry->GetAssignment(), curnamespace, codeblock);
 			}
 			else if(const IRSemantics::CodeBlockStatementEntry* entry = dynamic_cast<const IRSemantics::CodeBlockStatementEntry*>(baseentry))
 			{
-				EmitStatement(emitter, entry->GetStatement(), codeblock, program);
-				VM::EpochTypeID rettype = entry->GetStatement().GetEpochType(program);
+				EmitStatement(emitter, entry->GetStatement(), codeblock, curnamespace);
+				VM::EpochTypeID rettype = entry->GetStatement().GetEpochType(curnamespace);
 				if(rettype != VM::EpochType_Void)
 					emitter.PopStack(rettype);
 			}
 			else if(const IRSemantics::CodeBlockPreOpStatementEntry* entry = dynamic_cast<const IRSemantics::CodeBlockPreOpStatementEntry*>(baseentry))
 			{
-				EmitPreOpStatement(emitter, entry->GetStatement(), codeblock, program);
-				emitter.PopStack(entry->GetStatement().GetEpochType(program));
+				EmitPreOpStatement(emitter, entry->GetStatement(), codeblock, curnamespace);
+				emitter.PopStack(entry->GetStatement().GetEpochType(curnamespace));
 			}
 			else if(const IRSemantics::CodeBlockPostOpStatementEntry* entry = dynamic_cast<const IRSemantics::CodeBlockPostOpStatementEntry*>(baseentry))
 			{
-				EmitPostOpStatement(emitter, entry->GetStatement(), codeblock, program);
-				emitter.PopStack(entry->GetStatement().GetEpochType(program));
+				EmitPostOpStatement(emitter, entry->GetStatement(), codeblock, curnamespace);
+				emitter.PopStack(entry->GetStatement().GetEpochType(curnamespace));
 			}
 			else if(const IRSemantics::CodeBlockInnerBlockEntry* entry = dynamic_cast<const IRSemantics::CodeBlockInnerBlockEntry*>(baseentry))
 			{
-				StringHandle anonymousnamehandle = program.FindLexicalScopeName(&entry->GetCode());
+				StringHandle anonymousnamehandle = curnamespace.FindLexicalScopeName(&entry->GetCode());
 
 				emitter.EnterEntity(Bytecode::EntityTags::FreeBlock, anonymousnamehandle);
-				Generate(entry->GetCode(), program, emitter);
+				Generate(entry->GetCode(), curnamespace, emitter);
 				emitter.ExitEntity();
 			}
 			else if(const IRSemantics::CodeBlockEntityEntry* entry = dynamic_cast<const IRSemantics::CodeBlockEntityEntry*>(baseentry))
 			{
 				emitter.BeginChain();
-				Generate(entry->GetEntity(), program, codeblock, emitter);
+				Generate(entry->GetEntity(), curnamespace, codeblock, emitter);
 
 				const std::vector<IRSemantics::Entity*>& chain = entry->GetEntity().GetChain();
 				for(std::vector<IRSemantics::Entity*>::const_iterator chainiter = chain.begin(); chainiter != chain.end(); ++chainiter)
-					Generate(**chainiter, program, codeblock, emitter);
+					Generate(**chainiter, curnamespace, codeblock, emitter);
 
 				emitter.EndChain();
 			}
@@ -438,60 +440,60 @@ namespace
 		}
 	}
 
-	void EmitConstructor(ByteCodeEmitter& emitter, StringHandle name, StringHandle rawname, const IRSemantics::Structure& structure, const CompileTimeParameterVector& templateargs, const IRSemantics::Program& program)
+	void EmitConstructor(ByteCodeEmitter& emitter, StringHandle name, StringHandle rawname, const IRSemantics::Structure& structure, const CompileTimeParameterVector& templateargs, const IRSemantics::Namespace& curnamespace)
 	{
 		emitter.DefineLexicalScope(name, 0, structure.GetMembers().size() + 1);
-		emitter.LexicalScopeEntry(program.FindString(L"identifier"), VM::EpochType_Identifier, true, VARIABLE_ORIGIN_PARAMETER);
+		emitter.LexicalScopeEntry(curnamespace.Strings.Find(L"identifier"), VM::EpochType_Identifier, true, VARIABLE_ORIGIN_PARAMETER);
 		for(size_t i = 0; i < structure.GetMembers().size(); ++i)
 		{
-			VM::EpochTypeID membertype = structure.GetMembers()[i].second->GetEpochType(program);
+			VM::EpochTypeID membertype = structure.GetMembers()[i].second->GetEpochType(curnamespace);
 			if(structure.IsTemplate() && !templateargs.empty())
-				membertype = structure.SubstituteTemplateParams(structure.GetMembers()[i].first, templateargs, program);
+				membertype = structure.SubstituteTemplateParams(structure.GetMembers()[i].first, templateargs, curnamespace);
 
 			emitter.LexicalScopeEntry(structure.GetMembers()[i].first, membertype, false, VARIABLE_ORIGIN_PARAMETER);
 		}
 
 		emitter.EnterFunction(name);
-		emitter.AllocateStructure(program.LookupType(rawname));
-		emitter.BindReference(program.FindString(L"identifier"));
+		emitter.AllocateStructure(curnamespace.Types.GetTypeByName(rawname));
+		emitter.BindReference(curnamespace.Strings.Find(L"identifier"));
 		emitter.AssignVariable();
 
 		for(size_t i = 0; i < structure.GetMembers().size(); ++i)
 		{
-			VM::EpochTypeID membertype = structure.GetMembers()[i].second->GetEpochType(program);
+			VM::EpochTypeID membertype = structure.GetMembers()[i].second->GetEpochType(curnamespace);
 			if(structure.IsTemplate() && !templateargs.empty())
-				membertype = structure.SubstituteTemplateParams(structure.GetMembers()[i].first, templateargs, program);
+				membertype = structure.SubstituteTemplateParams(structure.GetMembers()[i].first, templateargs, curnamespace);
 
 			emitter.PushVariableValue(structure.GetMembers()[i].first, membertype);
-			emitter.AssignStructure(program.FindString(L"identifier"), structure.GetMembers()[i].first);
+			emitter.AssignStructure(curnamespace.Strings.Find(L"identifier"), structure.GetMembers()[i].first);
 		}
 
 		emitter.ExitFunction();
 	}
 
-	void EmitAnonConstructor(ByteCodeEmitter& emitter, StringHandle name, StringHandle rawname, const IRSemantics::Structure& structure, const CompileTimeParameterVector& templateargs, const IRSemantics::Program& program)
+	void EmitAnonConstructor(ByteCodeEmitter& emitter, StringHandle name, StringHandle rawname, const IRSemantics::Structure& structure, const CompileTimeParameterVector& templateargs, const IRSemantics::Namespace& curnamespace)
 	{
 		emitter.DefineLexicalScope(name, 0, structure.GetMembers().size() + 1);
 		for(size_t i = 0; i < structure.GetMembers().size(); ++i)
 		{
-			VM::EpochTypeID membertype = structure.GetMembers()[i].second->GetEpochType(program);
+			VM::EpochTypeID membertype = structure.GetMembers()[i].second->GetEpochType(curnamespace);
 			if(structure.IsTemplate() && !templateargs.empty())
-				membertype = structure.SubstituteTemplateParams(structure.GetMembers()[i].first, templateargs, program);
+				membertype = structure.SubstituteTemplateParams(structure.GetMembers()[i].first, templateargs, curnamespace);
 
 			emitter.LexicalScopeEntry(structure.GetMembers()[i].first, membertype, false, VARIABLE_ORIGIN_PARAMETER);
 		}
-		emitter.LexicalScopeEntry(name, program.LookupType(rawname), false, VARIABLE_ORIGIN_RETURN);
+		emitter.LexicalScopeEntry(name, curnamespace.Types.GetTypeByName(rawname), false, VARIABLE_ORIGIN_RETURN);
 
 		emitter.EnterFunction(name);
-		emitter.AllocateStructure(program.LookupType(rawname));
+		emitter.AllocateStructure(curnamespace.Types.GetTypeByName(rawname));
 		emitter.BindReference(name);
 		emitter.AssignVariable();
 
 		for(size_t i = 0; i < structure.GetMembers().size(); ++i)
 		{
-			VM::EpochTypeID membertype = structure.GetMembers()[i].second->GetEpochType(program);
+			VM::EpochTypeID membertype = structure.GetMembers()[i].second->GetEpochType(curnamespace);
 			if(structure.IsTemplate() && !templateargs.empty())
-				membertype = structure.SubstituteTemplateParams(structure.GetMembers()[i].first, templateargs, program);
+				membertype = structure.SubstituteTemplateParams(structure.GetMembers()[i].first, templateargs, curnamespace);
 
 			emitter.PushVariableValue(structure.GetMembers()[i].first, membertype);
 			emitter.AssignStructure(name, structure.GetMembers()[i].first);
@@ -500,328 +502,331 @@ namespace
 		emitter.SetReturnRegister(name);
 		emitter.ExitFunction();
 	}
+
+	bool Generate(const IRSemantics::Namespace& curnamespace, ByteCodeEmitter& emitter)
+	{
+		std::map<StringHandle, bool> isconstructor;
+
+		std::map<VM::EpochTypeID, std::set<VM::EpochTypeID> > sumtypes = curnamespace.Types.SumTypes.GetDefinitions();
+		for(std::map<VM::EpochTypeID, std::set<VM::EpochTypeID> >::const_iterator iter = sumtypes.begin(); iter != sumtypes.end(); ++iter)
+		{
+			emitter.DefineSumType(iter->first, iter->second);
+		}
+
+
+		DependencyGraph<VM::EpochTypeID> structuredependencies;
+		std::map<VM::EpochTypeID, IRSemantics::Structure*> typemap;
+
+		const std::map<StringHandle, IRSemantics::Structure*>& structures = curnamespace.Types.Structures.GetDefinitions();
+		for(std::map<StringHandle, IRSemantics::Structure*>::const_iterator iter = structures.begin(); iter != structures.end(); ++iter)
+		{
+			if(iter->second->IsTemplate())
+				continue;
+
+			VM::EpochTypeID type = curnamespace.Types.GetTypeByName(iter->first);
+			structuredependencies.Register(type);
+
+			typemap.insert(std::make_pair(type, iter->second));
+
+			const std::vector<std::pair<StringHandle, IRSemantics::StructureMember*> >& members = iter->second->GetMembers();
+			for(std::vector<std::pair<StringHandle, IRSemantics::StructureMember*> >::const_iterator memberiter = members.begin(); memberiter != members.end(); ++memberiter)
+			{
+				VM::EpochTypeID membertype = memberiter->second->GetEpochType(curnamespace);
+				if(VM::GetTypeFamily(membertype) == VM::EpochTypeFamily_Structure)
+					structuredependencies.AddDependency(type, membertype);
+			}
+		}
+
+		std::map<VM::EpochTypeID, const CompileTimeParameterVector*> templateargmap;
+
+		const IRSemantics::TemplateTable::InstantiationMap& templateinsts = curnamespace.Types.Templates.GetInstantiations();
+		for(IRSemantics::TemplateTable::InstantiationMap::const_iterator iter = templateinsts.begin(); iter != templateinsts.end(); ++iter)
+		{
+			IRSemantics::Structure& structure = *structures.find(iter->first)->second;
+			if(!structure.IsTemplate())
+				continue;
+
+			const IRSemantics::TemplateTable::InstancesAndArguments& instances = iter->second;
+			for(IRSemantics::TemplateTable::InstancesAndArguments::const_iterator institer = instances.begin(); institer != instances.end(); ++institer)
+			{
+				VM::EpochTypeID type = curnamespace.Types.GetTypeByName(institer->first);
+				structuredependencies.Register(type);
+
+				typemap.insert(std::make_pair(type, &structure));
+				templateargmap.insert(std::make_pair(type, &institer->second));
+
+				const std::vector<std::pair<StringHandle, IRSemantics::StructureMember*> >& members = structure.GetMembers();
+				for(std::vector<std::pair<StringHandle, IRSemantics::StructureMember*> >::const_iterator memberiter = members.begin(); memberiter != members.end(); ++memberiter)
+				{
+					VM::EpochTypeID membertype = structure.SubstituteTemplateParams(memberiter->first, institer->second, curnamespace);
+					if(VM::GetTypeFamily(membertype) == VM::EpochTypeFamily_Structure)
+						structuredependencies.AddDependency(type, membertype);
+				}
+			}
+		}
+
+		std::vector<VM::EpochTypeID> typeorder = structuredependencies.Resolve();
+		for(std::vector<VM::EpochTypeID>::const_iterator iter = typeorder.begin(); iter != typeorder.end(); ++iter)
+		{
+			const IRSemantics::Structure* structure = typemap.find(*iter)->second;
+			const std::vector<std::pair<StringHandle, IRSemantics::StructureMember*> >& members = structure->GetMembers();
+
+			emitter.DefineStructure(*iter, members.size());
+			for(std::vector<std::pair<StringHandle, IRSemantics::StructureMember*> >::const_iterator memberiter = members.begin(); memberiter != members.end(); ++memberiter)
+			{
+				if(structure->IsTemplate())
+				{
+					const CompileTimeParameterVector& args = *templateargmap.find(*iter)->second;
+					emitter.StructureMember(memberiter->first, structure->SubstituteTemplateParams(memberiter->first, args, curnamespace));
+				}
+				else
+					emitter.StructureMember(memberiter->first, memberiter->second->GetEpochType(curnamespace));
+			}
+		}
+
+		const boost::unordered_map<StringHandle, IRSemantics::Function*>& functions = curnamespace.Functions.GetDefinitions();
+		for(boost::unordered_map<StringHandle, IRSemantics::Function*>::const_iterator iter = functions.begin(); iter != functions.end(); ++iter)
+		{
+			const std::vector<IRSemantics::FunctionTag>& tags = iter->second->GetTags();
+			for(std::vector<IRSemantics::FunctionTag>::const_iterator tagiter = tags.begin(); tagiter != tags.end(); ++tagiter)
+			{
+				if(curnamespace.Strings.GetPooledString(tagiter->TagName) == L"constructor")
+					isconstructor[iter->first] = true;
+
+				if(curnamespace.FunctionTags.Exists(tagiter->TagName))
+				{
+					TagHelperReturn help = curnamespace.FunctionTags.GetHelper(tagiter->TagName)(iter->first, tagiter->Parameters, true);
+					if(!help.MetaTag.empty())
+						emitter.TagData(iter->first, help.MetaTag, help.MetaTagData);
+				}
+				else
+				{
+					//
+					// This is a failure of the semantic validation pass
+					// to correctly catch and flag an error on the tag.
+					//
+					throw InternalException("Unrecognized function tag");
+				}
+			}
+		}
+
+
+		const IRSemantics::ScopePtrMap& scopes = curnamespace.GetScopes();
+		DependencyGraph<StringHandle> scopedependencies;
+		for(IRSemantics::ScopePtrMap::const_iterator iter = scopes.begin(); iter != scopes.end(); ++iter)
+		{
+			scopedependencies.Register(iter->first);
+			if(iter->second->ParentScope && curnamespace.FindLexicalScopeName(iter->second->ParentScope))
+				scopedependencies.AddDependency(iter->first, curnamespace.FindLexicalScopeName(iter->second->ParentScope));
+		}
+
+		std::vector<StringHandle> scopeorder = scopedependencies.Resolve();
+		for(std::vector<StringHandle>::const_iterator orderiter = scopeorder.begin(); orderiter != scopeorder.end(); ++orderiter)
+		{
+			IRSemantics::ScopePtrMap::const_iterator iter = scopes.find(*orderiter);
+			emitter.DefineLexicalScope(iter->first, curnamespace.FindLexicalScopeName(iter->second->ParentScope), iter->second->GetVariableCount());
+			for(size_t i = 0; i < iter->second->GetVariableCount(); ++i)
+			{
+				VariableOrigin origin = iter->second->GetVariableOrigin(i);
+				if(isconstructor[*orderiter] && origin == VARIABLE_ORIGIN_RETURN)
+					origin = VARIABLE_ORIGIN_LOCAL;
+
+				VM::EpochTypeID vartype = iter->second->GetVariableTypeByIndex(i);
+				if(VM::GetTypeFamily(vartype) == VM::EpochTypeFamily_Unit)
+					vartype = curnamespace.Types.Aliases.GetStrongRepresentation(vartype);
+				emitter.LexicalScopeEntry(curnamespace.Strings.Find(iter->second->GetVariableName(i)), vartype, iter->second->IsReference(i), origin);
+			}
+		}
+
+
+		size_t numglobalblocks = curnamespace.GetNumGlobalCodeBlocks();
+		for(size_t i = 0; i < numglobalblocks; ++i)
+		{
+			emitter.EnterEntity(Bytecode::EntityTags::Globals, curnamespace.FindLexicalScopeName(curnamespace.GetGlobalCodeBlock(i).GetScope()));
+			Generate(curnamespace.GetGlobalCodeBlock(i), curnamespace, emitter);
+		}
+
+		emitter.Invoke(curnamespace.Strings.Find(L"entrypoint"));
+		emitter.Halt();
+	
+		for(boost::unordered_map<StringHandle, IRSemantics::Function*>::const_iterator iter = functions.begin(); iter != functions.end(); ++iter)
+		{
+			emitter.EnterFunction(iter->first);
+			VM::EpochTypeID rettype = iter->second->GetReturnType(curnamespace);
+			if(rettype != VM::EpochType_Void || isconstructor[iter->first])
+				EmitExpression(emitter, *iter->second->GetReturnExpression(), *iter->second->GetCode(), curnamespace);
+
+			const std::vector<IRSemantics::FunctionTag>& tags = iter->second->GetTags();
+			for(std::vector<IRSemantics::FunctionTag>::const_iterator tagiter = tags.begin(); tagiter != tags.end(); ++tagiter)
+			{
+				if(curnamespace.FunctionTags.Exists(tagiter->TagName))
+				{
+					TagHelperReturn help = curnamespace.FunctionTags.GetHelper(tagiter->TagName)(iter->first, tagiter->Parameters, false);
+					if(!help.InvokeRuntimeFunction.empty())
+						emitter.Invoke(curnamespace.Strings.Find(help.InvokeRuntimeFunction));
+				}
+				else
+				{
+					//
+					// This is a failure of the semantic validation pass
+					// to correctly catch and flag an error on the tag.
+					//
+					throw InternalException("Unrecognized function tag");
+				}
+			}
+
+			const IRSemantics::CodeBlock* code = iter->second->GetCode();
+			if(code)
+				Generate(*code, curnamespace, emitter);
+
+			if(iter->second->GetReturnType(curnamespace) != VM::EpochType_Void || isconstructor[iter->first])
+			{
+				if(!code)
+				{
+					//
+					// This is probably a bug in the IR generation.
+					//
+					// At the IR level, all functions have code bodies, even if
+					// they are empty. This is done to support the lexical scope
+					// data needed for parameters and return values to exist on
+					// the stack when invoking such a function.
+					//
+					// Most of the code generation logic assumes that this is
+					// upheld by the IR layer, so a missing code body is a fatal
+					// failure at this point.
+					//
+					throw InternalException("Function has no attached code body");
+				}
+
+				if(!iter->second->IsReturnRegisterSuppressed())
+				{
+					const ScopeDescription* scope = code->GetScope();
+					for(size_t i = 0; i < scope->GetVariableCount(); ++i)
+					{
+						if(scope->GetVariableOrigin(i) == VARIABLE_ORIGIN_RETURN)
+						{
+							if(isconstructor[iter->first])
+							{
+								emitter.PushVariableValueNoCopy(scope->GetVariableNameHandle(i));
+								emitter.PushVariableValue(curnamespace.Strings.Find(L"@id"), VM::EpochType_Identifier);
+								emitter.PushIntegerLiteral(scope->GetVariableTypeByIndex(i));
+								emitter.AssignVariableThroughIdentifier();
+							}
+							else
+							{
+								StringHandle varname = scope->GetVariableNameHandle(i);
+
+								if(iter->second->HasAnonymousReturn())
+								{
+									emitter.BindReference(varname);
+									emitter.AssignVariable();
+								}
+
+								emitter.SetReturnRegister(varname);
+							}
+							break;
+						}
+					}
+				}
+			}
+
+			emitter.ExitFunction();
+		}
+
+		// Generate constructors for structures
+		for(std::map<StringHandle, IRSemantics::Structure*>::const_iterator iter = structures.begin(); iter != structures.end(); ++iter)
+		{
+			if(iter->second->IsTemplate())
+				continue;
+
+			EmitConstructor(emitter, iter->second->GetConstructorName(), iter->first, *iter->second, CompileTimeParameterVector(), curnamespace);
+			EmitAnonConstructor(emitter, iter->second->GetAnonymousConstructorName(), iter->first, *iter->second, CompileTimeParameterVector(), curnamespace);
+		}
+
+		for(IRSemantics::TemplateTable::InstantiationMap::const_iterator iter = templateinsts.begin(); iter != templateinsts.end(); ++iter)
+		{
+			IRSemantics::Structure& structure = *structures.find(iter->first)->second;
+			if(!structure.IsTemplate())
+				continue;
+
+			const IRSemantics::TemplateTable::InstancesAndArguments& instances = iter->second;
+			for(IRSemantics::TemplateTable::InstancesAndArguments::const_iterator institer = instances.begin(); institer != instances.end(); ++institer)
+			{
+				EmitConstructor(emitter, curnamespace.Types.Templates.FindConstructorName(institer->first), institer->first, structure, institer->second, curnamespace);
+				EmitAnonConstructor(emitter, curnamespace.Types.Templates.FindAnonConstructorName(institer->first), institer->first, structure, institer->second, curnamespace);
+			}
+		}
+
+
+		const std::set<StringHandle>& funcsneedingpatternmatching = curnamespace.Functions.GetFunctionsNeedingDynamicPatternMatching();
+		for(std::set<StringHandle>::const_iterator iter = funcsneedingpatternmatching.begin(); iter != funcsneedingpatternmatching.end(); ++iter)
+		{
+			const IRSemantics::Function* thisfunc = functions.find(*iter)->second;
+			const FunctionSignature thisfuncsig = thisfunc->GetFunctionSignature(curnamespace);
+			StringHandle patternmatchername = curnamespace.Functions.GetDynamicPatternMatcherForFunction(*iter);
+			emitter.EnterPatternResolver(patternmatchername);
+			size_t numoverloads = curnamespace.Functions.GetNumOverloads(thisfunc->GetRawName());
+			for(size_t pass = 0; pass < 2; ++pass)
+			{
+				bool preferliteralmatches = (pass == 0);
+
+				for(size_t i = 0; i < numoverloads; ++i)
+				{
+					StringHandle overloadname = curnamespace.Functions.GetOverloadName(thisfunc->GetRawName(), i);
+					const IRSemantics::Function* thisoverload = functions.find(overloadname)->second;
+					const FunctionSignature overloadsig = thisoverload->GetFunctionSignature(curnamespace);
+					if(overloadsig.MatchesDynamicPattern(thisfuncsig))
+					{
+						bool hasliterals = false;
+						for(size_t j = 0; j < overloadsig.GetNumParameters(); ++j)
+						{
+							if(overloadsig.GetParameter(j).HasPayload)
+							{
+								hasliterals = true;
+								break;
+							}
+						}
+
+						if(hasliterals != preferliteralmatches)
+							continue;
+
+						emitter.ResolvePattern(overloadname, overloadsig);
+					}
+				}
+			}
+			emitter.ExitPatternResolver();
+			emitter.DefineLexicalScope(patternmatchername, 0, 0);
+		}
+
+		const std::map<StringHandle, std::map<StringHandle, FunctionSignature> >& requiredtypematchers = curnamespace.Functions.GetRequiredTypeMatchers();
+		for(std::map<StringHandle, std::map<StringHandle, FunctionSignature> >::const_iterator iter = requiredtypematchers.begin(); iter != requiredtypematchers.end(); ++iter)
+		{
+			emitter.DefineLexicalScope(iter->first, 0, 0);
+			emitter.EnterTypeResolver(iter->first);
+			for(std::map<StringHandle, FunctionSignature>::const_iterator overloaditer = iter->second.begin(); overloaditer != iter->second.end(); ++overloaditer)
+			{
+				const FunctionSignature& sig = overloaditer->second;
+				emitter.ResolveTypes(overloaditer->first, sig);
+			}
+			emitter.ExitTypeResolver();
+		}
+
+		for(size_t i = 0; i < numglobalblocks; ++i)
+			emitter.ExitEntity();
+
+		return true;
+	}
 }
 
 
 bool CompilerPasses::GenerateCode(const IRSemantics::Program& program, ByteCodeEmitter& emitter)
 {
-	std::map<StringHandle, bool> isconstructor;
-
 	const StringPoolManager& strings = program.GetStringPool();
 	const boost::unordered_map<StringHandle, std::wstring>& stringpool = strings.GetInternalPool();
 
 	for(boost::unordered_map<StringHandle, std::wstring>::const_iterator iter = stringpool.begin(); iter != stringpool.end(); ++iter)
 		emitter.PoolString(iter->first, iter->second);
 
-	std::map<VM::EpochTypeID, std::set<VM::EpochTypeID> > sumtypes = program.GetSumTypes();
-	for(std::map<VM::EpochTypeID, std::set<VM::EpochTypeID> >::const_iterator iter = sumtypes.begin(); iter != sumtypes.end(); ++iter)
-	{
-		emitter.DefineSumType(iter->first, iter->second);
-	}
-
-
-	DependencyGraph<VM::EpochTypeID> structuredependencies;
-	std::map<VM::EpochTypeID, IRSemantics::Structure*> typemap;
-
-	const std::map<StringHandle, IRSemantics::Structure*>& structures = program.GetStructures();
-	for(std::map<StringHandle, IRSemantics::Structure*>::const_iterator iter = structures.begin(); iter != structures.end(); ++iter)
-	{
-		if(iter->second->IsTemplate())
-			continue;
-
-		VM::EpochTypeID type = program.LookupType(iter->first);
-		structuredependencies.Register(type);
-
-		typemap.insert(std::make_pair(type, iter->second));
-
-		const std::vector<std::pair<StringHandle, IRSemantics::StructureMember*> >& members = iter->second->GetMembers();
-		for(std::vector<std::pair<StringHandle, IRSemantics::StructureMember*> >::const_iterator memberiter = members.begin(); memberiter != members.end(); ++memberiter)
-		{
-			VM::EpochTypeID membertype = memberiter->second->GetEpochType(program);
-			if(VM::GetTypeFamily(membertype) == VM::EpochTypeFamily_Structure)
-				structuredependencies.AddDependency(type, membertype);
-		}
-	}
-
-	std::map<VM::EpochTypeID, const CompileTimeParameterVector*> templateargmap;
-
-	const IRSemantics::Program::TemplateInstantiationMap& templateinsts = program.GetTemplateInstantiations();
-	for(IRSemantics::Program::TemplateInstantiationMap::const_iterator iter = templateinsts.begin(); iter != templateinsts.end(); ++iter)
-	{
-		IRSemantics::Structure& structure = *structures.find(iter->first)->second;
-		if(!structure.IsTemplate())
-			continue;
-
-		const IRSemantics::Program::TemplateInstancesAndArguments& instances = iter->second;
-		for(IRSemantics::Program::TemplateInstancesAndArguments::const_iterator institer = instances.begin(); institer != instances.end(); ++institer)
-		{
-			VM::EpochTypeID type = program.LookupType(institer->first);
-			structuredependencies.Register(type);
-
-			typemap.insert(std::make_pair(type, &structure));
-			templateargmap.insert(std::make_pair(type, &institer->second));
-
-			const std::vector<std::pair<StringHandle, IRSemantics::StructureMember*> >& members = structure.GetMembers();
-			for(std::vector<std::pair<StringHandle, IRSemantics::StructureMember*> >::const_iterator memberiter = members.begin(); memberiter != members.end(); ++memberiter)
-			{
-				VM::EpochTypeID membertype = structure.SubstituteTemplateParams(memberiter->first, institer->second, program);
-				if(VM::GetTypeFamily(membertype) == VM::EpochTypeFamily_Structure)
-					structuredependencies.AddDependency(type, membertype);
-			}
-		}
-	}
-
-	std::vector<VM::EpochTypeID> typeorder = structuredependencies.Resolve();
-	for(std::vector<VM::EpochTypeID>::const_iterator iter = typeorder.begin(); iter != typeorder.end(); ++iter)
-	{
-		const IRSemantics::Structure* structure = typemap.find(*iter)->second;
-		const std::vector<std::pair<StringHandle, IRSemantics::StructureMember*> >& members = structure->GetMembers();
-
-		emitter.DefineStructure(*iter, members.size());
-		for(std::vector<std::pair<StringHandle, IRSemantics::StructureMember*> >::const_iterator memberiter = members.begin(); memberiter != members.end(); ++memberiter)
-		{
-			if(structure->IsTemplate())
-			{
-				const CompileTimeParameterVector& args = *templateargmap.find(*iter)->second;
-				emitter.StructureMember(memberiter->first, structure->SubstituteTemplateParams(memberiter->first, args, program));
-			}
-			else
-				emitter.StructureMember(memberiter->first, memberiter->second->GetEpochType(program));
-		}
-	}
-
-	const boost::unordered_map<StringHandle, IRSemantics::Function*>& functions = program.GetFunctions();
-	for(boost::unordered_map<StringHandle, IRSemantics::Function*>::const_iterator iter = functions.begin(); iter != functions.end(); ++iter)
-	{
-		const std::vector<IRSemantics::FunctionTag>& tags = iter->second->GetTags();
-		for(std::vector<IRSemantics::FunctionTag>::const_iterator tagiter = tags.begin(); tagiter != tags.end(); ++tagiter)
-		{
-			if(program.GetString(tagiter->TagName) == L"constructor")
-				isconstructor[iter->first] = true;
-
-			FunctionTagHelperTable::const_iterator helperiter = program.Session.FunctionTagHelpers.find(program.GetString(tagiter->TagName));
-			if(helperiter != program.Session.FunctionTagHelpers.end())
-			{
-				TagHelperReturn help = helperiter->second(iter->first, tagiter->Parameters, true);
-				if(!help.MetaTag.empty())
-					emitter.TagData(iter->first, help.MetaTag, help.MetaTagData);
-			}
-			else
-			{
-				//
-				// This is a failure of the semantic validation pass
-				// to correctly catch and flag an error on the tag.
-				//
-				throw InternalException("Unrecognized function tag");
-			}
-		}
-	}
-
-
-	const IRSemantics::ScopePtrMap& scopes = program.GetScopes();
-	DependencyGraph<StringHandle> scopedependencies;
-	for(IRSemantics::ScopePtrMap::const_iterator iter = scopes.begin(); iter != scopes.end(); ++iter)
-	{
-		scopedependencies.Register(iter->first);
-		if(iter->second->ParentScope && program.FindLexicalScopeName(iter->second->ParentScope))
-			scopedependencies.AddDependency(iter->first, program.FindLexicalScopeName(iter->second->ParentScope));
-	}
-
-	std::vector<StringHandle> scopeorder = scopedependencies.Resolve();
-	for(std::vector<StringHandle>::const_iterator orderiter = scopeorder.begin(); orderiter != scopeorder.end(); ++orderiter)
-	{
-		IRSemantics::ScopePtrMap::const_iterator iter = scopes.find(*orderiter);
-		emitter.DefineLexicalScope(iter->first, program.FindLexicalScopeName(iter->second->ParentScope), iter->second->GetVariableCount());
-		for(size_t i = 0; i < iter->second->GetVariableCount(); ++i)
-		{
-			VariableOrigin origin = iter->second->GetVariableOrigin(i);
-			if(isconstructor[*orderiter] && origin == VARIABLE_ORIGIN_RETURN)
-				origin = VARIABLE_ORIGIN_LOCAL;
-
-			VM::EpochTypeID vartype = iter->second->GetVariableTypeByIndex(i);
-			if(VM::GetTypeFamily(vartype) == VM::EpochTypeFamily_Unit)
-				vartype = program.StrongTypeAliasRepresentations.find(vartype)->second;
-			emitter.LexicalScopeEntry(strings.Find(iter->second->GetVariableName(i)), vartype, iter->second->IsReference(i), origin);
-		}
-	}
-
-
-	size_t numglobalblocks = program.GetNumGlobalCodeBlocks();
-	for(size_t i = 0; i < numglobalblocks; ++i)
-	{
-		emitter.EnterEntity(Bytecode::EntityTags::Globals, program.FindLexicalScopeName(program.GetGlobalCodeBlock(i).GetScope()));
-		Generate(program.GetGlobalCodeBlock(i), program, emitter);
-	}
-
-	emitter.Invoke(strings.Find(L"entrypoint"));
-	emitter.Halt();
-	
-	for(boost::unordered_map<StringHandle, IRSemantics::Function*>::const_iterator iter = functions.begin(); iter != functions.end(); ++iter)
-	{
-		emitter.EnterFunction(iter->first);
-		VM::EpochTypeID rettype = iter->second->GetReturnType(program);
-		if(rettype != VM::EpochType_Void || isconstructor[iter->first])
-			EmitExpression(emitter, *iter->second->GetReturnExpression(), *iter->second->GetCode(), program);
-
-		const std::vector<IRSemantics::FunctionTag>& tags = iter->second->GetTags();
-		for(std::vector<IRSemantics::FunctionTag>::const_iterator tagiter = tags.begin(); tagiter != tags.end(); ++tagiter)
-		{
-			FunctionTagHelperTable::const_iterator helperiter = program.Session.FunctionTagHelpers.find(program.GetString(tagiter->TagName));
-			if(helperiter != program.Session.FunctionTagHelpers.end())
-			{
-				TagHelperReturn help = helperiter->second(iter->first, tagiter->Parameters, false);
-				if(!help.InvokeRuntimeFunction.empty())
-					emitter.Invoke(program.FindString(help.InvokeRuntimeFunction));
-			}
-			else
-			{
-				//
-				// This is a failure of the semantic validation pass
-				// to correctly catch and flag an error on the tag.
-				//
-				throw InternalException("Unrecognized function tag");
-			}
-		}
-
-		const IRSemantics::CodeBlock* code = iter->second->GetCode();
-		if(code)
-			Generate(*code, program, emitter);
-
-		if(iter->second->GetReturnType(program) != VM::EpochType_Void || isconstructor[iter->first])
-		{
-			if(!code)
-			{
-				//
-				// This is probably a bug in the IR generation.
-				//
-				// At the IR level, all functions have code bodies, even if
-				// they are empty. This is done to support the lexical scope
-				// data needed for parameters and return values to exist on
-				// the stack when invoking such a function.
-				//
-				// Most of the code generation logic assumes that this is
-				// upheld by the IR layer, so a missing code body is a fatal
-				// failure at this point.
-				//
-				throw InternalException("Function has no attached code body");
-			}
-
-			if(!iter->second->IsReturnRegisterSuppressed())
-			{
-				const ScopeDescription* scope = code->GetScope();
-				for(size_t i = 0; i < scope->GetVariableCount(); ++i)
-				{
-					if(scope->GetVariableOrigin(i) == VARIABLE_ORIGIN_RETURN)
-					{
-						if(isconstructor[iter->first])
-						{
-							emitter.PushVariableValueNoCopy(scope->GetVariableNameHandle(i));
-							emitter.PushVariableValue(program.FindString(L"@id"), VM::EpochType_Identifier);
-							emitter.PushIntegerLiteral(scope->GetVariableTypeByIndex(i));
-							emitter.AssignVariableThroughIdentifier();
-						}
-						else
-						{
-							StringHandle varname = scope->GetVariableNameHandle(i);
-
-							if(iter->second->HasAnonymousReturn())
-							{
-								emitter.BindReference(varname);
-								emitter.AssignVariable();
-							}
-
-							emitter.SetReturnRegister(varname);
-						}
-						break;
-					}
-				}
-			}
-		}
-
-		emitter.ExitFunction();
-	}
-
-	// Generate constructors for structures
-	for(std::map<StringHandle, IRSemantics::Structure*>::const_iterator iter = structures.begin(); iter != structures.end(); ++iter)
-	{
-		if(iter->second->IsTemplate())
-			continue;
-
-		EmitConstructor(emitter, iter->second->GetConstructorName(), iter->first, *iter->second, CompileTimeParameterVector(), program);
-		EmitAnonConstructor(emitter, iter->second->GetAnonymousConstructorName(), iter->first, *iter->second, CompileTimeParameterVector(), program);
-	}
-
-	for(IRSemantics::Program::TemplateInstantiationMap::const_iterator iter = templateinsts.begin(); iter != templateinsts.end(); ++iter)
-	{
-		IRSemantics::Structure& structure = *structures.find(iter->first)->second;
-		if(!structure.IsTemplate())
-			continue;
-
-		const IRSemantics::Program::TemplateInstancesAndArguments& instances = iter->second;
-		for(IRSemantics::Program::TemplateInstancesAndArguments::const_iterator institer = instances.begin(); institer != instances.end(); ++institer)
-		{
-			EmitConstructor(emitter, program.FindTemplateConstructorName(institer->first), institer->first, structure, institer->second, program);
-			EmitAnonConstructor(emitter, program.FindTemplateAnonConstructorName(institer->first), institer->first, structure, institer->second, program);
-		}
-	}
-
-
-	const std::set<StringHandle>& funcsneedingpatternmatching = program.GetFunctionsNeedingDynamicPatternMatching();
-	for(std::set<StringHandle>::const_iterator iter = funcsneedingpatternmatching.begin(); iter != funcsneedingpatternmatching.end(); ++iter)
-	{
-		const IRSemantics::Function* thisfunc = functions.find(*iter)->second;
-		const FunctionSignature thisfuncsig = thisfunc->GetFunctionSignature(program);
-		StringHandle patternmatchername = program.GetDynamicPatternMatcherForFunction(*iter);
-		emitter.EnterPatternResolver(patternmatchername);
-		size_t numoverloads = program.GetNumFunctionOverloads(thisfunc->GetRawName());
-		for(size_t pass = 0; pass < 2; ++pass)
-		{
-			bool preferliteralmatches = (pass == 0);
-
-			for(size_t i = 0; i < numoverloads; ++i)
-			{
-				StringHandle overloadname = program.GetFunctionOverloadName(thisfunc->GetRawName(), i);
-				const IRSemantics::Function* thisoverload = functions.find(overloadname)->second;
-				const FunctionSignature overloadsig = thisoverload->GetFunctionSignature(program);
-				if(overloadsig.MatchesDynamicPattern(thisfuncsig))
-				{
-					bool hasliterals = false;
-					for(size_t j = 0; j < overloadsig.GetNumParameters(); ++j)
-					{
-						if(overloadsig.GetParameter(j).HasPayload)
-						{
-							hasliterals = true;
-							break;
-						}
-					}
-
-					if(hasliterals != preferliteralmatches)
-						continue;
-
-					emitter.ResolvePattern(overloadname, overloadsig);
-				}
-			}
-		}
-		emitter.ExitPatternResolver();
-		emitter.DefineLexicalScope(patternmatchername, 0, 0);
-	}
-
-	const std::map<StringHandle, std::map<StringHandle, FunctionSignature> >& requiredtypematchers = program.GetRequiredTypeMatchers();
-	for(std::map<StringHandle, std::map<StringHandle, FunctionSignature> >::const_iterator iter = requiredtypematchers.begin(); iter != requiredtypematchers.end(); ++iter)
-	{
-		emitter.DefineLexicalScope(iter->first, 0, 0);
-		emitter.EnterTypeResolver(iter->first);
-		for(std::map<StringHandle, FunctionSignature>::const_iterator overloaditer = iter->second.begin(); overloaditer != iter->second.end(); ++overloaditer)
-		{
-			const FunctionSignature& sig = overloaditer->second;
-			emitter.ResolveTypes(overloaditer->first, sig);
-		}
-		emitter.ExitTypeResolver();
-	}
-
-	for(size_t i = 0; i < numglobalblocks; ++i)
-		emitter.ExitEntity();
-
-	return true;
+	return Generate(program.GlobalNamespace, emitter);
 }
 

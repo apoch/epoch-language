@@ -22,7 +22,7 @@ namespace IRSemantics
 	// Forward declarations
 	class CodeBlock;
 	class Expression;
-	class Program;
+	class Namespace;
 	struct InferenceContext;
 
 
@@ -78,15 +78,15 @@ namespace IRSemantics
 
 	// Validation
 	public:
-		bool Validate(const Program& program) const;
+		bool Validate(const Namespace& curnamespace) const;
 
 	// Compile time code execution
 	public:
-		bool CompileTimeCodeExecution(Program& program, CodeBlock& activescope, CompileErrors& errors);
+		bool CompileTimeCodeExecution(Namespace& curnamespace, CodeBlock& activescope, CompileErrors& errors);
 
 	// Type inference
 	public:
-		bool TypeInference(IRSemantics::Program& program, CodeBlock& activescope, InferenceContext& context, CompileErrors& errors);
+		bool TypeInference(Namespace& curnamespace, CodeBlock& activescope, InferenceContext& context, CompileErrors& errors);
 
 	// Internal state
 	private:

@@ -74,6 +74,8 @@ public:
 	FunctionTagHelperTable FunctionTagHelpers;
 	CompilerInfoTable InfoTable;
 
+	IdentifierTable Identifiers;
+
 	std::wstring FileName;
 
 // Internal helpers
@@ -87,7 +89,5 @@ private:
 	AST::Program* ASTProgram;
 	IRSemantics::Program* SemanticProgram;
 	ByteBuffer FinalByteCode;
-
-	IdentifierTable Identifiers;
 };
 

@@ -9,15 +9,14 @@
 
 #include "Compiler/Intermediate Representations/Semantic Validation/Assignment.h"
 #include "Compiler/Intermediate Representations/Semantic Validation/Expression.h"
-#include "Compiler/Intermediate Representations/Semantic Validation/Program.h"
+#include "Compiler/Intermediate Representations/Semantic Validation/Namespace.h"
 
 #include "Compiler/Intermediate Representations/Semantic Validation/Helpers.h"
 
 #include "Compiler/Intermediate Representations/Semantic Validation/InferenceContext.h"
 
-#include "Compiler/Session.h"
-
 #include "Compiler/Exceptions.h"
+#include "Compiler/CompileErrors.h"
 
 
 using namespace IRSemantics;
@@ -86,10 +85,10 @@ void Assignment::SetRHSRecursive(AssignmentChain* rhs)
 //
 // Type-validate an assignment
 //
-bool Assignment::Validate(const Program& program) const
+bool Assignment::Validate(const Namespace& curnamespace) const
 {
 	bool valid = (LHSType != VM::EpochType_Error);
-	return valid && RHS->Validate(program);
+	return valid && RHS->Validate(curnamespace);
 }
 
 //
@@ -98,22 +97,21 @@ bool Assignment::Validate(const Program& program) const
 // Includes operator overload resolution for op-assignment
 // forms such as "a += b".
 //
-bool Assignment::TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, CompileErrors& errors)
+bool Assignment::TypeInference(Namespace& curnamespace, CodeBlock& activescope, InferenceContext& context, CompileErrors& errors)
 {
-	LHSType = InferMemberAccessType(LHS, program, activescope);
-	if(!RHS->TypeInference(program, activescope, context, errors))
+	LHSType = InferMemberAccessType(LHS, curnamespace, activescope);
+	if(!RHS->TypeInference(curnamespace, activescope, context, errors))
 		return false;
 
-	OverloadMap::const_iterator iter = program.Session.FunctionOverloadNames.find(OperatorName);
-	if(iter != program.Session.FunctionOverloadNames.end())
+	if(curnamespace.Functions.HasOverloads(OperatorName))
 	{
-		const StringHandleSet& overloads = iter->second;
+		const StringHandleSet& overloads = curnamespace.Functions.GetOverloadNames(OperatorName);
 		for(StringHandleSet::const_iterator overloaditer = overloads.begin(); overloaditer != overloads.end(); ++overloaditer)
 		{
-			const FunctionSignature& overloadsig = program.Session.FunctionSignatures.find(*overloaditer)->second;
+			const FunctionSignature& overloadsig = curnamespace.Functions.GetSignature(*overloaditer);
 			if(overloadsig.GetNumParameters() == 2)
 			{
-				if(overloadsig.GetParameter(0).Type == LHSType && overloadsig.GetParameter(1).Type == RHS->GetEpochType(program))
+				if(overloadsig.GetParameter(0).Type == LHSType && overloadsig.GetParameter(1).Type == RHS->GetEpochType(curnamespace))
 				{
 					OperatorName = *overloaditer;
 					break;
@@ -122,14 +120,14 @@ bool Assignment::TypeInference(Program& program, CodeBlock& activescope, Inferen
 		}
 	}
 
-	VM::EpochTypeID RHSType = RHS->GetEpochType(program);
+	VM::EpochTypeID RHSType = RHS->GetEpochType(curnamespace);
 	if(LHSType != RHSType)
 	{
-		if(VM::GetTypeFamily(LHSType) == VM::EpochTypeFamily_Unit && program.StrongTypeAliasRepresentations[LHSType] == RHSType)
+		if(VM::GetTypeFamily(LHSType) == VM::EpochTypeFamily_Unit && curnamespace.Types.Aliases.GetStrongRepresentation(LHSType) == RHSType)
 		{
 			// OK
 		}
-		else if(VM::GetTypeFamily(LHSType) == VM::EpochTypeFamily_SumType && program.SumTypeHasTypeAsBase(LHSType, RHSType))
+		else if(VM::GetTypeFamily(LHSType) == VM::EpochTypeFamily_SumType && curnamespace.Types.SumTypes.IsBaseType(LHSType, RHSType))
 		{
 			// OK
 			WantsTypeAnnotation = true;
@@ -167,27 +165,27 @@ AssignmentChainExpression::~AssignmentChainExpression()
 // Retrieve the type of an assignment RHS which
 // is a terminal expression
 //
-VM::EpochTypeID AssignmentChainExpression::GetEpochType(const Program& program) const
+VM::EpochTypeID AssignmentChainExpression::GetEpochType(const Namespace& curnamespace) const
 {
-	return MyExpression->GetEpochType(program);
+	return MyExpression->GetEpochType(curnamespace);
 }
 
 //
 // Perform type inference actions on a terminal assignment RHS
 //
-bool AssignmentChainExpression::TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, CompileErrors& errors)
+bool AssignmentChainExpression::TypeInference(Namespace& curnamespace, CodeBlock& activescope, InferenceContext& context, CompileErrors& errors)
 {
 	InferenceContext newcontext(0, InferenceContext::CONTEXT_ASSIGNMENT);
 	newcontext.FunctionName = context.FunctionName;
-	return MyExpression->TypeInference(program, activescope, newcontext, 0, 1, errors);
+	return MyExpression->TypeInference(curnamespace, activescope, newcontext, 0, 1, errors);
 }
 
 //
 // Validate the expression appearing on the RHS of an assignment
 //
-bool AssignmentChainExpression::Validate(const Program& program) const
+bool AssignmentChainExpression::Validate(const Namespace& curnamespace) const
 {
-	return MyExpression->Validate(program);
+	return MyExpression->Validate(curnamespace);
 }
 
 
@@ -222,26 +220,26 @@ void AssignmentChainAssignment::SetRHSRecursive(AssignmentChain* rhs)
 //
 // Retrieve the type of the RHS of a chained assignment
 //
-VM::EpochTypeID AssignmentChainAssignment::GetEpochType(const Program& program) const
+VM::EpochTypeID AssignmentChainAssignment::GetEpochType(const Namespace& curnamespace) const
 {
-	return MyAssignment->GetRHS()->GetEpochType(program);
+	return MyAssignment->GetRHS()->GetEpochType(curnamespace);
 }
 
 //
 // Pass along the request to perform type inference
 // to the next assignment in a chain
 //
-bool AssignmentChainAssignment::TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, CompileErrors& errors)
+bool AssignmentChainAssignment::TypeInference(Namespace& curnamespace, CodeBlock& activescope, InferenceContext& context, CompileErrors& errors)
 {
-	return MyAssignment->TypeInference(program, activescope, context, errors);
+	return MyAssignment->TypeInference(curnamespace, activescope, context, errors);
 }
 
 //
 // Pass along the request to perform type validation
 // to the next assignment in a chain
 //
-bool AssignmentChainAssignment::Validate(const Program& program) const
+bool AssignmentChainAssignment::Validate(const Namespace& curnamespace) const
 {
-	return MyAssignment->Validate(program);
+	return MyAssignment->Validate(curnamespace);
 }
 

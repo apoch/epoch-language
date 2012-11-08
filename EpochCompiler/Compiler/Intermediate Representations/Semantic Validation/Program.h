@@ -9,27 +9,16 @@
 
 
 // Dependencies
-#include "Compiler/ExportDef.h"
-
-#include "Compiler/Intermediate Representations/Semantic Validation/InferenceContext.h"
-
-#include "Compiler/CompileErrors.h"
-
 #include "Utility/Types/IDTypes.h"
-#include "Utility/Types/EpochTypeIDs.h"
 
-#include "Bytecode/EntityTags.h"
-
-#include "Metadata/ScopeDescription.h"
-
-#include <vector>
-#include <map>
-#include <boost/unordered_map.hpp>
+#include "Compiler/Intermediate Representations/Semantic Validation/Helpers.h"
+#include "Compiler/Intermediate Representations/Semantic Validation/Namespace.h"
 
 
 // Forward declarations
 class StringPoolManager;
 class CompileSession;
+class CompileErrors;
 
 
 namespace IRSemantics
@@ -40,53 +29,14 @@ namespace IRSemantics
 	class Structure;
 	class CodeBlock;
 
-
-	typedef std::map<StringHandle, const ScopeDescription*> ScopePtrMap;
-
-
-	namespace impl
-	{
-		template<typename T>
-		class StringCache
-		{
-		private:
-			typedef boost::unordered_map<T, StringHandle> CacheType;
-
-		public:
-			StringHandle Find(const T& key) const
-			{
-                typename CacheType::const_iterator iter = Cache.find(key);
-				if(iter == Cache.end())
-					return 0;
-
-				return iter->second;
-			}
-
-			void Add(const T& key, StringHandle str)
-			{
-				Cache[key] = str;
-			}
-
-		private:
-			CacheType Cache;
-		};
-	}
-
-
 	//
 	// Container for all contents of an Epoch program
 	//
 	class Program
 	{
-	// Handy type shortcuts
-	public:
-		typedef std::map<StringHandle, CompileTimeParameterVector> TemplateInstancesAndArguments;
-		typedef std::map<StringHandle, TemplateInstancesAndArguments> TemplateInstantiationMap;
-
-	// Construction and destruction
+	// Construction
 	public:
 		Program(StringPoolManager& strings, CompileSession& session);
-		~Program();
 
 	// Non-copyable
 	private:
@@ -97,90 +47,10 @@ namespace IRSemantics
 	public:
 		StringHandle AddString(const std::wstring& str);
 		StringHandle FindString(const std::wstring& str) const;
-		EPOCHCOMPILER const std::wstring& GetString(StringHandle handle) const;
+		const std::wstring& GetString(StringHandle handle) const;
 		
 		const StringPoolManager& GetStringPool() const
 		{ return Strings; }
-
-	// Automatic allocation of dummy identifiers
-	public:
-		StringHandle AllocateAnonymousParamName();
-
-		StringHandle AllocateLexicalScopeName(const CodeBlock* blockptr);
-		StringHandle FindLexicalScopeName(const CodeBlock* blockptr) const;
-		StringHandle FindLexicalScopeName(const ScopeDescription* scopeptr) const;
-
-		StringHandle FindTemplateConstructorName(StringHandle instancename) const;
-		StringHandle FindTemplateAnonConstructorName(StringHandle instancename) const;
-
-	// Manipulation of associated functions
-	public:
-		StringHandle CreateFunctionOverload(const std::wstring& name);
-
-		void AddFunction(StringHandle name, StringHandle rawname, Function* function, CompileErrors& errors);
-		EPOCHCOMPILER bool HasFunction(StringHandle name) const;
-
-		unsigned GetNumFunctionOverloads(StringHandle name) const;
-		StringHandle GetFunctionOverloadName(StringHandle rawname, unsigned overloadindex) const;
-
-		const boost::unordered_map<StringHandle, Function*>& GetFunctions() const
-		{ return Functions; }
-
-		void MarkFunctionWithStaticPatternMatching(StringHandle rawname, StringHandle overloadname);
-		bool FunctionNeedsDynamicPatternMatching(StringHandle overloadname) const;
-		StringHandle GetDynamicPatternMatcherForFunction(StringHandle overloadname) const;
-
-		const std::set<StringHandle>& GetFunctionsNeedingDynamicPatternMatching() const
-		{ return FunctionsNeedingDynamicPatternMatching; }
-
-		const std::map<StringHandle, std::map<StringHandle, FunctionSignature> >& GetRequiredTypeMatchers() const
-		{ return RequiredTypeMatchers; }
-
-		unsigned FindMatchingFunctions(StringHandle identifier, const FunctionSignature& expectedsignature, InferenceContext& context, CompileErrors& errors, StringHandle& resolvedidentifier);
-
-	// Access to lexical scopes
-	public:
-		const ScopePtrMap& GetScopes() const
-		{ return LexicalScopes; }
-
-		void AddScope(ScopeDescription* scope);
-		void AddScope(ScopeDescription* scope, StringHandle name);
-
-	// Manipulation of associated structures
-	public:
-		void AddStructure(StringHandle name, Structure* structure, CompileErrors& errors);
-
-		const std::map<StringHandle, Structure*>& GetStructures() const
-		{ return Structures; }
-
-		void GenerateStructureFunctions(StringHandle name, Structure* structure);
-
-		StringHandle GetNameOfStructureType(VM::EpochTypeID type) const;
-		VM::EpochTypeID GetStructureMemberType(StringHandle structurename, StringHandle membername) const;
-		StringHandle FindStructureMemberAccessOverload(StringHandle structurename, StringHandle membername) const;
-
-	// Manipulation of associated global code blocks
-	public:
-		size_t AddGlobalCodeBlock(CodeBlock* code);
-		const CodeBlock& GetGlobalCodeBlock(size_t index) const;
-		size_t GetNumGlobalCodeBlocks() const;
-		StringHandle GetGlobalCodeBlockName(size_t index) const;
-
-		ScopeDescription* GetGlobalScope() const;
-
-	// Type alias lookup
-	public:
-		EPOCHCOMPILER VM::EpochTypeID LookupType(StringHandle name) const;
-
-		VM::EpochTypeID AllocateNewUnitTypeID()
-		{
-			return (++CounterUnitTypeIDs) | VM::EpochTypeFamily_Unit;
-		}
-
-	// Entities
-	public:
-		Bytecode::EntityTag GetEntityTag(StringHandle entityname) const;
-		Bytecode::EntityTag GetEntityCloserTag(StringHandle entityname) const;
 
 	// Compile-time code execution
 	public:
@@ -189,101 +59,24 @@ namespace IRSemantics
 	// Type inference
 	public:
 		bool TypeInference(CompileErrors& errors);
-		InferenceContext::PossibleParameterTypes GetExpectedTypesForStatement(StringHandle name, const ScopeDescription& scope, StringHandle contextname, CompileErrors& errors) const;
-		InferenceContext::PossibleSignatureSet GetExpectedSignaturesForStatement(StringHandle name, const ScopeDescription& scope, StringHandle contextname, CompileErrors& errors) const;
-
-	// Type definitions
-	public:
-		VM::EpochTypeID AddSumType(const std::wstring& name, CompileErrors& errors);
-		void AddSumTypeBase(VM::EpochTypeID sumtypeid, StringHandle basetypename);
-
-		StringHandle MapConstructorNameForSumType(StringHandle sumtypeoverloadname);
-		bool SumTypeHasTypeAsBase(VM::EpochTypeID sumtypeid, VM::EpochTypeID basetype) const;
-
-		StringHandle AllocateTypeMatcher(StringHandle overloadname, const std::map<StringHandle, FunctionSignature>& matchingoverloads);
-
-		size_t GetNumSumTypeBases(VM::EpochTypeID sumtypeid) const
-		{
-			return SumTypeBaseTypeNames.find(sumtypeid)->second.size();
-		}
-
-		std::map<VM::EpochTypeID, std::set<VM::EpochTypeID> > GetSumTypes() const;
 
 	// Validation
 	public:
 		bool Validate(CompileErrors& errors) const;
 
-	// Templates
-	public:
-		StringHandle InstantiateStructureTemplate(StringHandle templatename, const CompileTimeParameterVector& args);
-
-		const TemplateInstantiationMap& GetTemplateInstantiations() const
-		{ return TemplateInstantiations; }
-
-	// Internal helpers
-	private:
-		std::wstring GenerateFunctionOverloadName(StringHandle name, size_t index) const;
-		std::wstring GenerateTemplateMangledName();
-		static std::wstring GenerateAnonymousGlobalScopeName(size_t index);
-		static std::wstring GenerateLexicalScopeName(const ScopeDescription* scopeptr);
-		static std::wstring GenerateStructureMemberAccessOverloadName(const std::wstring& structurename, const std::wstring& membername);
-		static std::wstring GeneratePatternMatcherName(const std::wstring& funcname);
-
 	// Accessible state
 	public:
 		CompileSession& Session;
-		std::map<StringHandle, VM::EpochTypeID> TypeAliases;		// TODO - hide this behind a function?
-
-		std::map<StringHandle, VM::EpochTypeID> StrongTypeAliasTypes;	// TODO - hide this behind a function?
-		std::map<VM::EpochTypeID, VM::EpochTypeID> StrongTypeAliasRepresentations;
-		std::map<VM::EpochTypeID, StringHandle> StrongTypeAliasRepNames;
+		Namespace GlobalNamespace;
 
 	// Internal state
 	private:
 		StringPoolManager& Strings;
-
-		std::map<StringHandle, Structure*> Structures;
-		std::map<StringHandle, VM::EpochTypeID> StructureTypes;
-		VM::EpochTypeID StructureTypeCounter;
-
-		boost::unordered_map<StringHandle, Function*> Functions;
-		boost::unordered_map<StringHandle, unsigned> FunctionOverloadCounters;
-
-		std::vector<CodeBlock*> GlobalCodeBlocks;
-
-		unsigned CounterAnonParam;
-		unsigned CounterLexicalScope;
-		unsigned CounterUnitTypeIDs;
-		unsigned CounterSumTypeIDs;
-		unsigned CounterTemplateInstantiations;
-
-		ScopePtrMap LexicalScopes;
-
-		ScopeDescription* GlobalScope;
-
-		std::multimap<StringHandle, StringHandle> FunctionsWithStaticPatternMatching;
-		std::set<StringHandle> FunctionsNeedingDynamicPatternMatching;
-
-		std::map<StringHandle, VM::EpochTypeID> SumTypeNames;
-		std::map<StringHandle, StringHandle> SumTypeConstructorNames;
-		std::map<VM::EpochTypeID, std::set<StringHandle> > SumTypeBaseTypeNames;
-
-		std::map<StringHandle, StringHandle> OverloadTypeMatchers;
-		std::map<StringHandle, std::map<StringHandle, FunctionSignature> > RequiredTypeMatchers;
-
-		TemplateInstantiationMap TemplateInstantiations;
-
-		std::map<StringHandle, VM::EpochTypeID> TemplateInstanceNames;
+		GlobalIDSpace IDSpace;
 
 	// String lookup caches
 	private:
-		impl::StringCache<std::pair<StringHandle, size_t> > FunctionOverloadNameCache;
-		impl::StringCache<std::pair<StringHandle, StringHandle> > StructureMemberAccessOverloadNameCache;
-		impl::StringCache<const ScopeDescription*> LexicalScopeNameCache;
 		impl::StringCache<std::wstring> IdentifierCache;
-		impl::StringCache<StringHandle> PatternMatcherNameCache;
-		impl::StringCache<StringHandle> TemplateConstructorNameCache;
-		impl::StringCache<StringHandle> TemplateAnonConstructorNameCache;
 	};
 
 }

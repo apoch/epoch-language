@@ -28,7 +28,7 @@ namespace IRSemantics
 	// Forward declarations
 	class Expression;
 	class CodeBlock;
-	class Program;
+	class Namespace;
 	struct InferenceContext;
 
 
@@ -60,24 +60,24 @@ namespace IRSemantics
 
 	// Validation
 	public:
-		bool Validate(const Program& program) const;
+		bool Validate(const Namespace& curnamespace) const;
 
 	// Compile time code execution
 	public:
-		bool CompileTimeCodeExecution(Program& program, CodeBlock& activescope, bool inreturnexpr, CompileErrors& errors);
+		bool CompileTimeCodeExecution(Namespace& curnamespace, CodeBlock& activescope, bool inreturnexpr, CompileErrors& errors);
 
 	// Type inference
 	public:
-		bool TypeInference(IRSemantics::Program& program, CodeBlock& activescope, InferenceContext& context, size_t index, CompileErrors& errors);
+		bool TypeInference(Namespace& curnamespace, CodeBlock& activescope, InferenceContext& context, size_t index, CompileErrors& errors);
 
 	// Type system
 	public:
-		VM::EpochTypeID GetEpochType(const Program&) const
+		VM::EpochTypeID GetEpochType(const Namespace&) const
 		{ return MyType; }
 
 	// Template support
 	public:
-		void SetTemplateArgs(const CompileTimeParameterVector& args, Program& program);
+		void SetTemplateArgs(const CompileTimeParameterVector& args, Namespace& curnamespace);
 
 	// Internal state
 	private:
@@ -110,16 +110,16 @@ namespace IRSemantics
 
 	// Type inference
 	public:
-		bool TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, CompileErrors& errors);
+		bool TypeInference(Namespace& curnamespace, CodeBlock& activescope, InferenceContext& context, CompileErrors& errors);
 
 	// Type system
 	public:
-		VM::EpochTypeID GetEpochType(const Program&) const
+		VM::EpochTypeID GetEpochType(const Namespace&) const
 		{ return MyType; }
 
 	// Validation
 	public:
-		bool Validate(const Program& program) const;
+		bool Validate(const Namespace& curnamespace) const;
 
 	// Internal state
 	private:
@@ -148,16 +148,16 @@ namespace IRSemantics
 
 	// Type inference
 	public:
-		bool TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, CompileErrors& errors);
+		bool TypeInference(Namespace& curnamespace, CodeBlock& activescope, InferenceContext& context, CompileErrors& errors);
 
 	// Type system
 	public:
-		VM::EpochTypeID GetEpochType(const Program&) const
+		VM::EpochTypeID GetEpochType(const Namespace&) const
 		{ return MyType; }
 
 	// Validation
 	public:
-		bool Validate(const Program& program) const;
+		bool Validate(const Namespace& curnamespace) const;
 
 	// Internal state
 	private:

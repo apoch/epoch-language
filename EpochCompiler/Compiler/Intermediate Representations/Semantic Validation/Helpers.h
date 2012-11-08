@@ -13,17 +13,48 @@
 #include "Utility/Types/EpochTypeIDs.h"
 
 #include <vector>
+#include <boost/unordered_map.hpp>
 
 
 namespace IRSemantics
 {
 
 	// Forward declarations
-	class Program;
+	class Namespace;
 	class CodeBlock;
 
 	// Helper functions
-	VM::EpochTypeID InferMemberAccessType(const std::vector<StringHandle>& accesslist, const Program& program, const CodeBlock& activescope);
+	VM::EpochTypeID InferMemberAccessType(const std::vector<StringHandle>& accesslist, const Namespace& curnamespace, const CodeBlock& activescope);
+
+
+	namespace impl
+	{
+		template<typename T>
+		class StringCache
+		{
+		private:
+			typedef boost::unordered_map<T, StringHandle> CacheType;
+
+		public:
+			StringHandle Find(const T& key) const
+			{
+                typename CacheType::const_iterator iter = Cache.find(key);
+				if(iter == Cache.end())
+					return 0;
+
+				return iter->second;
+			}
+
+			void Add(const T& key, StringHandle str)
+			{
+				Cache[key] = str;
+			}
+
+		private:
+			CacheType Cache;
+		};
+	}
+
 
 }
 

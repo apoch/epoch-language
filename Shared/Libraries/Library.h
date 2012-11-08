@@ -22,7 +22,7 @@ namespace IRSemantics
 {
 	class Statement;
 	class CodeBlock;
-	class Program;
+	class Namespace;
 }
 
 namespace VM
@@ -37,7 +37,7 @@ class CompileErrors;
 typedef void (*EpochFunctionPtr)(StringHandle namehandle, VM::ExecutionContext& context);
 typedef std::map<StringHandle, EpochFunctionPtr> FunctionInvocationTable;
 
-typedef void (*CompilerHelperPtr)(IRSemantics::Statement& statement, IRSemantics::Program& program, IRSemantics::CodeBlock& activescope, bool inreturnexpr, CompileErrors& errors);
+typedef void (*CompilerHelperPtr)(IRSemantics::Statement& statement, IRSemantics::Namespace& curnamespace, IRSemantics::CodeBlock& activescope, bool inreturnexpr, CompileErrors& errors);
 typedef std::map<StringHandle, CompilerHelperPtr> FunctionCompileHelperTable;
 
 typedef std::map<StringHandle, int> PrecedenceTable;

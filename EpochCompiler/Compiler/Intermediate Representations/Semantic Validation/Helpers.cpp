@@ -10,7 +10,7 @@
 #include "Compiler/Intermediate Representations/Semantic Validation/Helpers.h"
 
 #include "Compiler/Intermediate Representations/Semantic Validation/CodeBlock.h"
-#include "Compiler/Intermediate Representations/Semantic Validation/Program.h"
+#include "Compiler/Intermediate Representations/Semantic Validation/Namespace.h"
 
 
 namespace IRSemantics
@@ -22,7 +22,7 @@ namespace IRSemantics
 	// Supports deducing the type of expressions such as "a.b.foo"
 	// as well as atomic identifiers "bar"/"baz".
 	//
-	VM::EpochTypeID InferMemberAccessType(const std::vector<StringHandle>& accesslist, const Program& program, const CodeBlock& activescope)
+	VM::EpochTypeID InferMemberAccessType(const std::vector<StringHandle>& accesslist, const Namespace& curnamespace, const CodeBlock& activescope)
 	{
 		if(accesslist.empty())
 			return VM::EpochType_Error;
@@ -32,8 +32,8 @@ namespace IRSemantics
 
 		while(++iter != accesslist.end())
 		{
-			StringHandle structurename = program.GetNameOfStructureType(thetype);			
-			thetype = program.GetStructureMemberType(structurename, *iter);
+			StringHandle structurename = curnamespace.Types.GetNameOfType(thetype);
+			thetype = curnamespace.Types.Structures.GetMemberType(structurename, *iter);
 		}
 
 		return thetype;

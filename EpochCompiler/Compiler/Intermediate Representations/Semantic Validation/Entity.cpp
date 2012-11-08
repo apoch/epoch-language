@@ -10,7 +10,7 @@
 #include "Compiler/Intermediate Representations/Semantic Validation/Entity.h"
 #include "Compiler/Intermediate Representations/Semantic Validation/CodeBlock.h"
 #include "Compiler/Intermediate Representations/Semantic Validation/Expression.h"
-#include "Compiler/Intermediate Representations/Semantic Validation/Program.h"
+#include "Compiler/Intermediate Representations/Semantic Validation/Namespace.h"
 
 
 using namespace IRSemantics;
@@ -73,19 +73,19 @@ void Entity::AddChain(Entity* entity)
 //
 // Validate the contents of an entity invocation node
 //
-bool Entity::Validate(const Program& program) const
+bool Entity::Validate(const Namespace& curnamespace) const
 {
 	bool valid = true;
 
 	for(std::vector<Expression*>::const_iterator iter = Parameters.begin(); iter != Parameters.end(); ++iter)
 	{
-		if(!(*iter)->Validate(program))
+		if(!(*iter)->Validate(curnamespace))
 			valid = false;
 	}
 
 	for(std::vector<Entity*>::const_iterator iter = Chain.begin(); iter != Chain.end(); ++iter)
 	{
-		if(!(*iter)->Validate(program))
+		if(!(*iter)->Validate(curnamespace))
 			valid = false;
 	}
 
@@ -93,7 +93,7 @@ bool Entity::Validate(const Program& program) const
 		valid = false;
 	else
 	{
-		if(!Code->Validate(program))
+		if(!Code->Validate(curnamespace))
 			valid = false;
 	}
 
@@ -111,11 +111,11 @@ bool Entity::Validate(const Program& program) const
 // this process too soon, variables can be referenced anywhere in the scope
 // in which they are defined, rather than only after the point of definition.
 //
-bool Entity::CompileTimeCodeExecution(Program& program, CodeBlock& activescope, CompileErrors& errors)
+bool Entity::CompileTimeCodeExecution(Namespace& curnamespace, CodeBlock& activescope, CompileErrors& errors)
 {
 	for(std::vector<Expression*>::iterator iter = Parameters.begin(); iter != Parameters.end(); ++iter)
 	{
-		if(!(*iter)->CompileTimeCodeExecution(program, activescope, false, errors))
+		if(!(*iter)->CompileTimeCodeExecution(curnamespace, activescope, false, errors))
 			return false;
 	}
 
@@ -124,7 +124,7 @@ bool Entity::CompileTimeCodeExecution(Program& program, CodeBlock& activescope, 
 
 	for(std::vector<Entity*>::iterator iter = Chain.begin(); iter != Chain.end(); ++iter)
 	{
-		if(!(*iter)->CompileTimeCodeExecution(program, activescope, errors))
+		if(!(*iter)->CompileTimeCodeExecution(curnamespace, activescope, errors))
 			return false;
 	}
 
@@ -134,9 +134,9 @@ bool Entity::CompileTimeCodeExecution(Program& program, CodeBlock& activescope, 
 //
 // Perform type inference on an entity invocation's contents
 //
-bool Entity::TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, CompileErrors& errors)
+bool Entity::TypeInference(Namespace& curnamespace, CodeBlock& activescope, InferenceContext& context, CompileErrors& errors)
 {
-	CompileTimeCodeExecution(program, activescope, errors);
+	CompileTimeCodeExecution(curnamespace, activescope, errors);
 
 	InferenceContext newcontext(0, InferenceContext::CONTEXT_ENTITY_PARAM);
 	newcontext.FunctionName = context.FunctionName;
@@ -144,7 +144,7 @@ bool Entity::TypeInference(Program& program, CodeBlock& activescope, InferenceCo
 	size_t i = 0;
 	for(std::vector<Expression*>::iterator iter = Parameters.begin(); iter != Parameters.end(); ++iter)
 	{
-		if(!(*iter)->TypeInference(program, activescope, newcontext, i, Parameters.size(), errors))
+		if(!(*iter)->TypeInference(curnamespace, activescope, newcontext, i, Parameters.size(), errors))
 			return false;
 
 		++i;
@@ -153,16 +153,16 @@ bool Entity::TypeInference(Program& program, CodeBlock& activescope, InferenceCo
 	if(!Code)
 		return false;
 
-	if(!Code->TypeInference(program, context, errors))
+	if(!Code->TypeInference(curnamespace, context, errors))
 		return false;
 
 	for(std::vector<Entity*>::iterator iter = Chain.begin(); iter != Chain.end(); ++iter)
 	{
-		if(!(*iter)->TypeInference(program, activescope, context, errors))
+		if(!(*iter)->TypeInference(curnamespace, activescope, context, errors))
 			return false;
 	}
 
-	program.AddScope(Code->GetScope());
+	curnamespace.AddScope(Code->GetScope());
 	return true;
 }
 

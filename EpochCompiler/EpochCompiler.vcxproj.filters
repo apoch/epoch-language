@@ -182,6 +182,12 @@
     <ClCompile Include="Compiler\CompileErrors.cpp">
       <Filter>Compiler</Filter>
     </ClCompile>
+    <ClCompile Include="Compiler\Intermediate Representations\Semantic Validation\TypeSpace.cpp">
+      <Filter>Compiler\Intermediate Representations\Semantic Validation</Filter>
+    </ClCompile>
+    <ClCompile Include="Compiler\Intermediate Representations\Semantic Validation\Namespace.cpp">
+      <Filter>Compiler\Intermediate Representations\Semantic Validation</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h">
@@ -414,6 +420,12 @@
     </ClInclude>
     <ClInclude Include="Compiler\Abstract Syntax Tree\Templates.h">
       <Filter>Compiler\Abstract Syntax Tree</Filter>
+    </ClInclude>
+    <ClInclude Include="Compiler\Intermediate Representations\Semantic Validation\TypeSpace.h">
+      <Filter>Compiler\Intermediate Representations\Semantic Validation</Filter>
+    </ClInclude>
+    <ClInclude Include="Compiler\Intermediate Representations\Semantic Validation\Namespace.h">
+      <Filter>Compiler\Intermediate Representations\Semantic Validation</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

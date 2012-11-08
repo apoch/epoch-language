@@ -16,6 +16,7 @@
 namespace IRSemantics
 {
 	class Program;
+	class Namespace;
 	class Structure;
 	class StructureMemberFunctionReference;
 	class Function;
@@ -70,7 +71,8 @@ namespace ASTTraverse
 			  Session(session),
 			  SourceBegin(sourcebegin),
 			  SourceEnd(sourceend),
-			  ErrorContext(NULL)
+			  ErrorContext(NULL),
+			  CurrentNamespace(NULL)
 		{
 			Entry.self = this;
 			Exit.self = this;
@@ -280,6 +282,7 @@ namespace ASTTraverse
 		const std::wstring::const_iterator& SourceEnd;
 
 		IRSemantics::Program* CurrentProgram;
+		IRSemantics::Namespace* CurrentNamespace;
 
 		std::vector<IRSemantics::Structure*> CurrentStructures;
 		std::vector<IRSemantics::Function*> CurrentFunctions;

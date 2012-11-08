@@ -30,7 +30,7 @@ namespace IRSemantics
 	class PostOpStatement;
 	class CodeBlock;
 	class Entity;
-	class Program;
+	class Namespace;
 	struct InferenceContext;
 
 
@@ -54,11 +54,11 @@ namespace IRSemantics
 
 	// Validation
 	public:
-		virtual bool Validate(const Program& program) const = 0;
+		virtual bool Validate(const Namespace& curnamespace) const = 0;
 
 	// Type inference
 	public:
-		virtual bool TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, CompileErrors& errors) = 0;
+		virtual bool TypeInference(Namespace& curnamespace, CodeBlock& activescope, InferenceContext& context, CompileErrors& errors) = 0;
 	};
 
 
@@ -97,11 +97,11 @@ namespace IRSemantics
 
 	// Validation
 	public:
-		bool Validate(const IRSemantics::Program& program) const;
+		bool Validate(const Namespace& curnamespace) const;
 
 	// Type inference
 	public:
-		bool TypeInference(IRSemantics::Program& program, InferenceContext& context, CompileErrors& errors);
+		bool TypeInference(Namespace& curnamespace, InferenceContext& context, CompileErrors& errors);
 
 	// Internal state
 	private:
@@ -129,11 +129,11 @@ namespace IRSemantics
 
 	// Validation
 	public:
-		virtual bool Validate(const IRSemantics::Program& program) const;
+		virtual bool Validate(const Namespace& curnamespace) const;
 
 	// Type inference
 	public:
-		virtual bool TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, CompileErrors& errors);
+		virtual bool TypeInference(Namespace& curnamespace, CodeBlock& activescope, InferenceContext& context, CompileErrors& errors);
 
 	// Property access
 	public:
@@ -164,11 +164,11 @@ namespace IRSemantics
 
 	// Validation
 	public:
-		virtual bool Validate(const IRSemantics::Program& program) const;
+		virtual bool Validate(const Namespace& curnamespace) const;
 
 	// Type inference
 	public:
-		virtual bool TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, CompileErrors& errors);
+		virtual bool TypeInference(Namespace& curnamespace, CodeBlock& activescope, InferenceContext& context, CompileErrors& errors);
 
 	// Statement access
 	public:
@@ -199,11 +199,11 @@ namespace IRSemantics
 
 	// Validation
 	public:
-		virtual bool Validate(const IRSemantics::Program& program) const;
+		virtual bool Validate(const Namespace& curnamespace) const;
 
 	// Type inference
 	public:
-		virtual bool TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, CompileErrors& errors);
+		virtual bool TypeInference(Namespace& curnamespace, CodeBlock& activescope, InferenceContext& context, CompileErrors& errors);
 
 	// Statement access
 	public:
@@ -235,11 +235,11 @@ namespace IRSemantics
 
 	// Validation
 	public:
-		virtual bool Validate(const IRSemantics::Program& program) const;
+		virtual bool Validate(const Namespace& curnamespace) const;
 
 	// Type inference
 	public:
-		virtual bool TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, CompileErrors& errors);
+		virtual bool TypeInference(Namespace& curnamespace, CodeBlock& activescope, InferenceContext& context, CompileErrors& errors);
 
 	// Statement access
 	public:
@@ -270,11 +270,11 @@ namespace IRSemantics
 
 	// Validation
 	public:
-		virtual bool Validate(const IRSemantics::Program& program) const;
+		virtual bool Validate(const Namespace& curnamespace) const;
 
 	// Type inference
 	public:
-		virtual bool TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, CompileErrors& errors);
+		virtual bool TypeInference(Namespace& curnamespace, CodeBlock& activescope, InferenceContext& context, CompileErrors& errors);
 
 	// Internal code access
 	public:
@@ -305,11 +305,11 @@ namespace IRSemantics
 
 	// Validation
 	public:
-		virtual bool Validate(const IRSemantics::Program& program) const;
+		virtual bool Validate(const Namespace& curnamespace) const;
 
 	// Type inference
 	public:
-		virtual bool TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, CompileErrors& errors);
+		virtual bool TypeInference(Namespace& curnamespace, CodeBlock& activescope, InferenceContext& context, CompileErrors& errors);
 
 	// Accessors
 	public:

@@ -14,6 +14,8 @@
 #include "Compiler/Intermediate Representations/Semantic Validation/CodeBlock.h"
 #include "Compiler/Intermediate Representations/Semantic Validation/Program.h"
 
+#include "Compiler/CompileErrors.h"
+
 #include "Virtual Machine/VirtualMachine.h"
 
 #include "Libraries/LibraryJIT.h"
@@ -133,13 +135,13 @@ namespace
 	// helper adds the variable itself and its type metadata to the current
 	// lexical scope.
 	//
-	void CompileConstructorPrimitive(IRSemantics::Statement& statement, IRSemantics::Program& program, IRSemantics::CodeBlock& activescope, bool inreturnexpr, CompileErrors& errors)
+	void CompileConstructorPrimitive(IRSemantics::Statement& statement, IRSemantics::Namespace& curnamespace, IRSemantics::CodeBlock& activescope, bool inreturnexpr, CompileErrors& errors)
 	{
 		const IRSemantics::ExpressionAtomIdentifier* atom = dynamic_cast<const IRSemantics::ExpressionAtomIdentifier*>(statement.GetParameters()[0]->GetAtoms()[0]);
 
 		VariableOrigin origin = (inreturnexpr ? VARIABLE_ORIGIN_RETURN : VARIABLE_ORIGIN_LOCAL);
 
-		if(program.HasFunction(atom->GetIdentifier()))
+		if(curnamespace.Functions.Exists(atom->GetIdentifier()))
 		{
 			errors.SetContext(atom->GetOriginalIdentifier());
 			errors.SemanticError("Variable name shadows a function of the same name");
@@ -153,8 +155,8 @@ namespace
 			return;
 		}
 
-		VM::EpochTypeID effectivetype = program.LookupType(statement.GetName());
-		activescope.AddVariable(program.GetString(atom->GetIdentifier()), atom->GetIdentifier(), effectivetype, false, origin);
+		VM::EpochTypeID effectivetype = curnamespace.Types.GetTypeByName(statement.GetName());
+		activescope.AddVariable(curnamespace.Strings.GetPooledString(atom->GetIdentifier()), atom->GetIdentifier(), effectivetype, false, origin);
 	}
 
 }

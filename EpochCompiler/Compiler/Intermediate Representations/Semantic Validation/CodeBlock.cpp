@@ -92,13 +92,13 @@ void CodeBlock::AddVariable(const std::wstring& identifier, StringHandle identif
 //
 // Perform code validation on all entries in this code block
 //
-bool CodeBlock::Validate(const Program& program) const
+bool CodeBlock::Validate(const Namespace& curnamespace) const
 {
 	bool valid = true;
 
 	for(std::vector<CodeBlockEntry*>::const_iterator iter = Entries.begin(); iter != Entries.end(); ++iter)
 	{
-		if(!(*iter)->Validate(program))
+		if(!(*iter)->Validate(curnamespace))
 			valid = false;
 	}
 
@@ -108,7 +108,7 @@ bool CodeBlock::Validate(const Program& program) const
 //
 // Request all entries in the code block to perform type inference
 //
-bool CodeBlock::TypeInference(Program& program, InferenceContext& context, CompileErrors& errors)
+bool CodeBlock::TypeInference(Namespace& curnamespace, InferenceContext& context, CompileErrors& errors)
 {
 	InferenceContext newcontext(0, InferenceContext::CONTEXT_CODE_BLOCK);
 	newcontext.FunctionName = context.FunctionName;
@@ -116,7 +116,7 @@ bool CodeBlock::TypeInference(Program& program, InferenceContext& context, Compi
 	bool valid = true;
 	for(std::vector<CodeBlockEntry*>::iterator iter = Entries.begin(); iter != Entries.end(); ++iter)
 	{
-		if(!(*iter)->TypeInference(program, *this, newcontext, errors))
+		if(!(*iter)->TypeInference(curnamespace, *this, newcontext, errors))
 			valid = false;
 	}
 
@@ -143,23 +143,23 @@ CodeBlockAssignmentEntry::~CodeBlockAssignmentEntry()
 //
 // Forward validation for an assignment entry to the actual IR node
 //
-bool CodeBlockAssignmentEntry::Validate(const Program& program) const
+bool CodeBlockAssignmentEntry::Validate(const Namespace& curnamespace) const
 {
 	if(!MyAssignment)
 		return false;
 
-	return MyAssignment->Validate(program);
+	return MyAssignment->Validate(curnamespace);
 }
 
 //
 // Forward type inference request for an assignment to the actual IR node
 //
-bool CodeBlockAssignmentEntry::TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, CompileErrors& errors)
+bool CodeBlockAssignmentEntry::TypeInference(Namespace& curnamespace, CodeBlock& activescope, InferenceContext& context, CompileErrors& errors)
 {
 	if(!MyAssignment)
 		return false;
 
-	return MyAssignment->TypeInference(program, activescope, context, errors);
+	return MyAssignment->TypeInference(curnamespace, activescope, context, errors);
 }
 
 
@@ -182,23 +182,23 @@ CodeBlockStatementEntry::~CodeBlockStatementEntry()
 //
 // Forward validation request to the actual statement in the wrapper
 //
-bool CodeBlockStatementEntry::Validate(const Program& program) const
+bool CodeBlockStatementEntry::Validate(const Namespace& curnamespace) const
 {
 	if(!MyStatement)
 		return false;
 
-	return MyStatement->Validate(program);
+	return MyStatement->Validate(curnamespace);
 }
 
 //
 // Forward type inference request to the actual statement in the wrapper
 //
-bool CodeBlockStatementEntry::TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, CompileErrors& errors)
+bool CodeBlockStatementEntry::TypeInference(Namespace& curnamespace, CodeBlock& activescope, InferenceContext& context, CompileErrors& errors)
 {
 	if(!MyStatement)
 		return false;
 
-	return MyStatement->TypeInference(program, activescope, context, 0, errors);
+	return MyStatement->TypeInference(curnamespace, activescope, context, 0, errors);
 }
 
 
@@ -221,20 +221,20 @@ CodeBlockPreOpStatementEntry::~CodeBlockPreOpStatementEntry()
 //
 // Forward validation request to the actual pre-operator statement in the wrapper 
 //
-bool CodeBlockPreOpStatementEntry::Validate(const Program& program) const
+bool CodeBlockPreOpStatementEntry::Validate(const Namespace& curnamespace) const
 {
-	return MyStatement->Validate(program);
+	return MyStatement->Validate(curnamespace);
 }
 
 //
 // Forward type inference request to the actual pre-operator statement in the wrapper
 //
-bool CodeBlockPreOpStatementEntry::TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, CompileErrors& errors)
+bool CodeBlockPreOpStatementEntry::TypeInference(Namespace& curnamespace, CodeBlock& activescope, InferenceContext& context, CompileErrors& errors)
 {
 	if(!MyStatement)
 		return false;
 
-	return MyStatement->TypeInference(program, activescope, context, errors);
+	return MyStatement->TypeInference(curnamespace, activescope, context, errors);
 }
 
 
@@ -257,20 +257,20 @@ CodeBlockPostOpStatementEntry::~CodeBlockPostOpStatementEntry()
 //
 // Forward validation request to the actual post-operator statement in the wrapper
 //
-bool CodeBlockPostOpStatementEntry::Validate(const Program& program) const
+bool CodeBlockPostOpStatementEntry::Validate(const Namespace& curnamespace) const
 {
-	return MyStatement->Validate(program);
+	return MyStatement->Validate(curnamespace);
 }
 
 //
 // Forward type inference request to the actual post-operator statement in the wrapper
 //
-bool CodeBlockPostOpStatementEntry::TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, CompileErrors& errors)
+bool CodeBlockPostOpStatementEntry::TypeInference(Namespace& curnamespace, CodeBlock& activescope, InferenceContext& context, CompileErrors& errors)
 {
 	if(!MyStatement)
 		return false;
 
-	return MyStatement->TypeInference(program, activescope, context, errors);
+	return MyStatement->TypeInference(curnamespace, activescope, context, errors);
 }
 
 
@@ -293,12 +293,12 @@ CodeBlockInnerBlockEntry::~CodeBlockInnerBlockEntry()
 //
 // Forward validation of an inner block to the actual code block IR node
 //
-bool CodeBlockInnerBlockEntry::Validate(const Program& program) const
+bool CodeBlockInnerBlockEntry::Validate(const Namespace& curnamespace) const
 {
 	if(!MyCodeBlock)
 		return false;
 
-	return MyCodeBlock->Validate(program);
+	return MyCodeBlock->Validate(curnamespace);
 }
 
 //
@@ -308,13 +308,13 @@ bool CodeBlockInnerBlockEntry::Validate(const Program& program) const
 // the program metadata so it can be found by the compiler and, later,
 // by the VM/runtime itself.
 //
-bool CodeBlockInnerBlockEntry::TypeInference(Program& program, CodeBlock&, InferenceContext& context, CompileErrors& errors)
+bool CodeBlockInnerBlockEntry::TypeInference(Namespace& curnamespace, CodeBlock&, InferenceContext& context, CompileErrors& errors)
 {
 	if(!MyCodeBlock)
 		return false;
 
-	program.AddScope(MyCodeBlock->GetScope());
-	return MyCodeBlock->TypeInference(program, context, errors);
+	curnamespace.AddScope(MyCodeBlock->GetScope());
+	return MyCodeBlock->TypeInference(curnamespace, context, errors);
 }
 
 
@@ -337,22 +337,22 @@ CodeBlockEntityEntry::~CodeBlockEntityEntry()
 //
 // Forward validation request to the actual entity invocation IR node
 //
-bool CodeBlockEntityEntry::Validate(const Program& program) const
+bool CodeBlockEntityEntry::Validate(const Namespace& curnamespace) const
 {
 	if(!MyEntity)
 		return false;
 
-	return MyEntity->Validate(program);
+	return MyEntity->Validate(curnamespace);
 }
 
 //
 // Forward type inference request to the actual entity invocation IR node
 //
-bool CodeBlockEntityEntry::TypeInference(Program& program, CodeBlock& activescope, InferenceContext& context, CompileErrors& errors)
+bool CodeBlockEntityEntry::TypeInference(Namespace& curnamespace, CodeBlock& activescope, InferenceContext& context, CompileErrors& errors)
 {
 	if(!MyEntity)
 		return false;
 
-	return MyEntity->TypeInference(program, activescope, context, errors);
+	return MyEntity->TypeInference(curnamespace, activescope, context, errors);
 }
 

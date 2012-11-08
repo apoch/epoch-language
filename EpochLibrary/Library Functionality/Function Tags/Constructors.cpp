@@ -14,7 +14,9 @@
 #include "Compiler/Intermediate Representations/Semantic Validation/Statement.h"
 #include "Compiler/Intermediate Representations/Semantic Validation/Expression.h"
 #include "Compiler/Intermediate Representations/Semantic Validation/CodeBlock.h"
-#include "Compiler/Intermediate Representations/Semantic Validation/Program.h"
+#include "Compiler/Intermediate Representations/Semantic Validation/Namespace.h"
+
+#include "Compiler/CompileErrors.h"
 
 #include "Utility/StringPool.h"
 #include "Utility/NoDupeMap.h"
@@ -29,18 +31,18 @@ namespace
 	// lexical scope. This function is specifically intended for such cases
 	// as overloaded structure constructors.
 	//
-	void ConstructorCompileHelper(IRSemantics::Statement& statement, IRSemantics::Program& program, IRSemantics::CodeBlock& activescope, bool inreturnexpr, CompileErrors& errors)
+	void ConstructorCompileHelper(IRSemantics::Statement& statement, IRSemantics::Namespace& curnamespace, IRSemantics::CodeBlock& activescope, bool inreturnexpr, CompileErrors& errors)
 	{
-		if(statement.GetParameters()[0]->GetEpochType(program) != VM::EpochType_Identifier)
+		if(statement.GetParameters()[0]->GetEpochType(curnamespace) != VM::EpochType_Identifier)
 			throw RecoverableException("Functions tagged as constructors must accept an identifier as their first parameter");
 
 		const IRSemantics::ExpressionAtomIdentifier* atom = dynamic_cast<const IRSemantics::ExpressionAtomIdentifier*>(statement.GetParameters()[0]->GetAtoms()[0]);
 
 		VariableOrigin origin = (inreturnexpr ? VARIABLE_ORIGIN_RETURN : VARIABLE_ORIGIN_LOCAL);
-		VM::EpochTypeID effectivetype = program.LookupType(statement.GetName());
-		activescope.AddVariable(program.GetString(atom->GetIdentifier()), atom->GetIdentifier(), effectivetype, false, origin);
+		VM::EpochTypeID effectivetype = curnamespace.Types.GetTypeByName(statement.GetName());
+		activescope.AddVariable(curnamespace.Strings.GetPooledString(atom->GetIdentifier()), atom->GetIdentifier(), effectivetype, false, origin);
 
-		if(program.HasFunction(atom->GetIdentifier()))
+		if(curnamespace.Functions.Exists(atom->GetIdentifier()))
 			errors.SemanticError("Variable name shadows a function of the same name");
 		// TODO - check for shadowing of type names also!
 	}
