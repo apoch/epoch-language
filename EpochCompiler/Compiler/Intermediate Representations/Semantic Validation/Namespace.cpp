@@ -356,7 +356,7 @@ Namespace::Namespace(GlobalIDSpace& idspace, StringPoolManager& strings, Compile
 	: Strings(strings),
 	  CounterAnonParam(0),
 	  CounterLexicalScope(0),
-	  GlobalScope(NULL),
+	  GlobalScope(new ScopeDescription()),
 	  Types(*this, idspace),
 	  Functions(*this, session),
 	  FunctionTags(session),

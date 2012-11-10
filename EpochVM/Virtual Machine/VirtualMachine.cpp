@@ -88,7 +88,7 @@ void VirtualMachine::EnableVisualDebugger()
 //
 // Initialize the bindings of standard library functions
 //
-void VirtualMachine::InitStandardLibraries()
+void VirtualMachine::InitStandardLibraries(unsigned* testharness)
 {
 	Marshaling::DLLPool::DLLPoolHandle dllhandle = Marshaling::TheDLLPool.OpenDLL(L"EpochLibrary.DLL");
 
@@ -102,6 +102,15 @@ void VirtualMachine::InitStandardLibraries()
 
 	Bytecode::EntityTag customtag = Bytecode::EntityTags::CustomEntityBaseID;
 	bindtovm(GlobalFunctions, Entities, Entities, PrivateStringPool, customtag, ExternalDispatch, JITHelpers);
+
+
+	typedef void (STDCALL *bindtotestharnessptr)(unsigned*);
+	bindtotestharnessptr bindtotest = Marshaling::DLLPool::GetFunction<bindtotestharnessptr>(dllhandle, "LinkToTestHarness");
+
+	if(!bindtotest)
+		throw FatalException("Failed to load Epoch standard library - test harness init failure");
+
+	bindtotest(testharness);
 }
 
 

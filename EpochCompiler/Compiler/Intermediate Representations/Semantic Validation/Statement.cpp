@@ -128,7 +128,7 @@ bool Statement::TypeInference(Namespace& curnamespace, CodeBlock& activescope, I
 		else if(VM::GetTypeFamily(MyType) == VM::EpochTypeFamily_Unit)
 			Name = curnamespace.Types.Aliases.GetStrongRepresentationName(MyType);
 
-		curnamespace.Functions.GetIR(Name)->SetHintReturnType(MyType);
+		curnamespace.Functions.GetIR(context.FunctionName)->SetHintReturnType(MyType);
 	}
 
 	size_t i = 0;

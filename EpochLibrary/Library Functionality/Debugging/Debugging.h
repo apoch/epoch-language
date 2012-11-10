@@ -25,6 +25,8 @@ namespace VM
 namespace DebugLibrary
 {
 
+	void LinkToTestHarness(unsigned* harness);
+
 	void RegisterLibraryFunctions(FunctionSignatureSet& signatureset, StringPoolManager& stringpool);
 	void RegisterLibraryFunctions(FunctionInvocationTable& table, StringPoolManager& stringpool);
 

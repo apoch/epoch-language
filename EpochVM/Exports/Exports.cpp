@@ -14,6 +14,12 @@
 #include "Utility/Strings.h"
 
 
+namespace
+{
+	unsigned* TestHarness = NULL;
+}
+
+
 //
 // Wrapper for executing a block of bytecode
 //
@@ -26,7 +32,7 @@ extern "C" void STDCALL ExecuteByteCode(void* bytecodebuffer, size_t size)
 	try
 	{
 		VM::VirtualMachine vm;
-		vm.InitStandardLibraries();
+		vm.InitStandardLibraries(TestHarness);
 		vm.ExecuteByteCode(reinterpret_cast<Bytecode::Instruction*>(bytecodebuffer), size);
 	}
 	catch(const std::exception& e)
@@ -69,3 +75,19 @@ extern "C" void STDCALL EnableVisualDebugger()
 		::MessageBox(0, L"Failed to load visual debugger for Epoch VM", L"Epoch Internal Error", MB_ICONSTOP);
 	}
 }
+
+//
+// Link to a test harness for running unit tests
+//
+extern "C" void STDCALL LinkTestHarness(unsigned* harness)
+{
+	//try
+	//{
+		TestHarness = harness;
+	//}
+	//catch(...)
+	//{
+	//	::MessageBox(0, L"Failed to initialize test harness for Epoch VM", L"Epoch Internal Error", MB_ICONSTOP);
+	//}
+}
+

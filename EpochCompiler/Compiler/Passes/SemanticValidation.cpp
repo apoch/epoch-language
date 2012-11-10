@@ -254,6 +254,8 @@ void CompilePassSemantics::EntryHelper::operator () (AST::Undefined&)
 		{
 			switch(self->StateStack.top())
 			{
+			case STATE_STRUCTURE:
+			case STATE_TEMPLATE_ARGS:
 			case STATE_FUNCTION:
 			case STATE_STRUCTURE_FUNCTION_RETURN:
 			case STATE_FUNCTION_SIGNATURE_RETURN:
@@ -267,12 +269,13 @@ void CompilePassSemantics::EntryHelper::operator () (AST::Undefined&)
 		// capture incorrect programs prior to being
 		// submitted for semantic validation.
 		//
-		// Undefined nodes are permitted in five situations:
+		// Undefined nodes are permitted in several situations:
 		//  1. Empty programs
 		//  2. Void function return expressions
 		//  3. Empty function tag specifiers
 		//  4. Omitted function code blocks
 		//  5. Omitted "ref" tag on function parameters
+		//  6. Omitted template parameters on structure definitions
 		//
 		// Any other presence of an undefined node represents
 		// a mistake in the parser. Ensure that parser errors
@@ -324,6 +327,7 @@ void CompilePassSemantics::ExitHelper::operator () (AST::Program&)
 //
 void CompilePassSemantics::EntryHelper::operator () (AST::Structure&)
 {
+	self->StateStack.push(CompilePassSemantics::STATE_STRUCTURE);
 	self->CurrentStructures.push_back(new IRSemantics::Structure);
 }
 
@@ -332,6 +336,7 @@ void CompilePassSemantics::EntryHelper::operator () (AST::Structure&)
 //
 void CompilePassSemantics::ExitHelper::operator () (AST::Structure& structure)
 {
+	self->StateStack.pop();
 	if(self->CurrentStructures.size() == 1)
 	{
 		std::auto_ptr<IRSemantics::Structure> irstruct(self->CurrentStructures.back());

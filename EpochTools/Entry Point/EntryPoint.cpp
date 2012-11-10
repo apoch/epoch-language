@@ -38,7 +38,11 @@ namespace
 //
 int _tmain(int argc, _TCHAR* argv[])
 {
+	bool testmode = false;
 	bool recurse = false;
+
+	unsigned testpasscount = 0;
+	unsigned executioncount = 0;
 
 	UI::OutputStream output;
 	output << L"Epoch Language Project\nCommand line tools interface\n\n";
@@ -175,9 +179,10 @@ int _tmain(int argc, _TCHAR* argv[])
 			DLLAccess::VMAccess vmaccess;
 			vmaccess.EnableVisualDebugger();
 		}
-		else if(parameters[i] == L"/recurse")
+		else if(parameters[i] == L"/runtests")
 		{
 			recurse = true;
+			testmode = true;
 		}
 		else
 		{
@@ -190,6 +195,8 @@ int _tmain(int argc, _TCHAR* argv[])
 				std::vector<std::wstring> files = Files::GetMatchingFiles(filespec, recurse);
 				for(std::vector<std::wstring>::const_iterator iter = files.begin(); iter != files.end(); ++iter)
 				{
+					++executioncount;
+
 					const std::wstring& filename = *iter;
 
 					output << L"Executing: " << filename << L"\n" << std::endl;
@@ -202,6 +209,7 @@ int _tmain(int argc, _TCHAR* argv[])
 					if(bytecodebufferhandle)
 					{
 						DLLAccess::VMAccess vmaccess;
+						vmaccess.LinkTestHarness(&testpasscount);
 						vmaccess.ExecuteByteCode(compileraccess.GetByteCode(bytecodebufferhandle), compileraccess.GetByteCodeSize(bytecodebufferhandle));
 					}
 
@@ -221,6 +229,13 @@ int _tmain(int argc, _TCHAR* argv[])
 
 	if(!didwork)
 		Usage();
+	else if(testmode)
+	{
+		unsigned failcount = (executioncount - testpasscount);
+		output << UI::white << "\n\nTest pass statistics\n====================\n";
+		output << "        Pass: " << (testpasscount == executioncount ? UI::lightgreen : UI::white) << testpasscount << " / " << executioncount << UI::white << "\n";
+		output << "      Failed: " << (failcount ? UI::lightred : UI::white) << failcount << " / " << executioncount << UI::white << "\n\n" << std::endl;
+	}
 
 	return 0;
 }
@@ -232,11 +247,12 @@ namespace
 	{
 		UI::OutputStream output;
 		output << L"Available options:\n";
-		output << L"  /execute filename.epoch           - Run the specified Epoch program\n";
-		output << L"  /compile filename.epoch out.easm  - Compile the specified program to the file out.easm\n";
-		output << L"  /build project.eprj				- Build the specified Epoch project\n";
-		output << L"  /pause							- Pause for Enter key (can be repeated)\n";
-		output << L"  /vmdebug							- Enable visual debug of the VM (SLOW)\n";
+		output << L"  /execute filename.epoch\n\tRun the specified Epoch program\n\n";
+		output << L"  /compile filename.epoch out.easm\n\tCompile the specified program to the file out.easm\n\n";
+		output << L"  /build project.eprj\n\tBuild the specified Epoch project\n\n";
+		output << L"  /runtests folder\n\tRecursively execute all Epoch programs in folder as tests\n\n";
+		output << L"  /pause\n\tPause for Enter key (can be repeated)\n\n";
+		output << L"  /vmdebug\n\tEnable visual debug of the VM (SLOW)\n\n";
 		output << std::endl;
 	}
 }

@@ -103,7 +103,7 @@ SumTypeTable::SumTypeTable(TypeSpace& typespace)
 
 VM::EpochTypeID SumTypeTable::Add(const std::wstring& name, CompileErrors& errors)
 {
-	StringHandle namehandle = MyTypeSpace.MyNamespace.Strings.Find(name);
+	StringHandle namehandle = MyTypeSpace.MyNamespace.Strings.Pool(name);
 
 	if(MyTypeSpace.GetTypeByName(namehandle) != VM::EpochType_Error)
 		errors.SemanticError("Type name already in use");

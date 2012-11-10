@@ -153,3 +153,15 @@ extern "C" void STDCALL BindToCompiler(CompilerInfoTable& info, StringPoolManage
 
 
 
+extern "C" void STDCALL LinkToTestHarness(unsigned* harness)
+{
+	try
+	{
+		DebugLibrary::LinkToTestHarness(harness);
+	}
+	catch(...)
+	{
+		::MessageBox(0, L"Fatal error while registering Epoch standard test harness", L"Epoch Initialization Exception", MB_ICONSTOP);
+	}
+}
+

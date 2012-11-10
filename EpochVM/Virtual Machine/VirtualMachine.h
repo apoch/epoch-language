@@ -78,7 +78,7 @@ namespace VM
 
 	// Initialization
 	public:
-		void InitStandardLibraries();
+		void InitStandardLibraries(unsigned* testharness);
 
 	// Code execution
 	public:

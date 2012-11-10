@@ -3,3 +3,5 @@ EXPORTS
 	ExecuteByteCode				@1
 	GetHeapManager				@2
 	EnableVisualDebugger		@3
+	LinkTestHarness				@4
+

@@ -23,6 +23,9 @@
 namespace
 {
 
+	unsigned* TestHarness = NULL;
+
+
 	//
 	// Write a string to the debug output
 	//
@@ -56,10 +59,21 @@ namespace
 		{
 			context.State.Result.ResultType = VM::ExecutionResult::EXEC_RESULT_HALT;
 			UI::OutputStream output;
-			output << UI::lightred << "Assertion failure" << UI::white << std::endl;
+			output << UI::lightred << L"Assertion failure" << UI::white << std::endl;
 		}
 	}
 
+	//
+	// Test harness
+	//
+	void PassTest(StringHandle, VM::ExecutionContext&)
+	{
+		UI::OutputStream stream;
+		stream << UI::lightblue << L"TEST: " << UI::resetcolor << L"Pass" << std::endl;
+
+		if(TestHarness)
+			++(*TestHarness);
+	}
 }
 
 
@@ -71,6 +85,7 @@ void DebugLibrary::RegisterLibraryFunctions(FunctionInvocationTable& table, Stri
 	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"print"), WriteString));
 	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"read"), ReadString));
 	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"assert"), Assert));
+	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"passtest"), PassTest));
 }
 
 //
@@ -93,5 +108,15 @@ void DebugLibrary::RegisterLibraryFunctions(FunctionSignatureSet& signatureset, 
 		signature.AddParameter(L"value", VM::EpochType_Boolean, false);
 		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"assert"), signature));
 	}
+	{
+		FunctionSignature signature;
+		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"passtest"), signature));
+	}
+}
+
+
+void DebugLibrary::LinkToTestHarness(unsigned* harness)
+{
+	TestHarness = harness;
 }
 

@@ -26,8 +26,9 @@ VMAccess::VMAccess()
 
 	DoExecByteCode = Marshaling::DLLPool::GetFunction<ExecuteByteCodePtr>(dllhandle, "ExecuteByteCode");
 	DoEnableVisualDebugger = Marshaling::DLLPool::GetFunction<EnableVisualDebuggerPtr>(dllhandle, "EnableVisualDebugger");
+	DoLinkTestHarness = Marshaling::DLLPool::GetFunction<LinkTestHarnessPtr>(dllhandle, "LinkTestHarness");
 
-	if(!DoExecByteCode || !DoEnableVisualDebugger)
+	if(!DoExecByteCode || !DoEnableVisualDebugger || !DoLinkTestHarness)
 		throw DLLException("Failed to load Epoch Virtual Machine");
 }
 
@@ -47,3 +48,7 @@ void VMAccess::EnableVisualDebugger()
 	DoEnableVisualDebugger();
 }
 
+void VMAccess::LinkTestHarness(unsigned* harness)
+{
+	DoLinkTestHarness(harness);
+}
