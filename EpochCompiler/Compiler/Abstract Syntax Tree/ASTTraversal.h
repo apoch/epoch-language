@@ -193,6 +193,12 @@ namespace ASTTraverse
 		void Do(EntryActionT& entryaction, AST::Statement& statement, ExitActionT& exitaction)
 		{
 			entryaction(statement);
+
+			Markers::TemplateArgs marker;
+			entryaction(marker);
+			Do(entryaction, statement.TemplateArgs, exitaction);
+			exitaction(marker);
+
 			Do(entryaction, statement.Params, exitaction);
 			exitaction(statement);
 		}
@@ -394,12 +400,17 @@ namespace ASTTraverse
 		{
 			entryaction(function);
 			Do(entryaction, function.Name, exitaction);
+			Do(entryaction, function.TemplateParams, exitaction);
+		
 			Do(entryaction, function.Parameters, exitaction);
-            Markers::FunctionReturnExpression marker = Markers::FunctionReturnExpression();
-			entryaction(marker);
-			Do(entryaction, function.Return, exitaction);
-            marker = Markers::FunctionReturnExpression();
-			exitaction(marker);
+            
+			{
+				Markers::FunctionReturnExpression marker;
+				entryaction(marker);
+				Do(entryaction, function.Return, exitaction);
+				exitaction(marker);
+			}
+
 			Do(entryaction, function.Tags, exitaction);
 			Do(entryaction, function.Code, exitaction);
 			exitaction(function);

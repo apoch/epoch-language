@@ -39,6 +39,8 @@ namespace IRSemantics
 		explicit Entity(StringHandle name);
 		~Entity();
 
+		Entity* Clone() const;
+
 	// Non-copyable
 	private:
 		Entity(const Entity& other);

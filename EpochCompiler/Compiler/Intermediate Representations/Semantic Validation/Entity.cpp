@@ -166,3 +166,18 @@ bool Entity::TypeInference(Namespace& curnamespace, CodeBlock& activescope, Infe
 	return true;
 }
 
+Entity* Entity::Clone() const
+{
+	Entity* clone = new Entity(Name);
+	clone->PostfixName = PostfixName;
+	clone->Code = Code->Clone();
+
+	for(std::vector<Expression*>::const_iterator iter = Parameters.begin(); iter != Parameters.end(); ++iter)
+		clone->Parameters.push_back((*iter)->Clone());
+	
+	for(std::vector<Entity*>::const_iterator iter = Chain.begin(); iter != Chain.end(); ++iter)
+		clone->Chain.push_back((*iter)->Clone());
+
+	return clone;
+}
+

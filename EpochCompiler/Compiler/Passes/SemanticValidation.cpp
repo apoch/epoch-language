@@ -77,7 +77,7 @@ void CompileConstructorStructure(IRSemantics::Statement& statement, IRSemantics:
 	const IRSemantics::ExpressionAtomIdentifierBase* atom = dynamic_cast<const IRSemantics::ExpressionAtomIdentifierBase*>(statement.GetParameters()[0]->GetAtoms()[0]);
 	VM::EpochTypeID effectivetype = curnamespace.Types.GetTypeByName(statement.GetRawName());
 	VariableOrigin origin = (inreturnexpr ? VARIABLE_ORIGIN_RETURN : VARIABLE_ORIGIN_LOCAL);
-	activescope.AddVariable(curnamespace.Strings.GetPooledString(atom->GetIdentifier()), atom->GetIdentifier(), effectivetype, false, origin);
+	activescope.AddVariable(curnamespace.Strings.GetPooledString(atom->GetIdentifier()), atom->GetIdentifier(), statement.GetRawName(), effectivetype, false, origin);
 
 	// TODO - copy all shadowing protection from whatever constructor implements it, to all other constructor helpers
 
@@ -454,9 +454,10 @@ void CompilePassSemantics::ExitHelper::operator () (AST::Function& function)
 	{
 		if(self->CurrentFunctions.back()->IsParameterLocalVariable(*iter))
 		{
+			StringHandle nameoftype = self->CurrentFunctions.back()->GetParameterTypeName(*iter);
 			VM::EpochTypeID type = self->CurrentFunctions.back()->GetParameterType(*iter, *self->CurrentNamespace, self->Errors);
 			bool isref = self->CurrentFunctions.back()->IsParameterReference(*iter);
-			self->CurrentFunctions.back()->GetCode()->AddVariable(self->CurrentProgram->GetString(*iter), *iter, type, isref, VARIABLE_ORIGIN_PARAMETER);
+			self->CurrentFunctions.back()->GetCode()->AddVariable(self->CurrentProgram->GetString(*iter), *iter, nameoftype, type, isref, VARIABLE_ORIGIN_PARAMETER);
 		}
 	}
 
@@ -1428,7 +1429,21 @@ void CompilePassSemantics::EntryHelper::operator () (AST::TemplateParameter& par
 		throw NotImplementedException("This form of genericity is not implemented.");		// TODO - support more than just "type T" in template param lists
 
 	StringHandle paramname = self->CurrentProgram->AddString(std::wstring(param.Name.begin(), param.Name.end()));
-	self->CurrentStructures.back()->AddTemplateParameter(VM::EpochType_Wildcard, paramname);
+	
+	switch(self->StateStack.top())
+	{
+	case CompilePassSemantics::STATE_STRUCTURE:
+		self->CurrentStructures.back()->AddTemplateParameter(VM::EpochType_Wildcard, paramname);
+		break;
+
+	case CompilePassSemantics::STATE_FUNCTION:
+		self->CurrentFunctions.back()->AddTemplateParameter(VM::EpochType_Wildcard, paramname);
+		break;
+
+	default:
+		// TODO - document exception
+		throw InternalException("Unrecognized context for template parameter");
+	}
 }
 
 

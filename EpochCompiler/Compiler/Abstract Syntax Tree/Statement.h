@@ -10,6 +10,7 @@
 
 // Dependencies
 #include "Compiler/Abstract Syntax Tree/Forwards.h"
+#include "Compiler/Abstract Syntax Tree/Templates.h"
 
 
 namespace AST
@@ -23,6 +24,7 @@ namespace AST
 	struct Statement
 	{
 		IdentifierT Identifier;
+		OptionalTemplateArgumentList TemplateArgs;
 		std::vector<DeferredExpression, Memory::OneWayAlloc<DeferredExpression> > Params;
 
 		Statement()
@@ -89,6 +91,7 @@ BOOST_FUSION_ADAPT_STRUCT
 (
 	AST::DeferredStatement,
 	(AST::IdentifierT, Content->Identifier)
+	(AST::OptionalTemplateArgumentList, Content->TemplateArgs)
 	(AST::DeferredExpressionVector, Content->Params)
 )
 

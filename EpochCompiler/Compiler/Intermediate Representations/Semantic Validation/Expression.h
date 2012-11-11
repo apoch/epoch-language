@@ -62,6 +62,7 @@ namespace IRSemantics
 		virtual bool TypeInference(Namespace& curnamespace, CodeBlock& activescope, InferenceContext& context, size_t index, size_t maxindex, CompileErrors& errors) = 0;
 		virtual bool CompileTimeCodeExecution(Namespace& curnamespace, CodeBlock& activescope, bool inreturnexpr, CompileErrors& errors) = 0;
 		virtual CompileTimeParameter ConvertToCompileTimeParam(const Namespace& curnamespace) const = 0;
+		virtual ExpressionAtom* Clone() const = 0;
 	};
 
 
@@ -74,6 +75,8 @@ namespace IRSemantics
 	public:
 		Expression();
 		~Expression();
+
+		Expression* Clone() const;
 
 	// Type system
 	public:
@@ -145,6 +148,10 @@ namespace IRSemantics
 	// Compile time code execution
 	public:
 		virtual bool CompileTimeCodeExecution(Namespace& curnamespace, CodeBlock& activescope, bool inreturnexpr, CompileErrors& errors) = 0;
+
+	// Deep copies
+	public:
+		virtual Parenthetical* Clone() const = 0;
 	};
 
 
@@ -171,6 +178,10 @@ namespace IRSemantics
 	// Compile time code execution
 	public:
 		bool CompileTimeCodeExecution(Namespace& curnamespace, CodeBlock& activescope, bool inreturnexpr, CompileErrors& errors);
+
+	// Deep copies
+	public:
+		Parenthetical* Clone() const;
 
 	// State access
 	public:
@@ -207,6 +218,10 @@ namespace IRSemantics
 		virtual VM::EpochTypeID GetEpochType(const Namespace& curnamespace) const;
 		virtual bool TypeInference(Namespace& curnamespace, CodeBlock& activescope, InferenceContext& context, CompileErrors& errors) const;
 
+	// Deep copies
+	public:
+		Parenthetical* Clone() const;
+
 	// State access
 	public:
 		const PostOpStatement* GetStatement() const
@@ -242,6 +257,10 @@ namespace IRSemantics
 	public:
 		bool CompileTimeCodeExecution(Namespace& curnamespace, CodeBlock& activescope, bool inreturnexpr, CompileErrors& errors);
 
+	// Deep copies
+	public:
+		Parenthetical* Clone() const;
+
 	// State access
 	public:
 		const Expression& GetExpression() const
@@ -276,6 +295,8 @@ namespace IRSemantics
 		
 		virtual CompileTimeParameter ConvertToCompileTimeParam(const Namespace&) const
 		{ throw std::runtime_error("Invalid atom for compile time param"); }
+
+		virtual ExpressionAtom* Clone() const;
 
 	// State access
 		const Parenthetical* GetParenthetical() const
@@ -326,8 +347,10 @@ namespace IRSemantics
 			return ret;
 		}
 
+		virtual ExpressionAtom* Clone() const;
+
 	// Internal state
-	private:
+	protected:
 		StringHandle Identifier;
 		VM::EpochTypeID MyType;
 		const AST::IdentifierT& OriginalIdentifier;
@@ -341,6 +364,8 @@ namespace IRSemantics
 		ExpressionAtomIdentifier(StringHandle identifier, const AST::IdentifierT& originalidentifier)
 			: ExpressionAtomIdentifierBase(identifier, originalidentifier)
 		{ }
+
+		virtual ExpressionAtom* Clone() const;
 	};
 
 
@@ -355,6 +380,8 @@ namespace IRSemantics
 		ExpressionAtomIdentifierReference(StringHandle identifier, const AST::IdentifierT& originalidentifier)
 			: ExpressionAtomIdentifierBase(identifier, originalidentifier)
 		{ }
+
+		virtual ExpressionAtom* Clone() const;
 	};
 
 
@@ -388,6 +415,8 @@ namespace IRSemantics
 		
 		virtual CompileTimeParameter ConvertToCompileTimeParam(const Namespace&) const
 		{ throw std::runtime_error("Invalid atom for compile time param"); }
+
+		virtual ExpressionAtom* Clone() const;
 
 	// Additional type inference support
 	public:
@@ -438,6 +467,7 @@ namespace IRSemantics
 		virtual bool TypeInference(Namespace& curnamespace, CodeBlock& activescope, InferenceContext& context, size_t index, size_t maxindex, CompileErrors& errors);
 		virtual bool CompileTimeCodeExecution(Namespace& curnamespace, CodeBlock& activescope, bool inreturnexpr, CompileErrors& errors);
 		virtual CompileTimeParameter ConvertToCompileTimeParam(const Namespace& curnamespace) const;
+		virtual ExpressionAtom* Clone() const;
 
 	// Internal state
 	private:
@@ -467,6 +497,9 @@ namespace IRSemantics
 		virtual bool TypeInference(Namespace& curnamespace, CodeBlock& activescope, InferenceContext& context, size_t index, size_t maxindex, CompileErrors& errors);
 		virtual bool CompileTimeCodeExecution(Namespace& curnamespace, CodeBlock& activescope, bool inreturnexpr, CompileErrors& errors);
 		virtual CompileTimeParameter ConvertToCompileTimeParam(const Namespace& curnamespace) const;
+		
+		virtual ExpressionAtom* Clone() const
+		{ return new ExpressionAtomLiteralBoolean(Value); }
 
 	// Internal state
 	private:
@@ -497,6 +530,7 @@ namespace IRSemantics
 		virtual bool TypeInference(Namespace& curnamespace, CodeBlock& activescope, InferenceContext& context, size_t index, size_t maxindex, CompileErrors& errors);
 		virtual bool CompileTimeCodeExecution(Namespace& curnamespace, CodeBlock& activescope, bool inreturnexpr, CompileErrors& errors);
 		virtual CompileTimeParameter ConvertToCompileTimeParam(const Namespace& curnamespace) const;
+		virtual ExpressionAtom* Clone() const;
 
 	// Internal state
 	private:
@@ -528,6 +562,7 @@ namespace IRSemantics
 		virtual bool TypeInference(Namespace& curnamespace, CodeBlock& activescope, InferenceContext& context, size_t index, size_t maxindex, CompileErrors& errors);
 		virtual bool CompileTimeCodeExecution(Namespace& curnamespace, CodeBlock& activescope, bool inreturnexpr, CompileErrors& errors);
 		virtual CompileTimeParameter ConvertToCompileTimeParam(const Namespace& curnamespace) const;
+		virtual ExpressionAtom* Clone() const;
 
 	// Internal state
 	private:
@@ -559,6 +594,8 @@ namespace IRSemantics
 		
 		virtual CompileTimeParameter ConvertToCompileTimeParam(const Namespace&) const
 		{ throw std::runtime_error("Invalid atom type for compile time parameter"); }
+		
+		virtual ExpressionAtom* Clone() const;
 
 	// Accessors
 	public:
@@ -606,6 +643,8 @@ namespace IRSemantics
 		
 		virtual CompileTimeParameter ConvertToCompileTimeParam(const Namespace&) const
 		{ throw std::runtime_error("Invalid atom type for compile time parameter"); }
+
+		virtual ExpressionAtom* Clone() const;
 
 	// Inspection
 	public:
@@ -665,6 +704,8 @@ namespace IRSemantics
 			throw InternalException("Invalid atom type for compile time parameter");
 		}
 
+		virtual ExpressionAtom* Clone() const;
+
 	// Inspection
 	public:
 		StringHandle GetIdentifier() const
@@ -715,6 +756,8 @@ namespace IRSemantics
 			throw InternalException("Invalid atom type for compile time parameter");
 		}
 
+		virtual ExpressionAtom* Clone() const;
+
 	// Internal state
 	private:
 		VM::EpochTypeID MyType;
@@ -755,6 +798,9 @@ namespace IRSemantics
 			//
 			throw InternalException("Invalid atom type for compile time parameter");
 		}
+
+		virtual ExpressionAtom* Clone() const
+		{ return new ExpressionAtomTypeAnnotationFromRegister; }
 	};
 
 }

@@ -142,8 +142,8 @@ void Structure::GenerateConstructors(StringHandle myname, StringHandle construct
 		func->SetReturnExpression(retexpr.release());
 
 		std::auto_ptr<ScopeDescription> scope(new ScopeDescription(curnamespace.GetGlobalScope()));
-		scope->AddVariable(L"identifier", curnamespace.Strings.Pool(L"identifier"), curnamespace.Types.GetTypeByName(myname), true, VARIABLE_ORIGIN_PARAMETER);
-		scope->AddVariable(L"ret", curnamespace.Strings.Pool(L"ret"), type, false, VARIABLE_ORIGIN_RETURN);
+		scope->AddVariable(L"identifier", curnamespace.Strings.Pool(L"identifier"), myname, curnamespace.Types.GetTypeByName(myname), true, VARIABLE_ORIGIN_PARAMETER);
+		scope->AddVariable(L"ret", curnamespace.Strings.Pool(L"ret"), curnamespace.Types.GetNameOfType(type), type, false, VARIABLE_ORIGIN_RETURN);
 		std::auto_ptr<CodeBlock> codeblock(new CodeBlock(scope.release()));
 		curnamespace.AllocateLexicalScopeName(codeblock.get());
 		func->SetCode(codeblock.release());

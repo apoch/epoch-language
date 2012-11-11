@@ -43,6 +43,16 @@ Assignment::~Assignment()
 	delete RHS;
 }
 
+
+Assignment* Assignment::Clone() const
+{
+	Assignment* clone = new Assignment(LHS, OperatorName, OriginalLHS);
+	clone->RHS = RHS->Clone();
+	clone->LHSType = LHSType;
+	return clone;
+}
+
+
 //
 // Recursively traverse a chain of assignments and set
 // the farthest-right side to the given new chain
@@ -241,5 +251,17 @@ bool AssignmentChainAssignment::TypeInference(Namespace& curnamespace, CodeBlock
 bool AssignmentChainAssignment::Validate(const Namespace& curnamespace) const
 {
 	return MyAssignment->Validate(curnamespace);
+}
+
+
+
+AssignmentChain* AssignmentChainExpression::Clone() const
+{
+	return new AssignmentChainExpression(MyExpression->Clone());
+}
+
+AssignmentChain* AssignmentChainAssignment::Clone() const
+{
+	return new AssignmentChainAssignment(MyAssignment->Clone());
 }
 

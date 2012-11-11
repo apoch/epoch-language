@@ -53,6 +53,7 @@ namespace IRSemantics
 		virtual void AddToSignature(FunctionSignature& signature, const Namespace& curnamespace) const = 0;
 		virtual bool TypeInference(Namespace& curnamespace, CompileErrors& errors) = 0;
 		virtual bool PatternMatchValue(const CompileTimeParameter& param, const Namespace& curnamespace) const = 0;
+		virtual FunctionParam* Clone() const = 0;
 	};
 
 	//
@@ -87,6 +88,13 @@ namespace IRSemantics
 
 		virtual bool PatternMatchValue(const CompileTimeParameter&, const Namespace&) const
 		{ return false; }
+
+		virtual FunctionParam* Clone() const;
+
+	// Additional queries
+	public:
+		StringHandle GetTypeName() const
+		{ return MyTypeName; }
 
 	// Internal state
 	private:
@@ -130,6 +138,8 @@ namespace IRSemantics
 		virtual bool PatternMatchValue(const CompileTimeParameter&, const Namespace&) const
 		{ return false; }
 
+		virtual FunctionParam* Clone() const;
+
 	// Internal state
 	private:
 		VM::EpochTypeID MyType;
@@ -167,6 +177,8 @@ namespace IRSemantics
 
 		virtual bool PatternMatchValue(const CompileTimeParameter&, const Namespace&) const
 		{ return false; }
+
+		virtual FunctionParam* Clone() const;
 
 	// Mutation
 	public:
@@ -226,6 +238,8 @@ namespace IRSemantics
 
 		virtual bool PatternMatchValue(const CompileTimeParameter& param, const Namespace& curnamespace) const;
 
+		virtual FunctionParam* Clone() const;
+
 	// Internal state
 	private:
 		IRSemantics::Expression* MyExpression;
@@ -258,8 +272,11 @@ namespace IRSemantics
 			  Name(0),
 			  RawName(0),
 			  AnonymousReturn(false),
-			  HintReturnType(VM::EpochType_Error)
+			  HintReturnType(VM::EpochType_Error),
+			  DummyNamespace(NULL)
 		{ }
+
+		Function(const Function* templatefunc, Namespace& curnamespace, const CompileTimeParameterVector& args);
 
 		~Function();
 
@@ -292,6 +309,7 @@ namespace IRSemantics
 		bool IsParameterLocalVariable(StringHandle name) const;
 		VM::EpochTypeID GetParameterType(StringHandle name, Namespace& curnamespace, CompileErrors& errors) const;
 		bool IsParameterReference(StringHandle name) const;
+		StringHandle GetParameterTypeName(StringHandle name) const;
 
 		bool DoesParameterSignatureMatch(size_t index, const FunctionSignature& signature, const Namespace& curnamespace) const;
 		VM::EpochTypeID GetParameterSignatureType(StringHandle name, const Namespace& curnamespace) const;
@@ -356,6 +374,17 @@ namespace IRSemantics
 		const std::vector<FunctionTag>& GetTags() const
 		{ return Tags; }
 
+	// Template support
+	public:
+		void AddTemplateParameter(VM::EpochTypeID type, StringHandle name);
+
+		bool IsTemplate() const
+		{ return (!TemplateParams.empty()) && (TemplateArgs.empty()); }
+
+		void SetTemplateArguments(Namespace& curnamespace, const CompileTimeParameterVector& args);
+
+		void FixupScope();
+
 	// Internal state
 	private:
 		StringHandle Name;
@@ -375,6 +404,11 @@ namespace IRSemantics
 				: Name(name),
 				  Parameter(param)
 			{ }
+
+			Param Clone() const
+			{
+				return Param(Name, Parameter->Clone());
+			}
 		};
 
 		std::vector<Param> Parameters;
@@ -383,6 +417,10 @@ namespace IRSemantics
 		bool SuppressReturn;
 
 		std::vector<FunctionTag> Tags;
+
+		std::vector<std::pair<StringHandle, VM::EpochTypeID> > TemplateParams;
+		CompileTimeParameterVector TemplateArgs;
+		Namespace* DummyNamespace;
 
 		VM::EpochTypeID HintReturnType;
 	};

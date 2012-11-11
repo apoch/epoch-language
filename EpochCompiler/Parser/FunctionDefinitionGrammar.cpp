@@ -16,6 +16,8 @@ FunctionDefinitionGrammar::FunctionDefinitionGrammar(const Lexer::EpochLexerT& l
 	using namespace boost::spirit::qi;
 
 	TemplateArguments %= lexer.OpenAngleBracket >> ((literalgrammar | as<AST::IdentifierT>()[lexer.StringIdentifier] | as<AST::IdentifierT>()[lexer.Nothing]) % lexer.Comma) >> lexer.CloseAngleBracket;
+	TemplateParameter %= (lexer.StringIdentifier | (as<AST::IdentifierT>()[lexer.TypeDef])) >> lexer.StringIdentifier;
+	TemplateParameterList %= lexer.OpenAngleBracket >> (TemplateParameter % lexer.Comma) >> lexer.CloseAngleBracket;
 
 	RefTagRule = as<AST::IdentifierT>()[lexer.Ref];
 	Nothing = as<AST::IdentifierT>()[lexer.Nothing];
@@ -29,5 +31,5 @@ FunctionDefinitionGrammar::FunctionDefinitionGrammar(const Lexer::EpochLexerT& l
 	FunctionTagSpec = (lexer.StringIdentifier >> -(lexer.OpenParens >> ((literalgrammar) % lexer.Comma) >> lexer.CloseParens));
 	FunctionTagList = (lexer.OpenBrace >> *FunctionTagSpec >> lexer.CloseBrace);
 
-	FunctionDefinition %= lexer.StringIdentifier >> lexer.Colon >> -ParameterList >> -ReturnList >> -FunctionTagList >> -codeblockgrammar;
+	FunctionDefinition %= lexer.StringIdentifier >> -TemplateParameterList >> lexer.Colon >> -ParameterList >> -ReturnList >> -FunctionTagList >> -codeblockgrammar;
 }

@@ -47,6 +47,11 @@ namespace IRSemantics
 
 	class FunctionTable
 	{
+	// Handy type shortcuts
+	public:
+		typedef std::map<StringHandle, CompileTimeParameterVector> InstancesAndArguments;
+		typedef std::map<StringHandle, InstancesAndArguments> InstantiationMap;
+
 	// Construction and destruction
 	public:
 		FunctionTable(Namespace& mynamespace, CompileSession& session);
@@ -113,6 +118,11 @@ namespace IRSemantics
 		bool TypeInference(InferenceContext& context, CompileErrors& errors);
 		bool CompileTimeCodeExecution(CompileErrors& errors);
 
+
+		bool IsFunctionTemplate(StringHandle name) const;
+		StringHandle InstantiateTemplate(StringHandle templatename, const CompileTimeParameterVector& args);
+
+
 	// Additional queries
 	public:
 		const boost::unordered_map<StringHandle, Function*>& GetDefinitions() const
@@ -140,6 +150,8 @@ namespace IRSemantics
 		boost::unordered_map<StringHandle, Function*> FunctionIR;
 		boost::unordered_map<StringHandle, unsigned> FunctionOverloadCounters;
 		
+		InstantiationMap Instantiations;
+
 		std::map<StringHandle, StringHandle> OverloadTypeMatchers;
 		std::map<StringHandle, std::map<StringHandle, FunctionSignature> > RequiredTypeMatchers;
 
@@ -262,6 +274,13 @@ namespace IRSemantics
 		bool TypeInference(CompileErrors& errors);
 		bool CompileTimeCodeExecution(CompileErrors& errors);
 
+
+		void SetParent(Namespace* parent);
+
+
+		static Namespace* CreateTemplateDummy(Namespace& parent, const std::vector<std::pair<StringHandle, VM::EpochTypeID> >& params, const CompileTimeParameterVector& args);
+
+
 	// Internal helpers
 	private:
 		static std::wstring GenerateAnonymousGlobalScopeName(size_t index);
@@ -270,6 +289,7 @@ namespace IRSemantics
 	// Internal tracking
 	private:
 		friend class TypeSpace;
+		friend class FunctionTable;
 
 		CompileSession& Session;
 
@@ -284,6 +304,7 @@ namespace IRSemantics
 
 		impl::StringCache<const ScopeDescription*> LexicalScopeNameCache;
 
+		Namespace* Parent;
 	};
 
 

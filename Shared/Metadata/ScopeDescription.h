@@ -10,6 +10,7 @@
 
 // Dependencies
 #include "Metadata/FunctionSignature.h"
+#include "Metadata/CompileTimeParams.h"
 
 #include "Utility/Types/EpochTypeIDs.h"
 #include "Utility/Types/IDTypes.h"
@@ -41,8 +42,8 @@ public:
 
 // Configuration interface
 public:
-	void AddVariable(const std::wstring& identifier, StringHandle identifierhandle, VM::EpochTypeID type, bool isreference, VariableOrigin origin);
-	void PrependVariable(const std::wstring& identifier, StringHandle identifierhandle, VM::EpochTypeID type, bool isreference, VariableOrigin origin);
+	void AddVariable(const std::wstring& identifier, StringHandle identifierhandle, StringHandle typenamehandle, VM::EpochTypeID type, bool isreference, VariableOrigin origin);
+	void PrependVariable(const std::wstring& identifier, StringHandle identifierhandle, StringHandle typenamehandle, VM::EpochTypeID type, bool isreference, VariableOrigin origin);
 
 // Inspection interface
 public:
@@ -62,6 +63,8 @@ public:
 
 	bool HasReturnVariable() const;
 
+	void Fixup(const std::vector<std::pair<StringHandle, VM::EpochTypeID> >& templateparams, const CompileTimeParameterVector& templateargs, const CompileTimeParameterVector& templateargtypes);
+
 // Public properties
 public:
 	ScopeDescription* ParentScope;
@@ -71,10 +74,11 @@ private:
 	struct VariableEntry
 	{
 		// Constructor for convenience
-		VariableEntry(const std::wstring& identifier, StringHandle identifierhandle, VM::EpochTypeID type, bool isreference, VariableOrigin origin)
+		VariableEntry(const std::wstring& identifier, StringHandle identifierhandle, StringHandle typenamehandle, VM::EpochTypeID type, bool isreference, VariableOrigin origin)
 			: Identifier(identifier),
 			  IdentifierHandle(identifierhandle),
 			  Type(type),
+			  TypeName(typenamehandle),
 			  Origin(origin),
 			  IsReference(isreference)
 		{ }
@@ -82,6 +86,7 @@ private:
 		std::wstring Identifier;
 		StringHandle IdentifierHandle;
 		VM::EpochTypeID Type;
+		StringHandle TypeName;
 		VariableOrigin Origin;
 		bool IsReference;
 	};

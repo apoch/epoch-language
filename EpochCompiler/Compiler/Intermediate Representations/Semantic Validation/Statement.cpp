@@ -67,6 +67,9 @@ bool Statement::CompileTimeCodeExecution(Namespace& curnamespace, CodeBlock& act
 
 	CompileTimeCodeExecuted = true;
 
+	if(curnamespace.Types.Aliases.HasWeakAliasNamed(Name))
+		Name = curnamespace.Types.Aliases.GetWeakTypeBaseName(Name);
+
 	for(std::vector<Expression*>::iterator iter = Parameters.begin(); iter != Parameters.end(); ++iter)
 	{
 		if(!(*iter)->CompileTimeCodeExecution(curnamespace, activescope, inreturnexpr, errors))
@@ -579,8 +582,23 @@ void Statement::SetTemplateArgs(const CompileTimeParameterVector& args, Namespac
 {
 	if(!args.empty())
 	{
-		RawName = curnamespace.Types.Templates.InstantiateStructure(Name, args);
-		Name = curnamespace.Types.Templates.FindConstructorName(RawName);
+		if(curnamespace.Types.Templates.IsStructureTemplate(Name))
+		{
+			RawName = curnamespace.Types.Templates.InstantiateStructure(Name, args);
+			Name = curnamespace.Types.Templates.FindConstructorName(RawName);
+		}
+		else if(curnamespace.Functions.IsFunctionTemplate(Name))
+		{
+			RawName = curnamespace.Functions.InstantiateTemplate(Name, args);
+			Name = RawName;
+
+			TemplateArgs = args;
+		}
+		else
+		{
+			// TODO - document exception
+			throw InternalException("Template arguments provided in unrecognized context");
+		}
 	}
 }
 
@@ -700,3 +718,32 @@ bool PostOpStatement::Validate(const Namespace&) const
 {
 	return MyType != VM::EpochType_Error;
 }
+
+
+
+Statement* Statement::Clone() const
+{
+	Statement* clone = new Statement(Name, OriginalIdentifier);
+	clone->RawName = RawName;
+	for(std::vector<Expression*>::const_iterator iter = Parameters.begin(); iter != Parameters.end(); ++iter)
+		clone->Parameters.push_back((*iter)->Clone());
+	clone->MyType = MyType;
+	clone->CompileTimeCodeExecuted = CompileTimeCodeExecuted;
+	clone->TemplateArgs = TemplateArgs;
+	return clone;
+}
+
+PreOpStatement* PreOpStatement::Clone() const
+{
+	PreOpStatement* clone = new PreOpStatement(OperatorName, Operand);
+	clone->MyType = MyType;
+	return clone;
+}
+
+PostOpStatement* PostOpStatement::Clone() const
+{
+	PostOpStatement* clone = new PostOpStatement(Operand, OperatorName);
+	clone->MyType = MyType;
+	return clone;
+}
+

@@ -15,23 +15,23 @@
 //
 // Add a variable to a lexical scope
 //
-void ScopeDescription::AddVariable(const std::wstring& identifier, StringHandle identifierhandle, VM::EpochTypeID type, bool isreference, VariableOrigin origin)
+void ScopeDescription::AddVariable(const std::wstring& identifier, StringHandle identifierhandle, StringHandle typenamehandle, VM::EpochTypeID type, bool isreference, VariableOrigin origin)
 {
 	if(HasVariable(identifier))
 		throw InvalidIdentifierException("Duplicate/shadowed identifiers are not permitted - the identifier \"" + narrow(identifier) + "\" is already in use in this scope or some containing scope.");
 
-	Variables.push_back(VariableEntry(identifier, identifierhandle, type, isreference, origin));
+	Variables.push_back(VariableEntry(identifier, identifierhandle, typenamehandle, type, isreference, origin));
 }
 
 //
 // Add a variable to the beginning of a lexical scope
 //
-void ScopeDescription::PrependVariable(const std::wstring& identifier, StringHandle identifierhandle, VM::EpochTypeID type, bool isreference, VariableOrigin origin)
+void ScopeDescription::PrependVariable(const std::wstring& identifier, StringHandle identifierhandle, StringHandle typenamehandle, VM::EpochTypeID type, bool isreference, VariableOrigin origin)
 {
 	if(HasVariable(identifier))
 		throw InvalidIdentifierException("Duplicate/shadowed identifiers are not permitted - the identifier \"" + narrow(identifier) + "\" is already in use in this scope or some containing scope.");
 
-	Variables.insert(Variables.begin(), VariableEntry(identifier, identifierhandle, type, isreference, origin));
+	Variables.insert(Variables.begin(), VariableEntry(identifier, identifierhandle, typenamehandle, type, isreference, origin));
 }
 
 //
@@ -152,3 +152,20 @@ bool ScopeDescription::HasReturnVariable() const
 
 	return false;
 }
+
+
+void ScopeDescription::Fixup(const std::vector<std::pair<StringHandle, VM::EpochTypeID> >& templateparams, const CompileTimeParameterVector& templateargs, const CompileTimeParameterVector& templateargtypes)
+{
+	for(VariableVector::iterator iter = Variables.begin(); iter != Variables.end(); ++iter)
+	{
+		for(size_t i = 0; i < templateparams.size(); ++i)
+		{
+			if(iter->TypeName == templateparams[i].first)
+			{
+				iter->TypeName = templateargs[i].Payload.LiteralStringHandleValue;
+				iter->Type = static_cast<VM::EpochTypeID>(templateargtypes[i].Payload.IntegerValue);
+			}
+		}
+	}
+}
+

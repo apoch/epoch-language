@@ -59,6 +59,10 @@ namespace IRSemantics
 	// Type inference
 	public:
 		virtual bool TypeInference(Namespace& curnamespace, CodeBlock& activescope, InferenceContext& context, CompileErrors& errors) = 0;
+
+	// Deep copies
+	public:
+		virtual CodeBlockEntry* Clone() const = 0;
 	};
 
 
@@ -71,6 +75,8 @@ namespace IRSemantics
 	public:
 		explicit CodeBlock(ScopeDescription* scope, bool ownsscope = true);
 		~CodeBlock();
+
+		CodeBlock* Clone() const;
 
 	// Non-copyable
 	private:
@@ -86,7 +92,7 @@ namespace IRSemantics
 
 	// Lexical scope management
 	public:
-		EPOCHCOMPILER void AddVariable(const std::wstring& identifier, StringHandle identifierhandle, VM::EpochTypeID type, bool isreference, VariableOrigin origin);
+		EPOCHCOMPILER void AddVariable(const std::wstring& identifier, StringHandle identifierhandle, StringHandle typenamehandle, VM::EpochTypeID type, bool isreference, VariableOrigin origin);
 		VM::EpochTypeID GetVariableTypeByID(StringHandle identifier) const;
 
 		ScopeDescription* GetScope()
@@ -135,6 +141,10 @@ namespace IRSemantics
 	public:
 		virtual bool TypeInference(Namespace& curnamespace, CodeBlock& activescope, InferenceContext& context, CompileErrors& errors);
 
+	// Deep copies
+	public:
+		virtual CodeBlockEntry* Clone() const;
+
 	// Property access
 	public:
 		const Assignment& GetAssignment() const
@@ -170,6 +180,10 @@ namespace IRSemantics
 	public:
 		virtual bool TypeInference(Namespace& curnamespace, CodeBlock& activescope, InferenceContext& context, CompileErrors& errors);
 
+	// Deep copies
+	public:
+		virtual CodeBlockEntry* Clone() const;
+
 	// Statement access
 	public:
 		const Statement& GetStatement() const
@@ -204,6 +218,10 @@ namespace IRSemantics
 	// Type inference
 	public:
 		virtual bool TypeInference(Namespace& curnamespace, CodeBlock& activescope, InferenceContext& context, CompileErrors& errors);
+
+	// Deep copies
+	public:
+		virtual CodeBlockEntry* Clone() const;
 
 	// Statement access
 	public:
@@ -241,6 +259,10 @@ namespace IRSemantics
 	public:
 		virtual bool TypeInference(Namespace& curnamespace, CodeBlock& activescope, InferenceContext& context, CompileErrors& errors);
 
+	// Deep copies
+	public:
+		virtual CodeBlockEntry* Clone() const;
+
 	// Statement access
 	public:
 		const PostOpStatement& GetStatement() const
@@ -276,6 +298,10 @@ namespace IRSemantics
 	public:
 		virtual bool TypeInference(Namespace& curnamespace, CodeBlock& activescope, InferenceContext& context, CompileErrors& errors);
 
+	// Deep copies
+	public:
+		virtual CodeBlockEntry* Clone() const;
+
 	// Internal code access
 	public:
 		const CodeBlock& GetCode() const
@@ -310,6 +336,10 @@ namespace IRSemantics
 	// Type inference
 	public:
 		virtual bool TypeInference(Namespace& curnamespace, CodeBlock& activescope, InferenceContext& context, CompileErrors& errors);
+
+	// Deep copies
+	public:
+		virtual CodeBlockEntry* Clone() const;
 
 	// Accessors
 	public:

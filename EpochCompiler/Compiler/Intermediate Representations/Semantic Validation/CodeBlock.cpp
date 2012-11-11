@@ -61,6 +61,16 @@ CodeBlock::~CodeBlock()
 }
 
 
+CodeBlock* CodeBlock::Clone() const
+{
+	CodeBlock* clone = new CodeBlock(OwnsScope ? new ScopeDescription(*Scope) : Scope, OwnsScope);
+	for(std::vector<CodeBlockEntry*>::const_iterator iter = Entries.begin(); iter != Entries.end(); ++iter)
+		clone->Entries.push_back((*iter)->Clone());
+
+	return clone;
+}
+
+
 //
 // Add an entry to the end of a code block body
 //
@@ -83,9 +93,9 @@ VM::EpochTypeID CodeBlock::GetVariableTypeByID(StringHandle identifier) const
 //
 // Add a new variable to this code block's lexical scope
 //
-void CodeBlock::AddVariable(const std::wstring& identifier, StringHandle identifierhandle, VM::EpochTypeID type, bool isreference, VariableOrigin origin)
+void CodeBlock::AddVariable(const std::wstring& identifier, StringHandle identifierhandle, StringHandle typenamehandle, VM::EpochTypeID type, bool isreference, VariableOrigin origin)
 {
-	Scope->AddVariable(identifier, identifierhandle, type, isreference, origin);
+	Scope->AddVariable(identifier, identifierhandle, typenamehandle, type, isreference, origin);
 }
 
 
@@ -354,5 +364,36 @@ bool CodeBlockEntityEntry::TypeInference(Namespace& curnamespace, CodeBlock& act
 		return false;
 
 	return MyEntity->TypeInference(curnamespace, activescope, context, errors);
+}
+
+
+CodeBlockEntry* CodeBlockAssignmentEntry::Clone() const
+{
+	return new CodeBlockAssignmentEntry(MyAssignment->Clone());
+}
+
+CodeBlockEntry* CodeBlockStatementEntry::Clone() const
+{
+	return new CodeBlockStatementEntry(MyStatement->Clone());
+}
+
+CodeBlockEntry* CodeBlockPreOpStatementEntry::Clone() const
+{
+	return new CodeBlockPreOpStatementEntry(MyStatement->Clone());
+}
+
+CodeBlockEntry* CodeBlockPostOpStatementEntry::Clone() const
+{
+	return new CodeBlockPostOpStatementEntry(MyStatement->Clone());
+}
+
+CodeBlockEntry* CodeBlockInnerBlockEntry::Clone() const
+{
+	return new CodeBlockInnerBlockEntry(MyCodeBlock->Clone());
+}
+
+CodeBlockEntry* CodeBlockEntityEntry::Clone() const
+{
+	return new CodeBlockEntityEntry(MyEntity->Clone());
 }
 

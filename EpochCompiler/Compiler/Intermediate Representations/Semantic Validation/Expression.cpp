@@ -971,6 +971,28 @@ bool ExpressionAtomIdentifierBase::CompileTimeCodeExecution(Namespace&, CodeBloc
 	return true;
 }
 
+ExpressionAtom* ExpressionAtomIdentifierBase::Clone() const
+{
+	ExpressionAtomIdentifierBase* clone = new ExpressionAtomIdentifierBase(Identifier, OriginalIdentifier);
+	clone->MyType = MyType;
+	return clone;
+}
+
+ExpressionAtom* ExpressionAtomIdentifier::Clone() const
+{
+	ExpressionAtomIdentifier* clone = new ExpressionAtomIdentifier(Identifier, OriginalIdentifier);
+	clone->MyType = MyType;
+	return clone;
+}
+
+ExpressionAtom* ExpressionAtomIdentifierReference::Clone() const
+{
+	ExpressionAtomIdentifierReference* clone = new ExpressionAtomIdentifierReference(Identifier, OriginalIdentifier);
+	clone->MyType = MyType;
+	return clone;
+}
+
+
 //
 // Operator atoms do not inherently carry a type
 //
@@ -1123,6 +1145,14 @@ VM::EpochTypeID ExpressionAtomOperator::DetermineUnaryReturnType(Namespace& curn
 int ExpressionAtomOperator::GetOperatorPrecedence(const Namespace& curnamespace) const
 {
 	return curnamespace.Operators.GetPrecedence(OriginalIdentifier);
+}
+
+ExpressionAtom* ExpressionAtomOperator::Clone() const
+{
+	ExpressionAtomOperator* clone = new ExpressionAtomOperator(Identifier, IsMemberAccessFlag);
+	clone->OriginalIdentifier = OriginalIdentifier;
+	clone->OverriddenType = OverriddenType;
+	return clone;
 }
 
 
@@ -1311,3 +1341,81 @@ CompileTimeParameter ExpressionAtomLiteralString::ConvertToCompileTimeParam(cons
 	return ret;
 }
 
+
+Expression* Expression::Clone() const
+{
+	Expression* clone = new Expression;
+	for(std::vector<ExpressionAtom*>::const_iterator iter = Atoms.begin(); iter != Atoms.end(); ++iter)
+		clone->Atoms.push_back((*iter)->Clone());
+
+	clone->InferredType = InferredType;
+	clone->Coalesced = Coalesced;
+	clone->InferenceDone = false;
+	clone->DoingInference = false;
+	clone->InferenceRecursed = false;
+
+	return clone;
+}
+
+ExpressionAtom* ExpressionAtomBindReference::Clone() const
+{
+	return new ExpressionAtomBindReference(Identifier, MyType);
+}
+
+ExpressionAtom* ExpressionAtomStatement::Clone() const
+{
+	return new ExpressionAtomStatement(MyStatement->Clone());
+}
+
+ExpressionAtom* ExpressionAtomParenthetical::Clone() const
+{
+	return new ExpressionAtomParenthetical(MyParenthetical->Clone());
+}
+
+
+Parenthetical* ParentheticalPreOp::Clone() const
+{
+	return new ParentheticalPreOp(MyStatement->Clone());
+}
+
+Parenthetical* ParentheticalPostOp::Clone() const
+{
+	return new ParentheticalPostOp(MyStatement->Clone());
+}
+
+Parenthetical* ParentheticalExpression::Clone() const
+{
+	return new ParentheticalExpression(MyExpression->Clone());
+}
+
+
+ExpressionAtom* ExpressionAtomTypeAnnotation::Clone() const
+{
+	return new ExpressionAtomTypeAnnotation(MyType);
+}
+
+ExpressionAtom* ExpressionAtomCopyFromStructure::Clone() const
+{
+	return new ExpressionAtomCopyFromStructure(MyType, MemberName);
+}
+
+
+ExpressionAtom* ExpressionAtomLiteralString::Clone() const
+{
+	ExpressionAtomLiteralString* clone = new ExpressionAtomLiteralString(Handle);
+	return clone;
+}
+
+ExpressionAtom* ExpressionAtomLiteralInteger32::Clone() const
+{
+	ExpressionAtomLiteralInteger32* clone = new ExpressionAtomLiteralInteger32(Value);
+	clone->MyType = MyType;
+	return clone;
+}
+
+ExpressionAtom* ExpressionAtomLiteralReal32::Clone() const
+{
+	ExpressionAtomLiteralReal32* clone = new ExpressionAtomLiteralReal32(Value);
+	clone->MyType = MyType;
+	return clone;
+}

@@ -587,6 +587,9 @@ namespace
 		const boost::unordered_map<StringHandle, IRSemantics::Function*>& functions = curnamespace.Functions.GetDefinitions();
 		for(boost::unordered_map<StringHandle, IRSemantics::Function*>::const_iterator iter = functions.begin(); iter != functions.end(); ++iter)
 		{
+			if(iter->second->IsTemplate())
+				continue;
+
 			const std::vector<IRSemantics::FunctionTag>& tags = iter->second->GetTags();
 			for(std::vector<IRSemantics::FunctionTag>::const_iterator tagiter = tags.begin(); tagiter != tags.end(); ++tagiter)
 			{
@@ -651,6 +654,9 @@ namespace
 	
 		for(boost::unordered_map<StringHandle, IRSemantics::Function*>::const_iterator iter = functions.begin(); iter != functions.end(); ++iter)
 		{
+			if(iter->second->IsTemplate())
+				continue;
+
 			emitter.EnterFunction(iter->first);
 			VM::EpochTypeID rettype = iter->second->GetReturnType(curnamespace);
 			if(rettype != VM::EpochType_Void || isconstructor[iter->first])

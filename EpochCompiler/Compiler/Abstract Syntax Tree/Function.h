@@ -13,6 +13,7 @@
 #include "Compiler/Abstract Syntax Tree/Expression.h"
 #include "Compiler/Abstract Syntax Tree/Assignment.h"
 #include "Compiler/Abstract Syntax Tree/CodeBlock.h"
+#include "Compiler/Abstract Syntax Tree/Templates.h"
 
 
 namespace AST
@@ -62,6 +63,7 @@ namespace AST
 	struct Function
 	{
 		IdentifierT Name;
+		OptionalTemplateParameterList TemplateParams;
 		FunctionParamVec Parameters;
 		OptionalReturn Return;
 		OptionalFunctionTags Tags;
@@ -89,6 +91,7 @@ BOOST_FUSION_ADAPT_STRUCT
 (
 	AST::DeferredFunction,
 	(AST::IdentifierT, Content->Name)
+	(AST::OptionalTemplateParameterList, Content->TemplateParams)
 	(AST::FunctionParamVec, Content->Parameters)
 	(AST::OptionalReturn, Content->Return)
 	(AST::OptionalFunctionTags, Content->Tags)

@@ -161,14 +161,19 @@ unsigned FunctionTable::GetNumOverloads(StringHandle name) const
 
 bool FunctionTable::Exists(StringHandle functionname) const
 {
-	return (FunctionIR.find(functionname) != FunctionIR.end());
+	return FunctionIR.find(functionname) != FunctionIR.end();
 }
 
 const Function* FunctionTable::GetIR(StringHandle functionname) const
 {
 	boost::unordered_map<StringHandle, Function*>::const_iterator iter = FunctionIR.find(functionname);
 	if(iter == FunctionIR.end())
+	{
+		if(MyNamespace.Parent)
+			return MyNamespace.Parent->Functions.GetIR(functionname);
+
 		throw InternalException("Not a user defined function");
+	}
 
 	return iter->second;
 }
@@ -178,7 +183,12 @@ Function* FunctionTable::GetIR(StringHandle functionname)
 {
 	boost::unordered_map<StringHandle, Function*>::iterator iter = FunctionIR.find(functionname);
 	if(iter == FunctionIR.end())
+	{
+		if(MyNamespace.Parent)
+			return MyNamespace.Parent->Functions.GetIR(functionname);
+
 		throw InternalException("Not a user defined function");
+	}
 
 	return iter->second;
 }
@@ -313,6 +323,55 @@ bool FunctionTable::CompileTimeCodeExecution(CompileErrors& errors)
 	return true;
 }
 
+StringHandle FunctionTable::InstantiateTemplate(StringHandle templatename, const CompileTimeParameterVector& args)
+{
+	InstantiationMap::iterator iter = Instantiations.find(templatename);
+	if(iter != Instantiations.end())
+	{
+		InstancesAndArguments& instances = iter->second;
+
+		for(InstancesAndArguments::const_iterator instanceiter = instances.begin(); instanceiter != instances.end(); ++instanceiter)
+		{
+			if(args.size() != instanceiter->second.size())
+				continue;
+
+			bool match = true;
+			for(unsigned i = 0; i < args.size(); ++i)
+			{
+				if(!args[i].PatternMatch(instanceiter->second[i]))
+				{
+					match = false;
+					break;
+				}
+			}
+
+			if(match)
+				return instanceiter->first;
+		}
+	}
+
+	StringHandle mangledname = CreateOverload(MyNamespace.Strings.GetPooledString(templatename));
+	FunctionOverloadCounters[mangledname] = 1;
+	FunctionOverloadNameCache.Add(std::make_pair(mangledname, 0), mangledname);
+	Instantiations[templatename].insert(std::make_pair(mangledname, args));
+	FunctionIR[mangledname] = new Function(GetIR(templatename), MyNamespace, args);
+	FunctionIR[mangledname]->SetName(mangledname);
+	FunctionIR[mangledname]->SetRawName(mangledname);
+	FunctionIR[mangledname]->FixupScope();
+
+	return mangledname;
+}
+
+bool FunctionTable::IsFunctionTemplate(StringHandle name) const
+{
+	boost::unordered_map<StringHandle, Function*>::const_iterator iter = FunctionIR.find(name);
+	if(iter == FunctionIR.end())
+		return false;
+
+	return iter->second->IsTemplate();
+}
+
+
 
 bool OperatorTable::PrefixExists(StringHandle operatorname) const
 {
@@ -386,7 +445,7 @@ void Namespace::AddScope(ScopeDescription* scope, StringHandle name)
 }
 
 
-InferenceContext::PossibleParameterTypes FunctionTable::GetExpectedTypes(StringHandle name, const ScopeDescription& scope, StringHandle contextname, CompileErrors&) const
+InferenceContext::PossibleParameterTypes FunctionTable::GetExpectedTypes(StringHandle name, const ScopeDescription& scope, StringHandle contextname, CompileErrors& errors) const
 {
 	if(scope.HasVariable(name) && scope.GetVariableTypeByID(name) == VM::EpochType_Function)
 	{
@@ -434,9 +493,12 @@ InferenceContext::PossibleParameterTypes FunctionTable::GetExpectedTypes(StringH
 			}
 			else
 			{
+				std::map<StringHandle, StringHandle>::const_iterator mangleiter;
 				boost::unordered_map<StringHandle, Function*>::const_iterator funciter = FunctionIR.find(overloadname);
 				if(funciter != FunctionIR.end())
 				{
+					InferenceContext context(0, InferenceContext::CONTEXT_GLOBAL);
+					funciter->second->TypeInference(MyNamespace, context, errors);
 					ret.push_back(InferenceContext::TypePossibilities());
 					FunctionSignature signature = funciter->second->GetFunctionSignature(MyNamespace);
 
@@ -844,4 +906,29 @@ bool Namespace::CompileTimeCodeExecution(CompileErrors& errors)
 
 	return Functions.CompileTimeCodeExecution(errors);
 }
+
+Namespace* Namespace::CreateTemplateDummy(Namespace& parent, const std::vector<std::pair<StringHandle, VM::EpochTypeID> >& params, const CompileTimeParameterVector& args)
+{
+	Namespace* ret = new Namespace(parent.Types.IDSpace, parent.Strings, parent.Session);
+	ret->SetParent(&parent);
+
+	if(params.size() != args.size())
+		throw InternalException("Template parameter/argument mismatch");
+
+	for(size_t i = 0; i < params.size(); ++i)
+	{
+		if(params[i].second == VM::EpochType_Wildcard)
+		{
+			ret->Types.Aliases.AddWeakAlias(params[i].first, parent.Types.GetTypeByName(static_cast<StringHandle>(args[i].Payload.IntegerValue)));
+		}
+	}
+
+	return ret;
+}
+
+void Namespace::SetParent(Namespace* parent)
+{
+	Parent = parent;
+}
+
 

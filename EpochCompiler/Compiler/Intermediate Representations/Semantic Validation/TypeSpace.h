@@ -169,6 +169,8 @@ namespace IRSemantics
 		const InstantiationMap& GetInstantiations() const
 		{ return Instantiations; }
 
+		bool IsStructureTemplate(StringHandle name) const;
+
 	// Constructor helpers
 	public:
 		StringHandle FindConstructorName(StringHandle instancename) const;
@@ -208,6 +210,8 @@ namespace IRSemantics
 	// Weak type alias management interface
 	public:
 		void AddWeakAlias(StringHandle aliasname, VM::EpochTypeID representationtype);
+		bool HasWeakAliasNamed(StringHandle name) const;
+		StringHandle GetWeakTypeBaseName(StringHandle name) const;
 
 	// Strong type alias management interface
 	public:
@@ -266,6 +270,7 @@ namespace IRSemantics
 		friend class TemplateTable;
 		friend class TypeAliasTable;
 		friend class SumTypeTable;
+		friend class Namespace;
 
 		Namespace& MyNamespace;
 		GlobalIDSpace& IDSpace;

@@ -26,10 +26,12 @@ ExpressionGrammar::ExpressionGrammar(const Lexer::EpochLexerT& lexer, const Lite
 	PostOperatorStatement %= MemberAccess >> adapttokens[PostOperatorSymbols];
 	Parenthetical %= lexer.OpenParens >> (PreOperatorStatement | PostOperatorStatement | Expression) >> lexer.CloseParens;
 
+	TemplateArguments %= lexer.OpenAngleBracket >> ((literalgrammar | as<AST::IdentifierT>()[lexer.StringIdentifier] | as<AST::IdentifierT>()[lexer.Nothing]) % lexer.Comma) >> lexer.CloseAngleBracket;
+
 	EntityParamsInner %= (Expression % lexer.Comma) >> lexer.CloseParens;
 	EntityParamsEmpty = lexer.CloseParens;
 	EntityParams %= lexer.OpenParens >> (EntityParamsEmpty | EntityParamsInner);
-	Statement %= lexer.StringIdentifier >> EntityParams;
+	Statement %= lexer.StringIdentifier >> -TemplateArguments >> EntityParams;
 
 	Prefix %= adapttokens[PrefixSymbols];
 	Prefixes %= +Prefix;
@@ -43,8 +45,6 @@ ExpressionGrammar::ExpressionGrammar(const Lexer::EpochLexerT& lexer, const Lite
 	MemberAssignment %= (MemberAccess >> AssignmentOperator >> ExpressionOrAssignment);
 	Assignment %= SimpleAssignment | MemberAssignment;
 	ExpressionOrAssignment %= Assignment | Expression;
-
-	TemplateArguments %= lexer.OpenAngleBracket >> ((literalgrammar | as<AST::IdentifierT>()[lexer.StringIdentifier] | as<AST::IdentifierT>()[lexer.Nothing]) % lexer.Comma) >> lexer.CloseAngleBracket;
 
 	VariableDeclaration %=
 		as<AST::IdentifierT>()[lexer.StringIdentifier]		>>

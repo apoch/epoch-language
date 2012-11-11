@@ -110,6 +110,15 @@ namespace
 	}
 
 
+	void RealEquality(StringHandle, VM::ExecutionContext& context)
+	{
+		Real32 p2 = context.State.Stack.PopValue<Real32>();
+		Real32 p1 = context.State.Stack.PopValue<Real32>();
+
+		context.State.Stack.PushValue(p1 == p2);
+	}
+
+
 	//
 	// Compare two reals to see if one is greater than the other
 	//
@@ -172,6 +181,7 @@ void ComparisonLibrary::RegisterLibraryFunctions(FunctionInvocationTable& table,
 	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"!=@@string"), StringInequality));
 	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L">@@integer"), IntegerGreaterThan));
 	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"<@@integer"), IntegerLessThan));
+	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"==@@real"), RealEquality));
 	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L">@@real"), RealGreaterThan));
 	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"<@@real"), RealLessThan));
 }
@@ -251,6 +261,13 @@ void ComparisonLibrary::RegisterLibraryFunctions(FunctionSignatureSet& signature
 		signature.AddParameter(L"i1", VM::EpochType_Real, false);
 		signature.AddParameter(L"i2", VM::EpochType_Real, false);
 		signature.SetReturnType(VM::EpochType_Boolean);
+		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"==@@real"), signature));
+	}
+	{
+		FunctionSignature signature;
+		signature.AddParameter(L"i1", VM::EpochType_Real, false);
+		signature.AddParameter(L"i2", VM::EpochType_Real, false);
+		signature.SetReturnType(VM::EpochType_Boolean);
 		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L">@@real"), signature));
 	}
 	{
@@ -301,6 +318,7 @@ void ComparisonLibrary::RegisterLibraryOverloads(OverloadMap& overloadmap, Strin
 		overloadmap[functionnamehandle].insert(stringpool.Pool(L"==@@integer16"));
 		overloadmap[functionnamehandle].insert(stringpool.Pool(L"==@@boolean"));
 		overloadmap[functionnamehandle].insert(stringpool.Pool(L"==@@string"));
+		overloadmap[functionnamehandle].insert(stringpool.Pool(L"==@@real"));
 	}
 	{
 		StringHandle functionnamehandle = stringpool.Pool(L"!=");

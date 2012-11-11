@@ -26,6 +26,27 @@ using namespace IRSemantics;
 void CompileConstructorStructure(IRSemantics::Statement& statement, Namespace& curnamespace, IRSemantics::CodeBlock& activescope, bool inreturnexpr, CompileErrors& errors);
 
 
+
+Function::Function(const Function* templatefunc, Namespace& curnamespace, const CompileTimeParameterVector& args)
+	: Code(templatefunc->Code->Clone()),
+	  Return(templatefunc->Return->Clone()),
+	  InferenceDone(false),
+	  SuppressReturn(false),
+	  Name(0),
+	  RawName(0),
+	  AnonymousReturn(false),
+	  HintReturnType(VM::EpochType_Error),
+	  DummyNamespace(NULL),
+	  Tags(templatefunc->Tags),
+	  TemplateParams(templatefunc->TemplateParams)
+{
+	for(std::vector<Param>::const_iterator iter = templatefunc->Parameters.begin(); iter != templatefunc->Parameters.end(); ++iter)
+		Parameters.push_back(iter->Clone());
+
+	SetTemplateArguments(curnamespace, args);
+}
+
+
 //
 // Destruct and clean up a function
 //
@@ -36,6 +57,8 @@ Function::~Function()
 
 	delete Code;
 	delete Return;
+
+	delete DummyNamespace;
 }
 
 //
@@ -171,6 +194,9 @@ bool Function::HasParameter(StringHandle paramname) const
 //
 bool Function::Validate(const Namespace& curnamespace) const
 {
+	if(IsTemplate())
+		return true;
+
 	bool valid = true;
 
 	for(std::vector<Param>::const_iterator iter = Parameters.begin(); iter != Parameters.end(); ++iter)
@@ -208,6 +234,16 @@ bool Function::Validate(const Namespace& curnamespace) const
 //
 bool Function::CompileTimeCodeExecution(Namespace& curnamespace, CompileErrors& errors)
 {
+	if(IsTemplate())
+		return true;
+
+	Namespace* activenamespace;
+
+	if(TemplateArgs.empty())
+		activenamespace = &curnamespace;
+	else
+		activenamespace = DummyNamespace;
+
 	for(std::vector<FunctionTag>::const_iterator iter = Tags.begin(); iter != Tags.end(); ++iter)
 	{
 		if(curnamespace.FunctionTags.Exists(iter->TagName))
@@ -215,11 +251,11 @@ bool Function::CompileTimeCodeExecution(Namespace& curnamespace, CompileErrors& 
 			TagHelperReturn help = curnamespace.FunctionTags.GetHelper(iter->TagName)(RawName, iter->Parameters, true);
 			if(help.SetConstructorFunction)
 			{
-				FunctionSignature signature = GetFunctionSignature(curnamespace);
+				FunctionSignature signature = GetFunctionSignature(*activenamespace);
 				signature.PrependParameter(L"@id", VM::EpochType_Identifier, false);
 				signature.SetReturnType(VM::EpochType_Void);
 				curnamespace.Functions.SetSignature(Name, signature);
-				Code->GetScope()->PrependVariable(L"@id", curnamespace.Strings.Pool(L"@id"), VM::EpochType_Identifier, false, VARIABLE_ORIGIN_PARAMETER);
+				Code->GetScope()->PrependVariable(L"@id", curnamespace.Strings.Pool(L"@id"), curnamespace.Strings.Pool(L"identifier"),VM::EpochType_Identifier, false, VARIABLE_ORIGIN_PARAMETER);
 
 				curnamespace.Functions.SetCompileHelper(Name, &CompileConstructorStructure);
 			}
@@ -236,7 +272,7 @@ bool Function::CompileTimeCodeExecution(Namespace& curnamespace, CompileErrors& 
 		if(!Code)
 			return false;
 
-		if(!Return->CompileTimeCodeExecution(curnamespace, *Code, true, errors))
+		if(!Return->CompileTimeCodeExecution(*activenamespace, *Code, true, errors))
 			return false;
 	}
 
@@ -254,6 +290,9 @@ bool Function::CompileTimeCodeExecution(Namespace& curnamespace, CompileErrors& 
 //
 bool Function::TypeInference(Namespace& curnamespace, InferenceContext&, CompileErrors& errors)
 {
+	if(IsTemplate())
+		return true;
+
 	if(InferenceDone)
 		return true;
 
@@ -262,19 +301,26 @@ bool Function::TypeInference(Namespace& curnamespace, InferenceContext&, Compile
 	if(!Code)
 		return true;
 
+	Namespace* activenamespace;
+
+	if(TemplateArgs.empty())
+		activenamespace = &curnamespace;
+	else
+		activenamespace = DummyNamespace;
+
 	if(Return)
 	{
 		InferenceContext newcontext(Name, InferenceContext::CONTEXT_FUNCTION_RETURN);
 		newcontext.FunctionName = Name;
-		if(!Return->TypeInference(curnamespace, *Code, newcontext, 0, 1, errors))
+		if(!Return->TypeInference(*activenamespace, *Code, newcontext, 0, 1, errors))
 			return false;
 
-		VM::EpochTypeID rettype = Return->GetEpochType(curnamespace);
+		VM::EpochTypeID rettype = Return->GetEpochType(*activenamespace);
 		if(rettype != VM::EpochType_Void)
 		{
 			if(!Code->GetScope()->HasReturnVariable())
 			{
-				Code->AddVariable(L"@@anonymousret", curnamespace.Strings.Pool(L"@@anonymousret"), rettype, false, VARIABLE_ORIGIN_RETURN);
+				Code->AddVariable(L"@@anonymousret", curnamespace.Strings.Pool(L"@@anonymousret"), activenamespace->Types.GetNameOfType(rettype), rettype, false, VARIABLE_ORIGIN_RETURN);
 				AnonymousReturn = true;
 			}
 		}
@@ -283,7 +329,7 @@ bool Function::TypeInference(Namespace& curnamespace, InferenceContext&, Compile
 	bool result = true;
 	for(std::vector<Param>::iterator iter = Parameters.begin(); iter != Parameters.end(); ++iter)
 	{
-		if(!iter->Parameter->TypeInference(curnamespace, errors))
+		if(!iter->Parameter->TypeInference(*activenamespace, errors))
 			result = false;
 	}
 
@@ -295,7 +341,7 @@ bool Function::TypeInference(Namespace& curnamespace, InferenceContext&, Compile
 
 	InferenceContext newcontext(Name, InferenceContext::CONTEXT_FUNCTION);
 	newcontext.FunctionName = Name;
-	result = Code->TypeInference(curnamespace, newcontext, errors);
+	result = Code->TypeInference(*activenamespace, newcontext, errors);
 	return result;
 }
 
@@ -405,23 +451,30 @@ FunctionSignature Function::GetParameterSignature(StringHandle name, const Names
 //
 FunctionSignature Function::GetFunctionSignature(const Namespace& curnamespace) const
 {
+	const Namespace* activenamespace;
+
+	if(TemplateArgs.empty())
+		activenamespace = &curnamespace;
+	else
+		activenamespace = DummyNamespace;
+
 	FunctionSignature ret;
 
-	ret.SetReturnType(GetReturnType(curnamespace));
+	ret.SetReturnType(GetReturnType(*activenamespace));
 
 	size_t index = 0;
 	for(std::vector<Param>::const_iterator iter = Parameters.begin(); iter != Parameters.end(); ++iter)
 	{
-		VM::EpochTypeID paramtype = iter->Parameter->GetParamType(curnamespace);
+		VM::EpochTypeID paramtype = iter->Parameter->GetParamType(*activenamespace);
 		if(iter->Parameter->IsLocalVariable())
 		{
-			ret.AddParameter(curnamespace.Strings.GetPooledString(iter->Name), paramtype, iter->Parameter->IsReference());
+			ret.AddParameter(activenamespace->Strings.GetPooledString(iter->Name), paramtype, iter->Parameter->IsReference());
 			if(paramtype == VM::EpochType_Function)
-				ret.SetFunctionSignature(index, GetParameterSignature(iter->Name, curnamespace));
+				ret.SetFunctionSignature(index, GetParameterSignature(iter->Name, *activenamespace));
 		}
 		else
 		{
-			iter->Parameter->AddToSignature(ret, curnamespace);
+			iter->Parameter->AddToSignature(ret, *activenamespace);
 		}
 
 		++index;
@@ -429,6 +482,7 @@ FunctionSignature Function::GetFunctionSignature(const Namespace& curnamespace) 
 
 	return ret;
 }
+
 
 //
 // Perform static pattern matching on the parameter at
@@ -509,6 +563,14 @@ void FunctionParamFuncRef::AddToSignature(FunctionSignature&, const Namespace&) 
 	throw InternalException("Cannot pattern match on function signatures");
 }
 
+FunctionParam* FunctionParamFuncRef::Clone() const
+{
+	FunctionParamFuncRef* clone = new FunctionParamFuncRef;
+	clone->ParamTypes = ParamTypes;
+	clone->ReturnType = ReturnType;
+	return clone;
+}
+
 //
 // Validate an expression function parameter
 //
@@ -526,6 +588,11 @@ bool FunctionParamExpression::Validate(const Namespace& curnamespace) const
 FunctionParamExpression::~FunctionParamExpression()
 {
 	delete MyExpression;
+}
+
+FunctionParam* FunctionParamExpression::Clone() const
+{
+	return new FunctionParamExpression(MyExpression->Clone());
 }
 
 //
@@ -604,6 +671,11 @@ void FunctionParamTyped::AddToSignature(FunctionSignature&, const Namespace&) co
 	throw InternalException("Cannot pattern match on this kind of function parameter");
 }
 
+FunctionParam* FunctionParamTyped::Clone() const
+{
+	return new FunctionParamTyped(MyType, IsRef);
+}
+
 //
 // Named parameters cannot participate in pattern matching
 //
@@ -611,3 +683,53 @@ void FunctionParamNamed::AddToSignature(FunctionSignature&, const Namespace&) co
 {
 	throw InternalException("Cannot pattern match on this kind of function parameter");
 }
+
+FunctionParam* FunctionParamNamed::Clone() const
+{
+	FunctionParamNamed* clone = new FunctionParamNamed(MyTypeName, TemplateArgs, IsRef);
+	clone->MyActualType = MyActualType;
+	return clone;
+}
+
+
+void Function::AddTemplateParameter(VM::EpochTypeID type, StringHandle name)
+{
+	TemplateParams.push_back(std::make_pair(name, type));
+}
+
+void Function::SetTemplateArguments(Namespace& curnamespace, const CompileTimeParameterVector& args)
+{
+	TemplateArgs = args;
+	delete DummyNamespace;
+	DummyNamespace = Namespace::CreateTemplateDummy(curnamespace, TemplateParams, TemplateArgs);
+}
+
+void Function::FixupScope()
+{
+	CompileTimeParameterVector argtypes;
+	for(size_t i = 0; i < TemplateArgs.size(); ++i)
+	{
+		if(TemplateParams[i].second == VM::EpochType_Wildcard)
+		{
+			CompileTimeParameter param(L"@templatearg", VM::EpochType_Wildcard);
+			param.Payload.IntegerValue = static_cast<int>(DummyNamespace->Types.GetTypeByName(TemplateArgs[i].Payload.LiteralStringHandleValue));
+			argtypes.push_back(param);
+		}
+		else
+			argtypes.push_back(CompileTimeParameter(L"@templatearg", VM::EpochType_Error));
+	}
+
+	Code->GetScope()->Fixup(TemplateParams, TemplateArgs, argtypes);
+}
+
+StringHandle Function::GetParameterTypeName(StringHandle name) const
+{
+	for(std::vector<Param>::const_iterator iter = Parameters.begin(); iter != Parameters.end(); ++iter)
+	{
+		if(iter->Name == name)
+			return dynamic_cast<const FunctionParamNamed*>(iter->Parameter)->GetTypeName();
+	}
+
+	throw InternalException("Parameter not found");
+}
+

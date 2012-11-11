@@ -163,6 +163,18 @@ void TypeAliasTable::AddWeakAlias(StringHandle aliasname, VM::EpochTypeID repres
 	WeakNameToTypeMap[aliasname] = representationtype;
 }
 
+bool TypeAliasTable::HasWeakAliasNamed(StringHandle name) const
+{
+	return WeakNameToTypeMap.find(name) != WeakNameToTypeMap.end();
+}
+
+
+StringHandle TypeAliasTable::GetWeakTypeBaseName(StringHandle name) const
+{
+	return MyTypeSpace.GetNameOfType(WeakNameToTypeMap.find(name)->second);
+}
+
+
 void TypeAliasTable::AddStrongAlias(StringHandle aliasname, VM::EpochTypeID representationtype, StringHandle representationname)
 {
 	VM::EpochTypeID newtypeid = MyTypeSpace.IDSpace.NewUnitTypeID();
@@ -263,6 +275,11 @@ StringHandle TemplateTable::FindAnonConstructorName(StringHandle instancename) c
 	return AnonConstructorNameCache.Find(instancename);
 }
 
+bool TemplateTable::IsStructureTemplate(StringHandle name) const
+{
+	return NameToTypeMap.find(name) != NameToTypeMap.end();
+}
+
 
 #pragma warning(push)
 #pragma warning(disable: 4355)
@@ -342,6 +359,33 @@ VM::EpochTypeID TypeSpace::GetTypeByName(StringHandle name) const
 
 StringHandle TypeSpace::GetNameOfType(VM::EpochTypeID type) const
 {
+	switch(type)
+	{
+	case VM::EpochType_Boolean:
+		return MyNamespace.Strings.Find(L"boolean");
+
+	case VM::EpochType_Buffer:
+		return MyNamespace.Strings.Find(L"buffer");
+
+	case VM::EpochType_Identifier:
+		return MyNamespace.Strings.Find(L"identifier");
+
+	case VM::EpochType_Integer:
+		return MyNamespace.Strings.Find(L"integer");
+
+	case VM::EpochType_Integer16:
+		return MyNamespace.Strings.Find(L"integer16");
+
+	case VM::EpochType_Nothing:
+		return MyNamespace.Strings.Find(L"nothing");
+
+	case VM::EpochType_Real:
+		return MyNamespace.Strings.Find(L"real");
+
+	case VM::EpochType_String:
+		return MyNamespace.Strings.Find(L"string");
+	}
+
 	// TODO - extend to other names
 
 	for(std::map<StringHandle, VM::EpochTypeID>::const_iterator iter = Structures.NameToTypeMap.begin(); iter != Structures.NameToTypeMap.end(); ++iter)

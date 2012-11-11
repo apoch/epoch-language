@@ -39,6 +39,8 @@ namespace IRSemantics
 		Statement(StringHandle name, const AST::IdentifierT& identifier);
 		~Statement();
 
+		Statement* Clone() const;
+
 	// Non-assignable
 	private:
 		Statement& operator= (const Statement& rhs);
@@ -87,6 +89,7 @@ namespace IRSemantics
 		VM::EpochTypeID MyType;
 		const AST::IdentifierT& OriginalIdentifier;
 		bool CompileTimeCodeExecuted;
+		CompileTimeParameterVector TemplateArgs;
 	};
 
 
@@ -94,11 +97,13 @@ namespace IRSemantics
 	{
 	// Construction
 	public:
-		PreOpStatement(StringHandle operatorname, const std::vector<StringHandle> operand)
+		PreOpStatement(StringHandle operatorname, const std::vector<StringHandle>& operand)
 			: OperatorName(operatorname),
 			  Operand(operand),
 			  MyType(VM::EpochType_Error)
 		{ }
+
+		PreOpStatement* Clone() const;
 
 	// Property access
 	public:
@@ -132,11 +137,13 @@ namespace IRSemantics
 	{
 	// Construction
 	public:
-		PostOpStatement(const std::vector<StringHandle> operand, StringHandle operatorname)
+		PostOpStatement(const std::vector<StringHandle>& operand, StringHandle operatorname)
 			: Operand(operand),
 			  OperatorName(operatorname),
 			  MyType(VM::EpochType_Error)
 		{ }
+
+		PostOpStatement* Clone() const;
 
 	// Property access
 	public:

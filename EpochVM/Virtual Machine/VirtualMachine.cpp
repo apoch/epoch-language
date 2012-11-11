@@ -1411,7 +1411,7 @@ void ExecutionContext::Load()
 					VariableOrigin origin = Fetch<VariableOrigin>();
 					bool isreference = Fetch<bool>();
 
-					scope.AddVariable(OwnerVM.GetPooledString(entryname), entryname, type, isreference, origin);
+					scope.AddVariable(OwnerVM.GetPooledString(entryname), entryname, 0, type, isreference, origin);
 				}
 			}
 			break;

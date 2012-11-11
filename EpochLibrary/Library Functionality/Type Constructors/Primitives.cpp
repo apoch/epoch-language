@@ -156,7 +156,7 @@ namespace
 		}
 
 		VM::EpochTypeID effectivetype = curnamespace.Types.GetTypeByName(statement.GetName());
-		activescope.AddVariable(curnamespace.Strings.GetPooledString(atom->GetIdentifier()), atom->GetIdentifier(), effectivetype, false, origin);
+		activescope.AddVariable(curnamespace.Strings.GetPooledString(atom->GetIdentifier()), atom->GetIdentifier(), statement.GetName(), effectivetype, false, origin);
 	}
 
 }

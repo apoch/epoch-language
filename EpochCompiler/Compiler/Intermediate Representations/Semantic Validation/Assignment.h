@@ -56,6 +56,8 @@ namespace IRSemantics
 		virtual bool TypeInference(Namespace& curnamespace, CodeBlock& activescope, InferenceContext& context, CompileErrors& errors) = 0;
 
 		virtual bool Validate(const Namespace& curnamespace) const = 0;
+
+		virtual AssignmentChain* Clone() const = 0;
 	};
 
 
@@ -68,6 +70,8 @@ namespace IRSemantics
 	public:
 		Assignment(const std::vector<StringHandle>& lhs, StringHandle operatorname, const AST::IdentifierT& originallhs);
 		~Assignment();
+
+		Assignment* Clone() const;
 
 	// Non-copyable
 	private:
@@ -141,6 +145,7 @@ namespace IRSemantics
 		virtual VM::EpochTypeID GetEpochType(const Namespace& curnamespace) const;
 		virtual bool TypeInference(Namespace& curnamespace, CodeBlock& activescope, InferenceContext& context, CompileErrors& errors);
 		virtual bool Validate(const Namespace& curnamespace) const;
+		virtual AssignmentChain* Clone() const;
 
 	// Internal state
 	private:
@@ -175,6 +180,8 @@ namespace IRSemantics
 		virtual bool TypeInference(Namespace& curnamespace, CodeBlock& activescope, InferenceContext& context, CompileErrors& errors);
 		
 		virtual bool Validate(const Namespace& curnamespace) const;
+
+		virtual AssignmentChain* Clone() const;
 
 	// Access to assignment
 	public:
