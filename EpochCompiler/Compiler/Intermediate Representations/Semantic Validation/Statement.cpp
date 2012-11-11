@@ -582,7 +582,7 @@ void Statement::SetTemplateArgs(const CompileTimeParameterVector& args, Namespac
 {
 	if(!args.empty())
 	{
-		if(curnamespace.Types.Templates.IsStructureTemplate(Name))
+		if(curnamespace.Types.Structures.IsStructureTemplate(Name))
 		{
 			RawName = curnamespace.Types.Templates.InstantiateStructure(Name, args);
 			Name = curnamespace.Types.Templates.FindConstructorName(RawName);

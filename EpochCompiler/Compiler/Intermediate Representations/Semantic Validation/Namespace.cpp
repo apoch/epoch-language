@@ -420,7 +420,8 @@ Namespace::Namespace(GlobalIDSpace& idspace, StringPoolManager& strings, Compile
 	  Functions(*this, session),
 	  FunctionTags(session),
 	  Operators(*this, session),
-	  Session(session)
+	  Session(session),
+	  Parent(NULL)
 {
 }
 

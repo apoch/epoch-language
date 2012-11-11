@@ -275,9 +275,13 @@ StringHandle TemplateTable::FindAnonConstructorName(StringHandle instancename) c
 	return AnonConstructorNameCache.Find(instancename);
 }
 
-bool TemplateTable::IsStructureTemplate(StringHandle name) const
+bool StructureTable::IsStructureTemplate(StringHandle name) const
 {
-	return NameToTypeMap.find(name) != NameToTypeMap.end();
+	std::map<StringHandle, Structure*>::const_iterator iter = NameToDefinitionMap.find(name);
+	if(iter == NameToDefinitionMap.end())
+		return false;
+
+	return iter->second->IsTemplate();
 }
 
 
@@ -384,11 +388,32 @@ StringHandle TypeSpace::GetNameOfType(VM::EpochTypeID type) const
 
 	case VM::EpochType_String:
 		return MyNamespace.Strings.Find(L"string");
+
+	case VM::EpochType_Function:
+		return MyNamespace.Strings.Pool(L"function");
 	}
 
 	// TODO - extend to other names
 
 	for(std::map<StringHandle, VM::EpochTypeID>::const_iterator iter = Structures.NameToTypeMap.begin(); iter != Structures.NameToTypeMap.end(); ++iter)
+	{
+		if(iter->second == type)
+			return iter->first;
+	}
+
+	for(std::map<StringHandle, VM::EpochTypeID>::const_iterator iter = Aliases.WeakNameToTypeMap.begin(); iter != Aliases.WeakNameToTypeMap.end(); ++iter)
+	{
+		if(iter->second == type)
+			return iter->first;
+	}
+
+	for(std::map<StringHandle, VM::EpochTypeID>::const_iterator iter = Aliases.StrongNameToTypeMap.begin(); iter != Aliases.StrongNameToTypeMap.end(); ++iter)
+	{
+		if(iter->second == type)
+			return iter->first;
+	}
+
+	for(std::map<StringHandle, VM::EpochTypeID>::const_iterator iter = SumTypes.NameToTypeMap.begin(); iter != SumTypes.NameToTypeMap.end(); ++iter)
 	{
 		if(iter->second == type)
 			return iter->first;

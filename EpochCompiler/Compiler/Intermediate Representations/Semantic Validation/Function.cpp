@@ -727,7 +727,14 @@ StringHandle Function::GetParameterTypeName(StringHandle name) const
 	for(std::vector<Param>::const_iterator iter = Parameters.begin(); iter != Parameters.end(); ++iter)
 	{
 		if(iter->Name == name)
-			return dynamic_cast<const FunctionParamNamed*>(iter->Parameter)->GetTypeName();
+		{
+			const FunctionParamNamed* namedparam = dynamic_cast<const FunctionParamNamed*>(iter->Parameter);
+
+			if(namedparam)
+				return namedparam->GetTypeName();
+
+			return 0;
+		}
 	}
 
 	throw InternalException("Parameter not found");

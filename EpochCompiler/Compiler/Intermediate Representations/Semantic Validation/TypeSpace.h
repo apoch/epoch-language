@@ -94,6 +94,8 @@ namespace IRSemantics
 		StringHandle GetConstructorName(StringHandle structurename) const;
 		VM::EpochTypeID GetMemberType(StringHandle structurename, StringHandle membername) const;
 
+		bool IsStructureTemplate(StringHandle name) const;
+
 	// Internal tracking
 	private:
 		friend class TypeSpace;
@@ -168,8 +170,6 @@ namespace IRSemantics
 
 		const InstantiationMap& GetInstantiations() const
 		{ return Instantiations; }
-
-		bool IsStructureTemplate(StringHandle name) const;
 
 	// Constructor helpers
 	public:
