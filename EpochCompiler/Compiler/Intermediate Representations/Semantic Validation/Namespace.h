@@ -120,6 +120,9 @@ namespace IRSemantics
 
 
 		bool IsFunctionTemplate(StringHandle name) const;
+		StringHandle InstantiateAllOverloads(StringHandle templatename, const CompileTimeParameterVector& args);
+
+	private:
 		StringHandle InstantiateTemplate(StringHandle templatename, const CompileTimeParameterVector& args);
 
 
@@ -290,6 +293,9 @@ namespace IRSemantics
 	private:
 		friend class TypeSpace;
 		friend class FunctionTable;
+		friend class TemplateTable;
+		friend class StructureTable;
+		friend class SumTypeTable;
 
 		CompileSession& Session;
 

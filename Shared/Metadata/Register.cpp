@@ -132,7 +132,7 @@ void Register::PushOntoStack(StackSpace& stack) const
 		break;
 
 	default:
-		if(VM::GetTypeFamily(Type) == VM::EpochTypeFamily_Structure)
+		if(VM::GetTypeFamily(Type) == VM::EpochTypeFamily_Structure || VM::GetTypeFamily(Type) == VM::EpochTypeFamily_TemplateInstance)
 			stack.PushValue(Value_StructureHandle);
 		else
 			throw FatalException("Unsupported type when pushing register value onto stack");

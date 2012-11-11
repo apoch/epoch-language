@@ -27,6 +27,7 @@ struct GlobalGrammar : public boost::spirit::qi::grammar<Lexer::TokenIterT, boos
 	Rule<AST::MetaEntityVector()>::type MetaEntities;
 	Rule<AST::Program()>::type Program;
 
+	Rule<AST::TemplateArgumentList()>::type TemplateArguments;
 	Rule<AST::TemplateParameter()>::type TemplateParameter;
 	Rule<AST::TemplateParameterList()>::type TemplateParameterList;
 
@@ -47,5 +48,6 @@ struct GlobalGrammar : public boost::spirit::qi::grammar<Lexer::TokenIterT, boos
 	Rule<AST::DeferredTypeAlias()>::type TypeAlias;
 	Rule<AST::DeferredStrongTypeAlias()>::type StrongTypeAlias;
 	Rule<AST::DeferredSumType()>::type SumType;
+	Rule<AST::SumTypeBaseType()>::type SumTypeBaseType;
 };
 

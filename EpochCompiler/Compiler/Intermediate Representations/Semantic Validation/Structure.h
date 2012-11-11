@@ -87,10 +87,18 @@ namespace IRSemantics
 		StringHandle GetNameOfType() const
 		{ return MyType; }
 
+	// Template support
+	public:
+		void SubstituteTemplateArgs(const std::vector<std::pair<StringHandle, VM::EpochTypeID> >& params, const CompileTimeParameterVector& args, Namespace& curnamespace);
+
+		void SetTemplateArgs(const CompileTimeParameterVector& args)
+		{ TemplateArgs = args; }
+
 	// Internal state
 	private:
 		StringHandle MyType;
 		const AST::IdentifierT& TypeIdentifier;
+		CompileTimeParameterVector TemplateArgs;
 	};
 
 
@@ -171,6 +179,7 @@ namespace IRSemantics
 	// Template support
 	public:
 		void AddTemplateParameter(VM::EpochTypeID type, StringHandle name);
+		void SetMemberTemplateArgs(StringHandle membername, const CompileTimeParameterVector& args);
 
 	// Validation
 	public:

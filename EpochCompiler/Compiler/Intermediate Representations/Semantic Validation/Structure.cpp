@@ -207,6 +207,15 @@ bool Structure::InstantiateTemplate(StringHandle myname, const CompileTimeParame
 
 	// TODO - sanity check (someplace, probably not here) that args matches our template param list
 
+	for(std::vector<std::pair<StringHandle, StructureMember*> >::iterator iter = Members.begin(); iter != Members.end(); ++iter)
+	{
+		StructureMemberVariable* var = dynamic_cast<StructureMemberVariable*>(iter->second);
+		if(var)
+		{
+			var->SubstituteTemplateArgs(TemplateParams, args, curnamespace);
+		}
+	}
+
 	curnamespace.Functions.GenerateStructureFunctions(myname, this);
 	GenerateConstructors(myname, curnamespace.Types.Templates.FindConstructorName(myname), curnamespace.Types.Templates.FindAnonConstructorName(myname), args, curnamespace, errors);
 	return true;
@@ -290,5 +299,49 @@ FunctionSignature StructureMemberFunctionReference::GetSignature(const Namespace
 void Structure::AddTemplateParameter(VM::EpochTypeID type, StringHandle name)
 {
 	TemplateParams.push_back(std::make_pair(name, type));
+}
+
+
+void Structure::SetMemberTemplateArgs(StringHandle membername, const CompileTimeParameterVector& args)
+{
+	for(std::vector<std::pair<StringHandle, StructureMember*> >::const_iterator iter = Members.begin(); iter != Members.end(); ++iter)
+	{
+		if(iter->first == membername)
+		{
+			StructureMemberVariable* var = dynamic_cast<StructureMemberVariable*>(iter->second);
+			if(!var)
+				throw InternalException("Wrong kind of structure member");
+
+			var->SetTemplateArgs(args);
+			return;
+		}
+	}
+
+	throw InternalException("Invalid structure member");
+}
+
+
+void StructureMemberVariable::SubstituteTemplateArgs(const std::vector<std::pair<StringHandle, VM::EpochTypeID> >& params, const CompileTimeParameterVector& args, Namespace& curnamespace)
+{
+	if(TemplateArgs.empty())
+		return;
+
+	// Simplify arguments as much as possible first
+	for(CompileTimeParameterVector::iterator iter = TemplateArgs.begin(); iter != TemplateArgs.end(); ++iter)
+	{
+		for(size_t i = 0; i < params.size(); ++i)
+		{
+			if(params[i].first == iter->Payload.LiteralStringHandleValue)
+				iter->Payload.LiteralStringHandleValue = args[i].Payload.LiteralStringHandleValue;
+		}
+	}
+
+	// Now modify my name and type as appropriate
+	if(curnamespace.Types.Structures.IsStructureTemplate(MyType))
+		MyType = curnamespace.Types.Templates.InstantiateStructure(MyType, TemplateArgs);
+	else if(curnamespace.Types.SumTypes.IsTemplate(MyType))
+		MyType = curnamespace.Types.SumTypes.InstantiateTemplate(MyType, TemplateArgs);
+	else
+		throw NotImplementedException("Template parameterization not implemented in this context");
 }
 

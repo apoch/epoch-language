@@ -119,6 +119,14 @@ VM::EpochTypeID SumTypeTable::Add(const std::wstring& name, CompileErrors& error
 bool SumTypeTable::IsBaseType(VM::EpochTypeID sumtypeid, VM::EpochTypeID basetype) const
 {
 	std::map<VM::EpochTypeID, std::set<StringHandle> >::const_iterator iter = BaseTypeNames.find(sumtypeid);
+	if(iter == BaseTypeNames.end())
+	{
+		if(MyTypeSpace.MyNamespace.Parent)
+			return MyTypeSpace.MyNamespace.Parent->Types.SumTypes.IsBaseType(sumtypeid, basetype);
+
+		throw InternalException("Undefined sum type");
+	}
+
 	for(std::set<StringHandle>::const_iterator btiter = iter->second.begin(); btiter != iter->second.end(); ++btiter)
 	{
 		if(MyTypeSpace.GetTypeByName(*btiter) == basetype)
@@ -131,6 +139,97 @@ bool SumTypeTable::IsBaseType(VM::EpochTypeID sumtypeid, VM::EpochTypeID basetyp
 void SumTypeTable::AddBaseTypeToSumType(VM::EpochTypeID sumtypeid, StringHandle basetypename)
 {
 	BaseTypeNames[sumtypeid].insert(basetypename);
+}
+
+StringHandle SumTypeTable::InstantiateTemplate(StringHandle templatename, const CompileTimeParameterVector& originalargs)
+{
+	CompileTimeParameterVector args(originalargs);
+	for(CompileTimeParameterVector::iterator iter = args.begin(); iter != args.end(); ++iter)
+	{
+		// TODO - filter this to arguments that are typenames?
+		if(MyTypeSpace.Aliases.HasWeakAliasNamed(iter->Payload.LiteralStringHandleValue))
+			iter->Payload.LiteralStringHandleValue = MyTypeSpace.Aliases.GetWeakTypeBaseName(iter->Payload.LiteralStringHandleValue);
+	}
+
+	TypeSpace* typespace = &MyTypeSpace;
+	while(typespace)
+	{
+		//if(typespace->SumTypes.NameToTypeMap.find(templatename) != typespace->SumTypes.NameToTypeMap.end())
+		//	return templatename;
+
+		InstantiationMap::iterator iter = typespace->SumTypes.Instantiations.find(templatename);
+		if(iter != typespace->SumTypes.Instantiations.end())
+		{
+			InstancesAndArguments& instances = iter->second;
+
+			for(InstancesAndArguments::const_iterator instanceiter = instances.begin(); instanceiter != instances.end(); ++instanceiter)
+			{
+				if(args.size() != instanceiter->second.size())
+					continue;
+
+				bool match = true;
+				for(unsigned i = 0; i < args.size(); ++i)
+				{
+					if(!args[i].PatternMatch(instanceiter->second[i]))
+					{
+						match = false;
+						break;
+					}
+				}
+
+				if(match)
+					return instanceiter->first;
+			}
+		}
+
+		if(!typespace->MyNamespace.Parent)
+			break;
+
+		typespace = &typespace->MyNamespace.Parent->Types;
+	}
+
+	VM::EpochTypeID type = MyTypeSpace.IDSpace.NewSumTypeID();
+	std::wstring mangled = GenerateTemplateMangledName(type);
+	StringHandle mangledname = MyTypeSpace.MyNamespace.Strings.Pool(mangled);
+	Instantiations[templatename].insert(std::make_pair(mangledname, args));
+	NameToTypeMap[mangledname] = type;
+	
+	for(std::set<StringHandle>::const_iterator iter = BaseTypeNames[NameToTypeMap[templatename]].begin(); iter != BaseTypeNames[NameToTypeMap[templatename]].end(); ++iter)
+	{
+		if(MyTypeSpace.Structures.IsStructureTemplate(*iter))
+		{
+			// TODO - remap passed-in arguments to the arguments expected by this structure template
+			StringHandle structurename = MyTypeSpace.Templates.InstantiateStructure(*iter, args);
+			BaseTypeNames[type].insert(structurename);
+		}
+		else
+			BaseTypeNames[type].insert(*iter);
+	}
+
+	return mangledname;
+}
+
+std::wstring SumTypeTable::GenerateTemplateMangledName(VM::EpochTypeID type)
+{
+	std::wostringstream formatter;
+	formatter << "@@sumtemplateinst@" << (type & 0xffffff);
+	return formatter.str();
+}
+
+bool SumTypeTable::IsTemplate(StringHandle name) const
+{
+	if(NameToParamsMap.find(name) != NameToParamsMap.end())
+		return true;
+
+	if(MyTypeSpace.MyNamespace.Parent)
+		return MyTypeSpace.MyNamespace.Parent->Types.SumTypes.IsTemplate(name);
+
+	return false;
+}
+
+void SumTypeTable::AddTemplateParameter(VM::EpochTypeID sumtype, StringHandle name)
+{
+	NameToParamsMap[MyTypeSpace.GetNameOfType(sumtype)].push_back(name);
 }
 
 
@@ -187,14 +286,28 @@ StringHandle SumTypeTable::MapConstructorName(StringHandle sumtypeoverloadname) 
 {
 	std::map<StringHandle, StringHandle>::const_iterator iter = NameToConstructorMap.find(sumtypeoverloadname);
 	if(iter == NameToConstructorMap.end())
+	{
+		if(MyTypeSpace.MyNamespace.Parent)
+			return MyTypeSpace.MyNamespace.Parent->Types.SumTypes.MapConstructorName(sumtypeoverloadname);
+
 		return sumtypeoverloadname;
+	}
 
 	return iter->second;
 }
 
 unsigned SumTypeTable::GetNumBaseTypes(VM::EpochTypeID type) const
 {
-	return BaseTypeNames.find(type)->second.size();
+	std::map<VM::EpochTypeID, std::set<StringHandle> >::const_iterator iter = BaseTypeNames.find(type);
+	if(iter == BaseTypeNames.end())
+	{
+		if(MyTypeSpace.MyNamespace.Parent)
+			return MyTypeSpace.MyNamespace.Parent->Types.SumTypes.GetNumBaseTypes(type);
+
+		throw InternalException("Not a defined sum type");
+	}
+
+	return iter->second.size();
 }
 
 std::map<VM::EpochTypeID, std::set<VM::EpochTypeID> > SumTypeTable::GetDefinitions() const
@@ -223,63 +336,96 @@ std::wstring TemplateTable::GenerateTemplateMangledName(VM::EpochTypeID type)
 }
 
 
-StringHandle TemplateTable::InstantiateStructure(StringHandle templatename, const CompileTimeParameterVector& args)
+StringHandle TemplateTable::InstantiateStructure(StringHandle templatename, const CompileTimeParameterVector& originalargs)
 {
-	InstantiationMap::iterator iter = Instantiations.find(templatename);
-	if(iter != Instantiations.end())
+	CompileTimeParameterVector args(originalargs);
+	for(CompileTimeParameterVector::iterator iter = args.begin(); iter != args.end(); ++iter)
 	{
-		InstancesAndArguments& instances = iter->second;
-
-		for(InstancesAndArguments::const_iterator instanceiter = instances.begin(); instanceiter != instances.end(); ++instanceiter)
-		{
-			if(args.size() != instanceiter->second.size())
-				continue;
-
-			bool match = true;
-			for(unsigned i = 0; i < args.size(); ++i)
-			{
-				if(!args[i].PatternMatch(instanceiter->second[i]))
-				{
-					match = false;
-					break;
-				}
-			}
-
-			if(match)
-				return instanceiter->first;
-		}
+		// TODO - filter this to arguments that are typenames?
+		if(MyTypeSpace.Aliases.HasWeakAliasNamed(iter->Payload.LiteralStringHandleValue))
+			iter->Payload.LiteralStringHandleValue = MyTypeSpace.Aliases.GetWeakTypeBaseName(iter->Payload.LiteralStringHandleValue);
 	}
 
-	VM::EpochTypeID type = MyTypeSpace.IDSpace.NewTemplateInstantiation();
+	TypeSpace* typespace = &MyTypeSpace;
+	while(typespace)
+	{
+		if(typespace->Templates.NameToTypeMap.find(templatename) != typespace->Templates.NameToTypeMap.end())
+			return templatename;
+
+		InstantiationMap::iterator iter = typespace->Templates.Instantiations.find(templatename);
+		if(iter != typespace->Templates.Instantiations.end())
+		{
+			InstancesAndArguments& instances = iter->second;
+
+			for(InstancesAndArguments::const_iterator instanceiter = instances.begin(); instanceiter != instances.end(); ++instanceiter)
+			{
+				if(args.size() != instanceiter->second.size())
+					continue;
+
+				bool match = true;
+				for(unsigned i = 0; i < args.size(); ++i)
+				{
+					if(!args[i].PatternMatch(instanceiter->second[i]))
+					{
+						match = false;
+						break;
+					}
+				}
+
+				if(match)
+					return instanceiter->first;
+			}
+		}
+
+		if(!typespace->MyNamespace.Parent)
+			break;
+
+		typespace = &typespace->MyNamespace.Parent->Types;
+	}
+
+	VM::EpochTypeID type = typespace->IDSpace.NewTemplateInstantiation();
 	std::wstring mangled = GenerateTemplateMangledName(type);
-	StringHandle mangledname = MyTypeSpace.MyNamespace.Strings.Pool(mangled);
-	Instantiations[templatename].insert(std::make_pair(mangledname, args));
-	NameToTypeMap[mangledname] = type;
+	StringHandle mangledname = typespace->MyNamespace.Strings.Pool(mangled);
+	typespace->Templates.Instantiations[templatename].insert(std::make_pair(mangledname, args));
+	typespace->Templates.NameToTypeMap[mangledname] = type;
 
 	StringHandle constructorname = MyTypeSpace.MyNamespace.Strings.Pool(mangled + L"@@constructor");
 	StringHandle anonconstructorname = MyTypeSpace.MyNamespace.Strings.Pool(mangled + L"@@anonconstructor");
 
-	ConstructorNameCache.Add(mangledname, constructorname);
-	AnonConstructorNameCache.Add(mangledname, anonconstructorname);
+	typespace->Templates.ConstructorNameCache.Add(mangledname, constructorname);
+	typespace->Templates.AnonConstructorNameCache.Add(mangledname, anonconstructorname);
 
 	return mangledname;
 }
 
 StringHandle TemplateTable::FindConstructorName(StringHandle instancename) const
 {
-	return ConstructorNameCache.Find(instancename);
+	StringHandle ret = ConstructorNameCache.Find(instancename);
+	if(!ret && MyTypeSpace.MyNamespace.Parent)
+		return MyTypeSpace.MyNamespace.Parent->Types.Templates.FindConstructorName(instancename);
+
+	return ret;
 }
 
 StringHandle TemplateTable::FindAnonConstructorName(StringHandle instancename) const
 {
-	return AnonConstructorNameCache.Find(instancename);
+	StringHandle ret = AnonConstructorNameCache.Find(instancename);
+	if(!ret && MyTypeSpace.MyNamespace.Parent)
+		return MyTypeSpace.MyNamespace.Parent->Types.Templates.FindAnonConstructorName(instancename);
+
+	return ret;
 }
 
 bool StructureTable::IsStructureTemplate(StringHandle name) const
 {
 	std::map<StringHandle, Structure*>::const_iterator iter = NameToDefinitionMap.find(name);
 	if(iter == NameToDefinitionMap.end())
+	{
+		if(MyTypeSpace.MyNamespace.Parent)
+			return MyTypeSpace.MyNamespace.Parent->Types.Structures.IsStructureTemplate(name);
+
 		return false;
+	}
 
 	return iter->second->IsTemplate();
 }
@@ -343,7 +489,10 @@ VM::EpochTypeID TypeSpace::GetTypeByName(StringHandle name) const
 	{
 		std::map<StringHandle, VM::EpochTypeID>::const_iterator iter = SumTypes.NameToTypeMap.find(name);
 		if(iter != SumTypes.NameToTypeMap.end())
-			return iter->second;
+		{
+			if(!SumTypes.IsTemplate(name))
+				return iter->second;
+		}
 	}
 
 	{
@@ -357,6 +506,9 @@ VM::EpochTypeID TypeSpace::GetTypeByName(StringHandle name) const
 		if(iter != SumTypes.NameToConstructorMap.end())
 			return GetTypeByName(iter->second);
 	}
+
+	if(MyNamespace.Parent)
+		return MyNamespace.Parent->Types.GetTypeByName(name);
 
 	return VM::EpochType_Error;
 }
@@ -425,6 +577,9 @@ StringHandle TypeSpace::GetNameOfType(VM::EpochTypeID type) const
 			return iter->first;
 	}
 
+	if(MyNamespace.Parent)
+		return MyNamespace.Parent->Types.GetNameOfType(type);
+
 	//
 	// This catches a potential logic bug in the compiler implementation.
 	//
@@ -477,14 +632,14 @@ bool TypeSpace::CompileTimeCodeExecution(CompileErrors& errors)
 	{
 		if(iter->second->IsTemplate())
 		{
-			const TemplateTable::InstancesAndArguments& instances = Templates.Instantiations[iter->first];
+			const InstancesAndArguments& instances = Templates.Instantiations[iter->first];
 			if(instances.empty())
 			{
 				errors.SemanticError("Template never instantiated");
 				return false;
 			}
 
-			for(TemplateTable::InstancesAndArguments::const_iterator instanceiter = instances.begin(); instanceiter != instances.end(); ++instanceiter)
+			for(InstancesAndArguments::const_iterator instanceiter = instances.begin(); instanceiter != instances.end(); ++instanceiter)
 			{
 				if(!iter->second->InstantiateTemplate(instanceiter->first, instanceiter->second, MyNamespace, errors))
 					return false;
@@ -496,6 +651,8 @@ bool TypeSpace::CompileTimeCodeExecution(CompileErrors& errors)
 	for(std::map<VM::EpochTypeID, std::set<StringHandle> >::const_iterator iter = SumTypes.BaseTypeNames.begin(); iter != SumTypes.BaseTypeNames.end(); ++iter)
 	{
 		VM::EpochTypeID sumtypeid = iter->first;
+		if(SumTypes.IsTemplate(GetNameOfType(sumtypeid)))
+			continue;
 
 		// TODO - refactor a bit
 		//////////////////////////////////////
@@ -548,6 +705,25 @@ bool TypeSpace::CompileTimeCodeExecution(CompileErrors& errors)
 
 			StringHandle overloadname = MyNamespace.Strings.Pool(overloadnamebuilder.str());
 			MyNamespace.Session.FunctionOverloadNames[sumtypeconstructorname].insert(overloadname);
+
+			switch(VM::GetTypeFamily(GetTypeByName(basetypename)))
+			{
+			case VM::EpochTypeFamily_Magic:
+			case VM::EpochTypeFamily_Primitive:
+				// No adjustment needed
+				break;
+
+			case VM::EpochTypeFamily_Structure:
+				basetypename = Structures.GetConstructorName(basetypename);
+				break;
+
+			case VM::EpochTypeFamily_TemplateInstance:
+				basetypename = Templates.FindConstructorName(basetypename);
+				break;
+
+			default:
+				throw NotImplementedException("Sum types with this base type not supported");
+			}
 
 			MyNamespace.Session.CompileTimeHelpers.insert(std::make_pair(overloadname, MyNamespace.Session.CompileTimeHelpers.find(basetypename)->second));
 			MyNamespace.Session.FunctionSignatures.insert(std::make_pair(overloadname, MyNamespace.Session.FunctionSignatures.find(basetypename)->second));

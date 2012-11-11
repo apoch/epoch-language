@@ -343,6 +343,7 @@ namespace ASTTraverse
 		AST::IdentifierT* ErrorContext;
 
 		VM::EpochTypeID CurrentSumType;
+		StringHandle LastStructureMemberName;
 
 	public:
 		CompileErrors Errors;

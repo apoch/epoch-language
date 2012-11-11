@@ -28,8 +28,8 @@ void CompileConstructorStructure(IRSemantics::Statement& statement, Namespace& c
 
 
 Function::Function(const Function* templatefunc, Namespace& curnamespace, const CompileTimeParameterVector& args)
-	: Code(templatefunc->Code->Clone()),
-	  Return(templatefunc->Return->Clone()),
+	: Code(templatefunc->Code ? templatefunc->Code->Clone() : NULL),
+	  Return(templatefunc->Return ? templatefunc->Return->Clone() : NULL),
 	  InferenceDone(false),
 	  SuppressReturn(false),
 	  Name(0),
@@ -44,6 +44,13 @@ Function::Function(const Function* templatefunc, Namespace& curnamespace, const 
 		Parameters.push_back(iter->Clone());
 
 	SetTemplateArguments(curnamespace, args);
+
+	for(std::vector<Param>::const_iterator iter = Parameters.begin(); iter != Parameters.end(); ++iter)
+	{
+		FunctionParamNamed* named = dynamic_cast<FunctionParamNamed*>(iter->Parameter);
+		if(named)
+			named->SubstituteTemplateArgs(TemplateParams, args, curnamespace);
+	}
 }
 
 
@@ -532,6 +539,27 @@ bool FunctionParamNamed::TypeInference(Namespace& curnamespace, CompileErrors&)
 	return true;
 }
 
+void FunctionParamNamed::SubstituteTemplateArgs(const std::vector<std::pair<StringHandle, VM::EpochTypeID> >& params, const CompileTimeParameterVector& args, Namespace& curnamespace)
+{
+	if(TemplateArgs.empty())
+		return;
+
+	// Simplify arguments as much as possible first
+	for(CompileTimeParameterVector::iterator iter = TemplateArgs.begin(); iter != TemplateArgs.end(); ++iter)
+	{
+		for(size_t i = 0; i < params.size(); ++i)
+		{
+			if(params[i].first == iter->Payload.LiteralStringHandleValue)
+				iter->Payload.LiteralStringHandleValue = args[i].Payload.LiteralStringHandleValue;
+		}
+	}
+
+	// Now modify my name and type as appropriate
+	MyTypeName = curnamespace.Types.Templates.InstantiateStructure(MyTypeName, TemplateArgs);
+}
+
+
+
 //
 // Validate a higher order function parameter
 //
@@ -738,5 +766,29 @@ StringHandle Function::GetParameterTypeName(StringHandle name) const
 	}
 
 	throw InternalException("Parameter not found");
+}
+
+void Function::PopulateScope(Namespace& curnamespace)
+{
+	Namespace* activenamespace;
+
+	if(TemplateArgs.empty())
+		activenamespace = &curnamespace;
+	else
+		activenamespace = DummyNamespace;
+
+	// TODO - simplify/optimize
+	for(std::vector<Param>::const_iterator iter = Parameters.begin(); iter != Parameters.end(); ++iter)
+	{
+		if(iter->Parameter->IsLocalVariable())
+		{
+			const FunctionParamNamed* namedparam = dynamic_cast<const FunctionParamNamed*>(iter->Parameter);
+
+			StringHandle nameoftype = namedparam->GetTypeName();
+			VM::EpochTypeID type = activenamespace->Types.GetTypeByName(nameoftype);
+			bool isref = namedparam->IsReference();
+			GetCode()->AddVariable(curnamespace.Strings.GetPooledString(iter->Name), iter->Name, nameoftype, type, isref, VARIABLE_ORIGIN_PARAMETER);
+		}
+	}
 }
 

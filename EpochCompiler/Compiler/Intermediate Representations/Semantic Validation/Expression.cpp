@@ -973,9 +973,8 @@ bool ExpressionAtomIdentifierBase::CompileTimeCodeExecution(Namespace&, CodeBloc
 
 ExpressionAtom* ExpressionAtomIdentifierBase::Clone() const
 {
-	ExpressionAtomIdentifierBase* clone = new ExpressionAtomIdentifierBase(Identifier, OriginalIdentifier);
-	clone->MyType = MyType;
-	return clone;
+	// TODO - better exceptions
+	throw InternalException("Bork!");
 }
 
 ExpressionAtom* ExpressionAtomIdentifier::Clone() const

@@ -80,6 +80,7 @@ namespace IRSemantics
 	// Template support
 	public:
 		void SetTemplateArgs(const CompileTimeParameterVector& args, Namespace& curnamespace);
+		void SetTemplateArgsDeferred(const CompileTimeParameterVector& args);
 
 	// Internal state
 	private:
@@ -90,6 +91,7 @@ namespace IRSemantics
 		const AST::IdentifierT& OriginalIdentifier;
 		bool CompileTimeCodeExecuted;
 		CompileTimeParameterVector TemplateArgs;
+		bool NeedsInstantiation;
 	};
 
 

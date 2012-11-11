@@ -41,6 +41,8 @@
 #include "Compiler/Abstract Syntax Tree/Statement.h"
 #include "Compiler/Abstract Syntax Tree/Structures.h"
 #include "Compiler/Abstract Syntax Tree/Expression.h"
+#include "Compiler/Abstract Syntax Tree/TypeDefinitions.h"
+
 
 namespace ASTTraverse
 {
@@ -176,12 +178,25 @@ namespace ASTTraverse
 		}
 
 		//
+		// Traverse a base type in a sum type definition
+		//
+		template <typename EntryActionT, typename ExitActionT>
+		void Do(EntryActionT& entryaction, AST::SumTypeBaseType& sumbase, ExitActionT& exitaction)
+		{
+			entryaction(sumbase.TypeName);
+			exitaction(sumbase.TypeName);
+
+			Do(entryaction, sumbase.TemplateArgs, exitaction);
+		}
+
+		//
 		// Traverse a sum type definition
 		//
 		template <typename EntryActionT, typename ExitActionT>
 		void Do(EntryActionT& entryaction, AST::SumType& sumtype, ExitActionT& exitaction)
 		{
 			entryaction(sumtype);
+			Do(entryaction, sumtype.TemplateParams, exitaction);
 			Do(entryaction, sumtype.AdditionalBaseTypes, exitaction);
 			exitaction(sumtype);
 		}
@@ -414,6 +429,19 @@ namespace ASTTraverse
 			Do(entryaction, function.Tags, exitaction);
 			Do(entryaction, function.Code, exitaction);
 			exitaction(function);
+		}
+
+		template <typename EntryActionT, typename ExitActionT>
+		void Do(EntryActionT& entryaction, AST::StructureMemberVariable& variable, ExitActionT& exitaction)
+		{
+			entryaction(variable);
+
+			Markers::TemplateArgs marker;
+			entryaction(marker);
+			Do(entryaction, variable.TemplateArgs, exitaction);
+			exitaction(marker);
+
+			exitaction(variable);
 		}
 
 		//

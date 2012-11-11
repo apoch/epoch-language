@@ -260,6 +260,7 @@ void CompilePassSemantics::EntryHelper::operator () (AST::Undefined&)
 			case STATE_STRUCTURE_FUNCTION_RETURN:
 			case STATE_FUNCTION_SIGNATURE_RETURN:
 			case STATE_FUNCTION_PARAM:
+			case STATE_SUM_TYPE:
 				return;
 			}
 		}
@@ -275,7 +276,7 @@ void CompilePassSemantics::EntryHelper::operator () (AST::Undefined&)
 		//  3. Empty function tag specifiers
 		//  4. Omitted function code blocks
 		//  5. Omitted "ref" tag on function parameters
-		//  6. Omitted template parameters on structure definitions
+		//  6. Omitted template parameters/arguments
 		//
 		// Any other presence of an undefined node represents
 		// a mistake in the parser. Ensure that parser errors
@@ -387,6 +388,7 @@ void CompilePassSemantics::EntryHelper::operator () (AST::StructureMemberVariabl
 	self->ErrorContext = &variable.Name;
 	self->CurrentStructures.back()->AddMember(name, member.release(), self->Errors);
 	self->ErrorContext = NULL;
+	self->LastStructureMemberName = name;
 }
 
 //
@@ -449,17 +451,9 @@ void CompilePassSemantics::ExitHelper::operator () (AST::Function& function)
 		self->CurrentFunctions.back()->SetCode(new IRSemantics::CodeBlock(lexicalscope.release()));
 	}
 
-	const std::vector<StringHandle>& params = self->CurrentFunctions.back()->GetParameterNames();
-	for(std::vector<StringHandle>::const_iterator iter = params.begin(); iter != params.end(); ++iter)
-	{
-		if(self->CurrentFunctions.back()->IsParameterLocalVariable(*iter))
-		{
-			StringHandle nameoftype = self->CurrentFunctions.back()->GetParameterTypeName(*iter);
-			VM::EpochTypeID type = self->CurrentFunctions.back()->GetParameterType(*iter, *self->CurrentNamespace, self->Errors);
-			bool isref = self->CurrentFunctions.back()->IsParameterReference(*iter);
-			self->CurrentFunctions.back()->GetCode()->AddVariable(self->CurrentProgram->GetString(*iter), *iter, nameoftype, type, isref, VARIABLE_ORIGIN_PARAMETER);
-		}
-	}
+	// TODO - move this into the function class itself, and call it when a function template is instantiated
+	if(!self->CurrentFunctions.back()->IsTemplate())
+		self->CurrentFunctions.back()->PopulateScope(*self->CurrentNamespace);
 
 	if(self->CurrentFunctions.size() == 1)
 	{
@@ -1383,7 +1377,7 @@ void CompilePassSemantics::EntryHelper::operator () (AST::SumType& sumtype)
 	self->StateStack.push(CompilePassSemantics::STATE_SUM_TYPE);
 	self->CurrentSumType = self->CurrentNamespace->Types.SumTypes.Add(std::wstring(sumtype.SumTypeName.begin(), sumtype.SumTypeName.end()), self->Errors);
 	
-	std::wstring firstbaseraw(sumtype.FirstBaseType.begin(), sumtype.FirstBaseType.end());
+	std::wstring firstbaseraw(sumtype.FirstBaseType.TypeName.begin(), sumtype.FirstBaseType.TypeName.end());
 	self->CurrentNamespace->Types.SumTypes.AddBaseTypeToSumType(self->CurrentSumType, self->CurrentProgram->AddString(firstbaseraw));
 }
 
@@ -1438,6 +1432,10 @@ void CompilePassSemantics::EntryHelper::operator () (AST::TemplateParameter& par
 
 	case CompilePassSemantics::STATE_FUNCTION:
 		self->CurrentFunctions.back()->AddTemplateParameter(VM::EpochType_Wildcard, paramname);
+		break;
+
+	case CompilePassSemantics::STATE_SUM_TYPE:
+		self->CurrentNamespace->Types.SumTypes.AddTemplateParameter(self->CurrentSumType, paramname);
 		break;
 
 	default:
@@ -1544,11 +1542,18 @@ void CompilePassSemantics::ExitHelper::operator () (Markers::TemplateArgs&)
 	switch(self->StateStack.top())
 	{
 	case CompilePassSemantics::STATE_STATEMENT:
-		self->CurrentStatements.back()->SetTemplateArgs(*self->CurrentTemplateArgs.back(), *self->CurrentNamespace);
+		if(!self->CurrentFunctions.back()->IsTemplate())
+			self->CurrentStatements.back()->SetTemplateArgs(*self->CurrentTemplateArgs.back(), *self->CurrentNamespace);
+		else
+			self->CurrentStatements.back()->SetTemplateArgsDeferred(*self->CurrentTemplateArgs.back());
 		break;
 
 	case CompilePassSemantics::STATE_FUNCTION_PARAM:
 		self->CurrentTemplateArgsScratch = *self->CurrentTemplateArgs.back();
+		break;
+
+	case CompilePassSemantics::STATE_STRUCTURE:
+		self->CurrentStructures.back()->SetMemberTemplateArgs(self->LastStructureMemberName, *self->CurrentTemplateArgs.back());
 		break;
 
 	default:

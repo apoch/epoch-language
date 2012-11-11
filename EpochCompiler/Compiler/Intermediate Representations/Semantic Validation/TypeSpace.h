@@ -34,6 +34,10 @@ namespace IRSemantics
 	class Namespace;
 
 
+	// Handy type shortcuts
+	typedef std::map<StringHandle, CompileTimeParameterVector> InstancesAndArguments;
+	typedef std::map<StringHandle, InstancesAndArguments> InstantiationMap;
+
 	//
 	// Helper class for managing type IDs
 	//
@@ -134,6 +138,17 @@ namespace IRSemantics
 
 		std::map<VM::EpochTypeID, std::set<VM::EpochTypeID> > GetDefinitions() const;
 
+	// Templated sum type support
+	public:
+		void AddTemplateParameter(VM::EpochTypeID sumtype, StringHandle name);
+
+		bool IsTemplate(StringHandle name) const;
+		StringHandle InstantiateTemplate(StringHandle templatename, const CompileTimeParameterVector& args);
+
+	// Internal helpers
+	private:
+		static std::wstring GenerateTemplateMangledName(VM::EpochTypeID type);
+
 	// Internal tracking
 	private:
 		friend class TypeSpace;
@@ -142,6 +157,9 @@ namespace IRSemantics
 		std::map<StringHandle, VM::EpochTypeID> NameToTypeMap;
 		std::map<StringHandle, StringHandle> NameToConstructorMap;
 		std::map<VM::EpochTypeID, std::set<StringHandle> > BaseTypeNames;
+
+		InstantiationMap Instantiations;
+		std::map<StringHandle, std::vector<StringHandle> > NameToParamsMap;
 	};
 
 
@@ -150,11 +168,6 @@ namespace IRSemantics
 	//
 	class TemplateTable
 	{
-	// Handy type shortcuts
-	public:
-		typedef std::map<StringHandle, CompileTimeParameterVector> InstancesAndArguments;
-		typedef std::map<StringHandle, InstancesAndArguments> InstantiationMap;
-
 	// Construction
 	public:
 		explicit TemplateTable(TypeSpace& typespace);

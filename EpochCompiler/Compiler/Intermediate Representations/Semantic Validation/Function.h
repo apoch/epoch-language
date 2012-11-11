@@ -96,6 +96,10 @@ namespace IRSemantics
 		StringHandle GetTypeName() const
 		{ return MyTypeName; }
 
+	// Template support
+	public:
+		void SubstituteTemplateArgs(const std::vector<std::pair<StringHandle, VM::EpochTypeID> >& params, const CompileTimeParameterVector& args, Namespace& curnamespace);
+
 	// Internal state
 	private:
 		StringHandle MyTypeName;
@@ -319,6 +323,8 @@ namespace IRSemantics
 		{ return Parameters.size(); }
 
 		bool PatternMatchParameter(size_t index, const CompileTimeParameter& param, const Namespace& curnamespace) const;
+
+		void PopulateScope(Namespace& curnamespace);
 
 	// Returns
 	public:

@@ -527,7 +527,7 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 						break;
 
 					default:
-						if(GetTypeFamily(membertype) == EpochTypeFamily_Structure)
+						if(GetTypeFamily(membertype) == EpochTypeFamily_Structure || GetTypeFamily(membertype) == EpochTypeFamily_TemplateInstance)
 							State.ReturnValueRegister.SetStructure(structure.ReadMember<StructureHandle>(memberindex), membertype);
 						else
 							throw FatalException("Unhandled structure member type");
@@ -2031,7 +2031,7 @@ void ExecutionContext::WriteStructureMember(ActiveStructure& structure, size_t m
 			structure.WriteSumTypeMemberType(memberindex, actualtype);
 			WriteStructureMember(structure, memberindex, actualtype);
 		}
-		else if(GetTypeFamily(membertype) == EpochTypeFamily_Structure)
+		else if(GetTypeFamily(membertype) == EpochTypeFamily_Structure || GetTypeFamily(membertype) == EpochTypeFamily_TemplateInstance)
 			structure.WriteMember(memberindex, State.Stack.PopValue<StructureHandle>());
 		else
 			throw FatalException("Unhandled structure member type");

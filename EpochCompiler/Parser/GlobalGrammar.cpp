@@ -22,18 +22,20 @@ GlobalGrammar::GlobalGrammar(const Lexer::EpochLexerT& lexer, const FunctionDefi
 	ParamTypeSpec %= -(as<AST::IdentifierT>()[lexer.StringIdentifier] % lexer.Comma);
 	ReturnTypeSpec %= lexer.Arrow >> lexer.StringIdentifier;
 
+	TemplateArguments %= lexer.OpenAngleBracket >> ((as<AST::IdentifierT>()[lexer.StringIdentifier] | as<AST::IdentifierT>()[lexer.Nothing]) % lexer.Comma) >> lexer.CloseAngleBracket;
 	TemplateParameter %= (lexer.StringIdentifier | (as<AST::IdentifierT>()[lexer.TypeDef])) >> lexer.StringIdentifier;
 	TemplateParameterList %= lexer.OpenAngleBracket >> (TemplateParameter % lexer.Comma) >> lexer.CloseAngleBracket;
 
 	StructureMemberFunctionRef %= lexer.OpenParens >> (lexer.StringIdentifier) >> lexer.Colon >> ParamTypeSpec >> -ReturnTypeSpec >> lexer.CloseParens;
-	StructureMemberVariable %= (lexer.StringIdentifier >> lexer.StringIdentifier);
+	StructureMemberVariable %= (lexer.StringIdentifier >> -TemplateArguments >> lexer.StringIdentifier);
 	StructureMember %= StructureMemberVariable | StructureMemberFunctionRef;
 	StructureMembers %= (StructureMember % lexer.Comma);
 	StructureDefinition %= lexer.StructureDef >> lexer.StringIdentifier >> -TemplateParameterList >> lexer.Colon >> StructureMembers;
 	GlobalDefinition %= lexer.GlobalDef >> codeblockgrammar.InnerCodeBlock;
 	TypeAlias = lexer.AliasDef >> lexer.StringIdentifier >> omit[lexer.Equals] >> lexer.StringIdentifier;
 	StrongTypeAlias = lexer.TypeDef >> lexer.StringIdentifier >> lexer.Colon >> lexer.StringIdentifier;
-	SumType = lexer.TypeDef >> lexer.StringIdentifier >> lexer.Colon >> (lexer.StringIdentifier | as<AST::IdentifierT>()[lexer.Nothing]) >> +(lexer.Pipe >> (lexer.StringIdentifier | as<AST::IdentifierT>()[lexer.Nothing]));
+	SumTypeBaseType = (lexer.StringIdentifier >> -TemplateArguments) | (as<AST::IdentifierT>()[lexer.Nothing] >> as<AST::Undefined>()[eps]);
+	SumType = lexer.TypeDef >> lexer.StringIdentifier >> -TemplateParameterList >> lexer.Colon >> (SumTypeBaseType >> +(lexer.Pipe >> SumTypeBaseType));
 	MetaEntity %= GlobalDefinition | StructureDefinition | TheFunctionDefinitionGrammar | TypeAlias | SumType | StrongTypeAlias;
 	MetaEntities %= *MetaEntity;
 	Program %= MetaEntities;

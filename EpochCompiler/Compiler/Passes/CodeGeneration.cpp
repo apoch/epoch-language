@@ -510,6 +510,7 @@ namespace
 		std::map<VM::EpochTypeID, std::set<VM::EpochTypeID> > sumtypes = curnamespace.Types.SumTypes.GetDefinitions();
 		for(std::map<VM::EpochTypeID, std::set<VM::EpochTypeID> >::const_iterator iter = sumtypes.begin(); iter != sumtypes.end(); ++iter)
 		{
+			// TODO - omit template types
 			emitter.DefineSumType(iter->first, iter->second);
 		}
 
@@ -539,15 +540,15 @@ namespace
 
 		std::map<VM::EpochTypeID, const CompileTimeParameterVector*> templateargmap;
 
-		const IRSemantics::TemplateTable::InstantiationMap& templateinsts = curnamespace.Types.Templates.GetInstantiations();
-		for(IRSemantics::TemplateTable::InstantiationMap::const_iterator iter = templateinsts.begin(); iter != templateinsts.end(); ++iter)
+		const IRSemantics::InstantiationMap& templateinsts = curnamespace.Types.Templates.GetInstantiations();
+		for(IRSemantics::InstantiationMap::const_iterator iter = templateinsts.begin(); iter != templateinsts.end(); ++iter)
 		{
 			IRSemantics::Structure& structure = *structures.find(iter->first)->second;
 			if(!structure.IsTemplate())
 				continue;
 
-			const IRSemantics::TemplateTable::InstancesAndArguments& instances = iter->second;
-			for(IRSemantics::TemplateTable::InstancesAndArguments::const_iterator institer = instances.begin(); institer != instances.end(); ++institer)
+			const IRSemantics::InstancesAndArguments& instances = iter->second;
+			for(IRSemantics::InstancesAndArguments::const_iterator institer = instances.begin(); institer != instances.end(); ++institer)
 			{
 				VM::EpochTypeID type = curnamespace.Types.GetTypeByName(institer->first);
 				structuredependencies.Register(type);
@@ -749,14 +750,14 @@ namespace
 			EmitAnonConstructor(emitter, iter->second->GetAnonymousConstructorName(), iter->first, *iter->second, CompileTimeParameterVector(), curnamespace);
 		}
 
-		for(IRSemantics::TemplateTable::InstantiationMap::const_iterator iter = templateinsts.begin(); iter != templateinsts.end(); ++iter)
+		for(IRSemantics::InstantiationMap::const_iterator iter = templateinsts.begin(); iter != templateinsts.end(); ++iter)
 		{
 			IRSemantics::Structure& structure = *structures.find(iter->first)->second;
 			if(!structure.IsTemplate())
 				continue;
 
-			const IRSemantics::TemplateTable::InstancesAndArguments& instances = iter->second;
-			for(IRSemantics::TemplateTable::InstancesAndArguments::const_iterator institer = instances.begin(); institer != instances.end(); ++institer)
+			const IRSemantics::InstancesAndArguments& instances = iter->second;
+			for(IRSemantics::InstancesAndArguments::const_iterator institer = instances.begin(); institer != instances.end(); ++institer)
 			{
 				EmitConstructor(emitter, curnamespace.Types.Templates.FindConstructorName(institer->first), institer->first, structure, institer->second, curnamespace);
 				EmitAnonConstructor(emitter, curnamespace.Types.Templates.FindAnonConstructorName(institer->first), institer->first, structure, institer->second, curnamespace);

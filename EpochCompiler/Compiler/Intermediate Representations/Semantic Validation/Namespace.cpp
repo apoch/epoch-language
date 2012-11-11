@@ -59,6 +59,9 @@ void FunctionTable::Add(StringHandle name, StringHandle rawname, Function* funct
 		if(iter->second->GetRawName() != rawname)
 			continue;
 
+		if(iter->second->IsTemplate())
+			continue;
+
 		if(iter->second->GetFunctionSignature(MyNamespace).Matches(function->GetFunctionSignature(MyNamespace)))
 		{
 			errors.SemanticError("Ambiguous function overload");
@@ -85,6 +88,7 @@ StringHandle FunctionTable::CreateOverload(const std::wstring& name)
 	unsigned counter = FunctionOverloadCounters[handle]++;
 	StringHandle ret = MyNamespace.Strings.Pool(GenerateFunctionOverloadName(handle, counter));
 	FunctionOverloadNameCache.Add(std::make_pair(handle, counter), ret);
+	Session.FunctionOverloadNames[handle].insert(ret);
 	return ret;
 }
 
@@ -103,6 +107,9 @@ std::wstring FunctionTable::GenerateFunctionOverloadName(StringHandle name, size
 
 StringHandle FunctionTable::AllocateTypeMatcher(StringHandle overloadname, const std::map<StringHandle, FunctionSignature>& matchingoverloads)
 {
+	if(MyNamespace.Parent)
+		return MyNamespace.Parent->Functions.AllocateTypeMatcher(overloadname, matchingoverloads);
+
 	if(OverloadTypeMatchers.find(overloadname) != OverloadTypeMatchers.end())
 		return OverloadTypeMatchers.find(overloadname)->second;
 
@@ -137,7 +144,11 @@ bool FunctionTable::HasOverloads(StringHandle functionname) const
 
 StringHandle FunctionTable::GetOverloadName(StringHandle rawname, size_t overloadindex) const
 {
-	return FunctionOverloadNameCache.Find(std::make_pair(rawname, overloadindex));
+	StringHandle ret = FunctionOverloadNameCache.Find(std::make_pair(rawname, overloadindex));
+	if(!ret && MyNamespace.Parent)
+		return MyNamespace.Parent->Functions.GetOverloadName(rawname, overloadindex);
+
+	return ret;
 }
 
 const StringHandleSet& FunctionTable::GetOverloadNames(StringHandle functionname) const
@@ -153,7 +164,12 @@ unsigned FunctionTable::GetNumOverloads(StringHandle name) const
 {
 	boost::unordered_map<StringHandle, unsigned>::const_iterator iter = FunctionOverloadCounters.find(name);
 	if(iter == FunctionOverloadCounters.end())
+	{
+		if(MyNamespace.Parent)
+			return MyNamespace.Parent->Functions.GetNumOverloads(name);
+
 		return 0;
+	}
 
 	return iter->second;
 }
@@ -161,7 +177,13 @@ unsigned FunctionTable::GetNumOverloads(StringHandle name) const
 
 bool FunctionTable::Exists(StringHandle functionname) const
 {
-	return FunctionIR.find(functionname) != FunctionIR.end();
+	if(FunctionIR.find(functionname) != FunctionIR.end())
+		return true;
+
+	if(MyNamespace.Parent)
+		return MyNamespace.Parent->Functions.Exists(functionname);
+
+	return false;
 }
 
 const Function* FunctionTable::GetIR(StringHandle functionname) const
@@ -323,6 +345,31 @@ bool FunctionTable::CompileTimeCodeExecution(CompileErrors& errors)
 	return true;
 }
 
+StringHandle FunctionTable::InstantiateAllOverloads(StringHandle templatename, const CompileTimeParameterVector& args)
+{
+	StringHandle ret = 0;
+
+	if(GetNumOverloads(templatename) > 1)
+	{
+		const StringHandleSet& overloadnames = GetOverloadNames(templatename);
+		for(StringHandleSet::const_iterator iter = overloadnames.begin(); iter != overloadnames.end(); ++iter)
+		{
+			if(!IsFunctionTemplate(*iter))
+				continue;
+
+			StringHandle instname = InstantiateTemplate(*iter, args);
+			if(!ret)
+				ret = instname;
+		}
+	}
+	else
+		ret = InstantiateTemplate(templatename, args);
+
+	return ret;
+}
+
+
+
 StringHandle FunctionTable::InstantiateTemplate(StringHandle templatename, const CompileTimeParameterVector& args)
 {
 	InstantiationMap::iterator iter = Instantiations.find(templatename);
@@ -357,6 +404,7 @@ StringHandle FunctionTable::InstantiateTemplate(StringHandle templatename, const
 	FunctionIR[mangledname] = new Function(GetIR(templatename), MyNamespace, args);
 	FunctionIR[mangledname]->SetName(mangledname);
 	FunctionIR[mangledname]->SetRawName(mangledname);
+	FunctionIR[mangledname]->PopulateScope(MyNamespace);
 	FunctionIR[mangledname]->FixupScope();
 
 	return mangledname;
@@ -442,6 +490,12 @@ void Namespace::AddScope(ScopeDescription* scope)
 
 void Namespace::AddScope(ScopeDescription* scope, StringHandle name)
 {
+	if(Parent)
+	{
+		Parent->AddScope(scope, name);
+		return;
+	}
+
 	LexicalScopes.insert(std::make_pair(name, scope));
 }
 
@@ -669,7 +723,11 @@ InferenceContext::PossibleSignatureSet FunctionTable::GetExpectedSignatures(Stri
 
 StringHandle FunctionTable::FindStructureMemberAccessOverload(StringHandle structurename, StringHandle membername) const
 {
-	return StructureMemberAccessOverloadNameCache.Find(std::make_pair(structurename, membername));
+	StringHandle ret = StructureMemberAccessOverloadNameCache.Find(std::make_pair(structurename, membername));
+	if(!ret && MyNamespace.Parent)
+		return MyNamespace.Parent->Functions.FindStructureMemberAccessOverload(structurename, membername);
+
+	return ret;
 }
 
 

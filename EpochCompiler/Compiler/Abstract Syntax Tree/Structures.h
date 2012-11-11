@@ -23,6 +23,7 @@ namespace AST
 	struct StructureMemberVariable
 	{
 		IdentifierT Type;
+		OptionalTemplateArgumentList TemplateArgs;
 		IdentifierT Name;
 	};
 
@@ -89,6 +90,7 @@ BOOST_FUSION_ADAPT_STRUCT
 (
 	AST::Deferred<AST::StructureMemberVariable>,
 	(AST::IdentifierT, Content->Type)
+	(AST::OptionalTemplateArgumentList, Content->TemplateArgs)
 	(AST::IdentifierT, Content->Name)
 )
 

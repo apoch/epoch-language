@@ -30,7 +30,8 @@ Statement::Statement(StringHandle name, const AST::IdentifierT& identifier)
 	  RawName(name),
 	  MyType(VM::EpochType_Error),
 	  OriginalIdentifier(identifier),
-	  CompileTimeCodeExecuted(false)
+	  CompileTimeCodeExecuted(false),
+	  NeedsInstantiation(false)
 {
 }
 
@@ -67,6 +68,13 @@ bool Statement::CompileTimeCodeExecution(Namespace& curnamespace, CodeBlock& act
 
 	CompileTimeCodeExecuted = true;
 
+	if(NeedsInstantiation)
+	{
+		SetTemplateArgs(TemplateArgs, curnamespace);
+		NeedsInstantiation = false;
+	}
+
+
 	if(curnamespace.Types.Aliases.HasWeakAliasNamed(Name))
 		Name = curnamespace.Types.Aliases.GetWeakTypeBaseName(Name);
 
@@ -87,6 +95,12 @@ bool Statement::TypeInference(Namespace& curnamespace, CodeBlock& activescope, I
 {
 	if(MyType != VM::EpochType_Error)
 		return (MyType != VM::EpochType_Infer);
+
+	if(NeedsInstantiation)
+	{
+		SetTemplateArgs(TemplateArgs, curnamespace);
+		NeedsInstantiation = false;
+	}
 
 	InferenceContext newcontext(Name, InferenceContext::CONTEXT_STATEMENT);
 	newcontext.FunctionName = context.FunctionName;
@@ -148,7 +162,7 @@ bool Statement::TypeInference(Namespace& curnamespace, CodeBlock& activescope, I
 		|| VM::GetTypeFamily(MyType) == VM::EpochTypeFamily_Structure
 	  )
 	{
-		if(curnamespace.Functions.Exists(Name))
+		if(curnamespace.Functions.Exists(RawName))
 		{
 			unsigned totalexpectedpermutations = 1;
 			bool generatetypematch = false;
@@ -157,12 +171,12 @@ bool Statement::TypeInference(Namespace& curnamespace, CodeBlock& activescope, I
 			std::map<StringHandle, FunctionSignature> overloadswithsameparamcount;
 
 			InferenceContext funccontext(0, InferenceContext::CONTEXT_GLOBAL);
-			unsigned overloadcount = curnamespace.Functions.GetNumOverloads(Name);
+			unsigned overloadcount = curnamespace.Functions.GetNumOverloads(RawName);
 			for(unsigned i = 0; i < overloadcount; ++i)
 			{
 				unsigned expectedpermutations = 1;
 	
-				StringHandle overloadname = curnamespace.Functions.GetOverloadName(Name, i);
+				StringHandle overloadname = curnamespace.Functions.GetOverloadName(RawName, i);
 				VM::EpochTypeID funcreturntype = VM::EpochType_Error;
 				FunctionSignature signature;
 				if(curnamespace.Functions.SignatureExists(overloadname))
@@ -170,6 +184,9 @@ bool Statement::TypeInference(Namespace& curnamespace, CodeBlock& activescope, I
 				else
 				{
 					Function* func = curnamespace.Functions.GetIR(overloadname);
+					if(func->IsTemplate())
+						continue;
+
 					func->TypeInference(curnamespace, funccontext, errors);
 					signature = func->GetFunctionSignature(curnamespace);
 				}
@@ -565,6 +582,7 @@ bool Statement::TypeInference(Namespace& curnamespace, CodeBlock& activescope, I
 		}
 	}
 
+	// TODO - this doesn't respect template arguments!
 	Name = curnamespace.Types.SumTypes.MapConstructorName(Name);
 
 	bool valid = (MyType != VM::EpochType_Infer && MyType != VM::EpochType_Error);
@@ -587,11 +605,14 @@ void Statement::SetTemplateArgs(const CompileTimeParameterVector& args, Namespac
 			RawName = curnamespace.Types.Templates.InstantiateStructure(Name, args);
 			Name = curnamespace.Types.Templates.FindConstructorName(RawName);
 		}
+		else if(curnamespace.Types.SumTypes.IsTemplate(Name))
+		{
+			RawName = curnamespace.Types.SumTypes.InstantiateTemplate(Name, args);
+			Name = RawName;
+		}
 		else if(curnamespace.Functions.IsFunctionTemplate(Name))
 		{
-			RawName = curnamespace.Functions.InstantiateTemplate(Name, args);
-			Name = RawName;
-
+			Name = curnamespace.Functions.InstantiateAllOverloads(Name, args);
 			TemplateArgs = args;
 		}
 		else
@@ -602,6 +623,14 @@ void Statement::SetTemplateArgs(const CompileTimeParameterVector& args, Namespac
 	}
 }
 
+void Statement::SetTemplateArgsDeferred(const CompileTimeParameterVector& args)
+{
+	if(!args.empty())
+	{
+		TemplateArgs = args;
+		NeedsInstantiation = true;
+	}
+}
 
 
 bool PreOpStatement::TypeInference(Namespace& curnamespace, CodeBlock& activescope, InferenceContext&, CompileErrors&)
@@ -727,9 +756,10 @@ Statement* Statement::Clone() const
 	clone->RawName = RawName;
 	for(std::vector<Expression*>::const_iterator iter = Parameters.begin(); iter != Parameters.end(); ++iter)
 		clone->Parameters.push_back((*iter)->Clone());
-	clone->MyType = MyType;
-	clone->CompileTimeCodeExecuted = CompileTimeCodeExecuted;
+	clone->MyType = VM::EpochType_Error;
+	clone->CompileTimeCodeExecuted = false;
 	clone->TemplateArgs = TemplateArgs;
+	clone->NeedsInstantiation = NeedsInstantiation;
 	return clone;
 }
 

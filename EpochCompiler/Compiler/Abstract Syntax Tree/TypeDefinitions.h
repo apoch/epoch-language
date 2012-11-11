@@ -10,6 +10,7 @@
 
 // Dependencies
 #include "Compiler/Abstract Syntax Tree/Identifiers.h"
+#include "Compiler/Abstract Syntax Tree/Templates.h"
 
 
 namespace AST
@@ -37,6 +38,12 @@ namespace AST
 		IdentifierT RepresentationName;
 	};
 
+	struct SumTypeBaseType
+	{
+		IdentifierT TypeName;
+		OptionalTemplateArgumentList TemplateArgs;
+	};
+
 	//
 	// An algebraic sum type is a discriminated union
 	// of two or more other types. Any of the base
@@ -45,8 +52,9 @@ namespace AST
 	struct SumType
 	{
 		IdentifierT SumTypeName;
-		IdentifierT FirstBaseType;
-		IdentifierList AdditionalBaseTypes;
+		OptionalTemplateParameterList TemplateParams;
+		SumTypeBaseType FirstBaseType;
+		std::vector<SumTypeBaseType> AdditionalBaseTypes;
 	};
 
 }
@@ -73,8 +81,16 @@ BOOST_FUSION_ADAPT_STRUCT
 (
 	AST::DeferredSumType,
 	(AST::IdentifierT, Content->SumTypeName)
-	(AST::IdentifierT, Content->FirstBaseType)
-	(AST::IdentifierList, Content->AdditionalBaseTypes)
+	(AST::OptionalTemplateParameterList, Content->TemplateParams)
+	(AST::SumTypeBaseType, Content->FirstBaseType)
+	(std::vector<AST::SumTypeBaseType>, Content->AdditionalBaseTypes)
+)
+
+BOOST_FUSION_ADAPT_STRUCT
+(
+	AST::SumTypeBaseType,
+	(AST::IdentifierT, TypeName)
+	(AST::OptionalTemplateArgumentList, TemplateArgs)
 )
 
 // TODO - custom allocation for type definition nodes
