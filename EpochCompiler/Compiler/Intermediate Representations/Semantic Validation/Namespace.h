@@ -252,7 +252,7 @@ namespace IRSemantics
 	public:
 		StringHandle AllocateAnonymousParamName();
 
-		StringHandle AllocateLexicalScopeName(const CodeBlock* blockptr);
+		StringHandle AllocateLexicalScopeName(const ScopeDescription* scopeptr);
 		StringHandle FindLexicalScopeName(const CodeBlock* blockptr) const;
 		StringHandle FindLexicalScopeName(const ScopeDescription* scopeptr) const;
 

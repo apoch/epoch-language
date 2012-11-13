@@ -145,7 +145,7 @@ void Structure::GenerateConstructors(StringHandle myname, StringHandle construct
 		scope->AddVariable(L"identifier", curnamespace.Strings.Pool(L"identifier"), myname, curnamespace.Types.GetTypeByName(myname), true, VARIABLE_ORIGIN_PARAMETER);
 		scope->AddVariable(L"ret", curnamespace.Strings.Pool(L"ret"), curnamespace.Types.GetNameOfType(type), type, false, VARIABLE_ORIGIN_RETURN);
 		std::auto_ptr<CodeBlock> codeblock(new CodeBlock(scope.release()));
-		curnamespace.AllocateLexicalScopeName(codeblock.get());
+		curnamespace.AllocateLexicalScopeName(codeblock->GetScope());
 		func->SetCode(codeblock.release());
 		func->SetName(funcname);
 		func->AddParameter(curnamespace.Strings.Find(L"identifier"), new FunctionParamTyped(type, true), errors);

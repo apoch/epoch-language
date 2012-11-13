@@ -1155,9 +1155,9 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 								if(providedtype == EpochType_Nothing)
 									providednothingref[i] = true;
 
-								if(stackptr == reftarget)
+								if(stackptr == reftarget - sizeof(EpochTypeID))
 								{
-									stackptr += GetStorageSize(providedtype);
+									stackptr += GetStorageSize(providedtype) + sizeof(EpochTypeID);
 									inlineref[i] = true;
 								}
 
@@ -1245,7 +1245,17 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 								{
 									destptr -= REFERENCE_SIZE;
 									stackptr -= REFERENCE_SIZE;
-									memcpy(destptr, stackptr, REFERENCE_SIZE);
+
+									if(inlineref[i])
+									{
+										//destptr += sizeof(EpochTypeID);		// TODO - shouldn't this be storage size of something?
+										*(void**)(stackptr) = (void*)(destptr + 2*sizeof(EpochTypeID));
+										memcpy(destptr, stackptr, destptr - stackptr + sizeof(EpochTypeID));
+
+										stackptr -= sizeof(EpochTypeID);
+									}
+									else
+										memcpy(destptr, stackptr, REFERENCE_SIZE);
 								}
 
 								stackptr -= sizeof(EpochTypeID);
@@ -1290,6 +1300,10 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 					void* stackptr = State.Stack.GetCurrentTopOfStack();
 					if(!State.ReturnValueRegister.SumType)
 						State.Stack.PushValue(State.ReturnValueRegister.Type);
+
+					// TODO - remove extra type annotation
+					EpochTypeID* typeptr = reinterpret_cast<EpochTypeID*>(State.Stack.GetCurrentTopOfStack());
+					State.Stack.PushValue(*typeptr);
 					State.Stack.PushValue(stackptr);
 				}
 				break;

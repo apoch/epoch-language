@@ -901,7 +901,7 @@ void CompilePassSemantics::EntryHelper::operator () (AST::CodeBlock&)
 //
 void CompilePassSemantics::ExitHelper::operator () (AST::CodeBlock&)
 {
-	self->CurrentNamespace->AllocateLexicalScopeName(self->CurrentCodeBlocks.back());
+	self->CurrentNamespace->AllocateLexicalScopeName(self->CurrentCodeBlocks.back()->GetScope());
 
 	self->StateStack.pop();
 	
