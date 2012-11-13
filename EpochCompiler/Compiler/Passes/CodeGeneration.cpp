@@ -96,7 +96,7 @@ namespace
 
 			if(structuretype == VM::EpochType_Buffer)
 				emitter.CopyBuffer();
-			else if(VM::GetTypeFamily(structuretype) == VM::EpochTypeFamily_Structure)
+			else if(VM::GetTypeFamily(structuretype) == VM::EpochTypeFamily_Structure || VM::GetTypeFamily(structuretype) == VM::EpochTypeFamily_TemplateInstance)
 				emitter.CopyStructure();
 		}
 	}
@@ -533,7 +533,7 @@ namespace
 			for(std::vector<std::pair<StringHandle, IRSemantics::StructureMember*> >::const_iterator memberiter = members.begin(); memberiter != members.end(); ++memberiter)
 			{
 				VM::EpochTypeID membertype = memberiter->second->GetEpochType(curnamespace);
-				if(VM::GetTypeFamily(membertype) == VM::EpochTypeFamily_Structure)
+				if(VM::GetTypeFamily(membertype) == VM::EpochTypeFamily_Structure || VM::GetTypeFamily(membertype) == VM::EpochTypeFamily_TemplateInstance)
 					structuredependencies.AddDependency(type, membertype);
 			}
 		}
@@ -560,7 +560,7 @@ namespace
 				for(std::vector<std::pair<StringHandle, IRSemantics::StructureMember*> >::const_iterator memberiter = members.begin(); memberiter != members.end(); ++memberiter)
 				{
 					VM::EpochTypeID membertype = structure.SubstituteTemplateParams(memberiter->first, institer->second, curnamespace);
-					if(VM::GetTypeFamily(membertype) == VM::EpochTypeFamily_Structure)
+					if(VM::GetTypeFamily(membertype) == VM::EpochTypeFamily_Structure || VM::GetTypeFamily(membertype) == VM::EpochTypeFamily_TemplateInstance)
 						structuredependencies.AddDependency(type, membertype);
 				}
 			}

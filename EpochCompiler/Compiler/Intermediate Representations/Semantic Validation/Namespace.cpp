@@ -780,6 +780,9 @@ unsigned FunctionTable::FindMatchingFunctions(StringHandle identifier, const Fun
 
 StringHandle Namespace::AllocateLexicalScopeName(const CodeBlock* blockptr)
 {
+	if(Parent)
+		return Parent->AllocateLexicalScopeName(blockptr);
+
 	StringHandle ret = Strings.PoolFast(GenerateLexicalScopeName(blockptr->GetScope()));
 	LexicalScopeNameCache.Add(blockptr->GetScope(), ret);
 	return ret;

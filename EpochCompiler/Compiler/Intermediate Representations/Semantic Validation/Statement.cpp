@@ -142,6 +142,8 @@ bool Statement::TypeInference(Namespace& curnamespace, CodeBlock& activescope, I
 		MyType = curnamespace.Types.GetTypeByName(Name);
 		if(VM::GetTypeFamily(MyType) == VM::EpochTypeFamily_Structure)
 			Name = curnamespace.Types.Structures.GetConstructorName(Name);
+		else if(VM::GetTypeFamily(MyType) == VM::EpochTypeFamily_TemplateInstance)
+			Name = curnamespace.Types.Templates.FindConstructorName(Name);
 		else if(VM::GetTypeFamily(MyType) == VM::EpochTypeFamily_Unit)
 			Name = curnamespace.Types.Aliases.GetStrongRepresentationName(MyType);
 
@@ -160,6 +162,7 @@ bool Statement::TypeInference(Namespace& curnamespace, CodeBlock& activescope, I
 	if(
 		   context.State != InferenceContext::CONTEXT_FUNCTION_RETURN
 		|| VM::GetTypeFamily(MyType) == VM::EpochTypeFamily_Structure
+		|| VM::GetTypeFamily(MyType) == VM::EpochTypeFamily_TemplateInstance
 	  )
 	{
 		if(curnamespace.Functions.Exists(RawName))

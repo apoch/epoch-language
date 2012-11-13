@@ -29,7 +29,7 @@ void StructureDefinition::AddMember(StringHandle identifier, VM::EpochTypeID typ
 		Members.push_back(MemberRecord(identifier, type, Offset));
 		Offset += VM::GetStorageSize(type);
 
-		if(VM::GetTypeFamily(type) == VM::EpochTypeFamily_Structure)
+		if(VM::GetTypeFamily(type) == VM::EpochTypeFamily_Structure || VM::GetTypeFamily(type) == VM::EpochTypeFamily_TemplateInstance)
 			MarshaledSize += structdefinition->GetMarshaledSize();
 		else
 			MarshaledSize += VM::GetMarshaledSize(type);

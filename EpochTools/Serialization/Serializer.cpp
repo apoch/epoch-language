@@ -178,7 +178,7 @@ void Serializer::Write(const std::wstring& filename) const
 					break;
 
 				default:
-					if(VM::GetTypeFamily(type) == VM::EpochTypeFamily_Structure)
+					if(VM::GetTypeFamily(type) == VM::EpochTypeFamily_Structure || VM::GetTypeFamily(type) == VM::EpochTypeFamily_TemplateInstance)
 					{
 						outfile << L"PUSH " << type << L" ";
 						outfile << traverser.Read<StructureHandle>() << L"\n";

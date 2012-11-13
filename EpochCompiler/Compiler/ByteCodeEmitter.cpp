@@ -170,7 +170,7 @@ void ByteCodeEmitter::PushVariableValue(StringHandle variablename, VM::EpochType
 
 	if(type == VM::EpochType_Buffer)
 		CopyBuffer();
-	else if(VM::GetTypeFamily(type) == VM::EpochTypeFamily_Structure)
+	else if(VM::GetTypeFamily(type) == VM::EpochTypeFamily_Structure || VM::GetTypeFamily(type) == VM::EpochTypeFamily_TemplateInstance)
 		CopyStructure();
 }
 

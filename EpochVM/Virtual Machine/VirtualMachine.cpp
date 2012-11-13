@@ -1427,7 +1427,7 @@ void ExecutionContext::Load()
 					EpochTypeID type = Fetch<EpochTypeID>();
 					const StructureDefinition* structdefinition = NULL;
 					const VariantDefinition* variantdefinition = NULL;
-					if(GetTypeFamily(type) == EpochTypeFamily_Structure)
+					if(GetTypeFamily(type) == EpochTypeFamily_Structure || GetTypeFamily(type) == EpochTypeFamily_TemplateInstance)
 						structdefinition = &OwnerVM.GetStructureDefinition(type);
 					else if(GetTypeFamily(type) == EpochTypeFamily_SumType)
 						variantdefinition = &OwnerVM.VariantDefinitions.find(type)->second;
@@ -1741,7 +1741,7 @@ StructureHandle VirtualMachine::DeepCopy(StructureHandle handle)
 		case EpochType_Nothing:																				break;
 
 		default:
-			if(GetTypeFamily(membertype) == EpochTypeFamily_Structure)
+			if(GetTypeFamily(membertype) == EpochTypeFamily_Structure || GetTypeFamily(membertype) == EpochTypeFamily_TemplateInstance)
 				clone.WriteMember(i, DeepCopy(original.ReadMember<StructureHandle>(i)));
 			else
 				throw FatalException("Invalid structure member data type; cannot deep copy");
@@ -1828,7 +1828,7 @@ namespace
 
 	bool ValidatorStructures(EpochTypeID vartype)
 	{
-		return (GetTypeFamily(vartype) == VM::EpochTypeFamily_Structure);
+		return (GetTypeFamily(vartype) == VM::EpochTypeFamily_Structure || GetTypeFamily(vartype) == VM::EpochTypeFamily_TemplateInstance);
 	}
 
 }
