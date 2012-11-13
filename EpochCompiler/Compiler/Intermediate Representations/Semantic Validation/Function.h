@@ -53,6 +53,7 @@ namespace IRSemantics
 		virtual void AddToSignature(FunctionSignature& signature, const Namespace& curnamespace) const = 0;
 		virtual bool TypeInference(Namespace& curnamespace, CompileErrors& errors) = 0;
 		virtual bool PatternMatchValue(const CompileTimeParameter& param, const Namespace& curnamespace) const = 0;
+		virtual void AddToScope(StringHandle name, CodeBlock& code, const Namespace& curnamespace) const = 0;
 		virtual FunctionParam* Clone() const = 0;
 	};
 
@@ -88,6 +89,8 @@ namespace IRSemantics
 
 		virtual bool PatternMatchValue(const CompileTimeParameter&, const Namespace&) const
 		{ return false; }
+
+		virtual void AddToScope(StringHandle name, CodeBlock& code, const Namespace& curnamespace) const;
 
 		virtual FunctionParam* Clone() const;
 
@@ -142,6 +145,9 @@ namespace IRSemantics
 		virtual bool PatternMatchValue(const CompileTimeParameter&, const Namespace&) const
 		{ return false; }
 
+		virtual void AddToScope(StringHandle, CodeBlock&, const Namespace&) const
+		{ /* deliberate no-op */ }
+
 		virtual FunctionParam* Clone() const;
 
 	// Internal state
@@ -181,6 +187,8 @@ namespace IRSemantics
 
 		virtual bool PatternMatchValue(const CompileTimeParameter&, const Namespace&) const
 		{ return false; }
+
+		virtual void AddToScope(StringHandle name, CodeBlock& code, const Namespace& curnamespace) const;
 
 		virtual FunctionParam* Clone() const;
 
@@ -241,6 +249,9 @@ namespace IRSemantics
 		virtual bool TypeInference(Namespace& curnamespace, CompileErrors& errors);
 
 		virtual bool PatternMatchValue(const CompileTimeParameter& param, const Namespace& curnamespace) const;
+
+		virtual void AddToScope(StringHandle, CodeBlock&, const Namespace&) const
+		{ /* deliberate no-op */ }
 
 		virtual FunctionParam* Clone() const;
 
@@ -324,7 +335,7 @@ namespace IRSemantics
 
 		bool PatternMatchParameter(size_t index, const CompileTimeParameter& param, const Namespace& curnamespace) const;
 
-		void PopulateScope(Namespace& curnamespace);
+		void PopulateScope(Namespace& curnamespace, CompileErrors& errors);
 
 	// Returns
 	public:
@@ -372,6 +383,7 @@ namespace IRSemantics
 	// Type inference
 	public:
 		bool TypeInference(Namespace& curnamespace, InferenceContext& context, CompileErrors& errors);
+		void TypeInferenceParamsOnly(Namespace& curnamespace, CompileErrors& errors);
 
 	// Tags
 	public:

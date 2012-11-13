@@ -37,7 +37,7 @@ FunctionTable::~FunctionTable()
 		delete iter->second;
 }
 
-void FunctionTable::Add(StringHandle name, StringHandle rawname, Function* function, CompileErrors& errors)
+void FunctionTable::Add(StringHandle name, StringHandle rawname, Function* function)
 {
 	if(FunctionIR.find(name) != FunctionIR.end())
 	{
@@ -52,21 +52,6 @@ void FunctionTable::Add(StringHandle name, StringHandle rawname, Function* funct
 		// the semantic checking layer.
 		//
 		throw InternalException("Duplicate function name; overload creation failed");
-	}
-
-	for(boost::unordered_map<StringHandle, Function*>::const_iterator iter = FunctionIR.begin(); iter != FunctionIR.end(); ++iter)
-	{
-		if(iter->second->GetRawName() != rawname)
-			continue;
-
-		if(iter->second->IsTemplate())
-			continue;
-
-		if(iter->second->GetFunctionSignature(MyNamespace).Matches(function->GetFunctionSignature(MyNamespace)))
-		{
-			errors.SemanticError("Ambiguous function overload");
-			break;
-		}
 	}
 
 	function->SetRawName(rawname);
@@ -319,7 +304,9 @@ bool FunctionTable::CompileTimeCodeExecution(CompileErrors& errors)
 		StringHandle rawname = iter->first;
 		StringHandle overloadname = iter->second;
 
-		const Function* function = FunctionIR.find(overloadname)->second;
+		Function* function = FunctionIR.find(overloadname)->second;
+		function->TypeInferenceParamsOnly(MyNamespace, errors);
+
 		const FunctionSignature functionsignature = function->GetFunctionSignature(MyNamespace);
 		for(size_t i = 0; i < FunctionOverloadCounters[rawname]; ++i)
 		{
@@ -327,7 +314,8 @@ bool FunctionTable::CompileTimeCodeExecution(CompileErrors& errors)
 			if(thisoverloadname == overloadname)
 				continue;
 
-			const Function* overload = FunctionIR.find(thisoverloadname)->second;
+			Function* overload = FunctionIR.find(thisoverloadname)->second;
+			overload->TypeInferenceParamsOnly(MyNamespace, errors);
 			if(functionsignature.MatchesDynamicPattern(overload->GetFunctionSignature(MyNamespace)))
 				FunctionsNeedingDynamicPatternMatching.insert(thisoverloadname);
 		}
@@ -345,7 +333,7 @@ bool FunctionTable::CompileTimeCodeExecution(CompileErrors& errors)
 	return true;
 }
 
-StringHandle FunctionTable::InstantiateAllOverloads(StringHandle templatename, const CompileTimeParameterVector& args)
+StringHandle FunctionTable::InstantiateAllOverloads(StringHandle templatename, const CompileTimeParameterVector& args, CompileErrors& errors)
 {
 	StringHandle ret = 0;
 
@@ -357,55 +345,72 @@ StringHandle FunctionTable::InstantiateAllOverloads(StringHandle templatename, c
 			if(!IsFunctionTemplate(*iter))
 				continue;
 
-			StringHandle instname = InstantiateTemplate(*iter, args);
+			StringHandle instname = InstantiateTemplate(*iter, args, errors);
 			if(!ret)
 				ret = instname;
 		}
 	}
 	else
-		ret = InstantiateTemplate(templatename, args);
+		ret = InstantiateTemplate(templatename, args, errors);
 
 	return ret;
 }
 
 
 
-StringHandle FunctionTable::InstantiateTemplate(StringHandle templatename, const CompileTimeParameterVector& args)
+StringHandle FunctionTable::InstantiateTemplate(StringHandle templatename, const CompileTimeParameterVector& originalargs, CompileErrors& errors)
 {
-	InstantiationMap::iterator iter = Instantiations.find(templatename);
-	if(iter != Instantiations.end())
+	CompileTimeParameterVector args(originalargs);
+	for(CompileTimeParameterVector::iterator iter = args.begin(); iter != args.end(); ++iter)
 	{
-		InstancesAndArguments& instances = iter->second;
-
-		for(InstancesAndArguments::const_iterator instanceiter = instances.begin(); instanceiter != instances.end(); ++instanceiter)
-		{
-			if(args.size() != instanceiter->second.size())
-				continue;
-
-			bool match = true;
-			for(unsigned i = 0; i < args.size(); ++i)
-			{
-				if(!args[i].PatternMatch(instanceiter->second[i]))
-				{
-					match = false;
-					break;
-				}
-			}
-
-			if(match)
-				return instanceiter->first;
-		}
+		// TODO - filter this to arguments that are typenames?
+		if(MyNamespace.Types.Aliases.HasWeakAliasNamed(iter->Payload.LiteralStringHandleValue))
+			iter->Payload.LiteralStringHandleValue = MyNamespace.Types.Aliases.GetWeakTypeBaseName(iter->Payload.LiteralStringHandleValue);
 	}
 
-	StringHandle mangledname = CreateOverload(MyNamespace.Strings.GetPooledString(templatename));
-	FunctionOverloadCounters[mangledname] = 1;
-	FunctionOverloadNameCache.Add(std::make_pair(mangledname, 0), mangledname);
-	Instantiations[templatename].insert(std::make_pair(mangledname, args));
-	FunctionIR[mangledname] = new Function(GetIR(templatename), MyNamespace, args);
-	FunctionIR[mangledname]->SetName(mangledname);
-	FunctionIR[mangledname]->SetRawName(mangledname);
-	FunctionIR[mangledname]->PopulateScope(MyNamespace);
-	FunctionIR[mangledname]->FixupScope();
+	Namespace* ns = &MyNamespace;
+	while(ns)
+	{
+		InstantiationMap::iterator iter = ns->Functions.Instantiations.find(templatename);
+		if(iter != ns->Functions.Instantiations.end())
+		{
+			InstancesAndArguments& instances = iter->second;
+
+			for(InstancesAndArguments::const_iterator instanceiter = instances.begin(); instanceiter != instances.end(); ++instanceiter)
+			{
+				if(args.size() != instanceiter->second.size())
+					continue;
+
+				bool match = true;
+				for(unsigned i = 0; i < args.size(); ++i)
+				{
+					if(!args[i].PatternMatch(instanceiter->second[i]))
+					{
+						match = false;
+						break;
+					}
+				}
+
+				if(match)
+					return instanceiter->first;
+			}
+		}
+
+		if(!ns->Parent)
+			break;
+
+		ns = ns->Parent;
+	}
+
+	StringHandle mangledname = ns->Functions.CreateOverload(MyNamespace.Strings.GetPooledString(templatename));
+	ns->Functions.FunctionOverloadCounters[mangledname]++;
+	ns->Functions.FunctionOverloadNameCache.Add(std::make_pair(mangledname, 0), mangledname);
+	ns->Functions.Instantiations[templatename].insert(std::make_pair(mangledname, args));
+	ns->Functions.FunctionIR[mangledname] = new Function(GetIR(templatename), MyNamespace, args);
+	ns->Functions.FunctionIR[mangledname]->SetName(mangledname);
+	ns->Functions.FunctionIR[mangledname]->SetRawName(mangledname);
+	ns->Functions.FunctionIR[mangledname]->PopulateScope(MyNamespace, errors);
+	ns->Functions.FunctionIR[mangledname]->FixupScope();
 
 	return mangledname;
 }
@@ -414,7 +419,12 @@ bool FunctionTable::IsFunctionTemplate(StringHandle name) const
 {
 	boost::unordered_map<StringHandle, Function*>::const_iterator iter = FunctionIR.find(name);
 	if(iter == FunctionIR.end())
+	{
+		if(MyNamespace.Parent)
+			return MyNamespace.Parent->Functions.IsFunctionTemplate(name);
+
 		return false;
+	}
 
 	return iter->second->IsTemplate();
 }
@@ -529,15 +539,15 @@ InferenceContext::PossibleParameterTypes FunctionTable::GetExpectedTypes(StringH
 		return ret;
 	}
 
-	boost::unordered_map<StringHandle, unsigned>::const_iterator iter = FunctionOverloadCounters.find(name);
-	if(iter != FunctionOverloadCounters.end())
+	unsigned numoverloads = GetNumOverloads(name);
+	if(numoverloads)
 	{
 		InferenceContext::PossibleParameterTypes ret;
-		ret.reserve(iter->second);
+		ret.reserve(numoverloads);
 
-		for(size_t i = 0; i < iter->second; ++i)
+		for(size_t i = 0; i < numoverloads; ++i)
 		{
-			StringHandle overloadname = i ? FunctionOverloadNameCache.Find(std::make_pair(name, i)) : name;
+			StringHandle overloadname = GetOverloadName(name, i);
 			FunctionSignatureSet::const_iterator fsigiter = Session.FunctionSignatures.find(overloadname);
 			if(fsigiter != Session.FunctionSignatures.end())
 			{
@@ -549,13 +559,16 @@ InferenceContext::PossibleParameterTypes FunctionTable::GetExpectedTypes(StringH
 			else
 			{
 				std::map<StringHandle, StringHandle>::const_iterator mangleiter;
-				boost::unordered_map<StringHandle, Function*>::const_iterator funciter = FunctionIR.find(overloadname);
-				if(funciter != FunctionIR.end())
+				Function* ir = const_cast<Function*>(GetIR(overloadname));
+				if(ir)
 				{
+					if(ir->IsTemplate())
+						continue;
+
 					InferenceContext context(0, InferenceContext::CONTEXT_GLOBAL);
-					funciter->second->TypeInference(MyNamespace, context, errors);
+					ir->TypeInference(MyNamespace, context, errors);
 					ret.push_back(InferenceContext::TypePossibilities());
-					FunctionSignature signature = funciter->second->GetFunctionSignature(MyNamespace);
+					FunctionSignature signature = ir->GetFunctionSignature(MyNamespace);
 
 					for(size_t j = 0; j < signature.GetNumParameters(); ++j)
 						ret.back().push_back(signature.GetParameter(j).Type);

@@ -184,6 +184,8 @@ namespace IRSemantics
 		const InstantiationMap& GetInstantiations() const
 		{ return Instantiations; }
 
+		StringHandle GetTemplateForInstance(StringHandle instancename) const;
+
 	// Constructor helpers
 	public:
 		StringHandle FindConstructorName(StringHandle instancename) const;
@@ -196,6 +198,8 @@ namespace IRSemantics
 	// Internal tracking
 	private:
 		friend class TypeSpace;
+		friend class StructureTable;
+
 		TypeSpace& MyTypeSpace;
 
 		InstantiationMap Instantiations;

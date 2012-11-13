@@ -151,7 +151,7 @@ void Structure::GenerateConstructors(StringHandle myname, StringHandle construct
 		func->AddParameter(curnamespace.Strings.Find(L"identifier"), new FunctionParamTyped(type, true), errors);
 		func->SuppressReturnRegister();
 
-		curnamespace.Functions.Add(funcname, funcname, func.release(), errors);
+		curnamespace.Functions.Add(funcname, funcname, func.release());
 	}
 }
 

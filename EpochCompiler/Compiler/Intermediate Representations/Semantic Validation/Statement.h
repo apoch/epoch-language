@@ -79,7 +79,7 @@ namespace IRSemantics
 
 	// Template support
 	public:
-		void SetTemplateArgs(const CompileTimeParameterVector& args, Namespace& curnamespace);
+		void SetTemplateArgs(const CompileTimeParameterVector& args, Namespace& curnamespace, CompileErrors& errors);
 		void SetTemplateArgsDeferred(const CompileTimeParameterVector& args);
 
 	// Internal state

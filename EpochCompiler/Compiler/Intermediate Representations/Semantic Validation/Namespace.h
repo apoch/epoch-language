@@ -103,7 +103,7 @@ namespace IRSemantics
 	public:
 		StringHandle CreateOverload(const std::wstring& name);
 
-		void Add(StringHandle name, StringHandle rawname, Function* function, CompileErrors& errors);
+		void Add(StringHandle name, StringHandle rawname, Function* function);
 
 		void MarkFunctionWithStaticPatternMatching(StringHandle rawname, StringHandle overloadname);
 		bool FunctionNeedsDynamicPatternMatching(StringHandle overloadname) const;
@@ -120,10 +120,10 @@ namespace IRSemantics
 
 
 		bool IsFunctionTemplate(StringHandle name) const;
-		StringHandle InstantiateAllOverloads(StringHandle templatename, const CompileTimeParameterVector& args);
+		StringHandle InstantiateAllOverloads(StringHandle templatename, const CompileTimeParameterVector& args, CompileErrors& errors);
 
 	private:
-		StringHandle InstantiateTemplate(StringHandle templatename, const CompileTimeParameterVector& args);
+		StringHandle InstantiateTemplate(StringHandle templatename, const CompileTimeParameterVector& args, CompileErrors& errors);
 
 
 	// Additional queries

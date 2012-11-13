@@ -451,9 +451,8 @@ void CompilePassSemantics::ExitHelper::operator () (AST::Function& function)
 		self->CurrentFunctions.back()->SetCode(new IRSemantics::CodeBlock(lexicalscope.release()));
 	}
 
-	// TODO - move this into the function class itself, and call it when a function template is instantiated
 	if(!self->CurrentFunctions.back()->IsTemplate())
-		self->CurrentFunctions.back()->PopulateScope(*self->CurrentNamespace);
+		self->CurrentFunctions.back()->PopulateScope(*self->CurrentNamespace, self->Errors);
 
 	if(self->CurrentFunctions.size() == 1)
 	{
@@ -461,7 +460,7 @@ void CompilePassSemantics::ExitHelper::operator () (AST::Function& function)
 		StringHandle rawname = self->CurrentProgram->AddString(rawnamestr);
 		self->ErrorContext = &function.Name;
 		StringHandle name = self->CurrentNamespace->Functions.CreateOverload(rawnamestr);
-		self->CurrentNamespace->Functions.Add(name, rawname, self->CurrentFunctions.back(), self->Errors);
+		self->CurrentNamespace->Functions.Add(name, rawname, self->CurrentFunctions.back());
 		self->CurrentFunctions.back()->SetName(name);
 		self->CurrentFunctions.pop_back();
 		self->ErrorContext = NULL;
@@ -1542,10 +1541,13 @@ void CompilePassSemantics::ExitHelper::operator () (Markers::TemplateArgs&)
 	switch(self->StateStack.top())
 	{
 	case CompilePassSemantics::STATE_STATEMENT:
-		if(!self->CurrentFunctions.back()->IsTemplate())
-			self->CurrentStatements.back()->SetTemplateArgs(*self->CurrentTemplateArgs.back(), *self->CurrentNamespace);
-		else
-			self->CurrentStatements.back()->SetTemplateArgsDeferred(*self->CurrentTemplateArgs.back());
+		if(!self->CurrentTemplateArgs.back()->empty())
+		{
+			if(!self->CurrentFunctions.empty() && !self->CurrentFunctions.back()->IsTemplate())
+				self->CurrentStatements.back()->SetTemplateArgs(*self->CurrentTemplateArgs.back(), *self->CurrentNamespace, self->Errors);
+			else
+				self->CurrentStatements.back()->SetTemplateArgsDeferred(*self->CurrentTemplateArgs.back());
+		}
 		break;
 
 	case CompilePassSemantics::STATE_FUNCTION_PARAM:

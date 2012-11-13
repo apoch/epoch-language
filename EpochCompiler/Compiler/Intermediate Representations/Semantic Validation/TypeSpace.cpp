@@ -64,7 +64,19 @@ StructureTable::~StructureTable()
 
 VM::EpochTypeID StructureTable::GetMemberType(StringHandle structurename, StringHandle membername) const
 {
-	const std::vector<std::pair<StringHandle, StructureMember*> >& members = NameToDefinitionMap.find(structurename)->second->GetMembers();
+	if(MyTypeSpace.Templates.NameToTypeMap.find(structurename) != MyTypeSpace.Templates.NameToTypeMap.end())
+		structurename = MyTypeSpace.Templates.GetTemplateForInstance(structurename);
+
+	std::map<StringHandle, Structure*>::const_iterator defiter = NameToDefinitionMap.find(structurename);
+	if(defiter == NameToDefinitionMap.end())
+	{
+		if(!MyTypeSpace.MyNamespace.Parent)
+			throw InternalException("Invalid structure name");
+
+		return MyTypeSpace.MyNamespace.Parent->Types.Structures.GetMemberType(structurename, membername);
+	}
+
+	const std::vector<std::pair<StringHandle, StructureMember*> >& members = defiter->second->GetMembers();
 	for(std::vector<std::pair<StringHandle, StructureMember*> >::const_iterator iter = members.begin(); iter != members.end(); ++iter)
 	{
 		if(iter->first == membername)
@@ -416,6 +428,17 @@ StringHandle TemplateTable::FindAnonConstructorName(StringHandle instancename) c
 	return ret;
 }
 
+StringHandle TemplateTable::GetTemplateForInstance(StringHandle instancename) const
+{
+	for(InstantiationMap::const_iterator iter = Instantiations.begin(); iter != Instantiations.end(); ++iter)
+	{
+		if(iter->second.find(instancename) != iter->second.end())
+			return iter->first;
+	}
+
+	throw InternalException("Invalid template instance");
+}
+
 bool StructureTable::IsStructureTemplate(StringHandle name) const
 {
 	std::map<StringHandle, Structure*>::const_iterator iter = NameToDefinitionMap.find(name);
@@ -706,10 +729,12 @@ bool TypeSpace::CompileTimeCodeExecution(CompileErrors& errors)
 			StringHandle overloadname = MyNamespace.Strings.Pool(overloadnamebuilder.str());
 			MyNamespace.Session.FunctionOverloadNames[sumtypeconstructorname].insert(overloadname);
 
-			switch(VM::GetTypeFamily(GetTypeByName(basetypename)))
+			VM::EpochTypeFamily family = VM::GetTypeFamily(GetTypeByName(basetypename));
+			switch(family)
 			{
 			case VM::EpochTypeFamily_Magic:
 			case VM::EpochTypeFamily_Primitive:
+			case VM::EpochTypeFamily_GC:
 				// No adjustment needed
 				break;
 

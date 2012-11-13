@@ -258,6 +258,7 @@ bool Function::CompileTimeCodeExecution(Namespace& curnamespace, CompileErrors& 
 			TagHelperReturn help = curnamespace.FunctionTags.GetHelper(iter->TagName)(RawName, iter->Parameters, true);
 			if(help.SetConstructorFunction)
 			{
+				TypeInferenceParamsOnly(*activenamespace, errors);
 				FunctionSignature signature = GetFunctionSignature(*activenamespace);
 				signature.PrependParameter(L"@id", VM::EpochType_Identifier, false);
 				signature.SetReturnType(VM::EpochType_Void);
@@ -768,7 +769,7 @@ StringHandle Function::GetParameterTypeName(StringHandle name) const
 	throw InternalException("Parameter not found");
 }
 
-void Function::PopulateScope(Namespace& curnamespace)
+void Function::PopulateScope(Namespace& curnamespace, CompileErrors& errors)
 {
 	Namespace* activenamespace;
 
@@ -777,18 +778,28 @@ void Function::PopulateScope(Namespace& curnamespace)
 	else
 		activenamespace = DummyNamespace;
 
-	// TODO - simplify/optimize
-	for(std::vector<Param>::const_iterator iter = Parameters.begin(); iter != Parameters.end(); ++iter)
-	{
-		if(iter->Parameter->IsLocalVariable())
-		{
-			const FunctionParamNamed* namedparam = dynamic_cast<const FunctionParamNamed*>(iter->Parameter);
+	TypeInferenceParamsOnly(curnamespace, errors);
 
-			StringHandle nameoftype = namedparam->GetTypeName();
-			VM::EpochTypeID type = activenamespace->Types.GetTypeByName(nameoftype);
-			bool isref = namedparam->IsReference();
-			GetCode()->AddVariable(curnamespace.Strings.GetPooledString(iter->Name), iter->Name, nameoftype, type, isref, VARIABLE_ORIGIN_PARAMETER);
-		}
-	}
+	for(std::vector<Param>::const_iterator iter = Parameters.begin(); iter != Parameters.end(); ++iter)
+		iter->Parameter->AddToScope(iter->Name, *GetCode(), *activenamespace);
+}
+
+
+
+void FunctionParamNamed::AddToScope(StringHandle name, CodeBlock& code, const Namespace& curnamespace) const
+{
+	code.AddVariable(curnamespace.Strings.GetPooledString(name), name, MyTypeName, MyActualType, IsRef, VARIABLE_ORIGIN_PARAMETER);
+}
+
+void FunctionParamFuncRef::AddToScope(StringHandle name, CodeBlock& code, const Namespace& curnamespace) const
+{
+	code.AddVariable(curnamespace.Strings.GetPooledString(name), name, 0, VM::EpochType_Function, false, VARIABLE_ORIGIN_PARAMETER);
+}
+
+
+void Function::TypeInferenceParamsOnly(Namespace& curnamespace, CompileErrors& errors)
+{
+	for(std::vector<Param>::const_iterator iter = Parameters.begin(); iter != Parameters.end(); ++iter)
+		iter->Parameter->TypeInference(curnamespace, errors);
 }
 

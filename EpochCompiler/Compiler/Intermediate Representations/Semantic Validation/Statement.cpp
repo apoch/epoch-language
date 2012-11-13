@@ -70,7 +70,7 @@ bool Statement::CompileTimeCodeExecution(Namespace& curnamespace, CodeBlock& act
 
 	if(NeedsInstantiation)
 	{
-		SetTemplateArgs(TemplateArgs, curnamespace);
+		SetTemplateArgs(TemplateArgs, curnamespace, errors);
 		NeedsInstantiation = false;
 	}
 
@@ -98,7 +98,7 @@ bool Statement::TypeInference(Namespace& curnamespace, CodeBlock& activescope, I
 
 	if(NeedsInstantiation)
 	{
-		SetTemplateArgs(TemplateArgs, curnamespace);
+		SetTemplateArgs(TemplateArgs, curnamespace, errors);
 		NeedsInstantiation = false;
 	}
 
@@ -235,7 +235,10 @@ bool Statement::TypeInference(Namespace& curnamespace, CodeBlock& activescope, I
 								break;
 							}
 							else if(VM::GetTypeFamily(providedparamtype) != VM::EpochTypeFamily_SumType)
-								Parameters[j]->AddAtom(new ExpressionAtomTypeAnnotation(providedparamtype));
+							{
+								generatetypematch = true;
+								expectedpermutations *= curnamespace.Types.SumTypes.GetNumBaseTypes(providedparamtype);
+							}
 						}
 						else if(VM::GetTypeFamily(providedparamtype) == VM::EpochTypeFamily_SumType)
 						{
@@ -596,7 +599,7 @@ bool Statement::TypeInference(Namespace& curnamespace, CodeBlock& activescope, I
 }
 
 
-void Statement::SetTemplateArgs(const CompileTimeParameterVector& args, Namespace& curnamespace)
+void Statement::SetTemplateArgs(const CompileTimeParameterVector& args, Namespace& curnamespace, CompileErrors& errors)
 {
 	if(!args.empty())
 	{
@@ -612,7 +615,7 @@ void Statement::SetTemplateArgs(const CompileTimeParameterVector& args, Namespac
 		}
 		else if(curnamespace.Functions.IsFunctionTemplate(Name))
 		{
-			Name = curnamespace.Functions.InstantiateAllOverloads(Name, args);
+			Name = curnamespace.Functions.InstantiateAllOverloads(Name, args, errors);
 			TemplateArgs = args;
 		}
 		else
