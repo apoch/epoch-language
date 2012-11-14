@@ -1443,7 +1443,15 @@ void CompilePassSemantics::EntryHelper::operator () (AST::TemplateParameter& par
 		break;
 
 	default:
-		// TODO - document exception
+		//
+		// This is a discrepancy between the parser and the IR traverser.
+		//
+		// Something has been given a set of template parameters, but the IR
+		// traverser doesn't know what to do with them. Chances are that the
+		// code is in a transitional state where parser support for template
+		// parameters has been added to some area of the syntax but the full
+		// support has yet to be fleshed out throughout the compiler.
+		//
 		throw InternalException("Unrecognized context for template parameter");
 	}
 }

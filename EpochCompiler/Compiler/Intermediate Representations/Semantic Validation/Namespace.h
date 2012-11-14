@@ -64,6 +64,7 @@ namespace IRSemantics
 
 	// General function management interface
 	public:
+		void Add(StringHandle name, StringHandle rawname, Function* function);
 		EPOCHCOMPILER bool Exists(StringHandle functionname) const;
 
 	// Function signature management interface
@@ -78,6 +79,7 @@ namespace IRSemantics
 		bool HasOverloads(StringHandle functionname) const;
 		const StringHandleSet& GetOverloadNames(StringHandle functionname) const;
 
+		StringHandle CreateOverload(const std::wstring& name);
 		void AddOverload(StringHandle functionname, StringHandle overloadname);
 
 		unsigned GetNumOverloads(StringHandle name) const;
@@ -99,12 +101,8 @@ namespace IRSemantics
 		Function* GetIR(StringHandle functionname);
 		const Function* GetIR(StringHandle functionname) const;
 
-	// TODO - organize
+	// Pattern and type matching
 	public:
-		StringHandle CreateOverload(const std::wstring& name);
-
-		void Add(StringHandle name, StringHandle rawname, Function* function);
-
 		void MarkFunctionWithStaticPatternMatching(StringHandle rawname, StringHandle overloadname);
 		bool FunctionNeedsDynamicPatternMatching(StringHandle overloadname) const;
 		StringHandle GetDynamicPatternMatcherForFunction(StringHandle overloadname) const;
@@ -114,17 +112,16 @@ namespace IRSemantics
 
 		StringHandle AllocateTypeMatcher(StringHandle overloadname, const std::map<StringHandle, FunctionSignature>& matchingoverloads);
 
+	// Semantic analysis pass
+	public:
 		bool Validate(CompileErrors& errors) const;
 		bool TypeInference(InferenceContext& context, CompileErrors& errors);
 		bool CompileTimeCodeExecution(CompileErrors& errors);
 
-
+	// Function template support
+	public:
 		bool IsFunctionTemplate(StringHandle name) const;
 		StringHandle InstantiateAllOverloads(StringHandle templatename, const CompileTimeParameterVector& args, CompileErrors& errors);
-
-	private:
-		StringHandle InstantiateTemplate(StringHandle templatename, const CompileTimeParameterVector& args, CompileErrors& errors);
-
 
 	// Additional queries
 	public:
@@ -141,6 +138,8 @@ namespace IRSemantics
 
 	// Internal helpers
 	private:
+		StringHandle InstantiateTemplate(StringHandle templatename, const CompileTimeParameterVector& args, CompileErrors& errors);
+
 		std::wstring GenerateFunctionOverloadName(StringHandle name, size_t index) const;
 		static std::wstring GenerateStructureMemberAccessOverloadName(const std::wstring& structurename, const std::wstring& membername);
 		static std::wstring GeneratePatternMatcherName(const std::wstring& funcname);
@@ -268,19 +267,19 @@ namespace IRSemantics
 		Bytecode::EntityTag GetEntityTag(StringHandle entityname) const;
 		Bytecode::EntityTag GetEntityCloserTag(StringHandle entityname) const;
 
-
-	// TODO - organize
+	// Semantic analysis pass
 	public:
 		bool Validate(CompileErrors& errors) const;
 		bool TypeInference(CompileErrors& errors);
 		bool CompileTimeCodeExecution(CompileErrors& errors);
 
-
+	// Control of parent namespace
+	public:
 		void SetParent(Namespace* parent);
 
-
+	// Dummy namespaces for template function instantiations
+	public:
 		static Namespace* CreateTemplateDummy(Namespace& parent, const std::vector<std::pair<StringHandle, Metadata::EpochTypeID> >& params, const CompileTimeParameterVector& args);
-
 
 	// Internal helpers
 	private:
