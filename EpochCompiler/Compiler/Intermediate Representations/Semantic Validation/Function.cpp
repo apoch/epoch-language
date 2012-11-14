@@ -344,7 +344,6 @@ bool Function::TypeInference(Namespace& curnamespace, InferenceContext&, Compile
 	if(!result)
 		return false;
 
-	curnamespace.AddScope(Code->GetScope());		// TODO - better solution than aliasing the scope
 	curnamespace.AddScope(Code->GetScope(), Name);
 
 	InferenceContext newcontext(Name, InferenceContext::CONTEXT_FUNCTION);
