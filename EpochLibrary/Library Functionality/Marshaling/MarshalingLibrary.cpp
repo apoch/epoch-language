@@ -36,7 +36,7 @@ namespace
 		else if(Metadata::GetTypeFamily(vartype) == Metadata::EpochTypeFamily_Structure || Metadata::GetTypeFamily(vartype) == Metadata::EpochTypeFamily_TemplateInstance)
 			context.State.Stack.PushValue(context.OwnerVM.GetStructureDefinition(vartype).GetMarshaledSize());
 		else
-			context.State.Stack.PushValue(0);		// TODO - should this halt the VM instead?
+			context.State.Result.ResultType = VM::ExecutionResult::EXEC_RESULT_HALT;
 	}
 
 	//

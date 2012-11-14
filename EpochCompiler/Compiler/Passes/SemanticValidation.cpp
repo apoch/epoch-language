@@ -958,7 +958,10 @@ void CompilePassSemantics::EntryHelper::operator () (AST::Assignment& assignment
 
 	self->StateStack.push(CompilePassSemantics::STATE_ASSIGNMENT);
 
-	StringHandle opname = self->CurrentProgram->AddString(std::wstring(assignment.Operator.begin(), assignment.Operator.end()));
+	std::wstring opnamestr(assignment.Operator.begin(), assignment.Operator.end());
+	StringHandle opname = self->CurrentProgram->AddString(opnamestr);
+
+	bool hasadditionaleffects = (opnamestr != L"=");
 
 	std::vector<StringHandle> lhs;
 	std::for_each(assignment.LHS.begin(), assignment.LHS.end(), StringPooler(*self->CurrentProgram, lhs));
@@ -967,11 +970,13 @@ void CompilePassSemantics::EntryHelper::operator () (AST::Assignment& assignment
 	{
 	case CompilePassSemantics::STATE_CODE_BLOCK:
 		self->CurrentAssignments.push_back(new IRSemantics::Assignment(lhs, opname, *assignment.LHS.begin()));
+		self->CurrentAssignments.back()->HasAdditionalEffects = hasadditionaleffects;
 		break;
 
 	case CompilePassSemantics::STATE_ASSIGNMENT:
 		{
 			std::auto_ptr<IRSemantics::Assignment> irassignment(new IRSemantics::Assignment(lhs, opname, *assignment.LHS.begin()));
+			irassignment->HasAdditionalEffects = hasadditionaleffects;
 			std::auto_ptr<IRSemantics::AssignmentChainAssignment> irassignmentchain(new IRSemantics::AssignmentChainAssignment(irassignment.release()));
 			self->CurrentAssignments.back()->SetRHSRecursive(irassignmentchain.release());
 		}

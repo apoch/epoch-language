@@ -150,7 +150,14 @@ namespace
 				EmitExpression(emitter, expr->GetExpression(), activescope, curnamespace);
 			else
 			{
-				// TODO - document
+				//
+				// This is probably an incomplete language feature.
+				//
+				// As written, this code supports only a limited number of kinds
+				// of things within a parenthetical expression, although frankly
+				// they should be sufficient for any real usage. The contents of
+				// parentheticals are limited to simplify parsing and traversal.
+				//
 				throw InternalException("Invalid parenthetical contents");
 			}
 		}
@@ -290,8 +297,7 @@ namespace
 	{
 		bool pushlhs = false;
 
-		// TODO - eliminate these hard-coded string hacks
-		if(curnamespace.Strings.GetPooledString(assignment.GetOperatorName()) != L"=")
+		if(assignment.HasAdditionalEffects)
 			PushValue(emitter, assignment.GetLHS(), curnamespace, activescope);
 
 		const IRSemantics::AssignmentChain* rhs = assignment.GetRHS();
@@ -326,7 +332,7 @@ namespace
 			throw InternalException("Assignment right hand side is not recognized in IR");
 		}
 
-		if(curnamespace.Strings.GetPooledString(assignment.GetOperatorName()) != L"=")
+		if(assignment.HasAdditionalEffects)
 			emitter.Invoke(assignment.GetOperatorName());
 
 		if(assignment.WantsTypeAnnotation)
@@ -513,7 +519,9 @@ namespace
 		std::map<Metadata::EpochTypeID, std::set<Metadata::EpochTypeID> > sumtypes = curnamespace.Types.SumTypes.GetDefinitions();
 		for(std::map<Metadata::EpochTypeID, std::set<Metadata::EpochTypeID> >::const_iterator iter = sumtypes.begin(); iter != sumtypes.end(); ++iter)
 		{
-			// TODO - omit template types
+			if(curnamespace.Types.SumTypes.IsTemplate(curnamespace.Types.GetNameOfType(iter->first)))
+				continue;
+
 			emitter.DefineSumType(iter->first, iter->second);
 		}
 

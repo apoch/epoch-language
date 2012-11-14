@@ -31,7 +31,8 @@ Assignment::Assignment(const std::vector<StringHandle>& lhs, StringHandle operat
 	  RHS(NULL),
 	  LHSType(Metadata::EpochType_Error),
 	  OriginalLHS(originallhs),
-	  WantsTypeAnnotation(false)
+	  WantsTypeAnnotation(false),
+	  HasAdditionalEffects(false)
 {
 }
 

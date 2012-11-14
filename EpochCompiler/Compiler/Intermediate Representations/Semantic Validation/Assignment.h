@@ -109,6 +109,7 @@ namespace IRSemantics
 
 	public:
 		bool WantsTypeAnnotation;
+		bool HasAdditionalEffects;
 
 	// Internal state
 	private:

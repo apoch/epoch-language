@@ -408,7 +408,13 @@ bool Function::DoesParameterSignatureMatch(size_t index, const FunctionSignature
 
 		if(parameter.Type == Metadata::EpochType_Function)
 		{
-			throw std::runtime_error("Not implemented");		// TODO - better exceptions
+			//
+			// This is just a missing feature.
+			//
+			// Signature checks should be extended to be recursive so that
+			// any number of higher-order parameters can be passed around.
+			//
+			throw NotImplementedException("Support for this degree of higher-order functions is not implemented");
 		}
 	}
 
