@@ -977,15 +977,6 @@ bool Namespace::CompileTimeCodeExecution(CompileErrors& errors)
 	if(!Types.CompileTimeCodeExecution(errors))
 		return false;
 
-	// TODO - reenable global stuffs
-	/*
-	for(std::vector<CodeBlock*>::iterator iter = GlobalCodeBlocks.begin(); iter != GlobalCodeBlocks.end(); ++iter)
-	{
-		if(!(*iter)->CompileTimeCodeExecution(*this, errors))
-			return false;
-	}
-	*/
-
 	return Functions.CompileTimeCodeExecution(errors);
 }
 

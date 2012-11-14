@@ -230,6 +230,46 @@ namespace
 	}
 
 
+	void DemoteLHS(std::vector<ExpressionAtom*>& atoms, Namespace& curnamespace, size_t& index, VM::EpochTypeID targettype)
+	{
+		while(index < atoms.size())
+		{
+			const ExpressionAtomOperator* opatom = dynamic_cast<const ExpressionAtomOperator*>(atoms[index]);
+			if(opatom)
+			{
+				if(opatom->IsMemberAccess())
+					++index;
+				else if(opatom->IsOperatorUnary(curnamespace))
+					++index;
+				else
+					break;
+			}
+			else
+				atoms[index++]->Demote(targettype, curnamespace);
+		}
+	}
+
+	void DemoteRHS(std::vector<ExpressionAtom*>& atoms, Namespace& curnamespace, size_t& index, VM::EpochTypeID targettype)
+	{
+		while(index < atoms.size())
+		{
+			const ExpressionAtomOperator* opatom = dynamic_cast<const ExpressionAtomOperator*>(atoms[index]);
+			if(opatom)
+			{
+				if(opatom->IsMemberAccess())
+					++index;
+				else if(opatom->IsOperatorUnary(curnamespace))
+					++index;
+
+				break;
+			}
+			else
+				atoms[index++]->Demote(targettype, curnamespace);
+		}
+	}
+
+
+
 	//
 	// Helper structure for setting flags automatically via RAII idiom
 	//
@@ -408,9 +448,87 @@ bool Expression::TypeInference(Namespace& curnamespace, CodeBlock& activescope, 
 	}
 
 	//
-	// Perform operator overload resolution
+	// Demote types as necessary
 	//
 	unsigned idx = 0;
+	for(std::vector<ExpressionAtom*>::iterator iter = Atoms.begin(); iter != Atoms.end(); ++iter)
+	{
+		ExpressionAtomOperator* opatom = dynamic_cast<ExpressionAtomOperator*>(*iter);
+		if(!opatom || opatom->IsMemberAccess())
+			continue;
+
+		unsigned rhsidx = iter - Atoms.begin() + 1;
+
+		unsigned originalidx = idx;
+		unsigned originalrhsidx = rhsidx;
+
+		VM::EpochTypeID typerhs = VM::EpochType_Error;
+		typerhs = WalkAtomsForType(Atoms, curnamespace, rhsidx, typerhs, errors);
+
+		VM::EpochTypeID underlyingtyperhs = typerhs;
+		if(VM::GetTypeFamily(typerhs) == VM::EpochTypeFamily_Unit)
+			underlyingtyperhs = curnamespace.Types.Aliases.GetStrongRepresentation(typerhs);
+
+		bool hasoverloads = curnamespace.Functions.HasOverloads(opatom->GetIdentifier());
+		if(hasoverloads)
+		{
+			const StringHandleSet& overloads = curnamespace.Functions.GetOverloadNames(opatom->GetIdentifier());
+			for(StringHandleSet::const_iterator overloaditer = overloads.begin(); overloaditer != overloads.end(); ++overloaditer)
+			{
+				const FunctionSignature& overloadsig = curnamespace.Functions.GetSignature(*overloaditer);
+				if(overloadsig.GetNumParameters() == 2)
+				{
+					idx = originalidx;
+
+					bool lhswantsint16 = false;
+					bool lhswantsint32 = false;
+					bool rhswantsint16 = false;
+					bool rhswantsint32 = false;
+					bool matchlhs = false;
+					bool matchrhs = false;
+
+					VM::EpochTypeID typelhs = VM::EpochType_Error;
+					typelhs = WalkAtomsForTypePartial(Atoms, curnamespace, idx, typelhs, errors);
+
+					VM::EpochTypeID underlyingtypelhs = typelhs;
+					if(VM::GetTypeFamily(typelhs) == VM::EpochTypeFamily_Unit)
+						underlyingtypelhs = curnamespace.Types.Aliases.GetStrongRepresentation(typelhs);
+
+					if(overloadsig.GetParameter(0).Type == VM::EpochType_Integer16)
+						lhswantsint16 = true;
+					else if(overloadsig.GetParameter(0).Type == VM::EpochType_Integer)
+						lhswantsint32 = true;
+
+					if(overloadsig.GetParameter(1).Type == VM::EpochType_Integer16)
+						rhswantsint16 = true;
+					else if(overloadsig.GetParameter(1).Type == VM::EpochType_Integer)
+						rhswantsint32 = true;
+
+					if(overloadsig.GetParameter(0).Type == typelhs || overloadsig.GetParameter(0).Type == underlyingtypelhs)
+						matchlhs = true;
+
+					if(overloadsig.GetParameter(1).Type == typerhs || overloadsig.GetParameter(1).Type == underlyingtyperhs)
+						matchrhs = true;
+
+					if(matchlhs && matchrhs)
+						break;
+
+					if(!matchlhs && matchrhs && lhswantsint16)
+						DemoteLHS(Atoms, curnamespace, originalidx, VM::EpochType_Integer16);
+
+					if(matchlhs && !matchrhs && rhswantsint16)
+						DemoteRHS(Atoms, curnamespace, originalrhsidx, VM::EpochType_Integer16);
+				}
+			}
+		}
+
+		++idx;
+	}
+
+	//
+	// Perform operator overload resolution
+	//
+	idx = 0;
 	for(std::vector<ExpressionAtom*>::iterator iter = Atoms.begin(); iter != Atoms.end(); ++iter)
 	{
 		ExpressionAtomOperator* opatom = dynamic_cast<ExpressionAtomOperator*>(*iter);
@@ -973,8 +1091,16 @@ bool ExpressionAtomIdentifierBase::CompileTimeCodeExecution(Namespace&, CodeBloc
 
 ExpressionAtom* ExpressionAtomIdentifierBase::Clone() const
 {
-	// TODO - better exceptions
-	throw InternalException("Bork!");
+	//
+	// This is a failure of the semantic pass implementation.
+	//
+	// The ExpressionAtomIdentifierBase class is only used as a shared
+	// base for actual identifier atoms of various natures, and should
+	// not be instantiated directly. Attempting to clone one indicates
+	// that one exists, which is bad. Ideally we'd trap this situation
+	// earlier, but this is the most convenient and simple solution.
+	//
+	throw InternalException("Cannot clone this class; use one of its subclasses");
 }
 
 ExpressionAtom* ExpressionAtomIdentifier::Clone() const
@@ -1169,6 +1295,9 @@ VM::EpochTypeID ExpressionAtomLiteralInteger32::GetEpochType(const Namespace&) c
 //
 bool ExpressionAtomLiteralInteger32::TypeInference(Namespace& curnamespace, CodeBlock&, InferenceContext& context, size_t index, size_t maxindex, CompileErrors&)
 {
+	bool expected32bits = false;
+	bool expected16bits = false;
+
 	if(context.ExpectedTypes.empty())
 		return true;
 
@@ -1183,7 +1312,14 @@ bool ExpressionAtomLiteralInteger32::TypeInference(Namespace& curnamespace, Code
 			if(curnamespace.Types.Aliases.GetStrongRepresentation(expectedtype) == VM::EpochType_Integer)
 				MyType = expectedtype;
 		}
+		else if(expectedtype == VM::EpochType_Integer)
+			expected32bits = true;
+		else if(expectedtype == VM::EpochType_Integer16)
+			expected16bits = true;
 	}
+
+	if(expected16bits && !expected32bits)
+		return Demote(VM::EpochType_Integer16, curnamespace);
 
 	return true;
 }
@@ -1418,3 +1554,16 @@ ExpressionAtom* ExpressionAtomLiteralReal32::Clone() const
 	clone->MyType = MyType;
 	return clone;
 }
+
+bool ExpressionAtomLiteralInteger32::Demote(VM::EpochTypeID target, const Namespace&)
+{
+	if(target != VM::EpochType_Integer16)
+		return false;
+
+	if(static_cast<UInteger32>(Value) > std::numeric_limits<UInteger16>::max())
+		return false;
+
+	MyType = target;
+	return true;
+}
+

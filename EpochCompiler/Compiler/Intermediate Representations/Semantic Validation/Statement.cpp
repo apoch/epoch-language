@@ -588,7 +588,6 @@ bool Statement::TypeInference(Namespace& curnamespace, CodeBlock& activescope, I
 		}
 	}
 
-	// TODO - this doesn't respect template arguments!
 	Name = curnamespace.Types.SumTypes.MapConstructorName(Name);
 
 	bool valid = (MyType != VM::EpochType_Infer && MyType != VM::EpochType_Error);
@@ -623,8 +622,8 @@ void Statement::SetTemplateArgs(const CompileTimeParameterVector& args, Namespac
 		}
 		else
 		{
-			// TODO - document exception
-			throw InternalException("Template arguments provided in unrecognized context");
+			errors.SetContext(OriginalIdentifier);
+			errors.SemanticError("This is not a template");
 		}
 	}
 }

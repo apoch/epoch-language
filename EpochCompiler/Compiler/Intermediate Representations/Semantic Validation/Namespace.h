@@ -238,8 +238,6 @@ namespace IRSemantics
 	public:
 		StringPoolManager& Strings;
 
-		// TODO - clean up
-
 	// Access to lexical scopes
 	public:
 		const ScopePtrMap& GetScopes() const

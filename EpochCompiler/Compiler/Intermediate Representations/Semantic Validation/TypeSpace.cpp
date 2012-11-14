@@ -568,8 +568,6 @@ StringHandle TypeSpace::GetNameOfType(VM::EpochTypeID type) const
 		return MyNamespace.Strings.Pool(L"function");
 	}
 
-	// TODO - extend to other names
-
 	for(std::map<StringHandle, VM::EpochTypeID>::const_iterator iter = Structures.NameToTypeMap.begin(); iter != Structures.NameToTypeMap.end(); ++iter)
 	{
 		if(iter->second == type)
@@ -606,12 +604,12 @@ StringHandle TypeSpace::GetNameOfType(VM::EpochTypeID type) const
 	//
 	// This catches a potential logic bug in the compiler implementation.
 	//
-	// If a structure has been allocated a type ID, that type ID should never
+	// If a data type has been allocated a type ID, that type ID should never
 	// be able to exist without being also bound to an identifier, even if that
 	// identifier is just an automatically generated magic anonymous token.
 	//
 	// Callers cannot be faulted directly for this exception; the problem most
-	// likely lies elsewhere in the structure type handling code.
+	// likely lies elsewhere in the type handling code.
 	//
 	throw InternalException("Type ID is not bound to any known identifier");
 

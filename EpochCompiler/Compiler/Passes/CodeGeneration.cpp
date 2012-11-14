@@ -191,7 +191,10 @@ namespace
 		}
 		else if(const IRSemantics::ExpressionAtomLiteralInteger32* atom = dynamic_cast<const IRSemantics::ExpressionAtomLiteralInteger32*>(rawatom))
 		{
-			emitter.PushIntegerLiteral(atom->GetValue());
+			if(atom->GetEpochType(curnamespace) == VM::EpochType_Integer16)
+				emitter.PushInteger16Literal(atom->GetValue());
+			else
+				emitter.PushIntegerLiteral(atom->GetValue());
 		}
 		else if(const IRSemantics::ExpressionAtomLiteralReal32* atom = dynamic_cast<const IRSemantics::ExpressionAtomLiteralReal32*>(rawatom))
 		{

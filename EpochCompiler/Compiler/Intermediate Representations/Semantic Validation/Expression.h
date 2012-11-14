@@ -63,6 +63,9 @@ namespace IRSemantics
 		virtual bool CompileTimeCodeExecution(Namespace& curnamespace, CodeBlock& activescope, bool inreturnexpr, CompileErrors& errors) = 0;
 		virtual CompileTimeParameter ConvertToCompileTimeParam(const Namespace& curnamespace) const = 0;
 		virtual ExpressionAtom* Clone() const = 0;
+
+		virtual bool Demote(VM::EpochTypeID targettype, const Namespace& curnamespace)
+		{ return (targettype == GetEpochType(curnamespace)); }
 	};
 
 
@@ -531,6 +534,7 @@ namespace IRSemantics
 		virtual bool CompileTimeCodeExecution(Namespace& curnamespace, CodeBlock& activescope, bool inreturnexpr, CompileErrors& errors);
 		virtual CompileTimeParameter ConvertToCompileTimeParam(const Namespace& curnamespace) const;
 		virtual ExpressionAtom* Clone() const;
+		virtual bool Demote(VM::EpochTypeID targettype, const Namespace& curnamespace);
 
 	// Internal state
 	private:
