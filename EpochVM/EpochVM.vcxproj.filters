@@ -65,9 +65,6 @@
     <ClCompile Include="Virtual Machine\Marshaling.cpp">
       <Filter>Virtual Machine</Filter>
     </ClCompile>
-    <ClCompile Include="Virtual Machine\TypeInfo.cpp">
-      <Filter>Virtual Machine</Filter>
-    </ClCompile>
     <ClCompile Include="Virtual Machine\VirtualMachine.cpp">
       <Filter>Virtual Machine</Filter>
     </ClCompile>
@@ -119,6 +116,9 @@
     <ClCompile Include="JIT\JIT.cpp">
       <Filter>JIT</Filter>
     </ClCompile>
+    <ClCompile Include="..\Shared\Metadata\TypeInfo.cpp">
+      <Filter>Shared\Metadata</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h">
@@ -128,9 +128,6 @@
       <Filter>Exports</Filter>
     </ClInclude>
     <ClInclude Include="Virtual Machine\Marshaling.h">
-      <Filter>Virtual Machine</Filter>
-    </ClInclude>
-    <ClInclude Include="Virtual Machine\TypeInfo.h">
       <Filter>Virtual Machine</Filter>
     </ClInclude>
     <ClInclude Include="Virtual Machine\VirtualMachine.h">
@@ -215,6 +212,9 @@
       <Filter>Shared\Metadata</Filter>
     </ClInclude>
     <ClInclude Include="..\Shared\Metadata\ActiveStructure.h">
+      <Filter>Shared\Metadata</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Shared\Metadata\TypeInfo.h">
       <Filter>Shared\Metadata</Filter>
     </ClInclude>
   </ItemGroup>

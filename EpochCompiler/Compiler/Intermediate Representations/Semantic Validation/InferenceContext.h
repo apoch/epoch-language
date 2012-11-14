@@ -33,7 +33,7 @@ namespace IRSemantics
 		//
 		// Just a set of possible types
 		//
-		typedef std::vector<VM::EpochTypeID> TypePossibilities;
+		typedef std::vector<Metadata::EpochTypeID> TypePossibilities;
 
 		//
 		// Maps a parameter index onto a set of

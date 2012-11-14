@@ -86,21 +86,21 @@ void StringLibrary::RegisterLibraryFunctions(FunctionSignatureSet& signatureset,
 {
 	{
 		FunctionSignature signature;
-		signature.AddParameter(L"s1", VM::EpochType_String, false);
-		signature.AddParameter(L"s2", VM::EpochType_String, false);
-		signature.SetReturnType(VM::EpochType_String);
+		signature.AddParameter(L"s1", Metadata::EpochType_String, false);
+		signature.AddParameter(L"s2", Metadata::EpochType_String, false);
+		signature.SetReturnType(Metadata::EpochType_String);
 		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L";"), signature));
 	}
 	{
 		FunctionSignature signature;
-		signature.AddParameter(L"s", VM::EpochType_String, false);
-		signature.SetReturnType(VM::EpochType_Integer);
+		signature.AddParameter(L"s", Metadata::EpochType_String, false);
+		signature.SetReturnType(Metadata::EpochType_Integer);
 		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"length"), signature));
 	}
 	{
 		FunctionSignature signature;
-		signature.AddParameter(L"s", VM::EpochType_String, false);
-		signature.SetReturnType(VM::EpochType_Buffer);
+		signature.AddParameter(L"s", Metadata::EpochType_String, false);
+		signature.SetReturnType(Metadata::EpochType_Buffer);
 		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"narrowstring"), signature));
 	}
 }

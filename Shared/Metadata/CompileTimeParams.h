@@ -30,7 +30,7 @@ class FunctionSignature;
 struct CompileTimeParameter
 {
 	// Constructor for convenience
-	CompileTimeParameter(const std::wstring& name, VM::EpochTypeID type)
+	CompileTimeParameter(const std::wstring& name, Metadata::EpochTypeID type)
 		: Name(name),
 		  Type(type),
 		  IsReference(false),
@@ -38,7 +38,7 @@ struct CompileTimeParameter
 	{ }
 
 	std::wstring Name;
-	VM::EpochTypeID Type;
+	Metadata::EpochTypeID Type;
 
 	union PayloadUnion
 	{
@@ -61,11 +61,11 @@ struct CompileTimeParameter
 
 		switch(Type)
 		{
-		case VM::EpochType_Integer:
+		case Metadata::EpochType_Integer:
 			return Payload.IntegerValue == rhs.Payload.IntegerValue;
 
-		case VM::EpochType_Identifier:
-		case VM::EpochType_Wildcard:
+		case Metadata::EpochType_Identifier:
+		case Metadata::EpochType_Wildcard:
 			return Payload.LiteralStringHandleValue == rhs.Payload.LiteralStringHandleValue;
 		}
 

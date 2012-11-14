@@ -50,9 +50,9 @@ public:
 		return ret;
 	}
 
-	VM::EpochTypeID ReadTypeAnnotation()
+	Metadata::EpochTypeID ReadTypeAnnotation()
 	{
-		return static_cast<VM::EpochTypeID>(Read<Integer32>());
+		return static_cast<Metadata::EpochTypeID>(Read<Integer32>());
 	}
 
 	Bytecode::EntityTag ReadEntityTag()
@@ -143,42 +143,42 @@ void Serializer::Write(const std::wstring& filename) const
 
 		case Bytecode::Instructions::Push:
 			{
-				VM::EpochTypeID type = traverser.ReadTypeAnnotation();
+				Metadata::EpochTypeID type = traverser.ReadTypeAnnotation();
 				switch(type)
 				{
-				case VM::EpochType_Error:
-				case VM::EpochType_Void:
+				case Metadata::EpochType_Error:
+				case Metadata::EpochType_Void:
 					throw SerializationException("Failed to serialize untyped PUSH operand");
 		
-				case VM::EpochType_Identifier:
+				case Metadata::EpochType_Identifier:
 					throw SerializationException("Failed to serialize incorrect PUSH operand");
 
-				case VM::EpochType_Integer:
+				case Metadata::EpochType_Integer:
 					outfile << L"PUSH_INT " << traverser.Read<Integer32>() << L"\n";
 					break;
 
-				case VM::EpochType_Integer16:
+				case Metadata::EpochType_Integer16:
 					outfile << L"PUSH_INT16 " << traverser.Read<Integer16>() << L"\n";
 					break;
 
-				case VM::EpochType_Real:
+				case Metadata::EpochType_Real:
 					outfile << L"PUSH_REAL " << traverser.Read<Real32>() << L"\n";
 					break;
 
-				case VM::EpochType_Boolean:
+				case Metadata::EpochType_Boolean:
 					outfile << L"PUSH_BOOL " << traverser.Read<bool>() << L"\n";
 					break;
 
-				case VM::EpochType_String:
+				case Metadata::EpochType_String:
 					outfile << L"PUSH_STR " << traverser.Read<StringHandle>() << L"\n";
 					break;
 
-				case VM::EpochType_Buffer:
+				case Metadata::EpochType_Buffer:
 					outfile << L"PUSH_BUFFER " << traverser.Read<BufferHandle>() << L"\n";
 					break;
 
 				default:
-					if(VM::GetTypeFamily(type) == VM::EpochTypeFamily_Structure || VM::GetTypeFamily(type) == VM::EpochTypeFamily_TemplateInstance)
+					if(Metadata::GetTypeFamily(type) == Metadata::EpochTypeFamily_Structure || Metadata::GetTypeFamily(type) == Metadata::EpochTypeFamily_TemplateInstance)
 					{
 						outfile << L"PUSH " << type << L" ";
 						outfile << traverser.Read<StructureHandle>() << L"\n";
@@ -205,7 +205,7 @@ void Serializer::Write(const std::wstring& filename) const
 
 		case Bytecode::Instructions::Pop:
 			{
-				VM::EpochTypeID type = traverser.ReadTypeAnnotation();
+				Metadata::EpochTypeID type = traverser.ReadTypeAnnotation();
 				outfile << L"POP " << type << L"\n";
 			}
 			break;
@@ -300,7 +300,7 @@ void Serializer::Write(const std::wstring& filename) const
 				outfile << count << L" ";
 				for(size_t i = 0; i < count; ++i)
 				{
-					VM::EpochTypeID paramtype = traverser.ReadTypeAnnotation();
+					Metadata::EpochTypeID paramtype = traverser.ReadTypeAnnotation();
 					outfile << paramtype << L" " ;
 
 					bool needsmatching = (traverser.Read<Byte>() != 0);
@@ -309,7 +309,7 @@ void Serializer::Write(const std::wstring& filename) const
 						outfile << L"MATCH ";
 						switch(paramtype)
 						{
-						case VM::EpochType_Integer:
+						case Metadata::EpochType_Integer:
 							{
 								Integer32 matchvalue = traverser.Read<Integer32>();
 								outfile << matchvalue << L" ";
@@ -339,7 +339,7 @@ void Serializer::Write(const std::wstring& filename) const
 				for(size_t i = 0; i < nummembers; ++i)
 				{
 					StringHandle identifier = traverser.Read<StringHandle>();
-					VM::EpochTypeID type = traverser.ReadTypeAnnotation();
+					Metadata::EpochTypeID type = traverser.ReadTypeAnnotation();
 					outfile << identifier << L" " << type << L" ";
 				}
 				outfile << L"\n";
@@ -382,14 +382,14 @@ void Serializer::Write(const std::wstring& filename) const
 
 		case Bytecode::Instructions::SumTypeDef:
 			{
-				VM::EpochTypeID sumtypeid = traverser.Read<VM::EpochTypeID>();
+				Metadata::EpochTypeID sumtypeid = traverser.Read<Metadata::EpochTypeID>();
 				size_t numentries = traverser.Read<size_t>();
 
 				outfile << L"SUMTYPE " << sumtypeid << L" " << numentries;
 
 				for(size_t i = 0; i < numentries; ++i)
 				{
-					VM::EpochTypeID basetype = traverser.Read<VM::EpochTypeID>();
+					Metadata::EpochTypeID basetype = traverser.Read<Metadata::EpochTypeID>();
 					outfile << L" " << basetype;
 				}
 
@@ -406,7 +406,7 @@ void Serializer::Write(const std::wstring& filename) const
 				for(size_t i = 0; i < numparams; ++i)
 				{
 					outfile << L" " << traverser.Read<bool>();
-					outfile << L" " << traverser.Read<VM::EpochTypeID>();
+					outfile << L" " << traverser.Read<Metadata::EpochTypeID>();
 				}
 
 				outfile << L"\n";

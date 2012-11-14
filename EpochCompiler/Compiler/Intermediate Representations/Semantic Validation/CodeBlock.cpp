@@ -85,7 +85,7 @@ void CodeBlock::AddEntry(CodeBlockEntry* entry)
 // given the identifier handle of the variable. Might defer to any
 // number of ancestor scopes to locate the actual variable.
 //
-VM::EpochTypeID CodeBlock::GetVariableTypeByID(StringHandle identifier) const
+Metadata::EpochTypeID CodeBlock::GetVariableTypeByID(StringHandle identifier) const
 {
 	return Scope->GetVariableTypeByID(identifier);
 }
@@ -93,7 +93,7 @@ VM::EpochTypeID CodeBlock::GetVariableTypeByID(StringHandle identifier) const
 //
 // Add a new variable to this code block's lexical scope
 //
-void CodeBlock::AddVariable(const std::wstring& identifier, StringHandle identifierhandle, StringHandle typenamehandle, VM::EpochTypeID type, bool isreference, VariableOrigin origin)
+void CodeBlock::AddVariable(const std::wstring& identifier, StringHandle identifierhandle, StringHandle typenamehandle, Metadata::EpochTypeID type, bool isreference, VariableOrigin origin)
 {
 	Scope->AddVariable(identifier, identifierhandle, typenamehandle, type, isreference, origin);
 }

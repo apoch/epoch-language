@@ -15,7 +15,7 @@
 //
 // Add a variable to a lexical scope
 //
-void ScopeDescription::AddVariable(const std::wstring& identifier, StringHandle identifierhandle, StringHandle typenamehandle, VM::EpochTypeID type, bool isreference, VariableOrigin origin)
+void ScopeDescription::AddVariable(const std::wstring& identifier, StringHandle identifierhandle, StringHandle typenamehandle, Metadata::EpochTypeID type, bool isreference, VariableOrigin origin)
 {
 	if(HasVariable(identifier))
 		throw InvalidIdentifierException("Duplicate/shadowed identifiers are not permitted - the identifier \"" + narrow(identifier) + "\" is already in use in this scope or some containing scope.");
@@ -26,7 +26,7 @@ void ScopeDescription::AddVariable(const std::wstring& identifier, StringHandle 
 //
 // Add a variable to the beginning of a lexical scope
 //
-void ScopeDescription::PrependVariable(const std::wstring& identifier, StringHandle identifierhandle, StringHandle typenamehandle, VM::EpochTypeID type, bool isreference, VariableOrigin origin)
+void ScopeDescription::PrependVariable(const std::wstring& identifier, StringHandle identifierhandle, StringHandle typenamehandle, Metadata::EpochTypeID type, bool isreference, VariableOrigin origin)
 {
 	if(HasVariable(identifier))
 		throw InvalidIdentifierException("Duplicate/shadowed identifiers are not permitted - the identifier \"" + narrow(identifier) + "\" is already in use in this scope or some containing scope.");
@@ -84,7 +84,7 @@ StringHandle ScopeDescription::GetVariableNameHandle(size_t index) const
 //
 // Retrieve the type of a variable given its identifier handle
 //
-VM::EpochTypeID ScopeDescription::GetVariableTypeByID(StringHandle variableid) const
+Metadata::EpochTypeID ScopeDescription::GetVariableTypeByID(StringHandle variableid) const
 {
 	for(VariableVector::const_iterator iter = Variables.begin(); iter != Variables.end(); ++iter)
 	{
@@ -101,7 +101,7 @@ VM::EpochTypeID ScopeDescription::GetVariableTypeByID(StringHandle variableid) c
 //
 // Retrieve the type of the variable at the given index in the scope
 //
-VM::EpochTypeID ScopeDescription::GetVariableTypeByIndex(size_t index) const
+Metadata::EpochTypeID ScopeDescription::GetVariableTypeByIndex(size_t index) const
 {
 	return Variables[index].Type;
 }
@@ -154,7 +154,7 @@ bool ScopeDescription::HasReturnVariable() const
 }
 
 
-void ScopeDescription::Fixup(const std::vector<std::pair<StringHandle, VM::EpochTypeID> >& templateparams, const CompileTimeParameterVector& templateargs, const CompileTimeParameterVector& templateargtypes)
+void ScopeDescription::Fixup(const std::vector<std::pair<StringHandle, Metadata::EpochTypeID> >& templateparams, const CompileTimeParameterVector& templateargs, const CompileTimeParameterVector& templateargtypes)
 {
 	for(VariableVector::iterator iter = Variables.begin(); iter != Variables.end(); ++iter)
 	{
@@ -163,7 +163,7 @@ void ScopeDescription::Fixup(const std::vector<std::pair<StringHandle, VM::Epoch
 			if(iter->TypeName == templateparams[i].first)
 			{
 				iter->TypeName = templateargs[i].Payload.LiteralStringHandleValue;
-				iter->Type = static_cast<VM::EpochTypeID>(templateargtypes[i].Payload.IntegerValue);
+				iter->Type = static_cast<Metadata::EpochTypeID>(templateargtypes[i].Payload.IntegerValue);
 			}
 		}
 	}

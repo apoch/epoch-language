@@ -79,12 +79,12 @@ void Structure::GenerateConstructors(StringHandle myname, StringHandle construct
 	{
 		size_t i = 0;
 		FunctionSignature signature;
-		signature.AddParameter(L"id", VM::EpochType_Identifier, true);
+		signature.AddParameter(L"id", Metadata::EpochType_Identifier, true);
 		for(std::vector<std::pair<StringHandle, StructureMember*> >::const_iterator iter = Members.begin(); iter != Members.end(); ++iter)
 		{
-			VM::EpochTypeID paramtype = iter->second->GetEpochType(curnamespace);
+			Metadata::EpochTypeID paramtype = iter->second->GetEpochType(curnamespace);
 
-			if(paramtype == VM::EpochType_Error)
+			if(paramtype == Metadata::EpochType_Error)
 				paramtype = SubstituteTemplateParams(iter->first, templateargs, curnamespace);
 
 			signature.AddParameter(curnamespace.Strings.GetPooledString(iter->first), paramtype, false);
@@ -107,8 +107,8 @@ void Structure::GenerateConstructors(StringHandle myname, StringHandle construct
 		FunctionSignature signature;
 		for(std::vector<std::pair<StringHandle, StructureMember*> >::const_iterator iter = Members.begin(); iter != Members.end(); ++iter)
 		{
-			VM::EpochTypeID paramtype = iter->second->GetEpochType(curnamespace);
-			if(paramtype == VM::EpochType_Error)
+			Metadata::EpochTypeID paramtype = iter->second->GetEpochType(curnamespace);
+			if(paramtype == Metadata::EpochType_Error)
 				paramtype = SubstituteTemplateParams(iter->first, templateargs, curnamespace);
 
 			signature.AddParameter(curnamespace.Strings.GetPooledString(iter->first), paramtype, false);
@@ -132,8 +132,8 @@ void Structure::GenerateConstructors(StringHandle myname, StringHandle construct
 	{
 		StringHandle funcname = curnamespace.Functions.FindStructureMemberAccessOverload(myname, iter->first);
 
-		VM::EpochTypeID type = iter->second->GetEpochType(curnamespace);
-		if(type == VM::EpochType_Error)
+		Metadata::EpochTypeID type = iter->second->GetEpochType(curnamespace);
+		if(type == Metadata::EpochType_Error)
 			type = SubstituteTemplateParams(iter->first, templateargs, curnamespace);
 
 		std::auto_ptr<Function> func(new Function);
@@ -156,13 +156,13 @@ void Structure::GenerateConstructors(StringHandle myname, StringHandle construct
 }
 
 
-VM::EpochTypeID Structure::SubstituteTemplateParams(StringHandle membername, const CompileTimeParameterVector& templateargs, const Namespace& curnamespace) const
+Metadata::EpochTypeID Structure::SubstituteTemplateParams(StringHandle membername, const CompileTimeParameterVector& templateargs, const Namespace& curnamespace) const
 {
 	if(!IsTemplate())
-		return VM::EpochType_Error;
+		return Metadata::EpochType_Error;
 
 	if(templateargs.size() != TemplateParams.size())
-		return VM::EpochType_Error;
+		return Metadata::EpochType_Error;
 
 	for(std::vector<std::pair<StringHandle, StructureMember*> >::const_iterator iter = Members.begin(); iter != Members.end(); ++iter)
 	{
@@ -185,7 +185,7 @@ VM::EpochTypeID Structure::SubstituteTemplateParams(StringHandle membername, con
 		}
 	}
 
-	return VM::EpochType_Error;
+	return Metadata::EpochType_Error;
 }
 
 
@@ -228,7 +228,7 @@ bool Structure::InstantiateTemplate(StringHandle myname, const CompileTimeParame
 //
 bool StructureMemberVariable::Validate(const Namespace& curnamespace, CompileErrors& errors) const
 {
-	if(curnamespace.Types.GetTypeByName(MyType) == VM::EpochType_Error)
+	if(curnamespace.Types.GetTypeByName(MyType) == Metadata::EpochType_Error)
 	{
 		errors.SetContext(TypeIdentifier);
 		errors.SemanticError("Unknown type");
@@ -239,7 +239,7 @@ bool StructureMemberVariable::Validate(const Namespace& curnamespace, CompileErr
 }
 
 
-VM::EpochTypeID StructureMemberVariable::GetEpochType(const Namespace& curnamespace) const
+Metadata::EpochTypeID StructureMemberVariable::GetEpochType(const Namespace& curnamespace) const
 {
 	return curnamespace.Types.GetTypeByName(MyType);
 }
@@ -253,7 +253,7 @@ bool StructureMemberFunctionReference::Validate(const Namespace& curnamespace, C
 {
 	bool valid = true;
 
-	if(ReturnTypeName && (curnamespace.Types.GetTypeByName(ReturnTypeName) == VM::EpochType_Error))
+	if(ReturnTypeName && (curnamespace.Types.GetTypeByName(ReturnTypeName) == Metadata::EpochType_Error))
 	{
 		valid = false;
 		if(ReturnTypeIdentifier)
@@ -270,7 +270,7 @@ bool StructureMemberFunctionReference::Validate(const Namespace& curnamespace, C
 
 	for(std::vector<std::pair<StringHandle, const AST::IdentifierT*> >::const_iterator iter = ParamTypes.begin(); iter != ParamTypes.end(); ++iter)
 	{
-		if(curnamespace.Types.GetTypeByName(iter->first) == VM::EpochType_Error)
+		if(curnamespace.Types.GetTypeByName(iter->first) == Metadata::EpochType_Error)
 		{
 			valid = false;
 			errors.SetContext(*iter->second);
@@ -287,7 +287,7 @@ FunctionSignature StructureMemberFunctionReference::GetSignature(const Namespace
 	if(ReturnTypeName)
 		ret.SetReturnType(curnamespace.Types.GetTypeByName(ReturnTypeName));
 	else
-		ret.SetReturnType(VM::EpochType_Void);
+		ret.SetReturnType(Metadata::EpochType_Void);
 
 	for(std::vector<std::pair<StringHandle, const AST::IdentifierT*> >::const_iterator iter = ParamTypes.begin(); iter != ParamTypes.end(); ++iter)
 	{
@@ -296,7 +296,7 @@ FunctionSignature StructureMemberFunctionReference::GetSignature(const Namespace
 	return ret;
 }
 
-void Structure::AddTemplateParameter(VM::EpochTypeID type, StringHandle name)
+void Structure::AddTemplateParameter(Metadata::EpochTypeID type, StringHandle name)
 {
 	TemplateParams.push_back(std::make_pair(name, type));
 }
@@ -321,7 +321,7 @@ void Structure::SetMemberTemplateArgs(StringHandle membername, const CompileTime
 }
 
 
-void StructureMemberVariable::SubstituteTemplateArgs(const std::vector<std::pair<StringHandle, VM::EpochTypeID> >& params, const CompileTimeParameterVector& args, Namespace& curnamespace)
+void StructureMemberVariable::SubstituteTemplateArgs(const std::vector<std::pair<StringHandle, Metadata::EpochTypeID> >& params, const CompileTimeParameterVector& args, Namespace& curnamespace)
 {
 	if(TemplateArgs.empty())
 		return;

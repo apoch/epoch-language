@@ -50,8 +50,8 @@ void BooleanLibrary::RegisterLibraryFunctions(FunctionSignatureSet& signatureset
 {
 	{
 		FunctionSignature signature;
-		signature.AddParameter(L"b", VM::EpochType_Boolean, false);
-		signature.SetReturnType(VM::EpochType_Boolean);
+		signature.AddParameter(L"b", Metadata::EpochType_Boolean, false);
+		signature.SetReturnType(Metadata::EpochType_Boolean);
 		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"!@@boolean"), signature));
 	}
 }

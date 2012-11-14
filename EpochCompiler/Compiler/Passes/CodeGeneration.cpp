@@ -82,7 +82,7 @@ namespace
 		{
 			emitter.PushVariableValueNoCopy(identifiers[0]);
 
-			VM::EpochTypeID structuretype = activescope.GetVariableTypeByID(identifiers[0]);
+			Metadata::EpochTypeID structuretype = activescope.GetVariableTypeByID(identifiers[0]);
 			for(size_t i = 1; i < identifiers.size(); ++i)
 			{
 				StringHandle structurename = curnamespace.Types.GetNameOfType(structuretype);
@@ -94,9 +94,9 @@ namespace
 				structuretype = curnamespace.Types.Structures.GetMemberType(structurename, identifiers[i]);
 			}
 
-			if(structuretype == VM::EpochType_Buffer)
+			if(structuretype == Metadata::EpochType_Buffer)
 				emitter.CopyBuffer();
-			else if(VM::GetTypeFamily(structuretype) == VM::EpochTypeFamily_Structure || VM::GetTypeFamily(structuretype) == VM::EpochTypeFamily_TemplateInstance)
+			else if(Metadata::GetTypeFamily(structuretype) == Metadata::EpochTypeFamily_Structure || Metadata::GetTypeFamily(structuretype) == Metadata::EpochTypeFamily_TemplateInstance)
 				emitter.CopyStructure();
 		}
 	}
@@ -160,17 +160,17 @@ namespace
 		}
 		else if(const IRSemantics::ExpressionAtomIdentifier* atom = dynamic_cast<const IRSemantics::ExpressionAtomIdentifier*>(rawatom))
 		{
-			if(atom->GetEpochType(curnamespace) == VM::EpochType_Nothing)
+			if(atom->GetEpochType(curnamespace) == Metadata::EpochType_Nothing)
 			{
 				// Do nothing!
 			}
 			else
 			{
-				if(curnamespace.Functions.Exists(atom->GetIdentifier()) || (curnamespace.Types.GetTypeByName(atom->GetIdentifier()) != VM::EpochType_Error))
+				if(curnamespace.Functions.Exists(atom->GetIdentifier()) || (curnamespace.Types.GetTypeByName(atom->GetIdentifier()) != Metadata::EpochType_Error))
 					emitter.PushStringLiteral(atom->GetIdentifier());
 				else
 				{
-					if(atom->GetEpochType(curnamespace) == VM::EpochType_Identifier || atom->GetEpochType(curnamespace) == VM::EpochType_Function)
+					if(atom->GetEpochType(curnamespace) == Metadata::EpochType_Identifier || atom->GetEpochType(curnamespace) == Metadata::EpochType_Function)
 						emitter.PushStringLiteral(atom->GetIdentifier());
 					else
 						emitter.PushVariableValue(atom->GetIdentifier(), activescope.GetVariableTypeByID(atom->GetIdentifier()));
@@ -191,7 +191,7 @@ namespace
 		}
 		else if(const IRSemantics::ExpressionAtomLiteralInteger32* atom = dynamic_cast<const IRSemantics::ExpressionAtomLiteralInteger32*>(rawatom))
 		{
-			if(atom->GetEpochType(curnamespace) == VM::EpochType_Integer16)
+			if(atom->GetEpochType(curnamespace) == Metadata::EpochType_Integer16)
 				emitter.PushInteger16Literal(atom->GetValue());
 			else
 				emitter.PushIntegerLiteral(atom->GetValue());
@@ -276,11 +276,11 @@ namespace
 				EmitExpression(emitter, **paramiter, activescope, curnamespace);
 		}
 
-		if(activescope.GetScope()->HasVariable(statement.GetName()) && activescope.GetScope()->GetVariableTypeByID(statement.GetName()) == VM::EpochType_Function)
+		if(activescope.GetScope()->HasVariable(statement.GetName()) && activescope.GetScope()->GetVariableTypeByID(statement.GetName()) == Metadata::EpochType_Function)
 			emitter.InvokeIndirect(statement.GetName());
 		else if(curnamespace.Functions.FunctionNeedsDynamicPatternMatching(statement.GetName()))
 			emitter.Invoke(curnamespace.Functions.GetDynamicPatternMatcherForFunction(statement.GetName()));
-		else if(VM::GetTypeFamily(curnamespace.Types.GetTypeByName(statement.GetName())) == VM::EpochTypeFamily_SumType)
+		else if(Metadata::GetTypeFamily(curnamespace.Types.GetTypeByName(statement.GetName())) == Metadata::EpochTypeFamily_SumType)
 			emitter.ConstructSumType();
 		else
 			emitter.Invoke(statement.GetName());
@@ -334,7 +334,7 @@ namespace
 
 		BindReference(emitter, assignment.GetLHS());
 
-		if(VM::GetTypeFamily(assignment.GetLHSType()) == VM::EpochTypeFamily_SumType)
+		if(Metadata::GetTypeFamily(assignment.GetLHSType()) == Metadata::EpochTypeFamily_SumType)
 			emitter.AssignSumTypeVariable();
 		else
 			emitter.AssignVariable();
@@ -395,8 +395,8 @@ namespace
 			else if(const IRSemantics::CodeBlockStatementEntry* entry = dynamic_cast<const IRSemantics::CodeBlockStatementEntry*>(baseentry))
 			{
 				EmitStatement(emitter, entry->GetStatement(), codeblock, curnamespace);
-				VM::EpochTypeID rettype = entry->GetStatement().GetEpochType(curnamespace);
-				if(rettype != VM::EpochType_Void)
+				Metadata::EpochTypeID rettype = entry->GetStatement().GetEpochType(curnamespace);
+				if(rettype != Metadata::EpochType_Void)
 					emitter.PopStack(rettype);
 			}
 			else if(const IRSemantics::CodeBlockPreOpStatementEntry* entry = dynamic_cast<const IRSemantics::CodeBlockPreOpStatementEntry*>(baseentry))
@@ -446,10 +446,10 @@ namespace
 	void EmitConstructor(ByteCodeEmitter& emitter, StringHandle name, StringHandle rawname, const IRSemantics::Structure& structure, const CompileTimeParameterVector& templateargs, const IRSemantics::Namespace& curnamespace)
 	{
 		emitter.DefineLexicalScope(name, 0, structure.GetMembers().size() + 1);
-		emitter.LexicalScopeEntry(curnamespace.Strings.Find(L"identifier"), VM::EpochType_Identifier, true, VARIABLE_ORIGIN_PARAMETER);
+		emitter.LexicalScopeEntry(curnamespace.Strings.Find(L"identifier"), Metadata::EpochType_Identifier, true, VARIABLE_ORIGIN_PARAMETER);
 		for(size_t i = 0; i < structure.GetMembers().size(); ++i)
 		{
-			VM::EpochTypeID membertype = structure.GetMembers()[i].second->GetEpochType(curnamespace);
+			Metadata::EpochTypeID membertype = structure.GetMembers()[i].second->GetEpochType(curnamespace);
 			if(structure.IsTemplate() && !templateargs.empty())
 				membertype = structure.SubstituteTemplateParams(structure.GetMembers()[i].first, templateargs, curnamespace);
 
@@ -463,7 +463,7 @@ namespace
 
 		for(size_t i = 0; i < structure.GetMembers().size(); ++i)
 		{
-			VM::EpochTypeID membertype = structure.GetMembers()[i].second->GetEpochType(curnamespace);
+			Metadata::EpochTypeID membertype = structure.GetMembers()[i].second->GetEpochType(curnamespace);
 			if(structure.IsTemplate() && !templateargs.empty())
 				membertype = structure.SubstituteTemplateParams(structure.GetMembers()[i].first, templateargs, curnamespace);
 
@@ -479,7 +479,7 @@ namespace
 		emitter.DefineLexicalScope(name, 0, structure.GetMembers().size() + 1);
 		for(size_t i = 0; i < structure.GetMembers().size(); ++i)
 		{
-			VM::EpochTypeID membertype = structure.GetMembers()[i].second->GetEpochType(curnamespace);
+			Metadata::EpochTypeID membertype = structure.GetMembers()[i].second->GetEpochType(curnamespace);
 			if(structure.IsTemplate() && !templateargs.empty())
 				membertype = structure.SubstituteTemplateParams(structure.GetMembers()[i].first, templateargs, curnamespace);
 
@@ -494,7 +494,7 @@ namespace
 
 		for(size_t i = 0; i < structure.GetMembers().size(); ++i)
 		{
-			VM::EpochTypeID membertype = structure.GetMembers()[i].second->GetEpochType(curnamespace);
+			Metadata::EpochTypeID membertype = structure.GetMembers()[i].second->GetEpochType(curnamespace);
 			if(structure.IsTemplate() && !templateargs.empty())
 				membertype = structure.SubstituteTemplateParams(structure.GetMembers()[i].first, templateargs, curnamespace);
 
@@ -510,16 +510,16 @@ namespace
 	{
 		std::map<StringHandle, bool> isconstructor;
 
-		std::map<VM::EpochTypeID, std::set<VM::EpochTypeID> > sumtypes = curnamespace.Types.SumTypes.GetDefinitions();
-		for(std::map<VM::EpochTypeID, std::set<VM::EpochTypeID> >::const_iterator iter = sumtypes.begin(); iter != sumtypes.end(); ++iter)
+		std::map<Metadata::EpochTypeID, std::set<Metadata::EpochTypeID> > sumtypes = curnamespace.Types.SumTypes.GetDefinitions();
+		for(std::map<Metadata::EpochTypeID, std::set<Metadata::EpochTypeID> >::const_iterator iter = sumtypes.begin(); iter != sumtypes.end(); ++iter)
 		{
 			// TODO - omit template types
 			emitter.DefineSumType(iter->first, iter->second);
 		}
 
 
-		DependencyGraph<VM::EpochTypeID> structuredependencies;
-		std::map<VM::EpochTypeID, IRSemantics::Structure*> typemap;
+		DependencyGraph<Metadata::EpochTypeID> structuredependencies;
+		std::map<Metadata::EpochTypeID, IRSemantics::Structure*> typemap;
 
 		const std::map<StringHandle, IRSemantics::Structure*>& structures = curnamespace.Types.Structures.GetDefinitions();
 		for(std::map<StringHandle, IRSemantics::Structure*>::const_iterator iter = structures.begin(); iter != structures.end(); ++iter)
@@ -527,7 +527,7 @@ namespace
 			if(iter->second->IsTemplate())
 				continue;
 
-			VM::EpochTypeID type = curnamespace.Types.GetTypeByName(iter->first);
+			Metadata::EpochTypeID type = curnamespace.Types.GetTypeByName(iter->first);
 			structuredependencies.Register(type);
 
 			typemap.insert(std::make_pair(type, iter->second));
@@ -535,13 +535,13 @@ namespace
 			const std::vector<std::pair<StringHandle, IRSemantics::StructureMember*> >& members = iter->second->GetMembers();
 			for(std::vector<std::pair<StringHandle, IRSemantics::StructureMember*> >::const_iterator memberiter = members.begin(); memberiter != members.end(); ++memberiter)
 			{
-				VM::EpochTypeID membertype = memberiter->second->GetEpochType(curnamespace);
-				if(VM::GetTypeFamily(membertype) == VM::EpochTypeFamily_Structure || VM::GetTypeFamily(membertype) == VM::EpochTypeFamily_TemplateInstance)
+				Metadata::EpochTypeID membertype = memberiter->second->GetEpochType(curnamespace);
+				if(Metadata::GetTypeFamily(membertype) == Metadata::EpochTypeFamily_Structure || Metadata::GetTypeFamily(membertype) == Metadata::EpochTypeFamily_TemplateInstance)
 					structuredependencies.AddDependency(type, membertype);
 			}
 		}
 
-		std::map<VM::EpochTypeID, const CompileTimeParameterVector*> templateargmap;
+		std::map<Metadata::EpochTypeID, const CompileTimeParameterVector*> templateargmap;
 
 		const IRSemantics::InstantiationMap& templateinsts = curnamespace.Types.Templates.GetInstantiations();
 		for(IRSemantics::InstantiationMap::const_iterator iter = templateinsts.begin(); iter != templateinsts.end(); ++iter)
@@ -553,7 +553,7 @@ namespace
 			const IRSemantics::InstancesAndArguments& instances = iter->second;
 			for(IRSemantics::InstancesAndArguments::const_iterator institer = instances.begin(); institer != instances.end(); ++institer)
 			{
-				VM::EpochTypeID type = curnamespace.Types.GetTypeByName(institer->first);
+				Metadata::EpochTypeID type = curnamespace.Types.GetTypeByName(institer->first);
 				structuredependencies.Register(type);
 
 				typemap.insert(std::make_pair(type, &structure));
@@ -562,15 +562,15 @@ namespace
 				const std::vector<std::pair<StringHandle, IRSemantics::StructureMember*> >& members = structure.GetMembers();
 				for(std::vector<std::pair<StringHandle, IRSemantics::StructureMember*> >::const_iterator memberiter = members.begin(); memberiter != members.end(); ++memberiter)
 				{
-					VM::EpochTypeID membertype = structure.SubstituteTemplateParams(memberiter->first, institer->second, curnamespace);
-					if(VM::GetTypeFamily(membertype) == VM::EpochTypeFamily_Structure || VM::GetTypeFamily(membertype) == VM::EpochTypeFamily_TemplateInstance)
+					Metadata::EpochTypeID membertype = structure.SubstituteTemplateParams(memberiter->first, institer->second, curnamespace);
+					if(Metadata::GetTypeFamily(membertype) == Metadata::EpochTypeFamily_Structure || Metadata::GetTypeFamily(membertype) == Metadata::EpochTypeFamily_TemplateInstance)
 						structuredependencies.AddDependency(type, membertype);
 				}
 			}
 		}
 
-		std::vector<VM::EpochTypeID> typeorder = structuredependencies.Resolve();
-		for(std::vector<VM::EpochTypeID>::const_iterator iter = typeorder.begin(); iter != typeorder.end(); ++iter)
+		std::vector<Metadata::EpochTypeID> typeorder = structuredependencies.Resolve();
+		for(std::vector<Metadata::EpochTypeID>::const_iterator iter = typeorder.begin(); iter != typeorder.end(); ++iter)
 		{
 			const IRSemantics::Structure* structure = typemap.find(*iter)->second;
 			const std::vector<std::pair<StringHandle, IRSemantics::StructureMember*> >& members = structure->GetMembers();
@@ -638,8 +638,8 @@ namespace
 				if(isconstructor[*orderiter] && origin == VARIABLE_ORIGIN_RETURN)
 					origin = VARIABLE_ORIGIN_LOCAL;
 
-				VM::EpochTypeID vartype = iter->second->GetVariableTypeByIndex(i);
-				if(VM::GetTypeFamily(vartype) == VM::EpochTypeFamily_Unit)
+				Metadata::EpochTypeID vartype = iter->second->GetVariableTypeByIndex(i);
+				if(Metadata::GetTypeFamily(vartype) == Metadata::EpochTypeFamily_Unit)
 					vartype = curnamespace.Types.Aliases.GetStrongRepresentation(vartype);
 				emitter.LexicalScopeEntry(curnamespace.Strings.Find(iter->second->GetVariableName(i)), vartype, iter->second->IsReference(i), origin);
 			}
@@ -662,8 +662,8 @@ namespace
 				continue;
 
 			emitter.EnterFunction(iter->first);
-			VM::EpochTypeID rettype = iter->second->GetReturnType(curnamespace);
-			if(rettype != VM::EpochType_Void || isconstructor[iter->first])
+			Metadata::EpochTypeID rettype = iter->second->GetReturnType(curnamespace);
+			if(rettype != Metadata::EpochType_Void || isconstructor[iter->first])
 				EmitExpression(emitter, *iter->second->GetReturnExpression(), *iter->second->GetCode(), curnamespace);
 
 			const std::vector<IRSemantics::FunctionTag>& tags = iter->second->GetTags();
@@ -689,7 +689,7 @@ namespace
 			if(code)
 				Generate(*code, curnamespace, emitter);
 
-			if(iter->second->GetReturnType(curnamespace) != VM::EpochType_Void || isconstructor[iter->first])
+			if(iter->second->GetReturnType(curnamespace) != Metadata::EpochType_Void || isconstructor[iter->first])
 			{
 				if(!code)
 				{
@@ -718,7 +718,7 @@ namespace
 							if(isconstructor[iter->first])
 							{
 								emitter.PushVariableValueNoCopy(scope->GetVariableNameHandle(i));
-								emitter.PushVariableValue(curnamespace.Strings.Find(L"@id"), VM::EpochType_Identifier);
+								emitter.PushVariableValue(curnamespace.Strings.Find(L"@id"), Metadata::EpochType_Identifier);
 								emitter.PushIntegerLiteral(scope->GetVariableTypeByIndex(i));
 								emitter.AssignVariableThroughIdentifier();
 							}

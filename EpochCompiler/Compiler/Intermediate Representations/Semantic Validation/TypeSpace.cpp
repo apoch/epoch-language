@@ -29,24 +29,24 @@ GlobalIDSpace::GlobalIDSpace()
 {
 }
 
-VM::EpochTypeID GlobalIDSpace::NewTemplateInstantiation()
+Metadata::EpochTypeID GlobalIDSpace::NewTemplateInstantiation()
 {
-	return (CounterTemplateInstantiations++) | VM::EpochTypeFamily_TemplateInstance;
+	return (CounterTemplateInstantiations++) | Metadata::EpochTypeFamily_TemplateInstance;
 }
 
-VM::EpochTypeID GlobalIDSpace::NewStructureTypeID()
+Metadata::EpochTypeID GlobalIDSpace::NewStructureTypeID()
 {
-	return (CounterStructureTypeIDs++) | VM::EpochTypeFamily_Structure;
+	return (CounterStructureTypeIDs++) | Metadata::EpochTypeFamily_Structure;
 }
 
-VM::EpochTypeID GlobalIDSpace::NewUnitTypeID()
+Metadata::EpochTypeID GlobalIDSpace::NewUnitTypeID()
 {
-	return (CounterUnitTypeIDs++) | VM::EpochTypeFamily_Unit;
+	return (CounterUnitTypeIDs++) | Metadata::EpochTypeFamily_Unit;
 }
 
-VM::EpochTypeID GlobalIDSpace::NewSumTypeID()
+Metadata::EpochTypeID GlobalIDSpace::NewSumTypeID()
 {
-	return (CounterSumTypeIDs++) | VM::EpochTypeFamily_SumType;
+	return (CounterSumTypeIDs++) | Metadata::EpochTypeFamily_SumType;
 }
 
 
@@ -62,7 +62,7 @@ StructureTable::~StructureTable()
 }
 
 
-VM::EpochTypeID StructureTable::GetMemberType(StringHandle structurename, StringHandle membername) const
+Metadata::EpochTypeID StructureTable::GetMemberType(StringHandle structurename, StringHandle membername) const
 {
 	if(MyTypeSpace.Templates.NameToTypeMap.find(structurename) != MyTypeSpace.Templates.NameToTypeMap.end())
 		structurename = MyTypeSpace.Templates.GetTemplateForInstance(structurename);
@@ -113,14 +113,14 @@ SumTypeTable::SumTypeTable(TypeSpace& typespace)
 }
 
 
-VM::EpochTypeID SumTypeTable::Add(const std::wstring& name, CompileErrors& errors)
+Metadata::EpochTypeID SumTypeTable::Add(const std::wstring& name, CompileErrors& errors)
 {
 	StringHandle namehandle = MyTypeSpace.MyNamespace.Strings.Pool(name);
 
-	if(MyTypeSpace.GetTypeByName(namehandle) != VM::EpochType_Error)
+	if(MyTypeSpace.GetTypeByName(namehandle) != Metadata::EpochType_Error)
 		errors.SemanticError("Type name already in use");
 
-	VM::EpochTypeID type = MyTypeSpace.IDSpace.NewSumTypeID();
+	Metadata::EpochTypeID type = MyTypeSpace.IDSpace.NewSumTypeID();
 	NameToTypeMap[namehandle] = type;
 
 	return type;
@@ -128,9 +128,9 @@ VM::EpochTypeID SumTypeTable::Add(const std::wstring& name, CompileErrors& error
 
 
 
-bool SumTypeTable::IsBaseType(VM::EpochTypeID sumtypeid, VM::EpochTypeID basetype) const
+bool SumTypeTable::IsBaseType(Metadata::EpochTypeID sumtypeid, Metadata::EpochTypeID basetype) const
 {
-	std::map<VM::EpochTypeID, std::set<StringHandle> >::const_iterator iter = BaseTypeNames.find(sumtypeid);
+	std::map<Metadata::EpochTypeID, std::set<StringHandle> >::const_iterator iter = BaseTypeNames.find(sumtypeid);
 	if(iter == BaseTypeNames.end())
 	{
 		if(MyTypeSpace.MyNamespace.Parent)
@@ -148,7 +148,7 @@ bool SumTypeTable::IsBaseType(VM::EpochTypeID sumtypeid, VM::EpochTypeID basetyp
 	return false;
 }
 
-void SumTypeTable::AddBaseTypeToSumType(VM::EpochTypeID sumtypeid, StringHandle basetypename)
+void SumTypeTable::AddBaseTypeToSumType(Metadata::EpochTypeID sumtypeid, StringHandle basetypename)
 {
 	BaseTypeNames[sumtypeid].insert(basetypename);
 }
@@ -200,7 +200,7 @@ StringHandle SumTypeTable::InstantiateTemplate(StringHandle templatename, const 
 		typespace = &typespace->MyNamespace.Parent->Types;
 	}
 
-	VM::EpochTypeID type = MyTypeSpace.IDSpace.NewSumTypeID();
+	Metadata::EpochTypeID type = MyTypeSpace.IDSpace.NewSumTypeID();
 	std::wstring mangled = GenerateTemplateMangledName(type);
 	StringHandle mangledname = MyTypeSpace.MyNamespace.Strings.Pool(mangled);
 	Instantiations[templatename].insert(std::make_pair(mangledname, args));
@@ -221,7 +221,7 @@ StringHandle SumTypeTable::InstantiateTemplate(StringHandle templatename, const 
 	return mangledname;
 }
 
-std::wstring SumTypeTable::GenerateTemplateMangledName(VM::EpochTypeID type)
+std::wstring SumTypeTable::GenerateTemplateMangledName(Metadata::EpochTypeID type)
 {
 	std::wostringstream formatter;
 	formatter << "@@sumtemplateinst@" << (type & 0xffffff);
@@ -239,7 +239,7 @@ bool SumTypeTable::IsTemplate(StringHandle name) const
 	return false;
 }
 
-void SumTypeTable::AddTemplateParameter(VM::EpochTypeID sumtype, StringHandle name)
+void SumTypeTable::AddTemplateParameter(Metadata::EpochTypeID sumtype, StringHandle name)
 {
 	NameToParamsMap[MyTypeSpace.GetNameOfType(sumtype)].push_back(name);
 }
@@ -251,25 +251,25 @@ TypeAliasTable::TypeAliasTable(TypeSpace& typespace)
 {
 }
 
-VM::EpochTypeID TypeAliasTable::GetStrongRepresentation(VM::EpochTypeID aliastypeid) const
+Metadata::EpochTypeID TypeAliasTable::GetStrongRepresentation(Metadata::EpochTypeID aliastypeid) const
 {
-	std::map<VM::EpochTypeID, VM::EpochTypeID>::const_iterator iter = StrongRepresentationTypes.find(aliastypeid);
+	std::map<Metadata::EpochTypeID, Metadata::EpochTypeID>::const_iterator iter = StrongRepresentationTypes.find(aliastypeid);
 	if(iter == StrongRepresentationTypes.end())
 		throw InternalException("Invalid strong type alias");
 
 	return iter->second;
 }
 
-VM::EpochTypeID TypeAliasTable::GetStrongRepresentationName(VM::EpochTypeID aliastypeid) const
+Metadata::EpochTypeID TypeAliasTable::GetStrongRepresentationName(Metadata::EpochTypeID aliastypeid) const
 {
-	std::map<VM::EpochTypeID, StringHandle>::const_iterator iter = StrongRepresentationNames.find(aliastypeid);
+	std::map<Metadata::EpochTypeID, StringHandle>::const_iterator iter = StrongRepresentationNames.find(aliastypeid);
 	if(iter == StrongRepresentationNames.end())
 		throw InternalException("Invalid strong type alias");
 
 	return iter->second;
 }
 
-void TypeAliasTable::AddWeakAlias(StringHandle aliasname, VM::EpochTypeID representationtype)
+void TypeAliasTable::AddWeakAlias(StringHandle aliasname, Metadata::EpochTypeID representationtype)
 {
 	WeakNameToTypeMap[aliasname] = representationtype;
 }
@@ -286,9 +286,9 @@ StringHandle TypeAliasTable::GetWeakTypeBaseName(StringHandle name) const
 }
 
 
-void TypeAliasTable::AddStrongAlias(StringHandle aliasname, VM::EpochTypeID representationtype, StringHandle representationname)
+void TypeAliasTable::AddStrongAlias(StringHandle aliasname, Metadata::EpochTypeID representationtype, StringHandle representationname)
 {
-	VM::EpochTypeID newtypeid = MyTypeSpace.IDSpace.NewUnitTypeID();
+	Metadata::EpochTypeID newtypeid = MyTypeSpace.IDSpace.NewUnitTypeID();
 	StrongNameToTypeMap[aliasname] = newtypeid;
 	StrongRepresentationTypes[newtypeid] = representationtype;
 	StrongRepresentationNames[newtypeid] = representationname;
@@ -308,9 +308,9 @@ StringHandle SumTypeTable::MapConstructorName(StringHandle sumtypeoverloadname) 
 	return iter->second;
 }
 
-unsigned SumTypeTable::GetNumBaseTypes(VM::EpochTypeID type) const
+unsigned SumTypeTable::GetNumBaseTypes(Metadata::EpochTypeID type) const
 {
-	std::map<VM::EpochTypeID, std::set<StringHandle> >::const_iterator iter = BaseTypeNames.find(type);
+	std::map<Metadata::EpochTypeID, std::set<StringHandle> >::const_iterator iter = BaseTypeNames.find(type);
 	if(iter == BaseTypeNames.end())
 	{
 		if(MyTypeSpace.MyNamespace.Parent)
@@ -322,10 +322,10 @@ unsigned SumTypeTable::GetNumBaseTypes(VM::EpochTypeID type) const
 	return iter->second.size();
 }
 
-std::map<VM::EpochTypeID, std::set<VM::EpochTypeID> > SumTypeTable::GetDefinitions() const
+std::map<Metadata::EpochTypeID, std::set<Metadata::EpochTypeID> > SumTypeTable::GetDefinitions() const
 {
-	std::map<VM::EpochTypeID, std::set<VM::EpochTypeID> > ret;
-	for(std::map<VM::EpochTypeID, std::set<StringHandle> >::const_iterator typeiter = BaseTypeNames.begin(); typeiter != BaseTypeNames.end(); ++typeiter)
+	std::map<Metadata::EpochTypeID, std::set<Metadata::EpochTypeID> > ret;
+	for(std::map<Metadata::EpochTypeID, std::set<StringHandle> >::const_iterator typeiter = BaseTypeNames.begin(); typeiter != BaseTypeNames.end(); ++typeiter)
 	{
 		for(std::set<StringHandle>::const_iterator nameiter = typeiter->second.begin(); nameiter != typeiter->second.end(); ++nameiter)
 			ret[typeiter->first].insert(MyTypeSpace.GetTypeByName(*nameiter));
@@ -340,7 +340,7 @@ TemplateTable::TemplateTable(TypeSpace& typespace)
 {
 }
 
-std::wstring TemplateTable::GenerateTemplateMangledName(VM::EpochTypeID type)
+std::wstring TemplateTable::GenerateTemplateMangledName(Metadata::EpochTypeID type)
 {
 	std::wostringstream formatter;
 	formatter << "@@templateinst@" << (type & 0xffffff);
@@ -395,7 +395,7 @@ StringHandle TemplateTable::InstantiateStructure(StringHandle templatename, cons
 		typespace = &typespace->MyNamespace.Parent->Types;
 	}
 
-	VM::EpochTypeID type = typespace->IDSpace.NewTemplateInstantiation();
+	Metadata::EpochTypeID type = typespace->IDSpace.NewTemplateInstantiation();
 	std::wstring mangled = GenerateTemplateMangledName(type);
 	StringHandle mangledname = typespace->MyNamespace.Strings.Pool(mangled);
 	typespace->Templates.Instantiations[templatename].insert(std::make_pair(mangledname, args));
@@ -469,48 +469,48 @@ TypeSpace::TypeSpace(Namespace& mynamespace, GlobalIDSpace& idspace)
 
 #pragma warning(pop)
 
-VM::EpochTypeID TypeSpace::GetTypeByName(StringHandle name) const
+Metadata::EpochTypeID TypeSpace::GetTypeByName(StringHandle name) const
 {
 	// TODO - replace this with a less hard-coded solution
 	const std::wstring& type = MyNamespace.Strings.GetPooledString(name);
 
 	if(type == L"integer")
-		return VM::EpochType_Integer;
+		return Metadata::EpochType_Integer;
 	else if(type == L"integer16")
-		return VM::EpochType_Integer16;
+		return Metadata::EpochType_Integer16;
 	else if(type == L"string")
-		return VM::EpochType_String;
+		return Metadata::EpochType_String;
 	else if(type == L"boolean")
-		return VM::EpochType_Boolean;
+		return Metadata::EpochType_Boolean;
 	else if(type == L"real")
-		return VM::EpochType_Real;
+		return Metadata::EpochType_Real;
 	else if(type == L"buffer")
-		return VM::EpochType_Buffer;
+		return Metadata::EpochType_Buffer;
 	else if(type == L"identifier")
-		return VM::EpochType_Identifier;
+		return Metadata::EpochType_Identifier;
 	else if(type == L"nothing")
-		return VM::EpochType_Nothing;
+		return Metadata::EpochType_Nothing;
 
 	{
-		std::map<StringHandle, VM::EpochTypeID>::const_iterator iter = Structures.NameToTypeMap.find(name);
+		std::map<StringHandle, Metadata::EpochTypeID>::const_iterator iter = Structures.NameToTypeMap.find(name);
 		if(iter != Structures.NameToTypeMap.end())
 			return iter->second;
 	}
 	
 	{
-		std::map<StringHandle, VM::EpochTypeID>::const_iterator iter = Aliases.WeakNameToTypeMap.find(name);
+		std::map<StringHandle, Metadata::EpochTypeID>::const_iterator iter = Aliases.WeakNameToTypeMap.find(name);
 		if(iter != Aliases.WeakNameToTypeMap.end())
 			return iter->second;
 	}
 
 	{
-		std::map<StringHandle, VM::EpochTypeID>::const_iterator iter = Aliases.StrongNameToTypeMap.find(name);
+		std::map<StringHandle, Metadata::EpochTypeID>::const_iterator iter = Aliases.StrongNameToTypeMap.find(name);
 		if(iter != Aliases.StrongNameToTypeMap.end())
 			return iter->second;
 	}
 
 	{
-		std::map<StringHandle, VM::EpochTypeID>::const_iterator iter = SumTypes.NameToTypeMap.find(name);
+		std::map<StringHandle, Metadata::EpochTypeID>::const_iterator iter = SumTypes.NameToTypeMap.find(name);
 		if(iter != SumTypes.NameToTypeMap.end())
 		{
 			if(!SumTypes.IsTemplate(name))
@@ -519,7 +519,7 @@ VM::EpochTypeID TypeSpace::GetTypeByName(StringHandle name) const
 	}
 
 	{
-		std::map<StringHandle, VM::EpochTypeID>::const_iterator iter = Templates.NameToTypeMap.find(name);
+		std::map<StringHandle, Metadata::EpochTypeID>::const_iterator iter = Templates.NameToTypeMap.find(name);
 		if(iter != Templates.NameToTypeMap.end())
 			return iter->second;
 	}
@@ -533,66 +533,66 @@ VM::EpochTypeID TypeSpace::GetTypeByName(StringHandle name) const
 	if(MyNamespace.Parent)
 		return MyNamespace.Parent->Types.GetTypeByName(name);
 
-	return VM::EpochType_Error;
+	return Metadata::EpochType_Error;
 }
 
-StringHandle TypeSpace::GetNameOfType(VM::EpochTypeID type) const
+StringHandle TypeSpace::GetNameOfType(Metadata::EpochTypeID type) const
 {
 	switch(type)
 	{
-	case VM::EpochType_Boolean:
+	case Metadata::EpochType_Boolean:
 		return MyNamespace.Strings.Find(L"boolean");
 
-	case VM::EpochType_Buffer:
+	case Metadata::EpochType_Buffer:
 		return MyNamespace.Strings.Find(L"buffer");
 
-	case VM::EpochType_Identifier:
+	case Metadata::EpochType_Identifier:
 		return MyNamespace.Strings.Find(L"identifier");
 
-	case VM::EpochType_Integer:
+	case Metadata::EpochType_Integer:
 		return MyNamespace.Strings.Find(L"integer");
 
-	case VM::EpochType_Integer16:
+	case Metadata::EpochType_Integer16:
 		return MyNamespace.Strings.Find(L"integer16");
 
-	case VM::EpochType_Nothing:
+	case Metadata::EpochType_Nothing:
 		return MyNamespace.Strings.Find(L"nothing");
 
-	case VM::EpochType_Real:
+	case Metadata::EpochType_Real:
 		return MyNamespace.Strings.Find(L"real");
 
-	case VM::EpochType_String:
+	case Metadata::EpochType_String:
 		return MyNamespace.Strings.Find(L"string");
 
-	case VM::EpochType_Function:
+	case Metadata::EpochType_Function:
 		return MyNamespace.Strings.Pool(L"function");
 	}
 
-	for(std::map<StringHandle, VM::EpochTypeID>::const_iterator iter = Structures.NameToTypeMap.begin(); iter != Structures.NameToTypeMap.end(); ++iter)
+	for(std::map<StringHandle, Metadata::EpochTypeID>::const_iterator iter = Structures.NameToTypeMap.begin(); iter != Structures.NameToTypeMap.end(); ++iter)
 	{
 		if(iter->second == type)
 			return iter->first;
 	}
 
-	for(std::map<StringHandle, VM::EpochTypeID>::const_iterator iter = Aliases.WeakNameToTypeMap.begin(); iter != Aliases.WeakNameToTypeMap.end(); ++iter)
+	for(std::map<StringHandle, Metadata::EpochTypeID>::const_iterator iter = Aliases.WeakNameToTypeMap.begin(); iter != Aliases.WeakNameToTypeMap.end(); ++iter)
 	{
 		if(iter->second == type)
 			return iter->first;
 	}
 
-	for(std::map<StringHandle, VM::EpochTypeID>::const_iterator iter = Aliases.StrongNameToTypeMap.begin(); iter != Aliases.StrongNameToTypeMap.end(); ++iter)
+	for(std::map<StringHandle, Metadata::EpochTypeID>::const_iterator iter = Aliases.StrongNameToTypeMap.begin(); iter != Aliases.StrongNameToTypeMap.end(); ++iter)
 	{
 		if(iter->second == type)
 			return iter->first;
 	}
 
-	for(std::map<StringHandle, VM::EpochTypeID>::const_iterator iter = SumTypes.NameToTypeMap.begin(); iter != SumTypes.NameToTypeMap.end(); ++iter)
+	for(std::map<StringHandle, Metadata::EpochTypeID>::const_iterator iter = SumTypes.NameToTypeMap.begin(); iter != SumTypes.NameToTypeMap.end(); ++iter)
 	{
 		if(iter->second == type)
 			return iter->first;
 	}
 
-	for(std::map<StringHandle, VM::EpochTypeID>::const_iterator iter = Templates.NameToTypeMap.begin(); iter != Templates.NameToTypeMap.end(); ++iter)
+	for(std::map<StringHandle, Metadata::EpochTypeID>::const_iterator iter = Templates.NameToTypeMap.begin(); iter != Templates.NameToTypeMap.end(); ++iter)
 	{
 		if(iter->second == type)
 			return iter->first;
@@ -619,11 +619,11 @@ bool TypeSpace::Validate(CompileErrors& errors) const
 {
 	bool valid = true;
 
-	for(std::map<VM::EpochTypeID, std::set<StringHandle> >::const_iterator iter = SumTypes.BaseTypeNames.begin(); iter != SumTypes.BaseTypeNames.end(); ++iter)
+	for(std::map<Metadata::EpochTypeID, std::set<StringHandle> >::const_iterator iter = SumTypes.BaseTypeNames.begin(); iter != SumTypes.BaseTypeNames.end(); ++iter)
 	{
 		for(std::set<StringHandle>::const_iterator setiter = iter->second.begin(); setiter != iter->second.end(); ++setiter)
 		{
-			if(GetTypeByName(*setiter) == VM::EpochType_Error)
+			if(GetTypeByName(*setiter) == Metadata::EpochType_Error)
 			{
 				// TODO - set context
 				errors.SemanticError("Base type not defined");
@@ -669,9 +669,9 @@ bool TypeSpace::CompileTimeCodeExecution(CompileErrors& errors)
 	}
 
 
-	for(std::map<VM::EpochTypeID, std::set<StringHandle> >::const_iterator iter = SumTypes.BaseTypeNames.begin(); iter != SumTypes.BaseTypeNames.end(); ++iter)
+	for(std::map<Metadata::EpochTypeID, std::set<StringHandle> >::const_iterator iter = SumTypes.BaseTypeNames.begin(); iter != SumTypes.BaseTypeNames.end(); ++iter)
 	{
-		VM::EpochTypeID sumtypeid = iter->first;
+		Metadata::EpochTypeID sumtypeid = iter->first;
 		if(SumTypes.IsTemplate(GetNameOfType(sumtypeid)))
 			continue;
 
@@ -680,7 +680,7 @@ bool TypeSpace::CompileTimeCodeExecution(CompileErrors& errors)
 		std::wostringstream overloadnamebuilder;
 		overloadnamebuilder << L"@@sumtypeconstructor@" << sumtypeid << L"@" << sumtypeid;
 		StringHandle sumtypeconstructorname = 0;
-		for(std::map<StringHandle, VM::EpochTypeID>::const_iterator niter = SumTypes.NameToTypeMap.begin(); niter != SumTypes.NameToTypeMap.end(); ++niter)
+		for(std::map<StringHandle, Metadata::EpochTypeID>::const_iterator niter = SumTypes.NameToTypeMap.begin(); niter != SumTypes.NameToTypeMap.end(); ++niter)
 		{
 			if(niter->second == sumtypeid)
 			{
@@ -696,7 +696,7 @@ bool TypeSpace::CompileTimeCodeExecution(CompileErrors& errors)
 		MyNamespace.Session.FunctionOverloadNames[sumtypeconstructorname].insert(overloadname);
 
 		FunctionSignature signature;
-		signature.AddParameter(L"@id", VM::EpochType_Identifier, false);
+		signature.AddParameter(L"@id", Metadata::EpochType_Identifier, false);
 		signature.AddParameter(L"@value", sumtypeid, false);
 
 		// TODO - evil hackery here
@@ -712,7 +712,7 @@ bool TypeSpace::CompileTimeCodeExecution(CompileErrors& errors)
 			std::wostringstream overloadnamebuilder;
 			overloadnamebuilder << L"@@sumtypeconstructor@" << sumtypeid << L"@" << MyNamespace.Strings.GetPooledString(basetypename);
 			StringHandle sumtypeconstructorname = 0;
-			for(std::map<StringHandle, VM::EpochTypeID>::const_iterator iter = SumTypes.NameToTypeMap.begin(); iter != SumTypes.NameToTypeMap.end(); ++iter)
+			for(std::map<StringHandle, Metadata::EpochTypeID>::const_iterator iter = SumTypes.NameToTypeMap.begin(); iter != SumTypes.NameToTypeMap.end(); ++iter)
 			{
 				if(iter->second == sumtypeid)
 				{
@@ -727,20 +727,20 @@ bool TypeSpace::CompileTimeCodeExecution(CompileErrors& errors)
 			StringHandle overloadname = MyNamespace.Strings.Pool(overloadnamebuilder.str());
 			MyNamespace.Session.FunctionOverloadNames[sumtypeconstructorname].insert(overloadname);
 
-			VM::EpochTypeFamily family = VM::GetTypeFamily(GetTypeByName(basetypename));
+			Metadata::EpochTypeFamily family = Metadata::GetTypeFamily(GetTypeByName(basetypename));
 			switch(family)
 			{
-			case VM::EpochTypeFamily_Magic:
-			case VM::EpochTypeFamily_Primitive:
-			case VM::EpochTypeFamily_GC:
+			case Metadata::EpochTypeFamily_Magic:
+			case Metadata::EpochTypeFamily_Primitive:
+			case Metadata::EpochTypeFamily_GC:
 				// No adjustment needed
 				break;
 
-			case VM::EpochTypeFamily_Structure:
+			case Metadata::EpochTypeFamily_Structure:
 				basetypename = Structures.GetConstructorName(basetypename);
 				break;
 
-			case VM::EpochTypeFamily_TemplateInstance:
+			case Metadata::EpochTypeFamily_TemplateInstance:
 				basetypename = Templates.FindConstructorName(basetypename);
 				break;
 

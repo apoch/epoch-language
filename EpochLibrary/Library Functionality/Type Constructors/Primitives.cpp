@@ -154,7 +154,7 @@ namespace
 			return;
 		}
 
-		VM::EpochTypeID effectivetype = curnamespace.Types.GetTypeByName(statement.GetName());
+		Metadata::EpochTypeID effectivetype = curnamespace.Types.GetTypeByName(statement.GetName());
 		activescope.AddVariable(curnamespace.Strings.GetPooledString(atom->GetIdentifier()), atom->GetIdentifier(), statement.GetName(), effectivetype, false, origin);
 	}
 
@@ -182,43 +182,43 @@ void TypeConstructors::RegisterLibraryFunctions(FunctionSignatureSet& signatures
 {
 	{
 		FunctionSignature signature;
-		signature.AddParameter(L"identifier", VM::EpochType_Identifier, false);
-		signature.AddParameter(L"value", VM::EpochType_Integer, false);
+		signature.AddParameter(L"identifier", Metadata::EpochType_Identifier, false);
+		signature.AddParameter(L"value", Metadata::EpochType_Integer, false);
 		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"integer"), signature));
 	}
 	{
 		FunctionSignature signature;
-		signature.AddParameter(L"identifier", VM::EpochType_Identifier, false);
-		signature.AddParameter(L"value", VM::EpochType_Integer16, false);
+		signature.AddParameter(L"identifier", Metadata::EpochType_Identifier, false);
+		signature.AddParameter(L"value", Metadata::EpochType_Integer16, false);
 		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"integer16"), signature));
 	}
 	{
 		FunctionSignature signature;
-		signature.AddParameter(L"identifier", VM::EpochType_Identifier, false);
-		signature.AddParameter(L"value", VM::EpochType_String, false);
+		signature.AddParameter(L"identifier", Metadata::EpochType_Identifier, false);
+		signature.AddParameter(L"value", Metadata::EpochType_String, false);
 		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"string"), signature));
 	}
 	{
 		FunctionSignature signature;
-		signature.AddParameter(L"identifier", VM::EpochType_Identifier, false);
-		signature.AddParameter(L"value", VM::EpochType_Boolean, false);
+		signature.AddParameter(L"identifier", Metadata::EpochType_Identifier, false);
+		signature.AddParameter(L"value", Metadata::EpochType_Boolean, false);
 		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"boolean"), signature));
 	}
 	{
 		FunctionSignature signature;
-		signature.AddParameter(L"identifier", VM::EpochType_Identifier, false);
-		signature.AddParameter(L"value", VM::EpochType_Real, false);
+		signature.AddParameter(L"identifier", Metadata::EpochType_Identifier, false);
+		signature.AddParameter(L"value", Metadata::EpochType_Real, false);
 		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"real"), signature));
 	}
 	{
 		FunctionSignature signature;
-		signature.AddParameter(L"identifier", VM::EpochType_Identifier, false);
-		signature.AddParameter(L"size", VM::EpochType_Integer, false);
+		signature.AddParameter(L"identifier", Metadata::EpochType_Identifier, false);
+		signature.AddParameter(L"size", Metadata::EpochType_Integer, false);
 		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"buffer"), signature));
 	}
 	{
 		FunctionSignature signature;
-		signature.AddParameter(L"identifier", VM::EpochType_Identifier, false);
+		signature.AddParameter(L"identifier", Metadata::EpochType_Identifier, false);
 		signature.AddPatternMatchedParameterIdentifier(stringpool.Pool(L"nothing"));
 		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"nothing"), signature));
 	}

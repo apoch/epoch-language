@@ -51,7 +51,7 @@ namespace IRSemantics
 	// Structure member interface
 	public:
 		virtual Type GetMemberType() const = 0;
-		virtual VM::EpochTypeID GetEpochType(const Namespace& curnamespace) const = 0;
+		virtual Metadata::EpochTypeID GetEpochType(const Namespace& curnamespace) const = 0;
 		virtual bool Validate(const Namespace& curnamespace, CompileErrors& errors) const = 0;
 	};
 
@@ -78,7 +78,7 @@ namespace IRSemantics
 		virtual Type GetMemberType() const
 		{ return StructureMember::Variable; }
 
-		virtual VM::EpochTypeID GetEpochType(const Namespace& curnamespace) const;
+		virtual Metadata::EpochTypeID GetEpochType(const Namespace& curnamespace) const;
 
 		virtual bool Validate(const Namespace& curnamespace, CompileErrors& errors) const;
 
@@ -89,7 +89,7 @@ namespace IRSemantics
 
 	// Template support
 	public:
-		void SubstituteTemplateArgs(const std::vector<std::pair<StringHandle, VM::EpochTypeID> >& params, const CompileTimeParameterVector& args, Namespace& curnamespace);
+		void SubstituteTemplateArgs(const std::vector<std::pair<StringHandle, Metadata::EpochTypeID> >& params, const CompileTimeParameterVector& args, Namespace& curnamespace);
 
 		void SetTemplateArgs(const CompileTimeParameterVector& args)
 		{ TemplateArgs = args; }
@@ -125,8 +125,8 @@ namespace IRSemantics
 		virtual Type GetMemberType() const
 		{ return StructureMember::FunctionReference; }
 
-		virtual VM::EpochTypeID GetEpochType(const Namespace&) const
-		{ return VM::EpochType_Function; }
+		virtual Metadata::EpochTypeID GetEpochType(const Namespace&) const
+		{ return Metadata::EpochType_Function; }
 
 		virtual bool Validate(const Namespace& curnamespace, CompileErrors& errors) const;
 
@@ -178,7 +178,7 @@ namespace IRSemantics
 
 	// Template support
 	public:
-		void AddTemplateParameter(VM::EpochTypeID type, StringHandle name);
+		void AddTemplateParameter(Metadata::EpochTypeID type, StringHandle name);
 		void SetMemberTemplateArgs(StringHandle membername, const CompileTimeParameterVector& args);
 
 	// Validation
@@ -203,7 +203,7 @@ namespace IRSemantics
 
 	// Template helpers
 	public:
-		VM::EpochTypeID SubstituteTemplateParams(StringHandle membername, const CompileTimeParameterVector& templateargs, const Namespace& curnamespace) const;
+		Metadata::EpochTypeID SubstituteTemplateParams(StringHandle membername, const CompileTimeParameterVector& templateargs, const Namespace& curnamespace) const;
 
 	// Internal helpers
 	private:
@@ -215,7 +215,7 @@ namespace IRSemantics
 		StringHandle ConstructorName;
 		StringHandle AnonymousConstructorName;
 
-		std::vector<std::pair<StringHandle, VM::EpochTypeID> > TemplateParams;
+		std::vector<std::pair<StringHandle, Metadata::EpochTypeID> > TemplateParams;
 	};
 
 }

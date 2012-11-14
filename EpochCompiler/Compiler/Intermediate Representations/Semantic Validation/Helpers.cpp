@@ -22,13 +22,13 @@ namespace IRSemantics
 	// Supports deducing the type of expressions such as "a.b.foo"
 	// as well as atomic identifiers "bar"/"baz".
 	//
-	VM::EpochTypeID InferMemberAccessType(const std::vector<StringHandle>& accesslist, const Namespace& curnamespace, const CodeBlock& activescope)
+	Metadata::EpochTypeID InferMemberAccessType(const std::vector<StringHandle>& accesslist, const Namespace& curnamespace, const CodeBlock& activescope)
 	{
 		if(accesslist.empty())
-			return VM::EpochType_Error;
+			return Metadata::EpochType_Error;
 
 		std::vector<StringHandle>::const_iterator iter = accesslist.begin();
-		VM::EpochTypeID thetype = activescope.GetScope()->GetVariableTypeByID(*iter);
+		Metadata::EpochTypeID thetype = activescope.GetScope()->GetVariableTypeByID(*iter);
 
 		while(++iter != accesslist.end())
 		{

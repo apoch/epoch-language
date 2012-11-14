@@ -74,7 +74,7 @@ namespace IRSemantics
 
 	// Type system
 	public:
-		VM::EpochTypeID GetEpochType(const Namespace&) const
+		Metadata::EpochTypeID GetEpochType(const Namespace&) const
 		{ return MyType; }
 
 	// Template support
@@ -87,7 +87,7 @@ namespace IRSemantics
 		StringHandle Name;
 		StringHandle RawName;
 		std::vector<Expression*> Parameters;
-		VM::EpochTypeID MyType;
+		Metadata::EpochTypeID MyType;
 		const AST::IdentifierT& OriginalIdentifier;
 		bool CompileTimeCodeExecuted;
 		CompileTimeParameterVector TemplateArgs;
@@ -102,7 +102,7 @@ namespace IRSemantics
 		PreOpStatement(StringHandle operatorname, const std::vector<StringHandle>& operand)
 			: OperatorName(operatorname),
 			  Operand(operand),
-			  MyType(VM::EpochType_Error)
+			  MyType(Metadata::EpochType_Error)
 		{ }
 
 		PreOpStatement* Clone() const;
@@ -121,7 +121,7 @@ namespace IRSemantics
 
 	// Type system
 	public:
-		VM::EpochTypeID GetEpochType(const Namespace&) const
+		Metadata::EpochTypeID GetEpochType(const Namespace&) const
 		{ return MyType; }
 
 	// Validation
@@ -132,7 +132,7 @@ namespace IRSemantics
 	private:
 		StringHandle OperatorName;
 		std::vector<StringHandle> Operand;
-		VM::EpochTypeID MyType;
+		Metadata::EpochTypeID MyType;
 	};
 
 	class PostOpStatement
@@ -142,7 +142,7 @@ namespace IRSemantics
 		PostOpStatement(const std::vector<StringHandle>& operand, StringHandle operatorname)
 			: Operand(operand),
 			  OperatorName(operatorname),
-			  MyType(VM::EpochType_Error)
+			  MyType(Metadata::EpochType_Error)
 		{ }
 
 		PostOpStatement* Clone() const;
@@ -161,7 +161,7 @@ namespace IRSemantics
 
 	// Type system
 	public:
-		VM::EpochTypeID GetEpochType(const Namespace&) const
+		Metadata::EpochTypeID GetEpochType(const Namespace&) const
 		{ return MyType; }
 
 	// Validation
@@ -172,7 +172,7 @@ namespace IRSemantics
 	private:
 		std::vector<StringHandle> Operand;
 		StringHandle OperatorName;
-		VM::EpochTypeID MyType;
+		Metadata::EpochTypeID MyType;
 	};
 
 }

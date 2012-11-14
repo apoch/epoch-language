@@ -26,13 +26,13 @@ public:
 
 // Signature configuration interface
 public:
-	void AddParameter(const std::wstring& name, VM::EpochTypeID type, bool isreference);
-	void PrependParameter(const std::wstring& name, VM::EpochTypeID type, bool isreference);
+	void AddParameter(const std::wstring& name, Metadata::EpochTypeID type, bool isreference);
+	void PrependParameter(const std::wstring& name, Metadata::EpochTypeID type, bool isreference);
 	
 	void AddPatternMatchedParameter(Integer32 literalvalue);
 	void AddPatternMatchedParameterIdentifier(StringHandle identifier);
 	
-	void SetReturnType(VM::EpochTypeID type);
+	void SetReturnType(Metadata::EpochTypeID type);
 
 	void SetFunctionSignature(size_t index, const FunctionSignature& signature);
 
@@ -45,7 +45,7 @@ public:
 
 	const FunctionSignature& GetFunctionSignature(size_t index) const;
 
-	VM::EpochTypeID GetReturnType() const
+	Metadata::EpochTypeID GetReturnType() const
 	{ return ReturnType; }
 
 	size_t GetNumParameters() const
@@ -58,7 +58,7 @@ public:
 private:
 	CompileTimeParameterVector Parameters;
 	std::vector<FunctionSignature> FunctionSignatures;
-	VM::EpochTypeID ReturnType;
+	Metadata::EpochTypeID ReturnType;
 };
 
 

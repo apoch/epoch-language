@@ -75,7 +75,7 @@ namespace
 void CompileConstructorStructure(IRSemantics::Statement& statement, IRSemantics::Namespace& curnamespace, IRSemantics::CodeBlock& activescope, bool inreturnexpr, CompileErrors& errors)
 {
 	const IRSemantics::ExpressionAtomIdentifierBase* atom = dynamic_cast<const IRSemantics::ExpressionAtomIdentifierBase*>(statement.GetParameters()[0]->GetAtoms()[0]);
-	VM::EpochTypeID effectivetype = curnamespace.Types.GetTypeByName(statement.GetRawName());
+	Metadata::EpochTypeID effectivetype = curnamespace.Types.GetTypeByName(statement.GetRawName());
 	VariableOrigin origin = (inreturnexpr ? VARIABLE_ORIGIN_RETURN : VARIABLE_ORIGIN_LOCAL);
 	activescope.AddVariable(curnamespace.Strings.GetPooledString(atom->GetIdentifier()), atom->GetIdentifier(), statement.GetRawName(), effectivetype, false, origin);
 
@@ -1323,7 +1323,7 @@ void CompilePassSemantics::EntryHelper::operator () (AST::TypeAlias& alias)
 {
 	StringHandle aliasname = self->CurrentProgram->AddString(std::wstring(alias.AliasName.begin(), alias.AliasName.end()));
 
-	if(self->CurrentNamespace->Types.GetTypeByName(aliasname) != VM::EpochType_Error)
+	if(self->CurrentNamespace->Types.GetTypeByName(aliasname) != Metadata::EpochType_Error)
 	{
 		self->Errors.SetContext(alias.AliasName);
 		self->Errors.SemanticError("A type with this name already exists");
@@ -1331,9 +1331,9 @@ void CompilePassSemantics::EntryHelper::operator () (AST::TypeAlias& alias)
 	}
 
 	StringHandle representationname = self->CurrentProgram->AddString(std::wstring(alias.RepresentationName.begin(), alias.RepresentationName.end()));
-	VM::EpochTypeID representationtype = self->CurrentNamespace->Types.GetTypeByName(representationname);
+	Metadata::EpochTypeID representationtype = self->CurrentNamespace->Types.GetTypeByName(representationname);
 
-	if(representationtype == VM::EpochType_Error)
+	if(representationtype == Metadata::EpochType_Error)
 	{
 		self->Errors.SetContext(alias.RepresentationName);
 		self->Errors.SemanticError("No type by this name was found");
@@ -1348,7 +1348,7 @@ void CompilePassSemantics::EntryHelper::operator () (AST::StrongTypeAlias& alias
 {
 	StringHandle aliasname = self->CurrentProgram->AddString(std::wstring(alias.AliasName.begin(), alias.AliasName.end()));
 
-	if(self->CurrentNamespace->Types.GetTypeByName(aliasname) != VM::EpochType_Error)
+	if(self->CurrentNamespace->Types.GetTypeByName(aliasname) != Metadata::EpochType_Error)
 	{
 		self->Errors.SetContext(alias.AliasName);
 		self->Errors.SemanticError("A type with this name already exists");
@@ -1356,9 +1356,9 @@ void CompilePassSemantics::EntryHelper::operator () (AST::StrongTypeAlias& alias
 	}
 
 	StringHandle representationname = self->CurrentProgram->AddString(std::wstring(alias.RepresentationName.begin(), alias.RepresentationName.end()));
-	VM::EpochTypeID representationtype = self->CurrentNamespace->Types.GetTypeByName(representationname);
+	Metadata::EpochTypeID representationtype = self->CurrentNamespace->Types.GetTypeByName(representationname);
 
-	if(representationtype == VM::EpochType_Error)
+	if(representationtype == Metadata::EpochType_Error)
 	{
 		self->Errors.SetContext(alias.RepresentationName);
 		self->Errors.SemanticError("No type by this name was found");
@@ -1426,11 +1426,11 @@ void CompilePassSemantics::EntryHelper::operator () (AST::TemplateParameter& par
 	switch(self->StateStack.top())
 	{
 	case CompilePassSemantics::STATE_STRUCTURE:
-		self->CurrentStructures.back()->AddTemplateParameter(VM::EpochType_Wildcard, paramname);
+		self->CurrentStructures.back()->AddTemplateParameter(Metadata::EpochType_Wildcard, paramname);
 		break;
 
 	case CompilePassSemantics::STATE_FUNCTION:
-		self->CurrentFunctions.back()->AddTemplateParameter(VM::EpochType_Wildcard, paramname);
+		self->CurrentFunctions.back()->AddTemplateParameter(Metadata::EpochType_Wildcard, paramname);
 		break;
 
 	case CompilePassSemantics::STATE_SUM_TYPE:

@@ -193,88 +193,88 @@ void ComparisonLibrary::RegisterLibraryFunctions(FunctionSignatureSet& signature
 {
 	{
 		FunctionSignature signature;
-		signature.AddParameter(L"i1", VM::EpochType_Integer, false);
-		signature.AddParameter(L"i2", VM::EpochType_Integer, false);
-		signature.SetReturnType(VM::EpochType_Boolean);
+		signature.AddParameter(L"i1", Metadata::EpochType_Integer, false);
+		signature.AddParameter(L"i2", Metadata::EpochType_Integer, false);
+		signature.SetReturnType(Metadata::EpochType_Boolean);
 		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"==@@integer"), signature));
 	}
 	{
 		FunctionSignature signature;
-		signature.AddParameter(L"i1", VM::EpochType_Integer16, false);
-		signature.AddParameter(L"i2", VM::EpochType_Integer16, false);
-		signature.SetReturnType(VM::EpochType_Boolean);
+		signature.AddParameter(L"i1", Metadata::EpochType_Integer16, false);
+		signature.AddParameter(L"i2", Metadata::EpochType_Integer16, false);
+		signature.SetReturnType(Metadata::EpochType_Boolean);
 		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"==@@integer16"), signature));
 	}
 	{
 		FunctionSignature signature;
-		signature.AddParameter(L"i1", VM::EpochType_Integer, false);
-		signature.AddParameter(L"i2", VM::EpochType_Integer, false);
-		signature.SetReturnType(VM::EpochType_Boolean);
+		signature.AddParameter(L"i1", Metadata::EpochType_Integer, false);
+		signature.AddParameter(L"i2", Metadata::EpochType_Integer, false);
+		signature.SetReturnType(Metadata::EpochType_Boolean);
 		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"!=@@integer"), signature));
 	}
 	{
 		FunctionSignature signature;
-		signature.AddParameter(L"i1", VM::EpochType_Boolean, false);
-		signature.AddParameter(L"i2", VM::EpochType_Boolean, false);
-		signature.SetReturnType(VM::EpochType_Boolean);
+		signature.AddParameter(L"i1", Metadata::EpochType_Boolean, false);
+		signature.AddParameter(L"i2", Metadata::EpochType_Boolean, false);
+		signature.SetReturnType(Metadata::EpochType_Boolean);
 		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"==@@boolean"), signature));
 	}
 	{
 		FunctionSignature signature;
-		signature.AddParameter(L"i1", VM::EpochType_Boolean, false);
-		signature.AddParameter(L"i2", VM::EpochType_Boolean, false);
-		signature.SetReturnType(VM::EpochType_Boolean);
+		signature.AddParameter(L"i1", Metadata::EpochType_Boolean, false);
+		signature.AddParameter(L"i2", Metadata::EpochType_Boolean, false);
+		signature.SetReturnType(Metadata::EpochType_Boolean);
 		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"!=@@boolean"), signature));
 	}
 	{
 		FunctionSignature signature;
-		signature.AddParameter(L"i1", VM::EpochType_String, false);
-		signature.AddParameter(L"i2", VM::EpochType_String, false);
-		signature.SetReturnType(VM::EpochType_Boolean);
+		signature.AddParameter(L"i1", Metadata::EpochType_String, false);
+		signature.AddParameter(L"i2", Metadata::EpochType_String, false);
+		signature.SetReturnType(Metadata::EpochType_Boolean);
 		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"==@@string"), signature));
 	}
 	{
 		FunctionSignature signature;
-		signature.AddParameter(L"i1", VM::EpochType_String, false);
-		signature.AddParameter(L"i2", VM::EpochType_String, false);
-		signature.SetReturnType(VM::EpochType_Boolean);
+		signature.AddParameter(L"i1", Metadata::EpochType_String, false);
+		signature.AddParameter(L"i2", Metadata::EpochType_String, false);
+		signature.SetReturnType(Metadata::EpochType_Boolean);
 		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"!=@@string"), signature));
 	}
 
 	{
 		FunctionSignature signature;
-		signature.AddParameter(L"i1", VM::EpochType_Integer, false);
-		signature.AddParameter(L"i2", VM::EpochType_Integer, false);
-		signature.SetReturnType(VM::EpochType_Boolean);
+		signature.AddParameter(L"i1", Metadata::EpochType_Integer, false);
+		signature.AddParameter(L"i2", Metadata::EpochType_Integer, false);
+		signature.SetReturnType(Metadata::EpochType_Boolean);
 		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L">@@integer"), signature));
 	}
 	{
 		FunctionSignature signature;
-		signature.AddParameter(L"i1", VM::EpochType_Integer, false);
-		signature.AddParameter(L"i2", VM::EpochType_Integer, false);
-		signature.SetReturnType(VM::EpochType_Boolean);
+		signature.AddParameter(L"i1", Metadata::EpochType_Integer, false);
+		signature.AddParameter(L"i2", Metadata::EpochType_Integer, false);
+		signature.SetReturnType(Metadata::EpochType_Boolean);
 		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"<@@integer"), signature));
 	}
 
 	{
 		FunctionSignature signature;
-		signature.AddParameter(L"i1", VM::EpochType_Real, false);
-		signature.AddParameter(L"i2", VM::EpochType_Real, false);
-		signature.SetReturnType(VM::EpochType_Boolean);
+		signature.AddParameter(L"i1", Metadata::EpochType_Real, false);
+		signature.AddParameter(L"i2", Metadata::EpochType_Real, false);
+		signature.SetReturnType(Metadata::EpochType_Boolean);
 		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"==@@real"), signature));
 	}
 	{
 		FunctionSignature signature;
-		signature.AddParameter(L"i1", VM::EpochType_Real, false);
-		signature.AddParameter(L"i2", VM::EpochType_Real, false);
-		signature.SetReturnType(VM::EpochType_Boolean);
+		signature.AddParameter(L"i1", Metadata::EpochType_Real, false);
+		signature.AddParameter(L"i2", Metadata::EpochType_Real, false);
+		signature.SetReturnType(Metadata::EpochType_Boolean);
 		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L">@@real"), signature));
 	}
 	{
 		FunctionSignature signature;
-		signature.AddParameter(L"i1", VM::EpochType_Real, false);
-		signature.AddParameter(L"i2", VM::EpochType_Real, false);
-		signature.SetReturnType(VM::EpochType_Boolean);
+		signature.AddParameter(L"i1", Metadata::EpochType_Real, false);
+		signature.AddParameter(L"i2", Metadata::EpochType_Real, false);
+		signature.SetReturnType(Metadata::EpochType_Boolean);
 		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"<@@real"), signature));
 	}
 }

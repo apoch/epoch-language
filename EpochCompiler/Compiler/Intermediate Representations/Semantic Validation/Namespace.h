@@ -279,7 +279,7 @@ namespace IRSemantics
 		void SetParent(Namespace* parent);
 
 
-		static Namespace* CreateTemplateDummy(Namespace& parent, const std::vector<std::pair<StringHandle, VM::EpochTypeID> >& params, const CompileTimeParameterVector& args);
+		static Namespace* CreateTemplateDummy(Namespace& parent, const std::vector<std::pair<StringHandle, Metadata::EpochTypeID> >& params, const CompileTimeParameterVector& args);
 
 
 	// Internal helpers

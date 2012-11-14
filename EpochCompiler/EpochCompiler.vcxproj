@@ -100,6 +100,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\Shared\Metadata\TypeInfo.cpp" />
     <ClCompile Include="Compiler\CompileErrors.cpp" />
     <ClCompile Include="Compiler\Intermediate Representations\Semantic Validation\Namespace.cpp" />
     <ClCompile Include="Compiler\Intermediate Representations\Semantic Validation\TypeSpace.cpp" />
@@ -144,6 +145,7 @@
     <ClCompile Include="Parser\Parser.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\Shared\Metadata\TypeInfo.h" />
     <ClInclude Include="Compiler\Abstract Syntax Tree\IdentifierT.h" />
     <ClInclude Include="Compiler\Abstract Syntax Tree\Templates.h" />
     <ClInclude Include="Compiler\Abstract Syntax Tree\TypeDefinitions.h" />
@@ -220,7 +222,6 @@
     <ClInclude Include="Parser\LiteralGrammar.h" />
     <ClInclude Include="Parser\OperatorGrammar.h" />
     <ClInclude Include="Parser\Parser.h" />
-    <ClInclude Include="..\EpochVM\Virtual Machine\TypeInfo.h" />
     <ClInclude Include="Lexer\AdaptTokenDirective.h" />
     <ClInclude Include="Lexer\Lexer.h" />
   </ItemGroup>
@@ -228,12 +229,6 @@
     <None Include="Exports\Exports.def" />
     <None Include="..\Shared\User Interface\OutputStream.inl" />
     <None Include="Lexer\Lexer.inl" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\EpochVM\EpochVM.vcxproj">
-      <Project>{aab8eda4-d37f-475b-9ceb-2bbbd5799b3b}</Project>
-      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
-    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

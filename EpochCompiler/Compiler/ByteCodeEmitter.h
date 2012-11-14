@@ -62,17 +62,17 @@ public:
 	void PushStringLiteral(StringHandle handle);
 	void PushBooleanLiteral(bool value);
 	void PushRealLiteral(Real32 value);
-	void PushVariableValue(StringHandle variablename, VM::EpochTypeID type);
+	void PushVariableValue(StringHandle variablename, Metadata::EpochTypeID type);
 	void PushVariableValueNoCopy(StringHandle variablename);
 	void PushBufferHandle(BufferHandle handle);
-	void PushTypeAnnotation(VM::EpochTypeID type);
+	void PushTypeAnnotation(Metadata::EpochTypeID type);
 
 	void BindReference(StringHandle variablename);
 	void BindReferenceIndirect();
 	void BindStructureReference(StringHandle membername);
 	void BindStructureReferenceByHandle(StringHandle membername);
 
-	void PopStack(VM::EpochTypeID type);
+	void PopStack(Metadata::EpochTypeID type);
 
 // Flow control
 public:
@@ -93,7 +93,7 @@ public:
 // Lexical scope metadata
 public:
 	void DefineLexicalScope(StringHandle name, StringHandle parent, size_t variablecount);
-	void LexicalScopeEntry(StringHandle varname, VM::EpochTypeID vartype, bool isreference, VariableOrigin origin);
+	void LexicalScopeEntry(StringHandle varname, Metadata::EpochTypeID vartype, bool isreference, VariableOrigin origin);
 
 // Pattern matching
 public:
@@ -111,9 +111,9 @@ public:
 
 // Structures
 public:
-	void AllocateStructure(VM::EpochTypeID descriptiontype);
-	void DefineStructure(VM::EpochTypeID type, size_t nummembers);
-	void StructureMember(StringHandle identifier, VM::EpochTypeID type);
+	void AllocateStructure(Metadata::EpochTypeID descriptiontype);
+	void DefineStructure(Metadata::EpochTypeID type, size_t nummembers);
+	void StructureMember(StringHandle identifier, Metadata::EpochTypeID type);
 	void CopyFromStructure(StringHandle structurevariable, StringHandle membervariable);
 	void AssignStructure(StringHandle structurevariable, StringHandle membername);
 	void CopyStructure();
@@ -135,7 +135,7 @@ public:
 
 	void TagData(StringHandle entityname, const std::wstring& tag, const std::vector<std::wstring>& tagdata);
 
-	void DefineSumType(VM::EpochTypeID sumtypeid, const std::set<VM::EpochTypeID>& basetypes);
+	void DefineSumType(Metadata::EpochTypeID sumtypeid, const std::set<Metadata::EpochTypeID>& basetypes);
 	void ConstructSumType();
 
 // Additional helpers for writing to the data stream
@@ -147,7 +147,7 @@ private:
 	void EmitInstruction(Bytecode::Instruction instruction);
 	void EmitTerminatedString(const std::wstring& value);
 
-	void EmitTypeAnnotation(VM::EpochTypeID type);
+	void EmitTypeAnnotation(Metadata::EpochTypeID type);
 	void EmitEntityTag(Bytecode::EntityTag tag);
 
 	void EmitRawValue(bool value);
@@ -174,7 +174,7 @@ private:
 
 	void PrependRawValue(const std::wstring& value);
 
-	void PrependTypeAnnotation(VM::EpochTypeID type);
+	void PrependTypeAnnotation(Metadata::EpochTypeID type);
 
 	void PrependInstruction(Bytecode::Instruction instruction);
 

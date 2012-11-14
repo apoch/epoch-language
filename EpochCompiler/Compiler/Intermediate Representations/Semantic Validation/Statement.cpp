@@ -28,7 +28,7 @@ using namespace IRSemantics;
 Statement::Statement(StringHandle name, const AST::IdentifierT& identifier)
 	: Name(name),
 	  RawName(name),
-	  MyType(VM::EpochType_Error),
+	  MyType(Metadata::EpochType_Error),
 	  OriginalIdentifier(identifier),
 	  CompileTimeCodeExecuted(false),
 	  NeedsInstantiation(false)
@@ -57,7 +57,7 @@ bool Statement::Validate(const Namespace& curnamespace) const
 			valid = false;
 	}
 
-	valid = valid && (MyType != VM::EpochType_Infer) && (MyType != VM::EpochType_Error);
+	valid = valid && (MyType != Metadata::EpochType_Infer) && (MyType != Metadata::EpochType_Error);
 	return valid;
 }
 
@@ -93,8 +93,8 @@ bool Statement::CompileTimeCodeExecution(Namespace& curnamespace, CodeBlock& act
 
 bool Statement::TypeInference(Namespace& curnamespace, CodeBlock& activescope, InferenceContext& context, size_t index, CompileErrors& errors)
 {
-	if(MyType != VM::EpochType_Error)
-		return (MyType != VM::EpochType_Infer);
+	if(MyType != Metadata::EpochType_Error)
+		return (MyType != Metadata::EpochType_Infer);
 
 	if(NeedsInstantiation)
 	{
@@ -140,11 +140,11 @@ bool Statement::TypeInference(Namespace& curnamespace, CodeBlock& activescope, I
 	if(context.State == InferenceContext::CONTEXT_FUNCTION_RETURN)
 	{
 		MyType = curnamespace.Types.GetTypeByName(Name);
-		if(VM::GetTypeFamily(MyType) == VM::EpochTypeFamily_Structure)
+		if(Metadata::GetTypeFamily(MyType) == Metadata::EpochTypeFamily_Structure)
 			Name = curnamespace.Types.Structures.GetConstructorName(Name);
-		else if(VM::GetTypeFamily(MyType) == VM::EpochTypeFamily_TemplateInstance)
+		else if(Metadata::GetTypeFamily(MyType) == Metadata::EpochTypeFamily_TemplateInstance)
 			Name = curnamespace.Types.Templates.FindConstructorName(Name);
-		else if(VM::GetTypeFamily(MyType) == VM::EpochTypeFamily_Unit)
+		else if(Metadata::GetTypeFamily(MyType) == Metadata::EpochTypeFamily_Unit)
 			Name = curnamespace.Types.Aliases.GetStrongRepresentationName(MyType);
 
 		curnamespace.Functions.GetIR(context.FunctionName)->SetHintReturnType(MyType);
@@ -161,8 +161,8 @@ bool Statement::TypeInference(Namespace& curnamespace, CodeBlock& activescope, I
 
 	if(
 		   context.State != InferenceContext::CONTEXT_FUNCTION_RETURN
-		|| VM::GetTypeFamily(MyType) == VM::EpochTypeFamily_Structure
-		|| VM::GetTypeFamily(MyType) == VM::EpochTypeFamily_TemplateInstance
+		|| Metadata::GetTypeFamily(MyType) == Metadata::EpochTypeFamily_Structure
+		|| Metadata::GetTypeFamily(MyType) == Metadata::EpochTypeFamily_TemplateInstance
 	  )
 	{
 		if(curnamespace.Functions.Exists(RawName))
@@ -180,7 +180,7 @@ bool Statement::TypeInference(Namespace& curnamespace, CodeBlock& activescope, I
 				unsigned expectedpermutations = 1;
 	
 				StringHandle overloadname = curnamespace.Functions.GetOverloadName(RawName, i);
-				VM::EpochTypeID funcreturntype = VM::EpochType_Error;
+				Metadata::EpochTypeID funcreturntype = Metadata::EpochType_Error;
 				FunctionSignature signature;
 				if(curnamespace.Functions.SignatureExists(overloadname))
 					signature = curnamespace.Functions.GetSignature(overloadname);
@@ -197,8 +197,8 @@ bool Statement::TypeInference(Namespace& curnamespace, CodeBlock& activescope, I
 				if(signature.GetNumParameters() != Parameters.size())
 					continue;
 
-				VM::EpochTypeID underlyingreturntype = funcreturntype;
-				if(VM::GetTypeFamily(funcreturntype) == VM::EpochTypeFamily_Unit)
+				Metadata::EpochTypeID underlyingreturntype = funcreturntype;
+				if(Metadata::GetTypeFamily(funcreturntype) == Metadata::EpochTypeFamily_Unit)
 					underlyingreturntype = curnamespace.Types.Aliases.GetStrongRepresentation(funcreturntype);
 
 				if(!context.ExpectedTypes.empty())
@@ -226,24 +226,24 @@ bool Statement::TypeInference(Namespace& curnamespace, CodeBlock& activescope, I
 				bool match = true;
 				for(size_t j = 0; j < Parameters.size(); ++j)
 				{
-					VM::EpochTypeID expectedparamtype = signature.GetParameter(j).Type;
-					VM::EpochTypeID providedparamtype = Parameters[j]->GetEpochType(curnamespace);
+					Metadata::EpochTypeID expectedparamtype = signature.GetParameter(j).Type;
+					Metadata::EpochTypeID providedparamtype = Parameters[j]->GetEpochType(curnamespace);
 					if(expectedparamtype != providedparamtype)
 					{
-						if(VM::GetTypeFamily(expectedparamtype) == VM::EpochTypeFamily_SumType)
+						if(Metadata::GetTypeFamily(expectedparamtype) == Metadata::EpochTypeFamily_SumType)
 						{
 							if(!curnamespace.Types.SumTypes.IsBaseType(expectedparamtype, providedparamtype))
 							{
 								match = false;
 								break;
 							}
-							else if(VM::GetTypeFamily(providedparamtype) != VM::EpochTypeFamily_SumType)
+							else if(Metadata::GetTypeFamily(providedparamtype) != Metadata::EpochTypeFamily_SumType)
 							{
 								generatetypematch = true;
 								expectedpermutations *= curnamespace.Types.SumTypes.GetNumBaseTypes(providedparamtype);
 							}
 						}
-						else if(VM::GetTypeFamily(providedparamtype) == VM::EpochTypeFamily_SumType)
+						else if(Metadata::GetTypeFamily(providedparamtype) == Metadata::EpochTypeFamily_SumType)
 						{
 							if(curnamespace.Types.SumTypes.IsBaseType(providedparamtype, expectedparamtype))
 							{
@@ -257,7 +257,7 @@ bool Statement::TypeInference(Namespace& curnamespace, CodeBlock& activescope, I
 							break;
 						}
 					}
-					else if(expectedparamtype == VM::EpochType_Function)
+					else if(expectedparamtype == Metadata::EpochType_Function)
 					{
 						if(Parameters[j]->GetAtoms().size() == 1)
 						{
@@ -362,7 +362,7 @@ bool Statement::TypeInference(Namespace& curnamespace, CodeBlock& activescope, I
 							bool acceptsnothing = false;
 							for(std::map<StringHandle, FunctionSignature>::const_iterator matchiterinner = matchingoverloads.begin(); matchiterinner != matchingoverloads.end(); ++matchiterinner)
 							{
-								if(matchiterinner->second.GetParameter(j).Type == VM::EpochType_Nothing)
+								if(matchiterinner->second.GetParameter(j).Type == Metadata::EpochType_Nothing)
 								{
 									acceptsnothing = true;
 									break;
@@ -390,17 +390,17 @@ bool Statement::TypeInference(Namespace& curnamespace, CodeBlock& activescope, I
 						{
 							Parameters[j]->GetAtoms()[0] = new ExpressionAtomIdentifierReference(atom->GetIdentifier(), atom->GetOriginalIdentifier());
 							Parameters[j]->GetAtoms()[0]->TypeInference(curnamespace, activescope, newcontext, j, Parameters.size(), errors);
-							if(Parameters[j]->GetEpochType(curnamespace) != VM::EpochType_Nothing)
-								Parameters[j]->AddAtom(new ExpressionAtomTypeAnnotation(VM::EpochType_RefFlag));
+							if(Parameters[j]->GetEpochType(curnamespace) != Metadata::EpochType_Nothing)
+								Parameters[j]->AddAtom(new ExpressionAtomTypeAnnotation(Metadata::EpochType_RefFlag));
 						}
 						else
 						{
 							if(Parameters[j]->GetAtoms().size() > 1)
 							{
-								if(Parameters[j]->GetEpochType(curnamespace) != VM::EpochType_Nothing)
+								if(Parameters[j]->GetEpochType(curnamespace) != Metadata::EpochType_Nothing)
 								{
 									Parameters[j]->AddAtom(new ExpressionAtomTypeAnnotationFromRegister);
-									Parameters[j]->AddAtom(new ExpressionAtomTypeAnnotation(VM::EpochType_RefFlag));
+									Parameters[j]->AddAtom(new ExpressionAtomTypeAnnotation(Metadata::EpochType_RefFlag));
 								}
 							}
 							else
@@ -410,7 +410,7 @@ bool Statement::TypeInference(Namespace& curnamespace, CodeBlock& activescope, I
 							}
 						}
 					}
-					else if(VM::GetTypeFamily(Parameters[j]->GetEpochType(curnamespace)) != VM::EpochTypeFamily_SumType)
+					else if(Metadata::GetTypeFamily(Parameters[j]->GetEpochType(curnamespace)) != Metadata::EpochTypeFamily_SumType)
 						Parameters[j]->AddAtom(new ExpressionAtomTypeAnnotation(Parameters[j]->GetEpochType(curnamespace)));
 				}
 
@@ -440,7 +440,7 @@ bool Statement::TypeInference(Namespace& curnamespace, CodeBlock& activescope, I
 				}
 			}
 
-			if(MyType == VM::EpochType_Error || MyType == VM::EpochType_Infer)
+			if(MyType == Metadata::EpochType_Error || MyType == Metadata::EpochType_Infer)
 			{
 				errors.SetContext(OriginalIdentifier);
 				errors.SemanticError("No matching overload");
@@ -460,18 +460,18 @@ bool Statement::TypeInference(Namespace& curnamespace, CodeBlock& activescope, I
 						bool match = true;
 						for(size_t i = 0; i < Parameters.size(); ++i)
 						{
-							VM::EpochTypeID providedtype = Parameters[i]->GetEpochType(curnamespace);
-							VM::EpochTypeID expectedtype = funcsig.GetParameter(i).Type;
+							Metadata::EpochTypeID providedtype = Parameters[i]->GetEpochType(curnamespace);
+							Metadata::EpochTypeID expectedtype = funcsig.GetParameter(i).Type;
 							if(providedtype != expectedtype)
 							{
-								if(VM::GetTypeFamily(expectedtype) == VM::EpochTypeFamily_SumType)
+								if(Metadata::GetTypeFamily(expectedtype) == Metadata::EpochTypeFamily_SumType)
 								{
 									if(!curnamespace.Types.SumTypes.IsBaseType(expectedtype, providedtype))
 									{
 										match = false;
 										break;
 									}
-									else if(VM::GetTypeFamily(providedtype) != VM::EpochTypeFamily_SumType)
+									else if(Metadata::GetTypeFamily(providedtype) != Metadata::EpochTypeFamily_SumType)
 										Parameters[i]->AddAtom(new ExpressionAtomTypeAnnotation(providedtype));
 								}
 								else
@@ -522,18 +522,18 @@ bool Statement::TypeInference(Namespace& curnamespace, CodeBlock& activescope, I
 						bool match = true;
 						for(size_t i = 0; i < Parameters.size(); ++i)
 						{
-							VM::EpochTypeID expectedparamtype = signature.GetParameter(i).Type;
-							VM::EpochTypeID providedparamtype = Parameters[i]->GetEpochType(curnamespace);
+							Metadata::EpochTypeID expectedparamtype = signature.GetParameter(i).Type;
+							Metadata::EpochTypeID providedparamtype = Parameters[i]->GetEpochType(curnamespace);
 							if(expectedparamtype != providedparamtype)
 							{
-								if(VM::GetTypeFamily(expectedparamtype) == VM::EpochTypeFamily_SumType)
+								if(Metadata::GetTypeFamily(expectedparamtype) == Metadata::EpochTypeFamily_SumType)
 								{
 									if(!curnamespace.Types.SumTypes.IsBaseType(expectedparamtype, providedparamtype))
 									{
 										match = false;
 										break;
 									}
-									else if(VM::GetTypeFamily(providedparamtype) != VM::EpochTypeFamily_SumType)
+									else if(Metadata::GetTypeFamily(providedparamtype) != Metadata::EpochTypeFamily_SumType)
 										Parameters[i]->AddAtom(new ExpressionAtomTypeAnnotation(providedparamtype));
 								}
 								else
@@ -590,7 +590,7 @@ bool Statement::TypeInference(Namespace& curnamespace, CodeBlock& activescope, I
 
 	Name = curnamespace.Types.SumTypes.MapConstructorName(Name);
 
-	bool valid = (MyType != VM::EpochType_Infer && MyType != VM::EpochType_Error);
+	bool valid = (MyType != Metadata::EpochType_Infer && MyType != Metadata::EpochType_Error);
 	if(!valid)
 		return false;
 
@@ -640,8 +640,8 @@ void Statement::SetTemplateArgsDeferred(const CompileTimeParameterVector& args)
 
 bool PreOpStatement::TypeInference(Namespace& curnamespace, CodeBlock& activescope, InferenceContext&, CompileErrors&)
 {
-	VM::EpochTypeID operandtype = InferMemberAccessType(Operand, curnamespace, activescope);
-	if(operandtype == VM::EpochType_Error)
+	Metadata::EpochTypeID operandtype = InferMemberAccessType(Operand, curnamespace, activescope);
+	if(operandtype == Metadata::EpochType_Error)
 		return false;
 
 	StringHandleSet functionstocheck;
@@ -675,8 +675,8 @@ bool PreOpStatement::TypeInference(Namespace& curnamespace, CodeBlock& activesco
 
 		const FunctionSignature& signature = curnamespace.Functions.GetSignature(*iter);
 
-		VM::EpochTypeID underlyingtype = operandtype;
-		if(VM::GetTypeFamily(operandtype) == VM::EpochTypeFamily_Unit)
+		Metadata::EpochTypeID underlyingtype = operandtype;
+		if(Metadata::GetTypeFamily(operandtype) == Metadata::EpochTypeFamily_Unit)
 			underlyingtype = curnamespace.Types.Aliases.GetStrongRepresentation(operandtype);
 
 		if(signature.GetNumParameters() == 1 && signature.GetParameter(0).Type == underlyingtype)
@@ -687,19 +687,19 @@ bool PreOpStatement::TypeInference(Namespace& curnamespace, CodeBlock& activesco
 		}
 	}
 
-	return (MyType != VM::EpochType_Error);
+	return (MyType != Metadata::EpochType_Error);
 }
 
 bool PreOpStatement::Validate(const Namespace&) const
 {
-	return MyType != VM::EpochType_Error;
+	return MyType != Metadata::EpochType_Error;
 }
 
 
 bool PostOpStatement::TypeInference(Namespace& curnamespace, CodeBlock& activescope, InferenceContext&, CompileErrors&)
 {
-	VM::EpochTypeID operandtype = InferMemberAccessType(Operand, curnamespace, activescope);
-	if(operandtype == VM::EpochType_Error)
+	Metadata::EpochTypeID operandtype = InferMemberAccessType(Operand, curnamespace, activescope);
+	if(operandtype == Metadata::EpochType_Error)
 		return false;
 
 	StringHandleSet functionstocheck;
@@ -733,8 +733,8 @@ bool PostOpStatement::TypeInference(Namespace& curnamespace, CodeBlock& activesc
 
 		const FunctionSignature& signature = curnamespace.Functions.GetSignature(*iter);
 
-		VM::EpochTypeID underlyingtype = operandtype;
-		if(VM::GetTypeFamily(operandtype) == VM::EpochTypeFamily_Unit)
+		Metadata::EpochTypeID underlyingtype = operandtype;
+		if(Metadata::GetTypeFamily(operandtype) == Metadata::EpochTypeFamily_Unit)
 			underlyingtype = curnamespace.Types.Aliases.GetStrongRepresentation(operandtype);
 
 		if(signature.GetNumParameters() == 1 && signature.GetParameter(0).Type == underlyingtype)
@@ -745,12 +745,12 @@ bool PostOpStatement::TypeInference(Namespace& curnamespace, CodeBlock& activesc
 		}
 	}
 
-	return (MyType != VM::EpochType_Error);
+	return (MyType != Metadata::EpochType_Error);
 }
 
 bool PostOpStatement::Validate(const Namespace&) const
 {
-	return MyType != VM::EpochType_Error;
+	return MyType != Metadata::EpochType_Error;
 }
 
 
@@ -761,7 +761,7 @@ Statement* Statement::Clone() const
 	clone->RawName = RawName;
 	for(std::vector<Expression*>::const_iterator iter = Parameters.begin(); iter != Parameters.end(); ++iter)
 		clone->Parameters.push_back((*iter)->Clone());
-	clone->MyType = VM::EpochType_Error;
+	clone->MyType = Metadata::EpochType_Error;
 	clone->CompileTimeCodeExecuted = false;
 	clone->TemplateArgs = TemplateArgs;
 	clone->NeedsInstantiation = NeedsInstantiation;

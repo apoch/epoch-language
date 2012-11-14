@@ -29,7 +29,7 @@ Assignment::Assignment(const std::vector<StringHandle>& lhs, StringHandle operat
 	: LHS(lhs),
 	  OperatorName(operatorname),
 	  RHS(NULL),
-	  LHSType(VM::EpochType_Error),
+	  LHSType(Metadata::EpochType_Error),
 	  OriginalLHS(originallhs),
 	  WantsTypeAnnotation(false)
 {
@@ -97,7 +97,7 @@ void Assignment::SetRHSRecursive(AssignmentChain* rhs)
 //
 bool Assignment::Validate(const Namespace& curnamespace) const
 {
-	bool valid = (LHSType != VM::EpochType_Error);
+	bool valid = (LHSType != Metadata::EpochType_Error);
 	return valid && RHS->Validate(curnamespace);
 }
 
@@ -130,14 +130,14 @@ bool Assignment::TypeInference(Namespace& curnamespace, CodeBlock& activescope, 
 		}
 	}
 
-	VM::EpochTypeID RHSType = RHS->GetEpochType(curnamespace);
+	Metadata::EpochTypeID RHSType = RHS->GetEpochType(curnamespace);
 	if(LHSType != RHSType)
 	{
-		if(VM::GetTypeFamily(LHSType) == VM::EpochTypeFamily_Unit && curnamespace.Types.Aliases.GetStrongRepresentation(LHSType) == RHSType)
+		if(Metadata::GetTypeFamily(LHSType) == Metadata::EpochTypeFamily_Unit && curnamespace.Types.Aliases.GetStrongRepresentation(LHSType) == RHSType)
 		{
 			// OK
 		}
-		else if(VM::GetTypeFamily(LHSType) == VM::EpochTypeFamily_SumType && curnamespace.Types.SumTypes.IsBaseType(LHSType, RHSType))
+		else if(Metadata::GetTypeFamily(LHSType) == Metadata::EpochTypeFamily_SumType && curnamespace.Types.SumTypes.IsBaseType(LHSType, RHSType))
 		{
 			// OK
 			WantsTypeAnnotation = true;
@@ -146,7 +146,7 @@ bool Assignment::TypeInference(Namespace& curnamespace, CodeBlock& activescope, 
 		{
 			errors.SetContext(OriginalLHS);
 			errors.SemanticError("Left-hand side of assignment differs in type from right-hand side");
-			LHSType = VM::EpochType_Error;
+			LHSType = Metadata::EpochType_Error;
 		}
 	}
 
@@ -175,7 +175,7 @@ AssignmentChainExpression::~AssignmentChainExpression()
 // Retrieve the type of an assignment RHS which
 // is a terminal expression
 //
-VM::EpochTypeID AssignmentChainExpression::GetEpochType(const Namespace& curnamespace) const
+Metadata::EpochTypeID AssignmentChainExpression::GetEpochType(const Namespace& curnamespace) const
 {
 	return MyExpression->GetEpochType(curnamespace);
 }
@@ -230,7 +230,7 @@ void AssignmentChainAssignment::SetRHSRecursive(AssignmentChain* rhs)
 //
 // Retrieve the type of the RHS of a chained assignment
 //
-VM::EpochTypeID AssignmentChainAssignment::GetEpochType(const Namespace& curnamespace) const
+Metadata::EpochTypeID AssignmentChainAssignment::GetEpochType(const Namespace& curnamespace) const
 {
 	return MyAssignment->GetRHS()->GetEpochType(curnamespace);
 }

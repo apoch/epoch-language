@@ -140,18 +140,18 @@ void CommandLineLibrary::RegisterLibraryFunctions(FunctionSignatureSet& signatur
 {
 	{
 		FunctionSignature signature;
-		signature.SetReturnType(VM::EpochType_Boolean);
+		signature.SetReturnType(Metadata::EpochType_Boolean);
 		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"cmdlineisvalid"), signature));
 	}
 	{
 		FunctionSignature signature;
-		signature.SetReturnType(VM::EpochType_Integer);
+		signature.SetReturnType(Metadata::EpochType_Integer);
 		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"cmdlinegetcount"), signature));
 	}
 	{
 		FunctionSignature signature;
-		signature.AddParameter(L"index", VM::EpochType_Integer, false);
-		signature.SetReturnType(VM::EpochType_String);
+		signature.AddParameter(L"index", Metadata::EpochType_Integer, false);
+		signature.SetReturnType(Metadata::EpochType_String);
 		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"cmdlineget"), signature));
 	}
 }

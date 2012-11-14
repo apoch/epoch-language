@@ -58,13 +58,13 @@ namespace IRSemantics
 
 	// Atom interface
 	public:
-		virtual VM::EpochTypeID GetEpochType(const Namespace& curnamespace) const = 0;
+		virtual Metadata::EpochTypeID GetEpochType(const Namespace& curnamespace) const = 0;
 		virtual bool TypeInference(Namespace& curnamespace, CodeBlock& activescope, InferenceContext& context, size_t index, size_t maxindex, CompileErrors& errors) = 0;
 		virtual bool CompileTimeCodeExecution(Namespace& curnamespace, CodeBlock& activescope, bool inreturnexpr, CompileErrors& errors) = 0;
 		virtual CompileTimeParameter ConvertToCompileTimeParam(const Namespace& curnamespace) const = 0;
 		virtual ExpressionAtom* Clone() const = 0;
 
-		virtual bool Demote(VM::EpochTypeID targettype, const Namespace& curnamespace)
+		virtual bool Demote(Metadata::EpochTypeID targettype, const Namespace& curnamespace)
 		{ return (targettype == GetEpochType(curnamespace)); }
 	};
 
@@ -83,7 +83,7 @@ namespace IRSemantics
 
 	// Type system
 	public:
-		EPOCHCOMPILER VM::EpochTypeID GetEpochType(const Namespace& curnamespace) const;
+		EPOCHCOMPILER Metadata::EpochTypeID GetEpochType(const Namespace& curnamespace) const;
 
 	// Validation
 	public:
@@ -120,7 +120,7 @@ namespace IRSemantics
 	// Internal state
 	private:
 		std::vector<ExpressionAtom*> Atoms;
-		VM::EpochTypeID InferredType;
+		Metadata::EpochTypeID InferredType;
 		bool Coalesced;
 		bool InferenceDone;
 		bool DoingInference;
@@ -145,7 +145,7 @@ namespace IRSemantics
 
 	// Type system
 	public:
-		virtual VM::EpochTypeID GetEpochType(const Namespace& curnamespace) const = 0;
+		virtual Metadata::EpochTypeID GetEpochType(const Namespace& curnamespace) const = 0;
 		virtual bool TypeInference(Namespace& curnamespace, CodeBlock& activescope, InferenceContext& context, CompileErrors& errors) const = 0;
 
 	// Compile time code execution
@@ -175,7 +175,7 @@ namespace IRSemantics
 
 	// Type system
 	public:
-		virtual VM::EpochTypeID GetEpochType(const Namespace& curnamespace) const;
+		virtual Metadata::EpochTypeID GetEpochType(const Namespace& curnamespace) const;
 		virtual bool TypeInference(Namespace& curnamespace, CodeBlock& activescope, InferenceContext& context, CompileErrors& errors) const;
 
 	// Compile time code execution
@@ -218,7 +218,7 @@ namespace IRSemantics
 
 	// Type system
 	public:
-		virtual VM::EpochTypeID GetEpochType(const Namespace& curnamespace) const;
+		virtual Metadata::EpochTypeID GetEpochType(const Namespace& curnamespace) const;
 		virtual bool TypeInference(Namespace& curnamespace, CodeBlock& activescope, InferenceContext& context, CompileErrors& errors) const;
 
 	// Deep copies
@@ -253,7 +253,7 @@ namespace IRSemantics
 
 	// Type system
 	public:
-		virtual VM::EpochTypeID GetEpochType(const Namespace& curnamespace) const;
+		virtual Metadata::EpochTypeID GetEpochType(const Namespace& curnamespace) const;
 		virtual bool TypeInference(Namespace& curnamespace, CodeBlock& activescope, InferenceContext& context, CompileErrors& errors) const;
 
 	// Compile time code execution
@@ -292,7 +292,7 @@ namespace IRSemantics
 
 	// Atom interface
 	public:
-		virtual VM::EpochTypeID GetEpochType(const Namespace& curnamespace) const;
+		virtual Metadata::EpochTypeID GetEpochType(const Namespace& curnamespace) const;
 		virtual bool TypeInference(Namespace& curnamespace, CodeBlock& activescope, InferenceContext& context, size_t index, size_t maxindex, CompileErrors& errors);
 		virtual bool CompileTimeCodeExecution(Namespace& curnamespace, CodeBlock& activescope, bool inreturnexpr, CompileErrors& errors);
 		
@@ -320,7 +320,7 @@ namespace IRSemantics
 	public:
 		ExpressionAtomIdentifierBase(StringHandle identifier, const AST::IdentifierT& originalidentifier)
 			: Identifier(identifier),
-			  MyType(VM::EpochType_Error),
+			  MyType(Metadata::EpochType_Error),
 			  OriginalIdentifier(originalidentifier)
 		{ }
 
@@ -338,13 +338,13 @@ namespace IRSemantics
 
 	// Atom interface
 	public:
-		virtual VM::EpochTypeID GetEpochType(const Namespace& curnamespace) const;
+		virtual Metadata::EpochTypeID GetEpochType(const Namespace& curnamespace) const;
 		virtual bool TypeInference(Namespace& curnamespace, CodeBlock& activescope, InferenceContext& context, size_t index, size_t maxindex, CompileErrors& errors);
 		virtual bool CompileTimeCodeExecution(Namespace& curnamespace, CodeBlock& activescope, bool inreturnexpr, CompileErrors& errors);
 		
 		virtual CompileTimeParameter ConvertToCompileTimeParam(const Namespace&) const
 		{
-			CompileTimeParameter ret(L"@@identifier", VM::EpochType_Identifier);
+			CompileTimeParameter ret(L"@@identifier", Metadata::EpochType_Identifier);
 			ret.Payload.LiteralStringHandleValue = Identifier;
 
 			return ret;
@@ -355,7 +355,7 @@ namespace IRSemantics
 	// Internal state
 	protected:
 		StringHandle Identifier;
-		VM::EpochTypeID MyType;
+		Metadata::EpochTypeID MyType;
 		const AST::IdentifierT& OriginalIdentifier;
 	};
 
@@ -399,7 +399,7 @@ namespace IRSemantics
 			: Identifier(identifier),
 			  OriginalIdentifier(identifier),
 			  IsMemberAccessFlag(ismemberaccess),
-			  OverriddenType(VM::EpochType_Error)
+			  OverriddenType(Metadata::EpochType_Error)
 		{ }
 
 	// Accessors
@@ -412,7 +412,7 @@ namespace IRSemantics
 
 	// Atom interface
 	public:
-		virtual VM::EpochTypeID GetEpochType(const Namespace& curnamespace) const;
+		virtual Metadata::EpochTypeID GetEpochType(const Namespace& curnamespace) const;
 		virtual bool TypeInference(Namespace& curnamespace, CodeBlock& activescope, InferenceContext& context, size_t index, size_t maxindex, CompileErrors& errors);
 		virtual bool CompileTimeCodeExecution(Namespace& curnamespace, CodeBlock& activescope, bool inreturnexpr, CompileErrors& errors);
 		
@@ -424,13 +424,13 @@ namespace IRSemantics
 	// Additional type inference support
 	public:
 		bool IsOperatorUnary(const Namespace& curnamespace) const;
-		VM::EpochTypeID DetermineOperatorReturnType(Namespace& curnamespace, VM::EpochTypeID lhstype, VM::EpochTypeID rhstype, CompileErrors& errors) const;
-		VM::EpochTypeID DetermineUnaryReturnType(Namespace& curnamespace, VM::EpochTypeID operandtype, CompileErrors& errors) const;
+		Metadata::EpochTypeID DetermineOperatorReturnType(Namespace& curnamespace, Metadata::EpochTypeID lhstype, Metadata::EpochTypeID rhstype, CompileErrors& errors) const;
+		Metadata::EpochTypeID DetermineUnaryReturnType(Namespace& curnamespace, Metadata::EpochTypeID operandtype, CompileErrors& errors) const;
 
 		bool IsMemberAccess() const
 		{ return IsMemberAccessFlag; }
 
-		void OverrideType(VM::EpochTypeID overridetype)
+		void OverrideType(Metadata::EpochTypeID overridetype)
 		{
 			OverriddenType = overridetype;
 		}
@@ -444,7 +444,7 @@ namespace IRSemantics
 		StringHandle Identifier;
 		StringHandle OriginalIdentifier;
 		bool IsMemberAccessFlag;
-		VM::EpochTypeID OverriddenType;
+		Metadata::EpochTypeID OverriddenType;
 	};
 
 
@@ -466,7 +466,7 @@ namespace IRSemantics
 
 	// Atom interface
 	public:
-		virtual VM::EpochTypeID GetEpochType(const Namespace& curnamespace) const;
+		virtual Metadata::EpochTypeID GetEpochType(const Namespace& curnamespace) const;
 		virtual bool TypeInference(Namespace& curnamespace, CodeBlock& activescope, InferenceContext& context, size_t index, size_t maxindex, CompileErrors& errors);
 		virtual bool CompileTimeCodeExecution(Namespace& curnamespace, CodeBlock& activescope, bool inreturnexpr, CompileErrors& errors);
 		virtual CompileTimeParameter ConvertToCompileTimeParam(const Namespace& curnamespace) const;
@@ -496,7 +496,7 @@ namespace IRSemantics
 
 	// Atom interface
 	public:
-		virtual VM::EpochTypeID GetEpochType(const Namespace& curnamespace) const;
+		virtual Metadata::EpochTypeID GetEpochType(const Namespace& curnamespace) const;
 		virtual bool TypeInference(Namespace& curnamespace, CodeBlock& activescope, InferenceContext& context, size_t index, size_t maxindex, CompileErrors& errors);
 		virtual bool CompileTimeCodeExecution(Namespace& curnamespace, CodeBlock& activescope, bool inreturnexpr, CompileErrors& errors);
 		virtual CompileTimeParameter ConvertToCompileTimeParam(const Namespace& curnamespace) const;
@@ -519,7 +519,7 @@ namespace IRSemantics
 	public:
 		explicit ExpressionAtomLiteralInteger32(Integer32 value)
 			: Value(value),
-			  MyType(VM::EpochType_Integer)
+			  MyType(Metadata::EpochType_Integer)
 		{ }
 
 	// Accessors
@@ -529,17 +529,17 @@ namespace IRSemantics
 
 	// Atom interface
 	public:
-		virtual VM::EpochTypeID GetEpochType(const Namespace& curnamespace) const;
+		virtual Metadata::EpochTypeID GetEpochType(const Namespace& curnamespace) const;
 		virtual bool TypeInference(Namespace& curnamespace, CodeBlock& activescope, InferenceContext& context, size_t index, size_t maxindex, CompileErrors& errors);
 		virtual bool CompileTimeCodeExecution(Namespace& curnamespace, CodeBlock& activescope, bool inreturnexpr, CompileErrors& errors);
 		virtual CompileTimeParameter ConvertToCompileTimeParam(const Namespace& curnamespace) const;
 		virtual ExpressionAtom* Clone() const;
-		virtual bool Demote(VM::EpochTypeID targettype, const Namespace& curnamespace);
+		virtual bool Demote(Metadata::EpochTypeID targettype, const Namespace& curnamespace);
 
 	// Internal state
 	private:
 		Integer32 Value;
-		VM::EpochTypeID MyType;
+		Metadata::EpochTypeID MyType;
 	};
 
 
@@ -552,7 +552,7 @@ namespace IRSemantics
 	public:
 		explicit ExpressionAtomLiteralReal32(Real32 value)
 			: Value(value),
-			  MyType(VM::EpochType_Real)
+			  MyType(Metadata::EpochType_Real)
 		{ }
 
 	// Accessors
@@ -562,7 +562,7 @@ namespace IRSemantics
 
 	// Atom interface
 	public:
-		virtual VM::EpochTypeID GetEpochType(const Namespace& curnamespace) const;
+		virtual Metadata::EpochTypeID GetEpochType(const Namespace& curnamespace) const;
 		virtual bool TypeInference(Namespace& curnamespace, CodeBlock& activescope, InferenceContext& context, size_t index, size_t maxindex, CompileErrors& errors);
 		virtual bool CompileTimeCodeExecution(Namespace& curnamespace, CodeBlock& activescope, bool inreturnexpr, CompileErrors& errors);
 		virtual CompileTimeParameter ConvertToCompileTimeParam(const Namespace& curnamespace) const;
@@ -571,7 +571,7 @@ namespace IRSemantics
 	// Internal state
 	private:
 		Real32 Value;
-		VM::EpochTypeID MyType;
+		Metadata::EpochTypeID MyType;
 	};
 
 
@@ -592,7 +592,7 @@ namespace IRSemantics
 
 	// Atom interface
 	public:
-		virtual VM::EpochTypeID GetEpochType(const Namespace& curnamespace) const;
+		virtual Metadata::EpochTypeID GetEpochType(const Namespace& curnamespace) const;
 		virtual bool TypeInference(Namespace& curnamespace, CodeBlock& activescope, InferenceContext& context, size_t index, size_t maxindex, CompileErrors& errors);
 		virtual bool CompileTimeCodeExecution(Namespace& curnamespace, CodeBlock& activescope, bool inreturnexpr, CompileErrors& errors);
 		
@@ -624,7 +624,7 @@ namespace IRSemantics
 	{
 	// Construction
 	public:
-		ExpressionAtomCopyFromStructure(VM::EpochTypeID type, StringHandle membername)
+		ExpressionAtomCopyFromStructure(Metadata::EpochTypeID type, StringHandle membername)
 			: MyType(type),
 			  MemberName(membername)
 		{ }
@@ -636,7 +636,7 @@ namespace IRSemantics
 
 	// Atom interface
 	public:
-		virtual VM::EpochTypeID GetEpochType(const Namespace&) const
+		virtual Metadata::EpochTypeID GetEpochType(const Namespace&) const
 		{ return MyType; }
 
 		virtual bool TypeInference(Namespace&, CodeBlock&, InferenceContext&, size_t, size_t, CompileErrors&)
@@ -657,7 +657,7 @@ namespace IRSemantics
 
 	// Internal state
 	private:
-		VM::EpochTypeID MyType;
+		Metadata::EpochTypeID MyType;
 		StringHandle MemberName;
 	};
 
@@ -674,7 +674,7 @@ namespace IRSemantics
 	{
 	// Construction
 	public:
-		ExpressionAtomBindReference(StringHandle identifier, VM::EpochTypeID membertype)
+		ExpressionAtomBindReference(StringHandle identifier, Metadata::EpochTypeID membertype)
 			: Identifier(identifier),
 			  MyType(membertype)
 		{ }
@@ -686,7 +686,7 @@ namespace IRSemantics
 
 	// Atom interface
 	public:
-		virtual VM::EpochTypeID GetEpochType(const Namespace&) const
+		virtual Metadata::EpochTypeID GetEpochType(const Namespace&) const
 		{ return MyType; }
 
 		virtual bool TypeInference(Namespace&, CodeBlock&, InferenceContext&, size_t, size_t, CompileErrors&)
@@ -718,7 +718,7 @@ namespace IRSemantics
 	// Internal state
 	private:
 		StringHandle Identifier;
-		VM::EpochTypeID MyType;
+		Metadata::EpochTypeID MyType;
 	};
 
 
@@ -727,7 +727,7 @@ namespace IRSemantics
 	{
 	// Construction
 	public:
-		explicit ExpressionAtomTypeAnnotation(VM::EpochTypeID type)
+		explicit ExpressionAtomTypeAnnotation(Metadata::EpochTypeID type)
 			: MyType(type)
 		{ }
 
@@ -738,7 +738,7 @@ namespace IRSemantics
 
 	// Atom interface
 	public:
-		virtual VM::EpochTypeID GetEpochType(const Namespace&) const
+		virtual Metadata::EpochTypeID GetEpochType(const Namespace&) const
 		{ return MyType; }
 
 		virtual bool TypeInference(Namespace&, CodeBlock&, InferenceContext&, size_t, size_t, CompileErrors&)
@@ -764,7 +764,7 @@ namespace IRSemantics
 
 	// Internal state
 	private:
-		VM::EpochTypeID MyType;
+		Metadata::EpochTypeID MyType;
 	};
 
 	class ExpressionAtomTypeAnnotationFromRegister : public ExpressionAtom
@@ -781,8 +781,8 @@ namespace IRSemantics
 
 	// Atom interface
 	public:
-		virtual VM::EpochTypeID GetEpochType(const Namespace&) const
-		{ return VM::EpochType_Error; }
+		virtual Metadata::EpochTypeID GetEpochType(const Namespace&) const
+		{ return Metadata::EpochType_Error; }
 
 		virtual bool TypeInference(Namespace&, CodeBlock&, InferenceContext&, size_t, size_t, CompileErrors&)
 		{ return true; }

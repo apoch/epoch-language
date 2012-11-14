@@ -60,12 +60,6 @@
     <Filter Include="Parser">
       <UniqueIdentifier>{8232193b-a335-45f0-946b-8cd61bf798a2}</UniqueIdentifier>
     </Filter>
-    <Filter Include="VM Linkage">
-      <UniqueIdentifier>{b8086baf-1942-498d-8f95-29b5c01d08bc}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="VM Linkage\Virtual Machine">
-      <UniqueIdentifier>{69e72445-f886-45df-adb7-0d8689e21c3a}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Lexer">
       <UniqueIdentifier>{957e41b7-8e95-4506-8e33-ed139b681ef4}</UniqueIdentifier>
     </Filter>
@@ -187,6 +181,9 @@
     </ClCompile>
     <ClCompile Include="Compiler\Intermediate Representations\Semantic Validation\Namespace.cpp">
       <Filter>Compiler\Intermediate Representations\Semantic Validation</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Shared\Metadata\TypeInfo.cpp">
+      <Filter>Shared\Metadata</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -400,9 +397,6 @@
     <ClInclude Include="Parser\Parser.h">
       <Filter>Parser</Filter>
     </ClInclude>
-    <ClInclude Include="..\EpochVM\Virtual Machine\TypeInfo.h">
-      <Filter>VM Linkage\Virtual Machine</Filter>
-    </ClInclude>
     <ClInclude Include="Lexer\AdaptTokenDirective.h">
       <Filter>Lexer</Filter>
     </ClInclude>
@@ -426,6 +420,9 @@
     </ClInclude>
     <ClInclude Include="Compiler\Intermediate Representations\Semantic Validation\Namespace.h">
       <Filter>Compiler\Intermediate Representations\Semantic Validation</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Shared\Metadata\TypeInfo.h">
+      <Filter>Shared\Metadata</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

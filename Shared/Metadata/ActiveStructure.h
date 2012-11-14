@@ -40,8 +40,8 @@ public:
 	{
 		const UByte* rawptr = &Storage[0] + Definition.GetMemberOffset(index);
 
-		if(VM::GetTypeFamily(Definition.GetMemberType(index)) == VM::EpochTypeFamily_SumType)
-			rawptr += sizeof(VM::EpochTypeID);
+		if(Metadata::GetTypeFamily(Definition.GetMemberType(index)) == Metadata::EpochTypeFamily_SumType)
+			rawptr += sizeof(Metadata::EpochTypeID);
 
 		const T* ptr = reinterpret_cast<const T*>(rawptr);
 		return *ptr;
@@ -52,24 +52,24 @@ public:
 	{
 		UByte* rawptr = &Storage[0] + Definition.GetMemberOffset(index);
 
-		if(VM::GetTypeFamily(Definition.GetMemberType(index)) == VM::EpochTypeFamily_SumType)
-			rawptr += sizeof(VM::EpochTypeID);
+		if(Metadata::GetTypeFamily(Definition.GetMemberType(index)) == Metadata::EpochTypeFamily_SumType)
+			rawptr += sizeof(Metadata::EpochTypeID);
 
 		T* ptr = reinterpret_cast<T*>(rawptr);
 		*ptr = value;
 	}
 
-	VM::EpochTypeID ReadSumTypeMemberType(size_t index) const
+	Metadata::EpochTypeID ReadSumTypeMemberType(size_t index) const
 	{
 		const UByte* rawptr = &Storage[0] + Definition.GetMemberOffset(index);
-		const VM::EpochTypeID* ptr = reinterpret_cast<const VM::EpochTypeID*>(rawptr);
+		const Metadata::EpochTypeID* ptr = reinterpret_cast<const Metadata::EpochTypeID*>(rawptr);
 		return *ptr;
 	}
 
-	void WriteSumTypeMemberType(size_t index, VM::EpochTypeID type)
+	void WriteSumTypeMemberType(size_t index, Metadata::EpochTypeID type)
 	{
 		UByte* rawptr = &Storage[0] + Definition.GetMemberOffset(index);
-		VM::EpochTypeID* typeptr = reinterpret_cast<VM::EpochTypeID*>(rawptr);
+		Metadata::EpochTypeID* typeptr = reinterpret_cast<Metadata::EpochTypeID*>(rawptr);
 		*typeptr = type;
 	}
 

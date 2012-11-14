@@ -13,10 +13,10 @@
 #include "Utility/NoDupeMap.h"
 
 #include "Virtual Machine/VirtualMachine.h"
-#include "Virtual Machine/TypeInfo.h"
 #include "Virtual Machine/Marshaling.h"
 
 #include "Metadata/ActiveScope.h"
+#include "Metadata/TypeInfo.h"
 
 
 namespace
@@ -29,11 +29,11 @@ namespace
 	void SizeOf(StringHandle, VM::ExecutionContext& context)
 	{
 		StringHandle identifier = context.State.Stack.PopValue<StringHandle>();
-		VM::EpochTypeID vartype = context.Variables->GetOriginalDescription().GetVariableTypeByID(identifier);
+		Metadata::EpochTypeID vartype = context.Variables->GetOriginalDescription().GetVariableTypeByID(identifier);
 
-		if(VM::GetTypeFamily(vartype) == VM::EpochTypeFamily_Primitive)
-			context.State.Stack.PushValue(VM::GetMarshaledSize(vartype));
-		else if(VM::GetTypeFamily(vartype) == VM::EpochTypeFamily_Structure || VM::GetTypeFamily(vartype) == VM::EpochTypeFamily_TemplateInstance)
+		if(Metadata::GetTypeFamily(vartype) == Metadata::EpochTypeFamily_Primitive)
+			context.State.Stack.PushValue(Metadata::GetMarshaledSize(vartype));
+		else if(Metadata::GetTypeFamily(vartype) == Metadata::EpochTypeFamily_Structure || Metadata::GetTypeFamily(vartype) == Metadata::EpochTypeFamily_TemplateInstance)
 			context.State.Stack.PushValue(context.OwnerVM.GetStructureDefinition(vartype).GetMarshaledSize());
 		else
 			context.State.Stack.PushValue(0);		// TODO - should this halt the VM instead?
@@ -47,9 +47,9 @@ namespace
 		// WARNING - 64-bit compatibility issue here
 		UINT_PTR pointer = static_cast<UINT_PTR>(context.State.Stack.PopValue<Integer32>());
 		StringHandle identifier = context.State.Stack.PopValue<StringHandle>();
-		VM::EpochTypeID vartype = context.Variables->GetOriginalDescription().GetVariableTypeByID(identifier);
+		Metadata::EpochTypeID vartype = context.Variables->GetOriginalDescription().GetVariableTypeByID(identifier);
 
-		if(VM::GetTypeFamily(vartype) == VM::EpochTypeFamily_Structure || VM::GetTypeFamily(vartype) == VM::EpochTypeFamily_TemplateInstance)
+		if(Metadata::GetTypeFamily(vartype) == Metadata::EpochTypeFamily_Structure || Metadata::GetTypeFamily(vartype) == Metadata::EpochTypeFamily_TemplateInstance)
 		{
 			const StructureDefinition& definition = context.OwnerVM.GetStructureDefinition(vartype);
 			StructureHandle structhandle = context.Variables->Read<StructureHandle>(identifier);
@@ -75,15 +75,15 @@ void MarshalingLibrary::RegisterLibraryFunctions(FunctionSignatureSet& signature
 {
 	{
 		FunctionSignature signature;
-		signature.AddParameter(L"identifier", VM::EpochType_Identifier, false);
-		signature.SetReturnType(VM::EpochType_Integer);
+		signature.AddParameter(L"identifier", Metadata::EpochType_Identifier, false);
+		signature.SetReturnType(Metadata::EpochType_Integer);
 		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"sizeof"), signature));
 	}
 	{
 		FunctionSignature signature;
-		signature.AddParameter(L"identifier", VM::EpochType_Identifier, false);
-		signature.AddParameter(L"pointer", VM::EpochType_Integer, false);
-		signature.SetReturnType(VM::EpochType_Void);
+		signature.AddParameter(L"identifier", Metadata::EpochType_Identifier, false);
+		signature.AddParameter(L"pointer", Metadata::EpochType_Integer, false);
+		signature.SetReturnType(Metadata::EpochType_Void);
 		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"marshalstructure"), signature));
 	}
 }

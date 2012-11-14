@@ -24,7 +24,7 @@ namespace IRSemantics
 	class CodeBlock;
 
 	// Helper functions
-	VM::EpochTypeID InferMemberAccessType(const std::vector<StringHandle>& accesslist, const Namespace& curnamespace, const CodeBlock& activescope);
+	Metadata::EpochTypeID InferMemberAccessType(const std::vector<StringHandle>& accesslist, const Namespace& curnamespace, const CodeBlock& activescope);
 
 
 	namespace impl

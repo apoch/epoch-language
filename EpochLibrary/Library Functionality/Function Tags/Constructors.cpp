@@ -33,13 +33,13 @@ namespace
 	//
 	void ConstructorCompileHelper(IRSemantics::Statement& statement, IRSemantics::Namespace& curnamespace, IRSemantics::CodeBlock& activescope, bool inreturnexpr, CompileErrors& errors)
 	{
-		if(statement.GetParameters()[0]->GetEpochType(curnamespace) != VM::EpochType_Identifier)
+		if(statement.GetParameters()[0]->GetEpochType(curnamespace) != Metadata::EpochType_Identifier)
 			throw RecoverableException("Functions tagged as constructors must accept an identifier as their first parameter");
 
 		const IRSemantics::ExpressionAtomIdentifier* atom = dynamic_cast<const IRSemantics::ExpressionAtomIdentifier*>(statement.GetParameters()[0]->GetAtoms()[0]);
 
 		VariableOrigin origin = (inreturnexpr ? VARIABLE_ORIGIN_RETURN : VARIABLE_ORIGIN_LOCAL);
-		VM::EpochTypeID effectivetype = curnamespace.Types.GetTypeByName(statement.GetName());
+		Metadata::EpochTypeID effectivetype = curnamespace.Types.GetTypeByName(statement.GetName());
 		activescope.AddVariable(curnamespace.Strings.GetPooledString(atom->GetIdentifier()), atom->GetIdentifier(), statement.GetName(), effectivetype, false, origin);
 
 		if(curnamespace.Functions.Exists(atom->GetIdentifier()))

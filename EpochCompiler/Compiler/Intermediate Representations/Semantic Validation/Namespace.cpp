@@ -519,7 +519,7 @@ void Namespace::AddScope(ScopeDescription* scope, StringHandle name)
 
 InferenceContext::PossibleParameterTypes FunctionTable::GetExpectedTypes(StringHandle name, const ScopeDescription& scope, StringHandle contextname, CompileErrors& errors) const
 {
-	if(scope.HasVariable(name) && scope.GetVariableTypeByID(name) == VM::EpochType_Function)
+	if(scope.HasVariable(name) && scope.GetVariableTypeByID(name) == Metadata::EpochType_Function)
 	{
 		boost::unordered_map<StringHandle, Function*>::const_iterator funciter = FunctionIR.find(contextname);
 		if(funciter == FunctionIR.end())
@@ -636,7 +636,7 @@ InferenceContext::PossibleParameterTypes FunctionTable::GetExpectedTypes(StringH
 
 InferenceContext::PossibleSignatureSet FunctionTable::GetExpectedSignatures(StringHandle name, const ScopeDescription& scope, StringHandle contextname, CompileErrors&) const
 {
-	if(scope.HasVariable(name) && scope.GetVariableTypeByID(name) == VM::EpochType_Function)
+	if(scope.HasVariable(name) && scope.GetVariableTypeByID(name) == Metadata::EpochType_Function)
 	{
 		boost::unordered_map<StringHandle, Function*>::const_iterator funciter = FunctionIR.find(contextname);
 		if(funciter == FunctionIR.end())
@@ -980,7 +980,7 @@ bool Namespace::CompileTimeCodeExecution(CompileErrors& errors)
 	return Functions.CompileTimeCodeExecution(errors);
 }
 
-Namespace* Namespace::CreateTemplateDummy(Namespace& parent, const std::vector<std::pair<StringHandle, VM::EpochTypeID> >& params, const CompileTimeParameterVector& args)
+Namespace* Namespace::CreateTemplateDummy(Namespace& parent, const std::vector<std::pair<StringHandle, Metadata::EpochTypeID> >& params, const CompileTimeParameterVector& args)
 {
 	Namespace* ret = new Namespace(parent.Types.IDSpace, parent.Strings, parent.Session);
 	ret->SetParent(&parent);
@@ -990,7 +990,7 @@ Namespace* Namespace::CreateTemplateDummy(Namespace& parent, const std::vector<s
 
 	for(size_t i = 0; i < params.size(); ++i)
 	{
-		if(params[i].second == VM::EpochType_Wildcard)
+		if(params[i].second == Metadata::EpochType_Wildcard)
 		{
 			ret->Types.Aliases.AddWeakAlias(params[i].first, parent.Types.GetTypeByName(static_cast<StringHandle>(args[i].Payload.IntegerValue)));
 		}

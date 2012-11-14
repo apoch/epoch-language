@@ -179,6 +179,9 @@
     <ClCompile Include="..\Shared\Utility\Memory\MemoryManager.cpp">
       <Filter>Shared\Utility\Memory</Filter>
     </ClCompile>
+    <ClCompile Include="..\Shared\Metadata\TypeInfo.cpp">
+      <Filter>Shared\Metadata</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h">
@@ -289,9 +292,6 @@
     <ClInclude Include="..\EpochVM\Virtual Machine\Marshaling.h">
       <Filter>VM Linkage\Virtual Machine</Filter>
     </ClInclude>
-    <ClInclude Include="..\EpochVM\Virtual Machine\TypeInfo.h">
-      <Filter>VM Linkage\Virtual Machine</Filter>
-    </ClInclude>
     <ClInclude Include="..\EpochVM\Virtual Machine\VirtualMachine.h">
       <Filter>VM Linkage\Virtual Machine</Filter>
     </ClInclude>
@@ -306,6 +306,9 @@
     </ClInclude>
     <ClInclude Include="..\Shared\Utility\Memory\MemoryManager.h">
       <Filter>Shared\Utility\Memory</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Shared\Metadata\TypeInfo.h">
+      <Filter>Shared\Metadata</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

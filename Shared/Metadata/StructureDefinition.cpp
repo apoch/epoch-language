@@ -9,16 +9,15 @@
 
 #include "Metadata/StructureDefinition.h"
 #include "Metadata/Variant.h"
-
-#include "Virtual Machine/TypeInfo.h"
+#include "Metadata/TypeInfo.h"
 
 
 //
 // Add a data member to the structure
 //
-void StructureDefinition::AddMember(StringHandle identifier, VM::EpochTypeID type, const StructureDefinition* structdefinition, const VariantDefinition* variantdefinition)
+void StructureDefinition::AddMember(StringHandle identifier, Metadata::EpochTypeID type, const StructureDefinition* structdefinition, const VariantDefinition* variantdefinition)
 {
-	if(variantdefinition && VM::GetTypeFamily(type) == VM::EpochTypeFamily_SumType)
+	if(variantdefinition && Metadata::GetTypeFamily(type) == Metadata::EpochTypeFamily_SumType)
 	{
 		Members.push_back(MemberRecord(identifier, type, Offset));
 		Offset += variantdefinition->GetMaxSize();
@@ -27,12 +26,12 @@ void StructureDefinition::AddMember(StringHandle identifier, VM::EpochTypeID typ
 	else
 	{
 		Members.push_back(MemberRecord(identifier, type, Offset));
-		Offset += VM::GetStorageSize(type);
+		Offset += Metadata::GetStorageSize(type);
 
-		if(VM::GetTypeFamily(type) == VM::EpochTypeFamily_Structure || VM::GetTypeFamily(type) == VM::EpochTypeFamily_TemplateInstance)
+		if(Metadata::GetTypeFamily(type) == Metadata::EpochTypeFamily_Structure || Metadata::GetTypeFamily(type) == Metadata::EpochTypeFamily_TemplateInstance)
 			MarshaledSize += structdefinition->GetMarshaledSize();
 		else
-			MarshaledSize += VM::GetMarshaledSize(type);
+			MarshaledSize += Metadata::GetMarshaledSize(type);
 	}
 }
 
@@ -48,7 +47,7 @@ size_t StructureDefinition::GetNumMembers() const
 //
 // Retrieve the type of a given member
 //
-VM::EpochTypeID StructureDefinition::GetMemberType(size_t index) const
+Metadata::EpochTypeID StructureDefinition::GetMemberType(size_t index) const
 {
 	return Members[index].Type;
 }

@@ -33,13 +33,13 @@ public:
 
 // Member configuration
 public:
-	void AddMember(StringHandle identifier, VM::EpochTypeID type, const StructureDefinition* structdefinition, const VariantDefinition* variantdefinition);
+	void AddMember(StringHandle identifier, Metadata::EpochTypeID type, const StructureDefinition* structdefinition, const VariantDefinition* variantdefinition);
 
 // Member accessors
 public:
 	size_t GetNumMembers() const;
 	StringHandle GetMemberName(size_t index) const;
-	VM::EpochTypeID GetMemberType(size_t index) const;
+	Metadata::EpochTypeID GetMemberType(size_t index) const;
 	size_t GetMemberOffset(size_t index) const;
 	size_t FindMember(StringHandle identifier) const;
 
@@ -56,10 +56,10 @@ private:
 	struct MemberRecord
 	{
 		StringHandle Identifier;
-		VM::EpochTypeID Type;
+		Metadata::EpochTypeID Type;
 		size_t Offset;
 
-		MemberRecord(StringHandle identifier, VM::EpochTypeID type, size_t offset)
+		MemberRecord(StringHandle identifier, Metadata::EpochTypeID type, size_t offset)
 			: Identifier(identifier),
 			  Type(type),
 			  Offset(offset)
@@ -77,5 +77,5 @@ private:
 
 
 // Handy type shortcuts
-typedef std::map<VM::EpochTypeID, StructureDefinition> StructureDefinitionMap;
-typedef std::map<StringHandle, VM::EpochTypeID> StructureNameMap;
+typedef std::map<Metadata::EpochTypeID, StructureDefinition> StructureDefinitionMap;
+typedef std::map<StringHandle, Metadata::EpochTypeID> StructureNameMap;

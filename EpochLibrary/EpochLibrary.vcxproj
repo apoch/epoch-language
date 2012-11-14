@@ -98,6 +98,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\EpochCompiler\Compiler\CompileErrors.cpp" />
+    <ClCompile Include="..\Shared\Metadata\TypeInfo.cpp" />
     <ClCompile Include="..\Shared\Utility\Memory\MemoryManager.cpp" />
     <ClCompile Include="EntryPoint.cpp" />
     <ClCompile Include="Library Functionality\Function Tags\Native.cpp" />
@@ -150,6 +151,7 @@
   <ItemGroup>
     <ClInclude Include="..\EpochCompiler\Compiler\CompileErrors.h" />
     <ClInclude Include="..\Shared\Libraries\LibraryJIT.h" />
+    <ClInclude Include="..\Shared\Metadata\TypeInfo.h" />
     <ClInclude Include="..\Shared\Utility\Memory\MemoryManager.h" />
     <ClInclude Include="Library Functionality\Function Tags\Native.h" />
     <ClInclude Include="pch.h" />
@@ -188,7 +190,6 @@
     <ClInclude Include="..\Shared\Metadata\ScopeDescription.h" />
     <ClInclude Include="..\Shared\Metadata\StructureDefinition.h" />
     <ClInclude Include="..\EpochVM\Virtual Machine\Marshaling.h" />
-    <ClInclude Include="..\EpochVM\Virtual Machine\TypeInfo.h" />
     <ClInclude Include="..\EpochVM\Virtual Machine\VirtualMachine.h" />
   </ItemGroup>
   <ItemGroup>

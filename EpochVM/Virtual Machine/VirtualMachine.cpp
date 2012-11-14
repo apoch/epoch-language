@@ -8,12 +8,12 @@
 #include "pch.h"
 
 #include "Virtual Machine/VirtualMachine.h"
-#include "Virtual Machine/TypeInfo.h"
 #include "Virtual Machine/Marshaling.h"
 
 #include "JIT/JIT.h"
 
 #include "Metadata/ActiveScope.h"
+#include "Metadata/TypeInfo.h"
 
 #include "Bytecode/Instructions.h"
 #include "Bytecode/EntityTags.h"
@@ -32,6 +32,7 @@
 
 
 using namespace VM;
+using namespace Metadata;
 
 
 #ifdef EPOCHVM_VISUAL_DEBUGGER
@@ -1733,7 +1734,7 @@ StructureHandle VirtualMachine::DeepCopy(StructureHandle handle)
 	{
 		EpochTypeID membertype = original.Definition.GetMemberType(i);
 
-		if(GetTypeFamily(membertype) == VM::EpochTypeFamily_SumType)
+		if(GetTypeFamily(membertype) == Metadata::EpochTypeFamily_SumType)
 		{
 			membertype = original.ReadSumTypeMemberType(i);
 			clone.WriteSumTypeMemberType(i, membertype);
@@ -1839,7 +1840,7 @@ namespace
 
 	bool ValidatorStructures(EpochTypeID vartype)
 	{
-		return (GetTypeFamily(vartype) == VM::EpochTypeFamily_Structure || GetTypeFamily(vartype) == VM::EpochTypeFamily_TemplateInstance);
+		return (GetTypeFamily(vartype) == Metadata::EpochTypeFamily_Structure || GetTypeFamily(vartype) == Metadata::EpochTypeFamily_TemplateInstance);
 	}
 
 }

@@ -224,122 +224,122 @@ void ArithmeticLibrary::RegisterLibraryFunctions(FunctionSignatureSet& signature
 {
 	{
 		FunctionSignature signature;
-		signature.AddParameter(L"i1", VM::EpochType_Integer, false);
-		signature.AddParameter(L"i2", VM::EpochType_Integer, false);
-		signature.SetReturnType(VM::EpochType_Integer);
+		signature.AddParameter(L"i1", Metadata::EpochType_Integer, false);
+		signature.AddParameter(L"i2", Metadata::EpochType_Integer, false);
+		signature.SetReturnType(Metadata::EpochType_Integer);
 		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"+@@integer"), signature));
 	}
 	{
 		FunctionSignature signature;
-		signature.AddParameter(L"i1", VM::EpochType_Integer, false);
-		signature.AddParameter(L"i2", VM::EpochType_Integer, false);
-		signature.SetReturnType(VM::EpochType_Integer);
+		signature.AddParameter(L"i1", Metadata::EpochType_Integer, false);
+		signature.AddParameter(L"i2", Metadata::EpochType_Integer, false);
+		signature.SetReturnType(Metadata::EpochType_Integer);
 		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"-@@integer"), signature));
 	}
 	{
 		FunctionSignature signature;
-		signature.AddParameter(L"i1", VM::EpochType_Integer, false);
-		signature.AddParameter(L"i2", VM::EpochType_Integer, false);
-		signature.SetReturnType(VM::EpochType_Integer);
+		signature.AddParameter(L"i1", Metadata::EpochType_Integer, false);
+		signature.AddParameter(L"i2", Metadata::EpochType_Integer, false);
+		signature.SetReturnType(Metadata::EpochType_Integer);
 		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"*@@integer"), signature));
 	}
 	{
 		FunctionSignature signature;
-		signature.AddParameter(L"i1", VM::EpochType_Integer, false);
-		signature.AddParameter(L"i2", VM::EpochType_Integer, false);
-		signature.SetReturnType(VM::EpochType_Integer);
+		signature.AddParameter(L"i1", Metadata::EpochType_Integer, false);
+		signature.AddParameter(L"i2", Metadata::EpochType_Integer, false);
+		signature.SetReturnType(Metadata::EpochType_Integer);
 		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"/@@integer"), signature));
 	}
 
 	{
 		FunctionSignature signature;
-		signature.AddParameter(L"i1", VM::EpochType_Real, false);
-		signature.AddParameter(L"i2", VM::EpochType_Real, false);
-		signature.SetReturnType(VM::EpochType_Real);
+		signature.AddParameter(L"i1", Metadata::EpochType_Real, false);
+		signature.AddParameter(L"i2", Metadata::EpochType_Real, false);
+		signature.SetReturnType(Metadata::EpochType_Real);
 		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"+@@real"), signature));
 	}
 	{
 		FunctionSignature signature;
-		signature.AddParameter(L"i1", VM::EpochType_Real, false);
-		signature.AddParameter(L"i2", VM::EpochType_Real, false);
-		signature.SetReturnType(VM::EpochType_Real);
+		signature.AddParameter(L"i1", Metadata::EpochType_Real, false);
+		signature.AddParameter(L"i2", Metadata::EpochType_Real, false);
+		signature.SetReturnType(Metadata::EpochType_Real);
 		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"-@@real"), signature));
 	}
 	{
 		FunctionSignature signature;
-		signature.AddParameter(L"i1", VM::EpochType_Real, false);
-		signature.AddParameter(L"i2", VM::EpochType_Real, false);
-		signature.SetReturnType(VM::EpochType_Real);
+		signature.AddParameter(L"i1", Metadata::EpochType_Real, false);
+		signature.AddParameter(L"i2", Metadata::EpochType_Real, false);
+		signature.SetReturnType(Metadata::EpochType_Real);
 		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"*@@real"), signature));
 	}
 	{
 		FunctionSignature signature;
-		signature.AddParameter(L"i1", VM::EpochType_Real, false);
-		signature.AddParameter(L"i2", VM::EpochType_Real, false);
-		signature.SetReturnType(VM::EpochType_Real);
+		signature.AddParameter(L"i1", Metadata::EpochType_Real, false);
+		signature.AddParameter(L"i2", Metadata::EpochType_Real, false);
+		signature.SetReturnType(Metadata::EpochType_Real);
 		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"/@@real"), signature));
 	}
 
 	{
 		FunctionSignature signature;
-		signature.AddParameter(L"i", VM::EpochType_Integer, false);
-		signature.SetReturnType(VM::EpochType_Integer);
+		signature.AddParameter(L"i", Metadata::EpochType_Integer, false);
+		signature.SetReturnType(Metadata::EpochType_Integer);
 		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"!@@integer"), signature));
 	}
 
 	{
 		FunctionSignature signature;
-		signature.AddParameter(L"i1", VM::EpochType_Integer, false);
-		signature.AddParameter(L"i2", VM::EpochType_Integer, false);
-		signature.SetReturnType(VM::EpochType_Integer);
+		signature.AddParameter(L"i1", Metadata::EpochType_Integer, false);
+		signature.AddParameter(L"i2", Metadata::EpochType_Integer, false);
+		signature.SetReturnType(Metadata::EpochType_Integer);
 		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"+=@@integer"), signature));
 	}
 	{
 		FunctionSignature signature;
-		signature.AddParameter(L"i1", VM::EpochType_Integer, false);
-		signature.AddParameter(L"i2", VM::EpochType_Integer, false);
-		signature.SetReturnType(VM::EpochType_Integer);
+		signature.AddParameter(L"i1", Metadata::EpochType_Integer, false);
+		signature.AddParameter(L"i2", Metadata::EpochType_Integer, false);
+		signature.SetReturnType(Metadata::EpochType_Integer);
 		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"-=@@integer"), signature));
 	}
 
 	{
 		FunctionSignature signature;
-		signature.AddParameter(L"i1", VM::EpochType_Real, false);
-		signature.AddParameter(L"i2", VM::EpochType_Real, false);
-		signature.SetReturnType(VM::EpochType_Real);
+		signature.AddParameter(L"i1", Metadata::EpochType_Real, false);
+		signature.AddParameter(L"i2", Metadata::EpochType_Real, false);
+		signature.SetReturnType(Metadata::EpochType_Real);
 		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"+=@@real"), signature));
 	}
 	{
 		FunctionSignature signature;
-		signature.AddParameter(L"i1", VM::EpochType_Real, false);
-		signature.AddParameter(L"i2", VM::EpochType_Real, false);
-		signature.SetReturnType(VM::EpochType_Real);
+		signature.AddParameter(L"i1", Metadata::EpochType_Real, false);
+		signature.AddParameter(L"i2", Metadata::EpochType_Real, false);
+		signature.SetReturnType(Metadata::EpochType_Real);
 		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"-=@@real"), signature));
 	}
 
 	{
 		FunctionSignature signature;
-		signature.AddParameter(L"operand", VM::EpochType_Integer, false);
-		signature.SetReturnType(VM::EpochType_Integer);
+		signature.AddParameter(L"operand", Metadata::EpochType_Integer, false);
+		signature.SetReturnType(Metadata::EpochType_Integer);
 		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"++@@integer"), signature));
 	}
 	{
 		FunctionSignature signature;
-		signature.AddParameter(L"operand", VM::EpochType_Integer, false);
-		signature.SetReturnType(VM::EpochType_Integer);
+		signature.AddParameter(L"operand", Metadata::EpochType_Integer, false);
+		signature.SetReturnType(Metadata::EpochType_Integer);
 		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"--@@integer"), signature));
 	}
 
 	{
 		FunctionSignature signature;
-		signature.AddParameter(L"operand", VM::EpochType_Real, false);
-		signature.SetReturnType(VM::EpochType_Real);
+		signature.AddParameter(L"operand", Metadata::EpochType_Real, false);
+		signature.SetReturnType(Metadata::EpochType_Real);
 		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"++@@real"), signature));
 	}
 	{
 		FunctionSignature signature;
-		signature.AddParameter(L"operand", VM::EpochType_Real, false);
-		signature.SetReturnType(VM::EpochType_Real);
+		signature.AddParameter(L"operand", Metadata::EpochType_Real, false);
+		signature.SetReturnType(Metadata::EpochType_Real);
 		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"--@@real"), signature));
 	}
 }

@@ -100,7 +100,7 @@ namespace VM
 		StructureHandle AllocateStructure(const StructureDefinition& description);
 		StructureHandle DeepCopy(StructureHandle handle);
 
-		EPOCHVM const StructureDefinition& GetStructureDefinition(EpochTypeID vartype) const;
+		EPOCHVM const StructureDefinition& GetStructureDefinition(Metadata::EpochTypeID vartype) const;
 
 	// Functions
 	public:
@@ -149,11 +149,11 @@ namespace VM
 
 	// Public tracking
 	public:
-		std::map<EpochTypeID, StructureDefinition> StructureDefinitions;
+		std::map<Metadata::EpochTypeID, StructureDefinition> StructureDefinitions;
 		JIT::JITTable JITHelpers;
 		std::map<StringHandle, JITExecPtr> JITExecs;
 
-		std::map<EpochTypeID, VariantDefinition> VariantDefinitions;
+		std::map<Metadata::EpochTypeID, VariantDefinition> VariantDefinitions;
 
 	// Handy type shortcuts
 	private:
@@ -266,7 +266,7 @@ namespace VM
 		void JITCompileByteCode(StringHandle entity, size_t beginoffset, size_t endoffset);
 
 	private:
-		void WriteStructureMember(ActiveStructure& structure, size_t memberindex, EpochTypeID membertype);
+		void WriteStructureMember(ActiveStructure& structure, size_t memberindex, Metadata::EpochTypeID membertype);
 
 	// Internal state
 	private:

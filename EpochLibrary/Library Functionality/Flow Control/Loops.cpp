@@ -88,7 +88,7 @@ void FlowControl::RegisterLoopEntities(EntityTable& entities, EntityTable&, Enti
 		EntityDescription entity;
 		entity.StringName = stringpool.Pool(L"while");
 		entity.MetaControl = WhileMetaControl;
-		entity.Parameters.push_back(CompileTimeParameter(L"condition", VM::EpochType_Boolean));
+		entity.Parameters.push_back(CompileTimeParameter(L"condition", Metadata::EpochType_Boolean));
 		EntityMap[entity.StringName] = ++tagindex;
 		AddToMapNoDupe(entities, std::make_pair(tagindex, entity));
 	}
@@ -101,7 +101,7 @@ void FlowControl::RegisterLoopEntities(EntityTable& entities, EntityTable&, Enti
 		EntityDescription closer;
 		closer.StringName = stringpool.Pool(L"while");
 		closer.MetaControl = DoWhileCloserMetaControl;
-		closer.Parameters.push_back(CompileTimeParameter(L"condition", VM::EpochType_Boolean));
+		closer.Parameters.push_back(CompileTimeParameter(L"condition", Metadata::EpochType_Boolean));
 		AddToMapNoDupe(postfixclosers, std::make_pair(++tagindex, closer));
 	}
 }

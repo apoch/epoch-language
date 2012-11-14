@@ -92,7 +92,7 @@ void ByteCodeEmitter::SetReturnRegister(StringHandle variablename)
 void ByteCodeEmitter::PushIntegerLiteral(Integer32 value)
 {
 	EmitInstruction(Bytecode::Instructions::Push);
-	EmitTypeAnnotation(VM::EpochType_Integer);
+	EmitTypeAnnotation(Metadata::EpochType_Integer);
 	EmitRawValue(value);
 }
 
@@ -113,7 +113,7 @@ void ByteCodeEmitter::PushInteger16Literal(Integer32 value)
 		throw FatalException("Overflow in integer16 value");
 
 	EmitInstruction(Bytecode::Instructions::Push);
-	EmitTypeAnnotation(VM::EpochType_Integer16);
+	EmitTypeAnnotation(Metadata::EpochType_Integer16);
 	EmitRawValue(static_cast<Integer16>(value16));
 }
 
@@ -128,7 +128,7 @@ void ByteCodeEmitter::PushInteger16Literal(Integer32 value)
 void ByteCodeEmitter::PushStringLiteral(StringHandle handle)
 {
 	EmitInstruction(Bytecode::Instructions::Push);
-	EmitTypeAnnotation(VM::EpochType_String);
+	EmitTypeAnnotation(Metadata::EpochType_String);
 	EmitRawValue(handle);
 }
 
@@ -138,7 +138,7 @@ void ByteCodeEmitter::PushStringLiteral(StringHandle handle)
 void ByteCodeEmitter::PushBooleanLiteral(bool value)
 {
 	EmitInstruction(Bytecode::Instructions::Push);
-	EmitTypeAnnotation(VM::EpochType_Boolean);
+	EmitTypeAnnotation(Metadata::EpochType_Boolean);
 	EmitRawValue(value);
 }
 
@@ -148,7 +148,7 @@ void ByteCodeEmitter::PushBooleanLiteral(bool value)
 void ByteCodeEmitter::PushRealLiteral(Real32 value)
 {
 	EmitInstruction(Bytecode::Instructions::Push);
-	EmitTypeAnnotation(VM::EpochType_Real);
+	EmitTypeAnnotation(Metadata::EpochType_Real);
 	EmitRawValue(value);
 }
 
@@ -163,14 +163,14 @@ void ByteCodeEmitter::PushRealLiteral(Real32 value)
 // the fact that the emitted code discards the provided type information, because we can always
 // emit the correct instructions to perform the required semantics at runtime.
 //
-void ByteCodeEmitter::PushVariableValue(StringHandle variablename, VM::EpochTypeID type)
+void ByteCodeEmitter::PushVariableValue(StringHandle variablename, Metadata::EpochTypeID type)
 {
 	EmitInstruction(Bytecode::Instructions::Read);
 	EmitRawValue(variablename);
 
-	if(type == VM::EpochType_Buffer)
+	if(type == Metadata::EpochType_Buffer)
 		CopyBuffer();
-	else if(VM::GetTypeFamily(type) == VM::EpochTypeFamily_Structure || VM::GetTypeFamily(type) == VM::EpochTypeFamily_TemplateInstance)
+	else if(Metadata::GetTypeFamily(type) == Metadata::EpochTypeFamily_Structure || Metadata::GetTypeFamily(type) == Metadata::EpochTypeFamily_TemplateInstance)
 		CopyStructure();
 }
 
@@ -204,7 +204,7 @@ void ByteCodeEmitter::PushVariableValueNoCopy(StringHandle variablename)
 void ByteCodeEmitter::PushBufferHandle(BufferHandle handle)
 {
 	EmitInstruction(Bytecode::Instructions::Push);
-	EmitTypeAnnotation(VM::EpochType_Buffer);
+	EmitTypeAnnotation(Metadata::EpochType_Buffer);
 	EmitRawValue(handle);
 }
 
@@ -262,7 +262,7 @@ void ByteCodeEmitter::BindStructureReferenceByHandle(StringHandle membername)
 // and marshaled datatypes, where the compiler may not know the data size, but
 // the VM will.
 //
-void ByteCodeEmitter::PopStack(VM::EpochTypeID type)
+void ByteCodeEmitter::PopStack(Metadata::EpochTypeID type)
 {
 	EmitInstruction(Bytecode::Instructions::Pop);
 	EmitTypeAnnotation(type);
@@ -409,7 +409,7 @@ void ByteCodeEmitter::DefineLexicalScope(StringHandle name, StringHandle parent,
 // Each descriptor consists of the member's identifier handle, its type annotation, and
 // a flag specifying its origin (e.g. local variable, parameter to a function, etc.).
 //
-void ByteCodeEmitter::LexicalScopeEntry(StringHandle varname, VM::EpochTypeID vartype, bool isreference, VariableOrigin origin)
+void ByteCodeEmitter::LexicalScopeEntry(StringHandle varname, Metadata::EpochTypeID vartype, bool isreference, VariableOrigin origin)
 {
 	EmitRawValue(varname);
 	EmitRawValue(vartype);
@@ -474,7 +474,7 @@ void ByteCodeEmitter::ResolvePattern(StringHandle dispatchfunction, const Functi
 			EmitRawValue(true);
 			switch(signature.GetParameter(i).Type)
 			{
-			case VM::EpochType_Integer:
+			case Metadata::EpochType_Integer:
 				EmitRawValue(signature.GetParameter(i).Payload.IntegerValue);
 				break;
 
@@ -498,7 +498,7 @@ void ByteCodeEmitter::ResolvePattern(StringHandle dispatchfunction, const Functi
 //
 // Emit an instruction which allocates a new structure on the freestore
 //
-void ByteCodeEmitter::AllocateStructure(VM::EpochTypeID descriptiontype)
+void ByteCodeEmitter::AllocateStructure(Metadata::EpochTypeID descriptiontype)
 {
 	EmitInstruction(Bytecode::Instructions::AllocStructure);
 	EmitTypeAnnotation(descriptiontype);
@@ -511,7 +511,7 @@ void ByteCodeEmitter::AllocateStructure(VM::EpochTypeID descriptiontype)
 // garbage collection (so it is known which fields are references to other resources,
 // etc.) and efficient marshaling.
 //
-void ByteCodeEmitter::DefineStructure(VM::EpochTypeID type, size_t nummembers)
+void ByteCodeEmitter::DefineStructure(Metadata::EpochTypeID type, size_t nummembers)
 {
 	EmitInstruction(Bytecode::Instructions::DefineStructure);
 	EmitTypeAnnotation(type);
@@ -523,7 +523,7 @@ void ByteCodeEmitter::DefineStructure(VM::EpochTypeID type, size_t nummembers)
 //
 // This presently consists of the identifier handle of the member, and its type.
 //
-void ByteCodeEmitter::StructureMember(StringHandle identifier, VM::EpochTypeID type)
+void ByteCodeEmitter::StructureMember(StringHandle identifier, Metadata::EpochTypeID type)
 {
 	EmitRawValue(identifier);
 	EmitTypeAnnotation(type);
@@ -731,9 +731,9 @@ void ByteCodeEmitter::EmitTerminatedString(const std::wstring& value)
 // Note that we expand to a 32-bit integer field internally, so that the size of the enum
 // as used by the compiler does not adversely affect the size of the data in the stream.
 //
-void ByteCodeEmitter::EmitTypeAnnotation(VM::EpochTypeID type)
+void ByteCodeEmitter::EmitTypeAnnotation(Metadata::EpochTypeID type)
 {
-	STATIC_ASSERT(sizeof(VM::EpochTypeID) <= sizeof(Integer32));
+	STATIC_ASSERT(sizeof(Metadata::EpochTypeID) <= sizeof(Integer32));
 
 	Integer32 intval = static_cast<Integer32>(type);
 	EmitRawValue(intval);
@@ -845,9 +845,9 @@ void ByteCodeEmitter::PrependRawValue(const std::wstring& value)
 //
 // See remarks on ByteCodeEmitter::EmitTypeAnnotation()
 //
-void ByteCodeEmitter::PrependTypeAnnotation(VM::EpochTypeID type)
+void ByteCodeEmitter::PrependTypeAnnotation(Metadata::EpochTypeID type)
 {
-	STATIC_ASSERT(sizeof(VM::EpochTypeID) <= sizeof(Integer32));
+	STATIC_ASSERT(sizeof(Metadata::EpochTypeID) <= sizeof(Integer32));
 
 	Integer32 intval = static_cast<Integer32>(type);
 	PrependRawValue(intval);
@@ -900,12 +900,12 @@ void ByteCodeEmitter::ResolveTypes(StringHandle dispatchfunction, const Function
 	}
 }
 
-void ByteCodeEmitter::DefineSumType(VM::EpochTypeID sumtypeid, const std::set<VM::EpochTypeID>& basetypes)
+void ByteCodeEmitter::DefineSumType(Metadata::EpochTypeID sumtypeid, const std::set<Metadata::EpochTypeID>& basetypes)
 {
 	EmitInstruction(Bytecode::Instructions::SumTypeDef);
 	EmitTypeAnnotation(sumtypeid);
 	EmitRawValue(basetypes.size());
-	for(std::set<VM::EpochTypeID>::const_iterator iter = basetypes.begin(); iter != basetypes.end(); ++iter)
+	for(std::set<Metadata::EpochTypeID>::const_iterator iter = basetypes.begin(); iter != basetypes.end(); ++iter)
 		EmitTypeAnnotation(*iter);
 }
 
@@ -914,10 +914,10 @@ void ByteCodeEmitter::ConstructSumType()
 	EmitInstruction(Bytecode::Instructions::ConstructSumType);
 }
 
-void ByteCodeEmitter::PushTypeAnnotation(VM::EpochTypeID type)
+void ByteCodeEmitter::PushTypeAnnotation(Metadata::EpochTypeID type)
 {
 	EmitInstruction(Bytecode::Instructions::Push);
-	EmitTypeAnnotation(VM::EpochType_Integer);
+	EmitTypeAnnotation(Metadata::EpochType_Integer);
 	EmitRawValue(type);
 }
 

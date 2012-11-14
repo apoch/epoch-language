@@ -68,14 +68,14 @@ void FlowControl::RegisterConditionalEntities(EntityTable& entities, EntityTable
 		EntityDescription entity;
 		entity.StringName = stringpool.Pool(L"if");
 		entity.MetaControl = ConditionalMetaControl;
-		entity.Parameters.push_back(CompileTimeParameter(L"condition", VM::EpochType_Boolean));
+		entity.Parameters.push_back(CompileTimeParameter(L"condition", Metadata::EpochType_Boolean));
 		AddToMapNoDupe(entities, std::make_pair(++tagindex, entity));
 	}
 	{
 		EntityDescription entity;
 		entity.StringName = stringpool.Pool(L"elseif");
 		entity.MetaControl = ConditionalMetaControl;
-		entity.Parameters.push_back(CompileTimeParameter(L"condition", VM::EpochType_Boolean));
+		entity.Parameters.push_back(CompileTimeParameter(L"condition", Metadata::EpochType_Boolean));
 		AddToMapNoDupe(chainedentities, std::make_pair(++tagindex, entity));
 	}
 	{

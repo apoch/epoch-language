@@ -45,7 +45,7 @@ public:
 
 	void PopScopeOffStack(VM::ExecutionContext& context);
 
-	void SetActualType(StringHandle varname, VM::EpochTypeID type);
+	void SetActualType(StringHandle varname, Metadata::EpochTypeID type);
 
 // Variable manipulation interface
 public:
@@ -85,18 +85,18 @@ public:
 		*reinterpret_cast<T*>(storage) = value;
 	}
 
-	void WriteFromStack(void* targetstorage, VM::EpochTypeID targettype, StackSpace& stack);
+	void WriteFromStack(void* targetstorage, Metadata::EpochTypeID targettype, StackSpace& stack);
 
-	void PushOntoStack(void* targetstorage, VM::EpochTypeID targettype, StackSpace& stack) const;
+	void PushOntoStack(void* targetstorage, Metadata::EpochTypeID targettype, StackSpace& stack) const;
 	void PushOntoStack(StringHandle variableid, StackSpace& stack) const;
 	void PushOntoStackDeref(StringHandle variableid, StackSpace& stack) const;
 
 // References
 public:
-	void BindReference(StringHandle referencename, void* targetstorage, VM::EpochTypeID targettype);
+	void BindReference(StringHandle referencename, void* targetstorage, Metadata::EpochTypeID targettype);
 
 	void* GetReferenceTarget(StringHandle referencename) const;
-	VM::EpochTypeID GetReferenceType(StringHandle referencename) const;
+	Metadata::EpochTypeID GetReferenceType(StringHandle referencename) const;
 
 // Interaction with registers
 public:
@@ -106,7 +106,7 @@ public:
 public:
 	bool HasReturnVariable() const;
 
-	VM::EpochTypeID GetActualType(StringHandle varname) const;
+	Metadata::EpochTypeID GetActualType(StringHandle varname) const;
 
 // Access to original definition metadata
 public:
@@ -127,10 +127,10 @@ private:
 
 	std::map<StringHandle, void*> VariableStorageLocations;
 	
-	typedef std::pair<void*, VM::EpochTypeID> ReferenceStorageAndType;
+	typedef std::pair<void*, Metadata::EpochTypeID> ReferenceStorageAndType;
 	typedef std::map<StringHandle, ReferenceStorageAndType> ReferenceBindingMap;
 	ReferenceBindingMap BoundReferences;
 
-	std::map<StringHandle, VM::EpochTypeID> ActualTypes;
+	std::map<StringHandle, Metadata::EpochTypeID> ActualTypes;
 };
 

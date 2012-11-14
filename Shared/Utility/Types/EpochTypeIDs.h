@@ -12,7 +12,7 @@
 #include "Utility/Types/IntegerTypes.h"
 
 
-namespace VM
+namespace Metadata
 {
 	// Note that we do not use an enum here, because we need to allow custom
 	// type values to be created dynamically at runtime, i.e. for structures

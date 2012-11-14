@@ -57,10 +57,10 @@ namespace IRSemantics
 
 	// ID allocation interface
 	public:
-		VM::EpochTypeID NewStructureTypeID();
-		VM::EpochTypeID NewUnitTypeID();
-		VM::EpochTypeID NewSumTypeID();
-		VM::EpochTypeID NewTemplateInstantiation();
+		Metadata::EpochTypeID NewStructureTypeID();
+		Metadata::EpochTypeID NewUnitTypeID();
+		Metadata::EpochTypeID NewSumTypeID();
+		Metadata::EpochTypeID NewTemplateInstantiation();
 
 	// Internal tracking
 	private:
@@ -96,7 +96,7 @@ namespace IRSemantics
 		{ return NameToDefinitionMap; }
 
 		StringHandle GetConstructorName(StringHandle structurename) const;
-		VM::EpochTypeID GetMemberType(StringHandle structurename, StringHandle membername) const;
+		Metadata::EpochTypeID GetMemberType(StringHandle structurename, StringHandle membername) const;
 
 		bool IsStructureTemplate(StringHandle name) const;
 
@@ -106,7 +106,7 @@ namespace IRSemantics
 		TypeSpace& MyTypeSpace;
 
 		std::map<StringHandle, Structure*> NameToDefinitionMap;
-		std::map<StringHandle, VM::EpochTypeID> NameToTypeMap;
+		std::map<StringHandle, Metadata::EpochTypeID> NameToTypeMap;
 	};
 
 
@@ -126,37 +126,37 @@ namespace IRSemantics
 
 	// Table manipulation interface
 	public:
-		VM::EpochTypeID Add(const std::wstring& name, CompileErrors& errors);
-		void AddBaseTypeToSumType(VM::EpochTypeID sumtypeid, StringHandle basetypename);
+		Metadata::EpochTypeID Add(const std::wstring& name, CompileErrors& errors);
+		void AddBaseTypeToSumType(Metadata::EpochTypeID sumtypeid, StringHandle basetypename);
 
 	// Table query interface
 	public:
-		bool IsBaseType(VM::EpochTypeID sumtypeid, VM::EpochTypeID basetype) const;
-		size_t GetNumBaseTypes(VM::EpochTypeID sumtypeid) const;
+		bool IsBaseType(Metadata::EpochTypeID sumtypeid, Metadata::EpochTypeID basetype) const;
+		size_t GetNumBaseTypes(Metadata::EpochTypeID sumtypeid) const;
 
 		StringHandle MapConstructorName(StringHandle sumtypeoverloadname) const;
 
-		std::map<VM::EpochTypeID, std::set<VM::EpochTypeID> > GetDefinitions() const;
+		std::map<Metadata::EpochTypeID, std::set<Metadata::EpochTypeID> > GetDefinitions() const;
 
 	// Templated sum type support
 	public:
-		void AddTemplateParameter(VM::EpochTypeID sumtype, StringHandle name);
+		void AddTemplateParameter(Metadata::EpochTypeID sumtype, StringHandle name);
 
 		bool IsTemplate(StringHandle name) const;
 		StringHandle InstantiateTemplate(StringHandle templatename, const CompileTimeParameterVector& args);
 
 	// Internal helpers
 	private:
-		static std::wstring GenerateTemplateMangledName(VM::EpochTypeID type);
+		static std::wstring GenerateTemplateMangledName(Metadata::EpochTypeID type);
 
 	// Internal tracking
 	private:
 		friend class TypeSpace;
 		TypeSpace& MyTypeSpace;
 
-		std::map<StringHandle, VM::EpochTypeID> NameToTypeMap;
+		std::map<StringHandle, Metadata::EpochTypeID> NameToTypeMap;
 		std::map<StringHandle, StringHandle> NameToConstructorMap;
-		std::map<VM::EpochTypeID, std::set<StringHandle> > BaseTypeNames;
+		std::map<Metadata::EpochTypeID, std::set<StringHandle> > BaseTypeNames;
 
 		InstantiationMap Instantiations;
 		std::map<StringHandle, std::vector<StringHandle> > NameToParamsMap;
@@ -193,7 +193,7 @@ namespace IRSemantics
 
 	// Internal helpers
 	private:
-		static std::wstring GenerateTemplateMangledName(VM::EpochTypeID type);
+		static std::wstring GenerateTemplateMangledName(Metadata::EpochTypeID type);
 
 	// Internal tracking
 	private:
@@ -203,7 +203,7 @@ namespace IRSemantics
 		TypeSpace& MyTypeSpace;
 
 		InstantiationMap Instantiations;
-		std::map<StringHandle, VM::EpochTypeID> NameToTypeMap;
+		std::map<StringHandle, Metadata::EpochTypeID> NameToTypeMap;
 
 		impl::StringCache<StringHandle> ConstructorNameCache;
 		impl::StringCache<StringHandle> AnonConstructorNameCache;
@@ -226,26 +226,26 @@ namespace IRSemantics
 
 	// Weak type alias management interface
 	public:
-		void AddWeakAlias(StringHandle aliasname, VM::EpochTypeID representationtype);
+		void AddWeakAlias(StringHandle aliasname, Metadata::EpochTypeID representationtype);
 		bool HasWeakAliasNamed(StringHandle name) const;
 		StringHandle GetWeakTypeBaseName(StringHandle name) const;
 
 	// Strong type alias management interface
 	public:
-		void AddStrongAlias(StringHandle aliasname, VM::EpochTypeID representationtype, StringHandle representationname);
+		void AddStrongAlias(StringHandle aliasname, Metadata::EpochTypeID representationtype, StringHandle representationname);
 
-		VM::EpochTypeID GetStrongRepresentation(VM::EpochTypeID aliastypeid) const;
-		StringHandle GetStrongRepresentationName(VM::EpochTypeID aliastypeid) const;
+		Metadata::EpochTypeID GetStrongRepresentation(Metadata::EpochTypeID aliastypeid) const;
+		StringHandle GetStrongRepresentationName(Metadata::EpochTypeID aliastypeid) const;
 
 	// Internal tracking
 	private:
 		friend class TypeSpace;
 		TypeSpace& MyTypeSpace;
 
-		std::map<StringHandle, VM::EpochTypeID> WeakNameToTypeMap;
-		std::map<StringHandle, VM::EpochTypeID> StrongNameToTypeMap;
-		std::map<VM::EpochTypeID, VM::EpochTypeID> StrongRepresentationTypes;
-		std::map<VM::EpochTypeID, StringHandle> StrongRepresentationNames;
+		std::map<StringHandle, Metadata::EpochTypeID> WeakNameToTypeMap;
+		std::map<StringHandle, Metadata::EpochTypeID> StrongNameToTypeMap;
+		std::map<Metadata::EpochTypeID, Metadata::EpochTypeID> StrongRepresentationTypes;
+		std::map<Metadata::EpochTypeID, StringHandle> StrongRepresentationNames;
 	};
 
 
@@ -266,8 +266,8 @@ namespace IRSemantics
 
 	// Name lookup interface
 	public:
-		EPOCHCOMPILER VM::EpochTypeID GetTypeByName(StringHandle name) const;
-		StringHandle GetNameOfType(VM::EpochTypeID type) const;
+		EPOCHCOMPILER Metadata::EpochTypeID GetTypeByName(StringHandle name) const;
+		StringHandle GetNameOfType(Metadata::EpochTypeID type) const;
 
 	// Compiler internals
 	public:

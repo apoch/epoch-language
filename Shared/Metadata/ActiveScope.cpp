@@ -9,9 +9,9 @@
 
 #include "Metadata/ActiveScope.h"
 #include "Metadata/ScopeDescription.h"
+#include "Metadata/TypeInfo.h"
 
 #include "Virtual Machine/VirtualMachine.h"
-#include "Virtual Machine/TypeInfo.h"
 
 #include "Utility/Memory/Stack.h"
 
@@ -37,23 +37,23 @@ void ActiveScope::BindParametersToStack(const VM::ExecutionContext& context)
 			{
 				void* targetstorage = *reinterpret_cast<void**>(stackpointer);
 				stackpointer += sizeof(void*);
-				VM::EpochTypeID targettype = *reinterpret_cast<VM::EpochTypeID*>(stackpointer);
-				stackpointer += sizeof(VM::EpochTypeID);
+				Metadata::EpochTypeID targettype = *reinterpret_cast<Metadata::EpochTypeID*>(stackpointer);
+				stackpointer += sizeof(Metadata::EpochTypeID);
 				BindReference(iter->IdentifierHandle, targetstorage, targettype);
 			}
 			else
 			{				
-				if(VM::GetTypeFamily(iter->Type) == VM::EpochTypeFamily_SumType)
+				if(Metadata::GetTypeFamily(iter->Type) == Metadata::EpochTypeFamily_SumType)
 				{
-					ActualTypes[iter->IdentifierHandle] = *reinterpret_cast<VM::EpochTypeID*>(stackpointer);
-					stackpointer += sizeof(VM::EpochTypeID);
+					ActualTypes[iter->IdentifierHandle] = *reinterpret_cast<Metadata::EpochTypeID*>(stackpointer);
+					stackpointer += sizeof(Metadata::EpochTypeID);
 					VariableStorageLocations[iter->IdentifierHandle] = stackpointer;
-					stackpointer += VM::GetStorageSize(ActualTypes[iter->IdentifierHandle]);
+					stackpointer += Metadata::GetStorageSize(ActualTypes[iter->IdentifierHandle]);
 				}
 				else
 				{
 					VariableStorageLocations[iter->IdentifierHandle] = stackpointer;
-					stackpointer += VM::GetStorageSize(iter->Type);
+					stackpointer += Metadata::GetStorageSize(iter->Type);
 				}
 			}
 		}
@@ -69,16 +69,16 @@ void ActiveScope::PushLocalsOntoStack(VM::ExecutionContext& context)
 	{
 		if(iter->Origin == VARIABLE_ORIGIN_LOCAL || iter->Origin == VARIABLE_ORIGIN_RETURN)
 		{
-			if(VM::GetTypeFamily(iter->Type) == VM::EpochTypeFamily_SumType)
+			if(Metadata::GetTypeFamily(iter->Type) == Metadata::EpochTypeFamily_SumType)
 			{
 				size_t size = context.OwnerVM.VariantDefinitions.find(iter->Type)->second.GetMaxSize();
 				context.State.Stack.Push(size);
 
-				VariableStorageLocations[iter->IdentifierHandle] = reinterpret_cast<char*>(context.State.Stack.GetCurrentTopOfStack()) + sizeof(VM::EpochTypeID);
+				VariableStorageLocations[iter->IdentifierHandle] = reinterpret_cast<char*>(context.State.Stack.GetCurrentTopOfStack()) + sizeof(Metadata::EpochTypeID);
 			}
 			else
 			{
-				size_t size = VM::GetStorageSize(iter->Type);
+				size_t size = Metadata::GetStorageSize(iter->Type);
 				context.State.Stack.Push(size);
 
 				VariableStorageLocations[iter->IdentifierHandle] = context.State.Stack.GetCurrentTopOfStack();
@@ -97,23 +97,23 @@ void ActiveScope::PopScopeOffStack(VM::ExecutionContext& context)
 	for(ScopeDescription::VariableVector::const_iterator iter = OriginalScope.Variables.begin(); iter != OriginalScope.Variables.end(); ++iter)
 	{
 		if(iter->IsReference)
-			usedspace += sizeof(VM::EpochTypeID) + sizeof(void*);
+			usedspace += sizeof(Metadata::EpochTypeID) + sizeof(void*);
 		else
 		{
 			if(iter->Origin == VARIABLE_ORIGIN_PARAMETER && ActualTypes.find(iter->IdentifierHandle) != ActualTypes.end())
 			{
-				usedspace += VM::GetStorageSize(ActualTypes.find(iter->IdentifierHandle)->second);
-				usedspace += sizeof(VM::EpochTypeID);
+				usedspace += Metadata::GetStorageSize(ActualTypes.find(iter->IdentifierHandle)->second);
+				usedspace += sizeof(Metadata::EpochTypeID);
 			}
-			else if(VM::GetTypeFamily(iter->Type) == VM::EpochTypeFamily_SumType)
+			else if(Metadata::GetTypeFamily(iter->Type) == Metadata::EpochTypeFamily_SumType)
 			{
 				usedspace += context.OwnerVM.VariantDefinitions.find(iter->Type)->second.GetMaxSize();
 
 				if(iter->Origin == VARIABLE_ORIGIN_PARAMETER)
-					usedspace += sizeof(VM::EpochTypeID);
+					usedspace += sizeof(Metadata::EpochTypeID);
 			}
 			else
-				usedspace += VM::GetStorageSize(iter->Type);
+				usedspace += Metadata::GetStorageSize(iter->Type);
 		}
 	}
 
@@ -123,47 +123,47 @@ void ActiveScope::PopScopeOffStack(VM::ExecutionContext& context)
 //
 // Write the topmost stack entry into a given arbitrary storage location
 //
-void ActiveScope::WriteFromStack(void* targetstorage, VM::EpochTypeID targettype, StackSpace& stack)
+void ActiveScope::WriteFromStack(void* targetstorage, Metadata::EpochTypeID targettype, StackSpace& stack)
 {
 	switch(targettype)
 	{
-	case VM::EpochType_Integer:
+	case Metadata::EpochType_Integer:
 		Write(targetstorage, stack.PopValue<Integer32>());
 		break;
 
-	case VM::EpochType_Integer16:
+	case Metadata::EpochType_Integer16:
 		Write(targetstorage, stack.PopValue<Integer16>());
 		break;
 
-	case VM::EpochType_String:
+	case Metadata::EpochType_String:
 		Write(targetstorage, stack.PopValue<StringHandle>());
 		break;
 
-	case VM::EpochType_Boolean:
+	case Metadata::EpochType_Boolean:
 		Write(targetstorage, stack.PopValue<bool>());
 		break;
 
-	case VM::EpochType_Real:
+	case Metadata::EpochType_Real:
 		Write(targetstorage, stack.PopValue<Real32>());
 		break;
 
-	case VM::EpochType_Buffer:
+	case Metadata::EpochType_Buffer:
 		Write(targetstorage, stack.PopValue<BufferHandle>());
 		break;
 
-	case VM::EpochType_Nothing:
+	case Metadata::EpochType_Nothing:
 		break;
 
 	default:
-		if(VM::GetTypeFamily(targettype) == VM::EpochTypeFamily_Structure || VM::GetTypeFamily(targettype) == VM::EpochTypeFamily_TemplateInstance)
+		if(Metadata::GetTypeFamily(targettype) == Metadata::EpochTypeFamily_Structure || Metadata::GetTypeFamily(targettype) == Metadata::EpochTypeFamily_TemplateInstance)
 			Write(targetstorage, stack.PopValue<StructureHandle>());
-		else if(VM::GetTypeFamily(targettype) == VM::EpochTypeFamily_SumType)
+		else if(Metadata::GetTypeFamily(targettype) == Metadata::EpochTypeFamily_SumType)
 		{
-			VM::EpochTypeID actualtype = stack.PopValue<VM::EpochTypeID>();
+			Metadata::EpochTypeID actualtype = stack.PopValue<Metadata::EpochTypeID>();
 			WriteFromStack(targetstorage, actualtype, stack);
 			char* storageptr = reinterpret_cast<char*>(targetstorage);
-			storageptr -= sizeof(VM::EpochTypeID);
-			*reinterpret_cast<VM::EpochTypeID*>(storageptr) = actualtype;
+			storageptr -= sizeof(Metadata::EpochTypeID);
+			*reinterpret_cast<Metadata::EpochTypeID*>(storageptr) = actualtype;
 		}
 		else
 			throw NotImplementedException("Unsupported type in ActiveScope::WriteFromStack");
@@ -189,23 +189,23 @@ namespace
 //
 // Push data from an arbitrary location onto the stack
 //
-void ActiveScope::PushOntoStack(void* targetstorage, VM::EpochTypeID targettype, StackSpace& stack) const
+void ActiveScope::PushOntoStack(void* targetstorage, Metadata::EpochTypeID targettype, StackSpace& stack) const
 {
 	switch(targettype)
 	{
-	case VM::EpochType_Integer:			DoTypedPush<Integer32>(stack, targetstorage);		break;
-	case VM::EpochType_Integer16:		DoTypedPush<Integer16>(stack, targetstorage);		break;
-	case VM::EpochType_String:			DoTypedPush<StringHandle>(stack, targetstorage);	break;
-	case VM::EpochType_Boolean:			DoTypedPush<bool>(stack, targetstorage);			break;
-	case VM::EpochType_Real:			DoTypedPush<Real32>(stack, targetstorage);			break;
-	case VM::EpochType_Buffer:			DoTypedPush<BufferHandle>(stack, targetstorage);	break;
-	case VM::EpochType_Function:		DoTypedPush<StringHandle>(stack, targetstorage);	break;
-	case VM::EpochType_Identifier:		DoTypedPush<StringHandle>(stack, targetstorage);	break;
-	case VM::EpochType_Nothing:			stack.Push(0);										break;
+	case Metadata::EpochType_Integer:			DoTypedPush<Integer32>(stack, targetstorage);		break;
+	case Metadata::EpochType_Integer16:		DoTypedPush<Integer16>(stack, targetstorage);		break;
+	case Metadata::EpochType_String:			DoTypedPush<StringHandle>(stack, targetstorage);	break;
+	case Metadata::EpochType_Boolean:			DoTypedPush<bool>(stack, targetstorage);			break;
+	case Metadata::EpochType_Real:			DoTypedPush<Real32>(stack, targetstorage);			break;
+	case Metadata::EpochType_Buffer:			DoTypedPush<BufferHandle>(stack, targetstorage);	break;
+	case Metadata::EpochType_Function:		DoTypedPush<StringHandle>(stack, targetstorage);	break;
+	case Metadata::EpochType_Identifier:		DoTypedPush<StringHandle>(stack, targetstorage);	break;
+	case Metadata::EpochType_Nothing:			stack.Push(0);										break;
 	default:
 		{
-			VM::EpochTypeFamily family = VM::GetTypeFamily(targettype);
-			if(family != VM::EpochTypeFamily_Structure && family != VM::EpochTypeFamily_TemplateInstance)
+			Metadata::EpochTypeFamily family = Metadata::GetTypeFamily(targettype);
+			if(family != Metadata::EpochTypeFamily_Structure && family != Metadata::EpochTypeFamily_TemplateInstance)
 				throw NotImplementedException("Unsupported data type in ActiveScope::PushOntoStack");
 		}
 
@@ -225,10 +225,10 @@ void ActiveScope::PushOntoStack(StringHandle variableid, StackSpace& stack) cons
 		return;
 	}
 
-	VM::EpochTypeID vartype = OriginalScope.GetVariableTypeByID(variableid);
-	if(VM::GetTypeFamily(vartype) == VM::EpochTypeFamily_SumType)
+	Metadata::EpochTypeID vartype = OriginalScope.GetVariableTypeByID(variableid);
+	if(Metadata::GetTypeFamily(vartype) == Metadata::EpochTypeFamily_SumType)
 	{
-		std::map<StringHandle, VM::EpochTypeID>::const_iterator iter = ActualTypes.find(variableid);
+		std::map<StringHandle, Metadata::EpochTypeID>::const_iterator iter = ActualTypes.find(variableid);
 		if(iter == ActualTypes.end())
 		{
 			//
@@ -237,7 +237,7 @@ void ActiveScope::PushOntoStack(StringHandle variableid, StackSpace& stack) cons
 			throw FatalException("Missing actual type for sum typed variable in local scope");
 		}
 
-		VM::EpochTypeID actualtype = iter->second;
+		Metadata::EpochTypeID actualtype = iter->second;
 
 		PushOntoStack(GetVariableStorageLocation(variableid), actualtype, stack);
 		stack.PushValue(actualtype);
@@ -287,46 +287,46 @@ void ActiveScope::CopyToRegister(StringHandle variableid, Register& targetregist
 {
 	targetregister.SumType = false;
 
-	VM::EpochTypeID variabletype = OriginalScope.GetVariableTypeByID(variableid);
+	Metadata::EpochTypeID variabletype = OriginalScope.GetVariableTypeByID(variableid);
 	switch(variabletype)
 	{
-	case VM::EpochType_Integer:
+	case Metadata::EpochType_Integer:
 		{
 			Integer32* value = reinterpret_cast<Integer32*>(GetVariableStorageLocation(variableid));
 			targetregister.Set(*value);
 		}
 		break;
 
-	case VM::EpochType_Integer16:
+	case Metadata::EpochType_Integer16:
 		{
 			Integer16* value = reinterpret_cast<Integer16*>(GetVariableStorageLocation(variableid));
 			targetregister.Set(*value);
 		}
 		break;
 
-	case VM::EpochType_Identifier:
-	case VM::EpochType_String:
+	case Metadata::EpochType_Identifier:
+	case Metadata::EpochType_String:
 		{
 			StringHandle* value = reinterpret_cast<StringHandle*>(GetVariableStorageLocation(variableid));
 			targetregister.SetString(*value);
 		}
 		break;
 
-	case VM::EpochType_Boolean:
+	case Metadata::EpochType_Boolean:
 		{
 			bool* value = reinterpret_cast<bool*>(GetVariableStorageLocation(variableid));
 			targetregister.Set(*value);
 		}
 		break;
 
-	case VM::EpochType_Real:
+	case Metadata::EpochType_Real:
 		{
 			Real32* value = reinterpret_cast<Real32*>(GetVariableStorageLocation(variableid));
 			targetregister.Set(*value);
 		}
 		break;
 
-	case VM::EpochType_Buffer:
+	case Metadata::EpochType_Buffer:
 		{
 			BufferHandle* value = reinterpret_cast<BufferHandle*>(GetVariableStorageLocation(variableid));
 			targetregister.SetBuffer(*value);
@@ -335,28 +335,28 @@ void ActiveScope::CopyToRegister(StringHandle variableid, Register& targetregist
 
 	default:
 		{
-			if(VM::GetTypeFamily(variabletype) == VM::EpochTypeFamily_Structure || VM::GetTypeFamily(variabletype) == VM::EpochTypeFamily_TemplateInstance)
+			if(Metadata::GetTypeFamily(variabletype) == Metadata::EpochTypeFamily_Structure || Metadata::GetTypeFamily(variabletype) == Metadata::EpochTypeFamily_TemplateInstance)
 			{
 				StructureHandle* value = reinterpret_cast<StructureHandle*>(GetVariableStorageLocation(variableid));
 				targetregister.SetStructure(*value, OriginalScope.GetVariableTypeByID(variableid));
 			}
-			else if(VM::GetTypeFamily(variabletype) == VM::EpochTypeFamily_SumType)
+			else if(Metadata::GetTypeFamily(variabletype) == Metadata::EpochTypeFamily_SumType)
 			{
 				const UByte* storage = reinterpret_cast<const UByte*>(GetVariableStorageLocation(variableid));
-				const UByte* typestorage = storage - sizeof(VM::EpochTypeID);
-				targetregister.Type = *reinterpret_cast<const VM::EpochTypeID*>(typestorage);
+				const UByte* typestorage = storage - sizeof(Metadata::EpochTypeID);
+				targetregister.Type = *reinterpret_cast<const Metadata::EpochTypeID*>(typestorage);
 				switch(targetregister.Type)
 				{
-				case VM::EpochType_Boolean:		targetregister.Value_Boolean = *reinterpret_cast<const bool*>(storage);						break;
-				case VM::EpochType_Buffer:		targetregister.Value_BufferHandle = *reinterpret_cast<const BufferHandle*>(storage);		break;
-				case VM::EpochType_String:
-				case VM::EpochType_Identifier:	targetregister.Value_StringHandle = *reinterpret_cast<const StringHandle*>(storage);		break;
-				case VM::EpochType_Integer:		targetregister.Value_Integer32 = *reinterpret_cast<const Integer32*>(storage);				break;
-				case VM::EpochType_Integer16:	targetregister.Value_Integer16 = *reinterpret_cast<const Integer16*>(storage);				break;
-				case VM::EpochType_Nothing:		break;
-				case VM::EpochType_Real:		targetregister.Value_Real = *reinterpret_cast<const Real32*>(storage);						break;
+				case Metadata::EpochType_Boolean:		targetregister.Value_Boolean = *reinterpret_cast<const bool*>(storage);						break;
+				case Metadata::EpochType_Buffer:		targetregister.Value_BufferHandle = *reinterpret_cast<const BufferHandle*>(storage);		break;
+				case Metadata::EpochType_String:
+				case Metadata::EpochType_Identifier:	targetregister.Value_StringHandle = *reinterpret_cast<const StringHandle*>(storage);		break;
+				case Metadata::EpochType_Integer:		targetregister.Value_Integer32 = *reinterpret_cast<const Integer32*>(storage);				break;
+				case Metadata::EpochType_Integer16:	targetregister.Value_Integer16 = *reinterpret_cast<const Integer16*>(storage);				break;
+				case Metadata::EpochType_Nothing:		break;
+				case Metadata::EpochType_Real:		targetregister.Value_Real = *reinterpret_cast<const Real32*>(storage);						break;
 				default:
-					if(VM::GetTypeFamily(targetregister.Type) == VM::EpochTypeFamily_Structure || VM::GetTypeFamily(targetregister.Type) == VM::EpochTypeFamily_TemplateInstance)
+					if(Metadata::GetTypeFamily(targetregister.Type) == Metadata::EpochTypeFamily_Structure || Metadata::GetTypeFamily(targetregister.Type) == Metadata::EpochTypeFamily_TemplateInstance)
 						targetregister.Value_StructureHandle = *reinterpret_cast<const StructureHandle*>(storage);
 					else
 						throw FatalException("Unsupported actual type of sum type");
@@ -390,7 +390,7 @@ bool ActiveScope::HasReturnVariable() const
 //
 // Bind a reference variable to a target
 //
-void ActiveScope::BindReference(StringHandle referencename, void* targetstorage, VM::EpochTypeID targettype)
+void ActiveScope::BindReference(StringHandle referencename, void* targetstorage, Metadata::EpochTypeID targettype)
 {
 	BoundReferences[referencename].first = targetstorage;
 	BoundReferences[referencename].second = targettype;
@@ -411,7 +411,7 @@ void* ActiveScope::GetReferenceTarget(StringHandle referencename) const
 //
 // Retrieve the underlying type of a reference variable
 //
-VM::EpochTypeID ActiveScope::GetReferenceType(StringHandle referencename) const
+Metadata::EpochTypeID ActiveScope::GetReferenceType(StringHandle referencename) const
 {
 	ReferenceBindingMap::const_iterator iter = BoundReferences.find(referencename);
 	if(iter == BoundReferences.end())
@@ -420,21 +420,21 @@ VM::EpochTypeID ActiveScope::GetReferenceType(StringHandle referencename) const
 	return iter->second.second;
 }
 
-VM::EpochTypeID ActiveScope::GetActualType(StringHandle varname) const
+Metadata::EpochTypeID ActiveScope::GetActualType(StringHandle varname) const
 {
-	VM::EpochTypeID ret = OriginalScope.GetVariableTypeByID(varname);
-	if(VM::GetTypeFamily(ret) == VM::EpochTypeFamily_SumType)
+	Metadata::EpochTypeID ret = OriginalScope.GetVariableTypeByID(varname);
+	if(Metadata::GetTypeFamily(ret) == Metadata::EpochTypeFamily_SumType)
 	{
 		const char* ptr = reinterpret_cast<const char*>(GetVariableStorageLocation(varname));
-		ptr -= sizeof(VM::EpochTypeID);
-		ret = *reinterpret_cast<const VM::EpochTypeID*>(ptr);
+		ptr -= sizeof(Metadata::EpochTypeID);
+		ret = *reinterpret_cast<const Metadata::EpochTypeID*>(ptr);
 	}
 
 	return ret;
 }
 
 
-void ActiveScope::SetActualType(StringHandle varname, VM::EpochTypeID type)
+void ActiveScope::SetActualType(StringHandle varname, Metadata::EpochTypeID type)
 {
 	ActualTypes[varname] = type;
 }

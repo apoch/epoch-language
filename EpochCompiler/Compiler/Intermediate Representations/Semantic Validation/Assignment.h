@@ -51,7 +51,7 @@ namespace IRSemantics
 		virtual void SetRHSRecursive(AssignmentChain*)
 		{ }
 
-		virtual VM::EpochTypeID GetEpochType(const Namespace& curnamespace) const = 0;
+		virtual Metadata::EpochTypeID GetEpochType(const Namespace& curnamespace) const = 0;
 
 		virtual bool TypeInference(Namespace& curnamespace, CodeBlock& activescope, InferenceContext& context, CompileErrors& errors) = 0;
 
@@ -87,7 +87,7 @@ namespace IRSemantics
 		const std::vector<StringHandle>& GetLHS() const
 		{ return LHS; }
 
-		const VM::EpochTypeID GetLHSType() const
+		const Metadata::EpochTypeID GetLHSType() const
 		{ return LHSType; }
 
 		const AssignmentChain* GetRHS() const
@@ -115,7 +115,7 @@ namespace IRSemantics
 		std::vector<StringHandle> LHS;
 		StringHandle OperatorName;
 		AssignmentChain* RHS;
-		VM::EpochTypeID LHSType;
+		Metadata::EpochTypeID LHSType;
 		const AST::IdentifierT& OriginalLHS;
 	};
 
@@ -142,7 +142,7 @@ namespace IRSemantics
 
 	// Chain interface
 	public:
-		virtual VM::EpochTypeID GetEpochType(const Namespace& curnamespace) const;
+		virtual Metadata::EpochTypeID GetEpochType(const Namespace& curnamespace) const;
 		virtual bool TypeInference(Namespace& curnamespace, CodeBlock& activescope, InferenceContext& context, CompileErrors& errors);
 		virtual bool Validate(const Namespace& curnamespace) const;
 		virtual AssignmentChain* Clone() const;
@@ -175,7 +175,7 @@ namespace IRSemantics
 
 		virtual void SetRHSRecursive(AssignmentChain* rhs);
 
-		virtual VM::EpochTypeID GetEpochType(const Namespace& curnamespace) const;
+		virtual Metadata::EpochTypeID GetEpochType(const Namespace& curnamespace) const;
 
 		virtual bool TypeInference(Namespace& curnamespace, CodeBlock& activescope, InferenceContext& context, CompileErrors& errors);
 		

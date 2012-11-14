@@ -46,7 +46,7 @@ namespace IRSemantics
 
 	// Function parameter interface
 	public:
-		virtual VM::EpochTypeID GetParamType(const Namespace& curnamespace) const = 0;
+		virtual Metadata::EpochTypeID GetParamType(const Namespace& curnamespace) const = 0;
 		virtual bool IsLocalVariable() const = 0;
 		virtual bool IsReference() const = 0;
 		virtual bool Validate(const Namespace& curnamespace) const = 0;
@@ -67,13 +67,13 @@ namespace IRSemantics
 		FunctionParamNamed(StringHandle type, const CompileTimeParameterVector& templateargs, bool isreference)
 			: MyTypeName(type),
 			  TemplateArgs(templateargs),
-			  MyActualType(VM::EpochType_Error),
+			  MyActualType(Metadata::EpochType_Error),
 			  IsRef(isreference)
 		{ }
 
 	// Function parameter interface
 	public:
-		virtual VM::EpochTypeID GetParamType(const Namespace& curnamespace) const;
+		virtual Metadata::EpochTypeID GetParamType(const Namespace& curnamespace) const;
 
 		virtual bool IsLocalVariable() const
 		{ return true; }
@@ -101,12 +101,12 @@ namespace IRSemantics
 
 	// Template support
 	public:
-		void SubstituteTemplateArgs(const std::vector<std::pair<StringHandle, VM::EpochTypeID> >& params, const CompileTimeParameterVector& args, Namespace& curnamespace);
+		void SubstituteTemplateArgs(const std::vector<std::pair<StringHandle, Metadata::EpochTypeID> >& params, const CompileTimeParameterVector& args, Namespace& curnamespace);
 
 	// Internal state
 	private:
 		StringHandle MyTypeName;
-		VM::EpochTypeID MyActualType;
+		Metadata::EpochTypeID MyActualType;
 		bool IsRef;
 		CompileTimeParameterVector TemplateArgs;
 	};
@@ -118,14 +118,14 @@ namespace IRSemantics
 	{
 	// Construction
 	public:
-		FunctionParamTyped(VM::EpochTypeID type, bool isreference)
+		FunctionParamTyped(Metadata::EpochTypeID type, bool isreference)
 			: MyType(type),
 			  IsRef(isreference)
 		{ }
 
 	// Function parameter interface
 	public:
-		virtual VM::EpochTypeID GetParamType(const Namespace&) const
+		virtual Metadata::EpochTypeID GetParamType(const Namespace&) const
 		{ return MyType; }
 
 		virtual bool IsLocalVariable() const
@@ -152,7 +152,7 @@ namespace IRSemantics
 
 	// Internal state
 	private:
-		VM::EpochTypeID MyType;
+		Metadata::EpochTypeID MyType;
 		bool IsRef;
 	};
 
@@ -169,8 +169,8 @@ namespace IRSemantics
 
 	// Function parameter interface
 	public:
-		virtual VM::EpochTypeID GetParamType(const Namespace&) const
-		{ return VM::EpochType_Function; }
+		virtual Metadata::EpochTypeID GetParamType(const Namespace&) const
+		{ return Metadata::EpochType_Function; }
 
 		virtual bool IsLocalVariable() const
 		{ return true; }
@@ -234,7 +234,7 @@ namespace IRSemantics
 
 	// Function parameter interface
 	public:
-		virtual VM::EpochTypeID GetParamType(const Namespace& curnamespace) const;
+		virtual Metadata::EpochTypeID GetParamType(const Namespace& curnamespace) const;
 
 		virtual bool IsLocalVariable() const
 		{ return false; }
@@ -287,7 +287,7 @@ namespace IRSemantics
 			  Name(0),
 			  RawName(0),
 			  AnonymousReturn(false),
-			  HintReturnType(VM::EpochType_Error),
+			  HintReturnType(Metadata::EpochType_Error),
 			  DummyNamespace(NULL)
 		{ }
 
@@ -322,12 +322,12 @@ namespace IRSemantics
 		bool HasParameter(StringHandle paramname) const;
 
 		bool IsParameterLocalVariable(StringHandle name) const;
-		VM::EpochTypeID GetParameterType(StringHandle name, Namespace& curnamespace, CompileErrors& errors) const;
+		Metadata::EpochTypeID GetParameterType(StringHandle name, Namespace& curnamespace, CompileErrors& errors) const;
 		bool IsParameterReference(StringHandle name) const;
 		StringHandle GetParameterTypeName(StringHandle name) const;
 
 		bool DoesParameterSignatureMatch(size_t index, const FunctionSignature& signature, const Namespace& curnamespace) const;
-		VM::EpochTypeID GetParameterSignatureType(StringHandle name, const Namespace& curnamespace) const;
+		Metadata::EpochTypeID GetParameterSignatureType(StringHandle name, const Namespace& curnamespace) const;
 		FunctionSignature GetParameterSignature(StringHandle name, const Namespace& curnamespace) const;
 
 		size_t GetNumParameters() const
@@ -344,7 +344,7 @@ namespace IRSemantics
 		const Expression* GetReturnExpression() const
 		{ return Return; }
 
-		VM::EpochTypeID GetReturnType(const Namespace& curnamespace) const;
+		Metadata::EpochTypeID GetReturnType(const Namespace& curnamespace) const;
 
 		void SuppressReturnRegister()
 		{ SuppressReturn = true; }
@@ -355,7 +355,7 @@ namespace IRSemantics
 		bool HasAnonymousReturn() const
 		{ return AnonymousReturn; }
 
-		void SetHintReturnType(VM::EpochTypeID rettype)
+		void SetHintReturnType(Metadata::EpochTypeID rettype)
 		{ HintReturnType = rettype; }
 
 	// Signatures
@@ -394,7 +394,7 @@ namespace IRSemantics
 
 	// Template support
 	public:
-		void AddTemplateParameter(VM::EpochTypeID type, StringHandle name);
+		void AddTemplateParameter(Metadata::EpochTypeID type, StringHandle name);
 
 		bool IsTemplate() const
 		{ return (!TemplateParams.empty()) && (TemplateArgs.empty()); }
@@ -436,11 +436,11 @@ namespace IRSemantics
 
 		std::vector<FunctionTag> Tags;
 
-		std::vector<std::pair<StringHandle, VM::EpochTypeID> > TemplateParams;
+		std::vector<std::pair<StringHandle, Metadata::EpochTypeID> > TemplateParams;
 		CompileTimeParameterVector TemplateArgs;
 		Namespace* DummyNamespace;
 
-		VM::EpochTypeID HintReturnType;
+		Metadata::EpochTypeID HintReturnType;
 	};
 
 }

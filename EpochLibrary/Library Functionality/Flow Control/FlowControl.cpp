@@ -46,7 +46,7 @@ void FlowControl::RegisterLibraryFunctions(FunctionSignatureSet& signatureset, S
 {
 	{
 		FunctionSignature signature;
-		signature.SetReturnType(VM::EpochType_Void);
+		signature.SetReturnType(Metadata::EpochType_Void);
 		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"return"), signature));
 	}
 }

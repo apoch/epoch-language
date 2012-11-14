@@ -16,7 +16,7 @@
 // Construct and initialize the register wrapper
 //
 Register::Register()
-	: Type(VM::EpochType_Error),
+	: Type(Metadata::EpochType_Error),
 	  SumType(false)
 {
 }
@@ -28,7 +28,7 @@ Register::Register()
 void Register::Set(Integer32 value)
 {
 	Value_Integer32 = value;
-	Type = VM::EpochType_Integer;
+	Type = Metadata::EpochType_Integer;
 }
 
 //
@@ -37,7 +37,7 @@ void Register::Set(Integer32 value)
 void Register::Set(Integer16 value)
 {
 	Value_Integer16 = value;
-	Type = VM::EpochType_Integer16;
+	Type = Metadata::EpochType_Integer16;
 }
 
 //
@@ -46,7 +46,7 @@ void Register::Set(Integer16 value)
 void Register::SetString(StringHandle value)
 {
 	Value_StringHandle = value;
-	Type = VM::EpochType_String;
+	Type = Metadata::EpochType_String;
 }
 
 //
@@ -55,7 +55,7 @@ void Register::SetString(StringHandle value)
 void Register::SetBuffer(BufferHandle value)
 {
 	Value_BufferHandle = value;
-	Type = VM::EpochType_Buffer;
+	Type = Metadata::EpochType_Buffer;
 }
 
 //
@@ -64,7 +64,7 @@ void Register::SetBuffer(BufferHandle value)
 void Register::Set(bool value)
 {
 	Value_Boolean = value;
-	Type = VM::EpochType_Boolean;
+	Type = Metadata::EpochType_Boolean;
 }
 
 //
@@ -73,19 +73,19 @@ void Register::Set(bool value)
 void Register::Set(Real32 value)
 {
 	Value_Real = value;
-	Type = VM::EpochType_Real;
+	Type = Metadata::EpochType_Real;
 }
 
 void Register::SetFunction(StringHandle value)
 {
 	Value_StringHandle = value;
-	Type = VM::EpochType_Function;
+	Type = Metadata::EpochType_Function;
 }
 
 //
 // Set the value of the register to a structure
 //
-void Register::SetStructure(StructureHandle value, VM::EpochTypeID typetag)
+void Register::SetStructure(StructureHandle value, Metadata::EpochTypeID typetag)
 {
 	Value_StructureHandle = value;
 	Type = typetag;
@@ -98,41 +98,41 @@ void Register::PushOntoStack(StackSpace& stack) const
 {
 	switch(Type)
 	{
-	case VM::EpochType_Error:
-	case VM::EpochType_Void:
+	case Metadata::EpochType_Error:
+	case Metadata::EpochType_Void:
 		throw FatalException("Register is empty; cannot push its value onto the stack");
 
-	case VM::EpochType_Integer:
+	case Metadata::EpochType_Integer:
 		stack.PushValue(Value_Integer32);
 		break;
 
-	case VM::EpochType_Integer16:
+	case Metadata::EpochType_Integer16:
 		stack.PushValue(Value_Integer16);
 		break;
 
-	case VM::EpochType_String:
-	case VM::EpochType_Identifier:
-	case VM::EpochType_Function:
+	case Metadata::EpochType_String:
+	case Metadata::EpochType_Identifier:
+	case Metadata::EpochType_Function:
 		stack.PushValue(Value_StringHandle);
 		break;
 
-	case VM::EpochType_Boolean:
+	case Metadata::EpochType_Boolean:
 		stack.PushValue(Value_Boolean);
 		break;
 
-	case VM::EpochType_Real:
+	case Metadata::EpochType_Real:
 		stack.PushValue(Value_Real);
 		break;
 
-	case VM::EpochType_Buffer:
+	case Metadata::EpochType_Buffer:
 		stack.PushValue(Value_BufferHandle);
 		break;
 
-	case VM::EpochType_Nothing:
+	case Metadata::EpochType_Nothing:
 		break;
 
 	default:
-		if(VM::GetTypeFamily(Type) == VM::EpochTypeFamily_Structure || VM::GetTypeFamily(Type) == VM::EpochTypeFamily_TemplateInstance)
+		if(Metadata::GetTypeFamily(Type) == Metadata::EpochTypeFamily_Structure || Metadata::GetTypeFamily(Type) == Metadata::EpochTypeFamily_TemplateInstance)
 			stack.PushValue(Value_StructureHandle);
 		else
 			throw FatalException("Unsupported type when pushing register value onto stack");

@@ -25,7 +25,7 @@ using namespace IRSemantics;
 // Construct and initialize an expression IR node
 //
 Expression::Expression()
-	: InferredType(VM::EpochType_Error),
+	: InferredType(Metadata::EpochType_Error),
 	  Coalesced(false),
 	  AtomsArePatternMatchedLiteral(false),
 	  InferenceDone(false),
@@ -49,8 +49,8 @@ Expression::~Expression()
 //
 bool Expression::Validate(const Namespace& curnamespace) const
 {
-	VM::EpochTypeID mytype = GetEpochType(curnamespace);
-	return (mytype != VM::EpochType_Error && mytype != VM::EpochType_Infer);
+	Metadata::EpochTypeID mytype = GetEpochType(curnamespace);
+	return (mytype != Metadata::EpochType_Error && mytype != Metadata::EpochType_Infer);
 }
 
 //
@@ -98,13 +98,13 @@ namespace
 	// This function is used to help determine the overall type of an expression as well
 	// as to aid in type inference on subsections of the expression itself.
 	//
-	VM::EpochTypeID WalkAtomsForType(const std::vector<ExpressionAtom*>& atoms, Namespace& curnamespace, size_t& index, VM::EpochTypeID lastknowntype, CompileErrors& errors)
+	Metadata::EpochTypeID WalkAtomsForType(const std::vector<ExpressionAtom*>& atoms, Namespace& curnamespace, size_t& index, Metadata::EpochTypeID lastknowntype, CompileErrors& errors)
 	{
-		VM::EpochTypeID ret = lastknowntype;
+		Metadata::EpochTypeID ret = lastknowntype;
 
 		while(index < atoms.size())
 		{
-			if(ret == VM::EpochType_Infer)
+			if(ret == Metadata::EpochType_Infer)
 			{
 				index = atoms.size();
 				break;
@@ -123,15 +123,15 @@ namespace
 				}
 				else if(opatom->IsOperatorUnary(curnamespace))
 				{
-					VM::EpochTypeID operandtype = WalkAtomsForType(atoms, curnamespace, ++index, ret, errors);
-					if(operandtype == VM::EpochType_Infer)
+					Metadata::EpochTypeID operandtype = WalkAtomsForType(atoms, curnamespace, ++index, ret, errors);
+					if(operandtype == Metadata::EpochType_Infer)
 					{
 						index = atoms.size();
 						break;
 					}
 
-					VM::EpochTypeID underlyingtype = operandtype;
-					if(VM::GetTypeFamily(operandtype) == VM::EpochTypeFamily_Unit)
+					Metadata::EpochTypeID underlyingtype = operandtype;
+					if(Metadata::GetTypeFamily(operandtype) == Metadata::EpochTypeFamily_Unit)
 						underlyingtype = curnamespace.Types.Aliases.GetStrongRepresentation(operandtype);
 
 					ret = opatom->DetermineUnaryReturnType(curnamespace, underlyingtype, errors);
@@ -140,20 +140,20 @@ namespace
 				}
 				else
 				{
-					VM::EpochTypeID rhstype = WalkAtomsForType(atoms, curnamespace, ++index, ret, errors);
-					if(rhstype == VM::EpochType_Infer)
+					Metadata::EpochTypeID rhstype = WalkAtomsForType(atoms, curnamespace, ++index, ret, errors);
+					if(rhstype == Metadata::EpochType_Infer)
 					{
 						index = atoms.size();
 						break;
 					}
 
-					VM::EpochTypeID originallhstype = ret;
-					VM::EpochTypeID underlyingtypelhs = ret;
-					if(VM::GetTypeFamily(ret) == VM::EpochTypeFamily_Unit)
+					Metadata::EpochTypeID originallhstype = ret;
+					Metadata::EpochTypeID underlyingtypelhs = ret;
+					if(Metadata::GetTypeFamily(ret) == Metadata::EpochTypeFamily_Unit)
 						underlyingtypelhs = curnamespace.Types.Aliases.GetStrongRepresentation(ret);
 
-					VM::EpochTypeID underlyingtyperhs = rhstype;
-					if(VM::GetTypeFamily(rhstype) == VM::EpochTypeFamily_Unit)
+					Metadata::EpochTypeID underlyingtyperhs = rhstype;
+					if(Metadata::GetTypeFamily(rhstype) == Metadata::EpochTypeFamily_Unit)
 						underlyingtyperhs = curnamespace.Types.Aliases.GetStrongRepresentation(rhstype);
 
 					ret = opatom->DetermineOperatorReturnType(curnamespace, underlyingtypelhs, underlyingtyperhs, errors);
@@ -179,13 +179,13 @@ namespace
 	// making it easier to determine the type of specific subsections of a larger
 	// expression.
 	//
-	VM::EpochTypeID WalkAtomsForTypePartial(const std::vector<ExpressionAtom*>& atoms, Namespace& curnamespace, size_t& index, VM::EpochTypeID lastknowntype, CompileErrors& errors)
+	Metadata::EpochTypeID WalkAtomsForTypePartial(const std::vector<ExpressionAtom*>& atoms, Namespace& curnamespace, size_t& index, Metadata::EpochTypeID lastknowntype, CompileErrors& errors)
 	{
-		VM::EpochTypeID ret = lastknowntype;
+		Metadata::EpochTypeID ret = lastknowntype;
 
 		while(index < atoms.size())
 		{
-			if(ret == VM::EpochType_Infer)
+			if(ret == Metadata::EpochType_Infer)
 			{
 				index = atoms.size();
 				break;
@@ -204,15 +204,15 @@ namespace
 				}
 				else if(opatom->IsOperatorUnary(curnamespace))
 				{
-					VM::EpochTypeID operandtype = WalkAtomsForType(atoms, curnamespace, ++index, ret, errors);
-					if(operandtype == VM::EpochType_Infer)
+					Metadata::EpochTypeID operandtype = WalkAtomsForType(atoms, curnamespace, ++index, ret, errors);
+					if(operandtype == Metadata::EpochType_Infer)
 					{
 						index = atoms.size();
 						break;
 					}
 
-					VM::EpochTypeID underlyingtype = operandtype;
-					if(VM::GetTypeFamily(operandtype) == VM::EpochTypeFamily_Unit)
+					Metadata::EpochTypeID underlyingtype = operandtype;
+					if(Metadata::GetTypeFamily(operandtype) == Metadata::EpochTypeFamily_Unit)
 						underlyingtype = curnamespace.Types.Aliases.GetStrongRepresentation(operandtype);
 
 					ret = opatom->DetermineUnaryReturnType(curnamespace, underlyingtype, errors);
@@ -230,7 +230,7 @@ namespace
 	}
 
 
-	void DemoteLHS(std::vector<ExpressionAtom*>& atoms, Namespace& curnamespace, size_t& index, VM::EpochTypeID targettype)
+	void DemoteLHS(std::vector<ExpressionAtom*>& atoms, Namespace& curnamespace, size_t& index, Metadata::EpochTypeID targettype)
 	{
 		while(index < atoms.size())
 		{
@@ -249,7 +249,7 @@ namespace
 		}
 	}
 
-	void DemoteRHS(std::vector<ExpressionAtom*>& atoms, Namespace& curnamespace, size_t& index, VM::EpochTypeID targettype)
+	void DemoteRHS(std::vector<ExpressionAtom*>& atoms, Namespace& curnamespace, size_t& index, Metadata::EpochTypeID targettype)
 	{
 		while(index < atoms.size())
 		{
@@ -462,11 +462,11 @@ bool Expression::TypeInference(Namespace& curnamespace, CodeBlock& activescope, 
 		unsigned originalidx = idx;
 		unsigned originalrhsidx = rhsidx;
 
-		VM::EpochTypeID typerhs = VM::EpochType_Error;
+		Metadata::EpochTypeID typerhs = Metadata::EpochType_Error;
 		typerhs = WalkAtomsForType(Atoms, curnamespace, rhsidx, typerhs, errors);
 
-		VM::EpochTypeID underlyingtyperhs = typerhs;
-		if(VM::GetTypeFamily(typerhs) == VM::EpochTypeFamily_Unit)
+		Metadata::EpochTypeID underlyingtyperhs = typerhs;
+		if(Metadata::GetTypeFamily(typerhs) == Metadata::EpochTypeFamily_Unit)
 			underlyingtyperhs = curnamespace.Types.Aliases.GetStrongRepresentation(typerhs);
 
 		bool hasoverloads = curnamespace.Functions.HasOverloads(opatom->GetIdentifier());
@@ -487,21 +487,21 @@ bool Expression::TypeInference(Namespace& curnamespace, CodeBlock& activescope, 
 					bool matchlhs = false;
 					bool matchrhs = false;
 
-					VM::EpochTypeID typelhs = VM::EpochType_Error;
+					Metadata::EpochTypeID typelhs = Metadata::EpochType_Error;
 					typelhs = WalkAtomsForTypePartial(Atoms, curnamespace, idx, typelhs, errors);
 
-					VM::EpochTypeID underlyingtypelhs = typelhs;
-					if(VM::GetTypeFamily(typelhs) == VM::EpochTypeFamily_Unit)
+					Metadata::EpochTypeID underlyingtypelhs = typelhs;
+					if(Metadata::GetTypeFamily(typelhs) == Metadata::EpochTypeFamily_Unit)
 						underlyingtypelhs = curnamespace.Types.Aliases.GetStrongRepresentation(typelhs);
 
-					if(overloadsig.GetParameter(0).Type == VM::EpochType_Integer16)
+					if(overloadsig.GetParameter(0).Type == Metadata::EpochType_Integer16)
 						lhswantsint16 = true;
-					else if(overloadsig.GetParameter(0).Type == VM::EpochType_Integer)
+					else if(overloadsig.GetParameter(0).Type == Metadata::EpochType_Integer)
 						lhswantsint32 = true;
 
-					if(overloadsig.GetParameter(1).Type == VM::EpochType_Integer16)
+					if(overloadsig.GetParameter(1).Type == Metadata::EpochType_Integer16)
 						rhswantsint16 = true;
-					else if(overloadsig.GetParameter(1).Type == VM::EpochType_Integer)
+					else if(overloadsig.GetParameter(1).Type == Metadata::EpochType_Integer)
 						rhswantsint32 = true;
 
 					if(overloadsig.GetParameter(0).Type == typelhs || overloadsig.GetParameter(0).Type == underlyingtypelhs)
@@ -514,10 +514,10 @@ bool Expression::TypeInference(Namespace& curnamespace, CodeBlock& activescope, 
 						break;
 
 					if(!matchlhs && matchrhs && lhswantsint16)
-						DemoteLHS(Atoms, curnamespace, originalidx, VM::EpochType_Integer16);
+						DemoteLHS(Atoms, curnamespace, originalidx, Metadata::EpochType_Integer16);
 
 					if(matchlhs && !matchrhs && rhswantsint16)
-						DemoteRHS(Atoms, curnamespace, originalrhsidx, VM::EpochType_Integer16);
+						DemoteRHS(Atoms, curnamespace, originalrhsidx, Metadata::EpochType_Integer16);
 				}
 			}
 		}
@@ -537,12 +537,12 @@ bool Expression::TypeInference(Namespace& curnamespace, CodeBlock& activescope, 
 
 		bool hasoverloads = curnamespace.Functions.HasOverloads(opatom->GetIdentifier());
 
-		VM::EpochTypeID typerhs = VM::EpochType_Error;
+		Metadata::EpochTypeID typerhs = Metadata::EpochType_Error;
 		unsigned rhsidx = iter - Atoms.begin() + 1;
 		typerhs = WalkAtomsForType(Atoms, curnamespace, rhsidx, typerhs, errors);
 
-		VM::EpochTypeID underlyingtyperhs = typerhs;
-		if(VM::GetTypeFamily(typerhs) == VM::EpochTypeFamily_Unit)
+		Metadata::EpochTypeID underlyingtyperhs = typerhs;
+		if(Metadata::GetTypeFamily(typerhs) == Metadata::EpochTypeFamily_Unit)
 			underlyingtyperhs = curnamespace.Types.Aliases.GetStrongRepresentation(typerhs);
 
 		if(curnamespace.Operators.PrefixExists(opatom->GetIdentifier()))
@@ -568,11 +568,11 @@ bool Expression::TypeInference(Namespace& curnamespace, CodeBlock& activescope, 
 		{
 			if(hasoverloads)
 			{
-				VM::EpochTypeID typelhs = VM::EpochType_Error;
+				Metadata::EpochTypeID typelhs = Metadata::EpochType_Error;
 				typelhs = WalkAtomsForTypePartial(Atoms, curnamespace, idx, typelhs, errors);
 
-				VM::EpochTypeID underlyingtypelhs = typelhs;
-				if(VM::GetTypeFamily(typelhs) == VM::EpochTypeFamily_Unit)
+				Metadata::EpochTypeID underlyingtypelhs = typelhs;
+				if(Metadata::GetTypeFamily(typelhs) == Metadata::EpochTypeFamily_Unit)
 					underlyingtypelhs = curnamespace.Types.Aliases.GetStrongRepresentation(typelhs);
 
 				bool found = false;
@@ -615,12 +615,12 @@ bool Expression::TypeInference(Namespace& curnamespace, CodeBlock& activescope, 
 
 
 	// Determine the type of the whole expression
-	InferredType = VM::EpochType_Void;
+	InferredType = Metadata::EpochType_Void;
 	size_t i = 0;
 	while(i < Atoms.size())
 		InferredType = WalkAtomsForType(Atoms, curnamespace, i, InferredType, errors);
 
-	result = (InferredType != VM::EpochType_Infer && InferredType != VM::EpochType_Error);
+	result = (InferredType != Metadata::EpochType_Infer && InferredType != Metadata::EpochType_Error);
 
 	// Perform operator precedence reordering via shunting yard method
 	std::vector<ExpressionAtom*> outputqueue;
@@ -672,7 +672,7 @@ bool Expression::TypeInference(Namespace& curnamespace, CodeBlock& activescope, 
 // Retrieve the type of an expression; note that this requires type inference
 // to have been performed prior to the call, or erroneous values will result.
 //
-VM::EpochTypeID Expression::GetEpochType(const Namespace&) const
+Metadata::EpochTypeID Expression::GetEpochType(const Namespace&) const
 {
 	return InferredType;
 }
@@ -708,7 +708,7 @@ void Expression::Coalesce(Namespace& curnamespace, CodeBlock& activescope, Compi
 		return;
 
 	// Flatten member accesses
-	VM::EpochTypeID structuretype = VM::EpochType_Error;
+	Metadata::EpochTypeID structuretype = Metadata::EpochType_Error;
 	bool completed;
 	do
 	{
@@ -796,7 +796,7 @@ ExpressionAtomStatement::~ExpressionAtomStatement()
 //
 // Retrieve the effective type of an expression atom wrapping a statement
 //
-VM::EpochTypeID ExpressionAtomStatement::GetEpochType(const Namespace& curnamespace) const
+Metadata::EpochTypeID ExpressionAtomStatement::GetEpochType(const Namespace& curnamespace) const
 {
 	return MyStatement->GetEpochType(curnamespace);
 }
@@ -837,12 +837,12 @@ ExpressionAtomParenthetical::~ExpressionAtomParenthetical()
 //
 // Retrieve the effective type of a parenthetical expression
 //
-VM::EpochTypeID ExpressionAtomParenthetical::GetEpochType(const Namespace& curnamespace) const
+Metadata::EpochTypeID ExpressionAtomParenthetical::GetEpochType(const Namespace& curnamespace) const
 {
 	if(MyParenthetical)
 		return MyParenthetical->GetEpochType(curnamespace);
 
-	return VM::EpochType_Error;
+	return Metadata::EpochType_Error;
 }
 
 //
@@ -881,7 +881,7 @@ ParentheticalPreOp::~ParentheticalPreOp()
 //
 // Retrieve the effective type of a parenthetical pre-operation statement
 //
-VM::EpochTypeID ParentheticalPreOp::GetEpochType(const Namespace& curnamespace) const
+Metadata::EpochTypeID ParentheticalPreOp::GetEpochType(const Namespace& curnamespace) const
 {
 	return MyStatement->GetEpochType(curnamespace);
 }
@@ -922,7 +922,7 @@ ParentheticalPostOp::~ParentheticalPostOp()
 //
 // Retrieve the effective type of a parenthetical post-operation statement
 //
-VM::EpochTypeID ParentheticalPostOp::GetEpochType(const Namespace& curnamespace) const
+Metadata::EpochTypeID ParentheticalPostOp::GetEpochType(const Namespace& curnamespace) const
 {
 	return MyStatement->GetEpochType(curnamespace);
 }
@@ -963,7 +963,7 @@ ParentheticalExpression::~ParentheticalExpression()
 //
 // Retrieve the effective type of a parenthetical expression
 //
-VM::EpochTypeID ParentheticalExpression::GetEpochType(const Namespace& curnamespace) const
+Metadata::EpochTypeID ParentheticalExpression::GetEpochType(const Namespace& curnamespace) const
 {
 	return MyExpression->GetEpochType(curnamespace);
 }
@@ -991,7 +991,7 @@ bool ParentheticalExpression::CompileTimeCodeExecution(Namespace& curnamespace, 
 // Note that this requires the atom to have undergone type
 // inference prior to the call, or results will be bogus.
 //
-VM::EpochTypeID ExpressionAtomIdentifierBase::GetEpochType(const Namespace&) const
+Metadata::EpochTypeID ExpressionAtomIdentifierBase::GetEpochType(const Namespace&) const
 {
 	return MyType;
 }
@@ -1002,22 +1002,22 @@ VM::EpochTypeID ExpressionAtomIdentifierBase::GetEpochType(const Namespace&) con
 bool ExpressionAtomIdentifierBase::TypeInference(Namespace& curnamespace, CodeBlock& activescope, InferenceContext& context, size_t index, size_t maxindex, CompileErrors& errors)
 {
 	// Early out to avoid duplicate inference work
-	if(MyType != VM::EpochType_Error)
-		return (MyType != VM::EpochType_Infer);
+	if(MyType != Metadata::EpochType_Error)
+		return (MyType != Metadata::EpochType_Infer);
 
 	bool foundidentifier = activescope.GetScope()->HasVariable(Identifier);
 	StringHandle resolvedidentifier = Identifier;
-	VM::EpochTypeID vartype = foundidentifier ? activescope.GetScope()->GetVariableTypeByID(Identifier) : VM::EpochType_Infer;
+	Metadata::EpochTypeID vartype = foundidentifier ? activescope.GetScope()->GetVariableTypeByID(Identifier) : Metadata::EpochType_Infer;
 
 	if(std::wstring(OriginalIdentifier.begin(), OriginalIdentifier.end()) == L"nothing")
-		vartype = VM::EpochType_Nothing;
+		vartype = Metadata::EpochType_Nothing;
 
-	VM::EpochTypeID underlyingtype = vartype;
+	Metadata::EpochTypeID underlyingtype = vartype;
 
-	if(foundidentifier && VM::GetTypeFamily(vartype) == VM::EpochTypeFamily_Unit)
+	if(foundidentifier && Metadata::GetTypeFamily(vartype) == Metadata::EpochTypeFamily_Unit)
 		underlyingtype = curnamespace.Types.Aliases.GetStrongRepresentation(vartype);
 	
-	std::set<VM::EpochTypeID> possibletypes;
+	std::set<Metadata::EpochTypeID> possibletypes;
 	unsigned signaturematches = 0;
 
 	if(!context.ExpectedTypes.empty())
@@ -1031,16 +1031,16 @@ bool ExpressionAtomIdentifierBase::TypeInference(Namespace& curnamespace, CodeBl
 			if(types[i].size() != maxindex)
 				continue;
 
-			VM::EpochTypeID paramtype = types[i][index];
-			if(paramtype == VM::EpochType_Function)
+			Metadata::EpochTypeID paramtype = types[i][index];
+			if(paramtype == Metadata::EpochType_Function)
 			{
-				possibletypes.insert(VM::EpochType_Function);
+				possibletypes.insert(Metadata::EpochType_Function);
 				signaturematches += curnamespace.Functions.FindMatchingFunctions(Identifier, context.ExpectedSignatures.back()[i][index], context, errors, resolvedidentifier);
 			}
 			else if(paramtype == underlyingtype)
 				possibletypes.insert(vartype);
-			else if(paramtype == VM::EpochType_Identifier)
-				possibletypes.insert(VM::EpochType_Identifier);
+			else if(paramtype == Metadata::EpochType_Identifier)
+				possibletypes.insert(Metadata::EpochType_Identifier);
 		}
 	}
 
@@ -1050,12 +1050,12 @@ bool ExpressionAtomIdentifierBase::TypeInference(Namespace& curnamespace, CodeBl
 	}
 	else
 	{
-		if(*possibletypes.begin() == VM::EpochType_Function)
+		if(*possibletypes.begin() == Metadata::EpochType_Function)
 		{
 			if(signaturematches == 1)
 			{
 				Identifier = resolvedidentifier;
-				MyType = VM::EpochType_Function;
+				MyType = Metadata::EpochType_Function;
 			}
 			else
 				MyType = vartype;
@@ -1064,7 +1064,7 @@ bool ExpressionAtomIdentifierBase::TypeInference(Namespace& curnamespace, CodeBl
 			MyType = *possibletypes.begin();
 	}
 
-	bool success = (MyType != VM::EpochType_Infer && MyType != VM::EpochType_Error);
+	bool success = (MyType != Metadata::EpochType_Infer && MyType != Metadata::EpochType_Error);
 	if(!success)
 	{
 		errors.SetContext(OriginalIdentifier);
@@ -1072,7 +1072,7 @@ bool ExpressionAtomIdentifierBase::TypeInference(Namespace& curnamespace, CodeBl
 			errors.SemanticError("Unrecognized identifier");
 		else if(possibletypes.empty())
 			errors.SemanticError("Unrecognized type");
-		else if(*possibletypes.begin() == VM::EpochType_Function)
+		else if(*possibletypes.begin() == Metadata::EpochType_Function)
 			errors.SemanticError("No matching functions");
 		else
 			errors.SemanticError("Type mismatch");
@@ -1127,9 +1127,9 @@ ExpressionAtom* ExpressionAtomIdentifierReference::Clone() const
 // is not encapsulated by the operator atom itself, we always return
 // an error here.
 //
-VM::EpochTypeID ExpressionAtomOperator::GetEpochType(const Namespace&) const
+Metadata::EpochTypeID ExpressionAtomOperator::GetEpochType(const Namespace&) const
 {
-	return VM::EpochType_Error;
+	return Metadata::EpochType_Error;
 }
 
 //
@@ -1184,9 +1184,9 @@ bool ExpressionAtomOperator::IsOperatorUnary(const Namespace& curnamespace) cons
 // operands. Performs overload resolution in order
 // to obtain the correct operator overload.
 //
-VM::EpochTypeID ExpressionAtomOperator::DetermineOperatorReturnType(Namespace& curnamespace, VM::EpochTypeID lhstype, VM::EpochTypeID rhstype, CompileErrors& errors) const
+Metadata::EpochTypeID ExpressionAtomOperator::DetermineOperatorReturnType(Namespace& curnamespace, Metadata::EpochTypeID lhstype, Metadata::EpochTypeID rhstype, CompileErrors& errors) const
 {
-	if(OverriddenType != VM::EpochType_Error)
+	if(OverriddenType != Metadata::EpochType_Error)
 		return OverriddenType;
 
 	if(curnamespace.Functions.Exists(Identifier))
@@ -1218,7 +1218,7 @@ VM::EpochTypeID ExpressionAtomOperator::DetermineOperatorReturnType(Namespace& c
 			return signature.GetReturnType();
 	}
 
-	return VM::EpochType_Error;
+	return Metadata::EpochType_Error;
 }
 
 //
@@ -1227,9 +1227,9 @@ VM::EpochTypeID ExpressionAtomOperator::DetermineOperatorReturnType(Namespace& c
 // resolution to obtain the correct operator
 // overload given the types involved.
 //
-VM::EpochTypeID ExpressionAtomOperator::DetermineUnaryReturnType(Namespace& curnamespace, VM::EpochTypeID operandtype, CompileErrors& errors) const
+Metadata::EpochTypeID ExpressionAtomOperator::DetermineUnaryReturnType(Namespace& curnamespace, Metadata::EpochTypeID operandtype, CompileErrors& errors) const
 {
-	if(OverriddenType != VM::EpochType_Error)
+	if(OverriddenType != Metadata::EpochType_Error)
 		return OverriddenType;
 
 	if(curnamespace.Functions.Exists(Identifier))
@@ -1261,7 +1261,7 @@ VM::EpochTypeID ExpressionAtomOperator::DetermineUnaryReturnType(Namespace& curn
 			return signature.GetReturnType();
 	}
 
-	return VM::EpochType_Error;
+	return Metadata::EpochType_Error;
 }
 
 //
@@ -1285,7 +1285,7 @@ ExpressionAtom* ExpressionAtomOperator::Clone() const
 //
 // Literal integers always have the same type
 //
-VM::EpochTypeID ExpressionAtomLiteralInteger32::GetEpochType(const Namespace&) const
+Metadata::EpochTypeID ExpressionAtomLiteralInteger32::GetEpochType(const Namespace&) const
 {
 	return MyType;
 }
@@ -1306,20 +1306,20 @@ bool ExpressionAtomLiteralInteger32::TypeInference(Namespace& curnamespace, Code
 		if(context.ExpectedTypes.back()[i].size() < maxindex)
 			continue;
 
-		VM::EpochTypeID expectedtype = context.ExpectedTypes.back()[i][index];
-		if(VM::GetTypeFamily(expectedtype) == VM::EpochTypeFamily_Unit)
+		Metadata::EpochTypeID expectedtype = context.ExpectedTypes.back()[i][index];
+		if(Metadata::GetTypeFamily(expectedtype) == Metadata::EpochTypeFamily_Unit)
 		{
-			if(curnamespace.Types.Aliases.GetStrongRepresentation(expectedtype) == VM::EpochType_Integer)
+			if(curnamespace.Types.Aliases.GetStrongRepresentation(expectedtype) == Metadata::EpochType_Integer)
 				MyType = expectedtype;
 		}
-		else if(expectedtype == VM::EpochType_Integer)
+		else if(expectedtype == Metadata::EpochType_Integer)
 			expected32bits = true;
-		else if(expectedtype == VM::EpochType_Integer16)
+		else if(expectedtype == Metadata::EpochType_Integer16)
 			expected16bits = true;
 	}
 
 	if(expected16bits && !expected32bits)
-		return Demote(VM::EpochType_Integer16, curnamespace);
+		return Demote(Metadata::EpochType_Integer16, curnamespace);
 
 	return true;
 }
@@ -1341,7 +1341,7 @@ bool ExpressionAtomLiteralInteger32::CompileTimeCodeExecution(Namespace&, CodeBl
 //
 CompileTimeParameter ExpressionAtomLiteralInteger32::ConvertToCompileTimeParam(const Namespace&) const
 {
-	CompileTimeParameter ret(L"@@autoctp", VM::EpochType_Integer);
+	CompileTimeParameter ret(L"@@autoctp", Metadata::EpochType_Integer);
 	ret.Payload.IntegerValue = Value;
 	ret.HasPayload = true;
 	return ret;
@@ -1351,7 +1351,7 @@ CompileTimeParameter ExpressionAtomLiteralInteger32::ConvertToCompileTimeParam(c
 //
 // Real literals always have the same type
 //
-VM::EpochTypeID ExpressionAtomLiteralReal32::GetEpochType(const Namespace&) const
+Metadata::EpochTypeID ExpressionAtomLiteralReal32::GetEpochType(const Namespace&) const
 {
 	return MyType;
 }
@@ -1363,10 +1363,10 @@ bool ExpressionAtomLiteralReal32::TypeInference(Namespace& curnamespace, CodeBlo
 {
 	for(size_t i = 0; i < context.ExpectedTypes.back().size(); ++i)
 	{
-		VM::EpochTypeID expectedtype = context.ExpectedTypes.back()[i][index];
-		if(VM::GetTypeFamily(expectedtype) == VM::EpochTypeFamily_Unit)
+		Metadata::EpochTypeID expectedtype = context.ExpectedTypes.back()[i][index];
+		if(Metadata::GetTypeFamily(expectedtype) == Metadata::EpochTypeFamily_Unit)
 		{
-			if(curnamespace.Types.Aliases.GetStrongRepresentation(expectedtype) == VM::EpochType_Real)
+			if(curnamespace.Types.Aliases.GetStrongRepresentation(expectedtype) == Metadata::EpochType_Real)
 				MyType = expectedtype;
 		}
 	}
@@ -1390,7 +1390,7 @@ bool ExpressionAtomLiteralReal32::CompileTimeCodeExecution(Namespace&, CodeBlock
 //
 CompileTimeParameter ExpressionAtomLiteralReal32::ConvertToCompileTimeParam(const Namespace&) const
 {
-	CompileTimeParameter ret(L"@@autoctp", VM::EpochType_Real);
+	CompileTimeParameter ret(L"@@autoctp", Metadata::EpochType_Real);
 	ret.Payload.RealValue = Value;
 	ret.HasPayload = true;
 	return ret;
@@ -1401,9 +1401,9 @@ CompileTimeParameter ExpressionAtomLiteralReal32::ConvertToCompileTimeParam(cons
 //
 // Boolean literals always have the same type
 //
-VM::EpochTypeID ExpressionAtomLiteralBoolean::GetEpochType(const Namespace&) const
+Metadata::EpochTypeID ExpressionAtomLiteralBoolean::GetEpochType(const Namespace&) const
 {
-	return VM::EpochType_Boolean;
+	return Metadata::EpochType_Boolean;
 }
 
 //
@@ -1430,7 +1430,7 @@ bool ExpressionAtomLiteralBoolean::CompileTimeCodeExecution(Namespace&, CodeBloc
 //
 CompileTimeParameter ExpressionAtomLiteralBoolean::ConvertToCompileTimeParam(const Namespace&) const
 {
-	CompileTimeParameter ret(L"@@autoctp", VM::EpochType_Boolean);
+	CompileTimeParameter ret(L"@@autoctp", Metadata::EpochType_Boolean);
 	ret.Payload.BooleanValue = Value;
 	ret.HasPayload = true;
 	return ret;
@@ -1440,9 +1440,9 @@ CompileTimeParameter ExpressionAtomLiteralBoolean::ConvertToCompileTimeParam(con
 //
 // Literal strings always have the same type
 //
-VM::EpochTypeID ExpressionAtomLiteralString::GetEpochType(const Namespace&) const
+Metadata::EpochTypeID ExpressionAtomLiteralString::GetEpochType(const Namespace&) const
 {
-	return VM::EpochType_String;
+	return Metadata::EpochType_String;
 }
 
 //
@@ -1469,7 +1469,7 @@ bool ExpressionAtomLiteralString::CompileTimeCodeExecution(Namespace&, CodeBlock
 //
 CompileTimeParameter ExpressionAtomLiteralString::ConvertToCompileTimeParam(const Namespace& curnamespace) const
 {
-	CompileTimeParameter ret(L"@@autoctp", VM::EpochType_String);
+	CompileTimeParameter ret(L"@@autoctp", Metadata::EpochType_String);
 	ret.Payload.LiteralStringHandleValue = Handle;
 	ret.StringPayload = curnamespace.Strings.GetPooledString(Handle);
 	ret.HasPayload = true;
@@ -1555,9 +1555,9 @@ ExpressionAtom* ExpressionAtomLiteralReal32::Clone() const
 	return clone;
 }
 
-bool ExpressionAtomLiteralInteger32::Demote(VM::EpochTypeID target, const Namespace&)
+bool ExpressionAtomLiteralInteger32::Demote(Metadata::EpochTypeID target, const Namespace&)
 {
-	if(target != VM::EpochType_Integer16)
+	if(target != Metadata::EpochType_Integer16)
 		return false;
 
 	if(static_cast<UInteger32>(Value) > std::numeric_limits<UInteger16>::max())

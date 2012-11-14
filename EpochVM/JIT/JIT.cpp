@@ -181,29 +181,29 @@ JITExecPtr JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instru
 
 		case Bytecode::Instructions::Push:
 			{
-				VM::EpochTypeID type = Fetch<VM::EpochTypeID>(bytecode, offset);
+				Metadata::EpochTypeID type = Fetch<Metadata::EpochTypeID>(bytecode, offset);
 				Constant* valueval;
 
 				switch(type)
 				{
-				case VM::EpochType_Integer:
+				case Metadata::EpochType_Integer:
 					{
 						Integer32 value = Fetch<Integer32>(bytecode, offset);
 						valueval = ConstantInt::get(Type::getInt32Ty(context), value);
 					}
 					break;
 
-				case VM::EpochType_String:
+				case Metadata::EpochType_String:
 					{
 						StringHandle value = Fetch<StringHandle>(bytecode, offset);
 						valueval = ConstantInt::get(Type::getInt32Ty(context), value);
 					}
 					break;
 
-				case VM::EpochType_Integer16:
-				case VM::EpochType_Boolean:
-				case VM::EpochType_Real:
-				case VM::EpochType_Buffer:
+				case Metadata::EpochType_Integer16:
+				case Metadata::EpochType_Boolean:
+				case Metadata::EpochType_Real:
+				case Metadata::EpochType_Buffer:
 				default:
 					throw FatalException("Unsupported type for JIT compilation");
 				}

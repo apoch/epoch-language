@@ -1,13 +1,13 @@
 //
 // The Epoch Language Project
-// EPOCHVM Virtual Machine
+// Shared Library Code
 //
 // Central interface for retrieving information about types
 //
 
 #include "pch.h"
 
-#include "Virtual Machine/TypeInfo.h"
+#include "Metadata/TypeInfo.h"
 
 #include "Utility/Types/IntegerTypes.h"
 #include "Utility/Types/RealTypes.h"
@@ -16,13 +16,13 @@
 #include <exception>
 
 
-using namespace VM;
+using namespace Metadata;
 
 
 //
 // Given a type ID, determine the amount of storage space needed
 //
-EPOCHVM size_t VM::GetStorageSize(EpochTypeID type)
+size_t Metadata::GetStorageSize(EpochTypeID type)
 {
 	switch(type)
 	{
@@ -44,8 +44,8 @@ EPOCHVM size_t VM::GetStorageSize(EpochTypeID type)
 		throw FatalException("Unable to determine the size of this variable/structure member");
 
 	default:
-		if(VM::GetTypeFamily(type) != VM::EpochTypeFamily_Structure && VM::GetTypeFamily(type) != VM::EpochTypeFamily_TemplateInstance)
-			throw NotImplementedException("Unsupported data type in VM::GetStorageSize()");
+		if(Metadata::GetTypeFamily(type) != Metadata::EpochTypeFamily_Structure && Metadata::GetTypeFamily(type) != Metadata::EpochTypeFamily_TemplateInstance)
+			throw NotImplementedException("Unsupported data type in Metadata::GetStorageSize()");
 
 		return sizeof(StructureHandle);
 	}
@@ -54,7 +54,7 @@ EPOCHVM size_t VM::GetStorageSize(EpochTypeID type)
 //
 // Given a type ID, determine the amount of storage space needed when the data is marshaled to C
 //
-EPOCHVM size_t VM::GetMarshaledSize(EpochTypeID type)
+size_t Metadata::GetMarshaledSize(EpochTypeID type)
 {
 	switch(type)
 	{

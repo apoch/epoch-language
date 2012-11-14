@@ -26,7 +26,7 @@ public:
 
 // Base type configuration
 public:
-	void AddBaseType(VM::EpochTypeID type, size_t typesize)
+	void AddBaseType(Metadata::EpochTypeID type, size_t typesize)
 	{
 		BaseTypes.insert(type);
 		DataSize = std::max(DataSize, typesize);
@@ -35,11 +35,11 @@ public:
 // Accessors
 public:
 	size_t GetMaxSize() const
-	{ return DataSize + sizeof(VM::EpochTypeID); }
+	{ return DataSize + sizeof(Metadata::EpochTypeID); }
 
 // Internal tracking
 private:
 	size_t DataSize;
-	std::set<VM::EpochTypeID> BaseTypes;
+	std::set<Metadata::EpochTypeID> BaseTypes;
 };
 

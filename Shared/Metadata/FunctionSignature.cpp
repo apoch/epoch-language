@@ -16,21 +16,21 @@
 // Construct and initialize a function signature wrapper
 //
 FunctionSignature::FunctionSignature()
-	: ReturnType(VM::EpochType_Void)
+	: ReturnType(Metadata::EpochType_Void)
 {
 }
 
 //
 // Add a parameter with the given name and data type to the function signature
 //
-void FunctionSignature::AddParameter(const std::wstring& name, VM::EpochTypeID type, bool isreference)
+void FunctionSignature::AddParameter(const std::wstring& name, Metadata::EpochTypeID type, bool isreference)
 {
 	Parameters.push_back(CompileTimeParameter(name, type));
 	FunctionSignatures.push_back(FunctionSignature());
 	Parameters.back().IsReference = isreference;
 }
 
-void FunctionSignature::PrependParameter(const std::wstring& name, VM::EpochTypeID type, bool isreference)
+void FunctionSignature::PrependParameter(const std::wstring& name, Metadata::EpochTypeID type, bool isreference)
 {
 	Parameters.insert(Parameters.begin(), CompileTimeParameter(name, type));
 	FunctionSignatures.insert(FunctionSignatures.begin(), FunctionSignature());
@@ -42,7 +42,7 @@ void FunctionSignature::PrependParameter(const std::wstring& name, VM::EpochType
 //
 void FunctionSignature::AddPatternMatchedParameter(Integer32 literalvalue)
 {
-	CompileTimeParameter ctparam(L"@@patternmatched", VM::EpochType_Integer);
+	CompileTimeParameter ctparam(L"@@patternmatched", Metadata::EpochType_Integer);
 	ctparam.Payload.IntegerValue = literalvalue;
 	ctparam.HasPayload = true;
 	Parameters.push_back(ctparam);
@@ -54,7 +54,7 @@ void FunctionSignature::AddPatternMatchedParameter(Integer32 literalvalue)
 //
 void FunctionSignature::AddPatternMatchedParameterIdentifier(StringHandle identifier)
 {
-	CompileTimeParameter ctparam(L"@@patternmatched", VM::EpochType_Identifier);
+	CompileTimeParameter ctparam(L"@@patternmatched", Metadata::EpochType_Identifier);
 	ctparam.Payload.LiteralStringHandleValue = identifier;
 	ctparam.HasPayload = true;
 	Parameters.push_back(ctparam);
@@ -64,7 +64,7 @@ void FunctionSignature::AddPatternMatchedParameterIdentifier(StringHandle identi
 //
 // Set the return type of the function
 //
-void FunctionSignature::SetReturnType(VM::EpochTypeID type)
+void FunctionSignature::SetReturnType(Metadata::EpochTypeID type)
 {
 	ReturnType = type;
 }
@@ -120,7 +120,7 @@ void FunctionSignature::SetFunctionSignature(size_t index, const FunctionSignatu
 //
 bool FunctionSignature::Matches(const FunctionSignature& rhs) const
 {
-	if(ReturnType != rhs.ReturnType && ReturnType != VM::EpochType_Infer && rhs.ReturnType != VM::EpochType_Infer)
+	if(ReturnType != rhs.ReturnType && ReturnType != Metadata::EpochType_Infer && rhs.ReturnType != Metadata::EpochType_Infer)
 		return false;
 
 	if(Parameters.size() != rhs.Parameters.size())
@@ -128,10 +128,10 @@ bool FunctionSignature::Matches(const FunctionSignature& rhs) const
 
 	for(size_t i = 0; i < Parameters.size(); ++i)
 	{
-		if(Parameters[i].Type != rhs.Parameters[i].Type && Parameters[i].Type != VM::EpochType_Infer && rhs.Parameters[i].Type != VM::EpochType_Infer)
+		if(Parameters[i].Type != rhs.Parameters[i].Type && Parameters[i].Type != Metadata::EpochType_Infer && rhs.Parameters[i].Type != Metadata::EpochType_Infer)
 			return false;
 
-		if(Parameters[i].Type == VM::EpochType_Function)
+		if(Parameters[i].Type == Metadata::EpochType_Function)
 		{
 			if(!FunctionSignatures[i].Matches(rhs.FunctionSignatures[i]))
 				return false;
@@ -144,22 +144,22 @@ bool FunctionSignature::Matches(const FunctionSignature& rhs) const
 		{
 			switch(Parameters[i].Type)
 			{
-			case VM::EpochType_Boolean:
+			case Metadata::EpochType_Boolean:
 				if(Parameters[i].Payload.BooleanValue != rhs.Parameters[i].Payload.BooleanValue)
 					return false;
 				break;
 
-			case VM::EpochType_Integer:
+			case Metadata::EpochType_Integer:
 				if(Parameters[i].Payload.IntegerValue != rhs.Parameters[i].Payload.IntegerValue)
 					return false;
 				break;
 
-			case VM::EpochType_String:
+			case Metadata::EpochType_String:
 				if(Parameters[i].StringPayload != rhs.Parameters[i].StringPayload)
 					return false;
 				break;
 
-			case VM::EpochType_Real:
+			case Metadata::EpochType_Real:
 				if(Parameters[i].Payload.RealValue != rhs.Parameters[i].Payload.RealValue)
 					return false;
 				break;
@@ -175,7 +175,7 @@ bool FunctionSignature::Matches(const FunctionSignature& rhs) const
 
 bool FunctionSignature::MatchesDynamicPattern(const FunctionSignature& rhs) const
 {
-	if(ReturnType != rhs.ReturnType && ReturnType != VM::EpochType_Infer && rhs.ReturnType != VM::EpochType_Infer)
+	if(ReturnType != rhs.ReturnType && ReturnType != Metadata::EpochType_Infer && rhs.ReturnType != Metadata::EpochType_Infer)
 		return false;
 
 	if(Parameters.size() != rhs.Parameters.size())
@@ -183,10 +183,10 @@ bool FunctionSignature::MatchesDynamicPattern(const FunctionSignature& rhs) cons
 
 	for(size_t i = 0; i < Parameters.size(); ++i)
 	{
-		if(Parameters[i].Type != rhs.Parameters[i].Type && Parameters[i].Type != VM::EpochType_Infer && rhs.Parameters[i].Type != VM::EpochType_Infer)
+		if(Parameters[i].Type != rhs.Parameters[i].Type && Parameters[i].Type != Metadata::EpochType_Infer && rhs.Parameters[i].Type != Metadata::EpochType_Infer)
 			return false;
 
-		if(Parameters[i].Type == VM::EpochType_Function)
+		if(Parameters[i].Type == Metadata::EpochType_Function)
 		{
 			if(!FunctionSignatures[i].Matches(rhs.FunctionSignatures[i]))
 				return false;

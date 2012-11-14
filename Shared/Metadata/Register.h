@@ -35,7 +35,7 @@ public:
 	void SetString(StringHandle value);
 	void SetBuffer(BufferHandle value);
 
-	void SetStructure(StructureHandle value, VM::EpochTypeID typetag);
+	void SetStructure(StructureHandle value, Metadata::EpochTypeID typetag);
 
 	void SetFunction(StringHandle value);
 
@@ -56,7 +56,7 @@ public:
 		Real32 Value_Real;
 	};
 
-	VM::EpochTypeID Type;
+	Metadata::EpochTypeID Type;
 	bool SumType;
 };
 

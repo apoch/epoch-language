@@ -224,7 +224,7 @@ namespace
 		// callback stub, which uses a stack slot.
 		UByte* esp = espsave + sizeof(void*);
 
-		VM::EpochTypeID resulttype = VM::EpochType_Void;
+		Metadata::EpochTypeID resulttype = Metadata::EpochType_Void;
 		const ScopeDescription& description = context->OwnerVM.GetScopeDescription(callbackfunction);
 		for(size_t i = 0; i < description.GetVariableCount(); ++i)
 		{
@@ -234,22 +234,22 @@ namespace
 			{
 				switch(description.GetVariableTypeByIndex(i))
 				{
-				case VM::EpochType_Boolean:
+				case Metadata::EpochType_Boolean:
 					context->State.Stack.PushValue<bool>(*reinterpret_cast<Integer32*>(esp) != 0 ? true : false);
 					esp += sizeof(Integer32);
 					break;
 
-				case VM::EpochType_Integer:
+				case Metadata::EpochType_Integer:
 					context->State.Stack.PushValue(*reinterpret_cast<Integer32*>(esp));
 					esp += sizeof(Integer32);
 					break;
 
-				case VM::EpochType_Real:
+				case Metadata::EpochType_Real:
 					context->State.Stack.PushValue(*reinterpret_cast<Real32*>(esp));
 					esp += sizeof(Real32);
 					break;
 
-				case VM::EpochType_String:
+				case Metadata::EpochType_String:
 					{
 						StringHandle handle = context->OwnerVM.PoolString(*reinterpret_cast<wchar_t**>(esp));
 						context->State.Stack.PushValue(handle);
@@ -273,13 +273,13 @@ namespace
 		// we let the compiler generate the return code for us.
 		switch(resulttype)
 		{
-		case VM::EpochType_Void:
+		case Metadata::EpochType_Void:
 			return 0;
 
-		case VM::EpochType_Integer:
+		case Metadata::EpochType_Integer:
 			return context->State.Stack.PopValue<Integer32>();
 
-		case VM::EpochType_Boolean:
+		case Metadata::EpochType_Boolean:
 			return context->State.Stack.PopValue<bool>() ? 1 : 0;
 
 		default:
@@ -298,6 +298,7 @@ namespace
 	bool MarshalStructureDataIntoBuffer(VM::ExecutionContext& context, const ActiveStructure& structure, const StructureDefinition& definition, Byte* buffer)
 	{
 		using namespace VM;
+		using namespace Metadata;
 
 		for(size_t j = 0; j < definition.GetNumMembers(); ++j)
 		{
@@ -335,7 +336,7 @@ namespace
 				break;
 
 			default:
-				if(VM::GetTypeFamily(membertype) == VM::EpochTypeFamily_Structure || VM::GetTypeFamily(membertype) == VM::EpochTypeFamily_TemplateInstance)
+				if(Metadata::GetTypeFamily(membertype) == Metadata::EpochTypeFamily_Structure || Metadata::GetTypeFamily(membertype) == Metadata::EpochTypeFamily_TemplateInstance)
 				{
 					StructureHandle structurehandle = structure.ReadMember<StructureHandle>(j);
 					const ActiveStructure& nestedstructure = context.OwnerVM.GetStructure(structurehandle);
@@ -417,6 +418,7 @@ struct pushrec
 void ExternalDispatch(StringHandle, VM::ExecutionContext& context)
 {
 	using namespace VM;
+	using namespace Metadata;
 
 	// We use the name of the calling function to map us to the correct external.
 	// This is because the calling function itself is the one that was originally
@@ -450,6 +452,8 @@ void ExternalDispatch(StringHandle, VM::ExecutionContext& context)
 
 void VM::MarshalIntoNativeCode(VM::ExecutionContext& context, const ScopeDescription& scope, void* address)
 {
+	using namespace Metadata;
+
 	// Placeholders for storing off the external function's return value
 	Integer32 integerret;
 	Integer16 integer16ret;
@@ -487,7 +491,7 @@ void VM::MarshalIntoNativeCode(VM::ExecutionContext& context, const ScopeDescrip
 		{
 			EpochTypeID vartype = scope.GetVariableTypeByIndex(i);
 			StringHandle varname = scope.GetVariableNameHandle(i);
-			if(VM::GetTypeFamily(vartype) == VM::EpochTypeFamily_Structure || VM::GetTypeFamily(vartype) == VM::EpochTypeFamily_TemplateInstance)
+			if(Metadata::GetTypeFamily(vartype) == Metadata::EpochTypeFamily_Structure || Metadata::GetTypeFamily(vartype) == Metadata::EpochTypeFamily_TemplateInstance)
 			{
 				StructureHandle structurehandle = context.Variables->Read<StructureHandle>(varname);
 				ActiveStructure& structure = context.OwnerVM.GetStructure(structurehandle);
@@ -733,6 +737,7 @@ void VM::RegisterMarshaledExternalFunction(StringHandle functionname, const std:
 EPOCHVM void VM::MarshalBufferIntoStructureData(VM::ExecutionContext& context, ActiveStructure& structure, const StructureDefinition& definition, const Byte* buffer)
 {
 	using namespace VM;
+	using namespace Metadata;
 
 	for(size_t j = 0; j < definition.GetNumMembers(); ++j)
 	{

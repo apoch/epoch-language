@@ -95,17 +95,17 @@ void DebugLibrary::RegisterLibraryFunctions(FunctionSignatureSet& signatureset, 
 {
 	{
 		FunctionSignature signature;
-		signature.AddParameter(L"str", VM::EpochType_String, false);
+		signature.AddParameter(L"str", Metadata::EpochType_String, false);
 		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"print"), signature));
 	}
 	{
 		FunctionSignature signature;
-		signature.SetReturnType(VM::EpochType_String);
+		signature.SetReturnType(Metadata::EpochType_String);
 		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"read"), signature));
 	}
 	{
 		FunctionSignature signature;
-		signature.AddParameter(L"value", VM::EpochType_Boolean, false);
+		signature.AddParameter(L"value", Metadata::EpochType_Boolean, false);
 		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"assert"), signature));
 	}
 	{

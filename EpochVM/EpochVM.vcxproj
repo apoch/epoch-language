@@ -94,6 +94,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\Shared\Metadata\TypeInfo.cpp" />
     <ClCompile Include="Entry Point\EntryPoint.cpp" />
     <ClCompile Include="JIT\JIT.cpp" />
     <ClCompile Include="pch.cpp">
@@ -102,7 +103,6 @@
     </ClCompile>
     <ClCompile Include="Exports\Exports.cpp" />
     <ClCompile Include="Virtual Machine\Marshaling.cpp" />
-    <ClCompile Include="Virtual Machine\TypeInfo.cpp" />
     <ClCompile Include="Virtual Machine\VirtualMachine.cpp" />
     <ClCompile Include="..\Shared\User Interface\Input.cpp" />
     <ClCompile Include="..\Shared\User Interface\Output.cpp" />
@@ -122,12 +122,12 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Shared\Metadata\ActiveStructure.h" />
+    <ClInclude Include="..\Shared\Metadata\TypeInfo.h" />
     <ClInclude Include="..\Shared\Metadata\Variant.h" />
     <ClInclude Include="JIT\JIT.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="Virtual Machine\ExportDef.h" />
     <ClInclude Include="Virtual Machine\Marshaling.h" />
-    <ClInclude Include="Virtual Machine\TypeInfo.h" />
     <ClInclude Include="Virtual Machine\VirtualMachine.h" />
     <ClInclude Include="..\Shared\Bytecode\EntityTags.h" />
     <ClInclude Include="..\Shared\Bytecode\Instructions.h" />

@@ -92,8 +92,8 @@ namespace IRSemantics
 
 	// Lexical scope management
 	public:
-		EPOCHCOMPILER void AddVariable(const std::wstring& identifier, StringHandle identifierhandle, StringHandle typenamehandle, VM::EpochTypeID type, bool isreference, VariableOrigin origin);
-		VM::EpochTypeID GetVariableTypeByID(StringHandle identifier) const;
+		EPOCHCOMPILER void AddVariable(const std::wstring& identifier, StringHandle identifierhandle, StringHandle typenamehandle, Metadata::EpochTypeID type, bool isreference, VariableOrigin origin);
+		Metadata::EpochTypeID GetVariableTypeByID(StringHandle identifier) const;
 
 		ScopeDescription* GetScope()
 		{ return Scope; }
