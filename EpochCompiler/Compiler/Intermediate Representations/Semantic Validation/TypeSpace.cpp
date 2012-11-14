@@ -471,25 +471,11 @@ TypeSpace::TypeSpace(Namespace& mynamespace, GlobalIDSpace& idspace)
 
 Metadata::EpochTypeID TypeSpace::GetTypeByName(StringHandle name) const
 {
-	// TODO - replace this with a less hard-coded solution
-	const std::wstring& type = MyNamespace.Strings.GetPooledString(name);
-
-	if(type == L"integer")
-		return Metadata::EpochType_Integer;
-	else if(type == L"integer16")
-		return Metadata::EpochType_Integer16;
-	else if(type == L"string")
-		return Metadata::EpochType_String;
-	else if(type == L"boolean")
-		return Metadata::EpochType_Boolean;
-	else if(type == L"real")
-		return Metadata::EpochType_Real;
-	else if(type == L"buffer")
-		return Metadata::EpochType_Buffer;
-	else if(type == L"identifier")
-		return Metadata::EpochType_Identifier;
-	else if(type == L"nothing")
-		return Metadata::EpochType_Nothing;
+	{
+		NameToTypeTable::const_iterator iter = MyNamespace.Session.IntrinsicTypes.find(name);
+		if(iter != MyNamespace.Session.IntrinsicTypes.end())
+			return iter->second;
+	}
 
 	{
 		std::map<StringHandle, Metadata::EpochTypeID>::const_iterator iter = Structures.NameToTypeMap.find(name);
@@ -538,34 +524,10 @@ Metadata::EpochTypeID TypeSpace::GetTypeByName(StringHandle name) const
 
 StringHandle TypeSpace::GetNameOfType(Metadata::EpochTypeID type) const
 {
-	switch(type)
+	for(NameToTypeTable::const_iterator iter = MyNamespace.Session.IntrinsicTypes.begin(); iter != MyNamespace.Session.IntrinsicTypes.end(); ++iter)
 	{
-	case Metadata::EpochType_Boolean:
-		return MyNamespace.Strings.Find(L"boolean");
-
-	case Metadata::EpochType_Buffer:
-		return MyNamespace.Strings.Find(L"buffer");
-
-	case Metadata::EpochType_Identifier:
-		return MyNamespace.Strings.Find(L"identifier");
-
-	case Metadata::EpochType_Integer:
-		return MyNamespace.Strings.Find(L"integer");
-
-	case Metadata::EpochType_Integer16:
-		return MyNamespace.Strings.Find(L"integer16");
-
-	case Metadata::EpochType_Nothing:
-		return MyNamespace.Strings.Find(L"nothing");
-
-	case Metadata::EpochType_Real:
-		return MyNamespace.Strings.Find(L"real");
-
-	case Metadata::EpochType_String:
-		return MyNamespace.Strings.Find(L"string");
-
-	case Metadata::EpochType_Function:
-		return MyNamespace.Strings.Pool(L"function");
+		if(iter->second == type)
+			return iter->first;
 	}
 
 	for(std::map<StringHandle, Metadata::EpochTypeID>::const_iterator iter = Structures.NameToTypeMap.begin(); iter != Structures.NameToTypeMap.end(); ++iter)

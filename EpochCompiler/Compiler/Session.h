@@ -27,6 +27,7 @@ namespace IRSemantics { class Program; }
 
 
 typedef std::vector<char> ByteBuffer;
+typedef std::map<StringHandle, Metadata::EpochTypeID> NameToTypeTable;
 
 
 //
@@ -76,11 +77,15 @@ public:
 
 	IdentifierTable Identifiers;
 
+	NameToTypeTable IntrinsicTypes;
+
 	std::wstring FileName;
 
 // Internal helpers
 private:
 	void CompileFile(const std::wstring& codeblock, const std::wstring& filename);
+
+	void InitIntrinsicTypes();
 
 // Internal tracking
 private:

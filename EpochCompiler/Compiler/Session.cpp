@@ -85,6 +85,8 @@ CompileSession::CompileSession()
 		Identifiers.PostfixClosers.insert(StringPool.GetPooledString(iter->second.StringName));
 
 	OperatorPrecedences.insert(std::make_pair(PRECEDENCE_MEMBERACCESS, StringPool.Pool(L".")));
+
+	InitIntrinsicTypes();
 }
 
 CompileSession::~CompileSession()
@@ -235,5 +237,18 @@ const EntityDescription& CompileSession::GetCustomEntityByName(StringHandle name
 	}
 
 	throw InvalidIdentifierException("Invalid entity name");
+}
+
+void CompileSession::InitIntrinsicTypes()
+{
+	IntrinsicTypes[StringPool.Pool(L"integer")] = Metadata::EpochType_Integer;
+	IntrinsicTypes[StringPool.Pool(L"integer16")] = Metadata::EpochType_Integer16;
+	IntrinsicTypes[StringPool.Pool(L"string")] = Metadata::EpochType_String;
+	IntrinsicTypes[StringPool.Pool(L"boolean")] = Metadata::EpochType_Boolean;
+	IntrinsicTypes[StringPool.Pool(L"real")] = Metadata::EpochType_Real;
+	IntrinsicTypes[StringPool.Pool(L"buffer")] = Metadata::EpochType_Buffer;
+	IntrinsicTypes[StringPool.Pool(L"identifier")] = Metadata::EpochType_Identifier;
+	IntrinsicTypes[StringPool.Pool(L"nothing")] = Metadata::EpochType_Nothing;
+	IntrinsicTypes[StringPool.Pool(L"function")] = Metadata::EpochType_Function;
 }
 
