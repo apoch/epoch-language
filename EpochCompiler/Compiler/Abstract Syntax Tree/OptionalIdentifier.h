@@ -9,7 +9,7 @@
 
 
 // Dependencies
-#include "Compiler/Abstract Syntax Tree/Identifiers.h"
+#include "Compiler/Abstract Syntax Tree/IdentifierT.h"
 
 
 namespace AST

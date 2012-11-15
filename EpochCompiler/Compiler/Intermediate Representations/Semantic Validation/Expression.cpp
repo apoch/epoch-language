@@ -229,7 +229,14 @@ namespace
 		return ret;
 	}
 
-
+	//
+	// Demote types to the smallest possible (and legal) matching type,
+	// left-hand-side of operator version.
+	//
+	// This is used to handle the case where a literal is provided
+	// that might fit into multiple primitive storage types, such as
+	// the integer literal "42" (which could be 16, 32, 64 bits, etc.)
+	//
 	void DemoteLHS(std::vector<ExpressionAtom*>& atoms, Namespace& curnamespace, size_t& index, Metadata::EpochTypeID targettype)
 	{
 		while(index < atoms.size())
@@ -249,6 +256,10 @@ namespace
 		}
 	}
 
+	//
+	// Demote types to the smallest possible (and legal) matching type,
+	// right-hand-side of operator version.
+	//
 	void DemoteRHS(std::vector<ExpressionAtom*>& atoms, Namespace& curnamespace, size_t& index, Metadata::EpochTypeID targettype)
 	{
 		while(index < atoms.size())
@@ -1089,6 +1100,9 @@ bool ExpressionAtomIdentifierBase::CompileTimeCodeExecution(Namespace&, CodeBloc
 	return true;
 }
 
+//
+// Deep copy stub
+//
 ExpressionAtom* ExpressionAtomIdentifierBase::Clone() const
 {
 	//
@@ -1103,6 +1117,9 @@ ExpressionAtom* ExpressionAtomIdentifierBase::Clone() const
 	throw InternalException("Cannot clone this class; use one of its subclasses");
 }
 
+//
+// Deep copy an atom which is an identifier
+//
 ExpressionAtom* ExpressionAtomIdentifier::Clone() const
 {
 	ExpressionAtomIdentifier* clone = new ExpressionAtomIdentifier(Identifier, OriginalIdentifier);
@@ -1110,6 +1127,9 @@ ExpressionAtom* ExpressionAtomIdentifier::Clone() const
 	return clone;
 }
 
+//
+// Deep copy an atom which is a reference to an identifier
+//
 ExpressionAtom* ExpressionAtomIdentifierReference::Clone() const
 {
 	ExpressionAtomIdentifierReference* clone = new ExpressionAtomIdentifierReference(Identifier, OriginalIdentifier);
@@ -1272,6 +1292,9 @@ int ExpressionAtomOperator::GetOperatorPrecedence(const Namespace& curnamespace)
 	return curnamespace.Operators.GetPrecedence(OriginalIdentifier);
 }
 
+//
+// Deep copy an atom which is an operator
+//
 ExpressionAtom* ExpressionAtomOperator::Clone() const
 {
 	ExpressionAtomOperator* clone = new ExpressionAtomOperator(Identifier, IsMemberAccessFlag);
@@ -1281,9 +1304,13 @@ ExpressionAtom* ExpressionAtomOperator::Clone() const
 }
 
 
-// TODO - documentation is a lie now that we do strong typedefs on primitives
 //
-// Literal integers always have the same type
+// Literals may have one of several types, due to type
+// demotion rules (e.g. 32 bit -> 16 bit integer)
+//
+// Assumes that type inference has been performed on the
+// expression containing this atom, and demotion logic
+// has been invoked.
 //
 Metadata::EpochTypeID ExpressionAtomLiteralInteger32::GetEpochType(const Namespace&) const
 {
@@ -1291,7 +1318,7 @@ Metadata::EpochTypeID ExpressionAtomLiteralInteger32::GetEpochType(const Namespa
 }
 
 //
-// Literal integers do not need type inference
+// Potentially demote a literal if necessary
 //
 bool ExpressionAtomLiteralInteger32::TypeInference(Namespace& curnamespace, CodeBlock&, InferenceContext& context, size_t index, size_t maxindex, CompileErrors&)
 {
@@ -1349,7 +1376,10 @@ CompileTimeParameter ExpressionAtomLiteralInteger32::ConvertToCompileTimeParam(c
 
 
 //
-// Real literals always have the same type
+// Return the type of a real literal; subject to type
+// demotion rules, similar to integral types.
+//
+// Assumes type inference and demotion has been applied.
 //
 Metadata::EpochTypeID ExpressionAtomLiteralReal32::GetEpochType(const Namespace&) const
 {
@@ -1357,7 +1387,7 @@ Metadata::EpochTypeID ExpressionAtomLiteralReal32::GetEpochType(const Namespace&
 }
 
 //
-// Real literals do not need type inference
+// Perform strong-typedef inference and potentially type demotion
 //
 bool ExpressionAtomLiteralReal32::TypeInference(Namespace& curnamespace, CodeBlock&, InferenceContext& context, size_t index, size_t, CompileErrors&)
 {
@@ -1477,6 +1507,9 @@ CompileTimeParameter ExpressionAtomLiteralString::ConvertToCompileTimeParam(cons
 }
 
 
+//
+// Deep copy an expression
+//
 Expression* Expression::Clone() const
 {
 	Expression* clone = new Expression;
@@ -1492,55 +1525,82 @@ Expression* Expression::Clone() const
 	return clone;
 }
 
+//
+// Deep copy an atom used to mark reference bindings
+//
 ExpressionAtom* ExpressionAtomBindReference::Clone() const
 {
 	return new ExpressionAtomBindReference(Identifier, MyType);
 }
 
+//
+// Deep copy an atom representing a statement (function call)
+//
 ExpressionAtom* ExpressionAtomStatement::Clone() const
 {
 	return new ExpressionAtomStatement(MyStatement->Clone());
 }
 
+//
+// Deep copy an atom containing a parenthetical expression
+//
 ExpressionAtom* ExpressionAtomParenthetical::Clone() const
 {
 	return new ExpressionAtomParenthetical(MyParenthetical->Clone());
 }
 
-
+//
+// Deep copy a parenthetical pre-operation statement
+//
 Parenthetical* ParentheticalPreOp::Clone() const
 {
 	return new ParentheticalPreOp(MyStatement->Clone());
 }
 
+//
+// Deep copy a parenthetical post-operation statement
+//
 Parenthetical* ParentheticalPostOp::Clone() const
 {
 	return new ParentheticalPostOp(MyStatement->Clone());
 }
 
+//
+// Deep copy a general parenthetical expression
+//
 Parenthetical* ParentheticalExpression::Clone() const
 {
 	return new ParentheticalExpression(MyExpression->Clone());
 }
 
-
+//
+// Deep copy an atom used to emit type annotation metadata
+//
 ExpressionAtom* ExpressionAtomTypeAnnotation::Clone() const
 {
 	return new ExpressionAtomTypeAnnotation(MyType);
 }
 
+//
+// Deep copy a helper atom for reading structure member data
+//
 ExpressionAtom* ExpressionAtomCopyFromStructure::Clone() const
 {
 	return new ExpressionAtomCopyFromStructure(MyType, MemberName);
 }
 
-
+//
+// Deep copy a literal string atom
+//
 ExpressionAtom* ExpressionAtomLiteralString::Clone() const
 {
 	ExpressionAtomLiteralString* clone = new ExpressionAtomLiteralString(Handle);
 	return clone;
 }
 
+//
+// Deep copy a literal integral atom
+//
 ExpressionAtom* ExpressionAtomLiteralInteger32::Clone() const
 {
 	ExpressionAtomLiteralInteger32* clone = new ExpressionAtomLiteralInteger32(Value);
@@ -1548,6 +1608,9 @@ ExpressionAtom* ExpressionAtomLiteralInteger32::Clone() const
 	return clone;
 }
 
+//
+// Deep copy a literal real atom
+//
 ExpressionAtom* ExpressionAtomLiteralReal32::Clone() const
 {
 	ExpressionAtomLiteralReal32* clone = new ExpressionAtomLiteralReal32(Value);
@@ -1555,6 +1618,9 @@ ExpressionAtom* ExpressionAtomLiteralReal32::Clone() const
 	return clone;
 }
 
+//
+// Type demotion logic for integer literals
+//
 bool ExpressionAtomLiteralInteger32::Demote(Metadata::EpochTypeID target, const Namespace&)
 {
 	if(target != Metadata::EpochType_Integer16)

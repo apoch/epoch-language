@@ -60,7 +60,9 @@ CodeBlock::~CodeBlock()
 		delete Scope;
 }
 
-
+//
+// Deep copy a code block and all of its contents
+//
 CodeBlock* CodeBlock::Clone() const
 {
 	CodeBlock* clone = new CodeBlock(OwnsScope ? new ScopeDescription(*Scope) : Scope, OwnsScope);
@@ -366,32 +368,49 @@ bool CodeBlockEntityEntry::TypeInference(Namespace& curnamespace, CodeBlock& act
 	return MyEntity->TypeInference(curnamespace, activescope, context, errors);
 }
 
-
+//
+// Deep copy a code block assignment entry
+//
 CodeBlockEntry* CodeBlockAssignmentEntry::Clone() const
 {
 	return new CodeBlockAssignmentEntry(MyAssignment->Clone());
 }
 
+//
+// Deep copy a code block statement entry
+//
 CodeBlockEntry* CodeBlockStatementEntry::Clone() const
 {
 	return new CodeBlockStatementEntry(MyStatement->Clone());
 }
 
+//
+// Deep copy a code block pre-operation statement entry
+//
 CodeBlockEntry* CodeBlockPreOpStatementEntry::Clone() const
 {
 	return new CodeBlockPreOpStatementEntry(MyStatement->Clone());
 }
 
+//
+// Deep copy a code block post-operation statement entry
+//
 CodeBlockEntry* CodeBlockPostOpStatementEntry::Clone() const
 {
 	return new CodeBlockPostOpStatementEntry(MyStatement->Clone());
 }
 
+//
+// Deep copy a nested code block
+//
 CodeBlockEntry* CodeBlockInnerBlockEntry::Clone() const
 {
 	return new CodeBlockInnerBlockEntry(MyCodeBlock->Clone());
 }
 
+//
+// Deep copy a code block entity entry
+//
 CodeBlockEntry* CodeBlockEntityEntry::Clone() const
 {
 	return new CodeBlockEntityEntry(MyEntity->Clone());

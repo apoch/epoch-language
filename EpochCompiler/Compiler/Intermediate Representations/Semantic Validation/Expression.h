@@ -359,7 +359,9 @@ namespace IRSemantics
 		const AST::IdentifierT& OriginalIdentifier;
 	};
 
-
+	//
+	// Expression atom which is a plain identifier
+	//
 	class ExpressionAtomIdentifier : public ExpressionAtomIdentifierBase
 	{
 	// Construction
@@ -722,7 +724,11 @@ namespace IRSemantics
 	};
 
 
-
+	//
+	// Special atom helper used to emit type annotations
+	// onto the stack during execution; helps the VM perform
+	// type-based dispatching in various ways.
+	//
 	class ExpressionAtomTypeAnnotation : public ExpressionAtom
 	{
 	// Construction
@@ -767,6 +773,12 @@ namespace IRSemantics
 		Metadata::EpochTypeID MyType;
 	};
 
+	//
+	// Special helper atom used to write a type annotation
+	// from the return value register onto the stack. Used
+	// when type dispatch is needed on a return value from
+	// a function which is not first stored in a variable.
+	//
 	class ExpressionAtomTypeAnnotationFromRegister : public ExpressionAtom
 	{
 	// Construction

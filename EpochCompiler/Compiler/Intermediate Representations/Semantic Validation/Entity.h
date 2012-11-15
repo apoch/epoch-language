@@ -72,6 +72,8 @@ namespace IRSemantics
 		StringHandle GetName() const
 		{ return Name; }
 
+	// Postfix entity handling
+	public:
 		StringHandle GetPostfixIdentifier() const
 		{ return PostfixName; }
 

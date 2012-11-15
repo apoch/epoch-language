@@ -114,6 +114,8 @@ namespace IRSemantics
 	//
 	// Function parameter with just a known type but no given name
 	//
+	// Predominantly used for automatically/internally generated code
+	//
 	class FunctionParamTyped : public FunctionParam
 	{
 	// Construction

@@ -58,6 +58,9 @@ namespace AST
 		NamedFunctionParameter& operator = (const NamedFunctionParameter&);
 	};
 
+	//
+	// Special marker for the "nothing" type dummy
+	//
 	struct Nothing
 	{
 		IdentifierT ShouldBeNothing;
@@ -70,6 +73,7 @@ namespace AST
 	//		- Named function parameters (see above)
 	//		- Expressions (for pattern matching)
 	//		- Function reference signatures (for higher order functions)
+	//		- The "nothing" dummy type
 	//
 	typedef boost::variant
 		<

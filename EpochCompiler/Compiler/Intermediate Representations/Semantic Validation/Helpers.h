@@ -29,6 +29,11 @@ namespace IRSemantics
 
 	namespace impl
 	{
+		//
+		// String caches are used to handle various name/identifier
+		// lookups and make them a bit faster than going through
+		// potentially several layers of indirection.
+		//
 		template<typename T>
 		class StringCache
 		{

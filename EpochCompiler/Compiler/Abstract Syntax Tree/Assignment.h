@@ -4,6 +4,9 @@
 //
 // AST nodes for assignments, including chained assignments and operation-assignments
 //
+// This also includes node definitions for initializations, since initializers arguably
+// "look" like assignments in the syntax, even though they are compiled as statements.
+//
 
 #pragma once
 
@@ -21,8 +24,8 @@ namespace AST
 	// Variant describing the right-hand side of an assignment
 	//
 	// This can be either:
-	//		- A terminal expression: foo = 42
-	//		- A chained assignment:  foo = bar = 42
+	//		- A terminal expression, as in: foo = 42
+	//		- A chained assignment, as in:  foo = bar = 42
 	//
 	// Both forms are represented with a single AST node type for simplicity. 
 	//
@@ -35,7 +38,8 @@ namespace AST
 
 
 	//
-	// A "simple" assignment has a trivial left-hand side
+	// A "simple" assignment has a trivial left-hand side, i.e.
+	// not a structure member access or anything of that nature
 	//
 	// We differentiate between simple and full assignment left-hand sides,
 	// because we can gain a reasonable bit of performance in the parser by

@@ -2,7 +2,7 @@
 // The Epoch Language Project
 // EPOCHCOMPILER Compiler Toolchain
 //
-// AST nodes for identifiers and lists of identifiers
+// AST nodes for lists of identifiers
 //
 
 #pragma once

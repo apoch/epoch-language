@@ -166,6 +166,9 @@ bool Entity::TypeInference(Namespace& curnamespace, CodeBlock& activescope, Infe
 	return true;
 }
 
+//
+// Deep copy an entity invocation
+//
 Entity* Entity::Clone() const
 {
 	Entity* clone = new Entity(Name);

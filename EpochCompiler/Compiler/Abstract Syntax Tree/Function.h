@@ -37,6 +37,10 @@ namespace AST
 	//
 	typedef std::vector<FunctionTag, Memory::OneWayAlloc<FunctionTag> > FunctionTagList;
 
+
+	//
+	// Optional function tags might be omitted and therefore undefined
+	//
 	typedef boost::variant
 		<
 			Undefined,

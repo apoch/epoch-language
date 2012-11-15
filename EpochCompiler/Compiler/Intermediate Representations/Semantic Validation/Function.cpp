@@ -26,7 +26,9 @@ using namespace IRSemantics;
 void CompileConstructorStructure(IRSemantics::Statement& statement, Namespace& curnamespace, IRSemantics::CodeBlock& activescope, bool inreturnexpr, CompileErrors& errors);
 
 
-
+//
+// Constructor used to deep copy a function
+//
 Function::Function(const Function* templatefunc, Namespace& curnamespace, const CompileTimeParameterVector& args)
 	: Code(templatefunc->Code ? templatefunc->Code->Clone() : NULL),
 	  Return(templatefunc->Return ? templatefunc->Return->Clone() : NULL),
@@ -533,6 +535,11 @@ Metadata::EpochTypeID FunctionParamNamed::GetParamType(const Namespace&) const
 	return MyActualType;
 }
 
+//
+// Perform type inference on a named function parameter
+//
+// Makes sure to instantiate structure templates if necessary
+//
 bool FunctionParamNamed::TypeInference(Namespace& curnamespace, CompileErrors&)
 {
 	StringHandle name;
@@ -545,6 +552,10 @@ bool FunctionParamNamed::TypeInference(Namespace& curnamespace, CompileErrors&)
 	return true;
 }
 
+//
+// Allow parameterized types to receive the correct
+// arguments, when used on a named function parameter.
+//
 void FunctionParamNamed::SubstituteTemplateArgs(const std::vector<std::pair<StringHandle, Metadata::EpochTypeID> >& params, const CompileTimeParameterVector& args, Namespace& curnamespace)
 {
 	if(TemplateArgs.empty())
@@ -597,6 +608,9 @@ void FunctionParamFuncRef::AddToSignature(FunctionSignature&, const Namespace&) 
 	throw InternalException("Cannot pattern match on function signatures");
 }
 
+//
+// Deep copy a higher-order function parameter
+//
 FunctionParam* FunctionParamFuncRef::Clone() const
 {
 	FunctionParamFuncRef* clone = new FunctionParamFuncRef;
@@ -624,6 +638,9 @@ FunctionParamExpression::~FunctionParamExpression()
 	delete MyExpression;
 }
 
+//
+// Deep copy a pattern-matcher expression parameter
+//
 FunctionParam* FunctionParamExpression::Clone() const
 {
 	return new FunctionParamExpression(MyExpression->Clone());
@@ -705,6 +722,9 @@ void FunctionParamTyped::AddToSignature(FunctionSignature&, const Namespace&) co
 	throw InternalException("Cannot pattern match on this kind of function parameter");
 }
 
+//
+// Deep copy an unnamed function parameter
+//
 FunctionParam* FunctionParamTyped::Clone() const
 {
 	return new FunctionParamTyped(MyType, IsRef);
@@ -718,6 +738,9 @@ void FunctionParamNamed::AddToSignature(FunctionSignature&, const Namespace&) co
 	throw InternalException("Cannot pattern match on this kind of function parameter");
 }
 
+//
+// Deep copy a named function parameter
+//
 FunctionParam* FunctionParamNamed::Clone() const
 {
 	FunctionParamNamed* clone = new FunctionParamNamed(MyTypeName, TemplateArgs, IsRef);
@@ -725,12 +748,26 @@ FunctionParam* FunctionParamNamed::Clone() const
 	return clone;
 }
 
-
+//
+// Add a template parameter to a function
+//
+// Allows functions to be templatized on various sorts
+// of parameters, either types or values.
+//
 void Function::AddTemplateParameter(Metadata::EpochTypeID type, StringHandle name)
 {
 	TemplateParams.push_back(std::make_pair(name, type));
 }
 
+//
+// Set the arguments passed to a templatized function
+//
+// Creates mappings for any type parameters to the function,
+// so that the code body and parameters and such can look up
+// the "actual" type of something. For instance, given a
+// function parameterized on type T, which is instantiated
+// with T = integer, aliases T to point to integer.
+//
 void Function::SetTemplateArguments(Namespace& curnamespace, const CompileTimeParameterVector& args)
 {
 	TemplateArgs = args;
@@ -738,6 +775,11 @@ void Function::SetTemplateArguments(Namespace& curnamespace, const CompileTimePa
 	DummyNamespace = Namespace::CreateTemplateDummy(curnamespace, TemplateParams, TemplateArgs);
 }
 
+//
+// Helper to replace local variable definitions
+// with the correctly typed variables, when a
+// function template is instantiated.
+//
 void Function::FixupScope()
 {
 	CompileTimeParameterVector argtypes;
@@ -756,6 +798,12 @@ void Function::FixupScope()
 	Code->GetScope()->Fixup(TemplateParams, TemplateArgs, argtypes);
 }
 
+//
+// Get the name of a parameter's type
+//
+// This is currently pretty limited, since it
+// isn't needed widely.
+//
 StringHandle Function::GetParameterTypeName(StringHandle name) const
 {
 	for(std::vector<Param>::const_iterator iter = Parameters.begin(); iter != Parameters.end(); ++iter)
@@ -774,6 +822,12 @@ StringHandle Function::GetParameterTypeName(StringHandle name) const
 	throw InternalException("Parameter not found");
 }
 
+//
+// Populate a function's scope with its parameters
+//
+// Done as a separate step so we can use templates to defer
+// the types of parameters until instantiation time.
+//
 void Function::PopulateScope(Namespace& curnamespace, CompileErrors& errors)
 {
 	Namespace* activenamespace;
@@ -790,18 +844,30 @@ void Function::PopulateScope(Namespace& curnamespace, CompileErrors& errors)
 }
 
 
-
+//
+// Add a named function parameter to the function's lexical scope
+//
 void FunctionParamNamed::AddToScope(StringHandle name, CodeBlock& code, const Namespace& curnamespace) const
 {
 	code.AddVariable(curnamespace.Strings.GetPooledString(name), name, MyTypeName, MyActualType, IsRef, VARIABLE_ORIGIN_PARAMETER);
 }
 
+//
+// Add a higher-order function parameter to the function's lexical scope
+//
 void FunctionParamFuncRef::AddToScope(StringHandle name, CodeBlock& code, const Namespace& curnamespace) const
 {
 	code.AddVariable(curnamespace.Strings.GetPooledString(name), name, 0, Metadata::EpochType_Function, false, VARIABLE_ORIGIN_PARAMETER);
 }
 
 
+//
+// Perform type inference on just a function's parameters
+//
+// Used for helping to resolve function signatures without
+// potentially tripping type inference on their code bodies
+// too early.
+//
 void Function::TypeInferenceParamsOnly(Namespace& curnamespace, CompileErrors& errors)
 {
 	for(std::vector<Param>::const_iterator iter = Parameters.begin(); iter != Parameters.end(); ++iter)

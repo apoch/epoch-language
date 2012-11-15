@@ -107,6 +107,7 @@ namespace IRSemantics
 	public:
 		bool TypeInference(Namespace& curnamespace, CodeBlock& activescope, InferenceContext& context, CompileErrors& errors);
 
+	// Accessible state
 	public:
 		bool WantsTypeAnnotation;
 		bool HasAdditionalEffects;

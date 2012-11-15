@@ -26,7 +26,9 @@ namespace AST
 	//
 	// A meta-entity is any top-level construct in an Epoch
 	// program. Valid meta-entities include functions, structure
-	// definitions, and global code blocks.
+	// definitions, and global code blocks, as well as other
+	// type definitions (e.g. strong/weak aliases, sum types,
+	// and so on).
 	//
 	typedef boost::variant
 		<

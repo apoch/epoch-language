@@ -431,6 +431,9 @@ namespace ASTTraverse
 			exitaction(function);
 		}
 
+		//
+		// Traverse a structure member definition (member variable case)
+		//
 		template <typename EntryActionT, typename ExitActionT>
 		void Do(EntryActionT& entryaction, AST::StructureMemberVariable& variable, ExitActionT& exitaction)
 		{

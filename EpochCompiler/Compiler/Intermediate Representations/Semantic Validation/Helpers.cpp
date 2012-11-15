@@ -20,7 +20,7 @@ namespace IRSemantics
 	// Infer the type of a variable access
 	//
 	// Supports deducing the type of expressions such as "a.b.foo"
-	// as well as atomic identifiers "bar"/"baz".
+	// as well as atomic identifiers such as "bar" and "baz".
 	//
 	Metadata::EpochTypeID InferMemberAccessType(const std::vector<StringHandle>& accesslist, const Namespace& curnamespace, const CodeBlock& activescope)
 	{

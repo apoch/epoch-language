@@ -44,7 +44,9 @@ Assignment::~Assignment()
 	delete RHS;
 }
 
-
+//
+// Create a deep copy of an assignment IR node
+//
 Assignment* Assignment::Clone() const
 {
 	Assignment* clone = new Assignment(LHS, OperatorName, OriginalLHS);
@@ -255,12 +257,17 @@ bool AssignmentChainAssignment::Validate(const Namespace& curnamespace) const
 }
 
 
-
+//
+// Deep copy a terminal RHS of an assignment
+//
 AssignmentChain* AssignmentChainExpression::Clone() const
 {
 	return new AssignmentChainExpression(MyExpression->Clone());
 }
 
+//
+// Deep copy an intermediate assignment in a chain
+//
 AssignmentChain* AssignmentChainAssignment::Clone() const
 {
 	return new AssignmentChainAssignment(MyAssignment->Clone());
