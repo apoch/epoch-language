@@ -205,16 +205,10 @@ bool Structure::InstantiateTemplate(StringHandle myname, const CompileTimeParame
 	if(!IsTemplate())
 		return false;
 
-	// TODO - sanity check (someplace, probably not here) that args matches our template param list
+	// TODO - check that args matches our template param list; do this for ALL template instantiators
 
 	for(std::vector<std::pair<StringHandle, StructureMember*> >::iterator iter = Members.begin(); iter != Members.end(); ++iter)
-	{
-		StructureMemberVariable* var = dynamic_cast<StructureMemberVariable*>(iter->second);
-		if(var)
-		{
-			var->SubstituteTemplateArgs(TemplateParams, args, curnamespace);
-		}
-	}
+		iter->second->SubstituteTemplateArgs(TemplateParams, args, curnamespace);
 
 	curnamespace.Functions.GenerateStructureFunctions(myname, this);
 	GenerateConstructors(myname, curnamespace.Types.Templates.FindConstructorName(myname), curnamespace.Types.Templates.FindAnonConstructorName(myname), args, curnamespace, errors);

@@ -1104,7 +1104,15 @@ void CompilePassSemantics::ExitHelper::operator () (AST::Entity&)
 		break;
 
 	default:
-		throw std::runtime_error("Invalid parse state");			// TODO - better exceptions
+		//
+		// This is a malformed AST.
+		//
+		// Entities must always appear inside a code block of some kind.
+		// This particular entity node was provided in some other context,
+		// which is not supported. Check the traverser state stack to see
+		// what went wrong.
+		//
+		throw InternalException("Entity provided in invalid context");
 	}
 }
 
@@ -1127,7 +1135,18 @@ void CompilePassSemantics::ExitHelper::operator () (AST::ChainedEntity&)
 	self->StateStack.pop();
 	
 	if(self->StateStack.top() != CompilePassSemantics::STATE_ENTITY)
-		throw std::runtime_error("Invalid parse state");		// TODO - better exceptions
+	{
+		//
+		// This is a malformed AST.
+		//
+		// Chained entities must always appear as child nodes of a parent
+		// entity so that the entirety of the chain can be linked back to
+		// the correct entry/invocation logic. The AST node for a chained
+		// entity was provided in some other context; examine the context
+		// stack to see what went wrong.
+		//
+		throw InternalException("Chained entity found without an opening entity");
+	}
 
 	self->CurrentEntities.back()->AddChain(self->CurrentChainedEntities.back());
 	self->CurrentChainedEntities.pop_back();
@@ -1159,7 +1178,15 @@ void CompilePassSemantics::ExitHelper::operator () (AST::PostfixEntity&)
 		break;
 
 	default:
-		throw std::runtime_error("Invalid parse state");			// TODO - better exceptions
+		//
+		// This is a malformed AST.
+		//
+		// Entities must always appear inside a code block of some kind.
+		// This particular entity node was provided in some other context,
+		// which is not supported. Check the traverser state stack to see
+		// what went wrong.
+		//
+		throw InternalException("Postfix entity provided in invalid context");
 	}
 }
 
@@ -1228,7 +1255,17 @@ void CompilePassSemantics::EntryHelper::operator () (AST::IdentifierT& identifie
 	}
 
 	if(!iratom.get())
-		throw std::runtime_error("Unrecognized literal/token");			// TODO - better exceptions
+	{
+		//
+		// The token couldn't be parsed as any recognizable thing.
+		//
+		// This could have a few causes: lexer breakdowns, AST traversal
+		// mistakes, or incomplete feature implementations. Examine the
+		// contents of the raw string that was being processed, and see
+		// what it corresponds to in the input program.
+		//
+		throw InternalException("Unrecognized token");
+	}
 
 	switch(self->StateStack.top())
 	{
@@ -1292,7 +1329,15 @@ void CompilePassSemantics::EntryHelper::operator () (AST::IdentifierT& identifie
 		break;
 
 	default:
-		throw std::runtime_error("Invalid parse state");			// TODO - better exceptions
+		//
+		// This is likely either a malformed AST or a bug in the traverser.
+		//
+		// A token of some flavor was provided, but the context does not link
+		// to any situation we recognize. Check to see what the context stack
+		// contains and make sure any appropriate language features are being
+		// handled correctly above.
+		//
+		throw InternalException("Token appears in unrecognized context");
 	}
 }
 
@@ -1307,7 +1352,17 @@ void CompilePassSemantics::EntryHelper::operator () (AST::IdentifierT& identifie
 void CompilePassSemantics::EntryHelper::operator () (AST::FunctionReferenceSignature&)
 {
 	if(self->CurrentFunctions.empty())
-		throw std::runtime_error("Invalid parse state");		// TODO - better exceptions
+	{
+		//
+		// Either the AST is malformed, or a feature is missing.
+		//
+		// Function signatures are expected to only appear in certain
+		// contexts (e.g. function definitions) and the AST traverser
+		// handed us one in some other situation. Examine the context
+		// state stack to see what's going on.
+		//
+		throw InternalException("Function signature provided in unrecognized context");
+	}
 
 	self->StateStack.push(CompilePassSemantics::STATE_FUNCTION_SIGNATURE);
 
@@ -1473,7 +1528,17 @@ void CompilePassSemantics::EntryHelper::operator () (Markers::FunctionReturnExpr
 void CompilePassSemantics::ExitHelper::operator () (Markers::FunctionReturnExpression&)
 {
 	if(self->CurrentFunctions.empty())
-		throw std::runtime_error("Invalid parse state");			// TODO - better exceptions
+	{
+		//
+		// Almost certainly a bug in the AST generation or traversal.
+		//
+		// The "function return expression" marker should ONLY be traversed
+		// when we are processing the return value expression of a function
+		// definition; any other situation is technically bogus. Check into
+		// the current traverser state stack to see what's going on.
+		//
+		throw InternalException("Function return provided but no function is being processed");
+	}
 
 	if(!self->CurrentExpressions.empty())
 	{

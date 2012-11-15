@@ -684,9 +684,9 @@ bool TypeSpace::CompileTimeCodeExecution(CompileErrors& errors)
 
 		// TODO - evil hackery here
 		MyNamespace.Session.CompileTimeHelpers.insert(std::make_pair(sumtypeconstructorname, MyNamespace.Session.CompileTimeHelpers.find(MyNamespace.Strings.Find(L"integer"))->second));
+		//////////////////////////////////////
 		MyNamespace.Session.FunctionSignatures.insert(std::make_pair(overloadname, signature));
 		SumTypes.NameToConstructorMap[overloadname] = sumtypeconstructorname;
-		//////////////////////////////////////
 
 		for(std::set<StringHandle>::const_iterator btiter = iter->second.begin(); btiter != iter->second.end(); ++btiter)
 		{

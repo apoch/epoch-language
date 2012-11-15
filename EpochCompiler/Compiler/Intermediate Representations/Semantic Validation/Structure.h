@@ -53,6 +53,9 @@ namespace IRSemantics
 		virtual Type GetMemberType() const = 0;
 		virtual Metadata::EpochTypeID GetEpochType(const Namespace& curnamespace) const = 0;
 		virtual bool Validate(const Namespace& curnamespace, CompileErrors& errors) const = 0;
+
+		virtual void SubstituteTemplateArgs(const std::vector<std::pair<StringHandle, Metadata::EpochTypeID> >&, const CompileTimeParameterVector&, Namespace&)
+		{ }
 	};
 
 
