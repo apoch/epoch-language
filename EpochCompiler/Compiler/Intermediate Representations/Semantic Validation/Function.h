@@ -405,6 +405,8 @@ namespace IRSemantics
 
 	// Internal state
 	private:
+		friend class FunctionTable;
+
 		StringHandle Name;
 		StringHandle RawName;
 

@@ -211,6 +211,8 @@ namespace IRSemantics
 
 	// Internal state
 	private:
+		friend class TemplateTable;
+
 		std::vector<std::pair<StringHandle, StructureMember*> > Members;
 		StringHandle ConstructorName;
 		StringHandle AnonymousConstructorName;

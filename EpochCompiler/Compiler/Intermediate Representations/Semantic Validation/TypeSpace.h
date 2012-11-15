@@ -92,6 +92,8 @@ namespace IRSemantics
 
 	// Table query interface
 	public:
+		const Structure* GetDefinition(StringHandle structurename) const;
+
 		const std::map<StringHandle, Structure*>& GetDefinitions() const
 		{ return NameToDefinitionMap; }
 
@@ -103,6 +105,8 @@ namespace IRSemantics
 	// Internal tracking
 	private:
 		friend class TypeSpace;
+		friend class TemplateTable;
+
 		TypeSpace& MyTypeSpace;
 
 		std::map<StringHandle, Structure*> NameToDefinitionMap;

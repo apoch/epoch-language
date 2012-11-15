@@ -360,12 +360,15 @@ StringHandle FunctionTable::InstantiateAllOverloads(StringHandle templatename, c
 
 StringHandle FunctionTable::InstantiateTemplate(StringHandle templatename, const CompileTimeParameterVector& originalargs, CompileErrors& errors)
 {
+	const Function* templatefunc = GetIR(templatename);
 	CompileTimeParameterVector args(originalargs);
-	for(CompileTimeParameterVector::iterator iter = args.begin(); iter != args.end(); ++iter)
+	for(size_t i = 0; i < args.size(); ++i)
 	{
-		// TODO - filter this to arguments that are typenames?
-		if(MyNamespace.Types.Aliases.HasWeakAliasNamed(iter->Payload.LiteralStringHandleValue))
-			iter->Payload.LiteralStringHandleValue = MyNamespace.Types.Aliases.GetWeakTypeBaseName(iter->Payload.LiteralStringHandleValue);
+		if(templatefunc->TemplateParams[i].second != Metadata::EpochType_Wildcard)
+			continue;
+
+		if(MyNamespace.Types.Aliases.HasWeakAliasNamed(args[i].Payload.LiteralStringHandleValue))
+			args[i].Payload.LiteralStringHandleValue = MyNamespace.Types.Aliases.GetWeakTypeBaseName(args[i].Payload.LiteralStringHandleValue);
 	}
 
 	Namespace* ns = &MyNamespace;

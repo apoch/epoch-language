@@ -61,6 +61,17 @@ StructureTable::~StructureTable()
 		delete iter->second;
 }
 
+const Structure* StructureTable::GetDefinition(StringHandle structurename) const
+{
+	std::map<StringHandle, Structure*>::const_iterator iter = NameToDefinitionMap.find(structurename);
+	if(iter != NameToDefinitionMap.end())
+		return iter->second;
+
+	if(MyTypeSpace.MyNamespace.Parent)
+		return MyTypeSpace.MyNamespace.Parent->Types.Structures.GetDefinition(structurename);
+
+	throw InternalException("Invalid structure name");
+}
 
 Metadata::EpochTypeID StructureTable::GetMemberType(StringHandle structurename, StringHandle membername) const
 {
@@ -158,7 +169,6 @@ StringHandle SumTypeTable::InstantiateTemplate(StringHandle templatename, const 
 	CompileTimeParameterVector args(originalargs);
 	for(CompileTimeParameterVector::iterator iter = args.begin(); iter != args.end(); ++iter)
 	{
-		// TODO - filter this to arguments that are typenames?
 		if(MyTypeSpace.Aliases.HasWeakAliasNamed(iter->Payload.LiteralStringHandleValue))
 			iter->Payload.LiteralStringHandleValue = MyTypeSpace.Aliases.GetWeakTypeBaseName(iter->Payload.LiteralStringHandleValue);
 	}
@@ -166,9 +176,6 @@ StringHandle SumTypeTable::InstantiateTemplate(StringHandle templatename, const 
 	TypeSpace* typespace = &MyTypeSpace;
 	while(typespace)
 	{
-		//if(typespace->SumTypes.NameToTypeMap.find(templatename) != typespace->SumTypes.NameToTypeMap.end())
-		//	return templatename;
-
 		InstantiationMap::iterator iter = typespace->SumTypes.Instantiations.find(templatename);
 		if(iter != typespace->SumTypes.Instantiations.end())
 		{
@@ -350,20 +357,34 @@ std::wstring TemplateTable::GenerateTemplateMangledName(Metadata::EpochTypeID ty
 
 StringHandle TemplateTable::InstantiateStructure(StringHandle templatename, const CompileTimeParameterVector& originalargs)
 {
-	CompileTimeParameterVector args(originalargs);
-	for(CompileTimeParameterVector::iterator iter = args.begin(); iter != args.end(); ++iter)
 	{
-		// TODO - filter this to arguments that are typenames?
-		if(MyTypeSpace.Aliases.HasWeakAliasNamed(iter->Payload.LiteralStringHandleValue))
-			iter->Payload.LiteralStringHandleValue = MyTypeSpace.Aliases.GetWeakTypeBaseName(iter->Payload.LiteralStringHandleValue);
+		TypeSpace* typespace = &MyTypeSpace;
+		while(typespace)
+		{
+			if(typespace->Templates.NameToTypeMap.find(templatename) != typespace->Templates.NameToTypeMap.end())
+				return templatename;
+
+			if(!typespace->MyNamespace.Parent)
+				break;
+
+			typespace = &typespace->MyNamespace.Parent->Types;
+		}
+	}
+
+	const Structure* structdef = MyTypeSpace.Structures.GetDefinition(templatename);
+	CompileTimeParameterVector args(originalargs);
+	for(size_t i = 0; i < args.size(); ++i)
+	{
+		if(structdef->TemplateParams[i].second != Metadata::EpochType_Wildcard)
+			continue;
+
+		if(MyTypeSpace.Aliases.HasWeakAliasNamed(args[i].Payload.LiteralStringHandleValue))
+			args[i].Payload.LiteralStringHandleValue = MyTypeSpace.Aliases.GetWeakTypeBaseName(args[i].Payload.LiteralStringHandleValue);
 	}
 
 	TypeSpace* typespace = &MyTypeSpace;
 	while(typespace)
 	{
-		if(typespace->Templates.NameToTypeMap.find(templatename) != typespace->Templates.NameToTypeMap.end())
-			return templatename;
-
 		InstantiationMap::iterator iter = typespace->Templates.Instantiations.find(templatename);
 		if(iter != typespace->Templates.Instantiations.end())
 		{
