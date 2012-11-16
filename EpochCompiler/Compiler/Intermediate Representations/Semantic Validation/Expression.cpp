@@ -1179,7 +1179,7 @@ bool ExpressionAtomOperator::CompileTimeCodeExecution(Namespace&, CodeBlock&, bo
 //
 bool ExpressionAtomOperator::IsOperatorUnary(const Namespace& curnamespace) const
 {
-	if(curnamespace.Functions.Exists(Identifier))
+	if(curnamespace.Functions.IRExists(Identifier))
 		return (curnamespace.Functions.GetIR(Identifier)->GetNumParameters() == 1);
 
 	if(curnamespace.Functions.HasOverloads(Identifier))
@@ -1209,7 +1209,7 @@ Metadata::EpochTypeID ExpressionAtomOperator::DetermineOperatorReturnType(Namesp
 	if(OverriddenType != Metadata::EpochType_Error)
 		return OverriddenType;
 
-	if(curnamespace.Functions.Exists(Identifier))
+	if(curnamespace.Functions.IRExists(Identifier))
 	{
 		Function* func = curnamespace.Functions.GetIR(Identifier);
 		InferenceContext context(0, InferenceContext::CONTEXT_GLOBAL);
@@ -1252,7 +1252,7 @@ Metadata::EpochTypeID ExpressionAtomOperator::DetermineUnaryReturnType(Namespace
 	if(OverriddenType != Metadata::EpochType_Error)
 		return OverriddenType;
 
-	if(curnamespace.Functions.Exists(Identifier))
+	if(curnamespace.Functions.IRExists(Identifier))
 	{
 		Function* func = curnamespace.Functions.GetIR(Identifier);
 		InferenceContext context(0, InferenceContext::CONTEXT_GLOBAL);

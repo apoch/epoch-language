@@ -173,7 +173,7 @@ namespace
 			}
 			else
 			{
-				if(curnamespace.Functions.Exists(atom->GetIdentifier()) || (curnamespace.Types.GetTypeByName(atom->GetIdentifier()) != Metadata::EpochType_Error))
+				if(curnamespace.Functions.IRExists(atom->GetIdentifier()) || (curnamespace.Types.GetTypeByName(atom->GetIdentifier()) != Metadata::EpochType_Error))
 					emitter.PushStringLiteral(atom->GetIdentifier());
 				else
 				{

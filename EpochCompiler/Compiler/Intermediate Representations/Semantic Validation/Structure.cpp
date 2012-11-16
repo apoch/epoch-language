@@ -22,6 +22,7 @@
 using namespace IRSemantics;
 
 
+// TODO - clean this up
 // External prototypes (yeah, I'm lazy)
 void CompileConstructorStructure(IRSemantics::Statement& statement, IRSemantics::Namespace& curnamespace, IRSemantics::CodeBlock& activescope, bool inreturnexpr, CompileErrors& errors);
 
@@ -72,7 +73,11 @@ bool Structure::Validate(const Namespace& curnamespace, CompileErrors& errors) c
 	return valid;
 }
 
-
+//
+// Generate constructors for a given structure
+//
+// Separated into its own routine to aid in template generation
+//
 void Structure::GenerateConstructors(StringHandle myname, StringHandle constructorname, StringHandle anonconstructorname, const CompileTimeParameterVector& templateargs, Namespace& curnamespace, CompileErrors& errors) const
 {
 	// Generate standard constructor
@@ -126,7 +131,7 @@ void Structure::GenerateConstructors(StringHandle myname, StringHandle construct
 		curnamespace.Functions.SetSignature(anonconstructorname, signature);
 	}
 
-	curnamespace.Functions.AddOverload(myname, anonconstructorname);
+	curnamespace.Functions.AddInternalOverload(myname, anonconstructorname);
 
 	for(std::vector<std::pair<StringHandle, StructureMember*> >::const_iterator iter = Members.begin(); iter != Members.end(); ++iter)
 	{
@@ -156,6 +161,10 @@ void Structure::GenerateConstructors(StringHandle myname, StringHandle construct
 }
 
 
+//
+// Retrieve the type of a member, once it has been instantiated
+// with the given template arguments
+//
 Metadata::EpochTypeID Structure::SubstituteTemplateParams(StringHandle membername, const CompileTimeParameterVector& templateargs, const Namespace& curnamespace) const
 {
 	if(!IsTemplate())
@@ -188,7 +197,9 @@ Metadata::EpochTypeID Structure::SubstituteTemplateParams(StringHandle membernam
 	return Metadata::EpochType_Error;
 }
 
-
+//
+// Perform compile-time code execution tasks for a structure definition
+//
 bool Structure::CompileTimeCodeExecution(StringHandle myname, Namespace& curnamespace, CompileErrors& errors)
 {
 	if(IsTemplate())
@@ -200,6 +211,9 @@ bool Structure::CompileTimeCodeExecution(StringHandle myname, Namespace& curname
 	return true;
 }
 
+//
+// Instantiate a structure template
+//
 bool Structure::InstantiateTemplate(StringHandle myname, const CompileTimeParameterVector& args, Namespace& curnamespace, CompileErrors& errors)
 {
 	if(!IsTemplate())
@@ -213,6 +227,38 @@ bool Structure::InstantiateTemplate(StringHandle myname, const CompileTimeParame
 	curnamespace.Functions.GenerateStructureFunctions(myname, this);
 	GenerateConstructors(myname, curnamespace.Types.Templates.FindConstructorName(myname), curnamespace.Types.Templates.FindAnonConstructorName(myname), args, curnamespace, errors);
 	return true;
+}
+
+//
+// Add a template parameter to a structure
+//
+// Should only be used when constructing the IR tree
+//
+void Structure::AddTemplateParameter(Metadata::EpochTypeID type, StringHandle name)
+{
+	TemplateParams.push_back(std::make_pair(name, type));
+}
+
+//
+// Pass template arguments on to a structure member
+//
+void Structure::SetMemberTemplateArgs(StringHandle membername, const CompileTimeParameterVector& args)
+{
+	for(std::vector<std::pair<StringHandle, StructureMember*> >::const_iterator iter = Members.begin(); iter != Members.end(); ++iter)
+	{
+		if(iter->first == membername)
+		{
+			// TODO - support templated function-typed members
+			StructureMemberVariable* var = dynamic_cast<StructureMemberVariable*>(iter->second);
+			if(!var)
+				throw InternalException("Wrong kind of structure member");
+
+			var->SetTemplateArgs(args);
+			return;
+		}
+	}
+
+	throw InternalException("Invalid structure member");
 }
 
 
@@ -232,12 +278,41 @@ bool StructureMemberVariable::Validate(const Namespace& curnamespace, CompileErr
 	return true;
 }
 
-
+//
+// Retrieve the type of a structure member variable
+//
 Metadata::EpochTypeID StructureMemberVariable::GetEpochType(const Namespace& curnamespace) const
 {
 	return curnamespace.Types.GetTypeByName(MyType);
 }
 
+//
+// Given a set of template parameters and arguments, set
+// up a structure member variable to use them as needed.
+//
+void StructureMemberVariable::SubstituteTemplateArgs(const std::vector<std::pair<StringHandle, Metadata::EpochTypeID> >& params, const CompileTimeParameterVector& args, Namespace& curnamespace)
+{
+	if(TemplateArgs.empty())
+		return;
+
+	// Simplify arguments as much as possible first
+	for(CompileTimeParameterVector::iterator iter = TemplateArgs.begin(); iter != TemplateArgs.end(); ++iter)
+	{
+		for(size_t i = 0; i < params.size(); ++i)
+		{
+			if(params[i].first == iter->Payload.LiteralStringHandleValue)
+				iter->Payload.LiteralStringHandleValue = args[i].Payload.LiteralStringHandleValue;
+		}
+	}
+
+	// Now modify my name and type as appropriate
+	if(curnamespace.Types.Structures.IsStructureTemplate(MyType))
+		MyType = curnamespace.Types.Templates.InstantiateStructure(MyType, TemplateArgs);
+	else if(curnamespace.Types.SumTypes.IsTemplate(MyType))
+		MyType = curnamespace.Types.SumTypes.InstantiateTemplate(MyType, TemplateArgs);
+	else
+		throw NotImplementedException("Template parameterization not implemented in this context");
+}
 
 
 //
@@ -275,6 +350,9 @@ bool StructureMemberFunctionReference::Validate(const Namespace& curnamespace, C
 	return valid;
 }
 
+//
+// Retrieve the signature of a function-typed structure member
+//
 FunctionSignature StructureMemberFunctionReference::GetSignature(const Namespace& curnamespace) const
 {
 	FunctionSignature ret;
@@ -288,54 +366,5 @@ FunctionSignature StructureMemberFunctionReference::GetSignature(const Namespace
 		ret.AddParameter(L"@@auto", curnamespace.Types.GetTypeByName(iter->first), false);
 	}
 	return ret;
-}
-
-void Structure::AddTemplateParameter(Metadata::EpochTypeID type, StringHandle name)
-{
-	TemplateParams.push_back(std::make_pair(name, type));
-}
-
-
-void Structure::SetMemberTemplateArgs(StringHandle membername, const CompileTimeParameterVector& args)
-{
-	for(std::vector<std::pair<StringHandle, StructureMember*> >::const_iterator iter = Members.begin(); iter != Members.end(); ++iter)
-	{
-		if(iter->first == membername)
-		{
-			StructureMemberVariable* var = dynamic_cast<StructureMemberVariable*>(iter->second);
-			if(!var)
-				throw InternalException("Wrong kind of structure member");
-
-			var->SetTemplateArgs(args);
-			return;
-		}
-	}
-
-	throw InternalException("Invalid structure member");
-}
-
-
-void StructureMemberVariable::SubstituteTemplateArgs(const std::vector<std::pair<StringHandle, Metadata::EpochTypeID> >& params, const CompileTimeParameterVector& args, Namespace& curnamespace)
-{
-	if(TemplateArgs.empty())
-		return;
-
-	// Simplify arguments as much as possible first
-	for(CompileTimeParameterVector::iterator iter = TemplateArgs.begin(); iter != TemplateArgs.end(); ++iter)
-	{
-		for(size_t i = 0; i < params.size(); ++i)
-		{
-			if(params[i].first == iter->Payload.LiteralStringHandleValue)
-				iter->Payload.LiteralStringHandleValue = args[i].Payload.LiteralStringHandleValue;
-		}
-	}
-
-	// Now modify my name and type as appropriate
-	if(curnamespace.Types.Structures.IsStructureTemplate(MyType))
-		MyType = curnamespace.Types.Templates.InstantiateStructure(MyType, TemplateArgs);
-	else if(curnamespace.Types.SumTypes.IsTemplate(MyType))
-		MyType = curnamespace.Types.SumTypes.InstantiateTemplate(MyType, TemplateArgs);
-	else
-		throw NotImplementedException("Template parameterization not implemented in this context");
 }
 

@@ -81,7 +81,7 @@ void CompileConstructorStructure(IRSemantics::Statement& statement, IRSemantics:
 
 	// TODO - copy all shadowing protection from whatever constructor implements it, to all other constructor helpers
 
-	if(curnamespace.Functions.Exists(atom->GetIdentifier()))
+	if(curnamespace.Functions.IRExists(atom->GetIdentifier()))
 		errors.SemanticError("Variable name shadows a function of the same name");
 }
 

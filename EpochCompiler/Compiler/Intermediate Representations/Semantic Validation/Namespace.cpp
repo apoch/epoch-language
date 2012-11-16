@@ -24,19 +24,27 @@
 using namespace IRSemantics;
 
 
+//
+// Construct and initialize a table of functions
+//
 FunctionTable::FunctionTable(Namespace& mynamespace, CompileSession& session)
 	: MyNamespace(mynamespace),
 	  Session(session)
 {
 }
 
-
+//
+// Destruct and clean up a table of functions
+//
 FunctionTable::~FunctionTable()
 {
 	for(boost::unordered_map<StringHandle, Function*>::iterator iter = FunctionIR.begin(); iter != FunctionIR.end(); ++iter)
 		delete iter->second;
 }
 
+//
+// Add a new entry to a table of functions
+//
 void FunctionTable::Add(StringHandle name, StringHandle rawname, Function* function)
 {
 	if(FunctionIR.find(name) != FunctionIR.end())
@@ -58,7 +66,11 @@ void FunctionTable::Add(StringHandle name, StringHandle rawname, Function* funct
 	FunctionIR.insert(std::make_pair(name, function));
 }
 
-void FunctionTable::AddOverload(StringHandle functionname, StringHandle overloadname)
+//
+// Add an overload mapping to a function table that links to
+// an automatically-generated function (i.e. no IR)
+//
+void FunctionTable::AddInternalOverload(StringHandle functionname, StringHandle overloadname)
 {
 	Session.FunctionOverloadNames[functionname].insert(overloadname);
 }
@@ -66,6 +78,9 @@ void FunctionTable::AddOverload(StringHandle functionname, StringHandle overload
 
 //
 // Allocate a function overload mangled name
+//
+// Registers the newly created name as an overload of
+// the base function name provided.
 //
 StringHandle FunctionTable::CreateOverload(const std::wstring& name)
 {
@@ -77,6 +92,9 @@ StringHandle FunctionTable::CreateOverload(const std::wstring& name)
 	return ret;
 }
 
+//
+// Internal helper for overload name mangling
+//
 std::wstring FunctionTable::GenerateFunctionOverloadName(StringHandle name, size_t index) const
 {
 	if(index == 0)
@@ -89,7 +107,16 @@ std::wstring FunctionTable::GenerateFunctionOverloadName(StringHandle name, size
 }
 
 
-
+//
+// Create a type matching dispatcher function
+//
+// These are magic entities which accept a number of parameters
+// and type annotations in the VM. Based on the types of the
+// provided arguments, the dispatcher invokes the appropriate
+// function overload. Similar to virtual dispatch but supports
+// multiple dispatch as well by virtue of examining all of the
+// provided types.
+//
 StringHandle FunctionTable::AllocateTypeMatcher(StringHandle overloadname, const std::map<StringHandle, FunctionSignature>& matchingoverloads)
 {
 	if(MyNamespace.Parent)
@@ -106,11 +133,20 @@ StringHandle FunctionTable::AllocateTypeMatcher(StringHandle overloadname, const
 	return matchername;
 }
 
+//
+// Determine if a function signature has been registered for the given function
+//
 bool FunctionTable::SignatureExists(StringHandle functionname) const
 {
 	return (Session.FunctionSignatures.find(functionname) != Session.FunctionSignatures.end());
 }
 
+//
+// Retrieve a cached function signature for the given function
+//
+// Can also be used for accessing signatures of intrinsic functions
+// or other non-IR-bearing functions.
+//
 const FunctionSignature& FunctionTable::GetSignature(StringHandle functionname) const
 {
 	FunctionSignatureSet::const_iterator iter = Session.FunctionSignatures.find(functionname);
@@ -120,13 +156,22 @@ const FunctionSignature& FunctionTable::GetSignature(StringHandle functionname) 
 	return iter->second;
 }
 
-
+//
+// Determine if any overloads have been registered for the given base name
+//
 bool FunctionTable::HasOverloads(StringHandle functionname) const
 {
 	OverloadMap::const_iterator iter = Session.FunctionOverloadNames.find(functionname);
 	return iter != Session.FunctionOverloadNames.end();
 }
 
+//
+// Retrieve the given overload mangled name of a function
+//
+// Since overload index is a stable way to reference overloads,
+// we prefer it to complicated solutions involving mangling out
+// the names/types of parameters and so on.
+//
 StringHandle FunctionTable::GetOverloadName(StringHandle rawname, size_t overloadindex) const
 {
 	StringHandle ret = FunctionOverloadNameCache.Find(std::make_pair(rawname, overloadindex));
@@ -136,6 +181,10 @@ StringHandle FunctionTable::GetOverloadName(StringHandle rawname, size_t overloa
 	return ret;
 }
 
+//
+// Retrieve a list of all known names corresponding
+// to overloads of a given function.
+//
 const StringHandleSet& FunctionTable::GetOverloadNames(StringHandle functionname) const
 {
 	OverloadMap::const_iterator iter = Session.FunctionOverloadNames.find(functionname);
@@ -145,6 +194,12 @@ const StringHandleSet& FunctionTable::GetOverloadNames(StringHandle functionname
 	return iter->second;
 }
 
+//
+// Determine how many overloads of a given function exist.
+//
+// This should return 1 in the case of a function which is not
+// overloaded but is defined.
+//
 unsigned FunctionTable::GetNumOverloads(StringHandle name) const
 {
 	boost::unordered_map<StringHandle, unsigned>::const_iterator iter = FunctionOverloadCounters.find(name);
@@ -159,18 +214,23 @@ unsigned FunctionTable::GetNumOverloads(StringHandle name) const
 	return iter->second;
 }
 
-
-bool FunctionTable::Exists(StringHandle functionname) const
+//
+// Determine if IR exists for a given function
+//
+bool FunctionTable::IRExists(StringHandle functionname) const
 {
 	if(FunctionIR.find(functionname) != FunctionIR.end())
 		return true;
 
 	if(MyNamespace.Parent)
-		return MyNamespace.Parent->Functions.Exists(functionname);
+		return MyNamespace.Parent->Functions.IRExists(functionname);
 
 	return false;
 }
 
+//
+// Retrieve the IR of a given function
+//
 const Function* FunctionTable::GetIR(StringHandle functionname) const
 {
 	boost::unordered_map<StringHandle, Function*>::const_iterator iter = FunctionIR.find(functionname);
@@ -179,13 +239,15 @@ const Function* FunctionTable::GetIR(StringHandle functionname) const
 		if(MyNamespace.Parent)
 			return MyNamespace.Parent->Functions.GetIR(functionname);
 
-		throw InternalException("Not a user defined function");
+		throw RecoverableException("Not a user defined function");
 	}
 
 	return iter->second;
 }
 
-
+//
+// Retrieve the IR of a given function (mutable version)
+//
 Function* FunctionTable::GetIR(StringHandle functionname)
 {
 	boost::unordered_map<StringHandle, Function*>::iterator iter = FunctionIR.find(functionname);
@@ -194,38 +256,62 @@ Function* FunctionTable::GetIR(StringHandle functionname)
 		if(MyNamespace.Parent)
 			return MyNamespace.Parent->Functions.GetIR(functionname);
 
-		throw InternalException("Not a user defined function");
+		throw RecoverableException("Not a user defined function");
 	}
 
 	return iter->second;
 }
 
-
+//
+// Determine if the given function has a compile-time helper
+//
 bool FunctionTable::HasCompileHelper(StringHandle functionname) const
 {
 	return (Session.CompileTimeHelpers.find(functionname) != Session.CompileTimeHelpers.end());
 }
 
+//
+// Retrieve the compile-time helper for a given function
+//
 CompilerHelperPtr FunctionTable::GetCompileHelper(StringHandle functionname) const
 {
 	return Session.CompileTimeHelpers.find(functionname)->second;
 }
 
+//
+// Assign a compile-time helper to a given function
+//
 void FunctionTable::SetCompileHelper(StringHandle functionname, CompilerHelperPtr helper)
 {
 	Session.CompileTimeHelpers.insert(std::make_pair(functionname, helper));
 }
 
+//
+// Store/cache a signature for the given function
+//
 void FunctionTable::SetSignature(StringHandle functionname, const FunctionSignature& signature)
 {
 	Session.FunctionSignatures[functionname] = signature;
 }
 
+//
+// Indicate that a function overload requires static pattern matching
+//
+// This is used as a hint that a function may also require dynamic pattern
+// matching later on; setting up the dynamic matcher is done during the
+// compile-time code execution phase.
+//
 void FunctionTable::MarkFunctionWithStaticPatternMatching(StringHandle rawname, StringHandle overloadname)
 {
 	FunctionsWithStaticPatternMatching.insert(std::make_pair(rawname, overloadname));
 }
 
+//
+// Generate overloads of the . operator for accessing the
+// members of a given structure; these are not mapped to
+// any IR, because the implementations are automatically
+// generated by the compiler.
+//
 void FunctionTable::GenerateStructureFunctions(StringHandle name, Structure* structure)
 {
 	const std::wstring& structurename = MyNamespace.Strings.GetPooledString(name);
@@ -237,21 +323,35 @@ void FunctionTable::GenerateStructureFunctions(StringHandle name, Structure* str
 	}
 }
 
+//
+// Internal helper for mangling . overload names
+//
 std::wstring FunctionTable::GenerateStructureMemberAccessOverloadName(const std::wstring& structurename, const std::wstring& membername)
 {
 	return L".@@" + structurename + L"@@" + membername;
 }
 
+//
+// Determine if a given overload requires dynamic pattern matching
+//
 bool FunctionTable::FunctionNeedsDynamicPatternMatching(StringHandle overloadname) const
 {
 	return (FunctionsNeedingDynamicPatternMatching.count(overloadname) > 0);
 }
 
+//
+// Retrieve the name of the dynamic pattern matcher for a given function
+//
 StringHandle FunctionTable::GetDynamicPatternMatcherForFunction(StringHandle overloadname) const
 {
 	return PatternMatcherNameCache.Find(overloadname);
 }
 
+//
+// Perform validation checks for a function table
+//
+// Also relays validation request to all functions in the table
+//
 bool FunctionTable::Validate(CompileErrors& errors) const
 {
 	bool valid = true;
@@ -262,24 +362,28 @@ bool FunctionTable::Validate(CompileErrors& errors) const
 			valid = false;
 	}
 
-	try
+	if(!MyNamespace.Parent)
 	{
-		StringHandle entrypointhandle = MyNamespace.Strings.Find(L"entrypoint");
-		if(FunctionIR.find(entrypointhandle) == FunctionIR.end())
+		try
+		{
+			StringHandle entrypointhandle = MyNamespace.Strings.Find(L"entrypoint");
+			GetIR(entrypointhandle);
+		}
+		catch(const RecoverableException&)
 		{
 			errors.SetLocation(L"", 0, 0, L"");
 			errors.SemanticError("Program has no entrypoint function");
+
 			valid = false;
 		}
-	}
-	catch(const RecoverableException&)
-	{
-		valid = false;
 	}
 
 	return valid;
 }
 
+//
+// Perform type inference on all functions in the table
+//
 bool FunctionTable::TypeInference(InferenceContext& context, CompileErrors& errors)
 {
 	for(boost::unordered_map<StringHandle, Function*>::iterator iter = FunctionIR.begin(); iter != FunctionIR.end(); ++iter)
@@ -291,6 +395,11 @@ bool FunctionTable::TypeInference(InferenceContext& context, CompileErrors& erro
 	return true;
 }
 
+//
+// Perform compile-time code execution on all functions in the table
+//
+// Also sets up dynamic pattern matching as necessary
+//
 bool FunctionTable::CompileTimeCodeExecution(CompileErrors& errors)
 {
 	for(boost::unordered_map<StringHandle, Function*>::iterator iter = FunctionIR.begin(); iter != FunctionIR.end(); ++iter)
@@ -333,8 +442,16 @@ bool FunctionTable::CompileTimeCodeExecution(CompileErrors& errors)
 	return true;
 }
 
+//
+// Template support - instantiate all overloads of a function
+//
+// Ensures that all required overloads of a templated function are
+// instantiated with the appropriate arguments, so that further
+// compilation efforts can rely on them existing.
+//
 StringHandle FunctionTable::InstantiateAllOverloads(StringHandle templatename, const CompileTimeParameterVector& args, CompileErrors& errors)
 {
+	// TODO - limit this to overloads with matching template parameters!
 	StringHandle ret = 0;
 
 	if(GetNumOverloads(templatename) > 1)
@@ -357,7 +474,9 @@ StringHandle FunctionTable::InstantiateAllOverloads(StringHandle templatename, c
 }
 
 
-
+//
+// Internal helper for instantiating a function template
+//
 StringHandle FunctionTable::InstantiateTemplate(StringHandle templatename, const CompileTimeParameterVector& originalargs, CompileErrors& errors)
 {
 	const Function* templatefunc = GetIR(templatename);
@@ -418,6 +537,9 @@ StringHandle FunctionTable::InstantiateTemplate(StringHandle templatename, const
 	return mangledname;
 }
 
+//
+// Determine if the given function name corresponds to a template
+//
 bool FunctionTable::IsFunctionTemplate(StringHandle name) const
 {
 	boost::unordered_map<StringHandle, Function*>::const_iterator iter = FunctionIR.find(name);
@@ -432,94 +554,13 @@ bool FunctionTable::IsFunctionTemplate(StringHandle name) const
 	return iter->second->IsTemplate();
 }
 
-
-
-bool OperatorTable::PrefixExists(StringHandle operatorname) const
-{
-	return Session.Identifiers.UnaryPrefixes.find(MyNamespace.Strings.GetPooledString(operatorname)) != Session.Identifiers.UnaryPrefixes.end();
-}
-
-int OperatorTable::GetPrecedence(StringHandle operatorname) const
-{
-	return Session.OperatorPrecedences.find(operatorname)->second;
-}
-
-
-FunctionTagTable::FunctionTagTable(const CompileSession& session)
-	: Session(session)
-{
-}
-
-
-bool FunctionTagTable::Exists(StringHandle tagname) const
-{
-	return (Session.FunctionTagHelpers.find(Session.StringPool.GetPooledString(tagname)) != Session.FunctionTagHelpers.end());
-}
-
-FunctionTagHelperPtr FunctionTagTable::GetHelper(StringHandle tagname) const
-{
-	return Session.FunctionTagHelpers.find(Session.StringPool.GetPooledString(tagname))->second;
-}
-
-
-OperatorTable::OperatorTable(Namespace& mynamespace, const CompileSession& session)
-	: MyNamespace(mynamespace),
-	  Session(session)
-{
-}
-
-
-#pragma warning(push)
-#pragma warning(disable: 4355)
-
-Namespace::Namespace(GlobalIDSpace& idspace, StringPoolManager& strings, CompileSession& session)
-	: Strings(strings),
-	  CounterAnonParam(0),
-	  CounterLexicalScope(0),
-	  GlobalScope(new ScopeDescription()),
-	  Types(*this, idspace),
-	  Functions(*this, session),
-	  FunctionTags(session),
-	  Operators(*this, session),
-	  Session(session),
-	  Parent(NULL)
-{
-}
-
-#pragma warning(pop)
-
-Namespace::~Namespace()
-{
-	for(std::vector<CodeBlock*>::iterator iter = GlobalCodeBlocks.begin(); iter != GlobalCodeBlocks.end(); ++iter)
-		delete *iter;
-
-	delete GlobalScope;
-}
-
-void Namespace::AddScope(ScopeDescription* scope)
-{
-	StringHandle name = LexicalScopeNameCache.Find(scope);
-	if(!name)
-		name = AllocateLexicalScopeName(scope);
-
-	AddScope(scope, name);
-}
-
-void Namespace::AddScope(ScopeDescription* scope, StringHandle name)
-{
-	if(Parent)
-	{
-		Parent->AddScope(scope, name);
-		return;
-	}
-
-	if(LexicalScopes.find(name) != LexicalScopes.end())
-		throw InternalException("Stomped on a lexical scope");
-
-	LexicalScopes.insert(std::make_pair(name, scope));
-}
-
-
+//
+// Determine the possible types of parameters to a given function
+//
+// This is slightly complex because of the need to handle both functions
+// which have IR and functions which do not (intrinsics, automatically
+// generated code, etc.).
+//
 InferenceContext::PossibleParameterTypes FunctionTable::GetExpectedTypes(StringHandle name, const ScopeDescription& scope, StringHandle contextname, CompileErrors& errors) const
 {
 	if(scope.HasVariable(name) && scope.GetVariableTypeByID(name) == Metadata::EpochType_Function)
@@ -636,7 +677,9 @@ InferenceContext::PossibleParameterTypes FunctionTable::GetExpectedTypes(StringH
 	return InferenceContext::PossibleParameterTypes();
 }
 
-
+//
+// Similar to GetExpectedTypes, but retrieves higher-order function signatures
+//
 InferenceContext::PossibleSignatureSet FunctionTable::GetExpectedSignatures(StringHandle name, const ScopeDescription& scope, StringHandle contextname, CompileErrors&) const
 {
 	if(scope.HasVariable(name) && scope.GetVariableTypeByID(name) == Metadata::EpochType_Function)
@@ -744,6 +787,9 @@ InferenceContext::PossibleSignatureSet FunctionTable::GetExpectedSignatures(Stri
 	return InferenceContext::PossibleSignatureSet();
 }
 
+//
+// Find the cached name of a . operator overload
+//
 StringHandle FunctionTable::FindStructureMemberAccessOverload(StringHandle structurename, StringHandle membername) const
 {
 	StringHandle ret = StructureMemberAccessOverloadNameCache.Find(std::make_pair(structurename, membername));
@@ -753,7 +799,11 @@ StringHandle FunctionTable::FindStructureMemberAccessOverload(StringHandle struc
 	return ret;
 }
 
-
+//
+// Locate functions which match the given signature
+//
+// Useful for combining overloading with higher order functions
+//
 unsigned FunctionTable::FindMatchingFunctions(StringHandle identifier, const FunctionSignature& expectedsignature, InferenceContext& context, CompileErrors& errors, StringHandle& resolvedidentifier)
 {
 	bool foundidentifier = false;
@@ -766,7 +816,7 @@ unsigned FunctionTable::FindMatchingFunctions(StringHandle identifier, const Fun
 		if(expectedsignature.Matches(fsigiter->second))
 			++signaturematches;
 	}
-	else if(Exists(identifier))
+	else if(IRExists(identifier))
 	{
 		unsigned overloadcount = GetNumOverloads(identifier);
 		for(unsigned j = 0; j < overloadcount; ++j)
@@ -788,6 +838,134 @@ unsigned FunctionTable::FindMatchingFunctions(StringHandle identifier, const Fun
 	return signaturematches;
 }
 
+//
+// Internal helper for pattern matcher name generation
+//
+std::wstring FunctionTable::GeneratePatternMatcherName(const std::wstring& funcname)
+{
+	return funcname + L"@@patternmatch";
+}
+
+
+//
+// Construct and initialize a function tag table
+//
+FunctionTagTable::FunctionTagTable(const CompileSession& session)
+	: Session(session)
+{
+}
+
+//
+// Determine if the given function tag exists
+//
+bool FunctionTagTable::Exists(StringHandle tagname) const
+{
+	return (Session.FunctionTagHelpers.find(Session.StringPool.GetPooledString(tagname)) != Session.FunctionTagHelpers.end());
+}
+
+//
+// Retrieve the compilation helper for a given function tag
+//
+FunctionTagHelperPtr FunctionTagTable::GetHelper(StringHandle tagname) const
+{
+	return Session.FunctionTagHelpers.find(Session.StringPool.GetPooledString(tagname))->second;
+}
+
+
+//
+// Construct and initialize an operator table
+//
+OperatorTable::OperatorTable(Namespace& mynamespace, const CompileSession& session)
+	: MyNamespace(mynamespace),
+	  Session(session)
+{
+}
+
+//
+// Determine if the given operator is a unary prefix
+//
+bool OperatorTable::PrefixExists(StringHandle operatorname) const
+{
+	return Session.Identifiers.UnaryPrefixes.find(MyNamespace.Strings.GetPooledString(operatorname)) != Session.Identifiers.UnaryPrefixes.end();
+}
+
+//
+// Retrieve the operator precedence of the given operator
+//
+int OperatorTable::GetPrecedence(StringHandle operatorname) const
+{
+	return Session.OperatorPrecedences.find(operatorname)->second;
+}
+
+
+// Evil: disable warning about "*this" in initializer lists
+#pragma warning(push)
+#pragma warning(disable: 4355)
+
+//
+// Construct an initialize a namespace wrapper
+//
+Namespace::Namespace(GlobalIDSpace& idspace, StringPoolManager& strings, CompileSession& session)
+	: Strings(strings),
+	  CounterAnonParam(0),
+	  CounterLexicalScope(0),
+	  GlobalScope(new ScopeDescription()),
+	  Types(*this, idspace),
+	  Functions(*this, session),
+	  FunctionTags(session),
+	  Operators(*this, session),
+	  Session(session),
+	  Parent(NULL)
+{
+}
+
+// End evil
+#pragma warning(pop)
+
+
+//
+// Destruct and clean up a namespace wrapper
+//
+Namespace::~Namespace()
+{
+	for(std::vector<CodeBlock*>::iterator iter = GlobalCodeBlocks.begin(); iter != GlobalCodeBlocks.end(); ++iter)
+		delete *iter;
+
+	delete GlobalScope;
+}
+
+//
+// Add an unnamed lexical scope to the namespace metadata
+//
+void Namespace::AddScope(ScopeDescription* scope)
+{
+	StringHandle name = LexicalScopeNameCache.Find(scope);
+	if(!name)
+		name = AllocateLexicalScopeName(scope);
+
+	AddScope(scope, name);
+}
+
+//
+// Add a named lexical scope to the namespace metadata
+//
+void Namespace::AddScope(ScopeDescription* scope, StringHandle name)
+{
+	if(Parent)
+	{
+		Parent->AddScope(scope, name);
+		return;
+	}
+
+	if(LexicalScopes.find(name) != LexicalScopes.end())
+		throw InternalException("Stomped on a lexical scope");
+
+	LexicalScopes.insert(std::make_pair(name, scope));
+}
+
+//
+// Allocate a name for an otherwise anonymous lexical scope
+//
 StringHandle Namespace::AllocateLexicalScopeName(const ScopeDescription* scopeptr)
 {
 	if(Parent)
@@ -798,16 +976,29 @@ StringHandle Namespace::AllocateLexicalScopeName(const ScopeDescription* scopept
 	return ret;
 }
 
+//
+// Retrieve the name of a lexical scope bound to a code block
+//
+// Predominantly useful for code generation
+//
 StringHandle Namespace::FindLexicalScopeName(const CodeBlock* blockptr) const
 {
 	return LexicalScopeNameCache.Find(blockptr->GetScope());
 }
 
+//
+// Retrieve the name of a lexical scope (general version)
+//
+// Predominantly useful for code generation
+//
 StringHandle Namespace::FindLexicalScopeName(const ScopeDescription* scopeptr) const
 {
 	return LexicalScopeNameCache.Find(scopeptr);
 }
 
+//
+// Internal helper for generating a lexical scope name
+//
 std::wstring Namespace::GenerateLexicalScopeName(const ScopeDescription* scopeptr)
 {
 	std::wostringstream name;
@@ -815,11 +1006,20 @@ std::wstring Namespace::GenerateLexicalScopeName(const ScopeDescription* scopept
 	return name.str();
 }
 
+//
+// Retrieve the "global" scope of this namespace
+//
 ScopeDescription* Namespace::GetGlobalScope() const
 {
 	return GlobalScope;
 }
 
+//
+// Helper for locating entity tag IDs
+//
+// Entity tags are used to identify different sorts of entity
+// in the virtual machine/runtime layer.
+//
 Bytecode::EntityTag Namespace::GetEntityTag(StringHandle identifier) const
 {
 	for(EntityTable::const_iterator iter = Session.InfoTable.Entities->begin(); iter != Session.InfoTable.Entities->end(); ++iter)
@@ -851,6 +1051,9 @@ Bytecode::EntityTag Namespace::GetEntityTag(StringHandle identifier) const
 	throw InternalException("String handle does not correspond to any known type of entity");
 }
 
+//
+// Retrieve the entity tag of a postfix entity
+//
 Bytecode::EntityTag Namespace::GetEntityCloserTag(StringHandle identifier) const
 {
 	for(EntityTable::const_iterator iter = Session.InfoTable.PostfixClosers->begin(); iter != Session.InfoTable.PostfixClosers->end(); ++iter)
@@ -872,7 +1075,7 @@ Bytecode::EntityTag Namespace::GetEntityCloserTag(StringHandle identifier) const
 
 
 //
-// Add a global code block to a program
+// Add a global code block to a namespace
 //
 size_t Namespace::AddGlobalCodeBlock(CodeBlock* code)
 {
@@ -884,7 +1087,7 @@ size_t Namespace::AddGlobalCodeBlock(CodeBlock* code)
 }
 
 //
-// Retrieve a given global code block from the program
+// Retrieve a given global code block from the namespace
 //
 const CodeBlock& Namespace::GetGlobalCodeBlock(size_t index) const
 {
@@ -904,7 +1107,7 @@ const CodeBlock& Namespace::GetGlobalCodeBlock(size_t index) const
 }
 
 //
-// Retrieve the count of global code blocks in a given program
+// Retrieve the count of global code blocks in a given namespace
 //
 size_t Namespace::GetNumGlobalCodeBlocks() const
 {
@@ -919,6 +1122,9 @@ StringHandle Namespace::GetGlobalCodeBlockName(size_t index) const
 	return Strings.Find(GenerateAnonymousGlobalScopeName(index));
 }
 
+//
+// Internal helper for generating names for otherwise anonymous "global" blocks
+//
 std::wstring Namespace::GenerateAnonymousGlobalScopeName(size_t index)
 {
 	std::wostringstream name;
@@ -936,13 +1142,9 @@ StringHandle Namespace::AllocateAnonymousParamName()
 	return Strings.PoolFast(name.str());
 }
 
-
-std::wstring FunctionTable::GeneratePatternMatcherName(const std::wstring& funcname)
-{
-	return funcname + L"@@patternmatch";
-}
-
-
+//
+// Validate all content in a namespace
+//
 bool Namespace::Validate(CompileErrors& errors) const
 {
 	bool valid = true;
@@ -962,6 +1164,9 @@ bool Namespace::Validate(CompileErrors& errors) const
 	return valid;
 }
 
+//
+// Perform type inference on all content in a namespace
+//
 bool Namespace::TypeInference(CompileErrors& errors)
 {
 	InferenceContext context(0, InferenceContext::CONTEXT_GLOBAL);
@@ -975,6 +1180,9 @@ bool Namespace::TypeInference(CompileErrors& errors)
 	return Functions.TypeInference(context, errors);
 }
 
+//
+// Perform compile time code execution for all content in a namespace
+//
 bool Namespace::CompileTimeCodeExecution(CompileErrors& errors)
 {
 	if(!Types.CompileTimeCodeExecution(errors))
@@ -983,6 +1191,13 @@ bool Namespace::CompileTimeCodeExecution(CompileErrors& errors)
 	return Functions.CompileTimeCodeExecution(errors);
 }
 
+//
+// Create a dummy namespace for aiding in template generation
+//
+// Template arguments create weak type aliases for their mapped types.
+// In order to simplify lookup of templated types, we simply create a
+// namespace holding these mappings and attach it to the function's IR.
+//
 Namespace* Namespace::CreateTemplateDummy(Namespace& parent, const std::vector<std::pair<StringHandle, Metadata::EpochTypeID> >& params, const CompileTimeParameterVector& args)
 {
 	Namespace* ret = new Namespace(parent.Types.IDSpace, parent.Strings, parent.Session);
@@ -1002,6 +1217,12 @@ Namespace* Namespace::CreateTemplateDummy(Namespace& parent, const std::vector<s
 	return ret;
 }
 
+//
+// Link a namespace to its owning "parent"
+//
+// Parents are often containing namespaces, but can also
+// be used for tracking ownership of dummy namespaces.
+//
 void Namespace::SetParent(Namespace* parent)
 {
 	Parent = parent;

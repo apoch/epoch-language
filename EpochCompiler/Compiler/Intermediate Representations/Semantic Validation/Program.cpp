@@ -38,6 +38,7 @@ Program::Program(StringPoolManager& strings, CompileSession& session)
 //
 StringHandle Program::AddString(const std::wstring& str)
 {
+	// TODO - revisit the benefits of the identifier cache now that we have namespaces
 	StringHandle ret = IdentifierCache.Find(str);
 	if(!ret)
 	{
@@ -48,6 +49,9 @@ StringHandle Program::AddString(const std::wstring& str)
 	return ret;
 }
 
+//
+// Find the handle of a string pooled in a program's string pool
+//
 StringHandle Program::FindString(const std::wstring& str) const
 {
 	StringHandle cached = IdentifierCache.Find(str);
@@ -57,10 +61,14 @@ StringHandle Program::FindString(const std::wstring& str) const
 	return Strings.Find(str);
 }
 
+//
+// Retrieve the content of a pooled string using its handle
+//
 const std::wstring& Program::GetString(StringHandle handle) const
 {
 	return Strings.GetPooledString(handle);
 }
+
 
 //
 // Validate a program
@@ -70,12 +78,19 @@ bool Program::Validate(CompileErrors& errors) const
 	return GlobalNamespace.Validate(errors);
 }
 
+//
+// Perform type inference on a program
+//
 bool Program::TypeInference(CompileErrors& errors)
 {
 	return GlobalNamespace.TypeInference(errors);
 }
 
+//
+// Perform compile-time code execution on a program
+//
 bool Program::CompileTimeCodeExecution(CompileErrors& errors)
 {
 	return GlobalNamespace.CompileTimeCodeExecution(errors);
 }
+

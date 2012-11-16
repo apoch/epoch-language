@@ -140,7 +140,7 @@ namespace
 
 		VariableOrigin origin = (inreturnexpr ? VARIABLE_ORIGIN_RETURN : VARIABLE_ORIGIN_LOCAL);
 
-		if(curnamespace.Functions.Exists(atom->GetIdentifier()))
+		if(curnamespace.Functions.IRExists(atom->GetIdentifier()))
 		{
 			errors.SetContext(atom->GetOriginalIdentifier());
 			errors.SemanticError("Variable name shadows a function of the same name");

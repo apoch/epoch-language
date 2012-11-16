@@ -165,7 +165,7 @@ bool Statement::TypeInference(Namespace& curnamespace, CodeBlock& activescope, I
 		|| Metadata::GetTypeFamily(MyType) == Metadata::EpochTypeFamily_TemplateInstance
 	  )
 	{
-		if(curnamespace.Functions.Exists(RawName))
+		if(curnamespace.Functions.IRExists(RawName))
 		{
 			unsigned totalexpectedpermutations = 1;
 			bool generatetypematch = false;

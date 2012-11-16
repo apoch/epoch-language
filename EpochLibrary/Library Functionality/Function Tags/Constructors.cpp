@@ -42,7 +42,7 @@ namespace
 		Metadata::EpochTypeID effectivetype = curnamespace.Types.GetTypeByName(statement.GetName());
 		activescope.AddVariable(curnamespace.Strings.GetPooledString(atom->GetIdentifier()), atom->GetIdentifier(), statement.GetName(), effectivetype, false, origin);
 
-		if(curnamespace.Functions.Exists(atom->GetIdentifier()))
+		if(curnamespace.Functions.IRExists(atom->GetIdentifier()))
 			errors.SemanticError("Variable name shadows a function of the same name");
 		// TODO - check for shadowing of type names also!
 	}

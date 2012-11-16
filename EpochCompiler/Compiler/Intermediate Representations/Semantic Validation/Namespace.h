@@ -45,6 +45,9 @@ namespace IRSemantics
 	typedef std::map<StringHandle, const ScopeDescription*> ScopePtrMap;
 
 
+	//
+	// Wrapper for holding all functions in a namespace
+	//
 	class FunctionTable
 	{
 	// Handy type shortcuts
@@ -65,7 +68,7 @@ namespace IRSemantics
 	// General function management interface
 	public:
 		void Add(StringHandle name, StringHandle rawname, Function* function);
-		EPOCHCOMPILER bool Exists(StringHandle functionname) const;
+		EPOCHCOMPILER bool IRExists(StringHandle functionname) const;
 
 	// Function signature management interface
 	public:
@@ -80,7 +83,7 @@ namespace IRSemantics
 		const StringHandleSet& GetOverloadNames(StringHandle functionname) const;
 
 		StringHandle CreateOverload(const std::wstring& name);
-		void AddOverload(StringHandle functionname, StringHandle overloadname);
+		void AddInternalOverload(StringHandle functionname, StringHandle overloadname);
 
 		unsigned GetNumOverloads(StringHandle name) const;
 		StringHandle GetOverloadName(StringHandle rawname, unsigned overloadindex) const;
@@ -166,6 +169,9 @@ namespace IRSemantics
 	};
 
 
+	//
+	// Wrapper for holding all function tags valid in a namespace
+	//
 	class FunctionTagTable
 	{
 	// Construction
@@ -188,6 +194,9 @@ namespace IRSemantics
 	};
 
 
+	//
+	// Wrapper for holding all operators valid in a namespace
+	//
 	class OperatorTable
 	{
 	// Construction
@@ -214,6 +223,9 @@ namespace IRSemantics
 	};
 
 
+	//
+	// Wrapper for holding all content valid in a namespace
+	//
 	class Namespace
 	{
 	// Construction and destruction
