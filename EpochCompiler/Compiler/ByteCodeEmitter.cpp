@@ -2,7 +2,7 @@
 // The Epoch Language Project
 // EPOCHCOMPILER Compiler Toolchain
 //
-// Helper class for generating bytecode sequences from semantic actions
+// Helper class for generating bytecode sequences
 //
 
 #include "pch.h"
@@ -44,7 +44,7 @@ void ByteCodeEmitter::EnterFunction(StringHandle functionname)
 // completed. Following the RETURN instruction is an entity terminator declaration.
 // Note that the entity terminator is not executed directly as is the case with most
 // entities such as loops or conditionals; instead, it is used primarily by the VM
-// as a sort of book-keeping token. In particular it is useful for the Epoch-ASM
+// as a sort of book-keeping token. In particular it is useful for the Epoch code
 // serializer for handling code indentation levels.
 //
 void ByteCodeEmitter::ExitFunction()
@@ -626,6 +626,13 @@ void ByteCodeEmitter::AssignVariableThroughIdentifier()
 	EmitInstruction(Bytecode::Instructions::AssignThroughIdentifier);
 }
 
+//
+// Emit an instruction for assigning a value into a sum-typed variable
+//
+// Sum-typed variables must maintain their own type annotation (the discriminant of
+// the discriminated union) at runtime. This instruction ensures that when the content
+// of a sum-typed variable changes, the type annotation is kept up to date.
+//
 void ByteCodeEmitter::AssignSumTypeVariable()
 {
 	EmitInstruction(Bytecode::Instructions::AssignSumType);
@@ -864,6 +871,9 @@ void ByteCodeEmitter::PrependInstruction(Bytecode::Instruction instruction)
 	PrependRawValue(byteval);
 }
 
+//
+// Prepend an entity tag to the stream
+//
 void ByteCodeEmitter::PrependEntityTag(Bytecode::EntityTag tag)
 {
 	STATIC_ASSERT(sizeof(Bytecode::EntityTag) <= sizeof(Integer32));
@@ -873,7 +883,13 @@ void ByteCodeEmitter::PrependEntityTag(Bytecode::EntityTag tag)
 }
 
 
-
+//
+// Emit an instruction for entering a type dispatch resolver
+//
+// Type resolvers operate like pattern matchers, except using types
+// instead of values. They accomplish the implementation of both
+// virtual and multiple dispatch in Epoch.
+//
 void ByteCodeEmitter::EnterTypeResolver(StringHandle resolvername)
 {
 	EmitInstruction(Bytecode::Instructions::BeginEntity);
@@ -881,6 +897,13 @@ void ByteCodeEmitter::EnterTypeResolver(StringHandle resolvername)
 	EmitRawValue(resolvername);
 }
 
+//
+// Exit a type resolver
+//
+// As with most other function-style entity exits, this instruction
+// is mainly for throwing errors at runtime if something goes wrong,
+// and/or bookkeeping for important instruction pointer offsets.
+//
 void ByteCodeEmitter::ExitTypeResolver()
 {
 	// TODO - throw a runtime exception instead of just halting the VM entirely
@@ -888,6 +911,9 @@ void ByteCodeEmitter::ExitTypeResolver()
 	EmitInstruction(Bytecode::Instructions::EndEntity);
 }
 
+//
+// Emit an instruction and metadata for performing multiple dispatch
+//
 void ByteCodeEmitter::ResolveTypes(StringHandle dispatchfunction, const FunctionSignature& signature)
 {
 	EmitInstruction(Bytecode::Instructions::TypeMatch);
@@ -900,6 +926,13 @@ void ByteCodeEmitter::ResolveTypes(StringHandle dispatchfunction, const Function
 	}
 }
 
+//
+// Emit metadata for defining a sum type
+//
+// Sum type information is used for marshaling, controlling
+// stack allocation for sum-typed variables, and other bookkeeping
+// operations in the VM.
+//
 void ByteCodeEmitter::DefineSumType(Metadata::EpochTypeID sumtypeid, const std::set<Metadata::EpochTypeID>& basetypes)
 {
 	EmitInstruction(Bytecode::Instructions::SumTypeDef);
@@ -909,11 +942,22 @@ void ByteCodeEmitter::DefineSumType(Metadata::EpochTypeID sumtypeid, const std::
 		EmitTypeAnnotation(*iter);
 }
 
+//
+// Emit an instruction for invoking an appropriate sum-typed variable constructor
+//
+// Sum-typed variables must carry their own type annotations; this instruction ensures
+// that when such a variable is initialized, its type annotation is correctly set.
+//
 void ByteCodeEmitter::ConstructSumType()
 {
 	EmitInstruction(Bytecode::Instructions::ConstructSumType);
 }
 
+//
+// Emit an instruction to place a manual type annotation on the stack
+//
+// Type annotations are useful for multiple dispatchers etc.
+//
 void ByteCodeEmitter::PushTypeAnnotation(Metadata::EpochTypeID type)
 {
 	EmitInstruction(Bytecode::Instructions::Push);
@@ -921,8 +965,13 @@ void ByteCodeEmitter::PushTypeAnnotation(Metadata::EpochTypeID type)
 	EmitRawValue(type);
 }
 
+//
+// Emit an instruction which requests the VM to place a type annotation
+// on the stack based on the contents of the return value register.
+//
 void ByteCodeEmitter::TypeAnnotationFromRegister()
 {
+	// TODO - this is kind of a misnomer, since we actually bind a temporary reference onto the stack!
 	EmitInstruction(Bytecode::Instructions::TypeFromRegister);
 }
 

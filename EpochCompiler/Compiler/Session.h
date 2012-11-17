@@ -26,6 +26,7 @@ namespace IRSemantics { class Program; }
 #include <list>
 
 
+// Handy type shortcuts
 typedef std::vector<char> ByteBuffer;
 typedef std::map<StringHandle, Metadata::EpochTypeID> NameToTypeTable;
 

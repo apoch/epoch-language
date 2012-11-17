@@ -1,3 +1,10 @@
+//
+// The Epoch Language Project
+// EPOCHCOMPILER Compiler Toolchain
+//
+// Wrapper for compilation error management
+//
+
 #include "pch.h"
 
 #include "Compiler/CompileErrors.h"
@@ -5,6 +12,9 @@
 #include "User Interface/Output.h"
 
 
+//
+// Construct and initialize an error tracking wrapper
+//
 CompileErrors::CompileErrors()
 	: Contextualizer(NULL)
 {
@@ -13,6 +23,10 @@ CompileErrors::CompileErrors()
 	CurrentContext.Column = 0;
 }
 
+//
+// Update the current code location corresponding
+// to the upcoming set of potential errors
+//
 void CompileErrors::SetLocation(const std::wstring& file, size_t line, size_t column, const std::wstring& source)
 {
 	CurrentContext.File = file;
@@ -21,7 +35,9 @@ void CompileErrors::SetLocation(const std::wstring& file, size_t line, size_t co
 	CurrentContext.Source = source;
 }
 
-
+//
+// Flag a semantic error in the source code
+//
 void CompileErrors::SemanticError(SemanticErrorDef error)
 {
 	if(Contextualizer)
@@ -34,12 +50,17 @@ void CompileErrors::SemanticError(SemanticErrorDef error)
 	SemanticErrors.push_back(se);
 }
 
-
+//
+// Determine if any errors have been noted that should halt a build
+//
 bool CompileErrors::HasErrors() const
 {
 	return !SemanticErrors.empty();
 }
 
+//
+// Print out a list of all flagged errors
+//
 void CompileErrors::DumpErrors() const
 {
 	UI::OutputStream output;
@@ -59,6 +80,9 @@ void CompileErrors::DumpErrors() const
 	}
 }
 
+//
+// Control where the compile errors are getting their context state from
+//
 void CompileErrors::GetContextFrom(CompileErrorContextualizer* contextualizer)
 {
 	Contextualizer = contextualizer;

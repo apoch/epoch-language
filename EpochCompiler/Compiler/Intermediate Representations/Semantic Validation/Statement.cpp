@@ -25,6 +25,9 @@
 using namespace IRSemantics;
 
 
+//
+// Construct and initialize a statement IR node
+//
 Statement::Statement(StringHandle name, const AST::IdentifierT& identifier)
 	: Name(name),
 	  RawName(name),
@@ -35,18 +38,26 @@ Statement::Statement(StringHandle name, const AST::IdentifierT& identifier)
 {
 }
 
+//
+// Destruct and clean up a statement IR node
+//
 Statement::~Statement()
 {
 	for(std::vector<Expression*>::iterator iter = Parameters.begin(); iter != Parameters.end(); ++iter)
 		delete *iter;
 }
 
+//
+// Add a parameter to a statement
+//
 void Statement::AddParameter(Expression* expression)
 {
 	Parameters.push_back(expression);
 }
 
-
+//
+// Validate the contents of a statement for type correctness etc.
+//
 bool Statement::Validate(const Namespace& curnamespace) const
 {
 	bool valid = true;
@@ -61,6 +72,13 @@ bool Statement::Validate(const Namespace& curnamespace) const
 	return valid;
 }
 
+//
+// Perform compile-time code execution for a statement
+//
+// Maps constructor names for weak type aliases, ensures that
+// templated function invocations are instantiated correctly,
+// and invokes any appropriate compiler helper routines.
+//
 bool Statement::CompileTimeCodeExecution(Namespace& curnamespace, CodeBlock& activescope, bool inreturnexpr, CompileErrors& errors)
 {
 	if(CompileTimeCodeExecuted)
@@ -91,6 +109,19 @@ bool Statement::CompileTimeCodeExecution(Namespace& curnamespace, CodeBlock& act
 	return true;
 }
 
+//
+// Perform type inference on a statement
+//
+// Note that this is what actually initiates compile time code
+// execution (i.e. when it's all done and successful) in order
+// to ensure that variable construction etc. is done correctly
+// using appropriate type information.
+//
+// This routine is fairly long and ugly because it has to take
+// into consideration quite a few language features: templated
+// functions and types, overloading, intrinsic functions, type
+// dispatchers, pattern matchers, and so on.
+//
 bool Statement::TypeInference(Namespace& curnamespace, CodeBlock& activescope, InferenceContext& context, size_t index, CompileErrors& errors)
 {
 	if(MyType != Metadata::EpochType_Error)
@@ -600,7 +631,12 @@ bool Statement::TypeInference(Namespace& curnamespace, CodeBlock& activescope, I
 	return true;
 }
 
-
+//
+// Set template arguments for a statement
+//
+// Maps constructors to the correct names when template
+// arguments are passed to a templated type constructor
+//
 void Statement::SetTemplateArgs(const CompileTimeParameterVector& args, Namespace& curnamespace, CompileErrors& errors)
 {
 	if(!args.empty())
@@ -628,6 +664,9 @@ void Statement::SetTemplateArgs(const CompileTimeParameterVector& args, Namespac
 	}
 }
 
+//
+// Store template arguments for later instantiation
+//
 void Statement::SetTemplateArgsDeferred(const CompileTimeParameterVector& args)
 {
 	if(!args.empty())
@@ -638,6 +677,9 @@ void Statement::SetTemplateArgsDeferred(const CompileTimeParameterVector& args)
 }
 
 
+//
+// Perform type inference on a pre-operation statement
+//
 bool PreOpStatement::TypeInference(Namespace& curnamespace, CodeBlock& activescope, InferenceContext&, CompileErrors&)
 {
 	Metadata::EpochTypeID operandtype = InferMemberAccessType(Operand, curnamespace, activescope);
@@ -690,12 +732,18 @@ bool PreOpStatement::TypeInference(Namespace& curnamespace, CodeBlock& activesco
 	return (MyType != Metadata::EpochType_Error);
 }
 
+//
+// Validate a pre-operation statement
+//
 bool PreOpStatement::Validate(const Namespace&) const
 {
 	return MyType != Metadata::EpochType_Error;
 }
 
 
+//
+// Perform type inference on a post-operation statement
+//
 bool PostOpStatement::TypeInference(Namespace& curnamespace, CodeBlock& activescope, InferenceContext&, CompileErrors&)
 {
 	Metadata::EpochTypeID operandtype = InferMemberAccessType(Operand, curnamespace, activescope);
@@ -748,13 +796,18 @@ bool PostOpStatement::TypeInference(Namespace& curnamespace, CodeBlock& activesc
 	return (MyType != Metadata::EpochType_Error);
 }
 
+//
+// Validate a post-operation statement
+//
 bool PostOpStatement::Validate(const Namespace&) const
 {
 	return MyType != Metadata::EpochType_Error;
 }
 
 
-
+//
+// Deep-copy a statement IR node
+//
 Statement* Statement::Clone() const
 {
 	Statement* clone = new Statement(Name, OriginalIdentifier);
@@ -768,6 +821,9 @@ Statement* Statement::Clone() const
 	return clone;
 }
 
+//
+// Deep-copy a pre-operation statement IR node
+//
 PreOpStatement* PreOpStatement::Clone() const
 {
 	PreOpStatement* clone = new PreOpStatement(OperatorName, Operand);
@@ -775,6 +831,9 @@ PreOpStatement* PreOpStatement::Clone() const
 	return clone;
 }
 
+//
+// Deep-copy a post-operation statement IR node
+//
 PostOpStatement* PostOpStatement::Clone() const
 {
 	PostOpStatement* clone = new PostOpStatement(Operand, OperatorName);

@@ -32,6 +32,9 @@ namespace IRSemantics
 	struct InferenceContext;
 
 
+	//
+	// IR node representing a statement (function or constructor invocation)
+	//
 	class Statement
 	{
 	// Construction and destruction
@@ -94,7 +97,9 @@ namespace IRSemantics
 		bool NeedsInstantiation;
 	};
 
-
+	//
+	// IR node representing a pre-operation statement (such as ++i)
+	//
 	class PreOpStatement
 	{
 	// Construction
@@ -135,6 +140,9 @@ namespace IRSemantics
 		Metadata::EpochTypeID MyType;
 	};
 
+	//
+	// IR node representing a post-operation statement (such as i++)
+	//
 	class PostOpStatement
 	{
 	// Construction

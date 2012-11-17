@@ -2,7 +2,7 @@
 // The Epoch Language Project
 // EPOCHCOMPILER Compiler Toolchain
 //
-// Helper class for generating bytecode sequences from semantic actions
+// Helper class for generating bytecode sequences
 //
 
 #pragma once
@@ -31,9 +31,11 @@ typedef std::vector<Byte> ByteBuffer;
 //
 // Wrapper class for generating bytecode sequences
 //
-// This class is used directly by the parser to create a bytecode stream for a
-// program as it is parsed from source code. The resulting stream is suitable for
-// serialization either in binary or assembly format, or direct execution.
+// This class is used directly by the code generation pass to create a bytecode
+// stream for a program after it has been parsed from source code, and passed
+// through validation, type checking, and optimization passes. The resulting
+// stream is suitable for serialization either in binary or assembly format,
+// or direct execution.
 //
 class ByteCodeEmitter
 {

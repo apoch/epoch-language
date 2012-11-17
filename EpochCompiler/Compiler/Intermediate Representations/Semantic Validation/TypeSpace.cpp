@@ -21,6 +21,9 @@
 using namespace IRSemantics;
 
 
+//
+// Construct and initialize a global/program-wide ID tracker
+//
 GlobalIDSpace::GlobalIDSpace()
 	: CounterStructureTypeIDs(0),
 	  CounterUnitTypeIDs(0),
@@ -29,38 +32,59 @@ GlobalIDSpace::GlobalIDSpace()
 {
 }
 
+//
+// Allocate a type ID for a template instantiation
+//
 Metadata::EpochTypeID GlobalIDSpace::NewTemplateInstantiation()
 {
 	return (CounterTemplateInstantiations++) | Metadata::EpochTypeFamily_TemplateInstance;
 }
 
+//
+// Allocate a type ID for a structure
+//
 Metadata::EpochTypeID GlobalIDSpace::NewStructureTypeID()
 {
 	return (CounterStructureTypeIDs++) | Metadata::EpochTypeFamily_Structure;
 }
 
+//
+// Allocate a type ID for a strong type alias
+//
 Metadata::EpochTypeID GlobalIDSpace::NewUnitTypeID()
 {
 	return (CounterUnitTypeIDs++) | Metadata::EpochTypeFamily_Unit;
 }
 
+//
+// Allocate a type ID for an algebraic sum type
+//
 Metadata::EpochTypeID GlobalIDSpace::NewSumTypeID()
 {
 	return (CounterSumTypeIDs++) | Metadata::EpochTypeFamily_SumType;
 }
 
 
+//
+// Construct and initialize a table of structure types
+//
 StructureTable::StructureTable(TypeSpace& typespace)
 	: MyTypeSpace(typespace)
 {
 }
 
+//
+// Destruct and clean up a table of structure types
+//
 StructureTable::~StructureTable()
 {
 	for(std::map<StringHandle, Structure*>::iterator iter = NameToDefinitionMap.begin(); iter != NameToDefinitionMap.end(); ++iter)
 		delete iter->second;
 }
 
+//
+// Retrieve the IR definition of a given structure (by name)
+//
 const Structure* StructureTable::GetDefinition(StringHandle structurename) const
 {
 	std::map<StringHandle, Structure*>::const_iterator iter = NameToDefinitionMap.find(structurename);
@@ -73,6 +97,9 @@ const Structure* StructureTable::GetDefinition(StringHandle structurename) const
 	throw InternalException("Invalid structure name");
 }
 
+//
+// Retrieve the type of a given structure member (by name)
+//
 Metadata::EpochTypeID StructureTable::GetMemberType(StringHandle structurename, StringHandle membername) const
 {
 	if(MyTypeSpace.Templates.NameToTypeMap.find(structurename) != MyTypeSpace.Templates.NameToTypeMap.end())
@@ -97,11 +124,17 @@ Metadata::EpochTypeID StructureTable::GetMemberType(StringHandle structurename, 
 	throw InternalException("Invalid structure member");
 }
 
+//
+// Retrieve the name of a structure type's constructor (by name)
+//
 StringHandle StructureTable::GetConstructorName(StringHandle structurename) const
 {
 	return NameToDefinitionMap.find(structurename)->second->GetConstructorName();
 }
 
+//
+// Add a new structure type definition to a structure table
+//
 void StructureTable::Add(StringHandle name, Structure* structure, CompileErrors& errors)
 {
 	if(NameToDefinitionMap.find(name) != NameToDefinitionMap.end())
@@ -118,12 +151,17 @@ void StructureTable::Add(StringHandle name, Structure* structure, CompileErrors&
 }
 
 
+//
+// Construct and initialize a table tracking algebraic sum types
+//
 SumTypeTable::SumTypeTable(TypeSpace& typespace)
 	: MyTypeSpace(typespace)
 {
 }
 
-
+//
+// Add a new algebraic sum type to a table
+//
 Metadata::EpochTypeID SumTypeTable::Add(const std::wstring& name, CompileErrors& errors)
 {
 	StringHandle namehandle = MyTypeSpace.MyNamespace.Strings.Pool(name);
@@ -137,8 +175,9 @@ Metadata::EpochTypeID SumTypeTable::Add(const std::wstring& name, CompileErrors&
 	return type;
 }
 
-
-
+//
+// Determine if the given sum type has a particular type as a base
+//
 bool SumTypeTable::IsBaseType(Metadata::EpochTypeID sumtypeid, Metadata::EpochTypeID basetype) const
 {
 	std::map<Metadata::EpochTypeID, std::set<StringHandle> >::const_iterator iter = BaseTypeNames.find(sumtypeid);
@@ -159,11 +198,17 @@ bool SumTypeTable::IsBaseType(Metadata::EpochTypeID sumtypeid, Metadata::EpochTy
 	return false;
 }
 
+//
+// Add a base type to an existing sum type definition (base type provided by name)
+//
 void SumTypeTable::AddBaseTypeToSumType(Metadata::EpochTypeID sumtypeid, StringHandle basetypename)
 {
 	BaseTypeNames[sumtypeid].insert(basetypename);
 }
 
+//
+// Instantiate a sum type template
+//
 StringHandle SumTypeTable::InstantiateTemplate(StringHandle templatename, const CompileTimeParameterVector& originalargs)
 {
 	CompileTimeParameterVector args(originalargs);
@@ -228,6 +273,9 @@ StringHandle SumTypeTable::InstantiateTemplate(StringHandle templatename, const 
 	return mangledname;
 }
 
+//
+// Internal helper for generating template instance mangled names
+//
 std::wstring SumTypeTable::GenerateTemplateMangledName(Metadata::EpochTypeID type)
 {
 	std::wostringstream formatter;
@@ -235,6 +283,12 @@ std::wstring SumTypeTable::GenerateTemplateMangledName(Metadata::EpochTypeID typ
 	return formatter.str();
 }
 
+//
+// Determine if the given name corresponds to a templated sum type
+//
+// Note the distinction between a templated sum type (which this function
+// will detect) versus an instance of such a type (which it will not).
+//
 bool SumTypeTable::IsTemplate(StringHandle name) const
 {
 	if(NameToParamsMap.find(name) != NameToParamsMap.end())
@@ -246,61 +300,20 @@ bool SumTypeTable::IsTemplate(StringHandle name) const
 	return false;
 }
 
+//
+// Add a template parameter to the given sum type
+//
+// Sum type templates only accept type wildcards, so we don't
+// need to provide anything besides the name of the parameter.
+//
 void SumTypeTable::AddTemplateParameter(Metadata::EpochTypeID sumtype, StringHandle name)
 {
 	NameToParamsMap[MyTypeSpace.GetNameOfType(sumtype)].push_back(name);
 }
 
-
-
-TypeAliasTable::TypeAliasTable(TypeSpace& typespace)
-	: MyTypeSpace(typespace)
-{
-}
-
-Metadata::EpochTypeID TypeAliasTable::GetStrongRepresentation(Metadata::EpochTypeID aliastypeid) const
-{
-	std::map<Metadata::EpochTypeID, Metadata::EpochTypeID>::const_iterator iter = StrongRepresentationTypes.find(aliastypeid);
-	if(iter == StrongRepresentationTypes.end())
-		throw InternalException("Invalid strong type alias");
-
-	return iter->second;
-}
-
-Metadata::EpochTypeID TypeAliasTable::GetStrongRepresentationName(Metadata::EpochTypeID aliastypeid) const
-{
-	std::map<Metadata::EpochTypeID, StringHandle>::const_iterator iter = StrongRepresentationNames.find(aliastypeid);
-	if(iter == StrongRepresentationNames.end())
-		throw InternalException("Invalid strong type alias");
-
-	return iter->second;
-}
-
-void TypeAliasTable::AddWeakAlias(StringHandle aliasname, Metadata::EpochTypeID representationtype)
-{
-	WeakNameToTypeMap[aliasname] = representationtype;
-}
-
-bool TypeAliasTable::HasWeakAliasNamed(StringHandle name) const
-{
-	return WeakNameToTypeMap.find(name) != WeakNameToTypeMap.end();
-}
-
-
-StringHandle TypeAliasTable::GetWeakTypeBaseName(StringHandle name) const
-{
-	return MyTypeSpace.GetNameOfType(WeakNameToTypeMap.find(name)->second);
-}
-
-
-void TypeAliasTable::AddStrongAlias(StringHandle aliasname, Metadata::EpochTypeID representationtype, StringHandle representationname)
-{
-	Metadata::EpochTypeID newtypeid = MyTypeSpace.IDSpace.NewUnitTypeID();
-	StrongNameToTypeMap[aliasname] = newtypeid;
-	StrongRepresentationTypes[newtypeid] = representationtype;
-	StrongRepresentationNames[newtypeid] = representationname;
-}
-
+//
+// Given the name of a sum type overload, return the name of the appropriate constructor
+//
 StringHandle SumTypeTable::MapConstructorName(StringHandle sumtypeoverloadname) const
 {
 	std::map<StringHandle, StringHandle>::const_iterator iter = NameToConstructorMap.find(sumtypeoverloadname);
@@ -315,6 +328,9 @@ StringHandle SumTypeTable::MapConstructorName(StringHandle sumtypeoverloadname) 
 	return iter->second;
 }
 
+//
+// Retrieve the number of base types assigned to a given sum type
+//
 unsigned SumTypeTable::GetNumBaseTypes(Metadata::EpochTypeID type) const
 {
 	std::map<Metadata::EpochTypeID, std::set<StringHandle> >::const_iterator iter = BaseTypeNames.find(type);
@@ -329,6 +345,11 @@ unsigned SumTypeTable::GetNumBaseTypes(Metadata::EpochTypeID type) const
 	return iter->second.size();
 }
 
+//
+// Retrieve a table of all sum type definitions and their base types
+//
+// Provides type IDs only; primarily useful for code generation purposes
+//
 std::map<Metadata::EpochTypeID, std::set<Metadata::EpochTypeID> > SumTypeTable::GetDefinitions() const
 {
 	std::map<Metadata::EpochTypeID, std::set<Metadata::EpochTypeID> > ret;
@@ -342,11 +363,87 @@ std::map<Metadata::EpochTypeID, std::set<Metadata::EpochTypeID> > SumTypeTable::
 }
 
 
+
+
+//
+// Construct and initialize a table that tracks strong and weak type aliases
+//
+TypeAliasTable::TypeAliasTable(TypeSpace& typespace)
+	: MyTypeSpace(typespace)
+{
+}
+
+//
+// Retrieve the original type underlying a strong type alias
+//
+Metadata::EpochTypeID TypeAliasTable::GetStrongRepresentation(Metadata::EpochTypeID aliastypeid) const
+{
+	std::map<Metadata::EpochTypeID, Metadata::EpochTypeID>::const_iterator iter = StrongRepresentationTypes.find(aliastypeid);
+	if(iter == StrongRepresentationTypes.end())
+		throw InternalException("Invalid strong type alias");
+
+	return iter->second;
+}
+
+//
+// Retrieve the name of the type underlying a strong type alias
+//
+Metadata::EpochTypeID TypeAliasTable::GetStrongRepresentationName(Metadata::EpochTypeID aliastypeid) const
+{
+	std::map<Metadata::EpochTypeID, StringHandle>::const_iterator iter = StrongRepresentationNames.find(aliastypeid);
+	if(iter == StrongRepresentationNames.end())
+		throw InternalException("Invalid strong type alias");
+
+	return iter->second;
+}
+
+//
+// Add a weak alias to the alias table
+//
+void TypeAliasTable::AddWeakAlias(StringHandle aliasname, Metadata::EpochTypeID representationtype)
+{
+	WeakNameToTypeMap[aliasname] = representationtype;
+}
+
+//
+// Determine if the given name corresponds to a weak type alias
+//
+bool TypeAliasTable::HasWeakAliasNamed(StringHandle name) const
+{
+	return WeakNameToTypeMap.find(name) != WeakNameToTypeMap.end();
+}
+
+//
+// Retrieve the name of the underlying type of a weak type alias
+//
+StringHandle TypeAliasTable::GetWeakTypeBaseName(StringHandle name) const
+{
+	return MyTypeSpace.GetNameOfType(WeakNameToTypeMap.find(name)->second);
+}
+
+//
+// Add a strong type alias to the alias table
+//
+void TypeAliasTable::AddStrongAlias(StringHandle aliasname, Metadata::EpochTypeID representationtype, StringHandle representationname)
+{
+	Metadata::EpochTypeID newtypeid = MyTypeSpace.IDSpace.NewUnitTypeID();
+	StrongNameToTypeMap[aliasname] = newtypeid;
+	StrongRepresentationTypes[newtypeid] = representationtype;
+	StrongRepresentationNames[newtypeid] = representationname;
+}
+
+
+//
+// Construct and initialize a table of structure template instances
+//
 TemplateTable::TemplateTable(TypeSpace& typespace)
 	: MyTypeSpace(typespace)
 {
 }
 
+//
+// Internal helper for generating a mangled name for a structure template instance
+//
 std::wstring TemplateTable::GenerateTemplateMangledName(Metadata::EpochTypeID type)
 {
 	std::wostringstream formatter;
@@ -354,7 +451,9 @@ std::wstring TemplateTable::GenerateTemplateMangledName(Metadata::EpochTypeID ty
 	return formatter.str();
 }
 
-
+//
+// Instantiate a structure template
+//
 StringHandle TemplateTable::InstantiateStructure(StringHandle templatename, const CompileTimeParameterVector& originalargs)
 {
 	{
@@ -431,6 +530,9 @@ StringHandle TemplateTable::InstantiateStructure(StringHandle templatename, cons
 	return mangledname;
 }
 
+//
+// Retrieve the name of the constructor for the given template instance (by name)
+//
 StringHandle TemplateTable::FindConstructorName(StringHandle instancename) const
 {
 	StringHandle ret = ConstructorNameCache.Find(instancename);
@@ -440,6 +542,14 @@ StringHandle TemplateTable::FindConstructorName(StringHandle instancename) const
 	return ret;
 }
 
+//
+// Retrieve the name of the anonymous (inline-temporary) constructor for the
+// given template instance (by name)
+//
+// Anonymous constructors do not create variables in their containing lexical
+// scopes. Instead, they simply create a temporary value on the stack, suitable
+// for short-lived objects. Anonymous temporaries can generate garbage.
+//
 StringHandle TemplateTable::FindAnonConstructorName(StringHandle instancename) const
 {
 	StringHandle ret = AnonConstructorNameCache.Find(instancename);
@@ -449,6 +559,9 @@ StringHandle TemplateTable::FindAnonConstructorName(StringHandle instancename) c
 	return ret;
 }
 
+//
+// Retrieve the name of the structure that defined the given template instance (by name)
+//
 StringHandle TemplateTable::GetTemplateForInstance(StringHandle instancename) const
 {
 	for(InstantiationMap::const_iterator iter = Instantiations.begin(); iter != Instantiations.end(); ++iter)
@@ -460,6 +573,11 @@ StringHandle TemplateTable::GetTemplateForInstance(StringHandle instancename) co
 	throw InternalException("Invalid template instance");
 }
 
+//
+// Determine if the given name correponds to a structure template
+//
+// Note that this does not detect structure template instances!
+//
 bool StructureTable::IsStructureTemplate(StringHandle name) const
 {
 	std::map<StringHandle, Structure*>::const_iterator iter = NameToDefinitionMap.find(name);
@@ -475,9 +593,13 @@ bool StructureTable::IsStructureTemplate(StringHandle name) const
 }
 
 
+// Evil: suppress warning about *this in initializer lists
 #pragma warning(push)
 #pragma warning(disable: 4355)
 
+//
+// Construct and initialize a typespace wrapper
+//
 TypeSpace::TypeSpace(Namespace& mynamespace, GlobalIDSpace& idspace)
 	: MyNamespace(mynamespace),
 	  IDSpace(idspace),
@@ -489,7 +611,11 @@ TypeSpace::TypeSpace(Namespace& mynamespace, GlobalIDSpace& idspace)
 }
 
 #pragma warning(pop)
+// End evil
 
+//
+// Retrieve the type ID corresponding to the given name
+//
 Metadata::EpochTypeID TypeSpace::GetTypeByName(StringHandle name) const
 {
 	{
@@ -543,6 +669,9 @@ Metadata::EpochTypeID TypeSpace::GetTypeByName(StringHandle name) const
 	return Metadata::EpochType_Error;
 }
 
+//
+// Retrieve the name of the given type
+//
 StringHandle TypeSpace::GetNameOfType(Metadata::EpochTypeID type) const
 {
 	for(NameToTypeTable::const_iterator iter = MyNamespace.Session.IntrinsicTypes.begin(); iter != MyNamespace.Session.IntrinsicTypes.end(); ++iter)
@@ -598,6 +727,9 @@ StringHandle TypeSpace::GetNameOfType(Metadata::EpochTypeID type) const
 
 }
 
+//
+// Validate the contents of a typespace
+//
 bool TypeSpace::Validate(CompileErrors& errors) const
 {
 	bool valid = true;
@@ -624,6 +756,12 @@ bool TypeSpace::Validate(CompileErrors& errors) const
 	return valid;
 }
 
+//
+// Perform compile-time code execution on the contents of a typespace
+//
+// Major responsibilities include generation of type instances from templates.
+// Also handles setting up constructors and other support infrastructure.
+//
 bool TypeSpace::CompileTimeCodeExecution(CompileErrors& errors)
 {
 	for(std::map<StringHandle, Structure*>::iterator iter = Structures.NameToDefinitionMap.begin(); iter != Structures.NameToDefinitionMap.end(); ++iter)

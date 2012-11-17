@@ -1,16 +1,31 @@
+//
+// The Epoch Language Project
+// EPOCHCOMPILER Compiler Toolchain
+//
+// Wrapper for compilation error management
+//
+
 #pragma once
 
-#include "Compiler/Abstract Syntax Tree/IdentifierT.h"
 
+// Dependencies
+#include "Compiler/Abstract Syntax Tree/IdentifierT.h"
 #include <vector>
 
 
+// Handy type shortcuts
 typedef const char* SemanticErrorDef;
 
 
+// Forward declarations
 class CompileErrors;
 
 
+//
+// Helper interface for placing compile errors in context
+//
+// Generally used to map AST nodes to their original source code
+//
 struct CompileErrorContextualizer
 {
 	virtual void UpdateContext(CompileErrors& errors) const = 0;
@@ -18,6 +33,9 @@ struct CompileErrorContextualizer
 };
 
 
+//
+// Wrapper for managing compilation errors
+//
 class CompileErrors
 {
 // Construction
