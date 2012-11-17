@@ -639,6 +639,9 @@ namespace
 		for(std::vector<StringHandle>::const_iterator orderiter = scopeorder.begin(); orderiter != scopeorder.end(); ++orderiter)
 		{
 			IRSemantics::ScopePtrMap::const_iterator iter = scopes.find(*orderiter);
+			if(iter == scopes.end())
+				throw InternalException("Scope dependency resolution failed");
+
 			emitter.DefineLexicalScope(iter->first, curnamespace.FindLexicalScopeName(iter->second->ParentScope), iter->second->GetVariableCount());
 			for(size_t i = 0; i < iter->second->GetVariableCount(); ++i)
 			{
