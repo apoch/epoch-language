@@ -24,6 +24,7 @@
 
 #include "Compiler/Passes/SemanticValidation.h"
 #include "Compiler/Passes/CodeGeneration.h"
+#include "Compiler/Passes/ParseCallbacks.h"
 
 #include "Parser/Parser.h"
 
@@ -254,5 +255,20 @@ void CompileSession::InitIntrinsicTypes()
 	IntrinsicTypes[StringPool.Pool(L"identifier")] = Metadata::EpochType_Identifier;
 	IntrinsicTypes[StringPool.Pool(L"nothing")] = Metadata::EpochType_Nothing;
 	IntrinsicTypes[StringPool.Pool(L"function")] = Metadata::EpochType_Function;
+}
+
+//
+// Parse a source block and invoke the given callbacks
+//
+void CompileSession::Parse(const std::wstring& code, const std::wstring& filename, const ParseCallbackTable& callbacks)
+{
+	Parser theparser(Identifiers);
+
+	if(!theparser.Parse(code, filename, ASTProgram))
+		return;
+
+	callbacks.ParseOK();
+	
+	CompilerPasses::ParseWithCallbacks(*ASTProgram, callbacks);
 }
 

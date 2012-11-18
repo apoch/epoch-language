@@ -185,6 +185,9 @@
     <ClCompile Include="..\Shared\Metadata\TypeInfo.cpp">
       <Filter>Shared\Metadata</Filter>
     </ClCompile>
+    <ClCompile Include="Compiler\Passes\ParseCallbacks.cpp">
+      <Filter>Compiler\Passes</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h">
@@ -423,6 +426,9 @@
     </ClInclude>
     <ClInclude Include="..\Shared\Metadata\TypeInfo.h">
       <Filter>Shared\Metadata</Filter>
+    </ClInclude>
+    <ClInclude Include="Compiler\Passes\ParseCallbacks.h">
+      <Filter>Compiler\Passes</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

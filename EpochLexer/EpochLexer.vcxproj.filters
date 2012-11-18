@@ -20,6 +20,9 @@
     <Filter Include="Lexer">
       <UniqueIdentifier>{6c831ee2-d294-49a7-bb42-098c8c2c8c48}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Syntax Highlighting">
+      <UniqueIdentifier>{9e40a1dd-b982-4999-afed-34c1f823b005}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Exports.cpp">
@@ -94,6 +97,9 @@
     </ClInclude>
     <ClInclude Include="Lexer.h">
       <Filter>Lexer</Filter>
+    </ClInclude>
+    <ClInclude Include="SyntaxHighlighting.h">
+      <Filter>Syntax Highlighting</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

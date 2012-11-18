@@ -90,3 +90,21 @@ extern "C" size_t STDCALL GetByteCodeBufferSize(void* handle)
 		return 0;
 	}
 }
+
+
+
+extern "C" void STDCALL ParseSource(const char* source, void* callbacktable)
+{
+	try
+	{
+		std::string source(reinterpret_cast<std::string::const_pointer>(source));
+		std::wstring wsource = widen(source);
+
+		CompileSession session;
+		session.Parse(wsource, L"?", *reinterpret_cast<const CompileSession::ParseCallbackTable*>(callbacktable));
+	}
+	catch(...)
+	{
+	}
+}
+

@@ -4,4 +4,4 @@ EXPORTS
 	GetByteCodeBuffer			@2
 	GetByteCodeBufferSize		@3
 	FreeByteCodeBuffer			@4
-
+	ParseSource					@5

@@ -121,6 +121,7 @@
     <ClInclude Include="Scintilla\StyleContext.h" />
     <ClInclude Include="Scintilla\WordList.h" />
     <ClInclude Include="Lexer.h" />
+    <ClInclude Include="SyntaxHighlighting.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

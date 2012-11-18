@@ -3,4 +3,5 @@ EXPORTS
 	GetLexerCount		@1
 	GetLexerName		@2
 	GetLexerFactory		@3
-
+	UDTListReset		@4
+	UDTListAppend		@5

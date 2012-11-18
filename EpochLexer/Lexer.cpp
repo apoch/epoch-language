@@ -17,6 +17,7 @@
 #include "Scintilla/Scintilla.h"
 
 #include <string>
+#include <set>
 
 
 static const int SCE_EPOCH_DEFAULT = 0;				// Default, unstyled tokens
@@ -32,6 +33,10 @@ static const int SCE_EPOCH_KEYWORD = 8;				// Keywords
 
 namespace
 {
+
+
+	std::set<std::string> UDTTokens;
+
 
 	//
 	// Determine if a given character is whitespace
@@ -56,6 +61,7 @@ namespace
 		|| token == "string"
 		|| token == "real"
 		|| token == "buffer"
+		|| token == "identifier"
 		);
 	}
 
@@ -65,8 +71,7 @@ namespace
 	bool IsUserDefinedTypeKeyword(const char* rawtoken)
 	{
 		std::string token(rawtoken);
-		// TODO - write a SemanticActionInterface which periodically parses the code and builds a list of UDTs for access here
-		return false;
+		return UDTTokens.find(token) != UDTTokens.end();
 	}
 
 	//
@@ -80,6 +85,7 @@ namespace
 		(
 		   token == "true"
 		|| token == "false"
+		|| token == "nothing"
 		);
 	}
 
@@ -99,6 +105,8 @@ namespace
 		|| token == "else"
 		|| token == "elseif"
 		|| token == "global"
+		|| token == "type"
+		|| token == "ref"
 		);
 	}
 
@@ -413,3 +421,22 @@ void* STDCALL EpochLexer::PrivateCall(int operation, void* pointer)
 
 	return NULL;
 }
+
+
+
+namespace Highlighter
+{
+
+	void UDTReset()
+	{
+		UDTTokens.clear();
+	}
+
+	void UDTAppend(const std::string& token)
+	{
+		UDTTokens.insert(token);
+	}
+
+}
+
+

@@ -8,6 +8,7 @@
 #include "pch.h"
 
 #include "Factory.h"
+#include "SyntaxHighlighting.h"
 
 #include <algorithm>
 
@@ -48,4 +49,20 @@ extern "C" void* STDCALL GetLexerFactory(unsigned index)
 	return 0;
 }
 
+
+//
+// Lexer syntax highlighting interface: reset the list of known User-Defined Types
+//
+extern "C" void STDCALL UDTListReset()
+{
+	Highlighter::UDTReset();
+}
+
+//
+// Lexer syntax highlighting interface: add a token to the list of User-Defined Types
+extern "C" void STDCALL UDTListAppend(const char* rawtoken)
+{
+	std::string token(rawtoken);
+	Highlighter::UDTAppend(token);
+}
 

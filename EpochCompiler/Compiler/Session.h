@@ -62,6 +62,19 @@ public:
 	const EntityDescription& GetCustomEntityByName(StringHandle name) const;
 	const EntityDescription& GetCustomEntityByTag(Bytecode::EntityTag tag) const;
 
+// Parsing hooks
+public:
+	struct ParseCallbackTable
+	{
+		typedef void (*ParseOKPtr)();
+		typedef void (*ParseStructurePtr)(const wchar_t* name);
+
+		ParseOKPtr ParseOK;
+		ParseStructurePtr ParseStructure;
+	};
+
+	void Parse(const std::wstring& code, const std::wstring& filename, const ParseCallbackTable& callbacks);
+
 // Publicly visible tracking
 public:
 	FunctionSignatureSet FunctionSignatures;

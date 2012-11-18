@@ -764,6 +764,7 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 				{
 					StringHandle varname = Fetch<StringHandle>();
 					StringHandle functionname = Variables->Read<StringHandle>(varname);
+
 					InvokedFunctionStack.push_back(functionname);
 					OwnerVM.InvokeFunction(functionname, *this);
 					InvokedFunctionStack.pop_back();

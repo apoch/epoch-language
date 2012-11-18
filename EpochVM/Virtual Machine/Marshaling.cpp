@@ -56,13 +56,13 @@ namespace
 	//
 	void __declspec(naked) CallbackEntryPoint()
 	{
-		void* espsave;
-		__asm mov espsave, esp;
+		__asm mov ecx, esp;
 
 		__asm push edx;
 		__asm push eax;
-		__asm push espsave;
+		__asm push ecx;
 		__asm call CallbackInvoke;
+
 		__asm ret;
 	}
 
@@ -135,10 +135,9 @@ namespace
 
 				if(nextslot < start + 4000)
 				{
-					void* ret = nextslot;
-					nextslot += 20;
+					nextslot += 64;
 					iter->NextAvailableSlot = nextslot;
-					return ret;
+					return nextslot;
 				}
 			}
 
@@ -219,9 +218,7 @@ namespace
 	UInteger32 STDCALL CallbackInvoke(UByte* espsave, VM::ExecutionContext* context, StringHandle callbackfunction)
 	{
 		// We need to increment past the stored value of ESP
-		// in order to reach the actual first parameter. This
-		// is because of the local variable defined in the
-		// callback stub, which uses a stack slot.
+		// in order to reach the actual first parameter.
 		UByte* esp = espsave + sizeof(void*);
 
 		Metadata::EpochTypeID resulttype = Metadata::EpochType_Void;
