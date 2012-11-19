@@ -451,7 +451,6 @@ bool FunctionTable::CompileTimeCodeExecution(CompileErrors& errors)
 //
 StringHandle FunctionTable::InstantiateAllOverloads(StringHandle templatename, const CompileTimeParameterVector& args, CompileErrors& errors)
 {
-	// TODO - limit this to overloads with matching template parameters!
 	StringHandle ret = 0;
 
 	if(GetNumOverloads(templatename) > 1)
@@ -463,7 +462,7 @@ StringHandle FunctionTable::InstantiateAllOverloads(StringHandle templatename, c
 				continue;
 
 			StringHandle instname = InstantiateTemplate(*iter, args, errors);
-			if(!ret)
+			if(!ret && instname)
 				ret = instname;
 		}
 	}
@@ -480,6 +479,11 @@ StringHandle FunctionTable::InstantiateAllOverloads(StringHandle templatename, c
 StringHandle FunctionTable::InstantiateTemplate(StringHandle templatename, const CompileTimeParameterVector& originalargs, CompileErrors& errors)
 {
 	const Function* templatefunc = GetIR(templatename);
+	if(templatefunc->TemplateParams.size() != originalargs.size())
+		return 0;
+
+	// TODO - validate arguments against parameters
+
 	CompileTimeParameterVector args(originalargs);
 	for(size_t i = 0; i < args.size(); ++i)
 	{

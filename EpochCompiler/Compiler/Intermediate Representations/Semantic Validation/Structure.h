@@ -162,7 +162,8 @@ namespace IRSemantics
 	// Construction and destruction
 	public:
 		Structure()
-			: ConstructorName(0)
+			: ConstructorName(0),
+			  CompileTimeCodeExecuted(false)
 		{ }
 
 		~Structure();
@@ -182,7 +183,7 @@ namespace IRSemantics
 	// Template support
 	public:
 		void AddTemplateParameter(Metadata::EpochTypeID type, StringHandle name);
-		void SetMemberTemplateArgs(StringHandle membername, const CompileTimeParameterVector& args);
+		void SetMemberTemplateArgs(StringHandle membername, const CompileTimeParameterVector& args, Namespace& curnamespace);
 
 	// Validation
 	public:
@@ -221,6 +222,8 @@ namespace IRSemantics
 		StringHandle AnonymousConstructorName;
 
 		std::vector<std::pair<StringHandle, Metadata::EpochTypeID> > TemplateParams;
+
+		bool CompileTimeCodeExecuted;
 	};
 
 }

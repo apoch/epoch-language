@@ -93,6 +93,7 @@ namespace IRSemantics
 	// Table query interface
 	public:
 		const Structure* GetDefinition(StringHandle structurename) const;
+		Structure* GetDefinition(StringHandle structurename);
 
 		const std::map<StringHandle, Structure*>& GetDefinitions() const
 		{ return NameToDefinitionMap; }

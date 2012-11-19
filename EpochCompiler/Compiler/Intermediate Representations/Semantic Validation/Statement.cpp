@@ -190,15 +190,15 @@ bool Statement::TypeInference(Namespace& curnamespace, CodeBlock& activescope, I
 		++i;
 	}
 
-	if(
+/*	if(
 		   context.State != InferenceContext::CONTEXT_FUNCTION_RETURN
 		|| Metadata::GetTypeFamily(MyType) == Metadata::EpochTypeFamily_Structure
 		|| Metadata::GetTypeFamily(MyType) == Metadata::EpochTypeFamily_TemplateInstance
 	  )
+	  */
 	{
 		if(curnamespace.Functions.IRExists(RawName))
 		{
-			unsigned totalexpectedpermutations = 1;
 			bool generatetypematch = false;
 			bool preferpatternmatchoverloads = false;
 			std::map<StringHandle, FunctionSignature> matchingoverloads;
@@ -207,9 +207,7 @@ bool Statement::TypeInference(Namespace& curnamespace, CodeBlock& activescope, I
 			InferenceContext funccontext(0, InferenceContext::CONTEXT_GLOBAL);
 			unsigned overloadcount = curnamespace.Functions.GetNumOverloads(RawName);
 			for(unsigned i = 0; i < overloadcount; ++i)
-			{
-				unsigned expectedpermutations = 1;
-	
+			{	
 				StringHandle overloadname = curnamespace.Functions.GetOverloadName(RawName, i);
 				Metadata::EpochTypeID funcreturntype = Metadata::EpochType_Error;
 				FunctionSignature signature;
@@ -268,19 +266,13 @@ bool Statement::TypeInference(Namespace& curnamespace, CodeBlock& activescope, I
 								match = false;
 								break;
 							}
-							else if(Metadata::GetTypeFamily(providedparamtype) != Metadata::EpochTypeFamily_SumType)
-							{
+							else
 								generatetypematch = true;
-								expectedpermutations *= curnamespace.Types.SumTypes.GetNumBaseTypes(providedparamtype);
-							}
 						}
 						else if(Metadata::GetTypeFamily(providedparamtype) == Metadata::EpochTypeFamily_SumType)
 						{
 							if(curnamespace.Types.SumTypes.IsBaseType(providedparamtype, expectedparamtype))
-							{
 								generatetypematch = true;
-								expectedpermutations *= curnamespace.Types.SumTypes.GetNumBaseTypes(providedparamtype);
-							}
 						}
 						else
 						{
@@ -339,17 +331,7 @@ bool Statement::TypeInference(Namespace& curnamespace, CodeBlock& activescope, I
 				}
 
 				if(match)
-				{
 					matchingoverloads.insert(std::make_pair(overloadname, signature));
-					totalexpectedpermutations = expectedpermutations;
-				}
-			}
-
-			// TODO - this check is WEAK SAUCE. Improve it somehow.
-			if(generatetypematch && overloadcount < totalexpectedpermutations)
-			{
-				errors.SetContext(OriginalIdentifier);
-				errors.SemanticError("Missing at least one overload for handling sum type decomposition");
 			}
 
 			if(preferpatternmatchoverloads && matchingoverloads.size() > 1)
@@ -449,8 +431,11 @@ bool Statement::TypeInference(Namespace& curnamespace, CodeBlock& activescope, I
 			}
 			else if(matchingoverloads.size() == 1)
 			{					
-				Name = matchingoverloads.begin()->first;
-				MyType = matchingoverloads.begin()->second.GetReturnType();
+				if(context.State != InferenceContext::CONTEXT_FUNCTION_RETURN)
+				{
+					Name = matchingoverloads.begin()->first;
+					MyType = matchingoverloads.begin()->second.GetReturnType();
+				}
 
 				for(size_t j = 0; j < Parameters.size(); ++j)
 				{
@@ -462,11 +447,14 @@ bool Statement::TypeInference(Namespace& curnamespace, CodeBlock& activescope, I
 							Parameters[j]->GetAtoms()[0] = new ExpressionAtomIdentifierReference(atom->GetIdentifier(), atom->GetOriginalIdentifier());
 							Parameters[j]->GetAtoms()[0]->TypeInference(curnamespace, activescope, newcontext, j, Parameters.size(), errors);
 						}
+						// TODO - improve this check
+						/*
 						else
 						{
 							errors.SetContext(OriginalIdentifier);
 							errors.SemanticError("Parameter expects a reference, not a literal");
 						}
+						*/
 					}
 				}
 			}
@@ -515,8 +503,11 @@ bool Statement::TypeInference(Namespace& curnamespace, CodeBlock& activescope, I
 
 						if(match)
 						{
-							Name = *overloaditer;
-							MyType = funcsig.GetReturnType();
+							if(context.State != InferenceContext::CONTEXT_FUNCTION_RETURN)
+							{
+								Name = *overloaditer;
+								MyType = funcsig.GetReturnType();
+							}
 
 							for(size_t i = 0; i < Parameters.size(); ++i)
 							{
@@ -555,6 +546,9 @@ bool Statement::TypeInference(Namespace& curnamespace, CodeBlock& activescope, I
 						{
 							Metadata::EpochTypeID expectedparamtype = signature.GetParameter(i).Type;
 							Metadata::EpochTypeID providedparamtype = Parameters[i]->GetEpochType(curnamespace);
+							while(Metadata::GetTypeFamily(providedparamtype) == Metadata::EpochTypeFamily_Unit)
+								providedparamtype = curnamespace.Types.Aliases.GetStrongRepresentation(providedparamtype);
+
 							if(expectedparamtype != providedparamtype)
 							{
 								if(Metadata::GetTypeFamily(expectedparamtype) == Metadata::EpochTypeFamily_SumType)
@@ -577,7 +571,8 @@ bool Statement::TypeInference(Namespace& curnamespace, CodeBlock& activescope, I
 
 						if(match)
 						{
-							MyType = signature.GetReturnType();
+							if(context.State != InferenceContext::CONTEXT_FUNCTION_RETURN)
+								MyType = signature.GetReturnType();
 
 							for(size_t i = 0; i < Parameters.size(); ++i)
 							{
@@ -665,6 +660,11 @@ void Statement::SetTemplateArgs(const CompileTimeParameterVector& args, Namespac
 		{
 			Name = curnamespace.Functions.InstantiateAllOverloads(Name, args, errors);
 			TemplateArgs = args;
+			if(!Name)
+			{
+				errors.SetContext(OriginalIdentifier);
+				errors.SemanticError("Invalid template arguments");
+			}
 		}
 		else
 		{

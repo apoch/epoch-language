@@ -97,6 +97,18 @@ const Structure* StructureTable::GetDefinition(StringHandle structurename) const
 	throw InternalException("Invalid structure name");
 }
 
+Structure* StructureTable::GetDefinition(StringHandle structurename)
+{
+	std::map<StringHandle, Structure*>::iterator iter = NameToDefinitionMap.find(structurename);
+	if(iter != NameToDefinitionMap.end())
+		return iter->second;
+
+	if(MyTypeSpace.MyNamespace.Parent)
+		return MyTypeSpace.MyNamespace.Parent->Types.Structures.GetDefinition(structurename);
+
+	throw InternalException("Invalid structure name");
+}
+
 //
 // Retrieve the type of a given structure member (by name)
 //

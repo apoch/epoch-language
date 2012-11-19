@@ -1409,7 +1409,15 @@ void CompilePassSemantics::EntryHelper::operator () (AST::StrongTypeAlias& alias
 
 	self->CurrentNamespace->Types.Aliases.AddStrongAlias(aliasname, representationtype, representationname);
 
-	self->CurrentProgram->Session.CompileTimeHelpers.insert(std::make_pair(aliasname, self->CurrentProgram->Session.CompileTimeHelpers.find(representationname)->second));
+	self->CurrentProgram->Session.CompileTimeHelpers.insert(std::make_pair(aliasname, &CompileConstructorHelper));
+
+	Metadata::EpochTypeFamily family = Metadata::GetTypeFamily(representationtype);
+	if(family == Metadata::EpochTypeFamily_Structure)
+	{
+		self->CurrentNamespace->Types.Structures.GetDefinition(representationname)->CompileTimeCodeExecution(representationname, *self->CurrentNamespace, self->Errors);
+		representationname = self->CurrentNamespace->Types.Structures.GetConstructorName(representationname);
+	}
+	
 	self->CurrentNamespace->Functions.SetSignature(aliasname, self->CurrentNamespace->Functions.GetSignature(representationname));
 }
 
@@ -1615,7 +1623,7 @@ void CompilePassSemantics::ExitHelper::operator () (Markers::TemplateArgs&)
 		break;
 
 	case CompilePassSemantics::STATE_STRUCTURE:
-		self->CurrentStructures.back()->SetMemberTemplateArgs(self->LastStructureMemberName, *self->CurrentTemplateArgs.back());
+		self->CurrentStructures.back()->SetMemberTemplateArgs(self->LastStructureMemberName, *self->CurrentTemplateArgs.back(), *self->CurrentNamespace);
 		break;
 
 	default:

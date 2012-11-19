@@ -1400,6 +1400,9 @@ bool ExpressionAtomLiteralReal32::TypeInference(Namespace& curnamespace, CodeBlo
 {
 	for(size_t i = 0; i < context.ExpectedTypes.back().size(); ++i)
 	{
+		if(context.ExpectedTypes.back()[i].size() <= index)
+			continue;
+
 		Metadata::EpochTypeID expectedtype = context.ExpectedTypes.back()[i][index];
 		if(Metadata::GetTypeFamily(expectedtype) == Metadata::EpochTypeFamily_Unit)
 		{

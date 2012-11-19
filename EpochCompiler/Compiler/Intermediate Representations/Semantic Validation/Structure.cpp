@@ -200,6 +200,11 @@ bool Structure::CompileTimeCodeExecution(StringHandle myname, Namespace& curname
 	if(IsTemplate())
 		return true;
 
+	if(CompileTimeCodeExecuted)
+		return true;
+
+	CompileTimeCodeExecuted = true;
+
 	ConstructorName = curnamespace.Functions.CreateOverload(curnamespace.Strings.GetPooledString(myname));
 	AnonymousConstructorName = curnamespace.Functions.CreateOverload(curnamespace.Strings.GetPooledString(myname));
 	GenerateConstructors(myname, ConstructorName, AnonymousConstructorName, CompileTimeParameterVector(), curnamespace, errors);
@@ -237,7 +242,7 @@ void Structure::AddTemplateParameter(Metadata::EpochTypeID type, StringHandle na
 //
 // Pass template arguments on to a structure member
 //
-void Structure::SetMemberTemplateArgs(StringHandle membername, const CompileTimeParameterVector& args)
+void Structure::SetMemberTemplateArgs(StringHandle membername, const CompileTimeParameterVector& args, Namespace& curnamespace)
 {
 	for(std::vector<std::pair<StringHandle, StructureMember*> >::const_iterator iter = Members.begin(); iter != Members.end(); ++iter)
 	{
@@ -249,6 +254,8 @@ void Structure::SetMemberTemplateArgs(StringHandle membername, const CompileTime
 				throw InternalException("Wrong kind of structure member");
 
 			var->SetTemplateArgs(args);
+			if(!IsTemplate())
+				var->SubstituteTemplateArgs(TemplateParams, args, curnamespace);
 			return;
 		}
 	}
@@ -305,8 +312,8 @@ void StructureMemberVariable::SubstituteTemplateArgs(const std::vector<std::pair
 		MyType = curnamespace.Types.Templates.InstantiateStructure(MyType, TemplateArgs);
 	else if(curnamespace.Types.SumTypes.IsTemplate(MyType))
 		MyType = curnamespace.Types.SumTypes.InstantiateTemplate(MyType, TemplateArgs);
-	else
-		throw NotImplementedException("Template parameterization not implemented in this context");
+	//else
+	//	throw NotImplementedException("Template parameterization not implemented in this context");
 }
 
 

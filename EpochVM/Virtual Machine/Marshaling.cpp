@@ -488,6 +488,13 @@ void VM::MarshalIntoNativeCode(VM::ExecutionContext& context, const ScopeDescrip
 		{
 			EpochTypeID vartype = scope.GetVariableTypeByIndex(i);
 			StringHandle varname = scope.GetVariableNameHandle(i);
+
+			if(!vartype || !varname)
+			{
+				context.State.Result.ResultType = ExecutionResult::EXEC_RESULT_HALT;
+				return;
+			}
+
 			if(Metadata::GetTypeFamily(vartype) == Metadata::EpochTypeFamily_Structure || Metadata::GetTypeFamily(vartype) == Metadata::EpochTypeFamily_TemplateInstance)
 			{
 				StructureHandle structurehandle = context.Variables->Read<StructureHandle>(varname);

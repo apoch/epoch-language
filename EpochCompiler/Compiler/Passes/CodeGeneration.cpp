@@ -540,13 +540,21 @@ namespace
 
 			typemap.insert(std::make_pair(type, iter->second));
 
+			std::set<Metadata::EpochTypeID> dependencies;
+
 			const std::vector<std::pair<StringHandle, IRSemantics::StructureMember*> >& members = iter->second->GetMembers();
 			for(std::vector<std::pair<StringHandle, IRSemantics::StructureMember*> >::const_iterator memberiter = members.begin(); memberiter != members.end(); ++memberiter)
 			{
 				Metadata::EpochTypeID membertype = memberiter->second->GetEpochType(curnamespace);
+				while(Metadata::GetTypeFamily(membertype) == Metadata::EpochTypeFamily_Unit)
+					membertype = curnamespace.Types.Aliases.GetStrongRepresentation(membertype);
+
 				if(Metadata::GetTypeFamily(membertype) == Metadata::EpochTypeFamily_Structure || Metadata::GetTypeFamily(membertype) == Metadata::EpochTypeFamily_TemplateInstance)
-					structuredependencies.AddDependency(type, membertype);
+					dependencies.insert(membertype);
 			}
+
+			for(std::set<Metadata::EpochTypeID>::const_iterator diter = dependencies.begin(); diter != dependencies.end(); ++diter)
+				structuredependencies.AddDependency(type, *diter);
 		}
 
 		std::map<Metadata::EpochTypeID, const CompileTimeParameterVector*> templateargmap;
@@ -570,7 +578,10 @@ namespace
 				const std::vector<std::pair<StringHandle, IRSemantics::StructureMember*> >& members = structure.GetMembers();
 				for(std::vector<std::pair<StringHandle, IRSemantics::StructureMember*> >::const_iterator memberiter = members.begin(); memberiter != members.end(); ++memberiter)
 				{
-					Metadata::EpochTypeID membertype = structure.SubstituteTemplateParams(memberiter->first, institer->second, curnamespace);
+					Metadata::EpochTypeID membertype = memberiter->second->GetEpochType(curnamespace);
+					while(Metadata::GetTypeFamily(membertype) == Metadata::EpochTypeFamily_Unit)
+						membertype = curnamespace.Types.Aliases.GetStrongRepresentation(membertype);
+
 					if(Metadata::GetTypeFamily(membertype) == Metadata::EpochTypeFamily_Structure || Metadata::GetTypeFamily(membertype) == Metadata::EpochTypeFamily_TemplateInstance)
 						structuredependencies.AddDependency(type, membertype);
 				}
@@ -586,13 +597,20 @@ namespace
 			emitter.DefineStructure(*iter, members.size());
 			for(std::vector<std::pair<StringHandle, IRSemantics::StructureMember*> >::const_iterator memberiter = members.begin(); memberiter != members.end(); ++memberiter)
 			{
+				Metadata::EpochTypeID membertype;
+
 				if(structure->IsTemplate())
 				{
 					const CompileTimeParameterVector& args = *templateargmap.find(*iter)->second;
-					emitter.StructureMember(memberiter->first, structure->SubstituteTemplateParams(memberiter->first, args, curnamespace));
+					membertype = structure->SubstituteTemplateParams(memberiter->first, args, curnamespace);
 				}
 				else
-					emitter.StructureMember(memberiter->first, memberiter->second->GetEpochType(curnamespace));
+					membertype = memberiter->second->GetEpochType(curnamespace);
+
+				while(Metadata::GetTypeFamily(membertype) == Metadata::EpochTypeFamily_Unit)
+					membertype = curnamespace.Types.Aliases.GetStrongRepresentation(membertype);
+
+				emitter.StructureMember(memberiter->first, membertype);
 			}
 		}
 
