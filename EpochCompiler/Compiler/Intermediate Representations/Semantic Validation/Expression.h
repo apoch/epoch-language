@@ -779,17 +779,17 @@ namespace IRSemantics
 	// when type dispatch is needed on a return value from
 	// a function which is not first stored in a variable.
 	//
-	class ExpressionAtomTypeAnnotationFromRegister : public ExpressionAtom
+	class ExpressionAtomTempReferenceFromRegister : public ExpressionAtom
 	{
 	// Construction
 	public:
-		ExpressionAtomTypeAnnotationFromRegister()
+		ExpressionAtomTempReferenceFromRegister()
 		{ }
 
 	// Non-copyable
 	private:
-		ExpressionAtomTypeAnnotationFromRegister(const ExpressionAtomTypeAnnotationFromRegister& other);
-		ExpressionAtomTypeAnnotationFromRegister& operator = (const ExpressionAtomTypeAnnotationFromRegister& rhs);
+		ExpressionAtomTempReferenceFromRegister(const ExpressionAtomTempReferenceFromRegister& other);
+		ExpressionAtomTempReferenceFromRegister& operator = (const ExpressionAtomTempReferenceFromRegister& rhs);
 
 	// Atom interface
 	public:
@@ -816,7 +816,7 @@ namespace IRSemantics
 		}
 
 		virtual ExpressionAtom* Clone() const
-		{ return new ExpressionAtomTypeAnnotationFromRegister; }
+		{ return new ExpressionAtomTempReferenceFromRegister; }
 	};
 
 }

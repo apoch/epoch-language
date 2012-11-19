@@ -969,9 +969,8 @@ void ByteCodeEmitter::PushTypeAnnotation(Metadata::EpochTypeID type)
 // Emit an instruction which requests the VM to place a type annotation
 // on the stack based on the contents of the return value register.
 //
-void ByteCodeEmitter::TypeAnnotationFromRegister()
+void ByteCodeEmitter::TempReferenceFromRegister()
 {
-	// TODO - this is kind of a misnomer, since we actually bind a temporary reference onto the stack!
-	EmitInstruction(Bytecode::Instructions::TypeFromRegister);
+	EmitInstruction(Bytecode::Instructions::TempReferenceFromRegister);
 }
 

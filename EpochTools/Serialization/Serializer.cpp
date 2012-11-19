@@ -417,7 +417,7 @@ void Serializer::Write(const std::wstring& filename) const
 			outfile << L"CONSTRUCTSUMTYPE\n";
 			break;
 
-		case Bytecode::Instructions::TypeFromRegister:
+		case Bytecode::Instructions::TempReferenceFromRegister:
 			outfile << L"TYPEFROMREG\n";
 			break;
 

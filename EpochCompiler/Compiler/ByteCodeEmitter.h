@@ -131,7 +131,7 @@ public:
 	void AssignSumTypeVariable();
 	void ReadReferenceOntoStack();
 	
-	void TypeAnnotationFromRegister();
+	void TempReferenceFromRegister();
 
 	void PoolString(StringHandle handle, const std::wstring& literalvalue);
 

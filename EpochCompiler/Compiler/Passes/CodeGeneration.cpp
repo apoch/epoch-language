@@ -227,9 +227,9 @@ namespace
 		{
 			emitter.PushTypeAnnotation(atom->GetEpochType(curnamespace));
 		}
-		else if(const IRSemantics::ExpressionAtomTypeAnnotationFromRegister* atom = dynamic_cast<const IRSemantics::ExpressionAtomTypeAnnotationFromRegister*>(rawatom))
+		else if(const IRSemantics::ExpressionAtomTempReferenceFromRegister* atom = dynamic_cast<const IRSemantics::ExpressionAtomTempReferenceFromRegister*>(rawatom))
 		{
-			emitter.TypeAnnotationFromRegister();
+			emitter.TempReferenceFromRegister();
 		}
 		else
 		{

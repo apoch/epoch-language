@@ -1296,7 +1296,7 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 				}
 				break;
 
-			case Bytecode::Instructions::TypeFromRegister:
+			case Bytecode::Instructions::TempReferenceFromRegister:
 				if(State.ReturnValueRegister.Type != EpochType_Nothing)
 				{
 					void* stackptr = State.Stack.GetCurrentTopOfStack();
@@ -1502,7 +1502,7 @@ void ExecutionContext::Load()
 		case Bytecode::Instructions::CopyBuffer:
 		case Bytecode::Instructions::CopyStructure:
 		case Bytecode::Instructions::ConstructSumType:
-		case Bytecode::Instructions::TypeFromRegister:
+		case Bytecode::Instructions::TempReferenceFromRegister:
 			break;
 
 		// Single-bye operations with one payload field

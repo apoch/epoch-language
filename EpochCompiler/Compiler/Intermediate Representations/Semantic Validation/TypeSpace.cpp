@@ -796,10 +796,6 @@ bool TypeSpace::CompileTimeCodeExecution(CompileErrors& errors)
 		if(SumTypes.IsTemplate(GetNameOfType(sumtypeid)))
 			continue;
 
-		// TODO - refactor a bit
-		//////////////////////////////////////
-		std::wostringstream overloadnamebuilder;
-		overloadnamebuilder << L"@@sumtypeconstructor@" << sumtypeid << L"@" << sumtypeid;
 		StringHandle sumtypeconstructorname = 0;
 		for(std::map<StringHandle, Metadata::EpochTypeID>::const_iterator niter = SumTypes.NameToTypeMap.begin(); niter != SumTypes.NameToTypeMap.end(); ++niter)
 		{
@@ -813,6 +809,8 @@ bool TypeSpace::CompileTimeCodeExecution(CompileErrors& errors)
 		if(!sumtypeconstructorname)
 			throw InternalException("Missing sum type name mapping");
 
+		std::wostringstream overloadnamebuilder;
+		overloadnamebuilder << L"@@sumtypeconstructor@" << sumtypeid << L"@" << sumtypeid;
 		StringHandle overloadname = MyNamespace.Strings.Pool(overloadnamebuilder.str());
 		MyNamespace.Session.FunctionOverloadNames[sumtypeconstructorname].insert(overloadname);
 

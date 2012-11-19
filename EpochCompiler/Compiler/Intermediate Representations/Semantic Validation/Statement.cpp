@@ -430,7 +430,7 @@ bool Statement::TypeInference(Namespace& curnamespace, CodeBlock& activescope, I
 							{
 								if(Parameters[j]->GetEpochType(curnamespace) != Metadata::EpochType_Nothing)
 								{
-									Parameters[j]->AddAtom(new ExpressionAtomTypeAnnotationFromRegister);
+									Parameters[j]->AddAtom(new ExpressionAtomTempReferenceFromRegister);
 									Parameters[j]->AddAtom(new ExpressionAtomTypeAnnotation(Metadata::EpochType_RefFlag));
 								}
 							}
