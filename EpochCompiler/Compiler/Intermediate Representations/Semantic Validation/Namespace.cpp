@@ -961,6 +961,7 @@ void Namespace::AddScope(ScopeDescription* scope, StringHandle name)
 		throw InternalException("Stomped on a lexical scope");
 
 	LexicalScopes.insert(std::make_pair(name, scope));
+	LexicalScopeNameCache.Add(scope, name);
 }
 
 //
@@ -971,9 +972,7 @@ StringHandle Namespace::AllocateLexicalScopeName(const ScopeDescription* scopept
 	if(Parent)
 		return Parent->AllocateLexicalScopeName(scopeptr);
 
-	StringHandle ret = Strings.PoolFast(GenerateLexicalScopeName(scopeptr));
-	LexicalScopeNameCache.Add(scopeptr, ret);
-	return ret;
+	return Strings.PoolFast(GenerateLexicalScopeName(scopeptr));
 }
 
 //
@@ -983,7 +982,7 @@ StringHandle Namespace::AllocateLexicalScopeName(const ScopeDescription* scopept
 //
 StringHandle Namespace::FindLexicalScopeName(const CodeBlock* blockptr) const
 {
-	return LexicalScopeNameCache.Find(blockptr->GetScope());
+	return FindLexicalScopeName(blockptr->GetScope());
 }
 
 //

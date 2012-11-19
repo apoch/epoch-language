@@ -343,8 +343,6 @@ bool Function::TypeInference(Namespace& curnamespace, InferenceContext&, Compile
 	if(!result)
 		return false;
 
-	// TODO - figure out why Era in particular wants aliased scopes
-	curnamespace.AddScope(Code->GetScope());
 	curnamespace.AddScope(Code->GetScope(), Name);
 
 	InferenceContext newcontext(Name, InferenceContext::CONTEXT_FUNCTION);
