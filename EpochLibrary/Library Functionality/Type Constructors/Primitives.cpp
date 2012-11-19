@@ -140,22 +140,16 @@ namespace
 
 		VariableOrigin origin = (inreturnexpr ? VARIABLE_ORIGIN_RETURN : VARIABLE_ORIGIN_LOCAL);
 
-		if(curnamespace.Functions.IRExists(atom->GetIdentifier()))
-		{
-			errors.SetContext(atom->GetOriginalIdentifier());
-			errors.SemanticError("Variable name shadows a function of the same name");
-			return;
-		}
-		
-		if(activescope.GetScope()->HasVariable(atom->GetIdentifier()))
-		{
-			errors.SetContext(atom->GetOriginalIdentifier());
-			errors.SemanticError("Variable name already in use in this scope");
-			return;
-		}
+		bool shadowed = false;
+		errors.SetContext(atom->GetOriginalIdentifier());
+		shadowed |= curnamespace.ShadowingCheck(atom->GetIdentifier(), errors);
+		shadowed |= activescope.ShadowingCheck(atom->GetIdentifier(), errors);
 
-		Metadata::EpochTypeID effectivetype = curnamespace.Types.GetTypeByName(statement.GetName());
-		activescope.AddVariable(curnamespace.Strings.GetPooledString(atom->GetIdentifier()), atom->GetIdentifier(), statement.GetName(), effectivetype, false, origin);
+		if(!shadowed)
+		{
+			Metadata::EpochTypeID effectivetype = curnamespace.Types.GetTypeByName(statement.GetName());
+			activescope.AddVariable(curnamespace.Strings.GetPooledString(atom->GetIdentifier()), atom->GetIdentifier(), statement.GetName(), effectivetype, false, origin);
+		}
 	}
 
 }

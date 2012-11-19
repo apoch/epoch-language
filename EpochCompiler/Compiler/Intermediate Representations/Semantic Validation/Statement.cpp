@@ -612,7 +612,7 @@ bool Statement::TypeInference(Namespace& curnamespace, CodeBlock& activescope, I
 					else
 					{
 						errors.SetContext(OriginalIdentifier);
-						errors.SemanticError("Undefined function");
+						errors.SemanticError("No matching overload");
 					}
 				}
 			}
@@ -627,6 +627,12 @@ bool Statement::TypeInference(Namespace& curnamespace, CodeBlock& activescope, I
 
 	if(!CompileTimeCodeExecution(curnamespace, activescope, context.ContextName == InferenceContext::CONTEXT_FUNCTION_RETURN, errors))
 		return false;
+
+	if(!context.ExpectedTypes.empty() && MyType == Metadata::EpochType_Void)
+	{
+		errors.SetContext(OriginalIdentifier);
+		errors.SemanticError("This function has no return value");
+	}
 
 	return true;
 }
@@ -680,9 +686,10 @@ void Statement::SetTemplateArgsDeferred(const CompileTimeParameterVector& args)
 //
 // Perform type inference on a pre-operation statement
 //
-bool PreOpStatement::TypeInference(Namespace& curnamespace, CodeBlock& activescope, InferenceContext&, CompileErrors&)
+bool PreOpStatement::TypeInference(Namespace& curnamespace, CodeBlock& activescope, InferenceContext&, CompileErrors& errors)
 {
-	Metadata::EpochTypeID operandtype = InferMemberAccessType(Operand, curnamespace, activescope);
+	errors.SetContext(OriginalOperand);
+	Metadata::EpochTypeID operandtype = InferMemberAccessType(Operand, curnamespace, activescope, errors);
 	if(operandtype == Metadata::EpochType_Error)
 		return false;
 
@@ -744,9 +751,10 @@ bool PreOpStatement::Validate(const Namespace&) const
 //
 // Perform type inference on a post-operation statement
 //
-bool PostOpStatement::TypeInference(Namespace& curnamespace, CodeBlock& activescope, InferenceContext&, CompileErrors&)
+bool PostOpStatement::TypeInference(Namespace& curnamespace, CodeBlock& activescope, InferenceContext&, CompileErrors& errors)
 {
-	Metadata::EpochTypeID operandtype = InferMemberAccessType(Operand, curnamespace, activescope);
+	errors.SetContext(OriginalOperand);
+	Metadata::EpochTypeID operandtype = InferMemberAccessType(Operand, curnamespace, activescope, errors);
 	if(operandtype == Metadata::EpochType_Error)
 		return false;
 
@@ -826,7 +834,7 @@ Statement* Statement::Clone() const
 //
 PreOpStatement* PreOpStatement::Clone() const
 {
-	PreOpStatement* clone = new PreOpStatement(OperatorName, Operand);
+	PreOpStatement* clone = new PreOpStatement(OperatorName, Operand, OriginalOperand);
 	clone->MyType = MyType;
 	return clone;
 }
@@ -836,7 +844,7 @@ PreOpStatement* PreOpStatement::Clone() const
 //
 PostOpStatement* PostOpStatement::Clone() const
 {
-	PostOpStatement* clone = new PostOpStatement(Operand, OperatorName);
+	PostOpStatement* clone = new PostOpStatement(Operand, OperatorName, OriginalOperand);
 	clone->MyType = MyType;
 	return clone;
 }

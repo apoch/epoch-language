@@ -1229,3 +1229,26 @@ void Namespace::SetParent(Namespace* parent)
 }
 
 
+//
+// Determine if the given identifier would cause shadowing in the current namespace
+//
+bool Namespace::ShadowingCheck(StringHandle identifier, CompileErrors& errors)
+{
+	if(Functions.GetNumOverloads(identifier) != 0)
+	{
+		errors.SemanticError("Identifier already used for a function in this namespace");
+		return true;
+	}
+
+	if(Types.GetTypeByName(identifier) != Metadata::EpochType_Error)
+	{
+		errors.SemanticError("Identifier already used for a type in this namespace");
+		return true;
+	}
+	
+	if(Parent)
+		return Parent->ShadowingCheck(identifier, errors);
+
+	return false;
+}
+

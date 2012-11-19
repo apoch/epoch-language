@@ -109,6 +109,10 @@ namespace IRSemantics
 	public:
 		bool TypeInference(Namespace& curnamespace, InferenceContext& context, CompileErrors& errors);
 
+	// Shadowing checking
+	public:
+		EPOCHCOMPILER bool ShadowingCheck(StringHandle identifier, CompileErrors& errors);
+
 	// Internal state
 	private:
 		std::vector<CodeBlockEntry*> Entries;

@@ -15,6 +15,7 @@
 
 #include "Compiler/Intermediate Representations/Semantic Validation/InferenceContext.h"
 
+#include "Compiler/CompileErrors.h"
 #include "Compiler/Exceptions.h"
 
 
@@ -133,6 +134,20 @@ bool CodeBlock::TypeInference(Namespace& curnamespace, InferenceContext& context
 	}
 
 	return valid;
+}
+
+//
+// Determine if the given identifier would cause shadowing in the current lexical scope
+//
+bool CodeBlock::ShadowingCheck(StringHandle identifier, CompileErrors& errors)
+{
+	if(Scope->HasVariable(identifier))
+	{
+		errors.SemanticError("Identifier already used for a variable in this scope");
+		return true;
+	}
+
+	return false;
 }
 
 

@@ -16,6 +16,10 @@
 #include <boost/unordered_map.hpp>
 
 
+// Forward declarations
+class CompileErrors;
+
+
 namespace IRSemantics
 {
 
@@ -24,7 +28,7 @@ namespace IRSemantics
 	class CodeBlock;
 
 	// Helper functions
-	Metadata::EpochTypeID InferMemberAccessType(const std::vector<StringHandle>& accesslist, const Namespace& curnamespace, const CodeBlock& activescope);
+	Metadata::EpochTypeID InferMemberAccessType(const std::vector<StringHandle>& accesslist, const Namespace& curnamespace, const CodeBlock& activescope, CompileErrors& errors);
 
 
 	namespace impl

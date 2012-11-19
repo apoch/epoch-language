@@ -293,6 +293,10 @@ namespace IRSemantics
 	public:
 		static Namespace* CreateTemplateDummy(Namespace& parent, const std::vector<std::pair<StringHandle, Metadata::EpochTypeID> >& params, const CompileTimeParameterVector& args);
 
+	// Shadowing checking
+	public:
+		EPOCHCOMPILER bool ShadowingCheck(StringHandle identifier, CompileErrors& errors);
+
 	// Internal helpers
 	private:
 		static std::wstring GenerateAnonymousGlobalScopeName(size_t index);

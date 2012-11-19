@@ -741,6 +741,13 @@ void Expression::Coalesce(Namespace& curnamespace, CodeBlock& activescope, Compi
 				ExpressionAtomIdentifier* identifieratom = dynamic_cast<ExpressionAtomIdentifier*>(*previter);
 				if(identifieratom)
 				{
+					if(!activescope.GetScope()->HasVariable(identifieratom->GetIdentifier()))
+					{
+						errors.SetContext(identifieratom->GetOriginalIdentifier());
+						errors.SemanticError("Variable not defined in this scope");
+						continue;
+					}
+
 					structuretype = activescope.GetScope()->GetVariableTypeByID(identifieratom->GetIdentifier());
 					*previter = new ExpressionAtomIdentifierReference(identifieratom->GetIdentifier(), identifieratom->GetOriginalIdentifier());
 					delete identifieratom;
@@ -1079,12 +1086,12 @@ bool ExpressionAtomIdentifierBase::TypeInference(Namespace& curnamespace, CodeBl
 	if(!success)
 	{
 		errors.SetContext(OriginalIdentifier);
-		if(!foundidentifier)
-			errors.SemanticError("Unrecognized identifier");
-		else if(possibletypes.empty())
+		if(possibletypes.empty())
 			errors.SemanticError("Unrecognized type");
 		else if(*possibletypes.begin() == Metadata::EpochType_Function)
 			errors.SemanticError("No matching functions");
+		else if(!foundidentifier)
+			errors.SemanticError("Unrecognized identifier");
 		else
 			errors.SemanticError("Type mismatch");
 	}

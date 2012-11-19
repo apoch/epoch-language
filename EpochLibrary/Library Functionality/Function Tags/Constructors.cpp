@@ -38,13 +38,17 @@ namespace
 
 		const IRSemantics::ExpressionAtomIdentifier* atom = dynamic_cast<const IRSemantics::ExpressionAtomIdentifier*>(statement.GetParameters()[0]->GetAtoms()[0]);
 
-		VariableOrigin origin = (inreturnexpr ? VARIABLE_ORIGIN_RETURN : VARIABLE_ORIGIN_LOCAL);
-		Metadata::EpochTypeID effectivetype = curnamespace.Types.GetTypeByName(statement.GetName());
-		activescope.AddVariable(curnamespace.Strings.GetPooledString(atom->GetIdentifier()), atom->GetIdentifier(), statement.GetName(), effectivetype, false, origin);
+		bool shadowed = false;
+		errors.SetContext(atom->GetOriginalIdentifier());
+		shadowed |= curnamespace.ShadowingCheck(atom->GetIdentifier(), errors);
+		shadowed |= activescope.ShadowingCheck(atom->GetIdentifier(), errors);
 
-		if(curnamespace.Functions.IRExists(atom->GetIdentifier()))
-			errors.SemanticError("Variable name shadows a function of the same name");
-		// TODO - check for shadowing of type names also!
+		if(!shadowed)
+		{
+			VariableOrigin origin = (inreturnexpr ? VARIABLE_ORIGIN_RETURN : VARIABLE_ORIGIN_LOCAL);
+			Metadata::EpochTypeID effectivetype = curnamespace.Types.GetTypeByName(statement.GetName());
+			activescope.AddVariable(curnamespace.Strings.GetPooledString(atom->GetIdentifier()), atom->GetIdentifier(), statement.GetName(), effectivetype, false, origin);
+		}
 	}
 
 	//

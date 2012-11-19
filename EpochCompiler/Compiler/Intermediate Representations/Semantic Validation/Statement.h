@@ -104,13 +104,19 @@ namespace IRSemantics
 	{
 	// Construction
 	public:
-		PreOpStatement(StringHandle operatorname, const std::vector<StringHandle>& operand)
+		PreOpStatement(StringHandle operatorname, const std::vector<StringHandle>& operand, const AST::IdentifierT& originaloperand)
 			: OperatorName(operatorname),
 			  Operand(operand),
+			  OriginalOperand(originaloperand),
 			  MyType(Metadata::EpochType_Error)
 		{ }
 
 		PreOpStatement* Clone() const;
+
+	// Non-copyable
+	private:
+		PreOpStatement(const PreOpStatement&);
+		PreOpStatement& operator = (const PreOpStatement&);
 
 	// Property access
 	public:
@@ -138,6 +144,7 @@ namespace IRSemantics
 		StringHandle OperatorName;
 		std::vector<StringHandle> Operand;
 		Metadata::EpochTypeID MyType;
+		const AST::IdentifierT& OriginalOperand;
 	};
 
 	//
@@ -147,13 +154,19 @@ namespace IRSemantics
 	{
 	// Construction
 	public:
-		PostOpStatement(const std::vector<StringHandle>& operand, StringHandle operatorname)
+		PostOpStatement(const std::vector<StringHandle>& operand, StringHandle operatorname, const AST::IdentifierT& originaloperand)
 			: Operand(operand),
 			  OperatorName(operatorname),
+			  OriginalOperand(originaloperand),
 			  MyType(Metadata::EpochType_Error)
 		{ }
 
 		PostOpStatement* Clone() const;
+
+	// Non-copyable
+	private:
+		PostOpStatement(const PostOpStatement&);
+		PostOpStatement& operator = (const PostOpStatement&);
 
 	// Property access
 	public:
@@ -181,6 +194,7 @@ namespace IRSemantics
 		std::vector<StringHandle> Operand;
 		StringHandle OperatorName;
 		Metadata::EpochTypeID MyType;
+		const AST::IdentifierT& OriginalOperand;
 	};
 
 }

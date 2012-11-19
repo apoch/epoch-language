@@ -75,14 +75,18 @@ namespace
 void CompileConstructorStructure(IRSemantics::Statement& statement, IRSemantics::Namespace& curnamespace, IRSemantics::CodeBlock& activescope, bool inreturnexpr, CompileErrors& errors)
 {
 	const IRSemantics::ExpressionAtomIdentifierBase* atom = dynamic_cast<const IRSemantics::ExpressionAtomIdentifierBase*>(statement.GetParameters()[0]->GetAtoms()[0]);
-	Metadata::EpochTypeID effectivetype = curnamespace.Types.GetTypeByName(statement.GetRawName());
-	VariableOrigin origin = (inreturnexpr ? VARIABLE_ORIGIN_RETURN : VARIABLE_ORIGIN_LOCAL);
-	activescope.AddVariable(curnamespace.Strings.GetPooledString(atom->GetIdentifier()), atom->GetIdentifier(), statement.GetRawName(), effectivetype, false, origin);
 
-	// TODO - copy all shadowing protection from whatever constructor implements it, to all other constructor helpers
+	bool shadowed = false;
+	errors.SetContext(atom->GetOriginalIdentifier());
+	shadowed |= curnamespace.ShadowingCheck(atom->GetIdentifier(), errors);
+	shadowed |= activescope.ShadowingCheck(atom->GetIdentifier(), errors);
 
-	if(curnamespace.Functions.IRExists(atom->GetIdentifier()))
-		errors.SemanticError("Variable name shadows a function of the same name");
+	if(!shadowed)
+	{
+		Metadata::EpochTypeID effectivetype = curnamespace.Types.GetTypeByName(statement.GetRawName());
+		VariableOrigin origin = (inreturnexpr ? VARIABLE_ORIGIN_RETURN : VARIABLE_ORIGIN_LOCAL);
+		activescope.AddVariable(curnamespace.Strings.GetPooledString(atom->GetIdentifier()), atom->GetIdentifier(), statement.GetRawName(), effectivetype, false, origin);
+	}
 }
 
 
@@ -784,7 +788,7 @@ void CompilePassSemantics::ExitHelper::operator () (AST::PreOperatorStatement& s
 	std::vector<StringHandle> operand;
 	std::for_each(statement.Operand.begin(), statement.Operand.end(), StringPooler(*self->CurrentProgram, operand));
 
-	std::auto_ptr<IRSemantics::PreOpStatement> irstatement(new IRSemantics::PreOpStatement(operatorname, operand));
+	std::auto_ptr<IRSemantics::PreOpStatement> irstatement(new IRSemantics::PreOpStatement(operatorname, operand, *statement.Operand.begin()));
 
 	switch(self->StateStack.top())
 	{
@@ -836,7 +840,7 @@ void CompilePassSemantics::ExitHelper::operator () (AST::PostOperatorStatement& 
 	std::vector<StringHandle> operand;
 	std::for_each(statement.Operand.begin(), statement.Operand.end(), StringPooler(*self->CurrentProgram, operand));
 
-	std::auto_ptr<IRSemantics::PostOpStatement> irstatement(new IRSemantics::PostOpStatement(operand, operatorname));
+	std::auto_ptr<IRSemantics::PostOpStatement> irstatement(new IRSemantics::PostOpStatement(operand, operatorname, *statement.Operand.begin()));
 
 	switch(self->StateStack.top())
 	{

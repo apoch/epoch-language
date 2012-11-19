@@ -112,7 +112,11 @@ bool Assignment::Validate(const Namespace& curnamespace) const
 //
 bool Assignment::TypeInference(Namespace& curnamespace, CodeBlock& activescope, InferenceContext& context, CompileErrors& errors)
 {
-	LHSType = InferMemberAccessType(LHS, curnamespace, activescope);
+	errors.SetContext(OriginalLHS);
+	LHSType = InferMemberAccessType(LHS, curnamespace, activescope, errors);
+	if(LHSType == Metadata::EpochType_Error)
+		return false;
+
 	if(!RHS->TypeInference(curnamespace, activescope, context, errors))
 		return false;
 
