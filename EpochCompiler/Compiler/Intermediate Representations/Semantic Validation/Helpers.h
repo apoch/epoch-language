@@ -9,6 +9,8 @@
 
 
 // Dependencies
+#include "Compiler/ExportDef.h"
+
 #include "Utility/Types/IDTypes.h"
 #include "Utility/Types/EpochTypeIDs.h"
 
@@ -26,6 +28,7 @@ namespace IRSemantics
 	// Forward declarations
 	class Namespace;
 	class CodeBlock;
+	class Statement;
 
 	// Helper functions
 	Metadata::EpochTypeID InferMemberAccessType(const std::vector<StringHandle>& accesslist, const Namespace& curnamespace, const CodeBlock& activescope, CompileErrors& errors);
@@ -66,4 +69,6 @@ namespace IRSemantics
 
 
 }
+
+EPOCHCOMPILER void CompileConstructorHelper(IRSemantics::Statement& statement, IRSemantics::Namespace& curnamespace, IRSemantics::CodeBlock& activescope, bool inreturnexpr, CompileErrors& errors);
 

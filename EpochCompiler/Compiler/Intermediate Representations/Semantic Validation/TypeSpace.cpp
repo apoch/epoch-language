@@ -820,9 +820,7 @@ bool TypeSpace::CompileTimeCodeExecution(CompileErrors& errors)
 		signature.AddParameter(L"@id", Metadata::EpochType_Identifier, false);
 		signature.AddParameter(L"@value", sumtypeid, false);
 
-		// TODO - evil hackery here
-		MyNamespace.Session.CompileTimeHelpers.insert(std::make_pair(sumtypeconstructorname, MyNamespace.Session.CompileTimeHelpers.find(MyNamespace.Strings.Find(L"integer"))->second));
-		//////////////////////////////////////
+		MyNamespace.Session.CompileTimeHelpers.insert(std::make_pair(sumtypeconstructorname, &CompileConstructorHelper));
 		MyNamespace.Session.FunctionSignatures.insert(std::make_pair(overloadname, signature));
 		SumTypes.NameToConstructorMap[overloadname] = sumtypeconstructorname;
 

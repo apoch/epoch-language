@@ -67,28 +67,6 @@ namespace
 
 }
 
-//
-// Compile-time helper: when a variable definition is encountered, this
-// helper adds the variable itself and its type metadata to the current
-// lexical scope.
-//
-void CompileConstructorStructure(IRSemantics::Statement& statement, IRSemantics::Namespace& curnamespace, IRSemantics::CodeBlock& activescope, bool inreturnexpr, CompileErrors& errors)
-{
-	const IRSemantics::ExpressionAtomIdentifierBase* atom = dynamic_cast<const IRSemantics::ExpressionAtomIdentifierBase*>(statement.GetParameters()[0]->GetAtoms()[0]);
-
-	bool shadowed = false;
-	errors.SetContext(atom->GetOriginalIdentifier());
-	shadowed |= curnamespace.ShadowingCheck(atom->GetIdentifier(), errors);
-	shadowed |= activescope.ShadowingCheck(atom->GetIdentifier(), errors);
-
-	if(!shadowed)
-	{
-		Metadata::EpochTypeID effectivetype = curnamespace.Types.GetTypeByName(statement.GetRawName());
-		VariableOrigin origin = (inreturnexpr ? VARIABLE_ORIGIN_RETURN : VARIABLE_ORIGIN_LOCAL);
-		activescope.AddVariable(curnamespace.Strings.GetPooledString(atom->GetIdentifier()), atom->GetIdentifier(), statement.GetRawName(), effectivetype, false, origin);
-	}
-}
-
 
 //
 // Validate semantics for a program

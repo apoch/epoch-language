@@ -179,6 +179,10 @@ int _tmain(int argc, _TCHAR* argv[])
 			DLLAccess::VMAccess vmaccess;
 			vmaccess.EnableVisualDebugger();
 		}
+		else if(parameters[i] == L"/recurse")
+		{
+			recurse = true;
+		}
 		else if(parameters[i] == L"/runtests")
 		{
 			recurse = true;

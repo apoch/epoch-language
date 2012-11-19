@@ -22,11 +22,6 @@
 using namespace IRSemantics;
 
 
-// TODO - clean this up
-// External prototypes (yeah, I'm lazy)
-void CompileConstructorStructure(IRSemantics::Statement& statement, IRSemantics::Namespace& curnamespace, IRSemantics::CodeBlock& activescope, bool inreturnexpr, CompileErrors& errors);
-
-
 //
 // Destruct and clean up a structure definition wrapper
 //
@@ -103,7 +98,7 @@ void Structure::GenerateConstructors(StringHandle myname, StringHandle construct
 		}
 
 		curnamespace.Functions.SetSignature(constructorname, signature);
-		curnamespace.Functions.SetCompileHelper(constructorname, &CompileConstructorStructure);
+		curnamespace.Functions.SetCompileHelper(constructorname, &CompileConstructorHelper);
 	}
 
 	// Generate anonymous constructor

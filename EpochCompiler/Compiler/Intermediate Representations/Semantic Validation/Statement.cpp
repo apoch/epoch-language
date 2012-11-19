@@ -619,7 +619,11 @@ bool Statement::TypeInference(Namespace& curnamespace, CodeBlock& activescope, I
 		}
 	}
 
-	Name = curnamespace.Types.SumTypes.MapConstructorName(Name);
+	{
+		StringHandle constructorname = curnamespace.Types.SumTypes.MapConstructorName(Name);
+		if(constructorname != Name)
+			Name = RawName = constructorname;
+	}
 
 	bool valid = (MyType != Metadata::EpochType_Infer && MyType != Metadata::EpochType_Error);
 	if(!valid)

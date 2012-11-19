@@ -11,6 +11,7 @@
 #include "Compiler/Intermediate Representations/Semantic Validation/CodeBlock.h"
 #include "Compiler/Intermediate Representations/Semantic Validation/Expression.h"
 #include "Compiler/Intermediate Representations/Semantic Validation/Namespace.h"
+#include "Compiler/Intermediate Representations/Semantic Validation/Helpers.h"
 
 #include "Compiler/Exceptions.h"
 #include "Compiler/CompileErrors.h"
@@ -20,10 +21,6 @@
 
 
 using namespace IRSemantics;
-
-
-// External prototypes (yeah, I'm lazy)
-void CompileConstructorStructure(IRSemantics::Statement& statement, Namespace& curnamespace, IRSemantics::CodeBlock& activescope, bool inreturnexpr, CompileErrors& errors);
 
 
 //
@@ -267,7 +264,7 @@ bool Function::CompileTimeCodeExecution(Namespace& curnamespace, CompileErrors& 
 				curnamespace.Functions.SetSignature(Name, signature);
 				Code->GetScope()->PrependVariable(L"@id", curnamespace.Strings.Pool(L"@id"), curnamespace.Strings.Pool(L"identifier"),Metadata::EpochType_Identifier, false, VARIABLE_ORIGIN_PARAMETER);
 
-				curnamespace.Functions.SetCompileHelper(Name, &CompileConstructorStructure);
+				curnamespace.Functions.SetCompileHelper(Name, &CompileConstructorHelper);
 			}
 		}
 		else

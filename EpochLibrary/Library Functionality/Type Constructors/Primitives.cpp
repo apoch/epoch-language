@@ -9,10 +9,7 @@
 
 #include "Library Functionality/Type Constructors/Primitives.h"
 
-#include "Compiler/Intermediate Representations/Semantic Validation/Statement.h"
-#include "Compiler/Intermediate Representations/Semantic Validation/Expression.h"
-#include "Compiler/Intermediate Representations/Semantic Validation/CodeBlock.h"
-#include "Compiler/Intermediate Representations/Semantic Validation/Program.h"
+#include "Compiler/Intermediate Representations/Semantic Validation/Helpers.h"
 
 #include "Compiler/CompileErrors.h"
 
@@ -128,30 +125,6 @@ namespace
 		context.State.Stack.PopValue<StringHandle>();
 	}
 
-
-	//
-	// Compile-time helper: when a variable definition is encountered, this
-	// helper adds the variable itself and its type metadata to the current
-	// lexical scope.
-	//
-	void CompileConstructorPrimitive(IRSemantics::Statement& statement, IRSemantics::Namespace& curnamespace, IRSemantics::CodeBlock& activescope, bool inreturnexpr, CompileErrors& errors)
-	{
-		const IRSemantics::ExpressionAtomIdentifier* atom = dynamic_cast<const IRSemantics::ExpressionAtomIdentifier*>(statement.GetParameters()[0]->GetAtoms()[0]);
-
-		VariableOrigin origin = (inreturnexpr ? VARIABLE_ORIGIN_RETURN : VARIABLE_ORIGIN_LOCAL);
-
-		bool shadowed = false;
-		errors.SetContext(atom->GetOriginalIdentifier());
-		shadowed |= curnamespace.ShadowingCheck(atom->GetIdentifier(), errors);
-		shadowed |= activescope.ShadowingCheck(atom->GetIdentifier(), errors);
-
-		if(!shadowed)
-		{
-			Metadata::EpochTypeID effectivetype = curnamespace.Types.GetTypeByName(statement.GetName());
-			activescope.AddVariable(curnamespace.Strings.GetPooledString(atom->GetIdentifier()), atom->GetIdentifier(), statement.GetName(), effectivetype, false, origin);
-		}
-	}
-
 }
 
 
@@ -223,13 +196,13 @@ void TypeConstructors::RegisterLibraryFunctions(FunctionSignatureSet& signatures
 //
 void TypeConstructors::RegisterLibraryFunctions(FunctionCompileHelperTable& table, StringPoolManager& stringpool)
 {
-	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"integer"), CompileConstructorPrimitive));
-	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"integer16"), CompileConstructorPrimitive));
-	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"string"), CompileConstructorPrimitive));
-	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"boolean"), CompileConstructorPrimitive));
-	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"real"), CompileConstructorPrimitive));
-	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"buffer"), CompileConstructorPrimitive));
-	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"nothing"), CompileConstructorPrimitive));
+	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"integer"), &CompileConstructorHelper));
+	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"integer16"), &CompileConstructorHelper));
+	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"string"), &CompileConstructorHelper));
+	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"boolean"), &CompileConstructorHelper));
+	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"real"), &CompileConstructorHelper));
+	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"buffer"), &CompileConstructorHelper));
+	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"nothing"), &CompileConstructorHelper));
 }
 
 
