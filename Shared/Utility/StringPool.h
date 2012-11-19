@@ -20,6 +20,12 @@
 
 class StringPoolManager
 {
+// Construction
+public:
+	explicit StringPoolManager(bool fastreverse = false)
+		: FastLookupEnabled(fastreverse)
+	{ }
+
 // Pooling interface
 public:
 	StringHandle Pool(const std::wstring& stringdata);
@@ -40,11 +46,17 @@ public:
 
 // Internal tracking
 private:
+	bool FastLookupEnabled;
 	HandleAllocator<StringHandle> HandleAlloc;
 	boost::unordered_map<StringHandle, std::wstring> PooledStrings;
 
 // Public access to the critical section, for direct access purposes
 public:
 	Threads::CriticalSection CritSec;
+	
+#ifdef EPOCH_STRINGPOOL_FAST_REVERSE_LOOKUP
+private:
+	boost::unordered_map<std::wstring, StringHandle> ReverseLookupMap;
+#endif
 };
 

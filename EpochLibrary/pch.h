@@ -63,6 +63,9 @@
 #pragma warning(pop)
 
 
+// Epoch options
+#define EPOCH_STRINGPOOL_FAST_REVERSE_LOOKUP
+
 // Epoch project standard code
 #include "Utility/Exception.h"
 

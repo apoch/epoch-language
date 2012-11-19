@@ -38,15 +38,7 @@ Program::Program(StringPoolManager& strings, CompileSession& session)
 //
 StringHandle Program::AddString(const std::wstring& str)
 {
-	// TODO - revisit the benefits of the identifier cache now that we have namespaces
-	StringHandle ret = IdentifierCache.Find(str);
-	if(!ret)
-	{
-		ret = Strings.Pool(str);
-		IdentifierCache.Add(str, ret);
-	}
-	
-	return ret;
+	return Strings.Pool(str);
 }
 
 //
@@ -54,10 +46,6 @@ StringHandle Program::AddString(const std::wstring& str)
 //
 StringHandle Program::FindString(const std::wstring& str) const
 {
-	StringHandle cached = IdentifierCache.Find(str);
-	if(cached)
-		return cached;
-
 	return Strings.Find(str);
 }
 

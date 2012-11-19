@@ -21,10 +21,21 @@ StringHandle StringPoolManager::Pool(const std::wstring& stringdata)
 {
 	Threads::CriticalSection::Auto lock(CritSec);
 
-	for(boost::unordered_map<StringHandle, std::wstring>::const_iterator iter = PooledStrings.begin(); iter != PooledStrings.end(); ++iter)
+#ifdef EPOCH_STRINGPOOL_FAST_REVERSE_LOOKUP
+	if(FastLookupEnabled)
 	{
-		if(iter->second == stringdata)
-			return iter->first;
+		boost::unordered_map<std::wstring, StringHandle>::const_iterator iter = ReverseLookupMap.find(stringdata);
+		if(iter != ReverseLookupMap.end())
+			return iter->second;
+	}
+	else
+#endif
+	{
+		for(boost::unordered_map<StringHandle, std::wstring>::const_iterator iter = PooledStrings.begin(); iter != PooledStrings.end(); ++iter)
+		{
+			if(iter->second == stringdata)
+				return iter->first;
+		}
 	}
 
 	return PoolFast(stringdata);
@@ -42,6 +53,12 @@ StringHandle StringPoolManager::PoolFast(const std::wstring& stringdata)
 
 	StringHandle handle = HandleAlloc.AllocateHandle(PooledStrings);
 	PooledStrings.insert(std::make_pair(handle, stringdata));
+
+#ifdef EPOCH_STRINGPOOL_FAST_REVERSE_LOOKUP
+	if(FastLookupEnabled)
+		ReverseLookupMap.insert(std::make_pair(stringdata, handle));
+#endif
+
 	return handle;
 }
 
@@ -52,6 +69,11 @@ StringHandle StringPoolManager::PoolFast(const std::wstring& stringdata)
 //
 void StringPoolManager::Pool(StringHandle handle, const std::wstring& stringdata)
 {
+#ifdef EPOCH_STRINGPOOL_FAST_REVERSE_LOOKUP
+	if(FastLookupEnabled)
+		throw FatalException("Cannot pool strings to known IDs when using fast reverse lookup!");
+#endif
+
 	Threads::CriticalSection::Auto lock(CritSec);
 
 	std::pair<boost::unordered_map<StringHandle, std::wstring>::iterator, bool> ret = PooledStrings.insert(std::make_pair(handle, stringdata));
@@ -82,10 +104,21 @@ StringHandle StringPoolManager::Find(const std::wstring& stringdata) const
 {
 	Threads::CriticalSection::Auto lock(CritSec);
 
-	for(boost::unordered_map<StringHandle, std::wstring>::const_iterator iter = PooledStrings.begin(); iter != PooledStrings.end(); ++iter)
+#ifdef EPOCH_STRINGPOOL_FAST_REVERSE_LOOKUP
+	if(FastLookupEnabled)
 	{
-		if(iter->second == stringdata)
-			return iter->first;
+		boost::unordered_map<std::wstring, StringHandle>::const_iterator iter = ReverseLookupMap.find(stringdata);
+		if(iter != ReverseLookupMap.end())
+			return iter->second;
+	}
+	else
+#endif
+	{
+		for(boost::unordered_map<StringHandle, std::wstring>::const_iterator iter = PooledStrings.begin(); iter != PooledStrings.end(); ++iter)
+		{
+			if(iter->second == stringdata)
+				return iter->first;
+		}
 	}
 
 	throw RecoverableException("String not pooled yet");
@@ -96,8 +129,11 @@ StringHandle StringPoolManager::Find(const std::wstring& stringdata) const
 //
 void StringPoolManager::GarbageCollect(const std::set<StringHandle>& livehandles)
 {
-	Threads::CriticalSection::Auto lock(CritSec);
+#ifdef EPOCH_STRINGPOOL_FAST_REVERSE_LOOKUP
+	if(FastLookupEnabled)
+		throw FatalException("Cannot garbage collect when using fast reverse lookup!");
+#endif
 
+	Threads::CriticalSection::Auto lock(CritSec);
 	EraseDeadHandles(PooledStrings, livehandles);
 }
-

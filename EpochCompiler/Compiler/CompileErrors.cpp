@@ -16,7 +16,8 @@
 // Construct and initialize an error tracking wrapper
 //
 CompileErrors::CompileErrors()
-	: Contextualizer(NULL)
+	: Contextualizer(NULL),
+	  ContextSource(NULL)
 {
 	CurrentContext.File = L"<unknown>";
 	CurrentContext.Line = 0;
@@ -40,6 +41,9 @@ void CompileErrors::SetLocation(const std::wstring& file, size_t line, size_t co
 //
 void CompileErrors::SemanticError(SemanticErrorDef error)
 {
+	if(Contextualizer && ContextSource)
+		Contextualizer->UpdateFromContext(*this, *ContextSource);
+
 	if(Contextualizer)
 		Contextualizer->UpdateContext(*this);
 

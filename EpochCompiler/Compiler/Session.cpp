@@ -41,7 +41,8 @@
 //
 CompileSession::CompileSession()
 	: ASTProgram(NULL),
-	  SemanticProgram(NULL)
+	  SemanticProgram(NULL),
+	  StringPool(true)
 {
 	Marshaling::DLLPool::DLLPoolHandle dllhandle = Marshaling::TheDLLPool.OpenDLL(L"EpochLibrary.DLL");
 

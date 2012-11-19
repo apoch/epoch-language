@@ -34,6 +34,10 @@
 #define STDCALL
 #endif
 
+
+// Options for Epoch
+#define EPOCH_STRINGPOOL_FAST_REVERSE_LOOKUP
+
 // Epoch project standard code
 #include "Utility/Exception.h"
 

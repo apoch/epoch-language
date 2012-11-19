@@ -73,10 +73,6 @@ namespace IRSemantics
 	private:
 		StringPoolManager& Strings;
 		GlobalIDSpace IDSpace;
-
-	// String lookup caches
-	private:
-		impl::StringCache<std::wstring> IdentifierCache;
 	};
 
 }

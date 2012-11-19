@@ -47,11 +47,9 @@ public:
 	void SetLocation(const std::wstring& file, size_t line, size_t column, const std::wstring& source);
 	void GetContextFrom(CompileErrorContextualizer* contextualizer);
 	
-	template<typename T>
-	void SetContext(const T& contextsource)
+	void SetContext(const AST::IdentifierT& contextsource)
 	{
-		if(Contextualizer)
-			Contextualizer->UpdateFromContext(*this, contextsource);
+		ContextSource = &contextsource;
 	}
 
 // Error recording
@@ -82,5 +80,6 @@ private:
 	Context CurrentContext;
 	std::vector<SemanticErrorT> SemanticErrors;
 	CompileErrorContextualizer* Contextualizer;
+	const AST::IdentifierT* ContextSource;
 };
 
