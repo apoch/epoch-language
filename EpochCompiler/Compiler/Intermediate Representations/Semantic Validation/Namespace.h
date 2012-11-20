@@ -309,6 +309,7 @@ namespace IRSemantics
 		friend class TemplateTable;
 		friend class StructureTable;
 		friend class SumTypeTable;
+		friend class Entity;
 
 		CompileSession& Session;
 

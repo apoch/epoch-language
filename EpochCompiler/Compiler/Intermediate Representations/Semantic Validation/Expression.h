@@ -66,6 +66,12 @@ namespace IRSemantics
 
 		virtual bool Demote(Metadata::EpochTypeID targettype, const Namespace& curnamespace)
 		{ return (targettype == GetEpochType(curnamespace)); }
+
+		virtual bool MakeReference(size_t, std::vector<ExpressionAtom*>&)
+		{ return false; }
+
+		virtual bool MakeAnnotatedReference(size_t, std::vector<ExpressionAtom*>&)
+		{ return false; }
 	};
 
 
@@ -84,6 +90,11 @@ namespace IRSemantics
 	// Type system
 	public:
 		EPOCHCOMPILER Metadata::EpochTypeID GetEpochType(const Namespace& curnamespace) const;
+
+	// Reference binding helpers
+	public:
+		bool MakeReference();
+		bool MakeAnnotatedReference();
 
 	// Validation
 	public:
@@ -371,6 +382,9 @@ namespace IRSemantics
 		{ }
 
 		virtual ExpressionAtom* Clone() const;
+
+		virtual bool MakeReference(size_t index, std::vector<ExpressionAtom*>& atoms);
+		virtual bool MakeAnnotatedReference(size_t index, std::vector<ExpressionAtom*>& atoms);
 	};
 
 
@@ -387,6 +401,9 @@ namespace IRSemantics
 		{ }
 
 		virtual ExpressionAtom* Clone() const;
+
+		virtual bool MakeReference(size_t index, std::vector<ExpressionAtom*>& atoms);
+		virtual bool MakeAnnotatedReference(size_t index, std::vector<ExpressionAtom*>& atoms);
 	};
 
 
@@ -397,11 +414,12 @@ namespace IRSemantics
 	{
 	// Construction
 	public:
-		ExpressionAtomOperator(StringHandle identifier, bool ismemberaccess)
+		ExpressionAtomOperator(StringHandle identifier, bool ismemberaccess, StringHandle secondaryidentifier)
 			: Identifier(identifier),
 			  OriginalIdentifier(identifier),
 			  IsMemberAccessFlag(ismemberaccess),
-			  OverriddenType(Metadata::EpochType_Error)
+			  OverriddenType(Metadata::EpochType_Error),
+			  SecondaryIdentifier(secondaryidentifier)
 		{ }
 
 	// Accessors
@@ -422,6 +440,9 @@ namespace IRSemantics
 		{ throw std::runtime_error("Invalid atom for compile time param"); }
 
 		virtual ExpressionAtom* Clone() const;
+
+		virtual bool MakeReference(size_t index, std::vector<ExpressionAtom*>& atoms);
+		virtual bool MakeAnnotatedReference(size_t index, std::vector<ExpressionAtom*>& atoms);
 
 	// Additional type inference support
 	public:
@@ -445,6 +466,7 @@ namespace IRSemantics
 	private:
 		StringHandle Identifier;
 		StringHandle OriginalIdentifier;
+		StringHandle SecondaryIdentifier;
 		bool IsMemberAccessFlag;
 		Metadata::EpochTypeID OverriddenType;
 	};
@@ -603,6 +625,9 @@ namespace IRSemantics
 		
 		virtual ExpressionAtom* Clone() const;
 
+		virtual bool MakeReference(size_t index, std::vector<ExpressionAtom*>& atoms);
+		virtual bool MakeAnnotatedReference(size_t index, std::vector<ExpressionAtom*>& atoms);
+
 	// Accessors
 	public:
 		Statement& GetStatement() const
@@ -665,7 +690,7 @@ namespace IRSemantics
 
 
 	//
-	// Special marker class for binding a reference to an identifier
+	// Special marker class for binding a reference to a structure or member
 	//
 	// This is injected automatically by various passes and is not
 	// directly converted from the AST. Instead, it arises from
@@ -676,9 +701,10 @@ namespace IRSemantics
 	{
 	// Construction
 	public:
-		ExpressionAtomBindReference(StringHandle identifier, Metadata::EpochTypeID membertype)
-			: Identifier(identifier),
-			  MyType(membertype)
+		ExpressionAtomBindReference(StringHandle membername, Metadata::EpochTypeID membertype, bool isreference)
+			: Identifier(membername),
+			  MyType(membertype),
+			  IsRef(isreference)
 		{ }
 
 	// Non-copyable
@@ -712,15 +738,22 @@ namespace IRSemantics
 
 		virtual ExpressionAtom* Clone() const;
 
+		virtual bool MakeReference(size_t index, std::vector<ExpressionAtom*>& atoms);
+		virtual bool MakeAnnotatedReference(size_t index, std::vector<ExpressionAtom*>& atoms);
+
 	// Inspection
 	public:
 		StringHandle GetIdentifier() const
 		{ return Identifier; }
+		
+		bool IsReference() const
+		{ return IsRef; }
 
 	// Internal state
 	private:
 		StringHandle Identifier;
 		Metadata::EpochTypeID MyType;
+		bool IsRef;
 	};
 
 

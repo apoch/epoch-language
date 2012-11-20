@@ -9,6 +9,8 @@
 
 
 // Dependencies
+#include "Compiler/Abstract Syntax Tree/IdentifierT.h"
+
 #include "Utility/Types/IDTypes.h"
 
 
@@ -36,7 +38,7 @@ namespace IRSemantics
 	{
 	// Construction and destruction
 	public:
-		explicit Entity(StringHandle name);
+		Entity(StringHandle name, const AST::IdentifierT& originalidentifier);
 		~Entity();
 
 		Entity* Clone() const;
@@ -99,6 +101,8 @@ namespace IRSemantics
 		CodeBlock* Code;
 		std::vector<Expression*> Parameters;
 		std::vector<Entity*> Chain;
+
+		const AST::IdentifierT& OriginalIdentifier;
 	};
 
 }

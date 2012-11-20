@@ -217,11 +217,11 @@ namespace
 		}
 		else if(const IRSemantics::ExpressionAtomBindReference* atom = dynamic_cast<const IRSemantics::ExpressionAtomBindReference*>(rawatom))
 		{
-			if(firstmember)
+			if(firstmember && !atom->IsReference())
 				emitter.BindStructureReferenceByHandle(atom->GetIdentifier());
 			else
 				emitter.BindStructureReference(atom->GetIdentifier());
-			return true;
+			return !atom->IsReference();
 		}
 		else if(const IRSemantics::ExpressionAtomTypeAnnotation* atom = dynamic_cast<const IRSemantics::ExpressionAtomTypeAnnotation*>(rawatom))
 		{

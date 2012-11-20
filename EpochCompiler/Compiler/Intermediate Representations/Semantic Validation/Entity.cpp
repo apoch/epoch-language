@@ -12,6 +12,9 @@
 #include "Compiler/Intermediate Representations/Semantic Validation/Expression.h"
 #include "Compiler/Intermediate Representations/Semantic Validation/Namespace.h"
 
+#include "Compiler/CompileErrors.h"
+#include "Compiler/Session.h"
+
 
 using namespace IRSemantics;
 
@@ -19,8 +22,9 @@ using namespace IRSemantics;
 //
 // Construct and initialize an entity invocation IR node
 //
-Entity::Entity(StringHandle name)
-	: Name(name), Code(NULL), PostfixName(0)
+Entity::Entity(StringHandle name, const AST::IdentifierT& originalidentifier)
+	: Name(name), Code(NULL), PostfixName(0),
+	  OriginalIdentifier(originalidentifier)
 {
 }
 
@@ -163,6 +167,25 @@ bool Entity::TypeInference(Namespace& curnamespace, CodeBlock& activescope, Infe
 	}
 
 	curnamespace.AddScope(Code->GetScope());
+
+	const EntityDescription& desc = curnamespace.Session.GetCustomEntityByName(Name);
+	if(Parameters.size() != desc.Parameters.size())
+	{
+		errors.SetContext(OriginalIdentifier);
+		errors.SemanticError("Wrong number of parameters to entity");
+		return false;
+	}
+
+	for(size_t i = 0; i < Parameters.size(); ++i)
+	{
+		if(Parameters[i]->GetEpochType(curnamespace) != desc.Parameters[i].Type)
+		{
+			errors.SetContext(OriginalIdentifier);
+			errors.SemanticError("Wrong parameter type");
+			return false;
+		}
+	}
+
 	return true;
 }
 
@@ -171,7 +194,7 @@ bool Entity::TypeInference(Namespace& curnamespace, CodeBlock& activescope, Infe
 //
 Entity* Entity::Clone() const
 {
-	Entity* clone = new Entity(Name);
+	Entity* clone = new Entity(Name, OriginalIdentifier);
 	clone->PostfixName = PostfixName;
 	clone->Code = Code->Clone();
 

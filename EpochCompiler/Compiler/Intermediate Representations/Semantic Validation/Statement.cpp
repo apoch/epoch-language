@@ -398,29 +398,10 @@ bool Statement::TypeInference(Namespace& curnamespace, CodeBlock& activescope, I
 				{
 					if(paramsarereferences[j])
 					{
-						std::auto_ptr<ExpressionAtomIdentifier> atom(dynamic_cast<ExpressionAtomIdentifier*>(Parameters[j]->GetAtoms()[0]));
-						if(atom.get())
+						if(!Parameters[j]->MakeAnnotatedReference())
 						{
-							Parameters[j]->GetAtoms()[0] = new ExpressionAtomIdentifierReference(atom->GetIdentifier(), atom->GetOriginalIdentifier());
-							Parameters[j]->GetAtoms()[0]->TypeInference(curnamespace, activescope, newcontext, j, Parameters.size(), errors);
-							if(Parameters[j]->GetEpochType(curnamespace) != Metadata::EpochType_Nothing)
-								Parameters[j]->AddAtom(new ExpressionAtomTypeAnnotation(Metadata::EpochType_RefFlag));
-						}
-						else
-						{
-							if(Parameters[j]->GetAtoms().size() > 1)
-							{
-								if(Parameters[j]->GetEpochType(curnamespace) != Metadata::EpochType_Nothing)
-								{
-									Parameters[j]->AddAtom(new ExpressionAtomTempReferenceFromRegister);
-									Parameters[j]->AddAtom(new ExpressionAtomTypeAnnotation(Metadata::EpochType_RefFlag));
-								}
-							}
-							else
-							{
-								errors.SetContext(OriginalIdentifier);
-								errors.SemanticError("Parameter expects a reference, not a literal");
-							}
+							errors.SetContext(OriginalIdentifier);
+							errors.SemanticError("Parameter expects a reference, not a literal expression");
 						}
 					}
 					else if(Metadata::GetTypeFamily(Parameters[j]->GetEpochType(curnamespace)) != Metadata::EpochTypeFamily_SumType)
@@ -441,20 +422,11 @@ bool Statement::TypeInference(Namespace& curnamespace, CodeBlock& activescope, I
 				{
 					if(matchingoverloads.begin()->second.GetParameter(j).IsReference)
 					{
-						std::auto_ptr<ExpressionAtomIdentifier> atom(dynamic_cast<ExpressionAtomIdentifier*>(Parameters[j]->GetAtoms()[0]));
-						if(atom.get())
-						{
-							Parameters[j]->GetAtoms()[0] = new ExpressionAtomIdentifierReference(atom->GetIdentifier(), atom->GetOriginalIdentifier());
-							Parameters[j]->GetAtoms()[0]->TypeInference(curnamespace, activescope, newcontext, j, Parameters.size(), errors);
-						}
-						// TODO - improve this check
-						/*
-						else
+						if(!Parameters[j]->MakeReference())
 						{
 							errors.SetContext(OriginalIdentifier);
-							errors.SemanticError("Parameter expects a reference, not a literal");
+							errors.SemanticError("Parameter expects a reference, not a literal expression");
 						}
-						*/
 					}
 				}
 			}
@@ -513,16 +485,10 @@ bool Statement::TypeInference(Namespace& curnamespace, CodeBlock& activescope, I
 							{
 								if(funcsig.GetParameter(i).IsReference)
 								{
-									std::auto_ptr<ExpressionAtomIdentifier> atom(dynamic_cast<ExpressionAtomIdentifier*>(Parameters[i]->GetAtoms()[0]));
-									if(atom.get())
-									{
-										Parameters[i]->GetAtoms()[0] = new ExpressionAtomIdentifierReference(atom->GetIdentifier(), atom->GetOriginalIdentifier());
-										Parameters[i]->GetAtoms()[0]->TypeInference(curnamespace, activescope, newcontext, i, Parameters.size(), errors);
-									}
-									else
+									if(!Parameters[i]->MakeReference())
 									{
 										errors.SetContext(OriginalIdentifier);
-										errors.SemanticError("Parameter expects a reference, not a literal");
+										errors.SemanticError("Parameter expects a reference, not a literal expression");
 									}
 								}
 							}
@@ -578,16 +544,10 @@ bool Statement::TypeInference(Namespace& curnamespace, CodeBlock& activescope, I
 							{
 								if(signature.GetParameter(i).IsReference)
 								{
-									std::auto_ptr<ExpressionAtomIdentifier> atom(dynamic_cast<ExpressionAtomIdentifier*>(Parameters[i]->GetAtoms()[0]));
-									if(atom.get())
-									{
-										Parameters[i]->GetAtoms()[0] = new ExpressionAtomIdentifierReference(atom->GetIdentifier(), atom->GetOriginalIdentifier());
-										Parameters[i]->GetAtoms()[0]->TypeInference(curnamespace, activescope, newcontext, i, Parameters.size(), errors);
-									}
-									else
+									if(!Parameters[i]->MakeReference())
 									{
 										errors.SetContext(OriginalIdentifier);
-										errors.SemanticError("Parameter expects a reference, not a literal");
+										errors.SemanticError("Parameter expects a reference, not a literal expression");
 									}
 								}
 							}

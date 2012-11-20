@@ -690,6 +690,36 @@ Metadata::EpochTypeID Expression::GetEpochType(const Namespace&) const
 
 
 //
+// Convert an expression into one that binds to a reference
+//
+bool Expression::MakeReference()
+{
+	if(InferredType == Metadata::EpochType_Nothing)
+		return true;
+
+	if(!Atoms[0]->MakeReference(0, Atoms))
+		return false;
+
+	return true;
+}
+
+//
+// Convert an expression into one that binds to a type-annotated reference
+//
+bool Expression::MakeAnnotatedReference()
+{
+	if(InferredType == Metadata::EpochType_Nothing)
+		return true;
+
+	if(!Atoms[0]->MakeAnnotatedReference(0, Atoms))
+		return false;
+
+	AddAtom(new ExpressionAtomTypeAnnotation(Metadata::EpochType_RefFlag));
+	return true;
+}
+
+
+//
 // Append an atom to the end of an expression
 //
 void Expression::AddAtom(ExpressionAtom* atom)
@@ -758,7 +788,7 @@ void Expression::Coalesce(Namespace& curnamespace, CodeBlock& activescope, Compi
 					StringHandle memberaccessname = curnamespace.Functions.FindStructureMemberAccessOverload(structurename, opid->GetIdentifier());
 
 					delete opatom;
-					*iter = new ExpressionAtomOperator(memberaccessname, true);
+					*iter = new ExpressionAtomOperator(memberaccessname, true, opid->GetIdentifier());
 
 					InferenceContext newcontext(0, InferenceContext::CONTEXT_GLOBAL);
 					curnamespace.Functions.GetIR(memberaccessname)->TypeInference(curnamespace, newcontext, errors);
@@ -779,11 +809,12 @@ void Expression::Coalesce(Namespace& curnamespace, CodeBlock& activescope, Compi
 					structuretype = curnamespace.Functions.GetIR(memberaccessname)->GetReturnType(curnamespace);
 
 					delete opatom;
-					*iter = new ExpressionAtomBindReference(opid->GetIdentifier(), structuretype);
+					*iter = new ExpressionAtomBindReference(opid->GetIdentifier(), structuretype, false);
 
 					delete *nextiter;
 					Atoms.erase(nextiter);
 				}
+
 
 				completed = false;
 				break;
@@ -833,6 +864,16 @@ bool ExpressionAtomStatement::TypeInference(Namespace& curnamespace, CodeBlock& 
 bool ExpressionAtomStatement::CompileTimeCodeExecution(Namespace& curnamespace, CodeBlock& activescope, bool inreturnexpr, CompileErrors& errors)
 {
 	return MyStatement->CompileTimeCodeExecution(curnamespace, activescope, inreturnexpr, errors);
+}
+
+bool ExpressionAtomStatement::MakeReference(size_t, std::vector<ExpressionAtom*>&)
+{
+	return false;
+}
+
+bool ExpressionAtomStatement::MakeAnnotatedReference(size_t, std::vector<ExpressionAtom*>&)
+{
+	return false;
 }
 
 
@@ -1134,6 +1175,32 @@ ExpressionAtom* ExpressionAtomIdentifier::Clone() const
 	return clone;
 }
 
+// TODO - document MakeReference and MakeAnnotatedReference
+bool ExpressionAtomIdentifier::MakeReference(size_t index, std::vector<ExpressionAtom*>& atoms)
+{
+	if(atoms.size() == 1 && index == 0)
+	{
+		atoms[index] = new ExpressionAtomIdentifierReference(Identifier, OriginalIdentifier);
+		delete this;
+		return true;
+	}
+
+	return atoms[index + 1]->MakeReference(index + 1, atoms);
+}
+
+bool ExpressionAtomIdentifier::MakeAnnotatedReference(size_t index, std::vector<ExpressionAtom*>& atoms)
+{
+	if(atoms.size() == 1 && index == 0)
+	{
+		atoms[index] = new ExpressionAtomIdentifierReference(Identifier, OriginalIdentifier);
+		delete this;
+		return true;
+	}
+
+	return atoms[index + 1]->MakeAnnotatedReference(index + 1, atoms);
+}
+
+
 //
 // Deep copy an atom which is a reference to an identifier
 //
@@ -1142,6 +1209,22 @@ ExpressionAtom* ExpressionAtomIdentifierReference::Clone() const
 	ExpressionAtomIdentifierReference* clone = new ExpressionAtomIdentifierReference(Identifier, OriginalIdentifier);
 	clone->MyType = MyType;
 	return clone;
+}
+
+bool ExpressionAtomIdentifierReference::MakeReference(size_t index, std::vector<ExpressionAtom*>& atoms)
+{
+	if(index >= atoms.size() - 1)
+		return false;
+
+	return atoms[index + 1]->MakeReference(index + 1, atoms);
+}
+
+bool ExpressionAtomIdentifierReference::MakeAnnotatedReference(size_t index, std::vector<ExpressionAtom*>& atoms)
+{
+	if(index >= atoms.size() - 1)
+		return false;
+
+	return atoms[index + 1]->MakeAnnotatedReference(index + 1, atoms);
 }
 
 
@@ -1304,10 +1387,37 @@ int ExpressionAtomOperator::GetOperatorPrecedence(const Namespace& curnamespace)
 //
 ExpressionAtom* ExpressionAtomOperator::Clone() const
 {
-	ExpressionAtomOperator* clone = new ExpressionAtomOperator(Identifier, IsMemberAccessFlag);
+	ExpressionAtomOperator* clone = new ExpressionAtomOperator(Identifier, IsMemberAccessFlag, SecondaryIdentifier);
 	clone->OriginalIdentifier = OriginalIdentifier;
 	clone->OverriddenType = OverriddenType;
 	return clone;
+}
+
+bool ExpressionAtomOperator::MakeReference(size_t index, std::vector<ExpressionAtom*>& atoms)
+{
+	if(!IsMemberAccessFlag)
+		return false;
+
+	atoms[index] = new ExpressionAtomBindReference(SecondaryIdentifier, Metadata::EpochType_Error, true);
+	delete this;
+
+	if(index < atoms.size() - 1)
+		return atoms[index + 1]->MakeReference(index + 1, atoms);
+
+	return true;
+}
+
+bool ExpressionAtomOperator::MakeAnnotatedReference(size_t index, std::vector<ExpressionAtom*>& atoms)
+{
+	if(!IsMemberAccessFlag)
+		return false;
+
+	bool moreatoms = index < atoms.size() - 1;
+	if(moreatoms)
+		return atoms[index + 1]->MakeAnnotatedReference(index + 1, atoms);
+	
+	atoms.push_back(new ExpressionAtomTempReferenceFromRegister);
+	return true;
 }
 
 
@@ -1540,8 +1650,25 @@ Expression* Expression::Clone() const
 //
 ExpressionAtom* ExpressionAtomBindReference::Clone() const
 {
-	return new ExpressionAtomBindReference(Identifier, MyType);
+	return new ExpressionAtomBindReference(Identifier, MyType, IsRef);
 }
+
+bool ExpressionAtomBindReference::MakeReference(size_t index, std::vector<ExpressionAtom*>& atoms)
+{
+	if(index >= atoms.size() - 1)
+		return false;
+
+	return atoms[index + 1]->MakeReference(index + 1, atoms);
+}
+
+bool ExpressionAtomBindReference::MakeAnnotatedReference(size_t index, std::vector<ExpressionAtom*>& atoms)
+{
+	if(index >= atoms.size() - 1)
+		return false;
+
+	return atoms[index + 1]->MakeAnnotatedReference(index + 1, atoms);
+}
+
 
 //
 // Deep copy an atom representing a statement (function call)

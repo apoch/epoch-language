@@ -268,9 +268,6 @@
     <ClInclude Include="..\Shared\User Interface\Output.h">
       <Filter>Shared\User Interface</Filter>
     </ClInclude>
-    <ClInclude Include="Compiler\ByteCodeEmitter.h">
-      <Filter>Compiler</Filter>
-    </ClInclude>
     <ClInclude Include="Compiler\Exceptions.h">
       <Filter>Compiler</Filter>
     </ClInclude>
@@ -429,6 +426,9 @@
     </ClInclude>
     <ClInclude Include="Compiler\Passes\ParseCallbacks.h">
       <Filter>Compiler\Passes</Filter>
+    </ClInclude>
+    <ClInclude Include="Compiler\ByteCodeEmitter.h">
+      <Filter>Compiler</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

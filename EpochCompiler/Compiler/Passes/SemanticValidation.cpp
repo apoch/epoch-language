@@ -689,7 +689,7 @@ void CompilePassSemantics::EntryHelper::operator () (AST::ExpressionFragment& ex
 
 	std::wstring token(exprfragment.Operator.begin(), exprfragment.Operator.end());
 	StringHandle opname = self->CurrentProgram->AddString(token);
-	self->CurrentExpressions.back()->AddAtom(new IRSemantics::ExpressionAtomOperator(opname, token == L"."));
+	self->CurrentExpressions.back()->AddAtom(new IRSemantics::ExpressionAtomOperator(opname, token == L".", 0));
 }
 
 //
@@ -1068,7 +1068,7 @@ void CompilePassSemantics::EntryHelper::operator () (AST::Entity& entity)
 	StringHandle entityname = self->CurrentProgram->AddString(std::wstring(entity.Identifier.begin(), entity.Identifier.end()));
 
 	self->StateStack.push(CompilePassSemantics::STATE_ENTITY);
-	self->CurrentEntities.push_back(new IRSemantics::Entity(entityname));
+	self->CurrentEntities.push_back(new IRSemantics::Entity(entityname, entity.Identifier));
 }
 
 //
@@ -1106,7 +1106,7 @@ void CompilePassSemantics::EntryHelper::operator () (AST::ChainedEntity& entity)
 	StringHandle entityname = self->CurrentProgram->AddString(std::wstring(entity.Identifier.begin(), entity.Identifier.end()));
 
 	self->StateStack.push(CompilePassSemantics::STATE_CHAINED_ENTITY);
-	self->CurrentChainedEntities.push_back(new IRSemantics::Entity(entityname));
+	self->CurrentChainedEntities.push_back(new IRSemantics::Entity(entityname, entity.Identifier));
 }
 
 //
@@ -1142,7 +1142,7 @@ void CompilePassSemantics::EntryHelper::operator () (AST::PostfixEntity& entity)
 	StringHandle entityname = self->CurrentProgram->AddString(std::wstring(entity.Identifier.begin(), entity.Identifier.end()));
 
 	self->StateStack.push(CompilePassSemantics::STATE_POSTFIX_ENTITY);
-	self->CurrentPostfixEntities.push_back(new IRSemantics::Entity(entityname));
+	self->CurrentPostfixEntities.push_back(new IRSemantics::Entity(entityname, entity.Identifier));
 }
 
 //
@@ -1260,7 +1260,7 @@ void CompilePassSemantics::EntryHelper::operator () (AST::IdentifierT& identifie
 		break;
 
 	case CompilePassSemantics::STATE_EXPRESSION_COMPONENT_PREFIXES:
-		self->CurrentExpressions.back()->AddAtom(new IRSemantics::ExpressionAtomOperator(dynamic_cast<IRSemantics::ExpressionAtomIdentifier*>(iratom.get())->GetIdentifier(), false));
+		self->CurrentExpressions.back()->AddAtom(new IRSemantics::ExpressionAtomOperator(dynamic_cast<IRSemantics::ExpressionAtomIdentifier*>(iratom.get())->GetIdentifier(), false, 0));
 		break;
 
 	case CompilePassSemantics::STATE_EXPRESSION_COMPONENT:
