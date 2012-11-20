@@ -512,6 +512,20 @@ namespace
 		emitter.ExitFunction();
 	}
 
+	void EmitCopyConstructor(ByteCodeEmitter& emitter, StringHandle name, StringHandle rawname, const IRSemantics::Namespace& curnamespace)
+	{
+		emitter.DefineLexicalScope(name, 0, 2);
+		emitter.LexicalScopeEntry(curnamespace.Strings.Find(L"identifier"), Metadata::EpochType_Identifier, true, VARIABLE_ORIGIN_PARAMETER);
+		emitter.LexicalScopeEntry(curnamespace.Strings.Find(L"value"), curnamespace.Types.GetTypeByName(rawname), false, VARIABLE_ORIGIN_PARAMETER);
+
+		emitter.EnterFunction(name);
+		emitter.PushVariableValueNoCopy(curnamespace.Strings.Find(L"value"));
+		emitter.CopyStructure();
+		emitter.BindReference(curnamespace.Strings.Find(L"identifier"));
+		emitter.AssignVariable();
+		emitter.ExitFunction();
+	}
+
 	bool Generate(const IRSemantics::Namespace& curnamespace, ByteCodeEmitter& emitter)
 	{
 		std::map<StringHandle, bool> isconstructor;
@@ -780,6 +794,7 @@ namespace
 
 			EmitConstructor(emitter, iter->second->GetConstructorName(), iter->first, *iter->second, CompileTimeParameterVector(), curnamespace);
 			EmitAnonConstructor(emitter, iter->second->GetAnonymousConstructorName(), iter->first, *iter->second, CompileTimeParameterVector(), curnamespace);
+			EmitCopyConstructor(emitter, iter->second->GetCopyConstructorName(), iter->first, curnamespace);
 		}
 
 		for(IRSemantics::InstantiationMap::const_iterator iter = templateinsts.begin(); iter != templateinsts.end(); ++iter)

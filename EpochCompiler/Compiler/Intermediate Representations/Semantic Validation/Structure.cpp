@@ -73,7 +73,7 @@ bool Structure::Validate(const Namespace& curnamespace, CompileErrors& errors) c
 //
 // Separated into its own routine to aid in template generation
 //
-void Structure::GenerateConstructors(StringHandle myname, StringHandle constructorname, StringHandle anonconstructorname, const CompileTimeParameterVector& templateargs, Namespace& curnamespace, CompileErrors& errors) const
+void Structure::GenerateConstructors(StringHandle myname, StringHandle constructorname, StringHandle anonconstructorname, StringHandle copyconstructorname, const CompileTimeParameterVector& templateargs, Namespace& curnamespace, CompileErrors& errors) const
 {
 	// Generate standard constructor
 	{
@@ -127,6 +127,22 @@ void Structure::GenerateConstructors(StringHandle myname, StringHandle construct
 	}
 
 	curnamespace.Functions.AddInternalOverload(myname, anonconstructorname);
+
+
+	// Generate copy constructor
+	{
+		FunctionSignature signature;
+		signature.AddParameter(L"id", Metadata::EpochType_Identifier, true);
+		signature.AddParameter(L"value", curnamespace.Types.GetTypeByName(myname), false);
+
+		curnamespace.Strings.Pool(L"value");
+
+		curnamespace.Functions.SetSignature(copyconstructorname, signature);
+		curnamespace.Functions.SetCompileHelper(copyconstructorname, &CompileConstructorHelper);
+	}
+
+	curnamespace.Functions.AddInternalOverload(myname, copyconstructorname);
+
 
 	for(std::vector<std::pair<StringHandle, StructureMember*> >::const_iterator iter = Members.begin(); iter != Members.end(); ++iter)
 	{
@@ -207,7 +223,8 @@ bool Structure::CompileTimeCodeExecution(StringHandle myname, Namespace& curname
 
 	ConstructorName = curnamespace.Functions.CreateOverload(curnamespace.Strings.GetPooledString(myname));
 	AnonymousConstructorName = curnamespace.Functions.CreateOverload(curnamespace.Strings.GetPooledString(myname));
-	GenerateConstructors(myname, ConstructorName, AnonymousConstructorName, CompileTimeParameterVector(), curnamespace, errors);
+	CopyConstructorName = curnamespace.Functions.CreateOverload(curnamespace.Strings.GetPooledString(myname));
+	GenerateConstructors(myname, ConstructorName, AnonymousConstructorName, CopyConstructorName, CompileTimeParameterVector(), curnamespace, errors);
 	return true;
 }
 
@@ -225,7 +242,8 @@ bool Structure::InstantiateTemplate(StringHandle myname, const CompileTimeParame
 		iter->second->SubstituteTemplateArgs(TemplateParams, args, curnamespace);
 
 	curnamespace.Functions.GenerateStructureFunctions(myname, this);
-	GenerateConstructors(myname, curnamespace.Types.Templates.FindConstructorName(myname), curnamespace.Types.Templates.FindAnonConstructorName(myname), args, curnamespace, errors);
+	// TODO - copy constructors for template instances
+	GenerateConstructors(myname, curnamespace.Types.Templates.FindConstructorName(myname), curnamespace.Types.Templates.FindAnonConstructorName(myname), 0, args, curnamespace, errors);
 	return true;
 }
 

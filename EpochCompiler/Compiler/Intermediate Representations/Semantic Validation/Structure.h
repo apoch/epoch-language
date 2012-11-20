@@ -163,6 +163,8 @@ namespace IRSemantics
 	public:
 		Structure()
 			: ConstructorName(0),
+			  AnonymousConstructorName(0),
+			  CopyConstructorName(0),
 			  CompileTimeCodeExecuted(false)
 		{ }
 
@@ -202,6 +204,9 @@ namespace IRSemantics
 		StringHandle GetAnonymousConstructorName() const
 		{ return AnonymousConstructorName; }
 
+		StringHandle GetCopyConstructorName() const
+		{ return CopyConstructorName; }
+
 		bool IsTemplate() const
 		{ return !TemplateParams.empty(); }
 
@@ -211,7 +216,7 @@ namespace IRSemantics
 
 	// Internal helpers
 	private:
-		void GenerateConstructors(StringHandle myname, StringHandle constructorname, StringHandle anonconstructorname, const CompileTimeParameterVector& templateargs, Namespace& curnamespace, CompileErrors& errors) const;
+		void GenerateConstructors(StringHandle myname, StringHandle constructorname, StringHandle anonconstructorname, StringHandle copyconstructorname, const CompileTimeParameterVector& templateargs, Namespace& curnamespace, CompileErrors& errors) const;
 
 	// Internal state
 	private:
@@ -220,6 +225,7 @@ namespace IRSemantics
 		std::vector<std::pair<StringHandle, StructureMember*> > Members;
 		StringHandle ConstructorName;
 		StringHandle AnonymousConstructorName;
+		StringHandle CopyConstructorName;
 
 		std::vector<std::pair<StringHandle, Metadata::EpochTypeID> > TemplateParams;
 
