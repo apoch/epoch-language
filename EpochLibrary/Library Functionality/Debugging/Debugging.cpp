@@ -74,6 +74,23 @@ namespace
 		if(TestHarness)
 			++(*TestHarness);
 	}
+
+
+	//
+	// Stupid hack
+	// TODO - replace this with generic array support
+	//
+	void PlotPixel(StringHandle, VM::ExecutionContext& context)
+	{
+		UInteger32 pixelcolor = context.State.Stack.PopValue<UInteger32>();
+		UInteger32 offset = context.State.Stack.PopValue<UInteger32>();
+		void* phandle = context.State.Stack.PopValue<void*>();
+		context.State.Stack.PopValue<Metadata::EpochTypeID>();
+
+		BufferHandle handle = *reinterpret_cast<BufferHandle*>(phandle);
+
+		*(reinterpret_cast<UInteger32*>(context.OwnerVM.GetBuffer(handle)) + offset) = pixelcolor;
+	}
 }
 
 
@@ -86,6 +103,7 @@ void DebugLibrary::RegisterLibraryFunctions(FunctionInvocationTable& table, Stri
 	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"read"), ReadString));
 	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"assert"), Assert));
 	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"passtest"), PassTest));
+	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"plotpixel"), PlotPixel));
 }
 
 //
@@ -111,6 +129,13 @@ void DebugLibrary::RegisterLibraryFunctions(FunctionSignatureSet& signatureset, 
 	{
 		FunctionSignature signature;
 		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"passtest"), signature));
+	}
+	{
+		FunctionSignature signature;
+		signature.AddParameter(L"bits", Metadata::EpochType_Buffer, true);
+		signature.AddParameter(L"offset", Metadata::EpochType_Integer, false);
+		signature.AddParameter(L"color", Metadata::EpochType_Integer, false);
+		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"plotpixel"), signature));
 	}
 }
 
