@@ -651,6 +651,11 @@ void ByteCodeEmitter::ReadReferenceOntoStack()
 	EmitInstruction(Bytecode::Instructions::ReadRef);
 }
 
+void ByteCodeEmitter::ReadReferenceWithTypeAnnotation()
+{
+	EmitInstruction(Bytecode::Instructions::ReadRefAnnotated);
+}
+
 //
 // Emit an instruction for pooling a string identifier or literal
 //

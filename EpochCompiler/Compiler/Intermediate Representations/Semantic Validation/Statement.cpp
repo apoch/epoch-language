@@ -266,8 +266,8 @@ bool Statement::TypeInference(Namespace& curnamespace, CodeBlock& activescope, I
 								match = false;
 								break;
 							}
-							else
-								generatetypematch = true;
+							//else
+							//	generatetypematch = true;
 						}
 						else if(Metadata::GetTypeFamily(providedparamtype) == Metadata::EpochTypeFamily_SumType)
 						{

@@ -218,6 +218,10 @@ void Serializer::Write(const std::wstring& filename) const
 			outfile << L"READREF\n";
 			break;
 
+		case Bytecode::Instructions::ReadRefAnnotated:
+			outfile << L"READREFANNOTATED\n";
+			break;
+
 		case Bytecode::Instructions::Assign:
 			outfile << L"WRITE\n";
 			break;

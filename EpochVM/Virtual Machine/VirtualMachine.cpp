@@ -645,12 +645,17 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 					size_t memberindex = definition.FindMember(member);
 					size_t offset = definition.GetMemberOffset(memberindex);
 
-					if(GetTypeFamily(definition.GetMemberType(memberindex)) == EpochTypeFamily_SumType)
+					EpochTypeID membertype = definition.GetMemberType(memberindex);
+					if(GetTypeFamily(membertype) == EpochTypeFamily_SumType)
+					{
+						void* typeptr = &(structure.Storage[0]) + offset;
+						membertype = *reinterpret_cast<EpochTypeID*>(typeptr);
 						offset += sizeof(EpochTypeID);
+					}
 
 					void* memberstoragelocation = &(structure.Storage[0]) + offset;
 
-					State.Stack.PushValue(definition.GetMemberType(memberindex));
+					State.Stack.PushValue(membertype);
 					State.Stack.PushValue(memberstoragelocation);
 
 					continue;
@@ -667,12 +672,17 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 					size_t memberindex = definition.FindMember(member);
 					size_t offset = definition.GetMemberOffset(memberindex);
 
-					if(GetTypeFamily(definition.GetMemberType(memberindex)) == EpochTypeFamily_SumType)
+					EpochTypeID membertype = definition.GetMemberType(memberindex);
+					if(GetTypeFamily(membertype) == EpochTypeFamily_SumType)
+					{
+						void* typeptr = &(structure.Storage[0]) + offset;
+						membertype = *reinterpret_cast<EpochTypeID*>(typeptr);
 						offset += sizeof(EpochTypeID);
+					}
 
 					void* memberstoragelocation = &(structure.Storage[0]) + offset;
 
-					State.Stack.PushValue(definition.GetMemberType(memberindex));
+					State.Stack.PushValue(membertype);
 					State.Stack.PushValue(memberstoragelocation);
 
 					continue;
@@ -700,6 +710,16 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 					void* targetstorage = State.Stack.PopValue<void*>();
 					EpochTypeID targettype = State.Stack.PopValue<EpochTypeID>();
 					Variables->PushOntoStack(targetstorage, targettype, State.Stack);
+					continue;
+				}
+				break;
+
+			case Bytecode::Instructions::ReadRefAnnotated:
+				{
+					void* targetstorage = State.Stack.PopValue<void*>();
+					EpochTypeID targettype = State.Stack.PopValue<EpochTypeID>();
+					Variables->PushOntoStack(targetstorage, targettype, State.Stack);
+					State.Stack.PushValue(targettype);
 					continue;
 				}
 				break;
@@ -1178,7 +1198,7 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 							}
 						}
 
-						if(providedtype != expectedtypes[i])
+						if(providedtype != expectedtypes[i] && GetTypeFamily(expectedtypes[i]) != EpochTypeFamily_SumType)
 						{
 							match = false;
 							break;
@@ -1498,6 +1518,7 @@ void ExecutionContext::Load()
 		case Bytecode::Instructions::AssignThroughIdentifier:
 		case Bytecode::Instructions::AssignSumType:
 		case Bytecode::Instructions::ReadRef:
+		case Bytecode::Instructions::ReadRefAnnotated:
 		case Bytecode::Instructions::BindRef:
 		case Bytecode::Instructions::CopyBuffer:
 		case Bytecode::Instructions::CopyStructure:

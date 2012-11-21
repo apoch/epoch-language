@@ -130,6 +130,7 @@ public:
 	void AssignVariableThroughIdentifier();
 	void AssignSumTypeVariable();
 	void ReadReferenceOntoStack();
+	void ReadReferenceWithTypeAnnotation();
 	
 	void TempReferenceFromRegister();
 

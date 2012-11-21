@@ -76,6 +76,8 @@ namespace Bytecode
 
 		static const Instruction AssignSumType = 0x23;
 
+		static const Instruction ReadRefAnnotated = 0x24;
+
 	}
 
 }
