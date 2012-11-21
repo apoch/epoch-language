@@ -91,6 +91,13 @@ namespace
 
 		*(reinterpret_cast<UInteger32*>(context.OwnerVM.GetBuffer(handle)) + offset) = pixelcolor;
 	}
+
+	// TODO - move this to a better home
+	void Sqrt(StringHandle, VM::ExecutionContext& context)
+	{
+		Real32 r = context.State.Stack.PopValue<Real32>();
+		context.State.Stack.PushValue(sqrt(r));
+	}
 }
 
 
@@ -104,6 +111,7 @@ void DebugLibrary::RegisterLibraryFunctions(FunctionInvocationTable& table, Stri
 	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"assert"), Assert));
 	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"passtest"), PassTest));
 	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"plotpixel"), PlotPixel));
+	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"sqrt"), Sqrt));
 }
 
 //
@@ -136,6 +144,12 @@ void DebugLibrary::RegisterLibraryFunctions(FunctionSignatureSet& signatureset, 
 		signature.AddParameter(L"offset", Metadata::EpochType_Integer, false);
 		signature.AddParameter(L"color", Metadata::EpochType_Integer, false);
 		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"plotpixel"), signature));
+	}
+	{
+		FunctionSignature signature;
+		signature.AddParameter(L"r", Metadata::EpochType_Real, false);
+		signature.SetReturnType(Metadata::EpochType_Real);
+		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"sqrt"), signature));
 	}
 }
 

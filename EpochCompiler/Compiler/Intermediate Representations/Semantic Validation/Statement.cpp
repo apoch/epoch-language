@@ -96,10 +96,13 @@ bool Statement::CompileTimeCodeExecution(Namespace& curnamespace, CodeBlock& act
 	if(curnamespace.Types.Aliases.HasWeakAliasNamed(Name))
 		Name = curnamespace.Types.Aliases.GetWeakTypeBaseName(Name);
 
-	for(std::vector<Expression*>::iterator iter = Parameters.begin(); iter != Parameters.end(); ++iter)
+	if(!inreturnexpr)
 	{
-		if(!(*iter)->CompileTimeCodeExecution(curnamespace, activescope, inreturnexpr, errors))
-			return false;
+		for(std::vector<Expression*>::iterator iter = Parameters.begin(); iter != Parameters.end(); ++iter)
+		{
+			if(!(*iter)->CompileTimeCodeExecution(curnamespace, activescope, inreturnexpr, errors))
+				return false;
+		}
 	}
 
 	errors.SetContext(OriginalIdentifier);
