@@ -403,7 +403,12 @@ void* ActiveScope::GetReferenceTarget(StringHandle referencename) const
 {
 	ReferenceBindingMap::const_iterator iter = BoundReferences.find(referencename);
 	if(iter == BoundReferences.end())
+	{
+		if(ParentScope)
+			return ParentScope->GetReferenceTarget(referencename);
+
 		throw FatalException("Unbound reference");
+	}
 
 	return iter->second.first;
 }
@@ -415,7 +420,12 @@ Metadata::EpochTypeID ActiveScope::GetReferenceType(StringHandle referencename) 
 {
 	ReferenceBindingMap::const_iterator iter = BoundReferences.find(referencename);
 	if(iter == BoundReferences.end())
+	{
+		if(ParentScope)
+			return ParentScope->GetReferenceType(referencename);
+
 		throw FatalException("Unbound reference");
+	}
 
 	return iter->second.second;
 }

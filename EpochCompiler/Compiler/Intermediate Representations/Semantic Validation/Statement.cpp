@@ -471,6 +471,14 @@ bool Statement::TypeInference(Namespace& curnamespace, CodeBlock& activescope, I
 									break;
 								}
 							}
+							else if(funcsig.GetParameter(i).HasPayload)
+							{
+								if(!funcsig.GetParameter(i).PatternMatch(Parameters[i]->GetAtoms()[0]->ConvertToCompileTimeParam(curnamespace)))
+								{
+									match = false;
+									break;
+								}
+							}
 						}
 
 						if(match)

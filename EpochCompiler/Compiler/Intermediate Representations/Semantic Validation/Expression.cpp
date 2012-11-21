@@ -1508,6 +1508,9 @@ Metadata::EpochTypeID ExpressionAtomLiteralReal32::GetEpochType(const Namespace&
 //
 bool ExpressionAtomLiteralReal32::TypeInference(Namespace& curnamespace, CodeBlock&, InferenceContext& context, size_t index, size_t, CompileErrors&)
 {
+	if(context.ExpectedTypes.empty())
+		return true;
+
 	for(size_t i = 0; i < context.ExpectedTypes.back().size(); ++i)
 	{
 		if(context.ExpectedTypes.back()[i].size() <= index)

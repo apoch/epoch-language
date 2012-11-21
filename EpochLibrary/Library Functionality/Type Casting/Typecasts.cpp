@@ -115,6 +115,15 @@ namespace
 		context.State.Stack.PushValue(result);
 		context.TickStringGarbageCollector();
 	}
+
+
+	void CastRealToInteger(StringHandle, ExecutionContext& context)
+	{
+		Real32 value = context.State.Stack.PopValue<Real32>();
+		context.State.Stack.PopValue<StringHandle>();
+
+		context.State.Stack.PushValue(static_cast<Integer32>(value));
+	}
 }
 
 
@@ -128,6 +137,7 @@ void TypeCasts::RegisterLibraryFunctions(FunctionInvocationTable& table, StringP
 	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"cast@@boolean_to_string"), CastBooleanToString));
 	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"cast@@real_to_string"), CastRealToString));
 	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"cast@@buffer_to_string"), CastBufferToString));
+	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"cast@@real_to_integer"), CastRealToInteger));
 }
 
 //
@@ -170,6 +180,13 @@ void TypeCasts::RegisterLibraryFunctions(FunctionSignatureSet& signatureset, Str
 		signature.SetReturnType(Metadata::EpochType_String);
 		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"cast@@buffer_to_string"), signature));
 	}
+	{
+		FunctionSignature signature;
+		signature.AddPatternMatchedParameterIdentifier(stringpool.Pool(L"integer"));
+		signature.AddParameter(L"value", EpochType_Real, false);
+		signature.SetReturnType(Metadata::EpochType_Integer);
+		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"cast@@real_to_integer"), signature));
+	}
 }
 
 
@@ -185,6 +202,7 @@ void TypeCasts::RegisterLibraryOverloads(OverloadMap& overloadmap, StringPoolMan
 		overloadmap[functionnamehandle].insert(stringpool.Pool(L"cast@@boolean_to_string"));
 		overloadmap[functionnamehandle].insert(stringpool.Pool(L"cast@@real_to_string"));
 		overloadmap[functionnamehandle].insert(stringpool.Pool(L"cast@@buffer_to_string"));
+		overloadmap[functionnamehandle].insert(stringpool.Pool(L"cast@@real_to_integer"));
 	}
 }
 
