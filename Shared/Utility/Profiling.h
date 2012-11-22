@@ -25,13 +25,18 @@ namespace Profiling
 		void Begin();
 		void End();
 
+		void Accumulate();
+
 		Integer64 GetTimeMs() const;
+		Integer64 GetAccumulatedMs() const;
 
 	// Internal state
 	private:
 		Integer64 Frequency;
 		Integer64 BeginCount;
 		Integer64 EndCount;
+
+		Integer64 Accumulator;
 	};
 
 }

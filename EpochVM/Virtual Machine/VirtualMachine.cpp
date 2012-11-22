@@ -63,6 +63,13 @@ namespace
 }
 
 
+#define PROFILING_ENABLED
+#ifdef PROFILING_ENABLED
+#include "Utility/Profiling.h"
+#include "User Interface/Output.h"
+Profiling::Timer GlobalTimer;
+#endif
+
 //
 // Construct and initialize a virtual machine
 //
@@ -454,6 +461,14 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 			{
 			case Bytecode::Instructions::Halt:		// Halt the machine
 				State.Result.ResultType = ExecutionResult::EXEC_RESULT_HALT;
+
+#ifdef PROFILING_ENABLED
+				{
+					Integer64 accumulatedtime = GlobalTimer.GetAccumulatedMs();
+					UI::OutputStream output;
+					output << L"VM profiler: " << accumulatedtime << std::endl;
+				}
+#endif
 				break;
 
 			case Bytecode::Instructions::NoOp:		// Do nothing for a cycle
@@ -1119,10 +1134,12 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 
 					std::vector<EpochTypeID> expectedtypes;
 					std::vector<bool> expectedisrefs;
-					std::vector<bool> providedrefs;
-					std::vector<bool> providednothing;
-					std::vector<bool> inlineref(paramcount, false);
-					std::vector<bool> providednothingref(paramcount, false);
+
+					std::vector<unsigned> flags(paramcount, 0);
+					const unsigned FLAG_PROVIDED_REF = 0x01;
+					const unsigned FLAG_PROVIDED_NOTHING = 0x02;
+					const unsigned FLAG_INLINE_REF = 0x04;
+					const unsigned FLAG_PROVIDED_NOTHING_REF = 0x08;
 
 					expectedtypes.reserve(paramcount);
 					expectedisrefs.reserve(paramcount);
@@ -1172,7 +1189,7 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 									if(reftype == EpochType_Nothing && expectedtypes[i] == EpochType_Nothing)
 									{
 										providedtype = reftype;
-										providednothingref[i] = true;
+										flags[i] |= FLAG_PROVIDED_NOTHING_REF;
 									}
 									else if(GetTypeFamily(reftype) == EpochTypeFamily_SumType)
 									{
@@ -1213,12 +1230,12 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 								providedtype = *reinterpret_cast<const EpochTypeID*>(stackptr);
 
 								if(providedtype == EpochType_Nothing)
-									providednothingref[i] = true;
+									flags[i] |= FLAG_PROVIDED_NOTHING_REF;
 
 								if(stackptr == reftarget)
 								{
 									stackptr += GetStorageSize(providedtype);
-									inlineref[i] = true;
+									flags[i] |= FLAG_INLINE_REF;
 								}
 
 								stackptr += sizeof(EpochTypeID);
@@ -1242,8 +1259,11 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 							break;
 						}
 
-						providedrefs.push_back(providedref);
-						providednothing.push_back(providedtype == EpochType_Nothing);
+						if(providedref)
+							flags[i] |= FLAG_PROVIDED_REF;
+						
+						if(providedtype == EpochType_Nothing)
+							flags[i] |= FLAG_PROVIDED_NOTHING;
 					}
 
 					if(match)
@@ -1265,7 +1285,7 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 						for(size_t i = paramcount; i-- > 0; )
 						{
 							EpochTypeID paramtype = expectedtypes[i];
-							bool isref = providedrefs[i];
+							bool isref = flags[i] & FLAG_PROVIDED_REF;
 
 							if(!isref)
 							{
@@ -1291,14 +1311,14 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 							{
 								const size_t REFERENCE_SIZE = sizeof(void*) + sizeof(EpochTypeID);
 
-								if(inlineref[i])
+								if(flags[i] & FLAG_INLINE_REF)
 									stackptr -= sizeof(EpochTypeID);
 
-								if(providednothing[i])
+								if(flags[i] & FLAG_PROVIDED_NOTHING)
 								{
 									stackptr -= sizeof(EpochTypeID);
 
-									if(providednothingref[i])
+									if(flags[i] & FLAG_PROVIDED_NOTHING_REF)
 										stackptr -= sizeof(EpochTypeID);
 								}
 								else
@@ -1306,7 +1326,7 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 									destptr -= REFERENCE_SIZE;
 									stackptr -= REFERENCE_SIZE;
 
-									if(inlineref[i])
+									if(flags[i] & FLAG_INLINE_REF)
 									{
 										const EpochTypeID* typeptr = reinterpret_cast<const EpochTypeID*>(stackptr + sizeof(void*));
 										EpochTypeID actualtype = *typeptr;

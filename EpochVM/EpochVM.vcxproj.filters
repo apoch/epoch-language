@@ -119,6 +119,9 @@
     <ClCompile Include="..\Shared\Metadata\TypeInfo.cpp">
       <Filter>Shared\Metadata</Filter>
     </ClCompile>
+    <ClCompile Include="..\Shared\Utility\Profiling.cpp">
+      <Filter>Shared\Utility</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h">
@@ -216,6 +219,9 @@
     </ClInclude>
     <ClInclude Include="..\Shared\Metadata\TypeInfo.h">
       <Filter>Shared\Metadata</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Shared\Utility\Profiling.h">
+      <Filter>Shared\Utility</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
