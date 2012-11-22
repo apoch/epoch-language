@@ -29,7 +29,9 @@ class ActiveScope
 public:
 	ActiveScope(const ScopeDescription& originalscope, ActiveScope* parent)
 		: OriginalScope(originalscope),
-		  ParentScope(parent)
+		  ParentScope(parent),
+		  StartOfLocals(NULL),
+		  StartOfParams(NULL)
 	{ }
 
 // Non-copyable
@@ -46,6 +48,12 @@ public:
 	void PopScopeOffStack(VM::ExecutionContext& context);
 
 	void SetActualType(StringHandle varname, Metadata::EpochTypeID type);
+
+	void* GetStartOfLocals() const
+	{ return StartOfLocals; }
+
+	void* GetStartOfParams() const
+	{ return StartOfParams; }
 
 // Variable manipulation interface
 public:
@@ -132,5 +140,8 @@ private:
 	ReferenceBindingMap BoundReferences;
 
 	std::map<StringHandle, Metadata::EpochTypeID> ActualTypes;
+
+	void* StartOfLocals;
+	void* StartOfParams;
 };
 

@@ -192,6 +192,19 @@ void ByteCodeEmitter::PushVariableValueNoCopy(StringHandle variablename)
 	EmitRawValue(variablename);
 }
 
+// TODO - document
+void ByteCodeEmitter::PushLocalVariableValue(bool isparam, size_t frames, size_t offset, size_t size)
+{
+	if(isparam)
+		EmitInstruction(Bytecode::Instructions::ReadParam);
+	else
+		EmitInstruction(Bytecode::Instructions::ReadStack);
+
+	EmitRawValue(frames);
+	EmitRawValue(offset);
+	EmitRawValue(size);
+}
+
 //
 // Emit code for pushing a buffer handle onto the stack
 //

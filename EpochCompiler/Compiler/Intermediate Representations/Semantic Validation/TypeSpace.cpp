@@ -17,6 +17,8 @@
 #include "Compiler/CompileErrors.h"
 #include "Compiler/Session.h"
 
+#include "Metadata/TypeInfo.h"
+
 
 using namespace IRSemantics;
 
@@ -442,6 +444,14 @@ void TypeAliasTable::AddStrongAlias(StringHandle aliasname, Metadata::EpochTypeI
 	StrongNameToTypeMap[aliasname] = newtypeid;
 	StrongRepresentationTypes[newtypeid] = representationtype;
 	StrongRepresentationNames[newtypeid] = representationname;
+}
+
+void TypeAliasTable::CacheStrongAliasSizes(std::map<Metadata::EpochTypeID, size_t>& sizecache) const
+{
+	for(std::map<Metadata::EpochTypeID, Metadata::EpochTypeID>::const_iterator iter = StrongRepresentationTypes.begin(); iter != StrongRepresentationTypes.end(); ++iter)
+	{
+		sizecache[iter->first] = Metadata::GetStorageSize(iter->second);
+	}
 }
 
 

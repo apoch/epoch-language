@@ -94,6 +94,8 @@ namespace IRSemantics
 	public:
 		EPOCHCOMPILER void AddVariable(const std::wstring& identifier, StringHandle identifierhandle, StringHandle typenamehandle, Metadata::EpochTypeID type, bool isreference, VariableOrigin origin);
 		Metadata::EpochTypeID GetVariableTypeByID(StringHandle identifier) const;
+		bool GetVariableLocalOffset(StringHandle identifier, const std::map<Metadata::EpochTypeID, size_t>& sumtypesizes, size_t& outframes, size_t& outoffset, size_t& outsize) const;
+		bool GetVariableParamOffset(StringHandle identifier, const std::map<Metadata::EpochTypeID, size_t>& sumtypesizes, size_t& outframes, size_t& outoffset, size_t& outsize) const;
 
 		ScopeDescription* GetScope()
 		{ return Scope; }

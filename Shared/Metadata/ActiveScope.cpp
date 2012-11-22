@@ -28,6 +28,7 @@
 void ActiveScope::BindParametersToStack(const VM::ExecutionContext& context)
 {
 	char* stackpointer = reinterpret_cast<char*>(context.State.Stack.GetCurrentTopOfStack());
+	StartOfParams = stackpointer;
 
 	for(ScopeDescription::VariableVector::const_reverse_iterator iter = OriginalScope.Variables.rbegin(); iter != OriginalScope.Variables.rend(); ++iter)
 	{
@@ -65,6 +66,8 @@ void ActiveScope::BindParametersToStack(const VM::ExecutionContext& context)
 //
 void ActiveScope::PushLocalsOntoStack(VM::ExecutionContext& context)
 {
+	StartOfLocals = context.State.Stack.GetCurrentTopOfStack();
+
 	for(ScopeDescription::VariableVector::const_iterator iter = OriginalScope.Variables.begin(); iter != OriginalScope.Variables.end(); ++iter)
 	{
 		if(iter->Origin == VARIABLE_ORIGIN_LOCAL || iter->Origin == VARIABLE_ORIGIN_RETURN)

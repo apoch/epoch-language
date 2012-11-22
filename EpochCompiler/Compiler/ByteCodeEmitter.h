@@ -66,6 +66,7 @@ public:
 	void PushRealLiteral(Real32 value);
 	void PushVariableValue(StringHandle variablename, Metadata::EpochTypeID type);
 	void PushVariableValueNoCopy(StringHandle variablename);
+	void PushLocalVariableValue(bool isparam, size_t frames, size_t offset, size_t size);
 	void PushBufferHandle(BufferHandle handle);
 	void PushTypeAnnotation(Metadata::EpochTypeID type);
 

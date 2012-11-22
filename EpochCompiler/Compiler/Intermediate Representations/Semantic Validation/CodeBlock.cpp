@@ -93,6 +93,16 @@ Metadata::EpochTypeID CodeBlock::GetVariableTypeByID(StringHandle identifier) co
 	return Scope->GetVariableTypeByID(identifier);
 }
 
+bool CodeBlock::GetVariableLocalOffset(StringHandle identifier, const std::map<Metadata::EpochTypeID, size_t>& sumtypesizes, size_t& outframes, size_t& outoffset, size_t& outsize) const
+{
+	return Scope->ComputeLocalOffset(identifier, sumtypesizes, outframes, outoffset, outsize);
+}
+
+bool CodeBlock::GetVariableParamOffset(StringHandle identifier, const std::map<Metadata::EpochTypeID, size_t>& sumtypesizes, size_t& outframes, size_t& outoffset, size_t& outsize) const
+{
+	return Scope->ComputeParamOffset(identifier, sumtypesizes, outframes, outoffset, outsize);
+}
+
 //
 // Add a new variable to this code block's lexical scope
 //

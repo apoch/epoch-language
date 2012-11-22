@@ -705,6 +705,44 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 				}
 				break;
 
+			case Bytecode::Instructions::ReadStack:
+				{
+					ActiveScope* vars = Variables;
+					size_t frames = Fetch<size_t>();
+					while(frames > 0)
+					{
+						vars = vars->ParentScope;
+						--frames;
+					}
+
+					char* stackptr = reinterpret_cast<char*>(vars->GetStartOfLocals());
+					stackptr -= Fetch<size_t>();
+					size_t size = Fetch<size_t>();
+					State.Stack.Push(size);
+					memcpy(State.Stack.GetCurrentTopOfStack(), stackptr - size, size);
+					continue;
+				}
+				break;
+
+			case Bytecode::Instructions::ReadParam:
+				{
+					ActiveScope* vars = Variables;
+					size_t frames = Fetch<size_t>();
+					while(frames > 0)
+					{
+						vars = vars->ParentScope;
+						--frames;
+					}
+
+					char* stackptr = reinterpret_cast<char*>(vars->GetStartOfParams());
+					stackptr += Fetch<size_t>();
+					size_t size = Fetch<size_t>();
+					State.Stack.Push(size);
+					memcpy(State.Stack.GetCurrentTopOfStack(), stackptr, size);
+					continue;
+				}
+				break;
+
 			case Bytecode::Instructions::ReadRef:	// Read a reference's target value and place it on the stack
 				{
 					void* targetstorage = State.Stack.PopValue<void*>();
@@ -1538,6 +1576,13 @@ void ExecutionContext::Load()
 		case Bytecode::Instructions::CopyToStructure:
 			Fetch<StringHandle>();
 			Fetch<StringHandle>();
+			break;
+
+		case Bytecode::Instructions::ReadStack:
+		case Bytecode::Instructions::ReadParam:
+			Fetch<size_t>();
+			Fetch<size_t>();
+			Fetch<size_t>();
 			break;
 
 		// Operations with string payload fields

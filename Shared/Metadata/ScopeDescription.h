@@ -63,6 +63,9 @@ public:
 
 	bool HasReturnVariable() const;
 
+	bool ComputeLocalOffset(StringHandle variableid, const std::map<Metadata::EpochTypeID, size_t>& sumtypesizes, size_t& outframes, size_t& outoffset, size_t& outsize) const;
+	bool ComputeParamOffset(StringHandle variableid, const std::map<Metadata::EpochTypeID, size_t>& sumtypesizes, size_t& outframes, size_t& outoffset, size_t& outsize) const;
+
 	void Fixup(const std::vector<std::pair<StringHandle, Metadata::EpochTypeID> >& templateparams, const CompileTimeParameterVector& templateargs, const CompileTimeParameterVector& templateargtypes);
 
 // Public properties

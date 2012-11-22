@@ -8,6 +8,7 @@
 #include "pch.h"
 
 #include "Metadata/ScopeDescription.h"
+#include "Metadata/TypeInfo.h"
 
 #include "Utility/Strings.h"
 
@@ -167,5 +168,105 @@ void ScopeDescription::Fixup(const std::vector<std::pair<StringHandle, Metadata:
 			}
 		}
 	}
+}
+
+bool ScopeDescription::ComputeLocalOffset(StringHandle variableid, const std::map<Metadata::EpochTypeID, size_t>& sumtypesizes, size_t& outframes, size_t& outoffset, size_t& outsize) const
+{
+	size_t offset = 0;
+
+	for(ScopeDescription::VariableVector::const_iterator iter = Variables.begin(); iter != Variables.end(); ++iter)
+	{
+		if(iter->Origin == VARIABLE_ORIGIN_LOCAL || iter->Origin == VARIABLE_ORIGIN_RETURN)
+		{
+			size_t size = 0;
+			if(Metadata::GetTypeFamily(iter->Type) == Metadata::EpochTypeFamily_SumType || Metadata::GetTypeFamily(iter->Type) == Metadata::EpochTypeFamily_Unit)
+				size = sumtypesizes.find(iter->Type)->second;
+			else
+				size = Metadata::GetStorageSize(iter->Type);
+
+			if(iter->IdentifierHandle == variableid)
+			{
+				if(!iter->IsReference)
+				{
+					outoffset = offset;
+					outsize = size;
+					return true;
+				}
+
+				return false;
+			}
+
+
+			offset += size;
+		}
+	}
+
+	if(ParentScope)
+	{
+		++outframes;
+		return ParentScope->ComputeLocalOffset(variableid, sumtypesizes, outframes, outoffset, outsize);
+	}
+
+	return false;
+}
+
+bool ScopeDescription::ComputeParamOffset(StringHandle variableid, const std::map<Metadata::EpochTypeID, size_t>& sumtypesizes, size_t& outframes, size_t& outoffset, size_t& outsize) const
+{
+	bool found = false;
+	size_t offset = 0;
+
+	ScopeDescription::VariableVector::const_reverse_iterator iter = Variables.rbegin();
+	for(; iter != Variables.rend(); ++iter)
+	{
+		if(iter->Origin == VARIABLE_ORIGIN_PARAMETER)
+		{
+			if(Metadata::GetTypeFamily(iter->Type) == Metadata::EpochTypeFamily_SumType)
+				return false;
+
+			size_t size = 0;
+			if(iter->IsReference)
+				size = sizeof(void*) + sizeof(Metadata::EpochTypeID);
+			else
+			{
+				if(Metadata::GetTypeFamily(iter->Type) == Metadata::EpochTypeFamily_Unit)
+					size = sumtypesizes.find(iter->Type)->second;
+				else
+					size = Metadata::GetStorageSize(iter->Type);
+			}
+
+			if(iter->IdentifierHandle == variableid)
+			{
+				if(iter->IsReference)
+					return false;
+
+				outoffset = offset;
+				outsize = size;
+				found = true;
+				break;
+			}
+
+			offset += size;
+		}
+	}
+
+	for(; iter != Variables.rend(); ++iter)
+	{
+		if(iter->Origin == VARIABLE_ORIGIN_PARAMETER)
+		{
+			if(Metadata::GetTypeFamily(iter->Type) == Metadata::EpochTypeFamily_SumType)
+				return false;
+		}
+	}
+
+	if(found)
+		return true;
+
+	if(ParentScope)
+	{
+		++outframes;
+		return ParentScope->ComputeParamOffset(variableid, sumtypesizes, outframes, outoffset, outsize);
+	}
+
+	return false;
 }
 

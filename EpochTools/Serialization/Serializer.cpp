@@ -214,6 +214,24 @@ void Serializer::Write(const std::wstring& filename) const
 			outfile << L"READ " << traverser.Read<StringHandle>() << L"\n";
 			break;
 
+		case Bytecode::Instructions::ReadStack:
+			{
+				size_t frames = traverser.Read<size_t>();
+				size_t offset = traverser.Read<size_t>();
+				size_t size = traverser.Read<size_t>();
+				outfile << L"READSTACK " << frames << L" " << offset << L" " << size << L"\n";
+			}
+			break;
+
+		case Bytecode::Instructions::ReadParam:
+			{
+				size_t frames = traverser.Read<size_t>();
+				size_t offset = traverser.Read<size_t>();
+				size_t size = traverser.Read<size_t>();
+				outfile << L"READPARAM " << frames << L" " << offset << L" " << size << L"\n";
+			}
+			break;
+
 		case Bytecode::Instructions::ReadRef:
 			outfile << L"READREF\n";
 			break;

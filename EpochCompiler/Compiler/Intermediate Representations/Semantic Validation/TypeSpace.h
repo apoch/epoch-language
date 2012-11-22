@@ -242,6 +242,8 @@ namespace IRSemantics
 		Metadata::EpochTypeID GetStrongRepresentation(Metadata::EpochTypeID aliastypeid) const;
 		StringHandle GetStrongRepresentationName(Metadata::EpochTypeID aliastypeid) const;
 
+		void CacheStrongAliasSizes(std::map<Metadata::EpochTypeID, size_t>& sizecache) const;
+
 	// Internal tracking
 	private:
 		friend class TypeSpace;

@@ -29,9 +29,13 @@
 #include "Utility/StringPool.h"
 #include "Utility/DependencyGraph.h"
 
+#include "Metadata/TypeInfo.h"
+
 
 namespace
 {
+	std::map<Metadata::EpochTypeID, size_t> TypeSizeCache;
+
 	void Generate(const IRSemantics::CodeBlock& codeblock, const IRSemantics::Namespace& curnamespace, ByteCodeEmitter& emitter);
 	void EmitStatement(ByteCodeEmitter& emitter, const IRSemantics::Statement& statement, const IRSemantics::CodeBlock& activescope, const IRSemantics::Namespace& curnamespace);
 	void EmitExpression(ByteCodeEmitter& emitter, const IRSemantics::Expression& expression, const IRSemantics::CodeBlock& activescope, const IRSemantics::Namespace& curnamespace, bool constructssumtype = false);
@@ -57,6 +61,39 @@ namespace
 			emitter.BindStructureReference(identifiers[i]);
 	}
 
+	void PushFast(ByteCodeEmitter& emitter, const IRSemantics::CodeBlock& activescope, StringHandle identifier)
+	{
+		Metadata::EpochTypeID type = activescope.GetVariableTypeByID(identifier);
+
+		size_t frames = 0, offset = 0, size = 0;
+		if(activescope.GetVariableLocalOffset(identifier, TypeSizeCache, frames, offset, size))
+		{
+			emitter.PushLocalVariableValue(false, frames, offset, size);
+
+			if(type == Metadata::EpochType_Buffer)
+				emitter.CopyBuffer();
+			else if(Metadata::GetTypeFamily(type) == Metadata::EpochTypeFamily_Structure || Metadata::GetTypeFamily(type) == Metadata::EpochTypeFamily_TemplateInstance)
+				emitter.CopyStructure();
+
+			return;
+		}
+
+		frames = offset = size = 0;
+		if(activescope.GetVariableParamOffset(identifier, TypeSizeCache, frames, offset, size))
+		{
+			emitter.PushLocalVariableValue(true, frames, offset, size);
+
+			if(type == Metadata::EpochType_Buffer)
+				emitter.CopyBuffer();
+			else if(Metadata::GetTypeFamily(type) == Metadata::EpochTypeFamily_Structure || Metadata::GetTypeFamily(type) == Metadata::EpochTypeFamily_TemplateInstance)
+				emitter.CopyStructure();
+
+			return;
+		}
+
+		emitter.PushVariableValue(identifier, type);
+	}
+
 	void PushValue(ByteCodeEmitter& emitter, const std::vector<StringHandle>& identifiers, const IRSemantics::Namespace& curnamespace, const IRSemantics::CodeBlock& activescope)
 	{
 		if(identifiers.empty())
@@ -76,7 +113,7 @@ namespace
 
 		if(identifiers.size() == 1)
 		{
-			emitter.PushVariableValue(identifiers[0], activescope.GetVariableTypeByID(identifiers[0]));
+			PushFast(emitter, activescope, identifiers[0]);
 		}
 		else
 		{
@@ -180,7 +217,7 @@ namespace
 					if(atom->GetEpochType(curnamespace) == Metadata::EpochType_Identifier || atom->GetEpochType(curnamespace) == Metadata::EpochType_Function)
 						emitter.PushStringLiteral(atom->GetIdentifier());
 					else
-						emitter.PushVariableValue(atom->GetIdentifier(), activescope.GetVariableTypeByID(atom->GetIdentifier()));
+						PushFast(emitter, activescope, atom->GetIdentifier());
 				}
 			}
 		}
@@ -546,8 +583,19 @@ namespace
 				continue;
 
 			emitter.DefineSumType(iter->first, iter->second);
+
+			size_t maxsize = 0;
+			for(std::set<Metadata::EpochTypeID>::const_iterator btiter = iter->second.begin(); btiter != iter->second.end(); ++btiter)
+			{
+				size_t varsize = Metadata::GetStorageSize(*btiter);
+				if(varsize > maxsize)
+					maxsize = varsize;
+			}
+			maxsize += sizeof(Metadata::EpochTypeID);
+			TypeSizeCache[iter->first] = maxsize;
 		}
 
+		curnamespace.Types.Aliases.CacheStrongAliasSizes(TypeSizeCache);
 
 		DependencyGraph<Metadata::EpochTypeID> structuredependencies;
 		std::map<Metadata::EpochTypeID, IRSemantics::Structure*> typemap;
@@ -884,6 +932,8 @@ namespace
 
 bool CompilerPasses::GenerateCode(const IRSemantics::Program& program, ByteCodeEmitter& emitter)
 {
+	TypeSizeCache.clear();
+
 	const StringPoolManager& strings = program.GetStringPool();
 	const boost::unordered_map<StringHandle, std::wstring>& stringpool = strings.GetInternalPool();
 

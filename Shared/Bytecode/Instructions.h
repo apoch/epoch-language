@@ -78,6 +78,10 @@ namespace Bytecode
 
 		static const Instruction ReadRefAnnotated = 0x24;
 
+		static const Instruction ReadStack = 0x25;
+
+		static const Instruction ReadParam = 0x26;
+
 	}
 
 }
