@@ -18,6 +18,16 @@
 #include "Utility/Types/RealTypes.h"
 
 
+ActiveScope::ActiveScope(const ScopeDescription& originalscope, ActiveScope* parent)
+	: OriginalScope(originalscope),
+	  ParentScope(parent),
+	  StartOfLocals(NULL),
+	  StartOfParams(NULL),
+	  UsedStackSpace(0),
+	  Data(originalscope.Variables.size(), RuntimeData())
+{ }
+
+
 //
 // Attach the parameters defined in the current scope to a given stack space
 //
@@ -30,8 +40,10 @@ void ActiveScope::BindParametersToStack(const VM::ExecutionContext& context)
 	char* stackpointer = reinterpret_cast<char*>(context.State.Stack.GetCurrentTopOfStack());
 	StartOfParams = stackpointer;
 
+	size_t i = OriginalScope.Variables.size();
 	for(ScopeDescription::VariableVector::const_reverse_iterator iter = OriginalScope.Variables.rbegin(); iter != OriginalScope.Variables.rend(); ++iter)
 	{
+		--i;
 		if(iter->Origin == VARIABLE_ORIGIN_PARAMETER)
 		{
 			if(iter->IsReference)
@@ -46,19 +58,21 @@ void ActiveScope::BindParametersToStack(const VM::ExecutionContext& context)
 			{				
 				if(Metadata::GetTypeFamily(iter->Type) == Metadata::EpochTypeFamily_SumType)
 				{
-					ActualTypes[iter->IdentifierHandle] = *reinterpret_cast<Metadata::EpochTypeID*>(stackpointer);
+					Data[i].ActualType = *reinterpret_cast<Metadata::EpochTypeID*>(stackpointer);
 					stackpointer += sizeof(Metadata::EpochTypeID);
-					VariableStorageLocations[iter->IdentifierHandle] = stackpointer;
-					stackpointer += Metadata::GetStorageSize(ActualTypes[iter->IdentifierHandle]);
+					Data[i].StorageLocation = stackpointer;
+					stackpointer += Metadata::GetStorageSize(Data[i].ActualType);
 				}
 				else
 				{
-					VariableStorageLocations[iter->IdentifierHandle] = stackpointer;
+					Data[i].StorageLocation = stackpointer;
 					stackpointer += Metadata::GetStorageSize(iter->Type);
 				}
 			}
 		}
 	}
+
+	UsedStackSpace += (reinterpret_cast<char*>(stackpointer) - reinterpret_cast<char*>(StartOfParams));
 }
 
 //
@@ -68,6 +82,7 @@ void ActiveScope::PushLocalsOntoStack(VM::ExecutionContext& context)
 {
 	StartOfLocals = context.State.Stack.GetCurrentTopOfStack();
 
+	size_t i = 0;
 	for(ScopeDescription::VariableVector::const_iterator iter = OriginalScope.Variables.begin(); iter != OriginalScope.Variables.end(); ++iter)
 	{
 		if(iter->Origin == VARIABLE_ORIGIN_LOCAL || iter->Origin == VARIABLE_ORIGIN_RETURN)
@@ -77,17 +92,21 @@ void ActiveScope::PushLocalsOntoStack(VM::ExecutionContext& context)
 				size_t size = context.OwnerVM.VariantDefinitions.find(iter->Type)->second.GetMaxSize();
 				context.State.Stack.Push(size);
 
-				VariableStorageLocations[iter->IdentifierHandle] = reinterpret_cast<char*>(context.State.Stack.GetCurrentTopOfStack()) + sizeof(Metadata::EpochTypeID);
+				Data[i].StorageLocation = reinterpret_cast<char*>(context.State.Stack.GetCurrentTopOfStack()) + sizeof(Metadata::EpochTypeID);
 			}
 			else
 			{
 				size_t size = Metadata::GetStorageSize(iter->Type);
 				context.State.Stack.Push(size);
 
-				VariableStorageLocations[iter->IdentifierHandle] = context.State.Stack.GetCurrentTopOfStack();
+				Data[i].StorageLocation = context.State.Stack.GetCurrentTopOfStack();
 			}
 		}
+
+		++i;
 	}
+
+	UsedStackSpace += reinterpret_cast<char*>(StartOfLocals) - reinterpret_cast<char*>(context.State.Stack.GetCurrentTopOfStack());
 }
 
 //
@@ -95,32 +114,7 @@ void ActiveScope::PushLocalsOntoStack(VM::ExecutionContext& context)
 //
 void ActiveScope::PopScopeOffStack(VM::ExecutionContext& context)
 {
-	size_t usedspace = 0;
-
-	for(ScopeDescription::VariableVector::const_iterator iter = OriginalScope.Variables.begin(); iter != OriginalScope.Variables.end(); ++iter)
-	{
-		if(iter->IsReference)
-			usedspace += sizeof(Metadata::EpochTypeID) + sizeof(void*);
-		else
-		{
-			if(iter->Origin == VARIABLE_ORIGIN_PARAMETER && ActualTypes.find(iter->IdentifierHandle) != ActualTypes.end())
-			{
-				usedspace += Metadata::GetStorageSize(ActualTypes.find(iter->IdentifierHandle)->second);
-				usedspace += sizeof(Metadata::EpochTypeID);
-			}
-			else if(Metadata::GetTypeFamily(iter->Type) == Metadata::EpochTypeFamily_SumType)
-			{
-				usedspace += context.OwnerVM.VariantDefinitions.find(iter->Type)->second.GetMaxSize();
-
-				if(iter->Origin == VARIABLE_ORIGIN_PARAMETER)
-					usedspace += sizeof(Metadata::EpochTypeID);
-			}
-			else
-				usedspace += Metadata::GetStorageSize(iter->Type);
-		}
-	}
-
-	context.State.Stack.Pop(usedspace);
+	context.State.Stack.Pop(UsedStackSpace);
 }
 
 //
@@ -231,19 +225,22 @@ void ActiveScope::PushOntoStack(StringHandle variableid, StackSpace& stack) cons
 	Metadata::EpochTypeID vartype = OriginalScope.GetVariableTypeByID(variableid);
 	if(Metadata::GetTypeFamily(vartype) == Metadata::EpochTypeFamily_SumType)
 	{
-		std::map<StringHandle, Metadata::EpochTypeID>::const_iterator iter = ActualTypes.find(variableid);
-		if(iter == ActualTypes.end())
+		for(size_t i = 0; i < OriginalScope.Variables.size(); ++i)
 		{
-			//
-			// This is an internal failure of the VM to maintain type information.
-			//
-			throw FatalException("Missing actual type for sum typed variable in local scope");
+			if(OriginalScope.Variables[i].IdentifierHandle == variableid)
+			{
+				Metadata::EpochTypeID actualtype = Data[i].ActualType;
+
+				PushOntoStack(Data[i].StorageLocation, actualtype, stack);
+				stack.PushValue(actualtype);
+				return;
+			}
 		}
 
-		Metadata::EpochTypeID actualtype = iter->second;
-
-		PushOntoStack(GetVariableStorageLocation(variableid), actualtype, stack);
-		stack.PushValue(actualtype);
+		//
+		// This is an internal failure of the VM to maintain type information.
+		//
+		throw FatalException("Missing actual type for sum typed variable in local scope");
 	}
 	else
 		PushOntoStack(GetVariableStorageLocation(variableid), vartype, stack);
@@ -254,11 +251,16 @@ void ActiveScope::PushOntoStack(StringHandle variableid, StackSpace& stack) cons
 //
 void ActiveScope::PushOntoStackDeref(StringHandle variableid, StackSpace& stack) const
 {
-	ReferenceBindingMap::const_iterator iter = BoundReferences.find(variableid);
-	if(iter == BoundReferences.end())
-		throw FatalException("Unbound reference");
+	for(size_t i = 0; i < OriginalScope.Variables.size(); ++i)
+	{
+		if(OriginalScope.Variables[i].IdentifierHandle == variableid)
+		{
+			PushOntoStack(Data[i].RefInfo.first, Data[i].RefInfo.second, stack);
+			return;
+		}
+	}
 
-	PushOntoStack(iter->second.first, iter->second.second, stack);
+	throw FatalException("Unbound reference");
 }
 
 //
@@ -273,9 +275,11 @@ void* ActiveScope::GetVariableStorageLocation(StringHandle variableid) const
 	const ActiveScope* thisptr = this;
 	while(thisptr)
 	{
-		std::map<StringHandle, void*>::const_iterator iter = thisptr->VariableStorageLocations.find(variableid);
-		if(iter != thisptr->VariableStorageLocations.end())
-			return iter->second;
+		for(size_t i = 0; i < thisptr->OriginalScope.Variables.size(); ++i)
+		{
+			if(thisptr->OriginalScope.Variables[i].IdentifierHandle == variableid && thisptr->Data[i].StorageLocation)
+				return thisptr->Data[i].StorageLocation;
+		}
 
 		thisptr = thisptr->ParentScope;
 	}
@@ -395,8 +399,17 @@ bool ActiveScope::HasReturnVariable() const
 //
 void ActiveScope::BindReference(StringHandle referencename, void* targetstorage, Metadata::EpochTypeID targettype)
 {
-	BoundReferences[referencename].first = targetstorage;
-	BoundReferences[referencename].second = targettype;
+	for(size_t i = 0; i < OriginalScope.Variables.size(); ++i)
+	{
+		if(OriginalScope.Variables[i].IdentifierHandle == referencename)
+		{
+			Data[i].RefInfo.first = targetstorage;
+			Data[i].RefInfo.second = targettype;
+			return;
+		}
+	}
+
+	throw FatalException("Cannot bind reference in this context");
 }
 
 //
@@ -404,16 +417,16 @@ void ActiveScope::BindReference(StringHandle referencename, void* targetstorage,
 //
 void* ActiveScope::GetReferenceTarget(StringHandle referencename) const
 {
-	ReferenceBindingMap::const_iterator iter = BoundReferences.find(referencename);
-	if(iter == BoundReferences.end())
+	for(size_t i = 0; i < OriginalScope.Variables.size(); ++i)
 	{
-		if(ParentScope)
-			return ParentScope->GetReferenceTarget(referencename);
-
-		throw FatalException("Unbound reference");
+		if(OriginalScope.Variables[i].IdentifierHandle == referencename)
+			return Data[i].RefInfo.first;
 	}
 
-	return iter->second.first;
+	if(ParentScope)
+		return ParentScope->GetReferenceTarget(referencename);
+
+	throw FatalException("Unbound reference");
 }
 
 //
@@ -421,16 +434,16 @@ void* ActiveScope::GetReferenceTarget(StringHandle referencename) const
 //
 Metadata::EpochTypeID ActiveScope::GetReferenceType(StringHandle referencename) const
 {
-	ReferenceBindingMap::const_iterator iter = BoundReferences.find(referencename);
-	if(iter == BoundReferences.end())
+	for(size_t i = 0; i < OriginalScope.Variables.size(); ++i)
 	{
-		if(ParentScope)
-			return ParentScope->GetReferenceType(referencename);
-
-		throw FatalException("Unbound reference");
+		if(OriginalScope.Variables[i].IdentifierHandle == referencename)
+			return Data[i].RefInfo.second;
 	}
 
-	return iter->second.second;
+	if(ParentScope)
+		return ParentScope->GetReferenceType(referencename);
+
+	throw FatalException("Unbound reference");
 }
 
 Metadata::EpochTypeID ActiveScope::GetActualType(StringHandle varname) const
@@ -449,6 +462,15 @@ Metadata::EpochTypeID ActiveScope::GetActualType(StringHandle varname) const
 
 void ActiveScope::SetActualType(StringHandle varname, Metadata::EpochTypeID type)
 {
-	ActualTypes[varname] = type;
+	for(size_t i = 0; i < OriginalScope.Variables.size(); ++i)
+	{
+		if(OriginalScope.Variables[i].IdentifierHandle == varname)
+		{
+			Data[i].ActualType = type;
+			return;
+		}
+	}
+
+	throw FatalException("Cannot set sum type annotation in this context");
 }
 

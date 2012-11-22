@@ -27,12 +27,7 @@ class ActiveScope
 {
 // Construction
 public:
-	ActiveScope(const ScopeDescription& originalscope, ActiveScope* parent)
-		: OriginalScope(originalscope),
-		  ParentScope(parent),
-		  StartOfLocals(NULL),
-		  StartOfParams(NULL)
-	{ }
+	ActiveScope(const ScopeDescription& originalscope, ActiveScope* parent);
 
 // Non-copyable
 private:
@@ -61,13 +56,7 @@ public:
 	T Read(StringHandle variableid)
 	{
 		if(OriginalScope.IsReferenceByID(variableid))
-		{
-			ReferenceBindingMap::const_iterator iter = BoundReferences.find(variableid);
-			if(iter == BoundReferences.end())
-				throw FatalException("Unbound reference");
-
-			return *reinterpret_cast<T*>(iter->second.first);
-		}
+			return *reinterpret_cast<T*>(GetReferenceTarget(variableid));
 		else
 			return *reinterpret_cast<T*>(GetVariableStorageLocation(variableid));
 	}
@@ -76,13 +65,7 @@ public:
 	void Write(StringHandle variableid, T value)
 	{
 		if(OriginalScope.IsReferenceByID(variableid))
-		{
-			ReferenceBindingMap::const_iterator iter = BoundReferences.find(variableid);
-			if(iter == BoundReferences.end())
-				throw FatalException("Unbound reference");
-
-			Write(iter->second.first, value);
-		}
+			Write(GetReferenceTarget(variableid), value);
 		else
 			*reinterpret_cast<T*>(GetVariableStorageLocation(variableid)) = value;
 	}
@@ -133,15 +116,24 @@ public:
 private:
 	const ScopeDescription& OriginalScope;
 
-	std::map<StringHandle, void*> VariableStorageLocations;
-	
 	typedef std::pair<void*, Metadata::EpochTypeID> ReferenceStorageAndType;
-	typedef std::map<StringHandle, ReferenceStorageAndType> ReferenceBindingMap;
-	ReferenceBindingMap BoundReferences;
+	struct RuntimeData
+	{
+		RuntimeData()
+			: StorageLocation(NULL),
+			  RefInfo(std::make_pair((void*)(NULL), Metadata::EpochType_Error)),
+			  ActualType(Metadata::EpochType_Error)
+		{ }
 
-	std::map<StringHandle, Metadata::EpochTypeID> ActualTypes;
+		void* StorageLocation;
+		ReferenceStorageAndType RefInfo;
+		Metadata::EpochTypeID ActualType;
+	};
 
+	std::vector<RuntimeData> Data;
+	
 	void* StartOfLocals;
 	void* StartOfParams;
+	size_t UsedStackSpace;
 };
 
