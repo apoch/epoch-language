@@ -195,7 +195,7 @@ Metadata::EpochTypeID Structure::SubstituteTemplateParams(StringHandle membernam
 				{
 					for(size_t i = 0; i < TemplateParams.size(); ++i)
 					{
-						if(member->GetNameOfType() == TemplateParams[i].first)
+						if(member->GetOriginalNameOfType() == TemplateParams[i].first)
 							return curnamespace.Types.GetTypeByName(templateargs[i].Payload.LiteralStringHandleValue);
 					}
 

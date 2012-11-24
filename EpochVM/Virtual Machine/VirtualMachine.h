@@ -45,12 +45,25 @@
 class ActiveScope;
 class StructureDefinition;
 
+struct fasthash : std::unary_function<StringHandle, size_t>
+{
+	size_t operator() (StringHandle a) const
+	{
+		a = (a ^ 61) ^ (a >> 16);
+		a = a + (a << 3);
+		a = a ^ (a >> 4);
+		a = a * 0x27d4eb2d;
+		a = a ^ (a >> 15);
+		return a;
+	}
+};
+
 
 namespace VM
 {
 
 	// Handy type shortcuts
-	typedef boost::unordered_map<StringHandle, ScopeDescription> ScopeMap;
+	typedef boost::unordered_map<StringHandle, ScopeDescription, fasthash> ScopeMap;
 
 
 	//
@@ -144,7 +157,7 @@ namespace VM
 		StringPoolManager& PrivateGetRawStringPool()
 		{ return PrivateStringPool; }
 
-		const std::map<StructureHandle, ActiveStructure>& PrivateGetStructurePool()
+		const boost::unordered_map<StructureHandle, ActiveStructure, fasthash>& PrivateGetStructurePool()
 		{ return ActiveStructures; }
 
 
@@ -157,14 +170,14 @@ namespace VM
 	public:
 		std::map<Metadata::EpochTypeID, StructureDefinition> StructureDefinitions;
 		JIT::JITTable JITHelpers;
-		std::map<StringHandle, JITExecPtr> JITExecs;
+		boost::unordered_map<StringHandle, JITExecPtr, fasthash> JITExecs;
 
-		boost::unordered_map<Metadata::EpochTypeID, VariantDefinition> VariantDefinitions;
+		boost::unordered_map<Metadata::EpochTypeID, VariantDefinition, fasthash> VariantDefinitions;
 
 	// Handy type shortcuts
 	private:
-		typedef boost::unordered_map<StringHandle, size_t> OffsetMap;
-		typedef boost::unordered_map<size_t, size_t> BeginEndOffsetMap;
+		typedef boost::unordered_map<StringHandle, size_t, fasthash> OffsetMap;
+		typedef boost::unordered_map<size_t, size_t, fasthash> BeginEndOffsetMap;
 
 	// Internal state tracking
 	private:
@@ -180,7 +193,7 @@ namespace VM
 		std::map<BufferHandle, std::vector<Byte> > Buffers;
 
 		HandleAllocator<StructureHandle> StructureHandleAlloc;
-		std::map<StructureHandle, ActiveStructure> ActiveStructures;
+		boost::unordered_map<StructureHandle, ActiveStructure, fasthash> ActiveStructures;
 
 		Threads::CriticalSection BufferCritSec;
 		Threads::CriticalSection StructureCritSec;

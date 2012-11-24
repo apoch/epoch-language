@@ -68,6 +68,7 @@ namespace IRSemantics
 	public:
 		StructureMemberVariable(StringHandle type, const AST::IdentifierT& typeidentifier)
 			: MyType(type),
+			  OriginalTypeName(type),
 			  TypeIdentifier(typeidentifier)
 		{ }
 
@@ -90,6 +91,9 @@ namespace IRSemantics
 		StringHandle GetNameOfType() const
 		{ return MyType; }
 
+		StringHandle GetOriginalNameOfType() const
+		{ return OriginalTypeName; }
+
 	// Template support
 	public:
 		void SubstituteTemplateArgs(const std::vector<std::pair<StringHandle, Metadata::EpochTypeID> >& params, const CompileTimeParameterVector& args, Namespace& curnamespace);
@@ -100,6 +104,7 @@ namespace IRSemantics
 	// Internal state
 	private:
 		StringHandle MyType;
+		StringHandle OriginalTypeName;
 		const AST::IdentifierT& TypeIdentifier;
 		CompileTimeParameterVector TemplateArgs;
 	};
@@ -220,6 +225,7 @@ namespace IRSemantics
 
 	// Internal state
 	private:
+		friend class StructureTable;
 		friend class TemplateTable;
 
 		std::vector<std::pair<StringHandle, StructureMember*> > Members;

@@ -116,8 +116,20 @@ Structure* StructureTable::GetDefinition(StringHandle structurename)
 //
 Metadata::EpochTypeID StructureTable::GetMemberType(StringHandle structurename, StringHandle membername) const
 {
+	const CompileTimeParameterVector* args = NULL;
 	if(MyTypeSpace.Templates.NameToTypeMap.find(structurename) != MyTypeSpace.Templates.NameToTypeMap.end())
+	{
+		StringHandle templatename = structurename;
 		structurename = MyTypeSpace.Templates.GetTemplateForInstance(structurename);
+		args = &MyTypeSpace.Templates.GetInstantiations().find(structurename)->second.find(templatename)->second;
+	}
+
+	if(MyTypeSpace.Templates.NameToTypeMap.find(structurename) != MyTypeSpace.Templates.NameToTypeMap.end())
+	{
+		StringHandle templatename = structurename;
+		structurename = MyTypeSpace.Templates.GetTemplateForInstance(structurename);
+		args = &MyTypeSpace.Templates.GetInstantiations().find(structurename)->second.find(templatename)->second;
+	}
 
 	std::map<StringHandle, Structure*>::const_iterator defiter = NameToDefinitionMap.find(structurename);
 	if(defiter == NameToDefinitionMap.end())
@@ -132,11 +144,73 @@ Metadata::EpochTypeID StructureTable::GetMemberType(StringHandle structurename, 
 	for(std::vector<std::pair<StringHandle, StructureMember*> >::const_iterator iter = members.begin(); iter != members.end(); ++iter)
 	{
 		if(iter->first == membername)
-			return iter->second->GetEpochType(MyTypeSpace.MyNamespace);
+		{
+			if(args)
+				return defiter->second->SubstituteTemplateParams(membername, *args, MyTypeSpace.MyNamespace);
+			else
+				return iter->second->GetEpochType(MyTypeSpace.MyNamespace);
+		}
 	}
 
 	throw InternalException("Invalid structure member");
 }
+
+size_t StructureTable::GetMemberOffset(StringHandle structurename, StringHandle membername) const
+{
+	const CompileTimeParameterVector* args = NULL;
+	if(MyTypeSpace.Templates.NameToTypeMap.find(structurename) != MyTypeSpace.Templates.NameToTypeMap.end())
+	{
+		StringHandle templatename = structurename;
+		structurename = MyTypeSpace.Templates.GetTemplateForInstance(structurename);
+		args = &MyTypeSpace.Templates.GetInstantiations().find(structurename)->second.find(templatename)->second;
+	}
+
+	std::map<StringHandle, Structure*>::const_iterator defiter = NameToDefinitionMap.find(structurename);
+	if(defiter == NameToDefinitionMap.end())
+	{
+		if(!MyTypeSpace.MyNamespace.Parent)
+			throw InternalException("Invalid structure name");
+
+		return MyTypeSpace.MyNamespace.Parent->Types.Structures.GetMemberOffset(structurename, membername);
+	}
+
+	size_t offset = 0;
+	const std::vector<std::pair<StringHandle, StructureMember*> >& members = defiter->second->GetMembers();
+	for(std::vector<std::pair<StringHandle, StructureMember*> >::const_iterator iter = members.begin(); iter != members.end(); ++iter)
+	{
+		if(iter->first == membername)
+			return offset;
+
+		Metadata::EpochTypeID membertype;
+		if(args)
+			membertype = defiter->second->SubstituteTemplateParams(iter->first, *args, MyTypeSpace.MyNamespace);
+		else
+			membertype = iter->second->GetEpochType(MyTypeSpace.MyNamespace);
+
+		if(Metadata::GetTypeFamily(membertype) == Metadata::EpochTypeFamily_SumType)
+		{
+			size_t maxsize = 0;
+
+			if(MyTypeSpace.SumTypes.IsTemplate(MyTypeSpace.GetNameOfType(membertype)))
+			{
+				throw InternalException("Template argument substitution failed");
+			}
+			else
+			{
+				std::set<Metadata::EpochTypeID> possibles = MyTypeSpace.SumTypes.GetDefinitions().find(membertype)->second;
+				for(std::set<Metadata::EpochTypeID>::const_iterator piter = possibles.begin(); piter != possibles.end(); ++piter)
+					maxsize = std::max(maxsize, Metadata::GetStorageSize(*piter));
+			}
+
+			offset += maxsize + sizeof(Metadata::EpochTypeID);
+		}
+		else
+			offset += Metadata::GetStorageSize(membertype);
+	}
+
+	throw InternalException("Invalid structure member");
+}
+
 
 //
 // Retrieve the name of a structure type's constructor (by name)

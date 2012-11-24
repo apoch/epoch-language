@@ -237,15 +237,10 @@ JITExecPtr JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instru
 		case Bytecode::Instructions::BindMemberRef:
 			{
 				// TODO - support nested structures!
-				StringHandle membername = Fetch<StringHandle>(bytecode, offset);
-				size_t varindex = jitcontext.ReferencesOnStack.top();
+				//size_t varindex = jitcontext.ReferencesOnStack.top();
 
-				Metadata::EpochTypeID structuretype = curscope->GetVariableTypeByIndex(varindex);
-				const StructureDefinition& def = ownervm.GetStructureDefinition(structuretype);
-				size_t memberindex = def.FindMember(membername);
-
-				Metadata::EpochTypeID membertype = def.GetMemberType(memberindex);
-				size_t memberoffset = def.GetMemberOffset(memberindex);
+				Metadata::EpochTypeID membertype = Fetch<Metadata::EpochTypeID>(bytecode, offset);
+				size_t memberoffset = Fetch<size_t>(bytecode, offset);
 
 				Value* voidstructptr = structurelookupcache[jitcontext.ValuesOnStack.top()];
 

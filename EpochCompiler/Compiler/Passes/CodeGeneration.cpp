@@ -86,8 +86,13 @@ namespace
 		frames = CheckForGlobalFrame(curnamespace, activescope, frames);
 		emitter.BindReference(frames, index);
 		
+		StringHandle structurename = curnamespace.Types.GetNameOfType(activescope.GetScope()->GetVariableTypeByID(identifiers[0]));
 		for(size_t i = 1; i < identifiers.size(); ++i)
-			emitter.BindStructureReference(identifiers[i]);
+		{
+			StringHandle membertype = curnamespace.Types.Structures.GetMemberType(structurename, identifiers[i]);
+			emitter.BindStructureReference(membertype, curnamespace.Types.Structures.GetMemberOffset(structurename, identifiers[i]));
+			structurename = curnamespace.Types.GetNameOfType(membertype);
+		}
 	}
 
 	void PushFast(ByteCodeEmitter& emitter, const IRSemantics::Namespace& curnamespace, const IRSemantics::CodeBlock& activescope, StringHandle identifier)
@@ -158,7 +163,7 @@ namespace
 				if(i == 1)
 					emitter.BindStructureReferenceByHandle(identifiers[i]);
 				else
-					emitter.BindStructureReference(identifiers[i]);
+					emitter.BindStructureReference(curnamespace.Types.Structures.GetMemberType(structurename, identifiers[i]), curnamespace.Types.Structures.GetMemberOffset(structurename, identifiers[i]));
 
 				structuretype = curnamespace.Types.Structures.GetMemberType(structurename, identifiers[i]);
 			}
@@ -293,7 +298,11 @@ namespace
 			if(firstmember && !atom->IsReference() && !atom->OverrideInputAsReference())
 				emitter.BindStructureReferenceByHandle(atom->GetIdentifier());
 			else
-				emitter.BindStructureReference(atom->GetIdentifier());
+			{
+				Metadata::EpochTypeID membertype = curnamespace.Types.Structures.GetMemberType(atom->GetStructureName(), atom->GetIdentifier());
+				size_t memberoffset = curnamespace.Types.Structures.GetMemberOffset(atom->GetStructureName(), atom->GetIdentifier());
+				emitter.BindStructureReference(membertype, memberoffset);
+			}
 			return !atom->IsReference();
 		}
 		else if(const IRSemantics::ExpressionAtomTypeAnnotation* atom = dynamic_cast<const IRSemantics::ExpressionAtomTypeAnnotation*>(rawatom))

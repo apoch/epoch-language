@@ -788,13 +788,12 @@ void Expression::Coalesce(Namespace& curnamespace, CodeBlock& activescope, Compi
 					StringHandle memberaccessname = curnamespace.Functions.FindStructureMemberAccessOverload(structurename, opid->GetIdentifier());
 
 					delete opatom;
-					//*iter = new ExpressionAtomOperator(memberaccessname, true, opid->GetIdentifier());
 
 					InferenceContext newcontext(0, InferenceContext::CONTEXT_GLOBAL);
 					curnamespace.Functions.GetIR(memberaccessname)->TypeInference(curnamespace, newcontext, errors);
 					structuretype = curnamespace.Functions.GetIR(memberaccessname)->GetReturnType(curnamespace);
 
-					*iter = new ExpressionAtomBindReference(opid->GetIdentifier(), structuretype, false, true);
+					*iter = new ExpressionAtomBindReference(opid->GetIdentifier(), structuretype, structurename, false, true);
 
 					delete *nextiter;
 					Atoms.erase(nextiter);
@@ -811,7 +810,7 @@ void Expression::Coalesce(Namespace& curnamespace, CodeBlock& activescope, Compi
 					structuretype = curnamespace.Functions.GetIR(memberaccessname)->GetReturnType(curnamespace);
 
 					delete opatom;
-					*iter = new ExpressionAtomBindReference(opid->GetIdentifier(), structuretype, false);
+					*iter = new ExpressionAtomBindReference(opid->GetIdentifier(), structuretype, structurename, false);
 
 					delete *nextiter;
 					Atoms.erase(nextiter);
@@ -1399,7 +1398,7 @@ bool ExpressionAtomOperator::MakeReference(size_t index, std::vector<ExpressionA
 	if(!IsMemberAccessFlag)
 		return false;
 
-	atoms[index] = new ExpressionAtomBindReference(SecondaryIdentifier, Metadata::EpochType_Error, true);
+	atoms[index] = new ExpressionAtomBindReference(SecondaryIdentifier, Metadata::EpochType_Error, 0, true);
 	delete this;
 
 	if(index < atoms.size() - 1)
@@ -1654,7 +1653,7 @@ Expression* Expression::Clone() const
 //
 ExpressionAtom* ExpressionAtomBindReference::Clone() const
 {
-	return new ExpressionAtomBindReference(Identifier, MyType, IsRef);
+	return new ExpressionAtomBindReference(Identifier, MyType, StructureName, IsRef);
 }
 
 bool ExpressionAtomBindReference::MakeReference(size_t index, std::vector<ExpressionAtom*>& atoms)

@@ -72,7 +72,7 @@ public:
 
 	void BindReference(size_t frameskip, size_t variableindex);
 	void BindReferenceIndirect();
-	void BindStructureReference(StringHandle membername);
+	void BindStructureReference(Metadata::EpochTypeID membertype, size_t memberoffset);
 	void BindStructureReferenceByHandle(StringHandle membername);
 
 	void PopStack(Metadata::EpochTypeID type);

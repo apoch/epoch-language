@@ -100,6 +100,7 @@ namespace IRSemantics
 
 		StringHandle GetConstructorName(StringHandle structurename) const;
 		Metadata::EpochTypeID GetMemberType(StringHandle structurename, StringHandle membername) const;
+		size_t GetMemberOffset(StringHandle structurename, StringHandle membername) const;
 
 		bool IsStructureTemplate(StringHandle name) const;
 

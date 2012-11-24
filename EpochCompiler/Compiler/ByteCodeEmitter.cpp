@@ -255,10 +255,11 @@ void ByteCodeEmitter::BindReferenceIndirect()
 // mechanism very similar to that used by BindReference. However, this is designed to permit
 // chained usage, so that nested structures can be supported with one instruction opcode.
 //
-void ByteCodeEmitter::BindStructureReference(StringHandle membername)
+void ByteCodeEmitter::BindStructureReference(Metadata::EpochTypeID membertype, size_t memberoffset)
 {
 	EmitInstruction(Bytecode::Instructions::BindMemberRef);
-	EmitRawValue(membername);
+	EmitRawValue(membertype);
+	EmitRawValue(memberoffset);
 }
 
 void ByteCodeEmitter::BindStructureReferenceByHandle(StringHandle membername)
