@@ -15,6 +15,7 @@
 #include "Utility/Types/IDTypes.h"
 
 #include <map>
+#include <boost/unordered_map.hpp>
 
 
 // Forward declarations
@@ -35,7 +36,7 @@ class CompileErrors;
 
 // Handy type shortcuts
 typedef void (*EpochFunctionPtr)(StringHandle namehandle, VM::ExecutionContext& context);
-typedef std::map<StringHandle, EpochFunctionPtr> FunctionInvocationTable;
+typedef boost::unordered_map<StringHandle, EpochFunctionPtr> FunctionInvocationTable;
 
 typedef void (*CompilerHelperPtr)(IRSemantics::Statement& statement, IRSemantics::Namespace& curnamespace, IRSemantics::CodeBlock& activescope, bool inreturnexpr, CompileErrors& errors);
 typedef std::map<StringHandle, CompilerHelperPtr> FunctionCompileHelperTable;

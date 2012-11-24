@@ -316,6 +316,14 @@ void ByteCodeEmitter::InvokeIndirect(StringHandle varname)
 	EmitRawValue(varname);
 }
 
+// TODO - document
+void ByteCodeEmitter::InvokeOffset(StringHandle functionname)
+{
+	EmitInstruction(Bytecode::Instructions::InvokeOffset);
+	EmitRawValue(functionname);
+	EmitRawValue(static_cast<size_t>(0));
+}
+
 //
 // Emit an instruction which halts execution of the VM
 //
@@ -477,6 +485,7 @@ void ByteCodeEmitter::ResolvePattern(StringHandle dispatchfunction, const Functi
 {
 	EmitInstruction(Bytecode::Instructions::PatternMatch);
 	EmitRawValue(dispatchfunction);
+	EmitRawValue(static_cast<size_t>(0));
 	EmitRawValue(signature.GetNumParameters());
 	for(size_t i = 0; i < signature.GetNumParameters(); ++i)
 	{
@@ -937,6 +946,7 @@ void ByteCodeEmitter::ResolveTypes(StringHandle dispatchfunction, const Function
 {
 	EmitInstruction(Bytecode::Instructions::TypeMatch);
 	EmitRawValue(dispatchfunction);
+	EmitRawValue(static_cast<size_t>(0));
 	EmitRawValue(signature.GetNumParameters());
 	for(size_t i = 0; i < signature.GetNumParameters(); ++i)
 	{

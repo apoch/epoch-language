@@ -679,6 +679,7 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 
 					ActiveStructure& structure = OwnerVM.GetStructure(handle);
 					const StructureDefinition& definition = structure.Definition;
+
 					size_t memberindex = definition.FindMember(member);
 					size_t offset = definition.GetMemberOffset(memberindex);
 
@@ -852,24 +853,26 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 					StringHandle functionname = Fetch<StringHandle>();
 					InvokedFunctionStack.push_back(functionname);
 
-					size_t internaloffset = OwnerVM.GetFunctionInstructionOffsetNoThrow(functionname);
-					if(internaloffset)
-					{
-						InstructionOffsetStack.push(InstructionOffset);
+					OwnerVM.InvokeFunction(functionname, *this);
+					InvokedFunctionStack.pop_back();
 
-						InstructionOffset = internaloffset;
-						scope = &OwnerVM.GetScopeDescription(functionname);
+					if(State.Result.ResultType == ExecutionResult::EXEC_RESULT_HALT)
+						throw FatalException("Unexpected VM halt");
+				}
+				break;
 
-						returnonfunctionexitstack.push(false);
-					}
-					else
-					{
-						OwnerVM.InvokeFunction(functionname, *this);
-						InvokedFunctionStack.pop_back();
+			case Bytecode::Instructions::InvokeOffset:
+				{
+					StringHandle functionname = Fetch<StringHandle>();
+					InvokedFunctionStack.push_back(functionname);
+					size_t internaloffset = Fetch<size_t>();
 
-						if(State.Result.ResultType == ExecutionResult::EXEC_RESULT_HALT)
-							throw FatalException("Unexpected VM halt");
-					}
+					InstructionOffsetStack.push(InstructionOffset);
+
+					InstructionOffset = internaloffset;
+					scope = &OwnerVM.GetScopeDescription(functionname);
+
+					returnonfunctionexitstack.push(false);
 				}
 				break;
 
@@ -1084,6 +1087,7 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 					char* destptr = stackptr;
 					bool matchedpattern = true;
 					StringHandle originalfunction = Fetch<StringHandle>();
+					size_t internaloffset = Fetch<size_t>();
 					size_t paramcount = Fetch<size_t>();
 					size_t instroffset = InstructionOffset;
 					for(size_t i = 0; i < paramcount; ++i)
@@ -1134,8 +1138,6 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 						}
 
 						State.Stack.Pop(stackptr - destptr);
-
-						size_t internaloffset = OwnerVM.GetFunctionInstructionOffset(originalfunction);
 
 						InstructionOffset = internaloffset;
 						scope = &OwnerVM.GetScopeDescription(originalfunction);
@@ -1197,6 +1199,7 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 			case Bytecode::Instructions::TypeMatch:
 				{
 					StringHandle dispatchfunction = Fetch<StringHandle>();
+					size_t internaloffset = Fetch<size_t>();
 					size_t paramcount = Fetch<size_t>();
 
 					const char* stackptr = reinterpret_cast<const char*>(State.Stack.GetCurrentTopOfStack());
@@ -1414,8 +1417,6 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 
 						State.Stack.Pop(destptr - stackptr);
 
-						size_t internaloffset = OwnerVM.GetFunctionInstructionOffset(dispatchfunction);
-
 						InstructionOffset = internaloffset;
 						scope = &OwnerVM.GetScopeDescription(dispatchfunction);
 					}
@@ -1502,6 +1503,8 @@ void ExecutionContext::Load()
 
 	std::vector<StringHandle> jitworklist;
 	std::map<StringHandle, size_t> entityoffsetmap;
+
+	std::map<size_t, StringHandle> offsetfixups;
 
 	InstructionOffset = 0;
 	while(InstructionOffset < CodeBufferSize)
@@ -1703,6 +1706,17 @@ void ExecutionContext::Load()
 			}
 			break;
 
+		case Bytecode::Instructions::InvokeOffset:
+			{
+				StringHandle target = Fetch<StringHandle>();
+				size_t offsetofoffset = InstructionOffset;
+
+				Fetch<size_t>();		// Skip dummy offset
+
+				offsetfixups[offsetofoffset] = target;
+			}
+			break;
+
 		// Operations that take a bit of special processing, but we are still ignoring
 		case Bytecode::Instructions::Push:
 			{
@@ -1722,7 +1736,11 @@ void ExecutionContext::Load()
 
 		case Bytecode::Instructions::PatternMatch:
 			{
-				Fetch<StringHandle>();
+				StringHandle funcname = Fetch<StringHandle>();
+
+				offsetfixups[InstructionOffset] = funcname;
+
+				Fetch<size_t>();
 				size_t paramcount = Fetch<size_t>();
 				for(size_t i = 0; i < paramcount; ++i)
 				{
@@ -1746,7 +1764,9 @@ void ExecutionContext::Load()
 
 		case Bytecode::Instructions::TypeMatch:
 			{
-				Fetch<StringHandle>();
+				StringHandle funcname = Fetch<StringHandle>();
+				offsetfixups[InstructionOffset] = funcname;
+				Fetch<size_t>();
 				size_t paramcount = Fetch<size_t>();
 				for(size_t i = 0; i < paramcount; ++i)
 				{
@@ -1759,6 +1779,13 @@ void ExecutionContext::Load()
 		default:
 			throw FatalException("Invalid bytecode operation detected during load");
 		}
+	}
+
+	// Replace function jump offsets with their true locations
+	for(std::map<size_t, StringHandle>::const_iterator iter = offsetfixups.begin(); iter != offsetfixups.end(); ++iter)
+	{
+		size_t funcoffset = OwnerVM.GetFunctionInstructionOffset(iter->second);
+		*reinterpret_cast<size_t*>(&CodeBuffer[iter->first]) = funcoffset;
 	}
 
 	// Pre-mark all statically referenced string handles

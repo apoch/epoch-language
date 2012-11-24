@@ -260,6 +260,14 @@ void Serializer::Write(const std::wstring& filename) const
 			outfile << L"INVOKE " << traverser.Read<StringHandle>() << L"\n";
 			break;
 
+		case Bytecode::Instructions::InvokeOffset:
+			{
+				StringHandle funcname = traverser.Read<StringHandle>();
+				size_t dummyoffset = traverser.Read<size_t>();
+				outfile << L"INVOKE_OFFSET " << funcname << L" " << dummyoffset << L"\n";
+			}
+			break;
+
 		case Bytecode::Instructions::InvokeIndirect:
 			outfile << L"INVOKE_INDIRECT " << traverser.Read<StringHandle>() << L"\n";
 			break;
@@ -322,6 +330,7 @@ void Serializer::Write(const std::wstring& filename) const
 		case Bytecode::Instructions::PatternMatch:
 			{
 				outfile << L"PATTERN " << traverser.Read<StringHandle>() << L" ";
+				traverser.Read<size_t>();
 				size_t count = traverser.Read<size_t>();
 				outfile << count << L" ";
 				for(size_t i = 0; i < count; ++i)
@@ -426,6 +435,7 @@ void Serializer::Write(const std::wstring& filename) const
 		case Bytecode::Instructions::TypeMatch:
 			{
 				StringHandle dispatchfunction = traverser.Read<StringHandle>();
+				traverser.Read<size_t>();
 				size_t numparams = traverser.Read<size_t>();
 
 				outfile << L"TYPEMATCH " << dispatchfunction << L" " << numparams;

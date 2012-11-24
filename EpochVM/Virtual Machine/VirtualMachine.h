@@ -38,6 +38,8 @@
 #include <stack>
 #include <string>
 
+#include <boost/unordered_map.hpp>
+
 
 // Forward declarations
 class ActiveScope;
@@ -46,6 +48,10 @@ class StructureDefinition;
 
 namespace VM
 {
+
+	// Handy type shortcuts
+	typedef boost::unordered_map<StringHandle, ScopeDescription> ScopeMap;
+
 
 	//
 	// Helper structure for storing information about a completed execution run
@@ -157,8 +163,8 @@ namespace VM
 
 	// Handy type shortcuts
 	private:
-		typedef std::map<StringHandle, size_t> OffsetMap;
-		typedef std::map<size_t, size_t> BeginEndOffsetMap;
+		typedef boost::unordered_map<StringHandle, size_t> OffsetMap;
+		typedef boost::unordered_map<size_t, size_t> BeginEndOffsetMap;
 
 	// Internal state tracking
 	private:

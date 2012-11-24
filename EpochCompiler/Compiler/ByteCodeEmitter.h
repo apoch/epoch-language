@@ -81,6 +81,7 @@ public:
 public:
 	void Invoke(StringHandle functionname);
 	void InvokeIndirect(StringHandle varname);
+	void InvokeOffset(StringHandle functionname);
 	void Halt();
 
 // Entities

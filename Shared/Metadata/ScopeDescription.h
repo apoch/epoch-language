@@ -106,6 +106,3 @@ public:
 	friend class ActiveScope;
 };
 
-
-// Handy type shortcuts
-typedef std::map<StringHandle, ScopeDescription> ScopeMap;

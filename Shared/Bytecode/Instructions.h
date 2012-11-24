@@ -82,6 +82,8 @@ namespace Bytecode
 
 		static const Instruction ReadParam = 0x26;
 
+		static const Instruction InvokeOffset = 0x27;
+
 	}
 
 }
