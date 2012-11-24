@@ -334,6 +334,7 @@ ExecutionContext::ExecutionContext(VirtualMachine& ownervm, Bytecode::Instructio
 	  GarbageTick_Structures(0)
 
 {
+	ActiveScope::InitAllocator();
 	Load();
 	InstructionOffset = 0;
 }

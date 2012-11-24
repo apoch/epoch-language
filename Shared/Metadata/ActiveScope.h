@@ -25,9 +25,17 @@ namespace VM { class ExecutionContext; }
 
 class ActiveScope
 {
-// Construction
+// Custom allocation
+public:
+	static void* operator new (size_t size); 
+	static void operator delete (void *p);
+
+	static void InitAllocator();
+
+// Construction and destruction
 public:
 	ActiveScope(const ScopeDescription& originalscope, ActiveScope* parent);
+	~ActiveScope();
 
 // Non-copyable
 private:
@@ -84,8 +92,6 @@ public:
 
 // References
 public:
-	void BindReference(StringHandle referencename, void* targetstorage, Metadata::EpochTypeID targettype);
-
 	void* GetReferenceTarget(size_t index) const;
 	void* GetReferenceTargetByName(StringHandle name) const;
 	Metadata::EpochTypeID GetReferenceType(size_t index) const;
@@ -96,7 +102,8 @@ public:
 
 // State queries
 public:
-	bool HasReturnVariable() const;
+	bool HasReturnVariable() const
+	{ return HasRet; }
 
 	Metadata::EpochTypeID GetActualType(size_t index) const;
 
@@ -134,10 +141,13 @@ private:
 		Metadata::EpochTypeID ActualType;
 	};
 
-	std::vector<RuntimeData> Data;
+	RuntimeData* Data;
+	size_t DataSize;
 	
 	void* StartOfLocals;
 	void* StartOfParams;
 	size_t UsedStackSpace;
+
+	bool HasRet;
 };
 

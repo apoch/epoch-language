@@ -18,14 +18,80 @@
 #include "Utility/Types/RealTypes.h"
 
 
+namespace
+{
+	void* ScopeStack = NULL;
+	void* CurrentAlloc = NULL;
+
+
+	void* DataStack = NULL;
+	void* CurrentDataAlloc = NULL;
+
+
+	void* StackAlloc(size_t bytes)
+	{
+		void* ret = CurrentDataAlloc;
+		CurrentDataAlloc = reinterpret_cast<char*>(CurrentDataAlloc) + bytes;
+		return ret;
+	}
+
+	void StackFree(size_t bytes)
+	{
+		CurrentDataAlloc = reinterpret_cast<char*>(CurrentDataAlloc) - bytes;
+	}
+}
+
+
+
+void ActiveScope::InitAllocator()
+{
+	if(ScopeStack)
+		::VirtualFree(ScopeStack, 0, MEM_RELEASE);
+	if(DataStack)
+		::VirtualFree(DataStack, 0, MEM_RELEASE);
+
+	ScopeStack = ::VirtualAlloc(0, 1024 * sizeof(ActiveScope), MEM_COMMIT, PAGE_READWRITE);
+	CurrentAlloc = ScopeStack;
+
+	DataStack = ::VirtualAlloc(0, 1024 * 1024 * 5, MEM_COMMIT, PAGE_READWRITE);
+	CurrentDataAlloc = DataStack;
+}
+
+
+void* ActiveScope::operator new(size_t size)
+{
+	void* ret = CurrentAlloc;
+	CurrentAlloc = reinterpret_cast<char*>(CurrentAlloc) + size;
+	return ret;
+}
+
+void ActiveScope::operator delete(void* p)
+{
+	CurrentAlloc = reinterpret_cast<char*>(CurrentAlloc) - sizeof(ActiveScope);
+
+	if(p != CurrentAlloc)
+		std::terminate();		// can't throw here!
+}
+
+
 ActiveScope::ActiveScope(const ScopeDescription& originalscope, ActiveScope* parent)
 	: OriginalScope(originalscope),
 	  ParentScope(parent),
 	  StartOfLocals(NULL),
 	  StartOfParams(NULL),
 	  UsedStackSpace(0),
-	  Data(originalscope.Variables.size(), RuntimeData())
-{ }
+	  Data(NULL),
+	  HasRet(false)
+{
+	DataSize = originalscope.Variables.size() * sizeof(RuntimeData);
+	if(DataSize)
+		Data = reinterpret_cast<RuntimeData*>(StackAlloc(DataSize));
+}
+
+ActiveScope::~ActiveScope()
+{
+	StackFree(DataSize);
+}
 
 
 //
@@ -52,7 +118,8 @@ void ActiveScope::BindParametersToStack(const VM::ExecutionContext& context)
 				stackpointer += sizeof(void*);
 				Metadata::EpochTypeID targettype = *reinterpret_cast<Metadata::EpochTypeID*>(stackpointer);
 				stackpointer += sizeof(Metadata::EpochTypeID);
-				BindReference(iter->IdentifierHandle, targetstorage, targettype);
+				Data[i].RefInfo.first = targetstorage;
+				Data[i].RefInfo.second = targettype;
 			}
 			else
 			{				
@@ -102,6 +169,9 @@ void ActiveScope::PushLocalsOntoStack(VM::ExecutionContext& context)
 				Data[i].StorageLocation = context.State.Stack.GetCurrentTopOfStack();
 			}
 		}
+
+		if(iter->Origin == VARIABLE_ORIGIN_RETURN)
+			HasRet = true;
 
 		++i;
 	}
@@ -377,39 +447,6 @@ void ActiveScope::CopyToRegister(size_t index, Register& targetregister) const
 		}
 		break;
 	}
-}
-
-//
-// Determine if the current scope contains a variable bound to an entity return value
-//
-bool ActiveScope::HasReturnVariable() const
-{
-	for(ScopeDescription::VariableVector::const_iterator iter = OriginalScope.Variables.begin(); iter != OriginalScope.Variables.end(); ++iter)
-	{
-		if(iter->Origin == VARIABLE_ORIGIN_RETURN)
-			return true;
-	}
-
-	return false;
-}
-
-
-//
-// Bind a reference variable to a target
-//
-void ActiveScope::BindReference(StringHandle referencename, void* targetstorage, Metadata::EpochTypeID targettype)
-{
-	for(size_t i = 0; i < OriginalScope.Variables.size(); ++i)
-	{
-		if(OriginalScope.Variables[i].IdentifierHandle == referencename)
-		{
-			Data[i].RefInfo.first = targetstorage;
-			Data[i].RefInfo.second = targettype;
-			return;
-		}
-	}
-
-	throw FatalException("Cannot bind reference in this context");
 }
 
 //
