@@ -63,6 +63,10 @@ namespace IRSemantics
 	// Deep copies
 	public:
 		virtual CodeBlockEntry* Clone() const = 0;
+
+	// Optimization
+	public:
+		virtual void HoistScopes(ScopeDescription* target) = 0;
 	};
 
 
@@ -115,6 +119,10 @@ namespace IRSemantics
 	public:
 		EPOCHCOMPILER bool ShadowingCheck(StringHandle identifier, CompileErrors& errors);
 
+	// Optimization
+	public:
+		void HoistScopes(ScopeDescription* target);
+
 	// Internal state
 	private:
 		std::vector<CodeBlockEntry*> Entries;
@@ -156,6 +164,11 @@ namespace IRSemantics
 		const Assignment& GetAssignment() const
 		{ return *MyAssignment; }
 
+	// Optimization
+	public:
+		virtual void HoistScopes(ScopeDescription*)
+		{ }
+
 	// Internal state
 	private:
 		Assignment* MyAssignment;
@@ -195,6 +208,11 @@ namespace IRSemantics
 		const Statement& GetStatement() const
 		{ return *MyStatement; }
 
+	// Optimization
+	public:
+		virtual void HoistScopes(ScopeDescription*)
+		{ }
+
 	// Internal state
 	private:
 		Statement* MyStatement;
@@ -233,6 +251,11 @@ namespace IRSemantics
 	public:
 		const PreOpStatement& GetStatement() const
 		{ return *MyStatement; }
+
+	// Optimization
+	public:
+		virtual void HoistScopes(ScopeDescription*)
+		{ }
 
 	// Internal state
 	private:
@@ -274,6 +297,11 @@ namespace IRSemantics
 		const PostOpStatement& GetStatement() const
 		{ return *MyStatement; }
 
+	// Optimization
+	public:
+		virtual void HoistScopes(ScopeDescription*)
+		{ }
+
 	// Internal state
 	private:
 		PostOpStatement* MyStatement;
@@ -313,6 +341,10 @@ namespace IRSemantics
 		const CodeBlock& GetCode() const
 		{ return *MyCodeBlock; }
 
+	// Optimization
+	public:
+		virtual void HoistScopes(ScopeDescription* target);
+
 	// Internal state
 	private:
 		CodeBlock* MyCodeBlock;
@@ -351,6 +383,10 @@ namespace IRSemantics
 	public:
 		Entity& GetEntity() const
 		{ return *MyEntity; }
+
+	// Optimization
+	public:
+		virtual void HoistScopes(ScopeDescription* target);
 
 	// Internal state
 	private:

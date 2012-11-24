@@ -207,3 +207,10 @@ Entity* Entity::Clone() const
 	return clone;
 }
 
+void Entity::HoistScopes(ScopeDescription* target)
+{
+	Code->HoistScopes(target);
+	for(std::vector<Entity*>::iterator iter = Chain.begin(); iter != Chain.end(); ++iter)
+		(*iter)->HoistScopes(target);
+}
+

@@ -917,7 +917,7 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 					}
 					else if(tag == Bytecode::EntityTags::FreeBlock)
 					{
-						scope = &OwnerVM.GetScopeDescription(name);
+						/*scope = &OwnerVM.GetScopeDescription(name);
 						if(scope->GetVariableCount())
 						{
 							Variables = new ActiveScope(*scope, Variables);
@@ -927,6 +927,7 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 						}
 						else
 							onexit.MarkEmptyScope();
+						*/
 					}
 					else if(tag == Bytecode::EntityTags::Globals)
 					{
@@ -951,7 +952,7 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 						EntityReturnCode code = OwnerVM.GetEntityMetaControl(tag)(*this);
 						if(code == ENTITYRET_EXECUTE_CURRENT_LINK_IN_CHAIN)
 						{
-							scope = &OwnerVM.GetScopeDescription(name);
+							/*scope = &OwnerVM.GetScopeDescription(name);
 							if(scope->GetVariableCount())
 							{
 								Variables = new ActiveScope(*scope, Variables);
@@ -961,6 +962,7 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 							}
 							else
 								onexit.MarkEmptyScope();
+							*/
 						}
 						else if(code == ENTITYRET_PASS_TO_NEXT_LINK_IN_CHAIN)
 							InstructionOffset = OwnerVM.GetEntityEndOffset(originaloffset) + 1;
@@ -969,7 +971,7 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 						else if(code == ENTITYRET_EXECUTE_AND_REPEAT_ENTIRE_CHAIN)
 						{
 							chainrepeats.top() = true;
-							scope = &OwnerVM.GetScopeDescription(name);
+							/*scope = &OwnerVM.GetScopeDescription(name);
 							if(scope->GetVariableCount())
 							{
 								Variables = new ActiveScope(*scope, Variables);
@@ -979,6 +981,7 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 							}
 							else
 								onexit.MarkEmptyScope();
+							*/
 						}
 						else
 							throw FatalException("Invalid return code from entity meta-control");
@@ -989,11 +992,12 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 				break;
 
 			case Bytecode::Instructions::EndEntity:
-				onexit.CleanUpTopmostScope();
+				/*onexit.CleanUpTopmostScope();
 				if(Variables)
 					scope = &Variables->GetOriginalDescription();
 				else
 					scope = NULL;
+				*/
 				if(!chainoffsets.empty())
 				{
 					if(chainrepeats.top())

@@ -4,4 +4,5 @@ EXPORTS
 	GetHeapManager				@2
 	EnableVisualDebugger		@3
 	LinkTestHarness				@4
+	VMGetStructure				@5
 

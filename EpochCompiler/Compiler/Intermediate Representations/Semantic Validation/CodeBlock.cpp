@@ -160,6 +160,17 @@ bool CodeBlock::ShadowingCheck(StringHandle identifier, CompileErrors& errors)
 	return false;
 }
 
+void CodeBlock::HoistScopes(ScopeDescription* target)
+{
+	if(!target)
+		target = Scope;
+	else
+		Scope->HoistInto(target);
+
+	for(std::vector<CodeBlockEntry*>::iterator iter = Entries.begin(); iter != Entries.end(); ++iter)
+		(*iter)->HoistScopes(target);
+}
+
 
 //
 // Construct and initialize a wrapper for placing an Assignment IR node in a code block
@@ -439,5 +450,16 @@ CodeBlockEntry* CodeBlockInnerBlockEntry::Clone() const
 CodeBlockEntry* CodeBlockEntityEntry::Clone() const
 {
 	return new CodeBlockEntityEntry(MyEntity->Clone());
+}
+
+
+void CodeBlockInnerBlockEntry::HoistScopes(ScopeDescription* target)
+{
+	MyCodeBlock->HoistScopes(target);
+}
+
+void CodeBlockEntityEntry::HoistScopes(ScopeDescription* target)
+{
+	MyEntity->HoistScopes(target);
 }
 

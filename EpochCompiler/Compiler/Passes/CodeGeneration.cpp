@@ -55,7 +55,7 @@ namespace
 		if(curnamespace.GetGlobalScope() == desc)
 			return 0xffffffff;
 
-		return inframes;
+		return 0;
 	}
 
 	void FastInvoke(ByteCodeEmitter& emitter, const IRSemantics::Namespace& curnamespace, StringHandle funcname)
@@ -893,7 +893,7 @@ namespace
 							if(isconstructor[iter->first])
 							{
 								emitter.PushVariableValueNoCopy(scope->GetVariableNameHandle(i));
-								emitter.PushVariableValue(curnamespace.Strings.Find(L"@id"), Metadata::EpochType_Identifier);
+								PushFast(emitter, curnamespace, *code, curnamespace.Strings.Find(L"@id")); 
 								emitter.PushIntegerLiteral(scope->GetVariableTypeByIndex(i));
 								emitter.AssignVariableThroughIdentifier();
 							}

@@ -405,6 +405,10 @@ namespace IRSemantics
 
 		void FixupScope();
 
+	// Optimization
+	public:
+		void HoistScopes();
+
 	// Internal state
 	private:
 		friend class FunctionTable;

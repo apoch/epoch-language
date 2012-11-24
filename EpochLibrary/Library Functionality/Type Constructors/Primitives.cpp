@@ -49,7 +49,7 @@ namespace
 		context.ValuesOnStack.pop();
 
 		llvm::ConstantInt* cint = llvm::dyn_cast<llvm::ConstantInt>(c);
-		StringHandle vartarget = static_cast<StringHandle>(cint->getValue().getLimitedValue());
+		size_t vartarget = static_cast<size_t>(cint->getValue().getLimitedValue());
 
 		reinterpret_cast<llvm::IRBuilder<>*>(context.Builder)->CreateStore(p2, context.VariableMap[vartarget], false);
 	}

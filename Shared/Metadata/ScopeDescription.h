@@ -33,11 +33,13 @@ class ScopeDescription
 // Construction
 public:
 	ScopeDescription()
-		: ParentScope(NULL)
+		: ParentScope(NULL),
+		  Hoisted(false)
 	{ }
 
 	explicit ScopeDescription(ScopeDescription* parentscope)
-		: ParentScope(parentscope)
+		: ParentScope(parentscope),
+		  Hoisted(false)
 	{ }
 
 // Configuration interface
@@ -70,6 +72,10 @@ public:
 
 	size_t FindVariable(StringHandle variableid, size_t& outnumframes) const;
 
+// Optimization helpers
+public:
+	void HoistInto(ScopeDescription* target);
+
 // Public properties
 public:
 	ScopeDescription* ParentScope;
@@ -100,6 +106,7 @@ private:
 private:
 	typedef std::vector<VariableEntry> VariableVector;
 	VariableVector Variables;
+	bool Hoisted;
 
 // Permit activated scopes to access internal data
 public:

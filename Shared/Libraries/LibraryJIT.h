@@ -22,11 +22,11 @@ namespace JIT
 	struct JITContext
 	{
 		std::stack<llvm::Value*> ValuesOnStack;
-		std::stack<StringHandle> ReferencesOnStack;
+		std::stack<size_t> ReferencesOnStack;
 
 		std::stack<Bytecode::EntityTag> EntityTypes;
 
-		std::map<StringHandle, llvm::Value*> VariableMap;
+		std::map<size_t, llvm::Value*> VariableMap;
 
 
 		llvm::BasicBlock* EntityCheck;
@@ -35,7 +35,9 @@ namespace JIT
 
 		llvm::BasicBlock* FunctionExit;
 
+		llvm::Value* PStackPtr;
 
+		void* Context;
 		void* Builder;
 	};
 

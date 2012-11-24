@@ -16,6 +16,7 @@
 
 // Forward declarations
 class CompileErrors;
+class ScopeDescription;
 
 
 namespace IRSemantics
@@ -93,6 +94,10 @@ namespace IRSemantics
 	// Type inference
 	public:
 		bool TypeInference(Namespace& curnamespace, CodeBlock& activescope, InferenceContext& context, CompileErrors& errors);
+
+	// Optimization
+	public:
+		void HoistScopes(ScopeDescription* target);
 
 	// Internal state
 	private:

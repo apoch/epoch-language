@@ -516,6 +516,13 @@ void Function::AddTag(const FunctionTag& tag)
 }
 
 
+void Function::HoistScopes()
+{
+	if(Code)
+		Code->HoistScopes(NULL);
+}
+
+
 //
 // Validate a named function parameter
 //

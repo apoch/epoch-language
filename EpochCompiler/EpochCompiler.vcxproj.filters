@@ -188,6 +188,9 @@
     <ClCompile Include="Compiler\Passes\ParseCallbacks.cpp">
       <Filter>Compiler\Passes</Filter>
     </ClCompile>
+    <ClCompile Include="Compiler\Passes\Optimization.cpp">
+      <Filter>Compiler\Passes</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h">
@@ -429,6 +432,9 @@
     </ClInclude>
     <ClInclude Include="Compiler\ByteCodeEmitter.h">
       <Filter>Compiler</Filter>
+    </ClInclude>
+    <ClInclude Include="Compiler\Passes\Optimization.h">
+      <Filter>Compiler\Passes</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

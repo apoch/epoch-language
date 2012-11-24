@@ -25,6 +25,7 @@
 #include "Compiler/Passes/SemanticValidation.h"
 #include "Compiler/Passes/CodeGeneration.h"
 #include "Compiler/Passes/ParseCallbacks.h"
+#include "Compiler/Passes/Optimization.h"
 
 #include "Parser/Parser.h"
 
@@ -122,10 +123,18 @@ void CompileSession::EmitByteCode()
 	for(std::list<std::pair<std::wstring, std::wstring> >::const_iterator iter = SourceBlocksAndFileNames.begin(); iter != SourceBlocksAndFileNames.end(); ++iter)
 		CompileFile(iter->first, iter->second);
 
+	UI::OutputStream output;
+
 	Profiling::Timer timer;
+
+	output << L"Optimizing IR... ";
+	timer.Begin();
+	CompilerPasses::Optimize(*SemanticProgram);
+	timer.End();
+	output << L"finished in " << timer.GetTimeMs() << L"ms" << std::endl;
+
 	timer.Begin();
 
-	UI::OutputStream output;
 	output << L"Generating code... ";
 
 	ByteCodeEmitter emitter(FinalByteCode);

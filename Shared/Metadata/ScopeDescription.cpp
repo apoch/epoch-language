@@ -203,7 +203,7 @@ bool ScopeDescription::ComputeLocalOffset(StringHandle variableid, const std::ma
 
 	if(ParentScope)
 	{
-		if(Variables.size())
+		if(Variables.size() || Hoisted)
 			++outframes;
 		return ParentScope->ComputeLocalOffset(variableid, sumtypesizes, outframes, outoffset, outsize);
 	}
@@ -264,7 +264,7 @@ bool ScopeDescription::ComputeParamOffset(StringHandle variableid, const std::ma
 
 	if(ParentScope)
 	{
-		if(Variables.size())
+		if(Variables.size() || Hoisted)
 			++outframes;
 		return ParentScope->ComputeParamOffset(variableid, sumtypesizes, outframes, outoffset, outsize);
 	}
@@ -282,11 +282,29 @@ size_t ScopeDescription::FindVariable(StringHandle variableid, size_t& outnumfra
 
 	if(ParentScope)
 	{
-		if(Variables.size())
+		if(Variables.size() || Hoisted)
 			++outnumframes;
 		return ParentScope->FindVariable(variableid, outnumframes);
 	}
 
 	throw FatalException("Invalid variable ID");
+}
+
+
+void ScopeDescription::HoistInto(ScopeDescription* target)
+{
+	if(Variables.empty())
+		return;
+
+	for(VariableVector::const_iterator iter = Variables.begin(); iter != Variables.end(); ++iter)
+	{
+		if(iter->Origin == VARIABLE_ORIGIN_RETURN)
+			throw FatalException("Cannot hoist this scope, it contains a return variable!");
+
+		target->Variables.push_back(*iter);
+	}
+
+	Hoisted = true;
+	Variables.clear();
 }
 

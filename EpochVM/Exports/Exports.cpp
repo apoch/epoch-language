@@ -91,3 +91,16 @@ extern "C" void STDCALL LinkTestHarness(unsigned* harness)
 	//}
 }
 
+extern "C" void* STDCALL VMGetStructure(void* vmcontext, StructureHandle handle)
+{
+	try
+	{
+		VM::ExecutionContext* context = reinterpret_cast<VM::ExecutionContext*>(vmcontext);
+		return &context->OwnerVM.GetStructure(handle).Storage[0];
+	}
+	catch(...)
+	{
+		return NULL;
+	}
+}
+
