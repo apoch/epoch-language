@@ -51,7 +51,7 @@ namespace
 		llvm::ConstantInt* cint = llvm::dyn_cast<llvm::ConstantInt>(c);
 		size_t vartarget = static_cast<size_t>(cint->getValue().getLimitedValue());
 
-		reinterpret_cast<llvm::IRBuilder<>*>(context.Builder)->CreateStore(p2, context.VariableMap[vartarget], false);
+		reinterpret_cast<llvm::IRBuilder<>*>(context.Builder)->CreateStore(p2, context.VariableMap[context.NameToIndexMap[vartarget]], false);
 	}
 
 	//
@@ -96,6 +96,19 @@ namespace
 		StringHandle identifierhandle = context.State.Stack.PopValue<StringHandle>();
 
 		context.Variables->Write(identifierhandle, value);
+	}
+
+	void ConstructRealJIT(JIT::JITContext& context)
+	{
+		llvm::Value* p2 = context.ValuesOnStack.top();
+		context.ValuesOnStack.pop();
+		llvm::Value* c = context.ValuesOnStack.top();
+		context.ValuesOnStack.pop();
+
+		llvm::ConstantInt* cint = llvm::dyn_cast<llvm::ConstantInt>(c);
+		size_t vartarget = static_cast<size_t>(cint->getValue().getLimitedValue());
+
+		reinterpret_cast<llvm::IRBuilder<>*>(context.Builder)->CreateStore(p2, context.VariableMap[context.NameToIndexMap[vartarget]], false);
 	}
 
 	//
@@ -209,4 +222,5 @@ void TypeConstructors::RegisterLibraryFunctions(FunctionCompileHelperTable& tabl
 void TypeConstructors::RegisterJITTable(JIT::JITTable& table, StringPoolManager& stringpool)
 {
 	AddToMapNoDupe(table.InvokeHelpers, std::make_pair(stringpool.Pool(L"integer"), &ConstructIntegerJIT));
+	AddToMapNoDupe(table.InvokeHelpers, std::make_pair(stringpool.Pool(L"real"), &ConstructRealJIT));
 }

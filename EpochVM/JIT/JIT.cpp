@@ -70,6 +70,7 @@ JITExecPtr JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instru
 	jitcontext.FunctionExit = BasicBlock::Create(context, "exit", dostufffunc);
 	jitcontext.PStackPtr = pstackptr;
 	jitcontext.Context = &context;
+	jitcontext.MyModule = module;
 	
 	Value* retval = NULL;
 	unsigned numparams = 0;
@@ -156,6 +157,8 @@ JITExecPtr JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instru
 							}
 							break;
 						}
+
+						jitcontext.NameToIndexMap[scope.GetVariableNameHandle(i)] = i;
 					}
 				}
 				else
@@ -189,9 +192,31 @@ JITExecPtr JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instru
 
 		case Bytecode::Instructions::Assign:
 			{
+				Value* reftarget = jitcontext.ValuesOnStack.top();
 				jitcontext.ValuesOnStack.pop();
-				builder.CreateStore(jitcontext.ValuesOnStack.top(), jitcontext.VariableMap[jitcontext.ReferencesOnStack.top()], false);
-				jitcontext.ReferencesOnStack.pop();
+				builder.CreateStore(jitcontext.ValuesOnStack.top(), reftarget, false);
+			}
+			break;
+
+		case Bytecode::Instructions::ReadStack:
+			{
+				size_t frames = Fetch<size_t>(bytecode, offset);
+				size_t stackoffset = Fetch<size_t>(bytecode, offset);
+				size_t stacksize = Fetch<size_t>(bytecode, offset);
+
+				if(frames != 0)
+					throw NotImplementedException("More lazy.");
+
+				if(stackoffset != 0)
+					throw NotImplementedException("Yet more lazy.");
+
+				if(stacksize != 4)
+					throw NotImplementedException("Ridiculously lazy.");
+
+				// TODO - this is really egregious
+
+				Value* val = builder.CreateLoad(jitcontext.VariableMap[1]);
+				jitcontext.ValuesOnStack.push(val);
 			}
 			break;
 
@@ -334,7 +359,7 @@ JITExecPtr JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instru
 
 	//module->dump();
 
-	verifyFunction(*dostufffunc);
+	//verifyFunction(*dostufffunc);
 
 	std::string ErrStr;
 	ExecutionEngine* ee = EngineBuilder(module).setErrorStr(&ErrStr).create();

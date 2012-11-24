@@ -127,12 +127,12 @@ void VirtualMachine::InitStandardLibraries(unsigned* testharness)
 //
 ExecutionResult VirtualMachine::ExecuteByteCode(Bytecode::Instruction* buffer, size_t size)
 {
-	std::auto_ptr<ExecutionContext> context(new ExecutionContext(*this, buffer, size));
-	context->Execute(NULL, false);
-	ExecutionResult result = context->GetExecutionResult();
+	ExecutionContext context(*this, buffer, size);
+	context.Execute(NULL, false);
+	ExecutionResult result = context.GetExecutionResult();
 
 #ifdef _DEBUG
-	if(context->State.Stack.GetAllocatedStack() > 0)
+	if(context.State.Stack.GetAllocatedStack() > 0)
 		throw FatalException("Stack leakage occurred!");
 #endif
 
@@ -427,11 +427,28 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 	// By default, assume everything is alright
 	State.Result.ResultType = ExecutionResult::EXEC_RESULT_OK;
 
-	std::stack<size_t> chainoffsets;
-	std::stack<bool> chainrepeats;
-	std::stack<bool> returnonfunctionexitstack;
+	struct ChainInfo
+	{
+		ChainInfo()
+			: Offset(0),
+			  Repeat(false)
+		{ }
 
-	returnonfunctionexitstack.push(returnonfunctionexit);
+		ChainInfo(size_t offset, bool repeat)
+			: Offset(offset),
+			  Repeat(repeat)
+		{ }
+
+		size_t Offset;
+		bool Repeat;
+	};
+	std::vector<ChainInfo> chaininfo;
+	std::vector<unsigned> returnonfunctionexitstack;
+
+	chaininfo.reserve(1024);
+	returnonfunctionexitstack.reserve(1024);
+
+	returnonfunctionexitstack.push_back(returnonfunctionexit);
 
 	UByte* instructionbuffer = &CodeBuffer[0];
 
@@ -850,7 +867,7 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 					InstructionOffset = internaloffset;
 					scope = &OwnerVM.GetScopeDescription(functionname);
 
-					returnonfunctionexitstack.push(false);
+					returnonfunctionexitstack.push_back(false);
 				}
 				break;
 
@@ -941,10 +958,10 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 						else if(code == ENTITYRET_PASS_TO_NEXT_LINK_IN_CHAIN)
 							InstructionOffset = OwnerVM.GetEntityEndOffset(originaloffset) + 1;
 						else if(code == ENTITYRET_EXIT_CHAIN)
-							InstructionOffset = OwnerVM.GetChainEndOffset(chainoffsets.top());
+							InstructionOffset = OwnerVM.GetChainEndOffset(chaininfo.back().Offset);
 						else if(code == ENTITYRET_EXECUTE_AND_REPEAT_ENTIRE_CHAIN)
 						{
-							chainrepeats.top() = true;
+							chaininfo.back().Repeat = true;
 							/*scope = &OwnerVM.GetScopeDescription(name);
 							if(scope->GetVariableCount())
 							{
@@ -972,12 +989,12 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 				else
 					scope = NULL;
 				*/
-				if(!chainoffsets.empty())
+				if(!chaininfo.empty())
 				{
-					if(chainrepeats.top())
-						InstructionOffset = chainoffsets.top() + 1;
+					if(chaininfo.back().Repeat)
+						InstructionOffset = chaininfo.back().Offset + 1;
 					else
-						InstructionOffset = OwnerVM.GetChainEndOffset(chainoffsets.top());
+						InstructionOffset = OwnerVM.GetChainEndOffset(chaininfo.back().Offset);
 				}
 				CollectGarbage();
 				continue;
@@ -985,14 +1002,12 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 
 				
 			case Bytecode::Instructions::BeginChain:
-				chainoffsets.push(InstructionOffset - 1);
-				chainrepeats.push(false);
+				chaininfo.push_back(ChainInfo(InstructionOffset - 1, false));
 				continue;
 				break;
 
 			case Bytecode::Instructions::EndChain:
-				chainoffsets.pop();
-				chainrepeats.pop();
+				chaininfo.pop_back();
 				continue;
 				break;
 
@@ -1004,7 +1019,7 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 					switch(code)
 					{
 					case ENTITYRET_EXIT_CHAIN:
-						InstructionOffset = OwnerVM.GetChainEndOffset(chainoffsets.top());
+						InstructionOffset = OwnerVM.GetChainEndOffset(chaininfo.back().Offset);
 						break;
 
 					case ENTITYRET_PASS_TO_NEXT_LINK_IN_CHAIN:
@@ -1012,7 +1027,7 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 						break;
 					
 					case ENTITYRET_EXECUTE_AND_REPEAT_ENTIRE_CHAIN:
-						chainrepeats.top() = true;
+						chaininfo.back().Repeat = true;
 						break;
 
 					default:
@@ -1452,10 +1467,10 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 					scope = NULL;
 				InstructionOffset = InstructionOffsetStack.top();
 				InstructionOffsetStack.pop();
-				if(returnonfunctionexitstack.top())
+				if(returnonfunctionexitstack.back())
 					return;
 				InvokedFunctionStack.pop_back();
-				returnonfunctionexitstack.pop();
+				returnonfunctionexitstack.pop_back();
 			}
 		}
 	}

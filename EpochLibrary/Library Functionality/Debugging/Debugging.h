@@ -30,5 +30,7 @@ namespace DebugLibrary
 	void RegisterLibraryFunctions(FunctionSignatureSet& signatureset, StringPoolManager& stringpool);
 	void RegisterLibraryFunctions(FunctionInvocationTable& table, StringPoolManager& stringpool);
 
+	void RegisterJITTable(JIT::JITTable& table, StringPoolManager& stringpool);
+
 }
 

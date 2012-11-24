@@ -27,7 +27,9 @@ namespace JIT
 		std::stack<Bytecode::EntityTag> EntityTypes;
 
 		std::map<size_t, llvm::Value*> VariableMap;
+		std::map<StringHandle, size_t> NameToIndexMap;
 
+		llvm::Module* MyModule;
 
 		llvm::BasicBlock* EntityCheck;
 		llvm::BasicBlock* EntityBody;

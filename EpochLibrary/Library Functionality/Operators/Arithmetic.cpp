@@ -186,6 +186,16 @@ namespace
 		context.ValuesOnStack.push(result);
 	}
 
+	void DivideRealsJIT(JIT::JITContext& context)
+	{
+		llvm::Value* p2 = context.ValuesOnStack.top();
+		context.ValuesOnStack.pop();
+		llvm::Value* p1 = context.ValuesOnStack.top();
+		context.ValuesOnStack.pop();
+		llvm::Value* result = reinterpret_cast<llvm::IRBuilder<>*>(context.Builder)->CreateFDiv(p1, p2);
+		context.ValuesOnStack.push(result);
+	}
+
 }
 
 
@@ -466,5 +476,6 @@ void ArithmeticLibrary::RegisterJITTable(JIT::JITTable& table, StringPoolManager
 {
 	AddToMapNoDupe(table.InvokeHelpers, std::make_pair(stringpool.Pool(L"+@@real"), &AddRealsJIT));
 	AddToMapNoDupe(table.InvokeHelpers, std::make_pair(stringpool.Pool(L"*@@real"), &MultiplyRealsJIT));
+	AddToMapNoDupe(table.InvokeHelpers, std::make_pair(stringpool.Pool(L"/@@real"), &DivideRealsJIT));
 }
 

@@ -18,6 +18,8 @@
 
 #include "Virtual Machine/VirtualMachine.h"
 
+#include <llvm/Intrinsics.h>
+
 
 
 namespace
@@ -98,6 +100,17 @@ namespace
 		Real32 r = context.State.Stack.PopValue<Real32>();
 		context.State.Stack.PushValue(sqrt(r));
 	}
+
+	void SqrtJIT(JIT::JITContext& context)
+	{
+		llvm::Value* v = context.ValuesOnStack.top();
+		context.ValuesOnStack.pop();
+		llvm::Type* tys[1];
+		tys[0] = llvm::Type::getFloatTy(*reinterpret_cast<llvm::LLVMContext*>(context.Context));
+		llvm::Function* sqrtintrinsic = llvm::Intrinsic::getDeclaration(context.MyModule, llvm::Intrinsic::sqrt, tys);
+		llvm::Value* r = reinterpret_cast<llvm::IRBuilder<>*>(context.Builder)->CreateCall(sqrtintrinsic, v);
+		context.ValuesOnStack.push(r);
+	}
 }
 
 
@@ -159,3 +172,8 @@ void DebugLibrary::LinkToTestHarness(unsigned* harness)
 	TestHarness = harness;
 }
 
+
+void DebugLibrary::RegisterJITTable(JIT::JITTable& table, StringPoolManager& stringpool)
+{
+	AddToMapNoDupe(table.InvokeHelpers, std::make_pair(stringpool.Pool(L"sqrt"), &SqrtJIT));
+}
