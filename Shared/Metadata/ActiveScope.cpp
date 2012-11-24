@@ -147,36 +147,40 @@ void ActiveScope::BindParametersToStack(const VM::ExecutionContext& context)
 //
 void ActiveScope::PushLocalsOntoStack(VM::ExecutionContext& context)
 {
-	StartOfLocals = context.State.Stack.GetCurrentTopOfStack();
+	StackSpace& stack = context.State.Stack;
+	StartOfLocals = stack.GetCurrentTopOfStack();
 
-	size_t i = 0;
-	for(ScopeDescription::VariableVector::const_iterator iter = OriginalScope.Variables.begin(); iter != OriginalScope.Variables.end(); ++iter)
+	size_t varcount = OriginalScope.Variables.size();
+	RuntimeData* data = &Data[0];
+	for(size_t i = 0; i < varcount; ++i)
 	{
-		if(iter->Origin == VARIABLE_ORIGIN_LOCAL || iter->Origin == VARIABLE_ORIGIN_RETURN)
-		{
-			if(Metadata::GetTypeFamily(iter->Type) == Metadata::EpochTypeFamily_SumType)
-			{
-				size_t size = context.OwnerVM.VariantDefinitions.find(iter->Type)->second.GetMaxSize();
-				context.State.Stack.Push(size);
+		const ScopeDescription::VariableEntry& v = OriginalScope.Variables[i];
 
-				Data[i].StorageLocation = reinterpret_cast<char*>(context.State.Stack.GetCurrentTopOfStack()) + sizeof(Metadata::EpochTypeID);
+		if(v.Origin == VARIABLE_ORIGIN_LOCAL || v.Origin == VARIABLE_ORIGIN_RETURN)
+		{
+			if(Metadata::GetTypeFamily(v.Type) == Metadata::EpochTypeFamily_SumType)
+			{
+				size_t size = context.OwnerVM.VariantDefinitions[v.Type].GetMaxSize();
+				stack.Push(size);
+
+				data->StorageLocation = reinterpret_cast<char*>(stack.GetCurrentTopOfStack()) + sizeof(Metadata::EpochTypeID);
 			}
 			else
 			{
-				size_t size = Metadata::GetStorageSize(iter->Type);
-				context.State.Stack.Push(size);
+				size_t size = Metadata::GetStorageSize(v.Type);
+				stack.Push(size);
 
-				Data[i].StorageLocation = context.State.Stack.GetCurrentTopOfStack();
+				data->StorageLocation = stack.GetCurrentTopOfStack();
 			}
 		}
 
-		if(iter->Origin == VARIABLE_ORIGIN_RETURN)
+		if(v.Origin == VARIABLE_ORIGIN_RETURN)
 			HasRet = true;
 
-		++i;
+		++data;
 	}
 
-	UsedStackSpace += reinterpret_cast<char*>(StartOfLocals) - reinterpret_cast<char*>(context.State.Stack.GetCurrentTopOfStack());
+	UsedStackSpace += reinterpret_cast<char*>(StartOfLocals) - reinterpret_cast<char*>(stack.GetCurrentTopOfStack());
 }
 
 //

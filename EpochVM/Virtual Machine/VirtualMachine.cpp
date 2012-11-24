@@ -621,14 +621,14 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 						while(vars->ParentScope)
 							vars = vars->ParentScope;
 					}
-					else
+					/*else
 					{
 						while(frames > 0)
 						{
 							vars = vars->ParentScope;
 							--frames;
 						}
-					}
+					}*/
 
 					if(vars->GetOriginalDescription().IsReference(targetindex))
 					{
@@ -731,15 +731,15 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 						while(vars->ParentScope)
 							vars = vars->ParentScope;
 					}
-					else
+					/*else
 					{
 						while(frames > 0)
 						{
 							vars = vars->ParentScope;
 							--frames;
 						}
-					}
-
+					}*/
+					
 					char* stackptr = reinterpret_cast<char*>(vars->GetStartOfLocals());
 					stackptr -= Fetch<size_t>();
 					size_t size = Fetch<size_t>();
@@ -759,14 +759,14 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 						while(vars->ParentScope)
 							vars = vars->ParentScope;
 					}
-					else
+					/*else
 					{
 						while(frames > 0)
 						{
 							vars = vars->ParentScope;
 							--frames;
 						}
-					}
+					}*/
 
 					char* stackptr = reinterpret_cast<char*>(vars->GetStartOfParams());
 					stackptr += Fetch<size_t>();
@@ -880,10 +880,6 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 
 					if(tag == Bytecode::EntityTags::Function)
 					{
-#ifdef PROFILING_ENABLED
-					GlobalTimer.Begin();
-#endif
-
 						if(scope->GetVariableCount())
 						{
 							Variables = new ActiveScope(*scope, Variables);
@@ -893,11 +889,6 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 						}
 						else
 							onexit.MarkEmptyScope();
-
-#ifdef PROFILING_ENABLED
-					GlobalTimer.End();
-					GlobalTimer.Accumulate();
-#endif
 					}
 					else if(tag == Bytecode::EntityTags::FreeBlock)
 					{

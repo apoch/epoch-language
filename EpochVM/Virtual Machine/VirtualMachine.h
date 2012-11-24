@@ -159,7 +159,7 @@ namespace VM
 		JIT::JITTable JITHelpers;
 		std::map<StringHandle, JITExecPtr> JITExecs;
 
-		std::map<Metadata::EpochTypeID, VariantDefinition> VariantDefinitions;
+		boost::unordered_map<Metadata::EpochTypeID, VariantDefinition> VariantDefinitions;
 
 	// Handy type shortcuts
 	private:
