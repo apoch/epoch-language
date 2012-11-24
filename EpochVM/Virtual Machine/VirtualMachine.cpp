@@ -358,11 +358,14 @@ void ExecutionContext::Execute(size_t offset, const ScopeDescription& scope, boo
 void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunctionexit)
 {
 	// Automatically cleanup the stack as needed
-	struct autoexit_scope
+	struct autoexit_functionscopes
 	{
-		autoexit_scope(ExecutionContext* thisptr, ActiveScope* scope) : ThisPtr(thisptr), ScopePtr(scope) { }
+		autoexit_functionscopes(ExecutionContext* thisptr, ActiveScope* scopeptr)
+			: ThisPtr(thisptr),
+			  ScopePtr(scopeptr)
+		{ }
 
-		~autoexit_scope()
+		~autoexit_functionscopes()
 		{
 			if(!ScopePtr)
 				return;
@@ -378,31 +381,17 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 			}
 		}
 
-		ExecutionContext* ThisPtr;
 		ActiveScope* ScopePtr;
-	};
-
-	struct autoexit_functionscopes
-	{
-		explicit autoexit_functionscopes(ExecutionContext* thisptr) : ThisPtr(thisptr) { }
-
-		~autoexit_functionscopes()
-		{
-			while(!Scopes.empty())
-			{
-				delete Scopes.top();
-				Scopes.pop();
-			}
-		}
-
-		std::stack<autoexit_scope*> Scopes;
-
 		ExecutionContext* ThisPtr;
 	};
 
 	struct autoexit
 	{
-		explicit autoexit(ExecutionContext* thisptr) : ThisPtr(thisptr) { }
+		explicit autoexit(ExecutionContext* thisptr)
+			: ThisPtr(thisptr)
+		{
+			FunctionScopes.reserve(1024);
+		}
 
 		~autoexit()
 		{
@@ -410,40 +399,26 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 				UnwindOutermostFunctionStack();
 		}
 
-		void SetNewFunctionUnwindPoint()
-		{
-			FunctionScopes.push(new autoexit_functionscopes(ThisPtr));
-		}
-
 		void UnwindOutermostFunctionStack()
 		{
 			if(!FunctionScopes.empty())
 			{
-				delete FunctionScopes.top();
-				FunctionScopes.pop();
+				delete FunctionScopes.back();
+				FunctionScopes.pop_back();
 			}
 		}
 
 		void CleanUpScope(ActiveScope* scope)
 		{
-			FunctionScopes.top()->Scopes.push(new autoexit_scope(ThisPtr, scope));
+			FunctionScopes.push_back(new autoexit_functionscopes(ThisPtr, scope));
 		}
 
 		void MarkEmptyScope()
 		{
-			FunctionScopes.top()->Scopes.push(new autoexit_scope(ThisPtr, NULL));
+			FunctionScopes.push_back(new autoexit_functionscopes(ThisPtr, NULL));
 		}
 
-		void CleanUpTopmostScope()
-		{
-			if(!FunctionScopes.empty() && !FunctionScopes.top()->Scopes.empty())
-			{
-				delete FunctionScopes.top()->Scopes.top();
-				FunctionScopes.top()->Scopes.pop();
-			}
-		}
-
-		std::stack<autoexit_functionscopes*> FunctionScopes;
+		std::vector<autoexit_functionscopes*> FunctionScopes;
 
 		ExecutionContext* ThisPtr;
 	} onexit(this);
@@ -904,7 +879,10 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 
 					if(tag == Bytecode::EntityTags::Function)
 					{
-						onexit.SetNewFunctionUnwindPoint();
+#ifdef PROFILING_ENABLED
+					GlobalTimer.Begin();
+#endif
+
 						if(scope->GetVariableCount())
 						{
 							Variables = new ActiveScope(*scope, Variables);
@@ -914,6 +892,11 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 						}
 						else
 							onexit.MarkEmptyScope();
+
+#ifdef PROFILING_ENABLED
+					GlobalTimer.End();
+					GlobalTimer.Accumulate();
+#endif
 					}
 					else if(tag == Bytecode::EntityTags::FreeBlock)
 					{
@@ -931,7 +914,6 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 					}
 					else if(tag == Bytecode::EntityTags::Globals)
 					{
-						onexit.SetNewFunctionUnwindPoint();
 						scope = &OwnerVM.GetScopeDescription(name);
 						if(scope->GetVariableCount())
 						{
@@ -1031,8 +1013,6 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 					{
 					case ENTITYRET_EXIT_CHAIN:
 						InstructionOffset = OwnerVM.GetChainEndOffset(chainoffsets.top());
-						onexit.CleanUpTopmostScope();
-						scope = &Variables->GetOriginalDescription();
 						break;
 
 					case ENTITYRET_PASS_TO_NEXT_LINK_IN_CHAIN:
