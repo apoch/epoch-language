@@ -59,7 +59,7 @@ void ByteCodeEmitter::ExitFunction()
 // As an optimization, the virtual machine contains a special register for holding the
 // return value of the last function to exit. The contents of this register are set
 // using a special instruction; this function emits that instruction followed by the
-// handle of the variable that contains the value to copy into the register. The contents
+// index of the variable that contains the value to copy into the register. The contents
 // of the register are automatically pushed onto the stack by the VM when the function
 // finishes execution (for applicable, non-void functions). This implicit push allows
 // for easy chaining of expressions and function calls, e.g. where one function's value
@@ -68,10 +68,10 @@ void ByteCodeEmitter::ExitFunction()
 // stack if/when the return value of a function is ignored, but this is considered a
 // minor cost compared to the convenience and efficiency of the register overall.
 //
-void ByteCodeEmitter::SetReturnRegister(StringHandle variablename)
+void ByteCodeEmitter::SetReturnRegister(size_t variableindex)
 {
 	EmitInstruction(Bytecode::Instructions::SetRetVal);
-	EmitRawValue(variablename);
+	EmitRawValue(variableindex);
 }
 
 
@@ -230,10 +230,11 @@ void ByteCodeEmitter::PushBufferHandle(BufferHandle handle)
 // essentially performing the required indirection automatically. This instruction is used in
 // place of a standard stack push to push the reference binding data onto the stack.
 //
-void ByteCodeEmitter::BindReference(StringHandle variablename)
+void ByteCodeEmitter::BindReference(size_t frameskip, size_t variableindex)
 {
-	PushStringLiteral(variablename);
 	EmitInstruction(Bytecode::Instructions::BindRef);
+	EmitRawValue(frameskip);
+	EmitRawValue(variableindex);
 }
 
 //
@@ -241,7 +242,7 @@ void ByteCodeEmitter::BindReference(StringHandle variablename)
 //
 void ByteCodeEmitter::BindReferenceIndirect()
 {
-	EmitInstruction(Bytecode::Instructions::BindRef);
+	throw FatalException("Not implemented");
 }
 
 //

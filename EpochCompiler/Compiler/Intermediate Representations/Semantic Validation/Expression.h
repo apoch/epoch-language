@@ -701,10 +701,11 @@ namespace IRSemantics
 	{
 	// Construction
 	public:
-		ExpressionAtomBindReference(StringHandle membername, Metadata::EpochTypeID membertype, bool isreference)
+		ExpressionAtomBindReference(StringHandle membername, Metadata::EpochTypeID membertype, bool isreference, bool refinput = false)
 			: Identifier(membername),
 			  MyType(membertype),
-			  IsRef(isreference)
+			  IsRef(isreference),
+			  RefInput(refinput)
 		{ }
 
 	// Non-copyable
@@ -749,11 +750,15 @@ namespace IRSemantics
 		bool IsReference() const
 		{ return IsRef; }
 
+		bool OverrideInputAsReference() const
+		{ return RefInput; }
+
 	// Internal state
 	private:
 		StringHandle Identifier;
 		Metadata::EpochTypeID MyType;
 		bool IsRef;
+		bool RefInput;
 	};
 
 

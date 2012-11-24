@@ -151,19 +151,21 @@ JITExecPtr JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instru
 
 		case Bytecode::Instructions::BindRef:
 			{
-				Value* c = jitcontext.ValuesOnStack.top();
+				/*Value* c = jitcontext.ValuesOnStack.top();
 
 				ConstantInt* cint = dyn_cast<ConstantInt>(c);
 				StringHandle vartarget = static_cast<StringHandle>(cint->getValue().getLimitedValue());
 				jitcontext.ReferencesOnStack.push(vartarget);
 				jitcontext.ValuesOnStack.pop();
+				*/
 			}
 			break;
 
 		case Bytecode::Instructions::SetRetVal:
 			{
-				StringHandle value = Fetch<StringHandle>(bytecode, offset);
-				retval = builder.CreateLoad(jitcontext.VariableMap[value], false);
+				// TODO - fix JITter
+				//StringHandle value = Fetch<StringHandle>(bytecode, offset);
+				//retval = builder.CreateLoad(jitcontext.VariableMap[value], false);
 			}
 			break;
 

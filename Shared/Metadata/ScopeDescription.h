@@ -68,6 +68,8 @@ public:
 
 	void Fixup(const std::vector<std::pair<StringHandle, Metadata::EpochTypeID> >& templateparams, const CompileTimeParameterVector& templateargs, const CompileTimeParameterVector& templateargtypes);
 
+	size_t FindVariable(StringHandle variableid, size_t& outnumframes) const;
+
 // Public properties
 public:
 	ScopeDescription* ParentScope;

@@ -364,6 +364,9 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 
 		~autoexit_scope()
 		{
+			if(!ScopePtr)
+				return;
+
 			ThisPtr->Variables->PopScopeOffStack(*ThisPtr);
 			bool hasreturn = ThisPtr->Variables->HasReturnVariable();
 			ActiveScope* parent = ThisPtr->Variables->ParentScope;
@@ -423,10 +426,12 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 
 		void CleanUpScope(ActiveScope* scope)
 		{
-			if(FunctionScopes.empty())
-				SetNewFunctionUnwindPoint();
-
 			FunctionScopes.top()->Scopes.push(new autoexit_scope(ThisPtr, scope));
+		}
+
+		void MarkEmptyScope()
+		{
+			FunctionScopes.top()->Scopes.push(new autoexit_scope(ThisPtr, NULL));
 		}
 
 		void CleanUpTopmostScope()
@@ -480,8 +485,8 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 
 			case Bytecode::Instructions::SetRetVal:	// Set return value register
 				{
-					StringHandle variablename = Fetch<StringHandle>();
-					Variables->CopyToRegister(variablename, State.ReturnValueRegister);
+					size_t variableindex = Fetch<size_t>();
+					Variables->CopyToRegister(variableindex, State.ReturnValueRegister);
 					continue;
 				}
 				break;
@@ -629,16 +634,33 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 
 			case Bytecode::Instructions::BindRef:
 				{
-					StringHandle target = State.Stack.PopValue<StringHandle>();
-					if(Variables->GetOriginalDescription().IsReferenceByID(target))
+					size_t frames = Fetch<size_t>();
+					size_t targetindex = Fetch<size_t>();
+
+					ActiveScope* vars = Variables;
+					if(frames == 0xffffffff)
 					{
-						State.Stack.PushValue(Variables->GetReferenceType(target));
-						State.Stack.PushValue(Variables->GetReferenceTarget(target));
+						while(vars->ParentScope)
+							vars = vars->ParentScope;
 					}
 					else
 					{
-						State.Stack.PushValue(Variables->GetActualType(target));
-						State.Stack.PushValue(Variables->GetVariableStorageLocation(target));
+						while(frames > 0)
+						{
+							vars = vars->ParentScope;
+							--frames;
+						}
+					}
+
+					if(vars->GetOriginalDescription().IsReference(targetindex))
+					{
+						State.Stack.PushValue(vars->GetReferenceType(targetindex));
+						State.Stack.PushValue(vars->GetReferenceTarget(targetindex));
+					}
+					else
+					{
+						State.Stack.PushValue(vars->GetActualType(targetindex));
+						State.Stack.PushValue(vars->GetVariableStorageLocationByIndex(targetindex));
 					}
 
 					continue;
@@ -724,17 +746,26 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 				{
 					ActiveScope* vars = Variables;
 					size_t frames = Fetch<size_t>();
-					while(frames > 0)
+
+					if(frames == 0xffffffff)
 					{
-						vars = vars->ParentScope;
-						--frames;
+						while(vars->ParentScope)
+							vars = vars->ParentScope;
+					}
+					else
+					{
+						while(frames > 0)
+						{
+							vars = vars->ParentScope;
+							--frames;
+						}
 					}
 
 					char* stackptr = reinterpret_cast<char*>(vars->GetStartOfLocals());
 					stackptr -= Fetch<size_t>();
 					size_t size = Fetch<size_t>();
 					State.Stack.Push(size);
-					memcpy(State.Stack.GetCurrentTopOfStack(), stackptr - size, size);
+					memmove(State.Stack.GetCurrentTopOfStack(), stackptr - size, size);
 					continue;
 				}
 				break;
@@ -743,17 +774,26 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 				{
 					ActiveScope* vars = Variables;
 					size_t frames = Fetch<size_t>();
-					while(frames > 0)
+
+					if(frames == 0xffffffff)
 					{
-						vars = vars->ParentScope;
-						--frames;
+						while(vars->ParentScope)
+							vars = vars->ParentScope;
+					}
+					else
+					{
+						while(frames > 0)
+						{
+							vars = vars->ParentScope;
+							--frames;
+						}
 					}
 
 					char* stackptr = reinterpret_cast<char*>(vars->GetStartOfParams());
 					stackptr += Fetch<size_t>();
 					size_t size = Fetch<size_t>();
 					State.Stack.Push(size);
-					memcpy(State.Stack.GetCurrentTopOfStack(), stackptr, size);
+					memmove(State.Stack.GetCurrentTopOfStack(), stackptr, size);
 					continue;
 				}
 				break;
@@ -860,26 +900,42 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 					if(tag == Bytecode::EntityTags::Function)
 					{
 						onexit.SetNewFunctionUnwindPoint();
-						Variables = new ActiveScope(*scope, Variables);
-						Variables->BindParametersToStack(*this);
-						Variables->PushLocalsOntoStack(*this);
-						onexit.CleanUpScope(Variables);
+						if(scope->GetVariableCount())
+						{
+							Variables = new ActiveScope(*scope, Variables);
+							Variables->BindParametersToStack(*this);
+							Variables->PushLocalsOntoStack(*this);
+							onexit.CleanUpScope(Variables);
+						}
+						else
+							onexit.MarkEmptyScope();
 					}
 					else if(tag == Bytecode::EntityTags::FreeBlock)
 					{
 						scope = &OwnerVM.GetScopeDescription(name);
-						Variables = new ActiveScope(*scope, Variables);
-						Variables->BindParametersToStack(*this);
-						Variables->PushLocalsOntoStack(*this);
-						onexit.CleanUpScope(Variables);
+						if(scope->GetVariableCount())
+						{
+							Variables = new ActiveScope(*scope, Variables);
+							Variables->BindParametersToStack(*this);
+							Variables->PushLocalsOntoStack(*this);
+							onexit.CleanUpScope(Variables);
+						}
+						else
+							onexit.MarkEmptyScope();
 					}
 					else if(tag == Bytecode::EntityTags::Globals)
 					{
+						onexit.SetNewFunctionUnwindPoint();
 						scope = &OwnerVM.GetScopeDescription(name);
-						Variables = new ActiveScope(*scope, Variables);
-						Variables->BindParametersToStack(*this);
-						Variables->PushLocalsOntoStack(*this);
-						onexit.CleanUpScope(Variables);
+						if(scope->GetVariableCount())
+						{
+							Variables = new ActiveScope(*scope, Variables);
+							Variables->BindParametersToStack(*this);
+							Variables->PushLocalsOntoStack(*this);
+							onexit.CleanUpScope(Variables);
+						}
+						else
+							onexit.MarkEmptyScope();
 					}
 					else if(tag == Bytecode::EntityTags::PatternMatchingResolver || tag == Bytecode::EntityTags::TypeResolver)
 					{
@@ -891,10 +947,15 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 						if(code == ENTITYRET_EXECUTE_CURRENT_LINK_IN_CHAIN)
 						{
 							scope = &OwnerVM.GetScopeDescription(name);
-							Variables = new ActiveScope(*scope, Variables);
-							Variables->BindParametersToStack(*this);
-							Variables->PushLocalsOntoStack(*this);
-							onexit.CleanUpScope(Variables);
+							if(scope->GetVariableCount())
+							{
+								Variables = new ActiveScope(*scope, Variables);
+								Variables->BindParametersToStack(*this);
+								Variables->PushLocalsOntoStack(*this);
+								onexit.CleanUpScope(Variables);
+							}
+							else
+								onexit.MarkEmptyScope();
 						}
 						else if(code == ENTITYRET_PASS_TO_NEXT_LINK_IN_CHAIN)
 							InstructionOffset = OwnerVM.GetEntityEndOffset(originaloffset) + 1;
@@ -904,10 +965,15 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 						{
 							chainrepeats.top() = true;
 							scope = &OwnerVM.GetScopeDescription(name);
-							Variables = new ActiveScope(*scope, Variables);
-							Variables->BindParametersToStack(*this);
-							Variables->PushLocalsOntoStack(*this);
-							onexit.CleanUpScope(Variables);
+							if(scope->GetVariableCount())
+							{
+								Variables = new ActiveScope(*scope, Variables);
+								Variables->BindParametersToStack(*this);
+								Variables->PushLocalsOntoStack(*this);
+								onexit.CleanUpScope(Variables);
+							}
+							else
+								onexit.MarkEmptyScope();
 						}
 						else
 							throw FatalException("Invalid return code from entity meta-control");
@@ -919,7 +985,10 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 
 			case Bytecode::Instructions::EndEntity:
 				onexit.CleanUpTopmostScope();
-				scope = &Variables->GetOriginalDescription();
+				if(Variables)
+					scope = &Variables->GetOriginalDescription();
+				else
+					scope = NULL;
 				if(!chainoffsets.empty())
 				{
 					if(chainrepeats.top())
@@ -1056,7 +1125,7 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 							if(needsmatch)
 							{
 								if(destptr != stackptr)
-									memcpy(destptr, stackptr, GetStorageSize(paramtype));
+									memmove(destptr, stackptr, GetStorageSize(paramtype));
 							}
 							else
 								destptr += GetStorageSize(paramtype);
@@ -1159,7 +1228,7 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 					bool match = true;
 					for(size_t i = 0; i < paramcount; ++i)
 					{
-						EpochTypeID providedtype;
+						EpochTypeID providedtype = Metadata::EpochType_Error;
 						bool providedref = false;
 
 						if(!expectedisrefs[i])
@@ -1186,6 +1255,7 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 									const void* reftarget = *reinterpret_cast<const void* const*>(stackptr);
 									stackptr += sizeof(void*);
 									EpochTypeID reftype = *reinterpret_cast<const EpochTypeID*>(stackptr);
+									stackptr += sizeof(EpochTypeID);
 									if(reftype == EpochType_Nothing && expectedtypes[i] == EpochType_Nothing)
 									{
 										providedtype = reftype;
@@ -1301,7 +1371,7 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 								destptr -= paramsize;
 
 								// Copy the value of the argument down the stack
-								memcpy(destptr, stackptr, paramsize);
+								memmove(destptr, stackptr, paramsize);
 
 								// Adjust the copy source to reflect the fact that we
 								// need to skip past the type annotation on the stack
@@ -1332,10 +1402,10 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 										EpochTypeID actualtype = *typeptr;
 										size_t storagesize = GetStorageSize(actualtype);
 										*(void**)(stackptr) = (void*)(destptr + storagesize + sizeof(EpochTypeID));
-										memcpy(destptr, stackptr, destptr - stackptr + sizeof(EpochTypeID));
+										memmove(destptr, stackptr, destptr - stackptr + sizeof(EpochTypeID));
 									}
 									else
-										memcpy(destptr, stackptr, REFERENCE_SIZE);
+										memmove(destptr, stackptr, REFERENCE_SIZE);
 								}
 
 								stackptr -= sizeof(EpochTypeID);
@@ -1364,7 +1434,7 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 
 					UByte* varptr = reinterpret_cast<UByte*>(Variables->GetVariableStorageLocation(targetid));
 					UByte* typeptr = varptr - sizeof(EpochTypeID);
-					memcpy(varptr, stackptr, varsize);
+					memmove(varptr, stackptr, varsize);
 
 					*reinterpret_cast<EpochTypeID*>(typeptr) = vartype;
 
@@ -1577,7 +1647,6 @@ void ExecutionContext::Load()
 		case Bytecode::Instructions::AssignSumType:
 		case Bytecode::Instructions::ReadRef:
 		case Bytecode::Instructions::ReadRefAnnotated:
-		case Bytecode::Instructions::BindRef:
 		case Bytecode::Instructions::CopyBuffer:
 		case Bytecode::Instructions::CopyStructure:
 		case Bytecode::Instructions::ConstructSumType:
@@ -1608,11 +1677,19 @@ void ExecutionContext::Load()
 		// Operations with string payload fields
 		case Bytecode::Instructions::Read:
 		case Bytecode::Instructions::InvokeIndirect:
-		case Bytecode::Instructions::SetRetVal:
 		case Bytecode::Instructions::BindMemberRef:
 		case Bytecode::Instructions::BindMemberByHandle:
 		case Bytecode::Instructions::InvokeNative:
 			Fetch<StringHandle>();
+			break;
+
+		case Bytecode::Instructions::BindRef:
+			Fetch<size_t>();
+			Fetch<size_t>();
+			break;
+
+		case Bytecode::Instructions::SetRetVal:
+			Fetch<size_t>();
 			break;
 
 		// Operations we might want to muck with

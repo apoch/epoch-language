@@ -203,7 +203,8 @@ bool ScopeDescription::ComputeLocalOffset(StringHandle variableid, const std::ma
 
 	if(ParentScope)
 	{
-		++outframes;
+		if(Variables.size())
+			++outframes;
 		return ParentScope->ComputeLocalOffset(variableid, sumtypesizes, outframes, outoffset, outsize);
 	}
 
@@ -263,10 +264,29 @@ bool ScopeDescription::ComputeParamOffset(StringHandle variableid, const std::ma
 
 	if(ParentScope)
 	{
-		++outframes;
+		if(Variables.size())
+			++outframes;
 		return ParentScope->ComputeParamOffset(variableid, sumtypesizes, outframes, outoffset, outsize);
 	}
 
 	return false;
+}
+
+size_t ScopeDescription::FindVariable(StringHandle variableid, size_t& outnumframes) const
+{
+	for(size_t i = 0; i < Variables.size(); ++i)
+	{
+		if(Variables[i].IdentifierHandle == variableid)
+			return i;
+	}
+
+	if(ParentScope)
+	{
+		if(Variables.size())
+			++outnumframes;
+		return ParentScope->FindVariable(variableid, outnumframes);
+	}
+
+	throw FatalException("Invalid variable ID");
 }
 

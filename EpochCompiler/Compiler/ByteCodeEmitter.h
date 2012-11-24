@@ -55,7 +55,7 @@ public:
 	void EnterFunction(StringHandle functionname);
 	void ExitFunction();
 
-	void SetReturnRegister(StringHandle variablename);
+	void SetReturnRegister(size_t variableindex);
 
 // Stack operations
 public:
@@ -70,7 +70,7 @@ public:
 	void PushBufferHandle(BufferHandle handle);
 	void PushTypeAnnotation(Metadata::EpochTypeID type);
 
-	void BindReference(StringHandle variablename);
+	void BindReference(size_t frameskip, size_t variableindex);
 	void BindReferenceIndirect();
 	void BindStructureReference(StringHandle membername);
 	void BindStructureReferenceByHandle(StringHandle membername);

@@ -788,11 +788,13 @@ void Expression::Coalesce(Namespace& curnamespace, CodeBlock& activescope, Compi
 					StringHandle memberaccessname = curnamespace.Functions.FindStructureMemberAccessOverload(structurename, opid->GetIdentifier());
 
 					delete opatom;
-					*iter = new ExpressionAtomOperator(memberaccessname, true, opid->GetIdentifier());
+					//*iter = new ExpressionAtomOperator(memberaccessname, true, opid->GetIdentifier());
 
 					InferenceContext newcontext(0, InferenceContext::CONTEXT_GLOBAL);
 					curnamespace.Functions.GetIR(memberaccessname)->TypeInference(curnamespace, newcontext, errors);
 					structuretype = curnamespace.Functions.GetIR(memberaccessname)->GetReturnType(curnamespace);
+
+					*iter = new ExpressionAtomBindReference(opid->GetIdentifier(), structuretype, false, true);
 
 					delete *nextiter;
 					Atoms.erase(nextiter);
@@ -814,7 +816,6 @@ void Expression::Coalesce(Namespace& curnamespace, CodeBlock& activescope, Compi
 					delete *nextiter;
 					Atoms.erase(nextiter);
 				}
-
 
 				completed = false;
 				break;
@@ -1658,18 +1659,22 @@ ExpressionAtom* ExpressionAtomBindReference::Clone() const
 
 bool ExpressionAtomBindReference::MakeReference(size_t index, std::vector<ExpressionAtom*>& atoms)
 {
-	if(index >= atoms.size() - 1)
-		return false;
+	IsRef = true;
 
-	return atoms[index + 1]->MakeReference(index + 1, atoms);
+	if(atoms.size() > index + 1)
+		return atoms[index + 1]->MakeReference(index + 1, atoms);
+
+	return true;
 }
 
 bool ExpressionAtomBindReference::MakeAnnotatedReference(size_t index, std::vector<ExpressionAtom*>& atoms)
 {
-	if(index >= atoms.size() - 1)
-		return false;
+	IsRef = true;
 
-	return atoms[index + 1]->MakeAnnotatedReference(index + 1, atoms);
+	if(atoms.size() > index + 1)
+		return atoms[index + 1]->MakeAnnotatedReference(index + 1, atoms);
+
+	return true;
 }
 
 

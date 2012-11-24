@@ -192,7 +192,11 @@ void Serializer::Write(const std::wstring& filename) const
 			break;
 
 		case Bytecode::Instructions::BindRef:
-			outfile << L"BINDREF\n";
+			{
+				size_t frames = traverser.Read<size_t>();
+				size_t index = traverser.Read<size_t>();
+				outfile << L"BINDREF " << frames << L" " << index << L"\n";
+			}
 			break;
 
 		case Bytecode::Instructions::BindMemberRef:
@@ -265,7 +269,7 @@ void Serializer::Write(const std::wstring& filename) const
 			break;
 
 		case Bytecode::Instructions::SetRetVal:
-			outfile << L"SETRET " << traverser.Read<StringHandle>() << L"\n";
+			outfile << L"SETRET " << traverser.Read<size_t>() << L"\n";
 			break;
 
 		case Bytecode::Instructions::BeginEntity:

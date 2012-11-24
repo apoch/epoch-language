@@ -290,23 +290,23 @@ void* ActiveScope::GetVariableStorageLocation(StringHandle variableid) const
 //
 // Copy a variable's value into the provided virtual machine register
 //
-void ActiveScope::CopyToRegister(StringHandle variableid, Register& targetregister) const
+void ActiveScope::CopyToRegister(size_t index, Register& targetregister) const
 {
 	targetregister.SumType = false;
 
-	Metadata::EpochTypeID variabletype = OriginalScope.GetVariableTypeByID(variableid);
+	Metadata::EpochTypeID variabletype = OriginalScope.Variables[index].Type;
 	switch(variabletype)
 	{
 	case Metadata::EpochType_Integer:
 		{
-			Integer32* value = reinterpret_cast<Integer32*>(GetVariableStorageLocation(variableid));
+			Integer32* value = reinterpret_cast<Integer32*>(Data[index].StorageLocation);
 			targetregister.Set(*value);
 		}
 		break;
 
 	case Metadata::EpochType_Integer16:
 		{
-			Integer16* value = reinterpret_cast<Integer16*>(GetVariableStorageLocation(variableid));
+			Integer16* value = reinterpret_cast<Integer16*>(Data[index].StorageLocation);
 			targetregister.Set(*value);
 		}
 		break;
@@ -314,28 +314,28 @@ void ActiveScope::CopyToRegister(StringHandle variableid, Register& targetregist
 	case Metadata::EpochType_Identifier:
 	case Metadata::EpochType_String:
 		{
-			StringHandle* value = reinterpret_cast<StringHandle*>(GetVariableStorageLocation(variableid));
+			StringHandle* value = reinterpret_cast<StringHandle*>(Data[index].StorageLocation);
 			targetregister.SetString(*value);
 		}
 		break;
 
 	case Metadata::EpochType_Boolean:
 		{
-			bool* value = reinterpret_cast<bool*>(GetVariableStorageLocation(variableid));
+			bool* value = reinterpret_cast<bool*>(Data[index].StorageLocation);
 			targetregister.Set(*value);
 		}
 		break;
 
 	case Metadata::EpochType_Real:
 		{
-			Real32* value = reinterpret_cast<Real32*>(GetVariableStorageLocation(variableid));
+			Real32* value = reinterpret_cast<Real32*>(Data[index].StorageLocation);
 			targetregister.Set(*value);
 		}
 		break;
 
 	case Metadata::EpochType_Buffer:
 		{
-			BufferHandle* value = reinterpret_cast<BufferHandle*>(GetVariableStorageLocation(variableid));
+			BufferHandle* value = reinterpret_cast<BufferHandle*>(Data[index].StorageLocation);
 			targetregister.SetBuffer(*value);
 		}
 		break;
@@ -344,12 +344,12 @@ void ActiveScope::CopyToRegister(StringHandle variableid, Register& targetregist
 		{
 			if(Metadata::GetTypeFamily(variabletype) == Metadata::EpochTypeFamily_Structure || Metadata::GetTypeFamily(variabletype) == Metadata::EpochTypeFamily_TemplateInstance)
 			{
-				StructureHandle* value = reinterpret_cast<StructureHandle*>(GetVariableStorageLocation(variableid));
-				targetregister.SetStructure(*value, OriginalScope.GetVariableTypeByID(variableid));
+				StructureHandle* value = reinterpret_cast<StructureHandle*>(Data[index].StorageLocation);
+				targetregister.SetStructure(*value, variabletype);
 			}
 			else if(Metadata::GetTypeFamily(variabletype) == Metadata::EpochTypeFamily_SumType)
 			{
-				const UByte* storage = reinterpret_cast<const UByte*>(GetVariableStorageLocation(variableid));
+				const UByte* storage = reinterpret_cast<const UByte*>(Data[index].StorageLocation);
 				const UByte* typestorage = storage - sizeof(Metadata::EpochTypeID);
 				targetregister.Type = *reinterpret_cast<const Metadata::EpochTypeID*>(typestorage);
 				switch(targetregister.Type)
@@ -415,16 +415,21 @@ void ActiveScope::BindReference(StringHandle referencename, void* targetstorage,
 //
 // Retrieve the storage location pointed to by a reference variable
 //
-void* ActiveScope::GetReferenceTarget(StringHandle referencename) const
+void* ActiveScope::GetReferenceTarget(size_t index) const
+{
+	return Data[index].RefInfo.first;
+}
+
+void* ActiveScope::GetReferenceTargetByName(StringHandle name) const
 {
 	for(size_t i = 0; i < OriginalScope.Variables.size(); ++i)
 	{
-		if(OriginalScope.Variables[i].IdentifierHandle == referencename)
+		if(OriginalScope.Variables[i].IdentifierHandle == name)
 			return Data[i].RefInfo.first;
 	}
 
 	if(ParentScope)
-		return ParentScope->GetReferenceTarget(referencename);
+		return ParentScope->GetReferenceTargetByName(name);
 
 	throw FatalException("Unbound reference");
 }
@@ -432,26 +437,17 @@ void* ActiveScope::GetReferenceTarget(StringHandle referencename) const
 //
 // Retrieve the underlying type of a reference variable
 //
-Metadata::EpochTypeID ActiveScope::GetReferenceType(StringHandle referencename) const
+Metadata::EpochTypeID ActiveScope::GetReferenceType(size_t index) const
 {
-	for(size_t i = 0; i < OriginalScope.Variables.size(); ++i)
-	{
-		if(OriginalScope.Variables[i].IdentifierHandle == referencename)
-			return Data[i].RefInfo.second;
-	}
-
-	if(ParentScope)
-		return ParentScope->GetReferenceType(referencename);
-
-	throw FatalException("Unbound reference");
+	return Data[index].RefInfo.second;
 }
 
-Metadata::EpochTypeID ActiveScope::GetActualType(StringHandle varname) const
+Metadata::EpochTypeID ActiveScope::GetActualType(size_t varindex) const
 {
-	Metadata::EpochTypeID ret = OriginalScope.GetVariableTypeByID(varname);
+	Metadata::EpochTypeID ret = OriginalScope.GetVariableTypeByIndex(varindex);
 	if(Metadata::GetTypeFamily(ret) == Metadata::EpochTypeFamily_SumType)
 	{
-		const char* ptr = reinterpret_cast<const char*>(GetVariableStorageLocation(varname));
+		const char* ptr = reinterpret_cast<const char*>(Data[varindex].StorageLocation);
 		ptr -= sizeof(Metadata::EpochTypeID);
 		ret = *reinterpret_cast<const Metadata::EpochTypeID*>(ptr);
 	}

@@ -56,7 +56,7 @@ public:
 	T Read(StringHandle variableid)
 	{
 		if(OriginalScope.IsReferenceByID(variableid))
-			return *reinterpret_cast<T*>(GetReferenceTarget(variableid));
+			return *reinterpret_cast<T*>(GetReferenceTargetByName(variableid));
 		else
 			return *reinterpret_cast<T*>(GetVariableStorageLocation(variableid));
 	}
@@ -65,7 +65,7 @@ public:
 	void Write(StringHandle variableid, T value)
 	{
 		if(OriginalScope.IsReferenceByID(variableid))
-			Write(GetReferenceTarget(variableid), value);
+			Write(GetReferenceTargetByName(variableid), value);
 		else
 			*reinterpret_cast<T*>(GetVariableStorageLocation(variableid)) = value;
 	}
@@ -86,18 +86,19 @@ public:
 public:
 	void BindReference(StringHandle referencename, void* targetstorage, Metadata::EpochTypeID targettype);
 
-	void* GetReferenceTarget(StringHandle referencename) const;
-	Metadata::EpochTypeID GetReferenceType(StringHandle referencename) const;
+	void* GetReferenceTarget(size_t index) const;
+	void* GetReferenceTargetByName(StringHandle name) const;
+	Metadata::EpochTypeID GetReferenceType(size_t index) const;
 
 // Interaction with registers
 public:
-	void CopyToRegister(StringHandle variableid, Register& targetregister) const;
+	void CopyToRegister(size_t index, Register& targetregister) const;
 
 // State queries
 public:
 	bool HasReturnVariable() const;
 
-	Metadata::EpochTypeID GetActualType(StringHandle varname) const;
+	Metadata::EpochTypeID GetActualType(size_t index) const;
 
 // Access to original definition metadata
 public:
@@ -111,6 +112,9 @@ public:
 // Storage access
 public:
 	void* GetVariableStorageLocation(StringHandle variableid) const;
+
+	void* GetVariableStorageLocationByIndex(size_t index) const
+	{ return Data[index].StorageLocation; }
 
 // Internal tracking
 private:
