@@ -457,12 +457,14 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 
 	returnonfunctionexitstack.push(returnonfunctionexit);
 
+	UByte* instructionbuffer = &CodeBuffer[0];
+
 	try
 	{
 		// Run the given chunk of code
 		while(State.Result.ResultType == ExecutionResult::EXEC_RESULT_OK && InstructionOffset < CodeBufferSize)
 		{
-			switch(CodeBuffer[InstructionOffset++])
+			switch(instructionbuffer[InstructionOffset++])
 			{
 			case Bytecode::Instructions::Halt:		// Halt the machine
 				State.Result.ResultType = ExecutionResult::EXEC_RESULT_HALT;
@@ -1204,29 +1206,31 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 
 					const char* stackptr = reinterpret_cast<const char*>(State.Stack.GetCurrentTopOfStack());
 
-					std::vector<EpochTypeID> expectedtypes;
-					std::vector<bool> expectedisrefs;
+					struct paraminfo
+					{
+						paraminfo()
+							: expectedtype(EpochType_Error),
+							  flags(0)
+						{ }
 
-					std::vector<unsigned> flags(paramcount, 0);
+						EpochTypeID expectedtype;
+						unsigned flags;
+					};
+
+					std::vector<paraminfo> info(paramcount, paraminfo());
 					const unsigned FLAG_PROVIDED_REF = 0x01;
 					const unsigned FLAG_PROVIDED_NOTHING = 0x02;
 					const unsigned FLAG_INLINE_REF = 0x04;
 					const unsigned FLAG_PROVIDED_NOTHING_REF = 0x08;
-
-					expectedtypes.reserve(paramcount);
-					expectedisrefs.reserve(paramcount);
+					const unsigned FLAG_EXPECTED_REF = 0x10;
 
 					for(size_t i = 0; i < paramcount; ++i)
 					{
 						bool isref = Fetch<bool>();
-						EpochTypeID expectedtype = Fetch<EpochTypeID>();
-
-						expectedtypes.push_back(expectedtype);
-						expectedisrefs.push_back(isref);
+						info[i].expectedtype = Fetch<EpochTypeID>();
+						if(isref)
+							info[i].flags |= FLAG_EXPECTED_REF;
 					}
-
-					std::reverse(expectedtypes.begin(), expectedtypes.end());
-					std::reverse(expectedisrefs.begin(), expectedisrefs.end());
 
 					bool match = true;
 					for(size_t i = 0; i < paramcount; ++i)
@@ -1234,7 +1238,7 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 						EpochTypeID providedtype = Metadata::EpochType_Error;
 						bool providedref = false;
 
-						if(!expectedisrefs[i])
+						if((info[i].flags & FLAG_EXPECTED_REF) == 0)
 						{
 							providedtype = *reinterpret_cast<const EpochTypeID*>(stackptr);
 							while(GetTypeFamily(providedtype) == EpochTypeFamily_SumType)
@@ -1248,7 +1252,7 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 								providedref = true;
 								stackptr += sizeof(EpochTypeID);
 
-								if(expectedtypes[i] == EpochType_Nothing && *reinterpret_cast<const EpochTypeID*>(stackptr) == EpochType_Nothing)
+								if(info[i].expectedtype == EpochType_Nothing && *reinterpret_cast<const EpochTypeID*>(stackptr) == EpochType_Nothing)
 								{
 									providedtype = EpochType_Nothing;
 									stackptr += sizeof(EpochTypeID);
@@ -1259,16 +1263,16 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 									stackptr += sizeof(void*);
 									EpochTypeID reftype = *reinterpret_cast<const EpochTypeID*>(stackptr);
 									stackptr += sizeof(EpochTypeID);
-									if(reftype == EpochType_Nothing && expectedtypes[i] == EpochType_Nothing)
+									if(reftype == EpochType_Nothing && info[i].expectedtype == EpochType_Nothing)
 									{
 										providedtype = reftype;
-										flags[i] |= FLAG_PROVIDED_NOTHING_REF;
+										info[i].flags |= FLAG_PROVIDED_NOTHING_REF;
 									}
 									else if(GetTypeFamily(reftype) == EpochTypeFamily_SumType)
 									{
 										const UByte* reftypeptr = reinterpret_cast<const UByte*>(reftarget) - sizeof(EpochTypeID);
 										reftype = *reinterpret_cast<const EpochTypeID*>(reftypeptr);
-										if(reftype == EpochType_Nothing && expectedtypes[i] == EpochType_Nothing)
+										if(reftype == EpochType_Nothing && info[i].expectedtype == EpochType_Nothing)
 											providedtype = reftype;
 										else
 										{
@@ -1283,7 +1287,7 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 									}
 								}
 							}
-							else if(expectedtypes[i] == EpochType_Nothing)
+							else if(info[i].expectedtype == EpochType_Nothing)
 								stackptr += sizeof(EpochTypeID);
 							else
 							{
@@ -1303,12 +1307,12 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 								providedtype = *reinterpret_cast<const EpochTypeID*>(stackptr);
 
 								if(providedtype == EpochType_Nothing)
-									flags[i] |= FLAG_PROVIDED_NOTHING_REF;
+									info[i].flags |= FLAG_PROVIDED_NOTHING_REF;
 
 								if(stackptr == reftarget)
 								{
 									stackptr += GetStorageSize(providedtype);
-									flags[i] |= FLAG_INLINE_REF;
+									info[i].flags |= FLAG_INLINE_REF;
 								}
 
 								stackptr += sizeof(EpochTypeID);
@@ -1326,17 +1330,17 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 							}
 						}
 
-						if(providedtype != expectedtypes[i] && GetTypeFamily(expectedtypes[i]) != EpochTypeFamily_SumType)
+						if(providedtype != info[i].expectedtype && GetTypeFamily(info[i].expectedtype) != EpochTypeFamily_SumType)
 						{
 							match = false;
 							break;
 						}
 
 						if(providedref)
-							flags[i] |= FLAG_PROVIDED_REF;
+							info[i].flags |= FLAG_PROVIDED_REF;
 						
 						if(providedtype == EpochType_Nothing)
-							flags[i] |= FLAG_PROVIDED_NOTHING;
+							info[i].flags |= FLAG_PROVIDED_NOTHING;
 					}
 
 					if(match)
@@ -1357,8 +1361,8 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 
 						for(size_t i = paramcount; i-- > 0; )
 						{
-							EpochTypeID paramtype = expectedtypes[i];
-							bool isref = flags[i] & FLAG_PROVIDED_REF;
+							EpochTypeID paramtype = info[i].expectedtype;
+							bool isref = info[i].flags & FLAG_PROVIDED_REF;
 
 							if(!isref)
 							{
@@ -1384,14 +1388,14 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 							{
 								const size_t REFERENCE_SIZE = sizeof(void*) + sizeof(EpochTypeID);
 
-								if(flags[i] & FLAG_INLINE_REF)
+								if(info[i].flags & FLAG_INLINE_REF)
 									stackptr -= sizeof(EpochTypeID);
 
-								if(flags[i] & FLAG_PROVIDED_NOTHING)
+								if(info[i].flags & FLAG_PROVIDED_NOTHING)
 								{
 									stackptr -= sizeof(EpochTypeID);
 
-									if(flags[i] & FLAG_PROVIDED_NOTHING_REF)
+									if(info[i].flags & FLAG_PROVIDED_NOTHING_REF)
 										stackptr -= sizeof(EpochTypeID);
 								}
 								else
@@ -1399,7 +1403,7 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 									destptr -= REFERENCE_SIZE;
 									stackptr -= REFERENCE_SIZE;
 
-									if(flags[i] & FLAG_INLINE_REF)
+									if(info[i].flags & FLAG_INLINE_REF)
 									{
 										const EpochTypeID* typeptr = reinterpret_cast<const EpochTypeID*>(stackptr + sizeof(void*));
 										EpochTypeID actualtype = *typeptr;

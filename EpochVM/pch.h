@@ -9,6 +9,12 @@
 #pragma once
 #include <boost/config.hpp>
 
+#ifdef BOOST_WINDOWS
+#ifdef NDEBUG
+#define _SECURE_SCL 0
+#endif
+#endif
+
 #pragma warning(push)
 #pragma warning(disable: 4996)		// unsafe usage of std::copy
 

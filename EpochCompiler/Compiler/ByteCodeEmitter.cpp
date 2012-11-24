@@ -948,7 +948,7 @@ void ByteCodeEmitter::ResolveTypes(StringHandle dispatchfunction, const Function
 	EmitRawValue(dispatchfunction);
 	EmitRawValue(static_cast<size_t>(0));
 	EmitRawValue(signature.GetNumParameters());
-	for(size_t i = 0; i < signature.GetNumParameters(); ++i)
+	for(size_t i = signature.GetNumParameters(); i-- > 0; )
 	{
 		EmitRawValue(signature.GetParameter(i).IsReference);
 		EmitTypeAnnotation(signature.GetParameter(i).Type);
