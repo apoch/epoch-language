@@ -91,7 +91,7 @@ extern "C" void STDCALL LinkTestHarness(unsigned* harness)
 	//}
 }
 
-extern "C" void* STDCALL VMGetStructure(void* vmcontext, StructureHandle handle)
+extern "C" void* VMGetStructure(void* vmcontext, StructureHandle handle)
 {
 	try
 	{

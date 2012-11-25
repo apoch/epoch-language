@@ -58,7 +58,6 @@ JITExecPtr JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instru
 
 	Function* vmgetstructure = Function::Create(vmgetstructuretype, Function::ExternalLinkage, "VMGetStructure", module);
 
-
 	BasicBlock* block = BasicBlock::Create(context, "entry", dostufffunc);
 	builder.SetInsertPoint(block);
 
@@ -92,7 +91,7 @@ JITExecPtr JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instru
 
 				if(entitytype == Bytecode::EntityTags::Function)
 				{				
-					Value* stackptr = builder.CreateLoad(pstackptr, false);
+					Value* stackptr = builder.CreateLoad(pstackptr, true);
 					Type* type = NULL;
 
 					const ScopeDescription& scope = ownervm.GetScopeDescription(entityname);
@@ -137,11 +136,14 @@ JITExecPtr JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instru
 									if(varfamily == Metadata::EpochTypeFamily_Structure || varfamily == Metadata::EpochTypeFamily_TemplateInstance)
 									{
 										type = Type::getInt32Ty(context);
+										Type* ptype = PointerType::get(PointerType::get(type, 0), 0);
 										Value* local = builder.CreateAlloca(type);
 										jitcontext.VariableMap[i] = local;
 										Value* newstackptr = builder.CreateGEP(stackptr, offset);
-										Value* stackval = builder.CreateLoad(newstackptr, false);
-										builder.CreateStore(stackval, local, false);
+										Value* stackval = builder.CreateLoad(builder.CreatePointerCast(newstackptr, ptype), false);
+										Value* deref = builder.CreateLoad(stackval, false);
+										builder.CreateStore(deref, local, false);
+										++numparams;
 									}
 									else
 										throw NotImplementedException("Can't take reference to this type");
@@ -238,7 +240,7 @@ JITExecPtr JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instru
 			{
 				// TODO - support nested structures!
 				//size_t varindex = jitcontext.ReferencesOnStack.top();
-
+				
 				Metadata::EpochTypeID membertype = Fetch<Metadata::EpochTypeID>(bytecode, offset);
 				size_t memberoffset = Fetch<size_t>(bytecode, offset);
 
@@ -288,9 +290,20 @@ JITExecPtr JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instru
 			break;
 
 		case Bytecode::Instructions::Invoke:
+			{
+				StringHandle target = Fetch<StringHandle>(bytecode, offset);
+				std::map<StringHandle, JIT::JITHelper>::const_iterator iter = ownervm.JITHelpers.InvokeHelpers.find(target);
+				if(iter == ownervm.JITHelpers.InvokeHelpers.end())
+					throw FatalException("Cannot invoke this function, no native code support!");
+
+				iter->second(jitcontext);
+			}
+			break;
+
 		case Bytecode::Instructions::InvokeNative:
 			{
 				StringHandle target = Fetch<StringHandle>(bytecode, offset);
+				Fetch<size_t>(bytecode, offset);		// skip dummy offset
 				std::map<StringHandle, JIT::JITHelper>::const_iterator iter = ownervm.JITHelpers.InvokeHelpers.find(target);
 				if(iter == ownervm.JITHelpers.InvokeHelpers.end())
 					throw FatalException("Cannot invoke this function, no native code support!");
@@ -340,15 +353,19 @@ JITExecPtr JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instru
 			throw FatalException("Unsupported instruction for JIT compilation");
 		}
 	}
-
+	
 	builder.SetInsertPoint(jitcontext.FunctionExit);
 
 	Value* stackptr = builder.CreateLoad(pstackptr, true);
 	Constant* offset = ConstantInt::get(Type::getInt32Ty(context), static_cast<unsigned>(numparams - numreturns));
 	Value* stackptr2 = builder.CreateGEP(stackptr, offset);
 	if(retval)
-		builder.CreateStore(retval, builder.CreatePointerCast(stackptr2, PointerType::get(retval->getType(), 0)), true);
+	{
+		Value* ret = builder.CreateLoad(retval);
+		builder.CreateStore(ret, builder.CreatePointerCast(stackptr2, PointerType::get(ret->getType(), 0)), true);
+	}
 	builder.CreateStore(stackptr2, pstackptr, true);
+
 
 	builder.CreateRetVoid();
 

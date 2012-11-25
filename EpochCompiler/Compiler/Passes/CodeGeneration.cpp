@@ -176,23 +176,25 @@ namespace
 		}
 	}
 
-	void EmitPreOpStatement(ByteCodeEmitter& emitter, const IRSemantics::PreOpStatement& statement, const IRSemantics::CodeBlock& codeblock, const IRSemantics::Namespace& curnamespace)
+	void EmitPreOpStatement(ByteCodeEmitter& emitter, const IRSemantics::PreOpStatement& statement, const IRSemantics::CodeBlock& codeblock, const IRSemantics::Namespace& curnamespace, bool pushafterwrite)
 	{
 		PushValue(emitter, statement.GetOperand(), curnamespace, codeblock);
 		FastInvoke(emitter, curnamespace, statement.GetOperatorName());
 		BindReference(emitter, statement.GetOperand(), curnamespace, codeblock);
 		emitter.AssignVariable();
-		PushValue(emitter, statement.GetOperand(), curnamespace, codeblock);
+		if(pushafterwrite)
+			PushValue(emitter, statement.GetOperand(), curnamespace, codeblock);
 	}
 
-	void EmitPostOpStatement(ByteCodeEmitter& emitter, const IRSemantics::PostOpStatement& statement, const IRSemantics::CodeBlock& codeblock, const IRSemantics::Namespace& curnamespace)
+	void EmitPostOpStatement(ByteCodeEmitter& emitter, const IRSemantics::PostOpStatement& statement, const IRSemantics::CodeBlock& codeblock, const IRSemantics::Namespace& curnamespace, bool pushafterwrite)
 	{
 		// Yes, we need to push this twice! (Once, the value is passed on to the operator
 		// itself for invocation; the second push [or rather the one which happens first,
 		// and appears lower on the stack] is used to hold the initial value of the expression
 		// so that the subsequent code can read off the value safely, in keeping with the
 		// traditional semantics of a post operator.)
-		PushValue(emitter, statement.GetOperand(), curnamespace, codeblock);
+		if(pushafterwrite)
+			PushValue(emitter, statement.GetOperand(), curnamespace, codeblock);
 		PushValue(emitter, statement.GetOperand(), curnamespace, codeblock);
 
 		FastInvoke(emitter, curnamespace, statement.GetOperatorName());
@@ -218,9 +220,9 @@ namespace
 		{
 			const IRSemantics::Parenthetical* parenthetical = atom->GetParenthetical();
 			if(const IRSemantics::ParentheticalPreOp* preop = dynamic_cast<const IRSemantics::ParentheticalPreOp*>(parenthetical))
-				EmitPreOpStatement(emitter, *preop->GetStatement(), activescope, curnamespace);
+				EmitPreOpStatement(emitter, *preop->GetStatement(), activescope, curnamespace, true);
 			else if(const IRSemantics::ParentheticalPostOp* postop = dynamic_cast<const IRSemantics::ParentheticalPostOp*>(parenthetical))
-				EmitPostOpStatement(emitter, *postop->GetStatement(), activescope, curnamespace);
+				EmitPostOpStatement(emitter, *postop->GetStatement(), activescope, curnamespace, true);
 			else if(const IRSemantics::ParentheticalExpression* expr = dynamic_cast<const IRSemantics::ParentheticalExpression*>(parenthetical))
 				EmitExpression(emitter, expr->GetExpression(), activescope, curnamespace);
 			else
@@ -499,13 +501,11 @@ namespace
 			}
 			else if(const IRSemantics::CodeBlockPreOpStatementEntry* entry = dynamic_cast<const IRSemantics::CodeBlockPreOpStatementEntry*>(baseentry))
 			{
-				EmitPreOpStatement(emitter, entry->GetStatement(), codeblock, curnamespace);
-				emitter.PopStack(Metadata::GetStorageSize(entry->GetStatement().GetEpochType(curnamespace)));
+				EmitPreOpStatement(emitter, entry->GetStatement(), codeblock, curnamespace, false);
 			}
 			else if(const IRSemantics::CodeBlockPostOpStatementEntry* entry = dynamic_cast<const IRSemantics::CodeBlockPostOpStatementEntry*>(baseentry))
 			{
-				EmitPostOpStatement(emitter, entry->GetStatement(), codeblock, curnamespace);
-				emitter.PopStack(Metadata::GetStorageSize(entry->GetStatement().GetEpochType(curnamespace)));
+				EmitPostOpStatement(emitter, entry->GetStatement(), codeblock, curnamespace, false);
 			}
 			else if(const IRSemantics::CodeBlockInnerBlockEntry* entry = dynamic_cast<const IRSemantics::CodeBlockInnerBlockEntry*>(baseentry))
 			{

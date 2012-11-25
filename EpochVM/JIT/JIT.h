@@ -6,5 +6,5 @@ namespace VM
 }
 
 
-typedef void (*JITExecPtr)(char** pstack, void* context);
+typedef void (__cdecl *JITExecPtr)(char** pstack, void* context);
 JITExecPtr JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instruction* bytecode, size_t beginoffset, size_t endoffset);

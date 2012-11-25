@@ -65,9 +65,34 @@ namespace
 
 //#define PROFILING_ENABLED
 #ifdef PROFILING_ENABLED
+
 #include "Utility/Profiling.h"
 #include "User Interface/Output.h"
 std::map<const char*, Profiling::Timer> GlobalTimers;
+
+struct RAIIProfiler
+{
+	explicit RAIIProfiler(const char* tag)
+		: Tag(tag)
+	{
+		GlobalTimers[tag].Begin();
+	}
+
+	~RAIIProfiler()
+	{
+		GlobalTimers[Tag].End();
+		GlobalTimers[Tag].Accumulate();
+	}
+
+	const char* Tag;
+};
+
+#define AUTO_PROFILE(x)		RAIIProfiler raii(x)
+
+#else
+
+#define AUTO_PROFILE(x)
+
 #endif
 
 //
@@ -368,6 +393,8 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 
 		~autoexit_functionscopes()
 		{
+			AUTO_PROFILE("ScopeUnwind");
+
 			if(!ScopePtr)
 				return;
 
@@ -483,24 +510,19 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 
 			case Bytecode::Instructions::SetRetVal:	// Set return value register
 				{
-#ifdef PROFILING_ENABLED
-					GlobalTimers["SetRetVal"].Begin();
-#endif
+					AUTO_PROFILE("SetRetVal");
+
 					size_t variableindex = Fetch<size_t>();
 					Variables->CopyToRegister(variableindex, State.ReturnValueRegister);
-#ifdef PROFILING_ENABLED
-					GlobalTimers["SetRetVal"].End();
-					GlobalTimers["SetRetVal"].Accumulate();
-#endif
+
 					continue;
 				}
 				break;
 
 			case Bytecode::Instructions::CopyFromStructure:
 				{
-#ifdef PROFILING_ENABLED
-					GlobalTimers["CopyFromStructure"].Begin();
-#endif
+					AUTO_PROFILE("CopyFromStructure");
+
 					StringHandle variablename = Fetch<StringHandle>();
 					StringHandle membername = Fetch<StringHandle>();
 					
@@ -564,19 +586,13 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 						break;
 					}
 
-#ifdef PROFILING_ENABLED
-					GlobalTimers["CopyFromStructure"].End();
-					GlobalTimers["CopyFromStructure"].Accumulate();
-#endif
 					continue;
 				}
 				break;
 
 			case Bytecode::Instructions::CopyToStructure:
 				{
-#ifdef PROFILING_ENABLED
-					GlobalTimers["CopyToStructure"].Begin();
-#endif
+					AUTO_PROFILE("CopyToStructure");
 
 					StringHandle variablename = Fetch<StringHandle>();
 					StringHandle actualmember = Fetch<StringHandle>();
@@ -589,19 +605,13 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 					EpochTypeID membertype = structure.Definition.GetMemberType(memberindex);
 					WriteStructureMember(structure, memberindex, membertype);
 
-#ifdef PROFILING_ENABLED
-					GlobalTimers["CopyToStructure"].End();
-					GlobalTimers["CopyToStructure"].Accumulate();
-#endif
 					continue;
 				}
 				break;
 
 			case Bytecode::Instructions::Push:		// Push something onto the stack
 				{
-#ifdef PROFILING_ENABLED
-					GlobalTimers["Push"].Begin();
-#endif
+					AUTO_PROFILE("Push");
 
 					EpochTypeID pushedtype = Fetch<EpochTypeID>();
 					switch(pushedtype)
@@ -652,20 +662,13 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 						throw NotImplementedException("Cannot execute PUSH instruction: unsupported type");
 					}
 
-#ifdef PROFILING_ENABLED
-					GlobalTimers["Push"].End();
-					GlobalTimers["Push"].Accumulate();
-#endif
-
 					continue;
 				}
 				break;
 
 			case Bytecode::Instructions::BindRef:
 				{
-#ifdef PROFILING_ENABLED
-					GlobalTimers["BindRef"].Begin();
-#endif
+					AUTO_PROFILE("BindRef");
 
 					size_t frames = Fetch<size_t>();
 					size_t targetindex = Fetch<size_t>();
@@ -696,34 +699,21 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 						State.Stack.PushValue(vars->GetVariableStorageLocationByIndex(targetindex));
 					}
 
-#ifdef PROFILING_ENABLED
-					GlobalTimers["BindRef"].End();
-					GlobalTimers["BindRef"].Accumulate();
-#endif
-
 					continue;
 				}
 				break;
 
 			case Bytecode::Instructions::BindMemberRef:
 				{
-#ifdef PROFILING_ENABLED
-					GlobalTimers["BindMemberRef"].Begin();
-#endif
+					AUTO_PROFILE("BindMemberRef");
+
 					void* storagelocation = State.Stack.PopValue<void*>();
 					State.Stack.PopValue<EpochTypeID>();
 
 					StructureHandle* phandle = reinterpret_cast<StructureHandle*>(storagelocation);
 					StructureHandle handle = *phandle;
 
-#ifdef PROFILING_ENABLED
-					GlobalTimers["GetStructure"].Begin();
-#endif
 					ActiveStructure& structure = OwnerVM.GetStructure(handle);
-#ifdef PROFILING_ENABLED
-					GlobalTimers["GetStructure"].End();
-					GlobalTimers["GetStructure"].Accumulate();
-#endif
 					EpochTypeID membertype = Fetch<EpochTypeID>();
 					size_t offset = Fetch<size_t>();
 
@@ -738,21 +728,13 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 
 					State.Stack.PushValue(membertype);
 					State.Stack.PushValue(memberstoragelocation);
-
-#ifdef PROFILING_ENABLED
-					GlobalTimers["BindMemberRef"].End();
-					GlobalTimers["BindMemberRef"].Accumulate();
-#endif
-
 					continue;
 				}
 				break;
 
 			case Bytecode::Instructions::BindMemberByHandle:
 				{
-#ifdef PROFILING_ENABLED
-					GlobalTimers["BindMemberByHandle"].Begin();
-#endif
+					AUTO_PROFILE("BindMemberByHandle");
 
 					StringHandle member = Fetch<StringHandle>();
 					StructureHandle handle = State.Stack.PopValue<StructureHandle>();
@@ -775,22 +757,23 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 					State.Stack.PushValue(membertype);
 					State.Stack.PushValue(memberstoragelocation);
 
-#ifdef PROFILING_ENABLED
-					GlobalTimers["BindMemberByHandle"].End();
-					GlobalTimers["BindMemberByHandle"].Accumulate();
-#endif
-
 					continue;
 				}
 				break;
 
 			case Bytecode::Instructions::Pop:		// Pop some stuff off the stack
-				State.Stack.Pop(Fetch<size_t>());
-				continue;
+				{
+					AUTO_PROFILE("Pop");
+
+					State.Stack.Pop(Fetch<size_t>());
+					continue;
+				}
 				break;
 
 			case Bytecode::Instructions::Read:		// Read a variable's value and place it on the stack
 				{
+					AUTO_PROFILE("Read");
+
 					StringHandle variablename = Fetch<StringHandle>();
 					Variables->PushOntoStack(variablename, State.Stack);
 					continue;
@@ -799,9 +782,7 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 
 			case Bytecode::Instructions::ReadStack:
 				{
-#ifdef PROFILING_ENABLED
-					GlobalTimers["ReadStack"].Begin();
-#endif
+					AUTO_PROFILE("ReadStack");
 
 					ActiveScope* vars = Variables;
 					size_t frames = Fetch<size_t>();
@@ -826,17 +807,14 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 					State.Stack.Push(size);
 					memmove(State.Stack.GetCurrentTopOfStack(), stackptr - size, size);
 
-#ifdef PROFILING_ENABLED
-					GlobalTimers["ReadStack"].End();
-					GlobalTimers["ReadStack"].Accumulate();
-#endif
-
 					continue;
 				}
 				break;
 
 			case Bytecode::Instructions::ReadParam:
 				{
+					AUTO_PROFILE("ReadParam");
+
 					ActiveScope* vars = Variables;
 					size_t frames = Fetch<size_t>();
 
@@ -865,23 +843,19 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 
 			case Bytecode::Instructions::ReadRef:	// Read a reference's target value and place it on the stack
 				{
-#ifdef PROFILING_ENABLED
-					GlobalTimers["ReadRef"].Begin();
-#endif
+					AUTO_PROFILE("ReadRef");
+
 					void* targetstorage = State.Stack.PopValue<void*>();
 					EpochTypeID targettype = State.Stack.PopValue<EpochTypeID>();
 					Variables->PushOntoStack(targetstorage, targettype, State.Stack);
-
-#ifdef PROFILING_ENABLED
-					GlobalTimers["ReadRef"].End();
-					GlobalTimers["ReadRef"].Accumulate();
-#endif
 					continue;
 				}
 				break;
 
 			case Bytecode::Instructions::ReadRefAnnotated:
 				{
+					AUTO_PROFILE("ReadRefAnnotated");
+
 					void* targetstorage = State.Stack.PopValue<void*>();
 					EpochTypeID targettype = State.Stack.PopValue<EpochTypeID>();
 					Variables->PushOntoStack(targetstorage, targettype, State.Stack);
@@ -892,6 +866,8 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 
 			case Bytecode::Instructions::Assign:	// Write a value to a variable's position on the stack
 				{
+					AUTO_PROFILE("Assign");
+
 					void* targetstorage = State.Stack.PopValue<void*>();
 					EpochTypeID targettype = State.Stack.PopValue<EpochTypeID>();
 					Variables->WriteFromStack(targetstorage, targettype, State.Stack);
@@ -901,6 +877,8 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 
 			case Bytecode::Instructions::AssignThroughIdentifier:
 				{
+					AUTO_PROFILE("AssignThroughIdentifier");
+
 					EpochTypeID targettype = State.Stack.PopValue<EpochTypeID>();
 					StringHandle identifier = State.Stack.PopValue<StringHandle>();
 					Variables->WriteFromStack(Variables->GetVariableStorageLocation(identifier), targettype, State.Stack);
@@ -910,6 +888,8 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 
 			case Bytecode::Instructions::AssignSumType:
 				{
+					AUTO_PROFILE("AssignSumType");
+
 					void* targetstorage = State.Stack.PopValue<void*>();
 					State.Stack.PopValue<EpochTypeID>();
 					EpochTypeID actualtype = State.Stack.PopValue<EpochTypeID>();
@@ -922,6 +902,8 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 
 			case Bytecode::Instructions::Invoke:	// Invoke a built-in or user-defined function
 				{
+					AUTO_PROFILE("LibraryFunctions");
+
 					StringHandle functionname = Fetch<StringHandle>();
 					InvokedFunctionStack.push_back(functionname);
 
@@ -935,6 +917,8 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 
 			case Bytecode::Instructions::InvokeOffset:
 				{
+					AUTO_PROFILE("InvokeOffset");
+
 					StringHandle functionname = Fetch<StringHandle>();
 					InvokedFunctionStack.push_back(functionname);
 					size_t internaloffset = Fetch<size_t>();
@@ -961,13 +945,18 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 
 			case Bytecode::Instructions::InvokeNative:
 				{
-					StringHandle target = Fetch<StringHandle>();
+					AUTO_PROFILE("NativeFunctions");
+
+					Fetch<StringHandle>();
+					size_t target = Fetch<size_t>();
 					((JITExecPtr)target)(State.Stack.GetMutableStackPtr(), this);
 				}
 				break;
 
 			case Bytecode::Instructions::BeginEntity:
 				{
+					AUTO_PROFILE("BeginEntity");
+
 					size_t originaloffset = InstructionOffset - 1;
 					Bytecode::EntityTag tag = static_cast<Bytecode::EntityTag>(Fetch<Integer32>());
 					StringHandle name = Fetch<StringHandle>();
@@ -1217,16 +1206,9 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 
 			case Bytecode::Instructions::AllocStructure:
 				{
-#ifdef PROFILING_ENABLED
-					GlobalTimers["AllocStructure"].Begin();
-#endif
 					EpochTypeID structuredescription = Fetch<EpochTypeID>();
 					State.Stack.PushValue(OwnerVM.AllocateStructure(OwnerVM.GetStructureDefinition(structuredescription)));
 					TickStructureGarbageCollector();
-#ifdef PROFILING_ENABLED
-					GlobalTimers["AllocStructure"].End();
-					GlobalTimers["AllocStructure"].Accumulate();
-#endif
 					continue;
 				}
 				break;
@@ -1243,6 +1225,8 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 
 			case Bytecode::Instructions::CopyStructure:
 				{
+					AUTO_PROFILE("CopyStructure");
+
 					StructureHandle originalstructure = State.Stack.PopValue<StructureHandle>();
 					StructureHandle copiedstructure = OwnerVM.DeepCopy(originalstructure);
 					State.Stack.PushValue(copiedstructure);
@@ -1275,9 +1259,7 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 
 			case Bytecode::Instructions::TypeMatch:
 				{
-#ifdef PROFILING_ENABLED
-					GlobalTimers["TypeMatch"].Begin();
-#endif
+					AUTO_PROFILE("TypeMatch");
 
 					StringHandle dispatchfunction = Fetch<StringHandle>();
 					size_t internaloffset = Fetch<size_t>();
@@ -1503,11 +1485,6 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 						InstructionOffset = internaloffset;
 						scope = &OwnerVM.GetScopeDescription(dispatchfunction);
 					}
-
-#ifdef PROFILING_ENABLED
-					GlobalTimers["TypeMatch"].End();
-					GlobalTimers["TypeMatch"].Accumulate();
-#endif
 				}
 				break;
 
@@ -1800,23 +1777,23 @@ void ExecutionContext::Load()
 
 		// Operations we might want to muck with
 		case Bytecode::Instructions::Invoke:
-			{
-				size_t originaloffset = InstructionOffset - 1;
-				StringHandle target = Fetch<StringHandle>();
-
-				if(OwnerVM.JITExecs.find(target) != OwnerVM.JITExecs.end())
-					CodeBuffer[originaloffset] = Bytecode::Instructions::InvokeNative;
-			}
+			Fetch<StringHandle>();
 			break;
 
 		case Bytecode::Instructions::InvokeOffset:
 			{
+				size_t originaloffset = InstructionOffset - 1;
 				StringHandle target = Fetch<StringHandle>();
 				size_t offsetofoffset = InstructionOffset;
 
 				Fetch<size_t>();		// Skip dummy offset
 
 				offsetfixups[offsetofoffset] = target;
+				if(OwnerVM.JITExecs.find(target) != OwnerVM.JITExecs.end())
+				{
+					CodeBuffer[originaloffset] = Bytecode::Instructions::InvokeNative;
+					jitfixups[offsetofoffset] = target;
+				}
 			}
 			break;
 
