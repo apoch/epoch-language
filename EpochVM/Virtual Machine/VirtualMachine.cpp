@@ -785,11 +785,8 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 				break;
 
 			case Bytecode::Instructions::Pop:		// Pop some stuff off the stack
-				{
-					EpochTypeID poppedtype = Fetch<EpochTypeID>();
-					State.Stack.Pop(GetStorageSize(poppedtype));
-					continue;
-				}
+				State.Stack.Pop(Fetch<size_t>());
+				continue;
 				break;
 
 			case Bytecode::Instructions::Read:		// Read a variable's value and place it on the stack
@@ -1750,6 +1747,9 @@ void ExecutionContext::Load()
 
 		// Single-bye operations with one payload field
 		case Bytecode::Instructions::Pop:
+			Fetch<size_t>();
+			break;
+
 		case Bytecode::Instructions::InvokeMeta:
 		case Bytecode::Instructions::AllocStructure:
 			Fetch<EpochTypeID>();

@@ -213,8 +213,8 @@ void Serializer::Write(const std::wstring& filename) const
 
 		case Bytecode::Instructions::Pop:
 			{
-				Metadata::EpochTypeID type = traverser.ReadTypeAnnotation();
-				outfile << L"POP " << type << L"\n";
+				size_t bytes = traverser.Read<size_t>();
+				outfile << L"POP " << bytes << L"\n";
 			}
 			break;
 

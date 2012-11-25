@@ -495,17 +495,17 @@ namespace
 				EmitStatement(emitter, entry->GetStatement(), codeblock, curnamespace);
 				Metadata::EpochTypeID rettype = entry->GetStatement().GetEpochType(curnamespace);
 				if(rettype != Metadata::EpochType_Void)
-					emitter.PopStack(rettype);
+					emitter.PopStack(Metadata::GetStorageSize(rettype));
 			}
 			else if(const IRSemantics::CodeBlockPreOpStatementEntry* entry = dynamic_cast<const IRSemantics::CodeBlockPreOpStatementEntry*>(baseentry))
 			{
 				EmitPreOpStatement(emitter, entry->GetStatement(), codeblock, curnamespace);
-				emitter.PopStack(entry->GetStatement().GetEpochType(curnamespace));
+				emitter.PopStack(Metadata::GetStorageSize(entry->GetStatement().GetEpochType(curnamespace)));
 			}
 			else if(const IRSemantics::CodeBlockPostOpStatementEntry* entry = dynamic_cast<const IRSemantics::CodeBlockPostOpStatementEntry*>(baseentry))
 			{
 				EmitPostOpStatement(emitter, entry->GetStatement(), codeblock, curnamespace);
-				emitter.PopStack(entry->GetStatement().GetEpochType(curnamespace));
+				emitter.PopStack(Metadata::GetStorageSize(entry->GetStatement().GetEpochType(curnamespace)));
 			}
 			else if(const IRSemantics::CodeBlockInnerBlockEntry* entry = dynamic_cast<const IRSemantics::CodeBlockInnerBlockEntry*>(baseentry))
 			{

@@ -32,18 +32,21 @@ public:
 	void Pop(size_t numbytes);
 
 	template <typename T>
-	void PushValue(T value)
+	__forceinline void PushValue(T value)
 	{
-		Push(sizeof(T));
-		void* slot = GetCurrentTopOfStack();
-		*reinterpret_cast<T*>(slot) = value;
+		CurrentStackPointer = reinterpret_cast<Byte*>(CurrentStackPointer) - sizeof(T);
+		*reinterpret_cast<T*>(CurrentStackPointer) = value;
 	}
 
 	template <typename T>
 	T PopValue()
 	{
 		T ret = *reinterpret_cast<T*>(GetCurrentTopOfStack());
+#ifdef DEBUG
 		Pop(sizeof(T));
+#else
+		CurrentStackPointer = reinterpret_cast<Byte*>(CurrentStackPointer) + sizeof(T);
+#endif
 		return ret;
 	}
 

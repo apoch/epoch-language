@@ -271,16 +271,10 @@ void ByteCodeEmitter::BindStructureReferenceByHandle(StringHandle membername)
 //
 // Emit code for popping a given number of bytes off the stack
 //
-// Note that we do not store the number of bytes to pop; instead, we choose to
-// store a type annotation, and the size of that type is determined at runtime
-// and used to pop the stack. This is primarily useful for handling structures
-// and marshaled datatypes, where the compiler may not know the data size, but
-// the VM will.
-//
-void ByteCodeEmitter::PopStack(Metadata::EpochTypeID type)
+void ByteCodeEmitter::PopStack(size_t bytes)
 {
 	EmitInstruction(Bytecode::Instructions::Pop);
-	EmitTypeAnnotation(type);
+	EmitRawValue(bytes);
 }
 
 
