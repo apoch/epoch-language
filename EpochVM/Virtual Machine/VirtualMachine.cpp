@@ -1895,7 +1895,8 @@ void ExecutionContext::Load()
 
 		JITCompileByteCode(*iter, beginoffset, endoffset);
 	}
-	PopulateJITExecs(OwnerVM);
+	if(!jitworklist.empty())
+		PopulateJITExecs(OwnerVM);
 
 	// More fixups
 	for(std::map<size_t, StringHandle>::const_iterator iter = jitfixups.begin(); iter != jitfixups.end(); ++iter)

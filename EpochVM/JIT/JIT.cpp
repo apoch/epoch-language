@@ -89,7 +89,8 @@ void JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instruction*
 	
 	Value* retval = NULL;
 	Value* innerretval = NULL;
-	unsigned numparams = 0;
+	unsigned numparameters = 0;
+	unsigned numparamslots = 0;
 	unsigned numreturns = 0;
 
 	const ScopeDescription* curscope = NULL;
@@ -153,8 +154,9 @@ void JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instruction*
 
 						case VARIABLE_ORIGIN_PARAMETER:
 							{
-								Constant* offset = ConstantInt::get(Type::getInt32Ty(context), numparams);
-								++numparams;
+								Constant* offset = ConstantInt::get(Type::getInt32Ty(context), numparamslots);
+								++numparameters;
+								++numparamslots;
 								++localoffset;
 
 								if(scope.IsReference(i))
@@ -170,7 +172,7 @@ void JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instruction*
 										Value* stackval = builder.CreateLoad(builder.CreatePointerCast(newstackptr, ptype), false);
 										Value* deref = builder.CreateLoad(stackval, false);
 										builder.CreateStore(deref, local, false);
-										++numparams;
+										++numparamslots;
 									}
 									else
 										throw NotImplementedException("Can't take reference to this type");
@@ -206,14 +208,14 @@ void JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instruction*
 
 					builder.SetInsertPoint(block);
 
-					if(numparams == 4)
+					if(numparamslots == 4)
 					{
 						Value* p1 = builder.CreateLoad(jitcontext.VariableMap[0]);
 						Value* p2 = builder.CreateLoad(jitcontext.VariableMap[1]);
 						Value* r = builder.CreateCall3(jitcontext.InnerFunction, vmcontextptr, p1, p2);
 						builder.CreateStore(r, jitcontext.VariableMap[2]);
 					}
-					else if(numparams == 2)
+					else if(numparamslots == 2)
 					{						
 						Value* p1 = builder.CreateLoad(jitcontext.VariableMap[0]);
 						if(numreturns)
@@ -232,14 +234,14 @@ void JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instruction*
 
 					innerretval = builder.CreateAlloca(Type::getFloatTy(context));
 
-					if(numparams == 4)
+					if(numparamslots == 4)
 					{
 						retval = jitcontext.VariableMap[2];
 						jitcontext.VariableMap[0] = ++(jitcontext.InnerFunction->arg_begin());
 						jitcontext.VariableMap[1] = ++(++(jitcontext.InnerFunction->arg_begin()));
 						jitcontext.VariableMap[2] = innerretval;
 					}
-					else if(numparams == 2)
+					else if(numparamslots == 2)
 					{
 						retval = jitcontext.VariableMap[1];
 						jitcontext.VariableMap[0] = ++(jitcontext.InnerFunction->arg_begin());
@@ -511,7 +513,7 @@ void JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instruction*
 
 	builder.SetInsertPoint(outerfunctionexit);
 	Value* stackptr = builder.CreateLoad(pstackptr, true);
-	Constant* offset = ConstantInt::get(Type::getInt32Ty(context), static_cast<unsigned>(numparams - numreturns));
+	Constant* offset = ConstantInt::get(Type::getInt32Ty(context), static_cast<unsigned>(numparamslots - numreturns));
 	Value* stackptr2 = builder.CreateGEP(stackptr, offset);
 	if(retval)
 	{
