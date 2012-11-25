@@ -56,7 +56,52 @@ namespace
 	{
 		return ENTITYRET_EXECUTE_CURRENT_LINK_IN_CHAIN;
 	}
+
+	void IfJIT(JIT::JITContext& context, bool entry)
+	{
+		llvm::IRBuilder<>* builder = reinterpret_cast<llvm::IRBuilder<>*>(context.Builder);
+		if(entry)
+		{
+			context.EntityBodies.push(llvm::BasicBlock::Create(*reinterpret_cast<llvm::LLVMContext*>(context.Context), "", context.InnerFunction));
+			builder->CreateCondBr(context.ValuesOnStack.top(), context.EntityBodies.top(), context.EntityChains.top());
+			context.ValuesOnStack.pop();
+			builder->SetInsertPoint(context.EntityBodies.top());
+		}
+		else
+		{
+			context.EntityBodies.pop();
+			builder->CreateBr(context.EntityChainExits.top());
+		}
+	}
+
+	void ElseIfJIT(JIT::JITContext& context, bool)
+	{
+		throw NotImplementedException("Uh oh");
+		/*
+		llvm::IRBuilder<>* builder = reinterpret_cast<llvm::IRBuilder<>*>(context.Builder);
+		builder->CreateCondBr(context.ValuesOnStack.top(), context.EntityBodies.top(), context.EntityExits.top());
+		context.ValuesOnStack.pop();
+		builder->SetInsertPoint(context.EntityBodies.top());
+		*/
+		(void)(context);
+	}
+
+	void ElseJIT(JIT::JITContext& context, bool entry)
+	{
+		llvm::IRBuilder<>* builder = reinterpret_cast<llvm::IRBuilder<>*>(context.Builder);
+		if(entry)
+		{
+			builder->SetInsertPoint(context.EntityChains.top());
+		}
+		else
+		{
+			builder->CreateBr(context.EntityChainExits.top());
+		}
+	}
 }
+
+
+static std::map<StringHandle, Bytecode::EntityTag> EntityMap;
 
 
 //
@@ -69,20 +114,39 @@ void FlowControl::RegisterConditionalEntities(EntityTable& entities, EntityTable
 		entity.StringName = stringpool.Pool(L"if");
 		entity.MetaControl = ConditionalMetaControl;
 		entity.Parameters.push_back(CompileTimeParameter(L"condition", Metadata::EpochType_Boolean));
-		AddToMapNoDupe(entities, std::make_pair(++tagindex, entity));
+		EntityMap[entity.StringName] = ++tagindex;
+		AddToMapNoDupe(entities, std::make_pair(tagindex, entity));
 	}
 	{
 		EntityDescription entity;
 		entity.StringName = stringpool.Pool(L"elseif");
 		entity.MetaControl = ConditionalMetaControl;
 		entity.Parameters.push_back(CompileTimeParameter(L"condition", Metadata::EpochType_Boolean));
-		AddToMapNoDupe(chainedentities, std::make_pair(++tagindex, entity));
+		EntityMap[entity.StringName] = ++tagindex;
+		AddToMapNoDupe(chainedentities, std::make_pair(tagindex, entity));
 	}
 	{
 		EntityDescription entity;
 		entity.StringName = stringpool.Pool(L"else");
 		entity.MetaControl = ConditionalElseMetaControl;
-		AddToMapNoDupe(chainedentities, std::make_pair(++tagindex, entity));
+		EntityMap[entity.StringName] = ++tagindex;
+		AddToMapNoDupe(chainedentities, std::make_pair(tagindex, entity));
+	}
+}
+
+void FlowControl::RegisterConditionalJITTable(JIT::JITTable& table, StringPoolManager& stringpool)
+{
+	{
+		Bytecode::EntityTag tag = EntityMap[stringpool.Pool(L"if")];
+		AddToMapNoDupe(table.EntityHelpers, std::make_pair(tag, &IfJIT));
+	}
+	{
+		Bytecode::EntityTag tag = EntityMap[stringpool.Pool(L"elseif")];
+		AddToMapNoDupe(table.EntityHelpers, std::make_pair(tag, &ElseIfJIT));
+	}
+	{
+		Bytecode::EntityTag tag = EntityMap[stringpool.Pool(L"else")];
+		AddToMapNoDupe(table.EntityHelpers, std::make_pair(tag, &ElseJIT));
 	}
 }
 

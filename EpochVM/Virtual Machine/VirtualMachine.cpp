@@ -1482,8 +1482,22 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 
 						State.Stack.Pop(destptr - stackptr);
 
-						InstructionOffset = internaloffset;
-						scope = &OwnerVM.GetScopeDescription(dispatchfunction);
+						if(OwnerVM.JITExecs.find(dispatchfunction) != OwnerVM.JITExecs.end())
+						{
+							OwnerVM.JITExecs[dispatchfunction](State.Stack.GetMutableStackPtr(), this);
+
+							InstructionOffset = InstructionOffsetStack.top();
+							InstructionOffsetStack.pop();
+							if(returnonfunctionexitstack.back())
+								return;
+							InvokedFunctionStack.pop_back();
+							returnonfunctionexitstack.pop_back();
+						}
+						else
+						{
+							InstructionOffset = internaloffset;
+							scope = &OwnerVM.GetScopeDescription(dispatchfunction);
+						}
 					}
 				}
 				break;
@@ -1881,6 +1895,7 @@ void ExecutionContext::Load()
 
 		JITCompileByteCode(*iter, beginoffset, endoffset);
 	}
+	PopulateJITExecs(OwnerVM);
 
 	// More fixups
 	for(std::map<size_t, StringHandle>::const_iterator iter = jitfixups.begin(); iter != jitfixups.end(); ++iter)
@@ -2276,7 +2291,7 @@ std::wstring VirtualMachine::DebugSnapshot() const
 
 void ExecutionContext::JITCompileByteCode(StringHandle entity, size_t beginoffset, size_t endoffset)
 {
-	OwnerVM.JITExecs[entity] = JITByteCode(OwnerVM, CodeBuffer, beginoffset, endoffset);
+	JITByteCode(OwnerVM, CodeBuffer, beginoffset, endoffset, entity);
 }
 
 void ExecutionContext::WriteStructureMember(ActiveStructure& structure, size_t memberindex, EpochTypeID membertype)

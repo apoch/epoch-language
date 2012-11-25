@@ -41,7 +41,7 @@ namespace
 		context.Variables->Write(identifierhandle, value);
 	}
 
-	void ConstructIntegerJIT(JIT::JITContext& context)
+	void ConstructIntegerJIT(JIT::JITContext& context, bool)
 	{
 		llvm::Value* p2 = context.ValuesOnStack.top();
 		context.ValuesOnStack.pop();
@@ -98,7 +98,7 @@ namespace
 		context.Variables->Write(identifierhandle, value);
 	}
 
-	void ConstructRealJIT(JIT::JITContext& context)
+	void ConstructRealJIT(JIT::JITContext& context, bool)
 	{
 		llvm::Value* p2 = context.ValuesOnStack.top();
 		context.ValuesOnStack.pop();

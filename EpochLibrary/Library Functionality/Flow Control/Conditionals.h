@@ -21,5 +21,7 @@ namespace FlowControl
 
 	void RegisterConditionalEntities(EntityTable& entities, EntityTable& chainedentities, StringPoolManager& stringpool, Bytecode::EntityTag& tagindex);
 
+	void RegisterConditionalJITTable(JIT::JITTable& table, StringPoolManager& stringpool);
+
 }
 

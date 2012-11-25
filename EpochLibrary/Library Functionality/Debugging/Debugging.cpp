@@ -101,7 +101,7 @@ namespace
 		context.State.Stack.PushValue(sqrt(r));
 	}
 
-	void SqrtJIT(JIT::JITContext& context)
+	void SqrtJIT(JIT::JITContext& context, bool)
 	{
 		llvm::Value* v = context.ValuesOnStack.top();
 		context.ValuesOnStack.pop();

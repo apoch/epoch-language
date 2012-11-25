@@ -31,20 +31,21 @@ namespace JIT
 
 		llvm::Module* MyModule;
 
-		llvm::BasicBlock* EntityCheck;
-		llvm::BasicBlock* EntityBody;
-		llvm::BasicBlock* EntityExit;
-
-		llvm::BasicBlock* FunctionExit;
+		std::stack<llvm::BasicBlock*> EntityChecks;
+		std::stack<llvm::BasicBlock*> EntityBodies;
+		std::stack<llvm::BasicBlock*> EntityChains;
+		std::stack<llvm::BasicBlock*> EntityChainExits;
 
 		llvm::Value* PStackPtr;
+
+		llvm::Function* InnerFunction;
 
 		void* Context;
 		void* Builder;
 	};
 
 
-	typedef void (*JITHelper)(JITContext& context);
+	typedef void (*JITHelper)(JITContext& context, bool entry);
 
 	struct JITTable
 	{

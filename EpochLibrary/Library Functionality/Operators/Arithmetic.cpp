@@ -166,7 +166,7 @@ namespace
 	//
 	// JIT Helpers for real arithemtic
 	//
-	void AddRealsJIT(JIT::JITContext& context)
+	void AddRealsJIT(JIT::JITContext& context, bool)
 	{
 		llvm::Value* p2 = context.ValuesOnStack.top();
 		context.ValuesOnStack.pop();
@@ -176,7 +176,17 @@ namespace
 		context.ValuesOnStack.push(result);
 	}
 
-	void MultiplyRealsJIT(JIT::JITContext& context)
+	void SubtractRealsJIT(JIT::JITContext& context, bool)
+	{
+		llvm::Value* p2 = context.ValuesOnStack.top();
+		context.ValuesOnStack.pop();
+		llvm::Value* p1 = context.ValuesOnStack.top();
+		context.ValuesOnStack.pop();
+		llvm::Value* result = reinterpret_cast<llvm::IRBuilder<>*>(context.Builder)->CreateFSub(p1, p2);
+		context.ValuesOnStack.push(result);
+	}
+
+	void MultiplyRealsJIT(JIT::JITContext& context, bool)
 	{
 		llvm::Value* p2 = context.ValuesOnStack.top();
 		context.ValuesOnStack.pop();
@@ -186,7 +196,7 @@ namespace
 		context.ValuesOnStack.push(result);
 	}
 
-	void DivideRealsJIT(JIT::JITContext& context)
+	void DivideRealsJIT(JIT::JITContext& context, bool)
 	{
 		llvm::Value* p2 = context.ValuesOnStack.top();
 		context.ValuesOnStack.pop();
@@ -475,6 +485,7 @@ void ArithmeticLibrary::RegisterOpAssignOperators(StringSet& operators, StringPo
 void ArithmeticLibrary::RegisterJITTable(JIT::JITTable& table, StringPoolManager& stringpool)
 {
 	AddToMapNoDupe(table.InvokeHelpers, std::make_pair(stringpool.Pool(L"+@@real"), &AddRealsJIT));
+	AddToMapNoDupe(table.InvokeHelpers, std::make_pair(stringpool.Pool(L"-@@real"), &SubtractRealsJIT));
 	AddToMapNoDupe(table.InvokeHelpers, std::make_pair(stringpool.Pool(L"*@@real"), &MultiplyRealsJIT));
 	AddToMapNoDupe(table.InvokeHelpers, std::make_pair(stringpool.Pool(L"/@@real"), &DivideRealsJIT));
 }

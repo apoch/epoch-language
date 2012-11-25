@@ -223,6 +223,9 @@
     <ClInclude Include="..\Shared\Utility\Profiling.h">
       <Filter>Shared\Utility</Filter>
     </ClInclude>
+    <ClInclude Include="..\Shared\Libraries\LibraryJIT.h">
+      <Filter>Shared\Libraries</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Exports\Exports.def">

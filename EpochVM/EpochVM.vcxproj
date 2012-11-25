@@ -126,6 +126,7 @@
     <ClCompile Include="Visual Debugger\DebugThread.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\Shared\Libraries\LibraryJIT.h" />
     <ClInclude Include="..\Shared\Metadata\ActiveStructure.h" />
     <ClInclude Include="..\Shared\Metadata\TypeInfo.h" />
     <ClInclude Include="..\Shared\Metadata\Variant.h" />

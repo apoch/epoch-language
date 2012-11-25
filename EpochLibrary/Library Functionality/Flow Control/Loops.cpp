@@ -34,6 +34,7 @@ namespace
 		return ENTITYRET_EXIT_CHAIN;
 	}
 
+	/*
 	void WhileJIT(JIT::JITContext& context)
 	{
 		llvm::IRBuilder<>* builder = reinterpret_cast<llvm::IRBuilder<>*>(context.Builder);
@@ -41,6 +42,7 @@ namespace
 		context.ValuesOnStack.pop();
 		builder->SetInsertPoint(context.EntityBody);
 	}
+	*/
 
 	//
 	// Meta-control for do-while loops
@@ -108,7 +110,9 @@ void FlowControl::RegisterLoopEntities(EntityTable& entities, EntityTable&, Enti
 
 void FlowControl::RegisterLoopsJITTable(JIT::JITTable& table, StringPoolManager& stringpool)
 {
-	Bytecode::EntityTag tag = EntityMap[stringpool.Pool(L"while")];
-	AddToMapNoDupe(table.EntityHelpers, std::make_pair(tag, &WhileJIT));
+	(void)(table);
+	(void)(stringpool);
+	//Bytecode::EntityTag tag = EntityMap[stringpool.Pool(L"while")];
+	//AddToMapNoDupe(table.EntityHelpers, std::make_pair(tag, &WhileJIT));
 }
 
