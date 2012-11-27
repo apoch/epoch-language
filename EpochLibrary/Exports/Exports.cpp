@@ -102,6 +102,8 @@ extern "C" void STDCALL BindToVirtualMachine(FunctionInvocationTable& functionta
 		TypeConstructors::RegisterJITTable(jittable, stringpool);
 		ComparisonLibrary::RegisterJITTable(jittable, stringpool);
 
+		TypeCasts::RegisterJITTable(jittable, stringpool);
+
 		FlowControl::RegisterLoopsJITTable(jittable, stringpool);
 		FlowControl::RegisterConditionalJITTable(jittable, stringpool);
 

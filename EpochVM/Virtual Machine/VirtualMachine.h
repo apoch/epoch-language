@@ -242,7 +242,7 @@ namespace VM
 	// Internal helpers for working with the bytecode stream
 	private:
 		template <typename T>
-		T Fetch()
+		__forceinline T Fetch()
 		{
 			const T* data = reinterpret_cast<const T*>(&CodeBuffer[InstructionOffset]);
 			InstructionOffset += sizeof(T);
@@ -293,15 +293,13 @@ namespace VM
 		size_t CodeBufferSize;
 		size_t InstructionOffset;
 
-		std::stack<size_t> InstructionOffsetStack;
+		std::vector<size_t> InstructionOffsetStack;
 
 		size_t GarbageTick_Buffers;
 		size_t GarbageTick_Strings;
 		size_t GarbageTick_Structures;
 
 		std::set<StringHandle> StaticallyReferencedStrings;
-
-		std::stack<ActiveScope*> JITInvokedScopes;
 	};
 
 }

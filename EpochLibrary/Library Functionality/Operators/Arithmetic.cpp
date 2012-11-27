@@ -164,6 +164,29 @@ namespace
 
 
 	//
+	// JIT helpers for integer arithmetic
+	//
+	void AddIntegersJIT(JIT::JITContext& context, bool)
+	{
+		llvm::Value* p2 = context.ValuesOnStack.top();
+		context.ValuesOnStack.pop();
+		llvm::Value* p1 = context.ValuesOnStack.top();
+		context.ValuesOnStack.pop();
+		llvm::Value* result = reinterpret_cast<llvm::IRBuilder<>*>(context.Builder)->CreateAdd(p1, p2);
+		context.ValuesOnStack.push(result);
+	}
+
+	void MultiplyIntegersJIT(JIT::JITContext& context, bool)
+	{
+		llvm::Value* p2 = context.ValuesOnStack.top();
+		context.ValuesOnStack.pop();
+		llvm::Value* p1 = context.ValuesOnStack.top();
+		context.ValuesOnStack.pop();
+		llvm::Value* result = reinterpret_cast<llvm::IRBuilder<>*>(context.Builder)->CreateMul(p1, p2);
+		context.ValuesOnStack.push(result);
+	}
+
+	//
 	// JIT Helpers for real arithemtic
 	//
 	void AddRealsJIT(JIT::JITContext& context, bool)
@@ -488,5 +511,8 @@ void ArithmeticLibrary::RegisterJITTable(JIT::JITTable& table, StringPoolManager
 	AddToMapNoDupe(table.InvokeHelpers, std::make_pair(stringpool.Pool(L"-@@real"), &SubtractRealsJIT));
 	AddToMapNoDupe(table.InvokeHelpers, std::make_pair(stringpool.Pool(L"*@@real"), &MultiplyRealsJIT));
 	AddToMapNoDupe(table.InvokeHelpers, std::make_pair(stringpool.Pool(L"/@@real"), &DivideRealsJIT));
+
+	AddToMapNoDupe(table.InvokeHelpers, std::make_pair(stringpool.Pool(L"+=@@integer"), &AddIntegersJIT));
+	AddToMapNoDupe(table.InvokeHelpers, std::make_pair(stringpool.Pool(L"*@@integer"), &MultiplyIntegersJIT));
 }
 

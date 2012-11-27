@@ -362,6 +362,7 @@ ExecutionContext::ExecutionContext(VirtualMachine& ownervm, Bytecode::Instructio
 	ActiveScope::InitAllocator();
 	Load();
 	InstructionOffset = 0;
+	InstructionOffsetStack.reserve(1024);
 }
 
 //
@@ -369,7 +370,7 @@ ExecutionContext::ExecutionContext(VirtualMachine& ownervm, Bytecode::Instructio
 //
 void ExecutionContext::Execute(size_t offset, const ScopeDescription& scope, bool returnonfunctionexit)
 {
-	InstructionOffsetStack.push(InstructionOffset);
+	InstructionOffsetStack.push_back(InstructionOffset);
 
 	InstructionOffset = offset;
 	Execute(&scope, returnonfunctionexit);
@@ -923,7 +924,7 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 					InvokedFunctionStack.push_back(functionname);
 					size_t internaloffset = Fetch<size_t>();
 
-					InstructionOffsetStack.push(InstructionOffset);
+					InstructionOffsetStack.push_back(InstructionOffset);
 
 					InstructionOffset = internaloffset;
 					scope = &OwnerVM.GetScopeDescription(functionname);
@@ -1486,8 +1487,8 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 						{
 							OwnerVM.JITExecs[dispatchfunction](State.Stack.GetMutableStackPtr(), this);
 
-							InstructionOffset = InstructionOffsetStack.top();
-							InstructionOffsetStack.pop();
+							InstructionOffset = InstructionOffsetStack.back();
+							InstructionOffsetStack.pop_back();
 							if(returnonfunctionexitstack.back())
 								return;
 							InvokedFunctionStack.pop_back();
@@ -1549,8 +1550,8 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 					scope = &Variables->GetOriginalDescription();
 				else
 					scope = NULL;
-				InstructionOffset = InstructionOffsetStack.top();
-				InstructionOffsetStack.pop();
+				InstructionOffset = InstructionOffsetStack.back();
+				InstructionOffsetStack.pop_back();
 				if(returnonfunctionexitstack.back())
 					return;
 				InvokedFunctionStack.pop_back();

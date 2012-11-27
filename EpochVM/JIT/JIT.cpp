@@ -31,6 +31,47 @@ T Fetch(const Bytecode::Instruction* bytecode, size_t& InstructionOffset)
 }
 
 
+llvm::Type* GetJITType(Metadata::EpochTypeID type, llvm::LLVMContext& context)
+{
+	Metadata::EpochTypeFamily family = Metadata::GetTypeFamily(type);
+	switch(type)
+	{
+	case Metadata::EpochType_Integer:
+		return llvm::Type::getInt32Ty(context);
+
+	case Metadata::EpochType_Real:
+		return llvm::Type::getFloatTy(context);
+
+	default:
+		if(family != Metadata::EpochTypeFamily_Structure && family != Metadata::EpochTypeFamily_TemplateInstance)
+			throw NotImplementedException("Unsupported type for native code generation");
+
+		return llvm::Type::getInt32Ty(context);
+	}
+}
+
+llvm::FunctionType* GetJITFunctionType(const VM::VirtualMachine& ownervm, StringHandle target, llvm::LLVMContext& context)
+{
+	using namespace llvm;
+	
+	Type* rettype = Type::getVoidTy(context);
+
+	std::vector<Type*> args;
+	args.push_back(Type::getInt1PtrTy(context));
+
+	const ScopeDescription& scope = ownervm.GetScopeDescription(target);
+	for(size_t i = 0; i < scope.GetVariableCount(); ++i)
+	{
+		if(scope.GetVariableOrigin(i) == VARIABLE_ORIGIN_PARAMETER)
+			args.push_back(GetJITType(scope.GetVariableTypeByIndex(i), context));
+		else if(scope.GetVariableOrigin(i) == VARIABLE_ORIGIN_RETURN)
+			rettype = GetJITType(scope.GetVariableTypeByIndex(i), context);
+	}
+	
+	return FunctionType::get(rettype, args, false);
+}
+
+
 void JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instruction* bytecode, size_t beginoffset, size_t endoffset, StringHandle alias)
 {
 	using namespace llvm;
@@ -118,6 +159,9 @@ void JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instruction*
 					Type* type = NULL;
 
 					std::set<size_t> locals;
+					std::set<size_t> parameters;
+
+					size_t retindex = static_cast<size_t>(-1);
 
 					const ScopeDescription& scope = ownervm.GetScopeDescription(entityname);
 					curscope = &scope;
@@ -125,25 +169,13 @@ void JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instruction*
 					{
 						Metadata::EpochTypeID vartype = scope.GetVariableTypeByIndex(i);
 						Metadata::EpochTypeFamily varfamily = Metadata::GetTypeFamily(vartype);
-						switch(vartype)
-						{
-						case Metadata::EpochType_Integer:
-							type = Type::getInt32Ty(context);
-							break;
-
-						case Metadata::EpochType_Real:
-							type = Type::getFloatTy(context);
-							break;
-
-						default:
-							if(varfamily != Metadata::EpochTypeFamily_Structure && varfamily != Metadata::EpochTypeFamily_TemplateInstance)
-								throw NotImplementedException("Unsupported type for native code generation");
-						}
+						type = GetJITType(vartype, context);
 
 						switch(scope.GetVariableOrigin(i))
 						{
 						case VARIABLE_ORIGIN_RETURN:
 							++numreturns;
+							retindex = i;
 							rettype = type;
 							jitcontext.VariableMap[i] = builder.CreateAlloca(type);
 							// Deliberate fallthrough
@@ -154,6 +186,7 @@ void JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instruction*
 
 						case VARIABLE_ORIGIN_PARAMETER:
 							{
+								parameters.insert(i);
 								Constant* offset = ConstantInt::get(Type::getInt32Ty(context), numparamslots);
 								++numparameters;
 								++numparamslots;
@@ -208,24 +241,20 @@ void JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instruction*
 
 					builder.SetInsertPoint(block);
 
-					if(numparamslots == 4)
+					std::vector<Value*> innerparams;
+					innerparams.push_back(vmcontextptr);
+					for(std::set<size_t>::const_iterator paramiter = parameters.begin(); paramiter != parameters.end(); ++paramiter)
 					{
-						Value* p1 = builder.CreateLoad(jitcontext.VariableMap[0]);
-						Value* p2 = builder.CreateLoad(jitcontext.VariableMap[1]);
-						Value* r = builder.CreateCall3(jitcontext.InnerFunction, vmcontextptr, p1, p2);
-						builder.CreateStore(r, jitcontext.VariableMap[2]);
+						innerparams.push_back(builder.CreateLoad(jitcontext.VariableMap[*paramiter]));
 					}
-					else if(numparamslots == 2)
-					{						
-						Value* p1 = builder.CreateLoad(jitcontext.VariableMap[0]);
-						if(numreturns)
-						{
-							Value* r = builder.CreateCall2(jitcontext.InnerFunction, vmcontextptr, p1);
-							builder.CreateStore(r, jitcontext.VariableMap[1]);
-						}
-						else
-							builder.CreateCall2(jitcontext.InnerFunction, vmcontextptr, p1);
+
+					if(numreturns)
+					{
+						Value* r = builder.CreateCall(jitcontext.InnerFunction, innerparams);
+						builder.CreateStore(r, jitcontext.VariableMap[retindex]);
 					}
+					else
+						builder.CreateCall(jitcontext.InnerFunction, innerparams);
 
 					BasicBlock* innerentryblock = BasicBlock::Create(context, "innerentry", jitcontext.InnerFunction);
 					builder.SetInsertPoint(innerentryblock);
@@ -234,24 +263,19 @@ void JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instruction*
 
 					innerretval = builder.CreateAlloca(Type::getFloatTy(context));
 
-					if(numparamslots == 4)
-					{
-						retval = jitcontext.VariableMap[2];
-						jitcontext.VariableMap[0] = ++(jitcontext.InnerFunction->arg_begin());
-						jitcontext.VariableMap[1] = ++(++(jitcontext.InnerFunction->arg_begin()));
-						jitcontext.VariableMap[2] = innerretval;
-					}
-					else if(numparamslots == 2)
-					{
-						retval = jitcontext.VariableMap[1];
-						jitcontext.VariableMap[0] = ++(jitcontext.InnerFunction->arg_begin());
-						jitcontext.VariableMap[1] = innerretval;
-					}
+					size_t i = 0;
+					retval = jitcontext.VariableMap[retindex];
+					Function::ArgumentListType& args = jitcontext.InnerFunction->getArgumentList();
+					Function::ArgumentListType::iterator argiter = args.begin();
+					++argiter;
+					for(; argiter != args.end(); ++argiter)
+						jitcontext.VariableMap[i++] = ((Argument*)argiter);
+
+					jitcontext.VariableMap[retindex] = innerretval;
 
 					for(std::set<size_t>::const_iterator localiter = locals.begin(); localiter != locals.end(); ++localiter)
 					{
-						// TODO - improve
-						Type* type = Type::getFloatTy(context);
+						Type* type = GetJITType(scope.GetVariableTypeByIndex(*localiter), context);
 						jitcontext.VariableMap[*localiter] = builder.CreateAlloca(type, NULL, narrow(ownervm.GetPooledString(scope.GetVariableNameHandle(*localiter))));
 					}
 				}
@@ -423,13 +447,7 @@ void JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instruction*
 					iter->second(jitcontext, true);
 				else
 				{
-					// TODO - implement properly
-
-					std::vector<Type*> args;
-					args.push_back(Type::getInt1PtrTy(context));
-					args.push_back(Type::getInt32Ty(context));
-					args.push_back(Type::getInt32Ty(context));
-					FunctionType* faketype = FunctionType::get(Type::getFloatTy(context), args, false);
+					FunctionType* targetfunctype = GetJITFunctionType(ownervm, target, context);
 
 					std::ostringstream name;
 					name << "JITFuncInner_" << ownervm.GetFunctionInstructionOffsetNoThrow(target);
@@ -438,15 +456,20 @@ void JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instruction*
 						targetfunc = FunctionCacheByName[name.str()];
 					else
 					{
-						targetfunc = Function::Create(faketype, Function::InternalLinkage, name.str().c_str(), module);
+						targetfunc = Function::Create(targetfunctype, Function::InternalLinkage, name.str().c_str(), module);
 						FunctionCacheByName[name.str()] = targetfunc;
 					}
 
-					Value* p1 = builder.CreateLoad(jitcontext.ValuesOnStack.top());
-					jitcontext.ValuesOnStack.pop();
-					Value* p2 = builder.CreateLoad(jitcontext.ValuesOnStack.top());
-					jitcontext.ValuesOnStack.pop();
-					jitcontext.ValuesOnStack.push(builder.CreateCall3(targetfunc, jitcontext.InnerFunction->arg_begin(), p1, p2));
+					std::vector<Value*> targetargs;
+					targetargs.push_back(jitcontext.InnerFunction->arg_begin());
+					for(size_t i = 1; i < targetfunctype->getNumParams(); ++i)
+					{
+						Value* p = builder.CreateLoad(jitcontext.ValuesOnStack.top());
+						jitcontext.ValuesOnStack.pop();
+						targetargs.push_back(p);
+					}
+
+					jitcontext.ValuesOnStack.push(builder.CreateCall(targetfunc, targetargs));
 				}
 			}
 			break;
@@ -465,6 +488,7 @@ void JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instruction*
 					}
 					break;
 
+				case Metadata::EpochType_Identifier:
 				case Metadata::EpochType_String:
 					{
 						StringHandle value = Fetch<StringHandle>(bytecode, offset);
@@ -571,6 +595,7 @@ void PopulateJITExecs(VM::VirtualMachine& ownervm)
 	OurMPM.add(createCFGSimplificationPass());
 	OurMPM.add(createPruneEHPass());
 	OurMPM.add(createFunctionAttrsPass());
+	OurMPM.add(createFunctionInliningPass());
 	OurMPM.add(createArgumentPromotionPass());
 	OurMPM.add(createScalarReplAggregatesPass(-1, false));
 	OurMPM.add(createEarlyCSEPass());
@@ -600,6 +625,7 @@ void PopulateJITExecs(VM::VirtualMachine& ownervm)
 	OurMPM.add(createAggressiveDCEPass());
 	OurMPM.add(createCFGSimplificationPass());
 	OurMPM.add(createInstructionCombiningPass());
+	OurMPM.add(createFunctionInliningPass());
 
 	OurMPM.run(*module);
 

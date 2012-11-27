@@ -31,4 +31,6 @@ namespace TypeCasts
 
 	void RegisterLibraryOverloads(OverloadMap& overloadmap, StringPoolManager& stringpool);
 
+	void RegisterJITTable(JIT::JITTable& table, StringPoolManager& stringpool);
+
 }
