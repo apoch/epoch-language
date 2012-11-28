@@ -28,6 +28,7 @@ namespace JIT
 
 		std::map<size_t, llvm::Value*> VariableMap;
 		std::map<StringHandle, size_t> NameToIndexMap;
+		std::map<size_t, llvm::Value*> SumTypeTagMap;
 
 		llvm::Module* MyModule;
 

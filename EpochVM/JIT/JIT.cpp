@@ -9,6 +9,7 @@
 #include "Virtual Machine/VirtualMachine.h"
 
 #include "Metadata/ScopeDescription.h"
+#include "Metadata/TypeInfo.h"
 
 #include "Utility/Strings.h"
 
@@ -21,6 +22,7 @@ llvm::Function* vmgetstructure = NULL;
 
 std::map<std::string, llvm::Function*> FunctionCacheByName;
 std::map<StringHandle, llvm::Function*> FunctionCache;
+std::map<Metadata::EpochTypeID, llvm::StructType*> TaggedTypeCache;
 
 template <typename T>
 T Fetch(const Bytecode::Instruction* bytecode, size_t& InstructionOffset)
@@ -30,8 +32,40 @@ T Fetch(const Bytecode::Instruction* bytecode, size_t& InstructionOffset)
 	return static_cast<T>(*data);
 }
 
+llvm::Type* GetJITType(const VM::VirtualMachine& ownervm, Metadata::EpochTypeID type, llvm::LLVMContext& context);
 
-llvm::Type* GetJITType(Metadata::EpochTypeID type, llvm::LLVMContext& context)
+llvm::StructType* GetJITTaggedType(const VM::VirtualMachine& ownervm, Metadata::EpochTypeID type, llvm::LLVMContext& context)
+{
+	llvm::StructType* taggedtype = TaggedTypeCache[type];
+	if(!taggedtype)
+	{
+		const VariantDefinition& def = ownervm.VariantDefinitions.find(type)->second;
+		const std::set<Metadata::EpochTypeID>& types = def.GetBaseTypes();
+
+		llvm::Type* rettype = NULL;
+		size_t maxsize = 0;
+
+		for(std::set<Metadata::EpochTypeID>::const_iterator iter = types.begin(); iter != types.end(); ++iter)
+		{
+			size_t size = Metadata::GetStorageSize(*iter);
+			if(size > maxsize)
+			{
+				maxsize = size;
+				rettype = GetJITType(ownervm, *iter, context);
+			}
+		}
+
+		std::vector<llvm::Type*> elemtypes;
+		elemtypes.push_back(llvm::Type::getInt32Ty(context));
+		elemtypes.push_back(rettype);
+		taggedtype = llvm::StructType::create(elemtypes);
+		TaggedTypeCache[type] = taggedtype;
+	}
+	return taggedtype;
+}
+
+
+llvm::Type* GetJITType(const VM::VirtualMachine& ownervm, Metadata::EpochTypeID type, llvm::LLVMContext& context)
 {
 	Metadata::EpochTypeFamily family = Metadata::GetTypeFamily(type);
 	switch(type)
@@ -43,10 +77,13 @@ llvm::Type* GetJITType(Metadata::EpochTypeID type, llvm::LLVMContext& context)
 		return llvm::Type::getFloatTy(context);
 
 	default:
-		if(family != Metadata::EpochTypeFamily_Structure && family != Metadata::EpochTypeFamily_TemplateInstance)
-			throw NotImplementedException("Unsupported type for native code generation");
+		if(family == Metadata::EpochTypeFamily_SumType)
+			return GetJITTaggedType(ownervm, type, context);
 
-		return llvm::Type::getInt32Ty(context);
+		if(family == Metadata::EpochTypeFamily_Structure || family == Metadata::EpochTypeFamily_TemplateInstance)
+			return llvm::Type::getInt32Ty(context);
+
+		throw NotImplementedException("Unsupported type for native code generation");
 	}
 }
 
@@ -63,9 +100,17 @@ llvm::FunctionType* GetJITFunctionType(const VM::VirtualMachine& ownervm, String
 	for(size_t i = 0; i < scope.GetVariableCount(); ++i)
 	{
 		if(scope.GetVariableOrigin(i) == VARIABLE_ORIGIN_PARAMETER)
-			args.push_back(GetJITType(scope.GetVariableTypeByIndex(i), context));
+		{
+			Metadata::EpochTypeID vartype = scope.GetVariableTypeByIndex(i);
+			Metadata::EpochTypeFamily varfamily = Metadata::GetTypeFamily(vartype);
+			Type* type = GetJITType(ownervm, vartype, context);
+			if(scope.IsReference(i) && !(varfamily == Metadata::EpochTypeFamily_Structure || varfamily == Metadata::EpochTypeFamily_TemplateInstance))
+				args.push_back(PointerType::get(type, 0));
+			else
+				args.push_back(type);
+		}
 		else if(scope.GetVariableOrigin(i) == VARIABLE_ORIGIN_RETURN)
-			rettype = GetJITType(scope.GetVariableTypeByIndex(i), context);
+			rettype = GetJITType(ownervm, scope.GetVariableTypeByIndex(i), context);
 	}
 	
 	return FunctionType::get(rettype, args, false);
@@ -169,7 +214,8 @@ void JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instruction*
 					{
 						Metadata::EpochTypeID vartype = scope.GetVariableTypeByIndex(i);
 						Metadata::EpochTypeFamily varfamily = Metadata::GetTypeFamily(vartype);
-						type = GetJITType(vartype, context);
+
+						type = GetJITType(ownervm, vartype, context);
 
 						switch(scope.GetVariableOrigin(i))
 						{
@@ -194,7 +240,6 @@ void JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instruction*
 
 								if(scope.IsReference(i))
 								{
-									// TODO - support references for non-structure types
 									if(varfamily == Metadata::EpochTypeFamily_Structure || varfamily == Metadata::EpochTypeFamily_TemplateInstance)
 									{
 										type = Type::getInt32Ty(context);
@@ -205,10 +250,15 @@ void JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instruction*
 										Value* stackval = builder.CreateLoad(builder.CreatePointerCast(newstackptr, ptype), false);
 										Value* deref = builder.CreateLoad(stackval, false);
 										builder.CreateStore(deref, local, false);
-										++numparamslots;
 									}
 									else
-										throw NotImplementedException("Can't take reference to this type");
+									{
+										Type* ptype = PointerType::get(PointerType::get(type, 0), 0);
+										Value* newstackptr = builder.CreateGEP(stackptr, offset);
+										Value* ref = builder.CreatePointerCast(newstackptr, ptype);
+										jitcontext.VariableMap[i] = ref;
+									}
+									++numparamslots;
 								}
 								else
 								{
@@ -230,7 +280,7 @@ void JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instruction*
 					std::ostringstream name;
 					name << "JITFuncInner_" << beginoffset;
 
-					FunctionType* innerfunctype = FunctionType::get(rettype, innerargs, false);
+					FunctionType* innerfunctype = GetJITFunctionType(ownervm, entityname, context);
 					if(!FunctionCacheByName[name.str()])
 					{
 						jitcontext.InnerFunction = Function::Create(innerfunctype, Function::InternalLinkage, name.str().c_str(), module);
@@ -275,7 +325,7 @@ void JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instruction*
 
 					for(std::set<size_t>::const_iterator localiter = locals.begin(); localiter != locals.end(); ++localiter)
 					{
-						Type* type = GetJITType(scope.GetVariableTypeByIndex(*localiter), context);
+						Type* type = GetJITType(ownervm, scope.GetVariableTypeByIndex(*localiter), context);
 						jitcontext.VariableMap[*localiter] = builder.CreateAlloca(type, NULL, narrow(ownervm.GetPooledString(scope.GetVariableNameHandle(*localiter))));
 					}
 				}
@@ -397,6 +447,11 @@ void JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instruction*
 						Type* pfinaltype = Type::getInt32PtrTy(context);
 						memberptr = builder.CreatePointerCast(voidmemberptr, pfinaltype);
 					}
+					else if(Metadata::GetTypeFamily(membertype) == Metadata::EpochTypeFamily_SumType)
+					{
+						Type* pfinaltype = PointerType::get(GetJITTaggedType(ownervm, membertype, context), 0);
+						memberptr = builder.CreatePointerCast(voidmemberptr, pfinaltype);
+					}
 					else
 						throw NotImplementedException("I am lazy.");
 				}
@@ -437,6 +492,9 @@ void JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instruction*
 				iter->second(jitcontext, true);
 			}
 			break;
+
+		case Bytecode::Instructions::InvokeOffset:
+			throw FatalException("Cannot call from native code back into VM code!");
 
 		case Bytecode::Instructions::InvokeNative:
 			{

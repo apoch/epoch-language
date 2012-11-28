@@ -37,6 +37,9 @@ public:
 	size_t GetMaxSize() const
 	{ return DataSize + sizeof(Metadata::EpochTypeID); }
 
+	const std::set<Metadata::EpochTypeID>& GetBaseTypes() const
+	{ return BaseTypes; }
+
 // Internal tracking
 private:
 	size_t DataSize;
