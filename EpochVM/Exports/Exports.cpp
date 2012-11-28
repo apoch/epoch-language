@@ -104,3 +104,8 @@ extern "C" void* VMGetStructure(void* vmcontext, StructureHandle handle)
 	}
 }
 
+extern "C" void VMHalt()
+{
+	::MessageBox(0, L"Fatal error - program halted", L"Epoch Virtual Machine", MB_ICONSTOP);
+	std::terminate();
+}

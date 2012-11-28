@@ -1586,6 +1586,11 @@ void ExecutionContext::Load()
 
 	std::map<size_t, StringHandle> offsetfixups;
 	std::map<size_t, StringHandle> jitfixups;
+	std::map<size_t, StringHandle> potentialjitfixups;
+
+	StringHandle typematcherid = 0;
+	size_t typematcherjit = 0;
+	size_t typematchernojit = 0;
 
 	InstructionOffset = 0;
 	while(InstructionOffset < CodeBufferSize)
@@ -1607,12 +1612,25 @@ void ExecutionContext::Load()
 				{
 					OwnerVM.AddFunction(name, originaloffset);
 				}
+
+				if(entitytypes.top() == Bytecode::EntityTags::TypeResolver)
+				{
+					typematcherid = name;
+					typematchernojit = 0;
+					typematcherjit = 0;
+				}
+				else
+					typematcherid = 0;
+
 				entitybeginoffsets.push(originaloffset);
 				entityoffsetmap[name] = originaloffset;
 			}
 			break;
 
 		case Bytecode::Instructions::EndEntity:
+			if(typematcherid && typematcherjit && !typematchernojit)
+				jitworklist.push_back(typematcherid);
+
 			entitytypes.pop();
 			OwnerVM.MapEntityBeginEndOffsets(entitybeginoffsets.top(), InstructionOffset - 1);
 			entitybeginoffsets.pop();
@@ -1809,6 +1827,8 @@ void ExecutionContext::Load()
 					CodeBuffer[originaloffset] = Bytecode::Instructions::InvokeNative;
 					jitfixups[offsetofoffset] = target;
 				}
+				else
+					potentialjitfixups[originaloffset] = target;
 			}
 			break;
 
@@ -1868,6 +1888,11 @@ void ExecutionContext::Load()
 					Fetch<bool>();
 					Fetch<EpochTypeID>();
 				}
+
+				if(OwnerVM.JITExecs.find(funcname) == OwnerVM.JITExecs.end())
+					++typematchernojit;
+				else
+					++typematcherjit;
 			}
 			break;
 		
@@ -1904,6 +1929,18 @@ void ExecutionContext::Load()
 	{
 		void* target = OwnerVM.JITExecs.find(iter->second)->second;
 		*reinterpret_cast<void**>(&CodeBuffer[iter->first]) = target;
+	}
+
+	for(std::map<size_t, StringHandle>::const_iterator iter = potentialjitfixups.begin(); iter != potentialjitfixups.end(); ++iter)
+	{
+		if(OwnerVM.JITExecs.find(iter->second) != OwnerVM.JITExecs.end())
+		{
+			size_t offset = iter->first;
+			CodeBuffer[offset] = Bytecode::Instructions::InvokeNative;
+			offset += sizeof(Bytecode::Instruction);
+			offset += sizeof(StringHandle);
+			*reinterpret_cast<void**>(&CodeBuffer[offset]) = OwnerVM.JITExecs.find(iter->second)->second;
+		}
 	}
 }
 

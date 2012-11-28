@@ -19,6 +19,7 @@
 
 llvm::Module* module = NULL;
 llvm::Function* vmgetstructure = NULL;
+llvm::Function* vmhaltfunction = NULL;
 
 std::map<std::string, llvm::Function*> FunctionCacheByName;
 std::map<StringHandle, llvm::Function*> FunctionCache;
@@ -103,6 +104,10 @@ llvm::FunctionType* GetJITFunctionType(const VM::VirtualMachine& ownervm, String
 		{
 			Metadata::EpochTypeID vartype = scope.GetVariableTypeByIndex(i);
 			Metadata::EpochTypeFamily varfamily = Metadata::GetTypeFamily(vartype);
+
+			if(vartype == Metadata::EpochType_Nothing)
+				continue;
+
 			Type* type = GetJITType(ownervm, vartype, context);
 			if(scope.IsReference(i) && !(varfamily == Metadata::EpochTypeFamily_Structure || varfamily == Metadata::EpochTypeFamily_TemplateInstance))
 				args.push_back(PointerType::get(type, 0));
@@ -130,7 +135,7 @@ void JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instruction*
 
 	IRBuilder<> builder(context);
 
-	PointerType* stackptrtype = PointerType::get(Type::getInt32Ty(context), 0);
+	PointerType* stackptrtype = PointerType::get(Type::getInt8Ty(context), 0);
 	PointerType* pstackptrtype = PointerType::get(stackptrtype, 0);
 
 
@@ -142,7 +147,12 @@ void JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instruction*
 	std::ostringstream name;
 	name << "JITFunc_" << beginoffset;
 
-	Function* dostufffunc = Function::Create(dostufffunctype, Function::ExternalLinkage, name.str().c_str(), module);
+	Function* dostufffunc = FunctionCacheByName[name.str()];
+	if(!dostufffunc)
+	{
+		dostufffunc = Function::Create(dostufffunctype, Function::ExternalLinkage, name.str().c_str(), module);
+		FunctionCacheByName[name.str()] = dostufffunc;
+	}
 
 
 	std::map<Value*, Value*> structurelookupcache;
@@ -154,6 +164,9 @@ void JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instruction*
 
 	if(!vmgetstructure)
 		vmgetstructure = Function::Create(vmgetstructuretype, Function::ExternalLinkage, "VMGetStructure", module);
+
+	if(!vmhaltfunction)
+		vmhaltfunction = Function::Create(FunctionType::get(Type::getVoidTy(context), false), Function::ExternalLinkage, "VMHalt", module);
 
 	BasicBlock* block = BasicBlock::Create(context, "entry", dostufffunc);
 	builder.SetInsertPoint(block);
@@ -176,8 +189,9 @@ void JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instruction*
 	Value* retval = NULL;
 	Value* innerretval = NULL;
 	unsigned numparameters = 0;
-	unsigned numparamslots = 0;
+	unsigned numparambytes = 0;
 	unsigned numreturns = 0;
+	unsigned typematchindex = 0;
 
 	const ScopeDescription* curscope = NULL;
 
@@ -215,6 +229,9 @@ void JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instruction*
 						Metadata::EpochTypeID vartype = scope.GetVariableTypeByIndex(i);
 						Metadata::EpochTypeFamily varfamily = Metadata::GetTypeFamily(vartype);
 
+						if(vartype == Metadata::EpochType_Nothing)
+							continue;
+
 						type = GetJITType(ownervm, vartype, context);
 
 						switch(scope.GetVariableOrigin(i))
@@ -233,9 +250,8 @@ void JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instruction*
 						case VARIABLE_ORIGIN_PARAMETER:
 							{
 								parameters.insert(i);
-								Constant* offset = ConstantInt::get(Type::getInt32Ty(context), numparamslots);
+								Constant* offset = ConstantInt::get(Type::getInt32Ty(context), numparambytes);
 								++numparameters;
-								++numparamslots;
 								++localoffset;
 
 								if(scope.IsReference(i))
@@ -258,7 +274,7 @@ void JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instruction*
 										Value* ref = builder.CreatePointerCast(newstackptr, ptype);
 										jitcontext.VariableMap[i] = ref;
 									}
-									++numparamslots;
+									numparambytes += sizeof(void*) + sizeof(Metadata::EpochTypeID);
 								}
 								else
 								{
@@ -267,6 +283,8 @@ void JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instruction*
 									Value* newstackptr = builder.CreateGEP(stackptr, offset);
 									Value* stackval = builder.CreateLoad(newstackptr, false);
 									builder.CreateStore(stackval, local, false);
+
+									numparambytes += Metadata::GetStorageSize(vartype);
 								}
 
 								innerargs.push_back(type);
@@ -311,17 +329,19 @@ void JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instruction*
 
 					innerfunctionexit = BasicBlock::Create(context, "innerexit", jitcontext.InnerFunction);
 
-					innerretval = builder.CreateAlloca(Type::getFloatTy(context));
+					if(numreturns)
+						innerretval = builder.CreateAlloca(Type::getFloatTy(context));
 
 					size_t i = 0;
-					retval = jitcontext.VariableMap[retindex];
+					retval = numreturns ? jitcontext.VariableMap[retindex] : NULL;
 					Function::ArgumentListType& args = jitcontext.InnerFunction->getArgumentList();
 					Function::ArgumentListType::iterator argiter = args.begin();
 					++argiter;
 					for(; argiter != args.end(); ++argiter)
 						jitcontext.VariableMap[i++] = ((Argument*)argiter);
 
-					jitcontext.VariableMap[retindex] = innerretval;
+					if(numreturns)
+						jitcontext.VariableMap[retindex] = innerretval;
 
 					for(std::set<size_t>::const_iterator localiter = locals.begin(); localiter != locals.end(); ++localiter)
 					{
@@ -329,9 +349,17 @@ void JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instruction*
 						jitcontext.VariableMap[*localiter] = builder.CreateAlloca(type, NULL, narrow(ownervm.GetPooledString(scope.GetVariableNameHandle(*localiter))));
 					}
 				}
+				else if(entitytype == Bytecode::EntityTags::TypeResolver)
+				{
+
+				}
 				else
 				{
-					ownervm.JITHelpers.EntityHelpers.find(entitytype)->second(jitcontext, true);
+					std::map<StringHandle, JIT::JITHelper>::const_iterator helperiter = ownervm.JITHelpers.EntityHelpers.find(entitytype);
+					if(helperiter == ownervm.JITHelpers.EntityHelpers.end())
+						throw FatalException("Cannot JIT this type of entity");
+					
+					helperiter->second(jitcontext, true);
 				}
 			}
 			break;
@@ -340,7 +368,7 @@ void JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instruction*
 			{
 				Bytecode::EntityTag tag = jitcontext.EntityTypes.top();
 				jitcontext.EntityTypes.pop();
-				if(tag != Bytecode::EntityTags::Function)
+				if(tag != Bytecode::EntityTags::Function && tag != Bytecode::EntityTags::TypeResolver)
 				{
 					ownervm.JITHelpers.EntityHelpers.find(tag)->second(jitcontext, false);
 				}
@@ -576,26 +604,240 @@ void JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instruction*
 			jitcontext.ValuesOnStack.pop();
 			break;
 
+		case Bytecode::Instructions::TypeMatch:
+			{
+				const unsigned FLAG_PROVIDED_REF = 0x01;
+				const unsigned FLAG_PROVIDED_NOTHING = 0x02;
+				const unsigned FLAG_PROVIDED_NOTHING_REF = 0x04;
+
+				std::ostringstream nextname;
+				nextname << "nexttypematcher" << ++typematchindex;
+				BasicBlock* nexttypematcher = BasicBlock::Create(context, nextname.str(), dostufffunc);
+
+				Value* providedtype = builder.CreateAlloca(Type::getInt32Ty(context), NULL, "providedtype");
+				Value* providedref = builder.CreateAlloca(Type::getInt1Ty(context), NULL, "providedref");
+				Value* initialstackptr = builder.CreateLoad(pstackptr, true);
+				Value* stackoffsettracker = builder.CreateAlloca(Type::getInt32Ty(context), NULL, "stackoffset");
+
+				builder.CreateStore(ConstantInt::get(Type::getInt32Ty(context), 0), stackoffsettracker);
+
+				StringHandle funcname = Fetch<StringHandle>(bytecode, offset);
+				Fetch<size_t>(bytecode, offset);
+				size_t paramcount = Fetch<size_t>(bytecode, offset);
+
+				std::vector<Value*> allflags;
+
+				for(size_t i = 0; i < paramcount; ++i)
+				{
+					bool expectref = Fetch<bool>(bytecode, offset);
+					Metadata::EpochTypeID expecttype = Fetch<Metadata::EpochTypeID>(bytecode, offset);
+
+					builder.CreateStore(ConstantInt::get(Type::getInt1Ty(context), 0), providedref);
+
+					BasicBlock* checkmatchblock = BasicBlock::Create(context, "checkmatch", dostufffunc);
+
+					Value* flags = builder.CreateAlloca(Type::getInt32Ty(context), NULL, "paramflags");
+
+					if(!expectref)
+					{
+						Value* lateststackptr = builder.CreateGEP(initialstackptr, builder.CreateLoad(stackoffsettracker));
+						builder.CreateStore(providedtype, builder.CreatePointerCast(lateststackptr, Type::getInt32PtrTy(context)), true);
+
+						// TODO - support undecomposed sum types
+						/*
+						while(GetTypeFamily(providedtype) == EpochTypeFamily_SumType)
+						{
+							stackptr += sizeof(EpochTypeID);
+							providedtype = *reinterpret_cast<const EpochTypeID*>(stackptr);
+						}
+						*/
+
+						Value* providedrefflag = builder.CreateICmpEQ(providedtype, ConstantInt::get(Type::getInt32Ty(context), Metadata::EpochType_RefFlag));
+
+						BasicBlock* providedrefblock = BasicBlock::Create(context, "providedref", dostufffunc);
+						builder.CreateCondBr(providedrefflag, providedrefblock, nexttypematcher);
+
+						builder.SetInsertPoint(providedrefblock);
+						builder.CreateStore(ConstantInt::get(Type::getInt1Ty(context), 1), providedref);
+						builder.CreateStore(builder.CreateAdd(builder.CreateLoad(stackoffsettracker), ConstantInt::get(Type::getInt32Ty(context), sizeof(Metadata::EpochTypeID))), stackoffsettracker);
+
+						Value* providednothingflag = builder.CreateICmpEQ(providedtype, ConstantInt::get(Type::getInt32Ty(context), Metadata::EpochType_Nothing));
+						Value* expectnothing = (expecttype == Metadata::EpochType_Nothing ? ConstantInt::get(Type::getInt1Ty(context), 1) : ConstantInt::get(Type::getInt1Ty(context), 0));
+						Value* provideandexpectnothing = builder.CreateAnd(providednothingflag, expectnothing);
+
+						BasicBlock* handlesomethingblock = BasicBlock::Create(context, "handlesomething", dostufffunc);
+						BasicBlock* handlenothingblock = BasicBlock::Create(context, "handlenothing", dostufffunc);
+
+						builder.CreateCondBr(provideandexpectnothing, handlenothingblock, handlesomethingblock);
+						builder.SetInsertPoint(handlenothingblock);
+						builder.CreateStore(ConstantInt::get(Type::getInt32Ty(context), Metadata::EpochType_Nothing), providedtype);
+						builder.CreateStore(builder.CreateAdd(builder.CreateLoad(stackoffsettracker), ConstantInt::get(Type::getInt32Ty(context), sizeof(void*))), stackoffsettracker);
+						builder.CreateBr(checkmatchblock);
+
+						builder.SetInsertPoint(handlesomethingblock);
+						BasicBlock* handlerefblock = BasicBlock::Create(context, "handleref", dostufffunc);
+						builder.CreateCondBr(providednothingflag, nexttypematcher, handlerefblock);
+						builder.SetInsertPoint(handlerefblock);
+
+						Value* reftarget = builder.CreateLoad(builder.CreateGEP(initialstackptr, builder.CreateLoad(stackoffsettracker)));
+						builder.CreateStore(builder.CreateAdd(builder.CreateLoad(stackoffsettracker), ConstantInt::get(Type::getInt32Ty(context), sizeof(void*))), stackoffsettracker);
+
+						Value* reftype = builder.CreateLoad(builder.CreateGEP(initialstackptr, builder.CreateLoad(stackoffsettracker)));
+						builder.CreateStore(builder.CreateAdd(builder.CreateLoad(stackoffsettracker), ConstantInt::get(Type::getInt32Ty(context), sizeof(Metadata::EpochTypeID))), stackoffsettracker);
+
+						Value* refisnothingflag = builder.CreateICmpEQ(reftype, ConstantInt::get(Type::getInt32Ty(context), Metadata::EpochType_Nothing));
+						Value* refandexpectnothing = builder.CreateAnd(expectnothing, refisnothingflag);
+
+						BasicBlock* handlenothingrefblock = BasicBlock::Create(context, "handlenothingref", dostufffunc);
+						BasicBlock* checksumtypeblock = BasicBlock::Create(context, "checksumtype", dostufffunc);
+						builder.CreateCondBr(refandexpectnothing, handlenothingrefblock, checksumtypeblock);
+
+						builder.SetInsertPoint(handlenothingrefblock);
+						builder.CreateStore(ConstantInt::get(Type::getInt32Ty(context), Metadata::EpochType_Nothing), providedtype);
+						builder.CreateStore(builder.CreateOr(builder.CreateLoad(flags), ConstantInt::get(Type::getInt32Ty(context), FLAG_PROVIDED_NOTHING_REF)), flags);
+						builder.CreateBr(checkmatchblock);
+
+						BasicBlock* handlesumtypeblock = BasicBlock::Create(context, "handlesumtype", dostufffunc);
+
+						builder.SetInsertPoint(checksumtypeblock);
+						Value* providedtypefamily = builder.CreateAnd(providedtype, 0xff000000);
+						Value* issumtype = builder.CreateICmpEQ(providedtypefamily, ConstantInt::get(Type::getInt32Ty(context), Metadata::EpochTypeFamily_SumType));
+						builder.CreateCondBr(issumtype, handlesumtypeblock, nexttypematcher);
+
+						builder.SetInsertPoint(handlesumtypeblock);
+						Value* reftypeptr = builder.CreateGEP(reftarget, ConstantInt::get(Type::getInt32Ty(context), static_cast<uint64_t>(-(signed)sizeof(Metadata::EpochTypeID))));
+						reftype = builder.CreateLoad(builder.CreatePointerCast(reftypeptr, Type::getInt32PtrTy(context)));
+
+						BasicBlock* handlereftonothingblock = BasicBlock::Create(context, "handlereftonothing", dostufffunc);
+						refisnothingflag = builder.CreateICmpEQ(reftype, ConstantInt::get(Type::getInt32Ty(context), Metadata::EpochType_Nothing));
+						refandexpectnothing = builder.CreateAnd(expectnothing, refisnothingflag);
+						builder.CreateCondBr(refandexpectnothing, handlereftonothingblock, nexttypematcher);
+
+						builder.SetInsertPoint(handlereftonothingblock);
+						builder.CreateStore(providedtype, reftype);
+						builder.CreateBr(checkmatchblock);
+					}
+					else
+					{
+						Value* magic = builder.CreateLoad(builder.CreatePointerCast(builder.CreateGEP(initialstackptr, builder.CreateLoad(stackoffsettracker)), Type::getInt32PtrTy(context)), true);
+						Value* providedrefflag = builder.CreateICmpEQ(magic, ConstantInt::get(Type::getInt32Ty(context), Metadata::EpochType_RefFlag));
+
+						BasicBlock* providedrefblock = BasicBlock::Create(context, "providedexpectedref", dostufffunc);
+						builder.CreateCondBr(providedrefflag, providedrefblock, nexttypematcher);
+						builder.SetInsertPoint(providedrefblock);
+
+						builder.CreateStore(ConstantInt::get(Type::getInt1Ty(context), 1), providedref);
+						builder.CreateStore(builder.CreateAdd(builder.CreateLoad(stackoffsettracker), ConstantInt::get(Type::getInt32Ty(context), sizeof(Metadata::EpochTypeID))), stackoffsettracker);
+
+						Value* reftarget = builder.CreateLoad(builder.CreatePointerCast(builder.CreateGEP(initialstackptr, builder.CreateLoad(stackoffsettracker)), PointerType::get(Type::getInt8PtrTy(context), 0)));
+						builder.CreateStore(builder.CreateAdd(builder.CreateLoad(stackoffsettracker), ConstantInt::get(Type::getInt32Ty(context), sizeof(void*))), stackoffsettracker);
+
+						Value* reftype = builder.CreateLoad(builder.CreatePointerCast(builder.CreateGEP(initialstackptr, builder.CreateLoad(stackoffsettracker)), Type::getInt32PtrTy(context)));
+						builder.CreateStore(reftype, providedtype);
+
+						BasicBlock* setnothingrefflagblock = BasicBlock::Create(context, "setnothingrefflag", dostufffunc);
+						BasicBlock* skipblock = BasicBlock::Create(context, "skip", dostufffunc);
+
+						Value* providednothingflag = builder.CreateICmpEQ(reftype, ConstantInt::get(Type::getInt32Ty(context), Metadata::EpochType_Nothing));
+						builder.CreateCondBr(providednothingflag, setnothingrefflagblock, skipblock);
+
+						builder.SetInsertPoint(setnothingrefflagblock);
+						builder.CreateStore(builder.CreateOr(builder.CreateLoad(flags), ConstantInt::get(Type::getInt32Ty(context), FLAG_PROVIDED_NOTHING_REF)), flags);
+						builder.CreateBr(skipblock);
+
+						builder.SetInsertPoint(skipblock);
+						builder.CreateStore(builder.CreateAdd(builder.CreateLoad(stackoffsettracker), ConstantInt::get(Type::getInt32Ty(context), sizeof(Metadata::EpochTypeID))), stackoffsettracker);
+
+
+						BasicBlock* handlesumtypeblock = BasicBlock::Create(context, "handlesumtype", dostufffunc);
+
+						Value* providedtypefamily = builder.CreateAnd(builder.CreateLoad(providedtype), 0xff000000);
+						Value* issumtype = builder.CreateICmpEQ(providedtypefamily, ConstantInt::get(Type::getInt32Ty(context), Metadata::EpochTypeFamily_SumType));
+						builder.CreateCondBr(issumtype, handlesumtypeblock, checkmatchblock);
+
+						builder.SetInsertPoint(handlesumtypeblock);
+						Value* reftypeptr = builder.CreateGEP(reftarget, ConstantInt::get(Type::getInt32Ty(context), static_cast<uint64_t>(-(signed)sizeof(Metadata::EpochTypeID))));
+						reftype = builder.CreateLoad(builder.CreatePointerCast(reftypeptr, Type::getInt32PtrTy(context)));
+						builder.CreateStore(reftype, providedtype);
+						builder.CreateBr(checkmatchblock);
+					}
+
+					builder.SetInsertPoint(checkmatchblock);
+
+					Value* nomatch = builder.CreateICmpNE(builder.CreateLoad(providedtype), ConstantInt::get(Type::getInt32Ty(context), expecttype));
+					Value* notexpectsumtype = ConstantInt::get(Type::getInt1Ty(context), Metadata::GetTypeFamily(expecttype) != Metadata::EpochTypeFamily_SumType);
+
+					BasicBlock* setflagsblock = BasicBlock::Create(context, "setflags", dostufffunc);
+					BasicBlock* nextparamblock = BasicBlock::Create(context, "nextparam", dostufffunc);
+
+					Value* bailflag = builder.CreateAnd(nomatch, notexpectsumtype);
+					builder.CreateCondBr(bailflag, nexttypematcher, setflagsblock);
+
+					builder.SetInsertPoint(setflagsblock);
+					BasicBlock* moreflagsblock = BasicBlock::Create(context, "moreflags", dostufffunc);
+					BasicBlock* setrefflagblock = BasicBlock::Create(context, "setrefflag", dostufffunc);
+					builder.CreateCondBr(builder.CreateLoad(providedref), setrefflagblock, moreflagsblock);
+					builder.SetInsertPoint(setrefflagblock);
+					builder.CreateStore(builder.CreateOr(builder.CreateLoad(flags), ConstantInt::get(Type::getInt32Ty(context), FLAG_PROVIDED_REF)), flags);
+					builder.CreateBr(moreflagsblock);
+					
+					builder.SetInsertPoint(moreflagsblock);
+					BasicBlock* setnothingflagblock = BasicBlock::Create(context, "setnothingflag", dostufffunc);
+					Value* providednothingflag = builder.CreateICmpEQ(builder.CreateLoad(providedtype), ConstantInt::get(Type::getInt32Ty(context), Metadata::EpochType_Nothing));
+					builder.CreateCondBr(providednothingflag, setnothingflagblock, nextparamblock);
+					builder.SetInsertPoint(setnothingflagblock);
+					builder.CreateStore(builder.CreateOr(builder.CreateLoad(flags), ConstantInt::get(Type::getInt32Ty(context), FLAG_PROVIDED_NOTHING)), flags);
+					builder.CreateBr(nextparamblock);
+
+					builder.SetInsertPoint(nextparamblock);
+
+					allflags.push_back(flags);
+				}
+
+				BasicBlock* invokeblock = BasicBlock::Create(context, "invokesuccess", dostufffunc);
+				builder.CreateBr(invokeblock);
+
+				builder.SetInsertPoint(invokeblock);
+				// TODO - call inner func with appropriate arguments
+				// TODO - fixup the VM stack as necessary
+
+				(void)(funcname);
+				builder.CreateCall(vmhaltfunction);
+				builder.CreateBr(outerfunctionexit);
+
+				builder.SetInsertPoint(nexttypematcher);
+			}
+			break;
+
+		case Bytecode::Instructions::Halt:
+			builder.CreateCall(vmhaltfunction);
+			builder.CreateBr(outerfunctionexit);
+			break;
+
 		default:
 			throw FatalException("Unsupported instruction for JIT compilation");
 		}
 	}
 	
-	builder.SetInsertPoint(innerfunctionexit);
-	if(innerretval)
+	if(jitcontext.InnerFunction)
 	{
-		Value* ret = builder.CreateLoad(innerretval);
-		builder.CreateRet(ret);
+		builder.SetInsertPoint(innerfunctionexit);
+		if(innerretval)
+		{
+			Value* ret = builder.CreateLoad(innerretval);
+			builder.CreateRet(ret);
+		}
+		else
+			builder.CreateRetVoid();
 	}
-	else
-		builder.CreateRetVoid();
 
 	builder.SetInsertPoint(block);
-	builder.CreateBr(outerfunctionexit);
+	if(!typematchindex)
+		builder.CreateBr(outerfunctionexit);
 
 	builder.SetInsertPoint(outerfunctionexit);
 	Value* stackptr = builder.CreateLoad(pstackptr, true);
-	Constant* offset = ConstantInt::get(Type::getInt32Ty(context), static_cast<unsigned>(numparamslots - numreturns));
+	Constant* offset = ConstantInt::get(Type::getInt32Ty(context), static_cast<unsigned>(numparambytes - (numreturns * 4)));	// TODO - change to retbytes
 	Value* stackptr2 = builder.CreateGEP(stackptr, offset);
 	if(retval)
 	{
@@ -607,7 +849,21 @@ void JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instruction*
 
 	builder.CreateRetVoid();
 
-	//verifyFunction(*dostufffunc);
+	verifyFunction(*dostufffunc);
+
+	std::string ErrStr;
+	ExecutionEngine* ee = EngineBuilder(module).setErrorStr(&ErrStr).create();
+	if(!ee)
+		return;
+
+	FunctionCache[alias] = dostufffunc;
+}
+
+void PopulateJITExecs(VM::VirtualMachine& ownervm)
+{
+	using namespace llvm;
+
+	module->dump();
 
 	std::string ErrStr;
 	ExecutionEngine* ee = EngineBuilder(module).setErrorStr(&ErrStr).create();
@@ -626,21 +882,10 @@ void JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instruction*
 
 	OurFPM.doInitialization();
 
-	OurFPM.run(*dostufffunc);
-
-	FunctionCache[alias] = dostufffunc;
-}
-
-void PopulateJITExecs(VM::VirtualMachine& ownervm)
-{
-	using namespace llvm;
-
-	//module->dump();
-
-	std::string ErrStr;
-	ExecutionEngine* ee = EngineBuilder(module).setErrorStr(&ErrStr).create();
-	if(!ee)
-		return;
+	for(std::map<StringHandle, Function*>::const_iterator iter = FunctionCache.begin(); iter != FunctionCache.end(); ++iter)
+	{
+		OurFPM.run(*iter->second);
+	}
 
 	PassManager OurMPM;
 	OurMPM.add(new TargetData(*ee->getTargetData()));

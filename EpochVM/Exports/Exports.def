@@ -5,4 +5,4 @@ EXPORTS
 	EnableVisualDebugger		@3
 	LinkTestHarness				@4
 	VMGetStructure				@5
-
+	VMHalt						@6
