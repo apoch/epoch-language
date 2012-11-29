@@ -188,12 +188,15 @@ void JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instruction*
 	
 	Value* retval = NULL;
 	Value* innerretval = NULL;
+	Value* typematchret = NULL;
 	unsigned numparameters = 0;
 	unsigned numparambytes = 0;
 	unsigned numreturns = 0;
 	unsigned typematchindex = 0;
 
 	const ScopeDescription* curscope = NULL;
+
+	Value* typematchconsumedbytes = NULL;
 
 	for(size_t offset = beginoffset; offset <= endoffset; )
 	{
@@ -619,13 +622,15 @@ void JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instruction*
 				Value* initialstackptr = builder.CreateLoad(pstackptr, true);
 				Value* stackoffsettracker = builder.CreateAlloca(Type::getInt32Ty(context), NULL, "stackoffset");
 
+				typematchconsumedbytes = builder.CreateAlloca(Type::getInt32Ty(context)), NULL, "consumedbytes";
 				builder.CreateStore(ConstantInt::get(Type::getInt32Ty(context), 0), stackoffsettracker);
 
 				StringHandle funcname = Fetch<StringHandle>(bytecode, offset);
-				Fetch<size_t>(bytecode, offset);
+				size_t matchoffset = Fetch<size_t>(bytecode, offset);
 				size_t paramcount = Fetch<size_t>(bytecode, offset);
 
 				std::vector<Value*> allflags;
+				std::vector<Value*> actualparams;
 
 				for(size_t i = 0; i < paramcount; ++i)
 				{
@@ -637,6 +642,7 @@ void JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instruction*
 					BasicBlock* checkmatchblock = BasicBlock::Create(context, "checkmatch", dostufffunc);
 
 					Value* flags = builder.CreateAlloca(Type::getInt32Ty(context), NULL, "paramflags");
+					Value* parampayloadptr = builder.CreateAlloca(Type::getInt8PtrTy(context), NULL, "parampayloadptr");
 
 					if(!expectref)
 					{
@@ -655,7 +661,7 @@ void JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instruction*
 						Value* providedrefflag = builder.CreateICmpEQ(providedtype, ConstantInt::get(Type::getInt32Ty(context), Metadata::EpochType_RefFlag));
 
 						BasicBlock* providedrefblock = BasicBlock::Create(context, "providedref", dostufffunc);
-						builder.CreateCondBr(providedrefflag, providedrefblock, nexttypematcher);
+						builder.CreateCondBr(providedrefflag, providedrefblock, nexttypematcher);	// TODO - allow passing of value types!!!!
 
 						builder.SetInsertPoint(providedrefblock);
 						builder.CreateStore(ConstantInt::get(Type::getInt1Ty(context), 1), providedref);
@@ -714,8 +720,10 @@ void JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instruction*
 						builder.CreateCondBr(refandexpectnothing, handlereftonothingblock, nexttypematcher);
 
 						builder.SetInsertPoint(handlereftonothingblock);
-						builder.CreateStore(providedtype, reftype);
+						builder.CreateStore(reftype, providedtype);
 						builder.CreateBr(checkmatchblock);
+
+						// TODO - verify that type matching with by-value arguments works!
 					}
 					else
 					{
@@ -759,6 +767,7 @@ void JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instruction*
 						Value* reftypeptr = builder.CreateGEP(reftarget, ConstantInt::get(Type::getInt32Ty(context), static_cast<uint64_t>(-(signed)sizeof(Metadata::EpochTypeID))));
 						reftype = builder.CreateLoad(builder.CreatePointerCast(reftypeptr, Type::getInt32PtrTy(context)));
 						builder.CreateStore(reftype, providedtype);
+						builder.CreateStore(reftarget, parampayloadptr);
 						builder.CreateBr(checkmatchblock);
 					}
 
@@ -791,6 +800,12 @@ void JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instruction*
 
 					builder.SetInsertPoint(nextparamblock);
 
+					if(expecttype != Metadata::EpochType_Nothing)
+					{
+						Value* actualparam = builder.CreatePointerCast(builder.CreateLoad(parampayloadptr), GetJITType(ownervm, expecttype, context)->getPointerTo());
+						actualparams.push_back(actualparam);
+					}
+
 					allflags.push_back(flags);
 				}
 
@@ -798,13 +813,37 @@ void JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instruction*
 				builder.CreateBr(invokeblock);
 
 				builder.SetInsertPoint(invokeblock);
-				// TODO - call inner func with appropriate arguments
-				// TODO - fixup the VM stack as necessary
 
-				(void)(funcname);
-				builder.CreateCall(vmhaltfunction);
+				std::ostringstream matchname;
+				matchname << "JITFuncInner_" << matchoffset;
+
+				Function* targetinnerfunc = NULL;
+				FunctionType* targetinnerfunctype = GetJITFunctionType(ownervm, funcname, context);
+				if(!FunctionCacheByName[matchname.str()])
+				{
+					targetinnerfunc = Function::Create(targetinnerfunctype, Function::InternalLinkage, matchname.str().c_str(), module);
+					FunctionCacheByName[matchname.str()] = jitcontext.InnerFunction;
+				}
+				else
+					targetinnerfunc = FunctionCacheByName[matchname.str()];
+
+				std::vector<Value*> resolvedargs;
+				resolvedargs.push_back(vmcontextptr);
+				for(std::vector<Value*>::const_reverse_iterator argiter = actualparams.rbegin(); argiter != actualparams.rend(); ++argiter)
+					resolvedargs.push_back(builder.CreateLoad(*argiter));
+
+				typematchret = builder.CreateCall(targetinnerfunc, resolvedargs);
+
+				builder.CreateStore(builder.CreateLoad(stackoffsettracker), typematchconsumedbytes);
+
+				// Fixup VM stack with return value
+				Value* offset = builder.CreateSub(builder.CreateLoad(typematchconsumedbytes), ConstantInt::get(Type::getInt32Ty(context), 4));
+				Value* stackptr = builder.CreateLoad(pstackptr, true);
+				Value* retstackptr = builder.CreateGEP(stackptr, offset);
+				builder.CreateStore(typematchret, builder.CreatePointerCast(retstackptr, Type::getFloatPtrTy(context)), true);
+				builder.CreateStore(retstackptr, pstackptr, true);
+				
 				builder.CreateBr(outerfunctionexit);
-
 				builder.SetInsertPoint(nexttypematcher);
 			}
 			break;
@@ -846,10 +885,7 @@ void JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instruction*
 	}
 	builder.CreateStore(stackptr2, pstackptr, true);
 
-
 	builder.CreateRetVoid();
-
-	verifyFunction(*dostufffunc);
 
 	std::string ErrStr;
 	ExecutionEngine* ee = EngineBuilder(module).setErrorStr(&ErrStr).create();
@@ -863,7 +899,7 @@ void PopulateJITExecs(VM::VirtualMachine& ownervm)
 {
 	using namespace llvm;
 
-	module->dump();
+	//module->dump();
 
 	std::string ErrStr;
 	ExecutionEngine* ee = EngineBuilder(module).setErrorStr(&ErrStr).create();
@@ -884,6 +920,7 @@ void PopulateJITExecs(VM::VirtualMachine& ownervm)
 
 	for(std::map<StringHandle, Function*>::const_iterator iter = FunctionCache.begin(); iter != FunctionCache.end(); ++iter)
 	{
+		verifyFunction(*iter->second);
 		OurFPM.run(*iter->second);
 	}
 
