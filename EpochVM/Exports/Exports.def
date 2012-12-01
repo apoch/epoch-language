@@ -6,3 +6,4 @@ EXPORTS
 	LinkTestHarness				@4
 	VMGetStructure				@5
 	VMHalt						@6
+	VMRet						@7

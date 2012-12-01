@@ -173,6 +173,8 @@ namespace VM
 		boost::unordered_map<StringHandle, JITExecPtr, fasthash> JITExecs;
 
 		boost::unordered_map<Metadata::EpochTypeID, VariantDefinition, fasthash> VariantDefinitions;
+		std::map<StringHandle, size_t> TypeMatcherParamCount;
+		std::map<StringHandle, Metadata::EpochTypeID> TypeMatcherRetType;
 
 	// Handy type shortcuts
 	private:

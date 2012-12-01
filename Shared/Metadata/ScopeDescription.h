@@ -64,6 +64,7 @@ public:
 	{ return Variables.size(); }
 
 	bool HasReturnVariable() const;
+	Metadata::EpochTypeID GetReturnVariableType() const;
 
 	bool ComputeLocalOffset(StringHandle variableid, const std::map<Metadata::EpochTypeID, size_t>& sumtypesizes, size_t& outframes, size_t& outoffset, size_t& outsize) const;
 	bool ComputeParamOffset(StringHandle variableid, const std::map<Metadata::EpochTypeID, size_t>& sumtypesizes, size_t& outframes, size_t& outoffset, size_t& outsize) const;

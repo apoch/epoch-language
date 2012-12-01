@@ -109,3 +109,9 @@ extern "C" void VMHalt()
 	::MessageBox(0, L"Fatal error - program halted", L"Epoch Virtual Machine", MB_ICONSTOP);
 	std::terminate();
 }
+
+extern "C" void VMRet(void* vmcontext)
+{
+	VM::ExecutionContext* context = reinterpret_cast<VM::ExecutionContext*>(vmcontext);
+	context->State.Result.ResultType = VM::ExecutionResult::EXEC_RESULT_RETURN;
+}

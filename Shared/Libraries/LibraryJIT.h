@@ -22,7 +22,6 @@ namespace JIT
 	struct JITContext
 	{
 		std::stack<llvm::Value*> ValuesOnStack;
-		std::stack<size_t> ReferencesOnStack;
 
 		std::stack<Bytecode::EntityTag> EntityTypes;
 

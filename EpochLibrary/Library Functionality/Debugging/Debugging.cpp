@@ -105,9 +105,15 @@ namespace
 	{
 		llvm::Value* v = context.ValuesOnStack.top();
 		context.ValuesOnStack.pop();
-		llvm::Type* tys[1];
-		tys[0] = llvm::Type::getFloatTy(*reinterpret_cast<llvm::LLVMContext*>(context.Context));
-		llvm::Function* sqrtintrinsic = llvm::Intrinsic::getDeclaration(context.MyModule, llvm::Intrinsic::sqrt, tys);
+		llvm::Function* sqrtintrinsic = context.MyModule->getFunction("llvm.sqrt.f32");
+		if(!sqrtintrinsic)
+		{
+			llvm::LLVMContext& llvmcontext = *reinterpret_cast<llvm::LLVMContext*>(context.Context);
+			std::vector<llvm::Type*> argtypes;
+			argtypes.push_back(llvm::Type::getFloatTy(llvmcontext));
+			llvm::FunctionType* functype = llvm::FunctionType::get(llvm::Type::getFloatTy(llvmcontext), argtypes, false);
+			sqrtintrinsic = llvm::Function::Create(functype, llvm::Function::ExternalLinkage, "llvm.sqrt.f32", context.MyModule);
+		}
 		llvm::Value* r = reinterpret_cast<llvm::IRBuilder<>*>(context.Builder)->CreateCall(sqrtintrinsic, v);
 		context.ValuesOnStack.push(r);
 	}

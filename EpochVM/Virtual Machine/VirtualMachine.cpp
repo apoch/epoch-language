@@ -1892,7 +1892,11 @@ void ExecutionContext::Load()
 				if(OwnerVM.JITExecs.find(funcname) == OwnerVM.JITExecs.end())
 					++typematchernojit;
 				else
+				{
 					++typematcherjit;
+					OwnerVM.TypeMatcherParamCount[typematcherid] = paramcount;
+					OwnerVM.TypeMatcherRetType[typematcherid] = OwnerVM.GetScopeDescription(funcname).GetReturnVariableType();
+				}
 			}
 			break;
 		

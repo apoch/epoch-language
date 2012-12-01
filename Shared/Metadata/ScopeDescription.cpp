@@ -308,3 +308,13 @@ void ScopeDescription::HoistInto(ScopeDescription* target)
 	Variables.clear();
 }
 
+Metadata::EpochTypeID ScopeDescription::GetReturnVariableType() const
+{
+	for(VariableVector::const_iterator iter = Variables.begin(); iter != Variables.end(); ++iter)
+	{
+		if(iter->Origin == VARIABLE_ORIGIN_RETURN)
+			return iter->Type;
+	}
+
+	return Metadata::EpochType_Error;
+}
