@@ -104,6 +104,45 @@ extern "C" void* VMGetStructure(void* vmcontext, StructureHandle handle)
 	}
 }
 
+extern "C" void* VMGetBuffer(void* vmcontext, BufferHandle handle)
+{
+	try
+	{
+		VM::ExecutionContext* context = reinterpret_cast<VM::ExecutionContext*>(vmcontext);
+		return context->OwnerVM.GetBuffer(handle);
+	}
+	catch(...)
+	{
+		return NULL;
+	}
+}
+
+extern "C" StructureHandle VMAllocStruct(void* vmcontext, Metadata::EpochTypeID structtype)
+{
+	try
+	{
+		VM::ExecutionContext* context = reinterpret_cast<VM::ExecutionContext*>(vmcontext);
+		return context->OwnerVM.AllocateStructure(context->OwnerVM.GetStructureDefinition(structtype));
+	}
+	catch(...)
+	{
+		return 0;
+	}
+}
+
+extern "C" StructureHandle VMCopyStruct(void* vmcontext, StructureHandle handle)
+{
+	try
+	{
+		VM::ExecutionContext* context = reinterpret_cast<VM::ExecutionContext*>(vmcontext);
+		return context->OwnerVM.DeepCopy(handle);
+	}
+	catch(...)
+	{
+		return 0;
+	}
+}
+
 extern "C" void VMHalt()
 {
 	::MessageBox(0, L"Fatal error - program halted", L"Epoch Virtual Machine", MB_ICONSTOP);

@@ -94,6 +94,26 @@ namespace
 		*(reinterpret_cast<UInteger32*>(context.OwnerVM.GetBuffer(handle)) + offset) = pixelcolor;
 	}
 
+	void PlotPixelJIT(JIT::JITContext& context, bool)
+	{
+		llvm::Value* color = context.ValuesOnStack.top();
+		context.ValuesOnStack.pop();
+
+		llvm::Value* offset = context.ValuesOnStack.top();
+		context.ValuesOnStack.pop();
+
+		llvm::Value* pbufferhandle = context.ValuesOnStack.top();
+		context.ValuesOnStack.pop();
+
+		llvm::Value* bufferhandle = reinterpret_cast<llvm::IRBuilder<>*>(context.Builder)->CreateLoad(pbufferhandle);
+
+		llvm::Value* bufferptr = reinterpret_cast<llvm::IRBuilder<>*>(context.Builder)->CreateCall2(context.VMGetBuffer, context.VMContextPtr, bufferhandle);
+		llvm::Value* castbufferptr = reinterpret_cast<llvm::IRBuilder<>*>(context.Builder)->CreatePointerCast(bufferptr, llvm::Type::getInt32PtrTy(*reinterpret_cast<llvm::LLVMContext*>(context.Context)));
+
+		llvm::Value* gep = reinterpret_cast<llvm::IRBuilder<>*>(context.Builder)->CreateGEP(castbufferptr, offset);
+		reinterpret_cast<llvm::IRBuilder<>*>(context.Builder)->CreateStore(color, gep);
+	}
+
 	// TODO - move this to a better home
 	void Sqrt(StringHandle, VM::ExecutionContext& context)
 	{
@@ -182,4 +202,5 @@ void DebugLibrary::LinkToTestHarness(unsigned* harness)
 void DebugLibrary::RegisterJITTable(JIT::JITTable& table, StringPoolManager& stringpool)
 {
 	AddToMapNoDupe(table.InvokeHelpers, std::make_pair(stringpool.Pool(L"sqrt"), &SqrtJIT));
+	AddToMapNoDupe(table.InvokeHelpers, std::make_pair(stringpool.Pool(L"plotpixel"), &PlotPixelJIT));
 }

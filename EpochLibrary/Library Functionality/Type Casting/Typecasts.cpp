@@ -146,6 +146,19 @@ namespace
 
 		context.State.Stack.PushValue(static_cast<Real32>(value));
 	}
+
+	void CastIntegerToRealJIT(JIT::JITContext& context, bool)
+	{
+		llvm::Value* p = context.ValuesOnStack.top();
+		context.ValuesOnStack.pop();
+
+		// Pop "real" token
+		context.ValuesOnStack.pop();
+
+		llvm::LLVMContext& llvmcontext = *reinterpret_cast<llvm::LLVMContext*>(context.Context);
+		llvm::Value* castvalue = reinterpret_cast<llvm::IRBuilder<>*>(context.Builder)->CreateCast(llvm::Instruction::SIToFP, p, llvm::Type::getFloatTy(llvmcontext));
+		context.ValuesOnStack.push(castvalue);
+	}
 }
 
 
@@ -240,4 +253,5 @@ void TypeCasts::RegisterLibraryOverloads(OverloadMap& overloadmap, StringPoolMan
 void TypeCasts::RegisterJITTable(JIT::JITTable& table, StringPoolManager& stringpool)
 {
 	AddToMapNoDupe(table.InvokeHelpers, std::make_pair(stringpool.Pool(L"cast@@real_to_integer"), &CastRealToIntegerJIT));
+	AddToMapNoDupe(table.InvokeHelpers, std::make_pair(stringpool.Pool(L"cast@@integer_to_real"), &CastIntegerToRealJIT));
 }

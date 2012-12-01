@@ -20,7 +20,10 @@
 #include <stack>
 
 llvm::Module* module = NULL;
+llvm::Function* vmgetbuffer = NULL;
 llvm::Function* vmgetstructure = NULL;
+llvm::Function* vmallocstruct = NULL;
+llvm::Function* vmcopystruct = NULL;
 llvm::Function* vmhaltfunction = NULL;
 llvm::Function* vmretfunction = NULL;
 
@@ -79,10 +82,20 @@ llvm::Type* GetJITType(const VM::VirtualMachine& ownervm, Metadata::EpochTypeID 
 	switch(type)
 	{
 	case Metadata::EpochType_Integer:
+	case Metadata::EpochType_String:
+	case Metadata::EpochType_Identifier:
+	case Metadata::EpochType_Function:
+	case Metadata::EpochType_Buffer:
 		return llvm::Type::getInt32Ty(context);
 
 	case Metadata::EpochType_Real:
 		return llvm::Type::getFloatTy(context);
+
+	case Metadata::EpochType_Boolean:
+		return llvm::Type::getInt8Ty(context);
+
+	case Metadata::EpochType_Integer16:
+		return llvm::Type::getInt16Ty(context);
 
 	default:
 		if(family == Metadata::EpochTypeFamily_SumType)
@@ -361,13 +374,25 @@ void JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instruction*
 
 	std::map<Value*, Value*> structurelookupcache;
 
-	std::vector<Type*> vmargs;
-	vmargs.push_back(Type::getInt1PtrTy(context));
-	vmargs.push_back(IntegerType::get(context, 32));
-	FunctionType* vmgetstructuretype = FunctionType::get(Type::getInt1PtrTy(context), vmargs, false);
+	if(!vmgetbuffer)
+	{
+		std::vector<Type*> vmargs;
+		vmargs.push_back(Type::getInt1PtrTy(context));
+		vmargs.push_back(IntegerType::get(context, 32));
+		FunctionType* vmgetbuffertype = FunctionType::get(Type::getInt1PtrTy(context), vmargs, false);
+
+		vmgetbuffer = Function::Create(vmgetbuffertype, Function::ExternalLinkage, "VMGetBuffer", module);
+	}
 
 	if(!vmgetstructure)
+	{
+		std::vector<Type*> vmargs;
+		vmargs.push_back(Type::getInt1PtrTy(context));
+		vmargs.push_back(IntegerType::get(context, 32));
+		FunctionType* vmgetstructuretype = FunctionType::get(Type::getInt1PtrTy(context), vmargs, false);
+
 		vmgetstructure = Function::Create(vmgetstructuretype, Function::ExternalLinkage, "VMGetStructure", module);
+	}
 
 	if(!vmhaltfunction)
 		vmhaltfunction = Function::Create(FunctionType::get(Type::getVoidTy(context), false), Function::ExternalLinkage, "VMHalt", module);
@@ -377,6 +402,26 @@ void JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instruction*
 		std::vector<Type*> vmretargs;
 		vmretargs.push_back(Type::getInt1PtrTy(context));
 		vmretfunction = Function::Create(FunctionType::get(Type::getVoidTy(context), vmretargs, false), Function::ExternalLinkage, "VMRet", module);
+	}
+
+	if(!vmallocstruct)
+	{
+		std::vector<Type*> vmargs;
+		vmargs.push_back(Type::getInt1PtrTy(context));
+		vmargs.push_back(IntegerType::get(context, 32));
+		FunctionType* vmallocstructtype = FunctionType::get(Type::getInt32Ty(context), vmargs, false);
+
+		vmallocstruct = Function::Create(vmallocstructtype, Function::ExternalLinkage, "VMAllocStruct", module);
+	}
+
+	if(!vmcopystruct)
+	{
+		std::vector<Type*> vmargs;
+		vmargs.push_back(Type::getInt1PtrTy(context));
+		vmargs.push_back(IntegerType::get(context, 32));
+		FunctionType* vmcopystructtype = FunctionType::get(Type::getInt32Ty(context), vmargs, false);
+
+		vmcopystruct = Function::Create(vmcopystructtype, Function::ExternalLinkage, "VMCopyStruct", module);
 	}
 
 	BasicBlock* block = BasicBlock::Create(context, "entry", dostufffunc);
@@ -392,10 +437,11 @@ void JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instruction*
 
 	JIT::JITContext jitcontext;
 	jitcontext.Builder = &builder;
-	jitcontext.PStackPtr = pstackptr;
+	jitcontext.VMContextPtr = NULL;
 	jitcontext.Context = &context;
 	jitcontext.MyModule = module;
 	jitcontext.InnerFunction = NULL;
+	jitcontext.VMGetBuffer = vmgetbuffer;
 	BasicBlock* innerfunctionexit = NULL;
 	BasicBlock* nativematchblock = NULL;
 	
@@ -408,8 +454,12 @@ void JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instruction*
 	unsigned typematchindex = 0;
 
 	std::stack<Metadata::EpochTypeID> annotations;
+	std::map<size_t, size_t> offsettoindexmap;
+	std::map<size_t, size_t> paramoffsettoindexmap;
 
 	const ScopeDescription* curscope = NULL;
+
+	Metadata::EpochTypeID hackstructtype = 0;
 
 	Value* typematchconsumedbytes = NULL;
 
@@ -437,6 +487,8 @@ void JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instruction*
 
 					std::set<size_t> locals;
 					std::set<size_t> parameters;
+
+					size_t localoffsetbytes = 0;
 
 					size_t retindex = static_cast<size_t>(-1);
 
@@ -478,6 +530,7 @@ void JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instruction*
 
 						case VARIABLE_ORIGIN_PARAMETER:
 							{
+								paramoffsettoindexmap[numparambytes] = i;
 								parameters.insert(i);
 								Constant* offset = ConstantInt::get(Type::getInt32Ty(context), numparambytes);
 								++numparameters;
@@ -510,7 +563,7 @@ void JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instruction*
 									Value* local = builder.CreateAlloca(type);
 									jitcontext.VariableMap[i] = local;
 									Value* newstackptr = builder.CreateGEP(stackptr, offset);
-									Value* stackval = builder.CreateLoad(newstackptr);
+									Value* stackval = builder.CreateLoad(builder.CreatePointerCast(newstackptr, type->getPointerTo()));
 									builder.CreateStore(stackval, local);
 
 									numparambytes += Metadata::GetStorageSize(vartype);
@@ -572,11 +625,21 @@ void JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instruction*
 					if(numreturns)
 						jitcontext.VariableMap[retindex] = innerretval;
 
+					localoffsetbytes = 0;
 					for(std::set<size_t>::const_iterator localiter = locals.begin(); localiter != locals.end(); ++localiter)
 					{
-						Type* type = GetJITType(ownervm, scope.GetVariableTypeByIndex(*localiter), context);
+						Metadata::EpochTypeID localtype = scope.GetVariableTypeByIndex(*localiter);
+						Type* type = GetJITType(ownervm, localtype, context);
 						jitcontext.VariableMap[*localiter] = builder.CreateAlloca(type, NULL, narrow(ownervm.GetPooledString(scope.GetVariableNameHandle(*localiter))));
+						offsettoindexmap[localoffsetbytes] = *localiter;
+
+						if(Metadata::GetTypeFamily(localtype) == Metadata::EpochTypeFamily_SumType)
+							localoffsetbytes += ownervm.VariantDefinitions.find(localtype)->second.GetMaxSize();
+						else
+							localoffsetbytes += Metadata::GetStorageSize(localtype);
 					}
+
+					jitcontext.VMContextPtr = jitcontext.InnerFunction->arg_begin();
 				}
 				else if(entitytype == Bytecode::EntityTags::TypeResolver)
 				{
@@ -647,6 +710,7 @@ void JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instruction*
 				Value* reftarget = jitcontext.ValuesOnStack.top();
 				jitcontext.ValuesOnStack.pop();
 				builder.CreateStore(jitcontext.ValuesOnStack.top(), reftarget);
+				jitcontext.ValuesOnStack.pop();
 			}
 			break;
 
@@ -672,7 +736,18 @@ void JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instruction*
 			{
 				StringHandle varname = Fetch<StringHandle>(bytecode, offset);
 				size_t index = jitcontext.NameToIndexMap[varname];
-				jitcontext.ValuesOnStack.push(builder.CreateLoad(jitcontext.VariableMap[index]));
+
+				Value* v = NULL;
+
+				if(index >= numparameters)
+					v = builder.CreateLoad(jitcontext.VariableMap[index]);
+				else
+					v = jitcontext.VariableMap[index];
+
+				if(curscope->IsReferenceByID(varname))
+					v = builder.CreateLoad(v);
+
+				jitcontext.ValuesOnStack.push(v);
 			}
 			break;
 
@@ -680,17 +755,26 @@ void JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instruction*
 			{
 				size_t frames = Fetch<size_t>(bytecode, offset);
 				size_t stackoffset = Fetch<size_t>(bytecode, offset);
-				size_t stacksize = Fetch<size_t>(bytecode, offset);
+				Fetch<size_t>(bytecode, offset);		// stack size is irrelevant
 
 				if(frames != 0)
-					throw NotImplementedException("More lazy.");
+					throw NotImplementedException("Scope is not flat!");
 
-				if(stacksize != 4)
-					throw NotImplementedException("Ridiculously lazy.");
+				Value* val = builder.CreateLoad(jitcontext.VariableMap[offsettoindexmap[stackoffset]]);
+				jitcontext.ValuesOnStack.push(val);
+			}
+			break;
 
-				// TODO - this is really egregious
+		case Bytecode::Instructions::ReadParam:
+			{
+				size_t frames = Fetch<size_t>(bytecode, offset);
+				size_t stackoffset = Fetch<size_t>(bytecode, offset);
+				Fetch<size_t>(bytecode, offset);		// stack size is irrelevant
 
-				Value* val = builder.CreateLoad(jitcontext.VariableMap[localoffset + stackoffset / 4]);
+				if(frames != 0)
+					throw NotImplementedException("Scope is not flat!");
+
+				Value* val = jitcontext.VariableMap[paramoffsettoindexmap[stackoffset]];
 				jitcontext.ValuesOnStack.push(val);
 			}
 			break;
@@ -703,9 +787,10 @@ void JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instruction*
 				if(frames > 0)
 					throw NotImplementedException("Scope is not flat!");
 
+				Metadata::EpochTypeID vartype = curscope->GetVariableTypeByIndex(index);
 				Value* ptr = jitcontext.VariableMap[index];
 				jitcontext.ValuesOnStack.push(ptr);
-				annotations.push(curscope->GetVariableTypeByIndex(index));
+				annotations.push(vartype);
 			}
 			break;
 
@@ -721,6 +806,8 @@ void JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instruction*
 				if(!voidstructptr)
 				{
 					Value* structurehandle = jitcontext.ValuesOnStack.top();
+					if(structurehandle->getType()->isPointerTy())
+						structurehandle = builder.CreateLoad(structurehandle);
 					voidstructptr = builder.CreateCall2(vmgetstructure, jitcontext.InnerFunction->arg_begin(), structurehandle);
 					structurelookupcache[jitcontext.ValuesOnStack.top()] = voidstructptr;
 				}
@@ -883,13 +970,18 @@ void JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instruction*
 					}
 
 					std::vector<Value*> targetargs;
-					targetargs.push_back(jitcontext.InnerFunction->arg_begin());
 					for(size_t i = 1; i < targetfunctype->getNumParams(); ++i)
 					{
-						Value* p = builder.CreateLoad(jitcontext.ValuesOnStack.top());
+						Value* p = jitcontext.ValuesOnStack.top();
 						jitcontext.ValuesOnStack.pop();
+
+						if(p->getType() == targetfunctype->getContainedType(targetfunctype->getNumParams() - i + 1)->getPointerTo())
+							p = builder.CreateLoad(p);
+
 						targetargs.push_back(p);
 					}
+					targetargs.push_back(jitcontext.InnerFunction->arg_begin());
+					std::reverse(targetargs.begin(), targetargs.end());
 
 					jitcontext.ValuesOnStack.push(builder.CreateCall(targetfunc, targetargs));
 				}
@@ -1181,6 +1273,16 @@ void JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instruction*
 			builder.CreateBr(outerfunctionexit);
 			break;
 
+		case Bytecode::Instructions::AllocStructure:
+			{
+				Metadata::EpochTypeID type = Fetch<Metadata::EpochTypeID>(bytecode, offset);
+				Value* typeconst = ConstantInt::get(Type::getInt32Ty(context), type);
+				jitcontext.ValuesOnStack.push(builder.CreateCall2(vmallocstruct, jitcontext.InnerFunction->arg_begin(), typeconst));
+
+				hackstructtype = type;
+			}
+			break;
+
 		case Bytecode::Instructions::ConstructSumType:
 			{
 				Value* vartype = jitcontext.ValuesOnStack.top();
@@ -1217,6 +1319,36 @@ void JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instruction*
 				}
 			}
 			break;
+
+		case Bytecode::Instructions::CopyToStructure:
+			{
+				StringHandle variablename = Fetch<StringHandle>(bytecode, offset);
+				StringHandle actualmember = Fetch<StringHandle>(bytecode, offset);
+
+				Value* v = jitcontext.VariableMap[jitcontext.NameToIndexMap[variablename]];
+				Value* structptr = builder.CreateCall2(vmgetstructure, jitcontext.InnerFunction->arg_begin(), builder.CreateLoad(v));
+
+				const StructureDefinition& def = ownervm.GetStructureDefinition(hackstructtype);
+				size_t memberindex = def.FindMember(actualmember);
+				size_t memberoffset = def.GetMemberOffset(memberindex);
+
+				Value* memberptr = builder.CreateGEP(structptr, ConstantInt::get(Type::getInt32Ty(context), memberoffset));
+				Value* castmemberptr = builder.CreatePointerCast(memberptr, jitcontext.ValuesOnStack.top()->getType()->getPointerTo());
+				
+				builder.CreateStore(jitcontext.ValuesOnStack.top(), castmemberptr);
+
+				jitcontext.ValuesOnStack.pop();
+			}
+			break;
+
+			case Bytecode::Instructions::CopyStructure:
+			{
+				Value* structurehandle = jitcontext.ValuesOnStack.top();
+				jitcontext.ValuesOnStack.pop();
+				jitcontext.ValuesOnStack.push(builder.CreateCall2(vmcopystruct, jitcontext.InnerFunction->arg_begin(), structurehandle));
+			}
+			break;
+
 
 		default:
 			throw FatalException("Unsupported instruction for JIT compilation");

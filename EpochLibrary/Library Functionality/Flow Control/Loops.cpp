@@ -34,15 +34,22 @@ namespace
 		return ENTITYRET_EXIT_CHAIN;
 	}
 
-	/*
-	void WhileJIT(JIT::JITContext& context)
+	void WhileJIT(JIT::JITContext& context, bool entry)
 	{
 		llvm::IRBuilder<>* builder = reinterpret_cast<llvm::IRBuilder<>*>(context.Builder);
-		builder->CreateCondBr(context.ValuesOnStack.top(), context.EntityBody, context.EntityExit);
-		context.ValuesOnStack.pop();
-		builder->SetInsertPoint(context.EntityBody);
+		if(entry)
+		{
+			context.EntityBodies.push(llvm::BasicBlock::Create(*reinterpret_cast<llvm::LLVMContext*>(context.Context), "whileloop", context.InnerFunction));
+			builder->CreateCondBr(context.ValuesOnStack.top(), context.EntityBodies.top(), context.EntityChains.top());
+			context.ValuesOnStack.pop();
+			builder->SetInsertPoint(context.EntityBodies.top());
+		}
+		else
+		{
+			context.EntityBodies.pop();
+			builder->CreateBr(context.EntityChecks.top());
+		}
 	}
-	*/
 
 	//
 	// Meta-control for do-while loops
@@ -110,9 +117,7 @@ void FlowControl::RegisterLoopEntities(EntityTable& entities, EntityTable&, Enti
 
 void FlowControl::RegisterLoopsJITTable(JIT::JITTable& table, StringPoolManager& stringpool)
 {
-	(void)(table);
-	(void)(stringpool);
-	//Bytecode::EntityTag tag = EntityMap[stringpool.Pool(L"while")];
-	//AddToMapNoDupe(table.EntityHelpers, std::make_pair(tag, &WhileJIT));
+	Bytecode::EntityTag tag = EntityMap[stringpool.Pool(L"while")];
+	AddToMapNoDupe(table.EntityHelpers, std::make_pair(tag, &WhileJIT));
 }
 

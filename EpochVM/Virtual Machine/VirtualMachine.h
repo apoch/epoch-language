@@ -192,7 +192,7 @@ namespace VM
 		BeginEndOffsetMap ChainOffsets;
 
 		HandleAllocator<BufferHandle> BufferHandleAlloc;
-		std::map<BufferHandle, std::vector<Byte> > Buffers;
+		boost::unordered_map<BufferHandle, std::vector<Byte>, fasthash> Buffers;
 
 		HandleAllocator<StructureHandle> StructureHandleAlloc;
 		boost::unordered_map<StructureHandle, ActiveStructure, fasthash> ActiveStructures;

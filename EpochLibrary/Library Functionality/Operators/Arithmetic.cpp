@@ -176,6 +176,16 @@ namespace
 		context.ValuesOnStack.push(result);
 	}
 
+	void SubtractIntegersJIT(JIT::JITContext& context, bool)
+	{
+		llvm::Value* p2 = context.ValuesOnStack.top();
+		context.ValuesOnStack.pop();
+		llvm::Value* p1 = context.ValuesOnStack.top();
+		context.ValuesOnStack.pop();
+		llvm::Value* result = reinterpret_cast<llvm::IRBuilder<>*>(context.Builder)->CreateSub(p1, p2);
+		context.ValuesOnStack.push(result);
+	}
+
 	void MultiplyIntegersJIT(JIT::JITContext& context, bool)
 	{
 		llvm::Value* p2 = context.ValuesOnStack.top();
@@ -513,6 +523,8 @@ void ArithmeticLibrary::RegisterJITTable(JIT::JITTable& table, StringPoolManager
 	AddToMapNoDupe(table.InvokeHelpers, std::make_pair(stringpool.Pool(L"/@@real"), &DivideRealsJIT));
 
 	AddToMapNoDupe(table.InvokeHelpers, std::make_pair(stringpool.Pool(L"+=@@integer"), &AddIntegersJIT));
+	AddToMapNoDupe(table.InvokeHelpers, std::make_pair(stringpool.Pool(L"+@@integer"), &AddIntegersJIT));
+	AddToMapNoDupe(table.InvokeHelpers, std::make_pair(stringpool.Pool(L"-@@integer"), &SubtractIntegersJIT));
 	AddToMapNoDupe(table.InvokeHelpers, std::make_pair(stringpool.Pool(L"*@@integer"), &MultiplyIntegersJIT));
 }
 

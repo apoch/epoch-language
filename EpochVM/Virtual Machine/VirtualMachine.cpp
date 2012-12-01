@@ -204,7 +204,7 @@ EPOCHVM void* VirtualMachine::GetBuffer(BufferHandle handle)
 {
 	Threads::CriticalSection::Auto lock(BufferCritSec);
 
-	std::map<StringHandle, std::vector<Byte> >::iterator iter = Buffers.find(handle);
+	boost::unordered_map<BufferHandle, std::vector<Byte>, fasthash>::iterator iter = Buffers.find(handle);
 	if(iter == Buffers.end())
 		throw FatalException("Invalid buffer handle");
 
@@ -218,7 +218,7 @@ EPOCHVM size_t VirtualMachine::GetBufferSize(BufferHandle handle) const
 {
 	Threads::CriticalSection::Auto lock(BufferCritSec);
 
-	std::map<StringHandle, std::vector<Byte> >::const_iterator iter = Buffers.find(handle);
+	boost::unordered_map<BufferHandle, std::vector<Byte>, fasthash>::const_iterator iter = Buffers.find(handle);
 	if(iter == Buffers.end())
 		throw FatalException("Invalid buffer handle");
 
@@ -244,7 +244,7 @@ BufferHandle VirtualMachine::CloneBuffer(BufferHandle handle)
 {
 	Threads::CriticalSection::Auto lock(BufferCritSec);
 
-	std::map<StringHandle, std::vector<Byte> >::const_iterator iter = Buffers.find(handle);
+	boost::unordered_map<BufferHandle, std::vector<Byte>, fasthash>::const_iterator iter = Buffers.find(handle);
 	if(iter == Buffers.end())
 		throw FatalException("Invalid buffer handle");
 

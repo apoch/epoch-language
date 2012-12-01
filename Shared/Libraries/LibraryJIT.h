@@ -36,9 +36,10 @@ namespace JIT
 		std::stack<llvm::BasicBlock*> EntityChains;
 		std::stack<llvm::BasicBlock*> EntityChainExits;
 
-		llvm::Value* PStackPtr;
+		llvm::Value* VMContextPtr;
 
 		llvm::Function* InnerFunction;
+		llvm::Function* VMGetBuffer;
 
 		void* Context;
 		void* Builder;

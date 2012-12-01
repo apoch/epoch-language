@@ -7,3 +7,7 @@ EXPORTS
 	VMGetStructure				@5
 	VMHalt						@6
 	VMRet						@7
+	VMAllocStruct				@8
+	VMCopyStruct				@9
+	VMGetBuffer					@10
+
