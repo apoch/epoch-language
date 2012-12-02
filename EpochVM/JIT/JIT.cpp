@@ -502,6 +502,7 @@ void JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instruction*
 	std::map<size_t, size_t> paramoffsettoindexmap;
 	std::set<size_t> lazystructureloads;
 	std::set<size_t> lazyinitscomplete;
+	std::map<std::pair<Value*, size_t>, Value*> structurecache;
 
 	const ScopeDescription* curscope = NULL;
 
@@ -961,15 +962,23 @@ void JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instruction*
 						Type* pfinaltype = Type::getInt32PtrTy(context);
 						memberptr = builder.CreatePointerCast(voidmemberptr, pfinaltype);
 
-						Value* loadedhandle = builder.CreateLoad(memberptr);
-						Value* actualstruct = builder.CreateCall2(vmgetstructure, jitcontext.InnerFunction->arg_begin(), loadedhandle);
-						Value* caststruct = builder.CreatePointerCast(actualstruct, Type::getInt8PtrTy(context));
-						Value* handleptr = builder.CreateAlloca(HandlePointerPair);
-						Value* handle = JITGEPForHandle(builder, handleptr);
-						Value* p = JITGEPForPointer(builder, handleptr);
-						builder.CreateStore(loadedhandle, handle);
-						builder.CreateStore(caststruct, p);
-						memberptr = handleptr;
+						Value* cached = structurecache[std::make_pair(jitcontext.ValuesOnStack.top(), memberoffset)];
+						if(!cached)
+						{
+							Value* loadedhandle = builder.CreateLoad(memberptr);
+							Value* actualstruct = builder.CreateCall2(vmgetstructure, jitcontext.InnerFunction->arg_begin(), loadedhandle);
+							Value* caststruct = builder.CreatePointerCast(actualstruct, Type::getInt8PtrTy(context));
+							Value* handleptr = builder.CreateAlloca(HandlePointerPair);
+							Value* handle = JITGEPForHandle(builder, handleptr);
+							Value* p = JITGEPForPointer(builder, handleptr);
+							builder.CreateStore(loadedhandle, handle);
+							builder.CreateStore(caststruct, p);
+							structurecache[std::make_pair(jitcontext.ValuesOnStack.top(), memberoffset)] = handleptr;
+							memberptr = handleptr;
+							cached = handleptr;
+						}
+
+						memberptr = cached;
 					}
 					else if(Metadata::GetTypeFamily(membertype) == Metadata::EpochTypeFamily_SumType)
 					{
