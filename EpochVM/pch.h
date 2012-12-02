@@ -54,6 +54,7 @@
 #pragma warning(disable: 4127)		// conditional expression is constant
 #pragma warning(disable: 4245)		// signed/unsigned mismatch
 #pragma warning(disable: 4244)		// conversion might lose data
+#pragma warning(disable: 4100)		// unreferenced formal parameter
 
 #define SUPPORT_DATATYPES_H 1
 #define END_WITH_NULL

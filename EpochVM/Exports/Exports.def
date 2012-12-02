@@ -10,4 +10,4 @@ EXPORTS
 	VMAllocStruct				@8
 	VMCopyStruct				@9
 	VMGetBuffer					@10
-
+	VMBreak						@11

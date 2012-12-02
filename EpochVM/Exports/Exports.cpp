@@ -154,3 +154,9 @@ extern "C" void VMRet(void* vmcontext)
 	VM::ExecutionContext* context = reinterpret_cast<VM::ExecutionContext*>(vmcontext);
 	context->State.Result.ResultType = VM::ExecutionResult::EXEC_RESULT_RETURN;
 }
+
+extern "C" void VMBreak()
+{
+	__asm int 3
+}
+

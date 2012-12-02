@@ -48,6 +48,7 @@ namespace
 		llvm::Value* c = context.ValuesOnStack.top();
 		context.ValuesOnStack.pop();
 
+
 		llvm::ConstantInt* cint = llvm::dyn_cast<llvm::ConstantInt>(c);
 		size_t vartarget = static_cast<size_t>(cint->getValue().getLimitedValue());
 
