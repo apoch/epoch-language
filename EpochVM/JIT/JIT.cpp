@@ -314,17 +314,13 @@ void JITNativeTypeMatcher(const VM::VirtualMachine& ownervm, const Bytecode::Ins
 
 					if(expecttype != Metadata::EpochType_Nothing)
 					{
-						Value* v = NULL;
-						
+						Value* v = builder.CreatePointerCast(parampayloadptr, GetJITType(ownervm, expecttype, context)->getPointerTo());
+
 						if(Metadata::GetTypeFamily(expecttype) == Metadata::EpochTypeFamily_Structure || Metadata::GetTypeFamily(expecttype) == Metadata::EpochTypeFamily_TemplateInstance)
 						{
-							JITBreakpoint(builder);
-							v = builder.CreateAlloca(HandlePointerPair);
-							Value* castpayload = builder.CreatePointerCast(parampayloadptr, v->getType());
-							builder.CreateStore(builder.CreateLoad(castpayload), v);
+							v = builder.CreatePointerCast(parampayloadptr, HandlePointerPair->getPointerTo()->getPointerTo());
+							v = builder.CreateLoad(v);
 						}
-						else
-							v = builder.CreatePointerCast(parampayloadptr, GetJITType(ownervm, expecttype, context)->getPointerTo());
 
 						if(!expectref)
 							v = builder.CreateLoad(v);
@@ -914,6 +910,11 @@ void JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instruction*
 				{
 					if(lazyinitscomplete.count(index))
 					{
+						Value* handle = builder.CreateLoad(JITGEPForHandle(builder, ptr));
+						Value* rawptr = builder.CreateCall2(vmgetstructure, jitcontext.InnerFunction->arg_begin(), handle);
+						Value* castptr = builder.CreatePointerCast(rawptr, Type::getInt8PtrTy(context));
+						builder.CreateStore(castptr, JITGEPForPointer(builder, ptr));
+
 						lazystructureloads.erase(index);
 					}
 					else
