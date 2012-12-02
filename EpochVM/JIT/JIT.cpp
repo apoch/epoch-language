@@ -318,6 +318,7 @@ void JITNativeTypeMatcher(const VM::VirtualMachine& ownervm, const Bytecode::Ins
 						
 						if(Metadata::GetTypeFamily(expecttype) == Metadata::EpochTypeFamily_Structure || Metadata::GetTypeFamily(expecttype) == Metadata::EpochTypeFamily_TemplateInstance)
 						{
+							JITBreakpoint(builder);
 							v = builder.CreateAlloca(HandlePointerPair);
 							Value* castpayload = builder.CreatePointerCast(parampayloadptr, v->getType());
 							builder.CreateStore(builder.CreateLoad(castpayload), v);
@@ -933,6 +934,12 @@ void JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instruction*
 				size_t memberoffset = Fetch<size_t>(bytecode, offset);
 
 				Value* voidstructptr = jitcontext.ValuesOnStack.top();
+				if(voidstructptr->getType() == HandlePointerPair->getPointerTo())
+				{
+					Value* pgep = JITGEPForPointer(builder, voidstructptr);
+					voidstructptr = builder.CreateLoad(pgep);
+				}
+
 				Value* bytestructptr = builder.CreatePointerCast(voidstructptr, Type::getInt8PtrTy(context));
 				Value* voidmemberptr = builder.CreateGEP(bytestructptr, ConstantInt::get(Type::getInt32Ty(context), memberoffset));
 
@@ -1360,11 +1367,13 @@ void JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instruction*
 					if(expecttype != Metadata::EpochType_Nothing)
 					{
 						Value* actualparam = builder.CreatePointerCast(builder.CreateLoad(parampayloadptr), GetJITType(ownervm, expecttype, context)->getPointerTo());
+
 						if(expectref)
 						{
 							if(Metadata::GetTypeFamily(expecttype) == Metadata::EpochTypeFamily_Structure || Metadata::GetTypeFamily(expecttype) == Metadata::EpochTypeFamily_TemplateInstance)
 							{
-								Value* handle = builder.CreateLoad(JITGEPForHandle(builder, actualparam));
+								actualparam = builder.CreatePointerCast(parampayloadptr, Type::getInt32PtrTy(context)->getPointerTo());
+								Value* handle = builder.CreateLoad(builder.CreateLoad(actualparam));
 								Value* load = builder.CreatePointerCast(builder.CreateCall2(vmgetstructure, vmcontextptr, handle), Type::getInt8PtrTy(context));
 								Value* handleptr = builder.CreateAlloca(HandlePointerPair);
 								Value* h = JITGEPForHandle(builder, handleptr);
@@ -1621,7 +1630,7 @@ void PopulateJITExecs(VM::VirtualMachine& ownervm)
 	ExecutionEngine* ee = EngineBuilder(module).setErrorStr(&ErrStr).create();
 	if(!ee)
 		return;
-	/*
+	
 	FunctionPassManager OurFPM(module);
 
 	OurFPM.add(new TargetData(*ee->getTargetData()));
@@ -1681,7 +1690,7 @@ void PopulateJITExecs(VM::VirtualMachine& ownervm)
 	OurMPM.add(createFunctionInliningPass());
 
 	OurMPM.run(*module);
-*/
+
 	//module->dump();
 
 	for(std::map<StringHandle, Function*>::const_iterator iter = FunctionCache.begin(); iter != FunctionCache.end(); ++iter)
