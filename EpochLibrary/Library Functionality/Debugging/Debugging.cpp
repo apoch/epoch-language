@@ -107,7 +107,14 @@ namespace
 
 		llvm::Value* bufferhandle = reinterpret_cast<llvm::IRBuilder<>*>(context.Builder)->CreateLoad(pbufferhandle);
 
-		llvm::Value* bufferptr = reinterpret_cast<llvm::IRBuilder<>*>(context.Builder)->CreateCall2(context.VMGetBuffer, context.VMContextPtr, bufferhandle);
+		llvm::Value* cachedcall = context.BufferLookupCache[pbufferhandle];
+		if(!cachedcall)
+		{
+			cachedcall = reinterpret_cast<llvm::IRBuilder<>*>(context.Builder)->CreateCall2(context.VMGetBuffer, context.VMContextPtr, bufferhandle);
+			context.BufferLookupCache[pbufferhandle] = cachedcall;
+		}
+
+		llvm::Value* bufferptr = cachedcall;
 		llvm::Value* castbufferptr = reinterpret_cast<llvm::IRBuilder<>*>(context.Builder)->CreatePointerCast(bufferptr, llvm::Type::getInt32PtrTy(*reinterpret_cast<llvm::LLVMContext*>(context.Context)));
 
 		llvm::Value* gep = reinterpret_cast<llvm::IRBuilder<>*>(context.Builder)->CreateGEP(castbufferptr, offset);

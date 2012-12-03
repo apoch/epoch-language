@@ -72,8 +72,9 @@ private:
 
 	void GetAllDependencies(const ValueT& value, std::vector<ValueT>& curdeps) const
 	{
-		if(std::find(curdeps.begin(), curdeps.end(), value) != curdeps.end())
-			throw RecoverableException("Circular dependency");
+		// TODO - fix this (doesn't work if we have B owning A and C owning both B and A)
+		//if(std::find(curdeps.begin(), curdeps.end(), value) != curdeps.end())
+		//	throw RecoverableException("Circular dependency");
 
 		std::vector<ValueT> directdeps = GetDirectDependencies(value);
 		for(std::vector<ValueT>::const_iterator iter = directdeps.begin(); iter != directdeps.end(); ++iter)

@@ -15,10 +15,17 @@
 
 #include <llvm/Intrinsics.h>
 #include <llvm/Support/CrashRecoveryContext.h>
+#include <llvm/Transforms/Vectorize.h>
+
+#pragma warning(push)
+#pragma warning(disable: 4146)
+#include <llvm/ADT/Statistic.h>
+#pragma warning(pop)
 
 #include <sstream>
 #include <map>
 #include <stack>
+#include <iostream>
 
 llvm::Module* module = NULL;
 llvm::Function* vmgetbuffer = NULL;
@@ -426,6 +433,7 @@ void JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instruction*
 		FunctionType* vmgetbuffertype = FunctionType::get(Type::getInt1PtrTy(context), vmargs, false);
 
 		vmgetbuffer = Function::Create(vmgetbuffertype, Function::ExternalLinkage, "VMGetBuffer", module);
+		vmgetbuffer->addAttribute(0, Attribute::ReadNone);
 	}
 
 	if(!vmgetstructure)
@@ -436,6 +444,7 @@ void JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instruction*
 		FunctionType* vmgetstructuretype = FunctionType::get(Type::getInt1PtrTy(context), vmargs, false);
 
 		vmgetstructure = Function::Create(vmgetstructuretype, Function::ExternalLinkage, "VMGetStructure", module);
+		vmgetstructure->addAttribute(0, Attribute::ReadNone);
 	}
 
 	if(!vmhaltfunction)
@@ -502,7 +511,8 @@ void JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instruction*
 	std::map<size_t, size_t> paramoffsettoindexmap;
 	std::set<size_t> lazystructureloads;
 	std::set<size_t> lazyinitscomplete;
-	std::map<std::pair<Value*, size_t>, Value*> structurecache;
+	std::map<std::pair<Value*, size_t>, Value*> structuremembercache;
+	std::map<Value*, Value*> structurerefcache;
 
 	const ScopeDescription* curscope = NULL;
 
@@ -865,7 +875,9 @@ void JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instruction*
 				if(lazystructureloads.count(index))
 				{
 					Value* handle = builder.CreateLoad(JITGEPForHandle(builder, jitcontext.VariableMap[index]));
-					Value* p = builder.CreatePointerCast(builder.CreateCall2(vmgetstructure, jitcontext.InnerFunction->arg_begin(), handle), Type::getInt8PtrTy(context));
+					CallInst* call = builder.CreateCall2(vmgetstructure, jitcontext.InnerFunction->arg_begin(), handle);
+					call->addAttribute(0, Attribute::ReadNone);
+					Value* p = builder.CreatePointerCast(call, Type::getInt8PtrTy(context));
 					Value* ptr = builder.CreateAlloca(HandlePointerPair);
 
 					Value* handleholder = JITGEPForHandle(builder, ptr);
@@ -912,7 +924,8 @@ void JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instruction*
 					if(lazyinitscomplete.count(index))
 					{
 						Value* handle = builder.CreateLoad(JITGEPForHandle(builder, ptr));
-						Value* rawptr = builder.CreateCall2(vmgetstructure, jitcontext.InnerFunction->arg_begin(), handle);
+						CallInst* rawptr = builder.CreateCall2(vmgetstructure, jitcontext.InnerFunction->arg_begin(), handle);
+						rawptr->addAttribute(0, Attribute::ReadNone);
 						Value* castptr = builder.CreatePointerCast(rawptr, Type::getInt8PtrTy(context));
 						builder.CreateStore(castptr, JITGEPForPointer(builder, ptr));
 
@@ -962,18 +975,19 @@ void JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instruction*
 						Type* pfinaltype = Type::getInt32PtrTy(context);
 						memberptr = builder.CreatePointerCast(voidmemberptr, pfinaltype);
 
-						Value* cached = structurecache[std::make_pair(jitcontext.ValuesOnStack.top(), memberoffset)];
+						Value* cached = structuremembercache[std::make_pair(jitcontext.ValuesOnStack.top(), memberoffset)];
 						if(!cached)
 						{
 							Value* loadedhandle = builder.CreateLoad(memberptr);
-							Value* actualstruct = builder.CreateCall2(vmgetstructure, jitcontext.InnerFunction->arg_begin(), loadedhandle);
+							CallInst* actualstruct = builder.CreateCall2(vmgetstructure, jitcontext.InnerFunction->arg_begin(), loadedhandle);
+							actualstruct->addAttribute(0, Attribute::ReadNone);
 							Value* caststruct = builder.CreatePointerCast(actualstruct, Type::getInt8PtrTy(context));
 							Value* handleptr = builder.CreateAlloca(HandlePointerPair);
 							Value* handle = JITGEPForHandle(builder, handleptr);
 							Value* p = JITGEPForPointer(builder, handleptr);
 							builder.CreateStore(loadedhandle, handle);
 							builder.CreateStore(caststruct, p);
-							structurecache[std::make_pair(jitcontext.ValuesOnStack.top(), memberoffset)] = handleptr;
+							structuremembercache[std::make_pair(jitcontext.ValuesOnStack.top(), memberoffset)] = handleptr;
 							memberptr = handleptr;
 							cached = handleptr;
 						}
@@ -1384,7 +1398,9 @@ void JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instruction*
 							{
 								actualparam = builder.CreatePointerCast(parampayloadptr, Type::getInt32PtrTy(context)->getPointerTo());
 								Value* handle = builder.CreateLoad(builder.CreateLoad(actualparam));
-								Value* load = builder.CreatePointerCast(builder.CreateCall2(vmgetstructure, vmcontextptr, handle), Type::getInt8PtrTy(context));
+								CallInst* call = builder.CreateCall2(vmgetstructure, vmcontextptr, handle);
+								call->addAttribute(0, Attribute::ReadNone);
+								Value* load = builder.CreatePointerCast(call, Type::getInt8PtrTy(context));
 								Value* handleptr = builder.CreateAlloca(HandlePointerPair);
 								Value* h = JITGEPForHandle(builder, handleptr);
 								Value* p = JITGEPForPointer(builder, handleptr);
@@ -1528,7 +1544,14 @@ void JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instruction*
 
 					builder.CreateStore(castptr, p);
 				}
-				Value* structptr = builder.CreateLoad(JITGEPForPointer(builder, v));
+
+				Value* cached = structurerefcache[v];
+				if(!cached)
+				{
+					cached = builder.CreateLoad(JITGEPForPointer(builder, v));
+					structurerefcache[v] = cached;
+				}
+				Value* structptr = cached;
 
 				const StructureDefinition& def = ownervm.GetStructureDefinition(hackstructtype);
 				size_t memberindex = def.FindMember(actualmember);
@@ -1636,6 +1659,8 @@ void PopulateJITExecs(VM::VirtualMachine& ownervm)
 	//module->dump();
 	//verifyModule(*module, llvm::PrintMessageAction);
 
+	//EnableStatistics();
+
 	std::string ErrStr;
 	ExecutionEngine* ee = EngineBuilder(module).setErrorStr(&ErrStr).create();
 	if(!ee)
@@ -1650,6 +1675,14 @@ void PopulateJITExecs(VM::VirtualMachine& ownervm)
 	OurFPM.add(createScalarReplAggregatesPass());
 	OurFPM.add(createEarlyCSEPass());
 	OurFPM.add(createLowerExpectIntrinsicPass());
+
+	VectorizeConfig vcfg;
+	vcfg.AlignedOnly = true;
+	vcfg.VectorizeFloats = true;
+	vcfg.VectorizeFMA = true;
+	vcfg.VectorizeMath = true;
+	vcfg.VectorizeSelect = true;
+	OurFPM.add(createBBVectorizePass(vcfg));
 
 	OurFPM.doInitialization();
 
@@ -1708,6 +1741,8 @@ void PopulateJITExecs(VM::VirtualMachine& ownervm)
 		void* fptr = ee->getPointerToFunction(iter->second);
 		ownervm.JITExecs[iter->first] = (JITExecPtr)fptr;
 	}
+
+	PrintStatistics();
 
 	CrashRecoveryContext::Disable();
 }

@@ -2020,7 +2020,7 @@ EntityMetaControl VirtualMachine::GetEntityMetaControl(Bytecode::EntityTag tag) 
 //
 StructureHandle VirtualMachine::AllocateStructure(const StructureDefinition &description)
 {
-	Threads::CriticalSection::Auto lock(StructureCritSec);
+	//Threads::CriticalSection::Auto lock(StructureCritSec);
 
 	StructureHandle handle = StructureHandleAlloc.AllocateHandle(ActiveStructures);
 	ActiveStructures.insert(std::make_pair(handle, ActiveStructure(description))); 
@@ -2046,7 +2046,7 @@ EPOCHVM const StructureDefinition& VirtualMachine::GetStructureDefinition(EpochT
 //
 EPOCHVM ActiveStructure& VirtualMachine::GetStructure(StructureHandle handle)
 {
-	Threads::CriticalSection::Auto lock(StructureCritSec);
+	//Threads::CriticalSection::Auto lock(StructureCritSec);
 
 	boost::unordered_map<StructureHandle, ActiveStructure, fasthash>::iterator iter = ActiveStructures.find(handle);
 	if(iter == ActiveStructures.end())
@@ -2060,7 +2060,7 @@ EPOCHVM ActiveStructure& VirtualMachine::GetStructure(StructureHandle handle)
 //
 StructureHandle VirtualMachine::DeepCopy(StructureHandle handle)
 {
-	Threads::CriticalSection::Auto lock(StructureCritSec);
+	//Threads::CriticalSection::Auto lock(StructureCritSec);
 
 	const ActiveStructure& original = GetStructure(handle);
 	StructureHandle clonedhandle = AllocateStructure(original.Definition);
@@ -2225,6 +2225,15 @@ void ExecutionContext::MarkAndSweep(ValidatorT validator, std::set<HandleType>& 
 			{
 				HandleType marked = iter->second.ReadMember<HandleType>(i);
 				livehandles.insert(marked);
+			}
+			else if(GetTypeFamily(definition.GetMemberType(i)) == EpochTypeFamily_SumType)
+			{
+				EpochTypeID realtype = iter->second.ReadSumTypeMemberType(i);
+				if(validator(realtype))
+				{
+					HandleType marked = iter->second.ReadMember<EpochTypeID>(i);
+					livehandles.insert(marked);
+				}
 			}
 		}
 	}

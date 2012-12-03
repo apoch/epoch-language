@@ -41,6 +41,8 @@ namespace JIT
 		llvm::Function* InnerFunction;
 		llvm::Function* VMGetBuffer;
 
+		std::map<llvm::Value*, llvm::Value*> BufferLookupCache;
+
 		void* Context;
 		void* Builder;
 	};

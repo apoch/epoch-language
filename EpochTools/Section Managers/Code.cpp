@@ -259,8 +259,8 @@ void CodeGenerator::Emit(Linker& linker, LinkWriter& writer) const
 	writer.EmitByte(0x6a);			// PUSH 0
 	writer.EmitByte(0x00);
 
-	writer.EmitByte(0x6a);			// PUSH 4
-	writer.EmitByte(0x04);
+	writer.EmitByte(0x6a);			// PUSH (access rights)
+	writer.EmitByte(FILE_MAP_COPY);
 
 	writer.EmitByte(0x57);			// PUSH EDI
 
