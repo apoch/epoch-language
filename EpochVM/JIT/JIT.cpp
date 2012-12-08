@@ -209,7 +209,6 @@ void JITNativeTypeMatcher(const VM::VirtualMachine& ownervm, const Bytecode::Ins
 
 	Value* vmcontextptr = matcherfunction->arg_begin();
 
-	std::vector<Value*> magics;
 	std::vector<Value*> reftypes;
 	std::vector<Value*> reftargets;
 
@@ -243,18 +242,15 @@ void JITNativeTypeMatcher(const VM::VirtualMachine& ownervm, const Bytecode::Ins
 
 				Function::arg_iterator argiter = matcherfunction->arg_begin();
 
-				if(magics.empty())
+				if(reftypes.empty())
 				{
 					for(size_t i = 0; i < paramcount; ++i)
 					{
-						++argiter;
-						Value* magic = argiter;
 						++argiter;
 						Value* reftype = argiter;
 						++argiter;
 						Value* reftarget = argiter;
 
-						magics.push_back(magic);
 						reftypes.push_back(reftype);
 						reftargets.push_back(reftarget);
 					}
@@ -270,12 +266,6 @@ void JITNativeTypeMatcher(const VM::VirtualMachine& ownervm, const Bytecode::Ins
 					Value* parampayloadptr = builder.CreateAlloca(Type::getInt8PtrTy(context), NULL, "parampayloadptr");
 
 					{
-						Value* providedrefflag = builder.CreateICmpEQ(magics[i], ConstantInt::get(Type::getInt32Ty(context), Metadata::EpochType_RefFlag));
-
-						BasicBlock* providedrefblock = BasicBlock::Create(context, "providedexpectedref", matcherfunction);
-						builder.CreateCondBr(providedrefflag, providedrefblock, nexttypematcher);
-						builder.SetInsertPoint(providedrefblock);
-
 						builder.CreateStore(reftypes[i], providedtypeholder);
 
 						BasicBlock* setnothingrefflagblock = BasicBlock::Create(context, "setnothingrefflag", matcherfunction);
@@ -745,7 +735,6 @@ void JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instruction*
 						matchargtypes.push_back(vmcontextptr->getType());
 						for(size_t i = 0; i < ownervm.TypeMatcherParamCount.find(entityname)->second; ++i)
 						{
-							matchargtypes.push_back(Type::getInt32Ty(context));		// magic
 							matchargtypes.push_back(Type::getInt32Ty(context));		// type annotation
 							matchargtypes.push_back(Type::getInt8PtrTy(context));	// pointer to payload
 						}
@@ -1069,7 +1058,6 @@ void JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instruction*
 				matchargtypes.push_back(vmcontextptr->getType());
 				for(size_t i = 0; i < ownervm.TypeMatcherParamCount.find(functionname)->second; ++i)
 				{
-					matchargtypes.push_back(Type::getInt32Ty(context));		// magic
 					matchargtypes.push_back(Type::getInt32Ty(context));		// type annotation
 					matchargtypes.push_back(Type::getInt8PtrTy(context));	// pointer to payload
 				}
@@ -1096,13 +1084,14 @@ void JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instruction*
 				for(size_t i = 0; i < numparams; ++i)
 				{
 					// TODO - this is probably broken for value-semantic type match parameters...
-					Value* v1 = jitcontext.ValuesOnStack.top();
+					jitcontext.ValuesOnStack.top();
 					jitcontext.ValuesOnStack.pop();
 
 					Value* v2 = jitcontext.ValuesOnStack.top();
 					jitcontext.ValuesOnStack.pop();
 
-					matchervarargs.push_back(v1);
+					// Discard RefType magic
+					//matchervarargs.push_back(v1);
 
 					Metadata::EpochTypeID paramepochtype = annotations.top();
 					Value* annotation = ConstantInt::get(Type::getInt32Ty(context), paramepochtype);
@@ -1208,7 +1197,7 @@ void JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instruction*
 			break;
 
 		case Bytecode::Instructions::Pop:
-			//jitcontext.ValuesOnStack.pop();
+			jitcontext.ValuesOnStack.pop();
 			break;
 
 		case Bytecode::Instructions::TypeMatch:
