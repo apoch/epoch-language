@@ -326,9 +326,13 @@ void JITNativeTypeMatcher(const VM::VirtualMachine& ownervm, const Bytecode::Ins
 							v = builder.CreatePointerCast(parampayloadptr, HandlePointerPair->getPointerTo()->getPointerTo());
 							v = builder.CreateLoad(v);
 						}
-
+						
 						if(!expectref)
+						{
+							v = builder.CreatePointerCast(parampayloadptr, GetJITType(ownervm, expecttype, context)->getPointerTo()->getPointerTo());
 							v = builder.CreateLoad(v);
+							v = builder.CreateLoad(v);
+						}
 
 						actualparams.push_back(v);
 					}
@@ -1093,22 +1097,29 @@ void JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instruction*
 				matchervarargs.push_back(jitcontext.InnerFunction->arg_begin());
 				for(size_t i = 0; i < numparams; ++i)
 				{
-					// TODO - this is probably broken for value-semantic type match parameters...
-					jitcontext.ValuesOnStack.top();
+					Value* v1 = jitcontext.ValuesOnStack.top();
 					jitcontext.ValuesOnStack.pop();
 
 					Value* v2 = jitcontext.ValuesOnStack.top();
 					jitcontext.ValuesOnStack.pop();
 
-					// Discard RefType magic
-					//matchervarargs.push_back(v1);
+					if(v2->getType()->isPointerTy())
+					{
+						Metadata::EpochTypeID paramepochtype = annotations.top();
+						Value* annotation = ConstantInt::get(Type::getInt32Ty(context), paramepochtype);
+						annotations.pop();
 
-					Metadata::EpochTypeID paramepochtype = annotations.top();
-					Value* annotation = ConstantInt::get(Type::getInt32Ty(context), paramepochtype);
-					matchervarargs.push_back(annotation);
-					annotations.pop();
+						matchervarargs.push_back(annotation);
+						matchervarargs.push_back(builder.CreatePointerCast(v2, Type::getInt8PtrTy(context)));
+					}
+					else
+					{
+						Value* stacktemp = builder.CreateAlloca(v2->getType());
+						builder.CreateStore(v2, stacktemp);
 
-					matchervarargs.push_back(builder.CreatePointerCast(v2, Type::getInt8PtrTy(context)));
+						matchervarargs.push_back(v1);
+						matchervarargs.push_back(builder.CreatePointerCast(stacktemp, Type::getInt8PtrTy(context)));
+					}
 				}
 
 				jitcontext.ValuesOnStack.push(builder.CreateCall(nativetypematcher, matchervarargs));
