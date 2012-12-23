@@ -273,37 +273,35 @@ void JITNativeTypeMatcher(const VM::VirtualMachine& ownervm, const Bytecode::Ins
 					Value* providedtypeholder = builder.CreateAlloca(Type::getInt32Ty(context));
 					Value* parampayloadptr = builder.CreateAlloca(Type::getInt8PtrTy(context), NULL, "parampayloadptr");
 
-					{
-						builder.CreateStore(reftypes[i], providedtypeholder);
+					builder.CreateStore(reftypes[i], providedtypeholder);
 
-						BasicBlock* setnothingrefflagblock = BasicBlock::Create(context, "setnothingrefflag", matcherfunction);
-						BasicBlock* skipblock = BasicBlock::Create(context, "skip", matcherfunction);
+					BasicBlock* setnothingrefflagblock = BasicBlock::Create(context, "setnothingrefflag", matcherfunction);
+					BasicBlock* skipblock = BasicBlock::Create(context, "skip", matcherfunction);
 
-						Value* providednothingflag = builder.CreateICmpEQ(reftypes[i], ConstantInt::get(Type::getInt32Ty(context), Metadata::EpochType_Nothing));
-						builder.CreateCondBr(providednothingflag, setnothingrefflagblock, skipblock);
+					Value* providednothingflag = builder.CreateICmpEQ(reftypes[i], ConstantInt::get(Type::getInt32Ty(context), Metadata::EpochType_Nothing));
+					builder.CreateCondBr(providednothingflag, setnothingrefflagblock, skipblock);
 
-						builder.SetInsertPoint(setnothingrefflagblock);
-						builder.CreateBr(skipblock);
+					builder.SetInsertPoint(setnothingrefflagblock);
+					builder.CreateBr(skipblock);
 
-						builder.SetInsertPoint(skipblock);
-						builder.CreateStore(reftargets[i], parampayloadptr);
+					builder.SetInsertPoint(skipblock);
+					builder.CreateStore(reftargets[i], parampayloadptr);
 
 
-						BasicBlock* handlesumtypeblock = BasicBlock::Create(context, "handlesumtype", matcherfunction);
+					BasicBlock* handlesumtypeblock = BasicBlock::Create(context, "handlesumtype", matcherfunction);
 
-						Value* providedtypefamily = builder.CreateAnd(builder.CreateLoad(providedtypeholder), 0xff000000);
-						Value* issumtype = builder.CreateICmpEQ(providedtypefamily, ConstantInt::get(Type::getInt32Ty(context), Metadata::EpochTypeFamily_SumType));
-						builder.CreateCondBr(issumtype, handlesumtypeblock, checkmatchblock);
+					Value* providedtypefamily = builder.CreateAnd(builder.CreateLoad(providedtypeholder), 0xff000000);
+					Value* issumtype = builder.CreateICmpEQ(providedtypefamily, ConstantInt::get(Type::getInt32Ty(context), Metadata::EpochTypeFamily_SumType));
+					builder.CreateCondBr(issumtype, handlesumtypeblock, checkmatchblock);
 
-						builder.SetInsertPoint(handlesumtypeblock);
-						Value* rt = builder.CreateLoad(builder.CreatePointerCast(reftargets[i], Type::getInt32PtrTy(context)));
-						builder.CreateStore(rt, providedtypeholder);
-						Value* gep = builder.CreateGEP(reftargets[i], ConstantInt::get(Type::getInt32Ty(context), sizeof(Metadata::EpochTypeID)));
-						Value* castgep = builder.CreatePointerCast(gep, Type::getInt8PtrTy(context)->getPointerTo());
-						Value* loadedgep = builder.CreateLoad(castgep);
-						builder.CreateStore(loadedgep, parampayloadptr);
-						builder.CreateBr(checkmatchblock);
-					}
+					builder.SetInsertPoint(handlesumtypeblock);
+					Value* rt = builder.CreateLoad(builder.CreatePointerCast(reftargets[i], Type::getInt32PtrTy(context)));
+					builder.CreateStore(rt, providedtypeholder);
+					Value* gep = builder.CreateGEP(reftargets[i], ConstantInt::get(Type::getInt32Ty(context), sizeof(Metadata::EpochTypeID)));
+					Value* castgep = builder.CreatePointerCast(gep, Type::getInt8PtrTy(context)->getPointerTo());
+					Value* loadedgep = builder.CreateLoad(castgep);
+					builder.CreateStore(loadedgep, parampayloadptr);
+					builder.CreateBr(checkmatchblock);
 
 					builder.SetInsertPoint(checkmatchblock);
 
@@ -323,6 +321,24 @@ void JITNativeTypeMatcher(const VM::VirtualMachine& ownervm, const Bytecode::Ins
 
 						if(Metadata::GetTypeFamily(expecttype) == Metadata::EpochTypeFamily_Structure || Metadata::GetTypeFamily(expecttype) == Metadata::EpochTypeFamily_TemplateInstance)
 						{
+							BasicBlock* cachehandleblock = BasicBlock::Create(context, "cachehandle", matcherfunction);
+							BasicBlock* continueblock = BasicBlock::Create(context, "continue", matcherfunction);
+
+							builder.CreateCondBr(issumtype, cachehandleblock, continueblock);
+
+							builder.SetInsertPoint(cachehandleblock);
+							Value* handleptr = builder.CreateAlloca(HandlePointerPair);
+							Value* gephandle = JITGEPForHandle(builder, handleptr);
+							Value* gepptr = JITGEPForPointer(builder, handleptr);
+
+							Value* handle = builder.CreatePointerCast(parampayloadptr, Type::getInt32PtrTy(context));
+
+							builder.CreateStore(builder.CreateLoad(handle), gephandle);
+							builder.CreateStore(builder.CreatePointerCast(builder.CreateCall2(vmgetstructure, vmcontextptr, builder.CreateLoad(handle)), Type::getInt8PtrTy(context)), gepptr);
+							builder.CreateStore(handleptr, builder.CreatePointerCast(parampayloadptr, handleptr->getType()->getPointerTo()));
+							builder.CreateBr(continueblock);
+
+							builder.SetInsertPoint(continueblock);
 							v = builder.CreatePointerCast(parampayloadptr, HandlePointerPair->getPointerTo()->getPointerTo());
 							v = builder.CreateLoad(v);
 						}
@@ -1508,7 +1524,6 @@ void JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instruction*
 					memberindices.push_back(ConstantInt::get(Type::getInt32Ty(context), 0));
 					memberindices.push_back(ConstantInt::get(Type::getInt32Ty(context), 1));
 					Value* valueholder = builder.CreateGEP(storagetarget, memberindices);
-					//Value* castholder = builder.CreatePointerCast(valueholder, value->getType()->getPointerTo());
 					builder.CreateStore(value, valueholder);
 				}
 
