@@ -258,12 +258,12 @@ void JITNativeTypeMatcher(const VM::VirtualMachine& ownervm, const Bytecode::Ins
 					builder.CreateCondBr(issumtype, handlesumtypeblock, checkmatchblock);
 
 					builder.SetInsertPoint(handlesumtypeblock);
+
 					Value* rt = builder.CreateLoad(builder.CreatePointerCast(reftargets[i], Type::getInt32PtrTy(context)));
 					builder.CreateStore(rt, providedtypeholder);
 					Value* gep = builder.CreateGEP(reftargets[i], ConstantInt::get(Type::getInt32Ty(context), sizeof(Metadata::EpochTypeID)));
-					Value* castgep = builder.CreatePointerCast(gep, Type::getInt8PtrTy(context)->getPointerTo());
-					Value* loadedgep = builder.CreateLoad(castgep);
-					builder.CreateStore(loadedgep, parampayloadptr);
+					Value* castgep = builder.CreatePointerCast(gep, Type::getInt8PtrTy(context));
+					builder.CreateStore(castgep, parampayloadptr);
 					builder.CreateBr(checkmatchblock);
 
 					builder.SetInsertPoint(checkmatchblock);
@@ -728,11 +728,12 @@ void JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instruction*
 				Value* actualtype = jitcontext.ValuesOnStack.top();
 				jitcontext.ValuesOnStack.pop();
 
-				Value* casttarget = builder.CreatePointerCast(reftarget, jitcontext.ValuesOnStack.top()->getType()->getPointerTo());
-				builder.CreateStore(jitcontext.ValuesOnStack.top(), casttarget);
+				Value* typeholder = builder.CreatePointerCast(reftarget, Type::getInt32PtrTy(context));
+				builder.CreateStore(actualtype, typeholder);
 
-				Value* typeholder = builder.CreateGEP(builder.CreatePointerCast(reftarget, Type::getInt8PtrTy(context)), ConstantInt::get(Type::getInt32Ty(context), (unsigned)(-4)));
-				builder.CreateStore(actualtype, builder.CreatePointerCast(typeholder, Type::getInt32PtrTy(context)));
+				Value* target = builder.CreateGEP(builder.CreatePointerCast(reftarget, Type::getInt8PtrTy(context)), ConstantInt::get(Type::getInt32Ty(context), sizeof(Metadata::EpochTypeID)));
+				Value* casttarget = builder.CreatePointerCast(target, jitcontext.ValuesOnStack.top()->getType()->getPointerTo());
+				builder.CreateStore(jitcontext.ValuesOnStack.top(), casttarget);
 			}
 			break;
 
@@ -796,7 +797,7 @@ void JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instruction*
 					throw NotImplementedException("Scope is not flat!");
 
 				Metadata::EpochTypeID vartype = curscope->GetVariableTypeByIndex(index);
-				Value* ptr = jitcontext.VariableMap[index];				
+				Value* ptr = jitcontext.VariableMap[index];
 				jitcontext.ValuesOnStack.push(ptr);
 				annotations.push(vartype);
 			}
