@@ -13,4 +13,5 @@ typedef size_t HandleType;
 
 typedef HandleType StringHandle;
 typedef HandleType BufferHandle;
-typedef HandleType StructureHandle;
+
+typedef void* StructureHandle;

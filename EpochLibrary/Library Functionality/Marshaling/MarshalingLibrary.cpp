@@ -53,7 +53,7 @@ namespace
 		{
 			const StructureDefinition& definition = context.OwnerVM.GetStructureDefinition(vartype);
 			StructureHandle structhandle = context.Variables->Read<StructureHandle>(identifier);
-			VM::MarshalBufferIntoStructureData(context, context.OwnerVM.GetStructure(structhandle), definition, reinterpret_cast<const Byte*>(pointer));
+			VM::MarshalBufferIntoStructureData(context, structhandle, definition, reinterpret_cast<const Byte*>(pointer));
 		}
 	}
 }

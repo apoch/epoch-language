@@ -115,9 +115,9 @@ namespace VM
 		EPOCHVM BufferHandle AllocateBuffer(size_t size);
 		BufferHandle CloneBuffer(BufferHandle handle);
 
-		EPOCHVM ActiveStructure& GetStructure(StructureHandle handle);
 		StructureHandle AllocateStructure(const StructureDefinition& description);
 		StructureHandle DeepCopy(StructureHandle handle);
+		ActiveStructure& FindStructureMetadata(StructureHandle handle);
 
 		EPOCHVM const StructureDefinition& GetStructureDefinition(Metadata::EpochTypeID vartype) const;
 
@@ -157,7 +157,7 @@ namespace VM
 		StringPoolManager& PrivateGetRawStringPool()
 		{ return PrivateStringPool; }
 
-		const boost::unordered_map<StructureHandle, ActiveStructure, fasthash>& PrivateGetStructurePool()
+		const boost::unordered_map<StructureHandle, ActiveStructure*>& PrivateGetStructurePool()
 		{ return ActiveStructures; }
 
 
@@ -194,8 +194,7 @@ namespace VM
 		HandleAllocator<BufferHandle> BufferHandleAlloc;
 		boost::unordered_map<BufferHandle, std::vector<Byte>, fasthash> Buffers;
 
-		HandleAllocator<StructureHandle> StructureHandleAlloc;
-		boost::unordered_map<StructureHandle, ActiveStructure, fasthash> ActiveStructures;
+		boost::unordered_map<StructureHandle, ActiveStructure*> ActiveStructures;
 
 		Threads::CriticalSection BufferCritSec;
 		Threads::CriticalSection StructureCritSec;

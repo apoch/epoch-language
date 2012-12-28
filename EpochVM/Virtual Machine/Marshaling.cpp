@@ -292,7 +292,7 @@ namespace
 	// with certain issues like padding and alignment. This function may call
 	// itself recursively to deal with nested structures.
 	//
-	bool MarshalStructureDataIntoBuffer(VM::ExecutionContext& context, const ActiveStructure& structure, const StructureDefinition& definition, Byte* buffer)
+	bool MarshalStructureDataIntoBuffer(VM::ExecutionContext& context, StructureHandle structure, const StructureDefinition& definition, Byte* buffer)
 	{
 		using namespace VM;
 		using namespace Metadata;
@@ -303,43 +303,42 @@ namespace
 			switch(membertype)
 			{
 			case EpochType_Integer:
-				*reinterpret_cast<Integer32*>(buffer) = structure.ReadMember<Integer32>(j);
+				*reinterpret_cast<Integer32*>(buffer) = *reinterpret_cast<Integer32*>(reinterpret_cast<char*>(structure) + definition.GetMemberOffset(j));
 				buffer += sizeof(Integer32);
 				break;
 
 			case EpochType_Integer16:
-				*reinterpret_cast<Integer16*>(buffer) = structure.ReadMember<Integer16>(j);
+				*reinterpret_cast<Integer16*>(buffer) = *reinterpret_cast<Integer16*>(reinterpret_cast<char*>(structure) + definition.GetMemberOffset(j));
 				buffer += sizeof(Integer16);
 				break;
 
 			case EpochType_Boolean:
-				*reinterpret_cast<Integer32*>(buffer) = (structure.ReadMember<bool>(j) ? 1 : 0);
+				*reinterpret_cast<Integer32*>(buffer) = (*reinterpret_cast<bool*>(reinterpret_cast<char*>(structure) + definition.GetMemberOffset(j)) ? 1 : 0);
 				buffer += sizeof(Integer32);
 				break;
 
 			case EpochType_String:
-				*reinterpret_cast<const wchar_t**>(buffer) = context.OwnerVM.GetPooledString(structure.ReadMember<StringHandle>(j)).c_str();
+				*reinterpret_cast<const wchar_t**>(buffer) = context.OwnerVM.GetPooledString(*reinterpret_cast<StringHandle*>(reinterpret_cast<char*>(structure) + definition.GetMemberOffset(j))).c_str();
 				buffer += sizeof(const wchar_t*);
 				break;
 
 			case EpochType_Function:
-				*reinterpret_cast<void**>(buffer) = MarshalControl.RequestMarshaledCallback(context, structure.ReadMember<StringHandle>(j));
+				*reinterpret_cast<void**>(buffer) = MarshalControl.RequestMarshaledCallback(context, *reinterpret_cast<StringHandle*>(reinterpret_cast<char*>(structure) + definition.GetMemberOffset(j)));
 				buffer += sizeof(void*);
 				break;
 
 			case EpochType_Buffer:
-				*reinterpret_cast<void**>(buffer) = context.OwnerVM.GetBuffer(structure.ReadMember<BufferHandle>(j));
+				*reinterpret_cast<void**>(buffer) = context.OwnerVM.GetBuffer(*reinterpret_cast<BufferHandle*>(reinterpret_cast<char*>(structure) + definition.GetMemberOffset(j)));
 				buffer += sizeof(void*);
 				break;
 
 			default:
 				if(Metadata::GetTypeFamily(membertype) == Metadata::EpochTypeFamily_Structure || Metadata::GetTypeFamily(membertype) == Metadata::EpochTypeFamily_TemplateInstance)
 				{
-					StructureHandle structurehandle = structure.ReadMember<StructureHandle>(j);
-					const ActiveStructure& nestedstructure = context.OwnerVM.GetStructure(structurehandle);
+					StructureHandle structurehandle = *reinterpret_cast<StructureHandle*>(reinterpret_cast<char*>(structure) + definition.GetMemberOffset(j));
 					const StructureDefinition& nesteddefinition = context.OwnerVM.GetStructureDefinition(definition.GetMemberType(j));
 
-					if(!MarshalStructureDataIntoBuffer(context, nestedstructure, nesteddefinition, buffer))
+					if(!MarshalStructureDataIntoBuffer(context, structurehandle, nesteddefinition, buffer))
 						return false;
 
 					buffer += nesteddefinition.GetMarshaledSize();
@@ -359,10 +358,11 @@ namespace
 	{
 		bool IsReference;
 		std::vector<Byte> Buffer;
-		ActiveStructure* Structure;
+		StructureHandle Structure;
+		const StructureDefinition* Def;
 
-		MarshaledStructureRecord(bool isref, const std::vector<Byte>& buffer, ActiveStructure& structure)
-			: IsReference(isref), Buffer(buffer), Structure(&structure)
+		MarshaledStructureRecord(bool isref, const std::vector<Byte>& buffer, StructureHandle structure, const StructureDefinition& def)
+			: IsReference(isref), Buffer(buffer), Structure(structure), Def(&def)
 		{ }
 	};
 
@@ -389,9 +389,9 @@ namespace
 			if(!iter->IsReference)
 				continue;
 
-			const StructureDefinition& definition = iter->Structure->Definition;
+			const StructureDefinition& definition = *iter->Def;
 			const Byte* buffer = &iter->Buffer[0];
-			MarshalBufferIntoStructureData(context, *(iter->Structure), definition, buffer);
+			MarshalBufferIntoStructureData(context, iter->Structure, definition, buffer);
 		}
 	}
 }
@@ -497,19 +497,18 @@ void VM::MarshalIntoNativeCode(VM::ExecutionContext& context, const ScopeDescrip
 
 			if(Metadata::GetTypeFamily(vartype) == Metadata::EpochTypeFamily_Structure || Metadata::GetTypeFamily(vartype) == Metadata::EpochTypeFamily_TemplateInstance)
 			{
-				StructureHandle structurehandle = context.Variables->Read<StructureHandle>(varname);
-				ActiveStructure& structure = context.OwnerVM.GetStructure(structurehandle);
+				StructureHandle structurehandle = context.Variables->Read<StructureHandle>(varname);;
 
 				const StructureDefinition& definition = context.OwnerVM.GetStructureDefinition(vartype);
 				std::vector<Byte> structbuffer(definition.GetMarshaledSize(), 0);
 
-				if(!MarshalStructureDataIntoBuffer(context, structure, definition, &structbuffer[0]))
+				if(!MarshalStructureDataIntoBuffer(context, structurehandle, definition, &structbuffer[0]))
 				{
 					context.State.Result.ResultType = ExecutionResult::EXEC_RESULT_HALT;
 					return;
 				}
 
-				marshaledstructures.push_back(MarshaledStructureRecord(scope.IsReference(i), structbuffer, structure));
+				marshaledstructures.push_back(MarshaledStructureRecord(scope.IsReference(i), structbuffer, structurehandle, definition));
 				stufftopush.push_back(pushrec(reinterpret_cast<UINT_PTR>(&marshaledstructures.back().Buffer[0]), false));
 			}
 			else
@@ -738,7 +737,7 @@ void VM::RegisterMarshaledExternalFunction(StringHandle functionname, const std:
 //
 // Convert a buffer containing a mutated C/C++ structure back into Epoch format
 //
-EPOCHVM void VM::MarshalBufferIntoStructureData(VM::ExecutionContext& context, ActiveStructure& structure, const StructureDefinition& definition, const Byte* buffer)
+EPOCHVM void VM::MarshalBufferIntoStructureData(VM::ExecutionContext& context, StructureHandle structure, const StructureDefinition& definition, const Byte* buffer)
 {
 	using namespace VM;
 	using namespace Metadata;
@@ -749,17 +748,17 @@ EPOCHVM void VM::MarshalBufferIntoStructureData(VM::ExecutionContext& context, A
 		switch(membertype)
 		{
 		case EpochType_Integer:
-			structure.WriteMember(j, *reinterpret_cast<const Integer32*>(buffer));
+			*reinterpret_cast<Integer32*>(reinterpret_cast<char*>(structure) + definition.GetMemberOffset(j)) = *reinterpret_cast<const Integer32*>(buffer);
 			buffer += sizeof(Integer32);
 			break;
 
 		case EpochType_Integer16:
-			structure.WriteMember(j, *reinterpret_cast<const Integer16*>(buffer));
+			*reinterpret_cast<Integer16*>(reinterpret_cast<char*>(structure) + definition.GetMemberOffset(j)) = *reinterpret_cast<const Integer16*>(buffer);
 			buffer += sizeof(Integer16);
 			break;
 
 		case EpochType_Boolean:
-			structure.WriteMember(j, (*reinterpret_cast<const Integer32*>(buffer)) ? true : false);
+			*reinterpret_cast<bool*>(reinterpret_cast<char*>(structure) + definition.GetMemberOffset(j)) = (*reinterpret_cast<const Integer32*>(buffer)) ? true : false;
 			buffer += sizeof(Integer32);
 			break;
 
@@ -769,10 +768,10 @@ EPOCHVM void VM::MarshalBufferIntoStructureData(VM::ExecutionContext& context, A
 				if(ptr && *ptr)
 				{
 					std::wstring str(*ptr);
-					structure.WriteMember(j, context.OwnerVM.PoolString(str));
+					*reinterpret_cast<StringHandle*>(reinterpret_cast<char*>(structure) + definition.GetMemberOffset(j)) = context.OwnerVM.PoolString(str);
 				}
 				else
-					structure.WriteMember(j, context.OwnerVM.PoolString(L""));
+					*reinterpret_cast<Integer32*>(reinterpret_cast<char*>(structure) + definition.GetMemberOffset(j)) = context.OwnerVM.PoolString(L"");
 				buffer += sizeof(const wchar_t*);
 			}
 			break;
@@ -793,11 +792,10 @@ EPOCHVM void VM::MarshalBufferIntoStructureData(VM::ExecutionContext& context, A
 		default:
 			if(GetTypeFamily(membertype) == EpochTypeFamily_Structure || GetTypeFamily(membertype) == EpochTypeFamily_TemplateInstance)
 			{
-				StructureHandle structurehandle = structure.ReadMember<StructureHandle>(j);
-				ActiveStructure& nestedstructure = context.OwnerVM.GetStructure(structurehandle);
+				StructureHandle structurehandle = *reinterpret_cast<StructureHandle*>(reinterpret_cast<char*>(structure) + definition.GetMemberOffset(j));
 				const StructureDefinition& nesteddefinition = context.OwnerVM.GetStructureDefinition(definition.GetMemberType(j));
 
-				MarshalBufferIntoStructureData(context, nestedstructure, nesteddefinition, buffer);
+				MarshalBufferIntoStructureData(context, structurehandle, nesteddefinition, buffer);
 				buffer += nesteddefinition.GetMarshaledSize();
 			}
 			else

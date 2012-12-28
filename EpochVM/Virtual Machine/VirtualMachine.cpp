@@ -529,7 +529,7 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 					
 					StructureHandle readstruct = Variables->Read<StructureHandle>(variablename);
 
-					ActiveStructure& structure = OwnerVM.GetStructure(readstruct);
+					ActiveStructure& structure = OwnerVM.FindStructureMetadata(readstruct);
 
 					size_t memberindex = structure.Definition.FindMember(membername);
 					EpochTypeID membertype = structure.Definition.GetMemberType(memberindex);
@@ -600,7 +600,7 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 					
 					StructureHandle readstruct = Variables->Read<StructureHandle>(variablename);
 
-					ActiveStructure& structure = OwnerVM.GetStructure(readstruct);
+					ActiveStructure& structure = OwnerVM.FindStructureMetadata(readstruct);
 
 					size_t memberindex = structure.Definition.FindMember(actualmember);
 					EpochTypeID membertype = structure.Definition.GetMemberType(memberindex);
@@ -714,18 +714,17 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 					StructureHandle* phandle = reinterpret_cast<StructureHandle*>(storagelocation);
 					StructureHandle handle = *phandle;
 
-					ActiveStructure& structure = OwnerVM.GetStructure(handle);
 					EpochTypeID membertype = Fetch<EpochTypeID>();
 					size_t offset = Fetch<size_t>();
 
 					if(GetTypeFamily(membertype) == EpochTypeFamily_SumType)
 					{
-						void* typeptr = &(structure.Storage[0]) + offset;
+						void* typeptr = reinterpret_cast<char*>(handle) + offset;
 						membertype = *reinterpret_cast<EpochTypeID*>(typeptr);
 						offset += sizeof(EpochTypeID);
 					}
 
-					void* memberstoragelocation = &(structure.Storage[0]) + offset;
+					void* memberstoragelocation = reinterpret_cast<char*>(handle) + offset;
 
 					State.Stack.PushValue(membertype);
 					State.Stack.PushValue(memberstoragelocation);
@@ -740,7 +739,7 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 					StringHandle member = Fetch<StringHandle>();
 					StructureHandle handle = State.Stack.PopValue<StructureHandle>();
 
-					ActiveStructure& structure = OwnerVM.GetStructure(handle);
+					ActiveStructure& structure = OwnerVM.FindStructureMetadata(handle);
 					const StructureDefinition& definition = structure.Definition;
 					size_t memberindex = definition.FindMember(member);
 					size_t offset = definition.GetMemberOffset(memberindex);
@@ -2018,13 +2017,23 @@ EntityMetaControl VirtualMachine::GetEntityMetaControl(Bytecode::EntityTag tag) 
 //
 // Allocate memory for a structure instance on the freestore
 //
-StructureHandle VirtualMachine::AllocateStructure(const StructureDefinition &description)
+StructureHandle VirtualMachine::AllocateStructure(const StructureDefinition& description)
 {
 	//Threads::CriticalSection::Auto lock(StructureCritSec);
 
-	StructureHandle handle = StructureHandleAlloc.AllocateHandle(ActiveStructures);
-	ActiveStructures.insert(std::make_pair(handle, ActiveStructure(description))); 
+	ActiveStructure* active = new ActiveStructure(description);
+	StructureHandle handle = &active->Storage[0];
+	ActiveStructures.insert(std::make_pair(handle, active)); 
 	return handle;
+}
+
+ActiveStructure& VirtualMachine::FindStructureMetadata(StructureHandle handle)
+{
+	boost::unordered_map<StructureHandle, ActiveStructure*>::iterator iter = ActiveStructures.find(handle);
+	if(iter == ActiveStructures.end())
+		throw FatalException("Invalid structure handle or no metadata cached");
+
+	return *iter->second;
 }
 
 //
@@ -2042,29 +2051,15 @@ EPOCHVM const StructureDefinition& VirtualMachine::GetStructureDefinition(EpochT
 }
 
 //
-// Look up actual structure instance data in memory given a handle
-//
-EPOCHVM ActiveStructure& VirtualMachine::GetStructure(StructureHandle handle)
-{
-	//Threads::CriticalSection::Auto lock(StructureCritSec);
-
-	boost::unordered_map<StructureHandle, ActiveStructure, fasthash>::iterator iter = ActiveStructures.find(handle);
-	if(iter == ActiveStructures.end())
-		throw FatalException("Invalid structure handle");
-
-	return iter->second;
-}
-
-//
 // Deep copy a structure and all of its contents, including strings, buffers, and other structures
 //
 StructureHandle VirtualMachine::DeepCopy(StructureHandle handle)
 {
 	//Threads::CriticalSection::Auto lock(StructureCritSec);
 
-	const ActiveStructure& original = GetStructure(handle);
+	const ActiveStructure& original = FindStructureMetadata(handle);
 	StructureHandle clonedhandle = AllocateStructure(original.Definition);
-	ActiveStructure& clone = GetStructure(clonedhandle);
+	ActiveStructure& clone = FindStructureMetadata(clonedhandle);
 
 	for(size_t i = 0; i < original.Definition.GetNumMembers(); ++i)
 	{
@@ -2216,22 +2211,22 @@ void ExecutionContext::MarkAndSweep(ValidatorT validator, std::set<HandleType>& 
 
 	// Traverse the free-store of structures, marking each applicable structure field as holding a
 	// reference to the pointed-to string handle.
-	for(boost::unordered_map<StructureHandle, ActiveStructure>::const_iterator iter = OwnerVM.PrivateGetStructurePool().begin(); iter != OwnerVM.PrivateGetStructurePool().end(); ++iter)
+	for(boost::unordered_map<StructureHandle, ActiveStructure*>::const_iterator iter = OwnerVM.PrivateGetStructurePool().begin(); iter != OwnerVM.PrivateGetStructurePool().end(); ++iter)
 	{
-		const StructureDefinition& definition = iter->second.Definition;
+		const StructureDefinition& definition = iter->second->Definition;
 		for(size_t i = 0; i < definition.GetNumMembers(); ++i)
 		{
 			if(validator(definition.GetMemberType(i)))
 			{
-				HandleType marked = iter->second.ReadMember<HandleType>(i);
+				HandleType marked = iter->second->ReadMember<HandleType>(i);
 				livehandles.insert(marked);
 			}
 			else if(GetTypeFamily(definition.GetMemberType(i)) == EpochTypeFamily_SumType)
 			{
-				EpochTypeID realtype = iter->second.ReadSumTypeMemberType(i);
+				EpochTypeID realtype = iter->second->ReadSumTypeMemberType(i);
 				if(validator(realtype))
 				{
-					HandleType marked = iter->second.ReadMember<EpochTypeID>(i);
+					HandleType marked = iter->second->ReadMember<HandleType>(i);
 					livehandles.insert(marked);
 				}
 			}

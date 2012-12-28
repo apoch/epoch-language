@@ -4,7 +4,6 @@ EXPORTS
 	GetHeapManager				@2
 	EnableVisualDebugger		@3
 	LinkTestHarness				@4
-	VMGetStructure				@5
 	VMHalt						@6
 	VMRet						@7
 	VMAllocStruct				@8

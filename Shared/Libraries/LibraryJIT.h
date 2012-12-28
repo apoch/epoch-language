@@ -40,6 +40,7 @@ namespace JIT
 
 		llvm::Function* InnerFunction;
 		llvm::Function* VMGetBuffer;
+		llvm::Function* SqrtIntrinsic;
 
 		std::map<llvm::Value*, llvm::Value*> BufferLookupCache;
 

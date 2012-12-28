@@ -91,19 +91,6 @@ extern "C" void STDCALL LinkTestHarness(unsigned* harness)
 	//}
 }
 
-extern "C" void* VMGetStructure(void* vmcontext, StructureHandle handle)
-{
-	try
-	{
-		VM::ExecutionContext* context = reinterpret_cast<VM::ExecutionContext*>(vmcontext);
-		return &context->OwnerVM.GetStructure(handle).Storage[0];
-	}
-	catch(...)
-	{
-		return NULL;
-	}
-}
-
 extern "C" void* VMGetBuffer(void* vmcontext, BufferHandle handle)
 {
 	try
@@ -117,29 +104,31 @@ extern "C" void* VMGetBuffer(void* vmcontext, BufferHandle handle)
 	}
 }
 
-extern "C" StructureHandle VMAllocStruct(void* vmcontext, Metadata::EpochTypeID structtype)
+extern "C" void* VMAllocStruct(void* vmcontext, Metadata::EpochTypeID structtype)
 {
 	try
 	{
 		VM::ExecutionContext* context = reinterpret_cast<VM::ExecutionContext*>(vmcontext);
-		return context->OwnerVM.AllocateStructure(context->OwnerVM.GetStructureDefinition(structtype));
+		StructureHandle handle = context->OwnerVM.AllocateStructure(context->OwnerVM.GetStructureDefinition(structtype));
+		return handle;
 	}
 	catch(...)
 	{
-		return 0;
+		return NULL;
 	}
 }
 
-extern "C" StructureHandle VMCopyStruct(void* vmcontext, StructureHandle handle)
+extern "C" void* VMCopyStruct(void* vmcontext, StructureHandle handle)
 {
 	try
 	{
 		VM::ExecutionContext* context = reinterpret_cast<VM::ExecutionContext*>(vmcontext);
-		return context->OwnerVM.DeepCopy(handle);
+		StructureHandle copyhandle = context->OwnerVM.DeepCopy(handle);
+		return copyhandle;
 	}
 	catch(...)
 	{
-		return 0;
+		return NULL;
 	}
 }
 
