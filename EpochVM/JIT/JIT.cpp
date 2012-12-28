@@ -1456,7 +1456,9 @@ void PopulateJITExecs(VM::VirtualMachine& ownervm)
 	//module->dump();
 	verifyModule(*module, llvm::PrintMessageAction);
 
-	//EnableStatistics();
+#ifdef _DEBUG
+	EnableStatistics();
+#endif
 
 	std::string ErrStr;
 	ExecutionEngine* ee = EngineBuilder(module).setErrorStr(&ErrStr).create();
@@ -1474,11 +1476,8 @@ void PopulateJITExecs(VM::VirtualMachine& ownervm)
 	OurFPM.add(createLowerExpectIntrinsicPass());
 
 	VectorizeConfig vcfg;
-	vcfg.AlignedOnly = true;
-	vcfg.VectorizeFloats = true;
-	vcfg.VectorizeFMA = true;
-	vcfg.VectorizeMath = true;
-	vcfg.VectorizeSelect = true;
+	vcfg.ReqChainDepth = 1;
+	vcfg.MaxIter = 500;
 	OurFPM.add(createBBVectorizePass(vcfg));
 
 	OurFPM.doInitialization();
