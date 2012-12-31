@@ -2041,7 +2041,7 @@ ActiveStructure& VirtualMachine::FindStructureMetadata(StructureHandle handle)
 //
 EPOCHVM const StructureDefinition& VirtualMachine::GetStructureDefinition(EpochTypeID type) const
 {
-	Threads::CriticalSection::Auto lock(StructureCritSec);
+	//Threads::CriticalSection::Auto lock(StructureCritSec);
 
 	std::map<EpochTypeID, StructureDefinition>::const_iterator iter = StructureDefinitions.find(type);
 	if(iter == StructureDefinitions.end())
@@ -2304,7 +2304,7 @@ void VirtualMachine::GarbageCollectBuffers(const std::set<BufferHandle>& livehan
 //
 void VirtualMachine::GarbageCollectStructures(const std::set<StructureHandle>& livehandles)
 {
-	EraseDeadHandles(ActiveStructures, livehandles);
+	EraseAndDeleteDeadHandles(ActiveStructures, livehandles);
 }
 
 

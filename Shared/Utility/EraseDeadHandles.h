@@ -19,3 +19,19 @@ void EraseDeadHandles(MapType& data, const SetType& livehandles)
 			++iter;
 	}
 }
+
+template <typename MapType, typename SetType>
+void EraseAndDeleteDeadHandles(MapType& data, const SetType& livehandles)
+{
+	for(typename MapType::iterator iter = data.begin(); iter != data.end(); )
+	{
+		if(livehandles.find(iter->first) == livehandles.end())
+		{
+			delete iter->second;
+			iter = data.erase(iter);
+		}
+		else
+			++iter;
+	}
+}
+

@@ -110,6 +110,7 @@ extern "C" void* VMAllocStruct(void* vmcontext, Metadata::EpochTypeID structtype
 	{
 		VM::ExecutionContext* context = reinterpret_cast<VM::ExecutionContext*>(vmcontext);
 		StructureHandle handle = context->OwnerVM.AllocateStructure(context->OwnerVM.GetStructureDefinition(structtype));
+		context->TickStructureGarbageCollector();
 		return handle;
 	}
 	catch(...)
@@ -124,6 +125,7 @@ extern "C" void* VMCopyStruct(void* vmcontext, StructureHandle handle)
 	{
 		VM::ExecutionContext* context = reinterpret_cast<VM::ExecutionContext*>(vmcontext);
 		StructureHandle copyhandle = context->OwnerVM.DeepCopy(handle);
+		context->TickStructureGarbageCollector();
 		return copyhandle;
 	}
 	catch(...)

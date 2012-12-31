@@ -87,6 +87,17 @@ namespace
 		context.State.Stack.PushValue(p1 > p2);
 	}
 
+	void IntegerGreaterThanJIT(JIT::JITContext& context, bool)
+	{
+		llvm::Value* p2 = context.ValuesOnStack.top();
+		context.ValuesOnStack.pop();
+		llvm::Value* p1 = context.ValuesOnStack.top();
+		context.ValuesOnStack.pop();
+		llvm::Value* flag = reinterpret_cast<llvm::IRBuilder<>*>(context.Builder)->CreateICmp(llvm::CmpInst::ICMP_SGT, p1, p2);
+		context.ValuesOnStack.push(flag);
+	}
+
+
 	//
 	// Compare two integers to see if one is less than the other
 	//
@@ -360,6 +371,7 @@ void ComparisonLibrary::RegisterLibraryOverloads(OverloadMap& overloadmap, Strin
 
 void ComparisonLibrary::RegisterJITTable(JIT::JITTable& table, StringPoolManager& stringpool)
 {
+	AddToMapNoDupe(table.InvokeHelpers, std::make_pair(stringpool.Pool(L">@@integer"), IntegerGreaterThanJIT));
 	AddToMapNoDupe(table.InvokeHelpers, std::make_pair(stringpool.Pool(L"<@@integer"), IntegerLessThanJIT));
 	AddToMapNoDupe(table.InvokeHelpers, std::make_pair(stringpool.Pool(L">@@real"), RealGreaterThanJIT));
 	AddToMapNoDupe(table.InvokeHelpers, std::make_pair(stringpool.Pool(L"<@@real"), RealLessThanJIT));
