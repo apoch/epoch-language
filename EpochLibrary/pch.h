@@ -23,6 +23,7 @@
 
 
 #include <boost/range/iterator_range.hpp>
+#include <boost/unordered_set.hpp>
 
 
 #pragma warning(push)

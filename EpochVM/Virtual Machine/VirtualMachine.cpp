@@ -2185,7 +2185,7 @@ namespace
 // should NOT be garbage collected. Everything else can be freed without issues.
 //
 template <typename HandleType, typename ValidatorT>
-void ExecutionContext::MarkAndSweep(ValidatorT validator, std::set<HandleType>& livehandles)
+void ExecutionContext::MarkAndSweep(ValidatorT validator, boost::unordered_set<HandleType>& livehandles)
 {
 	// TODO - BUG BUG BUG - we need to handle values on the stack which are NOT bound into local variables, e.g. temporary expressions
 
@@ -2239,7 +2239,7 @@ void ExecutionContext::MarkAndSweep(ValidatorT validator, std::set<HandleType>& 
 //
 void ExecutionContext::CollectGarbage_Buffers()
 {
-	std::set<BufferHandle> livehandles;
+	boost::unordered_set<BufferHandle> livehandles;
 
 	// Traverse active scopes/structures for variables holding buffer references
 	MarkAndSweep<BufferHandle>(ValidatorBuffers, livehandles);
@@ -2259,7 +2259,7 @@ void ExecutionContext::CollectGarbage_Strings()
 {
 	// Begin with the set of known static string references, as parsed from the code during load phase
 	// This is done to ensure that statically referenced strings are never discarded by the collector.
-	std::set<StringHandle> livehandles = StaticallyReferencedStrings;
+	boost::unordered_set<StringHandle> livehandles = StaticallyReferencedStrings;
 
 	// Traverse active scopes/structures for variables holding string references
 	MarkAndSweep<StringHandle>(ValidatorStrings, livehandles);
@@ -2277,7 +2277,7 @@ void ExecutionContext::CollectGarbage_Strings()
 //
 void ExecutionContext::CollectGarbage_Structures()
 {
-	std::set<StructureHandle> livehandles;
+	boost::unordered_set<StructureHandle> livehandles;
 
 	// Traverse active scopes/structures for variables holding structure references
 	MarkAndSweep<StructureHandle>(ValidatorStructures, livehandles);
@@ -2294,7 +2294,7 @@ void ExecutionContext::CollectGarbage_Structures()
 //
 // Garbage collection disposal routine for buffer data
 //
-void VirtualMachine::GarbageCollectBuffers(const std::set<BufferHandle>& livehandles)
+void VirtualMachine::GarbageCollectBuffers(const boost::unordered_set<BufferHandle>& livehandles)
 {
 	EraseDeadHandles(Buffers, livehandles);
 }
@@ -2302,7 +2302,7 @@ void VirtualMachine::GarbageCollectBuffers(const std::set<BufferHandle>& livehan
 //
 // Garbage collection disposal routine for structure data
 //
-void VirtualMachine::GarbageCollectStructures(const std::set<StructureHandle>& livehandles)
+void VirtualMachine::GarbageCollectStructures(const boost::unordered_set<StructureHandle>& livehandles)
 {
 	EraseAndDeleteDeadHandles(ActiveStructures, livehandles);
 }

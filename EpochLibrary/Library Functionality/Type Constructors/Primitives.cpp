@@ -88,6 +88,21 @@ namespace
 		context.Variables->Write(identifierhandle, value);
 	}
 
+	void ConstructBooleanJIT(JIT::JITContext& context, bool)
+	{
+		llvm::Value* p2 = context.ValuesOnStack.top();
+		context.ValuesOnStack.pop();
+		llvm::Value* c = context.ValuesOnStack.top();
+		context.ValuesOnStack.pop();
+
+
+		llvm::ConstantInt* cint = llvm::dyn_cast<llvm::ConstantInt>(c);
+		size_t vartarget = static_cast<size_t>(cint->getValue().getLimitedValue());
+
+		reinterpret_cast<llvm::IRBuilder<>*>(context.Builder)->CreateStore(p2, context.VariableMap[context.NameToIndexMap[vartarget]], false);
+	}
+
+
 	//
 	// Construct a real variable in memory
 	//
@@ -224,4 +239,5 @@ void TypeConstructors::RegisterJITTable(JIT::JITTable& table, StringPoolManager&
 {
 	AddToMapNoDupe(table.InvokeHelpers, std::make_pair(stringpool.Pool(L"integer"), &ConstructIntegerJIT));
 	AddToMapNoDupe(table.InvokeHelpers, std::make_pair(stringpool.Pool(L"real"), &ConstructRealJIT));
+	AddToMapNoDupe(table.InvokeHelpers, std::make_pair(stringpool.Pool(L"boolean"), &ConstructBooleanJIT));
 }

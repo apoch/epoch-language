@@ -27,6 +27,9 @@
 #include <set>
 
 
+#include <boost/unordered_set.hpp>
+
+
 // Platform-specific stuff
 #ifndef _WIN32_WINNT
 #define _WIN32_WINNT 0x0501		// Windows XP or later

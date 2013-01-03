@@ -101,6 +101,7 @@ extern "C" void STDCALL BindToVirtualMachine(FunctionInvocationTable& functionta
 		ArithmeticLibrary::RegisterJITTable(jittable, stringpool);
 		TypeConstructors::RegisterJITTable(jittable, stringpool);
 		ComparisonLibrary::RegisterJITTable(jittable, stringpool);
+		BooleanLibrary::RegisterJITTable(jittable, stringpool);
 
 		TypeCasts::RegisterJITTable(jittable, stringpool);
 

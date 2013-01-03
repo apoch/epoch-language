@@ -149,8 +149,8 @@ namespace VM
 
 	// Garbage collection
 	public:
-		void GarbageCollectBuffers(const std::set<BufferHandle>& livehandles);
-		void GarbageCollectStructures(const std::set<StructureHandle>& livehandles);
+		void GarbageCollectBuffers(const boost::unordered_set<BufferHandle>& livehandles);
+		void GarbageCollectStructures(const boost::unordered_set<StructureHandle>& livehandles);
 
 	// Use sparingly! Only intended for access by the garbage collector
 	public:
@@ -279,7 +279,7 @@ namespace VM
 		EPOCHVM void TickStructureGarbageCollector();
 
 		template <typename HandleType, typename ValidatorT>
-		void MarkAndSweep(ValidatorT validator, std::set<HandleType>& livehandles);
+		void MarkAndSweep(ValidatorT validator, boost::unordered_set<HandleType>& livehandles);
 
 	// Internal helpers for JIT compilation
 	private:
@@ -300,7 +300,7 @@ namespace VM
 		size_t GarbageTick_Strings;
 		size_t GarbageTick_Structures;
 
-		std::set<StringHandle> StaticallyReferencedStrings;
+		boost::unordered_set<StringHandle> StaticallyReferencedStrings;
 	};
 
 }

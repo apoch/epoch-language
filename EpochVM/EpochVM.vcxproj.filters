@@ -122,6 +122,9 @@
     <ClCompile Include="..\Shared\Utility\Profiling.cpp">
       <Filter>Shared\Utility</Filter>
     </ClCompile>
+    <ClCompile Include="..\Shared\Utility\Memory\DLMalloc.cpp">
+      <Filter>Shared\Utility\Memory</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h">

@@ -99,6 +99,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\Shared\Metadata\TypeInfo.cpp" />
+    <ClCompile Include="..\Shared\Utility\Memory\DLMalloc.cpp" />
     <ClCompile Include="..\Shared\Utility\Profiling.cpp" />
     <ClCompile Include="Entry Point\EntryPoint.cpp" />
     <ClCompile Include="JIT\JIT.cpp" />

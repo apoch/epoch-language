@@ -102,7 +102,7 @@ llvm::Type* GetJITType(const VM::VirtualMachine& ownervm, Metadata::EpochTypeID 
 		return llvm::Type::getFloatTy(context);
 
 	case Metadata::EpochType_Boolean:
-		return llvm::Type::getInt8Ty(context);
+		return llvm::Type::getInt1Ty(context);
 
 	case Metadata::EpochType_Integer16:
 		return llvm::Type::getInt16Ty(context);
@@ -1106,8 +1106,14 @@ void JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instruction*
 					}
 					break;
 
-				case Metadata::EpochType_Integer16:
 				case Metadata::EpochType_Boolean:
+					{
+						bool value = Fetch<bool>(bytecode, offset);
+						valueval = ConstantInt::get(Type::getInt1Ty(context), value);
+					}
+					break;
+
+				case Metadata::EpochType_Integer16:
 				case Metadata::EpochType_Buffer:
 				default:
 					throw FatalException("Unsupported type for JIT compilation");

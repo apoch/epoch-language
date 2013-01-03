@@ -31,6 +31,14 @@ namespace
 		context.State.Stack.PushValue(!p);
 	}
 
+	void BooleanNotJIT(JIT::JITContext& context, bool)
+	{
+		llvm::Value* v = context.ValuesOnStack.top();
+		context.ValuesOnStack.pop();
+		llvm::Value* notv = reinterpret_cast<llvm::IRBuilder<>*>(context.Builder)->CreateNot(v);
+		context.ValuesOnStack.push(notv);
+	}
+
 }
 
 
@@ -65,5 +73,10 @@ void BooleanLibrary::RegisterLibraryOverloads(OverloadMap& overloadmap, StringPo
 		StringHandle functionnamehandle = stringpool.Pool(L"!");
 		overloadmap[functionnamehandle].insert(stringpool.Pool(L"!@@boolean"));
 	}
+}
+
+void BooleanLibrary::RegisterJITTable(JIT::JITTable& table, StringPoolManager& stringpool)
+{
+	AddToMapNoDupe(table.InvokeHelpers, std::make_pair(stringpool.Pool(L"!@@boolean"), BooleanNotJIT));
 }
 

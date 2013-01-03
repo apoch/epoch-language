@@ -14,7 +14,7 @@
 #include "Utility/HandleAllocator.h"
 
 #include <boost/unordered_map.hpp>
-#include <set>
+#include <boost/unordered_set.hpp>
 #include <string>
 
 
@@ -42,7 +42,7 @@ public:
 
 // Garbage collection interface
 public:
-	void GarbageCollect(const std::set<StringHandle>& livehandles);
+	void GarbageCollect(const boost::unordered_set<StringHandle>& livehandles);
 
 // Internal tracking
 private:
