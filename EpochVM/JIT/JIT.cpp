@@ -197,7 +197,54 @@ void JITNativeTypeMatcher(const VM::VirtualMachine& ownervm, const Bytecode::Ins
 	std::vector<Value*> reftypes;
 	std::vector<Value*> reftargets;
 
+	std::vector<std::vector<Value*> > parampayloadptrs;
+	std::vector<std::vector<Value*> > providedtypeholders;
+
+	unsigned typematchindex = 0;
 	StringHandle entityname = 0;
+
+	// Count type matchers in this entity
+	for(size_t offset = beginoffset; offset <= endoffset; )
+	{
+		Bytecode::Instruction instruction = bytecode[offset++];
+		switch(instruction)
+		{
+		case Bytecode::Instructions::BeginEntity:
+			Fetch<Integer32>(bytecode, offset);
+			Fetch<StringHandle>(bytecode, offset);
+			break;
+
+		case Bytecode::Instructions::EndEntity:
+			break;
+
+		case Bytecode::Instructions::Halt:
+			break;
+
+		case Bytecode::Instructions::TypeMatch:
+			{
+				parampayloadptrs.push_back(std::vector<Value*>());
+				providedtypeholders.push_back(std::vector<Value*>());
+
+				Fetch<StringHandle>(bytecode, offset);
+				Fetch<size_t>(bytecode, offset);
+				size_t paramcount = Fetch<size_t>(bytecode, offset);
+
+				for(size_t i = 0; i < paramcount; ++i)
+				{
+					Fetch<bool>(bytecode, offset);
+					Fetch<Metadata::EpochTypeID>(bytecode, offset);
+
+					parampayloadptrs.back().push_back(builder.CreateAlloca(Type::getInt8PtrTy(context)));
+					providedtypeholders.back().push_back(builder.CreateAlloca(Type::getInt32Ty(context)));
+				}
+			}
+			break;
+
+		default:
+			throw FatalException("Invalid opcode in native type matcher");
+		}
+	}
+
 
 	for(size_t offset = beginoffset; offset <= endoffset; )
 	{
@@ -247,10 +294,8 @@ void JITNativeTypeMatcher(const VM::VirtualMachine& ownervm, const Bytecode::Ins
 					Metadata::EpochTypeID expecttype = Fetch<Metadata::EpochTypeID>(bytecode, offset);
 
 					BasicBlock* checkmatchblock = BasicBlock::Create(context, "checkmatch", matcherfunction);
-					Value* providedtypeholder = builder.CreateAlloca(Type::getInt32Ty(context));
-					Value* parampayloadptr = builder.CreateAlloca(Type::getInt8PtrTy(context), NULL, "parampayloadptr");
 
-					builder.CreateStore(reftypes[i], providedtypeholder);
+					builder.CreateStore(reftypes[i], providedtypeholders[typematchindex][i]);
 
 					BasicBlock* setnothingrefflagblock = BasicBlock::Create(context, "setnothingrefflag", matcherfunction);
 					BasicBlock* skipblock = BasicBlock::Create(context, "skip", matcherfunction);
@@ -262,34 +307,34 @@ void JITNativeTypeMatcher(const VM::VirtualMachine& ownervm, const Bytecode::Ins
 					builder.CreateBr(skipblock);
 
 					builder.SetInsertPoint(skipblock);
-					builder.CreateStore(reftargets[i], parampayloadptr);
+					builder.CreateStore(reftargets[i], parampayloadptrs[typematchindex][i]);
 
 
 					BasicBlock* handlesumtypeblock = BasicBlock::Create(context, "handlesumtype", matcherfunction);
 
-					Value* providedtypefamily = builder.CreateAnd(builder.CreateLoad(providedtypeholder), 0xff000000);
+					Value* providedtypefamily = builder.CreateAnd(builder.CreateLoad(providedtypeholders[typematchindex][i]), 0xff000000);
 					Value* issumtype = builder.CreateICmpEQ(providedtypefamily, ConstantInt::get(Type::getInt32Ty(context), Metadata::EpochTypeFamily_SumType));
 					builder.CreateCondBr(issumtype, handlesumtypeblock, checkmatchblock);
 
 					builder.SetInsertPoint(handlesumtypeblock);
 
 					Value* rt = builder.CreateLoad(builder.CreatePointerCast(reftargets[i], Type::getInt32PtrTy(context)));
-					builder.CreateStore(rt, providedtypeholder);
+					builder.CreateStore(rt, providedtypeholders[typematchindex][i]);
 
 					if(Metadata::GetTypeFamily(expecttype) == Metadata::EpochTypeFamily_SumType)
 					{
-						builder.CreateStore(reftargets[i], parampayloadptr);
+						builder.CreateStore(reftargets[i], parampayloadptrs[typematchindex][i]);
 					}
 					else
 					{
 						Value* gep = builder.CreateGEP(reftargets[i], ConstantInt::get(Type::getInt32Ty(context), sizeof(Metadata::EpochTypeID)));
-						builder.CreateStore(gep, parampayloadptr);
+						builder.CreateStore(gep, parampayloadptrs[typematchindex][i]);
 					}
 					builder.CreateBr(checkmatchblock);
 
 					builder.SetInsertPoint(checkmatchblock);
 
-					Value* nomatch = builder.CreateICmpNE(builder.CreateLoad(providedtypeholder), ConstantInt::get(Type::getInt32Ty(context), expecttype));
+					Value* nomatch = builder.CreateICmpNE(builder.CreateLoad(providedtypeholders[typematchindex][i]), ConstantInt::get(Type::getInt32Ty(context), expecttype));
 					Value* notexpectsumtype = ConstantInt::get(Type::getInt1Ty(context), Metadata::GetTypeFamily(expecttype) != Metadata::EpochTypeFamily_SumType);
 
 					BasicBlock* nextparamblock = BasicBlock::Create(context, "nextparam", matcherfunction);
@@ -303,14 +348,14 @@ void JITNativeTypeMatcher(const VM::VirtualMachine& ownervm, const Bytecode::Ins
 					{
 						if(Metadata::GetTypeFamily(expecttype) == Metadata::EpochTypeFamily_Structure || Metadata::GetTypeFamily(expecttype) == Metadata::EpochTypeFamily_TemplateInstance)
 						{
-							Value* v = builder.CreatePointerCast(parampayloadptr, GetJITType(ownervm, expecttype, context)->getPointerTo()->getPointerTo());
+							Value* v = builder.CreatePointerCast(parampayloadptrs[typematchindex][i], GetJITType(ownervm, expecttype, context)->getPointerTo()->getPointerTo());
 							v = builder.CreateLoad(v);
 
 							actualparams.push_back(v);
 						}
 						else if(!expectref)
 						{
-							Value* v = builder.CreatePointerCast(parampayloadptr, GetJITType(ownervm, expecttype, context)->getPointerTo()->getPointerTo());
+							Value* v = builder.CreatePointerCast(parampayloadptrs[typematchindex][i], GetJITType(ownervm, expecttype, context)->getPointerTo()->getPointerTo());
 							v = builder.CreateLoad(v);
 							v = builder.CreateLoad(v);
 
@@ -318,14 +363,14 @@ void JITNativeTypeMatcher(const VM::VirtualMachine& ownervm, const Bytecode::Ins
 						}
 						else if(Metadata::GetTypeFamily(expecttype) == Metadata::EpochTypeFamily_SumType)
 						{
-							Value* v = builder.CreatePointerCast(parampayloadptr, GetJITType(ownervm, expecttype, context)->getPointerTo()->getPointerTo());
+							Value* v = builder.CreatePointerCast(parampayloadptrs[typematchindex][i], GetJITType(ownervm, expecttype, context)->getPointerTo()->getPointerTo());
 							v = builder.CreateLoad(v);
 
 							actualparams.push_back(v);
 						}
 						else
 						{
-							Value* v = builder.CreatePointerCast(parampayloadptr, GetJITType(ownervm, expecttype, context)->getPointerTo()->getPointerTo());
+							Value* v = builder.CreatePointerCast(parampayloadptrs[typematchindex][i], GetJITType(ownervm, expecttype, context)->getPointerTo()->getPointerTo());
 							v = builder.CreateLoad(v);
 
 							actualparams.push_back(v);
@@ -369,6 +414,8 @@ void JITNativeTypeMatcher(const VM::VirtualMachine& ownervm, const Bytecode::Ins
 
 				builder.SetInsertPoint(nexttypematcher);
 			}
+
+			++typematchindex;
 			break;
 
 		default:
@@ -377,14 +424,7 @@ void JITNativeTypeMatcher(const VM::VirtualMachine& ownervm, const Bytecode::Ins
 	}
 
 	builder.CreateCall(vmhaltfunction);
-	if(ownervm.TypeMatcherRetType.find(entityname)->second)
-	{
-		Value* typematchret = builder.CreateAlloca(GetJITType(ownervm, ownervm.TypeMatcherRetType.find(entityname)->second, context));
-		// Unreachable code (VM halted above) so we don't need to return initialized data
-		builder.CreateRet(builder.CreateLoad(typematchret));
-	}
-	else
-		builder.CreateRetVoid();
+	builder.CreateUnreachable();
 }
 
 
@@ -431,7 +471,7 @@ void JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instruction*
 		FunctionType* vmgetbuffertype = FunctionType::get(Type::getInt1PtrTy(context), vmargs, false);
 
 		vmgetbuffer = Function::Create(vmgetbuffertype, Function::ExternalLinkage, "VMGetBuffer", module);
-		vmgetbuffer->addAttribute(static_cast<unsigned>(~0), Attribute::ReadNone);
+		vmgetbuffer->setDoesNotAccessMemory();
 	}
 
 	if(!vmhaltfunction)
@@ -1065,14 +1105,7 @@ void JITByteCode(const VM::VirtualMachine& ownervm, const Bytecode::Instruction*
 					targetargs.push_back(jitcontext.InnerFunction->arg_begin());
 					std::reverse(targetargs.begin(), targetargs.end());
 
-					if(targetfunc->getReturnType() != Type::getVoidTy(context))
-					{
-						Value* rv = builder.CreateAlloca(targetfunc->getReturnType());
-						builder.CreateStore(builder.CreateCall(targetfunc, targetargs), rv);
-						jitcontext.ValuesOnStack.push(builder.CreateLoad(rv));
-					}
-					else
-						jitcontext.ValuesOnStack.push(builder.CreateCall(targetfunc, targetargs));
+					jitcontext.ValuesOnStack.push(builder.CreateCall(targetfunc, targetargs));
 				}
 			}
 			break;
@@ -1536,7 +1569,7 @@ void PopulateJITExecs(VM::VirtualMachine& ownervm)
 	
 	FunctionPassManager OurFPM(module);
 
-	OurFPM.add(new TargetData(*ee->getTargetData()));
+	OurFPM.add(new DataLayout(*ee->getDataLayout()));
 	OurFPM.add(createTypeBasedAliasAnalysisPass());
 	OurFPM.add(createBasicAliasAnalysisPass());
 	OurFPM.add(createCFGSimplificationPass());
@@ -1545,7 +1578,7 @@ void PopulateJITExecs(VM::VirtualMachine& ownervm)
 	OurFPM.add(createLowerExpectIntrinsicPass());
 
 	VectorizeConfig vcfg;
-	vcfg.ReqChainDepth = 1;
+	vcfg.ReqChainDepth = 2;
 	vcfg.MaxIter = 500;
 	OurFPM.add(createBBVectorizePass(vcfg));
 
@@ -1555,7 +1588,7 @@ void PopulateJITExecs(VM::VirtualMachine& ownervm)
 		OurFPM.run(*iter->second);
 
 	PassManager OurMPM;
-	OurMPM.add(new TargetData(*ee->getTargetData()));
+	OurFPM.add(new DataLayout(*ee->getDataLayout()));
 	OurMPM.add(createTypeBasedAliasAnalysisPass());
 	OurMPM.add(createBasicAliasAnalysisPass());
 	OurMPM.add(createGlobalOptimizerPass());

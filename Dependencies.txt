@@ -12,7 +12,7 @@ http://www.microsoft.com/
 Boost
 -----
 
-Version 1.47.0
+Version 1.51.0
 http://www.boost.org/
 
 
@@ -20,6 +20,6 @@ http://www.boost.org/
 LLVM
 ----
 
-Version 3.0
+Version 3.2
 http://www.llvm.org/
 
