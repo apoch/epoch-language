@@ -88,6 +88,14 @@ namespace
 		AddIntegers(functionname, context);
 	}
 
+	void IncrementIntegerJIT(JIT::JITContext& context, bool)
+	{
+		llvm::Value* p1 = context.ValuesOnStack.top();
+		context.ValuesOnStack.pop();
+		llvm::Value* result = reinterpret_cast<llvm::IRBuilder<>*>(context.Builder)->CreateAdd(p1, llvm::ConstantInt::get(p1->getType(), 1));
+		context.ValuesOnStack.push(result);
+	}
+
 	//
 	// Decrement a variable's value by one
 	//
@@ -95,6 +103,14 @@ namespace
 	{
 		context.State.Stack.PushValue(1);
 		SubtractIntegers(functionname, context);
+	}
+
+	void DecrementIntegerJIT(JIT::JITContext& context, bool)
+	{
+		llvm::Value* p1 = context.ValuesOnStack.top();
+		context.ValuesOnStack.pop();
+		llvm::Value* result = reinterpret_cast<llvm::IRBuilder<>*>(context.Builder)->CreateSub(p1, llvm::ConstantInt::get(p1->getType(), 1));
+		context.ValuesOnStack.push(result);
 	}
 
 
@@ -526,5 +542,8 @@ void ArithmeticLibrary::RegisterJITTable(JIT::JITTable& table, StringPoolManager
 	AddToMapNoDupe(table.InvokeHelpers, std::make_pair(stringpool.Pool(L"+@@integer"), &AddIntegersJIT));
 	AddToMapNoDupe(table.InvokeHelpers, std::make_pair(stringpool.Pool(L"-@@integer"), &SubtractIntegersJIT));
 	AddToMapNoDupe(table.InvokeHelpers, std::make_pair(stringpool.Pool(L"*@@integer"), &MultiplyIntegersJIT));
+
+	AddToMapNoDupe(table.InvokeHelpers, std::make_pair(stringpool.Pool(L"++@@integer"), &IncrementIntegerJIT));
+	AddToMapNoDupe(table.InvokeHelpers, std::make_pair(stringpool.Pool(L"--@@integer"), &DecrementIntegerJIT));
 }
 
