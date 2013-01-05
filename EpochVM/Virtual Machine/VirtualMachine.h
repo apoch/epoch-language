@@ -170,7 +170,7 @@ namespace VM
 	public:
 		std::map<Metadata::EpochTypeID, StructureDefinition> StructureDefinitions;
 		JIT::JITTable JITHelpers;
-		boost::unordered_map<StringHandle, JITExecPtr, fasthash> JITExecs;
+		boost::unordered_map<StringHandle, EpochToJITWrapperFunc, fasthash> JITExecs;
 
 		boost::unordered_map<Metadata::EpochTypeID, VariantDefinition, fasthash> VariantDefinitions;
 		std::map<StringHandle, size_t> TypeMatcherParamCount;
@@ -280,10 +280,6 @@ namespace VM
 
 		template <typename HandleType, typename ValidatorT>
 		void MarkAndSweep(ValidatorT validator, boost::unordered_set<HandleType>& livehandles);
-
-	// Internal helpers for JIT compilation
-	private:
-		void JITCompileByteCode(StringHandle entity, size_t beginoffset, size_t endoffset);
 
 	private:
 		void WriteStructureMember(ActiveStructure& structure, size_t memberindex, Metadata::EpochTypeID membertype);

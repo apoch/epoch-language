@@ -949,7 +949,7 @@ void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunct
 
 					Fetch<StringHandle>();
 					size_t target = Fetch<size_t>();
-					((JITExecPtr)target)(State.Stack.GetMutableStackPtr(), this);
+					((EpochToJITWrapperFunc)target)(State.Stack.GetMutableStackPtr(), this);
 				}
 				break;
 
@@ -1917,15 +1917,20 @@ void ExecutionContext::Load()
 		StaticallyReferencedStrings.insert(iter->first);
 
 	// JIT-compile everything that needs it
-	for(std::vector<StringHandle>::const_iterator iter = jitworklist.begin(); iter != jitworklist.end(); ++iter)
 	{
-		size_t beginoffset = entityoffsetmap[*iter];
-		size_t endoffset = OwnerVM.GetEntityEndOffset(beginoffset);
+		JIT::NativeCodeGenerator jitgen(OwnerVM, CodeBuffer);
 
-		JITCompileByteCode(*iter, beginoffset, endoffset);
+		for(std::vector<StringHandle>::const_iterator iter = jitworklist.begin(); iter != jitworklist.end(); ++iter)
+		{
+			size_t beginoffset = entityoffsetmap[*iter];
+			size_t endoffset = OwnerVM.GetEntityEndOffset(beginoffset);
+
+			jitgen.AddFunction(beginoffset, endoffset, *iter);
+		}
+
+		if(!jitworklist.empty())
+			jitgen.Generate();
 	}
-	if(!jitworklist.empty())
-		PopulateJITExecs(OwnerVM);
 
 	// More fixups
 	for(std::map<size_t, StringHandle>::const_iterator iter = jitfixups.begin(); iter != jitfixups.end(); ++iter)
@@ -2332,13 +2337,6 @@ std::wstring VirtualMachine::DebugSnapshot() const
 #endif
 	
 	return report.str();
-}
-
-
-
-void ExecutionContext::JITCompileByteCode(StringHandle entity, size_t beginoffset, size_t endoffset)
-{
-	JITByteCode(OwnerVM, CodeBuffer, beginoffset, endoffset, entity);
 }
 
 void ExecutionContext::WriteStructureMember(ActiveStructure& structure, size_t memberindex, EpochTypeID membertype)
