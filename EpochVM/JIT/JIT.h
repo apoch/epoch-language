@@ -27,6 +27,7 @@ namespace JIT
 	namespace impl
 	{
 		struct LLVMData;
+		class FunctionJITHelper;
 	}
 
 	//
@@ -58,9 +59,15 @@ namespace JIT
 		llvm::FunctionType* GetLLVMFunctionType(StringHandle epochfunc);
 
 		void AddNativeTypeMatcher(size_t beginoffset, size_t endoffset);
+		
+		llvm::Function* GetGeneratedFunction(StringHandle funcname, size_t beginoffset);
+		llvm::Function* GetGeneratedTypeMatcher(StringHandle funcname, size_t beginoffset);
+		llvm::Function* GetGeneratedBridge(size_t beginoffset);
 
 	// Internal tracking
 	private:
+		friend class impl::FunctionJITHelper;
+	
 		VM::VirtualMachine& OwnerVM;
 		const Bytecode::Instruction* Bytecode;
 
