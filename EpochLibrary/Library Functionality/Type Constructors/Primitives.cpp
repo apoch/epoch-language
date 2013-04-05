@@ -38,35 +38,7 @@ namespace
 	StringHandle NothingHandle = 0;
 
 
-	void ConstructIntegerJIT(JIT::JITContext& context, bool)
-	{
-		llvm::Value* p2 = context.ValuesOnStack.top();
-		context.ValuesOnStack.pop();
-		llvm::Value* c = context.ValuesOnStack.top();
-		context.ValuesOnStack.pop();
-
-
-		llvm::ConstantInt* cint = llvm::dyn_cast<llvm::ConstantInt>(c);
-		size_t vartarget = static_cast<size_t>(cint->getValue().getLimitedValue());
-
-		reinterpret_cast<llvm::IRBuilder<>*>(context.Builder)->CreateStore(p2, context.VariableMap[context.NameToIndexMap[vartarget]], false);
-	}
-
-	void ConstructBooleanJIT(JIT::JITContext& context, bool)
-	{
-		llvm::Value* p2 = context.ValuesOnStack.top();
-		context.ValuesOnStack.pop();
-		llvm::Value* c = context.ValuesOnStack.top();
-		context.ValuesOnStack.pop();
-
-
-		llvm::ConstantInt* cint = llvm::dyn_cast<llvm::ConstantInt>(c);
-		size_t vartarget = static_cast<size_t>(cint->getValue().getLimitedValue());
-
-		reinterpret_cast<llvm::IRBuilder<>*>(context.Builder)->CreateStore(p2, context.VariableMap[context.NameToIndexMap[vartarget]], false);
-	}
-
-	void ConstructRealJIT(JIT::JITContext& context, bool)
+	void ConstructorJIT(JIT::JITContext& context, bool)
 	{
 		llvm::Value* p2 = context.ValuesOnStack.top();
 		context.ValuesOnStack.pop();
@@ -79,18 +51,6 @@ namespace
 		reinterpret_cast<llvm::IRBuilder<>*>(context.Builder)->CreateStore(p2, context.VariableMap[context.NameToIndexMap[vartarget]], false);
 	}
 
-	void ConstructStringJIT(JIT::JITContext& context, bool)
-	{
-		llvm::Value* p2 = context.ValuesOnStack.top();
-		context.ValuesOnStack.pop();
-		llvm::Value* c = context.ValuesOnStack.top();
-		context.ValuesOnStack.pop();
-
-		llvm::ConstantInt* cint = llvm::dyn_cast<llvm::ConstantInt>(c);
-		size_t vartarget = static_cast<size_t>(cint->getValue().getLimitedValue());
-
-		reinterpret_cast<llvm::IRBuilder<>*>(context.Builder)->CreateStore(p2, context.VariableMap[context.NameToIndexMap[vartarget]], false);
-	}
 }
 
 
@@ -160,10 +120,11 @@ void TypeConstructors::RegisterLibraryFunctions(FunctionCompileHelperTable& tabl
 
 void TypeConstructors::RegisterJITTable(JIT::JITTable& table)
 {
-	AddToMapNoDupe(table.InvokeHelpers, std::make_pair(IntegerHandle, &ConstructIntegerJIT));
-	AddToMapNoDupe(table.InvokeHelpers, std::make_pair(RealHandle, &ConstructRealJIT));
-	AddToMapNoDupe(table.InvokeHelpers, std::make_pair(BooleanHandle, &ConstructBooleanJIT));
-	AddToMapNoDupe(table.InvokeHelpers, std::make_pair(StringTypeHandle, &ConstructStringJIT));
+	AddToMapNoDupe(table.InvokeHelpers, std::make_pair(IntegerHandle, &ConstructorJIT));
+	AddToMapNoDupe(table.InvokeHelpers, std::make_pair(Integer16Handle, &ConstructorJIT));
+	AddToMapNoDupe(table.InvokeHelpers, std::make_pair(RealHandle, &ConstructorJIT));
+	AddToMapNoDupe(table.InvokeHelpers, std::make_pair(BooleanHandle, &ConstructorJIT));
+	AddToMapNoDupe(table.InvokeHelpers, std::make_pair(StringTypeHandle, &ConstructorJIT));
 }
 
 

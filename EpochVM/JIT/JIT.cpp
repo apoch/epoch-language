@@ -1381,6 +1381,12 @@ void FunctionJITHelper::Push(size_t& offset)
 		break;
 
 	case Metadata::EpochType_Integer16:
+		{
+			Integer16 value = Fetch<Integer16>(Bytecode, offset);
+			valueval = ConstantInt::get(Type::getInt16Ty(Context), value);
+		}
+		break;
+
 	case Metadata::EpochType_Buffer:
 	default:
 		throw FatalException("Unsupported type for JIT compilation");

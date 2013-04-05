@@ -249,6 +249,7 @@ void ComparisonLibrary::RegisterLibraryOverloads(OverloadMap& overloadmap)
 void ComparisonLibrary::RegisterJITTable(JIT::JITTable& table)
 {
 	AddToMapNoDupe(table.InvokeHelpers, std::make_pair(IntegerEqualityHandle, &IntegerEqualityJIT));
+	AddToMapNoDupe(table.InvokeHelpers, std::make_pair(Integer16EqualityHandle, &IntegerEqualityJIT));
 
 	AddToMapNoDupe(table.InvokeHelpers, std::make_pair(IntegerGreaterThanHandle, &IntegerGreaterThanJIT));
 	AddToMapNoDupe(table.InvokeHelpers, std::make_pair(IntegerLessThanHandle, &IntegerLessThanJIT));
