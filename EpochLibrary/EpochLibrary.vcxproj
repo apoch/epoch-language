@@ -101,7 +101,6 @@
     <ClCompile Include="..\Shared\Metadata\TypeInfo.cpp" />
     <ClCompile Include="..\Shared\Utility\Memory\MemoryManager.cpp" />
     <ClCompile Include="EntryPoint.cpp" />
-    <ClCompile Include="Library Functionality\Function Tags\Native.cpp" />
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">pch.h</PrecompiledHeaderFile>
@@ -121,7 +120,6 @@
       <XMLDocumentationFileName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(IntDir)%(Filename)1.xdc</XMLDocumentationFileName>
     </ClCompile>
     <ClCompile Include="Library Functionality\Flow Control\Conditionals.cpp" />
-    <ClCompile Include="Library Functionality\Flow Control\FlowControl.cpp" />
     <ClCompile Include="Library Functionality\Flow Control\Loops.cpp" />
     <ClCompile Include="Library Functionality\Flow Control\StringPooling.cpp" />
     <ClCompile Include="Library Functionality\Function Tags\Constructors.cpp" />
@@ -141,7 +139,6 @@
     <ClCompile Include="..\Shared\Utility\Threading\Synchronization.cpp" />
     <ClCompile Include="..\Shared\User Interface\Input.cpp" />
     <ClCompile Include="..\Shared\User Interface\Output.cpp" />
-    <ClCompile Include="..\Shared\Metadata\ActiveScope.cpp" />
     <ClCompile Include="..\Shared\Metadata\FunctionSignature.cpp" />
     <ClCompile Include="..\Shared\Metadata\Register.cpp" />
     <ClCompile Include="..\Shared\Metadata\ScopeDescription.cpp" />
@@ -153,7 +150,6 @@
     <ClInclude Include="..\Shared\Libraries\LibraryJIT.h" />
     <ClInclude Include="..\Shared\Metadata\TypeInfo.h" />
     <ClInclude Include="..\Shared\Utility\Memory\MemoryManager.h" />
-    <ClInclude Include="Library Functionality\Function Tags\Native.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="Library Functionality\Debugging\Debugging.h" />
     <ClInclude Include="Library Functionality\Type Constructors\Primitives.h" />
@@ -163,7 +159,6 @@
     <ClInclude Include="Library Functionality\Operators\Comparison.h" />
     <ClInclude Include="Library Functionality\Operators\Strings.h" />
     <ClInclude Include="Library Functionality\Flow Control\Conditionals.h" />
-    <ClInclude Include="Library Functionality\Flow Control\FlowControl.h" />
     <ClInclude Include="Library Functionality\Flow Control\Loops.h" />
     <ClInclude Include="Library Functionality\Flow Control\StringPooling.h" />
     <ClInclude Include="Library Functionality\Function Tags\Constructors.h" />
@@ -181,7 +176,6 @@
     <ClInclude Include="..\Shared\Utility\Threading\Synchronization.h" />
     <ClInclude Include="..\Shared\User Interface\Input.h" />
     <ClInclude Include="..\Shared\User Interface\Output.h" />
-    <ClInclude Include="..\Shared\Metadata\ActiveScope.h" />
     <ClInclude Include="..\Shared\Metadata\CompileTimeParams.h" />
     <ClInclude Include="..\Shared\Metadata\EntityDescription.h" />
     <ClInclude Include="..\Shared\Metadata\FunctionSignature.h" />

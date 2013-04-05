@@ -962,7 +962,18 @@ bool TypeSpace::CompileTimeCodeExecution(CompileErrors& errors)
 			}
 
 			MyNamespace.Session.CompileTimeHelpers.insert(std::make_pair(overloadname, MyNamespace.Session.CompileTimeHelpers.find(basetypename)->second));
-			MyNamespace.Session.FunctionSignatures.insert(std::make_pair(overloadname, MyNamespace.Session.FunctionSignatures.find(basetypename)->second));
+
+			if(GetTypeByName(basetypename) == Metadata::EpochType_Nothing)
+			{
+				FunctionSignature signature;
+				signature.AddParameter(L"identifier", Metadata::EpochType_Identifier, false);
+				signature.AddParameter(L"nothing", Metadata::EpochType_Nothing, false);
+
+				MyNamespace.Session.FunctionSignatures.insert(std::make_pair(overloadname, signature));
+			}
+			else
+				MyNamespace.Session.FunctionSignatures.insert(std::make_pair(overloadname, MyNamespace.Session.FunctionSignatures.find(basetypename)->second));
+
 			SumTypes.NameToConstructorMap[overloadname] = basetypename;
 		}
 	}

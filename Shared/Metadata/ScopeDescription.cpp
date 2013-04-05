@@ -203,7 +203,7 @@ bool ScopeDescription::ComputeLocalOffset(StringHandle variableid, const std::ma
 
 	if(ParentScope)
 	{
-		if(Variables.size() || Hoisted)
+		//if(Variables.size() || Hoisted)
 			++outframes;
 		return ParentScope->ComputeLocalOffset(variableid, sumtypesizes, outframes, outoffset, outsize);
 	}
@@ -301,6 +301,27 @@ void ScopeDescription::HoistInto(ScopeDescription* target)
 		if(iter->Origin == VARIABLE_ORIGIN_RETURN)
 			throw FatalException("Cannot hoist this scope, it contains a return variable!");
 
+		//
+		// Ignore identifiers that are already in this scope.
+		//
+		// This is safe because we do semantic shadowing checks
+		// during compilation. The only time we need to actually
+		// skip a variable is if the same identifier is used in
+		// more than one child scope of the target scope. For
+		// example: "{ integer a = 0 } { integer a = 2 }" would
+		// not strictly cause shadowing (the identifier "a" is
+		// unique in all scopes concerned) but once flattened
+		// this can cause a collision in the target scope after
+		// hoisting.
+		//
+		// If this "pseudo-shadowing" occurs, we can safely use
+		// a single stack slot for the local variable anyways,
+		// because we know it can never be used in two different
+		// "meanings" via identifier aliasing.
+		//
+		if(target->HasVariable(iter->IdentifierHandle))
+			continue;
+
 		target->Variables.push_back(*iter);
 	}
 
@@ -317,4 +338,17 @@ Metadata::EpochTypeID ScopeDescription::GetReturnVariableType() const
 	}
 
 	return Metadata::EpochType_Error;
+}
+
+size_t ScopeDescription::GetParameterCount() const
+{
+	size_t count = 0;
+
+	for(VariableVector::const_iterator iter = Variables.begin(); iter != Variables.end(); ++iter)
+	{
+		if(iter->Origin == VARIABLE_ORIGIN_PARAMETER)
+			++count;
+	}
+
+	return count;
 }

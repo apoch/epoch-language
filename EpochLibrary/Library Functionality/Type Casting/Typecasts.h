@@ -26,11 +26,12 @@ namespace VM
 namespace TypeCasts
 {
 
-	void RegisterLibraryFunctions(FunctionSignatureSet& signatureset, StringPoolManager& stringpool);
-	void RegisterLibraryFunctions(FunctionInvocationTable& table, StringPoolManager& stringpool);
+	void PoolStrings(StringPoolManager& stringpool);
+
+	void RegisterLibraryFunctions(FunctionSignatureSet& signatureset);
 
 	void RegisterLibraryOverloads(OverloadMap& overloadmap, StringPoolManager& stringpool);
 
-	void RegisterJITTable(JIT::JITTable& table, StringPoolManager& stringpool);
+	void RegisterJITTable(JIT::JITTable& table);
 
 }

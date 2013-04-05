@@ -118,7 +118,6 @@
     <ClCompile Include="..\Shared\Utility\Threading\Synchronization.cpp" />
     <ClCompile Include="..\Shared\Utility\Memory\MemoryManager.cpp" />
     <ClCompile Include="..\Shared\Utility\Memory\Stack.cpp" />
-    <ClCompile Include="..\Shared\Metadata\ActiveScope.cpp" />
     <ClCompile Include="..\Shared\Metadata\FunctionSignature.cpp" />
     <ClCompile Include="..\Shared\Metadata\Register.cpp" />
     <ClCompile Include="..\Shared\Metadata\ScopeDescription.cpp" />
@@ -154,7 +153,6 @@
     <ClInclude Include="..\Shared\Utility\Types\RealTypes.h" />
     <ClInclude Include="..\Shared\Utility\Memory\MemoryManager.h" />
     <ClInclude Include="..\Shared\Utility\Memory\Stack.h" />
-    <ClInclude Include="..\Shared\Metadata\ActiveScope.h" />
     <ClInclude Include="..\Shared\Metadata\FunctionSignature.h" />
     <ClInclude Include="..\Shared\Metadata\Register.h" />
     <ClInclude Include="..\Shared\Metadata\ScopeDescription.h" />

@@ -20,11 +20,12 @@ class StringPoolManager;
 namespace TypeConstructors
 {
 
-	void RegisterLibraryFunctions(FunctionSignatureSet& signatureset, StringPoolManager& stringpool);
-	void RegisterLibraryFunctions(FunctionInvocationTable& table, StringPoolManager& stringpool);
-	void RegisterLibraryFunctions(FunctionCompileHelperTable& table, StringPoolManager& stringpool);
+	void PoolStrings(StringPoolManager& stringpool);
 
-	void RegisterJITTable(JIT::JITTable& table, StringPoolManager& stringpool);
+	void RegisterLibraryFunctions(FunctionSignatureSet& signatureset);
+	void RegisterLibraryFunctions(FunctionCompileHelperTable& table);
+
+	void RegisterJITTable(JIT::JITTable& table);
 
 }
 

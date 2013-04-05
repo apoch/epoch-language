@@ -25,105 +25,21 @@ using namespace Metadata;
 
 namespace
 {
-	//
-	// Cast an integer value into a string
-	//
-	// Should tick the garbage collector, since it allocates a new string.
-	//
-	void CastIntegerToString(StringHandle, ExecutionContext& context)
-	{
-		Integer32 value = context.State.Stack.PopValue<Integer32>();
-		context.State.Stack.PopValue<StringHandle>();
 
-		std::wostringstream converter;
-		converter << value;
-		StringHandle result = context.OwnerVM.PoolString(converter.str());
+	StringHandle StringTypeHandle = 0;
+	StringHandle IntegerTypeHandle = 0;
+	StringHandle RealTypeHandle = 0;
 
-		context.State.Stack.PushValue(result);
-		context.TickStringGarbageCollector();
-	}
+	StringHandle CastIntegerToStringHandle = 0;
+	StringHandle CastStringToIntegerHandle = 0;
 
-	//
-	// Parse a string, expecting an integer value represented therein, and return the result
-	//
-	void CastStringToInteger(StringHandle, ExecutionContext& context)
-	{
-		StringHandle stringhandle = context.State.Stack.PopValue<StringHandle>();
-		context.State.Stack.PopValue<StringHandle>();
+	StringHandle CastIntegerToRealHandle = 0;
+	StringHandle CastRealToIntegerHandle = 0;
 
-		std::wstringstream converter(context.OwnerVM.GetPooledString(stringhandle));
-		Integer32 result = 0;
-		converter >> result;
+	StringHandle CastBooleanToStringHandle = 0;
+	StringHandle CastRealToStringHandle = 0;
+	StringHandle CastBufferToStringHandle = 0;
 
-		// TODO - runtime conversion exception on failure?
-
-		context.State.Stack.PushValue(result);
-	}
-
-	//
-	// Convert a boolean value into a string representation ("true" or "false")
-	//
-	// Ticks over the garbage collector, since it allocates a new string for the result
-	//
-	void CastBooleanToString(StringHandle, ExecutionContext& context)
-	{
-		bool value = context.State.Stack.PopValue<bool>();
-		context.State.Stack.PopValue<StringHandle>();
-
-		StringHandle result;
-		if(value)
-			result = context.OwnerVM.PoolString(L"true");
-		else
-			result = context.OwnerVM.PoolString(L"false");
-
-		context.State.Stack.PushValue(result);
-		context.TickStringGarbageCollector();
-	}
-
-	//
-	// Convert a real number to string format
-	//
-	// Ticks over the garbage collector.
-	//
-	void CastRealToString(StringHandle, ExecutionContext& context)
-	{
-		Real32 value = context.State.Stack.PopValue<Real32>();
-		context.State.Stack.PopValue<StringHandle>();
-
-		std::wostringstream converter;
-		converter << value;
-		StringHandle result = context.OwnerVM.PoolString(converter.str());
-
-		context.State.Stack.PushValue(result);
-		context.TickStringGarbageCollector();
-	}
-
-	//
-	// Convert a byte buffer into a string, assuming the byte buffer represents
-	// a sequence of bytes that directly maps to a string value!
-	//
-	// Ticks over the garbage collector.
-	//
-	void CastBufferToString(StringHandle, ExecutionContext& context)
-	{
-		BufferHandle bufferhandle = context.State.Stack.PopValue<BufferHandle>();
-		context.State.Stack.PopValue<StringHandle>();
-
-		std::wstring str(reinterpret_cast<wchar_t*>(context.OwnerVM.GetBuffer(bufferhandle)), context.OwnerVM.GetBufferSize(bufferhandle));
-		StringHandle result = context.OwnerVM.PoolString(str);
-
-		context.State.Stack.PushValue(result);
-		context.TickStringGarbageCollector();
-	}
-
-
-	void CastRealToInteger(StringHandle, ExecutionContext& context)
-	{
-		Real32 value = context.State.Stack.PopValue<Real32>();
-		context.State.Stack.PopValue<StringHandle>();
-
-		context.State.Stack.PushValue(static_cast<Integer32>(value));
-	}
 
 	void CastRealToIntegerJIT(JIT::JITContext& context, bool)
 	{
@@ -136,15 +52,6 @@ namespace
 		llvm::LLVMContext& llvmcontext = *reinterpret_cast<llvm::LLVMContext*>(context.Context);
 		llvm::Value* castvalue = reinterpret_cast<llvm::IRBuilder<>*>(context.Builder)->CreateCast(llvm::Instruction::FPToSI, p, llvm::Type::getInt32Ty(llvmcontext));
 		context.ValuesOnStack.push(castvalue);
-	}
-
-
-	void CastIntegerToReal(StringHandle, ExecutionContext& context)
-	{
-		Integer32 value = context.State.Stack.PopValue<Integer32>();
-		context.State.Stack.PopValue<StringHandle>();
-
-		context.State.Stack.PushValue(static_cast<Real32>(value));
 	}
 
 	void CastIntegerToRealJIT(JIT::JITContext& context, bool)
@@ -163,72 +70,58 @@ namespace
 
 
 //
-// Bind the library to an execution dispatch table
-//
-void TypeCasts::RegisterLibraryFunctions(FunctionInvocationTable& table, StringPoolManager& stringpool)
-{
-	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"cast@@integer_to_string"), CastIntegerToString));
-	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"cast@@string_to_integer"), CastStringToInteger));
-	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"cast@@boolean_to_string"), CastBooleanToString));
-	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"cast@@real_to_string"), CastRealToString));
-	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"cast@@buffer_to_string"), CastBufferToString));
-	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"cast@@real_to_integer"), CastRealToInteger));
-	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"cast@@integer_to_real"), CastIntegerToReal));
-}
-
-//
 // Bind the library to a function metadata table
 //
-void TypeCasts::RegisterLibraryFunctions(FunctionSignatureSet& signatureset, StringPoolManager& stringpool)
+void TypeCasts::RegisterLibraryFunctions(FunctionSignatureSet& signatureset)
 {
 	{
 		FunctionSignature signature;
-		signature.AddPatternMatchedParameterIdentifier(stringpool.Pool(L"string"));
+		signature.AddPatternMatchedParameterIdentifier(StringTypeHandle);
 		signature.AddParameter(L"value", EpochType_Integer, false);
 		signature.SetReturnType(Metadata::EpochType_String);
-		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"cast@@integer_to_string"), signature));
+		AddToMapNoDupe(signatureset, std::make_pair(CastIntegerToStringHandle, signature));
 	}
 	{
 		FunctionSignature signature;
-		signature.AddPatternMatchedParameterIdentifier(stringpool.Pool(L"integer"));
+		signature.AddPatternMatchedParameterIdentifier(IntegerTypeHandle);
 		signature.AddParameter(L"value", EpochType_String, false);
 		signature.SetReturnType(Metadata::EpochType_Integer);
-		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"cast@@string_to_integer"), signature));
+		AddToMapNoDupe(signatureset, std::make_pair(CastStringToIntegerHandle, signature));
 	}
 	{
 		FunctionSignature signature;
-		signature.AddPatternMatchedParameterIdentifier(stringpool.Pool(L"string"));
+		signature.AddPatternMatchedParameterIdentifier(StringTypeHandle);
 		signature.AddParameter(L"value", EpochType_Boolean, false);
 		signature.SetReturnType(Metadata::EpochType_String);
-		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"cast@@boolean_to_string"), signature));
+		AddToMapNoDupe(signatureset, std::make_pair(CastBooleanToStringHandle, signature));
 	}
 	{
 		FunctionSignature signature;
-		signature.AddPatternMatchedParameterIdentifier(stringpool.Pool(L"string"));
+		signature.AddPatternMatchedParameterIdentifier(StringTypeHandle);
 		signature.AddParameter(L"value", EpochType_Real, false);
 		signature.SetReturnType(Metadata::EpochType_String);
-		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"cast@@real_to_string"), signature));
+		AddToMapNoDupe(signatureset, std::make_pair(CastRealToStringHandle, signature));
 	}
 	{
 		FunctionSignature signature;
-		signature.AddPatternMatchedParameterIdentifier(stringpool.Pool(L"string"));
+		signature.AddPatternMatchedParameterIdentifier(StringTypeHandle);
 		signature.AddParameter(L"value", EpochType_Buffer, false);
 		signature.SetReturnType(Metadata::EpochType_String);
-		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"cast@@buffer_to_string"), signature));
+		AddToMapNoDupe(signatureset, std::make_pair(CastBufferToStringHandle, signature));
 	}
 	{
 		FunctionSignature signature;
-		signature.AddPatternMatchedParameterIdentifier(stringpool.Pool(L"integer"));
+		signature.AddPatternMatchedParameterIdentifier(IntegerTypeHandle);
 		signature.AddParameter(L"value", EpochType_Real, false);
 		signature.SetReturnType(Metadata::EpochType_Integer);
-		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"cast@@real_to_integer"), signature));
+		AddToMapNoDupe(signatureset, std::make_pair(CastRealToIntegerHandle, signature));
 	}
 	{
 		FunctionSignature signature;
-		signature.AddPatternMatchedParameterIdentifier(stringpool.Pool(L"real"));
+		signature.AddPatternMatchedParameterIdentifier(RealTypeHandle);
 		signature.AddParameter(L"value", EpochType_Integer, false);
 		signature.SetReturnType(Metadata::EpochType_Real);
-		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"cast@@integer_to_real"), signature));
+		AddToMapNoDupe(signatureset, std::make_pair(CastIntegerToRealHandle, signature));
 	}
 }
 
@@ -250,8 +143,27 @@ void TypeCasts::RegisterLibraryOverloads(OverloadMap& overloadmap, StringPoolMan
 	}
 }
 
-void TypeCasts::RegisterJITTable(JIT::JITTable& table, StringPoolManager& stringpool)
+void TypeCasts::RegisterJITTable(JIT::JITTable& table)
 {
-	AddToMapNoDupe(table.InvokeHelpers, std::make_pair(stringpool.Pool(L"cast@@real_to_integer"), &CastRealToIntegerJIT));
-	AddToMapNoDupe(table.InvokeHelpers, std::make_pair(stringpool.Pool(L"cast@@integer_to_real"), &CastIntegerToRealJIT));
+	AddToMapNoDupe(table.InvokeHelpers, std::make_pair(CastRealToIntegerHandle, &CastRealToIntegerJIT));
+	AddToMapNoDupe(table.InvokeHelpers, std::make_pair(CastIntegerToRealHandle, &CastIntegerToRealJIT));
 }
+
+
+void TypeCasts::PoolStrings(StringPoolManager& stringpool)
+{
+	StringTypeHandle = stringpool.Pool(L"string");
+	IntegerTypeHandle = stringpool.Pool(L"integer");
+	RealTypeHandle = stringpool.Pool(L"real");
+
+	CastIntegerToStringHandle = stringpool.Pool(L"cast@@integer_to_string");
+	CastStringToIntegerHandle = stringpool.Pool(L"cast@@string_to_integer");
+
+	CastRealToIntegerHandle = stringpool.Pool(L"cast@@real_to_integer");
+	CastIntegerToRealHandle = stringpool.Pool(L"cast@@integer_to_real");
+
+	CastBooleanToStringHandle = stringpool.Pool(L"cast@@boolean_to_string");
+	CastRealToStringHandle = stringpool.Pool(L"cast@@real_to_string");
+	CastBufferToStringHandle = stringpool.Pool(L"cast@@buffer_to_string");
+}
+

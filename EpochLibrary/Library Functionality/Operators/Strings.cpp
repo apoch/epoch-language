@@ -18,102 +18,71 @@
 #include "Metadata/Precedences.h"
 
 
+extern VM::ExecutionContext* GlobalExecutionContext;
+
+
 namespace
 {
-	//
-	// Concatenate two strings and return the result
-	//
-	// Note that this function allocates a new string and therefore should tick the
-	// garbage collector to ensure that the allocation is taken into account when it
-	// comes time to decide when to collect garbage again.
-	//
-	void StringConcatenation(StringHandle, VM::ExecutionContext& context)
-	{
-		StringHandle p2 = context.State.Stack.PopValue<StringHandle>();
-		StringHandle p1 = context.State.Stack.PopValue<StringHandle>();
 
-		std::wstring ret = context.OwnerVM.GetPooledString(p1) + context.OwnerVM.GetPooledString(p2);
-		StringHandle rethandle = context.OwnerVM.PoolString(ret);
+	StringHandle ConcatHandle = 0;
+	StringHandle LengthHandle = 0;
+	StringHandle NarrowStringHandle = 0;
 
-		context.State.Stack.PushValue(rethandle);
-		context.TickStringGarbageCollector();
-	}
-
-	//
-	// Retrieve the length (in characters, not bytes!) of a string
-	//
-	void StringLength(StringHandle, VM::ExecutionContext& context)
-	{
-		StringHandle p = context.State.Stack.PopValue<StringHandle>();
-		context.State.Stack.PushValue(context.OwnerVM.GetPooledString(p).length());
-	}
-
-	//
-	// Narrow a string into a byte buffer; typically useful for marshaling strings to APIs that expect narrow strings
-	//
-	void NarrowString(StringHandle, VM::ExecutionContext& context)
-	{
-		StringHandle sourcestringhandle = context.State.Stack.PopValue<StringHandle>();
-
-		const std::wstring& sourcestring = context.OwnerVM.GetPooledString(sourcestringhandle);
-
-		std::string narrowed(narrow(sourcestring));
-
-		BufferHandle destbuffer = context.OwnerVM.AllocateBuffer(narrowed.length() + 1);
-		void* storage = context.OwnerVM.GetBuffer(destbuffer);
-		memcpy(storage, narrowed.c_str(), narrowed.length());
-
-		context.State.Stack.PushValue(destbuffer);
-		context.TickBufferGarbageCollector();
-	}
 }
 
-
-//
-// Bind the library to an execution dispatch table
-//
-void StringLibrary::RegisterLibraryFunctions(FunctionInvocationTable& table, StringPoolManager& stringpool)
-{
-	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L";"), StringConcatenation));
-	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"length"), StringLength));
-	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"narrowstring"), NarrowString));
-}
 
 //
 // Bind the library to a function metadata table
 //
-void StringLibrary::RegisterLibraryFunctions(FunctionSignatureSet& signatureset, StringPoolManager& stringpool)
+void StringLibrary::RegisterLibraryFunctions(FunctionSignatureSet& signatureset)
 {
 	{
 		FunctionSignature signature;
 		signature.AddParameter(L"s1", Metadata::EpochType_String, false);
 		signature.AddParameter(L"s2", Metadata::EpochType_String, false);
 		signature.SetReturnType(Metadata::EpochType_String);
-		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L";"), signature));
+		AddToMapNoDupe(signatureset, std::make_pair(ConcatHandle, signature));
 	}
 	{
 		FunctionSignature signature;
 		signature.AddParameter(L"s", Metadata::EpochType_String, false);
 		signature.SetReturnType(Metadata::EpochType_Integer);
-		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"length"), signature));
+		AddToMapNoDupe(signatureset, std::make_pair(LengthHandle, signature));
 	}
 	{
 		FunctionSignature signature;
 		signature.AddParameter(L"s", Metadata::EpochType_String, false);
 		signature.SetReturnType(Metadata::EpochType_Buffer);
-		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"narrowstring"), signature));
+		AddToMapNoDupe(signatureset, std::make_pair(NarrowStringHandle, signature));
 	}
 }
 
 //
 // Bind the library to the infix operator table
 //
-void StringLibrary::RegisterInfixOperators(StringSet& infixtable, PrecedenceTable& precedences, StringPoolManager& stringpool)
+void StringLibrary::RegisterInfixOperators(StringSet& infixtable, PrecedenceTable& precedences)
 {
-	{
-		StringHandle handle = stringpool.Pool(L";");
-		AddToSetNoDupe(infixtable, stringpool.GetPooledString(handle));
-		AddToMapNoDupe(precedences, std::make_pair(handle, PRECEDENCE_CONCATENATION));
-	}
+	AddToSetNoDupe(infixtable, L";");
+	AddToMapNoDupe(precedences, std::make_pair(ConcatHandle, PRECEDENCE_CONCATENATION));
+}
+
+void StringLibrary::PoolStrings(StringPoolManager& stringpool)
+{
+	ConcatHandle = stringpool.Pool(L";");
+	LengthHandle = stringpool.Pool(L"length");
+	NarrowStringHandle = stringpool.Pool(L"narrowstring");
+}
+
+void StringLibrary::RegisterJITTable(JIT::JITTable& table)
+{
+	AddToMapNoDupe(table.LibraryExports, std::make_pair(ConcatHandle, "EpochLib_StrConcat"));
+}
+
+
+
+extern "C" StringHandle EpochLib_StrConcat(StringHandle a, StringHandle b)
+{
+	std::wstring result = GlobalExecutionContext->OwnerVM.GetPooledString(a) + GlobalExecutionContext->OwnerVM.GetPooledString(b);
+	return GlobalExecutionContext->OwnerVM.PoolString(result);
 }
 

@@ -17,6 +17,8 @@
 namespace
 {
 	unsigned* TestHarness = NULL;
+
+	VM::ExecutionContext* GlobalContext = NULL;
 }
 
 
@@ -32,8 +34,7 @@ extern "C" void STDCALL ExecuteByteCode(void* bytecodebuffer, size_t size)
 	try
 	{
 		VM::VirtualMachine vm;
-		vm.InitStandardLibraries(TestHarness);
-		vm.ExecuteByteCode(reinterpret_cast<Bytecode::Instruction*>(bytecodebuffer), size);
+		vm.ExecuteByteCode(reinterpret_cast<Bytecode::Instruction*>(bytecodebuffer), size, TestHarness);
 	}
 	catch(const std::exception& e)
 	{
@@ -91,12 +92,11 @@ extern "C" void STDCALL LinkTestHarness(unsigned* harness)
 	//}
 }
 
-extern "C" void* VMGetBuffer(void* vmcontext, BufferHandle handle)
+extern "C" void* VMGetBuffer(BufferHandle handle)
 {
 	try
 	{
-		VM::ExecutionContext* context = reinterpret_cast<VM::ExecutionContext*>(vmcontext);
-		return context->OwnerVM.GetBuffer(handle);
+		return GlobalContext->OwnerVM.GetBuffer(handle);
 	}
 	catch(...)
 	{
@@ -104,13 +104,12 @@ extern "C" void* VMGetBuffer(void* vmcontext, BufferHandle handle)
 	}
 }
 
-extern "C" void* VMAllocStruct(void* vmcontext, Metadata::EpochTypeID structtype)
+extern "C" void* VMAllocStruct(Metadata::EpochTypeID structtype)
 {
 	try
 	{
-		VM::ExecutionContext* context = reinterpret_cast<VM::ExecutionContext*>(vmcontext);
-		StructureHandle handle = context->OwnerVM.AllocateStructure(context->OwnerVM.GetStructureDefinition(structtype));
-		context->TickStructureGarbageCollector();
+		StructureHandle handle = GlobalContext->OwnerVM.AllocateStructure(GlobalContext->OwnerVM.GetStructureDefinition(structtype));
+		GlobalContext->TickStructureGarbageCollector();
 		return handle;
 	}
 	catch(...)
@@ -119,13 +118,12 @@ extern "C" void* VMAllocStruct(void* vmcontext, Metadata::EpochTypeID structtype
 	}
 }
 
-extern "C" void* VMCopyStruct(void* vmcontext, StructureHandle handle)
+extern "C" void* VMCopyStruct(StructureHandle handle)
 {
 	try
 	{
-		VM::ExecutionContext* context = reinterpret_cast<VM::ExecutionContext*>(vmcontext);
-		StructureHandle copyhandle = context->OwnerVM.DeepCopy(handle);
-		context->TickStructureGarbageCollector();
+		StructureHandle copyhandle = GlobalContext->OwnerVM.DeepCopy(handle);
+		GlobalContext->TickStructureGarbageCollector();
 		return copyhandle;
 	}
 	catch(...)
@@ -143,5 +141,11 @@ extern "C" void VMHalt()
 extern "C" void VMBreak()
 {
 	__asm int 3
+}
+
+
+void SetGlobalExecutionContext(VM::ExecutionContext* context)
+{
+	GlobalContext = context;
 }
 

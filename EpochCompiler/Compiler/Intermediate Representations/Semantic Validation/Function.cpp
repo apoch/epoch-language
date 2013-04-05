@@ -37,7 +37,8 @@ Function::Function(const Function* templatefunc, Namespace& curnamespace, const 
 	  HintReturnType(Metadata::EpochType_Error),
 	  DummyNamespace(NULL),
 	  Tags(templatefunc->Tags),
-	  TemplateParams(templatefunc->TemplateParams)
+	  TemplateParams(templatefunc->TemplateParams),
+	  SuppressGeneration(templatefunc->SuppressGeneration)
 {
 	for(std::vector<Param>::const_iterator iter = templatefunc->Parameters.begin(); iter != templatefunc->Parameters.end(); ++iter)
 		Parameters.push_back(iter->Clone());

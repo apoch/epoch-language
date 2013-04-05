@@ -16,17 +16,13 @@
 // Forward declarations
 class StringPoolManager;
 
-namespace VM
-{
-	class ExecutionContext;
-}
-
 
 namespace CommandLineLibrary
 {
 
-	void RegisterLibraryFunctions(FunctionSignatureSet& signatureset, StringPoolManager& stringpool);
-	void RegisterLibraryFunctions(FunctionInvocationTable& table, StringPoolManager& stringpool);
+	void PoolStrings(StringPoolManager& stringpool);
+
+	void RegisterLibraryFunctions(FunctionSignatureSet& signatureset);
 
 }
 

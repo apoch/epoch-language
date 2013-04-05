@@ -18,20 +18,41 @@
 #include "Library Functionality/Operators/Comparison.h"
 #include "Library Functionality/Operators/Strings.h"
 
-#include "Library Functionality/Flow Control/FlowControl.h"
 #include "Library Functionality/Flow Control/Conditionals.h"
 #include "Library Functionality/Flow Control/Loops.h"
 #include "Library Functionality/Flow Control/StringPooling.h"
 
 #include "Library Functionality/Function Tags/Externals.h"
 #include "Library Functionality/Function Tags/Constructors.h"
-#include "Library Functionality/Function Tags/Native.h"
 
 #include "Library Functionality/Marshaling/MarshalingLibrary.h"
 
 #include "Library Functionality/Command Line/CommandLine.h"
 
 #include "Library Functionality/Strings/Strings.h"
+
+
+namespace
+{
+	void PoolAllStrings(StringPoolManager& stringpool)
+	{
+		ArithmeticLibrary::PoolStrings(stringpool);
+		BooleanLibrary::PoolStrings(stringpool);
+		CommandLineLibrary::PoolStrings(stringpool);
+		ComparisonLibrary::PoolStrings(stringpool);
+		DebugLibrary::PoolStrings(stringpool);
+		FlowControl::PoolStrings(stringpool);
+		FunctionTags::PoolStrings(stringpool);
+		MarshalingLibrary::PoolStrings(stringpool);
+		StringFunctionLibrary::PoolStrings(stringpool);
+		StringLibrary::PoolStrings(stringpool);
+		TypeCasts::PoolStrings(stringpool);
+		TypeConstructors::PoolStrings(stringpool);
+	}
+}
+
+
+VM::ExecutionContext* GlobalExecutionContext = NULL;
 
 
 //
@@ -44,23 +65,22 @@ extern "C" void STDCALL RegisterLibraryContents(FunctionSignatureSet& functionsi
 {
 	try
 	{
-		DebugLibrary::RegisterLibraryFunctions(functionsignatures, stringpool);
-		TypeConstructors::RegisterLibraryFunctions(functionsignatures, stringpool);
-		TypeCasts::RegisterLibraryFunctions(functionsignatures, stringpool);
-		ArithmeticLibrary::RegisterLibraryFunctions(functionsignatures, stringpool);
-		BooleanLibrary::RegisterLibraryFunctions(functionsignatures, stringpool);
-		ComparisonLibrary::RegisterLibraryFunctions(functionsignatures, stringpool);
-		StringLibrary::RegisterLibraryFunctions(functionsignatures, stringpool);
-		FlowControl::RegisterLibraryFunctions(functionsignatures, stringpool);
-		FlowControl::RegisterStrings(stringpool);
+		PoolAllStrings(stringpool);
 
-		FunctionTags::RegisterExternalTag(functionsignatures, stringpool);
-		FunctionTags::RegisterNativeTag(functionsignatures, stringpool);
+		DebugLibrary::RegisterLibraryFunctions(functionsignatures);
+		TypeConstructors::RegisterLibraryFunctions(functionsignatures);
+		TypeCasts::RegisterLibraryFunctions(functionsignatures);
+		ArithmeticLibrary::RegisterLibraryFunctions(functionsignatures);
+		BooleanLibrary::RegisterLibraryFunctions(functionsignatures);
+		ComparisonLibrary::RegisterLibraryFunctions(functionsignatures);
+		StringLibrary::RegisterLibraryFunctions(functionsignatures);
 
-		MarshalingLibrary::RegisterLibraryFunctions(functionsignatures, stringpool);
+		FunctionTags::RegisterExternalTag(functionsignatures);
 
-		CommandLineLibrary::RegisterLibraryFunctions(functionsignatures, stringpool);
-		StringFunctionLibrary::RegisterLibraryFunctions(functionsignatures, stringpool);
+		MarshalingLibrary::RegisterLibraryFunctions(functionsignatures);
+
+		CommandLineLibrary::RegisterLibraryFunctions(functionsignatures);
+		StringFunctionLibrary::RegisterLibraryFunctions(functionsignatures);
 	}
 	catch(...)
 	{
@@ -74,41 +94,23 @@ extern "C" void STDCALL RegisterLibraryContents(FunctionSignatureSet& functionsi
 // Strings are pooled in the VM's internal string pool, and functions
 // are registered in the VM's global function dispatch table.
 //
-extern "C" void STDCALL BindToVirtualMachine(FunctionInvocationTable& functiontable, EntityTable& entities, EntityTable&, StringPoolManager& stringpool, Bytecode::EntityTag& tagindex, EpochFunctionPtr marshalfunction, JIT::JITTable& jittable)
+extern "C" void STDCALL BindToVirtualMachine(VM::ExecutionContext* context, StringPoolManager& stringpool, JIT::JITTable& jittable)
 {
 	try
 	{
-		DebugLibrary::RegisterLibraryFunctions(functiontable, stringpool);
-		TypeConstructors::RegisterLibraryFunctions(functiontable, stringpool);
-		TypeCasts::RegisterLibraryFunctions(functiontable, stringpool);
-		ArithmeticLibrary::RegisterLibraryFunctions(functiontable, stringpool);
-		BooleanLibrary::RegisterLibraryFunctions(functiontable, stringpool);
-		ComparisonLibrary::RegisterLibraryFunctions(functiontable, stringpool);
-		StringLibrary::RegisterLibraryFunctions(functiontable, stringpool);
+		GlobalExecutionContext = context;
 
-		FlowControl::RegisterLibraryFunctions(functiontable, stringpool);
-		FlowControl::RegisterConditionalEntities(entities, entities, stringpool, tagindex);
-		FlowControl::RegisterLoopEntities(entities, entities, entities, entities, stringpool, tagindex);
+		PoolAllStrings(stringpool);
 
-		FunctionTags::RegisterExternalTag(marshalfunction, functiontable, stringpool);
-		FunctionTags::RegisterNativeTag(marshalfunction, functiontable, stringpool);
-
-		MarshalingLibrary::RegisterLibraryFunctions(functiontable, stringpool);
-
-		CommandLineLibrary::RegisterLibraryFunctions(functiontable, stringpool);
-		StringFunctionLibrary::RegisterLibraryFunctions(functiontable, stringpool);
-
-		ArithmeticLibrary::RegisterJITTable(jittable, stringpool);
-		TypeConstructors::RegisterJITTable(jittable, stringpool);
-		ComparisonLibrary::RegisterJITTable(jittable, stringpool);
-		BooleanLibrary::RegisterJITTable(jittable, stringpool);
-
-		TypeCasts::RegisterJITTable(jittable, stringpool);
-
-		FlowControl::RegisterLoopsJITTable(jittable, stringpool);
-		FlowControl::RegisterConditionalJITTable(jittable, stringpool);
-
-		DebugLibrary::RegisterJITTable(jittable, stringpool);
+		ArithmeticLibrary::RegisterJITTable(jittable);
+		BooleanLibrary::RegisterJITTable(jittable);
+		ComparisonLibrary::RegisterJITTable(jittable);
+		DebugLibrary::RegisterJITTable(jittable);
+		FlowControl::RegisterConditionalJITTable(jittable);
+		FlowControl::RegisterLoopsJITTable(jittable);
+		StringLibrary::RegisterJITTable(jittable);
+		TypeCasts::RegisterJITTable(jittable);
+		TypeConstructors::RegisterJITTable(jittable);
 	}
 	catch(...)
 	{
@@ -126,30 +128,31 @@ extern "C" void STDCALL BindToCompiler(CompilerInfoTable& info, StringPoolManage
 {
 	try
 	{
-		TypeConstructors::RegisterLibraryFunctions(*info.FunctionHelpers, stringpool);
+		PoolAllStrings(stringpool);
+
+		TypeConstructors::RegisterLibraryFunctions(*info.FunctionHelpers);
 
 		TypeCasts::RegisterLibraryOverloads(*info.Overloads, stringpool);
 
-		ArithmeticLibrary::RegisterInfixOperators(*info.InfixOperators, *info.Precedences, stringpool);
-		ArithmeticLibrary::RegisterUnaryOperators(*info.UnaryPrefixes, *info.PreOperators, *info.PostOperators, stringpool);
-		ArithmeticLibrary::RegisterOpAssignOperators(*info.OpAssignOperators, stringpool);
-		ArithmeticLibrary::RegisterLibraryOverloads(*info.Overloads, stringpool);
+		ArithmeticLibrary::RegisterInfixOperators(*info.InfixOperators, *info.Precedences);
+		ArithmeticLibrary::RegisterUnaryOperators(*info.UnaryPrefixes, *info.PreOperators, *info.PostOperators);
+		ArithmeticLibrary::RegisterOpAssignOperators(*info.OpAssignOperators);
+		ArithmeticLibrary::RegisterLibraryOverloads(*info.Overloads);
 
-		BooleanLibrary::RegisterLibraryOverloads(*info.Overloads, stringpool);
+		BooleanLibrary::RegisterLibraryOverloads(*info.Overloads);
 
-		ComparisonLibrary::RegisterInfixOperators(*info.InfixOperators, *info.Precedences, stringpool);
-		ComparisonLibrary::RegisterLibraryOverloads(*info.Overloads, stringpool);
+		ComparisonLibrary::RegisterInfixOperators(*info.InfixOperators, *info.Precedences);
+		ComparisonLibrary::RegisterLibraryOverloads(*info.Overloads);
 
-		StringLibrary::RegisterInfixOperators(*info.InfixOperators, *info.Precedences, stringpool);
+		StringLibrary::RegisterInfixOperators(*info.InfixOperators, *info.Precedences);
 
 		FlowControl::RegisterConditionalEntities(*info.Entities, *info.ChainedEntities, stringpool, tagindex);
 		FlowControl::RegisterLoopEntities(*info.Entities, *info.ChainedEntities, *info.PostfixEntities, *info.PostfixClosers, stringpool, tagindex);
 
 		FunctionTags::RegisterExternalTagHelper(*info.FunctionTagHelpers);
 		FunctionTags::RegisterConstructorTagHelper(*info.FunctionTagHelpers);
-		FunctionTags::RegisterNativeTagHelper(*info.FunctionTagHelpers);
 
-		StringFunctionLibrary::RegisterLibraryOverloads(*info.Overloads, stringpool);
+		StringFunctionLibrary::RegisterLibraryOverloads(*info.Overloads);
 	}
 	catch(...)
 	{

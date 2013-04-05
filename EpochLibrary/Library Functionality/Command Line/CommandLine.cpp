@@ -24,6 +24,11 @@
 namespace
 {
 
+	StringHandle CmdLineIsValidHandle = 0;
+	StringHandle CmdLineGetCountHandle = 0;
+	StringHandle CmdLineGetHandle = 0;
+
+
 	//
 	// Helper for chunking the command line into string blocks
 	//
@@ -84,75 +89,36 @@ namespace
 		return ret;
 	}
 
-
-	//
-	// Determine if the command line is sane
-	//
-	void IsCmdLineSane(StringHandle, VM::ExecutionContext& context)
-	{
-		context.State.Stack.PushValue(!ParseCommandLine().empty());
-	}
-
-	//
-	// Retrieve the number of parameters in the command line (including the process name)
-	//
-	void GetCmdLineCount(StringHandle, VM::ExecutionContext& context)
-	{
-		std::vector<std::wstring> cmdline(ParseCommandLine());
-		context.State.Stack.PushValue(cmdline.size());
-	}
-
-	//
-	// Retrieve the token at the given index in the command line stream
-	//
-	void GetCmdLineToken(StringHandle, VM::ExecutionContext& context)
-	{
-		std::vector<std::wstring> cmdline(ParseCommandLine());
-		size_t index = static_cast<size_t>(context.State.Stack.PopValue<Integer32>());
-		StringHandle handle;
-
-		if(index >= cmdline.size())
-			handle = context.OwnerVM.PoolString(L"");
-		else
-			handle = context.OwnerVM.PoolString(cmdline[index]);
-
-		context.State.Stack.PushValue(handle);
-		context.TickStringGarbageCollector();
-	}
-
-}
-
-
-//
-// Bind the library to an execution dispatch table
-//
-void CommandLineLibrary::RegisterLibraryFunctions(FunctionInvocationTable& table, StringPoolManager& stringpool)
-{
-	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"cmdlineisvalid"), IsCmdLineSane));
-	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"cmdlinegetcount"), GetCmdLineCount));
-	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"cmdlineget"), GetCmdLineToken));
 }
 
 //
 // Bind the library to a function metadata table
 //
-void CommandLineLibrary::RegisterLibraryFunctions(FunctionSignatureSet& signatureset, StringPoolManager& stringpool)
+void CommandLineLibrary::RegisterLibraryFunctions(FunctionSignatureSet& signatureset)
 {
 	{
 		FunctionSignature signature;
 		signature.SetReturnType(Metadata::EpochType_Boolean);
-		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"cmdlineisvalid"), signature));
+		AddToMapNoDupe(signatureset, std::make_pair(CmdLineIsValidHandle, signature));
 	}
 	{
 		FunctionSignature signature;
 		signature.SetReturnType(Metadata::EpochType_Integer);
-		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"cmdlinegetcount"), signature));
+		AddToMapNoDupe(signatureset, std::make_pair(CmdLineGetCountHandle, signature));
 	}
 	{
 		FunctionSignature signature;
 		signature.AddParameter(L"index", Metadata::EpochType_Integer, false);
 		signature.SetReturnType(Metadata::EpochType_String);
-		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"cmdlineget"), signature));
+		AddToMapNoDupe(signatureset, std::make_pair(CmdLineGetHandle, signature));
 	}
+}
+
+
+void CommandLineLibrary::PoolStrings(StringPoolManager& stringpool)
+{
+	CmdLineIsValidHandle = stringpool.Pool(L"cmdlineisvalid");
+	CmdLineGetCountHandle = stringpool.Pool(L"cmdlinegetcount");
+	CmdLineGetHandle = stringpool.Pool(L"cmdlineget");
 }
 

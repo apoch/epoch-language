@@ -92,9 +92,6 @@
     <ClCompile Include="..\Shared\Utility\Memory\Stack.cpp">
       <Filter>Shared\Utility\Memory</Filter>
     </ClCompile>
-    <ClCompile Include="..\Shared\Metadata\ActiveScope.cpp">
-      <Filter>Shared\Metadata</Filter>
-    </ClCompile>
     <ClCompile Include="..\Shared\Metadata\FunctionSignature.cpp">
       <Filter>Shared\Metadata</Filter>
     </ClCompile>
@@ -189,9 +186,6 @@
     </ClInclude>
     <ClInclude Include="..\Shared\Utility\Memory\Stack.h">
       <Filter>Shared\Utility\Memory</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Shared\Metadata\ActiveScope.h">
-      <Filter>Shared\Metadata</Filter>
     </ClInclude>
     <ClInclude Include="..\Shared\Metadata\FunctionSignature.h">
       <Filter>Shared\Metadata</Filter>

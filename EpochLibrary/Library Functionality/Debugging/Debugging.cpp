@@ -12,6 +12,7 @@
 #include "Utility/Types/IDTypes.h"
 #include "Utility/StringPool.h"
 #include "Utility/NoDupeMap.h"
+#include "Utility/DllPool.h"
 
 #include "User Interface/Output.h"
 #include "User Interface/Input.h"
@@ -28,72 +29,14 @@ namespace
 	unsigned* TestHarness = NULL;
 
 
-	//
-	// Write a string to the debug output
-	//
-	void WriteString(StringHandle, VM::ExecutionContext& context)
-	{
-		StringHandle handle = context.State.Stack.PopValue<StringHandle>();
+	StringHandle PrintHandle = 0;
+	StringHandle ReadHandle = 0;
+	StringHandle AssertHandle = 0;
+	StringHandle PassTestHandle = 0;
+	StringHandle SqrtHandle = 0;
+	StringHandle PlotPixelHandle = 0;
 
-		UI::OutputStream stream;
-		stream << UI::lightblue << L"DEBUG: " << UI::resetcolor << context.OwnerVM.GetPooledString(handle) << std::endl;
-	}
-
-	//
-	// Read a string from the debug console
-	//
-	void ReadString(StringHandle, VM::ExecutionContext& context)
-	{
-		UI::Input input;
-		StringHandle handle = context.OwnerVM.PoolString(input.BlockingRead());
-		context.State.Stack.PushValue(handle);
-		context.TickStringGarbageCollector();
-	}
-
-	//
-	// Simple assertion mechanism
-	//
-	void Assert(StringHandle, VM::ExecutionContext& context)
-	{
-		bool value = context.State.Stack.PopValue<bool>();
-
-		if(!value)
-		{
-			context.State.Result.ResultType = VM::ExecutionResult::EXEC_RESULT_HALT;
-			UI::OutputStream output;
-			output << UI::lightred << L"Assertion failure" << UI::white << std::endl;
-		}
-	}
-
-	//
-	// Test harness
-	//
-	void PassTest(StringHandle, VM::ExecutionContext&)
-	{
-		UI::OutputStream stream;
-		stream << UI::lightblue << L"TEST: " << UI::resetcolor << L"Pass" << std::endl;
-
-		if(TestHarness)
-			++(*TestHarness);
-	}
-
-
-	//
-	// Stupid hack
-	// TODO - replace this with generic array support
-	//
-	void PlotPixel(StringHandle, VM::ExecutionContext& context)
-	{
-		UInteger32 pixelcolor = context.State.Stack.PopValue<UInteger32>();
-		UInteger32 offset = context.State.Stack.PopValue<UInteger32>();
-		void* phandle = context.State.Stack.PopValue<void*>();
-		context.State.Stack.PopValue<Metadata::EpochTypeID>();
-
-		BufferHandle handle = *reinterpret_cast<BufferHandle*>(phandle);
-
-		*(reinterpret_cast<UInteger32*>(context.OwnerVM.GetBuffer(handle)) + offset) = pixelcolor;
-	}
-
+	// TODO - lame hack; replace with real array support
 	void PlotPixelJIT(JIT::JITContext& context, bool)
 	{
 		llvm::Value* color = context.ValuesOnStack.top();
@@ -110,7 +53,7 @@ namespace
 		llvm::Value* cachedcall = context.BufferLookupCache[pbufferhandle];
 		if(!cachedcall)
 		{
-			cachedcall = reinterpret_cast<llvm::IRBuilder<>*>(context.Builder)->CreateCall2(context.VMGetBuffer, context.VMContextPtr, bufferhandle);
+			cachedcall = reinterpret_cast<llvm::IRBuilder<>*>(context.Builder)->CreateCall2((*context.BuiltInFunctions)[JIT::JITFunc_VM_GetBuffer], context.VMContextPtr, bufferhandle);
 			context.BufferLookupCache[pbufferhandle] = cachedcall;
 		}
 
@@ -122,71 +65,80 @@ namespace
 	}
 
 	// TODO - move this to a better home
-	void Sqrt(StringHandle, VM::ExecutionContext& context)
-	{
-		Real32 r = context.State.Stack.PopValue<Real32>();
-		context.State.Stack.PushValue(sqrt(r));
-	}
-
 	void SqrtJIT(JIT::JITContext& context, bool)
 	{
 		llvm::Value* v = context.ValuesOnStack.top();
 		context.ValuesOnStack.pop();
-		llvm::Value* r = reinterpret_cast<llvm::IRBuilder<>*>(context.Builder)->CreateCall(context.SqrtIntrinsic, v);
+		llvm::Value* r = reinterpret_cast<llvm::IRBuilder<>*>(context.Builder)->CreateCall((*context.BuiltInFunctions)[JIT::JITFunc_Intrinsic_Sqrt], v);
 		context.ValuesOnStack.push(r);
 	}
 }
 
-
-//
-// Bind the library to an execution dispatch table
-//
-void DebugLibrary::RegisterLibraryFunctions(FunctionInvocationTable& table, StringPoolManager& stringpool)
+extern "C" void EpochLib_Print(StringHandle strhandle)
 {
-	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"print"), WriteString));
-	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"read"), ReadString));
-	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"assert"), Assert));
-	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"passtest"), PassTest));
-	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"plotpixel"), PlotPixel));
-	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"sqrt"), Sqrt));
+	UI::OutputStream out;
+	out << strhandle << std::endl;
 }
+
+extern "C" void EpochLib_Assert(bool assumption)
+{
+	if(!assumption)
+	{
+		UI::OutputStream output;
+		output << UI::lightred << L"Assertion failure" << UI::white << std::endl;
+
+		typedef void (STDCALL *vmhaltfunc)();
+		Marshaling::DLLPool::DLLPoolHandle handle = Marshaling::TheDLLPool.OpenDLL(L"EpochVM.dll");
+		Marshaling::TheDLLPool.GetFunction<vmhaltfunc>(handle, "VMHalt")();
+	}
+}
+
+extern "C" void EpochLib_PassTest()
+{
+	UI::OutputStream stream;
+	stream << UI::lightblue << L"TEST: " << UI::resetcolor << L"Pass" << std::endl;
+
+	if(TestHarness)
+		++(*TestHarness);
+}
+
 
 //
 // Bind the library to a function metadata table
 //
-void DebugLibrary::RegisterLibraryFunctions(FunctionSignatureSet& signatureset, StringPoolManager& stringpool)
+void DebugLibrary::RegisterLibraryFunctions(FunctionSignatureSet& signatureset)
 {
 	{
 		FunctionSignature signature;
 		signature.AddParameter(L"str", Metadata::EpochType_String, false);
-		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"print"), signature));
+		AddToMapNoDupe(signatureset, std::make_pair(PrintHandle, signature));
 	}
 	{
 		FunctionSignature signature;
 		signature.SetReturnType(Metadata::EpochType_String);
-		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"read"), signature));
+		AddToMapNoDupe(signatureset, std::make_pair(ReadHandle, signature));
 	}
 	{
 		FunctionSignature signature;
 		signature.AddParameter(L"value", Metadata::EpochType_Boolean, false);
-		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"assert"), signature));
+		AddToMapNoDupe(signatureset, std::make_pair(AssertHandle, signature));
 	}
 	{
 		FunctionSignature signature;
-		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"passtest"), signature));
+		AddToMapNoDupe(signatureset, std::make_pair(PassTestHandle, signature));
 	}
 	{
 		FunctionSignature signature;
 		signature.AddParameter(L"bits", Metadata::EpochType_Buffer, true);
 		signature.AddParameter(L"offset", Metadata::EpochType_Integer, false);
 		signature.AddParameter(L"color", Metadata::EpochType_Integer, false);
-		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"plotpixel"), signature));
+		AddToMapNoDupe(signatureset, std::make_pair(PlotPixelHandle, signature));
 	}
 	{
 		FunctionSignature signature;
 		signature.AddParameter(L"r", Metadata::EpochType_Real, false);
 		signature.SetReturnType(Metadata::EpochType_Real);
-		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"sqrt"), signature));
+		AddToMapNoDupe(signatureset, std::make_pair(SqrtHandle, signature));
 	}
 }
 
@@ -197,8 +149,24 @@ void DebugLibrary::LinkToTestHarness(unsigned* harness)
 }
 
 
-void DebugLibrary::RegisterJITTable(JIT::JITTable& table, StringPoolManager& stringpool)
+void DebugLibrary::RegisterJITTable(JIT::JITTable& table)
 {
-	AddToMapNoDupe(table.InvokeHelpers, std::make_pair(stringpool.Pool(L"sqrt"), &SqrtJIT));
-	AddToMapNoDupe(table.InvokeHelpers, std::make_pair(stringpool.Pool(L"plotpixel"), &PlotPixelJIT));
+	AddToMapNoDupe(table.LibraryExports, std::make_pair(AssertHandle, "EpochLib_Assert"));
+	AddToMapNoDupe(table.LibraryExports, std::make_pair(PassTestHandle, "EpochLib_PassTest"));
+	AddToMapNoDupe(table.LibraryExports, std::make_pair(PrintHandle, "EpochLib_Print"));
+
+	AddToMapNoDupe(table.InvokeHelpers, std::make_pair(SqrtHandle, &SqrtJIT));
+	AddToMapNoDupe(table.InvokeHelpers, std::make_pair(PlotPixelHandle, &PlotPixelJIT));
 }
+
+
+void DebugLibrary::PoolStrings(StringPoolManager& stringpool)
+{
+	PrintHandle = stringpool.Pool(L"print");
+	ReadHandle = stringpool.Pool(L"read");
+	AssertHandle = stringpool.Pool(L"assert");
+	PassTestHandle = stringpool.Pool(L"passtest");
+	SqrtHandle = stringpool.Pool(L"sqrt");
+	PlotPixelHandle = stringpool.Pool(L"plotpixel");
+}
+

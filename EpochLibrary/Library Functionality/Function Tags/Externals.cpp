@@ -15,6 +15,9 @@
 #include "Virtual Machine/Marshaling.h"
 
 
+extern StringHandle ExternalHandle = 0;
+
+
 namespace
 {
 
@@ -52,19 +55,10 @@ namespace
 //
 // Bind the library to an execution dispatch table
 //
-void FunctionTags::RegisterExternalTag(FunctionSignatureSet& signatureset, StringPoolManager& stringpool)
+void FunctionTags::RegisterExternalTag(FunctionSignatureSet& signatureset)
 {
-	AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"@@external"), FunctionSignature()));
+	AddToMapNoDupe(signatureset, std::make_pair(ExternalHandle, FunctionSignature()));
 }
-
-//
-// Bind the library to a function metadata table
-//
-void FunctionTags::RegisterExternalTag(EpochFunctionPtr marshalfunction, FunctionInvocationTable& table, StringPoolManager& stringpool)
-{
-	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"@@external"), marshalfunction));
-}
-
 
 //
 // Bind the library's tag helpers to the compiler

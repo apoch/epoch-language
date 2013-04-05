@@ -290,7 +290,8 @@ namespace IRSemantics
 			  RawName(0),
 			  AnonymousReturn(false),
 			  HintReturnType(Metadata::EpochType_Error),
-			  DummyNamespace(NULL)
+			  DummyNamespace(NULL),
+			  SuppressGeneration(false)
 		{ }
 
 		Function(const Function* templatefunc, Namespace& curnamespace, const CompileTimeParameterVector& args);
@@ -409,6 +410,14 @@ namespace IRSemantics
 	public:
 		void HoistScopes();
 
+	// Code generation
+	public:
+		void SuppressCodeEmission()
+		{ SuppressGeneration = true; }
+
+		bool IsCodeEmissionSupressed() const
+		{ return SuppressGeneration; }
+
 	// Internal state
 	private:
 		friend class FunctionTable;
@@ -441,6 +450,7 @@ namespace IRSemantics
 		bool InferenceDone;
 
 		bool SuppressReturn;
+		bool SuppressGeneration;
 
 		std::vector<FunctionTag> Tags;
 

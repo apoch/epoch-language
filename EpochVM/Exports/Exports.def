@@ -5,8 +5,7 @@ EXPORTS
 	EnableVisualDebugger		@3
 	LinkTestHarness				@4
 	VMHalt						@6
-	VMRet						@7
-	VMAllocStruct				@8
-	VMCopyStruct				@9
-	VMGetBuffer					@10
-	VMBreak						@11
+	VMAllocStruct				@7
+	VMCopyStruct				@8
+	VMGetBuffer					@9
+	VMBreak						@10

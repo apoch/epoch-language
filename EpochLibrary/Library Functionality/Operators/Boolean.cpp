@@ -21,16 +21,13 @@
 
 namespace
 {
+	
+	StringHandle BangHandle = 0;
+	StringHandle BooleanNotHandle = 0;
 
 	//
 	// Compute the logical negation of an operand
 	//
-	void BooleanNot(StringHandle, VM::ExecutionContext& context)
-	{
-		bool p = context.State.Stack.PopValue<bool>();
-		context.State.Stack.PushValue(!p);
-	}
-
 	void BooleanNotJIT(JIT::JITContext& context, bool)
 	{
 		llvm::Value* v = context.ValuesOnStack.top();
@@ -42,41 +39,35 @@ namespace
 }
 
 
-
-//
-// Bind the library to an execution dispatch table
-//
-void BooleanLibrary::RegisterLibraryFunctions(FunctionInvocationTable& table, StringPoolManager& stringpool)
-{
-	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"!@@boolean"), BooleanNot));
-}
-
 //
 // Bind the library to a function metadata table
 //
-void BooleanLibrary::RegisterLibraryFunctions(FunctionSignatureSet& signatureset, StringPoolManager& stringpool)
+void BooleanLibrary::RegisterLibraryFunctions(FunctionSignatureSet& signatureset)
 {
 	{
 		FunctionSignature signature;
 		signature.AddParameter(L"b", Metadata::EpochType_Boolean, false);
 		signature.SetReturnType(Metadata::EpochType_Boolean);
-		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"!@@boolean"), signature));
+		AddToMapNoDupe(signatureset, std::make_pair(BooleanNotHandle, signature));
 	}
 }
 
 //
 // Register the list of overloads used by functions in this library module
 //
-void BooleanLibrary::RegisterLibraryOverloads(OverloadMap& overloadmap, StringPoolManager& stringpool)
+void BooleanLibrary::RegisterLibraryOverloads(OverloadMap& overloadmap)
 {
-	{
-		StringHandle functionnamehandle = stringpool.Pool(L"!");
-		overloadmap[functionnamehandle].insert(stringpool.Pool(L"!@@boolean"));
-	}
+	overloadmap[BangHandle].insert(BooleanNotHandle);
 }
 
-void BooleanLibrary::RegisterJITTable(JIT::JITTable& table, StringPoolManager& stringpool)
+void BooleanLibrary::RegisterJITTable(JIT::JITTable& table)
 {
-	AddToMapNoDupe(table.InvokeHelpers, std::make_pair(stringpool.Pool(L"!@@boolean"), BooleanNotJIT));
+	AddToMapNoDupe(table.InvokeHelpers, std::make_pair(BooleanNotHandle, &BooleanNotJIT));
 }
 
+
+void BooleanLibrary::PoolStrings(StringPoolManager& stringpool)
+{
+	BangHandle = stringpool.Pool(L"!");
+	BooleanNotHandle = stringpool.Pool(L"!@@boolean");
+}

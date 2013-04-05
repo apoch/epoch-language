@@ -19,6 +19,20 @@ namespace llvm
 namespace JIT
 {
 
+	enum JITFunctionID
+	{
+		JITFunc_Intrinsic_VAStart,
+		JITFunc_Intrinsic_VAEnd,
+		JITFunc_Intrinsic_Sqrt,
+
+		JITFunc_VM_Break,
+		JITFunc_VM_Halt,
+		JITFunc_VM_AllocStruct,
+		JITFunc_VM_CopyStruct,
+		JITFunc_VM_GetBuffer,
+	};
+
+
 	struct JITContext
 	{
 		std::stack<llvm::Value*> ValuesOnStack;
@@ -39,13 +53,15 @@ namespace JIT
 		llvm::Value* VMContextPtr;
 
 		llvm::Function* InnerFunction;
-		llvm::Function* VMGetBuffer;
-		llvm::Function* SqrtIntrinsic;
+
+		std::map<JITFunctionID, llvm::Function*>* BuiltInFunctions;
 
 		std::map<llvm::Value*, llvm::Value*> BufferLookupCache;
 
 		void* Context;
 		void* Builder;
+
+		llvm::Value* VarArgList;
 	};
 
 
@@ -55,6 +71,7 @@ namespace JIT
 	{
 		std::map<StringHandle, JITHelper> InvokeHelpers;
 		std::map<Bytecode::EntityTag, JITHelper> EntityHelpers;
+		std::map<StringHandle, const char*> LibraryExports;
 	};
 
 }

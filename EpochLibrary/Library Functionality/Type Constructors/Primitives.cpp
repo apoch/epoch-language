@@ -18,7 +18,6 @@
 #include "Libraries/LibraryJIT.h"
 
 #include "Metadata/ScopeDescription.h"
-#include "Metadata/ActiveScope.h"
 
 #include "Utility/Types/EpochTypeIDs.h"
 #include "Utility/Types/IntegerTypes.h"
@@ -30,16 +29,14 @@
 namespace
 {
 
-	//
-	// Construct an integer variable in memory
-	//
-	void ConstructInteger(StringHandle, VM::ExecutionContext& context)
-	{
-		Integer32 value = context.State.Stack.PopValue<Integer32>();
-		StringHandle identifierhandle = context.State.Stack.PopValue<StringHandle>();
+	StringHandle IntegerHandle = 0;
+	StringHandle Integer16Handle = 0;
+	StringHandle RealHandle = 0;
+	StringHandle BooleanHandle = 0;
+	StringHandle StringTypeHandle = 0;
+	StringHandle BufferTypeHandle = 0;
+	StringHandle NothingHandle = 0;
 
-		context.Variables->Write(identifierhandle, value);
-	}
 
 	void ConstructIntegerJIT(JIT::JITContext& context, bool)
 	{
@@ -53,39 +50,6 @@ namespace
 		size_t vartarget = static_cast<size_t>(cint->getValue().getLimitedValue());
 
 		reinterpret_cast<llvm::IRBuilder<>*>(context.Builder)->CreateStore(p2, context.VariableMap[context.NameToIndexMap[vartarget]], false);
-	}
-
-	//
-	// Construct an integer16 variable in memory
-	//
-	void ConstructInteger16(StringHandle, VM::ExecutionContext& context)
-	{
-		Integer16 value = context.State.Stack.PopValue<Integer16>();
-		StringHandle identifierhandle = context.State.Stack.PopValue<StringHandle>();
-
-		context.Variables->Write(identifierhandle, value);
-	}
-
-	//
-	// Construct a string variable in memory
-	//
-	void ConstructString(StringHandle, VM::ExecutionContext& context)
-	{
-		StringHandle value = context.State.Stack.PopValue<StringHandle>();
-		StringHandle identifierhandle = context.State.Stack.PopValue<StringHandle>();
-
-		context.Variables->Write(identifierhandle, value);
-	}
-
-	//
-	// Construct a boolean variable in memory
-	//
-	void ConstructBoolean(StringHandle, VM::ExecutionContext& context)
-	{
-		bool value = context.State.Stack.PopValue<bool>();
-		StringHandle identifierhandle = context.State.Stack.PopValue<StringHandle>();
-
-		context.Variables->Write(identifierhandle, value);
 	}
 
 	void ConstructBooleanJIT(JIT::JITContext& context, bool)
@@ -102,18 +66,6 @@ namespace
 		reinterpret_cast<llvm::IRBuilder<>*>(context.Builder)->CreateStore(p2, context.VariableMap[context.NameToIndexMap[vartarget]], false);
 	}
 
-
-	//
-	// Construct a real variable in memory
-	//
-	void ConstructReal(StringHandle, VM::ExecutionContext& context)
-	{
-		Real32 value = context.State.Stack.PopValue<Real32>();
-		StringHandle identifierhandle = context.State.Stack.PopValue<StringHandle>();
-
-		context.Variables->Write(identifierhandle, value);
-	}
-
 	void ConstructRealJIT(JIT::JITContext& context, bool)
 	{
 		llvm::Value* p2 = context.ValuesOnStack.top();
@@ -127,117 +79,101 @@ namespace
 		reinterpret_cast<llvm::IRBuilder<>*>(context.Builder)->CreateStore(p2, context.VariableMap[context.NameToIndexMap[vartarget]], false);
 	}
 
-	//
-	// Construct a buffer in memory
-	//
-	// Note that unlike primitives which can be constructed and initialized from default
-	// literal values in the code, buffers cannot be specified as literals; this means
-	// that the constructor does not accept a literal buffer argument, but instead a
-	// size value in characters (not bytes!) which the buffer should allocate space for.
-	// Since this constructor allocates memory in the form of a buffer, it should tick
-	// over the garbage collector.
-	//
-	void ConstructBuffer(StringHandle, VM::ExecutionContext& context)
+	void ConstructStringJIT(JIT::JITContext& context, bool)
 	{
-		Integer32 size = context.State.Stack.PopValue<Integer32>();
-		StringHandle identifierhandle = context.State.Stack.PopValue<StringHandle>();
+		llvm::Value* p2 = context.ValuesOnStack.top();
+		context.ValuesOnStack.pop();
+		llvm::Value* c = context.ValuesOnStack.top();
+		context.ValuesOnStack.pop();
 
-		BufferHandle bufferhandle = context.OwnerVM.AllocateBuffer((size + 1) * sizeof(wchar_t));
-		context.Variables->Write(identifierhandle, bufferhandle);
-		context.TickBufferGarbageCollector();
+		llvm::ConstantInt* cint = llvm::dyn_cast<llvm::ConstantInt>(c);
+		size_t vartarget = static_cast<size_t>(cint->getValue().getLimitedValue());
+
+		reinterpret_cast<llvm::IRBuilder<>*>(context.Builder)->CreateStore(p2, context.VariableMap[context.NameToIndexMap[vartarget]], false);
 	}
-
-
-	void ConstructNothing(StringHandle, VM::ExecutionContext& context)
-	{
-		context.State.Stack.PopValue<Integer32>();
-		context.State.Stack.PopValue<StringHandle>();
-	}
-
 }
 
-
-//
-// Bind the library to an execution dispatch table
-//
-void TypeConstructors::RegisterLibraryFunctions(FunctionInvocationTable& table, StringPoolManager& stringpool)
-{
-	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"integer"), ConstructInteger));
-	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"integer16"), ConstructInteger16));
-	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"string"), ConstructString));
-	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"boolean"), ConstructBoolean));
-	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"real"), ConstructReal));
-	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"buffer"), ConstructBuffer));
-	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"nothing"), ConstructNothing));
-}
 
 //
 // Bind the library to a function metadata table
 //
-void TypeConstructors::RegisterLibraryFunctions(FunctionSignatureSet& signatureset, StringPoolManager& stringpool)
+void TypeConstructors::RegisterLibraryFunctions(FunctionSignatureSet& signatureset)
 {
 	{
 		FunctionSignature signature;
 		signature.AddParameter(L"identifier", Metadata::EpochType_Identifier, false);
 		signature.AddParameter(L"value", Metadata::EpochType_Integer, false);
-		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"integer"), signature));
+		AddToMapNoDupe(signatureset, std::make_pair(IntegerHandle, signature));
 	}
 	{
 		FunctionSignature signature;
 		signature.AddParameter(L"identifier", Metadata::EpochType_Identifier, false);
 		signature.AddParameter(L"value", Metadata::EpochType_Integer16, false);
-		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"integer16"), signature));
+		AddToMapNoDupe(signatureset, std::make_pair(Integer16Handle, signature));
 	}
 	{
 		FunctionSignature signature;
 		signature.AddParameter(L"identifier", Metadata::EpochType_Identifier, false);
 		signature.AddParameter(L"value", Metadata::EpochType_String, false);
-		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"string"), signature));
+		AddToMapNoDupe(signatureset, std::make_pair(StringTypeHandle, signature));
 	}
 	{
 		FunctionSignature signature;
 		signature.AddParameter(L"identifier", Metadata::EpochType_Identifier, false);
 		signature.AddParameter(L"value", Metadata::EpochType_Boolean, false);
-		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"boolean"), signature));
+		AddToMapNoDupe(signatureset, std::make_pair(BooleanHandle, signature));
 	}
 	{
 		FunctionSignature signature;
 		signature.AddParameter(L"identifier", Metadata::EpochType_Identifier, false);
 		signature.AddParameter(L"value", Metadata::EpochType_Real, false);
-		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"real"), signature));
+		AddToMapNoDupe(signatureset, std::make_pair(RealHandle, signature));
 	}
 	{
 		FunctionSignature signature;
 		signature.AddParameter(L"identifier", Metadata::EpochType_Identifier, false);
 		signature.AddParameter(L"size", Metadata::EpochType_Integer, false);
-		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"buffer"), signature));
+		AddToMapNoDupe(signatureset, std::make_pair(BufferTypeHandle, signature));
 	}
 	{
 		FunctionSignature signature;
 		signature.AddParameter(L"identifier", Metadata::EpochType_Identifier, false);
-		signature.AddPatternMatchedParameterIdentifier(stringpool.Pool(L"nothing"));
-		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"nothing"), signature));
+		signature.AddPatternMatchedParameterIdentifier(NothingHandle);
+		AddToMapNoDupe(signatureset, std::make_pair(NothingHandle, signature));
 	}
 }
 
 //
 // Bind the library to the compiler's internal semantic action table
 //
-void TypeConstructors::RegisterLibraryFunctions(FunctionCompileHelperTable& table, StringPoolManager& stringpool)
+void TypeConstructors::RegisterLibraryFunctions(FunctionCompileHelperTable& table)
 {
-	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"integer"), &CompileConstructorHelper));
-	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"integer16"), &CompileConstructorHelper));
-	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"string"), &CompileConstructorHelper));
-	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"boolean"), &CompileConstructorHelper));
-	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"real"), &CompileConstructorHelper));
-	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"buffer"), &CompileConstructorHelper));
-	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"nothing"), &CompileConstructorHelper));
+	AddToMapNoDupe(table, std::make_pair(IntegerHandle, &CompileConstructorHelper));
+	AddToMapNoDupe(table, std::make_pair(Integer16Handle, &CompileConstructorHelper));
+	AddToMapNoDupe(table, std::make_pair(StringTypeHandle, &CompileConstructorHelper));
+	AddToMapNoDupe(table, std::make_pair(BooleanHandle, &CompileConstructorHelper));
+	AddToMapNoDupe(table, std::make_pair(RealHandle, &CompileConstructorHelper));
+	AddToMapNoDupe(table, std::make_pair(BufferTypeHandle, &CompileConstructorHelper));
+	AddToMapNoDupe(table, std::make_pair(NothingHandle, &CompileConstructorHelper));
 }
 
 
-void TypeConstructors::RegisterJITTable(JIT::JITTable& table, StringPoolManager& stringpool)
+void TypeConstructors::RegisterJITTable(JIT::JITTable& table)
 {
-	AddToMapNoDupe(table.InvokeHelpers, std::make_pair(stringpool.Pool(L"integer"), &ConstructIntegerJIT));
-	AddToMapNoDupe(table.InvokeHelpers, std::make_pair(stringpool.Pool(L"real"), &ConstructRealJIT));
-	AddToMapNoDupe(table.InvokeHelpers, std::make_pair(stringpool.Pool(L"boolean"), &ConstructBooleanJIT));
+	AddToMapNoDupe(table.InvokeHelpers, std::make_pair(IntegerHandle, &ConstructIntegerJIT));
+	AddToMapNoDupe(table.InvokeHelpers, std::make_pair(RealHandle, &ConstructRealJIT));
+	AddToMapNoDupe(table.InvokeHelpers, std::make_pair(BooleanHandle, &ConstructBooleanJIT));
+	AddToMapNoDupe(table.InvokeHelpers, std::make_pair(StringTypeHandle, &ConstructStringJIT));
+}
+
+
+void TypeConstructors::PoolStrings(StringPoolManager& stringpool)
+{
+	IntegerHandle = stringpool.Pool(L"integer");
+	Integer16Handle = stringpool.Pool(L"integer16");
+	RealHandle = stringpool.Pool(L"real");
+	BooleanHandle = stringpool.Pool(L"boolean");
+	StringTypeHandle = stringpool.Pool(L"string");
+	BufferTypeHandle = stringpool.Pool(L"buffer");
+	NothingHandle = stringpool.Pool(L"nothing");
 }

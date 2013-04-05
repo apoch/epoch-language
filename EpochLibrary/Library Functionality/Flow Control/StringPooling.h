@@ -15,7 +15,7 @@ class StringPoolManager;
 namespace FlowControl
 {
 
-	void RegisterStrings(StringPoolManager& stringpool);
+	void PoolStrings(StringPoolManager& stringpool);
 
 }
 

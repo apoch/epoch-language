@@ -71,3 +71,9 @@ void FunctionTags::RegisterConstructorTagHelper(FunctionTagHelperTable& table)
 	AddToMapNoDupe(table, std::make_pair(L"constructor", &ConstructorTagHelper));
 }
 
+
+void FunctionTags::PoolStrings(StringPoolManager& stringpool)
+{
+	stringpool.Pool(L"constructor");
+	stringpool.Pool(L"external");
+}

@@ -20,10 +20,13 @@ class StringPoolManager;
 namespace StringLibrary
 {
 
-	void RegisterLibraryFunctions(FunctionSignatureSet& signatureset, StringPoolManager& stringpool);
-	void RegisterLibraryFunctions(FunctionInvocationTable& table, StringPoolManager& stringpool);
+	void PoolStrings(StringPoolManager& stringpool);
 
-	void RegisterInfixOperators(StringSet& infixtable, PrecedenceTable& precedences, StringPoolManager& stringpool);
+	void RegisterLibraryFunctions(FunctionSignatureSet& signatureset);
+
+	void RegisterInfixOperators(StringSet& infixtable, PrecedenceTable& precedences);
+
+	void RegisterJITTable(JIT::JITTable& table);
 
 }
 

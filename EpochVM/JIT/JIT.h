@@ -14,10 +14,6 @@ namespace VM
 	class VirtualMachine;
 }
 
-// Type shortcut
-typedef void (__cdecl *EpochToJITWrapperFunc)(char** pstack, void* context);
-
-
 namespace JIT
 {
 
@@ -57,12 +53,12 @@ namespace JIT
 		llvm::Type* GetLLVMSumType(Metadata::EpochTypeID type, bool flatten);
 
 		llvm::FunctionType* GetLLVMFunctionType(StringHandle epochfunc);
+		llvm::FunctionType* GetLLVMFunctionTypeFromSignature(StringHandle libraryfunc);
 
 		void AddNativeTypeMatcher(size_t beginoffset, size_t endoffset);
 		
 		llvm::Function* GetGeneratedFunction(StringHandle funcname, size_t beginoffset);
 		llvm::Function* GetGeneratedTypeMatcher(StringHandle funcname, size_t beginoffset);
-		llvm::Function* GetGeneratedBridge(size_t beginoffset);
 
 	// Internal tracking
 	private:
@@ -73,6 +69,8 @@ namespace JIT
 
 		impl::LLVMData* Data;
 		llvm::IRBuilder<> Builder;
+
+		std::map<const char*, llvm::Function*> LibraryFunctionCache;
 	};
 
 }

@@ -25,12 +25,13 @@ namespace VM
 namespace DebugLibrary
 {
 
+	void PoolStrings(StringPoolManager& stringpool);
+
 	void LinkToTestHarness(unsigned* harness);
 
-	void RegisterLibraryFunctions(FunctionSignatureSet& signatureset, StringPoolManager& stringpool);
-	void RegisterLibraryFunctions(FunctionInvocationTable& table, StringPoolManager& stringpool);
+	void RegisterLibraryFunctions(FunctionSignatureSet& signatureset);
 
-	void RegisterJITTable(JIT::JITTable& table, StringPoolManager& stringpool);
+	void RegisterJITTable(JIT::JITTable& table);
 
 }
 

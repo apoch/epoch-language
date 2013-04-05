@@ -20,6 +20,8 @@ class StringPoolManager;
 namespace FunctionTags
 {
 
+	void PoolStrings(StringPoolManager& stringpool);		// TODO - move to a better file
+
 	void RegisterConstructorTagHelper(FunctionTagHelperTable& table);
 
 }

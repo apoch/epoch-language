@@ -107,9 +107,6 @@
     <ClCompile Include="Library Functionality\Flow Control\Conditionals.cpp">
       <Filter>Library Functionality\Flow Control</Filter>
     </ClCompile>
-    <ClCompile Include="Library Functionality\Flow Control\FlowControl.cpp">
-      <Filter>Library Functionality\Flow Control</Filter>
-    </ClCompile>
     <ClCompile Include="Library Functionality\Flow Control\Loops.cpp">
       <Filter>Library Functionality\Flow Control</Filter>
     </ClCompile>
@@ -121,9 +118,6 @@
     </ClCompile>
     <ClCompile Include="Library Functionality\Function Tags\Externals.cpp">
       <Filter>Library Functionality\Function Tags</Filter>
-    </ClCompile>
-    <ClCompile Include="Library Functionality\Marshaling\MarshalingLibrary.cpp">
-      <Filter>Library Functionality\Marshaling</Filter>
     </ClCompile>
     <ClCompile Include="Library Functionality\Command Line\CommandLine.cpp">
       <Filter>Library Functionality\Command Line</Filter>
@@ -152,9 +146,6 @@
     <ClCompile Include="..\Shared\User Interface\Output.cpp">
       <Filter>Shared\User Interface</Filter>
     </ClCompile>
-    <ClCompile Include="..\Shared\Metadata\ActiveScope.cpp">
-      <Filter>Shared\Metadata</Filter>
-    </ClCompile>
     <ClCompile Include="..\Shared\Metadata\FunctionSignature.cpp">
       <Filter>Shared\Metadata</Filter>
     </ClCompile>
@@ -170,9 +161,6 @@
     <ClCompile Include="VM Linkage\HeapAccess.cpp">
       <Filter>VM Linkage</Filter>
     </ClCompile>
-    <ClCompile Include="Library Functionality\Function Tags\Native.cpp">
-      <Filter>Library Functionality\Function Tags</Filter>
-    </ClCompile>
     <ClCompile Include="..\EpochCompiler\Compiler\CompileErrors.cpp">
       <Filter>Compiler Dependencies</Filter>
     </ClCompile>
@@ -181,6 +169,9 @@
     </ClCompile>
     <ClCompile Include="..\Shared\Metadata\TypeInfo.cpp">
       <Filter>Shared\Metadata</Filter>
+    </ClCompile>
+    <ClCompile Include="Library Functionality\Marshaling\MarshalingLibrary.cpp">
+      <Filter>Library Functionality\Marshaling</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -209,9 +200,6 @@
       <Filter>Library Functionality\Operators</Filter>
     </ClInclude>
     <ClInclude Include="Library Functionality\Flow Control\Conditionals.h">
-      <Filter>Library Functionality\Flow Control</Filter>
-    </ClInclude>
-    <ClInclude Include="Library Functionality\Flow Control\FlowControl.h">
       <Filter>Library Functionality\Flow Control</Filter>
     </ClInclude>
     <ClInclude Include="Library Functionality\Flow Control\Loops.h">
@@ -265,9 +253,6 @@
     <ClInclude Include="..\Shared\User Interface\Output.h">
       <Filter>Shared\User Interface</Filter>
     </ClInclude>
-    <ClInclude Include="..\Shared\Metadata\ActiveScope.h">
-      <Filter>Shared\Metadata</Filter>
-    </ClInclude>
     <ClInclude Include="..\Shared\Metadata\CompileTimeParams.h">
       <Filter>Shared\Metadata</Filter>
     </ClInclude>
@@ -294,9 +279,6 @@
     </ClInclude>
     <ClInclude Include="..\EpochVM\Virtual Machine\VirtualMachine.h">
       <Filter>VM Linkage\Virtual Machine</Filter>
-    </ClInclude>
-    <ClInclude Include="Library Functionality\Function Tags\Native.h">
-      <Filter>Library Functionality\Function Tags</Filter>
     </ClInclude>
     <ClInclude Include="..\Shared\Libraries\LibraryJIT.h">
       <Filter>Shared\Libraries</Filter>

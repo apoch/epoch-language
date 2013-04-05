@@ -19,72 +19,40 @@
 #include "Metadata/Precedences.h"
 
 
+extern VM::ExecutionContext* GlobalExecutionContext;
+
+
 namespace
 {
-	//
-	// Compare two integers for equality
-	//
-	void IntegerEquality(StringHandle, VM::ExecutionContext& context)
+
+	StringHandle EqualityHandle = 0;
+	StringHandle InequalityHandle = 0;
+	StringHandle GreaterThanHandle = 0;
+	StringHandle LessThanHandle = 0;
+
+	StringHandle IntegerEqualityHandle = 0;
+	StringHandle Integer16EqualityHandle = 0;
+	StringHandle IntegerInequalityHandle = 0;
+	StringHandle BooleanEqualityHandle = 0;
+	StringHandle BooleanInequalityHandle = 0;
+	StringHandle StringEqualityHandle = 0;
+	StringHandle StringInequalityHandle = 0;
+	StringHandle RealEqualityHandle = 0;
+
+	StringHandle IntegerGreaterThanHandle = 0;
+	StringHandle IntegerLessThanHandle = 0;
+	StringHandle RealGreaterThanHandle = 0;
+	StringHandle RealLessThanHandle = 0;
+
+
+	void IntegerEqualityJIT(JIT::JITContext& context, bool)
 	{
-		Integer32 p2 = context.State.Stack.PopValue<Integer32>();
-		Integer32 p1 = context.State.Stack.PopValue<Integer32>();
-
-		context.State.Stack.PushValue(p1 == p2);
-	}
-
-	void Integer16Equality(StringHandle, VM::ExecutionContext& context)
-	{
-		Integer16 p2 = context.State.Stack.PopValue<Integer16>();
-		Integer16 p1 = context.State.Stack.PopValue<Integer16>();
-
-		context.State.Stack.PushValue(p1 == p2);
-	}
-
-
-	//
-	// Compare two integers for inequality
-	//
-	void IntegerInequality(StringHandle, VM::ExecutionContext& context)
-	{
-		Integer32 p2 = context.State.Stack.PopValue<Integer32>();
-		Integer32 p1 = context.State.Stack.PopValue<Integer32>();
-
-		context.State.Stack.PushValue(p1 != p2);
-	}
-
-
-	//
-	// Compare two booleans for equality
-	//
-	void BooleanEquality(StringHandle, VM::ExecutionContext& context)
-	{
-		bool p2 = context.State.Stack.PopValue<bool>();
-		bool p1 = context.State.Stack.PopValue<bool>();
-
-		context.State.Stack.PushValue(p1 == p2);
-	}
-
-	//
-	// Compare two booleans for inequality
-	//
-	void BooleanInequality(StringHandle, VM::ExecutionContext& context)
-	{
-		bool p2 = context.State.Stack.PopValue<bool>();
-		bool p1 = context.State.Stack.PopValue<bool>();
-
-		context.State.Stack.PushValue(p1 != p2);
-	}
-
-
-	//
-	// Compare two integers to see if one is greater than the other
-	//
-	void IntegerGreaterThan(StringHandle, VM::ExecutionContext& context)
-	{
-		Integer32 p2 = context.State.Stack.PopValue<Integer32>();
-		Integer32 p1 = context.State.Stack.PopValue<Integer32>();
-
-		context.State.Stack.PushValue(p1 > p2);
+		llvm::Value* p2 = context.ValuesOnStack.top();
+		context.ValuesOnStack.pop();
+		llvm::Value* p1 = context.ValuesOnStack.top();
+		context.ValuesOnStack.pop();
+		llvm::Value* flag = reinterpret_cast<llvm::IRBuilder<>*>(context.Builder)->CreateICmp(llvm::CmpInst::ICMP_EQ, p1, p2);
+		context.ValuesOnStack.push(flag);
 	}
 
 	void IntegerGreaterThanJIT(JIT::JITContext& context, bool)
@@ -97,19 +65,6 @@ namespace
 		context.ValuesOnStack.push(flag);
 	}
 
-
-	//
-	// Compare two integers to see if one is less than the other
-	//
-	void IntegerLessThan(StringHandle, VM::ExecutionContext& context)
-	{
-		Integer32 p2 = context.State.Stack.PopValue<Integer32>();
-		Integer32 p1 = context.State.Stack.PopValue<Integer32>();
-
-		context.State.Stack.PushValue(p1 < p2);
-	}
-
-
 	void IntegerLessThanJIT(JIT::JITContext& context, bool)
 	{
 		llvm::Value* p2 = context.ValuesOnStack.top();
@@ -118,27 +73,6 @@ namespace
 		context.ValuesOnStack.pop();
 		llvm::Value* flag = reinterpret_cast<llvm::IRBuilder<>*>(context.Builder)->CreateICmp(llvm::CmpInst::ICMP_SLT, p1, p2);
 		context.ValuesOnStack.push(flag);
-	}
-
-
-	void RealEquality(StringHandle, VM::ExecutionContext& context)
-	{
-		Real32 p2 = context.State.Stack.PopValue<Real32>();
-		Real32 p1 = context.State.Stack.PopValue<Real32>();
-
-		context.State.Stack.PushValue(p1 == p2);
-	}
-
-
-	//
-	// Compare two reals to see if one is greater than the other
-	//
-	void RealGreaterThan(StringHandle, VM::ExecutionContext& context)
-	{
-		Real32 p2 = context.State.Stack.PopValue<Real32>();
-		Real32 p1 = context.State.Stack.PopValue<Real32>();
-
-		context.State.Stack.PushValue(p1 > p2);
 	}
 
 	void RealGreaterThanJIT(JIT::JITContext& context, bool)
@@ -151,17 +85,6 @@ namespace
 		context.ValuesOnStack.push(flag);
 	}
 
-	//
-	// Compare two reals to see if one is less than the other
-	//
-	void RealLessThan(StringHandle, VM::ExecutionContext& context)
-	{
-		Real32 p2 = context.State.Stack.PopValue<Real32>();
-		Real32 p1 = context.State.Stack.PopValue<Real32>();
-
-		context.State.Stack.PushValue(p1 < p2);
-	}
-
 	void RealLessThanJIT(JIT::JITContext& context, bool)
 	{
 		llvm::Value* p2 = context.ValuesOnStack.top();
@@ -172,104 +95,71 @@ namespace
 		context.ValuesOnStack.push(flag);
 	}
 
-
-	//
-	// Compare two strings for equality
-	//
-	void StringEquality(StringHandle, VM::ExecutionContext& context)
-	{
-		StringHandle p2 = context.State.Stack.PopValue<StringHandle>();
-		StringHandle p1 = context.State.Stack.PopValue<StringHandle>();
-
-		context.State.Stack.PushValue((p1 == p2) || (context.OwnerVM.GetPooledString(p1) == context.OwnerVM.GetPooledString(p2)));
-	}
-
-	//
-	// Compare two strings for inequality
-	//
-	void StringInequality(StringHandle, VM::ExecutionContext& context)
-	{
-		StringHandle p2 = context.State.Stack.PopValue<StringHandle>();
-		StringHandle p1 = context.State.Stack.PopValue<StringHandle>();
-
-		context.State.Stack.PushValue((p1 != p2) && (context.OwnerVM.GetPooledString(p1) != context.OwnerVM.GetPooledString(p2)));
-	}
 }
 
 
-
-//
-// Bind the library to an execution dispatch table
-//
-void ComparisonLibrary::RegisterLibraryFunctions(FunctionInvocationTable& table, StringPoolManager& stringpool)
+extern "C" bool EpochLib_StringEq(StringHandle a, StringHandle b)
 {
-	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"==@@integer"), IntegerEquality));
-	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"==@@integer16"), Integer16Equality));
-	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"!=@@integer"), IntegerInequality));
-	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"==@@boolean"), BooleanEquality));
-	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"!=@@boolean"), BooleanInequality));
-	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"==@@string"), StringEquality));
-	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"!=@@string"), StringInequality));
-	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L">@@integer"), IntegerGreaterThan));
-	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"<@@integer"), IntegerLessThan));
-	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"==@@real"), RealEquality));
-	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L">@@real"), RealGreaterThan));
-	AddToMapNoDupe(table, std::make_pair(stringpool.Pool(L"<@@real"), RealLessThan));
+	if(a == b)
+		return true;
+
+	return GlobalExecutionContext->OwnerVM.GetPooledString(a) == GlobalExecutionContext->OwnerVM.GetPooledString(b);
 }
+
 
 //
 // Bind the library to a function metadata table
 //
-void ComparisonLibrary::RegisterLibraryFunctions(FunctionSignatureSet& signatureset, StringPoolManager& stringpool)
+void ComparisonLibrary::RegisterLibraryFunctions(FunctionSignatureSet& signatureset)
 {
 	{
 		FunctionSignature signature;
 		signature.AddParameter(L"i1", Metadata::EpochType_Integer, false);
 		signature.AddParameter(L"i2", Metadata::EpochType_Integer, false);
 		signature.SetReturnType(Metadata::EpochType_Boolean);
-		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"==@@integer"), signature));
+		AddToMapNoDupe(signatureset, std::make_pair(IntegerEqualityHandle, signature));
 	}
 	{
 		FunctionSignature signature;
 		signature.AddParameter(L"i1", Metadata::EpochType_Integer16, false);
 		signature.AddParameter(L"i2", Metadata::EpochType_Integer16, false);
 		signature.SetReturnType(Metadata::EpochType_Boolean);
-		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"==@@integer16"), signature));
+		AddToMapNoDupe(signatureset, std::make_pair(Integer16EqualityHandle, signature));
 	}
 	{
 		FunctionSignature signature;
 		signature.AddParameter(L"i1", Metadata::EpochType_Integer, false);
 		signature.AddParameter(L"i2", Metadata::EpochType_Integer, false);
 		signature.SetReturnType(Metadata::EpochType_Boolean);
-		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"!=@@integer"), signature));
+		AddToMapNoDupe(signatureset, std::make_pair(IntegerInequalityHandle, signature));
 	}
 	{
 		FunctionSignature signature;
 		signature.AddParameter(L"i1", Metadata::EpochType_Boolean, false);
 		signature.AddParameter(L"i2", Metadata::EpochType_Boolean, false);
 		signature.SetReturnType(Metadata::EpochType_Boolean);
-		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"==@@boolean"), signature));
+		AddToMapNoDupe(signatureset, std::make_pair(BooleanEqualityHandle, signature));
 	}
 	{
 		FunctionSignature signature;
 		signature.AddParameter(L"i1", Metadata::EpochType_Boolean, false);
 		signature.AddParameter(L"i2", Metadata::EpochType_Boolean, false);
 		signature.SetReturnType(Metadata::EpochType_Boolean);
-		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"!=@@boolean"), signature));
+		AddToMapNoDupe(signatureset, std::make_pair(BooleanInequalityHandle, signature));
 	}
 	{
 		FunctionSignature signature;
 		signature.AddParameter(L"i1", Metadata::EpochType_String, false);
 		signature.AddParameter(L"i2", Metadata::EpochType_String, false);
 		signature.SetReturnType(Metadata::EpochType_Boolean);
-		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"==@@string"), signature));
+		AddToMapNoDupe(signatureset, std::make_pair(StringEqualityHandle, signature));
 	}
 	{
 		FunctionSignature signature;
 		signature.AddParameter(L"i1", Metadata::EpochType_String, false);
 		signature.AddParameter(L"i2", Metadata::EpochType_String, false);
 		signature.SetReturnType(Metadata::EpochType_Boolean);
-		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"!=@@string"), signature));
+		AddToMapNoDupe(signatureset, std::make_pair(StringInequalityHandle, signature));
 	}
 
 	{
@@ -277,14 +167,14 @@ void ComparisonLibrary::RegisterLibraryFunctions(FunctionSignatureSet& signature
 		signature.AddParameter(L"i1", Metadata::EpochType_Integer, false);
 		signature.AddParameter(L"i2", Metadata::EpochType_Integer, false);
 		signature.SetReturnType(Metadata::EpochType_Boolean);
-		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L">@@integer"), signature));
+		AddToMapNoDupe(signatureset, std::make_pair(IntegerGreaterThanHandle, signature));
 	}
 	{
 		FunctionSignature signature;
 		signature.AddParameter(L"i1", Metadata::EpochType_Integer, false);
 		signature.AddParameter(L"i2", Metadata::EpochType_Integer, false);
 		signature.SetReturnType(Metadata::EpochType_Boolean);
-		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"<@@integer"), signature));
+		AddToMapNoDupe(signatureset, std::make_pair(IntegerLessThanHandle, signature));
 	}
 
 	{
@@ -292,48 +182,44 @@ void ComparisonLibrary::RegisterLibraryFunctions(FunctionSignatureSet& signature
 		signature.AddParameter(L"i1", Metadata::EpochType_Real, false);
 		signature.AddParameter(L"i2", Metadata::EpochType_Real, false);
 		signature.SetReturnType(Metadata::EpochType_Boolean);
-		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"==@@real"), signature));
+		AddToMapNoDupe(signatureset, std::make_pair(RealEqualityHandle, signature));
 	}
 	{
 		FunctionSignature signature;
 		signature.AddParameter(L"i1", Metadata::EpochType_Real, false);
 		signature.AddParameter(L"i2", Metadata::EpochType_Real, false);
 		signature.SetReturnType(Metadata::EpochType_Boolean);
-		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L">@@real"), signature));
+		AddToMapNoDupe(signatureset, std::make_pair(RealGreaterThanHandle, signature));
 	}
 	{
 		FunctionSignature signature;
 		signature.AddParameter(L"i1", Metadata::EpochType_Real, false);
 		signature.AddParameter(L"i2", Metadata::EpochType_Real, false);
 		signature.SetReturnType(Metadata::EpochType_Boolean);
-		AddToMapNoDupe(signatureset, std::make_pair(stringpool.Pool(L"<@@real"), signature));
+		AddToMapNoDupe(signatureset, std::make_pair(RealLessThanHandle, signature));
 	}
 }
 
 //
 // Bind the library to the infix operator table
 //
-void ComparisonLibrary::RegisterInfixOperators(StringSet& infixtable, PrecedenceTable& precedences, StringPoolManager& stringpool)
+void ComparisonLibrary::RegisterInfixOperators(StringSet& infixtable, PrecedenceTable& precedences)
 {
 	{
-		StringHandle handle = stringpool.Pool(L"==");
-		AddToSetNoDupe(infixtable, stringpool.GetPooledString(handle));
-		AddToMapNoDupe(precedences, std::make_pair(handle, PRECEDENCE_COMPARISON));
+		AddToSetNoDupe(infixtable, L"==");
+		AddToMapNoDupe(precedences, std::make_pair(EqualityHandle, PRECEDENCE_COMPARISON));
 	}
 	{
-		StringHandle handle = stringpool.Pool(L"!=");
-		AddToSetNoDupe(infixtable, stringpool.GetPooledString(handle));
-		AddToMapNoDupe(precedences, std::make_pair(handle, PRECEDENCE_COMPARISON));
+		AddToSetNoDupe(infixtable, L"!=");
+		AddToMapNoDupe(precedences, std::make_pair(InequalityHandle, PRECEDENCE_COMPARISON));
 	}
 	{
-		StringHandle handle = stringpool.Pool(L">");
-		AddToSetNoDupe(infixtable, stringpool.GetPooledString(handle));
-		AddToMapNoDupe(precedences, std::make_pair(handle, PRECEDENCE_COMPARISON));
+		AddToSetNoDupe(infixtable, L">");
+		AddToMapNoDupe(precedences, std::make_pair(GreaterThanHandle, PRECEDENCE_COMPARISON));
 	}
 	{
-		StringHandle handle = stringpool.Pool(L"<");
-		AddToSetNoDupe(infixtable, stringpool.GetPooledString(handle));
-		AddToMapNoDupe(precedences, std::make_pair(handle, PRECEDENCE_COMPARISON));
+		AddToSetNoDupe(infixtable, L"<");
+		AddToMapNoDupe(precedences, std::make_pair(LessThanHandle, PRECEDENCE_COMPARISON));
 	}
 }
 
@@ -341,39 +227,56 @@ void ComparisonLibrary::RegisterInfixOperators(StringSet& infixtable, Precedence
 //
 // Register the list of overloads used by functions in this library module
 //
-void ComparisonLibrary::RegisterLibraryOverloads(OverloadMap& overloadmap, StringPoolManager& stringpool)
+void ComparisonLibrary::RegisterLibraryOverloads(OverloadMap& overloadmap)
 {
-	{
-		StringHandle functionnamehandle = stringpool.Pool(L"==");
-		overloadmap[functionnamehandle].insert(stringpool.Pool(L"==@@integer"));
-		overloadmap[functionnamehandle].insert(stringpool.Pool(L"==@@integer16"));
-		overloadmap[functionnamehandle].insert(stringpool.Pool(L"==@@boolean"));
-		overloadmap[functionnamehandle].insert(stringpool.Pool(L"==@@string"));
-		overloadmap[functionnamehandle].insert(stringpool.Pool(L"==@@real"));
-	}
-	{
-		StringHandle functionnamehandle = stringpool.Pool(L"!=");
-		overloadmap[functionnamehandle].insert(stringpool.Pool(L"!=@@integer"));
-		overloadmap[functionnamehandle].insert(stringpool.Pool(L"!=@@boolean"));
-		overloadmap[functionnamehandle].insert(stringpool.Pool(L"!=@@string"));
-	}
-	{
-		StringHandle functionnamehandle = stringpool.Pool(L">");
-		overloadmap[functionnamehandle].insert(stringpool.Pool(L">@@integer"));
-		overloadmap[functionnamehandle].insert(stringpool.Pool(L">@@real"));
-	}
-	{
-		StringHandle functionnamehandle = stringpool.Pool(L"<");
-		overloadmap[functionnamehandle].insert(stringpool.Pool(L"<@@integer"));
-		overloadmap[functionnamehandle].insert(stringpool.Pool(L"<@@real"));
-	}
+	overloadmap[EqualityHandle].insert(IntegerEqualityHandle);
+	overloadmap[EqualityHandle].insert(Integer16EqualityHandle);
+	overloadmap[EqualityHandle].insert(BooleanEqualityHandle);
+	overloadmap[EqualityHandle].insert(StringEqualityHandle);
+	overloadmap[EqualityHandle].insert(RealEqualityHandle);
+
+	overloadmap[InequalityHandle].insert(IntegerInequalityHandle);
+	overloadmap[InequalityHandle].insert(BooleanInequalityHandle);
+	overloadmap[InequalityHandle].insert(StringInequalityHandle);
+
+	overloadmap[GreaterThanHandle].insert(IntegerGreaterThanHandle);
+	overloadmap[GreaterThanHandle].insert(RealGreaterThanHandle);
+
+	overloadmap[LessThanHandle].insert(IntegerLessThanHandle);
+	overloadmap[LessThanHandle].insert(RealLessThanHandle);
 }
 
-void ComparisonLibrary::RegisterJITTable(JIT::JITTable& table, StringPoolManager& stringpool)
+void ComparisonLibrary::RegisterJITTable(JIT::JITTable& table)
 {
-	AddToMapNoDupe(table.InvokeHelpers, std::make_pair(stringpool.Pool(L">@@integer"), IntegerGreaterThanJIT));
-	AddToMapNoDupe(table.InvokeHelpers, std::make_pair(stringpool.Pool(L"<@@integer"), IntegerLessThanJIT));
-	AddToMapNoDupe(table.InvokeHelpers, std::make_pair(stringpool.Pool(L">@@real"), RealGreaterThanJIT));
-	AddToMapNoDupe(table.InvokeHelpers, std::make_pair(stringpool.Pool(L"<@@real"), RealLessThanJIT));
+	AddToMapNoDupe(table.InvokeHelpers, std::make_pair(IntegerEqualityHandle, &IntegerEqualityJIT));
+
+	AddToMapNoDupe(table.InvokeHelpers, std::make_pair(IntegerGreaterThanHandle, &IntegerGreaterThanJIT));
+	AddToMapNoDupe(table.InvokeHelpers, std::make_pair(IntegerLessThanHandle, &IntegerLessThanJIT));
+	AddToMapNoDupe(table.InvokeHelpers, std::make_pair(RealGreaterThanHandle, &RealGreaterThanJIT));
+	AddToMapNoDupe(table.InvokeHelpers, std::make_pair(RealLessThanHandle, &RealLessThanJIT));
+
+	AddToMapNoDupe(table.LibraryExports, std::make_pair(StringEqualityHandle, "EpochLib_StringEq"));
 }
 
+
+void ComparisonLibrary::PoolStrings(StringPoolManager& stringpool)
+{
+	EqualityHandle = stringpool.Pool(L"==");
+	InequalityHandle = stringpool.Pool(L"!=");
+	GreaterThanHandle = stringpool.Pool(L">");
+	LessThanHandle = stringpool.Pool(L"<");
+
+	IntegerEqualityHandle = stringpool.Pool(L"==@@integer");
+	Integer16EqualityHandle = stringpool.Pool(L"==@@integer16");
+	IntegerInequalityHandle = stringpool.Pool(L"!=@@integer");
+	BooleanEqualityHandle = stringpool.Pool(L"==@@boolean");
+	BooleanInequalityHandle = stringpool.Pool(L"!=@@boolean");
+	StringEqualityHandle = stringpool.Pool(L"==@@string");
+	StringInequalityHandle = stringpool.Pool(L"!=@@string");
+	RealEqualityHandle = stringpool.Pool(L"==@@real");
+
+	IntegerGreaterThanHandle = stringpool.Pool(L">@@integer");
+	IntegerLessThanHandle = stringpool.Pool(L"<@@integer");
+	RealGreaterThanHandle = stringpool.Pool(L">@@real");
+	RealLessThanHandle = stringpool.Pool(L"<@@real");
+}

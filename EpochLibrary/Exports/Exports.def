@@ -5,3 +5,9 @@ EXPORTS
 	BindToCompiler				@3
 	LinkToTestHarness			@4
 
+	EpochLib_Assert				@5
+	EpochLib_PassTest			@6
+	EpochLib_StringEq			@7
+	EpochLib_Print				@8
+	EpochLib_StrConcat			@9
+

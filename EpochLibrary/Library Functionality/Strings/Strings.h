@@ -25,10 +25,11 @@ namespace VM
 namespace StringFunctionLibrary
 {
 
-	void RegisterLibraryFunctions(FunctionSignatureSet& signatureset, StringPoolManager& stringpool);
-	void RegisterLibraryFunctions(FunctionInvocationTable& table, StringPoolManager& stringpool);
+	void PoolStrings(StringPoolManager& stringpool);
 
-	void RegisterLibraryOverloads(OverloadMap& overloadmap, StringPoolManager& stringpool);
+	void RegisterLibraryFunctions(FunctionSignatureSet& signatureset);
+
+	void RegisterLibraryOverloads(OverloadMap& overloadmap);
 
 }
 

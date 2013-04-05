@@ -20,8 +20,7 @@ class StringPoolManager;
 namespace FunctionTags
 {
 
-	void RegisterExternalTag(FunctionSignatureSet& signatureset, StringPoolManager& stringpool);
-	void RegisterExternalTag(EpochFunctionPtr marshalfunction, FunctionInvocationTable& table, StringPoolManager& stringpool);
+	void RegisterExternalTag(FunctionSignatureSet& signatureset);
 
 	void RegisterExternalTagHelper(FunctionTagHelperTable& table);
 

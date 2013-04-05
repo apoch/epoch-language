@@ -20,13 +20,14 @@ class StringPoolManager;
 namespace ComparisonLibrary
 {
 
-	void RegisterLibraryFunctions(FunctionSignatureSet& signatureset, StringPoolManager& stringpool);
-	void RegisterLibraryFunctions(FunctionInvocationTable& table, StringPoolManager& stringpool);
+	void PoolStrings(StringPoolManager& stringpool);
 
-	void RegisterInfixOperators(StringSet& infixtable, PrecedenceTable& precedences, StringPoolManager& stringpool);
-	void RegisterLibraryOverloads(OverloadMap& overloadmap, StringPoolManager& stringpool);
+	void RegisterLibraryFunctions(FunctionSignatureSet& signatureset);
 
-	void RegisterJITTable(JIT::JITTable& table, StringPoolManager& stringpool);
+	void RegisterInfixOperators(StringSet& infixtable, PrecedenceTable& precedences);
+	void RegisterLibraryOverloads(OverloadMap& overloadmap);
+
+	void RegisterJITTable(JIT::JITTable& table);
 
 }
 

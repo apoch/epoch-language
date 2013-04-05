@@ -166,6 +166,7 @@ void Structure::GenerateConstructors(StringHandle myname, StringHandle construct
 		func->SetName(funcname);
 		func->AddParameter(curnamespace.Strings.Find(L"identifier"), new FunctionParamTyped(type, true), errors);
 		func->SuppressReturnRegister();
+		func->SuppressCodeEmission();
 
 		curnamespace.Functions.Add(funcname, funcname, func.release());
 	}

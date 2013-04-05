@@ -63,6 +63,8 @@ public:
 	size_t GetVariableCount() const
 	{ return Variables.size(); }
 
+	size_t GetParameterCount() const;
+
 	bool HasReturnVariable() const;
 	Metadata::EpochTypeID GetReturnVariableType() const;
 

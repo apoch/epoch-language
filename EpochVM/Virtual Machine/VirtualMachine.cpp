@@ -12,7 +12,6 @@
 
 #include "JIT/JIT.h"
 
-#include "Metadata/ActiveScope.h"
 #include "Metadata/TypeInfo.h"
 
 #include "Bytecode/Instructions.h"
@@ -44,23 +43,6 @@ bool VirtualMachine::VisualDebuggerEnabled = false;
 
 #endif
 
-
-
-namespace
-{
-
-	//
-	// Helper shim - invoke the given Epoch function within the given context
-	//
-	// Whenever an Epoch function is invoked, its handle is passed to this function, along with
-	// the execution context in which the virtual machine is running the Epoch code.
-	//
-	void FunctionInvocationHelper(StringHandle namehandle, ExecutionContext& context)
-	{
-		context.Execute(context.OwnerVM.GetFunctionInstructionOffset(namehandle), context.OwnerVM.GetScopeDescription(namehandle), true);
-	}
-
-}
 
 
 //#define PROFILING_ENABLED
@@ -101,6 +83,7 @@ struct RAIIProfiler
 // Mainly useful for forking the visual debugger thread as necessary
 //
 VirtualMachine::VirtualMachine()
+	: EntryPointFunc(NULL)
 {
 #ifdef EPOCHVM_VISUAL_DEBUGGER
 	if(VisualDebuggerEnabled)
@@ -121,21 +104,21 @@ void VirtualMachine::EnableVisualDebugger()
 //
 // Initialize the bindings of standard library functions
 //
-void VirtualMachine::InitStandardLibraries(unsigned* testharness)
+void VirtualMachine::InitStandardLibraries(ExecutionContext* context, unsigned* testharness)
 {
 	Marshaling::DLLPool::DLLPoolHandle dllhandle = Marshaling::TheDLLPool.OpenDLL(L"EpochLibrary.DLL");
 
-	typedef void (STDCALL *bindtovmptr)(FunctionInvocationTable&, EntityTable&, EntityTable&, StringPoolManager&, Bytecode::EntityTag&, EpochFunctionPtr, JIT::JITTable&);
+	typedef void (STDCALL *registerlibraryptr)(FunctionSignatureSet&, StringPoolManager&);
+	registerlibraryptr registerlibrary = Marshaling::DLLPool::GetFunction<registerlibraryptr>(dllhandle, "RegisterLibraryContents");
+
+	typedef void (STDCALL *bindtovmptr)(ExecutionContext*, StringPoolManager&, JIT::JITTable&);
 	bindtovmptr bindtovm = Marshaling::DLLPool::GetFunction<bindtovmptr>(dllhandle, "BindToVirtualMachine");
 
-	if(!bindtovm)
+	if(!bindtovm || !registerlibrary)
 		throw FatalException("Failed to load Epoch standard library");
 
-	void ExternalDispatch(StringHandle functionname, VM::ExecutionContext& context);
-
-	Bytecode::EntityTag customtag = Bytecode::EntityTags::CustomEntityBaseID;
-	bindtovm(GlobalFunctions, Entities, Entities, PrivateStringPool, customtag, ExternalDispatch, JITHelpers);
-
+	bindtovm(context, PrivateStringPool, JITHelpers);
+	registerlibrary(LibraryFunctionSignatures, PrivateStringPool);
 
 	typedef void (STDCALL *bindtotestharnessptr)(unsigned*);
 	bindtotestharnessptr bindtotest = Marshaling::DLLPool::GetFunction<bindtotestharnessptr>(dllhandle, "LinkToTestHarness");
@@ -150,18 +133,12 @@ void VirtualMachine::InitStandardLibraries(unsigned* testharness)
 //
 // Execute a block of bytecode from memory
 //
-ExecutionResult VirtualMachine::ExecuteByteCode(Bytecode::Instruction* buffer, size_t size)
+void VirtualMachine::ExecuteByteCode(Bytecode::Instruction* buffer, size_t size, unsigned* testharness)
 {
 	ExecutionContext context(*this, buffer, size);
-	context.Execute(NULL, false);
-	ExecutionResult result = context.GetExecutionResult();
-
-#ifdef _DEBUG
-	if(context.State.Stack.GetAllocatedStack() > 0)
-		throw FatalException("Stack leakage occurred!");
-#endif
-
-	return result;
+	InitStandardLibraries(&context, testharness);
+	context.Load();
+	context.Execute();
 }
 
 
@@ -268,27 +245,11 @@ void VirtualMachine::AddFunction(StringHandle name, EpochFunctionPtr funcptr)
 // Add a user-implemented function to the global namespace
 //
 void VirtualMachine::AddFunction(StringHandle name, size_t instructionoffset)
-{
-	if(GlobalFunctions.find(name) != GlobalFunctions.end())
-		throw InvalidIdentifierException("Function identifier is already in use");
-	
+{	
 	if(GlobalFunctionOffsets.find(name) != GlobalFunctionOffsets.end())
-		throw FatalException("Global function code offset has already been cached, but function was not found in the global namespace");
-	
-	GlobalFunctions.insert(std::make_pair(name, &FunctionInvocationHelper));
+		throw InvalidIdentifierException("Function identifier is already in use");
+
 	GlobalFunctionOffsets.insert(std::make_pair(name, instructionoffset));
-}
-
-//
-// Invoke a function in the currently active namespace
-//
-void VirtualMachine::InvokeFunction(StringHandle namehandle, ExecutionContext& context)
-{
-	FunctionInvocationTable::const_iterator iter = GlobalFunctions.find(namehandle);
-	if(iter == GlobalFunctions.end())
-		throw InvalidIdentifierException("No function with that identifier was found");
-
-	iter->second(namehandle, context);
 }
 
 //
@@ -352,1219 +313,21 @@ ExecutionContext::ExecutionContext(VirtualMachine& ownervm, Bytecode::Instructio
 	: OwnerVM(ownervm),
 	  CodeBuffer(codebuffer),
 	  CodeBufferSize(codesize),
-	  InstructionOffset(0),
-	  Variables(NULL),
 	  GarbageTick_Buffers(0),
 	  GarbageTick_Strings(0),
 	  GarbageTick_Structures(0)
 
 {
-	ActiveScope::InitAllocator();
-	Load();
-	InstructionOffset = 0;
-	InstructionOffsetStack.reserve(1024);
 }
 
-//
-// Shift a function onto the call stack and invoke the corresponding code
-//
-void ExecutionContext::Execute(size_t offset, const ScopeDescription& scope, bool returnonfunctionexit)
+void ExecutionContext::Execute()
 {
-	InstructionOffsetStack.push_back(InstructionOffset);
+	void SetGlobalExecutionContext(VM::ExecutionContext* context);
+	SetGlobalExecutionContext(this);
 
-	InstructionOffset = offset;
-	Execute(&scope, returnonfunctionexit);
+	typedef void (*pfunc)();
+	((pfunc)(OwnerVM.EntryPointFunc))();
 }
-
-//
-// Run available code until halted for some reason
-//
-// The reason will be provided in the attached execution context data,
-// as well as any other contextual information, eg. exception payloads.
-//
-void ExecutionContext::Execute(const ScopeDescription* scope, bool returnonfunctionexit)
-{
-	// Automatically cleanup the stack as needed
-	struct autoexit_functionscopes
-	{
-		autoexit_functionscopes(ExecutionContext* thisptr, ActiveScope* scopeptr)
-			: ThisPtr(thisptr),
-			  ScopePtr(scopeptr)
-		{ }
-
-		~autoexit_functionscopes()
-		{
-			AUTO_PROFILE("ScopeUnwind");
-
-			if(!ScopePtr)
-				return;
-
-			ThisPtr->Variables->PopScopeOffStack(*ThisPtr);
-			bool hasreturn = ThisPtr->Variables->HasReturnVariable();
-			ActiveScope* parent = ThisPtr->Variables->ParentScope;
-			delete ThisPtr->Variables;
-			ThisPtr->Variables = parent;
-			if(hasreturn)
-			{
-				ThisPtr->State.ReturnValueRegister.PushOntoStack(ThisPtr->State.Stack);
-			}
-		}
-
-		ActiveScope* ScopePtr;
-		ExecutionContext* ThisPtr;
-	};
-
-	struct autoexit
-	{
-		explicit autoexit(ExecutionContext* thisptr)
-			: ThisPtr(thisptr)
-		{
-			FunctionScopes.reserve(1024);
-		}
-
-		~autoexit()
-		{
-			while(!FunctionScopes.empty())
-				UnwindOutermostFunctionStack();
-		}
-
-		void UnwindOutermostFunctionStack()
-		{
-			if(!FunctionScopes.empty())
-			{
-				delete FunctionScopes.back();
-				FunctionScopes.pop_back();
-			}
-		}
-
-		void CleanUpScope(ActiveScope* scope)
-		{
-			FunctionScopes.push_back(new autoexit_functionscopes(ThisPtr, scope));
-		}
-
-		void MarkEmptyScope()
-		{
-			FunctionScopes.push_back(new autoexit_functionscopes(ThisPtr, NULL));
-		}
-
-		std::vector<autoexit_functionscopes*> FunctionScopes;
-
-		ExecutionContext* ThisPtr;
-	} onexit(this);
-
-	// By default, assume everything is alright
-	State.Result.ResultType = ExecutionResult::EXEC_RESULT_OK;
-
-	struct ChainInfo
-	{
-		ChainInfo()
-			: Offset(0),
-			  Repeat(false)
-		{ }
-
-		ChainInfo(size_t offset, bool repeat)
-			: Offset(offset),
-			  Repeat(repeat)
-		{ }
-
-		size_t Offset;
-		bool Repeat;
-	};
-	std::vector<ChainInfo> chaininfo;
-	std::vector<unsigned> returnonfunctionexitstack;
-
-	chaininfo.reserve(1024);
-	returnonfunctionexitstack.reserve(1024);
-
-	returnonfunctionexitstack.push_back(returnonfunctionexit);
-
-	UByte* instructionbuffer = &CodeBuffer[0];
-
-	try
-	{
-		// Run the given chunk of code
-		while(State.Result.ResultType == ExecutionResult::EXEC_RESULT_OK && InstructionOffset < CodeBufferSize)
-		{
-			switch(instructionbuffer[InstructionOffset++])
-			{
-			case Bytecode::Instructions::Halt:		// Halt the machine
-				State.Result.ResultType = ExecutionResult::EXEC_RESULT_HALT;
-
-#ifdef PROFILING_ENABLED
-				{
-					UI::OutputStream output;
-					for(std::map<const char*, Profiling::Timer>::const_iterator iter = GlobalTimers.begin(); iter != GlobalTimers.end(); ++iter)
-					{
-						Integer64 accumulatedtime = iter->second.GetAccumulatedMs();
-						output << L"VM profiler: " << iter->first << L" " << accumulatedtime << std::endl;
-					}
-				}
-#endif
-				break;
-
-			case Bytecode::Instructions::NoOp:		// Do nothing for a cycle
-				break;
-
-			case Bytecode::Instructions::Return:	// Return execution control to the parent context
-				State.Result.ResultType = ExecutionResult::EXEC_RESULT_RETURN;
-				break;
-
-			case Bytecode::Instructions::SetRetVal:	// Set return value register
-				{
-					AUTO_PROFILE("SetRetVal");
-
-					size_t variableindex = Fetch<size_t>();
-					Variables->CopyToRegister(variableindex, State.ReturnValueRegister);
-
-					continue;
-				}
-				break;
-
-			case Bytecode::Instructions::CopyFromStructure:
-				{
-					AUTO_PROFILE("CopyFromStructure");
-
-					StringHandle variablename = Fetch<StringHandle>();
-					StringHandle membername = Fetch<StringHandle>();
-					
-					StructureHandle readstruct = Variables->Read<StructureHandle>(variablename);
-
-					ActiveStructure& structure = OwnerVM.FindStructureMetadata(readstruct);
-
-					size_t memberindex = structure.Definition.FindMember(membername);
-					EpochTypeID membertype = structure.Definition.GetMemberType(memberindex);
-
-					if(GetTypeFamily(membertype) == EpochTypeFamily_SumType)
-					{
-						membertype = structure.ReadSumTypeMemberType(memberindex);
-						State.ReturnValueRegister.SumType = true;
-					}
-					else
-					{
-						State.ReturnValueRegister.SumType = false;
-					}
-
-					switch(membertype)
-					{
-					case EpochType_Integer:
-						State.ReturnValueRegister.Set(structure.ReadMember<Integer32>(memberindex));
-						break;
-
-					case EpochType_Integer16:
-						State.ReturnValueRegister.Set(structure.ReadMember<Integer16>(memberindex));
-						break;
-
-					case EpochType_Boolean:
-						State.ReturnValueRegister.Set(structure.ReadMember<bool>(memberindex));
-						break;
-
-					case EpochType_Buffer:
-						State.ReturnValueRegister.SetBuffer(structure.ReadMember<Integer32>(memberindex));
-						break;
-
-					case EpochType_Real:
-						State.ReturnValueRegister.Set(structure.ReadMember<Real32>(memberindex));
-						break;
-
-					case EpochType_String:
-						State.ReturnValueRegister.SetString(structure.ReadMember<StringHandle>(memberindex));
-						break;
-
-					case EpochType_Function:
-						State.ReturnValueRegister.SetFunction(structure.ReadMember<StringHandle>(memberindex));
-						break;
-
-					case EpochType_Nothing:
-						State.ReturnValueRegister.Type = EpochType_Nothing;
-						break;
-
-					default:
-						if(GetTypeFamily(membertype) == EpochTypeFamily_Structure || GetTypeFamily(membertype) == EpochTypeFamily_TemplateInstance)
-							State.ReturnValueRegister.SetStructure(structure.ReadMember<StructureHandle>(memberindex), membertype);
-						else
-							throw FatalException("Unhandled structure member type");
-
-						break;
-					}
-
-					continue;
-				}
-				break;
-
-			case Bytecode::Instructions::CopyToStructure:
-				{
-					AUTO_PROFILE("CopyToStructure");
-
-					StringHandle variablename = Fetch<StringHandle>();
-					StringHandle actualmember = Fetch<StringHandle>();
-					
-					StructureHandle readstruct = Variables->Read<StructureHandle>(variablename);
-
-					ActiveStructure& structure = OwnerVM.FindStructureMetadata(readstruct);
-
-					size_t memberindex = structure.Definition.FindMember(actualmember);
-					EpochTypeID membertype = structure.Definition.GetMemberType(memberindex);
-					WriteStructureMember(structure, memberindex, membertype);
-
-					continue;
-				}
-				break;
-
-			case Bytecode::Instructions::Push:		// Push something onto the stack
-				{
-					AUTO_PROFILE("Push");
-
-					EpochTypeID pushedtype = Fetch<EpochTypeID>();
-					switch(pushedtype)
-					{
-					case EpochType_Integer:
-						{
-							Integer32 value = Fetch<Integer32>();
-							State.Stack.PushValue(value);
-						}
-						break;
-
-					case EpochType_Integer16:
-						{
-							Integer16 value = Fetch<Integer16>();
-							State.Stack.PushValue(value);
-						}
-						break;
-
-					case EpochType_String:
-						{
-							StringHandle handle = Fetch<StringHandle>();
-							State.Stack.PushValue(handle);
-						}
-						break;
-
-					case EpochType_Boolean:
-						{
-							bool value = Fetch<bool>();
-							State.Stack.PushValue(value);
-						}
-						break;
-
-					case EpochType_Real:
-						{
-							Real32 value = Fetch<Real32>();
-							State.Stack.PushValue(value);
-						}
-						break;
-
-					case EpochType_Buffer:
-						{
-							BufferHandle handle = Fetch<BufferHandle>();
-							State.Stack.PushValue(handle);
-						}
-						break;
-
-					default:
-						throw NotImplementedException("Cannot execute PUSH instruction: unsupported type");
-					}
-
-					continue;
-				}
-				break;
-
-			case Bytecode::Instructions::BindRef:
-				{
-					AUTO_PROFILE("BindRef");
-
-					size_t frames = Fetch<size_t>();
-					size_t targetindex = Fetch<size_t>();
-
-					ActiveScope* vars = Variables;
-					if(frames == 0xffffffff)
-					{
-						while(vars->ParentScope)
-							vars = vars->ParentScope;
-					}
-					/*else
-					{
-						while(frames > 0)
-						{
-							vars = vars->ParentScope;
-							--frames;
-						}
-					}*/
-
-					if(vars->GetOriginalDescription().IsReference(targetindex))
-					{
-						State.Stack.PushValue(vars->GetReferenceType(targetindex));
-						State.Stack.PushValue(vars->GetReferenceTarget(targetindex));
-					}
-					else
-					{
-						State.Stack.PushValue(vars->GetActualType(targetindex));
-						State.Stack.PushValue(vars->GetVariableStorageLocationByIndex(targetindex));
-					}
-
-					continue;
-				}
-				break;
-
-			case Bytecode::Instructions::BindMemberRef:
-				{
-					AUTO_PROFILE("BindMemberRef");
-
-					void* storagelocation = State.Stack.PopValue<void*>();
-					State.Stack.PopValue<EpochTypeID>();
-
-					StructureHandle* phandle = reinterpret_cast<StructureHandle*>(storagelocation);
-					StructureHandle handle = *phandle;
-
-					EpochTypeID membertype = Fetch<EpochTypeID>();
-					size_t offset = Fetch<size_t>();
-
-					if(GetTypeFamily(membertype) == EpochTypeFamily_SumType)
-					{
-						void* typeptr = reinterpret_cast<char*>(handle) + offset;
-						membertype = *reinterpret_cast<EpochTypeID*>(typeptr);
-						offset += sizeof(EpochTypeID);
-					}
-
-					void* memberstoragelocation = reinterpret_cast<char*>(handle) + offset;
-
-					State.Stack.PushValue(membertype);
-					State.Stack.PushValue(memberstoragelocation);
-					continue;
-				}
-				break;
-
-			case Bytecode::Instructions::BindMemberByHandle:
-				{
-					AUTO_PROFILE("BindMemberByHandle");
-
-					StringHandle member = Fetch<StringHandle>();
-					StructureHandle handle = State.Stack.PopValue<StructureHandle>();
-
-					ActiveStructure& structure = OwnerVM.FindStructureMetadata(handle);
-					const StructureDefinition& definition = structure.Definition;
-					size_t memberindex = definition.FindMember(member);
-					size_t offset = definition.GetMemberOffset(memberindex);
-
-					EpochTypeID membertype = definition.GetMemberType(memberindex);
-					if(GetTypeFamily(membertype) == EpochTypeFamily_SumType)
-					{
-						void* typeptr = &(structure.Storage[0]) + offset;
-						membertype = *reinterpret_cast<EpochTypeID*>(typeptr);
-						offset += sizeof(EpochTypeID);
-					}
-
-					void* memberstoragelocation = &(structure.Storage[0]) + offset;
-
-					State.Stack.PushValue(membertype);
-					State.Stack.PushValue(memberstoragelocation);
-
-					continue;
-				}
-				break;
-
-			case Bytecode::Instructions::Pop:		// Pop some stuff off the stack
-				{
-					AUTO_PROFILE("Pop");
-
-					State.Stack.Pop(Fetch<size_t>());
-					continue;
-				}
-				break;
-
-			case Bytecode::Instructions::Read:		// Read a variable's value and place it on the stack
-				{
-					AUTO_PROFILE("Read");
-
-					StringHandle variablename = Fetch<StringHandle>();
-					Variables->PushOntoStack(variablename, State.Stack);
-					continue;
-				}
-				break;
-
-			case Bytecode::Instructions::ReadStack:
-				{
-					AUTO_PROFILE("ReadStack");
-
-					ActiveScope* vars = Variables;
-					size_t frames = Fetch<size_t>();
-
-					if(frames == 0xffffffff)
-					{
-						while(vars->ParentScope)
-							vars = vars->ParentScope;
-					}
-					/*else
-					{
-						while(frames > 0)
-						{
-							vars = vars->ParentScope;
-							--frames;
-						}
-					}*/
-					
-					char* stackptr = reinterpret_cast<char*>(vars->GetStartOfLocals());
-					stackptr -= Fetch<size_t>();
-					size_t size = Fetch<size_t>();
-					State.Stack.Push(size);
-					memmove(State.Stack.GetCurrentTopOfStack(), stackptr - size, size);
-
-					continue;
-				}
-				break;
-
-			case Bytecode::Instructions::ReadParam:
-				{
-					AUTO_PROFILE("ReadParam");
-
-					ActiveScope* vars = Variables;
-					size_t frames = Fetch<size_t>();
-
-					if(frames == 0xffffffff)
-					{
-						while(vars->ParentScope)
-							vars = vars->ParentScope;
-					}
-					/*else
-					{
-						while(frames > 0)
-						{
-							vars = vars->ParentScope;
-							--frames;
-						}
-					}*/
-
-					char* stackptr = reinterpret_cast<char*>(vars->GetStartOfParams());
-					stackptr += Fetch<size_t>();
-					size_t size = Fetch<size_t>();
-					State.Stack.Push(size);
-					memmove(State.Stack.GetCurrentTopOfStack(), stackptr, size);
-					continue;
-				}
-				break;
-
-			case Bytecode::Instructions::ReadRef:	// Read a reference's target value and place it on the stack
-				{
-					AUTO_PROFILE("ReadRef");
-
-					void* targetstorage = State.Stack.PopValue<void*>();
-					EpochTypeID targettype = State.Stack.PopValue<EpochTypeID>();
-					Variables->PushOntoStack(targetstorage, targettype, State.Stack);
-					continue;
-				}
-				break;
-
-			case Bytecode::Instructions::ReadRefAnnotated:
-				{
-					AUTO_PROFILE("ReadRefAnnotated");
-
-					void* targetstorage = State.Stack.PopValue<void*>();
-					EpochTypeID targettype = State.Stack.PopValue<EpochTypeID>();
-					Variables->PushOntoStack(targetstorage, targettype, State.Stack);
-					State.Stack.PushValue(targettype);
-					continue;
-				}
-				break;
-
-			case Bytecode::Instructions::Assign:	// Write a value to a variable's position on the stack
-				{
-					AUTO_PROFILE("Assign");
-
-					void* targetstorage = State.Stack.PopValue<void*>();
-					EpochTypeID targettype = State.Stack.PopValue<EpochTypeID>();
-					Variables->WriteFromStack(targetstorage, targettype, State.Stack);
-					continue;
-				}
-				break;
-
-			case Bytecode::Instructions::AssignThroughIdentifier:
-				{
-					AUTO_PROFILE("AssignThroughIdentifier");
-
-					EpochTypeID targettype = State.Stack.PopValue<EpochTypeID>();
-					StringHandle identifier = State.Stack.PopValue<StringHandle>();
-					Variables->WriteFromStack(Variables->GetVariableStorageLocation(identifier), targettype, State.Stack);
-					continue;
-				}
-				break;
-
-			case Bytecode::Instructions::AssignSumType:
-				{
-					AUTO_PROFILE("AssignSumType");
-
-					void* targetstorage = State.Stack.PopValue<void*>();
-					State.Stack.PopValue<EpochTypeID>();
-					EpochTypeID actualtype = State.Stack.PopValue<EpochTypeID>();
-					Variables->WriteFromStack(targetstorage, actualtype, State.Stack);
-					void* typestorage = reinterpret_cast<char*>(targetstorage) - sizeof(EpochTypeID);
-					*reinterpret_cast<EpochTypeID*>(typestorage) = actualtype;
-					continue;
-				}
-				break;
-
-			case Bytecode::Instructions::Invoke:	// Invoke a built-in or user-defined function
-				{
-					AUTO_PROFILE("LibraryFunctions");
-
-					StringHandle functionname = Fetch<StringHandle>();
-					InvokedFunctionStack.push_back(functionname);
-
-					OwnerVM.InvokeFunction(functionname, *this);
-					InvokedFunctionStack.pop_back();
-
-					if(State.Result.ResultType == ExecutionResult::EXEC_RESULT_HALT)
-						throw FatalException("Unexpected VM halt");
-				}
-				break;
-
-			case Bytecode::Instructions::InvokeOffset:
-				{
-					AUTO_PROFILE("InvokeOffset");
-
-					StringHandle functionname = Fetch<StringHandle>();
-					InvokedFunctionStack.push_back(functionname);
-					size_t internaloffset = Fetch<size_t>();
-
-					InstructionOffsetStack.push_back(InstructionOffset);
-
-					InstructionOffset = internaloffset;
-					scope = &OwnerVM.GetScopeDescription(functionname);
-
-					returnonfunctionexitstack.push_back(false);
-				}
-				break;
-
-			case Bytecode::Instructions::InvokeIndirect:
-				{
-					StringHandle varname = Fetch<StringHandle>();
-					StringHandle functionname = Variables->Read<StringHandle>(varname);
-
-					InvokedFunctionStack.push_back(functionname);
-					OwnerVM.InvokeFunction(functionname, *this);
-					InvokedFunctionStack.pop_back();
-				}
-				break;
-
-			case Bytecode::Instructions::InvokeNative:
-				{
-					AUTO_PROFILE("NativeFunctions");
-
-					Fetch<StringHandle>();
-					size_t target = Fetch<size_t>();
-					((EpochToJITWrapperFunc)target)(State.Stack.GetMutableStackPtr(), this);
-				}
-				break;
-
-			case Bytecode::Instructions::BeginEntity:
-				{
-					AUTO_PROFILE("BeginEntity");
-
-					size_t originaloffset = InstructionOffset - 1;
-					Bytecode::EntityTag tag = static_cast<Bytecode::EntityTag>(Fetch<Integer32>());
-					StringHandle name = Fetch<StringHandle>();
-
-					if(tag == Bytecode::EntityTags::Function)
-					{
-						if(scope->GetVariableCount())
-						{
-							Variables = new ActiveScope(*scope, Variables);
-							Variables->BindParametersToStack(*this);
-							Variables->PushLocalsOntoStack(*this);
-							onexit.CleanUpScope(Variables);
-						}
-						else
-							onexit.MarkEmptyScope();
-					}
-					else if(tag == Bytecode::EntityTags::FreeBlock)
-					{
-						/*scope = &OwnerVM.GetScopeDescription(name);
-						if(scope->GetVariableCount())
-						{
-							Variables = new ActiveScope(*scope, Variables);
-							Variables->BindParametersToStack(*this);
-							Variables->PushLocalsOntoStack(*this);
-							onexit.CleanUpScope(Variables);
-						}
-						else
-							onexit.MarkEmptyScope();
-						*/
-					}
-					else if(tag == Bytecode::EntityTags::Globals)
-					{
-						scope = &OwnerVM.GetScopeDescription(name);
-						if(scope->GetVariableCount())
-						{
-							Variables = new ActiveScope(*scope, Variables);
-							Variables->BindParametersToStack(*this);
-							Variables->PushLocalsOntoStack(*this);
-							onexit.CleanUpScope(Variables);
-						}
-						else
-							onexit.MarkEmptyScope();
-					}
-					else if(tag == Bytecode::EntityTags::PatternMatchingResolver || tag == Bytecode::EntityTags::TypeResolver)
-					{
-						// Do nothing
-					}
-					else
-					{
-						EntityReturnCode code = OwnerVM.GetEntityMetaControl(tag)(*this);
-						if(code == ENTITYRET_EXECUTE_CURRENT_LINK_IN_CHAIN)
-						{
-							/*scope = &OwnerVM.GetScopeDescription(name);
-							if(scope->GetVariableCount())
-							{
-								Variables = new ActiveScope(*scope, Variables);
-								Variables->BindParametersToStack(*this);
-								Variables->PushLocalsOntoStack(*this);
-								onexit.CleanUpScope(Variables);
-							}
-							else
-								onexit.MarkEmptyScope();
-							*/
-						}
-						else if(code == ENTITYRET_PASS_TO_NEXT_LINK_IN_CHAIN)
-							InstructionOffset = OwnerVM.GetEntityEndOffset(originaloffset) + 1;
-						else if(code == ENTITYRET_EXIT_CHAIN)
-							InstructionOffset = OwnerVM.GetChainEndOffset(chaininfo.back().Offset);
-						else if(code == ENTITYRET_EXECUTE_AND_REPEAT_ENTIRE_CHAIN)
-						{
-							chaininfo.back().Repeat = true;
-							/*scope = &OwnerVM.GetScopeDescription(name);
-							if(scope->GetVariableCount())
-							{
-								Variables = new ActiveScope(*scope, Variables);
-								Variables->BindParametersToStack(*this);
-								Variables->PushLocalsOntoStack(*this);
-								onexit.CleanUpScope(Variables);
-							}
-							else
-								onexit.MarkEmptyScope();
-							*/
-						}
-						else
-							throw FatalException("Invalid return code from entity meta-control");
-					}
-
-					continue;
-				}
-				break;
-
-			case Bytecode::Instructions::EndEntity:
-				/*onexit.CleanUpTopmostScope();
-				if(Variables)
-					scope = &Variables->GetOriginalDescription();
-				else
-					scope = NULL;
-				*/
-				if(!chaininfo.empty())
-				{
-					if(chaininfo.back().Repeat)
-						InstructionOffset = chaininfo.back().Offset + 1;
-					else
-						InstructionOffset = OwnerVM.GetChainEndOffset(chaininfo.back().Offset);
-				}
-				CollectGarbage();
-				continue;
-				break;
-
-				
-			case Bytecode::Instructions::BeginChain:
-				chaininfo.push_back(ChainInfo(InstructionOffset - 1, false));
-				continue;
-				break;
-
-			case Bytecode::Instructions::EndChain:
-				chaininfo.pop_back();
-				continue;
-				break;
-
-			case Bytecode::Instructions::InvokeMeta:
-				{
-					Bytecode::EntityTag tag = static_cast<Bytecode::EntityTag>(Fetch<Integer32>());
-					EntityReturnCode code = OwnerVM.GetEntityMetaControl(tag)(*this);
-
-					switch(code)
-					{
-					case ENTITYRET_EXIT_CHAIN:
-						InstructionOffset = OwnerVM.GetChainEndOffset(chaininfo.back().Offset);
-						break;
-
-					case ENTITYRET_PASS_TO_NEXT_LINK_IN_CHAIN:
-					case ENTITYRET_EXECUTE_CURRENT_LINK_IN_CHAIN:
-						break;
-					
-					case ENTITYRET_EXECUTE_AND_REPEAT_ENTIRE_CHAIN:
-						chaininfo.back().Repeat = true;
-						break;
-
-					default:
-						throw FatalException("Invalid return code from entity meta-control");
-					}
-				}
-				continue;
-				break;
-
-
-			case Bytecode::Instructions::PoolString:
-				Fetch<StringHandle>();
-				Fetch<std::wstring>();
-				continue;
-				break;
-
-			case Bytecode::Instructions::DefineLexicalScope:
-				{
-					Fetch<StringHandle>();
-					Fetch<StringHandle>();
-					Integer32 numentries = Fetch<Integer32>();
-					for(Integer32 i = 0; i < numentries; ++i)
-					{
-						Fetch<StringHandle>();
-						Fetch<EpochTypeID>();
-						Fetch<VariableOrigin>();
-						Fetch<bool>();
-					}
-				}
-				continue;
-				break;
-
-			case Bytecode::Instructions::DefineStructure:
-				{
-					Fetch<EpochTypeID>();
-					size_t numentries = Fetch<size_t>();
-
-					for(size_t i = 0; i < numentries; ++i)
-					{
-						Fetch<StringHandle>();
-						Fetch<EpochTypeID>();
-					}
-				}
-				continue;
-				break;
-
-			case Bytecode::Instructions::PatternMatch:
-				{
-					char* stackptr = *State.Stack.GetMutableStackPtr();
-					char* destptr = stackptr;
-					bool matchedpattern = true;
-					StringHandle originalfunction = Fetch<StringHandle>();
-					size_t internaloffset = Fetch<size_t>();
-					size_t paramcount = Fetch<size_t>();
-					size_t instroffset = InstructionOffset;
-					for(size_t i = 0; i < paramcount; ++i)
-					{
-						EpochTypeID paramtype = Fetch<EpochTypeID>();
-						bool needsmatch = (Fetch<Byte>() != 0);
-						if(needsmatch)
-						{
-							switch(paramtype)
-							{
-							case EpochType_Integer:
-								{
-									Integer32 valuetomatch = Fetch<Integer32>();
-									Integer32 passedvalue = *reinterpret_cast<const Integer32*>(stackptr);
-									if(valuetomatch != passedvalue)
-										matchedpattern = false;
-								}
-								break;
-
-							default:
-								throw NotImplementedException("Support for pattern matching this function parameter type is not implemented");
-							}
-						}
-						
-						if(!matchedpattern)
-							break;
-
-						stackptr += GetStorageSize(paramtype);
-					}
-
-					if(matchedpattern)
-					{
-						stackptr = destptr;
-						InstructionOffset = instroffset;
-						for(size_t i = 0; i < paramcount; ++i)
-						{
-							EpochTypeID paramtype = Fetch<EpochTypeID>();
-							bool needsmatch = (Fetch<Byte>() != 0);
-							if(needsmatch)
-							{
-								if(destptr != stackptr)
-									memmove(destptr, stackptr, GetStorageSize(paramtype));
-							}
-							else
-								destptr += GetStorageSize(paramtype);
-
-							stackptr += GetStorageSize(paramtype);
-						}
-
-						State.Stack.Pop(stackptr - destptr);
-
-						InstructionOffset = internaloffset;
-						scope = &OwnerVM.GetScopeDescription(originalfunction);
-					}
-				}
-				break;
-
-			case Bytecode::Instructions::AllocStructure:
-				{
-					EpochTypeID structuredescription = Fetch<EpochTypeID>();
-					State.Stack.PushValue(OwnerVM.AllocateStructure(OwnerVM.GetStructureDefinition(structuredescription)));
-					TickStructureGarbageCollector();
-					continue;
-				}
-				break;
-
-			case Bytecode::Instructions::CopyBuffer:
-				{
-					BufferHandle originalbuffer = State.Stack.PopValue<BufferHandle>();
-					BufferHandle copiedbuffer = OwnerVM.CloneBuffer(originalbuffer);
-					State.Stack.PushValue(copiedbuffer);
-					TickBufferGarbageCollector();
-					continue;
-				}
-				break;
-
-			case Bytecode::Instructions::CopyStructure:
-				{
-					AUTO_PROFILE("CopyStructure");
-
-					StructureHandle originalstructure = State.Stack.PopValue<StructureHandle>();
-					StructureHandle copiedstructure = OwnerVM.DeepCopy(originalstructure);
-					State.Stack.PushValue(copiedstructure);
-					TickStructureGarbageCollector();
-					continue;
-				}
-				break;
-
-			case Bytecode::Instructions::Tag:
-				{
-					Fetch<StringHandle>();		// Fetch entity to which tag is attached
-					size_t tagdatacount = Fetch<size_t>();
-					Fetch<std::wstring>();		// Fetch tag itself
-					for(size_t i = 0; i < tagdatacount; ++i)
-						Fetch<std::wstring>();	// Fetch tag data
-
-					continue;
-				}
-				break;
-
-			case Bytecode::Instructions::SumTypeDef:
-				{
-					Fetch<EpochTypeID>();
-					size_t numentries = Fetch<size_t>();
-
-					for(size_t i = 0; i < numentries; ++i)
-						Fetch<EpochTypeID>();
-				}
-				break;
-
-			case Bytecode::Instructions::TypeMatch:
-				{
-					AUTO_PROFILE("TypeMatch");
-
-					StringHandle dispatchfunction = Fetch<StringHandle>();
-					size_t internaloffset = Fetch<size_t>();
-					size_t paramcount = Fetch<size_t>();
-
-					const char* stackptr = reinterpret_cast<const char*>(State.Stack.GetCurrentTopOfStack());
-
-					struct paraminfo
-					{
-						paraminfo()
-							: expectedtype(EpochType_Error),
-							  flags(0)
-						{ }
-
-						EpochTypeID expectedtype;
-						unsigned flags;
-					};
-
-					std::vector<paraminfo> info(paramcount, paraminfo());
-					const unsigned FLAG_PROVIDED_REF = 0x01;
-					const unsigned FLAG_PROVIDED_NOTHING = 0x02;
-					const unsigned FLAG_INLINE_REF = 0x04;
-					const unsigned FLAG_PROVIDED_NOTHING_REF = 0x08;
-					const unsigned FLAG_EXPECTED_REF = 0x10;
-
-					for(size_t i = 0; i < paramcount; ++i)
-					{
-						bool isref = Fetch<bool>();
-						info[i].expectedtype = Fetch<EpochTypeID>();
-						if(isref)
-							info[i].flags |= FLAG_EXPECTED_REF;
-					}
-
-					bool match = true;
-					for(size_t i = 0; i < paramcount; ++i)
-					{
-						EpochTypeID providedtype = Metadata::EpochType_Error;
-						bool providedref = false;
-
-						if((info[i].flags & FLAG_EXPECTED_REF) == 0)
-						{
-							providedtype = *reinterpret_cast<const EpochTypeID*>(stackptr);
-							while(GetTypeFamily(providedtype) == EpochTypeFamily_SumType)
-							{
-								stackptr += sizeof(EpochTypeID);
-								providedtype = *reinterpret_cast<const EpochTypeID*>(stackptr);
-							}
-
-							if(providedtype == EpochType_RefFlag)
-							{
-								providedref = true;
-								stackptr += sizeof(EpochTypeID);
-
-								if(info[i].expectedtype == EpochType_Nothing && *reinterpret_cast<const EpochTypeID*>(stackptr) == EpochType_Nothing)
-								{
-									providedtype = EpochType_Nothing;
-									stackptr += sizeof(EpochTypeID);
-								}
-								else
-								{
-									const void* reftarget = *reinterpret_cast<const void* const*>(stackptr);
-									stackptr += sizeof(void*);
-									EpochTypeID reftype = *reinterpret_cast<const EpochTypeID*>(stackptr);
-									stackptr += sizeof(EpochTypeID);
-									if(reftype == EpochType_Nothing && info[i].expectedtype == EpochType_Nothing)
-									{
-										providedtype = reftype;
-										info[i].flags |= FLAG_PROVIDED_NOTHING_REF;
-									}
-									else if(GetTypeFamily(reftype) == EpochTypeFamily_SumType)
-									{
-										const UByte* reftypeptr = reinterpret_cast<const UByte*>(reftarget) - sizeof(EpochTypeID);
-										reftype = *reinterpret_cast<const EpochTypeID*>(reftypeptr);
-										if(reftype == EpochType_Nothing && info[i].expectedtype == EpochType_Nothing)
-											providedtype = reftype;
-										else
-										{
-											match = false;
-											break;
-										}
-									}
-									else
-									{
-										match = false;
-										break;
-									}
-								}
-							}
-							else if(info[i].expectedtype == EpochType_Nothing)
-								stackptr += sizeof(EpochTypeID);
-							else
-							{
-								stackptr += sizeof(EpochTypeID);
-								stackptr += GetStorageSize(providedtype);
-							}
-						}
-						else
-						{
-							EpochTypeID magic = *reinterpret_cast<const EpochTypeID*>(stackptr);
-							if(magic == EpochType_RefFlag)
-							{
-								providedref = true;
-								stackptr += sizeof(EpochTypeID);
-								const char* reftarget = *reinterpret_cast<const char* const*>(stackptr);
-								stackptr += sizeof(void*);
-								providedtype = *reinterpret_cast<const EpochTypeID*>(stackptr);
-
-								if(providedtype == EpochType_Nothing)
-									info[i].flags |= FLAG_PROVIDED_NOTHING_REF;
-
-								if(stackptr == reftarget)
-								{
-									stackptr += GetStorageSize(providedtype);
-									info[i].flags |= FLAG_INLINE_REF;
-								}
-
-								stackptr += sizeof(EpochTypeID);
-
-								if(GetTypeFamily(providedtype) == EpochTypeFamily_SumType)
-								{
-									reftarget -= sizeof(EpochTypeID);
-									providedtype = *reinterpret_cast<const EpochTypeID*>(reftarget);
-								}
-							}
-							else
-							{
-								match = false;
-								break;
-							}
-						}
-
-						if(providedtype != info[i].expectedtype && GetTypeFamily(info[i].expectedtype) != EpochTypeFamily_SumType)
-						{
-							match = false;
-							break;
-						}
-
-						if(providedref)
-							info[i].flags |= FLAG_PROVIDED_REF;
-						
-						if(providedtype == EpochType_Nothing)
-							info[i].flags |= FLAG_PROVIDED_NOTHING;
-					}
-
-					if(match)
-					{
-						//
-						// Adjust the stack contents to copy out the type identifiers
-						// that were passed in to the type matching function, so that
-						// the dispatch target gets parameters in the expected format
-						// as if it were called directly.
-						//
-						// To accomplish this, we need to start at the final argument
-						// and work our way back up to the top of the stack. Luckily,
-						// we already know the offset of that argument, since we just
-						// got done walking *down* to find it.
-						//
-
-						char* destptr = const_cast<char*>(stackptr);
-
-						for(size_t i = paramcount; i-- > 0; )
-						{
-							EpochTypeID paramtype = info[i].expectedtype;
-							bool isref = info[i].flags & FLAG_PROVIDED_REF;
-
-							if(!isref)
-							{
-								size_t paramsize = GetStorageSize(paramtype);
-	
-								// Adjust upwards to find the offset of the argument's
-								// first byte on the stack. This assumes we start with
-								// stackptr pointing just past the end of the argument
-								// on the stack
-								stackptr -= paramsize;
-
-								// Adjust copy destination upwards accordingly
-								destptr -= paramsize;
-
-								// Copy the value of the argument down the stack
-								memmove(destptr, stackptr, paramsize);
-
-								// Adjust the copy source to reflect the fact that we
-								// need to skip past the type annotation on the stack
-								stackptr -= sizeof(EpochTypeID);
-							}
-							else
-							{
-								const size_t REFERENCE_SIZE = sizeof(void*) + sizeof(EpochTypeID);
-
-								if(info[i].flags & FLAG_INLINE_REF)
-									stackptr -= sizeof(EpochTypeID);
-
-								if(info[i].flags & FLAG_PROVIDED_NOTHING)
-								{
-									stackptr -= sizeof(EpochTypeID);
-
-									if(info[i].flags & FLAG_PROVIDED_NOTHING_REF)
-										stackptr -= sizeof(EpochTypeID);
-								}
-								else
-								{
-									destptr -= REFERENCE_SIZE;
-									stackptr -= REFERENCE_SIZE;
-
-									if(info[i].flags & FLAG_INLINE_REF)
-									{
-										const EpochTypeID* typeptr = reinterpret_cast<const EpochTypeID*>(stackptr + sizeof(void*));
-										EpochTypeID actualtype = *typeptr;
-										size_t storagesize = GetStorageSize(actualtype);
-										*(void**)(stackptr) = (void*)(destptr + storagesize + sizeof(EpochTypeID));
-										memmove(destptr, stackptr, destptr - stackptr + sizeof(EpochTypeID));
-									}
-									else
-										memmove(destptr, stackptr, REFERENCE_SIZE);
-								}
-
-								stackptr -= sizeof(EpochTypeID);
-							}
-						}
-
-						State.Stack.Pop(destptr - stackptr);
-
-						if(OwnerVM.JITExecs.find(dispatchfunction) != OwnerVM.JITExecs.end())
-						{
-							OwnerVM.JITExecs[dispatchfunction](State.Stack.GetMutableStackPtr(), this);
-
-							InstructionOffset = InstructionOffsetStack.back();
-							InstructionOffsetStack.pop_back();
-							if(returnonfunctionexitstack.back())
-								return;
-							InvokedFunctionStack.pop_back();
-							returnonfunctionexitstack.pop_back();
-						}
-						else
-						{
-							InstructionOffset = internaloffset;
-							scope = &OwnerVM.GetScopeDescription(dispatchfunction);
-						}
-					}
-				}
-				break;
-
-			case Bytecode::Instructions::ConstructSumType:
-				{
-					EpochTypeID vartype = State.Stack.PopValue<EpochTypeID>();
-					size_t varsize = GetStorageSize(vartype);
-
-					const UByte* stackptr = reinterpret_cast<const UByte*>(State.Stack.GetCurrentTopOfStack());
-					const UByte* targetidptr = stackptr + varsize;
-
-					StringHandle targetid = *reinterpret_cast<const StringHandle*>(targetidptr);
-
-					UByte* varptr = reinterpret_cast<UByte*>(Variables->GetVariableStorageLocation(targetid));
-					UByte* typeptr = varptr - sizeof(EpochTypeID);
-					memmove(varptr, stackptr, varsize);
-
-					*reinterpret_cast<EpochTypeID*>(typeptr) = vartype;
-
-					State.Stack.Pop(varsize + sizeof(StringHandle));
-
-					Variables->SetActualType(targetid, vartype);
-				}
-				break;
-
-			case Bytecode::Instructions::TempReferenceFromRegister:
-				if(State.ReturnValueRegister.Type != EpochType_Nothing)
-				{
-					void* stackptr = State.Stack.GetCurrentTopOfStack();
-					if(!State.ReturnValueRegister.SumType)
-						State.Stack.PushValue(State.ReturnValueRegister.Type);
-
-					State.Stack.PushValue(stackptr);
-				}
-				break;
-			
-			default:
-				throw FatalException("Invalid bytecode operation during execution");
-			}
-
-			if(State.Result.ResultType == ExecutionResult::EXEC_RESULT_RETURN)
-			{
-				State.Result.ResultType = ExecutionResult::EXEC_RESULT_OK;
-
-				CollectGarbage();
-				onexit.UnwindOutermostFunctionStack();
-				if(Variables)
-					scope = &Variables->GetOriginalDescription();
-				else
-					scope = NULL;
-				InstructionOffset = InstructionOffsetStack.back();
-				InstructionOffsetStack.pop_back();
-				if(returnonfunctionexitstack.back())
-					return;
-				InvokedFunctionStack.pop_back();
-				returnonfunctionexitstack.pop_back();
-			}
-		}
-	}
-	catch(const std::exception& e)
-	{
-		::MessageBoxA(0, e.what(), "Epoch VM Exception", MB_ICONSTOP);
-		State.Result.ResultType = ExecutionResult::EXEC_RESULT_HALT;
-	}
-}
-
 
 //
 // Pre-process the bytecode stream and load certain bits of metadata needed for execution
@@ -1580,29 +343,27 @@ void ExecutionContext::Load()
 	std::stack<size_t> entitybeginoffsets;
 	std::stack<size_t> chainbeginoffsets;
 
-	std::vector<StringHandle> jitworklist;
+	std::set<StringHandle> jitworklist;
 	std::map<StringHandle, size_t> entityoffsetmap;
 
 	std::map<size_t, StringHandle> offsetfixups;
 	std::map<size_t, StringHandle> jitfixups;
-	std::map<size_t, StringHandle> potentialjitfixups;
 
 	StringHandle typematcherid = 0;
-	size_t typematcherjit = 0;
-	size_t typematchernojit = 0;
+	StringHandle patternmatcherid = 0;
 
-	InstructionOffset = 0;
-	while(InstructionOffset < CodeBufferSize)
+	size_t instructionoffset = 0;
+	while(instructionoffset < CodeBufferSize)
 	{
-		Bytecode::Instruction instruction = CodeBuffer[InstructionOffset++];
+		Bytecode::Instruction instruction = CodeBuffer[instructionoffset++];
 		switch(instruction)
 		{
 		// Operations we care about
 		case Bytecode::Instructions::BeginEntity:
 			{
-				size_t originaloffset = InstructionOffset - 1;
-				entitytypes.push(Fetch<Integer32>());
-				StringHandle name = Fetch<StringHandle>();
+				size_t originaloffset = instructionoffset - 1;
+				entitytypes.push(Fetch<Integer32>(instructionoffset));
+				StringHandle name = Fetch<StringHandle>(instructionoffset);
 				if(
 					  entitytypes.top() == Bytecode::EntityTags::Function
 				   || entitytypes.top() == Bytecode::EntityTags::PatternMatchingResolver
@@ -1610,16 +371,18 @@ void ExecutionContext::Load()
 				  )
 				{
 					OwnerVM.AddFunction(name, originaloffset);
+					jitworklist.insert(name);
 				}
 
 				if(entitytypes.top() == Bytecode::EntityTags::TypeResolver)
-				{
 					typematcherid = name;
-					typematchernojit = 0;
-					typematcherjit = 0;
-				}
 				else
 					typematcherid = 0;
+
+				if(entitytypes.top() == Bytecode::EntityTags::PatternMatchingResolver)
+					patternmatcherid = name;
+				else
+					patternmatcherid = 0;
 
 				entitybeginoffsets.push(originaloffset);
 				entityoffsetmap[name] = originaloffset;
@@ -1627,39 +390,42 @@ void ExecutionContext::Load()
 			break;
 
 		case Bytecode::Instructions::EndEntity:
-			if(typematcherid && typematcherjit && !typematchernojit)
-				jitworklist.push_back(typematcherid);
+			if(typematcherid)
+				jitworklist.insert(typematcherid);
+
+			if(patternmatcherid)
+				jitworklist.insert(patternmatcherid);
 
 			entitytypes.pop();
-			OwnerVM.MapEntityBeginEndOffsets(entitybeginoffsets.top(), InstructionOffset - 1);
+			OwnerVM.MapEntityBeginEndOffsets(entitybeginoffsets.top(), instructionoffset - 1);
 			entitybeginoffsets.pop();
 			break;
 
 		case Bytecode::Instructions::BeginChain:
 			{
-				size_t originaloffset = InstructionOffset - 1;
+				size_t originaloffset = instructionoffset - 1;
 				chainbeginoffsets.push(originaloffset);
 			}
 			break;
 
 		case Bytecode::Instructions::EndChain:
-			OwnerVM.MapChainBeginEndOffsets(chainbeginoffsets.top(), InstructionOffset - 1);
+			OwnerVM.MapChainBeginEndOffsets(chainbeginoffsets.top(), instructionoffset - 1);
 			chainbeginoffsets.pop();
 			break;
 
 		case Bytecode::Instructions::PoolString:
 			{
-				StringHandle handle = Fetch<StringHandle>();
-				std::wstring strvalue = Fetch<std::wstring>();
+				StringHandle handle = Fetch<StringHandle>(instructionoffset);
+				std::wstring strvalue = Fetch<std::wstring>(instructionoffset);
 				OwnerVM.PoolString(handle, strvalue);
 			}
 			break;
 
 		case Bytecode::Instructions::DefineLexicalScope:
 			{
-				StringHandle scopename = Fetch<StringHandle>();
-				StringHandle parentscopename = Fetch<StringHandle>();
-				Integer32 numentries = Fetch<Integer32>();
+				StringHandle scopename = Fetch<StringHandle>(instructionoffset);
+				StringHandle parentscopename = Fetch<StringHandle>(instructionoffset);
+				Integer32 numentries = Fetch<Integer32>(instructionoffset);
 
 				OwnerVM.AddLexicalScope(scopename);
 				ScopeDescription& scope = OwnerVM.GetScopeDescription(scopename);
@@ -1668,10 +434,10 @@ void ExecutionContext::Load()
 
 				for(Integer32 i = 0; i < numentries; ++i)
 				{
-					StringHandle entryname = Fetch<StringHandle>();
-					EpochTypeID type = Fetch<EpochTypeID>();
-					VariableOrigin origin = Fetch<VariableOrigin>();
-					bool isreference = Fetch<bool>();
+					StringHandle entryname = Fetch<StringHandle>(instructionoffset);
+					EpochTypeID type = Fetch<EpochTypeID>(instructionoffset);
+					VariableOrigin origin = Fetch<VariableOrigin>(instructionoffset);
+					bool isreference = Fetch<bool>(instructionoffset);
 
 					scope.AddVariable(OwnerVM.GetPooledString(entryname), entryname, 0, type, isreference, origin);
 				}
@@ -1680,13 +446,13 @@ void ExecutionContext::Load()
 
 		case Bytecode::Instructions::DefineStructure:
 			{
-				EpochTypeID structuretypeid = Fetch<EpochTypeID>();
-				size_t numentries = Fetch<size_t>();
+				EpochTypeID structuretypeid = Fetch<EpochTypeID>(instructionoffset);
+				size_t numentries = Fetch<size_t>(instructionoffset);
 
 				for(size_t i = 0; i < numentries; ++i)
 				{
-					StringHandle identifier = Fetch<StringHandle>();
-					EpochTypeID type = Fetch<EpochTypeID>();
+					StringHandle identifier = Fetch<StringHandle>(instructionoffset);
+					EpochTypeID type = Fetch<EpochTypeID>(instructionoffset);
 					const StructureDefinition* structdefinition = NULL;
 					const VariantDefinition* variantdefinition = NULL;
 					if(GetTypeFamily(type) == EpochTypeFamily_Structure || GetTypeFamily(type) == EpochTypeFamily_TemplateInstance)
@@ -1700,12 +466,12 @@ void ExecutionContext::Load()
 
 		case Bytecode::Instructions::SumTypeDef:
 			{
-				EpochTypeID sumtypeid = Fetch<EpochTypeID>();
-				size_t numentries = Fetch<size_t>();
+				EpochTypeID sumtypeid = Fetch<EpochTypeID>(instructionoffset);
+				size_t numentries = Fetch<size_t>(instructionoffset);
 
 				for(size_t i = 0; i < numentries; ++i)
 				{
-					EpochTypeID basetype = Fetch<EpochTypeID>();
+					EpochTypeID basetype = Fetch<EpochTypeID>(instructionoffset);
 					size_t basetypesize = GetStorageSize(basetype);
 					OwnerVM.VariantDefinitions[sumtypeid].AddBaseType(basetype, basetypesize);
 				}
@@ -1714,12 +480,12 @@ void ExecutionContext::Load()
 
 		case Bytecode::Instructions::Tag:
 			{
-				StringHandle entity = Fetch<StringHandle>();
-				size_t tagdatacount = Fetch<size_t>();
+				StringHandle entity = Fetch<StringHandle>(instructionoffset);
+				size_t tagdatacount = Fetch<size_t>(instructionoffset);
 				std::vector<std::wstring> metadata;
-				std::wstring tag = Fetch<std::wstring>();
+				std::wstring tag = Fetch<std::wstring>(instructionoffset);
 				for(size_t i = 0; i < tagdatacount; ++i)
-					metadata.push_back(Fetch<std::wstring>());
+					metadata.push_back(Fetch<std::wstring>(instructionoffset));
 
 				if(tag == L"external")
 				{
@@ -1728,13 +494,15 @@ void ExecutionContext::Load()
 
 					RegisterMarshaledExternalFunction(entity, metadata[0], metadata[1]);
 				}
-				else if(tag == L"native")
+				else if(tag == L"@@autogen@constructor")
 				{
-					jitworklist.push_back(entity);
-					OwnerVM.JITExecs[entity] = 0;		// Flag the entity so subsequent bytecode will be converted to InvokeNative on this func
+					if(tagdatacount != 0)
+						throw FatalException("Unexpected metadata for autogenerated constructor tag");
+
+					OwnerVM.AutoGeneratedConstructors.insert(entity);
 				}
 				else
-					throw FatalException("Unrecognized entity meta-tag in bytecode");
+					throw FatalException("Unrecognized function tag in bytecode");
 			}
 			break;
 
@@ -1756,116 +524,106 @@ void ExecutionContext::Load()
 
 		// Single-bye operations with one payload field
 		case Bytecode::Instructions::Pop:
-			Fetch<size_t>();
+			Fetch<size_t>(instructionoffset);
 			break;
 
 		case Bytecode::Instructions::InvokeMeta:
 		case Bytecode::Instructions::AllocStructure:
-			Fetch<EpochTypeID>();
+			Fetch<EpochTypeID>(instructionoffset);
 			break;
 
 		// Operations with two payload fields
 		case Bytecode::Instructions::CopyFromStructure:
 		case Bytecode::Instructions::CopyToStructure:
-			Fetch<StringHandle>();
-			Fetch<StringHandle>();
+			Fetch<StringHandle>(instructionoffset);
+			Fetch<StringHandle>(instructionoffset);
 			break;
 
 		case Bytecode::Instructions::ReadStack:
 		case Bytecode::Instructions::ReadParam:
-			Fetch<size_t>();
-			Fetch<size_t>();
-			Fetch<size_t>();
+			Fetch<size_t>(instructionoffset);
+			Fetch<size_t>(instructionoffset);
+			Fetch<size_t>(instructionoffset);
 			break;
 
 		// Operations with string payload fields
 		case Bytecode::Instructions::Read:
 		case Bytecode::Instructions::InvokeIndirect:
 		case Bytecode::Instructions::BindMemberByHandle:
-			Fetch<StringHandle>();
+			Fetch<StringHandle>(instructionoffset);
 			break;
 
 		case Bytecode::Instructions::BindMemberRef:
-			Fetch<EpochTypeID>();
-			Fetch<size_t>();
+			Fetch<EpochTypeID>(instructionoffset);
+			Fetch<size_t>(instructionoffset);
 			break;
 
 		case Bytecode::Instructions::InvokeNative:
-			{
-				size_t oldoffset = InstructionOffset;
-				StringHandle handle = Fetch<StringHandle>();
-				jitfixups[oldoffset] = handle;
-			}
+			Fetch<StringHandle>(instructionoffset);
 			break;
 
 		case Bytecode::Instructions::BindRef:
-			Fetch<size_t>();
-			Fetch<size_t>();
+			Fetch<size_t>(instructionoffset);
+			Fetch<size_t>(instructionoffset);
 			break;
 
 		case Bytecode::Instructions::SetRetVal:
-			Fetch<size_t>();
+			Fetch<size_t>(instructionoffset);
 			break;
 
 		// Operations we might want to muck with
 		case Bytecode::Instructions::Invoke:
-			Fetch<StringHandle>();
+			Fetch<StringHandle>(instructionoffset);
 			break;
 
 		case Bytecode::Instructions::InvokeOffset:
 			{
-				size_t originaloffset = InstructionOffset - 1;
-				StringHandle target = Fetch<StringHandle>();
-				size_t offsetofoffset = InstructionOffset;
+				size_t originaloffset = instructionoffset - 1;
+				StringHandle target = Fetch<StringHandle>(instructionoffset);
+				size_t offsetofoffset = instructionoffset;
 
-				Fetch<size_t>();		// Skip dummy offset
+				Fetch<size_t>(instructionoffset);		// Skip dummy offset
 
 				offsetfixups[offsetofoffset] = target;
-				if(OwnerVM.JITExecs.find(target) != OwnerVM.JITExecs.end())
-				{
-					CodeBuffer[originaloffset] = Bytecode::Instructions::InvokeNative;
-					jitfixups[offsetofoffset] = target;
-				}
-				else
-					potentialjitfixups[originaloffset] = target;
+				jitfixups[originaloffset] = target;
 			}
 			break;
 
 		// Operations that take a bit of special processing, but we are still ignoring
 		case Bytecode::Instructions::Push:
 			{
-				EpochTypeID pushedtype = Fetch<EpochTypeID>();
+				EpochTypeID pushedtype = Fetch<EpochTypeID>(instructionoffset);
 				switch(pushedtype)
 				{
-				case EpochType_Integer:			Fetch<Integer32>();			break;
-				case EpochType_Integer16:		Fetch<Integer16>();			break;
-				case EpochType_String:			Fetch<StringHandle>();		break;
-				case EpochType_Boolean:			Fetch<bool>();				break;
-				case EpochType_Real:			Fetch<Real32>();			break;
-				case EpochType_Buffer:			Fetch<BufferHandle>();		break;
-				default:						Fetch<StructureHandle>();	break;
+				case EpochType_Integer:			Fetch<Integer32>(instructionoffset);		break;
+				case EpochType_Integer16:		Fetch<Integer16>(instructionoffset);		break;
+				case EpochType_String:			Fetch<StringHandle>(instructionoffset);		break;
+				case EpochType_Boolean:			Fetch<bool>(instructionoffset);				break;
+				case EpochType_Real:			Fetch<Real32>(instructionoffset);			break;
+				case EpochType_Buffer:			Fetch<BufferHandle>(instructionoffset);		break;
+				default:						Fetch<StructureHandle>(instructionoffset);	break;
 				}
 			}
 			break;
 
 		case Bytecode::Instructions::PatternMatch:
 			{
-				StringHandle funcname = Fetch<StringHandle>();
+				StringHandle funcname = Fetch<StringHandle>(instructionoffset);
 
-				offsetfixups[InstructionOffset] = funcname;
+				offsetfixups[instructionoffset] = funcname;
 
-				Fetch<size_t>();
-				size_t paramcount = Fetch<size_t>();
+				Fetch<size_t>(instructionoffset);
+				size_t paramcount = Fetch<size_t>(instructionoffset);
 				for(size_t i = 0; i < paramcount; ++i)
 				{
-					EpochTypeID paramtype = Fetch<EpochTypeID>();
-					bool needsmatch = (Fetch<Byte>() != 0);
+					EpochTypeID paramtype = Fetch<EpochTypeID>(instructionoffset);
+					bool needsmatch = (Fetch<Byte>(instructionoffset) != 0);
 					if(needsmatch)
 					{
 						switch(paramtype)
 						{
 						case EpochType_Integer:
-							Fetch<Integer32>();
+							Fetch<Integer32>(instructionoffset);
 							break;
 
 						default:
@@ -1873,26 +631,29 @@ void ExecutionContext::Load()
 						}
 					}
 				}
+
+				OwnerVM.PatternMatcherParamCount[patternmatcherid] = paramcount;
+				OwnerVM.PatternMatcherRetType[patternmatcherid] = OwnerVM.GetScopeDescription(funcname).GetReturnVariableType();
+
+				if(!OwnerVM.PatternMatcherDispatchHint[patternmatcherid])
+					OwnerVM.PatternMatcherDispatchHint[patternmatcherid] = funcname;
 			}
 			break;
 
 		case Bytecode::Instructions::TypeMatch:
 			{
-				StringHandle funcname = Fetch<StringHandle>();
-				offsetfixups[InstructionOffset] = funcname;
-				Fetch<size_t>();
-				size_t paramcount = Fetch<size_t>();
+				StringHandle funcname = Fetch<StringHandle>(instructionoffset);
+				offsetfixups[instructionoffset] = funcname;
+				Fetch<size_t>(instructionoffset);
+				size_t paramcount = Fetch<size_t>(instructionoffset);
 				for(size_t i = 0; i < paramcount; ++i)
 				{
-					Fetch<bool>();
-					Fetch<EpochTypeID>();
+					Fetch<bool>(instructionoffset);
+					Fetch<EpochTypeID>(instructionoffset);
 				}
 
-				if(OwnerVM.JITExecs.find(funcname) == OwnerVM.JITExecs.end())
-					++typematchernojit;
-				else
+				if(OwnerVM.TypeMatcherRetType.find(typematcherid) == OwnerVM.TypeMatcherRetType.end())
 				{
-					++typematcherjit;
 					OwnerVM.TypeMatcherParamCount[typematcherid] = paramcount;
 					OwnerVM.TypeMatcherRetType[typematcherid] = OwnerVM.GetScopeDescription(funcname).GetReturnVariableType();
 				}
@@ -1911,6 +672,18 @@ void ExecutionContext::Load()
 		*reinterpret_cast<size_t*>(&CodeBuffer[iter->first]) = funcoffset;
 	}
 
+	// Fixup non-typematch function invokes to native invokes
+	for(std::map<size_t, StringHandle>::const_iterator iter = jitfixups.begin(); iter != jitfixups.end(); ++iter)
+	{
+		if(
+			OwnerVM.TypeMatcherParamCount.find(iter->second) == OwnerVM.TypeMatcherParamCount.end()
+	     && OwnerVM.PatternMatcherParamCount.find(iter->second) == OwnerVM.PatternMatcherParamCount.end()
+		  )
+		{
+			CodeBuffer[iter->first] = Bytecode::Instructions::InvokeNative;
+		}
+	}
+
 	// Pre-mark all statically referenced string handles
 	// This helps speed up garbage collection a bit
 	for(boost::unordered_map<StringHandle, std::wstring>::const_iterator iter = OwnerVM.PrivateGetRawStringPool().GetInternalPool().begin(); iter != OwnerVM.PrivateGetRawStringPool().GetInternalPool().end(); ++iter)
@@ -1920,7 +693,7 @@ void ExecutionContext::Load()
 	{
 		JIT::NativeCodeGenerator jitgen(OwnerVM, CodeBuffer);
 
-		for(std::vector<StringHandle>::const_iterator iter = jitworklist.begin(); iter != jitworklist.end(); ++iter)
+		for(std::set<StringHandle>::const_iterator iter = jitworklist.begin(); iter != jitworklist.end(); ++iter)
 		{
 			size_t beginoffset = entityoffsetmap[*iter];
 			size_t endoffset = OwnerVM.GetEntityEndOffset(beginoffset);
@@ -1930,25 +703,6 @@ void ExecutionContext::Load()
 
 		if(!jitworklist.empty())
 			jitgen.Generate();
-	}
-
-	// More fixups
-	for(std::map<size_t, StringHandle>::const_iterator iter = jitfixups.begin(); iter != jitfixups.end(); ++iter)
-	{
-		void* target = OwnerVM.JITExecs.find(iter->second)->second;
-		*reinterpret_cast<void**>(&CodeBuffer[iter->first]) = target;
-	}
-
-	for(std::map<size_t, StringHandle>::const_iterator iter = potentialjitfixups.begin(); iter != potentialjitfixups.end(); ++iter)
-	{
-		if(OwnerVM.JITExecs.find(iter->second) != OwnerVM.JITExecs.end())
-		{
-			size_t offset = iter->first;
-			CodeBuffer[offset] = Bytecode::Instructions::InvokeNative;
-			offset += sizeof(Bytecode::Instruction);
-			offset += sizeof(StringHandle);
-			*reinterpret_cast<void**>(&CodeBuffer[offset]) = OwnerVM.JITExecs.find(iter->second)->second;
-		}
 	}
 }
 
@@ -2000,18 +754,6 @@ size_t VirtualMachine::GetChainEndOffset(size_t beginoffset) const
 		throw FatalException("Failed to cache end offset of an entity chain, or an invalid entity chain begin offset was requested");
 
 	return iter->second;
-}
-
-//
-// Retrieve the meta control handler for an entity tag type
-//
-EntityMetaControl VirtualMachine::GetEntityMetaControl(Bytecode::EntityTag tag) const
-{
-	EntityTable::const_iterator iter = Entities.find(tag);
-	if(iter != Entities.end())
-		return iter->second.MetaControl;
-
-	throw FatalException("Invalid entity type tag - no meta control could be looked up");
 }
 
 
@@ -2192,51 +934,9 @@ namespace
 template <typename HandleType, typename ValidatorT>
 void ExecutionContext::MarkAndSweep(ValidatorT validator, boost::unordered_set<HandleType>& livehandles)
 {
-	// TODO - BUG BUG BUG - we need to handle values on the stack which are NOT bound into local variables, e.g. temporary expressions
-
-	// Traverse the active stack, starting in the current frame and unwinding upwards to the
-	// root code invocation, marking each local variable as holding the applicable reference
-	ActiveScope* scope = Variables;
-	while(scope)
-	{
-		const ScopeDescription& description = scope->GetOriginalDescription();
-		size_t numvars = description.GetVariableCount();
-		for(size_t i = 0; i < numvars; ++i)
-		{
-			EpochTypeID vartype = description.GetVariableTypeByIndex(i);
-			if(validator(vartype))
-			{
-				HandleType marked = scope->Read<HandleType>(description.GetVariableNameHandle(i));
-				livehandles.insert(marked);
-			}
-		}
-
-		scope = scope->ParentScope;
-	}
-
-	// Traverse the free-store of structures, marking each applicable structure field as holding a
-	// reference to the pointed-to string handle.
-	for(boost::unordered_map<StructureHandle, ActiveStructure*>::const_iterator iter = OwnerVM.PrivateGetStructurePool().begin(); iter != OwnerVM.PrivateGetStructurePool().end(); ++iter)
-	{
-		const StructureDefinition& definition = iter->second->Definition;
-		for(size_t i = 0; i < definition.GetNumMembers(); ++i)
-		{
-			if(validator(definition.GetMemberType(i)))
-			{
-				HandleType marked = iter->second->ReadMember<HandleType>(i);
-				livehandles.insert(marked);
-			}
-			else if(GetTypeFamily(definition.GetMemberType(i)) == EpochTypeFamily_SumType)
-			{
-				EpochTypeID realtype = iter->second->ReadSumTypeMemberType(i);
-				if(validator(realtype))
-				{
-					HandleType marked = iter->second->ReadMember<HandleType>(i);
-					livehandles.insert(marked);
-				}
-			}
-		}
-	}
+	// TODO - reimplement garbage collector for JITter
+	((void)(validator));
+	((void)(livehandles));
 }
 
 //
@@ -2248,10 +948,6 @@ void ExecutionContext::CollectGarbage_Buffers()
 
 	// Traverse active scopes/structures for variables holding buffer references
 	MarkAndSweep<BufferHandle>(ValidatorBuffers, livehandles);
-
-	// Check the return value register to be safe
-	if(ValidatorBuffers(State.ReturnValueRegister.Type))
-		livehandles.insert(State.ReturnValueRegister.Value_BufferHandle);
 
 	// Now garbage collect all buffers which are not live
 	OwnerVM.GarbageCollectBuffers(livehandles);
@@ -2269,10 +965,6 @@ void ExecutionContext::CollectGarbage_Strings()
 	// Traverse active scopes/structures for variables holding string references
 	MarkAndSweep<StringHandle>(ValidatorStrings, livehandles);
 
-	// Check the return value register to be safe
-	if(ValidatorStrings(State.ReturnValueRegister.Type))
-		livehandles.insert(State.ReturnValueRegister.Value_StringHandle);
-
 	// Now that the list of live handles is known, we can collect all unused string memory.
 	OwnerVM.PrivateGetRawStringPool().GarbageCollect(livehandles);
 }
@@ -2286,10 +978,6 @@ void ExecutionContext::CollectGarbage_Structures()
 
 	// Traverse active scopes/structures for variables holding structure references
 	MarkAndSweep<StructureHandle>(ValidatorStructures, livehandles);
-
-	// Check the return value register to be safe
-	if(ValidatorStructures(State.ReturnValueRegister.Type))
-		livehandles.insert(State.ReturnValueRegister.Value_StructureHandle);
 
 	// Now garbage collect all structures which are not live
 	OwnerVM.GarbageCollectStructures(livehandles);
@@ -2339,53 +1027,3 @@ std::wstring VirtualMachine::DebugSnapshot() const
 	return report.str();
 }
 
-void ExecutionContext::WriteStructureMember(ActiveStructure& structure, size_t memberindex, EpochTypeID membertype)
-{
-	switch(membertype)
-	{
-	case EpochType_Integer:
-		structure.WriteMember(memberindex, State.Stack.PopValue<Integer32>());
-		break;
-
-	case EpochType_Integer16:
-		structure.WriteMember(memberindex, State.Stack.PopValue<Integer16>());
-		break;
-
-	case EpochType_Boolean:
-		structure.WriteMember(memberindex, State.Stack.PopValue<bool>());
-		break;
-
-	case EpochType_Buffer:
-		structure.WriteMember(memberindex, State.Stack.PopValue<BufferHandle>());
-		break;
-
-	case EpochType_Real:
-		structure.WriteMember(memberindex, State.Stack.PopValue<Real32>());
-		break;
-
-	case EpochType_String:
-		structure.WriteMember(memberindex, State.Stack.PopValue<StringHandle>());
-		break;
-
-	case EpochType_Function:
-		structure.WriteMember(memberindex, State.Stack.PopValue<StringHandle>());
-		break;
-
-	case EpochType_Nothing:
-		break;
-
-	default:
-		if(GetTypeFamily(membertype) == EpochTypeFamily_SumType)
-		{
-			EpochTypeID actualtype = State.Stack.PopValue<EpochTypeID>();
-			structure.WriteSumTypeMemberType(memberindex, actualtype);
-			WriteStructureMember(structure, memberindex, actualtype);
-		}
-		else if(GetTypeFamily(membertype) == EpochTypeFamily_Structure || GetTypeFamily(membertype) == EpochTypeFamily_TemplateInstance)
-			structure.WriteMember(memberindex, State.Stack.PopValue<StructureHandle>());
-		else
-			throw FatalException("Unhandled structure member type");
-
-		break;
-	}
-}
