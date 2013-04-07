@@ -57,6 +57,8 @@ public:
 
 	void SetReturnRegister(size_t variableindex);
 
+	void EmitFunctionSignature(Metadata::EpochTypeID type, const FunctionSignature& signature);
+
 // Stack operations
 public:
 	void PushIntegerLiteral(Integer32 value);
@@ -69,6 +71,7 @@ public:
 	void PushLocalVariableValue(bool isparam, size_t frames, size_t offset, size_t size);
 	void PushBufferHandle(BufferHandle handle);
 	void PushTypeAnnotation(Metadata::EpochTypeID type);
+	void PushFunctionNameLiteral(StringHandle funcname);
 
 	void BindReference(size_t frameskip, size_t variableindex);
 	void BindReferenceIndirect();

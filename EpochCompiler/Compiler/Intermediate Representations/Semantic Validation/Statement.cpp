@@ -283,7 +283,7 @@ bool Statement::TypeInference(Namespace& curnamespace, CodeBlock& activescope, I
 							break;
 						}
 					}
-					else if(expectedparamtype == Metadata::EpochType_Function)
+					else if(Metadata::GetTypeFamily(expectedparamtype) == Metadata::EpochTypeFamily_Function)
 					{
 						if(Parameters[j]->GetAtoms().size() == 1)
 						{

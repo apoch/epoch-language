@@ -97,6 +97,7 @@ namespace JIT
 
 			std::map<std::string, Function*> GeneratedFunctions;
 			std::map<std::string, Function*> GeneratedNativeTypeMatchers;
+			std::map<StringHandle, Function*> GeneratedNameToFunctionMap;
 
 			std::map<Metadata::EpochTypeID, StructType*> SumTypeCache;
 
@@ -174,6 +175,7 @@ namespace JIT
 			void Invoke(size_t& offset);
 			void InvokeOffset(size_t& offset);
 			void InvokeNative(size_t& offset);
+			void InvokeIndirect(size_t& offset);
 
 			void TypeMatch(size_t& offset);
 
@@ -413,7 +415,6 @@ Type* NativeCodeGenerator::GetLLVMType(Metadata::EpochTypeID type, bool flatten)
 
 	case Metadata::EpochType_Integer:
 	case Metadata::EpochType_String:
-	case Metadata::EpochType_Function:
 	case Metadata::EpochType_Buffer:
 		return Type::getInt32Ty(Data->Context);
 
@@ -431,6 +432,9 @@ Type* NativeCodeGenerator::GetLLVMType(Metadata::EpochTypeID type, bool flatten)
 		return Data->VMStructureHandleType;
 
 	default:
+		if(family == Metadata::EpochTypeFamily_Function)
+			return GetLLVMFunctionTypeFromEpochType(type)->getPointerTo();
+
 		if(family == Metadata::EpochTypeFamily_SumType)
 			return GetLLVMSumType(type, flatten);
 
@@ -509,17 +513,18 @@ FunctionType* NativeCodeGenerator::GetLLVMFunctionType(StringHandle epochfunc)
 			if(vartype == Metadata::EpochType_Nothing)
 			{
 				args.push_back(Data->VMNothingType);
-				continue;
 			}
-
-			Type* type = GetLLVMType(vartype);
-			if(scope.IsReference(i))
-				args.push_back(type->getPointerTo());
 			else
-				args.push_back(type);
+			{
+				Type* type = GetLLVMType(vartype);
+				if(scope.IsReference(i))
+					args.push_back(type->getPointerTo());
+				else
+					args.push_back(type);
 
-			if(Metadata::GetTypeFamily(vartype) == Metadata::EpochTypeFamily_SumType)
-				hassumtypeparam = true;
+				if(Metadata::GetTypeFamily(vartype) == Metadata::EpochTypeFamily_SumType)
+					hassumtypeparam = true;
+			}
 		}
 		else if(scope.GetVariableOrigin(i) == VARIABLE_ORIGIN_RETURN)
 			rettype = GetLLVMType(scope.GetVariableTypeByIndex(i));
@@ -540,12 +545,17 @@ llvm::FunctionType* NativeCodeGenerator::GetLLVMFunctionTypeFromSignature(String
 	if(iter == OwnerVM.LibraryFunctionSignatures.end())
 		throw FatalException("Invalid library function");
 
-	Type* rettype = GetLLVMType(iter->second.GetReturnType());
+	return GetLLVMFunctionTypeFromSignature(iter->second);
+}
+
+llvm::FunctionType* NativeCodeGenerator::GetLLVMFunctionTypeFromSignature(const FunctionSignature& sig)
+{
+	Type* rettype = GetLLVMType(sig.GetReturnType());
 
 	std::vector<Type*> args;
-	for(size_t i = 0; i < iter->second.GetNumParameters(); ++i)
+	for(size_t i = 0; i < sig.GetNumParameters(); ++i)
 	{
-		const CompileTimeParameter& param = iter->second.GetParameter(i);
+		const CompileTimeParameter& param = sig.GetParameter(i);
 		if(param.HasPayload)
 			continue;
 
@@ -559,6 +569,10 @@ llvm::FunctionType* NativeCodeGenerator::GetLLVMFunctionTypeFromSignature(String
 	return FunctionType::get(rettype, args, false);
 }
 
+llvm::FunctionType* NativeCodeGenerator::GetLLVMFunctionTypeFromEpochType(Metadata::EpochTypeID type)
+{
+	return GetLLVMFunctionTypeFromSignature(OwnerVM.GetFunctionSignatureByType(type));
+}
 
 //
 // Add a standard Epoch function implementation to the JIT module
@@ -752,6 +766,7 @@ FunctionJITHelper::FunctionJITHelper(NativeCodeGenerator& generator)
 	InstructionJITHelpers[Bytecode::Instructions::Invoke] = &FunctionJITHelper::Invoke;
 	InstructionJITHelpers[Bytecode::Instructions::InvokeOffset] = &FunctionJITHelper::InvokeOffset;
 	InstructionJITHelpers[Bytecode::Instructions::InvokeNative] = &FunctionJITHelper::InvokeNative;
+	InstructionJITHelpers[Bytecode::Instructions::InvokeIndirect] = &FunctionJITHelper::InvokeIndirect;
 
 	InstructionJITHelpers[Bytecode::Instructions::TypeMatch] = &FunctionJITHelper::TypeMatch;
 }
@@ -830,6 +845,8 @@ void FunctionJITHelper::DoFunction(size_t beginoffset, size_t endoffset, StringH
 		// TODO - this is kind of hacky
 		if(Generator.OwnerVM.GetPooledString(alias) == L"entrypoint")
 			Generator.Data->EntryPoint = LibJITContext.InnerFunction;
+
+		Generator.Data->GeneratedNameToFunctionMap[alias] = LibJITContext.InnerFunction;
 	}
 
 	if(NativeMatchBlock)
@@ -1562,6 +1579,30 @@ void FunctionJITHelper::Push(size_t& offset)
 		}
 		break;
 
+	case Metadata::EpochTypeFamily_Function:		// We only emit generic family, not the actual signature type. This is kind of hacky.
+		{
+			StringHandle funcname = Fetch<StringHandle>(Bytecode, offset);
+			size_t offset = Generator.OwnerVM.GetFunctionInstructionOffsetNoThrow(funcname);
+			
+			if(offset)
+				valueval = Generator.GetGeneratedFunction(funcname, offset);
+			else
+			{
+				std::map<StringHandle, const char*>::const_iterator libiter = Generator.OwnerVM.JITHelpers.LibraryExports.find(funcname);
+				if(libiter == Generator.OwnerVM.JITHelpers.LibraryExports.end())
+					throw NotImplementedException("Invalid higher order function target");
+
+				llvm::FunctionType* ftype = Generator.GetLLVMFunctionTypeFromSignature(funcname);
+				llvm::Function* func = Generator.LibraryFunctionCache[libiter->second];
+
+				if(!func)
+					func = Generator.LibraryFunctionCache[libiter->second] = Function::Create(ftype, Function::ExternalLinkage, libiter->second, Generator.Data->CurrentModule);
+
+				valueval = func;
+			}
+		}
+		break;
+
 	case Metadata::EpochType_Buffer:
 	default:
 		throw FatalException("Unsupported type for JIT compilation");
@@ -1789,7 +1830,6 @@ void FunctionJITHelper::InvokeNative(size_t& offset)
 		{
 			Value* p = LibJITContext.ValuesOnStack.top();
 			LibJITContext.ValuesOnStack.pop();
-
 			targetargs.push_back(p);
 		}
 		std::reverse(targetargs.begin(), targetargs.end());
@@ -1798,6 +1838,29 @@ void FunctionJITHelper::InvokeNative(size_t& offset)
 		if(v->getType() != Type::getVoidTy(Context))
 			LibJITContext.ValuesOnStack.push(v);
 	}
+}
+
+//
+// Generate LLVM bitcode for indirect function invocation (i.e. function pointer)
+//
+void FunctionJITHelper::InvokeIndirect(size_t& offset)
+{
+	StringHandle funcnameholder = Fetch<StringHandle>(Bytecode, offset);
+	Value* func = Builder.CreateLoad(LibJITContext.VariableMap[LibJITContext.NameToIndexMap[funcnameholder]]);
+
+	FunctionType* ftype = dyn_cast<FunctionType>(func->getType()->getContainedType(0));
+
+	std::vector<Value*> args;
+	for(size_t i = 0; i < ftype->getNumParams(); ++i)
+	{
+		args.push_back(LibJITContext.ValuesOnStack.top());
+		LibJITContext.ValuesOnStack.pop();
+	}
+
+	if(ftype->getReturnType() != Type::getVoidTy(Context))
+		LibJITContext.ValuesOnStack.push(Builder.CreateCall(func, args));
+	else
+		Builder.CreateCall(func, args);
 }
 
 //

@@ -261,10 +261,12 @@ namespace
 				buffer += sizeof(const wchar_t*);
 				break;
 
+			/*
 			case EpochType_Function:
 				*reinterpret_cast<void**>(buffer) = MarshalControl.RequestMarshaledCallback(context, *reinterpret_cast<StringHandle*>(reinterpret_cast<char*>(structure) + definition.GetMemberOffset(j)));
 				buffer += sizeof(void*);
 				break;
+				*/
 
 			case EpochType_Buffer:
 				*reinterpret_cast<void**>(buffer) = context.OwnerVM.GetBuffer(*reinterpret_cast<BufferHandle*>(reinterpret_cast<char*>(structure) + definition.GetMemberOffset(j)));
@@ -391,12 +393,14 @@ EPOCHVM void VM::MarshalBufferIntoStructureData(VM::ExecutionContext& context, S
 			}
 			break;
 
+			/*
 		case EpochType_Function:
 			// Function pointers are not marshaled back to Epoch form, currently.
 			// This would require an additional interop layer that dynamically
 			// relinks Epoch callback functions into their modified targets.
 			buffer += sizeof(void*);
 			break;
+			*/
 
 		case EpochType_Buffer:
 			// Buffers are passed as pointers to raw data and if mutated by the

@@ -27,7 +27,6 @@ size_t Metadata::GetStorageSize(EpochTypeID type)
 	switch(type)
 	{
 	case EpochType_Identifier:			return sizeof(StringHandle);
-	case EpochType_Function:			return sizeof(StringHandle);
 
 	case EpochType_Integer:				return sizeof(Integer32);
 	case EpochType_Integer16:			return sizeof(Integer16);
@@ -44,6 +43,9 @@ size_t Metadata::GetStorageSize(EpochTypeID type)
 		throw FatalException("Unable to determine the size of this variable/structure member");
 
 	default:
+		if(Metadata::GetTypeFamily(type) == Metadata::EpochTypeFamily_Function)
+			return sizeof(StringHandle);
+
 		if(Metadata::GetTypeFamily(type) != Metadata::EpochTypeFamily_Structure && Metadata::GetTypeFamily(type) != Metadata::EpochTypeFamily_TemplateInstance)
 			throw NotImplementedException("Unsupported data type in Metadata::GetStorageSize()");
 
@@ -59,7 +61,6 @@ size_t Metadata::GetMarshaledSize(EpochTypeID type)
 	switch(type)
 	{
 	case EpochType_Identifier:			return sizeof(wchar_t*);
-	case EpochType_Function:			return sizeof(void*);
 
 	case EpochType_Integer:				return sizeof(Integer32);
 	case EpochType_Integer16:			return sizeof(Integer16);
@@ -70,6 +71,9 @@ size_t Metadata::GetMarshaledSize(EpochTypeID type)
 	case EpochType_Buffer:				return sizeof(wchar_t*);
 
 	default:
+		if(GetTypeFamily(type) == EpochTypeFamily_Function)
+			return sizeof(void*);
+
 		throw FatalException("Unable to determine the marshaled size of this variable/structure member");
 	}
 }

@@ -177,6 +177,10 @@ void Serializer::Write(const std::wstring& filename) const
 					outfile << L"PUSH_BUFFER " << traverser.Read<BufferHandle>() << L"\n";
 					break;
 
+				case Metadata::EpochTypeFamily_Function:			// Dumb hack.
+					outfile << L"PUSH_FUNC " << traverser.Read<StringHandle>() << L"\n";
+					break;
+
 				default:
 					if(Metadata::GetTypeFamily(type) == Metadata::EpochTypeFamily_Structure || Metadata::GetTypeFamily(type) == Metadata::EpochTypeFamily_TemplateInstance)
 					{
@@ -459,6 +463,29 @@ void Serializer::Write(const std::wstring& filename) const
 
 		case Bytecode::Instructions::TempReferenceFromRegister:
 			outfile << L"TYPEFROMREG\n";
+			break;
+
+		case Bytecode::Instructions::FuncSignature:
+			{
+				outfile << L"FUNCSIG ";
+
+				Metadata::EpochTypeID type = traverser.Read<Metadata::EpochTypeID>();
+				outfile << type << L" ";
+
+				Metadata::EpochTypeID rettype = traverser.Read<Metadata::EpochTypeID>();
+				outfile << rettype << L" ";
+
+				size_t numparams = traverser.Read<size_t>();
+				outfile << numparams;
+
+				for(size_t i = 0; i < numparams; ++i)
+				{
+					outfile << L" " << traverser.Read<Metadata::EpochTypeID>();
+					outfile << L" " << traverser.Read<bool>();
+				}
+
+				outfile << L"\n";
+			}
 			break;
 
 		default:

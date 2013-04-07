@@ -567,7 +567,7 @@ bool FunctionTable::IsFunctionTemplate(StringHandle name) const
 //
 InferenceContext::PossibleParameterTypes FunctionTable::GetExpectedTypes(StringHandle name, const ScopeDescription& scope, StringHandle contextname, CompileErrors& errors) const
 {
-	if(scope.HasVariable(name) && scope.GetVariableTypeByID(name) == Metadata::EpochType_Function)
+	if(scope.HasVariable(name) && Metadata::GetTypeFamily(scope.GetVariableTypeByID(name)) == Metadata::EpochTypeFamily_Function)
 	{
 		boost::unordered_map<StringHandle, Function*>::const_iterator funciter = FunctionIR.find(contextname);
 		if(funciter == FunctionIR.end())
@@ -686,7 +686,7 @@ InferenceContext::PossibleParameterTypes FunctionTable::GetExpectedTypes(StringH
 //
 InferenceContext::PossibleSignatureSet FunctionTable::GetExpectedSignatures(StringHandle name, const ScopeDescription& scope, StringHandle contextname, CompileErrors&) const
 {
-	if(scope.HasVariable(name) && scope.GetVariableTypeByID(name) == Metadata::EpochType_Function)
+	if(scope.HasVariable(name) && Metadata::GetTypeFamily(scope.GetVariableTypeByID(name)) == Metadata::EpochTypeFamily_Function)
 	{
 		boost::unordered_map<StringHandle, Function*>::const_iterator funciter = FunctionIR.find(contextname);
 		if(funciter == FunctionIR.end())

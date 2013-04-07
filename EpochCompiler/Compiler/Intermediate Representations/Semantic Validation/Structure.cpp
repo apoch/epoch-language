@@ -82,6 +82,7 @@ void Structure::GenerateConstructors(StringHandle myname, StringHandle construct
 		signature.AddParameter(L"id", Metadata::EpochType_Identifier, true);
 		for(std::vector<std::pair<StringHandle, StructureMember*> >::const_iterator iter = Members.begin(); iter != Members.end(); ++iter)
 		{
+			iter->second->PopulateTypeSpace(curnamespace);
 			Metadata::EpochTypeID paramtype = iter->second->GetEpochType(curnamespace);
 
 			if(paramtype == Metadata::EpochType_Error)
@@ -387,5 +388,15 @@ FunctionSignature StructureMemberFunctionReference::GetSignature(const Namespace
 		ret.AddParameter(L"@@auto", curnamespace.Types.GetTypeByName(iter->first), false);
 	}
 	return ret;
+}
+
+Metadata::EpochTypeID StructureMemberFunctionReference::GetEpochType(const Namespace& curnamespace) const
+{
+	return curnamespace.Types.FunctionSignatures.FindEpochType(GetSignature(curnamespace));
+}
+
+void StructureMemberFunctionReference::PopulateTypeSpace(Namespace& curnamespace)
+{
+	curnamespace.Types.FunctionSignatures.AllocateEpochType(GetSignature(curnamespace));
 }
 

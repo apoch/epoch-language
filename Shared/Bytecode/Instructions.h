@@ -84,6 +84,8 @@ namespace Bytecode
 
 		static const Instruction InvokeOffset = 0x27;
 
+		static const Instruction FuncSignature = 0x28;
+
 	}
 
 }

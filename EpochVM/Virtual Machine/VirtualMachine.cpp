@@ -275,6 +275,17 @@ size_t VirtualMachine::GetFunctionInstructionOffsetNoThrow(StringHandle function
 }
 
 
+const FunctionSignature& VirtualMachine::GetFunctionSignatureByType(Metadata::EpochTypeID type) const
+{
+	std::map<Metadata::EpochTypeID, FunctionSignature>::const_iterator iter = FunctionTypeToSignatureMap.find(type);
+	if(iter == FunctionTypeToSignatureMap.end())
+		throw FatalException("Undefined function type");
+
+	return iter->second;
+}
+
+
+
 //
 // Add metadata for a lexical scope
 //
@@ -667,6 +678,27 @@ void ExecutionContext::Load()
 				}
 			}
 			break;
+
+		case Bytecode::Instructions::FuncSignature:
+			{
+				FunctionSignature sig;
+
+				EpochTypeID type = Fetch<EpochTypeID>(instructionoffset);
+				EpochTypeID rettype = Fetch<EpochTypeID>(instructionoffset);
+
+				sig.SetReturnType(rettype);
+				
+				size_t numparams = Fetch<size_t>(instructionoffset);
+				for(size_t i = 0; i < numparams; ++i)
+				{
+					EpochTypeID paramtype = Fetch<EpochTypeID>(instructionoffset);
+					bool isref = Fetch<bool>(instructionoffset);
+					sig.AddParameter(L"@@auto", paramtype, isref);
+				}
+
+				OwnerVM.FunctionTypeToSignatureMap[type] = sig;
+			}
+			break;
 		
 		default:
 			throw FatalException("Invalid bytecode operation detected during load");
@@ -833,7 +865,6 @@ StructureHandle VirtualMachine::DeepCopy(StructureHandle handle)
 		{
 		case EpochType_Boolean:			clone.WriteMember(i, original.ReadMember<bool>(i));					break;
 		case EpochType_Buffer:			clone.WriteMember(i, CloneBuffer(original.ReadMember<bool>(i)));	break;
-		case EpochType_Function:		clone.WriteMember(i, original.ReadMember<StringHandle>(i));			break;
 		case EpochType_Identifier:		clone.WriteMember(i, original.ReadMember<StringHandle>(i));			break;
 		case EpochType_Integer:			clone.WriteMember(i, original.ReadMember<Integer32>(i));			break;
 		case EpochType_Integer16:		clone.WriteMember(i, original.ReadMember<Integer16>(i));			break;
@@ -844,6 +875,8 @@ StructureHandle VirtualMachine::DeepCopy(StructureHandle handle)
 		default:
 			if(GetTypeFamily(membertype) == EpochTypeFamily_Structure || GetTypeFamily(membertype) == EpochTypeFamily_TemplateInstance)
 				clone.WriteMember(i, DeepCopy(original.ReadMember<StructureHandle>(i)));
+			else if(GetTypeFamily(membertype) == EpochTypeFamily_Function)
+				clone.WriteMember(i, original.ReadMember<void*>(i));
 			else
 				throw FatalException("Invalid structure member data type; cannot deep copy");
 

@@ -30,7 +30,8 @@ GlobalIDSpace::GlobalIDSpace()
 	: CounterStructureTypeIDs(0),
 	  CounterUnitTypeIDs(0),
 	  CounterSumTypeIDs(0),
-	  CounterTemplateInstantiations(0)
+	  CounterTemplateInstantiations(0),
+	  CounterFunctionSignatures(0)
 {
 }
 
@@ -64,6 +65,11 @@ Metadata::EpochTypeID GlobalIDSpace::NewUnitTypeID()
 Metadata::EpochTypeID GlobalIDSpace::NewSumTypeID()
 {
 	return (CounterSumTypeIDs++) | Metadata::EpochTypeFamily_SumType;
+}
+
+Metadata::EpochTypeID GlobalIDSpace::NewFunctionSignature()
+{
+	return (CounterFunctionSignatures++) | Metadata::EpochTypeFamily_Function;
 }
 
 
@@ -702,7 +708,8 @@ TypeSpace::TypeSpace(Namespace& mynamespace, GlobalIDSpace& idspace)
 	  Aliases(*this),
 	  Structures(*this),
 	  SumTypes(*this),
-	  Templates(*this)
+	  Templates(*this),
+	  FunctionSignatures(*this)
 {
 }
 
@@ -805,6 +812,9 @@ StringHandle TypeSpace::GetNameOfType(Metadata::EpochTypeID type) const
 		if(iter->second == type)
 			return iter->first;
 	}
+
+	if(Metadata::GetTypeFamily(type) == Metadata::EpochTypeFamily_Function)
+		return 0;
 
 	if(MyNamespace.Parent)
 		return MyNamespace.Parent->Types.GetNameOfType(type);
@@ -979,5 +989,36 @@ bool TypeSpace::CompileTimeCodeExecution(CompileErrors& errors)
 	}
 
 	return true;
+}
+
+
+FunctionSignatureTable::FunctionSignatureTable(TypeSpace& typespace)
+	: MyTypeSpace(typespace)
+{
+}
+
+Metadata::EpochTypeID FunctionSignatureTable::FindEpochType(const FunctionSignature& sig) const
+{
+	for(std::vector<std::pair<FunctionSignature, Metadata::EpochTypeID> >::const_iterator iter = SignatureToTypeList.begin(); iter != SignatureToTypeList.end(); ++iter)
+	{
+		if(iter->first.Matches(sig))
+			return iter->second;
+	}
+
+	throw InternalException("Failed to map function signature to a type!");
+}
+
+Metadata::EpochTypeID FunctionSignatureTable::AllocateEpochType(const FunctionSignature& sig)
+{
+	for(std::vector<std::pair<FunctionSignature, Metadata::EpochTypeID> >::const_iterator iter = SignatureToTypeList.begin(); iter != SignatureToTypeList.end(); ++iter)
+	{
+		if(iter->first.Matches(sig))
+			return iter->second;
+	}
+
+	Metadata::EpochTypeID type = MyTypeSpace.IDSpace.NewFunctionSignature();
+	SignatureToTypeList.push_back(std::make_pair(sig, type));
+
+	return type;
 }
 

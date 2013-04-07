@@ -56,6 +56,9 @@ namespace IRSemantics
 
 		virtual void SubstituteTemplateArgs(const std::vector<std::pair<StringHandle, Metadata::EpochTypeID> >&, const CompileTimeParameterVector&, Namespace&)
 		{ }
+
+		virtual void PopulateTypeSpace(Namespace&)
+		{ }
 	};
 
 
@@ -133,10 +136,11 @@ namespace IRSemantics
 		virtual Type GetMemberType() const
 		{ return StructureMember::FunctionReference; }
 
-		virtual Metadata::EpochTypeID GetEpochType(const Namespace&) const
-		{ return Metadata::EpochType_Function; }
+		virtual Metadata::EpochTypeID GetEpochType(const Namespace& curnamespace) const;
 
 		virtual bool Validate(const Namespace& curnamespace, CompileErrors& errors) const;
+
+		virtual void PopulateTypeSpace(Namespace& curnamespace);
 
 	// Mutation
 	public:

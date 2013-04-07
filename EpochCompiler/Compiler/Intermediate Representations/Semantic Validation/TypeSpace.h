@@ -61,6 +61,7 @@ namespace IRSemantics
 		Metadata::EpochTypeID NewUnitTypeID();
 		Metadata::EpochTypeID NewSumTypeID();
 		Metadata::EpochTypeID NewTemplateInstantiation();
+		Metadata::EpochTypeID NewFunctionSignature();
 
 	// Internal tracking
 	private:
@@ -68,6 +69,7 @@ namespace IRSemantics
 		unsigned CounterUnitTypeIDs;
 		unsigned CounterSumTypeIDs;
 		unsigned CounterTemplateInstantiations;
+		unsigned CounterFunctionSignatures;
 	};
 
 
@@ -257,6 +259,37 @@ namespace IRSemantics
 	};
 
 
+	//
+	// Wrapper class for managing higher-order function signatures
+	//
+	class FunctionSignatureTable
+	{
+	// Construction
+	public:
+		explicit FunctionSignatureTable(TypeSpace& typespace);
+
+	// Non-copyable
+	private:
+		FunctionSignatureTable(const FunctionSignatureTable&);
+		FunctionSignatureTable& operator = (const FunctionSignatureTable&);
+
+	// Population interface
+	public:
+		Metadata::EpochTypeID AllocateEpochType(const FunctionSignature& sig);
+
+	// Lookup interface
+	public:
+		Metadata::EpochTypeID FindEpochType(const FunctionSignature& sig) const;
+
+		const std::vector<std::pair<FunctionSignature, Metadata::EpochTypeID> >& GetDefinitions() const
+		{ return SignatureToTypeList; }
+
+	// Internal state
+	private:
+		TypeSpace& MyTypeSpace;
+		std::vector<std::pair<FunctionSignature, Metadata::EpochTypeID> > SignatureToTypeList;
+	};
+
 
 	//
 	// Wrapper class for a typespace
@@ -288,6 +321,7 @@ namespace IRSemantics
 		StructureTable Structures;
 		SumTypeTable SumTypes;
 		TemplateTable Templates;
+		FunctionSignatureTable FunctionSignatures;
 
 	// Internal tracking
 	private:
@@ -295,6 +329,7 @@ namespace IRSemantics
 		friend class TemplateTable;
 		friend class TypeAliasTable;
 		friend class SumTypeTable;
+		friend class FunctionSignatureTable;
 		friend class Namespace;
 
 		Namespace& MyNamespace;

@@ -149,9 +149,6 @@
     <ClCompile Include="..\Shared\Metadata\FunctionSignature.cpp">
       <Filter>Shared\Metadata</Filter>
     </ClCompile>
-    <ClCompile Include="..\Shared\Metadata\Register.cpp">
-      <Filter>Shared\Metadata</Filter>
-    </ClCompile>
     <ClCompile Include="..\Shared\Metadata\ScopeDescription.cpp">
       <Filter>Shared\Metadata</Filter>
     </ClCompile>
@@ -263,9 +260,6 @@
       <Filter>Shared\Metadata</Filter>
     </ClInclude>
     <ClInclude Include="..\Shared\Metadata\IdentifierTable.h">
-      <Filter>Shared\Metadata</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Shared\Metadata\Register.h">
       <Filter>Shared\Metadata</Filter>
     </ClInclude>
     <ClInclude Include="..\Shared\Metadata\ScopeDescription.h">

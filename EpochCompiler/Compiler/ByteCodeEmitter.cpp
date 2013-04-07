@@ -998,3 +998,26 @@ void ByteCodeEmitter::TempReferenceFromRegister()
 	EmitInstruction(Bytecode::Instructions::TempReferenceFromRegister);
 }
 
+
+void ByteCodeEmitter::PushFunctionNameLiteral(StringHandle funcname)
+{
+	EmitInstruction(Bytecode::Instructions::Push);
+	EmitTypeAnnotation(Metadata::EpochTypeFamily_Function);		// This is a dirty hack.
+	EmitRawValue(funcname);
+}
+
+
+void ByteCodeEmitter::EmitFunctionSignature(Metadata::EpochTypeID type, const FunctionSignature& signature)
+{
+	EmitInstruction(Bytecode::Instructions::FuncSignature);
+	EmitTypeAnnotation(type);
+	EmitTypeAnnotation(signature.GetReturnType());
+	EmitRawValue(signature.GetNumParameters());
+	for(size_t i = 0; i < signature.GetNumParameters(); ++i)
+	{
+		EmitTypeAnnotation(signature.GetParameter(i).Type);
+		EmitRawValue(signature.GetParameter(i).IsReference);
+	}
+}
+
+

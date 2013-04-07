@@ -264,7 +264,7 @@ void CompileSession::InitIntrinsicTypes()
 	IntrinsicTypes[StringPool.Pool(L"buffer")] = Metadata::EpochType_Buffer;
 	IntrinsicTypes[StringPool.Pool(L"identifier")] = Metadata::EpochType_Identifier;
 	IntrinsicTypes[StringPool.Pool(L"nothing")] = Metadata::EpochType_Nothing;
-	IntrinsicTypes[StringPool.Pool(L"function")] = Metadata::EpochType_Function;
+	IntrinsicTypes[StringPool.Pool(L"function")] = Metadata::EpochTypeFamily_Function;
 }
 
 //

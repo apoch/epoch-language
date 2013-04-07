@@ -33,13 +33,13 @@ namespace Metadata
 	static const EpochTypeFamily EpochTypeFamily_Tuple				= (0x06000000);
 	static const EpochTypeFamily EpochTypeFamily_SumType			= (0x07000000);
 	static const EpochTypeFamily EpochTypeFamily_TemplateInstance	= (0x08000000);
+	static const EpochTypeFamily EpochTypeFamily_Function			= (0x09000000);
 
 
 	// Special types
 	static const EpochTypeID EpochType_Error	= 0 | EpochTypeFamily_Magic;
 	static const EpochTypeID EpochType_Infer	= 1 | EpochTypeFamily_Magic;
 	static const EpochTypeID EpochType_Void		= 2 | EpochTypeFamily_Magic;
-	static const EpochTypeID EpochType_Function	= 3 | EpochTypeFamily_Magic;
 	static const EpochTypeID EpochType_Nothing	= 4 | EpochTypeFamily_Magic;
 	static const EpochTypeID EpochType_RefFlag	= 5 | EpochTypeFamily_Magic;
 	static const EpochTypeID EpochType_Wildcard = 6 | EpochTypeFamily_Magic;

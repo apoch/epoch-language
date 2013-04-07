@@ -140,7 +140,6 @@
     <ClCompile Include="..\Shared\User Interface\Input.cpp" />
     <ClCompile Include="..\Shared\User Interface\Output.cpp" />
     <ClCompile Include="..\Shared\Metadata\FunctionSignature.cpp" />
-    <ClCompile Include="..\Shared\Metadata\Register.cpp" />
     <ClCompile Include="..\Shared\Metadata\ScopeDescription.cpp" />
     <ClCompile Include="..\Shared\Metadata\StructureDefinition.cpp" />
     <ClCompile Include="VM Linkage\HeapAccess.cpp" />
@@ -180,7 +179,6 @@
     <ClInclude Include="..\Shared\Metadata\EntityDescription.h" />
     <ClInclude Include="..\Shared\Metadata\FunctionSignature.h" />
     <ClInclude Include="..\Shared\Metadata\IdentifierTable.h" />
-    <ClInclude Include="..\Shared\Metadata\Register.h" />
     <ClInclude Include="..\Shared\Metadata\ScopeDescription.h" />
     <ClInclude Include="..\Shared\Metadata\StructureDefinition.h" />
     <ClInclude Include="..\EpochVM\Virtual Machine\Marshaling.h" />

@@ -255,12 +255,16 @@ namespace
 			}
 			else
 			{
-				if(curnamespace.Functions.IRExists(atom->GetIdentifier()) || (curnamespace.Types.GetTypeByName(atom->GetIdentifier()) != Metadata::EpochType_Error))
+				if(curnamespace.Functions.IRExists(atom->GetIdentifier()))
+					emitter.PushFunctionNameLiteral(atom->GetIdentifier());
+				else if(curnamespace.Types.GetTypeByName(atom->GetIdentifier()) != Metadata::EpochType_Error)
 					emitter.PushStringLiteral(atom->GetIdentifier());
 				else
 				{
-					if(atom->GetEpochType(curnamespace) == Metadata::EpochType_Identifier || atom->GetEpochType(curnamespace) == Metadata::EpochType_Function)
+					if(atom->GetEpochType(curnamespace) == Metadata::EpochType_Identifier)
 						emitter.PushStringLiteral(atom->GetIdentifier());
+					else if(Metadata::GetTypeFamily(atom->GetEpochType(curnamespace)) == Metadata::EpochTypeFamily_Function)
+						emitter.PushFunctionNameLiteral(atom->GetIdentifier());
 					else
 						PushFast(emitter, curnamespace, activescope, atom->GetIdentifier());
 				}
@@ -379,7 +383,7 @@ namespace
 				EmitExpression(emitter, **paramiter, activescope, curnamespace, constructssumtype || paramissumtype);
 		}
 
-		if(activescope.GetScope()->HasVariable(statement.GetName()) && activescope.GetScope()->GetVariableTypeByID(statement.GetName()) == Metadata::EpochType_Function)
+		if(activescope.GetScope()->HasVariable(statement.GetName()) && Metadata::GetTypeFamily(activescope.GetScope()->GetVariableTypeByID(statement.GetName())) == Metadata::EpochTypeFamily_Function)
 			emitter.InvokeIndirect(statement.GetName());
 		else if(curnamespace.Functions.FunctionNeedsDynamicPatternMatching(statement.GetName()))
 			FastInvoke(emitter, curnamespace, curnamespace.Functions.GetDynamicPatternMatcherForFunction(statement.GetName()));
@@ -769,6 +773,12 @@ namespace
 
 				emitter.StructureMember(memberiter->first, membertype);
 			}
+		}
+
+		const std::vector<std::pair<FunctionSignature, Metadata::EpochTypeID> >& funcsigs = curnamespace.Types.FunctionSignatures.GetDefinitions();
+		for(std::vector<std::pair<FunctionSignature, Metadata::EpochTypeID> >::const_iterator iter = funcsigs.begin(); iter != funcsigs.end(); ++iter)
+		{
+			emitter.EmitFunctionSignature(iter->second, iter->first);
 		}
 
 		const boost::unordered_map<StringHandle, IRSemantics::Function*>& functions = curnamespace.Functions.GetDefinitions();

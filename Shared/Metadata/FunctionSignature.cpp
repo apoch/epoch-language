@@ -131,7 +131,7 @@ bool FunctionSignature::Matches(const FunctionSignature& rhs) const
 		if(Parameters[i].Type != rhs.Parameters[i].Type && Parameters[i].Type != Metadata::EpochType_Infer && rhs.Parameters[i].Type != Metadata::EpochType_Infer)
 			return false;
 
-		if(Parameters[i].Type == Metadata::EpochType_Function)
+		if(Metadata::GetTypeFamily(Parameters[i].Type) == Metadata::EpochTypeFamily_Function)
 		{
 			if(!FunctionSignatures[i].Matches(rhs.FunctionSignatures[i]))
 				return false;
@@ -186,7 +186,7 @@ bool FunctionSignature::MatchesDynamicPattern(const FunctionSignature& rhs) cons
 		if(Parameters[i].Type != rhs.Parameters[i].Type && Parameters[i].Type != Metadata::EpochType_Infer && rhs.Parameters[i].Type != Metadata::EpochType_Infer)
 			return false;
 
-		if(Parameters[i].Type == Metadata::EpochType_Function)
+		if(Metadata::GetTypeFamily(Parameters[i].Type) == Metadata::EpochTypeFamily_Function)
 		{
 			if(!FunctionSignatures[i].Matches(rhs.FunctionSignatures[i]))
 				return false;

@@ -406,7 +406,7 @@ bool Function::DoesParameterSignatureMatch(size_t index, const FunctionSignature
 		if(parameter.Type != curnamespace.Types.GetTypeByName(paramtypes[i]))
 			return false;
 
-		if(parameter.Type == Metadata::EpochType_Function)
+		if(Metadata::GetTypeFamily(parameter.Type) == Metadata::EpochTypeFamily_Function)
 		{
 			//
 			// This is just a missing feature.
@@ -482,7 +482,7 @@ FunctionSignature Function::GetFunctionSignature(const Namespace& curnamespace) 
 		if(iter->Parameter->IsLocalVariable())
 		{
 			ret.AddParameter(activenamespace->Strings.GetPooledString(iter->Name), paramtype, iter->Parameter->IsReference());
-			if(paramtype == Metadata::EpochType_Function)
+			if(Metadata::GetTypeFamily(paramtype) == Metadata::EpochTypeFamily_Function)
 				ret.SetFunctionSignature(index, GetParameterSignature(iter->Name, *activenamespace));
 		}
 		else
@@ -622,6 +622,20 @@ FunctionParam* FunctionParamFuncRef::Clone() const
 	clone->ParamTypes = ParamTypes;
 	clone->ReturnType = ReturnType;
 	return clone;
+}
+
+Metadata::EpochTypeID FunctionParamFuncRef::GetParamType(const Namespace& curnamespace) const
+{
+	FunctionSignature sig;
+	if(ReturnType)
+		sig.SetReturnType(curnamespace.Types.GetTypeByName(ReturnType));
+	else
+		sig.SetReturnType(Metadata::EpochType_Void);
+	
+	for(std::vector<StringHandle>::const_iterator iter = ParamTypes.begin(); iter != ParamTypes.end(); ++iter)
+		sig.AddParameter(L"@@higherorder", curnamespace.Types.GetTypeByName(*iter), false);
+
+	return curnamespace.Types.FunctionSignatures.FindEpochType(sig);
 }
 
 //
@@ -852,7 +866,7 @@ void Function::PopulateScope(Namespace& curnamespace, CompileErrors& errors)
 //
 // Add a named function parameter to the function's lexical scope
 //
-void FunctionParamNamed::AddToScope(StringHandle name, CodeBlock& code, const Namespace& curnamespace) const
+void FunctionParamNamed::AddToScope(StringHandle name, CodeBlock& code, Namespace& curnamespace) const
 {
 	code.AddVariable(curnamespace.Strings.GetPooledString(name), name, MyTypeName, MyActualType, IsRef, VARIABLE_ORIGIN_PARAMETER);
 }
@@ -860,9 +874,20 @@ void FunctionParamNamed::AddToScope(StringHandle name, CodeBlock& code, const Na
 //
 // Add a higher-order function parameter to the function's lexical scope
 //
-void FunctionParamFuncRef::AddToScope(StringHandle name, CodeBlock& code, const Namespace& curnamespace) const
+void FunctionParamFuncRef::AddToScope(StringHandle name, CodeBlock& code, Namespace& curnamespace) const
 {
-	code.AddVariable(curnamespace.Strings.GetPooledString(name), name, 0, Metadata::EpochType_Function, false, VARIABLE_ORIGIN_PARAMETER);
+	// TODO - redundant code, factor out
+	FunctionSignature sig;
+	if(ReturnType)
+		sig.SetReturnType(curnamespace.Types.GetTypeByName(ReturnType));
+	else
+		sig.SetReturnType(Metadata::EpochType_Void);
+	
+	for(std::vector<StringHandle>::const_iterator iter = ParamTypes.begin(); iter != ParamTypes.end(); ++iter)
+		sig.AddParameter(L"@@higherorder", curnamespace.Types.GetTypeByName(*iter), false);
+
+	Metadata::EpochTypeID type = curnamespace.Types.FunctionSignatures.AllocateEpochType(sig);
+	code.AddVariable(curnamespace.Strings.GetPooledString(name), name, 0, type, false, VARIABLE_ORIGIN_PARAMETER);
 }
 
 

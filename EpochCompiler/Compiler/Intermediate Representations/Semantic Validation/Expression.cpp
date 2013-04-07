@@ -1091,9 +1091,9 @@ bool ExpressionAtomIdentifierBase::TypeInference(Namespace& curnamespace, CodeBl
 				continue;
 
 			Metadata::EpochTypeID paramtype = types[i][index];
-			if(paramtype == Metadata::EpochType_Function)
+			if(Metadata::GetTypeFamily(paramtype) == Metadata::EpochTypeFamily_Function)
 			{
-				possibletypes.insert(Metadata::EpochType_Function);
+				possibletypes.insert(paramtype);
 				signaturematches += curnamespace.Functions.FindMatchingFunctions(Identifier, context.ExpectedSignatures.back()[i][index], context, errors, resolvedidentifier);
 			}
 			else if(paramtype == underlyingtype)
@@ -1109,12 +1109,12 @@ bool ExpressionAtomIdentifierBase::TypeInference(Namespace& curnamespace, CodeBl
 	}
 	else
 	{
-		if(*possibletypes.begin() == Metadata::EpochType_Function)
+		if(Metadata::GetTypeFamily(*possibletypes.begin()) == Metadata::EpochTypeFamily_Function)
 		{
 			if(signaturematches == 1)
 			{
 				Identifier = resolvedidentifier;
-				MyType = Metadata::EpochType_Function;
+				MyType = *possibletypes.begin();
 			}
 			else
 				MyType = vartype;
@@ -1129,7 +1129,7 @@ bool ExpressionAtomIdentifierBase::TypeInference(Namespace& curnamespace, CodeBl
 		errors.SetContext(OriginalIdentifier);
 		if(possibletypes.empty())
 			errors.SemanticError("Unrecognized type");
-		else if(*possibletypes.begin() == Metadata::EpochType_Function)
+		else if(Metadata::GetTypeFamily(*possibletypes.begin()) == Metadata::EpochTypeFamily_Function)
 			errors.SemanticError("No matching functions");
 		else if(!foundidentifier)
 			errors.SemanticError("Unrecognized identifier");

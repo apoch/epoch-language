@@ -53,7 +53,7 @@ namespace IRSemantics
 		virtual void AddToSignature(FunctionSignature& signature, const Namespace& curnamespace) const = 0;
 		virtual bool TypeInference(Namespace& curnamespace, CompileErrors& errors) = 0;
 		virtual bool PatternMatchValue(const CompileTimeParameter& param, const Namespace& curnamespace) const = 0;
-		virtual void AddToScope(StringHandle name, CodeBlock& code, const Namespace& curnamespace) const = 0;
+		virtual void AddToScope(StringHandle name, CodeBlock& code, Namespace& curnamespace) const = 0;
 		virtual FunctionParam* Clone() const = 0;
 	};
 
@@ -90,7 +90,7 @@ namespace IRSemantics
 		virtual bool PatternMatchValue(const CompileTimeParameter&, const Namespace&) const
 		{ return false; }
 
-		virtual void AddToScope(StringHandle name, CodeBlock& code, const Namespace& curnamespace) const;
+		virtual void AddToScope(StringHandle name, CodeBlock& code, Namespace& curnamespace) const;
 
 		virtual FunctionParam* Clone() const;
 
@@ -147,7 +147,7 @@ namespace IRSemantics
 		virtual bool PatternMatchValue(const CompileTimeParameter&, const Namespace&) const
 		{ return false; }
 
-		virtual void AddToScope(StringHandle, CodeBlock&, const Namespace&) const
+		virtual void AddToScope(StringHandle, CodeBlock&, Namespace&) const
 		{ /* deliberate no-op */ }
 
 		virtual FunctionParam* Clone() const;
@@ -171,8 +171,7 @@ namespace IRSemantics
 
 	// Function parameter interface
 	public:
-		virtual Metadata::EpochTypeID GetParamType(const Namespace&) const
-		{ return Metadata::EpochType_Function; }
+		virtual Metadata::EpochTypeID GetParamType(const Namespace& curnamespace) const;
 
 		virtual bool IsLocalVariable() const
 		{ return true; }
@@ -190,7 +189,7 @@ namespace IRSemantics
 		virtual bool PatternMatchValue(const CompileTimeParameter&, const Namespace&) const
 		{ return false; }
 
-		virtual void AddToScope(StringHandle name, CodeBlock& code, const Namespace& curnamespace) const;
+		virtual void AddToScope(StringHandle name, CodeBlock& code, Namespace& curnamespace) const;
 
 		virtual FunctionParam* Clone() const;
 
@@ -252,7 +251,7 @@ namespace IRSemantics
 
 		virtual bool PatternMatchValue(const CompileTimeParameter& param, const Namespace& curnamespace) const;
 
-		virtual void AddToScope(StringHandle, CodeBlock&, const Namespace&) const
+		virtual void AddToScope(StringHandle, CodeBlock&, Namespace&) const
 		{ /* deliberate no-op */ }
 
 		virtual FunctionParam* Clone() const;

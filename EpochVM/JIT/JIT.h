@@ -55,6 +55,8 @@ namespace JIT
 
 		llvm::FunctionType* GetLLVMFunctionType(StringHandle epochfunc);
 		llvm::FunctionType* GetLLVMFunctionTypeFromSignature(StringHandle libraryfunc);
+		llvm::FunctionType* GetLLVMFunctionTypeFromSignature(const FunctionSignature& sig);
+		llvm::FunctionType* GetLLVMFunctionTypeFromEpochType(Metadata::EpochTypeID type);
 
 		void AddNativeTypeMatcher(size_t beginoffset, size_t endoffset);
 		
