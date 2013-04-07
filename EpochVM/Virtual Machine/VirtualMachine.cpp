@@ -83,7 +83,8 @@ struct RAIIProfiler
 // Mainly useful for forking the visual debugger thread as necessary
 //
 VirtualMachine::VirtualMachine()
-	: EntryPointFunc(NULL)
+	: EntryPointFunc(NULL),
+	  GlobalInitFunc(NULL)
 {
 #ifdef EPOCHVM_VISUAL_DEBUGGER
 	if(VisualDebuggerEnabled)
