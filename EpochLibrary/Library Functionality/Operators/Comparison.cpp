@@ -75,6 +75,16 @@ namespace
 		context.ValuesOnStack.push(flag);
 	}
 
+	void RealEqualityJIT(JIT::JITContext& context, bool)
+	{
+		llvm::Value* p2 = context.ValuesOnStack.top();
+		context.ValuesOnStack.pop();
+		llvm::Value* p1 = context.ValuesOnStack.top();
+		context.ValuesOnStack.pop();
+		llvm::Value* flag = reinterpret_cast<llvm::IRBuilder<>*>(context.Builder)->CreateFCmp(llvm::CmpInst::FCMP_OEQ, p1, p2);
+		context.ValuesOnStack.push(flag);
+	}
+
 	void RealGreaterThanJIT(JIT::JITContext& context, bool)
 	{
 		llvm::Value* p2 = context.ValuesOnStack.top();
@@ -98,12 +108,20 @@ namespace
 }
 
 
-extern "C" bool EpochLib_StringEq(StringHandle a, StringHandle b)
+extern "C" bool EpochLib_StringEq(StringHandle b, StringHandle a)
 {
 	if(a == b)
 		return true;
 
 	return GlobalExecutionContext->OwnerVM.GetPooledString(a) == GlobalExecutionContext->OwnerVM.GetPooledString(b);
+}
+
+extern "C" bool EpochLib_StringIneq(StringHandle b, StringHandle a)
+{
+	if(a == b)
+		return false;
+
+	return GlobalExecutionContext->OwnerVM.GetPooledString(a) != GlobalExecutionContext->OwnerVM.GetPooledString(b);
 }
 
 
@@ -250,6 +268,7 @@ void ComparisonLibrary::RegisterJITTable(JIT::JITTable& table)
 {
 	AddToMapNoDupe(table.InvokeHelpers, std::make_pair(IntegerEqualityHandle, &IntegerEqualityJIT));
 	AddToMapNoDupe(table.InvokeHelpers, std::make_pair(Integer16EqualityHandle, &IntegerEqualityJIT));
+	AddToMapNoDupe(table.InvokeHelpers, std::make_pair(RealEqualityHandle, &RealEqualityJIT));
 
 	AddToMapNoDupe(table.InvokeHelpers, std::make_pair(IntegerGreaterThanHandle, &IntegerGreaterThanJIT));
 	AddToMapNoDupe(table.InvokeHelpers, std::make_pair(IntegerLessThanHandle, &IntegerLessThanJIT));
@@ -257,6 +276,7 @@ void ComparisonLibrary::RegisterJITTable(JIT::JITTable& table)
 	AddToMapNoDupe(table.InvokeHelpers, std::make_pair(RealLessThanHandle, &RealLessThanJIT));
 
 	AddToMapNoDupe(table.LibraryExports, std::make_pair(StringEqualityHandle, "EpochLib_StringEq"));
+	AddToMapNoDupe(table.LibraryExports, std::make_pair(StringInequalityHandle, "EpochLib_StringIneq"));
 }
 
 

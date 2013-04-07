@@ -108,6 +108,7 @@ extern "C" void STDCALL BindToVirtualMachine(VM::ExecutionContext* context, Stri
 		DebugLibrary::RegisterJITTable(jittable);
 		FlowControl::RegisterConditionalJITTable(jittable);
 		FlowControl::RegisterLoopsJITTable(jittable);
+		StringFunctionLibrary::RegisterJITTable(jittable);
 		StringLibrary::RegisterJITTable(jittable);
 		TypeCasts::RegisterJITTable(jittable);
 		TypeConstructors::RegisterJITTable(jittable);

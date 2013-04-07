@@ -151,6 +151,7 @@ namespace VM
 		std::map<Metadata::EpochTypeID, StructureDefinition> StructureDefinitions;
 		JIT::JITTable JITHelpers;
 		void* EntryPointFunc;
+		void* GlobalInitFunc;
 
 		boost::unordered_map<Metadata::EpochTypeID, VariantDefinition, fasthash> VariantDefinitions;
 

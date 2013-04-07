@@ -16,6 +16,9 @@
 #include "Virtual Machine/VirtualMachine.h"
 
 
+extern VM::ExecutionContext* GlobalExecutionContext;
+
+
 namespace
 {
 
@@ -70,5 +73,27 @@ void StringFunctionLibrary::PoolStrings(StringPoolManager& stringpool)
 	SubstringHandle = stringpool.Pool(L"substring");
 	SubstringWithLengthHandle = stringpool.Pool(L"substring@@withlength");
 	SubstringNoLengthHandle = stringpool.Pool(L"substring@@nolength");
+}
+
+
+void StringFunctionLibrary::RegisterJITTable(JIT::JITTable& table)
+{
+	AddToMapNoDupe(table.LibraryExports, std::make_pair(SubstringWithLengthHandle, "EpochLib_SubstrLen"));
+	AddToMapNoDupe(table.LibraryExports, std::make_pair(SubstringNoLengthHandle, "EpochLib_SubstrNoLen"));
+}
+
+
+
+
+extern "C" StringHandle EpochLib_SubstrLen(unsigned length, unsigned start, StringHandle strhandle)
+{
+	std::wstring slice = GlobalExecutionContext->OwnerVM.GetPooledString(strhandle).substr(start, length);
+	return GlobalExecutionContext->OwnerVM.PoolString(slice);
+}
+
+extern "C" StringHandle EpochLib_SubstrNoLen(unsigned start, StringHandle strhandle)
+{
+	std::wstring slice = GlobalExecutionContext->OwnerVM.GetPooledString(strhandle).substr(start);
+	return GlobalExecutionContext->OwnerVM.PoolString(slice);
 }
 

@@ -10,4 +10,7 @@ EXPORTS
 	EpochLib_StringEq			@7
 	EpochLib_Print				@8
 	EpochLib_StrConcat			@9
+	EpochLib_StringIneq			@10
+	EpochLib_SubstrLen			@11
+	EpochLib_SubstrNoLen		@12
 

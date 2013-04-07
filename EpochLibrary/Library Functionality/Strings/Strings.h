@@ -31,5 +31,7 @@ namespace StringFunctionLibrary
 
 	void RegisterLibraryOverloads(OverloadMap& overloadmap);
 
+	void RegisterJITTable(JIT::JITTable& table);
+
 }
 

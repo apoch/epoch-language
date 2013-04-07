@@ -44,6 +44,7 @@ namespace JIT
 	// JIT code generation interface
 	public:
 		void AddFunction(size_t beginoffset, size_t endoffset, StringHandle alias);
+		void AddGlobalEntity(size_t beginoffset);
 
 		void Generate();
 
@@ -59,6 +60,7 @@ namespace JIT
 		
 		llvm::Function* GetGeneratedFunction(StringHandle funcname, size_t beginoffset);
 		llvm::Function* GetGeneratedTypeMatcher(StringHandle funcname, size_t beginoffset);
+		llvm::Function* GetGeneratedGlobalInit(StringHandle entityname);
 
 	// Internal tracking
 	private:

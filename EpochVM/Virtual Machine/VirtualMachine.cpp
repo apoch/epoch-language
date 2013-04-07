@@ -326,7 +326,10 @@ void ExecutionContext::Execute()
 	SetGlobalExecutionContext(this);
 
 	typedef void (*pfunc)();
-	((pfunc)(OwnerVM.EntryPointFunc))();
+	if(OwnerVM.GlobalInitFunc)
+		((pfunc)(OwnerVM.GlobalInitFunc))();
+	else if(OwnerVM.EntryPointFunc)
+		((pfunc)(OwnerVM.EntryPointFunc))();
 }
 
 //
@@ -342,6 +345,7 @@ void ExecutionContext::Load()
 	std::stack<Bytecode::EntityTag> entitytypes;
 	std::stack<size_t> entitybeginoffsets;
 	std::stack<size_t> chainbeginoffsets;
+	size_t globalentityoffset = 0;
 
 	std::set<StringHandle> jitworklist;
 	std::map<StringHandle, size_t> entityoffsetmap;
@@ -383,6 +387,9 @@ void ExecutionContext::Load()
 					patternmatcherid = name;
 				else
 					patternmatcherid = 0;
+
+				if(entitytypes.top() == Bytecode::EntityTags::Globals)
+					globalentityoffset = originaloffset;
 
 				entitybeginoffsets.push(originaloffset);
 				entityoffsetmap[name] = originaloffset;
@@ -692,6 +699,9 @@ void ExecutionContext::Load()
 	// JIT-compile everything that needs it
 	{
 		JIT::NativeCodeGenerator jitgen(OwnerVM, CodeBuffer);
+
+		if(globalentityoffset)
+			jitgen.AddGlobalEntity(globalentityoffset);
 
 		for(std::set<StringHandle>::const_iterator iter = jitworklist.begin(); iter != jitworklist.end(); ++iter)
 		{

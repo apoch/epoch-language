@@ -100,7 +100,12 @@ namespace JIT
 
 			std::map<Metadata::EpochTypeID, StructType*> SumTypeCache;
 
+			std::map<size_t, Value*> GlobalVariableMap;
+			std::map<size_t, size_t> GlobalVariableOffsetToIndexMap;
+			std::map<StringHandle, size_t> GlobalVariableNameToIndexMap;
+
 			Function* EntryPoint;
+			Function* GlobalInit;
 
 		// Non-copyable
 		private:
@@ -129,6 +134,10 @@ namespace JIT
 		// Function JIT interface
 		public:
 			void DoFunction(size_t beginoffset, size_t endoffset, StringHandle alias);
+
+		// Global init JIT interface
+		public:
+			void DoGlobalInit(size_t beginoffset);
 
 		// Instruction handlers
 		private:
@@ -371,6 +380,27 @@ Function* NativeCodeGenerator::GetGeneratedTypeMatcher(StringHandle funcname, si
 }
 
 //
+// Retrieve (or create if necessary) a generated global initializer
+//
+Function* NativeCodeGenerator::GetGeneratedGlobalInit(StringHandle entityname)
+{
+	std::ostringstream name;
+	name << "GlobalEntry_" << entityname;
+
+	Function* targetinnerfunc = NULL;
+	FunctionType* targetinnerfunctype = FunctionType::get(Type::getVoidTy(Data->Context), false);
+	if(!Data->GeneratedFunctions[name.str()])
+	{
+		targetinnerfunc = Function::Create(targetinnerfunctype, Function::ExternalLinkage, name.str().c_str(), Data->CurrentModule);
+		Data->GeneratedFunctions[name.str()] = targetinnerfunc;
+	}
+	else
+		targetinnerfunc = Data->GeneratedFunctions[name.str()];
+
+	return targetinnerfunc;
+}
+
+//
 // Map Epoch types to LLVM types
 //
 Type* NativeCodeGenerator::GetLLVMType(Metadata::EpochTypeID type, bool flatten)
@@ -540,6 +570,15 @@ void NativeCodeGenerator::AddFunction(size_t beginoffset, size_t endoffset, Stri
 }
 
 //
+// Add a global initialization entity to the JIT module
+//
+void NativeCodeGenerator::AddGlobalEntity(size_t beginoffset)
+{
+	FunctionJITHelper jithelper(*this);
+	jithelper.DoGlobalInit(beginoffset);
+}
+
+//
 // Optimize LLVM bitcode and generate final native machine code
 //
 void NativeCodeGenerator::Generate()
@@ -573,7 +612,7 @@ void NativeCodeGenerator::Generate()
 	eb.setErrorStr(&ErrStr);
 	eb.setRelocationModel(Reloc::Default);
 	eb.setCodeModel(CodeModel::JITDefault);
-	eb.setAllocateGVsWithCode(false);
+	eb.setAllocateGVsWithCode(true);
 	eb.setOptLevel(CodeGenOpt::Aggressive);
 	eb.setTargetOptions(opts);
 
@@ -660,6 +699,8 @@ void NativeCodeGenerator::Generate()
 		void* p = ee->getPointerToFunction(iter->second);
 		if(iter->second == Data->EntryPoint)
 			OwnerVM.EntryPointFunc = p;
+		else if(iter->second == Data->GlobalInit)
+			OwnerVM.GlobalInitFunc = p;
 	}
 
 	// This is a no-op unless we enabled stats above
@@ -731,6 +772,13 @@ void FunctionJITHelper::DoFunction(size_t beginoffset, size_t endoffset, StringH
 
 	LibJITContext.BuiltInFunctions = &Generator.Data->BuiltInFunctions;
 
+	// Merge in globals
+	for(std::map<StringHandle, size_t>::const_iterator iter = Generator.Data->GlobalVariableNameToIndexMap.begin(); iter != Generator.Data->GlobalVariableNameToIndexMap.end(); ++iter)
+	{
+		size_t index = iter->second + 0xf0000000;
+		LibJITContext.VariableMap[index] = Generator.Data->GlobalVariableMap[iter->second];
+		LibJITContext.NameToIndexMap[iter->first] = index;
+	}
 
 	// Initialize tracking for JIT operations
 	CurrentScope = NULL;
@@ -788,6 +836,60 @@ void FunctionJITHelper::DoFunction(size_t beginoffset, size_t endoffset, StringH
 	{
 		Builder.SetInsertPoint(NativeMatchBlock);
 		Generator.AddNativeTypeMatcher(beginoffset, endoffset);
+	}
+}
+
+//
+// Process a global variable initialization block
+//
+void FunctionJITHelper::DoGlobalInit(size_t beginoffset)
+{
+	LibJITContext.Builder = &Builder;
+	LibJITContext.Context = &Context;
+	LibJITContext.MyModule = Generator.Data->CurrentModule;
+	LibJITContext.InnerFunction = NULL;
+	LibJITContext.VarArgList = NULL;
+
+	LibJITContext.BuiltInFunctions = &Generator.Data->BuiltInFunctions;
+
+	// Initialize tracking for JIT operations
+	CurrentScope = NULL;
+
+	NumParameters = 0;
+	NumParameterBytes = 0;
+	NumReturns = 0;
+
+	HackStructType = 0;
+
+	// Initialize block pointers that are lazily populated
+	InnerExitBlock = NULL;
+	NativeMatchBlock = NULL;
+
+	// Initialize values used during JIT procedures
+	InnerRetVal = NULL;
+
+	// Now process each instruction in the Epoch bytecode and produce the LLVM bitcode output
+	size_t offset = beginoffset;
+	for(;;)
+	{
+		Bytecode::Instruction instruction = Bytecode[offset++];
+		if(instruction == Bytecode::Instructions::Halt)
+			break;
+
+		if(InstructionJITHelpers.find(instruction) == InstructionJITHelpers.end())
+			throw FatalException("Invalid instruction for native code generation");
+
+		InstructionJITHelper helper = InstructionJITHelpers[instruction];
+		(this->*helper)(offset);
+	}
+	
+	if(LibJITContext.InnerFunction)
+	{
+		Builder.CreateBr(InnerExitBlock);
+		Builder.SetInsertPoint(InnerExitBlock);
+		Builder.CreateRetVoid();
+
+		Generator.Data->GlobalInit = LibJITContext.InnerFunction;
 	}
 }
 
@@ -925,6 +1027,63 @@ void FunctionJITHelper::BeginEntity(size_t& offset)
 		Function* nativetypematcher = Generator.GetGeneratedTypeMatcher(entityname, BeginOffset);
 		NativeMatchBlock = BasicBlock::Create(Context, "nativematchentry", nativetypematcher);
 	}
+	else if(entitytype == Bytecode::EntityTags::Globals)
+	{
+		const ScopeDescription& scope = Generator.OwnerVM.GetScopeDescription(entityname);
+
+		// Sanity check
+		for(size_t i = scope.GetVariableCount(); i-- > 0; )
+		{
+			switch(scope.GetVariableOrigin(i))
+			{
+			case VARIABLE_ORIGIN_PARAMETER:
+			case VARIABLE_ORIGIN_RETURN:
+				throw FatalException("Global scope cannot contain parameters or return values");
+			}
+		}
+
+		LibJITContext.InnerFunction = Generator.GetGeneratedGlobalInit(entityname);
+
+		BasicBlock* innerentryblock = BasicBlock::Create(Context, "innerentry", LibJITContext.InnerFunction);
+		Builder.SetInsertPoint(innerentryblock);
+
+		InnerExitBlock = BasicBlock::Create(Context, "innerexit", LibJITContext.InnerFunction);
+
+		size_t localoffsetbytes = 0;
+		for(size_t i = 0; i < scope.GetVariableCount(); ++i)
+		{
+			Metadata::EpochTypeID localtype = scope.GetVariableTypeByIndex(i);
+			Type* type = Generator.GetLLVMType(localtype);
+
+			Constant* init = NULL;
+
+			switch(localtype)
+			{
+			case Metadata::EpochType_Integer:
+				init = ConstantInt::get(Type::getInt32Ty(Context), 0); 
+				break;
+
+			default:
+				throw NotImplementedException("Unsupported global variable type");
+			}
+
+			Generator.Data->GlobalVariableMap[i] = new GlobalVariable(*Generator.Data->CurrentModule, type, false, GlobalValue::InternalLinkage, init, narrow(Generator.OwnerVM.GetPooledString(scope.GetVariableNameHandle(i))));
+			Generator.Data->GlobalVariableOffsetToIndexMap[localoffsetbytes] = i;
+			Generator.Data->GlobalVariableNameToIndexMap[scope.GetVariableNameHandle(i)] = i;
+
+			if(Metadata::GetTypeFamily(localtype) == Metadata::EpochTypeFamily_SumType)
+				localoffsetbytes += Generator.OwnerVM.VariantDefinitions.find(localtype)->second.GetMaxSize();
+			else
+				localoffsetbytes += Metadata::GetStorageSize(localtype);
+		}
+
+		for(std::map<StringHandle, size_t>::const_iterator iter = Generator.Data->GlobalVariableNameToIndexMap.begin(); iter != Generator.Data->GlobalVariableNameToIndexMap.end(); ++iter)
+		{
+			size_t index = iter->second + 0xf0000000;
+			LibJITContext.VariableMap[index] = Generator.Data->GlobalVariableMap[iter->second];
+			LibJITContext.NameToIndexMap[iter->first] = index;
+		}
+	}
 	else
 	{
 		std::map<StringHandle, JIT::JITHelper>::const_iterator helperiter = Generator.OwnerVM.JITHelpers.EntityHelpers.find(entitytype);
@@ -1050,15 +1209,31 @@ void FunctionJITHelper::ReadStackLocal(size_t& offset)
 	size_t stackoffset = Fetch<size_t>(Bytecode, offset);
 	Fetch<size_t>(Bytecode, offset);		// stack size is irrelevant
 
-	if(frames != 0)
+	if((frames != 0) && (frames != (unsigned)(-1)))		// TODO - this is an ugly hardcoded hack
 		throw NotImplementedException("Scope is not flat!");
 
-	size_t index = LocalOffsetToIndexMap[stackoffset];
-	Metadata::EpochTypeID type = CurrentScope->GetVariableTypeByIndex(index);
+	Metadata::EpochTypeID type = Metadata::EpochType_Error;
+	Value* v = NULL;
+	
+	if (frames == 0)
+	{
+		size_t index = LocalOffsetToIndexMap[stackoffset];
+		type = CurrentScope->GetVariableTypeByIndex(index);
+		v = LibJITContext.VariableMap[index];
+	}
+	else
+	{
+		const ScopeDescription* scope = CurrentScope;
+		while(scope->ParentScope)
+			scope = scope->ParentScope;
+
+		size_t index = Generator.Data->GlobalVariableOffsetToIndexMap[stackoffset];
+		type = scope->GetVariableTypeByIndex(index);
+		v = Generator.Data->GlobalVariableMap[index]; 
+	}
+
 	if(Metadata::GetTypeFamily(type) == Metadata::EpochTypeFamily_SumType)
 	{
-		Value* v = LibJITContext.VariableMap[index];
-
 		std::vector<Value*> gepindices;
 		gepindices.push_back(ConstantInt::get(Type::getInt32Ty(Context), 0));
 		gepindices.push_back(ConstantInt::get(Type::getInt32Ty(Context), 0));
@@ -1074,7 +1249,7 @@ void FunctionJITHelper::ReadStackLocal(size_t& offset)
 	}
 	else
 	{
-		Value* val = Builder.CreateLoad(LibJITContext.VariableMap[index]);
+		Value* val = Builder.CreateLoad(v);
 		LibJITContext.ValuesOnStack.push(val);
 	}
 }

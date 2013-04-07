@@ -80,7 +80,7 @@ void StringLibrary::RegisterJITTable(JIT::JITTable& table)
 
 
 
-extern "C" StringHandle EpochLib_StrConcat(StringHandle a, StringHandle b)
+extern "C" StringHandle EpochLib_StrConcat(StringHandle b, StringHandle a)
 {
 	std::wstring result = GlobalExecutionContext->OwnerVM.GetPooledString(a) + GlobalExecutionContext->OwnerVM.GetPooledString(b);
 	return GlobalExecutionContext->OwnerVM.PoolString(result);
