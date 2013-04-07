@@ -39,7 +39,7 @@ namespace
 
 	void Generate(const IRSemantics::CodeBlock& codeblock, const IRSemantics::Namespace& curnamespace, ByteCodeEmitter& emitter);
 	void EmitStatement(ByteCodeEmitter& emitter, const IRSemantics::Statement& statement, const IRSemantics::CodeBlock& activescope, const IRSemantics::Namespace& curnamespace);
-	void EmitExpression(ByteCodeEmitter& emitter, const IRSemantics::Expression& expression, const IRSemantics::CodeBlock& activescope, const IRSemantics::Namespace& curnamespace, bool constructssumtype = false);
+	void EmitExpression(ByteCodeEmitter& emitter, const IRSemantics::Expression& expression, const IRSemantics::CodeBlock& activescope, const IRSemantics::Namespace& curnamespace, bool constructssumtype = false, bool constructorcall = false);
 
 	size_t CheckForGlobalFrame(const IRSemantics::Namespace& curnamespace, const IRSemantics::CodeBlock& activescope, size_t inframes)
 	{
@@ -202,7 +202,7 @@ namespace
 		emitter.AssignVariable();
 	}
 
-	bool EmitExpressionAtom(ByteCodeEmitter& emitter, const IRSemantics::ExpressionAtom* rawatom, const IRSemantics::CodeBlock& activescope, const IRSemantics::Namespace& curnamespace, bool firstmember, bool constructsumtype)
+	bool EmitExpressionAtom(ByteCodeEmitter& emitter, const IRSemantics::ExpressionAtom* rawatom, const IRSemantics::CodeBlock& activescope, const IRSemantics::Namespace& curnamespace, bool firstmember, bool constructorcall)
 	{
 		if(!rawatom)
 		{
@@ -249,9 +249,7 @@ namespace
 		{
 			if(atom->GetEpochType(curnamespace) == Metadata::EpochType_Nothing)
 			{
-				((void)(constructsumtype));
-				//if(constructsumtype)
-					emitter.PushIntegerLiteral(0);
+				emitter.PushIntegerLiteral(0);
 			}
 			else
 			{
@@ -262,7 +260,17 @@ namespace
 				else
 				{
 					if(atom->GetEpochType(curnamespace) == Metadata::EpochType_Identifier)
-						emitter.PushStringLiteral(atom->GetIdentifier());
+					{
+						if(!constructorcall)
+							emitter.PushStringLiteral(atom->GetIdentifier());
+						else
+						{
+							size_t frames = 0;
+							size_t index = activescope.GetScope()->FindVariable(atom->GetIdentifier(), frames);
+							frames = CheckForGlobalFrame(curnamespace, activescope, frames);
+							emitter.BindReference(frames, index);
+						}
+					}
 					else if(Metadata::GetTypeFamily(atom->GetEpochType(curnamespace)) == Metadata::EpochTypeFamily_Function)
 						emitter.PushFunctionNameLiteral(atom->GetIdentifier());
 					else
@@ -340,7 +348,7 @@ namespace
 		return false;
 	}
 
-	void EmitExpression(ByteCodeEmitter& emitter, const IRSemantics::Expression& expression, const IRSemantics::CodeBlock& activescope, const IRSemantics::Namespace& curnamespace, bool constructssumtype)
+	void EmitExpression(ByteCodeEmitter& emitter, const IRSemantics::Expression& expression, const IRSemantics::CodeBlock& activescope, const IRSemantics::Namespace& curnamespace, bool constructssumtype, bool constructorcall)
 	{
 		bool needsrefbind = false;
 		const std::vector<IRSemantics::ExpressionAtom*>& rawatoms = expression.GetAtoms();
@@ -348,7 +356,7 @@ namespace
 		{
 			ByteBuffer atombuffer;
 			ByteCodeEmitter atomemitter(atombuffer);
-			bool thisatomneedsrefbind = EmitExpressionAtom(atomemitter, *iter, activescope, curnamespace, !needsrefbind, constructssumtype);
+			bool thisatomneedsrefbind = EmitExpressionAtom(atomemitter, *iter, activescope, curnamespace, !needsrefbind, constructorcall);
 			if(thisatomneedsrefbind)
 				needsrefbind = true;
 			else if(needsrefbind)
@@ -374,13 +382,15 @@ namespace
 
 	void EmitStatement(ByteCodeEmitter& emitter, const IRSemantics::Statement& statement, const IRSemantics::CodeBlock& activescope, const IRSemantics::Namespace& curnamespace)
 	{
-		bool constructssumtype = Metadata::GetTypeFamily(curnamespace.Types.GetTypeByName(statement.GetName())) == Metadata::EpochTypeFamily_SumType;
+		Metadata::EpochTypeFamily typefamily = Metadata::GetTypeFamily(curnamespace.Types.GetTypeByName(statement.GetName()));
+		bool constructorcall = (typefamily == Metadata::EpochTypeFamily_Structure);
+		bool constructssumtype = (typefamily == Metadata::EpochTypeFamily_SumType);
 		const std::vector<IRSemantics::Expression*>& params = statement.GetParameters();
 		for(std::vector<IRSemantics::Expression*>::const_iterator paramiter = params.begin(); paramiter != params.end(); ++paramiter)
 		{
 			bool paramissumtype = Metadata::GetTypeFamily((*paramiter)->GetEpochType(curnamespace)) == Metadata::EpochTypeFamily_SumType;
 			if(!(*paramiter)->AtomsArePatternMatchedLiteral)
-				EmitExpression(emitter, **paramiter, activescope, curnamespace, constructssumtype || paramissumtype);
+				EmitExpression(emitter, **paramiter, activescope, curnamespace, constructssumtype || paramissumtype, constructorcall);
 		}
 
 		if(activescope.GetScope()->HasVariable(statement.GetName()) && Metadata::GetTypeFamily(activescope.GetScope()->GetVariableTypeByID(statement.GetName())) == Metadata::EpochTypeFamily_Function)
@@ -924,9 +934,8 @@ namespace
 							if(isconstructor[iter->first])
 							{
 								emitter.PushVariableValueNoCopy(scope->GetVariableNameHandle(i));
-								PushFast(emitter, curnamespace, *code, curnamespace.Strings.Find(L"@id")); 
-								emitter.PushIntegerLiteral(scope->GetVariableTypeByIndex(i));
-								emitter.AssignVariableThroughIdentifier();
+								emitter.BindReference(0, 0);			// TODO - lame hack
+								emitter.AssignVariable();
 							}
 							else
 							{

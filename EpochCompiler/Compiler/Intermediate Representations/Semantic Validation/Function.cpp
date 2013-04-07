@@ -260,10 +260,10 @@ bool Function::CompileTimeCodeExecution(Namespace& curnamespace, CompileErrors& 
 			{
 				TypeInferenceParamsOnly(*activenamespace, errors);
 				FunctionSignature signature = GetFunctionSignature(*activenamespace);
-				signature.PrependParameter(L"@id", Metadata::EpochType_Identifier, false);
+				signature.PrependParameter(L"@id", Metadata::EpochType_Identifier, true);
 				signature.SetReturnType(Metadata::EpochType_Void);
 				curnamespace.Functions.SetSignature(Name, signature);
-				Code->GetScope()->PrependVariable(L"@id", curnamespace.Strings.Pool(L"@id"), curnamespace.Strings.Pool(L"identifier"),Metadata::EpochType_Identifier, false, VARIABLE_ORIGIN_PARAMETER);
+				Code->GetScope()->PrependVariable(L"@id", curnamespace.Strings.Pool(L"@id"), curnamespace.Strings.Pool(L"identifier"),Metadata::EpochType_Identifier, true, VARIABLE_ORIGIN_PARAMETER);
 
 				curnamespace.Functions.SetCompileHelper(Name, &CompileConstructorHelper);
 			}
