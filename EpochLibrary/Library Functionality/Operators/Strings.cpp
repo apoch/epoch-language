@@ -75,6 +75,7 @@ void StringLibrary::PoolStrings(StringPoolManager& stringpool)
 
 void StringLibrary::RegisterJITTable(JIT::JITTable& table)
 {
+	AddToMapNoDupe(table.LibraryExports, std::make_pair(NarrowStringHandle, "EpochLib_StrNarrow"));
 	AddToMapNoDupe(table.LibraryExports, std::make_pair(ConcatHandle, "EpochLib_StrConcat"));
 }
 
@@ -84,5 +85,20 @@ extern "C" StringHandle EpochLib_StrConcat(StringHandle b, StringHandle a)
 {
 	std::wstring result = GlobalExecutionContext->OwnerVM.GetPooledString(a) + GlobalExecutionContext->OwnerVM.GetPooledString(b);
 	return GlobalExecutionContext->OwnerVM.PoolString(result);
+}
+
+extern "C" BufferHandle EpochLib_StrNarrow(StringHandle str)
+{
+	const std::wstring& sourcestring = GlobalExecutionContext->OwnerVM.GetPooledString(str);
+
+	std::string narrowed(narrow(sourcestring));
+
+	BufferHandle destbuffer = GlobalExecutionContext->OwnerVM.AllocateBuffer(narrowed.length() + 1);
+	void* storage = GlobalExecutionContext->OwnerVM.GetBuffer(destbuffer);
+	memcpy(storage, narrowed.c_str(), narrowed.length());
+
+	GlobalExecutionContext->TickBufferGarbageCollector();
+
+	return destbuffer;
 }
 

@@ -22,6 +22,10 @@
 #include "Utility/NoDupeMap.h"
 
 
+StringHandle ExternalHandle = 0;
+StringHandle ExternalJITHandle = 0;
+
+
 namespace
 {
 
@@ -75,5 +79,6 @@ void FunctionTags::RegisterConstructorTagHelper(FunctionTagHelperTable& table)
 void FunctionTags::PoolStrings(StringPoolManager& stringpool)
 {
 	stringpool.Pool(L"constructor");
-	stringpool.Pool(L"external");
+	ExternalHandle = stringpool.Pool(L"external");
+	ExternalJITHandle = stringpool.Pool(L"@@external");
 }

@@ -53,7 +53,7 @@ namespace
 		llvm::Value* cachedcall = context.BufferLookupCache[pbufferhandle];
 		if(!cachedcall)
 		{
-			cachedcall = reinterpret_cast<llvm::IRBuilder<>*>(context.Builder)->CreateCall2((*context.BuiltInFunctions)[JIT::JITFunc_VM_GetBuffer], context.VMContextPtr, bufferhandle);
+			cachedcall = reinterpret_cast<llvm::IRBuilder<>*>(context.Builder)->CreateCall((*context.BuiltInFunctions)[JIT::JITFunc_VM_GetBuffer], bufferhandle);
 			context.BufferLookupCache[pbufferhandle] = cachedcall;
 		}
 

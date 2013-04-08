@@ -9,3 +9,9 @@ EXPORTS
 	VMCopyStruct				@8
 	VMGetBuffer					@9
 	VMBreak						@10
+	VMGetString					@11
+	VMAllocBuffer				@12
+	VMCopyBuffer				@13
+	MarshalConvertStructure		@14
+	MarshalFixupStructure		@15
+	MarshalCleanup				@16

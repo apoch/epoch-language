@@ -14,11 +14,11 @@
 #include "Utility/Strings.h"
 
 
+VM::ExecutionContext* GlobalContext = NULL;
+
 namespace
 {
 	unsigned* TestHarness = NULL;
-
-	VM::ExecutionContext* GlobalContext = NULL;
 }
 
 
@@ -104,6 +104,18 @@ extern "C" void* VMGetBuffer(BufferHandle handle)
 	}
 }
 
+extern "C" const wchar_t* VMGetString(StringHandle handle)
+{
+	try
+	{
+		return GlobalContext->OwnerVM.GetPooledString(handle).c_str();
+	}
+	catch(...)
+	{
+		return NULL;
+	}
+}
+
 extern "C" void* VMAllocStruct(Metadata::EpochTypeID structtype)
 {
 	try
@@ -141,6 +153,34 @@ extern "C" void VMHalt()
 extern "C" void VMBreak()
 {
 	__asm int 3
+}
+
+extern "C" BufferHandle VMAllocBuffer(size_t size)
+{
+	try
+	{
+		BufferHandle handle = GlobalContext->OwnerVM.AllocateBuffer(size);
+		GlobalContext->TickBufferGarbageCollector();
+		return handle;
+	}
+	catch(...)
+	{
+		return 0;
+	}
+}
+
+extern "C" BufferHandle VMCopyBuffer(BufferHandle handle)
+{
+	try
+	{
+		BufferHandle clone = GlobalContext->OwnerVM.CloneBuffer(handle);
+		GlobalContext->TickBufferGarbageCollector();
+		return clone;
+	}
+	catch(...)
+	{
+		return 0;
+	}
 }
 
 

@@ -46,6 +46,8 @@ namespace JIT
 		void AddFunction(size_t beginoffset, size_t endoffset, StringHandle alias);
 		void AddGlobalEntity(size_t beginoffset);
 
+		EPOCHVM void ExternalInvoke(JIT::JITContext& context, StringHandle alias);
+
 		void Generate();
 
 	// Internal helpers
@@ -53,10 +55,14 @@ namespace JIT
 		llvm::Type* GetLLVMType(Metadata::EpochTypeID type, bool flatten = false);
 		llvm::Type* GetLLVMSumType(Metadata::EpochTypeID type, bool flatten);
 
+		llvm::Type* GetExternalType(Metadata::EpochTypeID type);
+
 		llvm::FunctionType* GetLLVMFunctionType(StringHandle epochfunc);
 		llvm::FunctionType* GetLLVMFunctionTypeFromSignature(StringHandle libraryfunc);
 		llvm::FunctionType* GetLLVMFunctionTypeFromSignature(const FunctionSignature& sig);
 		llvm::FunctionType* GetLLVMFunctionTypeFromEpochType(Metadata::EpochTypeID type);
+
+		llvm::FunctionType* GetExternalFunctionType(StringHandle epochfunc);
 
 		void AddNativeTypeMatcher(size_t beginoffset, size_t endoffset);
 		void AddNativePatternMatcher(size_t beginoffset, size_t endoffset);
@@ -65,6 +71,16 @@ namespace JIT
 		llvm::Function* GetGeneratedTypeMatcher(StringHandle funcname, size_t beginoffset);
 		llvm::Function* GetGeneratedPatternMatcher(StringHandle funcname, size_t beginoffset);
 		llvm::Function* GetGeneratedGlobalInit(StringHandle entityname);
+
+		llvm::Function* GetExternalFunction(StringHandle alias);
+
+		llvm::Value* MarshalArgument(llvm::Value* arg, Metadata::EpochTypeID type);
+		llvm::Value* MarshalReturn(llvm::Value* ret, Metadata::EpochTypeID type);
+		void MarshalReferencePostCall(llvm::Value* ret, llvm::Value* fixuptarget, Metadata::EpochTypeID type);
+		void MarshalCleanup(llvm::Value* ret, Metadata::EpochTypeID type);
+
+		llvm::Value* GetCallbackWrapper(llvm::Value* funcptr);
+
 
 	// Internal tracking
 	private:
@@ -77,6 +93,8 @@ namespace JIT
 		llvm::IRBuilder<> Builder;
 
 		std::map<const char*, llvm::Function*> LibraryFunctionCache;
+		std::map<StringHandle, llvm::Function*> ExternalFunctions;
+		std::map<llvm::Value*, llvm::Function*> GeneratedCallbackWrappers;
 	};
 
 }

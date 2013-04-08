@@ -55,6 +55,16 @@ namespace
 		context.ValuesOnStack.push(flag);
 	}
 
+	void IntegerInequalityJIT(JIT::JITContext& context, bool)
+	{
+		llvm::Value* p2 = context.ValuesOnStack.top();
+		context.ValuesOnStack.pop();
+		llvm::Value* p1 = context.ValuesOnStack.top();
+		context.ValuesOnStack.pop();
+		llvm::Value* flag = reinterpret_cast<llvm::IRBuilder<>*>(context.Builder)->CreateICmp(llvm::CmpInst::ICMP_NE, p1, p2);
+		context.ValuesOnStack.push(flag);
+	}
+
 	void IntegerGreaterThanJIT(JIT::JITContext& context, bool)
 	{
 		llvm::Value* p2 = context.ValuesOnStack.top();
@@ -269,6 +279,8 @@ void ComparisonLibrary::RegisterJITTable(JIT::JITTable& table)
 	AddToMapNoDupe(table.InvokeHelpers, std::make_pair(IntegerEqualityHandle, &IntegerEqualityJIT));
 	AddToMapNoDupe(table.InvokeHelpers, std::make_pair(Integer16EqualityHandle, &IntegerEqualityJIT));
 	AddToMapNoDupe(table.InvokeHelpers, std::make_pair(RealEqualityHandle, &RealEqualityJIT));
+
+	AddToMapNoDupe(table.InvokeHelpers, std::make_pair(IntegerInequalityHandle, &IntegerInequalityJIT));
 
 	AddToMapNoDupe(table.InvokeHelpers, std::make_pair(IntegerGreaterThanHandle, &IntegerGreaterThanJIT));
 	AddToMapNoDupe(table.InvokeHelpers, std::make_pair(IntegerLessThanHandle, &IntegerLessThanJIT));

@@ -8,14 +8,17 @@
 #include "pch.h"
 
 #include "Library Functionality/Function Tags/Externals.h"
+#include "Libraries/LibraryJIT.h"
 
 #include "Utility/StringPool.h"
 #include "Utility/NoDupeMap.h"
 
+#include "Virtual Machine/VirtualMachine.h"
 #include "Virtual Machine/Marshaling.h"
 
 
-extern StringHandle ExternalHandle = 0;
+extern StringHandle ExternalHandle;
+extern StringHandle ExternalJITHandle;
 
 
 namespace
@@ -44,9 +47,18 @@ namespace
 			ret.MetaTag = L"external";
 			ret.MetaTagData.push_back(compiletimeparams[0].StringPayload);
 			ret.MetaTagData.push_back(compiletimeparams[1].StringPayload);
+
+			if(compiletimeparams.size() >= 3)
+				ret.MetaTagData.push_back(compiletimeparams[2].StringPayload);
 		}
 
 		return ret;
+	}
+
+
+	void ExternalJIT(JIT::JITContext& context, bool)
+	{
+		context.Generator->ExternalInvoke(context, context.FunctionAlias);
 	}
 
 }
@@ -66,5 +78,11 @@ void FunctionTags::RegisterExternalTag(FunctionSignatureSet& signatureset)
 void FunctionTags::RegisterExternalTagHelper(FunctionTagHelperTable& table)
 {
 	AddToMapNoDupe(table, std::make_pair(L"external", &ExternalHelper));
+}
+
+
+void FunctionTags::RegisterExternalTagJITTable(JIT::JITTable& jittable)
+{
+	AddToMapNoDupe(jittable.InvokeHelpers, std::make_pair(ExternalJITHandle, &ExternalJIT));
 }
 

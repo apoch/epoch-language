@@ -508,10 +508,12 @@ void ExecutionContext::Load()
 
 				if(tag == L"external")
 				{
-					if(tagdatacount != 2)
+					if(tagdatacount == 2)
+						RegisterMarshaledExternalFunction(entity, metadata[0], metadata[1], L"cdecl");
+					else if(tagdatacount == 3)
+						RegisterMarshaledExternalFunction(entity, metadata[0], metadata[1], metadata[2]);
+					else
 						throw FatalException("Incorrect number of metadata tag parameters for external marshaled function");
-
-					RegisterMarshaledExternalFunction(entity, metadata[0], metadata[1]);
 				}
 				else if(tag == L"@@autogen@constructor")
 				{

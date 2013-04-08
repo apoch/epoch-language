@@ -41,6 +41,7 @@
 #include "Libraries/Library.h"
 
 #include "Virtual Machine/VirtualMachine.h"
+#include "Virtual Machine/Marshaling.h"
 
 #include "Metadata/ScopeDescription.h"
 #include "Metadata/TypeInfo.h"
@@ -180,6 +181,8 @@ namespace JIT
 			void TypeMatch(size_t& offset);
 			void PatternMatch(size_t& offset);
 
+			void CopyBuffer(size_t& offset);
+
 		// Internal tracking
 		private:
 			NativeCodeGenerator& Generator;
@@ -193,8 +196,6 @@ namespace JIT
 			BasicBlock* InnerExitBlock;
 			BasicBlock* NativeMatchBlock;
 			BasicBlock* PatternMatchBlock;
-
-			Value* InnerRetVal;
 
 			size_t BeginOffset;
 			size_t EndOffset;
@@ -258,9 +259,58 @@ namespace JIT
 			{
 				std::vector<Type*> args;
 				args.push_back(VMBufferHandleType);
-				FunctionType* ftype = FunctionType::get(Type::getInt1PtrTy(Context), args, false);
+				FunctionType* ftype = FunctionType::get(Type::getInt8PtrTy(Context), args, false);
 
 				BuiltInFunctions[JITFunc_VM_GetBuffer] = Function::Create(ftype, Function::ExternalLinkage, "VMGetBuffer", CurrentModule);
+			}
+
+			{
+				std::vector<Type*> args;
+				args.push_back(Type::getInt32Ty(Context));
+				FunctionType* ftype = FunctionType::get(Type::getInt8PtrTy(Context), args, false);
+
+				BuiltInFunctions[JITFunc_VM_GetString] = Function::Create(ftype, Function::ExternalLinkage, "VMGetString", CurrentModule);
+			}
+
+			{
+				std::vector<Type*> args;
+				args.push_back(Type::getInt32Ty(Context));
+				FunctionType* ftype = FunctionType::get(Type::getInt32Ty(Context), args, false);
+
+				BuiltInFunctions[JITFunc_VM_AllocBuffer] = Function::Create(ftype, Function::ExternalLinkage, "VMAllocBuffer", CurrentModule);
+			}
+
+			{
+				std::vector<Type*> args;
+				args.push_back(Type::getInt32Ty(Context));
+				FunctionType* ftype = FunctionType::get(Type::getInt32Ty(Context), args, false);
+
+				BuiltInFunctions[JITFunc_VM_CopyBuffer] = Function::Create(ftype, Function::ExternalLinkage, "VMCopyBuffer", CurrentModule);
+			}
+
+			{
+				std::vector<Type*> args;
+				args.push_back(Type::getInt8PtrTy(Context));
+				FunctionType* ftype = FunctionType::get(Type::getInt8PtrTy(Context), args, false);
+
+				BuiltInFunctions[JITFunc_Marshal_ConvertStructure] = Function::Create(ftype, Function::ExternalLinkage, "MarshalConvertStructure", CurrentModule);
+			}
+
+			{
+				std::vector<Type*> args;
+				args.push_back(Type::getInt8PtrTy(Context));
+				args.push_back(Type::getInt8PtrTy(Context));
+				FunctionType* ftype = FunctionType::get(Type::getVoidTy(Context), args, false);
+
+				BuiltInFunctions[JITFunc_Marshal_FixupStructure] = Function::Create(ftype, Function::ExternalLinkage, "MarshalFixupStructure", CurrentModule);
+			}
+
+			{
+				std::vector<Type*> args;
+				args.push_back(Type::getInt8PtrTy(Context));
+				FunctionType* ftype = FunctionType::get(Type::getVoidTy(Context), args, false);
+
+				BuiltInFunctions[JITFunc_Marshal_Cleanup] = Function::Create(ftype, Function::ExternalLinkage, "MarshalCleanup", CurrentModule);
 			}
 
 			// Set up intrinsics
@@ -469,6 +519,45 @@ Type* NativeCodeGenerator::GetLLVMType(Metadata::EpochTypeID type, bool flatten)
 }
 
 //
+// Map Epoch types to LLVM types suitable for C-ABI function invocation
+//
+Type* NativeCodeGenerator::GetExternalType(Metadata::EpochTypeID type)
+{
+	Metadata::EpochTypeFamily family = Metadata::GetTypeFamily(type);
+	switch(type)
+	{
+	case Metadata::EpochType_Void:
+		return Type::getVoidTy(Data->Context);
+
+	case Metadata::EpochType_Integer:
+		return Type::getInt32Ty(Data->Context);
+
+	case Metadata::EpochType_String:
+	case Metadata::EpochType_Buffer:
+		return Type::getInt8PtrTy(Data->Context);
+
+	case Metadata::EpochType_Real:
+		return Type::getFloatTy(Data->Context);
+
+	case Metadata::EpochType_Boolean:
+		return Type::getInt32Ty(Data->Context);
+
+	case Metadata::EpochType_Integer16:
+		return Type::getInt16Ty(Data->Context);
+
+	default:
+		if(family == Metadata::EpochTypeFamily_Structure || family == Metadata::EpochTypeFamily_TemplateInstance)
+			return Data->VMStructureHandleType;
+
+		if(family == Metadata::EpochTypeFamily_Function)
+			return Type::getInt8PtrTy(Data->Context);
+
+		throw NotImplementedException("Unsupported type for marshaling to external functions");
+	}
+}
+
+
+//
 // Create tagged structures to hold Epoch unions in LLVM structs
 //
 // Since LLVM does not support unions, we need to fake this by creating
@@ -560,6 +649,30 @@ FunctionType* NativeCodeGenerator::GetLLVMFunctionType(StringHandle epochfunc)
 }
 
 //
+// Synthesize the LLVM function type signature for a given external C-ABI function
+//
+FunctionType* NativeCodeGenerator::GetExternalFunctionType(StringHandle epochfunc)
+{
+	Type* rettype = Type::getVoidTy(Data->Context);
+
+	std::vector<Type*> args;
+
+	const ScopeDescription& scope = OwnerVM.GetScopeDescription(epochfunc);
+	for(size_t i = 0; i < scope.GetVariableCount(); ++i)
+	{
+		if(scope.GetVariableOrigin(i) == VARIABLE_ORIGIN_PARAMETER)
+		{
+			Metadata::EpochTypeID vartype = scope.GetVariableTypeByIndex(i);
+			args.push_back(GetExternalType(vartype));
+		}
+		else if(scope.GetVariableOrigin(i) == VARIABLE_ORIGIN_RETURN)
+			rettype = GetExternalType(scope.GetVariableTypeByIndex(i));
+	}
+
+	return FunctionType::get(rettype, args, false);
+}
+
+//
 // Synthesize the LLVM function type signature for a given library function
 //
 llvm::FunctionType* NativeCodeGenerator::GetLLVMFunctionTypeFromSignature(StringHandle libraryfunc)
@@ -615,11 +728,80 @@ void NativeCodeGenerator::AddGlobalEntity(size_t beginoffset)
 	jithelper.DoGlobalInit(beginoffset);
 }
 
+EPOCHVM void NativeCodeGenerator::ExternalInvoke(JIT::JITContext& context, StringHandle alias)
+{
+	Function* func = GetExternalFunction(alias);
+
+	Function::arg_iterator argiter = context.InnerFunction->arg_begin();
+	std::vector<Value*> args;
+
+	Metadata::EpochTypeID rettype = Metadata::EpochType_Void;
+
+	const ScopeDescription& scope = OwnerVM.GetScopeDescription(alias);
+	for(size_t i = 0; i < scope.GetVariableCount(); ++i)
+	{
+		if(scope.GetVariableOrigin(i) == VARIABLE_ORIGIN_PARAMETER)
+		{
+			Value* arg = (Argument*)(argiter);
+			if(scope.IsReference(i))
+				arg = Builder.CreateLoad(arg);
+
+			Metadata::EpochTypeID vartype = scope.GetVariableTypeByIndex(i);
+			args.push_back(MarshalArgument(arg, vartype));
+			++argiter;
+		}
+		else if(scope.GetVariableOrigin(i) == VARIABLE_ORIGIN_RETURN)
+			rettype = scope.GetVariableTypeByIndex(i);
+	}
+
+	CallInst* ret = Builder.CreateCall(func, args);
+	ret->setCallingConv(func->getCallingConv());
+	if(func->getFunctionType()->getReturnType() != Type::getVoidTy(Data->Context))
+		Builder.CreateStore(MarshalReturn(ret, rettype), context.InnerRetVal);
+
+	size_t index = 0;
+	for(size_t i = 0; i < scope.GetVariableCount(); ++i)
+	{
+		if(scope.GetVariableOrigin(i) == VARIABLE_ORIGIN_PARAMETER)
+		{
+			Metadata::EpochTypeID vartype = scope.GetVariableTypeByIndex(i);
+			if(scope.IsReference(i))
+				MarshalReferencePostCall(args[index], context.VariableMap[i], vartype);
+
+			MarshalCleanup(args[index], vartype);
+
+			++index;
+		}
+	}
+}
+
 //
 // Optimize LLVM bitcode and generate final native machine code
 //
 void NativeCodeGenerator::Generate()
 {
+	for(std::map<Value*, Function*>::const_iterator iter = GeneratedCallbackWrappers.begin(); iter != GeneratedCallbackWrappers.end(); ++iter)
+	{
+		BasicBlock* block = BasicBlock::Create(Data->Context, "wrap", iter->second);
+		Builder.SetInsertPoint(block);
+
+		std::vector<Value*> args;
+		Function::arg_iterator argiter = iter->second->arg_begin();
+		for(size_t i = 0; i < iter->second->getFunctionType()->getNumParams(); ++i)
+		{
+			args.push_back((Argument*)(argiter));
+			++argiter;
+		}
+
+		if(iter->second->getFunctionType()->getReturnType() == Type::getVoidTy(Data->Context))
+		{
+			Builder.CreateCall(iter->first, args);
+			Builder.CreateRetVoid();
+		}
+		else
+			Builder.CreateRet(Builder.CreateCall(Builder.CreateLoad(iter->first), args));
+	}
+
 	// This dump can come in handy if verification fails or we otherwise
 	// need to check up on the bitcode being generated by the JIT engine
 	//Data->CurrentModule->dump();
@@ -728,6 +910,7 @@ void NativeCodeGenerator::Generate()
 	// This dump is useful for observing the optimized LLVM bitcode
 	//Data->CurrentModule->dump();
 
+	VM::PopulateWeakLinkages(ExternalFunctions, ee);
 
 	// Perform actual native code generation and link the created
 	// pages of machine code back to the VM for execution
@@ -743,6 +926,26 @@ void NativeCodeGenerator::Generate()
 	// This is a no-op unless we enabled stats above
 	// The numbers are very handy for A/B testing optimization passes
 	PrintStatistics();
+}
+
+Function* NativeCodeGenerator::GetExternalFunction(StringHandle alias)
+{
+	Function* func = ExternalFunctions[alias];
+	if(!func)
+	{
+		const VM::DLLInvocationInfo& invokeinfo = VM::GetMarshaledExternalFunction(alias);
+		std::string name = narrow(invokeinfo.DLLName) + "_" + narrow(invokeinfo.FunctionName);
+
+		FunctionType* ftype = GetExternalFunctionType(alias);
+		func = Function::Create(ftype, GlobalValue::ExternalWeakLinkage, name, Data->CurrentModule);
+
+		if(invokeinfo.CallingConvention == L"stdcall")
+			func->setCallingConv(CallingConv::X86_StdCall);
+
+		ExternalFunctions[alias] = func;
+	}
+
+	return func;
 }
 
 
@@ -793,6 +996,8 @@ FunctionJITHelper::FunctionJITHelper(NativeCodeGenerator& generator)
 
 	InstructionJITHelpers[Bytecode::Instructions::TypeMatch] = &FunctionJITHelper::TypeMatch;
 	InstructionJITHelpers[Bytecode::Instructions::PatternMatch] = &FunctionJITHelper::PatternMatch;
+
+	InstructionJITHelpers[Bytecode::Instructions::CopyBuffer] = &FunctionJITHelper::CopyBuffer;
 }
 
 
@@ -808,6 +1013,8 @@ void FunctionJITHelper::DoFunction(size_t beginoffset, size_t endoffset, StringH
 	LibJITContext.MyModule = Generator.Data->CurrentModule;
 	LibJITContext.InnerFunction = NULL;
 	LibJITContext.VarArgList = NULL;
+	LibJITContext.Generator = &Generator;
+	LibJITContext.FunctionAlias = alias;
 
 	LibJITContext.BuiltInFunctions = &Generator.Data->BuiltInFunctions;
 
@@ -838,7 +1045,7 @@ void FunctionJITHelper::DoFunction(size_t beginoffset, size_t endoffset, StringH
 	PatternMatchBlock = NULL;
 
 	// Initialize values used during JIT procedures
-	InnerRetVal = NULL;
+	LibJITContext.InnerRetVal = NULL;
 
 	// Now process each instruction in the Epoch bytecode and produce the LLVM bitcode output
 	for(size_t offset = beginoffset; offset <= endoffset; )
@@ -859,9 +1066,9 @@ void FunctionJITHelper::DoFunction(size_t beginoffset, size_t endoffset, StringH
 		if(LibJITContext.VarArgList)
 			Builder.CreateCall(Generator.Data->BuiltInFunctions[JITFunc_Intrinsic_VAEnd], Builder.CreatePointerCast(LibJITContext.VarArgList, Type::getInt8PtrTy(Context)));
 
-		if(InnerRetVal)
+		if(LibJITContext.InnerRetVal)
 		{
-			Value* ret = Builder.CreateLoad(InnerRetVal);
+			Value* ret = Builder.CreateLoad(LibJITContext.InnerRetVal);
 			Builder.CreateRet(ret);
 		}
 		else
@@ -896,6 +1103,8 @@ void FunctionJITHelper::DoGlobalInit(size_t beginoffset)
 	LibJITContext.MyModule = Generator.Data->CurrentModule;
 	LibJITContext.InnerFunction = NULL;
 	LibJITContext.VarArgList = NULL;
+	LibJITContext.Generator = &Generator;
+	LibJITContext.FunctionAlias = 0;
 
 	LibJITContext.BuiltInFunctions = &Generator.Data->BuiltInFunctions;
 
@@ -914,7 +1123,7 @@ void FunctionJITHelper::DoGlobalInit(size_t beginoffset)
 	PatternMatchBlock = NULL;
 
 	// Initialize values used during JIT procedures
-	InnerRetVal = NULL;
+	LibJITContext.InnerRetVal = NULL;
 
 	// Now process each instruction in the Epoch bytecode and produce the LLVM bitcode output
 	size_t offset = beginoffset;
@@ -1033,7 +1242,7 @@ void FunctionJITHelper::BeginEntity(size_t& offset)
 		InnerExitBlock = BasicBlock::Create(Context, "innerexit", LibJITContext.InnerFunction);
 
 		if(NumReturns)
-			InnerRetVal = Builder.CreateAlloca(rettype);
+			LibJITContext.InnerRetVal = Builder.CreateAlloca(rettype);
 
 		size_t i = 0;
 		Function::ArgumentListType& args = LibJITContext.InnerFunction->getArgumentList();
@@ -1051,7 +1260,7 @@ void FunctionJITHelper::BeginEntity(size_t& offset)
 		}
 
 		if(NumReturns)
-			LibJITContext.VariableMap[retindex] = InnerRetVal;
+			LibJITContext.VariableMap[retindex] = LibJITContext.InnerRetVal;
 
 		localoffsetbytes = 0;
 		for(std::set<size_t>::const_iterator localiter = locals.begin(); localiter != locals.end(); ++localiter)
@@ -1544,7 +1753,7 @@ void FunctionJITHelper::ConstructSumType(size_t&)
 void FunctionJITHelper::SetRetValue(size_t& offset)
 {
 	size_t index = Fetch<size_t>(Bytecode, offset);
-	Builder.CreateStore(Builder.CreateLoad(LibJITContext.VariableMap[index]), InnerRetVal);
+	Builder.CreateStore(Builder.CreateLoad(LibJITContext.VariableMap[index]), LibJITContext.InnerRetVal);
 }
 
 //
@@ -1932,6 +2141,15 @@ void FunctionJITHelper::PatternMatch(size_t& offset)
 	offset = EndOffset;
 }
 
+void FunctionJITHelper::CopyBuffer(size_t&)
+{
+	Value* buffer = LibJITContext.ValuesOnStack.top();
+	LibJITContext.ValuesOnStack.pop();
+	
+	Value* clone = Builder.CreateCall(Generator.Data->BuiltInFunctions[JITFunc_VM_CopyBuffer], buffer);
+	LibJITContext.ValuesOnStack.push(clone);
+}
+
 //
 // Generate native code for type matching/dispatch when called from
 // a parent routine which is already JIT compiled. This is not to be
@@ -2255,5 +2473,133 @@ void NativeCodeGenerator::AddNativePatternMatcher(size_t beginoffset, size_t end
 			throw FatalException("Invalid instruction in pattern matcher");
 		}
 	}
+}
+
+
+Value* NativeCodeGenerator::MarshalArgument(Value* arg, Metadata::EpochTypeID type)
+{
+	switch(type)
+	{
+	case Metadata::EpochType_Boolean:
+		return Builder.CreateCast(Instruction::SExt, arg, Type::getInt32Ty(Data->Context));
+
+	case Metadata::EpochType_Buffer:
+		return Builder.CreateCall(Data->BuiltInFunctions[JITFunc_VM_GetBuffer], arg);
+
+	case Metadata::EpochType_Integer:
+	case Metadata::EpochType_Integer16:
+	case Metadata::EpochType_Real:
+		return arg;
+
+	case Metadata::EpochType_String:
+		return Builder.CreateCall(Data->BuiltInFunctions[JITFunc_VM_GetString], arg);
+	}
+
+	Metadata::EpochTypeFamily family = Metadata::GetTypeFamily(type);
+	if(family == Metadata::EpochTypeFamily_Structure || family == Metadata::EpochTypeFamily_TemplateInstance)
+		return Builder.CreateCall(Data->BuiltInFunctions[JITFunc_Marshal_ConvertStructure], arg);
+
+	if(family == Metadata::EpochTypeFamily_Function)
+		return Builder.CreatePointerCast(GetCallbackWrapper(arg), Type::getInt8PtrTy(Data->Context));
+
+	throw NotImplementedException("Cannot marshal parameter of this type to an external function");
+}
+
+Value* NativeCodeGenerator::MarshalReturn(Value* ret, Metadata::EpochTypeID type)
+{
+	switch(type)
+	{
+	case Metadata::EpochType_Boolean:
+		return Builder.CreateCast(Instruction::Trunc, ret, Type::getInt1Ty(Data->Context));
+
+	case Metadata::EpochType_Buffer:
+		// TODO
+		break;
+
+	case Metadata::EpochType_Integer:
+	case Metadata::EpochType_Integer16:
+	case Metadata::EpochType_Real:
+		return ret;
+
+	case Metadata::EpochType_String:
+		// TODO
+		break;
+	}
+
+	throw NotImplementedException("Cannot marshal parameter of this type to an external function");
+}
+
+void NativeCodeGenerator::MarshalReferencePostCall(Value* ref, Value* fixuptarget, Metadata::EpochTypeID type)
+{
+	Metadata::EpochTypeFamily family = Metadata::GetTypeFamily(type);
+
+	switch(type)
+	{
+	case Metadata::EpochType_Boolean:
+	case Metadata::EpochType_Integer:
+	case Metadata::EpochType_Integer16:
+	case Metadata::EpochType_Real:
+	case Metadata::EpochType_Buffer:
+	case Metadata::EpochType_String:
+		return;
+	}
+
+	if(family == Metadata::EpochTypeFamily_Structure || family == Metadata::EpochTypeFamily_TemplateInstance)
+	{
+		Builder.CreateCall2(Data->BuiltInFunctions[JITFunc_Marshal_FixupStructure], ref, Builder.CreateLoad(fixuptarget));
+		return;
+	}
+
+	throw NotImplementedException("Cannot marshal reference of this type back from an external function");
+}
+
+void NativeCodeGenerator::MarshalCleanup(Value* val, Metadata::EpochTypeID type)
+{
+	Metadata::EpochTypeFamily family = Metadata::GetTypeFamily(type);
+
+	switch(type)
+	{
+	case Metadata::EpochType_Boolean:
+	case Metadata::EpochType_Integer:
+	case Metadata::EpochType_Integer16:
+	case Metadata::EpochType_Real:
+	case Metadata::EpochType_Buffer:
+	case Metadata::EpochType_String:
+		return;
+	}
+
+	if(family == Metadata::EpochTypeFamily_Structure || family == Metadata::EpochTypeFamily_TemplateInstance)
+	{
+		Builder.CreateCall(Data->BuiltInFunctions[JITFunc_Marshal_Cleanup], val);
+		return;
+	}
+
+	if(family == Metadata::EpochTypeFamily_Function)
+		return;
+
+	throw NotImplementedException("Cannot clean up result of marshaling this type back from an external function");
+}
+
+Value* NativeCodeGenerator::GetCallbackWrapper(Value* funcptr)
+{
+	Type* ptrtype = funcptr->getType();
+	PointerType* casttype = dyn_cast<PointerType>(ptrtype);
+	FunctionType* ftype = dyn_cast<FunctionType>(casttype->getElementType());
+
+	// TODO - marshal in and out of callbacks in the wrapper?
+	std::vector<Type*> argtypes;
+	for(size_t i = 0; i < ftype->getNumParams(); ++i)
+		argtypes.push_back(ftype->getParamType(i));
+
+	FunctionType* wraptype = FunctionType::get(ftype->getReturnType(), argtypes, false);
+
+	Function* ret = Function::Create(wraptype, Function::ExternalLinkage, "CallbackWrapper", Data->CurrentModule);
+	ret->setCallingConv(CallingConv::X86_StdCall);
+
+	Constant* constnull = ConstantPointerNull::get(casttype);
+	Value* globalfuncptr = new GlobalVariable(*Data->CurrentModule, funcptr->getType(), false, GlobalVariable::InternalLinkage, constnull);
+	Builder.CreateStore(funcptr, globalfuncptr);
+	GeneratedCallbackWrappers[globalfuncptr] = ret;
+	return ret;
 }
 

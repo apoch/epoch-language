@@ -51,6 +51,21 @@ namespace
 		reinterpret_cast<llvm::IRBuilder<>*>(context.Builder)->CreateStore(p2, context.VariableMap[context.NameToIndexMap[vartarget]], false);
 	}
 
+	void ConstructorBufferJIT(JIT::JITContext& context, bool)
+	{
+		llvm::Value* p2 = context.ValuesOnStack.top();
+		context.ValuesOnStack.pop();
+		llvm::Value* c = context.ValuesOnStack.top();
+		context.ValuesOnStack.pop();
+
+		llvm::ConstantInt* cint = llvm::dyn_cast<llvm::ConstantInt>(c);
+		size_t vartarget = static_cast<size_t>(cint->getValue().getLimitedValue());
+
+		llvm::Value* bufferhandle = reinterpret_cast<llvm::IRBuilder<>*>(context.Builder)->CreateCall((*context.BuiltInFunctions)[JIT::JITFunc_VM_AllocBuffer], p2);
+
+		reinterpret_cast<llvm::IRBuilder<>*>(context.Builder)->CreateStore(bufferhandle, context.VariableMap[context.NameToIndexMap[vartarget]], false);
+	}
+
 }
 
 
@@ -125,6 +140,7 @@ void TypeConstructors::RegisterJITTable(JIT::JITTable& table)
 	AddToMapNoDupe(table.InvokeHelpers, std::make_pair(RealHandle, &ConstructorJIT));
 	AddToMapNoDupe(table.InvokeHelpers, std::make_pair(BooleanHandle, &ConstructorJIT));
 	AddToMapNoDupe(table.InvokeHelpers, std::make_pair(StringTypeHandle, &ConstructorJIT));
+	AddToMapNoDupe(table.InvokeHelpers, std::make_pair(BufferTypeHandle, &ConstructorBufferJIT));
 }
 
 

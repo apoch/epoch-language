@@ -19,50 +19,15 @@
 #include <list>
 
 
+extern VM::ExecutionContext* GlobalContext;
+
+
 namespace
 {
 
-	// Prototype of the function which invokes Epoch callbacks
-	UInteger32 STDCALL CallbackInvoke(UByte* espsave, VM::ExecutionContext* context, StringHandle callbackfunction);
-
-
-	//
-	// Record for tracking the external library and function
-	// that should be invoked by a given [external] tagged
-	// Epoch function
-	//
-	struct DLLInvocationInfo
-	{
-		std::wstring DLLName;
-		std::wstring FunctionName;
-	};
-
 	// Map function names to the corresponding invocation record
-	std::map<StringHandle, DLLInvocationInfo> DLLInvocationMap;
+	std::map<StringHandle, VM::DLLInvocationInfo> DLLInvocationMap;
 
-
-	//
-	// Helper stub for saving stack information when a callback is invoked.
-	// This information is used to read parameters off the stack. It is critical
-	// that the compiler not emit any prologue or epilogue code for this routine
-	// since we need to preserve certain register and pointer values for later
-	// retrieval. Note that the callback marshaling stub saves the important
-	// context-pointer and function name handle in the eax and edx registers,
-	// respectively, on x86 architectures. See the comments on the function
-	// MarshalingController::RequestMarshaledCallback for details on how this
-	// automatically generated pre-callback code works.
-	//
-	void __declspec(naked) CallbackEntryPoint()
-	{
-		__asm mov ecx, esp;
-
-		__asm push edx;
-		__asm push eax;
-		__asm push ecx;
-		__asm call CallbackInvoke;
-
-		__asm ret;
-	}
 
 
 	//
@@ -170,7 +135,7 @@ namespace
 			void* stubspace = GetStubSpace();
 
 			UByte* rawbytes = reinterpret_cast<UByte*>(stubspace);
-			UINT_PTR stubaddress = reinterpret_cast<UINT_PTR>(CallbackEntryPoint);
+			UINT_PTR stubaddress = static_cast<UINT_PTR>(0);			// TODO
 			UINT_PTR callbackaddress = static_cast<UINT_PTR>(callbackfunction);
 			UINT_PTR contextaddress = reinterpret_cast<UINT_PTR>(&context);
 
@@ -208,20 +173,6 @@ namespace
 	// Instantiate a controller for marshaling callbacks
 	MarshalingController MarshalControl;
 
-
-	//
-	// Actually invoke the Epoch function, taking care to
-	// provide the correct parameters from the stack.
-	//
-	UInteger32 STDCALL CallbackInvoke(UByte* espsave, VM::ExecutionContext* context, StringHandle callbackfunction)
-	{
-		// TODO - reimplement marshaled callbacks from external C code to Epoch code
-		((void)(espsave));
-		((void)(context));
-		((void)(callbackfunction));
-
-		return 0;
-	}
 
 
 	//
@@ -342,12 +293,18 @@ namespace
 //
 // Register a tagged external function so we can track what DLL and function to invoke
 //
-void VM::RegisterMarshaledExternalFunction(StringHandle functionname, const std::wstring& dllname, const std::wstring& externalfunctionname)
+void VM::RegisterMarshaledExternalFunction(StringHandle functionname, const std::wstring& dllname, const std::wstring& externalfunctionname, const std::wstring& callingconvention)
 {
 	DLLInvocationInfo info;
 	info.DLLName = dllname;
 	info.FunctionName = externalfunctionname;
+	info.CallingConvention = callingconvention;
 	DLLInvocationMap[functionname] = info;
+}
+
+const VM::DLLInvocationInfo& VM::GetMarshaledExternalFunction(StringHandle alias)
+{
+	return DLLInvocationMap[alias];
 }
 
 
@@ -425,3 +382,52 @@ EPOCHVM void VM::MarshalBufferIntoStructureData(VM::ExecutionContext& context, S
 		}
 	}
 }
+
+
+extern "C" void VMHalt();
+
+void VM::PopulateWeakLinkages(const std::map<StringHandle, llvm::Function*>& externalfunctions, llvm::ExecutionEngine* ee)
+{
+	for(std::map<StringHandle, llvm::Function*>::const_iterator iter = externalfunctions.begin(); iter != externalfunctions.end(); ++iter)
+	{
+        // Now open the DLL and load the corresponding function we wish to invoke
+		Marshaling::DLLPool::DLLPoolHandle hdll = Marshaling::TheDLLPool.OpenDLL(DLLInvocationMap[iter->first].DLLName);
+        if(!hdll)
+		{
+			VMHalt();
+			return;
+        }
+
+        void* address = Marshaling::DLLPool::GetFunction<void*>(hdll, narrow(DLLInvocationMap[iter->first].FunctionName).c_str());
+        if(!address)
+        {
+			VMHalt();
+			return;
+        }
+
+		ee->updateGlobalMapping(iter->second, address);
+	}
+}
+
+extern "C" void* MarshalConvertStructure(StructureHandle handle)
+{
+	ActiveStructure& s = GlobalContext->OwnerVM.FindStructureMetadata(handle);
+
+	Byte* buffer = new Byte[s.Definition.GetMarshaledSize()];
+
+	MarshalStructureDataIntoBuffer(*GlobalContext, handle, s.Definition, buffer);
+
+	return buffer;
+}
+
+extern "C" void MarshalFixupStructure(Byte* buffer, StructureHandle target)
+{
+	ActiveStructure& s = GlobalContext->OwnerVM.FindStructureMetadata(target);
+	VM::MarshalBufferIntoStructureData(*GlobalContext, target, s.Definition, buffer);
+}
+
+extern "C" void MarshalCleanup(Byte* buffer)
+{
+	delete[] buffer;
+}
+

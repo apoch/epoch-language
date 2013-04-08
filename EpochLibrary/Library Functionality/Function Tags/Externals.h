@@ -24,5 +24,7 @@ namespace FunctionTags
 
 	void RegisterExternalTagHelper(FunctionTagHelperTable& table);
 
+	void RegisterExternalTagJITTable(JIT::JITTable& table);
+
 }
 

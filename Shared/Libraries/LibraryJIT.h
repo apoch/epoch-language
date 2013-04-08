@@ -15,9 +15,11 @@ namespace llvm
 	class BasicBlock;
 }
 
-
 namespace JIT
 {
+
+	class NativeCodeGenerator;
+
 
 	enum JITFunctionID
 	{
@@ -30,11 +32,20 @@ namespace JIT
 		JITFunc_VM_AllocStruct,
 		JITFunc_VM_CopyStruct,
 		JITFunc_VM_GetBuffer,
+		JITFunc_VM_GetString,
+		JITFunc_VM_AllocBuffer,
+		JITFunc_VM_CopyBuffer,
+
+		JITFunc_Marshal_ConvertStructure,
+		JITFunc_Marshal_FixupStructure,
+		JITFunc_Marshal_Cleanup,
 	};
 
 
 	struct JITContext
 	{
+		StringHandle FunctionAlias;
+
 		std::stack<llvm::Value*> ValuesOnStack;
 
 		std::stack<Bytecode::EntityTag> EntityTypes;
@@ -50,9 +61,10 @@ namespace JIT
 		std::stack<llvm::BasicBlock*> EntityChains;
 		std::stack<llvm::BasicBlock*> EntityChainExits;
 
-		llvm::Value* VMContextPtr;
+		JIT::NativeCodeGenerator* Generator;
 
 		llvm::Function* InnerFunction;
+		llvm::Value* InnerRetVal;
 
 		std::map<JITFunctionID, llvm::Function*>* BuiltInFunctions;
 
