@@ -178,6 +178,7 @@ namespace JIT
 			void InvokeIndirect(size_t& offset);
 
 			void TypeMatch(size_t& offset);
+			void PatternMatch(size_t& offset);
 
 		// Internal tracking
 		private:
@@ -191,6 +192,7 @@ namespace JIT
 
 			BasicBlock* InnerExitBlock;
 			BasicBlock* NativeMatchBlock;
+			BasicBlock* PatternMatchBlock;
 
 			Value* InnerRetVal;
 
@@ -379,6 +381,27 @@ Function* NativeCodeGenerator::GetGeneratedTypeMatcher(StringHandle funcname, si
 	}
 
 	return nativetypematcher;
+}
+
+//
+// Retrieve (or create if necessary) a generated pattern matcher
+//
+Function* NativeCodeGenerator::GetGeneratedPatternMatcher(StringHandle funcname, size_t beginoffset)
+{
+	std::ostringstream matchername;
+	matchername << "JITMatcher_" << beginoffset;
+
+	Function* nativematcher = Data->GeneratedNativeTypeMatchers[matchername.str()];
+	if(!nativematcher)
+	{
+		StringHandle hint = OwnerVM.PatternMatcherDispatchHint.find(funcname)->second;
+		FunctionType* matchfunctype = GetLLVMFunctionType(hint);
+
+		nativematcher = Function::Create(matchfunctype, Function::ExternalLinkage, matchername.str().c_str(), Data->CurrentModule);
+		Data->GeneratedNativeTypeMatchers[matchername.str()] = nativematcher;
+	}
+
+	return nativematcher;
 }
 
 //
@@ -769,6 +792,7 @@ FunctionJITHelper::FunctionJITHelper(NativeCodeGenerator& generator)
 	InstructionJITHelpers[Bytecode::Instructions::InvokeIndirect] = &FunctionJITHelper::InvokeIndirect;
 
 	InstructionJITHelpers[Bytecode::Instructions::TypeMatch] = &FunctionJITHelper::TypeMatch;
+	InstructionJITHelpers[Bytecode::Instructions::PatternMatch] = &FunctionJITHelper::PatternMatch;
 }
 
 
@@ -811,6 +835,7 @@ void FunctionJITHelper::DoFunction(size_t beginoffset, size_t endoffset, StringH
 	// Initialize block pointers that are lazily populated
 	InnerExitBlock = NULL;
 	NativeMatchBlock = NULL;
+	PatternMatchBlock = NULL;
 
 	// Initialize values used during JIT procedures
 	InnerRetVal = NULL;
@@ -854,6 +879,11 @@ void FunctionJITHelper::DoFunction(size_t beginoffset, size_t endoffset, StringH
 		Builder.SetInsertPoint(NativeMatchBlock);
 		Generator.AddNativeTypeMatcher(beginoffset, endoffset);
 	}
+	else if(PatternMatchBlock)
+	{
+		Builder.SetInsertPoint(PatternMatchBlock);
+		Generator.AddNativePatternMatcher(beginoffset, endoffset);
+	}
 }
 
 //
@@ -881,6 +911,7 @@ void FunctionJITHelper::DoGlobalInit(size_t beginoffset)
 	// Initialize block pointers that are lazily populated
 	InnerExitBlock = NULL;
 	NativeMatchBlock = NULL;
+	PatternMatchBlock = NULL;
 
 	// Initialize values used during JIT procedures
 	InnerRetVal = NULL;
@@ -1044,6 +1075,11 @@ void FunctionJITHelper::BeginEntity(size_t& offset)
 		Function* nativetypematcher = Generator.GetGeneratedTypeMatcher(entityname, BeginOffset);
 		NativeMatchBlock = BasicBlock::Create(Context, "nativematchentry", nativetypematcher);
 	}
+	else if(entitytype == Bytecode::EntityTags::PatternMatchingResolver)
+	{
+		Function* nativematcher = Generator.GetGeneratedPatternMatcher(entityname, BeginOffset);
+		PatternMatchBlock = BasicBlock::Create(Context, "nativepatternmatchentry", nativematcher);
+	}
 	else if(entitytype == Bytecode::EntityTags::Globals)
 	{
 		const ScopeDescription& scope = Generator.OwnerVM.GetScopeDescription(entityname);
@@ -1119,7 +1155,7 @@ void FunctionJITHelper::EndEntity(size_t&)
 	Bytecode::EntityTag tag = LibJITContext.EntityTypes.top();
 	LibJITContext.EntityTypes.pop();
 
-	if(tag != Bytecode::EntityTags::Function && tag != Bytecode::EntityTags::TypeResolver)
+	if(tag != Bytecode::EntityTags::Function && tag != Bytecode::EntityTags::TypeResolver && tag != Bytecode::EntityTags::PatternMatchingResolver)
 		Generator.OwnerVM.JITHelpers.EntityHelpers.find(tag)->second(LibJITContext, false);
 }
 
@@ -1748,50 +1784,70 @@ void FunctionJITHelper::InvokeOffset(size_t& offset)
 	StringHandle functionname = Fetch<StringHandle>(Bytecode, offset);
 	size_t internaloffset = Fetch<size_t>(Bytecode, offset);
 
-	if(Generator.OwnerVM.TypeMatcherParamCount.find(functionname) == Generator.OwnerVM.TypeMatcherParamCount.end())
-		throw FatalException("Cannot invoke VM code from native code");
-
-	Function* nativetypematcher = Generator.GetGeneratedTypeMatcher(functionname, internaloffset);
-
+	Function* nativematcher = NULL;
+	size_t numparams = 0;
 	std::vector<Value*> matchervarargs;
-	size_t numparams = Generator.OwnerVM.TypeMatcherParamCount.find(functionname)->second;
-	for(size_t i = 0; i < numparams; ++i)
+
+	// Handle vanilla pattern matchers
+	if(Generator.OwnerVM.PatternMatcherParamCount.find(functionname) != Generator.OwnerVM.PatternMatcherParamCount.end())
 	{
-		Value* v1 = LibJITContext.ValuesOnStack.top();
-		LibJITContext.ValuesOnStack.pop();
+		nativematcher = Generator.GetGeneratedPatternMatcher(functionname, internaloffset);
+		numparams = Generator.OwnerVM.PatternMatcherParamCount.find(functionname)->second;
 
-		Value* v2 = LibJITContext.ValuesOnStack.top();
-		LibJITContext.ValuesOnStack.pop();
-
-		if(v2->getType()->isPointerTy())
+		for(size_t i = 0; i < numparams; ++i)
 		{
-			Metadata::EpochTypeID paramepochtype = TypeAnnotations.top();
-			Value* annotation = ConstantInt::get(Type::getInt32Ty(Context), paramepochtype);
-			TypeAnnotations.pop();
+			Value* v = LibJITContext.ValuesOnStack.top();
+			LibJITContext.ValuesOnStack.pop();
 
-			matchervarargs.push_back(annotation);
-			matchervarargs.push_back(Builder.CreatePointerCast(v2, Type::getInt8PtrTy(Context)));
+			matchervarargs.push_back(v);
 		}
-		else
+	}
+	else
+	{
+		if(Generator.OwnerVM.TypeMatcherParamCount.find(functionname) == Generator.OwnerVM.TypeMatcherParamCount.end())
+			throw FatalException("Cannot invoke VM code from native code");
+
+		nativematcher = Generator.GetGeneratedTypeMatcher(functionname, internaloffset);
+		numparams = Generator.OwnerVM.TypeMatcherParamCount.find(functionname)->second;
+
+		for(size_t i = 0; i < numparams; ++i)
 		{
-			LoadInst* load = dyn_cast<LoadInst>(v2);
-			if(load)
+			Value* v1 = LibJITContext.ValuesOnStack.top();
+			LibJITContext.ValuesOnStack.pop();
+
+			Value* v2 = LibJITContext.ValuesOnStack.top();
+			LibJITContext.ValuesOnStack.pop();
+
+			if(v2->getType()->isPointerTy())
 			{
-				matchervarargs.push_back(v1);
-				matchervarargs.push_back(Builder.CreatePointerCast(load->getOperand(0), Type::getInt8PtrTy(Context)));
+				Metadata::EpochTypeID paramepochtype = TypeAnnotations.top();
+				Value* annotation = ConstantInt::get(Type::getInt32Ty(Context), paramepochtype);
+				TypeAnnotations.pop();
+
+				matchervarargs.push_back(annotation);
+				matchervarargs.push_back(Builder.CreatePointerCast(v2, Type::getInt8PtrTy(Context)));
 			}
 			else
 			{
-				Value* stacktemp = Builder.CreateAlloca(v2->getType());
-				Builder.CreateStore(v2, stacktemp);
+				LoadInst* load = dyn_cast<LoadInst>(v2);
+				if(load)
+				{
+					matchervarargs.push_back(v1);
+					matchervarargs.push_back(Builder.CreatePointerCast(load->getOperand(0), Type::getInt8PtrTy(Context)));
+				}
+				else
+				{
+					Value* stacktemp = Builder.CreateAlloca(v2->getType());
+					Builder.CreateStore(v2, stacktemp);
 
-				matchervarargs.push_back(v1);
-				matchervarargs.push_back(Builder.CreatePointerCast(stacktemp, Type::getInt8PtrTy(Context)));
+					matchervarargs.push_back(v1);
+					matchervarargs.push_back(Builder.CreatePointerCast(stacktemp, Type::getInt8PtrTy(Context)));
+				}
 			}
 		}
 	}
 
-	Value* v = Builder.CreateCall(nativetypematcher, matchervarargs);
+	Value* v = Builder.CreateCall(nativematcher, matchervarargs);
 	if(v->getType() != Type::getVoidTy(Context))
 		LibJITContext.ValuesOnStack.push(v);
 }
@@ -1867,6 +1923,11 @@ void FunctionJITHelper::InvokeIndirect(size_t& offset)
 // Generate type matching dispatcher prolog code for a given Epoch function set
 //
 void FunctionJITHelper::TypeMatch(size_t& offset)
+{
+	offset = EndOffset;
+}
+
+void FunctionJITHelper::PatternMatch(size_t& offset)
 {
 	offset = EndOffset;
 }
@@ -2077,6 +2138,121 @@ void NativeCodeGenerator::AddNativeTypeMatcher(size_t beginoffset, size_t endoff
 
 		default:
 			throw FatalException("Invalid instruction in type matcher");
+		}
+	}
+}
+
+
+
+void NativeCodeGenerator::AddNativePatternMatcher(size_t beginoffset, size_t endoffset)
+{
+	Function* matcherfunction = Builder.GetInsertBlock()->getParent();
+	std::vector<Value*> argholders;
+
+	unsigned matchindex = 0;
+	StringHandle entityname = 0;
+
+	for(size_t offset = beginoffset; offset <= endoffset; )
+	{
+		Bytecode::Instruction instruction = Bytecode[offset++];
+		switch(instruction)
+		{
+		case Bytecode::Instructions::BeginEntity:
+			Fetch<Integer32>(Bytecode, offset);
+			entityname = Fetch<StringHandle>(Bytecode, offset);
+			break;
+
+		case Bytecode::Instructions::EndEntity:
+			break;
+
+		case Bytecode::Instructions::Halt:
+			Builder.CreateCall(Data->BuiltInFunctions[JITFunc_VM_Halt]);
+			Builder.CreateUnreachable();
+			break;
+
+		case Bytecode::Instructions::PatternMatch:
+			{
+				StringHandle targetfunc = Fetch<StringHandle>(Bytecode, offset);
+				size_t internaloffset = Fetch<size_t>(Bytecode, offset);
+				size_t paramcount = Fetch<size_t>(Bytecode, offset);
+
+				std::vector<Value*> actualparams;
+				BasicBlock* nextmatcher = BasicBlock::Create(Data->Context, "nextmatcher", matcherfunction);
+
+				Function::arg_iterator argiter = matcherfunction->arg_begin();
+
+				if(argholders.empty())
+				{
+					for(size_t i = 0; i < paramcount; ++i)
+					{
+						Value* argument = argiter;
+						++argiter;
+
+						argholders.push_back(argument);
+					}
+				}
+
+				for(size_t i = 0; i < paramcount; ++i)
+				{
+					Metadata::EpochTypeID paramtype = Fetch<Metadata::EpochTypeID>(Bytecode, offset);
+					Byte needsmatch = Fetch<Byte>(Bytecode, offset);
+
+					BasicBlock* nextparamblock = BasicBlock::Create(Data->Context, "nextparam", matcherfunction);
+					
+					if(needsmatch)
+					{
+						Value* eq = NULL;
+
+						switch(paramtype)
+						{
+						case Metadata::EpochType_Integer:
+							{
+								Integer32 value = Fetch<Integer32>(Bytecode, offset);
+								Value* constval = ConstantInt::get(Type::getInt32Ty(Data->Context), value);
+								eq = Builder.CreateICmpEQ(constval, argholders[i]);
+							}
+							break;
+
+						default:
+							throw NotImplementedException("Cannot JIT pattern matcher of this type");
+						}
+
+						Builder.CreateCondBr(eq, nextparamblock, nextmatcher);
+					}
+					else
+					{
+						actualparams.push_back(argholders[i]);
+						Builder.CreateBr(nextparamblock);						
+					}
+
+					Builder.SetInsertPoint(nextparamblock);
+				}
+
+				Function* targetinnerfunc = GetGeneratedFunction(targetfunc, internaloffset);
+
+				std::vector<Value*> resolvedargs;
+				for(std::vector<Value*>::const_reverse_iterator argiter = actualparams.rbegin(); argiter != actualparams.rend(); ++argiter)
+					resolvedargs.push_back(*argiter);
+
+				if(targetinnerfunc->getReturnType() != Type::getVoidTy(Data->Context))
+				{
+					CallInst* matchret = Builder.CreateCall(targetinnerfunc, resolvedargs);
+					Builder.CreateRet(matchret);
+				}
+				else
+				{
+					Builder.CreateCall(targetinnerfunc, resolvedargs);
+					Builder.CreateRetVoid();
+				}
+
+				Builder.SetInsertPoint(nextmatcher);
+			}
+
+			++matchindex;
+			break;
+
+		default:
+			throw FatalException("Invalid instruction in pattern matcher");
 		}
 	}
 }

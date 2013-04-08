@@ -59,9 +59,11 @@ namespace JIT
 		llvm::FunctionType* GetLLVMFunctionTypeFromEpochType(Metadata::EpochTypeID type);
 
 		void AddNativeTypeMatcher(size_t beginoffset, size_t endoffset);
+		void AddNativePatternMatcher(size_t beginoffset, size_t endoffset);
 		
 		llvm::Function* GetGeneratedFunction(StringHandle funcname, size_t beginoffset);
 		llvm::Function* GetGeneratedTypeMatcher(StringHandle funcname, size_t beginoffset);
+		llvm::Function* GetGeneratedPatternMatcher(StringHandle funcname, size_t beginoffset);
 		llvm::Function* GetGeneratedGlobalInit(StringHandle entityname);
 
 	// Internal tracking

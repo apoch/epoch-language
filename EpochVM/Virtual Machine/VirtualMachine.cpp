@@ -658,8 +658,8 @@ void ExecutionContext::Load()
 				OwnerVM.PatternMatcherParamCount[patternmatcherid] = paramcount;
 				OwnerVM.PatternMatcherRetType[patternmatcherid] = OwnerVM.GetScopeDescription(funcname).GetReturnVariableType();
 
-				if(!OwnerVM.PatternMatcherDispatchHint[patternmatcherid])
-					OwnerVM.PatternMatcherDispatchHint[patternmatcherid] = funcname;
+				//if(!OwnerVM.PatternMatcherDispatchHint[patternmatcherid])
+				OwnerVM.PatternMatcherDispatchHint[patternmatcherid] = funcname;
 			}
 			break;
 
