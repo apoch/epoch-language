@@ -100,5 +100,8 @@ namespace JIT
 		std::map<llvm::Value*, llvm::Function*> GeneratedCallbackWrappers;
 	};
 
+
+	void DestructLLVMModule();
+
 }
 

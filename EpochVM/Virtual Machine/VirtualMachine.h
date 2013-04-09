@@ -202,9 +202,10 @@ namespace VM
 
 	class ExecutionContext
 	{
-	// Construction
+	// Construction and destruction
 	public:
 		ExecutionContext(VirtualMachine& owner, Bytecode::Instruction* codebuffer, size_t codesize);
+		~ExecutionContext();
 
 	// Non-copyable
 	private:

@@ -2693,3 +2693,11 @@ void* NativeCodeGenerator::GenerateCallbackWrapper(void* targetfunc)
 	return ee->getPointerToFunction(wrapfunc);
 }
 
+
+
+void JIT::DestructLLVMModule()
+{
+	delete LazyModule;
+	LazyModule = NULL;
+}
+

@@ -332,6 +332,11 @@ ExecutionContext::ExecutionContext(VirtualMachine& ownervm, Bytecode::Instructio
 {
 }
 
+ExecutionContext::~ExecutionContext()
+{
+	JIT::DestructLLVMModule();
+}
+
 void ExecutionContext::Execute()
 {
 	void SetGlobalExecutionContext(VM::ExecutionContext* context);
