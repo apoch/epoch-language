@@ -19,6 +19,7 @@
 #include <list>
 
 
+extern "C" void VMHalt();
 extern VM::ExecutionContext* GlobalContext;
 
 
@@ -27,152 +28,6 @@ namespace
 
 	// Map function names to the corresponding invocation record
 	std::map<StringHandle, VM::DLLInvocationInfo> DLLInvocationMap;
-
-
-
-	//
-	// Track the mapping between generated callback stubs and
-	// the Epoch functions they are intended to invoke
-	//
-	class MarshalingController
-	{
-		typedef std::map<StringHandle, void*> MarshalingMapT;
-		MarshalingMapT MarshaledCallbackMap;
-
-		// Record describing each allocated stub buffer
-		struct StubSpaceRecord
-		{
-			void* StartOfSpace;
-			void* NextAvailableSlot;
-		};
-
-		std::vector<StubSpaceRecord> StubSpaceList;
-
-		Threads::CriticalSection MarshalingCriticalSection;
-
-	public:
-		//
-		// When the controller is destructed, automatically clean up all generated stubs
-		//
-		~MarshalingController()
-		{
-			Threads::CriticalSection::Auto mutex(MarshalingCriticalSection);
-
-			MarshaledCallbackMap.clear();
-
-			for(std::vector<StubSpaceRecord>::iterator iter = StubSpaceList.begin(); iter != StubSpaceList.end(); ++iter)
-				::VirtualFree(iter->StartOfSpace, 0, MEM_RELEASE);
-
-			StubSpaceList.clear();
-		}
-
-	private:
-		//
-		// Allocate a new chunk of space for generated callback shims
-		//
-		// WARNING: assumes the critical section is already entered!
-		//
-		void* AllocNewStubSpace()
-		{
-			StubSpaceRecord rec;
-			rec.StartOfSpace = ::VirtualAlloc(NULL, 4096, MEM_COMMIT, PAGE_EXECUTE_READWRITE);
-			rec.NextAvailableSlot = rec.StartOfSpace;
-			StubSpaceList.push_back(rec);
-			return rec.NextAvailableSlot;
-		}
-
-		//
-		// Retrieve the next available slot for generating a new callback shim
-		//
-		// WARNING: assumes the critical section is already entered!
-		//
-		void* GetStubSpace()
-		{
-			if(StubSpaceList.empty())
-				return AllocNewStubSpace();
-
-			for(std::vector<StubSpaceRecord>::iterator iter = StubSpaceList.begin(); iter != StubSpaceList.end(); ++iter)
-			{
-				Byte* start = reinterpret_cast<Byte*>(iter->StartOfSpace);
-				Byte* nextslot = reinterpret_cast<Byte*>(iter->NextAvailableSlot);
-
-				if(nextslot < start + 4000)
-				{
-					nextslot += 64;
-					iter->NextAvailableSlot = nextslot;
-					return nextslot;
-				}
-			}
-
-			return AllocNewStubSpace();
-		}
-
-	public:
-		//
-		// Request the marshaling system to provide a callback stub for the
-		// given Epoch function. The address of the stub is returned and can
-		// be handed off to external code as the callback function.
-		//
-		// Each generated stub or shim contains a sequence of machine code
-		// instructions which perform two central tasks: first, we push some
-		// hard-coded parameters onto the stack, then we invoke the callback
-		// helper function CallbackEntryPoint defined above. The parameters
-		// provide the execution context and Epoch callback function name
-		// which should be used to resume execution.
-		//
-		void* RequestMarshaledCallback(VM::ExecutionContext& context, StringHandle callbackfunction)
-		{
-			STATIC_ASSERT(sizeof(UINT_PTR) == 4);
-
-			Threads::CriticalSection::Auto mutex(MarshalingCriticalSection);
-
-			// Check if we have already generated a stub for this function
-			MarshalingMapT::const_iterator iter = MarshaledCallbackMap.find(callbackfunction);
-			if(iter != MarshaledCallbackMap.end())
-				return iter->second;
-
-			// Generate a new callback stub
-			void* stubspace = GetStubSpace();
-
-			UByte* rawbytes = reinterpret_cast<UByte*>(stubspace);
-			UINT_PTR stubaddress = static_cast<UINT_PTR>(0);			// TODO
-			UINT_PTR callbackaddress = static_cast<UINT_PTR>(callbackfunction);
-			UINT_PTR contextaddress = reinterpret_cast<UINT_PTR>(&context);
-
-			// mov ecx, (address)
-			rawbytes[0] = 0xB9;
-			rawbytes[1] = static_cast<unsigned char>((stubaddress) & 0xFF);
-			rawbytes[2] = static_cast<unsigned char>((stubaddress >> 8) & 0xFF);
-			rawbytes[3] = static_cast<unsigned char>((stubaddress >> 16) & 0xFF);
-			rawbytes[4] = static_cast<unsigned char>((stubaddress >> 24) & 0xFF);
-
-			// mov edx, (function address)
-			rawbytes[5] = 0xBA;
-			rawbytes[6] = static_cast<unsigned char>((callbackaddress) & 0xFF);
-			rawbytes[7] = static_cast<unsigned char>((callbackaddress >> 8) & 0xFF);
-			rawbytes[8] = static_cast<unsigned char>((callbackaddress >> 16) & 0xFF);
-			rawbytes[9] = static_cast<unsigned char>((callbackaddress >> 24) & 0xFF);
-
-			// mov eax, (context address)
-			rawbytes[10] = 0xB8;
-			rawbytes[11] = static_cast<unsigned char>((contextaddress) & 0xFF);
-			rawbytes[12] = static_cast<unsigned char>((contextaddress >> 8) & 0xFF);
-			rawbytes[13] = static_cast<unsigned char>((contextaddress >> 16) & 0xFF);
-			rawbytes[14] = static_cast<unsigned char>((contextaddress >> 24) & 0xFF);
-
-			// jmp ecx
-			rawbytes[15] = 0xFF;
-			rawbytes[16] = 0xE1;
-
-			MarshaledCallbackMap[callbackfunction] = &rawbytes[0];
-
-			return (&rawbytes[0]);
-		}
-	};
-
-	// Instantiate a controller for marshaling callbacks
-	MarshalingController MarshalControl;
-
 
 
 	//
@@ -212,13 +67,6 @@ namespace
 				buffer += sizeof(const wchar_t*);
 				break;
 
-			/*
-			case EpochType_Function:
-				*reinterpret_cast<void**>(buffer) = MarshalControl.RequestMarshaledCallback(context, *reinterpret_cast<StringHandle*>(reinterpret_cast<char*>(structure) + definition.GetMemberOffset(j)));
-				buffer += sizeof(void*);
-				break;
-				*/
-
 			case EpochType_Buffer:
 				*reinterpret_cast<void**>(buffer) = context.OwnerVM.GetBuffer(*reinterpret_cast<BufferHandle*>(reinterpret_cast<char*>(structure) + definition.GetMemberOffset(j)));
 				buffer += sizeof(void*);
@@ -234,6 +82,11 @@ namespace
 						return false;
 
 					buffer += nesteddefinition.GetMarshaledSize();
+				}
+				else if(Metadata::GetTypeFamily(membertype) == Metadata::EpochTypeFamily_Function)
+				{
+					*reinterpret_cast<void**>(buffer) = context.JITCallback(*reinterpret_cast<void**>(reinterpret_cast<char*>(structure) + definition.GetMemberOffset(j)));
+					buffer += sizeof(void*);
 				}
 				else
 					return false;
@@ -376,15 +229,13 @@ EPOCHVM void VM::MarshalBufferIntoStructureData(VM::ExecutionContext& context, S
 			}
 			else
 			{
-				// TODO - halt VM with exception
+				VMHalt();
 				return;
 			}
 		}
 	}
 }
 
-
-extern "C" void VMHalt();
 
 void VM::PopulateWeakLinkages(const std::map<StringHandle, llvm::Function*>& externalfunctions, llvm::ExecutionEngine* ee)
 {
@@ -415,7 +266,8 @@ extern "C" void* MarshalConvertStructure(StructureHandle handle)
 
 	Byte* buffer = new Byte[s.Definition.GetMarshaledSize()];
 
-	MarshalStructureDataIntoBuffer(*GlobalContext, handle, s.Definition, buffer);
+	if(!MarshalStructureDataIntoBuffer(*GlobalContext, handle, s.Definition, buffer))
+		VMHalt();
 
 	return buffer;
 }

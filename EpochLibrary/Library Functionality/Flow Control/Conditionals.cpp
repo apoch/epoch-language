@@ -41,6 +41,7 @@ namespace
 		{
 			context.EntityBodies.pop();
 			builder->CreateBr(context.EntityChainExits.top());
+			builder->SetInsertPoint(context.EntityChains.top());
 		}
 	}
 
@@ -49,8 +50,6 @@ namespace
 		llvm::IRBuilder<>* builder = reinterpret_cast<llvm::IRBuilder<>*>(context.Builder);
 		if(entry)
 		{
-			builder->SetInsertPoint(context.EntityChains.top());
-
 			context.EntityBodies.push(llvm::BasicBlock::Create(*reinterpret_cast<llvm::LLVMContext*>(context.Context), "elseiftrue", context.InnerFunction));
 			context.EntityChains.push(llvm::BasicBlock::Create(*reinterpret_cast<llvm::LLVMContext*>(context.Context), "elseiffalse", context.InnerFunction));
 

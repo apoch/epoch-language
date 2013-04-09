@@ -9,6 +9,9 @@
 #include "Utility/Types/IDTypes.h"
 
 
+class ScopeDescription;
+
+
 namespace llvm
 {
 	class Value;
@@ -74,6 +77,8 @@ namespace JIT
 		void* Builder;
 
 		llvm::Value* VarArgList;
+
+		const ScopeDescription* CurrentScope;
 	};
 
 

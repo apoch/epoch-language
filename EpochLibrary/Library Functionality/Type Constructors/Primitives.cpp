@@ -48,6 +48,9 @@ namespace
 		llvm::ConstantInt* cint = llvm::dyn_cast<llvm::ConstantInt>(c);
 		size_t vartarget = static_cast<size_t>(cint->getValue().getLimitedValue());
 
+		if(context.NameToIndexMap.find(vartarget) == context.NameToIndexMap.end())
+			throw FatalException("Invalid binding target");
+
 		reinterpret_cast<llvm::IRBuilder<>*>(context.Builder)->CreateStore(p2, context.VariableMap[context.NameToIndexMap[vartarget]], false);
 	}
 

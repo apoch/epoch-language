@@ -75,6 +75,15 @@ namespace JIT
 	namespace impl
 	{
 
+		Module* LazyModule = NULL;
+		Module* LazyInitModule()
+		{
+			if(!LazyModule)
+				LazyModule = new Module("EpochJIT", getGlobalContext());
+
+			return LazyModule;
+		}
+
 		//
 		// The JIT operations maintain a lot of state and other data
 		// which is useful to sort and centralize in some manner. We
@@ -83,7 +92,7 @@ namespace JIT
 		//
 		struct LLVMData
 		{
-			LLVMData();
+			explicit LLVMData(Module* module);
 
 			LLVMContext& Context;
 
@@ -99,6 +108,7 @@ namespace JIT
 			std::map<std::string, Function*> GeneratedFunctions;
 			std::map<std::string, Function*> GeneratedNativeTypeMatchers;
 			std::map<StringHandle, Function*> GeneratedNameToFunctionMap;
+			std::map<Function*, StringHandle> GeneratedFunctionToNameMap;
 
 			std::map<Metadata::EpochTypeID, StructType*> SumTypeCache;
 
@@ -139,7 +149,7 @@ namespace JIT
 
 		// Global init JIT interface
 		public:
-			void DoGlobalInit(size_t beginoffset);
+			void DoGlobalInit(size_t beginoffset, StringHandle alias);
 
 		// Instruction handlers
 		private:
@@ -200,8 +210,6 @@ namespace JIT
 			size_t BeginOffset;
 			size_t EndOffset;
 
-			const ScopeDescription* CurrentScope;
-
 			unsigned NumParameters;
 			unsigned NumParameterBytes;
 			unsigned NumReturns;
@@ -219,11 +227,10 @@ namespace JIT
 		//
 		// Construct and initialize an LLVM data wrapper object
 		//
-		LLVMData::LLVMData() :
-			Context(getGlobalContext())
+		LLVMData::LLVMData(Module* module) :
+			Context(getGlobalContext()),
+			CurrentModule(module)
 		{
-			CurrentModule = new Module("EpochJIT", Context);
-
 			VMTypeIDType = Type::getInt32Ty(Context);
 			VMBufferHandleType = Type::getInt32Ty(Context);
 			VMStructureHandleType = Type::getInt8PtrTy(Context);
@@ -367,7 +374,7 @@ using namespace JIT::impl;
 NativeCodeGenerator::NativeCodeGenerator(VM::VirtualMachine& ownervm, const Bytecode::Instruction* bytecode)
 	: OwnerVM(ownervm),
 	  Bytecode(bytecode),
-	  Data(new LLVMData),
+	  Data(new LLVMData(LazyInitModule())),
 	  Builder(Data->Context)
 {
 	InitializeNativeTarget();
@@ -388,7 +395,7 @@ NativeCodeGenerator::~NativeCodeGenerator()
 Function* NativeCodeGenerator::GetGeneratedFunction(StringHandle funcname, size_t beginoffset)
 {
 	std::ostringstream name;
-	name << "JITFuncInner_" << beginoffset;
+	name << "JIT_" << narrow(OwnerVM.GetPooledString(funcname)) << "_" << beginoffset;
 
 	Function* targetinnerfunc = NULL;
 	FunctionType* targetinnerfunctype = GetLLVMFunctionType(funcname);
@@ -396,6 +403,7 @@ Function* NativeCodeGenerator::GetGeneratedFunction(StringHandle funcname, size_
 	{
 		targetinnerfunc = Function::Create(targetinnerfunctype, Function::ExternalLinkage, name.str().c_str(), Data->CurrentModule);
 		Data->GeneratedFunctions[name.str()] = targetinnerfunc;
+		Data->GeneratedFunctionToNameMap[targetinnerfunc] = funcname;
 	}
 	else
 		targetinnerfunc = Data->GeneratedFunctions[name.str()];
@@ -468,6 +476,7 @@ Function* NativeCodeGenerator::GetGeneratedGlobalInit(StringHandle entityname)
 	{
 		targetinnerfunc = Function::Create(targetinnerfunctype, Function::ExternalLinkage, name.str().c_str(), Data->CurrentModule);
 		Data->GeneratedFunctions[name.str()] = targetinnerfunc;
+		Data->GeneratedFunctionToNameMap[targetinnerfunc] = entityname;
 	}
 	else
 		targetinnerfunc = Data->GeneratedFunctions[name.str()];
@@ -722,10 +731,10 @@ void NativeCodeGenerator::AddFunction(size_t beginoffset, size_t endoffset, Stri
 //
 // Add a global initialization entity to the JIT module
 //
-void NativeCodeGenerator::AddGlobalEntity(size_t beginoffset)
+void NativeCodeGenerator::AddGlobalEntity(size_t beginoffset, StringHandle alias)
 {
 	FunctionJITHelper jithelper(*this);
-	jithelper.DoGlobalInit(beginoffset);
+	jithelper.DoGlobalInit(beginoffset, alias);
 }
 
 EPOCHVM void NativeCodeGenerator::ExternalInvoke(JIT::JITContext& context, StringHandle alias)
@@ -840,6 +849,8 @@ void NativeCodeGenerator::Generate()
 	ExecutionEngine* ee = EngineBuilder(Data->CurrentModule).setErrorStr(&ErrStr).create(machine);
 	if(!ee)
 		return;
+
+	ee->DisableLazyCompilation(true);
 	
 	FunctionPassManager fpm(Data->CurrentModule);
 
@@ -921,6 +932,8 @@ void NativeCodeGenerator::Generate()
 			OwnerVM.EntryPointFunc = p;
 		else if(iter->second == Data->GlobalInit)
 			OwnerVM.GlobalInitFunc = p;
+
+		OwnerVM.GeneratedJITFunctionCode[p] = std::make_pair(iter->second, Data->GeneratedFunctionToNameMap[iter->second]);
 	}
 
 	// This is a no-op unless we enabled stats above
@@ -1027,7 +1040,7 @@ void FunctionJITHelper::DoFunction(size_t beginoffset, size_t endoffset, StringH
 	}
 
 	// Initialize tracking for JIT operations
-	CurrentScope = NULL;
+	LibJITContext.CurrentScope = NULL;
 
 	NumParameters = 0;
 	NumParameterBytes = 0;
@@ -1096,7 +1109,7 @@ void FunctionJITHelper::DoFunction(size_t beginoffset, size_t endoffset, StringH
 //
 // Process a global variable initialization block
 //
-void FunctionJITHelper::DoGlobalInit(size_t beginoffset)
+void FunctionJITHelper::DoGlobalInit(size_t beginoffset, StringHandle alias)
 {
 	LibJITContext.Builder = &Builder;
 	LibJITContext.Context = &Context;
@@ -1109,7 +1122,7 @@ void FunctionJITHelper::DoGlobalInit(size_t beginoffset)
 	LibJITContext.BuiltInFunctions = &Generator.Data->BuiltInFunctions;
 
 	// Initialize tracking for JIT operations
-	CurrentScope = NULL;
+	LibJITContext.CurrentScope = &Generator.OwnerVM.GetScopeDescription(alias);
 
 	NumParameters = 0;
 	NumParameterBytes = 0;
@@ -1183,7 +1196,7 @@ void FunctionJITHelper::BeginEntity(size_t& offset)
 		size_t retindex = static_cast<size_t>(-1);
 
 		const ScopeDescription& scope = Generator.OwnerVM.GetScopeDescription(entityname);
-		CurrentScope = &scope;
+		LibJITContext.CurrentScope = &scope;
 		for(size_t i = scope.GetVariableCount(); i-- > 0; )
 		{
 			Metadata::EpochTypeID vartype = scope.GetVariableTypeByIndex(i);
@@ -1248,7 +1261,7 @@ void FunctionJITHelper::BeginEntity(size_t& offset)
 		Function::ArgumentListType& args = LibJITContext.InnerFunction->getArgumentList();
 		for(Function::ArgumentListType::iterator argiter = args.begin(); argiter != args.end(); ++argiter)
 		{
-			if(CurrentScope->IsReference(i))
+			if(LibJITContext.CurrentScope->IsReference(i))
 			{
 				LibJITContext.VariableMap[i++] = ((Argument*)argiter);
 				continue;
@@ -1325,7 +1338,19 @@ void FunctionJITHelper::BeginEntity(size_t& offset)
 				init = ConstantInt::get(Type::getInt32Ty(Context), 0); 
 				break;
 
+			case Metadata::EpochType_Buffer:
+				init = ConstantInt::get(Type::getInt32Ty(Context), 0); 
+				break;
+
 			default:
+				{
+					Metadata::EpochTypeFamily family = Metadata::GetTypeFamily(localtype);
+					if(family == Metadata::EpochTypeFamily_Structure || family == Metadata::EpochTypeFamily_TemplateInstance)
+					{
+						init = ConstantPointerNull::get(Type::getInt8PtrTy(Context));
+						break;
+					}
+				}
 				throw NotImplementedException("Unsupported global variable type");
 			}
 
@@ -1341,8 +1366,9 @@ void FunctionJITHelper::BeginEntity(size_t& offset)
 
 		for(std::map<StringHandle, size_t>::const_iterator iter = Generator.Data->GlobalVariableNameToIndexMap.begin(); iter != Generator.Data->GlobalVariableNameToIndexMap.end(); ++iter)
 		{
-			size_t index = iter->second + 0xf0000000;
+			size_t index = iter->second;
 			LibJITContext.VariableMap[index] = Generator.Data->GlobalVariableMap[iter->second];
+			LibJITContext.VariableMap[index + 0xf0000000] = Generator.Data->GlobalVariableMap[iter->second];
 			LibJITContext.NameToIndexMap[iter->first] = index;
 		}
 	}
@@ -1412,11 +1438,14 @@ void FunctionJITHelper::EndChain(size_t&)
 void FunctionJITHelper::Read(size_t& offset)
 {
 	StringHandle varname = Fetch<StringHandle>(Bytecode, offset);
+	if(LibJITContext.NameToIndexMap.find(varname) == LibJITContext.NameToIndexMap.end())
+		throw FatalException("Name not mapped to index");
+
 	size_t index = LibJITContext.NameToIndexMap[varname];
 
-	if(Builder.GetInsertBlock()->getParent()->isVarArg() && (CurrentScope->GetVariableOrigin(index) != VARIABLE_ORIGIN_RETURN))
+	if(Builder.GetInsertBlock()->getParent()->isVarArg() && (LibJITContext.CurrentScope->GetVariableOrigin(index) != VARIABLE_ORIGIN_RETURN))
 	{
-		Metadata::EpochTypeID vartype = CurrentScope->GetVariableTypeByIndex(index);
+		Metadata::EpochTypeID vartype = LibJITContext.CurrentScope->GetVariableTypeByIndex(index);
 		if(Metadata::GetTypeFamily(vartype) == Metadata::EpochTypeFamily_SumType)
 		{
 			Value* payload = Builder.CreateVAArg(LibJITContext.VarArgList, Generator.GetLLVMSumType(vartype, true)->getContainedType(1));
@@ -1452,9 +1481,6 @@ void FunctionJITHelper::Read(size_t& offset)
 	else
 	{
 		Value* v = Builder.CreateLoad(LibJITContext.VariableMap[index]);
-		//if(CurrentScope->IsReferenceByID(varname))
-		//	v = Builder.CreateLoad(v);
-
 		LibJITContext.ValuesOnStack.push(v);
 	}
 }
@@ -1477,17 +1503,23 @@ void FunctionJITHelper::ReadStackLocal(size_t& offset)
 	Metadata::EpochTypeID type = Metadata::EpochType_Error;
 	Value* v = NULL;
 	
-	if (frames == 0)
+	if(frames == 0)
 	{
+		if(LocalOffsetToIndexMap.find(stackoffset) == LocalOffsetToIndexMap.end())
+			throw FatalException("Invalid stack offset");
+
 		size_t index = LocalOffsetToIndexMap[stackoffset];
-		type = CurrentScope->GetVariableTypeByIndex(index);
+		type = LibJITContext.CurrentScope->GetVariableTypeByIndex(index);
 		v = LibJITContext.VariableMap[index];
 	}
 	else
 	{
-		const ScopeDescription* scope = CurrentScope;
+		const ScopeDescription* scope = LibJITContext.CurrentScope;
 		while(scope->ParentScope)
 			scope = scope->ParentScope;
+
+		if(Generator.Data->GlobalVariableOffsetToIndexMap.find(stackoffset) == Generator.Data->GlobalVariableOffsetToIndexMap.end())
+			throw FatalException("Invalid global offset");
 
 		size_t index = Generator.Data->GlobalVariableOffsetToIndexMap[stackoffset];
 		type = scope->GetVariableTypeByIndex(index);
@@ -1532,8 +1564,6 @@ void FunctionJITHelper::ReadParameter(size_t& offset)
 				
 	size_t idx = ParameterOffsetToIndexMap[stackoffset];
 	Value* val = Builder.CreateLoad(LibJITContext.VariableMap[idx]);
-	//if(CurrentScope->IsReference(idx))
-	//	val = Builder.CreateLoad(val);
 	LibJITContext.ValuesOnStack.push(val);
 }
 
@@ -1550,24 +1580,34 @@ void FunctionJITHelper::BindReference(size_t& offset)
 	size_t frames = Fetch<size_t>(Bytecode, offset);
 	size_t index = Fetch<size_t>(Bytecode, offset);
 
-	if(frames > 0)
+	if((frames != 0) && (frames != (unsigned)(-1)))		// TODO - this is an ugly hardcoded hack
 		throw NotImplementedException("Scope is not flat!");
 
-	Metadata::EpochTypeID vartype = CurrentScope->GetVariableTypeByIndex(index);
+	Metadata::EpochTypeID vartype = Metadata::EpochType_Error;
+	
+	if(frames == 0)
+	{
+		vartype = LibJITContext.CurrentScope->GetVariableTypeByIndex(index);
+	}
+	else
+	{
+		const ScopeDescription* scope = LibJITContext.CurrentScope;
+		while(scope->ParentScope)
+			scope = scope->ParentScope;
 
-	if(Builder.GetInsertBlock()->getParent()->isVarArg() && (CurrentScope->GetVariableOrigin(index) != VARIABLE_ORIGIN_RETURN))
+		vartype = scope->GetVariableTypeByIndex(index);
+		index += 0xf0000000;
+	}
+
+	if(Builder.GetInsertBlock()->getParent()->isVarArg() && (LibJITContext.CurrentScope->GetVariableOrigin(index) != VARIABLE_ORIGIN_RETURN))
 	{
 		Value* ptr = Builder.CreateVAArg(LibJITContext.VarArgList, Generator.GetLLVMType(vartype)->getPointerTo());
 		LibJITContext.ValuesOnStack.push(ptr);
-
 		LibJITContext.VariableMap[index] = ptr;
 	}
 	else
 	{
 		Value* ptr = LibJITContext.VariableMap[index];
-		//if(CurrentScope->IsReference(index))
-		//	ptr = Builder.CreateLoad(ptr);
-
 		LibJITContext.ValuesOnStack.push(ptr);
 	}
 
@@ -1967,10 +2007,14 @@ void FunctionJITHelper::Invoke(size_t& offset)
 		if(!func)
 			func = Generator.LibraryFunctionCache[libiter->second] = Function::Create(ftype, Function::ExternalLinkage, libiter->second, Generator.Data->CurrentModule);
 
+		const FunctionSignature& sig = Generator.OwnerVM.LibraryFunctionSignatures.find(target)->second;
+
 		std::vector<llvm::Value*> args;
-		for(size_t i = 0; i < ftype->getNumParams(); ++i)
+		for(size_t i = sig.GetNumParameters(); i-- > 0; )
 		{
-			args.push_back(LibJITContext.ValuesOnStack.top());
+			if(!sig.GetParameter(i).HasPayload)
+				args.push_back(LibJITContext.ValuesOnStack.top());
+
 			LibJITContext.ValuesOnStack.pop();
 		}
 
@@ -2086,7 +2130,10 @@ void FunctionJITHelper::InvokeNative(size_t& offset)
 
 				// Add type signature param if need be
 				if(Metadata::GetTypeFamily(desc.GetVariableTypeByIndex(i)) == Metadata::EpochTypeFamily_SumType)
-					++paramcount;
+				{
+					if(targetfunc->isVarArg())
+						++paramcount;
+				}
 			}
 		}
 
@@ -2601,5 +2648,48 @@ Value* NativeCodeGenerator::GetCallbackWrapper(Value* funcptr)
 	Builder.CreateStore(funcptr, globalfuncptr);
 	GeneratedCallbackWrappers[globalfuncptr] = ret;
 	return ret;
+}
+
+void* NativeCodeGenerator::GenerateCallbackWrapper(void* targetfunc)
+{
+	Function* llvmtargetfunc = reinterpret_cast<Function*>(OwnerVM.GeneratedJITFunctionCode[targetfunc].first);
+
+	StringHandle alias = OwnerVM.GeneratedJITFunctionCode[targetfunc].second;
+	FunctionType* ftype = GetExternalFunctionType(alias);
+	Function* wrapfunc = Function::Create(ftype, GlobalValue::ExternalWeakLinkage, "", Data->CurrentModule);
+
+	// TODO - support non-stdcall callbacks?
+	wrapfunc->setCallingConv(CallingConv::X86_StdCall);
+
+	BasicBlock* block = BasicBlock::Create(Data->Context, "wrap", wrapfunc);
+	Builder.SetInsertPoint(block);
+
+	std::vector<Value*> args;
+	Function::arg_iterator argiter = wrapfunc->arg_begin();
+	for(size_t i = 0; i < wrapfunc->getFunctionType()->getNumParams(); ++i)
+	{
+		// TODO - HACK - assumes parameters are the only vars we have, and return is not mixed in with them
+		Value* val = (Argument*)(argiter);
+		val = MarshalArgument(val, OwnerVM.GetScopeDescription(alias).GetVariableTypeByIndex(i));
+
+		args.push_back(val);
+		++argiter;
+	}
+
+	Constant* constaddr = ConstantInt::get(Type::getInt32Ty(Data->Context), (Integer32)(targetfunc));
+	Value* jittedtarget = Builder.CreateIntToPtr(constaddr, llvmtargetfunc->getType());
+
+	if(wrapfunc->getFunctionType()->getReturnType() == Type::getVoidTy(Data->Context))
+	{
+		Builder.CreateCall(jittedtarget, args);
+		Builder.CreateRetVoid();
+	}
+	else
+		Builder.CreateRet(Builder.CreateCall(jittedtarget, args));
+
+	//Data->CurrentModule->dump();	
+
+	ExecutionEngine* ee = EngineBuilder(Data->CurrentModule).create();
+	return ee->getPointerToFunction(wrapfunc);
 }
 

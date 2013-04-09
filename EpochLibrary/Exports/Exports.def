@@ -14,3 +14,4 @@ EXPORTS
 	EpochLib_SubstrLen			@11
 	EpochLib_SubstrNoLen		@12
 	EpochLib_StrNarrow			@13
+	EpochLib_CastRealToStr		@14

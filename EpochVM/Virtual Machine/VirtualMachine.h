@@ -169,6 +169,8 @@ namespace VM
 
 		std::map<Metadata::EpochTypeID, FunctionSignature> FunctionTypeToSignatureMap;
 
+		std::map<void*, std::pair<void*, StringHandle> > GeneratedJITFunctionCode;
+
 	// Handy type shortcuts
 	private:
 		typedef boost::unordered_map<StringHandle, size_t, fasthash> OffsetMap;
@@ -216,6 +218,10 @@ namespace VM
 	// Helpers for initializing the context
 	public:
 		void Load();
+
+	// JIT support
+	public:
+		void* JITCallback(void* targetfunc);
 
 	// Internal helpers for working with the bytecode stream
 	private:
@@ -265,6 +271,8 @@ namespace VM
 		size_t GarbageTick_Structures;
 
 		boost::unordered_set<StringHandle> StaticallyReferencedStrings;
+
+		std::map<void*, void*> TargetCallbackToJITFuncMap;
 	};
 
 }

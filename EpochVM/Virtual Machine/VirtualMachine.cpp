@@ -357,7 +357,9 @@ void ExecutionContext::Load()
 	std::stack<Bytecode::EntityTag> entitytypes;
 	std::stack<size_t> entitybeginoffsets;
 	std::stack<size_t> chainbeginoffsets;
+
 	size_t globalentityoffset = 0;
+	StringHandle globalentityname = 0;
 
 	std::set<StringHandle> jitworklist;
 	std::map<StringHandle, size_t> entityoffsetmap;
@@ -401,7 +403,10 @@ void ExecutionContext::Load()
 					patternmatcherid = 0;
 
 				if(entitytypes.top() == Bytecode::EntityTags::Globals)
+				{
+					globalentityname = name;
 					globalentityoffset = originaloffset;
+				}
 
 				entitybeginoffsets.push(originaloffset);
 				entityoffsetmap[name] = originaloffset;
@@ -740,7 +745,7 @@ void ExecutionContext::Load()
 		JIT::NativeCodeGenerator jitgen(OwnerVM, CodeBuffer);
 
 		if(globalentityoffset)
-			jitgen.AddGlobalEntity(globalentityoffset);
+			jitgen.AddGlobalEntity(globalentityoffset, globalentityname);
 
 		for(std::set<StringHandle>::const_iterator iter = jitworklist.begin(); iter != jitworklist.end(); ++iter)
 		{
@@ -1075,5 +1080,27 @@ std::wstring VirtualMachine::DebugSnapshot() const
 #endif
 	
 	return report.str();
+}
+
+
+
+
+void* ExecutionContext::JITCallback(void* stubfunc)
+{
+	// TODO - HACK - assume stub contains a jmp [targetfunc]
+	size_t val = *reinterpret_cast<size_t*>(reinterpret_cast<char*>(stubfunc) + 1);
+	char* addr = reinterpret_cast<char*>(stubfunc) + 5 + val;
+	void* targetfunc = addr;
+	// End hack
+
+	void* ret = TargetCallbackToJITFuncMap[targetfunc];
+	if(!ret)
+	{
+		JIT::NativeCodeGenerator gen(OwnerVM, CodeBuffer);
+		ret = gen.GenerateCallbackWrapper(targetfunc);
+		TargetCallbackToJITFuncMap[targetfunc] = ret;
+	}
+
+	return ret;
 }
 

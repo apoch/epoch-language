@@ -44,11 +44,12 @@ namespace JIT
 	// JIT code generation interface
 	public:
 		void AddFunction(size_t beginoffset, size_t endoffset, StringHandle alias);
-		void AddGlobalEntity(size_t beginoffset);
+		void AddGlobalEntity(size_t beginoffset, StringHandle alias);
 
 		EPOCHVM void ExternalInvoke(JIT::JITContext& context, StringHandle alias);
 
 		void Generate();
+		void* GenerateCallbackWrapper(void* targetfunc);
 
 	// Internal helpers
 	private:
@@ -81,12 +82,14 @@ namespace JIT
 
 		llvm::Value* GetCallbackWrapper(llvm::Value* funcptr);
 
+	// Visible tracking
+	public:
+		VM::VirtualMachine& OwnerVM;
 
 	// Internal tracking
 	private:
 		friend class impl::FunctionJITHelper;
 	
-		VM::VirtualMachine& OwnerVM;
 		const Bytecode::Instruction* Bytecode;
 
 		impl::LLVMData* Data;

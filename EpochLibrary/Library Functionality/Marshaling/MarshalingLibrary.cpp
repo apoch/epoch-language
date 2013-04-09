@@ -24,6 +24,21 @@ namespace
 	StringHandle SizeOfHandle = 0;
 	StringHandle MarshalStructureHandle = 0;
 
+
+	void SizeOfJIT(JIT::JITContext& context, bool)
+	{
+		llvm::Value* c = context.ValuesOnStack.top();
+		context.ValuesOnStack.pop();
+
+		llvm::ConstantInt* cint = llvm::dyn_cast<llvm::ConstantInt>(c);
+		size_t vartarget = static_cast<size_t>(cint->getValue().getLimitedValue());
+
+		size_t size = context.Generator->OwnerVM.GetStructureDefinition(context.CurrentScope->GetVariableTypeByID(vartarget)).GetMarshaledSize();
+		llvm::ConstantInt* csize = llvm::ConstantInt::get(llvm::Type::getInt32Ty(*reinterpret_cast<llvm::LLVMContext*>(context.Context)), size);
+
+		context.ValuesOnStack.push(csize);
+	}
+
 }
 
 
@@ -52,5 +67,11 @@ void MarshalingLibrary::PoolStrings(StringPoolManager& stringpool)
 {
 	SizeOfHandle = stringpool.Pool(L"sizeof");
 	MarshalStructureHandle = stringpool.Pool(L"marshalstructure");
+}
+
+
+void MarshalingLibrary::RegisterJITTable(JIT::JITTable& table)
+{
+	AddToMapNoDupe(table.InvokeHelpers, std::make_pair(SizeOfHandle, &SizeOfJIT));
 }
 

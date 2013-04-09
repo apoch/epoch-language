@@ -22,6 +22,8 @@
 using namespace VM;
 using namespace Metadata;
 
+extern VM::ExecutionContext* GlobalExecutionContext;
+
 
 namespace
 {
@@ -147,6 +149,8 @@ void TypeCasts::RegisterJITTable(JIT::JITTable& table)
 {
 	AddToMapNoDupe(table.InvokeHelpers, std::make_pair(CastRealToIntegerHandle, &CastRealToIntegerJIT));
 	AddToMapNoDupe(table.InvokeHelpers, std::make_pair(CastIntegerToRealHandle, &CastIntegerToRealJIT));
+
+	AddToMapNoDupe(table.LibraryExports, std::make_pair(CastRealToStringHandle, "EpochLib_CastRealToStr"));
 }
 
 
@@ -165,5 +169,15 @@ void TypeCasts::PoolStrings(StringPoolManager& stringpool)
 	CastBooleanToStringHandle = stringpool.Pool(L"cast@@boolean_to_string");
 	CastRealToStringHandle = stringpool.Pool(L"cast@@real_to_string");
 	CastBufferToStringHandle = stringpool.Pool(L"cast@@buffer_to_string");
+}
+
+
+
+extern "C" StringHandle EpochLib_CastRealToStr(float real)
+{
+	std::wostringstream convert;
+	convert << real;
+
+	return GlobalExecutionContext->OwnerVM.PoolString(convert.str());
 }
 
