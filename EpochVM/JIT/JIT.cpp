@@ -330,6 +330,14 @@ namespace JIT
 
 			{
 				std::vector<Type*> args;
+				args.push_back(Type::getInt8PtrTy(Context)->getPointerTo());
+				args.push_back(Type::getInt8PtrTy(Context));
+				FunctionType* ftype = FunctionType::get(Type::getVoidTy(Context), args, false);
+				BuiltInFunctions[JITFunc_Intrinsic_GCRoot] = Function::Create(ftype, Function::ExternalLinkage, "llvm.gcroot", CurrentModule);
+			}
+
+			{
+				std::vector<Type*> args;
 				args.push_back(Type::getInt8PtrTy(Context));
 				FunctionType* ftype = FunctionType::get(Type::getVoidTy(Context), args, false);
 				BuiltInFunctions[JITFunc_Intrinsic_VAStart] = Function::Create(ftype, Function::ExternalLinkage, "llvm.va_start", CurrentModule);
@@ -404,6 +412,8 @@ Function* NativeCodeGenerator::GetGeneratedFunction(StringHandle funcname, size_
 		targetinnerfunc = Function::Create(targetinnerfunctype, Function::ExternalLinkage, name.str().c_str(), Data->CurrentModule);
 		Data->GeneratedFunctions[name.str()] = targetinnerfunc;
 		Data->GeneratedFunctionToNameMap[targetinnerfunc] = funcname;
+
+		targetinnerfunc->setGC("EpochGC");
 	}
 	else
 		targetinnerfunc = Data->GeneratedFunctions[name.str()];
@@ -832,8 +842,8 @@ void NativeCodeGenerator::Generate()
 	opts.GuaranteedTailCallOpt = true;
 
 	// Turning off frame pointer elimination can make debugging a LOT smoother...
-	opts.NoFramePointerElim = false;
-	opts.NoFramePointerElimNonLeaf = false;
+	opts.NoFramePointerElim = true;
+	opts.NoFramePointerElimNonLeaf = true;
 
 	EngineBuilder eb(Data->CurrentModule);
 	eb.setEngineKind(EngineKind::JIT);
@@ -934,7 +944,10 @@ void NativeCodeGenerator::Generate()
 			OwnerVM.GlobalInitFunc = p;
 
 		OwnerVM.GeneratedJITFunctionCode[p] = std::make_pair(iter->second, Data->GeneratedFunctionToNameMap[iter->second]);
+		OwnerVM.GeneratedFunctionLLVMToMachineCodeMap[iter->second] = p;
 	}
+
+	OwnerVM.JITExecutionEngine = ee;
 
 	// This is a no-op unless we enabled stats above
 	// The numbers are very handy for A/B testing optimization passes
@@ -1285,6 +1298,15 @@ void FunctionJITHelper::BeginEntity(size_t& offset)
 				LibJITContext.VariableMap[*localiter] = Builder.CreateAlloca(type, NULL, narrow(Generator.OwnerVM.GetPooledString(scope.GetVariableNameHandle(*localiter))));
 
 			LocalOffsetToIndexMap[localoffsetbytes] = *localiter;
+
+			if(Metadata::GetTypeFamily(localtype) == Metadata::EpochTypeFamily_GC)
+			{
+				Value* signature = ConstantInt::get(Type::getInt32Ty(Context), localtype);
+				Value* constant = Builder.CreateIntToPtr(signature, Type::getInt8PtrTy(Context));
+
+				Value* castptr = Builder.CreatePointerCast(LibJITContext.VariableMap[*localiter], Type::getInt8PtrTy(Context)->getPointerTo());
+				Builder.CreateCall2(Generator.Data->BuiltInFunctions[JITFunc_Intrinsic_GCRoot], castptr, constant);
+			}
 
 			if(Metadata::GetTypeFamily(localtype) == Metadata::EpochTypeFamily_SumType)
 				localoffsetbytes += Generator.OwnerVM.VariantDefinitions.find(localtype)->second.GetMaxSize();

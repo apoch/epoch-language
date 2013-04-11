@@ -119,6 +119,9 @@
     <ClCompile Include="..\Shared\Utility\Memory\DLMalloc.cpp">
       <Filter>Shared\Utility\Memory</Filter>
     </ClCompile>
+    <ClCompile Include="JIT\GarbageCollection.cpp">
+      <Filter>JIT</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h">

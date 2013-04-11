@@ -102,6 +102,7 @@
     <ClCompile Include="..\Shared\Utility\Memory\DLMalloc.cpp" />
     <ClCompile Include="..\Shared\Utility\Profiling.cpp" />
     <ClCompile Include="Entry Point\EntryPoint.cpp" />
+    <ClCompile Include="JIT\GarbageCollection.cpp" />
     <ClCompile Include="JIT\JIT.cpp" />
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>

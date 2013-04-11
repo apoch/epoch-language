@@ -28,6 +28,7 @@ namespace JIT
 	{
 		JITFunc_Intrinsic_VAStart,
 		JITFunc_Intrinsic_VAEnd,
+		JITFunc_Intrinsic_GCRoot,
 		JITFunc_Intrinsic_Sqrt,
 
 		JITFunc_VM_Break,

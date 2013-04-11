@@ -170,6 +170,8 @@ namespace VM
 		std::map<Metadata::EpochTypeID, FunctionSignature> FunctionTypeToSignatureMap;
 
 		std::map<void*, std::pair<void*, StringHandle> > GeneratedJITFunctionCode;
+		std::map<void*, void*> GeneratedFunctionLLVMToMachineCodeMap;
+		void* JITExecutionEngine;
 
 	// Handy type shortcuts
 	private:
@@ -246,6 +248,7 @@ namespace VM
 	// Available state (for functions to operate on)
 	public:
 		VirtualMachine& OwnerVM;
+		boost::unordered_set<StringHandle> StaticallyReferencedStrings;
 
 	// Internal helpers for garbage collection
 	public:
@@ -270,8 +273,6 @@ namespace VM
 		size_t GarbageTick_Buffers;
 		size_t GarbageTick_Strings;
 		size_t GarbageTick_Structures;
-
-		boost::unordered_set<StringHandle> StaticallyReferencedStrings;
 
 		std::map<void*, void*> TargetCallbackToJITFuncMap;
 	};

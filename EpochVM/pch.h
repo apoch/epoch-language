@@ -58,6 +58,7 @@
 #pragma warning(disable: 4245)		// signed/unsigned mismatch
 #pragma warning(disable: 4244)		// conversion might lose data
 #pragma warning(disable: 4100)		// unreferenced formal parameter
+#pragma warning(disable: 4624)		// cannot generate destructor
 
 #define SUPPORT_DATATYPES_H 1
 #define END_WITH_NULL
