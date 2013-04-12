@@ -3,14 +3,14 @@ EXPORTS
 	ExecuteByteCode				@1
 	LinkTestHarness				@2
 
-	VMHalt						@3
-	VMAllocStruct				@4
-	VMCopyStruct				@5
-	VMGetBuffer					@6
-	VMBreak						@7
-	VMGetString					@8
-	VMAllocBuffer				@9
-	VMCopyBuffer				@10
+	Epoch_Halt					@3
+	Epoch_AllocStruct			@4
+	Epoch_CopyStruct			@5
+	Epoch_GetBuffer				@6
+	Epoch_Break					@7
+	Epoch_GetString				@8
+	Epoch_AllocBuffer			@9
+	Epoch_CopyBuffer			@10
 	
 	MarshalConvertStructure		@11
 	MarshalFixupStructure		@12

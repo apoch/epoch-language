@@ -87,13 +87,13 @@ void StringFunctionLibrary::RegisterJITTable(JIT::JITTable& table)
 
 extern "C" StringHandle EpochLib_SubstrLen(unsigned length, unsigned start, StringHandle strhandle)
 {
-	std::wstring slice = GlobalExecutionContext->OwnerVM.GetPooledString(strhandle).substr(start, length);
-	return GlobalExecutionContext->OwnerVM.PoolString(slice);
+	std::wstring slice = GlobalExecutionContext->GetPooledString(strhandle).substr(start, length);
+	return GlobalExecutionContext->PoolString(slice);
 }
 
 extern "C" StringHandle EpochLib_SubstrNoLen(unsigned start, StringHandle strhandle)
 {
-	std::wstring slice = GlobalExecutionContext->OwnerVM.GetPooledString(strhandle).substr(start);
-	return GlobalExecutionContext->OwnerVM.PoolString(slice);
+	std::wstring slice = GlobalExecutionContext->GetPooledString(strhandle).substr(start);
+	return GlobalExecutionContext->PoolString(slice);
 }
 

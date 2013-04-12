@@ -19,7 +19,7 @@
 #include <list>
 
 
-extern "C" void VMHalt();
+extern "C" void Epoch_Halt();
 extern Runtime::ExecutionContext* GlobalContext;
 
 
@@ -63,12 +63,12 @@ namespace
 				break;
 
 			case EpochType_String:
-				*reinterpret_cast<const wchar_t**>(buffer) = context.OwnerVM.GetPooledString(*reinterpret_cast<StringHandle*>(reinterpret_cast<char*>(structure) + definition.GetMemberOffset(j))).c_str();
+				*reinterpret_cast<const wchar_t**>(buffer) = context.GetPooledString(*reinterpret_cast<StringHandle*>(reinterpret_cast<char*>(structure) + definition.GetMemberOffset(j))).c_str();
 				buffer += sizeof(const wchar_t*);
 				break;
 
 			case EpochType_Buffer:
-				*reinterpret_cast<void**>(buffer) = context.OwnerVM.GetBuffer(*reinterpret_cast<BufferHandle*>(reinterpret_cast<char*>(structure) + definition.GetMemberOffset(j)));
+				*reinterpret_cast<void**>(buffer) = context.GetBuffer(*reinterpret_cast<BufferHandle*>(reinterpret_cast<char*>(structure) + definition.GetMemberOffset(j)));
 				buffer += sizeof(void*);
 				break;
 
@@ -76,7 +76,7 @@ namespace
 				if(Metadata::GetTypeFamily(membertype) == Metadata::EpochTypeFamily_Structure || Metadata::GetTypeFamily(membertype) == Metadata::EpochTypeFamily_TemplateInstance)
 				{
 					StructureHandle structurehandle = *reinterpret_cast<StructureHandle*>(reinterpret_cast<char*>(structure) + definition.GetMemberOffset(j));
-					const StructureDefinition& nesteddefinition = context.OwnerVM.GetStructureDefinition(definition.GetMemberType(j));
+					const StructureDefinition& nesteddefinition = context.GetStructureDefinition(definition.GetMemberType(j));
 
 					if(!MarshalStructureDataIntoBuffer(context, structurehandle, nesteddefinition, buffer))
 						return false;
@@ -195,10 +195,10 @@ EPOCHRUNTIME void Runtime::MarshalBufferIntoStructureData(Runtime::ExecutionCont
 				if(ptr && *ptr)
 				{
 					std::wstring str(*ptr);
-					*reinterpret_cast<StringHandle*>(reinterpret_cast<char*>(structure) + definition.GetMemberOffset(j)) = context.OwnerVM.PoolString(str);
+					*reinterpret_cast<StringHandle*>(reinterpret_cast<char*>(structure) + definition.GetMemberOffset(j)) = context.PoolString(str);
 				}
 				else
-					*reinterpret_cast<Integer32*>(reinterpret_cast<char*>(structure) + definition.GetMemberOffset(j)) = context.OwnerVM.PoolString(L"");
+					*reinterpret_cast<Integer32*>(reinterpret_cast<char*>(structure) + definition.GetMemberOffset(j)) = context.PoolString(L"");
 				buffer += sizeof(const wchar_t*);
 			}
 			break;
@@ -222,14 +222,14 @@ EPOCHRUNTIME void Runtime::MarshalBufferIntoStructureData(Runtime::ExecutionCont
 			if(GetTypeFamily(membertype) == EpochTypeFamily_Structure || GetTypeFamily(membertype) == EpochTypeFamily_TemplateInstance)
 			{
 				StructureHandle structurehandle = *reinterpret_cast<StructureHandle*>(reinterpret_cast<char*>(structure) + definition.GetMemberOffset(j));
-				const StructureDefinition& nesteddefinition = context.OwnerVM.GetStructureDefinition(definition.GetMemberType(j));
+				const StructureDefinition& nesteddefinition = context.GetStructureDefinition(definition.GetMemberType(j));
 
 				MarshalBufferIntoStructureData(context, structurehandle, nesteddefinition, buffer);
 				buffer += nesteddefinition.GetMarshaledSize();
 			}
 			else
 			{
-				VMHalt();
+				Epoch_Halt();
 				return;
 			}
 		}
@@ -245,14 +245,14 @@ void Runtime::PopulateWeakLinkages(const std::map<StringHandle, llvm::Function*>
 		Marshaling::DLLPool::DLLPoolHandle hdll = Marshaling::TheDLLPool.OpenDLL(DLLInvocationMap[iter->first].DLLName);
         if(!hdll)
 		{
-			VMHalt();
+			Epoch_Halt();
 			return;
         }
 
         void* address = Marshaling::DLLPool::GetFunction<void*>(hdll, narrow(DLLInvocationMap[iter->first].FunctionName).c_str());
         if(!address)
         {
-			VMHalt();
+			Epoch_Halt();
 			return;
         }
 
@@ -262,19 +262,19 @@ void Runtime::PopulateWeakLinkages(const std::map<StringHandle, llvm::Function*>
 
 extern "C" void* MarshalConvertStructure(StructureHandle handle)
 {
-	ActiveStructure& s = GlobalContext->OwnerVM.FindStructureMetadata(handle);
+	ActiveStructure& s = GlobalContext->FindStructureMetadata(handle);
 
 	Byte* buffer = new Byte[s.Definition.GetMarshaledSize()];
 
 	if(!MarshalStructureDataIntoBuffer(*GlobalContext, handle, s.Definition, buffer))
-		VMHalt();
+		Epoch_Halt();
 
 	return buffer;
 }
 
 extern "C" void MarshalFixupStructure(Byte* buffer, StructureHandle target)
 {
-	ActiveStructure& s = GlobalContext->OwnerVM.FindStructureMetadata(target);
+	ActiveStructure& s = GlobalContext->FindStructureMetadata(target);
 	Runtime::MarshalBufferIntoStructureData(*GlobalContext, target, s.Definition, buffer);
 }
 

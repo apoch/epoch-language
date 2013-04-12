@@ -53,7 +53,7 @@ namespace
 		llvm::Value* cachedcall = context.BufferLookupCache[pbufferhandle];
 		if(!cachedcall)
 		{
-			cachedcall = reinterpret_cast<llvm::IRBuilder<>*>(context.Builder)->CreateCall((*context.BuiltInFunctions)[JIT::JITFunc_VM_GetBuffer], bufferhandle);
+			cachedcall = reinterpret_cast<llvm::IRBuilder<>*>(context.Builder)->CreateCall((*context.BuiltInFunctions)[JIT::JITFunc_Runtime_GetBuffer], bufferhandle);
 			context.BufferLookupCache[pbufferhandle] = cachedcall;
 		}
 
@@ -87,9 +87,9 @@ extern "C" void EpochLib_Assert(bool assumption)
 		UI::OutputStream output;
 		output << UI::lightred << L"Assertion failure" << UI::white << std::endl;
 
-		typedef void (STDCALL *vmhaltfunc)();
+		typedef void (STDCALL *haltfunc)();
 		Marshaling::DLLPool::DLLPoolHandle handle = Marshaling::TheDLLPool.OpenDLL(L"EpochRuntime.dll");
-		Marshaling::TheDLLPool.GetFunction<vmhaltfunc>(handle, "VMHalt")();
+		Marshaling::TheDLLPool.GetFunction<haltfunc>(handle, "Epoch_Halt")();
 	}
 }
 

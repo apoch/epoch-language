@@ -2,7 +2,7 @@
 // The Epoch Language Project
 // EPOCHRUNTIME Runtime Library
 //
-// Declaration of the VM wrapper class
+// Declaration of the execution context wrapper class
 //
 
 #pragma once
@@ -62,23 +62,80 @@ namespace Runtime
 	// Handy type shortcuts
 	typedef boost::unordered_map<StringHandle, ScopeDescription, fasthash> ScopeMap;
 
-
-	//
-	// Wrapper for an instance of a single virtual "machine"
-	//
-	class VirtualMachine
+	class ExecutionContext
 	{
-	// Construction
+	// Construction and destruction
 	public:
-		VirtualMachine();
+		ExecutionContext(Bytecode::Instruction* codebuffer, size_t codesize, unsigned* testharness);
+		~ExecutionContext();
+
+	// Non-copyable
+	private:
+		ExecutionContext(const ExecutionContext& rhs);
+		ExecutionContext& operator = (const ExecutionContext& rhs);
+
+	// Execution interface
+	public:
+		void Execute();
+
+	// Helpers for initializing the context
+	public:
+		void Load();
+
+	// JIT support
+	public:
+		void* JITCallback(void* targetfunc);
+
+	// Internal helpers for working with the bytecode stream
+	private:
+		template <typename T>
+		__forceinline T Fetch(size_t& instructionoffset)
+		{
+			const T* data = reinterpret_cast<const T*>(&CodeBuffer[instructionoffset]);
+			instructionoffset += sizeof(T);
+			return static_cast<T>(*data);
+		}
+
+		template <>
+		std::wstring Fetch(size_t& instructionoffset)
+		{
+			const wchar_t* data = reinterpret_cast<const wchar_t*>(&CodeBuffer[instructionoffset]);
+			std::wstring strvalue(data);
+			instructionoffset += (strvalue.length() + 1) * sizeof(wchar_t);
+			return strvalue;
+		}
+
+	// Available state (for functions to operate on)
+	public:
+		boost::unordered_set<StringHandle> StaticallyReferencedStrings;
+
+	// Internal helpers for garbage collection
+	public:
+		EPOCHRUNTIME void TickBufferGarbageCollector();
+		EPOCHRUNTIME void TickStringGarbageCollector();
+		EPOCHRUNTIME void TickStructureGarbageCollector();
+
+	// Internal state
+	private:
+	    Bytecode::Instruction* CodeBuffer;
+		size_t CodeBufferSize;
+
+		size_t GarbageTick_Buffers;
+		size_t GarbageTick_Strings;
+		size_t GarbageTick_Structures;
+
+		std::map<void*, void*> TargetCallbackToJITFuncMap;
+
+
+	// TODO - cleanup/reorganize
 
 	// Initialization
 	private:
-		void InitStandardLibraries(ExecutionContext* context, unsigned* testharness);
+		void InitStandardLibraries(unsigned* testharness);
 
 	// Code execution
 	public:
-		void ExecuteByteCode(Bytecode::Instruction* buffer, size_t size, unsigned* testharness);
+		void ExecuteByteCode();
 
 	// Handle-managed resources
 	public:
@@ -183,73 +240,6 @@ namespace Runtime
 
 		Threads::CriticalSection BufferCritSec;
 		Threads::CriticalSection StructureCritSec;
-	};
-
-
-	class ExecutionContext
-	{
-	// Construction and destruction
-	public:
-		ExecutionContext(VirtualMachine& owner, Bytecode::Instruction* codebuffer, size_t codesize);
-		~ExecutionContext();
-
-	// Non-copyable
-	private:
-		ExecutionContext(const ExecutionContext& rhs);
-		ExecutionContext& operator = (const ExecutionContext& rhs);
-
-	// Execution interface
-	public:
-		void Execute();
-
-	// Helpers for initializing the context
-	public:
-		void Load();
-
-	// JIT support
-	public:
-		void* JITCallback(void* targetfunc);
-
-	// Internal helpers for working with the bytecode stream
-	private:
-		template <typename T>
-		__forceinline T Fetch(size_t& instructionoffset)
-		{
-			const T* data = reinterpret_cast<const T*>(&CodeBuffer[instructionoffset]);
-			instructionoffset += sizeof(T);
-			return static_cast<T>(*data);
-		}
-
-		template <>
-		std::wstring Fetch(size_t& instructionoffset)
-		{
-			const wchar_t* data = reinterpret_cast<const wchar_t*>(&CodeBuffer[instructionoffset]);
-			std::wstring strvalue(data);
-			instructionoffset += (strvalue.length() + 1) * sizeof(wchar_t);
-			return strvalue;
-		}
-
-	// Available state (for functions to operate on)
-	public:
-		VirtualMachine& OwnerVM;
-		boost::unordered_set<StringHandle> StaticallyReferencedStrings;
-
-	// Internal helpers for garbage collection
-	public:
-		EPOCHRUNTIME void TickBufferGarbageCollector();
-		EPOCHRUNTIME void TickStringGarbageCollector();
-		EPOCHRUNTIME void TickStructureGarbageCollector();
-
-	// Internal state
-	private:
-	    Bytecode::Instruction* CodeBuffer;
-		size_t CodeBufferSize;
-
-		size_t GarbageTick_Buffers;
-		size_t GarbageTick_Strings;
-		size_t GarbageTick_Structures;
-
-		std::map<void*, void*> TargetCallbackToJITFuncMap;
 	};
 
 }

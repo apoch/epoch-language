@@ -31,20 +31,9 @@ using namespace Metadata;
 
 
 //
-// Construct and initialize a virtual machine
-//
-// Mainly useful for forking the visual debugger thread as necessary
-//
-VirtualMachine::VirtualMachine()
-	: EntryPointFunc(NULL),
-	  GlobalInitFunc(NULL)
-{
-}
-
-//
 // Initialize the bindings of standard library functions
 //
-void VirtualMachine::InitStandardLibraries(ExecutionContext* context, unsigned* testharness)
+void ExecutionContext::InitStandardLibraries(unsigned* testharness)
 {
 	Marshaling::DLLPool::DLLPoolHandle dllhandle = Marshaling::TheDLLPool.OpenDLL(L"EpochLibrary.DLL");
 
@@ -57,7 +46,7 @@ void VirtualMachine::InitStandardLibraries(ExecutionContext* context, unsigned* 
 	if(!bindtoruntime || !registerlibrary)
 		throw FatalException("Failed to load Epoch standard library");
 
-	bindtoruntime(context, PrivateStringPool, JITHelpers);
+	bindtoruntime(this, PrivateStringPool, JITHelpers);
 	registerlibrary(LibraryFunctionSignatures, PrivateStringPool);
 
 	typedef void (STDCALL *bindtotestharnessptr)(unsigned*);
@@ -73,19 +62,17 @@ void VirtualMachine::InitStandardLibraries(ExecutionContext* context, unsigned* 
 //
 // Execute a block of bytecode from memory
 //
-void VirtualMachine::ExecuteByteCode(Bytecode::Instruction* buffer, size_t size, unsigned* testharness)
+void ExecutionContext::ExecuteByteCode()
 {
-	ExecutionContext context(*this, buffer, size);
-	InitStandardLibraries(&context, testharness);
-	context.Load();
-	context.Execute();
+	Load();
+	Execute();
 }
 
 
 //
 // Store a string in the global string pool, allocating an ID as necessary
 //
-EPOCHRUNTIME StringHandle VirtualMachine::PoolString(const std::wstring& stringdata)
+EPOCHRUNTIME StringHandle ExecutionContext::PoolString(const std::wstring& stringdata)
 {
 	return PrivateStringPool.PoolFast(stringdata);
 }
@@ -93,7 +80,7 @@ EPOCHRUNTIME StringHandle VirtualMachine::PoolString(const std::wstring& stringd
 //
 // Store a string in the global string pool
 //
-void VirtualMachine::PoolString(StringHandle handle, const std::wstring& stringdata)
+void ExecutionContext::PoolString(StringHandle handle, const std::wstring& stringdata)
 {
 	PrivateStringPool.Pool(handle, stringdata);
 }
@@ -101,7 +88,7 @@ void VirtualMachine::PoolString(StringHandle handle, const std::wstring& stringd
 //
 // Retrieve a pooled string from the global pool
 //
-EPOCHRUNTIME const std::wstring& VirtualMachine::GetPooledString(StringHandle handle) const
+EPOCHRUNTIME const std::wstring& ExecutionContext::GetPooledString(StringHandle handle) const
 {
 	return PrivateStringPool.GetPooledString(handle);
 }
@@ -109,7 +96,7 @@ EPOCHRUNTIME const std::wstring& VirtualMachine::GetPooledString(StringHandle ha
 //
 // Given a pooled string value, retrieve the corresponding handle
 //
-StringHandle VirtualMachine::GetPooledStringHandle(const std::wstring& value)
+StringHandle ExecutionContext::GetPooledStringHandle(const std::wstring& value)
 {
 	return PrivateStringPool.Pool(value);
 }
@@ -117,7 +104,7 @@ StringHandle VirtualMachine::GetPooledStringHandle(const std::wstring& value)
 //
 // Retrieve a buffer pointer from the list of allocated buffers
 //
-EPOCHRUNTIME void* VirtualMachine::GetBuffer(BufferHandle handle)
+EPOCHRUNTIME void* ExecutionContext::GetBuffer(BufferHandle handle)
 {
 	Threads::CriticalSection::Auto lock(BufferCritSec);
 
@@ -131,7 +118,7 @@ EPOCHRUNTIME void* VirtualMachine::GetBuffer(BufferHandle handle)
 //
 // Retrive the size of the given buffer, in bytes
 //
-EPOCHRUNTIME size_t VirtualMachine::GetBufferSize(BufferHandle handle) const
+EPOCHRUNTIME size_t ExecutionContext::GetBufferSize(BufferHandle handle) const
 {
 	Threads::CriticalSection::Auto lock(BufferCritSec);
 
@@ -145,7 +132,7 @@ EPOCHRUNTIME size_t VirtualMachine::GetBufferSize(BufferHandle handle) const
 //
 // Allocate a data buffer and return its handle
 //
-EPOCHRUNTIME BufferHandle VirtualMachine::AllocateBuffer(size_t size)
+EPOCHRUNTIME BufferHandle ExecutionContext::AllocateBuffer(size_t size)
 {
 	Threads::CriticalSection::Auto lock(BufferCritSec);
 
@@ -157,7 +144,7 @@ EPOCHRUNTIME BufferHandle VirtualMachine::AllocateBuffer(size_t size)
 //
 // Allocate a copy of an existing data buffer and return the new handle
 //
-BufferHandle VirtualMachine::CloneBuffer(BufferHandle handle)
+BufferHandle ExecutionContext::CloneBuffer(BufferHandle handle)
 {
 	Threads::CriticalSection::Auto lock(BufferCritSec);
 
@@ -173,7 +160,7 @@ BufferHandle VirtualMachine::CloneBuffer(BufferHandle handle)
 //
 // Add a function to the global namespace
 //
-void VirtualMachine::AddFunction(StringHandle name, EpochFunctionPtr funcptr)
+void ExecutionContext::AddFunction(StringHandle name, EpochFunctionPtr funcptr)
 {
 	if(GlobalFunctions.find(name) != GlobalFunctions.end())
 		throw InvalidIdentifierException("Function identifier is already in use");
@@ -184,7 +171,7 @@ void VirtualMachine::AddFunction(StringHandle name, EpochFunctionPtr funcptr)
 //
 // Add a user-implemented function to the global namespace
 //
-void VirtualMachine::AddFunction(StringHandle name, size_t instructionoffset)
+void ExecutionContext::AddFunction(StringHandle name, size_t instructionoffset)
 {	
 	if(GlobalFunctionOffsets.find(name) != GlobalFunctionOffsets.end())
 		throw InvalidIdentifierException("Function identifier is already in use");
@@ -195,7 +182,7 @@ void VirtualMachine::AddFunction(StringHandle name, size_t instructionoffset)
 //
 // Retrieve the byte offset in the bytecode stream where the given function begins
 //
-size_t VirtualMachine::GetFunctionInstructionOffset(StringHandle functionname) const
+size_t ExecutionContext::GetFunctionInstructionOffset(StringHandle functionname) const
 {
 	OffsetMap::const_iterator iter = GlobalFunctionOffsets.find(functionname);
 	if(iter == GlobalFunctionOffsets.end())
@@ -204,7 +191,7 @@ size_t VirtualMachine::GetFunctionInstructionOffset(StringHandle functionname) c
 	return iter->second;
 }
 
-size_t VirtualMachine::GetFunctionInstructionOffsetNoThrow(StringHandle functionname) const
+size_t ExecutionContext::GetFunctionInstructionOffsetNoThrow(StringHandle functionname) const
 {
 	OffsetMap::const_iterator iter = GlobalFunctionOffsets.find(functionname);
 	if(iter == GlobalFunctionOffsets.end())
@@ -214,7 +201,7 @@ size_t VirtualMachine::GetFunctionInstructionOffsetNoThrow(StringHandle function
 }
 
 
-const FunctionSignature& VirtualMachine::GetFunctionSignatureByType(Metadata::EpochTypeID type) const
+const FunctionSignature& ExecutionContext::GetFunctionSignatureByType(Metadata::EpochTypeID type) const
 {
 	std::map<Metadata::EpochTypeID, FunctionSignature>::const_iterator iter = FunctionTypeToSignatureMap.find(type);
 	if(iter == FunctionTypeToSignatureMap.end())
@@ -228,7 +215,7 @@ const FunctionSignature& VirtualMachine::GetFunctionSignatureByType(Metadata::Ep
 //
 // Add metadata for a lexical scope
 //
-void VirtualMachine::AddLexicalScope(StringHandle name)
+void ExecutionContext::AddLexicalScope(StringHandle name)
 {
 	LexicalScopeDescriptions.insert(std::make_pair(name, ScopeDescription()));
 }
@@ -236,7 +223,7 @@ void VirtualMachine::AddLexicalScope(StringHandle name)
 //
 // Retrieve a lexical scope description
 //
-const ScopeDescription& VirtualMachine::GetScopeDescription(StringHandle name) const
+const ScopeDescription& ExecutionContext::GetScopeDescription(StringHandle name) const
 {
 	ScopeMap::const_iterator iter = LexicalScopeDescriptions.find(name);
 	if(iter == LexicalScopeDescriptions.end())
@@ -247,7 +234,7 @@ const ScopeDescription& VirtualMachine::GetScopeDescription(StringHandle name) c
 //
 // Retrieve a mutable lexical scope description
 //
-ScopeDescription& VirtualMachine::GetScopeDescription(StringHandle name)
+ScopeDescription& ExecutionContext::GetScopeDescription(StringHandle name)
 {
 	ScopeMap::iterator iter = LexicalScopeDescriptions.find(name);
 	if(iter == LexicalScopeDescriptions.end())
@@ -258,16 +245,18 @@ ScopeDescription& VirtualMachine::GetScopeDescription(StringHandle name)
 
 
 //
-// Initialize a virtual machine execution context
+// Initialize an execution context
 //
-ExecutionContext::ExecutionContext(VirtualMachine& ownervm, Bytecode::Instruction* codebuffer, size_t codesize)
-	: OwnerVM(ownervm),
-	  CodeBuffer(codebuffer),
+ExecutionContext::ExecutionContext(Bytecode::Instruction* codebuffer, size_t codesize, unsigned* testharness)
+	: CodeBuffer(codebuffer),
 	  CodeBufferSize(codesize),
 	  GarbageTick_Buffers(0),
 	  GarbageTick_Strings(0),
-	  GarbageTick_Structures(0)
+	  GarbageTick_Structures(0),
+	  EntryPointFunc(NULL),
+	  GlobalInitFunc(NULL)
 {
+	InitStandardLibraries(testharness);
 }
 
 ExecutionContext::~ExecutionContext()
@@ -281,10 +270,10 @@ void ExecutionContext::Execute()
 	SetGlobalExecutionContext(this);
 
 	typedef void (*pfunc)();
-	if(OwnerVM.GlobalInitFunc)
-		((pfunc)(OwnerVM.GlobalInitFunc))();
-	else if(OwnerVM.EntryPointFunc)
-		((pfunc)(OwnerVM.EntryPointFunc))();
+	if(GlobalInitFunc)
+		((pfunc)(GlobalInitFunc))();
+	else if(EntryPointFunc)
+		((pfunc)(EntryPointFunc))();
 }
 
 //
@@ -331,7 +320,7 @@ void ExecutionContext::Load()
 				   || entitytypes.top() == Bytecode::EntityTags::TypeResolver
 				  )
 				{
-					OwnerVM.AddFunction(name, originaloffset);
+					AddFunction(name, originaloffset);
 					jitworklist.insert(name);
 				}
 
@@ -364,7 +353,7 @@ void ExecutionContext::Load()
 				jitworklist.insert(patternmatcherid);
 
 			entitytypes.pop();
-			OwnerVM.MapEntityBeginEndOffsets(entitybeginoffsets.top(), instructionoffset - 1);
+			MapEntityBeginEndOffsets(entitybeginoffsets.top(), instructionoffset - 1);
 			entitybeginoffsets.pop();
 			break;
 
@@ -376,7 +365,7 @@ void ExecutionContext::Load()
 			break;
 
 		case Bytecode::Instructions::EndChain:
-			OwnerVM.MapChainBeginEndOffsets(chainbeginoffsets.top(), instructionoffset - 1);
+			MapChainBeginEndOffsets(chainbeginoffsets.top(), instructionoffset - 1);
 			chainbeginoffsets.pop();
 			break;
 
@@ -384,7 +373,7 @@ void ExecutionContext::Load()
 			{
 				StringHandle handle = Fetch<StringHandle>(instructionoffset);
 				std::wstring strvalue = Fetch<std::wstring>(instructionoffset);
-				OwnerVM.PoolString(handle, strvalue);
+				PoolString(handle, strvalue);
 			}
 			break;
 
@@ -394,10 +383,10 @@ void ExecutionContext::Load()
 				StringHandle parentscopename = Fetch<StringHandle>(instructionoffset);
 				Integer32 numentries = Fetch<Integer32>(instructionoffset);
 
-				OwnerVM.AddLexicalScope(scopename);
-				ScopeDescription& scope = OwnerVM.GetScopeDescription(scopename);
+				AddLexicalScope(scopename);
+				ScopeDescription& scope = GetScopeDescription(scopename);
 				if(parentscopename)
-					scope.ParentScope = &OwnerVM.GetScopeDescription(parentscopename);
+					scope.ParentScope = &GetScopeDescription(parentscopename);
 
 				for(Integer32 i = 0; i < numentries; ++i)
 				{
@@ -406,7 +395,7 @@ void ExecutionContext::Load()
 					VariableOrigin origin = Fetch<VariableOrigin>(instructionoffset);
 					bool isreference = Fetch<bool>(instructionoffset);
 
-					scope.AddVariable(OwnerVM.GetPooledString(entryname), entryname, 0, type, isreference, origin);
+					scope.AddVariable(GetPooledString(entryname), entryname, 0, type, isreference, origin);
 				}
 			}
 			break;
@@ -423,10 +412,10 @@ void ExecutionContext::Load()
 					const StructureDefinition* structdefinition = NULL;
 					const VariantDefinition* variantdefinition = NULL;
 					if(GetTypeFamily(type) == EpochTypeFamily_Structure || GetTypeFamily(type) == EpochTypeFamily_TemplateInstance)
-						structdefinition = &OwnerVM.GetStructureDefinition(type);
+						structdefinition = &GetStructureDefinition(type);
 					else if(GetTypeFamily(type) == EpochTypeFamily_SumType)
-						variantdefinition = &OwnerVM.VariantDefinitions.find(type)->second;
-					OwnerVM.StructureDefinitions[structuretypeid].AddMember(identifier, type, structdefinition, variantdefinition);
+						variantdefinition = &VariantDefinitions.find(type)->second;
+					StructureDefinitions[structuretypeid].AddMember(identifier, type, structdefinition, variantdefinition);
 				}
 			}
 			break;
@@ -440,7 +429,7 @@ void ExecutionContext::Load()
 				{
 					EpochTypeID basetype = Fetch<EpochTypeID>(instructionoffset);
 					size_t basetypesize = GetStorageSize(basetype);
-					OwnerVM.VariantDefinitions[sumtypeid].AddBaseType(basetype, basetypesize);
+					VariantDefinitions[sumtypeid].AddBaseType(basetype, basetypesize);
 				}
 			}
 			break;
@@ -468,7 +457,7 @@ void ExecutionContext::Load()
 					if(tagdatacount != 0)
 						throw FatalException("Unexpected metadata for autogenerated constructor tag");
 
-					OwnerVM.AutoGeneratedConstructors.insert(entity);
+					AutoGeneratedConstructors.insert(entity);
 				}
 				else if(tag == L"constructor")
 				{
@@ -605,11 +594,9 @@ void ExecutionContext::Load()
 					}
 				}
 
-				OwnerVM.PatternMatcherParamCount[patternmatcherid] = paramcount;
-				OwnerVM.PatternMatcherRetType[patternmatcherid] = OwnerVM.GetScopeDescription(funcname).GetReturnVariableType();
-
-				//if(!OwnerVM.PatternMatcherDispatchHint[patternmatcherid])
-				OwnerVM.PatternMatcherDispatchHint[patternmatcherid] = funcname;
+				PatternMatcherParamCount[patternmatcherid] = paramcount;
+				PatternMatcherRetType[patternmatcherid] = GetScopeDescription(funcname).GetReturnVariableType();
+				PatternMatcherDispatchHint[patternmatcherid] = funcname;
 			}
 			break;
 
@@ -625,10 +612,10 @@ void ExecutionContext::Load()
 					Fetch<EpochTypeID>(instructionoffset);
 				}
 
-				if(OwnerVM.TypeMatcherRetType.find(typematcherid) == OwnerVM.TypeMatcherRetType.end())
+				if(TypeMatcherRetType.find(typematcherid) == TypeMatcherRetType.end())
 				{
-					OwnerVM.TypeMatcherParamCount[typematcherid] = paramcount;
-					OwnerVM.TypeMatcherRetType[typematcherid] = OwnerVM.GetScopeDescription(funcname).GetReturnVariableType();
+					TypeMatcherParamCount[typematcherid] = paramcount;
+					TypeMatcherRetType[typematcherid] = GetScopeDescription(funcname).GetReturnVariableType();
 				}
 			}
 			break;
@@ -650,7 +637,7 @@ void ExecutionContext::Load()
 					sig.AddParameter(L"@@auto", paramtype, isref);
 				}
 
-				OwnerVM.FunctionTypeToSignatureMap[type] = sig;
+				FunctionTypeToSignatureMap[type] = sig;
 			}
 			break;
 		
@@ -662,7 +649,7 @@ void ExecutionContext::Load()
 	// Replace function jump offsets with their true locations
 	for(std::map<size_t, StringHandle>::const_iterator iter = offsetfixups.begin(); iter != offsetfixups.end(); ++iter)
 	{
-		size_t funcoffset = OwnerVM.GetFunctionInstructionOffset(iter->second);
+		size_t funcoffset = GetFunctionInstructionOffset(iter->second);
 		*reinterpret_cast<size_t*>(&CodeBuffer[iter->first]) = funcoffset;
 	}
 
@@ -670,8 +657,8 @@ void ExecutionContext::Load()
 	for(std::map<size_t, StringHandle>::const_iterator iter = jitfixups.begin(); iter != jitfixups.end(); ++iter)
 	{
 		if(
-			OwnerVM.TypeMatcherParamCount.find(iter->second) == OwnerVM.TypeMatcherParamCount.end()
-	     && OwnerVM.PatternMatcherParamCount.find(iter->second) == OwnerVM.PatternMatcherParamCount.end()
+			TypeMatcherParamCount.find(iter->second) == TypeMatcherParamCount.end()
+	     && PatternMatcherParamCount.find(iter->second) == PatternMatcherParamCount.end()
 		  )
 		{
 			CodeBuffer[iter->first] = Bytecode::Instructions::InvokeNative;
@@ -680,12 +667,12 @@ void ExecutionContext::Load()
 
 	// Pre-mark all statically referenced string handles
 	// This helps speed up garbage collection a bit
-	for(boost::unordered_map<StringHandle, std::wstring>::const_iterator iter = OwnerVM.PrivateGetRawStringPool().GetInternalPool().begin(); iter != OwnerVM.PrivateGetRawStringPool().GetInternalPool().end(); ++iter)
+	for(boost::unordered_map<StringHandle, std::wstring>::const_iterator iter = PrivateGetRawStringPool().GetInternalPool().begin(); iter != PrivateGetRawStringPool().GetInternalPool().end(); ++iter)
 		StaticallyReferencedStrings.insert(iter->first);
 
 	// JIT-compile everything that needs it
 	{
-		JIT::NativeCodeGenerator jitgen(OwnerVM, CodeBuffer);
+		JIT::NativeCodeGenerator jitgen(*this, CodeBuffer);
 
 		if(globalentityoffset)
 			jitgen.AddGlobalEntity(globalentityoffset, globalentityname);
@@ -693,7 +680,7 @@ void ExecutionContext::Load()
 		for(std::set<StringHandle>::const_iterator iter = jitworklist.begin(); iter != jitworklist.end(); ++iter)
 		{
 			size_t beginoffset = entityoffsetmap[*iter];
-			size_t endoffset = OwnerVM.GetEntityEndOffset(beginoffset);
+			size_t endoffset = GetEntityEndOffset(beginoffset);
 
 			jitgen.AddFunction(beginoffset, endoffset, *iter);
 		}
@@ -716,7 +703,7 @@ void ExecutionContext::Load()
 // involved, the expressions passed to the entity, and so on. This allows for entities
 // to handle things like flow control for the language.
 //
-void VirtualMachine::MapEntityBeginEndOffsets(size_t beginoffset, size_t endoffset)
+void ExecutionContext::MapEntityBeginEndOffsets(size_t beginoffset, size_t endoffset)
 {
 	EntityOffsets[beginoffset] = endoffset;
 }
@@ -724,7 +711,7 @@ void VirtualMachine::MapEntityBeginEndOffsets(size_t beginoffset, size_t endoffs
 //
 // Store the begin and end bytecode offsets of an entity chain
 //
-void VirtualMachine::MapChainBeginEndOffsets(size_t beginoffset, size_t endoffset)
+void ExecutionContext::MapChainBeginEndOffsets(size_t beginoffset, size_t endoffset)
 {
 	ChainOffsets[beginoffset] = endoffset;
 }
@@ -732,7 +719,7 @@ void VirtualMachine::MapChainBeginEndOffsets(size_t beginoffset, size_t endoffse
 //
 // Retrieve the end offset of the entity at the specified begin offset
 //
-size_t VirtualMachine::GetEntityEndOffset(size_t beginoffset) const
+size_t ExecutionContext::GetEntityEndOffset(size_t beginoffset) const
 {
 	BeginEndOffsetMap::const_iterator iter = EntityOffsets.find(beginoffset);
 	if(iter == EntityOffsets.end())
@@ -744,7 +731,7 @@ size_t VirtualMachine::GetEntityEndOffset(size_t beginoffset) const
 //
 // Retrieve the end offset of the entity chain at the specified begin offset
 //
-size_t VirtualMachine::GetChainEndOffset(size_t beginoffset) const
+size_t ExecutionContext::GetChainEndOffset(size_t beginoffset) const
 {
 	BeginEndOffsetMap::const_iterator iter = ChainOffsets.find(beginoffset);
 	if(iter == ChainOffsets.end())
@@ -761,7 +748,7 @@ size_t VirtualMachine::GetChainEndOffset(size_t beginoffset) const
 //
 // Allocate memory for a structure instance on the freestore
 //
-StructureHandle VirtualMachine::AllocateStructure(const StructureDefinition& description)
+StructureHandle ExecutionContext::AllocateStructure(const StructureDefinition& description)
 {
 	//Threads::CriticalSection::Auto lock(StructureCritSec);
 
@@ -771,7 +758,7 @@ StructureHandle VirtualMachine::AllocateStructure(const StructureDefinition& des
 	return handle;
 }
 
-ActiveStructure& VirtualMachine::FindStructureMetadata(StructureHandle handle)
+ActiveStructure& ExecutionContext::FindStructureMetadata(StructureHandle handle)
 {
 	boost::unordered_map<StructureHandle, ActiveStructure*>::iterator iter = ActiveStructures.find(handle);
 	if(iter == ActiveStructures.end())
@@ -783,7 +770,7 @@ ActiveStructure& VirtualMachine::FindStructureMetadata(StructureHandle handle)
 //
 // Get the definition metadata for the structure with the given type ID number
 //
-EPOCHRUNTIME const StructureDefinition& VirtualMachine::GetStructureDefinition(EpochTypeID type) const
+EPOCHRUNTIME const StructureDefinition& ExecutionContext::GetStructureDefinition(EpochTypeID type) const
 {
 	//Threads::CriticalSection::Auto lock(StructureCritSec);
 
@@ -797,7 +784,7 @@ EPOCHRUNTIME const StructureDefinition& VirtualMachine::GetStructureDefinition(E
 //
 // Deep copy a structure and all of its contents, including strings, buffers, and other structures
 //
-StructureHandle VirtualMachine::DeepCopy(StructureHandle handle)
+StructureHandle ExecutionContext::DeepCopy(StructureHandle handle)
 {
 	//Threads::CriticalSection::Auto lock(StructureCritSec);
 
@@ -874,7 +861,7 @@ EPOCHRUNTIME void ExecutionContext::TickStructureGarbageCollector()
 //
 // Garbage collection disposal routine for buffer data
 //
-void VirtualMachine::GarbageCollectBuffers(const boost::unordered_set<BufferHandle>& livehandles)
+void ExecutionContext::GarbageCollectBuffers(const boost::unordered_set<BufferHandle>& livehandles)
 {
 	EraseDeadHandles(Buffers, livehandles);
 }
@@ -882,7 +869,7 @@ void VirtualMachine::GarbageCollectBuffers(const boost::unordered_set<BufferHand
 //
 // Garbage collection disposal routine for structure data
 //
-void VirtualMachine::GarbageCollectStructures(const boost::unordered_set<StructureHandle>& livehandles)
+void ExecutionContext::GarbageCollectStructures(const boost::unordered_set<StructureHandle>& livehandles)
 {
 	EraseAndDeleteDeadHandles(ActiveStructures, livehandles);
 }
@@ -902,7 +889,7 @@ void* ExecutionContext::JITCallback(void* stubfunc)
 	void* ret = TargetCallbackToJITFuncMap[targetfunc];
 	if(!ret)
 	{
-		JIT::NativeCodeGenerator gen(OwnerVM, CodeBuffer);
+		JIT::NativeCodeGenerator gen(*this, CodeBuffer);
 		ret = gen.GenerateCallbackWrapper(targetfunc);
 		TargetCallbackToJITFuncMap[targetfunc] = ret;
 	}

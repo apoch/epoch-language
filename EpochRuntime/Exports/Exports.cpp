@@ -31,8 +31,8 @@ extern "C" void STDCALL ExecuteByteCode(void* bytecodebuffer, size_t size)
 {
 	try
 	{
-		Runtime::VirtualMachine vm;
-		vm.ExecuteByteCode(reinterpret_cast<Bytecode::Instruction*>(bytecodebuffer), size, TestHarness);
+		Runtime::ExecutionContext context(reinterpret_cast<Bytecode::Instruction*>(bytecodebuffer), size, TestHarness);
+		context.ExecuteByteCode();
 	}
 	catch(const std::exception& e)
 	{
@@ -55,15 +55,15 @@ extern "C" void STDCALL LinkTestHarness(unsigned* harness)
 	//}
 	//catch(...)
 	//{
-	//	::MessageBox(0, L"Failed to initialize test harness for Epoch VM", L"Epoch Internal Error", MB_ICONSTOP);
+	//	::MessageBox(0, L"Failed to initialize test harness for Epoch Runtime", L"Epoch Internal Error", MB_ICONSTOP);
 	//}
 }
 
-extern "C" void* VMGetBuffer(BufferHandle handle)
+extern "C" void* Epoch_GetBuffer(BufferHandle handle)
 {
 	try
 	{
-		return GlobalContext->OwnerVM.GetBuffer(handle);
+		return GlobalContext->GetBuffer(handle);
 	}
 	catch(...)
 	{
@@ -71,11 +71,11 @@ extern "C" void* VMGetBuffer(BufferHandle handle)
 	}
 }
 
-extern "C" const wchar_t* VMGetString(StringHandle handle)
+extern "C" const wchar_t* Epoch_GetString(StringHandle handle)
 {
 	try
 	{
-		return GlobalContext->OwnerVM.GetPooledString(handle).c_str();
+		return GlobalContext->GetPooledString(handle).c_str();
 	}
 	catch(...)
 	{
@@ -83,11 +83,11 @@ extern "C" const wchar_t* VMGetString(StringHandle handle)
 	}
 }
 
-extern "C" void* VMAllocStruct(Metadata::EpochTypeID structtype)
+extern "C" void* Epoch_AllocStruct(Metadata::EpochTypeID structtype)
 {
 	try
 	{
-		StructureHandle handle = GlobalContext->OwnerVM.AllocateStructure(GlobalContext->OwnerVM.GetStructureDefinition(structtype));
+		StructureHandle handle = GlobalContext->AllocateStructure(GlobalContext->GetStructureDefinition(structtype));
 		GlobalContext->TickStructureGarbageCollector();
 		return handle;
 	}
@@ -97,11 +97,11 @@ extern "C" void* VMAllocStruct(Metadata::EpochTypeID structtype)
 	}
 }
 
-extern "C" void* VMCopyStruct(StructureHandle handle)
+extern "C" void* Epoch_CopyStruct(StructureHandle handle)
 {
 	try
 	{
-		StructureHandle copyhandle = GlobalContext->OwnerVM.DeepCopy(handle);
+		StructureHandle copyhandle = GlobalContext->DeepCopy(handle);
 		GlobalContext->TickStructureGarbageCollector();
 		return copyhandle;
 	}
@@ -111,22 +111,22 @@ extern "C" void* VMCopyStruct(StructureHandle handle)
 	}
 }
 
-extern "C" void VMHalt()
+extern "C" void Epoch_Halt()
 {
 	::MessageBox(0, L"Fatal error - program halted", L"Epoch Runtime", MB_ICONSTOP);
 	std::terminate();
 }
 
-extern "C" void VMBreak()
+extern "C" void Epoch_Break()
 {
 	__asm int 3
 }
 
-extern "C" BufferHandle VMAllocBuffer(size_t size)
+extern "C" BufferHandle Epoch_AllocBuffer(size_t size)
 {
 	try
 	{
-		BufferHandle handle = GlobalContext->OwnerVM.AllocateBuffer(size);
+		BufferHandle handle = GlobalContext->AllocateBuffer(size);
 		GlobalContext->TickBufferGarbageCollector();
 		return handle;
 	}
@@ -136,11 +136,11 @@ extern "C" BufferHandle VMAllocBuffer(size_t size)
 	}
 }
 
-extern "C" BufferHandle VMCopyBuffer(BufferHandle handle)
+extern "C" BufferHandle Epoch_CopyBuffer(BufferHandle handle)
 {
 	try
 	{
-		BufferHandle clone = GlobalContext->OwnerVM.CloneBuffer(handle);
+		BufferHandle clone = GlobalContext->CloneBuffer(handle);
 		GlobalContext->TickBufferGarbageCollector();
 		return clone;
 	}

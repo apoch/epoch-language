@@ -11,7 +11,7 @@
 // Forward declarations
 namespace Runtime
 {
-	class VirtualMachine;
+	class ExecutionContext;
 }
 
 namespace JIT
@@ -33,7 +33,7 @@ namespace JIT
 	{
 	// Construction and destruction
 	public:
-		NativeCodeGenerator(Runtime::VirtualMachine& ownervm, const Bytecode::Instruction* bytecode);
+		NativeCodeGenerator(Runtime::ExecutionContext& execcontext, const Bytecode::Instruction* bytecode);
 		~NativeCodeGenerator();
 
 	// Non-copyable
@@ -84,7 +84,7 @@ namespace JIT
 
 	// Visible tracking
 	public:
-		Runtime::VirtualMachine& OwnerVM;
+		Runtime::ExecutionContext& ExecContext;
 
 	// Internal tracking
 	private:

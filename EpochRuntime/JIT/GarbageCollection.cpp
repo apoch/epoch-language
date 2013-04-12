@@ -175,7 +175,7 @@ namespace
 				GCFunctionInfo& info = **iter;
 				for(GCFunctionInfo::iterator spiter = info.begin(); spiter != info.end(); ++spiter)
 				{
-					uint64_t address = reinterpret_cast<ExecutionEngine*>(GlobalContext->OwnerVM.JITExecutionEngine)->getLabelAddress(spiter->Label);
+					uint64_t address = reinterpret_cast<ExecutionEngine*>(GlobalContext->JITExecutionEngine)->getLabelAddress(spiter->Label);
 					uint64_t modifiedaddress = address - 4;		// TODO - evil magic number
 					if(reinterpret_cast<void*>(static_cast<unsigned>(address)) == returnAddr || reinterpret_cast<void*>(static_cast<unsigned>(modifiedaddress)) == returnAddr)
 						WalkLiveValuesForSafePoint(framePtr, info, spiter, livevalues);
@@ -185,7 +185,7 @@ namespace
 			framePtr = framePtr->prevFrame;
 		}
 
-		GlobalContext->OwnerVM.PrivateGetRawStringPool().GarbageCollect(livevalues.LiveStrings);
+		GlobalContext->PrivateGetRawStringPool().GarbageCollect(livevalues.LiveStrings);
 
 		// TODO - collect buffers
 		// TODO - walk structure graph and collect any garbage not marked

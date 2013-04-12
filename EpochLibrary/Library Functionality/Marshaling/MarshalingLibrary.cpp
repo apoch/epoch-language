@@ -33,7 +33,7 @@ namespace
 		llvm::ConstantInt* cint = llvm::dyn_cast<llvm::ConstantInt>(c);
 		size_t vartarget = static_cast<size_t>(cint->getValue().getLimitedValue());
 
-		size_t size = context.Generator->OwnerVM.GetStructureDefinition(context.CurrentScope->GetVariableTypeByID(vartarget)).GetMarshaledSize();
+		size_t size = context.Generator->ExecContext.GetStructureDefinition(context.CurrentScope->GetVariableTypeByID(vartarget)).GetMarshaledSize();
 		llvm::ConstantInt* csize = llvm::ConstantInt::get(llvm::Type::getInt32Ty(*reinterpret_cast<llvm::LLVMContext*>(context.Context)), size);
 
 		context.ValuesOnStack.push(csize);

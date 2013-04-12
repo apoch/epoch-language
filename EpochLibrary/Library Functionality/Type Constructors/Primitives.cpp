@@ -64,7 +64,7 @@ namespace
 		llvm::ConstantInt* cint = llvm::dyn_cast<llvm::ConstantInt>(c);
 		size_t vartarget = static_cast<size_t>(cint->getValue().getLimitedValue());
 
-		llvm::Value* bufferhandle = reinterpret_cast<llvm::IRBuilder<>*>(context.Builder)->CreateCall((*context.BuiltInFunctions)[JIT::JITFunc_VM_AllocBuffer], p2);
+		llvm::Value* bufferhandle = reinterpret_cast<llvm::IRBuilder<>*>(context.Builder)->CreateCall((*context.BuiltInFunctions)[JIT::JITFunc_Runtime_AllocBuffer], p2);
 
 		reinterpret_cast<llvm::IRBuilder<>*>(context.Builder)->CreateStore(bufferhandle, context.VariableMap[context.NameToIndexMap[vartarget]], false);
 	}

@@ -99,10 +99,10 @@ namespace JIT
 
 			Module* CurrentModule;
 
-			Type* VMTypeIDType;
-			Type* VMBufferHandleType;
-			Type* VMStructureHandleType;
-			Type* VMNothingType;
+			Type* TypeIDType;
+			Type* BufferHandleType;
+			Type* StructureHandleType;
+			Type* NothingType;
 			
 			std::map<JITFunctionID, Function*> BuiltInFunctions;
 
@@ -232,44 +232,44 @@ namespace JIT
 			Context(getGlobalContext()),
 			CurrentModule(module)
 		{
-			VMTypeIDType = Type::getInt32Ty(Context);
-			VMBufferHandleType = Type::getInt32Ty(Context);
-			VMStructureHandleType = Type::getInt8PtrTy(Context);
-			VMNothingType = Type::getInt32Ty(Context);
+			TypeIDType = Type::getInt32Ty(Context);
+			BufferHandleType = Type::getInt32Ty(Context);
+			StructureHandleType = Type::getInt8PtrTy(Context);
+			NothingType = Type::getInt32Ty(Context);
 
-			// Set up various VM interop functions
+			// Set up various interop functions
 			{
 				FunctionType* ftype = FunctionType::get(Type::getVoidTy(Context), false);
-				BuiltInFunctions[JITFunc_VM_Break] = Function::Create(ftype, Function::ExternalLinkage, "VMBreak", CurrentModule);
+				BuiltInFunctions[JITFunc_Runtime_Break] = Function::Create(ftype, Function::ExternalLinkage, "Epoch_Break", CurrentModule);
 			}
 
 			{
 				FunctionType* ftype = FunctionType::get(Type::getVoidTy(Context), false);
-				BuiltInFunctions[JITFunc_VM_Halt] = Function::Create(ftype, Function::ExternalLinkage, "VMHalt", CurrentModule);
+				BuiltInFunctions[JITFunc_Runtime_Halt] = Function::Create(ftype, Function::ExternalLinkage, "Epoch_Halt", CurrentModule);
 			}
 
 			{
 				std::vector<Type*> args;
-				args.push_back(VMTypeIDType);
-				FunctionType* ftype = FunctionType::get(VMStructureHandleType, args, false);
+				args.push_back(TypeIDType);
+				FunctionType* ftype = FunctionType::get(StructureHandleType, args, false);
 
-				BuiltInFunctions[JITFunc_VM_AllocStruct] = Function::Create(ftype, Function::ExternalLinkage, "VMAllocStruct", CurrentModule);
+				BuiltInFunctions[JITFunc_Runtime_AllocStruct] = Function::Create(ftype, Function::ExternalLinkage, "Epoch_AllocStruct", CurrentModule);
 			}
 
 			{
 				std::vector<Type*> args;
-				args.push_back(VMStructureHandleType);
-				FunctionType* ftype = FunctionType::get(VMStructureHandleType, args, false);
+				args.push_back(StructureHandleType);
+				FunctionType* ftype = FunctionType::get(StructureHandleType, args, false);
 
-				BuiltInFunctions[JITFunc_VM_CopyStruct] = Function::Create(ftype, Function::ExternalLinkage, "VMCopyStruct", CurrentModule);
+				BuiltInFunctions[JITFunc_Runtime_CopyStruct] = Function::Create(ftype, Function::ExternalLinkage, "Epoch_CopyStruct", CurrentModule);
 			}
 
 			{
 				std::vector<Type*> args;
-				args.push_back(VMBufferHandleType);
+				args.push_back(BufferHandleType);
 				FunctionType* ftype = FunctionType::get(Type::getInt8PtrTy(Context), args, false);
 
-				BuiltInFunctions[JITFunc_VM_GetBuffer] = Function::Create(ftype, Function::ExternalLinkage, "VMGetBuffer", CurrentModule);
+				BuiltInFunctions[JITFunc_Runtime_GetBuffer] = Function::Create(ftype, Function::ExternalLinkage, "Epoch_GetBuffer", CurrentModule);
 			}
 
 			{
@@ -277,7 +277,7 @@ namespace JIT
 				args.push_back(Type::getInt32Ty(Context));
 				FunctionType* ftype = FunctionType::get(Type::getInt8PtrTy(Context), args, false);
 
-				BuiltInFunctions[JITFunc_VM_GetString] = Function::Create(ftype, Function::ExternalLinkage, "VMGetString", CurrentModule);
+				BuiltInFunctions[JITFunc_Runtime_GetString] = Function::Create(ftype, Function::ExternalLinkage, "Epoch_GetString", CurrentModule);
 			}
 
 			{
@@ -285,7 +285,7 @@ namespace JIT
 				args.push_back(Type::getInt32Ty(Context));
 				FunctionType* ftype = FunctionType::get(Type::getInt32Ty(Context), args, false);
 
-				BuiltInFunctions[JITFunc_VM_AllocBuffer] = Function::Create(ftype, Function::ExternalLinkage, "VMAllocBuffer", CurrentModule);
+				BuiltInFunctions[JITFunc_Runtime_AllocBuffer] = Function::Create(ftype, Function::ExternalLinkage, "Epoch_AllocBuffer", CurrentModule);
 			}
 
 			{
@@ -293,7 +293,7 @@ namespace JIT
 				args.push_back(Type::getInt32Ty(Context));
 				FunctionType* ftype = FunctionType::get(Type::getInt32Ty(Context), args, false);
 
-				BuiltInFunctions[JITFunc_VM_CopyBuffer] = Function::Create(ftype, Function::ExternalLinkage, "VMCopyBuffer", CurrentModule);
+				BuiltInFunctions[JITFunc_Runtime_CopyBuffer] = Function::Create(ftype, Function::ExternalLinkage, "Epoch_CopyBuffer", CurrentModule);
 			}
 
 			{
@@ -380,8 +380,8 @@ using namespace JIT::impl;
 //
 // Construct and initialize a native code generation wrapper
 //
-NativeCodeGenerator::NativeCodeGenerator(Runtime::VirtualMachine& ownervm, const Bytecode::Instruction* bytecode)
-	: OwnerVM(ownervm),
+NativeCodeGenerator::NativeCodeGenerator(Runtime::ExecutionContext& execcontext, const Bytecode::Instruction* bytecode)
+	: ExecContext(execcontext),
 	  Bytecode(bytecode),
 	  Data(new LLVMData(LazyInitModule())),
 	  Builder(Data->Context)
@@ -404,7 +404,7 @@ NativeCodeGenerator::~NativeCodeGenerator()
 Function* NativeCodeGenerator::GetGeneratedFunction(StringHandle funcname, size_t beginoffset)
 {
 	std::ostringstream name;
-	name << "JIT_" << narrow(OwnerVM.GetPooledString(funcname)) << "_" << beginoffset;
+	name << "JIT_" << narrow(ExecContext.GetPooledString(funcname)) << "_" << beginoffset;
 
 	Function* targetinnerfunc = NULL;
 	FunctionType* targetinnerfunctype = GetLLVMFunctionType(funcname);
@@ -434,15 +434,15 @@ Function* NativeCodeGenerator::GetGeneratedTypeMatcher(StringHandle funcname, si
 	if(!nativetypematcher)
 	{
 		std::vector<Type*> matchargtypes;
-		for(size_t i = 0; i < OwnerVM.TypeMatcherParamCount.find(funcname)->second; ++i)
+		for(size_t i = 0; i < ExecContext.TypeMatcherParamCount.find(funcname)->second; ++i)
 		{
-			matchargtypes.push_back(Data->VMTypeIDType);					// type annotation
+			matchargtypes.push_back(Data->TypeIDType);					// type annotation
 			matchargtypes.push_back(Type::getInt8PtrTy(Data->Context));		// pointer to payload
 		}
 
 		Type* retty = Type::getVoidTy(Data->Context);
-		if(OwnerVM.TypeMatcherRetType.find(funcname)->second != Metadata::EpochType_Error)
-			retty = GetLLVMType(OwnerVM.TypeMatcherRetType.find(funcname)->second);
+		if(ExecContext.TypeMatcherRetType.find(funcname)->second != Metadata::EpochType_Error)
+			retty = GetLLVMType(ExecContext.TypeMatcherRetType.find(funcname)->second);
 		FunctionType* matchfunctype = FunctionType::get(retty, matchargtypes, false);
 
 		nativetypematcher = Function::Create(matchfunctype, Function::ExternalLinkage, matchername.str().c_str(), Data->CurrentModule);
@@ -463,7 +463,7 @@ Function* NativeCodeGenerator::GetGeneratedPatternMatcher(StringHandle funcname,
 	Function* nativematcher = Data->GeneratedNativeTypeMatchers[matchername.str()];
 	if(!nativematcher)
 	{
-		StringHandle hint = OwnerVM.PatternMatcherDispatchHint.find(funcname)->second;
+		StringHandle hint = ExecContext.PatternMatcherDispatchHint.find(funcname)->second;
 		FunctionType* matchfunctype = GetLLVMFunctionType(hint);
 
 		nativematcher = Function::Create(matchfunctype, Function::ExternalLinkage, matchername.str().c_str(), Data->CurrentModule);
@@ -522,7 +522,7 @@ Type* NativeCodeGenerator::GetLLVMType(Metadata::EpochTypeID type, bool flatten)
 
 	case Metadata::EpochType_Identifier:
 		// STUPID LAME HACK - we only use Identifier params for constructors, so assume this is an aggregate constructor param
-		return Data->VMStructureHandleType;
+		return Data->StructureHandleType;
 
 	default:
 		if(family == Metadata::EpochTypeFamily_Function)
@@ -532,7 +532,7 @@ Type* NativeCodeGenerator::GetLLVMType(Metadata::EpochTypeID type, bool flatten)
 			return GetLLVMSumType(type, flatten);
 
 		if(family == Metadata::EpochTypeFamily_Structure || family == Metadata::EpochTypeFamily_TemplateInstance)
-			return Data->VMStructureHandleType;
+			return Data->StructureHandleType;
 
 		throw NotImplementedException("Unsupported type for native code generation");
 	}
@@ -567,7 +567,7 @@ Type* NativeCodeGenerator::GetExternalType(Metadata::EpochTypeID type)
 
 	default:
 		if(family == Metadata::EpochTypeFamily_Structure || family == Metadata::EpochTypeFamily_TemplateInstance)
-			return Data->VMStructureHandleType;
+			return Data->StructureHandleType;
 
 		if(family == Metadata::EpochTypeFamily_Function)
 			return Type::getInt8PtrTy(Data->Context);
@@ -589,7 +589,7 @@ Type* NativeCodeGenerator::GetLLVMSumType(Metadata::EpochTypeID type, bool flatt
 	StructType* taggedtype = Data->SumTypeCache[type];
 	if(!taggedtype && !flatten)
 	{
-		const VariantDefinition& def = OwnerVM.VariantDefinitions.find(type)->second;
+		const VariantDefinition& def = ExecContext.VariantDefinitions.find(type)->second;
 		const std::set<Metadata::EpochTypeID>& types = def.GetBaseTypes();
 
 		Type* rettype = NULL;
@@ -612,7 +612,7 @@ Type* NativeCodeGenerator::GetLLVMSumType(Metadata::EpochTypeID type, bool flatt
 		name << "SumTypeTag_" << type;
 
 		std::vector<Type*> elemtypes;
-		elemtypes.push_back(Data->VMTypeIDType);
+		elemtypes.push_back(Data->TypeIDType);
 		elemtypes.push_back(rettype);
 		taggedtype = StructType::create(elemtypes, name.str());
 		Data->SumTypeCache[type] = taggedtype;
@@ -627,15 +627,15 @@ Type* NativeCodeGenerator::GetLLVMSumType(Metadata::EpochTypeID type, bool flatt
 FunctionType* NativeCodeGenerator::GetLLVMFunctionType(StringHandle epochfunc)
 {
 	bool hassumtypeparam = false;
-	bool isautogenconstructor = (OwnerVM.AutoGeneratedConstructors.count(epochfunc) > 0);
+	bool isautogenconstructor = (ExecContext.AutoGeneratedConstructors.count(epochfunc) > 0);
 	Type* rettype = Type::getVoidTy(Data->Context);
 
-	if(OwnerVM.PatternMatcherParamCount.find(epochfunc) != OwnerVM.PatternMatcherParamCount.end())
-		epochfunc = OwnerVM.PatternMatcherDispatchHint[epochfunc];
+	if(ExecContext.PatternMatcherParamCount.find(epochfunc) != ExecContext.PatternMatcherParamCount.end())
+		epochfunc = ExecContext.PatternMatcherDispatchHint[epochfunc];
 
 	std::vector<Type*> args;
 
-	const ScopeDescription& scope = OwnerVM.GetScopeDescription(epochfunc);
+	const ScopeDescription& scope = ExecContext.GetScopeDescription(epochfunc);
 	for(size_t i = 0; i < scope.GetVariableCount(); ++i)
 	{
 		if(scope.GetVariableOrigin(i) == VARIABLE_ORIGIN_PARAMETER)
@@ -644,7 +644,7 @@ FunctionType* NativeCodeGenerator::GetLLVMFunctionType(StringHandle epochfunc)
 
 			if(vartype == Metadata::EpochType_Nothing)
 			{
-				args.push_back(Data->VMNothingType);
+				args.push_back(Data->NothingType);
 			}
 			else
 			{
@@ -677,7 +677,7 @@ FunctionType* NativeCodeGenerator::GetExternalFunctionType(StringHandle epochfun
 
 	std::vector<Type*> args;
 
-	const ScopeDescription& scope = OwnerVM.GetScopeDescription(epochfunc);
+	const ScopeDescription& scope = ExecContext.GetScopeDescription(epochfunc);
 	for(size_t i = 0; i < scope.GetVariableCount(); ++i)
 	{
 		if(scope.GetVariableOrigin(i) == VARIABLE_ORIGIN_PARAMETER)
@@ -697,8 +697,8 @@ FunctionType* NativeCodeGenerator::GetExternalFunctionType(StringHandle epochfun
 //
 llvm::FunctionType* NativeCodeGenerator::GetLLVMFunctionTypeFromSignature(StringHandle libraryfunc)
 {
-	FunctionSignatureSet::const_iterator iter = OwnerVM.LibraryFunctionSignatures.find(libraryfunc);
-	if(iter == OwnerVM.LibraryFunctionSignatures.end())
+	FunctionSignatureSet::const_iterator iter = ExecContext.LibraryFunctionSignatures.find(libraryfunc);
+	if(iter == ExecContext.LibraryFunctionSignatures.end())
 		throw FatalException("Invalid library function");
 
 	return GetLLVMFunctionTypeFromSignature(iter->second);
@@ -727,7 +727,7 @@ llvm::FunctionType* NativeCodeGenerator::GetLLVMFunctionTypeFromSignature(const 
 
 llvm::FunctionType* NativeCodeGenerator::GetLLVMFunctionTypeFromEpochType(Metadata::EpochTypeID type)
 {
-	return GetLLVMFunctionTypeFromSignature(OwnerVM.GetFunctionSignatureByType(type));
+	return GetLLVMFunctionTypeFromSignature(ExecContext.GetFunctionSignatureByType(type));
 }
 
 //
@@ -757,7 +757,7 @@ EPOCHRUNTIME void NativeCodeGenerator::ExternalInvoke(JIT::JITContext& context, 
 
 	Metadata::EpochTypeID rettype = Metadata::EpochType_Void;
 
-	const ScopeDescription& scope = OwnerVM.GetScopeDescription(alias);
+	const ScopeDescription& scope = ExecContext.GetScopeDescription(alias);
 	for(size_t i = 0; i < scope.GetVariableCount(); ++i)
 	{
 		if(scope.GetVariableOrigin(i) == VARIABLE_ORIGIN_PARAMETER)
@@ -935,20 +935,20 @@ void NativeCodeGenerator::Generate()
 	Runtime::PopulateWeakLinkages(ExternalFunctions, ee);
 
 	// Perform actual native code generation and link the created
-	// pages of machine code back to the VM for execution
+	// pages of machine code back to the runtime for execution
 	for(std::map<std::string, Function*>::const_iterator iter = Data->GeneratedFunctions.begin(); iter != Data->GeneratedFunctions.end(); ++iter)
 	{
 		void* p = ee->getPointerToFunction(iter->second);
 		if(iter->second == Data->EntryPoint)
-			OwnerVM.EntryPointFunc = p;
+			ExecContext.EntryPointFunc = p;
 		else if(iter->second == Data->GlobalInit)
-			OwnerVM.GlobalInitFunc = p;
+			ExecContext.GlobalInitFunc = p;
 
-		OwnerVM.GeneratedJITFunctionCode[p] = std::make_pair(iter->second, Data->GeneratedFunctionToNameMap[iter->second]);
-		OwnerVM.GeneratedFunctionLLVMToMachineCodeMap[iter->second] = p;
+		ExecContext.GeneratedJITFunctionCode[p] = std::make_pair(iter->second, Data->GeneratedFunctionToNameMap[iter->second]);
+		ExecContext.GeneratedFunctionLLVMToMachineCodeMap[iter->second] = p;
 	}
 
-	OwnerVM.JITExecutionEngine = ee;
+	ExecContext.JITExecutionEngine = ee;
 
 	// This is a no-op unless we enabled stats above
 	// The numbers are very handy for A/B testing optimization passes
@@ -1102,7 +1102,7 @@ void FunctionJITHelper::DoFunction(size_t beginoffset, size_t endoffset, StringH
 			Builder.CreateRetVoid();
 
 		// TODO - this is kind of hacky
-		if(Generator.OwnerVM.GetPooledString(alias) == L"entrypoint")
+		if(Generator.ExecContext.GetPooledString(alias) == L"entrypoint")
 			Generator.Data->EntryPoint = LibJITContext.InnerFunction;
 
 		Generator.Data->GeneratedNameToFunctionMap[alias] = LibJITContext.InnerFunction;
@@ -1136,7 +1136,7 @@ void FunctionJITHelper::DoGlobalInit(size_t beginoffset, StringHandle alias)
 	LibJITContext.BuiltInFunctions = &Generator.Data->BuiltInFunctions;
 
 	// Initialize tracking for JIT operations
-	LibJITContext.CurrentScope = &Generator.OwnerVM.GetScopeDescription(alias);
+	LibJITContext.CurrentScope = &Generator.ExecContext.GetScopeDescription(alias);
 
 	NumParameters = 0;
 	NumParameterBytes = 0;
@@ -1209,7 +1209,7 @@ void FunctionJITHelper::BeginEntity(size_t& offset)
 
 		size_t retindex = static_cast<size_t>(-1);
 
-		const ScopeDescription& scope = Generator.OwnerVM.GetScopeDescription(entityname);
+		const ScopeDescription& scope = Generator.ExecContext.GetScopeDescription(entityname);
 		LibJITContext.CurrentScope = &scope;
 		for(size_t i = scope.GetVariableCount(); i-- > 0; )
 		{
@@ -1250,7 +1250,7 @@ void FunctionJITHelper::BeginEntity(size_t& offset)
 					else
 					{
 						if(Metadata::GetTypeFamily(vartype) == Metadata::EpochTypeFamily_SumType)
-							NumParameterBytes += Generator.OwnerVM.VariantDefinitions.find(vartype)->second.GetMaxSize();
+							NumParameterBytes += Generator.ExecContext.VariantDefinitions.find(vartype)->second.GetMaxSize();
 						else
 							NumParameterBytes += Metadata::GetStorageSize(vartype);
 					}
@@ -1296,7 +1296,7 @@ void FunctionJITHelper::BeginEntity(size_t& offset)
 			Type* type = Generator.GetLLVMType(localtype);
 
 			if(*localiter != retindex)
-				LibJITContext.VariableMap[*localiter] = Builder.CreateAlloca(type, NULL, narrow(Generator.OwnerVM.GetPooledString(scope.GetVariableNameHandle(*localiter))));
+				LibJITContext.VariableMap[*localiter] = Builder.CreateAlloca(type, NULL, narrow(Generator.ExecContext.GetPooledString(scope.GetVariableNameHandle(*localiter))));
 
 			LocalOffsetToIndexMap[localoffsetbytes] = *localiter;
 
@@ -1310,7 +1310,7 @@ void FunctionJITHelper::BeginEntity(size_t& offset)
 			}
 
 			if(Metadata::GetTypeFamily(localtype) == Metadata::EpochTypeFamily_SumType)
-				localoffsetbytes += Generator.OwnerVM.VariantDefinitions.find(localtype)->second.GetMaxSize();
+				localoffsetbytes += Generator.ExecContext.VariantDefinitions.find(localtype)->second.GetMaxSize();
 			else
 				localoffsetbytes += Metadata::GetStorageSize(localtype);
 		}
@@ -1327,7 +1327,7 @@ void FunctionJITHelper::BeginEntity(size_t& offset)
 	}
 	else if(entitytype == Bytecode::EntityTags::Globals)
 	{
-		const ScopeDescription& scope = Generator.OwnerVM.GetScopeDescription(entityname);
+		const ScopeDescription& scope = Generator.ExecContext.GetScopeDescription(entityname);
 
 		// Sanity check
 		for(size_t i = scope.GetVariableCount(); i-- > 0; )
@@ -1377,12 +1377,12 @@ void FunctionJITHelper::BeginEntity(size_t& offset)
 				throw NotImplementedException("Unsupported global variable type");
 			}
 
-			Generator.Data->GlobalVariableMap[i] = new GlobalVariable(*Generator.Data->CurrentModule, type, false, GlobalValue::InternalLinkage, init, narrow(Generator.OwnerVM.GetPooledString(scope.GetVariableNameHandle(i))));
+			Generator.Data->GlobalVariableMap[i] = new GlobalVariable(*Generator.Data->CurrentModule, type, false, GlobalValue::InternalLinkage, init, narrow(Generator.ExecContext.GetPooledString(scope.GetVariableNameHandle(i))));
 			Generator.Data->GlobalVariableOffsetToIndexMap[localoffsetbytes] = i;
 			Generator.Data->GlobalVariableNameToIndexMap[scope.GetVariableNameHandle(i)] = i;
 
 			if(Metadata::GetTypeFamily(localtype) == Metadata::EpochTypeFamily_SumType)
-				localoffsetbytes += Generator.OwnerVM.VariantDefinitions.find(localtype)->second.GetMaxSize();
+				localoffsetbytes += Generator.ExecContext.VariantDefinitions.find(localtype)->second.GetMaxSize();
 			else
 				localoffsetbytes += Metadata::GetStorageSize(localtype);
 		}
@@ -1397,8 +1397,8 @@ void FunctionJITHelper::BeginEntity(size_t& offset)
 	}
 	else
 	{
-		std::map<StringHandle, JIT::JITHelper>::const_iterator helperiter = Generator.OwnerVM.JITHelpers.EntityHelpers.find(entitytype);
-		if(helperiter == Generator.OwnerVM.JITHelpers.EntityHelpers.end())
+		std::map<StringHandle, JIT::JITHelper>::const_iterator helperiter = Generator.ExecContext.JITHelpers.EntityHelpers.find(entitytype);
+		if(helperiter == Generator.ExecContext.JITHelpers.EntityHelpers.end())
 			throw FatalException("Cannot JIT this type of entity");
 					
 		helperiter->second(LibJITContext, true);
@@ -1414,7 +1414,7 @@ void FunctionJITHelper::EndEntity(size_t&)
 	LibJITContext.EntityTypes.pop();
 
 	if(tag != Bytecode::EntityTags::Function && tag != Bytecode::EntityTags::TypeResolver && tag != Bytecode::EntityTags::PatternMatchingResolver)
-		Generator.OwnerVM.JITHelpers.EntityHelpers.find(tag)->second(LibJITContext, false);
+		Generator.ExecContext.JITHelpers.EntityHelpers.find(tag)->second(LibJITContext, false);
 }
 
 //
@@ -1452,11 +1452,11 @@ void FunctionJITHelper::EndChain(size_t&)
 // Note that we do not literally push things onto the machine stack as a
 // result of processing this instruction; instead, the JIT engine maintains
 // a "virtual stack" which tracks what values would be on the stack if we
-// pushed/popped them all individually the same way that the Epoch VM works.
+// pushed/popped them all individually as the IR requests.
 //
 // The virtual stack can be very handy in eliminating redundant loads and
 // stores, because we don't need to stack-shuffle every single value we want
-// to operate on the way the Epoch VM does.
+// to operate on the way the Epoch "machine" does.
 //
 void FunctionJITHelper::Read(size_t& offset)
 {
@@ -1472,7 +1472,7 @@ void FunctionJITHelper::Read(size_t& offset)
 		if(Metadata::GetTypeFamily(vartype) == Metadata::EpochTypeFamily_SumType)
 		{
 			Value* payload = Builder.CreateVAArg(LibJITContext.VarArgList, Generator.GetLLVMSumType(vartype, true)->getContainedType(1));
-			Value* typesignature = Builder.CreateVAArg(LibJITContext.VarArgList, Generator.Data->VMTypeIDType);
+			Value* typesignature = Builder.CreateVAArg(LibJITContext.VarArgList, Generator.Data->TypeIDType);
 
 			Value* sumtypeholder = Builder.CreateAlloca(Generator.GetLLVMSumType(vartype, true));
 
@@ -1591,7 +1591,7 @@ void FunctionJITHelper::ReadParameter(size_t& offset)
 }
 
 //
-// In the Epoch VM, we bind references to things by placing a pointer
+// In the Epoch IR, we bind references to things by placing a pointer
 // and a type annotation onto the Epoch stack. In the JIT engine, we
 // convert this to simply storing a raw pointer (discarding type safety
 // since in theory the compiler already ensures that for us) and track
@@ -1638,7 +1638,7 @@ void FunctionJITHelper::BindReference(size_t& offset)
 }
 
 //
-// The Epoch VM uses this instruction to dereference a ref on the stack
+// The Epoch IR uses this instruction to dereference a ref on the stack
 // into a value which replaces it on the stack. We do this entire process
 // at JIT time using the virtual stack and thereby eliminate a load/store
 // pair on the machine stack.
@@ -1676,7 +1676,7 @@ void FunctionJITHelper::ReadRefAnnotated(size_t&)
 }
 
 //
-// The Epoch VM pops a reference and a value off the Epoch stack
+// The Epoch IR pops a reference and a value off the Epoch stack
 // and uses it to perform a store; we can eliminate a couple of
 // steps here using the virtual stack and emit just a direct store.
 //
@@ -1836,7 +1836,7 @@ void FunctionJITHelper::Return(size_t&)
 //
 void FunctionJITHelper::Halt(size_t&)
 {
-	Builder.CreateCall(Generator.Data->BuiltInFunctions[JITFunc_VM_Halt]);
+	Builder.CreateCall(Generator.Data->BuiltInFunctions[JITFunc_Runtime_Halt]);
 	Builder.CreateUnreachable();
 }
 
@@ -1890,18 +1890,18 @@ void FunctionJITHelper::Push(size_t& offset)
 	case Metadata::EpochTypeFamily_Function:		// We only emit generic family, not the actual signature type. This is kind of hacky.
 		{
 			StringHandle funcname = Fetch<StringHandle>(Bytecode, offset);
-			size_t offset = Generator.OwnerVM.GetFunctionInstructionOffsetNoThrow(funcname);
+			size_t offset = Generator.ExecContext.GetFunctionInstructionOffsetNoThrow(funcname);
 			
 			if(offset)
 				valueval = Generator.GetGeneratedFunction(funcname, offset);
 			else
 			{
-				std::map<StringHandle, const char*>::const_iterator libiter = Generator.OwnerVM.JITHelpers.LibraryExports.find(funcname);
-				if(libiter == Generator.OwnerVM.JITHelpers.LibraryExports.end())
+				std::map<StringHandle, const char*>::const_iterator libiter = Generator.ExecContext.JITHelpers.LibraryExports.find(funcname);
+				if(libiter == Generator.ExecContext.JITHelpers.LibraryExports.end())
 					throw NotImplementedException("Invalid higher order function target");
 
-				llvm::FunctionType* ftype = Generator.GetLLVMFunctionTypeFromSignature(funcname);
-				llvm::Function* func = Generator.LibraryFunctionCache[libiter->second];
+				FunctionType* ftype = Generator.GetLLVMFunctionTypeFromSignature(funcname);
+				Function* func = Generator.LibraryFunctionCache[libiter->second];
 
 				if(!func)
 					func = Generator.LibraryFunctionCache[libiter->second] = Function::Create(ftype, Function::ExternalLinkage, libiter->second, Generator.Data->CurrentModule);
@@ -1930,13 +1930,13 @@ void FunctionJITHelper::Pop(size_t& offset)
 }
 
 //
-// Shell out to the VM infrastructure to allocate some structure-typed memory
+// Shell out to the runtime infrastructure to allocate some structure-typed memory
 //
 void FunctionJITHelper::AllocStructure(size_t& offset)
 {
 	Metadata::EpochTypeID type = Fetch<Metadata::EpochTypeID>(Bytecode, offset);
 	Value* typeconst = ConstantInt::get(Type::getInt32Ty(Context), type);
-	Value* handle = Builder.CreateCall(Generator.Data->BuiltInFunctions[JITFunc_VM_AllocStruct], typeconst);
+	Value* handle = Builder.CreateCall(Generator.Data->BuiltInFunctions[JITFunc_Runtime_AllocStruct], typeconst);
 	LibJITContext.ValuesOnStack.push(handle);
 
 	HackStructType = type;
@@ -1964,7 +1964,7 @@ void FunctionJITHelper::CopyToStructure(size_t& offset)
 	Value* v = LibJITContext.VariableMap[LibJITContext.NameToIndexMap[variablename]];
 	Value* structptr = Builder.CreateLoad(v);
 
-	const StructureDefinition& def = Generator.OwnerVM.GetStructureDefinition(HackStructType);
+	const StructureDefinition& def = Generator.ExecContext.GetStructureDefinition(HackStructType);
 	size_t memberindex = def.FindMember(actualmember);
 	size_t memberoffset = def.GetMemberOffset(memberindex);
 	Metadata::EpochTypeID membertype = def.GetMemberType(memberindex);
@@ -1978,13 +1978,13 @@ void FunctionJITHelper::CopyToStructure(size_t& offset)
 }
 
 //
-// Request a deep copy of a structure object from the VM
+// Request a deep copy of a structure object from the runtime
 //
 void FunctionJITHelper::CopyStructure(size_t&)
 {
 	Value* structureptr = LibJITContext.ValuesOnStack.top();
 	LibJITContext.ValuesOnStack.pop();
-	Value* copyptr = Builder.CreateCall(Generator.Data->BuiltInFunctions[JITFunc_VM_CopyStruct], structureptr);
+	Value* copyptr = Builder.CreateCall(Generator.Data->BuiltInFunctions[JITFunc_Runtime_CopyStruct], structureptr);
 	Value* castptr = Builder.CreatePointerCast(copyptr, Type::getInt8PtrTy(Context));
 	LibJITContext.ValuesOnStack.push(castptr);
 }
@@ -2017,22 +2017,22 @@ void FunctionJITHelper::BindMemberRef(size_t& offset)
 void FunctionJITHelper::Invoke(size_t& offset)
 {
 	StringHandle target = Fetch<StringHandle>(Bytecode, offset);
-	std::map<StringHandle, JIT::JITHelper>::const_iterator iter = Generator.OwnerVM.JITHelpers.InvokeHelpers.find(target);
-	if(iter == Generator.OwnerVM.JITHelpers.InvokeHelpers.end())
+	std::map<StringHandle, JIT::JITHelper>::const_iterator iter = Generator.ExecContext.JITHelpers.InvokeHelpers.find(target);
+	if(iter == Generator.ExecContext.JITHelpers.InvokeHelpers.end())
 	{
-		std::map<StringHandle, const char*>::const_iterator libiter = Generator.OwnerVM.JITHelpers.LibraryExports.find(target);
-		if(libiter == Generator.OwnerVM.JITHelpers.LibraryExports.end())
+		std::map<StringHandle, const char*>::const_iterator libiter = Generator.ExecContext.JITHelpers.LibraryExports.find(target);
+		if(libiter == Generator.ExecContext.JITHelpers.LibraryExports.end())
 			throw FatalException("Cannot invoke this function, no native code support!");
 
-		llvm::FunctionType* ftype = Generator.GetLLVMFunctionTypeFromSignature(target);
-		llvm::Function* func = Generator.LibraryFunctionCache[libiter->second];
+		FunctionType* ftype = Generator.GetLLVMFunctionTypeFromSignature(target);
+		Function* func = Generator.LibraryFunctionCache[libiter->second];
 
 		if(!func)
 			func = Generator.LibraryFunctionCache[libiter->second] = Function::Create(ftype, Function::ExternalLinkage, libiter->second, Generator.Data->CurrentModule);
 
-		const FunctionSignature& sig = Generator.OwnerVM.LibraryFunctionSignatures.find(target)->second;
+		const FunctionSignature& sig = Generator.ExecContext.LibraryFunctionSignatures.find(target)->second;
 
-		std::vector<llvm::Value*> args;
+		std::vector<Value*> args;
 		for(size_t i = sig.GetNumParameters(); i-- > 0; )
 		{
 			if(!sig.GetParameter(i).HasPayload)
@@ -2065,10 +2065,10 @@ void FunctionJITHelper::InvokeOffset(size_t& offset)
 	std::vector<Value*> matchervarargs;
 
 	// Handle vanilla pattern matchers
-	if(Generator.OwnerVM.PatternMatcherParamCount.find(functionname) != Generator.OwnerVM.PatternMatcherParamCount.end())
+	if(Generator.ExecContext.PatternMatcherParamCount.find(functionname) != Generator.ExecContext.PatternMatcherParamCount.end())
 	{
 		nativematcher = Generator.GetGeneratedPatternMatcher(functionname, internaloffset);
-		numparams = Generator.OwnerVM.PatternMatcherParamCount.find(functionname)->second;
+		numparams = Generator.ExecContext.PatternMatcherParamCount.find(functionname)->second;
 
 		for(size_t i = 0; i < numparams; ++i)
 		{
@@ -2080,11 +2080,11 @@ void FunctionJITHelper::InvokeOffset(size_t& offset)
 	}
 	else
 	{
-		if(Generator.OwnerVM.TypeMatcherParamCount.find(functionname) == Generator.OwnerVM.TypeMatcherParamCount.end())
-			throw FatalException("Cannot invoke VM code from native code");
+		if(Generator.ExecContext.TypeMatcherParamCount.find(functionname) == Generator.ExecContext.TypeMatcherParamCount.end())
+			throw FatalException("Cannot invoke this code");
 
 		nativematcher = Generator.GetGeneratedTypeMatcher(functionname, internaloffset);
-		numparams = Generator.OwnerVM.TypeMatcherParamCount.find(functionname)->second;
+		numparams = Generator.ExecContext.TypeMatcherParamCount.find(functionname)->second;
 
 		for(size_t i = 0; i < numparams; ++i)
 		{
@@ -2135,16 +2135,16 @@ void FunctionJITHelper::InvokeNative(size_t& offset)
 {
 	StringHandle target = Fetch<StringHandle>(Bytecode, offset);
 	Fetch<size_t>(Bytecode, offset);		// skip dummy offset
-	std::map<StringHandle, JIT::JITHelper>::const_iterator iter = Generator.OwnerVM.JITHelpers.InvokeHelpers.find(target);
-	if(iter != Generator.OwnerVM.JITHelpers.InvokeHelpers.end())
+	std::map<StringHandle, JIT::JITHelper>::const_iterator iter = Generator.ExecContext.JITHelpers.InvokeHelpers.find(target);
+	if(iter != Generator.ExecContext.JITHelpers.InvokeHelpers.end())
 		iter->second(LibJITContext, true);
 	else
 	{
-		Function* targetfunc = Generator.GetGeneratedFunction(target, Generator.OwnerVM.GetFunctionInstructionOffsetNoThrow(target));
+		Function* targetfunc = Generator.GetGeneratedFunction(target, Generator.ExecContext.GetFunctionInstructionOffsetNoThrow(target));
 
 		size_t paramcount = 0;
 		
-		const ScopeDescription& desc = Generator.OwnerVM.GetScopeDescription(target);
+		const ScopeDescription& desc = Generator.ExecContext.GetScopeDescription(target);
 		for(size_t i = 0; i < desc.GetVariableCount(); ++i)
 		{
 			if(desc.GetVariableOrigin(i) == VARIABLE_ORIGIN_PARAMETER)
@@ -2216,15 +2216,13 @@ void FunctionJITHelper::CopyBuffer(size_t&)
 	Value* buffer = LibJITContext.ValuesOnStack.top();
 	LibJITContext.ValuesOnStack.pop();
 	
-	Value* clone = Builder.CreateCall(Generator.Data->BuiltInFunctions[JITFunc_VM_CopyBuffer], buffer);
+	Value* clone = Builder.CreateCall(Generator.Data->BuiltInFunctions[JITFunc_Runtime_CopyBuffer], buffer);
 	LibJITContext.ValuesOnStack.push(clone);
 }
 
 //
 // Generate native code for type matching/dispatch when called from
-// a parent routine which is already JIT compiled. This is not to be
-// confused with calling a native routine from a non-native parent
-// which is running in the Epoch VM.
+// a parent routine which is already JIT compiled.
 //
 void NativeCodeGenerator::AddNativeTypeMatcher(size_t beginoffset, size_t endoffset)
 {
@@ -2299,7 +2297,7 @@ void NativeCodeGenerator::AddNativeTypeMatcher(size_t beginoffset, size_t endoff
 			break;
 
 		case Bytecode::Instructions::Halt:
-			Builder.CreateCall(Data->BuiltInFunctions[JITFunc_VM_Halt]);
+			Builder.CreateCall(Data->BuiltInFunctions[JITFunc_Runtime_Halt]);
 			Builder.CreateUnreachable();
 			break;
 
@@ -2454,7 +2452,7 @@ void NativeCodeGenerator::AddNativePatternMatcher(size_t beginoffset, size_t end
 			break;
 
 		case Bytecode::Instructions::Halt:
-			Builder.CreateCall(Data->BuiltInFunctions[JITFunc_VM_Halt]);
+			Builder.CreateCall(Data->BuiltInFunctions[JITFunc_Runtime_Halt]);
 			Builder.CreateUnreachable();
 			break;
 
@@ -2554,7 +2552,7 @@ Value* NativeCodeGenerator::MarshalArgument(Value* arg, Metadata::EpochTypeID ty
 		return Builder.CreateCast(Instruction::SExt, arg, Type::getInt32Ty(Data->Context));
 
 	case Metadata::EpochType_Buffer:
-		return Builder.CreateCall(Data->BuiltInFunctions[JITFunc_VM_GetBuffer], arg);
+		return Builder.CreateCall(Data->BuiltInFunctions[JITFunc_Runtime_GetBuffer], arg);
 
 	case Metadata::EpochType_Integer:
 	case Metadata::EpochType_Integer16:
@@ -2562,7 +2560,7 @@ Value* NativeCodeGenerator::MarshalArgument(Value* arg, Metadata::EpochTypeID ty
 		return arg;
 
 	case Metadata::EpochType_String:
-		return Builder.CreateCall(Data->BuiltInFunctions[JITFunc_VM_GetString], arg);
+		return Builder.CreateCall(Data->BuiltInFunctions[JITFunc_Runtime_GetString], arg);
 	}
 
 	Metadata::EpochTypeFamily family = Metadata::GetTypeFamily(type);
@@ -2675,9 +2673,9 @@ Value* NativeCodeGenerator::GetCallbackWrapper(Value* funcptr)
 
 void* NativeCodeGenerator::GenerateCallbackWrapper(void* targetfunc)
 {
-	Function* llvmtargetfunc = reinterpret_cast<Function*>(OwnerVM.GeneratedJITFunctionCode[targetfunc].first);
+	Function* llvmtargetfunc = reinterpret_cast<Function*>(ExecContext.GeneratedJITFunctionCode[targetfunc].first);
 
-	StringHandle alias = OwnerVM.GeneratedJITFunctionCode[targetfunc].second;
+	StringHandle alias = ExecContext.GeneratedJITFunctionCode[targetfunc].second;
 	FunctionType* ftype = GetExternalFunctionType(alias);
 	Function* wrapfunc = Function::Create(ftype, GlobalValue::ExternalWeakLinkage, "", Data->CurrentModule);
 
@@ -2693,7 +2691,7 @@ void* NativeCodeGenerator::GenerateCallbackWrapper(void* targetfunc)
 	{
 		// TODO - HACK - assumes parameters are the only vars we have, and return is not mixed in with them
 		Value* val = (Argument*)(argiter);
-		val = MarshalArgument(val, OwnerVM.GetScopeDescription(alias).GetVariableTypeByIndex(i));
+		val = MarshalArgument(val, ExecContext.GetScopeDescription(alias).GetVariableTypeByIndex(i));
 
 		args.push_back(val);
 		++argiter;

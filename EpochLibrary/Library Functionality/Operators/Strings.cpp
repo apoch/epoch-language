@@ -83,18 +83,18 @@ void StringLibrary::RegisterJITTable(JIT::JITTable& table)
 
 extern "C" StringHandle EpochLib_StrConcat(StringHandle b, StringHandle a)
 {
-	std::wstring result = GlobalExecutionContext->OwnerVM.GetPooledString(a) + GlobalExecutionContext->OwnerVM.GetPooledString(b);
-	return GlobalExecutionContext->OwnerVM.PoolString(result);
+	std::wstring result = GlobalExecutionContext->GetPooledString(a) + GlobalExecutionContext->GetPooledString(b);
+	return GlobalExecutionContext->PoolString(result);
 }
 
 extern "C" BufferHandle EpochLib_StrNarrow(StringHandle str)
 {
-	const std::wstring& sourcestring = GlobalExecutionContext->OwnerVM.GetPooledString(str);
+	const std::wstring& sourcestring = GlobalExecutionContext->GetPooledString(str);
 
 	std::string narrowed(narrow(sourcestring));
 
-	BufferHandle destbuffer = GlobalExecutionContext->OwnerVM.AllocateBuffer(narrowed.length() + 1);
-	void* storage = GlobalExecutionContext->OwnerVM.GetBuffer(destbuffer);
+	BufferHandle destbuffer = GlobalExecutionContext->AllocateBuffer(narrowed.length() + 1);
+	void* storage = GlobalExecutionContext->GetBuffer(destbuffer);
 	memcpy(storage, narrowed.c_str(), narrowed.length());
 
 	GlobalExecutionContext->TickBufferGarbageCollector();

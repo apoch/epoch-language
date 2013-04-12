@@ -123,7 +123,7 @@ extern "C" bool EpochLib_StringEq(StringHandle b, StringHandle a)
 	if(a == b)
 		return true;
 
-	return GlobalExecutionContext->OwnerVM.GetPooledString(a) == GlobalExecutionContext->OwnerVM.GetPooledString(b);
+	return GlobalExecutionContext->GetPooledString(a) == GlobalExecutionContext->GetPooledString(b);
 }
 
 extern "C" bool EpochLib_StringIneq(StringHandle b, StringHandle a)
@@ -131,7 +131,7 @@ extern "C" bool EpochLib_StringIneq(StringHandle b, StringHandle a)
 	if(a == b)
 		return false;
 
-	return GlobalExecutionContext->OwnerVM.GetPooledString(a) != GlobalExecutionContext->OwnerVM.GetPooledString(b);
+	return GlobalExecutionContext->GetPooledString(a) != GlobalExecutionContext->GetPooledString(b);
 }
 
 

@@ -178,6 +178,6 @@ extern "C" StringHandle EpochLib_CastRealToStr(float real)
 	std::wostringstream convert;
 	convert << real;
 
-	return GlobalExecutionContext->OwnerVM.PoolString(convert.str());
+	return GlobalExecutionContext->PoolString(convert.str());
 }
 
