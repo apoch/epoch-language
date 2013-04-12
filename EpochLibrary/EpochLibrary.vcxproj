@@ -140,7 +140,6 @@
     <ClCompile Include="..\Shared\Metadata\FunctionSignature.cpp" />
     <ClCompile Include="..\Shared\Metadata\ScopeDescription.cpp" />
     <ClCompile Include="..\Shared\Metadata\StructureDefinition.cpp" />
-    <ClCompile Include="VM Linkage\HeapAccess.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\EpochCompiler\Compiler\CompileErrors.h" />

@@ -120,7 +120,6 @@
     <ClCompile Include="..\Shared\Metadata\FunctionSignature.cpp" />
     <ClCompile Include="..\Shared\Metadata\ScopeDescription.cpp" />
     <ClCompile Include="..\Shared\Metadata\StructureDefinition.cpp" />
-    <ClCompile Include="Miscellaneous\HeapAccess.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Shared\Libraries\LibraryJIT.h" />

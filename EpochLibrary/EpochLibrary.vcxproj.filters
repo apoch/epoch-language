@@ -149,9 +149,6 @@
     <ClCompile Include="..\Shared\Metadata\StructureDefinition.cpp">
       <Filter>Shared\Metadata</Filter>
     </ClCompile>
-    <ClCompile Include="VM Linkage\HeapAccess.cpp">
-      <Filter>VM Linkage</Filter>
-    </ClCompile>
     <ClCompile Include="..\EpochCompiler\Compiler\CompileErrors.cpp">
       <Filter>Compiler Dependencies</Filter>
     </ClCompile>

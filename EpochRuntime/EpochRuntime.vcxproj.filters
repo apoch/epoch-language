@@ -39,9 +39,6 @@
     <Filter Include="Shared\Libraries">
       <UniqueIdentifier>{fc496dbf-a59c-461b-9df4-14da61f6697b}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Miscellaneous">
-      <UniqueIdentifier>{3958d923-0628-4391-9bc6-c12520c381e0}</UniqueIdentifier>
-    </Filter>
     <Filter Include="JIT">
       <UniqueIdentifier>{97690949-092e-4b3e-a2d6-b1a1478dd088}</UniqueIdentifier>
     </Filter>
@@ -88,9 +85,6 @@
     </ClCompile>
     <ClCompile Include="..\Shared\Metadata\StructureDefinition.cpp">
       <Filter>Shared\Metadata</Filter>
-    </ClCompile>
-    <ClCompile Include="Miscellaneous\HeapAccess.cpp">
-      <Filter>Miscellaneous</Filter>
     </ClCompile>
     <ClCompile Include="JIT\JIT.cpp">
       <Filter>JIT</Filter>

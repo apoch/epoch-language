@@ -173,9 +173,8 @@
       <Project>{1afb3b3c-b2be-4941-8ec3-e75f998a0b86}</Project>
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
     </ProjectReference>
-    <ProjectReference Include="..\EpochVM\EpochVM.vcxproj">
+    <ProjectReference Include="..\EpochRuntime\EpochRuntime.vcxproj">
       <Project>{aab8eda4-d37f-475b-9ceb-2bbbd5799b3b}</Project>
-      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
