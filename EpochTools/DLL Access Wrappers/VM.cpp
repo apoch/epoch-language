@@ -22,13 +22,12 @@ using namespace DLLAccess;
 //
 VMAccess::VMAccess()
 {
-	Marshaling::DLLPool::DLLPoolHandle dllhandle = Marshaling::TheDLLPool.OpenDLL(L"EpochVM.DLL");
+	Marshaling::DLLPool::DLLPoolHandle dllhandle = Marshaling::TheDLLPool.OpenDLL(L"EpochRuntime.DLL");
 
 	DoExecByteCode = Marshaling::DLLPool::GetFunction<ExecuteByteCodePtr>(dllhandle, "ExecuteByteCode");
-	DoEnableVisualDebugger = Marshaling::DLLPool::GetFunction<EnableVisualDebuggerPtr>(dllhandle, "EnableVisualDebugger");
 	DoLinkTestHarness = Marshaling::DLLPool::GetFunction<LinkTestHarnessPtr>(dllhandle, "LinkTestHarness");
 
-	if(!DoExecByteCode || !DoEnableVisualDebugger || !DoLinkTestHarness)
+	if(!DoExecByteCode || !DoLinkTestHarness)
 		throw DLLException("Failed to load Epoch Virtual Machine");
 }
 
@@ -38,14 +37,6 @@ VMAccess::VMAccess()
 void VMAccess::ExecuteByteCode(void* buffer, size_t size)
 {
 	DoExecByteCode(buffer, size);
-}
-
-//
-// Enable the visual debug facility of the virtual machine
-//
-void VMAccess::EnableVisualDebugger()
-{
-	DoEnableVisualDebugger();
 }
 
 void VMAccess::LinkTestHarness(unsigned* harness)

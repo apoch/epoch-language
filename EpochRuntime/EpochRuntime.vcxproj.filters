@@ -33,9 +33,6 @@
     <Filter Include="Shared\Utility\Types">
       <UniqueIdentifier>{9c38474f-8d66-4587-9ea1-f47f93535d0c}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Shared\Utility\Memory">
-      <UniqueIdentifier>{8f45656c-f8d6-43b7-b1f9-13b56e1bf414}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Shared\Metadata">
       <UniqueIdentifier>{cb521aea-78b6-48d5-a86c-e38e91db7eba}</UniqueIdentifier>
     </Filter>
@@ -44,9 +41,6 @@
     </Filter>
     <Filter Include="Miscellaneous">
       <UniqueIdentifier>{3958d923-0628-4391-9bc6-c12520c381e0}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Visual Debugger">
-      <UniqueIdentifier>{ba3b6eec-80a3-4cf2-bb29-fa9c05c2a098}</UniqueIdentifier>
     </Filter>
     <Filter Include="JIT">
       <UniqueIdentifier>{97690949-092e-4b3e-a2d6-b1a1478dd088}</UniqueIdentifier>
@@ -86,12 +80,6 @@
     <ClCompile Include="..\Shared\Utility\Threading\Synchronization.cpp">
       <Filter>Shared\Utility\Threading</Filter>
     </ClCompile>
-    <ClCompile Include="..\Shared\Utility\Memory\MemoryManager.cpp">
-      <Filter>Shared\Utility\Memory</Filter>
-    </ClCompile>
-    <ClCompile Include="..\Shared\Utility\Memory\Stack.cpp">
-      <Filter>Shared\Utility\Memory</Filter>
-    </ClCompile>
     <ClCompile Include="..\Shared\Metadata\FunctionSignature.cpp">
       <Filter>Shared\Metadata</Filter>
     </ClCompile>
@@ -104,9 +92,6 @@
     <ClCompile Include="Miscellaneous\HeapAccess.cpp">
       <Filter>Miscellaneous</Filter>
     </ClCompile>
-    <ClCompile Include="Visual Debugger\DebugThread.cpp">
-      <Filter>Visual Debugger</Filter>
-    </ClCompile>
     <ClCompile Include="JIT\JIT.cpp">
       <Filter>JIT</Filter>
     </ClCompile>
@@ -115,9 +100,6 @@
     </ClCompile>
     <ClCompile Include="..\Shared\Utility\Profiling.cpp">
       <Filter>Shared\Utility</Filter>
-    </ClCompile>
-    <ClCompile Include="..\Shared\Utility\Memory\DLMalloc.cpp">
-      <Filter>Shared\Utility\Memory</Filter>
     </ClCompile>
     <ClCompile Include="JIT\GarbageCollection.cpp">
       <Filter>JIT</Filter>
@@ -181,12 +163,6 @@
     <ClInclude Include="..\Shared\Utility\Types\RealTypes.h">
       <Filter>Shared\Utility\Types</Filter>
     </ClInclude>
-    <ClInclude Include="..\Shared\Utility\Memory\MemoryManager.h">
-      <Filter>Shared\Utility\Memory</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Shared\Utility\Memory\Stack.h">
-      <Filter>Shared\Utility\Memory</Filter>
-    </ClInclude>
     <ClInclude Include="..\Shared\Metadata\FunctionSignature.h">
       <Filter>Shared\Metadata</Filter>
     </ClInclude>
@@ -198,9 +174,6 @@
     </ClInclude>
     <ClInclude Include="..\Shared\Libraries\Library.h">
       <Filter>Shared\Libraries</Filter>
-    </ClInclude>
-    <ClInclude Include="Visual Debugger\VisualDebugger.h">
-      <Filter>Visual Debugger</Filter>
     </ClInclude>
     <ClInclude Include="JIT\JIT.h">
       <Filter>JIT</Filter>

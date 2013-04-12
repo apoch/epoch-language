@@ -174,11 +174,6 @@ int _tmain(int argc, _TCHAR* argv[])
 			UI::Input input;
 			input.BlockingRead();
 		}
-		else if(parameters[i] == L"/vmdebug")
-		{
-			DLLAccess::VMAccess vmaccess;
-			vmaccess.EnableVisualDebugger();
-		}
 		else if(parameters[i] == L"/recurse")
 		{
 			recurse = true;

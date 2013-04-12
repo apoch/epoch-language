@@ -1,6 +1,6 @@
 //
 // The Epoch Language Project
-// EPOCHVM Virtual Machine
+// EPOCHRUNTIME Runtime Library
 //
 // Just-in-time native code generation for Epoch
 //
@@ -9,7 +9,7 @@
 
 
 // Forward declarations
-namespace VM
+namespace Runtime
 {
 	class VirtualMachine;
 }
@@ -33,7 +33,7 @@ namespace JIT
 	{
 	// Construction and destruction
 	public:
-		NativeCodeGenerator(VM::VirtualMachine& ownervm, const Bytecode::Instruction* bytecode);
+		NativeCodeGenerator(Runtime::VirtualMachine& ownervm, const Bytecode::Instruction* bytecode);
 		~NativeCodeGenerator();
 
 	// Non-copyable
@@ -46,7 +46,7 @@ namespace JIT
 		void AddFunction(size_t beginoffset, size_t endoffset, StringHandle alias);
 		void AddGlobalEntity(size_t beginoffset, StringHandle alias);
 
-		EPOCHVM void ExternalInvoke(JIT::JITContext& context, StringHandle alias);
+		EPOCHRUNTIME void ExternalInvoke(JIT::JITContext& context, StringHandle alias);
 
 		void Generate();
 		void* GenerateCallbackWrapper(void* targetfunc);
@@ -84,7 +84,7 @@ namespace JIT
 
 	// Visible tracking
 	public:
-		VM::VirtualMachine& OwnerVM;
+		Runtime::VirtualMachine& OwnerVM;
 
 	// Internal tracking
 	private:

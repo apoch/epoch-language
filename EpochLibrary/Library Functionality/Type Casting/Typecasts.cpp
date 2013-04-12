@@ -19,10 +19,10 @@
 #include <sstream>
 
 
-using namespace VM;
+using namespace Runtime;
 using namespace Metadata;
 
-extern VM::ExecutionContext* GlobalExecutionContext;
+extern Runtime::ExecutionContext* GlobalExecutionContext;
 
 
 namespace

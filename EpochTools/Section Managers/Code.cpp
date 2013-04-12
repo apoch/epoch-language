@@ -52,8 +52,8 @@ void CodeGenerator::Emit(Linker& linker, LinkWriter& writer) const
 	writer.EmitByte(0xec);
 	writer.EmitDWORD(0x404);
 
-	writer.EmitByte(0x68);			// PUSH "epochvm.dll"
-	writer.EmitDWORD(linker.GetBaseAddress() + data.GetOffsetOfWideString(STRINGS_VMDLLNAME, linker));
+	writer.EmitByte(0x68);			// PUSH "epochruntime.dll"
+	writer.EmitDWORD(linker.GetBaseAddress() + data.GetOffsetOfWideString(STRINGS_RUNTIMEDLLNAME, linker));
 
 	writer.EmitByte(0xff);			// CALL DWORD PTR DS:[<LoadLibraryW>]
 	writer.EmitByte(0x15);
@@ -71,8 +71,8 @@ void CodeGenerator::Emit(Linker& linker, LinkWriter& writer) const
 	writer.EmitByte(0x68);			// PUSH <Epoch Subsystem>
 	writer.EmitDWORD(linker.GetBaseAddress() + data.GetOffsetOfWideString(STRINGS_EPOCHSUBSYSTEM, linker));
 
-	writer.EmitByte(0x68);			// PUSH <Failed to load VM...>
-	writer.EmitDWORD(linker.GetBaseAddress() + data.GetOffsetOfWideString(STRINGS_FAILEDVMDLL, linker));
+	writer.EmitByte(0x68);			// PUSH <Failed to load runtime...>
+	writer.EmitDWORD(linker.GetBaseAddress() + data.GetOffsetOfWideString(STRINGS_FAILEDRUNTIMEDLL, linker));
 
 	writer.EmitByte(0x50);			// PUSH EAX
 

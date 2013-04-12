@@ -1,6 +1,6 @@
 //
 // The Epoch Language Project
-// EPOCHVM Virtual Machine
+// EPOCHRUNTIME Runtime Library
 //
 // Library entry/load/unload point
 //

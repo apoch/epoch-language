@@ -51,9 +51,6 @@
     <Filter Include="Shared\Utility">
       <UniqueIdentifier>{d259dbe9-823a-4591-a2b8-665f36c08a24}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Shared\Utility\Memory">
-      <UniqueIdentifier>{7b238ce9-a72f-4dd4-8b29-861e4516282d}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Shared\Utility\Threading">
       <UniqueIdentifier>{b916ee69-5b48-42c1-92b5-c5a5ec0a391a}</UniqueIdentifier>
     </Filter>
@@ -134,9 +131,6 @@
     <ClCompile Include="..\Shared\Utility\Strings.cpp">
       <Filter>Shared\Utility</Filter>
     </ClCompile>
-    <ClCompile Include="..\Shared\Utility\Memory\Stack.cpp">
-      <Filter>Shared\Utility\Memory</Filter>
-    </ClCompile>
     <ClCompile Include="..\Shared\Utility\Threading\Synchronization.cpp">
       <Filter>Shared\Utility\Threading</Filter>
     </ClCompile>
@@ -160,9 +154,6 @@
     </ClCompile>
     <ClCompile Include="..\EpochCompiler\Compiler\CompileErrors.cpp">
       <Filter>Compiler Dependencies</Filter>
-    </ClCompile>
-    <ClCompile Include="..\Shared\Utility\Memory\MemoryManager.cpp">
-      <Filter>Shared\Utility\Memory</Filter>
     </ClCompile>
     <ClCompile Include="..\Shared\Metadata\TypeInfo.cpp">
       <Filter>Shared\Metadata</Filter>
@@ -238,9 +229,6 @@
     <ClInclude Include="..\Shared\Utility\Strings.h">
       <Filter>Shared\Utility</Filter>
     </ClInclude>
-    <ClInclude Include="..\Shared\Utility\Memory\Stack.h">
-      <Filter>Shared\Utility\Memory</Filter>
-    </ClInclude>
     <ClInclude Include="..\Shared\Utility\Threading\Synchronization.h">
       <Filter>Shared\Utility\Threading</Filter>
     </ClInclude>
@@ -279,9 +267,6 @@
     </ClInclude>
     <ClInclude Include="..\EpochCompiler\Compiler\CompileErrors.h">
       <Filter>Compiler Dependencies</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Shared\Utility\Memory\MemoryManager.h">
-      <Filter>Shared\Utility\Memory</Filter>
     </ClInclude>
     <ClInclude Include="..\Shared\Metadata\TypeInfo.h">
       <Filter>Shared\Metadata</Filter>

@@ -53,7 +53,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>.\;..\Shared\;..\EpochVM\;..\EpochCompiler\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.\;..\Shared\;..\EpochRuntime\;..\EpochCompiler\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_USRDLL;EPOCHLIBRARY_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>false</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
@@ -66,7 +66,7 @@
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>EpochVM.lib;DebugLibsLLVMAnalysis.lib;DebugLibsLLVMArchive.lib;DebugLibsLLVMAsmParser.lib;DebugLibsLLVMAsmPrinter.lib;DebugLibsLLVMBitReader.lib;DebugLibsLLVMBitWriter.lib;DebugLibsLLVMCodeGen.lib;DebugLibsLLVMCore.lib;DebugLibsLLVMDebugInfo.lib;DebugLibsLLVMExecutionEngine.lib;DebugLibsLLVMInstCombine.lib;DebugLibsLLVMInstrumentation.lib;DebugLibsLLVMInterpreter.lib;DebugLibsLLVMipa.lib;DebugLibsLLVMipo.lib;DebugLibsLLVMJIT.lib;DebugLibsLLVMLinker.lib;DebugLibsLLVMMC.lib;DebugLibsLLVMMCDisassembler.lib;DebugLibsLLVMMCJIT.lib;DebugLibsLLVMMCParser.lib;DebugLibsLLVMObject.lib;DebugLibsLLVMRuntimeDyld.lib;DebugLibsLLVMScalarOpts.lib;DebugLibsLLVMSelectionDAG.lib;DebugLibsLLVMSupport.lib;DebugLibsLLVMTableGen.lib;DebugLibsLLVMTarget.lib;DebugLibsLLVMTransformUtils.lib;DebugLibsLLVMX86AsmParser.lib;DebugLibsLLVMX86AsmPrinter.lib;DebugLibsLLVMX86CodeGen.lib;DebugLibsLLVMX86Desc.lib;DebugLibsLLVMX86Disassembler.lib;DebugLibsLLVMX86Info.lib;DebugLibsLLVMX86Utils.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>EpochRuntime.lib;DebugLibsLLVMAnalysis.lib;DebugLibsLLVMArchive.lib;DebugLibsLLVMAsmParser.lib;DebugLibsLLVMAsmPrinter.lib;DebugLibsLLVMBitReader.lib;DebugLibsLLVMBitWriter.lib;DebugLibsLLVMCodeGen.lib;DebugLibsLLVMCore.lib;DebugLibsLLVMDebugInfo.lib;DebugLibsLLVMExecutionEngine.lib;DebugLibsLLVMInstCombine.lib;DebugLibsLLVMInstrumentation.lib;DebugLibsLLVMInterpreter.lib;DebugLibsLLVMipa.lib;DebugLibsLLVMipo.lib;DebugLibsLLVMJIT.lib;DebugLibsLLVMLinker.lib;DebugLibsLLVMMC.lib;DebugLibsLLVMMCDisassembler.lib;DebugLibsLLVMMCJIT.lib;DebugLibsLLVMMCParser.lib;DebugLibsLLVMObject.lib;DebugLibsLLVMRuntimeDyld.lib;DebugLibsLLVMScalarOpts.lib;DebugLibsLLVMSelectionDAG.lib;DebugLibsLLVMSupport.lib;DebugLibsLLVMTableGen.lib;DebugLibsLLVMTarget.lib;DebugLibsLLVMTransformUtils.lib;DebugLibsLLVMX86AsmParser.lib;DebugLibsLLVMX86AsmPrinter.lib;DebugLibsLLVMX86CodeGen.lib;DebugLibsLLVMX86Desc.lib;DebugLibsLLVMX86Disassembler.lib;DebugLibsLLVMX86Info.lib;DebugLibsLLVMX86Utils.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(OutDir);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <ModuleDefinitionFile>Exports/Exports.def</ModuleDefinitionFile>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -86,7 +86,7 @@
       <TreatWarningAsError>true</TreatWarningAsError>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>EpochVM.lib;ReleaseLibsLLVMAnalysis.lib;ReleaseLibsLLVMArchive.lib;ReleaseLibsLLVMAsmParser.lib;ReleaseLibsLLVMAsmPrinter.lib;ReleaseLibsLLVMBitReader.lib;ReleaseLibsLLVMBitWriter.lib;ReleaseLibsLLVMCodeGen.lib;ReleaseLibsLLVMCore.lib;ReleaseLibsLLVMDebugInfo.lib;ReleaseLibsLLVMExecutionEngine.lib;ReleaseLibsLLVMInstCombine.lib;ReleaseLibsLLVMInstrumentation.lib;ReleaseLibsLLVMInterpreter.lib;ReleaseLibsLLVMipa.lib;ReleaseLibsLLVMipo.lib;ReleaseLibsLLVMJIT.lib;ReleaseLibsLLVMLinker.lib;ReleaseLibsLLVMMC.lib;ReleaseLibsLLVMMCDisassembler.lib;ReleaseLibsLLVMMCJIT.lib;ReleaseLibsLLVMMCParser.lib;ReleaseLibsLLVMObject.lib;ReleaseLibsLLVMRuntimeDyld.lib;ReleaseLibsLLVMScalarOpts.lib;ReleaseLibsLLVMSelectionDAG.lib;ReleaseLibsLLVMSupport.lib;ReleaseLibsLLVMTableGen.lib;ReleaseLibsLLVMTarget.lib;ReleaseLibsLLVMTransformUtils.lib;ReleaseLibsLLVMX86AsmParser.lib;ReleaseLibsLLVMX86AsmPrinter.lib;ReleaseLibsLLVMX86CodeGen.lib;ReleaseLibsLLVMX86Desc.lib;ReleaseLibsLLVMX86Disassembler.lib;ReleaseLibsLLVMX86Info.lib;ReleaseLibsLLVMX86Utils.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>EpochRuntime.lib;ReleaseLibsLLVMAnalysis.lib;ReleaseLibsLLVMArchive.lib;ReleaseLibsLLVMAsmParser.lib;ReleaseLibsLLVMAsmPrinter.lib;ReleaseLibsLLVMBitReader.lib;ReleaseLibsLLVMBitWriter.lib;ReleaseLibsLLVMCodeGen.lib;ReleaseLibsLLVMCore.lib;ReleaseLibsLLVMDebugInfo.lib;ReleaseLibsLLVMExecutionEngine.lib;ReleaseLibsLLVMInstCombine.lib;ReleaseLibsLLVMInstrumentation.lib;ReleaseLibsLLVMInterpreter.lib;ReleaseLibsLLVMipa.lib;ReleaseLibsLLVMipo.lib;ReleaseLibsLLVMJIT.lib;ReleaseLibsLLVMLinker.lib;ReleaseLibsLLVMMC.lib;ReleaseLibsLLVMMCDisassembler.lib;ReleaseLibsLLVMMCJIT.lib;ReleaseLibsLLVMMCParser.lib;ReleaseLibsLLVMObject.lib;ReleaseLibsLLVMRuntimeDyld.lib;ReleaseLibsLLVMScalarOpts.lib;ReleaseLibsLLVMSelectionDAG.lib;ReleaseLibsLLVMSupport.lib;ReleaseLibsLLVMTableGen.lib;ReleaseLibsLLVMTarget.lib;ReleaseLibsLLVMTransformUtils.lib;ReleaseLibsLLVMX86AsmParser.lib;ReleaseLibsLLVMX86AsmPrinter.lib;ReleaseLibsLLVMX86CodeGen.lib;ReleaseLibsLLVMX86Desc.lib;ReleaseLibsLLVMX86Disassembler.lib;ReleaseLibsLLVMX86Info.lib;ReleaseLibsLLVMX86Utils.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(OutDir);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <ModuleDefinitionFile>Exports/Exports.def</ModuleDefinitionFile>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -99,7 +99,6 @@
   <ItemGroup>
     <ClCompile Include="..\EpochCompiler\Compiler\CompileErrors.cpp" />
     <ClCompile Include="..\Shared\Metadata\TypeInfo.cpp" />
-    <ClCompile Include="..\Shared\Utility\Memory\MemoryManager.cpp" />
     <ClCompile Include="EntryPoint.cpp" />
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
@@ -135,7 +134,6 @@
     <ClCompile Include="..\Shared\Utility\DLLPool.cpp" />
     <ClCompile Include="..\Shared\Utility\StringPool.cpp" />
     <ClCompile Include="..\Shared\Utility\Strings.cpp" />
-    <ClCompile Include="..\Shared\Utility\Memory\Stack.cpp" />
     <ClCompile Include="..\Shared\Utility\Threading\Synchronization.cpp" />
     <ClCompile Include="..\Shared\User Interface\Input.cpp" />
     <ClCompile Include="..\Shared\User Interface\Output.cpp" />
@@ -148,7 +146,6 @@
     <ClInclude Include="..\EpochCompiler\Compiler\CompileErrors.h" />
     <ClInclude Include="..\Shared\Libraries\LibraryJIT.h" />
     <ClInclude Include="..\Shared\Metadata\TypeInfo.h" />
-    <ClInclude Include="..\Shared\Utility\Memory\MemoryManager.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="Library Functionality\Debugging\Debugging.h" />
     <ClInclude Include="Library Functionality\Type Constructors\Primitives.h" />
@@ -171,7 +168,6 @@
     <ClInclude Include="..\Shared\Utility\NoDupeMap.h" />
     <ClInclude Include="..\Shared\Utility\StringPool.h" />
     <ClInclude Include="..\Shared\Utility\Strings.h" />
-    <ClInclude Include="..\Shared\Utility\Memory\Stack.h" />
     <ClInclude Include="..\Shared\Utility\Threading\Synchronization.h" />
     <ClInclude Include="..\Shared\User Interface\Input.h" />
     <ClInclude Include="..\Shared\User Interface\Output.h" />

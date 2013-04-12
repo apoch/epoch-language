@@ -1,6 +1,6 @@
 //
 // The Epoch Language Project
-// EPOCHVM Virtual Machine
+// EPOCHRUNTIME Runtime Library
 //
 // Declaration of the VM wrapper class
 //
@@ -17,8 +17,6 @@
 
 #include "Libraries/Library.h"
 #include "Libraries/LibraryJIT.h"
-
-#include "Utility/Memory/Stack.h"
 
 #include "Utility/Types/EpochTypeIDs.h"
 #include "Utility/Types/IntegerTypes.h"
@@ -58,7 +56,7 @@ struct fasthash : std::unary_function<StringHandle, size_t>
 };
 
 
-namespace VM
+namespace Runtime
 {
 
 	// Handy type shortcuts
@@ -70,10 +68,6 @@ namespace VM
 	//
 	class VirtualMachine
 	{
-	// Special access for enabling the visual debug thread
-	public:
-		static void EnableVisualDebugger();
-
 	// Construction
 	public:
 		VirtualMachine();
@@ -88,21 +82,21 @@ namespace VM
 
 	// Handle-managed resources
 	public:
-		EPOCHVM StringHandle PoolString(const std::wstring& stringdata);
+		EPOCHRUNTIME StringHandle PoolString(const std::wstring& stringdata);
 		void PoolString(StringHandle handle, const std::wstring& stringdata);
-		EPOCHVM const std::wstring& GetPooledString(StringHandle handle) const;
+		EPOCHRUNTIME const std::wstring& GetPooledString(StringHandle handle) const;
 		StringHandle GetPooledStringHandle(const std::wstring& value);
 
-		EPOCHVM void* GetBuffer(BufferHandle handle);
-		EPOCHVM size_t GetBufferSize(BufferHandle handle) const;
-		EPOCHVM BufferHandle AllocateBuffer(size_t size);
+		EPOCHRUNTIME void* GetBuffer(BufferHandle handle);
+		EPOCHRUNTIME size_t GetBufferSize(BufferHandle handle) const;
+		EPOCHRUNTIME BufferHandle AllocateBuffer(size_t size);
 		BufferHandle CloneBuffer(BufferHandle handle);
 
 		StructureHandle AllocateStructure(const StructureDefinition& description);
 		StructureHandle DeepCopy(StructureHandle handle);
 		ActiveStructure& FindStructureMetadata(StructureHandle handle);
 
-		EPOCHVM const StructureDefinition& GetStructureDefinition(Metadata::EpochTypeID vartype) const;
+		EPOCHRUNTIME const StructureDefinition& GetStructureDefinition(Metadata::EpochTypeID vartype) const;
 
 	// Functions
 	public:
@@ -140,12 +134,6 @@ namespace VM
 
 		const boost::unordered_map<StructureHandle, ActiveStructure*>& PrivateGetStructurePool()
 		{ return ActiveStructures; }
-
-
-	// Debug assistance
-	public:
-		std::wstring DebugSnapshot() const;
-
 
 	// Public tracking
 	public:
@@ -195,10 +183,6 @@ namespace VM
 
 		Threads::CriticalSection BufferCritSec;
 		Threads::CriticalSection StructureCritSec;
-
-	// Static state tracking
-	private:
-		static bool VisualDebuggerEnabled;
 	};
 
 
@@ -252,9 +236,9 @@ namespace VM
 
 	// Internal helpers for garbage collection
 	public:
-		EPOCHVM void TickBufferGarbageCollector();
-		EPOCHVM void TickStringGarbageCollector();
-		EPOCHVM void TickStructureGarbageCollector();
+		EPOCHRUNTIME void TickBufferGarbageCollector();
+		EPOCHRUNTIME void TickStringGarbageCollector();
+		EPOCHRUNTIME void TickStructureGarbageCollector();
 
 	// Internal state
 	private:

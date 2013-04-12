@@ -17,7 +17,7 @@
 class ScopeDescription;
 class StringPoolManager;
 
-namespace VM
+namespace Runtime
 {
 	class ExecutionContext;
 }

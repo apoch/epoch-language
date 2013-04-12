@@ -55,7 +55,7 @@
     <ClCompile>
       <Optimization>Disabled</Optimization>
       <AdditionalIncludeDirectories>.\;..\Shared\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_USRDLL;EPOCHRUNTIME_EXPORTS;EPOCHRUNTIME_VISUAL_DEBUGGER;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_USRDLL;EPOCHRUNTIME_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>false</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
@@ -100,7 +100,6 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\Shared\Metadata\TypeInfo.cpp" />
-    <ClCompile Include="..\Shared\Utility\Memory\DLMalloc.cpp" />
     <ClCompile Include="..\Shared\Utility\Profiling.cpp" />
     <ClCompile Include="Entry Point\EntryPoint.cpp" />
     <ClCompile Include="JIT\GarbageCollection.cpp" />
@@ -118,13 +117,10 @@
     <ClCompile Include="..\Shared\Utility\StringPool.cpp" />
     <ClCompile Include="..\Shared\Utility\Strings.cpp" />
     <ClCompile Include="..\Shared\Utility\Threading\Synchronization.cpp" />
-    <ClCompile Include="..\Shared\Utility\Memory\MemoryManager.cpp" />
-    <ClCompile Include="..\Shared\Utility\Memory\Stack.cpp" />
     <ClCompile Include="..\Shared\Metadata\FunctionSignature.cpp" />
     <ClCompile Include="..\Shared\Metadata\ScopeDescription.cpp" />
     <ClCompile Include="..\Shared\Metadata\StructureDefinition.cpp" />
     <ClCompile Include="Miscellaneous\HeapAccess.cpp" />
-    <ClCompile Include="Visual Debugger\DebugThread.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Shared\Libraries\LibraryJIT.h" />
@@ -152,13 +148,10 @@
     <ClInclude Include="..\Shared\Utility\Types\IDTypes.h" />
     <ClInclude Include="..\Shared\Utility\Types\IntegerTypes.h" />
     <ClInclude Include="..\Shared\Utility\Types\RealTypes.h" />
-    <ClInclude Include="..\Shared\Utility\Memory\MemoryManager.h" />
-    <ClInclude Include="..\Shared\Utility\Memory\Stack.h" />
     <ClInclude Include="..\Shared\Metadata\FunctionSignature.h" />
     <ClInclude Include="..\Shared\Metadata\ScopeDescription.h" />
     <ClInclude Include="..\Shared\Metadata\StructureDefinition.h" />
     <ClInclude Include="..\Shared\Libraries\Library.h" />
-    <ClInclude Include="Visual Debugger\VisualDebugger.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Exports\Exports.def" />

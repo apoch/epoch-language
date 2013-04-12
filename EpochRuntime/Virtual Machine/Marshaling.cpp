@@ -1,6 +1,6 @@
 //
 // The Epoch Language Project
-// EPOCHVM Virtual Machine
+// EPOCHRUNTIME Runtime Library
 //
 // Implementation of marshaling for external code invocation and callbacks
 //
@@ -20,14 +20,14 @@
 
 
 extern "C" void VMHalt();
-extern VM::ExecutionContext* GlobalContext;
+extern Runtime::ExecutionContext* GlobalContext;
 
 
 namespace
 {
 
 	// Map function names to the corresponding invocation record
-	std::map<StringHandle, VM::DLLInvocationInfo> DLLInvocationMap;
+	std::map<StringHandle, Runtime::DLLInvocationInfo> DLLInvocationMap;
 
 
 	//
@@ -37,9 +37,9 @@ namespace
 	// with certain issues like padding and alignment. This function may call
 	// itself recursively to deal with nested structures.
 	//
-	bool MarshalStructureDataIntoBuffer(VM::ExecutionContext& context, StructureHandle structure, const StructureDefinition& definition, Byte* buffer)
+	bool MarshalStructureDataIntoBuffer(Runtime::ExecutionContext& context, StructureHandle structure, const StructureDefinition& definition, Byte* buffer)
 	{
-		using namespace VM;
+		using namespace Runtime;
 		using namespace Metadata;
 
 		for(size_t j = 0; j < definition.GetNumMembers(); ++j)
@@ -126,7 +126,7 @@ namespace
 	// format conversions for retrieving mutated structures that were passed
 	// to the external API by reference from Epoch code.
 	//
-	void MarshalBuffersIntoStructures(VM::ExecutionContext& context, const std::list<MarshaledStructureRecord>& records)
+	void MarshalBuffersIntoStructures(Runtime::ExecutionContext& context, const std::list<MarshaledStructureRecord>& records)
 	{
 		for(std::list<MarshaledStructureRecord>::const_iterator iter = records.begin(); iter != records.end(); ++iter)
 		{
@@ -146,7 +146,7 @@ namespace
 //
 // Register a tagged external function so we can track what DLL and function to invoke
 //
-void VM::RegisterMarshaledExternalFunction(StringHandle functionname, const std::wstring& dllname, const std::wstring& externalfunctionname, const std::wstring& callingconvention)
+void Runtime::RegisterMarshaledExternalFunction(StringHandle functionname, const std::wstring& dllname, const std::wstring& externalfunctionname, const std::wstring& callingconvention)
 {
 	DLLInvocationInfo info;
 	info.DLLName = dllname;
@@ -155,7 +155,7 @@ void VM::RegisterMarshaledExternalFunction(StringHandle functionname, const std:
 	DLLInvocationMap[functionname] = info;
 }
 
-const VM::DLLInvocationInfo& VM::GetMarshaledExternalFunction(StringHandle alias)
+const Runtime::DLLInvocationInfo& Runtime::GetMarshaledExternalFunction(StringHandle alias)
 {
 	return DLLInvocationMap[alias];
 }
@@ -164,9 +164,9 @@ const VM::DLLInvocationInfo& VM::GetMarshaledExternalFunction(StringHandle alias
 //
 // Convert a buffer containing a mutated C/C++ structure back into Epoch format
 //
-EPOCHVM void VM::MarshalBufferIntoStructureData(VM::ExecutionContext& context, StructureHandle structure, const StructureDefinition& definition, const Byte* buffer)
+EPOCHRUNTIME void Runtime::MarshalBufferIntoStructureData(Runtime::ExecutionContext& context, StructureHandle structure, const StructureDefinition& definition, const Byte* buffer)
 {
-	using namespace VM;
+	using namespace Runtime;
 	using namespace Metadata;
 
 	for(size_t j = 0; j < definition.GetNumMembers(); ++j)
@@ -237,7 +237,7 @@ EPOCHVM void VM::MarshalBufferIntoStructureData(VM::ExecutionContext& context, S
 }
 
 
-void VM::PopulateWeakLinkages(const std::map<StringHandle, llvm::Function*>& externalfunctions, llvm::ExecutionEngine* ee)
+void Runtime::PopulateWeakLinkages(const std::map<StringHandle, llvm::Function*>& externalfunctions, llvm::ExecutionEngine* ee)
 {
 	for(std::map<StringHandle, llvm::Function*>::const_iterator iter = externalfunctions.begin(); iter != externalfunctions.end(); ++iter)
 	{
@@ -275,7 +275,7 @@ extern "C" void* MarshalConvertStructure(StructureHandle handle)
 extern "C" void MarshalFixupStructure(Byte* buffer, StructureHandle target)
 {
 	ActiveStructure& s = GlobalContext->OwnerVM.FindStructureMetadata(target);
-	VM::MarshalBufferIntoStructureData(*GlobalContext, target, s.Definition, buffer);
+	Runtime::MarshalBufferIntoStructureData(*GlobalContext, target, s.Definition, buffer);
 }
 
 extern "C" void MarshalCleanup(Byte* buffer)

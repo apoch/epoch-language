@@ -16,7 +16,7 @@
 // Forward declarations
 class StringPoolManager;
 
-namespace VM
+namespace Runtime
 {
 	class ExecutionContext;
 }

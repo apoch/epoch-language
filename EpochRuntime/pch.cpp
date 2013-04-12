@@ -1,8 +1,8 @@
 //
 // The Epoch Language Project
-// EPOCHVM Virtual Machine
+// EPOCHRUNTIME Runtime Library
 //
-// Precompiled header stub for EpochVM project.
+// Precompiled header stub for EpochRuntime project.
 //
 
 #include "pch.h"

@@ -20,19 +20,16 @@ namespace DLLAccess
 	// DLL interface
 	public:
 		void ExecuteByteCode(void* buffer, size_t size);
-		void EnableVisualDebugger();
 		void LinkTestHarness(unsigned* harness);
 
 	// Internal type definitions for function pointers
 	private:
 		typedef void (STDCALL *ExecuteByteCodePtr)(void*, size_t);
-		typedef void (STDCALL *EnableVisualDebuggerPtr)();
 		typedef void (STDCALL *LinkTestHarnessPtr)(unsigned*);
 
 	// Internal function pointers bound to the DLL
 	private:
 		ExecuteByteCodePtr DoExecByteCode;
-		EnableVisualDebuggerPtr DoEnableVisualDebugger;
 		LinkTestHarnessPtr DoLinkTestHarness;
 	};
 

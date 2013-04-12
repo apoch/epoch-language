@@ -35,7 +35,7 @@ HeapManager& GetSingleGlobalHeapManager()
 	
 	if(!SharedHeapManager)
 	{
-		Marshaling::DLLPool::DLLPoolHandle dllhandle = Marshaling::TheDLLPool.OpenDLL(L"EpochVM.DLL");
+		Marshaling::DLLPool::DLLPoolHandle dllhandle = Marshaling::TheDLLPool.OpenDLL(L"EpochRuntime.DLL");
 
 		typedef HeapManager* (STDCALL *getheapmanagerptr)();
 		getheapmanagerptr getheapmanager = Marshaling::DLLPool::GetFunction<getheapmanagerptr>(dllhandle, "GetHeapManager");

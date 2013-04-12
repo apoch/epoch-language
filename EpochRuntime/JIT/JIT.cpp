@@ -1,6 +1,6 @@
 //
 // The Epoch Language Project
-// EPOCHVM Virtual Machine
+// EPOCHRUNTIME Runtime Library
 //
 // Just-in-time native code generation for Epoch
 //
@@ -380,7 +380,7 @@ using namespace JIT::impl;
 //
 // Construct and initialize a native code generation wrapper
 //
-NativeCodeGenerator::NativeCodeGenerator(VM::VirtualMachine& ownervm, const Bytecode::Instruction* bytecode)
+NativeCodeGenerator::NativeCodeGenerator(Runtime::VirtualMachine& ownervm, const Bytecode::Instruction* bytecode)
 	: OwnerVM(ownervm),
 	  Bytecode(bytecode),
 	  Data(new LLVMData(LazyInitModule())),
@@ -748,7 +748,7 @@ void NativeCodeGenerator::AddGlobalEntity(size_t beginoffset, StringHandle alias
 	jithelper.DoGlobalInit(beginoffset, alias);
 }
 
-EPOCHVM void NativeCodeGenerator::ExternalInvoke(JIT::JITContext& context, StringHandle alias)
+EPOCHRUNTIME void NativeCodeGenerator::ExternalInvoke(JIT::JITContext& context, StringHandle alias)
 {
 	Function* func = GetExternalFunction(alias);
 
@@ -932,7 +932,7 @@ void NativeCodeGenerator::Generate()
 	// This dump is useful for observing the optimized LLVM bitcode
 	//Data->CurrentModule->dump();
 
-	VM::PopulateWeakLinkages(ExternalFunctions, ee);
+	Runtime::PopulateWeakLinkages(ExternalFunctions, ee);
 
 	// Perform actual native code generation and link the created
 	// pages of machine code back to the VM for execution
@@ -960,7 +960,7 @@ Function* NativeCodeGenerator::GetExternalFunction(StringHandle alias)
 	Function* func = ExternalFunctions[alias];
 	if(!func)
 	{
-		const VM::DLLInvocationInfo& invokeinfo = VM::GetMarshaledExternalFunction(alias);
+		const Runtime::DLLInvocationInfo& invokeinfo = Runtime::GetMarshaledExternalFunction(alias);
 		std::string name = narrow(invokeinfo.DLLName) + "_" + narrow(invokeinfo.FunctionName);
 
 		FunctionType* ftype = GetExternalFunctionType(alias);
@@ -1509,7 +1509,7 @@ void FunctionJITHelper::Read(size_t& offset)
 }
 
 //
-// Handle the EpochVM special instruction for reading local variables
+// Handle the EpochRuntime special instruction for reading local variables
 // onto the Epoch execution stack. Similar to the Read instruction, this
 // is handled by using the virtual value stack instead of generating an
 // actual stack shuffle on the machine stack.

@@ -1,6 +1,6 @@
 //
 // The Epoch Language Project
-// EPOCHVM Virtual Machine
+// EPOCHRUNTIME Runtime Library
 //
 // Definition of the VM wrapper class
 //
@@ -20,62 +20,15 @@
 #include "Utility/DLLPool.h"
 #include "Utility/EraseDeadHandles.h"
 
-#ifdef EPOCHVM_VISUAL_DEBUGGER
-#include "Visual Debugger/VisualDebugger.h"
-#endif
-
 #include <limits>
 #include <list>
 #include <iostream>
 #include <sstream>
 
 
-using namespace VM;
+using namespace Runtime;
 using namespace Metadata;
 
-
-#ifdef EPOCHVM_VISUAL_DEBUGGER
-
-//
-// Static variables for the virtual machine class
-//
-bool VirtualMachine::VisualDebuggerEnabled = false;
-
-#endif
-
-
-
-//#define PROFILING_ENABLED
-#ifdef PROFILING_ENABLED
-
-#include "Utility/Profiling.h"
-#include "User Interface/Output.h"
-std::map<const char*, Profiling::Timer> GlobalTimers;
-
-struct RAIIProfiler
-{
-	explicit RAIIProfiler(const char* tag)
-		: Tag(tag)
-	{
-		GlobalTimers[tag].Begin();
-	}
-
-	~RAIIProfiler()
-	{
-		GlobalTimers[Tag].End();
-		GlobalTimers[Tag].Accumulate();
-	}
-
-	const char* Tag;
-};
-
-#define AUTO_PROFILE(x)		RAIIProfiler raii(x)
-
-#else
-
-#define AUTO_PROFILE(x)
-
-#endif
 
 //
 // Construct and initialize a virtual machine
@@ -86,20 +39,6 @@ VirtualMachine::VirtualMachine()
 	: EntryPointFunc(NULL),
 	  GlobalInitFunc(NULL)
 {
-#ifdef EPOCHVM_VISUAL_DEBUGGER
-	if(VisualDebuggerEnabled)
-		VisualDebugger::ForkDebuggerThread(this);
-#endif
-}
-
-//
-// Enable the display and operation of the visual VM debugger
-//
-void VirtualMachine::EnableVisualDebugger()
-{
-#ifdef EPOCHVM_VISUAL_DEBUGGER
-	VisualDebuggerEnabled = true;
-#endif
 }
 
 //
@@ -146,7 +85,7 @@ void VirtualMachine::ExecuteByteCode(Bytecode::Instruction* buffer, size_t size,
 //
 // Store a string in the global string pool, allocating an ID as necessary
 //
-EPOCHVM StringHandle VirtualMachine::PoolString(const std::wstring& stringdata)
+EPOCHRUNTIME StringHandle VirtualMachine::PoolString(const std::wstring& stringdata)
 {
 	return PrivateStringPool.PoolFast(stringdata);
 }
@@ -162,7 +101,7 @@ void VirtualMachine::PoolString(StringHandle handle, const std::wstring& stringd
 //
 // Retrieve a pooled string from the global pool
 //
-EPOCHVM const std::wstring& VirtualMachine::GetPooledString(StringHandle handle) const
+EPOCHRUNTIME const std::wstring& VirtualMachine::GetPooledString(StringHandle handle) const
 {
 	return PrivateStringPool.GetPooledString(handle);
 }
@@ -178,7 +117,7 @@ StringHandle VirtualMachine::GetPooledStringHandle(const std::wstring& value)
 //
 // Retrieve a buffer pointer from the list of allocated buffers
 //
-EPOCHVM void* VirtualMachine::GetBuffer(BufferHandle handle)
+EPOCHRUNTIME void* VirtualMachine::GetBuffer(BufferHandle handle)
 {
 	Threads::CriticalSection::Auto lock(BufferCritSec);
 
@@ -192,7 +131,7 @@ EPOCHVM void* VirtualMachine::GetBuffer(BufferHandle handle)
 //
 // Retrive the size of the given buffer, in bytes
 //
-EPOCHVM size_t VirtualMachine::GetBufferSize(BufferHandle handle) const
+EPOCHRUNTIME size_t VirtualMachine::GetBufferSize(BufferHandle handle) const
 {
 	Threads::CriticalSection::Auto lock(BufferCritSec);
 
@@ -206,7 +145,7 @@ EPOCHVM size_t VirtualMachine::GetBufferSize(BufferHandle handle) const
 //
 // Allocate a data buffer and return its handle
 //
-EPOCHVM BufferHandle VirtualMachine::AllocateBuffer(size_t size)
+EPOCHRUNTIME BufferHandle VirtualMachine::AllocateBuffer(size_t size)
 {
 	Threads::CriticalSection::Auto lock(BufferCritSec);
 
@@ -339,7 +278,7 @@ ExecutionContext::~ExecutionContext()
 
 void ExecutionContext::Execute()
 {
-	void SetGlobalExecutionContext(VM::ExecutionContext* context);
+	void SetGlobalExecutionContext(Runtime::ExecutionContext* context);
 	SetGlobalExecutionContext(this);
 
 	typedef void (*pfunc)();
@@ -845,7 +784,7 @@ ActiveStructure& VirtualMachine::FindStructureMetadata(StructureHandle handle)
 //
 // Get the definition metadata for the structure with the given type ID number
 //
-EPOCHVM const StructureDefinition& VirtualMachine::GetStructureDefinition(EpochTypeID type) const
+EPOCHRUNTIME const StructureDefinition& VirtualMachine::GetStructureDefinition(EpochTypeID type) const
 {
 	//Threads::CriticalSection::Auto lock(StructureCritSec);
 
@@ -911,7 +850,7 @@ StructureHandle VirtualMachine::DeepCopy(StructureHandle handle)
 //
 // Tick the garbage collection counter for buffer allocations
 //
-EPOCHVM void ExecutionContext::TickBufferGarbageCollector()
+EPOCHRUNTIME void ExecutionContext::TickBufferGarbageCollector()
 {
 	++GarbageTick_Buffers;
 }
@@ -919,7 +858,7 @@ EPOCHVM void ExecutionContext::TickBufferGarbageCollector()
 //
 // Tick the garbage collection counter for string allocations
 //
-EPOCHVM void ExecutionContext::TickStringGarbageCollector()
+EPOCHRUNTIME void ExecutionContext::TickStringGarbageCollector()
 {
 	++GarbageTick_Strings;
 }
@@ -927,7 +866,7 @@ EPOCHVM void ExecutionContext::TickStringGarbageCollector()
 //
 // Tick the garbage collection counter for structure allocations
 //
-EPOCHVM void ExecutionContext::TickStructureGarbageCollector()
+EPOCHRUNTIME void ExecutionContext::TickStructureGarbageCollector()
 {
 	++GarbageTick_Structures;
 }
@@ -949,32 +888,6 @@ void VirtualMachine::GarbageCollectStructures(const boost::unordered_set<Structu
 	EraseAndDeleteDeadHandles(ActiveStructures, livehandles);
 }
 
-
-//-------------------------------------------------------------------------------
-// Debug hooks
-//-------------------------------------------------------------------------------
-
-//
-// Generate a textual snapshot of the VM's state
-//
-std::wstring VirtualMachine::DebugSnapshot() const
-{
-	std::wostringstream report;
-
-#ifdef EPOCHVM_VISUAL_DEBUGGER
-
-	// Amass snapshot data of the string pool
-	{
-		Threads::CriticalSection::Auto lock(PrivateStringPool.CritSec);
-		report << L"STRING POOL CONTENTS\r\n";
-		const boost::unordered_map<StringHandle, std::wstring>& pool = PrivateStringPool.GetInternalPool();
-		for(boost::unordered_map<StringHandle, std::wstring>::const_iterator iter = pool.begin(); iter != pool.end(); ++iter)
-			report << iter->first << L"\t" << iter->second << L"\r\n";
-	}
-#endif
-	
-	return report.str();
-}
 
 
 

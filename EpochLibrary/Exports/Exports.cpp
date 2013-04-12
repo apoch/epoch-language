@@ -52,7 +52,7 @@ namespace
 }
 
 
-VM::ExecutionContext* GlobalExecutionContext = NULL;
+Runtime::ExecutionContext* GlobalExecutionContext = NULL;
 
 
 //
@@ -94,7 +94,7 @@ extern "C" void STDCALL RegisterLibraryContents(FunctionSignatureSet& functionsi
 // Strings are pooled in the VM's internal string pool, and functions
 // are registered in the VM's global function dispatch table.
 //
-extern "C" void STDCALL BindToVirtualMachine(VM::ExecutionContext* context, StringPoolManager& stringpool, JIT::JITTable& jittable)
+extern "C" void STDCALL BindToVirtualMachine(Runtime::ExecutionContext* context, StringPoolManager& stringpool, JIT::JITTable& jittable)
 {
 	try
 	{

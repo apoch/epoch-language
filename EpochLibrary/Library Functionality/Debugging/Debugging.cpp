@@ -88,7 +88,7 @@ extern "C" void EpochLib_Assert(bool assumption)
 		output << UI::lightred << L"Assertion failure" << UI::white << std::endl;
 
 		typedef void (STDCALL *vmhaltfunc)();
-		Marshaling::DLLPool::DLLPoolHandle handle = Marshaling::TheDLLPool.OpenDLL(L"EpochVM.dll");
+		Marshaling::DLLPool::DLLPoolHandle handle = Marshaling::TheDLLPool.OpenDLL(L"EpochRuntime.dll");
 		Marshaling::TheDLLPool.GetFunction<vmhaltfunc>(handle, "VMHalt")();
 	}
 }

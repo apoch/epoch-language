@@ -1,17 +1,17 @@
-LIBRARY	"EpochVM"
+LIBRARY	"EpochRuntime"
 EXPORTS
 	ExecuteByteCode				@1
-	GetHeapManager				@2
-	EnableVisualDebugger		@3
-	LinkTestHarness				@4
-	VMHalt						@6
-	VMAllocStruct				@7
-	VMCopyStruct				@8
-	VMGetBuffer					@9
-	VMBreak						@10
-	VMGetString					@11
-	VMAllocBuffer				@12
-	VMCopyBuffer				@13
-	MarshalConvertStructure		@14
-	MarshalFixupStructure		@15
-	MarshalCleanup				@16
+	LinkTestHarness				@2
+
+	VMHalt						@3
+	VMAllocStruct				@4
+	VMCopyStruct				@5
+	VMGetBuffer					@6
+	VMBreak						@7
+	VMGetString					@8
+	VMAllocBuffer				@9
+	VMCopyBuffer				@10
+	
+	MarshalConvertStructure		@11
+	MarshalFixupStructure		@12
+	MarshalCleanup				@13

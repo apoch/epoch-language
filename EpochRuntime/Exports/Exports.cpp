@@ -1,8 +1,8 @@
 //
 // The Epoch Language Project
-// EPOCHVM Virtual Machine
+// EPOCHRUNTIME Runtime Library
 //
-// Exported routines comprising the EpochVM API
+// Exported routines comprising the EpochRuntime API
 //
 
 #include "pch.h"
@@ -14,7 +14,7 @@
 #include "Utility/Strings.h"
 
 
-VM::ExecutionContext* GlobalContext = NULL;
+Runtime::ExecutionContext* GlobalContext = NULL;
 
 namespace
 {
@@ -33,7 +33,7 @@ extern "C" void STDCALL ExecuteByteCode(void* bytecodebuffer, size_t size)
 {
 	try
 	{
-		VM::VirtualMachine vm;
+		Runtime::VirtualMachine vm;
 		vm.ExecuteByteCode(reinterpret_cast<Bytecode::Instruction*>(bytecodebuffer), size, TestHarness);
 	}
 	catch(const std::exception& e)
@@ -43,37 +43,6 @@ extern "C" void STDCALL ExecuteByteCode(void* bytecodebuffer, size_t size)
 	catch(...)
 	{
 		::MessageBox(0, L"Exception occurred during execution", L"Epoch Execution Exception", MB_ICONSTOP);
-	}
-}
-
-//
-// Permit external access to our heap manager, for shared memory allocation and garbage collection purposes
-//
-extern "C" HeapManager* STDCALL GetHeapManager()
-{
-	try
-	{
-		return &HeapManager::GetGlobalHeapManager();
-	}
-	catch(...)
-	{
-		::MessageBox(0, L"Failed to retrieve global heap manager", L"Epoch Memory Exception", MB_ICONSTOP);
-		return NULL;
-	}
-}
-
-//
-// Enable the visual debug interface of the VM
-//
-extern "C" void STDCALL EnableVisualDebugger()
-{
-	try
-	{
-		VM::VirtualMachine::EnableVisualDebugger();
-	}
-	catch(...)
-	{
-		::MessageBox(0, L"Failed to load visual debugger for Epoch VM", L"Epoch Internal Error", MB_ICONSTOP);
 	}
 }
 
@@ -184,7 +153,7 @@ extern "C" BufferHandle VMCopyBuffer(BufferHandle handle)
 }
 
 
-void SetGlobalExecutionContext(VM::ExecutionContext* context)
+void SetGlobalExecutionContext(Runtime::ExecutionContext* context)
 {
 	GlobalContext = context;
 }

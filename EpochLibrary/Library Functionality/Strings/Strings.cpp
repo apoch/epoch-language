@@ -16,7 +16,7 @@
 #include "Virtual Machine/VirtualMachine.h"
 
 
-extern VM::ExecutionContext* GlobalExecutionContext;
+extern Runtime::ExecutionContext* GlobalExecutionContext;
 
 
 namespace

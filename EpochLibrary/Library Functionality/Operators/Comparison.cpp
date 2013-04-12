@@ -19,7 +19,7 @@
 #include "Metadata/Precedences.h"
 
 
-extern VM::ExecutionContext* GlobalExecutionContext;
+extern Runtime::ExecutionContext* GlobalExecutionContext;
 
 
 namespace

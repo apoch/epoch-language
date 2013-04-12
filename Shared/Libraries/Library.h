@@ -26,7 +26,7 @@ namespace IRSemantics
 	class Namespace;
 }
 
-namespace VM
+namespace Runtime
 {
 	class ExecutionContext;
 }
@@ -35,7 +35,7 @@ class CompileErrors;
 
 
 // Handy type shortcuts
-typedef void (*EpochFunctionPtr)(StringHandle namehandle, VM::ExecutionContext& context);
+typedef void (*EpochFunctionPtr)(StringHandle namehandle, Runtime::ExecutionContext& context);
 typedef boost::unordered_map<StringHandle, EpochFunctionPtr> FunctionInvocationTable;
 
 typedef void (*CompilerHelperPtr)(IRSemantics::Statement& statement, IRSemantics::Namespace& curnamespace, IRSemantics::CodeBlock& activescope, bool inreturnexpr, CompileErrors& errors);

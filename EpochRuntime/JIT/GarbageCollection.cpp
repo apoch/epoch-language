@@ -1,6 +1,6 @@
 //
 // The Epoch Language Project
-// EPOCHVM Virtual Machine
+// EPOCHRUNTIME Runtime Library
 //
 // Garbage collection integrated into JIT native code generation layer
 //
@@ -48,7 +48,7 @@
 
 
 // TODO - centralize execution context
-extern VM::ExecutionContext* GlobalContext;
+extern Runtime::ExecutionContext* GlobalContext;
 
 
 using namespace llvm;
