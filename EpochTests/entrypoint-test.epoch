@@ -1,4 +1,0 @@
-entrypoint :
-{
-	print("Hello world")
-}

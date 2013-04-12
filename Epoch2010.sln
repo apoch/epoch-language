@@ -3,15 +3,13 @@ Microsoft Visual Studio Solution File, Format Version 11.00
 # Visual Studio 2010
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "EpochTools", "EpochTools\EpochTools.vcxproj", "{607F0DF4-9791-41CC-A648-B830D4C61EE0}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "EpochVM", "EpochVM\EpochVM.vcxproj", "{AAB8EDA4-D37F-475B-9CEB-2BBBD5799B3B}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "EpochRuntime", "EpochRuntime\EpochRuntime.vcxproj", "{AAB8EDA4-D37F-475B-9CEB-2BBBD5799B3B}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "EpochCompiler", "EpochCompiler\EpochCompiler.vcxproj", "{1AFB3B3C-B2BE-4941-8EC3-E75F998A0B86}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "EpochLibrary", "EpochLibrary\EpochLibrary.vcxproj", "{DEBFFDDA-9C4A-4778-969A-6EF29781F97A}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "EpochLexer", "EpochLexer\EpochLexer.vcxproj", "{18209046-31CC-4775-ADC5-0AF40BF6C035}"
-EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "EpochTests", "EpochTests\EpochTests.vcxproj", "{AF3FF040-C66D-4F51-A1B2-5D273D5F90FF}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

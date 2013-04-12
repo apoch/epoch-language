@@ -65,6 +65,7 @@
 // We heavily use this namespace so may as well import it
 using namespace llvm;
 
+extern void ClearGCContextInfo();			// TODO - stop doing this sort of hack
 
 
 //
@@ -2721,5 +2722,6 @@ void JIT::DestructLLVMModule()
 {
 	delete LazyModule;
 	LazyModule = NULL;
+	ClearGCContextInfo();
 }
 

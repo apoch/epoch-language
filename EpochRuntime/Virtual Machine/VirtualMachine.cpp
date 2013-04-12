@@ -909,31 +909,6 @@ StructureHandle VirtualMachine::DeepCopy(StructureHandle handle)
 //-------------------------------------------------------------------------------
 
 //
-// If the garbage collectors have ticked over, perform collection routines
-//
-void ExecutionContext::CollectGarbage()
-{
-	if(GarbageTick_Buffers > 1024)
-	{
-		CollectGarbage_Buffers();
-		GarbageTick_Buffers = 0;
-	}
-
-	if(GarbageTick_Strings > 1024)
-	{
-		CollectGarbage_Strings();
-		GarbageTick_Strings = 0;
-	}
-
-	if(GarbageTick_Structures > 1024)
-	{
-		CollectGarbage_Structures();
-		GarbageTick_Structures = 0;
-	}
-}
-
-
-//
 // Tick the garbage collection counter for buffer allocations
 //
 EPOCHVM void ExecutionContext::TickBufferGarbageCollector()
@@ -955,92 +930,6 @@ EPOCHVM void ExecutionContext::TickStringGarbageCollector()
 EPOCHVM void ExecutionContext::TickStructureGarbageCollector()
 {
 	++GarbageTick_Structures;
-}
-
-
-
-//
-// Helper functions for validating if a piece of garbage is of
-// the type being collected (see the MarkAndSweep function)
-//
-namespace
-{
-
-	bool ValidatorStrings(EpochTypeID vartype)
-	{
-		return (vartype == EpochType_String);
-	}
-
-	bool ValidatorBuffers(EpochTypeID vartype)
-	{
-		return (vartype == EpochType_Buffer);
-	}
-
-	bool ValidatorStructures(EpochTypeID vartype)
-	{
-		return (GetTypeFamily(vartype) == Metadata::EpochTypeFamily_Structure || GetTypeFamily(vartype) == Metadata::EpochTypeFamily_TemplateInstance);
-	}
-
-}
-
-//
-// Simple implementation of a mark-and-sweep garbage collection system
-//
-// Given a handle type, a validator (see above), and a set of known live handles,
-// explores the freestore and stack to find all reachable (live) handles; when the
-// function exits, the live handle list will contain all reachable handles which
-// should NOT be garbage collected. Everything else can be freed without issues.
-//
-template <typename HandleType, typename ValidatorT>
-void ExecutionContext::MarkAndSweep(ValidatorT validator, boost::unordered_set<HandleType>& livehandles)
-{
-	// TODO - reimplement garbage collector for JITter
-	((void)(validator));
-	((void)(livehandles));
-}
-
-//
-// Perform garbage collection traversal for buffer data
-//
-void ExecutionContext::CollectGarbage_Buffers()
-{
-	boost::unordered_set<BufferHandle> livehandles;
-
-	// Traverse active scopes/structures for variables holding buffer references
-	MarkAndSweep<BufferHandle>(ValidatorBuffers, livehandles);
-
-	// Now garbage collect all buffers which are not live
-	OwnerVM.GarbageCollectBuffers(livehandles);
-}
-
-//
-// Perform garbage collection traversal for string data
-//
-void ExecutionContext::CollectGarbage_Strings()
-{
-	// Begin with the set of known static string references, as parsed from the code during load phase
-	// This is done to ensure that statically referenced strings are never discarded by the collector.
-	boost::unordered_set<StringHandle> livehandles = StaticallyReferencedStrings;
-
-	// Traverse active scopes/structures for variables holding string references
-	MarkAndSweep<StringHandle>(ValidatorStrings, livehandles);
-
-	// Now that the list of live handles is known, we can collect all unused string memory.
-	OwnerVM.PrivateGetRawStringPool().GarbageCollect(livehandles);
-}
-
-//
-// Perform garbage collection traversal for structure data
-//
-void ExecutionContext::CollectGarbage_Structures()
-{
-	boost::unordered_set<StructureHandle> livehandles;
-
-	// Traverse active scopes/structures for variables holding structure references
-	MarkAndSweep<StructureHandle>(ValidatorStructures, livehandles);
-
-	// Now garbage collect all structures which are not live
-	OwnerVM.GarbageCollectStructures(livehandles);
 }
 
 

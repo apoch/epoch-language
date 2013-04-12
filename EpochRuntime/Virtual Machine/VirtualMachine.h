@@ -252,18 +252,9 @@ namespace VM
 
 	// Internal helpers for garbage collection
 	public:
-		void CollectGarbage();
-
-		void CollectGarbage_Buffers();
-		void CollectGarbage_Strings();
-		void CollectGarbage_Structures();
-
 		EPOCHVM void TickBufferGarbageCollector();
 		EPOCHVM void TickStringGarbageCollector();
 		EPOCHVM void TickStructureGarbageCollector();
-
-		template <typename HandleType, typename ValidatorT>
-		void MarkAndSweep(ValidatorT validator, boost::unordered_set<HandleType>& livehandles);
 
 	// Internal state
 	private:
