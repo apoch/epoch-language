@@ -109,8 +109,6 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="Exports\Exports.cpp" />
-    <ClCompile Include="Virtual Machine\Marshaling.cpp" />
-    <ClCompile Include="Virtual Machine\VirtualMachine.cpp" />
     <ClCompile Include="..\Shared\User Interface\Input.cpp" />
     <ClCompile Include="..\Shared\User Interface\Output.cpp" />
     <ClCompile Include="..\Shared\Utility\DLLPool.cpp" />
@@ -120,6 +118,8 @@
     <ClCompile Include="..\Shared\Metadata\FunctionSignature.cpp" />
     <ClCompile Include="..\Shared\Metadata\ScopeDescription.cpp" />
     <ClCompile Include="..\Shared\Metadata\StructureDefinition.cpp" />
+    <ClCompile Include="Runtime\Marshaling.cpp" />
+    <ClCompile Include="Runtime\Runtime.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Shared\Libraries\LibraryJIT.h" />
@@ -127,11 +127,10 @@
     <ClInclude Include="..\Shared\Metadata\TypeInfo.h" />
     <ClInclude Include="..\Shared\Metadata\Variant.h" />
     <ClInclude Include="..\Shared\Utility\Profiling.h" />
+    <ClInclude Include="Exports\ExportDef.h" />
     <ClInclude Include="JIT\JIT.h" />
     <ClInclude Include="pch.h" />
-    <ClInclude Include="Virtual Machine\ExportDef.h" />
-    <ClInclude Include="Virtual Machine\Marshaling.h" />
-    <ClInclude Include="Virtual Machine\VirtualMachine.h" />
+    <ClInclude Include="Runtime\Marshaling.h" />
     <ClInclude Include="..\Shared\Bytecode\EntityTags.h" />
     <ClInclude Include="..\Shared\Bytecode\Instructions.h" />
     <ClInclude Include="..\Shared\User Interface\Input.h" />
@@ -151,6 +150,7 @@
     <ClInclude Include="..\Shared\Metadata\ScopeDescription.h" />
     <ClInclude Include="..\Shared\Metadata\StructureDefinition.h" />
     <ClInclude Include="..\Shared\Libraries\Library.h" />
+    <ClInclude Include="Runtime\Runtime.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Exports\Exports.def" />

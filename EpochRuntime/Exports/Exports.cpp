@@ -7,7 +7,7 @@
 
 #include "pch.h"
 
-#include "Virtual Machine/VirtualMachine.h"
+#include "Runtime/Runtime.h"
 
 #include "Utility/Strings.h"
 
@@ -113,7 +113,7 @@ extern "C" void* VMCopyStruct(StructureHandle handle)
 
 extern "C" void VMHalt()
 {
-	::MessageBox(0, L"Fatal error - program halted", L"Epoch Virtual Machine", MB_ICONSTOP);
+	::MessageBox(0, L"Fatal error - program halted", L"Epoch Runtime", MB_ICONSTOP);
 	std::terminate();
 }
 

@@ -2,7 +2,7 @@
 // The Epoch Language Project
 // EPOCHTOOLS Command Line Toolkit
 //
-// Wrapper interface for working with the Epoch Virtual Machine
+// Wrapper interface for working with the Epoch runtime
 //
 
 #pragma once
@@ -11,11 +11,11 @@
 namespace DLLAccess
 {
 
-	class VMAccess
+	class RuntimeAccess
 	{
 	// Construction
 	public:
-		VMAccess();
+		RuntimeAccess();
 
 	// DLL interface
 	public:

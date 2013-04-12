@@ -13,7 +13,7 @@
 
 #include "Compiler/CompileErrors.h"
 
-#include "Virtual Machine/VirtualMachine.h"
+#include "Runtime/Runtime.h"
 
 #include "Libraries/LibraryJIT.h"
 

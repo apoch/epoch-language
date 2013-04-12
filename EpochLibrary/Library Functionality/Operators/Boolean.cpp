@@ -14,7 +14,7 @@
 
 #include "Libraries/Library.h"
 
-#include "Virtual Machine/VirtualMachine.h"
+#include "Runtime/Runtime.h"
 
 #include "Metadata/Precedences.h"
 

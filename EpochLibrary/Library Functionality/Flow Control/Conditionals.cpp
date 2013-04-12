@@ -9,7 +9,7 @@
 
 #include "Library Functionality/Flow Control/Conditionals.h"
 
-#include "Virtual Machine/VirtualMachine.h"
+#include "Runtime/Runtime.h"
 
 #include "Utility/StringPool.h"
 #include "Utility/NoDupeMap.h"

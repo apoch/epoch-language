@@ -13,8 +13,8 @@
 #include "Utility/StringPool.h"
 #include "Utility/NoDupeMap.h"
 
-#include "Virtual Machine/VirtualMachine.h"
-#include "Virtual Machine/Marshaling.h"
+#include "Runtime/Runtime.h"
+#include "Runtime/Marshaling.h"
 
 
 extern StringHandle ExternalHandle;

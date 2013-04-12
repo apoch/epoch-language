@@ -1020,8 +1020,8 @@ ScopeDescription* Namespace::GetGlobalScope() const
 //
 // Helper for locating entity tag IDs
 //
-// Entity tags are used to identify different sorts of entity
-// in the virtual machine/runtime layer.
+// Entity tags are used to identify different sorts
+// of entity in the runtime layer.
 //
 Bytecode::EntityTag Namespace::GetEntityTag(StringHandle identifier) const
 {

@@ -143,6 +143,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\EpochCompiler\Compiler\CompileErrors.h" />
+    <ClInclude Include="..\EpochRuntime\Runtime\Runtime.h" />
     <ClInclude Include="..\Shared\Libraries\LibraryJIT.h" />
     <ClInclude Include="..\Shared\Metadata\TypeInfo.h" />
     <ClInclude Include="pch.h" />
@@ -177,7 +178,6 @@
     <ClInclude Include="..\Shared\Metadata\ScopeDescription.h" />
     <ClInclude Include="..\Shared\Metadata\StructureDefinition.h" />
     <ClInclude Include="..\EpochVM\Virtual Machine\Marshaling.h" />
-    <ClInclude Include="..\EpochVM\Virtual Machine\VirtualMachine.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Exports\Exports.def" />

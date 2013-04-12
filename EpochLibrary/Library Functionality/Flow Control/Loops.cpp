@@ -9,7 +9,7 @@
 
 #include "Library Functionality/Flow Control/Loops.h"
 
-#include "Virtual Machine/VirtualMachine.h"
+#include "Runtime/Runtime.h"
 
 #include "Utility/StringPool.h"
 #include "Utility/NoDupeMap.h"

@@ -94,6 +94,7 @@
     </Manifest>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="DLL Access Wrappers\Runtime.cpp" />
     <ClCompile Include="Entry Point\EntryPoint.cpp" />
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
@@ -109,7 +110,6 @@
     <ClCompile Include="..\Shared\Utility\Files\Files.cpp" />
     <ClCompile Include="..\Shared\Utility\Files\FilesAndPaths.cpp" />
     <ClCompile Include="DLL Access Wrappers\Compiler.cpp" />
-    <ClCompile Include="DLL Access Wrappers\VM.cpp" />
     <ClCompile Include="Serialization\Serializer.cpp" />
     <ClCompile Include="Linker\Linker.cpp" />
     <ClCompile Include="Linker\LinkWriter.cpp" />
@@ -127,6 +127,7 @@
     <ClCompile Include="Project Files\Project.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="DLL Access Wrappers\Runtime.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="..\Shared\User Interface\Input.h" />
@@ -139,7 +140,6 @@
     <ClInclude Include="..\Shared\Utility\Files\FilesAndPaths.h" />
     <ClInclude Include="DLL Access Wrappers\Compiler.h" />
     <ClInclude Include="DLL Access Wrappers\Exceptions.h" />
-    <ClInclude Include="DLL Access Wrappers\VM.h" />
     <ClInclude Include="Serialization\Exceptions.h" />
     <ClInclude Include="Serialization\Serializer.h" />
     <ClInclude Include="Linker\Linker.h" />

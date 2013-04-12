@@ -15,7 +15,7 @@ class ScopeDescription;
 
 
 // Dependencies
-#include "Virtual Machine/ExportDef.h"
+#include "Exports/ExportDef.h"
 #include "Utility/Types/IDTypes.h"
 #include "Utility/Types/IntegerTypes.h"
 

@@ -7,8 +7,8 @@
 
 #include "pch.h"
 
-#include "Virtual Machine/VirtualMachine.h"
-#include "Virtual Machine/Marshaling.h"
+#include "Runtime/Runtime.h"
+#include "Runtime/Marshaling.h"
 
 #include "JIT/JIT.h"
 
@@ -51,13 +51,13 @@ void VirtualMachine::InitStandardLibraries(ExecutionContext* context, unsigned* 
 	typedef void (STDCALL *registerlibraryptr)(FunctionSignatureSet&, StringPoolManager&);
 	registerlibraryptr registerlibrary = Marshaling::DLLPool::GetFunction<registerlibraryptr>(dllhandle, "RegisterLibraryContents");
 
-	typedef void (STDCALL *bindtovmptr)(ExecutionContext*, StringPoolManager&, JIT::JITTable&);
-	bindtovmptr bindtovm = Marshaling::DLLPool::GetFunction<bindtovmptr>(dllhandle, "BindToVirtualMachine");
+	typedef void (STDCALL *bindtoruntimeptr)(ExecutionContext*, StringPoolManager&, JIT::JITTable&);
+	bindtoruntimeptr bindtoruntime = Marshaling::DLLPool::GetFunction<bindtoruntimeptr>(dllhandle, "BindToRuntime");
 
-	if(!bindtovm || !registerlibrary)
+	if(!bindtoruntime || !registerlibrary)
 		throw FatalException("Failed to load Epoch standard library");
 
-	bindtovm(context, PrivateStringPool, JITHelpers);
+	bindtoruntime(context, PrivateStringPool, JITHelpers);
 	registerlibrary(LibraryFunctionSignatures, PrivateStringPool);
 
 	typedef void (STDCALL *bindtotestharnessptr)(unsigned*);
@@ -267,7 +267,6 @@ ExecutionContext::ExecutionContext(VirtualMachine& ownervm, Bytecode::Instructio
 	  GarbageTick_Buffers(0),
 	  GarbageTick_Strings(0),
 	  GarbageTick_Structures(0)
-
 {
 }
 

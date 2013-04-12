@@ -11,7 +11,7 @@
 #include "User Interface/Input.h"
 
 #include "DLL Access Wrappers/Compiler.h"
-#include "DLL Access Wrappers/VM.h"
+#include "DLL Access Wrappers/Runtime.h"
 
 #include "Serialization/Serializer.h"
 
@@ -207,9 +207,9 @@ int _tmain(int argc, _TCHAR* argv[])
 
 					if(bytecodebufferhandle)
 					{
-						DLLAccess::VMAccess vmaccess;
-						vmaccess.LinkTestHarness(&testpasscount);
-						vmaccess.ExecuteByteCode(compileraccess.GetByteCode(bytecodebufferhandle), compileraccess.GetByteCodeSize(bytecodebufferhandle));
+						DLLAccess::RuntimeAccess runtimeaccess;
+						runtimeaccess.LinkTestHarness(&testpasscount);
+						runtimeaccess.ExecuteByteCode(compileraccess.GetByteCode(bytecodebufferhandle), compileraccess.GetByteCodeSize(bytecodebufferhandle));
 					}
 
 					output << L"\n\n" << std::endl;
@@ -251,7 +251,6 @@ namespace
 		output << L"  /build project.eprj\n\tBuild the specified Epoch project\n\n";
 		output << L"  /runtests folder\n\tRecursively execute all Epoch programs in folder as tests\n\n";
 		output << L"  /pause\n\tPause for Enter key (can be repeated)\n\n";
-		output << L"  /vmdebug\n\tEnable visual debug of the VM (SLOW)\n\n";
 		output << std::endl;
 	}
 }

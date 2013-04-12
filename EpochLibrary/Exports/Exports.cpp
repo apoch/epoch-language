@@ -89,12 +89,12 @@ extern "C" void STDCALL RegisterLibraryContents(FunctionSignatureSet& functionsi
 }
 
 //
-// Register the contents of this Epoch library with a virtual machine instance
+// Register the contents of this Epoch library with a runtime instance
 //
 // Strings are pooled in the VM's internal string pool, and functions
 // are registered in the VM's global function dispatch table.
 //
-extern "C" void STDCALL BindToVirtualMachine(Runtime::ExecutionContext* context, StringPoolManager& stringpool, JIT::JITTable& jittable)
+extern "C" void STDCALL BindToRuntime(Runtime::ExecutionContext* context, StringPoolManager& stringpool, JIT::JITTable& jittable)
 {
 	try
 	{

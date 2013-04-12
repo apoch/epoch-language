@@ -15,7 +15,7 @@
 
 #include "pch.h"
 
-#include "Virtual Machine/VirtualMachine.h"
+#include "Runtime/Runtime.h"
 
 #include "User Interface/Output.h"
 

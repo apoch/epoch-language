@@ -53,21 +53,7 @@ void ByteCodeEmitter::ExitFunction()
 	EmitInstruction(Bytecode::Instructions::EndEntity);
 }
 
-//
-// Emit an instruction for setting the contents of the function return value register
-//
-// As an optimization, the virtual machine contains a special register for holding the
-// return value of the last function to exit. The contents of this register are set
-// using a special instruction; this function emits that instruction followed by the
-// index of the variable that contains the value to copy into the register. The contents
-// of the register are automatically pushed onto the stack by the VM when the function
-// finishes execution (for applicable, non-void functions). This implicit push allows
-// for easy chaining of expressions and function calls, e.g. where one function's value
-// is passed as a parameter to another function without being copied to an intermediate
-// variable. The only downside to this approach is the necessity of manually popping the
-// stack if/when the return value of a function is ignored, but this is considered a
-// minor cost compared to the convenience and efficiency of the register overall.
-//
+// TODO - cleanup documentation
 void ByteCodeEmitter::SetReturnRegister(size_t variableindex)
 {
 	EmitInstruction(Bytecode::Instructions::SetRetVal);

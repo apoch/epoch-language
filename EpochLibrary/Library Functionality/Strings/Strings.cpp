@@ -13,7 +13,7 @@
 #include "Utility/StringPool.h"
 #include "Utility/NoDupeMap.h"
 
-#include "Virtual Machine/VirtualMachine.h"
+#include "Runtime/Runtime.h"
 
 
 extern Runtime::ExecutionContext* GlobalExecutionContext;

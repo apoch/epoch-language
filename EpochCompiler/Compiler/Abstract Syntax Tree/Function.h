@@ -23,8 +23,8 @@ namespace AST
 	// An individual tag applied to a function definition
 	//
 	// Function tags provide metadata about the function implementation to
-	// the compiler and/or virtual machine. A common tag is "external" which
-	// allows functions to defer their implementations to a C-ABI DLL.
+	// the compiler and/or runtime. A common tag is "external" which allows
+	// functions to defer their implementations to a C-ABI DLL.
 	//
 	struct FunctionTag
 	{

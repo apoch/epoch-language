@@ -60,14 +60,14 @@
     <Filter Include="Shared\Metadata">
       <UniqueIdentifier>{8fc41299-e4b7-4559-aec8-a8e6529ac08f}</UniqueIdentifier>
     </Filter>
-    <Filter Include="VM Linkage">
-      <UniqueIdentifier>{7e0a3ec5-b5c9-4edb-a9c0-8857bd9e6f5e}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="VM Linkage\Virtual Machine">
-      <UniqueIdentifier>{2a87aca0-3c38-478c-a041-83866931d060}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Compiler Dependencies">
       <UniqueIdentifier>{7b2f4871-1458-47be-9e82-c333435f68cb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Runtime Linkage">
+      <UniqueIdentifier>{7e0a3ec5-b5c9-4edb-a9c0-8857bd9e6f5e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Runtime Linkage\Runtime">
+      <UniqueIdentifier>{2a87aca0-3c38-478c-a041-83866931d060}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -254,10 +254,7 @@
       <Filter>Shared\Metadata</Filter>
     </ClInclude>
     <ClInclude Include="..\EpochVM\Virtual Machine\Marshaling.h">
-      <Filter>VM Linkage\Virtual Machine</Filter>
-    </ClInclude>
-    <ClInclude Include="..\EpochVM\Virtual Machine\VirtualMachine.h">
-      <Filter>VM Linkage\Virtual Machine</Filter>
+      <Filter>Runtime Linkage\Runtime</Filter>
     </ClInclude>
     <ClInclude Include="..\Shared\Libraries\LibraryJIT.h">
       <Filter>Shared\Libraries</Filter>
@@ -267,6 +264,9 @@
     </ClInclude>
     <ClInclude Include="..\Shared\Metadata\TypeInfo.h">
       <Filter>Shared\Metadata</Filter>
+    </ClInclude>
+    <ClInclude Include="..\EpochRuntime\Runtime\Runtime.h">
+      <Filter>Runtime Linkage\Runtime</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

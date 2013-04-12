@@ -12,9 +12,6 @@
     <Filter Include="Exports">
       <UniqueIdentifier>{6113d1f1-4e6a-43db-9ba0-028768e31358}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Virtual Machine">
-      <UniqueIdentifier>{17b33cc4-cfed-49c9-8618-230e3f1f598f}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Shared">
       <UniqueIdentifier>{06a80e41-1901-4a2b-a569-65601181f9cb}</UniqueIdentifier>
     </Filter>
@@ -42,6 +39,9 @@
     <Filter Include="JIT">
       <UniqueIdentifier>{97690949-092e-4b3e-a2d6-b1a1478dd088}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Runtime">
+      <UniqueIdentifier>{dbf84b0e-31de-465d-a703-fbb98afb46fe}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Entry Point\EntryPoint.cpp">
@@ -52,12 +52,6 @@
     </ClCompile>
     <ClCompile Include="Exports\Exports.cpp">
       <Filter>Exports</Filter>
-    </ClCompile>
-    <ClCompile Include="Virtual Machine\Marshaling.cpp">
-      <Filter>Virtual Machine</Filter>
-    </ClCompile>
-    <ClCompile Include="Virtual Machine\VirtualMachine.cpp">
-      <Filter>Virtual Machine</Filter>
     </ClCompile>
     <ClCompile Include="..\Shared\User Interface\Input.cpp">
       <Filter>Shared\User Interface</Filter>
@@ -98,19 +92,16 @@
     <ClCompile Include="JIT\GarbageCollection.cpp">
       <Filter>JIT</Filter>
     </ClCompile>
+    <ClCompile Include="Runtime\Marshaling.cpp">
+      <Filter>Runtime</Filter>
+    </ClCompile>
+    <ClCompile Include="Runtime\Runtime.cpp">
+      <Filter>Runtime</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h">
       <Filter>Precompiled Header</Filter>
-    </ClInclude>
-    <ClInclude Include="Virtual Machine\ExportDef.h">
-      <Filter>Exports</Filter>
-    </ClInclude>
-    <ClInclude Include="Virtual Machine\Marshaling.h">
-      <Filter>Virtual Machine</Filter>
-    </ClInclude>
-    <ClInclude Include="Virtual Machine\VirtualMachine.h">
-      <Filter>Virtual Machine</Filter>
     </ClInclude>
     <ClInclude Include="..\Shared\Bytecode\EntityTags.h">
       <Filter>Shared\Bytecode</Filter>
@@ -186,6 +177,15 @@
     </ClInclude>
     <ClInclude Include="..\Shared\Libraries\LibraryJIT.h">
       <Filter>Shared\Libraries</Filter>
+    </ClInclude>
+    <ClInclude Include="Runtime\Marshaling.h">
+      <Filter>Runtime</Filter>
+    </ClInclude>
+    <ClInclude Include="Exports\ExportDef.h">
+      <Filter>Exports</Filter>
+    </ClInclude>
+    <ClInclude Include="Runtime\Runtime.h">
+      <Filter>Runtime</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

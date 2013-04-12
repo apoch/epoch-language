@@ -8,7 +8,7 @@
 #pragma once
 
 // Dependencies
-#include "Virtual Machine/ExportDef.h"
+#include "Exports/ExportDef.h"
 
 #include "Metadata/ScopeDescription.h"
 #include "Metadata/ActiveStructure.h"

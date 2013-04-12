@@ -9,7 +9,7 @@
 
 #include "Library Functionality/Type Casting/Typecasts.h"
 
-#include "Virtual Machine/VirtualMachine.h"
+#include "Runtime/Runtime.h"
 
 #include "Utility/Types/RealTypes.h"
 

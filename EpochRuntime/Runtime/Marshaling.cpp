@@ -7,8 +7,8 @@
 
 #include "pch.h"
 
-#include "Virtual Machine/Marshaling.h"
-#include "Virtual Machine/VirtualMachine.h"
+#include "Runtime/Marshaling.h"
+#include "Runtime/Runtime.h"
 
 #include "Utility/Types/IntegerTypes.h"
 

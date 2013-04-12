@@ -1,7 +1,7 @@
 LIBRARY	"EpochLibrary"
 EXPORTS
 	RegisterLibraryContents		@1
-	BindToVirtualMachine		@2
+	BindToRuntime				@2
 	BindToCompiler				@3
 	LinkToTestHarness			@4
 

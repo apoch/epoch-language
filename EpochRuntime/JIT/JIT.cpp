@@ -40,8 +40,8 @@
 
 #include "Libraries/Library.h"
 
-#include "Virtual Machine/VirtualMachine.h"
-#include "Virtual Machine/Marshaling.h"
+#include "Runtime/Runtime.h"
+#include "Runtime/Marshaling.h"
 
 #include "Metadata/ScopeDescription.h"
 #include "Metadata/TypeInfo.h"

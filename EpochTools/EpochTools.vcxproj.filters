@@ -80,9 +80,6 @@
     <ClCompile Include="DLL Access Wrappers\Compiler.cpp">
       <Filter>DLL Access Wrappers</Filter>
     </ClCompile>
-    <ClCompile Include="DLL Access Wrappers\VM.cpp">
-      <Filter>DLL Access Wrappers</Filter>
-    </ClCompile>
     <ClCompile Include="Serialization\Serializer.cpp">
       <Filter>Serialization</Filter>
     </ClCompile>
@@ -128,6 +125,9 @@
     <ClCompile Include="Project Files\Project.cpp">
       <Filter>Project Files</Filter>
     </ClCompile>
+    <ClCompile Include="DLL Access Wrappers\Runtime.cpp">
+      <Filter>DLL Access Wrappers</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h">
@@ -164,9 +164,6 @@
       <Filter>DLL Access Wrappers</Filter>
     </ClInclude>
     <ClInclude Include="DLL Access Wrappers\Exceptions.h">
-      <Filter>DLL Access Wrappers</Filter>
-    </ClInclude>
-    <ClInclude Include="DLL Access Wrappers\VM.h">
       <Filter>DLL Access Wrappers</Filter>
     </ClInclude>
     <ClInclude Include="Serialization\Exceptions.h">
@@ -225,6 +222,9 @@
     </ClInclude>
     <ClInclude Include="Project Files\Project.h">
       <Filter>Project Files</Filter>
+    </ClInclude>
+    <ClInclude Include="DLL Access Wrappers\Runtime.h">
+      <Filter>DLL Access Wrappers</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
