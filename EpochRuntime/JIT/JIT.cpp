@@ -1952,12 +1952,6 @@ void FunctionJITHelper::AllocStructure(size_t& offset)
 //
 void FunctionJITHelper::CopyToStructure(size_t& offset)
 {
-
-	// TODO - if the member is a sum type, we need to copy the full sum type data over.
-	// This may not require code changes *here* but it will require code changes to the
-	// signature of the generated constructor. I need to carefully consider what tweaks
-	// to make to the signature, e.g. using varargs, to make this work best.
-
 	StringHandle variablename = Fetch<StringHandle>(Bytecode, offset);
 	StringHandle actualmember = Fetch<StringHandle>(Bytecode, offset);
 
