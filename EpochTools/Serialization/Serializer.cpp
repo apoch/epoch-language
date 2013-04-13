@@ -182,7 +182,7 @@ void Serializer::Write(const std::wstring& filename) const
 					break;
 
 				default:
-					if(Metadata::GetTypeFamily(type) == Metadata::EpochTypeFamily_Structure || Metadata::GetTypeFamily(type) == Metadata::EpochTypeFamily_TemplateInstance)
+					if(Metadata::IsStructureType(type))
 					{
 						outfile << L"PUSH " << type << L" ";
 						outfile << traverser.Read<StructureHandle>() << L"\n";

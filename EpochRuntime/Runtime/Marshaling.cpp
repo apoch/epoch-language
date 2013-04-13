@@ -73,7 +73,7 @@ namespace
 				break;
 
 			default:
-				if(Metadata::GetTypeFamily(membertype) == Metadata::EpochTypeFamily_Structure || Metadata::GetTypeFamily(membertype) == Metadata::EpochTypeFamily_TemplateInstance)
+				if(Metadata::IsStructureType(membertype))
 				{
 					StructureHandle structurehandle = *reinterpret_cast<StructureHandle*>(reinterpret_cast<char*>(structure) + definition.GetMemberOffset(j));
 					const StructureDefinition& nesteddefinition = context.GetStructureDefinition(definition.GetMemberType(j));
@@ -219,7 +219,7 @@ EPOCHRUNTIME void Runtime::MarshalBufferIntoStructureData(Runtime::ExecutionCont
 			break;
 
 		default:
-			if(GetTypeFamily(membertype) == EpochTypeFamily_Structure || GetTypeFamily(membertype) == EpochTypeFamily_TemplateInstance)
+			if(IsStructureType(membertype))
 			{
 				StructureHandle structurehandle = *reinterpret_cast<StructureHandle*>(reinterpret_cast<char*>(structure) + definition.GetMemberOffset(j));
 				const StructureDefinition& nesteddefinition = context.GetStructureDefinition(definition.GetMemberType(j));

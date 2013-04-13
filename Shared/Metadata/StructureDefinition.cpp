@@ -28,7 +28,7 @@ void StructureDefinition::AddMember(StringHandle identifier, Metadata::EpochType
 		Members.push_back(MemberRecord(identifier, type, Offset));
 		Offset += Metadata::GetStorageSize(type);
 
-		if(Metadata::GetTypeFamily(type) == Metadata::EpochTypeFamily_Structure || Metadata::GetTypeFamily(type) == Metadata::EpochTypeFamily_TemplateInstance)
+		if(Metadata::IsStructureType(type))
 			MarshaledSize += structdefinition->GetMarshaledSize();
 		else
 			MarshaledSize += Metadata::GetMarshaledSize(type);

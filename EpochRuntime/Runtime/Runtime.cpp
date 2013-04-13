@@ -412,7 +412,7 @@ void ExecutionContext::Load()
 					EpochTypeID type = Fetch<EpochTypeID>(instructionoffset);
 					const StructureDefinition* structdefinition = NULL;
 					const VariantDefinition* variantdefinition = NULL;
-					if(GetTypeFamily(type) == EpochTypeFamily_Structure || GetTypeFamily(type) == EpochTypeFamily_TemplateInstance)
+					if(IsStructureType(type))
 						structdefinition = &GetStructureDefinition(type);
 					else if(GetTypeFamily(type) == EpochTypeFamily_SumType)
 						variantdefinition = &VariantDefinitions.find(type)->second;
@@ -815,7 +815,7 @@ StructureHandle ExecutionContext::DeepCopy(StructureHandle handle)
 		case EpochType_Nothing:																				break;
 
 		default:
-			if(GetTypeFamily(membertype) == EpochTypeFamily_Structure || GetTypeFamily(membertype) == EpochTypeFamily_TemplateInstance)
+			if(IsStructureType(membertype))
 				clone.WriteMember(i, DeepCopy(original.ReadMember<StructureHandle>(i)));
 			else if(GetTypeFamily(membertype) == EpochTypeFamily_Function)
 				clone.WriteMember(i, original.ReadMember<void*>(i));

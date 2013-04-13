@@ -193,12 +193,6 @@ bool Statement::TypeInference(Namespace& curnamespace, CodeBlock& activescope, I
 		++i;
 	}
 
-/*	if(
-		   context.State != InferenceContext::CONTEXT_FUNCTION_RETURN
-		|| Metadata::GetTypeFamily(MyType) == Metadata::EpochTypeFamily_Structure
-		|| Metadata::GetTypeFamily(MyType) == Metadata::EpochTypeFamily_TemplateInstance
-	  )
-	  */
 	{
 		if(curnamespace.Functions.IRExists(RawName))
 		{

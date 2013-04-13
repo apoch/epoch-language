@@ -112,16 +112,13 @@ namespace
 
 		default:
 			{
-				Metadata::EpochTypeFamily family = Metadata::GetTypeFamily(type);
-
-				// TODO - we do this "is structure or template instance" check a lot. Encapsulate?
-				if(family == Metadata::EpochTypeFamily_Structure || family == Metadata::EpochTypeFamily_TemplateInstance)
+				if(Metadata::IsStructureType(type))
 				{
 					StructureHandle handle = *reinterpret_cast<const StructureHandle*>(liveptr);
 					if(handle)
 						livevalues.LiveStructures.insert(handle);
 				}
-				else if(family == Metadata::EpochTypeFamily_SumType)
+				else if(Metadata::GetTypeFamily(type) == Metadata::EpochTypeFamily_SumType)
 				{
 					// TODO - implement sum type garbage collector tracing
 					throw NotImplementedException("GC roots of sum types are not implemented");

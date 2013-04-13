@@ -60,5 +60,11 @@ namespace Metadata
 	{
 		return type & 0xff000000;
 	}
+
+	inline bool IsStructureType(EpochTypeID type)
+	{
+		EpochTypeFamily family = GetTypeFamily(type);
+		return (family == EpochTypeFamily_Structure || family == EpochTypeFamily_TemplateInstance);
+	}
 }
 

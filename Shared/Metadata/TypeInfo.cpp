@@ -46,10 +46,10 @@ size_t Metadata::GetStorageSize(EpochTypeID type)
 		if(Metadata::GetTypeFamily(type) == Metadata::EpochTypeFamily_Function)
 			return sizeof(StringHandle);
 
-		if(Metadata::GetTypeFamily(type) != Metadata::EpochTypeFamily_Structure && Metadata::GetTypeFamily(type) != Metadata::EpochTypeFamily_TemplateInstance)
-			throw NotImplementedException("Unsupported data type in Metadata::GetStorageSize()");
-
-		return sizeof(StructureHandle);
+		if(Metadata::IsStructureType(type))
+			return sizeof(StructureHandle);
+	
+		throw NotImplementedException("Unsupported data type in Metadata::GetStorageSize()");
 	}
 }
 

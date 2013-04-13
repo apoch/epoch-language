@@ -107,7 +107,7 @@ namespace
 
 			if(type == Metadata::EpochType_Buffer)
 				emitter.CopyBuffer();
-			else if(Metadata::GetTypeFamily(type) == Metadata::EpochTypeFamily_Structure || Metadata::GetTypeFamily(type) == Metadata::EpochTypeFamily_TemplateInstance)
+			else if(Metadata::IsStructureType(type))
 				emitter.CopyStructure();
 
 			return;
@@ -121,7 +121,7 @@ namespace
 
 			if(type == Metadata::EpochType_Buffer)
 				emitter.CopyBuffer();
-			else if(Metadata::GetTypeFamily(type) == Metadata::EpochTypeFamily_Structure || Metadata::GetTypeFamily(type) == Metadata::EpochTypeFamily_TemplateInstance)
+			else if(Metadata::IsStructureType(type))
 				emitter.CopyStructure();
 
 			return;
@@ -171,7 +171,7 @@ namespace
 			emitter.ReadReferenceOntoStack();
 			if(structuretype == Metadata::EpochType_Buffer)
 				emitter.CopyBuffer();
-			else if(Metadata::GetTypeFamily(structuretype) == Metadata::EpochTypeFamily_Structure || Metadata::GetTypeFamily(structuretype) == Metadata::EpochTypeFamily_TemplateInstance)
+			else if(Metadata::IsStructureType(structuretype))
 				emitter.CopyStructure();
 		}
 	}
@@ -383,7 +383,7 @@ namespace
 	void EmitStatement(ByteCodeEmitter& emitter, const IRSemantics::Statement& statement, const IRSemantics::CodeBlock& activescope, const IRSemantics::Namespace& curnamespace)
 	{
 		Metadata::EpochTypeFamily typefamily = Metadata::GetTypeFamily(curnamespace.Types.GetTypeByName(statement.GetName()));
-		bool constructorcall = (typefamily == Metadata::EpochTypeFamily_Structure);
+		bool constructorcall = (typefamily == Metadata::EpochTypeFamily_Structure || typefamily == Metadata::EpochTypeFamily_TemplateInstance);
 		bool constructssumtype = (typefamily == Metadata::EpochTypeFamily_SumType);
 		const std::vector<IRSemantics::Expression*>& params = statement.GetParameters();
 		for(std::vector<IRSemantics::Expression*>::const_iterator paramiter = params.begin(); paramiter != params.end(); ++paramiter)
@@ -721,7 +721,7 @@ namespace
 				while(Metadata::GetTypeFamily(membertype) == Metadata::EpochTypeFamily_Unit)
 					membertype = curnamespace.Types.Aliases.GetStrongRepresentation(membertype);
 
-				if(Metadata::GetTypeFamily(membertype) == Metadata::EpochTypeFamily_Structure || Metadata::GetTypeFamily(membertype) == Metadata::EpochTypeFamily_TemplateInstance)
+				if(Metadata::IsStructureType(membertype))
 					dependencies.insert(membertype);
 			}
 
@@ -753,7 +753,7 @@ namespace
 					while(Metadata::GetTypeFamily(membertype) == Metadata::EpochTypeFamily_Unit)
 						membertype = curnamespace.Types.Aliases.GetStrongRepresentation(membertype);
 
-					if(Metadata::GetTypeFamily(membertype) == Metadata::EpochTypeFamily_Structure || Metadata::GetTypeFamily(membertype) == Metadata::EpochTypeFamily_TemplateInstance)
+					if(Metadata::IsStructureType(membertype))
 						structuredependencies.AddDependency(type, membertype);
 				}
 			}

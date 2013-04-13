@@ -531,7 +531,7 @@ Type* NativeCodeGenerator::GetLLVMType(Metadata::EpochTypeID type, bool flatten)
 		if(family == Metadata::EpochTypeFamily_SumType)
 			return GetLLVMSumType(type, flatten);
 
-		if(family == Metadata::EpochTypeFamily_Structure || family == Metadata::EpochTypeFamily_TemplateInstance)
+		if(Metadata::IsStructureType(type))
 			return Data->StructureHandleType;
 
 		throw NotImplementedException("Unsupported type for native code generation");
@@ -566,7 +566,7 @@ Type* NativeCodeGenerator::GetExternalType(Metadata::EpochTypeID type)
 		return Type::getInt16Ty(Data->Context);
 
 	default:
-		if(family == Metadata::EpochTypeFamily_Structure || family == Metadata::EpochTypeFamily_TemplateInstance)
+		if(Metadata::IsStructureType(type))
 			return Data->StructureHandleType;
 
 		if(family == Metadata::EpochTypeFamily_Function)
@@ -1367,8 +1367,7 @@ void FunctionJITHelper::BeginEntity(size_t& offset)
 
 			default:
 				{
-					Metadata::EpochTypeFamily family = Metadata::GetTypeFamily(localtype);
-					if(family == Metadata::EpochTypeFamily_Structure || family == Metadata::EpochTypeFamily_TemplateInstance)
+					if(Metadata::IsStructureType(localtype))
 					{
 						init = ConstantPointerNull::get(Type::getInt8PtrTy(Context));
 						break;
@@ -2557,10 +2556,10 @@ Value* NativeCodeGenerator::MarshalArgument(Value* arg, Metadata::EpochTypeID ty
 		return Builder.CreateCall(Data->BuiltInFunctions[JITFunc_Runtime_GetString], arg);
 	}
 
-	Metadata::EpochTypeFamily family = Metadata::GetTypeFamily(type);
-	if(family == Metadata::EpochTypeFamily_Structure || family == Metadata::EpochTypeFamily_TemplateInstance)
+	if(Metadata::IsStructureType(type))
 		return Builder.CreateCall(Data->BuiltInFunctions[JITFunc_Marshal_ConvertStructure], arg);
 
+	Metadata::EpochTypeFamily family = Metadata::GetTypeFamily(type);
 	if(family == Metadata::EpochTypeFamily_Function)
 		return Builder.CreatePointerCast(GetCallbackWrapper(arg), Type::getInt8PtrTy(Data->Context));
 
@@ -2593,8 +2592,6 @@ Value* NativeCodeGenerator::MarshalReturn(Value* ret, Metadata::EpochTypeID type
 
 void NativeCodeGenerator::MarshalReferencePostCall(Value* ref, Value* fixuptarget, Metadata::EpochTypeID type)
 {
-	Metadata::EpochTypeFamily family = Metadata::GetTypeFamily(type);
-
 	switch(type)
 	{
 	case Metadata::EpochType_Boolean:
@@ -2606,7 +2603,7 @@ void NativeCodeGenerator::MarshalReferencePostCall(Value* ref, Value* fixuptarge
 		return;
 	}
 
-	if(family == Metadata::EpochTypeFamily_Structure || family == Metadata::EpochTypeFamily_TemplateInstance)
+	if(Metadata::IsStructureType(type))
 	{
 		Builder.CreateCall2(Data->BuiltInFunctions[JITFunc_Marshal_FixupStructure], ref, Builder.CreateLoad(fixuptarget));
 		return;
@@ -2617,8 +2614,6 @@ void NativeCodeGenerator::MarshalReferencePostCall(Value* ref, Value* fixuptarge
 
 void NativeCodeGenerator::MarshalCleanup(Value* val, Metadata::EpochTypeID type)
 {
-	Metadata::EpochTypeFamily family = Metadata::GetTypeFamily(type);
-
 	switch(type)
 	{
 	case Metadata::EpochType_Boolean:
@@ -2630,12 +2625,13 @@ void NativeCodeGenerator::MarshalCleanup(Value* val, Metadata::EpochTypeID type)
 		return;
 	}
 
-	if(family == Metadata::EpochTypeFamily_Structure || family == Metadata::EpochTypeFamily_TemplateInstance)
+	if(Metadata::IsStructureType(type))
 	{
 		Builder.CreateCall(Data->BuiltInFunctions[JITFunc_Marshal_Cleanup], val);
 		return;
 	}
 
+	Metadata::EpochTypeFamily family = Metadata::GetTypeFamily(type);
 	if(family == Metadata::EpochTypeFamily_Function)
 		return;
 
