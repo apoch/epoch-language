@@ -120,11 +120,9 @@ namespace
 				}
 				else if(Metadata::GetTypeFamily(type) == Metadata::EpochTypeFamily_SumType)
 				{
-					// TODO - implement sum type garbage collector tracing
-					throw NotImplementedException("GC roots of sum types are not implemented");
+					Metadata::EpochTypeID type = *reinterpret_cast<const Metadata::EpochTypeID*>(liveptr);
+					CheckRoot(reinterpret_cast<const char*>(liveptr) + sizeof(Metadata::EpochTypeID), type, livevalues);
 				}
-				else
-					throw FatalException("Trying to garbage collect an unsupported data type");
 			}
 			break;
 		}
@@ -133,13 +131,18 @@ namespace
 	//
 	// Walk the stack for a given safe point and mark any GC roots found
 	//
-	void WalkLiveValuesForSafePoint(void* stackptr, GCFunctionInfo& funcinfo, GCFunctionInfo::iterator& safepoint, LiveValues& livevalues)
+	void WalkLiveValuesForSafePoint(void* prevframeptr, void* stackptr, GCFunctionInfo& funcinfo, GCFunctionInfo::iterator& safepoint, LiveValues& livevalues)
 	{
 		for(GCFunctionInfo::live_iterator LI = funcinfo.live_begin(safepoint), LE = funcinfo.live_end(safepoint); LI != LE; ++LI)
 		{
 			Metadata::EpochTypeID type = static_cast<Metadata::EpochTypeID>(dyn_cast<ConstantInt>(LI->Metadata->getOperand(0))->getValue().getLimitedValue());
 			
-			const char* liveptr = reinterpret_cast<const char*>(stackptr) + LI->StackOffset;
+			const char* liveptr;
+			if(static_cast<signed>(LI->StackOffset) <= 0)
+				liveptr = reinterpret_cast<const char*>(stackptr) + LI->StackOffset;
+			else
+				liveptr = reinterpret_cast<const char*>(prevframeptr) + LI->StackOffset + 8;
+			
 			CheckRoot(liveptr, type, livevalues);
 		}
 	}
@@ -163,6 +166,7 @@ namespace
 		while(framePtr != NULL)
 		{
 			void* returnAddr = framePtr->returnAddr;
+			void* prevFramePtr = framePtr;
 			framePtr = framePtr->prevFrame;
 
 			for(std::vector<GCFunctionInfo*>::iterator iter = FunctionList.begin(); iter != FunctionList.end(); ++iter)
@@ -173,7 +177,7 @@ namespace
 					uint64_t address = reinterpret_cast<ExecutionEngine*>(Runtime::GetThreadContext()->JITExecutionEngine)->getLabelAddress(spiter->Label);
 					uint64_t modifiedaddress = address - 4;		// TODO - evil magic number
 					if(reinterpret_cast<void*>(static_cast<unsigned>(address)) == returnAddr || reinterpret_cast<void*>(static_cast<unsigned>(modifiedaddress)) == returnAddr)
-						WalkLiveValuesForSafePoint(framePtr, info, spiter, livevalues);
+						WalkLiveValuesForSafePoint(prevFramePtr, framePtr, info, spiter, livevalues);
 				}
 			}
 		}
@@ -181,7 +185,8 @@ namespace
 		Runtime::GetThreadContext()->PrivateGetRawStringPool().GarbageCollect(livevalues.LiveStrings);
 		Runtime::GetThreadContext()->GarbageCollectBuffers(livevalues.LiveBuffers);
 
-		// TODO - walk structure graph and collect any garbage not marked
+		Runtime::GetThreadContext()->WalkStructuresForLiveHandles(livevalues.LiveStructures);
+		Runtime::GetThreadContext()->GarbageCollectStructures(livevalues.LiveStructures);
 	}
 
 
@@ -249,6 +254,9 @@ namespace
 		//
 		virtual bool findCustomSafePoints(GCFunctionInfo& FI, MachineFunction& MF)
 		{
+			if(!FI.getFunction().getGC())
+				return false;
+
 			// TODO - naming conventions (check whole file to be safe)
 			for(MachineFunction::iterator BBI = MF.begin(), BBE = MF.end(); BBI != BBE; ++BBI)
 			{
@@ -324,14 +332,42 @@ namespace
 			// Now initialize any roots we found in this function
 			for(std::vector<AllocaInst*>::iterator allocaiter = roots.begin(); allocaiter != roots.end(); ++allocaiter)
 			{
-				StoreInst* store = NULL;
-
 				if((*allocaiter)->getType()->getElementType()->isPointerTy())
-					store = new StoreInst(ConstantPointerNull::get(cast<PointerType>(cast<PointerType>((*allocaiter)->getType())->getElementType())), *allocaiter);
-				else
-					store = new StoreInst(ConstantInt::get((*allocaiter)->getType()->getElementType(), 0), *allocaiter);
+				{
+					StoreInst* store = new StoreInst(ConstantPointerNull::get(cast<PointerType>(cast<PointerType>((*allocaiter)->getType())->getElementType())), *allocaiter);
+					store->insertAfter(*allocaiter);
+				}
+				else if((*allocaiter)->getType()->getElementType()->isAggregateType())
+				{
+					BitCastInst* castptr = new BitCastInst(*allocaiter, Type::getInt32PtrTy(getGlobalContext()));
+					castptr->insertAfter(*allocaiter);
+					StoreInst* store = new StoreInst(ConstantInt::get(Type::getInt32Ty(getGlobalContext()), 0), castptr);
+					store->insertAfter(castptr);
 
-				store->insertAfter(*allocaiter);
+					std::vector<Value*> indices;
+					indices.push_back(ConstantInt::get(Type::getInt32Ty(getGlobalContext()), 0));
+					indices.push_back(ConstantInt::get(Type::getInt32Ty(getGlobalContext()), 1));
+					GetElementPtrInst* gep = GetElementPtrInst::Create(*allocaiter, indices);
+					gep->insertAfter(store);
+
+					if(gep->getType()->getElementType()->isPointerTy())
+					{
+						PointerType* ptype = cast<PointerType>(cast<PointerType>(gep->getType())->getElementType());
+						StoreInst* payloadstore = new StoreInst(ConstantPointerNull::get(ptype), gep);
+						payloadstore->insertAfter(gep);
+					}
+					else
+					{
+						StoreInst* payloadstore = new StoreInst(ConstantInt::get(gep->getType()->getElementType(), 0), gep);
+						payloadstore->insertAfter(gep);
+					}
+				}
+				else
+				{
+					StoreInst* store = new StoreInst(ConstantInt::get((*allocaiter)->getType()->getElementType(), 0), *allocaiter);
+					store->insertAfter(*allocaiter);
+				}
+
 				modified = true;
 			}
 

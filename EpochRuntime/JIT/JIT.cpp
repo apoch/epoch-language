@@ -1308,7 +1308,8 @@ void FunctionJITHelper::BeginEntity(size_t& offset)
 
 			LocalOffsetToIndexMap[localoffsetbytes] = *localiter;
 
-			if(Metadata::GetTypeFamily(localtype) == Metadata::EpochTypeFamily_GC)
+			// TODO - only flag GC roots of sum type when the sum type might contain a GC-able type
+			if((Metadata::GetTypeFamily(localtype) == Metadata::EpochTypeFamily_GC) || (Metadata::GetTypeFamily(localtype) == Metadata::EpochTypeFamily_SumType) || Metadata::IsStructureType(localtype))
 			{
 				Value* signature = ConstantInt::get(Type::getInt32Ty(Context), localtype);
 				Value* constant = Builder.CreateIntToPtr(signature, Type::getInt8PtrTy(Context));

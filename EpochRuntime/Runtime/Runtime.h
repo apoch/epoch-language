@@ -183,6 +183,8 @@ namespace Runtime
 	// Garbage collection
 	public:
 		void GarbageCollectBuffers(const boost::unordered_set<BufferHandle>& livehandles);
+
+		void WalkStructuresForLiveHandles(boost::unordered_set<StructureHandle>& roots);
 		void GarbageCollectStructures(const boost::unordered_set<StructureHandle>& livehandles);
 
 	// Use sparingly! Only intended for access by the garbage collector
