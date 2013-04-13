@@ -9,6 +9,7 @@
 
 #include "Runtime/Marshaling.h"
 #include "Runtime/Runtime.h"
+#include "Runtime/GlobalContext.h"
 
 #include "Utility/Types/IntegerTypes.h"
 
@@ -20,7 +21,6 @@
 
 
 extern "C" void Epoch_Halt();
-extern Runtime::ExecutionContext* GlobalContext;
 
 
 namespace
@@ -262,11 +262,11 @@ void Runtime::PopulateWeakLinkages(const std::map<StringHandle, llvm::Function*>
 
 extern "C" void* MarshalConvertStructure(StructureHandle handle)
 {
-	ActiveStructure& s = GlobalContext->FindStructureMetadata(handle);
+	ActiveStructure& s = Runtime::GetThreadContext()->FindStructureMetadata(handle);
 
 	Byte* buffer = new Byte[s.Definition.GetMarshaledSize()];
 
-	if(!MarshalStructureDataIntoBuffer(*GlobalContext, handle, s.Definition, buffer))
+	if(!MarshalStructureDataIntoBuffer(*Runtime::GetThreadContext(), handle, s.Definition, buffer))
 		Epoch_Halt();
 
 	return buffer;
@@ -274,8 +274,8 @@ extern "C" void* MarshalConvertStructure(StructureHandle handle)
 
 extern "C" void MarshalFixupStructure(Byte* buffer, StructureHandle target)
 {
-	ActiveStructure& s = GlobalContext->FindStructureMetadata(target);
-	Runtime::MarshalBufferIntoStructureData(*GlobalContext, target, s.Definition, buffer);
+	ActiveStructure& s = Runtime::GetThreadContext()->FindStructureMetadata(target);
+	Runtime::MarshalBufferIntoStructureData(*Runtime::GetThreadContext(), target, s.Definition, buffer);
 }
 
 extern "C" void MarshalCleanup(Byte* buffer)

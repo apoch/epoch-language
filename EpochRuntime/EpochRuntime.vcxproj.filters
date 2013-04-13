@@ -98,6 +98,9 @@
     <ClCompile Include="Runtime\Runtime.cpp">
       <Filter>Runtime</Filter>
     </ClCompile>
+    <ClCompile Include="Runtime\GlobalContext.cpp">
+      <Filter>Runtime</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h">
@@ -185,6 +188,9 @@
       <Filter>Exports</Filter>
     </ClInclude>
     <ClInclude Include="Runtime\Runtime.h">
+      <Filter>Runtime</Filter>
+    </ClInclude>
+    <ClInclude Include="Runtime\GlobalContext.h">
       <Filter>Runtime</Filter>
     </ClInclude>
   </ItemGroup>

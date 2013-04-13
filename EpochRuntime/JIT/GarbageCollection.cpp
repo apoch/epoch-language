@@ -16,6 +16,7 @@
 #include "pch.h"
 
 #include "Runtime/Runtime.h"
+#include "Runtime/GlobalContext.h"
 
 #include "User Interface/Output.h"
 
@@ -45,10 +46,6 @@
 #include "llvm/IntrinsicInst.h"
 
 #pragma warning(pop)
-
-
-// TODO - centralize execution context
-extern Runtime::ExecutionContext* GlobalContext;
 
 
 using namespace llvm;
@@ -165,7 +162,7 @@ namespace
 		// TODO - don't collect if we haven't ticked over any collectors
 
 		LiveValues livevalues;
-		livevalues.LiveStrings = GlobalContext->StaticallyReferencedStrings;
+		livevalues.LiveStrings = Runtime::GetThreadContext()->StaticallyReferencedStrings;
 
 		while(framePtr != NULL)
 		{
@@ -175,7 +172,7 @@ namespace
 				GCFunctionInfo& info = **iter;
 				for(GCFunctionInfo::iterator spiter = info.begin(); spiter != info.end(); ++spiter)
 				{
-					uint64_t address = reinterpret_cast<ExecutionEngine*>(GlobalContext->JITExecutionEngine)->getLabelAddress(spiter->Label);
+					uint64_t address = reinterpret_cast<ExecutionEngine*>(Runtime::GetThreadContext()->JITExecutionEngine)->getLabelAddress(spiter->Label);
 					uint64_t modifiedaddress = address - 4;		// TODO - evil magic number
 					if(reinterpret_cast<void*>(static_cast<unsigned>(address)) == returnAddr || reinterpret_cast<void*>(static_cast<unsigned>(modifiedaddress)) == returnAddr)
 						WalkLiveValuesForSafePoint(framePtr, info, spiter, livevalues);
@@ -185,7 +182,7 @@ namespace
 			framePtr = framePtr->prevFrame;
 		}
 
-		GlobalContext->PrivateGetRawStringPool().GarbageCollect(livevalues.LiveStrings);
+		Runtime::GetThreadContext()->PrivateGetRawStringPool().GarbageCollect(livevalues.LiveStrings);
 
 		// TODO - collect buffers
 		// TODO - walk structure graph and collect any garbage not marked

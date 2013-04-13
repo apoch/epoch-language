@@ -8,11 +8,10 @@
 #include "pch.h"
 
 #include "Runtime/Runtime.h"
+#include "Runtime/GlobalContext.h"
 
 #include "Utility/Strings.h"
 
-
-Runtime::ExecutionContext* GlobalContext = NULL;
 
 namespace
 {
@@ -63,7 +62,7 @@ extern "C" void* Epoch_GetBuffer(BufferHandle handle)
 {
 	try
 	{
-		return GlobalContext->GetBuffer(handle);
+		return Runtime::GetThreadContext()->GetBuffer(handle);
 	}
 	catch(...)
 	{
@@ -75,7 +74,7 @@ extern "C" const wchar_t* Epoch_GetString(StringHandle handle)
 {
 	try
 	{
-		return GlobalContext->GetPooledString(handle).c_str();
+		return Runtime::GetThreadContext()->GetPooledString(handle).c_str();
 	}
 	catch(...)
 	{
@@ -87,8 +86,8 @@ extern "C" void* Epoch_AllocStruct(Metadata::EpochTypeID structtype)
 {
 	try
 	{
-		StructureHandle handle = GlobalContext->AllocateStructure(GlobalContext->GetStructureDefinition(structtype));
-		GlobalContext->TickStructureGarbageCollector();
+		StructureHandle handle = Runtime::GetThreadContext()->AllocateStructure(Runtime::GetThreadContext()->GetStructureDefinition(structtype));
+		Runtime::GetThreadContext()->TickStructureGarbageCollector();
 		return handle;
 	}
 	catch(...)
@@ -101,8 +100,8 @@ extern "C" void* Epoch_CopyStruct(StructureHandle handle)
 {
 	try
 	{
-		StructureHandle copyhandle = GlobalContext->DeepCopy(handle);
-		GlobalContext->TickStructureGarbageCollector();
+		StructureHandle copyhandle = Runtime::GetThreadContext()->DeepCopy(handle);
+		Runtime::GetThreadContext()->TickStructureGarbageCollector();
 		return copyhandle;
 	}
 	catch(...)
@@ -126,8 +125,8 @@ extern "C" BufferHandle Epoch_AllocBuffer(size_t size)
 {
 	try
 	{
-		BufferHandle handle = GlobalContext->AllocateBuffer(size);
-		GlobalContext->TickBufferGarbageCollector();
+		BufferHandle handle = Runtime::GetThreadContext()->AllocateBuffer(size);
+		Runtime::GetThreadContext()->TickBufferGarbageCollector();
 		return handle;
 	}
 	catch(...)
@@ -140,8 +139,8 @@ extern "C" BufferHandle Epoch_CopyBuffer(BufferHandle handle)
 {
 	try
 	{
-		BufferHandle clone = GlobalContext->CloneBuffer(handle);
-		GlobalContext->TickBufferGarbageCollector();
+		BufferHandle clone = Runtime::GetThreadContext()->CloneBuffer(handle);
+		Runtime::GetThreadContext()->TickBufferGarbageCollector();
 		return clone;
 	}
 	catch(...)
@@ -149,10 +148,3 @@ extern "C" BufferHandle Epoch_CopyBuffer(BufferHandle handle)
 		return 0;
 	}
 }
-
-
-void SetGlobalExecutionContext(Runtime::ExecutionContext* context)
-{
-	GlobalContext = context;
-}
-

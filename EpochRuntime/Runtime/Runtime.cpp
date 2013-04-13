@@ -9,6 +9,7 @@
 
 #include "Runtime/Runtime.h"
 #include "Runtime/Marshaling.h"
+#include "Runtime/GlobalContext.h"
 
 #include "JIT/JIT.h"
 
@@ -261,13 +262,13 @@ ExecutionContext::ExecutionContext(Bytecode::Instruction* codebuffer, size_t cod
 
 ExecutionContext::~ExecutionContext()
 {
+	SetThreadContext(NULL);
 	JIT::DestructLLVMModule();
 }
 
 void ExecutionContext::Execute()
 {
-	void SetGlobalExecutionContext(Runtime::ExecutionContext* context);
-	SetGlobalExecutionContext(this);
+	SetThreadContext(this);
 
 	typedef void (*pfunc)();
 	if(GlobalInitFunc)

@@ -118,6 +118,7 @@
     <ClCompile Include="..\Shared\Metadata\FunctionSignature.cpp" />
     <ClCompile Include="..\Shared\Metadata\ScopeDescription.cpp" />
     <ClCompile Include="..\Shared\Metadata\StructureDefinition.cpp" />
+    <ClCompile Include="Runtime\GlobalContext.cpp" />
     <ClCompile Include="Runtime\Marshaling.cpp" />
     <ClCompile Include="Runtime\Runtime.cpp" />
   </ItemGroup>
@@ -130,6 +131,7 @@
     <ClInclude Include="Exports\ExportDef.h" />
     <ClInclude Include="JIT\JIT.h" />
     <ClInclude Include="pch.h" />
+    <ClInclude Include="Runtime\GlobalContext.h" />
     <ClInclude Include="Runtime\Marshaling.h" />
     <ClInclude Include="..\Shared\Bytecode\EntityTags.h" />
     <ClInclude Include="..\Shared\Bytecode\Instructions.h" />
