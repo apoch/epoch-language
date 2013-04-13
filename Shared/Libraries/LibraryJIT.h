@@ -36,6 +36,7 @@ namespace JIT
 		JITFunc_Runtime_AllocStruct,
 		JITFunc_Runtime_CopyStruct,
 		JITFunc_Runtime_GetBuffer,
+		JITFunc_Runtime_PtrToBufferHandle,
 		JITFunc_Runtime_GetString,
 		JITFunc_Runtime_AllocBuffer,
 		JITFunc_Runtime_CopyBuffer,

@@ -274,6 +274,14 @@ namespace JIT
 
 			{
 				std::vector<Type*> args;
+				args.push_back(Type::getInt8PtrTy(Context));
+				FunctionType* ftype = FunctionType::get(BufferHandleType, args, false);
+
+				BuiltInFunctions[JITFunc_Runtime_PtrToBufferHandle] = Function::Create(ftype, Function::ExternalLinkage, "Epoch_GetBufferByPtr", CurrentModule);
+			}
+
+			{
+				std::vector<Type*> args;
 				args.push_back(Type::getInt32Ty(Context));
 				FunctionType* ftype = FunctionType::get(Type::getInt8PtrTy(Context), args, false);
 
@@ -2598,8 +2606,8 @@ void NativeCodeGenerator::MarshalReferencePostCall(Value* ref, Value* fixuptarge
 	case Metadata::EpochType_Integer:
 	case Metadata::EpochType_Integer16:
 	case Metadata::EpochType_Real:
-	case Metadata::EpochType_Buffer:
 	case Metadata::EpochType_String:
+	case Metadata::EpochType_Buffer:
 		return;
 	}
 

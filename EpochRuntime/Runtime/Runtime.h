@@ -145,6 +145,7 @@ namespace Runtime
 		StringHandle GetPooledStringHandle(const std::wstring& value);
 
 		EPOCHRUNTIME void* GetBuffer(BufferHandle handle);
+		EPOCHRUNTIME BufferHandle FindBuffer(const void* ptr);
 		EPOCHRUNTIME size_t GetBufferSize(BufferHandle handle) const;
 		EPOCHRUNTIME BufferHandle AllocateBuffer(size_t size);
 		BufferHandle CloneBuffer(BufferHandle handle);

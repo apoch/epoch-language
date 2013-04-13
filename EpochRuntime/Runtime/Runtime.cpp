@@ -116,6 +116,19 @@ EPOCHRUNTIME void* ExecutionContext::GetBuffer(BufferHandle handle)
 	return &iter->second[0];
 }
 
+EPOCHRUNTIME BufferHandle ExecutionContext::FindBuffer(const void* ptr)
+{
+	Threads::CriticalSection::Auto lock(BufferCritSec);
+
+	for(boost::unordered_map<BufferHandle, std::vector<Byte>, fasthash>::iterator iter = Buffers.begin(); iter != Buffers.end(); ++iter)
+	{
+		if(&iter->second[0] == ptr)
+			return iter->first;
+	}
+
+	throw FatalException("Invalid buffer pointer");
+}
+
 //
 // Retrive the size of the given buffer, in bytes
 //

@@ -11,7 +11,8 @@ EXPORTS
 	Epoch_GetString				@8
 	Epoch_AllocBuffer			@9
 	Epoch_CopyBuffer			@10
+	Epoch_GetBufferByPtr		@11
 	
-	MarshalConvertStructure		@11
-	MarshalFixupStructure		@12
-	MarshalCleanup				@13
+	MarshalConvertStructure		@12
+	MarshalFixupStructure		@13
+	MarshalCleanup				@14

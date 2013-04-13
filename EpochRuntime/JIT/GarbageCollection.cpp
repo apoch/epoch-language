@@ -139,8 +139,7 @@ namespace
 		{
 			Metadata::EpochTypeID type = static_cast<Metadata::EpochTypeID>(dyn_cast<ConstantInt>(LI->Metadata->getOperand(0))->getValue().getLimitedValue());
 			
-			// TODO - this magic number is kind of scary!
-			const char* liveptr = reinterpret_cast<const char*>(stackptr) - LI->StackOffset + 12;
+			const char* liveptr = reinterpret_cast<const char*>(stackptr) + LI->StackOffset;
 			CheckRoot(liveptr, type, livevalues);
 		}
 	}
@@ -164,6 +163,8 @@ namespace
 		while(framePtr != NULL)
 		{
 			void* returnAddr = framePtr->returnAddr;
+			framePtr = framePtr->prevFrame;
+
 			for(std::vector<GCFunctionInfo*>::iterator iter = FunctionList.begin(); iter != FunctionList.end(); ++iter)
 			{
 				GCFunctionInfo& info = **iter;
@@ -175,13 +176,11 @@ namespace
 						WalkLiveValuesForSafePoint(framePtr, info, spiter, livevalues);
 				}
 			}
-
-			framePtr = framePtr->prevFrame;
 		}
 
 		Runtime::GetThreadContext()->PrivateGetRawStringPool().GarbageCollect(livevalues.LiveStrings);
+		Runtime::GetThreadContext()->GarbageCollectBuffers(livevalues.LiveBuffers);
 
-		// TODO - collect buffers
 		// TODO - walk structure graph and collect any garbage not marked
 	}
 
