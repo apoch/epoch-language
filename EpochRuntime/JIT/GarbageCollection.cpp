@@ -62,6 +62,9 @@ namespace
 	std::vector<GCFunctionInfo*> FunctionList;
 
 
+	std::map<const Function*, std::pair<void*, size_t> > FunctionBounds;
+
+
 	//
 	// This structure represents a callstack frame in running code.
 	// We use it for crawling the stack and finding live GC roots.
@@ -92,6 +95,11 @@ namespace
 	//
 	void CheckRoot(const void* liveptr, Metadata::EpochTypeID type, LiveValues& livevalues)
 	{
+		if(!liveptr)
+			return;
+
+		static Metadata::EpochTypeID hacketyhackhack = 0;
+
 		switch(type)
 		{
 		case Metadata::EpochType_String:
@@ -110,6 +118,15 @@ namespace
 			}
 			break;
 
+		case 0xfe000000:		// TODO - hack
+			hacketyhackhack = *reinterpret_cast<const Metadata::EpochTypeID*>(liveptr);
+			break;
+
+		case 0xff000000:
+			if(Metadata::IsStructureType(hacketyhackhack))
+				CheckRoot(*reinterpret_cast<const void* const*>(reinterpret_cast<const char*>(liveptr) + 4), hacketyhackhack, livevalues);
+			break;
+
 		default:
 			{
 				if(Metadata::IsStructureType(type))
@@ -120,8 +137,17 @@ namespace
 				}
 				else if(Metadata::GetTypeFamily(type) == Metadata::EpochTypeFamily_SumType)
 				{
-					Metadata::EpochTypeID type = *reinterpret_cast<const Metadata::EpochTypeID*>(liveptr);
-					CheckRoot(reinterpret_cast<const char*>(liveptr) + sizeof(Metadata::EpochTypeID), type, livevalues);
+					Metadata::EpochTypeID realtype = *reinterpret_cast<const Metadata::EpochTypeID*>(liveptr);
+					if(Metadata::GetTypeFamily(realtype) == Metadata::EpochTypeFamily_SumType)
+					{
+						CheckRoot(*reinterpret_cast<void* const*>(reinterpret_cast<const char*>(liveptr) + sizeof(Metadata::EpochTypeID)), realtype, livevalues);
+					}
+					else
+						CheckRoot(reinterpret_cast<const char*>(liveptr) + sizeof(Metadata::EpochTypeID), realtype, livevalues);
+				}
+				else if(type == Metadata::EpochType_Nothing)
+				{
+					// Nothing to do!
 				}
 			}
 			break;
@@ -136,13 +162,18 @@ namespace
 		for(GCFunctionInfo::live_iterator LI = funcinfo.live_begin(safepoint), LE = funcinfo.live_end(safepoint); LI != LE; ++LI)
 		{
 			Metadata::EpochTypeID type = static_cast<Metadata::EpochTypeID>(dyn_cast<ConstantInt>(LI->Metadata->getOperand(0))->getValue().getLimitedValue());
+
+			if(type == 0xff000000 || type == 0xfe000000)		// TODO - cleanup
+				continue;
 			
 			const char* liveptr;
 			if(static_cast<signed>(LI->StackOffset) <= 0)
 				liveptr = reinterpret_cast<const char*>(stackptr) + LI->StackOffset;
 			else
-				liveptr = reinterpret_cast<const char*>(prevframeptr) + LI->StackOffset + 8;
-			
+				liveptr = reinterpret_cast<const char*>(prevframeptr) + LI->StackOffset + sizeof(CallFrame);
+
+			((void)(prevframeptr));
+
 			CheckRoot(liveptr, type, livevalues);
 		}
 	}
@@ -150,75 +181,57 @@ namespace
 	//
 	// Worker function for actually performing mark/sweep garbage collection
 	//
-	void GarbageWorker()
+	void GarbageWorker(char* rawptr)
 	{
-		CallFrame* framePtr;
-		__asm
-		{
-			mov framePtr, ebp
-		}
+		CallFrame* framePtr = reinterpret_cast<CallFrame*>(rawptr + 4);
+		void* prevFramePtr = NULL;
 
 		// TODO - don't collect if we haven't ticked over any collectors
 
 		LiveValues livevalues;
 		livevalues.LiveStrings = Runtime::GetThreadContext()->StaticallyReferencedStrings;
 
+		bool foundany = false;
 		while(framePtr != NULL)
 		{
 			void* returnAddr = framePtr->returnAddr;
-			void* prevFramePtr = framePtr;
+			prevFramePtr = framePtr;
 			framePtr = framePtr->prevFrame;
 
+			bool found = false;
 			for(std::vector<GCFunctionInfo*>::iterator iter = FunctionList.begin(); iter != FunctionList.end(); ++iter)
 			{
 				GCFunctionInfo& info = **iter;
+
+				// TODO - make better use of bounds check capability for optimality
+				//std::pair<void*, size_t> bounds = FunctionBounds.find(&info.getFunction())->second;
+				//const void* boundend = reinterpret_cast<const char*>(bounds.first) + bounds.second;
+
 				for(GCFunctionInfo::iterator spiter = info.begin(); spiter != info.end(); ++spiter)
 				{
 					uint64_t address = reinterpret_cast<ExecutionEngine*>(Runtime::GetThreadContext()->JITExecutionEngine)->getLabelAddress(spiter->Label);
-					uint64_t modifiedaddress = address - 4;		// TODO - evil magic number
-					if(reinterpret_cast<void*>(static_cast<unsigned>(address)) == returnAddr || reinterpret_cast<void*>(static_cast<unsigned>(modifiedaddress)) == returnAddr)
+					const void* addressptr = reinterpret_cast<void*>(static_cast<unsigned>(address));
+
+					if(addressptr == returnAddr)
+					{
 						WalkLiveValuesForSafePoint(prevFramePtr, framePtr, info, spiter, livevalues);
+						found = foundany = true;
+					}
 				}
 			}
+
+			if(!found)
+				break;
 		}
+
+		if(!foundany)
+			return;
 
 		Runtime::GetThreadContext()->PrivateGetRawStringPool().GarbageCollect(livevalues.LiveStrings);
 		Runtime::GetThreadContext()->GarbageCollectBuffers(livevalues.LiveBuffers);
 
 		Runtime::GetThreadContext()->WalkStructuresForLiveHandles(livevalues.LiveStructures);
 		Runtime::GetThreadContext()->GarbageCollectStructures(livevalues.LiveStructures);
-	}
-
-
-	//
-	// Entry stub for invoking the garbage collector on a task
-	//
-	__declspec(naked) void TriggerGarbageCollection()
-	{
-		__asm
-		{
-			// Set up a stack frame for this function
-			push ebp
-			mov ebp, esp
-
-			// Save the value of EAX so we can recover
-			// the return value of the calling function
-			// after garbage collection is over.
-			push eax
-
-			// Invoke GC
-			call GarbageWorker
-
-			// Restore EAX
-			pop eax
-
-			// Tear down stack frame
-			mov esp, ebp
-			pop ebp
-
-			// Return to caller
-			ret
-		}
 	}
 
 
@@ -254,7 +267,7 @@ namespace
 		//
 		virtual bool findCustomSafePoints(GCFunctionInfo& FI, MachineFunction& MF)
 		{
-			if(!FI.getFunction().getGC())
+			if(!FI.getFunction().hasGC())
 				return false;
 
 			// TODO - naming conventions (check whole file to be safe)
@@ -405,7 +418,7 @@ namespace
 		{
 			MCSymbol* label = InsertLabel(*instriter->getParent(), instriter, instriter->getDebugLoc(), targetinfo);
 			functioninfo.addSafePoint(GC::Return, label, instriter->getDebugLoc());
-			InsertGarbageCheck(*instriter->getParent(), instriter, instriter->getDebugLoc(), targetinfo);
+			//InsertGarbageCheck(*instriter->getParent(), instriter, instriter->getDebugLoc(), targetinfo);
 		}
 
 
@@ -426,22 +439,15 @@ namespace
 		// and ready for immediate collection; otherwise the code
 		// will bail early for minimal performance impact.
 		//
+		/*
 		void InsertGarbageCheck(MachineBasicBlock& block, MachineBasicBlock::iterator instriter, DebugLoc loc, const TargetInstrInfo* targetinfo) const
 		{
-			// We need to back up three instruction slots: one for the
-			// RET, one for the POP EBP (so we preserve the function's
-			// stack frame), and one to insert in the correct location
-			// in the instruction stream. This makes sure that we call
-			// the GC with all the relevant context it needs.
-			--instriter;
-			--instriter;
-			--instriter;
-
 			// TODO - this is a dirty hack based on LLVM's defined opcode index for CALL
-			const MCInstrDesc& instrdesc = targetinfo->get(350);
+			//const MCInstrDesc& instrdesc = targetinfo->get(350);
 
 			BuildMI(block, instriter, loc, instrdesc).addImm(reinterpret_cast<unsigned>(&TriggerGarbageCollection));
 		}
+		*/
 	};
 
 
@@ -464,3 +470,45 @@ void ClearGCContextInfo()
 	FunctionList.clear();
 }
 
+
+void SetGCFunctionBounds(const Function* func, void* start, size_t size)
+{
+	FunctionBounds[func] = std::make_pair(start, size);
+}
+
+
+
+//
+// Entry stub for invoking the garbage collector on a task
+//
+extern "C" __declspec(naked) void TriggerGarbageCollection()
+{
+	__asm
+	{
+		// Set up a stack frame for this function
+		push ebp
+		mov ebp, esp
+
+		// Save the value of EAX so we can recover
+		// the return value of the calling function
+		// after garbage collection is over.
+		push eax
+
+		push esp
+
+		// Invoke GC
+		call GarbageWorker
+
+		add esp, 4
+
+		// Restore EAX
+		pop eax
+
+		// Tear down stack frame
+		mov esp, ebp
+		pop ebp
+
+		// Return to caller
+		ret
+	}
+}

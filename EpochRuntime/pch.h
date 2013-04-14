@@ -81,6 +81,7 @@
 #include "llvm/PassManager.h"
 #include "llvm/Transforms/IPO.h"
 #include "llvm/ADT/SmallVector.h"
+#include "llvm/ExecutionEngine/JITEventListener.h"
 
 #pragma warning(pop)
 #pragma warning(pop)

@@ -768,7 +768,8 @@ StructureHandle ExecutionContext::AllocateStructure(const StructureDefinition& d
 
 	ActiveStructure* active = new ActiveStructure(description);
 	StructureHandle handle = &active->Storage[0];
-	ActiveStructures.insert(std::make_pair(handle, active)); 
+	ActiveStructures.insert(std::make_pair(handle, active));
+
 	return handle;
 }
 

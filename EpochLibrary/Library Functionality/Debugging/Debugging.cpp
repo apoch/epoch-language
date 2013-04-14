@@ -22,6 +22,8 @@
 #include <llvm/Intrinsics.h>
 
 
+extern Runtime::ExecutionContext* GlobalExecutionContext;
+
 
 namespace
 {
@@ -35,6 +37,8 @@ namespace
 	StringHandle PassTestHandle = 0;
 	StringHandle SqrtHandle = 0;
 	StringHandle PlotPixelHandle = 0;
+	StringHandle BreakpointHandle = 0;
+
 
 	// TODO - lame hack; replace with real array support
 	void PlotPixelJIT(JIT::JITContext& context, bool)
@@ -72,12 +76,17 @@ namespace
 		llvm::Value* r = reinterpret_cast<llvm::IRBuilder<>*>(context.Builder)->CreateCall((*context.BuiltInFunctions)[JIT::JITFunc_Intrinsic_Sqrt], v);
 		context.ValuesOnStack.push(r);
 	}
+
+	void BreakpointJIT(JIT::JITContext& context, bool)
+	{
+		reinterpret_cast<llvm::IRBuilder<>*>(context.Builder)->CreateCall((*context.BuiltInFunctions)[JIT::JITFunc_Runtime_Break]);
+	}
 }
 
 extern "C" void EpochLib_Print(StringHandle strhandle)
 {
 	UI::OutputStream out;
-	out << strhandle << std::endl;
+	out << GlobalExecutionContext->GetPooledString(strhandle) << std::endl;
 }
 
 extern "C" void EpochLib_Assert(bool assumption)
@@ -140,6 +149,10 @@ void DebugLibrary::RegisterLibraryFunctions(FunctionSignatureSet& signatureset)
 		signature.SetReturnType(Metadata::EpochType_Real);
 		AddToMapNoDupe(signatureset, std::make_pair(SqrtHandle, signature));
 	}
+	{
+		FunctionSignature signature;
+		AddToMapNoDupe(signatureset, std::make_pair(BreakpointHandle, signature));
+	}
 }
 
 
@@ -157,6 +170,7 @@ void DebugLibrary::RegisterJITTable(JIT::JITTable& table)
 
 	AddToMapNoDupe(table.InvokeHelpers, std::make_pair(SqrtHandle, &SqrtJIT));
 	AddToMapNoDupe(table.InvokeHelpers, std::make_pair(PlotPixelHandle, &PlotPixelJIT));
+	AddToMapNoDupe(table.InvokeHelpers, std::make_pair(BreakpointHandle, &BreakpointJIT));
 }
 
 
@@ -168,5 +182,6 @@ void DebugLibrary::PoolStrings(StringPoolManager& stringpool)
 	PassTestHandle = stringpool.Pool(L"passtest");
 	SqrtHandle = stringpool.Pool(L"sqrt");
 	PlotPixelHandle = stringpool.Pool(L"plotpixel");
+	BreakpointHandle = stringpool.Pool(L"breakpoint");
 }
 

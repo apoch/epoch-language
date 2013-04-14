@@ -31,6 +31,7 @@ namespace JIT
 		JITFunc_Intrinsic_GCRoot,
 		JITFunc_Intrinsic_Sqrt,
 
+		JITFunc_Runtime_TriggerGC,
 		JITFunc_Runtime_Break,
 		JITFunc_Runtime_Halt,
 		JITFunc_Runtime_AllocStruct,

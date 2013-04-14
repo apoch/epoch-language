@@ -16,3 +16,5 @@ EXPORTS
 	MarshalConvertStructure		@12
 	MarshalFixupStructure		@13
 	MarshalCleanup				@14
+
+	TriggerGarbageCollection	@15

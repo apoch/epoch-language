@@ -58,6 +58,13 @@ extern "C" void STDCALL LinkTestHarness(unsigned* harness)
 	//}
 }
 
+extern "C" void Epoch_Halt()
+{
+	::MessageBox(0, L"Fatal error - program halted", L"Epoch Runtime", MB_ICONSTOP);
+	std::terminate();
+}
+
+
 extern "C" void* Epoch_GetBuffer(BufferHandle handle)
 {
 	try
@@ -66,6 +73,7 @@ extern "C" void* Epoch_GetBuffer(BufferHandle handle)
 	}
 	catch(...)
 	{
+		Epoch_Halt();
 		return NULL;
 	}
 }
@@ -78,6 +86,7 @@ extern "C" const wchar_t* Epoch_GetString(StringHandle handle)
 	}
 	catch(...)
 	{
+		Epoch_Halt();
 		return NULL;
 	}
 }
@@ -92,6 +101,7 @@ extern "C" void* Epoch_AllocStruct(Metadata::EpochTypeID structtype)
 	}
 	catch(...)
 	{
+		Epoch_Halt();
 		return NULL;
 	}
 }
@@ -106,14 +116,9 @@ extern "C" void* Epoch_CopyStruct(StructureHandle handle)
 	}
 	catch(...)
 	{
+		Epoch_Halt();
 		return NULL;
 	}
-}
-
-extern "C" void Epoch_Halt()
-{
-	::MessageBox(0, L"Fatal error - program halted", L"Epoch Runtime", MB_ICONSTOP);
-	std::terminate();
 }
 
 extern "C" void Epoch_Break()
@@ -131,6 +136,7 @@ extern "C" BufferHandle Epoch_AllocBuffer(size_t size)
 	}
 	catch(...)
 	{
+		Epoch_Halt();
 		return 0;
 	}
 }
@@ -145,6 +151,7 @@ extern "C" BufferHandle Epoch_CopyBuffer(BufferHandle handle)
 	}
 	catch(...)
 	{
+		Epoch_Halt();
 		return 0;
 	}
 }
@@ -157,6 +164,7 @@ extern "C" BufferHandle Epoch_GetBufferByPtr(const char* bufferptr)
 	}
 	catch(...)
 	{
+		Epoch_Halt();
 		return 0;
 	}
 }

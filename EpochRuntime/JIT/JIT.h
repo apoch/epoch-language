@@ -29,7 +29,7 @@ namespace JIT
 	//
 	// Wrapper for all JIT native code generation functionality
 	//
-	class NativeCodeGenerator
+	class NativeCodeGenerator : public llvm::JITEventListener
 	{
 	// Construction and destruction
 	public:
@@ -81,6 +81,8 @@ namespace JIT
 		void MarshalCleanup(llvm::Value* ret, Metadata::EpochTypeID type);
 
 		llvm::Value* GetCallbackWrapper(llvm::Value* funcptr);
+
+		virtual void NotifyFunctionEmitted(const llvm::Function& function, void* code, size_t size, const EmittedFunctionDetails& details);
 
 	// Visible tracking
 	public:
