@@ -129,6 +129,7 @@
     <ClInclude Include="..\Shared\Metadata\Variant.h" />
     <ClInclude Include="..\Shared\Utility\Profiling.h" />
     <ClInclude Include="Exports\ExportDef.h" />
+    <ClInclude Include="JIT\GarbageCollection.h" />
     <ClInclude Include="JIT\JIT.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="Runtime\GlobalContext.h" />

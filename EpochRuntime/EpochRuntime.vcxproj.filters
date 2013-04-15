@@ -193,6 +193,9 @@
     <ClInclude Include="Runtime\GlobalContext.h">
       <Filter>Runtime</Filter>
     </ClInclude>
+    <ClInclude Include="JIT\GarbageCollection.h">
+      <Filter>JIT</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Exports\Exports.def">

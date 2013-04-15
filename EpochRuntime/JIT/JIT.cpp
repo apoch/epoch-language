@@ -43,6 +43,8 @@
 #include "Runtime/Runtime.h"
 #include "Runtime/Marshaling.h"
 
+#include "JIT/GarbageCollection.h"
+
 #include "Metadata/ScopeDescription.h"
 #include "Metadata/TypeInfo.h"
 
@@ -65,8 +67,6 @@
 // We heavily use this namespace so may as well import it
 using namespace llvm;
 
-extern void ClearGCContextInfo();			// TODO - stop doing this sort of hack
-extern void SetGCFunctionBounds(const Function* func, void* start, size_t size);
 
 //
 // Internal implementation helpers
@@ -2353,15 +2353,16 @@ void NativeCodeGenerator::AddNativeTypeMatcher(size_t beginoffset, size_t endoff
 					parampayloadptrs.back().push_back(Builder.CreateAlloca(Type::getInt8PtrTy(Data->Context)));
 					providedtypeholders.back().push_back(Builder.CreateAlloca(Type::getInt32Ty(Data->Context)));
 
+					// TODO - figure out why pinning these is necessary and maybe document it a bit
 					{
-						Value* signature = ConstantInt::get(Type::getInt32Ty(Data->Context), 0xfe000000);
+						Value* signature = ConstantInt::get(Type::getInt32Ty(Data->Context), 0xffffffff);
 						Value* constant = Builder.CreateIntToPtr(signature, Type::getInt8PtrTy(Data->Context));
 						Value* castalloca = Builder.CreatePointerCast(providedtypeholders.back().back(), Type::getInt8PtrTy(Data->Context)->getPointerTo());
 						Builder.CreateCall2(Data->BuiltInFunctions[JITFunc_Intrinsic_GCRoot], castalloca, constant);
 					}
 
 					{
-						Value* signature = ConstantInt::get(Type::getInt32Ty(Data->Context), 0xff000000);
+						Value* signature = ConstantInt::get(Type::getInt32Ty(Data->Context), 0xffffffff);
 						Value* constant = Builder.CreateIntToPtr(signature, Type::getInt8PtrTy(Data->Context));
 						Builder.CreateCall2(Data->BuiltInFunctions[JITFunc_Intrinsic_GCRoot], parampayloadptrs.back().back(), constant);
 					}
@@ -2809,11 +2810,11 @@ void JIT::DestructLLVMModule()
 {
 	delete LazyModule;
 	LazyModule = NULL;
-	ClearGCContextInfo();
+	EpochGC::ClearGCContextInfo();
 }
 
 void NativeCodeGenerator::NotifyFunctionEmitted(const llvm::Function& function, void* code, size_t size, const EmittedFunctionDetails&)
 {
-	SetGCFunctionBounds(&function, code, size);
+	EpochGC::SetGCFunctionBounds(&function, code, size);
 }
 

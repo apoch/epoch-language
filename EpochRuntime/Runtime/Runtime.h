@@ -64,6 +64,15 @@ namespace Runtime
 
 	class ExecutionContext
 	{
+	// Constants
+	public:
+		enum GarbageCollectionFlags
+		{
+			GC_Collect_Strings		= 1 << 0,
+			GC_Collect_Buffers		= 1 << 1,
+			GC_Collect_Structures	= 1 << 2,
+		};
+
 	// Construction and destruction
 	public:
 		ExecutionContext(Bytecode::Instruction* codebuffer, size_t codesize, unsigned* testharness);
@@ -183,9 +192,9 @@ namespace Runtime
 	// Garbage collection
 	public:
 		void GarbageCollectBuffers(const boost::unordered_set<BufferHandle>& livehandles);
-
-		void WalkStructuresForLiveHandles(boost::unordered_set<StructureHandle>& roots);
 		void GarbageCollectStructures(const boost::unordered_set<StructureHandle>& livehandles);
+
+		unsigned GetGarbageCollectionBitmask() const;
 
 	// Use sparingly! Only intended for access by the garbage collector
 	public:

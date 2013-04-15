@@ -18,6 +18,8 @@
 #include "Runtime/Runtime.h"
 #include "Runtime/GlobalContext.h"
 
+#include "JIT/GarbageCollection.h"
+
 #include "User Interface/Output.h"
 
 #include "Utility/Strings.h"
@@ -86,6 +88,9 @@ namespace
 		boost::unordered_set<StringHandle> LiveStrings;
 		boost::unordered_set<BufferHandle> LiveBuffers;
 		boost::unordered_set<StructureHandle> LiveStructures;
+
+		// Bitmask built from Runtime::ExecutionContext::GarbageCollectionFlags
+		unsigned Mask;
 	};
 
 
@@ -98,11 +103,10 @@ namespace
 		if(!liveptr)
 			return;
 
-		static Metadata::EpochTypeID hacketyhackhack = 0;
-
 		switch(type)
 		{
 		case Metadata::EpochType_String:
+			if(livevalues.Mask & Runtime::ExecutionContext::GC_Collect_Strings)
 			{
 				StringHandle handle = *reinterpret_cast<const StringHandle*>(liveptr);
 				if(handle)
@@ -111,6 +115,7 @@ namespace
 			break;
 
 		case Metadata::EpochType_Buffer:
+			if(livevalues.Mask & Runtime::ExecutionContext::GC_Collect_Buffers)
 			{
 				BufferHandle handle = *reinterpret_cast<const BufferHandle*>(liveptr);
 				if(handle)
@@ -118,22 +123,16 @@ namespace
 			}
 			break;
 
-		case 0xfe000000:		// TODO - hack
-			hacketyhackhack = *reinterpret_cast<const Metadata::EpochTypeID*>(liveptr);
-			break;
-
-		case 0xff000000:
-			if(Metadata::IsStructureType(hacketyhackhack))
-				CheckRoot(*reinterpret_cast<const void* const*>(reinterpret_cast<const char*>(liveptr) + 4), hacketyhackhack, livevalues);
-			break;
-
 		default:
 			{
 				if(Metadata::IsStructureType(type))
 				{
-					StructureHandle handle = *reinterpret_cast<const StructureHandle*>(liveptr);
-					if(handle)
-						livevalues.LiveStructures.insert(handle);
+					if(livevalues.Mask & Runtime::ExecutionContext::GC_Collect_Structures)
+					{
+						StructureHandle handle = *reinterpret_cast<const StructureHandle*>(liveptr);
+						if(handle)
+							livevalues.LiveStructures.insert(handle);
+					}
 				}
 				else if(Metadata::GetTypeFamily(type) == Metadata::EpochTypeFamily_SumType)
 				{
@@ -162,8 +161,7 @@ namespace
 		for(GCFunctionInfo::live_iterator LI = funcinfo.live_begin(safepoint), LE = funcinfo.live_end(safepoint); LI != LE; ++LI)
 		{
 			Metadata::EpochTypeID type = static_cast<Metadata::EpochTypeID>(dyn_cast<ConstantInt>(LI->Metadata->getOperand(0))->getValue().getLimitedValue());
-
-			if(type == 0xff000000 || type == 0xfe000000)		// TODO - cleanup
+			if(type == 0xffffffff)
 				continue;
 			
 			const char* liveptr;
@@ -172,10 +170,89 @@ namespace
 			else
 				liveptr = reinterpret_cast<const char*>(prevframeptr) + LI->StackOffset + sizeof(CallFrame);
 
-			((void)(prevframeptr));
-
 			CheckRoot(liveptr, type, livevalues);
 		}
+	}
+
+	//
+	// Helper to traverse the heap graph of reachable structures
+	//
+	void WalkStructuresForLiveHandles(LiveValues& livevalues)
+	{
+		bool addedhandle;
+
+		// TODO - this is a naive traversal and rather slow.
+		do
+		{
+			addedhandle = false;
+
+			for(boost::unordered_set<StructureHandle>::const_iterator iter = livevalues.LiveStructures.begin(); iter != livevalues.LiveStructures.end(); ++iter)
+			{
+				const ActiveStructure& active = Runtime::GetThreadContext()->FindStructureMetadata(*iter);
+				const StructureDefinition& def = active.Definition;
+				for(size_t i = 0; i < def.GetNumMembers(); ++i)
+				{
+					Metadata::EpochTypeID membertype = def.GetMemberType(i);
+					if(Metadata::IsStructureType(membertype) && (livevalues.Mask & Runtime::ExecutionContext::GC_Collect_Structures))
+					{
+						StructureHandle p = active.ReadMember<StructureHandle>(i);
+						if(livevalues.LiveStructures.count(p) == 0)
+						{
+							livevalues.LiveStructures.insert(p);
+							addedhandle = true;
+						}
+					}
+					else if(membertype == Metadata::EpochType_String)
+					{
+						if(livevalues.Mask & Runtime::ExecutionContext::GC_Collect_Strings)
+						{
+							StringHandle h = active.ReadMember<StringHandle>(i);
+							livevalues.LiveStrings.insert(h);
+						}
+					}
+					else if(membertype == Metadata::EpochType_Buffer)
+					{
+						if(livevalues.Mask & Runtime::ExecutionContext::GC_Collect_Buffers)
+						{
+							BufferHandle h = active.ReadMember<BufferHandle>(i);
+							livevalues.LiveBuffers.insert(h);
+						}
+					}
+					else if(Metadata::GetTypeFamily(membertype) == Metadata::EpochTypeFamily_SumType)
+					{
+						Metadata::EpochTypeID realtype = active.ReadSumTypeMemberType(i);
+						if(Metadata::IsStructureType(realtype) && (livevalues.Mask & Runtime::ExecutionContext::GC_Collect_Structures))
+						{
+							StructureHandle p = active.ReadMember<StructureHandle>(i);
+							if(livevalues.LiveStructures.count(p) == 0)
+							{
+								livevalues.LiveStructures.insert(p);
+								addedhandle = true;
+							}
+						}
+						else if(realtype == Metadata::EpochType_String)
+						{
+							if(livevalues.Mask & Runtime::ExecutionContext::GC_Collect_Strings)
+							{
+								StringHandle h = active.ReadMember<StringHandle>(i);
+								livevalues.LiveStrings.insert(h);
+							}
+						}
+						else if(realtype == Metadata::EpochType_Buffer)
+						{
+							if(livevalues.Mask & Runtime::ExecutionContext::GC_Collect_Buffers)
+							{
+								BufferHandle h = active.ReadMember<BufferHandle>(i);
+								livevalues.LiveBuffers.insert(h);
+							}
+						}
+					}
+				}
+
+				if(addedhandle)
+					break;
+			}
+		} while(addedhandle);
 	}
 
 	//
@@ -183,13 +260,15 @@ namespace
 	//
 	void GarbageWorker(char* rawptr)
 	{
-		CallFrame* framePtr = reinterpret_cast<CallFrame*>(rawptr + 4);
-		void* prevFramePtr = NULL;
-
-		// TODO - don't collect if we haven't ticked over any collectors
+		unsigned collectmask = Runtime::GetThreadContext()->GetGarbageCollectionBitmask();
+		if(!collectmask)
+			return;
 
 		LiveValues livevalues;
-		livevalues.LiveStrings = Runtime::GetThreadContext()->StaticallyReferencedStrings;
+		livevalues.Mask = collectmask;
+
+		CallFrame* framePtr = reinterpret_cast<CallFrame*>(rawptr + sizeof(void*));
+		void* prevFramePtr = NULL;
 
 		bool foundany = false;
 		while(framePtr != NULL)
@@ -203,9 +282,11 @@ namespace
 			{
 				GCFunctionInfo& info = **iter;
 
-				// TODO - make better use of bounds check capability for optimality
-				//std::pair<void*, size_t> bounds = FunctionBounds.find(&info.getFunction())->second;
-				//const void* boundend = reinterpret_cast<const char*>(bounds.first) + bounds.second;
+				std::pair<void*, size_t> bounds = FunctionBounds.find(&info.getFunction())->second;
+				const void* boundend = reinterpret_cast<const char*>(bounds.first) + bounds.second;
+
+				if(returnAddr < bounds.first || returnAddr > boundend)
+					continue;
 
 				for(GCFunctionInfo::iterator spiter = info.begin(); spiter != info.end(); ++spiter)
 				{
@@ -227,11 +308,16 @@ namespace
 		if(!foundany)
 			return;
 
-		Runtime::GetThreadContext()->PrivateGetRawStringPool().GarbageCollect(livevalues.LiveStrings);
-		Runtime::GetThreadContext()->GarbageCollectBuffers(livevalues.LiveBuffers);
+		WalkStructuresForLiveHandles(livevalues);
 
-		Runtime::GetThreadContext()->WalkStructuresForLiveHandles(livevalues.LiveStructures);
-		Runtime::GetThreadContext()->GarbageCollectStructures(livevalues.LiveStructures);
+		if(livevalues.Mask & Runtime::ExecutionContext::GC_Collect_Strings)
+			Runtime::GetThreadContext()->PrivateGetRawStringPool().GarbageCollect(livevalues.LiveStrings, Runtime::GetThreadContext()->StaticallyReferencedStrings);
+
+		if(livevalues.Mask & Runtime::ExecutionContext::GC_Collect_Buffers)
+			Runtime::GetThreadContext()->GarbageCollectBuffers(livevalues.LiveBuffers);
+
+		if(livevalues.Mask & Runtime::ExecutionContext::GC_Collect_Structures)
+			Runtime::GetThreadContext()->GarbageCollectStructures(livevalues.LiveStructures);
 	}
 
 
@@ -241,7 +327,7 @@ namespace
 	// the code as well as caching data needed for retrieving the
 	// stack maps later during actual collection passes.
 	//
-	class LLVM_LIBRARY_VISIBILITY EpochGC : public GCStrategy
+	class LLVM_LIBRARY_VISIBILITY EpochGCStrategy : public GCStrategy
 	{
 	// Construction
 	public:
@@ -249,7 +335,7 @@ namespace
 		//
 		// Construct and initialize the GC strategy wrapper
 		//
-		EpochGC()
+		EpochGCStrategy()
 		{
 			InitRoots = false;
 			UsesMetadata = true;
@@ -418,7 +504,6 @@ namespace
 		{
 			MCSymbol* label = InsertLabel(*instriter->getParent(), instriter, instriter->getDebugLoc(), targetinfo);
 			functioninfo.addSafePoint(GC::Return, label, instriter->getDebugLoc());
-			//InsertGarbageCheck(*instriter->getParent(), instriter, instriter->getDebugLoc(), targetinfo);
 		}
 
 
@@ -431,30 +516,13 @@ namespace
 			BuildMI(block, instriter, loc, targetinfo->get(TargetOpcode::GC_LABEL)).addSym(label);
 			return label;
 		}
-
-		//
-		// Helper for inserting a garbage collection invocation
-		// check into the instruction stream. Note that this will
-		// only invoke the GC if one or more types are ticked over
-		// and ready for immediate collection; otherwise the code
-		// will bail early for minimal performance impact.
-		//
-		/*
-		void InsertGarbageCheck(MachineBasicBlock& block, MachineBasicBlock::iterator instriter, DebugLoc loc, const TargetInstrInfo* targetinfo) const
-		{
-			// TODO - this is a dirty hack based on LLVM's defined opcode index for CALL
-			//const MCInstrDesc& instrdesc = targetinfo->get(350);
-
-			BuildMI(block, instriter, loc, instrdesc).addImm(reinterpret_cast<unsigned>(&TriggerGarbageCollection));
-		}
-		*/
 	};
 
 
 	//
 	// This ensures that the GC strategy is instantiated and added to the LLVM registry
 	//
-	GCRegistry::Add<EpochGC> EpochGCInst("EpochGC", "Epoch Programming Language Garbage Collector");
+	GCRegistry::Add<EpochGCStrategy> EpochGCInst("EpochGC", "Epoch Programming Language Garbage Collector");
 }
 
 
@@ -465,13 +533,13 @@ namespace
 // against several programs, e.g. when running a unit
 // test suite.
 //
-void ClearGCContextInfo()
+void EpochGC::ClearGCContextInfo()
 {
 	FunctionList.clear();
 }
 
 
-void SetGCFunctionBounds(const Function* func, void* start, size_t size)
+void EpochGC::SetGCFunctionBounds(const Function* func, void* start, size_t size)
 {
 	FunctionBounds[func] = std::make_pair(start, size);
 }
@@ -494,11 +562,9 @@ extern "C" __declspec(naked) void TriggerGarbageCollection()
 		// after garbage collection is over.
 		push eax
 
-		push esp
-
 		// Invoke GC
+		push esp
 		call GarbageWorker
-
 		add esp, 4
 
 		// Restore EAX

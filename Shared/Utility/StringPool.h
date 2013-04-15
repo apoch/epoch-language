@@ -42,7 +42,7 @@ public:
 
 // Garbage collection interface
 public:
-	void GarbageCollect(const boost::unordered_set<StringHandle>& livehandles);
+	void GarbageCollect(const boost::unordered_set<StringHandle>& livehandles, const boost::unordered_set<StringHandle>& statichandles);
 
 // Internal tracking
 private:

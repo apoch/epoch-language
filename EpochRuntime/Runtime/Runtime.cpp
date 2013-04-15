@@ -889,51 +889,14 @@ void ExecutionContext::GarbageCollectStructures(const boost::unordered_set<Struc
 	EraseAndDeleteDeadHandles(ActiveStructures, livehandles);
 }
 
-void ExecutionContext::WalkStructuresForLiveHandles(boost::unordered_set<StructureHandle>& roots)
+
+unsigned ExecutionContext::GetGarbageCollectionBitmask() const
 {
-	bool addedhandle;
+	// TODO - decide on when to collect each data type using tick counters
+	// TODO - allow configurable thresholds
 
-	// TODO - this is a naive traversal and rather slow.
-	do
-	{
-		addedhandle = false;
-
-		for(boost::unordered_set<StructureHandle>::const_iterator iter = roots.begin(); iter != roots.end(); ++iter)
-		{
-			const ActiveStructure& active = FindStructureMetadata(*iter);
-			const StructureDefinition& def = active.Definition;
-			for(size_t i = 0; i < def.GetNumMembers(); ++i)
-			{
-				if(IsStructureType(def.GetMemberType(i)))
-				{
-					StructureHandle p = active.ReadMember<StructureHandle>(i);
-					if(roots.count(p) == 0)
-					{
-						roots.insert(p);
-						addedhandle = true;
-					}
-				}
-				else if(GetTypeFamily(def.GetMemberType(i)) == EpochTypeFamily_SumType)
-				{
-					if(IsStructureType(active.ReadSumTypeMemberType(i)))
-					{
-						StructureHandle p = active.ReadMember<StructureHandle>(i);
-						if(roots.count(p) == 0)
-						{
-							roots.insert(p);
-							addedhandle = true;
-						}
-					}
-				}
-			}
-
-			if(addedhandle)
-				break;
-		}
-	} while(addedhandle);
+	return (GC_Collect_Buffers | GC_Collect_Strings | GC_Collect_Structures);
 }
-
-
 
 void* ExecutionContext::JITCallback(void* stubfunc)
 {
