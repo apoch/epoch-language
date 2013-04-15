@@ -19,7 +19,9 @@ namespace EpochGC
 {
 
 	void ClearGCContextInfo();
+
 	void SetGCFunctionBounds(const llvm::Function* func, void* start, size_t size);
+	void RegisterGlobalVariable(void* ptr, Metadata::EpochTypeID type);
 
 }
 

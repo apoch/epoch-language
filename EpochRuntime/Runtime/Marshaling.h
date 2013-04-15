@@ -46,6 +46,7 @@ namespace Runtime
 
 	void RegisterMarshaledExternalFunction(StringHandle functionname, const std::wstring& dllname, const std::wstring& externalfunctionname, const std::wstring& callingconvention);
 	const DLLInvocationInfo& GetMarshaledExternalFunction(StringHandle alias);
+	bool IsMarshaledExternalFunction(StringHandle alias);
 
 	EPOCHRUNTIME void MarshalBufferIntoStructureData(ExecutionContext& context, StructureHandle structure, const StructureDefinition& definition, const Byte* buffer);
 

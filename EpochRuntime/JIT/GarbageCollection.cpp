@@ -65,6 +65,7 @@ namespace
 
 
 	std::map<const Function*, std::pair<void*, size_t> > FunctionBounds;
+	std::map<void*, Metadata::EpochTypeID> Globals;
 
 
 	//
@@ -255,6 +256,14 @@ namespace
 		} while(addedhandle);
 	}
 
+	void WalkGlobalsForLiveHandles(LiveValues& values)
+	{
+		for(std::map<void*, Metadata::EpochTypeID>::const_iterator iter = Globals.begin(); iter != Globals.end(); ++iter)
+		{
+			CheckRoot(iter->first, iter->second, values);
+		}
+	}
+
 	//
 	// Worker function for actually performing mark/sweep garbage collection
 	//
@@ -266,6 +275,8 @@ namespace
 
 		LiveValues livevalues;
 		livevalues.Mask = collectmask;
+
+		WalkGlobalsForLiveHandles(livevalues);
 
 		CallFrame* framePtr = reinterpret_cast<CallFrame*>(rawptr + sizeof(void*));
 		void* prevFramePtr = NULL;
@@ -300,9 +311,6 @@ namespace
 					}
 				}
 			}
-
-			if(!found)
-				break;
 		}
 
 		if(!foundany)
@@ -431,15 +439,20 @@ namespace
 			// Now initialize any roots we found in this function
 			for(std::vector<AllocaInst*>::iterator allocaiter = roots.begin(); allocaiter != roots.end(); ++allocaiter)
 			{
-				if((*allocaiter)->getType()->getElementType()->isPointerTy())
+				AllocaInst* allocainst = *allocaiter;
+
+				UI::OutputStream out;
+				out << function.getName().data() << " " << allocainst->getName().data() << std::endl;
+
+				if(allocainst->getType()->getElementType()->isPointerTy())
 				{
-					StoreInst* store = new StoreInst(ConstantPointerNull::get(cast<PointerType>(cast<PointerType>((*allocaiter)->getType())->getElementType())), *allocaiter);
-					store->insertAfter(*allocaiter);
+					StoreInst* store = new StoreInst(ConstantPointerNull::get(cast<PointerType>(cast<PointerType>(allocainst->getType())->getElementType())), *allocaiter);
+					store->insertAfter(allocainst);
 				}
-				else if((*allocaiter)->getType()->getElementType()->isAggregateType())
+				else if(allocainst->getType()->getElementType()->isAggregateType())
 				{
 					BitCastInst* castptr = new BitCastInst(*allocaiter, Type::getInt32PtrTy(getGlobalContext()));
-					castptr->insertAfter(*allocaiter);
+					castptr->insertAfter(allocainst);
 					StoreInst* store = new StoreInst(ConstantInt::get(Type::getInt32Ty(getGlobalContext()), 0), castptr);
 					store->insertAfter(castptr);
 
@@ -463,8 +476,8 @@ namespace
 				}
 				else
 				{
-					StoreInst* store = new StoreInst(ConstantInt::get((*allocaiter)->getType()->getElementType(), 0), *allocaiter);
-					store->insertAfter(*allocaiter);
+					StoreInst* store = new StoreInst(ConstantInt::get(allocainst->getType()->getElementType(), 0), *allocaiter);
+					store->insertAfter(allocainst);
 				}
 
 				modified = true;
@@ -536,6 +549,7 @@ namespace
 void EpochGC::ClearGCContextInfo()
 {
 	FunctionList.clear();
+	Globals.clear();
 }
 
 
@@ -544,6 +558,11 @@ void EpochGC::SetGCFunctionBounds(const Function* func, void* start, size_t size
 	FunctionBounds[func] = std::make_pair(start, size);
 }
 
+
+void EpochGC::RegisterGlobalVariable(void* ptr, Metadata::EpochTypeID type)
+{
+	Globals[ptr] = type;
+}
 
 
 //

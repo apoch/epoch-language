@@ -890,12 +890,31 @@ void ExecutionContext::GarbageCollectStructures(const boost::unordered_set<Struc
 }
 
 
-unsigned ExecutionContext::GetGarbageCollectionBitmask() const
+unsigned ExecutionContext::GetGarbageCollectionBitmask()
 {
-	// TODO - decide on when to collect each data type using tick counters
+	unsigned mask = 0;
+
 	// TODO - allow configurable thresholds
 
-	return (GC_Collect_Buffers | GC_Collect_Strings | GC_Collect_Structures);
+	if(GarbageTick_Buffers > 1024)
+	{
+		mask |= GC_Collect_Buffers;
+		GarbageTick_Buffers = 0;
+	}
+
+	if(GarbageTick_Strings > 1024)
+	{
+		mask |= GC_Collect_Strings;
+		GarbageTick_Strings = 0;
+	}
+
+	if(GarbageTick_Structures > 1024)
+	{
+		mask |= GC_Collect_Structures;
+		GarbageTick_Structures = 0;
+	}
+
+	return mask;
 }
 
 void* ExecutionContext::JITCallback(void* stubfunc)

@@ -160,6 +160,11 @@ const Runtime::DLLInvocationInfo& Runtime::GetMarshaledExternalFunction(StringHa
 	return DLLInvocationMap[alias];
 }
 
+bool Runtime::IsMarshaledExternalFunction(StringHandle alias)
+{
+	return DLLInvocationMap.find(alias) != DLLInvocationMap.end();
+}
+
 
 //
 // Convert a buffer containing a mutated C/C++ structure back into Epoch format
@@ -203,15 +208,6 @@ EPOCHRUNTIME void Runtime::MarshalBufferIntoStructureData(Runtime::ExecutionCont
 			}
 			break;
 
-			/*
-		case EpochType_Function:
-			// Function pointers are not marshaled back to Epoch form, currently.
-			// This would require an additional interop layer that dynamically
-			// relinks Epoch callback functions into their modified targets.
-			buffer += sizeof(void*);
-			break;
-			*/
-
 		case EpochType_Buffer:
 			// Buffers are passed as pointers to raw data and if mutated by the
 			// external function will not need to be marshaled back manually
@@ -226,6 +222,13 @@ EPOCHRUNTIME void Runtime::MarshalBufferIntoStructureData(Runtime::ExecutionCont
 
 				MarshalBufferIntoStructureData(context, structurehandle, nesteddefinition, buffer);
 				buffer += nesteddefinition.GetMarshaledSize();
+			}
+			else if(GetTypeFamily(membertype) == EpochTypeFamily_Function)
+			{
+				// Function pointers are not marshaled back to Epoch form, currently.
+				// This would require an additional interop layer that dynamically
+				// relinks Epoch callback functions into their modified targets.
+				buffer += sizeof(void*);
 			}
 			else
 			{
