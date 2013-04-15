@@ -510,7 +510,7 @@ Function* NativeCodeGenerator::GetGeneratedTypeMatcher(StringHandle funcname, si
 
 		nativetypematcher = Function::Create(matchfunctype, Function::ExternalLinkage, matchername.str().c_str(), Data->CurrentModule);
 		
-		nativetypematcher->setGC("EpochGC");
+		//nativetypematcher->setGC("EpochGC");
 
 		Data->GeneratedNativeTypeMatchers[matchername.str()] = nativetypematcher;
 	}
@@ -1370,7 +1370,7 @@ void FunctionJITHelper::BeginEntity(size_t& offset)
 			Value* slot = Builder.CreateAlloca(((Argument*)argiter)->getType());
 			Builder.CreateStore(((Argument*)argiter), slot);
 
-			if(paramindices.find(NumParameters - idx - 1) != paramindices.end())
+			if(LibJITContext.InnerFunction->hasGC() && (paramindices.find(NumParameters - idx - 1) != paramindices.end()))
 			{
 				Value* signature = ConstantInt::get(Type::getInt32Ty(Context), scope.GetVariableTypeByIndex(paramindices[NumParameters - idx - 1]));
 				Value* constant = Builder.CreateIntToPtr(signature, Type::getInt8PtrTy(Context));
@@ -2373,17 +2373,20 @@ void NativeCodeGenerator::AddNativeTypeMatcher(size_t beginoffset, size_t endoff
 					providedtypeholders.back().push_back(Builder.CreateAlloca(Type::getInt32Ty(Data->Context)));
 
 					// TODO - figure out why pinning these is necessary and maybe document it a bit
+					if(matcherfunction->hasGC())
 					{
-						Value* signature = ConstantInt::get(Type::getInt32Ty(Data->Context), 0xffffffff);
-						Value* constant = Builder.CreateIntToPtr(signature, Type::getInt8PtrTy(Data->Context));
-						Value* castalloca = Builder.CreatePointerCast(providedtypeholders.back().back(), Type::getInt8PtrTy(Data->Context)->getPointerTo());
-						Builder.CreateCall2(Data->BuiltInFunctions[JITFunc_Intrinsic_GCRoot], castalloca, constant);
-					}
+						{
+							Value* signature = ConstantInt::get(Type::getInt32Ty(Data->Context), 0xffffffff);
+							Value* constant = Builder.CreateIntToPtr(signature, Type::getInt8PtrTy(Data->Context));
+							Value* castalloca = Builder.CreatePointerCast(providedtypeholders.back().back(), Type::getInt8PtrTy(Data->Context)->getPointerTo());
+							Builder.CreateCall2(Data->BuiltInFunctions[JITFunc_Intrinsic_GCRoot], castalloca, constant);
+						}
 
-					{
-						Value* signature = ConstantInt::get(Type::getInt32Ty(Data->Context), 0xffffffff);
-						Value* constant = Builder.CreateIntToPtr(signature, Type::getInt8PtrTy(Data->Context));
-						Builder.CreateCall2(Data->BuiltInFunctions[JITFunc_Intrinsic_GCRoot], parampayloadptrs.back().back(), constant);
+						{
+							Value* signature = ConstantInt::get(Type::getInt32Ty(Data->Context), 0xffffffff);
+							Value* constant = Builder.CreateIntToPtr(signature, Type::getInt8PtrTy(Data->Context));
+							Builder.CreateCall2(Data->BuiltInFunctions[JITFunc_Intrinsic_GCRoot], parampayloadptrs.back().back(), constant);
+						}
 					}
 				}
 			}
