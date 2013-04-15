@@ -1017,8 +1017,17 @@ void NativeCodeGenerator::Generate()
 
 	for(std::map<size_t, Value*>::const_iterator iter = Data->GlobalVariableMap.begin(); iter != Data->GlobalVariableMap.end(); ++iter)
 	{
-		GlobalVariable* global = cast<GlobalVariable>(iter->second);
-		EpochGC::RegisterGlobalVariable(ee->getPointerToGlobal(global), Data->GlobalVariableTypes[iter->first]);
+		for(Module::const_global_iterator giter = Data->CurrentModule->global_begin(); giter != Data->CurrentModule->global_end(); ++giter)
+		{
+			// TODO - this is a lame hack and might vomit if the memory space of the original global variable is reused
+			if(&(*giter) == iter->second)
+			{
+				GlobalVariable* global = cast<GlobalVariable>(iter->second);
+				EpochGC::RegisterGlobalVariable(ee->getPointerToGlobal(global), Data->GlobalVariableTypes[iter->first]);
+
+				break;
+			}
+		}
 	}
 
 	ExecContext.JITExecutionEngine = ee;
