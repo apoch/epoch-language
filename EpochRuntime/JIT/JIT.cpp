@@ -997,7 +997,7 @@ void NativeCodeGenerator::Generate()
 	mpm.run(*Data->CurrentModule);
 
 	// This dump is useful for observing the optimized LLVM bitcode
-	Data->CurrentModule->dump();
+	//Data->CurrentModule->dump();
 
 	Runtime::PopulateWeakLinkages(ExternalFunctions, ee);
 

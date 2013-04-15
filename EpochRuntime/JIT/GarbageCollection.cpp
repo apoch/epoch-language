@@ -440,10 +440,6 @@ namespace
 			for(std::vector<AllocaInst*>::iterator allocaiter = roots.begin(); allocaiter != roots.end(); ++allocaiter)
 			{
 				AllocaInst* allocainst = *allocaiter;
-
-				UI::OutputStream out;
-				out << function.getName().data() << " " << allocainst->getName().data() << std::endl;
-
 				if(allocainst->getType()->getElementType()->isPointerTy())
 				{
 					StoreInst* store = new StoreInst(ConstantPointerNull::get(cast<PointerType>(cast<PointerType>(allocainst->getType())->getElementType())), *allocaiter);
