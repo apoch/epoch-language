@@ -159,17 +159,17 @@ namespace
 	//
 	void WalkLiveValuesForSafePoint(void* prevframeptr, void* stackptr, GCFunctionInfo& funcinfo, GCFunctionInfo::iterator& safepoint, LiveValues& livevalues)
 	{
-		for(GCFunctionInfo::live_iterator LI = funcinfo.live_begin(safepoint), LE = funcinfo.live_end(safepoint); LI != LE; ++LI)
+		for(GCFunctionInfo::live_iterator liveiter = funcinfo.live_begin(safepoint); liveiter != funcinfo.live_end(safepoint); ++liveiter)
 		{
-			Metadata::EpochTypeID type = static_cast<Metadata::EpochTypeID>(dyn_cast<ConstantInt>(LI->Metadata->getOperand(0))->getValue().getLimitedValue());
+			Metadata::EpochTypeID type = static_cast<Metadata::EpochTypeID>(dyn_cast<ConstantInt>(liveiter->Metadata->getOperand(0))->getValue().getLimitedValue());
 			if(type == 0xffffffff)
 				continue;
 			
 			const char* liveptr;
-			if(static_cast<signed>(LI->StackOffset) <= 0)
-				liveptr = reinterpret_cast<const char*>(stackptr) + LI->StackOffset;
+			if(static_cast<signed>(liveiter->StackOffset) <= 0)
+				liveptr = reinterpret_cast<const char*>(stackptr) + liveiter->StackOffset;
 			else
-				liveptr = reinterpret_cast<const char*>(prevframeptr) + LI->StackOffset + sizeof(CallFrame);
+				liveptr = reinterpret_cast<const char*>(prevframeptr) + liveiter->StackOffset + sizeof(CallFrame);
 
 			CheckRoot(liveptr, type, livevalues);
 		}
@@ -362,24 +362,23 @@ namespace
 		//
 		// Locate safe points in the code and inject labels for each
 		//
-		virtual bool findCustomSafePoints(GCFunctionInfo& FI, MachineFunction& MF)
+		virtual bool findCustomSafePoints(GCFunctionInfo& funcinfo, MachineFunction& machinefunc)
 		{
-			if(!FI.getFunction().hasGC())
+			if(!funcinfo.getFunction().hasGC())
 				return false;
 
-			// TODO - naming conventions (check whole file to be safe)
-			for(MachineFunction::iterator BBI = MF.begin(), BBE = MF.end(); BBI != BBE; ++BBI)
+			for(MachineFunction::iterator basicblockiter = machinefunc.begin(); basicblockiter != machinefunc.end(); ++basicblockiter)
 			{
-				for(MachineBasicBlock::iterator MI = BBI->begin(), ME = BBI->end(); MI != ME; ++MI)
+				for(MachineBasicBlock::iterator instriter = basicblockiter->begin(); instriter != basicblockiter->end(); ++instriter)
 				{
-					if(MI->isCall())
-						VisitCallPoint(FI, MI, MF.getTarget().getInstrInfo());
-					else if(MI->isReturn())
-						VisitRet(FI, MI, MF.getTarget().getInstrInfo());
+					if(instriter->isCall())
+						VisitCallPoint(funcinfo, instriter, machinefunc.getTarget().getInstrInfo());
+					else if(instriter->isReturn())
+						VisitRet(funcinfo, instriter, machinefunc.getTarget().getInstrInfo());
 				}
 			}
 
-			FunctionList.push_back(&FI);
+			FunctionList.push_back(&funcinfo);
 
 			return true;
 		}

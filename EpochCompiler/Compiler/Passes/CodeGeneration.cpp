@@ -934,7 +934,7 @@ namespace
 							if(isconstructor[iter->first])
 							{
 								emitter.PushVariableValueNoCopy(scope->GetVariableNameHandle(i));
-								emitter.BindReference(0, 0);			// TODO - lame hack
+								emitter.BindReference(0, 0);			// TODO - this is kind of hacky: bind reference to the OUT parameter (not return value!)
 								emitter.AssignVariable();
 							}
 							else

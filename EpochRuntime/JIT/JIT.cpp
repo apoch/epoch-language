@@ -114,7 +114,7 @@ namespace JIT
 			std::map<Metadata::EpochTypeID, StructType*> SumTypeCache;
 
 			std::map<size_t, Value*> GlobalVariableMap;
-			std::map<size_t, Metadata::EpochTypeID> GlobalVariableTypes;
+			std::map<const Value*, Metadata::EpochTypeID> GlobalVariableTypes;
 			std::map<size_t, size_t> GlobalVariableOffsetToIndexMap;
 			std::map<StringHandle, size_t> GlobalVariableNameToIndexMap;
 
@@ -1015,19 +1015,11 @@ void NativeCodeGenerator::Generate()
 		ExecContext.GeneratedFunctionLLVMToMachineCodeMap[iter->second] = p;
 	}
 
-	for(std::map<size_t, Value*>::const_iterator iter = Data->GlobalVariableMap.begin(); iter != Data->GlobalVariableMap.end(); ++iter)
+	for(Module::const_global_iterator giter = Data->CurrentModule->global_begin(); giter != Data->CurrentModule->global_end(); ++giter)
 	{
-		for(Module::const_global_iterator giter = Data->CurrentModule->global_begin(); giter != Data->CurrentModule->global_end(); ++giter)
-		{
-			// TODO - this is a lame hack and might vomit if the memory space of the original global variable is reused
-			if(&(*giter) == iter->second)
-			{
-				GlobalVariable* global = cast<GlobalVariable>(iter->second);
-				EpochGC::RegisterGlobalVariable(ee->getPointerToGlobal(global), Data->GlobalVariableTypes[iter->first]);
-
-				break;
-			}
-		}
+		const GlobalVariable* global = dyn_cast<const GlobalVariable>((const GlobalValue*)giter);
+		if(global)
+			EpochGC::RegisterGlobalVariable(ee->getPointerToGlobal(global), Data->GlobalVariableTypes[global]);
 	}
 
 	ExecContext.JITExecutionEngine = ee;
@@ -1484,7 +1476,7 @@ void FunctionJITHelper::BeginEntity(size_t& offset)
 			}
 
 			Generator.Data->GlobalVariableMap[i] = new GlobalVariable(*Generator.Data->CurrentModule, type, false, GlobalValue::InternalLinkage, init, narrow(Generator.ExecContext.GetPooledString(scope.GetVariableNameHandle(i))));
-			Generator.Data->GlobalVariableTypes[i] = localtype;
+			Generator.Data->GlobalVariableTypes[Generator.Data->GlobalVariableMap[i]] = localtype;
 			Generator.Data->GlobalVariableOffsetToIndexMap[localoffsetbytes] = i;
 			Generator.Data->GlobalVariableNameToIndexMap[scope.GetVariableNameHandle(i)] = i;
 

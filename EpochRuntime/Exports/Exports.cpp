@@ -18,6 +18,8 @@
 #define NORETURN
 #endif
 
+#pragma warning(disable: 4702)			// unreachable code (we don't care)
+
 
 namespace
 {
