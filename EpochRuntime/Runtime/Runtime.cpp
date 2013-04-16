@@ -773,7 +773,7 @@ StructureHandle ExecutionContext::AllocateStructure(const StructureDefinition& d
 	return handle;
 }
 
-ActiveStructure& ExecutionContext::FindStructureMetadata(StructureHandle handle)
+EPOCHRUNTIME ActiveStructure& ExecutionContext::FindStructureMetadata(StructureHandle handle)
 {
 	boost::unordered_map<StructureHandle, ActiveStructure*>::iterator iter = ActiveStructures.find(handle);
 	if(iter == ActiveStructures.end())

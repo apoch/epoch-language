@@ -38,7 +38,7 @@ namespace
 	StringHandle NothingHandle = 0;
 
 
-	void ConstructorJIT(JIT::JITContext& context, bool)
+	bool ConstructorJIT(JIT::JITContext& context, bool)
 	{
 		llvm::Value* p2 = context.ValuesOnStack.top();
 		context.ValuesOnStack.pop();
@@ -52,9 +52,11 @@ namespace
 			throw FatalException("Invalid binding target");
 
 		reinterpret_cast<llvm::IRBuilder<>*>(context.Builder)->CreateStore(p2, context.VariableMap[context.NameToIndexMap[vartarget]], false);
+
+		return true;
 	}
 
-	void ConstructorBufferJIT(JIT::JITContext& context, bool)
+	bool ConstructorBufferJIT(JIT::JITContext& context, bool)
 	{
 		llvm::Value* p2 = context.ValuesOnStack.top();
 		context.ValuesOnStack.pop();
@@ -67,6 +69,8 @@ namespace
 		llvm::Value* bufferhandle = reinterpret_cast<llvm::IRBuilder<>*>(context.Builder)->CreateCall((*context.BuiltInFunctions)[JIT::JITFunc_Runtime_AllocBuffer], p2);
 
 		reinterpret_cast<llvm::IRBuilder<>*>(context.Builder)->CreateStore(bufferhandle, context.VariableMap[context.NameToIndexMap[vartarget]], false);
+
+		return true;
 	}
 
 }

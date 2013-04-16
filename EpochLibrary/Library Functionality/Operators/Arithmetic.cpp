@@ -59,26 +59,30 @@ namespace
 	StringHandle DecrementRealsHandle = 0;
 
 	
-	void IncrementIntegerJIT(JIT::JITContext& context, bool)
+	bool IncrementIntegerJIT(JIT::JITContext& context, bool)
 	{
 		llvm::Value* p1 = context.ValuesOnStack.top();
 		context.ValuesOnStack.pop();
 		llvm::Value* result = reinterpret_cast<llvm::IRBuilder<>*>(context.Builder)->CreateAdd(p1, llvm::ConstantInt::get(p1->getType(), 1));
 		context.ValuesOnStack.push(result);
+
+		return true;
 	}
 
-	void DecrementIntegerJIT(JIT::JITContext& context, bool)
+	bool DecrementIntegerJIT(JIT::JITContext& context, bool)
 	{
 		llvm::Value* p1 = context.ValuesOnStack.top();
 		context.ValuesOnStack.pop();
 		llvm::Value* result = reinterpret_cast<llvm::IRBuilder<>*>(context.Builder)->CreateSub(p1, llvm::ConstantInt::get(p1->getType(), 1));
 		context.ValuesOnStack.push(result);
+
+		return true;
 	}
 
 	//
 	// JIT helpers for integer arithmetic
 	//
-	void AddIntegersJIT(JIT::JITContext& context, bool)
+	bool AddIntegersJIT(JIT::JITContext& context, bool)
 	{
 		llvm::Value* p2 = context.ValuesOnStack.top();
 		context.ValuesOnStack.pop();
@@ -86,9 +90,11 @@ namespace
 		context.ValuesOnStack.pop();
 		llvm::Value* result = reinterpret_cast<llvm::IRBuilder<>*>(context.Builder)->CreateAdd(p1, p2);
 		context.ValuesOnStack.push(result);
+
+		return true;
 	}
 
-	void SubtractIntegersJIT(JIT::JITContext& context, bool)
+	bool SubtractIntegersJIT(JIT::JITContext& context, bool)
 	{
 		llvm::Value* p2 = context.ValuesOnStack.top();
 		context.ValuesOnStack.pop();
@@ -96,9 +102,11 @@ namespace
 		context.ValuesOnStack.pop();
 		llvm::Value* result = reinterpret_cast<llvm::IRBuilder<>*>(context.Builder)->CreateSub(p1, p2);
 		context.ValuesOnStack.push(result);
+
+		return true;
 	}
 
-	void MultiplyIntegersJIT(JIT::JITContext& context, bool)
+	bool MultiplyIntegersJIT(JIT::JITContext& context, bool)
 	{
 		llvm::Value* p2 = context.ValuesOnStack.top();
 		context.ValuesOnStack.pop();
@@ -106,9 +114,11 @@ namespace
 		context.ValuesOnStack.pop();
 		llvm::Value* result = reinterpret_cast<llvm::IRBuilder<>*>(context.Builder)->CreateMul(p1, p2);
 		context.ValuesOnStack.push(result);
+	
+		return true;
 	}
 
-	void DivideIntegersJIT(JIT::JITContext& context, bool)
+	bool DivideIntegersJIT(JIT::JITContext& context, bool)
 	{
 		llvm::Value* p2 = context.ValuesOnStack.top();
 		context.ValuesOnStack.pop();
@@ -116,12 +126,14 @@ namespace
 		context.ValuesOnStack.pop();
 		llvm::Value* result = reinterpret_cast<llvm::IRBuilder<>*>(context.Builder)->CreateSDiv(p1, p2);
 		context.ValuesOnStack.push(result);
+	
+		return true;
 	}
 
 	//
 	// JIT Helpers for real arithemtic
 	//
-	void AddRealsJIT(JIT::JITContext& context, bool)
+	bool AddRealsJIT(JIT::JITContext& context, bool)
 	{
 		llvm::Value* p2 = context.ValuesOnStack.top();
 		context.ValuesOnStack.pop();
@@ -129,9 +141,11 @@ namespace
 		context.ValuesOnStack.pop();
 		llvm::Value* result = reinterpret_cast<llvm::IRBuilder<>*>(context.Builder)->CreateFAdd(p1, p2);
 		context.ValuesOnStack.push(result);
+	
+		return true;
 	}
 
-	void SubtractRealsJIT(JIT::JITContext& context, bool)
+	bool SubtractRealsJIT(JIT::JITContext& context, bool)
 	{
 		llvm::Value* p2 = context.ValuesOnStack.top();
 		context.ValuesOnStack.pop();
@@ -139,9 +153,11 @@ namespace
 		context.ValuesOnStack.pop();
 		llvm::Value* result = reinterpret_cast<llvm::IRBuilder<>*>(context.Builder)->CreateFSub(p1, p2);
 		context.ValuesOnStack.push(result);
+	
+		return true;
 	}
 
-	void MultiplyRealsJIT(JIT::JITContext& context, bool)
+	bool MultiplyRealsJIT(JIT::JITContext& context, bool)
 	{
 		llvm::Value* p2 = context.ValuesOnStack.top();
 		context.ValuesOnStack.pop();
@@ -149,9 +165,11 @@ namespace
 		context.ValuesOnStack.pop();
 		llvm::Value* result = reinterpret_cast<llvm::IRBuilder<>*>(context.Builder)->CreateFMul(p1, p2);
 		context.ValuesOnStack.push(result);
+
+		return true;
 	}
 
-	void DivideRealsJIT(JIT::JITContext& context, bool)
+	bool DivideRealsJIT(JIT::JITContext& context, bool)
 	{
 		llvm::Value* p2 = context.ValuesOnStack.top();
 		context.ValuesOnStack.pop();
@@ -159,6 +177,8 @@ namespace
 		context.ValuesOnStack.pop();
 		llvm::Value* result = reinterpret_cast<llvm::IRBuilder<>*>(context.Builder)->CreateFDiv(p1, p2);
 		context.ValuesOnStack.push(result);
+
+		return true;
 	}
 
 }

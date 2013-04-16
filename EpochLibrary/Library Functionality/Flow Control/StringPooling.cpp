@@ -19,6 +19,8 @@ extern StringHandle ElseHandle;
 extern StringHandle WhileHandle;
 extern StringHandle DoHandle;
 
+extern StringHandle ReturnHandle;
+
 
 //
 // Register all the strings used by the flow control library
@@ -34,4 +36,6 @@ void FlowControl::PoolStrings(StringPoolManager& stringpool)
 
 	WhileHandle = stringpool.Pool(L"while");
 	DoHandle = stringpool.Pool(L"do");
+
+	ReturnHandle = stringpool.Pool(L"return");
 }

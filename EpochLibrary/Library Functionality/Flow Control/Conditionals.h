@@ -9,6 +9,7 @@
 
 
 // Dependencies
+#include "Metadata/FunctionSignature.h"
 #include "Libraries/Library.h"
 
 
@@ -19,6 +20,8 @@ namespace FlowControl
 
 	void RegisterConditionalEntitiesJIT(Bytecode::EntityTag& tagindex);
 	void RegisterConditionalJITTable(JIT::JITTable& table);
+
+	void RegisterLibraryFunctions(FunctionSignatureSet& signatureset);
 
 }
 

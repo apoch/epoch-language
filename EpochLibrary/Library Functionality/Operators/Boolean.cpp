@@ -28,12 +28,14 @@ namespace
 	//
 	// Compute the logical negation of an operand
 	//
-	void BooleanNotJIT(JIT::JITContext& context, bool)
+	bool BooleanNotJIT(JIT::JITContext& context, bool)
 	{
 		llvm::Value* v = context.ValuesOnStack.top();
 		context.ValuesOnStack.pop();
 		llvm::Value* notv = reinterpret_cast<llvm::IRBuilder<>*>(context.Builder)->CreateNot(v);
 		context.ValuesOnStack.push(notv);
+
+		return true;
 	}
 
 }

@@ -76,6 +76,7 @@ namespace JIT
 		llvm::Function* GetExternalFunction(StringHandle alias);
 
 		llvm::Value* MarshalArgument(llvm::Value* arg, Metadata::EpochTypeID type);
+		llvm::Value* MarshalArgumentReverse(llvm::Value* arg, Metadata::EpochTypeID type);
 		llvm::Value* MarshalReturn(llvm::Value* ret, Metadata::EpochTypeID type);
 		void MarshalReferencePostCall(llvm::Value* ret, llvm::Value* fixuptarget, Metadata::EpochTypeID type);
 		void MarshalCleanup(llvm::Value* ret, Metadata::EpochTypeID type);

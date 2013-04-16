@@ -70,6 +70,7 @@ extern "C" void STDCALL RegisterLibraryContents(FunctionSignatureSet& functionsi
 		PoolAllStrings(stringpool);
 
 		DebugLibrary::RegisterLibraryFunctions(functionsignatures);
+		FlowControl::RegisterLibraryFunctions(functionsignatures);
 		TypeConstructors::RegisterLibraryFunctions(functionsignatures);
 		TypeCasts::RegisterLibraryFunctions(functionsignatures);
 		ArithmeticLibrary::RegisterLibraryFunctions(functionsignatures);
@@ -110,6 +111,7 @@ extern "C" void STDCALL BindToRuntime(Runtime::ExecutionContext* context, String
 
 		ArithmeticLibrary::RegisterJITTable(jittable);
 		BooleanLibrary::RegisterJITTable(jittable);
+		CommandLineLibrary::RegisterJITTable(jittable);
 		ComparisonLibrary::RegisterJITTable(jittable);
 		DebugLibrary::RegisterJITTable(jittable);
 		FlowControl::RegisterConditionalJITTable(jittable);

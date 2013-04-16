@@ -20,7 +20,7 @@ StringHandle DoHandle = 0;
 
 namespace
 {
-	void WhileJIT(JIT::JITContext& context, bool entry)
+	bool WhileJIT(JIT::JITContext& context, bool entry)
 	{
 		llvm::IRBuilder<>* builder = reinterpret_cast<llvm::IRBuilder<>*>(context.Builder);
 		if(entry)
@@ -35,6 +35,8 @@ namespace
 			context.EntityBodies.pop();
 			builder->CreateBr(context.EntityChecks.top());
 		}
+
+		return true;
 	}
 
 }

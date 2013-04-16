@@ -161,7 +161,7 @@ namespace Runtime
 
 		StructureHandle AllocateStructure(const StructureDefinition& description);
 		StructureHandle DeepCopy(StructureHandle handle);
-		ActiveStructure& FindStructureMetadata(StructureHandle handle);
+		EPOCHRUNTIME ActiveStructure& FindStructureMetadata(StructureHandle handle);
 
 		EPOCHRUNTIME const StructureDefinition& GetStructureDefinition(Metadata::EpochTypeID vartype) const;
 

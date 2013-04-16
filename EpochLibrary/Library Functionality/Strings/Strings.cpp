@@ -80,6 +80,7 @@ void StringFunctionLibrary::RegisterJITTable(JIT::JITTable& table)
 {
 	AddToMapNoDupe(table.LibraryExports, std::make_pair(SubstringWithLengthHandle, "EpochLib_SubstrLen"));
 	AddToMapNoDupe(table.LibraryExports, std::make_pair(SubstringNoLengthHandle, "EpochLib_SubstrNoLen"));
+	AddToMapNoDupe(table.LibraryExports, std::make_pair(UnescapeHandle, "EpochLib_Unescape"));
 }
 
 
@@ -95,5 +96,37 @@ extern "C" StringHandle EpochLib_SubstrNoLen(unsigned start, StringHandle strhan
 {
 	std::wstring slice = GlobalExecutionContext->GetPooledString(strhandle).substr(start);
 	return GlobalExecutionContext->PoolString(slice);
+}
+
+extern "C" StringHandle EpochLib_Unescape(StringHandle strhandle)
+{
+	const std::wstring& original = GlobalExecutionContext->GetPooledString(strhandle);
+
+	std::wstring result;
+	result.reserve(original.length() + 1);
+
+	for(size_t i = 0; i < original.length(); ++i)
+	{
+		if(original[i] == L'\\')
+		{
+			++i;
+			switch(original[i])
+			{
+			case L'0':              result += L'\0';                break;
+			case L'r':              result += L'\r';                break;
+			case L'n':              result += L'\n';                break;
+			case L't':              result += L'\t';                break;
+			case L'\\':             result += L'\\';                break;
+			default:                result += L'?';                 break;
+			}
+		}
+		else
+			result += original[i];
+	}
+
+	StringHandle handle = GlobalExecutionContext->PoolString(result);
+	GlobalExecutionContext->TickStringGarbageCollector();
+
+	return handle;
 }
 

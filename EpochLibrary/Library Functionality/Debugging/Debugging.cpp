@@ -41,7 +41,7 @@ namespace
 
 
 	// TODO - lame hack; replace with real array support
-	void PlotPixelJIT(JIT::JITContext& context, bool)
+	bool PlotPixelJIT(JIT::JITContext& context, bool)
 	{
 		llvm::Value* color = context.ValuesOnStack.top();
 		context.ValuesOnStack.pop();
@@ -66,20 +66,25 @@ namespace
 
 		llvm::Value* gep = reinterpret_cast<llvm::IRBuilder<>*>(context.Builder)->CreateGEP(castbufferptr, offset);
 		reinterpret_cast<llvm::IRBuilder<>*>(context.Builder)->CreateStore(color, gep);
+
+		return true;
 	}
 
 	// TODO - move this to a better home
-	void SqrtJIT(JIT::JITContext& context, bool)
+	bool SqrtJIT(JIT::JITContext& context, bool)
 	{
 		llvm::Value* v = context.ValuesOnStack.top();
 		context.ValuesOnStack.pop();
 		llvm::Value* r = reinterpret_cast<llvm::IRBuilder<>*>(context.Builder)->CreateCall((*context.BuiltInFunctions)[JIT::JITFunc_Intrinsic_Sqrt], v);
 		context.ValuesOnStack.push(r);
+
+		return true;
 	}
 
-	void BreakpointJIT(JIT::JITContext& context, bool)
+	bool BreakpointJIT(JIT::JITContext& context, bool)
 	{
 		reinterpret_cast<llvm::IRBuilder<>*>(context.Builder)->CreateCall((*context.BuiltInFunctions)[JIT::JITFunc_Runtime_Break]);
+		return true;
 	}
 }
 

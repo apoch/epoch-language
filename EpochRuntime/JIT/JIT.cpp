@@ -205,7 +205,6 @@ namespace JIT
 
 			JITContext LibJITContext;
 
-			BasicBlock* InnerExitBlock;
 			BasicBlock* NativeMatchBlock;
 			BasicBlock* PatternMatchBlock;
 
@@ -217,6 +216,7 @@ namespace JIT
 			unsigned NumReturns;
 
 			unsigned AllocCount;
+			unsigned ChainDepth;
 
 			Metadata::EpochTypeID HackStructType;		// TODO - clean this up
 
@@ -241,16 +241,23 @@ namespace JIT
 			NothingType = Type::getInt32Ty(Context);
 
 			// Set up various interop functions
+			if(!CurrentModule->getFunction("Epoch_Break"))
 			{
 				FunctionType* ftype = FunctionType::get(Type::getVoidTy(Context), false);
 				BuiltInFunctions[JITFunc_Runtime_Break] = Function::Create(ftype, Function::ExternalLinkage, "Epoch_Break", CurrentModule);
 			}
+			else
+				BuiltInFunctions[JITFunc_Runtime_Break] = CurrentModule->getFunction("Epoch_Break");
 
+			if(!CurrentModule->getFunction("Epoch_Halt"))
 			{
 				FunctionType* ftype = FunctionType::get(Type::getVoidTy(Context), false);
 				BuiltInFunctions[JITFunc_Runtime_Halt] = Function::Create(ftype, Function::ExternalLinkage, "Epoch_Halt", CurrentModule);
 			}
+			else
+				BuiltInFunctions[JITFunc_Runtime_Halt] = CurrentModule->getFunction("Epoch_Halt");
 
+			if(!CurrentModule->getFunction("Epoch_AllocStruct"))
 			{
 				std::vector<Type*> args;
 				args.push_back(TypeIDType);
@@ -258,7 +265,11 @@ namespace JIT
 
 				BuiltInFunctions[JITFunc_Runtime_AllocStruct] = Function::Create(ftype, Function::ExternalLinkage, "Epoch_AllocStruct", CurrentModule);
 			}
+			else
+				BuiltInFunctions[JITFunc_Runtime_AllocStruct] = CurrentModule->getFunction("Epoch_AllocStruct");
 
+
+			if(!CurrentModule->getFunction("Epoch_CopyStruct"))
 			{
 				std::vector<Type*> args;
 				args.push_back(StructureHandleType);
@@ -266,7 +277,10 @@ namespace JIT
 
 				BuiltInFunctions[JITFunc_Runtime_CopyStruct] = Function::Create(ftype, Function::ExternalLinkage, "Epoch_CopyStruct", CurrentModule);
 			}
+			else
+				BuiltInFunctions[JITFunc_Runtime_CopyStruct] = CurrentModule->getFunction("Epoch_CopyStruct");
 
+			if(!CurrentModule->getFunction("Epoch_GetBuffer"))
 			{
 				std::vector<Type*> args;
 				args.push_back(BufferHandleType);
@@ -274,7 +288,11 @@ namespace JIT
 
 				BuiltInFunctions[JITFunc_Runtime_GetBuffer] = Function::Create(ftype, Function::ExternalLinkage, "Epoch_GetBuffer", CurrentModule);
 			}
+			else
+				BuiltInFunctions[JITFunc_Runtime_GetBuffer] = CurrentModule->getFunction("Epoch_GetBuffer");
 
+
+			if(!CurrentModule->getFunction("Epoch_GetBufferByPtr"))
 			{
 				std::vector<Type*> args;
 				args.push_back(Type::getInt8PtrTy(Context));
@@ -282,7 +300,10 @@ namespace JIT
 
 				BuiltInFunctions[JITFunc_Runtime_PtrToBufferHandle] = Function::Create(ftype, Function::ExternalLinkage, "Epoch_GetBufferByPtr", CurrentModule);
 			}
+			else
+				BuiltInFunctions[JITFunc_Runtime_PtrToBufferHandle] = CurrentModule->getFunction("Epoch_GetBufferByPtr");
 
+			if(!CurrentModule->getFunction("Epoch_GetString"))
 			{
 				std::vector<Type*> args;
 				args.push_back(Type::getInt32Ty(Context));
@@ -290,7 +311,21 @@ namespace JIT
 
 				BuiltInFunctions[JITFunc_Runtime_GetString] = Function::Create(ftype, Function::ExternalLinkage, "Epoch_GetString", CurrentModule);
 			}
+			else
+				BuiltInFunctions[JITFunc_Runtime_GetString] = CurrentModule->getFunction("Epoch_GetString");
 
+			if(!CurrentModule->getFunction("Epoch_PoolString"))
+			{
+				std::vector<Type*> args;
+				args.push_back(Type::getInt8PtrTy(Context));
+				FunctionType* ftype = FunctionType::get(Type::getInt32Ty(Context), args, false);
+
+				BuiltInFunctions[JITFunc_Runtime_PoolString] = Function::Create(ftype, Function::ExternalLinkage, "Epoch_PoolString", CurrentModule);
+			}
+			else
+				BuiltInFunctions[JITFunc_Runtime_PoolString] = CurrentModule->getFunction("Epoch_PoolString");
+
+			if(!CurrentModule->getFunction("Epoch_AllocBuffer"))
 			{
 				std::vector<Type*> args;
 				args.push_back(Type::getInt32Ty(Context));
@@ -298,7 +333,10 @@ namespace JIT
 
 				BuiltInFunctions[JITFunc_Runtime_AllocBuffer] = Function::Create(ftype, Function::ExternalLinkage, "Epoch_AllocBuffer", CurrentModule);
 			}
+			else
+				BuiltInFunctions[JITFunc_Runtime_AllocBuffer] = CurrentModule->getFunction("Epoch_AllocBuffer");
 
+			if(!CurrentModule->getFunction("Epoch_CopyBuffer"))
 			{
 				std::vector<Type*> args;
 				args.push_back(Type::getInt32Ty(Context));
@@ -306,14 +344,20 @@ namespace JIT
 
 				BuiltInFunctions[JITFunc_Runtime_CopyBuffer] = Function::Create(ftype, Function::ExternalLinkage, "Epoch_CopyBuffer", CurrentModule);
 			}
+			else
+				BuiltInFunctions[JITFunc_Runtime_CopyBuffer] = CurrentModule->getFunction("Epoch_CopyBuffer");
 
+			if(!CurrentModule->getFunction("TriggerGarbageCollection"))
 			{
 				std::vector<Type*> args;
 				FunctionType* ftype = FunctionType::get(Type::getVoidTy(Context), args, false);
 
 				BuiltInFunctions[JITFunc_Runtime_TriggerGC] = Function::Create(ftype, Function::ExternalLinkage, "TriggerGarbageCollection", CurrentModule);
 			}
+			else
+				BuiltInFunctions[JITFunc_Runtime_TriggerGC] = CurrentModule->getFunction("TriggerGarbageCollection");
 
+			if(!CurrentModule->getFunction("MarshalConvertStructure"))
 			{
 				std::vector<Type*> args;
 				args.push_back(Type::getInt8PtrTy(Context));
@@ -321,7 +365,10 @@ namespace JIT
 
 				BuiltInFunctions[JITFunc_Marshal_ConvertStructure] = Function::Create(ftype, Function::ExternalLinkage, "MarshalConvertStructure", CurrentModule);
 			}
+			else
+				BuiltInFunctions[JITFunc_Marshal_ConvertStructure] = CurrentModule->getFunction("MarshalConvertStructure");
 
+			if(!CurrentModule->getFunction("MarshalFixupStructure"))
 			{
 				std::vector<Type*> args;
 				args.push_back(Type::getInt8PtrTy(Context));
@@ -330,7 +377,10 @@ namespace JIT
 
 				BuiltInFunctions[JITFunc_Marshal_FixupStructure] = Function::Create(ftype, Function::ExternalLinkage, "MarshalFixupStructure", CurrentModule);
 			}
+			else
+				BuiltInFunctions[JITFunc_Marshal_FixupStructure] = CurrentModule->getFunction("MarshalFixupStructure");
 
+			if(!CurrentModule->getFunction("MarshalCleanup"))
 			{
 				std::vector<Type*> args;
 				args.push_back(Type::getInt8PtrTy(Context));
@@ -338,15 +388,21 @@ namespace JIT
 
 				BuiltInFunctions[JITFunc_Marshal_Cleanup] = Function::Create(ftype, Function::ExternalLinkage, "MarshalCleanup", CurrentModule);
 			}
+			else
+				BuiltInFunctions[JITFunc_Marshal_Cleanup] = CurrentModule->getFunction("MarshalCleanup");
 
 			// Set up intrinsics
+			if(!CurrentModule->getFunction("llvm.sqrt.f32"))
 			{
 				std::vector<Type*> args;
 				args.push_back(Type::getFloatTy(Context));
 				FunctionType* ftype = FunctionType::get(Type::getFloatTy(Context), args, false);
 				BuiltInFunctions[JITFunc_Intrinsic_Sqrt] = Function::Create(ftype, Function::ExternalLinkage, "llvm.sqrt.f32", CurrentModule);
 			}
+			else
+				BuiltInFunctions[JITFunc_Intrinsic_Sqrt] = CurrentModule->getFunction("llvm.sqrt.f32");
 
+			if(!CurrentModule->getFunction("llvm.gcroot"))
 			{
 				std::vector<Type*> args;
 				args.push_back(Type::getInt8PtrTy(Context)->getPointerTo());
@@ -354,19 +410,28 @@ namespace JIT
 				FunctionType* ftype = FunctionType::get(Type::getVoidTy(Context), args, false);
 				BuiltInFunctions[JITFunc_Intrinsic_GCRoot] = Function::Create(ftype, Function::ExternalLinkage, "llvm.gcroot", CurrentModule);
 			}
+			else
+				BuiltInFunctions[JITFunc_Intrinsic_GCRoot] = CurrentModule->getFunction("llvm.gcroot");
 
+			if(!CurrentModule->getFunction("llvm.va_start"))
 			{
 				std::vector<Type*> args;
 				args.push_back(Type::getInt8PtrTy(Context));
 				FunctionType* ftype = FunctionType::get(Type::getVoidTy(Context), args, false);
 				BuiltInFunctions[JITFunc_Intrinsic_VAStart] = Function::Create(ftype, Function::ExternalLinkage, "llvm.va_start", CurrentModule);
 			}
+			else
+				BuiltInFunctions[JITFunc_Intrinsic_VAStart] = CurrentModule->getFunction("llvm.va_start");
+
+			if(!CurrentModule->getFunction("llvm.va_end"))
 			{
 				std::vector<Type*> args;
 				args.push_back(Type::getInt8PtrTy(Context));
 				FunctionType* ftype = FunctionType::get(Type::getVoidTy(Context), args, false);
 				BuiltInFunctions[JITFunc_Intrinsic_VAEnd] = Function::Create(ftype, Function::ExternalLinkage, "llvm.va_end", CurrentModule);
 			}
+			else
+				BuiltInFunctions[JITFunc_Intrinsic_VAEnd] = CurrentModule->getFunction("llvm.va_end");
 		}
 
 	}
@@ -1140,12 +1205,14 @@ void FunctionJITHelper::DoFunction(size_t beginoffset, size_t endoffset, StringH
 
 	HackStructType = 0;
 
+	ChainDepth = 0;
+
 	BeginOffset = beginoffset;
 	EndOffset = endoffset;
 
 
 	// Initialize block pointers that are lazily populated
-	InnerExitBlock = NULL;
+	LibJITContext.InnerExitBlock = NULL;
 	NativeMatchBlock = NULL;
 	PatternMatchBlock = NULL;
 
@@ -1166,7 +1233,7 @@ void FunctionJITHelper::DoFunction(size_t beginoffset, size_t endoffset, StringH
 	
 	if(LibJITContext.InnerFunction)
 	{
-		Builder.SetInsertPoint(InnerExitBlock);
+		Builder.SetInsertPoint(LibJITContext.InnerExitBlock);
 
 		if(LibJITContext.VarArgList)
 			Builder.CreateCall(Generator.Data->BuiltInFunctions[JITFunc_Intrinsic_VAEnd], Builder.CreatePointerCast(LibJITContext.VarArgList, Type::getInt8PtrTy(Context)));
@@ -1226,7 +1293,7 @@ void FunctionJITHelper::DoGlobalInit(size_t beginoffset, StringHandle alias)
 	HackStructType = 0;
 
 	// Initialize block pointers that are lazily populated
-	InnerExitBlock = NULL;
+	LibJITContext.InnerExitBlock = NULL;
 	NativeMatchBlock = NULL;
 	PatternMatchBlock = NULL;
 
@@ -1250,8 +1317,8 @@ void FunctionJITHelper::DoGlobalInit(size_t beginoffset, StringHandle alias)
 	
 	if(LibJITContext.InnerFunction)
 	{
-		Builder.CreateBr(InnerExitBlock);
-		Builder.SetInsertPoint(InnerExitBlock);
+		Builder.CreateBr(LibJITContext.InnerExitBlock);
+		Builder.SetInsertPoint(LibJITContext.InnerExitBlock);
 		Builder.CreateRetVoid();
 
 		Generator.Data->GlobalInit = LibJITContext.InnerFunction;
@@ -1353,7 +1420,7 @@ void FunctionJITHelper::BeginEntity(size_t& offset)
 		BasicBlock* innerentryblock = BasicBlock::Create(Context, "innerentry", LibJITContext.InnerFunction);
 		Builder.SetInsertPoint(innerentryblock);
 
-		InnerExitBlock = BasicBlock::Create(Context, "innerexit", LibJITContext.InnerFunction);
+		LibJITContext.InnerExitBlock = BasicBlock::Create(Context, "innerexit", LibJITContext.InnerFunction);
 
 		if(NumReturns)
 			LibJITContext.InnerRetVal = Builder.CreateAlloca(rettype);
@@ -1444,7 +1511,7 @@ void FunctionJITHelper::BeginEntity(size_t& offset)
 		BasicBlock* innerentryblock = BasicBlock::Create(Context, "innerentry", LibJITContext.InnerFunction);
 		Builder.SetInsertPoint(innerentryblock);
 
-		InnerExitBlock = BasicBlock::Create(Context, "innerexit", LibJITContext.InnerFunction);
+		LibJITContext.InnerExitBlock = BasicBlock::Create(Context, "innerexit", LibJITContext.InnerFunction);
 
 		size_t localoffsetbytes = 0;
 		for(size_t i = 0; i < scope.GetVariableCount(); ++i)
@@ -1457,6 +1524,10 @@ void FunctionJITHelper::BeginEntity(size_t& offset)
 			switch(localtype)
 			{
 			case Metadata::EpochType_Integer:
+				init = ConstantInt::get(Type::getInt32Ty(Context), 0); 
+				break;
+
+			case Metadata::EpochType_String:
 				init = ConstantInt::get(Type::getInt32Ty(Context), 0); 
 				break;
 
@@ -1521,9 +1592,10 @@ void FunctionJITHelper::EndEntity(size_t&)
 //
 void FunctionJITHelper::BeginChain(size_t&)
 {
-	LibJITContext.EntityChecks.push(BasicBlock::Create(Context, "", LibJITContext.InnerFunction));
-	LibJITContext.EntityChains.push(BasicBlock::Create(Context, "", LibJITContext.InnerFunction));
-	LibJITContext.EntityChainExits.push(BasicBlock::Create(Context, "", LibJITContext.InnerFunction));
+	++ChainDepth;
+	LibJITContext.EntityChecks.push(BasicBlock::Create(Context, "entitycheck", LibJITContext.InnerFunction));
+	LibJITContext.EntityChains.push(BasicBlock::Create(Context, "entitychain", LibJITContext.InnerFunction));
+	LibJITContext.EntityChainExits.push(BasicBlock::Create(Context, "entitychainexit", LibJITContext.InnerFunction));
 	Builder.CreateBr(LibJITContext.EntityChecks.top());
 	Builder.SetInsertPoint(LibJITContext.EntityChecks.top());
 }
@@ -1533,10 +1605,24 @@ void FunctionJITHelper::BeginChain(size_t&)
 //
 void FunctionJITHelper::EndChain(size_t&)
 {
+	--ChainDepth;
+
 	if(LibJITContext.EntityChains.top()->empty())
 	{
 		Builder.SetInsertPoint(LibJITContext.EntityChains.top());
 		Builder.CreateBr(LibJITContext.EntityChainExits.top());
+	}
+
+	for(std::vector<std::pair<llvm::BasicBlock*, llvm::BasicBlock*> >::const_reverse_iterator riter = LibJITContext.CheckOrphanBlocks.rbegin(); riter != LibJITContext.CheckOrphanBlocks.rend(); ++riter)
+	{
+		if(riter->second != LibJITContext.EntityChainExits.top())
+			break;
+
+		if(riter->first->empty())
+		{
+			Builder.SetInsertPoint(riter->first);
+			Builder.CreateBr(riter->second);
+		}
 	}
 
 	LibJITContext.EntityChecks.pop();
@@ -1927,7 +2013,7 @@ void FunctionJITHelper::SetRetValue(size_t& offset)
 //
 void FunctionJITHelper::Return(size_t&)
 {
-	Builder.CreateBr(InnerExitBlock);
+	Builder.CreateBr(LibJITContext.InnerExitBlock);
 }
 
 //
@@ -2115,38 +2201,37 @@ void FunctionJITHelper::Invoke(size_t& offset)
 {
 	StringHandle target = Fetch<StringHandle>(Bytecode, offset);
 	std::map<StringHandle, JIT::JITHelper>::const_iterator iter = Generator.ExecContext.JITHelpers.InvokeHelpers.find(target);
-	if(iter == Generator.ExecContext.JITHelpers.InvokeHelpers.end())
+	if(iter != Generator.ExecContext.JITHelpers.InvokeHelpers.end())
 	{
-		std::map<StringHandle, const char*>::const_iterator libiter = Generator.ExecContext.JITHelpers.LibraryExports.find(target);
-		if(libiter == Generator.ExecContext.JITHelpers.LibraryExports.end())
-			throw FatalException("Cannot invoke this function, no native code support!");
-
-		FunctionType* ftype = Generator.GetLLVMFunctionTypeFromSignature(target);
-		Function* func = Generator.LibraryFunctionCache[libiter->second];
-
-		if(!func)
-			func = Generator.LibraryFunctionCache[libiter->second] = Function::Create(ftype, Function::ExternalLinkage, libiter->second, Generator.Data->CurrentModule);
-
-		const FunctionSignature& sig = Generator.ExecContext.LibraryFunctionSignatures.find(target)->second;
-
-		std::vector<Value*> args;
-		for(size_t i = sig.GetNumParameters(); i-- > 0; )
-		{
-			if(!sig.GetParameter(i).HasPayload)
-				args.push_back(LibJITContext.ValuesOnStack.top());
-
-			LibJITContext.ValuesOnStack.pop();
-		}
-
-		Value* v = Builder.CreateCall(func, args);
-
-		if(func->getReturnType() != Type::getVoidTy(Generator.Data->Context))
-			LibJITContext.ValuesOnStack.push(v);
-
-		return;
+		if(iter->second(LibJITContext, true))
+			return;
 	}
 
-	iter->second(LibJITContext, true);
+	std::map<StringHandle, const char*>::const_iterator libiter = Generator.ExecContext.JITHelpers.LibraryExports.find(target);
+	if(libiter == Generator.ExecContext.JITHelpers.LibraryExports.end())
+		throw FatalException("Cannot invoke this function, no native code support!");
+
+	FunctionType* ftype = Generator.GetLLVMFunctionTypeFromSignature(target);
+	Function* func = Generator.LibraryFunctionCache[libiter->second];
+
+	if(!func)
+		func = Generator.LibraryFunctionCache[libiter->second] = Function::Create(ftype, Function::ExternalLinkage, libiter->second, Generator.Data->CurrentModule);
+
+	const FunctionSignature& sig = Generator.ExecContext.LibraryFunctionSignatures.find(target)->second;
+
+	std::vector<Value*> args;
+	for(size_t i = sig.GetNumParameters(); i-- > 0; )
+	{
+		if(!sig.GetParameter(i).HasPayload)
+			args.push_back(LibJITContext.ValuesOnStack.top());
+
+		LibJITContext.ValuesOnStack.pop();
+	}
+
+	Value* v = Builder.CreateCall(func, args);
+
+	if(func->getReturnType() != Type::getVoidTy(Generator.Data->Context))
+		LibJITContext.ValuesOnStack.push(v);
 }
 
 //
@@ -2689,6 +2774,22 @@ Value* NativeCodeGenerator::MarshalArgument(Value* arg, Metadata::EpochTypeID ty
 	throw NotImplementedException("Cannot marshal parameter of this type to an external function");
 }
 
+Value* NativeCodeGenerator::MarshalArgumentReverse(Value* arg, Metadata::EpochTypeID type)
+{
+	switch(type)
+	{
+	case Metadata::EpochType_Integer:
+	case Metadata::EpochType_Integer16:
+	case Metadata::EpochType_Real:
+		return arg;
+
+	case Metadata::EpochType_String:
+		return Builder.CreateCall(Data->BuiltInFunctions[JITFunc_Runtime_PoolString], arg);
+	}
+
+	throw NotImplementedException("Cannot marshal parameter of this type to a callback function");
+}
+
 Value* NativeCodeGenerator::MarshalReturn(Value* ret, Metadata::EpochTypeID type)
 {
 	switch(type)
@@ -2767,7 +2868,6 @@ Value* NativeCodeGenerator::GetCallbackWrapper(Value* funcptr)
 	PointerType* casttype = dyn_cast<PointerType>(ptrtype);
 	FunctionType* ftype = dyn_cast<FunctionType>(casttype->getElementType());
 
-	// TODO - marshal in and out of callbacks in the wrapper?
 	std::vector<Type*> argtypes;
 	for(size_t i = 0; i < ftype->getNumParams(); ++i)
 		argtypes.push_back(ftype->getParamType(i));
@@ -2800,11 +2900,15 @@ void* NativeCodeGenerator::GenerateCallbackWrapper(void* targetfunc)
 
 	std::vector<Value*> args;
 	Function::arg_iterator argiter = wrapfunc->arg_begin();
-	for(size_t i = 0; i < wrapfunc->getFunctionType()->getNumParams(); ++i)
+	const ScopeDescription& desc = ExecContext.GetScopeDescription(alias);
+	size_t paramindex = 0;
+	for(size_t i = 0; i < desc.GetParameterCount(); ++i)
 	{
-		// TODO - HACK - assumes parameters are the only vars we have, and return is not mixed in with them
+		while(desc.GetVariableOrigin(paramindex) != VARIABLE_ORIGIN_PARAMETER)
+			++paramindex;
+
 		Value* val = (Argument*)(argiter);
-		val = MarshalArgument(val, ExecContext.GetScopeDescription(alias).GetVariableTypeByIndex(i));
+		val = MarshalArgumentReverse(val, desc.GetVariableTypeByIndex(paramindex));
 
 		args.push_back(val);
 		++argiter;

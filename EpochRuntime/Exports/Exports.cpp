@@ -101,6 +101,11 @@ extern "C" const wchar_t* Epoch_GetString(StringHandle handle)
 	return 0;
 }
 
+extern "C" StringHandle Epoch_PoolString(const wchar_t* str)
+{
+	return Runtime::GetThreadContext()->PoolString(str);
+}
+
 extern "C" void* Epoch_AllocStruct(Metadata::EpochTypeID structtype)
 {
 	try

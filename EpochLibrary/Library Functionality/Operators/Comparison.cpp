@@ -45,7 +45,7 @@ namespace
 	StringHandle RealLessThanHandle = 0;
 
 
-	void IntegerEqualityJIT(JIT::JITContext& context, bool)
+	bool IntegerEqualityJIT(JIT::JITContext& context, bool)
 	{
 		llvm::Value* p2 = context.ValuesOnStack.top();
 		context.ValuesOnStack.pop();
@@ -53,9 +53,11 @@ namespace
 		context.ValuesOnStack.pop();
 		llvm::Value* flag = reinterpret_cast<llvm::IRBuilder<>*>(context.Builder)->CreateICmp(llvm::CmpInst::ICMP_EQ, p1, p2);
 		context.ValuesOnStack.push(flag);
+
+		return true;
 	}
 
-	void IntegerInequalityJIT(JIT::JITContext& context, bool)
+	bool IntegerInequalityJIT(JIT::JITContext& context, bool)
 	{
 		llvm::Value* p2 = context.ValuesOnStack.top();
 		context.ValuesOnStack.pop();
@@ -63,9 +65,11 @@ namespace
 		context.ValuesOnStack.pop();
 		llvm::Value* flag = reinterpret_cast<llvm::IRBuilder<>*>(context.Builder)->CreateICmp(llvm::CmpInst::ICMP_NE, p1, p2);
 		context.ValuesOnStack.push(flag);
+
+		return true;
 	}
 
-	void IntegerGreaterThanJIT(JIT::JITContext& context, bool)
+	bool IntegerGreaterThanJIT(JIT::JITContext& context, bool)
 	{
 		llvm::Value* p2 = context.ValuesOnStack.top();
 		context.ValuesOnStack.pop();
@@ -73,9 +77,11 @@ namespace
 		context.ValuesOnStack.pop();
 		llvm::Value* flag = reinterpret_cast<llvm::IRBuilder<>*>(context.Builder)->CreateICmp(llvm::CmpInst::ICMP_SGT, p1, p2);
 		context.ValuesOnStack.push(flag);
+
+		return true;
 	}
 
-	void IntegerLessThanJIT(JIT::JITContext& context, bool)
+	bool IntegerLessThanJIT(JIT::JITContext& context, bool)
 	{
 		llvm::Value* p2 = context.ValuesOnStack.top();
 		context.ValuesOnStack.pop();
@@ -83,9 +89,11 @@ namespace
 		context.ValuesOnStack.pop();
 		llvm::Value* flag = reinterpret_cast<llvm::IRBuilder<>*>(context.Builder)->CreateICmp(llvm::CmpInst::ICMP_SLT, p1, p2);
 		context.ValuesOnStack.push(flag);
+
+		return true;
 	}
 
-	void RealEqualityJIT(JIT::JITContext& context, bool)
+	bool RealEqualityJIT(JIT::JITContext& context, bool)
 	{
 		llvm::Value* p2 = context.ValuesOnStack.top();
 		context.ValuesOnStack.pop();
@@ -93,9 +101,11 @@ namespace
 		context.ValuesOnStack.pop();
 		llvm::Value* flag = reinterpret_cast<llvm::IRBuilder<>*>(context.Builder)->CreateFCmp(llvm::CmpInst::FCMP_OEQ, p1, p2);
 		context.ValuesOnStack.push(flag);
+
+		return true;
 	}
 
-	void RealGreaterThanJIT(JIT::JITContext& context, bool)
+	bool RealGreaterThanJIT(JIT::JITContext& context, bool)
 	{
 		llvm::Value* p2 = context.ValuesOnStack.top();
 		context.ValuesOnStack.pop();
@@ -103,9 +113,11 @@ namespace
 		context.ValuesOnStack.pop();
 		llvm::Value* flag = reinterpret_cast<llvm::IRBuilder<>*>(context.Builder)->CreateFCmp(llvm::CmpInst::FCMP_OGT, p1, p2);
 		context.ValuesOnStack.push(flag);
+
+		return true;
 	}
 
-	void RealLessThanJIT(JIT::JITContext& context, bool)
+	bool RealLessThanJIT(JIT::JITContext& context, bool)
 	{
 		llvm::Value* p2 = context.ValuesOnStack.top();
 		context.ValuesOnStack.pop();
@@ -113,6 +125,8 @@ namespace
 		context.ValuesOnStack.pop();
 		llvm::Value* flag = reinterpret_cast<llvm::IRBuilder<>*>(context.Builder)->CreateFCmp(llvm::CmpInst::FCMP_OLT, p1, p2);
 		context.ValuesOnStack.push(flag);
+
+		return true;
 	}
 
 }

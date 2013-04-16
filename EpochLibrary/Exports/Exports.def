@@ -15,3 +15,11 @@ EXPORTS
 	EpochLib_SubstrNoLen		@12
 	EpochLib_StrNarrow			@13
 	EpochLib_CastRealToStr		@14
+	EpochLib_Unescape			@15
+	EpochLib_IsCmdLineSane		@16
+	EpochLib_GetCmdLineCount	@17
+	EpochLib_GetCmdLineToken	@18
+	EpochLib_CastBufferToStr	@19
+	EpochLib_MarshalStructure   @20
+	EpochLib_StrLen				@21
+

@@ -66,8 +66,8 @@ public:
 public:
 	struct ParseCallbackTable
 	{
-		typedef void (*ParseOKPtr)();
-		typedef void (*ParseStructurePtr)(const wchar_t* name);
+		typedef void (__stdcall *ParseOKPtr)();
+		typedef void (__stdcall *ParseStructurePtr)(const wchar_t* name);
 
 		ParseOKPtr ParseOK;
 		ParseStructurePtr ParseStructure;

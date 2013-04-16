@@ -41,6 +41,7 @@ namespace JIT
 		JITFunc_Runtime_GetString,
 		JITFunc_Runtime_AllocBuffer,
 		JITFunc_Runtime_CopyBuffer,
+		JITFunc_Runtime_PoolString,
 
 		JITFunc_Marshal_ConvertStructure,
 		JITFunc_Marshal_FixupStructure,
@@ -66,11 +67,13 @@ namespace JIT
 		std::stack<llvm::BasicBlock*> EntityBodies;
 		std::stack<llvm::BasicBlock*> EntityChains;
 		std::stack<llvm::BasicBlock*> EntityChainExits;
+		std::vector<std::pair<llvm::BasicBlock*, llvm::BasicBlock*> > CheckOrphanBlocks;
 
 		JIT::NativeCodeGenerator* Generator;
 
 		llvm::Function* InnerFunction;
 		llvm::Value* InnerRetVal;
+		llvm::BasicBlock* InnerExitBlock;
 
 		std::map<JITFunctionID, llvm::Function*>* BuiltInFunctions;
 
@@ -85,7 +88,7 @@ namespace JIT
 	};
 
 
-	typedef void (*JITHelper)(JITContext& context, bool entry);
+	typedef bool (*JITHelper)(JITContext& context, bool entry);
 
 	struct JITTable
 	{

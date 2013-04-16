@@ -43,7 +43,7 @@ namespace
 	StringHandle CastBufferToStringHandle = 0;
 
 
-	void CastRealToIntegerJIT(JIT::JITContext& context, bool)
+	bool CastRealToIntegerJIT(JIT::JITContext& context, bool)
 	{
 		llvm::Value* p = context.ValuesOnStack.top();
 		context.ValuesOnStack.pop();
@@ -54,9 +54,11 @@ namespace
 		llvm::LLVMContext& llvmcontext = *reinterpret_cast<llvm::LLVMContext*>(context.Context);
 		llvm::Value* castvalue = reinterpret_cast<llvm::IRBuilder<>*>(context.Builder)->CreateCast(llvm::Instruction::FPToSI, p, llvm::Type::getInt32Ty(llvmcontext));
 		context.ValuesOnStack.push(castvalue);
+
+		return true;
 	}
 
-	void CastIntegerToRealJIT(JIT::JITContext& context, bool)
+	bool CastIntegerToRealJIT(JIT::JITContext& context, bool)
 	{
 		llvm::Value* p = context.ValuesOnStack.top();
 		context.ValuesOnStack.pop();
@@ -67,6 +69,8 @@ namespace
 		llvm::LLVMContext& llvmcontext = *reinterpret_cast<llvm::LLVMContext*>(context.Context);
 		llvm::Value* castvalue = reinterpret_cast<llvm::IRBuilder<>*>(context.Builder)->CreateCast(llvm::Instruction::SIToFP, p, llvm::Type::getFloatTy(llvmcontext));
 		context.ValuesOnStack.push(castvalue);
+
+		return true;
 	}
 }
 
@@ -151,6 +155,7 @@ void TypeCasts::RegisterJITTable(JIT::JITTable& table)
 	AddToMapNoDupe(table.InvokeHelpers, std::make_pair(CastIntegerToRealHandle, &CastIntegerToRealJIT));
 
 	AddToMapNoDupe(table.LibraryExports, std::make_pair(CastRealToStringHandle, "EpochLib_CastRealToStr"));
+	AddToMapNoDupe(table.LibraryExports, std::make_pair(CastBufferToStringHandle, "EpochLib_CastBufferToStr"));
 }
 
 
@@ -179,5 +184,13 @@ extern "C" StringHandle EpochLib_CastRealToStr(float real)
 	convert << real;
 
 	return GlobalExecutionContext->PoolString(convert.str());
+}
+
+extern "C" StringHandle EpochLib_CastBufferToStr(BufferHandle buffer)
+{
+	std::wstring str(reinterpret_cast<wchar_t*>(GlobalExecutionContext->GetBuffer(buffer)), GlobalExecutionContext->GetBufferSize(buffer));
+	StringHandle result = GlobalExecutionContext->PoolString(str);
+	GlobalExecutionContext->TickStringGarbageCollector();
+	return result;
 }
 

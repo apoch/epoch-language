@@ -77,6 +77,7 @@ void StringLibrary::RegisterJITTable(JIT::JITTable& table)
 {
 	AddToMapNoDupe(table.LibraryExports, std::make_pair(NarrowStringHandle, "EpochLib_StrNarrow"));
 	AddToMapNoDupe(table.LibraryExports, std::make_pair(ConcatHandle, "EpochLib_StrConcat"));
+	AddToMapNoDupe(table.LibraryExports, std::make_pair(LengthHandle, "EpochLib_StrLen"));
 }
 
 
@@ -100,5 +101,11 @@ extern "C" BufferHandle EpochLib_StrNarrow(StringHandle str)
 	GlobalExecutionContext->TickBufferGarbageCollector();
 
 	return destbuffer;
+}
+
+extern "C" size_t EpochLib_StrLen(StringHandle str)
+{
+	const std::wstring& sourcestring = GlobalExecutionContext->GetPooledString(str);
+	return sourcestring.size();
 }
 

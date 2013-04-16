@@ -12,9 +12,10 @@ EXPORTS
 	Epoch_AllocBuffer			@9
 	Epoch_CopyBuffer			@10
 	Epoch_GetBufferByPtr		@11
+	Epoch_PoolString			@12
 	
-	MarshalConvertStructure		@12
-	MarshalFixupStructure		@13
-	MarshalCleanup				@14
+	MarshalConvertStructure		@13
+	MarshalFixupStructure		@14
+	MarshalCleanup				@15
 
-	TriggerGarbageCollection	@15
+	TriggerGarbageCollection	@16

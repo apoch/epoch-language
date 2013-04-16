@@ -56,9 +56,10 @@ namespace
 	}
 
 
-	void ExternalJIT(JIT::JITContext& context, bool)
+	bool ExternalJIT(JIT::JITContext& context, bool)
 	{
 		context.Generator->ExternalInvoke(context, context.FunctionAlias);
+		return true;
 	}
 
 }

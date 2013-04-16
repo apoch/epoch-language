@@ -24,5 +24,7 @@ namespace CommandLineLibrary
 
 	void RegisterLibraryFunctions(FunctionSignatureSet& signatureset);
 
+	void RegisterJITTable(JIT::JITTable& table);
+
 }
 
