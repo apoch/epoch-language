@@ -31,6 +31,8 @@
 
 #include "Library Functionality/Strings/Strings.h"
 
+#include "Runtime/Runtime.h"
+
 
 namespace
 {
@@ -84,7 +86,7 @@ extern "C" void STDCALL RegisterLibraryContents(FunctionSignatureSet& functionsi
 	}
 	catch(...)
 	{
-		::MessageBox(0, L"Fatal error while registering Epoch standard library", L"Epoch Initialization Exception", MB_ICONSTOP);
+		::MessageBox(0, L"Fatal error while registering Epoch standard library contents", L"Epoch Initialization Exception", MB_ICONSTOP);
 	}
 }
 
@@ -102,6 +104,10 @@ extern "C" void STDCALL BindToRuntime(Runtime::ExecutionContext* context, String
 
 		PoolAllStrings(stringpool);
 
+		Bytecode::EntityTag tagindex = Bytecode::EntityTags::CustomEntityBaseID;		// TODO - this might bite us later. Consider pulling from the context.
+		FlowControl::RegisterConditionalEntitiesJIT(tagindex);
+		FlowControl::RegisterLoopEntitiesJIT(tagindex);
+
 		ArithmeticLibrary::RegisterJITTable(jittable);
 		BooleanLibrary::RegisterJITTable(jittable);
 		ComparisonLibrary::RegisterJITTable(jittable);
@@ -117,7 +123,7 @@ extern "C" void STDCALL BindToRuntime(Runtime::ExecutionContext* context, String
 	}
 	catch(...)
 	{
-		::MessageBox(0, L"Fatal error while registering Epoch standard library", L"Epoch Initialization Exception", MB_ICONSTOP);
+		::MessageBox(0, L"Fatal error while registering Epoch standard library with runtime", L"Epoch Initialization Exception", MB_ICONSTOP);
 	}
 }
 
@@ -149,8 +155,8 @@ extern "C" void STDCALL BindToCompiler(CompilerInfoTable& info, StringPoolManage
 
 		StringLibrary::RegisterInfixOperators(*info.InfixOperators, *info.Precedences);
 
-		FlowControl::RegisterConditionalEntities(*info.Entities, *info.ChainedEntities, stringpool, tagindex);
-		FlowControl::RegisterLoopEntities(*info.Entities, *info.ChainedEntities, *info.PostfixEntities, *info.PostfixClosers, stringpool, tagindex);
+		FlowControl::RegisterConditionalEntities(*info.Entities, *info.ChainedEntities, tagindex);
+		FlowControl::RegisterLoopEntities(*info.Entities, *info.ChainedEntities, *info.PostfixEntities, *info.PostfixClosers, tagindex);
 
 		FunctionTags::RegisterExternalTagHelper(*info.FunctionTagHelpers);
 		FunctionTags::RegisterConstructorTagHelper(*info.FunctionTagHelpers);
@@ -159,7 +165,7 @@ extern "C" void STDCALL BindToCompiler(CompilerInfoTable& info, StringPoolManage
 	}
 	catch(...)
 	{
-		::MessageBox(0, L"Fatal error while registering Epoch standard library", L"Epoch Initialization Exception", MB_ICONSTOP);
+		::MessageBox(0, L"Fatal error while registering Epoch standard library with compiler", L"Epoch Initialization Exception", MB_ICONSTOP);
 	}
 }
 

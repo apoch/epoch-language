@@ -11,11 +11,11 @@
 
 #include "Runtime/Runtime.h"
 
-#include "Utility/StringPool.h"
 #include "Utility/NoDupeMap.h"
 
 
 StringHandle WhileHandle = 0;
+StringHandle DoHandle = 0;
 
 
 namespace
@@ -45,25 +45,32 @@ static std::map<StringHandle, Bytecode::EntityTag> EntityMap;
 //
 // Register loop flow control entities with the compiler/VM
 //
-void FlowControl::RegisterLoopEntities(EntityTable& entities, EntityTable&, EntityTable& postfixentities, EntityTable& postfixclosers, StringPoolManager& stringpool, Bytecode::EntityTag& tagindex)
+void FlowControl::RegisterLoopEntities(EntityTable& entities, EntityTable&, EntityTable& postfixentities, EntityTable& postfixclosers, Bytecode::EntityTag& tagindex)
 {
 	{
 		EntityDescription entity;
-		entity.StringName = stringpool.Pool(L"while");
+		entity.StringName = WhileHandle;
 		entity.Parameters.push_back(CompileTimeParameter(L"condition", Metadata::EpochType_Boolean));
 		EntityMap[entity.StringName] = ++tagindex;
 		AddToMapNoDupe(entities, std::make_pair(tagindex, entity));
 	}
 	{
 		EntityDescription entity;
-		entity.StringName = stringpool.Pool(L"do");
+		entity.StringName = DoHandle;
 		AddToMapNoDupe(postfixentities, std::make_pair(++tagindex, entity));
 
 		EntityDescription closer;
-		closer.StringName = stringpool.Pool(L"while");
+		closer.StringName = WhileHandle;
 		closer.Parameters.push_back(CompileTimeParameter(L"condition", Metadata::EpochType_Boolean));
 		AddToMapNoDupe(postfixclosers, std::make_pair(++tagindex, closer));
 	}
+}
+
+void FlowControl::RegisterLoopEntitiesJIT(Bytecode::EntityTag& tagindex)
+{
+	EntityMap[WhileHandle] = ++tagindex;
+	EntityMap[DoHandle] = ++tagindex;
+	++tagindex;		// Placeholder for do/while closer entity
 }
 
 void FlowControl::RegisterLoopsJITTable(JIT::JITTable& table)

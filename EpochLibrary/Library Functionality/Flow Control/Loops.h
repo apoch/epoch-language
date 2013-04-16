@@ -12,15 +12,12 @@
 #include "Libraries/Library.h"
 
 
-// Forward declarations
-class StringPoolManager;
-
-
 namespace FlowControl
 {
 
-	void RegisterLoopEntities(EntityTable& entities, EntityTable& chainedentities, EntityTable& postfixentities, EntityTable& postfixclosers, StringPoolManager& stringpool, Bytecode::EntityTag& tagindex);
+	void RegisterLoopEntities(EntityTable& entities, EntityTable& chainedentities, EntityTable& postfixentities, EntityTable& postfixclosers, Bytecode::EntityTag& tagindex);
 	
+	void RegisterLoopEntitiesJIT(Bytecode::EntityTag& tagindex);
 	void RegisterLoopsJITTable(JIT::JITTable& table);
 
 }

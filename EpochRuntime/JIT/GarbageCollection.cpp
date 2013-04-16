@@ -288,6 +288,9 @@ namespace
 			prevFramePtr = framePtr;
 			framePtr = framePtr->prevFrame;
 
+			if(!framePtr)
+				break;
+
 			bool found = false;
 			for(std::vector<GCFunctionInfo*>::iterator iter = FunctionList.begin(); iter != FunctionList.end(); ++iter)
 			{

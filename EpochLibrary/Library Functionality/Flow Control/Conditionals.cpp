@@ -11,7 +11,6 @@
 
 #include "Runtime/Runtime.h"
 
-#include "Utility/StringPool.h"
 #include "Utility/NoDupeMap.h"
 
 
@@ -85,28 +84,35 @@ static std::map<StringHandle, Bytecode::EntityTag> EntityMap;
 //
 // Register conditional flow control entities with the compiler/VM
 //
-void FlowControl::RegisterConditionalEntities(EntityTable& entities, EntityTable& chainedentities, StringPoolManager& stringpool, Bytecode::EntityTag& tagindex)
+void FlowControl::RegisterConditionalEntities(EntityTable& entities, EntityTable& chainedentities, Bytecode::EntityTag& tagindex)
 {
 	{
 		EntityDescription entity;
-		entity.StringName = stringpool.Pool(L"if");
+		entity.StringName = IfHandle;
 		entity.Parameters.push_back(CompileTimeParameter(L"condition", Metadata::EpochType_Boolean));
 		EntityMap[entity.StringName] = ++tagindex;
 		AddToMapNoDupe(entities, std::make_pair(tagindex, entity));
 	}
 	{
 		EntityDescription entity;
-		entity.StringName = stringpool.Pool(L"elseif");
+		entity.StringName = ElseIfHandle;
 		entity.Parameters.push_back(CompileTimeParameter(L"condition", Metadata::EpochType_Boolean));
 		EntityMap[entity.StringName] = ++tagindex;
 		AddToMapNoDupe(chainedentities, std::make_pair(tagindex, entity));
 	}
 	{
 		EntityDescription entity;
-		entity.StringName = stringpool.Pool(L"else");
+		entity.StringName = ElseHandle;
 		EntityMap[entity.StringName] = ++tagindex;
 		AddToMapNoDupe(chainedentities, std::make_pair(tagindex, entity));
 	}
+}
+
+void FlowControl::RegisterConditionalEntitiesJIT(Bytecode::EntityTag& tagindex)
+{
+	EntityMap[IfHandle] = ++tagindex;
+	EntityMap[ElseIfHandle] = ++tagindex;
+	EntityMap[ElseHandle] = ++tagindex;
 }
 
 void FlowControl::RegisterConditionalJITTable(JIT::JITTable& table)

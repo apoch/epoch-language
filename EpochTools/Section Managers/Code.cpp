@@ -48,9 +48,16 @@ void CodeGenerator::Emit(Linker& linker, LinkWriter& writer) const
 
 	writer.Pad(linker.GetSectionManager().GetSection(".text").Location);
 
-	writer.EmitByte(0x81);			// SUB ESP, 404
+	writer.EmitByte(0x55);			// PUSH EBP
+
+	writer.EmitByte(0x8b);			// MOV EBP, ESP
+	writer.EmitByte(0xec);
+
+	writer.EmitByte(0x81);			// SUB ESP, 0x404
 	writer.EmitByte(0xec);
 	writer.EmitDWORD(0x404);
+
+	writer.EmitByte(0x56);			// PUSH ESI
 
 	writer.EmitByte(0x68);			// PUSH "epochruntime.dll"
 	writer.EmitDWORD(linker.GetBaseAddress() + data.GetOffsetOfWideString(STRINGS_RUNTIMEDLLNAME, linker));
@@ -59,13 +66,16 @@ void CodeGenerator::Emit(Linker& linker, LinkWriter& writer) const
 	writer.EmitByte(0x15);
 	writer.EmitDWORD(thunk.GetThunkAddress("LoadLibraryW") + linker.GetBaseAddress());
 
-	writer.EmitByte(0x85);			// TEST EAX,EAX
-	writer.EmitByte(0xc0);
+	writer.EmitByte(0x33);			// XOR ESI, ESI
+	writer.EmitByte(0xf6);
 
-	writer.EmitByte(0x75);			// JNZ SHORT <skips failure to load message>
-	writer.EmitByte(0x18);
+	writer.EmitByte(0x3b);			// CMP EAX, ESI
+	writer.EmitByte(0xc6);
 
-	writer.EmitByte(0x6A);			// PUSH 10
+	writer.EmitByte(0x75);			// JNE <skip error message>
+	writer.EmitByte(0x1a);
+
+	writer.EmitByte(0x6a);			// PUSH 0x10
 	writer.EmitByte(0x10);
 
 	writer.EmitByte(0x68);			// PUSH <Epoch Subsystem>
@@ -74,16 +84,20 @@ void CodeGenerator::Emit(Linker& linker, LinkWriter& writer) const
 	writer.EmitByte(0x68);			// PUSH <Failed to load runtime...>
 	writer.EmitDWORD(linker.GetBaseAddress() + data.GetOffsetOfWideString(STRINGS_FAILEDRUNTIMEDLL, linker));
 
-	writer.EmitByte(0x50);			// PUSH EAX
+	writer.EmitByte(0x56);			// PUSH ESI
 
 	writer.EmitByte(0xff);			// CALL DWORD PTR DS:[<MessageBoxW>]
 	writer.EmitByte(0x15);
 	writer.EmitDWORD(thunk.GetThunkAddress("MessageBoxW") + linker.GetBaseAddress());
 
-	writer.EmitByte(0xe9);			// JMP <exit>
-	writer.EmitDWORD(0xef);
+	writer.EmitByte(0x33);			// XOR EAX, EAX
+	writer.EmitByte(0xc0);
 
-	writer.EmitByte(0x55);			// PUSH EBP
+	writer.EmitByte(0xe9);			// JMP <end of function>
+	writer.EmitByte(0x8b);
+	writer.EmitByte(0x00);
+	writer.EmitByte(0x00);
+	writer.EmitByte(0x00);
 
 	writer.EmitByte(0x68);			// PUSH <ExecuteBinaryBuffer>
 	writer.EmitDWORD(linker.GetBaseAddress() + data.GetOffsetOfNarrowString(STRINGS_EXECUTEBINBUFFER, linker));
@@ -94,16 +108,17 @@ void CodeGenerator::Emit(Linker& linker, LinkWriter& writer) const
 	writer.EmitByte(0x15);
 	writer.EmitDWORD(thunk.GetThunkAddress("GetProcAddress") + linker.GetBaseAddress());
 
-	writer.EmitByte(0x8b);			// MOV EBP, EAX
-	writer.EmitByte(0xe8);
+	writer.EmitByte(0x89);			// MOV <procaddr>, EAX
+	writer.EmitByte(0x45);
+	writer.EmitByte(0xfc);
+	
+	writer.EmitByte(0x3b);			// CMP EAX, ESI
+	writer.EmitByte(0xc6);
 
-	writer.EmitByte(0x85);			// TEST EBP, EBP
-	writer.EmitByte(0xed);
+	writer.EmitByte(0x75);			// JNE <skip error>
+	writer.EmitByte(0x0e);
 
-	writer.EmitByte(0x75);			// JNZ SHORT <skips failure to load message>
-	writer.EmitByte(0x18);
-
-	writer.EmitByte(0x6A);			// PUSH 10
+	writer.EmitByte(0x6A);			// PUSH 0x10
 	writer.EmitByte(0x10);
 
 	writer.EmitByte(0x68);			// PUSH <Epoch Subsystem>
@@ -112,57 +127,53 @@ void CodeGenerator::Emit(Linker& linker, LinkWriter& writer) const
 	writer.EmitByte(0x68);			// PUSH <One or more Epoch service functions...>
 	writer.EmitDWORD(linker.GetBaseAddress() + data.GetOffsetOfWideString(STRINGS_FAILEDFUNCTIONS, linker));
 
-	writer.EmitByte(0x50);			// PUSH EAX
-
-	writer.EmitByte(0xff);			// CALL DWORD PTR DS:[<MessageBoxW>]
-	writer.EmitByte(0x15);
-	writer.EmitDWORD(thunk.GetThunkAddress("MessageBoxW") + linker.GetBaseAddress());
-
-	writer.EmitByte(0xe9);			// JMP <exit>
-	writer.EmitDWORD(0xc6);
+	writer.EmitByte(0xeb);			// JMP <show error message>
+	writer.EmitByte(0xd1);
 
 	writer.EmitByte(0x53);			// PUSH EBX
-	writer.EmitByte(0x68);			// PUSH 1ff
+	
+	writer.EmitByte(0x68);			// PUSH 0x1ff
 	writer.EmitDWORD(0x1ff);
 
-	writer.EmitByte(0x8d);			// LEA EAX, DWORD PTR SS:[ESP+C]
-	writer.EmitByte(0x44);
-	writer.EmitByte(0x24);
-	writer.EmitByte(0x0c);
+	writer.EmitByte(0x8d);			// LEA EAX, <filebuffer>
+	writer.EmitByte(0x85);
+	writer.EmitByte(0xfc);
+	writer.EmitByte(0xfb);
+	writer.EmitByte(0xff);
+	writer.EmitByte(0xff);
 
 	writer.EmitByte(0x50);			// PUSH EAX
 
-	writer.EmitByte(0x6a);			// PUSH 0
-	writer.EmitByte(0x00);
+	writer.EmitByte(0x56);			// PUSH ESI
 
 	writer.EmitByte(0xff);			// CALL DWORD PTR DS:[<GetModuleFileNameW>]
 	writer.EmitByte(0x15);
 	writer.EmitDWORD(thunk.GetThunkAddress("GetModuleFileNameW") + linker.GetBaseAddress());
 
-	writer.EmitByte(0x6a);			// PUSH 0
-	writer.EmitByte(0x00);
-
-	writer.EmitByte(0x6a);			// PUSH 20
+	writer.EmitByte(0x56);			// PUSH ESI
+	
+	writer.EmitByte(0x6a);			// PUSH 0x20
 	writer.EmitByte(0x20);
 
-	writer.EmitByte(0x6a);			// PUSH 3
+	writer.EmitByte(0x6a);			// PUSH 0x3
 	writer.EmitByte(0x03);
 
-	writer.EmitByte(0x6a);			// PUSH 0
-	writer.EmitByte(0x00);
+	writer.EmitByte(0x56);			// PUSH ESI
 
-	writer.EmitByte(0x6a);			// PUSH 1
+	writer.EmitByte(0x6a);			// PUSH 0x1
 	writer.EmitByte(0x01);
 
-	writer.EmitByte(0x68);			// PUSH 80000000
+	writer.EmitByte(0x68);			// PUSH 0x80000000
 	writer.EmitDWORD(0x80000000);
 
-	writer.EmitByte(0x8d);			// LEA ECX, DWORD PTR SS:[ESP+20]
-	writer.EmitByte(0x4c);
-	writer.EmitByte(0x24);
-	writer.EmitByte(0x20);
+	writer.EmitByte(0x8d);			// LEA EAX, <filebuffer>
+	writer.EmitByte(0x85);
+	writer.EmitByte(0xfc);
+	writer.EmitByte(0xfb);
+	writer.EmitByte(0xff);
+	writer.EmitByte(0xff);
 
-	writer.EmitByte(0x51);			// PUSH ECX
+	writer.EmitByte(0x50);			// PUSH EAX
 
 	writer.EmitByte(0xff);			// CALL DWORD PTR DS:[<CreateFileW>]
 	writer.EmitByte(0x15);
@@ -175,8 +186,8 @@ void CodeGenerator::Emit(Linker& linker, LinkWriter& writer) const
 	writer.EmitByte(0xfb);
 	writer.EmitByte(0xff);
 
-	writer.EmitByte(0x75);			// JNZ SHORT <skip error msg>
-	writer.EmitByte(0x16);
+	writer.EmitByte(0x75);			// JNE <skip error msg>
+	writer.EmitByte(0x0e);
 
 	writer.EmitByte(0x6A);			// PUSH 10
 	writer.EmitByte(0x10);
@@ -187,32 +198,19 @@ void CodeGenerator::Emit(Linker& linker, LinkWriter& writer) const
 	writer.EmitByte(0x68);			// PUSH <Failed to open .EXE>
 	writer.EmitDWORD(linker.GetBaseAddress() + data.GetOffsetOfWideString(STRINGS_FAILEDEXE, linker));
 
-	writer.EmitByte(0x6a);			// PUSH 0
-	writer.EmitByte(0x00);
+	writer.EmitByte(0xeb);			// JMP <show error>
+	writer.EmitByte(0x1d);
 
-	writer.EmitByte(0xff);			// CALL DWORD PTR DS:[<MessageBoxW>]
-	writer.EmitByte(0x15);
-	writer.EmitDWORD(thunk.GetThunkAddress("MessageBoxW") + linker.GetBaseAddress());
+	writer.EmitByte(0x56);			// PUSH ESI
 
-	writer.EmitByte(0xeb);			// JMP SHORT <exit>
-	writer.EmitByte(0x7b);
+	writer.EmitByte(0x56);			// PUSH ESI
 
-	writer.EmitByte(0x57);			// PUSH EDI
+	writer.EmitByte(0x56);			// PUSH ESI
 
-	writer.EmitByte(0x6a);			// PUSH 0
-	writer.EmitByte(0x00);
-
-	writer.EmitByte(0x6a);			// PUSH 0
-	writer.EmitByte(0x00);
-
-	writer.EmitByte(0x6a);			// PUSH 0
-	writer.EmitByte(0x00);
-
-	writer.EmitByte(0x6a);			// PUSH 2
+	writer.EmitByte(0x6a);			// PUSH 0x2
 	writer.EmitByte(0x02);
 
-	writer.EmitByte(0x6a);			// PUSH 0
-	writer.EmitByte(0x00);
+	writer.EmitByte(0x56);			// PUSH ESI
 
 	writer.EmitByte(0x53);			// PUSH EBX
 
@@ -220,14 +218,11 @@ void CodeGenerator::Emit(Linker& linker, LinkWriter& writer) const
 	writer.EmitByte(0x15);
 	writer.EmitDWORD(thunk.GetThunkAddress("CreateFileMappingW") + linker.GetBaseAddress());
 
-	writer.EmitByte(0x8b);			// MOV EDI, EAX
-	writer.EmitByte(0xf8);
+	writer.EmitByte(0x3b);			// CMP EAX, ESI
+	writer.EmitByte(0xc6);
 
-	writer.EmitByte(0x85);			// TEST EDI, EDI
-	writer.EmitByte(0xff);
-
-	writer.EmitByte(0x75);			// JNZ SHORT <skip error msg>
-	writer.EmitByte(0x15);
+	writer.EmitByte(0x75);			// JNE <skip error>
+	writer.EmitByte(0x19);
 
 	writer.EmitByte(0x6A);			// PUSH 10
 	writer.EmitByte(0x10);
@@ -238,44 +233,48 @@ void CodeGenerator::Emit(Linker& linker, LinkWriter& writer) const
 	writer.EmitByte(0x68);			// PUSH <Failed to map file>
 	writer.EmitDWORD(linker.GetBaseAddress() + data.GetOffsetOfWideString(STRINGS_FAILMAP, linker));
 
-	writer.EmitByte(0x50);			// PUSH EAX
+	writer.EmitByte(0x56);			// PUSH ESI
 
 	writer.EmitByte(0xff);			// CALL DWORD PTR DS:[<MessageBoxW>]
 	writer.EmitByte(0x15);
 	writer.EmitDWORD(thunk.GetThunkAddress("MessageBoxW") + linker.GetBaseAddress());
 
-	writer.EmitByte(0xeb);			// JMP SHORT <exit>
-	writer.EmitByte(0x4d);
+	writer.EmitByte(0x33);			// XOR EAX, EAX
+	writer.EmitByte(0xc0);
+
+	writer.EmitByte(0x5b);			// POP EBX
+	
+	writer.EmitByte(0x5e);			// POP ESI
+	
+	writer.EmitByte(0xc9);			// LEAVE
+	
+	writer.EmitByte(0xc3);			// RET
+
+	writer.EmitByte(0x57);			// PUSH EDI
 
 	writer.EmitByte(0x56);			// PUSH ESI
 
+	writer.EmitByte(0x56);			// PUSH ESI
 
-	writer.EmitByte(0x6a);			// PUSH 0
-	writer.EmitByte(0x00);
+	writer.EmitByte(0x56);			// PUSH ESI
 
-	writer.EmitByte(0x6a);			// PUSH	0
-	writer.EmitByte(0x00);
+	writer.EmitByte(0x6a);			// PUSH 0x1
+	writer.EmitByte(0x01);
 
-	writer.EmitByte(0x6a);			// PUSH 0
-	writer.EmitByte(0x00);
-
-	writer.EmitByte(0x6a);			// PUSH (access rights)
-	writer.EmitByte(FILE_MAP_COPY);
-
-	writer.EmitByte(0x57);			// PUSH EDI
+	writer.EmitByte(0x50);			// PUSH EAX
 
 	writer.EmitByte(0xff);			// CALL DWORD PTR DS:[<MapViewOfFile>]
 	writer.EmitByte(0x15);
 	writer.EmitDWORD(thunk.GetThunkAddress("MapViewOfFile") + linker.GetBaseAddress());
 
-	writer.EmitByte(0x8b);			// MOV ESI, EAX
-	writer.EmitByte(0xf0);
+	writer.EmitByte(0x8b);			// MOV EDI, EAX
+	writer.EmitByte(0xf8);
 
-	writer.EmitByte(0x85);			// TEST ESI, ESI
-	writer.EmitByte(0xf6);
+	writer.EmitByte(0x3b);			// CMP EDI, ESI
+	writer.EmitByte(0xfe);
 
-	writer.EmitByte(0x75);			// JNZ SHORT <skip error>
-	writer.EmitByte(0x15);
+	writer.EmitByte(0x75);			// JNE <skip error>
+	writer.EmitByte(0x18);
 
 	writer.EmitByte(0x6A);			// PUSH 10
 	writer.EmitByte(0x10);
@@ -286,81 +285,46 @@ void CodeGenerator::Emit(Linker& linker, LinkWriter& writer) const
 	writer.EmitByte(0x68);			// PUSH <Failed to map view>
 	writer.EmitDWORD(linker.GetBaseAddress() + data.GetOffsetOfWideString(STRINGS_FAILVIEW, linker));
 
-	writer.EmitByte(0x50);			// PUSH EAX
+	writer.EmitByte(0x56);			// PUSH ESI
 
 	writer.EmitByte(0xff);			// CALL DWORD PTR DS:[<MessageBoxW>]
 	writer.EmitByte(0x15);
 	writer.EmitDWORD(thunk.GetThunkAddress("MessageBoxW") + linker.GetBaseAddress());
 
-	writer.EmitByte(0xeb);			// JMP SHORT <exit>
-	writer.EmitByte(0x21);
+	writer.EmitByte(0x33);			// XOR EAX, EAX
+	writer.EmitByte(0xc0);
+
+	writer.EmitByte(0x5f);			// POP EDI
+
+	writer.EmitByte(0xeb);			// JMP <exit>
+	writer.EmitByte(0xd1);
 
 	writer.EmitByte(0x68);			// PUSH <size of bytecode>
 	writer.EmitDWORD(linker.GetEpochCodeSize());
 
-	writer.EmitByte(0x8d);			// LEA EDX, DWORD PTR DS:[ESI+<code location offset>]
-	writer.EmitByte(0x96);
+	writer.EmitByte(0x8d);			// LEA EAX, [EDI+offset of bytecode]
+	writer.EmitByte(0x87);
 	writer.EmitDWORD(linker.GetSectionManager().GetSection(".epoch").Location);
 
-	writer.EmitByte(0x52);			// PUSH EDX
+	writer.EmitByte(0x50);			// PUSH EAX
 
-	writer.EmitByte(0xff);			// CALL EBP <ExecuteBinaryBuffer>
-	writer.EmitByte(0xd5);
+	writer.EmitByte(0xff);			// CALL <procaddr>
+	writer.EmitByte(0x55);
+	writer.EmitByte(0xfc);
 
-	writer.EmitByte(0x56);			// PUSH ESI
+	writer.EmitByte(0x57);			// PUSH EDI
 
 	writer.EmitByte(0xff);			// CALL DWORD PTR DS:[<UnmapViewOfFile>]
 	writer.EmitByte(0x15);
 	writer.EmitDWORD(thunk.GetThunkAddress("UnmapViewOfFile") + linker.GetBaseAddress());
 
-	writer.EmitByte(0x8b);			// MOV ESI, DWORD PTR DS:[<CloseHandle>]
-	writer.EmitByte(0x35);
-	writer.EmitDWORD(thunk.GetThunkAddress("CloseHandle") + linker.GetBaseAddress());
-
-	writer.EmitByte(0x57);			// PUSH EDI
-
-	writer.EmitByte(0xff);			// CALL ESI
-	writer.EmitByte(0xd6);
-
 	writer.EmitByte(0x53);			// PUSH EBX
 
-	writer.EmitByte(0xff);			// CALL ESI
-	writer.EmitByte(0xd6);
+	writer.EmitByte(0xff);			// CALL DWORD PTR DS:[<UnmapViewOfFile>]
+	writer.EmitByte(0x15);
+	writer.EmitDWORD(thunk.GetThunkAddress("CloseHandle") + linker.GetBaseAddress());
 
-	writer.EmitByte(0x5e);			// POP ESI
-	writer.EmitByte(0x5f);			// POP EDI
-	writer.EmitByte(0x5b);			// POP EBX
-	writer.EmitByte(0x5d);			// POP EBP
-	
-	// The following set of NOPs replaces a bit of epilogue code
-	// generated by the compiler when the launcher stub was first
-	// built. We don't need the epilogue code but we keep the ops
-	// size the same so that we don't have to recompute jump targets.
-	// Yes, I really am that lazy.
-
-	writer.EmitByte(0x90);			// NOP
-	writer.EmitByte(0x90);			// NOP
-	writer.EmitByte(0x90);			// NOP
-	writer.EmitByte(0x90);			// NOP
-	writer.EmitByte(0x90);			// NOP
-	writer.EmitByte(0x90);			// NOP
-	writer.EmitByte(0x90);			// NOP
-	writer.EmitByte(0x90);			// NOP
-	writer.EmitByte(0x90);			// NOP
-	writer.EmitByte(0x90);			// NOP
-	writer.EmitByte(0x90);			// NOP
-	writer.EmitByte(0x90);			// NOP
-	writer.EmitByte(0x90);			// NOP
-	writer.EmitByte(0x90);			// NOP
-	writer.EmitByte(0x90);			// NOP
-	writer.EmitByte(0x90);			// NOP
-
-	writer.EmitByte(0x81);			// ADD ESP, 404
-	writer.EmitByte(0xc4);
-	writer.EmitDWORD(0x404);
-
-	writer.EmitByte(0x6A);			// PUSH 0
-	writer.EmitByte(0x00);
+	writer.EmitByte(0x56);			// PUSH ESI
 
 	writer.EmitByte(0xff);			// CALL DWORD PTR DS:[<ExitProcess>]
 	writer.EmitByte(0x15);

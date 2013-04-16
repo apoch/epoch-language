@@ -206,6 +206,8 @@ namespace Runtime
 
 	// Public tracking
 	public:
+		EntityTable Entities;
+
 		std::map<Metadata::EpochTypeID, StructureDefinition> StructureDefinitions;
 		JIT::JITTable JITHelpers;
 		void* EntryPointFunc;
@@ -241,7 +243,6 @@ namespace Runtime
 		FunctionInvocationTable GlobalFunctions;
 		OffsetMap GlobalFunctionOffsets;
 		ScopeMap LexicalScopeDescriptions;
-		EntityTable Entities;
 		BeginEndOffsetMap EntityOffsets;
 		BeginEndOffsetMap ChainOffsets;
 

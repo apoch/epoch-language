@@ -17,6 +17,7 @@ extern StringHandle ElseIfHandle;
 extern StringHandle ElseHandle;
 
 extern StringHandle WhileHandle;
+extern StringHandle DoHandle;
 
 
 //
@@ -32,5 +33,5 @@ void FlowControl::PoolStrings(StringPoolManager& stringpool)
 	ElseHandle = stringpool.Pool(L"else");
 
 	WhileHandle = stringpool.Pool(L"while");
-	stringpool.Pool(L"do");
+	DoHandle = stringpool.Pool(L"do");
 }
