@@ -63,6 +63,9 @@
     <Filter Include="Lexer">
       <UniqueIdentifier>{957e41b7-8e95-4506-8e33-ed139b681ef4}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Compiler\Self Hosting Plugins">
+      <UniqueIdentifier>{c2d21921-a567-4cce-a00b-d002d74a3198}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Entry Point\EntryPoint.cpp">
@@ -190,6 +193,9 @@
     </ClCompile>
     <ClCompile Include="Compiler\Passes\Optimization.cpp">
       <Filter>Compiler\Passes</Filter>
+    </ClCompile>
+    <ClCompile Include="Compiler\Self Hosting Plugins\Plugin.cpp">
+      <Filter>Compiler\Self Hosting Plugins</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -435,6 +441,9 @@
     </ClInclude>
     <ClInclude Include="Compiler\Passes\Optimization.h">
       <Filter>Compiler\Passes</Filter>
+    </ClInclude>
+    <ClInclude Include="Compiler\Self Hosting Plugins\Plugin.h">
+      <Filter>Compiler\Self Hosting Plugins</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

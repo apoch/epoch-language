@@ -282,8 +282,7 @@ size_t ScopeDescription::FindVariable(StringHandle variableid, size_t& outnumfra
 
 	if(ParentScope)
 	{
-		if(Variables.size() || Hoisted)
-			++outnumframes;
+		++outnumframes;
 		return ParentScope->FindVariable(variableid, outnumframes);
 	}
 

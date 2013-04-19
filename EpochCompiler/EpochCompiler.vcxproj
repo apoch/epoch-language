@@ -106,6 +106,7 @@
     <ClCompile Include="Compiler\Intermediate Representations\Semantic Validation\TypeSpace.cpp" />
     <ClCompile Include="Compiler\Passes\Optimization.cpp" />
     <ClCompile Include="Compiler\Passes\ParseCallbacks.cpp" />
+    <ClCompile Include="Compiler\Self Hosting Plugins\Plugin.cpp" />
     <ClCompile Include="Entry Point\EntryPoint.cpp" />
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
@@ -156,6 +157,7 @@
     <ClInclude Include="Compiler\Intermediate Representations\Semantic Validation\TypeSpace.h" />
     <ClInclude Include="Compiler\Passes\Optimization.h" />
     <ClInclude Include="Compiler\Passes\ParseCallbacks.h" />
+    <ClInclude Include="Compiler\Self Hosting Plugins\Plugin.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="Compiler\ExportDef.h" />
     <ClInclude Include="..\Shared\Bytecode\EntityTags.h" />

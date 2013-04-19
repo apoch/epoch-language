@@ -814,7 +814,10 @@ FunctionType* NativeCodeGenerator::GetExternalFunctionType(StringHandle epochfun
 		if(scope.GetVariableOrigin(i) == VARIABLE_ORIGIN_PARAMETER)
 		{
 			Metadata::EpochTypeID vartype = scope.GetVariableTypeByIndex(i);
-			args.push_back(GetExternalType(vartype));
+			Type* t = GetExternalType(vartype);
+			if(scope.IsReference(i) && !Metadata::IsStructureType(vartype) && vartype != Metadata::EpochType_Buffer)
+				t = t->getPointerTo();
+			args.push_back(t);
 		}
 		else if(scope.GetVariableOrigin(i) == VARIABLE_ORIGIN_RETURN)
 			rettype = GetExternalType(scope.GetVariableTypeByIndex(i));
@@ -893,11 +896,12 @@ EPOCHRUNTIME void NativeCodeGenerator::ExternalInvoke(JIT::JITContext& context, 
 	{
 		if(scope.GetVariableOrigin(i) == VARIABLE_ORIGIN_PARAMETER)
 		{
+			Metadata::EpochTypeID vartype = scope.GetVariableTypeByIndex(i);
+
 			Value* arg = (Argument*)(argiter);
-			if(scope.IsReference(i))
+			if(scope.IsReference(i) && (Metadata::IsStructureType(vartype) || vartype == Metadata::EpochType_Buffer))
 				arg = Builder.CreateLoad(arg);
 
-			Metadata::EpochTypeID vartype = scope.GetVariableTypeByIndex(i);
 			args.push_back(MarshalArgument(arg, vartype));
 			++argiter;
 		}

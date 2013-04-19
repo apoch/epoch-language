@@ -32,6 +32,23 @@ namespace
 	void Usage();
 }
 
+//
+// Helper for loading self-hosting plugins
+//
+void LoadSelfHostingPlugin(const std::wstring& filename)
+{
+	std::wstring source = Files::Load(filename);
+					
+	DLLAccess::CompilerAccess compileraccess;
+	DLLAccess::CompiledByteCodeHandle bytecodebufferhandle = compileraccess.CompileSourceToByteCode(filename, source);
+
+	if(bytecodebufferhandle)
+	{
+		DLLAccess::RuntimeAccess runtimeaccess;
+		runtimeaccess.ExecuteByteCode(compileraccess.GetByteCode(bytecodebufferhandle), compileraccess.GetByteCodeSize(bytecodebufferhandle));
+	}
+}
+
 
 //
 // Entry point function for the program
@@ -183,6 +200,11 @@ int _tmain(int argc, _TCHAR* argv[])
 			recurse = true;
 			testmode = true;
 		}
+		else if(parameters[i] == L"/selfhost")
+		{
+			// TODO - make plugins configurable?
+			LoadSelfHostingPlugin(L"D:\\Epoch\\Programs\\Compiler\\ByteCodeEmitter.epoch");
+		}
 		else
 		{
 			didwork = true;
@@ -251,6 +273,7 @@ namespace
 		output << L"  /build project.eprj\n\tBuild the specified Epoch project\n\n";
 		output << L"  /runtests folder\n\tRecursively execute all Epoch programs in folder as tests\n\n";
 		output << L"  /pause\n\tPause for Enter key (can be repeated)\n\n";
+		output << L"  /selfhost\n\tEnable use of self-hosting plugins\n\n";
 		output << std::endl;
 	}
 }
