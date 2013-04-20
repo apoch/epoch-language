@@ -5,3 +5,5 @@ EXPORTS
 	GetByteCodeBufferSize		@3
 	FreeByteCodeBuffer			@4
 	ParseSource					@5
+
+	RegisterPluginFunction		@6

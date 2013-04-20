@@ -354,7 +354,7 @@ namespace
 		const std::vector<IRSemantics::ExpressionAtom*>& rawatoms = expression.GetAtoms();
 		for(std::vector<IRSemantics::ExpressionAtom*>::const_iterator iter = rawatoms.begin(); iter != rawatoms.end(); ++iter)
 		{
-			ByteBuffer atombuffer;
+			BytecodeStreamVector atombuffer;
 			ByteCodeEmitter atomemitter(atombuffer);
 			bool thisatomneedsrefbind = EmitExpressionAtom(atomemitter, *iter, activescope, curnamespace, !needsrefbind, constructorcall);
 			if(thisatomneedsrefbind)

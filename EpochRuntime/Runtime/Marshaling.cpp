@@ -286,3 +286,9 @@ extern "C" void MarshalCleanup(Byte* buffer)
 	delete[] buffer;
 }
 
+extern "C" void* MarshalGenCallback(void* infunc)
+{
+	return Runtime::GetThreadContext()->JITCallback(infunc);
+}
+
+

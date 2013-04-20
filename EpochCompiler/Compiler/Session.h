@@ -27,7 +27,6 @@ namespace IRSemantics { class Program; }
 
 
 // Handy type shortcuts
-typedef std::vector<char> ByteBuffer;
 typedef std::map<StringHandle, Metadata::EpochTypeID> NameToTypeTable;
 
 
@@ -107,6 +106,7 @@ private:
 	
 	AST::Program* ASTProgram;
 	IRSemantics::Program* SemanticProgram;
-	ByteBuffer FinalByteCode;
+
+	std::vector<Byte> FinalByteCode;
 };
 

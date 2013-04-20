@@ -46,6 +46,7 @@ namespace JIT
 		JITFunc_Marshal_ConvertStructure,
 		JITFunc_Marshal_FixupStructure,
 		JITFunc_Marshal_Cleanup,
+		JITFunc_Marshal_GenCallback,
 	};
 
 

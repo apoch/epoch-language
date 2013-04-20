@@ -45,7 +45,7 @@ void LoadSelfHostingPlugin(const std::wstring& filename)
 	if(bytecodebufferhandle)
 	{
 		DLLAccess::RuntimeAccess runtimeaccess;
-		runtimeaccess.ExecuteByteCode(compileraccess.GetByteCode(bytecodebufferhandle), compileraccess.GetByteCodeSize(bytecodebufferhandle));
+		runtimeaccess.ExecuteByteCodeAndPersist(compileraccess.GetByteCode(bytecodebufferhandle), compileraccess.GetByteCodeSize(bytecodebufferhandle));
 	}
 }
 
@@ -230,6 +230,8 @@ int _tmain(int argc, _TCHAR* argv[])
 					if(bytecodebufferhandle)
 					{
 						DLLAccess::RuntimeAccess runtimeaccess;
+						runtimeaccess.FreePersisted();
+
 						runtimeaccess.LinkTestHarness(&testpasscount);
 						runtimeaccess.ExecuteByteCode(compileraccess.GetByteCode(bytecodebufferhandle), compileraccess.GetByteCodeSize(bytecodebufferhandle));
 					}

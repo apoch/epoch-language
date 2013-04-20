@@ -1103,7 +1103,7 @@ bool ExpressionAtomIdentifierBase::TypeInference(Namespace& curnamespace, CodeBl
 		}
 	}
 
-	if(possibletypes.size() != 1)
+	if(possibletypes.size() != 1 && signaturematches != 1)
 	{
 		MyType = vartype;		// This will correctly handle structure types and fall back to Infer if all else fails
 	}

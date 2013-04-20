@@ -35,6 +35,7 @@ namespace
 	StringHandle BooleanHandle = 0;
 	StringHandle StringTypeHandle = 0;
 	StringHandle BufferTypeHandle = 0;
+	StringHandle BufferCopyHandle = 0;
 	StringHandle NothingHandle = 0;
 
 
@@ -73,6 +74,22 @@ namespace
 		return true;
 	}
 
+	bool ConstructorBufferCopyJIT(JIT::JITContext& context, bool)
+	{
+		llvm::Value* p2 = reinterpret_cast<llvm::IRBuilder<>*>(context.Builder)->CreateLoad(context.ValuesOnStack.top());
+		context.ValuesOnStack.pop();
+		llvm::Value* c = context.ValuesOnStack.top();
+		context.ValuesOnStack.pop();
+
+		llvm::ConstantInt* cint = llvm::dyn_cast<llvm::ConstantInt>(c);
+		size_t vartarget = static_cast<size_t>(cint->getValue().getLimitedValue());
+
+		llvm::Value* bufferhandle = reinterpret_cast<llvm::IRBuilder<>*>(context.Builder)->CreateCall((*context.BuiltInFunctions)[JIT::JITFunc_Runtime_CopyBuffer], p2);
+
+		reinterpret_cast<llvm::IRBuilder<>*>(context.Builder)->CreateStore(bufferhandle, context.VariableMap[context.NameToIndexMap[vartarget]], false);
+
+		return true;
+	}
 }
 
 
@@ -120,6 +137,12 @@ void TypeConstructors::RegisterLibraryFunctions(FunctionSignatureSet& signatures
 	{
 		FunctionSignature signature;
 		signature.AddParameter(L"identifier", Metadata::EpochType_Identifier, false);
+		signature.AddParameter(L"original", Metadata::EpochType_Buffer, true);
+		AddToMapNoDupe(signatureset, std::make_pair(BufferCopyHandle, signature));
+	}
+	{
+		FunctionSignature signature;
+		signature.AddParameter(L"identifier", Metadata::EpochType_Identifier, false);
 		signature.AddPatternMatchedParameterIdentifier(NothingHandle);
 		AddToMapNoDupe(signatureset, std::make_pair(NothingHandle, signature));
 	}
@@ -137,6 +160,7 @@ void TypeConstructors::RegisterLibraryFunctions(FunctionCompileHelperTable& tabl
 	AddToMapNoDupe(table, std::make_pair(RealHandle, &CompileConstructorHelper));
 	AddToMapNoDupe(table, std::make_pair(BufferTypeHandle, &CompileConstructorHelper));
 	AddToMapNoDupe(table, std::make_pair(NothingHandle, &CompileConstructorHelper));
+	AddToMapNoDupe(table, std::make_pair(BufferCopyHandle, &CompileConstructorHelper));
 }
 
 
@@ -148,6 +172,7 @@ void TypeConstructors::RegisterJITTable(JIT::JITTable& table)
 	AddToMapNoDupe(table.InvokeHelpers, std::make_pair(BooleanHandle, &ConstructorJIT));
 	AddToMapNoDupe(table.InvokeHelpers, std::make_pair(StringTypeHandle, &ConstructorJIT));
 	AddToMapNoDupe(table.InvokeHelpers, std::make_pair(BufferTypeHandle, &ConstructorBufferJIT));
+	AddToMapNoDupe(table.InvokeHelpers, std::make_pair(BufferCopyHandle, &ConstructorBufferCopyJIT));
 }
 
 
@@ -160,4 +185,11 @@ void TypeConstructors::PoolStrings(StringPoolManager& stringpool)
 	StringTypeHandle = stringpool.Pool(L"string");
 	BufferTypeHandle = stringpool.Pool(L"buffer");
 	NothingHandle = stringpool.Pool(L"nothing");
+	BufferCopyHandle = stringpool.Pool(L"buffer@@copy");
 }
+
+void TypeConstructors::RegisterLibraryOverloads(OverloadMap& overloadmap)
+{
+	overloadmap[BufferTypeHandle].insert(BufferCopyHandle);
+}
+

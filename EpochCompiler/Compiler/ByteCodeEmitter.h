@@ -24,8 +24,59 @@
 class FunctionSignature;
 
 
-// Handy type shortcuts
-typedef std::vector<Byte> ByteBuffer;
+
+//
+// Interface for emitting bytecode sequences
+//
+class BytecodeStreamBase
+{
+// Modification interface
+public:
+	virtual void AppendByte(Byte b) = 0;
+	virtual void AppendBytes(const Byte* p, size_t size) = 0;
+
+// Retrieval interface
+public:
+	virtual const Byte* GetPointer() const = 0;
+	virtual size_t GetSize() const = 0;
+};
+
+
+//
+// Class used for writing bytecode sequences to a std::vector
+//
+class BytecodeStreamVector : public BytecodeStreamBase
+{
+// Modification interface
+public:
+	virtual void AppendByte(Byte b);
+	virtual void AppendBytes(const Byte* p, size_t size);
+
+// Retrieval interface
+public:
+	virtual const Byte* GetPointer() const;
+	virtual size_t GetSize() const;
+
+// Internal state
+private:
+	std::vector<Byte> Bytes;
+};
+
+//
+// Class used for writing bytecode sequences via an Epoch plugin
+//
+class BytecodeStreamPlugin : public BytecodeStreamBase
+{
+// Modification interface
+public:
+	virtual void AppendByte(Byte b);
+	virtual void AppendBytes(const Byte* p, size_t size);
+
+// Retrieval interface
+public:
+	virtual const Byte* GetPointer() const;
+	virtual size_t GetSize() const;
+};
 
 
 //
@@ -41,7 +92,7 @@ class ByteCodeEmitter
 {
 // Construction
 public:
-	explicit ByteCodeEmitter(ByteBuffer& buffer)
+	explicit ByteCodeEmitter(BytecodeStreamBase& buffer)
 		: Buffer(buffer)
 	{ }
 
@@ -148,7 +199,7 @@ public:
 
 // Additional helpers for writing to the data stream
 public:
-	void EmitBuffer(const ByteBuffer& buffer);
+	void EmitBuffer(const BytecodeStreamBase& buffer);
 
 // Internal helpers
 private:
@@ -166,32 +217,9 @@ private:
 	void EmitRawValue(const std::wstring& value);
 	void EmitRawValue(Real32 value);
 
-	void PrependBytes(unsigned numbytes, const void* bytes);
-
-	//
-	// Prepend any number of bytes to the stream
-	//
-	// The original byte ordering is preserved; i.e. the bytes will not
-	// be reversed by the prepend operation.
-	//
-	template <typename T>
-	void PrependRawValue(const T& value)
-	{
-		PrependBytes(sizeof(T), &value);
-	}
-
-	void PrependRawValue(const std::wstring& value);
-
-	void PrependTypeAnnotation(Metadata::EpochTypeID type);
-
-	void PrependInstruction(Bytecode::Instruction instruction);
-
-	void PrependEntityTag(Bytecode::EntityTag tag);
-
-
 // Internal tracking
 private:
-	ByteBuffer& Buffer;
+	BytecodeStreamBase& Buffer;
 };
 
 

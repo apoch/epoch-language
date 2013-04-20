@@ -556,6 +556,11 @@ void EpochGC::SetGCFunctionBounds(const Function* func, void* start, size_t size
 	FunctionBounds[func] = std::make_pair(start, size);
 }
 
+void* EpochGC::GetGCFunctionStart(const Function* func)
+{
+	return FunctionBounds[func].first;
+}
+
 
 void EpochGC::RegisterGlobalVariable(void* ptr, Metadata::EpochTypeID type)
 {

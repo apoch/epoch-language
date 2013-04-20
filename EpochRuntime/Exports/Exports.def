@@ -17,5 +17,10 @@ EXPORTS
 	MarshalConvertStructure		@13
 	MarshalFixupStructure		@14
 	MarshalCleanup				@15
+	MarshalGenCallback			@16
 
-	TriggerGarbageCollection	@16
+	TriggerGarbageCollection	@17
+
+	ExecuteByteCodePersistent	@18
+	FreePersistedByteCode		@19
+

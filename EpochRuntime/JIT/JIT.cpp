@@ -391,6 +391,18 @@ namespace JIT
 			else
 				BuiltInFunctions[JITFunc_Marshal_Cleanup] = CurrentModule->getFunction("MarshalCleanup");
 
+			if(!CurrentModule->getFunction("MarshalGenCallback"))
+			{
+				std::vector<Type*> args;
+				args.push_back(Type::getInt8PtrTy(Context));
+				FunctionType* ftype = FunctionType::get(Type::getInt8PtrTy(Context), args, false);
+
+				BuiltInFunctions[JITFunc_Marshal_GenCallback] = Function::Create(ftype, Function::ExternalLinkage, "MarshalGenCallback", CurrentModule);
+			}
+			else
+				BuiltInFunctions[JITFunc_Marshal_GenCallback] = CurrentModule->getFunction("MarshalGenCallback");
+
+
 			// Set up intrinsics
 			if(!CurrentModule->getFunction("llvm.sqrt.f32"))
 			{
@@ -940,21 +952,28 @@ void NativeCodeGenerator::Generate()
 		BasicBlock* block = BasicBlock::Create(Data->Context, "wrap", iter->second);
 		Builder.SetInsertPoint(block);
 
+		StringHandle alias = Data->GeneratedFunctionToNameMap.find(iter->second)->second;
+
 		std::vector<Value*> args;
 		Function::arg_iterator argiter = iter->second->arg_begin();
-		for(size_t i = 0; i < iter->second->getFunctionType()->getNumParams(); ++i)
+		const ScopeDescription& desc = ExecContext.GetScopeDescription(alias);
+		size_t paramindex = 0;
+		for(size_t i = 0; i < desc.GetParameterCount(); ++i)
 		{
-			args.push_back((Argument*)(argiter));
+			while(desc.GetVariableOrigin(paramindex) != VARIABLE_ORIGIN_PARAMETER)
+				++paramindex;
+
+			Value* val = (Argument*)(argiter);
+			val = MarshalArgumentReverse(val, desc.GetVariableTypeByIndex(paramindex));
+
+			args.push_back(val);
 			++argiter;
 		}
 
 		if(iter->second->getFunctionType()->getReturnType() == Type::getVoidTy(Data->Context))
-		{
-			Builder.CreateCall(iter->first, args);
 			Builder.CreateRetVoid();
-		}
 		else
-			Builder.CreateRet(Builder.CreateCall(Builder.CreateLoad(iter->first), args));
+			Builder.CreateRet(MarshalReturnReverse(Builder.CreateLoad(iter->first), desc.GetReturnVariableType()));
 	}
 
 	// This dump can come in handy if verification fails or we otherwise
@@ -2773,7 +2792,7 @@ Value* NativeCodeGenerator::MarshalArgument(Value* arg, Metadata::EpochTypeID ty
 
 	Metadata::EpochTypeFamily family = Metadata::GetTypeFamily(type);
 	if(family == Metadata::EpochTypeFamily_Function)
-		return Builder.CreatePointerCast(GetCallbackWrapper(arg), Type::getInt8PtrTy(Data->Context));
+		return Builder.CreateCall(Data->BuiltInFunctions[JITFunc_Marshal_GenCallback], Builder.CreatePointerCast(arg, Type::getInt8PtrTy(Data->Context)));
 
 	throw NotImplementedException("Cannot marshal parameter of this type to an external function");
 }
@@ -2816,6 +2835,23 @@ Value* NativeCodeGenerator::MarshalReturn(Value* ret, Metadata::EpochTypeID type
 	}
 
 	throw NotImplementedException("Cannot marshal parameter of this type to an external function");
+}
+
+Value* NativeCodeGenerator::MarshalReturnReverse(Value* ret, Metadata::EpochTypeID type)
+{
+	switch(type)
+	{
+	case Metadata::EpochType_Boolean:
+	case Metadata::EpochType_Integer:
+	case Metadata::EpochType_Integer16:
+	case Metadata::EpochType_Real:
+		return ret;
+
+	case Metadata::EpochType_Buffer:
+		return Builder.CreateCall(Data->BuiltInFunctions[JITFunc_Runtime_GetBuffer], ret);
+	}
+
+	throw NotImplementedException("Cannot marshal return value of this type from a callback function");
 }
 
 void NativeCodeGenerator::MarshalReferencePostCall(Value* ref, Value* fixuptarget, Metadata::EpochTypeID type)
@@ -2866,30 +2902,10 @@ void NativeCodeGenerator::MarshalCleanup(Value* val, Metadata::EpochTypeID type)
 	throw NotImplementedException("Cannot clean up result of marshaling this type back from an external function");
 }
 
-Value* NativeCodeGenerator::GetCallbackWrapper(Value* funcptr)
-{
-	Type* ptrtype = funcptr->getType();
-	PointerType* casttype = dyn_cast<PointerType>(ptrtype);
-	FunctionType* ftype = dyn_cast<FunctionType>(casttype->getElementType());
-
-	std::vector<Type*> argtypes;
-	for(size_t i = 0; i < ftype->getNumParams(); ++i)
-		argtypes.push_back(ftype->getParamType(i));
-
-	FunctionType* wraptype = FunctionType::get(ftype->getReturnType(), argtypes, false);
-
-	Function* ret = Function::Create(wraptype, Function::ExternalLinkage, "CallbackWrapper", Data->CurrentModule);
-	ret->setCallingConv(CallingConv::X86_StdCall);
-
-	Constant* constnull = ConstantPointerNull::get(casttype);
-	Value* globalfuncptr = new GlobalVariable(*Data->CurrentModule, funcptr->getType(), false, GlobalVariable::InternalLinkage, constnull);
-	Builder.CreateStore(funcptr, globalfuncptr);
-	GeneratedCallbackWrappers[globalfuncptr] = ret;
-	return ret;
-}
-
 void* NativeCodeGenerator::GenerateCallbackWrapper(void* targetfunc)
 {
+	// TODO - cache callback wrappers!
+
 	Function* llvmtargetfunc = reinterpret_cast<Function*>(ExecContext.GeneratedJITFunctionCode[targetfunc].first);
 
 	StringHandle alias = ExecContext.GeneratedJITFunctionCode[targetfunc].second;
@@ -2927,7 +2943,7 @@ void* NativeCodeGenerator::GenerateCallbackWrapper(void* targetfunc)
 		Builder.CreateRetVoid();
 	}
 	else
-		Builder.CreateRet(Builder.CreateCall(jittedtarget, args));
+		Builder.CreateRet(MarshalReturnReverse(Builder.CreateCall(jittedtarget, args), desc.GetReturnVariableType()));
 
 	//Data->CurrentModule->dump();	
 
@@ -2947,5 +2963,8 @@ void JIT::DestructLLVMModule()
 void NativeCodeGenerator::NotifyFunctionEmitted(const llvm::Function& function, void* code, size_t size, const EmittedFunctionDetails&)
 {
 	EpochGC::SetGCFunctionBounds(&function, code, size);
+
+	llvm::Function* f = const_cast<llvm::Function*>(&function);
+	ExecContext.GeneratedJITFunctionCode[code] = std::make_pair(f, Data->GeneratedFunctionToNameMap[f]);
 }
 

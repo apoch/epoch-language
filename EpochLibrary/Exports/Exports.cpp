@@ -164,6 +164,10 @@ extern "C" void STDCALL BindToCompiler(CompilerInfoTable& info, StringPoolManage
 		FunctionTags::RegisterConstructorTagHelper(*info.FunctionTagHelpers);
 
 		StringFunctionLibrary::RegisterLibraryOverloads(*info.Overloads);
+
+		MarshalingLibrary::RegisterLibraryOverloads(*info.Overloads);
+
+		TypeConstructors::RegisterLibraryOverloads(*info.Overloads);
 	}
 	catch(...)
 	{

@@ -9,6 +9,8 @@
 
 #include "Compiler/ByteCodeEmitter.h"
 
+#include "Compiler/Self Hosting Plugins/Plugin.h"
+
 #include "Metadata/FunctionSignature.h"
 
 #include <sstream>
@@ -708,9 +710,9 @@ void ByteCodeEmitter::TagData(StringHandle entityname, const std::wstring& tag, 
 // This is mostly useful if another emitter has cached some instructions to a separate
 // stream, and the contents of that stream are to be injected into this one.
 //
-void ByteCodeEmitter::EmitBuffer(const ByteBuffer& buffer)
+void ByteCodeEmitter::EmitBuffer(const BytecodeStreamBase& buffer)
 {
-	Buffer.insert(Buffer.end(), buffer.begin(), buffer.end());
+	Buffer.AppendBytes(buffer.GetPointer(), buffer.GetSize());
 }
 
 
@@ -774,7 +776,7 @@ void ByteCodeEmitter::EmitEntityTag(Bytecode::EntityTag tag)
 //
 void ByteCodeEmitter::EmitRawValue(Byte value)
 {
-	Buffer.push_back(value);
+	Buffer.AppendByte(value);
 }
 
 //
@@ -782,10 +784,10 @@ void ByteCodeEmitter::EmitRawValue(Byte value)
 //
 void ByteCodeEmitter::EmitRawValue(Integer32 value)
 {
-	Buffer.push_back(static_cast<Byte>(static_cast<unsigned char>(value) & 0xff));
-	Buffer.push_back(static_cast<Byte>(static_cast<unsigned char>(value >> 8) & 0xff));
-	Buffer.push_back(static_cast<Byte>(static_cast<unsigned char>(value >> 16) & 0xff));
-	Buffer.push_back(static_cast<Byte>(static_cast<unsigned char>(value >> 24) & 0xff));
+	Buffer.AppendByte(static_cast<Byte>(static_cast<unsigned char>(value) & 0xff));
+	Buffer.AppendByte(static_cast<Byte>(static_cast<unsigned char>(value >> 8) & 0xff));
+	Buffer.AppendByte(static_cast<Byte>(static_cast<unsigned char>(value >> 16) & 0xff));
+	Buffer.AppendByte(static_cast<Byte>(static_cast<unsigned char>(value >> 24) & 0xff));
 }
 
 //
@@ -793,8 +795,8 @@ void ByteCodeEmitter::EmitRawValue(Integer32 value)
 //
 void ByteCodeEmitter::EmitRawValue(Integer16 value)
 {
-	Buffer.push_back(static_cast<Byte>(static_cast<unsigned char>(value) & 0xff));
-	Buffer.push_back(static_cast<Byte>(static_cast<unsigned char>(value >> 8) & 0xff));
+	Buffer.AppendByte(static_cast<Byte>(static_cast<unsigned char>(value) & 0xff));
+	Buffer.AppendByte(static_cast<Byte>(static_cast<unsigned char>(value >> 8) & 0xff));
 }
 
 //
@@ -812,7 +814,7 @@ void ByteCodeEmitter::EmitRawValue(HandleType value)
 //
 void ByteCodeEmitter::EmitRawValue(const std::wstring& value)
 {
-	std::copy(reinterpret_cast<const Byte*>(value.c_str()), reinterpret_cast<const Byte*>(value.c_str() + value.length() + 1), std::back_inserter(Buffer));
+	Buffer.AppendBytes((Byte*)value.c_str(), (value.size() + 1) * sizeof(wchar_t));
 }
 
 //
@@ -820,7 +822,7 @@ void ByteCodeEmitter::EmitRawValue(const std::wstring& value)
 //
 void ByteCodeEmitter::EmitRawValue(bool value)
 {
-	Buffer.push_back(value ? 1 : 0);
+	Buffer.AppendByte(value ? 1 : 0);
 }
 
 //
@@ -832,63 +834,6 @@ void ByteCodeEmitter::EmitRawValue(Real32 value)
 	// reinterpretation of the raw bits here so there is no need to
 	// worry about truncation or rounding errors.
 	EmitRawValue(*reinterpret_cast<Integer32*>(&value));
-}
-
-//
-// Prepend a given number of bytes to the stream
-//
-void ByteCodeEmitter::PrependBytes(unsigned numbytes, const void* bytes)
-{
-	const Byte* p = reinterpret_cast<const Byte*>(bytes) + numbytes;
-	while((--p) >= reinterpret_cast<const Byte*>(bytes))
-		Buffer.insert(Buffer.begin(), *p);
-}
-
-//
-// Prepend a wide string to the stream
-//
-void ByteCodeEmitter::PrependRawValue(const std::wstring& value)
-{
-	// Note that we prepend individual characters in reverse order so that the entire string will appear in its original order
-	wchar_t nullbytes = 0;
-	PrependRawValue(nullbytes);
-	for(std::wstring::const_reverse_iterator iter = value.rbegin(); iter != value.rend(); ++iter)
-		PrependRawValue(*iter);
-}
-
-//
-// Prepend a type annotation to the stream
-//
-// See remarks on ByteCodeEmitter::EmitTypeAnnotation()
-//
-void ByteCodeEmitter::PrependTypeAnnotation(Metadata::EpochTypeID type)
-{
-	STATIC_ASSERT(sizeof(Metadata::EpochTypeID) <= sizeof(Integer32));
-
-	Integer32 intval = static_cast<Integer32>(type);
-	PrependRawValue(intval);
-}
-
-//
-// Prepend a VM instruction to the stream
-//
-void ByteCodeEmitter::PrependInstruction(Bytecode::Instruction instruction)
-{
-	STATIC_ASSERT(sizeof(Bytecode::Instruction) <= sizeof(Byte));
-
-	Byte byteval = static_cast<Byte>(instruction);
-	PrependRawValue(byteval);
-}
-
-//
-// Prepend an entity tag to the stream
-//
-void ByteCodeEmitter::PrependEntityTag(Bytecode::EntityTag tag)
-{
-	STATIC_ASSERT(sizeof(Bytecode::EntityTag) <= sizeof(Integer32));
-
-	Integer32 intval = static_cast<Integer32>(tag);
-	PrependRawValue(intval);
 }
 
 
@@ -1004,6 +949,49 @@ void ByteCodeEmitter::EmitFunctionSignature(Metadata::EpochTypeID type, const Fu
 		EmitTypeAnnotation(signature.GetParameter(i).Type);
 		EmitRawValue(signature.GetParameter(i).IsReference);
 	}
+}
+
+
+
+void BytecodeStreamVector::AppendByte(Byte b)
+{
+	Bytes.push_back(b);
+}
+
+void BytecodeStreamVector::AppendBytes(const Byte* p, size_t size)
+{
+	std::copy(p, p + size, std::back_inserter(Bytes));
+}
+
+const Byte* BytecodeStreamVector::GetPointer() const
+{
+	return &Bytes[0];
+}
+
+size_t BytecodeStreamVector::GetSize() const
+{
+	return Bytes.size();
+}
+
+
+void BytecodeStreamPlugin::AppendByte(Byte b)
+{
+	Plugins.InvokeVoidPluginFunction(L"PluginBytecodeEmitByte", b);
+}
+
+void BytecodeStreamPlugin::AppendBytes(const Byte* p, size_t size)
+{
+	Plugins.InvokeVoidPluginFunction(L"PluginBytecodeEmitBytes", p, size);
+}
+
+const Byte* BytecodeStreamPlugin::GetPointer() const
+{
+	return Plugins.InvokeBytePointerPluginFunction(L"PluginBytecodeGetBuffer");
+}
+
+size_t BytecodeStreamPlugin::GetSize() const
+{
+	return Plugins.InvokeIntegerPluginFunction(L"PluginBytecodeGetSize");
 }
 
 

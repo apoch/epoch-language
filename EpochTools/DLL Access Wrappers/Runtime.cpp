@@ -15,6 +15,8 @@
 
 using namespace DLLAccess;
 
+static void* Persisted = NULL;
+
 
 //
 // Load the DLL, if it is not already loaded, and set up bindings
@@ -25,9 +27,11 @@ RuntimeAccess::RuntimeAccess()
 	Marshaling::DLLPool::DLLPoolHandle dllhandle = Marshaling::TheDLLPool.OpenDLL(L"EpochRuntime.DLL");
 
 	DoExecByteCode = Marshaling::DLLPool::GetFunction<ExecuteByteCodePtr>(dllhandle, "ExecuteByteCode");
+	DoExecByteCodePersistent = Marshaling::DLLPool::GetFunction<ExecuteByteCodePersistentPtr>(dllhandle, "ExecuteByteCodePersistent");
 	DoLinkTestHarness = Marshaling::DLLPool::GetFunction<LinkTestHarnessPtr>(dllhandle, "LinkTestHarness");
+	DoFreePersisted = Marshaling::DLLPool::GetFunction<FreePersistedPtr>(dllhandle, "FreePersistedByteCode");
 
-	if(!DoExecByteCode || !DoLinkTestHarness)
+	if(!DoExecByteCode || !DoExecByteCodePersistent || !DoLinkTestHarness || !DoFreePersisted)
 		throw DLLException("Failed to load Epoch Runtime");
 }
 
@@ -43,3 +47,20 @@ void RuntimeAccess::LinkTestHarness(unsigned* harness)
 {
 	DoLinkTestHarness(harness);
 }
+
+void RuntimeAccess::ExecuteByteCodeAndPersist(void* buffer, size_t size)
+{
+	FreePersisted();
+
+	Persisted = DoExecByteCodePersistent(buffer, size);
+}
+
+void RuntimeAccess::FreePersisted()
+{
+	if(Persisted)
+	{
+		DoFreePersisted(Persisted);
+		Persisted = NULL;
+	}
+}
+

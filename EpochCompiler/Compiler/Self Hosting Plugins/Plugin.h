@@ -15,6 +15,8 @@
 
 
 // Dependencies
+#include "Utility/Types/IntegerTypes.h"
+
 #include <string>
 #include <map>
 
@@ -25,8 +27,26 @@ class CompilerPluginManager
 public:
 	void RegisterPluginFunction(const std::wstring& functionname, void* code);
 
+// Plugin checking
+public:
+	bool IsPluginFunctionProvided(const std::wstring& functionname);
+
+// Plugin invocation
+public:
+	void InvokeVoidPluginFunction(const std::wstring& functionname);
+	void InvokeVoidPluginFunction(const std::wstring& functionname, Byte param);
+	void InvokeVoidPluginFunction(const std::wstring& functionname, const Byte* param1, size_t param2);
+
+	Integer32 InvokeIntegerPluginFunction(const std::wstring& functionname);
+
+	const Byte* InvokeBytePointerPluginFunction(const std::wstring& functionname);
+
 // Internal state
 private:
 	std::map<std::wstring, void*> PluginRegistrationTable;
 };
+
+
+
+extern CompilerPluginManager Plugins;
 

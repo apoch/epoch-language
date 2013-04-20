@@ -8,10 +8,12 @@
 #include "pch.h"
 
 #include "Compiler/Session.h"
+#include "Compiler/Self Hosting Plugins/Plugin.h"
 
 #include "User Interface/Output.h"
 
 #include "Utility/Strings.h"
+
 
 
 //
@@ -106,5 +108,10 @@ extern "C" void STDCALL ParseSource(const char* source, void* callbacktable)
 	catch(...)
 	{
 	}
+}
+
+extern "C" void STDCALL RegisterPluginFunction(const wchar_t* functionname, void* codeptr)
+{
+	Plugins.RegisterPluginFunction(functionname, codeptr);
 }
 

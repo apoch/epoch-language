@@ -25,6 +25,8 @@ namespace TypeConstructors
 	void RegisterLibraryFunctions(FunctionSignatureSet& signatureset);
 	void RegisterLibraryFunctions(FunctionCompileHelperTable& table);
 
+	void RegisterLibraryOverloads(OverloadMap& overloadmap);
+
 	void RegisterJITTable(JIT::JITTable& table);
 
 }

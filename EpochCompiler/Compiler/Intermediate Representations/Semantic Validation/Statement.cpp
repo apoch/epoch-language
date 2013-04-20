@@ -254,30 +254,7 @@ bool Statement::TypeInference(Namespace& curnamespace, CodeBlock& activescope, I
 				{
 					Metadata::EpochTypeID expectedparamtype = signature.GetParameter(j).Type;
 					Metadata::EpochTypeID providedparamtype = Parameters[j]->GetEpochType(curnamespace);
-					if(expectedparamtype != providedparamtype)
-					{
-						if(Metadata::GetTypeFamily(expectedparamtype) == Metadata::EpochTypeFamily_SumType)
-						{
-							if(!curnamespace.Types.SumTypes.IsBaseType(expectedparamtype, providedparamtype))
-							{
-								match = false;
-								break;
-							}
-							//else
-							//	generatetypematch = true;
-						}
-						else if(Metadata::GetTypeFamily(providedparamtype) == Metadata::EpochTypeFamily_SumType)
-						{
-							if(curnamespace.Types.SumTypes.IsBaseType(providedparamtype, expectedparamtype))
-								generatetypematch = true;
-						}
-						else
-						{
-							match = false;
-							break;
-						}
-					}
-					else if(Metadata::GetTypeFamily(expectedparamtype) == Metadata::EpochTypeFamily_Function)
+					if(Metadata::GetTypeFamily(expectedparamtype) == Metadata::EpochTypeFamily_Function)
 					{
 						if(Parameters[j]->GetAtoms().size() == 1)
 						{
@@ -304,6 +281,29 @@ bool Statement::TypeInference(Namespace& curnamespace, CodeBlock& activescope, I
 							// an indirect reference of that nature. We want to avoid an
 							// ugly duplication of all the type inference logic here, so
 							// we just guess that everything is fine and carry on.
+						}
+					}
+					else if(expectedparamtype != providedparamtype)
+					{
+						if(Metadata::GetTypeFamily(expectedparamtype) == Metadata::EpochTypeFamily_SumType)
+						{
+							if(!curnamespace.Types.SumTypes.IsBaseType(expectedparamtype, providedparamtype))
+							{
+								match = false;
+								break;
+							}
+							//else
+							//	generatetypematch = true;
+						}
+						else if(Metadata::GetTypeFamily(providedparamtype) == Metadata::EpochTypeFamily_SumType)
+						{
+							if(curnamespace.Types.SumTypes.IsBaseType(providedparamtype, expectedparamtype))
+								generatetypematch = true;
+						}
+						else
+						{
+							match = false;
+							break;
 						}
 					}
 
@@ -484,6 +484,10 @@ bool Statement::TypeInference(Namespace& curnamespace, CodeBlock& activescope, I
 							{
 								Name = *overloaditer;
 								MyType = funcsig.GetReturnType();
+							}
+							else
+							{
+								Name = *overloaditer;
 							}
 
 							for(size_t i = 0; i < Parameters.size(); ++i)

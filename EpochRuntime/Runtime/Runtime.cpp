@@ -925,6 +925,11 @@ void* ExecutionContext::JITCallback(void* stubfunc)
 	void* targetfunc = addr;
 	// End hack
 
+	return JITCallbackNoStub(targetfunc);
+}
+
+void* ExecutionContext::JITCallbackNoStub(void* targetfunc)
+{
 	void* ret = TargetCallbackToJITFuncMap[targetfunc];
 	if(!ret)
 	{

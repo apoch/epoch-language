@@ -94,6 +94,7 @@ namespace Runtime
 	// JIT support
 	public:
 		void* JITCallback(void* targetfunc);
+		void* JITCallbackNoStub(void* targetfunc);
 
 	// Internal helpers for working with the bytecode stream
 	private:

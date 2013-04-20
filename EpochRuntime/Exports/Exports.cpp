@@ -51,6 +51,31 @@ extern "C" void STDCALL ExecuteByteCode(void* bytecodebuffer, size_t size)
 	}
 }
 
+extern "C" void* STDCALL ExecuteByteCodePersistent(void* bytecodebuffer, size_t size)
+{
+	Runtime::ExecutionContext* context = new Runtime::ExecutionContext(reinterpret_cast<Bytecode::Instruction*>(bytecodebuffer), size, TestHarness);
+
+	try
+	{
+		context->ExecuteByteCode();
+	}
+	catch(const std::exception& e)
+	{
+		::MessageBox(0, widen(e.what()).c_str(), L"Epoch Execution Exception", MB_ICONSTOP);
+	}
+	catch(...)
+	{
+		::MessageBox(0, L"Exception occurred during execution", L"Epoch Execution Exception", MB_ICONSTOP);
+	}
+
+	return context;
+}
+
+extern "C" void STDCALL FreePersistedByteCode(Runtime::ExecutionContext* contextptr)
+{
+	delete contextptr;
+}
+
 //
 // Link to a test harness for running unit tests
 //

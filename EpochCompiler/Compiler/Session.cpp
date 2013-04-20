@@ -27,6 +27,8 @@
 #include "Compiler/Passes/ParseCallbacks.h"
 #include "Compiler/Passes/Optimization.h"
 
+#include "Compiler/Self Hosting Plugins/Plugin.h"
+
 #include "Parser/Parser.h"
 
 #include "Utility/DLLPool.h"
@@ -90,6 +92,9 @@ CompileSession::CompileSession()
 	OperatorPrecedences.insert(std::make_pair(PRECEDENCE_MEMBERACCESS, StringPool.Pool(L".")));
 
 	InitIntrinsicTypes();
+
+	if(Plugins.IsPluginFunctionProvided(L"PluginOnCompileStart"))
+		Plugins.InvokeVoidPluginFunction(L"PluginOnCompileStart");
 }
 
 //
@@ -137,8 +142,23 @@ void CompileSession::EmitByteCode()
 
 	output << L"Generating code... ";
 
-	ByteCodeEmitter emitter(FinalByteCode);
-	CompilerPasses::GenerateCode(*SemanticProgram, emitter);
+	if(Plugins.IsPluginFunctionProvided(L"PluginBytecodeEmitByte"))
+	{
+		BytecodeStreamPlugin stream;
+		ByteCodeEmitter emitter(stream);
+		CompilerPasses::GenerateCode(*SemanticProgram, emitter);
+
+		const Byte* p = stream.GetPointer();
+		FinalByteCode.swap(std::vector<Byte>(p, p + stream.GetSize()));
+	}
+	else
+	{
+		BytecodeStreamVector stream;
+		ByteCodeEmitter emitter(stream);
+		CompilerPasses::GenerateCode(*SemanticProgram, emitter);
+
+		FinalByteCode.swap(std::vector<Byte>(stream.GetPointer(), stream.GetPointer() + stream.GetSize()));
+	}
 
 	timer.End();
 	output << L"finished in " << timer.GetTimeMs() << L"ms" << std::endl;

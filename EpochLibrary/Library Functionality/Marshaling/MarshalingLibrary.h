@@ -24,6 +24,8 @@ namespace MarshalingLibrary
 
 	void RegisterLibraryFunctions(FunctionSignatureSet& signatureset);
 
+	void RegisterLibraryOverloads(OverloadMap& overloadmap);
+
 	void RegisterJITTable(JIT::JITTable& table);
 
 }
