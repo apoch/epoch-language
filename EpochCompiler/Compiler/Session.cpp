@@ -144,12 +144,11 @@ void CompileSession::EmitByteCode()
 
 	if(Plugins.IsPluginFunctionProvided(L"PluginBytecodeEmitByte"))
 	{
-		BytecodeStreamPlugin stream;
-		ByteCodeEmitter emitter(stream);
+		BytecodeEmitterPlugin emitter;
 		CompilerPasses::GenerateCode(*SemanticProgram, emitter);
 
-		const Byte* p = stream.GetPointer();
-		FinalByteCode.swap(std::vector<Byte>(p, p + stream.GetSize()));
+		const Byte* p = emitter.Buffer.GetPointer();
+		FinalByteCode.swap(std::vector<Byte>(p, p + emitter.Buffer.GetSize()));
 	}
 	else
 	{

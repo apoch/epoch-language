@@ -11,13 +11,13 @@
 
 // Forward declarations
 namespace IRSemantics { class Program; }
-class ByteCodeEmitter;
+class BytecodeEmitterBase;
 
 
 namespace CompilerPasses
 {
 
-	bool GenerateCode(const IRSemantics::Program& program, ByteCodeEmitter& emitter);
+	bool GenerateCode(const IRSemantics::Program& program, BytecodeEmitterBase& emitter);
 
 }
 

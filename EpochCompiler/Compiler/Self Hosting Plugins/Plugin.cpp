@@ -45,31 +45,6 @@ void CompilerPluginManager::InvokeVoidPluginFunction(const std::wstring& functio
 	p();
 }
 
-void CompilerPluginManager::InvokeVoidPluginFunction(const std::wstring& functionname, Byte param)
-{
-	std::map<std::wstring, void*>::const_iterator iter = PluginRegistrationTable.find(functionname);
-	if(iter == PluginRegistrationTable.end())
-		throw FatalException("No plugin loaded provides the requested function");
-
-	typedef void (STDCALL *funcptr)(Byte);
-	funcptr p = reinterpret_cast<funcptr>(iter->second);
-
-	p(param);
-}
-
-void CompilerPluginManager::InvokeVoidPluginFunction(const std::wstring& functionname, const Byte* param1, size_t param2)
-{
-	std::map<std::wstring, void*>::const_iterator iter = PluginRegistrationTable.find(functionname);
-	if(iter == PluginRegistrationTable.end())
-		throw FatalException("No plugin loaded provides the requested function");
-
-	typedef void (STDCALL *funcptr)(const Byte*, size_t);
-	funcptr p = reinterpret_cast<funcptr>(iter->second);
-
-	p(param1, param2);
-}
-
-
 Integer32 CompilerPluginManager::InvokeIntegerPluginFunction(const std::wstring& functionname)
 {
 	std::map<std::wstring, void*>::const_iterator iter = PluginRegistrationTable.find(functionname);

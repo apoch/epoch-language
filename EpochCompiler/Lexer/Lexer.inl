@@ -63,7 +63,7 @@ namespace Lexer
 			(HexLiteral)
 			(RealLiteral)
 			(StringLiteral)
-			(L"[\\.\\+\\-=\\!]+")
+			(L"[\\.\\+\\-=\\!\\&\\|]+")
 			(IntegerLiteral)
 			(StructureDef)
 			(GlobalDef)

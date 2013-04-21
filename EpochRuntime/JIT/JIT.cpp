@@ -2921,14 +2921,16 @@ void* NativeCodeGenerator::GenerateCallbackWrapper(void* targetfunc)
 	std::vector<Value*> args;
 	Function::arg_iterator argiter = wrapfunc->arg_begin();
 	const ScopeDescription& desc = ExecContext.GetScopeDescription(alias);
-	size_t paramindex = 0;
-	for(size_t i = 0; i < desc.GetParameterCount(); ++i)
+	for(size_t i = 0; i < desc.GetVariableCount(); ++i)
 	{
-		while(desc.GetVariableOrigin(paramindex) != VARIABLE_ORIGIN_PARAMETER)
-			++paramindex;
+		while(i < desc.GetVariableCount() && desc.GetVariableOrigin(i) != VARIABLE_ORIGIN_PARAMETER)
+			++i;
+
+		if(i >= desc.GetVariableCount())
+			break;
 
 		Value* val = (Argument*)(argiter);
-		val = MarshalArgumentReverse(val, desc.GetVariableTypeByIndex(paramindex));
+		val = MarshalArgumentReverse(val, desc.GetVariableTypeByIndex(i));
 
 		args.push_back(val);
 		++argiter;

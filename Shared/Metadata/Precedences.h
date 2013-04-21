@@ -13,3 +13,4 @@ static const int PRECEDENCE_MULTIPLYDIVIDE = 9;
 static const int PRECEDENCE_CONCATENATION = 1;
 static const int PRECEDENCE_COMPARISON = 0;
 static const int PRECEDENCE_MEMBERACCESS = 10;			// This should retain the highest precedence or things might blow up.
+static const int PRECEDENCE_BITWISE = 2;

@@ -995,3 +995,392 @@ size_t BytecodeStreamPlugin::GetSize() const
 }
 
 
+void BytecodeEmitterPlugin::EnterFunction(StringHandle functionname)
+{
+	Plugins.InvokeVoidPluginFunction(L"PluginBytecodeEnterFunction", static_cast<Integer32>(functionname));
+}
+
+void BytecodeEmitterPlugin::ExitFunction()
+{
+	Plugins.InvokeVoidPluginFunction(L"PluginBytecodeExitFunction");
+}
+
+void BytecodeEmitterPlugin::SetReturnRegister(size_t index)
+{
+	Plugins.InvokeVoidPluginFunction(L"PluginBytecodeSetReturnRegister", static_cast<Integer32>(index));
+}
+
+void BytecodeEmitterPlugin::EmitFunctionSignature(Metadata::EpochTypeID type, const FunctionSignature& signature)
+{
+	// TODO - move to plugin?
+	EmitInstruction(Bytecode::Instructions::FuncSignature);
+	EmitTypeAnnotation(type);
+	EmitTypeAnnotation(signature.GetReturnType());
+	EmitRawValue(signature.GetNumParameters());
+	for(size_t i = 0; i < signature.GetNumParameters(); ++i)
+	{
+		EmitTypeAnnotation(signature.GetParameter(i).Type);
+		EmitRawValue(signature.GetParameter(i).IsReference);
+	}
+}
+
+void BytecodeEmitterPlugin::PushIntegerLiteral(Integer32 value)
+{
+	Plugins.InvokeVoidPluginFunction(L"PluginBytecodePushInteger", value);
+}
+
+void BytecodeEmitterPlugin::PushInteger16Literal(Integer32 value)
+{
+	// TODO - validate that no overflow occurred!
+	Plugins.InvokeVoidPluginFunction(L"PluginBytecodePushInteger16", static_cast<Integer16>(value));
+}
+
+void BytecodeEmitterPlugin::PushStringLiteral(StringHandle handle)
+{
+	Plugins.InvokeVoidPluginFunction(L"PluginBytecodePushString", static_cast<Integer32>(handle));
+}
+
+void BytecodeEmitterPlugin::PushBooleanLiteral(bool value)
+{
+	Plugins.InvokeVoidPluginFunction(L"PluginBytecodePushBoolean", value);
+}
+
+void BytecodeEmitterPlugin::PushRealLiteral(Real32 value)
+{
+	Plugins.InvokeVoidPluginFunction(L"PluginBytecodePushReal", value);
+}
+
+void BytecodeEmitterPlugin::PushVariableValue(StringHandle variablename, Metadata::EpochTypeID type)
+{
+	Plugins.InvokeVoidPluginFunction(L"PluginBytecodePushVarValue", static_cast<Integer32>(variablename), static_cast<Integer32>(type));
+}
+
+void BytecodeEmitterPlugin::PushVariableValueNoCopy(StringHandle variablename)
+{
+	Plugins.InvokeVoidPluginFunction(L"PluginBytecodePushVarNoCopy", static_cast<Integer32>(variablename));
+}
+
+void BytecodeEmitterPlugin::PushLocalVariableValue(bool isparam, size_t frames, size_t offset, size_t size)
+{
+	Plugins.InvokeVoidPluginFunction(L"PluginBytecodePushLocal", isparam, static_cast<Integer32>(frames), static_cast<Integer32>(offset), static_cast<Integer32>(size));
+}
+
+void BytecodeEmitterPlugin::PushBufferHandle(BufferHandle handle)
+{
+	Plugins.InvokeVoidPluginFunction(L"PluginBytecodePushBuffer", static_cast<Integer32>(handle));
+}
+
+void BytecodeEmitterPlugin::PushTypeAnnotation(Metadata::EpochTypeID type)
+{
+	Plugins.InvokeVoidPluginFunction(L"PluginBytecodePushType", static_cast<Integer32>(type));
+}
+
+void BytecodeEmitterPlugin::PushFunctionNameLiteral(StringHandle name)
+{
+	Plugins.InvokeVoidPluginFunction(L"PluginBytecodePushFunctionName", static_cast<Integer32>(name));
+}
+
+void BytecodeEmitterPlugin::BindReference(size_t frameskip, size_t variableindex)
+{
+	Plugins.InvokeVoidPluginFunction(L"PluginBytecodeBindReference", static_cast<Integer32>(frameskip), static_cast<Integer32>(variableindex));
+}
+
+void BytecodeEmitterPlugin::BindReferenceIndirect()
+{
+	Plugins.InvokeVoidPluginFunction(L"PluginBytecodeBindIndirect");
+}
+
+void BytecodeEmitterPlugin::BindStructureReference(Metadata::EpochTypeID membertype, size_t memberoffset)
+{
+	Plugins.InvokeVoidPluginFunction(L"PluginBytecodeBindStructReference", static_cast<Integer32>(membertype), static_cast<Integer32>(memberoffset));
+}
+
+void BytecodeEmitterPlugin::BindStructureReferenceByHandle(StringHandle membername)
+{
+	Plugins.InvokeVoidPluginFunction(L"PluginBytecodeBindStructRefByHandle", static_cast<Integer32>(membername));
+}
+
+void BytecodeEmitterPlugin::PopStack(Metadata::EpochTypeID type)
+{
+	Plugins.InvokeVoidPluginFunction(L"PluginBytecodePopStack", static_cast<Integer32>(type));
+}
+
+
+void BytecodeEmitterPlugin::Invoke(StringHandle functionname)
+{
+	Plugins.InvokeVoidPluginFunction(L"PluginBytecodeInvoke", static_cast<Integer32>(functionname));
+}
+
+void BytecodeEmitterPlugin::InvokeIndirect(StringHandle varname)
+{
+	Plugins.InvokeVoidPluginFunction(L"PluginBytecodeInvokeIndirect", static_cast<Integer32>(varname));
+}
+
+void BytecodeEmitterPlugin::InvokeOffset(StringHandle functionname)
+{
+	Plugins.InvokeVoidPluginFunction(L"PluginBytecodeInvokeOffset", static_cast<Integer32>(functionname));
+}
+
+void BytecodeEmitterPlugin::Halt()
+{
+	Plugins.InvokeVoidPluginFunction(L"PluginBytecodeHalt");
+}
+
+void BytecodeEmitterPlugin::EnterEntity(Bytecode::EntityTag tag, StringHandle name)
+{
+	Plugins.InvokeVoidPluginFunction(L"PluginBytecodeEnterEntity", static_cast<Integer32>(tag), static_cast<Integer32>(name));
+}
+
+void BytecodeEmitterPlugin::ExitEntity()
+{
+	Plugins.InvokeVoidPluginFunction(L"PluginBytecodeExitEntity");
+}
+
+void BytecodeEmitterPlugin::BeginChain()
+{
+	Plugins.InvokeVoidPluginFunction(L"PluginBytecodeBeginChain");
+}
+
+void BytecodeEmitterPlugin::EndChain()
+{
+	Plugins.InvokeVoidPluginFunction(L"PluginBytecodeEndChain");
+}
+
+void BytecodeEmitterPlugin::InvokeMetacontrol(Bytecode::EntityTag tag)
+{
+	Plugins.InvokeVoidPluginFunction(L"PluginBytecodeMetacontrol", static_cast<Integer32>(tag));
+}
+
+
+void BytecodeEmitterPlugin::DefineLexicalScope(StringHandle name, StringHandle parent, size_t variablecount)
+{
+	Plugins.InvokeVoidPluginFunction(L"PluginBytecodeLexicalScope", static_cast<Integer32>(name), static_cast<Integer32>(parent), static_cast<Integer32>(variablecount));
+}
+
+void BytecodeEmitterPlugin::LexicalScopeEntry(StringHandle varname, Metadata::EpochTypeID vartype, bool isreference, VariableOrigin origin)
+{
+	Plugins.InvokeVoidPluginFunction(L"PluginBytecodeLexicalScopeEntry", static_cast<Integer32>(varname), static_cast<Integer32>(vartype), isreference, static_cast<Integer32>(origin));
+}
+
+void BytecodeEmitterPlugin::EnterPatternResolver(StringHandle functionname)
+{
+	Plugins.InvokeVoidPluginFunction(L"PluginBytecodeEnterPatternResolver", static_cast<Integer32>(functionname));
+}
+
+void BytecodeEmitterPlugin::ExitPatternResolver()
+{
+	Plugins.InvokeVoidPluginFunction(L"PluginBytecodeExitPatternResolver");
+}
+
+void BytecodeEmitterPlugin::ResolvePattern(StringHandle dispatchfunction, const FunctionSignature& signature)
+{
+	// TODO - move to plugin?
+	EmitInstruction(Bytecode::Instructions::PatternMatch);
+	EmitRawValue(dispatchfunction);
+	EmitRawValue(static_cast<size_t>(0));
+	EmitRawValue(signature.GetNumParameters());
+	for(size_t i = 0; i < signature.GetNumParameters(); ++i)
+	{
+		EmitTypeAnnotation(signature.GetParameter(i).Type);
+
+		if(signature.GetParameter(i).Name == L"@@patternmatched")
+		{
+			// Dump information about this parameter so we can check its value
+			EmitRawValue(true);
+			switch(signature.GetParameter(i).Type)
+			{
+			case Metadata::EpochType_Integer:
+				EmitRawValue(signature.GetParameter(i).Payload.IntegerValue);
+				break;
+
+			default:
+				throw NotImplementedException("Support for pattern matching function parameters of this type is not implemented");
+			}
+		}
+		else
+		{
+			// Signal that we can ignore this parameter for function matching purposes
+			EmitRawValue(false);
+		}
+	}
+}
+
+void BytecodeEmitterPlugin::EnterTypeResolver(StringHandle resolvername)
+{
+	Plugins.InvokeVoidPluginFunction(L"PluginBytecodeEnterTypeResolver", static_cast<Integer32>(resolvername));
+}
+
+void BytecodeEmitterPlugin::ExitTypeResolver()
+{
+	Plugins.InvokeVoidPluginFunction(L"PluginBytecodeExitTypeResolver");
+}
+
+void BytecodeEmitterPlugin::ResolveTypes(StringHandle dispatchfunction, const FunctionSignature& signature)
+{
+	// TODO - move to plugin?
+	EmitInstruction(Bytecode::Instructions::TypeMatch);
+	EmitRawValue(dispatchfunction);
+	EmitRawValue(static_cast<size_t>(0));
+	EmitRawValue(signature.GetNumParameters());
+	for(size_t i = signature.GetNumParameters(); i-- > 0; )
+	{
+		EmitRawValue(signature.GetParameter(i).IsReference);
+		EmitTypeAnnotation(signature.GetParameter(i).Type);
+	}
+}
+
+void BytecodeEmitterPlugin::AllocateStructure(Metadata::EpochTypeID descriptiontype)
+{
+	Plugins.InvokeVoidPluginFunction(L"PluginBytecodeAllocStructure", static_cast<Integer32>(descriptiontype));
+}
+
+void BytecodeEmitterPlugin::DefineStructure(Metadata::EpochTypeID type, size_t nummembers)
+{
+	Plugins.InvokeVoidPluginFunction(L"PluginBytecodeDefineStructure", static_cast<Integer32>(type), static_cast<Integer32>(nummembers));
+}
+
+void BytecodeEmitterPlugin::StructureMember(StringHandle identifier, Metadata::EpochTypeID type)
+{
+	Plugins.InvokeVoidPluginFunction(L"PluginBytecodeStructureMember", static_cast<Integer32>(identifier), static_cast<Integer32>(type));
+}
+
+void BytecodeEmitterPlugin::CopyFromStructure(StringHandle structurevariable, StringHandle membervariable)
+{
+	Plugins.InvokeVoidPluginFunction(L"PluginBytecodeCopyFromStructure", static_cast<Integer32>(structurevariable), static_cast<Integer32>(membervariable));
+}
+
+void BytecodeEmitterPlugin::AssignStructure(StringHandle structurevariable, StringHandle membername)
+{
+	Plugins.InvokeVoidPluginFunction(L"PluginBytecodeCopyToStructure", static_cast<Integer32>(structurevariable), static_cast<Integer32>(membername));
+}
+
+void BytecodeEmitterPlugin::CopyStructure()
+{
+	Plugins.InvokeVoidPluginFunction(L"PluginBytecodeCopyStructure");
+}
+
+void BytecodeEmitterPlugin::CopyBuffer()
+{
+	Plugins.InvokeVoidPluginFunction(L"PluginBytecodeCopyBuffer");
+}
+
+void BytecodeEmitterPlugin::AssignVariable()
+{
+	Plugins.InvokeVoidPluginFunction(L"PluginBytecodeAssign");
+}
+
+void BytecodeEmitterPlugin::AssignVariableThroughIdentifier()
+{
+	Plugins.InvokeVoidPluginFunction(L"PluginBytecodeAssignIndirect");
+}
+
+void BytecodeEmitterPlugin::AssignSumTypeVariable()
+{
+	Plugins.InvokeVoidPluginFunction(L"PluginBytecodeAssignSumType");
+}
+
+void BytecodeEmitterPlugin::ReadReferenceOntoStack()
+{
+	Plugins.InvokeVoidPluginFunction(L"PluginBytecodeReadReference");
+}
+
+void BytecodeEmitterPlugin::ReadReferenceWithTypeAnnotation()
+{
+	Plugins.InvokeVoidPluginFunction(L"PluginBytecodeReadReferenceAnnotated");
+}
+	
+void BytecodeEmitterPlugin::TempReferenceFromRegister()
+{
+	Plugins.InvokeVoidPluginFunction(L"PluginBytecodeTempReferenceFromRegister");
+}
+
+void BytecodeEmitterPlugin::PoolString(StringHandle handle, const std::wstring& literalvalue)
+{
+	Plugins.InvokeVoidPluginFunction(L"PluginBytecodePoolString", static_cast<Integer32>(handle), literalvalue.c_str());
+}
+
+void BytecodeEmitterPlugin::TagData(StringHandle entityname, const std::wstring& tag, const std::vector<std::wstring>& tagdata)
+{
+	// TODO - move to plugin?
+	EmitInstruction(Bytecode::Instructions::Tag);
+	EmitRawValue(entityname);
+	EmitRawValue(tagdata.size());
+	EmitTerminatedString(tag);
+	for(std::vector<std::wstring>::const_iterator iter = tagdata.begin(); iter != tagdata.end(); ++iter)
+		EmitTerminatedString(*iter);
+}
+
+void BytecodeEmitterPlugin::DefineSumType(Metadata::EpochTypeID sumtypeid, const std::set<Metadata::EpochTypeID>& basetypes)
+{
+	// TODO - move to plugin?
+	EmitInstruction(Bytecode::Instructions::SumTypeDef);
+	EmitTypeAnnotation(sumtypeid);
+	EmitRawValue(basetypes.size());
+	for(std::set<Metadata::EpochTypeID>::const_iterator iter = basetypes.begin(); iter != basetypes.end(); ++iter)
+		EmitTypeAnnotation(*iter);
+}
+
+void BytecodeEmitterPlugin::ConstructSumType()
+{
+	Plugins.InvokeVoidPluginFunction(L"PluginBytecodeConstructSumType");
+}
+
+void BytecodeEmitterPlugin::EmitInstruction(Bytecode::Instruction instruction)
+{
+	Plugins.InvokeVoidPluginFunction(L"PluginBytecodeEmitByte", static_cast<Byte>(instruction));
+}
+
+void BytecodeEmitterPlugin::EmitTerminatedString(const std::wstring& value)
+{
+	Plugins.InvokeVoidPluginFunction(L"PluginBytecodeEmitString", value.c_str());
+}
+
+void BytecodeEmitterPlugin::EmitTypeAnnotation(Metadata::EpochTypeID type)
+{
+	Plugins.InvokeVoidPluginFunction(L"PluginBytecodeEmitInteger", static_cast<Integer32>(type));
+}
+
+void BytecodeEmitterPlugin::EmitEntityTag(Bytecode::EntityTag tag)
+{
+	Plugins.InvokeVoidPluginFunction(L"PluginBytecodeEmitInteger", static_cast<Integer32>(tag));
+}
+
+void BytecodeEmitterPlugin::EmitRawValue(bool value)
+{
+	Plugins.InvokeVoidPluginFunction(L"PluginBytecodeEmitBoolean", value);
+}
+
+void BytecodeEmitterPlugin::EmitRawValue(Byte value)
+{
+	Plugins.InvokeVoidPluginFunction(L"PluginBytecodeEmitByte", value);
+}
+
+void BytecodeEmitterPlugin::EmitRawValue(Integer32 value)
+{
+	Plugins.InvokeVoidPluginFunction(L"PluginBytecodeEmitInteger", value);
+}
+
+void BytecodeEmitterPlugin::EmitRawValue(Integer16 value)
+{
+	Plugins.InvokeVoidPluginFunction(L"PluginBytecodeEmitInteger16", value);
+}
+
+void BytecodeEmitterPlugin::EmitRawValue(HandleType value)
+{
+	Plugins.InvokeVoidPluginFunction(L"PluginBytecodeEmitInteger", static_cast<Integer32>(value));
+}
+
+void BytecodeEmitterPlugin::EmitRawValue(const std::wstring& value)
+{
+	Plugins.InvokeVoidPluginFunction(L"PluginBytecodeEmitString", value.c_str());
+}
+
+void BytecodeEmitterPlugin::EmitRawValue(Real32 value)
+{
+	Plugins.InvokeVoidPluginFunction(L"PluginBytecodeEmitReal", value);
+}
+
+void BytecodeEmitterPlugin::EmitBuffer(const BytecodeStreamBase& stream)
+{
+	Plugins.InvokeVoidPluginFunction(L"PluginBytecodeEmitBytes", stream.GetPointer(), stream.GetSize());
+}

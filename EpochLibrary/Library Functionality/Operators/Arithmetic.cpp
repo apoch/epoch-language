@@ -58,6 +58,8 @@ namespace
 	StringHandle IncrementRealsHandle = 0;
 	StringHandle DecrementRealsHandle = 0;
 
+	StringHandle BitwiseAndHandle = 0;
+
 	
 	bool IncrementIntegerJIT(JIT::JITContext& context, bool)
 	{
@@ -181,6 +183,18 @@ namespace
 		return true;
 	}
 
+
+	bool BitwiseAndJIT(JIT::JITContext& context, bool)
+	{
+		llvm::Value* p2 = context.ValuesOnStack.top();
+		context.ValuesOnStack.pop();
+		llvm::Value* p1 = context.ValuesOnStack.top();
+		context.ValuesOnStack.pop();
+		llvm::Value* result = reinterpret_cast<llvm::IRBuilder<>*>(context.Builder)->CreateAnd(p1, p2);
+		context.ValuesOnStack.push(result);
+
+		return true;
+	}
 }
 
 
@@ -286,6 +300,14 @@ void ArithmeticLibrary::RegisterLibraryFunctions(FunctionSignatureSet& signature
 
 	{
 		FunctionSignature signature;
+		signature.AddParameter(L"i1", Metadata::EpochType_Integer, false);
+		signature.AddParameter(L"i2", Metadata::EpochType_Integer, false);
+		signature.SetReturnType(Metadata::EpochType_Integer);
+		AddToMapNoDupe(signatureset, std::make_pair(BitwiseAndHandle, signature));
+	}
+
+	{
+		FunctionSignature signature;
 		signature.AddParameter(L"operand", Metadata::EpochType_Integer, false);
 		signature.SetReturnType(Metadata::EpochType_Integer);
 		AddToMapNoDupe(signatureset, std::make_pair(IncrementIntegersHandle, signature));
@@ -327,6 +349,9 @@ void ArithmeticLibrary::RegisterInfixOperators(StringSet& infixtable, Precedence
 
 	AddToSetNoDupe(infixtable, L"/");
 	AddToMapNoDupe(precedences, std::make_pair(DivideHandle, PRECEDENCE_MULTIPLYDIVIDE));
+
+	AddToSetNoDupe(infixtable, L"&");
+	AddToMapNoDupe(precedences, std::make_pair(BitwiseAndHandle, PRECEDENCE_BITWISE));
 }
 
 //
@@ -399,6 +424,8 @@ void ArithmeticLibrary::RegisterJITTable(JIT::JITTable& table)
 
 	AddToMapNoDupe(table.InvokeHelpers, std::make_pair(IncrementIntegersHandle, &IncrementIntegerJIT));
 	AddToMapNoDupe(table.InvokeHelpers, std::make_pair(DecrementIntegersHandle, &DecrementIntegerJIT));
+
+	AddToMapNoDupe(table.InvokeHelpers, std::make_pair(BitwiseAndHandle, &BitwiseAndJIT));
 }
 
 
@@ -437,5 +464,7 @@ void ArithmeticLibrary::PoolStrings(StringPoolManager& stringpool)
 	BangHandle = stringpool.Pool(L"!");
 	IncrementHandle = stringpool.Pool(L"++");
 	DecrementHandle = stringpool.Pool(L"--");
+
+	BitwiseAndHandle = stringpool.Pool(L"&");
 }
 
