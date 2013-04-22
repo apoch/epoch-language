@@ -126,7 +126,7 @@ namespace
 		context.ValuesOnStack.pop();
 		llvm::Value* p1 = context.ValuesOnStack.top();
 		context.ValuesOnStack.pop();
-		llvm::Value* result = reinterpret_cast<llvm::IRBuilder<>*>(context.Builder)->CreateSDiv(p1, p2);
+		llvm::Value* result = reinterpret_cast<llvm::IRBuilder<>*>(context.Builder)->CreateUDiv(p1, p2);
 		context.ValuesOnStack.push(result);
 	
 		return true;

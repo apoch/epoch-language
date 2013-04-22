@@ -23,4 +23,4 @@ EXPORTS
 
 	ExecuteByteCodePersistent	@18
 	FreePersistedByteCode		@19
-
+	FreeNativeCode				@20

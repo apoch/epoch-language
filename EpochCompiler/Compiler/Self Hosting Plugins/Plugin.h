@@ -26,6 +26,7 @@ class CompilerPluginManager
 // Plugin registration
 public:
 	void RegisterPluginFunction(const std::wstring& functionname, void* code);
+	void Clear();
 
 // Plugin checking
 public:

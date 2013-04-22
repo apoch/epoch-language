@@ -1062,7 +1062,7 @@ void BytecodeEmitterPlugin::PushVariableValueNoCopy(StringHandle variablename)
 
 void BytecodeEmitterPlugin::PushLocalVariableValue(bool isparam, size_t frames, size_t offset, size_t size)
 {
-	Plugins.InvokeVoidPluginFunction(L"PluginBytecodePushLocal", isparam, static_cast<Integer32>(frames), static_cast<Integer32>(offset), static_cast<Integer32>(size));
+	Plugins.InvokeVoidPluginFunction(L"PluginBytecodePushLocal", static_cast<Integer32>(isparam), static_cast<Integer32>(frames), static_cast<Integer32>(offset), static_cast<Integer32>(size));
 }
 
 void BytecodeEmitterPlugin::PushBufferHandle(BufferHandle handle)

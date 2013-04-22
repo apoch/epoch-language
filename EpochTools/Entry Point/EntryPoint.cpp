@@ -40,6 +40,7 @@ void LoadSelfHostingPlugin(const std::wstring& filename)
 	std::wstring source = Files::Load(filename);
 					
 	DLLAccess::CompilerAccess compileraccess;
+	compileraccess.FreePlugins();
 	DLLAccess::CompiledByteCodeHandle bytecodebufferhandle = compileraccess.CompileSourceToByteCode(filename, source);
 
 	if(bytecodebufferhandle)
@@ -57,6 +58,7 @@ int _tmain(int argc, _TCHAR* argv[])
 {
 	bool testmode = false;
 	bool recurse = false;
+	bool useplugins = false;
 
 	unsigned testpasscount = 0;
 	unsigned executioncount = 0;
@@ -202,8 +204,7 @@ int _tmain(int argc, _TCHAR* argv[])
 		}
 		else if(parameters[i] == L"/selfhost")
 		{
-			// TODO - make plugins configurable?
-			LoadSelfHostingPlugin(L"D:\\Epoch\\Programs\\Compiler\\ByteCodeEmitter.epoch");
+			useplugins = true;
 		}
 		else
 		{
@@ -216,6 +217,12 @@ int _tmain(int argc, _TCHAR* argv[])
 				std::vector<std::wstring> files = Files::GetMatchingFiles(filespec, recurse);
 				for(std::vector<std::wstring>::const_iterator iter = files.begin(); iter != files.end(); ++iter)
 				{
+					if(useplugins)
+					{
+						// TODO - make plugins configurable?
+						LoadSelfHostingPlugin(L"D:\\Epoch\\Programs\\Compiler\\ByteCodeEmitter.epoch");
+					}
+
 					++executioncount;
 
 					const std::wstring& filename = *iter;
@@ -234,6 +241,8 @@ int _tmain(int argc, _TCHAR* argv[])
 
 						runtimeaccess.LinkTestHarness(&testpasscount);
 						runtimeaccess.ExecuteByteCode(compileraccess.GetByteCode(bytecodebufferhandle), compileraccess.GetByteCodeSize(bytecodebufferhandle));
+
+						runtimeaccess.FreeNativeCode();
 					}
 
 					output << L"\n\n" << std::endl;

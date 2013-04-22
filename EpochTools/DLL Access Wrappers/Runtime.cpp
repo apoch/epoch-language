@@ -30,8 +30,9 @@ RuntimeAccess::RuntimeAccess()
 	DoExecByteCodePersistent = Marshaling::DLLPool::GetFunction<ExecuteByteCodePersistentPtr>(dllhandle, "ExecuteByteCodePersistent");
 	DoLinkTestHarness = Marshaling::DLLPool::GetFunction<LinkTestHarnessPtr>(dllhandle, "LinkTestHarness");
 	DoFreePersisted = Marshaling::DLLPool::GetFunction<FreePersistedPtr>(dllhandle, "FreePersistedByteCode");
+	DoFreeNativeCode = Marshaling::DLLPool::GetFunction<FreeNativeCodePtr>(dllhandle, "FreeNativeCode");
 
-	if(!DoExecByteCode || !DoExecByteCodePersistent || !DoLinkTestHarness || !DoFreePersisted)
+	if(!DoExecByteCode || !DoExecByteCodePersistent || !DoLinkTestHarness || !DoFreePersisted || !DoFreeNativeCode)
 		throw DLLException("Failed to load Epoch Runtime");
 }
 
@@ -64,3 +65,7 @@ void RuntimeAccess::FreePersisted()
 	}
 }
 
+void RuntimeAccess::FreeNativeCode()
+{
+	DoFreeNativeCode();
+}

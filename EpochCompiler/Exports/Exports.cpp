@@ -115,3 +115,8 @@ extern "C" void STDCALL RegisterPluginFunction(const wchar_t* functionname, void
 	Plugins.RegisterPluginFunction(functionname, codeptr);
 }
 
+extern "C" void STDCALL ReleasePluginFunctions()
+{
+	Plugins.Clear();
+}
+

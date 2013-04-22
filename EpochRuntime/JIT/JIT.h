@@ -104,6 +104,7 @@ namespace JIT
 
 
 	void DestructLLVMModule();
+	void DestructLLVMNativeCode();
 
 }
 

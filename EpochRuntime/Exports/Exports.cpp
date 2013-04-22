@@ -213,3 +213,9 @@ extern "C" BufferHandle Epoch_GetBufferByPtr(const char* bufferptr)
 
 	return 0;
 }
+
+extern "C" void FreeNativeCode()
+{
+	JIT::DestructLLVMNativeCode();
+}
+

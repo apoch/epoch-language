@@ -76,6 +76,8 @@ namespace JIT
 	namespace impl
 	{
 
+		ExecutionEngine* LazyEngine = NULL;
+
 		Module* LazyModule = NULL;
 		Module* LazyInitModule()
 		{
@@ -1014,6 +1016,8 @@ void NativeCodeGenerator::Generate()
 	ExecutionEngine* ee = EngineBuilder(Data->CurrentModule).setErrorStr(&ErrStr).create(machine);
 	if(!ee)
 		return;
+
+	LazyEngine = ee;
 
 	ee->DisableLazyCompilation(true);
 	ee->RegisterJITEventListener(this);
@@ -2801,6 +2805,9 @@ Value* NativeCodeGenerator::MarshalArgumentReverse(Value* arg, Metadata::EpochTy
 {
 	switch(type)
 	{
+	case Metadata::EpochType_Boolean:
+		return Builder.CreateCast(Instruction::Trunc, arg, Type::getInt1Ty(Data->Context));
+
 	case Metadata::EpochType_Integer:
 	case Metadata::EpochType_Integer16:
 	case Metadata::EpochType_Real:
@@ -2949,18 +2956,23 @@ void* NativeCodeGenerator::GenerateCallbackWrapper(void* targetfunc)
 
 	//Data->CurrentModule->dump();	
 
-	ExecutionEngine* ee = EngineBuilder(Data->CurrentModule).create();
-	return ee->getPointerToFunction(wrapfunc);
+	return LazyEngine->getPointerToFunction(wrapfunc);
 }
 
 
 
 void JIT::DestructLLVMModule()
 {
-	delete LazyModule;
 	LazyModule = NULL;
 	EpochGC::ClearGCContextInfo();
 }
+
+void JIT::DestructLLVMNativeCode()
+{
+	delete LazyEngine;
+	LazyEngine = NULL;
+}
+
 
 void NativeCodeGenerator::NotifyFunctionEmitted(const llvm::Function& function, void* code, size_t size, const EmittedFunctionDetails&)
 {

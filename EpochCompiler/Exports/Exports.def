@@ -7,3 +7,5 @@ EXPORTS
 	ParseSource					@5
 
 	RegisterPluginFunction		@6
+	ReleasePluginFunctions		@7
+

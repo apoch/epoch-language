@@ -33,12 +33,15 @@ namespace DLLAccess
 		void* GetByteCode(CompiledByteCodeHandle handle) const;
 		size_t GetByteCodeSize(CompiledByteCodeHandle handle) const;
 
+		void FreePlugins();
+
 	// Internal type definitions for function pointers
 	private:
 		typedef CompiledByteCodeHandle (STDCALL *CompileSourceToByteCodePtr)(const wchar_t*, const void*, size_t);
 		typedef void* (STDCALL *GetByteCodeBufferPtr)(CompiledByteCodeHandle);
 		typedef size_t (STDCALL *GetByteCodeBufferSizePtr)(CompiledByteCodeHandle);
 		typedef void (STDCALL *FreeByteCodeBufferPtr)(CompiledByteCodeHandle);
+		typedef void (STDCALL *ReleasePluginsPtr)();
 
 	// Internal function pointers bound to the DLL
 	private:
@@ -46,6 +49,7 @@ namespace DLLAccess
 		GetByteCodeBufferPtr DoGetByteCodeBuffer;
 		GetByteCodeBufferSizePtr DoGetByteCodeBufferSize;
 		FreeByteCodeBufferPtr DoFreeByteCodeBuffer;
+		ReleasePluginsPtr DoReleasePlugins;
 
 	// Internal state tracking
 	private:

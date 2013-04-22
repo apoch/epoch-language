@@ -23,6 +23,7 @@ namespace DLLAccess
 		void ExecuteByteCodeAndPersist(void* buffer, size_t size);
 		void LinkTestHarness(unsigned* harness);
 		void FreePersisted();
+		void FreeNativeCode();
 
 	// Internal type definitions for function pointers
 	private:
@@ -30,6 +31,7 @@ namespace DLLAccess
 		typedef void* (STDCALL *ExecuteByteCodePersistentPtr)(void*, size_t);
 		typedef void (STDCALL *LinkTestHarnessPtr)(unsigned*);
 		typedef void (STDCALL *FreePersistedPtr)(void*);
+		typedef void (STDCALL *FreeNativeCodePtr)();
 
 	// Internal function pointers bound to the DLL
 	private:
@@ -37,6 +39,7 @@ namespace DLLAccess
 		ExecuteByteCodePersistentPtr DoExecByteCodePersistent;
 		LinkTestHarnessPtr DoLinkTestHarness;
 		FreePersistedPtr DoFreePersisted;
+		FreeNativeCodePtr DoFreeNativeCode;
 	};
 
 }

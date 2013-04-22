@@ -42,6 +42,8 @@ namespace
 	StringHandle CastRealToStringHandle = 0;
 	StringHandle CastBufferToStringHandle = 0;
 
+	StringHandle CastBooleanToIntegerHandle = 0;
+
 
 	bool CastRealToIntegerJIT(JIT::JITContext& context, bool)
 	{
@@ -68,6 +70,21 @@ namespace
 
 		llvm::LLVMContext& llvmcontext = *reinterpret_cast<llvm::LLVMContext*>(context.Context);
 		llvm::Value* castvalue = reinterpret_cast<llvm::IRBuilder<>*>(context.Builder)->CreateCast(llvm::Instruction::SIToFP, p, llvm::Type::getFloatTy(llvmcontext));
+		context.ValuesOnStack.push(castvalue);
+
+		return true;
+	}
+
+	bool CastBooleanToIntegerJIT(JIT::JITContext& context, bool)
+	{
+		llvm::Value* p = context.ValuesOnStack.top();
+		context.ValuesOnStack.pop();
+
+		// Pop "integer" token
+		context.ValuesOnStack.pop();
+
+		llvm::LLVMContext& llvmcontext = *reinterpret_cast<llvm::LLVMContext*>(context.Context);
+		llvm::Value* castvalue = reinterpret_cast<llvm::IRBuilder<>*>(context.Builder)->CreateCast(llvm::Instruction::ZExt, p, llvm::Type::getInt32Ty(llvmcontext));
 		context.ValuesOnStack.push(castvalue);
 
 		return true;
@@ -129,6 +146,13 @@ void TypeCasts::RegisterLibraryFunctions(FunctionSignatureSet& signatureset)
 		signature.SetReturnType(Metadata::EpochType_Real);
 		AddToMapNoDupe(signatureset, std::make_pair(CastIntegerToRealHandle, signature));
 	}
+	{
+		FunctionSignature signature;
+		signature.AddPatternMatchedParameterIdentifier(IntegerTypeHandle);
+		signature.AddParameter(L"value", EpochType_Boolean, false);
+		signature.SetReturnType(Metadata::EpochType_Integer);
+		AddToMapNoDupe(signatureset, std::make_pair(CastBooleanToIntegerHandle, signature));
+	}
 }
 
 
@@ -146,6 +170,7 @@ void TypeCasts::RegisterLibraryOverloads(OverloadMap& overloadmap, StringPoolMan
 		overloadmap[functionnamehandle].insert(stringpool.Pool(L"cast@@buffer_to_string"));
 		overloadmap[functionnamehandle].insert(stringpool.Pool(L"cast@@real_to_integer"));
 		overloadmap[functionnamehandle].insert(stringpool.Pool(L"cast@@integer_to_real"));
+		overloadmap[functionnamehandle].insert(stringpool.Pool(L"cast@@boolean_to_integer"));
 	}
 }
 
@@ -153,6 +178,7 @@ void TypeCasts::RegisterJITTable(JIT::JITTable& table)
 {
 	AddToMapNoDupe(table.InvokeHelpers, std::make_pair(CastRealToIntegerHandle, &CastRealToIntegerJIT));
 	AddToMapNoDupe(table.InvokeHelpers, std::make_pair(CastIntegerToRealHandle, &CastIntegerToRealJIT));
+	AddToMapNoDupe(table.InvokeHelpers, std::make_pair(CastBooleanToIntegerHandle, &CastBooleanToIntegerJIT));
 
 	AddToMapNoDupe(table.LibraryExports, std::make_pair(CastRealToStringHandle, "EpochLib_CastRealToStr"));
 	AddToMapNoDupe(table.LibraryExports, std::make_pair(CastBufferToStringHandle, "EpochLib_CastBufferToStr"));
@@ -174,6 +200,8 @@ void TypeCasts::PoolStrings(StringPoolManager& stringpool)
 	CastBooleanToStringHandle = stringpool.Pool(L"cast@@boolean_to_string");
 	CastRealToStringHandle = stringpool.Pool(L"cast@@real_to_string");
 	CastBufferToStringHandle = stringpool.Pool(L"cast@@buffer_to_string");
+
+	CastBooleanToIntegerHandle = stringpool.Pool(L"cast@@boolean_to_integer");
 }
 
 

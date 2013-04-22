@@ -70,3 +70,9 @@ const Byte* CompilerPluginManager::InvokeBytePointerPluginFunction(const std::ws
 	return p();
 }
 
+
+void CompilerPluginManager::Clear()
+{
+	PluginRegistrationTable.clear();
+}
+

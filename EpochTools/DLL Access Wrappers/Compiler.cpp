@@ -28,6 +28,7 @@ CompilerAccess::CompilerAccess()
 	DoGetByteCodeBuffer = Marshaling::DLLPool::GetFunction<GetByteCodeBufferPtr>(dllhandle, "GetByteCodeBuffer");
 	DoGetByteCodeBufferSize = Marshaling::DLLPool::GetFunction<GetByteCodeBufferSizePtr>(dllhandle, "GetByteCodeBufferSize");
 	DoFreeByteCodeBuffer = Marshaling::DLLPool::GetFunction<FreeByteCodeBufferPtr>(dllhandle, "FreeByteCodeBuffer");
+	DoReleasePlugins = Marshaling::DLLPool::GetFunction<ReleasePluginsPtr>(dllhandle, "ReleasePluginFunctions");
 
 	if(!DoCompileSource || !DoGetByteCodeBuffer || !DoGetByteCodeBufferSize || !DoFreeByteCodeBuffer)
 		throw DLLException("Failed to load Epoch compiler");
@@ -78,4 +79,10 @@ size_t CompilerAccess::GetByteCodeSize(CompiledByteCodeHandle handle) const
 	return DoGetByteCodeBufferSize(handle);
 }
 
-
+//
+// Free a set of compiler plugins
+//
+void CompilerAccess::FreePlugins()
+{
+	DoReleasePlugins();
+}
