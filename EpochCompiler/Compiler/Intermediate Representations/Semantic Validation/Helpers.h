@@ -45,7 +45,7 @@ namespace IRSemantics
 		class StringCache
 		{
 		private:
-			typedef boost::unordered_map<T, StringHandle> CacheType;
+			typedef std::map<T, StringHandle> CacheType;
 
 		public:
 			StringHandle Find(const T& key) const

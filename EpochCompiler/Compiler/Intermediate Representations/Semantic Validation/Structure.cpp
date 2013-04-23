@@ -243,7 +243,11 @@ bool Structure::InstantiateTemplate(StringHandle myname, const CompileTimeParame
 	for(std::vector<std::pair<StringHandle, StructureMember*> >::iterator iter = Members.begin(); iter != Members.end(); ++iter)
 		iter->second->SubstituteTemplateArgs(TemplateParams, args, curnamespace);
 
-	curnamespace.Functions.GenerateStructureFunctions(myname, this);
+	Namespace* ns = &curnamespace;
+	while(ns->Parent)
+		ns = ns->Parent;
+
+	ns->Functions.GenerateStructureFunctions(myname, this);
 	// TODO - copy constructors for template instances
 	GenerateConstructors(myname, curnamespace.Types.Templates.FindConstructorName(myname), curnamespace.Types.Templates.FindAnonConstructorName(myname), 0, args, curnamespace, errors);
 	return true;

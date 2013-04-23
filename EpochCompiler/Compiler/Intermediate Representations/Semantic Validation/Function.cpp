@@ -50,6 +50,12 @@ Function::Function(const Function* templatefunc, Namespace& curnamespace, const 
 		FunctionParamNamed* named = dynamic_cast<FunctionParamNamed*>(iter->Parameter);
 		if(named)
 			named->SubstituteTemplateArgs(TemplateParams, args, curnamespace);
+		else
+		{
+			FunctionParamFuncRef* fref = dynamic_cast<FunctionParamFuncRef*>(iter->Parameter);
+			if(fref)
+				fref->SubstituteTemplateArgs(TemplateParams, args, curnamespace);
+		}
 	}
 }
 
@@ -890,6 +896,22 @@ void FunctionParamFuncRef::AddToScope(StringHandle name, CodeBlock& code, Namesp
 	code.AddVariable(curnamespace.Strings.GetPooledString(name), name, 0, type, false, VARIABLE_ORIGIN_PARAMETER);
 }
 
+void FunctionParamFuncRef::SubstituteTemplateArgs(const std::vector<std::pair<StringHandle, Metadata::EpochTypeID> >& params, const CompileTimeParameterVector& args, Namespace&)
+{
+	// Modify signature entry types as appropriate
+	for(size_t tp = 0; tp < params.size(); ++tp)
+	{
+		for(size_t i = 0; i < ParamTypes.size(); ++i)
+		{
+			if(ParamTypes[i] == params[tp].first)
+				ParamTypes[i] = args[tp].Payload.LiteralStringHandleValue;
+		}
+
+		if(ReturnType == params[tp].first)
+			ReturnType = args[tp].Payload.LiteralStringHandleValue;
+	}
+}
+
 
 //
 // Perform type inference on just a function's parameters
@@ -900,7 +922,14 @@ void FunctionParamFuncRef::AddToScope(StringHandle name, CodeBlock& code, Namesp
 //
 void Function::TypeInferenceParamsOnly(Namespace& curnamespace, CompileErrors& errors)
 {
+	Namespace* activenamespace;
+
+	if(TemplateArgs.empty())
+		activenamespace = &curnamespace;
+	else
+		activenamespace = DummyNamespace;
+
 	for(std::vector<Param>::const_iterator iter = Parameters.begin(); iter != Parameters.end(); ++iter)
-		iter->Parameter->TypeInference(curnamespace, errors);
+		iter->Parameter->TypeInference(*activenamespace, errors);
 }
 

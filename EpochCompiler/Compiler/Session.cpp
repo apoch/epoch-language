@@ -189,7 +189,7 @@ size_t CompileSession::GetEmittedBufferSize() const
 //
 void CompileSession::CompileFile(const std::wstring& code, const std::wstring& filename)
 {
-	Parser theparser(Identifiers);
+	Parser theparser(Identifiers); 
 
 	if(!theparser.Parse(code, filename, ASTProgram))
 		throw FatalException("Parsing failed!");

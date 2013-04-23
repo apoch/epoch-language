@@ -825,7 +825,6 @@ void Expression::Coalesce(Namespace& curnamespace, CodeBlock& activescope, Compi
 }
 
 
-
 //
 // Construct and initialize an expression atom which wraps a statement
 //

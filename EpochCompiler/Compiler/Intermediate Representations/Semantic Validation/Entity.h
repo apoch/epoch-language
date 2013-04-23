@@ -12,6 +12,12 @@
 #include "Compiler/Abstract Syntax Tree/IdentifierT.h"
 
 #include "Utility/Types/IDTypes.h"
+#include "Utility/Types/EpochTypeIDs.h"
+
+#include "Metadata/CompileTimeParams.h"
+
+#include <vector>
+#include <utility>
 
 
 // Forward declarations
@@ -98,6 +104,10 @@ namespace IRSemantics
 	// Optimization
 	public:
 		void HoistScopes(ScopeDescription* target);
+
+	// Template support
+	public:
+		void SubstituteTemplateArgs(const std::vector<std::pair<StringHandle, Metadata::EpochTypeID> >& params, const CompileTimeParameterVector& args, Namespace& curnamespace);
 
 	// Internal state
 	private:

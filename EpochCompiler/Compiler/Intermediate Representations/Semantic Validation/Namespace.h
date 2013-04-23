@@ -306,10 +306,12 @@ namespace IRSemantics
 	private:
 		friend class TypeSpace;
 		friend class FunctionTable;
+		friend class FunctionSignatureTable;
 		friend class TemplateTable;
 		friend class StructureTable;
 		friend class SumTypeTable;
 		friend class Entity;
+		friend class Structure;
 
 		CompileSession& Session;
 

@@ -789,12 +789,6 @@ StringHandle TypeSpace::GetNameOfType(Metadata::EpochTypeID type) const
 			return iter->first;
 	}
 
-	for(std::map<StringHandle, Metadata::EpochTypeID>::const_iterator iter = Aliases.WeakNameToTypeMap.begin(); iter != Aliases.WeakNameToTypeMap.end(); ++iter)
-	{
-		if(iter->second == type)
-			return iter->first;
-	}
-
 	for(std::map<StringHandle, Metadata::EpochTypeID>::const_iterator iter = Aliases.StrongNameToTypeMap.begin(); iter != Aliases.StrongNameToTypeMap.end(); ++iter)
 	{
 		if(iter->second == type)
@@ -1005,6 +999,9 @@ Metadata::EpochTypeID FunctionSignatureTable::FindEpochType(const FunctionSignat
 			return iter->second;
 	}
 
+	if(MyTypeSpace.MyNamespace.Parent)
+		return MyTypeSpace.MyNamespace.Parent->Types.FunctionSignatures.FindEpochType(sig);
+
 	throw InternalException("Failed to map function signature to a type!");
 }
 
@@ -1015,6 +1012,9 @@ Metadata::EpochTypeID FunctionSignatureTable::AllocateEpochType(const FunctionSi
 		if(iter->first.Matches(sig))
 			return iter->second;
 	}
+
+	if(MyTypeSpace.MyNamespace.Parent)
+		return MyTypeSpace.MyNamespace.Parent->Types.FunctionSignatures.AllocateEpochType(sig);
 
 	Metadata::EpochTypeID type = MyTypeSpace.IDSpace.NewFunctionSignature();
 	SignatureToTypeList.push_back(std::make_pair(sig, type));

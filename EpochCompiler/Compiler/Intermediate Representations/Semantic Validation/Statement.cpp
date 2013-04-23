@@ -21,6 +21,8 @@
 #include "Compiler/CompileErrors.h"
 #include "Compiler/Exceptions.h"
 
+#include "Utility/StringPool.h"
+
 
 using namespace IRSemantics;
 
@@ -265,12 +267,32 @@ bool Statement::TypeInference(Namespace& curnamespace, CodeBlock& activescope, I
 								break;
 							}
 
-							StringHandle resolvedidentifier;
-							unsigned signaturematches = curnamespace.Functions.FindMatchingFunctions(atom->GetIdentifier(), signature.GetFunctionSignature(j), context, errors, resolvedidentifier);
-							if(signaturematches != 1)
+							StringHandle resolvedidentifier = atom->GetIdentifier();
+							if(activescope.GetScope()->HasVariable(resolvedidentifier))
 							{
-								match = false;
-								break;
+								const FunctionSignature& parentsig = curnamespace.Functions.GetSignature(context.FunctionName);
+								for(size_t k = 0; k < parentsig.GetNumParameters(); ++k)
+								{
+									if(parentsig.GetParameter(k).Name == curnamespace.Strings.GetPooledString(resolvedidentifier))
+									{
+										if(!parentsig.GetFunctionSignature(k).Matches(signature.GetFunctionSignature(j)))
+											match = false;
+
+										break;
+									}
+								}
+
+								if(!match)
+									break;
+							}
+							else
+							{
+								unsigned signaturematches = curnamespace.Functions.FindMatchingFunctions(resolvedidentifier, signature.GetFunctionSignature(j), context, errors, resolvedidentifier);
+								if(signaturematches != 1)
+								{
+									match = false;
+									break;
+								}
 							}
 						}
 						else
@@ -611,10 +633,19 @@ bool Statement::TypeInference(Namespace& curnamespace, CodeBlock& activescope, I
 // Maps constructors to the correct names when template
 // arguments are passed to a templated type constructor
 //
-void Statement::SetTemplateArgs(const CompileTimeParameterVector& args, Namespace& curnamespace, CompileErrors& errors)
+void Statement::SetTemplateArgs(const CompileTimeParameterVector& originalargs, Namespace& curnamespace, CompileErrors& errors)
 {
-	if(!args.empty())
+	if(!originalargs.empty())
 	{
+		CompileTimeParameterVector args(originalargs);
+
+		for(size_t i = 0; i < args.size(); ++i)
+		{
+			Metadata::EpochTypeID type = curnamespace.Types.GetTypeByName(args[i].Payload.LiteralStringHandleValue);
+			if(type)
+				args[i].Payload.LiteralStringHandleValue = curnamespace.Types.GetNameOfType(type);
+		}		
+
 		if(curnamespace.Types.Structures.IsStructureTemplate(Name))
 		{
 			RawName = curnamespace.Types.Templates.InstantiateStructure(Name, args);
@@ -654,6 +685,7 @@ void Statement::SetTemplateArgsDeferred(const CompileTimeParameterVector& args)
 		NeedsInstantiation = true;
 	}
 }
+
 
 
 //

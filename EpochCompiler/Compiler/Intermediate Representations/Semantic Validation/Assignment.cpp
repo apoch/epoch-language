@@ -206,6 +206,7 @@ bool AssignmentChainExpression::Validate(const Namespace& curnamespace) const
 }
 
 
+
 //
 // Construct and initialize an assignment which chains to another assignment
 //

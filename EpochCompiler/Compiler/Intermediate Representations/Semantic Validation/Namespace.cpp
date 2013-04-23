@@ -537,6 +537,8 @@ StringHandle FunctionTable::InstantiateTemplate(StringHandle templatename, const
 	ns->Functions.FunctionIR[mangledname]->SetRawName(mangledname);
 	ns->Functions.FunctionIR[mangledname]->PopulateScope(MyNamespace, errors);
 	ns->Functions.FunctionIR[mangledname]->FixupScope();
+	ns->Functions.FunctionIR[mangledname]->TypeInferenceParamsOnly(MyNamespace, errors);
+	ns->Functions.Session.FunctionSignatures[mangledname] = ns->Functions.FunctionIR[mangledname]->GetFunctionSignature(*ns);
 
 	return mangledname;
 }
@@ -572,17 +574,22 @@ InferenceContext::PossibleParameterTypes FunctionTable::GetExpectedTypes(StringH
 		boost::unordered_map<StringHandle, Function*>::const_iterator funciter = FunctionIR.find(contextname);
 		if(funciter == FunctionIR.end())
 		{
-			//
-			// This is a critical internal failure. A function overload name
-			// has been registered but the corresponding definition of the
-			// function cannot be located.
-			//
-			// Examine the handling of overload registration, name resolution,
-			// and definition storage. We should not reach the phase of type
-			// inference until all function definitions have been visited by
-			// AST traversal in prior semantic validation passes.
-			//
-			throw InternalException("Function overload registered but definition not found");
+			if(!MyNamespace.Parent)
+			{
+				//
+				// This is a critical internal failure. A function overload name
+				// has been registered but the corresponding definition of the
+				// function cannot be located.
+				//
+				// Examine the handling of overload registration, name resolution,
+				// and definition storage. We should not reach the phase of type
+				// inference until all function definitions have been visited by
+				// AST traversal in prior semantic validation passes.
+				//
+				throw InternalException("Function overload registered but definition not found");
+			}
+			else
+				return MyNamespace.Parent->Functions.GetExpectedTypes(name, scope, contextname, errors);
 		}
 		
 		InferenceContext::PossibleParameterTypes ret(1, InferenceContext::TypePossibilities());
@@ -684,24 +691,29 @@ InferenceContext::PossibleParameterTypes FunctionTable::GetExpectedTypes(StringH
 //
 // Similar to GetExpectedTypes, but retrieves higher-order function signatures
 //
-InferenceContext::PossibleSignatureSet FunctionTable::GetExpectedSignatures(StringHandle name, const ScopeDescription& scope, StringHandle contextname, CompileErrors&) const
+InferenceContext::PossibleSignatureSet FunctionTable::GetExpectedSignatures(StringHandle name, const ScopeDescription& scope, StringHandle contextname, CompileErrors& errors) const
 {
 	if(scope.HasVariable(name) && Metadata::GetTypeFamily(scope.GetVariableTypeByID(name)) == Metadata::EpochTypeFamily_Function)
 	{
 		boost::unordered_map<StringHandle, Function*>::const_iterator funciter = FunctionIR.find(contextname);
 		if(funciter == FunctionIR.end())
 		{
-			//
-			// This is a critical internal failure. A function overload name
-			// has been registered but the corresponding definition of the
-			// function cannot be located.
-			//
-			// Examine the handling of overload registration, name resolution,
-			// and definition storage. We should not reach the phase of type
-			// inference until all function definitions have been visited by
-			// AST traversal in prior semantic validation passes.
-			//
-			throw InternalException("Function overload registered but definition not found");
+			if(!MyNamespace.Parent)
+			{
+				//
+				// This is a critical internal failure. A function overload name
+				// has been registered but the corresponding definition of the
+				// function cannot be located.
+				//
+				// Examine the handling of overload registration, name resolution,
+				// and definition storage. We should not reach the phase of type
+				// inference until all function definitions have been visited by
+				// AST traversal in prior semantic validation passes.
+				//
+				throw InternalException("Function overload registered but definition not found");
+			}
+			else
+				return MyNamespace.Parent->Functions.GetExpectedSignatures(name, scope, contextname, errors);
 		}
 		
 		InferenceContext::PossibleSignatureSet ret(1, InferenceContext::SignaturePossibilities());
@@ -771,6 +783,8 @@ InferenceContext::PossibleSignatureSet FunctionTable::GetExpectedSignatures(Stri
 				for(size_t j = 0; j < fsigiter->second.GetNumParameters(); ++j)
 					ret[i].push_back(fsigiter->second.GetFunctionSignature(j));
 			}
+			else
+				throw FatalException("No signature available for function overload");
 
 			++i;
 		}
@@ -810,13 +824,11 @@ StringHandle FunctionTable::FindStructureMemberAccessOverload(StringHandle struc
 //
 unsigned FunctionTable::FindMatchingFunctions(StringHandle identifier, const FunctionSignature& expectedsignature, InferenceContext& context, CompileErrors& errors, StringHandle& resolvedidentifier)
 {
-	bool foundidentifier = false;
 	unsigned signaturematches = 0;
 
 	FunctionSignatureSet::const_iterator fsigiter = Session.FunctionSignatures.find(identifier);
 	if(fsigiter != Session.FunctionSignatures.end())
 	{
-		foundidentifier = true;
 		if(expectedsignature.Matches(fsigiter->second))
 			++signaturematches;
 	}
@@ -825,7 +837,6 @@ unsigned FunctionTable::FindMatchingFunctions(StringHandle identifier, const Fun
 		unsigned overloadcount = GetNumOverloads(identifier);
 		for(unsigned j = 0; j < overloadcount; ++j)
 		{
-			foundidentifier = true;
 			StringHandle overloadname = GetOverloadName(identifier, j);
 			Function* func = FunctionIR.find(overloadname)->second;
 

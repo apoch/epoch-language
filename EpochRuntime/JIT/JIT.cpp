@@ -2059,7 +2059,7 @@ void FunctionJITHelper::Halt(size_t&)
 void FunctionJITHelper::Push(size_t& offset)
 {
 	Metadata::EpochTypeID type = Fetch<Metadata::EpochTypeID>(Bytecode, offset);
-	Constant* valueval;
+	Value* valueval;
 
 	switch(type)
 	{
@@ -2110,15 +2110,24 @@ void FunctionJITHelper::Push(size_t& offset)
 			{
 				std::map<StringHandle, const char*>::const_iterator libiter = Generator.ExecContext.JITHelpers.LibraryExports.find(funcname);
 				if(libiter == Generator.ExecContext.JITHelpers.LibraryExports.end())
-					throw NotImplementedException("Invalid higher order function target");
+				{
+					if(!LibJITContext.CurrentScope->HasVariable(funcname))
+						throw NotImplementedException("Invalid higher order function target");
 
-				FunctionType* ftype = Generator.GetLLVMFunctionTypeFromSignature(funcname);
-				Function* func = Generator.LibraryFunctionCache[libiter->second];
+					size_t ignored = 0;
+					size_t index = LibJITContext.CurrentScope->FindVariable(funcname, ignored);
+					valueval = LibJITContext.VariableMap[index];
+				}
+				else
+				{
+					FunctionType* ftype = Generator.GetLLVMFunctionTypeFromSignature(funcname);
+					Function* func = Generator.LibraryFunctionCache[libiter->second];
 
-				if(!func)
-					func = Generator.LibraryFunctionCache[libiter->second] = Function::Create(ftype, Function::ExternalLinkage, libiter->second, Generator.Data->CurrentModule);
+					if(!func)
+						func = Generator.LibraryFunctionCache[libiter->second] = Function::Create(ftype, Function::ExternalLinkage, libiter->second, Generator.Data->CurrentModule);
 
-				valueval = func;
+					valueval = func;
+				}
 			}
 		}
 		break;

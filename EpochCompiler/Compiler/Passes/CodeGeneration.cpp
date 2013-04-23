@@ -20,6 +20,9 @@
 #include "Compiler/Intermediate Representations/Semantic Validation/CodeBlock.h"
 #include "Compiler/Intermediate Representations/Semantic Validation/Entity.h"
 
+#include "Compiler/Self Hosting Plugins/Plugin.h"
+#include "Compiler/Self Hosting Plugins/SelfHostCodeGen.h"
+
 #include "Compiler/ByteCodeEmitter.h"
 
 #include "Compiler/Session.h"
@@ -1052,6 +1055,9 @@ namespace
 
 bool CompilerPasses::GenerateCode(const IRSemantics::Program& program, BytecodeEmitterBase& emitter)
 {
+	if(Plugins.IsPluginFunctionProvided(L"PluginCodeGenProcessProgram"))
+		return CompilerPasses::GenerateCodeSelfHosted(program);
+
 	TypeSizeCache.clear();
 
 	const StringPoolManager& strings = program.GetStringPool();

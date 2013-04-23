@@ -14,6 +14,8 @@
 #include "Utility/Types/IDTypes.h"
 #include "Utility/Types/EpochTypeIDs.h"
 
+#include "Metadata/CompileTimeParams.h"
+
 #include <vector>
 
 

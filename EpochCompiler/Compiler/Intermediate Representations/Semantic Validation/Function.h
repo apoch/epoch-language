@@ -209,6 +209,10 @@ namespace IRSemantics
 		const std::vector<StringHandle>& GetParamTypes() const
 		{ return ParamTypes; }
 
+	// Template support
+	public:
+		void SubstituteTemplateArgs(const std::vector<std::pair<StringHandle, Metadata::EpochTypeID> >& params, const CompileTimeParameterVector& args, Namespace& curnamespace);
+
 	// Internal state
 	private:
 		std::vector<StringHandle> ParamTypes;

@@ -220,7 +220,7 @@ int _tmain(int argc, _TCHAR* argv[])
 					if(useplugins)
 					{
 						// TODO - make plugins configurable?
-						LoadSelfHostingPlugin(L"D:\\Epoch\\Programs\\Compiler\\ByteCodeEmitter.epoch");
+						LoadSelfHostingPlugin(L"D:\\Epoch\\Programs\\Compiler\\Compiler.epoch");
 					}
 
 					++executioncount;
