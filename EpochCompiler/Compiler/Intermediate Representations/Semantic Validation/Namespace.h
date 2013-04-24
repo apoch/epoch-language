@@ -143,6 +143,10 @@ namespace IRSemantics
 
 		unsigned FindMatchingFunctions(StringHandle identifier, const FunctionSignature& expectedsignature, InferenceContext& context, CompileErrors& errors, StringHandle& resolvedidentifier);
 
+	// Visible tracking
+	public:
+		std::set<StringHandle> PendingTypeInference;
+
 	// Internal helpers
 	private:
 		StringHandle InstantiateTemplate(StringHandle templatename, const CompileTimeParameterVector& args, CompileErrors& errors);

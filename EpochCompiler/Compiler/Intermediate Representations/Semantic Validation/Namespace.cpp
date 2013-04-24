@@ -392,6 +392,12 @@ bool FunctionTable::TypeInference(InferenceContext& context, CompileErrors& erro
 			return false;
 	}
 
+	for(std::set<StringHandle>::const_iterator iter = PendingTypeInference.begin(); iter != PendingTypeInference.end(); ++iter)
+	{
+		if(!FunctionIR[*iter]->TypeInference(MyNamespace, context, errors))
+			return false;
+	}
+
 	return true;
 }
 
@@ -539,8 +545,10 @@ StringHandle FunctionTable::InstantiateTemplate(StringHandle templatename, const
 	ns->Functions.FunctionIR[mangledname]->SetRawName(mangledname);
 	ns->Functions.FunctionIR[mangledname]->PopulateScope(MyNamespace, errors);
 	ns->Functions.FunctionIR[mangledname]->FixupScope();
-	ns->Functions.FunctionIR[mangledname]->TypeInference(MyNamespace, context, errors);
+	ns->Functions.FunctionIR[mangledname]->TypeInferenceParamsReturnOnly(MyNamespace, context, errors);
 	ns->Functions.Session.FunctionSignatures[mangledname] = ns->Functions.FunctionIR[mangledname]->GetFunctionSignature(*ns);
+
+	ns->Functions.PendingTypeInference.insert(mangledname);
 
 	return mangledname;
 }
