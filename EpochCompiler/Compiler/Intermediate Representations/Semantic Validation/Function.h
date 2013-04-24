@@ -101,7 +101,7 @@ namespace IRSemantics
 
 	// Template support
 	public:
-		void SubstituteTemplateArgs(const std::vector<std::pair<StringHandle, Metadata::EpochTypeID> >& params, const CompileTimeParameterVector& args, Namespace& curnamespace);
+		void SubstituteTemplateArgs(const std::vector<std::pair<StringHandle, Metadata::EpochTypeID> >& params, const CompileTimeParameterVector& args, Namespace& curnamespace, CompileErrors& errors);
 
 	// Internal state
 	private:
@@ -211,7 +211,7 @@ namespace IRSemantics
 
 	// Template support
 	public:
-		void SubstituteTemplateArgs(const std::vector<std::pair<StringHandle, Metadata::EpochTypeID> >& params, const CompileTimeParameterVector& args, Namespace& curnamespace);
+		void SubstituteTemplateArgs(const std::vector<std::pair<StringHandle, Metadata::EpochTypeID> >& params, const CompileTimeParameterVector& args, Namespace& curnamespace, CompileErrors& errors);
 
 	// Internal state
 	private:
@@ -297,7 +297,7 @@ namespace IRSemantics
 			  SuppressGeneration(false)
 		{ }
 
-		Function(const Function* templatefunc, Namespace& curnamespace, const CompileTimeParameterVector& args);
+		Function(const Function* templatefunc, Namespace& curnamespace, const CompileTimeParameterVector& args, CompileErrors& errors);
 
 		~Function();
 
@@ -390,6 +390,7 @@ namespace IRSemantics
 	public:
 		bool TypeInference(Namespace& curnamespace, InferenceContext& context, CompileErrors& errors);
 		void TypeInferenceParamsOnly(Namespace& curnamespace, CompileErrors& errors);
+		void TypeInferenceParamsReturnOnly(Namespace& curnamespace, InferenceContext& context, CompileErrors& errors);
 
 	// Tags
 	public:

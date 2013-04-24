@@ -241,7 +241,7 @@ bool Structure::InstantiateTemplate(StringHandle myname, const CompileTimeParame
 	// TODO - check that args matches our template param list; do this for ALL template instantiators
 
 	for(std::vector<std::pair<StringHandle, StructureMember*> >::iterator iter = Members.begin(); iter != Members.end(); ++iter)
-		iter->second->SubstituteTemplateArgs(TemplateParams, args, curnamespace);
+		iter->second->SubstituteTemplateArgs(TemplateParams, args, curnamespace, errors);
 
 	Namespace* ns = &curnamespace;
 	while(ns->Parent)
@@ -266,7 +266,7 @@ void Structure::AddTemplateParameter(Metadata::EpochTypeID type, StringHandle na
 //
 // Pass template arguments on to a structure member
 //
-void Structure::SetMemberTemplateArgs(StringHandle membername, const CompileTimeParameterVector& args, Namespace& curnamespace)
+void Structure::SetMemberTemplateArgs(StringHandle membername, const CompileTimeParameterVector& args, Namespace& curnamespace, CompileErrors& errors)
 {
 	for(std::vector<std::pair<StringHandle, StructureMember*> >::const_iterator iter = Members.begin(); iter != Members.end(); ++iter)
 	{
@@ -279,7 +279,7 @@ void Structure::SetMemberTemplateArgs(StringHandle membername, const CompileTime
 
 			var->SetTemplateArgs(args);
 			if(!IsTemplate())
-				var->SubstituteTemplateArgs(TemplateParams, args, curnamespace);
+				var->SubstituteTemplateArgs(TemplateParams, args, curnamespace, errors);
 			return;
 		}
 	}
@@ -316,7 +316,7 @@ Metadata::EpochTypeID StructureMemberVariable::GetEpochType(const Namespace& cur
 // Given a set of template parameters and arguments, set
 // up a structure member variable to use them as needed.
 //
-void StructureMemberVariable::SubstituteTemplateArgs(const std::vector<std::pair<StringHandle, Metadata::EpochTypeID> >& params, const CompileTimeParameterVector& args, Namespace& curnamespace)
+void StructureMemberVariable::SubstituteTemplateArgs(const std::vector<std::pair<StringHandle, Metadata::EpochTypeID> >& params, const CompileTimeParameterVector& args, Namespace& curnamespace, CompileErrors& errors)
 {
 	if(TemplateArgs.empty())
 		return;
@@ -333,9 +333,9 @@ void StructureMemberVariable::SubstituteTemplateArgs(const std::vector<std::pair
 
 	// Now modify my name and type as appropriate
 	if(curnamespace.Types.Structures.IsStructureTemplate(MyType))
-		MyType = curnamespace.Types.Templates.InstantiateStructure(MyType, TemplateArgs);
+		MyType = curnamespace.Types.Templates.InstantiateStructure(MyType, TemplateArgs, errors);
 	else if(curnamespace.Types.SumTypes.IsTemplate(MyType))
-		MyType = curnamespace.Types.SumTypes.InstantiateTemplate(MyType, TemplateArgs);
+		MyType = curnamespace.Types.SumTypes.InstantiateTemplate(MyType, TemplateArgs, errors);
 	//else
 	//	throw NotImplementedException("Template parameterization not implemented in this context");
 }

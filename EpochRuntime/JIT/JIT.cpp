@@ -2312,7 +2312,7 @@ void FunctionJITHelper::InvokeOffset(size_t& offset)
 			Value* v2 = LibJITContext.ValuesOnStack.top();
 			LibJITContext.ValuesOnStack.pop();
 
-			if(v2->getType()->isPointerTy())
+			if(v2->getType()->isPointerTy() && !dyn_cast<FunctionType>(v2->getType()->getContainedType(0)->getContainedType(0)))
 			{
 				Metadata::EpochTypeID paramepochtype = TypeAnnotations.top();
 				Value* annotation = ConstantInt::get(Type::getInt32Ty(Context), paramepochtype);
@@ -2333,6 +2333,9 @@ void FunctionJITHelper::InvokeOffset(size_t& offset)
 				{
 					Value* stacktemp = Builder.CreateAlloca(v2->getType());
 					Builder.CreateStore(v2, stacktemp);
+
+					if(v2->getType()->isPointerTy())
+						stacktemp = Builder.CreateLoad(stacktemp);
 
 					matchervarargs.push_back(v1);
 					matchervarargs.push_back(Builder.CreatePointerCast(stacktemp, Type::getInt8PtrTy(Context)));

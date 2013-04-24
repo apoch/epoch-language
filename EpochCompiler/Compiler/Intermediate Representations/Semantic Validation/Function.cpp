@@ -26,7 +26,7 @@ using namespace IRSemantics;
 //
 // Constructor used to deep copy a function
 //
-Function::Function(const Function* templatefunc, Namespace& curnamespace, const CompileTimeParameterVector& args)
+Function::Function(const Function* templatefunc, Namespace& curnamespace, const CompileTimeParameterVector& args, CompileErrors& errors)
 	: Code(templatefunc->Code ? templatefunc->Code->Clone() : NULL),
 	  Return(templatefunc->Return ? templatefunc->Return->Clone() : NULL),
 	  InferenceDone(false),
@@ -49,12 +49,12 @@ Function::Function(const Function* templatefunc, Namespace& curnamespace, const 
 	{
 		FunctionParamNamed* named = dynamic_cast<FunctionParamNamed*>(iter->Parameter);
 		if(named)
-			named->SubstituteTemplateArgs(TemplateParams, args, curnamespace);
+			named->SubstituteTemplateArgs(TemplateParams, args, curnamespace, errors);
 		else
 		{
 			FunctionParamFuncRef* fref = dynamic_cast<FunctionParamFuncRef*>(iter->Parameter);
 			if(fref)
-				fref->SubstituteTemplateArgs(TemplateParams, args, curnamespace);
+				fref->SubstituteTemplateArgs(TemplateParams, args, curnamespace, errors);
 		}
 	}
 }
@@ -551,13 +551,13 @@ Metadata::EpochTypeID FunctionParamNamed::GetParamType(const Namespace&) const
 //
 // Makes sure to instantiate structure templates if necessary
 //
-bool FunctionParamNamed::TypeInference(Namespace& curnamespace, CompileErrors&)
+bool FunctionParamNamed::TypeInference(Namespace& curnamespace, CompileErrors& errors)
 {
 	StringHandle name;
 	if(TemplateArgs.empty())
 		name = MyTypeName;
 	else
-		name = curnamespace.Types.Templates.InstantiateStructure(MyTypeName, TemplateArgs);
+		name = curnamespace.Types.Templates.InstantiateStructure(MyTypeName, TemplateArgs, errors);
 
 	MyActualType = curnamespace.Types.GetTypeByName(name);
 	return true;
@@ -567,7 +567,7 @@ bool FunctionParamNamed::TypeInference(Namespace& curnamespace, CompileErrors&)
 // Allow parameterized types to receive the correct
 // arguments, when used on a named function parameter.
 //
-void FunctionParamNamed::SubstituteTemplateArgs(const std::vector<std::pair<StringHandle, Metadata::EpochTypeID> >& params, const CompileTimeParameterVector& args, Namespace& curnamespace)
+void FunctionParamNamed::SubstituteTemplateArgs(const std::vector<std::pair<StringHandle, Metadata::EpochTypeID> >& params, const CompileTimeParameterVector& args, Namespace& curnamespace, CompileErrors& errors)
 {
 	if(TemplateArgs.empty())
 		return;
@@ -583,7 +583,7 @@ void FunctionParamNamed::SubstituteTemplateArgs(const std::vector<std::pair<Stri
 	}
 
 	// Now modify my name and type as appropriate
-	MyTypeName = curnamespace.Types.Templates.InstantiateStructure(MyTypeName, TemplateArgs);
+	MyTypeName = curnamespace.Types.Templates.InstantiateStructure(MyTypeName, TemplateArgs, errors);
 }
 
 
@@ -896,7 +896,7 @@ void FunctionParamFuncRef::AddToScope(StringHandle name, CodeBlock& code, Namesp
 	code.AddVariable(curnamespace.Strings.GetPooledString(name), name, 0, type, false, VARIABLE_ORIGIN_PARAMETER);
 }
 
-void FunctionParamFuncRef::SubstituteTemplateArgs(const std::vector<std::pair<StringHandle, Metadata::EpochTypeID> >& params, const CompileTimeParameterVector& args, Namespace&)
+void FunctionParamFuncRef::SubstituteTemplateArgs(const std::vector<std::pair<StringHandle, Metadata::EpochTypeID> >& params, const CompileTimeParameterVector& args, Namespace&, CompileErrors&)
 {
 	// Modify signature entry types as appropriate
 	for(size_t tp = 0; tp < params.size(); ++tp)
@@ -933,3 +933,21 @@ void Function::TypeInferenceParamsOnly(Namespace& curnamespace, CompileErrors& e
 		iter->Parameter->TypeInference(*activenamespace, errors);
 }
 
+void Function::TypeInferenceParamsReturnOnly(Namespace& curnamespace, InferenceContext&, CompileErrors& errors)
+{
+	TypeInferenceParamsOnly(curnamespace, errors);
+
+	if(Return)
+	{
+		Namespace* activenamespace;
+
+		if(TemplateArgs.empty())
+			activenamespace = &curnamespace;
+		else
+			activenamespace = DummyNamespace;
+
+		InferenceContext newcontext(Name, InferenceContext::CONTEXT_FUNCTION_RETURN);
+		newcontext.FunctionName = Name;
+		Return->TypeInference(*activenamespace, *Code, newcontext, 0, 1, errors);
+	}
+}

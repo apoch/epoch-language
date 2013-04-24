@@ -1610,12 +1610,7 @@ void CompilePassSemantics::ExitHelper::operator () (Markers::TemplateArgs&)
 	{
 	case CompilePassSemantics::STATE_STATEMENT:
 		if(!self->CurrentTemplateArgs.back()->empty())
-		{
-			if(!self->CurrentFunctions.empty() && !self->CurrentFunctions.back()->IsTemplate())
-				self->CurrentStatements.back()->SetTemplateArgs(*self->CurrentTemplateArgs.back(), *self->CurrentNamespace, self->Errors);
-			else
-				self->CurrentStatements.back()->SetTemplateArgsDeferred(*self->CurrentTemplateArgs.back());
-		}
+			self->CurrentStatements.back()->SetTemplateArgsDeferred(*self->CurrentTemplateArgs.back());
 		break;
 
 	case CompilePassSemantics::STATE_FUNCTION_PARAM:
@@ -1623,7 +1618,7 @@ void CompilePassSemantics::ExitHelper::operator () (Markers::TemplateArgs&)
 		break;
 
 	case CompilePassSemantics::STATE_STRUCTURE:
-		self->CurrentStructures.back()->SetMemberTemplateArgs(self->LastStructureMemberName, *self->CurrentTemplateArgs.back(), *self->CurrentNamespace);
+		self->CurrentStructures.back()->SetMemberTemplateArgs(self->LastStructureMemberName, *self->CurrentTemplateArgs.back(), *self->CurrentNamespace, self->Errors);
 		break;
 
 	default:

@@ -93,6 +93,10 @@ namespace IRSemantics
 		void GenerateStructureFunctions(StringHandle name, Structure* structure);
 		StringHandle FindStructureMemberAccessOverload(StringHandle structurename, StringHandle membername) const;
 
+	// Sum type support
+	public:
+		void GenerateSumTypeFunctions(Metadata::EpochTypeID sumtypeid, const std::set<StringHandle>& basetypenames);
+
 	// Compiler helper interface
 	public:
 		bool HasCompileHelper(StringHandle functionname) const;

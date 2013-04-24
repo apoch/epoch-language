@@ -151,7 +151,9 @@ namespace IRSemantics
 		void AddTemplateParameter(Metadata::EpochTypeID sumtype, StringHandle name);
 
 		bool IsTemplate(StringHandle name) const;
-		StringHandle InstantiateTemplate(StringHandle templatename, const CompileTimeParameterVector& args);
+		StringHandle InstantiateTemplate(StringHandle templatename, const CompileTimeParameterVector& args, CompileErrors& errors);
+
+		void GenerateCode();
 
 	// Internal helpers
 	private:
@@ -160,6 +162,7 @@ namespace IRSemantics
 	// Internal tracking
 	private:
 		friend class TypeSpace;
+		friend class FunctionTable;
 		TypeSpace& MyTypeSpace;
 
 		std::map<StringHandle, Metadata::EpochTypeID> NameToTypeMap;
@@ -168,6 +171,8 @@ namespace IRSemantics
 
 		InstantiationMap Instantiations;
 		std::map<StringHandle, std::vector<StringHandle> > NameToParamsMap;
+
+		std::set<Metadata::EpochTypeID> PendingCodeGen;
 	};
 
 
@@ -187,7 +192,7 @@ namespace IRSemantics
 
 	// Structure templates
 	public:
-		StringHandle InstantiateStructure(StringHandle templatename, const CompileTimeParameterVector& args);
+		StringHandle InstantiateStructure(StringHandle templatename, const CompileTimeParameterVector& args, CompileErrors& errors);
 
 		const InstantiationMap& GetInstantiations() const
 		{ return Instantiations; }

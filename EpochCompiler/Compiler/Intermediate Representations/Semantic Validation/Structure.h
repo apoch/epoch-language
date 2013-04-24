@@ -54,7 +54,7 @@ namespace IRSemantics
 		virtual Metadata::EpochTypeID GetEpochType(const Namespace& curnamespace) const = 0;
 		virtual bool Validate(const Namespace& curnamespace, CompileErrors& errors) const = 0;
 
-		virtual void SubstituteTemplateArgs(const std::vector<std::pair<StringHandle, Metadata::EpochTypeID> >&, const CompileTimeParameterVector&, Namespace&)
+		virtual void SubstituteTemplateArgs(const std::vector<std::pair<StringHandle, Metadata::EpochTypeID> >&, const CompileTimeParameterVector&, Namespace&, CompileErrors&)
 		{ }
 
 		virtual void PopulateTypeSpace(Namespace&)
@@ -99,7 +99,7 @@ namespace IRSemantics
 
 	// Template support
 	public:
-		void SubstituteTemplateArgs(const std::vector<std::pair<StringHandle, Metadata::EpochTypeID> >& params, const CompileTimeParameterVector& args, Namespace& curnamespace);
+		void SubstituteTemplateArgs(const std::vector<std::pair<StringHandle, Metadata::EpochTypeID> >& params, const CompileTimeParameterVector& args, Namespace& curnamespace, CompileErrors& errors);
 
 		void SetTemplateArgs(const CompileTimeParameterVector& args)
 		{ TemplateArgs = args; }
@@ -194,7 +194,7 @@ namespace IRSemantics
 	// Template support
 	public:
 		void AddTemplateParameter(Metadata::EpochTypeID type, StringHandle name);
-		void SetMemberTemplateArgs(StringHandle membername, const CompileTimeParameterVector& args, Namespace& curnamespace);
+		void SetMemberTemplateArgs(StringHandle membername, const CompileTimeParameterVector& args, Namespace& curnamespace, CompileErrors& errors);
 
 	// Validation
 	public:

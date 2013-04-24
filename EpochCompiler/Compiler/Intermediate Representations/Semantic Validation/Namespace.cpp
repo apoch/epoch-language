@@ -528,16 +528,18 @@ StringHandle FunctionTable::InstantiateTemplate(StringHandle templatename, const
 		ns = ns->Parent;
 	}
 
+	InferenceContext context(0, InferenceContext::CONTEXT_GLOBAL);
+
 	StringHandle mangledname = ns->Functions.CreateOverload(MyNamespace.Strings.GetPooledString(templatename));
 	ns->Functions.FunctionOverloadCounters[mangledname]++;
 	ns->Functions.FunctionOverloadNameCache.Add(std::make_pair(mangledname, 0), mangledname);
 	ns->Functions.Instantiations[templatename].insert(std::make_pair(mangledname, args));
-	ns->Functions.FunctionIR[mangledname] = new Function(GetIR(templatename), MyNamespace, args);
+	ns->Functions.FunctionIR[mangledname] = new Function(GetIR(templatename), MyNamespace, args, errors);
 	ns->Functions.FunctionIR[mangledname]->SetName(mangledname);
 	ns->Functions.FunctionIR[mangledname]->SetRawName(mangledname);
 	ns->Functions.FunctionIR[mangledname]->PopulateScope(MyNamespace, errors);
 	ns->Functions.FunctionIR[mangledname]->FixupScope();
-	ns->Functions.FunctionIR[mangledname]->TypeInferenceParamsOnly(MyNamespace, errors);
+	ns->Functions.FunctionIR[mangledname]->TypeInference(MyNamespace, context, errors);
 	ns->Functions.Session.FunctionSignatures[mangledname] = ns->Functions.FunctionIR[mangledname]->GetFunctionSignature(*ns);
 
 	return mangledname;
@@ -1266,3 +1268,91 @@ bool Namespace::ShadowingCheck(StringHandle identifier, CompileErrors& errors)
 	return false;
 }
 
+
+void FunctionTable::GenerateSumTypeFunctions(Metadata::EpochTypeID sumtypeid, const std::set<StringHandle>& basetypenames)
+{
+	StringHandle sumtypeconstructorname = 0;
+	for(std::map<StringHandle, Metadata::EpochTypeID>::const_iterator niter = MyNamespace.Types.SumTypes.NameToTypeMap.begin(); niter != MyNamespace.Types.SumTypes.NameToTypeMap.end(); ++niter)
+	{
+		if(niter->second == sumtypeid)
+		{
+			sumtypeconstructorname = niter->first;
+			break;
+		}
+	}
+
+	if(!sumtypeconstructorname)
+		throw InternalException("Missing sum type name mapping");
+
+	std::wostringstream overloadnamebuilder;
+	overloadnamebuilder << L"@@sumtypeconstructor@" << sumtypeid << L"@" << sumtypeid;
+	StringHandle overloadname = MyNamespace.Strings.Pool(overloadnamebuilder.str());
+	MyNamespace.Session.FunctionOverloadNames[sumtypeconstructorname].insert(overloadname);
+
+	FunctionSignature signature;
+	signature.AddParameter(L"@id", Metadata::EpochType_Identifier, false);
+	signature.AddParameter(L"@value", sumtypeid, false);
+
+	MyNamespace.Session.CompileTimeHelpers.insert(std::make_pair(sumtypeconstructorname, &CompileConstructorHelper));
+	MyNamespace.Session.FunctionSignatures.insert(std::make_pair(overloadname, signature));
+	MyNamespace.Types.SumTypes.NameToConstructorMap[overloadname] = sumtypeconstructorname;
+
+	for(std::set<StringHandle>::const_iterator btiter = basetypenames.begin(); btiter != basetypenames.end(); ++btiter)
+	{
+		StringHandle basetypename = *btiter;
+
+		std::wostringstream overloadnamebuilder;
+		overloadnamebuilder << L"@@sumtypeconstructor@" << sumtypeid << L"@" << MyNamespace.Strings.GetPooledString(basetypename);
+		StringHandle sumtypeconstructorname = 0;
+		for(std::map<StringHandle, Metadata::EpochTypeID>::const_iterator iter = MyNamespace.Types.SumTypes.NameToTypeMap.begin(); iter != MyNamespace.Types.SumTypes.NameToTypeMap.end(); ++iter)
+		{
+			if(iter->second == sumtypeid)
+			{
+				sumtypeconstructorname = iter->first;
+				break;
+			}
+		}
+
+		if(!sumtypeconstructorname)
+			throw InternalException("Missing sum type name mapping");
+
+		StringHandle overloadname = MyNamespace.Strings.Pool(overloadnamebuilder.str());
+		MyNamespace.Session.FunctionOverloadNames[sumtypeconstructorname].insert(overloadname);
+
+		Metadata::EpochTypeFamily family = Metadata::GetTypeFamily(MyNamespace.Types.GetTypeByName(basetypename));
+		switch(family)
+		{
+		case Metadata::EpochTypeFamily_Magic:
+		case Metadata::EpochTypeFamily_Primitive:
+		case Metadata::EpochTypeFamily_GC:
+			// No adjustment needed
+			break;
+
+		case Metadata::EpochTypeFamily_Structure:
+			basetypename = MyNamespace.Types.Structures.GetConstructorName(basetypename);
+			break;
+
+		case Metadata::EpochTypeFamily_TemplateInstance:
+			basetypename = MyNamespace.Types.Templates.FindConstructorName(basetypename);
+			break;
+
+		default:
+			throw NotImplementedException("Sum types with this base type not supported");
+		}
+
+		MyNamespace.Session.CompileTimeHelpers.insert(std::make_pair(overloadname, MyNamespace.Session.CompileTimeHelpers.find(basetypename)->second));
+
+		if(MyNamespace.Types.GetTypeByName(basetypename) == Metadata::EpochType_Nothing)
+		{
+			FunctionSignature signature;
+			signature.AddParameter(L"identifier", Metadata::EpochType_Identifier, false);
+			signature.AddParameter(L"nothing", Metadata::EpochType_Nothing, false);
+
+			MyNamespace.Session.FunctionSignatures.insert(std::make_pair(overloadname, signature));
+		}
+		else
+			MyNamespace.Session.FunctionSignatures.insert(std::make_pair(overloadname, MyNamespace.Session.FunctionSignatures.find(basetypename)->second));
+
+		MyNamespace.Types.SumTypes.NameToConstructorMap[overloadname] = basetypename;
+	}
+}

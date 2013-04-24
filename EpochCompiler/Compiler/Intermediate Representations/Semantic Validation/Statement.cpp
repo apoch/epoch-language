@@ -145,9 +145,23 @@ bool Statement::TypeInference(Namespace& curnamespace, CodeBlock& activescope, I
 
 	switch(context.State)
 	{
+	case InferenceContext::CONTEXT_FUNCTION_RETURN:
+		MyType = curnamespace.Types.GetTypeByName(Name);
+		Name = curnamespace.Types.GetNameOfType(MyType);
+		if(Metadata::GetTypeFamily(MyType) == Metadata::EpochTypeFamily_Structure)
+			Name = curnamespace.Types.Structures.GetConstructorName(Name);
+		else if(Metadata::GetTypeFamily(MyType) == Metadata::EpochTypeFamily_TemplateInstance)
+			Name = curnamespace.Types.Templates.FindConstructorName(Name);
+		else if(Metadata::GetTypeFamily(MyType) == Metadata::EpochTypeFamily_Unit)
+			Name = curnamespace.Types.Aliases.GetStrongRepresentationName(MyType);
+
+		curnamespace.Functions.GetIR(context.FunctionName)->SetHintReturnType(MyType);
+
+
+		// Deliberate fallthrough
+
 	case InferenceContext::CONTEXT_CODE_BLOCK:
 	case InferenceContext::CONTEXT_EXPRESSION:
-	case InferenceContext::CONTEXT_FUNCTION_RETURN:
 		newcontext.ExpectedTypes.push_back(curnamespace.Functions.GetExpectedTypes(Name, *activescope.GetScope(), context.FunctionName, errors));
 		newcontext.ExpectedSignatures.push_back(curnamespace.Functions.GetExpectedSignatures(Name, *activescope.GetScope(), context.FunctionName, errors));
 		break;
@@ -173,19 +187,6 @@ bool Statement::TypeInference(Namespace& curnamespace, CodeBlock& activescope, I
 		throw InternalException("Statement type inference failure - unrecognized context");
 	}
 
-	if(context.State == InferenceContext::CONTEXT_FUNCTION_RETURN)
-	{
-		MyType = curnamespace.Types.GetTypeByName(Name);
-		if(Metadata::GetTypeFamily(MyType) == Metadata::EpochTypeFamily_Structure)
-			Name = curnamespace.Types.Structures.GetConstructorName(Name);
-		else if(Metadata::GetTypeFamily(MyType) == Metadata::EpochTypeFamily_TemplateInstance)
-			Name = curnamespace.Types.Templates.FindConstructorName(Name);
-		else if(Metadata::GetTypeFamily(MyType) == Metadata::EpochTypeFamily_Unit)
-			Name = curnamespace.Types.Aliases.GetStrongRepresentationName(MyType);
-
-		curnamespace.Functions.GetIR(context.FunctionName)->SetHintReturnType(MyType);
-	}
-
 	size_t i = 0;
 	for(std::vector<Expression*>::iterator iter = Parameters.begin(); iter != Parameters.end(); ++iter)
 	{
@@ -206,7 +207,7 @@ bool Statement::TypeInference(Namespace& curnamespace, CodeBlock& activescope, I
 			InferenceContext funccontext(0, InferenceContext::CONTEXT_GLOBAL);
 			unsigned overloadcount = curnamespace.Functions.GetNumOverloads(RawName);
 			for(unsigned i = 0; i < overloadcount; ++i)
-			{	
+			{
 				StringHandle overloadname = curnamespace.Functions.GetOverloadName(RawName, i);
 				Metadata::EpochTypeID funcreturntype = Metadata::EpochType_Error;
 				FunctionSignature signature;
@@ -615,7 +616,7 @@ bool Statement::TypeInference(Namespace& curnamespace, CodeBlock& activescope, I
 	if(!valid)
 		return false;
 
-	if(!CompileTimeCodeExecution(curnamespace, activescope, context.ContextName == InferenceContext::CONTEXT_FUNCTION_RETURN, errors))
+	if(!CompileTimeCodeExecution(curnamespace, activescope, context.State == InferenceContext::CONTEXT_FUNCTION_RETURN, errors))
 		return false;
 
 	if(!context.ExpectedTypes.empty() && MyType == Metadata::EpochType_Void)
@@ -648,13 +649,15 @@ void Statement::SetTemplateArgs(const CompileTimeParameterVector& originalargs, 
 
 		if(curnamespace.Types.Structures.IsStructureTemplate(Name))
 		{
-			RawName = curnamespace.Types.Templates.InstantiateStructure(Name, args);
+			RawName = curnamespace.Types.Templates.InstantiateStructure(Name, args, errors);
 			Name = curnamespace.Types.Templates.FindConstructorName(RawName);
+			curnamespace.Types.SumTypes.GenerateCode();
 		}
 		else if(curnamespace.Types.SumTypes.IsTemplate(Name))
 		{
-			RawName = curnamespace.Types.SumTypes.InstantiateTemplate(Name, args);
+			RawName = curnamespace.Types.SumTypes.InstantiateTemplate(Name, args, errors);
 			Name = RawName;
+			curnamespace.Types.SumTypes.GenerateCode();
 		}
 		else if(curnamespace.Functions.IsFunctionTemplate(Name))
 		{
