@@ -291,6 +291,10 @@ void FunctionTable::SetCompileHelper(StringHandle functionname, CompilerHelperPt
 //
 void FunctionTable::SetSignature(StringHandle functionname, const FunctionSignature& signature)
 {
+	FunctionSignatureSet::const_iterator iter = Session.FunctionSignatures.find(functionname);
+	if(iter != Session.FunctionSignatures.end() && !iter->second.Matches(signature))
+		throw FatalException("Attempting to replace function signature");
+
 	Session.FunctionSignatures[functionname] = signature;
 }
 

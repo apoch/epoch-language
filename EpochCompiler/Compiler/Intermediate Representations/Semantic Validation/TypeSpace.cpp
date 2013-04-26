@@ -347,7 +347,7 @@ StringHandle SumTypeTable::InstantiateTemplate(StringHandle templatename, const 
 	}
 
 	Metadata::EpochTypeID type = MyTypeSpace.IDSpace.NewSumTypeID();
-	std::wstring mangled = GenerateTemplateMangledName(type);
+	std::wstring mangled = GenerateTemplateMangledName(NameToTypeMap[templatename], type, args);
 	StringHandle mangledname = MyTypeSpace.MyNamespace.Strings.Pool(mangled);
 	Instantiations[templatename].insert(std::make_pair(mangledname, args));
 	NameToTypeMap[mangledname] = type;
@@ -380,10 +380,12 @@ void SumTypeTable::GenerateCode()
 //
 // Internal helper for generating template instance mangled names
 //
-std::wstring SumTypeTable::GenerateTemplateMangledName(Metadata::EpochTypeID type)
+std::wstring SumTypeTable::GenerateTemplateMangledName(Metadata::EpochTypeID templatetype, Metadata::EpochTypeID instancetype, const CompileTimeParameterVector& args)
 {
 	std::wostringstream formatter;
-	formatter << "@@sumtemplateinst@" << (type & 0xffffff);
+	formatter << L"@@sumtemplate@" << (instancetype & 0xffffff) << L"@" << MyTypeSpace.MyNamespace.Strings.GetPooledString(MyTypeSpace.GetNameOfType(templatetype));
+	for(CompileTimeParameterVector::const_iterator iter = args.begin(); iter != args.end(); ++iter)
+		formatter << L"@" << MyTypeSpace.MyNamespace.Strings.GetPooledString(iter->Payload.LiteralStringHandleValue);
 	return formatter.str();
 }
 
@@ -556,10 +558,12 @@ TemplateTable::TemplateTable(TypeSpace& typespace)
 //
 // Internal helper for generating a mangled name for a structure template instance
 //
-std::wstring TemplateTable::GenerateTemplateMangledName(Metadata::EpochTypeID type)
+std::wstring TemplateTable::GenerateTemplateMangledName(Metadata::EpochTypeID templatetype, Metadata::EpochTypeID instancetype, const CompileTimeParameterVector& args)
 {
 	std::wostringstream formatter;
-	formatter << "@@templateinst@" << (type & 0xffffff);
+	formatter << L"@@template@" << (instancetype & 0xffffff) << L"@" << MyTypeSpace.MyNamespace.Strings.GetPooledString(MyTypeSpace.GetNameOfType(templatetype));
+	for(CompileTimeParameterVector::const_iterator iter = args.begin(); iter != args.end(); ++iter)
+		formatter << L"@" << MyTypeSpace.MyNamespace.Strings.GetPooledString(iter->Payload.LiteralStringHandleValue);
 	return formatter.str();
 }
 
@@ -628,7 +632,7 @@ StringHandle TemplateTable::InstantiateStructure(StringHandle templatename, cons
 	}
 
 	Metadata::EpochTypeID type = typespace->IDSpace.NewTemplateInstantiation();
-	std::wstring mangled = GenerateTemplateMangledName(type);
+	std::wstring mangled = GenerateTemplateMangledName(typespace->GetTypeByName(templatename), type, args);
 	StringHandle mangledname = typespace->MyNamespace.Strings.Pool(mangled);
 	typespace->Templates.Instantiations[templatename].insert(std::make_pair(mangledname, args));
 	typespace->Templates.NameToTypeMap[mangledname] = type;

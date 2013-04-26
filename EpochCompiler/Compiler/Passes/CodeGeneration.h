@@ -17,7 +17,7 @@ class BytecodeEmitterBase;
 namespace CompilerPasses
 {
 
-	bool GenerateCode(const IRSemantics::Program& program, BytecodeEmitterBase& emitter);
+	bool GenerateCode(IRSemantics::Program& program, BytecodeEmitterBase& emitter);
 
 }
 

@@ -27,6 +27,8 @@
 
 #include "Compiler/Session.h"
 
+#include "Compiler/CompileErrors.h"
+
 #include "Compiler/Exceptions.h"
 
 #include "Utility/StringPool.h"
@@ -560,7 +562,7 @@ namespace
 		}
 	}
 
-	void EmitConstructor(BytecodeEmitterBase& emitter, StringHandle name, StringHandle rawname, const IRSemantics::Structure& structure, const CompileTimeParameterVector& templateargs, const IRSemantics::Namespace& curnamespace)
+	void EmitConstructor(BytecodeEmitterBase& emitter, StringHandle name, StringHandle rawname, const IRSemantics::Structure& structure, const CompileTimeParameterVector& templateargs, IRSemantics::Namespace& curnamespace)
 	{
 		emitter.DefineLexicalScope(name, 0, structure.GetMembers().size() + 1);
 		emitter.LexicalScopeEntry(curnamespace.Strings.Find(L"identifier"), Metadata::EpochType_Identifier, true, VARIABLE_ORIGIN_PARAMETER);
@@ -591,7 +593,7 @@ namespace
 		emitter.ExitFunction();
 	}
 
-	void EmitAnonConstructor(BytecodeEmitterBase& emitter, StringHandle name, StringHandle rawname, const IRSemantics::Structure& structure, const CompileTimeParameterVector& templateargs, const IRSemantics::Namespace& curnamespace)
+	void EmitAnonConstructor(BytecodeEmitterBase& emitter, StringHandle name, StringHandle rawname, const IRSemantics::Structure& structure, const CompileTimeParameterVector& templateargs, IRSemantics::Namespace& curnamespace)
 	{
 		emitter.DefineLexicalScope(name, 0, structure.GetMembers().size() + 1);
 		for(size_t i = 0; i < structure.GetMembers().size(); ++i)
@@ -637,7 +639,7 @@ namespace
 		emitter.ExitFunction();
 	}
 
-	bool Generate(const IRSemantics::Namespace& curnamespace, BytecodeEmitterBase& emitter)
+	bool Generate(IRSemantics::Namespace& curnamespace, BytecodeEmitterBase& emitter)
 	{
 		// Flag all automatically generated functions so we can fast-invoke them
 		const std::map<StringHandle, IRSemantics::Structure*>& structures = curnamespace.Types.Structures.GetDefinitions();
@@ -752,7 +754,9 @@ namespace
 				const std::vector<std::pair<StringHandle, IRSemantics::StructureMember*> >& members = structure.GetMembers();
 				for(std::vector<std::pair<StringHandle, IRSemantics::StructureMember*> >::const_iterator memberiter = members.begin(); memberiter != members.end(); ++memberiter)
 				{
-					Metadata::EpochTypeID membertype = memberiter->second->GetEpochType(curnamespace);
+					CompileErrors errors;		// TODO - hack
+					StringHandle nameoftype = memberiter->second->SubstituteTemplateArgs(structure.GetTemplateParams(), institer->second, curnamespace, errors);
+					Metadata::EpochTypeID membertype = curnamespace.Types.GetTypeByName(nameoftype);
 					while(Metadata::GetTypeFamily(membertype) == Metadata::EpochTypeFamily_Unit)
 						membertype = curnamespace.Types.Aliases.GetStrongRepresentation(membertype);
 
@@ -1053,7 +1057,7 @@ namespace
 }
 
 
-bool CompilerPasses::GenerateCode(const IRSemantics::Program& program, BytecodeEmitterBase& emitter)
+bool CompilerPasses::GenerateCode(IRSemantics::Program& program, BytecodeEmitterBase& emitter)
 {
 	if(Plugins.IsPluginFunctionProvided(L"PluginCodeGenProcessProgram"))
 		return CompilerPasses::GenerateCodeSelfHosted(program);

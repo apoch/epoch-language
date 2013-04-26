@@ -157,7 +157,7 @@ namespace IRSemantics
 
 	// Internal helpers
 	private:
-		static std::wstring GenerateTemplateMangledName(Metadata::EpochTypeID type);
+		std::wstring GenerateTemplateMangledName(Metadata::EpochTypeID templatetype, Metadata::EpochTypeID instancetype, const CompileTimeParameterVector& args);
 
 	// Internal tracking
 	private:
@@ -206,7 +206,7 @@ namespace IRSemantics
 
 	// Internal helpers
 	private:
-		static std::wstring GenerateTemplateMangledName(Metadata::EpochTypeID type);
+		std::wstring GenerateTemplateMangledName(Metadata::EpochTypeID templatetype, Metadata::EpochTypeID instancetype, const CompileTimeParameterVector& args);
 
 	// Internal tracking
 	private:

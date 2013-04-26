@@ -54,8 +54,7 @@ namespace IRSemantics
 		virtual Metadata::EpochTypeID GetEpochType(const Namespace& curnamespace) const = 0;
 		virtual bool Validate(const Namespace& curnamespace, CompileErrors& errors) const = 0;
 
-		virtual void SubstituteTemplateArgs(const std::vector<std::pair<StringHandle, Metadata::EpochTypeID> >&, const CompileTimeParameterVector&, Namespace&, CompileErrors&)
-		{ }
+		virtual StringHandle SubstituteTemplateArgs(const std::vector<std::pair<StringHandle, Metadata::EpochTypeID> >&, const CompileTimeParameterVector&, Namespace&, CompileErrors&) const = 0;
 
 		virtual void PopulateTypeSpace(Namespace&)
 		{ }
@@ -99,13 +98,15 @@ namespace IRSemantics
 
 	// Template support
 	public:
-		void SubstituteTemplateArgs(const std::vector<std::pair<StringHandle, Metadata::EpochTypeID> >& params, const CompileTimeParameterVector& args, Namespace& curnamespace, CompileErrors& errors);
+		StringHandle SubstituteTemplateArgs(const std::vector<std::pair<StringHandle, Metadata::EpochTypeID> >& params, const CompileTimeParameterVector& args, Namespace& curnamespace, CompileErrors& errors) const;
 
 		void SetTemplateArgs(const CompileTimeParameterVector& args)
 		{ TemplateArgs = args; }
 
 	// Internal state
 	private:
+		friend class Structure;
+
 		StringHandle MyType;
 		StringHandle OriginalTypeName;
 		const AST::IdentifierT& TypeIdentifier;
@@ -153,6 +154,11 @@ namespace IRSemantics
 	// Additional inspection
 	public:
 		FunctionSignature GetSignature(const Namespace& curnamespace) const;
+
+	// Template support
+	public:
+		StringHandle SubstituteTemplateArgs(const std::vector<std::pair<StringHandle, Metadata::EpochTypeID> >&, const CompileTimeParameterVector&, Namespace&, CompileErrors&) const
+		{ return 0; }		// TODO
 
 	// Internal state
 	private:
@@ -219,9 +225,12 @@ namespace IRSemantics
 		bool IsTemplate() const
 		{ return !TemplateParams.empty(); }
 
+		const std::vector<std::pair<StringHandle, Metadata::EpochTypeID> >& GetTemplateParams() const
+		{ return TemplateParams; }
+
 	// Template helpers
 	public:
-		Metadata::EpochTypeID SubstituteTemplateParams(StringHandle membername, const CompileTimeParameterVector& templateargs, const Namespace& curnamespace) const;
+		Metadata::EpochTypeID SubstituteTemplateParams(StringHandle membername, const CompileTimeParameterVector& templateargs, Namespace& curnamespace) const;
 
 	// Internal helpers
 	private:
