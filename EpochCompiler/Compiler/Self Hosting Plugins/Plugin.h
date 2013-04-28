@@ -89,6 +89,20 @@ public:
 		p(param1, param2, param3, param4);
 	}
 
+
+	template<typename T1, typename T2, typename T3, typename T4, typename T5>
+	void InvokeVoidPluginFunction(const std::wstring& functionname, T1 param1, T2 param2, T3 param3, T4 param4, T5 param5)
+	{
+		std::map<std::wstring, void*>::const_iterator iter = PluginRegistrationTable.find(functionname);
+		if(iter == PluginRegistrationTable.end())
+			throw FatalException("No plugin loaded provides the requested function");
+
+		typedef void (STDCALL *funcptr)(T1, T2, T3, T4, T5);
+		funcptr p = reinterpret_cast<funcptr>(iter->second);
+
+		p(param1, param2, param3, param4, param5);
+	}
+
 	Integer32 InvokeIntegerPluginFunction(const std::wstring& functionname);
 
 	const Byte* InvokeBytePointerPluginFunction(const std::wstring& functionname);
