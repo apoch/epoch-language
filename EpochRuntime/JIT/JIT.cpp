@@ -1678,9 +1678,9 @@ void FunctionJITHelper::Read(size_t& offset)
 
 	size_t index = LibJITContext.NameToIndexMap[varname];
 
+	Metadata::EpochTypeID vartype = LibJITContext.CurrentScope->GetVariableTypeByIndex(index);
 	if(Builder.GetInsertBlock()->getParent()->isVarArg() && (LibJITContext.CurrentScope->GetVariableOrigin(index) != VARIABLE_ORIGIN_RETURN))
 	{
-		Metadata::EpochTypeID vartype = LibJITContext.CurrentScope->GetVariableTypeByIndex(index);
 		if(Metadata::GetTypeFamily(vartype) == Metadata::EpochTypeFamily_SumType)
 		{
 			Value* payload = Builder.CreateVAArg(LibJITContext.VarArgList, Generator.GetLLVMSumType(vartype, true)->getContainedType(1));
@@ -1715,8 +1715,28 @@ void FunctionJITHelper::Read(size_t& offset)
 	}
 	else
 	{
-		Value* v = Builder.CreateLoad(LibJITContext.VariableMap[index]);
-		LibJITContext.ValuesOnStack.push(v);
+		if(Metadata::GetTypeFamily(vartype) == Metadata::EpochTypeFamily_SumType)
+		{
+			Value* v = LibJITContext.VariableMap[index];
+
+			std::vector<Value*> gepindices;
+			gepindices.push_back(ConstantInt::get(Type::getInt32Ty(Context), 0));
+			gepindices.push_back(ConstantInt::get(Type::getInt32Ty(Context), 0));
+			Value* typeholder = Builder.CreateLoad(Builder.CreateGEP(v, gepindices));
+
+			std::vector<Value*> payloadgepindices;
+			payloadgepindices.push_back(ConstantInt::get(Type::getInt32Ty(Context), 0));
+			payloadgepindices.push_back(ConstantInt::get(Type::getInt32Ty(Context), 1));
+			Value* payload = Builder.CreateLoad(Builder.CreateGEP(v, payloadgepindices));
+
+			LibJITContext.ValuesOnStack.push(payload);
+			LibJITContext.ValuesOnStack.push(typeholder);
+		}
+		else
+		{
+			Value* v = Builder.CreateLoad(LibJITContext.VariableMap[index]);
+			LibJITContext.ValuesOnStack.push(v);
+		}
 	}
 }
 
@@ -1798,8 +1818,28 @@ void FunctionJITHelper::ReadParameter(size_t& offset)
 		throw NotImplementedException("Scope is not flat!");
 				
 	size_t idx = ParameterOffsetToIndexMap[stackoffset];
-	Value* val = Builder.CreateLoad(LibJITContext.VariableMap[idx]);
-	LibJITContext.ValuesOnStack.push(val);
+	if(Metadata::GetTypeFamily(LibJITContext.CurrentScope->GetVariableTypeByIndex(idx)) == Metadata::EpochTypeFamily_SumType)
+	{
+		Value* v = LibJITContext.VariableMap[idx];
+
+		std::vector<Value*> gepindices;
+		gepindices.push_back(ConstantInt::get(Type::getInt32Ty(Context), 0));
+		gepindices.push_back(ConstantInt::get(Type::getInt32Ty(Context), 0));
+		Value* typeholder = Builder.CreateLoad(Builder.CreateGEP(v, gepindices));
+
+		std::vector<Value*> payloadgepindices;
+		payloadgepindices.push_back(ConstantInt::get(Type::getInt32Ty(Context), 0));
+		payloadgepindices.push_back(ConstantInt::get(Type::getInt32Ty(Context), 1));
+		Value* payload = Builder.CreateLoad(Builder.CreateGEP(v, payloadgepindices));
+
+		LibJITContext.ValuesOnStack.push(payload);
+		LibJITContext.ValuesOnStack.push(typeholder);
+	}
+	else
+	{
+		Value* val = Builder.CreateLoad(LibJITContext.VariableMap[idx]);
+		LibJITContext.ValuesOnStack.push(val);
+	}
 }
 
 //
@@ -2006,7 +2046,7 @@ void FunctionJITHelper::ConstructSumType(size_t&)
 		std::vector<Value*> memberindices;
 		memberindices.push_back(ConstantInt::get(Type::getInt32Ty(Context), 0));
 		memberindices.push_back(ConstantInt::get(Type::getInt32Ty(Context), 1));
-		Value* valueholder = Builder.CreateGEP(storagetarget, memberindices);
+		Value* valueholder = Builder.CreatePointerCast(Builder.CreateGEP(storagetarget, memberindices), value->getType()->getPointerTo());
 		Builder.CreateStore(value, valueholder);
 	}
 
