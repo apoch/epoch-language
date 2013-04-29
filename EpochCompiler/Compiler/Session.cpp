@@ -142,7 +142,7 @@ void CompileSession::EmitByteCode()
 
 	output << L"Generating code... ";
 
-	if(Plugins.IsPluginFunctionProvided(L"PluginBytecodeEmitByte"))
+	if(Plugins.IsPluginFunctionProvided(L"PluginBytecodeGetBuffer"))
 	{
 		BytecodeEmitterPlugin emitter;
 		CompilerPasses::GenerateCode(*SemanticProgram, emitter);
