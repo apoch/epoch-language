@@ -13,6 +13,9 @@
 #pragma warning(disable : 4503)
 #endif
 
+#pragma warning(push)
+#pragma warning(disable: 4996)		// unsafe usage of std::copy
+
 // Standard C++ library stuff
 #include <string>
 #include <map>
@@ -69,4 +72,5 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/intrusive_ptr.hpp>
 
+#pragma warning(pop)
 #pragma warning(pop)

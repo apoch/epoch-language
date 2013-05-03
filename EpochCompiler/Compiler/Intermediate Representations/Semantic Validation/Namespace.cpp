@@ -397,10 +397,23 @@ bool FunctionTable::TypeInference(InferenceContext& context, CompileErrors& erro
 			return false;
 	}
 
-	for(std::set<StringHandle>::const_iterator iter = PendingTypeInference.begin(); iter != PendingTypeInference.end(); ++iter)
+	// Pass over any recently added functions to make sure we do type inference on them
+	for(boost::unordered_map<StringHandle, Function*>::iterator iter = FunctionIR.begin(); iter != FunctionIR.end(); ++iter)
 	{
-		if(!FunctionIR[*iter]->TypeInference(MyNamespace, context, errors))
-			return false;
+		if(!ircopy.count(iter->first) && !PendingTypeInference.count(iter->first))
+			PendingTypeInference.insert(iter->first);
+	}
+
+	while(!PendingTypeInference.empty())
+	{
+		std::set<StringHandle> currentlypending;
+		currentlypending.swap(PendingTypeInference);
+
+		for(std::set<StringHandle>::const_iterator iter = currentlypending.begin(); iter != currentlypending.end(); ++iter)
+		{
+			if(!FunctionIR[*iter]->TypeInference(MyNamespace, context, errors))
+				return false;
+		}
 	}
 
 	return true;
@@ -417,6 +430,16 @@ bool FunctionTable::CompileTimeCodeExecution(CompileErrors& errors)
 	for(boost::unordered_map<StringHandle, Function*>::iterator iter = ircopy.begin(); iter != ircopy.end(); ++iter)
 	{
 		if(!iter->second->CompileTimeCodeExecution(MyNamespace, errors))
+			return false;
+	}
+
+	InferenceContext context(0, InferenceContext::CONTEXT_GLOBAL);
+	for(std::set<StringHandle>::const_iterator iter = PendingTypeInference.begin(); iter != PendingTypeInference.end(); ++iter)
+	{
+		if(!FunctionIR[*iter]->TypeInference(MyNamespace, context, errors))
+			return false;
+
+		if(!FunctionIR[*iter]->CompileTimeCodeExecution(MyNamespace, errors))
 			return false;
 	}
 
