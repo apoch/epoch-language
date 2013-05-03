@@ -140,7 +140,8 @@ bool Entity::CompileTimeCodeExecution(Namespace& curnamespace, CodeBlock& active
 //
 bool Entity::TypeInference(Namespace& curnamespace, CodeBlock& activescope, InferenceContext& context, CompileErrors& errors)
 {
-	CompileTimeCodeExecution(curnamespace, activescope, errors);
+	if(!CompileTimeCodeExecution(curnamespace, activescope, errors))
+		return false;
 
 	InferenceContext newcontext(0, InferenceContext::CONTEXT_ENTITY_PARAM);
 	newcontext.FunctionName = context.FunctionName;

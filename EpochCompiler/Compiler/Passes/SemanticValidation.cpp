@@ -90,6 +90,7 @@ IRSemantics::Program* CompilerPasses::ValidateSemantics(AST::Program& program, c
 	{
 		UI::OutputStream output;
 		output << UI::lightred << "Failed compiled time code execution!" << UI::white << std::endl;
+		pass.Errors.DumpErrors();
 		return NULL;
 	}
 
@@ -98,6 +99,7 @@ IRSemantics::Program* CompilerPasses::ValidateSemantics(AST::Program& program, c
 	{
 		UI::OutputStream output;
 		output << UI::lightred << "Failed type inference!" << UI::white << std::endl;
+		pass.Errors.DumpErrors();
 		return NULL;
 	}
 
@@ -106,6 +108,7 @@ IRSemantics::Program* CompilerPasses::ValidateSemantics(AST::Program& program, c
 	{
 		UI::OutputStream output;
 		output << UI::lightred << "Failed type validation!" << UI::white << std::endl;
+		pass.Errors.DumpErrors();
 		return NULL;
 	}
 

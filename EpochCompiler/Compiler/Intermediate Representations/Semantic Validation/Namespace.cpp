@@ -390,7 +390,8 @@ bool FunctionTable::Validate(CompileErrors& errors) const
 //
 bool FunctionTable::TypeInference(InferenceContext& context, CompileErrors& errors)
 {
-	for(boost::unordered_map<StringHandle, Function*>::iterator iter = FunctionIR.begin(); iter != FunctionIR.end(); ++iter)
+	boost::unordered_map<StringHandle, Function*> ircopy(FunctionIR);
+	for(boost::unordered_map<StringHandle, Function*>::iterator iter = ircopy.begin(); iter != ircopy.end(); ++iter)
 	{
 		if(!iter->second->TypeInference(MyNamespace, context, errors))
 			return false;
@@ -412,7 +413,8 @@ bool FunctionTable::TypeInference(InferenceContext& context, CompileErrors& erro
 //
 bool FunctionTable::CompileTimeCodeExecution(CompileErrors& errors)
 {
-	for(boost::unordered_map<StringHandle, Function*>::iterator iter = FunctionIR.begin(); iter != FunctionIR.end(); ++iter)
+	boost::unordered_map<StringHandle, Function*> ircopy(FunctionIR);
+	for(boost::unordered_map<StringHandle, Function*>::iterator iter = ircopy.begin(); iter != ircopy.end(); ++iter)
 	{
 		if(!iter->second->CompileTimeCodeExecution(MyNamespace, errors))
 			return false;

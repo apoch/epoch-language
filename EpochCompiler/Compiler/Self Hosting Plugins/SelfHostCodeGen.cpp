@@ -62,7 +62,7 @@ namespace
 		}
 	}
 
-	void RegisterExpression(const Expression& expr)
+	void RegisterExpression(const Namespace& ns, const Expression& expr)
 	{
 		const std::vector<ExpressionAtom*>& atoms = expr.GetAtoms();
 		for(std::vector<ExpressionAtom*>::const_iterator iter = atoms.begin(); iter != atoms.end(); ++iter)
@@ -92,14 +92,18 @@ namespace
 					throw InternalException("Invalid parenthetical contents");
 				}
 				*/
+				throw NotImplementedException("Atom type not supported yet");
 			}
 			else if(const ExpressionAtomIdentifierReference* atom = dynamic_cast<const ExpressionAtomIdentifierReference*>(rawatom))
 			{
 				// TODO - register identifier which should be bound as a reference
+				throw NotImplementedException("Atom type not supported yet");
 			}
 			else if(const ExpressionAtomIdentifier* atom = dynamic_cast<const ExpressionAtomIdentifier*>(rawatom))
 			{
-				// TODO - register identifier atom
+				Plugins.InvokeVoidPluginFunction(L"PluginCodeGenRegisterAtomIdentifier", atom->GetIdentifier(), atom->GetEpochType(ns));
+
+				// TODO - port atom emission logic to Epoch core
 				/*
 				if(atom->GetEpochType(curnamespace) == Metadata::EpochType_Nothing)
 				{
@@ -135,11 +139,11 @@ namespace
 			}
 			else if(const ExpressionAtomOperator* atom = dynamic_cast<const ExpressionAtomOperator*>(rawatom))
 			{
-				// TODO - register operator invocation atom
+				Plugins.InvokeVoidPluginFunction(L"PluginCodeGenRegisterOperatorInvoke", atom->GetIdentifier());
 			}
 			else if(const ExpressionAtomLiteralString* atom = dynamic_cast<const ExpressionAtomLiteralString*>(rawatom))
 			{
-				// TODO - register string literal atom
+				Plugins.InvokeVoidPluginFunction(L"PluginCodeGenRegisterLiteralString", atom->GetValue());
 			}
 			else if(const ExpressionAtomLiteralBoolean* atom = dynamic_cast<const ExpressionAtomLiteralBoolean*>(rawatom))
 			{
@@ -147,19 +151,22 @@ namespace
 			}
 			else if(const ExpressionAtomLiteralInteger32* atom = dynamic_cast<const ExpressionAtomLiteralInteger32*>(rawatom))
 			{
-				// TODO - register integer (or integer16!) literal
+				Plugins.InvokeVoidPluginFunction(L"PluginCodeGenRegisterLiteralInteger", atom->GetValue(), atom->GetEpochType(ns));
 			}
 			else if(const ExpressionAtomLiteralReal32* atom = dynamic_cast<const ExpressionAtomLiteralReal32*>(rawatom))
 			{
 				// TODO - register real literal
+				throw NotImplementedException("Atom type not supported yet");
 			}
 			else if(const ExpressionAtomStatement* atom = dynamic_cast<const ExpressionAtomStatement*>(rawatom))
 			{
 				// TODO - register statement atom
+				throw NotImplementedException("Atom type not supported yet");
 			}
 			else if(const ExpressionAtomCopyFromStructure* atom = dynamic_cast<const ExpressionAtomCopyFromStructure*>(rawatom))
 			{
 				// TODO - register copy from structure atom
+				throw NotImplementedException("Atom type not supported yet");
 			}
 			else if(const ExpressionAtomBindReference* atom = dynamic_cast<const ExpressionAtomBindReference*>(rawatom))
 			{
@@ -175,14 +182,17 @@ namespace
 				}
 				return !atom->IsReference();
 				*/
+				throw NotImplementedException("Atom type not supported yet");
 			}
 			else if(const ExpressionAtomTypeAnnotation* atom = dynamic_cast<const ExpressionAtomTypeAnnotation*>(rawatom))
 			{
 				// TODO - register type annotation atom
+				throw NotImplementedException("Atom type not supported yet");
 			}
 			else if(const ExpressionAtomTempReferenceFromRegister* atom = dynamic_cast<const ExpressionAtomTempReferenceFromRegister*>(rawatom))
 			{
 				// TODO - register temp reference binding atom
+				throw NotImplementedException("Atom type not supported yet");
 			}
 			else
 			{
@@ -202,14 +212,14 @@ namespace
 		}
 	}
 
-	void RegisterStatementParams(const Statement& statement)
+	void RegisterStatementParams(const Namespace& ns, const Statement& statement)
 	{
 		const std::vector<Expression*>& params = statement.GetParameters();
 		for(std::vector<Expression*>::const_iterator iter = params.begin(); iter != params.end(); ++iter)
-			RegisterExpression(**iter);
+			RegisterExpression(ns, **iter);
 	}
 
-	void RegisterCodeBlock(const CodeBlock& code)
+	void RegisterCodeBlock(const Namespace& ns, const CodeBlock& code)
 	{
 		const std::vector<CodeBlockEntry*>& entries = code.GetEntries();
 		for(std::vector<CodeBlockEntry*>::const_iterator iter = entries.begin(); iter != entries.end(); ++iter)
@@ -217,7 +227,7 @@ namespace
 			if(const CodeBlockStatementEntry* statement = dynamic_cast<const CodeBlockStatementEntry*>(*iter))
 			{
 				Plugins.InvokeVoidPluginFunction(L"PluginCodeGenEnterStatement", statement->GetStatement().GetName());
-				RegisterStatementParams(statement->GetStatement());
+				RegisterStatementParams(ns, statement->GetStatement());
 				Plugins.InvokeVoidPluginFunction(L"PluginCodeGenExit");
 			}
 			else
@@ -225,14 +235,14 @@ namespace
 		}
 	}
 
-	void RegisterFunction(StringHandle funcname, const Function& funcdef)
+	void RegisterFunction(const Namespace& ns, StringHandle funcname, const Function& funcdef)
 	{
 		Plugins.InvokeVoidPluginFunction(L"PluginCodeGenRegisterFunction", funcname);
 		// TODO - register function return expression
 		if(funcdef.GetCode())
 		{
 			Plugins.InvokeVoidPluginFunction(L"PluginCodeGenEnterFunctionBody", funcname);
-			RegisterCodeBlock(*funcdef.GetCode());
+			RegisterCodeBlock(ns, *funcdef.GetCode());
 			Plugins.InvokeVoidPluginFunction(L"PluginCodeGenExit");
 		}
 	}
@@ -267,7 +277,7 @@ namespace
 			if(iter->second->IsCodeEmissionSupressed())
 				continue;
 
-			RegisterFunction(iter->first, *iter->second);
+			RegisterFunction(ns, iter->first, *iter->second);
 		}
 
 
