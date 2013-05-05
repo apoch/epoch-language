@@ -92,12 +92,11 @@ namespace
 					throw InternalException("Invalid parenthetical contents");
 				}
 				*/
-				throw NotImplementedException("Atom type not supported yet");
+				throw NotImplementedException("Parenthetical atom type not supported yet");
 			}
 			else if(const ExpressionAtomIdentifierReference* atom = dynamic_cast<const ExpressionAtomIdentifierReference*>(rawatom))
 			{
-				// TODO - register identifier which should be bound as a reference
-				throw NotImplementedException("Atom type not supported yet");
+				Plugins.InvokeVoidPluginFunction(L"PluginCodeGenRegisterAtomIdentifierReference", atom->GetIdentifier());
 			}
 			else if(const ExpressionAtomIdentifier* atom = dynamic_cast<const ExpressionAtomIdentifier*>(rawatom))
 			{
@@ -156,17 +155,17 @@ namespace
 			else if(const ExpressionAtomLiteralReal32* atom = dynamic_cast<const ExpressionAtomLiteralReal32*>(rawatom))
 			{
 				// TODO - register real literal
-				throw NotImplementedException("Atom type not supported yet");
+				throw NotImplementedException("Real atom type not supported yet");
 			}
 			else if(const ExpressionAtomStatement* atom = dynamic_cast<const ExpressionAtomStatement*>(rawatom))
 			{
 				// TODO - register statement atom
-				throw NotImplementedException("Atom type not supported yet");
+				throw NotImplementedException("Statement atom type not supported yet");
 			}
 			else if(const ExpressionAtomCopyFromStructure* atom = dynamic_cast<const ExpressionAtomCopyFromStructure*>(rawatom))
 			{
 				// TODO - register copy from structure atom
-				throw NotImplementedException("Atom type not supported yet");
+				throw NotImplementedException("Copy from structure atom type not supported yet");
 			}
 			else if(const ExpressionAtomBindReference* atom = dynamic_cast<const ExpressionAtomBindReference*>(rawatom))
 			{
@@ -182,12 +181,11 @@ namespace
 				}
 				return !atom->IsReference();
 				*/
-				throw NotImplementedException("Atom type not supported yet");
+				throw NotImplementedException("Reference binding atom not supported yet");
 			}
 			else if(const ExpressionAtomTypeAnnotation* atom = dynamic_cast<const ExpressionAtomTypeAnnotation*>(rawatom))
 			{
-				// TODO - register type annotation atom
-				throw NotImplementedException("Atom type not supported yet");
+				Plugins.InvokeVoidPluginFunction(L"PluginCodeGenRegisterTypeAnnotation", static_cast<Integer32>(atom->GetEpochType(ns)));
 			}
 			else if(const ExpressionAtomTempReferenceFromRegister* atom = dynamic_cast<const ExpressionAtomTempReferenceFromRegister*>(rawatom))
 			{
@@ -219,6 +217,14 @@ namespace
 			RegisterExpression(ns, **iter);
 	}
 
+	void RegisterAssignmentChain(const Namespace& ns, const AssignmentChain& chain)
+	{
+		if(const AssignmentChainExpression* chainexpr = dynamic_cast<const AssignmentChainExpression*>(&chain))
+			RegisterExpression(ns, chainexpr->GetExpression());
+		else
+			throw NotImplementedException("TODO - implement assignment chain support");
+	}
+
 	void RegisterCodeBlock(const Namespace& ns, const CodeBlock& code)
 	{
 		const std::vector<CodeBlockEntry*>& entries = code.GetEntries();
@@ -226,8 +232,15 @@ namespace
 		{
 			if(const CodeBlockStatementEntry* statement = dynamic_cast<const CodeBlockStatementEntry*>(*iter))
 			{
-				Plugins.InvokeVoidPluginFunction(L"PluginCodeGenEnterStatement", statement->GetStatement().GetName());
+				Plugins.InvokeVoidPluginFunction(L"PluginCodeGenEnterStatement", statement->GetStatement().GetName(), statement->GetStatement().GetEpochType(ns));
 				RegisterStatementParams(ns, statement->GetStatement());
+				Plugins.InvokeVoidPluginFunction(L"PluginCodeGenExit");
+			}
+			else if(const CodeBlockAssignmentEntry* assignment = dynamic_cast<const CodeBlockAssignmentEntry*>(*iter))
+			{
+				// TODO - support member assignments
+				Plugins.InvokeVoidPluginFunction(L"PluginCodeGenEnterAssignment", assignment->GetAssignment().GetLHS().front());
+				RegisterAssignmentChain(ns, *assignment->GetAssignment().GetRHS());
 				Plugins.InvokeVoidPluginFunction(L"PluginCodeGenExit");
 			}
 			else
@@ -247,6 +260,35 @@ namespace
 		}
 	}
 
+	void RegisterSumType(StringHandle sumtypename, Metadata::EpochTypeID sumtypeid, const std::set<Metadata::EpochTypeID>& basetypeids)
+	{
+		for(std::set<Metadata::EpochTypeID>::const_iterator iter = basetypeids.begin(); iter != basetypeids.end(); ++iter)
+			Plugins.InvokeVoidPluginFunction(L"PluginCodeGenRegisterSumTypeBase", sumtypename, sumtypeid, *iter);
+	}
+
+	void RegisterTypeMatchSignature(StringHandle matchername, StringHandle overloadname, const FunctionSignature& sig)
+	{
+		for(size_t i = 0; i < sig.GetNumParameters(); ++i)
+		{
+			const CompileTimeParameter& param = sig.GetParameter(i);
+			StringHandle paramname = 1;		// TODO - stupid hack
+			Plugins.InvokeVoidPluginFunction(L"PluginCodeGenRegisterTypeMatchParam", matchername, overloadname, paramname, param.Type, static_cast<Integer32>(param.IsReference));
+		}
+	}
+
+	void RegisterTypeMatcher(StringHandle matchername, const std::map<StringHandle, FunctionSignature>& signatures)
+	{
+		Plugins.InvokeVoidPluginFunction(L"PluginCodeGenEnterTypeMatcher", matchername);
+
+		for(std::map<StringHandle, FunctionSignature>::const_iterator overloaditer = signatures.begin(); overloaditer != signatures.end(); ++overloaditer)
+		{
+			const FunctionSignature& sig = overloaditer->second;
+			RegisterTypeMatchSignature(matchername, overloaditer->first, sig);
+		}
+
+		Plugins.InvokeVoidPluginFunction(L"PluginCodeGenExit");
+	}
+
 	void RegisterNamespace(const Namespace& ns)
 	{
 		// Register structure definitions
@@ -255,7 +297,18 @@ namespace
 			RegisterStructure(ns, iter->first, *iter->second);
 
 		// TODO - register template instances
-		// TODO - register sum types
+		
+		// Register sum types
+		std::map<Metadata::EpochTypeID, std::set<Metadata::EpochTypeID> > sumtypes = ns.Types.SumTypes.GetDefinitions();
+		for(std::map<Metadata::EpochTypeID, std::set<Metadata::EpochTypeID> >::const_iterator iter = sumtypes.begin(); iter != sumtypes.end(); ++iter)
+		{
+			if(ns.Types.SumTypes.IsTemplate(ns.Types.GetNameOfType(iter->first)))
+				continue;
+
+			RegisterSumType(ns.Types.GetNameOfType(iter->first), iter->first, iter->second);
+		}
+
+
 		// TODO - register type aliases
 		// TODO - register function signatures
 		// TODO - register function tags
@@ -281,7 +334,11 @@ namespace
 		}
 
 
-		// TODO - register type matchers
+		// Register type matchers
+		const std::map<StringHandle, std::map<StringHandle, FunctionSignature> >& requiredtypematchers = ns.Functions.GetRequiredTypeMatchers();
+		for(std::map<StringHandle, std::map<StringHandle, FunctionSignature> >::const_iterator iter = requiredtypematchers.begin(); iter != requiredtypematchers.end(); ++iter)
+			RegisterTypeMatcher(iter->first, iter->second);
+
 		// TODO - register pattern matchers
 	}
 
