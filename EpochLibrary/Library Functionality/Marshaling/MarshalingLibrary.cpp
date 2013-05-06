@@ -30,6 +30,7 @@ namespace
 	StringHandle WriteBufferHandle = 0;
 	StringHandle WriteBufferStringHandle = 0;
 	StringHandle WriteBufferMultipleHandle = 0;
+	StringHandle WriteBufferRealHandle = 0;
 
 
 	bool SizeOfJIT(JIT::JITContext& context, bool)
@@ -157,8 +158,6 @@ namespace
 
 		llvm::Value* bufferhandle = builder->CreateLoad(pbufferhandle);
 
-		//builder->CreateCall((*context.BuiltInFunctions)[JIT::JITFunc_Runtime_Break]);
-
 		llvm::Value* bufferptr = builder->CreateCall((*context.BuiltInFunctions)[JIT::JITFunc_Runtime_GetBuffer], bufferhandle);
 		llvm::Value* castbufferptr = builder->CreatePointerCast(bufferptr, llvm::Type::getInt8PtrTy(*reinterpret_cast<llvm::LLVMContext*>(context.Context)));
 
@@ -189,6 +188,28 @@ namespace
 		return true;
 	}
 
+	bool WriteBufferRealJIT(JIT::JITContext& context, bool)
+	{
+		llvm::Value* real = context.ValuesOnStack.top();
+		context.ValuesOnStack.pop();
+
+		llvm::Value* offset = context.ValuesOnStack.top();
+		context.ValuesOnStack.pop();
+
+		llvm::Value* pbufferhandle = context.ValuesOnStack.top();
+		context.ValuesOnStack.pop();
+
+		llvm::Value* bufferhandle = reinterpret_cast<llvm::IRBuilder<>*>(context.Builder)->CreateLoad(pbufferhandle);
+
+		llvm::Value* bufferptr = reinterpret_cast<llvm::IRBuilder<>*>(context.Builder)->CreateCall((*context.BuiltInFunctions)[JIT::JITFunc_Runtime_GetBuffer], bufferhandle);
+		llvm::Value* castbufferptr = reinterpret_cast<llvm::IRBuilder<>*>(context.Builder)->CreatePointerCast(bufferptr, llvm::Type::getInt8PtrTy(*reinterpret_cast<llvm::LLVMContext*>(context.Context)));
+
+		llvm::Value* gep = reinterpret_cast<llvm::IRBuilder<>*>(context.Builder)->CreateGEP(castbufferptr, offset);
+		llvm::Value* castgep = reinterpret_cast<llvm::IRBuilder<>*>(context.Builder)->CreatePointerCast(gep, llvm::Type::getFloatPtrTy(*reinterpret_cast<llvm::LLVMContext*>(context.Context)));
+		reinterpret_cast<llvm::IRBuilder<>*>(context.Builder)->CreateStore(real, castgep);
+
+		return true;
+	}
 }
 
 
@@ -237,6 +258,14 @@ void MarshalingLibrary::RegisterLibraryFunctions(FunctionSignatureSet& signature
 		signature.SetReturnType(Metadata::EpochType_Void);
 		AddToMapNoDupe(signatureset, std::make_pair(WriteBufferMultipleHandle, signature));
 	}
+	{
+		FunctionSignature signature;
+		signature.AddParameter(L"buffer", Metadata::EpochType_Buffer, true);
+		signature.AddParameter(L"index", Metadata::EpochType_Integer, false);
+		signature.AddParameter(L"real", Metadata::EpochType_Real, false);
+		signature.SetReturnType(Metadata::EpochType_Void);
+		AddToMapNoDupe(signatureset, std::make_pair(WriteBufferRealHandle, signature));
+	}
 }
 
 
@@ -247,6 +276,7 @@ void MarshalingLibrary::PoolStrings(StringPoolManager& stringpool)
 	WriteBufferHandle = stringpool.Pool(L"writebuffer");
 	WriteBufferStringHandle = stringpool.Pool(L"writebuffer@@string");
 	WriteBufferMultipleHandle = stringpool.Pool(L"writebuffer@@multiple");
+	WriteBufferRealHandle = stringpool.Pool(L"writebuffer@@real");
 }
 
 
@@ -257,6 +287,7 @@ void MarshalingLibrary::RegisterJITTable(JIT::JITTable& table)
 	AddToMapNoDupe(table.InvokeHelpers, std::make_pair(WriteBufferHandle, &WriteBufferJIT));
 	AddToMapNoDupe(table.InvokeHelpers, std::make_pair(WriteBufferStringHandle, &WriteBufferStringJIT));
 	AddToMapNoDupe(table.InvokeHelpers, std::make_pair(WriteBufferMultipleHandle, &WriteBufferMultipleJIT));
+	AddToMapNoDupe(table.InvokeHelpers, std::make_pair(WriteBufferRealHandle, &WriteBufferRealJIT));
 
 	AddToMapNoDupe(table.LibraryExports, std::make_pair(MarshalStructureHandle, "EpochLib_MarshalStructure"));
 }
@@ -265,6 +296,7 @@ void MarshalingLibrary::RegisterLibraryOverloads(OverloadMap& overloadmap)
 {
 	overloadmap[WriteBufferHandle].insert(WriteBufferStringHandle);
 	overloadmap[WriteBufferHandle].insert(WriteBufferMultipleHandle);
+	overloadmap[WriteBufferHandle].insert(WriteBufferRealHandle);
 }
 
 extern "C" void EpochLib_MarshalStructure(StructureHandle activestruct, const Byte* buffer)

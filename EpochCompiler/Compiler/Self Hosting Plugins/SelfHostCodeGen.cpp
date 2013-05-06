@@ -26,6 +26,9 @@ using namespace IRSemantics;
 namespace
 {
 
+	void RegisterStatementParams(const Namespace& ns, const Statement& statement);
+
+
 	void RegisterStructure(const Namespace& ns, StringHandle name, const Structure& definition)
 	{
 		const std::vector<std::pair<StringHandle, StructureMember*> >& members = definition.GetMembers();
@@ -154,13 +157,15 @@ namespace
 			}
 			else if(const ExpressionAtomLiteralReal32* atom = dynamic_cast<const ExpressionAtomLiteralReal32*>(rawatom))
 			{
-				// TODO - register real literal
-				throw NotImplementedException("Real atom type not supported yet");
+				Plugins.InvokeVoidPluginFunction(L"PluginCodeGenRegisterLiteralReal", atom->GetValue());
 			}
 			else if(const ExpressionAtomStatement* atom = dynamic_cast<const ExpressionAtomStatement*>(rawatom))
 			{
-				// TODO - register statement atom
-				throw NotImplementedException("Statement atom type not supported yet");
+				Plugins.InvokeVoidPluginFunction(L"PluginCodeGenEnterSubStatement");
+				Plugins.InvokeVoidPluginFunction(L"PluginCodeGenEnterStatement", atom->GetStatement().GetName(), atom->GetStatement().GetEpochType(ns));
+				RegisterStatementParams(ns, atom->GetStatement());
+				Plugins.InvokeVoidPluginFunction(L"PluginCodeGenExit");
+				Plugins.InvokeVoidPluginFunction(L"PluginCodeGenExit");
 			}
 			else if(const ExpressionAtomCopyFromStructure* atom = dynamic_cast<const ExpressionAtomCopyFromStructure*>(rawatom))
 			{
@@ -251,7 +256,38 @@ namespace
 	void RegisterFunction(const Namespace& ns, StringHandle funcname, const Function& funcdef)
 	{
 		Plugins.InvokeVoidPluginFunction(L"PluginCodeGenRegisterFunction", funcname);
-		// TODO - register function return expression
+
+		const std::vector<IRSemantics::FunctionTag>& tags = funcdef.GetTags();
+		for(std::vector<IRSemantics::FunctionTag>::const_iterator tagiter = tags.begin(); tagiter != tags.end(); ++tagiter)
+		{
+			if(ns.FunctionTags.Exists(tagiter->TagName))
+			{
+				TagHelperReturn help = ns.FunctionTags.GetHelper(tagiter->TagName)(funcname, tagiter->Parameters, false);
+				if(!help.InvokeRuntimeFunction.empty())
+					Plugins.InvokeVoidPluginFunction(L"PluginCodeGenRegisterFunctionInvokeTag", funcname, ns.Strings.Find(help.InvokeRuntimeFunction));
+
+				Plugins.InvokeVoidPluginFunction(L"PluginCodeGenRegisterFunctionTag", funcname, ns.Strings.GetPooledString(tagiter->TagName).c_str());
+				for(size_t i = 0; i < tagiter->Parameters.size(); ++i)
+					Plugins.InvokeVoidPluginFunction(L"PluginCodeGenRegisterFunctionTagParam", funcname, ns.Strings.GetPooledString(tagiter->TagName).c_str(), tagiter->Parameters[i].StringPayload.c_str());
+			}
+			else
+			{
+				//
+				// This is a failure of the semantic validation pass
+				// to correctly catch and flag an error on the tag.
+				//
+				throw InternalException("Unrecognized function tag");
+			}
+		}
+
+		
+		if(funcdef.GetReturnExpression())
+		{
+			Plugins.InvokeVoidPluginFunction(L"PluginCodeGenEnterFunctionReturn", funcname, funcdef.HasAnonymousReturn());
+			RegisterExpression(ns, *funcdef.GetReturnExpression());
+			Plugins.InvokeVoidPluginFunction(L"PluginCodeGenExit");
+		}
+
 		if(funcdef.GetCode())
 		{
 			Plugins.InvokeVoidPluginFunction(L"PluginCodeGenEnterFunctionBody", funcname);
@@ -311,7 +347,6 @@ namespace
 
 		// TODO - register type aliases
 		// TODO - register function signatures
-		// TODO - register function tags
 
 		// Register scopes
 		const ScopePtrMap& scopes = ns.GetScopes();
