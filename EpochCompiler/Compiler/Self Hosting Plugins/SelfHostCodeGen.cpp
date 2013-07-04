@@ -31,6 +31,8 @@ namespace
 
 	void RegisterStructure(const Namespace& ns, StringHandle name, const Structure& definition)
 	{
+		Metadata::EpochTypeID structuretype = ns.Types.GetTypeByName(name);
+
 		const std::vector<std::pair<StringHandle, StructureMember*> >& members = definition.GetMembers();
 		for(std::vector<std::pair<StringHandle, StructureMember*> >::const_iterator iter = members.begin(); iter != members.end(); ++iter)
 		{
@@ -38,7 +40,7 @@ namespace
 			if(const StructureMemberVariable* membervar = dynamic_cast<const StructureMemberVariable*>(raw))
 			{
 				Metadata::EpochTypeID type = membervar->GetEpochType(ns);
-				Plugins.InvokeVoidPluginFunction(L"PluginCodeGenRegisterStructureMemVar", name, iter->first, type);
+				Plugins.InvokeVoidPluginFunction(L"PluginCodeGenRegisterStructureMemVar", name, structuretype, iter->first, type);
 
 				// TODO - register template args
 			}
