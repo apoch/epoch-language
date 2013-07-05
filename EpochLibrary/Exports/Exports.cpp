@@ -150,6 +150,7 @@ extern "C" void STDCALL BindToCompiler(CompilerInfoTable& info, StringPoolManage
 		ArithmeticLibrary::RegisterOpAssignOperators(*info.OpAssignOperators);
 		ArithmeticLibrary::RegisterLibraryOverloads(*info.Overloads);
 
+		BooleanLibrary::RegisterInfixOperators(*info.InfixOperators, *info.Precedences);
 		BooleanLibrary::RegisterLibraryOverloads(*info.Overloads);
 
 		ComparisonLibrary::RegisterInfixOperators(*info.InfixOperators, *info.Precedences);

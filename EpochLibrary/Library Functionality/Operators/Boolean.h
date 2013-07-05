@@ -28,5 +28,7 @@ namespace BooleanLibrary
 
 	void RegisterJITTable(JIT::JITTable& table);
 
+	void RegisterInfixOperators(StringSet& infixtable, PrecedenceTable& precedences);
+
 }
 

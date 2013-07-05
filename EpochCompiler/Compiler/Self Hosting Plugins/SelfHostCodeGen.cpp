@@ -51,6 +51,11 @@ namespace
 			else
 				throw FatalException("Unsupported structure member type");
 		}
+
+		StringHandle ctorname = definition.GetConstructorName();
+		StringHandle anonname = definition.GetAnonymousConstructorName();
+		StringHandle copyname = definition.GetCopyConstructorName();
+		Plugins.InvokeVoidPluginFunction(L"PluginCodeGenRegisterConstructors", name, ctorname, anonname, copyname);
 	}
 
 	void RegisterScope(const Namespace& ns, StringHandle scopename, const ScopeDescription& desc)
@@ -106,7 +111,6 @@ namespace
 			else if(const ExpressionAtomIdentifier* atom = dynamic_cast<const ExpressionAtomIdentifier*>(rawatom))
 			{
 				Plugins.InvokeVoidPluginFunction(L"PluginCodeGenRegisterAtomIdentifier", atom->GetIdentifier(), atom->GetEpochType(ns));
-
 				// TODO - port atom emission logic to Epoch core
 				/*
 				if(atom->GetEpochType(curnamespace) == Metadata::EpochType_Nothing)
@@ -176,19 +180,12 @@ namespace
 			}
 			else if(const ExpressionAtomBindReference* atom = dynamic_cast<const ExpressionAtomBindReference*>(rawatom))
 			{
-				// TODO - register reference binding atom
-				/*
-				if(firstmember && !atom->IsReference() && !atom->OverrideInputAsReference())
-					emitter.BindStructureReferenceByHandle(atom->GetIdentifier());
-				else
-				{
-					Metadata::EpochTypeID membertype = curnamespace.Types.Structures.GetMemberType(atom->GetStructureName(), atom->GetIdentifier());
-					size_t memberoffset = curnamespace.Types.Structures.GetMemberOffset(atom->GetStructureName(), atom->GetIdentifier());
-					emitter.BindStructureReference(membertype, memberoffset);
-				}
-				return !atom->IsReference();
-				*/
-				throw NotImplementedException("Reference binding atom not supported yet");
+				StringHandle identifier = atom->GetIdentifier();
+				bool isref = atom->IsReference();
+				bool inputref = atom->OverrideInputAsReference();
+				StringHandle structidentifier = atom->GetStructureName();
+
+				Plugins.InvokeVoidPluginFunction(L"PluginCodeGenRegisterRefBinding", identifier, structidentifier, isref, inputref);
 			}
 			else if(const ExpressionAtomTypeAnnotation* atom = dynamic_cast<const ExpressionAtomTypeAnnotation*>(rawatom))
 			{
@@ -245,10 +242,21 @@ namespace
 			}
 			else if(const CodeBlockAssignmentEntry* assignment = dynamic_cast<const CodeBlockAssignmentEntry*>(*iter))
 			{
-				// TODO - support member assignments
-				Plugins.InvokeVoidPluginFunction(L"PluginCodeGenEnterAssignment", assignment->GetAssignment().GetLHS().front());
-				RegisterAssignmentChain(ns, *assignment->GetAssignment().GetRHS());
-				Plugins.InvokeVoidPluginFunction(L"PluginCodeGenExit");
+				if(assignment->GetAssignment().GetLHS().size() == 1)
+				{
+					Plugins.InvokeVoidPluginFunction(L"PluginCodeGenEnterAssignment", assignment->GetAssignment().GetLHS().front());
+					RegisterAssignmentChain(ns, *assignment->GetAssignment().GetRHS());
+					Plugins.InvokeVoidPluginFunction(L"PluginCodeGenExit");
+				}
+				else
+				{
+					Plugins.InvokeVoidPluginFunction(L"PluginCodeGenEnterAssignmentCompound", assignment->GetAssignment().GetLHS().front());
+					for(size_t i = 1; i < assignment->GetAssignment().GetLHS().size(); ++i)
+						Plugins.InvokeVoidPluginFunction(L"PluginCodeGenAssignmentCompoundMember", assignment->GetAssignment().GetLHS()[i]);
+					Plugins.InvokeVoidPluginFunction(L"PluginCodeGenAssignmentCompoundEnd");
+					RegisterAssignmentChain(ns, *assignment->GetAssignment().GetRHS());
+					Plugins.InvokeVoidPluginFunction(L"PluginCodeGenExit");
+				}
 			}
 			else
 				throw NotImplementedException("TODO - add code gen support for this entry type");
