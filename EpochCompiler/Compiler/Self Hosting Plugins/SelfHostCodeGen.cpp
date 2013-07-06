@@ -290,6 +290,8 @@ namespace
 			}
 		}
 
+		if(funcdef.GetCode())
+			RegisterScope(ns, funcname, *funcdef.GetCode()->GetScope());
 		
 		if(funcdef.GetReturnExpression())
 		{
@@ -357,12 +359,6 @@ namespace
 
 		// TODO - register type aliases
 		// TODO - register function signatures
-
-		// Register scopes
-		const ScopePtrMap& scopes = ns.GetScopes();
-		for(ScopePtrMap::const_iterator iter = scopes.begin(); iter != scopes.end(); ++iter)
-			RegisterScope(ns, iter->first, *iter->second);
-
 		// TODO - register global blocks
 		
 		// Register functions
