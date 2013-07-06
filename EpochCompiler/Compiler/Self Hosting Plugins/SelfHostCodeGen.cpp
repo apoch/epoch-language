@@ -349,7 +349,11 @@ namespace
 		}
 
 
-		// TODO - register type aliases
+		// Register type aliases
+		const std::map<Metadata::EpochTypeID, Metadata::EpochTypeID>& aliases = ns.Types.Aliases.GetStrongAliasMap();
+		for(std::map<Metadata::EpochTypeID, Metadata::EpochTypeID>::const_iterator iter = aliases.begin(); iter != aliases.end(); ++iter)
+			Plugins.InvokeVoidPluginFunction(L"PluginCodeGenRegisterAlias", iter->first, iter->second);
+
 		// TODO - register function signatures
 		// TODO - register global blocks
 		

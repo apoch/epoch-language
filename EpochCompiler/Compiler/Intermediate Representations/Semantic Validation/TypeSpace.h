@@ -252,6 +252,8 @@ namespace IRSemantics
 
 		void CacheStrongAliasSizes(std::map<Metadata::EpochTypeID, size_t>& sizecache) const;
 
+		const std::map<Metadata::EpochTypeID, Metadata::EpochTypeID>& GetStrongAliasMap() const;
+
 	// Internal tracking
 	private:
 		friend class TypeSpace;

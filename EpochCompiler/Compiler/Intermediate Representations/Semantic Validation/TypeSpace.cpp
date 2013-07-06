@@ -503,6 +503,11 @@ Metadata::EpochTypeID TypeAliasTable::GetStrongRepresentationName(Metadata::Epoc
 	return iter->second;
 }
 
+const std::map<Metadata::EpochTypeID, Metadata::EpochTypeID>& TypeAliasTable::GetStrongAliasMap() const
+{
+	return StrongRepresentationTypes;
+}
+
 //
 // Add a weak alias to the alias table
 //
