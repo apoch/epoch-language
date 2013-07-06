@@ -27,6 +27,7 @@ namespace
 {
 
 	void RegisterStatementParams(const Namespace& ns, const Statement& statement);
+	void RegisterCodeBlock(const Namespace& ns, const CodeBlock& code);
 
 
 	void RegisterStructure(const Namespace& ns, StringHandle name, const Structure& definition)
@@ -111,39 +112,6 @@ namespace
 			else if(const ExpressionAtomIdentifier* atom = dynamic_cast<const ExpressionAtomIdentifier*>(rawatom))
 			{
 				Plugins.InvokeVoidPluginFunction(L"PluginCodeGenRegisterAtomIdentifier", atom->GetIdentifier(), atom->GetEpochType(ns));
-				// TODO - port atom emission logic to Epoch core
-				/*
-				if(atom->GetEpochType(curnamespace) == Metadata::EpochType_Nothing)
-				{
-					emitter.PushIntegerLiteral(0);
-				}
-				else
-				{
-					if(curnamespace.Functions.IRExists(atom->GetIdentifier()))
-						emitter.PushFunctionNameLiteral(atom->GetIdentifier());
-					else if(curnamespace.Types.GetTypeByName(atom->GetIdentifier()) != Metadata::EpochType_Error)
-						emitter.PushStringLiteral(atom->GetIdentifier());
-					else
-					{
-						if(atom->GetEpochType(curnamespace) == Metadata::EpochType_Identifier)
-						{
-							if(!constructorcall)
-								emitter.PushStringLiteral(atom->GetIdentifier());
-							else
-							{
-								size_t frames = 0;
-								size_t index = activescope.GetScope()->FindVariable(atom->GetIdentifier(), frames);
-								frames = CheckForGlobalFrame(curnamespace, activescope, frames);
-								emitter.BindReference(frames, index);
-							}
-						}
-						else if(Metadata::GetTypeFamily(atom->GetEpochType(curnamespace)) == Metadata::EpochTypeFamily_Function)
-							emitter.PushFunctionNameLiteral(atom->GetIdentifier());
-						else
-							PushFast(emitter, curnamespace, activescope, atom->GetIdentifier());
-					}
-				}
-				*/
 			}
 			else if(const ExpressionAtomOperator* atom = dynamic_cast<const ExpressionAtomOperator*>(rawatom))
 			{
@@ -229,6 +197,19 @@ namespace
 			throw NotImplementedException("TODO - implement assignment chain support");
 	}
 
+	void RegisterEntity(const Namespace& ns, const Entity& entity)
+	{
+		Bytecode::EntityTag postfixtag = entity.GetPostfixIdentifier() ? ns.GetEntityCloserTag(entity.GetPostfixIdentifier()) : 0;
+
+		Plugins.InvokeVoidPluginFunction(L"PluginCodeGenEnterEntity", ns.GetEntityTag(entity.GetName()), postfixtag);
+		if(!entity.GetParameters().empty())		// TODO - multi-param entities?
+			RegisterExpression(ns, *entity.GetParameters()[0]);
+		Plugins.InvokeVoidPluginFunction(L"PluginCodeGenEnterEntityCode");
+		RegisterCodeBlock(ns, entity.GetCode());
+		Plugins.InvokeVoidPluginFunction(L"PluginCodeGenExit");
+		Plugins.InvokeVoidPluginFunction(L"PluginCodeGenExit");
+	}
+
 	void RegisterCodeBlock(const Namespace& ns, const CodeBlock& code)
 	{
 		const std::vector<CodeBlockEntry*>& entries = code.GetEntries();
@@ -257,6 +238,17 @@ namespace
 					RegisterAssignmentChain(ns, *assignment->GetAssignment().GetRHS());
 					Plugins.InvokeVoidPluginFunction(L"PluginCodeGenExit");
 				}
+			}
+			else if(const CodeBlockEntityEntry* entity = dynamic_cast<const CodeBlockEntityEntry*>(*iter))
+			{
+				Plugins.InvokeVoidPluginFunction(L"PluginCodeGenEnterChain");
+				RegisterEntity(ns, entity->GetEntity());
+
+				const std::vector<Entity*>& chain = entity->GetEntity().GetChain();
+				for(std::vector<Entity*>::const_iterator chainiter = chain.begin(); chainiter != chain.end(); ++chainiter)
+					RegisterEntity(ns, **chainiter);
+
+				Plugins.InvokeVoidPluginFunction(L"PluginCodeGenExit");
 			}
 			else
 				throw NotImplementedException("TODO - add code gen support for this entry type");

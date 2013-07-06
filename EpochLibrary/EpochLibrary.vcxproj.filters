@@ -208,9 +208,6 @@
     <ClInclude Include="Library Functionality\Strings\Strings.h">
       <Filter>Library Functionality\Strings</Filter>
     </ClInclude>
-    <ClInclude Include="..\Shared\Libraries\Library.h">
-      <Filter>Shared\Libraries</Filter>
-    </ClInclude>
     <ClInclude Include="..\Shared\Utility\DLLPool.h">
       <Filter>Shared\Utility</Filter>
     </ClInclude>
@@ -267,6 +264,9 @@
     </ClInclude>
     <ClInclude Include="..\EpochRuntime\Runtime\Runtime.h">
       <Filter>Runtime Linkage\Runtime</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Shared\Libraries\Library.h">
+      <Filter>Shared\Libraries</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
