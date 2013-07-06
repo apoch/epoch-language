@@ -225,13 +225,15 @@ namespace
 			{
 				if(assignment->GetAssignment().GetLHS().size() == 1)
 				{
-					Plugins.InvokeVoidPluginFunction(L"PluginCodeGenEnterAssignment", assignment->GetAssignment().GetLHS().front());
+					Metadata::EpochTypeID annotation = assignment->GetAssignment().WantsTypeAnnotation ? assignment->GetAssignment().GetRHS()->GetEpochType(ns) : 0;
+					Plugins.InvokeVoidPluginFunction(L"PluginCodeGenEnterAssignment", assignment->GetAssignment().GetLHS().front(), assignment->GetAssignment().GetLHSType(), annotation);
 					RegisterAssignmentChain(ns, *assignment->GetAssignment().GetRHS());
 					Plugins.InvokeVoidPluginFunction(L"PluginCodeGenExit");
 				}
 				else
 				{
-					Plugins.InvokeVoidPluginFunction(L"PluginCodeGenEnterAssignmentCompound", assignment->GetAssignment().GetLHS().front());
+					Metadata::EpochTypeID annotation = assignment->GetAssignment().WantsTypeAnnotation ? assignment->GetAssignment().GetRHS()->GetEpochType(ns) : 0;
+					Plugins.InvokeVoidPluginFunction(L"PluginCodeGenEnterAssignmentCompound", assignment->GetAssignment().GetLHS().front(), assignment->GetAssignment().GetLHSType(), annotation);
 					for(size_t i = 1; i < assignment->GetAssignment().GetLHS().size(); ++i)
 						Plugins.InvokeVoidPluginFunction(L"PluginCodeGenAssignmentCompoundMember", assignment->GetAssignment().GetLHS()[i]);
 					Plugins.InvokeVoidPluginFunction(L"PluginCodeGenAssignmentCompoundEnd");
