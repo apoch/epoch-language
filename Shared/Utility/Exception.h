@@ -120,3 +120,11 @@ public:
 	explicit CompileSettingsException(const std::string& message) : FatalException(message) { }
 };
 
+
+class AssertionFailureException : public RecoverableException
+{
+// Construction
+public:
+	AssertionFailureException() : RecoverableException("Assertion failure") { } 
+};
+

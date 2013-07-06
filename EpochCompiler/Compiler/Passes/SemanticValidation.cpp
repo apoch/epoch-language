@@ -516,7 +516,7 @@ void CompilePassSemantics::ExitHelper::operator () (AST::NamedFunctionParameter&
 
 	self->ErrorContext = &param.Name;
 	std::auto_ptr<IRSemantics::FunctionParamNamed> irparam(new IRSemantics::FunctionParamNamed(type, self->CurrentTemplateArgsScratch, self->IsParamRef));
-	self->CurrentFunctions.back()->AddParameter(name, irparam.release(), self->Errors);
+	self->CurrentFunctions.back()->AddParameter(name, irparam.release(), false, self->Errors);
 	self->ErrorContext = NULL;
 }
 
@@ -661,7 +661,7 @@ void CompilePassSemantics::ExitHelper::operator () (AST::Expression&)
 			std::auto_ptr<IRSemantics::FunctionParamExpression> irparam(new IRSemantics::FunctionParamExpression(self->CurrentExpressions.back()));
 			self->CurrentExpressions.pop_back();
 
-			self->CurrentFunctions.back()->AddParameter(paramname, irparam.release(), self->Errors);
+			self->CurrentFunctions.back()->AddParameter(paramname, irparam.release(), false, self->Errors);
 		}
 		break;
 	}
@@ -1357,7 +1357,7 @@ void CompilePassSemantics::EntryHelper::operator () (AST::FunctionReferenceSigna
 void CompilePassSemantics::ExitHelper::operator () (AST::FunctionReferenceSignature& refsig)
 {
 	StringHandle name = self->CurrentProgram->AddString(std::wstring(refsig.Identifier.begin(), refsig.Identifier.end()));
-	self->CurrentFunctions.back()->AddParameter(name, self->CurrentFunctionSignatures.back(), self->Errors);
+	self->CurrentFunctions.back()->AddParameter(name, self->CurrentFunctionSignatures.back(), false, self->Errors);
 	self->CurrentFunctionSignatures.pop_back();
 	self->StateStack.pop();
 }
@@ -1458,10 +1458,13 @@ void CompilePassSemantics::EntryHelper::operator () (AST::Nothing&)
 		}
 
 
-		StringHandle type = self->CurrentProgram->AddString(L"nothing");
+		std::wostringstream formatter;
+		formatter << L"nothing" << ++self->StupidCounter;
+		StringHandle name = self->CurrentProgram->AddString(formatter.str());
+		StringHandle type = self->CurrentProgram->FindString(L"nothing");
 
 		std::auto_ptr<IRSemantics::FunctionParamNamed> irparam(new IRSemantics::FunctionParamNamed(type, CompileTimeParameterVector(), false));
-		self->CurrentFunctions.back()->AddParameter(type, irparam.release(), self->Errors);
+		self->CurrentFunctions.back()->AddParameter(name, irparam.release(), true, self->Errors);
 	}
 	else
 		throw InternalException("Unexpected 'nothing'");

@@ -77,11 +77,11 @@ Function::~Function()
 //
 // Add a parameter to a function's signature
 //
-void Function::AddParameter(StringHandle name, FunctionParam* param, CompileErrors& errors)
+void Function::AddParameter(StringHandle name, FunctionParam* param, bool isnothing, CompileErrors& errors)
 {
 	for(std::vector<Param>::const_iterator iter = Parameters.begin(); iter != Parameters.end(); ++iter)
 	{
-		if(iter->Name == name)
+		if((iter->Name == name) && (!isnothing))
 		{
 			errors.SemanticError("Duplicate function parameter name");
 			return;

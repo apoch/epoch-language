@@ -322,7 +322,7 @@ namespace IRSemantics
 
 	// Parameters
 	public:
-		void AddParameter(StringHandle name, FunctionParam* param, CompileErrors& errors);
+		void AddParameter(StringHandle name, FunctionParam* param, bool isnothing, CompileErrors& errors);
 
 		std::vector<StringHandle> GetParameterNames() const;
 		bool HasParameter(StringHandle paramname) const;

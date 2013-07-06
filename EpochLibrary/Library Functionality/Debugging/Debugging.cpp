@@ -94,16 +94,14 @@ extern "C" void EpochLib_Print(StringHandle strhandle)
 	out << GlobalExecutionContext->GetPooledString(strhandle) << std::endl;
 }
 
-extern "C" void EpochLib_Assert(bool assumption)
+void EpochLib_Assert(bool assumption)
 {
 	if(!assumption)
 	{
 		UI::OutputStream output;
 		output << UI::lightred << L"Assertion failure" << UI::white << std::endl;
 
-		typedef void (STDCALL *haltfunc)();
-		Marshaling::DLLPool::DLLPoolHandle handle = Marshaling::TheDLLPool.OpenDLL(L"EpochRuntime.dll");
-		Marshaling::TheDLLPool.GetFunction<haltfunc>(handle, "Epoch_Halt")();
+		throw AssertionFailureException();
 	}
 }
 

@@ -72,7 +72,8 @@ namespace ASTTraverse
 			  SourceBegin(sourcebegin),
 			  SourceEnd(sourceend),
 			  ErrorContext(NULL),
-			  CurrentNamespace(NULL)
+			  CurrentNamespace(NULL),
+			  StupidCounter(0)
 		{
 			Entry.self = this;
 			Exit.self = this;
@@ -344,6 +345,8 @@ namespace ASTTraverse
 
 		Metadata::EpochTypeID CurrentSumType;
 		StringHandle LastStructureMemberName;
+
+		unsigned StupidCounter;
 
 	public:
 		CompileErrors Errors;

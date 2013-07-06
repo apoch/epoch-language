@@ -159,7 +159,7 @@ void Structure::GenerateConstructors(StringHandle myname, StringHandle construct
 		curnamespace.AllocateLexicalScopeName(codeblock->GetScope());
 		func->SetCode(codeblock.release());
 		func->SetName(funcname);
-		func->AddParameter(curnamespace.Strings.Find(L"identifier"), new FunctionParamTyped(type, true), errors);
+		func->AddParameter(curnamespace.Strings.Find(L"identifier"), new FunctionParamTyped(type, true), (type == Metadata::EpochType_Nothing), errors);
 		func->SuppressReturnRegister();
 		func->SuppressCodeEmission();
 
