@@ -11,6 +11,8 @@
 #include "Runtime/GlobalContext.h"
 
 #include "Utility/Strings.h"
+#include "User Interface/Output.h"
+
 
 #ifdef _MSC_VER
 #define NORETURN __declspec(noreturn)
@@ -43,11 +45,13 @@ extern "C" void STDCALL ExecuteByteCode(void* bytecodebuffer, size_t size)
 	}
 	catch(const std::exception& e)
 	{
-		::MessageBox(0, widen(e.what()).c_str(), L"Epoch Execution Exception", MB_ICONSTOP);
+		UI::OutputStream out;
+		out << UI::lightred << widen(e.what()).c_str() << UI::resetcolor << std::endl;
 	}
 	catch(...)
 	{
-		::MessageBox(0, L"Exception occurred during execution", L"Epoch Execution Exception", MB_ICONSTOP);
+		UI::OutputStream out;
+		out << UI::lightred << L"Unknown exception" << UI::resetcolor << std::endl;
 	}
 }
 
@@ -61,11 +65,13 @@ extern "C" void* STDCALL ExecuteByteCodePersistent(void* bytecodebuffer, size_t 
 	}
 	catch(const std::exception& e)
 	{
-		::MessageBox(0, widen(e.what()).c_str(), L"Epoch Execution Exception", MB_ICONSTOP);
+		UI::OutputStream out;
+		out << UI::lightred << widen(e.what()).c_str() << UI::resetcolor << std::endl;
 	}
 	catch(...)
 	{
-		::MessageBox(0, L"Exception occurred during execution", L"Epoch Execution Exception", MB_ICONSTOP);
+		UI::OutputStream out;
+		out << UI::lightred << "Unknown exception" << UI::resetcolor << std::endl;
 	}
 
 	return context;
