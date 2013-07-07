@@ -32,6 +32,9 @@ namespace
 
 	void RegisterStructure(const Namespace& ns, StringHandle name, const Structure& definition)
 	{
+		if(definition.IsTemplate())
+			return;
+
 		Metadata::EpochTypeID structuretype = ns.Types.GetTypeByName(name);
 
 		const std::vector<std::pair<StringHandle, StructureMember*> >& members = definition.GetMembers();
@@ -354,14 +357,46 @@ namespace
 		Plugins.InvokeVoidPluginFunction(L"PluginCodeGenExit");
 	}
 
-	void RegisterNamespace(const Namespace& ns)
+	void RegisterNamespace(Namespace& ns)
 	{
 		// Register structure definitions
 		const std::map<StringHandle, Structure*>& structures = ns.Types.Structures.GetDefinitions();
 		for(std::map<StringHandle, Structure*>::const_iterator iter = structures.begin(); iter != structures.end(); ++iter)
 			RegisterStructure(ns, iter->first, *iter->second);
 
-		// TODO - register template instances
+		// Register template instances
+		const IRSemantics::InstantiationMap& templateinsts = ns.Types.Templates.GetInstantiations();
+		for(IRSemantics::InstantiationMap::const_iterator iter = templateinsts.begin(); iter != templateinsts.end(); ++iter)
+		{
+			IRSemantics::Structure& structure = *structures.find(iter->first)->second;
+			if(!structure.IsTemplate())
+				continue;
+
+			const IRSemantics::InstancesAndArguments& instances = iter->second;
+			for(IRSemantics::InstancesAndArguments::const_iterator institer = instances.begin(); institer != instances.end(); ++institer)
+			{
+				const std::vector<std::pair<StringHandle, IRSemantics::StructureMember*> >& members = structure.GetMembers();
+				for(std::vector<std::pair<StringHandle, IRSemantics::StructureMember*> >::const_iterator memberiter = members.begin(); memberiter != members.end(); ++memberiter)
+				{
+					Metadata::EpochTypeID membertype;
+
+					const CompileTimeParameterVector& args = institer->second;
+					membertype = structure.SubstituteTemplateParams(memberiter->first, args, ns);
+
+					while(Metadata::GetTypeFamily(membertype) == Metadata::EpochTypeFamily_Unit)
+						membertype = ns.Types.Aliases.GetStrongRepresentation(membertype);
+
+					Plugins.InvokeVoidPluginFunction(L"PluginCodeGenRegisterStructureMemVar", institer->first, ns.Types.GetTypeByName(institer->first), memberiter->first, membertype);
+				}
+
+				StringHandle ctorname = ns.Types.Templates.FindConstructorName(institer->first);
+				StringHandle anonname = ns.Types.Templates.FindAnonConstructorName(institer->first);
+				StringHandle copyname = 0;
+				Plugins.InvokeVoidPluginFunction(L"PluginCodeGenRegisterConstructors", institer->first, ctorname, anonname, copyname);
+			}
+		}
+
+
 		
 		// Register sum types
 		std::map<Metadata::EpochTypeID, std::set<Metadata::EpochTypeID> > sumtypes = ns.Types.SumTypes.GetDefinitions();
@@ -428,7 +463,7 @@ namespace
 
 
 
-bool CompilerPasses::GenerateCodeSelfHosted(const IRSemantics::Program& program)
+bool CompilerPasses::GenerateCodeSelfHosted(IRSemantics::Program& program)
 {
 	const StringPoolManager& strings = program.GetStringPool();
 	const boost::unordered_map<StringHandle, std::wstring>& stringpool = strings.GetInternalPool();

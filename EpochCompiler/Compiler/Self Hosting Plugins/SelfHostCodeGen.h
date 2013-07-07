@@ -11,7 +11,7 @@ namespace IRSemantics { class Program; }
 namespace CompilerPasses
 {
 
-	bool GenerateCodeSelfHosted(const IRSemantics::Program& program);
+	bool GenerateCodeSelfHosted(IRSemantics::Program& program);
 
 }
 
