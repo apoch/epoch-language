@@ -356,7 +356,19 @@ namespace
 		for(std::map<Metadata::EpochTypeID, Metadata::EpochTypeID>::const_iterator iter = aliases.begin(); iter != aliases.end(); ++iter)
 			Plugins.InvokeVoidPluginFunction(L"PluginCodeGenRegisterAlias", iter->first, iter->second);
 
-		// TODO - register function signatures
+		// Register function signatures
+		const std::vector<std::pair<FunctionSignature, Metadata::EpochTypeID> >& funcsigs = ns.Types.FunctionSignatures.GetDefinitions();
+		for(std::vector<std::pair<FunctionSignature, Metadata::EpochTypeID> >::const_iterator iter = funcsigs.begin(); iter != funcsigs.end(); ++iter)
+		{
+			Plugins.InvokeVoidPluginFunction(L"PluginCodeGenRegisterFunctionSignature", iter->second, iter->first.GetReturnType());
+			for(size_t i = 0; i < iter->first.GetNumParameters(); ++i)
+			{
+				const CompileTimeParameter& param = iter->first.GetParameter(i);
+				Plugins.InvokeVoidPluginFunction(L"PluginCodeGenRegisterFunctionSigParam", param.Type, param.IsReference);
+			}
+			Plugins.InvokeVoidPluginFunction(L"PluginCodeGenRegisterFunctionSignatureEnd");
+		}
+
 		// TODO - register global blocks
 		
 		// Register functions
