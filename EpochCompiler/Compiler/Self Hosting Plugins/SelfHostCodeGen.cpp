@@ -81,15 +81,22 @@ namespace
 			const ExpressionAtom* rawatom = *iter;
 			if(const ExpressionAtomParenthetical* atom = dynamic_cast<const ExpressionAtomParenthetical*>(rawatom))
 			{
-				// TODO - register parenthetical
-				/*
 				const Parenthetical* parenthetical = atom->GetParenthetical();
 				if(const ParentheticalPreOp* preop = dynamic_cast<const ParentheticalPreOp*>(parenthetical))
-					EmitPreOpStatement(emitter, *preop->GetStatement(), activescope, curnamespace, true);
+				{
+					throw NotImplementedException("TODO - support for preop statements");
+					//EmitPreOpStatement(emitter, *preop->GetStatement(), activescope, curnamespace, true);
+				}
 				else if(const ParentheticalPostOp* postop = dynamic_cast<const ParentheticalPostOp*>(parenthetical))
-					EmitPostOpStatement(emitter, *postop->GetStatement(), activescope, curnamespace, true);
+				{
+					throw NotImplementedException("TODO - support for postop statements");
+					//EmitPostOpStatement(emitter, *postop->GetStatement(), activescope, curnamespace, true);
+				}
 				else if(const ParentheticalExpression* expr = dynamic_cast<const ParentheticalExpression*>(parenthetical))
-					EmitExpression(emitter, expr->GetExpression(), activescope, curnamespace);
+				{
+					Plugins.InvokeVoidPluginFunction(L"PluginCodeGenRegisterParenthetical");
+					RegisterExpression(ns, expr->GetExpression());
+				}
 				else
 				{
 					//
@@ -102,8 +109,8 @@ namespace
 					//
 					throw InternalException("Invalid parenthetical contents");
 				}
-				*/
-				throw NotImplementedException("Parenthetical atom type not supported yet");
+
+				Plugins.InvokeVoidPluginFunction(L"PluginCodeGenExit");
 			}
 			else if(const ExpressionAtomIdentifierReference* atom = dynamic_cast<const ExpressionAtomIdentifierReference*>(rawatom))
 			{
@@ -252,8 +259,22 @@ namespace
 
 				Plugins.InvokeVoidPluginFunction(L"PluginCodeGenExit");
 			}
+			else if(const CodeBlockPreOpStatementEntry* preop = dynamic_cast<const CodeBlockPreOpStatementEntry*>(*iter))
+			{
+				const std::vector<StringHandle>& operand = preop->GetStatement().GetOperand();
+				Plugins.InvokeVoidPluginFunction(L"PluginCodeGenRegisterPreOpStatement", preop->GetStatement().GetOperatorName(), operand.front());
+				for(size_t i = 1; i < operand.size(); ++i)
+					Plugins.InvokeVoidPluginFunction(L"PluginCodeGenRegisterPreOpOperand", operand[i]);
+			}
+			else if(const CodeBlockPostOpStatementEntry* postop = dynamic_cast<const CodeBlockPostOpStatementEntry*>(*iter))
+			{
+				const std::vector<StringHandle>& operand = postop->GetStatement().GetOperand();
+				Plugins.InvokeVoidPluginFunction(L"PluginCodeGenRegisterPostOpStatement", postop->GetStatement().GetOperatorName(), operand.front());
+				for(size_t i = 1; i < operand.size(); ++i)
+					Plugins.InvokeVoidPluginFunction(L"PluginCodeGenRegisterPostOpOperand", operand[i]);
+			}
 			else
-				throw NotImplementedException("TODO - add code gen support for this entry type");
+				throw InternalException("Bogus code block entry type");
 		}
 	}
 
