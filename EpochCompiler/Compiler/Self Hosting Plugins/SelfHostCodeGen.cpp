@@ -187,6 +187,8 @@ namespace
 				throw InternalException("IR contains an unrecognized expression atom");
 			}
 		}
+
+		Plugins.InvokeVoidPluginFunction(L"PluginCodeGenSetExpressionType", expr.GetEpochType(ns));
 	}
 
 	void RegisterStatementParams(const Namespace& ns, const Statement& statement)
@@ -390,7 +392,15 @@ namespace
 			Plugins.InvokeVoidPluginFunction(L"PluginCodeGenRegisterFunctionSignatureEnd");
 		}
 
-		// TODO - register global blocks
+		if(ns.GetNumGlobalCodeBlocks() > 0)
+		{
+			StringHandle name = ns.FindLexicalScopeName(ns.GetGlobalScope());
+			RegisterScope(ns, name, *ns.GetGlobalScope());
+			
+			Plugins.InvokeVoidPluginFunction(L"PluginCodeGenRegisterGlobalBlock", name);
+			RegisterCodeBlock(ns, ns.GetGlobalCodeBlock(0));
+			Plugins.InvokeVoidPluginFunction(L"PluginCodeGenExit");
+		}
 		
 		// Register functions
 		const boost::unordered_map<StringHandle, Function*>& functions = ns.Functions.GetDefinitions();

@@ -1677,9 +1677,17 @@ void FunctionJITHelper::Read(size_t& offset)
 		throw FatalException("Name not mapped to index");
 
 	size_t index = LibJITContext.NameToIndexMap[varname];
+	size_t scopeindex = index;
 
-	Metadata::EpochTypeID vartype = LibJITContext.CurrentScope->GetVariableTypeByIndex(index);
-	if(Builder.GetInsertBlock()->getParent()->isVarArg() && (LibJITContext.CurrentScope->GetVariableOrigin(index) != VARIABLE_ORIGIN_RETURN))
+	const ScopeDescription* scope = LibJITContext.CurrentScope;
+	if(index >= 0xf0000000)
+	{
+		scopeindex -= 0xf0000000;
+		scope = scope->ParentScope;
+	}
+
+	Metadata::EpochTypeID vartype = scope->GetVariableTypeByIndex(scopeindex);
+	if(Builder.GetInsertBlock()->getParent()->isVarArg() && (scope->GetVariableOrigin(scopeindex) != VARIABLE_ORIGIN_RETURN))
 	{
 		if(Metadata::GetTypeFamily(vartype) == Metadata::EpochTypeFamily_SumType)
 		{
