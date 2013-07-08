@@ -34,6 +34,7 @@ public:
 // Member configuration
 public:
 	void AddMember(StringHandle identifier, Metadata::EpochTypeID type, const StructureDefinition* structdefinition, const VariantDefinition* variantdefinition);
+	void SetMemberStructDefinition(size_t index, const StructureDefinition* structdefinition);
 
 // Member accessors
 public:

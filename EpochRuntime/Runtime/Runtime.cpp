@@ -313,6 +313,8 @@ void ExecutionContext::Load()
 	std::map<size_t, StringHandle> offsetfixups;
 	std::map<size_t, StringHandle> jitfixups;
 
+	std::multimap<EpochTypeID, std::pair<size_t, EpochTypeID> > pendingstructdefs;
+
 	StringHandle typematcherid = 0;
 	StringHandle patternmatcherid = 0;
 
@@ -426,7 +428,15 @@ void ExecutionContext::Load()
 					const StructureDefinition* structdefinition = NULL;
 					const VariantDefinition* variantdefinition = NULL;
 					if(IsStructureType(type))
-						structdefinition = &GetStructureDefinition(type);
+					{
+						if(HasStructureDefinition(type))
+							structdefinition = &GetStructureDefinition(type);
+						else
+						{
+							pendingstructdefs.insert(std::make_pair(structuretypeid, std::make_pair(identifier, type)));
+							structdefinition = NULL;
+						}
+					}
 					else if(GetTypeFamily(type) == EpochTypeFamily_SumType)
 						variantdefinition = &VariantDefinitions.find(type)->second;
 					StructureDefinitions[structuretypeid].AddMember(identifier, type, structdefinition, variantdefinition);
@@ -660,6 +670,17 @@ void ExecutionContext::Load()
 		}
 	}
 
+	// Fixup structure metadata
+	for(std::multimap<EpochTypeID, std::pair<size_t, EpochTypeID> >::const_iterator iter = pendingstructdefs.begin(); iter != pendingstructdefs.end(); ++iter)
+	{
+		EpochTypeID structuretype = iter->first;
+		size_t memberindex = iter->second.first;
+		EpochTypeID membertype = iter->second.second;
+
+		std::map<EpochTypeID, StructureDefinition>::iterator targetiter = StructureDefinitions.find(structuretype);
+		targetiter->second.SetMemberStructDefinition(memberindex, &GetStructureDefinition(membertype));
+	}
+
 	// Replace function jump offsets with their true locations
 	for(std::map<size_t, StringHandle>::const_iterator iter = offsetfixups.begin(); iter != offsetfixups.end(); ++iter)
 	{
@@ -794,6 +815,12 @@ EPOCHRUNTIME const StructureDefinition& ExecutionContext::GetStructureDefinition
 		throw FatalException("Invalid structure description handle");
 
 	return iter->second;
+}
+
+bool ExecutionContext::HasStructureDefinition(Metadata::EpochTypeID vartype) const
+{
+	std::map<EpochTypeID, StructureDefinition>::const_iterator iter = StructureDefinitions.find(vartype);
+	return (iter != StructureDefinitions.end());
 }
 
 //

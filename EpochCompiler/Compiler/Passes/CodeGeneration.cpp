@@ -728,7 +728,7 @@ namespace
 
 				if(Metadata::IsStructureType(membertype))
 					dependencies.insert(membertype);
-				/*else if(Metadata::GetTypeFamily(membertype) == Metadata::EpochTypeFamily_SumType)
+				else if(Metadata::GetTypeFamily(membertype) == Metadata::EpochTypeFamily_SumType)
 				{
 					const std::set<Metadata::EpochTypeID> bases = curnamespace.Types.SumTypes.GetDefinitions().find(membertype)->second;
 					for(std::set<Metadata::EpochTypeID>::const_iterator baseiter = bases.begin(); baseiter != bases.end(); ++baseiter)
@@ -736,7 +736,7 @@ namespace
 						if(Metadata::IsStructureType(*baseiter))
 							dependencies.insert(*baseiter);
 					}
-				}*/
+				}
 			}
 
 			for(std::set<Metadata::EpochTypeID>::const_iterator diter = dependencies.begin(); diter != dependencies.end(); ++diter)

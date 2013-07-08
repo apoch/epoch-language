@@ -165,6 +165,7 @@ namespace Runtime
 		EPOCHRUNTIME ActiveStructure& FindStructureMetadata(StructureHandle handle);
 
 		EPOCHRUNTIME const StructureDefinition& GetStructureDefinition(Metadata::EpochTypeID vartype) const;
+		bool HasStructureDefinition(Metadata::EpochTypeID vartype) const;
 
 	// Functions
 	public:

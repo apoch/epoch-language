@@ -29,7 +29,10 @@ void StructureDefinition::AddMember(StringHandle identifier, Metadata::EpochType
 		Offset += Metadata::GetStorageSize(type);
 
 		if(Metadata::IsStructureType(type))
-			MarshaledSize += structdefinition->GetMarshaledSize();
+		{
+			if(structdefinition)
+				MarshaledSize += structdefinition->GetMarshaledSize();
+		}
 		else
 			MarshaledSize += Metadata::GetMarshaledSize(type);
 	}
@@ -82,3 +85,9 @@ size_t StructureDefinition::FindMember(StringHandle identifier) const
 	throw FatalException("Invalid structure member");
 }
 
+
+
+void StructureDefinition::SetMemberStructDefinition(size_t, const StructureDefinition* def)
+{
+	MarshaledSize += def->GetMarshaledSize();
+}

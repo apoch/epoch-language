@@ -50,7 +50,11 @@ namespace
 			}
 			else if(const StructureMemberFunctionReference* memberfuncref = dynamic_cast<const StructureMemberFunctionReference*>(raw))
 			{
-				// TODO - register member function references
+				FunctionSignature sig = memberfuncref->GetSignature(ns);
+				Metadata::EpochTypeID rettype = sig.GetReturnType();
+				Plugins.InvokeVoidPluginFunction(L"PluginCodeGenRegisterStructureMemFuncSig", name, structuretype, iter->first, rettype);
+				for(size_t i = 0; i < sig.GetNumParameters(); ++i)
+					Plugins.InvokeVoidPluginFunction(L"PluginCodeGenRegisterStructureMemFuncSigParam", name, structuretype, iter->first, sig.GetParameter(i).Type, sig.GetParameter(i).IsReference);
 			}
 			else
 				throw FatalException("Unsupported structure member type");
