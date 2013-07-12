@@ -54,7 +54,7 @@ namespace
 				Metadata::EpochTypeID rettype = sig.GetReturnType();
 				Plugins.InvokeVoidPluginFunction(L"PluginCodeGenRegisterStructureMemFuncSig", name, structuretype, iter->first, rettype);
 				for(size_t i = 0; i < sig.GetNumParameters(); ++i)
-					Plugins.InvokeVoidPluginFunction(L"PluginCodeGenRegisterStructureMemFuncSigParam", name, structuretype, iter->first, sig.GetParameter(i).Type, sig.GetParameter(i).IsReference);
+					Plugins.InvokeVoidPluginFunction(L"PluginCodeGenRegisterStructureMemFuncSigParam", name, structuretype, iter->first, sig.GetParameter(i).Type);
 			}
 			else
 				throw FatalException("Unsupported structure member type");
@@ -73,10 +73,9 @@ namespace
 		{
 			StringHandle varname = desc.GetVariableNameHandle(i);
 			Metadata::EpochTypeID vartype = desc.GetVariableTypeByIndex(i);
-			bool varref = desc.IsReference(i);
 			VariableOrigin varorigin = desc.GetVariableOrigin(i);
 
-			Plugins.InvokeVoidPluginFunction(L"PluginCodeGenRegisterVariable", scopename, varname, vartype, static_cast<Integer32>(varref), static_cast<Integer32>(varorigin));
+			Plugins.InvokeVoidPluginFunction(L"PluginCodeGenRegisterVariable", scopename, varname, vartype, static_cast<Integer32>(varorigin));
 		}
 	}
 
@@ -150,7 +149,7 @@ namespace
 			else if(const ExpressionAtomStatement* atom = dynamic_cast<const ExpressionAtomStatement*>(rawatom))
 			{
 				Plugins.InvokeVoidPluginFunction(L"PluginCodeGenEnterSubStatement");
-				Plugins.InvokeVoidPluginFunction(L"PluginCodeGenEnterStatement", atom->GetStatement().GetName(), atom->GetStatement().GetEpochType(ns));
+				Plugins.InvokeVoidPluginFunction(L"PluginCodeGenEnterStatement", atom->GetStatement().GetName(), atom->GetStatement().GetEpochType());
 				RegisterStatementParams(ns, atom->GetStatement());
 				Plugins.InvokeVoidPluginFunction(L"PluginCodeGenExit");
 				Plugins.InvokeVoidPluginFunction(L"PluginCodeGenExit");
@@ -233,7 +232,7 @@ namespace
 		{
 			if(const CodeBlockStatementEntry* statement = dynamic_cast<const CodeBlockStatementEntry*>(*iter))
 			{
-				Plugins.InvokeVoidPluginFunction(L"PluginCodeGenEnterStatement", statement->GetStatement().GetName(), statement->GetStatement().GetEpochType(ns));
+				Plugins.InvokeVoidPluginFunction(L"PluginCodeGenEnterStatement", statement->GetStatement().GetName(), statement->GetStatement().GetEpochType());
 				RegisterStatementParams(ns, statement->GetStatement());
 				Plugins.InvokeVoidPluginFunction(L"PluginCodeGenExit");
 			}
@@ -344,7 +343,7 @@ namespace
 		{
 			const CompileTimeParameter& param = sig.GetParameter(i);
 			StringHandle paramname = 1;		// TODO - stupid hack
-			Plugins.InvokeVoidPluginFunction(L"PluginCodeGenRegisterTypeMatchParam", matchername, overloadname, paramname, param.Type, static_cast<Integer32>(param.IsReference));
+			Plugins.InvokeVoidPluginFunction(L"PluginCodeGenRegisterTypeMatchParam", matchername, overloadname, paramname, param.Type);
 		}
 	}
 
@@ -426,7 +425,7 @@ namespace
 			for(size_t i = 0; i < iter->first.GetNumParameters(); ++i)
 			{
 				const CompileTimeParameter& param = iter->first.GetParameter(i);
-				Plugins.InvokeVoidPluginFunction(L"PluginCodeGenRegisterFunctionSigParam", param.Type, param.IsReference);
+				Plugins.InvokeVoidPluginFunction(L"PluginCodeGenRegisterFunctionSigParam", param.Type);
 			}
 			Plugins.InvokeVoidPluginFunction(L"PluginCodeGenRegisterFunctionSignatureEnd");
 		}

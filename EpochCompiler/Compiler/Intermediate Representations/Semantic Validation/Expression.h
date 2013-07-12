@@ -402,6 +402,8 @@ namespace IRSemantics
 
 		virtual ExpressionAtom* Clone() const;
 
+		virtual Metadata::EpochTypeID GetEpochType(const Namespace& curnamespace) const;
+
 		virtual bool MakeReference(size_t index, std::vector<ExpressionAtom*>& atoms);
 		virtual bool MakeAnnotatedReference(size_t index, std::vector<ExpressionAtom*>& atoms);
 	};

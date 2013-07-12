@@ -1327,8 +1327,8 @@ void FunctionTable::GenerateSumTypeFunctions(Metadata::EpochTypeID sumtypeid, co
 	MyNamespace.Session.FunctionOverloadNames[sumtypeconstructorname].insert(overloadname);
 
 	FunctionSignature signature;
-	signature.AddParameter(L"@id", Metadata::EpochType_Identifier, false);
-	signature.AddParameter(L"@value", sumtypeid, false);
+	signature.AddParameter(L"@id", Metadata::EpochType_Identifier);
+	signature.AddParameter(L"@value", sumtypeid);
 
 	MyNamespace.Session.CompileTimeHelpers.insert(std::make_pair(sumtypeconstructorname, &CompileConstructorHelper));
 	MyNamespace.Session.FunctionSignatures.insert(std::make_pair(overloadname, signature));
@@ -1382,8 +1382,8 @@ void FunctionTable::GenerateSumTypeFunctions(Metadata::EpochTypeID sumtypeid, co
 		if(MyNamespace.Types.GetTypeByName(basetypename) == Metadata::EpochType_Nothing)
 		{
 			FunctionSignature signature;
-			signature.AddParameter(L"identifier", Metadata::EpochType_Identifier, false);
-			signature.AddParameter(L"nothing", Metadata::EpochType_Nothing, false);
+			signature.AddParameter(L"identifier", Metadata::EpochType_Identifier);
+			signature.AddParameter(L"nothing", Metadata::EpochType_Nothing);
 
 			MyNamespace.Session.FunctionSignatures.insert(std::make_pair(overloadname, signature));
 		}

@@ -110,7 +110,7 @@ void CommandLineLibrary::RegisterLibraryFunctions(FunctionSignatureSet& signatur
 	}
 	{
 		FunctionSignature signature;
-		signature.AddParameter(L"index", Metadata::EpochType_Integer, false);
+		signature.AddParameter(L"index", Metadata::EpochType_Integer);
 		signature.SetReturnType(Metadata::EpochType_String);
 		AddToMapNoDupe(signatureset, std::make_pair(CmdLineGetHandle, signature));
 	}

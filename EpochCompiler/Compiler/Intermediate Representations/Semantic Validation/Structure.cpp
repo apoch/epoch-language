@@ -79,13 +79,13 @@ void Structure::GenerateConstructors(StringHandle myname, StringHandle construct
 	{
 		size_t i = 0;
 		FunctionSignature signature;
-		signature.AddParameter(L"id", Metadata::EpochType_Identifier, true);
+		signature.AddParameter(L"id", Metadata::MakeReferenceType(Metadata::EpochType_Identifier));
 		for(std::vector<std::pair<StringHandle, StructureMember*> >::const_iterator iter = Members.begin(); iter != Members.end(); ++iter)
 		{
 			iter->second->PopulateTypeSpace(curnamespace);
 			Metadata::EpochTypeID paramtype = IsTemplate() ? SubstituteTemplateParams(iter->first, templateargs, curnamespace) : iter->second->GetEpochType(curnamespace);
 
-			signature.AddParameter(curnamespace.Strings.GetPooledString(iter->first), paramtype, false);
+			signature.AddParameter(curnamespace.Strings.GetPooledString(iter->first), paramtype);
 			++i;
 
 			if(iter->second->GetMemberType() == StructureMember::FunctionReference)
@@ -107,7 +107,7 @@ void Structure::GenerateConstructors(StringHandle myname, StringHandle construct
 		{
 			Metadata::EpochTypeID paramtype = IsTemplate() ? SubstituteTemplateParams(iter->first, templateargs, curnamespace) : iter->second->GetEpochType(curnamespace);
 
-			signature.AddParameter(curnamespace.Strings.GetPooledString(iter->first), paramtype, false);
+			signature.AddParameter(curnamespace.Strings.GetPooledString(iter->first), paramtype);
 
 			if(iter->second->GetMemberType() == StructureMember::FunctionReference)
 			{
@@ -129,8 +129,8 @@ void Structure::GenerateConstructors(StringHandle myname, StringHandle construct
 	if(copyconstructorname)
 	{
 		FunctionSignature signature;
-		signature.AddParameter(L"id", Metadata::EpochType_Identifier, true);
-		signature.AddParameter(L"value", curnamespace.Types.GetTypeByName(myname), false);
+		signature.AddParameter(L"id", Metadata::MakeReferenceType(Metadata::EpochType_Identifier));
+		signature.AddParameter(L"value", curnamespace.Types.GetTypeByName(myname));
 
 		curnamespace.Strings.Pool(L"value");
 
@@ -153,13 +153,13 @@ void Structure::GenerateConstructors(StringHandle myname, StringHandle construct
 		func->SetReturnExpression(retexpr.release());
 
 		std::auto_ptr<ScopeDescription> scope(new ScopeDescription(curnamespace.GetGlobalScope()));
-		scope->AddVariable(L"identifier", curnamespace.Strings.Pool(L"identifier"), myname, curnamespace.Types.GetTypeByName(myname), true, VARIABLE_ORIGIN_PARAMETER);
-		scope->AddVariable(L"ret", curnamespace.Strings.Pool(L"ret"), curnamespace.Types.GetNameOfType(type), type, false, VARIABLE_ORIGIN_RETURN);
+		scope->AddVariable(L"identifier", curnamespace.Strings.Pool(L"identifier"), myname, Metadata::MakeReferenceType(curnamespace.Types.GetTypeByName(myname)), VARIABLE_ORIGIN_PARAMETER);
+		scope->AddVariable(L"ret", curnamespace.Strings.Pool(L"ret"), curnamespace.Types.GetNameOfType(type), type, VARIABLE_ORIGIN_RETURN);
 		std::auto_ptr<CodeBlock> codeblock(new CodeBlock(scope.release()));
 		curnamespace.AllocateLexicalScopeName(codeblock->GetScope());
 		func->SetCode(codeblock.release());
 		func->SetName(funcname);
-		func->AddParameter(curnamespace.Strings.Find(L"identifier"), new FunctionParamTyped(type, true), (type == Metadata::EpochType_Nothing), errors);
+		func->AddParameter(curnamespace.Strings.Find(L"identifier"), new FunctionParamTyped(Metadata::MakeReferenceType(type)), (type == Metadata::EpochType_Nothing), errors);
 		func->SuppressReturnRegister();
 		func->SuppressCodeEmission();
 
@@ -389,7 +389,7 @@ FunctionSignature StructureMemberFunctionReference::GetSignature(const Namespace
 
 	for(std::vector<std::pair<StringHandle, const AST::IdentifierT*> >::const_iterator iter = ParamTypes.begin(); iter != ParamTypes.end(); ++iter)
 	{
-		ret.AddParameter(L"@@auto", curnamespace.Types.GetTypeByName(iter->first), false);
+		ret.AddParameter(L"@@auto", curnamespace.Types.GetTypeByName(iter->first));
 	}
 	return ret;
 }

@@ -778,7 +778,7 @@ void Expression::Coalesce(Namespace& curnamespace, CodeBlock& activescope, Compi
 						continue;
 					}
 
-					structuretype = activescope.GetScope()->GetVariableTypeByID(identifieratom->GetIdentifier());
+					structuretype = Metadata::MakeNonReferenceType(activescope.GetScope()->GetVariableTypeByID(identifieratom->GetIdentifier()));
 					*previter = new ExpressionAtomIdentifierReference(identifieratom->GetIdentifier(), identifieratom->GetOriginalIdentifier());
 					delete identifieratom;
 
@@ -844,9 +844,9 @@ ExpressionAtomStatement::~ExpressionAtomStatement()
 //
 // Retrieve the effective type of an expression atom wrapping a statement
 //
-Metadata::EpochTypeID ExpressionAtomStatement::GetEpochType(const Namespace& curnamespace) const
+Metadata::EpochTypeID ExpressionAtomStatement::GetEpochType(const Namespace&) const
 {
-	return MyStatement->GetEpochType(curnamespace);
+	return MyStatement->GetEpochType();
 }
 
 //
@@ -867,12 +867,12 @@ bool ExpressionAtomStatement::CompileTimeCodeExecution(Namespace& curnamespace, 
 
 bool ExpressionAtomStatement::MakeReference(size_t, std::vector<ExpressionAtom*>&)
 {
-	return false;
+	return Metadata::IsStructureType(MyStatement->GetEpochType());
 }
 
 bool ExpressionAtomStatement::MakeAnnotatedReference(size_t, std::vector<ExpressionAtom*>&)
 {
-	return false;
+	return Metadata::IsStructureType(MyStatement->GetEpochType());
 }
 
 
@@ -1063,6 +1063,7 @@ bool ExpressionAtomIdentifierBase::TypeInference(Namespace& curnamespace, CodeBl
 	if(MyType != Metadata::EpochType_Error)
 		return (MyType != Metadata::EpochType_Infer);
 
+	bool wantreference = false;
 	bool foundidentifier = activescope.GetScope()->HasVariable(Identifier);
 	StringHandle resolvedidentifier = Identifier;
 	Metadata::EpochTypeID vartype = foundidentifier ? activescope.GetScope()->GetVariableTypeByID(Identifier) : Metadata::EpochType_Infer;
@@ -1089,22 +1090,33 @@ bool ExpressionAtomIdentifierBase::TypeInference(Namespace& curnamespace, CodeBl
 			if(types[i].size() != maxindex)
 				continue;
 
-			Metadata::EpochTypeID paramtype = types[i][index];
+			bool ref = Metadata::IsReferenceType(types[i][index]);
+			Metadata::EpochTypeID paramtype = Metadata::MakeNonReferenceType(types[i][index]);
 			if(Metadata::GetTypeFamily(paramtype) == Metadata::EpochTypeFamily_Function)
 			{
 				possibletypes.insert(paramtype);
 				signaturematches += curnamespace.Functions.FindMatchingFunctions(Identifier, context.ExpectedSignatures.back()[i][index], context, errors, resolvedidentifier);
+
+				wantreference |= ref;
 			}
 			else if(paramtype == underlyingtype)
+			{
 				possibletypes.insert(vartype);
+				wantreference |= ref;
+			}
 			else if(paramtype == Metadata::EpochType_Identifier)
+			{
 				possibletypes.insert(Metadata::EpochType_Identifier);
+				wantreference |= ref;
+			}
 		}
 	}
 
 	if(possibletypes.size() != 1 && signaturematches != 1)
 	{
 		MyType = vartype;		// This will correctly handle structure types and fall back to Infer if all else fails
+		if(wantreference)
+			MyType = Metadata::MakeReferenceType(MyType);
 	}
 	else
 	{
@@ -1120,6 +1132,9 @@ bool ExpressionAtomIdentifierBase::TypeInference(Namespace& curnamespace, CodeBl
 		}
 		else
 			MyType = *possibletypes.begin();
+
+		if(wantreference)
+			MyType = Metadata::MakeReferenceType(MyType);
 	}
 
 	bool success = (MyType != Metadata::EpochType_Infer && MyType != Metadata::EpochType_Error);
@@ -1208,6 +1223,11 @@ ExpressionAtom* ExpressionAtomIdentifierReference::Clone() const
 	ExpressionAtomIdentifierReference* clone = new ExpressionAtomIdentifierReference(Identifier, OriginalIdentifier);
 	clone->MyType = MyType;
 	return clone;
+}
+
+Metadata::EpochTypeID ExpressionAtomIdentifierReference::GetEpochType(const Namespace& curnamespace) const
+{
+	return Metadata::MakeReferenceType(ExpressionAtomIdentifierBase::GetEpochType(curnamespace));
 }
 
 bool ExpressionAtomIdentifierReference::MakeReference(size_t index, std::vector<ExpressionAtom*>& atoms)

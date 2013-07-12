@@ -77,7 +77,7 @@ namespace IRSemantics
 
 	// Type system
 	public:
-		Metadata::EpochTypeID GetEpochType(const Namespace&) const
+		Metadata::EpochTypeID GetEpochType() const
 		{ return MyType; }
 
 	// Template support

@@ -26,8 +26,8 @@ public:
 
 // Signature configuration interface
 public:
-	void AddParameter(const std::wstring& name, Metadata::EpochTypeID type, bool isreference);
-	void PrependParameter(const std::wstring& name, Metadata::EpochTypeID type, bool isreference);
+	void AddParameter(const std::wstring& name, Metadata::EpochTypeID type);
+	void PrependParameter(const std::wstring& name, Metadata::EpochTypeID type);
 	
 	void AddPatternMatchedParameter(Integer32 literalvalue);
 	void AddPatternMatchedParameterIdentifier(StringHandle identifier);

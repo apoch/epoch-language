@@ -38,20 +38,20 @@ void StringLibrary::RegisterLibraryFunctions(FunctionSignatureSet& signatureset)
 {
 	{
 		FunctionSignature signature;
-		signature.AddParameter(L"s1", Metadata::EpochType_String, false);
-		signature.AddParameter(L"s2", Metadata::EpochType_String, false);
+		signature.AddParameter(L"s1", Metadata::EpochType_String);
+		signature.AddParameter(L"s2", Metadata::EpochType_String);
 		signature.SetReturnType(Metadata::EpochType_String);
 		AddToMapNoDupe(signatureset, std::make_pair(ConcatHandle, signature));
 	}
 	{
 		FunctionSignature signature;
-		signature.AddParameter(L"s", Metadata::EpochType_String, false);
+		signature.AddParameter(L"s", Metadata::EpochType_String);
 		signature.SetReturnType(Metadata::EpochType_Integer);
 		AddToMapNoDupe(signatureset, std::make_pair(LengthHandle, signature));
 	}
 	{
 		FunctionSignature signature;
-		signature.AddParameter(L"s", Metadata::EpochType_String, false);
+		signature.AddParameter(L"s", Metadata::EpochType_String);
 		signature.SetReturnType(Metadata::EpochType_Buffer);
 		AddToMapNoDupe(signatureset, std::make_pair(NarrowStringHandle, signature));
 	}

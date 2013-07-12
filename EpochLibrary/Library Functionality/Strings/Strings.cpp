@@ -38,22 +38,22 @@ void StringFunctionLibrary::RegisterLibraryFunctions(FunctionSignatureSet& signa
 {
 	{
 		FunctionSignature signature;
-		signature.AddParameter(L"str", Metadata::EpochType_String, false);
+		signature.AddParameter(L"str", Metadata::EpochType_String);
 		signature.SetReturnType(Metadata::EpochType_String);
 		AddToMapNoDupe(signatureset, std::make_pair(UnescapeHandle, signature));
 	}
 	{
 		FunctionSignature signature;
-		signature.AddParameter(L"str", Metadata::EpochType_String, false);
-		signature.AddParameter(L"start", Metadata::EpochType_Integer, false);
-		signature.AddParameter(L"length", Metadata::EpochType_Integer, false);
+		signature.AddParameter(L"str", Metadata::EpochType_String);
+		signature.AddParameter(L"start", Metadata::EpochType_Integer);
+		signature.AddParameter(L"length", Metadata::EpochType_Integer);
 		signature.SetReturnType(Metadata::EpochType_String);
 		AddToMapNoDupe(signatureset, std::make_pair(SubstringWithLengthHandle, signature));
 	}
 	{
 		FunctionSignature signature;
-		signature.AddParameter(L"str", Metadata::EpochType_String, false);
-		signature.AddParameter(L"start", Metadata::EpochType_Integer, false);
+		signature.AddParameter(L"str", Metadata::EpochType_String);
+		signature.AddParameter(L"start", Metadata::EpochType_Integer);
 		signature.SetReturnType(Metadata::EpochType_String);
 		AddToMapNoDupe(signatureset, std::make_pair(SubstringNoLengthHandle, signature));
 	}

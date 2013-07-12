@@ -72,6 +72,6 @@ void CompileConstructorHelper(IRSemantics::Statement& statement, IRSemantics::Na
 	{
 		Metadata::EpochTypeID effectivetype = curnamespace.Types.GetTypeByName(statement.GetRawName());
 		VariableOrigin origin = (inreturnexpr ? VARIABLE_ORIGIN_RETURN : VARIABLE_ORIGIN_LOCAL);
-		activescope.AddVariable(curnamespace.Strings.GetPooledString(atom->GetIdentifier()), atom->GetIdentifier(), statement.GetRawName(), effectivetype, false, origin);
+		activescope.AddVariable(curnamespace.Strings.GetPooledString(atom->GetIdentifier()), atom->GetIdentifier(), statement.GetRawName(), effectivetype, origin);
 	}
 }

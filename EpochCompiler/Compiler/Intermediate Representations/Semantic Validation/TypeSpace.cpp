@@ -798,6 +798,8 @@ Metadata::EpochTypeID TypeSpace::GetTypeByName(StringHandle name) const
 //
 StringHandle TypeSpace::GetNameOfType(Metadata::EpochTypeID type) const
 {
+	type = Metadata::MakeNonReferenceType(type);
+
 	for(NameToTypeTable::const_iterator iter = MyNamespace.Session.IntrinsicTypes.begin(); iter != MyNamespace.Session.IntrinsicTypes.end(); ++iter)
 	{
 		if(iter->second == type)

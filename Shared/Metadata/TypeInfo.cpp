@@ -24,7 +24,7 @@ using namespace Metadata;
 //
 size_t Metadata::GetStorageSize(EpochTypeID type)
 {
-	switch(type)
+	switch(MakeNonReferenceType(type))
 	{
 	case EpochType_Identifier:			return sizeof(StringHandle);
 

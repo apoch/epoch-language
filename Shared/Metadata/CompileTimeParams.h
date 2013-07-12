@@ -33,7 +33,6 @@ struct CompileTimeParameter
 	CompileTimeParameter(const std::wstring& name, Metadata::EpochTypeID type)
 		: Name(name),
 		  Type(type),
-		  IsReference(false),
 		  HasPayload(false)
 	{ }
 
@@ -51,7 +50,6 @@ struct CompileTimeParameter
 
 	std::wstring StringPayload;
 
-	bool IsReference;
 	bool HasPayload;
 
 	bool PatternMatch(const CompileTimeParameter& rhs) const

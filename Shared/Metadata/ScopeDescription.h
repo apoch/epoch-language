@@ -44,8 +44,8 @@ public:
 
 // Configuration interface
 public:
-	void AddVariable(const std::wstring& identifier, StringHandle identifierhandle, StringHandle typenamehandle, Metadata::EpochTypeID type, bool isreference, VariableOrigin origin);
-	void PrependVariable(const std::wstring& identifier, StringHandle identifierhandle, StringHandle typenamehandle, Metadata::EpochTypeID type, bool isreference, VariableOrigin origin);
+	void AddVariable(const std::wstring& identifier, StringHandle identifierhandle, StringHandle typenamehandle, Metadata::EpochTypeID type, VariableOrigin origin);
+	void PrependVariable(const std::wstring& identifier, StringHandle identifierhandle, StringHandle typenamehandle, Metadata::EpochTypeID type, VariableOrigin origin);
 
 // Inspection interface
 public:
@@ -57,8 +57,6 @@ public:
 	Metadata::EpochTypeID GetVariableTypeByID(StringHandle variableid) const;
 	Metadata::EpochTypeID GetVariableTypeByIndex(size_t index) const;
 	VariableOrigin GetVariableOrigin(size_t index) const;
-	bool IsReference(size_t index) const;
-	bool IsReferenceByID(StringHandle variableid) const;
 
 	size_t GetVariableCount() const
 	{ return Variables.size(); }
@@ -67,9 +65,6 @@ public:
 
 	bool HasReturnVariable() const;
 	Metadata::EpochTypeID GetReturnVariableType() const;
-
-	bool ComputeLocalOffset(StringHandle variableid, const std::map<Metadata::EpochTypeID, size_t>& sumtypesizes, size_t& outframes, size_t& outoffset, size_t& outsize) const;
-	bool ComputeParamOffset(StringHandle variableid, const std::map<Metadata::EpochTypeID, size_t>& sumtypesizes, size_t& outframes, size_t& outoffset, size_t& outsize) const;
 
 	void Fixup(const std::vector<std::pair<StringHandle, Metadata::EpochTypeID> >& templateparams, const CompileTimeParameterVector& templateargs, const CompileTimeParameterVector& templateargtypes);
 
@@ -88,13 +83,12 @@ private:
 	struct VariableEntry
 	{
 		// Constructor for convenience
-		VariableEntry(const std::wstring& identifier, StringHandle identifierhandle, StringHandle typenamehandle, Metadata::EpochTypeID type, bool isreference, VariableOrigin origin)
+		VariableEntry(const std::wstring& identifier, StringHandle identifierhandle, StringHandle typenamehandle, Metadata::EpochTypeID type, VariableOrigin origin)
 			: Identifier(identifier),
 			  IdentifierHandle(identifierhandle),
 			  Type(type),
 			  TypeName(typenamehandle),
-			  Origin(origin),
-			  IsReference(isreference)
+			  Origin(origin)
 		{ }
 
 		std::wstring Identifier;
@@ -102,7 +96,6 @@ private:
 		Metadata::EpochTypeID Type;
 		StringHandle TypeName;
 		VariableOrigin Origin;
-		bool IsReference;
 	};
 
 // Internal tracking
@@ -110,9 +103,5 @@ private:
 	typedef std::vector<VariableEntry> VariableVector;
 	VariableVector Variables;
 	bool Hoisted;
-
-// Permit activated scopes to access internal data
-public:
-	friend class ActiveScope;
 };
 

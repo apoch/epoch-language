@@ -48,7 +48,6 @@ namespace IRSemantics
 	public:
 		virtual Metadata::EpochTypeID GetParamType(const Namespace& curnamespace) const = 0;
 		virtual bool IsLocalVariable() const = 0;
-		virtual bool IsReference() const = 0;
 		virtual bool Validate(const Namespace& curnamespace) const = 0;
 		virtual void AddToSignature(FunctionSignature& signature, const Namespace& curnamespace) const = 0;
 		virtual bool TypeInference(Namespace& curnamespace, CompileErrors& errors) = 0;
@@ -77,9 +76,6 @@ namespace IRSemantics
 
 		virtual bool IsLocalVariable() const
 		{ return true; }
-
-		virtual bool IsReference() const
-		{ return IsRef; }
 
 		virtual bool Validate(const Namespace& curnamespace) const;
 
@@ -120,9 +116,8 @@ namespace IRSemantics
 	{
 	// Construction
 	public:
-		FunctionParamTyped(Metadata::EpochTypeID type, bool isreference)
-			: MyType(type),
-			  IsRef(isreference)
+		explicit FunctionParamTyped(Metadata::EpochTypeID type)
+			: MyType(type)
 		{ }
 
 	// Function parameter interface
@@ -132,9 +127,6 @@ namespace IRSemantics
 
 		virtual bool IsLocalVariable() const
 		{ return true; }
-
-		virtual bool IsReference() const
-		{ return IsRef; }
 
 		virtual bool Validate(const Namespace&) const
 		{ return true; }
@@ -155,7 +147,6 @@ namespace IRSemantics
 	// Internal state
 	private:
 		Metadata::EpochTypeID MyType;
-		bool IsRef;
 	};
 
 	//
@@ -175,9 +166,6 @@ namespace IRSemantics
 
 		virtual bool IsLocalVariable() const
 		{ return true; }
-
-		virtual bool IsReference() const
-		{ return false; }
 
 		virtual bool Validate(const Namespace& curnamespace) const;
 
@@ -242,9 +230,6 @@ namespace IRSemantics
 		virtual Metadata::EpochTypeID GetParamType(const Namespace& curnamespace) const;
 
 		virtual bool IsLocalVariable() const
-		{ return false; }
-
-		virtual bool IsReference() const
 		{ return false; }
 
 		virtual bool Validate(const Namespace& curnamespace) const;
@@ -329,7 +314,6 @@ namespace IRSemantics
 
 		bool IsParameterLocalVariable(StringHandle name) const;
 		Metadata::EpochTypeID GetParameterType(StringHandle name, Namespace& curnamespace, CompileErrors& errors) const;
-		bool IsParameterReference(StringHandle name) const;
 		StringHandle GetParameterTypeName(StringHandle name) const;
 
 		bool DoesParameterSignatureMatch(size_t index, const FunctionSignature& signature, const Namespace& curnamespace) const;

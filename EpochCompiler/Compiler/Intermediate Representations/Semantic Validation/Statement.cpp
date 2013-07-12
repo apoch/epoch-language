@@ -255,8 +255,8 @@ bool Statement::TypeInference(Namespace& curnamespace, CodeBlock& activescope, I
 				bool match = true;
 				for(size_t j = 0; j < Parameters.size(); ++j)
 				{
-					Metadata::EpochTypeID expectedparamtype = signature.GetParameter(j).Type;
-					Metadata::EpochTypeID providedparamtype = Parameters[j]->GetEpochType(curnamespace);
+					Metadata::EpochTypeID expectedparamtype = Metadata::MakeNonReferenceType(signature.GetParameter(j).Type);
+					Metadata::EpochTypeID providedparamtype = Metadata::MakeNonReferenceType(Parameters[j]->GetEpochType(curnamespace));
 					if(Metadata::GetTypeFamily(expectedparamtype) == Metadata::EpochTypeFamily_Function)
 					{
 						if(Parameters[j]->GetAtoms().size() == 1)
@@ -390,7 +390,7 @@ bool Statement::TypeInference(Namespace& curnamespace, CodeBlock& activescope, I
 
 					for(size_t j = 0; j < Parameters.size(); ++j)
 					{
-						if(matchiter->second.GetParameter(j).IsReference != matchingoverloads.begin()->second.GetParameter(j).IsReference)
+						if(Metadata::IsReferenceType(matchiter->second.GetParameter(j).Type) != Metadata::IsReferenceType(matchingoverloads.begin()->second.GetParameter(j).Type))
 						{
 							bool acceptsnothing = false;
 							for(std::map<StringHandle, FunctionSignature>::const_iterator matchiterinner = matchingoverloads.begin(); matchiterinner != matchingoverloads.end(); ++matchiterinner)
@@ -409,7 +409,7 @@ bool Statement::TypeInference(Namespace& curnamespace, CodeBlock& activescope, I
 							}
 						}
 
-						if(matchiter->second.GetParameter(j).IsReference)
+						if(Metadata::IsReferenceType(matchiter->second.GetParameter(j).Type))
 							paramsarereferences[j] = true;
 					}
 				}
@@ -440,7 +440,7 @@ bool Statement::TypeInference(Namespace& curnamespace, CodeBlock& activescope, I
 
 				for(size_t j = 0; j < Parameters.size(); ++j)
 				{
-					if(matchingoverloads.begin()->second.GetParameter(j).IsReference)
+					if(Metadata::IsReferenceType(matchingoverloads.begin()->second.GetParameter(j).Type))
 					{
 						if(!Parameters[j]->MakeReference())
 						{
@@ -471,8 +471,8 @@ bool Statement::TypeInference(Namespace& curnamespace, CodeBlock& activescope, I
 						bool match = true;
 						for(size_t i = 0; i < Parameters.size(); ++i)
 						{
-							Metadata::EpochTypeID providedtype = Parameters[i]->GetEpochType(curnamespace);
-							Metadata::EpochTypeID expectedtype = funcsig.GetParameter(i).Type;
+							Metadata::EpochTypeID providedtype = Metadata::MakeNonReferenceType(Parameters[i]->GetEpochType(curnamespace));
+							Metadata::EpochTypeID expectedtype = Metadata::MakeNonReferenceType(funcsig.GetParameter(i).Type);
 							if(providedtype != expectedtype)
 							{
 								if(Metadata::GetTypeFamily(expectedtype) == Metadata::EpochTypeFamily_SumType)
@@ -515,7 +515,7 @@ bool Statement::TypeInference(Namespace& curnamespace, CodeBlock& activescope, I
 
 							for(size_t i = 0; i < Parameters.size(); ++i)
 							{
-								if(funcsig.GetParameter(i).IsReference)
+								if(Metadata::IsReferenceType(funcsig.GetParameter(i).Type))
 								{
 									if(!Parameters[i]->MakeReference())
 									{
@@ -542,8 +542,8 @@ bool Statement::TypeInference(Namespace& curnamespace, CodeBlock& activescope, I
 						bool match = true;
 						for(size_t i = 0; i < Parameters.size(); ++i)
 						{
-							Metadata::EpochTypeID expectedparamtype = signature.GetParameter(i).Type;
-							Metadata::EpochTypeID providedparamtype = Parameters[i]->GetEpochType(curnamespace);
+							Metadata::EpochTypeID expectedparamtype = Metadata::MakeNonReferenceType(signature.GetParameter(i).Type);
+							Metadata::EpochTypeID providedparamtype = Metadata::MakeNonReferenceType(Parameters[i]->GetEpochType(curnamespace));
 							while(Metadata::GetTypeFamily(providedparamtype) == Metadata::EpochTypeFamily_Unit)
 								providedparamtype = curnamespace.Types.Aliases.GetStrongRepresentation(providedparamtype);
 
@@ -574,7 +574,7 @@ bool Statement::TypeInference(Namespace& curnamespace, CodeBlock& activescope, I
 
 							for(size_t i = 0; i < Parameters.size(); ++i)
 							{
-								if(signature.GetParameter(i).IsReference)
+								if(Metadata::IsReferenceType(signature.GetParameter(i).Type))
 								{
 									if(!Parameters[i]->MakeReference())
 									{
@@ -697,7 +697,7 @@ void Statement::SetTemplateArgsDeferred(const CompileTimeParameterVector& args)
 bool PreOpStatement::TypeInference(Namespace& curnamespace, CodeBlock& activescope, InferenceContext&, CompileErrors& errors)
 {
 	errors.SetContext(OriginalOperand);
-	Metadata::EpochTypeID operandtype = InferMemberAccessType(Operand, curnamespace, activescope, errors);
+	Metadata::EpochTypeID operandtype = Metadata::MakeNonReferenceType(InferMemberAccessType(Operand, curnamespace, activescope, errors));
 	if(operandtype == Metadata::EpochType_Error)
 		return false;
 
@@ -762,7 +762,7 @@ bool PreOpStatement::Validate(const Namespace&) const
 bool PostOpStatement::TypeInference(Namespace& curnamespace, CodeBlock& activescope, InferenceContext&, CompileErrors& errors)
 {
 	errors.SetContext(OriginalOperand);
-	Metadata::EpochTypeID operandtype = InferMemberAccessType(Operand, curnamespace, activescope, errors);
+	Metadata::EpochTypeID operandtype = Metadata::MakeNonReferenceType(InferMemberAccessType(Operand, curnamespace, activescope, errors));
 	if(operandtype == Metadata::EpochType_Error)
 		return false;
 

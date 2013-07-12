@@ -142,21 +142,6 @@ bool Function::IsParameterLocalVariable(StringHandle name) const
 }
 
 //
-// Determine if the given parameter is passed to the
-// function by reference.
-//
-bool Function::IsParameterReference(StringHandle name) const
-{
-	for(std::vector<Param>::const_iterator iter = Parameters.begin(); iter != Parameters.end(); ++iter)
-	{
-		if(iter->Name == name)
-			return iter->Parameter->IsReference();
-	}
-
-	throw InternalException("Provided string handle does not correspond to a parameter of this function");
-}
-
-//
 // Retrieve the type of the given parameter
 //
 Metadata::EpochTypeID Function::GetParameterType(StringHandle name, Namespace& curnamespace, CompileErrors& errors) const
@@ -266,10 +251,10 @@ bool Function::CompileTimeCodeExecution(Namespace& curnamespace, CompileErrors& 
 			{
 				TypeInferenceParamsOnly(*activenamespace, errors);
 				FunctionSignature signature = GetFunctionSignature(*activenamespace);
-				signature.PrependParameter(L"@id", Metadata::EpochType_Identifier, true);
+				signature.PrependParameter(L"@id", Metadata::MakeReferenceType(Metadata::EpochType_Identifier));
 				signature.SetReturnType(Metadata::EpochType_Void);
 				curnamespace.Functions.SetSignature(Name, signature);
-				Code->GetScope()->PrependVariable(L"@id", curnamespace.Strings.Pool(L"@id"), curnamespace.Strings.Pool(L"identifier"),Metadata::EpochType_Identifier, true, VARIABLE_ORIGIN_PARAMETER);
+				Code->GetScope()->PrependVariable(L"@id", curnamespace.Strings.Pool(L"@id"), curnamespace.Strings.Pool(L"identifier"), Metadata::MakeReferenceType(Metadata::EpochType_Identifier), VARIABLE_ORIGIN_PARAMETER);
 
 				curnamespace.Functions.SetCompileHelper(Name, &CompileConstructorHelper);
 			}
@@ -334,7 +319,7 @@ bool Function::TypeInference(Namespace& curnamespace, InferenceContext&, Compile
 		{
 			if(!Code->GetScope()->HasReturnVariable())
 			{
-				Code->AddVariable(L"@@anonymousret", curnamespace.Strings.Pool(L"@@anonymousret"), activenamespace->Types.GetNameOfType(rettype), rettype, false, VARIABLE_ORIGIN_RETURN);
+				Code->AddVariable(L"@@anonymousret", curnamespace.Strings.Pool(L"@@anonymousret"), activenamespace->Types.GetNameOfType(rettype), rettype, VARIABLE_ORIGIN_RETURN);
 				AnonymousReturn = true;
 			}
 		}
@@ -455,7 +440,7 @@ FunctionSignature Function::GetParameterSignature(StringHandle name, const Names
 			for(size_t i = 0; i < paramtypes.size(); ++i)
 			{
 				Metadata::EpochTypeID paramtype = curnamespace.Types.GetTypeByName(paramtypes[i]);
-				ret.AddParameter(L"@@internal", paramtype, false);
+				ret.AddParameter(L"@@internal", paramtype);
 			}
 
 			return ret;
@@ -487,7 +472,7 @@ FunctionSignature Function::GetFunctionSignature(const Namespace& curnamespace) 
 		Metadata::EpochTypeID paramtype = iter->Parameter->GetParamType(*activenamespace);
 		if(iter->Parameter->IsLocalVariable())
 		{
-			ret.AddParameter(activenamespace->Strings.GetPooledString(iter->Name), paramtype, iter->Parameter->IsReference());
+			ret.AddParameter(activenamespace->Strings.GetPooledString(iter->Name), paramtype);
 			if(Metadata::GetTypeFamily(paramtype) == Metadata::EpochTypeFamily_Function)
 				ret.SetFunctionSignature(index, GetParameterSignature(iter->Name, *activenamespace));
 		}
@@ -560,6 +545,8 @@ bool FunctionParamNamed::TypeInference(Namespace& curnamespace, CompileErrors& e
 		name = curnamespace.Types.Templates.InstantiateStructure(MyTypeName, TemplateArgs, errors);
 
 	MyActualType = curnamespace.Types.GetTypeByName(name);
+	if(IsRef)
+		MyActualType = Metadata::MakeReferenceType(MyActualType);
 	return true;
 }
 
@@ -639,7 +626,7 @@ Metadata::EpochTypeID FunctionParamFuncRef::GetParamType(const Namespace& curnam
 		sig.SetReturnType(Metadata::EpochType_Void);
 	
 	for(std::vector<StringHandle>::const_iterator iter = ParamTypes.begin(); iter != ParamTypes.end(); ++iter)
-		sig.AddParameter(L"@@higherorder", curnamespace.Types.GetTypeByName(*iter), false);
+		sig.AddParameter(L"@@higherorder", curnamespace.Types.GetTypeByName(*iter));
 
 	return curnamespace.Types.FunctionSignatures.FindEpochType(sig);
 }
@@ -752,7 +739,7 @@ void FunctionParamTyped::AddToSignature(FunctionSignature&, const Namespace&) co
 //
 FunctionParam* FunctionParamTyped::Clone() const
 {
-	return new FunctionParamTyped(MyType, IsRef);
+	return new FunctionParamTyped(MyType);
 }
 
 //
@@ -874,7 +861,7 @@ void Function::PopulateScope(Namespace& curnamespace, CompileErrors& errors)
 //
 void FunctionParamNamed::AddToScope(StringHandle name, CodeBlock& code, Namespace& curnamespace) const
 {
-	code.AddVariable(curnamespace.Strings.GetPooledString(name), name, MyTypeName, MyActualType, IsRef, VARIABLE_ORIGIN_PARAMETER);
+	code.AddVariable(curnamespace.Strings.GetPooledString(name), name, MyTypeName, MyActualType, VARIABLE_ORIGIN_PARAMETER);
 }
 
 //
@@ -890,10 +877,10 @@ void FunctionParamFuncRef::AddToScope(StringHandle name, CodeBlock& code, Namesp
 		sig.SetReturnType(Metadata::EpochType_Void);
 	
 	for(std::vector<StringHandle>::const_iterator iter = ParamTypes.begin(); iter != ParamTypes.end(); ++iter)
-		sig.AddParameter(L"@@higherorder", curnamespace.Types.GetTypeByName(*iter), false);
+		sig.AddParameter(L"@@higherorder", curnamespace.Types.GetTypeByName(*iter));
 
 	Metadata::EpochTypeID type = curnamespace.Types.FunctionSignatures.AllocateEpochType(sig);
-	code.AddVariable(curnamespace.Strings.GetPooledString(name), name, 0, type, false, VARIABLE_ORIGIN_PARAMETER);
+	code.AddVariable(curnamespace.Strings.GetPooledString(name), name, 0, type, VARIABLE_ORIGIN_PARAMETER);
 }
 
 void FunctionParamFuncRef::SubstituteTemplateArgs(const std::vector<std::pair<StringHandle, Metadata::EpochTypeID> >& params, const CompileTimeParameterVector& args, Namespace&, CompileErrors&)

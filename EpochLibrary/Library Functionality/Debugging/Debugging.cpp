@@ -122,7 +122,7 @@ void DebugLibrary::RegisterLibraryFunctions(FunctionSignatureSet& signatureset)
 {
 	{
 		FunctionSignature signature;
-		signature.AddParameter(L"str", Metadata::EpochType_String, false);
+		signature.AddParameter(L"str", Metadata::EpochType_String);
 		AddToMapNoDupe(signatureset, std::make_pair(PrintHandle, signature));
 	}
 	{
@@ -132,7 +132,7 @@ void DebugLibrary::RegisterLibraryFunctions(FunctionSignatureSet& signatureset)
 	}
 	{
 		FunctionSignature signature;
-		signature.AddParameter(L"value", Metadata::EpochType_Boolean, false);
+		signature.AddParameter(L"value", Metadata::EpochType_Boolean);
 		AddToMapNoDupe(signatureset, std::make_pair(AssertHandle, signature));
 	}
 	{
@@ -141,14 +141,14 @@ void DebugLibrary::RegisterLibraryFunctions(FunctionSignatureSet& signatureset)
 	}
 	{
 		FunctionSignature signature;
-		signature.AddParameter(L"bits", Metadata::EpochType_Buffer, true);
-		signature.AddParameter(L"offset", Metadata::EpochType_Integer, false);
-		signature.AddParameter(L"color", Metadata::EpochType_Integer, false);
+		signature.AddParameter(L"bits", Metadata::MakeReferenceType(Metadata::EpochType_Buffer));
+		signature.AddParameter(L"offset", Metadata::EpochType_Integer);
+		signature.AddParameter(L"color", Metadata::EpochType_Integer);
 		AddToMapNoDupe(signatureset, std::make_pair(PlotPixelHandle, signature));
 	}
 	{
 		FunctionSignature signature;
-		signature.AddParameter(L"r", Metadata::EpochType_Real, false);
+		signature.AddParameter(L"r", Metadata::EpochType_Real);
 		signature.SetReturnType(Metadata::EpochType_Real);
 		AddToMapNoDupe(signatureset, std::make_pair(SqrtHandle, signature));
 	}

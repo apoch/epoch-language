@@ -58,13 +58,28 @@ namespace Metadata
 
 	inline EpochTypeFamily GetTypeFamily(EpochTypeID type)
 	{
-		return type & 0xff000000;
+		return type & 0x7f000000;
+	}
+
+	inline EpochTypeID MakeReferenceType(EpochTypeID type)
+	{
+		return type | 0x80000000;
+	}
+
+	inline EpochTypeID MakeNonReferenceType(EpochTypeID type)
+	{
+		return type & 0x7fffffff;
 	}
 
 	inline bool IsStructureType(EpochTypeID type)
 	{
 		EpochTypeFamily family = GetTypeFamily(type);
 		return (family == EpochTypeFamily_Structure || family == EpochTypeFamily_TemplateInstance);
+	}
+
+	inline bool IsReferenceType(EpochTypeID type)
+	{
+		return (type & 0x80000000) != 0;
 	}
 }
 

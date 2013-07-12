@@ -409,9 +409,9 @@ void ExecutionContext::Load()
 					StringHandle entryname = Fetch<StringHandle>(instructionoffset);
 					EpochTypeID type = Fetch<EpochTypeID>(instructionoffset);
 					VariableOrigin origin = Fetch<VariableOrigin>(instructionoffset);
-					bool isreference = Fetch<bool>(instructionoffset);
+					Fetch<bool>(instructionoffset);				// Useless. Should eliminate this from the emitted bytecode.
 
-					scope.AddVariable(GetPooledString(entryname), entryname, 0, type, isreference, origin);
+					scope.AddVariable(GetPooledString(entryname), entryname, 0, type, origin);
 				}
 			}
 			break;
@@ -657,8 +657,8 @@ void ExecutionContext::Load()
 				for(size_t i = 0; i < numparams; ++i)
 				{
 					EpochTypeID paramtype = Fetch<EpochTypeID>(instructionoffset);
-					bool isref = Fetch<bool>(instructionoffset);
-					sig.AddParameter(L"@@auto", paramtype, isref);
+					Fetch<bool>(instructionoffset);			// Useless.
+					sig.AddParameter(L"@@auto", paramtype);
 				}
 
 				FunctionTypeToSignatureMap[type] = sig;

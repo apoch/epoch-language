@@ -39,7 +39,6 @@
 
 
 // Forward declarations
-class ActiveScope;
 class StructureDefinition;
 
 struct fasthash : std::unary_function<StringHandle, size_t>

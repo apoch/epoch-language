@@ -138,7 +138,7 @@ bool Assignment::TypeInference(Namespace& curnamespace, CodeBlock& activescope, 
 	}
 
 	Metadata::EpochTypeID RHSType = RHS->GetEpochType(curnamespace);
-	if(LHSType != RHSType)
+	if(Metadata::MakeNonReferenceType(LHSType) != Metadata::MakeNonReferenceType(RHSType))
 	{
 		if(Metadata::GetTypeFamily(LHSType) == Metadata::EpochTypeFamily_Unit && curnamespace.Types.Aliases.GetStrongRepresentation(LHSType) == RHSType)
 		{

@@ -134,7 +134,7 @@ public:
 // Lexical scope metadata
 public:
 	virtual void DefineLexicalScope(StringHandle name, StringHandle parent, size_t variablecount) = 0;
-	virtual void LexicalScopeEntry(StringHandle varname, Metadata::EpochTypeID vartype, bool isreference, VariableOrigin origin) = 0;
+	virtual void LexicalScopeEntry(StringHandle varname, Metadata::EpochTypeID vartype, VariableOrigin origin) = 0;
 
 // Pattern matching
 public:
@@ -274,7 +274,7 @@ public:
 // Lexical scope metadata
 public:
 	void DefineLexicalScope(StringHandle name, StringHandle parent, size_t variablecount);
-	void LexicalScopeEntry(StringHandle varname, Metadata::EpochTypeID vartype, bool isreference, VariableOrigin origin);
+	void LexicalScopeEntry(StringHandle varname, Metadata::EpochTypeID vartype, VariableOrigin origin);
 
 // Pattern matching
 public:
@@ -405,7 +405,7 @@ public:
 // Lexical scope metadata
 public:
 	void DefineLexicalScope(StringHandle name, StringHandle parent, size_t variablecount);
-	void LexicalScopeEntry(StringHandle varname, Metadata::EpochTypeID vartype, bool isreference, VariableOrigin origin);
+	void LexicalScopeEntry(StringHandle varname, Metadata::EpochTypeID vartype, VariableOrigin origin);
 
 // Pattern matching
 public:

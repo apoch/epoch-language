@@ -631,6 +631,7 @@ Function* NativeCodeGenerator::GetGeneratedGlobalInit(StringHandle entityname)
 	if(!Data->GeneratedFunctions[name.str()])
 	{
 		targetinnerfunc = Function::Create(targetinnerfunctype, Function::ExternalLinkage, name.str().c_str(), Data->CurrentModule);
+		targetinnerfunc->setGC("EpochGC");
 		Data->GeneratedFunctions[name.str()] = targetinnerfunc;
 		Data->GeneratedFunctionToNameMap[targetinnerfunc] = entityname;
 	}
@@ -645,6 +646,13 @@ Function* NativeCodeGenerator::GetGeneratedGlobalInit(StringHandle entityname)
 //
 Type* NativeCodeGenerator::GetLLVMType(Metadata::EpochTypeID type, bool flatten)
 {
+	bool ref = false;
+	if(Metadata::IsReferenceType(type))
+	{
+		ref = true;
+		type = Metadata::MakeNonReferenceType(type);
+	}
+
 	Metadata::EpochTypeFamily family = Metadata::GetTypeFamily(type);
 	switch(type)
 	{
@@ -654,30 +662,55 @@ Type* NativeCodeGenerator::GetLLVMType(Metadata::EpochTypeID type, bool flatten)
 	case Metadata::EpochType_Integer:
 	case Metadata::EpochType_String:
 	case Metadata::EpochType_Buffer:
-		return Type::getInt32Ty(Data->Context);
+		if(ref)
+			return Type::getInt32PtrTy(Data->Context);
+		else
+			return Type::getInt32Ty(Data->Context);
 
 	case Metadata::EpochType_Real:
-		return Type::getFloatTy(Data->Context);
+		if(ref)
+			return Type::getFloatPtrTy(Data->Context);
+		else
+			return Type::getFloatTy(Data->Context);
 
 	case Metadata::EpochType_Boolean:
-		return Type::getInt1Ty(Data->Context);
+		if(ref)
+			return Type::getInt1PtrTy(Data->Context);
+		else
+			return Type::getInt1Ty(Data->Context);
 
 	case Metadata::EpochType_Integer16:
-		return Type::getInt16Ty(Data->Context);
+		if(ref)
+			return Type::getInt16PtrTy(Data->Context);
+		else
+			return Type::getInt16Ty(Data->Context);
 
 	case Metadata::EpochType_Identifier:
 		// STUPID LAME HACK - we only use Identifier params for constructors, so assume this is an aggregate constructor param
-		return Data->StructureHandleType;
+		if(ref)
+			return Data->StructureHandleType->getPointerTo();
+		else
+			return Data->StructureHandleType;
 
 	default:
 		if(family == Metadata::EpochTypeFamily_Function)
 			return GetLLVMFunctionTypeFromEpochType(type)->getPointerTo();
 
 		if(family == Metadata::EpochTypeFamily_SumType)
-			return GetLLVMSumType(type, flatten);
+		{
+			if(ref)
+				return GetLLVMSumType(type, flatten)->getPointerTo();
+			else
+				return GetLLVMSumType(type, flatten);
+		}
 
 		if(Metadata::IsStructureType(type))
-			return Data->StructureHandleType;
+		{
+			if(ref)
+				return Data->StructureHandleType->getPointerTo();
+			else 
+				return Data->StructureHandleType;
+		}
 
 		throw NotImplementedException("Unsupported type for native code generation");
 	}
@@ -793,11 +826,7 @@ FunctionType* NativeCodeGenerator::GetLLVMFunctionType(StringHandle epochfunc)
 			}
 			else
 			{
-				Type* type = GetLLVMType(vartype);
-				if(scope.IsReference(i))
-					args.push_back(type->getPointerTo());
-				else
-					args.push_back(type);
+				args.push_back(GetLLVMType(vartype));
 
 				if(Metadata::GetTypeFamily(vartype) == Metadata::EpochTypeFamily_SumType)
 					hassumtypeparam = true;
@@ -828,8 +857,8 @@ FunctionType* NativeCodeGenerator::GetExternalFunctionType(StringHandle epochfun
 		if(scope.GetVariableOrigin(i) == VARIABLE_ORIGIN_PARAMETER)
 		{
 			Metadata::EpochTypeID vartype = scope.GetVariableTypeByIndex(i);
-			Type* t = GetExternalType(vartype);
-			if(scope.IsReference(i) && !Metadata::IsStructureType(vartype) && vartype != Metadata::EpochType_Buffer)
+			Type* t = GetExternalType(Metadata::MakeNonReferenceType(vartype));
+			if(Metadata::IsReferenceType(vartype) && !Metadata::IsStructureType(vartype) && Metadata::MakeNonReferenceType(vartype) != Metadata::EpochType_Buffer)
 				t = t->getPointerTo();
 			args.push_back(t);
 		}
@@ -864,9 +893,6 @@ llvm::FunctionType* NativeCodeGenerator::GetLLVMFunctionTypeFromSignature(const 
 			continue;
 
 		Type* argtype = GetLLVMType(param.Type);
-		if(param.IsReference)
-			argtype = argtype->getPointerTo();
-
 		args.push_back(argtype);
 	}
 
@@ -913,7 +939,7 @@ EPOCHRUNTIME void NativeCodeGenerator::ExternalInvoke(JIT::JITContext& context, 
 			Metadata::EpochTypeID vartype = scope.GetVariableTypeByIndex(i);
 
 			Value* arg = (Argument*)(argiter);
-			if(scope.IsReference(i) && (Metadata::IsStructureType(vartype) || vartype == Metadata::EpochType_Buffer))
+			if(Metadata::IsReferenceType(vartype) && (Metadata::IsStructureType(vartype) || Metadata::MakeNonReferenceType(vartype) == Metadata::EpochType_Buffer))
 				arg = Builder.CreateLoad(arg);
 
 			args.push_back(MarshalArgument(arg, vartype));
@@ -934,7 +960,7 @@ EPOCHRUNTIME void NativeCodeGenerator::ExternalInvoke(JIT::JITContext& context, 
 		if(scope.GetVariableOrigin(i) == VARIABLE_ORIGIN_PARAMETER)
 		{
 			Metadata::EpochTypeID vartype = scope.GetVariableTypeByIndex(i);
-			if(scope.IsReference(i))
+			if(Metadata::IsReferenceType(vartype))
 				MarshalReferencePostCall(args[index], context.VariableMap[i], vartype);
 
 			MarshalCleanup(args[index], vartype);
@@ -1421,7 +1447,7 @@ void FunctionJITHelper::BeginEntity(size_t& offset)
 					ParameterOffsetToIndexMap[NumParameterBytes] = i;
 					parameters.insert(i);
 
-					if(scope.IsReference(i))
+					if(Metadata::IsReferenceType(vartype))
 						NumParameterBytes += sizeof(void*) + sizeof(Metadata::EpochTypeID);
 					else
 					{
@@ -1456,7 +1482,7 @@ void FunctionJITHelper::BeginEntity(size_t& offset)
 		Function::ArgumentListType& args = LibJITContext.InnerFunction->getArgumentList();
 		for(Function::ArgumentListType::iterator argiter = args.begin(); argiter != args.end(); ++argiter)
 		{
-			if(LibJITContext.CurrentScope->IsReference(idx))
+			if(Metadata::IsReferenceType(LibJITContext.CurrentScope->GetVariableTypeByIndex(idx)))
 			{
 				LibJITContext.VariableMap[idx++] = ((Argument*)argiter);
 				continue;
@@ -1686,7 +1712,8 @@ void FunctionJITHelper::Read(size_t& offset)
 		scope = scope->ParentScope;
 	}
 
-	Metadata::EpochTypeID vartype = scope->GetVariableTypeByIndex(scopeindex);
+	bool isref = Metadata::IsReferenceType(scope->GetVariableTypeByIndex(scopeindex));
+	Metadata::EpochTypeID vartype = Metadata::MakeNonReferenceType(scope->GetVariableTypeByIndex(scopeindex));
 	if(Builder.GetInsertBlock()->getParent()->isVarArg() && (scope->GetVariableOrigin(scopeindex) != VARIABLE_ORIGIN_RETURN))
 	{
 		if(Metadata::GetTypeFamily(vartype) == Metadata::EpochTypeFamily_SumType)
@@ -1717,6 +1744,10 @@ void FunctionJITHelper::Read(size_t& offset)
 		{
 			Type* type = Generator.GetLLVMType(vartype);
 			Value* ptr = Builder.CreateVAArg(LibJITContext.VarArgList, type);
+
+			if(isref)
+				ptr = Builder.CreateLoad(ptr);
+
 			LibJITContext.ValuesOnStack.push(ptr);
 			LibJITContext.VariableMap[index] = ptr;
 		}
@@ -1884,7 +1915,7 @@ void FunctionJITHelper::BindReference(size_t& offset)
 
 	if(Builder.GetInsertBlock()->getParent()->isVarArg() && (LibJITContext.CurrentScope->GetVariableOrigin(index) != VARIABLE_ORIGIN_RETURN))
 	{
-		Value* ptr = Builder.CreateVAArg(LibJITContext.VarArgList, Generator.GetLLVMType(vartype)->getPointerTo());
+		Value* ptr = Builder.CreateVAArg(LibJITContext.VarArgList, Generator.GetLLVMType(vartype));
 		LibJITContext.ValuesOnStack.push(ptr);
 		LibJITContext.VariableMap[index] = ptr;
 	}
@@ -1894,7 +1925,7 @@ void FunctionJITHelper::BindReference(size_t& offset)
 		LibJITContext.ValuesOnStack.push(ptr);
 	}
 
-	TypeAnnotations.push(vartype);
+	TypeAnnotations.push(Metadata::MakeNonReferenceType(vartype));
 }
 
 //
@@ -2422,10 +2453,11 @@ void FunctionJITHelper::InvokeNative(size_t& offset)
 		{
 			if(desc.GetVariableOrigin(i) == VARIABLE_ORIGIN_PARAMETER)
 			{
+				Metadata::EpochTypeID vartype = desc.GetVariableTypeByIndex(i);
 				++paramcount;
 
 				// Add type signature param if need be
-				if(Metadata::GetTypeFamily(desc.GetVariableTypeByIndex(i)) == Metadata::EpochTypeFamily_SumType)
+				if(Metadata::GetTypeFamily(vartype) == Metadata::EpochTypeFamily_SumType)
 				{
 					if(targetfunc->isVarArg())
 						++paramcount;
@@ -2838,6 +2870,7 @@ void NativeCodeGenerator::AddNativePatternMatcher(size_t beginoffset, size_t end
 
 Value* NativeCodeGenerator::MarshalArgument(Value* arg, Metadata::EpochTypeID type)
 {
+	type = Metadata::MakeNonReferenceType(type);
 	switch(type)
 	{
 	case Metadata::EpochType_Boolean:
@@ -2867,6 +2900,7 @@ Value* NativeCodeGenerator::MarshalArgument(Value* arg, Metadata::EpochTypeID ty
 
 Value* NativeCodeGenerator::MarshalArgumentReverse(Value* arg, Metadata::EpochTypeID type)
 {
+	type = Metadata::MakeNonReferenceType(type);
 	switch(type)
 	{
 	case Metadata::EpochType_Boolean:
@@ -2927,6 +2961,7 @@ Value* NativeCodeGenerator::MarshalReturnReverse(Value* ret, Metadata::EpochType
 
 void NativeCodeGenerator::MarshalReferencePostCall(Value* ref, Value* fixuptarget, Metadata::EpochTypeID type)
 {
+	type = Metadata::MakeNonReferenceType(type);
 	switch(type)
 	{
 	case Metadata::EpochType_Boolean:
@@ -2949,6 +2984,7 @@ void NativeCodeGenerator::MarshalReferencePostCall(Value* ref, Value* fixuptarge
 
 void NativeCodeGenerator::MarshalCleanup(Value* val, Metadata::EpochTypeID type)
 {
+	type = Metadata::MakeNonReferenceType(type);
 	switch(type)
 	{
 	case Metadata::EpochType_Boolean:

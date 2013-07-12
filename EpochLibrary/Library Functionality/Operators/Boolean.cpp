@@ -65,14 +65,14 @@ void BooleanLibrary::RegisterLibraryFunctions(FunctionSignatureSet& signatureset
 {
 	{
 		FunctionSignature signature;
-		signature.AddParameter(L"b1", Metadata::EpochType_Boolean, false);
-		signature.AddParameter(L"b2", Metadata::EpochType_Boolean, false);
+		signature.AddParameter(L"b1", Metadata::EpochType_Boolean);
+		signature.AddParameter(L"b2", Metadata::EpochType_Boolean);
 		signature.SetReturnType(Metadata::EpochType_Boolean);
 		AddToMapNoDupe(signatureset, std::make_pair(AndHandle, signature));
 	}
 	{
 		FunctionSignature signature;
-		signature.AddParameter(L"b", Metadata::EpochType_Boolean, false);
+		signature.AddParameter(L"b", Metadata::EpochType_Boolean);
 		signature.SetReturnType(Metadata::EpochType_Boolean);
 		AddToMapNoDupe(signatureset, std::make_pair(BooleanNotHandle, signature));
 	}

@@ -414,12 +414,12 @@ void ByteCodeEmitter::DefineLexicalScope(StringHandle name, StringHandle parent,
 // Each descriptor consists of the member's identifier handle, its type annotation, and
 // a flag specifying its origin (e.g. local variable, parameter to a function, etc.).
 //
-void ByteCodeEmitter::LexicalScopeEntry(StringHandle varname, Metadata::EpochTypeID vartype, bool isreference, VariableOrigin origin)
+void ByteCodeEmitter::LexicalScopeEntry(StringHandle varname, Metadata::EpochTypeID vartype, VariableOrigin origin)
 {
 	EmitRawValue(varname);
 	EmitRawValue(vartype);
 	EmitRawValue(origin);
-	EmitRawValue(isreference);
+	EmitRawValue(false);		// Stupid and useless.
 }
 
 
@@ -472,7 +472,7 @@ void ByteCodeEmitter::ResolvePattern(StringHandle dispatchfunction, const Functi
 	EmitRawValue(signature.GetNumParameters());
 	for(size_t i = 0; i < signature.GetNumParameters(); ++i)
 	{
-		EmitTypeAnnotation(signature.GetParameter(i).Type);
+		EmitTypeAnnotation(Metadata::MakeNonReferenceType(signature.GetParameter(i).Type));
 
 		if(signature.GetParameter(i).Name == L"@@patternmatched")
 		{
@@ -876,8 +876,8 @@ void ByteCodeEmitter::ResolveTypes(StringHandle dispatchfunction, const Function
 	EmitRawValue(signature.GetNumParameters());
 	for(size_t i = signature.GetNumParameters(); i-- > 0; )
 	{
-		EmitRawValue(signature.GetParameter(i).IsReference);
-		EmitTypeAnnotation(signature.GetParameter(i).Type);
+		EmitRawValue(Metadata::IsReferenceType(signature.GetParameter(i).Type));
+		EmitTypeAnnotation(Metadata::MakeNonReferenceType(signature.GetParameter(i).Type));
 	}
 }
 
@@ -947,7 +947,7 @@ void ByteCodeEmitter::EmitFunctionSignature(Metadata::EpochTypeID type, const Fu
 	for(size_t i = 0; i < signature.GetNumParameters(); ++i)
 	{
 		EmitTypeAnnotation(signature.GetParameter(i).Type);
-		EmitRawValue(signature.GetParameter(i).IsReference);
+		EmitRawValue(false);
 	}
 }
 
@@ -1020,7 +1020,7 @@ void BytecodeEmitterPlugin::EmitFunctionSignature(Metadata::EpochTypeID type, co
 	for(size_t i = 0; i < signature.GetNumParameters(); ++i)
 	{
 		EmitTypeAnnotation(signature.GetParameter(i).Type);
-		EmitRawValue(signature.GetParameter(i).IsReference);
+		EmitRawValue(false);
 	}
 }
 
@@ -1157,9 +1157,9 @@ void BytecodeEmitterPlugin::DefineLexicalScope(StringHandle name, StringHandle p
 	Plugins.InvokeVoidPluginFunction(L"PluginBytecodeLexicalScope", static_cast<Integer32>(name), static_cast<Integer32>(parent), static_cast<Integer32>(variablecount));
 }
 
-void BytecodeEmitterPlugin::LexicalScopeEntry(StringHandle varname, Metadata::EpochTypeID vartype, bool isreference, VariableOrigin origin)
+void BytecodeEmitterPlugin::LexicalScopeEntry(StringHandle varname, Metadata::EpochTypeID vartype, VariableOrigin origin)
 {
-	Plugins.InvokeVoidPluginFunction(L"PluginBytecodeLexicalScopeEntry", static_cast<Integer32>(varname), static_cast<Integer32>(vartype), isreference, static_cast<Integer32>(origin));
+	Plugins.InvokeVoidPluginFunction(L"PluginBytecodeLexicalScopeEntry", static_cast<Integer32>(varname), static_cast<Integer32>(vartype), static_cast<Integer32>(origin));
 }
 
 void BytecodeEmitterPlugin::EnterPatternResolver(StringHandle functionname)
@@ -1224,7 +1224,7 @@ void BytecodeEmitterPlugin::ResolveTypes(StringHandle dispatchfunction, const Fu
 	EmitRawValue(signature.GetNumParameters());
 	for(size_t i = signature.GetNumParameters(); i-- > 0; )
 	{
-		EmitRawValue(signature.GetParameter(i).IsReference);
+		EmitRawValue(false);
 		EmitTypeAnnotation(signature.GetParameter(i).Type);
 	}
 }

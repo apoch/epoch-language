@@ -220,49 +220,49 @@ void MarshalingLibrary::RegisterLibraryFunctions(FunctionSignatureSet& signature
 {
 	{
 		FunctionSignature signature;
-		signature.AddParameter(L"identifier", Metadata::EpochType_Identifier, false);
+		signature.AddParameter(L"identifier", Metadata::EpochType_Identifier);
 		signature.SetReturnType(Metadata::EpochType_Integer);
 		AddToMapNoDupe(signatureset, std::make_pair(SizeOfHandle, signature));
 	}
 	{
 		FunctionSignature signature;
-		signature.AddParameter(L"identifier", Metadata::EpochType_Identifier, false);
-		signature.AddParameter(L"pointer", Metadata::EpochType_Integer, false);
+		signature.AddParameter(L"identifier", Metadata::EpochType_Identifier);
+		signature.AddParameter(L"pointer", Metadata::EpochType_Integer);
 		signature.SetReturnType(Metadata::EpochType_Void);
 		AddToMapNoDupe(signatureset, std::make_pair(MarshalStructureHandle, signature));
 	}
 
 	{
 		FunctionSignature signature;
-		signature.AddParameter(L"buffer", Metadata::EpochType_Buffer, true);
-		signature.AddParameter(L"index", Metadata::EpochType_Integer, false);
-		signature.AddParameter(L"byte", Metadata::EpochType_Integer, false);		// TODO - should be a single byte
+		signature.AddParameter(L"buffer", Metadata::MakeReferenceType(Metadata::EpochType_Buffer));
+		signature.AddParameter(L"index", Metadata::EpochType_Integer);
+		signature.AddParameter(L"byte", Metadata::EpochType_Integer);		// TODO - should be a single byte
 		signature.SetReturnType(Metadata::EpochType_Void);
 		AddToMapNoDupe(signatureset, std::make_pair(WriteBufferHandle, signature));
 	}
 	{
 		FunctionSignature signature;
-		signature.AddParameter(L"buffer", Metadata::EpochType_Buffer, true);
-		signature.AddParameter(L"index", Metadata::EpochType_Integer, false);
-		signature.AddParameter(L"bytes", Metadata::EpochType_String, false);
-		signature.AddParameter(L"size", Metadata::EpochType_Integer, false);
+		signature.AddParameter(L"buffer", Metadata::MakeReferenceType(Metadata::EpochType_Buffer));
+		signature.AddParameter(L"index", Metadata::EpochType_Integer);
+		signature.AddParameter(L"bytes", Metadata::EpochType_String);
+		signature.AddParameter(L"size", Metadata::EpochType_Integer);
 		signature.SetReturnType(Metadata::EpochType_Void);
 		AddToMapNoDupe(signatureset, std::make_pair(WriteBufferStringHandle, signature));
 	}
 	{
 		FunctionSignature signature;
-		signature.AddParameter(L"buffer", Metadata::EpochType_Buffer, true);
-		signature.AddParameter(L"index", Metadata::EpochType_Integer, false);
-		signature.AddParameter(L"bytes", Metadata::EpochType_Integer, false);		// TODO - should be a byte pointer
-		signature.AddParameter(L"size", Metadata::EpochType_Integer, false);
+		signature.AddParameter(L"buffer", Metadata::MakeReferenceType(Metadata::EpochType_Buffer));
+		signature.AddParameter(L"index", Metadata::EpochType_Integer);
+		signature.AddParameter(L"bytes", Metadata::EpochType_Integer);		// TODO - should be a byte pointer
+		signature.AddParameter(L"size", Metadata::EpochType_Integer);
 		signature.SetReturnType(Metadata::EpochType_Void);
 		AddToMapNoDupe(signatureset, std::make_pair(WriteBufferMultipleHandle, signature));
 	}
 	{
 		FunctionSignature signature;
-		signature.AddParameter(L"buffer", Metadata::EpochType_Buffer, true);
-		signature.AddParameter(L"index", Metadata::EpochType_Integer, false);
-		signature.AddParameter(L"real", Metadata::EpochType_Real, false);
+		signature.AddParameter(L"buffer", Metadata::MakeReferenceType(Metadata::EpochType_Buffer));
+		signature.AddParameter(L"index", Metadata::EpochType_Integer);
+		signature.AddParameter(L"real", Metadata::EpochType_Real);
 		signature.SetReturnType(Metadata::EpochType_Void);
 		AddToMapNoDupe(signatureset, std::make_pair(WriteBufferRealHandle, signature));
 	}

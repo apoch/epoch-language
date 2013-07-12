@@ -100,38 +100,9 @@ namespace
 		}
 	}
 
-	void PushFast(BytecodeEmitterBase& emitter, const IRSemantics::Namespace& curnamespace, const IRSemantics::CodeBlock& activescope, StringHandle identifier)
+	void PushFast(BytecodeEmitterBase& emitter, const IRSemantics::CodeBlock& activescope, StringHandle identifier)
 	{
 		Metadata::EpochTypeID type = activescope.GetVariableTypeByID(identifier);
-
-		size_t frames = 0, offset = 0, size = 0;
-		if(activescope.GetVariableLocalOffset(identifier, TypeSizeCache, frames, offset, size))
-		{
-			frames = CheckForGlobalFrame(curnamespace, activescope, frames);
-			emitter.PushLocalVariableValue(false, frames, offset, size);
-
-			if(type == Metadata::EpochType_Buffer)
-				emitter.CopyBuffer();
-			else if(Metadata::IsStructureType(type))
-				emitter.CopyStructure();
-
-			return;
-		}
-
-		frames = offset = size = 0;
-		if(activescope.GetVariableParamOffset(identifier, TypeSizeCache, frames, offset, size))
-		{
-			frames = CheckForGlobalFrame(curnamespace, activescope, frames);
-			emitter.PushLocalVariableValue(true, frames, offset, size);
-
-			if(type == Metadata::EpochType_Buffer)
-				emitter.CopyBuffer();
-			else if(Metadata::IsStructureType(type))
-				emitter.CopyStructure();
-
-			return;
-		}
-
 		emitter.PushVariableValue(identifier, type);
 	}
 
@@ -154,7 +125,7 @@ namespace
 
 		if(identifiers.size() == 1)
 		{
-			PushFast(emitter, curnamespace, activescope, identifiers[0]);
+			PushFast(emitter, activescope, identifiers[0]);
 		}
 		else
 		{
@@ -279,7 +250,7 @@ namespace
 					else if(Metadata::GetTypeFamily(atom->GetEpochType(curnamespace)) == Metadata::EpochTypeFamily_Function)
 						emitter.PushFunctionNameLiteral(atom->GetIdentifier());
 					else
-						PushFast(emitter, curnamespace, activescope, atom->GetIdentifier());
+						PushFast(emitter, activescope, atom->GetIdentifier());
 				}
 			}
 		}
@@ -328,7 +299,7 @@ namespace
 		}
 		else if(const IRSemantics::ExpressionAtomTypeAnnotation* atom = dynamic_cast<const IRSemantics::ExpressionAtomTypeAnnotation*>(rawatom))
 		{
-			emitter.PushTypeAnnotation(atom->GetEpochType(curnamespace));
+			emitter.PushTypeAnnotation(Metadata::MakeNonReferenceType(atom->GetEpochType(curnamespace)));
 		}
 		else if(const IRSemantics::ExpressionAtomTempReferenceFromRegister* atom = dynamic_cast<const IRSemantics::ExpressionAtomTempReferenceFromRegister*>(rawatom))
 		{
@@ -451,7 +422,7 @@ namespace
 			FastInvoke(emitter, curnamespace, assignment.GetOperatorName());
 
 		if(assignment.WantsTypeAnnotation)
-			emitter.PushTypeAnnotation(assignment.GetRHS()->GetEpochType(curnamespace));
+			emitter.PushTypeAnnotation(Metadata::MakeNonReferenceType(assignment.GetRHS()->GetEpochType(curnamespace)));
 
 		BindReference(emitter, assignment.GetLHS(), curnamespace, activescope);
 
@@ -516,7 +487,7 @@ namespace
 			else if(const IRSemantics::CodeBlockStatementEntry* entry = dynamic_cast<const IRSemantics::CodeBlockStatementEntry*>(baseentry))
 			{
 				EmitStatement(emitter, entry->GetStatement(), codeblock, curnamespace);
-				Metadata::EpochTypeID rettype = entry->GetStatement().GetEpochType(curnamespace);
+				Metadata::EpochTypeID rettype = entry->GetStatement().GetEpochType();
 				if(rettype != Metadata::EpochType_Void)
 					emitter.PopStack(Metadata::GetStorageSize(rettype));
 			}
@@ -565,14 +536,14 @@ namespace
 	void EmitConstructor(BytecodeEmitterBase& emitter, StringHandle name, StringHandle rawname, const IRSemantics::Structure& structure, const CompileTimeParameterVector& templateargs, IRSemantics::Namespace& curnamespace)
 	{
 		emitter.DefineLexicalScope(name, 0, structure.GetMembers().size() + 1);
-		emitter.LexicalScopeEntry(curnamespace.Strings.Find(L"identifier"), Metadata::EpochType_Identifier, true, VARIABLE_ORIGIN_PARAMETER);
+		emitter.LexicalScopeEntry(curnamespace.Strings.Find(L"identifier"), Metadata::MakeReferenceType(Metadata::EpochType_Identifier), VARIABLE_ORIGIN_PARAMETER);
 		for(size_t i = 0; i < structure.GetMembers().size(); ++i)
 		{
 			Metadata::EpochTypeID membertype = structure.GetMembers()[i].second->GetEpochType(curnamespace);
 			if(structure.IsTemplate() && !templateargs.empty())
 				membertype = structure.SubstituteTemplateParams(structure.GetMembers()[i].first, templateargs, curnamespace);
 
-			emitter.LexicalScopeEntry(structure.GetMembers()[i].first, membertype, false, VARIABLE_ORIGIN_PARAMETER);
+			emitter.LexicalScopeEntry(structure.GetMembers()[i].first, membertype, VARIABLE_ORIGIN_PARAMETER);
 		}
 
 		emitter.EnterFunction(name);
@@ -602,9 +573,9 @@ namespace
 			if(structure.IsTemplate() && !templateargs.empty())
 				membertype = structure.SubstituteTemplateParams(structure.GetMembers()[i].first, templateargs, curnamespace);
 
-			emitter.LexicalScopeEntry(structure.GetMembers()[i].first, membertype, false, VARIABLE_ORIGIN_PARAMETER);
+			emitter.LexicalScopeEntry(structure.GetMembers()[i].first, membertype, VARIABLE_ORIGIN_PARAMETER);
 		}
-		emitter.LexicalScopeEntry(name, curnamespace.Types.GetTypeByName(rawname), false, VARIABLE_ORIGIN_RETURN);
+		emitter.LexicalScopeEntry(name, curnamespace.Types.GetTypeByName(rawname), VARIABLE_ORIGIN_RETURN);
 
 		emitter.EnterFunction(name);
 		emitter.AllocateStructure(curnamespace.Types.GetTypeByName(rawname));
@@ -628,8 +599,8 @@ namespace
 	void EmitCopyConstructor(BytecodeEmitterBase& emitter, StringHandle name, StringHandle rawname, const IRSemantics::Namespace& curnamespace)
 	{
 		emitter.DefineLexicalScope(name, 0, 2);
-		emitter.LexicalScopeEntry(curnamespace.Strings.Find(L"identifier"), Metadata::EpochType_Identifier, true, VARIABLE_ORIGIN_PARAMETER);
-		emitter.LexicalScopeEntry(curnamespace.Strings.Find(L"value"), curnamespace.Types.GetTypeByName(rawname), false, VARIABLE_ORIGIN_PARAMETER);
+		emitter.LexicalScopeEntry(curnamespace.Strings.Find(L"identifier"), Metadata::MakeReferenceType(Metadata::EpochType_Identifier), VARIABLE_ORIGIN_PARAMETER);
+		emitter.LexicalScopeEntry(curnamespace.Strings.Find(L"value"), curnamespace.Types.GetTypeByName(rawname), VARIABLE_ORIGIN_PARAMETER);
 
 		emitter.EnterFunction(name);
 		emitter.PushVariableValueNoCopy(curnamespace.Strings.Find(L"value"));
@@ -728,7 +699,7 @@ namespace
 
 				if(Metadata::IsStructureType(membertype))
 					dependencies.insert(membertype);
-				else if(Metadata::GetTypeFamily(membertype) == Metadata::EpochTypeFamily_SumType)
+				/*else if(Metadata::GetTypeFamily(membertype) == Metadata::EpochTypeFamily_SumType)
 				{
 					const std::set<Metadata::EpochTypeID> bases = curnamespace.Types.SumTypes.GetDefinitions().find(membertype)->second;
 					for(std::set<Metadata::EpochTypeID>::const_iterator baseiter = bases.begin(); baseiter != bases.end(); ++baseiter)
@@ -736,7 +707,7 @@ namespace
 						if(Metadata::IsStructureType(*baseiter))
 							dependencies.insert(*baseiter);
 					}
-				}
+				}*/
 			}
 
 			for(std::set<Metadata::EpochTypeID>::const_iterator diter = dependencies.begin(); diter != dependencies.end(); ++diter)
@@ -879,7 +850,7 @@ namespace
 				Metadata::EpochTypeID vartype = iter->second->GetVariableTypeByIndex(i);
 				if(Metadata::GetTypeFamily(vartype) == Metadata::EpochTypeFamily_Unit)
 					vartype = curnamespace.Types.Aliases.GetStrongRepresentation(vartype);
-				emitter.LexicalScopeEntry(curnamespace.Strings.Find(iter->second->GetVariableName(i)), vartype, iter->second->IsReference(i), origin);
+				emitter.LexicalScopeEntry(curnamespace.Strings.Find(iter->second->GetVariableName(i)), vartype, origin);
 			}
 		}
 
