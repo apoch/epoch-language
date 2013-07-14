@@ -2266,7 +2266,12 @@ void FunctionJITHelper::CopyToStructure(size_t& offset)
 	Metadata::EpochTypeID membertype = def.GetMemberType(memberindex);
 
 	Value* memberptr = Builder.CreateGEP(structptr, ConstantInt::get(Type::getInt32Ty(Context), memberoffset));
-	Value* castmemberptr = Builder.CreatePointerCast(memberptr, Generator.GetLLVMType(membertype)->getPointerTo());
+
+	Type* llvmtype = Generator.GetLLVMType(membertype);
+	if(!Metadata::IsReferenceType(membertype))
+		llvmtype = llvmtype->getPointerTo();
+
+	Value* castmemberptr = Builder.CreatePointerCast(memberptr, llvmtype);
 
 	Builder.CreateStore(LibJITContext.ValuesOnStack.top(), castmemberptr);
 
@@ -2302,7 +2307,12 @@ void FunctionJITHelper::BindMemberRef(size_t& offset)
 		voidstructptr = Builder.CreateLoad(Builder.CreateLoad(voidstructptr));
 	Value* bytestructptr = Builder.CreatePointerCast(voidstructptr, Type::getInt8PtrTy(Context));
 	Value* voidmemberptr = Builder.CreateGEP(bytestructptr, ConstantInt::get(Type::getInt32Ty(Context), memberoffset));
-	Value* memberptr = Builder.CreatePointerCast(voidmemberptr, Generator.GetLLVMType(membertype)->getPointerTo());
+
+	Type* llvmtype = Generator.GetLLVMType(membertype);
+	if(!Metadata::IsReferenceType(membertype))
+		llvmtype = llvmtype->getPointerTo();
+
+	Value* memberptr = Builder.CreatePointerCast(voidmemberptr, llvmtype);
 
 	LibJITContext.ValuesOnStack.pop();
 	LibJITContext.ValuesOnStack.push(memberptr);

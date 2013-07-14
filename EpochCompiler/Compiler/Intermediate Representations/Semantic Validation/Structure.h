@@ -71,7 +71,8 @@ namespace IRSemantics
 		StructureMemberVariable(StringHandle type, const AST::IdentifierT& typeidentifier)
 			: MyType(type),
 			  OriginalTypeName(type),
-			  TypeIdentifier(typeidentifier)
+			  TypeIdentifier(typeidentifier),
+			  IsReferenceType(false)
 		{ }
 
 	// Non-copyable
@@ -96,6 +97,11 @@ namespace IRSemantics
 		StringHandle GetOriginalNameOfType() const
 		{ return OriginalTypeName; }
 
+	// Reference type support
+	public:
+		void MakeReference()
+		{ IsReferenceType = true; }
+
 	// Template support
 	public:
 		StringHandle SubstituteTemplateArgs(const std::vector<std::pair<StringHandle, Metadata::EpochTypeID> >& params, const CompileTimeParameterVector& args, Namespace& curnamespace, CompileErrors& errors) const;
@@ -111,6 +117,7 @@ namespace IRSemantics
 		StringHandle OriginalTypeName;
 		const AST::IdentifierT& TypeIdentifier;
 		CompileTimeParameterVector TemplateArgs;
+		bool IsReferenceType;
 	};
 
 
@@ -196,6 +203,8 @@ namespace IRSemantics
 
 		const std::vector<std::pair<StringHandle, StructureMember*> >& GetMembers() const
 		{ return Members; }
+
+		void SetMemberIsReference(StringHandle name);
 
 	// Template support
 	public:

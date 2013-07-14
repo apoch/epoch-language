@@ -439,6 +439,8 @@ namespace ASTTraverse
 		{
 			entryaction(variable);
 
+			Do(entryaction, variable.IsReference, exitaction);
+
 			Markers::TemplateArgs marker;
 			entryaction(marker);
 			Do(entryaction, variable.TemplateArgs, exitaction);

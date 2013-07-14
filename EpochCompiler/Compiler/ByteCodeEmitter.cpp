@@ -156,10 +156,13 @@ void ByteCodeEmitter::PushVariableValue(StringHandle variablename, Metadata::Epo
 	EmitInstruction(Bytecode::Instructions::Read);
 	EmitRawValue(variablename);
 
-	if(type == Metadata::EpochType_Buffer)
-		CopyBuffer();
-	else if(Metadata::IsStructureType(type))
-		CopyStructure();
+	if(!Metadata::IsReferenceType(type))
+	{
+		if(type == Metadata::EpochType_Buffer)
+			CopyBuffer();
+		else if(Metadata::IsStructureType(type))
+			CopyStructure();
+	}
 }
 
 //

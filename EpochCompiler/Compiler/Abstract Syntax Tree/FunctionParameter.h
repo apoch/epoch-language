@@ -20,20 +20,6 @@ namespace AST
 {
 
 	//
-	// Placeholder for flagging parameters as having reference semantics
-	//
-	struct RefTag
-	{
-		IdentifierT Ignored;
-	};
-
-	typedef boost::variant
-		<
-			Undefined,
-			RefTag
-		> OptionalRef;
-
-	//
 	// AST node describing a named function parameter
 	//
 	// Named parameters consist of a type and a name, and bind directly
@@ -146,12 +132,6 @@ namespace AST
 //
 // Adapters for treating our AST node structures as boost::fusion sequences
 //
-
-BOOST_FUSION_ADAPT_STRUCT
-(
-	AST::RefTag,
-	(AST::IdentifierT, Ignored)
-)
 
 BOOST_FUSION_ADAPT_STRUCT
 (

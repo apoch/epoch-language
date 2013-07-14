@@ -1638,7 +1638,10 @@ void CompilePassSemantics::ExitHelper::operator () (Markers::TemplateArgs&)
 
 void CompilePassSemantics::EntryHelper::operator () (AST::RefTag&)
 {
-	self->IsParamRef = true;
+	if(self->CurrentStructures.empty())
+		self->IsParamRef = true;
+	else
+		self->CurrentStructures.back()->SetMemberIsReference(self->LastStructureMemberName);
 }
 
 

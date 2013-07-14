@@ -24,6 +24,7 @@ namespace AST
 	{
 		IdentifierT Type;
 		OptionalTemplateArgumentList TemplateArgs;
+		OptionalRef IsReference;
 		IdentifierT Name;
 	};
 
@@ -91,6 +92,7 @@ BOOST_FUSION_ADAPT_STRUCT
 	AST::Deferred<AST::StructureMemberVariable>,
 	(AST::IdentifierT, Content->Type)
 	(AST::OptionalTemplateArgumentList, Content->TemplateArgs)
+	(AST::OptionalRef, Content->IsReference)
 	(AST::IdentifierT, Content->Name)
 )
 

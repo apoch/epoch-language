@@ -284,6 +284,24 @@ void Structure::SetMemberTemplateArgs(StringHandle membername, const CompileTime
 }
 
 
+void Structure::SetMemberIsReference(StringHandle membername)
+{
+	for(std::vector<std::pair<StringHandle, StructureMember*> >::const_iterator iter = Members.begin(); iter != Members.end(); ++iter)
+	{
+		if(iter->first == membername)
+		{
+			StructureMemberVariable* var = dynamic_cast<StructureMemberVariable*>(iter->second);
+			if(!var)
+				throw InternalException("Wrong kind of structure member");
+
+			var->MakeReference();
+			return;
+		}
+	}
+
+	throw InternalException("Invalid structure member");
+}
+
 
 //
 // Validate a variable structure member
@@ -305,7 +323,11 @@ bool StructureMemberVariable::Validate(const Namespace& curnamespace, CompileErr
 //
 Metadata::EpochTypeID StructureMemberVariable::GetEpochType(const Namespace& curnamespace) const
 {
-	return curnamespace.Types.GetTypeByName(MyType);
+	Metadata::EpochTypeID type = curnamespace.Types.GetTypeByName(MyType);
+	if(IsReferenceType)
+		type = Metadata::MakeReferenceType(type);
+
+	return type;
 }
 
 //

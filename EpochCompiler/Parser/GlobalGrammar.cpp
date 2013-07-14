@@ -26,8 +26,9 @@ GlobalGrammar::GlobalGrammar(const Lexer::EpochLexerT& lexer, const FunctionDefi
 	TemplateParameter %= (lexer.StringIdentifier | (as<AST::IdentifierT>()[lexer.TypeDef])) >> lexer.StringIdentifier;
 	TemplateParameterList %= lexer.OpenAngleBracket >> (TemplateParameter % lexer.Comma) >> lexer.CloseAngleBracket;
 
+	RefTagRule = as<AST::IdentifierT>()[lexer.Ref];
 	StructureMemberFunctionRef %= lexer.OpenParens >> (lexer.StringIdentifier) >> lexer.Colon >> ParamTypeSpec >> -ReturnTypeSpec >> lexer.CloseParens;
-	StructureMemberVariable %= (lexer.StringIdentifier >> -TemplateArguments >> lexer.StringIdentifier);
+	StructureMemberVariable %= (lexer.StringIdentifier >> -TemplateArguments >> -RefTagRule >> lexer.StringIdentifier);
 	StructureMember %= StructureMemberVariable | StructureMemberFunctionRef;
 	StructureMembers %= (StructureMember % lexer.Comma);
 	StructureDefinition %= lexer.StructureDef >> lexer.StringIdentifier >> -TemplateParameterList >> lexer.Colon >> StructureMembers;

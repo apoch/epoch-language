@@ -55,6 +55,21 @@ namespace AST
 	//
 	typedef DeferredContainer<IdentifierListRaw, boost::intrusive_ptr<IdentifierListRaw> > IdentifierList;
 
+
+	//
+	// Placeholder for flagging parameters as having reference semantics
+	//
+	struct RefTag
+	{
+		IdentifierT Ignored;
+	};
+
+	typedef boost::variant
+		<
+			Undefined,
+			RefTag
+		> OptionalRef;
+
 }
 
 //
@@ -67,4 +82,10 @@ BOOST_FUSION_ADAPT_STRUCT
 (
 	AST::IdentifierList,
 	(IdentifierVec, Content->Container)
+)
+
+BOOST_FUSION_ADAPT_STRUCT
+(
+	AST::RefTag,
+	(AST::IdentifierT, Ignored)
 )

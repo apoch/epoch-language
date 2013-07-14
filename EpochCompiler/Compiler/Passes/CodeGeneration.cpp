@@ -145,10 +145,13 @@ namespace
 			}
 
 			emitter.ReadReferenceOntoStack();
-			if(structuretype == Metadata::EpochType_Buffer)
-				emitter.CopyBuffer();
-			else if(Metadata::IsStructureType(structuretype))
-				emitter.CopyStructure();
+			if(!Metadata::IsReferenceType(structuretype))
+			{
+				if(structuretype == Metadata::EpochType_Buffer)
+					emitter.CopyBuffer();
+				else if(Metadata::IsStructureType(structuretype))
+					emitter.CopyStructure();
+			}
 		}
 	}
 
@@ -758,7 +761,7 @@ namespace
 		std::vector<Metadata::EpochTypeID> typeorder = structuredependencies.Resolve();
 		for(std::vector<Metadata::EpochTypeID>::const_iterator iter = typeorder.begin(); iter != typeorder.end(); ++iter)
 		{
-			const IRSemantics::Structure* structure = typemap.find(*iter)->second;
+			const IRSemantics::Structure* structure = typemap.find(Metadata::MakeNonReferenceType(*iter))->second;
 			const std::vector<std::pair<StringHandle, IRSemantics::StructureMember*> >& members = structure->GetMembers();
 
 			emitter.DefineStructure(*iter, members.size());
