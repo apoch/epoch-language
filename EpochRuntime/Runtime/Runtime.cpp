@@ -810,6 +810,7 @@ EPOCHRUNTIME const StructureDefinition& ExecutionContext::GetStructureDefinition
 {
 	//Threads::CriticalSection::Auto lock(StructureCritSec);
 
+	type = Metadata::MakeNonReferenceType(type);
 	std::map<EpochTypeID, StructureDefinition>::const_iterator iter = StructureDefinitions.find(type);
 	if(iter == StructureDefinitions.end())
 		throw FatalException("Invalid structure description handle");

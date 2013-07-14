@@ -714,7 +714,7 @@ namespace
 			}
 
 			for(std::set<Metadata::EpochTypeID>::const_iterator diter = dependencies.begin(); diter != dependencies.end(); ++diter)
-				structuredependencies.AddDependency(type, *diter);
+				structuredependencies.AddDependency(type, Metadata::MakeNonReferenceType(*diter));
 		}
 
 		std::map<Metadata::EpochTypeID, const CompileTimeParameterVector*> templateargmap;
@@ -744,7 +744,7 @@ namespace
 						membertype = curnamespace.Types.Aliases.GetStrongRepresentation(membertype);
 
 					if(Metadata::IsStructureType(membertype))
-						structuredependencies.AddDependency(type, membertype);
+						structuredependencies.AddDependency(type, Metadata::MakeNonReferenceType(membertype));
 					/*else if(Metadata::GetTypeFamily(membertype) == Metadata::EpochTypeFamily_SumType)
 					{
 						const std::set<Metadata::EpochTypeID> bases = curnamespace.Types.SumTypes.GetDefinitions().find(membertype)->second;
@@ -761,7 +761,10 @@ namespace
 		std::vector<Metadata::EpochTypeID> typeorder = structuredependencies.Resolve();
 		for(std::vector<Metadata::EpochTypeID>::const_iterator iter = typeorder.begin(); iter != typeorder.end(); ++iter)
 		{
-			const IRSemantics::Structure* structure = typemap.find(Metadata::MakeNonReferenceType(*iter))->second;
+			if(Metadata::IsReferenceType(*iter))
+				continue;
+
+			const IRSemantics::Structure* structure = typemap.find(*iter)->second;
 			const std::vector<std::pair<StringHandle, IRSemantics::StructureMember*> >& members = structure->GetMembers();
 
 			emitter.DefineStructure(*iter, members.size());
