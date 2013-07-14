@@ -201,7 +201,13 @@ namespace
 	{
 		const std::vector<Expression*>& params = statement.GetParameters();
 		for(std::vector<Expression*>::const_iterator iter = params.begin(); iter != params.end(); ++iter)
+		{
 			RegisterExpression(ns, **iter);
+			Plugins.InvokeVoidPluginFunction(L"PluginCodeGenShiftParameter");
+		}
+
+		if(params.empty())
+			Plugins.InvokeVoidPluginFunction(L"PluginCodeGenShiftParameter");
 	}
 
 	void RegisterAssignmentChain(const Namespace& ns, const AssignmentChain& chain)

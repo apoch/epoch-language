@@ -1588,6 +1588,10 @@ void FunctionJITHelper::BeginEntity(size_t& offset)
 				init = ConstantInt::get(Type::getInt32Ty(Context), 0); 
 				break;
 
+			case Metadata::EpochType_Boolean:
+				init = ConstantInt::get(Type::getInt1Ty(Context), 0);
+				break;
+
 			default:
 				{
 					if(Metadata::IsStructureType(localtype))
