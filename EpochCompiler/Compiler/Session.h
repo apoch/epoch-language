@@ -97,6 +97,7 @@ public:
 // Internal helpers
 private:
 	void CompileFile(const std::wstring& codeblock, const std::wstring& filename);
+	void CompileFileToPlugin(const std::wstring& codeblock, const std::wstring& filename);
 
 	void InitIntrinsicTypes();
 

@@ -200,6 +200,9 @@
     <ClCompile Include="Compiler\Self Hosting Plugins\SelfHostCodeGen.cpp">
       <Filter>Compiler\Self Hosting Plugins</Filter>
     </ClCompile>
+    <ClCompile Include="Compiler\Passes\ASTPlugin.cpp">
+      <Filter>Compiler\Passes</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h">
@@ -450,6 +453,9 @@
     </ClInclude>
     <ClInclude Include="Compiler\Self Hosting Plugins\SelfHostCodeGen.h">
       <Filter>Compiler\Self Hosting Plugins</Filter>
+    </ClInclude>
+    <ClInclude Include="Compiler\Passes\ASTPlugin.h">
+      <Filter>Compiler\Passes</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

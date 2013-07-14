@@ -71,6 +71,18 @@ const Byte* CompilerPluginManager::InvokeBytePointerPluginFunction(const std::ws
 }
 
 
+bool CompilerPluginManager::InvokeBooleanPluginFunction(const std::wstring& functionname)
+{
+	std::map<std::wstring, void*>::const_iterator iter = PluginRegistrationTable.find(functionname);
+	if(iter == PluginRegistrationTable.end())
+		throw FatalException("No plugin loaded provides the requested function");
+
+	typedef bool (STDCALL *funcptr)();
+	funcptr p = reinterpret_cast<funcptr>(iter->second);
+
+	return p();
+}
+
 void CompilerPluginManager::Clear()
 {
 	PluginRegistrationTable.clear();

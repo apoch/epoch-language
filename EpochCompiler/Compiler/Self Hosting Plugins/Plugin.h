@@ -103,6 +103,8 @@ public:
 		p(param1, param2, param3, param4, param5);
 	}
 
+	bool InvokeBooleanPluginFunction(const std::wstring& functionname);
+
 	Integer32 InvokeIntegerPluginFunction(const std::wstring& functionname);
 
 	const Byte* InvokeBytePointerPluginFunction(const std::wstring& functionname);

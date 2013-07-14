@@ -26,6 +26,7 @@
 #include "Compiler/Passes/CodeGeneration.h"
 #include "Compiler/Passes/ParseCallbacks.h"
 #include "Compiler/Passes/Optimization.h"
+#include "Compiler/Passes/ASTPlugin.h"
 
 #include "Compiler/Self Hosting Plugins/Plugin.h"
 
@@ -125,42 +126,50 @@ void CompileSession::EmitByteCode()
 
 	FinalByteCode.clear();
 
-	for(std::list<std::pair<std::wstring, std::wstring> >::const_iterator iter = SourceBlocksAndFileNames.begin(); iter != SourceBlocksAndFileNames.end(); ++iter)
-		CompileFile(iter->first, iter->second);
-
-	UI::OutputStream output;
-
-	Profiling::Timer timer;
-
-	output << L"Optimizing IR... ";
-	timer.Begin();
-	CompilerPasses::Optimize(*SemanticProgram);
-	timer.End();
-	output << L"finished in " << timer.GetTimeMs() << L"ms" << std::endl;
-
-	timer.Begin();
-
-	output << L"Generating code... ";
-
 	if(Plugins.IsPluginFunctionProvided(L"PluginBytecodeGetBuffer"))
 	{
+		// Pre-cache strings that are always present (hack until the compiler does this automatically)
+		const boost::unordered_map<StringHandle, std::wstring>& pool = StringPool.GetInternalPool();
+		for(boost::unordered_map<StringHandle, std::wstring>::const_iterator iter = pool.begin(); iter != pool.end(); ++iter)
+			Plugins.InvokeVoidPluginFunction(L"PluginCodeGenRegisterString", iter->first, iter->second.c_str());
+
+		for(std::list<std::pair<std::wstring, std::wstring> >::const_iterator iter = SourceBlocksAndFileNames.begin(); iter != SourceBlocksAndFileNames.end(); ++iter)
+			CompileFileToPlugin(iter->first, iter->second);
+
 		BytecodeEmitterPlugin emitter;
-		CompilerPasses::GenerateCode(*SemanticProgram, emitter);
+		Plugins.InvokeVoidPluginFunction(L"PluginCodeGenProcessProgram");
 
 		const Byte* p = emitter.Buffer.GetPointer();
 		FinalByteCode.swap(std::vector<Byte>(p, p + emitter.Buffer.GetSize()));
 	}
 	else
 	{
+		for(std::list<std::pair<std::wstring, std::wstring> >::const_iterator iter = SourceBlocksAndFileNames.begin(); iter != SourceBlocksAndFileNames.end(); ++iter)
+			CompileFile(iter->first, iter->second);
+
+		UI::OutputStream output;
+
+		Profiling::Timer timer;
+
+		output << L"Optimizing IR... ";
+		timer.Begin();
+		CompilerPasses::Optimize(*SemanticProgram);
+		timer.End();
+		output << L"finished in " << timer.GetTimeMs() << L"ms" << std::endl;
+
+		timer.Begin();
+
+		output << L"Generating code... ";
+
 		BytecodeStreamVector stream;
 		ByteCodeEmitter emitter(stream);
 		CompilerPasses::GenerateCode(*SemanticProgram, emitter);
 
 		FinalByteCode.swap(std::vector<Byte>(stream.GetPointer(), stream.GetPointer() + stream.GetSize()));
-	}
 
-	timer.End();
-	output << L"finished in " << timer.GetTimeMs() << L"ms" << std::endl;
+		timer.End();
+		output << L"finished in " << timer.GetTimeMs() << L"ms" << std::endl;
+	}
 }
 
 
@@ -212,6 +221,31 @@ void CompileSession::CompileFile(const std::wstring& code, const std::wstring& f
 	if(!SemanticProgram)
 		throw FatalException("Semantic checking failed!");
 }
+
+
+void CompileSession::CompileFileToPlugin(const std::wstring& code, const std::wstring& filename)
+{
+	Parser theparser(Identifiers); 
+
+	if(!theparser.Parse(code, filename, ASTProgram))
+		throw FatalException("Parsing failed!");
+
+	delete SemanticProgram;
+	SemanticProgram = NULL;
+
+	FileName = filename;
+
+	UI::OutputStream output;
+	output << L"Validating semantics... ";
+	Profiling::Timer timer;
+	timer.Begin();
+
+	CompilerPasses::HandASTToPlugin(*ASTProgram);
+
+	timer.End();
+	output << L"finished in " << timer.GetTimeMs() << L"ms" << std::endl;
+}
+
 
 
 //

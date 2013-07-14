@@ -104,6 +104,7 @@
     <ClCompile Include="Compiler\CompileErrors.cpp" />
     <ClCompile Include="Compiler\Intermediate Representations\Semantic Validation\Namespace.cpp" />
     <ClCompile Include="Compiler\Intermediate Representations\Semantic Validation\TypeSpace.cpp" />
+    <ClCompile Include="Compiler\Passes\ASTPlugin.cpp" />
     <ClCompile Include="Compiler\Passes\Optimization.cpp" />
     <ClCompile Include="Compiler\Passes\ParseCallbacks.cpp" />
     <ClCompile Include="Compiler\Self Hosting Plugins\Plugin.cpp" />
@@ -156,6 +157,7 @@
     <ClInclude Include="Compiler\CompileErrors.h" />
     <ClInclude Include="Compiler\Intermediate Representations\Semantic Validation\Namespace.h" />
     <ClInclude Include="Compiler\Intermediate Representations\Semantic Validation\TypeSpace.h" />
+    <ClInclude Include="Compiler\Passes\ASTPlugin.h" />
     <ClInclude Include="Compiler\Passes\Optimization.h" />
     <ClInclude Include="Compiler\Passes\ParseCallbacks.h" />
     <ClInclude Include="Compiler\Self Hosting Plugins\Plugin.h" />
