@@ -2664,6 +2664,7 @@ void NativeCodeGenerator::AddNativeTypeMatcher(size_t beginoffset, size_t endoff
 				{
 					bool expectref = Fetch<bool>(Bytecode, offset);
 					Metadata::EpochTypeID expecttype = Fetch<Metadata::EpochTypeID>(Bytecode, offset);
+					expectref |= Metadata::IsReferenceType(expecttype);
 
 					BasicBlock* checkmatchblock = BasicBlock::Create(Data->Context, "checkmatch", matcherfunction);
 
@@ -2684,7 +2685,7 @@ void NativeCodeGenerator::AddNativeTypeMatcher(size_t beginoffset, size_t endoff
 
 					BasicBlock* handlesumtypeblock = BasicBlock::Create(Data->Context, "handlesumtype", matcherfunction);
 
-					Value* providedtypefamily = Builder.CreateAnd(Builder.CreateLoad(providedtypeholders[typematchindex][i]), 0xff000000);
+					Value* providedtypefamily = Builder.CreateAnd(Builder.CreateLoad(providedtypeholders[typematchindex][i]), 0x7f000000);
 					Value* issumtype = Builder.CreateICmpEQ(providedtypefamily, ConstantInt::get(Type::getInt32Ty(Data->Context), Metadata::EpochTypeFamily_SumType));
 					Builder.CreateCondBr(issumtype, handlesumtypeblock, checkmatchblock);
 
@@ -2706,7 +2707,8 @@ void NativeCodeGenerator::AddNativeTypeMatcher(size_t beginoffset, size_t endoff
 
 					Builder.SetInsertPoint(checkmatchblock);
 
-					Value* nomatch = Builder.CreateICmpNE(Builder.CreateLoad(providedtypeholders[typematchindex][i]), ConstantInt::get(Type::getInt32Ty(Data->Context), expecttype));
+					Value* nonref = Builder.CreateAnd(Builder.CreateLoad(providedtypeholders[typematchindex][i]), 0x7fffffff);
+					Value* nomatch = Builder.CreateICmpNE(nonref, ConstantInt::get(Type::getInt32Ty(Data->Context), expecttype));
 					Value* notexpectsumtype = ConstantInt::get(Type::getInt1Ty(Data->Context), Metadata::GetTypeFamily(expecttype) != Metadata::EpochTypeFamily_SumType);
 
 					BasicBlock* nextparamblock = BasicBlock::Create(Data->Context, "nextparam", matcherfunction);
@@ -2718,7 +2720,8 @@ void NativeCodeGenerator::AddNativeTypeMatcher(size_t beginoffset, size_t endoff
 
 					if(expecttype != Metadata::EpochType_Nothing)
 					{
-						Value* v = Builder.CreatePointerCast(parampayloadptrs[typematchindex][i], GetLLVMType(expecttype)->getPointerTo()->getPointerTo());
+						Type* llvmtype = GetLLVMType(expecttype)->getPointerTo()->getPointerTo();
+						Value* v = Builder.CreatePointerCast(parampayloadptrs[typematchindex][i], llvmtype);
 						v = Builder.CreateLoad(v);
 
 						if(!expectref)
