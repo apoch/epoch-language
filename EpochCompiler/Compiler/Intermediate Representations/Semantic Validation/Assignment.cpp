@@ -128,7 +128,7 @@ bool Assignment::TypeInference(Namespace& curnamespace, CodeBlock& activescope, 
 			const FunctionSignature& overloadsig = curnamespace.Functions.GetSignature(*overloaditer);
 			if(overloadsig.GetNumParameters() == 2)
 			{
-				if(overloadsig.GetParameter(0).Type == LHSType && overloadsig.GetParameter(1).Type == RHS->GetEpochType(curnamespace))
+				if(overloadsig.GetParameter(0).Type == Metadata::MakeNonReferenceType(LHSType) && overloadsig.GetParameter(1).Type == Metadata::MakeNonReferenceType(RHS->GetEpochType(curnamespace)))
 				{
 					OperatorName = *overloaditer;
 					break;
@@ -144,7 +144,7 @@ bool Assignment::TypeInference(Namespace& curnamespace, CodeBlock& activescope, 
 		{
 			// OK
 		}
-		else if(Metadata::GetTypeFamily(LHSType) == Metadata::EpochTypeFamily_SumType && curnamespace.Types.SumTypes.IsBaseType(LHSType, RHSType))
+		else if(Metadata::GetTypeFamily(LHSType) == Metadata::EpochTypeFamily_SumType && curnamespace.Types.SumTypes.IsBaseType(LHSType, Metadata::MakeNonReferenceType(RHSType)))
 		{
 			// OK
 			WantsTypeAnnotation = true;

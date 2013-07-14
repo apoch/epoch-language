@@ -474,7 +474,7 @@ bool Expression::TypeInference(Namespace& curnamespace, CodeBlock& activescope, 
 		unsigned originalrhsidx = rhsidx;
 
 		Metadata::EpochTypeID typerhs = Metadata::EpochType_Error;
-		typerhs = WalkAtomsForType(Atoms, curnamespace, rhsidx, typerhs, errors);
+		typerhs = Metadata::MakeNonReferenceType(WalkAtomsForType(Atoms, curnamespace, rhsidx, typerhs, errors));
 
 		Metadata::EpochTypeID underlyingtyperhs = typerhs;
 		if(Metadata::GetTypeFamily(typerhs) == Metadata::EpochTypeFamily_Unit)
@@ -499,7 +499,7 @@ bool Expression::TypeInference(Namespace& curnamespace, CodeBlock& activescope, 
 					bool matchrhs = false;
 
 					Metadata::EpochTypeID typelhs = Metadata::EpochType_Error;
-					typelhs = WalkAtomsForTypePartial(Atoms, curnamespace, idx, typelhs, errors);
+					typelhs = Metadata::MakeNonReferenceType(WalkAtomsForTypePartial(Atoms, curnamespace, idx, typelhs, errors));
 
 					Metadata::EpochTypeID underlyingtypelhs = typelhs;
 					if(Metadata::GetTypeFamily(typelhs) == Metadata::EpochTypeFamily_Unit)
@@ -550,7 +550,7 @@ bool Expression::TypeInference(Namespace& curnamespace, CodeBlock& activescope, 
 
 		Metadata::EpochTypeID typerhs = Metadata::EpochType_Error;
 		unsigned rhsidx = iter - Atoms.begin() + 1;
-		typerhs = WalkAtomsForType(Atoms, curnamespace, rhsidx, typerhs, errors);
+		typerhs = Metadata::MakeNonReferenceType(WalkAtomsForType(Atoms, curnamespace, rhsidx, typerhs, errors));
 
 		Metadata::EpochTypeID underlyingtyperhs = typerhs;
 		if(Metadata::GetTypeFamily(typerhs) == Metadata::EpochTypeFamily_Unit)
@@ -580,7 +580,7 @@ bool Expression::TypeInference(Namespace& curnamespace, CodeBlock& activescope, 
 			if(hasoverloads)
 			{
 				Metadata::EpochTypeID typelhs = Metadata::EpochType_Error;
-				typelhs = WalkAtomsForTypePartial(Atoms, curnamespace, idx, typelhs, errors);
+				typelhs = Metadata::MakeNonReferenceType(WalkAtomsForTypePartial(Atoms, curnamespace, idx, typelhs, errors));
 
 				Metadata::EpochTypeID underlyingtypelhs = typelhs;
 				if(Metadata::GetTypeFamily(typelhs) == Metadata::EpochTypeFamily_Unit)
@@ -1315,6 +1315,9 @@ bool ExpressionAtomOperator::IsOperatorUnary(const Namespace& curnamespace) cons
 //
 Metadata::EpochTypeID ExpressionAtomOperator::DetermineOperatorReturnType(Namespace& curnamespace, Metadata::EpochTypeID lhstype, Metadata::EpochTypeID rhstype, CompileErrors& errors) const
 {
+	lhstype = Metadata::MakeNonReferenceType(lhstype);
+	rhstype = Metadata::MakeNonReferenceType(rhstype);
+
 	if(OverriddenType != Metadata::EpochType_Error)
 		return OverriddenType;
 
@@ -1469,7 +1472,7 @@ bool ExpressionAtomLiteralInteger32::TypeInference(Namespace& curnamespace, Code
 		if(context.ExpectedTypes.back()[i].size() < maxindex)
 			continue;
 
-		Metadata::EpochTypeID expectedtype = context.ExpectedTypes.back()[i][index];
+		Metadata::EpochTypeID expectedtype = Metadata::MakeNonReferenceType(context.ExpectedTypes.back()[i][index]);
 		if(Metadata::GetTypeFamily(expectedtype) == Metadata::EpochTypeFamily_Unit)
 		{
 			if(curnamespace.Types.Aliases.GetStrongRepresentation(expectedtype) == Metadata::EpochType_Integer)

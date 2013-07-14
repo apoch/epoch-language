@@ -800,7 +800,10 @@ void Function::FixupScope()
 		if(TemplateParams[i].second == Metadata::EpochType_Wildcard)
 		{
 			CompileTimeParameter param(L"@templatearg", Metadata::EpochType_Wildcard);
-			param.Payload.IntegerValue = static_cast<int>(DummyNamespace->Types.GetTypeByName(TemplateArgs[i].Payload.LiteralStringHandleValue));
+
+			Metadata::EpochTypeID type = DummyNamespace->Types.GetTypeByName(TemplateArgs[i].Payload.LiteralStringHandleValue);
+			param.Payload.IntegerValue = static_cast<int>(type);
+
 			argtypes.push_back(param);
 		}
 		else

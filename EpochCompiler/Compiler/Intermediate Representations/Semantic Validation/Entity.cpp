@@ -179,7 +179,7 @@ bool Entity::TypeInference(Namespace& curnamespace, CodeBlock& activescope, Infe
 
 	for(size_t i = 0; i < Parameters.size(); ++i)
 	{
-		if(Parameters[i]->GetEpochType(curnamespace) != desc.Parameters[i].Type)
+		if(Metadata::MakeNonReferenceType(Parameters[i]->GetEpochType(curnamespace)) != desc.Parameters[i].Type)
 		{
 			errors.SetContext(OriginalIdentifier);
 			errors.SemanticError("Wrong parameter type");

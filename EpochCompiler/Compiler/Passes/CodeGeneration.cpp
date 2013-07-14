@@ -238,7 +238,7 @@ namespace
 					emitter.PushStringLiteral(atom->GetIdentifier());
 				else
 				{
-					if(atom->GetEpochType(curnamespace) == Metadata::EpochType_Identifier)
+					if(Metadata::MakeNonReferenceType(atom->GetEpochType(curnamespace)) == Metadata::EpochType_Identifier)
 					{
 						if(!constructorcall)
 							emitter.PushStringLiteral(atom->GetIdentifier());
@@ -771,7 +771,7 @@ namespace
 
 				if(structure->IsTemplate())
 				{
-					const CompileTimeParameterVector& args = *templateargmap.find(*iter)->second;
+					const CompileTimeParameterVector& args = *templateargmap.find(Metadata::MakeNonReferenceType(*iter))->second;
 					membertype = structure->SubstituteTemplateParams(memberiter->first, args, curnamespace);
 				}
 				else

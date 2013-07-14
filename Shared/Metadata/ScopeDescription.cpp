@@ -139,8 +139,13 @@ void ScopeDescription::Fixup(const std::vector<std::pair<StringHandle, Metadata:
 		{
 			if(iter->TypeName == templateparams[i].first)
 			{
+				Metadata::EpochTypeID formertype = iter->Type;
+
 				iter->TypeName = templateargs[i].Payload.LiteralStringHandleValue;
 				iter->Type = static_cast<Metadata::EpochTypeID>(templateargtypes[i].Payload.IntegerValue);
+
+				if(Metadata::IsReferenceType(formertype))
+					iter->Type = Metadata::MakeReferenceType(iter->Type);
 			}
 		}
 	}
