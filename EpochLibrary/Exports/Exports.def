@@ -23,3 +23,5 @@ EXPORTS
 	EpochLib_MarshalStructure   @20
 	EpochLib_StrLen				@21
 	EpochLib_CastIntegerToStr	@22
+	EpochLib_StrWideFromPtr		@23
+

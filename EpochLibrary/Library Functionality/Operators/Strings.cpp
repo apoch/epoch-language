@@ -27,6 +27,7 @@ namespace
 	StringHandle ConcatHandle = 0;
 	StringHandle LengthHandle = 0;
 	StringHandle NarrowStringHandle = 0;
+	StringHandle WidenStringHandle = 0;
 
 }
 
@@ -55,6 +56,13 @@ void StringLibrary::RegisterLibraryFunctions(FunctionSignatureSet& signatureset)
 		signature.SetReturnType(Metadata::EpochType_Buffer);
 		AddToMapNoDupe(signatureset, std::make_pair(NarrowStringHandle, signature));
 	}
+	{
+		FunctionSignature signature;
+		signature.AddParameter(L"p", Metadata::EpochType_Integer);
+		signature.AddParameter(L"len", Metadata::EpochType_Integer);
+		signature.SetReturnType(Metadata::EpochType_String);
+		AddToMapNoDupe(signatureset, std::make_pair(WidenStringHandle, signature));
+	}
 }
 
 //
@@ -71,6 +79,7 @@ void StringLibrary::PoolStrings(StringPoolManager& stringpool)
 	ConcatHandle = stringpool.Pool(L";");
 	LengthHandle = stringpool.Pool(L"length");
 	NarrowStringHandle = stringpool.Pool(L"narrowstring");
+	WidenStringHandle = stringpool.Pool(L"widenfromptr");
 }
 
 void StringLibrary::RegisterJITTable(JIT::JITTable& table)
@@ -78,6 +87,7 @@ void StringLibrary::RegisterJITTable(JIT::JITTable& table)
 	AddToMapNoDupe(table.LibraryExports, std::make_pair(NarrowStringHandle, "EpochLib_StrNarrow"));
 	AddToMapNoDupe(table.LibraryExports, std::make_pair(ConcatHandle, "EpochLib_StrConcat"));
 	AddToMapNoDupe(table.LibraryExports, std::make_pair(LengthHandle, "EpochLib_StrLen"));
+	AddToMapNoDupe(table.LibraryExports, std::make_pair(WidenStringHandle, "EpochLib_StrWideFromPtr"));
 }
 
 
@@ -101,6 +111,11 @@ extern "C" BufferHandle EpochLib_StrNarrow(StringHandle str)
 	GlobalExecutionContext->TickBufferGarbageCollector();
 
 	return destbuffer;
+}
+
+extern "C" StringHandle EpochLib_StrWideFromPtr(unsigned len, const char* p)
+{
+	return GlobalExecutionContext->PoolString(widen(std::string(p, len)));
 }
 
 extern "C" size_t EpochLib_StrLen(StringHandle str)
