@@ -4,7 +4,7 @@
 //
 // AST traverser declaration for the compilation pass which
 // feeds the AST's contents into a compiler plugin. This is
-// pretty much entirely for getting the self-hosted compiler
+// basically entirely for getting the self-hosting compiler
 // bootstrapped.
 //
 

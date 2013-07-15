@@ -4,7 +4,7 @@
 //
 // AST traverser declaration for the compilation pass which
 // feeds the AST's contents into a compiler plugin. This is
-// pretty much entirely for getting the self-hosted compiler
+// basically entirely for getting the self-hosting compiler
 // bootstrapped.
 //
 
@@ -13,6 +13,9 @@
 #include "Compiler/Passes/ASTPlugin.h"
 
 #include "Compiler/Self Hosting Plugins/Plugin.h"
+
+#include "Utility/Strings.h"
+
 
 
 using namespace ASTTraverse;
@@ -131,45 +134,52 @@ void ASTPlugin::ExitHelper::operator()(AST::CodeBlock&)
 
 void ASTPlugin::EntryHelper::operator()(AST::Initialization& initialization)
 {
-	((void)(initialization));
+	std::wstring id(initialization.LHS.begin(), initialization.LHS.end());
+	std::wstring name(initialization.TypeSpecifier.begin(), initialization.TypeSpecifier.end());
+
+	Plugins.InvokeVoidPluginFunction(L"PluginIREnterStatement", name.c_str());
+	Plugins.InvokeVoidPluginFunction(L"PluginIREnterExpression");
+	Plugins.InvokeVoidPluginFunction(L"PluginIRAddLiteralIdentifier", id.c_str());
+	Plugins.InvokeVoidPluginFunction(L"PluginIRExitExpression");
 }
 
-void ASTPlugin::ExitHelper::operator()(AST::Initialization& initialization)
+void ASTPlugin::ExitHelper::operator()(AST::Initialization&)
 {
-	((void)(initialization));
-}
-
-
-void ASTPlugin::EntryHelper::operator()(AST::Expression& expression)
-{
-	((void)(expression));
-}
-
-void ASTPlugin::ExitHelper::operator()(AST::Expression& expression)
-{
-	((void)(expression));
+	Plugins.InvokeVoidPluginFunction(L"PluginIRExitStatement");
 }
 
 
-void ASTPlugin::EntryHelper::operator()(AST::ExpressionComponent& component)
+void ASTPlugin::EntryHelper::operator()(AST::Expression&)
 {
-	((void)(component));
+	Plugins.InvokeVoidPluginFunction(L"PluginIREnterExpression");
 }
 
-void ASTPlugin::ExitHelper::operator()(AST::ExpressionComponent& component)
+void ASTPlugin::ExitHelper::operator()(AST::Expression&)
 {
-	((void)(component));
+	Plugins.InvokeVoidPluginFunction(L"PluginIRExitExpression");
+}
+
+
+void ASTPlugin::EntryHelper::operator()(AST::ExpressionComponent&)
+{
+	// No op??
+}
+
+void ASTPlugin::ExitHelper::operator()(AST::ExpressionComponent&)
+{
+	// No op??
 }
 
 
 void ASTPlugin::EntryHelper::operator()(AST::ExpressionFragment& fragment)
 {
-	((void)(fragment));
+	std::wstring token(fragment.Operator.begin(), fragment.Operator.end());
+	Plugins.InvokeVoidPluginFunction(L"PluginIRAddOperator", token.c_str());
 }
 
-void ASTPlugin::ExitHelper::operator()(AST::ExpressionFragment& fragment)
+void ASTPlugin::ExitHelper::operator()(AST::ExpressionFragment&)
 {
-	((void)(fragment));
+	// No op??
 }
 
 
@@ -306,7 +316,50 @@ void ASTPlugin::EntryHelper::operator()(AST::RefTag& reftag)
 
 void ASTPlugin::EntryHelper::operator()(AST::IdentifierT& identifier)
 {
-	((void)(identifier));
+	Substring<positertype> raw(identifier.begin(), identifier.end());
+
+	if(raw.length() >= 2 && *raw.begin() == L'\"' && *raw.rbegin() == L'\"')
+		Plugins.InvokeVoidPluginFunction(L"PluginIRAddLiteralString", std::wstring(raw).c_str());
+	else if(raw == L"true")
+		Plugins.InvokeVoidPluginFunction(L"PluginIRAddLiteralBoolean", true);
+	else if(raw == L"false")
+		Plugins.InvokeVoidPluginFunction(L"PluginIRAddLiteralBoolean", false);
+	else if(raw.find(L'.') != std::wstring::npos)
+	{
+		Real32 literalfloat;
+
+		std::wistringstream convert(raw);
+		if(!(convert >> literalfloat))
+			throw std::runtime_error("Invalid floating point literal");
+		
+		Plugins.InvokeVoidPluginFunction(L"PluginIRAddLiteralReal", literalfloat);
+	}
+	else
+	{
+		if(raw.length() > 2 && (*raw.begin() == L'0') && (*(raw.begin() + 1) == L'x'))
+		{
+			UInteger32 literalint;
+
+			std::wstring hexstr(raw);
+			hexstr = hexstr.substr(2);
+			std::wistringstream convert(hexstr);
+			convert >> std::hex;
+			if(convert >> literalint)
+				Plugins.InvokeVoidPluginFunction(L"PluginIRAddLiteralInteger", literalint);
+			else
+				throw std::runtime_error("Bad hex");
+		}
+		else
+		{
+			UInteger32 literalint;
+
+			std::wistringstream convert(raw);
+			if(convert >> literalint)
+				Plugins.InvokeVoidPluginFunction(L"PluginIRAddLiteralInteger", literalint);
+			else
+				Plugins.InvokeVoidPluginFunction(L"PluginIRAddLiteralIdentifier", std::wstring(raw).c_str());
+		}
+	}
 }
 
 
