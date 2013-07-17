@@ -74,7 +74,7 @@ namespace Runtime
 
 	// Construction and destruction
 	public:
-		ExecutionContext(Bytecode::Instruction* codebuffer, size_t codesize, unsigned* testharness);
+		ExecutionContext(Bytecode::Instruction* codebuffer, size_t codesize, unsigned* testharness, bool usestdlib = true);
 		~ExecutionContext();
 
 	// Non-copyable
@@ -140,7 +140,7 @@ namespace Runtime
 
 	// Initialization
 	private:
-		void InitStandardLibraries(unsigned* testharness);
+		void InitStandardLibraries(unsigned* testharness, bool registerall);
 
 	// Code execution
 	public:

@@ -26,6 +26,9 @@
 namespace
 {
 	unsigned* TestHarness = NULL;
+
+	void* DelayBuffer = NULL;
+	size_t DelayBufferSize = 0;
 }
 
 
@@ -53,6 +56,21 @@ extern "C" void STDCALL ExecuteByteCode(void* bytecodebuffer, size_t size)
 		UI::OutputStream out;
 		out << UI::lightred << L"Unknown exception" << UI::resetcolor << std::endl;
 	}
+
+	if(DelayBuffer)
+	{
+		Runtime::ExecutionContext context(reinterpret_cast<Bytecode::Instruction*>(DelayBuffer), DelayBufferSize, TestHarness, false);
+		context.ExecuteByteCode();
+	}
+}
+
+extern "C" void STDCALL ExecuteByteCodeDeferred(void* bytecodebuffer, size_t size)
+{
+	char* copy = new char[size];
+	memcpy(copy, bytecodebuffer, size);
+
+	DelayBuffer = copy;
+	DelayBufferSize = size;
 }
 
 extern "C" void* STDCALL ExecuteByteCodePersistent(void* bytecodebuffer, size_t size)

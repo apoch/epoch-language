@@ -160,8 +160,8 @@ void ByteCodeEmitter::PushVariableValue(StringHandle variablename, Metadata::Epo
 	{
 		if(type == Metadata::EpochType_Buffer)
 			CopyBuffer();
-		else if(Metadata::IsStructureType(type))
-			CopyStructure();
+		//else if(Metadata::IsStructureType(type))
+		//	CopyStructure();
 	}
 }
 

@@ -34,7 +34,7 @@ using namespace Metadata;
 //
 // Initialize the bindings of standard library functions
 //
-void ExecutionContext::InitStandardLibraries(unsigned* testharness)
+void ExecutionContext::InitStandardLibraries(unsigned* testharness, bool registerall)
 {
 	Marshaling::DLLPool::DLLPoolHandle dllhandle = Marshaling::TheDLLPool.OpenDLL(L"EpochLibrary.DLL");
 
@@ -49,6 +49,8 @@ void ExecutionContext::InitStandardLibraries(unsigned* testharness)
 
 	bindtoruntime(this, PrivateStringPool, JITHelpers);
 	registerlibrary(LibraryFunctionSignatures, PrivateStringPool);
+
+	((void)(registerall));
 
 	typedef void (STDCALL *bindtotestharnessptr)(unsigned*);
 	bindtotestharnessptr bindtotest = Marshaling::DLLPool::GetFunction<bindtotestharnessptr>(dllhandle, "LinkToTestHarness");
@@ -261,7 +263,7 @@ ScopeDescription& ExecutionContext::GetScopeDescription(StringHandle name)
 //
 // Initialize an execution context
 //
-ExecutionContext::ExecutionContext(Bytecode::Instruction* codebuffer, size_t codesize, unsigned* testharness)
+ExecutionContext::ExecutionContext(Bytecode::Instruction* codebuffer, size_t codesize, unsigned* testharness, bool usestdlib)
 	: CodeBuffer(codebuffer),
 	  CodeBufferSize(codesize),
 	  GarbageTick_Buffers(0),
@@ -270,7 +272,7 @@ ExecutionContext::ExecutionContext(Bytecode::Instruction* codebuffer, size_t cod
 	  EntryPointFunc(NULL),
 	  GlobalInitFunc(NULL)
 {
-	InitStandardLibraries(testharness);
+	InitStandardLibraries(testharness, usestdlib);
 }
 
 ExecutionContext::~ExecutionContext()
