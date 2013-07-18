@@ -280,9 +280,9 @@ extern "C" StringHandle EpochLib_CastRealToStr(float real)
 	return GlobalExecutionContext->PoolString(convert.str());
 }
 
-extern "C" StringHandle EpochLib_CastBufferToStr(BufferHandle buffer)
+extern "C" StringHandle EpochLib_CastBufferToStr(BufferHandle* buffer)
 {
-	std::wstring str(reinterpret_cast<wchar_t*>(GlobalExecutionContext->GetBuffer(buffer)), GlobalExecutionContext->GetBufferSize(buffer));
+	std::wstring str(reinterpret_cast<wchar_t*>(GlobalExecutionContext->GetBuffer(*buffer)), GlobalExecutionContext->GetBufferSize(*buffer));
 	StringHandle result = GlobalExecutionContext->PoolString(str);
 	GlobalExecutionContext->TickStringGarbageCollector();
 	return result;

@@ -16,23 +16,30 @@ using namespace Runtime;
 namespace
 {
 
-	ExecutionContext* GlobalContext = NULL;
+	DWORD TlsIndex = TLS_OUT_OF_INDEXES;
 
 }
 
 
 void Runtime::SetThreadContext(ExecutionContext* context)
 {
-	// This will eventually use thread-local storage once threading is reimplemented
-	if(GlobalContext && context)
-		throw FatalException("Cannot replace global execution context");
+	if(TlsIndex == TLS_OUT_OF_INDEXES)
+		TlsIndex = ::TlsAlloc();
 
-	GlobalContext = context;
+	void* currentvalue = ::TlsGetValue(TlsIndex);
+
+	if(currentvalue && context)
+		throw FatalException("Cannot replace thread's execution context");
+
+	::TlsSetValue(TlsIndex, context);
 }
 
 ExecutionContext* Runtime::GetThreadContext()
 {
-	return GlobalContext;
+	if(TlsIndex == TLS_OUT_OF_INDEXES)
+		throw FatalException("Cannot retrieve thread's execution context");
+
+	return reinterpret_cast<ExecutionContext*>(::TlsGetValue(TlsIndex));
 }
 
 

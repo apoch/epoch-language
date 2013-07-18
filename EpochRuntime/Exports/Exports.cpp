@@ -23,12 +23,27 @@
 #pragma warning(disable: 4702)			// unreachable code (we don't care)
 
 
+
+extern "C" void STDCALL ExecuteByteCode(void* bytecodebuffer, size_t size);
+
+
 namespace
 {
 	unsigned* TestHarness = NULL;
 
-	void* DelayBuffer = NULL;
-	size_t DelayBufferSize = 0;
+
+	typedef std::vector<char> DeferredExecBuffer;
+
+	DWORD WINAPI ForkBytecodeExecThreadProc(void* param)
+	{
+		DeferredExecBuffer* buffer = reinterpret_cast<DeferredExecBuffer*>(param);
+
+		ExecuteByteCode(&((*buffer)[0]), buffer->size());
+
+		delete buffer;
+
+		return 0;
+	}
 }
 
 
@@ -56,21 +71,14 @@ extern "C" void STDCALL ExecuteByteCode(void* bytecodebuffer, size_t size)
 		UI::OutputStream out;
 		out << UI::lightred << L"Unknown exception" << UI::resetcolor << std::endl;
 	}
-
-	if(DelayBuffer)
-	{
-		Runtime::ExecutionContext context(reinterpret_cast<Bytecode::Instruction*>(DelayBuffer), DelayBufferSize, TestHarness, false);
-		context.ExecuteByteCode();
-	}
 }
 
 extern "C" void STDCALL ExecuteByteCodeDeferred(void* bytecodebuffer, size_t size)
 {
-	char* copy = new char[size];
-	memcpy(copy, bytecodebuffer, size);
+	DeferredExecBuffer* buffer = new DeferredExecBuffer(reinterpret_cast<char*>(bytecodebuffer), reinterpret_cast<char*>(bytecodebuffer) + size);
 
-	DelayBuffer = copy;
-	DelayBufferSize = size;
+	HANDLE thread = ::CreateThread(NULL, 0, ForkBytecodeExecThreadProc, buffer, 0, NULL);
+	::WaitForSingleObject(thread, INFINITE);
 }
 
 extern "C" void* STDCALL ExecuteByteCodePersistent(void* bytecodebuffer, size_t size)
