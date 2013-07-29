@@ -24,11 +24,15 @@
 
 #include "Utility/Strings.h"
 
+#include <iostream>
+
 
 // LLVM is naughty and generates lots of warnings.
 #pragma warning(push)
 #pragma warning(disable: 4100)		// Unreferenced parameter
 #pragma warning(disable: 4244)		// Type conversion without explicit cast
+#pragma warning(disable: 4510)		// Cannot generate constructor
+#pragma warning(disable: 4610)		// Cannot generate constructor
 #pragma warning(disable: 4512)		// Cannot generate assignment operator
 #pragma warning(disable: 4624)		// Cannot generate destructor
 #pragma warning(disable: 4800)		// Forcing coercion to bool
@@ -45,7 +49,7 @@
 #include "llvm/MC/MCSymbol.h"
 #include "llvm/MC/MCSection.h"
 #include "llvm/MC/MCObjectFileInfo.h"
-#include "llvm/IntrinsicInst.h"
+#include "llvm/IR/IntrinsicInst.h"
 
 #pragma warning(pop)
 
@@ -167,9 +171,13 @@ namespace
 			
 			const char* liveptr;
 			if(static_cast<signed>(liveiter->StackOffset) <= 0)
-				liveptr = reinterpret_cast<const char*>(stackptr) + liveiter->StackOffset;
+			{
+				liveptr = reinterpret_cast<const char*>(stackptr) + liveiter->StackOffset;// + extraoffset;
+			}
 			else
+			{
 				liveptr = reinterpret_cast<const char*>(prevframeptr) + liveiter->StackOffset + sizeof(CallFrame);
+			}
 
 			CheckRoot(liveptr, type, livevalues);
 		}
@@ -178,7 +186,7 @@ namespace
 	//
 	// Helper to traverse the heap graph of reachable structures
 	//
-	void WalkStructuresForLiveHandles(LiveValues& livevalues)
+	void WalkStructuresForLiveHandles(LiveValues& livevalues, Runtime::ExecutionContext* context)
 	{
 		bool addedhandle;
 
@@ -189,7 +197,7 @@ namespace
 
 			for(boost::unordered_set<StructureHandle>::const_iterator iter = livevalues.LiveStructures.begin(); iter != livevalues.LiveStructures.end(); ++iter)
 			{
-				const ActiveStructure& active = Runtime::GetThreadContext()->FindStructureMetadata(*iter);
+				const ActiveStructure& active = context->FindStructureMetadata(*iter);
 				const StructureDefinition& def = active.Definition;
 				for(size_t i = 0; i < def.GetNumMembers(); ++i)
 				{
@@ -269,7 +277,8 @@ namespace
 	//
 	void GarbageWorker(char* rawptr)
 	{
-		unsigned collectmask = Runtime::GetThreadContext()->GetGarbageCollectionBitmask();
+		Runtime::ExecutionContext* context = Runtime::GetThreadContext();
+		unsigned collectmask = context->GetGarbageCollectionBitmask();
 		if(!collectmask)
 			return;
 
@@ -278,7 +287,7 @@ namespace
 
 		WalkGlobalsForLiveHandles(livevalues);
 
-		CallFrame* framePtr = reinterpret_cast<CallFrame*>(rawptr + sizeof(void*));
+		CallFrame* framePtr = reinterpret_cast<CallFrame*>(rawptr);// + sizeof(void*));
 		void* prevFramePtr = NULL;
 
 		bool foundany = false;
@@ -304,8 +313,8 @@ namespace
 
 				for(GCFunctionInfo::iterator spiter = info.begin(); spiter != info.end(); ++spiter)
 				{
-					uint64_t address = reinterpret_cast<ExecutionEngine*>(Runtime::GetThreadContext()->JITExecutionEngine)->getLabelAddress(spiter->Label);
-					const void* addressptr = reinterpret_cast<void*>(static_cast<unsigned>(address));
+					uint64_t address = reinterpret_cast<ExecutionEngine*>(context->JITExecutionEngine)->getLabelAddress(spiter->Label);
+					const void* addressptr = reinterpret_cast<void*>(static_cast<unsigned>(address - 4));
 
 					if(addressptr == returnAddr)
 					{
@@ -313,22 +322,25 @@ namespace
 						found = foundany = true;
 					}
 				}
+
+				if(found)
+					break;
 			}
 		}
 
 		if(!foundany)
 			return;
 
-		WalkStructuresForLiveHandles(livevalues);
+		WalkStructuresForLiveHandles(livevalues, context);
 
 		if(livevalues.Mask & Runtime::ExecutionContext::GC_Collect_Strings)
-			Runtime::GetThreadContext()->PrivateGetRawStringPool().GarbageCollect(livevalues.LiveStrings, Runtime::GetThreadContext()->StaticallyReferencedStrings);
+			context->PrivateGetRawStringPool().GarbageCollect(livevalues.LiveStrings, context->StaticallyReferencedStrings);
 
 		if(livevalues.Mask & Runtime::ExecutionContext::GC_Collect_Buffers)
-			Runtime::GetThreadContext()->GarbageCollectBuffers(livevalues.LiveBuffers);
+			context->GarbageCollectBuffers(livevalues.LiveBuffers);
 
 		if(livevalues.Mask & Runtime::ExecutionContext::GC_Collect_Structures)
-			Runtime::GetThreadContext()->GarbageCollectStructures(livevalues.LiveStructures);
+			context->GarbageCollectStructures(livevalues.LiveStructures);
 	}
 
 
@@ -352,8 +364,7 @@ namespace
 			UsesMetadata = true;
 			CustomRoots = true;
 			CustomSafePoints = true;
-			NeededSafePoints = 1 << GC::Return
-							 | 1 << GC::PostCall;
+			NeededSafePoints = 1 << GC::Return;
 		}
 
 	// Interface overrides implementing GCStrategy functions
@@ -546,6 +557,7 @@ namespace
 //
 void EpochGC::ClearGCContextInfo()
 {
+	FunctionBounds.clear();
 	FunctionList.clear();
 	Globals.clear();
 }
@@ -585,7 +597,7 @@ extern "C" __declspec(naked) void TriggerGarbageCollection()
 		push eax
 
 		// Invoke GC
-		push esp
+		push ebp
 		call GarbageWorker
 		add esp, 4
 

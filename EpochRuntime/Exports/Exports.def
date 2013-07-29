@@ -14,15 +14,16 @@ EXPORTS
 	Epoch_GetBufferByPtr		@11
 	Epoch_PoolString			@12
 	
-	MarshalConvertStructure		@13
-	MarshalFixupStructure		@14
-	MarshalCleanup				@15
-	MarshalGenCallback			@16
+	MarshalConvertStructure		@15
+	MarshalFixupStructure		@16
+	MarshalCleanup				@17
+	MarshalGenCallback			@18
 
-	TriggerGarbageCollection	@17
+	TriggerGarbageCollection	@19
 
-	ExecuteByteCodePersistent	@18
-	FreePersistedByteCode		@19
-	FreeNativeCode				@20
+	ExecuteByteCodePersistent	@20
+	FreePersistedByteCode		@21
+	FreeNativeCode				@22
 
-	ExecuteByteCodeDeferred		@21
+	ExecuteByteCodeDeferred		@23
+

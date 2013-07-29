@@ -33,6 +33,19 @@ std::wstring Files::Load(const std::wstring& filename)
 	return std::wstring(std::istream_iterator<wchar_t, wchar_t>(infile), std::istream_iterator<wchar_t, wchar_t>());
 }
 
+std::string Files::LoadNarrow(const std::string& filename)
+{
+	std::ifstream infile(filename.c_str(), std::ios::binary);
+
+    if(!infile)
+		throw FileException("Could not open the input file " + filename);
+
+	infile.unsetf(std::ios::skipws);
+
+	return std::string(std::istream_iterator<char, char>(infile), std::istream_iterator<char, char>());
+}
+
+
 //
 // Wrapper for finding all files matching a specification (supports wildcards)
 //

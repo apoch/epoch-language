@@ -76,7 +76,7 @@ namespace
 
 	bool ConstructorBufferCopyJIT(JIT::JITContext& context, bool)
 	{
-		llvm::Value* p2 = reinterpret_cast<llvm::IRBuilder<>*>(context.Builder)->CreateLoad(context.ValuesOnStack.top());
+		llvm::Value* p2 = context.ValuesOnStack.top();
 		context.ValuesOnStack.pop();
 		llvm::Value* c = context.ValuesOnStack.top();
 		context.ValuesOnStack.pop();
@@ -137,7 +137,7 @@ void TypeConstructors::RegisterLibraryFunctions(FunctionSignatureSet& signatures
 	{
 		FunctionSignature signature;
 		signature.AddParameter(L"identifier", Metadata::EpochType_Identifier);
-		signature.AddParameter(L"original", Metadata::MakeReferenceType(Metadata::EpochType_Buffer));
+		signature.AddParameter(L"original", Metadata::EpochType_Buffer);
 		AddToMapNoDupe(signatureset, std::make_pair(BufferCopyHandle, signature));
 	}
 	{

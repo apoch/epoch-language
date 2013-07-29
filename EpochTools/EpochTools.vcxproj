@@ -111,6 +111,8 @@
     <ClCompile Include="..\Shared\Utility\Files\Files.cpp" />
     <ClCompile Include="..\Shared\Utility\Files\FilesAndPaths.cpp" />
     <ClCompile Include="DLL Access Wrappers\Compiler.cpp" />
+    <ClCompile Include="Resource Compiler\Resource Types\Accelerators.cpp" />
+    <ClCompile Include="Resource Compiler\Resource Types\Manifests.cpp" />
     <ClCompile Include="Serialization\Serializer.cpp" />
     <ClCompile Include="Linker\Linker.cpp" />
     <ClCompile Include="Linker\LinkWriter.cpp" />
@@ -130,6 +132,8 @@
   <ItemGroup>
     <ClInclude Include="DLL Access Wrappers\Runtime.h" />
     <ClInclude Include="pch.h" />
+    <ClInclude Include="Resource Compiler\Resource Types\Accelerators.h" />
+    <ClInclude Include="Resource Compiler\Resource Types\Manifests.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="..\Shared\User Interface\Input.h" />
     <ClInclude Include="..\Shared\User Interface\Output.h" />

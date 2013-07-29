@@ -26,6 +26,8 @@
 #include <iostream>
 #include <sstream>
 
+#include <CommCtrl.h>
+
 
 using namespace Runtime;
 using namespace Metadata;
@@ -279,6 +281,7 @@ ExecutionContext::~ExecutionContext()
 {
 	SetThreadContext(NULL);
 	JIT::DestructLLVMModule();
+	ResetMarshalingMetadata();
 }
 
 void ExecutionContext::Execute()
@@ -926,25 +929,30 @@ unsigned ExecutionContext::GetGarbageCollectionBitmask()
 
 	// TODO - allow configurable thresholds
 
-	if(GarbageTick_Buffers > 1024)
+	if(GarbageTick_Buffers > 1000)
 	{
 		mask |= GC_Collect_Buffers;
 		GarbageTick_Buffers = 0;
 	}
 
-	if(GarbageTick_Strings > 1024)
+	if(GarbageTick_Strings > 1000)
 	{
 		mask |= GC_Collect_Strings;
 		GarbageTick_Strings = 0;
 	}
 
-	if(GarbageTick_Structures > 1024)
+	if(GarbageTick_Structures > 1000)
 	{
 		mask |= GC_Collect_Structures;
 		GarbageTick_Structures = 0;
 	}
 
 	return mask;
+}
+
+bool ExecutionContext::IsLiveObjectAtAddress(char* addr) const
+{
+	return (ActiveStructures.find(addr) != ActiveStructures.end());
 }
 
 void* ExecutionContext::JITCallback(void* stubfunc)

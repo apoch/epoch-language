@@ -68,6 +68,23 @@ namespace Marshaling
 			return hdll;
 		}
 
+		void CloseDLL(const std::wstring& name)
+		{
+			Threads::CriticalSection::Auto lock(CritSec);
+
+            std::map<std::wstring, DLLPoolHandle>::const_iterator iter = LoadedDLLs.find(name);
+			if(iter != LoadedDLLs.end())
+			{
+#ifdef BOOST_WINDOWS
+				::FreeLibrary(iter->second);
+#else
+                dlclose(iter->second);
+#endif
+
+				LoadedDLLs.erase(iter);
+			}
+		}
+
 		bool HasOpenedDLL(const std::wstring& name) const
 		{
 			Threads::CriticalSection::Auto lock(CritSec);

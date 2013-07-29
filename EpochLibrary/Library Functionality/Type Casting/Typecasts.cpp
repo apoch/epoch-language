@@ -282,7 +282,7 @@ extern "C" StringHandle EpochLib_CastRealToStr(float real)
 
 extern "C" StringHandle EpochLib_CastBufferToStr(BufferHandle* buffer)
 {
-	std::wstring str(reinterpret_cast<wchar_t*>(GlobalExecutionContext->GetBuffer(*buffer)), GlobalExecutionContext->GetBufferSize(*buffer));
+	std::wstring str(reinterpret_cast<wchar_t*>(GlobalExecutionContext->GetBuffer(*buffer)), wcslen(reinterpret_cast<const wchar_t*>(GlobalExecutionContext->GetBuffer(*buffer))));
 	StringHandle result = GlobalExecutionContext->PoolString(str);
 	GlobalExecutionContext->TickStringGarbageCollector();
 	return result;

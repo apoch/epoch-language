@@ -292,3 +292,9 @@ extern "C" void* MarshalGenCallback(void* infunc)
 }
 
 
+void Runtime::ResetMarshalingMetadata()
+{
+	DLLInvocationMap.clear();
+}
+
+

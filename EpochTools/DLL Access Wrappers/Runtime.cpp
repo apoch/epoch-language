@@ -36,6 +36,11 @@ RuntimeAccess::RuntimeAccess()
 		throw DLLException("Failed to load Epoch Runtime");
 }
 
+RuntimeAccess::~RuntimeAccess()
+{
+	Marshaling::TheDLLPool.CloseDLL(L"EpochRuntime.DLL");
+}
+
 //
 // Execute a block of bytecode that has been mapped into memory.
 //

@@ -19,7 +19,7 @@
 
 #include "Runtime/Runtime.h"
 
-#include <llvm/Intrinsics.h>
+#include <llvm/IR/Intrinsics.h>
 
 
 extern Runtime::ExecutionContext* GlobalExecutionContext;

@@ -197,6 +197,8 @@ namespace Runtime
 
 		unsigned GetGarbageCollectionBitmask();
 
+		bool IsLiveObjectAtAddress(char* addr) const;
+
 	// Use sparingly! Only intended for access by the garbage collector
 	public:
 		StringPoolManager& PrivateGetRawStringPool()

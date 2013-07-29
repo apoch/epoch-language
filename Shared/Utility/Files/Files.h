@@ -15,6 +15,7 @@
 namespace Files
 {
 	std::wstring Load(const std::wstring& filename);
+	std::string LoadNarrow(const std::string& filename);
 	std::vector<std::wstring> GetMatchingFiles(const std::wstring& filespec, bool recurse);
 }
 

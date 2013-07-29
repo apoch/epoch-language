@@ -13,6 +13,8 @@
 
 #include "Resource Compiler/Resource Types/Icons.h"
 #include "Resource Compiler/Resource Types/Menus.h"
+#include "Resource Compiler/Resource Types/Accelerators.h"
+#include "Resource Compiler/Resource Types/Manifests.h"
 
 #include "Utility/Files/FilesAndPaths.h"
 #include "Utility/Strings.h"
@@ -72,6 +74,10 @@ void ResourceScript::ProcessScriptFile(const std::wstring& filename)
 			restype = RESTYPE_ICONGROUP;
 		else if(line == L"[menu]")
 			restype = RESTYPE_MENU;
+		else if(line == L"[accelerators]")
+			restype = RESTYPE_ACCELERATORS;
+		else if(line == L"[manifest]")
+			restype = RESTYPE_MANIFEST;
 		else
 			throw Exception("Invalid directive in resource script");
 
@@ -148,6 +154,14 @@ void ResourceScript::LoadResourceIntoDirectory(DWORD type, const std::wstring& f
 
 	case RESTYPE_MENU:
 		emitter.reset(new MenuEmitter(infile));
+		break;
+
+	case RESTYPE_ACCELERATORS:
+		emitter.reset(new AcceleratorEmitter(infile));
+		break;
+
+	case RESTYPE_MANIFEST:
+		emitter.reset(new ManifestEmitter(infile, StripFilename(filename)));
 		break;
 
 	default:

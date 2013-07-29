@@ -50,23 +50,24 @@
 
 #include "Utility/Strings.h"
 
-#include <llvm/Intrinsics.h>
+#include <llvm/IR/Intrinsics.h>
 #include <llvm/Support/CrashRecoveryContext.h>
 #include <llvm/Transforms/Vectorize.h>
 
 #pragma warning(push)
 #pragma warning(disable: 4146)
+#pragma warning(disable: 4100)
 #include <llvm/ADT/Statistic.h>
 #pragma warning(pop)
 
 #include <sstream>
 #include <map>
 #include <stack>
+#include <iostream>
 
 
 // We heavily use this namespace so may as well import it
 using namespace llvm;
-
 
 //
 // Internal implementation helpers
@@ -404,7 +405,6 @@ namespace JIT
 			else
 				BuiltInFunctions[JITFunc_Marshal_GenCallback] = CurrentModule->getFunction("MarshalGenCallback");
 
-
 			// Set up intrinsics
 			if(!CurrentModule->getFunction("llvm.sqrt.f32"))
 			{
@@ -465,47 +465,7 @@ namespace
 		InstructionOffset += sizeof(T);
 		return static_cast<T>(*data);
 	}
-
-
-	void InitAllocaToNull(Value* allocainst)
-	{
-		if(cast<PointerType>(allocainst->getType())->getElementType()->isPointerTy())
-		{
-			StoreInst* store = new StoreInst(ConstantPointerNull::get(cast<PointerType>(cast<PointerType>(allocainst->getType())->getElementType())), allocainst);
-			store->insertAfter(cast<Instruction>(allocainst));
-		}
-		else if(cast<PointerType>(allocainst->getType())->getElementType()->isAggregateType())
-		{
-			BitCastInst* castptr = new BitCastInst(allocainst, Type::getInt32PtrTy(getGlobalContext()));
-			castptr->insertAfter(cast<Instruction>(allocainst));
-			StoreInst* store = new StoreInst(ConstantInt::get(Type::getInt32Ty(getGlobalContext()), 0), castptr);
-			store->insertAfter(castptr);
-
-			std::vector<Value*> indices;
-			indices.push_back(ConstantInt::get(Type::getInt32Ty(getGlobalContext()), 0));
-			indices.push_back(ConstantInt::get(Type::getInt32Ty(getGlobalContext()), 1));
-			GetElementPtrInst* gep = GetElementPtrInst::Create(allocainst, indices);
-			gep->insertAfter(store);
-
-			if(gep->getType()->getElementType()->isPointerTy())
-			{
-				PointerType* ptype = cast<PointerType>(cast<PointerType>(gep->getType())->getElementType());
-				StoreInst* payloadstore = new StoreInst(ConstantPointerNull::get(ptype), gep);
-				payloadstore->insertAfter(gep);
-			}
-			else
-			{
-				StoreInst* payloadstore = new StoreInst(ConstantInt::get(gep->getType()->getElementType(), 0), gep);
-				payloadstore->insertAfter(gep);
-			}
-		}
-		else
-		{
-			StoreInst* store = new StoreInst(ConstantInt::get(cast<PointerType>(allocainst->getType())->getElementType(), 0), allocainst);
-			store->insertAfter(cast<Instruction>(allocainst));
-		}
-	}
-
+	
 }
 
 
@@ -532,6 +492,9 @@ NativeCodeGenerator::NativeCodeGenerator(Runtime::ExecutionContext& execcontext,
 NativeCodeGenerator::~NativeCodeGenerator()
 {
 	delete Data;
+
+	if(ExecContext.JITExecutionEngine)
+		reinterpret_cast<ExecutionEngine*>(ExecContext.JITExecutionEngine)->UnregisterJITEventListener(this);
 }
 
 
@@ -612,6 +575,9 @@ Function* NativeCodeGenerator::GetGeneratedPatternMatcher(StringHandle funcname,
 		FunctionType* matchfunctype = GetLLVMFunctionType(hint);
 
 		nativematcher = Function::Create(matchfunctype, Function::ExternalLinkage, matchername.str().c_str(), Data->CurrentModule);
+
+		//nativematcher->setGC("EpochGC");
+
 		Data->GeneratedNativeTypeMatchers[matchername.str()] = nativematcher;
 	}
 
@@ -926,6 +892,8 @@ EPOCHRUNTIME void NativeCodeGenerator::ExternalInvoke(JIT::JITContext& context, 
 {
 	Function* func = GetExternalFunction(alias);
 
+	//Builder.CreateCall(Data->BuiltInFunctions[JITFunc_Runtime_GCBookmark]);
+
 	Function::arg_iterator argiter = context.InnerFunction->arg_begin();
 	std::vector<Value*> args;
 
@@ -968,6 +936,8 @@ EPOCHRUNTIME void NativeCodeGenerator::ExternalInvoke(JIT::JITContext& context, 
 			++index;
 		}
 	}
+
+	//Builder.CreateCall(Data->BuiltInFunctions[JITFunc_Runtime_GCUnbookmark]);
 }
 
 //
@@ -1145,8 +1115,6 @@ void NativeCodeGenerator::Generate()
 	// This is a no-op unless we enabled stats above
 	// The numbers are very handy for A/B testing optimization passes
 	PrintStatistics();
-
-	ee->UnregisterJITEventListener(this);
 }
 
 Function* NativeCodeGenerator::GetExternalFunction(StringHandle alias)
@@ -1291,7 +1259,7 @@ void FunctionJITHelper::DoFunction(size_t beginoffset, size_t endoffset, StringH
 		if(LibJITContext.VarArgList)
 			Builder.CreateCall(Generator.Data->BuiltInFunctions[JITFunc_Intrinsic_VAEnd], Builder.CreatePointerCast(LibJITContext.VarArgList, Type::getInt8PtrTy(Context)));
 
-		if(Builder.GetInsertBlock()->getParent()->hasGC() && AllocCount > 0)
+		if(Builder.GetInsertBlock()->getParent()->hasGC())// && AllocCount > 0)
 			Builder.CreateCall(Generator.Data->BuiltInFunctions[JITFunc_Runtime_TriggerGC]);
 
 		if(LibJITContext.InnerRetVal)
@@ -1423,6 +1391,7 @@ void FunctionJITHelper::BeginEntity(size_t& offset)
 				if(scope.GetVariableOrigin(i) == VARIABLE_ORIGIN_PARAMETER)
 				{
 					parameters.insert(i);
+					paramindices[NumParameters] = i;
 					++NumParameters;
 				}
 				continue;
@@ -1447,13 +1416,12 @@ void FunctionJITHelper::BeginEntity(size_t& offset)
 					ParameterOffsetToIndexMap[NumParameterBytes] = i;
 					parameters.insert(i);
 
+					paramindices[NumParameters] = i;
+
 					if(Metadata::IsReferenceType(vartype))
 						NumParameterBytes += sizeof(void*) + sizeof(Metadata::EpochTypeID);
 					else
 					{
-						if(Metadata::IsStructureType(vartype) && Generator.ExecContext.AutoGeneratedConstructors.find(entityname) == Generator.ExecContext.AutoGeneratedConstructors.end())
-							paramindices[NumParameters] = i;
-
 						if(Metadata::GetTypeFamily(vartype) == Metadata::EpochTypeFamily_SumType)
 							NumParameterBytes += Generator.ExecContext.VariantDefinitions.find(vartype)->second.GetMaxSize();
 						else
@@ -1478,27 +1446,51 @@ void FunctionJITHelper::BeginEntity(size_t& offset)
 		if(NumReturns)
 			LibJITContext.InnerRetVal = Builder.CreateAlloca(rettype);
 
-		size_t idx = 0;
+		size_t idx = NumParameters;
 		Function::ArgumentListType& args = LibJITContext.InnerFunction->getArgumentList();
 		for(Function::ArgumentListType::iterator argiter = args.begin(); argiter != args.end(); ++argiter)
 		{
-			if(Metadata::IsReferenceType(LibJITContext.CurrentScope->GetVariableTypeByIndex(idx)))
+			--idx;
+			Metadata::EpochTypeID epochtype = LibJITContext.CurrentScope->GetVariableTypeByIndex(paramindices[idx]);
+
+			if(Metadata::IsReferenceType(epochtype))
 			{
-				LibJITContext.VariableMap[idx++] = ((Argument*)argiter);
-				continue;
+				LibJITContext.VariableMap[paramindices[idx]] = ((Argument*)argiter);
+
+				if(LibJITContext.InnerFunction->hasGC())
+				{
+					if((Metadata::GetTypeFamily(epochtype) == Metadata::EpochTypeFamily_GC) || (Metadata::GetTypeFamily(epochtype) == Metadata::EpochTypeFamily_SumType) || Metadata::IsStructureType(epochtype))
+					{
+						Value* deref = Builder.CreateLoad((Argument*)(argiter));
+
+						Value* slot = Builder.CreateAlloca(deref->getType());
+						Builder.CreateStore(deref, slot);
+
+						Value* signature = ConstantInt::get(Type::getInt32Ty(Context), epochtype);
+						Value* constant = Builder.CreateIntToPtr(signature, Type::getInt8PtrTy(Context));
+						Value* castptr = Builder.CreatePointerCast(slot, Type::getInt8PtrTy(Context)->getPointerTo());
+						Builder.CreateCall2(Generator.Data->BuiltInFunctions[JITFunc_Intrinsic_GCRoot], castptr, constant);
+					}
+				}
 			}
-
-			Value* slot = Builder.CreateAlloca(((Argument*)argiter)->getType());
-			Builder.CreateStore(((Argument*)argiter), slot);
-
-			if(LibJITContext.InnerFunction->hasGC() && (paramindices.find(NumParameters - idx - 1) != paramindices.end()))
+			else
 			{
-				Value* signature = ConstantInt::get(Type::getInt32Ty(Context), scope.GetVariableTypeByIndex(paramindices[NumParameters - idx - 1]));
-				Value* constant = Builder.CreateIntToPtr(signature, Type::getInt8PtrTy(Context));
-				Builder.CreateCall2(Generator.Data->BuiltInFunctions[JITFunc_Intrinsic_GCRoot], slot, constant);
-			}
+				Value* slot = Builder.CreateAlloca(((Argument*)argiter)->getType());
+				Builder.CreateStore(((Argument*)argiter), slot);
 
-			LibJITContext.VariableMap[idx++] = slot;
+				if(LibJITContext.InnerFunction->hasGC())
+				{
+					if((Metadata::GetTypeFamily(epochtype) == Metadata::EpochTypeFamily_GC) || (Metadata::GetTypeFamily(epochtype) == Metadata::EpochTypeFamily_SumType) || Metadata::IsStructureType(epochtype))
+					{
+						Value* signature = ConstantInt::get(Type::getInt32Ty(Context), epochtype);
+						Value* constant = Builder.CreateIntToPtr(signature, Type::getInt8PtrTy(Context));
+						Value* castptr = Builder.CreatePointerCast(slot, Type::getInt8PtrTy(Context)->getPointerTo());
+						Builder.CreateCall2(Generator.Data->BuiltInFunctions[JITFunc_Intrinsic_GCRoot], castptr, constant);
+					}
+				}
+
+				LibJITContext.VariableMap[paramindices[idx]] = slot;
+			}
 		}
 
 		if(NumReturns)
@@ -3042,6 +3034,8 @@ void* NativeCodeGenerator::GenerateCallbackWrapper(void* targetfunc)
 	BasicBlock* block = BasicBlock::Create(Data->Context, "wrap", wrapfunc);
 	Builder.SetInsertPoint(block);
 
+	//Builder.CreateCall(Data->BuiltInFunctions[JITFunc_Runtime_GCBookmark]);
+
 	std::vector<Value*> args;
 	Function::arg_iterator argiter = wrapfunc->arg_begin();
 	const ScopeDescription& desc = ExecContext.GetScopeDescription(alias);
@@ -3066,10 +3060,15 @@ void* NativeCodeGenerator::GenerateCallbackWrapper(void* targetfunc)
 	if(wrapfunc->getFunctionType()->getReturnType() == Type::getVoidTy(Data->Context))
 	{
 		Builder.CreateCall(jittedtarget, args);
+		//Builder.CreateCall(Data->BuiltInFunctions[JITFunc_Runtime_GCUnbookmark]);
 		Builder.CreateRetVoid();
 	}
 	else
-		Builder.CreateRet(MarshalReturnReverse(Builder.CreateCall(jittedtarget, args), desc.GetReturnVariableType()));
+	{
+		Value* retval = MarshalReturnReverse(Builder.CreateCall(jittedtarget, args), desc.GetReturnVariableType());
+		//Builder.CreateCall(Data->BuiltInFunctions[JITFunc_Runtime_GCUnbookmark]);
+		Builder.CreateRet(retval);
+	}
 
 	//Data->CurrentModule->dump();	
 

@@ -54,6 +54,9 @@ namespace Runtime
 
 	void MarshalIntoNativeCode(ExecutionContext& context, const ScopeDescription& scope, void* funcptr);
 
+
+	void ResetMarshalingMetadata();
+
 }
 
 

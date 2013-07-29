@@ -42,6 +42,8 @@ namespace JIT
 		JITFunc_Runtime_AllocBuffer,
 		JITFunc_Runtime_CopyBuffer,
 		JITFunc_Runtime_PoolString,
+		JITFunc_Runtime_GCBookmark,
+		JITFunc_Runtime_GCUnbookmark,
 
 		JITFunc_Marshal_ConvertStructure,
 		JITFunc_Marshal_FixupStructure,

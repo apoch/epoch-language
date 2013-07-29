@@ -13,9 +13,10 @@ namespace DLLAccess
 
 	class RuntimeAccess
 	{
-	// Construction
+	// Construction and destruction
 	public:
 		RuntimeAccess();
+		~RuntimeAccess();
 
 	// DLL interface
 	public:
