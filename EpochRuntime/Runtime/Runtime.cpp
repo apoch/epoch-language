@@ -28,6 +28,9 @@
 
 #include <CommCtrl.h>
 
+//#define VLD_FORCE_ENABLE
+//#include <vld.h>
+
 
 using namespace Runtime;
 using namespace Metadata;
@@ -69,7 +72,9 @@ void ExecutionContext::InitStandardLibraries(unsigned* testharness, bool registe
 //
 void ExecutionContext::ExecuteByteCode()
 {
+	SetThreadContext(this);
 	Load();
+	//VLDMarkAllLeaksAsReported();
 	Execute();
 }
 
@@ -269,7 +274,6 @@ ExecutionContext::ExecutionContext(Bytecode::Instruction* codebuffer, size_t cod
 	: CodeBuffer(codebuffer),
 	  CodeBufferSize(codesize),
 	  GarbageTick_Buffers(0),
-	  GarbageTick_Strings(0),
 	  GarbageTick_Structures(0),
 	  EntryPointFunc(NULL),
 	  GlobalInitFunc(NULL)
@@ -282,12 +286,12 @@ ExecutionContext::~ExecutionContext()
 	SetThreadContext(NULL);
 	JIT::DestructLLVMModule();
 	ResetMarshalingMetadata();
+
+	//VLDReportLeaks();
 }
 
 void ExecutionContext::Execute()
 {
-	SetThreadContext(this);
-
 	typedef void (*pfunc)();
 	if(GlobalInitFunc)
 		((pfunc)(GlobalInitFunc))();
@@ -894,7 +898,8 @@ EPOCHRUNTIME void ExecutionContext::TickBufferGarbageCollector()
 //
 EPOCHRUNTIME void ExecutionContext::TickStringGarbageCollector()
 {
-	++GarbageTick_Strings;
+	// TODO - revisit usefulness of this function
+	++PrivateStringPool.GarbageTick;
 }
 
 //
@@ -929,19 +934,19 @@ unsigned ExecutionContext::GetGarbageCollectionBitmask()
 
 	// TODO - allow configurable thresholds
 
-	if(GarbageTick_Buffers > 1000)
+	if(GarbageTick_Buffers > 10)
 	{
 		mask |= GC_Collect_Buffers;
 		GarbageTick_Buffers = 0;
 	}
 
-	if(GarbageTick_Strings > 1000)
+	if(PrivateStringPool.GarbageTick > 10)
 	{
 		mask |= GC_Collect_Strings;
-		GarbageTick_Strings = 0;
+		PrivateStringPool.GarbageTick = 0;
 	}
 
-	if(GarbageTick_Structures > 1000)
+	if(GarbageTick_Structures > 10)
 	{
 		mask |= GC_Collect_Structures;
 		GarbageTick_Structures = 0;

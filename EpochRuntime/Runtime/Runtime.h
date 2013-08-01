@@ -130,7 +130,6 @@ namespace Runtime
 		size_t CodeBufferSize;
 
 		size_t GarbageTick_Buffers;
-		size_t GarbageTick_Strings;
 		size_t GarbageTick_Structures;
 
 		std::map<void*, void*> TargetCallbackToJITFuncMap;
@@ -215,6 +214,7 @@ namespace Runtime
 		JIT::JITTable JITHelpers;
 		void* EntryPointFunc;
 		void* GlobalInitFunc;
+		void* TriggerGCFunc;
 
 		boost::unordered_map<Metadata::EpochTypeID, VariantDefinition, fasthash> VariantDefinitions;
 

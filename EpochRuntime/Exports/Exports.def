@@ -13,6 +13,9 @@ EXPORTS
 	Epoch_CopyBuffer			@10
 	Epoch_GetBufferByPtr		@11
 	Epoch_PoolString			@12
+
+	GCBookmark					@13
+	GCUnbookmark				@14
 	
 	MarshalConvertStructure		@15
 	MarshalFixupStructure		@16

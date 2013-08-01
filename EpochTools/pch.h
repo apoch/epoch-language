@@ -9,6 +9,7 @@
 #pragma once
 #include <boost/config.hpp>
 
+
 // Standard C++ Library headers
 #include <string>
 #include <sstream>
@@ -31,3 +32,6 @@
 #include "Utility/Exception.h"
 
 
+// Leak checking
+//#define VLD_FORCE_ENABLE
+//#include <vld.h>

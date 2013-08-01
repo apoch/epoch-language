@@ -54,6 +54,8 @@ StringHandle StringPoolManager::PoolFast(const std::wstring& stringdata)
 	StringHandle handle = HandleAlloc.AllocateHandle(PooledStrings);
 	PooledStrings.insert(std::make_pair(handle, stringdata));
 
+	++GarbageTick;
+
 #ifdef EPOCH_STRINGPOOL_FAST_REVERSE_LOOKUP
 	if(FastLookupEnabled)
 		ReverseLookupMap.insert(std::make_pair(stringdata, handle));

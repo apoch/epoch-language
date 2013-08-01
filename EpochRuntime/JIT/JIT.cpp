@@ -42,6 +42,7 @@
 
 #include "Runtime/Runtime.h"
 #include "Runtime/Marshaling.h"
+#include "Runtime/GlobalContext.h"
 
 #include "JIT/GarbageCollection.h"
 
@@ -356,9 +357,30 @@ namespace JIT
 				FunctionType* ftype = FunctionType::get(Type::getVoidTy(Context), args, false);
 
 				BuiltInFunctions[JITFunc_Runtime_TriggerGC] = Function::Create(ftype, Function::ExternalLinkage, "TriggerGarbageCollection", CurrentModule);
+				Runtime::GetThreadContext()->TriggerGCFunc = BuiltInFunctions[JITFunc_Runtime_TriggerGC];
 			}
 			else
 				BuiltInFunctions[JITFunc_Runtime_TriggerGC] = CurrentModule->getFunction("TriggerGarbageCollection");
+
+			if(!CurrentModule->getFunction("GCBookmark"))
+			{
+				std::vector<Type*> args;
+				FunctionType* ftype = FunctionType::get(Type::getVoidTy(Context), args, false);
+
+				BuiltInFunctions[JITFunc_Runtime_GCBookmark] = Function::Create(ftype, Function::ExternalLinkage, "GCBookmark", CurrentModule);
+			}
+			else
+				BuiltInFunctions[JITFunc_Runtime_GCBookmark] = CurrentModule->getFunction("GCBookmark");
+
+			if(!CurrentModule->getFunction("GCUnbookmark"))
+			{
+				std::vector<Type*> args;
+				FunctionType* ftype = FunctionType::get(Type::getVoidTy(Context), args, false);
+
+				BuiltInFunctions[JITFunc_Runtime_GCUnbookmark] = Function::Create(ftype, Function::ExternalLinkage, "GCUnbookmark", CurrentModule);
+			}
+			else
+				BuiltInFunctions[JITFunc_Runtime_GCUnbookmark] = CurrentModule->getFunction("GCUnbookmark");
 
 			if(!CurrentModule->getFunction("MarshalConvertStructure"))
 			{
@@ -892,7 +914,7 @@ EPOCHRUNTIME void NativeCodeGenerator::ExternalInvoke(JIT::JITContext& context, 
 {
 	Function* func = GetExternalFunction(alias);
 
-	//Builder.CreateCall(Data->BuiltInFunctions[JITFunc_Runtime_GCBookmark]);
+	Builder.CreateCall(Data->BuiltInFunctions[JITFunc_Runtime_GCBookmark]);
 
 	Function::arg_iterator argiter = context.InnerFunction->arg_begin();
 	std::vector<Value*> args;
@@ -937,7 +959,7 @@ EPOCHRUNTIME void NativeCodeGenerator::ExternalInvoke(JIT::JITContext& context, 
 		}
 	}
 
-	//Builder.CreateCall(Data->BuiltInFunctions[JITFunc_Runtime_GCUnbookmark]);
+	Builder.CreateCall(Data->BuiltInFunctions[JITFunc_Runtime_GCUnbookmark]);
 }
 
 //
@@ -989,10 +1011,10 @@ void NativeCodeGenerator::Generate()
 
 	TargetOptions opts;
 	opts.AllowFPOpFusion = FPOpFusion::Standard;
-	opts.DisableTailCalls = false;
+	opts.DisableTailCalls = true;
 	opts.EnableFastISel = false;
 	opts.EnableSegmentedStacks = false;
-	opts.GuaranteedTailCallOpt = true;
+	opts.GuaranteedTailCallOpt = false;
 
 	// Turning off frame pointer elimination can make debugging a LOT smoother...
 	opts.NoFramePointerElim = true;

@@ -99,6 +99,15 @@ namespace
 	};
 
 
+	struct BookmarkEntry
+	{
+		void* StackPtr;
+		void* RetAddr;
+	};
+
+	std::vector<BookmarkEntry> Bookmarks;
+
+
 	//
 	// Check a GC root to see if it should be added to the list
 	// of live handles to traverse later.
@@ -132,12 +141,9 @@ namespace
 			{
 				if(Metadata::IsStructureType(type))
 				{
-					if(livevalues.Mask & Runtime::ExecutionContext::GC_Collect_Structures)
-					{
-						StructureHandle handle = *reinterpret_cast<const StructureHandle*>(liveptr);
-						if(handle)
-							livevalues.LiveStructures.insert(handle);
-					}
+					StructureHandle handle = *reinterpret_cast<const StructureHandle*>(liveptr);
+					if(handle)
+						livevalues.LiveStructures.insert(handle);
 				}
 				else if(Metadata::GetTypeFamily(type) == Metadata::EpochTypeFamily_SumType)
 				{
@@ -171,13 +177,12 @@ namespace
 			
 			const char* liveptr;
 			if(static_cast<signed>(liveiter->StackOffset) <= 0)
-			{
-				liveptr = reinterpret_cast<const char*>(stackptr) + liveiter->StackOffset;// + extraoffset;
-			}
+				liveptr = reinterpret_cast<const char*>(stackptr) + liveiter->StackOffset;
 			else
-			{
-				liveptr = reinterpret_cast<const char*>(prevframeptr) + liveiter->StackOffset + sizeof(CallFrame);
-			}
+				liveptr = reinterpret_cast<const char*>(prevframeptr) + liveiter->StackOffset + 8;
+
+			if(*reinterpret_cast<void* const*>(liveptr) == liveptr)
+				continue;
 
 			CheckRoot(liveptr, type, livevalues);
 		}
@@ -202,7 +207,7 @@ namespace
 				for(size_t i = 0; i < def.GetNumMembers(); ++i)
 				{
 					Metadata::EpochTypeID membertype = def.GetMemberType(i);
-					if(Metadata::IsStructureType(membertype) && (livevalues.Mask & Runtime::ExecutionContext::GC_Collect_Structures))
+					if(Metadata::IsStructureType(membertype))
 					{
 						StructureHandle p = active.ReadMember<StructureHandle>(i);
 						if(livevalues.LiveStructures.count(p) == 0)
@@ -230,7 +235,7 @@ namespace
 					else if(Metadata::GetTypeFamily(membertype) == Metadata::EpochTypeFamily_SumType)
 					{
 						Metadata::EpochTypeID realtype = active.ReadSumTypeMemberType(i);
-						if(Metadata::IsStructureType(realtype) && (livevalues.Mask & Runtime::ExecutionContext::GC_Collect_Structures))
+						if(Metadata::IsStructureType(realtype))
 						{
 							StructureHandle p = active.ReadMember<StructureHandle>(i);
 							if(livevalues.LiveStructures.count(p) == 0)
@@ -272,6 +277,78 @@ namespace
 		}
 	}
 
+	void WalkLiveValuesForBookmark(void* stackptr, GCFunctionInfo& funcinfo, GCFunctionInfo::iterator& safepoint, LiveValues& livevalues)
+	{
+		for(GCFunctionInfo::live_iterator liveiter = funcinfo.live_begin(safepoint); liveiter != funcinfo.live_end(safepoint); ++liveiter)
+		{
+			Metadata::EpochTypeID type = static_cast<Metadata::EpochTypeID>(dyn_cast<ConstantInt>(liveiter->Metadata->getOperand(0))->getValue().getLimitedValue());
+			if(type == 0xffffffff)
+				continue;
+			
+			const char* liveptr;
+			if(static_cast<signed>(liveiter->StackOffset) <= 0)
+			{
+				liveptr = reinterpret_cast<const char*>(stackptr) + liveiter->StackOffset;
+			}
+			else
+			{
+				liveptr = reinterpret_cast<const char*>(stackptr) - funcinfo.getFrameSize() + liveiter->StackOffset;
+			}
+
+			if(*reinterpret_cast<void* const*>(liveptr) == liveptr)
+				continue;
+
+			CheckRoot(liveptr, type, livevalues);
+		}
+	}
+
+
+	void WalkBookmarkEntry(const BookmarkEntry& entry, LiveValues& livevalues)
+	{
+		bool found = false;
+		for(std::vector<GCFunctionInfo*>::iterator iter = FunctionList.begin(); iter != FunctionList.end(); ++iter)
+		{
+			GCFunctionInfo& info = **iter;
+
+			std::pair<void*, size_t> bounds = FunctionBounds.find(&info.getFunction())->second;
+			const void* boundend = reinterpret_cast<const char*>(bounds.first) + bounds.second;
+
+			if(entry.RetAddr < bounds.first || entry.RetAddr > boundend)
+				continue;
+
+			for(GCFunctionInfo::iterator spiter = info.begin(); spiter != info.end(); ++spiter)
+			{
+				uint64_t address = reinterpret_cast<ExecutionEngine*>(Runtime::GetThreadContext()->JITExecutionEngine)->getLabelAddress(spiter->Label);
+				const void* addressptr = reinterpret_cast<void*>(static_cast<unsigned>(address));
+
+				if(addressptr == entry.RetAddr)
+				{
+					WalkLiveValuesForBookmark(reinterpret_cast<char*>(entry.StackPtr), info, spiter, livevalues);
+					found = true;
+					break;
+				}
+			}
+
+			if(found)
+				break;
+		}
+
+		//if(!found)
+		//	std::wcout << L"WARNING - ignored a stack bookmark!" << std::endl;
+	}
+
+
+	bool WalkBookmarks(LiveValues& livevalues)
+	{
+		if(Bookmarks.empty())
+			return false;
+
+		for(std::vector<BookmarkEntry>::const_iterator iter = Bookmarks.begin(); iter != Bookmarks.end(); ++iter)
+			WalkBookmarkEntry(*iter, livevalues);
+
+		return true;
+	}
+
 	//
 	// Worker function for actually performing mark/sweep garbage collection
 	//
@@ -287,8 +364,10 @@ namespace
 
 		WalkGlobalsForLiveHandles(livevalues);
 
-		CallFrame* framePtr = reinterpret_cast<CallFrame*>(rawptr);// + sizeof(void*));
+		CallFrame* framePtr = reinterpret_cast<CallFrame*>(rawptr);
 		void* prevFramePtr = NULL;
+
+		int offset = 0;
 
 		bool foundany = false;
 		while(framePtr != NULL)
@@ -314,11 +393,11 @@ namespace
 				for(GCFunctionInfo::iterator spiter = info.begin(); spiter != info.end(); ++spiter)
 				{
 					uint64_t address = reinterpret_cast<ExecutionEngine*>(context->JITExecutionEngine)->getLabelAddress(spiter->Label);
-					const void* addressptr = reinterpret_cast<void*>(static_cast<unsigned>(address - 4));
+					const void* addressptr = reinterpret_cast<void*>(static_cast<unsigned>(address));
 
 					if(addressptr == returnAddr)
 					{
-						WalkLiveValuesForSafePoint(prevFramePtr, framePtr, info, spiter, livevalues);
+						WalkLiveValuesForSafePoint(prevFramePtr, reinterpret_cast<char*>(framePtr) + offset, info, spiter, livevalues);
 						found = foundany = true;
 					}
 				}
@@ -326,7 +405,11 @@ namespace
 				if(found)
 					break;
 			}
+
+			offset = 0;
 		}
+
+		foundany |= WalkBookmarks(livevalues);
 
 		if(!foundany)
 			return;
@@ -364,7 +447,7 @@ namespace
 			UsesMetadata = true;
 			CustomRoots = true;
 			CustomSafePoints = true;
-			NeededSafePoints = 1 << GC::Return;
+			NeededSafePoints = (1 << GC::Return) | (1 << GC::PostCall);
 		}
 
 	// Interface overrides implementing GCStrategy functions
@@ -512,7 +595,7 @@ namespace
 				functioninfo.addSafePoint(GC::PreCall, label, instriter->getDebugLoc());
 			}
 
-			if(needsSafePoint(GC::PostCall))
+			if(needsSafePoint(GC::PostCall))// || IsGCInvoke(instriter))
 			{
 				MCSymbol* label = InsertLabel(*instriter->getParent(), retinstr, instriter->getDebugLoc(), targetinfo);
 				functioninfo.addSafePoint(GC::PostCall, label, instriter->getDebugLoc());
@@ -537,6 +620,16 @@ namespace
 			MCSymbol* label = block.getParent()->getContext().CreateTempSymbol();
 			BuildMI(block, instriter, loc, targetinfo->get(TargetOpcode::GC_LABEL)).addSym(label);
 			return label;
+		}
+
+		bool IsGCInvoke(MachineBasicBlock::iterator instriter)
+		{
+			if(!instriter->getNumOperands() || !instriter->getOperand(0).isGlobal())
+				return false;
+
+			const GlobalValue* g = instriter->getOperand(0).getGlobal();
+			const Function* f = cast<Function>(g);
+			return (f == Runtime::GetThreadContext()->TriggerGCFunc);
 		}
 	};
 
@@ -594,7 +687,7 @@ extern "C" __declspec(naked) void TriggerGarbageCollection()
 		// Save the value of EAX so we can recover
 		// the return value of the calling function
 		// after garbage collection is over.
-		push eax
+		//push eax
 
 		// Invoke GC
 		push ebp
@@ -602,7 +695,7 @@ extern "C" __declspec(naked) void TriggerGarbageCollection()
 		add esp, 4
 
 		// Restore EAX
-		pop eax
+		//pop eax
 
 		// Tear down stack frame
 		mov esp, ebp
@@ -612,3 +705,32 @@ extern "C" __declspec(naked) void TriggerGarbageCollection()
 		ret
 	}
 }
+
+
+void GCBookmarkWorker(void* stackptr, void* retaddr)
+{
+	BookmarkEntry entry;
+	entry.StackPtr = stackptr;
+	entry.RetAddr = retaddr;
+
+	Bookmarks.push_back(entry);
+}
+
+extern "C" __declspec(naked) void GCBookmark()
+{
+	__asm
+	{
+		push [esp]
+		push ebp
+		call GCBookmarkWorker
+		add esp, 8
+
+		ret
+	}
+}
+
+extern "C" void GCUnbookmark()
+{
+	Bookmarks.pop_back();
+}
+

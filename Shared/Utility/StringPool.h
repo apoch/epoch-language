@@ -23,7 +23,8 @@ class StringPoolManager
 // Construction
 public:
 	explicit StringPoolManager(bool fastreverse = false)
-		: FastLookupEnabled(fastreverse)
+		: FastLookupEnabled(fastreverse),
+		  GarbageTick(0)
 	{ }
 
 // Pooling interface
@@ -53,6 +54,10 @@ private:
 // Public access to the critical section, for direct access purposes
 public:
 	Threads::CriticalSection CritSec;
+
+// Garbage collection
+public:
+	unsigned GarbageTick;
 	
 #ifdef EPOCH_STRINGPOOL_FAST_REVERSE_LOOKUP
 private:

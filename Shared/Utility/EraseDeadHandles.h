@@ -7,6 +7,8 @@
 
 #pragma once
 
+#include <iostream>
+
 
 template <typename MapType, typename SetType>
 void EraseDeadHandles(MapType& data, const SetType& livehandles)
@@ -25,13 +27,8 @@ void EraseDeadHandles(MapType& data, const SetType& livehandles, const SetType& 
 {
 	for(typename MapType::iterator iter = data.begin(); iter != data.end(); )
 	{
-		if(livehandles.find(iter->first) == livehandles.end())
-		{
-			if(statichandles.find(iter->first) == statichandles.end())
-				iter = data.erase(iter);
-			else
-				++iter;
-		}
+		if((livehandles.find(iter->first) == livehandles.end()) && (statichandles.find(iter->first) == statichandles.end()))
+			iter = data.erase(iter);
 		else
 			++iter;
 	}
