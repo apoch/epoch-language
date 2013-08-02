@@ -152,7 +152,7 @@ namespace
 					{
 						CheckRoot(*reinterpret_cast<void* const*>(reinterpret_cast<const char*>(liveptr) + sizeof(Metadata::EpochTypeID)), realtype, livevalues);
 					}
-					else
+					else if(realtype != 0)
 						CheckRoot(reinterpret_cast<const char*>(liveptr) + sizeof(Metadata::EpochTypeID), realtype, livevalues);
 				}
 				else if(type == Metadata::EpochType_Nothing)
@@ -172,14 +172,15 @@ namespace
 		for(GCFunctionInfo::live_iterator liveiter = funcinfo.live_begin(safepoint); liveiter != funcinfo.live_end(safepoint); ++liveiter)
 		{
 			Metadata::EpochTypeID type = static_cast<Metadata::EpochTypeID>(dyn_cast<ConstantInt>(liveiter->Metadata->getOperand(0))->getValue().getLimitedValue());
-			if(type == 0xffffffff)
-				continue;
-			
+
 			const char* liveptr;
 			if(static_cast<signed>(liveiter->StackOffset) <= 0)
 				liveptr = reinterpret_cast<const char*>(stackptr) + liveiter->StackOffset;
 			else
 				liveptr = reinterpret_cast<const char*>(prevframeptr) + liveiter->StackOffset + 8;
+
+			if(type == 0xffffffff || type == 0xfffffffe)
+				continue;
 
 			if(*reinterpret_cast<void* const*>(liveptr) == liveptr)
 				continue;
@@ -273,7 +274,11 @@ namespace
 	{
 		for(std::map<void*, Metadata::EpochTypeID>::const_iterator iter = Globals.begin(); iter != Globals.end(); ++iter)
 		{
-			CheckRoot(iter->first, iter->second, values);
+			Metadata::EpochTypeFamily family = Metadata::GetTypeFamily(iter->second);
+			if(family == Metadata::EpochTypeFamily_GC || Metadata::IsStructureType(iter->second) || family == Metadata::EpochTypeFamily_SumType)
+			{
+				CheckRoot(iter->first, iter->second, values);
+			}
 		}
 	}
 
@@ -367,8 +372,6 @@ namespace
 		CallFrame* framePtr = reinterpret_cast<CallFrame*>(rawptr);
 		void* prevFramePtr = NULL;
 
-		int offset = 0;
-
 		bool foundany = false;
 		while(framePtr != NULL)
 		{
@@ -397,7 +400,7 @@ namespace
 
 					if(addressptr == returnAddr)
 					{
-						WalkLiveValuesForSafePoint(prevFramePtr, reinterpret_cast<char*>(framePtr) + offset, info, spiter, livevalues);
+						WalkLiveValuesForSafePoint(prevFramePtr, framePtr, info, spiter, livevalues);
 						found = foundany = true;
 					}
 				}
@@ -405,8 +408,6 @@ namespace
 				if(found)
 					break;
 			}
-
-			offset = 0;
 		}
 
 		foundany |= WalkBookmarks(livevalues);
@@ -687,7 +688,7 @@ extern "C" __declspec(naked) void TriggerGarbageCollection()
 		// Save the value of EAX so we can recover
 		// the return value of the calling function
 		// after garbage collection is over.
-		//push eax
+		push eax
 
 		// Invoke GC
 		push ebp
@@ -695,7 +696,7 @@ extern "C" __declspec(naked) void TriggerGarbageCollection()
 		add esp, 4
 
 		// Restore EAX
-		//pop eax
+		pop eax
 
 		// Tear down stack frame
 		mov esp, ebp

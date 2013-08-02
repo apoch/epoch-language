@@ -1011,10 +1011,10 @@ void NativeCodeGenerator::Generate()
 
 	TargetOptions opts;
 	opts.AllowFPOpFusion = FPOpFusion::Standard;
-	opts.DisableTailCalls = true;
+	opts.DisableTailCalls = false;
 	opts.EnableFastISel = false;
 	opts.EnableSegmentedStacks = false;
-	opts.GuaranteedTailCallOpt = false;
+	opts.GuaranteedTailCallOpt = true;
 
 	// Turning off frame pointer elimination can make debugging a LOT smoother...
 	opts.NoFramePointerElim = true;
@@ -1072,7 +1072,7 @@ void NativeCodeGenerator::Generate()
 	mpm.add(createCFGSimplificationPass());
 	mpm.add(createPruneEHPass());
 	mpm.add(createFunctionAttrsPass());
-	mpm.add(createFunctionInliningPass());
+	//mpm.add(createFunctionInliningPass());
 	mpm.add(createArgumentPromotionPass());
 	mpm.add(createScalarReplAggregatesPass(-1, false));
 	mpm.add(createEarlyCSEPass());
@@ -1102,7 +1102,7 @@ void NativeCodeGenerator::Generate()
 	mpm.add(createAggressiveDCEPass());
 	mpm.add(createCFGSimplificationPass());
 	mpm.add(createInstructionCombiningPass());
-	mpm.add(createFunctionInliningPass());
+	//mpm.add(createFunctionInliningPass());
 
 	mpm.run(*Data->CurrentModule);
 
@@ -1739,7 +1739,7 @@ void FunctionJITHelper::Read(size_t& offset)
 			Value* payload = Builder.CreateVAArg(LibJITContext.VarArgList, Generator.GetLLVMSumType(vartype, true)->getContainedType(1));
 			Value* typesignature = Builder.CreateVAArg(LibJITContext.VarArgList, Generator.Data->TypeIDType);
 
-			Value* sumtypeholder = Builder.CreateAlloca(Generator.GetLLVMSumType(vartype, true));
+			Value* sumtypeholder = Builder.CreateAlloca(Generator.GetLLVMSumType(vartype, true), 0, "BORK");
 
 			std::vector<Value*> gepindices;
 			gepindices.push_back(ConstantInt::get(Type::getInt32Ty(Context), 0));
@@ -2455,7 +2455,8 @@ void FunctionJITHelper::InvokeOffset(size_t& offset)
 		}
 	}
 
-	Value* v = Builder.CreateCall(nativematcher, matchervarargs);
+	CallInst* v = Builder.CreateCall(nativematcher, matchervarargs);
+	v->setIsNoInline();
 	if(v->getType() != Type::getVoidTy(Context))
 		LibJITContext.ValuesOnStack.push(v);
 }
@@ -2562,15 +2563,18 @@ void FunctionJITHelper::CopyBuffer(size_t&)
 void NativeCodeGenerator::AddNativeTypeMatcher(size_t beginoffset, size_t endoffset)
 {
 	Function* matcherfunction = Builder.GetInsertBlock()->getParent();
+	matcherfunction->setGC("EpochGC");
+	matcherfunction->addAttribute(0xffffffff, Attribute::NoInline);
 
 	std::vector<Value*> reftypes;
 	std::vector<Value*> reftargets;
 
-	std::vector<std::vector<Value*> > parampayloadptrs;
-	std::vector<std::vector<Value*> > providedtypeholders;
+	std::vector<Value*> parampayloadptrs;
+	std::vector<Value*> providedtypeholders;
 
 	unsigned typematchindex = 0;
 	StringHandle entityname = 0;
+	bool needholders = true;
 
 	// The purpose of this loop is to hoist all stack allocations from the inner
 	// type matching basic blocks out to the entry block. This allows the LLVM
@@ -2594,9 +2598,6 @@ void NativeCodeGenerator::AddNativeTypeMatcher(size_t beginoffset, size_t endoff
 
 		case Bytecode::Instructions::TypeMatch:
 			{
-				parampayloadptrs.push_back(std::vector<Value*>());
-				providedtypeholders.push_back(std::vector<Value*>());
-
 				Fetch<StringHandle>(Bytecode, offset);
 				Fetch<size_t>(Bytecode, offset);
 				size_t paramcount = Fetch<size_t>(Bytecode, offset);
@@ -2606,26 +2607,28 @@ void NativeCodeGenerator::AddNativeTypeMatcher(size_t beginoffset, size_t endoff
 					Fetch<bool>(Bytecode, offset);
 					Fetch<Metadata::EpochTypeID>(Bytecode, offset);
 
-					parampayloadptrs.back().push_back(Builder.CreateAlloca(Type::getInt8PtrTy(Data->Context)));
-					providedtypeholders.back().push_back(Builder.CreateAlloca(Type::getInt32Ty(Data->Context)));
-
-					// TODO - figure out why pinning these is necessary and maybe document it a bit
-					if(matcherfunction->hasGC())
+					if(needholders)
 					{
+						parampayloadptrs.push_back(Builder.CreateAlloca(Type::getInt8PtrTy(Data->Context)));
+						providedtypeholders.push_back(Builder.CreateAlloca(Type::getInt32Ty(Data->Context)));
+
 						{
 							Value* signature = ConstantInt::get(Type::getInt32Ty(Data->Context), 0xffffffff);
 							Value* constant = Builder.CreateIntToPtr(signature, Type::getInt8PtrTy(Data->Context));
-							Value* castalloca = Builder.CreatePointerCast(providedtypeholders.back().back(), Type::getInt8PtrTy(Data->Context)->getPointerTo());
-							Builder.CreateCall2(Data->BuiltInFunctions[JITFunc_Intrinsic_GCRoot], castalloca, constant);
+							Value* castptr = Builder.CreatePointerCast(parampayloadptrs.back(), Type::getInt8PtrTy(Data->Context)->getPointerTo());
+							Builder.CreateCall2(Data->BuiltInFunctions[JITFunc_Intrinsic_GCRoot], castptr, constant);
 						}
 
 						{
-							Value* signature = ConstantInt::get(Type::getInt32Ty(Data->Context), 0xffffffff);
+							Value* signature = ConstantInt::get(Type::getInt32Ty(Data->Context), 0xfffffffe);
 							Value* constant = Builder.CreateIntToPtr(signature, Type::getInt8PtrTy(Data->Context));
-							Builder.CreateCall2(Data->BuiltInFunctions[JITFunc_Intrinsic_GCRoot], parampayloadptrs.back().back(), constant);
+							Value* castptr = Builder.CreatePointerCast(providedtypeholders.back(), Type::getInt8PtrTy(Data->Context)->getPointerTo());
+							Builder.CreateCall2(Data->BuiltInFunctions[JITFunc_Intrinsic_GCRoot], castptr, constant);
 						}
 					}
 				}
+
+				needholders = false;
 			}
 			break;
 
@@ -2686,7 +2689,7 @@ void NativeCodeGenerator::AddNativeTypeMatcher(size_t beginoffset, size_t endoff
 
 					BasicBlock* checkmatchblock = BasicBlock::Create(Data->Context, "checkmatch", matcherfunction);
 
-					Builder.CreateStore(reftypes[i], providedtypeholders[typematchindex][i]);
+					Builder.CreateStore(reftypes[i], providedtypeholders[i]);
 
 					BasicBlock* setnothingrefflagblock = BasicBlock::Create(Data->Context, "setnothingrefflag", matcherfunction);
 					BasicBlock* skipblock = BasicBlock::Create(Data->Context, "skip", matcherfunction);
@@ -2698,34 +2701,34 @@ void NativeCodeGenerator::AddNativeTypeMatcher(size_t beginoffset, size_t endoff
 					Builder.CreateBr(skipblock);
 
 					Builder.SetInsertPoint(skipblock);
-					Builder.CreateStore(reftargets[i], parampayloadptrs[typematchindex][i]);
+					Builder.CreateStore(reftargets[i], parampayloadptrs[i]);
 
 
 					BasicBlock* handlesumtypeblock = BasicBlock::Create(Data->Context, "handlesumtype", matcherfunction);
 
-					Value* providedtypefamily = Builder.CreateAnd(Builder.CreateLoad(providedtypeholders[typematchindex][i]), 0x7f000000);
+					Value* providedtypefamily = Builder.CreateAnd(Builder.CreateLoad(providedtypeholders[i]), 0x7f000000);
 					Value* issumtype = Builder.CreateICmpEQ(providedtypefamily, ConstantInt::get(Type::getInt32Ty(Data->Context), Metadata::EpochTypeFamily_SumType));
 					Builder.CreateCondBr(issumtype, handlesumtypeblock, checkmatchblock);
 
 					Builder.SetInsertPoint(handlesumtypeblock);
 
 					Value* rt = Builder.CreateLoad(Builder.CreatePointerCast(reftargets[i], Type::getInt32PtrTy(Data->Context)));
-					Builder.CreateStore(rt, providedtypeholders[typematchindex][i]);
+					Builder.CreateStore(rt, providedtypeholders[i]);
 
 					if(Metadata::GetTypeFamily(expecttype) == Metadata::EpochTypeFamily_SumType)
 					{
-						Builder.CreateStore(reftargets[i], parampayloadptrs[typematchindex][i]);
+						Builder.CreateStore(reftargets[i], parampayloadptrs[i]);
 					}
 					else
 					{
 						Value* gep = Builder.CreateGEP(reftargets[i], ConstantInt::get(Type::getInt32Ty(Data->Context), sizeof(Metadata::EpochTypeID)));
-						Builder.CreateStore(gep, parampayloadptrs[typematchindex][i]);
+						Builder.CreateStore(gep, parampayloadptrs[i]);
 					}
 					Builder.CreateBr(checkmatchblock);
 
 					Builder.SetInsertPoint(checkmatchblock);
 
-					Value* nonref = Builder.CreateAnd(Builder.CreateLoad(providedtypeholders[typematchindex][i]), 0x7fffffff);
+					Value* nonref = Builder.CreateAnd(Builder.CreateLoad(providedtypeholders[i]), 0x7fffffff);
 					Value* nomatch = Builder.CreateICmpNE(nonref, ConstantInt::get(Type::getInt32Ty(Data->Context), expecttype));
 					Value* notexpectsumtype = ConstantInt::get(Type::getInt1Ty(Data->Context), Metadata::GetTypeFamily(expecttype) != Metadata::EpochTypeFamily_SumType);
 
@@ -2739,7 +2742,7 @@ void NativeCodeGenerator::AddNativeTypeMatcher(size_t beginoffset, size_t endoff
 					if(expecttype != Metadata::EpochType_Nothing)
 					{
 						Type* llvmtype = GetLLVMType(expecttype)->getPointerTo()->getPointerTo();
-						Value* v = Builder.CreatePointerCast(parampayloadptrs[typematchindex][i], llvmtype);
+						Value* v = Builder.CreatePointerCast(parampayloadptrs[i], llvmtype);
 						v = Builder.CreateLoad(v);
 
 						if(!expectref)
@@ -2763,11 +2766,12 @@ void NativeCodeGenerator::AddNativeTypeMatcher(size_t beginoffset, size_t endoff
 				if(targetinnerfunc->getReturnType() != Type::getVoidTy(Data->Context))
 				{
 					CallInst* typematchret = Builder.CreateCall(targetinnerfunc, resolvedargs);
+					typematchret->setIsNoInline();
 					Builder.CreateRet(typematchret);
 				}
 				else
 				{
-					Builder.CreateCall(targetinnerfunc, resolvedargs);
+					Builder.CreateCall(targetinnerfunc, resolvedargs)->setIsNoInline();
 					Builder.CreateRetVoid();
 				}
 
@@ -3118,5 +3122,8 @@ void NativeCodeGenerator::NotifyFunctionEmitted(const llvm::Function& function, 
 
 	llvm::Function* f = const_cast<llvm::Function*>(&function);
 	ExecContext.GeneratedJITFunctionCode[code] = std::make_pair(f, Data->GeneratedFunctionToNameMap[f]);
+
+	//if(Data->GeneratedFunctionToNameMap[f])
+	//	std::wcout << L"Emitted function " << ExecContext.GetPooledString(Data->GeneratedFunctionToNameMap[f]) << L" at address " << code << L" - " << (void*)((char*)(code) + size) << std::endl;
 }
 
