@@ -67,8 +67,20 @@ namespace
 	//
 	std::vector<GCFunctionInfo*> FunctionList;
 
-
+	//
+	// This container maps a list of all JITted functions to a pair that
+	// describes the function's generated location memory and the length
+	// of the function's code body. This is used to accelerate searching
+	// for appropriate GCFunctionInfo based on the return address stored
+	// in each stack frame.
+	//
 	std::map<const Function*, std::pair<void*, size_t> > FunctionBounds;
+
+	//
+	// Map of all allocated global variables (their in-memory locations)
+	// to the type metadata associated with the global. This ought to be
+	// turned into a thread-local storage container instead.
+	//
 	std::map<void*, Metadata::EpochTypeID> Globals;
 
 
@@ -78,8 +90,8 @@ namespace
 	//
 	struct CallFrame
 	{
-		CallFrame* prevFrame;
-		void* returnAddr;
+		CallFrame* PreviousFrame;
+		void* ReturnAddress;
 	};
 
 	//
@@ -94,17 +106,51 @@ namespace
 		boost::unordered_set<BufferHandle> LiveBuffers;
 		boost::unordered_set<StructureHandle> LiveStructures;
 
+		//
 		// Bitmask built from Runtime::ExecutionContext::GarbageCollectionFlags
+		//
+		// We don't garbage collect every possible type every time we run the
+		// mark/sweep logic. Instead, a counter is used to indicate when "too
+		// many" allocations have been made in a specific memory category.
+		//
+		// Once this counter hits the defined threshold (which should be user
+		// configurable), the next GC invocation will sweep for objects which
+		// have the appropriate type/type family. Doing this allows GC invoke
+		// calls to be made frequently at little real expense, since we early
+		// exit if the mask indicates nothing is ready to be cleaned up.
+		//
 		unsigned Mask;
 	};
 
 
+	//
+	// Bookmarks are used to maintain stable stack tracing in the presence
+	// of interop with external functions that have been compiled with the
+	// Frame Pointer Omission optimization active. FPO causes some entries
+	// on the call stack to be "invisible" to our stack walking routines.
+	//
+	// To counteract this, whenever we invoke an external function from an
+	// Epoch routine, we stash a "bookmark" in a heap-allocated container.
+	// Each bookmark describes the last stack frame that we observed under
+	// Epoch runtime control. During stack tracing, we also check for live
+	// roots in each stack frame described by a bookmark.
+	//
+	// This allows Epoch routines to call into external code compiled with
+	// FPO, which then invoke Epoch code via marshaled a callback, without
+	// losing track of the stack areas that need to be traversed for roots
+	// in the garbage collection process.
+	//
 	struct BookmarkEntry
 	{
-		void* StackPtr;
-		void* RetAddr;
+		void* StackPointer;
+		void* ReturnAddress;
 	};
 
+	//
+	// This container holds all active bookmarks.
+	//
+	// It should be moved to be held in a task's context instead.
+	//
 	std::vector<BookmarkEntry> Bookmarks;
 
 
@@ -114,11 +160,19 @@ namespace
 	//
 	void CheckRoot(const void* liveptr, Metadata::EpochTypeID type, LiveValues& livevalues)
 	{
+		// Never traverse null pointers (this may occur for sum
+		// types and other references to live objects via recursive
+		// calls to CheckRoot).
 		if(!liveptr)
 			return;
 
 		switch(type)
 		{
+		//
+		// Mark a string handle as active, if strings are currently
+		// in the set of types being garbage collected. See comment
+		// on LiveValues::Mask for details.
+		//
 		case Metadata::EpochType_String:
 			if(livevalues.Mask & Runtime::ExecutionContext::GC_Collect_Strings)
 			{
@@ -128,6 +182,9 @@ namespace
 			}
 			break;
 
+		//
+		// Mark a buffer handle as active, if appropriate.
+		//
 		case Metadata::EpochType_Buffer:
 			if(livevalues.Mask & Runtime::ExecutionContext::GC_Collect_Buffers)
 			{
@@ -137,8 +194,18 @@ namespace
 			}
 			break;
 
+		//
+		// Handle the general case
+		//
 		default:
 			{
+				//
+				// Check for structures first, they're most common.
+				//
+				// After that, check for algebraic sum types and possibly
+				// recursively invoke CheckRoot to retrieve the real root
+				// based on the attached type annotation.
+				//
 				if(Metadata::IsStructureType(type))
 				{
 					StructureHandle handle = *reinterpret_cast<const StructureHandle*>(liveptr);
@@ -147,18 +214,42 @@ namespace
 				}
 				else if(Metadata::GetTypeFamily(type) == Metadata::EpochTypeFamily_SumType)
 				{
+					//
+					// Algebraic sum types are represented as a type annotation followed
+					// by an arbitrary-length byte field. To trace them properly we must
+					// extract the type signature, determine what type is currently held
+					// by the sum-typed variable, and then if appropriate mark that data
+					// as a live handle. To accomplish this, we simply read off the type
+					// signature, and then recursively invoke CheckRoot with an adjusted
+					// pointer to the payload of the sum-typed variable and the new type
+					// data retrieved from the signature field.
+					//
+					// In the event that a sum-typed variable holds a nested object of a
+					// sum type, we must dereference the adjusted pointer. Otherwise, we
+					// can simply pass along that pointer to the recursive call.
+					//
 					Metadata::EpochTypeID realtype = *reinterpret_cast<const Metadata::EpochTypeID*>(liveptr);
+					const void* adjustedptr = reinterpret_cast<const char*>(liveptr) + sizeof(Metadata::EpochTypeID);
+
 					if(Metadata::GetTypeFamily(realtype) == Metadata::EpochTypeFamily_SumType)
-					{
-						CheckRoot(*reinterpret_cast<void* const*>(reinterpret_cast<const char*>(liveptr) + sizeof(Metadata::EpochTypeID)), realtype, livevalues);
-					}
-					else if(realtype != 0)
-						CheckRoot(reinterpret_cast<const char*>(liveptr) + sizeof(Metadata::EpochTypeID), realtype, livevalues);
+						CheckRoot(*reinterpret_cast<void* const*>(adjustedptr), realtype, livevalues);
+					else
+						CheckRoot(adjustedptr, realtype, livevalues);
 				}
-				else if(type == Metadata::EpochType_Nothing)
-				{
-					// Nothing to do!
-				}
+
+				//
+				// Why don't we handle the general case where a type is not GC-able?
+				//
+				// This is a sticky tradeoff. It would be nice to have a sanity check
+				// here which catches the case where we traverse a bogus root and end
+				// up with an invalid type signature, or the signature of a type that
+				// we can't garbage collect. However, because of algebraic sum types,
+				// we might actually be invoked with a type signature that is not one
+				// of the collectible types. So we just ignore that case silently.
+				//
+				// One alternative would be to pass a flag to CheckRoot() which tells
+				// the function whether or not to consider that case an error.
+				//
 			}
 			break;
 		}
@@ -167,21 +258,29 @@ namespace
 	//
 	// Walk the stack for a given safe point and mark any GC roots found
 	//
-	void WalkLiveValuesForSafePoint(void* prevframeptr, void* stackptr, GCFunctionInfo& funcinfo, GCFunctionInfo::iterator& safepoint, LiveValues& livevalues)
+	void WalkLiveValuesForSafePoint(const void* calleeframeptr, const void* stackptr, GCFunctionInfo& funcinfo, GCFunctionInfo::iterator& safepoint, LiveValues& livevalues)
 	{
 		for(GCFunctionInfo::live_iterator liveiter = funcinfo.live_begin(safepoint); liveiter != funcinfo.live_end(safepoint); ++liveiter)
 		{
+			// Extract the type annotation from the root's metadata
 			Metadata::EpochTypeID type = static_cast<Metadata::EpochTypeID>(dyn_cast<ConstantInt>(liveiter->Metadata->getOperand(0))->getValue().getLimitedValue());
 
+			// Ignore magic types used by type matchers.
+			// TODO - review if this even needs to be done any more now that stack slot merging is fixed
+			if(type == 0xffffffff || type == 0xfffffffe)
+				continue;
+
+			// Determine how to interpret the offset and compute the
+			// memory location of the actual (potentially) live root
 			const char* liveptr;
 			if(static_cast<signed>(liveiter->StackOffset) <= 0)
 				liveptr = reinterpret_cast<const char*>(stackptr) + liveiter->StackOffset;
 			else
-				liveptr = reinterpret_cast<const char*>(prevframeptr) + liveiter->StackOffset + 8;
+				liveptr = reinterpret_cast<const char*>(calleeframeptr) + liveiter->StackOffset + 8;
 
-			if(type == 0xffffffff || type == 0xfffffffe)
-				continue;
-
+			// Ignore pointers to their own location on the stack.
+			// This prevents a (rare) bug from occurring.
+			// TODO - revisit this hack and see if it is still necessary without stack slot merging
 			if(*reinterpret_cast<void* const*>(liveptr) == liveptr)
 				continue;
 
@@ -270,36 +369,46 @@ namespace
 		} while(addedhandle);
 	}
 
+	//
+	// Traverse the list of global variables and mark any GC roots
+	//
 	void WalkGlobalsForLiveHandles(LiveValues& values)
 	{
 		for(std::map<void*, Metadata::EpochTypeID>::const_iterator iter = Globals.begin(); iter != Globals.end(); ++iter)
-		{
-			Metadata::EpochTypeFamily family = Metadata::GetTypeFamily(iter->second);
-			if(family == Metadata::EpochTypeFamily_GC || Metadata::IsStructureType(iter->second) || family == Metadata::EpochTypeFamily_SumType)
-			{
-				CheckRoot(iter->first, iter->second, values);
-			}
-		}
+			CheckRoot(iter->first, iter->second, values);
 	}
 
-	void WalkLiveValuesForBookmark(void* stackptr, GCFunctionInfo& funcinfo, GCFunctionInfo::iterator& safepoint, LiveValues& livevalues)
+	//
+	// A counterpart to WalkLiveValuesForSafePoint, except using bookmarks.
+	//
+	// See the comments on the BookmarkEntry structure for details on how this
+	// works and why it is implemented in the first place.
+	//
+	void WalkLiveValuesForBookmark(const void* stackptr, GCFunctionInfo& funcinfo, GCFunctionInfo::iterator& safepoint, LiveValues& livevalues)
 	{
 		for(GCFunctionInfo::live_iterator liveiter = funcinfo.live_begin(safepoint); liveiter != funcinfo.live_end(safepoint); ++liveiter)
 		{
 			Metadata::EpochTypeID type = static_cast<Metadata::EpochTypeID>(dyn_cast<ConstantInt>(liveiter->Metadata->getOperand(0))->getValue().getLimitedValue());
-			if(type == 0xffffffff)
-				continue;
 			
+			// Ignore type-matcher magic signatures
+			// TODO - remove if possible?
+			if(type == 0xffffffff || type == 0xfffffffe)
+				continue;
+
+			//
+			// Compute address of actual stack root
+			//
+			// Note that this works a bit differently than
+			// the version in WalkLiveValuesForSafePoint.
+			//
 			const char* liveptr;
 			if(static_cast<signed>(liveiter->StackOffset) <= 0)
-			{
 				liveptr = reinterpret_cast<const char*>(stackptr) + liveiter->StackOffset;
-			}
 			else
-			{
 				liveptr = reinterpret_cast<const char*>(stackptr) - funcinfo.getFrameSize() + liveiter->StackOffset;
-			}
 
+			// Skip pointers that point to themselves
+			// TODO - remove if possible?
 			if(*reinterpret_cast<void* const*>(liveptr) == liveptr)
 				continue;
 
@@ -307,7 +416,9 @@ namespace
 		}
 	}
 
-
+	//
+	// Traverse a bookmark entry and crawl its stack frame for roots
+	//
 	void WalkBookmarkEntry(const BookmarkEntry& entry, LiveValues& livevalues)
 	{
 		bool found = false;
@@ -318,7 +429,7 @@ namespace
 			std::pair<void*, size_t> bounds = FunctionBounds.find(&info.getFunction())->second;
 			const void* boundend = reinterpret_cast<const char*>(bounds.first) + bounds.second;
 
-			if(entry.RetAddr < bounds.first || entry.RetAddr > boundend)
+			if(entry.ReturnAddress < bounds.first || entry.ReturnAddress > boundend)
 				continue;
 
 			for(GCFunctionInfo::iterator spiter = info.begin(); spiter != info.end(); ++spiter)
@@ -326,9 +437,9 @@ namespace
 				uint64_t address = reinterpret_cast<ExecutionEngine*>(Runtime::GetThreadContext()->JITExecutionEngine)->getLabelAddress(spiter->Label);
 				const void* addressptr = reinterpret_cast<void*>(static_cast<unsigned>(address));
 
-				if(addressptr == entry.RetAddr)
+				if(addressptr == entry.ReturnAddress)
 				{
-					WalkLiveValuesForBookmark(reinterpret_cast<char*>(entry.StackPtr), info, spiter, livevalues);
+					WalkLiveValuesForBookmark(reinterpret_cast<char*>(entry.StackPointer), info, spiter, livevalues);
 					found = true;
 					break;
 				}
@@ -337,12 +448,11 @@ namespace
 			if(found)
 				break;
 		}
-
-		//if(!found)
-		//	std::wcout << L"WARNING - ignored a stack bookmark!" << std::endl;
 	}
 
-
+	//
+	// Walk the complete list of active stack bookmarks
+	//
 	bool WalkBookmarks(LiveValues& livevalues)
 	{
 		if(Bookmarks.empty())
@@ -355,9 +465,11 @@ namespace
 	}
 
 	//
-	// Worker function for actually performing mark/sweep garbage collection
+	// Worker function for crawling stack frames, and garbage collecting
+	// anything that needs to be recycled based on the results of a mark
+	// and sweep scan of stack roots and the heap pointer graph.
 	//
-	void GarbageWorker(char* rawptr)
+	void CrawlStackAndGarbageCollect(const void* rawptr)
 	{
 		Runtime::ExecutionContext* context = Runtime::GetThreadContext();
 		unsigned collectmask = context->GetGarbageCollectionBitmask();
@@ -369,19 +481,20 @@ namespace
 
 		WalkGlobalsForLiveHandles(livevalues);
 
-		CallFrame* framePtr = reinterpret_cast<CallFrame*>(rawptr);
-		void* prevFramePtr = NULL;
+		const CallFrame* framepointer = reinterpret_cast<const CallFrame*>(rawptr);
+		const void* calleeframepointer = NULL;
 
 		bool foundany = false;
-		while(framePtr != NULL)
+		while(framepointer != NULL)
 		{
-			void* returnAddr = framePtr->returnAddr;
-			prevFramePtr = framePtr;
-			framePtr = framePtr->prevFrame;
+			const void* returnaddress = framepointer->ReturnAddress;
+			calleeframepointer = framepointer;
+			framepointer = framepointer->PreviousFrame;
 
-			if(!framePtr)
+			if(!framepointer)
 				break;
 
+			// TODO - optimize this lookup
 			bool found = false;
 			for(std::vector<GCFunctionInfo*>::iterator iter = FunctionList.begin(); iter != FunctionList.end(); ++iter)
 			{
@@ -390,7 +503,7 @@ namespace
 				std::pair<void*, size_t> bounds = FunctionBounds.find(&info.getFunction())->second;
 				const void* boundend = reinterpret_cast<const char*>(bounds.first) + bounds.second;
 
-				if(returnAddr < bounds.first || returnAddr > boundend)
+				if(returnaddress < bounds.first || returnaddress > boundend)
 					continue;
 
 				for(GCFunctionInfo::iterator spiter = info.begin(); spiter != info.end(); ++spiter)
@@ -398,9 +511,9 @@ namespace
 					uint64_t address = reinterpret_cast<ExecutionEngine*>(context->JITExecutionEngine)->getLabelAddress(spiter->Label);
 					const void* addressptr = reinterpret_cast<void*>(static_cast<unsigned>(address));
 
-					if(addressptr == returnAddr)
+					if(addressptr == returnaddress)
 					{
-						WalkLiveValuesForSafePoint(prevFramePtr, framePtr, info, spiter, livevalues);
+						WalkLiveValuesForSafePoint(calleeframepointer, framepointer, info, spiter, livevalues);
 						found = foundany = true;
 					}
 				}
@@ -462,6 +575,7 @@ namespace
 			if(!funcinfo.getFunction().hasGC())
 				return false;
 
+			// Visit every instruction and mark up safe points as appropriate
 			for(MachineFunction::iterator basicblockiter = machinefunc.begin(); basicblockiter != machinefunc.end(); ++basicblockiter)
 			{
 				for(MachineBasicBlock::iterator instriter = basicblockiter->begin(); instriter != basicblockiter->end(); ++instriter)
@@ -473,6 +587,7 @@ namespace
 				}
 			}
 
+			// Cache function information for later use by the runtime
 			FunctionList.push_back(&funcinfo);
 
 			return true;
@@ -530,9 +645,20 @@ namespace
 								roots.push_back(cast<AllocaInst>(intrinsic->getArgOperand(0)->stripPointerCasts()));
 								break;
 
+							//
+							// Destroy all uses of lifetime start and end intrinsics.
+							//
+							// This is necessary to work around a stack coloring bug
+							// which leads to GC roots being incorrectly merged into
+							// other stack slots by LLVM.
+							//
+							// See http://llvm.org/bugs/show_bug.cgi?id=16778
+							//
 							case Intrinsic::lifetime_start:
 							case Intrinsic::lifetime_end:
 								intrinsic->eraseFromParent();
+
+								// Must restart the loop since we just invalidated iterators
 								restart = true;
 								break;
 
@@ -554,11 +680,13 @@ namespace
 				AllocaInst* allocainst = *allocaiter;
 				if(allocainst->getType()->getElementType()->isPointerTy())
 				{
+					// Pointer types are initialized to null as usual
 					StoreInst* store = new StoreInst(ConstantPointerNull::get(cast<PointerType>(cast<PointerType>(allocainst->getType())->getElementType())), *allocaiter);
 					store->insertAfter(allocainst);
 				}
 				else if(allocainst->getType()->getElementType()->isAggregateType())
 				{
+					// This case handles algebraic sum types
 					BitCastInst* castptr = new BitCastInst(*allocaiter, Type::getInt32PtrTy(getGlobalContext()));
 					castptr->insertAfter(allocainst);
 					StoreInst* store = new StoreInst(ConstantInt::get(Type::getInt32Ty(getGlobalContext()), 0), castptr);
@@ -584,6 +712,7 @@ namespace
 				}
 				else
 				{
+					// This case takes care of string/buffer handles
 					StoreInst* store = new StoreInst(ConstantInt::get(allocainst->getType()->getElementType(), 0), *allocaiter);
 					store->insertAfter(allocainst);
 				}
@@ -611,7 +740,7 @@ namespace
 				functioninfo.addSafePoint(GC::PreCall, label, instriter->getDebugLoc());
 			}
 
-			if(needsSafePoint(GC::PostCall))// || IsGCInvoke(instriter))
+			if(needsSafePoint(GC::PostCall))
 			{
 				MCSymbol* label = InsertLabel(*instriter->getParent(), retinstr, instriter->getDebugLoc(), targetinfo);
 				functioninfo.addSafePoint(GC::PostCall, label, instriter->getDebugLoc());
@@ -637,16 +766,6 @@ namespace
 			BuildMI(block, instriter, loc, targetinfo->get(TargetOpcode::GC_LABEL)).addSym(label);
 			return label;
 		}
-
-		bool IsGCInvoke(MachineBasicBlock::iterator instriter)
-		{
-			if(!instriter->getNumOperands() || !instriter->getOperand(0).isGlobal())
-				return false;
-
-			const GlobalValue* g = instriter->getOperand(0).getGlobal();
-			const Function* f = cast<Function>(g);
-			return (f == Runtime::GetThreadContext()->TriggerGCFunc);
-		}
 	};
 
 
@@ -671,21 +790,23 @@ void EpochGC::ClearGCContextInfo()
 	Globals.clear();
 }
 
-
+//
+// External API for stashing the extents of a JITted function's code
+//
 void EpochGC::SetGCFunctionBounds(const Function* func, void* start, size_t size)
 {
 	FunctionBounds[func] = std::make_pair(start, size);
 }
 
-void* EpochGC::GetGCFunctionStart(const Function* func)
-{
-	return FunctionBounds[func].first;
-}
-
-
+//
+// External API for noting the location of global variables that might
+// potentially act as stack roots.
+//
 void EpochGC::RegisterGlobalVariable(void* ptr, Metadata::EpochTypeID type)
 {
-	Globals[ptr] = type;
+	Metadata::EpochTypeFamily family = Metadata::GetTypeFamily(type);
+	if(family == Metadata::EpochTypeFamily_GC || Metadata::IsStructureType(type) || family == Metadata::EpochTypeFamily_SumType)
+		Globals[ptr] = type;
 }
 
 
@@ -707,7 +828,7 @@ extern "C" __declspec(naked) void TriggerGarbageCollection()
 
 		// Invoke GC
 		push ebp
-		call GarbageWorker
+		call CrawlStackAndGarbageCollect
 		add esp, 4
 
 		// Restore EAX
@@ -722,20 +843,31 @@ extern "C" __declspec(naked) void TriggerGarbageCollection()
 	}
 }
 
-
+//
+// Helper function for recording a stack bookmark
+//
 void GCBookmarkWorker(void* stackptr, void* retaddr)
 {
 	BookmarkEntry entry;
-	entry.StackPtr = stackptr;
-	entry.RetAddr = retaddr;
+	entry.StackPointer = stackptr;
+	entry.ReturnAddress = retaddr;
 
 	Bookmarks.push_back(entry);
 }
 
+
+//
+// Function invoked by the runtime to add a stack bookmark
+//
 extern "C" __declspec(naked) void GCBookmark()
 {
 	__asm
 	{
+		// Pass the function's target return address (i.e. where we
+		// will return to in our caller's code body) as well as the
+		// current stack frame pointer to the bookmark helper code,
+		// then clean up (since the function uses the cdecl calling
+		// convention).
 		push [esp]
 		push ebp
 		call GCBookmarkWorker
@@ -745,6 +877,9 @@ extern "C" __declspec(naked) void GCBookmark()
 	}
 }
 
+//
+// Function invoked by the runtime to clean up a stack bookmark
+//
 extern "C" void GCUnbookmark()
 {
 	Bookmarks.pop_back();
