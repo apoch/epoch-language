@@ -610,8 +610,44 @@ namespace
 			// Lower all GC read/write barriers and flag any roots in the function
 			for(Function::iterator blockiter = function.begin(); blockiter != function.end(); ++blockiter)
 			{
-				bool restart;
+				for(BasicBlock::iterator instriter = blockiter->begin(); instriter != blockiter->end(); ++instriter)
+				{
+					IntrinsicInst* intrinsic = dyn_cast<IntrinsicInst>(instriter);
+					if(intrinsic)
+					{
+						Function* calltarget = intrinsic->getCalledFunction();
+						switch(calltarget->getIntrinsicID())
+						{
+						case Intrinsic::gcwrite:
+							{
+								Value* store = new StoreInst(intrinsic->getArgOperand(0), intrinsic->getArgOperand(2), intrinsic);
+								intrinsic->replaceAllUsesWith(store);
+								intrinsic->eraseFromParent();
+							}
+							break;
 
+						case Intrinsic::gcread:
+							{
+								Value* load = new LoadInst(intrinsic->getArgOperand(1), "", intrinsic);
+								load->takeName(intrinsic);
+								intrinsic->replaceAllUsesWith(load);
+								intrinsic->eraseFromParent();
+							}
+							break;
+	
+						case Intrinsic::gcroot:
+							roots.push_back(cast<AllocaInst>(intrinsic->getArgOperand(0)->stripPointerCasts()));
+							break;
+							
+						default:
+							continue;
+						}
+
+						modified = true;
+					}
+				}
+
+				bool restart;
 				do
 				{
 					restart = false;
@@ -624,27 +660,6 @@ namespace
 							Function* calltarget = intrinsic->getCalledFunction();
 							switch(calltarget->getIntrinsicID())
 							{
-							case Intrinsic::gcwrite:
-								{
-									Value* store = new StoreInst(intrinsic->getArgOperand(0), intrinsic->getArgOperand(2), intrinsic);
-									intrinsic->replaceAllUsesWith(store);
-									intrinsic->eraseFromParent();
-								}
-								break;
-
-							case Intrinsic::gcread:
-								{
-									Value* load = new LoadInst(intrinsic->getArgOperand(1), "", intrinsic);
-									load->takeName(intrinsic);
-									intrinsic->replaceAllUsesWith(load);
-									intrinsic->eraseFromParent();
-								}
-								break;
-	
-							case Intrinsic::gcroot:
-								roots.push_back(cast<AllocaInst>(intrinsic->getArgOperand(0)->stripPointerCasts()));
-								break;
-
 							//
 							// Destroy all uses of lifetime start and end intrinsics.
 							//

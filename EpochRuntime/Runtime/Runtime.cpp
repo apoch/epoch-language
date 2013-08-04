@@ -116,7 +116,7 @@ StringHandle ExecutionContext::GetPooledStringHandle(const std::wstring& value)
 //
 EPOCHRUNTIME void* ExecutionContext::GetBuffer(BufferHandle handle)
 {
-	Threads::CriticalSection::Auto lock(BufferCritSec);
+	//Threads::CriticalSection::Auto lock(BufferCritSec);
 
 	boost::unordered_map<BufferHandle, std::vector<Byte>, fasthash>::iterator iter = Buffers.find(handle);
 	if(iter == Buffers.end())
@@ -127,7 +127,7 @@ EPOCHRUNTIME void* ExecutionContext::GetBuffer(BufferHandle handle)
 
 EPOCHRUNTIME BufferHandle ExecutionContext::FindBuffer(const void* ptr)
 {
-	Threads::CriticalSection::Auto lock(BufferCritSec);
+	//Threads::CriticalSection::Auto lock(BufferCritSec);
 
 	for(boost::unordered_map<BufferHandle, std::vector<Byte>, fasthash>::iterator iter = Buffers.begin(); iter != Buffers.end(); ++iter)
 	{
@@ -143,7 +143,7 @@ EPOCHRUNTIME BufferHandle ExecutionContext::FindBuffer(const void* ptr)
 //
 EPOCHRUNTIME size_t ExecutionContext::GetBufferSize(BufferHandle handle) const
 {
-	Threads::CriticalSection::Auto lock(BufferCritSec);
+	//Threads::CriticalSection::Auto lock(BufferCritSec);
 
 	boost::unordered_map<BufferHandle, std::vector<Byte>, fasthash>::const_iterator iter = Buffers.find(handle);
 	if(iter == Buffers.end())
@@ -157,7 +157,7 @@ EPOCHRUNTIME size_t ExecutionContext::GetBufferSize(BufferHandle handle) const
 //
 EPOCHRUNTIME BufferHandle ExecutionContext::AllocateBuffer(size_t size)
 {
-	Threads::CriticalSection::Auto lock(BufferCritSec);
+	//Threads::CriticalSection::Auto lock(BufferCritSec);
 
 	BufferHandle ret = BufferHandleAlloc.AllocateHandle(Buffers);
 	Buffers[ret].swap(std::vector<Byte>(size, 0));
@@ -169,7 +169,7 @@ EPOCHRUNTIME BufferHandle ExecutionContext::AllocateBuffer(size_t size)
 //
 BufferHandle ExecutionContext::CloneBuffer(BufferHandle handle)
 {
-	Threads::CriticalSection::Auto lock(BufferCritSec);
+	//Threads::CriticalSection::Auto lock(BufferCritSec);
 
 	boost::unordered_map<BufferHandle, std::vector<Byte>, fasthash>::const_iterator iter = Buffers.find(handle);
 	if(iter == Buffers.end())

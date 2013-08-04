@@ -54,6 +54,7 @@
 #include <llvm/IR/Intrinsics.h>
 #include <llvm/Support/CrashRecoveryContext.h>
 #include <llvm/Transforms/Vectorize.h>
+#include <llvm/ADT/Triple.h>
 
 #pragma warning(push)
 #pragma warning(disable: 4146)
@@ -1010,7 +1011,9 @@ void NativeCodeGenerator::Generate()
 	std::string ErrStr;
 
 	TargetOptions opts;
-	opts.AllowFPOpFusion = FPOpFusion::Standard;
+	opts.LessPreciseFPMADOption = true;
+	opts.UnsafeFPMath = true;
+	opts.AllowFPOpFusion = FPOpFusion::Fast;
 	opts.DisableTailCalls = false;
 	opts.EnableFastISel = false;
 	opts.EnableSegmentedStacks = false;
@@ -1029,9 +1032,10 @@ void NativeCodeGenerator::Generate()
 	eb.setOptLevel(CodeGenOpt::Aggressive);
 	eb.setTargetOptions(opts);
 
-	TargetMachine* machine = eb.selectTarget();
+	SmallVector<std::string, 2> emptyvec;
+	TargetMachine* machine = eb.selectTarget(Triple(), "x86", "corei7-avx", emptyvec);
 
-	ExecutionEngine* ee = EngineBuilder(Data->CurrentModule).setErrorStr(&ErrStr).create(machine);
+	ExecutionEngine* ee = eb.create(machine);
 	if(!ee)
 		return;
 
@@ -1049,11 +1053,6 @@ void NativeCodeGenerator::Generate()
 	fpm.add(createScalarReplAggregatesPass());
 	fpm.add(createEarlyCSEPass());
 	fpm.add(createLowerExpectIntrinsicPass());
-
-	VectorizeConfig vcfg;
-	vcfg.ReqChainDepth = 2;
-	vcfg.MaxIter = 500;
-	fpm.add(createBBVectorizePass(vcfg));
 
 	fpm.doInitialization();
 
@@ -1103,6 +1102,13 @@ void NativeCodeGenerator::Generate()
 	mpm.add(createCFGSimplificationPass());
 	mpm.add(createInstructionCombiningPass());
 	mpm.add(createFunctionInliningPass());
+	mpm.add(createDeadStoreEliminationPass());
+
+	mpm.add(createSLPVectorizerPass());
+	VectorizeConfig vcfg;
+	vcfg.ReqChainDepth = 1;
+	vcfg.MaxIter = 500;
+	mpm.add(createBBVectorizePass(vcfg));
 
 	mpm.run(*Data->CurrentModule);
 
@@ -1281,7 +1287,7 @@ void FunctionJITHelper::DoFunction(size_t beginoffset, size_t endoffset, StringH
 		if(LibJITContext.VarArgList)
 			Builder.CreateCall(Generator.Data->BuiltInFunctions[JITFunc_Intrinsic_VAEnd], Builder.CreatePointerCast(LibJITContext.VarArgList, Type::getInt8PtrTy(Context)));
 
-		if(Builder.GetInsertBlock()->getParent()->hasGC())// && AllocCount > 0)
+		if(Builder.GetInsertBlock()->getParent()->hasGC() && AllocCount > 0)
 			Builder.CreateCall(Generator.Data->BuiltInFunctions[JITFunc_Runtime_TriggerGC]);
 
 		if(LibJITContext.InnerRetVal)
@@ -2568,7 +2574,7 @@ void FunctionJITHelper::CopyBuffer(size_t&)
 void NativeCodeGenerator::AddNativeTypeMatcher(size_t beginoffset, size_t endoffset)
 {
 	Function* matcherfunction = Builder.GetInsertBlock()->getParent();
-	matcherfunction->setGC("EpochGC");
+	//matcherfunction->setGC("EpochGC");
 	//matcherfunction->addAttribute(0xffffffff, Attribute::NoInline);
 
 	std::vector<Value*> reftypes;
@@ -2617,6 +2623,7 @@ void NativeCodeGenerator::AddNativeTypeMatcher(size_t beginoffset, size_t endoff
 						parampayloadptrs.push_back(Builder.CreateAlloca(Type::getInt8PtrTy(Data->Context)));
 						providedtypeholders.push_back(Builder.CreateAlloca(Type::getInt32Ty(Data->Context)));
 
+						/*
 						{
 							Value* signature = ConstantInt::get(Type::getInt32Ty(Data->Context), 0xffffffff);
 							Value* constant = Builder.CreateIntToPtr(signature, Type::getInt8PtrTy(Data->Context));
@@ -2630,6 +2637,7 @@ void NativeCodeGenerator::AddNativeTypeMatcher(size_t beginoffset, size_t endoff
 							Value* castptr = Builder.CreatePointerCast(providedtypeholders.back(), Type::getInt8PtrTy(Data->Context)->getPointerTo());
 							Builder.CreateCall2(Data->BuiltInFunctions[JITFunc_Intrinsic_GCRoot], castptr, constant);
 						}
+						*/
 					}
 				}
 
@@ -2829,10 +2837,10 @@ void NativeCodeGenerator::AddNativePatternMatcher(size_t beginoffset, size_t end
 				std::vector<Value*> actualparams;
 				BasicBlock* nextmatcher = BasicBlock::Create(Data->Context, "nextmatcher", matcherfunction);
 
-				Function::arg_iterator argiter = matcherfunction->arg_begin();
-
 				if(argholders.empty())
 				{
+					Function::arg_iterator argiter = matcherfunction->arg_begin();
+
 					for(size_t i = 0; i < paramcount; ++i)
 					{
 						Value* argument = argiter;
