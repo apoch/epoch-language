@@ -1041,6 +1041,8 @@ void NativeCodeGenerator::Generate()
 
 	LazyEngine = ee;
 
+	ExecContext.JITExecutionEngine = ee;
+
 	ee->DisableLazyCompilation(true);
 	ee->RegisterJITEventListener(this);
 	
@@ -1137,8 +1139,6 @@ void NativeCodeGenerator::Generate()
 		if(global)
 			EpochGC::RegisterGlobalVariable(ee->getPointerToGlobal(global), Data->GlobalVariableTypes[global]);
 	}
-
-	ExecContext.JITExecutionEngine = ee;
 
 	// This is a no-op unless we enabled stats above
 	// The numbers are very handy for A/B testing optimization passes
@@ -1287,7 +1287,7 @@ void FunctionJITHelper::DoFunction(size_t beginoffset, size_t endoffset, StringH
 		if(LibJITContext.VarArgList)
 			Builder.CreateCall(Generator.Data->BuiltInFunctions[JITFunc_Intrinsic_VAEnd], Builder.CreatePointerCast(LibJITContext.VarArgList, Type::getInt8PtrTy(Context)));
 
-		if(Builder.GetInsertBlock()->getParent()->hasGC() && AllocCount > 0)
+		if(Builder.GetInsertBlock()->getParent()->hasGC())// && AllocCount > 0)
 			Builder.CreateCall(Generator.Data->BuiltInFunctions[JITFunc_Runtime_TriggerGC]);
 
 		if(LibJITContext.InnerRetVal)
@@ -2660,22 +2660,6 @@ void NativeCodeGenerator::AddNativeTypeMatcher(size_t beginoffset, size_t endoff
 						}
 						Builder.CreateBr(nextparamblock);
 						Builder.SetInsertPoint(nextparamblock);
-
-						/*
-						{
-							Value* signature = ConstantInt::get(Type::getInt32Ty(Data->Context), 0xffffffff);
-							Value* constant = Builder.CreateIntToPtr(signature, Type::getInt8PtrTy(Data->Context));
-							Value* castptr = Builder.CreatePointerCast(parampayloadptrs.back(), Type::getInt8PtrTy(Data->Context)->getPointerTo());
-							Builder.CreateCall2(Data->BuiltInFunctions[JITFunc_Intrinsic_GCRoot], castptr, constant);
-						}
-
-						{
-							Value* signature = ConstantInt::get(Type::getInt32Ty(Data->Context), 0xfffffffe);
-							Value* constant = Builder.CreateIntToPtr(signature, Type::getInt8PtrTy(Data->Context));
-							Value* castptr = Builder.CreatePointerCast(providedtypeholders.back(), Type::getInt8PtrTy(Data->Context)->getPointerTo());
-							Builder.CreateCall2(Data->BuiltInFunctions[JITFunc_Intrinsic_GCRoot], castptr, constant);
-						}
-						*/
 					}
 				}
 

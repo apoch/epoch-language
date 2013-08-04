@@ -56,8 +56,15 @@ public:
 	Threads::CriticalSection CritSec;
 
 // Garbage collection
-public:
+private:
 	unsigned GarbageTick;
+
+public:
+	unsigned GetGarbageTick() const
+	{ return GarbageTick; }
+
+	void ResetGarbageTick()
+	{ GarbageTick = 0; }
 	
 #ifdef EPOCH_STRINGPOOL_FAST_REVERSE_LOOKUP
 private:

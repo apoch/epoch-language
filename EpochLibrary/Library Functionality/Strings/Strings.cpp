@@ -125,8 +125,7 @@ extern "C" StringHandle EpochLib_Unescape(StringHandle strhandle)
 	}
 
 	StringHandle handle = GlobalExecutionContext->PoolString(result);
-	GlobalExecutionContext->TickStringGarbageCollector();
-
+	
 	return handle;
 }
 

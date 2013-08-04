@@ -58,23 +58,11 @@ using namespace llvm;
 
 namespace
 {
-	//
-	// This container holds a list of all GC-enabled functions generated
-	// during machine code emission. We track this because LLVM does not
-	// expose that list to us in any useful fashion, and we need to hold
-	// on to the GC info for mapping safe points and accessing the stack
-	// maps of live GC roots in running functions.
-	//
-	std::vector<GCFunctionInfo*> FunctionList;
+	// TODO - document
+	std::map<const Function*, GCFunctionInfo*> FunctionGCInfoCache;
 
-	//
-	// This container maps a list of all JITted functions to a pair that
-	// describes the function's generated location memory and the length
-	// of the function's code body. This is used to accelerate searching
-	// for appropriate GCFunctionInfo based on the return address stored
-	// in each stack frame.
-	//
-	std::map<const Function*, std::pair<void*, size_t> > FunctionBounds;
+	typedef boost::unordered_map<const void*, std::pair<GCFunctionInfo*, GCFunctionInfo::iterator> > SafePointCacheT;
+	SafePointCacheT SafePointCache;
 
 	//
 	// Map of all allocated global variables (their in-memory locations)
@@ -265,11 +253,6 @@ namespace
 			// Extract the type annotation from the root's metadata
 			Metadata::EpochTypeID type = static_cast<Metadata::EpochTypeID>(dyn_cast<ConstantInt>(liveiter->Metadata->getOperand(0))->getValue().getLimitedValue());
 
-			// Ignore magic types used by type matchers.
-			// TODO - review if this even needs to be done any more now that stack slot merging is fixed
-			if(type == 0xffffffff || type == 0xfffffffe)
-				continue;
-
 			// Determine how to interpret the offset and compute the
 			// memory location of the actual (potentially) live root
 			const char* liveptr;
@@ -389,11 +372,6 @@ namespace
 		for(GCFunctionInfo::live_iterator liveiter = funcinfo.live_begin(safepoint); liveiter != funcinfo.live_end(safepoint); ++liveiter)
 		{
 			Metadata::EpochTypeID type = static_cast<Metadata::EpochTypeID>(dyn_cast<ConstantInt>(liveiter->Metadata->getOperand(0))->getValue().getLimitedValue());
-			
-			// Ignore type-matcher magic signatures
-			// TODO - remove if possible?
-			if(type == 0xffffffff || type == 0xfffffffe)
-				continue;
 
 			//
 			// Compute address of actual stack root
@@ -421,33 +399,9 @@ namespace
 	//
 	void WalkBookmarkEntry(const BookmarkEntry& entry, LiveValues& livevalues)
 	{
-		bool found = false;
-		for(std::vector<GCFunctionInfo*>::iterator iter = FunctionList.begin(); iter != FunctionList.end(); ++iter)
-		{
-			GCFunctionInfo& info = **iter;
-
-			std::pair<void*, size_t> bounds = FunctionBounds.find(&info.getFunction())->second;
-			const void* boundend = reinterpret_cast<const char*>(bounds.first) + bounds.second;
-
-			if(entry.ReturnAddress < bounds.first || entry.ReturnAddress > boundend)
-				continue;
-
-			for(GCFunctionInfo::iterator spiter = info.begin(); spiter != info.end(); ++spiter)
-			{
-				uint64_t address = reinterpret_cast<ExecutionEngine*>(Runtime::GetThreadContext()->JITExecutionEngine)->getLabelAddress(spiter->Label);
-				const void* addressptr = reinterpret_cast<void*>(static_cast<unsigned>(address));
-
-				if(addressptr == entry.ReturnAddress)
-				{
-					WalkLiveValuesForBookmark(reinterpret_cast<char*>(entry.StackPointer), info, spiter, livevalues);
-					found = true;
-					break;
-				}
-			}
-
-			if(found)
-				break;
-		}
+		SafePointCacheT::iterator iter = SafePointCache.find(entry.ReturnAddress);
+		if(iter != SafePointCache.end())
+			WalkLiveValuesForBookmark(reinterpret_cast<char*>(entry.StackPointer), *(iter->second.first), iter->second.second, livevalues);
 	}
 
 	//
@@ -494,32 +448,11 @@ namespace
 			if(!framepointer)
 				break;
 
-			// TODO - optimize this lookup
-			bool found = false;
-			for(std::vector<GCFunctionInfo*>::iterator iter = FunctionList.begin(); iter != FunctionList.end(); ++iter)
+			SafePointCacheT::iterator iter = SafePointCache.find(returnaddress);
+			if(iter != SafePointCache.end())
 			{
-				GCFunctionInfo& info = **iter;
-
-				std::pair<void*, size_t> bounds = FunctionBounds.find(&info.getFunction())->second;
-				const void* boundend = reinterpret_cast<const char*>(bounds.first) + bounds.second;
-
-				if(returnaddress < bounds.first || returnaddress > boundend)
-					continue;
-
-				for(GCFunctionInfo::iterator spiter = info.begin(); spiter != info.end(); ++spiter)
-				{
-					uint64_t address = reinterpret_cast<ExecutionEngine*>(context->JITExecutionEngine)->getLabelAddress(spiter->Label);
-					const void* addressptr = reinterpret_cast<void*>(static_cast<unsigned>(address));
-
-					if(addressptr == returnaddress)
-					{
-						WalkLiveValuesForSafePoint(calleeframepointer, framepointer, info, spiter, livevalues);
-						found = foundany = true;
-					}
-				}
-
-				if(found)
-					break;
+				WalkLiveValuesForSafePoint(calleeframepointer, framepointer, *(iter->second.first), iter->second.second, livevalues);
+				foundany = true;
 			}
 		}
 
@@ -588,7 +521,7 @@ namespace
 			}
 
 			// Cache function information for later use by the runtime
-			FunctionList.push_back(&funcinfo);
+			FunctionGCInfoCache.insert(std::make_pair(&funcinfo.getFunction(), &funcinfo));
 
 			return true;
 		}
@@ -800,17 +733,28 @@ namespace
 //
 void EpochGC::ClearGCContextInfo()
 {
-	FunctionBounds.clear();
-	FunctionList.clear();
+	SafePointCache.clear();
+	FunctionGCInfoCache.clear();
 	Globals.clear();
 }
 
 //
 // External API for stashing the extents of a JITted function's code
 //
-void EpochGC::SetGCFunctionBounds(const Function* func, void* start, size_t size)
+void EpochGC::SetGCFunctionBounds(const Function* func, void*, size_t)
 {
-	FunctionBounds[func] = std::make_pair(start, size);
+	auto funciter = FunctionGCInfoCache.find(func);
+	if(funciter == FunctionGCInfoCache.end())
+		return;
+
+	GCFunctionInfo* functioninfo = funciter->second;
+	for(GCFunctionInfo::iterator iter = functioninfo->begin(); iter != functioninfo->end(); ++iter)
+	{
+		uint64_t address = reinterpret_cast<ExecutionEngine*>(Runtime::GetThreadContext()->JITExecutionEngine)->getLabelAddress(iter->Label);
+		const void* addressptr = reinterpret_cast<void*>(static_cast<unsigned>(address));
+					
+		SafePointCache.insert(std::make_pair(addressptr, std::make_pair(functioninfo, iter)));
+	}
 }
 
 //

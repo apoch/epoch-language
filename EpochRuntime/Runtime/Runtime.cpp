@@ -894,15 +894,6 @@ EPOCHRUNTIME void ExecutionContext::TickBufferGarbageCollector()
 }
 
 //
-// Tick the garbage collection counter for string allocations
-//
-EPOCHRUNTIME void ExecutionContext::TickStringGarbageCollector()
-{
-	// TODO - revisit usefulness of this function
-	++PrivateStringPool.GarbageTick;
-}
-
-//
 // Tick the garbage collection counter for structure allocations
 //
 EPOCHRUNTIME void ExecutionContext::TickStructureGarbageCollector()
@@ -940,10 +931,10 @@ unsigned ExecutionContext::GetGarbageCollectionBitmask()
 		GarbageTick_Buffers = 0;
 	}
 
-	if(PrivateStringPool.GarbageTick > 10)
+	if(PrivateStringPool.GetGarbageTick() > 10)
 	{
 		mask |= GC_Collect_Strings;
-		PrivateStringPool.GarbageTick = 0;
+		PrivateStringPool.ResetGarbageTick();
 	}
 
 	if(GarbageTick_Structures > 10)

@@ -163,7 +163,6 @@ extern "C" StringHandle EpochLib_GetCmdLineToken(unsigned index)
 	else
 		handle = GlobalExecutionContext->PoolString(cmdline[index]);
 
-	GlobalExecutionContext->TickStringGarbageCollector();
 	return handle;
 }
 

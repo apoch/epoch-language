@@ -121,7 +121,6 @@ namespace Runtime
 	// Internal helpers for garbage collection
 	public:
 		EPOCHRUNTIME void TickBufferGarbageCollector();
-		EPOCHRUNTIME void TickStringGarbageCollector();
 		EPOCHRUNTIME void TickStructureGarbageCollector();
 
 	// Internal state
