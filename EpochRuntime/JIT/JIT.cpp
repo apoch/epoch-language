@@ -2613,15 +2613,53 @@ void NativeCodeGenerator::AddNativeTypeMatcher(size_t beginoffset, size_t endoff
 				Fetch<size_t>(Bytecode, offset);
 				size_t paramcount = Fetch<size_t>(Bytecode, offset);
 
+				Function::arg_iterator argiter = matcherfunction->arg_begin();
 				for(size_t i = 0; i < paramcount; ++i)
 				{
-					Fetch<bool>(Bytecode, offset);
-					Fetch<Metadata::EpochTypeID>(Bytecode, offset);
+					bool expectref = Fetch<bool>(Bytecode, offset);
+					Metadata::EpochTypeID expecttype = Fetch<Metadata::EpochTypeID>(Bytecode, offset);
+					expectref |= Metadata::IsReferenceType(expecttype);
 
 					if(needholders)
 					{
+						BasicBlock* nextparamblock = BasicBlock::Create(Data->Context, "nextparam", matcherfunction);
+
 						parampayloadptrs.push_back(Builder.CreateAlloca(Type::getInt8PtrTy(Data->Context)));
 						providedtypeholders.push_back(Builder.CreateAlloca(Type::getInt32Ty(Data->Context)));
+
+						Value* reftype = argiter;
+						++argiter;
+						Value* reftarget = argiter;
+						++argiter;
+
+						reftypes.push_back(reftype);
+						reftargets.push_back(reftarget);
+
+						Builder.CreateStore(reftypes[i], providedtypeholders[i]);
+						Builder.CreateStore(reftargets[i], parampayloadptrs[i]);
+
+						BasicBlock* handlesumtypeblock = BasicBlock::Create(Data->Context, "handlesumtype", matcherfunction);
+
+						Value* providedtypefamily = Builder.CreateAnd(Builder.CreateLoad(providedtypeholders[i]), 0x7f000000);
+						Value* issumtype = Builder.CreateICmpEQ(providedtypefamily, ConstantInt::get(Type::getInt32Ty(Data->Context), Metadata::EpochTypeFamily_SumType));
+						Builder.CreateCondBr(issumtype, handlesumtypeblock, nextparamblock);
+
+						Builder.SetInsertPoint(handlesumtypeblock);
+
+						Value* rt = Builder.CreateLoad(Builder.CreatePointerCast(reftargets[i], Type::getInt32PtrTy(Data->Context)));
+						Builder.CreateStore(rt, providedtypeholders[i]);
+
+						if(Metadata::GetTypeFamily(expecttype) == Metadata::EpochTypeFamily_SumType)
+						{
+							Builder.CreateStore(reftargets[i], parampayloadptrs[i]);
+						}
+						else
+						{
+							Value* gep = Builder.CreateGEP(reftargets[i], ConstantInt::get(Type::getInt32Ty(Data->Context), sizeof(Metadata::EpochTypeID)));
+							Builder.CreateStore(gep, parampayloadptrs[i]);
+						}
+						Builder.CreateBr(nextparamblock);
+						Builder.SetInsertPoint(nextparamblock);
 
 						/*
 						{
@@ -2678,68 +2716,11 @@ void NativeCodeGenerator::AddNativeTypeMatcher(size_t beginoffset, size_t endoff
 				std::vector<Value*> actualparams;
 				BasicBlock* nexttypematcher = BasicBlock::Create(Data->Context, "nexttypematcher", matcherfunction);
 
-				Function::arg_iterator argiter = matcherfunction->arg_begin();
-
-				if(reftypes.empty())
-				{
-					for(size_t i = 0; i < paramcount; ++i)
-					{
-						Value* reftype = argiter;
-						++argiter;
-						Value* reftarget = argiter;
-						++argiter;
-
-						reftypes.push_back(reftype);
-						reftargets.push_back(reftarget);
-					}
-				}
-
 				for(size_t i = 0; i < paramcount; ++i)
 				{
 					bool expectref = Fetch<bool>(Bytecode, offset);
 					Metadata::EpochTypeID expecttype = Fetch<Metadata::EpochTypeID>(Bytecode, offset);
 					expectref |= Metadata::IsReferenceType(expecttype);
-
-					BasicBlock* checkmatchblock = BasicBlock::Create(Data->Context, "checkmatch", matcherfunction);
-
-					Builder.CreateStore(reftypes[i], providedtypeholders[i]);
-
-					BasicBlock* setnothingrefflagblock = BasicBlock::Create(Data->Context, "setnothingrefflag", matcherfunction);
-					BasicBlock* skipblock = BasicBlock::Create(Data->Context, "skip", matcherfunction);
-
-					Value* providednothingflag = Builder.CreateICmpEQ(reftypes[i], ConstantInt::get(Type::getInt32Ty(Data->Context), Metadata::EpochType_Nothing));
-					Builder.CreateCondBr(providednothingflag, setnothingrefflagblock, skipblock);
-
-					Builder.SetInsertPoint(setnothingrefflagblock);
-					Builder.CreateBr(skipblock);
-
-					Builder.SetInsertPoint(skipblock);
-					Builder.CreateStore(reftargets[i], parampayloadptrs[i]);
-
-
-					BasicBlock* handlesumtypeblock = BasicBlock::Create(Data->Context, "handlesumtype", matcherfunction);
-
-					Value* providedtypefamily = Builder.CreateAnd(Builder.CreateLoad(providedtypeholders[i]), 0x7f000000);
-					Value* issumtype = Builder.CreateICmpEQ(providedtypefamily, ConstantInt::get(Type::getInt32Ty(Data->Context), Metadata::EpochTypeFamily_SumType));
-					Builder.CreateCondBr(issumtype, handlesumtypeblock, checkmatchblock);
-
-					Builder.SetInsertPoint(handlesumtypeblock);
-
-					Value* rt = Builder.CreateLoad(Builder.CreatePointerCast(reftargets[i], Type::getInt32PtrTy(Data->Context)));
-					Builder.CreateStore(rt, providedtypeholders[i]);
-
-					if(Metadata::GetTypeFamily(expecttype) == Metadata::EpochTypeFamily_SumType)
-					{
-						Builder.CreateStore(reftargets[i], parampayloadptrs[i]);
-					}
-					else
-					{
-						Value* gep = Builder.CreateGEP(reftargets[i], ConstantInt::get(Type::getInt32Ty(Data->Context), sizeof(Metadata::EpochTypeID)));
-						Builder.CreateStore(gep, parampayloadptrs[i]);
-					}
-					Builder.CreateBr(checkmatchblock);
-
-					Builder.SetInsertPoint(checkmatchblock);
 
 					Value* nonref = Builder.CreateAnd(Builder.CreateLoad(providedtypeholders[i]), 0x7fffffff);
 					Value* nomatch = Builder.CreateICmpNE(nonref, ConstantInt::get(Type::getInt32Ty(Data->Context), expecttype));
@@ -2779,12 +2760,11 @@ void NativeCodeGenerator::AddNativeTypeMatcher(size_t beginoffset, size_t endoff
 				if(targetinnerfunc->getReturnType() != Type::getVoidTy(Data->Context))
 				{
 					CallInst* typematchret = Builder.CreateCall(targetinnerfunc, resolvedargs);
-					//typematchret->setIsNoInline();
 					Builder.CreateRet(typematchret);
 				}
 				else
 				{
-					Builder.CreateCall(targetinnerfunc, resolvedargs);//->setIsNoInline();
+					Builder.CreateCall(targetinnerfunc, resolvedargs);
 					Builder.CreateRetVoid();
 				}
 
