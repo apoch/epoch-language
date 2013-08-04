@@ -1,0 +1,25 @@
+The Epoch language project currently has the following dependencies:
+
+
+Microsoft Platform SDK
+----------------------
+
+The latest version should always work.
+http://www.microsoft.com/
+
+
+
+Boost
+-----
+
+Version 1.51.0
+http://www.boost.org/
+
+
+
+LLVM
+----
+
+Version 3.2
+http://www.llvm.org/
+

@@ -1,0 +1,472 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Entry Point">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Precompiled Header">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hpp;hxx;hm;inl;inc;xsd</Extensions>
+    </Filter>
+    <Filter Include="Exports">
+      <UniqueIdentifier>{eb4eaeda-0221-4cac-803c-cb6cfcc9ffb0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shared">
+      <UniqueIdentifier>{4c79ae90-c1a4-4938-aec2-8385af35fa8e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shared\Bytecode">
+      <UniqueIdentifier>{0403739f-dac3-4cd9-af1d-69b0608077c6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shared\Utility">
+      <UniqueIdentifier>{9b5b91a6-6e99-4018-a675-bbd0ec6f2170}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shared\Utility\Types">
+      <UniqueIdentifier>{af2ecb60-0fe3-49d9-bb17-e8753d9914ea}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shared\Utility\Files and Paths">
+      <UniqueIdentifier>{ac4afd0e-b45c-40e5-a687-c528a219bc76}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shared\Utility\Threading">
+      <UniqueIdentifier>{32fbdd92-a091-46d7-b84c-84054d8dded9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shared\Utility\Memory">
+      <UniqueIdentifier>{f4295d5e-45d7-4dc0-a87a-139c2c20fe9e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shared\Metadata">
+      <UniqueIdentifier>{772b8549-e253-49bd-8c5f-23254f361dc6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shared\Libraries">
+      <UniqueIdentifier>{29bfa9e8-1dc4-44a5-beb5-b83f270a4dec}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shared\User Interface">
+      <UniqueIdentifier>{93879983-6484-46a2-a572-26136bbf9f10}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Compiler">
+      <UniqueIdentifier>{596b0712-5a80-4d94-a1dc-57a7430bbee7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Compiler\Abstract Syntax Tree">
+      <UniqueIdentifier>{4251fa2c-be65-40c6-b4b0-8d0fd812eae4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Compiler\Intermediate Representations">
+      <UniqueIdentifier>{c5c3eb36-baef-4348-a3bd-cf68ba2b0e41}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Compiler\Intermediate Representations\Semantic Validation">
+      <UniqueIdentifier>{35af0dd0-27d7-4d00-8f19-b5bb54043f57}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Compiler\Passes">
+      <UniqueIdentifier>{0bc8bb8e-a549-4996-92d3-7d30fbafb846}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Parser">
+      <UniqueIdentifier>{8232193b-a335-45f0-946b-8cd61bf798a2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Lexer">
+      <UniqueIdentifier>{957e41b7-8e95-4506-8e33-ed139b681ef4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Compiler\Self Hosting Plugins">
+      <UniqueIdentifier>{c2d21921-a567-4cce-a00b-d002d74a3198}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Entry Point\EntryPoint.cpp">
+      <Filter>Entry Point</Filter>
+    </ClCompile>
+    <ClCompile Include="pch.cpp">
+      <Filter>Precompiled Header</Filter>
+    </ClCompile>
+    <ClCompile Include="Exports\Exports.cpp">
+      <Filter>Exports</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Shared\Utility\DLLPool.cpp">
+      <Filter>Shared\Utility</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Shared\Utility\Profiling.cpp">
+      <Filter>Shared\Utility</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Shared\Utility\StringPool.cpp">
+      <Filter>Shared\Utility</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Shared\Utility\Strings.cpp">
+      <Filter>Shared\Utility</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Shared\Utility\Files\FilesAndPaths.cpp">
+      <Filter>Shared\Utility\Files and Paths</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Shared\Utility\Threading\Synchronization.cpp">
+      <Filter>Shared\Utility\Threading</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Shared\Utility\Memory\OneWayAllocator.cpp">
+      <Filter>Shared\Utility\Memory</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Shared\Metadata\FunctionSignature.cpp">
+      <Filter>Shared\Metadata</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Shared\Metadata\ScopeDescription.cpp">
+      <Filter>Shared\Metadata</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Shared\Metadata\StructureDefinition.cpp">
+      <Filter>Shared\Metadata</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Shared\User Interface\Input.cpp">
+      <Filter>Shared\User Interface</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Shared\User Interface\Output.cpp">
+      <Filter>Shared\User Interface</Filter>
+    </ClCompile>
+    <ClCompile Include="Compiler\ByteCodeEmitter.cpp">
+      <Filter>Compiler</Filter>
+    </ClCompile>
+    <ClCompile Include="Compiler\Session.cpp">
+      <Filter>Compiler</Filter>
+    </ClCompile>
+    <ClCompile Include="Compiler\Abstract Syntax Tree\RefCounting.cpp">
+      <Filter>Compiler\Abstract Syntax Tree</Filter>
+    </ClCompile>
+    <ClCompile Include="Compiler\Intermediate Representations\Semantic Validation\Assignment.cpp">
+      <Filter>Compiler\Intermediate Representations\Semantic Validation</Filter>
+    </ClCompile>
+    <ClCompile Include="Compiler\Intermediate Representations\Semantic Validation\CodeBlock.cpp">
+      <Filter>Compiler\Intermediate Representations\Semantic Validation</Filter>
+    </ClCompile>
+    <ClCompile Include="Compiler\Intermediate Representations\Semantic Validation\Entity.cpp">
+      <Filter>Compiler\Intermediate Representations\Semantic Validation</Filter>
+    </ClCompile>
+    <ClCompile Include="Compiler\Intermediate Representations\Semantic Validation\Expression.cpp">
+      <Filter>Compiler\Intermediate Representations\Semantic Validation</Filter>
+    </ClCompile>
+    <ClCompile Include="Compiler\Intermediate Representations\Semantic Validation\Function.cpp">
+      <Filter>Compiler\Intermediate Representations\Semantic Validation</Filter>
+    </ClCompile>
+    <ClCompile Include="Compiler\Intermediate Representations\Semantic Validation\Helpers.cpp">
+      <Filter>Compiler\Intermediate Representations\Semantic Validation</Filter>
+    </ClCompile>
+    <ClCompile Include="Compiler\Intermediate Representations\Semantic Validation\Program.cpp">
+      <Filter>Compiler\Intermediate Representations\Semantic Validation</Filter>
+    </ClCompile>
+    <ClCompile Include="Compiler\Intermediate Representations\Semantic Validation\Statement.cpp">
+      <Filter>Compiler\Intermediate Representations\Semantic Validation</Filter>
+    </ClCompile>
+    <ClCompile Include="Compiler\Intermediate Representations\Semantic Validation\Structure.cpp">
+      <Filter>Compiler\Intermediate Representations\Semantic Validation</Filter>
+    </ClCompile>
+    <ClCompile Include="Compiler\Passes\CodeGeneration.cpp">
+      <Filter>Compiler\Passes</Filter>
+    </ClCompile>
+    <ClCompile Include="Compiler\Passes\SemanticValidation.cpp">
+      <Filter>Compiler\Passes</Filter>
+    </ClCompile>
+    <ClCompile Include="Parser\CodeBlockGrammar.cpp">
+      <Filter>Parser</Filter>
+    </ClCompile>
+    <ClCompile Include="Parser\EntityGrammar.cpp">
+      <Filter>Parser</Filter>
+    </ClCompile>
+    <ClCompile Include="Parser\ExpressionGrammar.cpp">
+      <Filter>Parser</Filter>
+    </ClCompile>
+    <ClCompile Include="Parser\FunctionDefinitionGrammar.cpp">
+      <Filter>Parser</Filter>
+    </ClCompile>
+    <ClCompile Include="Parser\GlobalGrammar.cpp">
+      <Filter>Parser</Filter>
+    </ClCompile>
+    <ClCompile Include="Parser\LiteralGrammar.cpp">
+      <Filter>Parser</Filter>
+    </ClCompile>
+    <ClCompile Include="Parser\Parser.cpp">
+      <Filter>Parser</Filter>
+    </ClCompile>
+    <ClCompile Include="Compiler\CompileErrors.cpp">
+      <Filter>Compiler</Filter>
+    </ClCompile>
+    <ClCompile Include="Compiler\Intermediate Representations\Semantic Validation\TypeSpace.cpp">
+      <Filter>Compiler\Intermediate Representations\Semantic Validation</Filter>
+    </ClCompile>
+    <ClCompile Include="Compiler\Intermediate Representations\Semantic Validation\Namespace.cpp">
+      <Filter>Compiler\Intermediate Representations\Semantic Validation</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Shared\Metadata\TypeInfo.cpp">
+      <Filter>Shared\Metadata</Filter>
+    </ClCompile>
+    <ClCompile Include="Compiler\Passes\ParseCallbacks.cpp">
+      <Filter>Compiler\Passes</Filter>
+    </ClCompile>
+    <ClCompile Include="Compiler\Passes\Optimization.cpp">
+      <Filter>Compiler\Passes</Filter>
+    </ClCompile>
+    <ClCompile Include="Compiler\Self Hosting Plugins\Plugin.cpp">
+      <Filter>Compiler\Self Hosting Plugins</Filter>
+    </ClCompile>
+    <ClCompile Include="Compiler\Self Hosting Plugins\SelfHostCodeGen.cpp">
+      <Filter>Compiler\Self Hosting Plugins</Filter>
+    </ClCompile>
+    <ClCompile Include="Compiler\Passes\ASTPlugin.cpp">
+      <Filter>Compiler\Passes</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="pch.h">
+      <Filter>Precompiled Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Compiler\ExportDef.h">
+      <Filter>Exports</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Shared\Bytecode\EntityTags.h">
+      <Filter>Shared\Bytecode</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Shared\Bytecode\Instructions.h">
+      <Filter>Shared\Bytecode</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Shared\Utility\DLLPool.h">
+      <Filter>Shared\Utility</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Shared\Utility\Exception.h">
+      <Filter>Shared\Utility</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Shared\Utility\Profiling.h">
+      <Filter>Shared\Utility</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Shared\Utility\StringPool.h">
+      <Filter>Shared\Utility</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Shared\Utility\Strings.h">
+      <Filter>Shared\Utility</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Shared\Utility\Types\EpochTypeIDs.h">
+      <Filter>Shared\Utility\Types</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Shared\Utility\Types\IDTypes.h">
+      <Filter>Shared\Utility\Types</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Shared\Utility\Types\IntegerTypes.h">
+      <Filter>Shared\Utility\Types</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Shared\Utility\Types\RealTypes.h">
+      <Filter>Shared\Utility\Types</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Shared\Utility\Files\FilesAndPaths.h">
+      <Filter>Shared\Utility\Files and Paths</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Shared\Utility\Threading\Synchronization.h">
+      <Filter>Shared\Utility\Threading</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Shared\Utility\Memory\OneWayAllocator.h">
+      <Filter>Shared\Utility\Memory</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Shared\Metadata\ActiveStructure.h">
+      <Filter>Shared\Metadata</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Shared\Metadata\CompileTimeParams.h">
+      <Filter>Shared\Metadata</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Shared\Metadata\EntityDescription.h">
+      <Filter>Shared\Metadata</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Shared\Metadata\FunctionSignature.h">
+      <Filter>Shared\Metadata</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Shared\Metadata\Precedences.h">
+      <Filter>Shared\Metadata</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Shared\Metadata\ScopeDescription.h">
+      <Filter>Shared\Metadata</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Shared\Metadata\StructureDefinition.h">
+      <Filter>Shared\Metadata</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Shared\Libraries\Library.h">
+      <Filter>Shared\Libraries</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Shared\User Interface\Input.h">
+      <Filter>Shared\User Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Shared\User Interface\Output.h">
+      <Filter>Shared\User Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="Compiler\Exceptions.h">
+      <Filter>Compiler</Filter>
+    </ClInclude>
+    <ClInclude Include="Compiler\Session.h">
+      <Filter>Compiler</Filter>
+    </ClInclude>
+    <ClInclude Include="Compiler\Abstract Syntax Tree\AnyStatement.h">
+      <Filter>Compiler\Abstract Syntax Tree</Filter>
+    </ClInclude>
+    <ClInclude Include="Compiler\Abstract Syntax Tree\Assignment.h">
+      <Filter>Compiler\Abstract Syntax Tree</Filter>
+    </ClInclude>
+    <ClInclude Include="Compiler\Abstract Syntax Tree\ASTTraversal.h">
+      <Filter>Compiler\Abstract Syntax Tree</Filter>
+    </ClInclude>
+    <ClInclude Include="Compiler\Abstract Syntax Tree\CodeBlock.h">
+      <Filter>Compiler\Abstract Syntax Tree</Filter>
+    </ClInclude>
+    <ClInclude Include="Compiler\Abstract Syntax Tree\DeferredNode.h">
+      <Filter>Compiler\Abstract Syntax Tree</Filter>
+    </ClInclude>
+    <ClInclude Include="Compiler\Abstract Syntax Tree\Entities.h">
+      <Filter>Compiler\Abstract Syntax Tree</Filter>
+    </ClInclude>
+    <ClInclude Include="Compiler\Abstract Syntax Tree\Expression.h">
+      <Filter>Compiler\Abstract Syntax Tree</Filter>
+    </ClInclude>
+    <ClInclude Include="Compiler\Abstract Syntax Tree\Forwards.h">
+      <Filter>Compiler\Abstract Syntax Tree</Filter>
+    </ClInclude>
+    <ClInclude Include="Compiler\Abstract Syntax Tree\Function.h">
+      <Filter>Compiler\Abstract Syntax Tree</Filter>
+    </ClInclude>
+    <ClInclude Include="Compiler\Abstract Syntax Tree\FunctionParameter.h">
+      <Filter>Compiler\Abstract Syntax Tree</Filter>
+    </ClInclude>
+    <ClInclude Include="Compiler\Abstract Syntax Tree\Identifiers.h">
+      <Filter>Compiler\Abstract Syntax Tree</Filter>
+    </ClInclude>
+    <ClInclude Include="Compiler\Abstract Syntax Tree\Literals.h">
+      <Filter>Compiler\Abstract Syntax Tree</Filter>
+    </ClInclude>
+    <ClInclude Include="Compiler\Abstract Syntax Tree\NoThrows.h">
+      <Filter>Compiler\Abstract Syntax Tree</Filter>
+    </ClInclude>
+    <ClInclude Include="Compiler\Abstract Syntax Tree\OptionalIdentifier.h">
+      <Filter>Compiler\Abstract Syntax Tree</Filter>
+    </ClInclude>
+    <ClInclude Include="Compiler\Abstract Syntax Tree\Parenthetical.h">
+      <Filter>Compiler\Abstract Syntax Tree</Filter>
+    </ClInclude>
+    <ClInclude Include="Compiler\Abstract Syntax Tree\Program.h">
+      <Filter>Compiler\Abstract Syntax Tree</Filter>
+    </ClInclude>
+    <ClInclude Include="Compiler\Abstract Syntax Tree\RefCounting.h">
+      <Filter>Compiler\Abstract Syntax Tree</Filter>
+    </ClInclude>
+    <ClInclude Include="Compiler\Abstract Syntax Tree\Statement.h">
+      <Filter>Compiler\Abstract Syntax Tree</Filter>
+    </ClInclude>
+    <ClInclude Include="Compiler\Abstract Syntax Tree\Structures.h">
+      <Filter>Compiler\Abstract Syntax Tree</Filter>
+    </ClInclude>
+    <ClInclude Include="Compiler\Abstract Syntax Tree\Undefined.h">
+      <Filter>Compiler\Abstract Syntax Tree</Filter>
+    </ClInclude>
+    <ClInclude Include="Compiler\Intermediate Representations\Semantic Validation\Assignment.h">
+      <Filter>Compiler\Intermediate Representations\Semantic Validation</Filter>
+    </ClInclude>
+    <ClInclude Include="Compiler\Intermediate Representations\Semantic Validation\CodeBlock.h">
+      <Filter>Compiler\Intermediate Representations\Semantic Validation</Filter>
+    </ClInclude>
+    <ClInclude Include="Compiler\Intermediate Representations\Semantic Validation\Entity.h">
+      <Filter>Compiler\Intermediate Representations\Semantic Validation</Filter>
+    </ClInclude>
+    <ClInclude Include="Compiler\Intermediate Representations\Semantic Validation\Expression.h">
+      <Filter>Compiler\Intermediate Representations\Semantic Validation</Filter>
+    </ClInclude>
+    <ClInclude Include="Compiler\Intermediate Representations\Semantic Validation\Function.h">
+      <Filter>Compiler\Intermediate Representations\Semantic Validation</Filter>
+    </ClInclude>
+    <ClInclude Include="Compiler\Intermediate Representations\Semantic Validation\Helpers.h">
+      <Filter>Compiler\Intermediate Representations\Semantic Validation</Filter>
+    </ClInclude>
+    <ClInclude Include="Compiler\Intermediate Representations\Semantic Validation\InferenceContext.h">
+      <Filter>Compiler\Intermediate Representations\Semantic Validation</Filter>
+    </ClInclude>
+    <ClInclude Include="Compiler\Intermediate Representations\Semantic Validation\Program.h">
+      <Filter>Compiler\Intermediate Representations\Semantic Validation</Filter>
+    </ClInclude>
+    <ClInclude Include="Compiler\Intermediate Representations\Semantic Validation\Statement.h">
+      <Filter>Compiler\Intermediate Representations\Semantic Validation</Filter>
+    </ClInclude>
+    <ClInclude Include="Compiler\Intermediate Representations\Semantic Validation\Structure.h">
+      <Filter>Compiler\Intermediate Representations\Semantic Validation</Filter>
+    </ClInclude>
+    <ClInclude Include="Compiler\Passes\CodeGeneration.h">
+      <Filter>Compiler\Passes</Filter>
+    </ClInclude>
+    <ClInclude Include="Compiler\Passes\SemanticValidation.h">
+      <Filter>Compiler\Passes</Filter>
+    </ClInclude>
+    <ClInclude Include="Parser\CodeBlockGrammar.h">
+      <Filter>Parser</Filter>
+    </ClInclude>
+    <ClInclude Include="Parser\EntityGrammar.h">
+      <Filter>Parser</Filter>
+    </ClInclude>
+    <ClInclude Include="Parser\ExpressionGrammar.h">
+      <Filter>Parser</Filter>
+    </ClInclude>
+    <ClInclude Include="Parser\FunctionDefinitionGrammar.h">
+      <Filter>Parser</Filter>
+    </ClInclude>
+    <ClInclude Include="Parser\GlobalGrammar.h">
+      <Filter>Parser</Filter>
+    </ClInclude>
+    <ClInclude Include="Parser\Grammars.h">
+      <Filter>Parser</Filter>
+    </ClInclude>
+    <ClInclude Include="Parser\LiteralGrammar.h">
+      <Filter>Parser</Filter>
+    </ClInclude>
+    <ClInclude Include="Parser\OperatorGrammar.h">
+      <Filter>Parser</Filter>
+    </ClInclude>
+    <ClInclude Include="Parser\Parser.h">
+      <Filter>Parser</Filter>
+    </ClInclude>
+    <ClInclude Include="Lexer\AdaptTokenDirective.h">
+      <Filter>Lexer</Filter>
+    </ClInclude>
+    <ClInclude Include="Lexer\Lexer.h">
+      <Filter>Lexer</Filter>
+    </ClInclude>
+    <ClInclude Include="Compiler\CompileErrors.h">
+      <Filter>Compiler</Filter>
+    </ClInclude>
+    <ClInclude Include="Compiler\Abstract Syntax Tree\IdentifierT.h">
+      <Filter>Compiler\Abstract Syntax Tree</Filter>
+    </ClInclude>
+    <ClInclude Include="Compiler\Abstract Syntax Tree\TypeDefinitions.h">
+      <Filter>Compiler\Abstract Syntax Tree</Filter>
+    </ClInclude>
+    <ClInclude Include="Compiler\Abstract Syntax Tree\Templates.h">
+      <Filter>Compiler\Abstract Syntax Tree</Filter>
+    </ClInclude>
+    <ClInclude Include="Compiler\Intermediate Representations\Semantic Validation\TypeSpace.h">
+      <Filter>Compiler\Intermediate Representations\Semantic Validation</Filter>
+    </ClInclude>
+    <ClInclude Include="Compiler\Intermediate Representations\Semantic Validation\Namespace.h">
+      <Filter>Compiler\Intermediate Representations\Semantic Validation</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Shared\Metadata\TypeInfo.h">
+      <Filter>Shared\Metadata</Filter>
+    </ClInclude>
+    <ClInclude Include="Compiler\Passes\ParseCallbacks.h">
+      <Filter>Compiler\Passes</Filter>
+    </ClInclude>
+    <ClInclude Include="Compiler\ByteCodeEmitter.h">
+      <Filter>Compiler</Filter>
+    </ClInclude>
+    <ClInclude Include="Compiler\Passes\Optimization.h">
+      <Filter>Compiler\Passes</Filter>
+    </ClInclude>
+    <ClInclude Include="Compiler\Self Hosting Plugins\Plugin.h">
+      <Filter>Compiler\Self Hosting Plugins</Filter>
+    </ClInclude>
+    <ClInclude Include="Compiler\Self Hosting Plugins\SelfHostCodeGen.h">
+      <Filter>Compiler\Self Hosting Plugins</Filter>
+    </ClInclude>
+    <ClInclude Include="Compiler\Passes\ASTPlugin.h">
+      <Filter>Compiler\Passes</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Exports\Exports.def">
+      <Filter>Exports</Filter>
+    </None>
+    <None Include="..\Shared\User Interface\OutputStream.inl">
+      <Filter>Shared\User Interface</Filter>
+    </None>
+    <None Include="Lexer\Lexer.inl">
+      <Filter>Lexer</Filter>
+    </None>
+  </ItemGroup>
+</Project>

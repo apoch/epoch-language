@@ -1,0 +1,105 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Exports">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Entry Point">
+      <UniqueIdentifier>{361de43e-c33c-45af-947a-61b5b549954b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Precompiled Header">
+      <UniqueIdentifier>{ec184b43-3160-4a51-aa5f-1822b96fa42c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Factory">
+      <UniqueIdentifier>{1208762f-c885-436e-b3b5-2626cba49932}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Scintilla">
+      <UniqueIdentifier>{6e30680f-0bb0-4ec7-a567-aa0b9dc4644c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Lexer">
+      <UniqueIdentifier>{6c831ee2-d294-49a7-bb42-098c8c2c8c48}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Syntax Highlighting">
+      <UniqueIdentifier>{9e40a1dd-b982-4999-afed-34c1f823b005}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Exports.cpp">
+      <Filter>Exports</Filter>
+    </ClCompile>
+    <ClCompile Include="EntryPoint.cpp">
+      <Filter>Entry Point</Filter>
+    </ClCompile>
+    <ClCompile Include="pch.cpp">
+      <Filter>Precompiled Header</Filter>
+    </ClCompile>
+    <ClCompile Include="Factory.cpp">
+      <Filter>Factory</Filter>
+    </ClCompile>
+    <ClCompile Include="Scintilla\Accessor.cxx">
+      <Filter>Scintilla</Filter>
+    </ClCompile>
+    <ClCompile Include="Scintilla\PropSetSimple.cxx">
+      <Filter>Scintilla</Filter>
+    </ClCompile>
+    <ClCompile Include="Scintilla\StyleContext.cxx">
+      <Filter>Scintilla</Filter>
+    </ClCompile>
+    <ClCompile Include="Scintilla\WordList.cxx">
+      <Filter>Scintilla</Filter>
+    </ClCompile>
+    <ClCompile Include="Lexer.cpp">
+      <Filter>Lexer</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Exports.def">
+      <Filter>Exports</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="pch.h">
+      <Filter>Precompiled Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Factory.h">
+      <Filter>Factory</Filter>
+    </ClInclude>
+    <ClInclude Include="Scintilla\Accessor.h">
+      <Filter>Scintilla</Filter>
+    </ClInclude>
+    <ClInclude Include="Scintilla\ILexer.h">
+      <Filter>Scintilla</Filter>
+    </ClInclude>
+    <ClInclude Include="Scintilla\LexAccessor.h">
+      <Filter>Scintilla</Filter>
+    </ClInclude>
+    <ClInclude Include="Scintilla\Platform.h">
+      <Filter>Scintilla</Filter>
+    </ClInclude>
+    <ClInclude Include="Scintilla\PropSetSimple.h">
+      <Filter>Scintilla</Filter>
+    </ClInclude>
+    <ClInclude Include="Scintilla\SciLexer.h">
+      <Filter>Scintilla</Filter>
+    </ClInclude>
+    <ClInclude Include="Scintilla\Scintilla.h">
+      <Filter>Scintilla</Filter>
+    </ClInclude>
+    <ClInclude Include="Scintilla\ScintillaWidget.h">
+      <Filter>Scintilla</Filter>
+    </ClInclude>
+    <ClInclude Include="Scintilla\StyleContext.h">
+      <Filter>Scintilla</Filter>
+    </ClInclude>
+    <ClInclude Include="Scintilla\WordList.h">
+      <Filter>Scintilla</Filter>
+    </ClInclude>
+    <ClInclude Include="Lexer.h">
+      <Filter>Lexer</Filter>
+    </ClInclude>
+    <ClInclude Include="SyntaxHighlighting.h">
+      <Filter>Syntax Highlighting</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>

@@ -1,0 +1,280 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Entry Point">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Precompiled Header">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hpp;hxx;hm;inl;inc;xsd</Extensions>
+    </Filter>
+    <Filter Include="Exports">
+      <UniqueIdentifier>{dc4ccf27-7a9d-4ed9-8ee6-71b580621ea2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Library Functionality">
+      <UniqueIdentifier>{df547460-f0bc-4f8a-8ae2-d6d40c163718}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Library Functionality\Debugging">
+      <UniqueIdentifier>{1c045481-9578-4d97-8eed-d68181141a54}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Library Functionality\Type Constructors">
+      <UniqueIdentifier>{46dc1433-a36e-43e4-8fb3-684c14c6e916}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Library Functionality\Type Casting">
+      <UniqueIdentifier>{130bd6d8-e693-4e13-8a18-e62ecac1a687}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Library Functionality\Operators">
+      <UniqueIdentifier>{f753c0b0-edea-4eb2-8169-d1be30537968}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Library Functionality\Flow Control">
+      <UniqueIdentifier>{9f057fb0-85be-49fa-8fc5-1d362def6884}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Library Functionality\Function Tags">
+      <UniqueIdentifier>{4cca0c88-800a-48a8-bdca-f96bec751330}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Library Functionality\Marshaling">
+      <UniqueIdentifier>{4fc48f50-e939-442b-8799-9f523d69cb1a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Library Functionality\Command Line">
+      <UniqueIdentifier>{1128dcee-a9e0-4345-92c8-2b5e7134017c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Library Functionality\Strings">
+      <UniqueIdentifier>{a70e1c92-2bdb-4249-adf9-e89a7606819b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shared">
+      <UniqueIdentifier>{6101ccbb-d803-45d5-bc6a-f8730987d3e6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shared\Libraries">
+      <UniqueIdentifier>{3308a2b3-fdfa-4156-8c3c-167c4b94d068}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shared\Utility">
+      <UniqueIdentifier>{d259dbe9-823a-4591-a2b8-665f36c08a24}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shared\Utility\Threading">
+      <UniqueIdentifier>{b916ee69-5b48-42c1-92b5-c5a5ec0a391a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shared\User Interface">
+      <UniqueIdentifier>{0e366755-cd1c-4d6f-8b82-56198d7de071}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shared\Metadata">
+      <UniqueIdentifier>{8fc41299-e4b7-4559-aec8-a8e6529ac08f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Compiler Dependencies">
+      <UniqueIdentifier>{7b2f4871-1458-47be-9e82-c333435f68cb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Runtime Linkage">
+      <UniqueIdentifier>{7e0a3ec5-b5c9-4edb-a9c0-8857bd9e6f5e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Runtime Linkage\Runtime">
+      <UniqueIdentifier>{2a87aca0-3c38-478c-a041-83866931d060}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="EntryPoint.cpp">
+      <Filter>Entry Point</Filter>
+    </ClCompile>
+    <ClCompile Include="pch.cpp">
+      <Filter>Precompiled Header</Filter>
+    </ClCompile>
+    <ClCompile Include="Exports\Exports.cpp">
+      <Filter>Exports</Filter>
+    </ClCompile>
+    <ClCompile Include="Library Functionality\Debugging\Debugging.cpp">
+      <Filter>Library Functionality\Debugging</Filter>
+    </ClCompile>
+    <ClCompile Include="Library Functionality\Type Constructors\Primitives.cpp">
+      <Filter>Library Functionality\Type Constructors</Filter>
+    </ClCompile>
+    <ClCompile Include="Library Functionality\Type Casting\Typecasts.cpp">
+      <Filter>Library Functionality\Type Casting</Filter>
+    </ClCompile>
+    <ClCompile Include="Library Functionality\Operators\Arithmetic.cpp">
+      <Filter>Library Functionality\Operators</Filter>
+    </ClCompile>
+    <ClCompile Include="Library Functionality\Operators\Boolean.cpp">
+      <Filter>Library Functionality\Operators</Filter>
+    </ClCompile>
+    <ClCompile Include="Library Functionality\Operators\Comparison.cpp">
+      <Filter>Library Functionality\Operators</Filter>
+    </ClCompile>
+    <ClCompile Include="Library Functionality\Operators\Strings.cpp">
+      <Filter>Library Functionality\Operators</Filter>
+    </ClCompile>
+    <ClCompile Include="Library Functionality\Flow Control\Conditionals.cpp">
+      <Filter>Library Functionality\Flow Control</Filter>
+    </ClCompile>
+    <ClCompile Include="Library Functionality\Flow Control\Loops.cpp">
+      <Filter>Library Functionality\Flow Control</Filter>
+    </ClCompile>
+    <ClCompile Include="Library Functionality\Flow Control\StringPooling.cpp">
+      <Filter>Library Functionality\Flow Control</Filter>
+    </ClCompile>
+    <ClCompile Include="Library Functionality\Function Tags\Constructors.cpp">
+      <Filter>Library Functionality\Function Tags</Filter>
+    </ClCompile>
+    <ClCompile Include="Library Functionality\Function Tags\Externals.cpp">
+      <Filter>Library Functionality\Function Tags</Filter>
+    </ClCompile>
+    <ClCompile Include="Library Functionality\Command Line\CommandLine.cpp">
+      <Filter>Library Functionality\Command Line</Filter>
+    </ClCompile>
+    <ClCompile Include="Library Functionality\Strings\Strings.cpp">
+      <Filter>Library Functionality\Strings</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Shared\Utility\DLLPool.cpp">
+      <Filter>Shared\Utility</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Shared\Utility\StringPool.cpp">
+      <Filter>Shared\Utility</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Shared\Utility\Strings.cpp">
+      <Filter>Shared\Utility</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Shared\Utility\Threading\Synchronization.cpp">
+      <Filter>Shared\Utility\Threading</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Shared\User Interface\Input.cpp">
+      <Filter>Shared\User Interface</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Shared\User Interface\Output.cpp">
+      <Filter>Shared\User Interface</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Shared\Metadata\FunctionSignature.cpp">
+      <Filter>Shared\Metadata</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Shared\Metadata\ScopeDescription.cpp">
+      <Filter>Shared\Metadata</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Shared\Metadata\StructureDefinition.cpp">
+      <Filter>Shared\Metadata</Filter>
+    </ClCompile>
+    <ClCompile Include="..\EpochCompiler\Compiler\CompileErrors.cpp">
+      <Filter>Compiler Dependencies</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Shared\Metadata\TypeInfo.cpp">
+      <Filter>Shared\Metadata</Filter>
+    </ClCompile>
+    <ClCompile Include="Library Functionality\Marshaling\MarshalingLibrary.cpp">
+      <Filter>Library Functionality\Marshaling</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="pch.h">
+      <Filter>Precompiled Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Library Functionality\Debugging\Debugging.h">
+      <Filter>Library Functionality\Debugging</Filter>
+    </ClInclude>
+    <ClInclude Include="Library Functionality\Type Constructors\Primitives.h">
+      <Filter>Library Functionality\Type Constructors</Filter>
+    </ClInclude>
+    <ClInclude Include="Library Functionality\Type Casting\Typecasts.h">
+      <Filter>Library Functionality\Type Casting</Filter>
+    </ClInclude>
+    <ClInclude Include="Library Functionality\Operators\Arithmetic.h">
+      <Filter>Library Functionality\Operators</Filter>
+    </ClInclude>
+    <ClInclude Include="Library Functionality\Operators\Boolean.h">
+      <Filter>Library Functionality\Operators</Filter>
+    </ClInclude>
+    <ClInclude Include="Library Functionality\Operators\Comparison.h">
+      <Filter>Library Functionality\Operators</Filter>
+    </ClInclude>
+    <ClInclude Include="Library Functionality\Operators\Strings.h">
+      <Filter>Library Functionality\Operators</Filter>
+    </ClInclude>
+    <ClInclude Include="Library Functionality\Flow Control\Conditionals.h">
+      <Filter>Library Functionality\Flow Control</Filter>
+    </ClInclude>
+    <ClInclude Include="Library Functionality\Flow Control\Loops.h">
+      <Filter>Library Functionality\Flow Control</Filter>
+    </ClInclude>
+    <ClInclude Include="Library Functionality\Flow Control\StringPooling.h">
+      <Filter>Library Functionality\Flow Control</Filter>
+    </ClInclude>
+    <ClInclude Include="Library Functionality\Function Tags\Constructors.h">
+      <Filter>Library Functionality\Function Tags</Filter>
+    </ClInclude>
+    <ClInclude Include="Library Functionality\Function Tags\Externals.h">
+      <Filter>Library Functionality\Function Tags</Filter>
+    </ClInclude>
+    <ClInclude Include="Library Functionality\Marshaling\MarshalingLibrary.h">
+      <Filter>Library Functionality\Marshaling</Filter>
+    </ClInclude>
+    <ClInclude Include="Library Functionality\Command Line\CommandLine.h">
+      <Filter>Library Functionality\Command Line</Filter>
+    </ClInclude>
+    <ClInclude Include="Library Functionality\Strings\Strings.h">
+      <Filter>Library Functionality\Strings</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Shared\Utility\DLLPool.h">
+      <Filter>Shared\Utility</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Shared\Utility\Exception.h">
+      <Filter>Shared\Utility</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Shared\Utility\NoDupeMap.h">
+      <Filter>Shared\Utility</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Shared\Utility\StringPool.h">
+      <Filter>Shared\Utility</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Shared\Utility\Strings.h">
+      <Filter>Shared\Utility</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Shared\Utility\Threading\Synchronization.h">
+      <Filter>Shared\Utility\Threading</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Shared\User Interface\Input.h">
+      <Filter>Shared\User Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Shared\User Interface\Output.h">
+      <Filter>Shared\User Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Shared\Metadata\CompileTimeParams.h">
+      <Filter>Shared\Metadata</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Shared\Metadata\EntityDescription.h">
+      <Filter>Shared\Metadata</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Shared\Metadata\FunctionSignature.h">
+      <Filter>Shared\Metadata</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Shared\Metadata\IdentifierTable.h">
+      <Filter>Shared\Metadata</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Shared\Metadata\ScopeDescription.h">
+      <Filter>Shared\Metadata</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Shared\Metadata\StructureDefinition.h">
+      <Filter>Shared\Metadata</Filter>
+    </ClInclude>
+    <ClInclude Include="..\EpochVM\Virtual Machine\Marshaling.h">
+      <Filter>Runtime Linkage\Runtime</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Shared\Libraries\LibraryJIT.h">
+      <Filter>Shared\Libraries</Filter>
+    </ClInclude>
+    <ClInclude Include="..\EpochCompiler\Compiler\CompileErrors.h">
+      <Filter>Compiler Dependencies</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Shared\Metadata\TypeInfo.h">
+      <Filter>Shared\Metadata</Filter>
+    </ClInclude>
+    <ClInclude Include="..\EpochRuntime\Runtime\Runtime.h">
+      <Filter>Runtime Linkage\Runtime</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Shared\Libraries\Library.h">
+      <Filter>Shared\Libraries</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Exports\Exports.def">
+      <Filter>Exports</Filter>
+    </None>
+    <None Include="..\Shared\User Interface\OutputStream.inl">
+      <Filter>Shared\User Interface</Filter>
+    </None>
+  </ItemGroup>
+</Project>

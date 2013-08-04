@@ -1,0 +1,246 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{1AFB3B3C-B2BE-4941-8EC3-E75F998A0B86}</ProjectGuid>
+    <RootNamespace>EpochCompiler</RootNamespace>
+    <Keyword>Win32Proj</Keyword>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <CharacterSet>Unicode</CharacterSet>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <_ProjectFileVersion>10.0.40219.1</_ProjectFileVersion>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">..\Bin\$(Configuration)\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">..\Build\$(ProjectName)$(Configuration)\</IntDir>
+    <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</LinkIncremental>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">..\Bin\$(Configuration)\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">..\Build\$(ProjectName)$(Configuration)\</IntDir>
+    <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</LinkIncremental>
+    <CodeAnalysisRuleSet Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">AllRules.ruleset</CodeAnalysisRuleSet>
+    <CodeAnalysisRules Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" />
+    <CodeAnalysisRuleAssemblies Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" />
+    <CodeAnalysisRuleSet Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">AllRules.ruleset</CodeAnalysisRuleSet>
+    <CodeAnalysisRules Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" />
+    <CodeAnalysisRuleAssemblies Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" />
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <AdditionalOptions>/Zm300 %(AdditionalOptions)</AdditionalOptions>
+      <Optimization>Disabled</Optimization>
+      <AdditionalIncludeDirectories>.\;..\Shared\;..\EpochVM\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_USRDLL;EPOCHCOMPILER_EXPORTS;BOOST_EXCEPTION_DISABLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <MinimalRebuild>false</MinimalRebuild>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <WarningLevel>Level4</WarningLevel>
+      <TreatWarningAsError>true</TreatWarningAsError>
+      <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+    </ClCompile>
+    <Link>
+      <ModuleDefinitionFile>Exports/Exports.def</ModuleDefinitionFile>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <SubSystem>Windows</SubSystem>
+      <TargetMachine>MachineX86</TargetMachine>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <AdditionalOptions>/Zm300 %(AdditionalOptions)</AdditionalOptions>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <AdditionalIncludeDirectories>.\;..\Shared\;..\EpochVM\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;EPOCHCOMPILER_EXPORTS;_SECURE_SCL=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <StringPooling>true</StringPooling>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <BufferSecurityCheck>false</BufferSecurityCheck>
+      <EnableEnhancedInstructionSet>StreamingSIMDExtensions</EnableEnhancedInstructionSet>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <WarningLevel>Level4</WarningLevel>
+      <TreatWarningAsError>true</TreatWarningAsError>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+    </ClCompile>
+    <Link>
+      <ModuleDefinitionFile>Exports/Exports.def</ModuleDefinitionFile>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <SubSystem>Windows</SubSystem>
+      <OptimizeReferences>true</OptimizeReferences>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <TargetMachine>MachineX86</TargetMachine>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="..\Shared\Metadata\TypeInfo.cpp" />
+    <ClCompile Include="Compiler\CompileErrors.cpp" />
+    <ClCompile Include="Compiler\Intermediate Representations\Semantic Validation\Namespace.cpp" />
+    <ClCompile Include="Compiler\Intermediate Representations\Semantic Validation\TypeSpace.cpp" />
+    <ClCompile Include="Compiler\Passes\ASTPlugin.cpp" />
+    <ClCompile Include="Compiler\Passes\Optimization.cpp" />
+    <ClCompile Include="Compiler\Passes\ParseCallbacks.cpp" />
+    <ClCompile Include="Compiler\Self Hosting Plugins\Plugin.cpp" />
+    <ClCompile Include="Compiler\Self Hosting Plugins\SelfHostCodeGen.cpp" />
+    <ClCompile Include="Entry Point\EntryPoint.cpp" />
+    <ClCompile Include="pch.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="Exports\Exports.cpp" />
+    <ClCompile Include="..\Shared\Utility\DLLPool.cpp" />
+    <ClCompile Include="..\Shared\Utility\Profiling.cpp" />
+    <ClCompile Include="..\Shared\Utility\StringPool.cpp" />
+    <ClCompile Include="..\Shared\Utility\Strings.cpp" />
+    <ClCompile Include="..\Shared\Utility\Files\FilesAndPaths.cpp" />
+    <ClCompile Include="..\Shared\Utility\Threading\Synchronization.cpp" />
+    <ClCompile Include="..\Shared\Utility\Memory\OneWayAllocator.cpp" />
+    <ClCompile Include="..\Shared\Metadata\FunctionSignature.cpp" />
+    <ClCompile Include="..\Shared\Metadata\ScopeDescription.cpp" />
+    <ClCompile Include="..\Shared\Metadata\StructureDefinition.cpp" />
+    <ClCompile Include="..\Shared\User Interface\Input.cpp" />
+    <ClCompile Include="..\Shared\User Interface\Output.cpp" />
+    <ClCompile Include="Compiler\ByteCodeEmitter.cpp" />
+    <ClCompile Include="Compiler\Session.cpp" />
+    <ClCompile Include="Compiler\Abstract Syntax Tree\RefCounting.cpp" />
+    <ClCompile Include="Compiler\Intermediate Representations\Semantic Validation\Assignment.cpp" />
+    <ClCompile Include="Compiler\Intermediate Representations\Semantic Validation\CodeBlock.cpp" />
+    <ClCompile Include="Compiler\Intermediate Representations\Semantic Validation\Entity.cpp" />
+    <ClCompile Include="Compiler\Intermediate Representations\Semantic Validation\Expression.cpp" />
+    <ClCompile Include="Compiler\Intermediate Representations\Semantic Validation\Function.cpp" />
+    <ClCompile Include="Compiler\Intermediate Representations\Semantic Validation\Helpers.cpp" />
+    <ClCompile Include="Compiler\Intermediate Representations\Semantic Validation\Program.cpp" />
+    <ClCompile Include="Compiler\Intermediate Representations\Semantic Validation\Statement.cpp" />
+    <ClCompile Include="Compiler\Intermediate Representations\Semantic Validation\Structure.cpp" />
+    <ClCompile Include="Compiler\Passes\CodeGeneration.cpp" />
+    <ClCompile Include="Compiler\Passes\SemanticValidation.cpp" />
+    <ClCompile Include="Parser\CodeBlockGrammar.cpp" />
+    <ClCompile Include="Parser\EntityGrammar.cpp" />
+    <ClCompile Include="Parser\ExpressionGrammar.cpp" />
+    <ClCompile Include="Parser\FunctionDefinitionGrammar.cpp" />
+    <ClCompile Include="Parser\GlobalGrammar.cpp" />
+    <ClCompile Include="Parser\LiteralGrammar.cpp" />
+    <ClCompile Include="Parser\Parser.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\Shared\Metadata\TypeInfo.h" />
+    <ClInclude Include="Compiler\Abstract Syntax Tree\IdentifierT.h" />
+    <ClInclude Include="Compiler\Abstract Syntax Tree\Templates.h" />
+    <ClInclude Include="Compiler\Abstract Syntax Tree\TypeDefinitions.h" />
+    <ClInclude Include="Compiler\CompileErrors.h" />
+    <ClInclude Include="Compiler\Intermediate Representations\Semantic Validation\Namespace.h" />
+    <ClInclude Include="Compiler\Intermediate Representations\Semantic Validation\TypeSpace.h" />
+    <ClInclude Include="Compiler\Passes\ASTPlugin.h" />
+    <ClInclude Include="Compiler\Passes\Optimization.h" />
+    <ClInclude Include="Compiler\Passes\ParseCallbacks.h" />
+    <ClInclude Include="Compiler\Self Hosting Plugins\Plugin.h" />
+    <ClInclude Include="Compiler\Self Hosting Plugins\SelfHostCodeGen.h" />
+    <ClInclude Include="pch.h" />
+    <ClInclude Include="Compiler\ExportDef.h" />
+    <ClInclude Include="..\Shared\Bytecode\EntityTags.h" />
+    <ClInclude Include="..\Shared\Bytecode\Instructions.h" />
+    <ClInclude Include="..\Shared\Utility\DLLPool.h" />
+    <ClInclude Include="..\Shared\Utility\Exception.h" />
+    <ClInclude Include="..\Shared\Utility\Profiling.h" />
+    <ClInclude Include="..\Shared\Utility\StringPool.h" />
+    <ClInclude Include="..\Shared\Utility\Strings.h" />
+    <ClInclude Include="..\Shared\Utility\Types\EpochTypeIDs.h" />
+    <ClInclude Include="..\Shared\Utility\Types\IDTypes.h" />
+    <ClInclude Include="..\Shared\Utility\Types\IntegerTypes.h" />
+    <ClInclude Include="..\Shared\Utility\Types\RealTypes.h" />
+    <ClInclude Include="..\Shared\Utility\Files\FilesAndPaths.h" />
+    <ClInclude Include="..\Shared\Utility\Threading\Synchronization.h" />
+    <ClInclude Include="..\Shared\Utility\Memory\OneWayAllocator.h" />
+    <ClInclude Include="..\Shared\Metadata\ActiveStructure.h" />
+    <ClInclude Include="..\Shared\Metadata\CompileTimeParams.h" />
+    <ClInclude Include="..\Shared\Metadata\EntityDescription.h" />
+    <ClInclude Include="..\Shared\Metadata\FunctionSignature.h" />
+    <ClInclude Include="..\Shared\Metadata\Precedences.h" />
+    <ClInclude Include="..\Shared\Metadata\ScopeDescription.h" />
+    <ClInclude Include="..\Shared\Metadata\StructureDefinition.h" />
+    <ClInclude Include="..\Shared\Libraries\Library.h" />
+    <ClInclude Include="..\Shared\User Interface\Input.h" />
+    <ClInclude Include="..\Shared\User Interface\Output.h" />
+    <ClInclude Include="Compiler\ByteCodeEmitter.h" />
+    <ClInclude Include="Compiler\Exceptions.h" />
+    <ClInclude Include="Compiler\Session.h" />
+    <ClInclude Include="Compiler\Abstract Syntax Tree\AnyStatement.h" />
+    <ClInclude Include="Compiler\Abstract Syntax Tree\Assignment.h" />
+    <ClInclude Include="Compiler\Abstract Syntax Tree\ASTTraversal.h" />
+    <ClInclude Include="Compiler\Abstract Syntax Tree\CodeBlock.h" />
+    <ClInclude Include="Compiler\Abstract Syntax Tree\DeferredNode.h" />
+    <ClInclude Include="Compiler\Abstract Syntax Tree\Entities.h" />
+    <ClInclude Include="Compiler\Abstract Syntax Tree\Expression.h" />
+    <ClInclude Include="Compiler\Abstract Syntax Tree\Forwards.h" />
+    <ClInclude Include="Compiler\Abstract Syntax Tree\Function.h" />
+    <ClInclude Include="Compiler\Abstract Syntax Tree\FunctionParameter.h" />
+    <ClInclude Include="Compiler\Abstract Syntax Tree\Identifiers.h" />
+    <ClInclude Include="Compiler\Abstract Syntax Tree\Literals.h" />
+    <ClInclude Include="Compiler\Abstract Syntax Tree\NoThrows.h" />
+    <ClInclude Include="Compiler\Abstract Syntax Tree\OptionalIdentifier.h" />
+    <ClInclude Include="Compiler\Abstract Syntax Tree\Parenthetical.h" />
+    <ClInclude Include="Compiler\Abstract Syntax Tree\Program.h" />
+    <ClInclude Include="Compiler\Abstract Syntax Tree\RefCounting.h" />
+    <ClInclude Include="Compiler\Abstract Syntax Tree\Statement.h" />
+    <ClInclude Include="Compiler\Abstract Syntax Tree\Structures.h" />
+    <ClInclude Include="Compiler\Abstract Syntax Tree\Undefined.h" />
+    <ClInclude Include="Compiler\Intermediate Representations\Semantic Validation\Assignment.h" />
+    <ClInclude Include="Compiler\Intermediate Representations\Semantic Validation\CodeBlock.h" />
+    <ClInclude Include="Compiler\Intermediate Representations\Semantic Validation\Entity.h" />
+    <ClInclude Include="Compiler\Intermediate Representations\Semantic Validation\Expression.h" />
+    <ClInclude Include="Compiler\Intermediate Representations\Semantic Validation\Function.h" />
+    <ClInclude Include="Compiler\Intermediate Representations\Semantic Validation\Helpers.h" />
+    <ClInclude Include="Compiler\Intermediate Representations\Semantic Validation\InferenceContext.h" />
+    <ClInclude Include="Compiler\Intermediate Representations\Semantic Validation\Program.h" />
+    <ClInclude Include="Compiler\Intermediate Representations\Semantic Validation\Statement.h" />
+    <ClInclude Include="Compiler\Intermediate Representations\Semantic Validation\Structure.h" />
+    <ClInclude Include="Compiler\Passes\CodeGeneration.h" />
+    <ClInclude Include="Compiler\Passes\SemanticValidation.h" />
+    <ClInclude Include="Parser\CodeBlockGrammar.h" />
+    <ClInclude Include="Parser\EntityGrammar.h" />
+    <ClInclude Include="Parser\ExpressionGrammar.h" />
+    <ClInclude Include="Parser\FunctionDefinitionGrammar.h" />
+    <ClInclude Include="Parser\GlobalGrammar.h" />
+    <ClInclude Include="Parser\Grammars.h" />
+    <ClInclude Include="Parser\LiteralGrammar.h" />
+    <ClInclude Include="Parser\OperatorGrammar.h" />
+    <ClInclude Include="Parser\Parser.h" />
+    <ClInclude Include="Lexer\AdaptTokenDirective.h" />
+    <ClInclude Include="Lexer\Lexer.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Exports\Exports.def" />
+    <None Include="..\Shared\User Interface\OutputStream.inl" />
+    <None Include="Lexer\Lexer.inl" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

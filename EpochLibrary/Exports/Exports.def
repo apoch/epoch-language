@@ -1,0 +1,28 @@
+LIBRARY	"EpochLibrary"
+EXPORTS
+	RegisterLibraryContents		@1
+	BindToRuntime				@2
+	BindToCompiler				@3
+	LinkToTestHarness			@4
+
+	EpochLib_Assert				@5
+	EpochLib_PassTest			@6
+	EpochLib_StringEq			@7
+	EpochLib_Print				@8
+	EpochLib_StrConcat			@9
+	EpochLib_StringIneq			@10
+	EpochLib_SubstrLen			@11
+	EpochLib_SubstrNoLen		@12
+	EpochLib_StrNarrow			@13
+	EpochLib_CastRealToStr		@14
+	EpochLib_Unescape			@15
+	EpochLib_IsCmdLineSane		@16
+	EpochLib_GetCmdLineCount	@17
+	EpochLib_GetCmdLineToken	@18
+	EpochLib_CastBufferToStr	@19
+	EpochLib_MarshalStructure   @20
+	EpochLib_StrLen				@21
+	EpochLib_CastIntegerToStr	@22
+	EpochLib_StrWideFromPtr		@23
+	EpochLib_StrWideFromBuffer  @24
+
