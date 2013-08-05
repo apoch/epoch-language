@@ -140,7 +140,7 @@ void CompileSession::EmitByteCode()
 		Plugins.InvokeVoidPluginFunction(L"PluginCodeGenProcessProgram");
 
 		const Byte* p = emitter.Buffer.GetPointer();
-		FinalByteCode.swap(std::vector<Byte>(p, p + emitter.Buffer.GetSize()));
+		std::vector<Byte>(p, p + emitter.Buffer.GetSize()).swap(FinalByteCode);
 	}
 	else
 	{
@@ -165,7 +165,7 @@ void CompileSession::EmitByteCode()
 		ByteCodeEmitter emitter(stream);
 		CompilerPasses::GenerateCode(*SemanticProgram, emitter);
 
-		FinalByteCode.swap(std::vector<Byte>(stream.GetPointer(), stream.GetPointer() + stream.GetSize()));
+		std::vector<Byte>(stream.GetPointer(), stream.GetPointer() + stream.GetSize()).swap(FinalByteCode);
 
 		timer.End();
 		output << L"finished in " << timer.GetTimeMs() << L"ms" << std::endl;
