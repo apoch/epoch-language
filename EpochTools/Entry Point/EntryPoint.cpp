@@ -25,6 +25,7 @@
 #include <vector>
 #include <fstream>
 
+#include <boost/filesystem.hpp>
 
 // Prototypes
 namespace
@@ -157,6 +158,8 @@ int _tmain(int argc, _TCHAR* argv[])
 						size_t size = compileraccess.GetByteCodeSize(bytecodebufferhandle);
 
 						std::wstring intermediatefile = project.GetBinaryFileName(*iter);
+						boost::filesystem::create_directories(boost::filesystem::path(intermediatefile).parent_path());
+
 						std::ofstream outfile(intermediatefile.c_str(), std::ios::binary);
 						if(outfile)
 							outfile.write(reinterpret_cast<const char*>(pdata), static_cast<std::streamsize>(size));

@@ -93,6 +93,7 @@ void Linker::GenerateSections()
 //
 void Linker::CommitFile()
 {
+	boost::filesystem::create_directories(boost::filesystem::path(TheProject.GetQualifiedOutputFilename()).parent_path());
 	std::ofstream outstream(TheProject.GetQualifiedOutputFilename().c_str(), std::ios::binary);
 	if(!outstream)
 		throw FileException("Cannot open output file for writing");
