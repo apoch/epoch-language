@@ -2574,7 +2574,7 @@ void FunctionJITHelper::CopyBuffer(size_t&)
 void NativeCodeGenerator::AddNativeTypeMatcher(size_t beginoffset, size_t endoffset)
 {
 	Function* matcherfunction = Builder.GetInsertBlock()->getParent();
-	//matcherfunction->setGC("EpochGC");
+	matcherfunction->setGC("EpochGC");
 	//matcherfunction->addAttribute(0xffffffff, Attribute::NoInline);
 
 	std::vector<Value*> reftypes;
@@ -2616,6 +2616,57 @@ void NativeCodeGenerator::AddNativeTypeMatcher(size_t beginoffset, size_t endoff
 				Function::arg_iterator argiter = matcherfunction->arg_begin();
 				for(size_t i = 0; i < paramcount; ++i)
 				{
+					Fetch<bool>(Bytecode, offset);
+					Fetch<Metadata::EpochTypeID>(Bytecode, offset);
+					parampayloadptrs.push_back(Builder.CreateAlloca(Type::getInt8PtrTy(Data->Context)));
+					providedtypeholders.push_back(Builder.CreateAlloca(Type::getInt32Ty(Data->Context)));
+
+					{
+						Value* signature = ConstantInt::get(Type::getInt32Ty(Data->Context), 0xffffffff);
+						Value* constant = Builder.CreateIntToPtr(signature, Type::getInt8PtrTy(Data->Context));
+						Value* castptr = Builder.CreatePointerCast(parampayloadptrs.back(), Type::getInt8PtrTy(Data->Context)->getPointerTo());
+						Builder.CreateCall2(Data->BuiltInFunctions[JITFunc_Intrinsic_GCRoot], castptr, constant);
+					}
+					{
+						Value* signature = ConstantInt::get(Type::getInt32Ty(Data->Context), 0xfffffffe);
+						Value* constant = Builder.CreateIntToPtr(signature, Type::getInt8PtrTy(Data->Context));
+						Value* castptr = Builder.CreatePointerCast(providedtypeholders.back(), Type::getInt8PtrTy(Data->Context)->getPointerTo());
+						Builder.CreateCall2(Data->BuiltInFunctions[JITFunc_Intrinsic_GCRoot], castptr, constant);
+					}
+				}
+			}
+			break;
+
+		default:
+			throw FatalException("Invalid opcode in native type matcher");
+		}
+	}
+
+	for(size_t offset = beginoffset; offset <= endoffset; )
+	{
+		Bytecode::Instruction instruction = Bytecode[offset++];
+		switch(instruction)
+		{
+		// Need to handle this so we can skip through the byte stream correctly
+		case Bytecode::Instructions::BeginEntity:
+			Fetch<Integer32>(Bytecode, offset);
+			Fetch<StringHandle>(Bytecode, offset);
+			break;
+
+		// Ignore these for now
+		case Bytecode::Instructions::EndEntity:
+		case Bytecode::Instructions::Halt:
+			break;
+
+		case Bytecode::Instructions::TypeMatch:
+			{
+				Fetch<StringHandle>(Bytecode, offset);
+				Fetch<size_t>(Bytecode, offset);
+				size_t paramcount = Fetch<size_t>(Bytecode, offset);
+
+				Function::arg_iterator argiter = matcherfunction->arg_begin();
+				for(size_t i = 0; i < paramcount; ++i)
+				{
 					bool expectref = Fetch<bool>(Bytecode, offset);
 					Metadata::EpochTypeID expecttype = Fetch<Metadata::EpochTypeID>(Bytecode, offset);
 					expectref |= Metadata::IsReferenceType(expecttype);
@@ -2623,9 +2674,6 @@ void NativeCodeGenerator::AddNativeTypeMatcher(size_t beginoffset, size_t endoff
 					if(needholders)
 					{
 						BasicBlock* nextparamblock = BasicBlock::Create(Data->Context, "nextparam", matcherfunction);
-
-						parampayloadptrs.push_back(Builder.CreateAlloca(Type::getInt8PtrTy(Data->Context)));
-						providedtypeholders.push_back(Builder.CreateAlloca(Type::getInt32Ty(Data->Context)));
 
 						Value* reftype = argiter;
 						++argiter;
