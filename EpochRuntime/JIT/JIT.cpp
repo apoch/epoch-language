@@ -2621,17 +2621,20 @@ void NativeCodeGenerator::AddNativeTypeMatcher(size_t beginoffset, size_t endoff
 					parampayloadptrs.push_back(Builder.CreateAlloca(Type::getInt8PtrTy(Data->Context)));
 					providedtypeholders.push_back(Builder.CreateAlloca(Type::getInt32Ty(Data->Context)));
 
+					if(matcherfunction->hasGC())
 					{
-						Value* signature = ConstantInt::get(Type::getInt32Ty(Data->Context), 0xffffffff);
-						Value* constant = Builder.CreateIntToPtr(signature, Type::getInt8PtrTy(Data->Context));
-						Value* castptr = Builder.CreatePointerCast(parampayloadptrs.back(), Type::getInt8PtrTy(Data->Context)->getPointerTo());
-						Builder.CreateCall2(Data->BuiltInFunctions[JITFunc_Intrinsic_GCRoot], castptr, constant);
-					}
-					{
-						Value* signature = ConstantInt::get(Type::getInt32Ty(Data->Context), 0xfffffffe);
-						Value* constant = Builder.CreateIntToPtr(signature, Type::getInt8PtrTy(Data->Context));
-						Value* castptr = Builder.CreatePointerCast(providedtypeholders.back(), Type::getInt8PtrTy(Data->Context)->getPointerTo());
-						Builder.CreateCall2(Data->BuiltInFunctions[JITFunc_Intrinsic_GCRoot], castptr, constant);
+						{
+							Value* signature = ConstantInt::get(Type::getInt32Ty(Data->Context), 0xffffffff);
+							Value* constant = Builder.CreateIntToPtr(signature, Type::getInt8PtrTy(Data->Context));
+							Value* castptr = Builder.CreatePointerCast(parampayloadptrs.back(), Type::getInt8PtrTy(Data->Context)->getPointerTo());
+							Builder.CreateCall2(Data->BuiltInFunctions[JITFunc_Intrinsic_GCRoot], castptr, constant);
+						}
+						{
+							Value* signature = ConstantInt::get(Type::getInt32Ty(Data->Context), 0xfffffffe);
+							Value* constant = Builder.CreateIntToPtr(signature, Type::getInt8PtrTy(Data->Context));
+							Value* castptr = Builder.CreatePointerCast(providedtypeholders.back(), Type::getInt8PtrTy(Data->Context)->getPointerTo());
+							Builder.CreateCall2(Data->BuiltInFunctions[JITFunc_Intrinsic_GCRoot], castptr, constant);
+						}
 					}
 				}
 			}
