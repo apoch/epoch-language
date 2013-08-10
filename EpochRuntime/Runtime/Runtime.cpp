@@ -486,6 +486,10 @@ void ExecutionContext::Load()
 				{
 					// Ignore
 				}
+				else if(tag == L"nogc")
+				{
+					SuppressGC.insert(entity);
+				}
 				else
 					throw FatalException("Unrecognized function tag in bytecode");
 			}

@@ -234,6 +234,8 @@ namespace Runtime
 		std::map<void*, void*> GeneratedFunctionLLVMToMachineCodeMap;
 		void* JITExecutionEngine;
 
+		std::set<StringHandle> SuppressGC;
+
 	// Handy type shortcuts
 	private:
 		typedef boost::unordered_map<StringHandle, size_t, fasthash> OffsetMap;

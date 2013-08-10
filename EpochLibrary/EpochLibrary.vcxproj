@@ -100,6 +100,7 @@
     <ClCompile Include="..\EpochCompiler\Compiler\CompileErrors.cpp" />
     <ClCompile Include="..\Shared\Metadata\TypeInfo.cpp" />
     <ClCompile Include="EntryPoint.cpp" />
+    <ClCompile Include="Library Functionality\Function Tags\GCControl.cpp" />
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">pch.h</PrecompiledHeaderFile>
@@ -146,6 +147,7 @@
     <ClInclude Include="..\EpochRuntime\Runtime\Runtime.h" />
     <ClInclude Include="..\Shared\Libraries\LibraryJIT.h" />
     <ClInclude Include="..\Shared\Metadata\TypeInfo.h" />
+    <ClInclude Include="Library Functionality\Function Tags\GCControl.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="Library Functionality\Debugging\Debugging.h" />
     <ClInclude Include="Library Functionality\Type Constructors\Primitives.h" />

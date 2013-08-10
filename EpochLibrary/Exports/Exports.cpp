@@ -24,6 +24,7 @@
 
 #include "Library Functionality/Function Tags/Externals.h"
 #include "Library Functionality/Function Tags/Constructors.h"
+#include "Library Functionality/Function Tags/GCControl.h"
 
 #include "Library Functionality/Marshaling/MarshalingLibrary.h"
 
@@ -163,6 +164,7 @@ extern "C" void STDCALL BindToCompiler(CompilerInfoTable& info, StringPoolManage
 
 		FunctionTags::RegisterExternalTagHelper(*info.FunctionTagHelpers);
 		FunctionTags::RegisterConstructorTagHelper(*info.FunctionTagHelpers);
+		FunctionTags::RegisterGCTagHelpers(*info.FunctionTagHelpers);
 
 		StringFunctionLibrary::RegisterLibraryOverloads(*info.Overloads);
 

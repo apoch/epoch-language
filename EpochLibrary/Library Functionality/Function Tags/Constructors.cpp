@@ -24,6 +24,7 @@
 
 StringHandle ExternalHandle = 0;
 StringHandle ExternalJITHandle = 0;
+StringHandle NoGCHandle = 0;
 
 
 namespace
@@ -81,4 +82,5 @@ void FunctionTags::PoolStrings(StringPoolManager& stringpool)
 	stringpool.Pool(L"constructor");
 	ExternalHandle = stringpool.Pool(L"external");
 	ExternalJITHandle = stringpool.Pool(L"@@external");
+	NoGCHandle = stringpool.Pool(L"nogc");
 }
