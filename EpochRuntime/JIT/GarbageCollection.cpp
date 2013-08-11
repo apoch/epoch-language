@@ -59,17 +59,17 @@ using namespace llvm;
 namespace
 {
 	// TODO - document
-	std::map<const Function*, GCFunctionInfo*> FunctionGCInfoCache;
+	__declspec(thread) std::map<const Function*, GCFunctionInfo*>* FunctionGCInfoCache = NULL;
 
 	typedef boost::unordered_map<const void*, std::pair<GCFunctionInfo*, GCFunctionInfo::iterator> > SafePointCacheT;
-	SafePointCacheT SafePointCache;
+	__declspec(thread) SafePointCacheT* SafePointCache = NULL;
 
 	//
 	// Map of all allocated global variables (their in-memory locations)
 	// to the type metadata associated with the global. This ought to be
 	// turned into a thread-local storage container instead.
 	//
-	std::map<void*, Metadata::EpochTypeID> Globals;
+	__declspec(thread) std::map<void*, Metadata::EpochTypeID>* Globals = NULL;
 
 
 	//
@@ -139,7 +139,7 @@ namespace
 	//
 	// It should be moved to be held in a task's context instead.
 	//
-	std::vector<BookmarkEntry> Bookmarks;
+	__declspec(thread) std::vector<BookmarkEntry>* Bookmarks = NULL;
 
 
 	//
@@ -357,7 +357,10 @@ namespace
 	//
 	void WalkGlobalsForLiveHandles(LiveValues& values)
 	{
-		for(std::map<void*, Metadata::EpochTypeID>::const_iterator iter = Globals.begin(); iter != Globals.end(); ++iter)
+		if(!Globals)
+			return;
+
+		for(std::map<void*, Metadata::EpochTypeID>::const_iterator iter = Globals->begin(); iter != Globals->end(); ++iter)
 			CheckRoot(iter->first, iter->second, values);
 	}
 
@@ -399,8 +402,8 @@ namespace
 	//
 	void WalkBookmarkEntry(const BookmarkEntry& entry, LiveValues& livevalues)
 	{
-		SafePointCacheT::iterator iter = SafePointCache.find(entry.ReturnAddress);
-		if(iter != SafePointCache.end())
+		SafePointCacheT::iterator iter = SafePointCache->find(entry.ReturnAddress);
+		if(iter != SafePointCache->end())
 			WalkLiveValuesForBookmark(reinterpret_cast<char*>(entry.StackPointer), *(iter->second.first), iter->second.second, livevalues);
 	}
 
@@ -409,10 +412,10 @@ namespace
 	//
 	bool WalkBookmarks(LiveValues& livevalues)
 	{
-		if(Bookmarks.empty())
+		if(!Bookmarks || Bookmarks->empty())
 			return false;
 
-		for(std::vector<BookmarkEntry>::const_iterator iter = Bookmarks.begin(); iter != Bookmarks.end(); ++iter)
+		for(std::vector<BookmarkEntry>::const_iterator iter = Bookmarks->begin(); iter != Bookmarks->end(); ++iter)
 			WalkBookmarkEntry(*iter, livevalues);
 
 		return true;
@@ -427,7 +430,7 @@ namespace
 	{
 		Runtime::ExecutionContext* context = Runtime::GetThreadContext();
 		unsigned collectmask = context->GetGarbageCollectionBitmask();
-		if(!collectmask)
+		if(!collectmask || !SafePointCache)
 			return;
 
 		LiveValues livevalues;
@@ -448,8 +451,8 @@ namespace
 			if(!framepointer)
 				break;
 
-			SafePointCacheT::iterator iter = SafePointCache.find(returnaddress);
-			if(iter != SafePointCache.end())
+			SafePointCacheT::iterator iter = SafePointCache->find(returnaddress);
+			if(iter != SafePointCache->end())
 			{
 				WalkLiveValuesForSafePoint(calleeframepointer, framepointer, *(iter->second.first), iter->second.second, livevalues);
 				foundany = true;
@@ -508,6 +511,9 @@ namespace
 			if(!funcinfo.getFunction().hasGC())
 				return false;
 
+			if(!FunctionGCInfoCache)
+				FunctionGCInfoCache = new std::map<const Function*, GCFunctionInfo*>;
+
 			// Visit every instruction and mark up safe points as appropriate
 			for(MachineFunction::iterator basicblockiter = machinefunc.begin(); basicblockiter != machinefunc.end(); ++basicblockiter)
 			{
@@ -521,7 +527,7 @@ namespace
 			}
 
 			// Cache function information for later use by the runtime
-			FunctionGCInfoCache.insert(std::make_pair(&funcinfo.getFunction(), &funcinfo));
+			FunctionGCInfoCache->insert(std::make_pair(&funcinfo.getFunction(), &funcinfo));
 
 			return true;
 		}
@@ -733,9 +739,14 @@ namespace
 //
 void EpochGC::ClearGCContextInfo()
 {
-	SafePointCache.clear();
-	FunctionGCInfoCache.clear();
-	Globals.clear();
+	if(SafePointCache)
+		SafePointCache->clear();
+	
+	if(FunctionGCInfoCache)
+		FunctionGCInfoCache->clear();
+
+	if(Globals)
+		Globals->clear();
 }
 
 //
@@ -743,9 +754,15 @@ void EpochGC::ClearGCContextInfo()
 //
 void EpochGC::SetGCFunctionBounds(const Function* func, void*, size_t)
 {
-	auto funciter = FunctionGCInfoCache.find(func);
-	if(funciter == FunctionGCInfoCache.end())
+	if(!FunctionGCInfoCache)
+		FunctionGCInfoCache = new std::map<const Function*, GCFunctionInfo*>;
+
+	auto funciter = FunctionGCInfoCache->find(func);
+	if(funciter == FunctionGCInfoCache->end())
 		return;
+
+	if(!SafePointCache)
+		SafePointCache = new SafePointCacheT;
 
 	GCFunctionInfo* functioninfo = funciter->second;
 	for(GCFunctionInfo::iterator iter = functioninfo->begin(); iter != functioninfo->end(); ++iter)
@@ -753,7 +770,7 @@ void EpochGC::SetGCFunctionBounds(const Function* func, void*, size_t)
 		uint64_t address = reinterpret_cast<ExecutionEngine*>(Runtime::GetThreadContext()->JITExecutionEngine)->getLabelAddress(iter->Label);
 		const void* addressptr = reinterpret_cast<void*>(static_cast<unsigned>(address));
 					
-		SafePointCache.insert(std::make_pair(addressptr, std::make_pair(functioninfo, iter)));
+		SafePointCache->insert(std::make_pair(addressptr, std::make_pair(functioninfo, iter)));
 	}
 }
 
@@ -763,9 +780,12 @@ void EpochGC::SetGCFunctionBounds(const Function* func, void*, size_t)
 //
 void EpochGC::RegisterGlobalVariable(void* ptr, Metadata::EpochTypeID type)
 {
+	if(!Globals)
+		Globals = new std::map<void*, Metadata::EpochTypeID>;
+
 	Metadata::EpochTypeFamily family = Metadata::GetTypeFamily(type);
 	if(family == Metadata::EpochTypeFamily_GC || Metadata::IsStructureType(type) || family == Metadata::EpochTypeFamily_SumType)
-		Globals[ptr] = type;
+		(*Globals)[ptr] = type;
 }
 
 
@@ -811,7 +831,10 @@ void GCBookmarkWorker(void* stackptr, void* retaddr)
 	entry.StackPointer = stackptr;
 	entry.ReturnAddress = retaddr;
 
-	Bookmarks.push_back(entry);
+	if(!Bookmarks)
+		Bookmarks = new std::vector<BookmarkEntry>;
+
+	Bookmarks->push_back(entry);
 }
 
 
@@ -841,6 +864,6 @@ extern "C" __declspec(naked) void GCBookmark()
 //
 extern "C" void GCUnbookmark()
 {
-	Bookmarks.pop_back();
+	Bookmarks->pop_back();
 }
 

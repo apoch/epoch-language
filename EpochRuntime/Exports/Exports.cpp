@@ -13,6 +13,8 @@
 #include "Utility/Strings.h"
 #include "User Interface/Output.h"
 
+#include "../../EpochTools/Serialization/Serializer.h"
+
 
 #ifdef _MSC_VER
 #define NORETURN __declspec(noreturn)
@@ -75,6 +77,9 @@ extern "C" void STDCALL ExecuteByteCode(void* bytecodebuffer, size_t size)
 
 extern "C" void STDCALL ExecuteByteCodeDeferred(void* bytecodebuffer, size_t size)
 {
+	Serialization::Serializer serializer(bytecodebuffer, size);
+	serializer.Write(L"D:\\epoch\\selfhost.txt");
+
 	DeferredExecBuffer* buffer = new DeferredExecBuffer(reinterpret_cast<char*>(bytecodebuffer), reinterpret_cast<char*>(bytecodebuffer) + size);
 
 	HANDLE thread = ::CreateThread(NULL, 0, ForkBytecodeExecThreadProc, buffer, 0, NULL);

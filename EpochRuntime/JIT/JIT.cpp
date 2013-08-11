@@ -81,15 +81,6 @@ namespace JIT
 
 		ExecutionEngine* LazyEngine = NULL;
 
-		Module* LazyModule = NULL;
-		Module* LazyInitModule()
-		{
-			if(!LazyModule)
-				LazyModule = new Module("EpochJIT", getGlobalContext());
-
-			return LazyModule;
-		}
-
 		//
 		// The JIT operations maintain a lot of state and other data
 		// which is useful to sort and centralize in some manner. We
@@ -503,7 +494,7 @@ using namespace JIT::impl;
 NativeCodeGenerator::NativeCodeGenerator(Runtime::ExecutionContext& execcontext, const Bytecode::Instruction* bytecode)
 	: ExecContext(execcontext),
 	  Bytecode(bytecode),
-	  Data(new LLVMData(LazyInitModule())),
+	  Data(new LLVMData(new Module("EpochJIT", getGlobalContext()))),
 	  Builder(Data->Context)
 {
 	InitializeNativeTarget();
@@ -2366,7 +2357,11 @@ void FunctionJITHelper::Invoke(size_t& offset)
 	Function* func = Generator.LibraryFunctionCache[libiter->second];
 
 	if(!func)
-		func = Generator.LibraryFunctionCache[libiter->second] = Function::Create(ftype, Function::ExternalLinkage, libiter->second, Generator.Data->CurrentModule);
+	{
+		func = Generator.Data->CurrentModule->getFunction(libiter->second);
+		if(!func)
+			func = Generator.LibraryFunctionCache[libiter->second] = Function::Create(ftype, Function::ExternalLinkage, libiter->second, Generator.Data->CurrentModule);
+	}
 
 	const FunctionSignature& sig = Generator.ExecContext.LibraryFunctionSignatures.find(target)->second;
 
@@ -3182,7 +3177,6 @@ void* NativeCodeGenerator::GenerateCallbackWrapper(void* targetfunc)
 
 void JIT::DestructLLVMModule()
 {
-	LazyModule = NULL;
 	EpochGC::ClearGCContextInfo();
 }
 

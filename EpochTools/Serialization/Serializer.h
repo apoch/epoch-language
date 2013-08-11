@@ -8,10 +8,6 @@
 #pragma once
 
 
-// Dependencies
-#include "DLL Access Wrappers/Compiler.h"
-
-
 namespace Serialization
 {
 
@@ -19,7 +15,7 @@ namespace Serialization
 	{
 	// Construction
 	public:
-		Serializer(const DLLAccess::CompilerAccess& compileraccess, DLLAccess::CompiledByteCodeHandle bytecodehandle);
+		Serializer(const void* bytecode, size_t size);
 
 	// Non-copyable
 	private:
@@ -32,8 +28,8 @@ namespace Serialization
 
 	// Internal tracking
 	private:
-		const DLLAccess::CompilerAccess& CompilerAccess;
-		DLLAccess::CompiledByteCodeHandle ByteCodeHandle;
+		const void* BytecodeBuffer;
+		const size_t BytecodeSize;
 	};
 
 }

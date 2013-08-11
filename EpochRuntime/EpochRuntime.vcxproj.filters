@@ -42,6 +42,9 @@
     <Filter Include="Runtime">
       <UniqueIdentifier>{dbf84b0e-31de-465d-a703-fbb98afb46fe}</UniqueIdentifier>
     </Filter>
+    <Filter Include="TEMPSerialization">
+      <UniqueIdentifier>{497000f3-5548-41bd-b1b4-b44dbcd2e00f}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Entry Point\EntryPoint.cpp">
@@ -100,6 +103,9 @@
     </ClCompile>
     <ClCompile Include="Runtime\GlobalContext.cpp">
       <Filter>Runtime</Filter>
+    </ClCompile>
+    <ClCompile Include="..\EpochTools\Serialization\Serializer.cpp">
+      <Filter>TEMPSerialization</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -195,6 +201,12 @@
     </ClInclude>
     <ClInclude Include="JIT\GarbageCollection.h">
       <Filter>JIT</Filter>
+    </ClInclude>
+    <ClInclude Include="..\EpochTools\Serialization\Exceptions.h">
+      <Filter>TEMPSerialization</Filter>
+    </ClInclude>
+    <ClInclude Include="..\EpochTools\Serialization\Serializer.h">
+      <Filter>TEMPSerialization</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -7,8 +7,8 @@
 
 #include "pch.h"
 
-#include "Serialization/Serializer.h"
-#include "Serialization/Exceptions.h"
+#include "../../EpochTools/Serialization/Serializer.h"
+#include "../../EpochTools/Serialization/Exceptions.h"
 
 #include "Bytecode/Instructions.h"
 #include "Bytecode/EntityTags.h"
@@ -90,9 +90,9 @@ private:
 //
 // Construct and initialize a serialization wrapper
 //
-Serializer::Serializer(const DLLAccess::CompilerAccess& compileraccess, DLLAccess::CompiledByteCodeHandle bytecodehandle)
-	: CompilerAccess(compileraccess),
-	  ByteCodeHandle(bytecodehandle)
+Serializer::Serializer(const void* bytecode, size_t size)
+	: BytecodeBuffer(bytecode),
+	  BytecodeSize(size)
 {
 }
 
@@ -102,9 +102,9 @@ Serializer::Serializer(const DLLAccess::CompilerAccess& compileraccess, DLLAcces
 //
 void Serializer::Write(const std::wstring& filename) const
 {
-	const void* bytecoderaw = CompilerAccess.GetByteCode(ByteCodeHandle);
+	const void* bytecoderaw = BytecodeBuffer;
 	const Byte* bytecodebytes = reinterpret_cast<const Byte*>(bytecoderaw);
-	size_t size = CompilerAccess.GetByteCodeSize(ByteCodeHandle);
+	size_t size = BytecodeSize;
 
 	BufferTraverser traverser(bytecodebytes, size);
 

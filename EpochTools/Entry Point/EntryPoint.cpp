@@ -110,7 +110,7 @@ int _tmain(int argc, _TCHAR* argv[])
 
 				if(bytecodebufferhandle)
 				{
-					Serialization::Serializer serializer(compileraccess, bytecodebufferhandle);
+					Serialization::Serializer serializer(compileraccess.GetByteCode(bytecodebufferhandle), compileraccess.GetByteCodeSize(bytecodebufferhandle));
 					serializer.Write(outfilename);
 				}
 				else
@@ -239,12 +239,6 @@ int _tmain(int argc, _TCHAR* argv[])
 
 					if(bytecodebufferhandle)
 					{
-						if(useplugins)
-						{
-							Serialization::Serializer serializer(compileraccess, bytecodebufferhandle);
-							serializer.Write(L"D:\\Epoch\\SelfHost.txt");		// TODO - hack
-						}
-
 						DLLAccess::RuntimeAccess runtimeaccess;
 						runtimeaccess.FreePersisted();
 
