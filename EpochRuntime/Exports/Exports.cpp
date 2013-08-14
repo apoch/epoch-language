@@ -77,8 +77,10 @@ extern "C" void STDCALL ExecuteByteCode(void* bytecodebuffer, size_t size)
 
 extern "C" void STDCALL ExecuteByteCodeDeferred(void* bytecodebuffer, size_t size)
 {
-	Serialization::Serializer serializer(bytecodebuffer, size);
-	serializer.Write(L"D:\\epoch\\selfhost.txt");
+	{
+		Serialization::Serializer serializer(bytecodebuffer, size);
+		serializer.Write(L"D:\\epoch\\selfhost.txt");
+	}
 
 	DeferredExecBuffer* buffer = new DeferredExecBuffer(reinterpret_cast<char*>(bytecodebuffer), reinterpret_cast<char*>(bytecodebuffer) + size);
 
