@@ -234,6 +234,7 @@ void TypeCasts::RegisterJITTable(JIT::JITTable& table)
 	AddToMapNoDupe(table.InvokeHelpers, std::make_pair(CastInteger16ToIntegerHandle, &CastInteger16ToIntegerJIT));
 
 	AddToMapNoDupe(table.LibraryExports, std::make_pair(CastIntegerToStringHandle, "EpochLib_CastIntegerToStr"));
+	AddToMapNoDupe(table.LibraryExports, std::make_pair(CastStringToIntegerHandle, "EpochLib_CastStrToInteger"));
 	AddToMapNoDupe(table.LibraryExports, std::make_pair(CastRealToStringHandle, "EpochLib_CastRealToStr"));
 	AddToMapNoDupe(table.LibraryExports, std::make_pair(CastBufferToStringHandle, "EpochLib_CastBufferToStr"));
 }
@@ -270,6 +271,17 @@ extern "C" StringHandle EpochLib_CastIntegerToStr(int val)
 	convert << val;
 
 	return GlobalExecutionContext->PoolString(convert.str());
+}
+
+extern "C" int EpochLib_CastStrToInteger(StringHandle h)
+{
+	int ret = 0;
+
+	std::wstringstream convert;
+	convert << GlobalExecutionContext->GetPooledString(h);
+	convert >> ret;
+
+	return ret;
 }
 
 extern "C" StringHandle EpochLib_CastRealToStr(float real)

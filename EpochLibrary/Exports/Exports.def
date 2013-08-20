@@ -25,4 +25,4 @@ EXPORTS
 	EpochLib_CastIntegerToStr	@22
 	EpochLib_StrWideFromPtr		@23
 	EpochLib_StrWideFromBuffer  @24
-
+	EpochLib_CastStrToInteger	@25
