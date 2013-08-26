@@ -34,6 +34,7 @@ namespace JIT
 		JITFunc_Runtime_TriggerGC,
 		JITFunc_Runtime_Break,
 		JITFunc_Runtime_Halt,
+		JITFunc_Runtime_HaltExt,
 		JITFunc_Runtime_AllocStruct,
 		JITFunc_Runtime_CopyStruct,
 		JITFunc_Runtime_GetBuffer,

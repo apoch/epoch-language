@@ -117,6 +117,7 @@ extern "C" StringHandle EpochLib_Unescape(StringHandle strhandle)
 			case L'n':              result += L'\n';                break;
 			case L't':              result += L'\t';                break;
 			case L'\\':             result += L'\\';                break;
+			case L'\'':				result += L'"';					break;		// TODO - stupid hack. Support escaped strings in the parser.
 			default:                result += L'?';                 break;
 			}
 		}

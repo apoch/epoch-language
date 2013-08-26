@@ -30,3 +30,5 @@ EXPORTS
 
 	ExecuteByteCodeDeferred		@23
 
+	Epoch_HaltExt				@24
+

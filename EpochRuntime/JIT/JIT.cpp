@@ -253,6 +253,17 @@ namespace JIT
 			else
 				BuiltInFunctions[JITFunc_Runtime_Halt] = CurrentModule->getFunction("Epoch_Halt");
 
+			if(!CurrentModule->getFunction("Epoch_HaltExt"))
+			{
+				std::vector<Type*> args;
+				args.push_back(Type::getInt32Ty(Context));
+				FunctionType* ftype = FunctionType::get(Type::getVoidTy(Context), args, false);
+
+				BuiltInFunctions[JITFunc_Runtime_HaltExt] = Function::Create(ftype, Function::ExternalLinkage, "Epoch_HaltExt", CurrentModule);
+			}
+			else
+				BuiltInFunctions[JITFunc_Runtime_HaltExt] = CurrentModule->getFunction("Epoch_HaltEXt");
+
 			if(!CurrentModule->getFunction("Epoch_AllocStruct"))
 			{
 				std::vector<Type*> args;
@@ -2782,7 +2793,7 @@ void NativeCodeGenerator::AddNativeTypeMatcher(size_t beginoffset, size_t endoff
 			break;
 
 		case Bytecode::Instructions::Halt:
-			Builder.CreateCall(Data->BuiltInFunctions[JITFunc_Runtime_Halt]);
+			Builder.CreateCall(Data->BuiltInFunctions[JITFunc_Runtime_HaltExt], ConstantInt::get(Type::getInt32Ty(Data->Context), entityname));
 			Builder.CreateUnreachable();
 			break;
 

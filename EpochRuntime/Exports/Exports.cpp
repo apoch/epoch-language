@@ -136,6 +136,12 @@ NORETURN extern "C" void Epoch_Halt()
 	std::terminate();
 }
 
+NORETURN extern "C" void Epoch_HaltExt(unsigned stringhandle)
+{
+	::MessageBox(0, L"Fatal error - program halted", Runtime::GetThreadContext()->GetPooledString(stringhandle).c_str(), MB_ICONSTOP);
+	std::terminate();
+}
+
 
 extern "C" void* Epoch_GetBuffer(BufferHandle handle)
 {
