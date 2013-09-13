@@ -2344,6 +2344,7 @@ void FunctionJITHelper::BindMemberRef(size_t& offset)
 
 	LibJITContext.ValuesOnStack.pop();
 	LibJITContext.ValuesOnStack.push(memberptr);
+	TypeAnnotations.pop();
 	TypeAnnotations.push(membertype);
 }
 
@@ -2811,6 +2812,7 @@ void NativeCodeGenerator::AddNativeTypeMatcher(size_t beginoffset, size_t endoff
 					bool expectref = Fetch<bool>(Bytecode, offset);
 					Metadata::EpochTypeID expecttype = Fetch<Metadata::EpochTypeID>(Bytecode, offset);
 					expectref |= Metadata::IsReferenceType(expecttype);
+					expecttype = Metadata::MakeNonReferenceType(expecttype);
 
 					Value* nonref = Builder.CreateAnd(Builder.CreateLoad(providedtypeholders[i]), 0x7fffffff);
 					Value* nomatch = Builder.CreateICmpNE(nonref, ConstantInt::get(Type::getInt32Ty(Data->Context), expecttype));
