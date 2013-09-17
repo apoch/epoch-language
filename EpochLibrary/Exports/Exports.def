@@ -26,3 +26,4 @@ EXPORTS
 	EpochLib_StrWideFromPtr		@23
 	EpochLib_StrWideFromBuffer  @24
 	EpochLib_CastStrToInteger	@25
+	EpochLib_CastStrToReal		@26

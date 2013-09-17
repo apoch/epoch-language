@@ -48,6 +48,8 @@ namespace
 	StringHandle CastIntegerToInteger16Handle = 0;
 	StringHandle CastInteger16ToIntegerHandle = 0;
 
+	StringHandle CastStringToRealHandle = 0;
+
 
 	bool CastRealToIntegerJIT(JIT::JITContext& context, bool)
 	{
@@ -201,6 +203,13 @@ void TypeCasts::RegisterLibraryFunctions(FunctionSignatureSet& signatureset)
 		signature.SetReturnType(Metadata::EpochType_Integer);
 		AddToMapNoDupe(signatureset, std::make_pair(CastInteger16ToIntegerHandle, signature));
 	}
+	{
+		FunctionSignature signature;
+		signature.AddPatternMatchedParameterIdentifier(RealTypeHandle);
+		signature.AddParameter(L"value", EpochType_String);
+		signature.SetReturnType(Metadata::EpochType_Real);
+		AddToMapNoDupe(signatureset, std::make_pair(CastStringToRealHandle, signature));
+	}
 }
 
 
@@ -222,6 +231,7 @@ void TypeCasts::RegisterLibraryOverloads(OverloadMap& overloadmap, StringPoolMan
 		overloadmap[functionnamehandle].insert(stringpool.Pool(L"cast@@boolean_to_integer"));
 		overloadmap[functionnamehandle].insert(CastIntegerToInteger16Handle);
 		overloadmap[functionnamehandle].insert(CastInteger16ToIntegerHandle);
+		overloadmap[functionnamehandle].insert(CastStringToRealHandle);
 	}
 }
 
@@ -237,6 +247,7 @@ void TypeCasts::RegisterJITTable(JIT::JITTable& table)
 	AddToMapNoDupe(table.LibraryExports, std::make_pair(CastStringToIntegerHandle, "EpochLib_CastStrToInteger"));
 	AddToMapNoDupe(table.LibraryExports, std::make_pair(CastRealToStringHandle, "EpochLib_CastRealToStr"));
 	AddToMapNoDupe(table.LibraryExports, std::make_pair(CastBufferToStringHandle, "EpochLib_CastBufferToStr"));
+	AddToMapNoDupe(table.LibraryExports, std::make_pair(CastStringToRealHandle, "EpochLib_CastStrToReal"));
 }
 
 
@@ -261,6 +272,8 @@ void TypeCasts::PoolStrings(StringPoolManager& stringpool)
 
 	CastIntegerToInteger16Handle = stringpool.Pool(L"cast@@integer_to_integer16");
 	CastInteger16ToIntegerHandle = stringpool.Pool(L"cast@@integer16_to_integer");
+
+	CastStringToRealHandle = stringpool.Pool(L"cast@@string_to_real");
 }
 
 
@@ -290,6 +303,16 @@ extern "C" StringHandle EpochLib_CastRealToStr(float real)
 	convert << real;
 
 	return GlobalExecutionContext->PoolString(convert.str());
+}
+
+extern "C" float EpochLib_CastStrToReal(StringHandle handle)
+{
+	std::wstringstream convert(GlobalExecutionContext->GetPooledString(handle));
+
+	float real;
+	convert >> real;
+
+	return real;
 }
 
 extern "C" StringHandle EpochLib_CastBufferToStr(BufferHandle* buffer)
