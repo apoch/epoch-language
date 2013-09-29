@@ -151,7 +151,8 @@ void Serializer::Write(const std::wstring& filename) const
 					throw SerializationException("Failed to serialize untyped PUSH operand");
 		
 				case Metadata::EpochType_Identifier:
-					throw SerializationException("Failed to serialize incorrect PUSH operand");
+					outfile << L"PUSH_ID " << traverser.Read<Integer32>() << L"\n";
+					break;
 
 				case Metadata::EpochType_Integer:
 					outfile << L"PUSH_INT " << traverser.Read<Integer32>() << L"\n";
@@ -177,15 +178,15 @@ void Serializer::Write(const std::wstring& filename) const
 					outfile << L"PUSH_BUFFER " << traverser.Read<BufferHandle>() << L"\n";
 					break;
 
-				case Metadata::EpochTypeFamily_Function:			// Dumb hack.
-					outfile << L"PUSH_FUNC " << traverser.Read<StringHandle>() << L"\n";
-					break;
-
 				default:
 					if(Metadata::IsStructureType(type))
 					{
 						outfile << L"PUSH " << type << L" ";
 						outfile << traverser.Read<StructureHandle>() << L"\n";
+					}
+					else if(Metadata::GetTypeFamily(type) == Metadata::EpochTypeFamily_Function)
+					{
+						outfile << L"PUSH_FUNC " << traverser.Read<StringHandle>() << L"\n";
 					}
 					else
 					{
