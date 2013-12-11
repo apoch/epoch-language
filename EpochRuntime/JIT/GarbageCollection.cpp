@@ -90,9 +90,9 @@ namespace
 	//
 	struct LiveValues
 	{
-		boost::unordered_set<StringHandle> LiveStrings;
-		boost::unordered_set<BufferHandle> LiveBuffers;
-		boost::unordered_set<StructureHandle> LiveStructures;
+		std::set<StringHandle> LiveStrings;
+		std::set<BufferHandle> LiveBuffers;
+		std::set<StructureHandle> LiveStructures;
 
 		//
 		// Bitmask built from Runtime::ExecutionContext::GarbageCollectionFlags
@@ -272,82 +272,94 @@ namespace
 	}
 
 	//
+	// Helper for visiting a single structure in the heap
+	//
+	void VisitStructure(StructureHandle handle, LiveValues& livevalues, Runtime::ExecutionContext* context, std::set<StructureHandle>& newhandles)
+	{
+		const ActiveStructure& active = context->FindStructureMetadata(handle);
+		const StructureDefinition& def = active.Definition;
+		for(size_t i = 0; i < def.GetNumMembers(); ++i)
+		{
+			Metadata::EpochTypeID membertype = def.GetMemberType(i);
+			if(Metadata::IsStructureType(membertype))
+			{
+				StructureHandle p = active.ReadMember<StructureHandle>(i);
+				newhandles.insert(p);
+			}
+			else if(membertype == Metadata::EpochType_String)
+			{
+				if(livevalues.Mask & Runtime::ExecutionContext::GC_Collect_Strings)
+				{
+					StringHandle h = active.ReadMember<StringHandle>(i);
+					livevalues.LiveStrings.insert(h);
+				}
+			}
+			else if(membertype == Metadata::EpochType_Buffer)
+			{
+				if(livevalues.Mask & Runtime::ExecutionContext::GC_Collect_Buffers)
+				{
+					BufferHandle h = active.ReadMember<BufferHandle>(i);
+					livevalues.LiveBuffers.insert(h);
+				}
+			}
+			else if(Metadata::GetTypeFamily(membertype) == Metadata::EpochTypeFamily_SumType)
+			{
+				Metadata::EpochTypeID realtype = active.ReadSumTypeMemberType(i);
+				if(Metadata::IsStructureType(realtype))
+				{
+					StructureHandle p = active.ReadMember<StructureHandle>(i);
+					newhandles.insert(p);
+				}
+				else if(realtype == Metadata::EpochType_String)
+				{
+					if(livevalues.Mask & Runtime::ExecutionContext::GC_Collect_Strings)
+					{
+						StringHandle h = active.ReadMember<StringHandle>(i);
+						livevalues.LiveStrings.insert(h);
+					}
+				}
+				else if(realtype == Metadata::EpochType_Buffer)
+				{
+					if(livevalues.Mask & Runtime::ExecutionContext::GC_Collect_Buffers)
+					{
+						BufferHandle h = active.ReadMember<BufferHandle>(i);
+						livevalues.LiveBuffers.insert(h);
+					}
+				}
+			}
+		}
+	}
+
+	//
 	// Helper to traverse the heap graph of reachable structures
 	//
 	void WalkStructuresForLiveHandles(LiveValues& livevalues, Runtime::ExecutionContext* context)
 	{
-		bool addedhandle;
+		std::set<StructureHandle>* valuestowalk = &livevalues.LiveStructures;
 
-		// TODO - this is a naive traversal and rather slow.
+		bool addedhandle;
+		std::set<StructureHandle> newhandles1;
+		std::set<StructureHandle> newhandles2;
+
+		std::set<StructureHandle>* newhandlebuffer = &newhandles1;
+
 		do
 		{
-			addedhandle = false;
+			for(std::set<StructureHandle>::const_iterator iter = valuestowalk->begin(); iter != valuestowalk->end(); ++iter)
+				VisitStructure(*iter, livevalues, context, *newhandlebuffer);
 
-			for(boost::unordered_set<StructureHandle>::const_iterator iter = livevalues.LiveStructures.begin(); iter != livevalues.LiveStructures.end(); ++iter)
+			addedhandle = !newhandlebuffer->empty();
+			if(addedhandle)
 			{
-				const ActiveStructure& active = context->FindStructureMetadata(*iter);
-				const StructureDefinition& def = active.Definition;
-				for(size_t i = 0; i < def.GetNumMembers(); ++i)
-				{
-					Metadata::EpochTypeID membertype = def.GetMemberType(i);
-					if(Metadata::IsStructureType(membertype))
-					{
-						StructureHandle p = active.ReadMember<StructureHandle>(i);
-						if(livevalues.LiveStructures.count(p) == 0)
-						{
-							livevalues.LiveStructures.insert(p);
-							addedhandle = true;
-						}
-					}
-					else if(membertype == Metadata::EpochType_String)
-					{
-						if(livevalues.Mask & Runtime::ExecutionContext::GC_Collect_Strings)
-						{
-							StringHandle h = active.ReadMember<StringHandle>(i);
-							livevalues.LiveStrings.insert(h);
-						}
-					}
-					else if(membertype == Metadata::EpochType_Buffer)
-					{
-						if(livevalues.Mask & Runtime::ExecutionContext::GC_Collect_Buffers)
-						{
-							BufferHandle h = active.ReadMember<BufferHandle>(i);
-							livevalues.LiveBuffers.insert(h);
-						}
-					}
-					else if(Metadata::GetTypeFamily(membertype) == Metadata::EpochTypeFamily_SumType)
-					{
-						Metadata::EpochTypeID realtype = active.ReadSumTypeMemberType(i);
-						if(Metadata::IsStructureType(realtype))
-						{
-							StructureHandle p = active.ReadMember<StructureHandle>(i);
-							if(livevalues.LiveStructures.count(p) == 0)
-							{
-								livevalues.LiveStructures.insert(p);
-								addedhandle = true;
-							}
-						}
-						else if(realtype == Metadata::EpochType_String)
-						{
-							if(livevalues.Mask & Runtime::ExecutionContext::GC_Collect_Strings)
-							{
-								StringHandle h = active.ReadMember<StringHandle>(i);
-								livevalues.LiveStrings.insert(h);
-							}
-						}
-						else if(realtype == Metadata::EpochType_Buffer)
-						{
-							if(livevalues.Mask & Runtime::ExecutionContext::GC_Collect_Buffers)
-							{
-								BufferHandle h = active.ReadMember<BufferHandle>(i);
-								livevalues.LiveBuffers.insert(h);
-							}
-						}
-					}
-				}
+				for(std::set<StructureHandle>::const_iterator iter = newhandlebuffer->begin(); iter != newhandlebuffer->end(); ++iter)
+					livevalues.LiveStructures.insert(*iter);
 
-				if(addedhandle)
-					break;
+				valuestowalk = newhandlebuffer;
+				if(newhandlebuffer == &newhandles1)
+					newhandlebuffer = &newhandles2;
+				else
+					newhandlebuffer = &newhandles1;
+				newhandlebuffer->clear();
 			}
 		} while(addedhandle);
 	}

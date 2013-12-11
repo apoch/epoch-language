@@ -190,8 +190,8 @@ namespace Runtime
 
 	// Garbage collection
 	public:
-		void GarbageCollectBuffers(const boost::unordered_set<BufferHandle>& livehandles);
-		void GarbageCollectStructures(const boost::unordered_set<StructureHandle>& livehandles);
+		void GarbageCollectBuffers(const std::set<BufferHandle>& livehandles);
+		void GarbageCollectStructures(const std::set<StructureHandle>& livehandles);
 
 		unsigned GetGarbageCollectionBitmask();
 

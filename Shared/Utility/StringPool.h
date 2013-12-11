@@ -16,6 +16,7 @@
 #include <boost/unordered_map.hpp>
 #include <boost/unordered_set.hpp>
 #include <string>
+#include <set>
 
 
 class StringPoolManager
@@ -43,7 +44,7 @@ public:
 
 // Garbage collection interface
 public:
-	void GarbageCollect(const boost::unordered_set<StringHandle>& livehandles, const boost::unordered_set<StringHandle>& statichandles);
+	void GarbageCollect(const std::set<StringHandle>& livehandles, const boost::unordered_set<StringHandle>& statichandles);
 
 // Internal tracking
 private:

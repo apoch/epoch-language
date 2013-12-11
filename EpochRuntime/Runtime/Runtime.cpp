@@ -893,7 +893,7 @@ EPOCHRUNTIME void ExecutionContext::TickStructureGarbageCollector()
 //
 // Garbage collection disposal routine for buffer data
 //
-void ExecutionContext::GarbageCollectBuffers(const boost::unordered_set<BufferHandle>& livehandles)
+void ExecutionContext::GarbageCollectBuffers(const std::set<BufferHandle>& livehandles)
 {
 	EraseDeadHandles(Buffers, livehandles);
 }
@@ -901,7 +901,7 @@ void ExecutionContext::GarbageCollectBuffers(const boost::unordered_set<BufferHa
 //
 // Garbage collection disposal routine for structure data
 //
-void ExecutionContext::GarbageCollectStructures(const boost::unordered_set<StructureHandle>& livehandles)
+void ExecutionContext::GarbageCollectStructures(const std::set<StructureHandle>& livehandles)
 {
 	EraseAndDeleteDeadHandles(ActiveStructures, livehandles);
 }
@@ -913,19 +913,19 @@ unsigned ExecutionContext::GetGarbageCollectionBitmask()
 
 	// TODO - allow configurable thresholds
 
-	if(GarbageTick_Buffers > 10)
+	if(GarbageTick_Buffers > 1000)
 	{
 		mask |= GC_Collect_Buffers;
 		GarbageTick_Buffers = 0;
 	}
 
-	if(PrivateStringPool.GetGarbageTick() > 10)
+	if(PrivateStringPool.GetGarbageTick() > 1000)
 	{
 		mask |= GC_Collect_Strings;
 		PrivateStringPool.ResetGarbageTick();
 	}
 
-	if(GarbageTick_Structures > 10)
+	if(GarbageTick_Structures > 1000)
 	{
 		mask |= GC_Collect_Structures;
 		GarbageTick_Structures = 0;

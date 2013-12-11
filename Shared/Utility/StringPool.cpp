@@ -119,7 +119,7 @@ StringHandle StringPoolManager::Find(const std::wstring& stringdata) const
 //
 // Discard all handles NOT in the given set of live handles
 //
-void StringPoolManager::GarbageCollect(const boost::unordered_set<StringHandle>& livehandles, const boost::unordered_set<StringHandle>& statichandles)
+void StringPoolManager::GarbageCollect(const std::set<StringHandle>& livehandles, const boost::unordered_set<StringHandle>& statichandles)
 {
 #ifdef EPOCH_STRINGPOOL_FAST_REVERSE_LOOKUP
 	if(FastLookupEnabled)

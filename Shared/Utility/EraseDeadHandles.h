@@ -22,8 +22,8 @@ void EraseDeadHandles(MapType& data, const SetType& livehandles)
 	}
 }
 
-template <typename MapType, typename SetType>
-void EraseDeadHandles(MapType& data, const SetType& livehandles, const SetType& statichandles)
+template <typename MapType, typename SetType, typename SetType2>
+void EraseDeadHandles(MapType& data, const SetType& livehandles, const SetType2& statichandles)
 {
 	for(typename MapType::iterator iter = data.begin(); iter != data.end(); )
 	{
