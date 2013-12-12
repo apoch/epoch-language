@@ -291,7 +291,16 @@ extern "C" int EpochLib_CastStrToInteger(StringHandle h)
 	int ret = 0;
 
 	std::wstringstream convert;
-	convert << GlobalExecutionContext->GetPooledString(h);
+
+	const std::wstring& str = GlobalExecutionContext->GetPooledString(h);
+	if((str.length() > 2) && (str.substr(0, 2) == L"0x"))
+	{
+		convert << str.substr(2);
+		convert >> std::hex;
+	}
+	else
+		convert << str;
+
 	convert >> ret;
 
 	return ret;

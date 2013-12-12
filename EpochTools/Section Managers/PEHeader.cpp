@@ -98,10 +98,10 @@ void PEHeaderSection::Emit(Linker& linker, LinkWriter& writer) const
 	NTHeaders.OptionalHeader.CheckSum = 0xf00d; // it looks like Windows doesn't even validate this, so we just write whatever we feel like
 	NTHeaders.OptionalHeader.Subsystem = (ConsoleMode ? IMAGE_SUBSYSTEM_WINDOWS_CUI : IMAGE_SUBSYSTEM_WINDOWS_GUI);
 	NTHeaders.OptionalHeader.DllCharacteristics = 0;
-	NTHeaders.OptionalHeader.SizeOfStackReserve = 0x10000;
-	NTHeaders.OptionalHeader.SizeOfStackCommit = 0x1000;
-	NTHeaders.OptionalHeader.SizeOfHeapReserve = 0x10000;
-	NTHeaders.OptionalHeader.SizeOfHeapCommit = 0x1000;
+	NTHeaders.OptionalHeader.SizeOfStackReserve = 0x800000;
+	NTHeaders.OptionalHeader.SizeOfStackCommit = 0x80000;
+	NTHeaders.OptionalHeader.SizeOfHeapReserve = 0x500000;
+	NTHeaders.OptionalHeader.SizeOfHeapCommit = 0x50000;
 	NTHeaders.OptionalHeader.LoaderFlags = 0;
 	NTHeaders.OptionalHeader.NumberOfRvaAndSizes = 0x10;
 
