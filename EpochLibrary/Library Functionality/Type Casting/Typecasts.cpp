@@ -288,7 +288,7 @@ extern "C" StringHandle EpochLib_CastIntegerToStr(int val)
 
 extern "C" int EpochLib_CastStrToInteger(StringHandle h)
 {
-	int ret = 0;
+	unsigned ret = 0;
 
 	std::wstringstream convert;
 
@@ -303,7 +303,7 @@ extern "C" int EpochLib_CastStrToInteger(StringHandle h)
 
 	convert >> ret;
 
-	return ret;
+	return static_cast<int>(ret);
 }
 
 extern "C" StringHandle EpochLib_CastRealToStr(float real)
