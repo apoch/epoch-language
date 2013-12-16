@@ -1238,6 +1238,9 @@ void FunctionJITHelper::DoFunction(size_t beginoffset, size_t endoffset, StringH
 
 	LibJITContext.BuiltInFunctions = &Generator.Data->BuiltInFunctions;
 
+	while(!LibJITContext.ValuesOnStack.empty())
+		LibJITContext.ValuesOnStack.pop();
+
 	// Merge in globals
 	for(std::map<StringHandle, size_t>::const_iterator iter = Generator.Data->GlobalVariableNameToIndexMap.begin(); iter != Generator.Data->GlobalVariableNameToIndexMap.end(); ++iter)
 	{
@@ -2007,6 +2010,8 @@ void FunctionJITHelper::Assign(size_t&)
 
 	if(reftarget->getType() == v->getType()->getPointerTo()->getPointerTo())
 		reftarget = Builder.CreateLoad(reftarget);
+	else if(reftarget->getType() == v->getType())
+		v = Builder.CreateLoad(v);
 
 	Builder.CreateStore(v, reftarget);
 }
