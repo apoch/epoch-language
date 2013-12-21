@@ -50,6 +50,10 @@ namespace JIT
 		JITFunc_Marshal_FixupStructure,
 		JITFunc_Marshal_Cleanup,
 		JITFunc_Marshal_GenCallback,
+
+		JITFunc_Profile_Enter,
+		JITFunc_Profile_Exit,
+		JITFunc_Profile_Dump,
 	};
 
 

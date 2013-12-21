@@ -68,6 +68,10 @@
 #include <iostream>
 
 
+// Enable this to turn on profiling (slow!)
+//#define PROFILING_HOOKS
+
+
 // We heavily use this namespace so may as well import it
 using namespace llvm;
 
@@ -262,7 +266,37 @@ namespace JIT
 				BuiltInFunctions[JITFunc_Runtime_HaltExt] = Function::Create(ftype, Function::ExternalLinkage, "Epoch_HaltExt", CurrentModule);
 			}
 			else
-				BuiltInFunctions[JITFunc_Runtime_HaltExt] = CurrentModule->getFunction("Epoch_HaltEXt");
+				BuiltInFunctions[JITFunc_Runtime_HaltExt] = CurrentModule->getFunction("Epoch_HaltExt");
+
+			if(!CurrentModule->getFunction("Epoch_ProfileEnter"))
+			{
+				std::vector<Type*> args;
+				args.push_back(Type::getInt32Ty(Context));
+				FunctionType* ftype = FunctionType::get(Type::getVoidTy(Context), args, false);
+
+				BuiltInFunctions[JITFunc_Profile_Enter] = Function::Create(ftype, Function::ExternalLinkage, "Epoch_ProfileEnter", CurrentModule);
+			}
+			else
+				BuiltInFunctions[JITFunc_Profile_Enter] = CurrentModule->getFunction("Epoch_ProfileEnter");
+
+			if(!CurrentModule->getFunction("Epoch_ProfileExit"))
+			{
+				std::vector<Type*> args;
+				args.push_back(Type::getInt32Ty(Context));
+				FunctionType* ftype = FunctionType::get(Type::getVoidTy(Context), args, false);
+
+				BuiltInFunctions[JITFunc_Profile_Exit] = Function::Create(ftype, Function::ExternalLinkage, "Epoch_ProfileExit", CurrentModule);
+			}
+			else
+				BuiltInFunctions[JITFunc_Profile_Exit] = CurrentModule->getFunction("Epoch_ProfileExit");
+
+			if(!CurrentModule->getFunction("Epoch_ProfileDump"))
+			{
+				FunctionType* ftype = FunctionType::get(Type::getVoidTy(Context), false);
+				BuiltInFunctions[JITFunc_Profile_Dump] = Function::Create(ftype, Function::ExternalLinkage, "Epoch_ProfileDump", CurrentModule);
+			}
+			else
+				BuiltInFunctions[JITFunc_Profile_Dump] = CurrentModule->getFunction("Epoch_ProfileDump");
 
 			if(!CurrentModule->getFunction("Epoch_AllocStruct"))
 			{
@@ -1296,6 +1330,20 @@ void FunctionJITHelper::DoFunction(size_t beginoffset, size_t endoffset, StringH
 		if(Builder.GetInsertBlock()->getParent()->hasGC())// && AllocCount > 0)
 			Builder.CreateCall(Generator.Data->BuiltInFunctions[JITFunc_Runtime_TriggerGC]);
 
+#ifdef PROFILING_HOOKS
+		Builder.CreateCall(Generator.Data->BuiltInFunctions[JITFunc_Profile_Exit], ConstantInt::get(Type::getInt32Ty(Generator.Data->Context), alias));
+#endif
+
+		// TODO - this is kind of hacky
+		if(Generator.ExecContext.GetPooledString(alias) == L"entrypoint")
+		{
+			Generator.Data->EntryPoint = LibJITContext.InnerFunction;
+
+#ifdef PROFILING_HOOKS
+			Builder.CreateCall(Generator.Data->BuiltInFunctions[JITFunc_Profile_Dump]);
+#endif
+		}
+
 		if(LibJITContext.InnerRetVal)
 		{
 			Value* ret = Builder.CreateLoad(LibJITContext.InnerRetVal);
@@ -1303,10 +1351,6 @@ void FunctionJITHelper::DoFunction(size_t beginoffset, size_t endoffset, StringH
 		}
 		else
 			Builder.CreateRetVoid();
-
-		// TODO - this is kind of hacky
-		if(Generator.ExecContext.GetPooledString(alias) == L"entrypoint")
-			Generator.Data->EntryPoint = LibJITContext.InnerFunction;
 
 		Generator.Data->GeneratedNameToFunctionMap[alias] = LibJITContext.InnerFunction;
 	}
@@ -1474,6 +1518,10 @@ void FunctionJITHelper::BeginEntity(size_t& offset)
 
 		BasicBlock* innerentryblock = BasicBlock::Create(Context, "innerentry", LibJITContext.InnerFunction);
 		Builder.SetInsertPoint(innerentryblock);
+
+#ifdef PROFILING_HOOKS
+		Builder.CreateCall(Generator.Data->BuiltInFunctions[JITFunc_Profile_Enter], ConstantInt::get(Type::getInt32Ty(Generator.Data->Context), entityname));
+#endif
 
 		LibJITContext.InnerExitBlock = BasicBlock::Create(Context, "innerexit", LibJITContext.InnerFunction);
 

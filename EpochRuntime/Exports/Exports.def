@@ -32,3 +32,8 @@ EXPORTS
 
 	Epoch_HaltExt				@24
 
+	Epoch_ProfileEnter			@25
+	Epoch_ProfileExit			@26
+	Epoch_ProfileDump			@27
+
+

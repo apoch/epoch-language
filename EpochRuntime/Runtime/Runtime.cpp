@@ -27,6 +27,7 @@
 #include <sstream>
 
 #include <CommCtrl.h>
+#include <MMSystem.h>
 
 //#define VLD_FORCE_ENABLE
 //#include <vld.h>
@@ -961,5 +962,27 @@ void* ExecutionContext::JITCallbackNoStub(void* targetfunc)
 	}
 
 	return ret;
+}
+
+void ExecutionContext::ProfileEnter(StringHandle functionname)
+{
+	ProfilingData[functionname].push_back(timeGetTime());
+}
+
+void ExecutionContext::ProfileExit(StringHandle functionname)
+{
+	unsigned now = timeGetTime();
+	unsigned entrytime = ProfilingData[functionname].back();
+	ProfilingData[functionname].pop_back();
+
+	ProfilingTimes[functionname] += (now - entrytime);
+}
+
+void ExecutionContext::ProfileDump()
+{
+	for(std::map<StringHandle, unsigned>::const_iterator iter = ProfilingTimes.begin(); iter != ProfilingTimes.end(); ++iter)
+	{
+		std::wcout << GetPooledString(iter->first) << L" - " << iter->second << L"ms" << std::endl;
+	}
 }
 

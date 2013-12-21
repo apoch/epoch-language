@@ -143,6 +143,44 @@ NORETURN extern "C" void Epoch_HaltExt(unsigned stringhandle)
 }
 
 
+extern "C" void Epoch_ProfileEnter(unsigned stringhandle)
+{
+	try
+	{
+		Runtime::GetThreadContext()->ProfileEnter(stringhandle);
+	}
+	catch(...)
+	{
+		Epoch_Halt();
+	}
+}
+
+extern "C" void Epoch_ProfileExit(unsigned stringhandle)
+{
+	try
+	{
+		Runtime::GetThreadContext()->ProfileExit(stringhandle);
+	}
+	catch(...)
+	{
+		Epoch_Halt();
+	}
+}
+
+extern "C" void Epoch_ProfileDump()
+{
+	try
+	{
+		Runtime::GetThreadContext()->ProfileDump();
+	}
+	catch(...)
+	{
+		Epoch_Halt();
+	}
+}
+
+
+
 extern "C" void* Epoch_GetBuffer(BufferHandle handle)
 {
 	try
@@ -192,6 +230,54 @@ extern "C" void* Epoch_AllocStruct(Metadata::EpochTypeID structtype)
 	return 0;
 }
 
+/*
+#pragma optimize( "", off )
+
+static void* CopyStructWorker(StructureHandle handle, void* retaddr)
+{
+	try
+	{
+		std::map<void*, std::pair<void*, StringHandle> >::const_iterator iter = Runtime::GetThreadContext()->GeneratedJITFunctionCode.lower_bound(retaddr);
+		--iter;
+		if(iter->second.second != 0)
+		{
+			UI::OutputStream out;
+			out << Runtime::GetThreadContext()->GetPooledString(iter->second.second) << std::endl;
+		}
+	}
+	catch(...)
+	{
+	}
+
+	try
+	{
+		StructureHandle copyhandle = Runtime::GetThreadContext()->DeepCopy(handle);
+		Runtime::GetThreadContext()->TickStructureGarbageCollector();
+		return copyhandle;
+	}
+	catch(...)
+	{
+		Epoch_Halt();
+	}
+
+	return 0;
+}
+
+#pragma optimize( "", on ) 
+
+extern "C" __declspec(naked) void* Epoch_CopyStruct(StructureHandle handle)
+{
+	__asm
+	{
+		push [esp]
+		push [esp+8]
+		call CopyStructWorker
+		add  esp,8
+		ret
+	}
+}
+*/
+
 extern "C" void* Epoch_CopyStruct(StructureHandle handle)
 {
 	try
@@ -207,6 +293,7 @@ extern "C" void* Epoch_CopyStruct(StructureHandle handle)
 
 	return 0;
 }
+
 
 extern "C" void Epoch_Break()
 {

@@ -136,6 +136,15 @@ namespace Runtime
 
 	// TODO - cleanup/reorganize
 
+	// Profiling
+	public:
+		void ProfileEnter(StringHandle funcname);
+		void ProfileExit(StringHandle funcname);
+		void ProfileDump();
+
+		std::map<StringHandle, std::vector<unsigned> > ProfilingData;
+		std::map<StringHandle, unsigned> ProfilingTimes;
+
 	// Initialization
 	private:
 		void InitStandardLibraries(unsigned* testharness, bool registerall);
