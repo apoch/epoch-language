@@ -115,6 +115,16 @@ extern "C" int EpochLib_SubstrChar(unsigned start, StringHandle strhandle)
 	return GlobalExecutionContext->GetPooledString(strhandle)[start];
 }
 
+extern "C" int EpochLib_SubstrCharDirect(wchar_t* strpointer, unsigned start)
+{
+	return strpointer[start];
+}
+
+extern "C" wchar_t* EpochLib_StrPointer(wchar_t* in)
+{
+	return in;
+}
+
 extern "C" StringHandle EpochLib_Unescape(StringHandle strhandle)
 {
 	const std::wstring& original = GlobalExecutionContext->GetPooledString(strhandle);
