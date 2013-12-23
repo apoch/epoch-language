@@ -120,6 +120,12 @@ extern "C" int EpochLib_SubstrCharDirect(wchar_t* strpointer, unsigned start)
 	return strpointer[start];
 }
 
+extern "C" const wchar_t* EpochLib_SubstrDirect(wchar_t* strpointer, unsigned start, unsigned length)
+{
+	StringHandle handle = GlobalExecutionContext->PoolString(std::wstring(strpointer + start, strpointer + start + length));
+	return &GlobalExecutionContext->GetPooledString(handle)[0];
+}
+
 extern "C" wchar_t* EpochLib_StrPointer(wchar_t* in)
 {
 	return in;

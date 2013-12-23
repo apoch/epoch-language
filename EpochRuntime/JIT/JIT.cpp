@@ -3108,8 +3108,7 @@ Value* NativeCodeGenerator::MarshalReturn(Value* ret, Metadata::EpochTypeID type
 		return ret;
 
 	case Metadata::EpochType_String:
-		// TODO
-		break;
+		return Builder.CreateCall(Data->BuiltInFunctions[JITFunc_Runtime_PoolString], ret);
 	}
 
 	throw NotImplementedException("Cannot marshal parameter of this type to an external function");

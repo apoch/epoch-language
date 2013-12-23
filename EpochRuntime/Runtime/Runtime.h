@@ -264,8 +264,11 @@ namespace Runtime
 
 		boost::unordered_map<StructureHandle, ActiveStructure*> ActiveStructures;
 
-		UByte* HackBuffer;
-		UByte* HackAllocPoint;
+		UByte* StructureAllocBuffer;
+		UByte* StructureAllocPoint;
+
+		UByte* MetadataAllocBuffer;
+		UByte* MetadataAllocPoint;
 	};
 
 }

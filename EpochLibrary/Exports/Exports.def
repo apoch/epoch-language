@@ -30,3 +30,4 @@ EXPORTS
 	EpochLib_SubstrChar			@27
 	EpochLib_SubstrCharDirect	@28
 	EpochLib_StrPointer			@29
+	EpochLib_SubstrDirect		@30

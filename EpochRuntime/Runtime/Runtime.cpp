@@ -832,8 +832,15 @@ bool ExecutionContext::HasStructureDefinition(Metadata::EpochTypeID vartype) con
 StructureHandle ExecutionContext::DeepCopy(StructureHandle handle)
 {
 	const ActiveStructure& original = FindStructureMetadata(handle);
-	StructureHandle clonedhandle = AllocateStructure(original.Definition);
-	ActiveStructure& clone = FindStructureMetadata(clonedhandle);
+	StructureHandle clonedhandle;
+
+	UByte* storage = new UByte[original.Definition.GetSize()];
+	ActiveStructure* active = new ActiveStructure(original.Definition, storage);
+
+	clonedhandle = storage;
+	ActiveStructures.insert(std::make_pair(clonedhandle, active));
+
+	ActiveStructure& clone = *active;
 
 	for(size_t i = 0; i < original.Definition.GetNumMembers(); ++i)
 	{
