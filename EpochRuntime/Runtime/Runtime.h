@@ -263,6 +263,9 @@ namespace Runtime
 		boost::unordered_map<BufferHandle, std::vector<Byte>, fasthash> Buffers;
 
 		boost::unordered_map<StructureHandle, ActiveStructure*> ActiveStructures;
+
+		UByte* HackBuffer;
+		UByte* HackAllocPoint;
 	};
 
 }

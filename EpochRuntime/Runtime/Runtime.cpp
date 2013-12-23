@@ -789,8 +789,10 @@ size_t ExecutionContext::GetChainEndOffset(size_t beginoffset) const
 //
 StructureHandle ExecutionContext::AllocateStructure(const StructureDefinition& description)
 {
-	ActiveStructure* active = new ActiveStructure(description);
-	StructureHandle handle = &active->Storage[0];
+	UByte* storage = new UByte[description.GetSize()];
+	ActiveStructure* active = new ActiveStructure(description, storage);
+
+	StructureHandle handle = storage;
 	ActiveStructures.insert(std::make_pair(handle, active));
 
 	return handle;
@@ -974,15 +976,22 @@ void ExecutionContext::ProfileExit(StringHandle functionname)
 	unsigned now = timeGetTime();
 	unsigned entrytime = ProfilingData[functionname].back();
 	ProfilingData[functionname].pop_back();
-
-	ProfilingTimes[functionname] += (now - entrytime);
+	if(ProfilingData[functionname].empty())
+		ProfilingTimes[functionname] += (now - entrytime);
 }
 
 void ExecutionContext::ProfileDump()
 {
+	std::multimap<unsigned, StringHandle> sortedtimes;
+
 	for(std::map<StringHandle, unsigned>::const_iterator iter = ProfilingTimes.begin(); iter != ProfilingTimes.end(); ++iter)
 	{
-		std::wcout << GetPooledString(iter->first) << L" - " << iter->second << L"ms" << std::endl;
+		sortedtimes.insert(std::make_pair(iter->second, iter->first));
+	}
+
+	for(std::multimap<unsigned, StringHandle>::const_iterator iter = sortedtimes.begin(); iter != sortedtimes.end(); ++iter)
+	{
+		std::wcout << GetPooledString(iter->second) << L" - " << iter->first << L"ms" << std::endl;
 	}
 }
 

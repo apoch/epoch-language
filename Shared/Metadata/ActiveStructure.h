@@ -22,12 +22,17 @@
 
 class ActiveStructure
 {
-// Construction
+// Construction and destruction
 public:
-	explicit ActiveStructure(const StructureDefinition& definition)
+	ActiveStructure(const StructureDefinition& definition, UByte* storage)
 		: Definition(definition),
-		  Storage(definition.GetSize(), 0)
+		  Storage(storage)
 	{ }
+
+	~ActiveStructure()
+	{
+		delete[] Storage;
+	}
 
 // Assignment prohibited
 private:
@@ -76,6 +81,6 @@ public:
 // Original structure definition
 public:
 	const StructureDefinition& Definition;
-	std::vector<UByte> Storage;
+	UByte* Storage;
 };
 

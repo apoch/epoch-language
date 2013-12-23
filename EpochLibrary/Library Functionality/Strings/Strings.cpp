@@ -28,6 +28,8 @@ namespace
 	StringHandle SubstringWithLengthHandle = 0;
 	StringHandle SubstringNoLengthHandle = 0;
 
+	StringHandle SubCharacterHandle = 0;
+
 }
 
 
@@ -57,6 +59,13 @@ void StringFunctionLibrary::RegisterLibraryFunctions(FunctionSignatureSet& signa
 		signature.SetReturnType(Metadata::EpochType_String);
 		AddToMapNoDupe(signatureset, std::make_pair(SubstringNoLengthHandle, signature));
 	}
+	{
+		FunctionSignature signature;
+		signature.AddParameter(L"str", Metadata::EpochType_String);
+		signature.AddParameter(L"start", Metadata::EpochType_Integer);
+		signature.SetReturnType(Metadata::EpochType_Integer);
+		AddToMapNoDupe(signatureset, std::make_pair(SubCharacterHandle, signature));
+	}
 }
 
 void StringFunctionLibrary::RegisterLibraryOverloads(OverloadMap& overloadmap)
@@ -73,6 +82,8 @@ void StringFunctionLibrary::PoolStrings(StringPoolManager& stringpool)
 	SubstringHandle = stringpool.Pool(L"substring");
 	SubstringWithLengthHandle = stringpool.Pool(L"substring@@withlength");
 	SubstringNoLengthHandle = stringpool.Pool(L"substring@@nolength");
+
+	SubCharacterHandle = stringpool.Pool(L"subchar");
 }
 
 
@@ -81,6 +92,7 @@ void StringFunctionLibrary::RegisterJITTable(JIT::JITTable& table)
 	AddToMapNoDupe(table.LibraryExports, std::make_pair(SubstringWithLengthHandle, "EpochLib_SubstrLen"));
 	AddToMapNoDupe(table.LibraryExports, std::make_pair(SubstringNoLengthHandle, "EpochLib_SubstrNoLen"));
 	AddToMapNoDupe(table.LibraryExports, std::make_pair(UnescapeHandle, "EpochLib_Unescape"));
+	AddToMapNoDupe(table.LibraryExports, std::make_pair(SubCharacterHandle, "EpochLib_SubstrChar"));
 }
 
 
@@ -96,6 +108,11 @@ extern "C" StringHandle EpochLib_SubstrNoLen(unsigned start, StringHandle strhan
 {
 	std::wstring slice = GlobalExecutionContext->GetPooledString(strhandle).substr(start);
 	return GlobalExecutionContext->PoolString(slice);
+}
+
+extern "C" int EpochLib_SubstrChar(unsigned start, StringHandle strhandle)
+{
+	return GlobalExecutionContext->GetPooledString(strhandle)[start];
 }
 
 extern "C" StringHandle EpochLib_Unescape(StringHandle strhandle)
