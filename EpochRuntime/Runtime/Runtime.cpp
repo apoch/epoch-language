@@ -271,7 +271,7 @@ ExecutionContext::ExecutionContext(Bytecode::Instruction* codebuffer, size_t cod
 {
 	InitStandardLibraries(testharness, usestdlib);
 
-	ActiveStructures.rehash(1000000);
+	ActiveStructures.rehash(10000);
 }
 
 ExecutionContext::~ExecutionContext()
