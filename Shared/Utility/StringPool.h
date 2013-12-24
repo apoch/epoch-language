@@ -26,7 +26,9 @@ public:
 	explicit StringPoolManager(bool fastreverse = false)
 		: FastLookupEnabled(fastreverse),
 		  GarbageTick(0)
-	{ }
+	{
+		PooledStrings.rehash(15000);
+	}
 
 // Pooling interface
 public:
