@@ -270,8 +270,6 @@ ExecutionContext::ExecutionContext(Bytecode::Instruction* codebuffer, size_t cod
 	  GlobalInitFunc(NULL)
 {
 	InitStandardLibraries(testharness, usestdlib);
-
-	ActiveStructures.rehash(10000);
 }
 
 ExecutionContext::~ExecutionContext()
@@ -791,22 +789,20 @@ size_t ExecutionContext::GetChainEndOffset(size_t beginoffset) const
 //
 StructureHandle ExecutionContext::AllocateStructure(const StructureDefinition& description)
 {
-	UByte* storage = new UByte[description.GetSize()];
-	ActiveStructure* active = new ActiveStructure(description, storage);
+	UByte* storage = new UByte[sizeof(ActiveStructure*) + description.GetSize()];
+	ActiveStructure* active = new ActiveStructure(description, storage + sizeof(ActiveStructure*));
 
-	StructureHandle handle = storage;
-	ActiveStructures.insert(std::make_pair(handle, active));
+	*reinterpret_cast<ActiveStructure**>(storage) = active;
 
+	StructureHandle handle = storage + sizeof(ActiveStructure*);
 	return handle;
 }
 
 EPOCHRUNTIME ActiveStructure& ExecutionContext::FindStructureMetadata(StructureHandle handle)
 {
-	boost::unordered_map<StructureHandle, ActiveStructure*>::iterator iter = ActiveStructures.find(handle);
-	if(iter == ActiveStructures.end())
-		throw FatalException("Invalid structure handle or no metadata cached");
-
-	return *iter->second;
+	UByte* storage = reinterpret_cast<UByte*>(handle);
+	storage -= sizeof(ActiveStructure*);
+	return *(*reinterpret_cast<ActiveStructure**>(storage));
 }
 
 //
@@ -834,15 +830,8 @@ bool ExecutionContext::HasStructureDefinition(Metadata::EpochTypeID vartype) con
 StructureHandle ExecutionContext::DeepCopy(StructureHandle handle)
 {
 	const ActiveStructure& original = FindStructureMetadata(handle);
-	StructureHandle clonedhandle;
-
-	UByte* storage = new UByte[original.Definition.GetSize()];
-	ActiveStructure* active = new ActiveStructure(original.Definition, storage);
-
-	clonedhandle = storage;
-	ActiveStructures.insert(std::make_pair(clonedhandle, active));
-
-	ActiveStructure& clone = *active;
+	StructureHandle clonedhandle = AllocateStructure(original.Definition);
+	ActiveStructure& clone = FindStructureMetadata(clonedhandle);
 
 	for(size_t i = 0; i < original.Definition.GetNumMembers(); ++i)
 	{
@@ -915,7 +904,7 @@ void ExecutionContext::GarbageCollectBuffers(const std::set<BufferHandle>& liveh
 //
 void ExecutionContext::GarbageCollectStructures(const std::set<StructureHandle>& livehandles)
 {
-	EraseAndDeleteDeadHandles(ActiveStructures, livehandles);
+	//EraseAndDeleteDeadHandles(ActiveStructures, livehandles);
 }
 
 
@@ -944,11 +933,6 @@ unsigned ExecutionContext::GetGarbageCollectionBitmask()
 	}
 
 	return mask;
-}
-
-bool ExecutionContext::IsLiveObjectAtAddress(char* addr) const
-{
-	return (ActiveStructures.find(addr) != ActiveStructures.end());
 }
 
 void* ExecutionContext::JITCallback(void* stubfunc)

@@ -672,6 +672,7 @@ namespace
 					}
 					else
 					{
+						// TODO - this trips a bug when trying to store reals!
 						StoreInst* payloadstore = new StoreInst(ConstantInt::get(gep->getType()->getElementType(), 0), gep);
 						payloadstore->insertAfter(gep);
 					}
@@ -819,7 +820,7 @@ extern "C" __declspec(naked) void TriggerGarbageCollection()
 
 		// Invoke GC
 		push ebp
-		call CrawlStackAndGarbageCollect
+		//call CrawlStackAndGarbageCollect
 		add esp, 4
 
 		// Restore EAX

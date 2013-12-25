@@ -204,15 +204,10 @@ namespace Runtime
 
 		unsigned GetGarbageCollectionBitmask();
 
-		bool IsLiveObjectAtAddress(char* addr) const;
-
 	// Use sparingly! Only intended for access by the garbage collector
 	public:
 		StringPoolManager& PrivateGetRawStringPool()
 		{ return PrivateStringPool; }
-
-		const boost::unordered_map<StructureHandle, ActiveStructure*>& PrivateGetStructurePool()
-		{ return ActiveStructures; }
 
 	// Public tracking
 	public:
@@ -261,8 +256,6 @@ namespace Runtime
 
 		HandleAllocator<BufferHandle> BufferHandleAlloc;
 		boost::unordered_map<BufferHandle, std::vector<Byte>, fasthash> Buffers;
-
-		boost::unordered_map<StructureHandle, ActiveStructure*> ActiveStructures;
 
 		UByte* StructureAllocBuffer;
 		UByte* StructureAllocPoint;
