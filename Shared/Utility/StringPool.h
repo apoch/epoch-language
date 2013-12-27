@@ -34,6 +34,7 @@ public:
 public:
 	StringHandle Pool(const std::wstring& stringdata);
 	StringHandle PoolFast(const std::wstring& stringdata);
+	StringHandle PoolFast(const wchar_t* stringdata);
 	void Pool(StringHandle handle, const std::wstring& stringdata);
 
 	const std::wstring& GetPooledString(StringHandle handle) const;

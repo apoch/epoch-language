@@ -143,7 +143,7 @@ namespace Runtime
 		void ProfileDump();
 
 		std::map<StringHandle, std::vector<unsigned> > ProfilingData;
-		std::map<StringHandle, unsigned> ProfilingTimes;
+		std::map<StringHandle, std::pair<unsigned, unsigned> > ProfilingTimes;
 
 	// Initialization
 	private:
@@ -157,6 +157,7 @@ namespace Runtime
 	public:
 		EPOCHRUNTIME StringHandle PoolString(const std::wstring& stringdata);
 		void PoolString(StringHandle handle, const std::wstring& stringdata);
+		EPOCHRUNTIME StringHandle PoolString(const wchar_t* stringdata);
 		EPOCHRUNTIME const std::wstring& GetPooledString(StringHandle handle) const;
 		StringHandle GetPooledStringHandle(const std::wstring& value);
 

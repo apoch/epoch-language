@@ -54,6 +54,8 @@ namespace JIT
 		JITFunc_Profile_Enter,
 		JITFunc_Profile_Exit,
 		JITFunc_Profile_Dump,
+
+		JITFunc_CRuntime_StrCmp,
 	};
 
 

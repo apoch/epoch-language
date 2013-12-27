@@ -60,6 +60,22 @@ StringHandle StringPoolManager::PoolFast(const std::wstring& stringdata)
 	return handle;
 }
 
+StringHandle StringPoolManager::PoolFast(const wchar_t* stringdata)
+{
+	StringHandle handle = HandleAlloc.AllocateHandle(PooledStrings);
+	std::wstring str(stringdata);
+	PooledStrings.emplace(handle, str);
+
+	++GarbageTick;
+
+#ifdef EPOCH_STRINGPOOL_FAST_REVERSE_LOOKUP
+	if(FastLookupEnabled)
+		ReverseLookupMap.insert(std::make_pair(stringdata, handle));
+#endif
+
+	return handle;
+}
+
 //
 // Assign the given handle to a string entry
 //

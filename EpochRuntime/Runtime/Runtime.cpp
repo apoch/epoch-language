@@ -88,6 +88,11 @@ EPOCHRUNTIME StringHandle ExecutionContext::PoolString(const std::wstring& strin
 	return PrivateStringPool.PoolFast(stringdata);
 }
 
+EPOCHRUNTIME StringHandle ExecutionContext::PoolString(const wchar_t* stringdata)
+{
+	return PrivateStringPool.PoolFast(stringdata);
+}
+
 //
 // Store a string in the global string pool
 //
@@ -970,21 +975,23 @@ void ExecutionContext::ProfileExit(StringHandle functionname)
 	unsigned entrytime = ProfilingData[functionname].back();
 	ProfilingData[functionname].pop_back();
 	if(ProfilingData[functionname].empty())
-		ProfilingTimes[functionname] += (now - entrytime);
+		ProfilingTimes[functionname].first += (now - entrytime);
+
+	++ProfilingTimes[functionname].second;
 }
 
 void ExecutionContext::ProfileDump()
 {
-	std::multimap<unsigned, StringHandle> sortedtimes;
+	std::multimap<unsigned, std::pair<StringHandle, unsigned> > sortedtimes;
 
-	for(std::map<StringHandle, unsigned>::const_iterator iter = ProfilingTimes.begin(); iter != ProfilingTimes.end(); ++iter)
+	for(std::map<StringHandle, std::pair<unsigned, unsigned> >::const_iterator iter = ProfilingTimes.begin(); iter != ProfilingTimes.end(); ++iter)
 	{
-		sortedtimes.insert(std::make_pair(iter->second, iter->first));
+		sortedtimes.insert(std::make_pair(iter->second.first, std::make_pair(iter->first, iter->second.second)));
 	}
 
-	for(std::multimap<unsigned, StringHandle>::const_iterator iter = sortedtimes.begin(); iter != sortedtimes.end(); ++iter)
+	for(std::multimap<unsigned, std::pair<StringHandle, unsigned> >::const_iterator iter = sortedtimes.begin(); iter != sortedtimes.end(); ++iter)
 	{
-		std::wcout << GetPooledString(iter->second) << L" - " << iter->first << L"ms" << std::endl;
+		std::wcout << GetPooledString(iter->second.first) << L" - " << iter->first << L"ms, " << iter->second.second << L" calls" << std::endl;
 	}
 }
 

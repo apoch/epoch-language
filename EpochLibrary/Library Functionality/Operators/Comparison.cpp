@@ -141,6 +141,28 @@ namespace
 		return true;
 	}
 
+
+	bool StringEqualityJIT(JIT::JITContext& context, bool)
+	{
+		llvm::Value* s2 = context.ValuesOnStack.top();
+		context.ValuesOnStack.pop();
+		llvm::Value* s1 = context.ValuesOnStack.top();
+		context.ValuesOnStack.pop();
+
+		llvm::Function* getstr = (*context.BuiltInFunctions)[JIT::JITFunc_Runtime_GetString];
+		llvm::Function* eq = (*context.BuiltInFunctions)[JIT::JITFunc_CRuntime_StrCmp];
+
+		llvm::Value* zero = llvm::ConstantInt::get(llvm::Type::getInt32Ty(*reinterpret_cast<llvm::LLVMContext*>(context.Context)), 0);
+		llvm::Value* str1 = reinterpret_cast<llvm::IRBuilder<>*>(context.Builder)->CreateCall(getstr, s1, "");
+		llvm::Value* str2 = reinterpret_cast<llvm::IRBuilder<>*>(context.Builder)->CreateCall(getstr, s2, "");
+
+		llvm::Value* cmp = reinterpret_cast<llvm::IRBuilder<>*>(context.Builder)->CreateCall2(eq, str1, str2, "");
+		llvm::Value* flag = reinterpret_cast<llvm::IRBuilder<>*>(context.Builder)->CreateICmp(llvm::CmpInst::ICMP_EQ, cmp, zero);
+		context.ValuesOnStack.push(flag);
+
+		return true;
+	}
+
 }
 
 
@@ -315,7 +337,8 @@ void ComparisonLibrary::RegisterJITTable(JIT::JITTable& table)
 
 	AddToMapNoDupe(table.InvokeHelpers, std::make_pair(BooleanEqualityHandle, &BooleanEqualityJIT));
 
-	AddToMapNoDupe(table.LibraryExports, std::make_pair(StringEqualityHandle, "EpochLib_StringEq"));
+	AddToMapNoDupe(table.InvokeHelpers, std::make_pair(StringEqualityHandle, &StringEqualityJIT));
+	
 	AddToMapNoDupe(table.LibraryExports, std::make_pair(StringInequalityHandle, "EpochLib_StringIneq"));
 }
 

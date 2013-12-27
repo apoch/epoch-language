@@ -351,9 +351,22 @@ namespace JIT
 				FunctionType* ftype = FunctionType::get(Type::getInt8PtrTy(Context), args, false);
 
 				BuiltInFunctions[JITFunc_Runtime_GetString] = Function::Create(ftype, Function::ExternalLinkage, "Epoch_GetString", CurrentModule);
+				BuiltInFunctions[JITFunc_Runtime_GetString]->addFnAttr(llvm::Attribute::ReadNone);
 			}
 			else
 				BuiltInFunctions[JITFunc_Runtime_GetString] = CurrentModule->getFunction("Epoch_GetString");
+
+			if(!CurrentModule->getFunction("CRT_StrCmp"))
+			{
+				std::vector<Type*> args;
+				args.push_back(Type::getInt8PtrTy(Context));
+				args.push_back(Type::getInt8PtrTy(Context));
+				FunctionType* ftype = FunctionType::get(Type::getInt32Ty(Context), args, false);
+
+				BuiltInFunctions[JITFunc_CRuntime_StrCmp] = Function::Create(ftype, Function::ExternalLinkage, "wcscmp", CurrentModule);
+			}
+			else
+				BuiltInFunctions[JITFunc_CRuntime_StrCmp] = CurrentModule->getFunction("CRT_StrCmp");
 
 			if(!CurrentModule->getFunction("Epoch_PoolString"))
 			{
@@ -952,7 +965,8 @@ EPOCHRUNTIME void NativeCodeGenerator::ExternalInvoke(JIT::JITContext& context, 
 {
 	Function* func = GetExternalFunction(alias);
 
-	Builder.CreateCall(Data->BuiltInFunctions[JITFunc_Runtime_GCBookmark]);
+	if(ExecContext.SuppressGC.find(alias) == ExecContext.SuppressGC.end())
+		Builder.CreateCall(Data->BuiltInFunctions[JITFunc_Runtime_GCBookmark]);
 
 	Function::arg_iterator argiter = context.InnerFunction->arg_begin();
 	std::vector<Value*> args;
@@ -997,7 +1011,8 @@ EPOCHRUNTIME void NativeCodeGenerator::ExternalInvoke(JIT::JITContext& context, 
 		}
 	}
 
-	Builder.CreateCall(Data->BuiltInFunctions[JITFunc_Runtime_GCUnbookmark]);
+	if(ExecContext.SuppressGC.find(alias) == ExecContext.SuppressGC.end())
+		Builder.CreateCall(Data->BuiltInFunctions[JITFunc_Runtime_GCUnbookmark]);
 }
 
 //
