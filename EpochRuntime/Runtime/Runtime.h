@@ -241,6 +241,8 @@ namespace Runtime
 
 		std::set<StringHandle> SuppressGC;
 
+		std::map<StringHandle, size_t> EntityOffsetMap;
+
 	// Handy type shortcuts
 	private:
 		typedef boost::unordered_map<StringHandle, size_t, fasthash> OffsetMap;

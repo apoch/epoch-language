@@ -313,7 +313,6 @@ void ExecutionContext::Load()
 	StringHandle globalentityname = 0;
 
 	std::set<StringHandle> jitworklist;
-	std::map<StringHandle, size_t> entityoffsetmap;
 
 	std::map<size_t, StringHandle> offsetfixups;
 	std::map<size_t, StringHandle> jitfixups;
@@ -362,7 +361,7 @@ void ExecutionContext::Load()
 				}
 
 				entitybeginoffsets.push(originaloffset);
-				entityoffsetmap[name] = originaloffset;
+				EntityOffsetMap[name] = originaloffset;
 			}
 			break;
 
@@ -723,7 +722,7 @@ void ExecutionContext::Load()
 
 		for(std::set<StringHandle>::const_iterator iter = jitworklist.begin(); iter != jitworklist.end(); ++iter)
 		{
-			size_t beginoffset = entityoffsetmap[*iter];
+			size_t beginoffset = EntityOffsetMap[*iter];
 			size_t endoffset = GetEntityEndOffset(beginoffset);
 
 			jitgen.AddFunction(beginoffset, endoffset, *iter);

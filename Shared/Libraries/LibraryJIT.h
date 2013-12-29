@@ -83,6 +83,7 @@ namespace JIT
 
 		llvm::Function* InnerFunction;
 		llvm::Value* InnerRetVal;
+		llvm::BasicBlock* InnerEntryBlock;
 		llvm::BasicBlock* InnerExitBlock;
 
 		std::map<JITFunctionID, llvm::Function*>* BuiltInFunctions;
