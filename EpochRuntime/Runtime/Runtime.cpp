@@ -794,20 +794,18 @@ size_t ExecutionContext::GetChainEndOffset(size_t beginoffset) const
 //
 StructureHandle ExecutionContext::AllocateStructure(const StructureDefinition& description)
 {
-	UByte* storage = new UByte[sizeof(ActiveStructure*) + description.GetSize()];
-	ActiveStructure* active = new ActiveStructure(description, storage + sizeof(ActiveStructure*));
+	UByte* storage = new UByte[sizeof(ActiveStructure) + description.GetSize()];
+	new(storage) ActiveStructure(description, storage + sizeof(ActiveStructure));
 
-	*reinterpret_cast<ActiveStructure**>(storage) = active;
-
-	StructureHandle handle = storage + sizeof(ActiveStructure*);
+	StructureHandle handle = storage + sizeof(ActiveStructure);
 	return handle;
 }
 
 EPOCHRUNTIME ActiveStructure& ExecutionContext::FindStructureMetadata(StructureHandle handle)
 {
 	UByte* storage = reinterpret_cast<UByte*>(handle);
-	storage -= sizeof(ActiveStructure*);
-	return *(*reinterpret_cast<ActiveStructure**>(storage));
+	storage -= sizeof(ActiveStructure);
+	return *reinterpret_cast<ActiveStructure*>(storage);
 }
 
 //

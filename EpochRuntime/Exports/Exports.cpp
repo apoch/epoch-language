@@ -218,8 +218,9 @@ extern "C" void* Epoch_AllocStruct(Metadata::EpochTypeID structtype)
 {
 	try
 	{
-		StructureHandle handle = Runtime::GetThreadContext()->AllocateStructure(Runtime::GetThreadContext()->GetStructureDefinition(structtype));
-		Runtime::GetThreadContext()->TickStructureGarbageCollector();
+		Runtime::ExecutionContext* context = Runtime::GetThreadContext();
+		StructureHandle handle = context->AllocateStructure(context->GetStructureDefinition(structtype));
+		context->TickStructureGarbageCollector();
 		return handle;
 	}
 	catch(...)
