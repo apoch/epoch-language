@@ -214,7 +214,7 @@ namespace Runtime
 	public:
 		EntityTable Entities;
 
-		std::map<Metadata::EpochTypeID, StructureDefinition> StructureDefinitions;
+		boost::unordered_map<Metadata::EpochTypeID, StructureDefinition> StructureDefinitions;
 		JIT::JITTable JITHelpers;
 		void* EntryPointFunc;
 		void* GlobalInitFunc;

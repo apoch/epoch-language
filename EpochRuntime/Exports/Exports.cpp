@@ -16,6 +16,8 @@
 #include "../../EpochTools/Serialization/Serializer.h"
 
 
+#include <iostream>
+
 #ifdef _MSC_VER
 #define NORETURN __declspec(noreturn)
 #else
@@ -214,6 +216,54 @@ extern "C" StringHandle Epoch_PoolString(const wchar_t* str)
 	return Runtime::GetThreadContext()->PoolString(str);
 }
 
+/*
+#pragma optimize( "", off )
+
+static void* AllocStructWorker(unsigned type, void* retaddr)
+{
+	try
+	{
+		std::map<void*, std::pair<void*, StringHandle> >::const_iterator iter = Runtime::GetThreadContext()->GeneratedJITFunctionCode.lower_bound(retaddr);
+		--iter;
+		if(iter->second.second != 0)
+		{
+			std::wcout << Runtime::GetThreadContext()->GetPooledString(iter->second.second) << std::endl;
+		}
+	}
+	catch(...)
+	{
+	}
+
+	try
+	{
+		Runtime::ExecutionContext* context = Runtime::GetThreadContext();
+		StructureHandle handle = context->AllocateStructure(context->GetStructureDefinition(type));
+		context->TickStructureGarbageCollector();
+		return handle;
+	}
+	catch(...)
+	{
+		Epoch_Halt();
+	}
+
+	return 0;
+}
+
+#pragma optimize( "", on ) 
+
+extern "C" __declspec(naked) void* Epoch_AllocStruct(unsigned)
+{
+	__asm
+	{
+		push [esp]
+		push [esp+8]
+		call AllocStructWorker
+		add  esp,8
+		ret
+	}
+}
+*/
+
 extern "C" void* Epoch_AllocStruct(Metadata::EpochTypeID structtype)
 {
 	try
@@ -230,6 +280,7 @@ extern "C" void* Epoch_AllocStruct(Metadata::EpochTypeID structtype)
 
 	return 0;
 }
+
 
 /*
 #pragma optimize( "", off )

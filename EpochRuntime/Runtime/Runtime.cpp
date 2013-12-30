@@ -685,7 +685,7 @@ void ExecutionContext::Load()
 		size_t memberindex = iter->second.first;
 		EpochTypeID membertype = iter->second.second;
 
-		std::map<EpochTypeID, StructureDefinition>::iterator targetiter = StructureDefinitions.find(structuretype);
+		boost::unordered_map<EpochTypeID, StructureDefinition>::iterator targetiter = StructureDefinitions.find(structuretype);
 		targetiter->second.SetMemberStructDefinition(memberindex, &GetStructureDefinition(membertype));
 	}
 
@@ -813,7 +813,7 @@ EPOCHRUNTIME ActiveStructure& ExecutionContext::FindStructureMetadata(StructureH
 EPOCHRUNTIME const StructureDefinition& ExecutionContext::GetStructureDefinition(EpochTypeID type) const
 {
 	type = Metadata::MakeNonReferenceType(type);
-	std::map<EpochTypeID, StructureDefinition>::const_iterator iter = StructureDefinitions.find(type);
+	boost::unordered_map<EpochTypeID, StructureDefinition>::const_iterator iter = StructureDefinitions.find(type);
 	if(iter == StructureDefinitions.end())
 		throw FatalException("Invalid structure description handle");
 
@@ -822,7 +822,7 @@ EPOCHRUNTIME const StructureDefinition& ExecutionContext::GetStructureDefinition
 
 bool ExecutionContext::HasStructureDefinition(Metadata::EpochTypeID vartype) const
 {
-	std::map<EpochTypeID, StructureDefinition>::const_iterator iter = StructureDefinitions.find(vartype);
+	boost::unordered_map<EpochTypeID, StructureDefinition>::const_iterator iter = StructureDefinitions.find(vartype);
 	return (iter != StructureDefinitions.end());
 }
 

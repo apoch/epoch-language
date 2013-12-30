@@ -335,6 +335,7 @@ namespace JIT
 				FunctionType* ftype = FunctionType::get(Type::getInt8PtrTy(Context), args, false);
 
 				BuiltInFunctions[JITFunc_Runtime_GetBuffer] = Function::Create(ftype, Function::ExternalLinkage, "Epoch_GetBuffer", CurrentModule);
+				BuiltInFunctions[JITFunc_Runtime_GetBuffer]->addFnAttr(llvm::Attribute::ReadNone);
 			}
 			else
 				BuiltInFunctions[JITFunc_Runtime_GetBuffer] = CurrentModule->getFunction("Epoch_GetBuffer");
