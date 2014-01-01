@@ -614,7 +614,7 @@ Function* NativeCodeGenerator::GetGeneratedFunction(StringHandle funcname, size_
 Function* NativeCodeGenerator::GetGeneratedTypeMatcher(StringHandle funcname, size_t beginoffset)
 {
 	std::ostringstream matchername;
-	matchername << "JITMatcher_" << beginoffset << "_" << funcname;
+	matchername << "JITMatcher_" << beginoffset << "_" << narrow(ExecContext.GetPooledString(funcname));
 
 	Function* nativetypematcher = Data->GeneratedNativeTypeMatchers[matchername.str()];
 	if(!nativetypematcher)

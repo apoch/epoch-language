@@ -906,6 +906,8 @@ void ExecutionContext::GarbageCollectBuffers(const std::set<BufferHandle>& liveh
 //
 void ExecutionContext::GarbageCollectStructures(const std::set<StructureHandle>& livehandles)
 {
+	// TODO
+	((void)(livehandles));
 	//EraseAndDeleteDeadHandles(ActiveStructures, livehandles);
 }
 
