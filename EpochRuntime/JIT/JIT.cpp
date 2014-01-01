@@ -196,6 +196,10 @@ namespace JIT
 
 			void CopyBuffer(size_t& offset);
 
+		// Additional helpers
+		private:
+			AllocaInst* CreateAllocaInternal(Type* type);
+
 		// Internal tracking
 		private:
 			NativeCodeGenerator& Generator;
@@ -1281,6 +1285,17 @@ FunctionJITHelper::FunctionJITHelper(NativeCodeGenerator& generator)
 }
 
 
+AllocaInst* FunctionJITHelper::CreateAllocaInternal(Type* type)
+{
+	AllocaInst* ret;
+	if(CompilingTypeMatchedFunction)
+		ret = new AllocaInst(type, "", &Builder.GetInsertBlock()->getParent()->getEntryBlock().back());
+	else
+		ret = Builder.CreateAlloca(type);
+
+	return ret;
+}
+
 //
 // JIT a function
 //
@@ -1575,7 +1590,7 @@ void FunctionJITHelper::BeginEntity(size_t& offset)
 		LibJITContext.InnerExitBlock = BasicBlock::Create(Context, "innerexit", LibJITContext.InnerFunction);
 
 		if(NumReturns)
-			LibJITContext.InnerRetVal = Builder.CreateAlloca(rettype);
+			LibJITContext.InnerRetVal = CreateAllocaInternal(rettype);
 
 		if(!CompilingTypeMatchedFunction)
 		{
@@ -1596,7 +1611,7 @@ void FunctionJITHelper::BeginEntity(size_t& offset)
 						{
 							Value* deref = Builder.CreateLoad((Argument*)(argiter));
 
-							Value* slot = Builder.CreateAlloca(deref->getType());
+							Value* slot = CreateAllocaInternal(deref->getType());
 							Builder.CreateStore(deref, slot);
 
 							Value* signature = ConstantInt::get(Type::getInt32Ty(Context), epochtype);
@@ -1608,7 +1623,7 @@ void FunctionJITHelper::BeginEntity(size_t& offset)
 				}
 				else
 				{
-					Value* slot = Builder.CreateAlloca(((Argument*)argiter)->getType());
+					Value* slot = CreateAllocaInternal(((Argument*)argiter)->getType());
 					Builder.CreateStore(((Argument*)argiter), slot);
 
 					if(LibJITContext.InnerFunction->hasGC())
@@ -1644,7 +1659,7 @@ void FunctionJITHelper::BeginEntity(size_t& offset)
 						{
 							Value* deref = Builder.CreateLoad(*argiter);
 
-							Value* slot = Builder.CreateAlloca(deref->getType());
+							Value* slot = CreateAllocaInternal(deref->getType());
 							Builder.CreateStore(deref, slot);
 
 							Value* signature = ConstantInt::get(Type::getInt32Ty(Context), epochtype);
@@ -1656,7 +1671,7 @@ void FunctionJITHelper::BeginEntity(size_t& offset)
 				}
 				else
 				{
-					Value* slot = Builder.CreateAlloca((*argiter)->getType());
+					Value* slot = CreateAllocaInternal((*argiter)->getType());
 					Builder.CreateStore((*argiter), slot);
 
 					if(LibJITContext.InnerFunction->hasGC())
@@ -1685,7 +1700,7 @@ void FunctionJITHelper::BeginEntity(size_t& offset)
 			Type* type = Generator.GetLLVMType(localtype);
 
 			if(*localiter != retindex)
-				LibJITContext.VariableMap[*localiter] = Builder.CreateAlloca(type, NULL, narrow(Generator.ExecContext.GetPooledString(scope.GetVariableNameHandle(*localiter))));
+				LibJITContext.VariableMap[*localiter] = CreateAllocaInternal(type);
 
 			LocalOffsetToIndexMap[localoffsetbytes] = *localiter;
 
@@ -1899,7 +1914,7 @@ void FunctionJITHelper::Read(size_t& offset)
 			Value* payload = Builder.CreateVAArg(LibJITContext.VarArgList, Generator.GetLLVMSumType(vartype, true)->getContainedType(1));
 			Value* typesignature = Builder.CreateVAArg(LibJITContext.VarArgList, Generator.Data->TypeIDType);
 
-			Value* sumtypeholder = Builder.CreateAlloca(Generator.GetLLVMSumType(vartype, true), 0, "BORK");
+			Value* sumtypeholder = CreateAllocaInternal(Generator.GetLLVMSumType(vartype, true));
 
 			std::vector<Value*> gepindices;
 			gepindices.push_back(ConstantInt::get(Type::getInt32Ty(Context), 0));
@@ -2424,7 +2439,7 @@ void FunctionJITHelper::AllocStructure(size_t& offset)
 	HackStructType = type;
 
 	// TODO - more hack
-	LibJITContext.VarArgList = Builder.CreateAlloca(Type::getInt8PtrTy(Context));
+	LibJITContext.VarArgList = CreateAllocaInternal(Type::getInt8PtrTy(Context));
 	Value* castlist = Builder.CreatePointerCast(LibJITContext.VarArgList, Type::getInt8PtrTy(Context));
 	Builder.CreateCall(Generator.Data->BuiltInFunctions[JITFunc_Intrinsic_VAStart], castlist);
 	//Builder.GetInsertBlock()->getParent()->addAttribute(0xffffffff, Attribute::NoInline);
@@ -2610,7 +2625,7 @@ void FunctionJITHelper::InvokeOffset(size_t& offset)
 				}
 				else
 				{
-					Value* stacktemp = Builder.CreateAlloca(v2->getType());
+					Value* stacktemp = CreateAllocaInternal(v2->getType());
 					Builder.CreateStore(v2, stacktemp);
 
 					if(v2->getType()->isPointerTy())
