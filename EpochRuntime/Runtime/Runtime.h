@@ -201,9 +201,13 @@ namespace Runtime
 	// Garbage collection
 	public:
 		void GarbageCollectBuffers(const std::set<BufferHandle>& livehandles);
-		void GarbageCollectStructures(const std::set<StructureHandle>& livehandles);
+		void GarbageCollectStructures();
 
 		unsigned GetGarbageCollectionBitmask();
+
+		void UnmarkActiveStructures();
+
+		bool IsLiveObjectAtAddress(StructureHandle address);
 
 	// Use sparingly! Only intended for access by the garbage collector
 	public:
@@ -260,11 +264,7 @@ namespace Runtime
 		HandleAllocator<BufferHandle> BufferHandleAlloc;
 		boost::unordered_map<BufferHandle, std::vector<Byte>, fasthash> Buffers;
 
-		UByte* StructureAllocBuffer;
-		UByte* StructureAllocPoint;
-
-		UByte* MetadataAllocBuffer;
-		UByte* MetadataAllocPoint;
+		std::vector<StructureHandle> ActiveStructures;
 	};
 
 }

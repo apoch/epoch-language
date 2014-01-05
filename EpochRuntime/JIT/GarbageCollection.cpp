@@ -92,7 +92,7 @@ namespace
 	{
 		std::set<StringHandle> LiveStrings;
 		std::set<BufferHandle> LiveBuffers;
-		std::set<StructureHandle> LiveStructures;
+		std::vector<StructureHandle> PendingStructures;
 
 		//
 		// Bitmask built from Runtime::ExecutionContext::GarbageCollectionFlags
@@ -143,10 +143,84 @@ namespace
 
 
 	//
+	// Helper for visiting a single structure in the heap
+	//
+	void VisitStructure(StructureHandle handle, LiveValues& livevalues, Runtime::ExecutionContext* context)
+	{
+		const ActiveStructure& active = context->FindStructureMetadata(handle);
+		const StructureDefinition& def = active.Definition;
+
+		for(size_t i = 0; i < def.GetNumMembers(); ++i)
+		{
+			Metadata::EpochTypeID membertype = def.GetMemberType(i);
+			if(Metadata::IsStructureType(membertype))
+			{
+				StructureHandle p = active.ReadMember<StructureHandle>(i);
+				UByte* pb = reinterpret_cast<UByte*>(p);
+				pb -= sizeof(ActiveStructure);
+				if(!reinterpret_cast<ActiveStructure*>(pb)->InUse)
+				{
+					reinterpret_cast<ActiveStructure*>(pb)->InUse = true;
+					livevalues.PendingStructures.push_back(p);
+				}
+			}
+			else if(membertype == Metadata::EpochType_String)
+			{
+				if(livevalues.Mask & Runtime::ExecutionContext::GC_Collect_Strings)
+				{
+					StringHandle h = active.ReadMember<StringHandle>(i);
+					livevalues.LiveStrings.insert(h);
+				}
+			}
+			else if(membertype == Metadata::EpochType_Buffer)
+			{
+				if(livevalues.Mask & Runtime::ExecutionContext::GC_Collect_Buffers)
+				{
+					BufferHandle h = active.ReadMember<BufferHandle>(i);
+					livevalues.LiveBuffers.insert(h);
+				}
+			}
+			else if(Metadata::GetTypeFamily(membertype) == Metadata::EpochTypeFamily_SumType)
+			{
+				Metadata::EpochTypeID realtype = active.ReadSumTypeMemberType(i);
+				if(Metadata::IsStructureType(realtype))
+				{
+					StructureHandle p = active.ReadMember<StructureHandle>(i);
+					UByte* pb = reinterpret_cast<UByte*>(p);
+					pb -= sizeof(ActiveStructure);
+					if(!reinterpret_cast<ActiveStructure*>(pb)->InUse)
+					{
+						reinterpret_cast<ActiveStructure*>(pb)->InUse = true;
+						livevalues.PendingStructures.push_back(p);
+					}
+				}
+				else if(realtype == Metadata::EpochType_String)
+				{
+					if(livevalues.Mask & Runtime::ExecutionContext::GC_Collect_Strings)
+					{
+						StringHandle h = active.ReadMember<StringHandle>(i);
+						livevalues.LiveStrings.insert(h);
+					}
+				}
+				else if(realtype == Metadata::EpochType_Buffer)
+				{
+					if(livevalues.Mask & Runtime::ExecutionContext::GC_Collect_Buffers)
+					{
+						BufferHandle h = active.ReadMember<BufferHandle>(i);
+						livevalues.LiveBuffers.insert(h);
+					}
+				}
+			}
+		}
+	}
+
+
+
+	//
 	// Check a GC root to see if it should be added to the list
 	// of live handles to traverse later.
 	//
-	void CheckRoot(const void* liveptr, Metadata::EpochTypeID type, LiveValues& livevalues)
+	void CheckRoot(const void* liveptr, Metadata::EpochTypeID type, LiveValues& livevalues, Runtime::ExecutionContext* context)
 	{
 		// Never traverse null pointers (this may occur for sum
 		// types and other references to live objects via recursive
@@ -198,7 +272,16 @@ namespace
 				{
 					StructureHandle handle = *reinterpret_cast<const StructureHandle*>(liveptr);
 					if(handle)
-						livevalues.LiveStructures.insert(handle);
+					{
+						UByte* p = reinterpret_cast<UByte*>(handle);
+						p -= sizeof(ActiveStructure);
+						
+						if(!reinterpret_cast<ActiveStructure*>(p)->InUse)
+						{
+							reinterpret_cast<ActiveStructure*>(p)->InUse = true;
+							VisitStructure(handle, livevalues, context);
+						}
+					}
 				}
 				else if(Metadata::GetTypeFamily(type) == Metadata::EpochTypeFamily_SumType)
 				{
@@ -220,9 +303,9 @@ namespace
 					const void* adjustedptr = reinterpret_cast<const char*>(liveptr) + sizeof(Metadata::EpochTypeID);
 
 					if(Metadata::GetTypeFamily(realtype) == Metadata::EpochTypeFamily_SumType)
-						CheckRoot(*reinterpret_cast<void* const*>(adjustedptr), realtype, livevalues);
+						CheckRoot(*reinterpret_cast<void* const*>(adjustedptr), realtype, livevalues, context);
 					else
-						CheckRoot(adjustedptr, realtype, livevalues);
+						CheckRoot(adjustedptr, realtype, livevalues, context);
 				}
 
 				//
@@ -246,7 +329,7 @@ namespace
 	//
 	// Walk the stack for a given safe point and mark any GC roots found
 	//
-	void WalkLiveValuesForSafePoint(const void* calleeframeptr, const void* stackptr, GCFunctionInfo& funcinfo, GCFunctionInfo::iterator& safepoint, LiveValues& livevalues)
+	void WalkLiveValuesForSafePoint(const void* calleeframeptr, const void* stackptr, GCFunctionInfo& funcinfo, GCFunctionInfo::iterator& safepoint, LiveValues& livevalues, Runtime::ExecutionContext* context)
 	{
 		for(GCFunctionInfo::live_iterator liveiter = funcinfo.live_begin(safepoint); liveiter != funcinfo.live_end(safepoint); ++liveiter)
 		{
@@ -267,113 +350,20 @@ namespace
 			if(*reinterpret_cast<void* const*>(liveptr) == liveptr)
 				continue;
 
-			CheckRoot(liveptr, type, livevalues);
+			CheckRoot(liveptr, type, livevalues, context);
 		}
-	}
-
-	//
-	// Helper for visiting a single structure in the heap
-	//
-	void VisitStructure(StructureHandle handle, LiveValues& livevalues, Runtime::ExecutionContext* context, std::set<StructureHandle>& newhandles)
-	{
-		const ActiveStructure& active = context->FindStructureMetadata(handle);
-		const StructureDefinition& def = active.Definition;
-		for(size_t i = 0; i < def.GetNumMembers(); ++i)
-		{
-			Metadata::EpochTypeID membertype = def.GetMemberType(i);
-			if(Metadata::IsStructureType(membertype))
-			{
-				StructureHandle p = active.ReadMember<StructureHandle>(i);
-				newhandles.insert(p);
-			}
-			else if(membertype == Metadata::EpochType_String)
-			{
-				if(livevalues.Mask & Runtime::ExecutionContext::GC_Collect_Strings)
-				{
-					StringHandle h = active.ReadMember<StringHandle>(i);
-					livevalues.LiveStrings.insert(h);
-				}
-			}
-			else if(membertype == Metadata::EpochType_Buffer)
-			{
-				if(livevalues.Mask & Runtime::ExecutionContext::GC_Collect_Buffers)
-				{
-					BufferHandle h = active.ReadMember<BufferHandle>(i);
-					livevalues.LiveBuffers.insert(h);
-				}
-			}
-			else if(Metadata::GetTypeFamily(membertype) == Metadata::EpochTypeFamily_SumType)
-			{
-				Metadata::EpochTypeID realtype = active.ReadSumTypeMemberType(i);
-				if(Metadata::IsStructureType(realtype))
-				{
-					StructureHandle p = active.ReadMember<StructureHandle>(i);
-					newhandles.insert(p);
-				}
-				else if(realtype == Metadata::EpochType_String)
-				{
-					if(livevalues.Mask & Runtime::ExecutionContext::GC_Collect_Strings)
-					{
-						StringHandle h = active.ReadMember<StringHandle>(i);
-						livevalues.LiveStrings.insert(h);
-					}
-				}
-				else if(realtype == Metadata::EpochType_Buffer)
-				{
-					if(livevalues.Mask & Runtime::ExecutionContext::GC_Collect_Buffers)
-					{
-						BufferHandle h = active.ReadMember<BufferHandle>(i);
-						livevalues.LiveBuffers.insert(h);
-					}
-				}
-			}
-		}
-	}
-
-	//
-	// Helper to traverse the heap graph of reachable structures
-	//
-	void WalkStructuresForLiveHandles(LiveValues& livevalues, Runtime::ExecutionContext* context)
-	{
-		std::set<StructureHandle>* valuestowalk = &livevalues.LiveStructures;
-
-		bool addedhandle;
-		std::set<StructureHandle> newhandles1;
-		std::set<StructureHandle> newhandles2;
-
-		std::set<StructureHandle>* newhandlebuffer = &newhandles1;
-
-		do
-		{
-			for(std::set<StructureHandle>::const_iterator iter = valuestowalk->begin(); iter != valuestowalk->end(); ++iter)
-				VisitStructure(*iter, livevalues, context, *newhandlebuffer);
-
-			addedhandle = !newhandlebuffer->empty();
-			if(addedhandle)
-			{
-				for(std::set<StructureHandle>::const_iterator iter = newhandlebuffer->begin(); iter != newhandlebuffer->end(); ++iter)
-					livevalues.LiveStructures.insert(*iter);
-
-				valuestowalk = newhandlebuffer;
-				if(newhandlebuffer == &newhandles1)
-					newhandlebuffer = &newhandles2;
-				else
-					newhandlebuffer = &newhandles1;
-				newhandlebuffer->clear();
-			}
-		} while(addedhandle);
 	}
 
 	//
 	// Traverse the list of global variables and mark any GC roots
 	//
-	void WalkGlobalsForLiveHandles(LiveValues& values)
+	void WalkGlobalsForLiveHandles(LiveValues& values, Runtime::ExecutionContext* context)
 	{
 		if(!Globals)
 			return;
 
 		for(std::map<void*, Metadata::EpochTypeID>::const_iterator iter = Globals->begin(); iter != Globals->end(); ++iter)
-			CheckRoot(iter->first, iter->second, values);
+			CheckRoot(iter->first, iter->second, values, context);
 	}
 
 	//
@@ -382,7 +372,7 @@ namespace
 	// See the comments on the BookmarkEntry structure for details on how this
 	// works and why it is implemented in the first place.
 	//
-	void WalkLiveValuesForBookmark(const void* stackptr, GCFunctionInfo& funcinfo, GCFunctionInfo::iterator& safepoint, LiveValues& livevalues)
+	void WalkLiveValuesForBookmark(const void* stackptr, GCFunctionInfo& funcinfo, GCFunctionInfo::iterator& safepoint, LiveValues& livevalues, Runtime::ExecutionContext* context)
 	{
 		for(GCFunctionInfo::live_iterator liveiter = funcinfo.live_begin(safepoint); liveiter != funcinfo.live_end(safepoint); ++liveiter)
 		{
@@ -405,30 +395,30 @@ namespace
 			if(*reinterpret_cast<void* const*>(liveptr) == liveptr)
 				continue;
 
-			CheckRoot(liveptr, type, livevalues);
+			CheckRoot(liveptr, type, livevalues, context);
 		}
 	}
 
 	//
 	// Traverse a bookmark entry and crawl its stack frame for roots
 	//
-	void WalkBookmarkEntry(const BookmarkEntry& entry, LiveValues& livevalues)
+	void WalkBookmarkEntry(const BookmarkEntry& entry, LiveValues& livevalues, Runtime::ExecutionContext* context)
 	{
 		SafePointCacheT::iterator iter = SafePointCache->find(entry.ReturnAddress);
 		if(iter != SafePointCache->end())
-			WalkLiveValuesForBookmark(reinterpret_cast<char*>(entry.StackPointer), *(iter->second.first), iter->second.second, livevalues);
+			WalkLiveValuesForBookmark(reinterpret_cast<char*>(entry.StackPointer), *(iter->second.first), iter->second.second, livevalues, context);
 	}
 
 	//
 	// Walk the complete list of active stack bookmarks
 	//
-	bool WalkBookmarks(LiveValues& livevalues)
+	bool WalkBookmarks(LiveValues& livevalues, Runtime::ExecutionContext* context)
 	{
 		if(!Bookmarks || Bookmarks->empty())
 			return false;
 
 		for(std::vector<BookmarkEntry>::const_iterator iter = Bookmarks->begin(); iter != Bookmarks->end(); ++iter)
-			WalkBookmarkEntry(*iter, livevalues);
+			WalkBookmarkEntry(*iter, livevalues, context);
 
 		return true;
 	}
@@ -445,10 +435,12 @@ namespace
 		if(!collectmask || !SafePointCache)
 			return;
 
+		context->UnmarkActiveStructures();
+
 		LiveValues livevalues;
 		livevalues.Mask = collectmask;
 
-		WalkGlobalsForLiveHandles(livevalues);
+		WalkGlobalsForLiveHandles(livevalues, context);
 
 		const CallFrame* framepointer = reinterpret_cast<const CallFrame*>(rawptr);
 		const void* calleeframepointer = NULL;
@@ -466,17 +458,28 @@ namespace
 			SafePointCacheT::iterator iter = SafePointCache->find(returnaddress);
 			if(iter != SafePointCache->end())
 			{
-				WalkLiveValuesForSafePoint(calleeframepointer, framepointer, *(iter->second.first), iter->second.second, livevalues);
+				WalkLiveValuesForSafePoint(calleeframepointer, framepointer, *(iter->second.first), iter->second.second, livevalues, context);
 				foundany = true;
 			}
 		}
 
-		foundany |= WalkBookmarks(livevalues);
+		foundany |= WalkBookmarks(livevalues, context);
 
 		if(!foundany)
 			return;
 
-		WalkStructuresForLiveHandles(livevalues, context);
+
+		do
+		{
+			std::vector<StructureHandle> pending;
+			std::swap(pending, livevalues.PendingStructures);
+
+			for(std::vector<StructureHandle>::const_iterator iter = pending.begin(); iter != pending.end(); ++iter)
+			{
+				VisitStructure(*iter, livevalues, context);
+			}
+		} while(!livevalues.PendingStructures.empty());
+
 
 		if(livevalues.Mask & Runtime::ExecutionContext::GC_Collect_Strings)
 			context->PrivateGetRawStringPool().GarbageCollect(livevalues.LiveStrings, context->StaticallyReferencedStrings);
@@ -485,7 +488,7 @@ namespace
 			context->GarbageCollectBuffers(livevalues.LiveBuffers);
 
 		if(livevalues.Mask & Runtime::ExecutionContext::GC_Collect_Structures)
-			context->GarbageCollectStructures(livevalues.LiveStructures);
+			context->GarbageCollectStructures();
 	}
 
 
@@ -820,7 +823,7 @@ extern "C" __declspec(naked) void TriggerGarbageCollection()
 
 		// Invoke GC
 		push ebp
-		//call CrawlStackAndGarbageCollect
+		call CrawlStackAndGarbageCollect
 		add esp, 4
 
 		// Restore EAX

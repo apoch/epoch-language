@@ -797,6 +797,10 @@ StructureHandle ExecutionContext::AllocateStructure(const StructureDefinition& d
 	new(storage) ActiveStructure(description, storage + sizeof(ActiveStructure));
 
 	StructureHandle handle = storage + sizeof(ActiveStructure);
+	ActiveStructures.push_back(handle);
+
+	memset(handle, 0, description.GetSize());
+
 	return handle;
 }
 
@@ -904,11 +908,35 @@ void ExecutionContext::GarbageCollectBuffers(const std::set<BufferHandle>& liveh
 //
 // Garbage collection disposal routine for structure data
 //
-void ExecutionContext::GarbageCollectStructures(const std::set<StructureHandle>& livehandles)
+void ExecutionContext::GarbageCollectStructures()
 {
-	// TODO
-	((void)(livehandles));
-	//EraseAndDeleteDeadHandles(ActiveStructures, livehandles);
+	for(size_t i = 0; i < ActiveStructures.size(); ++i)
+	{
+		ActiveStructure& metadata = FindStructureMetadata(ActiveStructures[i]);
+
+		if(!metadata.InUse)
+		{
+			UByte* storage = reinterpret_cast<UByte*>(ActiveStructures[i]);
+			storage -= sizeof(ActiveStructure);
+			memset(storage, 0xde, metadata.Definition.GetSize());
+			delete[] storage;
+
+			std::swap(ActiveStructures[i], ActiveStructures[ActiveStructures.size() - 1]);
+			ActiveStructures.pop_back();
+		}
+		else
+			++i;
+	}
+}
+
+
+void ExecutionContext::UnmarkActiveStructures()
+{
+	for(std::vector<StructureHandle>::iterator iter = ActiveStructures.begin(); iter != ActiveStructures.end(); ++iter)
+	{
+		ActiveStructure& metadata = FindStructureMetadata(*iter);
+		metadata.InUse = false;
+	}
 }
 
 
@@ -918,19 +946,19 @@ unsigned ExecutionContext::GetGarbageCollectionBitmask()
 
 	// TODO - allow configurable thresholds
 
-	if(GarbageTick_Buffers > 1000)
+	if(GarbageTick_Buffers > 0)
 	{
 		mask |= GC_Collect_Buffers;
 		GarbageTick_Buffers = 0;
 	}
 
-	if(PrivateStringPool.GetGarbageTick() > 1000)
+	if(PrivateStringPool.GetGarbageTick() > 0)
 	{
 		mask |= GC_Collect_Strings;
 		PrivateStringPool.ResetGarbageTick();
 	}
 
-	if(GarbageTick_Structures > 1000)
+	if(GarbageTick_Structures > 0)
 	{
 		mask |= GC_Collect_Structures;
 		GarbageTick_Structures = 0;
@@ -992,5 +1020,16 @@ void ExecutionContext::ProfileDump()
 	{
 		std::wcout << GetPooledString(iter->second.first) << L" - " << iter->first << L"ms, " << iter->second.second << L" calls" << std::endl;
 	}
+}
+
+bool ExecutionContext::IsLiveObjectAtAddress(StructureHandle address)
+{
+	for(std::vector<StructureHandle>::const_iterator iter = ActiveStructures.begin(); iter != ActiveStructures.end(); ++iter)
+	{
+		if(*iter == address)
+			return true;
+	}
+
+	return false;
 }
 

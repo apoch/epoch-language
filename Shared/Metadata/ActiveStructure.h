@@ -22,17 +22,13 @@
 
 class ActiveStructure
 {
-// Construction and destruction
+// Construction
 public:
 	ActiveStructure(const StructureDefinition& definition, UByte* storage)
 		: Definition(definition),
-		  Storage(storage)
+		  Storage(storage),
+		  InUse(false)
 	{ }
-
-	~ActiveStructure()
-	{
-		delete[] Storage;
-	}
 
 // Assignment prohibited
 private:
@@ -82,5 +78,6 @@ public:
 public:
 	const StructureDefinition& Definition;
 	UByte* Storage;
+	bool InUse;
 };
 
