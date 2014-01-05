@@ -710,7 +710,7 @@ void ExecutionContext::Load()
 
 	// Pre-mark all statically referenced string handles
 	// This helps speed up garbage collection a bit
-	for(boost::unordered_map<StringHandle, std::wstring>::const_iterator iter = PrivateGetRawStringPool().GetInternalPool().begin(); iter != PrivateGetRawStringPool().GetInternalPool().end(); ++iter)
+	for(boost::unordered_map<StringHandle, PooledString>::const_iterator iter = PrivateGetRawStringPool().GetInternalPool().begin(); iter != PrivateGetRawStringPool().GetInternalPool().end(); ++iter)
 		StaticallyReferencedStrings.insert(iter->first);
 
 	// JIT-compile everything that needs it
@@ -946,19 +946,19 @@ unsigned ExecutionContext::GetGarbageCollectionBitmask()
 
 	// TODO - allow configurable thresholds
 
-	if(GarbageTick_Buffers > 0)
+	if(GarbageTick_Buffers > 1000)
 	{
 		mask |= GC_Collect_Buffers;
 		GarbageTick_Buffers = 0;
 	}
 
-	if(PrivateStringPool.GetGarbageTick() > 0)
+	if(PrivateStringPool.GetGarbageTick() > 1000)
 	{
 		mask |= GC_Collect_Strings;
 		PrivateStringPool.ResetGarbageTick();
 	}
 
-	if(GarbageTick_Structures > 0)
+	if(GarbageTick_Structures > 1000)
 	{
 		mask |= GC_Collect_Structures;
 		GarbageTick_Structures = 0;
@@ -1033,3 +1033,12 @@ bool ExecutionContext::IsLiveObjectAtAddress(StructureHandle address)
 	return false;
 }
 
+void ExecutionContext::MarkStringActive(StringHandle handle)
+{
+	PrivateStringPool.MarkStringActive(handle);
+}
+
+void ExecutionContext::UnmarkActiveStrings()
+{
+	PrivateStringPool.UnmarkAllStrings();
+}

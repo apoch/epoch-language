@@ -19,6 +19,13 @@
 #include <set>
 
 
+struct PooledString
+{
+	std::wstring Data;
+	bool InUse;
+};
+
+
 class StringPoolManager
 {
 // Construction
@@ -42,18 +49,20 @@ public:
 
 // Direct access to pool, primarily for serialization purposes
 public:
-	const boost::unordered_map<StringHandle, std::wstring>& GetInternalPool() const
+	const boost::unordered_map<StringHandle, PooledString>& GetInternalPool() const
 	{ return PooledStrings; }
 
 // Garbage collection interface
 public:
-	void GarbageCollect(const std::set<StringHandle>& livehandles, const boost::unordered_set<StringHandle>& statichandles);
+	void UnmarkAllStrings();
+	void MarkStringActive(StringHandle h);
+	void GarbageCollect(const boost::unordered_set<StringHandle>& statichandles);
 
 // Internal tracking
 private:
 	bool FastLookupEnabled;
 	HandleAllocator<StringHandle> HandleAlloc;
-	boost::unordered_map<StringHandle, std::wstring> PooledStrings;
+	boost::unordered_map<StringHandle, PooledString> PooledStrings;
 
 // Garbage collection
 private:

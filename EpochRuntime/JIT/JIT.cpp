@@ -1605,7 +1605,6 @@ void FunctionJITHelper::BeginEntity(size_t& offset)
 				{
 					LibJITContext.VariableMap[paramindices[idx]] = ((Argument*)argiter);
 
-					/*
 					if(LibJITContext.InnerFunction->hasGC())
 					{
 						if((Metadata::GetTypeFamily(epochtype) == Metadata::EpochTypeFamily_GC) || (Metadata::GetTypeFamily(epochtype) == Metadata::EpochTypeFamily_SumType) || Metadata::IsStructureType(epochtype))
@@ -1621,14 +1620,12 @@ void FunctionJITHelper::BeginEntity(size_t& offset)
 							Builder.CreateCall2(Generator.Data->BuiltInFunctions[JITFunc_Intrinsic_GCRoot], castptr, constant);
 						}
 					}
-					*/
 				}
 				else
 				{
 					Value* slot = CreateAllocaInternal(((Argument*)argiter)->getType());
 					Builder.CreateStore(((Argument*)argiter), slot);
 
-					/*
 					if(LibJITContext.InnerFunction->hasGC())
 					{
 						if((Metadata::GetTypeFamily(epochtype) == Metadata::EpochTypeFamily_GC) || (Metadata::GetTypeFamily(epochtype) == Metadata::EpochTypeFamily_SumType) || Metadata::IsStructureType(epochtype))
@@ -1639,7 +1636,6 @@ void FunctionJITHelper::BeginEntity(size_t& offset)
 							Builder.CreateCall2(Generator.Data->BuiltInFunctions[JITFunc_Intrinsic_GCRoot], castptr, constant);
 						}
 					}
-					*/
 
 					LibJITContext.VariableMap[paramindices[idx]] = slot;
 				}
@@ -1657,7 +1653,6 @@ void FunctionJITHelper::BeginEntity(size_t& offset)
 				{
 					LibJITContext.VariableMap[paramindices[idx]] = (*argiter);
 
-					/*
 					if(LibJITContext.InnerFunction->hasGC())
 					{
 						if((Metadata::GetTypeFamily(epochtype) == Metadata::EpochTypeFamily_GC) || (Metadata::GetTypeFamily(epochtype) == Metadata::EpochTypeFamily_SumType) || Metadata::IsStructureType(epochtype))
@@ -1673,14 +1668,12 @@ void FunctionJITHelper::BeginEntity(size_t& offset)
 							Builder.CreateCall2(Generator.Data->BuiltInFunctions[JITFunc_Intrinsic_GCRoot], castptr, constant);
 						}
 					}
-					*/
 				}
 				else
 				{
 					Value* slot = CreateAllocaInternal((*argiter)->getType());
 					Builder.CreateStore((*argiter), slot);
 
-					/*
 					if(LibJITContext.InnerFunction->hasGC())
 					{
 						if((Metadata::GetTypeFamily(epochtype) == Metadata::EpochTypeFamily_GC) || (Metadata::GetTypeFamily(epochtype) == Metadata::EpochTypeFamily_SumType) || Metadata::IsStructureType(epochtype))
@@ -1691,7 +1684,6 @@ void FunctionJITHelper::BeginEntity(size_t& offset)
 							Builder.CreateCall2(Generator.Data->BuiltInFunctions[JITFunc_Intrinsic_GCRoot], castptr, constant);
 						}
 					}
-					*/
 
 					LibJITContext.VariableMap[paramindices[idx]] = slot;
 				}
@@ -2857,7 +2849,6 @@ void NativeCodeGenerator::AddNativeTypeMatcher(size_t beginoffset, size_t endoff
 					parampayloadptrs.push_back(Builder.CreateAlloca(Type::getInt8PtrTy(Data->Context)));
 					providedtypeholders.push_back(Builder.CreateAlloca(Type::getInt32Ty(Data->Context)));
 
-					/*
 					if(matcherfunction->hasGC())
 					{
 						{
@@ -2873,7 +2864,6 @@ void NativeCodeGenerator::AddNativeTypeMatcher(size_t beginoffset, size_t endoff
 							Builder.CreateCall2(Data->BuiltInFunctions[JITFunc_Intrinsic_GCRoot], castptr, constant);
 						}
 					}
-					*/
 				}
 			}
 			break;

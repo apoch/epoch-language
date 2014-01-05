@@ -129,9 +129,9 @@ void CompileSession::EmitByteCode()
 	if(Plugins.IsPluginFunctionProvided(L"PluginBytecodeGetBuffer"))
 	{
 		// Pre-cache strings that are always present (hack until the compiler does this automatically)
-		const boost::unordered_map<StringHandle, std::wstring>& pool = StringPool.GetInternalPool();
-		for(boost::unordered_map<StringHandle, std::wstring>::const_iterator iter = pool.begin(); iter != pool.end(); ++iter)
-			Plugins.InvokeVoidPluginFunction(L"PluginCodeGenRegisterString", iter->first, iter->second.c_str());
+		const boost::unordered_map<StringHandle, PooledString>& pool = StringPool.GetInternalPool();
+		for(boost::unordered_map<StringHandle, PooledString>::const_iterator iter = pool.begin(); iter != pool.end(); ++iter)
+			Plugins.InvokeVoidPluginFunction(L"PluginCodeGenRegisterString", iter->first, iter->second.Data.c_str());
 
 		for(std::list<std::pair<std::wstring, std::wstring> >::const_iterator iter = SourceBlocksAndFileNames.begin(); iter != SourceBlocksAndFileNames.end(); ++iter)
 			CompileFileToPlugin(iter->first, iter->second);

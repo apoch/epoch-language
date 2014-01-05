@@ -206,6 +206,9 @@ namespace Runtime
 		unsigned GetGarbageCollectionBitmask();
 
 		void UnmarkActiveStructures();
+		void UnmarkActiveStrings();
+
+		void MarkStringActive(StringHandle h);
 
 		bool IsLiveObjectAtAddress(StructureHandle address);
 

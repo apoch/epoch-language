@@ -90,7 +90,6 @@ namespace
 	//
 	struct LiveValues
 	{
-		std::set<StringHandle> LiveStrings;
 		std::set<BufferHandle> LiveBuffers;
 		std::vector<StructureHandle> PendingStructures;
 
@@ -169,7 +168,7 @@ namespace
 				if(livevalues.Mask & Runtime::ExecutionContext::GC_Collect_Strings)
 				{
 					StringHandle h = active.ReadMember<StringHandle>(i);
-					livevalues.LiveStrings.insert(h);
+					context->MarkStringActive(h);
 				}
 			}
 			else if(membertype == Metadata::EpochType_Buffer)
@@ -199,7 +198,7 @@ namespace
 					if(livevalues.Mask & Runtime::ExecutionContext::GC_Collect_Strings)
 					{
 						StringHandle h = active.ReadMember<StringHandle>(i);
-						livevalues.LiveStrings.insert(h);
+						context->MarkStringActive(h);
 					}
 				}
 				else if(realtype == Metadata::EpochType_Buffer)
@@ -240,7 +239,7 @@ namespace
 			{
 				StringHandle handle = *reinterpret_cast<const StringHandle*>(liveptr);
 				if(handle)
-					livevalues.LiveStrings.insert(handle);
+					context->MarkStringActive(handle);
 			}
 			break;
 
@@ -436,6 +435,7 @@ namespace
 			return;
 
 		context->UnmarkActiveStructures();
+		context->UnmarkActiveStrings();
 
 		LiveValues livevalues;
 		livevalues.Mask = collectmask;
@@ -482,7 +482,7 @@ namespace
 
 
 		if(livevalues.Mask & Runtime::ExecutionContext::GC_Collect_Strings)
-			context->PrivateGetRawStringPool().GarbageCollect(livevalues.LiveStrings, context->StaticallyReferencedStrings);
+			context->PrivateGetRawStringPool().GarbageCollect(context->StaticallyReferencedStrings);
 
 		if(livevalues.Mask & Runtime::ExecutionContext::GC_Collect_Buffers)
 			context->GarbageCollectBuffers(livevalues.LiveBuffers);
