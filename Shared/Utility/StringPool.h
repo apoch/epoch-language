@@ -34,7 +34,6 @@ public:
 		: FastLookupEnabled(fastreverse),
 		  GarbageTick(0)
 	{
-		PooledStrings.rehash(15000);
 	}
 
 // Pooling interface
@@ -49,7 +48,7 @@ public:
 
 // Direct access to pool, primarily for serialization purposes
 public:
-	const boost::unordered_map<StringHandle, PooledString>& GetInternalPool() const
+	const std::map<StringHandle, PooledString>& GetInternalPool() const
 	{ return PooledStrings; }
 
 // Garbage collection interface
@@ -62,7 +61,7 @@ public:
 private:
 	bool FastLookupEnabled;
 	HandleAllocator<StringHandle> HandleAlloc;
-	boost::unordered_map<StringHandle, PooledString> PooledStrings;
+	std::map<StringHandle, PooledString> PooledStrings;
 
 // Garbage collection
 private:

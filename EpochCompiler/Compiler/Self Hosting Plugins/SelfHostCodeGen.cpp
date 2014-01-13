@@ -475,9 +475,9 @@ namespace
 bool CompilerPasses::GenerateCodeSelfHosted(IRSemantics::Program& program)
 {
 	const StringPoolManager& strings = program.GetStringPool();
-	const boost::unordered_map<StringHandle, PooledString>& stringpool = strings.GetInternalPool();
+	const std::map<StringHandle, PooledString>& stringpool = strings.GetInternalPool();
 
-	for(boost::unordered_map<StringHandle, PooledString>::const_iterator iter = stringpool.begin(); iter != stringpool.end(); ++iter)
+	for(std::map<StringHandle, PooledString>::const_iterator iter = stringpool.begin(); iter != stringpool.end(); ++iter)
 		Plugins.InvokeVoidPluginFunction(L"PluginCodeGenRegisterString", iter->first, iter->second.Data.c_str());
 
 	RegisterNamespace(program.GlobalNamespace);

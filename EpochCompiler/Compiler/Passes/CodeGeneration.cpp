@@ -1060,9 +1060,9 @@ bool CompilerPasses::GenerateCode(IRSemantics::Program& program, BytecodeEmitter
 	TypeSizeCache.clear();
 
 	const StringPoolManager& strings = program.GetStringPool();
-	const boost::unordered_map<StringHandle, PooledString>& stringpool = strings.GetInternalPool();
+	const std::map<StringHandle, PooledString>& stringpool = strings.GetInternalPool();
 
-	for(boost::unordered_map<StringHandle, PooledString>::const_iterator iter = stringpool.begin(); iter != stringpool.end(); ++iter)
+	for(std::map<StringHandle, PooledString>::const_iterator iter = stringpool.begin(); iter != stringpool.end(); ++iter)
 		emitter.PoolString(iter->first, iter->second.Data);
 
 	return Generate(program.GlobalNamespace, emitter);

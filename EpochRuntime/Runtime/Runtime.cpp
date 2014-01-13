@@ -710,7 +710,7 @@ void ExecutionContext::Load()
 
 	// Pre-mark all statically referenced string handles
 	// This helps speed up garbage collection a bit
-	for(boost::unordered_map<StringHandle, PooledString>::const_iterator iter = PrivateGetRawStringPool().GetInternalPool().begin(); iter != PrivateGetRawStringPool().GetInternalPool().end(); ++iter)
+	for(std::map<StringHandle, PooledString>::const_iterator iter = PrivateGetRawStringPool().GetInternalPool().begin(); iter != PrivateGetRawStringPool().GetInternalPool().end(); ++iter)
 		StaticallyReferencedStrings.insert(iter->first);
 
 	// JIT-compile everything that needs it

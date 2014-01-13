@@ -29,7 +29,7 @@ StringHandle StringPoolManager::Pool(const std::wstring& stringdata)
 	else
 #endif
 	{
-		for(boost::unordered_map<StringHandle, PooledString>::const_iterator iter = PooledStrings.begin(); iter != PooledStrings.end(); ++iter)
+		for(std::map<StringHandle, PooledString>::const_iterator iter = PooledStrings.begin(); iter != PooledStrings.end(); ++iter)
 		{
 			if(iter->second.Data == stringdata)
 				return iter->first;
@@ -51,7 +51,7 @@ StringHandle StringPoolManager::PoolFast(const std::wstring& stringdata)
 	PooledString p;
 	p.Data = stringdata;
 	p.InUse = false;
-	PooledStrings.emplace(handle, p);
+	PooledStrings.emplace(std::make_pair(handle, p));
 
 	++GarbageTick;
 
@@ -69,7 +69,7 @@ StringHandle StringPoolManager::PoolFast(const wchar_t* stringdata)
 	PooledString p;
 	p.Data = stringdata;
 	p.InUse = false;
-	PooledStrings.emplace(handle, p);
+	PooledStrings.emplace(std::make_pair(handle, p));
 
 	++GarbageTick;
 
@@ -97,7 +97,7 @@ void StringPoolManager::Pool(StringHandle handle, const std::wstring& stringdata
 	p.Data = stringdata;
 	p.InUse = false;
 
-	std::pair<boost::unordered_map<StringHandle, PooledString>::iterator, bool> ret = PooledStrings.insert(std::make_pair(handle, p));
+	std::pair<std::map<StringHandle, PooledString>::iterator, bool> ret = PooledStrings.insert(std::make_pair(handle, p));
 	if(!ret.second && ret.first->second.Data != stringdata)
 		throw RecoverableException("Tried to replace a pooled string with a different value!");
 
@@ -109,7 +109,7 @@ void StringPoolManager::Pool(StringHandle handle, const std::wstring& stringdata
 //
 const std::wstring& StringPoolManager::GetPooledString(StringHandle handle) const
 {
-	boost::unordered_map<StringHandle, PooledString>::const_iterator iter = PooledStrings.find(handle);
+	std::map<StringHandle, PooledString>::const_iterator iter = PooledStrings.find(handle);
 	if(iter == PooledStrings.end())
 		throw RecoverableException("String handle does not correspond to any previously pooled string");
 
@@ -131,7 +131,7 @@ StringHandle StringPoolManager::Find(const std::wstring& stringdata) const
 	else
 #endif
 	{
-		for(boost::unordered_map<StringHandle, PooledString>::const_iterator iter = PooledStrings.begin(); iter != PooledStrings.end(); ++iter)
+		for(std::map<StringHandle, PooledString>::const_iterator iter = PooledStrings.begin(); iter != PooledStrings.end(); ++iter)
 		{
 			if(iter->second.Data == stringdata)
 				return iter->first;
@@ -151,7 +151,7 @@ void StringPoolManager::GarbageCollect(const boost::unordered_set<StringHandle>&
 		throw FatalException("Cannot garbage collect when using fast reverse lookup!");
 #endif
 
-	for(boost::unordered_map<StringHandle, PooledString>::iterator iter = PooledStrings.begin(); iter != PooledStrings.end(); )
+	for(std::map<StringHandle, PooledString>::iterator iter = PooledStrings.begin(); iter != PooledStrings.end(); )
 	{
 		if(iter->second.InUse)
 		{
@@ -172,7 +172,7 @@ void StringPoolManager::GarbageCollect(const boost::unordered_set<StringHandle>&
 
 void StringPoolManager::MarkStringActive(StringHandle handle)
 {
-	boost::unordered_map<StringHandle, PooledString>::iterator iter = PooledStrings.find(handle);
+	std::map<StringHandle, PooledString>::iterator iter = PooledStrings.find(handle);
 	if(iter == PooledStrings.end())
 		throw RecoverableException("String handle does not correspond to any previously pooled string");
 
@@ -181,7 +181,7 @@ void StringPoolManager::MarkStringActive(StringHandle handle)
 
 void StringPoolManager::UnmarkAllStrings()
 {
-	for(boost::unordered_map<StringHandle, PooledString>::iterator iter = PooledStrings.begin(); iter != PooledStrings.end(); ++iter)
+	for(std::map<StringHandle, PooledString>::iterator iter = PooledStrings.begin(); iter != PooledStrings.end(); ++iter)
 		iter->second.InUse = false;
 }
 
