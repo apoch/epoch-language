@@ -21,6 +21,7 @@
 
 #include <llvm/IR/Intrinsics.h>
 
+#include <iostream>
 
 extern Runtime::ExecutionContext* GlobalExecutionContext;
 
@@ -90,8 +91,7 @@ namespace
 
 extern "C" void EpochLib_Print(StringHandle strhandle)
 {
-	UI::OutputStream out;
-	out << GlobalExecutionContext->GetPooledString(strhandle) << std::endl;
+	std::wcout << GlobalExecutionContext->GetPooledString(strhandle) << std::endl;
 }
 
 void EpochLib_Assert(bool assumption)
