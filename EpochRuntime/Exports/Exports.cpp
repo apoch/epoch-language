@@ -140,7 +140,8 @@ NORETURN extern "C" void Epoch_Halt()
 
 NORETURN extern "C" void Epoch_HaltExt(unsigned stringhandle)
 {
-	::MessageBox(0, L"Fatal error - program halted", Runtime::GetThreadContext()->GetPooledString(stringhandle).c_str(), MB_ICONSTOP);
+	const wchar_t* title = Runtime::GetThreadContext()->GetPooledString(stringhandle).c_str();
+	::MessageBox(0, L"Fatal error - program halted", title, MB_ICONSTOP);
 	std::terminate();
 }
 
