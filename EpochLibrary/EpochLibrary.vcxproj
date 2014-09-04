@@ -185,12 +185,6 @@
     <None Include="Exports\Exports.def" />
     <None Include="..\Shared\User Interface\OutputStream.inl" />
   </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\EpochCompiler\EpochCompiler.vcxproj">
-      <Project>{1afb3b3c-b2be-4941-8ec3-e75f998a0b86}</Project>
-      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
-    </ProjectReference>
-  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

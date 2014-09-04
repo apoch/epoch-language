@@ -153,6 +153,9 @@ void TypeConstructors::RegisterLibraryFunctions(FunctionSignatureSet& signatures
 //
 void TypeConstructors::RegisterLibraryFunctions(FunctionCompileHelperTable& table)
 {
+	((void)(table));
+
+#if 0
 	AddToMapNoDupe(table, std::make_pair(IntegerHandle, &CompileConstructorHelper));
 	AddToMapNoDupe(table, std::make_pair(Integer16Handle, &CompileConstructorHelper));
 	AddToMapNoDupe(table, std::make_pair(StringTypeHandle, &CompileConstructorHelper));
@@ -161,6 +164,7 @@ void TypeConstructors::RegisterLibraryFunctions(FunctionCompileHelperTable& tabl
 	AddToMapNoDupe(table, std::make_pair(BufferTypeHandle, &CompileConstructorHelper));
 	AddToMapNoDupe(table, std::make_pair(NothingHandle, &CompileConstructorHelper));
 	AddToMapNoDupe(table, std::make_pair(BufferCopyHandle, &CompileConstructorHelper));
+#endif
 }
 
 

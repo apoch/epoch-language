@@ -38,6 +38,14 @@ namespace
 	//
 	void ConstructorCompileHelper(IRSemantics::Statement& statement, IRSemantics::Namespace& curnamespace, IRSemantics::CodeBlock& activescope, bool inreturnexpr, CompileErrors& errors)
 	{
+		
+		((void)(inreturnexpr));
+		((void)(activescope));
+		((void)(errors));
+		((void)(statement));
+		((void)(curnamespace));
+
+#if 0
 		if(statement.GetParameters()[0]->GetEpochType(curnamespace) != Metadata::EpochType_Identifier)
 		{
 			errors.SemanticError("Functions tagged as constructors must accept an identifier as their first parameter");
@@ -45,6 +53,7 @@ namespace
 		}
 
 		CompileConstructorHelper(statement, curnamespace, activescope, inreturnexpr, errors);
+#endif
 	}
 
 	//
