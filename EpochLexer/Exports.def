@@ -5,3 +5,4 @@ EXPORTS
 	GetLexerFactory		@3
 	UDTListReset		@4
 	UDTListAppend		@5
+	UDFListAppend		@6

@@ -29,6 +29,7 @@ static const int SCE_EPOCH_LITERAL = 5;				// Non-string (i.e. numeric and boole
 static const int SCE_EPOCH_HEXLITERAL = 6;			// Hexadecimal literals
 static const int SCE_EPOCH_UDT = 7;					// User-defined types
 static const int SCE_EPOCH_KEYWORD = 8;				// Keywords
+static const int SCE_EPOCH_FUNCTION = 9;			// Function name
 
 
 namespace
@@ -36,6 +37,7 @@ namespace
 
 
 	std::set<std::string> UDTTokens;
+	std::set<std::string> UDFTokens;
 
 
 	//
@@ -72,6 +74,12 @@ namespace
 	{
 		std::string token(rawtoken);
 		return UDTTokens.find(token) != UDTTokens.end();
+	}
+
+	bool IsUserDefinedFunctionKeyword(const char* rawtoken)
+	{
+		std::string token(rawtoken);
+		return UDFTokens.find(token) != UDFTokens.end();
 	}
 
 	//
@@ -279,6 +287,8 @@ void STDCALL EpochLexer::Lex(unsigned int startPos, int lengthDoc, int initStyle
 					sc.ChangeState(SCE_EPOCH_KEYWORD);
 				else if(IsUserDefinedTypeKeyword(token))
 					sc.ChangeState(SCE_EPOCH_UDT);
+				else if(IsUserDefinedFunctionKeyword(token))
+					sc.ChangeState(SCE_EPOCH_FUNCTION);
 				else
 					sc.ChangeState(SCE_EPOCH_DEFAULT);
 
@@ -435,6 +445,17 @@ namespace Highlighter
 	void UDTAppend(const std::string& token)
 	{
 		UDTTokens.insert(token);
+	}
+
+
+	void UDFReset()
+	{
+		UDFTokens.clear();
+	}
+
+	void UDFAppend(const std::string& token)
+	{
+		UDFTokens.insert(token);
 	}
 
 }

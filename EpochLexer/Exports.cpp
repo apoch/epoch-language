@@ -56,13 +56,21 @@ extern "C" void* STDCALL GetLexerFactory(unsigned index)
 extern "C" void STDCALL UDTListReset()
 {
 	Highlighter::UDTReset();
+	Highlighter::UDFReset();
 }
 
 //
 // Lexer syntax highlighting interface: add a token to the list of User-Defined Types
+//
 extern "C" void STDCALL UDTListAppend(const char* rawtoken)
 {
 	std::string token(rawtoken);
 	Highlighter::UDTAppend(token);
+}
+
+extern "C" void STDCALL UDFListAppend(const char* rawtoken)
+{
+	std::string token(rawtoken);
+	Highlighter::UDFAppend(token);
 }
 

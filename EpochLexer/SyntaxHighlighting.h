@@ -16,5 +16,8 @@ namespace Highlighter
 {
 	void UDTReset();
 	void UDTAppend(const std::string& token);
+
+	void UDFReset();
+	void UDFAppend(const std::string& token);
 }
 

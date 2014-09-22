@@ -34,7 +34,7 @@ std::wstring widen(const std::string& str)
 	if(!reqsize)
 		throw RecoverableException("Failed to widen string");
 
-	std::vector<wchar_t> buffer(reqsize + 1, 0);
+	std::vector<wchar_t> buffer(reqsize, 0);
 #ifdef BOOST_WINDOWS
 	if(mbstowcs_s(NULL, &buffer[0], len, cstr, len) != 0)
 #else
