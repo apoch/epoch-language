@@ -203,7 +203,7 @@ EPOCHRUNTIME void Runtime::MarshalBufferIntoStructureData(Runtime::ExecutionCont
 					*reinterpret_cast<StringHandle*>(reinterpret_cast<char*>(structure) + definition.GetMemberOffset(j)) = context.PoolString(str);
 				}
 				else
-					*reinterpret_cast<Integer32*>(reinterpret_cast<char*>(structure) + definition.GetMemberOffset(j)) = context.PoolString(L"");
+					*reinterpret_cast<StringHandle*>(reinterpret_cast<char*>(structure) + definition.GetMemberOffset(j)) = context.PoolString(L"");
 				buffer += sizeof(const wchar_t*);
 			}
 			break;

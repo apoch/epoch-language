@@ -286,8 +286,24 @@ ExecutionContext::~ExecutionContext()
 	//VLDReportLeaks();
 }
 
+#ifdef _DEBUG
+int CRTHook(int, char*, int*)
+{
+	__asm int 3;
+	return FALSE;
+}
+#endif
+
 void ExecutionContext::Execute()
 {
+#ifdef _DEBUG
+	int flags = _CrtSetDbgFlag(_CRTDBG_REPORT_FLAG);
+	flags |= _CRTDBG_CHECK_ALWAYS_DF;
+	_CrtSetDbgFlag(flags);
+
+	_CrtSetReportHook(&CRTHook);
+#endif
+
 	typedef void (*pfunc)();
 	if(GlobalInitFunc)
 		((pfunc)(GlobalInitFunc))();
