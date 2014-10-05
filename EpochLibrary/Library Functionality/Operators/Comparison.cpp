@@ -141,6 +141,17 @@ namespace
 		return true;
 	}
 
+	bool BooleanInequalityJIT(JIT::JITContext& context, bool)
+	{
+		llvm::Value* p2 = context.ValuesOnStack.top();
+		context.ValuesOnStack.pop();
+		llvm::Value* p1 = context.ValuesOnStack.top();
+		context.ValuesOnStack.pop();
+		llvm::Value* flag = reinterpret_cast<llvm::IRBuilder<>*>(context.Builder)->CreateICmp(llvm::CmpInst::ICMP_NE, p1, p2);
+		context.ValuesOnStack.push(flag);
+
+		return true;
+	}
 
 	bool StringEqualityJIT(JIT::JITContext& context, bool)
 	{
@@ -336,6 +347,7 @@ void ComparisonLibrary::RegisterJITTable(JIT::JITTable& table)
 	AddToMapNoDupe(table.InvokeHelpers, std::make_pair(RealLessThanHandle, &RealLessThanJIT));
 
 	AddToMapNoDupe(table.InvokeHelpers, std::make_pair(BooleanEqualityHandle, &BooleanEqualityJIT));
+	AddToMapNoDupe(table.InvokeHelpers, std::make_pair(BooleanInequalityHandle, &BooleanInequalityJIT));
 
 	AddToMapNoDupe(table.InvokeHelpers, std::make_pair(StringEqualityHandle, &StringEqualityJIT));
 	
