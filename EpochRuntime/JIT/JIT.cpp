@@ -2393,7 +2393,7 @@ void FunctionJITHelper::Push(size_t& offset)
 
 					size_t ignored = 0;
 					size_t index = LibJITContext.CurrentScope->FindVariable(funcname, ignored);
-					valueval = LibJITContext.VariableMap[index];
+					valueval = Builder.CreateLoad(LibJITContext.VariableMap[index]);
 				}
 				else
 				{
@@ -2608,7 +2608,7 @@ void FunctionJITHelper::InvokeOffset(size_t& offset)
 
 			bool isfunctionpointerty = false;
 			if(v2->getType()->isPointerTy() && v2->getType()->getContainedType(0)->getNumContainedTypes() > 0)
-				isfunctionpointerty = (NULL != dyn_cast<FunctionType>(v2->getType()->getContainedType(0)->getContainedType(0)));
+				isfunctionpointerty = (NULL != dyn_cast<FunctionType>(v2->getType()->getContainedType(0)));
 
 			if(v2->getType()->isPointerTy() && !isfunctionpointerty)
 			{
@@ -2632,8 +2632,8 @@ void FunctionJITHelper::InvokeOffset(size_t& offset)
 					Value* stacktemp = CreateAllocaInternal(v2->getType(), true);
 					Builder.CreateStore(v2, stacktemp);
 
-					if(v2->getType()->isPointerTy())
-						stacktemp = Builder.CreateLoad(stacktemp);
+					//if(v2->getType()->isPointerTy() && !isfunctionpointerty)
+					//	stacktemp = Builder.CreateLoad(stacktemp);
 
 					matchervarargs.push_back(v1);
 					matchervarargs.push_back(Builder.CreatePointerCast(stacktemp, Type::getInt8PtrTy(Context)));
