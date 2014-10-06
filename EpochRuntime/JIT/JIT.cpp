@@ -2717,6 +2717,8 @@ void FunctionJITHelper::InvokeIndirect(size_t& offset)
 		LibJITContext.ValuesOnStack.pop();
 	}
 
+	std::reverse(args.begin(), args.end());
+
 	if(ftype->getReturnType() != Type::getVoidTy(Context))
 		LibJITContext.ValuesOnStack.push(Builder.CreateCall(func, args));
 	else
