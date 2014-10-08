@@ -296,6 +296,7 @@ int CRTHook(int, char*, int*)
 
 void ExecutionContext::Execute()
 {
+/*
 #ifdef _DEBUG
 	int flags = _CrtSetDbgFlag(_CRTDBG_REPORT_FLAG);
 	flags |= _CRTDBG_CHECK_ALWAYS_DF;
@@ -303,6 +304,7 @@ void ExecutionContext::Execute()
 
 	_CrtSetReportHook(&CRTHook);
 #endif
+*/
 
 	typedef void (*pfunc)();
 	if(GlobalInitFunc)
@@ -985,13 +987,18 @@ unsigned ExecutionContext::GetGarbageCollectionBitmask()
 
 void* ExecutionContext::JITCallback(void* stubfunc)
 {
-	// TODO - HACK - assume stub contains a jmp [targetfunc]
-	size_t val = *reinterpret_cast<size_t*>(reinterpret_cast<char*>(stubfunc) + 1);
-	char* addr = reinterpret_cast<char*>(stubfunc) + 5 + val;
-	void* targetfunc = addr;
-	// End hack
+	if(*reinterpret_cast<unsigned char*>(stubfunc) == 0xe9)
+	{
+		// HACK - JIT stub contains a jmp [targetfunc]
+		size_t val = *reinterpret_cast<size_t*>(reinterpret_cast<char*>(stubfunc) + 1);
+		char* addr = reinterpret_cast<char*>(stubfunc) + 5 + val;
+		void* targetfunc = addr;
+		// End hack
 
-	return JITCallbackNoStub(targetfunc);
+		return JITCallbackNoStub(targetfunc);
+	}
+	
+	return JITCallbackNoStub(stubfunc);
 }
 
 void* ExecutionContext::JITCallbackNoStub(void* targetfunc)
