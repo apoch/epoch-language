@@ -110,9 +110,13 @@ void TrivialMemoryManager::invalidateInstructionCache() {
 
 Context::Context()
 	: ThunkCallback(nullptr),
-	  StringCallback(nullptr)
+	  StringCallback(nullptr),
+	  LLVMBuilder(getGlobalContext())
 {
 	LLVMModule = new Module("EpochModule", getGlobalContext());
+
+	FunctionType* initfunctiontype = FunctionType::get(Type::getVoidTy(getGlobalContext()), false);
+	InitFunction = Function::Create(initfunctiontype, GlobalValue::InternalLinkage, "@init", LLVMModule);
 }
 
 
@@ -144,27 +148,21 @@ size_t Context::EmitBinaryObject(char* buffer, size_t maxoutput)
 {
 	LLVMLinkInMCJIT();
 
-	FunctionType* fty = FunctionType::get(Type::getVoidTy(getGlobalContext()), false);
-
-
 	std::vector<Type*> paramarray;
 	paramarray.push_back(Type::getInt8PtrTy(getGlobalContext())->getPointerTo());
 	FunctionType* printty = FunctionType::get(Type::getVoidTy(getGlobalContext()), paramarray, false);
 
-	
-	Function* function = Function::Create(fty, GlobalValue::InternalLinkage, "entrypoint", LLVMModule);
-
 	GlobalValue* fptr = new GlobalVariable(*LLVMModule, printty->getPointerTo(), true, GlobalValue::ExternalWeakLinkage, NULL, "ERT_print", NULL, GlobalVariable::NotThreadLocal, 0, true);
 	GlobalValue* staticstrptr = new GlobalVariable(*LLVMModule, Type::getInt8PtrTy(getGlobalContext()), true, GlobalValue::ExternalWeakLinkage, NULL, "@epoch_static_string:60", NULL, GlobalVariable::NotThreadLocal, 0, true);
 
-	IRBuilder<> builder(getGlobalContext());
 
-	BasicBlock* bb = BasicBlock::Create(getGlobalContext(), "entry", function);
+	BasicBlock* bb = BasicBlock::Create(getGlobalContext(), "entry", InitFunction);
 
-	builder.SetInsertPoint(bb);
-	Value* f = builder.CreateLoad(fptr);
-	builder.CreateCall(f, staticstrptr);
-	builder.CreateRetVoid();
+	LLVMBuilder.SetInsertPoint(bb);
+	Value* f = LLVMBuilder.CreateLoad(fptr);
+	LLVMBuilder.CreateCall(f, staticstrptr);
+	LLVMBuilder.CreateRetVoid();
+
 
 
 	std::string errstr;
@@ -207,41 +205,49 @@ size_t Context::EmitBinaryObject(char* buffer, size_t maxoutput)
 
 	ee->DisableLazyCompilation(true);
 
+	uint64_t emissionaddr = 0;
 	size_t s = 0;
 	class JITListener : public llvm::JITEventListener
 	{
 	public:
-		explicit JITListener(size_t* p)
-			: P(p)
+		JITListener(size_t* p, uint64_t* addr)
+			: P(p), Addr(addr)
 		{ }
 
 		void NotifyObjectEmitted(const llvm::ObjectImage& img) override
 		{
 			llvm::error_code err;
-			uint64_t baz = 0;
 
-			for(llvm::object::symbol_iterator iter = img.begin_symbols(); iter != img.end_symbols(); iter.increment(err))
+			for(object::section_iterator iter = img.begin_sections(); iter != img.end_sections(); iter.increment(err))
 			{
-				uint64_t foo = 0;
-				iter->getSize(foo);
-				baz += foo;
-			}
+				bool text = false;
+				iter->isText(text);
+				if(text)
+				{
+					uint64_t baz = 0;
 
-			*P = (size_t)(baz);
+					iter->getAddress(*Addr);
+					iter->getSize(baz);
+
+					*P = static_cast<size_t>(baz);
+					break;
+				}
+			}
 		}
 
 	private:
 		size_t* P;
-	} listen(&s);
+		uint64_t* Addr;
+	} listen(&s, &emissionaddr);
 
 	
 	ee->RegisterJITEventListener(&listen);
 
-	const void* p = ee->getPointerToFunction(function);
-	ee->mapSectionAddress(p, 0x0404000);
+	ee->generateCodeForModule(LLVMModule);
+	ee->mapSectionAddress((void*)(emissionaddr), 0x0404000);
 	ee->finalizeObject();
 
-	memcpy(buffer, p, s);
+	memcpy(buffer, (void*)(emissionaddr), s);
 	return s;
 }
 

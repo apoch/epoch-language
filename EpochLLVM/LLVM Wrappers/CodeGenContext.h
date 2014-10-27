@@ -14,6 +14,7 @@
 namespace llvm
 {
 	class Module;
+	class Function;
 }
 
 
@@ -39,6 +40,9 @@ namespace CodeGen
 
 	private:	// Internal state
 		llvm::Module* LLVMModule;
+		llvm::Function* InitFunction;
+
+		llvm::IRBuilder<> LLVMBuilder;
 
 		ThunkCallbackT ThunkCallback;
 		StringCallbackT StringCallback;
