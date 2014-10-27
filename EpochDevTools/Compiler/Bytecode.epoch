@@ -1,0 +1,462 @@
+//
+// The Epoch Language Project
+// Epoch Development Tools - Compiler Core
+//
+// BYTECODE.EPOCH
+// Collecting point for all logic related to emitting Epoch bytecode
+//
+// Epoch bytecode targets a "mythical machine" that is fairly high-level
+// and abstract. When an Epoch program launches, this bytecode stream is
+// converted into LLVM instructions by the JIT runtime. The LLVM bitcode
+// is in turn converted into native machine code. After this is complete
+// the entrypoint function is called and the program proper runs.
+//
+// A good way to think about this bytecode is as a shorthand for bitcode
+// sequences in LLVM. Optimization, native code generation, etc. are all
+// the responsibility of LLVM rather than the compiler "front-end."
+//
+// So even though this compiler generates a form of executable code (for
+// a machine which doesn't exist) it's really more a form of IR, instead
+// of a final target code sequence.
+//
+
+
+//
+// Structure for encapsulating state about a bytecode stream
+//
+
+structure BytecodeStream :
+	buffer  Buffer,
+	integer Offset
+
+
+//
+// Emit an instruction for adding a string to the read-only string pool
+//
+BytecodePoolString : BytecodeStream ref stream, integer handle, string data [nogc]
+{
+	ByteStreamEmitByte(stream.Buffer, stream.Offset, BYTECODE_INSTRUCTION_POOL_STRING)
+	ByteStreamEmitInteger(stream.Buffer, stream.Offset, handle)
+	ByteStreamEmitString(stream.Buffer, stream.Offset, data)
+}
+
+//
+// Emit the header of an instruction sequence defining a structure
+//
+BytecodeDefineStructure : BytecodeStream ref stream, integer typeid, integer nummembers [nogc]
+{
+	ByteStreamEmitByte(stream.Buffer, stream.Offset, BYTECODE_INSTRUCTION_DEFINE_STRUCTURE)
+	ByteStreamEmitInteger(stream.Buffer, stream.Offset, typeid)
+	ByteStreamEmitInteger(stream.Buffer, stream.Offset, nummembers)
+}
+
+//
+// Emit the instruction metadata for a structure member
+//
+BytecodeStructureMember : BytecodeStream ref stream, integer name, integer typeid [nogc]
+{
+	ByteStreamEmitInteger(stream.Buffer, stream.Offset, name)
+	ByteStreamEmitInteger(stream.Buffer, stream.Offset, typeid)
+}
+
+//
+// Emit the header of an instruction sequence defining a lexical scope
+//
+BytecodeLexicalScope : BytecodeStream ref stream, integer name, integer parent, integer count [nogc]
+{
+	ByteStreamEmitByte(stream.Buffer, stream.Offset, BYTECODE_INSTRUCTION_DEFINE_LEXICAL_SCOPE)
+	ByteStreamEmitInteger(stream.Buffer, stream.Offset, name)
+	ByteStreamEmitInteger(stream.Buffer, stream.Offset, parent)
+	ByteStreamEmitInteger(stream.Buffer, stream.Offset, count)
+}
+
+//
+// Emit the instruction metadata for a lexical scope entry
+//
+BytecodeLexicalScopeEntry : BytecodeStream ref stream, integer varname, integer vartype, integer origin [nogc]
+{
+	ByteStreamEmitInteger(stream.Buffer, stream.Offset, varname)
+	ByteStreamEmitInteger(stream.Buffer, stream.Offset, vartype)
+	ByteStreamEmitInteger(stream.Buffer, stream.Offset, origin)
+	ByteStreamEmitBoolean(stream.Buffer, stream.Offset, false)
+}
+
+//
+// Emit the opening instructions of a function definition
+//
+BytecodeEnterFunction : BytecodeStream ref stream, integer name [nogc]
+{
+	ByteStreamEmitByte(stream.Buffer, stream.Offset, BYTECODE_INSTRUCTION_BEGIN_ENTITY)
+	ByteStreamEmitInteger(stream.Buffer, stream.Offset, BYTECODE_ENTITYTAG_FUNCTION)
+	ByteStreamEmitInteger(stream.Buffer, stream.Offset, name)
+}
+
+//
+// Emit the closing instructions of a function definition
+//
+BytecodeExitFunction : BytecodeStream ref stream [nogc]
+{
+	ByteStreamEmitByte(stream.Buffer, stream.Offset, BYTECODE_INSTRUCTION_RETURN)
+	ByteStreamEmitByte(stream.Buffer, stream.Offset, BYTECODE_INSTRUCTION_END_ENTITY)
+}
+
+//
+// Emit an instruction to invoke an externally defined function
+//
+BytecodeInvoke : BytecodeStream ref stream, integer target [nogc]
+{
+	ByteStreamEmitByte(stream.Buffer, stream.Offset, BYTECODE_INSTRUCTION_INVOKE)
+	ByteStreamEmitInteger(stream.Buffer, stream.Offset, target)
+}
+
+//
+// Emit an instruction to push a variable's value onto the stack
+//
+BytecodePushVarValueNoCopy : BytecodeStream ref stream, integer name [nogc]
+{
+	ByteStreamEmitByte(stream.Buffer, stream.Offset, BYTECODE_INSTRUCTION_READ)
+	ByteStreamEmitInteger(stream.Buffer, stream.Offset, name)
+}
+
+//
+// Emit an instruction for placing a reference binding onto the stack
+//
+BytecodeBindReference : BytecodeStream ref stream, integer frameskip, integer index [nogc]
+{
+	if(index < 0)
+	{
+		assertmsg(false, "Binding reference to a missing variable!")
+	}
+
+	ByteStreamEmitByte(stream.Buffer, stream.Offset, BYTECODE_INSTRUCTION_BIND_REFERENCE)
+	ByteStreamEmitInteger(stream.Buffer, stream.Offset, frameskip)
+	ByteStreamEmitInteger(stream.Buffer, stream.Offset, index)
+}
+
+//
+// Emit an instruction to perform an assignment
+//
+BytecodeAssign : BytecodeStream ref stream [nogc]
+{
+	ByteStreamEmitByte(stream.Buffer, stream.Offset, BYTECODE_INSTRUCTION_ASSIGN)
+}
+
+//
+// Emit an instruction for setting up the return value of a function
+//
+BytecodeSetReturnRegister : BytecodeStream ref stream, integer varindex [nogc]
+{
+	ByteStreamEmitByte(stream.Buffer, stream.Offset, BYTECODE_INSTRUCTION_SET_RETURN)
+	ByteStreamEmitInteger(stream.Buffer, stream.Offset, varindex)
+}
+
+//
+// Emit an instruction for invoking a function
+//
+BytecodeInvokeOffset : BytecodeStream ref stream, integer name [nogc]
+{
+	ByteStreamEmitByte(stream.Buffer, stream.Offset, BYTECODE_INSTRUCTION_INVOKE_OFFSET)
+	ByteStreamEmitInteger(stream.Buffer, stream.Offset, name)
+	ByteStreamEmitInteger(stream.Buffer, stream.Offset, 0)
+}
+
+//
+// Emit an instruction for constructing a sum-typed variable
+//
+BytecodeConstructSumType : BytecodeStream ref stream [nogc]
+{
+	ByteStreamEmitByte(stream.Buffer, stream.Offset, BYTECODE_INSTRUCTION_CONSTRUCT_SUM_TYPE)
+}
+
+//
+// Emit an instruction for invoking a function whose address is stored in a variable
+//
+BytecodeInvokeIndirect : BytecodeStream ref stream, integer varname [nogc]
+{
+	ByteStreamEmitByte(stream.Buffer, stream.Offset, BYTECODE_INSTRUCTION_INVOKE_INDIRECT)
+	ByteStreamEmitInteger(stream.Buffer, stream.Offset, varname)
+}
+
+//
+// Emit an instruction to forcibly halt the running program
+//
+BytecodeHalt : BytecodeStream ref stream [nogc]
+{
+	ByteStreamEmitByte(stream.Buffer, stream.Offset, BYTECODE_INSTRUCTION_HALT)
+}
+
+//
+// Emit an instruction beginning the body of a code entity
+//
+BytecodeEnterEntity : BytecodeStream ref stream, integer tag, integer name [nogc]
+{
+	ByteStreamEmitByte(stream.Buffer, stream.Offset, BYTECODE_INSTRUCTION_BEGIN_ENTITY)
+	ByteStreamEmitInteger(stream.Buffer, stream.Offset, tag)
+	ByteStreamEmitInteger(stream.Buffer, stream.Offset, name)
+}
+
+//
+// Emit an instruction ending the body of a code entity
+//
+BytecodeExitEntity : BytecodeStream ref stream [nogc]
+{
+	ByteStreamEmitByte(stream.Buffer, stream.Offset, BYTECODE_INSTRUCTION_END_ENTITY)
+}
+
+//
+// Emit an instruction beginning a chain of connected code entities
+//
+BytecodeBeginChain : BytecodeStream ref stream [nogc]
+{
+	ByteStreamEmitByte(stream.Buffer, stream.Offset, BYTECODE_INSTRUCTION_BEGIN_CHAIN)
+}
+
+//
+// Emit an instruction ending a chain of connected code entities
+//
+BytecodeEndChain : BytecodeStream ref stream [nogc]
+{
+	ByteStreamEmitByte(stream.Buffer, stream.Offset, BYTECODE_INSTRUCTION_END_CHAIN)
+}
+
+//
+// Emit an instruction to read a reference's target value onto the stack
+//
+BytecodeReadReference : BytecodeStream ref stream [nogc]
+{
+	ByteStreamEmitByte(stream.Buffer, stream.Offset, BYTECODE_INSTRUCTION_READ_REFERENCE)
+}
+
+//
+// Emit an instruction to read a reference target and type annotation onto the stack
+//
+BytecodeReadReferenceAnnotated : BytecodeStream ref stream [nogc]
+{
+	ByteStreamEmitByte(stream.Buffer, stream.Offset, BYTECODE_INSTRUCTION_READ_REFERENCE_ANNOTATED)
+}
+
+//
+// Emit an instruction to allocate memory for a structure object
+//
+BytecodeAllocStructure : BytecodeStream ref stream, integer typeid [nogc]
+{
+	ByteStreamEmitByte(stream.Buffer, stream.Offset, BYTECODE_INSTRUCTION_ALLOCATE_STRUCTURE)
+	ByteStreamEmitInteger(stream.Buffer, stream.Offset, typeid)
+}
+
+//
+// Emit an instruction to push a variable's value onto the stack, optionally copying it
+//
+BytecodePushVarValue : BytecodeStream ref stream, integer name, integer typeid [nogc]
+{
+	BytecodePushVarValueNoCopy(stream, name)
+	
+	integer family = typeid & 0xff000000
+
+	if(typeid == 0x02000001)			// Buffer type signature
+	{
+		BytecodeCopyBuffer(stream)
+	}
+	elseif(family == 0x03000000)			// Structure family signature
+	{
+		//BytecodeCopyStructure(stream)		// TODO - un-break value semantics!
+	}
+	elseif(family == 0x08000000)			// Template instance family signature
+	{
+		//BytecodeCopyStructure(stream)
+	}
+}
+
+//
+// Emit an instruction to copy a buffer
+//
+BytecodeCopyBuffer : BytecodeStream ref stream [nogc]
+{
+	ByteStreamEmitByte(stream.Buffer, stream.Offset, BYTECODE_INSTRUCTION_COPY_BUFFER)
+}
+
+//
+// Emit an instruction to copy a structure object
+//
+BytecodeCopyStructure : BytecodeStream ref stream [nogc]
+{
+	ByteStreamEmitByte(stream.Buffer, stream.Offset, BYTECODE_INSTRUCTION_COPY_STRUCTURE)
+}
+
+//
+// Emit an instruction to copy a value into a structure object
+//
+BytecodeCopyToStructure : BytecodeStream ref stream, integer structurename, integer membername [nogc]
+{
+	ByteStreamEmitByte(stream.Buffer, stream.Offset, BYTECODE_INSTRUCTION_COPY_TO_STRUCTURE)
+	ByteStreamEmitInteger(stream.Buffer, stream.Offset, structurename)
+	ByteStreamEmitInteger(stream.Buffer, stream.Offset, membername)
+}
+
+//
+// Emit instructions to enter a value-based pattern matching wrapper
+//
+BytecodeEnterPatternResolver : BytecodeStream ref stream, integer name [nogc]
+{
+	ByteStreamEmitByte(stream.Buffer, stream.Offset, BYTECODE_INSTRUCTION_BEGIN_ENTITY)
+	ByteStreamEmitInteger(stream.Buffer, stream.Offset, BYTECODE_ENTITYTAG_PATTERNMATCH)
+	ByteStreamEmitInteger(stream.Buffer, stream.Offset, name)
+}
+
+//
+// Emit instructions for exiting a pattern matching wrapper
+//
+BytecodeExitPatternResolver : BytecodeStream ref stream [nogc]
+{
+	BytecodeHalt(stream)
+	ByteStreamEmitByte(stream.Buffer, stream.Offset, BYTECODE_INSTRUCTION_END_ENTITY)
+}
+
+//
+// Emit instructions to enter a type-based pattern matching wrapper
+//
+BytecodeEnterTypeResolver : BytecodeStream ref stream, integer name [nogc]
+{
+	ByteStreamEmitByte(stream.Buffer, stream.Offset, BYTECODE_INSTRUCTION_BEGIN_ENTITY)
+	ByteStreamEmitInteger(stream.Buffer, stream.Offset, BYTECODE_ENTITYTAG_TYPEMATCH)
+	ByteStreamEmitInteger(stream.Buffer, stream.Offset, name)
+}
+
+//
+// Emit instructions for exiting a type-based pattern matching wrapper
+//
+BytecodeExitTypeResolver : BytecodeStream ref stream [nogc]
+{
+	BytecodeHalt(stream)
+	ByteStreamEmitByte(stream.Buffer, stream.Offset, BYTECODE_INSTRUCTION_END_ENTITY)
+}
+
+//
+// Emit an instruction to pop some data from the stack
+//
+BytecodePopStack : BytecodeStream ref stream, integer bytes [nogc]
+{
+	ByteStreamEmitByte(stream.Buffer, stream.Offset, BYTECODE_INSTRUCTION_POP)
+	ByteStreamEmitInteger(stream.Buffer, stream.Offset, bytes)
+}
+
+//
+// Emit an instruction to bind a reference to a structure object member
+//
+BytecodeBindStructReference : BytecodeStream ref stream, integer membertype, integer memberoffset [nogc]
+{
+	ByteStreamEmitByte(stream.Buffer, stream.Offset, BYTECODE_INSTRUCTION_BIND_MEMBER_REFERENCE)
+	ByteStreamEmitInteger(stream.Buffer, stream.Offset, MakeNonReferenceType(membertype))
+	ByteStreamEmitInteger(stream.Buffer, stream.Offset, memberoffset)
+}
+
+//
+// Emit an instruction to copy data into a sum-typed variable
+//
+BytecodeAssignSumType : BytecodeStream ref stream [nogc]
+{
+	ByteStreamEmitByte(stream.Buffer, stream.Offset, BYTECODE_INSTRUCTION_ASSIGN_SUMTYPE)
+}
+
+//
+// Emit an instruction to push a local variable value onto the stack
+//
+BytecodePushLocal : BytecodeStream ref stream, integer frameskip, integer offset [nogc]
+{
+	ByteStreamEmitByte(stream.Buffer, stream.Offset, BYTECODE_INSTRUCTION_READ_STACK_LOCAL)
+	ByteStreamEmitInteger(stream.Buffer, stream.Offset, frameskip)
+	ByteStreamEmitInteger(stream.Buffer, stream.Offset, offset)
+	ByteStreamEmitInteger(stream.Buffer, stream.Offset, 0)
+}
+
+//
+// Emit an instruction to push a boolean value onto the stack
+//
+BytecodePushBoolean : BytecodeStream ref stream, boolean literal [nogc]
+{
+	ByteStreamEmitByte(stream.Buffer, stream.Offset, BYTECODE_INSTRUCTION_PUSH)
+	ByteStreamEmitInteger(stream.Buffer, stream.Offset, 0x01000003)		// Boolean type signature
+	ByteStreamEmitBoolean(stream.Buffer, stream.Offset, literal)
+}
+
+//
+// Emit an instruction to push a string handle onto the stack
+//
+BytecodePushLiteralString : BytecodeStream ref stream, integer literalhandle [nogc]
+{
+	ByteStreamEmitByte(stream.Buffer, stream.Offset, BYTECODE_INSTRUCTION_PUSH)
+	ByteStreamEmitInteger(stream.Buffer, stream.Offset, 0x02000000)		// String type signature
+	ByteStreamEmitInteger(stream.Buffer, stream.Offset, literalhandle)
+}
+
+//
+// Emit an instruction to push an integer value onto the stack
+//
+BytecodePushLiteralInteger : BytecodeStream ref stream, integer literal [nogc]
+{
+	ByteStreamEmitByte(stream.Buffer, stream.Offset, BYTECODE_INSTRUCTION_PUSH)
+	ByteStreamEmitInteger(stream.Buffer, stream.Offset, 0x01000001)		// Integer type signature
+	ByteStreamEmitInteger(stream.Buffer, stream.Offset, literal)
+}
+
+//
+// Emit an instruction to push a 16-bit integer onto the stack
+//
+BytecodePushLiteralInteger16 : BytecodeStream ref stream, integer16 literal [nogc]
+{
+	ByteStreamEmitByte(stream.Buffer, stream.Offset, BYTECODE_INSTRUCTION_PUSH)
+	ByteStreamEmitInteger(stream.Buffer, stream.Offset, 0x01000002)		// Integer16 type signature
+	ByteStreamEmitInteger16(stream.Buffer, stream.Offset, literal)
+}
+
+//
+// Emit an instruction to push a type annotation onto the stack
+//
+BytecodePushTypeAnnotation : BytecodeStream ref stream, integer annotation [nogc]
+{
+	ByteStreamEmitByte(stream.Buffer, stream.Offset, BYTECODE_INSTRUCTION_PUSH)
+	ByteStreamEmitInteger(stream.Buffer, stream.Offset, 0x01000001)		// Integer type signature
+	ByteStreamEmitInteger(stream.Buffer, stream.Offset, annotation)
+}
+
+//
+// Emit an instruction to push a function address onto the stack
+//
+BytecodePushLiteralFunction : BytecodeStream ref stream, integer name [nogc]
+{
+	ByteStreamEmitByte(stream.Buffer, stream.Offset, BYTECODE_INSTRUCTION_PUSH)
+	ByteStreamEmitInteger(stream.Buffer, stream.Offset, 0x09000000)		// Function family signature (N.B. not the actual function type!)
+	ByteStreamEmitInteger(stream.Buffer, stream.Offset, name)
+}
+
+//
+// Emit an instruction to push a 32-bit floating-point real onto the stack
+//
+BytecodePushLiteralReal : BytecodeStream ref stream, real value [nogc]
+{
+	ByteStreamEmitByte(stream.Buffer, stream.Offset, BYTECODE_INSTRUCTION_PUSH)
+	ByteStreamEmitInteger(stream.Buffer, stream.Offset, 0x01000004)		// Real type signature
+	ByteStreamEmitReal(stream.Buffer, stream.Offset, value)
+}
+
+//
+// Emit metadata describing a function signature
+//
+BytecodeEmitFunctionSignature : BytecodeStream ref stream, integer typeid, integer rettype, integer paramcount [nogc]
+{
+	ByteStreamEmitByte(stream.Buffer, stream.Offset, BYTECODE_INSTRUCTION_FUNCTION_SIGNATURE)
+	ByteStreamEmitInteger(stream.Buffer, stream.Offset, typeid)
+	ByteStreamEmitInteger(stream.Buffer, stream.Offset, rettype)
+	ByteStreamEmitInteger(stream.Buffer, stream.Offset, paramcount)
+}
+
+//
+// Emit metadata describing a parameter in a function signature
+//
+BytecodeEmitFunctionSigParam : BytecodeStream ref stream, integer paramtype [nogc]
+{
+	ByteStreamEmitInteger(stream.Buffer, stream.Offset, paramtype)
+	ByteStreamEmitBoolean(stream.Buffer, stream.Offset, false)
+}
+
+

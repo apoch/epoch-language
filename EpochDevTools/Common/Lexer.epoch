@@ -1,0 +1,536 @@
+//
+// Lexer file
+//
+
+
+// Evil, evil, evil hack
+EpochLib_SubstrCharDirect : integer pointer, integer pos -> integer ch = 0 [external("EpochLibrary.dll", "EpochLib_SubstrCharDirect"), nogc]
+EpochLib_StrPointer : string s -> integer pointer = 0 [external("EpochLibrary.dll", "EpochLib_StrPointer"), nogc]
+EpochLib_SubstrDirect : integer pointer, integer pos, integer length -> string s = "" [external("EpochLibrary.dll", "EpochLib_SubstrDirect"), nogc]
+
+Lex : string filename, string code, integer len [nogc]
+{
+	integer index = 0
+	integer lasttokenstart = 0
+
+	integer lastTokenStartRow = 1
+	integer lastTokenStartCol = 1
+
+	integer state = CHARACTER_CLASS_WHITE
+	integer prevstate = CHARACTER_CLASS_WHITE
+
+	integer codeptr = EpochLib_StrPointer(code)
+	
+	integer currentRow = 1
+	integer currentCol = 0
+
+	while(index < len)
+	{
+		integer c = EpochLib_SubstrCharDirect(codeptr, index)
+		
+		if(c == CharacterLineFeed)
+		{
+			++currentRow
+			currentCol = 0
+		}
+
+		++currentCol
+		
+
+		if(state == CHARACTER_CLASS_WHITE)
+		{
+			if((c == CharacterSlash) && (EpochLib_SubstrCharDirect(codeptr, index + 1) == CharacterSlash))
+			{
+				state = CHARACTER_CLASS_COMMENT
+			}
+			elseif(!IsWhitespace(c))
+			{
+				state = Classify(c, state)
+				lasttokenstart = index
+				lastTokenStartRow = currentRow
+				lastTokenStartCol = currentCol
+			}
+		}
+		elseif(state == CHARACTER_CLASS_IDENTIFIER)
+		{
+			boolean notidentifier = false
+			if(IsWhitespace(c))
+			{
+				notidentifier = true
+				state = CHARACTER_CLASS_WHITE
+			}
+			elseif(Classify(c, state) != CHARACTER_CLASS_IDENTIFIER)
+			{
+				notidentifier = true
+				state = Classify(c, state)
+			}
+
+			if(notidentifier)
+			{
+				PushToken(EpochLib_SubstrDirect(codeptr, lasttokenstart, index - lasttokenstart), filename, lastTokenStartRow, lastTokenStartCol)
+			}
+		}
+		elseif(state == CHARACTER_CLASS_PUNCTUATION)
+		{
+			if(IsWhitespace(c))
+			{
+				state = CHARACTER_CLASS_WHITE
+			}
+			elseif(Classify(c, state) != CHARACTER_CLASS_PUNCTUATION)
+			{
+				state = Classify(c, state)
+			}
+
+			PushToken(EpochLib_SubstrDirect(codeptr, lasttokenstart, index - lasttokenstart), filename, lastTokenStartRow, lastTokenStartCol)
+			lasttokenstart = index
+			lastTokenStartRow = currentRow
+			lastTokenStartCol = currentCol
+		}
+		elseif(state == CHARACTER_CLASS_PUNCTUATION_COMPOUND)
+		{
+			boolean notcompound = false
+			if(IsWhitespace(c))
+			{
+				notcompound = true
+				state = CHARACTER_CLASS_WHITE
+			}
+			elseif(Classify(c, state) != CHARACTER_CLASS_PUNCTUATION_COMPOUND)
+			{
+				notcompound = true
+				state = Classify(c, state)
+			}
+			else
+			{
+				if((index - lasttokenstart) > 1)
+				{
+					string potentialtoken = EpochLib_SubstrDirect(codeptr, lasttokenstart, index - lasttokenstart)
+					if(!IsValidPunctuation(potentialtoken))
+					{
+						PushToken(substring(potentialtoken, 0, length(potentialtoken) - 1), filename, lastTokenStartRow, lastTokenStartCol)
+						lasttokenstart = index - 1
+						
+						lastTokenStartRow = currentRow
+						lastTokenStartCol = currentCol
+					}
+				}
+			}
+
+			if(notcompound)
+			{
+				if((index - lasttokenstart) > 1)
+				{
+					string potentialtoken = EpochLib_SubstrDirect(codeptr, lasttokenstart, index - lasttokenstart)
+					if(!IsValidPunctuation(potentialtoken))
+					{
+						PushToken(substring(potentialtoken, 0, length(potentialtoken) - 1), filename, lastTokenStartRow, lastTokenStartCol)
+						lasttokenstart = index - 1
+
+						lastTokenStartRow = currentRow
+						lastTokenStartCol = currentCol
+					}
+				}
+
+				PushToken(EpochLib_SubstrDirect(codeptr, lasttokenstart, index - lasttokenstart), filename, lastTokenStartRow, lastTokenStartCol)
+			}
+		}
+		elseif(state == CHARACTER_CLASS_COMMENT)
+		{
+			if(c == CharacterCarriageReturn)
+			{
+				state = CHARACTER_CLASS_WHITE
+			}
+			elseif(c == CharacterLineFeed)
+			{
+				state = CHARACTER_CLASS_WHITE
+			}
+		}
+		elseif(state == CHARACTER_CLASS_STRING_LITERAL)
+		{
+			if(c == CharacterQuote)
+			{
+				state = CHARACTER_CLASS_WHITE
+				PushToken(EpochLib_SubstrDirect(codeptr, lasttokenstart, index - lasttokenstart + 1), filename, lastTokenStartRow, lastTokenStartCol)
+			}
+		}
+		elseif(state == CHARACTER_CLASS_LITERAL)
+		{
+			boolean notliteral = false
+			if(IsWhitespace(c))
+			{
+				notliteral = true
+				state = CHARACTER_CLASS_WHITE
+			}
+			elseif(Classify(c, state) != CHARACTER_CLASS_LITERAL)
+			{
+				notliteral = true
+				state = Classify(c, state)
+			}
+
+			if(notliteral)
+			{
+				PushToken(EpochLib_SubstrDirect(codeptr, lasttokenstart, index - lasttokenstart), filename, lastTokenStartRow, lastTokenStartCol)
+			}
+		}
+
+		// Handle negated literals (slightly hacky)
+		if(state == CHARACTER_CLASS_PUNCTUATION_COMPOUND)
+		{
+			if(Classify(EpochLib_SubstrCharDirect(codeptr, index + 1), state) == CHARACTER_CLASS_LITERAL)
+			{
+				state = CHARACTER_CLASS_LITERAL
+			}
+		}
+
+
+		if(state != prevstate)
+		{
+			lasttokenstart = index
+			lastTokenStartRow = currentRow
+			lastTokenStartCol = currentCol
+		}
+
+		prevstate = state
+		++index
+	}
+
+	if((lasttokenstart < len) && (state != CHARACTER_CLASS_WHITE))
+	{
+		PushToken(EpochLib_SubstrDirect(codeptr, lasttokenstart, len - lasttokenstart), filename, lastTokenStartRow, lastTokenStartCol)
+	}
+}
+
+
+IsValidPunctuation : string token -> boolean valid = false [nogc]
+{
+	if(token == "==")
+	{
+		valid = true
+	}
+	elseif(token == "!=")
+	{
+		valid = true
+	}
+	elseif(token == "++")
+	{
+		valid = true
+	}
+	elseif(token == "--")
+	{
+		valid = true
+	}
+	elseif(token == "->")
+	{
+		valid = true
+	}
+	elseif(token == "&&")
+	{
+		valid = true
+	}
+	elseif(token == "+=")
+	{
+		valid = true
+	}
+	elseif(token == "-=")
+	{
+		valid = true
+	}
+	elseif(token == "=>")
+	{
+		valid = true
+	}
+}
+
+
+IsWhitespace : integer c -> boolean white = false [nogc]
+{
+	if(c == CharacterSpace)
+	{
+		white = true
+	}
+	elseif(c == CharacterCarriageReturn)
+	{
+		white = true
+	}
+	elseif(c == CharacterLineFeed)
+	{
+		white = true
+	}
+	elseif(c == CharacterTab)
+	{
+		white = true
+	}
+}
+
+Classify : integer c, integer currentclass -> integer class = CHARACTER_CLASS_IDENTIFIER [nogc]
+{
+	if(c == CharacterA)
+	{
+		if(currentclass == CHARACTER_CLASS_LITERAL)
+		{
+			class = CHARACTER_CLASS_LITERAL
+		}
+		else
+		{
+			class = CHARACTER_CLASS_IDENTIFIER
+		}
+	}
+	elseif(c == CharacterB)
+	{
+		if(currentclass == CHARACTER_CLASS_LITERAL)
+		{
+			class = CHARACTER_CLASS_LITERAL
+		}
+		else
+		{
+			class = CHARACTER_CLASS_IDENTIFIER
+		}
+	}
+	elseif(c == CharacterC)
+	{
+		if(currentclass == CHARACTER_CLASS_LITERAL)
+		{
+			class = CHARACTER_CLASS_LITERAL
+		}
+		else
+		{
+			class = CHARACTER_CLASS_IDENTIFIER
+		}
+	}
+	elseif(c == CharacterD)
+	{
+		if(currentclass == CHARACTER_CLASS_LITERAL)
+		{
+			class = CHARACTER_CLASS_LITERAL
+		}
+		else
+		{
+			class = CHARACTER_CLASS_IDENTIFIER
+		}
+	}
+	elseif(c == CharacterE)
+	{
+		if(currentclass == CHARACTER_CLASS_LITERAL)
+		{
+			class = CHARACTER_CLASS_LITERAL
+		}
+		else
+		{
+			class = CHARACTER_CLASS_IDENTIFIER
+		}
+	}
+	elseif(c == CharacterF)
+	{
+		if(currentclass == CHARACTER_CLASS_LITERAL)
+		{
+			class = CHARACTER_CLASS_LITERAL
+		}
+		else
+		{
+			class = CHARACTER_CLASS_IDENTIFIER
+		}
+	}
+	elseif(c == CharacterZero)
+	{
+		if(currentclass == CHARACTER_CLASS_IDENTIFIER)
+		{
+			class = CHARACTER_CLASS_IDENTIFIER
+		}
+		else
+		{
+			class = CHARACTER_CLASS_LITERAL
+		}
+	}
+	elseif(c == CharacterOne)
+	{
+		if(currentclass == CHARACTER_CLASS_IDENTIFIER)
+		{
+			class = CHARACTER_CLASS_IDENTIFIER
+		}
+		else
+		{
+			class = CHARACTER_CLASS_LITERAL
+		}
+	}
+	elseif(c == CharacterTwo)
+	{
+		if(currentclass == CHARACTER_CLASS_IDENTIFIER)
+		{
+			class = CHARACTER_CLASS_IDENTIFIER
+		}
+		else
+		{
+			class = CHARACTER_CLASS_LITERAL
+		}
+	}
+	elseif(c == CharacterThree)
+	{
+		if(currentclass == CHARACTER_CLASS_IDENTIFIER)
+		{
+			class = CHARACTER_CLASS_IDENTIFIER
+		}
+		else
+		{
+			class = CHARACTER_CLASS_LITERAL
+		}
+	}
+	elseif(c == CharacterFour)
+	{
+		if(currentclass == CHARACTER_CLASS_IDENTIFIER)
+		{
+			class = CHARACTER_CLASS_IDENTIFIER
+		}
+		else
+		{
+			class = CHARACTER_CLASS_LITERAL
+		}
+	}
+	elseif(c == CharacterFive)
+	{
+		if(currentclass == CHARACTER_CLASS_IDENTIFIER)
+		{
+			class = CHARACTER_CLASS_IDENTIFIER
+		}
+		else
+		{
+			class = CHARACTER_CLASS_LITERAL
+		}
+	}
+	elseif(c == CharacterSix)
+	{
+		if(currentclass == CHARACTER_CLASS_IDENTIFIER)
+		{
+			class = CHARACTER_CLASS_IDENTIFIER
+		}
+		else
+		{
+			class = CHARACTER_CLASS_LITERAL
+		}
+	}
+	elseif(c == CharacterSeven)
+	{
+		if(currentclass == CHARACTER_CLASS_IDENTIFIER)
+		{
+			class = CHARACTER_CLASS_IDENTIFIER
+		}
+		else
+		{
+			class = CHARACTER_CLASS_LITERAL
+		}
+	}
+	elseif(c == CharacterEight)
+	{
+		if(currentclass == CHARACTER_CLASS_IDENTIFIER)
+		{
+			class = CHARACTER_CLASS_IDENTIFIER
+		}
+		else
+		{
+			class = CHARACTER_CLASS_LITERAL
+		}
+	}
+	elseif(c == CharacterNine)
+	{
+		if(currentclass == CHARACTER_CLASS_IDENTIFIER)
+		{
+			class = CHARACTER_CLASS_IDENTIFIER
+		}
+		else
+		{
+			class = CHARACTER_CLASS_LITERAL
+		}
+	}
+	elseif(c == CharacterX)
+	{
+		if(currentclass == CHARACTER_CLASS_LITERAL)
+		{
+			class = CHARACTER_CLASS_LITERAL
+		}
+		else
+		{
+			class = CHARACTER_CLASS_IDENTIFIER
+		}
+	}
+	elseif(c == CharacterOpenBrace)
+	{
+		class = CHARACTER_CLASS_PUNCTUATION
+	}
+	elseif(c == CharacterCloseBrace)
+	{
+		class = CHARACTER_CLASS_PUNCTUATION
+	}
+	elseif(c == CharacterColon)
+	{
+		class = CHARACTER_CLASS_PUNCTUATION
+	}
+	elseif(c == CharacterOpenParen)
+	{
+		class = CHARACTER_CLASS_PUNCTUATION
+	}
+	elseif(c == CharacterCloseParen)
+	{
+		class = CHARACTER_CLASS_PUNCTUATION
+	}
+	elseif(c == CharacterEquals)
+	{
+		class = CHARACTER_CLASS_PUNCTUATION_COMPOUND
+	}
+	elseif(c == CharacterAmpersand)
+	{
+		class = CHARACTER_CLASS_PUNCTUATION_COMPOUND
+	}
+	elseif(c == CharacterComma)
+	{
+		class = CHARACTER_CLASS_PUNCTUATION
+	}
+	elseif(c == CharacterQuote)
+	{
+		class = CHARACTER_CLASS_STRING_LITERAL
+	}
+	elseif(c == CharacterPlus)
+	{
+		class = CHARACTER_CLASS_PUNCTUATION_COMPOUND
+	}
+	elseif(c == CharacterMinus)
+	{
+		class = CHARACTER_CLASS_PUNCTUATION_COMPOUND
+	}
+	elseif(c == CharacterLessThan)
+	{
+		class = CHARACTER_CLASS_PUNCTUATION_COMPOUND
+	}
+	elseif(c == CharacterGreaterThan)
+	{
+		class = CHARACTER_CLASS_PUNCTUATION_COMPOUND
+	}
+	elseif(c == CharacterDot)
+	{
+		if(currentclass == CHARACTER_CLASS_LITERAL)
+		{
+			class = CHARACTER_CLASS_LITERAL
+		}
+		elseif(currentclass == CHARACTER_CLASS_PUNCTUATION_COMPOUND)
+		{
+			class = CHARACTER_CLASS_PUNCTUATION_COMPOUND		// hack!
+		}
+		else
+		{
+			class = CHARACTER_CLASS_PUNCTUATION
+		}
+	}
+	elseif(c == CharacterSemicolon)
+	{
+		class = CHARACTER_CLASS_PUNCTUATION
+	}
+	elseif(c == CharacterExclamation)
+	{
+		class = CHARACTER_CLASS_PUNCTUATION_COMPOUND
+	}
+	elseif(c == CharacterOpenBracket)
+	{
+		class = CHARACTER_CLASS_PUNCTUATION
+	}
+	elseif(c == CharacterCloseBracket)
+	{
+		class = CHARACTER_CLASS_PUNCTUATION
+	}
+}

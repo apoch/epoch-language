@@ -1,0 +1,309 @@
+
+AppendEntryToCurrentCodeBlock : CodeBlockEntry ref cbe
+{
+	AppendEntryToCurrentCodeBlockWorker(CurrentCodeBlockStack, cbe)
+}
+
+AppendEntryToCurrentCodeBlockWorker : list<OptionalCodeBlock> ref blockstack, CodeBlockEntry ref entry
+{
+	AppendEntryToCodeBlock(blockstack, blockstack.value, entry)
+}
+
+AppendEntryToCurrentCodeBlockWorker : nothing, CodeBlockEntry ref entry
+{
+	print("No code block is being processed")
+	assert(false)
+}
+
+
+FindCurrentFunctionAndAppendCompoundMember : integer membername
+{
+	FindLastAssignmentAndAppendCompoundMemberHelper(CurrentCodeBlockStack.value, membername)
+}
+
+FindCurrentFunctionAndChainCompoundMember : integer membername
+{
+	FindLastAssignmentAndChainCompoundMemberHelper(CurrentCodeBlockStack.value, membername)
+}
+
+
+FindLastAssignmentAndAppendCompoundMemberHelper : CodeBlock ref code, integer membername
+{
+	FindLastAssignmentAndAppendCompoundMember(code.Entries, code.Entries.next, membername)
+}
+
+FindLastAssignmentAndChainCompoundMemberHelper : CodeBlock ref code, integer membername
+{
+	FindLastAssignmentAndChainCompoundMember(code.Entries, code.Entries.next, membername)
+}
+
+
+
+AppendEntryToCodeBlock : list<OptionalCodeBlock> ref stack, CodeBlock ref code, CodeBlockEntry ref entry
+{
+	AppendEntryToCodeBlock(code.Entries, entry)
+}
+
+AppendEntryToCodeBlock : list<OptionalCodeBlock> ref stack, nothing, CodeBlockEntry ref entry
+{
+	list<CodeBlockEntry> stmtlist = entry, nothing
+	CodeBlock block = stmtlist
+	OptionalCodeBlock blockwrap = block
+	stack.value = blockwrap
+}
+
+AppendEntryToCodeBlock : list<CodeBlockEntry> ref entries, CodeBlockEntry ref entry
+{
+	AppendEntryToCodeBlock(entries, entries.next, entry)
+}
+
+AppendEntryToCodeBlock : list<CodeBlockEntry> ref entries, nothing, CodeBlockEntry ref entry
+{
+	list<CodeBlockEntry> newlist = entry, nothing
+	entries.next = newlist
+}
+
+AppendEntryToCodeBlock : list<CodeBlockEntry> ref entries, list<CodeBlockEntry> ref tail, CodeBlockEntry ref value
+{
+	AppendEntryToCodeBlock(tail, tail.next, value)
+}
+
+
+FindLastAssignmentAndAppendCompoundMember : list<CodeBlockEntry> ref entries, list<CodeBlockEntry> ref tail, integer membername
+{
+	FindLastAssignmentAndAppendCompoundMember(tail, tail.next, membername)
+}
+
+FindLastAssignmentAndAppendCompoundMember : list<CodeBlockEntry> ref entries, nothing, integer membername
+{
+	AppendCompoundMemberHelper(entries.value, membername)
+}
+
+
+FindLastAssignmentAndChainCompoundMember : list<CodeBlockEntry> ref entries, list<CodeBlockEntry> ref tail, integer membername
+{
+	FindLastAssignmentAndChainCompoundMember(tail, tail.next, membername)
+}
+
+FindLastAssignmentAndChainCompoundMember : list<CodeBlockEntry> ref entries, nothing, integer membername
+{
+	ChainCompoundMemberHelper(entries.value, membername)
+}
+
+
+ChainCompoundMemberHelper : Assignment ref a, integer membername
+{
+	ChainCompoundMember(a, a.RHS, membername)
+}
+
+ChainCompoundMemberHelper : AssignmentCompound ref a, integer membername
+{
+	ChainCompoundMember(a, a.RHS, membername)
+}
+
+ChainCompoundMember : Assignment ref tomodify, Assignment ref rhs, integer membername
+{
+	ChainCompoundMember(rhs, rhs.RHS, membername)
+}
+
+ChainCompoundMember : AssignmentCompound ref tomodify, Assignment ref rhs, integer membername
+{
+	ChainCompoundMember(rhs, rhs.RHS, membername)
+}
+
+ChainCompoundMember : Assignment ref tomodify, AssignmentCompound ref rhs, integer membername
+{
+	ChainCompoundMember(rhs, rhs.RHS, membername)
+}
+
+ChainCompoundMember : AssignmentCompound ref tomodify, AssignmentCompound ref rhs, integer membername
+{
+	ChainCompoundMember(rhs, rhs.RHS, membername)
+}
+
+ChainCompoundMember : Assignment ref tomodify, Expression ref rhs, integer membername
+{
+	print("Fatal error - parser tried to associate a member with a non-compound assignment")
+	assert(false)
+}
+
+ChainCompoundMember : AssignmentCompound ref tomodify, Expression ref rhs, integer membername
+{
+	AppendCompoundMemberHelper(tomodify, membername)
+}
+
+
+AppendCompoundMemberHelper : AssignmentCompound ref a, integer membername [nogc]
+{
+	AppendCompoundMember(a.LHS, a.LHS.next, membername)
+}
+
+AppendCompoundMemberHelper : PreOpStatement ref s, integer membername [nogc]
+{
+	AppendCompoundMember(s.Operand, s.Operand.next, membername)
+}
+
+AppendCompoundMemberHelper : PostOpStatement ref s, integer membername [nogc]
+{
+	AppendCompoundMember(s.Operand, s.Operand.next, membername)
+}
+
+AppendCompoundMember : simplelist<integer> ref members, simplelist<integer> ref tail, integer membername [nogc]
+{
+	AppendCompoundMember(tail, tail.next, membername)
+}
+
+AppendCompoundMember : simplelist<integer> ref members, nothing, integer membername [nogc]
+{
+	simplelist<integer> newtail = membername, nothing
+	members.next = newtail
+}
+
+
+
+FindCurrentStatementAndAppendExpression : Expression ref expression
+{
+	FindLastStatementInBlockAndAppendExpression(CurrentCodeBlockStack.value, expression)
+}
+
+FindCurrentStatementAndAppendExpression : nothing
+
+
+FindCurrentAssignmentAndSetExpression : Expression ref expression
+{
+	FindLastAssignmentInBlockAndSetExpression(CurrentCodeBlockStack.value, expression)
+}
+
+
+
+FindLastStatementInBlockAndAppendExpression : CodeBlock ref codeblock, Expression ref expression
+{
+	AppendExpressionToStatement(LastTopLevelStatementHack.Wrapped, expression)
+}
+
+FindLastStatementInBlockAndAppendExpression : nothing, Expression ref expression
+{
+	print("Not processing an active code block!")
+	assert(false)
+}
+
+
+AppendExpressionToStatement : Statement ref statement, Expression ref expression
+{
+	AppendExpressionToStatementParams(statement, statement.Parameters, expression)
+}
+
+AppendExpressionToStatementParams : Statement ref statement, ExpressionList ref parameters, Expression ref expression
+{
+	AppendExpression(parameters.Expressions, parameters.Expressions.next, expression)
+}
+
+AppendExpressionToStatementParams : Statement ref statement, nothing, Expression ref expression
+{
+	list<Expression> newlist = expression, nothing
+	ExpressionList params = newlist
+	statement.Parameters = params
+}
+
+AppendExpression : list<Expression> ref expressions, list<Expression> ref tail, Expression ref expression
+{
+	AppendExpression(tail, tail.next, expression)
+}
+
+AppendExpression : list<Expression> ref expressions, nothing, Expression ref expression
+{
+	list<Expression> newlist = expression, nothing
+	expressions.next = newlist
+}
+
+
+FindLastAssignmentInBlockAndSetExpression : CodeBlock ref codeblock, Expression ref expression
+{
+	FindLastAssignmentAndSetExpression(codeblock.Entries, codeblock.Entries.next, expression)
+}
+
+FindLastAssignmentAndSetExpression : list<CodeBlockEntry> ref codeblockentries, list<CodeBlockEntry> ref tail, Expression ref expression
+{
+	FindLastAssignmentAndSetExpression(tail, tail.next, expression)
+}
+
+FindLastAssignmentAndSetExpression : list<CodeBlockEntry> ref codeblockentries, nothing, Expression ref expression
+{
+	SetAssignmentExpression(codeblockentries.value, expression)
+}
+
+SetAssignmentExpression : Assignment ref assignment, Expression ref expression
+{
+	FollowChainAndSetExpression(assignment, assignment.RHS, expression)
+}
+
+SetAssignmentExpression : AssignmentCompound ref assignment, Expression ref expression
+{
+	FollowChainAndSetExpression(assignment, assignment.RHS, expression)
+}
+
+
+FollowChainAndSetExpression : Assignment ref assignment, Assignment ref rhs, Expression ref expression
+{
+	FollowChainAndSetExpression(rhs, rhs.RHS, expression)
+}
+
+FollowChainAndSetExpression : Assignment ref assignment, AssignmentCompound ref rhs, Expression ref expression
+{
+	FollowChainAndSetExpression(rhs, rhs.RHS, expression)
+}
+
+FollowChainAndSetExpression : AssignmentCompound ref assignment, Assignment ref rhs, Expression ref expression
+{
+	FollowChainAndSetExpression(rhs, rhs.RHS, expression)
+}
+
+FollowChainAndSetExpression : AssignmentCompound ref assignment, AssignmentCompound ref rhs, Expression ref expression
+{
+	FollowChainAndSetExpression(rhs, rhs.RHS, expression)
+}
+
+FollowChainAndSetExpression : Assignment ref tomodify, Expression ref rhs, Expression ref newrhs
+{
+	ExpressionOrAssignment wrap = newrhs
+	tomodify.RHS = wrap
+}
+
+FollowChainAndSetExpression : AssignmentCompound ref tomodify, Expression ref rhs, Expression ref newrhs
+{
+	ExpressionOrAssignment wrap = newrhs
+	tomodify.RHS = wrap
+}
+
+
+
+SetFunctionCodeBlock : FunctionDefinition ref funcdef, OptionalCodeBlock ref optblock
+{
+	SetFunctionCodeBlockWorker(funcdef, optblock)
+}
+
+SetFunctionCodeBlock : nothing, OptionalCodeBlock ref optblock
+{
+	print("No function in flight")
+	assert(false)
+}
+
+SetFunctionCodeBlockWorker : FunctionDefinition ref funcdef, CodeBlock ref block
+{
+	funcdef.Code = block
+}
+
+SetFunctionCodeBlockWorker : FunctionDefinition ref funcdef, nothing
+
+
+
+
+CodeBlockDepth : list<OptionalCodeBlock> ref stack -> integer count = 0 [nogc]
+{
+	count = CodeBlockDepth(stack.next) + 1
+}
+
+CodeBlockDepth : nothing -> 0 [nogc]
+
+
+

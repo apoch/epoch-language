@@ -1,0 +1,313 @@
+
+
+TypeMatcherExists : list<TypeMatcher> ref matchers, integer matchername -> boolean ret = false [nogc]
+{
+	if(matchers.value.Name == matchername)
+	{
+		ret = true
+	}
+	else
+	{
+		ret = TypeMatcherExists(matchers.next, matchername)
+	}
+}
+
+TypeMatcherExists : nothing, integer matchername -> boolean ret = false [nogc]
+
+
+GetExistingTypeMatcher : list<TypeMatcher> ref matchers, integer matchername, ContextNode<TypeMatcher> ref out -> boolean ret = false [nogc]
+{
+	if(matchers.value.Name == matchername)
+	{
+		ContextNode<TypeMatcher> outwrap = matchers.value
+		out = outwrap
+		ret = true
+	}
+	else
+	{
+		ret = GetExistingTypeMatcher(matchers.next, matchername, out)
+	}
+}
+
+GetExistingTypeMatcher : nothing, integer matchername, ContextNode<TypeMatcher> ref out -> boolean ret = false [nogc]
+
+
+
+FindTMOverloadAndAppendParameter : list<FunctionSignature> ref originallist, list<FunctionSignature> ref signatures, integer overloadname, Parameter ref p
+{
+	if(signatures.value.Name == overloadname)
+	{
+		AppendParameter(signatures.value.Parameters, p)
+	}
+	else
+	{
+		FindTMOverloadAndAppendParameter(originallist, signatures.next, overloadname, p)
+	}
+}
+
+FindTMOverloadAndAppendParameter : list<FunctionSignature> ref originallist, nothing, integer overloadname, Parameter ref p
+{
+	list<Parameter> paramlist = p, nothing
+	FunctionSignature sig = overloadname, paramlist, 0, true
+	prepend<FunctionSignature>(originallist, sig)
+}
+
+
+GeneratePendingTypeMatchers : list<PendingTypeMatcher> ref pendingmatchers
+{
+	GeneratePendingTypeMatcher(pendingmatchers.value)
+	GeneratePendingTypeMatchers(pendingmatchers.next)
+}
+
+GeneratePendingTypeMatchers : nothing
+
+GeneratePendingTypeMatcher : PendingTypeMatcher ref matcher
+{
+	if(matcher.OverloadName == 0)
+	{
+		return()
+	}
+
+	ContextNode<TypeMatcher> matchwrap = nothing
+	if(!GetExistingTypeMatcher(TypeMatchers, matcher.MatcherName, matchwrap))
+	{
+		OnCodeGenEnterTypeMatcher(matcher.MatcherName)
+		OnCodeGenExitContext()
+		matchwrap = TypeMatchers.value
+	}
+
+	ContextNode<FunctionDefinition> wrap = nothing
+	SearchBinaryTreeForPayload<FunctionDefinition>(GlobalRootNamespace.Functions.RootNode, matcher.OverloadName, wrap)
+
+	WalkParametersForTypeMatcherContext(wrap, matchwrap)
+}
+
+WalkParametersForTypeMatcherContext : FunctionDefinition ref func, TypeMatcher ref matcher
+{
+	WalkParametersForTypeMatcher(func.Params, matcher, func.Name)
+}
+
+
+WalkParametersForTypeMatcher : FunctionParams ref params, TypeMatcher ref matcher, integer overloadname
+{
+	WalkParametersForTypeMatcherUnwrapped(params.Params, matcher, overloadname)
+}
+
+
+WalkParametersForTypeMatcherUnwrapped : list<UnresolvedParameter> ref params, TypeMatcher ref matcher, integer overloadname
+{
+	if(params.value.NameHandle != 0)
+	{
+		Parameter p = params.value.NameHandle, params.value.ResolvedType
+		FindTMOverloadAndAppendParameter(matcher.Overloads, matcher.Overloads, overloadname, p)
+	}
+
+	WalkParametersForTypeMatcherUnwrapped(params.next, matcher, overloadname)
+}
+
+WalkParametersForTypeMatcherUnwrapped : nothing, TypeMatcher ref matcher, integer overloadname
+
+
+
+
+ContextHasTypeMatcher : PendingTypeMatcher ref matcher -> true [nogc]
+ContextHasTypeMatcher : nothing -> false [nogc]
+
+
+AnnotateTypeMatchedParamsForWrapper : FunctionDefinition ref func, OptionalExpressionList ref exprs
+{
+	AnnotateTypeMatchedParamsForWrapperUnwrap(func, exprs)
+}
+
+AnnotateTypeMatchedParamsForWrapperUnwrap : FunctionDefinition ref func, ExpressionList ref exprs
+{
+	AnnotateTypeMatchedParams(func.Params, exprs.Expressions)
+}
+
+AnnotateTypeMatchedParamsForWrapperUnwrap : FunctionDefinition ref func, nothing
+
+
+PopulateAllOverloadTypeMatchers : list<Overload> ref overloads, integer rawname, integer paramcount
+{
+	if(paramcount == GetFunctionWrapperParameterCount(overloads.value.Implementation, overloads.value.MangledName))
+	{
+		if(!IsFunctionTemplateFast(overloads.value.MangledName))
+		{
+			FindOrCreateTypeMatcher(overloads.value.NormalName, overloads.value.MangledName, overloads.value.Implementation)
+		}
+	}
+
+	PopulateAllOverloadTypeMatchers(overloads.next, rawname, paramcount)
+}
+
+PopulateAllOverloadTypeMatchers : nothing, integer rawname, integer paramcount
+
+
+
+GenerateTypeMatcherMappings : list<FunctionDefinition> ref functions
+{
+	if(functions.value.Name != 0)
+	{
+		if(!functions.value.IsTemplate)
+		{
+			integer rawname = functions.value.RawName
+			integer paramcount = CountUnresolvedParameters(functions.value.Params)
+
+			if(AnyPendingTypeMatcherPointsToAnyOverload(functions.value.Overloads, rawname, paramcount))
+			{
+				PopulateAllOverloadTypeMatchers(functions.value.Overloads, rawname, paramcount)
+			}
+		}
+	}
+
+	GenerateTypeMatcherMappings(functions.next)
+}
+
+GenerateTypeMatcherMappings : nothing
+
+
+
+AnyPendingTypeMatcherPointsToAnyOverload : list<Overload> ref overloads, integer rawname, integer paramcount -> boolean ret = false
+{
+	if(GetFunctionWrapperParameterCount(overloads.value.Implementation, overloads.value.MangledName) == paramcount)
+	{
+		if(SearchBinaryTree<PendingTypeMatcher>(TypeMatchersWhichExist, overloads.value.MangledName))
+		{
+			ret = true
+			return()
+		}
+	}
+
+	ret = AnyPendingTypeMatcherPointsToAnyOverload(overloads.next, rawname, paramcount)
+}
+
+AnyPendingTypeMatcherPointsToAnyOverload : nothing, integer rawname, integer paramcount -> boolean ret = false
+
+
+CheckForNeededTypeMatcher : simplelist<integer> ref types -> boolean needsmatcher = false
+{
+	if((types.value & 0x7f000000) == 0x07000000)
+	{
+		needsmatcher = true
+	}
+	else
+	{
+		needsmatcher = CheckForNeededTypeMatcher(types.next)
+	}
+}
+
+CheckForNeededTypeMatcher : nothing -> false
+
+
+FindOrCreateTypeMatcher : integer rawname, integer overloadnamehandle, FunctionDefinition ref func -> integer matcherhandle = 0
+{
+	if(!func.IsTemplate)
+	{
+		string matchername = func.RawNameString ; "@@typematcher"
+		matcherhandle = PoolString(matchername)
+
+		EnsureMatcherIsPending(overloadnamehandle, matcherhandle, func)
+	}
+}
+
+EnsureMatcherIsPending : integer overloadname, integer matcher, FunctionDefinition ref func [nogc]
+{
+	boolean found = SearchBinaryTree<PendingTypeMatcher>(TypeMatchersWhichExist, overloadname)
+	if(found)
+	{
+		return()
+	}
+
+	PendingTypeMatcher m = overloadname, matcher, func
+	prepend<PendingTypeMatcher>(PendingTypeMatchers, m)
+	InsertIntoBinaryTree<PendingTypeMatcher>(TypeMatchersWhichExist, overloadname, m)
+	InsertIntoBinaryTree<PendingTypeMatcher>(TypeMatchersWhichExistByMatcherName, matcher, m)
+}
+
+GetPendingTypeMatcherReturnType : integer matchername, ContextNode<PendingTypeMatcher> ref outcontext -> integer rettype = 0
+{
+	boolean found = SearchBinaryTreeForPayload<PendingTypeMatcher>(TypeMatchersWhichExistByMatcherName, matchername, outcontext)
+	if(found)
+	{
+		// TODO - ensure all overloads return the same type or this might get ugly!
+		rettype = InferFunctionReturnType(outcontext)
+		return()
+	}
+
+	rettype = GetPendingPatternMatcherReturnType(PendingPatternMatchers, matchername)
+}
+
+
+FindConstructorAndAnnotateTypeMatchedParams : list<StructureDefinition> ref structures, integer funcname, nothing
+
+
+FindConstructorAndAnnotateTypeMatchedParams : list<StructureDefinition> ref structures, integer funcname, ExpressionList ref paramexprs
+{
+	FindConstructorAndAnnotateTypeMatchedParams(Structures, funcname, paramexprs.Expressions)
+}
+
+FindConstructorAndAnnotateTypeMatchedParams : list<StructureDefinition> ref structures, integer funcname, list<Expression> ref paramexprs
+{
+	if(structures.value.ConstructorName == funcname)
+	{
+		listnode<Expression> ne = paramexprs.next
+		AnnotateTypeMatchedParamsFromConstructor(structures.value.Members, ne)
+	}
+	elseif(structures.value.AnonConstructorName == funcname)
+	{
+		AnnotateTypeMatchedParamsFromConstructor(structures.value.Members, paramexprs)
+	}
+	else
+	{
+		FindConstructorAndAnnotateTypeMatchedParams(structures.next, funcname, paramexprs)
+	}
+}
+
+FindConstructorAndAnnotateTypeMatchedParams : nothing, integer funcname, list<Expression> ref paramexprs
+{
+	if(SumTypeExists(funcname))
+	{
+		AnnotateNonReferenceParameters(paramexprs.next)
+	}
+}
+
+
+AnnotateTypeMatchedParamsFromConstructor : list<StructureMember> ref members, list<Expression> ref paramexprs
+{
+	integer membertype = GetMemberTypeDecompose(members.value)
+	if((membertype & 0x7f000000) == 0x07000000)
+	{
+		if(MakeNonReferenceType(paramexprs.value.Type) != MakeNonReferenceType(membertype))
+		{
+			AddTypeAnnotation(paramexprs.value)
+		}
+	}
+
+	listnode<StructureMember> nm = members.next
+	listnode<Expression> ne = paramexprs.next
+	AnnotateTypeMatchedParamsFromConstructor(nm, ne)
+}
+
+AnnotateTypeMatchedParamsFromConstructor : nothing, nothing
+
+
+AnnotateTypeMatchedParams : FunctionParams ref params, list<Expression> ref paramexprs
+{
+	AnnotateTypeMatchedParams(params.Params, paramexprs)
+}
+
+AnnotateTypeMatchedParams : list<UnresolvedParameter> ref params, list<Expression> ref paramexprs
+{
+	if((params.value.ResolvedType & 0x7f000000) == 0x07000000)
+	{
+		AddTypeAnnotation(paramexprs.value)
+	}
+
+	listnode<UnresolvedParameter> np = params.next
+	listnode<Expression> ne = paramexprs.next
+	AnnotateTypeMatchedParams(np, ne)
+}
+
+AnnotateTypeMatchedParams : nothing, nothing
+
+

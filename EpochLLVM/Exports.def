@@ -1,0 +1,9 @@
+LIBRARY "EpochLLVM"
+EXPORTS
+	EpochLLVMInitialize
+
+	EpochLLVMContextCreate
+	EpochLLVMContextDestroy
+
+	EpochLLVMEmitBinaryObject
+

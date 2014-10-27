@@ -1,0 +1,131 @@
+
+GetPendingPatternMatcherReturnType : list<PendingPatternMatcher> ref pending, integer matchername -> integer rettype = 0
+{
+	if(pending.value.MatcherName == matchername)
+	{
+		// TODO - ensure all overloads return the same type or this might get ugly!
+		rettype = GetFunctionReturnType(Functions, pending.value.OverloadName)
+		return()
+	}
+
+	rettype = GetPendingPatternMatcherReturnType(pending.next, matchername)
+}
+
+GetPendingPatternMatcherReturnType : nothing, integer matchername -> integer typeid = GetBuiltInReturnType(matchername)
+
+
+CheckForNeededPatternMatcher : list<PendingPatternMatcher> ref patternmatchers, integer rawname -> integer matchername = 0 [nogc]
+{
+	if(patternmatchers.value.RawName == rawname)
+	{
+		matchername = patternmatchers.value.MatcherName
+	}
+	else
+	{
+		matchername = CheckForNeededPatternMatcher(patternmatchers.next, rawname)
+	}
+}
+
+CheckForNeededPatternMatcher : nothing, integer rawname -> 0 [nogc]
+
+
+EnsurePatternMatcherExists : list<PendingPatternMatcher> ref patternmatchers, integer rawname, integer mangledname
+{
+	if(patternmatchers.value.OverloadName == mangledname)
+	{
+		return()
+	}
+
+	EnsurePatternMatcherExists(patternmatchers.next, rawname, mangledname)
+}
+
+EnsurePatternMatcherExists : nothing, integer rawname, integer mangledname
+{
+	PendingPatternMatcher pm = rawname, mangledname, PoolStringFast(GetPooledString(rawname) ; "@@patternmatch")
+	prepend<PendingPatternMatcher>(PendingPatternMatchers, pm)
+}
+
+
+
+CodeGenEmitPatternMatchers : BytecodeStream ref stream, list<PendingPatternMatcher> ref matchers
+{
+	if(!listcontains(EmittedPatternMatchers, matchers.value.MatcherName))
+	{
+		ByteStreamEmitByte(stream.Buffer, stream.Offset, 0x11)			// DefineLexicalScope instruction
+		ByteStreamEmitInteger(stream.Buffer, stream.Offset, matchers.value.MatcherName)
+		ByteStreamEmitInteger(stream.Buffer, stream.Offset, 0)
+		ByteStreamEmitInteger(stream.Buffer, stream.Offset, 0)
+
+		BytecodeEnterPatternResolver(stream, matchers.value.MatcherName)
+		EmitOverloadsForPatternMatcher(stream, PendingPatternMatchers, matchers.value.MatcherName, true)
+		EmitOverloadsForPatternMatcher(stream, PendingPatternMatchers, matchers.value.MatcherName, false)
+		BytecodeExitPatternResolver(stream)
+
+		simpleprepend<integer>(EmittedPatternMatchers, matchers.value.MatcherName)
+	}
+
+	CodeGenEmitPatternMatchers(stream, matchers.next)
+}
+
+CodeGenEmitPatternMatchers : BytecodeStream ref stream, nothing
+
+
+EmitOverloadsForPatternMatcher : BytecodeStream ref stream, list<PendingPatternMatcher> ref matchers, integer matchername, boolean preferliterals
+{
+	if(matchername == matchers.value.MatcherName)
+	{
+		// TODO - filter down to matchers that fit the most general function pattern
+
+		EmitPatternMatchOverload(stream, Functions, matchers.value.OverloadName, preferliterals)
+	}
+
+	EmitOverloadsForPatternMatcher(stream, matchers.next, matchername, preferliterals)
+}
+
+EmitOverloadsForPatternMatcher : BytecodeStream ref stream, nothing, integer matchername, boolean preferliterals
+
+
+
+EmitPatternMatchOverload : BytecodeStream ref stream, list<FunctionDefinition> ref functions, integer overloadname, boolean preferliterals
+{
+	if(functions.value.Name == overloadname)
+	{
+		boolean hasliterals = FunctionSignatureHasLiterals(functions.value.Params)
+		if(hasliterals && preferliterals)
+		{
+			EmitPatternMatchingForFunction(stream, functions.value)
+		}
+		elseif((!hasliterals) && (!preferliterals))
+		{
+			EmitPatternMatchingForFunction(stream, functions.value)
+		}
+	}
+	else
+	{
+		EmitPatternMatchOverload(stream, functions.next, overloadname, preferliterals)
+	}
+}
+
+
+
+PatternMatcherExists : nothing, integer matchername -> false
+
+PatternMatcherExists : list<PendingPatternMatcher> ref matchers, integer matchername -> boolean exists = false
+{
+	if(matchers.value.MatcherName == matchername)
+	{
+		exists = true
+	}
+	else
+	{
+		exists = PatternMatcherExists(matchers.next, matchername)
+	}
+}
+
+
+IRSetupPatternMatching : integer rawname, integer mangledname
+{
+	EnsurePatternMatcherExists(PendingPatternMatchers, rawname, mangledname)
+	EnsurePatternMatcherExists(PendingPatternMatchers, rawname, rawname)			// kind of a dumb hack
+}
+

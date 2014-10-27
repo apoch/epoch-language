@@ -1,0 +1,1588 @@
+
+structure ResourceDirectoryHeader :
+	integer Characteristics,
+	integer TimeDateStamp,
+	integer MajorVersion,				// TODO - compiler bug? JIT bug? If these are integer16 the Children node is misinterpreted during type matching
+	integer MinorVersion,
+	listnode<ResourceDirectoryEntry> Children
+	
+structure ResourceDirectoryEntry :
+	integer Name,
+	integer OffsetToData,
+	listnode<ResourceDirectoryHeader> HeaderChildren,
+	listnode<ResourceDirectoryLeaf> LeafChildren
+	
+structure ResourceDirectoryLeaf :
+	integer OffsetToData,
+	integer Size,
+	integer CodePage,
+	integer Reserved
+
+	
+structure ManifestReference :
+	string Filename,
+	integer ID
+	
+	
+
+type MenuEntry : MenuPopup | MenuItem | MenuSeparator | MenuSentinel
+
+structure MenuPopup :
+	string Title,
+	list<MenuEntry> Children
+	
+structure MenuItem :
+	integer ID,
+	string Text
+	
+structure MenuSeparator :
+	integer Empty
+	
+structure MenuSentinel :
+	integer Empty
+
+	
+structure MenuResource :
+	integer ID,
+	list<MenuEntry> Entries
+	
+
+structure AcceleratorResource :
+	integer ID,
+	list<AcceleratorEntry> Entries
+	
+structure AcceleratorEntry :
+	integer Flags,
+	integer KeyCode,
+	integer ID
+
+	
+structure ResourceHandler :
+	ResourceDirectoryHeader ref DirectoryRoot,
+	integer DirectorySize,
+	integer DataSize,
+	list<IconReference> ref Icons,
+	list<ManifestReference> ref Manifests,
+	integer IconCounter,
+	list<MenuResource> ref Menus,
+	list<AcceleratorResource> ref Accelerators
+	
+	
+structure IconReference :
+	string FileName,
+	integer GroupID,
+	integer ID,
+	integer BeginOffset,
+	integer Size,
+	IconDirectoryEntry ref Details
+	
+
+structure IconDirectoryEntry :
+	integer PackedWHCR,
+	integer16 Planes,
+	integer16 BitCount,
+	integer BytesInResource,
+	integer ImageOffset
+	
+structure IconDirectoryHeader :
+	integer16 Reserved,
+	integer16 Type,
+	integer16 Count
+	
+	
+ResourceAdd : ResourceHandler ref res, integer typeid, integer resid, integer langid, integer size
+{
+	ResourceAddResID(res, typeid, resid)
+	
+	if(ResourceLangExists(res.DirectoryRoot.Children, typeid, resid, langid))
+	{
+		return()
+	}
+	
+	ResourceWalkToAddResLang(res.DirectoryRoot.Children, typeid, resid, langid, size)
+}
+
+
+ResourceLangExists : list<ResourceDirectoryEntry> ref typeentries, integer typeid, integer resid, integer langid -> boolean found = false
+{
+	if(typeentries.value.Name == typeid)
+	{
+		found = ResourceLangExistsUnderTypeHeader(typeentries.value.HeaderChildren, resid, langid)
+	}
+	else
+	{
+		found = ResourceLangExists(typeentries.next, typeid, resid, langid)
+	}
+}
+
+
+ResourceLangExistsUnderTypeHeader : list<ResourceDirectoryHeader> ref residheaders, integer resid, integer langid -> boolean found = false
+{
+	if(ResourceLangExistsUnderType(residheaders.value.Children, resid, langid))
+	{
+		found = true
+	}
+	else
+	{
+		found = ResourceLangExistsUnderTypeHeader(residheaders.next, resid, langid)
+	}
+}
+
+ResourceLangExistsUnderTypeHeader : nothing, integer resid, integer langid -> false
+
+
+ResourceLangExistsUnderType : list<ResourceDirectoryEntry> ref residentries, integer resid, integer langid -> boolean found = false
+{
+	if(residentries.value.Name == resid)
+	{
+		found = ResourceLangExistsUnderLangHeader(residentries.value.HeaderChildren, langid)
+	}
+	else
+	{
+		found = ResourceLangExistsUnderType(residentries.next, resid, langid)
+	}
+}
+
+ResourceLangExistsUnderType : nothing, integer resid, integer langid -> false
+
+
+ResourceLangExistsUnderLangHeader : list<ResourceDirectoryHeader> ref langheaders, integer langid -> boolean found = false
+{
+	if(ResourceLangExistsUnderLang(langheaders.value.Children, langid))
+	{
+		found = true
+	}
+	else
+	{
+		found = ResourceLangExistsUnderLangHeader(langheaders.next, langid)
+	}
+}
+
+ResourceLangExistsUnderLangHeader : nothing, integer langid -> false
+
+
+ResourceLangExistsUnderLang : list<ResourceDirectoryEntry> ref langs, integer langid -> boolean found = false
+{
+	if(langs.value.Name == langid)
+	{
+		found = true
+	}
+	else
+	{
+		found = ResourceLangExistsUnderLang(langs.next, langid)
+	}
+}
+
+ResourceLangExistsUnderLang : nothing, integer langid -> false
+
+
+ResourceLangExists : nothing, integer typeid, integer resid, integer langid -> false
+
+
+ResourceWalkToAddResLang : list<ResourceDirectoryEntry> ref entries, integer typeid, integer resid, integer langid, integer size
+{
+	if(entries.value.Name == typeid)
+	{
+		ResourceAddLangToType(entries.value.HeaderChildren, resid, langid, size)
+	}
+	else
+	{
+		ResourceWalkToAddResLang(entries.next, typeid, resid, langid, size)
+	}
+}
+
+ResourceAddLangToType : list<ResourceDirectoryHeader> ref headers, integer resid, integer langid, integer size
+{
+	if(ResourceWalkHeadersToAddLang(headers.value.Children, resid, langid, size))
+	{
+		return()
+	}
+	
+	ResourceAddLangToType(headers.next, resid, langid, size)
+}
+
+ResourceWalkHeadersToAddLang : list<ResourceDirectoryEntry> ref entries, integer resid, integer langid, integer size -> boolean added = false
+{
+	if(entries.value.Name == resid)
+	{
+		ResourceDirectoryLeaf newleaf = 0, size, 0, 0
+		list<ResourceDirectoryLeaf> leaflist = newleaf, nothing
+		listnode<ResourceDirectoryLeaf> leafnode = leaflist
+	
+		ResourceDirectoryEntry newentry = langid, 0, nothing, leafnode
+		list<ResourceDirectoryEntry> newentries = newentry, nothing
+		listnode<ResourceDirectoryEntry> newentrynode = newentries
+	
+		ResourceDirectoryHeader newchild = 0, 0, 0, 0, newentrynode
+		list<ResourceDirectoryHeader> newchildren = newchild, entries.value.HeaderChildren
+		listnode<ResourceDirectoryHeader> newchildrennode = newchildren
+		entries.value.HeaderChildren = newchildrennode
+		
+		added = true
+	}
+	else
+	{
+		added = ResourceWalkHeadersToAddLang(entries.next, resid, langid, size)
+	}
+}
+
+ResourceWalkHeadersToAddLang : nothing, integer resid, integer langid, integer size -> false
+
+	
+	
+ResourceAddResID : ResourceHandler ref res, integer typeid, integer resid
+{
+	ResourceAddTypeGroup(res, typeid)
+	
+	if(ResourceIDExists(res.DirectoryRoot.Children, typeid, resid))
+	{
+		return()
+	}
+	
+	ResourceWalkToAddResID(res.DirectoryRoot.Children, typeid, resid)
+}
+
+ResourceWalkToAddResID : list<ResourceDirectoryEntry> ref entries, integer typeid, integer resid
+{
+	if(entries.value.Name == typeid)
+	{
+		ResourceAddIDToType(entries.value.HeaderChildren, resid)
+	}
+	else
+	{
+		ResourceWalkToAddResID(entries.next, typeid, resid)
+	}
+}
+
+
+ResourceAddIDToType : list<ResourceDirectoryHeader> ref headers, integer resid
+{
+	ResourceDirectoryEntry newchild = resid, 0, nothing, nothing	
+	list<ResourceDirectoryEntry> newchildren = newchild, nothing
+
+	AppendResourceDirectoryEntry(headers.value.Children, headers.value.Children, newchildren)
+}
+
+AppendResourceDirectoryEntry : listnode<ResourceDirectoryEntry> ref originalnode, list<ResourceDirectoryEntry> ref thelist, list<ResourceDirectoryEntry> ref newtail
+{
+	AppendResourceDirectoryEntryRecurse(thelist, thelist.next, newtail)
+}
+
+AppendResourceDirectoryEntry : listnode<ResourceDirectoryEntry> ref originalnode, nothing, list<ResourceDirectoryEntry> ref newlist
+{
+	listnode<ResourceDirectoryEntry> newlistnode = newlist
+	originalnode = newlistnode
+}
+
+AppendResourceDirectoryEntryRecurse : list<ResourceDirectoryEntry> ref thelist, list<ResourceDirectoryEntry> ref tail, list<ResourceDirectoryEntry> ref newtail
+{
+	AppendResourceDirectoryEntryRecurse(tail, tail.next, newtail)
+}
+
+AppendResourceDirectoryEntryRecurse : list<ResourceDirectoryEntry> ref thelist, nothing, list<ResourceDirectoryEntry> ref newtail
+{
+	listnode<ResourceDirectoryEntry> newtailnode = newtail
+	thelist.next = newtailnode
+}
+
+
+
+ResourceIDExists : list<ResourceDirectoryEntry> ref entries, integer typeid, integer resid -> boolean found = false
+{
+	if(entries.value.Name == typeid)
+	{
+		found = ResourceHasChildOfName(entries.value.HeaderChildren, resid)
+	}
+	else
+	{
+		found = ResourceIDExists(entries.next, typeid, resid)
+	}
+}
+
+ResourceIDExists : nothing, integer typeid, integer resid -> false
+
+
+ResourceHasChildOfName : list<ResourceDirectoryHeader> ref headers, integer resid -> boolean found = false
+{
+	if(ResourceHasChildOfType(headers.value.Children, resid))
+	{
+		found = true
+	}
+	else
+	{
+		found = ResourceHasChildOfName(headers.next, resid)
+	}
+}
+
+ResourceHasChildOfName : nothing, integer resid -> false
+
+	
+ResourceAddTypeGroup : ResourceHandler ref res, integer typeid
+{
+	if(ResourceHasChildOfType(res.DirectoryRoot.Children, typeid))
+	{
+		return()
+	}
+	
+	ResourceDirectoryHeader newheader = 0, 0, 0, 0, nothing
+	list<ResourceDirectoryHeader> newheaderlist = newheader, nothing
+	listnode<ResourceDirectoryHeader> newheaderlistnode = newheaderlist
+	ResourceDirectoryEntry newentry = typeid, 0, newheaderlistnode, nothing
+
+	if(ResourceNodeExists(res.DirectoryRoot.Children))
+	{
+		InsertSortedResourceNode(res.DirectoryRoot.Children, newentry)
+	}
+	else
+	{		
+		list<ResourceDirectoryEntry> newlist = newentry, res.DirectoryRoot.Children
+		res.DirectoryRoot.Children = newlist
+	}
+}
+
+InsertSortedResourceNode : list<ResourceDirectoryEntry> ref entries, ResourceDirectoryEntry ref newentry
+{
+	if(newentry.Name < entries.value.Name)
+	{
+		prepend<ResourceDirectoryEntry>(entries, newentry)
+	}
+	else
+	{
+		InsertSortedResourceNodeRecurse(entries, entries.next, newentry)
+	}
+}
+
+InsertSortedResourceNodeRecurse : list<ResourceDirectoryEntry> ref entries, list<ResourceDirectoryEntry> ref tail, ResourceDirectoryEntry ref newentry
+{
+	if(newentry.Name < tail.value.Name)
+	{
+		list<ResourceDirectoryEntry> newlist = newentry, tail
+		entries.next = newlist
+	}
+	else
+	{
+		InsertSortedResourceNodeRecurse(tail, tail.next, newentry)
+	}
+}
+
+InsertSortedResourceNodeRecurse : list<ResourceDirectoryEntry> ref entries, nothing, ResourceDirectoryEntry ref newentry
+{
+	assert(newentry.Name > entries.value.Name)
+	
+	list<ResourceDirectoryEntry> newlist = newentry, nothing
+	entries.next = newlist
+}
+
+
+ResourceNodeExists : list<ResourceDirectoryEntry> ref entries -> true
+ResourceNodeExists : nothing -> false
+
+ResourceHasChildOfType : list<ResourceDirectoryEntry> ref entries, integer typeid -> boolean found = false
+{
+	if(entries.value.Name == typeid)
+	{
+		found = true
+	}
+	else
+	{
+		found = ResourceHasChildOfType(entries.next, typeid)
+	}
+}
+
+ResourceHasChildOfType : nothing, integer typeid -> false
+
+
+ComputeResourceOffsets : ResourceHandler ref res
+{
+	res.DirectorySize = 0
+	res.DataSize = 0
+	
+	integer temp = 0
+	SetResourceDirectoryOffsets(temp, res.DirectoryRoot)
+	AccumulateResourceOffsets(res, res.DirectoryRoot)
+	SetResourceDataOffsets(res, res.DirectoryRoot)
+}
+
+
+GetResourceDirectorySizes : list<ResourceDirectoryEntry> ref entries -> integer size = 8 + GetResourceDirectorySizes(entries.next)
+GetResourceDirectorySizes : nothing -> 0
+
+
+SetResourceDirectoryOffsets : integer ref offset, ResourceDirectoryHeader ref header
+{
+	SetResourceOffsetSelf(offset, header)
+	offset += GetResourceDirectorySizes(header.Children)
+	
+	WalkResourceDirectoryEntriesToSetOffsets(offset, header.Children)
+}
+
+SetResourceOffsetSelf : integer ref offset, ResourceDirectoryHeader ref header
+{
+	offset += 16
+}
+
+SetResourceOffsetSelf : integer ref offset, ResourceDirectoryEntry ref entry
+{
+	entry.OffsetToData = offset
+}
+
+WalkResourceDirectoryEntriesToSetOffsets : integer ref offset, list<ResourceDirectoryEntry> ref entries
+{
+	SetResourceOffsetSelf(offset, entries.value)
+	WalkResourceDirectoryHeadersToSetOffsets(offset, entries.value.HeaderChildren)
+	WalkResourceDirectoryLeavesToSetOffsets(offset, entries.value.LeafChildren)
+	WalkResourceDirectoryEntriesToSetOffsets(offset, entries.next)
+}
+
+WalkResourceDirectoryEntriesToSetOffsets : integer ref offset, nothing
+
+WalkResourceDirectoryHeadersToSetOffsets : integer ref offset, list<ResourceDirectoryHeader> ref headers
+{
+	SetResourceOffsetSelf(offset, headers.value)
+	offset += GetResourceDirectorySizes(headers.value.Children)
+	
+	WalkResourceDirectoryEntriesToSetOffsets(offset, headers.value.Children)
+
+	WalkResourceDirectoryHeadersToSetOffsets(offset, headers.next)
+}
+
+WalkResourceDirectoryHeadersToSetOffsets : integer ref offset, nothing
+
+WalkResourceDirectoryLeavesToSetOffsets : integer ref offset, list<ResourceDirectoryLeaf> ref leaves
+{
+	offset += 16
+	WalkResourceDirectoryLeavesToSetOffsets(offset, leaves.next)
+}
+
+WalkResourceDirectoryLeavesToSetOffsets : integer ref offset, nothing
+
+
+AccumulateResourceOffsets : ResourceHandler ref res, ResourceDirectoryHeader ref header
+{
+	res.DirectorySize = res.DirectorySize + 16			// TODO - += here trips a compiler bug
+	AccumulateResourceOffsets(res, header.Children)
+}
+
+AccumulateResourceOffsets : ResourceHandler ref res, list<ResourceDirectoryHeader> ref headers
+{
+	res.DirectorySize = res.DirectorySize + 16
+	AccumulateResourceOffsets(res, headers.value.Children)
+	AccumulateResourceOffsets(res, headers.next)
+}
+
+AccumulateResourceOffsets : ResourceHandler ref res, list<ResourceDirectoryEntry> ref entries
+{
+	res.DirectorySize = res.DirectorySize + 8
+	AccumulateResourceOffsets(res, entries.value.HeaderChildren)
+	AccumulateResourceOffsets(res, entries.value.LeafChildren)
+	AccumulateResourceOffsets(res, entries.next)
+}
+
+AccumulateResourceOffsets : ResourceHandler ref res, list<ResourceDirectoryLeaf> ref leaves
+{
+	res.DirectorySize = res.DirectorySize + 16
+	AccumulateResourceOffsets(res, leaves.next)
+}
+
+AccumulateResourceOffsets : ResourceHandler ref res, nothing
+
+
+
+SetResourceDataOffsets : ResourceHandler ref res, ResourceDirectoryHeader ref header
+{
+	SetResourceDataOffsets(res, header.Children)
+}
+
+SetResourceDataOffsets : ResourceHandler ref res, list<ResourceDirectoryHeader> ref headers
+{
+	SetResourceDataOffsets(res, headers.value.Children)
+	SetResourceDataOffsets(res, headers.next)
+}
+
+SetResourceDataOffsets : ResourceHandler ref res, list<ResourceDirectoryEntry> ref entries
+{
+	SetResourceDataOffsets(res, entries.value.HeaderChildren)
+	SetResourceDataOffsets(res, entries.value.LeafChildren)
+	SetResourceDataOffsets(res, entries.next)
+}
+
+SetResourceDataOffsets : ResourceHandler ref res, list<ResourceDirectoryLeaf> ref leaves
+{
+	leaves.value.OffsetToData = res.DirectorySize + res.DataSize
+	res.DataSize = res.DataSize + leaves.value.Size
+
+	SetResourceDataOffsets(res, leaves.next)
+}
+
+SetResourceDataOffsets : ResourceHandler ref res, nothing
+
+
+	
+AddResourceIcon : string filename, integer groupid, integer language, ResourceHandler ref res
+{
+	Win32Handle INVALID_HANDLE_VALUE = 0xffffffff
+	integer FILE_SHARE_READ = 0x01
+	integer OPEN_EXISTING = 3
+	integer GENERIC_READ = 0x80000000
+
+	Win32Handle filehandle = CreateFile(filename, GENERIC_READ, 0, 0, OPEN_EXISTING, 0, 0)
+	if(filehandle != INVALID_HANDLE_VALUE)
+	{
+		integer PAGE_READONLY = 0x02
+		integer len = GetFileSize(filehandle, 0)
+
+		if(len > 0)
+		{
+			Win32Handle mappinghandle = CreateFileMapping(filehandle, 0, PAGE_READONLY, 0, 0, 0)
+			if(mappinghandle != 0)
+			{
+				integer FILE_MAP_READ = 0x04
+				integer ptr = MapViewOfFile(mappinghandle, FILE_MAP_READ, 0, 0, len)
+
+				if(ptr != 0)
+				{
+					IconDirectoryHeader hdr = 0, 0, 0
+					marshalstructure(hdr, ptr)
+					
+					// TODO - validate .ico
+					
+					ptr += 6
+					integer hdrcount = cast(integer, hdr.Count)
+					ResourceAdd(res, 0x0e, groupid, language, 6 + (hdrcount * 14))
+					
+					res.IconCounter = res.IconCounter + 1
+
+					integer imagecount = 0
+					while(imagecount < hdrcount)
+					{
+						IconDirectoryEntry entry = 0, 0, 0, 0, 0
+						marshalstructure(entry, ptr)
+						
+						ResourceAdd(res, 0x03, imagecount + res.IconCounter, language, entry.BytesInResource)
+						
+						IconReference iconref = filename, groupid, imagecount + res.IconCounter, entry.ImageOffset, entry.BytesInResource, entry
+						prepend<IconReference>(res.Icons, iconref)
+					
+						ptr += 16
+						++imagecount
+					}
+										
+					res.IconCounter = res.IconCounter + hdrcount
+				}
+				CloseHandle(mappinghandle)
+			}
+			else
+			{
+				print("Failed to map file!")
+			}
+		}
+		else
+		{
+			print("File is empty!")
+		}
+		CloseHandle(filehandle)
+	}
+	else
+	{
+		print("Couldn't open that icon file!")
+	}
+}
+
+
+WriteResourceDirectory : buffer ref rb, integer ref rs, ResourceDirectoryHeader ref header
+{
+	ByteStreamEmitInteger(rb, rs, 0)
+	ByteStreamEmitInteger(rb, rs, 0)
+	ByteStreamEmitInteger16(rb, rs, 0)
+	ByteStreamEmitInteger16(rb, rs, 0)
+	ByteStreamEmitInteger16(rb, rs, 0)
+	ByteStreamEmitInteger16(rb, rs, cast(integer16, ResourceCountEntries(header.Children)))
+	
+	WriteResourceDirectorySelf(rb, rs, header.Children)
+	WriteResourceDirectoryChildren(rb, rs, header.Children)
+}
+
+WriteResourceDirectorySelf : buffer ref rb, integer ref rs, list<ResourceDirectoryEntry> ref entries
+{
+	integer offset = entries.value.OffsetToData
+	if(ResourceCountLeaves(entries.value.LeafChildren) != 1)
+	{
+		offset += 0x80000000
+	}
+
+	ByteStreamEmitInteger(rb, rs, entries.value.Name)
+	ByteStreamEmitInteger(rb, rs, offset)
+	
+	WriteResourceDirectorySelf(rb, rs, entries.next)
+}
+
+WriteResourceDirectorySelf : buffer ref rb, integer ref rs, nothing
+
+WriteResourceDirectoryChildren : buffer ref rb, integer ref rs, list<ResourceDirectoryEntry> ref entries
+{
+	WriteResourceDirectory(rb, rs, entries.value.HeaderChildren)
+	WriteResourceDirectoryChildren(rb, rs, entries.value.LeafChildren)
+	
+	WriteResourceDirectoryChildren(rb, rs, entries.next)
+}
+
+WriteResourceDirectory : buffer ref rb, integer ref rs, list<ResourceDirectoryHeader> ref headers
+{
+	ByteStreamEmitInteger(rb, rs, 0)
+	ByteStreamEmitInteger(rb, rs, 0)
+	ByteStreamEmitInteger16(rb, rs, 0)
+	ByteStreamEmitInteger16(rb, rs, 0)
+	ByteStreamEmitInteger16(rb, rs, 0)
+	ByteStreamEmitInteger16(rb, rs, cast(integer16, ResourceCountEntries(headers.value.Children)))
+	
+	WriteResourceDirectory(rb, rs, headers.next)
+	
+	WriteResourceDirectorySelf(rb, rs, headers.value.Children)
+	WriteResourceDirectoryChildren(rb, rs, headers.value.Children)	
+}
+
+WriteResourceDirectory : buffer ref rb, integer ref rs, nothing
+
+
+WriteResourceDirectoryChildren : buffer ref rb, integer ref rs, list<ResourceDirectoryLeaf> ref leaves
+{
+	ByteStreamEmitInteger(rb, rs, leaves.value.OffsetToData + 0x4000)
+	ByteStreamEmitInteger(rb, rs, leaves.value.Size)
+	ByteStreamEmitInteger(rb, rs, leaves.value.CodePage)
+	ByteStreamEmitInteger(rb, rs, leaves.value.Reserved)
+	
+	WriteResourceDirectoryChildren(rb, rs, leaves.next)
+}
+
+WriteResourceDirectoryChildren : buffer ref rb, integer ref rs, nothing
+
+
+ResourceCountEntries : list<ResourceDirectoryEntry> ref entries -> integer count = 1 + ResourceCountEntries(entries.next)
+ResourceCountEntries : nothing -> 0
+
+ResourceCountLeaves : list<ResourceDirectoryLeaf> ref leaves -> integer count = 1 + ResourceCountLeaves(leaves.next)
+ResourceCountLeaves : nothing -> 0
+
+
+WriteResourceData : buffer ref rb, integer ref rs, ResourceHandler ref res
+{	
+	WriteEachResourceType(rb, rs, res, res.DirectoryRoot.Children)
+}
+
+WriteEachResourceType : buffer ref rb, integer ref rs, ResourceHandler ref res, list<ResourceDirectoryEntry> ref typeentries
+{
+	WriteEachResourceIDHeader(rb, rs, res, typeentries.value.HeaderChildren, typeentries.value.Name)
+	WriteEachResourceType(rb, rs, res, typeentries.next)
+}
+
+WriteEachResourceType : buffer ref rb, integer ref rs, ResourceHandler ref res, nothing
+
+
+WriteEachResourceIDHeader : buffer ref rb, integer ref rs, ResourceHandler ref res, list<ResourceDirectoryHeader> ref idheaders, integer restype
+{
+	WriteEachResourceID(rb, rs, res, idheaders.value.Children, restype)
+	WriteEachResourceIDHeader(rb, rs, res, idheaders.next, restype)
+}
+
+WriteEachResourceIDHeader : buffer ref rb, integer ref rs, ResourceHandler ref res, nothing, integer restype
+
+
+WriteEachResourceID : buffer ref rb, integer ref rs, ResourceHandler ref res, list<ResourceDirectoryEntry> ref identries, integer restype
+{
+	WriteEachResourceLangHeader(rb, rs, res, identries.value.HeaderChildren, restype, identries.value.Name)
+	WriteEachResourceID(rb, rs, res, identries.next, restype)
+}
+
+WriteEachResourceID : buffer ref rb, integer ref rs, ResourceHandler ref res, nothing, integer restype
+
+
+WriteEachResourceLangHeader : buffer ref rb, integer ref rs, ResourceHandler ref res, list<ResourceDirectoryHeader> ref langheaders, integer restype, integer resid
+{
+	WriteEachResourceLang(rb, rs, res, langheaders.value.Children, restype, resid)
+	WriteEachResourceLangHeader(rb, rs, res, langheaders.next, restype, resid)
+}
+
+WriteEachResourceLangHeader : buffer ref rb, integer ref rs, ResourceHandler ref res, nothing, integer restype, integer resid
+
+
+WriteEachResourceLang : buffer ref rb, integer ref rs, ResourceHandler ref res, list<ResourceDirectoryEntry> ref langs, integer restype, integer resid
+{
+	WriteEachResourceLeaf(rb, rs, res, langs.value.LeafChildren, restype, resid, langs.value.Name)
+	WriteEachResourceLang(rb, rs, res, langs.next, restype, resid)
+}
+
+WriteEachResourceLang : buffer ref rb, integer ref rs, ResourceHandler ref res, nothing, integer restype, integer resid
+
+
+WriteEachResourceLeaf : buffer ref rb, integer ref rs, ResourceHandler ref res, list<ResourceDirectoryLeaf> ref leaves, integer restype, integer resid, integer reslang
+{
+	if(restype == 0x03)
+	{
+		CopyIconFromReference(rb, rs, res.Icons, resid)
+	}
+	elseif(restype == 0x0e)
+	{
+		ByteStreamEmitInteger16(rb, rs, 0)
+		ByteStreamEmitInteger16(rb, rs, 1)
+		ByteStreamEmitInteger16(rb, rs, cast(integer16, CountIconsInGroup(res.Icons, resid)))
+	
+		EmitIconGroupData(rb, rs, res.Icons, resid)
+	}
+	elseif(restype == 24)
+	{
+		CopyManifestFromReference(rb, rs, res.Manifests, resid)
+	}
+	elseif(restype == 0x04)
+	{
+		EmitMenuResource(rb, rs, res.Menus, resid)
+	}
+	elseif(restype == 0x09)
+	{
+		EmitAcceleratorResource(rb, rs, res.Accelerators, resid)
+	}
+	
+	WriteEachResourceLeaf(rb, rs, res, leaves.next, restype, resid, reslang)
+}
+
+WriteEachResourceLeaf : buffer ref rb, integer ref rs, ResourceHandler ref res, nothing, integer restype, integer resid, integer reslang
+
+
+CountIconsInGroup : list<IconReference> ref icons, integer targetid -> integer count = 0
+{
+	if(icons.value.GroupID == targetid)
+	{
+		++count
+	}
+	
+	count += CountIconsInGroup(icons.next, targetid)
+}
+
+CountIconsInGroup : nothing, integer targetid -> 0
+
+
+EmitIconGroupData : buffer ref rb, integer ref rs, list<IconReference> ref reflist, integer targetid
+{
+	if(reflist.value.GroupID == targetid)
+	{
+		ByteStreamEmitInteger(rb, rs, reflist.value.Details.PackedWHCR)
+		ByteStreamEmitInteger16(rb, rs, reflist.value.Details.Planes)
+		ByteStreamEmitInteger16(rb, rs, reflist.value.Details.BitCount)
+		ByteStreamEmitInteger(rb, rs, reflist.value.Details.BytesInResource)
+		ByteStreamEmitInteger16(rb, rs, cast(integer16, reflist.value.ID))
+	}
+
+	EmitIconGroupData(rb, rs, reflist.next, targetid)
+}
+
+EmitIconGroupData : buffer ref rb, integer ref rs, nothing, integer targetid
+
+
+CopyIconFromReference : buffer ref rb, integer ref rs, list<IconReference> ref reflist, integer targetid
+{
+	if(reflist.value.ID == targetid)
+	{
+		CopyIconFromFile(rb, rs, reflist.value.FileName, reflist.value.BeginOffset, reflist.value.Size)
+	}
+	else
+	{
+		CopyIconFromReference(rb, rs, reflist.next, targetid)
+	}
+}
+
+CopyIconFromFile : buffer ref rb, integer ref rs, string filename, integer beginoffset, integer size
+{
+	Win32Handle INVALID_HANDLE_VALUE = 0xffffffff
+	integer FILE_SHARE_READ = 0x01
+	integer OPEN_EXISTING = 3
+	integer GENERIC_READ = 0x80000000
+
+	Win32Handle filehandle = CreateFile(filename, GENERIC_READ, 0, 0, OPEN_EXISTING, 0, 0)
+	if(filehandle != INVALID_HANDLE_VALUE)
+	{
+		integer PAGE_READONLY = 0x02
+		integer len = GetFileSize(filehandle, 0)
+
+		if(len > 0)
+		{
+			Win32Handle mappinghandle = CreateFileMapping(filehandle, 0, PAGE_READONLY, 0, 0, 0)
+			if(mappinghandle != 0)
+			{
+				integer FILE_MAP_READ = 0x04
+				integer ptr = MapViewOfFile(mappinghandle, FILE_MAP_READ, 0, 0, len)
+
+				if(ptr != 0)
+				{
+					writebuffer(rb, rs, ptr + beginoffset, size)
+					rs = rs + size
+				}
+				else
+				{
+					print("Failed to copy icon!")
+				}
+				
+				CloseHandle(mappinghandle)
+			}
+			else
+			{
+				print("Failed to map file!")
+			}
+		}
+		else
+		{
+			print("File is empty!")
+		}
+		CloseHandle(filehandle)
+	}
+	else
+	{
+		print("Couldn't open that icon file!")
+	}
+}
+
+
+
+WriteResources : Win32Handle filehandle, ResourceHandler ref res -> integer writtenbytes = 0
+{
+	buffer resourcebuffer = 1024 * 1024
+	integer resourcesize = 0
+	
+	WriteResourceDirectory(resourcebuffer, resourcesize, res.DirectoryRoot)
+	WriteResourceData(resourcebuffer, resourcesize, res)
+	
+	integer written = 0
+	WriteFile(filehandle, resourcebuffer, resourcesize, written, 0)
+
+	writtenbytes = resourcesize
+}
+
+
+LoadResourceScripts : simplelist<string> ref filenames, ResourceHandler ref res
+{
+	if(filenames.value != "")
+	{
+		LoadResourceScript(filenames.value, res)
+	}
+	
+	LoadResourceScripts(filenames.next, res)
+}
+
+LoadResourceScripts : nothing, ResourceHandler ref res
+
+
+LoadResourceScript : string filename, ResourceHandler ref res
+{
+	integer len = 0
+	string contents = ReadFile(filename, len)
+
+	if(len == 0)
+	{
+		return()
+	}
+
+	boolean haslines = true
+	while(haslines)
+	{
+		string resourceline = ExtractLine(contents)
+
+		if(resourceline == "[icon]")
+		{
+			LoadResourceIcon(contents, res)
+		}
+		elseif(resourceline == "[accelerators]")
+		{
+			LoadResourceAccelerators(contents, res)
+		}
+		elseif(resourceline == "[manifest]")
+		{
+			LoadResourceManifest(contents, res)
+		}
+		elseif(resourceline == "[menu]")
+		{
+			LoadResourceMenu(contents, res)
+		}
+		elseif(resourceline == "")
+		{
+			if(contents == "")
+			{
+				haslines = false
+			}
+		}
+		else
+		{
+			print("Malformed resource file! " ; filename)
+			return()
+		}
+	}
+}
+
+LoadResourceIcon : string ref scriptcontents, ResourceHandler ref res
+{
+	string idline = ExtractLine(scriptcontents)
+	string langline = ExtractLine(scriptcontents)
+	string sourceline = ExtractLine(scriptcontents)
+	
+	string idprefix = ""
+	string iddata = ""
+	SplitProjectDirective(idline, idprefix, iddata)
+	
+	string langprefix = ""
+	string langdata = ""
+	SplitProjectDirective(langline, langprefix, langdata)
+
+	string sourceprefix = ""
+	string sourcedata = ""
+	SplitProjectDirective(sourceline, sourceprefix, sourcedata)
+
+	if(idprefix != "id")
+	{
+		print("Malformed [icon] resource - expected ID!")
+		return()
+	}
+	
+	if(langprefix != "language")
+	{
+		print("Malformed [icon] resource - expected language!")
+		return()
+	}
+	
+	if(sourceprefix != "source")
+	{
+		print("Malformed [icon] resource - expected source!")
+		return()
+	}
+	
+	integer actualid = cast(integer, iddata)
+	integer actuallang = cast(integer, langdata)
+	
+	if(actualid == 0)
+	{
+		print("Invalid [icon] ID!")
+		return()
+	}
+	
+	if(actuallang == 0)
+	{
+		print("Invalid [icon] language!")
+		return()
+	}
+	
+	AddResourceIcon(StripQuotes(sourcedata), actualid, actuallang, res)
+}
+
+LoadResourceAccelerators : string ref scriptcontents, ResourceHandler ref res
+{
+	string idline = ExtractLine(scriptcontents)
+	string langline = ExtractLine(scriptcontents)
+	
+	string idprefix = ""
+	string iddata = ""
+	SplitProjectDirective(idline, idprefix, iddata)
+	
+	string langprefix = ""
+	string langdata = ""
+	SplitProjectDirective(langline, langprefix, langdata)
+
+	if(idprefix != "id")
+	{
+		print("Malformed [accelerators] resource - expected ID!")
+		return()
+	}
+	
+	if(langprefix != "language")
+	{
+		print("Malformed [accelerators] resource - expected language!")
+		return()
+	}
+	
+	integer actualid = cast(integer, iddata)
+	integer actuallang = cast(integer, langdata)
+	
+	if(actualid == 0)
+	{
+		print("Invalid [accelerators] ID!")
+		return()
+	}
+	
+	if(actuallang == 0)
+	{
+		print("Invalid [accelerators] language!")
+		return()
+	}
+
+	if(ExtractLine(scriptcontents) != "{")
+	{
+		print("Malformed [accelerators] resource - expected contents!")
+		return()
+	}
+
+	list<AcceleratorEntry> emptyaccellist = AcceleratorEntry(0, 0, 0), nothing
+	AcceleratorResource accelres = actualid, emptyaccellist
+	
+	integer numaccellines = 0
+	
+	boolean haslines = true
+	while(haslines)
+	{
+		string line = ExtractLine(scriptcontents)
+		if(line == "}")
+		{
+			haslines = false
+		}
+		else
+		{
+			line = TrimWhitespace(line)
+			++numaccellines
+			
+			string modifier = ""
+			string remainder = ""
+			SplitProjectDirective(line, modifier, remainder)
+			
+			string keycode = ""
+			string keyid = ""
+			SplitProjectDirective(remainder, keycode, keyid)
+			
+			integer actualkeyid = cast(integer, keyid)
+			
+			integer flags = 0x01
+			if(modifier == "VK")
+			{
+				// No flag adjustments
+			}
+			elseif(modifier == "CTRL")
+			{
+				flags += 0x08
+			}
+			elseif(modifier == "SHIFT")
+			{
+				flags += 0x04
+			}
+			else
+			{
+				print("Malformed [accelerators] resource - unrecognized key modifier " ; modifier)
+				return()
+			}
+			
+			integer actualkeycode = 0
+			if(keycode == "F1")
+			{
+				actualkeycode = 0x70
+			}
+			elseif(keycode == "F2")
+			{
+				actualkeycode = 0x71
+			}
+			elseif(keycode == "F3")
+			{
+				actualkeycode = 0x72
+			}
+			elseif(keycode == "F4")
+			{
+				actualkeycode = 0x73
+			}
+			elseif(keycode == "F5")
+			{
+				actualkeycode = 0x74
+			}
+			elseif(keycode == "F6")
+			{
+				actualkeycode = 0x75
+			}
+			elseif(keycode == "F7")
+			{
+				actualkeycode = 0x76
+			}
+			elseif(keycode == "F8")
+			{
+				actualkeycode = 0x77
+			}
+			elseif(keycode == "F9")
+			{
+				actualkeycode = 0x78
+			}
+			elseif(keycode == "F10")
+			{
+				actualkeycode = 0x79
+			}
+			elseif(keycode == "F11")
+			{
+				actualkeycode = 0x7a
+			}
+			elseif(keycode == "F12")
+			{
+				actualkeycode = 0x7b
+			}
+			elseif(keycode == "TAB")
+			{
+				actualkeycode = 0x09
+			}
+			elseif(length(keycode) == 1)
+			{
+				actualkeycode = subchar(keycode, 0)
+			}
+			else
+			{
+				print("Malformed [accelerators] resource - keycode not recognized: " ; keycode)
+				return()
+			}
+			
+			AcceleratorEntry accel = flags, actualkeycode, actualkeyid
+			prepend<AcceleratorEntry>(accelres.Entries, accel)
+		}
+	}
+	
+	ResourceAdd(res, 0x09, actualid, actuallang, 8 * numaccellines)
+	prepend<AcceleratorResource>(res.Accelerators, accelres)
+}
+
+LoadResourceManifest : string ref scriptcontents, ResourceHandler ref res
+{
+	string idline = ExtractLine(scriptcontents)
+	string langline = ExtractLine(scriptcontents)
+	string sourceline = ExtractLine(scriptcontents)
+	
+	string idprefix = ""
+	string iddata = ""
+	SplitProjectDirective(idline, idprefix, iddata)
+	
+	string langprefix = ""
+	string langdata = ""
+	SplitProjectDirective(langline, langprefix, langdata)
+
+	if(idprefix != "id")
+	{
+		print("Malformed [manifest] resource - expected ID!")
+		return()
+	}
+	
+	if(langprefix != "language")
+	{
+		print("Malformed [manifest] resource - expected language!")
+		return()
+	}
+	
+	integer actualid = cast(integer, iddata)
+	integer actuallang = cast(integer, langdata)
+	
+	if(actualid == 0)
+	{
+		print("Invalid [manifest] ID!")
+		return()
+	}
+	
+	if(actuallang == 0)
+	{
+		print("Invalid [manifest] language!")
+		return()
+	}
+	
+	
+	Win32Handle INVALID_HANDLE_VALUE = 0xffffffff
+	integer FILE_SHARE_READ = 0x01
+	integer OPEN_EXISTING = 3
+	integer GENERIC_READ = 0x80000000
+
+	integer filesize = 0
+	Win32Handle filehandle = CreateFile(sourceline, GENERIC_READ, 0, 0, OPEN_EXISTING, 0, 0)
+	if(filehandle != INVALID_HANDLE_VALUE)
+	{
+		filesize = GetFileSize(filehandle, 0)
+		CloseHandle(filehandle)
+	}
+	else
+	{
+		print("[manifest] not found: " ; sourceline)
+		return()
+	}
+
+	ResourceAdd(res, 24, actualid, actuallang, filesize)
+	
+	ManifestReference manifest = sourceline, actualid
+	prepend<ManifestReference>(res.Manifests, manifest)
+}
+
+LoadResourceMenu : string ref scriptcontents, ResourceHandler ref res
+{
+	string idline = ExtractLine(scriptcontents)
+	string langline = ExtractLine(scriptcontents)
+	
+	string idprefix = ""
+	string iddata = ""
+	SplitProjectDirective(idline, idprefix, iddata)
+	
+	string langprefix = ""
+	string langdata = ""
+	SplitProjectDirective(langline, langprefix, langdata)
+
+	if(idprefix != "id")
+	{
+		print("Malformed [menu] resource - expected ID!")
+		return()
+	}
+	
+	if(langprefix != "language")
+	{
+		print("Malformed [menu] resource - expected language!")
+		return()
+	}
+	
+	integer actualid = cast(integer, iddata)
+	integer actuallang = cast(integer, langdata)
+	
+	if(actualid == 0)
+	{
+		print("Invalid [menu] ID!")
+		return()
+	}
+	
+	if(actuallang == 0)
+	{
+		print("Invalid [menu] language!")
+		return()
+	}
+	
+	if(ExtractLine(scriptcontents) != "{")
+	{
+		print("Malformed [menu] resource - expected contents!")
+		return()
+	}
+	
+	MenuSentinel sentinel = 0
+	MenuEntry sentinelentry = sentinel
+	list<MenuEntry> emptyentrylist = sentinelentry, nothing
+
+	ParseMenu(scriptcontents, emptyentrylist)
+	MenuResource menu = actualid, emptyentrylist
+
+	prepend<MenuResource>(res.Menus, menu)
+	
+	ResourceAdd(res, 0x04, actualid, actuallang, ComputeMenuSize(menu))
+}
+
+
+ParseMenu : string ref scriptcontents, list<MenuEntry> ref entries
+{
+	boolean haslines = true
+	while(haslines)
+	{
+		string line = TrimWhitespace(ExtractLine(scriptcontents))
+		if(line == "}")
+		{
+			haslines = false
+		}
+		elseif(line == "separator")
+		{
+			MenuSeparator separator = 0
+			MenuEntry separatorentry = separator
+			AppendMenuEntry(entries, entries.next, separatorentry)
+		}
+		else
+		{
+			string token = ""
+			string remainder = ""
+			SplitProjectDirective(line, token, remainder)
+			
+			if(token == "popup")
+			{
+				string bracket = TrimWhitespace(ExtractLine(scriptcontents))
+				if(bracket != "{")
+				{
+					print("Malformed [menu] popup submenu - expected contents!")
+					print(bracket)
+					return()
+				}
+
+				MenuSentinel sentinel = 0
+				MenuEntry sentinelentry = sentinel
+				list<MenuEntry> emptyentrylist = sentinelentry, nothing
+
+				ParseMenu(scriptcontents, emptyentrylist)
+				
+				MenuPopup popup = StripQuotes(remainder), emptyentrylist
+				MenuEntry popupentry = popup
+				AppendMenuEntry(entries, entries.next, popupentry)
+			}
+			elseif(token == "item")
+			{
+				string itemidstr = ""
+				string itemtextstr = ""
+				SplitProjectDirective(remainder, itemidstr, itemtextstr)
+				itemtextstr = StripQuotes(itemtextstr)
+				
+				MenuItem newitem = cast(integer, itemidstr), itemtextstr
+				MenuEntry itementry = newitem
+				AppendMenuEntry(entries, entries.next, itementry)
+			}
+			else
+			{
+				print("Malformed [menu] resource - unexpected token " ; token)
+			}
+		}
+	}
+}
+
+AppendMenuEntry : list<MenuEntry> ref thelist, list<MenuEntry> ref tail, MenuEntry ref entry
+{
+	AppendMenuEntry(tail, tail.next, entry)
+}
+
+AppendMenuEntry : list<MenuEntry> ref thelist, nothing, MenuEntry ref entry
+{
+	list<MenuEntry> newlist = entry, nothing
+	listnode<MenuEntry> newnode = newlist
+	thelist.next = newnode
+}
+
+
+StripQuotes : string in -> string out = in
+{
+	integer len = length(out)
+	if(len > 1)
+	{
+		if(substring(out, len - 1, 1) == unescape("\'"))
+		{
+			out = substring(out, 0, len - 1)
+			--len
+		}
+	}
+	
+	if(len > 0)
+	{
+		if(substring(out, 0, 1) == unescape("\'"))
+		{
+			out = substring(out, 1)
+		}
+	}
+}
+
+
+CopyManifestFromReference : buffer ref rb, integer ref rs, list<ManifestReference> ref manifests, integer resid
+{
+	if(manifests.value.ID == resid)
+	{
+		Win32Handle INVALID_HANDLE_VALUE = 0xffffffff
+		integer FILE_SHARE_READ = 0x01
+		integer OPEN_EXISTING = 3
+		integer GENERIC_READ = 0x80000000
+
+		Win32Handle filehandle = CreateFile(manifests.value.Filename, GENERIC_READ, 0, 0, OPEN_EXISTING, 0, 0)
+		if(filehandle != INVALID_HANDLE_VALUE)
+		{
+			integer PAGE_READONLY = 0x02
+			integer len = GetFileSize(filehandle, 0)
+
+			if(len > 0)
+			{
+				Win32Handle mappinghandle = CreateFileMapping(filehandle, 0, PAGE_READONLY, 0, 0, 0)
+				if(mappinghandle != 0)
+				{
+					integer FILE_MAP_READ = 0x04
+					integer ptr = MapViewOfFile(mappinghandle, FILE_MAP_READ, 0, 0, len)
+
+					if(ptr != 0)
+					{
+						writebuffer(rb, rs, ptr, len)
+						rs = rs + len
+					}
+					else
+					{
+						print("Failed to copy manifest!")
+					}
+					
+					CloseHandle(mappinghandle)
+				}
+				else
+				{
+					print("Failed to map file!")
+				}
+			}
+			else
+			{
+				print("File is empty!")
+			}
+			CloseHandle(filehandle)
+		}
+		else
+		{
+			print("Couldn't open that manifest file!")
+		}
+	}
+	else
+	{
+		CopyManifestFromReference(rb, rs, manifests.next, resid)
+	}
+}
+
+
+TrimWhitespace : string in -> string out = in
+{
+	integer startpos = 0
+	integer endpos = length(out) - 1
+	
+	boolean leadingwhite = true
+	while(leadingwhite)
+	{
+		if(substring(out, startpos, 1) == " ")
+		{
+			++startpos
+		}
+		elseif(substring(out, startpos, 1) == unescape("\t"))
+		{
+			++startpos
+		}
+		else
+		{
+			leadingwhite = false
+		}
+	}
+	
+	boolean trailingwhite = true
+	while(trailingwhite)
+	{
+		if(substring(out, endpos, 1) == " ")
+		{
+			--endpos
+		}
+		elseif(substring(out, endpos, 1) == unescape("\t"))
+		{
+			--endpos
+		}
+		else
+		{
+			trailingwhite = false
+		}
+	}
+	
+	out = substring(out, startpos, endpos - startpos + 1)
+}
+
+
+ComputeMenuSize : MenuResource ref menu -> integer size = 0
+{
+	size = 4			// version (reserved) and header size (reserved), 16 bits each
+	size += ComputeMenuSize(menu.Entries)
+}
+
+ComputeMenuSize : list<MenuEntry> ref entries -> integer size = 0
+{
+	size = ComputeMenuSize(entries.value)
+	size += ComputeMenuSize(entries.next)
+}
+
+ComputeMenuSize : nothing -> 0
+ComputeMenuSize : MenuSentinel ref entry -> 0
+ComputeMenuSize : MenuSeparator ref entry -> 6
+ComputeMenuSize : MenuItem ref entry -> integer size = 4 + ((length(entry.Text) + 1) * 2)
+ComputeMenuSize : MenuPopup ref entry -> integer size = 2 + ((length(entry.Title) + 1) * 2) + ComputeMenuSize(entry.Children)
+
+
+EmitMenuResource : buffer ref rb, integer ref rs, list<MenuResource> ref menus, integer targetid
+{
+	if(menus.value.ID == targetid)
+	{
+		ByteStreamEmitInteger(rb, rs, 0)
+		EmitMenuChain(rb, rs, menus.value.Entries)
+	}
+	else
+	{
+		EmitMenuResource(rb, rs, menus.next, targetid)
+	}
+}
+
+EmitMenuChain : buffer ref rb, integer ref rs, list<MenuEntry> ref entries
+{
+	EmitMenuEntry(rb, rs, entries.value, HasMenuEntry(entries.next))
+	EmitMenuChain(rb, rs, entries.next)
+}
+
+EmitMenuChain : buffer ref rb, integer ref rs, nothing
+
+
+EmitMenuEntry : buffer ref rb, integer ref rs, MenuSentinel ref sentinel, boolean isnotlast
+
+EmitMenuEntry : buffer ref rb, integer ref rs, MenuSeparator ref separator, boolean isnotlast
+{
+	ByteStreamEmitInteger(rb, rs, 0)
+	ByteStreamEmitByte(rb, rs, 0)
+	ByteStreamEmitByte(rb, rs, 0)
+}
+
+EmitMenuEntry : buffer ref rb, integer ref rs, MenuItem ref item, boolean isnotlast
+{
+	if(isnotlast)
+	{
+		ByteStreamEmitInteger16(rb, rs, 0)
+	}
+	else
+	{
+		ByteStreamEmitInteger16(rb, rs, 0x80)
+	}
+	
+	ByteStreamEmitInteger16(rb, rs, cast(integer16, item.ID))
+	
+	writebuffer(rb, rs, item.Text, (length(item.Text) + 1) * 2)
+	rs += (length(item.Text) + 1) * 2
+}
+
+EmitMenuEntry : buffer ref rb, integer ref rs, MenuPopup ref popup, boolean isnotlast
+{
+	if(isnotlast)
+	{
+		ByteStreamEmitInteger16(rb, rs, 0x10)
+	}
+	else
+	{
+		ByteStreamEmitInteger16(rb, rs, 0x90)
+	}
+	
+	writebuffer(rb, rs, popup.Title, (length(popup.Title) + 1) * 2)
+	rs += (length(popup.Title) + 1) * 2
+
+	EmitMenuChain(rb, rs, popup.Children)
+}
+
+HasMenuEntry : nothing -> false
+HasMenuEntry : list<MenuEntry> ref thelist -> true
+
+EmitAcceleratorResource : buffer ref rb, integer ref rs, list<AcceleratorResource> ref accelerators, integer targetid
+{
+	if(accelerators.value.ID == targetid)
+	{
+		EmitAcceleratorTable(rb, rs, accelerators.value)
+	}
+	else
+	{
+		EmitAcceleratorResource(rb, rs, accelerators.next, targetid)
+	}
+}
+
+EmitAcceleratorTable : buffer ref rb, integer ref rs, AcceleratorResource ref accelerator
+{
+	EmitAcceleratorEntries(rb, rs, accelerator.Entries)
+}
+
+HasAccelList : list<AcceleratorEntry> ref entries -> boolean ret = (entries.value.Flags != 0)
+HasAccelList : nothing -> false
+
+EmitAcceleratorEntries : buffer ref rb, integer ref rs, list<AcceleratorEntry> ref entries
+{
+	if(entries.value.Flags != 0)
+	{
+		if(HasAccelList(entries.next))
+		{
+			ByteStreamEmitInteger16(rb, rs, cast(integer16, entries.value.Flags))
+		}
+		else
+		{
+			ByteStreamEmitInteger16(rb, rs, cast(integer16, entries.value.Flags + 0x80))
+		}
+		ByteStreamEmitInteger16(rb, rs, cast(integer16, entries.value.KeyCode))
+		ByteStreamEmitInteger16(rb, rs, cast(integer16, entries.value.ID))
+		ByteStreamEmitInteger16(rb, rs, 0)
+	}
+	
+	EmitAcceleratorEntries(rb, rs, entries.next)
+}
+
+EmitAcceleratorEntries : buffer ref rb, integer ref rs, nothing
+
+

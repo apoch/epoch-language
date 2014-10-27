@@ -1,0 +1,592 @@
+//
+// The Epoch Language Project
+// Epoch Development Tools - Compiler Core
+//
+// EXE.EPOCH
+// Executable binary generation routines
+//
+// This module is responsible for outputting executable
+// 32-bit Windows binaries in the PE format. The binary
+// itself is a stub that launches the Epoch runtime and
+// passes in a stream of bytecode embedded in the file.
+//
+// In general code in this file is pretty hacky and not
+// especially clear. It could use some major cleanup.
+//
+
+
+type LLVMContextHandle : integer
+
+
+EpochLLVMInitialize : 																								[external("EpochLLVM.dll", "EpochLLVMInitialize")]
+EpochLLVMContextCreate : -> LLVMContextHandle ret = 0 																[external("EpochLLVM.dll", "EpochLLVMContextCreate")]
+EpochLLVMContextDestroy : LLVMContextHandle handle																	[external("EpochLLVM.dll", "EpochLLVMInitialize")]
+EpochLLVMEmitBinaryObject : LLVMContextHandle handle, buffer ref outbuffer, integer maxsize -> integer written = 0 	[external("EpochLLVM.dll", "EpochLLVMEmitBinaryObject")]
+
+
+RoundUp : integer in -> integer out = ((in / 0x1000) + 1) * 0x1000			// TODO - this over-estimates if in is a perfect multiple of 0x1000
+RoundUpFile : integer in -> integer out = ((in / 0x200) + 1) * 0x200		// TODO - this over-estimates if in is a perfect multiple of 0x200
+
+
+MakeExe : EpochProject ref project
+{
+	IconDirectoryEntry dummydetails = 0, 0, 0, 0, 0
+	IconReference dummyicon = "", 0, 0, 0, 0, dummydetails
+	list<IconReference> dummyiconlist = dummyicon, nothing
+	
+	ManifestReference dummymanifest = "", 0
+	list<ManifestReference> dummymanifestlist = dummymanifest, nothing
+
+	list<MenuEntry> nomenuentries = MenuSentinel(0), nothing
+	MenuResource emptymenu = 0, nomenuentries
+	list<MenuResource> nomenus = emptymenu, nothing
+	
+	AcceleratorEntry nonaccel = 0, 0, 0
+	list<AcceleratorEntry> accellist = nonaccel, nothing
+	AcceleratorResource noaccel = 0, accellist
+	list<AcceleratorResource> noaccels = noaccel, nothing
+
+	ResourceDirectoryHeader resroot = 0, 0, 0, 0, nothing
+	ResourceHandler res = resroot, 0, 0, dummyiconlist, dummymanifestlist, 0, nomenus, noaccels
+	
+	LoadResourceScripts(project.ResourceFiles, res)
+	ComputeResourceOffsets(res)
+	
+	
+	BinaryTreeRoot<integer> stringoffsets = nothing
+
+	integer virtualoffsetthunk   = 0x1000
+	integer offsetthunk          = 0x400
+	integer sizethunk            = 0x400
+	
+	integer virtualoffsetrsrc    = RoundUp(virtualoffsetthunk + sizethunk)
+	integer offsetrsrc           = RoundUpFile(offsetthunk + sizethunk)
+	integer sizersrc             = res.DirectorySize + res.DataSize + 1
+	
+	integer virtualoffsetstrings = RoundUp(virtualoffsetrsrc + sizersrc)
+	integer offsetstrings        = RoundUpFile(offsetrsrc + sizersrc)
+	integer sizestrings          = PreprocessStringPool(GlobalStringPool, stringoffsets)
+	
+	buffer codebinarybuffer = 0x100
+	EpochLLVMInitialize()
+	LLVMContextHandle llvm = EpochLLVMContextCreate()
+	integer sizecode = EpochLLVMEmitBinaryObject(llvm, codebinarybuffer, 0x100)
+	EpochLLVMContextDestroy(llvm)
+	
+	integer virtualoffsetcode    = RoundUp(virtualoffsetstrings + sizestrings)
+	integer offsetcode           = RoundUpFile(offsetstrings + sizestrings)
+
+	integer sizeimage            = RoundUp(virtualoffsetcode + sizecode)
+
+
+	integer GENERIC_WRITE = 0x40000000
+	integer CREATE_ALWAYS = 2
+
+	Win32Handle filehandle = CreateFile(project.OutputFileName, GENERIC_WRITE, 0, 0, CREATE_ALWAYS, 0, 0)
+	if(filehandle == -1)
+	{
+		print("Cannot open " ; project.OutputFileName ; " to emit .EXE!")
+		return()
+	}
+
+	integer16 subsystem = 2		// GUI
+	if(project.UsesConsole)
+	{
+		subsystem = 3			// console
+	}
+
+	integer position = 0
+	position += WritePEHeader(filehandle, sizeimage, sizersrc, subsystem, sizecode)
+
+	position += WriteSectionHeader(filehandle, ".idata", offsetthunk, virtualoffsetthunk, sizethunk, sizethunk, 0xc0000040)
+	position += WriteSectionHeader(filehandle, ".rsrc", offsetrsrc, virtualoffsetrsrc, sizersrc, sizersrc, 0x40000040)
+	position += WriteSectionHeader(filehandle, ".data", offsetstrings, virtualoffsetstrings, sizestrings, sizestrings, 0x40000040)
+	position += WriteSectionHeader(filehandle, ".text", offsetcode, virtualoffsetcode, sizecode, sizecode, 0x60000020)
+
+	print("Writing thunk table...")
+	position += WritePadding(filehandle, position, offsetthunk)
+	position += WriteThunkTable(filehandle, virtualoffsetthunk)
+	position += WritePadding(filehandle, position, offsetthunk + 0x200)			// TODO - generalized expandable thunk table!
+	position += WriteThunkAddresses(filehandle)
+
+	print("Writing resources...")
+	position += WritePadding(filehandle, position, offsetrsrc)
+	position += WriteResources(filehandle, res)
+
+	print("Writing static data...")
+	position += WritePadding(filehandle, position, offsetstrings)
+	position += WriteStringTable(filehandle, sizestrings, stringoffsets)
+
+
+	print("Writing code...")
+	
+	position += WritePadding(filehandle, position, offsetcode)
+
+	integer written = 0
+	WriteFile(filehandle, codebinarybuffer, sizecode, written, 0)
+
+	CloseHandle(filehandle)
+
+	print("Compilation complete.")
+}
+
+WriteStringTable : Win32Handle filehandle, integer finalsize, BinaryTreeRoot<integer> ref offsets -> integer writtenbytes = 0
+{
+	buffer tablebuffer = finalsize + 1
+
+	StringPoolOutputState state = offsets, tablebuffer
+	BinaryTreeWalkAllNodesWithParam<string, StringPoolOutputState>(GlobalStringPool.LookupMap.RootNode, CopySingleStringToBuffer, state)
+
+	integer written = 0
+	WriteFile(filehandle, state.OutputBuffer, finalsize, written, 0)
+
+	writtenbytes = finalsize
+}
+
+
+WriteThunkAddresses : Win32Handle filehandle -> integer writtenbytes = 0
+{
+	buffer thunkbuffer = 1024
+	integer thunksize = 0
+
+
+	// TODO - less hardcoded gibberish
+	
+	ByteStreamEmitInteger(thunkbuffer, thunksize, 0x1000 + 25)
+	ByteStreamEmitInteger(thunkbuffer, thunksize, 0)
+	ByteStreamEmitInteger(thunkbuffer, thunksize, 0)
+	ByteStreamEmitInteger(thunkbuffer, thunksize, 0x1000 + 7)
+	ByteStreamEmitInteger(thunkbuffer, thunksize, 0x1000 + 25 + 8)	
+	
+	// End gibberish
+	
+	integer written = 0
+	WriteFile(filehandle, thunkbuffer, thunksize, written, 0)
+
+	writtenbytes = thunksize
+}
+
+WriteThunkTable : Win32Handle filehandle, integer virtualoffsetthunk -> integer writtenbytes = 0
+{
+	integer written = 0
+
+	integer zerooffset = 0
+
+	buffer dummy16 = 2
+	buffer dummy32 = 4
+
+	zerooffset = 0
+	ByteStreamEmitInteger16(dummy16, zerooffset, 0x0000)
+
+
+	buffer funcname = narrowstring("Test")
+	buffer libname = narrowstring("BinaryTestDLL.dll")
+	
+	
+	// Per function
+	integer funcnameoffset = writtenbytes
+	written = 0
+	WriteFile(filehandle, dummy16, 2, written, 0)
+	writtenbytes += written
+	
+	written = 0
+	WriteFile(filehandle, funcname, length("Test") + 1, written, 0)
+	writtenbytes += written
+	
+	
+	// After all functions for library, do this once:
+	written = 0
+	WriteFile(filehandle, libname, length("BinaryTestDLL.dll") + 1, written, 0)
+	writtenbytes += written	
+	
+	
+	// For each function in total list of functions:
+	zerooffset = 0
+	ByteStreamEmitInteger(dummy32, zerooffset, virtualoffsetthunk + funcnameoffset)
+	written = 0
+	WriteFile(filehandle, dummy32, 4, written, 0)
+	writtenbytes += written
+
+	// After all functions...
+	zerooffset = 0
+	ByteStreamEmitInteger(dummy32, zerooffset, 0x00000000)
+	written = 0
+	WriteFile(filehandle, dummy32, 4, written, 0)
+	writtenbytes += written
+
+
+	// Then do it again for the redundant copy of the table
+	zerooffset = 0
+	ByteStreamEmitInteger(dummy32, zerooffset, virtualoffsetthunk + funcnameoffset)
+	written = 0
+	WriteFile(filehandle, dummy32, 4, written, 0)
+	writtenbytes += written
+
+	zerooffset = 0
+	ByteStreamEmitInteger(dummy32, zerooffset, 0x00000000)
+	written = 0
+	WriteFile(filehandle, dummy32, 4, written, 0)
+	writtenbytes += written
+}
+
+
+WritePadding : Win32Handle filehandle, integer startpos, integer desiredpos -> integer writtenbytes = 0
+{
+	writtenbytes = desiredpos - startpos
+	buffer empty = writtenbytes
+	integer written = 0
+	WriteFile(filehandle, empty, writtenbytes, written, 0)
+}
+
+
+WriteSectionHeader : Win32Handle filehandle, string sectionname, integer location, integer virtuallocation, integer sectionsize, integer sectionvirtualsize, integer flags -> integer writtenbytes = 0
+{
+	print("Writing header for section '" ; sectionname ; "'...")
+
+	buffer headerbuffer = 256
+	integer headersize = 0
+
+	// This is a pitiful hack.
+
+	integer count = 0
+	assert(length(sectionname) < 8)
+
+	while(count < length(sectionname))
+	{
+		string char = charat(sectionname, count)
+		ByteStreamEmitSubstring(headerbuffer, headersize, char, 1)
+
+		++count
+	}
+
+	while(count < 8)
+	{
+		ByteStreamEmitByte(headerbuffer, headersize, 0)
+		++count
+	}
+
+	// End hack.
+
+	ByteStreamEmitInteger(headerbuffer, headersize, sectionsize)
+	ByteStreamEmitInteger(headerbuffer, headersize, virtuallocation)
+	ByteStreamEmitInteger(headerbuffer, headersize, sectionvirtualsize)
+	ByteStreamEmitInteger(headerbuffer, headersize, location)
+	ByteStreamEmitInteger(headerbuffer, headersize, 0)
+	ByteStreamEmitInteger(headerbuffer, headersize, 0)
+	ByteStreamEmitInteger16(headerbuffer, headersize, 0)
+	ByteStreamEmitInteger16(headerbuffer, headersize, 0)
+	ByteStreamEmitInteger(headerbuffer, headersize, flags)
+
+	integer written = 0
+	WriteFile(filehandle, headerbuffer, headersize, written, 0)
+
+	writtenbytes = headersize
+}
+
+
+WritePEHeader : Win32Handle filehandle, integer imagesize, integer resourcesize, integer16 subsystem, integer sizecode -> integer writtenbytes = 0
+{
+	print("Writing PE headers...")
+
+	buffer headerbuffer = 1024
+	integer headersize = 0
+
+	// Begin DOS header
+	ByteStreamEmitInteger16(headerbuffer, headersize, 0x5a4d)	// e_magic
+	ByteStreamEmitInteger16(headerbuffer, headersize, 0x90)		// e_cblp
+	ByteStreamEmitInteger16(headerbuffer, headersize, 0x03)		// e_cp
+	ByteStreamEmitInteger16(headerbuffer, headersize, 0)		// e_crlc
+	ByteStreamEmitInteger16(headerbuffer, headersize, 0x04)		// e_cparhdr
+	ByteStreamEmitInteger16(headerbuffer, headersize, 0)		// e_minalloc
+	ByteStreamEmitInteger16(headerbuffer, headersize, 0xffff)	// e_maxalloc
+	ByteStreamEmitInteger16(headerbuffer, headersize, 0)		// e_ss
+	ByteStreamEmitInteger16(headerbuffer, headersize, 0xb8)		// e_sp
+	ByteStreamEmitInteger16(headerbuffer, headersize, 0)		// e_csum
+	ByteStreamEmitInteger16(headerbuffer, headersize, 0)		// e_ip
+	ByteStreamEmitInteger16(headerbuffer, headersize, 0)		// e_cs
+	ByteStreamEmitInteger16(headerbuffer, headersize, 0x40)		// e_lfarlc
+	ByteStreamEmitInteger16(headerbuffer, headersize, 0)		// e_ovno
+
+	ByteStreamEmitInteger16(headerbuffer, headersize, 0)		// e_res[0]
+	ByteStreamEmitInteger16(headerbuffer, headersize, 0)		// e_res[1]
+	ByteStreamEmitInteger16(headerbuffer, headersize, 0)		// e_res[2]
+	ByteStreamEmitInteger16(headerbuffer, headersize, 0)		// e_res[3]
+
+	ByteStreamEmitInteger16(headerbuffer, headersize, 0)		// e_oemid
+	ByteStreamEmitInteger16(headerbuffer, headersize, 0)		// e_oeminfo
+
+	ByteStreamEmitInteger16(headerbuffer, headersize, 0)		// e_res2[0]
+	ByteStreamEmitInteger16(headerbuffer, headersize, 0)		// e_res2[1]
+	ByteStreamEmitInteger16(headerbuffer, headersize, 0)		// e_res2[2]
+	ByteStreamEmitInteger16(headerbuffer, headersize, 0)		// e_res2[3]
+	ByteStreamEmitInteger16(headerbuffer, headersize, 0)		// e_res2[4]
+	ByteStreamEmitInteger16(headerbuffer, headersize, 0)		// e_res2[5]
+	ByteStreamEmitInteger16(headerbuffer, headersize, 0)		// e_res2[6]
+	ByteStreamEmitInteger16(headerbuffer, headersize, 0)		// e_res2[7]
+	ByteStreamEmitInteger16(headerbuffer, headersize, 0)		// e_res2[8]
+	ByteStreamEmitInteger16(headerbuffer, headersize, 0)		// e_res2[9]
+
+	ByteStreamEmitInteger(headerbuffer, headersize, 0xb0)		// e_lfanew
+
+
+	// Begin DOS stub
+	ByteStreamEmitByte(headerbuffer, headersize, 0x0e)
+	ByteStreamEmitByte(headerbuffer, headersize, 0x1f)
+	ByteStreamEmitByte(headerbuffer, headersize, 0xba)
+	ByteStreamEmitByte(headerbuffer, headersize, 0x0e)
+	ByteStreamEmitByte(headerbuffer, headersize, 0x00)
+	ByteStreamEmitByte(headerbuffer, headersize, 0xb4)
+	ByteStreamEmitByte(headerbuffer, headersize, 0x09)
+	ByteStreamEmitByte(headerbuffer, headersize, 0xcd)
+	ByteStreamEmitByte(headerbuffer, headersize, 0x21)
+	ByteStreamEmitByte(headerbuffer, headersize, 0xb8)
+	ByteStreamEmitByte(headerbuffer, headersize, 0x01)
+	ByteStreamEmitByte(headerbuffer, headersize, 0x4c)
+	ByteStreamEmitByte(headerbuffer, headersize, 0xcd)
+	ByteStreamEmitByte(headerbuffer, headersize, 0x21)
+
+	ByteStreamEmitByte(headerbuffer, headersize, 0x54)
+	ByteStreamEmitByte(headerbuffer, headersize, 0x68)
+	ByteStreamEmitByte(headerbuffer, headersize, 0x69)
+	ByteStreamEmitByte(headerbuffer, headersize, 0x73)
+	ByteStreamEmitByte(headerbuffer, headersize, 0x20)
+	ByteStreamEmitByte(headerbuffer, headersize, 0x70)
+	ByteStreamEmitByte(headerbuffer, headersize, 0x72)
+	ByteStreamEmitByte(headerbuffer, headersize, 0x6f)
+	ByteStreamEmitByte(headerbuffer, headersize, 0x67)
+	ByteStreamEmitByte(headerbuffer, headersize, 0x72)
+	ByteStreamEmitByte(headerbuffer, headersize, 0x61)
+	ByteStreamEmitByte(headerbuffer, headersize, 0x6d)
+	ByteStreamEmitByte(headerbuffer, headersize, 0x20)
+	ByteStreamEmitByte(headerbuffer, headersize, 0x69)
+
+	ByteStreamEmitByte(headerbuffer, headersize, 0x73)
+	ByteStreamEmitByte(headerbuffer, headersize, 0x20)
+	ByteStreamEmitByte(headerbuffer, headersize, 0x66)
+	ByteStreamEmitByte(headerbuffer, headersize, 0x72)
+	ByteStreamEmitByte(headerbuffer, headersize, 0x6f)
+	ByteStreamEmitByte(headerbuffer, headersize, 0x6d)
+	ByteStreamEmitByte(headerbuffer, headersize, 0x20)
+	ByteStreamEmitByte(headerbuffer, headersize, 0x74)
+	ByteStreamEmitByte(headerbuffer, headersize, 0x68)
+	ByteStreamEmitByte(headerbuffer, headersize, 0x65)
+	ByteStreamEmitByte(headerbuffer, headersize, 0x20)
+	ByteStreamEmitByte(headerbuffer, headersize, 0x66)
+	ByteStreamEmitByte(headerbuffer, headersize, 0x75)
+	ByteStreamEmitByte(headerbuffer, headersize, 0x74)
+
+	ByteStreamEmitByte(headerbuffer, headersize, 0x75)
+	ByteStreamEmitByte(headerbuffer, headersize, 0x72)
+	ByteStreamEmitByte(headerbuffer, headersize, 0x65)
+	ByteStreamEmitByte(headerbuffer, headersize, 0x2e)
+	ByteStreamEmitByte(headerbuffer, headersize, 0x0d)
+	ByteStreamEmitByte(headerbuffer, headersize, 0x0a)
+	ByteStreamEmitByte(headerbuffer, headersize, 0x49)
+	ByteStreamEmitByte(headerbuffer, headersize, 0x74)
+	ByteStreamEmitByte(headerbuffer, headersize, 0x20)
+	ByteStreamEmitByte(headerbuffer, headersize, 0x77)
+	ByteStreamEmitByte(headerbuffer, headersize, 0x69)
+	ByteStreamEmitByte(headerbuffer, headersize, 0x6c)
+	ByteStreamEmitByte(headerbuffer, headersize, 0x6c)
+	ByteStreamEmitByte(headerbuffer, headersize, 0x20)
+
+	ByteStreamEmitByte(headerbuffer, headersize, 0x6e)
+	ByteStreamEmitByte(headerbuffer, headersize, 0x6f)
+	ByteStreamEmitByte(headerbuffer, headersize, 0x74)
+	ByteStreamEmitByte(headerbuffer, headersize, 0x20)
+	ByteStreamEmitByte(headerbuffer, headersize, 0x72)
+	ByteStreamEmitByte(headerbuffer, headersize, 0x75)
+	ByteStreamEmitByte(headerbuffer, headersize, 0x6e)
+	ByteStreamEmitByte(headerbuffer, headersize, 0x20)
+	ByteStreamEmitByte(headerbuffer, headersize, 0x6f)
+	ByteStreamEmitByte(headerbuffer, headersize, 0x6e)
+	ByteStreamEmitByte(headerbuffer, headersize, 0x20)
+	ByteStreamEmitByte(headerbuffer, headersize, 0x79)
+	ByteStreamEmitByte(headerbuffer, headersize, 0x6f)
+	ByteStreamEmitByte(headerbuffer, headersize, 0x75)
+
+	ByteStreamEmitByte(headerbuffer, headersize, 0x72)
+	ByteStreamEmitByte(headerbuffer, headersize, 0x20)
+	ByteStreamEmitByte(headerbuffer, headersize, 0x70)
+	ByteStreamEmitByte(headerbuffer, headersize, 0x72)
+	ByteStreamEmitByte(headerbuffer, headersize, 0x69)
+	ByteStreamEmitByte(headerbuffer, headersize, 0x6d)
+	ByteStreamEmitByte(headerbuffer, headersize, 0x69)
+	ByteStreamEmitByte(headerbuffer, headersize, 0x74)
+	ByteStreamEmitByte(headerbuffer, headersize, 0x69)
+	ByteStreamEmitByte(headerbuffer, headersize, 0x76)
+	ByteStreamEmitByte(headerbuffer, headersize, 0x65)
+	ByteStreamEmitByte(headerbuffer, headersize, 0x20)
+	ByteStreamEmitByte(headerbuffer, headersize, 0x63)
+	ByteStreamEmitByte(headerbuffer, headersize, 0x6f)
+
+	ByteStreamEmitByte(headerbuffer, headersize, 0x6d)
+	ByteStreamEmitByte(headerbuffer, headersize, 0x70)
+	ByteStreamEmitByte(headerbuffer, headersize, 0x75)
+	ByteStreamEmitByte(headerbuffer, headersize, 0x74)
+	ByteStreamEmitByte(headerbuffer, headersize, 0x69)
+	ByteStreamEmitByte(headerbuffer, headersize, 0x6e)
+	ByteStreamEmitByte(headerbuffer, headersize, 0x67)
+	ByteStreamEmitByte(headerbuffer, headersize, 0x20)
+	ByteStreamEmitByte(headerbuffer, headersize, 0x64)
+	ByteStreamEmitByte(headerbuffer, headersize, 0x65)
+	ByteStreamEmitByte(headerbuffer, headersize, 0x76)
+	ByteStreamEmitByte(headerbuffer, headersize, 0x69)
+	ByteStreamEmitByte(headerbuffer, headersize, 0x63)
+	ByteStreamEmitByte(headerbuffer, headersize, 0x65)
+
+	ByteStreamEmitByte(headerbuffer, headersize, 0x2e)
+	ByteStreamEmitByte(headerbuffer, headersize, 0x0d)
+	ByteStreamEmitByte(headerbuffer, headersize, 0x0a)
+	ByteStreamEmitByte(headerbuffer, headersize, 0x24)
+
+	ByteStreamEmitPadding(headerbuffer, headersize, 0xb0)
+
+
+	// Begin NT headers
+	ByteStreamEmitInteger(headerbuffer, headersize, 0x00004550)
+	ByteStreamEmitInteger16(headerbuffer, headersize, 0x014c)						// Machine
+	ByteStreamEmitInteger16(headerbuffer, headersize, 4)							// NumberOfSections
+	ByteStreamEmitInteger(headerbuffer, headersize, 0x00000000)						// TimeDateStamp
+	ByteStreamEmitInteger(headerbuffer, headersize, 0)								// PointerToSymbolTable
+	ByteStreamEmitInteger(headerbuffer, headersize, 0)								// NumberOfSymbols
+	ByteStreamEmitInteger16(headerbuffer, headersize, 0xe0)							// SizeOfOptionalHeader
+	ByteStreamEmitInteger16(headerbuffer, headersize, 0x0103)						// Characteristics
+
+	ByteStreamEmitInteger16(headerbuffer, headersize, 0x010b)						// Magic
+	ByteStreamEmitByte(headerbuffer, headersize, 0x02)								// MajorLinkerVersion
+	ByteStreamEmitByte(headerbuffer, headersize, 0x00)								// MinorLinkerVersion
+
+	ByteStreamEmitInteger(headerbuffer, headersize, RoundUp(sizecode))				// SizeOfCode
+	ByteStreamEmitInteger(headerbuffer, headersize, 0x1000)							// SizeOfInitializedData		// TODO - real data section size
+	ByteStreamEmitInteger(headerbuffer, headersize, 0)								// SizeOfUninitializedData
+	ByteStreamEmitInteger(headerbuffer, headersize, 0x4000)							// AddressOfEntryPoint			// TODO - unhardcode this stuff
+	ByteStreamEmitInteger(headerbuffer, headersize, 0x1000)							// BaseOfCode
+	ByteStreamEmitInteger(headerbuffer, headersize, 0xc00)							// BaseOfData
+
+	ByteStreamEmitInteger(headerbuffer, headersize, 0x400000)						// ImageBase
+	ByteStreamEmitInteger(headerbuffer, headersize, 0x1000)							// SectionAlignment
+	ByteStreamEmitInteger(headerbuffer, headersize, 0x200)							// FileAlignment
+
+	ByteStreamEmitInteger16(headerbuffer, headersize, 0x04)							// MajorOperatingSystemVersion
+	ByteStreamEmitInteger16(headerbuffer, headersize, 0x00)							// MinorOperatingSystemVersion
+	ByteStreamEmitInteger16(headerbuffer, headersize, 0)							// MajorImageVersion
+	ByteStreamEmitInteger16(headerbuffer, headersize, 0)							// MinorImageVersion
+	ByteStreamEmitInteger16(headerbuffer, headersize, 0x04)							// MajorSubsystemVersion
+	ByteStreamEmitInteger16(headerbuffer, headersize, 0x00)							// MinorSubsystemVersion
+
+	ByteStreamEmitInteger(headerbuffer, headersize, 0)								// Win32VersionValue
+	ByteStreamEmitInteger(headerbuffer, headersize, imagesize)						// SizeOfImage
+	ByteStreamEmitInteger(headerbuffer, headersize, 0x400)							// SizeOfHeaders
+	ByteStreamEmitInteger(headerbuffer, headersize, 0xf00d)							// Checksum
+
+	ByteStreamEmitInteger16(headerbuffer, headersize, subsystem)					// Subsystem
+	ByteStreamEmitInteger16(headerbuffer, headersize, 0)							// DllCharacteristics
+
+	ByteStreamEmitInteger(headerbuffer, headersize, 0x800000)						// SizeOfStackReserve
+	ByteStreamEmitInteger(headerbuffer, headersize, 0x80000)						// SizeOfStackCommit
+	ByteStreamEmitInteger(headerbuffer, headersize, 0x500000)						// SizeOfHeapReserve
+	ByteStreamEmitInteger(headerbuffer, headersize, 0x50000)						// SizeOfHeapCommit
+	ByteStreamEmitInteger(headerbuffer, headersize, 0)								// LoaderFlags
+	ByteStreamEmitInteger(headerbuffer, headersize, 0x10)							// NumberOfRvaAndSizes
+
+	ByteStreamEmitInteger(headerbuffer, headersize, 0)					// RVA virtual address 1
+	ByteStreamEmitInteger(headerbuffer, headersize, 0)					// Size
+
+	ByteStreamEmitInteger(headerbuffer, headersize, 0x1200)				// RVA virtual address 2		// TODO - unhardcode
+	ByteStreamEmitInteger(headerbuffer, headersize, 0x28)				// Size
+
+	ByteStreamEmitInteger(headerbuffer, headersize, 0x2000)				// RVA virtual address 3		// TODO - unhardcode
+	ByteStreamEmitInteger(headerbuffer, headersize, resourcesize)		// Size
+
+	ByteStreamEmitInteger(headerbuffer, headersize, 0)					// RVA virtual address 4
+	ByteStreamEmitInteger(headerbuffer, headersize, 0)					// Size
+
+	ByteStreamEmitInteger(headerbuffer, headersize, 0)					// RVA virtual address 5
+	ByteStreamEmitInteger(headerbuffer, headersize, 0)					// Size
+
+	ByteStreamEmitInteger(headerbuffer, headersize, 0)					// RVA virtual address 6
+	ByteStreamEmitInteger(headerbuffer, headersize, 0)					// Size
+
+	ByteStreamEmitInteger(headerbuffer, headersize, 0)					// RVA virtual address 7
+	ByteStreamEmitInteger(headerbuffer, headersize, 0)					// Size
+
+	ByteStreamEmitInteger(headerbuffer, headersize, 0)					// RVA virtual address 8
+	ByteStreamEmitInteger(headerbuffer, headersize, 0)					// Size
+
+	ByteStreamEmitInteger(headerbuffer, headersize, 0)					// RVA virtual address 9
+	ByteStreamEmitInteger(headerbuffer, headersize, 0)					// Size
+
+	ByteStreamEmitInteger(headerbuffer, headersize, 0)					// RVA virtual address 10
+	ByteStreamEmitInteger(headerbuffer, headersize, 0)					// Size
+
+	ByteStreamEmitInteger(headerbuffer, headersize, 0)					// RVA virtual address 11
+	ByteStreamEmitInteger(headerbuffer, headersize, 0)					// Size
+
+	ByteStreamEmitInteger(headerbuffer, headersize, 0)					// RVA virtual address 12
+	ByteStreamEmitInteger(headerbuffer, headersize, 0)					// Size
+
+	ByteStreamEmitInteger(headerbuffer, headersize, 0)					// RVA virtual address 13
+	ByteStreamEmitInteger(headerbuffer, headersize, 0)					// Size
+
+	ByteStreamEmitInteger(headerbuffer, headersize, 0)					// RVA virtual address 14
+	ByteStreamEmitInteger(headerbuffer, headersize, 0)					// Size
+
+	ByteStreamEmitInteger(headerbuffer, headersize, 0)					// RVA virtual address 15
+	ByteStreamEmitInteger(headerbuffer, headersize, 0)					// Size
+
+	ByteStreamEmitInteger(headerbuffer, headersize, 0)					// RVA virtual address 16
+	ByteStreamEmitInteger(headerbuffer, headersize, 0)					// Size
+
+
+	integer written = 0
+	WriteFile(filehandle, headerbuffer, headersize, written, 0)
+
+	writtenbytes = headersize
+}
+
+
+structure StringPoolPreprocessState :
+	BinaryTreeRoot<integer> ref Offsets,
+	integer CurrentOffset
+	
+structure StringPoolOutputState :
+	BinaryTreeRoot<integer> ref Offsets,
+	buffer OutputBuffer
+
+PreprocessStringPool : StringPool ref pool, BinaryTreeRoot<integer> ref outoffsets -> integer totallength = 0
+{
+	StringPoolPreprocessState state = outoffsets, 0
+	BinaryTreeWalkAllNodesWithParam<string, StringPoolPreprocessState>(pool.LookupMap.RootNode, PreprocessSingleString, state)
+	
+	totallength = state.CurrentOffset
+}
+
+PreprocessSingleString : integer handle, string ref strpayload, StringPoolPreprocessState ref state -> boolean ret = true
+{
+	BinaryTreeCreateOrInsert<integer>(state.Offsets, handle, state.CurrentOffset)
+	state.CurrentOffset = state.CurrentOffset + length(strpayload) + 1
+}
+
+
+CopySingleStringToBuffer : integer handle, string ref strpayload, StringPoolOutputState ref state -> boolean ret = true
+{
+	integer offset = 0
+	boolean found = BinaryTreeCopyPayload<integer>(state.Offsets.RootNode, handle, offset)
+	assert(found)
+	
+	integer len = length(strpayload)
+	integer counter = offset
+	
+	while(counter < offset + len)
+	{
+		integer value = subchar(strpayload, counter - offset)
+		writebuffer(state.OutputBuffer, counter, (value) & 0xff)
+		
+		++counter
+	}
+	
+	writebuffer(state.OutputBuffer, counter, 0x00)
+}
+
+

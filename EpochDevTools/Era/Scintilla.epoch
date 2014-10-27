@@ -1,0 +1,299 @@
+//
+// The Epoch Language Project
+// Epoch Development Tools - Era Integrated Development Environment
+//
+// SCINTILLA.EPOCH
+// Wrapper logic and helper routines for working with Scintilla
+//
+// Scintilla is the text editing widget that powers Era. This module
+// contains a number of utility functions for interacting with instances
+// of the Scintilla editor widget.
+//
+
+
+//
+// Scintilla-specific data types
+//
+
+structure ScintillaNotification :
+	integer hwnd,
+	integer childid,
+	integer code,
+	integer position,
+	integer ch,
+	integer modifiers,
+	integer modtype,
+	string text,
+	integer length,
+	integer linesadded,
+	integer message,
+	integer wparam,
+	integer lparam,
+	integer line,
+	integer foldlevelnow,
+	integer foldlevelprev,
+	integer margin,
+	integer listtype,
+	integer x,
+	integer y,
+	integer token,
+	integer annotationlinesadded
+
+
+SetScintillaScrolling : integer hwnd, integer width
+{
+	integer SCI_SETSCROLLWIDTH = 2274
+	integer SCI_SETSCROLLWIDTHTRACKING = 2516
+
+	SendMessage(hwnd, SCI_SETSCROLLWIDTH, width, 0)
+	SendMessage(hwnd, SCI_SETSCROLLWIDTHTRACKING, 1, 0)
+}
+
+
+SetScintillaFont : integer hwnd, string fontname, integer fontsize
+{
+	integer SCI_STYLESETFONT = 2056
+	integer SCI_STYLECLEARALL = 2050
+	integer SCI_STYLERESETDEFAULT = 2058
+	integer SCI_STYLESETSIZE = 2055
+	integer SCI_STYLESETFORE = 2051
+	integer SCI_STYLESETBACK = 2052
+	integer SCI_STYLESETBOLD = 2053
+	integer SCI_SETCARETFORE = 2069
+
+	buffer narrowfontname = narrowstring(fontname)
+
+	SendMessage(hwnd, SCI_STYLERESETDEFAULT, 0, 0)
+	SendMessage(hwnd, SCI_STYLESETFONT, 32, narrowfontname)
+	SendMessage(hwnd, SCI_STYLESETSIZE, 32, fontsize)
+	SendMessage(hwnd, SCI_STYLESETBACK, 32, 0x303030)
+	SendMessage(hwnd, SCI_STYLECLEARALL, 0, 0)
+	
+	SendMessage(hwnd, SCI_STYLESETBACK, 33, 0x202020)
+
+	SendMessage(hwnd, SCI_STYLESETFORE, 0, 0xb0b0b0)
+	SendMessage(hwnd, SCI_STYLESETFORE, 32, 0xb0b0b0)
+	SendMessage(hwnd, SCI_STYLESETFORE, 33, 0xb0b0b0)
+
+	SendMessage(hwnd, SCI_STYLESETFORE, 1, 32768)
+	SendMessage(hwnd, SCI_STYLESETFORE, 2, 0xff5b77)
+	SendMessage(hwnd, SCI_STYLESETFORE, 3, 0x0000e0)
+
+	SendMessage(hwnd, SCI_STYLESETBOLD, 4, 1)
+	SendMessage(hwnd, SCI_STYLESETFORE, 4, 0xb0b0b0)
+
+	SendMessage(hwnd, SCI_STYLESETFORE, 5, 8421376)
+	SendMessage(hwnd, SCI_STYLESETFORE, 6, 8421376)
+	SendMessage(hwnd, SCI_STYLESETFORE, 7, 16744576)
+
+	SendMessage(hwnd, SCI_STYLESETFORE, 8, 0xff6565)
+	SendMessage(hwnd, SCI_STYLESETFORE, 9, 0x573bdd)
+	
+	SendMessage(hwnd, SCI_SETCARETFORE, 0xffffff, 0)
+}
+
+SetScintillaLexer : integer hwnd
+{
+	integer SCI_SETLEXERLANGUAGE = 4006
+	integer SCI_LOADLEXERLIBRARY = 4007
+	integer SCI_SETMARGINTYPE = 2240
+	integer SCI_SETFOLDMARGINCOLOUR = 2290
+	integer SCI_SETFOLDMARGINHICOLOUR = 2291
+
+	buffer narrowdllname = narrowstring("epochlexer.dll")
+	buffer narrowlanguagename = narrowstring("epoch")
+
+	SendMessage(hwnd, SCI_LOADLEXERLIBRARY, 0, narrowdllname)
+	SendMessage(hwnd, SCI_SETLEXERLANGUAGE, 0, narrowlanguagename)
+
+	SendMessage(hwnd, SCI_SETPROPERTY, narrowstring("fold"), narrowstring("1"))
+	SendMessage(hwnd, SCI_SETPROPERTY, narrowstring("fold.compact"), narrowstring("0"))
+
+	SendMessage(hwnd, SCI_SETMARGINTYPE, 0, 1)
+	SendMessage(hwnd, SCI_SETMARGINWIDTHN, 0, 35)
+
+	SendMessage(hwnd, SCI_SETMARGINWIDTHN, 1, 0)
+	SendMessage(hwnd, SCI_SETMARGINTYPEN, 1, 2)
+	SendMessage(hwnd, SCI_SETMARGINMASKN, 1, SC_MASK_FOLDERS)
+	SendMessage(hwnd, SCI_SETMARGINWIDTHN, 1, 20)
+	SendMessage(hwnd, SCI_SETMARGINTYPEN, 1, 2)
+	SendMessage(hwnd, SCI_SETFOLDMARGINCOLOUR, 1, 0x202020)
+	SendMessage(hwnd, SCI_SETFOLDMARGINHICOLOUR, 1, 0x202020)
+
+	SendMessage(hwnd, SCI_MARKERDEFINE, SC_MARKNUM_FOLDER, SC_MARK_PLUS)
+	SendMessage(hwnd, SCI_MARKERDEFINE, SC_MARKNUM_FOLDEROPEN, SC_MARK_MINUS)
+	SendMessage(hwnd, SCI_MARKERDEFINE, SC_MARKNUM_FOLDEREND, SC_MARK_EMPTY)
+	SendMessage(hwnd, SCI_MARKERDEFINE, SC_MARKNUM_FOLDERMIDTAIL, SC_MARK_EMPTY)
+	SendMessage(hwnd, SCI_MARKERDEFINE, SC_MARKNUM_FOLDEROPENMID, SC_MARK_EMPTY)
+	SendMessage(hwnd, SCI_MARKERDEFINE, SC_MARKNUM_FOLDERSUB, SC_MARK_EMPTY)
+	SendMessage(hwnd, SCI_MARKERDEFINE, SC_MARKNUM_FOLDERTAIL, SC_MARK_EMPTY)
+
+	SendMessage(hwnd, SCI_SETFOLDFLAGS, 16, 0)
+
+	SendMessage(hwnd, SCI_SETMARGINSENSITIVEN, 1, 1)
+}
+
+ScintillaColorize : integer hwnd
+{
+	integer SCI_COLOURISE = 4003
+
+	SendMessage(hwnd, SCI_COLOURISE, 0, -1)
+}
+
+SetScintillaText : integer hwnd, integer ptr, integer len
+{
+	ClearScintillaText(hwnd)
+
+	integer SCI_ADDTEXT = 2001
+	SendMessage(hwnd, SCI_ADDTEXT, len, ptr)
+
+	integer SCI_EMPTYUNDOBUFFER = 2175
+	SendMessage(hwnd, SCI_EMPTYUNDOBUFFER, 0, 0)
+
+	integer SCI_GOTOPOS = 2025
+	SendMessage(hwnd, SCI_GOTOPOS, 0, 0)
+}
+
+ClearScintillaText : integer hwnd
+{
+	integer SCI_CLEARALL = 2004
+
+	SendMessage(hwnd, SCI_CLEARALL, 0, 0)
+
+	integer SCI_EMPTYUNDOBUFFER = 2175
+	SendMessage(hwnd, SCI_EMPTYUNDOBUFFER, 0, 0)
+}
+
+
+GetScintillaPosition : integer hwnd, integer ref outline, integer ref outcol
+{
+	integer SCI_GETCURRENTPOS = 2008
+	integer SCI_GETCOLUMN = 2129
+
+	integer pos = SendMessage(hwnd, SCI_GETCURRENTPOS, 0, 0)
+	outline = SendMessage(hwnd, SCI_LINEFROMPOSITION, pos, 0)
+	outcol = SendMessage(hwnd, SCI_GETCOLUMN, pos, 0)
+}
+
+ScintillaGoToPosition : integer hwnd, integer row, integer col
+{
+	integer SCI_GOTOLINE = 2024
+	SendMessage(hwnd, SCI_GOTOLINE, row, 0)
+	
+	// TODO - go to correct column as well
+}
+
+
+
+SetScintillaNonDirty : integer hwnd
+{
+	integer SCI_SETSAVEPOINT = 2014
+	SendMessage(hwnd, SCI_SETSAVEPOINT, 0, 0)	
+}
+
+GetScintillaDirty : integer hwnd -> boolean dirty = false
+{
+	integer SCI_GETMODIFY = 2159
+	if(SendMessage(hwnd, SCI_GETMODIFY, 0, 0) != 0)
+	{
+		dirty = true
+	}
+}
+
+ScintillaFind : integer hwnd, string needle
+{
+	integer SCI_SEARCHANCHOR = 2366
+	integer SCI_SEARCHNEXT = 2367
+	integer SCI_SCROLLCARET = 2169
+
+	integer SCI_SETSELECTIONSTART = 2142
+	integer SCI_GETSELECTIONEND = 2145
+	
+	buffer narrowneedle = narrowstring(needle)
+	
+	SetFocus(hwnd)
+	
+	SendMessage(hwnd, SCI_SETSELECTIONSTART, SendMessage(hwnd, SCI_GETSELECTIONEND, 0, 0), 0)
+
+	SendMessage(hwnd, SCI_SEARCHANCHOR, 0, 0)
+	integer findpos = SendMessage(hwnd, SCI_SEARCHNEXT, 0, narrowneedle)
+	if(findpos != -1)
+	{
+		SendMessage(hwnd, SCI_SCROLLCARET, 0, 0)
+	}
+}
+
+ScintillaFindReverse : integer hwnd, string needle
+{
+	integer SCI_SEARCHANCHOR = 2366
+	integer SCI_SEARCHPREV = 2368
+	integer SCI_SCROLLCARET = 2169
+
+	integer SCI_SETSELECTIONSTART = 2142
+	integer SCI_GETSELECTIONEND = 2145
+	
+	buffer narrowneedle = narrowstring(needle)
+	
+	SetFocus(hwnd)
+	
+	SendMessage(hwnd, SCI_SEARCHANCHOR, 0, 0)
+	integer findpos = SendMessage(hwnd, SCI_SEARCHPREV, 0, narrowneedle)
+	if(findpos != -1)
+	{
+		SendMessage(hwnd, SCI_SCROLLCARET, 0, 0)
+	}
+}
+
+ScintillaSetTabWidth : integer hwnd, integer width
+{
+	SendMessage(hwnd, SCI_SETTABWIDTH, width, 0)
+	
+	
+	// TODO - move this to a different place
+	integer SCI_SETMULTIPASTE = 2614
+	SendMessage(hwnd, SCI_SETMULTIPASTE, 1, 1)
+}
+
+ScintillaGetSelectedToken : integer hwnd -> string token = ""
+{
+	integer SCI_GETCURRENTPOS = 2008
+	integer SCI_WORDSTARTPOSITION = 2266
+	integer SCI_WORDENDPOSITION = 2267
+
+	integer SCI_GETSELECTIONSTART = 2143
+	integer SCI_GETSELECTIONEND = 2145
+	integer SCI_GETSELTEXT = 2161
+	integer SCI_GETTEXTRANGE = 2162
+	
+	integer selstart = SendMessage(hwnd, SCI_GETSELECTIONSTART, 0, 0)
+	integer selend = SendMessage(hwnd, SCI_GETSELECTIONEND, 0, 0)
+	
+	if(selstart == selend)
+	{
+		integer pos = SendMessage(hwnd, SCI_GETCURRENTPOS, 0, 0)
+		integer begin = SendMessage(hwnd, SCI_WORDSTARTPOSITION, pos, 1)
+		integer end = SendMessage(hwnd, SCI_WORDENDPOSITION, pos, 1)
+		
+		if(end < begin)
+		{
+			return()
+		}
+		
+		integer length = end - begin		
+		buffer selection = length + 2
+		ScintillaTextRange range = begin, end, selection
+		SendMessage(hwnd, SCI_GETTEXTRANGE, 0, range)
+		
+		token = widenfrombuffer(range.Text, length)
+	}
+	else
+	{
+		integer length = SendMessage(hwnd, SCI_GETSELTEXT, 0, 0)
+		buffer selection = length + 2
+		
+		SendMessage(hwnd, SCI_GETSELTEXT, 0, selection)
+		
+		token = widenfrombuffer(selection, length)
+	}
+}
+

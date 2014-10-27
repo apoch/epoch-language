@@ -1,0 +1,144 @@
+//
+// The Epoch Language Project
+// Epoch Development Tools - Era Integrated Development Environment
+//
+// DOCUMENTS.EPOCH
+// Helper routines for working with code documents
+//
+
+
+//
+// Load the given file's contents into the given Scintilla editor
+//
+Open : integer hwnd, integer ScintillaHWND, string filename
+{
+	integer INVALID_HANDLE_VALUE = 0xffffffff
+	integer FILE_SHARE_READ = 0x01
+	integer OPEN_EXISTING = 3
+	integer GENERIC_READ = 0x80000000
+
+	Win32Handle filehandle = CreateFile(filename, GENERIC_READ, 0, 0, OPEN_EXISTING, 0, 0)
+	if(filehandle != INVALID_HANDLE_VALUE)
+	{
+		integer PAGE_READONLY = 0x02
+		
+		integer len = GetFileSize(filehandle, 0)
+
+		if(len > 0)
+		{
+			Win32Handle mappinghandle = CreateFileMapping(filehandle, 0, PAGE_READONLY, 0, 0, 0)
+			if(mappinghandle != 0)
+			{
+				integer FILE_MAP_READ = 0x04
+				integer ptr = MapViewOfFile(mappinghandle, FILE_MAP_READ, 0, 0, len)
+
+				if(ptr != 0)
+				{					
+					SetScintillaText(ScintillaHWND, ptr, len)
+					SetScintillaNonDirty(ScintillaHWND)
+					UnmapViewOfFile(ptr)
+				}
+				CloseHandle(mappinghandle)
+			}
+			else
+			{
+				MessageBox(hwnd, "Failed to create mapping of file: " ; filename, "ERA Development Environment", MB_ICONEXCLAMATION)
+			}
+		}
+		else
+		{
+			ClearScintillaText(ScintillaHWND)
+			SetScintillaNonDirty(ScintillaHWND)
+		}
+		CloseHandle(filehandle)
+	}
+	else
+	{
+		MessageBox(hwnd, "Could not open file: " ; filename, "ERA Development Environment", MB_ICONEXCLAMATION)
+	}
+}
+
+
+//
+// Save the contents of the given Scintilla editor widget into a file
+//
+DoSave : integer hwnd
+{
+	integer GENERIC_WRITE = 0x40000000
+	integer CREATE_ALWAYS = 2
+	integer MB_ICONSTOP = 0x10
+
+	OpenTab tab = 0, 0, "", ""
+	FindTabAtIndex(CurrentTabs, ActiveTabIndex, tab)
+
+	Win32Handle filehandle = CreateFile(tab.FileName, GENERIC_WRITE, 0, 0, CREATE_ALWAYS, 0, 0)
+	if(filehandle == 0)
+	{
+		MessageBox(hwnd, "Unexpected error while saving file!", "ERA Development Environment", MB_ICONSTOP)
+		return()
+	}
+
+	integer doclength = SendMessage(hwnd, SCI_GETLENGTH, 0, 0) + 1
+	buffer output = doclength
+	SendMessage(hwnd, SCI_GETTEXT, doclength, output)
+
+	integer written = 0
+	WriteFile(filehandle, output, doclength - 1, written, 0)
+
+	CloseHandle(filehandle)
+
+	SetScintillaNonDirty(hwnd)
+}
+
+//
+// Save the currently active document, given the main
+// IDE window handle and the editing Scintilla handle
+//
+SaveDocument : integer hwnd, integer scintillahwnd
+{
+	OpenTab tab = 0, 0, "", ""
+	FindTabAtIndex(CurrentTabs, ActiveTabIndex, tab)
+	
+	if(length(tab.FileName) == 0)
+	{
+		SaveDocumentAs(hwnd, scintillahwnd)
+	}
+	else
+	{
+		DoSave(scintillahwnd)
+	}
+}
+
+//
+// Save the currently active document with a new
+// name, given the associated window handles.
+//
+// Returns the filename chosen by the user, or a
+// blank string if the operation is canceled.
+//
+SaveDocumentAs : integer hwnd, integer scintillahwnd -> string filename = ""
+{
+	integer customfilterbuffersize = 256
+	buffer customfilterbuffer = customfilterbuffersize
+
+	integer filebuffersize = 2048
+	buffer filebuffer = filebuffersize
+
+	integer filetitlebuffersize = 2048
+	buffer filetitlebuffer = filetitlebuffersize
+
+	integer16 word = 0
+
+	OpenFileNameStruct ofn = sizeof(ofn), hwnd, GetModuleHandle(0), FileTypeFilters,
+				 customfilterbuffer, customfilterbuffersize, 1, filebuffer, filebuffersize,
+				 filetitlebuffer, filetitlebuffersize, "", "Save File", 0, word, word, "", 0, 0, ""
+
+	integer ofnret = GetSaveFileName(ofn)
+	if(ofnret != 0)
+	{
+		filename = cast(string, ofn.file)
+		SetActiveTabInfo(filename, TrimFilePath(filename))
+		DoSave(scintillahwnd)
+	}
+}
+

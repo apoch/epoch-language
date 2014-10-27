@@ -1,0 +1,554 @@
+PlaceAtomInScratchExpression : ExpressionAtom ref atom
+{
+	if(ExpressionAtomIsSentinel(ScratchExpressions.value.Atoms.value))
+	{
+		list<ExpressionAtom> atoms = atom, nothing
+		Expression newexpr = atoms, 0
+		ScratchExpressions.value = newexpr
+	}
+	else
+	{
+		AppendAtomToExpression(ScratchExpressions.value.Atoms, ScratchExpressions.value.Atoms.next, atom)
+	}
+}
+
+ExpressionAtomIsSentinel : AtomSentinel 	   ref sentinel    -> true [nogc]
+ExpressionAtomIsSentinel : StringHandleAtom 	   ref nonsentinel -> false [nogc]
+ExpressionAtomIsSentinel : IdentifierAtom 	   ref nonsentinel -> false [nogc]
+ExpressionAtomIsSentinel : OperatorInvokeAtom 	   ref nonsentinel -> false [nogc]
+ExpressionAtomIsSentinel : TypeAnnotationAtom 	   ref nonsentinel -> false [nogc]
+ExpressionAtomIsSentinel : integer 		   ref nonsentinel -> false [nogc]
+ExpressionAtomIsSentinel : integer16 		   ref nonsentinel -> false [nogc]
+ExpressionAtomIsSentinel : boolean 		   ref nonsentinel -> false [nogc]
+ExpressionAtomIsSentinel : real 		   ref nonsentinel -> false [nogc]
+ExpressionAtomIsSentinel : Statement		   ref nonsentinel -> false [nogc]
+ExpressionAtomIsSentinel : RefBinding              ref nonsentinel -> false [nogc]
+ExpressionAtomIsSentinel : CompoundAtom            ref nonsentinel -> false [nogc]
+ExpressionAtomIsSentinel : ParentheticalExpression ref nonsentinel -> false [nogc]
+
+
+
+AppendAtomToExpression : list<ExpressionAtom> ref atoms, list<ExpressionAtom> ref tail, ExpressionAtom ref atom
+{
+	AppendAtomToExpression(tail, tail.next, atom)
+}
+
+AppendAtomToExpression : list<ExpressionAtom> ref atoms, nothing, ExpressionAtom ref atom
+{
+	list<ExpressionAtom> newatoms = atom, nothing
+	atoms.next = newatoms
+}
+
+
+
+CountExpressions : nothing -> 0 [nogc]
+
+CountExpressions : ExpressionList ref exprs -> integer count = CountExpressions(exprs.Expressions) [nogc]
+
+CountExpressions : list<Expression> ref exprs -> integer count = 1 [nogc]
+{
+	count += CountExpressions(exprs.next)
+}
+
+
+countatoms : list<ExpressionAtom> ref atoms -> integer count = 1 + countatoms(atoms.next)
+countatoms : nothing -> 0
+
+
+
+SetAtomType : IdentifierAtom ref atom, integer typeid [nogc]
+{
+	atom.Type = typeid
+}
+
+SetAtomType : CompoundAtom ref atom, integer typeid [nogc]
+{
+	atom.Type = typeid
+}
+
+SetAtomType : Statement ref atom, integer typeid [nogc]
+
+
+
+
+SetOperatorAtomToOverload : list<ExpressionAtom> ref atoms, integer overloadname, integer count [nogc]
+{
+	if(count == 0)
+	{
+		ChangeOperator(atoms.value, overloadname)
+	}
+	else
+	{
+		SetOperatorAtomToOverload(atoms.next, overloadname, count - 1)
+	}
+}
+
+ChangeOperator : OperatorInvokeAtom ref atom, integer overloadname [nogc]
+{
+	atom.OperatorName = overloadname
+}
+
+
+IsOperatorInvoke : OperatorInvokeAtom 	   ref nonsentinel -> true [nogc]
+
+IsOperatorInvoke : AtomSentinel 	   ref sentinel    -> false [nogc]
+IsOperatorInvoke : StringHandleAtom 	   ref nonsentinel -> false [nogc]
+IsOperatorInvoke : IdentifierAtom 	   ref nonsentinel -> false [nogc]
+IsOperatorInvoke : TypeAnnotationAtom 	   ref nonsentinel -> false [nogc]
+IsOperatorInvoke : integer 		   ref nonsentinel -> false [nogc]
+IsOperatorInvoke : integer16 		   ref nonsentinel -> false [nogc]
+IsOperatorInvoke : boolean 		   ref nonsentinel -> false [nogc]
+IsOperatorInvoke : real 		   ref nonsentinel -> false [nogc]
+IsOperatorInvoke : Statement		   ref nonsentinel -> false [nogc]
+IsOperatorInvoke : RefBinding              ref nonsentinel -> false [nogc]
+IsOperatorInvoke : CompoundAtom		   ref nonsentinel -> false [nogc]
+IsOperatorInvoke : ParentheticalExpression ref nonsentinel -> false [nogc]
+
+
+IsRefBind : IdentifierAtom ref atom -> atom.IsReference [nogc]
+IsRefBind : RefBinding ref atom -> true [nogc]
+IsRefBind : CompoundAtom		   ref nonsentinel -> boolean ret = true [nogc]
+{
+	if(!IsReferenceType(nonsentinel.Type))
+	{
+		ret = false
+	}
+}
+
+IsRefBind : TypeAnnotationAtom 	   ref nonsentinel -> false [nogc]
+IsRefBind : AtomSentinel 	   ref sentinel    -> false [nogc]
+IsRefBind : StringHandleAtom 	   ref nonsentinel -> false [nogc]
+IsRefBind : integer 		   ref nonsentinel -> false [nogc]
+IsRefBind : integer16 		   ref nonsentinel -> false [nogc]
+IsRefBind : boolean 		   ref nonsentinel -> false [nogc]
+IsRefBind : real 		   ref nonsentinel -> false [nogc]
+IsRefBind : Statement		   ref nonsentinel -> false [nogc]
+IsRefBind : ParentheticalExpression ref nonsentinel -> false [nogc]
+IsRefBind : OperatorInvokeAtom 	   ref nonsentinel -> false [nogc]
+
+
+IsTypeAnnotationAtom : TypeAnnotationAtom 	   ref nonsentinel -> true [nogc]
+
+IsTypeAnnotationAtom : AtomSentinel 	   ref sentinel    -> false [nogc]
+IsTypeAnnotationAtom : StringHandleAtom 	   ref nonsentinel -> false [nogc]
+IsTypeAnnotationAtom : IdentifierAtom 	   ref nonsentinel -> false [nogc]
+IsTypeAnnotationAtom : integer 		   ref nonsentinel -> false [nogc]
+IsTypeAnnotationAtom : integer16 		   ref nonsentinel -> false [nogc]
+IsTypeAnnotationAtom : boolean 		   ref nonsentinel -> false [nogc]
+IsTypeAnnotationAtom : real 		   ref nonsentinel -> false [nogc]
+IsTypeAnnotationAtom : Statement		   ref nonsentinel -> false [nogc]
+IsTypeAnnotationAtom : RefBinding              ref nonsentinel -> false [nogc]
+IsTypeAnnotationAtom : CompoundAtom		   ref nonsentinel -> false [nogc]
+IsTypeAnnotationAtom : ParentheticalExpression ref nonsentinel -> false [nogc]
+IsTypeAnnotationAtom : OperatorInvokeAtom 	   ref nonsentinel -> false [nogc]
+
+
+
+IsMemberAccessOperator : OperatorInvokeAtom 	 ref nonsentinel -> boolean ismemberaccess = false [nogc]
+{
+	if(nonsentinel.OperatorName == PooledStringHandleForMemberAccess)
+	{
+		ismemberaccess = true
+	}
+}
+
+IsMemberAccessOperator : AtomSentinel 	   	 ref sentinel    -> false [nogc]
+IsMemberAccessOperator : StringHandleAtom 	 ref nonsentinel -> false [nogc]
+IsMemberAccessOperator : IdentifierAtom 	 ref nonsentinel -> false [nogc]
+IsMemberAccessOperator : TypeAnnotationAtom 	 ref nonsentinel -> false [nogc]
+IsMemberAccessOperator : integer 		 ref nonsentinel -> false [nogc]
+IsMemberAccessOperator : integer16 		 ref nonsentinel -> false [nogc]
+IsMemberAccessOperator : boolean 		 ref nonsentinel -> false [nogc]
+IsMemberAccessOperator : real 		   	 ref nonsentinel -> false [nogc]
+IsMemberAccessOperator : Statement		 ref nonsentinel -> false [nogc]
+IsMemberAccessOperator : RefBinding              ref nonsentinel -> false [nogc]
+IsMemberAccessOperator : CompoundAtom            ref nonsentinel -> false [nogc]
+IsMemberAccessOperator : ParentheticalExpression ref nonsentinel -> false [nogc]
+
+
+
+MarkAtomAsReference : OperatorInvokeAtom      ref atom -> false [nogc]
+MarkAtomAsReference : AtomSentinel 	      ref atom -> false [nogc]
+MarkAtomAsReference : StringHandleAtom 	      ref atom -> false [nogc]
+MarkAtomAsReference : TypeAnnotationAtom      ref atom -> false [nogc]
+MarkAtomAsReference : integer 		      ref atom -> false [nogc]
+MarkAtomAsReference : integer16               ref atom -> false [nogc]
+MarkAtomAsReference : boolean 		      ref atom -> false [nogc]
+MarkAtomAsReference : real 		      ref atom -> false [nogc]
+MarkAtomAsReference : Statement		      ref atom -> false [nogc]
+MarkAtomAsReference : ParentheticalExpression ref atom -> false [nogc]
+
+MarkAtomAsReference : RefBinding              ref atom -> true [nogc]
+
+MarkAtomAsReference : IdentifierAtom          ref atom -> true [nogc]
+{
+	atom.IsReference = true
+}
+
+MarkAtomAsReference : CompoundAtom            ref atom -> true [nogc]
+{
+	atom.Type = MakeReferenceType(atom.Type)
+}
+
+
+ShuntingYard : list<ExpressionAtom> ref atoms
+{
+	AtomSentinel sentinel = 0
+
+	list<ExpressionAtom> outputqueue = sentinel, nothing
+	list<ExpressionAtom> opstack = sentinel, nothing
+
+	ShuntingYardWalk(atoms, outputqueue, opstack)
+	ShuntingYardFlush(outputqueue, opstack)
+
+	atoms = outputqueue
+}
+
+ShuntingYardWalk : nothing, list<ExpressionAtom> ref outputqueue, list<ExpressionAtom> ref opstack
+
+ShuntingYardWalk : list<ExpressionAtom> ref atoms, list<ExpressionAtom> ref outputqueue, list<ExpressionAtom> ref opstack
+{
+	ShuntingYardVisit(atoms.value, outputqueue, opstack)
+	ShuntingYardWalk(atoms.next, outputqueue, opstack)
+}
+
+ShuntingYardVisit : AtomSentinel            ref atom, list<ExpressionAtom> ref outputqueue, list<ExpressionAtom> ref opstack
+ShuntingYardVisit : StringHandleAtom        ref atom, list<ExpressionAtom> ref outputqueue, list<ExpressionAtom> ref opstack	{ ExpressionAtom wrap = atom  PlaceAtomInList(outputqueue, wrap) }
+ShuntingYardVisit : IdentifierAtom          ref atom, list<ExpressionAtom> ref outputqueue, list<ExpressionAtom> ref opstack	{ ExpressionAtom wrap = atom  PlaceAtomInList(outputqueue, wrap) }
+ShuntingYardVisit : TypeAnnotationAtom      ref atom, list<ExpressionAtom> ref outputqueue, list<ExpressionAtom> ref opstack	{ ExpressionAtom wrap = atom  PlaceAtomInList(outputqueue, wrap) }
+ShuntingYardVisit : integer                 ref atom, list<ExpressionAtom> ref outputqueue, list<ExpressionAtom> ref opstack	{ ExpressionAtom wrap = atom  PlaceAtomInList(outputqueue, wrap) }
+ShuntingYardVisit : integer16               ref atom, list<ExpressionAtom> ref outputqueue, list<ExpressionAtom> ref opstack	{ ExpressionAtom wrap = atom  PlaceAtomInList(outputqueue, wrap) }
+ShuntingYardVisit : boolean                 ref atom, list<ExpressionAtom> ref outputqueue, list<ExpressionAtom> ref opstack	{ ExpressionAtom wrap = atom  PlaceAtomInList(outputqueue, wrap) }
+ShuntingYardVisit : real                    ref atom, list<ExpressionAtom> ref outputqueue, list<ExpressionAtom> ref opstack	{ ExpressionAtom wrap = atom  PlaceAtomInList(outputqueue, wrap) }
+ShuntingYardVisit : Statement               ref atom, list<ExpressionAtom> ref outputqueue, list<ExpressionAtom> ref opstack	{ ExpressionAtom wrap = atom  PlaceAtomInList(outputqueue, wrap) }
+ShuntingYardVisit : RefBinding              ref atom, list<ExpressionAtom> ref outputqueue, list<ExpressionAtom> ref opstack	{ ExpressionAtom wrap = atom  PlaceAtomInList(outputqueue, wrap) }
+ShuntingYardVisit : ParentheticalExpression ref atom, list<ExpressionAtom> ref outputqueue, list<ExpressionAtom> ref opstack	{ ExpressionAtom wrap = atom  PlaceAtomInList(outputqueue, wrap) }
+ShuntingYardVisit : CompoundAtom            ref atom, list<ExpressionAtom> ref outputqueue, list<ExpressionAtom> ref opstack	{ ExpressionAtom wrap = atom  PlaceAtomInList(outputqueue, wrap) }
+
+ShuntingYardVisit : OperatorInvokeAtom ref atom, list<ExpressionAtom> ref outputqueue, list<ExpressionAtom> ref opstack
+{
+	integer opprec = GetOperatorPrecedence(atom)
+	boolean continueops = true
+
+	while(continueops && (!ExpressionAtomIsSentinel(opstack.value)))
+	{
+		ExpressionAtom opatom2 = opstack.value
+		integer op2prec = GetOperatorPrecedence(opatom2)
+
+		// TODO - this whole section is hacky. Replace with break() calls and >= operator.
+
+		if(IsUnaryOperator(atom))
+		{
+			if(opprec > op2prec)
+			{
+				continueops = false
+			}
+			elseif(opprec == op2prec)
+			{
+				continueops = false
+			}
+		}
+		else
+		{
+			if(opprec > op2prec)
+			{
+				continueops = false
+			}
+		}
+
+		if(continueops)
+		{
+			PlaceAtomInList(outputqueue, opatom2)
+			ShuntingYardPopStack(opstack, opstack.next)
+		}
+	}
+
+	ExpressionAtom wrap = atom
+	prepend<ExpressionAtom>(opstack, wrap)
+}
+
+ShuntingYardFlush : list<ExpressionAtom> ref outputqueue, list<ExpressionAtom> ref opstack
+{
+	while(!ExpressionAtomIsSentinel(opstack.value))
+	{
+		PlaceAtomInList(outputqueue, opstack.value)
+		ShuntingYardPopStack(opstack, opstack.next)
+	}
+}
+
+ShuntingYardPopStack : list<ExpressionAtom> ref opstack, list<ExpressionAtom> ref tail [nogc]
+{
+	opstack = tail
+}
+
+ShuntingYardPopStack : list<ExpressionAtom> ref opstack, nothing [nogc]
+{
+	AtomSentinel sentinel = 0
+	list<ExpressionAtom> newlist = sentinel, nothing
+	opstack = newlist
+}
+
+
+
+
+
+IsUnaryOperator : OperatorInvokeAtom ref atom -> boolean isunary = false [nogc]
+{
+	if(atom.OperatorName == PooledStringHandleForUnaryNot)
+	{
+		isunary = true
+	}
+}
+
+
+GetOperatorPrecedence : OperatorInvokeAtom ref atom -> integer precedence = 0 [nogc]
+{
+	if(atom.OperatorName == PooledStringHandleForEquality)
+	{
+		precedence = 0
+	}
+	elseif(atom.OperatorName == PooledStringHandleForInequality)
+	{
+		precedence = 0
+	}
+	elseif(atom.OperatorName == PooledStringHandleForGreaterThan)
+	{
+		precedence = 0
+	}
+	elseif(atom.OperatorName == PooledStringHandleForLessThan)
+	{
+		precedence = 0
+	}
+	elseif(atom.OperatorName == PooledStringHandleForBooleanAnd)
+	{
+		precedence = 0
+	}
+	elseif(atom.OperatorName == PooledStringHandleForBitwiseAnd)
+	{
+		precedence = 1		// TODO - revisit all operator precedences
+	}
+	elseif(atom.OperatorName == PooledStringHandleForStringConcat)
+	{
+		precedence = 3
+	}
+	elseif(atom.OperatorName == PooledStringHandleForPlus)
+	{
+		precedence = 5
+	}
+	elseif(atom.OperatorName == PooledStringHandleForMinus)
+	{
+		precedence = 5
+	}
+	elseif(atom.OperatorName == PooledStringHandleForMultiply)
+	{
+		precedence = 9
+	}
+	elseif(atom.OperatorName == PooledStringHandleForDivide)
+	{
+		precedence = 9
+	}
+	elseif(atom.OperatorName == PooledStringHandleForUnaryNot)
+	{
+		precedence = 10
+	}
+	elseif(atom.OperatorName == PooledStringHandleForMemberAccess)
+	{
+		precedence = 11
+	}
+	else
+	{
+		print("Unknown operator " ; GetPooledString(atom.OperatorName))
+		assert(false)
+	}
+}
+
+
+ExtractConstructorIdentifier : ExpressionList ref parameters -> integer varname = ExtractConstructorIdentifier(parameters.Expressions)
+ExtractConstructorIdentifier : list<Expression> ref parameters -> integer varname = ExtractIdentifier(parameters.value)
+ExtractConstructorIdentifier : nothing -> 0
+
+ExtractIdentifier : Expression ref expression -> integer id = ExtractIdentifier(expression.Atoms.value) [nogc]
+
+ExtractIdentifier : IdentifierAtom ref atom -> atom.Handle [nogc]
+{
+	atom.Type = 0x81000000		// HACK - reference to identifier
+}
+
+ExtractIdentifier : AtomSentinel 	    ref sentinel    -> 0 [nogc]
+ExtractIdentifier : StringHandleAtom 	    ref nonsentinel -> 0 [nogc]
+ExtractIdentifier : OperatorInvokeAtom 	    ref nonsentinel -> 0 [nogc]
+ExtractIdentifier : TypeAnnotationAtom 	    ref nonsentinel -> 0 [nogc]
+ExtractIdentifier : integer 		    ref nonsentinel -> 0 [nogc]
+ExtractIdentifier : integer16 		    ref nonsentinel -> 0 [nogc]
+ExtractIdentifier : boolean 		    ref nonsentinel -> 0 [nogc]
+ExtractIdentifier : real 		    ref nonsentinel -> 0 [nogc]
+ExtractIdentifier : Statement		    ref nonsentinel -> 0 [nogc]
+ExtractIdentifier : RefBinding              ref nonsentinel -> 0 [nogc]
+ExtractIdentifier : CompoundAtom            ref nonsentinel -> 0 [nogc]
+ExtractIdentifier : ParentheticalExpression ref nonsentinel -> 0 [nogc]
+
+
+PlaceAtomInList : list<ExpressionAtom> ref atoms, ExpressionAtom ref atom
+{
+	if(ExpressionAtomIsSentinel(atoms.value))
+	{
+		atoms.value = atom
+	}
+	else
+	{
+		AppendAtomToExpression(atoms, atoms.next, atom)
+	}
+}
+
+CoalesceMemberAccesses : list<ExpressionAtom> ref atoms, Scope ref scope
+{
+	while(SearchForMemberAccessStart(atoms, atoms.next, scope))
+	{
+	}
+}
+
+SearchForMemberAccessStart : list<ExpressionAtom> ref previous, list<ExpressionAtom> ref current, Scope ref scope -> boolean found = false
+{
+	if(IsMemberAccessOperator(current.value))
+	{
+		CoalesceMemberAccessTriplet(previous, current, current.next, scope)
+		found = true
+	}
+	else
+	{
+		found = SearchForMemberAccessStart(current, current.next, scope)
+	}
+}
+
+SearchForMemberAccessStart : list<ExpressionAtom> ref previous, nothing, Scope ref scope -> false
+
+
+CoalesceMemberAccessTriplet : list<ExpressionAtom> ref lhs, list<ExpressionAtom> ref op, list<ExpressionAtom> ref rhs, Scope ref scope
+{
+	CoalesceMemberAccessAtoms(lhs, lhs.value, rhs.value, scope)
+	lhs.next = rhs.next
+}
+
+CoalesceMemberAccessAtoms : list<ExpressionAtom> ref lhslist, ExpressionAtom ref lhs, ExpressionAtom ref rhs, Scope ref scope
+{
+	CoalesceMemberAccessAtomsUnwrapped(lhslist, lhs, rhs, scope)
+}
+
+CoalesceMemberAccessAtomsUnwrapped : list<ExpressionAtom> ref lhslist, IdentifierAtom ref lhs, IdentifierAtom ref rhs, Scope ref scope
+{
+	Variable var = 0, 0, 0, 0
+	FindVariableDataInSingleScope(scope, lhs.Handle, var)
+
+	if(var.Name == 0)
+	{
+		print("Member access is bogus!")
+		print(GetPooledString(lhs.Handle))
+		assert(false)
+	}
+
+	assert(var.VarType != 0)
+	integer lhstypename = GetNameOfType(var.VarType)
+
+	integer rhstype = GetStructureMemberType(lhstypename, rhs.Handle)
+	if(rhstype == 0)
+	{
+		print(GetPooledString(rhs.Handle))
+	}
+	
+	assert(rhstype != 0)
+	integer rhstypename = GetNameOfType(rhstype)
+
+	RefBinding lhsbinding = lhs.Handle, lhstypename, false, false
+	RefBinding rhsbinding = rhs.Handle, rhstypename, false, false
+
+	list<RefBinding> bindings = rhsbinding, nothing
+	prepend<RefBinding>(bindings, lhsbinding)
+
+	CompoundAtom compound = bindings, rhstype
+	ExpressionAtom wrap = compound
+	lhslist.value = wrap
+}
+
+CoalesceMemberAccessAtomsUnwrapped : list<ExpressionAtom> ref lhslist, CompoundAtom ref lhs, IdentifierAtom ref rhs, Scope ref scope
+{
+	assert(lhs.Type != 0)
+	integer typename = GetNameOfType(lhs.Type)
+
+	RefBinding temp = rhs.Handle, typename, false, false
+	AppendBinding(lhs.Bindings, lhs.Bindings.next, temp)
+
+	lhs.Type = GetStructureMemberType(typename, rhs.Handle)
+}
+
+
+MarkFirstAtomAsReference : list<Expression> ref exprs
+{
+	if(!MarkAtomAsReference(exprs.value.Atoms.value))
+	{
+		print("WARNING: failed to bind reference")
+	}	
+}
+
+
+FindPrePostOperatorOverload : integer operatorname, integer operandtype -> integer overloadname = 0 [nogc]
+{
+	if(operatorname == PooledStringHandleForPrePostIncrement)
+	{
+		if(operandtype == 0x01000001)
+		{
+			overloadname = PooledStringHandleForPrePostIncrementInteger
+		}
+	}
+	elseif(operatorname == PooledStringHandleForPrePostDecrement)
+	{
+		if(operandtype == 0x01000001)
+		{
+			overloadname = PooledStringHandleForPrePostDecrementInteger
+		}
+	}
+}
+
+FindAssignmentOperator : integer operatorname, integer lhstype, integer rhstype -> integer overloadname = operatorname [nogc]
+{
+	lhstype = MakeNonReferenceType(lhstype)
+	rhstype = MakeNonReferenceType(rhstype)
+
+	if(operatorname == PooledStringHandleForIncrementAssign)
+	{
+		if((lhstype == 0x01000001) && (rhstype == 0x01000001))
+		{
+			overloadname = PooledStringHandleForIncrementAssignInteger
+		}
+	}
+	elseif(operatorname == PooledStringHandleForDecrementAssign)
+	{
+		if((lhstype == 0x01000001) && (rhstype == 0x01000001))
+		{
+			overloadname = PooledStringHandleForDecrementAssignInteger
+		}
+	}
+}
+
+
+
+SetOptionalExpressionType : Expression ref expr, integer typeid [nogc]
+{
+	expr.Type = typeid
+}
+
+
+
+GetIdentifier : IdentifierAtom ref atom -> atom.Handle [nogc]
+
+
+
+AppendBinding : list<RefBinding> ref bindings, list<RefBinding> ref tail, RefBinding ref binding [nogc]
+{
+	AppendBinding(tail, tail.next, binding)
+}
+
+AppendBinding : list<RefBinding> ref bindings, nothing, RefBinding ref binding [nogc]
+{
+	list<RefBinding> newtail = binding, nothing
+	bindings.next = newtail
+}

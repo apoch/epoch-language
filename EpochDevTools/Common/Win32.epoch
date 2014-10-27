@@ -1,0 +1,94 @@
+//
+// The Epoch Language Project
+// Epoch Development Tools - Compiler Core
+//
+// WIN32.EPOCH
+// Collecting point for Win32 API linkage
+//
+// All Win32-dependent API stuff should be placed in this file.
+// Platform abstractions that use these APIs should be kept in
+// a separate location for cleanliness.
+//
+
+
+
+//
+// We use strong type aliases liberally to catch cases of passing
+// the wrong stuff around via opaque "integer" or whatever.
+//
+
+type Win32Handle : integer
+
+
+
+//
+// Win32 API external function declarations
+//
+
+CloseHandle : Win32Handle handle -> boolean ret = false [external("Kernel32.dll", "CloseHandle", "stdcall")]
+
+
+CreateFile :
+	string  filename,
+	integer access,
+	integer sharemode,
+	integer attributes,
+	integer creation,
+	integer flags,
+	integer template
+ ->
+	Win32Handle ret = 0
+ [external("Kernel32.dll", "CreateFileW", "stdcall")]
+
+
+CreateFileMapping :
+	Win32Handle filehandle,
+	integer attributes,
+	integer protection,
+	integer maxsizehigh,
+	integer maxsizelow,
+	integer name
+ ->
+	Win32Handle ret = 0
+ [external("Kernel32.dll", "CreateFileMappingW", "stdcall")]
+ 
+
+GetFileSize :
+	Win32Handle handle,
+	integer ignored
+ ->
+	integer size = 0
+ [external("Kernel32.dll", "GetFileSize", "stdcall")]
+ 
+
+MapViewOfFile :
+	Win32Handle handle,
+	integer access,
+	integer offsethigh,
+	integer offsetlow,
+	integer bytestomap
+ ->
+	integer ptr = 0
+ [external("Kernel32.dll", "MapViewOfFile", "stdcall")]
+
+
+SetCurrentDirectory : string path -> boolean success = false [external("Kernel32.dll", "SetCurrentDirectoryW", "stdcall")]
+
+
+UnmapViewOfFile : integer ptr -> boolean ret = false [external("Kernel32.dll", "UnmapViewOfFile", "stdcall")]
+
+
+WriteFile :
+	Win32Handle handle,
+	buffer ref data,
+	integer numbytes,
+	integer ref written,
+	integer ignored2
+ ->
+	boolean ret = false
+ [external("Kernel32.dll", "WriteFile", "stdcall")]
+
+
+timeGetTime : -> integer ms = 0 [external("WinMM.dll", "timeGetTime", "stdcall")]
+
+

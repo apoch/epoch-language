@@ -1,0 +1,250 @@
+
+RegisterOverloadForFunction : string rawnamestr, integer rawname -> integer mangledname = rawname
+{
+	ContextNode<FunctionDefinition> funcwrap = nothing
+	boolean found = SearchBinaryTreeForPayload<FunctionDefinition>(GlobalRootNamespace.Functions.RootNode, rawname, funcwrap)
+	if(found)
+	{
+		integer existingcount = CountOverloadsForContext(funcwrap, rawname)
+
+		if(existingcount > 0)
+		{
+			mangledname = PoolString(rawnamestr ; "@overload@" ; cast(string, existingcount))
+		}
+
+		Overload overload = rawname, mangledname, nothing
+		AddOverloadToFunc(funcwrap, overload)
+	}
+}
+
+
+FindFunctionAndAddOverload : Overload ref overload
+{
+	ContextNode<FunctionDefinition> wrap = nothing
+	boolean found = SearchBinaryTreeForPayload<FunctionDefinition>(GlobalRootNamespace.Functions.RootNode, overload.NormalName, wrap)
+	if(found)
+	{
+		AddOverloadToFunc(wrap, overload)
+	}
+}
+
+AddOverloadToFunc : FunctionDefinition ref func, Overload ref overload
+{
+	prepend<Overload>(func.Overloads, overload)
+}
+
+
+CountOverloadsForContext : FunctionDefinition ref func, integer rawname -> integer count = 0
+{
+	count = CountOverloads(func.Overloads, rawname)
+}
+
+
+CountOverloads : list<Overload> ref overloads, integer rawname -> integer count = 0
+{
+	if(rawname == overloads.value.NormalName)
+	{
+		++count
+	}
+
+	count += CountOverloads(overloads.next, rawname)
+}
+
+CountOverloads : nothing, integer rawname -> 0
+
+
+AttachContextToOverload : list<Overload> ref overloads, integer mangledname, FunctionDefinition ref func
+{
+	if(overloads.value.MangledName == mangledname)
+	{
+		overloads.value.Implementation = func
+	}
+	else
+	{
+		AttachContextToOverload(overloads.next, mangledname, func)
+	}
+}
+
+
+
+
+
+FindOverloadWithParameterTypesFast : FunctionDefinition ref func, integer rawname, simplelist<integer> ref paramtypes -> integer overloadname = rawname
+{
+	overloadname = FindOverloadWithParameterTypes(func.Overloads, rawname, paramtypes)
+}
+
+
+FindOverloadWithParameterTypes : list<Overload> ref overloads, integer rawname, simplelist<integer> ref types -> integer overloadname = rawname
+{
+	if(overloads.value.NormalName == rawname)
+	{
+		if(!IsFunctionTemplate(overloads.value.Implementation))
+		{
+			if(FunctionWrapperMatchesParameterTypes(overloads.value.Implementation, overloads.value.MangledName, types))
+			{
+				integer matchername = CheckForNeededPatternMatcher(PendingPatternMatchers, rawname)
+				if(matchername != 0)
+				{
+					overloadname = matchername
+				}
+				else
+				{
+					overloadname = overloads.value.MangledName
+				}
+				return()
+			}
+			elseif(countnonzero(types) == GetFunctionWrapperParameterCount(overloads.value.Implementation, overloads.value.MangledName))
+			{
+				if(CheckForNeededTypeMatcher(types))
+				{
+					overloadname = FindOrCreateTypeMatcher(overloads.value.NormalName, overloads.value.MangledName, overloads.value.Implementation)
+					FindOverloadWithParameterTypes(overloads.next, rawname, types)
+					return()
+				}
+			}
+		}
+	}
+
+	overloadname = FindOverloadWithParameterTypes(overloads.next, rawname, types)
+}
+
+
+FindOverloadWithParameterTypes : nothing, integer rawname, simplelist<integer> ref types -> integer overloadname = 0
+{
+	if(rawname == PooledStringHandleForSubstring)
+	{
+		integer withlen = PooledStringHandleForSubstringWithLength
+		integer nolen = PooledStringHandleForSubstringNoLength
+
+		if(FunctionMatchesParameterTypes(nothing, withlen, types))
+		{
+			overloadname = withlen
+		}
+		elseif(FunctionMatchesParameterTypes(nothing, nolen, types))
+		{
+			overloadname = nolen
+		}
+	}
+	elseif(rawname == PooledStringHandleForWriteBuffer)
+	{
+		integer normal = PooledStringHandleForWriteBuffer
+		integer withstr = PooledStringHandleForWriteBufferString
+		integer multiple = PooledStringHandleForWriteBufferMultiple
+		integer withreal = PooledStringHandleForWriteBufferReal
+
+		if(FunctionMatchesParameterTypes(nothing, normal, types))
+		{
+			overloadname = normal
+		}
+		elseif(FunctionMatchesParameterTypes(nothing, withstr, types))
+		{
+			overloadname = withstr
+		}
+		elseif(FunctionMatchesParameterTypes(nothing, multiple, types))
+		{
+			overloadname = multiple
+		}
+		elseif(FunctionMatchesParameterTypes(nothing, withreal, types))
+		{
+			overloadname = withreal
+		}
+	}
+	elseif(rawname == PooledStringHandleForBuffer)
+	{
+		integer normal = PooledStringHandleForBuffer
+		integer copy = PooledStringHandleForBufferCopy
+		
+		if(FunctionMatchesParameterTypes(nothing, normal, types))
+		{
+			overloadname = normal
+		}
+		elseif(FunctionMatchesParameterTypes(nothing, copy, types))
+		{
+			overloadname = copy
+		}		
+	}
+	elseif(IsRecognizedBuiltIn(rawname))
+	{
+		overloadname = rawname
+	}
+	else
+	{
+		boolean matchesctor = false
+		if(ConstructorMatchesParameterTypes(Structures, rawname, types, matchesctor))
+		{
+			overloadname = rawname
+		}
+		else
+		{	// TODO - this is a sloppy hack to work around the fact that operators don't short circuit properly yet
+			if(!matchesctor)
+			{
+				if(!SearchBinaryTree<FunctionDefinition>(GlobalRootNamespace.Functions.RootNode, rawname))
+				{
+					overloadname = rawname
+				}
+			}
+		}
+	}
+}
+
+
+EnumerateOverloadsAndAddAllParameterTypes : FunctionDefinition ref func, integer numparams, boolean toplevel, list<ParameterTypeList> ref outinfo
+{
+	EnumerateOverloadsAndAddAllParameterTypes(func.Overloads, numparams, toplevel, outinfo)
+}
+
+EnumerateOverloadsAndAddAllParameterTypes : list<Overload> ref overloads, integer numparams, boolean toplevel, list<ParameterTypeList> ref outinfo
+{
+	AddAllParameterTypesForOverloadImplementation(overloads.value.Implementation, overloads.value.MangledName, numparams, toplevel, outinfo)
+	EnumerateOverloadsAndAddAllParameterTypes(overloads.next, numparams, toplevel, outinfo)
+}
+
+EnumerateOverloadsAndAddAllParameterTypes : nothing, integer numparams, boolean toplevel, list<ParameterTypeList> ref outinfo
+
+
+AddAllParameterTypesForOverloadImplementation : FunctionDefinition ref function, integer mangledname, integer numparams, boolean toplevel, list<ParameterTypeList> ref outinfo
+{
+	InferAllFunctionParameterTypes(function, numparams, toplevel, outinfo)
+}
+
+AddAllParameterTypesForOverloadImplementation : nothing, integer mangledname, integer numparams, boolean toplevel, list<ParameterTypeList> ref outinfo
+
+
+AddPossibleParamTypeForAllOverloads : list<InferencePossibility> ref possibilities, TypePossibilityList ref paramtypes
+{
+	prepend<TypePossibilityList>(possibilities.value.ParameterTypes, paramtypes)
+
+	AddPossibleParamTypeForAllOverloads(possibilities.next, paramtypes)
+}
+
+AddPossibleParamTypeForAllOverloads : nothing, TypePossibilityList ref paramtypes
+
+
+EnumerateOverloadsAndAddParameterTypes : list<Overload> ref overloads, integer funcname, integer paramindex, integer paramcount, boolean toplevel, simplelist<integer> ref types
+{
+	if(overloads.value.NormalName == funcname)
+	{
+		AddParameterTypesForOverloadImplementation(overloads.value.Implementation, overloads.value.MangledName, paramindex, paramcount, toplevel, types)
+	}
+
+	EnumerateOverloadsAndAddParameterTypes(overloads.next, funcname, paramindex, paramcount, toplevel, types)
+}
+
+EnumerateOverloadsAndAddParameterTypes : nothing, integer funcname, integer paramindex, integer paramcount, boolean toplevel, simplelist<integer> ref types
+
+
+AddParameterTypesForOverloadImplementation : FunctionDefinition ref func, integer funcname, integer paramindex, integer paramcount, boolean toplevel, simplelist<integer> ref types
+{
+	if(!func.InferenceDone)
+	{
+		TypeInference(func, DummyContextForFunctions)
+	}
+
+	UnwrapParamsForTypeRetrieval(func.Params, paramindex, paramcount, types)
+}
+
+AddParameterTypesForOverloadImplementation : nothing, integer funcname, integer paramindex, integer paramcount, boolean toplevel, simplelist<integer> ref types
+{
+	FindFunctionAndAddParameterTypes(funcname, paramindex, paramcount, toplevel, types)
+}

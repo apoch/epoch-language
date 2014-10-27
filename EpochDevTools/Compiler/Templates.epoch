@@ -1,0 +1,833 @@
+
+IsFunctionTemplate : FunctionDefinition ref func -> boolean istemplate = func.IsTemplate [nogc]
+IsFunctionTemplate : nothing -> false [nogc]
+
+
+IsFunctionTemplateFast : integer name -> boolean istemplate = false [nogc]
+{
+	ContextNode<FunctionDefinition> wrap = nothing
+	boolean found = SearchBinaryTreeForPayload<FunctionDefinition>(GlobalRootNamespace.Functions.RootNode, name, wrap)
+	if(!found)
+	{
+		print("Internal error - function undefined: " ; GetPooledString(name))
+		assert(false)
+	}
+
+	istemplate = IsFunctionTemplate(wrap)
+}
+
+
+
+IRRegisterTemplateParameter : integer paramtype, integer paramname [nogc]
+{
+	TemplateParameter p = paramname, paramtype
+	prepend<TemplateParameter>(TemplateParameterQueue, p)
+}
+
+
+CreateFunctionTemplateAndAttachParams : integer funcname, list<TemplateParameter> ref paramqueue
+{
+	list<TemplateParameter> dummyparams = scratchtemplateparam, nothing
+	TransferTemplateParamsFromQueue(dummyparams, paramqueue)
+
+	TemplateFunction templfunc = funcname, dummyparams
+	prepend<TemplateFunction>(TemplateFunctions, templfunc)
+}
+
+
+CreateStructureTemplateAndAttachParams : integer structurename, list<TemplateParameter> ref paramqueue
+{
+	list<TemplateParameter> dummyparams = scratchtemplateparam, nothing
+	TransferTemplateParamsFromQueue(dummyparams, paramqueue)
+
+	TemplateStructure templstructure = structurename, dummyparams
+	prepend<TemplateStructure>(TemplateStructures, templstructure)
+}
+
+
+CreateSumTypeTemplateAndAttachParams : integer typename, list<TemplateParameter> ref paramqueue
+{
+	list<TemplateParameter> dummyparams = scratchtemplateparam, nothing
+	TransferTemplateParamsFromQueue(dummyparams, paramqueue)
+
+	TemplateSumType templtype = typename, dummyparams
+	prepend<TemplateSumType>(TemplateSumTypes, templtype)
+}
+
+
+
+TransferTemplateParamsFromQueue : list<TemplateParameter> ref out, list<TemplateParameter> ref queue
+{
+	if(queue.value.ParamType != 0)
+	{
+		if(out.value.ParamType == 0)
+		{
+			out.value = queue.value
+		}
+		else
+		{
+			prepend<TemplateParameter>(out, queue.value)
+		}
+	}
+	
+	TransferTemplateParamsFromQueue(out, queue.next)
+}
+
+TransferTemplateParamsFromQueue : list<TemplateParameter> ref out, nothing
+
+
+
+PopTemplateArgStack : list<TemplateArgumentList> ref stack, list<TemplateArgumentList> ref next [nogc]
+{
+	stack = next
+}
+
+PopTemplateArgList : list<TemplateArgument> ref thelist, list<TemplateArgument> ref tail [nogc]
+{
+	thelist = tail
+}
+
+
+AppendTemplateArgument : list<TemplateArgument> ref thelist, TemplateArgument ref arg [nogc]
+{
+	AppendTemplateArgumentRecurse(thelist, thelist.next, arg)
+}
+
+
+AppendTemplateArgumentRecurse : list<TemplateArgument> ref thelist, nothing, TemplateArgument ref arg [nogc]
+{
+	list<TemplateArgument> newlist = arg, nothing
+	thelist.next = newlist
+}
+
+AppendTemplateArgumentRecurse : list<TemplateArgument> ref thelist, list<TemplateArgument> ref tail, TemplateArgument ref arg [nogc]
+{
+	AppendTemplateArgumentRecurse(tail, tail.next, arg)
+}
+
+
+InstantiateTemplateFast : integer templatename, nothing -> templatename
+
+InstantiateTemplateFast : integer templatename, TemplateArgumentList ref args -> integer instancename = templatename
+{
+	integer existing = FindExistingTemplateInstance(TemplateFunctionInstances, templatename, args.Args)
+	if(existing != 0)
+	{
+		instancename = existing
+		return()
+	}
+
+	existing = FindExistingTemplateInstance(TemplateStructureInstances, templatename, args.Args)
+	if(existing != 0)
+	{
+		instancename = existing
+		return()
+	}
+
+	instancename = InstantiateFunctionTemplate(templatename, args)
+}
+
+
+
+InstantiateFunctionTemplate : integer templatename, nothing -> templatename
+
+InstantiateFunctionTemplate : integer templatename, TemplateArgumentList ref args -> integer instancename = templatename
+{
+	instancename = FindFunctionTemplateAndInstantiate(TemplateFunctions, templatename, templatename, args.Args)
+
+	ContextNode<FunctionDefinition> wrap = nothing
+	while(PopPendingFunctionForInference(wrap))
+	{
+		TypeInference(wrap, DummyContextForFunctions)
+	}
+}
+
+
+EnumerateOverloadsAndInstantiate : list<Overload> ref overloads, integer templatename, list<TemplateArgument> ref args
+{
+	if(overloads.value.NormalName == templatename)
+	{
+		integer existing = FindExistingTemplateInstance(TemplateFunctionInstances, overloads.value.MangledName, args)
+		if(existing == 0)
+		{
+			FindFunctionTemplateAndInstantiate(TemplateFunctions, templatename, overloads.value.MangledName, args)
+		}
+	}
+
+	EnumerateOverloadsAndInstantiate(overloads.next, templatename, args)
+}
+
+EnumerateOverloadsAndInstantiate : nothing, integer templatename, list<TemplateArgument> ref args
+
+
+FindFunctionTemplateAndInstantiate : list<TemplateFunction> ref templates, integer basename, integer defname, list<TemplateArgument> ref args -> integer instancename = 0
+{
+	if(templates.value.FunctionDefName == defname)
+	{
+		string mangledname = MangleTemplateName(defname, args)
+		instancename = RegisterOverloadForFunction(mangledname, PoolString(mangledname))
+
+		// TODO - validate that args suit the formal template parameters!
+
+		string basenamemangled = MangleTemplateName(basename, args)
+		integer bnmh = PoolString(basenamemangled)
+		Overload overload = bnmh, instancename, nothing
+		FindFunctionAndAddOverload(overload)
+
+		DoFunctionInstantiation(bnmh, defname, instancename, templates.value.Parameters, args, overload)
+	}
+	else
+	{
+		instancename = FindFunctionTemplateAndInstantiate(templates.next, basename, defname, args)
+	}
+}
+
+FindFunctionTemplateAndInstantiate : nothing, integer basename, integer defname, list<TemplateArgument> ref args -> integer instancename = InstantiateStructureTemplateFast(defname, args)
+
+
+FindStructureTemplateAndInstantiate : list<TemplateStructure> ref templates, integer defname, list<TemplateArgument> ref args -> integer instancename = 0
+{
+	if(templates.value.StructureDefName == defname)
+	{
+		string mangledname = MangleTemplateName(defname, args)
+		instancename = PoolString(mangledname)
+
+		// TODO - validate that args suit the formal template parameters!
+
+		DoStructureInstantiation(defname, instancename, templates.value.Parameters, args)
+	}
+	else
+	{
+		instancename = FindStructureTemplateAndInstantiate(templates.next, defname, args)
+	}
+}
+
+FindStructureTemplateAndInstantiate : nothing, integer defname, list<TemplateArgument> ref args -> integer instancename = InstantiateSumType(defname, args)
+
+
+InstantiateSumType : integer defname, list<TemplateArgument> ref args -> integer instancename = 0
+{
+	integer existing = FindExistingTemplateInstance(TemplateSumTypeInstances, defname, args)
+	if(existing != 0)
+	{
+		instancename = existing
+		return()
+	}
+
+	instancename = FindSumTypeTemplateAndInstantiate(TemplateSumTypes, defname, args)
+}
+
+FindSumTypeTemplateAndInstantiate : list<TemplateSumType> ref templates, integer defname, list<TemplateArgument> ref args -> integer instancename = 0
+{
+	if(templates.value.SumTypeName == defname)
+	{
+		string mangledname = MangleTemplateName(defname, args)
+		instancename = PoolString(mangledname)
+
+		// TODO - validate that args suit the formal template parameters!
+
+		DoSumTypeInstantiation(defname, instancename, templates.value.Parameters, args)
+	}
+	else
+	{
+		instancename = FindSumTypeTemplateAndInstantiate(templates.next, defname, args)
+	}
+}
+
+
+FindSumTypeTemplateAndInstantiate : nothing, integer defname, list<TemplateArgument> ref args -> integer instancename = 0
+{
+	integer t = GetTypeByName(defname)
+	if(t != 0)
+	{
+		instancename = defname
+		return()
+	}
+
+	string namestr = GetPooledString(defname)
+	print("Error - no template provided for '" ; namestr ; "', cannot create instance!")
+}
+
+
+DoStructureInstantiation : integer defname, integer instancename, list<TemplateParameter> ref params, list<TemplateArgument> ref args
+{
+	ContextNode<StructureDefinition> wrap = nothing
+	boolean found = SearchBinaryTreeForPayload<StructureDefinition>(GlobalRootNamespace.Structures.RootNode, defname, wrap)
+	assertmsg(found, "Internal error: structure definition missing")
+
+	StructInstInner(wrap, defname, instancename, params, args)
+}
+
+StructInstInner : StructureDefinition ref templstruct, integer defname, integer instancename, list<TemplateParameter> ref params, list<TemplateArgument> ref args
+{
+	assert(templstruct.IsTemplate)
+
+	++GlobalTemplateInstanceCounter
+
+	list<StructureMember> members = dummymember, nothing
+	DoMemberListInstantiation(templstruct.Members, members, params, args)
+	PopMember(members, members.next)
+
+	StructureDefinition struct = instancename, GlobalTemplateInstanceCounter, 0, 0, 0, members, templstruct.MemberCount, GetPooledString(instancename), false
+	prepend<StructureDefinition>(Structures, struct)
+	BinaryTreeCreateOrInsert<StructureDefinition>(GlobalRootNamespace.Structures, instancename, struct)
+
+	TemplateInstance instance = defname, instancename, args
+	prepend<TemplateInstance>(TemplateStructureInstances, instance)
+
+	TypeInference(Structures.value, DummyContextForFunctions)
+}
+
+
+DoSumTypeInstantiation : integer defname, integer instancename, list<TemplateParameter> ref params, list<TemplateArgument> ref args
+{
+	ContextNode<SumType> wrap = nothing
+	boolean found = SearchBinaryTreeForPayload<SumType>(GlobalRootNamespace.SumTypes.RootNode, defname, wrap)
+
+	if(found)
+	{
+		STInst(wrap, instancename, params, args)
+	}
+	else
+	{
+		assertmsg(false, "Cannot instantiate non-existing sum type!")
+	}
+}
+
+STInst : SumType ref templst, integer instancename, list<TemplateParameter> ref params, list<TemplateArgument> ref args
+{
+	assert(templst.IsTemplate)
+
+	++GlobalSumTypeCounter
+
+	SumTypeBase dummybasetype = 0, nothing
+	list<SumTypeBase> bases = dummybasetype, nothing
+	DoBaseTypeInstantiation(templst.Bases, bases, params, args)
+
+	SumType st = instancename, GlobalSumTypeCounter, bases, false
+	BinaryTreeCreateOrInsert<SumType>(GlobalRootNamespace.SumTypes, instancename, st)
+	BinaryTreeCreateOrInsert<integer>(TypeToNameMap, st.Type, instancename)
+
+	TemplateInstance instance = templst.Name, instancename, args
+	prepend<TemplateInstance>(TemplateSumTypeInstances, instance)
+
+	ResolveSumTypeBases(st.Bases)
+}
+
+
+
+DoMemberListInstantiation : list<StructureMember> ref members, list<StructureMember> ref out, list<TemplateParameter> ref params, list<TemplateArgument> ref args
+{
+	DoMemberInstantiation(members.value, out, params, args)
+	DoMemberListInstantiation(members.next, out, params, args)
+}
+
+DoMemberListInstantiation : nothing, list<StructureMember> ref out, list<TemplateParameter> ref params, list<TemplateArgument> ref args
+
+DoMemberInstantiation : StructureMemberVariable ref memvar, list<StructureMember> ref out, list<TemplateParameter> ref params, list<TemplateArgument> ref args
+{
+	if(memvar.Name != 0)
+	{
+		integer newtype = MapTemplateType(memvar.TypeNameHandle, params, args)
+
+		StructureMemberVariable newmemvar = memvar.Name, 0, newtype, scratchtemplatearglist
+		CopyTemplateArgs(memvar.TemplateArgs, newmemvar.TemplateArgs)
+		RemapAllTemplateArguments(newmemvar.TemplateArgs, params, args)
+		StructureMember newmember = newmemvar
+		AppendStructureMember(out, out.next, newmember)
+	}
+}
+
+CopyTemplateArgs : TemplateArgumentList ref in, TemplateArgumentList ref out [nogc]
+{
+	TemplateArgumentList copy = in
+	out = copy
+}
+
+CopyTemplateArgs : nothing, TemplateArgumentList ref out [nogc]
+
+DoBaseTypeInstantiation : list<SumTypeBase> ref bases, list<SumTypeBase> ref out, list<TemplateParameter> ref params, list<TemplateArgument> ref args
+{
+	InstantiateBaseType(bases.value, out, params, args)
+	DoBaseTypeInstantiation(bases.next, out, params, args)
+}
+
+DoBaseTypeInstantiation : nothing, list<SumTypeBase> ref out, list<TemplateParameter> ref params, list<TemplateArgument> ref args
+
+
+InstantiateBaseType : SumTypeBase ref in, list<SumTypeBase> ref out, list<TemplateParameter> ref params, list<TemplateArgument> ref args
+{
+	if(in.Name != 0)
+	{
+		integer newtype = MapTemplateType(in.Name, params, args)
+
+		SumTypeBase newbase = newtype, scratchtemplatearglist
+		CopyTemplateArgs(in.TemplateArgs, newbase.TemplateArgs)
+		RemapAllTemplateArguments(newbase.TemplateArgs, params, args)
+		prepend<SumTypeBase>(out, newbase)
+	}
+}
+
+RemapAllTemplateArguments : TemplateArgumentList ref toremap, list<TemplateParameter> ref params, list<TemplateArgument> ref args
+{
+	RemapAllTemplateArguments(toremap.Args, params, args)
+}
+
+RemapAllTemplateArguments : list<TemplateArgument> ref toremap, list<TemplateParameter> ref params, list<TemplateArgument> ref args
+{
+	if(toremap.value.ReplaceWith != 0)
+	{
+		toremap.value.ReplaceWith = MapTemplateType(toremap.value.ReplaceWith, params, args)
+		toremap.value.ReplaceWithString = GetPooledString(toremap.value.ReplaceWith)
+	}
+
+	RemapAllTemplateArguments(toremap.next, params, args)
+}
+
+RemapAllTemplateArguments : nothing, list<TemplateParameter> ref params, list<TemplateArgument> ref args
+
+
+DoFunctionInstantiation : integer basenamemangled, integer defname, integer instancename, list<TemplateParameter> ref params, list<TemplateArgument> ref args, Overload ref overload
+{
+	ContextNode<FunctionDefinition> wrap = nothing
+	boolean found = SearchBinaryTreeForPayload<FunctionDefinition>(GlobalRootNamespace.Functions.RootNode, defname, wrap)
+	assertmsg(found, "Internal error: function definition missing")
+
+	FunctionInstantiationInner(wrap, basenamemangled, defname, instancename, params, args, overload)
+	EnumerateOverloadsAndInstantiate(wrap, defname, args)
+}
+
+EnumerateOverloadsAndInstantiate : FunctionDefinition ref func, integer templatename, list<TemplateArgument> ref args
+{
+	EnumerateOverloadsAndInstantiate(func.Overloads, templatename, args)
+}
+
+FunctionInstantiationInner : FunctionDefinition ref originalfunc, integer basenamemangled, integer defname, integer instancename, list<TemplateParameter> ref params, list<TemplateArgument> ref args, Overload ref outoverload
+{
+	if(!originalfunc.IsTemplate)
+	{
+		print("Function is not template: " ; GetPooledString(defname))
+		assert(false)
+	}
+
+	TemplateInstance inst = defname, instancename, args
+	prepend<TemplateInstance>(TemplateFunctionInstances, inst)
+
+	ContextWrapper<Scope> scopewrap = nothing
+	FunctionDefinition func = basenamemangled, instancename, nothing, nothing, nothing, originalfunc.Overloads, scopewrap, GetPooledString(basenamemangled), 0, false, false, originalfunc.AnonymousReturn
+	prepend<FunctionDefinition>(Functions, func)
+	BinaryTreeCreateOrInsert<FunctionDefinition>(GlobalRootNamespace.Functions, instancename, func)
+
+	Overload selfoverload = instancename, instancename, func
+	prepend<Overload>(func.Overloads, selfoverload)
+
+	AttachContextToOverload(func.Overloads, instancename, func)
+	outoverload.Implementation = func
+
+	list<OptionalCodeBlock> newstack = nothing, nothing
+	CurrentCodeBlockStack = newstack
+
+	DoParameterInstantiation(originalfunc.Params, params, args)
+	DoReturnInstantiation(originalfunc.Return, instancename, originalfunc.AnonymousReturn, params, args)
+
+	// TODO - traverse template and instantiate the following stuff
+	//ParseFunctionTags(namehandle, rawnamehandle)
+
+	IREnterFunction(instancename)
+	OnCodeGenEnterFunctionBody(instancename)
+
+	DoCodeBlockInstantiation(originalfunc.Code, params, args)
+
+	IRExitFunction()
+
+	PushPendingFunctionForInference(func)
+}
+
+
+DoParameterInstantiation : FunctionParams ref params, list<TemplateParameter> ref templateparams, list<TemplateArgument> ref templateargs
+{
+	DoParameterInstantiation(params.Params, templateparams, templateargs)
+}
+
+DoParameterInstantiation : nothing, list<TemplateParameter> ref templateparams, list<TemplateArgument> ref templateargs
+
+DoParameterInstantiation : list<UnresolvedParameter> ref params, list<TemplateParameter> ref templateparams, list<TemplateArgument> ref templateargs
+{
+	integer newtype = MapTemplateType(params.value.TypeNameHandle, templateparams, templateargs)
+	integer resolvedtype = params.value.ResolvedType
+
+	if((resolvedtype & 0x7f000000) == 0x09000000)
+	{
+		resolvedtype = InstantiateFunctionSignature(FunctionSignatures, resolvedtype, templateparams, templateargs)
+		newtype = GetNameOfType(resolvedtype)
+	}
+
+	UnresolvedParameter p = params.value.NameHandle, newtype, resolvedtype, params.value.HasRefTag, params.value.PatternMatchValue, nothing
+	PropagateTemplateArgsForParameter(p, params.value.TemplateArgs, templateparams, templateargs)
+
+	AppendUnresolvedParameterToFunction(Functions.value, Functions.value.Params, p)
+
+	DoParameterInstantiation(params.next, templateparams, templateargs)
+}
+
+InstantiateFunctionSignature : list<FunctionSignature> ref sigs, integer targettype, list<TemplateParameter> ref templateparams, list<TemplateArgument> ref templateargs -> integer ret = 0
+{
+	if(sigs.value.Name == targettype)
+	{
+		FunctionSignature clone = sigs.value
+		clone.ReturnTypeName = MapTemplateType(clone.ReturnTypeName, templateparams, templateargs)
+		RemapSignatureParamTypes(clone.Parameters, templateparams, templateargs)
+
+		ret = FindOrCreateFunctionSignatureType(clone)
+	}
+	else
+	{
+		ret = InstantiateFunctionSignature(sigs.next, targettype, templateparams, templateargs)
+	}
+}
+
+RemapSignatureParamTypes : list<Parameter> ref parameters, list<TemplateParameter> ref templateparams, list<TemplateArgument> ref templateargs
+{
+	if(parameters.value.Name != 0)
+	{
+		parameters.value.Type = MapTemplateType(parameters.value.Type, templateparams, templateargs)
+	}
+	
+	RemapSignatureParamTypes(parameters.next, templateparams, templateargs)
+}
+
+RemapSignatureParamTypes : nothing, list<TemplateParameter> ref templateparams, list<TemplateArgument> ref templateargs
+
+
+PropagateTemplateArgsForParameter : UnresolvedParameter ref p, TemplateArgumentList ref check, list<TemplateParameter> ref params, list<TemplateArgument> ref args [nogc]
+{
+	TemplateArgumentList copy = check
+	RemapAllTemplateArguments(copy, params, args)
+	p.TemplateArgs = copy
+}
+
+PropagateTemplateArgsForParameter : UnresolvedParameter ref p, nothing, list<TemplateParameter> ref params, list<TemplateArgument> ref args [nogc]
+
+
+DoReturnInstantiation : Expression ref retexpr, integer funcname, boolean anonymous, list<TemplateParameter> ref templateparams, list<TemplateArgument> ref templateargs
+{
+	OnCodeGenEnterFunctionReturn(funcname, anonymous)
+	InstantiateExpression(retexpr, true, templateparams, templateargs)
+	OnCodeGenExitContext()
+}
+
+DoReturnInstantiation : nothing, integer funcname, boolean anonymous, list<TemplateParameter> ref templateparams, list<TemplateArgument> ref templateargs
+
+
+MapTemplateType : integer typenamehandle, list<TemplateParameter> ref templateparams, list<TemplateArgument> ref templateargs -> integer newtypename = typenamehandle [nogc]
+{
+	if(templateparams.value.ParamName == typenamehandle)
+	{
+		newtypename = templateargs.value.ReplaceWith
+	}
+	else
+	{
+		newtypename = MapTemplateType(typenamehandle, templateparams.next, templateargs.next)
+	}
+}
+
+MapTemplateType : integer typenamehandle, nothing, nothing -> typenamehandle [nogc]
+
+
+MangleTemplateNameByHandle : integer defname, nothing -> integer mangled = defname [nogc]
+
+MangleTemplateNameByHandle : integer defname, TemplateArgumentList ref args -> integer mangled = PoolString(MangleTemplateName(defname, args.Args)) [nogc]
+
+
+MangleTemplateName : integer defname, list<TemplateArgument> ref args -> string mangled = GetPooledString(defname) ; "@@templateinst@" [nogc]
+{
+	mangled = mangled ; MangleTemplateArguments(args)
+}
+
+MangleTemplateArguments : list<TemplateArgument> ref args -> string mangled = args.value.ReplaceWithString [nogc]
+{
+	mangled = mangled ; MangleTemplateArguments(args.next)
+}
+
+MangleTemplateArguments : nothing -> "" [nogc]
+
+
+InstantiateStructureTemplate : integer defname, TemplateArgumentList ref args -> integer instancename = InstantiateStructureTemplate(defname, args.Args)
+
+InstantiateStructureTemplate : integer defname, nothing -> integer instancename = 0
+
+InstantiateStructureTemplate : integer defname, list<TemplateArgument> ref args -> integer instancename = 0
+{
+	integer existing = FindExistingTemplateInstance(TemplateStructureInstances, defname, args)
+	if(existing != 0)
+	{
+		instancename = existing
+		return()
+	}
+
+	instancename = FindStructureTemplateAndInstantiate(TemplateStructures, defname, args)
+}
+
+
+InstantiateStructureTemplateFast : integer defname, TemplateArgumentList ref args -> integer instancename = InstantiateStructureTemplateFast(defname, args.Args)
+
+InstantiateStructureTemplateFast : integer defname, nothing -> integer instancename = 0
+
+InstantiateStructureTemplateFast : integer defname, list<TemplateArgument> ref args -> integer instancename = 0
+{
+	instancename = FindStructureTemplateAndInstantiate(TemplateStructures, defname, args)
+}
+
+
+FindExistingTemplateInstance : list<TemplateInstance> ref instances, integer defname, list<TemplateArgument> ref args -> integer instancename = 0 [nogc]
+{
+	if(instances.value.DefName == defname)
+	{
+		if(TemplateArgumentsMatch(instances.value.Arguments, args))
+		{
+			instancename = instances.value.InstanceName
+			return()
+		}
+	}
+
+	instancename = FindExistingTemplateInstance(instances.next, defname, args)
+}
+
+FindExistingTemplateInstance : nothing, integer defname, list<TemplateArgument> ref args -> 0 [nogc]
+
+
+
+TemplateArgumentsMatch : list<TemplateArgument> ref a, list<TemplateArgument> ref b -> boolean match = true [nogc]
+{
+	if(a.value.ReplaceWith != b.value.ReplaceWith)
+	{
+		match = false
+	}
+	else
+	{
+		match = TemplateArgumentsMatch(a.next, b.next)
+	}
+}
+
+TemplateArgumentsMatch : nothing, list<TemplateArgument> ref b -> false [nogc]
+TemplateArgumentsMatch : list<TemplateArgument> ref a, nothing -> false [nogc]
+TemplateArgumentsMatch : nothing, nothing -> true [nogc]
+
+
+
+InstantiateExpression : Expression ref expr, boolean inret, list<TemplateParameter> ref templateparams, list<TemplateArgument> ref templateargs
+{
+	InstantiateAtoms(expr.Atoms, inret, templateparams, templateargs)
+}
+
+InstantiateExpression : nothing, boolean inret, list<TemplateParameter> ref templateparams, list<TemplateArgument> ref templateargs
+
+InstantiateAtoms : list<ExpressionAtom> ref atoms, boolean inret, list<TemplateParameter> ref templateparams, list<TemplateArgument> ref templateargs
+{
+	InstantiateSingleAtom(atoms.value, inret, templateparams, templateargs)
+	InstantiateAtoms(atoms.next, inret, templateparams, templateargs)
+}
+
+InstantiateAtoms : nothing, boolean inret, list<TemplateParameter> ref templateparams, list<TemplateArgument> ref templateargs
+
+
+
+// TODO - support ALL atom types (parenthetical should be the only one left)
+InstantiateSingleAtom : IdentifierAtom ref atom, boolean inret, list<TemplateParameter> ref templateparams, list<TemplateArgument> ref templateargs
+{
+	OnCodeGenRegisterAtomIdentifier(atom.Handle, 0)
+}
+
+InstantiateSingleAtom : OperatorInvokeAtom ref atom, boolean inret, list<TemplateParameter> ref templateparams, list<TemplateArgument> ref templateargs
+{
+	OnCodeGenRegisterOperatorInvoke(atom.OperatorName)
+}
+
+InstantiateSingleAtom : Statement ref atom, boolean inret, list<TemplateParameter> ref templateparams, list<TemplateArgument> ref templateargs
+{
+	integer statementname = MapTemplateType(atom.Name, templateparams, templateargs)
+
+	OnCodeGenEnterSubStatement()
+	InstantiateStatement(statementname, inret, atom.TemplateArgs, templateparams, templateargs)
+
+	InstantiateExpressionList(atom.Parameters, false, templateparams, templateargs, 0)
+
+	IRExitStatement()
+	IRExitStatement()
+}
+
+
+InstantiateSingleAtom : AtomSentinel ref atom, boolean inret, list<TemplateParameter> ref templateparams, list<TemplateArgument> ref templateargs
+
+InstantiateSingleAtom : boolean ref atom, boolean inret, list<TemplateParameter> ref templateparams, list<TemplateArgument> ref templateargs
+{
+	OnCodeGenRegisterLiteralBoolean(atom)
+}
+
+InstantiateSingleAtom : StringHandleAtom ref atom, boolean inret, list<TemplateParameter> ref templateparams, list<TemplateArgument> ref templateargs
+{
+	OnCodeGenRegisterLiteralString(atom.Handle)
+}
+
+InstantiateSingleAtom : integer ref atom, boolean inret, list<TemplateParameter> ref templateparams, list<TemplateArgument> ref templateargs
+{
+	OnCodeGenRegisterLiteralInteger(atom, 0x01000001)
+}
+
+InstantiateSingleAtom : integer16 ref atom, boolean inret, list<TemplateParameter> ref templateparams, list<TemplateArgument> ref templateargs
+{
+	OnCodeGenRegisterLiteralInteger(cast(integer, atom), 0x01000002)
+}
+
+InstantiateSingleAtom : real ref atom, boolean inret, list<TemplateParameter> ref templateparams, list<TemplateArgument> ref templateargs
+{
+	OnCodeGenRegisterLiteralReal(atom)
+}
+
+
+InstantiateStatement : integer statementname, boolean inret, nothing, list<TemplateParameter> ref templateparams, list<TemplateArgument> ref templateargs
+{
+	OnCodeGenEnterStatement(statementname, 0, inret, false)
+}
+
+InstantiateStatement : integer statementname, boolean inret, TemplateArgumentList ref args, list<TemplateParameter> ref templateparams, list<TemplateArgument> ref templateargs
+{
+	Statement statement = statementname, nothing, 0, args, inret, false
+	PropagateTemplateArgsForStatement(statement, args, templateargs)
+	RemapAllTemplateArguments(statement.TemplateArgs, templateparams, templateargs)
+	OnCodeGenEmplaceStatement(statement)
+}
+
+PropagateTemplateArgsForStatement : Statement ref s, TemplateArgumentList ref check, list<TemplateArgument> ref args
+{
+	TemplateArgumentList wrap = args
+	s.TemplateArgs = wrap
+}
+
+PropagateTemplateArgsForStatement : Statement ref s, nothing, list<TemplateArgument> ref args
+
+
+InstantiateExpressionList : ExpressionList ref exprs, boolean inret, list<TemplateParameter> ref templateparams, list<TemplateArgument> ref templateargs, integer count
+{
+	InstantiateExpressionList(exprs.Expressions, inret, templateparams, templateargs, count)
+}
+
+InstantiateExpressionList : list<Expression> ref exprs, boolean inret, list<TemplateParameter> ref templateparams, list<TemplateArgument> ref templateargs, integer count
+{
+	if(count != 0)
+	{
+		OnCodeGenShiftParameter()
+	}
+
+	InstantiateExpression(exprs.value, inret, templateparams, templateargs)
+	InstantiateExpressionList(exprs.next, inret, templateparams, templateargs, count + 1)
+}
+
+InstantiateExpressionList : nothing, boolean inret, list<TemplateParameter> ref templateparams, list<TemplateArgument> ref templateargs, integer count
+
+
+DoCodeBlockInstantiation : nothing, list<TemplateParameter> ref templateparams, list<TemplateArgument> ref templateargs
+
+DoCodeBlockInstantiation : CodeBlock ref code, list<TemplateParameter> ref templateparams, list<TemplateArgument> ref templateargs
+{
+	InstantiateCodeBlockEntries(code.Entries, templateparams, templateargs)
+}
+
+InstantiateCodeBlockEntries : list<CodeBlockEntry> ref entries, list<TemplateParameter> ref templateparams, list<TemplateArgument> ref templateargs
+{
+	InstantiateCodeBlockEntry(entries.value, templateparams, templateargs)
+	InstantiateCodeBlockEntries(entries.next, templateparams, templateargs)
+}
+
+InstantiateCodeBlockEntries : nothing, list<TemplateParameter> ref templateparams, list<TemplateArgument> ref templateargs
+
+
+
+// TODO - support all code block entry types
+InstantiateCodeBlockEntry : Statement ref s, list<TemplateParameter> ref templateparams, list<TemplateArgument> ref templateargs
+{
+	InstantiateStatement(s.Name, true, s.TemplateArgs, templateparams, templateargs)
+	InstantiateExpressionList(s.Parameters, false, templateparams, templateargs, 0)
+
+	IRExitStatement()
+}
+
+InstantiateCodeBlockEntry : Assignment ref a, list<TemplateParameter> ref templateparams, list<TemplateArgument> ref templateargs
+{
+	// TODO - chained assignment support
+
+	OnCodeGenEnterAssignment(a.Operator, a.LHSName, 0, 0)
+	InstantiateExpression(a.RHS, false, templateparams, templateargs)
+	OnCodeGenExitContext()
+}
+
+InstantiateCodeBlockEntry : AssignmentCompound ref a, list<TemplateParameter> ref templateparams, list<TemplateArgument> ref templateargs
+{
+	// TODO - chained assignment support
+
+	OnCodeGenEnterAssignmentCompound(a.Operator, a.LHS.value, 0, 0)
+	InstantiateCompoundAssignmentLHS(a.LHS.next)
+	OnCodeGenAssignmentCompoundEnd()
+
+	InstantiateExpression(a.RHS, false, templateparams, templateargs)
+	OnCodeGenExitContext()
+}
+
+InstantiateCompoundAssignmentLHS : simplelist<integer> ref lhs
+{
+	FindCurrentFunctionAndAppendCompoundMember(lhs.value)
+	InstantiateCompoundAssignmentLHS(lhs.next)
+}
+
+InstantiateCompoundAssignmentLHS : nothing
+
+
+InstantiateCodeBlockEntry : EntityChain ref chain, list<TemplateParameter> ref templateparams, list<TemplateArgument> ref templateargs
+{
+	OnCodeGenEnterChain()
+	InstantiateEntityChainEntries(chain.Entries, templateparams, templateargs)
+	OnCodeGenExitContext()
+}
+
+InstantiateEntityChainEntries : EntityList ref entities, list<TemplateParameter> ref templateparams, list<TemplateArgument> ref templateargs
+{
+	InstantiateEntityChainEntries(entities.ActualList, templateparams, templateargs)
+}
+
+InstantiateEntityChainEntries : list<Entity> ref entities, list<TemplateParameter> ref templateparams, list<TemplateArgument> ref templateargs
+{
+	OnCodeGenEnterEntity(entities.value.Tag, entities.value.PostfixTag)
+	InstantiateExpression(entities.value.Param, false, templateparams, templateargs)
+	OnCodeGenEnterEntityCode()
+	DoCodeBlockInstantiation(entities.value.Code, templateparams, templateargs)
+	OnCodeGenExitContext()
+	OnCodeGenExitContext()
+
+	InstantiateEntityChainEntries(entities.next, templateparams, templateargs)
+}
+
+InstantiateEntityChainEntries : nothing, list<TemplateParameter> ref templateparams, list<TemplateArgument> ref templateargs
+
+
+
+SetStructureToTemplate : integer name
+{
+	ContextNode<StructureDefinition> wrap = nothing
+	boolean found = SearchBinaryTreeForPayload<StructureDefinition>(GlobalRootNamespace.Structures.RootNode, name, wrap)
+	assert(found)
+
+	SetStructureToTemplate(wrap)
+}
+
+SetStructureToTemplate : StructureDefinition ref struct
+{
+	struct.IsTemplate = true
+
+	CreateStructureTemplateAndAttachParams(struct.Name, TemplateParameterQueue)
+
+	// Reset template parameter queue
+	list<TemplateParameter> dummylist = scratchtemplateparam, nothing
+	TemplateParameterQueue = dummylist
+}
+
+

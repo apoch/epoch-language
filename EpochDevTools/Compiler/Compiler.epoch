@@ -1,0 +1,276 @@
+//
+// The Epoch Language Project
+// Epoch Development Tools - Compiler Core
+//
+// COMPILER.EPOCH
+// Entry point and command line parsing logic
+//
+
+
+//
+// External helpers, linked from the Epoch runtime
+//
+
+ExecuteByteCodeBuffer : buffer ref code, integer len [external("EpochRuntime.dll", "ExecuteByteCodeDeferred", "stdcall")]
+
+
+
+//
+// Compiler entry point
+//
+entrypoint :
+{
+	print("Epoch Language Project")
+	print("Command line compiler and tools interface")
+	print("")
+	
+	if(!cmdlineisvalid())
+	{
+		print("Invalid command line provided.")
+		return()
+	}
+	
+	if(cmdlinegetcount() < 2)
+	{
+		print("Please specify the program or project to compile.")
+		return()
+	}
+
+	integer cmdlineindex = 1
+	while(cmdlineindex < cmdlinegetcount())
+	{
+		string filename = cmdlineget(cmdlineindex)
+		if((length(filename) > 5) && (substring(filename, length(filename) - 5) == ".eprj"))
+		{
+			print("Building: " ; filename)
+			print("")
+
+			PrepareStringTable()
+			InitBuiltInOverloads()
+
+			ChangeToPath(filename)
+			CompileProject(filename)
+		}
+		else
+		{
+			print("Executing: " ; filename)
+			print("")
+
+			buffer codebuffer = 1024000
+			BytecodeStream codestream = codebuffer, 0
+			
+			PrepareStringTable()
+			InitBuiltInOverloads()
+
+			if(CompileFile(filename, codestream))
+			{
+				ExecuteByteCodeBuffer(codestream.Buffer, codestream.Offset)
+			}
+		}
+		
+		++cmdlineindex
+	}
+}
+
+
+//
+// Load the given project file (.eprj) and compile
+// all of the code referenced by it.
+//
+CompileProject : string filename
+{	
+	integer projectStartMs = timeGetTime()
+
+	simplelist<string> emptysourcefilelist = "", nothing
+	simplelist<string> emptyresourcefilelist = "", nothing
+	EpochProject project = "", "project.exe", emptysourcefilelist, emptyresourcefilelist, false
+
+	ParseProjectFile(filename, project)
+
+	print("Parsing source code...")
+	integer startMs = timeGetTime()
+	boolean parseok = ProjectParseAllCode(project.SourceFiles)
+	integer endMs = timeGetTime()
+	print("Parsing completed in " ; cast(string, endMs - startMs) ; " milliseconds")
+	
+	if(!parseok)
+	{
+		integer projectEndMs = timeGetTime()
+		print("Building failed in " ; cast(string, projectEndMs - projectStartMs) ; " milliseconds")
+		
+		return()
+	}
+	
+
+	print("Performing semantic analysis...")
+	startMs = timeGetTime()
+	boolean irok = IRProcess()
+	endMs = timeGetTime()
+	print("Semantic analysis completed in " ; cast(string, endMs - startMs) ; " milliseconds")
+	
+	if(!irok)
+	{
+		integer projectEndMs = timeGetTime()
+		print("Building failed in " ; cast(string, projectEndMs - projectStartMs) ; " milliseconds")
+		
+		return()
+	}
+
+	print("Generating code...")
+
+	buffer streambuffer = 8192000
+	BytecodeStream stream = streambuffer, 0
+
+	startMs = timeGetTime()
+	OnCodeGenProcessProgram(stream)
+	endMs = timeGetTime()
+	print("Code generation completed in " ; cast(string, endMs - startMs) ; " milliseconds")
+	
+	print("Writing executable file...")
+	MakeExe(project)
+
+	integer projectEndMs = timeGetTime()
+	print("Building succeeded in " ; cast(string, projectEndMs - projectStartMs) ; " milliseconds")
+		
+}
+
+//
+// Helper for traversing the list of files in a project
+// and passing each in turn to the Epoch parser
+//
+ProjectParseAllCode : simplelist<string> ref files -> boolean success = true
+{
+	if(files.value != "")
+	{
+		print(files.value)
+		if(!ParseFile(files.value))
+		{
+			success = false
+		}
+	}
+	
+	if(!ProjectParseAllCode(files.next))
+	{
+		success = false
+	}
+}
+
+ProjectParseAllCode : nothing -> true
+
+
+//
+// Wrapper for loading and parsing a code file
+//
+ParseFile : string filename -> boolean success = false
+{
+	integer len = 0
+	string contents = ReadFile(filename, len)
+
+	if(len == 0)
+	{
+		return()
+	}
+	
+	success = Parse(filename, contents, len, PrintWrapper)
+}
+
+
+//
+// Helper for compiling a single-file program
+//
+CompileFile : string filename, BytecodeStream ref codestream -> boolean success = false
+{
+	integer len = 0
+	string contents = ReadFile(filename, len)
+
+	if(len == 0)
+	{
+		return()
+	}
+
+	integer startparsems = timeGetTime()
+	boolean parseok = Parse(filename, contents, len, PrintWrapper)
+	integer durationparsems = timeGetTime() - startparsems
+
+	print("Parsing completed in " ; cast(string, durationparsems) ; " milliseconds")
+	if(!parseok)
+	{
+		return()
+	}
+
+	integer startprocessms = timeGetTime()
+	boolean irok = IRProcess()
+	integer durationprocessms = timeGetTime() - startprocessms
+
+	print("Semantic analysis completed in " ; cast(string, durationprocessms) ; " milliseconds")
+	if(!irok)
+	{
+		return()
+	}
+
+	integer startcodegenms = timeGetTime()
+	OnCodeGenProcessProgram(codestream)
+	integer durationcodegenms = timeGetTime() - startcodegenms
+
+	print("Code generation completed in " ; cast(string, durationcodegenms) ; " milliseconds")
+	print("")
+
+	success = true
+}
+
+
+//
+// Source lookup table stubs
+//
+// These are just here to keep the parser happy, since it assumes
+// someone wants callbacks whenever a symbol is registered during
+// the parsing of a program. Right now, the compiler does not use
+// this metadata, so these functions do nothing.
+//
+
+SourceLookupTableAddStrongAlias : integer id, string name, ParsedToken ref token
+SourceLookupTableAddStructure : integer id, string name, ParsedToken ref token
+SourceLookupTableAddSumType : integer id, string name, ParsedToken ref token
+SourceLookupTableAddWeakAlias : integer id, string name, ParsedToken ref token
+SourceLookupTableAddFunction : integer id, string name, ParsedToken ref token
+
+
+//
+// General utility functions
+//
+
+
+//
+// print() currently is not wired up for passing to higher-order
+// functions, so we use this stupid wrapper instead. Someday the
+// compiler should be updated to allow print() to be passed like
+// any other function.
+//
+PrintWrapper : string line
+{
+	print(line)
+}
+
+
+//
+// Change the working directory to the path in which the given
+// file resides, if a path is provided. Otherwise do nothing.
+//
+ChangeToPath : string filename
+{
+	if(!stringcontains(filename, "\"))
+	{
+		return()
+	}
+	
+	integer pos = length(filename) - 1
+	while(charat(filename, pos) != "\")
+	{
+		--pos
+	}
+	
+	string path = substring(filename, 0, pos)
+	SetCurrentDirectory(path)
+}
+
+

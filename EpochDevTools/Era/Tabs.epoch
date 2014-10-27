@@ -1,0 +1,477 @@
+//
+// The Epoch Language Project
+// Epoch Development Tools - Era Integrated Development Environment
+//
+// TABS.EPOCH
+// Infrastructure and support logic for document tabs
+//
+
+
+//
+// Data structures
+//
+
+structure OpenTab :
+	integer ContentsType,
+	integer ContentsHWND,
+	string FileName,
+	string TabTitle
+	
+	
+
+
+CountTabs : list<OpenTab> ref tabs -> integer ret = 0
+{
+	if(tabs.value.ContentsType != TAB_TYPE_SENTINEL)
+	{
+		++ret
+	}
+
+	ret += CountTabs(tabs.next)
+}
+
+CountTabs : nothing -> 0
+
+
+CreateEditorTab : integer parenthwnd, string filename -> integer editorhwnd = 0
+{
+	editorhwnd = CreateWindowEx(0, "Scintilla", "", 0x52810000, 0, 0, 600, 600, parenthwnd, WNDID_TAB_START + CountTabs(CurrentTabs), GetHInstance(), 0)
+	SetScintillaFont(editorhwnd, "Consolas", 10)
+	SetScintillaLexer(editorhwnd)
+	ScintillaSetTabWidth(editorhwnd, 4)
+	ScintillaColorize(editorhwnd)
+
+	OpenTab tab = TAB_TYPE_EDITOR, editorhwnd, filename, TrimFilePath(filename)
+
+	if(length(filename) == 0)
+	{
+		tab.TabTitle = "(Untitled)"
+	}
+	else
+	{
+		Open(parenthwnd, editorhwnd, filename)
+	}
+	
+	AppendTab(CurrentTabs, CurrentTabs.next, tab, 0)
+	SetFocus(editorhwnd)
+}
+
+
+
+AppendTab : list<OpenTab> ref tabs, list<OpenTab> ref tail, OpenTab ref tab, integer counter
+{
+	if(tabs.value.ContentsType == TAB_TYPE_SENTINEL)
+	{
+		tabs.value = tab
+		SetActiveTab(counter)
+	}
+	else
+	{
+		++counter
+		AppendTab(tail, tail.next, tab, counter)
+	}
+}
+
+AppendTab : list<OpenTab> ref tabs, nothing, OpenTab ref tab, integer counter
+{
+	if(tabs.value.ContentsType == TAB_TYPE_SENTINEL)
+	{
+		tabs.value = tab
+		SetActiveTab(counter)
+	}
+	else
+	{
+		list<OpenTab> newlist = tab, nothing
+		tabs.next = newlist
+		SetActiveTab(counter + 1)
+	}
+}
+
+
+
+SetActiveTab : integer counter
+{
+	if(counter < 0)
+	{
+		counter = 0
+	}
+	elseif(counter > (CountTabs(CurrentTabs) - 1))
+	{
+		counter = 0
+	}
+	
+	ActiveTabIndex = counter
+	ShowOnlyTab(CurrentTabs, counter)
+}
+
+ShowOnlyTab : list<OpenTab> ref tabs, integer counter
+{
+	if(counter == 0)
+	{
+		ShowWindow(tabs.value.ContentsHWND, SW_SHOW)
+		SendMessage(GetParent(tabs.value.ContentsHWND), WM_SIZE, 0, 0)
+		SetFocus(tabs.value.ContentsHWND)
+		ShowOnlyTab(tabs.next, -1)
+	}
+	else
+	{
+		ShowWindow(tabs.value.ContentsHWND, SW_HIDE)
+		ShowOnlyTab(tabs.next, counter - 1)
+	}
+}
+
+ShowOnlyTab : nothing, integer counter
+
+
+
+DrawTabList : list<OpenTab> ref tabs, Rect ref client, integer left, integer hdc, integer counter
+{
+	if(tabs.value.ContentsType != TAB_TYPE_SENTINEL)
+	{
+		left = DrawTab(tabs.value, client, left, hdc, counter)
+
+		simple_append<integer>(TabEdges, left)
+	}
+	
+	DrawTabList(tabs.next, client, left, hdc, counter + 1)
+}
+
+DrawTabList : nothing, Rect ref client, integer left, integer hdc, integer counter
+
+
+DrawTab : OpenTab ref thetab, Rect ref client, integer left, integer hdc, integer index -> integer right = 0
+{
+	if((index != ActiveTabIndex) && (index != HighlightTabIndex))
+	{
+		SetTextColor(hdc, 0xe0e0e0)
+	}
+	else
+	{
+		SetTextColor(hdc, 0)
+	}
+
+	SelectObject(hdc, FontUIDefault)
+
+	integer BDR_RAISED = 0x5
+	integer BDR_RAISEDOUTER = 0x4
+	integer BF_RECT = 0xf
+	integer BF_FLAT = 0x4000
+
+	Rect tab = left, client.top, left + 400, client.top + 28
+
+	Rect textsize = 0, 0, 5000, 5000
+	DrawText(hdc, thetab.TabTitle, -1, textsize, 0x420)
+
+	tab.right = tab.left + (textsize.right - textsize.left) + 26
+
+	if(index == ActiveTabIndex)
+	{
+		FillRect(hdc, tab, BrushActiveTab)
+		DrawEdge(hdc, tab, BDR_RAISED, BF_RECT + BF_FLAT)
+	}
+	elseif(index == HighlightTabIndex)
+	{
+		FillRect(hdc, tab, BrushActiveTab)
+		DrawEdge(hdc, tab, BDR_RAISEDOUTER, BF_RECT + BF_FLAT)
+	}
+	else
+	{
+		FillRect(hdc, tab, BrushBackground)
+	}
+	
+	right = tab.right
+
+	tab.top = tab.top + 3
+	tab.left = tab.left + 4
+	tab.bottom = tab.bottom - 3
+	tab.right = tab.right - 3
+
+	DrawText(hdc, thetab.TabTitle, -1, tab, 0x24)
+
+	Rect xarea = tab.right - 20, tab.top, tab.right, tab.bottom
+	
+	SelectObject(hdc, FontUIMarlett)
+	
+	if((index != ActiveTabIndex) && (index != HighlightTabIndex))
+	{
+		SetTextColor(hdc, 0xb0b0b0)
+	}
+	
+	DrawText(hdc, "r", -1, xarea, 0x26)
+}
+
+GetActiveEditorHwnd : -> integer hwnd = 0
+{
+	if(CountTabs(CurrentTabs) > 0)
+	{
+		OpenTab tab = 0, 0, "", ""
+		FindTabAtIndex(CurrentTabs, ActiveTabIndex, tab)
+		hwnd = tab.ContentsHWND
+	}
+}
+
+GetActiveEditorChildCode : -> WNDID_TAB_START + ActiveTabIndex
+
+
+
+GetActiveEditorFileName : -> string filename = ""
+{
+	if(CountTabs(CurrentTabs) > 0)
+	{
+		OpenTab tab = 0, 0, "", ""
+		FindTabAtIndex(CurrentTabs, ActiveTabIndex, tab)
+		filename = tab.FileName
+	}
+}
+
+
+FindTabAtIndex : list<OpenTab> ref tabs, integer offset, OpenTab ref out
+{
+	if(offset == 0)
+	{
+		out = tabs.value
+		return()
+	}
+	
+	FindTabAtIndex(tabs.next, offset - 1, out)
+}
+
+SetActiveTabInfo : string filename, string tabtitle
+{
+	FindTabAndSetInfo(CurrentTabs, ActiveTabIndex, filename, tabtitle)
+}
+
+FindTabAndSetInfo : list<OpenTab> ref tabs, integer offset, string filename, string tabtitle
+{
+	if(offset == 0)
+	{
+		tabs.value.FileName = filename
+		tabs.value.TabTitle = tabtitle
+		return()
+	}
+	
+	FindTabAndSetInfo(tabs.next, offset - 1, filename, tabtitle)
+}
+
+TestForMouseOverTab : simplelist<integer> ref edges, integer xcoord -> integer tabindex = WalkEdgeListForActiveTab(edges, xcoord, 0)
+
+WalkEdgeListForActiveTab : simplelist<integer> ref edges, integer xcoord, integer index -> integer active = -1
+{
+	if(xcoord < edges.value)
+	{
+		active = index - 1
+	}
+	else
+	{
+		active = WalkEdgeListForActiveTab(edges.next, xcoord, index + 1)
+	}
+}
+
+WalkEdgeListForActiveTab : nothing, integer xcoord, integer index -> -1
+
+
+TestForMouseOverTabClose : simplelist<integer> ref edges, integer xcoord -> boolean overclose = WalkEdgeListForCloseButton(edges, edges.next, xcoord)
+
+WalkEdgeListForCloseButton : simplelist<integer> ref edges, simplelist<integer> ref nextedge, integer xcoord -> boolean overclose = false
+{
+	if(xcoord < nextedge.value)
+	{
+		integer closeleft = nextedge.value - 20
+		if(xcoord > closeleft)
+		{
+			overclose = true
+		}
+	}
+	else
+	{
+		overclose = WalkEdgeListForCloseButton(nextedge, nextedge.next, xcoord)
+	}
+}
+
+WalkEdgeListForCloseButton : nothing, nothing, integer xcoord -> false
+WalkEdgeListForCloseButton : simplelist<integer> ref edges, nothing, integer xcoord -> false
+
+
+CloseTab : integer tabindex
+{
+	WalkTabsToClose(CurrentTabs, CurrentTabs.next, tabindex, tabindex)
+}
+
+WalkTabsToClose : list<OpenTab> ref tabs, list<OpenTab> ref tail, integer tabindex, integer closingtab
+{
+	if(tabindex == 0)
+	{
+		// TODO - prompt for save if dirty
+		
+		DestroyWindow(tabs.value.ContentsHWND)
+		tabs.value = tail.value
+		tabs.next = tail.next
+
+		if(closingtab < ActiveTabIndex)
+		{
+			SetActiveTab(ActiveTabIndex - 1)
+		}
+		elseif(closingtab == ActiveTabIndex)
+		{
+			if(AnySubsequentTabIsNonSentinel(tabs.next))
+			{
+				SetActiveTab(closingtab)
+			}
+			else
+			{
+				SetActiveTab(closingtab - 1)
+			}
+		}
+	}
+	else
+	{
+		WalkTabsToClose(tail, tail.next, tabindex - 1, closingtab)
+	}
+}
+
+WalkTabsToClose : list<OpenTab> ref tabs, nothing, integer tabindex, integer closingtab
+{
+	if(tabindex == 0)
+	{
+		// TODO - prompt for save if dirty
+		
+		DestroyWindow(tabs.value.ContentsHWND)
+		tabs.value = SentinelTab
+
+		if(closingtab == ActiveTabIndex)
+		{
+			if(closingtab > 0)
+			{
+				SetActiveTab(closingtab - 1)
+			}
+			else
+			{
+				SetActiveTab(-1)
+			}
+		}
+	}
+}
+
+GetDirtyTabs : list<OpenTab> ref tabs, list<OpenTab> ref dirtytabs -> boolean anydirty = false
+{
+	if(GetScintillaDirty(tabs.value.ContentsHWND))
+	{
+		prepend<OpenTab>(dirtytabs, tabs.value)
+		anydirty = true
+	}
+
+	if(GetDirtyTabs(tabs.next, dirtytabs))
+	{
+		anydirty = true
+	}
+}
+
+GetDirtyTabs : nothing, list<OpenTab> ref out -> false
+
+
+CheckForDirtyTabsAndExit : integer hwnd
+{
+	OpenTab sentineltab = TAB_TYPE_SENTINEL, 0, "", ""
+	list<OpenTab> dirtytabs = sentineltab, nothing
+	
+	if(GetDirtyTabs(CurrentTabs, dirtytabs))
+	{
+		PromptToSaveAndExit(hwnd, dirtytabs)
+	}
+	else
+	{
+		DestroyWindow(hwnd)
+	}
+}
+
+DestroyTabs : list<OpenTab> ref tabs
+{
+	DestroyWindow(tabs.value.ContentsHWND)
+	DestroyTabs(tabs.next)
+}
+
+DestroyTabs : nothing
+
+
+CreateEditorTabs : integer hwnd, simplelist<string> ref filenames -> integer filecount = 0
+{
+	if(filenames.value != "")
+	{
+		CreateEditorTab(hwnd, filenames.value)
+		filecount = 1
+	}
+	
+	filecount += CreateEditorTabs(hwnd, filenames.next)
+}
+
+CreateEditorTabs : integer hwnd, nothing -> 0
+
+
+
+FindTabWithOptions : list<OpenTab> ref tabs -> integer index = WalkTabsToFindOptions(tabs, 0)
+
+WalkTabsToFindOptions : list<OpenTab> ref tabs, integer index -> integer retindex = index
+{
+	if(tabs.value.ContentsType == TAB_TYPE_OPTIONS)
+	{
+		return()
+	}
+	
+	retindex = WalkTabsToFindOptions(tabs.next, index + 1)
+}
+
+WalkTabsToFindOptions : nothing, integer index -> -1
+
+
+
+FindTabWithDocument : list<OpenTab> ref tabs, string docfilename -> integer index = WalkTabsToFindOpenDocument(tabs, docfilename, 0)
+
+WalkTabsToFindOpenDocument : list<OpenTab> ref tabs, string docfilename, integer index -> integer retindex = index
+{
+	if(tabs.value.FileName == docfilename)
+	{
+		return()
+	}
+	
+	retindex = WalkTabsToFindOpenDocument(tabs.next, docfilename, index + 1)
+}
+
+WalkTabsToFindOpenDocument : nothing, string docfilename, integer index -> -1
+
+IsNonSentinelTab : nothing -> false
+IsNonSentinelTab : list<OpenTab> ref tabs -> boolean ret = false
+{
+	if(tabs.value.ContentsType != TAB_TYPE_SENTINEL)
+	{
+		ret = true
+	}
+}
+
+
+AnySubsequentTabIsNonSentinel : list<OpenTab> ref tabs -> boolean ret = false
+{
+	if(IsNonSentinelTab(tabs))
+	{
+		ret = true
+	}
+	else
+	{
+		ret = AnySubsequentTabIsNonSentinel(tabs.next)
+	}
+}
+
+AnySubsequentTabIsNonSentinel : nothing -> false
+
+
+CycleTabs :
+{
+	++ActiveTabIndex
+	if(!(ActiveTabIndex < CountTabs(CurrentTabs)))
+	{
+		ActiveTabIndex = 0
+	}
+	
+	SetActiveTab(ActiveTabIndex)
+}
+
+

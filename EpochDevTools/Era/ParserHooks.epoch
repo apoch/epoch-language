@@ -1,0 +1,254 @@
+
+
+structure TemplateArgument :
+	integer ReplaceWith,
+	string ReplaceWithString
+
+structure TemplateArgumentList :
+	list<TemplateArgument> ref Args
+
+
+
+
+RegisterLiteralFunctionParam : integer ignored
+RegisterLiteralFunctionParam : real ignored
+
+
+OnCodeGenRegisterFunctionTag : integer funcname, string tag, integer rawfuncname
+OnCodeGenRegisterFunctionTagParam : integer funcname, string tag, string param
+
+
+OnCodeGenPreparePreOpStatement : integer operator, integer operand
+OnCodeGenPreparePreOpCompoundOperand : integer operand
+OnCodeGenAddPreOpCompoundOperand : integer operand
+OnCodeGenCompletePreOpStatement : boolean substatement
+
+OnCodeGenRegisterPostOpStatement : integer operator, integer operand
+OnCodeGenAddPostOpCompoundOperand : integer operand
+OnCodeGenCompletePostOpStatement : boolean substatement
+
+OnCodeGenEnterEntity : integer ignored, integer ignored2
+OnCodeGenEnterEntityCode : {}
+
+OnCodeGenEnterChain : {}
+
+OnCodeGenRegisterParenthetical : {}
+
+OnCodeGenEnterSubStatement : {}
+
+OnCodeGenShiftParameter : {}
+
+OnCodeGenEnterAssignment : integer ignored1, integer ignored2, integer ignored3, integer ignored4
+OnCodeGenEnterAssignmentCompound : integer ignored1, integer ignored2, integer ignored3, integer ignored4
+OnCodeGenAssignmentCompoundEnd : {}
+OnCodeGenChainAssignment : integer ignored1, integer ignored2, integer ignored3, integer ignored4
+OnCodeGenChainAssignmentCompound : integer ignored1, integer ignored2, integer ignored3, integer ignored4
+
+OnCodeGenEnterFunctionReturn : integer namehandle, boolean ignored
+
+
+OnCodeGenRegisterFunction : integer name, integer raw, string namestr, boolean templated
+OnCodeGenEnterFunctionBody : integer name
+
+
+OnCodeGenExitContext : {}
+
+
+
+OnCodeGenRegisterStructureMemVar : integer structurename, integer structuretype, integer membername, integer membertype, boolean isref, boolean templated
+
+OnCodeGenRegisterStructureMemFuncSig : integer structurename, integer structuretype, integer memfuncname, integer returntype
+OnCodeGenRegisterStructureMemFuncSigParamList : integer structurename, integer structuretype, integer memfuncname, simplelist<integer> ref paramtypes
+
+
+IRAddOperator : string op
+IRAddLiteralBoolean : boolean lit
+IRAddLiteralInteger : integer lit
+IRAddLiteralReal : real lit
+IRAddLiteralString : string lit
+IRAddLiteralIdentifier : string lit
+
+IREnterStatement : string n, boolean s, boolean t
+IRExitStatement : {}
+
+IRRegisterFunctionParam : integer name, integer typeid, boolean isref, boolean istemplated
+IRRegisterUnresolvedParameter : string name, integer typeid
+
+IREnterFunction : integer name
+IRExitFunction : {}
+
+IRSetupPatternMatching : integer raw, integer mangled
+
+
+
+IRRegisterTemplateParameter : integer typeid, integer name
+
+
+
+RegisterOverloadForFunction : string rawname, integer rawnamehandle -> 0
+
+
+FindCurrentFunctionAndAppendCompoundMember : integer ignored
+FindCurrentFunctionAndChainCompoundMember : integer ignored
+
+
+AttachCurrentScopeToCurrentFunction : {}
+
+
+FlagFunctionAsExternal : integer funcname
+
+
+
+SetStructureToTemplate : integer structurename
+
+
+
+AppendTemplateArgument : list<TemplateArgument> ref thelist, TemplateArgument ref arg [nogc]
+{
+	AppendTemplateArgumentRecurse(thelist, thelist.next, arg)
+}
+
+
+AppendTemplateArgumentRecurse : list<TemplateArgument> ref thelist, nothing, TemplateArgument ref arg [nogc]
+{
+	list<TemplateArgument> newlist = arg, nothing
+	thelist.next = newlist
+}
+
+AppendTemplateArgumentRecurse : list<TemplateArgument> ref thelist, list<TemplateArgument> ref tail, TemplateArgument ref arg [nogc]
+{
+	AppendTemplateArgumentRecurse(tail, tail.next, arg)
+}
+
+
+PopTemplateArgStack : list<TemplateArgumentList> ref stack, list<TemplateArgumentList> ref next [nogc]
+{
+	stack = next
+}
+
+PopTemplateArgList : list<TemplateArgument> ref thelist, list<TemplateArgument> ref tail [nogc]
+{
+	thelist = tail
+}
+
+
+FindOrCreateFunctionSignatureType : simplelist<integer> ref paramtypenames, simplelist<boolean> ref paramrefflags, integer returntypename -> 0
+
+
+FindSumTypeAndAddBase : integer name, integer typeid, integer basename, boolean templated
+
+
+
+OnCodeGenRegisterAlias : integer typeid, integer aliasname, integer basename
+OnCodeGenRegisterWeakAlias : integer typeid, integer aliasname, integer basename
+
+SetUpSumTypeTemplate : integer typeid
+
+
+OnCodeGenRegisterScope : integer blockname, integer ignored, boolean alsoignored
+OnCodeGenRegisterGlobalBlock : integer blockname
+
+
+DisableAnonymousReturnOnCurrentFunction : {}
+
+
+OnCodeGenEnterTask : integer taskname
+
+
+
+
+UDTListReset : [external("EpochLexer.dll", "UDTListReset", "stdcall")]
+UDTListAppend : buffer ref rawtoken [external("EpochLexer.dll", "UDTListAppend", "stdcall")]
+UDFListAppend : buffer ref tawtoken [external("EpochLexer.dll", "UDFListAppend", "stdcall")]
+
+
+SourceLookupTableInit :
+{
+	UDTListReset()
+	
+	list<SymbolEntry> newlist = DummySymbolEntry, nothing
+	KnownSymbols = newlist
+}
+
+
+SourceLookupTableAddStrongAlias : integer aliasid, string aliasname, ParsedToken ref token
+{
+	SymbolEntry sym = token.Token, token.FileName, token.Row, token.Column
+	prepend<SymbolEntry>(KnownSymbols, sym)
+
+	buffer namebuf = narrowstring(aliasname)
+	UDTListAppend(namebuf)
+}
+
+SourceLookupTableAddStructure : integer structureid, string structurename, ParsedToken ref token
+{
+	SymbolEntry sym = token.Token, token.FileName, token.Row, token.Column
+	prepend<SymbolEntry>(KnownSymbols, sym)
+
+	buffer snbuf = narrowstring(structurename)
+	UDTListAppend(snbuf)
+}
+
+SourceLookupTableAddSumType : integer sumtypeid, string sumtypename, ParsedToken ref token
+{
+	SymbolEntry sym = token.Token, token.FileName, token.Row, token.Column
+	prepend<SymbolEntry>(KnownSymbols, sym)
+
+	buffer namebuf = narrowstring(sumtypename)
+	UDTListAppend(namebuf)
+}
+
+SourceLookupTableAddWeakAlias : integer aliasid, string aliasname, ParsedToken ref token
+{
+	SymbolEntry sym = token.Token, token.FileName, token.Row, token.Column
+	prepend<SymbolEntry>(KnownSymbols, sym)
+
+	buffer namebuf = narrowstring(aliasname)
+	UDTListAppend(namebuf)
+}
+
+
+SourceLookupTableAddFunction : integer functionid, string functionname, ParsedToken ref token
+{
+	SymbolEntry sym = token.Token, token.FileName, token.Row, token.Column
+	prepend<SymbolEntry>(KnownSymbols, sym)
+
+	buffer namebuf = narrowstring(functionname)
+	UDFListAppend(namebuf)
+}
+
+
+
+SourceLookupTableFindSymbol : string symbol
+{
+	WalkSymbolTableToFindSymbol(KnownSymbols, symbol)
+}
+
+WalkSymbolTableToFindSymbol : list<SymbolEntry> ref symbols, string symbol
+{
+	if(symbols.value.Symbol == symbol)
+	{
+		integer tabindex = FindTabWithDocument(CurrentTabs, symbols.value.FileName)
+		if(tabindex < 0)
+		{
+			CreateEditorTab(MainHWND, symbols.value.FileName)
+		}
+		else
+		{
+			SetActiveTab(tabindex)
+		}
+		
+		integer scintillawnd = GetActiveEditorHwnd()
+		ScintillaGoToPosition(scintillawnd, symbols.value.Row - 1, symbols.value.Column - 1)
+	}
+	else
+	{
+		WalkSymbolTableToFindSymbol(symbols.next, symbol)
+	}
+}
+
+WalkSymbolTableToFindSymbol : nothing, string symbol
+
+
+IREnterMessageSend : integer targetname, integer messagename {}
+IRExitMessageSend : {}
