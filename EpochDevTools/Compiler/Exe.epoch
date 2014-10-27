@@ -22,10 +22,33 @@ EpochLLVMInitialize : 																								[external("EpochLLVM.dll", "EpochL
 EpochLLVMContextCreate : -> LLVMContextHandle ret = 0 																[external("EpochLLVM.dll", "EpochLLVMContextCreate")]
 EpochLLVMContextDestroy : LLVMContextHandle handle																	[external("EpochLLVM.dll", "EpochLLVMInitialize")]
 EpochLLVMEmitBinaryObject : LLVMContextHandle handle, buffer ref outbuffer, integer maxsize -> integer written = 0 	[external("EpochLLVM.dll", "EpochLLVMEmitBinaryObject")]
+EpochLLVMSetThunkCallback : LLVMContextHandle handle, (func : string -> integer)                                    [external("EpochLLVM.dll", "EpochLLVMSetThunkCallback")]
+EpochLLVMSetStringCallback : LLVMContextHandle handle, (func : integer -> integer)									[external("EpochLLVM.dll", "EpochLLVMSetStringCallback")]
 
 
 RoundUp : integer in -> integer out = ((in / 0x1000) + 1) * 0x1000			// TODO - this over-estimates if in is a perfect multiple of 0x1000
 RoundUpFile : integer in -> integer out = ((in / 0x200) + 1) * 0x200		// TODO - this over-estimates if in is a perfect multiple of 0x200
+
+
+
+structure ThunkTableEntry :
+	string FunctionName,
+	integer ThunkTableOffset,
+	integer ThunkAddressOffset,
+	integer ThunkAddressCopyOffset
+
+structure ThunkTableLibrary :
+	string LibraryName,
+	listnode<ThunkTableEntry> Functions,
+	integer StartOffset,
+	integer NameOffset
+
+structure ThunkTable :
+	listnode<ThunkTableLibrary> Libraries,
+	integer DescriptorOffset,
+	integer TotalSize
+	
+
 
 
 MakeExe : EpochProject ref project
@@ -52,12 +75,10 @@ MakeExe : EpochProject ref project
 	LoadResourceScripts(project.ResourceFiles, res)
 	ComputeResourceOffsets(res)
 	
-	
-	BinaryTreeRoot<integer> stringoffsets = nothing
 
 	integer virtualoffsetthunk   = 0x1000
 	integer offsetthunk          = 0x400
-	integer sizethunk            = 0x400
+	integer sizethunk            = ThunkTableGetCompleteSize(GlobalThunkTable)
 	
 	integer virtualoffsetrsrc    = RoundUp(virtualoffsetthunk + sizethunk)
 	integer offsetrsrc           = RoundUpFile(offsetthunk + sizethunk)
@@ -65,11 +86,13 @@ MakeExe : EpochProject ref project
 	
 	integer virtualoffsetstrings = RoundUp(virtualoffsetrsrc + sizersrc)
 	integer offsetstrings        = RoundUpFile(offsetrsrc + sizersrc)
-	integer sizestrings          = PreprocessStringPool(GlobalStringPool, stringoffsets)
+	integer sizestrings          = PreprocessStringPool(GlobalStringPool, GlobalStringOffsets)
 	
 	buffer codebinarybuffer = 0x100
 	EpochLLVMInitialize()
 	LLVMContextHandle llvm = EpochLLVMContextCreate()
+	EpochLLVMSetThunkCallback(llvm, ThunkLookupMapper)
+	EpochLLVMSetStringCallback(llvm, StringLookupMapper)
 	integer sizecode = EpochLLVMEmitBinaryObject(llvm, codebinarybuffer, 0x100)
 	EpochLLVMContextDestroy(llvm)
 	
@@ -106,8 +129,6 @@ MakeExe : EpochProject ref project
 	print("Writing thunk table...")
 	position += WritePadding(filehandle, position, offsetthunk)
 	position += WriteThunkTable(filehandle, virtualoffsetthunk)
-	position += WritePadding(filehandle, position, offsetthunk + 0x200)			// TODO - generalized expandable thunk table!
-	position += WriteThunkAddresses(filehandle)
 
 	print("Writing resources...")
 	position += WritePadding(filehandle, position, offsetrsrc)
@@ -115,7 +136,7 @@ MakeExe : EpochProject ref project
 
 	print("Writing static data...")
 	position += WritePadding(filehandle, position, offsetstrings)
-	position += WriteStringTable(filehandle, sizestrings, stringoffsets)
+	position += WriteStringTable(filehandle, sizestrings, GlobalStringOffsets)
 
 
 	print("Writing code...")
@@ -143,90 +164,9 @@ WriteStringTable : Win32Handle filehandle, integer finalsize, BinaryTreeRoot<int
 	writtenbytes = finalsize
 }
 
-
-WriteThunkAddresses : Win32Handle filehandle -> integer writtenbytes = 0
-{
-	buffer thunkbuffer = 1024
-	integer thunksize = 0
-
-
-	// TODO - less hardcoded gibberish
-	
-	ByteStreamEmitInteger(thunkbuffer, thunksize, 0x1000 + 25)
-	ByteStreamEmitInteger(thunkbuffer, thunksize, 0)
-	ByteStreamEmitInteger(thunkbuffer, thunksize, 0)
-	ByteStreamEmitInteger(thunkbuffer, thunksize, 0x1000 + 7)
-	ByteStreamEmitInteger(thunkbuffer, thunksize, 0x1000 + 25 + 8)	
-	
-	// End gibberish
-	
-	integer written = 0
-	WriteFile(filehandle, thunkbuffer, thunksize, written, 0)
-
-	writtenbytes = thunksize
-}
-
 WriteThunkTable : Win32Handle filehandle, integer virtualoffsetthunk -> integer writtenbytes = 0
 {
-	integer written = 0
-
-	integer zerooffset = 0
-
-	buffer dummy16 = 2
-	buffer dummy32 = 4
-
-	zerooffset = 0
-	ByteStreamEmitInteger16(dummy16, zerooffset, 0x0000)
-
-
-	buffer funcname = narrowstring("Test")
-	buffer libname = narrowstring("BinaryTestDLL.dll")
-	
-	
-	// Per function
-	integer funcnameoffset = writtenbytes
-	written = 0
-	WriteFile(filehandle, dummy16, 2, written, 0)
-	writtenbytes += written
-	
-	written = 0
-	WriteFile(filehandle, funcname, length("Test") + 1, written, 0)
-	writtenbytes += written
-	
-	
-	// After all functions for library, do this once:
-	written = 0
-	WriteFile(filehandle, libname, length("BinaryTestDLL.dll") + 1, written, 0)
-	writtenbytes += written	
-	
-	
-	// For each function in total list of functions:
-	zerooffset = 0
-	ByteStreamEmitInteger(dummy32, zerooffset, virtualoffsetthunk + funcnameoffset)
-	written = 0
-	WriteFile(filehandle, dummy32, 4, written, 0)
-	writtenbytes += written
-
-	// After all functions...
-	zerooffset = 0
-	ByteStreamEmitInteger(dummy32, zerooffset, 0x00000000)
-	written = 0
-	WriteFile(filehandle, dummy32, 4, written, 0)
-	writtenbytes += written
-
-
-	// Then do it again for the redundant copy of the table
-	zerooffset = 0
-	ByteStreamEmitInteger(dummy32, zerooffset, virtualoffsetthunk + funcnameoffset)
-	written = 0
-	WriteFile(filehandle, dummy32, 4, written, 0)
-	writtenbytes += written
-
-	zerooffset = 0
-	ByteStreamEmitInteger(dummy32, zerooffset, 0x00000000)
-	written = 0
-	WriteFile(filehandle, dummy32, 4, written, 0)
-	writtenbytes += written
+	writtenbytes = ThunkTableEmit(filehandle, GlobalThunkTable, virtualoffsetthunk)
 }
 
 
@@ -588,5 +528,284 @@ CopySingleStringToBuffer : integer handle, string ref strpayload, StringPoolOutp
 	
 	writebuffer(state.OutputBuffer, counter, 0x00)
 }
+
+
+
+
+ThunkTableGetCompleteSize : ThunkTable ref table -> integer totalsize = 0
+{
+	ThunkTableLibrariesWalkForSize(table.Libraries, table.TotalSize)
+	
+	integer namelistsize = table.TotalSize
+	ThunkTableLibrariesWalkForAddressHolders(table.Libraries, namelistsize)
+	namelistsize += 4
+	ThunkTableLibrariesWalkForAddressCopyHolders(table.Libraries, namelistsize)
+	
+	totalsize = RoundUpFile(table.TotalSize)
+	table.DescriptorOffset = totalsize
+	
+	ThunkAddressesWalkLibrariesForOffsets(table.Libraries, totalsize)
+}
+
+ThunkTableLibrariesWalkForSize : list<ThunkTableLibrary> ref libraries, integer ref startoffset
+{
+	libraries.value.StartOffset = startoffset
+	ThunkTableFunctionsWalkForSize(libraries.value.Functions, startoffset)
+	
+	libraries.value.NameOffset = startoffset
+	
+	startoffset += length(libraries.value.LibraryName) + 1				// NULL terminator
+	
+	ThunkTableLibrariesWalkForSize(libraries.next, startoffset)
+}
+
+ThunkTableLibrariesWalkForSize : nothing, integer ref startoffset
+
+
+ThunkTableFunctionsWalkForSize : list<ThunkTableEntry> ref functions, integer ref startoffset
+{
+	integer funclength = length(functions.value.FunctionName) + 3		// NULL terminator plus the 16-bit hint word
+	functions.value.ThunkTableOffset = startoffset
+	
+	startoffset += funclength
+	
+	ThunkTableFunctionsWalkForSize(functions.next, startoffset)
+}
+
+ThunkTableFunctionsWalkForSize : nothing, integer ref startoffset
+
+
+ThunkAddressesWalkLibrariesForOffsets : list<ThunkTableLibrary> ref libraries, integer ref startoffset
+{
+	startoffset += 20
+	ThunkAddressesWalkLibrariesForOffsets(libraries.next, startoffset)
+}
+
+ThunkAddressesWalkLibrariesForOffsets : nothing, integer ref startoffset
+{
+	startoffset += 20			// Final "null" import descriptor
+}
+
+
+
+ThunkTableLibrariesWalkForAddressHolders : list<ThunkTableLibrary> ref libraries, integer ref offset
+{
+	ThunkTableFunctionsWalkForAddressHolders(libraries.value.Functions, offset)
+	ThunkTableLibrariesWalkForAddressHolders(libraries.next, offset)
+}
+
+ThunkTableLibrariesWalkForAddressHolders : nothing, integer ref offset
+
+
+ThunkTableFunctionsWalkForAddressHolders : list<ThunkTableEntry> ref functions, integer ref offset
+{
+	functions.value.ThunkAddressOffset = offset
+	offset += 4
+
+	ThunkTableFunctionsWalkForAddressHolders(functions.next, offset)
+}
+
+ThunkTableFunctionsWalkForAddressHolders : nothing, integer ref offset
+
+
+
+ThunkTableLibrariesWalkForAddressCopyHolders : list<ThunkTableLibrary> ref libraries, integer ref offset
+{
+	ThunkTableFunctionsWalkForAddressCopyHolders(libraries.value.Functions, offset)
+	ThunkTableLibrariesWalkForAddressCopyHolders(libraries.next, offset)
+}
+
+ThunkTableLibrariesWalkForAddressCopyHolders : nothing, integer ref offset
+
+
+ThunkTableFunctionsWalkForAddressCopyHolders : list<ThunkTableEntry> ref functions, integer ref offset
+{
+	functions.value.ThunkAddressCopyOffset = offset
+	offset += 4
+
+	ThunkTableFunctionsWalkForAddressCopyHolders(functions.next, offset)
+}
+
+ThunkTableFunctionsWalkForAddressCopyHolders : nothing, integer ref offset
+
+
+
+
+ThunkTableEmit : Win32Handle filehandle, ThunkTable ref table, integer virtualbase -> integer byteswritten = 0
+{
+	byteswritten += ThunkTableEmitLibraries(filehandle, table.Libraries)
+	byteswritten += ThunkTableEmitThunkHolders(filehandle, table.Libraries, virtualbase)
+	byteswritten += WritePadding(filehandle, 0, 4)
+	byteswritten += ThunkTableEmitThunkHolders(filehandle, table.Libraries, virtualbase)		// Second (copy) holders
+	
+	byteswritten += WritePadding(filehandle, byteswritten, table.DescriptorOffset)
+	
+	byteswritten += ThunkTableEmitDescriptors(filehandle, table.Libraries, virtualbase)
+}
+
+ThunkTableEmitLibraries : Win32Handle filehandle, list<ThunkTableLibrary> ref libraries -> integer byteswritten = 0
+{
+	byteswritten += ThunkTableEmitFunctions(filehandle, libraries.value.Functions)
+	
+	buffer libname = narrowstring(libraries.value.LibraryName)
+	integer written = 0
+	WriteFile(filehandle, libname, length(libraries.value.LibraryName) + 1, written, 0)
+	
+	byteswritten += written
+	
+
+	ThunkTableEmitLibraries(filehandle, libraries.next)
+}
+
+ThunkTableEmitLibraries : Win32Handle filehandle, nothing -> 0
+
+
+ThunkTableEmitFunctions : Win32Handle filehandle, list<ThunkTableEntry> ref functions -> integer byteswritten = 0
+{
+	integer zerooffset = 0
+	buffer dummy16 = 2
+	
+	zerooffset = 0
+	ByteStreamEmitInteger16(dummy16, zerooffset, 0x0000)
+	
+	integer written = 0
+	WriteFile(filehandle, dummy16, 2, written, 0)
+	byteswritten += written
+	
+	written = 0
+	buffer funcname = narrowstring(functions.value.FunctionName)
+	WriteFile(filehandle, funcname, length(functions.value.FunctionName) + 1, written, 0)
+	byteswritten += written	
+	
+
+	byteswritten += ThunkTableEmitFunctions(filehandle, functions.next)
+}
+
+ThunkTableEmitFunctions : Win32Handle filehandle, nothing -> integer byteswritten = 0
+
+
+ThunkTableEmitThunkHolders : Win32Handle filehandle, list<ThunkTableLibrary> ref libraries, integer virtualbase -> integer byteswritten = 0
+{
+	byteswritten = ThunkTableEmitThunkHoldersPerFunction(filehandle, libraries.value.Functions, virtualbase)
+
+	byteswritten += ThunkTableEmitThunkHolders(filehandle, libraries.next, virtualbase)
+}
+
+ThunkTableEmitThunkHolders : Win32Handle filehandle, nothing, integer virtualbase -> 0
+
+
+ThunkTableEmitThunkHoldersPerFunction : Win32Handle filehandle, list<ThunkTableEntry> ref functions, integer virtualbase -> integer byteswritten = 0
+{
+	buffer thunkbuffer = 8
+	integer thunksize = 0
+	
+	ByteStreamEmitInteger(thunkbuffer, thunksize, functions.value.ThunkTableOffset + virtualbase)
+
+	integer written = 0
+	WriteFile(filehandle, thunkbuffer, thunksize, written, 0)
+	
+	byteswritten = written
+	byteswritten += ThunkTableEmitThunkHoldersPerFunction(filehandle, functions.next, virtualbase)
+}
+
+ThunkTableEmitThunkHoldersPerFunction : Win32Handle filehandle, nothing, integer virtualbase -> 0
+
+
+
+ThunkTableEmitDescriptors : Win32Handle filehandle, list<ThunkTableLibrary> ref libraries, integer virtualbase -> integer byteswritten = 0
+{
+	buffer thunkbuffer = 128
+	integer thunksize = 0
+	
+	ByteStreamEmitInteger(thunkbuffer, thunksize, virtualbase + ThunkTableGetLibFirstThunkOffset(libraries.value))
+	ByteStreamEmitInteger(thunkbuffer, thunksize, 0)
+	ByteStreamEmitInteger(thunkbuffer, thunksize, 0)
+	ByteStreamEmitInteger(thunkbuffer, thunksize, virtualbase + libraries.value.NameOffset)
+	ByteStreamEmitInteger(thunkbuffer, thunksize, virtualbase + ThunkTableGetLibFirstThunkCopyOffset(libraries.value))	
+	
+	integer written = 0
+	WriteFile(filehandle, thunkbuffer, thunksize, written, 0)
+
+	byteswritten = thunksize
+	
+
+	byteswritten += ThunkTableEmitDescriptors(filehandle, libraries.next, virtualbase)
+}
+
+ThunkTableEmitDescriptors : Win32Handle filehandle, nothing, integer virtualbase -> integer byteswritten = 0
+{
+	buffer thunkbuffer = 128
+	integer thunksize = 0
+	
+	ByteStreamEmitInteger(thunkbuffer, thunksize, 0)
+	ByteStreamEmitInteger(thunkbuffer, thunksize, 0)
+	ByteStreamEmitInteger(thunkbuffer, thunksize, 0)
+	ByteStreamEmitInteger(thunkbuffer, thunksize, 0)
+	ByteStreamEmitInteger(thunkbuffer, thunksize, 0)
+	
+	integer written = 0
+	WriteFile(filehandle, thunkbuffer, thunksize, written, 0)
+
+	byteswritten = thunksize
+}
+
+
+ThunkTableGetLibFirstThunkOffset : ThunkTableLibrary ref lib -> integer offset = ThunkTableEntryGetFirstThunkOffset(lib.Functions)
+ThunkTableEntryGetFirstThunkOffset : list<ThunkTableEntry> ref functions -> integer offset = functions.value.ThunkAddressOffset
+
+ThunkTableGetLibFirstThunkCopyOffset : ThunkTableLibrary ref lib -> integer offset = ThunkTableEntryGetFirstThunkCopyOffset(lib.Functions)
+ThunkTableEntryGetFirstThunkCopyOffset : list<ThunkTableEntry> ref functions -> integer offset = functions.value.ThunkAddressCopyOffset
+
+
+
+ThunkLookupMapper : string funcname -> integer thunkoffset = 0
+{
+	// TODO - don't hard code base address
+	integer baseaddress = 0x401000
+	
+	thunkoffset = baseaddress + SearchThunkTableForFunctionOffset(GlobalThunkTable.Libraries, funcname)
+	
+	if(thunkoffset < baseaddress)
+	{
+		assertmsg(false, "LLVM asked for an unrecognized function: " ; funcname)
+	}
+}
+
+SearchThunkTableForFunctionOffset : list<ThunkTableLibrary> ref libraries, string funcname -> integer offset = -1
+{
+	offset = SearchThunkLibForFunctionOffset(libraries.value.Functions, funcname)
+	if(offset < 0)
+	{
+		offset = SearchThunkTableForFunctionOffset(libraries.next, funcname)
+	}
+}
+
+SearchThunkTableForFunctionOffset : nothing, string funcname -> -1
+
+SearchThunkLibForFunctionOffset : list<ThunkTableEntry> ref functions, string funcname -> integer offset = -1
+{
+	if(functions.value.FunctionName == funcname)
+	{
+		offset = functions.value.ThunkAddressCopyOffset
+	}
+	else
+	{
+		offset = SearchThunkLibForFunctionOffset(functions.next, funcname)
+	}
+}
+
+SearchThunkLibForFunctionOffset : nothing, string funcname -> integer offset = -1
+
+
+StringLookupMapper : integer stringhandle -> integer offset = 0
+{
+	// TODO - don't hard code base address
+	integer baseaddress = 0x403000
+	
+	BinaryTreeCopyPayload<integer>(GlobalStringOffsets.RootNode, stringhandle, offset)
+	
+	offset += baseaddress
+}
+
 
 

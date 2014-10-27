@@ -1161,3 +1161,20 @@ FigureOutCastOverload : list<Expression> ref params -> integer overloadname = 0
 
 FigureOutCastOverload : nothing -> 0
 
+
+
+PrepareThunkTable : ThunkTable ref table
+{
+	ThunkTableEntry printentry = "ERT_print", 0, 0, 0
+	list<ThunkTableEntry> entrylist = printentry, nothing
+	listnode<ThunkTableEntry> entrynode = entrylist
+	
+	ThunkTableLibrary rtlib = "EpochRT.dll", entrynode, 0, 0
+	list<ThunkTableLibrary> liblist = rtlib, nothing
+	listnode<ThunkTableLibrary> libnode = liblist
+	
+	table.Libraries = libnode
+	table.TotalSize = 0
+	table.DescriptorOffset = 0
+}
+

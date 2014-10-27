@@ -35,3 +35,14 @@ extern "C" size_t EpochLLVMEmitBinaryObject(void* context, char* buffer, size_t 
 	return reinterpret_cast<CodeGen::Context*>(context)->EmitBinaryObject(buffer, maxoutput);
 }
 
+extern "C" void EpochLLVMSetThunkCallback(void* context, void* funcptr)
+{
+	return reinterpret_cast<CodeGen::Context*>(context)->SetThunkCallback(funcptr);
+}
+
+extern "C" void EpochLLVMSetStringCallback(void* context, void* funcptr)
+{
+	return reinterpret_cast<CodeGen::Context*>(context)->SetStringCallback(funcptr);
+}
+
+

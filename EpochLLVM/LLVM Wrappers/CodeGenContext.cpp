@@ -10,6 +10,7 @@
 #include "Pch.h"
 
 #include "CodeGenContext.h"
+#include <sstream>
 
 
 using namespace CodeGen;
@@ -19,6 +20,16 @@ using namespace llvm;
 ////////////////////////
 class TrivialMemoryManager : public RTDyldMemoryManager {
 public:
+	TrivialMemoryManager(CodeGen::ThunkCallbackT funcptr, CodeGen::StringCallbackT strptr)
+		: ThunkCallback(funcptr),
+		  StringCallback(strptr)
+	{ }
+
+	ThunkCallbackT ThunkCallback;
+	StringCallbackT StringCallback;
+
+
+
   SmallVector<sys::MemoryBlock, 16> FunctionMemory;
   SmallVector<sys::MemoryBlock, 16> DataMemory;
 
@@ -42,10 +53,25 @@ public:
   virtual void invalidateInstructionCache();
 
 
-  virtual uint64_t getSymbolAddress(const std::string & foo) override
-  {
-	  return (0x401000 + 25 + 8);
-  }
+	virtual uint64_t getSymbolAddress(const std::string & foo) override
+	{
+		if(foo.substr(0, 21) == "@epoch_static_string:")
+		{
+			size_t handle = 0;
+
+			std::stringstream convert;
+			convert << foo.substr(21);
+			convert >> handle;
+
+			return StringCallback(handle);
+		}
+		else
+		{
+			std::wstring wide(foo.begin(), foo.end());
+			size_t offset = ThunkCallback(wide.c_str());
+			return offset;
+		}
+	}
 };
 
 uint8_t *TrivialMemoryManager::allocateCodeSection(uintptr_t Size,
@@ -83,6 +109,8 @@ void TrivialMemoryManager::invalidateInstructionCache() {
 
 
 Context::Context()
+	: ThunkCallback(nullptr),
+	  StringCallback(nullptr)
 {
 	LLVMModule = new Module("EpochModule", getGlobalContext());
 }
@@ -92,6 +120,20 @@ Context::~Context()
 {
 	delete LLVMModule;
 }
+
+
+void Context::SetThunkCallback(void* funcptr)
+{
+	ThunkCallbackT castptr = reinterpret_cast<ThunkCallbackT>(funcptr);
+	ThunkCallback = castptr;
+}
+
+void Context::SetStringCallback(void* funcptr)
+{
+	StringCallbackT castptr = reinterpret_cast<StringCallbackT>(funcptr);
+	StringCallback = castptr;
+}
+
 
 
 extern "C" void LLVMLinkInMCJIT();
@@ -104,16 +146,24 @@ size_t Context::EmitBinaryObject(char* buffer, size_t maxoutput)
 
 	FunctionType* fty = FunctionType::get(Type::getVoidTy(getGlobalContext()), false);
 
+
+	std::vector<Type*> paramarray;
+	paramarray.push_back(Type::getInt8PtrTy(getGlobalContext())->getPointerTo());
+	FunctionType* printty = FunctionType::get(Type::getVoidTy(getGlobalContext()), paramarray, false);
+
+	
 	Function* function = Function::Create(fty, GlobalValue::InternalLinkage, "entrypoint", LLVMModule);
 
-	GlobalValue* fptr = new GlobalVariable(*LLVMModule, fty->getPointerTo(), true, GlobalValue::ExternalWeakLinkage, NULL, "Test", NULL, GlobalVariable::NotThreadLocal, 0, true);
+	GlobalValue* fptr = new GlobalVariable(*LLVMModule, printty->getPointerTo(), true, GlobalValue::ExternalWeakLinkage, NULL, "ERT_print", NULL, GlobalVariable::NotThreadLocal, 0, true);
+	GlobalValue* staticstrptr = new GlobalVariable(*LLVMModule, Type::getInt8PtrTy(getGlobalContext()), true, GlobalValue::ExternalWeakLinkage, NULL, "@epoch_static_string:60", NULL, GlobalVariable::NotThreadLocal, 0, true);
 
 	IRBuilder<> builder(getGlobalContext());
 
 	BasicBlock* bb = BasicBlock::Create(getGlobalContext(), "entry", function);
 
 	builder.SetInsertPoint(bb);
-	builder.CreateCall(builder.CreateLoad(fptr));
+	Value* f = builder.CreateLoad(fptr);
+	builder.CreateCall(f, staticstrptr);
 	builder.CreateRetVoid();
 
 
@@ -131,7 +181,7 @@ size_t Context::EmitBinaryObject(char* buffer, size_t maxoutput)
 	// Turning off frame pointer elimination can make debugging a LOT smoother...
 	opts.NoFramePointerElim = true;
 
-	TrivialMemoryManager * blobmgr = new TrivialMemoryManager;
+	TrivialMemoryManager * blobmgr = new TrivialMemoryManager(ThunkCallback, StringCallback);
 
 	EngineBuilder eb(LLVMModule);
 	//eb.setEngineKind(EngineKind::JIT);

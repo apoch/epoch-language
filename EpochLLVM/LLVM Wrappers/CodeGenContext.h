@@ -20,6 +20,10 @@ namespace llvm
 namespace CodeGen
 {
 
+	typedef size_t (__stdcall *ThunkCallbackT)(const wchar_t* thunkname);
+	typedef size_t (__stdcall *StringCallbackT)(size_t stringhandle);
+
+
 	class Context
 	{
 	public:		// Construction and destruction
@@ -29,8 +33,15 @@ namespace CodeGen
 	public:		// Object code emission interface
 		size_t EmitBinaryObject(char* buffer, size_t maxoutput);
 
+	public:		// Callback configuration interface
+		void SetThunkCallback(void* funcptr);
+		void SetStringCallback(void* funcptr);
+
 	private:	// Internal state
 		llvm::Module* LLVMModule;
+
+		ThunkCallbackT ThunkCallback;
+		StringCallbackT StringCallback;
 	};
 
 }

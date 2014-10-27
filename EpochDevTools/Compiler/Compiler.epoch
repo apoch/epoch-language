@@ -35,7 +35,7 @@ entrypoint :
 		print("Please specify the program or project to compile.")
 		return()
 	}
-
+	
 	integer cmdlineindex = 1
 	while(cmdlineindex < cmdlinegetcount())
 	{
@@ -46,6 +46,7 @@ entrypoint :
 			print("")
 
 			PrepareStringTable()
+			PrepareThunkTable(GlobalThunkTable)
 			InitBuiltInOverloads()
 
 			ChangeToPath(filename)
@@ -60,6 +61,7 @@ entrypoint :
 			BytecodeStream codestream = codebuffer, 0
 			
 			PrepareStringTable()
+			PrepareThunkTable(GlobalThunkTable)
 			InitBuiltInOverloads()
 
 			if(CompileFile(filename, codestream))
