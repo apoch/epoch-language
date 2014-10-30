@@ -111,11 +111,12 @@ void TrivialMemoryManager::invalidateInstructionCache() {
 Context::Context()
 	: ThunkCallback(nullptr),
 	  StringCallback(nullptr),
-	  LLVMBuilder(getGlobalContext())
+	  LLVMBuilder(getGlobalContext()),
+	  EntryPointFunction(nullptr)
 {
 	LLVMModule = new Module("EpochModule", getGlobalContext());
 
-	FunctionType* initfunctiontype = FunctionType::get(Type::getVoidTy(getGlobalContext()), false);
+	FunctionType* initfunctiontype = FunctionType::get(Type::getInt32Ty(getGlobalContext()), false);
 	InitFunction = Function::Create(initfunctiontype, GlobalValue::InternalLinkage, "@init", LLVMModule);
 }
 
@@ -123,6 +124,44 @@ Context::Context()
 Context::~Context()
 {
 	delete LLVMModule;
+}
+
+
+void Context::FunctionQueueParamType(llvm::Type* ty)
+{
+	PendingParamTypes.push_back(ty);
+}
+
+
+llvm::FunctionType* Context::FunctionTypeCreate(llvm::Type* rettype)
+{
+	llvm::FunctionType* fty = FunctionType::get(rettype, PendingParamTypes, false);
+	PendingParamTypes.clear();
+
+	return fty;
+}
+
+llvm::Function* Context::FunctionCreate(const char* name, llvm::FunctionType* fty)
+{
+	return Function::Create(fty, GlobalValue::ExternalLinkage, name, LLVMModule);
+}
+
+llvm::GlobalVariable* Context::FunctionCreateThunk(const char* name, llvm::FunctionType* fty)
+{
+	llvm::GlobalVariable* var = CachedThunkFunctions[name];
+	if(!var)
+	{
+		var = new GlobalVariable(*LLVMModule, fty->getPointerTo(), true, GlobalValue::ExternalWeakLinkage, NULL, name, NULL, GlobalVariable::NotThreadLocal, 0, true);
+		CachedThunkFunctions[name] = var;
+	}
+
+	return var;
+}
+
+
+void Context::SetEntryFunction(llvm::Function* entryfunc)
+{
+	EntryPointFunction = entryfunc;
 }
 
 
@@ -139,6 +178,16 @@ void Context::SetStringCallback(void* funcptr)
 }
 
 
+llvm::Type* Context::TypeGetVoid()
+{
+	return Type::getVoidTy(getGlobalContext());
+}
+
+llvm::Type* Context::TypeGetString()
+{
+	return Type::getInt8PtrTy(getGlobalContext());
+}
+
 
 extern "C" void LLVMLinkInMCJIT();
 
@@ -147,22 +196,12 @@ extern "C" void LLVMLinkInMCJIT();
 size_t Context::EmitBinaryObject(char* buffer, size_t maxoutput)
 {
 	LLVMLinkInMCJIT();
-
-	std::vector<Type*> paramarray;
-	paramarray.push_back(Type::getInt8PtrTy(getGlobalContext())->getPointerTo());
-	FunctionType* printty = FunctionType::get(Type::getVoidTy(getGlobalContext()), paramarray, false);
-
-	GlobalValue* fptr = new GlobalVariable(*LLVMModule, printty->getPointerTo(), true, GlobalValue::ExternalWeakLinkage, NULL, "ERT_print", NULL, GlobalVariable::NotThreadLocal, 0, true);
-	GlobalValue* staticstrptr = new GlobalVariable(*LLVMModule, Type::getInt8PtrTy(getGlobalContext()), true, GlobalValue::ExternalWeakLinkage, NULL, "@epoch_static_string:60", NULL, GlobalVariable::NotThreadLocal, 0, true);
-
-
-	BasicBlock* bb = BasicBlock::Create(getGlobalContext(), "entry", InitFunction);
-
+	
+	BasicBlock* bb = BasicBlock::Create(getGlobalContext(), "InitBlock", InitFunction);
 	LLVMBuilder.SetInsertPoint(bb);
-	Value* f = LLVMBuilder.CreateLoad(fptr);
-	LLVMBuilder.CreateCall(f, staticstrptr);
-	LLVMBuilder.CreateRetVoid();
-
+	// TODO - init globals here
+	LLVMBuilder.CreateCall(EntryPointFunction);
+	LLVMBuilder.CreateRet(ConstantInt::get(Type::getInt32Ty(getGlobalContext()), 0));
 
 
 	std::string errstr;
@@ -175,19 +214,12 @@ size_t Context::EmitBinaryObject(char* buffer, size_t maxoutput)
 	opts.EnableFastISel = false;
 	opts.EnableSegmentedStacks = false;
 	opts.GuaranteedTailCallOpt = true;
-
-	// Turning off frame pointer elimination can make debugging a LOT smoother...
 	opts.NoFramePointerElim = true;
 
 	TrivialMemoryManager * blobmgr = new TrivialMemoryManager(ThunkCallback, StringCallback);
 
 	EngineBuilder eb(LLVMModule);
-	//eb.setEngineKind(EngineKind::JIT);
 	eb.setErrorStr(&errstr);
-	//eb.setRelocationModel(Reloc::PIC_);
-	//eb.setCodeModel(CodeModel::JITDefault);
-	//eb.setAllocateGVsWithCode(false);
-	//eb.setOptLevel(CodeGenOpt::Aggressive);
 	eb.setTargetOptions(opts);
 	eb.setUseMCJIT(true);
 	eb.setMCJITMemoryManager(blobmgr);
@@ -196,7 +228,6 @@ size_t Context::EmitBinaryObject(char* buffer, size_t maxoutput)
 	TargetMachine* machine = eb.selectTarget(Triple("i686-pc-mingw32-elf"), "x86", "", emptyvec);
 	
 	ExecutionEngine* ee = eb.create(machine);
-	//ExecutionEngine* ee = ExecutionEngine::MCJITCtor(module, &errstr, blobmgr, false, machine);
 	if(!ee)
 	{
 		__asm int 3;
@@ -249,5 +280,51 @@ size_t Context::EmitBinaryObject(char* buffer, size_t maxoutput)
 
 	memcpy(buffer, (void*)(emissionaddr), s);
 	return s;
+}
+
+
+
+llvm::BasicBlock* Context::CodeCreateBasicBlock(llvm::Function* parent)
+{
+	BasicBlock* bb = BasicBlock::Create(getGlobalContext(), "", parent);
+	LLVMBuilder.SetInsertPoint(bb);
+	return bb;
+}
+
+llvm::CallInst* Context::CodeCreateCall(llvm::Function* target)
+{
+	llvm::CallInst* inst = LLVMBuilder.CreateCall(target, PendingValues);
+	PendingValues.clear();
+
+	return inst;
+}
+
+llvm::CallInst* Context::CodeCreateCallThunk(llvm::GlobalVariable* target)
+{
+	llvm::CallInst* inst = LLVMBuilder.CreateCall(LLVMBuilder.CreateLoad(target), PendingValues);
+	PendingValues.clear();
+
+	return inst;
+}
+
+void Context::CodeCreateRetVoid()
+{
+	LLVMBuilder.CreateRetVoid();
+}
+
+
+void Context::CodePushString(unsigned handle)
+{
+	llvm::GlobalVariable* val = CachedStrings[handle];
+	if(!val)
+	{
+		std::ostringstream name;
+		name << "@epoch_static_string:" << handle;
+		val = new GlobalVariable(*LLVMModule, Type::getInt8Ty(getGlobalContext()), true, GlobalValue::ExternalWeakLinkage, NULL, name.str(), NULL, GlobalVariable::NotThreadLocal, 0, true);
+
+		CachedStrings[handle] = val;
+	}
+
+	PendingValues.push_back(val);
 }
 

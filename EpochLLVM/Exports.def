@@ -5,7 +5,25 @@ EXPORTS
 	EpochLLVMContextCreate
 	EpochLLVMContextDestroy
 
+	EpochLLVMFunctionTypeCreate
+
+	EpochLLVMTypeGetVoid
+	EpochLLVMTypeGetString
+
+	EpochLLVMFunctionCreate
+	EpochLLVMFunctionCreateThunk
+	EpochLLVMFunctionQueueParamType
+	EpochLLVMFunctionSetEntry
+
 	EpochLLVMEmitBinaryObject
 
 	EpochLLVMSetThunkCallback
 	EpochLLVMSetStringCallback
+
+	EpochLLVMCodeCreateBasicBlock
+	EpochLLVMCodeCreateCall
+	EpochLLVMCodeCreateCallThunk
+	EpochLLVMCodeCreateRetVoid
+	
+	EpochLLVMCodePushString
+

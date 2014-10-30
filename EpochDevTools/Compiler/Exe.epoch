@@ -16,14 +16,49 @@
 
 
 type LLVMContextHandle : integer
-
+type LLVMFunctionRef : integer
+type LLVMFunctionType : integer
+type LLVMType : integer
+type LLVMBasicBlock : integer
+type LLVMGlobalVar : integer
 
 EpochLLVMInitialize : 																								[external("EpochLLVM.dll", "EpochLLVMInitialize")]
+
 EpochLLVMContextCreate : -> LLVMContextHandle ret = 0 																[external("EpochLLVM.dll", "EpochLLVMContextCreate")]
-EpochLLVMContextDestroy : LLVMContextHandle handle																	[external("EpochLLVM.dll", "EpochLLVMInitialize")]
+EpochLLVMContextDestroy : LLVMContextHandle handle																	[external("EpochLLVM.dll", "EpochLLVMContextDestroy")]
+
+EpochLLVMFunctionTypeCreate : LLVMContextHandle context, LLVMType rettype -> LLVMFunctionType ret = 0				[external("EpochLLVM.dll", "EpochLLVMFunctionTypeCreate")]
+
+EpochLLVMFunctionCreate :
+	LLVMContextHandle handle,
+	string funcname,
+	LLVMFunctionType functype
+  ->
+	LLVMFunctionRef ret = 0
+  [external("EpochLLVM.dll", "EpochLLVMFunctionCreate")]
+
+EpochLLVMFunctionCreateThunk : LLVMContextHandle context, string name, LLVMFunctionType ty -> LLVMGlobalVar v = 0	[external("EpochLLVM.dll", "EpochLLVMFunctionCreateThunk")]
+
+EpochLLVMFunctionQueueParamType : LLVMContextHandle context, LLVMType t												[external("EpochLLVM.dll", "EpochLLVMFunctionQueueParamType")]
+
+EpochLLVMFunctionSetEntry : LLVMContextHandle context, LLVMFunctionRef func											[external("EpochLLVM.dll", "EpochLLVMFunctionSetEntry")]
+
+EpochLLVMTypeGetVoid : LLVMContextHandle context -> LLVMType t = 0													[external("EpochLLVM.dll", "EpochLLVMTypeGetVoid")]
+EpochLLVMTypeGetString : LLVMContextHandle context -> LLVMType t = 0												[external("EpochLLVM.dll", "EpochLLVMTypeGetString")]
+
 EpochLLVMEmitBinaryObject : LLVMContextHandle handle, buffer ref outbuffer, integer maxsize -> integer written = 0 	[external("EpochLLVM.dll", "EpochLLVMEmitBinaryObject")]
+
 EpochLLVMSetThunkCallback : LLVMContextHandle handle, (func : string -> integer)                                    [external("EpochLLVM.dll", "EpochLLVMSetThunkCallback")]
 EpochLLVMSetStringCallback : LLVMContextHandle handle, (func : integer -> integer)									[external("EpochLLVM.dll", "EpochLLVMSetStringCallback")]
+
+
+EpochLLVMCodeCreateBasicBlock : LLVMContextHandle handle, LLVMFunctionRef func -> LLVMBasicBlock ret = 0			[external("EpochLLVM.dll", "EpochLLVMCodeCreateBasicBlock")]
+EpochLLVMCodeCreateCall : LLVMContextHandle handle, LLVMFunctionRef target -> integer ret = 0						[external("EpochLLVM.dll", "EpochLLVMCodeCreateCall")]
+EpochLLVMCodeCreateCallThunk : LLVMContextHandle handle, LLVMGlobalVar target -> integer ret = 0					[external("EpochLLVM.dll", "EpochLLVMCodeCreateCallThunk")]
+EpochLLVMCodeCreateRetVoid : LLVMContextHandle handle																[external("EpochLLVM.dll", "EpochLLVMCodeCreateRetVoid")]
+
+EpochLLVMCodePushString : LLVMContextHandle context, integer handle													[external("EpochLLVM.dll", "EpochLLVMCodePushString")]
+
 
 
 RoundUp : integer in -> integer out = ((in / 0x1000) + 1) * 0x1000			// TODO - this over-estimates if in is a perfect multiple of 0x1000
@@ -93,6 +128,9 @@ MakeExe : EpochProject ref project
 	LLVMContextHandle llvm = EpochLLVMContextCreate()
 	EpochLLVMSetThunkCallback(llvm, ThunkLookupMapper)
 	EpochLLVMSetStringCallback(llvm, StringLookupMapper)
+	
+	SetUpAllLLVMCode(llvm)
+	
 	integer sizecode = EpochLLVMEmitBinaryObject(llvm, codebinarybuffer, 0x100)
 	EpochLLVMContextDestroy(llvm)
 	
@@ -767,7 +805,7 @@ ThunkLookupMapper : string funcname -> integer thunkoffset = 0
 	
 	if(thunkoffset < baseaddress)
 	{
-		assertmsg(false, "LLVM asked for an unrecognized function: " ; funcname)
+		thunkoffset = 0
 	}
 }
 
@@ -780,7 +818,7 @@ SearchThunkTableForFunctionOffset : list<ThunkTableLibrary> ref libraries, strin
 	}
 }
 
-SearchThunkTableForFunctionOffset : nothing, string funcname -> -1
+SearchThunkTableForFunctionOffset : nothing, string funcname -> integer offset = -1
 
 SearchThunkLibForFunctionOffset : list<ThunkTableEntry> ref functions, string funcname -> integer offset = -1
 {
@@ -808,4 +846,160 @@ StringLookupMapper : integer stringhandle -> integer offset = 0
 }
 
 
+
+SetUpAllLLVMCode : LLVMContextHandle context
+{
+	EmitAllFunctionsToLLVM(context, Functions)
+}
+
+EmitAllFunctionsToLLVM : LLVMContextHandle context, list<FunctionDefinition> ref funcs
+{
+	if(!funcs.value.IsTemplate)
+	{
+		if(funcs.value.Name != 0)
+		{
+			EmitSingleFunctionToLLVM(context, funcs.value)
+		}
+	}
+
+	EmitAllFunctionsToLLVM(context, funcs.next)
+}
+
+EmitAllFunctionsToLLVM : LLVMContextHandle context, nothing
+
+
+EmitSingleFunctionToLLVM : LLVMContextHandle context, FunctionDefinition ref func
+{
+	string funcname = GetPooledString(func.Name)
+
+	LLVMType funcrettype = EpochLLVMTypeGetVoid(context) // TODO - select actual function return type
+	
+	// TODO - set up parameter types
+	
+	LLVMFunctionType functype = EpochLLVMFunctionTypeCreate(context, funcrettype)
+	LLVMFunctionRef llvmfunc = EpochLLVMFunctionCreate(context, funcname, functype)
+	
+	LLVMBasicBlock funcbody = EpochLLVMCodeCreateBasicBlock(context, llvmfunc)
+	
+	// TODO - emit return value initializer
+	
+	// TODO - emit call for @invoke tags
+	
+	EmitCodeBlockToLLVM(context, func.Code)
+	
+	if(listcontains(CustomConstructors, func.Name))
+	{
+		// TODO - bind return variable value
+		
+		//BytecodePushVarValueNoCopy(stream, FindReturnVariableName())
+		//BytecodeBindReference(stream, 0, 0)			// TODO - kind of a hack
+		//BytecodeAssign(stream)
+	}
+	else
+	{
+		if(func.AnonymousReturn)
+		{
+			// TODO - emit return register bindings
+			//EmitReturnRegisterToLLVMAnonymous(context, func.Return)
+		}
+		else
+		{
+			EmitReturnRegisterToLLVM(context, func.Return)
+		}
+	}
+	
+	// TODO - finalize function?
+	
+	
+	if(funcname == "entrypoint")
+	{
+		EpochLLVMFunctionSetEntry(context, llvmfunc)
+	}
+}
+
+EmitCodeBlockToLLVM : LLVMContextHandle context, CodeBlock ref code
+{
+	EmitCodeBlockEntriesToLLVM(context, code.Entries)
+}
+
+EmitCodeBlockToLLVM : LLVMContextHandle context, nothing
+
+
+EmitReturnRegisterToLLVM : LLVMContextHandle context, Expression ref expr
+{
+	// TODO - set return value
+}
+
+EmitReturnRegisterToLLVM : LLVMContextHandle context, nothing
+{
+	EpochLLVMCodeCreateRetVoid(context)
+}
+
+
+EmitCodeBlockEntriesToLLVM : LLVMContextHandle context, list<CodeBlockEntry> ref entries
+{
+	EmitSingleCodeBlockEntryToLLVM(context, entries.value)
+	EmitCodeBlockEntriesToLLVM(context, entries.next)
+}
+
+EmitCodeBlockEntriesToLLVM : LLVMContextHandle context, nothing
+
+
+
+EmitSingleCodeBlockEntryToLLVM : LLVMContextHandle context, Statement ref entry
+{
+	// TODO - map over the remaining code from CodeGenEmitSingleCodeBlockEntry for statements
+	
+	EmitExpressionListToLLVM(context, entry.Parameters)
+	
+	
+	// TEMP HACK
+	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetString(context))
+	LLVMFunctionType fty = EpochLLVMFunctionTypeCreate(context, EpochLLVMTypeGetVoid(context))
+	LLVMGlobalVar thunk = EpochLLVMFunctionCreateThunk(context, "ERT_print", fty)
+	EpochLLVMCodeCreateCallThunk(context, thunk)
+}
+
+EmitSingleCodeBlockEntryToLLVM : LLVMContextHandle context, EntityChain ref entry
+{
+	// TODO - build LLVM version of the entity
+}
+
+// TODO - remaining code block entry types
+
+
+EmitExpressionListToLLVM : LLVMContextHandle context, nothing
+
+EmitExpressionListToLLVM : LLVMContextHandle context, ExpressionList ref exprs
+{
+	EmitExpressionListToLLVM(context, exprs.Expressions)
+}
+
+EmitExpressionListToLLVM : LLVMContextHandle context, list<Expression> ref exprs
+{
+	EmitExpressionAtomsToLLVM(context, exprs.value.Atoms)
+	EmitExpressionListToLLVM(context, exprs.next)
+}
+
+EmitExpressionAtomsToLLVM : LLVMContextHandle context, list<ExpressionAtom> ref atoms
+{
+	// TODO - expand this to support all the nifty stuff atoms can do
+	
+	EmitSingleAtomToLLVM(context, atoms.value)
+	EmitExpressionAtomsToLLVM(context, atoms.next)
+}
+
+EmitExpressionAtomsToLLVM : LLVMContextHandle context, nothing
+
+
+
+EmitSingleAtomToLLVM : LLVMContextHandle context, integer ref literal
+{
+	// TODO - support literals
+}
+
+EmitSingleAtomToLLVM : LLVMContextHandle context, StringHandleAtom ref literal
+{
+	EpochLLVMCodePushString(context, literal.Handle)
+}
 
