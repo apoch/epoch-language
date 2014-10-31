@@ -294,15 +294,22 @@ llvm::BasicBlock* Context::CodeCreateBasicBlock(llvm::Function* parent)
 llvm::CallInst* Context::CodeCreateCall(llvm::Function* target)
 {
 	llvm::CallInst* inst = LLVMBuilder.CreateCall(target, PendingValues);
-	PendingValues.clear();
+
+	llvm::FunctionType* fty = target->getFunctionType();
+	for(size_t i = 0; i < fty->getNumParams(); ++i)
+		PendingValues.pop_back();
 
 	return inst;
 }
 
 llvm::CallInst* Context::CodeCreateCallThunk(llvm::GlobalVariable* target)
 {
-	llvm::CallInst* inst = LLVMBuilder.CreateCall(LLVMBuilder.CreateLoad(target), PendingValues);
-	PendingValues.clear();
+	llvm::Value* loadedTarget = LLVMBuilder.CreateLoad(target);
+	llvm::CallInst* inst = LLVMBuilder.CreateCall(loadedTarget, PendingValues);
+
+	llvm::FunctionType* fty = llvm::cast<llvm::FunctionType>(loadedTarget->getType());
+	for(size_t i = 0; i < fty->getNumParams(); ++i)
+		PendingValues.pop_back();
 
 	return inst;
 }

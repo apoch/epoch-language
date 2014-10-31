@@ -37,6 +37,9 @@ global
 		
 		
 	ThunkTable GlobalThunkTable = nothing, 0, 0
+	
+	BinaryTreeRoot<LLVMGlobalVar> LLVMGlobalThunks = nothing
+	
 		
 	//
 	// Bytecode instruction constants

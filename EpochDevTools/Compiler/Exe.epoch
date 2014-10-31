@@ -129,6 +129,8 @@ MakeExe : EpochProject ref project
 	EpochLLVMSetThunkCallback(llvm, ThunkLookupMapper)
 	EpochLLVMSetStringCallback(llvm, StringLookupMapper)
 	
+	SetUpBuiltInLLVMThunks(llvm)
+	
 	SetUpAllLLVMCode(llvm)
 	
 	integer sizecode = EpochLLVMEmitBinaryObject(llvm, codebinarybuffer, 0x100)
@@ -951,13 +953,13 @@ EmitSingleCodeBlockEntryToLLVM : LLVMContextHandle context, Statement ref entry
 	// TODO - map over the remaining code from CodeGenEmitSingleCodeBlockEntry for statements
 	
 	EmitExpressionListToLLVM(context, entry.Parameters)
-	
-	
-	// TEMP HACK
-	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetString(context))
-	LLVMFunctionType fty = EpochLLVMFunctionTypeCreate(context, EpochLLVMTypeGetVoid(context))
-	LLVMGlobalVar thunk = EpochLLVMFunctionCreateThunk(context, "ERT_print", fty)
-	EpochLLVMCodeCreateCallThunk(context, thunk)
+
+	if(IsRecognizedBuiltIn(entry.Name))
+	{
+		LLVMGlobalVar thunk = 0
+		BinaryTreeCopyPayload<LLVMGlobalVar>(LLVMGlobalThunks.RootNode, entry.Name, thunk)
+		EpochLLVMCodeCreateCallThunk(context, thunk)
+	}
 }
 
 EmitSingleCodeBlockEntryToLLVM : LLVMContextHandle context, EntityChain ref entry
@@ -1003,3 +1005,14 @@ EmitSingleAtomToLLVM : LLVMContextHandle context, StringHandleAtom ref literal
 	EpochLLVMCodePushString(context, literal.Handle)
 }
 
+
+
+
+SetUpBuiltInLLVMThunks : LLVMContextHandle context
+{
+	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetString(context))
+	LLVMFunctionType fty = EpochLLVMFunctionTypeCreate(context, EpochLLVMTypeGetVoid(context))
+	LLVMGlobalVar thunk = EpochLLVMFunctionCreateThunk(context, "ERT_print", fty)
+
+	BinaryTreeCreateOrInsert<LLVMGlobalVar>(LLVMGlobalThunks, PooledStringHandleForPrint, thunk)
+}
