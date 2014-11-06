@@ -38,7 +38,7 @@ global
 		
 	ThunkTable GlobalThunkTable = nothing, 0, 0
 	
-	BinaryTreeRoot<LLVMGlobalVar> LLVMGlobalThunks = nothing
+	BinaryTreeRoot<integer> LLVMGlobalThunks = nothing
 	
 		
 	//

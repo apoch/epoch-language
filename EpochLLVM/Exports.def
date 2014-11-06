@@ -7,8 +7,9 @@ EXPORTS
 
 	EpochLLVMFunctionTypeCreate
 
-	EpochLLVMTypeGetVoid
+	EpochLLVMTypeGetBoolean
 	EpochLLVMTypeGetString
+	EpochLLVMTypeGetVoid
 
 	EpochLLVMFunctionCreate
 	EpochLLVMFunctionCreateThunk
@@ -25,5 +26,6 @@ EXPORTS
 	EpochLLVMCodeCreateCallThunk
 	EpochLLVMCodeCreateRetVoid
 	
+	EpochLLVMCodePushBoolean
 	EpochLLVMCodePushString
 

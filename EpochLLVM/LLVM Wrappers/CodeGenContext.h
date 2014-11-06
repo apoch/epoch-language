@@ -39,8 +39,9 @@ namespace CodeGen
 	public:		// Type management interface
 		llvm::FunctionType* FunctionTypeCreate(llvm::Type* rettype);
 
-		llvm::Type* TypeGetVoid();
+		llvm::Type* TypeGetBoolean();
 		llvm::Type* TypeGetString();
+		llvm::Type* TypeGetVoid();
 
 	public:		// Function management interface
 		llvm::Function* FunctionCreate(const char* name, llvm::FunctionType* fty);
@@ -53,6 +54,7 @@ namespace CodeGen
 		llvm::CallInst* CodeCreateCallThunk(llvm::GlobalVariable* target);
 		void CodeCreateRetVoid();
 
+		void CodePushBoolean(bool value);
 		void CodePushString(unsigned handle);
 
 	public:		// Object code emission interface

@@ -178,15 +178,21 @@ void Context::SetStringCallback(void* funcptr)
 }
 
 
-llvm::Type* Context::TypeGetVoid()
+llvm::Type* Context::TypeGetBoolean()
 {
-	return Type::getVoidTy(getGlobalContext());
+	return Type::getInt1Ty(getGlobalContext());
 }
 
 llvm::Type* Context::TypeGetString()
 {
 	return Type::getInt8PtrTy(getGlobalContext());
 }
+
+llvm::Type* Context::TypeGetVoid()
+{
+	return Type::getVoidTy(getGlobalContext());
+}
+
 
 
 extern "C" void LLVMLinkInMCJIT();
@@ -307,7 +313,7 @@ llvm::CallInst* Context::CodeCreateCallThunk(llvm::GlobalVariable* target)
 	llvm::Value* loadedTarget = LLVMBuilder.CreateLoad(target);
 	llvm::CallInst* inst = LLVMBuilder.CreateCall(loadedTarget, PendingValues);
 
-	llvm::FunctionType* fty = llvm::cast<llvm::FunctionType>(loadedTarget->getType());
+	llvm::FunctionType* fty = llvm::cast<llvm::FunctionType>(loadedTarget->getType()->getContainedType(0));
 	for(size_t i = 0; i < fty->getNumParams(); ++i)
 		PendingValues.pop_back();
 
@@ -319,6 +325,12 @@ void Context::CodeCreateRetVoid()
 	LLVMBuilder.CreateRetVoid();
 }
 
+
+void Context::CodePushBoolean(bool value)
+{
+	llvm::Value* val = ConstantInt::get(Type::getInt1Ty(getGlobalContext()), value);
+	PendingValues.push_back(val);
+}
 
 void Context::CodePushString(unsigned handle)
 {

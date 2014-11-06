@@ -37,14 +37,15 @@ EpochLLVMFunctionCreate :
 	LLVMFunctionRef ret = 0
   [external("EpochLLVM.dll", "EpochLLVMFunctionCreate")]
 
-EpochLLVMFunctionCreateThunk : LLVMContextHandle context, string name, LLVMFunctionType ty -> LLVMGlobalVar v = 0	[external("EpochLLVM.dll", "EpochLLVMFunctionCreateThunk")]
+EpochLLVMFunctionCreateThunk : LLVMContextHandle context, string name, LLVMFunctionType ty -> integer v = 0			[external("EpochLLVM.dll", "EpochLLVMFunctionCreateThunk")]
 
 EpochLLVMFunctionQueueParamType : LLVMContextHandle context, LLVMType t												[external("EpochLLVM.dll", "EpochLLVMFunctionQueueParamType")]
 
 EpochLLVMFunctionSetEntry : LLVMContextHandle context, LLVMFunctionRef func											[external("EpochLLVM.dll", "EpochLLVMFunctionSetEntry")]
 
-EpochLLVMTypeGetVoid : LLVMContextHandle context -> LLVMType t = 0													[external("EpochLLVM.dll", "EpochLLVMTypeGetVoid")]
+EpochLLVMTypeGetBoolean : LLVMContextHandle context -> LLVMType t = 0												[external("EpochLLVM.dll", "EpochLLVMTypeGetBoolean")]
 EpochLLVMTypeGetString : LLVMContextHandle context -> LLVMType t = 0												[external("EpochLLVM.dll", "EpochLLVMTypeGetString")]
+EpochLLVMTypeGetVoid : LLVMContextHandle context -> LLVMType t = 0													[external("EpochLLVM.dll", "EpochLLVMTypeGetVoid")]
 
 EpochLLVMEmitBinaryObject : LLVMContextHandle handle, buffer ref outbuffer, integer maxsize -> integer written = 0 	[external("EpochLLVM.dll", "EpochLLVMEmitBinaryObject")]
 
@@ -54,11 +55,11 @@ EpochLLVMSetStringCallback : LLVMContextHandle handle, (func : integer -> intege
 
 EpochLLVMCodeCreateBasicBlock : LLVMContextHandle handle, LLVMFunctionRef func -> LLVMBasicBlock ret = 0			[external("EpochLLVM.dll", "EpochLLVMCodeCreateBasicBlock")]
 EpochLLVMCodeCreateCall : LLVMContextHandle handle, LLVMFunctionRef target -> integer ret = 0						[external("EpochLLVM.dll", "EpochLLVMCodeCreateCall")]
-EpochLLVMCodeCreateCallThunk : LLVMContextHandle handle, LLVMGlobalVar target -> integer ret = 0					[external("EpochLLVM.dll", "EpochLLVMCodeCreateCallThunk")]
+EpochLLVMCodeCreateCallThunk : LLVMContextHandle handle, integer target -> integer ret = 0							[external("EpochLLVM.dll", "EpochLLVMCodeCreateCallThunk")]
 EpochLLVMCodeCreateRetVoid : LLVMContextHandle handle																[external("EpochLLVM.dll", "EpochLLVMCodeCreateRetVoid")]
 
 EpochLLVMCodePushString : LLVMContextHandle context, integer handle													[external("EpochLLVM.dll", "EpochLLVMCodePushString")]
-
+EpochLLVMCodePushBoolean : LLVMContextHandle context, boolean literal												[external("EpochLLVM.dll", "EpochLLVMCodePushBoolean")]
 
 
 RoundUp : integer in -> integer out = ((in / 0x1000) + 1) * 0x1000			// TODO - this over-estimates if in is a perfect multiple of 0x1000
@@ -956,8 +957,8 @@ EmitSingleCodeBlockEntryToLLVM : LLVMContextHandle context, Statement ref entry
 
 	if(IsRecognizedBuiltIn(entry.Name))
 	{
-		LLVMGlobalVar thunk = 0
-		BinaryTreeCopyPayload<LLVMGlobalVar>(LLVMGlobalThunks.RootNode, entry.Name, thunk)
+		integer thunk = 0
+		BinaryTreeCopyPayload<integer>(LLVMGlobalThunks.RootNode, entry.Name, thunk)
 		EpochLLVMCodeCreateCallThunk(context, thunk)
 	}
 }
@@ -994,10 +995,17 @@ EmitExpressionAtomsToLLVM : LLVMContextHandle context, list<ExpressionAtom> ref 
 EmitExpressionAtomsToLLVM : LLVMContextHandle context, nothing
 
 
+EmitSingleAtomToLLVM : LLVMContextHandle context, AtomSentinel ref sentinel
+
 
 EmitSingleAtomToLLVM : LLVMContextHandle context, integer ref literal
 {
 	// TODO - support literals
+}
+
+EmitSingleAtomToLLVM : LLVMContextHandle context, boolean ref literal
+{
+	EpochLLVMCodePushBoolean(context, literal)
 }
 
 EmitSingleAtomToLLVM : LLVMContextHandle context, StringHandleAtom ref literal
@@ -1006,13 +1014,36 @@ EmitSingleAtomToLLVM : LLVMContextHandle context, StringHandleAtom ref literal
 }
 
 
-
-
 SetUpBuiltInLLVMThunks : LLVMContextHandle context
+{
+	BuiltInThunkCreateAssert(context)
+	BuiltInThunkCreatePasstest(context)
+	BuiltInThunkCreatePrint(context)
+}
+
+BuiltInThunkCreateAssert : LLVMContextHandle context
+{
+	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetBoolean(context))
+	LLVMFunctionType fty = EpochLLVMFunctionTypeCreate(context, EpochLLVMTypeGetVoid(context))
+	integer thunk = EpochLLVMFunctionCreateThunk(context, "ERT_assert", fty)
+
+	BinaryTreeCreateOrInsert<integer>(LLVMGlobalThunks, PooledStringHandleForAssert, thunk)
+}
+
+BuiltInThunkCreatePasstest : LLVMContextHandle context
+{
+	LLVMFunctionType fty = EpochLLVMFunctionTypeCreate(context, EpochLLVMTypeGetVoid(context))
+	integer thunk = EpochLLVMFunctionCreateThunk(context, "ERT_passtest", fty)
+
+	BinaryTreeCreateOrInsert<integer>(LLVMGlobalThunks, PooledStringHandleForPassTest, thunk)
+}
+
+BuiltInThunkCreatePrint : LLVMContextHandle context
 {
 	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetString(context))
 	LLVMFunctionType fty = EpochLLVMFunctionTypeCreate(context, EpochLLVMTypeGetVoid(context))
-	LLVMGlobalVar thunk = EpochLLVMFunctionCreateThunk(context, "ERT_print", fty)
+	integer thunk = EpochLLVMFunctionCreateThunk(context, "ERT_print", fty)
 
-	BinaryTreeCreateOrInsert<LLVMGlobalVar>(LLVMGlobalThunks, PooledStringHandleForPrint, thunk)
+	BinaryTreeCreateOrInsert<integer>(LLVMGlobalThunks, PooledStringHandleForPrint, thunk)
 }
+

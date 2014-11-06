@@ -1,5 +1,6 @@
 entrypoint :
 {
-	print("Testing")
+	assert(true)
+	passtest()
 }
 
