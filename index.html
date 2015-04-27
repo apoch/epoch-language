@@ -69,38 +69,38 @@
 
 <p>To get a taste of what a simple Epoch program looks like, check out the snippet below. More extensive examples can be found in our repositories on GitHub.</p>
 
-<pre><code class="highlight"><span class="c">//
+<pre class="highlight"><code><span class="c">//
 // Epoch Example Program
 // These lines are simply comments.
 //
 
 // User-defined function taking one parameter of type string</span>
-DisplayMessage : string message
+DisplayMessage : <span class="kt">string</span> message
 {
     <span class="c">// Invoke the standard library console print function
     // The ; operator concatenates strings together</span>
-    print("Important Message: " ; message)
+    print(<span class="s">"Important Message: "</span> <span class="o">;</span> message)
 }
 
 <span class="c">// User-defined algebraic sum type (aka discriminated union) 
 // This type can hold a string, or it can hold "nothing"
 // Epoch does not have null references; instead, "nothing"
 // is used to indicate the absence of a value.</span>
-type OptionalString : string | nothing
+<span class="k">type</span> OptionalString : <span class="kt">string</span> <span class="o">|</span> <span class="kt">nothing</span>
 
 <span class="c">// Overload the DisplayMessage function
 // This overload handles a "nothing" value for the message</span>
-DisplayMessage : nothing
+DisplayMessage : <span class="kt">nothing</span>
 {
-    print("No message provided.")
+    print(<span class="s">"No message provided."</span>)
 }
 
 <span class="c">// This function is where the program begins execution</span>
 entrypoint :
 {
     <span class="c">// Create some variables to hold messages</span>
-    OptionalString hello = "Hello world!"
-    OptionalString nada = nothing
+    OptionalString hello <span class="o">=</span> <span class="s">"Hello world!"</span>
+    OptionalString nada <span class="o">=</span> <span class="kt">nothing</span>
 
     <span class="c">// Display our messages to the user</span>
     DisplayMessage(hello)
