@@ -69,7 +69,7 @@
 
 <p>To get a taste of what a simple Epoch program looks like, check out the snippet below. More extensive examples can be found in our repositories on GitHub.</p>
 
-<pre><code><span class="highlight-c">//
+<pre><code class="highlight"><span class="c">//
 // Epoch Example Program
 // These lines are simply comments.
 //
@@ -77,32 +77,32 @@
 // User-defined function taking one parameter of type string</span>
 DisplayMessage : string message
 {
-    <span class="highlight-c">// Invoke the standard library console print function
+    <span class="c">// Invoke the standard library console print function
     // The ; operator concatenates strings together</span>
     print("Important Message: " ; message)
 }
 
-<span class="highlight-c">// User-defined algebraic sum type (aka discriminated union) 
+<span class="c">// User-defined algebraic sum type (aka discriminated union) 
 // This type can hold a string, or it can hold "nothing"
 // Epoch does not have null references; instead, "nothing"
 // is used to indicate the absence of a value.</span>
 type OptionalString : string | nothing
 
-<span class="highlight-c">// Overload the DisplayMessage function
+<span class="c">// Overload the DisplayMessage function
 // This overload handles a "nothing" value for the message</span>
 DisplayMessage : nothing
 {
     print("No message provided.")
 }
 
-<span class="highlight-c">// This function is where the program begins execution</span>
+<span class="c">// This function is where the program begins execution</span>
 entrypoint :
 {
-    <span class="highlight-c">// Create some variables to hold messages</span>
+    <span class="c">// Create some variables to hold messages</span>
     OptionalString hello = "Hello world!"
     OptionalString nada = nothing
 
-    <span class="highlight-c">// Display our messages to the user</span>
+    <span class="c">// Display our messages to the user</span>
     DisplayMessage(hello)
     DisplayMessage(nada)
 }
