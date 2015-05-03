@@ -82,7 +82,8 @@ structure ThunkTableLibrary :
 structure ThunkTable :
 	listnode<ThunkTableLibrary> Libraries,
 	integer DescriptorOffset,
-	integer TotalSize
+	integer TotalSize,
+	integer AddressTableSize
 	
 
 
@@ -426,15 +427,15 @@ WritePEHeader : Win32Handle filehandle, integer imagesize, integer resourcesize,
 
 	// Begin NT headers
 	ByteStreamEmitInteger(headerbuffer, headersize, 0x00004550)
-	ByteStreamEmitInteger16(headerbuffer, headersize, 0x014c)						// Machine
+	ByteStreamEmitInteger16(headerbuffer, headersize, 0x8664)						// Machine
 	ByteStreamEmitInteger16(headerbuffer, headersize, 4)							// NumberOfSections
 	ByteStreamEmitInteger(headerbuffer, headersize, 0x00000000)						// TimeDateStamp
 	ByteStreamEmitInteger(headerbuffer, headersize, 0)								// PointerToSymbolTable
 	ByteStreamEmitInteger(headerbuffer, headersize, 0)								// NumberOfSymbols
-	ByteStreamEmitInteger16(headerbuffer, headersize, 0xe0)							// SizeOfOptionalHeader
+	ByteStreamEmitInteger16(headerbuffer, headersize, 0xf0)							// SizeOfOptionalHeader
 	ByteStreamEmitInteger16(headerbuffer, headersize, 0x0103)						// Characteristics
 
-	ByteStreamEmitInteger16(headerbuffer, headersize, 0x010b)						// Magic
+	ByteStreamEmitInteger16(headerbuffer, headersize, 0x020b)						// Magic
 	ByteStreamEmitByte(headerbuffer, headersize, 0x02)								// MajorLinkerVersion
 	ByteStreamEmitByte(headerbuffer, headersize, 0x00)								// MinorLinkerVersion
 
@@ -443,9 +444,9 @@ WritePEHeader : Win32Handle filehandle, integer imagesize, integer resourcesize,
 	ByteStreamEmitInteger(headerbuffer, headersize, 0)								// SizeOfUninitializedData
 	ByteStreamEmitInteger(headerbuffer, headersize, 0x4000)							// AddressOfEntryPoint			// TODO - unhardcode this stuff
 	ByteStreamEmitInteger(headerbuffer, headersize, 0x1000)							// BaseOfCode
-	ByteStreamEmitInteger(headerbuffer, headersize, 0xc00)							// BaseOfData
 
 	ByteStreamEmitInteger(headerbuffer, headersize, 0x400000)						// ImageBase
+	ByteStreamEmitInteger(headerbuffer, headersize, 0)							// ImageBase upper 32 bits
 	ByteStreamEmitInteger(headerbuffer, headersize, 0x1000)							// SectionAlignment
 	ByteStreamEmitInteger(headerbuffer, headersize, 0x200)							// FileAlignment
 
@@ -465,17 +466,21 @@ WritePEHeader : Win32Handle filehandle, integer imagesize, integer resourcesize,
 	ByteStreamEmitInteger16(headerbuffer, headersize, 0)							// DllCharacteristics
 
 	ByteStreamEmitInteger(headerbuffer, headersize, 0x800000)						// SizeOfStackReserve
+	ByteStreamEmitInteger(headerbuffer, headersize, 0)							// SizeOfStackReserve upper 32 bits
 	ByteStreamEmitInteger(headerbuffer, headersize, 0x80000)						// SizeOfStackCommit
+	ByteStreamEmitInteger(headerbuffer, headersize, 0)							// SizeOfStackCommit upper 32 bits
 	ByteStreamEmitInteger(headerbuffer, headersize, 0x500000)						// SizeOfHeapReserve
+	ByteStreamEmitInteger(headerbuffer, headersize, 0)							// SizeOfHeapReserve upper 32 bits
 	ByteStreamEmitInteger(headerbuffer, headersize, 0x50000)						// SizeOfHeapCommit
+	ByteStreamEmitInteger(headerbuffer, headersize, 0)							// SizeOfHeapCommit upper 32 bits
 	ByteStreamEmitInteger(headerbuffer, headersize, 0)								// LoaderFlags
 	ByteStreamEmitInteger(headerbuffer, headersize, 0x10)							// NumberOfRvaAndSizes
 
 	ByteStreamEmitInteger(headerbuffer, headersize, 0)					// RVA virtual address 1
 	ByteStreamEmitInteger(headerbuffer, headersize, 0)					// Size
 
-	ByteStreamEmitInteger(headerbuffer, headersize, 0x1200)				// RVA virtual address 2		// TODO - unhardcode
-	ByteStreamEmitInteger(headerbuffer, headersize, 0x28)				// Size
+	ByteStreamEmitInteger(headerbuffer, headersize, 0x1200) 						// RVA virtual address 2	// TODO - unhardcode
+	ByteStreamEmitInteger(headerbuffer, headersize, 0x28)							// Size
 
 	ByteStreamEmitInteger(headerbuffer, headersize, 0x2000)				// RVA virtual address 3		// TODO - unhardcode
 	ByteStreamEmitInteger(headerbuffer, headersize, resourcesize)		// Size
@@ -577,15 +582,19 @@ ThunkTableGetCompleteSize : ThunkTable ref table -> integer totalsize = 0
 {
 	ThunkTableLibrariesWalkForSize(table.Libraries, table.TotalSize)
 	
+	integer initialsize = table.TotalSize
 	integer namelistsize = table.TotalSize
 	ThunkTableLibrariesWalkForAddressHolders(table.Libraries, namelistsize)
-	namelistsize += 4
+	integer addresstablesize = namelistsize - initialsize
+	namelistsize += 8
 	ThunkTableLibrariesWalkForAddressCopyHolders(table.Libraries, namelistsize)
 	
 	totalsize = RoundUpFile(table.TotalSize)
 	table.DescriptorOffset = totalsize
 	
 	ThunkAddressesWalkLibrariesForOffsets(table.Libraries, totalsize)
+	
+	table.AddressTableSize = addresstablesize
 }
 
 ThunkTableLibrariesWalkForSize : list<ThunkTableLibrary> ref libraries, integer ref startoffset
@@ -641,7 +650,7 @@ ThunkTableLibrariesWalkForAddressHolders : nothing, integer ref offset
 ThunkTableFunctionsWalkForAddressHolders : list<ThunkTableEntry> ref functions, integer ref offset
 {
 	functions.value.ThunkAddressOffset = offset
-	offset += 4
+	offset += 8
 
 	ThunkTableFunctionsWalkForAddressHolders(functions.next, offset)
 }
@@ -662,7 +671,7 @@ ThunkTableLibrariesWalkForAddressCopyHolders : nothing, integer ref offset
 ThunkTableFunctionsWalkForAddressCopyHolders : list<ThunkTableEntry> ref functions, integer ref offset
 {
 	functions.value.ThunkAddressCopyOffset = offset
-	offset += 4
+	offset += 8
 
 	ThunkTableFunctionsWalkForAddressCopyHolders(functions.next, offset)
 }
@@ -671,12 +680,11 @@ ThunkTableFunctionsWalkForAddressCopyHolders : nothing, integer ref offset
 
 
 
-
 ThunkTableEmit : Win32Handle filehandle, ThunkTable ref table, integer virtualbase -> integer byteswritten = 0
 {
 	byteswritten += ThunkTableEmitLibraries(filehandle, table.Libraries)
 	byteswritten += ThunkTableEmitThunkHolders(filehandle, table.Libraries, virtualbase)
-	byteswritten += WritePadding(filehandle, 0, 4)
+	byteswritten += WritePadding(filehandle, 0, 8)
 	byteswritten += ThunkTableEmitThunkHolders(filehandle, table.Libraries, virtualbase)		// Second (copy) holders
 	
 	byteswritten += WritePadding(filehandle, byteswritten, table.DescriptorOffset)
@@ -737,10 +745,11 @@ ThunkTableEmitThunkHolders : Win32Handle filehandle, nothing, integer virtualbas
 
 ThunkTableEmitThunkHoldersPerFunction : Win32Handle filehandle, list<ThunkTableEntry> ref functions, integer virtualbase -> integer byteswritten = 0
 {
-	buffer thunkbuffer = 8
+	buffer thunkbuffer = 16
 	integer thunksize = 0
 	
 	ByteStreamEmitInteger(thunkbuffer, thunksize, functions.value.ThunkTableOffset + virtualbase)
+	ByteStreamEmitInteger(thunkbuffer, thunksize, 0)
 
 	integer written = 0
 	WriteFile(filehandle, thunkbuffer, thunksize, written, 0)
@@ -749,7 +758,13 @@ ThunkTableEmitThunkHoldersPerFunction : Win32Handle filehandle, list<ThunkTableE
 	byteswritten += ThunkTableEmitThunkHoldersPerFunction(filehandle, functions.next, virtualbase)
 }
 
-ThunkTableEmitThunkHoldersPerFunction : Win32Handle filehandle, nothing, integer virtualbase -> 0
+ThunkTableEmitThunkHoldersPerFunction : Win32Handle filehandle, nothing, integer virtualbase -> integer byteswritten = 0
+{
+	//buffer padbuffer = 8
+	//integer written = 0
+	//WriteFile(filehandle, padbuffer, 8, written, 0)
+	//byteswritten = written
+}
 
 
 

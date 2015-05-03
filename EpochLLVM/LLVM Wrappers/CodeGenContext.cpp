@@ -20,13 +20,18 @@ using namespace llvm;
 ////////////////////////
 class TrivialMemoryManager : public RTDyldMemoryManager {
 public:
-	TrivialMemoryManager(CodeGen::ThunkCallbackT funcptr, CodeGen::StringCallbackT strptr)
+	TrivialMemoryManager(CodeGen::ThunkCallbackT funcptr, CodeGen::StringCallbackT strptr, uint64_t* outAddr, size_t* outSize)
 		: ThunkCallback(funcptr),
-		  StringCallback(strptr)
+		  StringCallback(strptr),
+		  OutAddr(outAddr),
+		  OutSize(outSize)
 	{ }
 
 	ThunkCallbackT ThunkCallback;
 	StringCallbackT StringCallback;
+
+	uint64_t* OutAddr;
+	size_t* OutSize;
 
 
 
@@ -80,6 +85,11 @@ uint8_t *TrivialMemoryManager::allocateCodeSection(uintptr_t Size,
                                                    StringRef SectionName) {
   sys::MemoryBlock MB = sys::Memory::AllocateRWX(Size, 0, 0);
   FunctionMemory.push_back(MB);
+
+  *OutAddr = (uint64_t)MB.base();
+  *OutSize = Size;
+
+
   return (uint8_t*)MB.base();
 }
 
@@ -112,18 +122,16 @@ Context::Context()
 	: ThunkCallback(nullptr),
 	  StringCallback(nullptr),
 	  LLVMBuilder(getGlobalContext()),
-	  EntryPointFunction(nullptr)
+	  EntryPointFunction(nullptr),
+	  LLVMModule(new Module("EpochModule", getGlobalContext()))
 {
-	LLVMModule = new Module("EpochModule", getGlobalContext());
-
 	FunctionType* initfunctiontype = FunctionType::get(Type::getInt32Ty(getGlobalContext()), false);
-	InitFunction = Function::Create(initfunctiontype, GlobalValue::InternalLinkage, "@init", LLVMModule);
+	InitFunction = Function::Create(initfunctiontype, GlobalValue::InternalLinkage, "@init", LLVMModule.get());
 }
 
 
 Context::~Context()
 {
-	delete LLVMModule;
 }
 
 
@@ -143,7 +151,7 @@ llvm::FunctionType* Context::FunctionTypeCreate(llvm::Type* rettype)
 
 llvm::Function* Context::FunctionCreate(const char* name, llvm::FunctionType* fty)
 {
-	return Function::Create(fty, GlobalValue::ExternalLinkage, name, LLVMModule);
+	return Function::Create(fty, GlobalValue::ExternalLinkage, name, LLVMModule.get());
 }
 
 llvm::GlobalVariable* Context::FunctionCreateThunk(const char* name, llvm::FunctionType* fty)
@@ -209,6 +217,8 @@ size_t Context::EmitBinaryObject(char* buffer, size_t maxoutput)
 	LLVMBuilder.CreateCall(EntryPointFunction);
 	LLVMBuilder.CreateRet(ConstantInt::get(Type::getInt32Ty(getGlobalContext()), 0));
 
+	// HACK!
+	Module* wat = LLVMModule.get();
 
 	std::string errstr;
 
@@ -218,69 +228,42 @@ size_t Context::EmitBinaryObject(char* buffer, size_t maxoutput)
 	opts.AllowFPOpFusion = FPOpFusion::Fast;
 	opts.DisableTailCalls = false;
 	opts.EnableFastISel = false;
-	opts.EnableSegmentedStacks = false;
+	//opts.EnableSegmentedStacks = false;
 	opts.GuaranteedTailCallOpt = true;
 	opts.NoFramePointerElim = true;
 
-	TrivialMemoryManager * blobmgr = new TrivialMemoryManager(ThunkCallback, StringCallback);
+	uint64_t emissionaddr = 0;
+	size_t s = 0;
+	std::unique_ptr<TrivialMemoryManager> blobmgr = std::make_unique<TrivialMemoryManager>(ThunkCallback, StringCallback, &emissionaddr, &s);
 
-	EngineBuilder eb(LLVMModule);
+	EngineBuilder eb(std::move(LLVMModule));
 	eb.setErrorStr(&errstr);
 	eb.setTargetOptions(opts);
-	eb.setUseMCJIT(true);
-	eb.setMCJITMemoryManager(blobmgr);
+	//eb.setUseMCJIT(true);
+	//eb.setRelocationModel(Reloc::Static);
+	eb.setMCJITMemoryManager(std::move(blobmgr));
 
 	SmallVector<std::string, 2> emptyvec;
-	TargetMachine* machine = eb.selectTarget(Triple("i686-pc-mingw32-elf"), "x86", "", emptyvec);
+	TargetMachine* machine = eb.selectTarget(Triple("x86_64-pc-windows-elf"), "", "", emptyvec);
 	
 	ExecutionEngine* ee = eb.create(machine);
 	if(!ee)
 	{
-		__asm int 3;
 		return 0;
 	}
 
-	ee->DisableLazyCompilation(true);
-
-	uint64_t emissionaddr = 0;
-	size_t s = 0;
-	class JITListener : public llvm::JITEventListener
+	/*
+	class : public JITEventListener
 	{
-	public:
-		JITListener(size_t* p, uint64_t* addr)
-			: P(p), Addr(addr)
-		{ }
-
-		void NotifyObjectEmitted(const llvm::ObjectImage& img) override
+		void NotifyObjectEmitted(const object::ObjectFile& img, const RuntimeDyld::LoadedObjectInfo& info) override
 		{
-			llvm::error_code err;
-
-			for(object::section_iterator iter = img.begin_sections(); iter != img.end_sections(); iter.increment(err))
-			{
-				bool text = false;
-				iter->isText(text);
-				if(text)
-				{
-					uint64_t baz = 0;
-
-					iter->getAddress(*Addr);
-					iter->getSize(baz);
-
-					*P = static_cast<size_t>(baz);
-					break;
-				}
-			}
 		}
+	} listener;
 
-	private:
-		size_t* P;
-		uint64_t* Addr;
-	} listen(&s, &emissionaddr);
+	ee->RegisterJITEventListener(&listener);*/
 
-	
-	ee->RegisterJITEventListener(&listen);
-
-	ee->generateCodeForModule(LLVMModule);
+	ee->DisableLazyCompilation(true);
+	ee->generateCodeForModule(wat);
 	ee->mapSectionAddress((void*)(emissionaddr), 0x0404000);
 	ee->finalizeObject();
 

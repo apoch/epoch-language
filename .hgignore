@@ -4,6 +4,8 @@ bin/*
 Build/*
 build/*
 *.exe
+*.dll
+*.pdb
 *.vcproj.*.Administrator.user
 *.vcproj.*.Apoch.user
 VTune/*
@@ -15,3 +17,8 @@ _ReSharper*
 ipch/*
 *.sdf
 *.opensdf
+LLVM/*
+LLVM32/*
+EpochLLVM/x64/*
+EpochRT/x64/*
+x64/*

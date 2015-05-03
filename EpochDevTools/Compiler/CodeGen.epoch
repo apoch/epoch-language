@@ -257,7 +257,7 @@ OnCodeGenRegisterLiteralBoolean : boolean value
 
 OnCodeGenRegisterLiteralInteger : integer value, integer literaltype
 {
-	while((literaltype & 0xff000000) == 0x05000000)
+	while((literaltype & 0x7f000000) == 0x05000000)
 	{
 		literaltype = FindTypeAliasBase(literaltype)
 	}
@@ -1088,7 +1088,12 @@ CodeGenEmitSingleAtom : BytecodeStream ref stream, IdentifierAtom ref idatom, bo
 
 CodeGenEmitSingleAtom : BytecodeStream ref stream, TypeAnnotationAtom ref atom, boolean constructor
 {
-	BytecodePushTypeAnnotation(stream, MakeNonReferenceType(atom.Type))
+	integer atomtype = MakeNonReferenceType(atom.Type)
+	while((atomtype & 0x7f000000) == 0x05000000)
+	{
+		atomtype = FindTypeAliasBase(atomtype)
+	}
+	BytecodePushTypeAnnotation(stream, atomtype)
 }
 
 CodeGenEmitSingleAtom : BytecodeStream ref stream, Statement ref atom, boolean constructor
@@ -1255,9 +1260,15 @@ CodeGenEmitTypeMatcherParams : BytecodeStream ref stream, list<Parameter> ref pa
 		{
 			refflag = 1
 		}
+		
+		integer paramtype = MakeNonReferenceType(params.value.Type)
+		while((paramtype & 0x7f000000) == 0x05000000)
+		{
+			paramtype = FindTypeAliasBase(paramtype)
+		}
 
 		ByteStreamEmitByte(stream.Buffer, stream.Offset, refflag)
-		ByteStreamEmitInteger(stream.Buffer, stream.Offset, MakeNonReferenceType(params.value.Type))
+		ByteStreamEmitInteger(stream.Buffer, stream.Offset, paramtype)
 	}
 }
 

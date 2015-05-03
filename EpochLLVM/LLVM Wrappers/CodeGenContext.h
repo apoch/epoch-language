@@ -68,7 +68,7 @@ namespace CodeGen
 		void SetStringCallback(void* funcptr);
 
 	private:	// Internal state
-		llvm::Module* LLVMModule;
+		std::unique_ptr<llvm::Module> LLVMModule;
 		llvm::Function* InitFunction;
 		llvm::Function* EntryPointFunction;
 
