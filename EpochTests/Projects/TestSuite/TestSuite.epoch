@@ -1,0 +1,17 @@
+//
+// TESTSUITE.EPOCH
+//
+// Entry point for Epoch test suite
+//
+
+
+entrypoint :
+{
+	print("Epoch Language Project")
+	print("Compiler and runtime test suite")
+
+	TestRuntimeDebugFunctions()
+
+	passtest()
+}
+

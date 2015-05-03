@@ -1,0 +1,14 @@
+//
+// RUNTIMEDEBUGGING.EPOCH
+//
+// Unit tests for Epoch Runtime debug support functions
+//
+
+
+TestRuntimeDebugFunctions :
+{
+	print("RUNTIME - test debug functions...")
+	
+	assert(true)
+}
+

@@ -733,11 +733,18 @@ UnaliasType : integer namehandle -> integer unaliasedname = namehandle [nogc]
 
 FindTypeAliasBase : integer aliastype -> integer basetype = 0 [nogc]
 {
+	boolean isref = IsReferenceType(aliastype)
+	aliastype = MakeNonReferenceType(aliastype)
+
 	ContextNode<TypeAlias> wrap = nothing
 
 	if(SearchBinaryTreeForPayload<TypeAlias>(GlobalRootNamespace.TypeAliases.RootNode, aliastype, wrap))
 	{
 		basetype = GrabAliasBaseType(wrap)
+		if(isref)
+		{
+			basetype = MakeReferenceType(basetype)
+		}
 	}
 }
 

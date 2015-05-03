@@ -488,7 +488,13 @@ CodeGenEmitMembers : BytecodeStream ref stream, nothing
 
 CodeGenEmitMember : BytecodeStream ref stream, StructureMemberVariable ref memvar
 {
-	BytecodeStructureMember(stream, memvar.Name, memvar.Type)
+	integer membertype = memvar.Type
+	while((membertype & 0x7f000000) == 0x05000000)
+	{
+		membertype = FindTypeAliasBase(membertype)
+	}
+
+	BytecodeStructureMember(stream, memvar.Name, membertype)
 }
 
 CodeGenEmitMember : BytecodeStream ref stream, StructureMemberFunctionRef ref member
@@ -879,6 +885,11 @@ BindAssignmentMembers : BytecodeStream ref stream, simplelist<integer> ref lhsme
 	integer membertype = 0
 	integer memberoffset = 0
 	GetStructureMemberTypeAndOffset(structurename, lhsmembers.value, membertype, memberoffset)
+	
+	while((membertype & 0x7f000000) == 0x05000000)
+	{
+		membertype = FindTypeAliasBase(membertype)
+	}
 
 	BytecodeBindStructReference(stream, membertype, memberoffset)
 
@@ -1107,6 +1118,11 @@ CodeGenEmitSingleAtom : BytecodeStream ref stream, RefBinding ref atom, boolean 
 	integer memoffset = 0
 	GetStructureMemberTypeAndOffset(atom.StructureName, atom.Identifier, memtype, memoffset)
 
+	while((memtype & 0x7f000000) == 0x05000000)
+	{
+		memtype = FindTypeAliasBase(memtype)
+	}
+
 	BytecodeBindStructReference(stream, memtype, memoffset)
 }
 
@@ -1166,6 +1182,11 @@ EmitCompoundBindings : BytecodeStream ref stream, list<RefBinding> ref bindings,
 	integer memtype = 0
 	integer memoffset = 0
 	GetStructureMemberTypeAndOffset(lhstypename, tail.value.Identifier, memtype, memoffset)
+
+	while((memtype & 0x7f000000) == 0x05000000)
+	{
+		memtype = FindTypeAliasBase(memtype)
+	}
 
 	BytecodeBindStructReference(stream, memtype, memoffset)
 
@@ -1447,7 +1468,13 @@ EmitScopeEntryForMember : BytecodeStream ref stream, StructureMemberVariable ref
 {
 	if(memvar.Name != 0)
 	{
-		BytecodeLexicalScopeEntry(stream, memvar.Name, memvar.Type, 1)
+		integer membertype = memvar.Type
+		while((membertype & 0x7f000000) == 0x05000000)
+		{
+			membertype = FindTypeAliasBase(membertype)
+		}
+		
+		BytecodeLexicalScopeEntry(stream, memvar.Name, membertype, 1)
 	}
 }
 

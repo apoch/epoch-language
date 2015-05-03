@@ -82,6 +82,11 @@ global
 
 	// Remaining contents are largely hacky
 	
+	
+	BinaryTreeRoot<LLVMFunctionRef> LLVMFunctionTable = nothing
+	
+	
+	
 	BinaryTreeRoot<integer> GlobalStringOffsets = nothing
 	
 	Variable dummyvar = 0, 0, 0, 0

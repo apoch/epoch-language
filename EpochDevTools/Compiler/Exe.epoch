@@ -867,8 +867,43 @@ StringLookupMapper : integer stringhandle -> integer offset = 0
 
 SetUpAllLLVMCode : LLVMContextHandle context
 {
+	CreateAllFunctionsInLLVM(context, Functions)
 	EmitAllFunctionsToLLVM(context, Functions)
 }
+
+
+
+CreateAllFunctionsInLLVM : LLVMContextHandle context, list<FunctionDefinition> ref funcs
+{
+	if(!funcs.value.IsTemplate)
+	{
+		if(funcs.value.Name != 0)
+		{
+			CreateSingleFunctionInLLVM(context, funcs.value)
+		}
+	}
+
+	CreateAllFunctionsInLLVM(context, funcs.next)
+}
+
+CreateAllFunctionsInLLVM : LLVMContextHandle context, nothing
+
+CreateSingleFunctionInLLVM : LLVMContextHandle context, FunctionDefinition ref func
+{
+	string funcname = GetPooledString(func.Name)
+
+	LLVMType funcrettype = EpochLLVMTypeGetVoid(context) // TODO - select actual function return type
+	
+	// TODO - set up parameter types
+	
+	LLVMFunctionType functype = EpochLLVMFunctionTypeCreate(context, funcrettype)
+	LLVMFunctionRef llvmfunc = EpochLLVMFunctionCreate(context, funcname, functype)
+
+	BinaryTreeCreateOrInsert<LLVMFunctionRef>(LLVMFunctionTable, func.Name, llvmfunc)
+}
+
+
+
 
 EmitAllFunctionsToLLVM : LLVMContextHandle context, list<FunctionDefinition> ref funcs
 {
@@ -888,14 +923,8 @@ EmitAllFunctionsToLLVM : LLVMContextHandle context, nothing
 
 EmitSingleFunctionToLLVM : LLVMContextHandle context, FunctionDefinition ref func
 {
-	string funcname = GetPooledString(func.Name)
-
-	LLVMType funcrettype = EpochLLVMTypeGetVoid(context) // TODO - select actual function return type
-	
-	// TODO - set up parameter types
-	
-	LLVMFunctionType functype = EpochLLVMFunctionTypeCreate(context, funcrettype)
-	LLVMFunctionRef llvmfunc = EpochLLVMFunctionCreate(context, funcname, functype)
+	LLVMFunctionRef llvmfunc = 0
+	BinaryTreeCopyPayload<LLVMFunctionRef>(LLVMFunctionTable.RootNode, func.Name, llvmfunc)
 	
 	LLVMBasicBlock funcbody = EpochLLVMCodeCreateBasicBlock(context, llvmfunc)
 	
@@ -929,6 +958,7 @@ EmitSingleFunctionToLLVM : LLVMContextHandle context, FunctionDefinition ref fun
 	// TODO - finalize function?
 	
 	
+	string funcname = GetPooledString(func.Name)
 	if(funcname == "entrypoint")
 	{
 		EpochLLVMFunctionSetEntry(context, llvmfunc)
@@ -975,6 +1005,12 @@ EmitSingleCodeBlockEntryToLLVM : LLVMContextHandle context, Statement ref entry
 		integer thunk = 0
 		BinaryTreeCopyPayload<integer>(LLVMGlobalThunks.RootNode, entry.Name, thunk)
 		EpochLLVMCodeCreateCallThunk(context, thunk)
+	}
+	else
+	{
+		LLVMFunctionRef llvmfunc = 0
+		BinaryTreeCopyPayload<LLVMFunctionRef>(LLVMFunctionTable.RootNode, entry.Name, llvmfunc)
+		EpochLLVMCodeCreateCall(context, llvmfunc)
 	}
 }
 

@@ -1,0 +1,12 @@
+[source]
+TestSuite.epoch
+RuntimeDebugging.epoch
+
+[resources]
+
+[output]
+output-file ..\..\..\x64\Debug\TestSuite.exe
+
+[options]
+use-console
+
