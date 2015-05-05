@@ -356,6 +356,16 @@ void Context::CodeCreateRetVoid()
 	LLVMBuilder.CreateRetVoid();
 }
 
+void Context::CodeCreateOperatorBooleanNot()
+{
+	llvm::Value* val = PendingValues.back();
+	PendingValues.pop_back();
+
+	llvm::Value* notval = LLVMBuilder.CreateNot(val);
+	PendingValues.push_back(notval);
+}
+
+
 
 void Context::CodePushBoolean(bool value)
 {

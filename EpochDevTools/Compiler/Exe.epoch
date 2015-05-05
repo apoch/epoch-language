@@ -62,6 +62,8 @@ EpochLLVMCodeCreateCallThunk : LLVMContextHandle handle, integer target -> integ
 EpochLLVMCodeCreateRet : LLVMContextHandle handle																	[external("EpochLLVM.dll", "EpochLLVMCodeCreateRet")]
 EpochLLVMCodeCreateRetVoid : LLVMContextHandle handle																[external("EpochLLVM.dll", "EpochLLVMCodeCreateRetVoid")]
 
+EpochLLVMCodeOperatorBooleanNot : LLVMContextHandle context															[external("EpochLLVM.dll", "EpochLLVMCodeOperatorBooleanNot")]
+
 EpochLLVMCodePushBoolean : LLVMContextHandle context, boolean literal												[external("EpochLLVM.dll", "EpochLLVMCodePushBoolean")]
 EpochLLVMCodePushInteger : LLVMContextHandle context, integer literal												[external("EpochLLVM.dll", "EpochLLVMCodePushInteger")]
 EpochLLVMCodePushString : LLVMContextHandle context, integer handle													[external("EpochLLVM.dll", "EpochLLVMCodePushString")]
@@ -763,13 +765,7 @@ ThunkTableEmitThunkHoldersPerFunction : Win32Handle filehandle, list<ThunkTableE
 	byteswritten += ThunkTableEmitThunkHoldersPerFunction(filehandle, functions.next, virtualbase)
 }
 
-ThunkTableEmitThunkHoldersPerFunction : Win32Handle filehandle, nothing, integer virtualbase -> integer byteswritten = 0
-{
-	//buffer padbuffer = 8
-	//integer written = 0
-	//WriteFile(filehandle, padbuffer, 8, written, 0)
-	//byteswritten = written
-}
+ThunkTableEmitThunkHoldersPerFunction : Win32Handle filehandle, nothing, integer virtualbase -> 0
 
 
 
@@ -1207,6 +1203,20 @@ EmitSingleAtomToLLVM : LLVMContextHandle context, IdentifierAtom ref idatom
 		}
 	}
 }
+
+
+EmitSingleAtomToLLVM : LLVMContextHandle context, OperatorInvokeAtom ref atom
+{
+	if(atom.OperatorName == PooledStringHandleForUnaryNotBoolean)
+	{
+		EpochLLVMCodeOperatorBooleanNot(context)
+	}
+	else
+	{
+		assertmsg(false, "Operator not implemented in LLVM bindings")
+	}
+}
+
 
 
 SetUpBuiltInLLVMThunks : LLVMContextHandle context

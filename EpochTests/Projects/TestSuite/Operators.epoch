@@ -1,0 +1,19 @@
+//
+// OPERATORS.EPOCH
+//
+// Unit test suite for operators
+//
+
+
+TestOperators :
+{
+	print("RUNTIME - test operators...")
+	
+	assert(!TOReturnFalse())
+}
+
+
+
+TOReturnFalse : -> false
+
+

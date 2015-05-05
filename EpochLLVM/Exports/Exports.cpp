@@ -137,6 +137,13 @@ extern "C" void EpochLLVMCodeCreateRetVoid(void* context)
 }
 
 
+extern "C" void EpochLLVMCodeOperatorBooleanNot(void* context)
+{
+	reinterpret_cast<CodeGen::Context*>(context)->CodeCreateOperatorBooleanNot();
+}
+
+
+
 extern "C" void EpochLLVMCodePushBoolean(void* context, bool value)
 {
 	reinterpret_cast<CodeGen::Context*>(context)->CodePushBoolean(value);

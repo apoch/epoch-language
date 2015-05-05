@@ -58,6 +58,8 @@ namespace CodeGen
 		void CodeCreateRet();
 		void CodeCreateRetVoid();
 
+		void CodeCreateOperatorBooleanNot();
+
 		void CodePushBoolean(bool value);
 		void CodePushInteger(int value);
 		void CodePushString(unsigned handle);

@@ -29,6 +29,8 @@ EXPORTS
 	EpochLLVMCodeCreateCallThunk
 	EpochLLVMCodeCreateRet
 	EpochLLVMCodeCreateRetVoid
+
+	EpochLLVMCodeOperatorBooleanNot
 	
 	EpochLLVMCodePushBoolean
 	EpochLLVMCodePushInteger
