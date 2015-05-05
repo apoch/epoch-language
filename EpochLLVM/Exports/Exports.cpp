@@ -41,6 +41,21 @@ extern "C" void* EpochLLVMTypeGetBoolean(void* context)
 	return reinterpret_cast<CodeGen::Context*>(context)->TypeGetBoolean();
 }
 
+extern "C" void* EpochLLVMTypeGetInteger(void* context)
+{
+	return reinterpret_cast<CodeGen::Context*>(context)->TypeGetInteger();
+}
+
+extern "C" void* EpochLLVMTypeGetInteger16(void* context)
+{
+	return reinterpret_cast<CodeGen::Context*>(context)->TypeGetInteger16();
+}
+
+extern "C" void* EpochLLVMTypeGetReal(void* context)
+{
+	return reinterpret_cast<CodeGen::Context*>(context)->TypeGetReal();
+}
+
 extern "C" void* EpochLLVMTypeGetString(void* context)
 {
 	return reinterpret_cast<CodeGen::Context*>(context)->TypeGetString();
@@ -111,6 +126,11 @@ extern "C" void* EpochLLVMCodeCreateCallThunk(void* context, void* target)
 	return reinterpret_cast<CodeGen::Context*>(context)->CodeCreateCallThunk(reinterpret_cast<llvm::GlobalVariable*>(target));
 }
 
+extern "C" void EpochLLVMCodeCreateRet(void* context)
+{
+	reinterpret_cast<CodeGen::Context*>(context)->CodeCreateRet();
+}
+
 extern "C" void EpochLLVMCodeCreateRetVoid(void* context)
 {
 	reinterpret_cast<CodeGen::Context*>(context)->CodeCreateRetVoid();
@@ -120,6 +140,11 @@ extern "C" void EpochLLVMCodeCreateRetVoid(void* context)
 extern "C" void EpochLLVMCodePushBoolean(void* context, bool value)
 {
 	reinterpret_cast<CodeGen::Context*>(context)->CodePushBoolean(value);
+}
+
+extern "C" void EpochLLVMCodePushInteger(void* context, int value)
+{
+	reinterpret_cast<CodeGen::Context*>(context)->CodePushInteger(value);
 }
 
 extern "C" void EpochLLVMCodePushString(void* context, unsigned handle)

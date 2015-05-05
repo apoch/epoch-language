@@ -44,6 +44,9 @@ EpochLLVMFunctionQueueParamType : LLVMContextHandle context, LLVMType t									
 EpochLLVMFunctionSetEntry : LLVMContextHandle context, LLVMFunctionRef func											[external("EpochLLVM.dll", "EpochLLVMFunctionSetEntry")]
 
 EpochLLVMTypeGetBoolean : LLVMContextHandle context -> LLVMType t = 0												[external("EpochLLVM.dll", "EpochLLVMTypeGetBoolean")]
+EpochLLVMTypeGetInteger : LLVMContextHandle context -> LLVMType t = 0												[external("EpochLLVM.dll", "EpochLLVMTypeGetInteger")]
+EpochLLVMTypeGetInteger16 : LLVMContextHandle context -> LLVMType t = 0												[external("EpochLLVM.dll", "EpochLLVMTypeGetInteger16")]
+EpochLLVMTypeGetReal : LLVMContextHandle context -> LLVMType t = 0													[external("EpochLLVM.dll", "EpochLLVMTypeGetReal")]
 EpochLLVMTypeGetString : LLVMContextHandle context -> LLVMType t = 0												[external("EpochLLVM.dll", "EpochLLVMTypeGetString")]
 EpochLLVMTypeGetVoid : LLVMContextHandle context -> LLVMType t = 0													[external("EpochLLVM.dll", "EpochLLVMTypeGetVoid")]
 
@@ -56,10 +59,12 @@ EpochLLVMSetStringCallback : LLVMContextHandle handle, (func : integer -> intege
 EpochLLVMCodeCreateBasicBlock : LLVMContextHandle handle, LLVMFunctionRef func -> LLVMBasicBlock ret = 0			[external("EpochLLVM.dll", "EpochLLVMCodeCreateBasicBlock")]
 EpochLLVMCodeCreateCall : LLVMContextHandle handle, LLVMFunctionRef target -> integer ret = 0						[external("EpochLLVM.dll", "EpochLLVMCodeCreateCall")]
 EpochLLVMCodeCreateCallThunk : LLVMContextHandle handle, integer target -> integer ret = 0							[external("EpochLLVM.dll", "EpochLLVMCodeCreateCallThunk")]
+EpochLLVMCodeCreateRet : LLVMContextHandle handle																	[external("EpochLLVM.dll", "EpochLLVMCodeCreateRet")]
 EpochLLVMCodeCreateRetVoid : LLVMContextHandle handle																[external("EpochLLVM.dll", "EpochLLVMCodeCreateRetVoid")]
 
-EpochLLVMCodePushString : LLVMContextHandle context, integer handle													[external("EpochLLVM.dll", "EpochLLVMCodePushString")]
 EpochLLVMCodePushBoolean : LLVMContextHandle context, boolean literal												[external("EpochLLVM.dll", "EpochLLVMCodePushBoolean")]
+EpochLLVMCodePushInteger : LLVMContextHandle context, integer literal												[external("EpochLLVM.dll", "EpochLLVMCodePushInteger")]
+EpochLLVMCodePushString : LLVMContextHandle context, integer handle													[external("EpochLLVM.dll", "EpochLLVMCodePushString")]
 
 
 RoundUp : integer in -> integer out = ((in / 0x1000) + 1) * 0x1000			// TODO - this over-estimates if in is a perfect multiple of 0x1000
@@ -125,7 +130,7 @@ MakeExe : EpochProject ref project
 	integer offsetstrings        = RoundUpFile(offsetrsrc + sizersrc)
 	integer sizestrings          = PreprocessStringPool(GlobalStringPool, GlobalStringOffsets)
 	
-	buffer codebinarybuffer = 0x100
+	buffer codebinarybuffer = 0x1000		// TODO - this is a REALLY DUMB lazy hack, fix it by allocating a safe size for the code buffer
 	EpochLLVMInitialize()
 	LLVMContextHandle llvm = EpochLLVMContextCreate()
 	EpochLLVMSetThunkCallback(llvm, ThunkLookupMapper)
@@ -135,7 +140,7 @@ MakeExe : EpochProject ref project
 	
 	SetUpAllLLVMCode(llvm)
 	
-	integer sizecode = EpochLLVMEmitBinaryObject(llvm, codebinarybuffer, 0x100)
+	integer sizecode = EpochLLVMEmitBinaryObject(llvm, codebinarybuffer, 0x1000)		// TODO - also bad hack
 	EpochLLVMContextDestroy(llvm)
 	
 	integer virtualoffsetcode    = RoundUp(virtualoffsetstrings + sizestrings)
@@ -892,7 +897,7 @@ CreateSingleFunctionInLLVM : LLVMContextHandle context, FunctionDefinition ref f
 {
 	string funcname = GetPooledString(func.Name)
 
-	LLVMType funcrettype = EpochLLVMTypeGetVoid(context) // TODO - select actual function return type
+	LLVMType funcrettype = GetLLVMTypeForEpochType(context, func.Return)
 	
 	// TODO - set up parameter types
 	
@@ -902,6 +907,39 @@ CreateSingleFunctionInLLVM : LLVMContextHandle context, FunctionDefinition ref f
 	BinaryTreeCreateOrInsert<LLVMFunctionRef>(LLVMFunctionTable, func.Name, llvmfunc)
 }
 
+
+
+GetLLVMTypeForEpochType : LLVMContextHandle context, Expression expr -> LLVMType t = GetLLVMTypeForEpochType(context, expr.Type)
+
+GetLLVMTypeForEpochType : LLVMContextHandle context, integer typeid -> LLVMType t = 0
+{
+	if(typeid == 0x01000001)
+	{
+		t = EpochLLVMTypeGetInteger(context)		
+	}
+	elseif(typeid == 0x01000002)
+	{
+		t = EpochLLVMTypeGetInteger16(context)
+	}
+	elseif(typeid == 0x01000003)
+	{
+		t = EpochLLVMTypeGetBoolean(context)
+	}
+	elseif(typeid == 0x01000004)
+	{
+		t = EpochLLVMTypeGetReal(context)
+	}
+	elseif(typeid == 0x02000000)
+	{
+		t = EpochLLVMTypeGetString(context)
+	}
+	else
+	{
+		assertmsg(false, "Unsupported type for LLVM bindings")
+	}
+}
+
+GetLLVMTypeForEpochType : LLVMContextHandle context, nothing -> LLVMType t = EpochLLVMTypeGetVoid(context)
 
 
 
@@ -946,8 +984,7 @@ EmitSingleFunctionToLLVM : LLVMContextHandle context, FunctionDefinition ref fun
 	{
 		if(func.AnonymousReturn)
 		{
-			// TODO - emit return register bindings
-			//EmitReturnRegisterToLLVMAnonymous(context, func.Return)
+			EmitReturnRegisterToLLVMAnonymous(context, func.Return)
 		}
 		else
 		{
@@ -973,15 +1010,34 @@ EmitCodeBlockToLLVM : LLVMContextHandle context, CodeBlock ref code
 EmitCodeBlockToLLVM : LLVMContextHandle context, nothing
 
 
-EmitReturnRegisterToLLVM : LLVMContextHandle context, Expression ref expr
+EmitReturnRegisterToLLVM : LLVMContextHandle context, FunctionDefinition ref func, Expression ref expr
 {
-	// TODO - set return value
+	integer returnname = 0
+	FindReturnVariableNameInSingleScope(func.AttachedScope.Wrapped, returnname)
+	
+	// TODO - llvm bindings = load alloca from cache and stuff it into return value
+	
+	EpochLLVMCodeCreateRet(context)
 }
 
 EmitReturnRegisterToLLVM : LLVMContextHandle context, nothing
 {
 	EpochLLVMCodeCreateRetVoid(context)
 }
+
+
+EmitReturnRegisterToLLVMAnonymous : LLVMContextHandle context, Expression ref expr
+{
+	EmitExpressionAtomsToLLVM(context, expr.Atoms)
+	EpochLLVMCodeCreateRet(context)
+}
+
+
+EmitReturnRegisterToLLVMAnonymous : LLVMContextHandle context, nothing
+{
+	EpochLLVMCodeCreateRetVoid(context)
+}
+
 
 
 EmitCodeBlockEntriesToLLVM : LLVMContextHandle context, list<CodeBlockEntry> ref entries
@@ -1051,7 +1107,7 @@ EmitSingleAtomToLLVM : LLVMContextHandle context, AtomSentinel ref sentinel
 
 EmitSingleAtomToLLVM : LLVMContextHandle context, integer ref literal
 {
-	// TODO - support literals
+	EpochLLVMCodePushInteger(context, literal)
 }
 
 EmitSingleAtomToLLVM : LLVMContextHandle context, boolean ref literal
@@ -1062,6 +1118,94 @@ EmitSingleAtomToLLVM : LLVMContextHandle context, boolean ref literal
 EmitSingleAtomToLLVM : LLVMContextHandle context, StringHandleAtom ref literal
 {
 	EpochLLVMCodePushString(context, literal.Handle)
+}
+
+EmitSingleAtomToLLVM : LLVMContextHandle context, Statement ref statement
+{
+	EmitSingleCodeBlockEntryToLLVM(context, statement)
+}
+
+EmitSingleAtomToLLVM : LLVMContextHandle context, IdentifierAtom ref idatom
+{
+	integer atomtype = MakeNonReferenceType(idatom.Type)
+
+	if(atomtype == 0x00000004)							// Nothing type signature
+	{
+		EpochLLVMCodePushInteger(context, 0)
+	}
+	else
+	{
+		if(idatom.IsFunction)
+		{
+			// TODO - llvm bindings - pass function pointer
+			//BytecodePushLiteralFunction(stream, idatom.Handle)
+		}
+		elseif(GetTypeByName(idatom.Handle) != 0)
+		{
+			EpochLLVMCodePushString(context, idatom.Handle)
+		}
+		else
+		{
+			if(atomtype == 0x01000000)					// Identifier type signature
+			{
+				// TODO - return this to correctness
+				//if((!constructor) && (!idatom.IsReference))
+				if(!idatom.IsReference)
+				{
+					EpochLLVMCodePushString(context, idatom.Handle)
+				}
+				else
+				{
+					// TODO - llvm bindings - references
+					//integer frames = 0
+					//integer index = FindVariable(idatom.Handle, frames)
+					//BytecodeBindReference(stream, frames, index)
+				}
+			}
+			elseif((atomtype & 0x7f000000) == 0x09000000)			// Function type family signature
+			{
+				// TODO - llvm bindings - pass function pointer
+				//BytecodePushLiteralFunction(stream, idatom.Handle)
+			}
+			else
+			{
+				if(idatom.IsReference)
+				{
+					// TODO - llvm bindings - references
+					//integer frames = 0
+					//integer index = FindVariable(idatom.Handle, frames)
+					//BytecodeBindReference(stream, frames, index)
+				}
+				else
+				{
+					//integer frames = 0
+					//integer index = FindVariable(idatom.Handle, frames)
+
+					//if(frames == 0)
+					//{
+					//	BytecodePushVarValue(stream, idatom.Handle, idatom.Type)
+					//}
+					//elseif(IsReferenceType(idatom.Type))
+					//{
+					//	BytecodeBindReference(stream, frames, index)
+					//}
+					//else
+					//{
+					//	Variable var = 0, 0, 0, 0
+					//	FindVariableDataInSingleScope(GlobalScope.Wrapped, idatom.Handle, var)
+
+					//	if(var.Name == 0)
+					//	{
+					//		print("Code generation error - missing local variable " ; GetPooledString(idatom.Handle) ; " in scope " ; GetPooledString(EmittingFunctionName))
+					//		assert(false)
+					//	}
+						
+					//	BytecodePushLocal(stream, frames, var.Offset)
+					//}
+				}
+			}
+		}
+	}
 }
 
 

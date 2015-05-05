@@ -1,0 +1,19 @@
+//
+// FUNCTIONCALLS.EPOCH
+//
+// Unit tests for function invocation and calling conventions
+//
+
+
+TestFunctionCalls :
+{
+	print("RUNTIME - test function calls...")
+	
+	assert(TFCBooleanReturn())
+}
+
+
+
+TFCBooleanReturn : -> true
+
+

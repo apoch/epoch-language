@@ -34,7 +34,7 @@ Dump.epoch
 [resources]
 
 [output]
-output-file ..\..\Bin\Epoch\EpochNativeBin.exe
+output-file ..\..\Bin\Debug\EpochNativeBin.exe
 
 [options]
 use-console

@@ -9,8 +9,10 @@ entrypoint :
 {
 	print("Epoch Language Project")
 	print("Compiler and runtime test suite")
+	print("")
 
 	TestRuntimeDebugFunctions()
+	TestFunctionCalls()
 
 	passtest()
 }

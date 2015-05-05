@@ -40,6 +40,9 @@ namespace CodeGen
 		llvm::FunctionType* FunctionTypeCreate(llvm::Type* rettype);
 
 		llvm::Type* TypeGetBoolean();
+		llvm::Type* TypeGetInteger();
+		llvm::Type* TypeGetInteger16();
+		llvm::Type* TypeGetReal();
 		llvm::Type* TypeGetString();
 		llvm::Type* TypeGetVoid();
 
@@ -52,9 +55,11 @@ namespace CodeGen
 		llvm::BasicBlock* CodeCreateBasicBlock(llvm::Function* parent);
 		llvm::CallInst* CodeCreateCall(llvm::Function* target);
 		llvm::CallInst* CodeCreateCallThunk(llvm::GlobalVariable* target);
+		void CodeCreateRet();
 		void CodeCreateRetVoid();
 
 		void CodePushBoolean(bool value);
+		void CodePushInteger(int value);
 		void CodePushString(unsigned handle);
 
 	public:		// Object code emission interface

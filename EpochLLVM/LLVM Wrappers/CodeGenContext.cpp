@@ -84,12 +84,11 @@ uint8_t *TrivialMemoryManager::allocateCodeSection(uintptr_t Size,
                                                    unsigned SectionID,
                                                    StringRef SectionName) {
   sys::MemoryBlock MB = sys::Memory::AllocateRWX(Size, 0, 0);
-  FunctionMemory.push_back(MB);
 
   *OutAddr = (uint64_t)MB.base();
   *OutSize = Size;
 
-
+  FunctionMemory.push_back(MB);
   return (uint8_t*)MB.base();
 }
 
@@ -191,6 +190,21 @@ llvm::Type* Context::TypeGetBoolean()
 	return Type::getInt1Ty(getGlobalContext());
 }
 
+llvm::Type* Context::TypeGetInteger()
+{
+	return Type::getInt32Ty(getGlobalContext());
+}
+
+llvm::Type* Context::TypeGetInteger16()
+{
+	return Type::getInt16Ty(getGlobalContext());
+}
+
+llvm::Type* Context::TypeGetReal()
+{
+	return Type::getFloatTy(getGlobalContext());
+}
+
 llvm::Type* Context::TypeGetString()
 {
 	return Type::getInt8PtrTy(getGlobalContext());
@@ -219,6 +233,12 @@ size_t Context::EmitBinaryObject(char* buffer, size_t maxoutput)
 
 	// HACK!
 	Module* wat = LLVMModule.get();
+	
+	
+	// Handy for debugging
+	LLVMModule->dump();
+
+
 
 	std::string errstr;
 
@@ -252,15 +272,32 @@ size_t Context::EmitBinaryObject(char* buffer, size_t maxoutput)
 		return 0;
 	}
 
-	/*
-	class : public JITEventListener
+	class JEL : public JITEventListener
 	{
+		uint64_t* OutEmissionAddr;
+		size_t* OutSize;
+
+	public:
+		JEL(uint64_t* outaddr, size_t* outsize)
+			: OutSize(outsize),
+			  OutEmissionAddr(outaddr)
+		{ }
+
 		void NotifyObjectEmitted(const object::ObjectFile& img, const RuntimeDyld::LoadedObjectInfo& info) override
 		{
-		}
-	} listener;
+			*OutSize = 0;
 
-	ee->RegisterJITEventListener(&listener);*/
+			for(const auto & section : img.sections())
+			{
+				if(section.isText())
+				{
+					*OutSize += static_cast<size_t>(section.getSize());
+				}
+			}
+		}
+	} listener(&emissionaddr, &s);
+
+	ee->RegisterJITEventListener(&listener);
 
 	ee->DisableLazyCompilation(true);
 	ee->generateCodeForModule(wat);
@@ -288,6 +325,9 @@ llvm::CallInst* Context::CodeCreateCall(llvm::Function* target)
 	for(size_t i = 0; i < fty->getNumParams(); ++i)
 		PendingValues.pop_back();
 
+	if(inst->getType() != Type::getVoidTy(getGlobalContext()))
+		PendingValues.push_back(inst);
+
 	return inst;
 }
 
@@ -303,6 +343,14 @@ llvm::CallInst* Context::CodeCreateCallThunk(llvm::GlobalVariable* target)
 	return inst;
 }
 
+void Context::CodeCreateRet()
+{
+	llvm::Value* retval = PendingValues.back();
+	PendingValues.pop_back();
+
+	LLVMBuilder.CreateRet(retval);
+}
+
 void Context::CodeCreateRetVoid()
 {
 	LLVMBuilder.CreateRetVoid();
@@ -312,6 +360,12 @@ void Context::CodeCreateRetVoid()
 void Context::CodePushBoolean(bool value)
 {
 	llvm::Value* val = ConstantInt::get(Type::getInt1Ty(getGlobalContext()), value);
+	PendingValues.push_back(val);
+}
+
+void Context::CodePushInteger(int value)
+{
+	llvm::Value* val = ConstantInt::get(Type::getInt32Ty(getGlobalContext()), value);
 	PendingValues.push_back(val);
 }
 
