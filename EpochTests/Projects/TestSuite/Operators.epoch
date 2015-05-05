@@ -9,11 +9,14 @@ TestOperators :
 {
 	print("RUNTIME - test operators...")
 	
+	assert(TOReturnTrue())
 	assert(!TOReturnFalse())
+	assert(!!TOReturnTrue())
+	assert(!!!TOReturnFalse())
 }
 
 
-
+TOReturnTrue : -> true
 TOReturnFalse : -> false
 
 

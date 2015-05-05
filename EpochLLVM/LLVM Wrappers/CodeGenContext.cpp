@@ -125,7 +125,7 @@ Context::Context()
 	  LLVMModule(new Module("EpochModule", getGlobalContext()))
 {
 	FunctionType* initfunctiontype = FunctionType::get(Type::getInt32Ty(getGlobalContext()), false);
-	InitFunction = Function::Create(initfunctiontype, GlobalValue::InternalLinkage, "@init", LLVMModule.get());
+	InitFunction = Function::Create(initfunctiontype, GlobalValue::ExternalLinkage , "@init", LLVMModule.get());
 }
 
 
@@ -233,11 +233,9 @@ size_t Context::EmitBinaryObject(char* buffer, size_t maxoutput)
 
 	// HACK!
 	Module* wat = LLVMModule.get();
-	
-	
-	// Handy for debugging
-	LLVMModule->dump();
 
+
+	wat->dump();
 
 
 	std::string errstr;
@@ -271,6 +269,72 @@ size_t Context::EmitBinaryObject(char* buffer, size_t maxoutput)
 	{
 		return 0;
 	}
+
+
+
+
+
+	FunctionPassManager fpm(wat);
+	wat->setDataLayout(ee->getDataLayout());
+	fpm.add(new DataLayoutPass());
+	fpm.add(createTypeBasedAliasAnalysisPass());
+	fpm.add(createBasicAliasAnalysisPass());
+	fpm.add(createCFGSimplificationPass());
+	fpm.add(createScalarReplAggregatesPass());
+	fpm.add(createEarlyCSEPass());
+	fpm.add(createLowerExpectIntrinsicPass());
+
+	fpm.doInitialization();
+	
+	PassManager mpm;
+	mpm.add(new DataLayoutPass());
+	mpm.add(createTypeBasedAliasAnalysisPass());
+	mpm.add(createBasicAliasAnalysisPass());
+	mpm.add(createGlobalOptimizerPass());
+	mpm.add(createPromoteMemoryToRegisterPass());
+	mpm.add(createIPSCCPPass());
+	mpm.add(createDeadArgEliminationPass());
+	mpm.add(createInstructionCombiningPass());
+	mpm.add(createCFGSimplificationPass());
+	mpm.add(createPruneEHPass());
+	mpm.add(createFunctionAttrsPass());
+	mpm.add(createFunctionInliningPass());
+	mpm.add(createArgumentPromotionPass());
+	mpm.add(createScalarReplAggregatesPass(-1, false));
+	mpm.add(createEarlyCSEPass());
+	mpm.add(createJumpThreadingPass());
+	mpm.add(createCorrelatedValuePropagationPass());
+	mpm.add(createCFGSimplificationPass());
+	mpm.add(createInstructionCombiningPass());
+	mpm.add(createTailCallEliminationPass());
+	mpm.add(createCFGSimplificationPass());
+	mpm.add(createReassociatePass());
+	mpm.add(createLoopRotatePass());
+	mpm.add(createLICMPass());
+	mpm.add(createLoopUnswitchPass(false));
+	mpm.add(createInstructionCombiningPass());
+	mpm.add(createIndVarSimplifyPass());
+	mpm.add(createLoopIdiomPass());
+	mpm.add(createLoopDeletionPass());
+	mpm.add(createLoopUnrollPass());
+	mpm.add(createGVNPass());
+	mpm.add(createMemCpyOptPass());
+	mpm.add(createSCCPPass());
+	mpm.add(createInstructionCombiningPass());
+	mpm.add(createJumpThreadingPass());
+	mpm.add(createCorrelatedValuePropagationPass());
+	mpm.add(createDeadStoreEliminationPass());
+	mpm.add(createAggressiveDCEPass());
+	mpm.add(createCFGSimplificationPass());
+	mpm.add(createInstructionCombiningPass());
+	mpm.add(createFunctionInliningPass());
+	mpm.add(createDeadStoreEliminationPass());
+
+	mpm.run(*wat);
+
+
+	wat->dump();
+
 
 	class JEL : public JITEventListener
 	{
