@@ -3,6 +3,7 @@ TestSuite.epoch
 RuntimeDebugging.epoch
 FunctionCalls.epoch
 Operators.epoch
+Entities.epoch
 
 [resources]
 

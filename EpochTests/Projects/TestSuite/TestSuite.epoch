@@ -14,6 +14,7 @@ entrypoint :
 	TestRuntimeDebugFunctions()
 	TestFunctionCalls()
 	TestOperators()
+	TestEntities()
 
 	passtest()
 }

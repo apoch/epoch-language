@@ -111,9 +111,14 @@ extern "C" void EpochLLVMSetStringCallback(void* context, void* funcptr)
 }
 
 
-extern "C" void* EpochLLVMCodeCreateBasicBlock(void* context, void* parentfunc)
+extern "C" void* EpochLLVMCodeCreateBasicBlock(void* context, void* parentfunc, bool setinsertpoint)
 {
-	return reinterpret_cast<CodeGen::Context*>(context)->CodeCreateBasicBlock(reinterpret_cast<llvm::Function*>(parentfunc));
+	return reinterpret_cast<CodeGen::Context*>(context)->CodeCreateBasicBlock(reinterpret_cast<llvm::Function*>(parentfunc), setinsertpoint);
+}
+
+extern "C" void EpochLLVMCodeCreateBranch(void* context, void* target, bool setinsertpoint)
+{
+	reinterpret_cast<CodeGen::Context*>(context)->CodeCreateBranch(reinterpret_cast<llvm::BasicBlock*>(target), setinsertpoint);
 }
 
 extern "C" void* EpochLLVMCodeCreateCall(void* context, void* target)
@@ -124,6 +129,11 @@ extern "C" void* EpochLLVMCodeCreateCall(void* context, void* target)
 extern "C" void* EpochLLVMCodeCreateCallThunk(void* context, void* target)
 {
 	return reinterpret_cast<CodeGen::Context*>(context)->CodeCreateCallThunk(reinterpret_cast<llvm::GlobalVariable*>(target));
+}
+
+extern "C" void EpochLLVMCodeCreateCondBranch(void* context, void* truetarget, void* falsetarget)
+{
+	reinterpret_cast<CodeGen::Context*>(context)->CodeCreateCondBranch(reinterpret_cast<llvm::BasicBlock*>(truetarget), reinterpret_cast<llvm::BasicBlock*>(falsetarget));
 }
 
 extern "C" void EpochLLVMCodeCreateRet(void* context)
@@ -142,6 +152,11 @@ extern "C" void EpochLLVMCodeOperatorBooleanNot(void* context)
 	reinterpret_cast<CodeGen::Context*>(context)->CodeCreateOperatorBooleanNot();
 }
 
+extern "C" void EpochLLVMCodeOperatorIntegerEquals(void* context)
+{
+	reinterpret_cast<CodeGen::Context*>(context)->CodeCreateOperatorIntegerEquals();
+}
+
 
 
 extern "C" void EpochLLVMCodePushBoolean(void* context, bool value)
@@ -157,5 +172,17 @@ extern "C" void EpochLLVMCodePushInteger(void* context, int value)
 extern "C" void EpochLLVMCodePushString(void* context, unsigned handle)
 {
 	reinterpret_cast<CodeGen::Context*>(context)->CodePushString(handle);
+}
+
+
+
+extern "C" void* EpochLLVMGetCurrentBasicBlock(void* context)
+{
+	return reinterpret_cast<CodeGen::Context*>(context)->GetCurrentBasicBlock();
+}
+
+extern "C" void EpochLLVMSetCurrentBasicBlock(void* context, void* block)
+{
+	reinterpret_cast<CodeGen::Context*>(context)->SetCurrentBasicBlock(reinterpret_cast<llvm::BasicBlock*>(block));
 }
 

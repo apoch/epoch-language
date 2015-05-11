@@ -52,13 +52,16 @@ namespace CodeGen
 		void FunctionQueueParamType(llvm::Type* ty);
 
 	public:		// Instruction management interface
-		llvm::BasicBlock* CodeCreateBasicBlock(llvm::Function* parent);
+		llvm::BasicBlock* CodeCreateBasicBlock(llvm::Function* parent, bool setinsertpoint);
+		void CodeCreateBranch(llvm::BasicBlock* target, bool setinsertpoint);
 		llvm::CallInst* CodeCreateCall(llvm::Function* target);
 		llvm::CallInst* CodeCreateCallThunk(llvm::GlobalVariable* target);
+		void CodeCreateCondBranch(llvm::BasicBlock* truetarget, llvm::BasicBlock* falsetarget);
 		void CodeCreateRet();
 		void CodeCreateRetVoid();
 
 		void CodeCreateOperatorBooleanNot();
+		void CodeCreateOperatorIntegerEquals();
 
 		void CodePushBoolean(bool value);
 		void CodePushInteger(int value);
@@ -69,6 +72,9 @@ namespace CodeGen
 
 	public:		// Miscellaneous configuration interface
 		void SetEntryFunction(llvm::Function* func);
+
+		llvm::BasicBlock* GetCurrentBasicBlock();
+		void SetCurrentBasicBlock(llvm::BasicBlock* block);
 
 	public:		// Callback configuration interface
 		void SetThunkCallback(void* funcptr);

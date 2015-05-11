@@ -1,0 +1,67 @@
+//
+// ENTITIES.EPOCH
+//
+// Unit test suite for flow control entities
+//
+
+
+TestEntities :
+{
+	print("RUNTIME - test entities...")
+	
+	TEIfTest()
+	TEIfElseTest()
+	TEIfElseIfTest()
+	
+	TEWhileTest()
+}
+
+
+
+TEIfTest :
+{
+	if(1 == 2)
+	{
+		assert(false)
+	}
+}
+
+TEIfElseTest :
+{
+	if(true)
+	{
+		assert(true)
+	}
+	else
+	{
+		assert(false)
+	}
+}
+
+TEIfElseIfTest :
+{
+	if(1 == 2)
+	{
+		assert(false)
+	}
+	elseif(2 == 1)
+	{
+		assert(false)
+	}
+	else
+	{
+		assert(true)
+	}
+}
+
+
+
+TEWhileTest :
+{
+	while(1 == 2)
+	{
+		assert(false)
+	}
+}
+
+

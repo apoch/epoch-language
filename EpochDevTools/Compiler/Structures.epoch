@@ -198,7 +198,16 @@ GetMemberName : StructureMemberVariable ref memvar -> integer name = memvar.Name
 GetMemberName : StructureMemberFunctionRef ref member -> integer name = member.Name [nogc]
 
 
-GetMemberSize : StructureMemberVariable ref memvar -> integer r = GetTypeSize(memvar.Type) [nogc]
+GetMemberSize : StructureMemberVariable ref memvar -> integer r = 0 [nogc]
+{
+	integer memtype = memvar.Type
+	while((memtype & 0x7f000000) == 0x05000000)
+	{
+		memtype = FindTypeAliasBase(memtype)
+	}
+	
+	r = GetTypeSize(memtype)
+}
 
 GetMemberSize : StructureMemberFunctionRef ref member -> 4 [nogc]
 

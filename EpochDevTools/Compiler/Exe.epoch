@@ -22,6 +22,12 @@ type LLVMType : integer
 type LLVMBasicBlock : integer
 type LLVMGlobalVar : integer
 
+
+structure LLVMBuildContext :
+	LLVMContextHandle Context,
+	LLVMFunctionRef   EmittingFunction
+
+
 EpochLLVMInitialize : 																								[external("EpochLLVM.dll", "EpochLLVMInitialize")]
 
 EpochLLVMContextCreate : -> LLVMContextHandle ret = 0 																[external("EpochLLVM.dll", "EpochLLVMContextCreate")]
@@ -56,13 +62,28 @@ EpochLLVMSetThunkCallback : LLVMContextHandle handle, (func : string -> integer)
 EpochLLVMSetStringCallback : LLVMContextHandle handle, (func : integer -> integer)									[external("EpochLLVM.dll", "EpochLLVMSetStringCallback")]
 
 
-EpochLLVMCodeCreateBasicBlock : LLVMContextHandle handle, LLVMFunctionRef func -> LLVMBasicBlock ret = 0			[external("EpochLLVM.dll", "EpochLLVMCodeCreateBasicBlock")]
+EpochLLVMGetCurrentBasicBlock : LLVMContextHandle handle -> LLVMBasicBlock ret = 0									[external("EpochLLVM.dll", "EpochLLVMGetCurrentBasicBlock")]
+EpochLLVMSetCurrentBasicBlock : LLVMContextHandle handle, LLVMBasicBlock block										[external("EpochLLVM.dll", "EpochLLVMSetCurrentBasicBlock")]
+
+
+EpochLLVMCodeCreateBasicBlock :
+	LLVMContextHandle handle,
+	LLVMFunctionRef func,
+	boolean setinsertpoint
+  ->
+	LLVMBasicBlock ret = 0
+  [external("EpochLLVM.dll", "EpochLLVMCodeCreateBasicBlock")]
+    
+  
+EpochLLVMCodeCreateBranch : LLVMContextHandle handle, LLVMBasicBlock target, boolean setinsertpoint 				[external("EpochLLVM.dll", "EpochLLVMCodeCreateBranch")]
 EpochLLVMCodeCreateCall : LLVMContextHandle handle, LLVMFunctionRef target -> integer ret = 0						[external("EpochLLVM.dll", "EpochLLVMCodeCreateCall")]
 EpochLLVMCodeCreateCallThunk : LLVMContextHandle handle, integer target -> integer ret = 0							[external("EpochLLVM.dll", "EpochLLVMCodeCreateCallThunk")]
+EpochLLVMCodeCreateCondBranch : LLVMContextHandle handle, LLVMBasicBlock truetarget, LLVMBasicBlock falsetarget		[external("EpochLLVM.dll", "EpochLLVMCodeCreateCondBranch")]
 EpochLLVMCodeCreateRet : LLVMContextHandle handle																	[external("EpochLLVM.dll", "EpochLLVMCodeCreateRet")]
 EpochLLVMCodeCreateRetVoid : LLVMContextHandle handle																[external("EpochLLVM.dll", "EpochLLVMCodeCreateRetVoid")]
 
 EpochLLVMCodeOperatorBooleanNot : LLVMContextHandle context															[external("EpochLLVM.dll", "EpochLLVMCodeOperatorBooleanNot")]
+EpochLLVMCodeOperatorIntegerEquals : LLVMContextHandle context														[external("EpochLLVM.dll", "EpochLLVMCodeOperatorIntegerEquals")]
 
 EpochLLVMCodePushBoolean : LLVMContextHandle context, boolean literal												[external("EpochLLVM.dll", "EpochLLVMCodePushBoolean")]
 EpochLLVMCodePushInteger : LLVMContextHandle context, integer literal												[external("EpochLLVM.dll", "EpochLLVMCodePushInteger")]
@@ -960,13 +981,16 @@ EmitSingleFunctionToLLVM : LLVMContextHandle context, FunctionDefinition ref fun
 	LLVMFunctionRef llvmfunc = 0
 	BinaryTreeCopyPayload<LLVMFunctionRef>(LLVMFunctionTable.RootNode, func.Name, llvmfunc)
 	
-	LLVMBasicBlock funcbody = EpochLLVMCodeCreateBasicBlock(context, llvmfunc)
+	LLVMBasicBlock funcbody = EpochLLVMCodeCreateBasicBlock(context, llvmfunc, true)
 	
 	// TODO - emit return value initializer
 	
 	// TODO - emit call for @invoke tags
 	
-	EmitCodeBlockToLLVM(context, func.Code)
+	
+	LLVMBuildContext build = context, llvmfunc
+	
+	EmitCodeBlockToLLVM(build, func.Code)
 	
 	if(listcontains(CustomConstructors, func.Name))
 	{
@@ -980,7 +1004,7 @@ EmitSingleFunctionToLLVM : LLVMContextHandle context, FunctionDefinition ref fun
 	{
 		if(func.AnonymousReturn)
 		{
-			EmitReturnRegisterToLLVMAnonymous(context, func.Return)
+			EmitReturnRegisterToLLVMAnonymous(build, func.Return)
 		}
 		else
 		{
@@ -998,12 +1022,12 @@ EmitSingleFunctionToLLVM : LLVMContextHandle context, FunctionDefinition ref fun
 	}
 }
 
-EmitCodeBlockToLLVM : LLVMContextHandle context, CodeBlock ref code
+EmitCodeBlockToLLVM : LLVMBuildContext ref context, CodeBlock ref code
 {
 	EmitCodeBlockEntriesToLLVM(context, code.Entries)
 }
 
-EmitCodeBlockToLLVM : LLVMContextHandle context, nothing
+EmitCodeBlockToLLVM : LLVMBuildContext ref context, nothing
 
 
 EmitReturnRegisterToLLVM : LLVMContextHandle context, FunctionDefinition ref func, Expression ref expr
@@ -1022,31 +1046,31 @@ EmitReturnRegisterToLLVM : LLVMContextHandle context, nothing
 }
 
 
-EmitReturnRegisterToLLVMAnonymous : LLVMContextHandle context, Expression ref expr
+EmitReturnRegisterToLLVMAnonymous : LLVMBuildContext ref context, Expression ref expr
 {
 	EmitExpressionAtomsToLLVM(context, expr.Atoms)
-	EpochLLVMCodeCreateRet(context)
+	EpochLLVMCodeCreateRet(context.Context)
 }
 
 
-EmitReturnRegisterToLLVMAnonymous : LLVMContextHandle context, nothing
+EmitReturnRegisterToLLVMAnonymous : LLVMBuildContext ref context, nothing
 {
-	EpochLLVMCodeCreateRetVoid(context)
+	EpochLLVMCodeCreateRetVoid(context.Context)
 }
 
 
 
-EmitCodeBlockEntriesToLLVM : LLVMContextHandle context, list<CodeBlockEntry> ref entries
+EmitCodeBlockEntriesToLLVM : LLVMBuildContext ref context, list<CodeBlockEntry> ref entries
 {
 	EmitSingleCodeBlockEntryToLLVM(context, entries.value)
 	EmitCodeBlockEntriesToLLVM(context, entries.next)
 }
 
-EmitCodeBlockEntriesToLLVM : LLVMContextHandle context, nothing
+EmitCodeBlockEntriesToLLVM : LLVMBuildContext ref context, nothing
 
 
 
-EmitSingleCodeBlockEntryToLLVM : LLVMContextHandle context, Statement ref entry
+EmitSingleCodeBlockEntryToLLVM : LLVMBuildContext ref context, Statement ref entry
 {
 	// TODO - map over the remaining code from CodeGenEmitSingleCodeBlockEntry for statements
 	
@@ -1056,38 +1080,113 @@ EmitSingleCodeBlockEntryToLLVM : LLVMContextHandle context, Statement ref entry
 	{
 		integer thunk = 0
 		BinaryTreeCopyPayload<integer>(LLVMGlobalThunks.RootNode, entry.Name, thunk)
-		EpochLLVMCodeCreateCallThunk(context, thunk)
+		EpochLLVMCodeCreateCallThunk(context.Context, thunk)
 	}
 	else
 	{
 		LLVMFunctionRef llvmfunc = 0
 		BinaryTreeCopyPayload<LLVMFunctionRef>(LLVMFunctionTable.RootNode, entry.Name, llvmfunc)
-		EpochLLVMCodeCreateCall(context, llvmfunc)
+		EpochLLVMCodeCreateCall(context.Context, llvmfunc)
 	}
 }
 
-EmitSingleCodeBlockEntryToLLVM : LLVMContextHandle context, EntityChain ref entry
+EmitSingleCodeBlockEntryToLLVM : LLVMBuildContext ref context, EntityChain ref entry
 {
-	// TODO - build LLVM version of the entity
+	EmitEntityChainEntriesToLLVM(context, entry.Entries)
 }
+
+EmitEntityChainEntriesToLLVM : LLVMBuildContext ref context, EntityList ref entitylist
+{
+	EmitEntityChainEntriesToLLVM(context, entitylist.ActualList)
+}
+
+EmitEntityChainEntriesToLLVM : LLVMBuildContext ref context, list<Entity> ref entities
+{
+	boolean entityiforelse = false
+	
+	if(entities.value.Tag == 0x11)
+	{
+		entityiforelse = true
+	}
+		
+	if(entities.value.Tag == 0x12)
+	{
+		entityiforelse = true
+	}
+
+	if(entityiforelse)			// if/elseif
+	{
+		EmitExpressionAtomsToLLVM(context, entities.value.Param)
+		
+		LLVMBasicBlock currentinsertpoint = EpochLLVMGetCurrentBasicBlock(context.Context)
+		
+		LLVMBasicBlock falseblock = EpochLLVMCodeCreateBasicBlock(context.Context, context.EmittingFunction, false)
+		LLVMBasicBlock mergeblock = EpochLLVMCodeCreateBasicBlock(context.Context, context.EmittingFunction, false)
+		
+		LLVMBasicBlock trueblock = EpochLLVMCodeCreateBasicBlock(context.Context, context.EmittingFunction, true)
+		EmitCodeBlockToLLVM(context, entities.value.Code)
+		EpochLLVMCodeCreateBranch(context.Context, mergeblock, false)
+				
+		EpochLLVMSetCurrentBasicBlock(context.Context, currentinsertpoint)
+		EpochLLVMCodeCreateCondBranch(context.Context, trueblock, falseblock)
+		
+		EpochLLVMSetCurrentBasicBlock(context.Context, falseblock)
+		EmitEntityChainEntriesToLLVM(context, entities.next)
+		EpochLLVMCodeCreateBranch(context.Context, mergeblock, true)
+	}
+	elseif(entities.value.Tag == 0x13)		// else
+	{
+		EmitCodeBlockToLLVM(context, entities.value.Code)
+	}
+	elseif(entities.value.Tag == 0x14)		// while
+	{		
+		LLVMBasicBlock condblock = EpochLLVMCodeCreateBasicBlock(context.Context, context.EmittingFunction, false)
+		LLVMBasicBlock loopblock = EpochLLVMCodeCreateBasicBlock(context.Context, context.EmittingFunction, false)
+		LLVMBasicBlock mergeblock = EpochLLVMCodeCreateBasicBlock(context.Context, context.EmittingFunction, false)
+
+		EpochLLVMCodeCreateBranch(context.Context, condblock, true)
+		
+		EmitExpressionAtomsToLLVM(context, entities.value.Param)		
+		EpochLLVMCodeCreateCondBranch(context.Context, loopblock, mergeblock)
+		
+		EpochLLVMSetCurrentBasicBlock(context.Context, loopblock)
+		EmitCodeBlockToLLVM(context, entities.value.Code)
+		EpochLLVMCodeCreateBranch(context.Context, condblock, false)
+		
+		EpochLLVMSetCurrentBasicBlock(context.Context, mergeblock)
+	}
+	elseif(entities.value.Tag == 0)
+	{
+		EmitEntityChainEntriesToLLVM(context, entities.next)
+	}
+}
+
+EmitEntityChainEntriesToLLVM : LLVMBuildContext ref context, nothing
+
+
 
 // TODO - remaining code block entry types
 
 
-EmitExpressionListToLLVM : LLVMContextHandle context, nothing
+EmitExpressionListToLLVM : LLVMBuildContext ref context, nothing
 
-EmitExpressionListToLLVM : LLVMContextHandle context, ExpressionList ref exprs
+EmitExpressionListToLLVM : LLVMBuildContext ref context, ExpressionList ref exprs
 {
 	EmitExpressionListToLLVM(context, exprs.Expressions)
 }
 
-EmitExpressionListToLLVM : LLVMContextHandle context, list<Expression> ref exprs
+EmitExpressionListToLLVM : LLVMBuildContext ref context, list<Expression> ref exprs
 {
 	EmitExpressionAtomsToLLVM(context, exprs.value.Atoms)
 	EmitExpressionListToLLVM(context, exprs.next)
 }
 
-EmitExpressionAtomsToLLVM : LLVMContextHandle context, list<ExpressionAtom> ref atoms
+EmitExpressionAtomsToLLVM : LLVMBuildContext ref context, Expression ref expr
+{
+	EmitExpressionAtomsToLLVM(context, expr.Atoms)
+}
+
+EmitExpressionAtomsToLLVM : LLVMBuildContext ref context, list<ExpressionAtom> ref atoms
 {
 	// TODO - expand this to support all the nifty stuff atoms can do
 	
@@ -1095,39 +1194,39 @@ EmitExpressionAtomsToLLVM : LLVMContextHandle context, list<ExpressionAtom> ref 
 	EmitExpressionAtomsToLLVM(context, atoms.next)
 }
 
-EmitExpressionAtomsToLLVM : LLVMContextHandle context, nothing
+EmitExpressionAtomsToLLVM : LLVMBuildContext ref context, nothing
 
 
-EmitSingleAtomToLLVM : LLVMContextHandle context, AtomSentinel ref sentinel
+EmitSingleAtomToLLVM : LLVMBuildContext ref context, AtomSentinel ref sentinel
 
 
-EmitSingleAtomToLLVM : LLVMContextHandle context, integer ref literal
+EmitSingleAtomToLLVM : LLVMBuildContext ref context, integer ref literal
 {
-	EpochLLVMCodePushInteger(context, literal)
+	EpochLLVMCodePushInteger(context.Context, literal)
 }
 
-EmitSingleAtomToLLVM : LLVMContextHandle context, boolean ref literal
+EmitSingleAtomToLLVM : LLVMBuildContext ref context, boolean ref literal
 {
-	EpochLLVMCodePushBoolean(context, literal)
+	EpochLLVMCodePushBoolean(context.Context, literal)
 }
 
-EmitSingleAtomToLLVM : LLVMContextHandle context, StringHandleAtom ref literal
+EmitSingleAtomToLLVM : LLVMBuildContext ref context, StringHandleAtom ref literal
 {
-	EpochLLVMCodePushString(context, literal.Handle)
+	EpochLLVMCodePushString(context.Context, literal.Handle)
 }
 
-EmitSingleAtomToLLVM : LLVMContextHandle context, Statement ref statement
+EmitSingleAtomToLLVM : LLVMBuildContext ref context, Statement ref statement
 {
 	EmitSingleCodeBlockEntryToLLVM(context, statement)
 }
 
-EmitSingleAtomToLLVM : LLVMContextHandle context, IdentifierAtom ref idatom
+EmitSingleAtomToLLVM : LLVMBuildContext ref context, IdentifierAtom ref idatom
 {
 	integer atomtype = MakeNonReferenceType(idatom.Type)
 
 	if(atomtype == 0x00000004)							// Nothing type signature
 	{
-		EpochLLVMCodePushInteger(context, 0)
+		EpochLLVMCodePushInteger(context.Context, 0)
 	}
 	else
 	{
@@ -1138,7 +1237,7 @@ EmitSingleAtomToLLVM : LLVMContextHandle context, IdentifierAtom ref idatom
 		}
 		elseif(GetTypeByName(idatom.Handle) != 0)
 		{
-			EpochLLVMCodePushString(context, idatom.Handle)
+			EpochLLVMCodePushString(context.Context, idatom.Handle)
 		}
 		else
 		{
@@ -1148,7 +1247,7 @@ EmitSingleAtomToLLVM : LLVMContextHandle context, IdentifierAtom ref idatom
 				//if((!constructor) && (!idatom.IsReference))
 				if(!idatom.IsReference)
 				{
-					EpochLLVMCodePushString(context, idatom.Handle)
+					EpochLLVMCodePushString(context.Context, idatom.Handle)
 				}
 				else
 				{
@@ -1205,11 +1304,15 @@ EmitSingleAtomToLLVM : LLVMContextHandle context, IdentifierAtom ref idatom
 }
 
 
-EmitSingleAtomToLLVM : LLVMContextHandle context, OperatorInvokeAtom ref atom
+EmitSingleAtomToLLVM : LLVMBuildContext ref context, OperatorInvokeAtom ref atom
 {
 	if(atom.OperatorName == PooledStringHandleForUnaryNotBoolean)
 	{
-		EpochLLVMCodeOperatorBooleanNot(context)
+		EpochLLVMCodeOperatorBooleanNot(context.Context)
+	}
+	elseif(atom.OperatorName == PooledStringHandleForEqualityInteger)
+	{
+		EpochLLVMCodeOperatorIntegerEquals(context.Context)
 	}
 	else
 	{

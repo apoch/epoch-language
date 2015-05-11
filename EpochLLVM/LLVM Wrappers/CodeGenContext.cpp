@@ -374,11 +374,19 @@ size_t Context::EmitBinaryObject(char* buffer, size_t maxoutput)
 
 
 
-llvm::BasicBlock* Context::CodeCreateBasicBlock(llvm::Function* parent)
+llvm::BasicBlock* Context::CodeCreateBasicBlock(llvm::Function* parent, bool setinsertpoint)
 {
 	BasicBlock* bb = BasicBlock::Create(getGlobalContext(), "", parent);
-	LLVMBuilder.SetInsertPoint(bb);
+	if(setinsertpoint)
+		LLVMBuilder.SetInsertPoint(bb);
 	return bb;
+}
+
+void Context::CodeCreateBranch(BasicBlock* target, bool setinsertpoint)
+{
+	LLVMBuilder.CreateBr(target);
+	if(setinsertpoint)
+		LLVMBuilder.SetInsertPoint(target);
 }
 
 llvm::CallInst* Context::CodeCreateCall(llvm::Function* target)
@@ -398,13 +406,26 @@ llvm::CallInst* Context::CodeCreateCall(llvm::Function* target)
 llvm::CallInst* Context::CodeCreateCallThunk(llvm::GlobalVariable* target)
 {
 	llvm::Value* loadedTarget = LLVMBuilder.CreateLoad(target);
-	llvm::CallInst* inst = LLVMBuilder.CreateCall(loadedTarget, PendingValues);
-
 	llvm::FunctionType* fty = llvm::cast<llvm::FunctionType>(loadedTarget->getType()->getContainedType(0));
+
+	std::vector<Value*> relevantargs;
 	for(size_t i = 0; i < fty->getNumParams(); ++i)
+	{
+		relevantargs.push_back(PendingValues.back());
 		PendingValues.pop_back();
+	}
+
+	llvm::CallInst* inst = LLVMBuilder.CreateCall(loadedTarget, relevantargs);
 
 	return inst;
+}
+
+void Context::CodeCreateCondBranch(BasicBlock* truetarget, BasicBlock* falsetarget)
+{
+	Value* cond = PendingValues.back();
+	PendingValues.pop_back();
+
+	LLVMBuilder.CreateCondBr(cond, truetarget, falsetarget);
 }
 
 void Context::CodeCreateRet()
@@ -429,6 +450,17 @@ void Context::CodeCreateOperatorBooleanNot()
 	PendingValues.push_back(notval);
 }
 
+void Context::CodeCreateOperatorIntegerEquals()
+{
+	llvm::Value* operand2 = PendingValues.back();
+	PendingValues.pop_back();
+
+	llvm::Value* operand1 = PendingValues.back();
+	PendingValues.pop_back();
+
+	llvm::Value* eqval = LLVMBuilder.CreateICmpEQ(operand1, operand2);
+	PendingValues.push_back(eqval);
+}
 
 
 void Context::CodePushBoolean(bool value)
@@ -456,5 +488,17 @@ void Context::CodePushString(unsigned handle)
 	}
 
 	PendingValues.push_back(val);
+}
+
+
+
+llvm::BasicBlock* Context::GetCurrentBasicBlock()
+{
+	return LLVMBuilder.GetInsertBlock();
+}
+
+void Context::SetCurrentBasicBlock(llvm::BasicBlock* block)
+{
+	LLVMBuilder.SetInsertPoint(block);
 }
 

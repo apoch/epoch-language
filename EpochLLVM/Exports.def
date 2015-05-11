@@ -25,14 +25,21 @@ EXPORTS
 	EpochLLVMSetStringCallback
 
 	EpochLLVMCodeCreateBasicBlock
+	EpochLLVMCodeCreateBranch
 	EpochLLVMCodeCreateCall
 	EpochLLVMCodeCreateCallThunk
+	EpochLLVMCodeCreateCondBranch
 	EpochLLVMCodeCreateRet
 	EpochLLVMCodeCreateRetVoid
 
 	EpochLLVMCodeOperatorBooleanNot
+	EpochLLVMCodeOperatorIntegerEquals
 	
 	EpochLLVMCodePushBoolean
 	EpochLLVMCodePushInteger
 	EpochLLVMCodePushString
+
+	EpochLLVMGetCurrentBasicBlock
+	EpochLLVMSetCurrentBasicBlock
+
 
