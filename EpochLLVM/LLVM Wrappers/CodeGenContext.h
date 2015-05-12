@@ -52,13 +52,16 @@ namespace CodeGen
 		void FunctionQueueParamType(llvm::Type* ty);
 
 	public:		// Instruction management interface
+		llvm::AllocaInst * CodeCreateAlloca(llvm::Type* vartype, const char* varname);
 		llvm::BasicBlock* CodeCreateBasicBlock(llvm::Function* parent, bool setinsertpoint);
 		void CodeCreateBranch(llvm::BasicBlock* target, bool setinsertpoint);
 		llvm::CallInst* CodeCreateCall(llvm::Function* target);
 		llvm::CallInst* CodeCreateCallThunk(llvm::GlobalVariable* target);
 		void CodeCreateCondBranch(llvm::BasicBlock* truetarget, llvm::BasicBlock* falsetarget);
+		void CodeCreateRead(llvm::AllocaInst* allocatarget);
 		void CodeCreateRet();
 		void CodeCreateRetVoid();
+		void CodeCreateWrite(llvm::AllocaInst* allocatarget);
 
 		void CodeCreateOperatorBooleanNot();
 		void CodeCreateOperatorIntegerEquals();

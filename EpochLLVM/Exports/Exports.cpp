@@ -111,6 +111,11 @@ extern "C" void EpochLLVMSetStringCallback(void* context, void* funcptr)
 }
 
 
+extern "C" void* EpochLLVMCodeCreateAlloca(void* context, void* vartype, const char* varname)
+{
+	return reinterpret_cast<CodeGen::Context*>(context)->CodeCreateAlloca(reinterpret_cast<llvm::Type*>(vartype), varname);
+}
+
 extern "C" void* EpochLLVMCodeCreateBasicBlock(void* context, void* parentfunc, bool setinsertpoint)
 {
 	return reinterpret_cast<CodeGen::Context*>(context)->CodeCreateBasicBlock(reinterpret_cast<llvm::Function*>(parentfunc), setinsertpoint);
@@ -136,6 +141,11 @@ extern "C" void EpochLLVMCodeCreateCondBranch(void* context, void* truetarget, v
 	reinterpret_cast<CodeGen::Context*>(context)->CodeCreateCondBranch(reinterpret_cast<llvm::BasicBlock*>(truetarget), reinterpret_cast<llvm::BasicBlock*>(falsetarget));
 }
 
+extern "C" void EpochLLVMCodeCreateRead(void* context, void* allocatarget)
+{
+	reinterpret_cast<CodeGen::Context*>(context)->CodeCreateRead(reinterpret_cast<llvm::AllocaInst*>(allocatarget));
+}
+
 extern "C" void EpochLLVMCodeCreateRet(void* context)
 {
 	reinterpret_cast<CodeGen::Context*>(context)->CodeCreateRet();
@@ -144,6 +154,11 @@ extern "C" void EpochLLVMCodeCreateRet(void* context)
 extern "C" void EpochLLVMCodeCreateRetVoid(void* context)
 {
 	reinterpret_cast<CodeGen::Context*>(context)->CodeCreateRetVoid();
+}
+
+extern "C" void EpochLLVMCodeCreateWrite(void* context, void* allocatarget)
+{
+	reinterpret_cast<CodeGen::Context*>(context)->CodeCreateWrite(reinterpret_cast<llvm::AllocaInst*>(allocatarget));
 }
 
 

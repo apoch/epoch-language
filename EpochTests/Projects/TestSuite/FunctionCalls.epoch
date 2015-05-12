@@ -10,10 +10,11 @@ TestFunctionCalls :
 	print("RUNTIME - test function calls...")
 	
 	assert(TFCBooleanReturn())
+	assert(TFCNonTrivialReturn())
 }
 
 
 
 TFCBooleanReturn : -> true
-
+TFCNonTrivialReturn : -> boolean ret = true
 

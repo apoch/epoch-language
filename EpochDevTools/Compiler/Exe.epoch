@@ -21,11 +21,13 @@ type LLVMFunctionType : integer
 type LLVMType : integer
 type LLVMBasicBlock : integer
 type LLVMGlobalVar : integer
+type LLVMAlloca : integer
 
 
 structure LLVMBuildContext :
-	LLVMContextHandle Context,
-	LLVMFunctionRef   EmittingFunction
+	LLVMContextHandle          Context,
+	LLVMFunctionRef            EmittingFunction,
+	BinaryTreeRoot<LLVMAlloca> LocalVariables
 
 
 EpochLLVMInitialize : 																								[external("EpochLLVM.dll", "EpochLLVMInitialize")]
@@ -75,12 +77,15 @@ EpochLLVMCodeCreateBasicBlock :
   [external("EpochLLVM.dll", "EpochLLVMCodeCreateBasicBlock")]
     
   
+EpochLLVMCodeCreateAlloca : LLVMContextHandle handle, LLVMType vartype, string varname -> LLVMAlloca ret = 0		[external("EpochLLVM.dll", "EpochLLVMCodeCreateAlloca")]
 EpochLLVMCodeCreateBranch : LLVMContextHandle handle, LLVMBasicBlock target, boolean setinsertpoint 				[external("EpochLLVM.dll", "EpochLLVMCodeCreateBranch")]
 EpochLLVMCodeCreateCall : LLVMContextHandle handle, LLVMFunctionRef target -> integer ret = 0						[external("EpochLLVM.dll", "EpochLLVMCodeCreateCall")]
 EpochLLVMCodeCreateCallThunk : LLVMContextHandle handle, integer target -> integer ret = 0							[external("EpochLLVM.dll", "EpochLLVMCodeCreateCallThunk")]
 EpochLLVMCodeCreateCondBranch : LLVMContextHandle handle, LLVMBasicBlock truetarget, LLVMBasicBlock falsetarget		[external("EpochLLVM.dll", "EpochLLVMCodeCreateCondBranch")]
+EpochLLVMCodeCreateRead : LLVMContextHandle handle, LLVMAlloca alloca												[external("EpochLLVM.dll", "EpochLLVMCodeCreateRead")]
 EpochLLVMCodeCreateRet : LLVMContextHandle handle																	[external("EpochLLVM.dll", "EpochLLVMCodeCreateRet")]
 EpochLLVMCodeCreateRetVoid : LLVMContextHandle handle																[external("EpochLLVM.dll", "EpochLLVMCodeCreateRetVoid")]
+EpochLLVMCodeCreateWrite : LLVMContextHandle handle, LLVMAlloca alloca												[external("EpochLLVM.dll", "EpochLLVMCodeCreateWrite")]
 
 EpochLLVMCodeOperatorBooleanNot : LLVMContextHandle context															[external("EpochLLVM.dll", "EpochLLVMCodeOperatorBooleanNot")]
 EpochLLVMCodeOperatorIntegerEquals : LLVMContextHandle context														[external("EpochLLVM.dll", "EpochLLVMCodeOperatorIntegerEquals")]
@@ -976,19 +981,63 @@ EmitAllFunctionsToLLVM : LLVMContextHandle context, list<FunctionDefinition> ref
 EmitAllFunctionsToLLVM : LLVMContextHandle context, nothing
 
 
+
+CreateLLVMAllocasForScope : LLVMBuildContext ref context, Scope ref scope
+{
+	CreateLLVMAllocasForScope(context, scope.Variables)
+}
+
+CreateLLVMAllocasForScope : LLVMBuildContext ref context, list<Variable> ref variables
+{
+	if(variables.value.Name != 0)
+	{
+		LLVMType vartype = GetLLVMTypeForEpochType(context.Context, variables.value.VarType)
+		LLVMAlloca alloca = EpochLLVMCodeCreateAlloca(context.Context, vartype, GetPooledString(variables.value.Name))
+		BinaryTreeCreateOrInsert<LLVMAlloca>(context.LocalVariables, variables.value.Name, alloca)
+	}
+	
+	CreateLLVMAllocasForScope(context, variables.next)
+}
+
+CreateLLVMAllocasForScope : LLVMBuildContext ref context, nothing
+
+
+
+
+EmitRetInitializerToLLVM : LLVMBuildContext ref context, FunctionDefinition ref func, Expression ref expr
+{
+	integer returnname = 0
+	FindReturnVariableNameInSingleScope(func.AttachedScope.Wrapped, returnname)
+	
+	LLVMAlloca alloca = 0
+	BinaryTreeCopyPayload<LLVMAlloca>(context.LocalVariables.RootNode, returnname, alloca)
+	
+	EmitExpressionAtomsToLLVM(context, expr.Atoms)
+	EpochLLVMCodeCreateWrite(context.Context, alloca)
+}
+
+EmitRetInitializerToLLVM : LLVMBuildContext ref context, FunctionDefinition ref func, nothing
+
+
+
 EmitSingleFunctionToLLVM : LLVMContextHandle context, FunctionDefinition ref func
 {
 	LLVMFunctionRef llvmfunc = 0
 	BinaryTreeCopyPayload<LLVMFunctionRef>(LLVMFunctionTable.RootNode, func.Name, llvmfunc)
-	
+
 	LLVMBasicBlock funcbody = EpochLLVMCodeCreateBasicBlock(context, llvmfunc, true)
 	
+
+	BinaryTreeRoot<LLVMAlloca> vartree = nothing
+	LLVMBuildContext build = context, llvmfunc, vartree
+	CreateLLVMAllocasForScope(build, func.AttachedScope.Wrapped)
+
+
 	// TODO - emit return value initializer
+	EmitRetInitializerToLLVM(build, func, func.Return)
 	
-	// TODO - emit call for @invoke tags
 	
-	
-	LLVMBuildContext build = context, llvmfunc
+	// TODO - emit call for @invoke tags	
 	
 	EmitCodeBlockToLLVM(build, func.Code)
 	
@@ -1008,7 +1057,7 @@ EmitSingleFunctionToLLVM : LLVMContextHandle context, FunctionDefinition ref fun
 		}
 		else
 		{
-			EmitReturnRegisterToLLVM(context, func.Return)
+			EmitReturnRegisterToLLVM(build, func, func.Return)
 		}
 	}
 	
@@ -1030,19 +1079,21 @@ EmitCodeBlockToLLVM : LLVMBuildContext ref context, CodeBlock ref code
 EmitCodeBlockToLLVM : LLVMBuildContext ref context, nothing
 
 
-EmitReturnRegisterToLLVM : LLVMContextHandle context, FunctionDefinition ref func, Expression ref expr
+EmitReturnRegisterToLLVM : LLVMBuildContext ref context, FunctionDefinition ref func, Expression ref expr
 {
 	integer returnname = 0
 	FindReturnVariableNameInSingleScope(func.AttachedScope.Wrapped, returnname)
 	
-	// TODO - llvm bindings = load alloca from cache and stuff it into return value
+	LLVMAlloca alloca = 0
+	BinaryTreeCopyPayload<LLVMAlloca>(context.LocalVariables.RootNode, returnname, alloca)
 	
-	EpochLLVMCodeCreateRet(context)
+	EpochLLVMCodeCreateRead(context.Context, alloca)
+	EpochLLVMCodeCreateRet(context.Context)
 }
 
-EmitReturnRegisterToLLVM : LLVMContextHandle context, nothing
+EmitReturnRegisterToLLVM : LLVMBuildContext ref context, FunctionDefinition ref func, nothing
 {
-	EpochLLVMCodeCreateRetVoid(context)
+	EpochLLVMCodeCreateRetVoid(context.Context)
 }
 
 
@@ -1078,9 +1129,13 @@ EmitSingleCodeBlockEntryToLLVM : LLVMBuildContext ref context, Statement ref ent
 
 	if(IsRecognizedBuiltIn(entry.Name))
 	{
-		integer thunk = 0
-		BinaryTreeCopyPayload<integer>(LLVMGlobalThunks.RootNode, entry.Name, thunk)
-		EpochLLVMCodeCreateCallThunk(context.Context, thunk)
+		// TODO - this is a lame hack. Make sure type initializer functions aren't called in a better way.
+		if(entry.Name != PooledStringHandleForBoolean)
+		{
+			integer thunk = 0
+			BinaryTreeCopyPayload<integer>(LLVMGlobalThunks.RootNode, entry.Name, thunk)
+			EpochLLVMCodeCreateCallThunk(context.Context, thunk)
+		}
 	}
 	else
 	{

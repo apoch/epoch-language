@@ -24,13 +24,16 @@ EXPORTS
 	EpochLLVMSetThunkCallback
 	EpochLLVMSetStringCallback
 
+	EpochLLVMCodeCreateAlloca
 	EpochLLVMCodeCreateBasicBlock
 	EpochLLVMCodeCreateBranch
 	EpochLLVMCodeCreateCall
 	EpochLLVMCodeCreateCallThunk
 	EpochLLVMCodeCreateCondBranch
+	EpochLLVMCodeCreateRead
 	EpochLLVMCodeCreateRet
 	EpochLLVMCodeCreateRetVoid
+	EpochLLVMCodeCreateWrite
 
 	EpochLLVMCodeOperatorBooleanNot
 	EpochLLVMCodeOperatorIntegerEquals

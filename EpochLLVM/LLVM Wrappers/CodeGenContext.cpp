@@ -373,6 +373,10 @@ size_t Context::EmitBinaryObject(char* buffer, size_t maxoutput)
 }
 
 
+llvm::AllocaInst* Context::CodeCreateAlloca(llvm::Type* vartype, const char* varname)
+{
+	return LLVMBuilder.CreateAlloca(vartype, nullptr, varname);
+}
 
 llvm::BasicBlock* Context::CodeCreateBasicBlock(llvm::Function* parent, bool setinsertpoint)
 {
@@ -391,11 +395,17 @@ void Context::CodeCreateBranch(BasicBlock* target, bool setinsertpoint)
 
 llvm::CallInst* Context::CodeCreateCall(llvm::Function* target)
 {
-	llvm::CallInst* inst = LLVMBuilder.CreateCall(target, PendingValues);
-
 	llvm::FunctionType* fty = target->getFunctionType();
+
+	std::vector<Value*> relevantargs;
 	for(size_t i = 0; i < fty->getNumParams(); ++i)
+	{
+		relevantargs.push_back(PendingValues.back());
 		PendingValues.pop_back();
+	}
+
+	llvm::CallInst* inst = LLVMBuilder.CreateCall(target, relevantargs);
+
 
 	if(inst->getType() != Type::getVoidTy(getGlobalContext()))
 		PendingValues.push_back(inst);
@@ -417,6 +427,9 @@ llvm::CallInst* Context::CodeCreateCallThunk(llvm::GlobalVariable* target)
 
 	llvm::CallInst* inst = LLVMBuilder.CreateCall(loadedTarget, relevantargs);
 
+	if(inst->getType() != Type::getVoidTy(getGlobalContext()))
+		PendingValues.push_back(inst);
+
 	return inst;
 }
 
@@ -426,6 +439,12 @@ void Context::CodeCreateCondBranch(BasicBlock* truetarget, BasicBlock* falsetarg
 	PendingValues.pop_back();
 
 	LLVMBuilder.CreateCondBr(cond, truetarget, falsetarget);
+}
+
+void Context::CodeCreateRead(llvm::AllocaInst* allocatarget)
+{
+	Value* rv = LLVMBuilder.CreateLoad(allocatarget);
+	PendingValues.push_back(rv);
 }
 
 void Context::CodeCreateRet()
@@ -440,6 +459,15 @@ void Context::CodeCreateRetVoid()
 {
 	LLVMBuilder.CreateRetVoid();
 }
+
+void Context::CodeCreateWrite(llvm::AllocaInst* allocatarget)
+{
+	Value* wv = PendingValues.back();
+	PendingValues.pop_back();
+
+	LLVMBuilder.CreateStore(wv, allocatarget);
+}
+
 
 void Context::CodeCreateOperatorBooleanNot()
 {
