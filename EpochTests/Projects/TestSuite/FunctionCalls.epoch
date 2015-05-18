@@ -7,14 +7,28 @@
 
 TestFunctionCalls :
 {
-	print("RUNTIME - test function calls...")
+	print("Test function calls...")
 	
 	assert(TFCBooleanReturn())
 	assert(TFCNonTrivialReturn())
+	
+	TFCParamExpectTrue(true)
+	TFCParamExpectFalse(false)
 }
 
 
 
 TFCBooleanReturn : -> true
 TFCNonTrivialReturn : -> boolean ret = true
+
+
+TFCParamExpectTrue : boolean expected
+{
+	assert(expected)
+}
+
+TFCParamExpectFalse : boolean expected
+{
+	assert(!expected)
+}
 

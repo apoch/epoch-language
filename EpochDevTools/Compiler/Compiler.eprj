@@ -30,6 +30,7 @@ Dump.epoch
 ..\Common\Lexer.epoch
 ..\Common\Parser.epoch
 ..\Common\Win32.epoch
+LLVM.epoch
 
 [resources]
 

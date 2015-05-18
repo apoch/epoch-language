@@ -7,7 +7,7 @@
 
 TestOperators :
 {
-	print("RUNTIME - test operators...")
+	print("Test operators...")
 	
 	assert(TOReturnTrue())
 	assert(!TOReturnFalse())

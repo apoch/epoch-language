@@ -406,7 +406,6 @@ llvm::CallInst* Context::CodeCreateCall(llvm::Function* target)
 
 	llvm::CallInst* inst = LLVMBuilder.CreateCall(target, relevantargs);
 
-
 	if(inst->getType() != Type::getVoidTy(getGlobalContext()))
 		PendingValues.push_back(inst);
 
@@ -444,6 +443,15 @@ void Context::CodeCreateCondBranch(BasicBlock* truetarget, BasicBlock* falsetarg
 void Context::CodeCreateRead(llvm::AllocaInst* allocatarget)
 {
 	Value* rv = LLVMBuilder.CreateLoad(allocatarget);
+	PendingValues.push_back(rv);
+}
+
+void Context::CodeCreateReadParam(unsigned index)
+{
+	auto iter = LLVMBuilder.GetInsertBlock()->getParent()->arg_begin();
+	std::advance(iter, index);
+
+	Value* rv = iter;
 	PendingValues.push_back(rv);
 }
 

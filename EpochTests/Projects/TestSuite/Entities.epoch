@@ -7,7 +7,7 @@
 
 TestEntities :
 {
-	print("RUNTIME - test entities...")
+	print("Test entities...")
 	
 	TEIfTest()
 	TEIfElseTest()

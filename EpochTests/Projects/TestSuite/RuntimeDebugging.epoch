@@ -7,7 +7,7 @@
 
 TestRuntimeDebugFunctions :
 {
-	print("RUNTIME - test debug functions...")
+	print("Test debug functions...")
 	
 	assert(true)
 }

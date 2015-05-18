@@ -59,6 +59,7 @@ namespace CodeGen
 		llvm::CallInst* CodeCreateCallThunk(llvm::GlobalVariable* target);
 		void CodeCreateCondBranch(llvm::BasicBlock* truetarget, llvm::BasicBlock* falsetarget);
 		void CodeCreateRead(llvm::AllocaInst* allocatarget);
+		void CodeCreateReadParam(unsigned index);
 		void CodeCreateRet();
 		void CodeCreateRetVoid();
 		void CodeCreateWrite(llvm::AllocaInst* allocatarget);
