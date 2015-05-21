@@ -7,13 +7,15 @@
 
 TestEntities :
 {
-	print("Test entities...")
+	TestSection("Entities")
 	
 	TEIfTest()
 	TEIfElseTest()
 	TEIfElseIfTest()
 	
 	TEWhileTest()
+	
+	TestSectionComplete()
 }
 
 
@@ -22,7 +24,7 @@ TEIfTest :
 {
 	if(1 == 2)
 	{
-		assert(false)
+		TestAssert(false, "if conditions")
 	}
 }
 
@@ -30,11 +32,11 @@ TEIfElseTest :
 {
 	if(true)
 	{
-		assert(true)
+		TestAssert(true, "if-else conditions")
 	}
 	else
 	{
-		assert(false)
+		TestAssert(false, "if-else conditions")
 	}
 }
 
@@ -42,15 +44,15 @@ TEIfElseIfTest :
 {
 	if(1 == 2)
 	{
-		assert(false)
+		TestAssert(false, "if-elseif-else conditions")
 	}
 	elseif(2 == 1)
 	{
-		assert(false)
+		TestAssert(false, "if-elseif-else conditions")
 	}
 	else
 	{
-		assert(true)
+		TestAssert(true, "if-elseif-else conditions")
 	}
 }
 
@@ -60,7 +62,7 @@ TEWhileTest :
 {
 	while(1 == 2)
 	{
-		assert(false)
+		TestAssert(false, "while loops")
 	}
 }
 

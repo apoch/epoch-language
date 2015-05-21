@@ -7,13 +7,15 @@
 
 TestFunctionCalls :
 {
-	print("Test function calls...")
+	TestSection("Function calls")
 	
-	assert(TFCBooleanReturn())
-	assert(TFCNonTrivialReturn())
+	TestAssert(TFCBooleanReturn(), "literal boolean return value")
+	TestAssert(TFCNonTrivialReturn(), "named boolean return value")
 	
 	TFCParamExpectTrue(true)
 	TFCParamExpectFalse(false)
+	
+	TestSectionComplete()
 }
 
 
@@ -24,11 +26,11 @@ TFCNonTrivialReturn : -> boolean ret = true
 
 TFCParamExpectTrue : boolean expected
 {
-	assert(expected)
+	TestAssert(expected, "boolean function parameter")
 }
 
 TFCParamExpectFalse : boolean expected
 {
-	assert(!expected)
+	TestAssert(!expected, "boolean function parameter, inverted")
 }
 

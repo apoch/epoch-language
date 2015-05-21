@@ -403,7 +403,8 @@ llvm::CallInst* Context::CodeCreateCall(llvm::Function* target)
 		relevantargs.push_back(PendingValues.back());
 		PendingValues.pop_back();
 	}
-
+	std::reverse(relevantargs.begin(), relevantargs.end());
+	
 	llvm::CallInst* inst = LLVMBuilder.CreateCall(target, relevantargs);
 
 	if(inst->getType() != Type::getVoidTy(getGlobalContext()))
@@ -423,6 +424,7 @@ llvm::CallInst* Context::CodeCreateCallThunk(llvm::GlobalVariable* target)
 		relevantargs.push_back(PendingValues.back());
 		PendingValues.pop_back();
 	}
+	std::reverse(relevantargs.begin(), relevantargs.end());
 
 	llvm::CallInst* inst = LLVMBuilder.CreateCall(loadedTarget, relevantargs);
 

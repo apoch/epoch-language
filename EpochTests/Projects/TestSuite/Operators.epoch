@@ -7,12 +7,14 @@
 
 TestOperators :
 {
-	print("Test operators...")
+	TestSection("Operators")
 	
-	assert(TOReturnTrue())
-	assert(!TOReturnFalse())
-	assert(!!TOReturnTrue())
-	assert(!!!TOReturnFalse())
+	TestAssert(TOReturnTrue(), "operatorless boolean return")
+	TestAssert(!TOReturnFalse(), "boolean operator applied to function")
+	TestAssert(!!TOReturnTrue(), "repeated boolean operator")
+	TestAssert(!!!TOReturnFalse(), "triple repeated boolean operator")
+	
+	TestSectionComplete()
 }
 
 

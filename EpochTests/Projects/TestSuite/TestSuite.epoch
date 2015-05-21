@@ -3,19 +3,31 @@
 //
 // Entry point for Epoch test suite
 //
+// This is where the test suite spins up, processes any command
+// line arguments, and initiates each test section/module. When
+// all modules have finished, the harness generates report data
+// based on the successes/failures of each individual test, and
+// this is displayed to the user at a selected level of detail.
+//
 
 
+
+//
+// Test suite entry point function
+//
 entrypoint :
 {
+	// Display banner message
 	print("Epoch Language Project")
 	print("Compiler and runtime test suite")
 	print("")
 
+	// Execute all test sections
 	TestRuntimeDebugFunctions()
 	TestFunctionCalls()
 	TestOperators()
 	TestEntities()
 
-	passtest()
+	// TODO - generate report
 }
 

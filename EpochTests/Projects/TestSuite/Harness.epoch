@@ -5,3 +5,28 @@
 //
 	
 	
+
+TestSection : string sectionname
+{
+	// TODO - formatting, once dynamic string support is reimplemented in LLVM64
+	print(sectionname)
+}
+
+
+TestSectionComplete :
+{
+	// TODO - pass along state for the tests
+	// TODO - display section statistics
+}
+
+
+TestAssert : boolean success, string testname
+{
+	if(!success)
+	{
+		// TODO - formatting
+		print("TEST FAILED:")
+		print(testname)
+	}
+}
+
