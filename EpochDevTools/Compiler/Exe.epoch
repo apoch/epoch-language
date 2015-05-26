@@ -69,18 +69,6 @@ MakeExe : EpochProject ref project
 	ComputeResourceOffsets(res)
 	
 
-	integer virtualoffsetthunk   = 0x1000
-	integer offsetthunk          = 0x400
-	integer sizethunk            = ThunkTableGetCompleteSize(GlobalThunkTable)
-	
-	integer virtualoffsetrsrc    = RoundUp(virtualoffsetthunk + sizethunk)
-	integer offsetrsrc           = RoundUpFile(offsetthunk + sizethunk)
-	integer sizersrc             = res.DirectorySize + res.DataSize + 1
-	
-	integer virtualoffsetstrings = RoundUp(virtualoffsetrsrc + sizersrc)
-	integer offsetstrings        = RoundUpFile(offsetrsrc + sizersrc)
-	integer sizestrings          = PreprocessStringPool(GlobalStringPool, GlobalStringOffsets)
-	
 	buffer codebinarybuffer = 0x1000		// TODO - this is a REALLY DUMB lazy hack, fix it by allocating a safe size for the code buffer
 	EpochLLVMInitialize()
 	LLVMContextHandle llvm = EpochLLVMContextCreate()
@@ -90,10 +78,26 @@ MakeExe : EpochProject ref project
 	SetUpBuiltInLLVMThunks(llvm)
 	
 	SetUpAllLLVMCode(llvm)
+
+	integer virtualoffsetthunk   = 0x1000
+	integer offsetthunk          = 0x400
+	integer sizethunk            = ThunkTableGetCompleteSize(GlobalThunkTable)
+
+	integer sizestrings          = PreprocessStringPool(GlobalStringPool, GlobalStringOffsets)
+	
+	EmitAllFunctionsToLLVM(llvm, Functions)
 	
 	integer sizecode = EpochLLVMEmitBinaryObject(llvm, codebinarybuffer, 0x1000)		// TODO - also bad hack
 	EpochLLVMContextDestroy(llvm)
+
 	
+	integer virtualoffsetrsrc    = RoundUp(virtualoffsetthunk + sizethunk)
+	integer offsetrsrc           = RoundUpFile(offsetthunk + sizethunk)
+	integer sizersrc             = res.DirectorySize + res.DataSize + 1
+	
+	integer virtualoffsetstrings = RoundUp(virtualoffsetrsrc + sizersrc)
+	integer offsetstrings        = RoundUpFile(offsetrsrc + sizersrc)
+		
 	integer virtualoffsetcode    = RoundUp(virtualoffsetstrings + sizestrings)
 	integer offsetcode           = RoundUpFile(offsetstrings + sizestrings)
 
@@ -612,6 +616,9 @@ ThunkTableFunctionsWalkForAddressHolders : list<ThunkTableEntry> ref functions, 
 }
 
 ThunkTableFunctionsWalkForAddressHolders : nothing, integer ref offset
+{
+	offset += 8
+}
 
 
 
@@ -633,6 +640,9 @@ ThunkTableFunctionsWalkForAddressCopyHolders : list<ThunkTableEntry> ref functio
 }
 
 ThunkTableFunctionsWalkForAddressCopyHolders : nothing, integer ref offset
+{
+	offset += 8
+}
 
 
 
@@ -659,7 +669,7 @@ ThunkTableEmitLibraries : Win32Handle filehandle, list<ThunkTableLibrary> ref li
 	byteswritten += written
 	
 
-	ThunkTableEmitLibraries(filehandle, libraries.next)
+	byteswritten += ThunkTableEmitLibraries(filehandle, libraries.next)
 }
 
 ThunkTableEmitLibraries : Win32Handle filehandle, nothing -> 0
@@ -714,7 +724,10 @@ ThunkTableEmitThunkHoldersPerFunction : Win32Handle filehandle, list<ThunkTableE
 	byteswritten += ThunkTableEmitThunkHoldersPerFunction(filehandle, functions.next, virtualbase)
 }
 
-ThunkTableEmitThunkHoldersPerFunction : Win32Handle filehandle, nothing, integer virtualbase -> 0
+ThunkTableEmitThunkHoldersPerFunction : Win32Handle filehandle, nothing, integer virtualbase -> integer byteswritten = 0
+{
+	byteswritten += WritePadding(filehandle, 0, 8)
+}
 
 
 
@@ -722,7 +735,7 @@ ThunkTableEmitDescriptors : Win32Handle filehandle, list<ThunkTableLibrary> ref 
 {
 	buffer thunkbuffer = 128
 	integer thunksize = 0
-	
+		
 	ByteStreamEmitInteger(thunkbuffer, thunksize, virtualbase + ThunkTableGetLibFirstThunkOffset(libraries.value))
 	ByteStreamEmitInteger(thunkbuffer, thunksize, 0)
 	ByteStreamEmitInteger(thunkbuffer, thunksize, 0)
@@ -812,3 +825,52 @@ StringLookupMapper : integer stringhandle -> integer offset = 0
 	
 	offset += baseaddress
 }
+
+
+
+ThunkTableAddEntry : ThunkTable ref table, string libname, string funcname
+{
+	ThunkTableAddFunctionToLibrary(table, table.Libraries, libname, funcname)
+}
+
+ThunkTableAddFunctionToLibrary : ThunkTable ref table, list<ThunkTableLibrary> ref libraries, string libname, string funcname
+{
+	if(libraries.value.LibraryName == libname)
+	{
+		ThunkTableAddFunctionToList(libraries.value, libraries.value.Functions, funcname)
+	}
+	else
+	{
+		ThunkTableAddFunctionToLibrary(table, libraries.next, libname, funcname)
+	}
+}
+
+ThunkTableAddFunctionToLibrary : ThunkTable ref table, nothing, string libname, string funcname
+{
+	ThunkTableEntry entry = funcname, 0, 0, 0
+	list<ThunkTableEntry> entrylist = entry, nothing
+	listnode<ThunkTableEntry> entrynode = entrylist
+	
+	ThunkTableLibrary rtlib = libname, entrynode, 0, 0
+	ListPrependOrCreate<ThunkTableLibrary>(table.Libraries, rtlib)
+}
+
+ThunkTableAddFunctionToList : ThunkTableLibrary ref library, list<ThunkTableEntry> ref functions, string funcname
+{
+	if(functions.value.FunctionName == funcname)
+	{
+		// Function already exists, can bail safely
+	}
+	else
+	{
+		ThunkTableAddFunctionToList(library, functions.next, funcname)
+	}
+}
+
+ThunkTableAddFunctionToList : ThunkTableLibrary ref library, nothing, string funcname
+{
+	ThunkTableEntry entry = funcname, 0, 0, 0
+	ListPrependOrCreate<ThunkTableEntry>(library.Functions, entry)
+}
+
+

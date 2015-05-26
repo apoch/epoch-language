@@ -15,6 +15,8 @@ TestFunctionCalls :
 	TFCParamExpectTrue(true)
 	TFCParamExpectFalse(false)
 	
+	MessageBox(0, "foo", "Bar", 0)
+	
 	TestSectionComplete()
 }
 
@@ -34,3 +36,6 @@ TFCParamExpectFalse : boolean expected
 	TestAssert(!expected, "boolean function parameter, inverted")
 }
 
+
+
+MessageBox : integer foo, string bar, string baz, integer quux -> integer ret = 0 [external("User32.dll", "MessageBoxA", "stdcall")]

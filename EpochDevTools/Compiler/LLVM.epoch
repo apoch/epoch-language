@@ -100,7 +100,6 @@ EpochLLVMCodePushString : LLVMContextHandle context, integer handle													
 SetUpAllLLVMCode : LLVMContextHandle context
 {
 	CreateAllFunctionsInLLVM(context, Functions)
-	EmitAllFunctionsToLLVM(context, Functions)
 }
 
 
@@ -119,6 +118,28 @@ CreateAllFunctionsInLLVM : LLVMContextHandle context, list<FunctionDefinition> r
 }
 
 CreateAllFunctionsInLLVM : LLVMContextHandle context, nothing
+
+
+
+CreateSingleFunctionInLLVM : LLVMContextHandle context, integer funcname
+{
+	CreateSingleFunctionInLLVM(context, Functions, funcname)
+}
+
+CreateSingleFunctionInLLVM : LLVMContextHandle context, list<FunctionDefinition> ref funcs, integer funcname
+{
+	if(!funcs.value.IsTemplate)
+	{
+		if(funcs.value.Name == funcname)
+		{
+			CreateSingleFunctionInLLVM(context, funcs.value)
+			return()
+		}
+	}
+	
+	CreateSingleFunctionInLLVM(context, funcs.next, funcname)
+}
+
 
 CreateSingleFunctionInLLVM : LLVMContextHandle context, FunctionDefinition ref func
 {
@@ -148,8 +169,6 @@ CreateFunctionParamTypesInLLVM : LLVMContextHandle context, list<UnresolvedParam
 }
 
 CreateFunctionParamTypesInLLVM : LLVMContextHandle context, nothing
-{
-}
 
 
 
@@ -276,8 +295,7 @@ EmitSingleFunctionToLLVM : LLVMContextHandle context, FunctionDefinition ref fun
 	EmitParamInitializersToLLVM(build, func, 0, func.Params)
 	EmitRetInitializerToLLVM(build, func, func.Return)
 	
-	
-	// TODO - emit call for @invoke tags	
+	EmitExternalInvokeTagToLLVM(build, func, GlobalRootNamespace.FunctionTags)
 	
 	EmitCodeBlockToLLVM(build, func.Code)
 	
@@ -307,6 +325,46 @@ EmitSingleFunctionToLLVM : LLVMContextHandle context, FunctionDefinition ref fun
 		EpochLLVMFunctionSetEntry(context, llvmfunc)
 	}
 }
+
+EmitAllParamsToLLVM : LLVMContextHandle context, integer paramindex, FunctionParams ref params
+{
+	EmitAllParamsToLLVM(context, paramindex, params.Params)
+}
+
+
+EmitAllParamsToLLVM : LLVMContextHandle context, integer paramindex, list<UnresolvedParameter> ref params
+{
+	EpochLLVMCodeCreateReadParam(context, paramindex)
+	EmitAllParamsToLLVM(context, paramindex + 1, params.next)
+}
+
+EmitAllParamsToLLVM : LLVMContextHandle context, integer paramindex, nothing
+
+
+EmitExternalInvokeTagToLLVM : LLVMBuildContext ref context, FunctionDefinition ref func, list<FunctionTag> ref taglist
+{
+	if(taglist.value.FunctionName == func.Name)
+	{
+		if(taglist.value.TagName == "external")
+		{
+			EmitAllParamsToLLVM(context.Context, 0, func.Params)
+
+			integer thunk = 0
+			BinaryTreeCopyPayload<integer>(LLVMGlobalThunks.RootNode, func.Name, thunk)
+			
+			assertmsg(thunk != 0, "Missing external thunk")
+			EpochLLVMCodeCreateCallThunk(context.Context, thunk)			
+			
+			return()
+		}
+	}
+
+	EmitExternalInvokeTagToLLVM(context, func, taglist.next)
+}
+
+EmitExternalInvokeTagToLLVM : LLVMBuildContext ref context, FunctionDefinition ref func, nothing
+
+
 
 EmitCodeBlockToLLVM : LLVMBuildContext ref context, CodeBlock ref code
 {
@@ -626,7 +684,58 @@ SetUpBuiltInLLVMThunks : LLVMContextHandle context
 	BuiltInThunkCreateAssert(context)
 	BuiltInThunkCreatePasstest(context)
 	BuiltInThunkCreatePrint(context)
+	
+	SetUpCustomLLVMThunks(context, GlobalRootNamespace.FunctionTags)
 }
+
+
+SetUpCustomLLVMThunks : LLVMContextHandle context, list<FunctionTag> ref taglist
+{
+	if(taglist.value.TagName == "external")
+	{
+		string libname = ""
+		string thunkname = ""
+		string callconv = ""
+		
+		copyfromlist<string>(taglist.value.Parameters, 1, libname)
+		copyfromlist<string>(taglist.value.Parameters, 2, thunkname)
+		copyfromlist<string>(taglist.value.Parameters, 3, callconv)
+
+		SetUpSingleLLVMThunk(context, Functions, taglist.value.FunctionName, thunkname, callconv)
+		
+		ThunkTableAddEntry(GlobalThunkTable, libname, thunkname)
+	}
+	
+	SetUpCustomLLVMThunks(context, taglist.next)
+}
+
+SetUpCustomLLVMThunks : LLVMContextHandle context, nothing
+
+
+SetUpSingleLLVMThunk : LLVMContextHandle context, list<FunctionDefinition> ref funcs, integer funcname, string thunkname, string callconv
+{
+	if(funcs.value.Name == funcname)
+	{
+		LLVMType funcrettype = GetLLVMTypeForEpochType(context, funcs.value.Return)
+		CreateFunctionParamTypesInLLVM(context, funcs.value.Params)	
+		LLVMFunctionType fty = EpochLLVMFunctionTypeCreate(context, funcrettype)
+		
+		
+		if(callconv == "stdcall")
+		{
+			// TODO - set fty to stdcall!
+		}
+		
+		integer thunk = EpochLLVMFunctionCreateThunk(context, thunkname, fty)
+
+		BinaryTreeCreateOrInsert<integer>(LLVMGlobalThunks, funcname, thunk)
+	}
+	else
+	{
+		SetUpSingleLLVMThunk(context, funcs.next, funcname, thunkname, callconv)
+	}
+}
+
 
 BuiltInThunkCreateAssert : LLVMContextHandle context
 {

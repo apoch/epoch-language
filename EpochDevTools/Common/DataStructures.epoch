@@ -90,6 +90,22 @@ pop<type T> : list<T> ref head, list<T> ref tail [nogc]
 }
 
 
+copyfromlist<type T> : list<T> ref thelist, integer count, T ref outvalue -> boolean found = false [nogc]
+{
+	if(count == 0)
+	{
+		outvalue = thelist.value
+		
+		found = true
+		return()
+	}
+
+	assert(count > 0)
+	found = copyfromlist<T>(thelist.next, count - 1, outvalue)
+}
+
+copyfromlist<type T> : nothing, integer count, T ref outvalue -> false [nogc]
+
 
 
 //

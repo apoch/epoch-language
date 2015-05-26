@@ -1164,23 +1164,11 @@ FigureOutCastOverload : nothing -> 0
 
 
 PrepareThunkTable : ThunkTable ref table
-{
-	ThunkTableEntry assertentry = "ERT_assert", 0, 0, 0
-	ThunkTableEntry passtestentry = "ERT_passtest", 0, 0, 0
-
-	ThunkTableEntry printentry = "ERT_print", 0, 0, 0
-	list<ThunkTableEntry> entrylist = printentry, nothing
+{	
+	ThunkTableAddEntry(table, "EpochRT.dll", "ERT_assert")
+	ThunkTableAddEntry(table, "EpochRT.dll", "ERT_passtest")
+	ThunkTableAddEntry(table, "EpochRT.dll", "ERT_print")
 	
-	prepend<ThunkTableEntry>(entrylist, passtestentry)
-	prepend<ThunkTableEntry>(entrylist, assertentry)
-	
-	listnode<ThunkTableEntry> entrynode = entrylist
-
-	ThunkTableLibrary rtlib = "EpochRT.dll", entrynode, 0, 0
-	list<ThunkTableLibrary> liblist = rtlib, nothing
-	listnode<ThunkTableLibrary> libnode = liblist
-	
-	table.Libraries = libnode
 	table.TotalSize = 0
 	table.DescriptorOffset = 0
 }
