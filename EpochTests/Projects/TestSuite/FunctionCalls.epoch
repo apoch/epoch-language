@@ -15,7 +15,7 @@ TestFunctionCalls :
 	TFCParamExpectTrue(true)
 	TFCParamExpectFalse(false)
 	
-	MessageBox(0, "foo", "Bar", 0)
+	TestAssert(lstrcmp("foo", "foo") == 0, "external string compare")
 	
 	TestSectionComplete()
 }
@@ -38,4 +38,4 @@ TFCParamExpectFalse : boolean expected
 
 
 
-MessageBox : integer foo, string bar, string baz, integer quux -> integer ret = 0 [external("User32.dll", "MessageBoxA", "stdcall")]
+lstrcmp : string lhs, string rhs -> integer ret = 0 [external("Kernel32.dll", "lstrcmpA")]
