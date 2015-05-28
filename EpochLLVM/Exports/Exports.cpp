@@ -206,3 +206,15 @@ extern "C" void EpochLLVMSetCurrentBasicBlock(void* context, void* block)
 	reinterpret_cast<CodeGen::Context*>(context)->SetCurrentBasicBlock(reinterpret_cast<llvm::BasicBlock*>(block));
 }
 
+
+
+extern "C" void* EpochLLVMStructureTypeCreate(void* context)
+{
+	return reinterpret_cast<CodeGen::Context*>(context)->StructureTypeCreate();
+}
+
+extern "C" void EpochLLVMStructureQueueMemberType(void* context, void* membertype)
+{
+	reinterpret_cast<CodeGen::Context*>(context)->StructureTypeQueueMember(reinterpret_cast<llvm::Type*>(membertype));
+}
+

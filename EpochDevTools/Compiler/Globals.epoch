@@ -84,7 +84,7 @@ global
 	
 	
 	BinaryTreeRoot<LLVMFunctionRef> LLVMFunctionTable = nothing
-	
+	BinaryTreeRoot<LLVMType> LLVMStructureTypeTable = nothing
 	
 	
 	BinaryTreeRoot<integer> GlobalStringOffsets = nothing

@@ -19,6 +19,9 @@ EXPORTS
 	EpochLLVMFunctionQueueParamType
 	EpochLLVMFunctionSetEntry
 
+	EpochLLVMStructureTypeCreate
+	EpochLLVMStructureQueueMemberType
+
 	EpochLLVMEmitBinaryObject
 
 	EpochLLVMSetThunkCallback

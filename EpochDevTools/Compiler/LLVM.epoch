@@ -51,6 +51,11 @@ EpochLLVMFunctionQueueParamType : LLVMContextHandle context, LLVMType t									
 
 EpochLLVMFunctionSetEntry : LLVMContextHandle context, LLVMFunctionRef func											[external("EpochLLVM.dll", "EpochLLVMFunctionSetEntry")]
 
+
+EpochLLVMStructureQueueMemberType : LLVMContextHandle context, LLVMType t											[external("EpochLLVM.dll", "EpochLLVMStructureQueueMemberType")]
+EpochLLVMStructureTypeCreate : LLVMContextHandle context -> LLVMType t = 0											[external("EpochLLVM.dll", "EpochLLVMStructureTypeCreate")]
+
+
 EpochLLVMTypeGetBoolean : LLVMContextHandle context -> LLVMType t = 0												[external("EpochLLVM.dll", "EpochLLVMTypeGetBoolean")]
 EpochLLVMTypeGetInteger : LLVMContextHandle context -> LLVMType t = 0												[external("EpochLLVM.dll", "EpochLLVMTypeGetInteger")]
 EpochLLVMTypeGetInteger16 : LLVMContextHandle context -> LLVMType t = 0												[external("EpochLLVM.dll", "EpochLLVMTypeGetInteger16")]
@@ -99,6 +104,9 @@ EpochLLVMCodePushString : LLVMContextHandle context, integer handle													
 
 SetUpAllLLVMCode : LLVMContextHandle context
 {
+	CodeGenRearrangeStructures(Structures)
+	CreateAllStructuresInLLVM(context, Structures)
+	
 	CreateAllFunctionsInLLVM(context, Functions)
 }
 
@@ -198,7 +206,7 @@ GetLLVMTypeForEpochType : LLVMContextHandle context, integer typeid -> LLVMType 
 	}
 	else
 	{
-		assertmsg(false, "Unsupported type for LLVM bindings")
+		assertmsg(false, "Unsupported type for LLVM bindings: " ; GetPooledString(GetNameOfType(typeid)))
 	}
 }
 
@@ -418,7 +426,7 @@ EmitCodeBlockEntriesToLLVM : LLVMBuildContext ref context, nothing
 
 EmitSingleCodeBlockEntryToLLVM : LLVMBuildContext ref context, Statement ref entry
 {
-	// TODO - map over the remaining code from CodeGenEmitSingleCodeBlockEntry for statements
+	// TODO - see if we still need type annotation logic, see CodeGenEmitSingleCodeBlockEntry and sum-type construction
 	
 	EmitExpressionListToLLVM(context, entry.Parameters)
 
@@ -431,11 +439,27 @@ EmitSingleCodeBlockEntryToLLVM : LLVMBuildContext ref context, Statement ref ent
 			EpochLLVMCodeCreateCallThunk(context.Context, thunk)
 		}
 	}
+	elseif(SumTypeExists(entry.Name))
+	{
+		// TODO - LLVM sum type implementation
+		//BytecodeConstructSumType(stream)
+	}
 	else
 	{
-		LLVMFunctionRef llvmfunc = 0
-		BinaryTreeCopyPayload<LLVMFunctionRef>(LLVMFunctionTable.RootNode, entry.Name, llvmfunc)
-		EpochLLVMCodeCreateCall(context.Context, llvmfunc)
+		// TODO - higher order functions
+		//integer vartype = GetVariableTypeFromScope(EmittingScope.Wrapped, s.Name)
+		//if((vartype != 0) && ((vartype & 0x7f000000) == 0x09000000))
+		if(false)
+		{
+			// TODO - function pointers
+			//BytecodeInvokeIndirect(stream, s.Name)
+		}
+		else
+		{
+			LLVMFunctionRef llvmfunc = 0
+			BinaryTreeCopyPayload<LLVMFunctionRef>(LLVMFunctionTable.RootNode, entry.Name, llvmfunc)
+			EpochLLVMCodeCreateCall(context.Context, llvmfunc)
+		}
 	}
 }
 
@@ -720,12 +744,6 @@ SetUpSingleLLVMThunk : LLVMContextHandle context, list<FunctionDefinition> ref f
 		CreateFunctionParamTypesInLLVM(context, funcs.value.Params)	
 		LLVMFunctionType fty = EpochLLVMFunctionTypeCreate(context, funcrettype)
 		
-		
-		if(callconv == "stdcall")
-		{
-			// TODO - set fty to stdcall!
-		}
-		
 		integer thunk = EpochLLVMFunctionCreateThunk(context, thunkname, fty)
 
 		BinaryTreeCreateOrInsert<integer>(LLVMGlobalThunks, funcname, thunk)
@@ -763,6 +781,41 @@ BuiltInThunkCreatePrint : LLVMContextHandle context
 	BinaryTreeCreateOrInsert<integer>(LLVMGlobalThunks, PooledStringHandleForPrint, thunk)
 }
 
+
+
+
+CreateAllStructuresInLLVM : LLVMContextHandle context, list<StructureDefinition> ref structures
+{
+	if(structures.value.Name != 0)
+	{
+		CreateStructureMembersInLLVM(context, structures.value.Members)
+		LLVMType sty = EpochLLVMStructureTypeCreate(context)
+
+		BinaryTreeCreateOrInsert<LLVMType>(LLVMStructureTypeTable, structures.value.Type, sty)
+	}
+	
+	CreateAllStructuresInLLVM(context, structures.next)
+}
+
+
+CreateAllStructuresInLLVM : LLVMContextHandle context, nothing
+
+
+
+CreateStructureMembersInLLVM : LLVMContextHandle context, list<StructureMember> ref members
+{
+	EpochLLVMStructureQueueMemberType(context, GetLLVMTypeForMemberType(context, members.value))
+	CreateStructureMembersInLLVM(context, members.next)
+}
+
+CreateStructureMembersInLLVM : LLVMContextHandle context, nothing
+
+
+GetLLVMTypeForMemberType : LLVMContextHandle context, StructureMemberVariable ref member -> LLVMType t = GetLLVMTypeForEpochType(context, member.Type)
+GetLLVMTypeForMemberType : LLVMContextHandle context, StructureMemberFunctionRef ref member -> LLVMType t = 0
+{
+	assertmsg(false, "Function members are not supported yet")
+}
 
 
 

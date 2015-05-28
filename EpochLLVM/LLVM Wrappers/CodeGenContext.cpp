@@ -540,3 +540,16 @@ void Context::SetCurrentBasicBlock(llvm::BasicBlock* block)
 	LLVMBuilder.SetInsertPoint(block);
 }
 
+
+llvm::Type* Context::StructureTypeCreate()
+{
+	llvm::Type* t = llvm::StructType::create(PendingParamTypes);
+	PendingParamTypes.clear();
+	return t;
+}
+
+void Context::StructureTypeQueueMember(llvm::Type* t)
+{
+	PendingParamTypes.push_back(t);
+}
+
