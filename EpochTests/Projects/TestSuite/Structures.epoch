@@ -12,7 +12,7 @@ TestStructures :
 	
 	TSAlloc()
 	TSMultipleMembers()
-	
+	TSNested()
 	
 	TestSectionComplete()
 }
@@ -28,6 +28,11 @@ structure StructureTest2 :
 	integer alpha,
 	integer beta,
 	integer gamma
+	
+	
+structure NestedStructure1 :
+	StructureTest2 large,
+	StructureTest1 small
 	
 
 TSAlloc :
@@ -45,5 +50,17 @@ TSMultipleMembers :
 	TestAssert(test.alpha == 1, "structure member order 1")
 	TestAssert(test.beta == 2, "structure member order 2")
 	TestAssert(test.gamma == 3, "structure member order 3")
+}
+
+TSNested :
+{
+	StructureTest1 innersmall = 42
+	StructureTest2 innerlarge = 1, 2, 3
+	NestedStructure1 nested = innerlarge, innersmall
+	
+	TestAssert(nested.large.alpha == 1, "nested structure members 1")
+	TestAssert(nested.large.beta == 2, "nested structure members 2")
+	TestAssert(nested.large.gamma == 3, "nested structure members 3")
+	TestAssert(nested.small.field == 42, "nested structure members 4")
 }
 

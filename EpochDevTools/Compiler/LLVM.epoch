@@ -111,7 +111,6 @@ EpochLLVMCodePushRawGEP : LLVMContextHandle context, LLVMGEP gep													[ex
 EpochLLVMCodePushString : LLVMContextHandle context, integer handle													[external("EpochLLVM.dll", "EpochLLVMCodePushString")]
 
 
-
 SetUpAllLLVMCode : LLVMContextHandle context
 {
 	CodeGenRearrangeStructures(Structures)
@@ -195,6 +194,9 @@ GetLLVMTypeForEpochType : LLVMContextHandle context, Expression expr -> LLVMType
 
 GetLLVMTypeForEpochType : LLVMContextHandle context, integer typeid -> LLVMType t = 0
 {
+	boolean wasref = IsReferenceType(typeid)
+	typeid = MakeNonReferenceType(typeid)
+
 	if(typeid == 0x01000001)
 	{
 		t = EpochLLVMTypeGetInteger(context)		
@@ -223,6 +225,11 @@ GetLLVMTypeForEpochType : LLVMContextHandle context, integer typeid -> LLVMType 
 	else
 	{
 		assertmsg(false, "Unsupported type for LLVM bindings: " ; GetPooledString(GetNameOfType(typeid)))
+	}
+	
+	if(wasref)
+	{
+		t = EpochLLVMTypeGetPointerTo(context, t)
 	}
 }
 
@@ -870,6 +877,8 @@ BuiltInThunkCreatePrint : LLVMContextHandle context
 
 CreateAllStructuresInLLVM : LLVMContextHandle context, list<StructureDefinition> ref structures
 {
+	CreateAllStructuresInLLVM(context, structures.next)
+
 	if(structures.value.Name != 0)
 	{
 		CreateStructureMembersInLLVM(context, structures.value.Members)
@@ -877,8 +886,6 @@ CreateAllStructuresInLLVM : LLVMContextHandle context, list<StructureDefinition>
 
 		BinaryTreeCreateOrInsert<LLVMType>(LLVMStructureTypeTable, structures.value.Type, sty)
 	}
-	
-	CreateAllStructuresInLLVM(context, structures.next)
 }
 
 
