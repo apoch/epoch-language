@@ -27,6 +27,7 @@ entrypoint :
 	TestFunctionCalls()
 	TestOperators()
 	TestEntities()
+	TestStructures()
 
 	// TODO - generate report
 }

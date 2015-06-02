@@ -1300,7 +1300,14 @@ TypeInference : Expression ref expression, InferenceContext ref context -> boole
 	}
 	elseif(expression.Type == 0x01000000)
 	{
-		SetAtomType(expression.Atoms.value, expression.Type)
+		if((context.StatementName != 0) && (StructureConstructorExists(Structures, context.StatementName)))
+		{
+			SetAtomType(expression.Atoms.value, 0x81000000)		// hack
+		}
+		else
+		{
+			SetAtomType(expression.Atoms.value, expression.Type)
+		}
 	}
 }
 

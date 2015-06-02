@@ -1,0 +1,34 @@
+//
+// STRUCTURES.EPOCH
+//
+// Test suite for structure data types
+//
+
+
+TestStructures :
+{
+	TestSection("Structures")
+	
+	
+	TSAlloc()
+	
+	
+	TestSectionComplete()
+}
+
+
+
+
+structure StructureTest1 :
+	integer field
+	
+	
+
+TSAlloc :
+{
+	StructureTest1 test = 42
+	
+	TestAssert(test.field == 42, "structure initialization")
+}
+
+

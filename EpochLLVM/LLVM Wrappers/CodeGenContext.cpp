@@ -200,6 +200,11 @@ llvm::Type* Context::TypeGetInteger16()
 	return Type::getInt16Ty(getGlobalContext());
 }
 
+llvm::Type* Context::TypeGetPointerTo(llvm::Type* raw)
+{
+	return raw->getPointerTo();
+}
+
 llvm::Type* Context::TypeGetReal()
 {
 	return Type::getFloatTy(getGlobalContext());
@@ -333,7 +338,7 @@ size_t Context::EmitBinaryObject(char* buffer, size_t maxoutput)
 	mpm.run(*wat);
 
 
-	wat->dump();
+	//wat->dump();
 
 
 	class JEL : public JITEventListener
@@ -442,6 +447,25 @@ void Context::CodeCreateCondBranch(BasicBlock* truetarget, BasicBlock* falsetarg
 	LLVMBuilder.CreateCondBr(cond, truetarget, falsetarget);
 }
 
+void Context::CodeCreateDereference()
+{
+	Value* p = PendingValues.back();
+	PendingValues.pop_back();
+
+	Value* l = LLVMBuilder.CreateLoad(p);
+	PendingValues.push_back(l);
+}
+
+llvm::Value* Context::CodeCreateGEP(unsigned index)
+{
+	Value* v = PendingValues.back();
+	PendingValues.pop_back();
+
+	Value* indices[] = {ConstantInt::get(Type::getInt32Ty(getGlobalContext()), 0), ConstantInt::get(Type::getInt32Ty(getGlobalContext()), index)};
+
+	return LLVMBuilder.CreateGEP(v, indices);
+}
+
 void Context::CodeCreateRead(llvm::AllocaInst* allocatarget)
 {
 	Value* rv = LLVMBuilder.CreateLoad(allocatarget);
@@ -454,6 +478,12 @@ void Context::CodeCreateReadParam(unsigned index)
 	std::advance(iter, index);
 
 	Value* rv = iter;
+	PendingValues.push_back(rv);
+}
+
+void Context::CodeCreateReadStructure(llvm::Value* gep)
+{
+	Value* rv = LLVMBuilder.CreateLoad(gep);
 	PendingValues.push_back(rv);
 }
 
@@ -476,6 +506,14 @@ void Context::CodeCreateWrite(llvm::AllocaInst* allocatarget)
 	PendingValues.pop_back();
 
 	LLVMBuilder.CreateStore(wv, allocatarget);
+}
+
+void Context::CodeCreateWriteStructure(llvm::Value* gep)
+{
+	Value* wv = PendingValues.back();
+	PendingValues.pop_back();
+
+	LLVMBuilder.CreateStore(wv, gep);
 }
 
 
@@ -511,6 +549,16 @@ void Context::CodePushInteger(int value)
 {
 	llvm::Value* val = ConstantInt::get(Type::getInt32Ty(getGlobalContext()), value);
 	PendingValues.push_back(val);
+}
+
+void Context::CodePushRawAlloca(llvm::AllocaInst* alloc)
+{
+	PendingValues.push_back(alloc);
+}
+
+void Context::CodePushRawGEP(llvm::Value* gep)
+{
+	PendingValues.push_back(gep);
 }
 
 void Context::CodePushString(unsigned handle)

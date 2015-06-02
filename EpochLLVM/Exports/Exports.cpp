@@ -51,6 +51,11 @@ extern "C" void* EpochLLVMTypeGetInteger16(void* context)
 	return reinterpret_cast<CodeGen::Context*>(context)->TypeGetInteger16();
 }
 
+extern "C" void* EpochLLVMTypeGetPointerTo(void* context, void* ty)
+{
+	return reinterpret_cast<CodeGen::Context*>(context)->TypeGetPointerTo(reinterpret_cast<llvm::Type*>(ty));
+}
+
 extern "C" void* EpochLLVMTypeGetReal(void* context)
 {
 	return reinterpret_cast<CodeGen::Context*>(context)->TypeGetReal();
@@ -141,6 +146,11 @@ extern "C" void EpochLLVMCodeCreateCondBranch(void* context, void* truetarget, v
 	reinterpret_cast<CodeGen::Context*>(context)->CodeCreateCondBranch(reinterpret_cast<llvm::BasicBlock*>(truetarget), reinterpret_cast<llvm::BasicBlock*>(falsetarget));
 }
 
+extern "C" void* EpochLLVMCodeCreateGEP(void* context, unsigned index)
+{
+	return reinterpret_cast<CodeGen::Context*>(context)->CodeCreateGEP(index);
+}
+
 extern "C" void EpochLLVMCodeCreateRead(void* context, void* allocatarget)
 {
 	reinterpret_cast<CodeGen::Context*>(context)->CodeCreateRead(reinterpret_cast<llvm::AllocaInst*>(allocatarget));
@@ -149,6 +159,11 @@ extern "C" void EpochLLVMCodeCreateRead(void* context, void* allocatarget)
 extern "C" void EpochLLVMCodeCreateReadParam(void* context, unsigned index)
 {
 	reinterpret_cast<CodeGen::Context*>(context)->CodeCreateReadParam(index);
+}
+
+extern "C" void EpochLLVMCodeCreateReadStructure(void* context, void* gep)
+{
+	reinterpret_cast<CodeGen::Context*>(context)->CodeCreateReadStructure(reinterpret_cast<llvm::Value*>(gep));
 }
 
 extern "C" void EpochLLVMCodeCreateRet(void* context)
@@ -164,6 +179,17 @@ extern "C" void EpochLLVMCodeCreateRetVoid(void* context)
 extern "C" void EpochLLVMCodeCreateWrite(void* context, void* allocatarget)
 {
 	reinterpret_cast<CodeGen::Context*>(context)->CodeCreateWrite(reinterpret_cast<llvm::AllocaInst*>(allocatarget));
+}
+
+extern "C" void EpochLLVMCodeCreateWriteStructure(void* context, void* gep)
+{
+	reinterpret_cast<CodeGen::Context*>(context)->CodeCreateWriteStructure(reinterpret_cast<llvm::Value*>(gep));
+}
+
+
+extern "C" void EpochLLVMCodeCreateDereference(void* context)
+{
+	reinterpret_cast<CodeGen::Context*>(context)->CodeCreateDereference();
 }
 
 
@@ -187,6 +213,16 @@ extern "C" void EpochLLVMCodePushBoolean(void* context, bool value)
 extern "C" void EpochLLVMCodePushInteger(void* context, int value)
 {
 	reinterpret_cast<CodeGen::Context*>(context)->CodePushInteger(value);
+}
+
+extern "C" void EpochLLVMCodePushRawAlloca(void* context, void* alloc)
+{
+	reinterpret_cast<CodeGen::Context*>(context)->CodePushRawAlloca(reinterpret_cast<llvm::AllocaInst*>(alloc));
+}
+
+extern "C" void EpochLLVMCodePushRawGEP(void* context, void* gep)
+{
+	reinterpret_cast<CodeGen::Context*>(context)->CodePushRawGEP(reinterpret_cast<llvm::Value*>(gep));
 }
 
 extern "C" void EpochLLVMCodePushString(void* context, unsigned handle)

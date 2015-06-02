@@ -10,6 +10,7 @@ EXPORTS
 	EpochLLVMTypeGetBoolean
 	EpochLLVMTypeGetInteger
 	EpochLLVMTypeGetInteger16
+	EpochLLVMTypeGetPointerTo
 	EpochLLVMTypeGetReal
 	EpochLLVMTypeGetString
 	EpochLLVMTypeGetVoid
@@ -33,17 +34,24 @@ EXPORTS
 	EpochLLVMCodeCreateCall
 	EpochLLVMCodeCreateCallThunk
 	EpochLLVMCodeCreateCondBranch
+	EpochLLVMCodeCreateGEP
 	EpochLLVMCodeCreateRead
 	EpochLLVMCodeCreateReadParam
+	EpochLLVMCodeCreateReadStructure
 	EpochLLVMCodeCreateRet
 	EpochLLVMCodeCreateRetVoid
 	EpochLLVMCodeCreateWrite
+	EpochLLVMCodeCreateWriteStructure
+
+	EpochLLVMCodeCreateDereference
 
 	EpochLLVMCodeOperatorBooleanNot
 	EpochLLVMCodeOperatorIntegerEquals
 	
 	EpochLLVMCodePushBoolean
 	EpochLLVMCodePushInteger
+	EpochLLVMCodePushRawAlloca
+	EpochLLVMCodePushRawGEP
 	EpochLLVMCodePushString
 
 	EpochLLVMGetCurrentBasicBlock

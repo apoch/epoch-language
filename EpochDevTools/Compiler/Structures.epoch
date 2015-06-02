@@ -188,6 +188,40 @@ GetMemberTypeAndOffset : nothing, integer membername, integer ref memtype, integ
 }
 
 
+GetStructureMemberIndex : integer structurename, integer membername -> integer index = 0
+{
+	ContextNode<StructureDefinition> wrap = nothing
+	boolean found = SearchBinaryTreeForPayload<StructureDefinition>(GlobalRootNamespace.Structures.RootNode, structurename, wrap)
+	assert(found)
+	
+	GetStructureMemberIndexInternal(wrap, membername, index)
+}
+
+GetStructureMemberIndexInternal : StructureDefinition ref struct, integer membername, integer ref index
+{
+	GetStructureMemberIndexInternal(struct.Members, membername, index)
+}
+
+GetStructureMemberIndexInternal : list<StructureMember> ref members, integer membername, integer ref index
+{
+	integer thisname = GetMemberName(members.value)
+	if(thisname != membername)
+	{
+		if(thisname != 0)
+		{
+			++index
+		}
+		
+		GetStructureMemberIndexInternal(members.next, membername, index)
+	}
+}
+
+GetStructureMemberIndexInternal : nothing, integer membername, integer ref index
+{
+	index = -1
+}
+
+
 GetMemberTypeDecompose : StructureMemberVariable ref memvar -> integer rtype = memvar.Type [nogc]
 
 GetMemberTypeDecompose : StructureMemberFunctionRef ref member -> integer rtype = FindOrCreateFunctionSignatureType(member.Signature) [nogc]
