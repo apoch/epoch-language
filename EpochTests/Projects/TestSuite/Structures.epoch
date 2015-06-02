@@ -11,6 +11,7 @@ TestStructures :
 	
 	
 	TSAlloc()
+	TSMultipleMembers()
 	
 	
 	TestSectionComplete()
@@ -21,7 +22,12 @@ TestStructures :
 
 structure StructureTest1 :
 	integer field
-	
+
+
+structure StructureTest2 :
+	integer alpha,
+	integer beta,
+	integer gamma
 	
 
 TSAlloc :
@@ -31,4 +37,13 @@ TSAlloc :
 	TestAssert(test.field == 42, "structure initialization")
 }
 
+
+TSMultipleMembers :
+{
+	StructureTest2 test = 1, 2, 3
+	
+	TestAssert(test.alpha == 1, "structure member order 1")
+	TestAssert(test.beta == 2, "structure member order 2")
+	TestAssert(test.gamma == 3, "structure member order 3")
+}
 
