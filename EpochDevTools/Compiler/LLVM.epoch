@@ -139,26 +139,6 @@ CreateAllFunctionsInLLVM : LLVMContextHandle context, nothing
 
 
 
-CreateSingleFunctionInLLVM : LLVMContextHandle context, integer funcname
-{
-	CreateSingleFunctionInLLVM(context, Functions, funcname)
-}
-
-CreateSingleFunctionInLLVM : LLVMContextHandle context, list<FunctionDefinition> ref funcs, integer funcname
-{
-	if(!funcs.value.IsTemplate)
-	{
-		if(funcs.value.Name == funcname)
-		{
-			CreateSingleFunctionInLLVM(context, funcs.value)
-			return()
-		}
-	}
-	
-	CreateSingleFunctionInLLVM(context, funcs.next, funcname)
-}
-
-
 CreateSingleFunctionInLLVM : LLVMContextHandle context, FunctionDefinition ref func
 {
 	string funcname = GetPooledString(func.Name)
