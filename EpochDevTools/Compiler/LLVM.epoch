@@ -623,9 +623,6 @@ EmitSingleAtomToLLVM : LLVMBuildContext ref context, IdentifierAtom ref idatom
 		{
 			if(atomtype == 0x01000000)					// Identifier type signature
 			{
-				// TODO - return this to correctness
-				//if((!constructor) && (!idatom.IsReference))
-				//if(!idatom.IsReference)
 				if(!IsReferenceType(idatom.Type))
 				{
 					EpochLLVMCodePushString(context.Context, idatom.Handle)
@@ -957,6 +954,7 @@ CreateCopyConstructorInLLVM : LLVMContextHandle context, StructureDefinition ref
 	//BytecodeBindReference(stream, 0, 0)
 	//BytecodeAssign(stream)
 }
+
 
 
 
