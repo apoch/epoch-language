@@ -47,7 +47,7 @@ namespace CodeGen
 		llvm::Type* TypeGetString();
 		llvm::Type* TypeGetVoid();
 
-		llvm::Type* StructureTypeCreate();
+		llvm::Type* StructureTypeCreate(const char* name);
 		void StructureTypeQueueMember(llvm::Type* membertype);
 
 	public:		// Function management interface

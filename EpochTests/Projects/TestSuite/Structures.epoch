@@ -13,6 +13,7 @@ TestStructures :
 	TSAlloc()
 	TSMultipleMembers()
 	TSNested()
+	TSAnonymous()
 	
 	TestSectionComplete()
 }
@@ -63,4 +64,15 @@ TSNested :
 	TestAssert(nested.large.gamma == 3, "nested structure members 3")
 	TestAssert(nested.small.field == 42, "nested structure members 4")
 }
+
+TSAnonymous :
+{
+	TSAnonHelper(StructureTest1(666))
+}
+
+TSAnonHelper : StructureTest1 in
+{
+	TestAssert(in.field == 666, "anonymous structure creation")
+}
+
 

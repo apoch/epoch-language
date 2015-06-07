@@ -116,9 +116,12 @@ extern "C" void EpochLLVMSetStringCallback(void* context, void* funcptr)
 }
 
 
-extern "C" void* EpochLLVMCodeCreateAlloca(void* context, void* vartype, const char* varname)
+extern "C" void* EpochLLVMCodeCreateAlloca(void* context, void* vartype, const wchar_t* varname)
 {
-	return reinterpret_cast<CodeGen::Context*>(context)->CodeCreateAlloca(reinterpret_cast<llvm::Type*>(vartype), varname);
+	std::wstring widename(varname);
+	std::string narrowname(widename.begin(), widename.end());
+
+	return reinterpret_cast<CodeGen::Context*>(context)->CodeCreateAlloca(reinterpret_cast<llvm::Type*>(vartype), narrowname.c_str());
 }
 
 extern "C" void* EpochLLVMCodeCreateBasicBlock(void* context, void* parentfunc, bool setinsertpoint)
@@ -244,9 +247,11 @@ extern "C" void EpochLLVMSetCurrentBasicBlock(void* context, void* block)
 
 
 
-extern "C" void* EpochLLVMStructureTypeCreate(void* context)
+extern "C" void* EpochLLVMStructureTypeCreate(void* context, const wchar_t* name)
 {
-	return reinterpret_cast<CodeGen::Context*>(context)->StructureTypeCreate();
+	std::wstring widename(name);
+	std::string narrowname(widename.begin(), widename.end());
+	return reinterpret_cast<CodeGen::Context*>(context)->StructureTypeCreate(narrowname.c_str());
 }
 
 extern "C" void EpochLLVMStructureQueueMemberType(void* context, void* membertype)

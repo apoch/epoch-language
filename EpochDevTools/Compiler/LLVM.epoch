@@ -55,7 +55,7 @@ EpochLLVMFunctionSetEntry : LLVMContextHandle context, LLVMFunctionRef func					
 
 
 EpochLLVMStructureQueueMemberType : LLVMContextHandle context, LLVMType t											[external("EpochLLVM.dll", "EpochLLVMStructureQueueMemberType")]
-EpochLLVMStructureTypeCreate : LLVMContextHandle context -> LLVMType t = 0											[external("EpochLLVM.dll", "EpochLLVMStructureTypeCreate")]
+EpochLLVMStructureTypeCreate : LLVMContextHandle context, string structurename -> LLVMType t = 0					[external("EpochLLVM.dll", "EpochLLVMStructureTypeCreate")]
 
 
 EpochLLVMTypeGetBoolean : LLVMContextHandle context -> LLVMType t = 0												[external("EpochLLVM.dll", "EpochLLVMTypeGetBoolean")]
@@ -859,7 +859,7 @@ CreateAllStructuresInLLVM : LLVMContextHandle context, list<StructureDefinition>
 	if(structures.value.Name != 0)
 	{
 		CreateStructureMembersInLLVM(context, structures.value.Members)
-		LLVMType sty = EpochLLVMStructureTypeCreate(context)
+		LLVMType sty = EpochLLVMStructureTypeCreate(context, GetPooledString(structures.value.Name))
 
 		BinaryTreeCreateOrInsert<LLVMType>(LLVMStructureTypeTable, structures.value.Type, sty)
 	}
@@ -940,11 +940,23 @@ CreateConstructorInLLVM : LLVMContextHandle context, StructureDefinition ref str
 
 CreateAnonConstructorInLLVM : LLVMContextHandle context, StructureDefinition ref struct
 {
-	//BytecodeAllocStructure(stream, def.Type)
-	//BytecodeBindReference(stream, 0, membercount)
-	//BytecodeAssign(stream)
-
-	//EmitMemberDataCopies(stream, def.Members, def.AnonConstructorName)
+	LLVMType funcrettype = GetLLVMTypeForEpochType(context, struct.Type)
+	CreateMemberParamTypesInLLVM(context, struct.Members)
+	
+	LLVMFunctionType functype = EpochLLVMFunctionTypeCreate(context, funcrettype)
+	LLVMFunctionRef llvmfunc = EpochLLVMFunctionCreate(context, GetPooledString(struct.AnonConstructorName), functype)
+	
+	BinaryTreeCreateOrInsert<LLVMFunctionRef>(LLVMFunctionTable, struct.AnonConstructorName, llvmfunc)
+	
+	
+	LLVMBasicBlock funcbody = EpochLLVMCodeCreateBasicBlock(context, llvmfunc, true)
+	LLVMAlloca retalloca = EpochLLVMCodeCreateAlloca(context, funcrettype, "@anonymous")
+	
+	EmitAnonStructureInitializationToLLVM(context, struct.Members, 0, 0, retalloca)
+	
+	EpochLLVMCodePushRawAlloca(context, retalloca)
+	EpochLLVMCodeCreateDereference(context)
+	EpochLLVMCodeCreateRet(context)
 }
 
 CreateCopyConstructorInLLVM : LLVMContextHandle context, StructureDefinition ref struct
@@ -972,4 +984,18 @@ EmitStructureInitializationToLLVM : LLVMContextHandle context, list<StructureMem
 
 EmitStructureInitializationToLLVM : LLVMContextHandle context, nothing, integer memberindex, integer paramindex
 
+
+
+EmitAnonStructureInitializationToLLVM : LLVMContextHandle context, list<StructureMember> ref members, integer memberindex, integer paramindex, LLVMAlloca retalloca
+{
+	EpochLLVMCodePushRawAlloca(context, retalloca)
+	LLVMGEP gep = EpochLLVMCodeCreateGEP(context, memberindex)
+	
+	EpochLLVMCodeCreateReadParam(context, paramindex)
+	EpochLLVMCodeCreateWriteStructure(context, gep)
+	
+	EmitAnonStructureInitializationToLLVM(context, members.next, memberindex + 1, paramindex + 1, retalloca)
+}
+
+EmitAnonStructureInitializationToLLVM : LLVMContextHandle context, nothing, integer memberindex, integer paramindex, LLVMAlloca retalloca
 

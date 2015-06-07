@@ -242,6 +242,10 @@ size_t Context::EmitBinaryObject(char* buffer, size_t maxoutput)
 
 	wat->dump();
 
+	llvm::raw_os_ostream spew(std::cout);
+	if(!llvm::verifyModule(*LLVMModule, &spew))
+		exit(666);
+
 
 	std::string errstr;
 
@@ -589,9 +593,9 @@ void Context::SetCurrentBasicBlock(llvm::BasicBlock* block)
 }
 
 
-llvm::Type* Context::StructureTypeCreate()
+llvm::Type* Context::StructureTypeCreate(const char* name)
 {
-	llvm::Type* t = llvm::StructType::create(PendingParamTypes);
+	llvm::Type* t = llvm::StructType::create(PendingParamTypes, name);
 	PendingParamTypes.clear();
 	return t;
 }
