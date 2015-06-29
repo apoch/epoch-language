@@ -53,6 +53,7 @@ namespace CodeGen
 	public:		// Function management interface
 		llvm::Function* FunctionCreate(const char* name, llvm::FunctionType* fty);
 		llvm::GlobalVariable* FunctionCreateThunk(const char* name, llvm::FunctionType* fty);
+		void FunctionFinalize();
 		void FunctionQueueParamType(llvm::Type* ty);
 
 	public:		// Instruction management interface
@@ -80,6 +81,8 @@ namespace CodeGen
 		void CodePushRawAlloca(llvm::AllocaInst* alloc);
 		void CodePushRawGEP(llvm::Value* gep);
 		void CodePushString(unsigned handle);
+
+		void CodeStatementFinalize();
 
 	public:		// Object code emission interface
 		size_t EmitBinaryObject(char* buffer, size_t maxoutput);

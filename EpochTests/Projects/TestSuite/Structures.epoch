@@ -14,6 +14,7 @@ TestStructures :
 	TSMultipleMembers()
 	TSNested()
 	TSAnonymous()
+	TSCustomConstructor()
 	
 	TestSectionComplete()
 }
@@ -73,6 +74,18 @@ TSAnonymous :
 TSAnonHelper : StructureTest1 in
 {
 	TestAssert(in.field == 666, "anonymous structure creation")
+}
+
+
+StructureTest2 : integer mandatory -> StructureTest2 ret = mandatory, 0, -1 [constructor]
+
+TSCustomConstructor :
+{
+	StructureTest2 test = 2
+	
+	TestAssert(test.alpha == 2, "custom constructor 1")
+	TestAssert(test.beta == 0, "custom constructor 2")
+	TestAssert(test.gamma == -1, "custom constructor 3")
 }
 
 

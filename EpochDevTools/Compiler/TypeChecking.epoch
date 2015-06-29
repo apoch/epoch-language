@@ -164,9 +164,9 @@ TypeInference : StructureDefinition ref structuredef, InferenceContext ref conte
 		success = false
 	}
 
-	integer ctorname = PoolStringFast(structuredef.ReadableName ; "@@constructor")
-	integer anonname = PoolStringFast(structuredef.ReadableName ; "@@anonconstructor")
-	integer copyname = PoolStringFast(structuredef.ReadableName ; "@@copyconstructor")
+	integer ctorname = PoolString(structuredef.ReadableName ; "@@constructor")
+	integer anonname = PoolString(structuredef.ReadableName ; "@@anonconstructor")
+	integer copyname = PoolString(structuredef.ReadableName ; "@@copyconstructor")
 	OnCodeGenRegisterConstructors(structuredef.Name, ctorname, anonname, copyname)
 
 	Overload selfoverload = structuredef.Name, ctorname, nothing
@@ -219,7 +219,7 @@ TypeInference : StructureMemberVariable ref memvar, InferenceContext ref context
 	}
 	else
 	{
-		memvar.Type = memvar.Type + pretype			// Hack to accept reference marker
+		memvar.Type = memvar.Type + pretype			// 3 to accept reference marker
 	}
 }
 
@@ -1055,7 +1055,7 @@ TypeInference : ExpressionList ref parameters, InferenceContext ref context -> b
 
 		hasallparams = GatherAllPossibleParamTypes(context.StatementName, context.NumParameters, context.TopLevelStatement, paramtypeinfo)
 	}
-
+	
 	if(!TypeInferenceExpressionList(parameters.Expressions, context, 0, hasallparams, paramtypeinfo))
 	{
 		success = false
@@ -1314,6 +1314,7 @@ TypeInference : Expression ref expression, InferenceContext ref context -> boole
 
 FilterTypesForAliasing : simplelist<integer> ref typeids [nogc]
 {
+	// TODO - dead code?
 }
 
 CountPossibilities : list<InferencePossibility> ref thelist -> integer count = 0 [nogc]
@@ -1865,6 +1866,8 @@ MakeParametersReferencesForConstructor : nothing, integer constructorname, Expre
 
 MakeParametersReferencesForStructureMembers : list<StructureMember> ref members, list<Expression> ref params -> boolean ret = true
 {
+	assertmsg(GetMemberName(members.value) != 0, "Traversed dummy member of structure errantly")
+
 	if(IsMemberReferenceType(members.value))
 	{
 		if(!MarkAtomAsReference(params.value.Atoms.value))
@@ -1882,6 +1885,7 @@ MakeParametersReferencesForStructureMembers : list<StructureMember> ref members,
 {
 	if(GetMemberName(members.value) != 0)
 	{
+		// TODO - bug? custom constructors with optional arguments are not overload-resolving correctly maybe?!
 		print("Constructor has too few arguments!")
 	}
 }

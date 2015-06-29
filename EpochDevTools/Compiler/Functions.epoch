@@ -302,9 +302,31 @@ GatherAllPossibleParamTypes : integer funcname, integer numparams, boolean tople
 	}
 	else
 	{
-		found = GatherAllPossibleParamTypesForConstructor(Structures, funcname, numparams, toplevel, outinfo)
+		found = EnumerateAutoGenOverloadsAndAddAllParameterTypes(AutoGenOverloads, funcname, numparams, toplevel, outinfo)
 	}
 }
+
+
+EnumerateAutoGenOverloadsAndAddAllParameterTypes : list<Overload> ref overloads, integer funcname, integer numparams, boolean toplevel, list<ParameterTypeList> ref outinfo -> boolean found = false
+{
+	if(overloads.value.NormalName == funcname)
+	{
+		InferAllFunctionParameterTypes(overloads.value.Implementation, numparams, toplevel, outinfo)
+		found = true
+	}
+
+	boolean foundsubsequent = EnumerateAutoGenOverloadsAndAddAllParameterTypes(overloads.next, funcname, numparams, toplevel, outinfo)
+	if(foundsubsequent)
+	{
+		found = true
+	}
+}
+
+EnumerateAutoGenOverloadsAndAddAllParameterTypes : nothing, integer funcname, integer numparams, boolean toplevel, list<ParameterTypeList> ref outinfo -> boolean found = false
+{
+	found = GatherAllPossibleParamTypesForConstructor(Structures, funcname, numparams, toplevel, outinfo)
+}
+
 
 InferAllFunctionParameterTypes : FunctionDefinition ref function, integer numparams, boolean toplevel, list<ParameterTypeList> ref outinfo
 {
@@ -316,6 +338,7 @@ InferAllFunctionParameterTypes : FunctionDefinition ref function, integer numpar
 	UnwrapAllParamsForTypeRetrieval(function.Params, numparams, outinfo)
 }
 
+InferAllFunctionParameterTypes : nothing, integer numparams, boolean toplevel, list<ParameterTypeList> ref outinfo
 
 UnwrapAllParamsForTypeRetrieval : FunctionParams ref params, integer paramcount, list<ParameterTypeList> ref outinfo
 {

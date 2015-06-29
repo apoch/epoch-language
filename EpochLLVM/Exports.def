@@ -17,6 +17,7 @@ EXPORTS
 
 	EpochLLVMFunctionCreate
 	EpochLLVMFunctionCreateThunk
+	EpochLLVMFunctionFinalize
 	EpochLLVMFunctionQueueParamType
 	EpochLLVMFunctionSetEntry
 
@@ -53,6 +54,8 @@ EXPORTS
 	EpochLLVMCodePushRawAlloca
 	EpochLLVMCodePushRawGEP
 	EpochLLVMCodePushString
+
+	EpochLLVMCodeStatementFinalize
 
 	EpochLLVMGetCurrentBasicBlock
 	EpochLLVMSetCurrentBasicBlock

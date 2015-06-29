@@ -165,6 +165,17 @@ llvm::GlobalVariable* Context::FunctionCreateThunk(const char* name, llvm::Funct
 	return var;
 }
 
+void Context::FunctionFinalize()
+{
+	//LLVMBuilder.GetInsertBlock()->getParent()->dump();
+
+	// TODO - better implementation of this
+	//if(!PendingValues.empty())
+	//{
+	//	exit(666);
+	//}
+}
+
 
 void Context::SetEntryFunction(llvm::Function* entryfunc)
 {
@@ -239,13 +250,16 @@ size_t Context::EmitBinaryObject(char* buffer, size_t maxoutput)
 	// HACK!
 	Module* wat = LLVMModule.get();
 
-
-	wat->dump();
-
+	/*
 	llvm::raw_os_ostream spew(std::cout);
 	if(!llvm::verifyModule(*LLVMModule, &spew))
-		exit(666);
+	{
+		spew.flush();
 
+		wat->dump();
+		exit(666);
+	}
+	*/
 
 	std::string errstr;
 
@@ -580,6 +594,11 @@ void Context::CodePushString(unsigned handle)
 	PendingValues.push_back(val);
 }
 
+
+void Context::CodeStatementFinalize()
+{
+	//PendingValues.clear();
+}
 
 
 llvm::BasicBlock* Context::GetCurrentBasicBlock()

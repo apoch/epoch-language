@@ -1303,7 +1303,7 @@ OnCodeGenRegisterFunctionTag : integer funcname, string tagname, integer rawfunc
 	ListPrependOrCreate<FunctionTag>(GlobalRootNamespace.FunctionTags, tag)
 
 	if(tagname == "constructor")
-	{
+	{	
 		simpleprepend<integer>(CustomConstructors, funcname)
 
 		integer baseconstructorname = PoolString(GetPooledString(rawfuncname) ; "@@constructor")
@@ -1311,8 +1311,16 @@ OnCodeGenRegisterFunctionTag : integer funcname, string tagname, integer rawfunc
 		Overload overload = baseconstructorname, funcname, nothing
 		prepend<Overload>(AutoGenOverloads, overload)
 		FindFunctionAndAddOverload(overload)
+		
+		
+		ContextNode<FunctionDefinition> wrap = nothing
+		boolean found = SearchBinaryTreeForPayload<FunctionDefinition>(GlobalRootNamespace.Functions.RootNode, funcname, wrap)
+		assertmsg(found, "Missing function implementation")
+		
+		overload.Implementation = wrap
 
-		PrependFunctionParameter(Functions, funcname, PoolString("@id"), 0x81000000)		// reference to identifier type signature
+	
+		PrependFunctionParameter(Functions, funcname, PoolString("@id"), MakeReferenceType(GetTypeByName(funcname)))	//0x81000000)		// reference to identifier type signature
 	}
 }
 

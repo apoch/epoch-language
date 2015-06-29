@@ -87,6 +87,11 @@ extern "C" void* EpochLLVMFunctionCreateThunk(void* context, const wchar_t* name
 	return reinterpret_cast<CodeGen::Context*>(context)->FunctionCreateThunk(narrowname.c_str(), reinterpret_cast<llvm::FunctionType*>(ftype));
 }
 
+extern "C" void EpochLLVMFunctionFinalize(void* context)
+{
+	reinterpret_cast<CodeGen::Context*>(context)->FunctionFinalize();
+}
+
 extern "C" void EpochLLVMFunctionQueueParamType(void* context, void* type)
 {
 	reinterpret_cast<CodeGen::Context*>(context)->FunctionQueueParamType(reinterpret_cast<llvm::Type*>(type));
@@ -231,6 +236,12 @@ extern "C" void EpochLLVMCodePushRawGEP(void* context, void* gep)
 extern "C" void EpochLLVMCodePushString(void* context, unsigned handle)
 {
 	reinterpret_cast<CodeGen::Context*>(context)->CodePushString(handle);
+}
+
+
+extern "C" void EpochLLVMCodeStatementFinalize(void* context)
+{
+	reinterpret_cast<CodeGen::Context*>(context)->CodeStatementFinalize();
 }
 
 

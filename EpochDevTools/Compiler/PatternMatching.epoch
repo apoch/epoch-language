@@ -41,7 +41,7 @@ EnsurePatternMatcherExists : list<PendingPatternMatcher> ref patternmatchers, in
 
 EnsurePatternMatcherExists : nothing, integer rawname, integer mangledname
 {
-	PendingPatternMatcher pm = rawname, mangledname, PoolStringFast(GetPooledString(rawname) ; "@@patternmatch")
+	PendingPatternMatcher pm = rawname, mangledname, PoolString(GetPooledString(rawname) ; "@@patternmatch")
 	prepend<PendingPatternMatcher>(PendingPatternMatchers, pm)
 }
 

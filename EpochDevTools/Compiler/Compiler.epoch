@@ -118,15 +118,15 @@ CompileProject : string filename
 		return()
 	}
 
-	print("Generating code...")
+	//print("Generating code...")
 
-	buffer streambuffer = 8192000
-	BytecodeStream stream = streambuffer, 0
+	//buffer streambuffer = 8192000
+	//BytecodeStream stream = streambuffer, 0
 
-	startMs = timeGetTime()
-	OnCodeGenProcessProgram(stream)
-	endMs = timeGetTime()
-	print("Code generation completed in " ; cast(string, endMs - startMs) ; " milliseconds")
+	//startMs = timeGetTime()
+	//OnCodeGenProcessProgram(stream)
+	//endMs = timeGetTime()
+	//print("Code generation completed in " ; cast(string, endMs - startMs) ; " milliseconds")
 	
 	print("Writing executable file...")
 	MakeExe(project)

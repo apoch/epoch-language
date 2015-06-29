@@ -366,12 +366,14 @@ GatherAllPossibleParamTypesForConstructor : list<StructureDefinition> ref struct
 			found = true
 		}
 
-		if(numparams == 2)
-		{
-			AddTypeToParamTypeList(outinfo, 0x01000000)			// Identifier type signature
-			AddTypeToParamTypeList(outinfo.next, structures.value.Type)
-			found = true
-		}
+		// TODO - unbreak copy constructors
+		//
+		//if(numparams == 2)
+		//{
+		//	AddTypeToParamTypeList(outinfo, 0x01000000)			// Identifier type signature
+		//	AddTypeToParamTypeList(outinfo.next, structures.value.Type)
+		//	found = true
+		//}
 	}
 	else
 	{

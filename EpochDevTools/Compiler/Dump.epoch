@@ -155,6 +155,9 @@ DumpOverloadList : list<Overload> ref overloads
 
 DumpOverload : Overload ref overload
 {
-	print(GetPooledString(overload.NormalName) ; " -> " ; GetPooledString(overload.MangledName))
+	print(GetPooledString(overload.NormalName) ; " (" ; cast(string, overload.NormalName) ; ") -> " ; GetPooledString(overload.MangledName) ; " (" ; cast(string, overload.MangledName) ; ")")
 }
+
+
+
 
