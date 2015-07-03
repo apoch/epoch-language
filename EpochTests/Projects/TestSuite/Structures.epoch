@@ -15,6 +15,7 @@ TestStructures :
 	TSNested()
 	TSAnonymous()
 	TSCustomConstructor()
+	TSCopyConstructor()
 	
 	TestSectionComplete()
 }
@@ -87,5 +88,16 @@ TSCustomConstructor :
 	TestAssert(test.beta == 0, "custom constructor 2")
 	TestAssert(test.gamma == -1, "custom constructor 3")
 }
+
+
+
+TSCopyConstructor :
+{
+	StructureTest1 original = 666
+	StructureTest1 copy = original
+	
+	TestAssert(original.field == copy.field, "copy constructor")
+}
+
 
 

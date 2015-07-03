@@ -1851,10 +1851,19 @@ MakeParametersReferencesForConstructor : list<StructureDefinition> ref structure
 			assert(false)
 		}
 	}
+	elseif(structures.value.CopyConstructorName == constructorname)
+	{
+		MarkExpressionAsReference(params.Expressions.next)
+	}
 	else
 	{
 		MakeParametersReferencesForConstructor(structures.next, constructorname, params)
 	}
+}
+
+MarkExpressionAsReference : list<Expression> ref expr
+{
+	MarkAtomAsReference(expr.value.Atoms.value)
 }
 
 

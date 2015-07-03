@@ -337,7 +337,7 @@ ConstructorMatchesParameterTypes : list<StructureDefinition> ref structures, int
 			return()
 		}
 
-		match = CheckCopyType(types.next, structures.value.Type)
+		match = CheckCopyType(types.next, MakeReferenceType(structures.value.Type))
 	}
 	else
 	{
@@ -365,15 +365,13 @@ GatherAllPossibleParamTypesForConstructor : list<StructureDefinition> ref struct
 			ExtractAllMemberTypes(structures.value.Members, outinfo)
 			found = true
 		}
-
-		// TODO - unbreak copy constructors
-		//
-		//if(numparams == 2)
-		//{
-		//	AddTypeToParamTypeList(outinfo, 0x01000000)			// Identifier type signature
-		//	AddTypeToParamTypeList(outinfo.next, structures.value.Type)
-		//	found = true
-		//}
+		
+		if(numparams == 2)
+		{
+			AddTypeToParamTypeList(outinfo, 0x01000000)			// Identifier type signature
+			AddTypeToParamTypeList(outinfo.next, MakeReferenceType(structures.value.Type))
+			found = true
+		}
 	}
 	else
 	{
@@ -413,7 +411,7 @@ FindConstructorAndAddParameterTypes : list<StructureDefinition> ref structures, 
 		}
 		elseif(paramindex == 1)
 		{
-			simpleprepend<integer>(types, structures.value.Type)
+			simpleprepend<integer>(types, MakeReferenceType(structures.value.Type))
 		}
 		hit = true
 	}

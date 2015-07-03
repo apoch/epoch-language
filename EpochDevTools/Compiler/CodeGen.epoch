@@ -1320,7 +1320,7 @@ OnCodeGenRegisterFunctionTag : integer funcname, string tagname, integer rawfunc
 		overload.Implementation = wrap
 
 	
-		PrependFunctionParameter(Functions, funcname, PoolString("@id"), MakeReferenceType(GetTypeByName(funcname)))	//0x81000000)		// reference to identifier type signature
+		PrependFunctionParameter(Functions, funcname, PoolString("@id"), 0x81000000)
 	}
 }
 

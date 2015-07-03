@@ -149,7 +149,13 @@ CreateSingleFunctionInLLVM : LLVMContextHandle context, FunctionDefinition ref f
 
 	LLVMType funcrettype = GetLLVMTypeForEpochType(context, func.Return)
 	
-	CreateFunctionParamTypesInLLVM(context, func.Params)
+	integer rawname = 0
+	if(listcontains(CustomConstructors, func.Name))
+	{
+		rawname = func.RawName
+	}
+	
+	CreateFunctionParamTypesInLLVM(context, func.Params, rawname)
 	
 	LLVMFunctionType functype = EpochLLVMFunctionTypeCreate(context, funcrettype)
 	LLVMFunctionRef llvmfunc = EpochLLVMFunctionCreate(context, funcname, functype)
@@ -157,20 +163,29 @@ CreateSingleFunctionInLLVM : LLVMContextHandle context, FunctionDefinition ref f
 	BinaryTreeCreateOrInsert<LLVMFunctionRef>(LLVMFunctionTable, func.Name, llvmfunc)
 }
 
-CreateFunctionParamTypesInLLVM : LLVMContextHandle context, FunctionParams ref params
+CreateFunctionParamTypesInLLVM : LLVMContextHandle context, FunctionParams ref params, integer rawfuncname
 {
-	CreateFunctionParamTypesInLLVM(context, params.Params)
+	CreateFunctionParamTypesInLLVM(context, params.Params, rawfuncname)
 }
 
-CreateFunctionParamTypesInLLVM : LLVMContextHandle context, list<UnresolvedParameter> ref params
+CreateFunctionParamTypesInLLVM : LLVMContextHandle context, list<UnresolvedParameter> ref params, integer rawfuncname
 {
-	LLVMType paramtype = GetLLVMTypeForEpochType(context, params.value.ResolvedType)
-
-	EpochLLVMFunctionQueueParamType(context, paramtype)
-	CreateFunctionParamTypesInLLVM(context, params.next)
+	if((MakeNonReferenceType(params.value.ResolvedType) == 0x01000000) && (rawfuncname != 0))
+	{
+		integer typeid = GetTypeByName(rawfuncname)
+		LLVMType paramtype = GetLLVMTypeForEpochType(context, MakeReferenceType(typeid))
+		EpochLLVMFunctionQueueParamType(context, paramtype)
+	}
+	else
+	{
+		LLVMType paramtype = GetLLVMTypeForEpochType(context, params.value.ResolvedType)
+		EpochLLVMFunctionQueueParamType(context, paramtype)
+	}
+	
+	CreateFunctionParamTypesInLLVM(context, params.next, rawfuncname)
 }
 
-CreateFunctionParamTypesInLLVM : LLVMContextHandle context, nothing
+CreateFunctionParamTypesInLLVM : LLVMContextHandle context, nothing, integer rawfuncname
 
 
 
@@ -238,25 +253,44 @@ EmitAllFunctionsToLLVM : LLVMContextHandle context, nothing
 
 
 
-CreateLLVMAllocasForScope : LLVMBuildContext ref context, Scope ref scope
+CreateLLVMAllocasForScope : LLVMBuildContext ref context, Scope ref scope, FunctionDefinition ref func
 {
-	CreateLLVMAllocasForScope(context, scope.Variables)
+	CreateLLVMAllocasForScope(context, scope.Variables, func)
 }
 
-CreateLLVMAllocasForScope : LLVMBuildContext ref context, list<Variable> ref variables
+CreateLLVMAllocasForScope : LLVMBuildContext ref context, list<Variable> ref variables, FunctionDefinition ref func
 {
 	if(variables.value.Name != 0)
 	{
-		LLVMType vartype = GetLLVMTypeForEpochType(context.Context, variables.value.VarType)
-		LLVMAlloca alloca = EpochLLVMCodeCreateAlloca(context.Context, vartype, GetPooledString(variables.value.Name))
-		BinaryTreeCreateOrInsert<LLVMAlloca>(context.LocalVariables, variables.value.Name, alloca)
+		CreateSingleLLVMAlloca(context, variables.value, func)
 	}
 	
-	CreateLLVMAllocasForScope(context, variables.next)
+	CreateLLVMAllocasForScope(context, variables.next, func)
 }
 
-CreateLLVMAllocasForScope : LLVMBuildContext ref context, nothing
+CreateLLVMAllocasForScope : LLVMBuildContext ref context, nothing, FunctionDefinition ref func
 
+
+CreateSingleLLVMAlloca : LLVMBuildContext ref context, Variable ref var, FunctionDefinition ref func
+{
+	if(var.VarType == 0x81000000)
+	{
+		if(listcontains(CustomConstructors, func.Name))
+		{
+			integer typeid = GetTypeByName(func.RawName)
+			
+			LLVMType vartype = GetLLVMTypeForEpochType(context.Context, MakeReferenceType(typeid))
+			LLVMAlloca alloca = EpochLLVMCodeCreateAlloca(context.Context, vartype, GetPooledString(var.Name))
+			BinaryTreeCreateOrInsert<LLVMAlloca>(context.LocalVariables, var.Name, alloca)
+			
+			return()
+		}
+	}
+	
+	LLVMType vartype = GetLLVMTypeForEpochType(context.Context, var.VarType)
+	LLVMAlloca alloca = EpochLLVMCodeCreateAlloca(context.Context, vartype, GetPooledString(var.Name))
+	BinaryTreeCreateOrInsert<LLVMAlloca>(context.LocalVariables, var.Name, alloca)
+}
 
 
 
@@ -310,7 +344,7 @@ EmitSingleFunctionToLLVM : LLVMContextHandle context, FunctionDefinition ref fun
 
 	BinaryTreeRoot<LLVMAlloca> vartree = nothing
 	LLVMBuildContext build = context, llvmfunc, vartree
-	CreateLLVMAllocasForScope(build, func.AttachedScope.Wrapped)
+	CreateLLVMAllocasForScope(build, func.AttachedScope.Wrapped, func)
 	
 	FindScopeAndSetContext(func)
 
@@ -475,6 +509,8 @@ EmitSingleCodeBlockEntryToLLVM : LLVMBuildContext ref context, Statement ref ent
 		{
 			LLVMFunctionRef llvmfunc = 0
 			BinaryTreeCopyPayload<LLVMFunctionRef>(LLVMFunctionTable.RootNode, entry.Name, llvmfunc)
+			
+			//assertmsg(llvmfunc != 0, "Failed to map LLVM function " ; GetPooledString(entry.Name))
 			EpochLLVMCodeCreateCall(context.Context, llvmfunc)
 		}
 	}
@@ -823,7 +859,7 @@ SetUpSingleLLVMThunk : LLVMContextHandle context, list<FunctionDefinition> ref f
 	if(funcs.value.Name == funcname)
 	{
 		LLVMType funcrettype = GetLLVMTypeForEpochType(context, funcs.value.Return)
-		CreateFunctionParamTypesInLLVM(context, funcs.value.Params)	
+		CreateFunctionParamTypesInLLVM(context, funcs.value.Params, 0)
 		LLVMFunctionType fty = EpochLLVMFunctionTypeCreate(context, funcrettype)
 		
 		integer thunk = EpochLLVMFunctionCreateThunk(context, thunkname, fty)
@@ -976,10 +1012,23 @@ CreateAnonConstructorInLLVM : LLVMContextHandle context, StructureDefinition ref
 
 CreateCopyConstructorInLLVM : LLVMContextHandle context, StructureDefinition ref struct
 {
-	//BytecodePushVarValueNoCopy(stream, def.Name)
-	//BytecodeCopyStructure(stream)
-	//BytecodeBindReference(stream, 0, 0)
-	//BytecodeAssign(stream)
+	LLVMType funcrettype = EpochLLVMTypeGetVoid(context)
+	
+	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetPointerTo(context, GetLLVMTypeForEpochType(context, struct.Type)))
+	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetPointerTo(context, GetLLVMTypeForEpochType(context, struct.Type)))
+
+	LLVMFunctionType functype = EpochLLVMFunctionTypeCreate(context, funcrettype)
+	LLVMFunctionRef llvmfunc = EpochLLVMFunctionCreate(context, GetPooledString(struct.CopyConstructorName), functype)
+	
+	BinaryTreeCreateOrInsert<LLVMFunctionRef>(LLVMFunctionTable, struct.CopyConstructorName, llvmfunc)
+	
+	
+	LLVMBasicBlock funcbody = EpochLLVMCodeCreateBasicBlock(context, llvmfunc, true)
+
+	EpochLLVMCodeCreateReadParam(context, 1)
+	EpochLLVMCodeCreateDereference(context)
+	EpochLLVMCodeCreateWriteParam(context, 0)
+	EpochLLVMCodeCreateRetVoid(context)
 }
 
 
