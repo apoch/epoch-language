@@ -526,6 +526,19 @@ void Context::CodeCreateWrite(llvm::AllocaInst* allocatarget)
 	LLVMBuilder.CreateStore(wv, allocatarget);
 }
 
+void Context::CodeCreateWriteParam(unsigned index)
+{
+	auto iter = LLVMBuilder.GetInsertBlock()->getParent()->arg_begin();
+	std::advance(iter, index);
+
+	Value* pv = iter;
+
+	Value* wv = PendingValues.back();
+	PendingValues.pop_back();
+
+	LLVMBuilder.CreateStore(wv, pv);
+}
+
 void Context::CodeCreateWriteStructure(llvm::Value* gep)
 {
 	Value* wv = PendingValues.back();

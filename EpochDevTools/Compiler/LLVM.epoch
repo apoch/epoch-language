@@ -98,6 +98,7 @@ EpochLLVMCodeCreateReadStructure : LLVMContextHandle handle, LLVMGEP gep								
 EpochLLVMCodeCreateRet : LLVMContextHandle handle																	[external("EpochLLVM.dll", "EpochLLVMCodeCreateRet")]
 EpochLLVMCodeCreateRetVoid : LLVMContextHandle handle																[external("EpochLLVM.dll", "EpochLLVMCodeCreateRetVoid")]
 EpochLLVMCodeCreateWrite : LLVMContextHandle handle, LLVMAlloca alloca												[external("EpochLLVM.dll", "EpochLLVMCodeCreateWrite")]
+EpochLLVMCodeCreateWriteParam : LLVMContextHandle handle, integer index												[external("EpochLLVM.dll", "EpochLLVMCodeCreateWriteParam")]
 EpochLLVMCodeCreateWriteStructure : LLVMContextHandle handle, LLVMGEP gep											[external("EpochLLVM.dll", "EpochLLVMCodeCreateWriteStructure")]
 
 EpochLLVMCodeCreateDereference : LLVMContextHandle handle															[external("EpochLLVM.dll", "EpochLLVMCodeCreateDereference")]
@@ -320,22 +321,27 @@ EmitSingleFunctionToLLVM : LLVMContextHandle context, FunctionDefinition ref fun
 	
 	EmitCodeBlockToLLVM(build, func.Code)
 	
-	//if(listcontains(CustomConstructors, func.Name))
-	//{
-	//	EmitReturnRegisterToLLVM(build, func, func.Return)
-	//}
-	//else
-	//{
-		if(func.AnonymousReturn)
-		{
-			EmitReturnRegisterToLLVMAnonymous(build, func.Return)
-		}
-		else
-		{
-			EmitReturnRegisterToLLVM(build, func, func.Return)
-		}
-	//}	
+	if(listcontains(CustomConstructors, func.Name))
+	{
+		integer returnname = 0
+		FindReturnVariableNameInSingleScope(func.AttachedScope.Wrapped, returnname)
+		
+		LLVMAlloca alloca = 0
+		BinaryTreeCopyPayload<LLVMAlloca>(vartree.RootNode, returnname, alloca)
+		
+		EpochLLVMCodeCreateRead(context, alloca)
+		EpochLLVMCodeCreateWriteParam(context, 0)
+	}
 	
+	if(func.AnonymousReturn)
+	{
+		EmitReturnRegisterToLLVMAnonymous(build, func.Return)
+	}
+	else
+	{
+		EmitReturnRegisterToLLVM(build, func, func.Return)
+	}
+		
 	string funcname = GetPooledString(func.Name)
 	if(funcname == "entrypoint")
 	{

@@ -42,6 +42,7 @@ EXPORTS
 	EpochLLVMCodeCreateRet
 	EpochLLVMCodeCreateRetVoid
 	EpochLLVMCodeCreateWrite
+	EpochLLVMCodeCreateWriteParam
 	EpochLLVMCodeCreateWriteStructure
 
 	EpochLLVMCodeCreateDereference
