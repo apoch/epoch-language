@@ -333,7 +333,6 @@ EmitParamInitializersToLLVM : LLVMBuildContext ref context, FunctionDefinition r
 EmitParamInitializersToLLVM : LLVMBuildContext ref context, FunctionDefinition ref func, integer paramindex, nothing
 
 
-
 EmitSingleFunctionToLLVM : LLVMContextHandle context, FunctionDefinition ref func
 {
 	LLVMFunctionRef llvmfunc = 0
@@ -475,19 +474,65 @@ EmitCodeBlockEntriesToLLVM : LLVMBuildContext ref context, nothing
 
 
 
+
+EmitAssignmentRHSToLLVM : LLVMBuildContext ref context, Assignment ref entry
+{
+	EmitSingleCodeBlockEntryToLLVM(context, entry)
+	
+	LLVMAlloca alloca = 0
+	BinaryTreeCopyPayload<LLVMAlloca>(context.LocalVariables.RootNode, entry.LHSName, alloca)
+
+	EpochLLVMCodeCreateRead(context.Context, alloca)
+}
+
+EmitAssignmentRHSToLLVM : LLVMBuildContext ref context, Expression ref expr
+{
+	EmitExpressionAtomsToLLVM(context, expr)
+}
+
+
+
+EmitSingleCodeBlockEntryToLLVM : LLVMBuildContext ref context, Assignment ref entry
+{
+	assertmsg(entry.Operator == PooledStringHandleForAssignment, "Unsupported assignment operator")
+	
+	EmitAssignmentRHSToLLVM(context, entry.RHS)
+		
+	LLVMAlloca alloca = 0
+	BinaryTreeCopyPayload<LLVMAlloca>(context.LocalVariables.RootNode, entry.LHSName, alloca)
+
+	EpochLLVMCodeCreateWrite(context.Context, alloca)
+}
+
+
+
 EmitSingleCodeBlockEntryToLLVM : LLVMBuildContext ref context, Statement ref entry
 {
 	// TODO - see if we still need type annotation logic, see CodeGenEmitSingleCodeBlockEntry and sum-type construction
 	
-	EmitExpressionListToLLVM(context, entry.Parameters)
-
 	if(IsRecognizedBuiltIn(entry.Name))
 	{
 		if(GetTypeByName(entry.Name) == 0)
 		{
+			EmitExpressionListToLLVM(context, entry.Parameters)
+			
 			integer thunk = 0
 			BinaryTreeCopyPayload<integer>(LLVMGlobalThunks.RootNode, entry.Name, thunk)
 			EpochLLVMCodeCreateCallThunk(context.Context, thunk)
+		}
+		else
+		{
+			integer varname = ExtractConstructorIdentifier(entry.Parameters)
+			assertmsg(varname != 0, "Couldn't find variable to initialize")
+						
+			LLVMAlloca alloca = 0
+			BinaryTreeCopyPayload<LLVMAlloca>(context.LocalVariables.RootNode, varname, alloca)
+			assertmsg(alloca != 0, "Couldn't find LLVM binding alloca to initialize")
+			
+			EmitPartialExpressionListToLLVM(context, entry.Parameters)
+			EpochLLVMCodeCreateWrite(context.Context, alloca)
+			
+			EmitExpressionListToLLVM(context, entry.Parameters)
 		}
 	}
 	elseif(SumTypeExists(entry.Name))
@@ -507,6 +552,8 @@ EmitSingleCodeBlockEntryToLLVM : LLVMBuildContext ref context, Statement ref ent
 		}
 		else
 		{
+			EmitExpressionListToLLVM(context, entry.Parameters)
+
 			LLVMFunctionRef llvmfunc = 0
 			BinaryTreeCopyPayload<LLVMFunctionRef>(LLVMFunctionTable.RootNode, entry.Name, llvmfunc)
 			
@@ -613,6 +660,13 @@ EmitExpressionListToLLVM : LLVMBuildContext ref context, list<Expression> ref ex
 	EmitExpressionAtomsToLLVM(context, exprs.value.Atoms)
 	EmitExpressionListToLLVM(context, exprs.next)
 }
+
+
+EmitPartialExpressionListToLLVM : LLVMBuildContext ref context, ExpressionList ref exprs
+{
+	EmitExpressionListToLLVM(context, exprs.Expressions.next)
+}
+
 
 EmitExpressionAtomsToLLVM : LLVMBuildContext ref context, Expression ref expr
 {
