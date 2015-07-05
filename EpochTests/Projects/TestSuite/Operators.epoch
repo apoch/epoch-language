@@ -42,5 +42,12 @@ TOAssignments :
 	bar = foo = 3
 	TestAssert(foo == 3, "chained assignment postcondition 1")
 	TestAssert(bar == 3, "chained assignment postcondition 2")
+
+	integer baz = 2
+	TestAssert(baz == 2, "deep chained assignment precondition")
+	bar = baz = foo = 4
+	TestAssert(foo == 4, "deep chained assignment postcondition 1")
+	TestAssert(bar == 4, "deep chained assignment postcondition 2")
+	TestAssert(baz == 4, "deep chained assignment postcondition 3")
 }
 
