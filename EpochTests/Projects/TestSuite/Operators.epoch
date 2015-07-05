@@ -36,5 +36,11 @@ TOAssignments :
 	TestAssert(foo == 42, "assignment operator precondition")
 	foo = 666
 	TestAssert(foo == 666, "assignment operator postcondition")
+	
+	integer bar = 1
+	TestAssert(bar == 1, "chained assignment precondition")
+	bar = foo = 3
+	TestAssert(foo == 3, "chained assignment postcondition 1")
+	TestAssert(bar == 3, "chained assignment postcondition 2")
 }
 
