@@ -65,6 +65,9 @@ TSNested :
 	TestAssert(nested.large.beta == 2, "nested structure members 2")
 	TestAssert(nested.large.gamma == 3, "nested structure members 3")
 	TestAssert(nested.small.field == 42, "nested structure members 4")
+	
+	nested.large.gamma = 4
+	TestAssert(nested.large.gamma == 4, "nested structure member assignment")
 }
 
 TSAnonymous :
