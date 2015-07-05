@@ -28,5 +28,9 @@ TestAssert : boolean success, string testname
 		print("TEST FAILED:")
 		print(testname)
 	}
+	else
+	{
+		//print(testname)
+	}
 }
 

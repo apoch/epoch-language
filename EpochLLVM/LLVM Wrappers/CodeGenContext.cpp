@@ -547,6 +547,16 @@ void Context::CodeCreateWriteStructure(llvm::Value* gep)
 	LLVMBuilder.CreateStore(wv, gep);
 }
 
+void Context::CodeCreateWriteStructurePop()
+{
+	Value* gep = PendingValues.back();
+	PendingValues.pop_back();
+
+	Value* wv = PendingValues.back();
+	PendingValues.pop_back();
+
+	LLVMBuilder.CreateStore(wv, gep);
+}
 
 void Context::CodeCreateOperatorBooleanNot()
 {

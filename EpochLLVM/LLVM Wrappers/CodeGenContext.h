@@ -73,6 +73,7 @@ namespace CodeGen
 		void CodeCreateWrite(llvm::AllocaInst* allocatarget);
 		void CodeCreateWriteParam(unsigned index);
 		void CodeCreateWriteStructure(llvm::Value* gep);
+		void CodeCreateWriteStructurePop();
 
 		void CodeCreateOperatorBooleanNot();
 		void CodeCreateOperatorIntegerEquals();

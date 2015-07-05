@@ -199,6 +199,11 @@ extern "C" void EpochLLVMCodeCreateWriteStructure(void* context, void* gep)
 	reinterpret_cast<CodeGen::Context*>(context)->CodeCreateWriteStructure(reinterpret_cast<llvm::Value*>(gep));
 }
 
+extern "C" void EpochLLVMCodeCreateWriteStructurePop(void* context)
+{
+	reinterpret_cast<CodeGen::Context*>(context)->CodeCreateWriteStructurePop();
+}
+
 
 extern "C" void EpochLLVMCodeCreateDereference(void* context)
 {

@@ -100,6 +100,7 @@ EpochLLVMCodeCreateRetVoid : LLVMContextHandle handle																[external("
 EpochLLVMCodeCreateWrite : LLVMContextHandle handle, LLVMAlloca alloca												[external("EpochLLVM.dll", "EpochLLVMCodeCreateWrite")]
 EpochLLVMCodeCreateWriteParam : LLVMContextHandle handle, integer index												[external("EpochLLVM.dll", "EpochLLVMCodeCreateWriteParam")]
 EpochLLVMCodeCreateWriteStructure : LLVMContextHandle handle, LLVMGEP gep											[external("EpochLLVM.dll", "EpochLLVMCodeCreateWriteStructure")]
+EpochLLVMCodeCreateWriteStructurePop : LLVMContextHandle handle														[external("EpochLLVM.dll", "EpochLLVMCodeCreateWriteStructurePop")]
 
 EpochLLVMCodeCreateDereference : LLVMContextHandle handle															[external("EpochLLVM.dll", "EpochLLVMCodeCreateDereference")]
 
@@ -504,6 +505,24 @@ EmitSingleCodeBlockEntryToLLVM : LLVMBuildContext ref context, Assignment ref en
 	EpochLLVMCodeCreateWrite(context.Context, alloca)
 }
 
+
+EmitSingleCodeBlockEntryToLLVM : LLVMBuildContext ref context, AssignmentCompound ref entry
+{
+	assertmsg(entry.Operator == PooledStringHandleForAssignment, "Unsupported assignment operator")
+
+	EmitAssignmentRHSToLLVM(context, entry.RHS)
+	
+	LLVMAlloca alloca = 0
+	BinaryTreeCopyPayload<LLVMAlloca>(context.LocalVariables.RootNode, entry.LHS.value, alloca)
+	
+	integer typeid = MakeNonReferenceType(FindVariableType(entry.LHS.value))
+
+	integer structurename = GetNameOfStructureByType(typeid)
+	EpochLLVMCodePushRawAlloca(context.Context, alloca)
+	EmitAssignmentLHSGEPsToLLVM(context, entry.LHS.next, structurename)
+	
+	EpochLLVMCodeCreateWriteStructurePop(context.Context)
+}
 
 
 EmitSingleCodeBlockEntryToLLVM : LLVMBuildContext ref context, Statement ref entry
@@ -1116,4 +1135,33 @@ EmitAnonStructureInitializationToLLVM : LLVMContextHandle context, list<Structur
 }
 
 EmitAnonStructureInitializationToLLVM : LLVMContextHandle context, nothing, integer memberindex, integer paramindex, LLVMAlloca retalloca
+
+
+
+EmitAssignmentLHSGEPsToLLVM : LLVMBuildContext ref context, simplelist<integer> ref lhsmembers, integer structurename
+{
+	integer membertype = GetStructureMemberType(structurename, lhsmembers.value)
+	integer memberindex = GetStructureMemberIndex(structurename, lhsmembers.value)
+	
+	while((membertype & 0x7f000000) == 0x05000000)
+	{
+		membertype = FindTypeAliasBase(membertype)
+	}
+
+	LLVMGEP gep = EpochLLVMCodeCreateGEP(context.Context, memberindex)
+	EpochLLVMCodePushRawGEP(context.Context, gep)
+
+	// Recurse
+	assertmsg(membertype != 0, "Member has no type!")
+	EmitAssignmentLHSGEPsToLLVM(context, lhsmembers.next, GetNameOfType(membertype))
+}
+
+EmitAssignmentLHSGEPsToLLVM : LLVMBuildContext ref context, nothing, integer structurename
+
+
+ADummyFunction :
+{
+	simplelist<boolean> hack = false, nothing
+	hack.value = true
+}
 

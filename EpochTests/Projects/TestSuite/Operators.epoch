@@ -30,6 +30,10 @@ TOBooleanNot :
 
 
 
+structure AssignmentTest1 :
+	integer alpha,
+	integer beta
+
 TOAssignments :
 {
 	integer foo = 42
@@ -49,5 +53,15 @@ TOAssignments :
 	TestAssert(foo == 4, "deep chained assignment postcondition 1")
 	TestAssert(bar == 4, "deep chained assignment postcondition 2")
 	TestAssert(baz == 4, "deep chained assignment postcondition 3")
+	
+	AssignmentTest1 struct = 1, 2
+	TestAssert(struct.alpha == 1, "structure member assignment precondition 1")
+	TestAssert(struct.beta == 2, "structure member assignment precondition 2")
+	
+	struct.alpha = 666
+	struct.beta = 42
+	
+	TestAssert(struct.alpha == 666, "structure member assignment postcondition 1")
+	TestAssert(struct.beta == 42, "structure member assignment postcondition 2")
 }
 
