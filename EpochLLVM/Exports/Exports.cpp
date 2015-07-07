@@ -144,6 +144,11 @@ extern "C" void* EpochLLVMCodeCreateCall(void* context, void* target)
 	return reinterpret_cast<CodeGen::Context*>(context)->CodeCreateCall(reinterpret_cast<llvm::Function*>(target));
 }
 
+extern "C" void EpochLLVMCodeCreateCallIndirect(void* context, void* target)
+{
+	reinterpret_cast<CodeGen::Context*>(context)->CodeCreateCallIndirect(reinterpret_cast<llvm::AllocaInst*>(target));
+}
+
 extern "C" void* EpochLLVMCodeCreateCallThunk(void* context, void* target)
 {
 	return reinterpret_cast<CodeGen::Context*>(context)->CodeCreateCallThunk(reinterpret_cast<llvm::GlobalVariable*>(target));
@@ -221,6 +226,16 @@ extern "C" void EpochLLVMCodeOperatorIntegerEquals(void* context)
 	reinterpret_cast<CodeGen::Context*>(context)->CodeCreateOperatorIntegerEquals();
 }
 
+extern "C" void EpochLLVMCodeOperatorIntegerPlus(void* context)
+{
+	reinterpret_cast<CodeGen::Context*>(context)->CodeCreateOperatorIntegerPlus();
+}
+
+extern "C" void EpochLLVMCodeOperatorIntegerMinus(void* context)
+{
+	reinterpret_cast<CodeGen::Context*>(context)->CodeCreateOperatorIntegerMinus();
+}
+
 
 
 extern "C" void EpochLLVMCodePushBoolean(void* context, bool value)
@@ -246,6 +261,11 @@ extern "C" void EpochLLVMCodePushRawGEP(void* context, void* gep)
 extern "C" void EpochLLVMCodePushString(void* context, unsigned handle)
 {
 	reinterpret_cast<CodeGen::Context*>(context)->CodePushString(handle);
+}
+
+extern "C" void EpochLLVMCodePushFunction(void* context, void* func)
+{
+	reinterpret_cast<CodeGen::Context*>(context)->CodePushFunction(reinterpret_cast<llvm::Function*>(func));
 }
 
 

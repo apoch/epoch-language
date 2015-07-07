@@ -436,6 +436,25 @@ llvm::CallInst* Context::CodeCreateCall(llvm::Function* target)
 	return inst;
 }
 
+void Context::CodeCreateCallIndirect(llvm::AllocaInst* targetAlloca)
+{
+	llvm::Value* target = LLVMBuilder.CreateLoad(targetAlloca);
+	llvm::FunctionType* fty = cast<llvm::FunctionType>(cast<llvm::PointerType>(target->getType())->getElementType());
+
+	std::vector<Value*> relevantargs;
+	for(size_t i = 0; i < fty->getNumParams(); ++i)
+	{
+		relevantargs.push_back(PendingValues.back());
+		PendingValues.pop_back();
+	}
+	std::reverse(relevantargs.begin(), relevantargs.end());
+
+	llvm::CallInst* inst = LLVMBuilder.CreateCall(target, relevantargs);
+
+	if(inst->getType() != Type::getVoidTy(getGlobalContext()))
+		PendingValues.push_back(inst);
+}
+
 llvm::CallInst* Context::CodeCreateCallThunk(llvm::GlobalVariable* target)
 {
 	llvm::Value* loadedTarget = LLVMBuilder.CreateLoad(target);
@@ -579,6 +598,30 @@ void Context::CodeCreateOperatorIntegerEquals()
 	PendingValues.push_back(eqval);
 }
 
+void Context::CodeCreateOperatorIntegerPlus()
+{
+	llvm::Value* operand2 = PendingValues.back();
+	PendingValues.pop_back();
+
+	llvm::Value* operand1 = PendingValues.back();
+	PendingValues.pop_back();
+
+	llvm::Value* val = LLVMBuilder.CreateAdd(operand1, operand2);
+	PendingValues.push_back(val);
+}
+
+void Context::CodeCreateOperatorIntegerMinus()
+{
+	llvm::Value* operand2 = PendingValues.back();
+	PendingValues.pop_back();
+
+	llvm::Value* operand1 = PendingValues.back();
+	PendingValues.pop_back();
+
+	llvm::Value* val = LLVMBuilder.CreateSub(operand1, operand2);
+	PendingValues.push_back(val);
+}
+
 
 void Context::CodePushBoolean(bool value)
 {
@@ -615,6 +658,11 @@ void Context::CodePushString(unsigned handle)
 	}
 
 	PendingValues.push_back(val);
+}
+
+void Context::CodePushFunction(llvm::Function* func)
+{
+	PendingValues.push_back(func);
 }
 
 

@@ -17,6 +17,8 @@ TestFunctionCalls :
 	
 	TestAssert(lstrcmp("foo", "foo") == 0, "external string compare")
 	
+	TFCHigherOrder()
+	
 	TestSectionComplete()
 }
 
@@ -39,3 +41,23 @@ TFCParamExpectFalse : boolean expected
 
 
 lstrcmp : string lhs, string rhs -> integer ret = 0 [external("Kernel32.dll", "lstrcmpA")]
+
+
+
+TFCHigherOrder :
+{
+	integer foo = 40
+	TestAssert(foo == 40, "higher order function precondition")
+	foo = TFCMutate(foo, TFCMutatorAddition, 5)
+	foo = TFCMutate(foo, TFCMutatorSubtraction, 3)
+	TestAssert(foo == 42, "higher order function postcondition")
+}
+
+
+TFCMutate : integer value, (mutator : integer, integer -> integer), integer param -> mutator(value, param)
+
+TFCMutatorAddition : integer value, integer param -> value + param
+TFCMutatorSubtraction : integer value, integer param -> value - param
+
+
+

@@ -61,6 +61,7 @@ namespace CodeGen
 		llvm::BasicBlock* CodeCreateBasicBlock(llvm::Function* parent, bool setinsertpoint);
 		void CodeCreateBranch(llvm::BasicBlock* target, bool setinsertpoint);
 		llvm::CallInst* CodeCreateCall(llvm::Function* target);
+		void CodeCreateCallIndirect(llvm::AllocaInst* target);
 		llvm::CallInst* CodeCreateCallThunk(llvm::GlobalVariable* target);
 		void CodeCreateCondBranch(llvm::BasicBlock* truetarget, llvm::BasicBlock* falsetarget);
 		void CodeCreateDereference();
@@ -77,12 +78,15 @@ namespace CodeGen
 
 		void CodeCreateOperatorBooleanNot();
 		void CodeCreateOperatorIntegerEquals();
+		void CodeCreateOperatorIntegerPlus();
+		void CodeCreateOperatorIntegerMinus();
 
 		void CodePushBoolean(bool value);
 		void CodePushInteger(int value);
 		void CodePushRawAlloca(llvm::AllocaInst* alloc);
 		void CodePushRawGEP(llvm::Value* gep);
 		void CodePushString(unsigned handle);
+		void CodePushFunction(llvm::Function* func);
 
 		void CodeStatementFinalize();
 

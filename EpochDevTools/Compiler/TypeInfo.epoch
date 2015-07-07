@@ -181,6 +181,14 @@ GetTypeByName : integer name -> integer typeid = 0 [nogc]
 }
 
 
+IsFunctionType : integer typeid -> boolean ret = false [nogc]
+{
+	if((typeid & 0x7f000000) == 0x09000000)
+	{
+		ret = true
+	}
+}
+
 IsStructureType : integer typeid -> boolean ret = false [nogc]
 {
 	if((typeid & 0x7f000000) == 0x03000000)

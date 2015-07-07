@@ -33,6 +33,7 @@ EXPORTS
 	EpochLLVMCodeCreateBasicBlock
 	EpochLLVMCodeCreateBranch
 	EpochLLVMCodeCreateCall
+	EpochLLVMCodeCreateCallIndirect
 	EpochLLVMCodeCreateCallThunk
 	EpochLLVMCodeCreateCondBranch
 	EpochLLVMCodeCreateGEP
@@ -50,12 +51,15 @@ EXPORTS
 
 	EpochLLVMCodeOperatorBooleanNot
 	EpochLLVMCodeOperatorIntegerEquals
+	EpochLLVMCodeOperatorIntegerPlus
+	EpochLLVMCodeOperatorIntegerMinus
 	
 	EpochLLVMCodePushBoolean
 	EpochLLVMCodePushInteger
 	EpochLLVMCodePushRawAlloca
 	EpochLLVMCodePushRawGEP
 	EpochLLVMCodePushString
+	EpochLLVMCodePushFunction
 
 	EpochLLVMCodeStatementFinalize
 
