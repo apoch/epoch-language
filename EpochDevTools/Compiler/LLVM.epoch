@@ -826,12 +826,21 @@ EmitSingleAtomToLLVM : LLVMBuildContext ref context, IdentifierAtom ref idatom
 
 				if(idatom.IsReference)
 				{
-					EpochLLVMCodePushRawAlloca(context.Context, alloca)					
+					EpochLLVMCodePushRawAlloca(context.Context, alloca)
 				}
 				else
-				{
-					
+				{	
 					EpochLLVMCodeCreateRead(context.Context, alloca)
+				}
+					
+				Variable var = 0, 0, 0, 0
+				FindVariableDataInSingleScope(EmittingScope.Wrapped, idatom.Handle, var)
+				assertmsg(var.Name != 0, "Missing local variable")
+				
+				if(IsReferenceType(var.VarType))
+				{
+					EpochLLVMCodeCreateDereference(context.Context)
+				}
 					
 					
 					//integer frames = 0
@@ -858,7 +867,6 @@ EmitSingleAtomToLLVM : LLVMBuildContext ref context, IdentifierAtom ref idatom
 						
 					//	BytecodePushLocal(stream, frames, var.Offset)
 					//}
-				}
 			}
 		}
 	}

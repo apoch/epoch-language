@@ -1,0 +1,11 @@
+[source]
+Scratch.epoch
+
+[resources]
+
+[output]
+output-file ..\..\..\x64\Debug\Scratch.exe
+
+[options]
+use-console
+
