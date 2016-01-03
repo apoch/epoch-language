@@ -89,6 +89,7 @@ li.navbutton
   padding-top: 3px;
   padding-bottom: 3px;
   background-color: rgb(90, 104, 168);
+  border: 1px solid black;
 }
 
 li
