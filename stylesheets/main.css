@@ -1,0 +1,115 @@
+body
+{
+  font-family: Calibri, Helvetica, Arial, sans-serif;
+  padding: 3px;
+  background-color: rgb(100, 128, 255);
+}
+
+h1.title
+{
+  margin: 0px;
+  padding-left: 5px;
+  padding-right: 5px;
+  padding-top: 5px;
+  padding-bottom: 0px;
+  background-color: rgb(50, 64, 128);
+  color: white;
+}
+
+h3.subtitle
+{
+  margin: 0px;
+  padding-left: 6px;
+  padding-right: 6px;
+  padding-top: 2px;
+  padding-bottom: 5px;
+  background-color: rgb(50, 64, 128);
+  color: white;
+}
+
+h2
+{
+  margin: 0px;
+}
+
+em
+{
+  font-style: italic;
+}
+
+
+div.content-left
+{
+  background-color: rgb(210, 210, 210);
+  padding: 3px;
+  margin-top: 3px;
+  margin-bottom: 3px;
+  max-width: 600px; 
+}
+
+div.content-right
+{
+  background-color: rgb(210, 210, 210);
+  padding: 3px;
+  margin-top: 3px;
+  margin-bottom: 3px;
+  max-width: 600px;
+  float: right;
+}
+
+.main_content
+{
+  position: relative;
+  max-width: 680px;
+  padding: 20px 10px;
+  margin: 0 auto;
+  text-align: justify;
+  background-color: rgb(255, 255, 255);
+  border: 1px solid black;
+}
+
+ul.navbar
+{
+  list-style-type: none;
+  margin: 0;
+  margin-bottom: 20px;
+  padding: 0;
+  background-color: rgb(70, 84, 148);
+}
+
+li.navbutton
+{
+  display: inline;
+  margin: 3px;
+  padding-left: 10px;
+  padding-right: 10px;
+  padding-top: 3px;
+  padding-bottom: 3px;
+  background-color: rgb(90, 104, 168);
+}
+
+li
+{
+  margin-bottom: 4px;
+}
+
+pre
+{
+  background-color: lightgrey;
+  margin-left: 15px;
+  margin-right: 15px;
+  padding: 4px;
+}
+
+a.navlink
+{
+  color: white;
+  text-decoration: none;
+}
+
+a.navlink:hover
+{
+  text-decoration: underline;
+}
+
+
