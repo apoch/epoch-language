@@ -73,7 +73,10 @@ ul.navbar
   list-style-type: none;
   margin: 0;
   margin-bottom: 20px;
-  padding: 0;
+  padding-left: 3px;
+  padding-right: 3px;
+  padding-top: 10px;
+  padding-bottom: 10px;
   background-color: rgb(70, 84, 148);
 }
 
