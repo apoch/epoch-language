@@ -78,6 +78,7 @@ ul.navbar
   padding-top: 10px;
   padding-bottom: 10px;
   background-color: rgb(70, 84, 148);
+  text-align: center;
 }
 
 li.navbutton
