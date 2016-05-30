@@ -18,14 +18,6 @@
 #include <SDKDDKVer.h>
 
 
-// Windows header options
-#define WIN32_LEAN_AND_MEAN
-#define NOMINMAX
-
-// Windows headers
-#include <windows.h>
-
-
 // C++ standard headers
 #include <vector>
 #include <iostream>
@@ -42,6 +34,8 @@
 #pragma warning(disable: 4244)		// conversion might lose data
 #pragma warning(disable: 4100)		// unreferenced formal parameter
 #pragma warning(disable: 4624)		// cannot generate destructor
+#pragma warning(disable: 4141)		// inline used more than once
+#pragma warning(disable: 4291)		// no matching operator delete
 
 #define SUPPORT_DATATYPES_H 1
 #define END_WITH_NULL
@@ -52,17 +46,19 @@
 #include <llvm/Support/raw_os_ostream.h>
 #include "llvm/IR/DerivedTypes.h"
 #include "llvm/ExecutionEngine/ExecutionEngine.h"
+#include "llvm/ExecutionEngine/RtDyldMemoryManager.h"
 //#include "llvm/ExecutionEngine/JIT.h"
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/Module.h"
-#include "llvm/PassManager.h"
+//#include "llvm/PassManager.h"
 #include "llvm/Analysis/Passes.h"
 #include "llvm/Transforms/Scalar.h"
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/Attributes.h"
 #include <llvm/IR/Verifier.h>
+#include <llvm/IR/LegacyPassManager.h>
 #include "llvm/Support/TargetSelect.h"
-#include "llvm/PassManager.h"
+//#include "llvm/PassManager.h"
 #include "llvm/Transforms/IPO.h"
 #include "llvm/ADT/SmallVector.h"
 //#include "llvm/ExecutionEngine/JITMemoryManager.h"
@@ -75,4 +71,13 @@
 
 
 #pragma warning(pop)
+
+
+
+// Windows header options
+#define WIN32_LEAN_AND_MEAN
+#define NOMINMAX
+
+// Windows headers
+#include <windows.h>
 

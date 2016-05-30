@@ -267,11 +267,11 @@ size_t Context::EmitBinaryObject(char* buffer, size_t maxoutput)
 	opts.LessPreciseFPMADOption = true;
 	opts.UnsafeFPMath = true;
 	opts.AllowFPOpFusion = FPOpFusion::Fast;
-	opts.DisableTailCalls = false;
+	//opts.DisableTailCalls = false;
 	opts.EnableFastISel = false;
 	//opts.EnableSegmentedStacks = false;
 	opts.GuaranteedTailCallOpt = true;
-	opts.NoFramePointerElim = true;
+	//opts.NoFramePointerElim = true;			// TODO - uhhhhh
 
 	uint64_t emissionaddr = 0;
 	size_t s = 0;
@@ -297,11 +297,10 @@ size_t Context::EmitBinaryObject(char* buffer, size_t maxoutput)
 
 
 
-	FunctionPassManager fpm(wat);
+	legacy::FunctionPassManager fpm(wat);
 	wat->setDataLayout(ee->getDataLayout());
-	fpm.add(new DataLayoutPass());
-	fpm.add(createTypeBasedAliasAnalysisPass());
-	fpm.add(createBasicAliasAnalysisPass());
+	//fpm.add(createTypeBasedAliasAnalysisPass());
+	//fpm.add(createBasicAliasAnalysisPass());
 	fpm.add(createCFGSimplificationPass());
 	fpm.add(createScalarReplAggregatesPass());
 	fpm.add(createEarlyCSEPass());
@@ -309,10 +308,9 @@ size_t Context::EmitBinaryObject(char* buffer, size_t maxoutput)
 
 	fpm.doInitialization();
 	
-	PassManager mpm;
-	mpm.add(new DataLayoutPass());
-	mpm.add(createTypeBasedAliasAnalysisPass());
-	mpm.add(createBasicAliasAnalysisPass());
+	legacy::PassManager mpm;
+	//mpm.add(createTypeBasedAliasAnalysisPass());
+	//mpm.add(createBasicAliasAnalysisPass());
 	mpm.add(createGlobalOptimizerPass());
 	mpm.add(createPromoteMemoryToRegisterPass());
 	mpm.add(createIPSCCPPass());
@@ -320,7 +318,7 @@ size_t Context::EmitBinaryObject(char* buffer, size_t maxoutput)
 	mpm.add(createInstructionCombiningPass());
 	mpm.add(createCFGSimplificationPass());
 	mpm.add(createPruneEHPass());
-	mpm.add(createFunctionAttrsPass());
+	//mpm.add(createFunctionAttrsPass());
 	mpm.add(createFunctionInliningPass());
 	mpm.add(createArgumentPromotionPass());
 	mpm.add(createScalarReplAggregatesPass(-1, false));
@@ -514,7 +512,7 @@ void Context::CodeCreateReadParam(unsigned index)
 	auto iter = LLVMBuilder.GetInsertBlock()->getParent()->arg_begin();
 	std::advance(iter, index);
 
-	Value* rv = iter;
+	Value* rv = static_cast<Argument*>(iter);
 	PendingValues.push_back(rv);
 }
 
@@ -550,7 +548,7 @@ void Context::CodeCreateWriteParam(unsigned index)
 	auto iter = LLVMBuilder.GetInsertBlock()->getParent()->arg_begin();
 	std::advance(iter, index);
 
-	Value* pv = iter;
+	Value* pv = static_cast<Argument*>(iter);
 
 	Value* wv = PendingValues.back();
 	PendingValues.pop_back();
