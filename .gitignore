@@ -1,0 +1,16 @@
+Bin/**
+bin/**
+Build/**
+build/**
+.vs/**
+*.exe
+*.dll
+*.pdb
+*.vcxproj.user
+*.ncb
+*.suo
+*.aps
+ipch/**
+*.sdf
+*.opensdf
+*.opendb
