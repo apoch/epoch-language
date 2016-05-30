@@ -240,11 +240,18 @@ extern "C" void LLVMLinkInMCJIT();
 size_t Context::EmitBinaryObject(char* buffer, size_t maxoutput)
 {
 	LLVMLinkInMCJIT();
+
+	std::vector<Type*> argtypes;
+	argtypes.push_back(Type::getInt32Ty(getGlobalContext()));
+
+	FunctionType* exitprocesstype = FunctionType::get(TypeGetVoid(), argtypes, false);
+	GlobalVariable* exitprocessfunctionvar = FunctionCreateThunk("ExitProcess", exitprocesstype);
 	
 	BasicBlock* bb = BasicBlock::Create(getGlobalContext(), "InitBlock", InitFunction);
 	LLVMBuilder.SetInsertPoint(bb);
 	// TODO - init globals here
 	LLVMBuilder.CreateCall(EntryPointFunction);
+	LLVMBuilder.CreateCall(LLVMBuilder.CreateLoad(exitprocessfunctionvar), ConstantInt::get(Type::getInt32Ty(getGlobalContext()), 0));
 	LLVMBuilder.CreateRet(ConstantInt::get(Type::getInt32Ty(getGlobalContext()), 0));
 
 	// HACK!

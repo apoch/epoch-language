@@ -14,3 +14,6 @@ ipch/**
 *.sdf
 *.opensdf
 *.opendb
+x64/**
+EpochLLVM/x64/**
+EpochRT/x64/**

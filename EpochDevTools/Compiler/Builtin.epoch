@@ -1164,7 +1164,8 @@ FigureOutCastOverload : nothing -> 0
 
 
 PrepareThunkTable : ThunkTable ref table
-{	
+{
+	ThunkTableAddEntry(table, "Kernel32.dll", "ExitProcess")
 	ThunkTableAddEntry(table, "EpochRT.dll", "ERT_assert")
 	ThunkTableAddEntry(table, "EpochRT.dll", "ERT_passtest")
 	ThunkTableAddEntry(table, "EpochRT.dll", "ERT_print")
