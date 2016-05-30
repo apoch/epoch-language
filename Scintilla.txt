@@ -9,7 +9,7 @@ components in the Epoch project.
 
 License for Scintilla and SciTE
 
-Copyright 1998-2003 by Neil Hodgson <neilh@scintilla.org>
+Copyright 1998-2002 by Neil Hodgson <neilh@scintilla.org>
 
 All Rights Reserved 
 
