@@ -3,6 +3,41 @@ Welcome to the home of **Epoch**, an opinionated programming language designed t
 
 Epoch places a strong emphasis on certain ways of thinking about programming, at both large and small scales. The decisions behind the language will undoubtedly not please everyone - but if you're a like-minded programmer, we hope Epoch scratches your itch as well as it has scratched our own.
 
+## What It Looks Like
+Here's a simple example of what Epoch programs look like.
+
+    //
+    // A simple Epoch program
+    //
+    
+    // Declare an algebraic sum type
+    type OptionalString : string | nothing
+    
+    // Define a function
+    Display : string optstr
+    {
+        print(optstr)
+    }
+    
+    // Overload the function
+    Display : nothing
+    {
+        print("End of line.")
+    }
+    
+    // Entry point function
+    entrypoint :
+    {
+        OptionalString hello = "Hello, world!"
+        OptionalString blank = nothing
+        
+        Display(hello)
+        Display(blank)
+    }
+
+There is plenty more to see, but it gets hard to condense into small snippets. We recommend exploring the `.epoch` files in the repository for more examples of how the code looks and feels.
+
+
 ## Where It Stands
  * Procedural, structured foundations with some generic programming support
  * Strong, statically-checked type system
