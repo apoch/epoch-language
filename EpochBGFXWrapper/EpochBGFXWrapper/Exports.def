@@ -1,0 +1,4 @@
+LIBRARY "EpochBGFXWrapper"
+EXPORTS
+	bgfxInit
+	bgfxShutdown

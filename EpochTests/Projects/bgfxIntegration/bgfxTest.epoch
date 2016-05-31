@@ -1,0 +1,16 @@
+//
+// Simple test of integration with BGFX library
+//
+
+entrypoint :
+{
+	bgfxInit()
+	bgfxShutdown()
+}
+
+
+
+bgfxInit : [external("EpochBGFXWrapper.dll", "bgfxInit")]
+bgfxShutdown : [external("EpochBGFXWrapper.dll", "bgfxShutdown")]
+
+

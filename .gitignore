@@ -17,3 +17,9 @@ ipch/**
 x64/**
 EpochLLVM/x64/**
 EpochRT/x64/**
+EpochBGFXWrapper/x64/**
+EpochBGFXWrapper/EpochBGFXWrapper/x64/**
+EpochBGFXWrapper/ipch/**
+EpochBGFXWrapper/EpochBGFXWrapper/ipch/**
+EpochBGFXWrapper/Debug/**
+EpochBGFXWrapper/EpochBGFXWrapper/Debug/**
