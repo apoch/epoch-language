@@ -56,6 +56,11 @@ extern "C" void* EpochLLVMTypeGetInteger16(void* context)
 	return reinterpret_cast<CodeGen::Context*>(context)->TypeGetInteger16();
 }
 
+extern "C" void* EpochLLVMTypeGetInteger64(void* context)
+{
+	return reinterpret_cast<CodeGen::Context*>(context)->TypeGetInteger64();
+}
+
 extern "C" void* EpochLLVMTypeGetPointerTo(void* context, void* ty)
 {
 	return reinterpret_cast<CodeGen::Context*>(context)->TypeGetPointerTo(reinterpret_cast<llvm::Type*>(ty));
@@ -263,9 +268,20 @@ extern "C" void EpochLLVMCodePushInteger16(void* context, short value)
 	reinterpret_cast<CodeGen::Context*>(context)->CodePushInteger16(value);
 }
 
+extern "C" void EpochLLVMCodePushInteger64(void* context, int value)
+{
+	reinterpret_cast<CodeGen::Context*>(context)->CodePushInteger64(value);
+}
+
+
 extern "C" void EpochLLVMCodePushRawAlloca(void* context, void* alloc)
 {
 	reinterpret_cast<CodeGen::Context*>(context)->CodePushRawAlloca(reinterpret_cast<llvm::AllocaInst*>(alloc));
+}
+
+extern "C" void EpochLLVMCodePushRawCall(void* context, void* callinst)
+{
+	reinterpret_cast<CodeGen::Context*>(context)->CodePushRawCall(reinterpret_cast<llvm::CallInst*>(callinst));
 }
 
 extern "C" void EpochLLVMCodePushRawGEP(void* context, void* gep)

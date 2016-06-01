@@ -63,6 +63,7 @@ EpochLLVMStructureTypeCreate : LLVMContextHandle context, string structurename -
 EpochLLVMTypeGetBoolean : LLVMContextHandle context -> LLVMType t = 0												[external("EpochLLVM.dll", "EpochLLVMTypeGetBoolean")]
 EpochLLVMTypeGetInteger : LLVMContextHandle context -> LLVMType t = 0												[external("EpochLLVM.dll", "EpochLLVMTypeGetInteger")]
 EpochLLVMTypeGetInteger16 : LLVMContextHandle context -> LLVMType t = 0												[external("EpochLLVM.dll", "EpochLLVMTypeGetInteger16")]
+EpochLLVMTypeGetInteger64 : LLVMContextHandle context -> LLVMType t = 0												[external("EpochLLVM.dll", "EpochLLVMTypeGetInteger64")]
 EpochLLVMTypeGetPointerTo : LLVMContextHandle context, LLVMType raw -> LLVMType t = 0								[external("EpochLLVM.dll", "EpochLLVMTypeGetPointerTo")]
 EpochLLVMTypeGetPointerTo : LLVMContextHandle context, LLVMFunctionType raw -> LLVMType t = 0						[external("EpochLLVM.dll", "EpochLLVMTypeGetPointerTo")]
 EpochLLVMTypeGetReal : LLVMContextHandle context -> LLVMType t = 0													[external("EpochLLVM.dll", "EpochLLVMTypeGetReal")]
@@ -118,17 +119,16 @@ EpochLLVMCodeOperatorIntegerMinus : LLVMContextHandle context														[exte
 EpochLLVMCodePushBoolean : LLVMContextHandle context, boolean literal												[external("EpochLLVM.dll", "EpochLLVMCodePushBoolean")]
 EpochLLVMCodePushInteger : LLVMContextHandle context, integer literal												[external("EpochLLVM.dll", "EpochLLVMCodePushInteger")]
 EpochLLVMCodePushInteger16 : LLVMContextHandle context, integer16 literal											[external("EpochLLVM.dll", "EpochLLVMCodePushInteger16")]
+EpochLLVMCodePushInteger64 : LLVMContextHandle context, integer literal												[external("EpochLLVM.dll", "EpochLLVMCodePushInteger64")]
 EpochLLVMCodePushRawAlloca : LLVMContextHandle context, LLVMAlloca alloca											[external("EpochLLVM.dll", "EpochLLVMCodePushRawAlloca")]
+EpochLLVMCodePushRawCall : LLVMContextHandle context, integer callinst												[external("EpochLLVM.dll", "EpochLLVMCodePushRawCall")]
 EpochLLVMCodePushRawGEP : LLVMContextHandle context, LLVMGEP gep													[external("EpochLLVM.dll", "EpochLLVMCodePushRawGEP")]
 EpochLLVMCodePushString : LLVMContextHandle context, integer handle													[external("EpochLLVM.dll", "EpochLLVMCodePushString")]
 EpochLLVMCodePushFunction : LLVMContextHandle context, LLVMFunctionRef func											[external("EpochLLVM.dll", "EpochLLVMCodePushFunction")]
 
 
 SetUpAllLLVMCode : LLVMContextHandle context
-{
-	print("Generating LLVM function signatures...")
-	CreateAllFunctionSignaturesInLLVM(context, FunctionSignatures)
-	
+{	
 	print("Generating LLVM structure types...")
 	CodeGenRearrangeStructures(Structures)
 	CreateAllStructuresInLLVM(context, Structures)
@@ -136,6 +136,9 @@ SetUpAllLLVMCode : LLVMContextHandle context
 	print("Generating LLVM structure constructors...")
 	CreateAllConstructorsInLLVM(context, Structures)
 	
+	print("Generating LLVM function signatures...")
+	CreateAllFunctionSignaturesInLLVM(context, FunctionSignatures)
+
 	print("Generating LLVM function thunks...")
 	SetUpCustomLLVMThunks(context, GlobalRootNamespace.FunctionTags)
 	
@@ -150,7 +153,7 @@ CreateAllFunctionSignaturesInLLVM : LLVMContextHandle context, list<FunctionSign
 	{
 		EpochLLVMFunctionTypePush(context)
 		LLVMType funcrettype = GetLLVMTypeForEpochType(context, GetTypeByName(signatures.value.ReturnTypeName))
-		CreateFunctionParamTypesInLLVM(context, signatures.value.Parameters, 0)
+		CreateFunctionParamTypesInLLVM(context, signatures.value.Parameters, 0, false)
 
 		LLVMFunctionType functype = EpochLLVMFunctionTypeCreate(context, funcrettype)
 		BinaryTreeCreateOrInsert<LLVMFunctionType>(LLVMFunctionSignatureTable, signatures.value.Name, functype)
@@ -194,7 +197,7 @@ CreateSingleFunctionInLLVM : LLVMContextHandle context, FunctionDefinition ref f
 		rawname = func.RawName
 	}
 	
-	CreateFunctionParamTypesInLLVM(context, func.Params, rawname)
+	CreateFunctionParamTypesInLLVM(context, func.Params, rawname, false)
 	
 	LLVMFunctionType functype = EpochLLVMFunctionTypeCreate(context, funcrettype)
 	LLVMFunctionRef llvmfunc = EpochLLVMFunctionCreate(context, funcname, functype)
@@ -202,12 +205,12 @@ CreateSingleFunctionInLLVM : LLVMContextHandle context, FunctionDefinition ref f
 	BinaryTreeCreateOrInsert<LLVMFunctionRef>(LLVMFunctionTable, func.Name, llvmfunc)
 }
 
-CreateFunctionParamTypesInLLVM : LLVMContextHandle context, FunctionParams ref params, integer rawfuncname
+CreateFunctionParamTypesInLLVM : LLVMContextHandle context, FunctionParams ref params, integer rawfuncname, boolean isthunk
 {
-	CreateFunctionParamTypesInLLVM(context, params.Params, rawfuncname)
+	CreateFunctionParamTypesInLLVM(context, params.Params, rawfuncname, isthunk)
 }
 
-CreateFunctionParamTypesInLLVM : LLVMContextHandle context, list<UnresolvedParameter> ref params, integer rawfuncname
+CreateFunctionParamTypesInLLVM : LLVMContextHandle context, list<UnresolvedParameter> ref params, integer rawfuncname, boolean isthunk
 {
 	if((MakeNonReferenceType(params.value.ResolvedType) == 0x01000000) && (rawfuncname != 0))
 	{
@@ -216,18 +219,18 @@ CreateFunctionParamTypesInLLVM : LLVMContextHandle context, list<UnresolvedParam
 		EpochLLVMFunctionQueueParamType(context, paramtype)
 	}
 	else
-	{
-		LLVMType paramtype = GetLLVMTypeForEpochType(context, params.value.ResolvedType)
+	{		
+		LLVMType paramtype = GetLLVMTypeForEpochType(context, resolvedtype)
 		EpochLLVMFunctionQueueParamType(context, paramtype)
 	}
 	
-	CreateFunctionParamTypesInLLVM(context, params.next, rawfuncname)
+	CreateFunctionParamTypesInLLVM(context, params.next, rawfuncname, isthunk)
 }
 
-CreateFunctionParamTypesInLLVM : LLVMContextHandle context, nothing, integer rawfuncname
+CreateFunctionParamTypesInLLVM : LLVMContextHandle context, nothing, integer rawfuncname, boolean isthunk
 
 
-CreateFunctionParamTypesInLLVM : LLVMContextHandle context, list<Parameter> ref params, integer rawfuncname
+CreateFunctionParamTypesInLLVM : LLVMContextHandle context, list<Parameter> ref params, integer rawfuncname, boolean isthunk
 {
 	if(params.value.Name != 0)
 	{
@@ -235,7 +238,7 @@ CreateFunctionParamTypesInLLVM : LLVMContextHandle context, list<Parameter> ref 
 		EpochLLVMFunctionQueueParamType(context, paramtype)
 	}	
 
-	CreateFunctionParamTypesInLLVM(context, params.next, rawfuncname)
+	CreateFunctionParamTypesInLLVM(context, params.next, rawfuncname, isthunk)
 }
 
 
@@ -268,8 +271,15 @@ GetLLVMTypeForEpochType : LLVMContextHandle context, integer typeid -> LLVMType 
 	}
 	elseif(IsStructureType(typeid))
 	{
-		boolean found = BinaryTreeCopyPayload<LLVMType>(LLVMStructureTypeTable.RootNode, typeid, t)
-		assertmsg(found, "Structure type not registered with LLVM " ; GetPooledString(GetNameOfType(typeid)))
+		if(GetPooledString(GetNameOfType(typeid)) == "OPAQUE")
+		{
+			t = EpochLLVMTypeGetInteger64(context)				// TODO - this is a barfulous hack until we get integer64 support in Epoch
+		}
+		else
+		{
+			boolean found = BinaryTreeCopyPayload<LLVMType>(LLVMStructureTypeTable.RootNode, typeid, t)
+			assertmsg(found, "Structure type not registered with LLVM " ; GetPooledString(GetNameOfType(typeid)))
+		}
 	}
 	elseif(IsFunctionType(typeid))
 	{
@@ -352,7 +362,7 @@ CreateSingleLLVMAlloca : LLVMBuildContext ref context, Variable ref var, Functio
 
 
 
-EmitRetInitializerToLLVM : LLVMBuildContext ref context, FunctionDefinition ref func, Expression ref expr
+EmitRetInitializerToLLVM : LLVMBuildContext ref context, FunctionDefinition ref func, Expression ref expr -> LLVMAlloca ret = 0
 {
 	integer returnname = 0
 	FindReturnVariableNameInSingleScope(func.AttachedScope.Wrapped, returnname)
@@ -367,9 +377,11 @@ EmitRetInitializerToLLVM : LLVMBuildContext ref context, FunctionDefinition ref 
 	{
 		EpochLLVMCodeCreateWrite(context.Context, alloca)
 	}
+	
+	ret = alloca
 }
 
-EmitRetInitializerToLLVM : LLVMBuildContext ref context, FunctionDefinition ref func, nothing
+EmitRetInitializerToLLVM : LLVMBuildContext ref context, FunctionDefinition ref func, nothing -> LLVMAlloca ret = 0
 
 
 EmitParamInitializersToLLVM : LLVMBuildContext ref context, FunctionDefinition ref func, integer paramindex, FunctionParams ref params
@@ -393,6 +405,8 @@ EmitParamInitializersToLLVM : LLVMBuildContext ref context, FunctionDefinition r
 
 EmitSingleFunctionToLLVM : LLVMContextHandle context, FunctionDefinition ref func
 {
+	print("Generating LLVM code for function: " ; GetPooledString(func.Name))
+
 	LLVMFunctionRef llvmfunc = 0
 	BinaryTreeCopyPayload<LLVMFunctionRef>(LLVMFunctionTable.RootNode, func.Name, llvmfunc)
 
@@ -406,9 +420,9 @@ EmitSingleFunctionToLLVM : LLVMContextHandle context, FunctionDefinition ref fun
 	FindScopeAndSetContext(func)
 
 	EmitParamInitializersToLLVM(build, func, 0, func.Params)
-	EmitRetInitializerToLLVM(build, func, func.Return)
-	
-	EmitExternalInvokeTagToLLVM(build, func, GlobalRootNamespace.FunctionTags)
+	LLVMAlloca ret = EmitRetInitializerToLLVM(build, func, func.Return)
+		
+	EmitExternalInvokeTagToLLVM(build, func, GlobalRootNamespace.FunctionTags, ret)
 	
 	EmitCodeBlockToLLVM(build, func.Code)
 	
@@ -457,7 +471,7 @@ EmitAllParamsToLLVM : LLVMContextHandle context, integer paramindex, list<Unreso
 EmitAllParamsToLLVM : LLVMContextHandle context, integer paramindex, nothing
 
 
-EmitExternalInvokeTagToLLVM : LLVMBuildContext ref context, FunctionDefinition ref func, list<FunctionTag> ref taglist
+EmitExternalInvokeTagToLLVM : LLVMBuildContext ref context, FunctionDefinition ref func, list<FunctionTag> ref taglist, LLVMAlloca ret
 {
 	if(taglist.value.FunctionName == func.Name)
 	{
@@ -469,16 +483,22 @@ EmitExternalInvokeTagToLLVM : LLVMBuildContext ref context, FunctionDefinition r
 			BinaryTreeCopyPayload<integer>(LLVMGlobalThunks.RootNode, func.Name, thunk)
 			
 			assertmsg(thunk != 0, "Missing external thunk")
-			EpochLLVMCodeCreateCallThunk(context.Context, thunk)			
+			integer callinst = EpochLLVMCodeCreateCallThunk(context.Context, thunk)
+			
+			if(GetOptionalExpressionType(func.Return) != 0)
+			{
+				EpochLLVMCodePushRawCall(context.Context, callinst)
+				EpochLLVMCodeCreateWrite(context.Context, ret)
+			}
 			
 			return()
 		}
 	}
 
-	EmitExternalInvokeTagToLLVM(context, func, taglist.next)
+	EmitExternalInvokeTagToLLVM(context, func, taglist.next, ret)
 }
 
-EmitExternalInvokeTagToLLVM : LLVMBuildContext ref context, FunctionDefinition ref func, nothing
+EmitExternalInvokeTagToLLVM : LLVMBuildContext ref context, FunctionDefinition ref func, nothing, LLVMAlloca ret
 
 
 
@@ -1028,7 +1048,7 @@ SetUpSingleLLVMThunk : LLVMContextHandle context, list<FunctionDefinition> ref f
 	{
 		EpochLLVMFunctionTypePush(context)
 		LLVMType funcrettype = GetLLVMTypeForEpochType(context, funcs.value.Return)
-		CreateFunctionParamTypesInLLVM(context, funcs.value.Params, 0)
+		CreateFunctionParamTypesInLLVM(context, funcs.value.Params, 0, true)
 		LLVMFunctionType fty = EpochLLVMFunctionTypeCreate(context, funcrettype)
 		
 		integer thunk = EpochLLVMFunctionCreateThunk(context, thunkname, fty)
@@ -1108,7 +1128,7 @@ GetLLVMTypeForMemberType : LLVMContextHandle context, StructureMemberFunctionRef
 	EpochLLVMFunctionTypePush(context)
 
 	LLVMType funcrettype = GetLLVMTypeForEpochType(context, GetTypeByName(member.Signature.ReturnTypeName))
-	CreateFunctionParamTypesInLLVM(context, member.Signature.Parameters, 0)
+	CreateFunctionParamTypesInLLVM(context, member.Signature.Parameters, 0, false)
 	
 	LLVMFunctionType fty = EpochLLVMFunctionTypeCreate(context, funcrettype)
 	t = EpochLLVMTypeGetPointerTo(context, fty)
@@ -1116,17 +1136,95 @@ GetLLVMTypeForMemberType : LLVMContextHandle context, StructureMemberFunctionRef
 
 
 
+
+
+HACKdummyconstructor : LLVMContextHandle context, list<StructureDefinition> ref structures
+{
+	EpochLLVMFunctionTypePush(context)
+	LLVMType funcrettype = EpochLLVMTypeGetVoid(context)
+	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetPointerTo(context, GetLLVMTypeForEpochType(context, structures.value.Type)))
+	CreateMemberParamTypesInLLVM(context, structures.value.Members)
+	LLVMFunctionType functype = EpochLLVMFunctionTypeCreate(context, funcrettype)
+	LLVMFunctionRef llvmfunc = EpochLLVMFunctionCreate(context, GetPooledString(structures.value.ConstructorName), functype)
+	BinaryTreeCreateOrInsert<LLVMFunctionRef>(LLVMFunctionTable, structures.value.ConstructorName, llvmfunc)
+	LLVMBasicBlock funcbody = EpochLLVMCodeCreateBasicBlock(context, llvmfunc, true)
+	
+	EpochLLVMCodePushInteger64(context, 0)
+	EpochLLVMCodeCreateWriteParam(context, 0)
+	
+	EpochLLVMCodeCreateRetVoid(context)
+}
+
+
+HACKdummyanonconstructor : LLVMContextHandle context, StructureDefinition ref struct
+{
+	EpochLLVMFunctionTypePush(context)
+	LLVMType funcrettype = GetLLVMTypeForEpochType(context, struct.Type)
+	CreateMemberParamTypesInLLVM(context, struct.Members)
+	
+	LLVMFunctionType functype = EpochLLVMFunctionTypeCreate(context, funcrettype)
+	LLVMFunctionRef llvmfunc = EpochLLVMFunctionCreate(context, GetPooledString(struct.AnonConstructorName), functype)
+	
+	BinaryTreeCreateOrInsert<LLVMFunctionRef>(LLVMFunctionTable, struct.AnonConstructorName, llvmfunc)
+	
+	
+	LLVMBasicBlock funcbody = EpochLLVMCodeCreateBasicBlock(context, llvmfunc, true)
+	LLVMAlloca retalloca = EpochLLVMCodeCreateAlloca(context, funcrettype, "@anonymous")
+		
+	EpochLLVMCodePushRawAlloca(context, retalloca)
+	EpochLLVMCodeCreateDereference(context)
+	EpochLLVMCodeCreateRet(context)
+}
+
+HACKdummycopyconstructor : LLVMContextHandle context, StructureDefinition ref struct
+{
+	EpochLLVMFunctionTypePush(context)
+	LLVMType funcrettype = EpochLLVMTypeGetVoid(context)
+	
+	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetPointerTo(context, GetLLVMTypeForEpochType(context, struct.Type)))
+	EpochLLVMFunctionQueueParamType(context, GetLLVMTypeForEpochType(context, struct.Type))
+	//EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetPointerTo(context, GetLLVMTypeForEpochType(context, struct.Type)))
+
+	LLVMFunctionType functype = EpochLLVMFunctionTypeCreate(context, funcrettype)
+	LLVMFunctionRef llvmfunc = EpochLLVMFunctionCreate(context, GetPooledString(struct.CopyConstructorName), functype)
+	
+	BinaryTreeCreateOrInsert<LLVMFunctionRef>(LLVMFunctionTable, struct.CopyConstructorName, llvmfunc)
+	
+	
+	LLVMBasicBlock funcbody = EpochLLVMCodeCreateBasicBlock(context, llvmfunc, true)
+
+	EpochLLVMCodeCreateReadParam(context, 1)
+	//EpochLLVMCodeCreateDereference(context)
+	EpochLLVMCodeCreateWriteParam(context, 0)
+	EpochLLVMCodeCreateRetVoid(context)
+}
+
+
 CreateAllConstructorsInLLVM : LLVMContextHandle context, list<StructureDefinition> ref structures
 {
 	if((structures.value.Name != 0) && (!structures.value.IsTemplate))
 	{
-		CreateConstructorInLLVM(context, structures.value)
-		CreateAnonConstructorInLLVM(context, structures.value)
-
-		if(structures.value.CopyConstructorName != 0)
+		if(GetPooledString(structures.value.Name) == "OPAQUE")
 		{
-			CreateCopyConstructorInLLVM(context, structures.value)
-		}		
+			// TODO - destroy this hack once integer64 support is implemented
+			
+			HACKdummyconstructor(context, structures)
+			HACKdummyanonconstructor(context, structures.value)
+			if(structures.value.CopyConstructorName != 0)
+			{
+				HACKdummycopyconstructor(context, structures.value)
+			}
+		}
+		else
+		{
+			CreateConstructorInLLVM(context, structures.value)
+			CreateAnonConstructorInLLVM(context, structures.value)
+
+			if(structures.value.CopyConstructorName != 0)
+			{
+				CreateCopyConstructorInLLVM(context, structures.value)
+			}
+		}
 	}
 
 	CreateAllConstructorsInLLVM(context, structures.next)
@@ -1196,7 +1294,8 @@ CreateCopyConstructorInLLVM : LLVMContextHandle context, StructureDefinition ref
 	LLVMType funcrettype = EpochLLVMTypeGetVoid(context)
 	
 	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetPointerTo(context, GetLLVMTypeForEpochType(context, struct.Type)))
-	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetPointerTo(context, GetLLVMTypeForEpochType(context, struct.Type)))
+	EpochLLVMFunctionQueueParamType(context, GetLLVMTypeForEpochType(context, struct.Type))
+	//EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetPointerTo(context, GetLLVMTypeForEpochType(context, struct.Type)))
 
 	LLVMFunctionType functype = EpochLLVMFunctionTypeCreate(context, funcrettype)
 	LLVMFunctionRef llvmfunc = EpochLLVMFunctionCreate(context, GetPooledString(struct.CopyConstructorName), functype)
@@ -1207,7 +1306,7 @@ CreateCopyConstructorInLLVM : LLVMContextHandle context, StructureDefinition ref
 	LLVMBasicBlock funcbody = EpochLLVMCodeCreateBasicBlock(context, llvmfunc, true)
 
 	EpochLLVMCodeCreateReadParam(context, 1)
-	EpochLLVMCodeCreateDereference(context)
+	//EpochLLVMCodeCreateDereference(context)
 	EpochLLVMCodeCreateWriteParam(context, 0)
 	EpochLLVMCodeCreateRetVoid(context)
 }

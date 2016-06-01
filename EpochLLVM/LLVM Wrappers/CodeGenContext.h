@@ -43,6 +43,7 @@ namespace CodeGen
 		llvm::Type* TypeGetBoolean();
 		llvm::Type* TypeGetInteger();
 		llvm::Type* TypeGetInteger16();
+		llvm::Type* TypeGetInteger64();
 		llvm::Type* TypeGetPointerTo(llvm::Type* raw);
 		llvm::Type* TypeGetReal();
 		llvm::Type* TypeGetString();
@@ -86,7 +87,9 @@ namespace CodeGen
 		void CodePushBoolean(bool value);
 		void CodePushInteger(int value);
 		void CodePushInteger16(short value);
+		void CodePushInteger64(uint64_t value);
 		void CodePushRawAlloca(llvm::AllocaInst* alloc);
+		void CodePushRawCall(llvm::CallInst* callinst);
 		void CodePushRawGEP(llvm::Value* gep);
 		void CodePushString(unsigned handle);
 		void CodePushFunction(llvm::Function* func);

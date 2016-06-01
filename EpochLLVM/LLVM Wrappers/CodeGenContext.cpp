@@ -126,6 +126,10 @@ Context::Context()
 {
 	FunctionType* initfunctiontype = FunctionType::get(Type::getInt32Ty(getGlobalContext()), false);
 	InitFunction = Function::Create(initfunctiontype, GlobalValue::ExternalLinkage , "@init", LLVMModule.get());
+	
+	auto attrs = InitFunction->getAttributes();
+	attrs = attrs.addAttribute(getGlobalContext(), AttributeSet::FunctionIndex, "no-frame-pointer-elim", "true");
+	InitFunction->setAttributes(attrs);
 }
 
 
@@ -155,7 +159,13 @@ void Context::FunctionTypePush()
 
 llvm::Function* Context::FunctionCreate(const char* name, llvm::FunctionType* fty)
 {
-	return Function::Create(fty, GlobalValue::ExternalLinkage, name, LLVMModule.get());
+	Function* func = Function::Create(fty, GlobalValue::ExternalLinkage, name, LLVMModule.get());
+
+	auto attrs = func->getAttributes();
+	attrs = attrs.addAttribute(getGlobalContext(), AttributeSet::FunctionIndex, "no-frame-pointer-elim", "true");
+	func->setAttributes(attrs);
+
+	return func;
 }
 
 llvm::GlobalVariable* Context::FunctionCreateThunk(const char* name, llvm::FunctionType* fty)
@@ -214,6 +224,11 @@ llvm::Type* Context::TypeGetInteger()
 llvm::Type* Context::TypeGetInteger16()
 {
 	return Type::getInt16Ty(getGlobalContext());
+}
+
+llvm::Type* Context::TypeGetInteger64()
+{
+	return Type::getInt64Ty(getGlobalContext());
 }
 
 llvm::Type* Context::TypeGetPointerTo(llvm::Type* raw)
@@ -363,10 +378,10 @@ size_t Context::EmitBinaryObject(char* buffer, size_t maxoutput)
 	mpm.add(createFunctionInliningPass());
 	mpm.add(createDeadStoreEliminationPass());
 
-	mpm.run(*wat);
+	//mpm.run(*wat);
 
 
-	//wat->dump();
+	wat->dump();
 
 
 	class JEL : public JITEventListener
@@ -389,6 +404,12 @@ size_t Context::EmitBinaryObject(char* buffer, size_t maxoutput)
 				if(section.isText())
 				{
 					*OutSize += static_cast<size_t>(section.getSize());
+
+					for(const auto & sym : section.getObject()->symbols())
+					{
+						void* addr = reinterpret_cast<void*>(sym.getAddress().get() + 0x404000);		// TODO - evil hardcoded crap
+						std::cout << "Symbol \"" << sym.getName().get().str() << "\" at address " << addr << std::endl;
+					}
 				}
 			}
 		}
@@ -610,8 +631,6 @@ void Context::CodeCreateOperatorIntegerEquals()
 
 void Context::CodeCreateOperatorIntegerNotEquals()
 {
-	WNDCLASSEXW cls;
-
 	llvm::Value* operand2 = PendingValues.back();
 	PendingValues.pop_back();
 
@@ -665,9 +684,20 @@ void Context::CodePushInteger16(short value)
 	PendingValues.push_back(val);
 }
 
+void Context::CodePushInteger64(uint64_t value)
+{
+	llvm::Value* val = ConstantInt::get(Type::getInt64Ty(getGlobalContext()), value);
+	PendingValues.push_back(val);
+}
+
 void Context::CodePushRawAlloca(llvm::AllocaInst* alloc)
 {
 	PendingValues.push_back(alloc);
+}
+
+void Context::CodePushRawCall(llvm::CallInst* callinst)
+{
+	PendingValues.push_back(callinst);
 }
 
 void Context::CodePushRawGEP(llvm::Value* gep)

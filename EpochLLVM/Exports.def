@@ -11,6 +11,7 @@ EXPORTS
 	EpochLLVMTypeGetBoolean
 	EpochLLVMTypeGetInteger
 	EpochLLVMTypeGetInteger16
+	EpochLLVMTypeGetInteger64
 	EpochLLVMTypeGetPointerTo
 	EpochLLVMTypeGetReal
 	EpochLLVMTypeGetString
@@ -59,7 +60,9 @@ EXPORTS
 	EpochLLVMCodePushBoolean
 	EpochLLVMCodePushInteger
 	EpochLLVMCodePushInteger16
+	EpochLLVMCodePushInteger64
 	EpochLLVMCodePushRawAlloca
+	EpochLLVMCodePushRawCall
 	EpochLLVMCodePushRawGEP
 	EpochLLVMCodePushString
 	EpochLLVMCodePushFunction
