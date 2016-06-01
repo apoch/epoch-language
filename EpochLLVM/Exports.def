@@ -6,6 +6,7 @@ EXPORTS
 	EpochLLVMContextDestroy
 
 	EpochLLVMFunctionTypeCreate
+	EpochLLVMFunctionTypePush
 
 	EpochLLVMTypeGetBoolean
 	EpochLLVMTypeGetInteger
@@ -51,11 +52,13 @@ EXPORTS
 
 	EpochLLVMCodeOperatorBooleanNot
 	EpochLLVMCodeOperatorIntegerEquals
+	EpochLLVMCodeOperatorIntegerNotEquals
 	EpochLLVMCodeOperatorIntegerPlus
 	EpochLLVMCodeOperatorIntegerMinus
 	
 	EpochLLVMCodePushBoolean
 	EpochLLVMCodePushInteger
+	EpochLLVMCodePushInteger16
 	EpochLLVMCodePushRawAlloca
 	EpochLLVMCodePushRawGEP
 	EpochLLVMCodePushString

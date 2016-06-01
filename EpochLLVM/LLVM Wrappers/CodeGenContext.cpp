@@ -136,16 +136,21 @@ Context::~Context()
 
 void Context::FunctionQueueParamType(llvm::Type* ty)
 {
-	PendingParamTypes.push_back(ty);
+	PendingParamTypeStack.back().push_back(ty);
 }
 
 
 llvm::FunctionType* Context::FunctionTypeCreate(llvm::Type* rettype)
 {
-	llvm::FunctionType* fty = FunctionType::get(rettype, PendingParamTypes, false);
-	PendingParamTypes.clear();
+	llvm::FunctionType* fty = FunctionType::get(rettype, PendingParamTypeStack.back(), false);
+	PendingParamTypeStack.pop_back();
 
 	return fty;
+}
+
+void Context::FunctionTypePush()
+{
+	PendingParamTypeStack.push_back(std::vector<llvm::Type*>());
 }
 
 llvm::Function* Context::FunctionCreate(const char* name, llvm::FunctionType* fty)
@@ -603,6 +608,20 @@ void Context::CodeCreateOperatorIntegerEquals()
 	PendingValues.push_back(eqval);
 }
 
+void Context::CodeCreateOperatorIntegerNotEquals()
+{
+	WNDCLASSEXW cls;
+
+	llvm::Value* operand2 = PendingValues.back();
+	PendingValues.pop_back();
+
+	llvm::Value* operand1 = PendingValues.back();
+	PendingValues.pop_back();
+
+	llvm::Value* eqval = LLVMBuilder.CreateICmpNE(operand1, operand2);
+	PendingValues.push_back(eqval);
+}
+
 void Context::CodeCreateOperatorIntegerPlus()
 {
 	llvm::Value* operand2 = PendingValues.back();
@@ -637,6 +656,12 @@ void Context::CodePushBoolean(bool value)
 void Context::CodePushInteger(int value)
 {
 	llvm::Value* val = ConstantInt::get(Type::getInt32Ty(getGlobalContext()), value);
+	PendingValues.push_back(val);
+}
+
+void Context::CodePushInteger16(short value)
+{
+	llvm::Value* val = ConstantInt::get(Type::getInt16Ty(getGlobalContext()), value);
 	PendingValues.push_back(val);
 }
 
@@ -690,13 +715,14 @@ void Context::SetCurrentBasicBlock(llvm::BasicBlock* block)
 
 llvm::Type* Context::StructureTypeCreate(const char* name)
 {
-	llvm::Type* t = llvm::StructType::create(PendingParamTypes, name);
-	PendingParamTypes.clear();
+	llvm::Type* t = llvm::StructType::create(PendingMemberTypes, name);
+	PendingMemberTypes.clear();
+
 	return t;
 }
 
 void Context::StructureTypeQueueMember(llvm::Type* t)
 {
-	PendingParamTypes.push_back(t);
+	PendingMemberTypes.push_back(t);
 }
 

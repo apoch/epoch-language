@@ -35,6 +35,11 @@ extern "C" void* EpochLLVMFunctionTypeCreate(void* context, void* rettype)
 	return reinterpret_cast<CodeGen::Context*>(context)->FunctionTypeCreate(reinterpret_cast<llvm::Type*>(rettype));
 }
 
+extern "C" void EpochLLVMFunctionTypePush(void* context)
+{
+	reinterpret_cast<CodeGen::Context*>(context)->FunctionTypePush();
+}
+
 
 extern "C" void* EpochLLVMTypeGetBoolean(void* context)
 {
@@ -226,6 +231,11 @@ extern "C" void EpochLLVMCodeOperatorIntegerEquals(void* context)
 	reinterpret_cast<CodeGen::Context*>(context)->CodeCreateOperatorIntegerEquals();
 }
 
+extern "C" void EpochLLVMCodeOperatorIntegerNotEquals(void* context)
+{
+	reinterpret_cast<CodeGen::Context*>(context)->CodeCreateOperatorIntegerNotEquals();
+}
+
 extern "C" void EpochLLVMCodeOperatorIntegerPlus(void* context)
 {
 	reinterpret_cast<CodeGen::Context*>(context)->CodeCreateOperatorIntegerPlus();
@@ -246,6 +256,11 @@ extern "C" void EpochLLVMCodePushBoolean(void* context, bool value)
 extern "C" void EpochLLVMCodePushInteger(void* context, int value)
 {
 	reinterpret_cast<CodeGen::Context*>(context)->CodePushInteger(value);
+}
+
+extern "C" void EpochLLVMCodePushInteger16(void* context, short value)
+{
+	reinterpret_cast<CodeGen::Context*>(context)->CodePushInteger16(value);
 }
 
 extern "C" void EpochLLVMCodePushRawAlloca(void* context, void* alloc)

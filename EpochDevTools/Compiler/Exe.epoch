@@ -69,7 +69,7 @@ MakeExe : EpochProject ref project
 	ComputeResourceOffsets(res)
 	
 
-	buffer codebinarybuffer = 0x1000		// TODO - this is a REALLY DUMB lazy hack, fix it by allocating a safe size for the code buffer
+	buffer codebinarybuffer = 0x10000		// TODO - this is a REALLY DUMB lazy hack, fix it by allocating a safe size for the code buffer
 	EpochLLVMInitialize()
 	LLVMContextHandle llvm = EpochLLVMContextCreate()
 	EpochLLVMSetThunkCallback(llvm, ThunkLookupMapper)
@@ -87,7 +87,7 @@ MakeExe : EpochProject ref project
 	
 	EmitAllFunctionsToLLVM(llvm, Functions)
 	
-	integer sizecode = EpochLLVMEmitBinaryObject(llvm, codebinarybuffer, 0x1000)		// TODO - also bad hack
+	integer sizecode = EpochLLVMEmitBinaryObject(llvm, codebinarybuffer, 0x10000)		// TODO - also bad hack
 	EpochLLVMContextDestroy(llvm)
 
 	
@@ -121,7 +121,7 @@ MakeExe : EpochProject ref project
 	}
 
 	integer position = 0
-	position += WritePEHeader(filehandle, sizeimage, sizersrc, subsystem, sizecode)
+	position += WritePEHeader(filehandle, sizeimage, virtualoffsetthunk + GlobalThunkTable.DescriptorOffset, sizethunk, virtualoffsetrsrc, sizersrc, subsystem, sizecode)
 
 	position += WriteSectionHeader(filehandle, ".idata", offsetthunk, virtualoffsetthunk, sizethunk, sizethunk, 0xc0000040)
 	position += WriteSectionHeader(filehandle, ".rsrc", offsetrsrc, virtualoffsetrsrc, sizersrc, sizersrc, 0x40000040)
@@ -175,6 +175,12 @@ WriteThunkTable : Win32Handle filehandle, integer virtualoffsetthunk -> integer 
 WritePadding : Win32Handle filehandle, integer startpos, integer desiredpos -> integer writtenbytes = 0
 {
 	writtenbytes = desiredpos - startpos
+
+    if(writtenbytes < 0)
+    {
+    	assertmsg(false, "INTERNAL ERROR - attempted to pad negative bytes")
+	}
+
 	buffer empty = writtenbytes
 	integer written = 0
 	WriteFile(filehandle, empty, writtenbytes, written, 0)
@@ -226,7 +232,7 @@ WriteSectionHeader : Win32Handle filehandle, string sectionname, integer locatio
 }
 
 
-WritePEHeader : Win32Handle filehandle, integer imagesize, integer resourcesize, integer16 subsystem, integer sizecode -> integer writtenbytes = 0
+WritePEHeader : Win32Handle filehandle, integer imagesize, integer offsetthunk, integer sizethunk, integer offsetrsrc, integer resourcesize, integer16 subsystem, integer sizecode -> integer writtenbytes = 0
 {
 	print("Writing PE headers...")
 
@@ -406,7 +412,7 @@ WritePEHeader : Win32Handle filehandle, integer imagesize, integer resourcesize,
 	ByteStreamEmitInteger(headerbuffer, headersize, 0x1000)							// BaseOfCode
 
 	ByteStreamEmitInteger(headerbuffer, headersize, 0x400000)						// ImageBase
-	ByteStreamEmitInteger(headerbuffer, headersize, 0)							// ImageBase upper 32 bits
+	ByteStreamEmitInteger(headerbuffer, headersize, 0)								// ImageBase upper 32 bits
 	ByteStreamEmitInteger(headerbuffer, headersize, 0x1000)							// SectionAlignment
 	ByteStreamEmitInteger(headerbuffer, headersize, 0x200)							// FileAlignment
 
@@ -439,10 +445,13 @@ WritePEHeader : Win32Handle filehandle, integer imagesize, integer resourcesize,
 	ByteStreamEmitInteger(headerbuffer, headersize, 0)					// RVA virtual address 1
 	ByteStreamEmitInteger(headerbuffer, headersize, 0)					// Size
 
-	ByteStreamEmitInteger(headerbuffer, headersize, 0x1200) 						// RVA virtual address 2	// TODO - unhardcode
-	ByteStreamEmitInteger(headerbuffer, headersize, 0x28)							// Size
+	print(cast(string, offsetthunk))
+	print(cast(string, sizethunk))
 
-	ByteStreamEmitInteger(headerbuffer, headersize, 0x2000)				// RVA virtual address 3		// TODO - unhardcode
+	ByteStreamEmitInteger(headerbuffer, headersize, offsetthunk) 		// RVA virtual address 2
+	ByteStreamEmitInteger(headerbuffer, headersize, sizethunk)			// Size
+
+	ByteStreamEmitInteger(headerbuffer, headersize, offsetrsrc)			// RVA virtual address 3
 	ByteStreamEmitInteger(headerbuffer, headersize, resourcesize)		// Size
 
 	ByteStreamEmitInteger(headerbuffer, headersize, 0)					// RVA virtual address 4
@@ -540,6 +549,7 @@ CopySingleStringToBuffer : integer handle, string ref strpayload, StringPoolOutp
 
 ThunkTableGetCompleteSize : ThunkTable ref table -> integer totalsize = 0
 {
+	table.TotalSize = 0
 	ThunkTableLibrariesWalkForSize(table.Libraries, table.TotalSize)
 	
 	integer initialsize = table.TotalSize
@@ -549,8 +559,8 @@ ThunkTableGetCompleteSize : ThunkTable ref table -> integer totalsize = 0
 	namelistsize += 8
 	ThunkTableLibrariesWalkForAddressCopyHolders(table.Libraries, namelistsize)
 	
-	totalsize = RoundUpFile(table.TotalSize)
-	table.DescriptorOffset = totalsize
+	totalsize = RoundUpFile(namelistsize)
+	table.DescriptorOffset = RoundUpFile(namelistsize)
 	
 	ThunkAddressesWalkLibrariesForOffsets(table.Libraries, totalsize)
 	
@@ -651,10 +661,8 @@ ThunkTableEmit : Win32Handle filehandle, ThunkTable ref table, integer virtualba
 	byteswritten += ThunkTableEmitLibraries(filehandle, table.Libraries)
 	byteswritten += ThunkTableEmitThunkHolders(filehandle, table.Libraries, virtualbase)
 	byteswritten += WritePadding(filehandle, 0, 8)
-	byteswritten += ThunkTableEmitThunkHolders(filehandle, table.Libraries, virtualbase)		// Second (copy) holders
-	
+	byteswritten += ThunkTableEmitThunkHolders(filehandle, table.Libraries, virtualbase)		// Second (copy) holders	
 	byteswritten += WritePadding(filehandle, byteswritten, table.DescriptorOffset)
-	
 	byteswritten += ThunkTableEmitDescriptors(filehandle, table.Libraries, virtualbase)
 }
 

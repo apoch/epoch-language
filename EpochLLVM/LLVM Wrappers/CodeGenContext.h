@@ -38,6 +38,7 @@ namespace CodeGen
 
 	public:		// Type management interface
 		llvm::FunctionType* FunctionTypeCreate(llvm::Type* rettype);
+		void FunctionTypePush();
 
 		llvm::Type* TypeGetBoolean();
 		llvm::Type* TypeGetInteger();
@@ -78,11 +79,13 @@ namespace CodeGen
 
 		void CodeCreateOperatorBooleanNot();
 		void CodeCreateOperatorIntegerEquals();
+		void CodeCreateOperatorIntegerNotEquals();
 		void CodeCreateOperatorIntegerPlus();
 		void CodeCreateOperatorIntegerMinus();
 
 		void CodePushBoolean(bool value);
 		void CodePushInteger(int value);
+		void CodePushInteger16(short value);
 		void CodePushRawAlloca(llvm::AllocaInst* alloc);
 		void CodePushRawGEP(llvm::Value* gep);
 		void CodePushString(unsigned handle);
@@ -113,7 +116,8 @@ namespace CodeGen
 		ThunkCallbackT ThunkCallback;
 		StringCallbackT StringCallback;
 
-		std::vector<llvm::Type*> PendingParamTypes;
+		std::vector<std::vector<llvm::Type*>> PendingParamTypeStack;
+		std::vector<llvm::Type*> PendingMemberTypes;
 		std::vector<llvm::Value*> PendingValues;
 
 		std::map<unsigned, llvm::GlobalVariable*> CachedStrings;
