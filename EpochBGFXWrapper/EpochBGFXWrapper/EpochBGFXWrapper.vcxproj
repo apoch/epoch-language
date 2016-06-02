@@ -76,8 +76,9 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>D:\Epoch\bgfx\include;$(IncludePath)</IncludePath>
+    <IncludePath>D:\Epoch\bgfx\include;D:\Epoch\bx\include;$(IncludePath)</IncludePath>
     <LibraryPath>D:\Epoch\bgfx\.build\win64_vs2015\bin;$(LibraryPath)</LibraryPath>
+    <OutDir>$(SolutionDir)\..\$(Platform)\$(Configuration)\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>

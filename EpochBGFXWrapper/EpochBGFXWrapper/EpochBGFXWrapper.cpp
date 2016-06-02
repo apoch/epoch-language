@@ -4,15 +4,19 @@
 #include "stdafx.h"
 
 
-extern "C" void bgfxInit()
+using namespace bgfx;
+
+
+extern "C" void bgfxInit(void* hwnd)
 {
-	bgfx_init(BGFX_RENDERER_TYPE_OPENGL, BGFX_PCI_ID_NONE, 0, nullptr, nullptr);
+	bgfx::winSetHwnd(reinterpret_cast<HWND>(hwnd));
+	init(RendererType::OpenGL, BGFX_PCI_ID_NONE, 0, nullptr, nullptr);
 	::Sleep(4000);
 }
 
 
 extern "C" void bgfxShutdown()
 {
-	bgfx_shutdown();
+	bgfx::shutdown();
 }
 

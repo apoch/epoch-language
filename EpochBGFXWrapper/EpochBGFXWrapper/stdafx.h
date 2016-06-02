@@ -11,7 +11,8 @@
 // Windows Header Files:
 #include <windows.h>
 
-#include <bgfx/c99/bgfx.h>
+#include <bgfx/bgfx.h>
+#include <bgfx/bgfxplatform.h>
 
 
 // TODO: reference additional headers your program requires here

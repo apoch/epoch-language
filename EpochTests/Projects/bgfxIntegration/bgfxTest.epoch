@@ -66,9 +66,6 @@ MessageBox : OPAQUE hwnd, string message, string title, integer style -> integer
 
 entrypoint :
 {
-	//bgfxInit()
-	//bgfxShutdown()
-
 	integer WS_OVERLAPPEDWINDOW = 13565952
 	integer CW_USEDEFAULT = -2147483648
 
@@ -87,6 +84,8 @@ entrypoint :
 	OPAQUE hwnd = CreateWindowEx(0, "EpochBGFXClass", "Epoch BGFX Demo", WS_OVERLAPPEDWINDOW + 0x02000000, CW_USEDEFAULT, 0, CW_USEDEFAULT, 0, nullopaque, nullopaque, hInstance, nullopaque)
 	ShowWindow(hwnd, 1)
 
+	bgfxInit(hwnd)
+
 	Point pt = 0, 0
 	MessageInfo msg = nullopaque, 0, 0, 0, 0, pt
 
@@ -95,6 +94,8 @@ entrypoint :
 		TranslateMessage(msg)
 		DispatchMessage(msg)
 	}
+
+	bgfxShutdown()
 }
 
 
@@ -114,7 +115,7 @@ MainWindowProcedure : OPAQUE hwnd, integer message, integer wparam, integer lpar
 
 
 
-bgfxInit : [external("EpochBGFXWrapper.dll", "bgfxInit")]
-//bgfxShutdown : [external("EpochBGFXWrapper.dll", "bgfxShutdown")]
+bgfxInit : OPAQUE hwnd [external("EpochBGFXWrapper.dll", "bgfxInit")]
+bgfxShutdown : [external("EpochBGFXWrapper.dll", "bgfxShutdown")]
 
 
