@@ -11,6 +11,7 @@
 // Windows Header Files:
 #include <windows.h>
 
+#include <bx/uint32_t.h>
 #include <bgfx/bgfx.h>
 #include <bgfx/bgfxplatform.h>
 

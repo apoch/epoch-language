@@ -91,6 +91,8 @@ entrypoint :
 
 	while(GetMessage(msg, nullopaque, 0, 0) != 0)
 	{		
+		bgfxFrame()
+
 		TranslateMessage(msg)
 		DispatchMessage(msg)
 	}
@@ -117,5 +119,6 @@ MainWindowProcedure : OPAQUE hwnd, integer message, integer wparam, integer lpar
 
 bgfxInit : OPAQUE hwnd [external("EpochBGFXWrapper.dll", "bgfxInit")]
 bgfxShutdown : [external("EpochBGFXWrapper.dll", "bgfxShutdown")]
+bgfxFrame : [external("EpochBGFXWrapper.dll", "bgfxFrame")]
 
 
