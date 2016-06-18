@@ -2,6 +2,9 @@
 // Data structures for holding the internal representation of a compiled program
 //
 
+
+structure integer64 : integer dummy			// TODO - terrible hack, redo this once we get to self-hosting again
+
 structure ParsedToken :
 	string Token,
 	string FileName,
@@ -67,7 +70,7 @@ structure AtomSentinel :
 	integer dummy
 
 
-type ExpressionAtom : 	integer | integer16 | boolean | real | StringHandleAtom |
+type ExpressionAtom : 	integer | integer16 | integer64 | boolean | real | StringHandleAtom |
 			IdentifierAtom | OperatorInvokeAtom | TypeAnnotationAtom | RefBinding |
 			CompoundAtom |
 			Statement |

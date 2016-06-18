@@ -219,8 +219,8 @@ CreateFunctionParamTypesInLLVM : LLVMContextHandle context, list<UnresolvedParam
 		EpochLLVMFunctionQueueParamType(context, paramtype)
 	}
 	else
-	{		
-		LLVMType paramtype = GetLLVMTypeForEpochType(context, resolvedtype)
+	{
+		LLVMType paramtype = GetLLVMTypeForEpochType(context, params.value.ResolvedType)
 		EpochLLVMFunctionQueueParamType(context, paramtype)
 	}
 	
@@ -265,21 +265,18 @@ GetLLVMTypeForEpochType : LLVMContextHandle context, integer typeid -> LLVMType 
 	{
 		t = EpochLLVMTypeGetReal(context)
 	}
+	elseif(typeid == 0x01000005)
+	{
+		t = EpochLLVMTypeGetInteger64(context)
+	}
 	elseif(typeid == 0x02000000)
 	{
 		t = EpochLLVMTypeGetString(context)
 	}
 	elseif(IsStructureType(typeid))
 	{
-		if(GetPooledString(GetNameOfType(typeid)) == "OPAQUE")
-		{
-			t = EpochLLVMTypeGetInteger64(context)				// TODO - this is a barfulous hack until we get integer64 support in Epoch
-		}
-		else
-		{
-			boolean found = BinaryTreeCopyPayload<LLVMType>(LLVMStructureTypeTable.RootNode, typeid, t)
-			assertmsg(found, "Structure type not registered with LLVM " ; GetPooledString(GetNameOfType(typeid)))
-		}
+		boolean found = BinaryTreeCopyPayload<LLVMType>(LLVMStructureTypeTable.RootNode, typeid, t)
+		assertmsg(found, "Structure type not registered with LLVM " ; GetPooledString(GetNameOfType(typeid)))
 	}
 	elseif(IsFunctionType(typeid))
 	{
@@ -796,6 +793,11 @@ EmitSingleAtomToLLVM : LLVMBuildContext ref context, integer ref literal
 EmitSingleAtomToLLVM : LLVMBuildContext ref context, integer16 ref literal
 {
 	EpochLLVMCodePushInteger16(context.Context, literal)
+}
+
+EmitSingleAtomToLLVM : LLVMBuildContext ref context, integer64 ref literal
+{
+	EpochLLVMCodePushInteger64(context.Context, literal.dummy)
 }
 
 EmitSingleAtomToLLVM : LLVMBuildContext ref context, boolean ref literal

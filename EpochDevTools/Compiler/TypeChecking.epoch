@@ -1171,6 +1171,10 @@ TypeInference : Expression ref expression, InferenceContext ref context -> boole
 					{
 						expression.Type = 0x01000002
 					}
+					elseif((countnonzero(stack.value.PossibilityList.value.ReturnType.Types) == 1) && (countnonzero(context.ExpectedTypes) == 1) && (stack.value.PossibilityList.value.ReturnType.Types.value == 0x01000001) && (context.ExpectedTypes.value == 0x01000005))
+					{
+						expression.Type = 0x01000005
+					}
 					else
 					{
 						print("All types ruled out")
@@ -1183,7 +1187,9 @@ TypeInference : Expression ref expression, InferenceContext ref context -> boole
 			else
 			{
 				simplelist<integer> possibletypes = 0, nothing
-				FilterTypesForDemotion(stack.value.PossibilityList.value.ReturnType.Types, possibletypes)
+				simplelist<integer> possibletypesprepromotion = 0, nothing
+				FilterTypesForDemotion(stack.value.PossibilityList.value.ReturnType.Types, possibletypesprepromotion)
+				FilterTypesForPromotion(possibletypesprepromotion, possibletypes)
 				FilterTypesForAliasing(types)
 
 				integer typecount = countnonzero(possibletypes)
@@ -1256,7 +1262,9 @@ TypeInference : Expression ref expression, InferenceContext ref context -> boole
 		else
 		{		
 			simplelist<integer> filtered = 0, nothing
-			FilterTypesForDemotion(poss.Types, filtered)
+			simplelist<integer> prepromotion = 0, nothing
+			FilterTypesForDemotion(poss.Types, prepromotion)
+			FilterTypesForPromotion(prepromotion, filtered)
 			FilterTypesForAliasing(filtered)
 
 			integer typecount = countnonzero(filtered)
@@ -1289,6 +1297,10 @@ TypeInference : Expression ref expression, InferenceContext ref context -> boole
 	elseif(expression.Type == 0x01000002)
 	{
 		DemoteAtomType(expression.Atoms)
+	}
+	elseif(expression.Type == 0x01000005)
+	{
+		PromoteAtomType(expression.Atoms)
 	}
 	elseif((expression.Type & 0x7f000000) == 0x09000000)
 	{
@@ -1385,6 +1397,10 @@ WalkAtomsForType : list<ExpressionAtom> ref atoms, list<ExpressionAtom> ref tail
 				{
 					DemoteAtomType(tail)
 				}
+			}
+			elseif(listcontains(stack.value.PossibilityList.value.ParameterTypes.value.Types, 0x01000005))
+			{
+				PromoteAtomType(atoms)
 			}
 		}
 		elseif(didrightdemote)
@@ -1546,6 +1562,7 @@ GetAtomType : integer            ref atom, TypePossibilityList ref possibilities
 {
 	AddPossibleParameter(possibilities.Types, 0x01000001)
 	AddPossibleParameter(possibilities.Types, 0x01000002)			// Allow demotion later
+	AddPossibleParameter(possibilities.Types, 0x01000005)			// Allow promotion later
 }
 
 GetAtomType : CompoundAtom       ref atom, TypePossibilityList ref possibilities, Scope ref scope, ContextNode<FunctionDefinition> ref func, boolean funcret, boolean parenthetical { AddPossibleParameter(possibilities.Types, atom.Type)  }
@@ -1974,6 +1991,31 @@ PerformDemotion : list<ExpressionAtom> ref atoms, Statement ref atom [nogc]
 PerformDemotion : list<ExpressionAtom> ref atoms, CompoundAtom ref atom [nogc]
 
 
+PromoteAtomType : list<ExpressionAtom> ref atoms [nogc]
+{
+	PerformPromotion(atoms, atoms.value)
+}
+
+PerformPromotion : list<ExpressionAtom> ref atoms, integer ref atom [nogc]
+{
+	integer64 newatom = atom
+	ExpressionAtom wrap = newatom
+	atoms.value = wrap
+}
+
+PerformPromotion : list<ExpressionAtom> ref atoms, IdentifierAtom ref atom [nogc]
+
+PerformPromotion : list<ExpressionAtom> ref atoms, Statement ref atom [nogc]
+{
+	assertmsg(atom.Type == 0x01000005, "Failed to promote statement type")
+}
+
+PerformPromotion : list<ExpressionAtom> ref atoms, CompoundAtom ref atom [nogc]
+
+
+
+
+
 
 FilterOverloadsForTypeDemotion : list<InferencePossibility> ref in, list<InferencePossibility> ref out
 {
@@ -2013,6 +2055,46 @@ FilterTypesForDemotion : simplelist<integer> ref in, simplelist<integer> ref out
 }
 
 
+
+FilterOverloadsForTypePromotion : list<InferencePossibility> ref in, list<InferencePossibility> ref out
+{
+	boolean hasdemoted = false
+	boolean hassuperior = false
+	boolean hasother = false
+
+	CheckIfContainsOnlyDemotedOverloads(in, hasdemoted, hassuperior, hasother)
+
+	if(hasdemoted && hassuperior && (!hasother))
+	{
+		StripPromotedOverloads(in, out)
+	}
+	else
+	{
+		out = in
+	}
+}
+
+
+FilterTypesForPromotion : simplelist<integer> ref in, simplelist<integer> ref out [nogc]
+{
+	boolean hasdemoted = false
+	boolean hassuperior = false
+	boolean hasother = false
+
+	CheckIfContainsOnlyDemotedTypes(in, hasdemoted, hassuperior, hasother)
+
+	if(hasdemoted && hassuperior && (!hasother))
+	{
+		StripPromotedTypes(in, out)
+	}
+	else
+	{
+		out = in
+	}
+}
+
+
+
 CheckIfContainsOnlyDemotedOverloads : list<InferencePossibility> ref in, boolean ref hasdemoted, boolean ref hassuperior, boolean ref hasother [nogc]
 {
 	if(in.value.FunctionName != 0)
@@ -2024,6 +2106,10 @@ CheckIfContainsOnlyDemotedOverloads : list<InferencePossibility> ref in, boolean
 		elseif(in.value.ParameterTypes.value.Types.value == 0x01000002)
 		{
 			hasdemoted = true
+		}
+		elseif(in.value.ParameterTypes.value.Types.value == 0x01000005)
+		{
+			hassuperior = true
 		}
 		elseif(in.value.ParameterTypes.value.Types.value == 0)
 		{
@@ -2057,6 +2143,24 @@ StripDemotedOverloads : nothing, list<InferencePossibility> ref out [nogc]
 
 
 
+StripPromotedOverloads : list<InferencePossibility> ref in, list<InferencePossibility> ref out [nogc]
+{
+	if(in.value.FunctionName != 0)
+	{
+		if(in.value.ParameterTypes.value.Types.value != 0x01000005)
+		{
+			prepend<InferencePossibility>(out, in.value)
+		}
+	}
+
+	StripPromotedOverloads(in.next, out)
+}
+
+StripPromotedOverloads : nothing, list<InferencePossibility> ref out [nogc]
+
+
+
+
 CheckIfContainsOnlyDemotedTypes : simplelist<integer> ref in, boolean ref hasdemoted, boolean ref hassuperior, boolean ref hasother [nogc]
 {
 	if(in.value == 0x01000001)
@@ -2066,6 +2170,10 @@ CheckIfContainsOnlyDemotedTypes : simplelist<integer> ref in, boolean ref hasdem
 	elseif(in.value == 0x01000002)
 	{
 		hasdemoted = true
+	}
+	elseif(in.value == 0x01000005)
+	{
+		hassuperior = true
 	}
 	elseif(in.value == 0)
 	{
@@ -2095,6 +2203,23 @@ StripDemotedTypes : simplelist<integer> ref in, simplelist<integer> ref out [nog
 }
 
 StripDemotedTypes : nothing, simplelist<integer> ref out [nogc]
+
+
+
+StripPromotedTypes : simplelist<integer> ref in, simplelist<integer> ref out [nogc]
+{
+	if(in.value != 0)
+	{
+		if(in.value != 0x01000005)
+		{
+			simpleprepend<integer>(out, in.value)
+		}
+	}
+
+	StripPromotedTypes(in.next, out)
+}
+
+StripPromotedTypes : nothing, simplelist<integer> ref out [nogc]
 
 
 CheckMemberTypes : list<StructureMember> ref members, simplelist<integer> ref types -> boolean match = true

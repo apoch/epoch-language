@@ -301,6 +301,9 @@ PrepareStringTable :
 
 	StringTableRegisterString((++counter), "=")
 	PooledStringHandleForAssignment = counter
+	
+	StringTableRegisterString((++counter), "integer64")
+	PooledStringHandleForInteger64 = counter
 
 	GlobalStringPool.CurrentStringHandle = counter + 1
 	FirstNonBuiltInStringHandle = GlobalStringPool.CurrentStringHandle
@@ -494,6 +497,20 @@ FindBuiltinAndAddParameterTypes : integer funcname, integer paramindex, integer 
 			elseif(paramindex == 1)
 			{
 				simpleprepend<integer>(types, 0x01000002)	// integer16 type signature
+			}
+		}
+	}
+	elseif(funcname == PooledStringHandleForInteger64)
+	{
+		if(paramcount == 2)
+		{
+			if(paramindex == 0)
+			{
+				simpleprepend<integer>(types, 0x01000000)	// identifier type signature
+			}
+			elseif(paramindex == 1)
+			{
+				simpleprepend<integer>(types, 0x01000005)	// integer64 type signature
 			}
 		}
 	}

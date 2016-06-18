@@ -3,23 +3,19 @@
 //
 
 
-structure OPAQUE :
-	integer DummyHackField
-
-
 structure WindowClass :
 	integer Size,
 	integer Style,
-	(WindowProc : OPAQUE, integer, integer, integer -> integer),
+	(WindowProc : integer64, integer, integer, integer -> integer),
 	integer ClassExtra,
 	integer WindowExtra,
-	OPAQUE hInstance,
-	OPAQUE hIcon,
-	OPAQUE hCursor,
-	OPAQUE hBackgroundBrush,
+	integer64 hInstance,
+	integer64 hIcon,
+	integer64 hCursor,
+	integer64 hBackgroundBrush,
 	string MenuName,
 	string ClassName,
-	OPAQUE hIconSmall
+	integer64 hIconSmall
 
 
 structure Point :
@@ -33,7 +29,7 @@ structure Rect :
 	integer bottom
 
 structure MessageInfo :
-	OPAQUE hwnd,
+	integer64 hwnd,
 	integer message,
 	integer wparam,
 	integer lparam,
@@ -42,26 +38,26 @@ structure MessageInfo :
 
 
 
-CloseHandle : OPAQUE handle -> boolean ret = false [external("Kernel32.dll", "CloseHandle", "stdcall")]
-GetModuleHandle : OPAQUE null -> OPAQUE handle = 0 [external("Kernel32.dll", "GetModuleHandleA", "stdcall")]
+CloseHandle : integer64 handle -> boolean ret = false [external("Kernel32.dll", "CloseHandle", "stdcall")]
+GetModuleHandle : integer64 null -> integer64 handle = 0 [external("Kernel32.dll", "GetModuleHandleA", "stdcall")]
 RegisterClassEx : WindowClass ref wc -> integer16 atom = 0 [external("User32.dll", "RegisterClassExA", "stdcall")]
-CreateWindowEx : integer exstyle, string classname, string windowname, integer style, integer x, integer y, integer width, integer height, OPAQUE hwndparent, OPAQUE hmenu, OPAQUE hinstance, OPAQUE param -> OPAQUE windowhandle = 0 [external("User32.dll", "CreateWindowExA", "stdcall")]
-ShowWindow : OPAQUE hwnd, integer cmdshow -> boolean success = false [external("User32.dll", "ShowWindow", "stdcall")]
-GetMessage : MessageInfo ref msg, OPAQUE hwnd, integer filtermin, integer filtermax -> integer result = 0 [external("User32.dll", "GetMessageA", "stdcall")]
+CreateWindowEx : integer exstyle, string classname, string windowname, integer style, integer x, integer y, integer width, integer height, integer64 hwndparent, integer64 hmenu, integer64 hinstance, integer64 param -> integer64 windowhandle = 0 [external("User32.dll", "CreateWindowExA", "stdcall")]
+ShowWindow : integer64 hwnd, integer cmdshow -> boolean success = false [external("User32.dll", "ShowWindow", "stdcall")]
+GetMessage : MessageInfo ref msg, integer64 hwnd, integer filtermin, integer filtermax -> integer result = 0 [external("User32.dll", "GetMessageA", "stdcall")]
 TranslateMessage : MessageInfo ref msg -> boolean success = false [external("User32.dll", "TranslateMessage", "stdcall")]
 DispatchMessage : MessageInfo ref msg -> integer unused = 0 [external("User32.dll", "DispatchMessageA", "stdcall")]
 PostQuitMessage : integer exitcode [external("User32.dll", "PostQuitMessage", "stdcall")]
-DefWindowProc : OPAQUE hwnd, integer msg, integer wparam, integer lparam -> integer ret = 0 [external("User32.dll", "DefWindowProcA", "stdcall")]
+DefWindowProc : integer64 hwnd, integer msg, integer wparam, integer lparam -> integer ret = 0 [external("User32.dll", "DefWindowProcA", "stdcall")]
 
-GetParent : OPAQUE hwnd -> integer parenthwnd = 0 [external("User32.dll", "GetParent", "stdcall")]
+GetParent : integer64 hwnd -> integer parenthwnd = 0 [external("User32.dll", "GetParent", "stdcall")]
 
-SendMessage : OPAQUE hwnd, integer message, integer wparam, integer lparam -> integer ret = 0 [external("User32.dll", "SendMessageA", "stdcall")]
+SendMessage : integer64 hwnd, integer message, integer wparam, integer lparam -> integer ret = 0 [external("User32.dll", "SendMessageA", "stdcall")]
 //SendMessage : integer hwnd, integer message, integer wparam, string lparam -> integer ret = 0 [external("User32.dll", "SendMessageA", "stdcall")]
 
 //DestroyWindow : integer handle -> boolean ret = false [external("User32.dll", "DestroyWindow", "stdcall")]
 
 
-MessageBox : OPAQUE hwnd, string message, string title, integer style -> integer ret = 0 [external("User32.dll", "MessageBoxA", "stdcall")]
+MessageBox : integer64 hwnd, string message, string title, integer style -> integer ret = 0 [external("User32.dll", "MessageBoxA", "stdcall")]
 
 
 entrypoint :
@@ -69,8 +65,8 @@ entrypoint :
 	integer WS_OVERLAPPEDWINDOW = 13565952
 	integer CW_USEDEFAULT = -2147483648
 
-	OPAQUE nullopaque = 0
-	OPAQUE hInstance = GetModuleHandle(nullopaque)
+	integer64 nullopaque = 0
+	integer64 hInstance = GetModuleHandle(nullopaque)
 
 	// TODO - sizeof(wc) instead of magic number
 	WindowClass wc = 80, 0, MainWindowProcedure, 0, 0, hInstance, nullopaque, nullopaque, nullopaque, "", "EpochBGFXClass", nullopaque
@@ -81,7 +77,7 @@ entrypoint :
 		assert(false)
 	}
 
-	OPAQUE hwnd = CreateWindowEx(0, "EpochBGFXClass", "Epoch BGFX Demo", WS_OVERLAPPEDWINDOW + 0x02000000, CW_USEDEFAULT, 0, CW_USEDEFAULT, 0, nullopaque, nullopaque, hInstance, nullopaque)
+	integer64 hwnd = CreateWindowEx(0, "EpochBGFXClass", "Epoch BGFX Demo", WS_OVERLAPPEDWINDOW + 0x02000000, CW_USEDEFAULT, 0, CW_USEDEFAULT, 0, nullopaque, nullopaque, hInstance, nullopaque)
 	ShowWindow(hwnd, 1)
 
 	bgfxInit(hwnd)
@@ -101,7 +97,7 @@ entrypoint :
 }
 
 
-MainWindowProcedure : OPAQUE hwnd, integer message, integer wparam, integer lparam -> integer ret = 0
+MainWindowProcedure : integer64 hwnd, integer message, integer wparam, integer lparam -> integer ret = 0
 {
 	integer WM_DESTROY = 2
 
@@ -117,7 +113,7 @@ MainWindowProcedure : OPAQUE hwnd, integer message, integer wparam, integer lpar
 
 
 
-bgfxInit : OPAQUE hwnd [external("EpochBGFXWrapper.dll", "bgfxInit")]
+bgfxInit : integer64 hwnd [external("EpochBGFXWrapper.dll", "bgfxInit")]
 bgfxShutdown : [external("EpochBGFXWrapper.dll", "bgfxShutdown")]
 bgfxFrame : [external("EpochBGFXWrapper.dll", "bgfxFrame")]
 

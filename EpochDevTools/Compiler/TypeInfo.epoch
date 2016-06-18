@@ -19,6 +19,10 @@ GetTypeSize : integer typeid -> integer size = 0 [nogc]
 	{
 		size = 4
 	}
+	elseif(typeid == 0x01000005)			// Integer64
+	{
+		size = 8
+	}
 	elseif(typeid == 0x02000000)			// StringHandle
 	{
 		size = 4
@@ -64,6 +68,10 @@ GetNameOfType : integer typeid -> integer name = 0
 	elseif(typeid == 0x01000004)
 	{
 		name = PooledStringHandleForReal
+	}
+	elseif(typeid == 0x01000005)
+	{
+		name = PooledStringHandleForInteger64
 	}
 	elseif(typeid == 0x02000000)
 	{
@@ -142,6 +150,10 @@ GetTypeByName : integer name -> integer typeid = 0 [nogc]
 	elseif(name == PooledStringHandleForReal)
 	{
 		typeid = 0x01000004
+	}
+	elseif(name == PooledStringHandleForInteger64)
+	{
+		typeid = 0x01000005
 	}
 	elseif(name == PooledStringHandleForString)
 	{
