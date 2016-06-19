@@ -248,6 +248,12 @@ GetLLVMTypeForEpochType : LLVMContextHandle context, integer typeid -> LLVMType 
 {
 	boolean wasref = IsReferenceType(typeid)
 	typeid = MakeNonReferenceType(typeid)
+	
+	while((typeid & 0x7f000000) == 0x05000000)
+	{
+		typeid = FindTypeAliasBase(typeid)
+	}
+	
 
 	if(typeid == 0x01000001)
 	{

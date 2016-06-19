@@ -10,6 +10,17 @@ TypeListContains : simplelist<integer> ref thelist, integer value -> integer ret
 	}
 
 
+	// TEST HACK
+	if((listval & 0x7f000000) != 0x05000000)
+	{
+		while((value & 0x7f000000) == 0x05000000)
+		{
+			value = FindTypeAliasBase(value)
+		}
+	}
+	// END HACK
+
+
 	if(listval == value)
 	{
 		ret = listval
@@ -1151,7 +1162,6 @@ TypeInference : Expression ref expression, InferenceContext ref context -> boole
 			{
 				simplelist<integer> types = 0, nothing
 				EliminateImpossibleType(stack.value.PossibilityList.value.ReturnType.Types, context.ExpectedTypes, types)
-				FilterTypesForAliasing(types)				
 				
 				integer typecount = countnonzero(types)
 				if(typecount == 1)
@@ -1190,7 +1200,6 @@ TypeInference : Expression ref expression, InferenceContext ref context -> boole
 				simplelist<integer> possibletypesprepromotion = 0, nothing
 				FilterTypesForDemotion(stack.value.PossibilityList.value.ReturnType.Types, possibletypesprepromotion)
 				FilterTypesForPromotion(possibletypesprepromotion, possibletypes)
-				FilterTypesForAliasing(types)
 
 				integer typecount = countnonzero(possibletypes)
 				if(typecount == 1)
@@ -1236,7 +1245,6 @@ TypeInference : Expression ref expression, InferenceContext ref context -> boole
 		{
 			simplelist<integer> types = 0, nothing
 			EliminateImpossibleType(poss.Types, context.ExpectedTypes, types)
-			FilterTypesForAliasing(types)
 
 			integer typecount = countnonzero(types)
 			if(typecount == 1)
@@ -1265,7 +1273,6 @@ TypeInference : Expression ref expression, InferenceContext ref context -> boole
 			simplelist<integer> prepromotion = 0, nothing
 			FilterTypesForDemotion(poss.Types, prepromotion)
 			FilterTypesForPromotion(prepromotion, filtered)
-			FilterTypesForAliasing(filtered)
 
 			integer typecount = countnonzero(filtered)
 			if(typecount == 1)
@@ -1321,12 +1328,6 @@ TypeInference : Expression ref expression, InferenceContext ref context -> boole
 			SetAtomType(expression.Atoms.value, expression.Type)
 		}
 	}
-}
-
-
-FilterTypesForAliasing : simplelist<integer> ref typeids [nogc]
-{
-	// TODO - dead code?
 }
 
 CountPossibilities : list<InferencePossibility> ref thelist -> integer count = 0 [nogc]
@@ -2007,7 +2008,13 @@ PerformPromotion : list<ExpressionAtom> ref atoms, IdentifierAtom ref atom [nogc
 
 PerformPromotion : list<ExpressionAtom> ref atoms, Statement ref atom [nogc]
 {
-	assertmsg(atom.Type == 0x01000005, "Failed to promote statement type")
+	integer atomtype = atom.Type
+	while((atomtype & 0x7f000000) == 0x05000000)
+	{
+		atomtype = FindTypeAliasBase(atomtype)
+	}
+
+	assertmsg(atomtype == 0x01000005, "Failed to promote statement type")
 }
 
 PerformPromotion : list<ExpressionAtom> ref atoms, CompoundAtom ref atom [nogc]
