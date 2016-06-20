@@ -13,6 +13,7 @@ h1.title
   padding-top: 5px;
   padding-bottom: 0px;
   background-color: rgb(50, 64, 128);
+  border-radius: 3px 3px 0 0;
   color: white;
 }
 
@@ -24,6 +25,7 @@ h3.subtitle
   padding-top: 2px;
   padding-bottom: 5px;
   background-color: rgb(50, 64, 128);
+  border-radius: 0 0 3px 3px;
   color: white;
 }
 
