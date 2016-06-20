@@ -66,6 +66,7 @@ div.content-right
   text-align: justify;
   background-color: rgb(255, 255, 255);
   border: 1px solid black;
+  border-radius: 5px;
 }
 
 ul.navbar
@@ -91,6 +92,7 @@ li.navbutton
   padding-bottom: 3px;
   background-color: rgb(90, 104, 168);
   border: 1px solid white;
+  border-radius: 3px;
 }
 
 li
