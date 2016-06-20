@@ -81,6 +81,7 @@ ul.navbar
   padding-top: 10px;
   padding-bottom: 10px;
   background-color: rgb(70, 84, 148);
+  border-radius: 5px;
   text-align: center;
 }
 
