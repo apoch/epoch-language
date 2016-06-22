@@ -3,3 +3,4 @@ EXPORTS
 	ERT_assert
 	ERT_passtest
 	ERT_print
+	ERT_string_concat

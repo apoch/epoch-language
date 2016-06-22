@@ -24,6 +24,9 @@
     <ClInclude Include="EpochRT.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="StringPool.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -33,6 +36,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="dllmain.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="StringPool.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

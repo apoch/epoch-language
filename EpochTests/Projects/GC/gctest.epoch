@@ -1,0 +1,11 @@
+entrypoint :
+{
+	string h = "Hello"
+	string s = " "
+	string w = "World!"
+
+	string m = h ; s ; w
+
+	print(m)
+}
+

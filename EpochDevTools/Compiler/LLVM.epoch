@@ -947,6 +947,14 @@ EmitSingleAtomToLLVM : LLVMBuildContext ref context, OperatorInvokeAtom ref atom
 	{
 		EpochLLVMCodeOperatorIntegerMinus(context.Context)
 	}
+	elseif(atom.OperatorName == PooledStringHandleForStringConcat)
+	{
+		integer thunk = 0
+		BinaryTreeCopyPayload<integer>(LLVMGlobalThunks.RootNode, atom.OperatorName, thunk)
+		
+		assertmsg(thunk != 0, "Missing external thunk")
+		EpochLLVMCodeCreateCallThunk(context.Context, thunk)
+	}
 	else
 	{
 		assertmsg(false, "Operator not implemented in LLVM bindings")
@@ -1024,6 +1032,7 @@ SetUpBuiltInLLVMThunks : LLVMContextHandle context
 	BuiltInThunkCreateAssert(context)
 	BuiltInThunkCreatePasstest(context)
 	BuiltInThunkCreatePrint(context)
+	BuiltInThunkCreateStringConcat(context)
 }
 
 
@@ -1098,6 +1107,17 @@ BuiltInThunkCreatePrint : LLVMContextHandle context
 	integer thunk = EpochLLVMFunctionCreateThunk(context, "ERT_print", fty)
 
 	BinaryTreeCreateOrInsert<integer>(LLVMGlobalThunks, PooledStringHandleForPrint, thunk)
+}
+
+BuiltInThunkCreateStringConcat : LLVMContextHandle context
+{
+	EpochLLVMFunctionTypePush(context)
+	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetString(context))
+	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetString(context))
+	LLVMFunctionType fty = EpochLLVMFunctionTypeCreate(context, EpochLLVMTypeGetString(context))
+	integer thunk = EpochLLVMFunctionCreateThunk(context, "ERT_string_concat", fty)
+
+	BinaryTreeCreateOrInsert<integer>(LLVMGlobalThunks, PooledStringHandleForStringConcat, thunk)
 }
 
 
