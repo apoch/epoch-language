@@ -1,188 +1,185 @@
 <!DOCTYPE html>
 <html>
- <head>
-  <meta charset="UTF-8">
-  <link rel="stylesheet" type="text/css" media="screen" href="../stylesheets/main.css">
-  <title>The Design of Tasks in Epoch</title>
- </head>
+  <head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" type="text/css" media="screen" href="../stylesheets/main.css">
+    <title>The Design of Tasks in Epoch</title>
+    <script src="../headerTemplate.js"></script>
+  </head>
 
- <body>
-  <div style="width: 100%"><section class="main_content">
-  <h1 class="title">Epoch Programming Language</h1>
-  <h3 class="subtitle">Building an Opinionated Language for Software Development</h3>
-  <hr/>
+  <body>
+    <section class="main_content_lane">  
+      <my-header></my-header>
+      
+      <section class="main_content">
+        <h2>The Design of "Tasks" in the Epoch Programming Language</h2>
 
-  <ul class="navbar">
-   <li class="navbutton"><a class="navlink" href="../index.html">Home</a></li>
-   <li class="navbutton"><a class="navlink" href="../project_overview.html">Overview</a></li>
-   <li class="navbutton"><a class="navlink" href="./index.html">Articles</a></li>
-   <li class="navbutton"><a class="navlink" href="../downloads.html">Downloads</a></li>
-   <li class="navbutton"><a class="navlink" href="https://github.com/apoch/epoch-language">Source</a></li>
-  </ul>
+        <p>Up through the present, Epoch as a programming language has been exclusively <em>procedural</em> - all Epoch programs are implemented as a series of standalone
+        structured functions which call into each other to do the work of the program itself. Epoch has not enjoyed the benefits of modules, namespaces, true separate compilation,
+        and so on, unlike most other serious language efforts. More importantly, Epoch has not supported many of the popular means of abstraction and encapsulation relied upon by
+        authors of nontrivial software.</p>
 
-  <h2>The Design of "Tasks" in the Epoch Programming Language</h2>
+        <p>During the ongoing efforts on the Epoch compiler and IDE projects, it became painfully obvious that this status quo was not acceptable. In particular, we constantly
+        feel the pain of the lack of tools for cleanly separating and/or re-composing portions of a program. Managing complexity in software on the scale of a compiler and IDE
+        requires a certain discipline and a degree of support from the language itself. Without this support, generating a mass of tangled "spaghetti" code becomes all too easy.</p>
 
-  <p>Up through the present, Epoch as a programming language has been exclusively <em>procedural</em> - all Epoch programs are implemented as a series of standalone
-  structured functions which call into each other to do the work of the program itself. Epoch has not enjoyed the benefits of modules, namespaces, true separate compilation,
-  and so on, unlike most other serious language efforts. More importantly, Epoch has not supported many of the popular means of abstraction and encapsulation relied upon by
-  authors of nontrivial software.</p>
+        <p>One of the primary goals that emerged from this experience is to build a language support infrastructure for architecting software cleanly. Composing fundamental
+        language features should allow for very powerful control over how programs are structured, and how interrelated portions of a program connect to each other. Another
+        central objective is to stay true to the feel and philosophy of Epoch as a whole. Where some concepts work nicely in many other languages, they often introduce elements
+        of complexity or awkwardness when trying to shoehorn them into Epoch.</p>
 
-  <p>During the ongoing efforts on the Epoch compiler and IDE projects, it became painfully obvious that this status quo was not acceptable. In particular, we constantly
-  feel the pain of the lack of tools for cleanly separating and/or re-composing portions of a program. Managing complexity in software on the scale of a compiler and IDE
-  requires a certain discipline and a degree of support from the language itself. Without this support, generating a mass of tangled "spaghetti" code becomes all too easy.</p>
+        <p>What has taken shape is a concept we're referring to as <strong>tasks</strong>. At its core, a task is meant to fill the niche of an object in more traditional
+        languages. However, tasks are designed to accentuate a few aspects of software design - very much part of the "opinionated" approach to programming that Epoch espouses.</p>
 
-  <p>One of the primary goals that emerged from this experience is to build a language support infrastructure for architecting software cleanly. Composing fundamental
-  language features should allow for very powerful control over how programs are structured, and how interrelated portions of a program connect to each other. Another
-  central objective is to stay true to the feel and philosophy of Epoch as a whole. Where some concepts work nicely in many other languages, they often introduce elements
-  of complexity or awkwardness when trying to shoehorn them into Epoch.</p>
+        <ul>
+          <li>
+            <strong>Separation of concerns</strong> - code that has no relationships to other code should not be artificially coupled to that code, either by logical behavior
+            or by physical coincidence. For example, unrelated code should not need to share a "file."
+          </li>
+          
+          <li>
+            <strong>Cleanliness of syntax</strong> - we agonized extensively over how the code should look. Even now the design is slightly malleable simply because there are
+            always new interesting concerns and objectives coming to light.
+          </li>
+          
+          <li>
+            <strong>Correctness by default</strong> - Epoch strongly believes that the easiest way to do something should almost always also be the optimal way to do it. Two-phase
+            initialization of objects, for example, runs counter to this; Epoch tasks are constructed in a valid state by default.
+          </li>
+          
+          <li>
+            <strong>Rich access control</strong> - Some things just need to stay internal... until they don't. We've all written a public interface to implementation details and
+            then smothered it in comments about who is "allowed" to use it; what if, instead, you could just whitelist a specific bit of code to talk to that inner state? This is
+            the sort of philosophy that's given rise to the draft of Epoch tasks.
+          </li>
+        </ul>
 
-  <p>What has taken shape is a concept we're referring to as <strong>tasks</strong>. At its core, a task is meant to fill the niche of an object in more traditional
-  languages. However, tasks are designed to accentuate a few aspects of software design - very much part of the "opinionated" approach to programming that Epoch espouses.</p>
+        <p>A task in Epoch is a special kind of entity that can receive <em>messages</em>. It can be thought of like a handle or pointer to a method dispatch table, combined
+        with an optional allocation of internal state that is visible to the methods themselves. In this sense a task is much like an object. What differs from many traditional
+        object-oriented languages' notions of an <em>object</em> is how tasks are created.</p>
 
-  <ul>
-   <li>
-    <strong>Separation of concerns</strong> - code that has no relationships to other code should not be artificially coupled to that code, either by logical behavior
-    or by physical coincidence. For example, unrelated code should not need to share a "file."
-   </li>
-   <li>
-    <strong>Cleanliness of syntax</strong> - we agonized extensively over how the code should look. Even now the design is slightly malleable simply because there are
-    always new interesting concerns and objectives coming to light.
-   </li>
-   <li>
-    <strong>Correctness by default</strong> - Epoch strongly believes that the easiest way to do something should almost always also be the optimal way to do it. Two-phase
-    initialization of objects, for example, runs counter to this; Epoch tasks are constructed in a valid state by default.
-   </li>
-   <li>
-    <strong>Rich access control</strong> - Some things just need to stay internal... until they don't. We've all written a public interface to implementation details and
-    then smothered it in comments about who is "allowed" to use it; what if, instead, you could just whitelist a specific bit of code to talk to that inner state? This is
-    the sort of philosophy that's given rise to the draft of Epoch tasks.
-   </li>
-  </ul>
+        <p>In Epoch, a task is the result of invoking the <tt>dispatch</tt> keyword:</p>
 
-  <p>A task in Epoch is a special kind of entity that can receive <em>messages</em>. It can be thought of like a handle or pointer to a method dispatch table, combined
-  with an optional allocation of internal state that is visible to the methods themselves. In this sense a task is much like an object. What differs from many traditional
-  object-oriented languages' notions of an <em>object</em> is how tasks are created.</p>
-
-  <p>In Epoch, a task is the result of invoking the <tt>dispatch</tt> keyword:</p>
-
-  <pre>entrypoint :
+        <pre>entrypoint :
 {
-    task echo = dispatch(
-        Display : string x { print(x) }
-    )
+  task echo = dispatch(
+    Display : string x { print(x) }
+  )
 
-    echo => Display("Hello world!")
+  echo => Display("Hello world!")
 }</pre>
 
-  <p>The code above creates a task that can accept one message: <tt>Display</tt>. <tt>Display</tt> accepts a single string parameter and returns no values. This task is bound
-  to a local variable named <tt>echo</tt>. We then immediately send the <tt>Display</tt> message to <tt>echo</tt> and pass a traditional, if not particularly creative,
-  string argument.</p>
+        <p>The code above creates a task that can accept one message: <tt>Display</tt>. <tt>Display</tt> accepts a single string parameter and returns no values. This task is bound
+        to a local variable named <tt>echo</tt>. We then immediately send the <tt>Display</tt> message to <tt>echo</tt> and pass a traditional, if not particularly creative,
+        string argument.</p>
 
-  <p>Of course this is not very useful if tasks cannot store any internal state. To capture state, note that the <tt>dispatch</tt> keyword essentially allows us to
-  create inner functions. Thus, all that is necessary to store internal state in a task is to return a dispatcher from a function, forming a closure. This is handled
-  automatically by the language and looks like the code below:</p>
+        <p>Of course this is not very useful if tasks cannot store any internal state. To capture state, note that the <tt>dispatch</tt> keyword essentially allows us to
+        create inner functions. Thus, all that is necessary to store internal state in a task is to return a dispatcher from a function, forming a closure. This is handled
+        automatically by the language and looks like the code below:</p>
 
-  <pre>Averager : -> dispatch
+        <pre>Averager : -> dispatch
 (
-    DataPoint : integer x { total += x   count++ }
-    GetAverage : -> total / count
+  DataPoint : integer x { total += x   count++ }
+  GetAverage : -> total / count
 )
 {
-    integer total = 0
-    integer count = 0
+  integer total = 0
+  integer count = 0
 }</pre>
 
-   <p>In this snippet, we define a function called <tt>Averager</tt> which takes no parameters and returns a task. The dispatch keyword specifies that the task can
-   receive two distinct messages: one called <tt>DataPoint</tt> and one called <tt>GetAverage</tt>.</p>
+        <p>In this snippet, we define a function called <tt>Averager</tt> which takes no parameters and returns a task. The dispatch keyword specifies that the task can
+        receive two distinct messages: one called <tt>DataPoint</tt> and one called <tt>GetAverage</tt>.</p>
 
-   <p>Note that the implementations of the two messages refer to variables created in the scope of <tt>Averager</tt> itself. This is how state is bound to the message
-   dispatching block returned by that function. In fact, any time a function's return type is a <tt>dispatch</tt> block, Epoch will automatically create a closure holding
-   the function's local variables, and ship it around alongside the dispatch table as a complete task.</p>
+        <p>Note that the implementations of the two messages refer to variables created in the scope of <tt>Averager</tt> itself. This is how state is bound to the message
+        dispatching block returned by that function. In fact, any time a function's return type is a <tt>dispatch</tt> block, Epoch will automatically create a closure holding
+        the function's local variables, and ship it around alongside the dispatch table as a complete task.</p>
 
-   <p>Tasks have lifetime equivalent to the variable in which they are stored. Data lifetime is an area of ongoing design and experimentation in Epoch so further
-   details will likely arise later on.</p>
+        <p>Tasks have lifetime equivalent to the variable in which they are stored. Data lifetime is an area of ongoing design and experimentation in Epoch so further
+        details will likely arise later on.</p>
 
-   <h3>Polymorphic tasks</h3>
-   <p>In order to support polymorphic behavior, Epoch has the notion of a <em>protocol</em>. Protocols are lists of messages and dictate what specific interface a task
-   is expected to supply. If a task's dispatch block exposes all of the messages of a protocol, then the task "conforms to" that protocol.</p>
+        <h3>Polymorphic tasks</h3>
+        <p>In order to support polymorphic behavior, Epoch has the notion of a <em>protocol</em>. Protocols are lists of messages and dictate what specific interface a task
+        is expected to supply. If a task's dispatch block exposes all of the messages of a protocol, then the task "conforms to" that protocol.</p>
 
-   <p>Imagine we have three functions, <tt>AverageMean</tt>, <tt>AverageMedian</tt>, and <tt>AverageMode</tt>. Each conforms to the same protocol as <tt>Averager</tt> does
-   in the above example. This time, we will give that protocol a specific definition, so we can ask for any task that conforms to the protocol and interchange it with any
-   other conformant task.</p>
+        <p>Imagine we have three functions, <tt>AverageMean</tt>, <tt>AverageMedian</tt>, and <tt>AverageMode</tt>. Each conforms to the same protocol as <tt>Averager</tt> does
+        in the above example. This time, we will give that protocol a specific definition, so we can ask for any task that conforms to the protocol and interchange it with any
+        other conformant task.</p>
 
-   <pre>protocol Average :
-    (DataPoint : integer),
-    (GetAverage : -> integer)
+        <pre>protocol Average :
+(DataPoint : integer),
+(GetAverage : -> integer)
 
 entrypoint :
 {
-    Average avg = match(random(0, 3))
-    {
-        0 -> AverageMean()
-        1 -> AverageMedian()
-        2 -> AverageMode()
-    }
+  Average avg = match(random(0, 3))
+  {
+    0 -> AverageMean()
+    1 -> AverageMedian()
+    2 -> AverageMode()
+  }
 
-    avg => DataPoint(42)
-    avg => DataPoint(666)
+  avg => DataPoint(42)
+  avg => DataPoint(666)
 
-    print(avg => GetAverage())
+  print(avg => GetAverage())
 }</pre>
 
-   <p>This should be largely familiar to anyone with experience in traditional object-oriented languages at this point: we essentially have an <em>interface</em> or
-   <em>pure abstract base class</em> (the protocol itself) and several derived implementations.</p>
+        <p>This should be largely familiar to anyone with experience in traditional object-oriented languages at this point: we essentially have an <em>interface</em> or
+        <em>pure abstract base class</em> (the protocol itself) and several derived implementations.</p>
 
 
-   <h3>Why tasks, anyways?</h3>
-   <p>At this point it is only natural to question why Epoch is parting ways from years of good solid programming language tradition; after all, classes and objects and
-   interfaces are all fairly well understood, and it seems rather silly to go around being different just for the sake of being different.</p>
+        <h3>Why tasks, anyways?</h3>
+        <p>At this point it is only natural to question why Epoch is parting ways from years of good solid programming language tradition; after all, classes and objects and
+        interfaces are all fairly well understood, and it seems rather silly to go around being different just for the sake of being different.</p>
 
-   <p>This is actually a question that we wrestled with a lot during the design of tasks. Ultimately, it boils down to a few simple ideas:</p>
-   <ul>
-    <li>Things that act different should look different</li>
-    <li>Type inference is important, and also much easier under certain constraints</li>
-    <li>Inheritance is not something we want to support</li>
-   </ul>
+        <p>This is actually a question that we wrestled with a lot during the design of tasks. Ultimately, it boils down to a few simple ideas:</p>
+        
+        <ul>
+          <li>Things that act different should look different</li>
+          <li>Type inference is important, and also much easier under certain constraints</li>
+          <li>Inheritance is not something we want to support</li>
+        </ul>
 
-   <p>Another way to look at it is that type inference is a very important goal for Epoch, but one that becomes radically more difficult with increased sophisitication
-   of the type system itself. Tasks give us a way to contain the type inference complexity (we need only worry about what protocols a task conforms to when doing type
-   checks on one) while simultaneously offering an escape hatch from knotty problems like multiple inheritance.</p>
+        <p>Another way to look at it is that type inference is a very important goal for Epoch, but one that becomes radically more difficult with increased sophisitication
+        of the type system itself. Tasks give us a way to contain the type inference complexity (we need only worry about what protocols a task conforms to when doing type
+        checks on one) while simultaneously offering an escape hatch from knotty problems like multiple inheritance.</p>
 
-   <p>In particular, not supporting inheritance is one of the strong "opinionated" pillars of Epoch's overall design. Beyond the complexities of type inference, inheritance
-   substantially muddies the design of many programs, and in general feels to us like a poor tool for most of the things for which it used. Epoch's goal is to provide a
-   platform upon which a programmer can design a custom-tailored model for her system's needs. Instead of packaging inheritance into the core language model, we prefer to
-   offer tools by which the programmer is empowered to compose new constructs that best suit the software being written.</p>
+        <p>In particular, not supporting inheritance is one of the strong "opinionated" pillars of Epoch's overall design. Beyond the complexities of type inference, inheritance
+        substantially muddies the design of many programs, and in general feels to us like a poor tool for most of the things for which it used. Epoch's goal is to provide a
+        platform upon which a programmer can design a custom-tailored model for her system's needs. Instead of packaging inheritance into the core language model, we prefer to
+        offer tools by which the programmer is empowered to compose new constructs that best suit the software being written.</p>
 
-   <p>One of the first questions we encountered in the design of tasks was how one actually gets created; and in fact that remained unanswered (to our satisfaction) until
-   nearly the end of the draft process. Assigning a task instance to a name of some kind requires careful thought in terms of syntax and the implications of scoping rules,
-   lifetimes, allocation control, and so on. Therefore we sought a solution that could allow the programmer to express exactly what the task should do, where it should live
-   in memory, how that memory should be allocated, and how the state of the task object should be constructed.</p>
+        <p>One of the first questions we encountered in the design of tasks was how one actually gets created; and in fact that remained unanswered (to our satisfaction) until
+        nearly the end of the draft process. Assigning a task instance to a name of some kind requires careful thought in terms of syntax and the implications of scoping rules,
+        lifetimes, allocation control, and so on. Therefore we sought a solution that could allow the programmer to express exactly what the task should do, where it should live
+        in memory, how that memory should be allocated, and how the state of the task object should be constructed.</p>
 
-   <p>We toyed with the notion of using tasks like goroutines in Go, but decided that the niche had been filled better already by Go itself, and we could do something
-   more "Epoch-like" with a different design.</p>
+        <p>We toyed with the notion of using tasks like goroutines in Go, but decided that the niche had been filled better already by Go itself, and we could do something
+        more "Epoch-like" with a different design.</p>
 
-   <p>The design process continually returned to the notions of encapsulation and composition. We also thought heavily about construction/initialization, since without
-   solid solutions for these concerns, tasks would essentially wind up being crippled namespaces. An early draft of tasks caused endless consternation around how to construct
-   a task (syntactically speaking) that needed no external data to initialize itself. We considered the idea of using empty parentheses <tt>()</tt> and found it annoying.
-   Eventually the <tt>()</tt> syntax kept resurfacing over and over again until we made a concerted effort to kill it permanently.</p>
+        <p>The design process continually returned to the notions of encapsulation and composition. We also thought heavily about construction/initialization, since without
+        solid solutions for these concerns, tasks would essentially wind up being crippled namespaces. An early draft of tasks caused endless consternation around how to construct
+        a task (syntactically speaking) that needed no external data to initialize itself. We considered the idea of using empty parentheses <tt>()</tt> and found it annoying.
+        Eventually the <tt>()</tt> syntax kept resurfacing over and over again until we made a concerted effort to kill it permanently.</p>
 
-   <p>For a long time tasks looked a lot like structures with code attached - much like classes in any other language. It was our endless fixation on escaping the class
-   model that led to eschewing this syntax completely. Thankfully, escaping from the <em>syntax</em> paved the way for departing from classes <em>conceptually</em> - and
-   from there came the final breakthrough of having tasks be constructed from a <tt>dispatch</tt> block.</p>
+        <p>For a long time tasks looked a lot like structures with code attached - much like classes in any other language. It was our endless fixation on escaping the class
+        model that led to eschewing this syntax completely. Thankfully, escaping from the <em>syntax</em> paved the way for departing from classes <em>conceptually</em> - and
+        from there came the final breakthrough of having tasks be constructed from a <tt>dispatch</tt> block.</p>
 
-   <p>Ultimately, protocols and other control notions followed fairly effortlessly. The result is the task model seen in this article.</p>
+        <p>Ultimately, protocols and other control notions followed fairly effortlessly. The result is the task model seen in this article.</p>
 
 
-   <h3>Future work</h3>
+        <h3>Future work</h3>
 
-   <p>A significant component of the plan for tasks is the upcoming work on the <em>execution model</em> for Epoch code. Task messages should not be thought of as
-   inherently bound to the calling thread of execution. Instead, we want messages to be able to be sent to other threads, coroutines, green threads, processes, or
-   even physical machines, all without requiring extra syntactical overhead.</p>
+        <p>A significant component of the plan for tasks is the upcoming work on the <em>execution model</em> for Epoch code. Task messages should not be thought of as
+        inherently bound to the calling thread of execution. Instead, we want messages to be able to be sent to other threads, coroutines, green threads, processes, or
+        even physical machines, all without requiring extra syntactical overhead.</p>
 
-   <p>In fact this is a major reason for the choice to use the <tt>=&gt;</tt> syntax instead of more traditional <tt>object.method</tt> syntax. Since message passing is
-   a conceptually different operation than thread-local method invocation, we wanted the appearance to serve as a reminder of the differences.</p>
+        <p>In fact this is a major reason for the choice to use the <tt>=&gt;</tt> syntax instead of more traditional <tt>object.method</tt> syntax. Since message passing is
+        a conceptually different operation than thread-local method invocation, we wanted the appearance to serve as a reminder of the differences.</p>
 
-  </section></div>
- </body>
+      </section>
+    </section>
+  </body>
 
 </html>

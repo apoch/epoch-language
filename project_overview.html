@@ -1,100 +1,101 @@
 <!DOCTYPE html>
 <html>
- <head>
-  <meta charset="UTF-8">
-  <link rel="stylesheet" type="text/css" media="screen" href="stylesheets/main.css">
-  <title>Epoch Programming Language</title>
- </head>
+  <head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" type="text/css" media="screen" href="stylesheets/main.css">
+    <title>Epoch Programming Language</title>
+    <script src="headerTemplate.js"></script>
+  </head>
 
- <body>
-  <div style="width: 100%"><section class="main_content">
-  <h1 class="title">Epoch Programming Language</h1>
-  <h3 class="subtitle">Building an Opinionated Language for Software Development</h3>
-  <hr/>
+  <body>
+    <section class="main_content_lane">
+      <my-header></my-header>
 
-  <ul class="navbar">
-   <li class="navbutton"><a class="navlink" href="./index.html">Home</a></li>
-   <li class="navbutton"><a class="navlink" href="./project_overview.html">Overview</a></li>
-   <li class="navbutton"><a class="navlink" href="./articles/index.html">Articles</a></li>
-   <li class="navbutton"><a class="navlink" href="./downloads.html">Downloads</a></li>
-   <li class="navbutton"><a class="navlink" href="https://github.com/apoch/epoch-language">Source</a></li>
-  </ul>
-
-  <div>
-   <h2>About Epoch</h2>
-   <p>Every seasoned programmer knows that building great software involves making some compromises. <em>Choosing a programming language doesn't need to be one of them!</em></p>
-   <p>Epoch is a language designed to be <em>opinionated</em>. It has been built from the ground up to emphasize certain mindsets and approaches to building software systems and applications, at all scales. Make no mistake, Epoch is probably not for everyone - but if you're a like-minded developer, working from a similar frame of reference, we hope it scratches your itch as well as it scratches our own.</p>
-  </div>
-  <div class="content-left">
-   <h2>Where It Stands</h2>
-   <ul>
-    <li>Procedural, structured foundation with generic programming support</li>
-    <li>Strong, statically-checked type system
-     <ul>
-      <li>Built-in integral, floating point, Boolean, and string types</li>
-      <li>Product types (structures)</li>
-      <li>Algebraic sum types</li>
-      <li>Type aliases with control over conversion rules</li>
-      <li>Zero implicit type conversions</li>
-      <li>No nullable types; use a sum type with <tt>nothing</tt> as a member</li>
-      <li>Value-semantics by default, can opt-in to reference semantics per variable</li>
-      <li>Static function dispatch by argument type (overloads)</li>
-      <li>Dynamic function dispatch by type or value (pattern matching)</li>
-     </ul>
-    </li>
-    <li>Just-in-time compilation to native machine code
-     <ul>
-      <li>Ahead-of-time compilation generates a custom bytecode format</li>
-      <li>JIT engine turns this into LLVM intrinsic bitcode at load time</li>
-      <li>Exploits the full LLVM optimization suite on all Epoch code</li>
-      <li>Carefully written Epoch can hold its own in synthetic benchmarks</li>
-     </ul>
-    </li>
-    <li>Automatic garbage collection for memory management</li>
-    <li>Prototype editor with integrated syntax highlighting</li>
-   </ul>
-  </div>
-  <div class="content-left">
-   <h2>Where We're Going</h2>
-   <ul>
-    <li>"Task" model of programming
-     <ul>
-      <li>Tasks are basically first-class closures with message passing support</li>
-      <li>Messages use existing pattern-matching support in the language</li>
-      <li>Polymorphism via <em>protocols</em> which describe what messages a task will answer</li>
-      <li>Retains static type guarantees from the rest of Epoch</li>
-     </ul>
-    </li>
-    <li>Fine-grained resource control
-     <ul>
-      <li>Optional garbage collection for both memory and other resources</li>
-      <li>Deterministic resource management for when GC is suboptimal</li>
-      <li>Custom allocation controls for memory layout</li>
-      <li>Rich interface for hooking the garbage collector from Epoch code</li>
-     </ul>
-    </li>
-    <li>Execution model enhancements
-     <ul>
-      <li>Integrated support for native OS threading APIs</li>
-      <li>Support for custom-dispatched "green" threads</li>
-      <li>First class coroutines</li>
-      <li>Built-in abstractions for easy inter-process communication</li>
-      <li>Support for Remote Procedure Call implementations</li>
-     </ul>
-    </li>
-    <li>Compiler and tool-chain updates
-     <ul>
-      <li>Native 64-bit support (32-bit support will be deprecated)</li>
-      <li>Removal of JIT layer and transition to pure Ahead-of-Time compilation</li>
-      <li>Continued adoption of cutting-edge LLVM features</li>
-      <li>Ongoing refactoring of compiler/tools for cleanliness and extensibility</li>
-      <li>Expansion of IDE and debugging tools</li>
-     </ul>
-    </li>
-    <li>Broader platform support (Linux, BSD, OS X)</li>
-   </ul>
-  </div>
-  </section></div>
- </body>
+      <section class="main_content">
+        <div>
+          <h2>About Epoch</h2>
+          
+          <p>Every seasoned programmer knows that building great software involves making some compromises. <em>Choosing a programming language doesn't need to be one of them!</em></p>
+          
+          <p>Epoch is a language designed to be <em>opinionated</em>. It has been built from the ground up to emphasize certain mindsets and approaches to building software systems and applications, at all scales. Make no mistake, Epoch is probably not for everyone - but if you're a like-minded developer, working from a similar frame of reference, we hope it scratches your itch as well as it scratches our own.</p>
+        </div>
+        
+        <div class="content-box">
+          <h2>Where It Stands</h2>
+          <ul>
+            <li>Procedural, structured foundation with generic programming support</li>
+            <li>Strong, statically-checked type system
+            <ul>
+            <li>Built-in integral, floating point, Boolean, and string types</li>
+            <li>Product types (structures)</li>
+            <li>Algebraic sum types</li>
+            <li>Type aliases with control over conversion rules</li>
+            <li>Zero implicit type conversions</li>
+            <li>No nullable types; use a sum type with <tt>nothing</tt> as a member</li>
+            <li>Value-semantics by default, can opt-in to reference semantics per variable</li>
+            <li>Static function dispatch by argument type (overloads)</li>
+            <li>Dynamic function dispatch by type or value (pattern matching)</li>
+            </ul>
+            </li>
+            <li>Just-in-time compilation to native machine code
+            <ul>
+            <li>Ahead-of-time compilation generates a custom bytecode format</li>
+            <li>JIT engine turns this into LLVM intrinsic bitcode at load time</li>
+            <li>Exploits the full LLVM optimization suite on all Epoch code</li>
+            <li>Carefully written Epoch can hold its own in synthetic benchmarks</li>
+            </ul>
+            </li>
+            <li>Automatic garbage collection for memory management</li>
+            <li>Prototype editor with integrated syntax highlighting</li>
+          </ul>
+        </div>
+        
+        <div class="content-box">
+          <h2>Where We're Going</h2>
+          <ul>
+            <li>"Task" model of programming
+              <ul>
+                <li>Tasks are basically first-class closures with message passing support</li>
+                <li>Messages use existing pattern-matching support in the language</li>
+                <li>Polymorphism via <em>protocols</em> which describe what messages a task will answer</li>
+                <li>Retains static type guarantees from the rest of Epoch</li>
+              </ul>
+            </li>
+            
+            <li>Fine-grained resource control
+              <ul>
+                <li>Optional garbage collection for both memory and other resources</li>
+                <li>Deterministic resource management for when GC is suboptimal</li>
+                <li>Custom allocation controls for memory layout</li>
+                <li>Rich interface for hooking the garbage collector from Epoch code</li>
+              </ul>
+            </li>
+            
+            <li>Execution model enhancements
+              <ul>
+                <li>Integrated support for native OS threading APIs</li>
+                <li>Support for custom-dispatched "green" threads</li>
+                <li>First class coroutines</li>
+                <li>Built-in abstractions for easy inter-process communication</li>
+                <li>Support for Remote Procedure Call implementations</li>
+              </ul>
+            </li>
+            
+            <li>Compiler and tool-chain updates
+              <ul>
+                <li>Native 64-bit support (32-bit support will be deprecated)</li>
+                <li>Removal of JIT layer and transition to pure Ahead-of-Time compilation</li>
+                <li>Continued adoption of cutting-edge LLVM features</li>
+                <li>Ongoing refactoring of compiler/tools for cleanliness and extensibility</li>
+                <li>Expansion of IDE and debugging tools</li>
+              </ul>
+            </li>
+            
+            <li>Broader platform support (Linux, BSD, OS X)</li>
+          </ul>
+        </div>
+      </section>
+    </section>
+  </body>
 
 </html>

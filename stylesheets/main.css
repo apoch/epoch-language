@@ -1,101 +1,94 @@
-body
+/* Header styles */
+my-header {
+  display: block;
+  background-color: rgb(70, 84, 148);
+  padding: 5px;
+}
+
+div.page-title 
 {
-  font-family: Calibri, Helvetica, Arial, sans-serif;
-  padding: 3px;
-  background-color: #f2f9fc;
+  text-align: center;
+  
+  border-bottom: 1px solid darkblue;
+  padding-top: 10px;
+  padding-bottom: 10px;
+  margin-bottom: 10px;
 }
 
 h1.title
 {
   margin: 0px;
-  padding-left: 5px;
-  padding-right: 5px;
-  padding-top: 5px;
-  padding-bottom: 0px;
-  background-color: rgb(50, 64, 128);
-  border-radius: 3px 3px 0 0;
+  padding: 0px;
   color: white;
 }
 
 h3.subtitle
 {
   margin: 0px;
-  padding-left: 6px;
-  padding-right: 6px;
-  padding-top: 2px;
-  padding-bottom: 5px;
-  background-color: rgb(50, 64, 128);
-  border-radius: 0 0 3px 3px;
+  padding: 0px;
   color: white;
+  font-weight: 500;
 }
 
-h2
-{
-  margin: 0px;
-}
-
-em
-{
-  font-style: italic;
-}
-
-
-div.content-left
-{
-  background-color: rgb(210, 210, 210);
-  padding: 3px;
-  margin-top: 3px;
-  margin-bottom: 3px;
-  max-width: 600px; 
-}
-
-div.content-right
-{
-  background-color: rgb(210, 210, 210);
-  padding: 3px;
-  margin-top: 3px;
-  margin-bottom: 3px;
-  max-width: 600px;
-  float: right;
-}
-
-.main_content
-{
-  position: relative;
-  max-width: 680px;
-  padding: 20px 10px;
-  margin: 0 auto;
-  text-align: justify;
-  background-color: rgb(255, 255, 255);
-  border: 1px solid black;
-  border-radius: 5px;
-}
-
-ul.navbar
-{
-  list-style-type: none;
+div.navbar {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  
+  padding: 0;
   margin: 0;
-  margin-bottom: 20px;
-  padding-left: 3px;
-  padding-right: 3px;
-  padding-top: 10px;
-  padding-bottom: 10px;
-  background-color: rgb(70, 84, 148);
-  border-radius: 5px;
-  text-align: center;
 }
 
-li.navbutton
+a.navlink
 {
-  display: inline;
   margin: 3px;
   padding-left: 10px;
   padding-right: 10px;
   padding-top: 3px;
   padding-bottom: 3px;
-  background-color: rgb(90, 104, 168);
-  border: 1px solid white;
-  border-radius: 3px;
+  
+  background-color: #7991FC;
+  
+  flex: 1 0 auto;
+  height: 35px;
+  
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+}
+
+a.navlink:hover {
+  background-color: #6175CF;
+  text-decoration: none !important;
+}
+
+/* Content styling */
+
+body
+{
+  font-family: Calibri, Helvetica, Arial, sans-serif;
+  padding: 0px;
+  background-color: #DCE2FC;
+  margin: 0px;
+}
+
+div.content-box {
+  padding: 10px 20px;
+  margin: 10px;
+  background-color: #D2D2D2;
+}
+
+.main_content_lane
+{
+  max-width: 700px;
+  text-align: justify;
+  
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.main_content {
+  padding: 0 10px;
 }
 
 li
