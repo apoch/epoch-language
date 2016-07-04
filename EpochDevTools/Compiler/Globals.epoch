@@ -317,6 +317,8 @@ global
 	integer PooledStringHandleForWidenFromBuffer = 0
 	integer PooledStringHandleForBufferCopy = 0
 	integer PooledStringHandleForInteger64 = 0
+	integer PooledStringHandleForGCInit = 0
+	integer PooledStringhandleForGCCollectStrings = 0
 
 	integer FirstNonBuiltInStringHandle = 0
 

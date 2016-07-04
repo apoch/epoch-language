@@ -4,3 +4,6 @@ EXPORTS
 	ERT_passtest
 	ERT_print
 	ERT_string_concat
+
+	ERT_gc_init
+	ERT_gc_collect_strings

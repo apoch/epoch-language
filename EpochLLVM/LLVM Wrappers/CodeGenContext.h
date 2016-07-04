@@ -109,6 +109,13 @@ namespace CodeGen
 		void SetThunkCallback(void* funcptr);
 		void SetStringCallback(void* funcptr);
 
+	public:		// Extra section handling interface
+		unsigned SectionGetPDataSize() const;
+		unsigned SectionGetXDataSize() const;
+
+		void SectionCopyPData(void* buffer) const;
+		void SectionCopyXData(void* buffer) const;
+
 	private:	// Internal state
 		std::unique_ptr<llvm::Module> LLVMModule;
 		llvm::Function* InitFunction;
@@ -125,6 +132,9 @@ namespace CodeGen
 
 		std::map<unsigned, llvm::GlobalVariable*> CachedStrings;
 		std::map<std::string, llvm::GlobalVariable*> CachedThunkFunctions;
+
+		std::vector<char> PData;
+		std::vector<char> XData;
 	};
 
 }

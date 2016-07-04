@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 2013
-VisualStudioVersion = 12.0.31101.0
+# Visual Studio 14
+VisualStudioVersion = 14.0.24720.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "EpochLLVM", "EpochLLVM\EpochLLVM.vcxproj", "{E41491FB-66CF-4EAF-ADFB-C915656F81C1}"
 EndProject
@@ -18,7 +18,6 @@ Global
 		{E41491FB-66CF-4EAF-ADFB-C915656F81C1}.Debug|Win32.ActiveCfg = Debug|Win32
 		{E41491FB-66CF-4EAF-ADFB-C915656F81C1}.Debug|Win32.Build.0 = Debug|Win32
 		{E41491FB-66CF-4EAF-ADFB-C915656F81C1}.Debug|x64.ActiveCfg = Debug|x64
-		{E41491FB-66CF-4EAF-ADFB-C915656F81C1}.Debug|x64.Build.0 = Debug|x64
 		{E41491FB-66CF-4EAF-ADFB-C915656F81C1}.Release|Win32.ActiveCfg = Release|Win32
 		{E41491FB-66CF-4EAF-ADFB-C915656F81C1}.Release|Win32.Build.0 = Release|Win32
 		{E41491FB-66CF-4EAF-ADFB-C915656F81C1}.Release|x64.ActiveCfg = Release|x64

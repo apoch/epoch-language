@@ -331,3 +331,27 @@ extern "C" void EpochLLVMStructureQueueMemberType(void* context, void* membertyp
 	reinterpret_cast<CodeGen::Context*>(context)->StructureTypeQueueMember(reinterpret_cast<llvm::Type*>(membertype));
 }
 
+
+
+extern "C" void EpochLLVMSectionCopyPData(void* context, void* buffer)
+{
+	reinterpret_cast<CodeGen::Context*>(context)->SectionCopyPData(buffer);
+}
+
+extern "C" void EpochLLVMSectionCopyXData(void* context, void* buffer)
+{
+	reinterpret_cast<CodeGen::Context*>(context)->SectionCopyXData(buffer);
+}
+
+
+extern "C" unsigned EpochLLVMSectionGetPDataSize(void* context)
+{
+	return reinterpret_cast<CodeGen::Context*>(context)->SectionGetPDataSize();
+}
+
+extern "C" unsigned EpochLLVMSectionGetXDataSize(void* context)
+{
+	return reinterpret_cast<CodeGen::Context*>(context)->SectionGetXDataSize();
+}
+
+

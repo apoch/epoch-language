@@ -127,6 +127,13 @@ EpochLLVMCodePushString : LLVMContextHandle context, integer handle													
 EpochLLVMCodePushFunction : LLVMContextHandle context, LLVMFunctionRef func											[external("EpochLLVM.dll", "EpochLLVMCodePushFunction")]
 
 
+
+EpochLLVMSectionGetPDataSize : LLVMContextHandle context -> integer size = 0										[external("EpochLLVM.dll", "EpochLLVMSectionGetPDataSize")]
+EpochLLVMSectionGetXDataSize : LLVMContextHandle context -> integer size = 0										[external("EpochLLVM.dll", "EpochLLVMSectionGetXDataSize")]
+
+EpochLLVMSectionCopyPData : LLVMContextHandle context, buffer ref targetbuffer										[external("EpochLLVM.dll", "EpochLLVMSectionCopyPData")]
+EpochLLVMSectionCopyXData : LLVMContextHandle context, buffer ref targetbuffer										[external("EpochLLVM.dll", "EpochLLVMSectionCopyXData")]
+
 SetUpAllLLVMCode : LLVMContextHandle context
 {	
 	print("Generating LLVM structure types...")
@@ -1033,6 +1040,9 @@ SetUpBuiltInLLVMThunks : LLVMContextHandle context
 	BuiltInThunkCreatePasstest(context)
 	BuiltInThunkCreatePrint(context)
 	BuiltInThunkCreateStringConcat(context)
+	
+	BuiltInThunkCreateGCInit(context)
+	BuiltInThunkCreateGCCollectStrings(context)
 }
 
 
@@ -1120,6 +1130,25 @@ BuiltInThunkCreateStringConcat : LLVMContextHandle context
 	BinaryTreeCreateOrInsert<integer>(LLVMGlobalThunks, PooledStringHandleForStringConcat, thunk)
 }
 
+
+BuiltInThunkCreateGCInit : LLVMContextHandle context
+{
+	EpochLLVMFunctionTypePush(context)
+	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetInteger(context))
+	LLVMFunctionType fty = EpochLLVMFunctionTypeCreate(context, EpochLLVMTypeGetVoid(context))
+	integer thunk = EpochLLVMFunctionCreateThunk(context, "ERT_gc_init", fty)
+
+	BinaryTreeCreateOrInsert<integer>(LLVMGlobalThunks, PooledStringHandleForGCInit, thunk)
+}
+
+BuiltInThunkCreateGCCollectStrings : LLVMContextHandle context
+{
+	EpochLLVMFunctionTypePush(context)
+	LLVMFunctionType fty = EpochLLVMFunctionTypeCreate(context, EpochLLVMTypeGetVoid(context))
+	integer thunk = EpochLLVMFunctionCreateThunk(context, "ERT_gc_collect_strings", fty)
+
+	BinaryTreeCreateOrInsert<integer>(LLVMGlobalThunks, PooledStringhandleForGCCollectStrings, thunk)
+}
 
 
 

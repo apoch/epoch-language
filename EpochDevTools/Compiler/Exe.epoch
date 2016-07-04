@@ -88,6 +88,19 @@ MakeExe : EpochProject ref project
 	EmitAllFunctionsToLLVM(llvm, Functions)
 	
 	integer sizecode = EpochLLVMEmitBinaryObject(llvm, codebinarybuffer, 0x10000)		// TODO - also bad hack
+	
+	
+	integer sizepdata = EpochLLVMSectionGetPDataSize(llvm)
+	integer sizexdata = EpochLLVMSectionGetXDataSize(llvm)
+	
+	buffer pdata = sizepdata
+	buffer xdata = sizexdata
+	
+	EpochLLVMSectionCopyPData(llvm, pdata)
+	EpochLLVMSectionCopyXData(llvm, xdata)
+	
+	integer sizegc = 512
+	
 	EpochLLVMContextDestroy(llvm)
 
 	
@@ -95,11 +108,20 @@ MakeExe : EpochProject ref project
 	integer offsetrsrc           = RoundUpFile(offsetthunk + sizethunk)
 	integer sizersrc             = res.DirectorySize + res.DataSize + 1
 	
-	integer virtualoffsetstrings = RoundUp(virtualoffsetrsrc + sizersrc)
-	integer offsetstrings        = RoundUpFile(offsetrsrc + sizersrc)
+	integer virtualoffsetpdata   = RoundUp(virtualoffsetrsrc + sizersrc)
+	integer offsetpdata			 = RoundUpFile(offsetrsrc + sizersrc)
+	
+	integer virtualoffsetxdata   = RoundUp(virtualoffsetpdata + sizepdata)
+	integer offsetxdata			 = RoundUpFile(offsetpdata + sizepdata)
+	
+	integer virtualoffsetstrings = RoundUp(virtualoffsetxdata + sizexdata)
+	integer offsetstrings        = RoundUpFile(offsetxdata + sizexdata)
 		
-	integer virtualoffsetcode    = RoundUp(virtualoffsetstrings + sizestrings)
-	integer offsetcode           = RoundUpFile(offsetstrings + sizestrings)
+	integer virtualoffsetgc      = RoundUp(virtualoffsetstrings + sizestrings)
+	integer offsetgc             = RoundUpFile(offsetstrings + sizestrings)
+
+	integer virtualoffsetcode    = RoundUp(virtualoffsetgc + sizegc)
+	integer offsetcode           = RoundUpFile(offsetgc + sizegc)
 
 	integer sizeimage            = RoundUp(virtualoffsetcode + sizecode)
 
@@ -120,12 +142,16 @@ MakeExe : EpochProject ref project
 		subsystem = 3			// console
 	}
 
+	integer written = 0
 	integer position = 0
-	position += WritePEHeader(filehandle, sizeimage, virtualoffsetthunk + GlobalThunkTable.DescriptorOffset, sizethunk, virtualoffsetrsrc, sizersrc, subsystem, sizecode)
+	position += WritePEHeader(filehandle, sizeimage, virtualoffsetpdata, sizepdata, virtualoffsetxdata, sizexdata, virtualoffsetthunk + GlobalThunkTable.DescriptorOffset, sizethunk, virtualoffsetrsrc, sizersrc, subsystem, sizecode)
 
 	position += WriteSectionHeader(filehandle, ".idata", offsetthunk, virtualoffsetthunk, sizethunk, sizethunk, 0xc0000040)
 	position += WriteSectionHeader(filehandle, ".rsrc", offsetrsrc, virtualoffsetrsrc, sizersrc, sizersrc, 0x40000040)
+	position += WriteSectionHeader(filehandle, ".pdata", offsetpdata, virtualoffsetpdata, sizepdata, sizepdata, 0x40000040)
+	position += WriteSectionHeader(filehandle, ".xdata", offsetxdata, virtualoffsetxdata, sizexdata, sizexdata, 0x40000040)
 	position += WriteSectionHeader(filehandle, ".data", offsetstrings, virtualoffsetstrings, sizestrings, sizestrings, 0x40000040)
+	position += WriteSectionHeader(filehandle, ".gc", offsetgc, virtualoffsetgc, sizegc, sizegc, 0x40000040)
 	position += WriteSectionHeader(filehandle, ".text", offsetcode, virtualoffsetcode, sizecode, sizecode, 0x60000020)
 
 	print("Writing thunk table...")
@@ -137,15 +163,24 @@ MakeExe : EpochProject ref project
 	position += WriteResources(filehandle, res)
 
 	print("Writing static data...")
+	position += WritePadding(filehandle, position, offsetpdata)
+	WriteFile(filehandle, pdata, sizepdata, written, 0)
+	position += sizepdata
+	
+	position += WritePadding(filehandle, position, offsetxdata)
+	WriteFile(filehandle, xdata, sizexdata, written, 0)
+	position += sizexdata
+
 	position += WritePadding(filehandle, position, offsetstrings)
 	position += WriteStringTable(filehandle, sizestrings, GlobalStringOffsets)
 
+	position += WritePadding(filehandle, position, offsetgc)
+	position += WritePadding(filehandle, position, sizegc + offsetgc)
 
 	print("Writing code...")
 	
 	position += WritePadding(filehandle, position, offsetcode)
 
-	integer written = 0
 	WriteFile(filehandle, codebinarybuffer, sizecode, written, 0)
 
 	CloseHandle(filehandle)
@@ -232,7 +267,7 @@ WriteSectionHeader : Win32Handle filehandle, string sectionname, integer locatio
 }
 
 
-WritePEHeader : Win32Handle filehandle, integer imagesize, integer offsetthunk, integer sizethunk, integer offsetrsrc, integer resourcesize, integer16 subsystem, integer sizecode -> integer writtenbytes = 0
+WritePEHeader : Win32Handle filehandle, integer imagesize, integer offsetpdata, integer sizepdata, integer offsetxdata, integer sizexdata, integer offsetthunk, integer sizethunk, integer offsetrsrc, integer resourcesize, integer16 subsystem, integer sizecode -> integer writtenbytes = 0
 {
 	print("Writing PE headers...")
 
@@ -394,7 +429,7 @@ WritePEHeader : Win32Handle filehandle, integer imagesize, integer offsetthunk, 
 	// Begin NT headers
 	ByteStreamEmitInteger(headerbuffer, headersize, 0x00004550)
 	ByteStreamEmitInteger16(headerbuffer, headersize, 0x8664)						// Machine
-	ByteStreamEmitInteger16(headerbuffer, headersize, 4)							// NumberOfSections
+	ByteStreamEmitInteger16(headerbuffer, headersize, 7)							// NumberOfSections
 	ByteStreamEmitInteger(headerbuffer, headersize, 0x00000000)						// TimeDateStamp
 	ByteStreamEmitInteger(headerbuffer, headersize, 0)								// PointerToSymbolTable
 	ByteStreamEmitInteger(headerbuffer, headersize, 0)								// NumberOfSymbols
@@ -408,7 +443,7 @@ WritePEHeader : Win32Handle filehandle, integer imagesize, integer offsetthunk, 
 	ByteStreamEmitInteger(headerbuffer, headersize, RoundUp(sizecode))				// SizeOfCode
 	ByteStreamEmitInteger(headerbuffer, headersize, 0x1000)							// SizeOfInitializedData		// TODO - real data section size
 	ByteStreamEmitInteger(headerbuffer, headersize, 0)								// SizeOfUninitializedData
-	ByteStreamEmitInteger(headerbuffer, headersize, 0x4000)							// AddressOfEntryPoint			// TODO - unhardcode this stuff
+	ByteStreamEmitInteger(headerbuffer, headersize, 0x7000)							// AddressOfEntryPoint			// TODO - unhardcode this stuff
 	ByteStreamEmitInteger(headerbuffer, headersize, 0x1000)							// BaseOfCode
 
 	ByteStreamEmitInteger(headerbuffer, headersize, 0x400000)						// ImageBase
@@ -444,18 +479,15 @@ WritePEHeader : Win32Handle filehandle, integer imagesize, integer offsetthunk, 
 
 	ByteStreamEmitInteger(headerbuffer, headersize, 0)					// RVA virtual address 1
 	ByteStreamEmitInteger(headerbuffer, headersize, 0)					// Size
-
-	print(cast(string, offsetthunk))
-	print(cast(string, sizethunk))
-
+	
 	ByteStreamEmitInteger(headerbuffer, headersize, offsetthunk) 		// RVA virtual address 2
 	ByteStreamEmitInteger(headerbuffer, headersize, sizethunk)			// Size
 
 	ByteStreamEmitInteger(headerbuffer, headersize, offsetrsrc)			// RVA virtual address 3
 	ByteStreamEmitInteger(headerbuffer, headersize, resourcesize)		// Size
 
-	ByteStreamEmitInteger(headerbuffer, headersize, 0)					// RVA virtual address 4
-	ByteStreamEmitInteger(headerbuffer, headersize, 0)					// Size
+	ByteStreamEmitInteger(headerbuffer, headersize, offsetpdata)		// RVA virtual address 4
+	ByteStreamEmitInteger(headerbuffer, headersize, sizepdata)			// Size
 
 	ByteStreamEmitInteger(headerbuffer, headersize, 0)					// RVA virtual address 5
 	ByteStreamEmitInteger(headerbuffer, headersize, 0)					// Size
@@ -827,7 +859,7 @@ SearchThunkLibForFunctionOffset : nothing, string funcname -> integer offset = -
 StringLookupMapper : integer stringhandle -> integer offset = 0
 {
 	// TODO - don't hard code base address
-	integer baseaddress = 0x403000
+	integer baseaddress = 0x405000
 	
 	BinaryTreeCopyPayload<integer>(GlobalStringOffsets.RootNode, stringhandle, offset)
 	

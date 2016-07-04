@@ -21,3 +21,16 @@ const char* ThreadStringPool::AllocConcat(const char* s1, const char* s2)
 	return Pool.back()->c_str();
 }
 
+
+void ThreadStringPool::FreeUnusedEntries()
+{
+	// TODO - mark used entries and don't free them
+
+	auto iter = std::remove_if(Pool.begin(), Pool.end(), [](const std::string* entry) {
+		delete entry;
+		return true;
+	});
+
+	Pool.erase(iter, Pool.end());
+}
+

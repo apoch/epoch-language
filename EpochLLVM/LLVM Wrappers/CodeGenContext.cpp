@@ -17,14 +17,57 @@ using namespace CodeGen;
 using namespace llvm;
 
 
+
+namespace
+{
+
+	void ProcessPDataRelocationForField(const object::SectionRef& section, IMAGE_RUNTIME_FUNCTION_ENTRY* data, void* fieldaddr)
+	{
+		size_t fieldoffset = reinterpret_cast<const char*>(fieldaddr) - reinterpret_cast<const char*>(data);
+
+		for(const auto& reloc : section.relocations())
+		{
+			if(reloc.getOffset() == fieldoffset)
+			{
+				if(reloc.getSymbol()->getName().get().str() == ".xdata")
+				{
+					*reinterpret_cast<char**>(fieldaddr) += 0x4000;		// TODO - borked
+				}
+				else
+				{
+					*reinterpret_cast<char**>(fieldaddr) += reloc.getSymbol()->getAddress().get() + 0x7000;    // TODO
+				}
+			}
+		}
+	}
+
+	void ProcessPDataRelocations(const object::SectionRef& section, std::vector<char>* buffer)
+	{
+		size_t numrecords = buffer->size() / sizeof(IMAGE_RUNTIME_FUNCTION_ENTRY);
+		IMAGE_RUNTIME_FUNCTION_ENTRY* data = reinterpret_cast<IMAGE_RUNTIME_FUNCTION_ENTRY*>(buffer->data());
+
+		for(size_t i = 0; i < numrecords; ++i)
+		{
+			ProcessPDataRelocationForField(section, data, &(data[i].BeginAddress));
+			ProcessPDataRelocationForField(section, data, &(data[i].EndAddress));
+			ProcessPDataRelocationForField(section, data, &(data[i].UnwindInfoAddress));
+		}
+	}
+
+}
+
+
+
 ////////////////////////
 class TrivialMemoryManager : public RTDyldMemoryManager {
 public:
-	TrivialMemoryManager(CodeGen::ThunkCallbackT funcptr, CodeGen::StringCallbackT strptr, uint64_t* outAddr, size_t* outSize)
+	TrivialMemoryManager(CodeGen::ThunkCallbackT funcptr, CodeGen::StringCallbackT strptr, uint64_t* outAddr, size_t* outSize, uint64_t* outPData, uint64_t* outXData)
 		: ThunkCallback(funcptr),
 		  StringCallback(strptr),
 		  OutAddr(outAddr),
-		  OutSize(outSize)
+		  OutSize(outSize),
+		  OutPDataOffset(outPData),
+		  OutXDataOffset(outXData)
 	{ }
 
 	ThunkCallbackT ThunkCallback;
@@ -33,7 +76,8 @@ public:
 	uint64_t* OutAddr;
 	size_t* OutSize;
 
-
+	uint64_t* OutPDataOffset;
+	uint64_t* OutXDataOffset;
 
   SmallVector<sys::MemoryBlock, 16> FunctionMemory;
   SmallVector<sys::MemoryBlock, 16> DataMemory;
@@ -46,7 +90,7 @@ public:
 
   virtual void *getPointerToNamedFunction(const std::string &Name,
                                           bool AbortOnFailure = true) {
-    return 0;
+    return nullptr;
   }
 
   bool finalizeMemory(std::string *ErrMsg) { return false; }
@@ -74,6 +118,9 @@ public:
 		{
 			std::wstring wide(foo.begin(), foo.end());
 			size_t offset = ThunkCallback(wide.c_str());
+
+			assert(offset != 0);
+
 			return offset;
 		}
 	}
@@ -96,10 +143,17 @@ uint8_t *TrivialMemoryManager::allocateDataSection(uintptr_t Size,
                                                    unsigned Alignment,
                                                    unsigned SectionID,
                                                    StringRef SectionName,
-                                                   bool IsReadOnly) {
-  sys::MemoryBlock MB = sys::Memory::AllocateRWX(Size, 0, 0);
-  DataMemory.push_back(MB);
-  return (uint8_t*)MB.base();
+                                                   bool IsReadOnly)
+{
+	sys::MemoryBlock MB = sys::Memory::AllocateRWX(Size, 0, 0);
+
+	if(SectionName == ".pdata")
+		*OutPDataOffset = (uint64_t)MB.base();
+	else if(SectionName == ".xdata")
+		*OutXDataOffset = (uint64_t)MB.base();
+
+	DataMemory.push_back(MB);
+	return (uint8_t*)MB.base();
 }
 
 void TrivialMemoryManager::invalidateInstructionCache() {
@@ -124,6 +178,9 @@ Context::Context()
 	  EntryPointFunction(nullptr),
 	  LLVMModule(new Module("EpochModule", getGlobalContext()))
 {
+	LLVMModule->addModuleFlag(Module::ModFlagBehavior::Warning, "CodeView", 1);
+
+
 	FunctionType* initfunctiontype = FunctionType::get(Type::getInt32Ty(getGlobalContext()), false);
 	InitFunction = Function::Create(initfunctiontype, GlobalValue::ExternalLinkage , "@init", LLVMModule.get());
 	
@@ -262,17 +319,24 @@ size_t Context::EmitBinaryObject(char* buffer, size_t maxoutput)
 	LLVMLinkInMCJIT();
 
 	std::vector<Type*> argtypes;
-	argtypes.push_back(Type::getInt32Ty(getGlobalContext()));
+	argtypes.push_back(TypeGetInteger());
 
+	FunctionType* voidtype = FunctionType::get(TypeGetVoid(), false);
 	FunctionType* exitprocesstype = FunctionType::get(TypeGetVoid(), argtypes, false);
+
 	GlobalVariable* exitprocessfunctionvar = FunctionCreateThunk("ExitProcess", exitprocesstype);
+	GlobalVariable* gcinitfunctionvar = FunctionCreateThunk("ERT_gc_init", exitprocesstype);
+	GlobalVariable* gccollectstrsfunctionvar = FunctionCreateThunk("ERT_gc_collect_strings", voidtype);
+
 	
 	BasicBlock* bb = BasicBlock::Create(getGlobalContext(), "InitBlock", InitFunction);
 	LLVMBuilder.SetInsertPoint(bb);
+	LLVMBuilder.CreateCall(LLVMBuilder.CreateLoad(gcinitfunctionvar), ConstantInt::get(TypeGetInteger(), 0x6000));		// TODO - un-hardcode segment address
 	// TODO - init globals here
 	LLVMBuilder.CreateCall(EntryPointFunction);
-	LLVMBuilder.CreateCall(LLVMBuilder.CreateLoad(exitprocessfunctionvar), ConstantInt::get(Type::getInt32Ty(getGlobalContext()), 0));
-	LLVMBuilder.CreateRet(ConstantInt::get(Type::getInt32Ty(getGlobalContext()), 0));
+	LLVMBuilder.CreateCall(LLVMBuilder.CreateLoad(gccollectstrsfunctionvar));
+	LLVMBuilder.CreateCall(LLVMBuilder.CreateLoad(exitprocessfunctionvar), ConstantInt::get(TypeGetInteger(), 0));
+	LLVMBuilder.CreateRet(ConstantInt::get(TypeGetInteger(), 0));
 
 	// HACK!
 	Module* wat = LLVMModule.get();
@@ -300,9 +364,11 @@ size_t Context::EmitBinaryObject(char* buffer, size_t maxoutput)
 	opts.GuaranteedTailCallOpt = true;
 	//opts.NoFramePointerElim = true;			// TODO - uhhhhh
 
+	uint64_t pdata = 0;
+	uint64_t xdata = 0;
 	uint64_t emissionaddr = 0;
 	size_t s = 0;
-	std::unique_ptr<TrivialMemoryManager> blobmgr = std::make_unique<TrivialMemoryManager>(ThunkCallback, StringCallback, &emissionaddr, &s);
+	std::unique_ptr<TrivialMemoryManager> blobmgr = std::make_unique<TrivialMemoryManager>(ThunkCallback, StringCallback, &emissionaddr, &s, &pdata, &xdata);
 
 	EngineBuilder eb(std::move(LLVMModule));
 	eb.setErrorStr(&errstr);
@@ -312,7 +378,7 @@ size_t Context::EmitBinaryObject(char* buffer, size_t maxoutput)
 	eb.setMCJITMemoryManager(std::move(blobmgr));
 
 	SmallVector<std::string, 2> emptyvec;
-	TargetMachine* machine = eb.selectTarget(Triple("x86_64-pc-windows-elf"), "", "", emptyvec);
+	TargetMachine* machine = eb.selectTarget(Triple("x86_64-pc-windows-msvc"), "", "", emptyvec);
 	
 	ExecutionEngine* ee = eb.create(machine);
 	if(!ee)
@@ -384,43 +450,73 @@ size_t Context::EmitBinaryObject(char* buffer, size_t maxoutput)
 	wat->dump();
 
 
+	const object::ObjectFile* image;
+
 	class JEL : public JITEventListener
 	{
 		uint64_t* OutEmissionAddr;
 		size_t* OutSize;
 
+		const object::ObjectFile** OutImage;
+
 	public:
-		JEL(uint64_t* outaddr, size_t* outsize)
+		JEL(uint64_t* outaddr, size_t* outsize, const object::ObjectFile** image)
 			: OutSize(outsize),
-			  OutEmissionAddr(outaddr)
+			  OutEmissionAddr(outaddr),
+			  OutImage(image)
 		{ }
 
 		void NotifyObjectEmitted(const object::ObjectFile& img, const RuntimeDyld::LoadedObjectInfo& info) override
 		{
 			*OutSize = 0;
 
+			*OutImage = &img;
+
 			for(const auto & section : img.sections())
 			{
 				if(section.isText())
 				{
 					*OutSize += static_cast<size_t>(section.getSize());
-
-					for(const auto & sym : section.getObject()->symbols())
-					{
-						void* addr = reinterpret_cast<void*>(sym.getAddress().get() + 0x404000);		// TODO - evil hardcoded crap
-						std::cout << "Symbol \"" << sym.getName().get().str() << "\" at address " << addr << std::endl;
-					}
 				}
 			}
 		}
-	} listener(&emissionaddr, &s);
+	} listener(&emissionaddr, &s, &image);
 
 	ee->RegisterJITEventListener(&listener);
 
 	ee->DisableLazyCompilation(true);
 	ee->generateCodeForModule(wat);
-	ee->mapSectionAddress((void*)(emissionaddr), 0x0404000);
+	ee->mapSectionAddress((void*)(emissionaddr), 0x0407000);				// TODO
 	ee->finalizeObject();
+
+
+	for(const auto & section : image->sections())
+	{
+		if(!section.isText() && !section.isBSS() && !section.isVirtual())
+		{	
+			std::vector<char>* targetbuffer = nullptr;
+
+			StringRef sectionname;
+			section.getName(sectionname);
+
+			if(sectionname == ".pdata")
+				targetbuffer = &PData;
+			else if(sectionname == ".xdata")
+				targetbuffer = &XData;
+
+			if(targetbuffer)
+			{
+				StringRef sectiondata;
+				section.getContents(sectiondata);
+
+				targetbuffer->clear();
+				std::copy(sectiondata.begin(), sectiondata.end(), std::back_inserter(*targetbuffer));
+			}
+
+			if(sectionname == ".pdata")
+				ProcessPDataRelocations(section, targetbuffer);
+		}
+	}
 
 	memcpy(buffer, (void*)(emissionaddr), s);
 	return s;
@@ -754,5 +850,28 @@ llvm::Type* Context::StructureTypeCreate(const char* name)
 void Context::StructureTypeQueueMember(llvm::Type* t)
 {
 	PendingMemberTypes.push_back(t);
+}
+
+
+
+void Context::SectionCopyPData(void* buffer) const
+{
+	memcpy(buffer, PData.data(), PData.size());
+}
+
+void Context::SectionCopyXData(void* buffer) const
+{
+	memcpy(buffer, XData.data(), XData.size());
+}
+
+
+unsigned Context::SectionGetPDataSize() const
+{
+	return static_cast<unsigned>(PData.size());
+}
+
+unsigned Context::SectionGetXDataSize() const
+{
+	return static_cast<unsigned>(XData.size());
 }
 

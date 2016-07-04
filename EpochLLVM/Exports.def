@@ -73,3 +73,8 @@ EXPORTS
 	EpochLLVMSetCurrentBasicBlock
 
 
+	EpochLLVMSectionGetPDataSize
+	EpochLLVMSectionCopyPData
+
+	EpochLLVMSectionGetXDataSize
+	EpochLLVMSectionCopyXData
