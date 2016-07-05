@@ -4,63 +4,107 @@
 #include "StringPool.h"
 
 
+#include <DbgHelp.h>
+
+
 namespace
 {
 
-	struct GCFunctionData
+	struct GCRootData
 	{
-		uint32_t BeginOffsetIP;
-		uint32_t EndOffsetIP;
-		uint32_t StartOfGCData;
+		int StackFrameOffset;
 	};
 
+	struct GCSafePointData
+	{
+		uint32_t ReturnIP;
+		uint32_t StackFrameSize;
+		uint32_t RootDataIndex;
+		uint32_t RootDataCount;
+	};
 
 	struct GCImageTable
 	{
 		unsigned NumEntries;
-		const GCFunctionData* Entries;
-		const char* StartOfGCData;
+		const GCSafePointData* Entries;
+		const GCRootData* Roots;
 	};
 
 
 	GCImageTable GCTable;
 
 
+	void WalkStackRoots(uint64_t stackptr, uint32_t framesize, uint32_t rootindex, uint32_t rootcount, ThreadStringPool* stringpool)
+	{
+		for(uint32_t i = 0; i < rootcount; ++i)
+		{
+			int offset = GCTable.Roots[i + rootindex].StackFrameOffset;
+			std::cout << "Live root at offset " << offset << " from stackptr " << (void*)(stackptr) << std::endl;
 
 
-	void TraceStackRoots(uint64_t instructionptr)
+			// Temp Proof of Concept hack
+			const char** foo = (const char**)((const char*)(stackptr + offset));
+			stringpool->MarkInUse(*foo);
+		}
+	}
+
+	void TraceStackRoots(uint64_t instructionptr, uint64_t stackptr, ThreadStringPool* stringpool)
 	{
 		uint64_t baseaddr = reinterpret_cast<uint64_t>(::GetModuleHandle(NULL));
 		uint64_t instructionoffset = instructionptr - baseaddr;
 
-		const GCFunctionData* functiondata = GCTable.Entries;
+		const GCSafePointData* safepointdata = GCTable.Entries;
 
-		for(unsigned i = 0; i < GCTable.NumEntries; ++i, ++functiondata)
+		for(unsigned i = 0; i < GCTable.NumEntries; ++i, ++safepointdata)
 		{
-			if(instructionoffset < functiondata->BeginOffsetIP)
+			if(instructionoffset != safepointdata->ReturnIP)
 				continue;
 
-			if(instructionoffset >= functiondata->EndOffsetIP)
-				continue;
+			std::cout << "Garbage collect at safepoint " << (void*)(instructionoffset) <<
+				" - stack frame size " << safepointdata->StackFrameSize << " - roots data at slot " << safepointdata->RootDataIndex << std::endl;
 
-			const char* gcdataptr = GCTable.StartOfGCData + functiondata->StartOfGCData;
-
-			// TODO - stash LLVM stack map at gcdataptr, traverse it here for roots
+			WalkStackRoots(stackptr, safepointdata->StackFrameSize, safepointdata->RootDataIndex, safepointdata->RootDataCount, stringpool);
 		}
 	}
 
-	void StackCrawl()
+	void StackCrawl(ThreadStringPool* stringpool)
 	{
-		PVOID trace[64] = {};
+		CONTEXT ctx;
+		memset(&ctx, 0, sizeof(ctx));
+		ctx.ContextFlags = CONTEXT_FULL;
+		RtlCaptureContext(&ctx);
 
-		CaptureStackBackTrace(3, 61, trace, NULL);
+		STACKFRAME64 frame;
+		memset(&frame, 0, sizeof(frame));
 
-		for(PVOID p : trace)
+		frame.AddrPC.Offset = ctx.Rip;
+		frame.AddrPC.Mode = AddrModeFlat;
+
+		frame.AddrFrame.Offset = ctx.Rbp;
+		frame.AddrFrame.Mode = AddrModeFlat;
+
+		frame.AddrStack.Offset = ctx.Rsp;
+		frame.AddrStack.Mode = AddrModeFlat;
+
+		unsigned skip = 2;
+		unsigned hack = 0;
+
+		PVOID buffer[64] = {};
+		CaptureStackBackTrace(2, 60, buffer, NULL);
+
+
+		while(::StackWalk64(IMAGE_FILE_MACHINE_AMD64, ::GetCurrentProcess(), ::GetCurrentThread(), &frame, &ctx, NULL, NULL, NULL, NULL))
 		{
-			if(!p)
+			if(!frame.AddrPC.Offset)
 				break;
 
-			TraceStackRoots(reinterpret_cast<uint64_t>(p));
+			if(skip > 0)
+			{
+				--skip;
+				continue;
+			}
+
+			TraceStackRoots(frame.AddrPC.Offset, frame.AddrStack.Offset, stringpool);
 		}
 	}
 
@@ -75,15 +119,19 @@ void GC::Init(uint32_t gcsectionoffset)
 	const char* gcsection = baseofprocess + gcsectionoffset;
 
 	GCTable.NumEntries = *reinterpret_cast<const unsigned*>(gcsection);
-	GCTable.Entries = reinterpret_cast<const GCFunctionData*>(gcsection + sizeof(unsigned));
-	GCTable.StartOfGCData = reinterpret_cast<const char*>(GCTable.Entries) + GCTable.NumEntries * sizeof(GCFunctionData);
+	GCTable.Entries = reinterpret_cast<const GCSafePointData*>(gcsection + sizeof(unsigned));
+	GCTable.Roots = reinterpret_cast<const GCRootData*>(reinterpret_cast<const char*>(GCTable.Entries) + GCTable.NumEntries * sizeof(GCSafePointData));
+
+
+	::SymInitialize(::GetCurrentProcess(), NULL, TRUE);
 }
 
 
 
-void GC::CollectStrings(ThreadStringPool * pool, void* retaddr)
+void GC::CollectStrings(ThreadStringPool* pool, void* retaddr)
 {
-	StackCrawl();
+	pool->ToggleTraceBit();
+	StackCrawl(pool);
 	pool->FreeUnusedEntries();
 }
 

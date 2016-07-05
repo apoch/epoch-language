@@ -518,7 +518,7 @@ size_t Context::EmitBinaryObject(char* buffer, size_t maxoutput)
 		}
 	}
 
-	GCCompilation::DumpGCData(*ee);
+	GCCompilation::PrepareGCData(*ee, &GCSection);
 
 
 	memcpy(buffer, (void*)(emissionaddr), s);
@@ -877,6 +877,11 @@ void Context::SectionCopyXData(void* buffer) const
 	memcpy(buffer, XData.data(), XData.size());
 }
 
+void Context::SectionCopyGC(void* buffer) const
+{
+	memcpy(buffer, GCSection.data(), GCSection.size());
+}
+
 
 unsigned Context::SectionGetPDataSize() const
 {
@@ -886,5 +891,10 @@ unsigned Context::SectionGetPDataSize() const
 unsigned Context::SectionGetXDataSize() const
 {
 	return static_cast<unsigned>(XData.size());
+}
+
+unsigned Context::SectionGetGCSize() const
+{
+	return static_cast<unsigned>(GCSection.size());
 }
 

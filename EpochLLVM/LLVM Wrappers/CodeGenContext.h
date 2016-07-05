@@ -112,9 +112,11 @@ namespace CodeGen
 	public:		// Extra section handling interface
 		unsigned SectionGetPDataSize() const;
 		unsigned SectionGetXDataSize() const;
+		unsigned SectionGetGCSize() const;
 
 		void SectionCopyPData(void* buffer) const;
 		void SectionCopyXData(void* buffer) const;
+		void SectionCopyGC(void* buffer) const;
 
 	private:	// Internal state
 		std::unique_ptr<llvm::Module> LLVMModule;
@@ -137,6 +139,7 @@ namespace CodeGen
 
 		std::vector<char> PData;
 		std::vector<char> XData;
+		std::vector<char> GCSection;
 	};
 
 }

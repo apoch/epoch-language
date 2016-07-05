@@ -92,14 +92,15 @@ MakeExe : EpochProject ref project
 	
 	integer sizepdata = EpochLLVMSectionGetPDataSize(llvm)
 	integer sizexdata = EpochLLVMSectionGetXDataSize(llvm)
+	integer sizegc = EpochLLVMSectionGetGCSize(llvm)
 	
 	buffer pdata = sizepdata
 	buffer xdata = sizexdata
+	buffer gcdata = sizegc
 	
 	EpochLLVMSectionCopyPData(llvm, pdata)
 	EpochLLVMSectionCopyXData(llvm, xdata)
-	
-	integer sizegc = 512
+	EpochLLVMSectionCopyGC(llvm, gcdata)
 	
 	EpochLLVMContextDestroy(llvm)
 
@@ -175,7 +176,8 @@ MakeExe : EpochProject ref project
 	position += WriteStringTable(filehandle, sizestrings, GlobalStringOffsets)
 
 	position += WritePadding(filehandle, position, offsetgc)
-	position += WritePadding(filehandle, position, sizegc + offsetgc)
+	WriteFile(filehandle, gcdata, sizegc, written, 0)
+	position += sizegc
 
 	print("Writing code...")
 	

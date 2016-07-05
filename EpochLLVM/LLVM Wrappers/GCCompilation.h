@@ -10,7 +10,7 @@ namespace llvm
 namespace GCCompilation
 {
 
-	void DumpGCData(llvm::ExecutionEngine& ee);
+	void PrepareGCData(llvm::ExecutionEngine& ee, std::vector<char>* sectiondata);
 
 }
 

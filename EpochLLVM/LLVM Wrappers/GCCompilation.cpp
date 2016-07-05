@@ -21,7 +21,8 @@ namespace
 		uint64_t LabelOffset;
 		const Function* OriginalFunction;
 		uint64_t StackFrameSize;
-		std::vector<GCLiveRootInfo>* Roots;
+		uint32_t RootsIndex;
+		uint32_t RootsCount;
 	};
 
 
@@ -31,13 +32,10 @@ namespace
 		{
 			for(auto p : RootData)
 				delete p;
-
-			for(auto p : LiveRootCache)
-				delete p;
 		}
 
 		std::vector<GCRootData*> RootData;
-		std::vector<std::vector<GCLiveRootInfo>*> LiveRootCache;
+		std::vector<GCLiveRootInfo> LiveRootCache;
 	};
 
 
@@ -56,15 +54,16 @@ namespace
 
 		void RegisterSafePointData(GCFunctionInfo& func)
 		{
-			std::vector<GCLiveRootInfo>* liveroots = new std::vector<GCLiveRootInfo>;
-			CompilationGCData.LiveRootCache.push_back(liveroots);
-				
+			uint32_t rootindex = CompilationGCData.LiveRootCache.size();
+			uint32_t rootcount = 0;
+
 			for(auto liveiter = func.live_begin(func.begin()); liveiter != func.live_end(func.begin()); ++liveiter)
 			{
 				GCLiveRootInfo root;
 				root.StackOffset = liveiter->StackOffset;
 
-				liveroots->push_back(root);
+				CompilationGCData.LiveRootCache.push_back(root);
+				++rootcount;
 			}
 
 
@@ -76,7 +75,8 @@ namespace
 				rootdata->OriginalFunction = &func.getFunction();
 				rootdata->StackFrameSize = func.getFrameSize();
 				rootdata->LabelOffset = safepoint.Label->getOffset();
-				rootdata->Roots = liveroots;
+				rootdata->RootsIndex = rootindex;
+				rootdata->RootsCount = rootcount;
 
 				CompilationGCData.RootData.push_back(rootdata);
 			}
@@ -107,20 +107,48 @@ namespace
 	GCRegistry::Add<EpochGCStrategy>				RegisterStrategy("EpochGC", "Epoch Language Runtime GC");
 	GCMetadataPrinterRegistry::Add<EpochGCPrinter>	RegisterPrinter("EpochGC", "Epoch Language Runtime GC");
 
+
+
+
+	template<typename T>
+	void AppendToBuffer(std::vector<char>* buffer, const T& data)
+	{
+		const char* pdata = reinterpret_cast<const char*>(&data);
+		for(size_t i = 0; i < sizeof(T); ++i)
+		{
+			buffer->push_back(*pdata);
+			++pdata;
+		}
+	}
+
+
+
 }
 
 
 
 
-void GCCompilation::DumpGCData(llvm::ExecutionEngine& ee)
+void GCCompilation::PrepareGCData(llvm::ExecutionEngine& ee, std::vector<char>* sectiondata)
 {
+	sectiondata->clear();
+
+	AppendToBuffer(sectiondata, static_cast<uint32_t>(CompilationGCData.RootData.size()));
+
 	for(auto rd : CompilationGCData.RootData)
 	{
 		void* funcraw = ee.getPointerToFunction(const_cast<Function*>(rd->OriginalFunction));
 		const char* funcentryaddr = reinterpret_cast<const char*>(funcraw);
-		const char* safepointip = funcentryaddr + rd->LabelOffset;
+		const char* safepointip = funcentryaddr + rd->LabelOffset - 0x400000;
 
-		std::cout << (void*)(safepointip) << std::endl;
+		AppendToBuffer(sectiondata, static_cast<uint32_t>(reinterpret_cast<uint64_t>(safepointip)));
+		AppendToBuffer(sectiondata, static_cast<uint32_t>(rd->StackFrameSize));
+		AppendToBuffer(sectiondata, static_cast<uint32_t>(rd->RootsIndex));
+		AppendToBuffer(sectiondata, static_cast<uint32_t>(rd->RootsCount));
+	}
+
+	for(const auto& root : CompilationGCData.LiveRootCache)
+	{
+		AppendToBuffer(sectiondata, root);
 	}
 }
 

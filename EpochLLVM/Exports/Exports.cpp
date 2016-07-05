@@ -343,6 +343,11 @@ extern "C" void EpochLLVMSectionCopyXData(void* context, void* buffer)
 	reinterpret_cast<CodeGen::Context*>(context)->SectionCopyXData(buffer);
 }
 
+extern "C" void EpochLLVMSectionCopyGC(void* context, void* buffer)
+{
+	reinterpret_cast<CodeGen::Context*>(context)->SectionCopyGC(buffer);
+}
+
 
 extern "C" unsigned EpochLLVMSectionGetPDataSize(void* context)
 {
@@ -353,5 +358,11 @@ extern "C" unsigned EpochLLVMSectionGetXDataSize(void* context)
 {
 	return reinterpret_cast<CodeGen::Context*>(context)->SectionGetXDataSize();
 }
+
+extern "C" unsigned EpochLLVMSectionGetGCSize(void* context)
+{
+	return reinterpret_cast<CodeGen::Context*>(context)->SectionGetGCSize();
+}
+
 
 

@@ -130,9 +130,13 @@ EpochLLVMCodePushFunction : LLVMContextHandle context, LLVMFunctionRef func					
 
 EpochLLVMSectionGetPDataSize : LLVMContextHandle context -> integer size = 0										[external("EpochLLVM.dll", "EpochLLVMSectionGetPDataSize")]
 EpochLLVMSectionGetXDataSize : LLVMContextHandle context -> integer size = 0										[external("EpochLLVM.dll", "EpochLLVMSectionGetXDataSize")]
+EpochLLVMSectionGetGCSize : LLVMContextHandle context -> integer size = 0											[external("EpochLLVM.dll", "EpochLLVMSectionGetGCSize")]
 
 EpochLLVMSectionCopyPData : LLVMContextHandle context, buffer ref targetbuffer										[external("EpochLLVM.dll", "EpochLLVMSectionCopyPData")]
 EpochLLVMSectionCopyXData : LLVMContextHandle context, buffer ref targetbuffer										[external("EpochLLVM.dll", "EpochLLVMSectionCopyXData")]
+EpochLLVMSectionCopyGC : LLVMContextHandle context, buffer ref targetbuffer											[external("EpochLLVM.dll", "EpochLLVMSectionCopyGC")]
+
+
 
 SetUpAllLLVMCode : LLVMContextHandle context
 {	

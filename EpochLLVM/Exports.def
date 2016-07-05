@@ -78,3 +78,6 @@ EXPORTS
 
 	EpochLLVMSectionGetXDataSize
 	EpochLLVMSectionCopyXData
+
+	EpochLLVMSectionGetGCSize
+	EpochLLVMSectionCopyGC
