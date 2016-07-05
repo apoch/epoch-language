@@ -7,23 +7,45 @@
 namespace
 {
 
+	struct GCFunctionData
+	{
+		uint32_t BeginOffsetIP;
+		uint32_t EndOffsetIP;
+		uint32_t StartOfGCData;
+	};
+
 
 	struct GCImageTable
 	{
 		unsigned NumEntries;
+		const GCFunctionData* Entries;
+		const char* StartOfGCData;
 	};
 
 
-	const GCImageTable* GCTable = nullptr;
+	GCImageTable GCTable;
 
 
 
 
-	void TraceStackRoots(void* instructionptr)
+	void TraceStackRoots(uint64_t instructionptr)
 	{
-		for(unsigned i = 0; i < GCTable->NumEntries; ++i)
+		uint64_t baseaddr = reinterpret_cast<uint64_t>(::GetModuleHandle(NULL));
+		uint64_t instructionoffset = instructionptr - baseaddr;
+
+		const GCFunctionData* functiondata = GCTable.Entries;
+
+		for(unsigned i = 0; i < GCTable.NumEntries; ++i, ++functiondata)
 		{
-			// TODO - if this GCTable entry matches IP, look up LLVM stack data and traverse it
+			if(instructionoffset < functiondata->BeginOffsetIP)
+				continue;
+
+			if(instructionoffset >= functiondata->EndOffsetIP)
+				continue;
+
+			const char* gcdataptr = GCTable.StartOfGCData + functiondata->StartOfGCData;
+
+			// TODO - stash LLVM stack map at gcdataptr, traverse it here for roots
 		}
 	}
 
@@ -38,7 +60,7 @@ namespace
 			if(!p)
 				break;
 
-			TraceStackRoots(p);
+			TraceStackRoots(reinterpret_cast<uint64_t>(p));
 		}
 	}
 
@@ -52,7 +74,9 @@ void GC::Init(uint32_t gcsectionoffset)
 	const char* baseofprocess = reinterpret_cast<const char*>(::GetModuleHandle(NULL));
 	const char* gcsection = baseofprocess + gcsectionoffset;
 
-	GCTable = reinterpret_cast<const GCImageTable*>(gcsection);
+	GCTable.NumEntries = *reinterpret_cast<const unsigned*>(gcsection);
+	GCTable.Entries = reinterpret_cast<const GCFunctionData*>(gcsection + sizeof(unsigned));
+	GCTable.StartOfGCData = reinterpret_cast<const char*>(GCTable.Entries) + GCTable.NumEntries * sizeof(GCFunctionData);
 }
 
 

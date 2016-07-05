@@ -10,6 +10,8 @@
 #include "Pch.h"
 
 #include "CodeGenContext.h"
+#include "GCCompilation.h"
+
 #include <sstream>
 
 
@@ -183,10 +185,15 @@ Context::Context()
 
 	FunctionType* initfunctiontype = FunctionType::get(Type::getInt32Ty(getGlobalContext()), false);
 	InitFunction = Function::Create(initfunctiontype, GlobalValue::ExternalLinkage , "@init", LLVMModule.get());
-	
-	auto attrs = InitFunction->getAttributes();
-	attrs = attrs.addAttribute(getGlobalContext(), AttributeSet::FunctionIndex, "no-frame-pointer-elim", "true");
-	InitFunction->setAttributes(attrs);
+	InitFunction->setGC("EpochGC");
+
+	{
+		std::vector<Type*> args;
+		args.push_back(Type::getInt8PtrTy(getGlobalContext())->getPointerTo());
+		args.push_back(Type::getInt8PtrTy(getGlobalContext()));
+		FunctionType* ftype = FunctionType::get(Type::getVoidTy(getGlobalContext()), args, false);
+		GCRootFunction = Function::Create(ftype, Function::ExternalLinkage, "llvm.gcroot", LLVMModule.get());
+	}
 }
 
 
@@ -217,11 +224,7 @@ void Context::FunctionTypePush()
 llvm::Function* Context::FunctionCreate(const char* name, llvm::FunctionType* fty)
 {
 	Function* func = Function::Create(fty, GlobalValue::ExternalLinkage, name, LLVMModule.get());
-
-	auto attrs = func->getAttributes();
-	attrs = attrs.addAttribute(getGlobalContext(), AttributeSet::FunctionIndex, "no-frame-pointer-elim", "true");
-	func->setAttributes(attrs);
-
+	func->setGC("EpochGC");
 	return func;
 }
 
@@ -362,7 +365,6 @@ size_t Context::EmitBinaryObject(char* buffer, size_t maxoutput)
 	opts.EnableFastISel = false;
 	//opts.EnableSegmentedStacks = false;
 	opts.GuaranteedTailCallOpt = true;
-	//opts.NoFramePointerElim = true;			// TODO - uhhhhh
 
 	uint64_t pdata = 0;
 	uint64_t xdata = 0;
@@ -385,8 +387,6 @@ size_t Context::EmitBinaryObject(char* buffer, size_t maxoutput)
 	{
 		return 0;
 	}
-
-
 
 
 
@@ -518,6 +518,9 @@ size_t Context::EmitBinaryObject(char* buffer, size_t maxoutput)
 		}
 	}
 
+	GCCompilation::DumpGCData(*ee);
+
+
 	memcpy(buffer, (void*)(emissionaddr), s);
 	return s;
 }
@@ -525,7 +528,17 @@ size_t Context::EmitBinaryObject(char* buffer, size_t maxoutput)
 
 llvm::AllocaInst* Context::CodeCreateAlloca(llvm::Type* vartype, const char* varname)
 {
-	return LLVMBuilder.CreateAlloca(vartype, nullptr, varname);
+	auto allocainst = LLVMBuilder.CreateAlloca(vartype, nullptr, varname);
+
+	if(vartype == Type::getInt8PtrTy(getGlobalContext()))
+	{
+		Value* signature = ConstantInt::get(Type::getInt32Ty(getGlobalContext()), 0x02000000);
+		Value* constant = LLVMBuilder.CreateIntToPtr(signature, Type::getInt8PtrTy(getGlobalContext()));
+		Value* castptr = LLVMBuilder.CreatePointerCast(allocainst, Type::getInt8PtrTy(getGlobalContext())->getPointerTo());
+		LLVMBuilder.CreateCall(GCRootFunction, { castptr, constant });
+	}
+
+	return allocainst;
 }
 
 llvm::BasicBlock* Context::CodeCreateBasicBlock(llvm::Function* parent, bool setinsertpoint)

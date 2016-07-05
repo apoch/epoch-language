@@ -5,13 +5,14 @@ entrypoint :
 	string w = "World!"
 
 	testfunc(h, s, w)
+
+	ERT_gc_collect_strings()
 }
 
 
 testfunc : string h, string s, string w
 {
 	string m = h ; s ; w
-
 	print(m)
 }
 

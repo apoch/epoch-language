@@ -22,6 +22,9 @@
     <ClInclude Include="LLVM Wrappers\CodeGenContext.h">
       <Filter>LLVM Wrappers</Filter>
     </ClInclude>
+    <ClInclude Include="LLVM Wrappers\GCCompilation.h">
+      <Filter>LLVM Wrappers</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp">
@@ -34,6 +37,9 @@
       <Filter>Exports</Filter>
     </ClCompile>
     <ClCompile Include="LLVM Wrappers\CodeGenContext.cpp">
+      <Filter>LLVM Wrappers</Filter>
+    </ClCompile>
+    <ClCompile Include="LLVM Wrappers\GCCompilation.cpp">
       <Filter>LLVM Wrappers</Filter>
     </ClCompile>
   </ItemGroup>

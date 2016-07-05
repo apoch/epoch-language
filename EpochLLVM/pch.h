@@ -20,6 +20,7 @@
 
 // C++ standard headers
 #include <vector>
+#include <map>
 #include <iostream>
 
 
@@ -45,27 +46,31 @@
 #include <llvm/Support/raw_ostream.h>
 #include <llvm/Support/raw_os_ostream.h>
 #include "llvm/IR/DerivedTypes.h"
-#include "llvm/ExecutionEngine/ExecutionEngine.h"
-#include "llvm/ExecutionEngine/RtDyldMemoryManager.h"
-//#include "llvm/ExecutionEngine/JIT.h"
-#include "llvm/IR/LLVMContext.h"
-#include "llvm/IR/Module.h"
-//#include "llvm/PassManager.h"
-#include "llvm/Analysis/Passes.h"
-#include "llvm/Transforms/Scalar.h"
-#include "llvm/IR/IRBuilder.h"
-#include "llvm/IR/Attributes.h"
+#include <llvm/ExecutionEngine/ExecutionEngine.h>
+#include <llvm/ExecutionEngine/RtDyldMemoryManager.h>
+#include <llvm/IR/LLVMContext.h>
+#include <llvm/IR/Module.h>
+#include <llvm/Analysis/Passes.h>
+#include <llvm/Transforms/Scalar.h>
+#include <llvm/IR/IRBuilder.h>
+#include <llvm/IR/Attributes.h>
 #include <llvm/IR/Verifier.h>
 #include <llvm/IR/LegacyPassManager.h>
-#include "llvm/Support/TargetSelect.h"
-//#include "llvm/PassManager.h"
-#include "llvm/Transforms/IPO.h"
-#include "llvm/ADT/SmallVector.h"
-//#include "llvm/ExecutionEngine/JITMemoryManager.h"
-#include "llvm/ExecutionEngine/JITEventListener.h"
+#include <llvm/Support/TargetSelect.h>
+#include <llvm/Transforms/IPO.h>
+#include <llvm/ADT/SmallVector.h>
+#include <llvm/ExecutionEngine/JITEventListener.h>
 #include <llvm/Object/ObjectFile.h>
-//#include <llvm/Support/system_error.h>
 #include <llvm/ADT/Triple.h>
+#include <llvm/CodeGen/GCStrategy.h>
+#include <llvm/CodeGen/GCMetadata.h>
+#include <llvm/Support/Compiler.h>
+#include <llvm/CodeGen/GCMetadataPrinter.h>
+#include <llvm/CodeGen/AsmPrinter.h>
+#include <llvm/IR/Function.h>
+#include <llvm/IR/DataLayout.h>
+#include <llvm/Target/TargetMachine.h>
+#include <llvm/MC/MCSymbol.h>
 
 #pragma warning(pop)
 

@@ -121,6 +121,8 @@ namespace CodeGen
 		llvm::Function* InitFunction;
 		llvm::Function* EntryPointFunction;
 
+		llvm::Function* GCRootFunction;
+
 		llvm::IRBuilder<> LLVMBuilder;
 
 		ThunkCallbackT ThunkCallback;
