@@ -94,7 +94,7 @@ EpochLLVMCodeCreateBranch : LLVMContextHandle handle, LLVMBasicBlock target, boo
 EpochLLVMCodeCreateCall : LLVMContextHandle handle, LLVMFunctionRef target -> integer ret = 0						[external("EpochLLVM.dll", "EpochLLVMCodeCreateCall")]
 EpochLLVMCodeCreateCallIndirect : LLVMContextHandle handle, LLVMAlloca alloca										[external("EpochLLVM.dll", "EpochLLVMCodeCreateCallIndirect")]
 EpochLLVMCodeCreateCallThunk : LLVMContextHandle handle, integer target -> integer ret = 0							[external("EpochLLVM.dll", "EpochLLVMCodeCreateCallThunk")]
-EpochLLVMCodeCreateCondBranch : LLVMContextHandle handle, LLVMBasicBlock truetarget, LLVMBasicBlock falsetarget		[external("EpochLLVM.dll", "EpochLLVMCodeCreateCondBranch")]
+EpochLLVMCodeCreateCondBranch : LLVMContextHandle handle, integer cond, LLVMBasicBlock tt, LLVMBasicBlock ft		[external("EpochLLVM.dll", "EpochLLVMCodeCreateCondBranch")]
 EpochLLVMCodeCreateGEP : LLVMContextHandle handle, integer index -> LLVMGEP ret = 0									[external("EpochLLVM.dll", "EpochLLVMCodeCreateGEP")]
 EpochLLVMCodeCreateRead : LLVMContextHandle handle, LLVMAlloca alloca												[external("EpochLLVM.dll", "EpochLLVMCodeCreateRead")]
 EpochLLVMCodeCreateReadParam : LLVMContextHandle handle, integer index												[external("EpochLLVM.dll", "EpochLLVMCodeCreateReadParam")]
@@ -126,7 +126,7 @@ EpochLLVMCodePushRawGEP : LLVMContextHandle context, LLVMGEP gep													[ex
 EpochLLVMCodePushString : LLVMContextHandle context, integer handle													[external("EpochLLVM.dll", "EpochLLVMCodePushString")]
 EpochLLVMCodePushFunction : LLVMContextHandle context, LLVMFunctionRef func											[external("EpochLLVM.dll", "EpochLLVMCodePushFunction")]
 
-
+EpochLLVMCodePopValue : LLVMContextHandle context -> integer magic = 0												[external("EpochLLVM.dll", "EpochLLVMCodePopValue")]
 
 EpochLLVMSectionGetPDataSize : LLVMContextHandle context -> integer size = 0										[external("EpochLLVM.dll", "EpochLLVMSectionGetPDataSize")]
 EpochLLVMSectionGetXDataSize : LLVMContextHandle context -> integer size = 0										[external("EpochLLVM.dll", "EpochLLVMSectionGetXDataSize")]
@@ -384,12 +384,19 @@ EmitRetInitializerToLLVM : LLVMBuildContext ref context, FunctionDefinition ref 
 	LLVMAlloca alloca = 0
 	BinaryTreeCopyPayload<LLVMAlloca>(context.LocalVariables.RootNode, returnname, alloca)
 	
-	EmitExpressionAtomsToLLVM(context, expr.Atoms)
-	
 	
 	if(!IsStructureType(expr.Type))
-	{
-		EpochLLVMCodeCreateWrite(context.Context, alloca)
+	{		
+		EmitExpressionAtomsToLLVM(context, expr.Atoms)
+
+		if(func.AnonymousReturn)
+		{
+			EpochLLVMCodeCreateWrite(context.Context, alloca)
+		}
+		else
+		{
+			EpochLLVMCodeStatementFinalize(context.Context)
+		}
 	}
 	
 	ret = alloca
@@ -708,6 +715,7 @@ EmitEntityChainEntriesToLLVM : LLVMBuildContext ref context, list<Entity> ref en
 	if(entityiforelse)			// if/elseif
 	{
 		EmitExpressionAtomsToLLVM(context, entities.value.Param)
+		integer magiccond = EpochLLVMCodePopValue(context.Context)
 		
 		LLVMBasicBlock currentinsertpoint = EpochLLVMGetCurrentBasicBlock(context.Context)
 		
@@ -719,7 +727,7 @@ EmitEntityChainEntriesToLLVM : LLVMBuildContext ref context, list<Entity> ref en
 		EpochLLVMCodeCreateBranch(context.Context, mergeblock, false)
 				
 		EpochLLVMSetCurrentBasicBlock(context.Context, currentinsertpoint)
-		EpochLLVMCodeCreateCondBranch(context.Context, trueblock, falseblock)
+		EpochLLVMCodeCreateCondBranch(context.Context, magiccond, trueblock, falseblock)
 		
 		EpochLLVMSetCurrentBasicBlock(context.Context, falseblock)
 		EmitEntityChainEntriesToLLVM(context, entities.next)
@@ -737,8 +745,9 @@ EmitEntityChainEntriesToLLVM : LLVMBuildContext ref context, list<Entity> ref en
 
 		EpochLLVMCodeCreateBranch(context.Context, condblock, true)
 		
-		EmitExpressionAtomsToLLVM(context, entities.value.Param)		
-		EpochLLVMCodeCreateCondBranch(context.Context, loopblock, mergeblock)
+		EmitExpressionAtomsToLLVM(context, entities.value.Param)
+		integer magiccond = EpochLLVMCodePopValue(context.Context)
+		EpochLLVMCodeCreateCondBranch(context.Context, magiccond, loopblock, mergeblock)
 		
 		EpochLLVMSetCurrentBasicBlock(context.Context, loopblock)
 		EmitCodeBlockToLLVM(context, entities.value.Code)
@@ -1194,95 +1203,16 @@ GetLLVMTypeForMemberType : LLVMContextHandle context, StructureMemberFunctionRef
 }
 
 
-
-
-
-HACKdummyconstructor : LLVMContextHandle context, list<StructureDefinition> ref structures
-{
-	EpochLLVMFunctionTypePush(context)
-	LLVMType funcrettype = EpochLLVMTypeGetVoid(context)
-	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetPointerTo(context, GetLLVMTypeForEpochType(context, structures.value.Type)))
-	CreateMemberParamTypesInLLVM(context, structures.value.Members)
-	LLVMFunctionType functype = EpochLLVMFunctionTypeCreate(context, funcrettype)
-	LLVMFunctionRef llvmfunc = EpochLLVMFunctionCreate(context, GetPooledString(structures.value.ConstructorName), functype)
-	BinaryTreeCreateOrInsert<LLVMFunctionRef>(LLVMFunctionTable, structures.value.ConstructorName, llvmfunc)
-	LLVMBasicBlock funcbody = EpochLLVMCodeCreateBasicBlock(context, llvmfunc, true)
-	
-	EpochLLVMCodePushInteger64(context, 0)
-	EpochLLVMCodeCreateWriteParam(context, 0)
-	
-	EpochLLVMCodeCreateRetVoid(context)
-}
-
-
-HACKdummyanonconstructor : LLVMContextHandle context, StructureDefinition ref struct
-{
-	EpochLLVMFunctionTypePush(context)
-	LLVMType funcrettype = GetLLVMTypeForEpochType(context, struct.Type)
-	CreateMemberParamTypesInLLVM(context, struct.Members)
-	
-	LLVMFunctionType functype = EpochLLVMFunctionTypeCreate(context, funcrettype)
-	LLVMFunctionRef llvmfunc = EpochLLVMFunctionCreate(context, GetPooledString(struct.AnonConstructorName), functype)
-	
-	BinaryTreeCreateOrInsert<LLVMFunctionRef>(LLVMFunctionTable, struct.AnonConstructorName, llvmfunc)
-	
-	
-	LLVMBasicBlock funcbody = EpochLLVMCodeCreateBasicBlock(context, llvmfunc, true)
-	LLVMAlloca retalloca = EpochLLVMCodeCreateAlloca(context, funcrettype, "@anonymous")
-		
-	EpochLLVMCodePushRawAlloca(context, retalloca)
-	EpochLLVMCodeCreateDereference(context)
-	EpochLLVMCodeCreateRet(context)
-}
-
-HACKdummycopyconstructor : LLVMContextHandle context, StructureDefinition ref struct
-{
-	EpochLLVMFunctionTypePush(context)
-	LLVMType funcrettype = EpochLLVMTypeGetVoid(context)
-	
-	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetPointerTo(context, GetLLVMTypeForEpochType(context, struct.Type)))
-	EpochLLVMFunctionQueueParamType(context, GetLLVMTypeForEpochType(context, struct.Type))
-	//EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetPointerTo(context, GetLLVMTypeForEpochType(context, struct.Type)))
-
-	LLVMFunctionType functype = EpochLLVMFunctionTypeCreate(context, funcrettype)
-	LLVMFunctionRef llvmfunc = EpochLLVMFunctionCreate(context, GetPooledString(struct.CopyConstructorName), functype)
-	
-	BinaryTreeCreateOrInsert<LLVMFunctionRef>(LLVMFunctionTable, struct.CopyConstructorName, llvmfunc)
-	
-	
-	LLVMBasicBlock funcbody = EpochLLVMCodeCreateBasicBlock(context, llvmfunc, true)
-
-	EpochLLVMCodeCreateReadParam(context, 1)
-	//EpochLLVMCodeCreateDereference(context)
-	EpochLLVMCodeCreateWriteParam(context, 0)
-	EpochLLVMCodeCreateRetVoid(context)
-}
-
-
 CreateAllConstructorsInLLVM : LLVMContextHandle context, list<StructureDefinition> ref structures
 {
 	if((structures.value.Name != 0) && (!structures.value.IsTemplate))
 	{
-		if(GetPooledString(structures.value.Name) == "OPAQUE")
-		{
-			// TODO - destroy this hack once integer64 support is implemented
-			
-			HACKdummyconstructor(context, structures)
-			HACKdummyanonconstructor(context, structures.value)
-			if(structures.value.CopyConstructorName != 0)
-			{
-				HACKdummycopyconstructor(context, structures.value)
-			}
-		}
-		else
-		{
-			CreateConstructorInLLVM(context, structures.value)
-			CreateAnonConstructorInLLVM(context, structures.value)
+		CreateConstructorInLLVM(context, structures.value)
+		CreateAnonConstructorInLLVM(context, structures.value)
 
-			if(structures.value.CopyConstructorName != 0)
-			{
-				CreateCopyConstructorInLLVM(context, structures.value)
-			}
+		if(structures.value.CopyConstructorName != 0)
+		{
+			CreateCopyConstructorInLLVM(context, structures.value)
 		}
 	}
 
@@ -1353,8 +1283,8 @@ CreateCopyConstructorInLLVM : LLVMContextHandle context, StructureDefinition ref
 	LLVMType funcrettype = EpochLLVMTypeGetVoid(context)
 	
 	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetPointerTo(context, GetLLVMTypeForEpochType(context, struct.Type)))
-	EpochLLVMFunctionQueueParamType(context, GetLLVMTypeForEpochType(context, struct.Type))
-	//EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetPointerTo(context, GetLLVMTypeForEpochType(context, struct.Type)))
+	//EpochLLVMFunctionQueueParamType(context, GetLLVMTypeForEpochType(context, struct.Type))		// TODO - this supposedly fixes something, but what?
+	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetPointerTo(context, GetLLVMTypeForEpochType(context, struct.Type)))
 
 	LLVMFunctionType functype = EpochLLVMFunctionTypeCreate(context, funcrettype)
 	LLVMFunctionRef llvmfunc = EpochLLVMFunctionCreate(context, GetPooledString(struct.CopyConstructorName), functype)
@@ -1365,7 +1295,7 @@ CreateCopyConstructorInLLVM : LLVMContextHandle context, StructureDefinition ref
 	LLVMBasicBlock funcbody = EpochLLVMCodeCreateBasicBlock(context, llvmfunc, true)
 
 	EpochLLVMCodeCreateReadParam(context, 1)
-	//EpochLLVMCodeCreateDereference(context)
+	EpochLLVMCodeCreateDereference(context)
 	EpochLLVMCodeCreateWriteParam(context, 0)
 	EpochLLVMCodeCreateRetVoid(context)
 }

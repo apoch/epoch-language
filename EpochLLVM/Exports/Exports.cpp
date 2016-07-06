@@ -164,9 +164,9 @@ extern "C" void* EpochLLVMCodeCreateCallThunk(void* context, void* target)
 	return reinterpret_cast<CodeGen::Context*>(context)->CodeCreateCallThunk(reinterpret_cast<llvm::GlobalVariable*>(target));
 }
 
-extern "C" void EpochLLVMCodeCreateCondBranch(void* context, void* truetarget, void* falsetarget)
+extern "C" void EpochLLVMCodeCreateCondBranch(void* context, void* cond, void* truetarget, void* falsetarget)
 {
-	reinterpret_cast<CodeGen::Context*>(context)->CodeCreateCondBranch(reinterpret_cast<llvm::BasicBlock*>(truetarget), reinterpret_cast<llvm::BasicBlock*>(falsetarget));
+	reinterpret_cast<CodeGen::Context*>(context)->CodeCreateCondBranch(reinterpret_cast<llvm::Value*>(cond), reinterpret_cast<llvm::BasicBlock*>(truetarget), reinterpret_cast<llvm::BasicBlock*>(falsetarget));
 }
 
 extern "C" void* EpochLLVMCodeCreateGEP(void* context, unsigned index)
@@ -365,4 +365,9 @@ extern "C" unsigned EpochLLVMSectionGetGCSize(void* context)
 }
 
 
+
+extern "C" void* EpochLLVMCodePopValue(void* context)
+{
+	return reinterpret_cast<CodeGen::Context*>(context)->CodePopValue();
+}
 

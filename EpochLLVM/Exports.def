@@ -67,6 +67,8 @@ EXPORTS
 	EpochLLVMCodePushString
 	EpochLLVMCodePushFunction
 
+	EpochLLVMCodePopValue
+
 	EpochLLVMCodeStatementFinalize
 
 	EpochLLVMGetCurrentBasicBlock

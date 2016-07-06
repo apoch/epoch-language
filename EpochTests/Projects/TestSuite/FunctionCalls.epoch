@@ -15,7 +15,7 @@ TestFunctionCalls :
 	TFCParamExpectTrue(true)
 	TFCParamExpectFalse(false)
 	
-	TestAssert(lstrcmp("foo", "foo") == 0, "external string compare")
+	TestAssert(CompareStrings("a", "b") == -1, "external string compare")
 	
 	TFCHigherOrder()
 	
@@ -40,7 +40,7 @@ TFCParamExpectFalse : boolean expected
 
 
 
-lstrcmp : string lhs, string rhs -> integer ret = 0 [external("Kernel32.dll", "lstrcmpA")]
+CompareStrings : string lhs, string rhs -> integer ret = 0 [external("Kernel32.dll", "lstrcmpA")]
 
 
 

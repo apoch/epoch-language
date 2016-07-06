@@ -245,10 +245,7 @@ void Context::FunctionFinalize()
 	//LLVMBuilder.GetInsertBlock()->getParent()->dump();
 
 	// TODO - better implementation of this
-	//if(!PendingValues.empty())
-	//{
-	//	exit(666);
-	//}
+	//assert(PendingValues.empty());
 }
 
 
@@ -616,11 +613,8 @@ llvm::CallInst* Context::CodeCreateCallThunk(llvm::GlobalVariable* target)
 	return inst;
 }
 
-void Context::CodeCreateCondBranch(BasicBlock* truetarget, BasicBlock* falsetarget)
+void Context::CodeCreateCondBranch(Value* cond, BasicBlock* truetarget, BasicBlock* falsetarget)
 {
-	Value* cond = PendingValues.back();
-	PendingValues.pop_back();
-
 	LLVMBuilder.CreateCondBr(cond, truetarget, falsetarget);
 }
 
@@ -837,7 +831,8 @@ void Context::CodePushFunction(llvm::Function* func)
 
 void Context::CodeStatementFinalize()
 {
-	//PendingValues.clear();
+	assert(PendingValues.empty() || PendingValues.size() == 1);
+	PendingValues.clear();
 }
 
 
@@ -898,3 +893,10 @@ unsigned Context::SectionGetGCSize() const
 	return static_cast<unsigned>(GCSection.size());
 }
 
+
+llvm::Value* Context::CodePopValue()
+{
+	Value* v = PendingValues.back();
+	PendingValues.pop_back();
+	return v;
+}
