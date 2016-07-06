@@ -398,6 +398,10 @@ EmitRetInitializerToLLVM : LLVMBuildContext ref context, FunctionDefinition ref 
 			EpochLLVMCodeStatementFinalize(context.Context)
 		}
 	}
+	else
+	{
+		EmitExpressionAtomsToLLVM(context, expr.Atoms)
+	}
 	
 	ret = alloca
 }
