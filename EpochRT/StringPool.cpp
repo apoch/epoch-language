@@ -43,8 +43,6 @@ void ThreadStringPool::FreeUnusedEntries()
 	});
 
 	Pool.erase(iter, Pool.end());
-
-	std::cout << "GC Freed " << count << " strings" << std::endl;
 }
 
 

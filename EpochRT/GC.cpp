@@ -39,10 +39,9 @@ namespace
 		for(uint32_t i = 0; i < rootcount; ++i)
 		{
 			int offset = GCTable.Roots[i + rootindex].StackFrameOffset;
-			std::cout << "Live root at offset " << offset << " from stackptr " << (void*)(stackptr) << std::endl;
-
 
 			// Temp Proof of Concept hack
+			// TODO - read real root metadata, extract type, walk heap for references
 			const char** foo = (const char**)((const char*)(stackptr + offset));
 			stringpool->MarkInUse(*foo);
 		}
@@ -59,9 +58,6 @@ namespace
 		{
 			if(instructionoffset != safepointdata->ReturnIP)
 				continue;
-
-			std::cout << "Garbage collect at safepoint " << (void*)(instructionoffset) <<
-				" - stack frame size " << safepointdata->StackFrameSize << " - roots data at slot " << safepointdata->RootDataIndex << std::endl;
 
 			WalkStackRoots(stackptr, safepointdata->StackFrameSize, safepointdata->RootDataIndex, safepointdata->RootDataCount, stringpool);
 		}

@@ -13,6 +13,11 @@ entrypoint :
 testfunc : string h, string s, string w
 {
 	string m = h ; s ; w
+
+	ERT_gc_collect_strings()
+
 	print(m)
+
+	ERT_gc_collect_strings()
 }
 

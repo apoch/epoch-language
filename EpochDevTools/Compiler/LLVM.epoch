@@ -641,8 +641,6 @@ EmitSingleCodeBlockEntryToLLVM : LLVMBuildContext ref context, Statement ref ent
 			
 			EmitPartialExpressionListToLLVM(context, entry.Parameters)
 			EpochLLVMCodeCreateWrite(context.Context, alloca)
-			
-			EmitExpressionListToLLVM(context, entry.Parameters)
 		}
 	}
 	elseif(SumTypeExists(entry.Name))
