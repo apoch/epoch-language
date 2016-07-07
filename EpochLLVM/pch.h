@@ -45,7 +45,7 @@
 
 #include <llvm/Support/raw_ostream.h>
 #include <llvm/Support/raw_os_ostream.h>
-#include "llvm/IR/DerivedTypes.h"
+#include <llvm/IR/DerivedTypes.h>
 #include <llvm/ExecutionEngine/ExecutionEngine.h>
 #include <llvm/ExecutionEngine/RtDyldMemoryManager.h>
 #include <llvm/IR/LLVMContext.h>
@@ -71,6 +71,7 @@
 #include <llvm/IR/DataLayout.h>
 #include <llvm/Target/TargetMachine.h>
 #include <llvm/MC/MCSymbol.h>
+#include <llvm/Passes/PassBuilder.h>
 
 #pragma warning(pop)
 

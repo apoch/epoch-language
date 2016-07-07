@@ -23,6 +23,18 @@ using namespace llvm;
 namespace
 {
 
+	//
+	// Manually relocate a .pdata section entry (i.e. a RUNTIME_FUNCTION structure)
+	//
+	// The .pdata section emitted by LLVM is given offsets from 0 instead of the correct bases.
+	// Ordinarily the linker will relocate this section, but... hey guess what, we ARE the linker!
+	// So instead of delegating this work, we just handle it here, since we already know the base
+	// offsets of each section in the final image.
+	//
+	// Thankfully LLVM emits a nice set of relocation records for us so all we have to do is run
+	// through the list and bump the offsets according to which section the final data should be
+	// found in.
+	//
 	void ProcessPDataRelocationForField(const object::SectionRef& section, IMAGE_RUNTIME_FUNCTION_ENTRY* data, void* fieldaddr)
 	{
 		size_t fieldoffset = reinterpret_cast<const char*>(fieldaddr) - reinterpret_cast<const char*>(data);
@@ -33,16 +45,25 @@ namespace
 			{
 				if(reloc.getSymbol()->getName().get().str() == ".xdata")
 				{
-					*reinterpret_cast<char**>(fieldaddr) += 0x4000;		// TODO - borked
+					*reinterpret_cast<char**>(fieldaddr) += 0x4000;		// TODO - don't hardcode the offset of the .xdata section
 				}
 				else
 				{
-					*reinterpret_cast<char**>(fieldaddr) += reloc.getSymbol()->getAddress().get() + 0x7000;    // TODO
+					*reinterpret_cast<char**>(fieldaddr) += reloc.getSymbol()->getAddress().get() + 0x7000;    // TODO - don't hardcode the offset of the .text section
 				}
 			}
 		}
 	}
 
+	//
+	// Batch relocate all .pdata RUNTIME_FUNCTION structures to the correct offsets
+	//
+	// See comments on ProcessPDataRelocationForField for details on why this is necessary.
+	//
+	// This could be rewritten to be a little messier but a lot faster. Until profiling indicates
+	// that link time/image emission time is significantly hampered by this process, however, it
+	// isn't worth the effort or the loss of clarity.
+	//
 	void ProcessPDataRelocations(const object::SectionRef& section, std::vector<char>* buffer)
 	{
 		size_t numrecords = buffer->size() / sizeof(IMAGE_RUNTIME_FUNCTION_ENTRY);
@@ -56,55 +77,92 @@ namespace
 		}
 	}
 
-}
 
+	//
+	// Memory management wrapper for handling image emission/linking
+	//
+	// Conforms to LLVM's interfaces for this sort of management in a minimalistic way.
+	// Mostly we use it for injecting the addresses of our own symbols in a way that is
+	// somewhat decoupled from LLVM's symbol management infrastructure. However there's
+	// also a convenient hook here for grabbing the actual memory address at which LLVM
+	// emits code, so we can relocate it correctly later.
+	//
+	class TrivialMemoryManager : public RTDyldMemoryManager
+	{
+	public:
+		TrivialMemoryManager(CodeGen::ThunkCallbackT funcptr, CodeGen::StringCallbackT strptr, uint64_t* outAddr, size_t* outSize, uint64_t* outPData, uint64_t* outXData)
+			: ThunkCallback(funcptr),
+			  StringCallback(strptr),
+			  OutAddr(outAddr),
+			  OutSize(outSize),
+			  OutPDataOffset(outPData),
+			  OutXDataOffset(outXData)
+		{ }
 
+		uint8_t* allocateCodeSection(uintptr_t Size, unsigned Alignment, unsigned SectionID, StringRef SectionName) override;
+		uint8_t* allocateDataSection(uintptr_t Size, unsigned Alignment, unsigned SectionID, StringRef SectionName, bool IsReadOnly) override;
 
-////////////////////////
-class TrivialMemoryManager : public RTDyldMemoryManager {
-public:
-	TrivialMemoryManager(CodeGen::ThunkCallbackT funcptr, CodeGen::StringCallbackT strptr, uint64_t* outAddr, size_t* outSize, uint64_t* outPData, uint64_t* outXData)
-		: ThunkCallback(funcptr),
-		  StringCallback(strptr),
-		  OutAddr(outAddr),
-		  OutSize(outSize),
-		  OutPDataOffset(outPData),
-		  OutXDataOffset(outXData)
-	{ }
+		bool finalizeMemory(std::string*) override
+		{
+			return false;
+		}
 
-	ThunkCallbackT ThunkCallback;
-	StringCallbackT StringCallback;
+		void* getPointerToNamedFunction(const std::string& Name, bool AbortOnFailure = true) override
+		{
+			return nullptr;
+		}
 
-	uint64_t* OutAddr;
-	size_t* OutSize;
+		uint64_t getSymbolAddress(const std::string& foo) override;
 
-	uint64_t* OutPDataOffset;
-	uint64_t* OutXDataOffset;
+	private:		// Internal state
+		ThunkCallbackT ThunkCallback;
+		StringCallbackT StringCallback;
 
-  SmallVector<sys::MemoryBlock, 16> FunctionMemory;
-  SmallVector<sys::MemoryBlock, 16> DataMemory;
+		uint64_t* OutAddr;
+		size_t* OutSize;
 
-  uint8_t *allocateCodeSection(uintptr_t Size, unsigned Alignment,
-                               unsigned SectionID, StringRef SectionName);
-  uint8_t *allocateDataSection(uintptr_t Size, unsigned Alignment,
-                               unsigned SectionID, StringRef SectionName,
-                               bool IsReadOnly);
+		uint64_t* OutPDataOffset;
+		uint64_t* OutXDataOffset;
 
-  virtual void *getPointerToNamedFunction(const std::string &Name,
-                                          bool AbortOnFailure = true) {
-    return nullptr;
-  }
+		SmallVector<sys::MemoryBlock, 16> FunctionMemory;
+		SmallVector<sys::MemoryBlock, 16> DataMemory;
+	};
 
-  bool finalizeMemory(std::string *ErrMsg) { return false; }
+	uint8_t* TrivialMemoryManager::allocateCodeSection(uintptr_t Size, unsigned Alignment, unsigned SectionID, StringRef SectionName)
+	{
+		sys::MemoryBlock MB = sys::Memory::AllocateRWX(Size, 0, 0);
 
-  // Invalidate instruction cache for sections with execute permissions.
-  // Some platforms with separate data cache and instruction cache require
-  // explicit cache flush, otherwise JIT code manipulations (like resolved
-  // relocations) will get to the data cache but not to the instruction cache.
-  virtual void invalidateInstructionCache();
+		*OutAddr = (uint64_t)MB.base();
+		*OutSize = Size;
 
+		FunctionMemory.push_back(MB);
+		return (uint8_t*)MB.base();
+	}
 
-	virtual uint64_t getSymbolAddress(const std::string & foo) override
+	uint8_t* TrivialMemoryManager::allocateDataSection(uintptr_t Size, unsigned Alignment, unsigned SectionID, StringRef SectionName, bool IsReadOnly)
+	{
+		sys::MemoryBlock MB = sys::Memory::AllocateRWX(Size, 0, 0);
+
+		if(SectionName == ".pdata")
+			*OutPDataOffset = (uint64_t)MB.base();
+		else if(SectionName == ".xdata")
+			*OutXDataOffset = (uint64_t)MB.base();
+
+		DataMemory.push_back(MB);
+		return (uint8_t*)MB.base();
+	}
+
+	//
+	// Resolve a symbol to a concrete address.
+	//
+	// We support two kinds of symbol resolution: static strings, and thunk functions.
+	// Static strings are magically identified by a prefix token. They are mapped by a
+	// lookup table in the Epoch compiler itself, and we simply ask the compiler for a
+	// concrete address for each string. Thunk functions are the same basic setup, but
+	// without a name prefix token. Therefore, any symbol that isn't a string is going
+	// to be resolved as a thunk.
+	//
+	uint64_t TrivialMemoryManager::getSymbolAddress(const std::string& foo)
 	{
 		if(foo.substr(0, 21) == "@epoch_static_string:")
 		{
@@ -126,50 +184,9 @@ public:
 			return offset;
 		}
 	}
-};
 
-uint8_t *TrivialMemoryManager::allocateCodeSection(uintptr_t Size,
-                                                   unsigned Alignment,
-                                                   unsigned SectionID,
-                                                   StringRef SectionName) {
-  sys::MemoryBlock MB = sys::Memory::AllocateRWX(Size, 0, 0);
 
-  *OutAddr = (uint64_t)MB.base();
-  *OutSize = Size;
-
-  FunctionMemory.push_back(MB);
-  return (uint8_t*)MB.base();
 }
-
-uint8_t *TrivialMemoryManager::allocateDataSection(uintptr_t Size,
-                                                   unsigned Alignment,
-                                                   unsigned SectionID,
-                                                   StringRef SectionName,
-                                                   bool IsReadOnly)
-{
-	sys::MemoryBlock MB = sys::Memory::AllocateRWX(Size, 0, 0);
-
-	if(SectionName == ".pdata")
-		*OutPDataOffset = (uint64_t)MB.base();
-	else if(SectionName == ".xdata")
-		*OutXDataOffset = (uint64_t)MB.base();
-
-	DataMemory.push_back(MB);
-	return (uint8_t*)MB.base();
-}
-
-void TrivialMemoryManager::invalidateInstructionCache() {
-  for (int i = 0, e = FunctionMemory.size(); i != e; ++i)
-    sys::Memory::InvalidateInstructionCache(FunctionMemory[i].base(),
-                                            FunctionMemory[i].size());
-
-  for (int i = 0, e = DataMemory.size(); i != e; ++i)
-    sys::Memory::InvalidateInstructionCache(DataMemory[i].base(),
-                                            DataMemory[i].size());
-}
-
-
-////////////////////////
 
 
 
@@ -199,6 +216,7 @@ Context::Context()
 
 Context::~Context()
 {
+	// TODO - clean up ExecutionEngine and any other auxiliary LLVM structures
 }
 
 
@@ -257,14 +275,12 @@ void Context::SetEntryFunction(llvm::Function* entryfunc)
 
 void Context::SetThunkCallback(void* funcptr)
 {
-	ThunkCallbackT castptr = reinterpret_cast<ThunkCallbackT>(funcptr);
-	ThunkCallback = castptr;
+	ThunkCallback = reinterpret_cast<ThunkCallbackT>(funcptr);
 }
 
 void Context::SetStringCallback(void* funcptr)
 {
-	StringCallbackT castptr = reinterpret_cast<StringCallbackT>(funcptr);
-	StringCallback = castptr;
+	StringCallback = reinterpret_cast<StringCallbackT>(funcptr);
 }
 
 
@@ -331,26 +347,23 @@ size_t Context::EmitBinaryObject(char* buffer, size_t maxoutput)
 	
 	BasicBlock* bb = BasicBlock::Create(getGlobalContext(), "InitBlock", InitFunction);
 	LLVMBuilder.SetInsertPoint(bb);
-	LLVMBuilder.CreateCall(LLVMBuilder.CreateLoad(gcinitfunctionvar), ConstantInt::get(TypeGetInteger(), 0x6000));		// TODO - un-hardcode segment address
+	LLVMBuilder.CreateCall(LLVMBuilder.CreateLoad(gcinitfunctionvar), ConstantInt::get(TypeGetInteger(), 0x6000));		// TODO - un-hardcode .gc segment address
 	// TODO - init globals here
 	LLVMBuilder.CreateCall(EntryPointFunction);
 	LLVMBuilder.CreateCall(LLVMBuilder.CreateLoad(gccollectstrsfunctionvar));
 	LLVMBuilder.CreateCall(LLVMBuilder.CreateLoad(exitprocessfunctionvar), ConstantInt::get(TypeGetInteger(), 0));
 	LLVMBuilder.CreateRet(ConstantInt::get(TypeGetInteger(), 0));
 
-	// HACK!
-	Module* wat = LLVMModule.get();
 
-	/*
 	llvm::raw_os_ostream spew(std::cout);
-	if(!llvm::verifyModule(*LLVMModule, &spew))
+	if(llvm::verifyModule(*LLVMModule, &spew))
 	{
 		spew.flush();
 
-		wat->dump();
+		LLVMModule->dump();
 		exit(666);
 	}
-	*/
+	
 
 	std::string errstr;
 
@@ -358,9 +371,7 @@ size_t Context::EmitBinaryObject(char* buffer, size_t maxoutput)
 	opts.LessPreciseFPMADOption = true;
 	opts.UnsafeFPMath = true;
 	opts.AllowFPOpFusion = FPOpFusion::Fast;
-	//opts.DisableTailCalls = false;
 	opts.EnableFastISel = false;
-	//opts.EnableSegmentedStacks = false;
 	opts.GuaranteedTailCallOpt = true;
 
 	uint64_t pdata = 0;
@@ -369,11 +380,14 @@ size_t Context::EmitBinaryObject(char* buffer, size_t maxoutput)
 	size_t s = 0;
 	std::unique_ptr<TrivialMemoryManager> blobmgr = std::make_unique<TrivialMemoryManager>(ThunkCallback, StringCallback, &emissionaddr, &s, &pdata, &xdata);
 
+	// HACK! We move the smart pointer's contents into the EngineBuilder
+	// below, but we still want to access the module for other purposes.
+	Module* llvmmodule = LLVMModule.get();
+
+
 	EngineBuilder eb(std::move(LLVMModule));
 	eb.setErrorStr(&errstr);
 	eb.setTargetOptions(opts);
-	//eb.setUseMCJIT(true);
-	//eb.setRelocationModel(Reloc::Static);
 	eb.setMCJITMemoryManager(std::move(blobmgr));
 
 	SmallVector<std::string, 2> emptyvec;
@@ -385,66 +399,11 @@ size_t Context::EmitBinaryObject(char* buffer, size_t maxoutput)
 		return 0;
 	}
 
+	llvmmodule->setDataLayout(ee->getDataLayout());
 
+	// TODO - reintroduce optimizations
 
-	legacy::FunctionPassManager fpm(wat);
-	wat->setDataLayout(ee->getDataLayout());
-	//fpm.add(createTypeBasedAliasAnalysisPass());
-	//fpm.add(createBasicAliasAnalysisPass());
-	fpm.add(createCFGSimplificationPass());
-	fpm.add(createScalarReplAggregatesPass());
-	fpm.add(createEarlyCSEPass());
-	fpm.add(createLowerExpectIntrinsicPass());
-
-	fpm.doInitialization();
-	
-	legacy::PassManager mpm;
-	//mpm.add(createTypeBasedAliasAnalysisPass());
-	//mpm.add(createBasicAliasAnalysisPass());
-	mpm.add(createGlobalOptimizerPass());
-	mpm.add(createPromoteMemoryToRegisterPass());
-	mpm.add(createIPSCCPPass());
-	mpm.add(createDeadArgEliminationPass());
-	mpm.add(createInstructionCombiningPass());
-	mpm.add(createCFGSimplificationPass());
-	mpm.add(createPruneEHPass());
-	//mpm.add(createFunctionAttrsPass());
-	mpm.add(createFunctionInliningPass());
-	mpm.add(createArgumentPromotionPass());
-	mpm.add(createScalarReplAggregatesPass(-1, false));
-	mpm.add(createEarlyCSEPass());
-	mpm.add(createJumpThreadingPass());
-	mpm.add(createCorrelatedValuePropagationPass());
-	mpm.add(createCFGSimplificationPass());
-	mpm.add(createInstructionCombiningPass());
-	mpm.add(createTailCallEliminationPass());
-	mpm.add(createCFGSimplificationPass());
-	mpm.add(createReassociatePass());
-	mpm.add(createLoopRotatePass());
-	mpm.add(createLICMPass());
-	mpm.add(createLoopUnswitchPass(false));
-	mpm.add(createInstructionCombiningPass());
-	mpm.add(createIndVarSimplifyPass());
-	mpm.add(createLoopIdiomPass());
-	mpm.add(createLoopDeletionPass());
-	mpm.add(createLoopUnrollPass());
-	mpm.add(createGVNPass());
-	mpm.add(createMemCpyOptPass());
-	mpm.add(createSCCPPass());
-	mpm.add(createInstructionCombiningPass());
-	mpm.add(createJumpThreadingPass());
-	mpm.add(createCorrelatedValuePropagationPass());
-	mpm.add(createDeadStoreEliminationPass());
-	mpm.add(createAggressiveDCEPass());
-	mpm.add(createCFGSimplificationPass());
-	mpm.add(createInstructionCombiningPass());
-	mpm.add(createFunctionInliningPass());
-	mpm.add(createDeadStoreEliminationPass());
-
-	//mpm.run(*wat);
-
-
-	wat->dump();
+	llvmmodule->dump();
 
 
 	const object::ObjectFile* image;
@@ -482,7 +441,7 @@ size_t Context::EmitBinaryObject(char* buffer, size_t maxoutput)
 	ee->RegisterJITEventListener(&listener);
 
 	ee->DisableLazyCompilation(true);
-	ee->generateCodeForModule(wat);
+	ee->generateCodeForModule(llvmmodule);
 	ee->mapSectionAddress((void*)(emissionaddr), 0x0407000);				// TODO
 	ee->finalizeObject();
 

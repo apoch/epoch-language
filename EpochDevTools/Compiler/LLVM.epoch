@@ -385,10 +385,10 @@ EmitRetInitializerToLLVM : LLVMBuildContext ref context, FunctionDefinition ref 
 	BinaryTreeCopyPayload<LLVMAlloca>(context.LocalVariables.RootNode, returnname, alloca)
 	
 	
+	EmitExpressionAtomsToLLVM(context, expr.Atoms)
+	
 	if(!IsStructureType(expr.Type))
-	{		
-		EmitExpressionAtomsToLLVM(context, expr.Atoms)
-
+	{
 		if(func.AnonymousReturn)
 		{
 			EpochLLVMCodeCreateWrite(context.Context, alloca)
@@ -397,10 +397,6 @@ EmitRetInitializerToLLVM : LLVMBuildContext ref context, FunctionDefinition ref 
 		{
 			EpochLLVMCodeStatementFinalize(context.Context)
 		}
-	}
-	else
-	{
-		EmitExpressionAtomsToLLVM(context, expr.Atoms)
 	}
 	
 	ret = alloca
