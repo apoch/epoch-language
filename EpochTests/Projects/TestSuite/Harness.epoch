@@ -9,7 +9,7 @@
 TestSection : string sectionname
 {
 	// TODO - formatting, once dynamic string support is reimplemented in LLVM64
-	print(sectionname)
+	print("BEGIN TESTS: " ; sectionname)
 }
 
 
@@ -17,6 +17,8 @@ TestSectionComplete :
 {
 	// TODO - pass along state for the tests
 	// TODO - display section statistics
+	print("SECTION COMPLETE")
+	print("")
 }
 
 
@@ -24,13 +26,11 @@ TestAssert : boolean success, string testname
 {
 	if(!success)
 	{
-		// TODO - formatting
-		print("TEST FAILED:")
-		print(testname)
+		print("*** TEST FAILED: " ; testname)
 	}
 	else
 	{
-		//print(testname)
+		print("PASS: " ; testname)
 	}
 }
 
