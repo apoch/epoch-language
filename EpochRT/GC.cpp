@@ -85,10 +85,6 @@ namespace
 		unsigned skip = 2;
 		unsigned hack = 0;
 
-		PVOID buffer[64] = {};
-		CaptureStackBackTrace(2, 60, buffer, NULL);
-
-
 		while(::StackWalk64(IMAGE_FILE_MACHINE_AMD64, ::GetCurrentProcess(), ::GetCurrentThread(), &frame, &ctx, NULL, NULL, NULL, NULL))
 		{
 			if(!frame.AddrPC.Offset)
