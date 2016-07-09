@@ -14,6 +14,7 @@ namespace
 	struct GCLiveRootInfo
 	{
 		int32_t StackOffset;
+		uint32_t TypeID;
 	};
 
 	struct GCRootData
@@ -59,8 +60,12 @@ namespace
 
 			for(auto liveiter = func.live_begin(func.begin()); liveiter != func.live_end(func.begin()); ++liveiter)
 			{
+				auto* constant = cast<Constant>(liveiter->Metadata);
+				auto* operand = cast<ConstantInt>(constant->getOperand(0));
+
 				GCLiveRootInfo root;
 				root.StackOffset = liveiter->StackOffset;
+				root.TypeID = static_cast<uint32_t>(operand->getLimitedValue());
 
 				CompilationGCData.LiveRootCache.push_back(root);
 				++rootcount;

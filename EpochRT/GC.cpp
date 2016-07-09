@@ -13,6 +13,7 @@ namespace
 	struct GCRootData
 	{
 		int StackFrameOffset;
+		uint32_t TypeID;
 	};
 
 	struct GCSafePointData
@@ -38,12 +39,19 @@ namespace
 	{
 		for(uint32_t i = 0; i < rootcount; ++i)
 		{
-			int offset = GCTable.Roots[i + rootindex].StackFrameOffset;
+			const auto& root = GCTable.Roots[i + rootindex];
 
-			// Temp Proof of Concept hack
-			// TODO - read real root metadata, extract type, walk heap for references
-			const char** foo = (const char**)((const char*)(stackptr + offset));
-			stringpool->MarkInUse(*foo);
+			int offset = root.StackFrameOffset;
+			uint32_t type = root.TypeID;
+
+			// TODO - stash structure data, walk heap for references
+
+			if(type == 0x02000000)
+			{
+				// Temp Proof of Concept hack
+				const char** foo = (const char**)((const char*)(stackptr + offset));
+				stringpool->MarkInUse(*foo);
+			}
 		}
 	}
 
