@@ -22,6 +22,7 @@
 #include <vector>
 #include <map>
 #include <iostream>
+#include <algorithm>
 
 
 // LLVM headers
@@ -72,6 +73,7 @@
 #include <llvm/Target/TargetMachine.h>
 #include <llvm/MC/MCSymbol.h>
 #include <llvm/Passes/PassBuilder.h>
+#include <llvm/IR/DIBuilder.h>
 
 #pragma warning(pop)
 

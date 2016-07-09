@@ -20,6 +20,9 @@ using namespace llvm;
 
 
 
+static unsigned hack = 0;
+
+
 namespace
 {
 
@@ -195,14 +198,21 @@ Context::Context()
 	  StringCallback(nullptr),
 	  LLVMBuilder(getGlobalContext()),
 	  EntryPointFunction(nullptr),
-	  LLVMModule(new Module("EpochModule", getGlobalContext()))
+	  LLVMModule(std::make_unique<Module>("EpochModule", getGlobalContext())),
+	  DebugBuilder(*LLVMModule)
 {
 	LLVMModule->addModuleFlag(Module::ModFlagBehavior::Warning, "CodeView", 1);
 
+	// TODO - stash CUs for each file of the input program; will require debug info internally in EpochCompiler
+	// TODO - change params to handle optimized code when optimizations are back in
+	DebugCompileUnit = DebugBuilder.createCompileUnit(dwarf::DW_LANG_C, "LinkedProgram.epoch", ".", "Epoch Compiler", false, "", 0);
+	DebugFile = DebugBuilder.createFile(DebugCompileUnit->getFilename(), DebugCompileUnit->getDirectory());
 
 	FunctionType* initfunctiontype = FunctionType::get(Type::getInt32Ty(getGlobalContext()), false);
 	InitFunction = Function::Create(initfunctiontype, GlobalValue::ExternalLinkage , "@init", LLVMModule.get());
 	InitFunction->setGC("EpochGC");
+
+	SetupDebugInfo(InitFunction);
 
 	{
 		std::vector<Type*> args;
@@ -243,6 +253,7 @@ llvm::Function* Context::FunctionCreate(const char* name, llvm::FunctionType* ft
 {
 	Function* func = Function::Create(fty, GlobalValue::ExternalLinkage, name, LLVMModule.get());
 	func->setGC("EpochGC");
+	SetupDebugInfo(func);
 	return func;
 }
 
@@ -354,6 +365,7 @@ size_t Context::EmitBinaryObject(char* buffer, size_t maxoutput)
 	LLVMBuilder.CreateCall(LLVMBuilder.CreateLoad(exitprocessfunctionvar), ConstantInt::get(TypeGetInteger(), 0));
 	LLVMBuilder.CreateRet(ConstantInt::get(TypeGetInteger(), 0));
 
+	DebugBuilder.finalize();
 
 	llvm::raw_os_ostream spew(std::cout);
 	if(llvm::verifyModule(*LLVMModule, &spew))
@@ -459,6 +471,8 @@ size_t Context::EmitBinaryObject(char* buffer, size_t maxoutput)
 				targetbuffer = &PData;
 			else if(sectionname == ".xdata")
 				targetbuffer = &XData;
+			else if(sectionname == ".debug$S")
+				targetbuffer = &DebugData;
 
 			if(targetbuffer)
 			{
@@ -790,6 +804,9 @@ void Context::CodePushFunction(llvm::Function* func)
 
 void Context::CodeStatementFinalize()
 {
+	DebugLoc loc = DILocation::get(getGlobalContext(), ++hack, 0, LLVMBuilder.GetInsertBlock()->getParent()->getSubprogram());
+	LLVMBuilder.GetInsertBlock()->getInstList().back().setDebugLoc(loc);
+
 	assert(PendingValues.empty() || PendingValues.size() == 1);
 	PendingValues.clear();
 }
@@ -802,7 +819,7 @@ llvm::BasicBlock* Context::GetCurrentBasicBlock()
 
 void Context::SetCurrentBasicBlock(llvm::BasicBlock* block)
 {
-	LLVMBuilder.SetInsertPoint(block);
+	LLVMBuilder.SetInsertPoint(block);	
 }
 
 
@@ -859,3 +876,39 @@ llvm::Value* Context::CodePopValue()
 	PendingValues.pop_back();
 	return v;
 }
+
+
+
+void Context::SetupDebugInfo(Function* function)
+{
+	DIScope* fcontext = DebugCompileUnit;
+	unsigned line = 0;
+	unsigned scopeline = 0;
+
+	std::vector<Metadata*> argtypes;
+	argtypes.push_back(TypeGetDebugType(function->getReturnType()));
+
+	for(auto& arg : function->getArgumentList())
+		argtypes.push_back(TypeGetDebugType(arg.getType()));
+
+	DISubroutineType* debugtype = DebugBuilder.createSubroutineType(DebugBuilder.getOrCreateTypeArray(argtypes));
+
+	DISubprogram* subprogram = DebugBuilder.createFunction(fcontext, function->getName(), StringRef(), DebugFile, line, debugtype, false, true, scopeline, DINode::FlagPrototyped, false);
+
+	unsigned i = 1;
+	for(auto& arg : function->getArgumentList())
+	{
+		DebugBuilder.createParameterVariable(subprogram, arg.getName(), i, DebugFile, 0, (DIType*)(argtypes[i]), false, 0);
+		++i;
+	}
+
+	function->setSubprogram(subprogram);
+}
+
+
+llvm::DIType* Context::TypeGetDebugType(Type* t)
+{
+	// TODO - build better type data
+	return DebugBuilder.createBasicType("placeholder", 32, 32, dwarf::DW_ATE_unsigned);
+}
+

@@ -49,6 +49,8 @@ namespace CodeGen
 		llvm::Type* TypeGetString();
 		llvm::Type* TypeGetVoid();
 
+		llvm::DIType* TypeGetDebugType(llvm::Type* t);
+
 		llvm::Type* StructureTypeCreate(const char* name);
 		void StructureTypeQueueMember(llvm::Type* membertype);
 
@@ -120,6 +122,9 @@ namespace CodeGen
 		void SectionCopyXData(void* buffer) const;
 		void SectionCopyGC(void* buffer) const;
 
+	private:	// Helpers
+		void SetupDebugInfo(llvm::Function* function);
+
 	private:	// Internal state
 		std::unique_ptr<llvm::Module> LLVMModule;
 		llvm::Function* InitFunction;
@@ -128,6 +133,10 @@ namespace CodeGen
 		llvm::Function* GCRootFunction;
 
 		llvm::IRBuilder<> LLVMBuilder;
+
+		llvm::DIBuilder DebugBuilder;
+		llvm::DICompileUnit* DebugCompileUnit;
+		llvm::DIFile* DebugFile;
 
 		ThunkCallbackT ThunkCallback;
 		StringCallbackT StringCallback;
@@ -142,6 +151,7 @@ namespace CodeGen
 		std::vector<char> PData;
 		std::vector<char> XData;
 		std::vector<char> GCSection;
+		std::vector<char> DebugData;
 	};
 
 }
