@@ -17,6 +17,7 @@
 
 using namespace CodeGen;
 using namespace llvm;
+using namespace Utility;
 
 
 
@@ -25,6 +26,16 @@ static unsigned hack = 0;
 
 namespace
 {
+
+#include <pshpack1.h>
+	struct Relocation
+	{
+		uint32_t address;
+		uint32_t symbolindex;
+		uint16_t type;
+	};
+#include <poppack.h>
+
 
 	//
 	// Manually relocate a .pdata section entry (i.e. a RUNTIME_FUNCTION structure)
@@ -52,7 +63,7 @@ namespace
 				}
 				else
 				{
-					*reinterpret_cast<char**>(fieldaddr) += reloc.getSymbol()->getAddress().get() + 0x7000;    // TODO - don't hardcode the offset of the .text section
+					*reinterpret_cast<char**>(fieldaddr) += reloc.getSymbol()->getAddress().get() + 0x8000;    // TODO - don't hardcode the offset of the .text section
 				}
 			}
 		}
@@ -77,6 +88,30 @@ namespace
 			ProcessPDataRelocationForField(section, data, &(data[i].BeginAddress));
 			ProcessPDataRelocationForField(section, data, &(data[i].EndAddress));
 			ProcessPDataRelocationForField(section, data, &(data[i].UnwindInfoAddress));
+		}
+	}
+
+
+
+	void ProcessArbitraryRelocations(const object::SectionRef& section, std::vector<char>* buffer)
+	{
+		for(const auto& reloc : section.relocations())
+		{
+			unsigned idx = 0;
+			for(const auto& sym : section.getObject()->symbols())
+			{
+				if(sym.getName().get() == reloc.getSymbol()->getName().get())
+					break;
+				
+				++idx;
+			}
+
+			Relocation relocStruct;
+			relocStruct.type = static_cast<uint16_t>(reloc.getType());
+			relocStruct.address = static_cast<uint32_t>(reloc.getOffset());
+			relocStruct.symbolindex = static_cast<uint32_t>(idx);
+
+			AppendToBuffer(buffer, relocStruct);
 		}
 	}
 
@@ -454,11 +489,11 @@ size_t Context::EmitBinaryObject(char* buffer, size_t maxoutput)
 
 	ee->DisableLazyCompilation(true);
 	ee->generateCodeForModule(llvmmodule);
-	ee->mapSectionAddress((void*)(emissionaddr), 0x0407000);				// TODO
+	ee->mapSectionAddress((void*)(emissionaddr), 0x0408000);				// TODO
 	ee->finalizeObject();
 
 
-	for(const auto & section : image->sections())
+	for(const auto& section : image->sections())
 	{
 		if(!section.isText() && !section.isBSS() && !section.isVirtual())
 		{	
@@ -478,14 +513,68 @@ size_t Context::EmitBinaryObject(char* buffer, size_t maxoutput)
 			{
 				StringRef sectiondata;
 				section.getContents(sectiondata);
-
-				targetbuffer->clear();
 				std::copy(sectiondata.begin(), sectiondata.end(), std::back_inserter(*targetbuffer));
 			}
 
 			if(sectionname == ".pdata")
 				ProcessPDataRelocations(section, targetbuffer);
+			else if(sectionname == ".debug$S")
+				ProcessArbitraryRelocations(section, &DebugRelocs);
 		}
+	}
+
+
+	for(const auto& sym : image->symbols())
+	{
+#include <pshpack1.h>
+		struct
+		{
+			char		n_name[8];
+			long		n_value;
+			short    	n_scnum;
+			unsigned short	n_type;
+			char		n_sclass;
+			char		n_numaux;
+		} symbol;
+#include <poppack.h>
+
+		memset(symbol.n_name, 0, 8);
+
+		auto nameerr = sym.getName();
+		if(!nameerr)
+			continue;
+
+		auto nameref = nameerr.get();
+		auto symname = nameref.str();
+
+		if(!symname.length())
+			continue;
+
+		for(unsigned i = 0; i < std::min(size_t(8), symname.length()); ++i)
+			symbol.n_name[i] = symname[i];
+
+		symbol.n_value = (long)sym.getValue();
+		symbol.n_scnum = -1;
+		
+		switch(sym.getType())
+		{
+		case object::SymbolRef::ST_Data:
+			symbol.n_type = (1 << 4) + 2;
+			break;
+
+		case object::SymbolRef::ST_Function:
+			symbol.n_type = (2 << 4) + 1;
+			break;
+
+		default:
+			symbol.n_type = 0;
+			break;
+		}
+		
+		symbol.n_sclass = 3;
+		symbol.n_numaux = 0;
+
+		AppendToBuffer(&DebugSymbols, symbol);
 	}
 
 	GCCompilation::PrepareGCData(*ee, &GCSection);
@@ -853,6 +942,22 @@ void Context::SectionCopyGC(void* buffer) const
 	memcpy(buffer, GCSection.data(), GCSection.size());
 }
 
+void Context::SectionCopyDebug(void* buffer) const
+{
+	memcpy(buffer, DebugData.data(), DebugData.size());
+}
+
+void Context::SectionCopyDebugReloc(void* buffer) const
+{
+	memcpy(buffer, DebugRelocs.data(), DebugRelocs.size());
+}
+
+void Context::SectionCopyDebugSymbols(void* buffer) const
+{
+	memcpy(buffer, DebugSymbols.data(), DebugSymbols.size());
+}
+
+
 
 unsigned Context::SectionGetPDataSize() const
 {
@@ -868,6 +973,22 @@ unsigned Context::SectionGetGCSize() const
 {
 	return static_cast<unsigned>(GCSection.size());
 }
+
+unsigned Context::SectionGetDebugSize() const
+{
+	return static_cast<unsigned>(DebugData.size());
+}
+
+unsigned Context::SectionGetDebugRelocSize() const
+{
+	return static_cast<unsigned>(DebugRelocs.size());
+}
+
+unsigned Context::SectionGetDebugSymbolSize() const
+{
+	return static_cast<unsigned>(DebugSymbols.size());
+}
+
 
 
 llvm::Value* Context::CodePopValue()

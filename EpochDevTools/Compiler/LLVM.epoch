@@ -131,11 +131,16 @@ EpochLLVMCodePopValue : LLVMContextHandle context -> integer magic = 0										
 EpochLLVMSectionGetPDataSize : LLVMContextHandle context -> integer size = 0										[external("EpochLLVM.dll", "EpochLLVMSectionGetPDataSize")]
 EpochLLVMSectionGetXDataSize : LLVMContextHandle context -> integer size = 0										[external("EpochLLVM.dll", "EpochLLVMSectionGetXDataSize")]
 EpochLLVMSectionGetGCSize : LLVMContextHandle context -> integer size = 0											[external("EpochLLVM.dll", "EpochLLVMSectionGetGCSize")]
+EpochLLVMSectionGetDebugSize : LLVMContextHandle context -> integer size = 0										[external("EpochLLVM.dll", "EpochLLVMSectionGetDebugSize")]
+EpochLLVMSectionGetDebugRelocSize : LLVMContextHandle context -> integer size = 0									[external("EpochLLVM.dll", "EpochLLVMSectionGetDebugRelocSize")]
+EpochLLVMSectionGetDebugSymbolSize : LLVMContextHandle context -> integer size = 0									[external("EpochLLVM.dll", "EpochLLVMSectionGetDebugSymbolSize")]
 
 EpochLLVMSectionCopyPData : LLVMContextHandle context, buffer ref targetbuffer										[external("EpochLLVM.dll", "EpochLLVMSectionCopyPData")]
 EpochLLVMSectionCopyXData : LLVMContextHandle context, buffer ref targetbuffer										[external("EpochLLVM.dll", "EpochLLVMSectionCopyXData")]
 EpochLLVMSectionCopyGC : LLVMContextHandle context, buffer ref targetbuffer											[external("EpochLLVM.dll", "EpochLLVMSectionCopyGC")]
-
+EpochLLVMSectionCopyDebug : LLVMContextHandle context, buffer ref targetbuffer										[external("EpochLLVM.dll", "EpochLLVMSectionCopyDebug")]
+EpochLLVMSectionCopyDebugReloc : LLVMContextHandle context, buffer ref targetbuffer									[external("EpochLLVM.dll", "EpochLLVMSectionCopyDebugReloc")]
+EpochLLVMSectionCopyDebugSymbols : LLVMContextHandle context, buffer ref targetbuffer								[external("EpochLLVM.dll", "EpochLLVMSectionCopyDebugSymbols")]
 
 
 SetUpAllLLVMCode : LLVMContextHandle context

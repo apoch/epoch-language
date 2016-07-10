@@ -14,6 +14,9 @@
     <Filter Include="LLVM Wrappers">
       <UniqueIdentifier>{06cf2933-6e52-4a1f-9c42-167c150454d9}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Utility">
+      <UniqueIdentifier>{ef1c1105-4a17-48d8-bc83-2caad2811cdf}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h">
@@ -46,6 +49,9 @@
   <ItemGroup>
     <None Include="Exports.def">
       <Filter>Exports</Filter>
+    </None>
+    <None Include="Utility\Utility.h">
+      <Filter>Utility</Filter>
     </None>
   </ItemGroup>
 </Project>

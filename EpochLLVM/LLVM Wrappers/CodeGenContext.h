@@ -117,10 +117,16 @@ namespace CodeGen
 		unsigned SectionGetPDataSize() const;
 		unsigned SectionGetXDataSize() const;
 		unsigned SectionGetGCSize() const;
+		unsigned SectionGetDebugSize() const;
+		unsigned SectionGetDebugRelocSize() const;
+		unsigned SectionGetDebugSymbolSize() const;
 
 		void SectionCopyPData(void* buffer) const;
 		void SectionCopyXData(void* buffer) const;
 		void SectionCopyGC(void* buffer) const;
+		void SectionCopyDebug(void* buffer) const;
+		void SectionCopyDebugReloc(void* buffer) const;
+		void SectionCopyDebugSymbols(void* buffer) const;
 
 	private:	// Helpers
 		void SetupDebugInfo(llvm::Function* function);
@@ -152,6 +158,8 @@ namespace CodeGen
 		std::vector<char> XData;
 		std::vector<char> GCSection;
 		std::vector<char> DebugData;
+		std::vector<char> DebugRelocs;
+		std::vector<char> DebugSymbols;
 	};
 
 }

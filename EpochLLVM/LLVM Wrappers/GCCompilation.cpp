@@ -7,6 +7,8 @@
 
 
 using namespace llvm;
+using namespace Utility;
+
 
 namespace
 {
@@ -111,22 +113,6 @@ namespace
 
 	GCRegistry::Add<EpochGCStrategy>				RegisterStrategy("EpochGC", "Epoch Language Runtime GC");
 	GCMetadataPrinterRegistry::Add<EpochGCPrinter>	RegisterPrinter("EpochGC", "Epoch Language Runtime GC");
-
-
-
-
-	template<typename T>
-	void AppendToBuffer(std::vector<char>* buffer, const T& data)
-	{
-		const char* pdata = reinterpret_cast<const char*>(&data);
-		for(size_t i = 0; i < sizeof(T); ++i)
-		{
-			buffer->push_back(*pdata);
-			++pdata;
-		}
-	}
-
-
 
 }
 

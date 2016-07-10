@@ -93,14 +93,23 @@ MakeExe : EpochProject ref project
 	integer sizepdata = EpochLLVMSectionGetPDataSize(llvm)
 	integer sizexdata = EpochLLVMSectionGetXDataSize(llvm)
 	integer sizegc = EpochLLVMSectionGetGCSize(llvm)
+	integer sizedebug = EpochLLVMSectionGetDebugSize(llvm)
+	integer sizedebugreloc = EpochLLVMSectionGetDebugRelocSize(llvm)
+	integer sizedebugsymbols = EpochLLVMSectionGetDebugSymbolSize(llvm)
 	
 	buffer pdata = sizepdata
 	buffer xdata = sizexdata
 	buffer gcdata = sizegc
+	buffer debugdata = sizedebug
+	buffer debugrelocdata = sizedebugreloc
+	buffer debugsymboldata = sizedebugsymbols
 	
 	EpochLLVMSectionCopyPData(llvm, pdata)
 	EpochLLVMSectionCopyXData(llvm, xdata)
 	EpochLLVMSectionCopyGC(llvm, gcdata)
+	EpochLLVMSectionCopyDebug(llvm, debugdata)
+	EpochLLVMSectionCopyDebugReloc(llvm, debugrelocdata)
+	EpochLLVMSectionCopyDebugSymbols(llvm, debugsymboldata)
 	
 	EpochLLVMContextDestroy(llvm)
 
@@ -121,8 +130,11 @@ MakeExe : EpochProject ref project
 	integer virtualoffsetgc      = RoundUp(virtualoffsetstrings + sizestrings)
 	integer offsetgc             = RoundUpFile(offsetstrings + sizestrings)
 
-	integer virtualoffsetcode    = RoundUp(virtualoffsetgc + sizegc)
-	integer offsetcode           = RoundUpFile(offsetgc + sizegc)
+	integer virtualoffsetdebug   = RoundUp(virtualoffsetgc + sizegc)
+	integer offsetdebug          = RoundUpFile(offsetgc + sizegc)
+
+	integer virtualoffsetcode    = RoundUp(virtualoffsetdebug + 0x200)			// TODO - hardcoded hack for .debug
+	integer offsetcode           = RoundUpFile(offsetdebug + 0x200)				// TODO - hardcoded hack for .debug
 
 	integer sizeimage            = RoundUp(virtualoffsetcode + sizecode)
 
@@ -136,6 +148,15 @@ MakeExe : EpochProject ref project
 		print("Cannot open " ; project.OutputFileName ; " to emit .EXE!")
 		return()
 	}
+	
+	
+	Win32Handle pdbfilehandle = CreateFile(project.OutputFileName ; ".pdb", GENERIC_WRITE, 0, 0, CREATE_ALWAYS, 0, 0)
+	if(pdbfilehandle == -1)
+	{
+		print("Cannot open " ; project.OutputFileName ; ".pdb to emit .PDB!")
+		return()
+	}
+	
 
 	integer16 subsystem = 2		// GUI
 	if(project.UsesConsole)
@@ -145,7 +166,7 @@ MakeExe : EpochProject ref project
 
 	integer written = 0
 	integer position = 0
-	position += WritePEHeader(filehandle, sizeimage, virtualoffsetpdata, sizepdata, virtualoffsetxdata, sizexdata, virtualoffsetthunk + GlobalThunkTable.DescriptorOffset, sizethunk, virtualoffsetrsrc, sizersrc, subsystem, sizecode)
+	position += WritePEHeader(filehandle, sizeimage, virtualoffsetdebug, sizedebug, virtualoffsetpdata, sizepdata, virtualoffsetxdata, sizexdata, virtualoffsetthunk + GlobalThunkTable.DescriptorOffset, sizethunk, virtualoffsetrsrc, sizersrc, subsystem, sizecode)
 
 	position += WriteSectionHeader(filehandle, ".idata", offsetthunk, virtualoffsetthunk, sizethunk, sizethunk, 0xc0000040)
 	position += WriteSectionHeader(filehandle, ".rsrc", offsetrsrc, virtualoffsetrsrc, sizersrc, sizersrc, 0x40000040)
@@ -153,6 +174,7 @@ MakeExe : EpochProject ref project
 	position += WriteSectionHeader(filehandle, ".xdata", offsetxdata, virtualoffsetxdata, sizexdata, sizexdata, 0x40000040)
 	position += WriteSectionHeader(filehandle, ".data", offsetstrings, virtualoffsetstrings, sizestrings, sizestrings, 0x40000040)
 	position += WriteSectionHeader(filehandle, ".gc", offsetgc, virtualoffsetgc, sizegc, sizegc, 0x40000040)
+	position += WriteSectionHeader(filehandle, ".debug", offsetdebug, virtualoffsetdebug, 0x200, 0x200, 0x40000040)
 	position += WriteSectionHeader(filehandle, ".text", offsetcode, virtualoffsetcode, sizecode, sizecode, 0x60000020)
 
 	print("Writing thunk table...")
@@ -179,6 +201,9 @@ MakeExe : EpochProject ref project
 	WriteFile(filehandle, gcdata, sizegc, written, 0)
 	position += sizegc
 
+	position += WritePadding(filehandle, position, offsetdebug)
+	position += WriteDebugStub(filehandle)
+
 	print("Writing code...")
 	
 	position += WritePadding(filehandle, position, offsetcode)
@@ -186,9 +211,117 @@ MakeExe : EpochProject ref project
 	WriteFile(filehandle, codebinarybuffer, sizecode, written, 0)
 
 	CloseHandle(filehandle)
+	
+	print("Writing debug file...")
+	
+	integer symstartoffset = RoundUpFile(RoundUpFile(0x200 + sizedebug) + sizedebugreloc)
+	print(cast(string, symstartoffset))
+	
+	integer pdbposition = WriteCOFFPreamble(pdbfilehandle, sizedebug, 0x200, sizedebugreloc, symstartoffset, sizedebugsymbols / 18)
+	pdbposition += WritePadding(pdbfilehandle, pdbposition, 0x200)
+	
+	WriteFile(pdbfilehandle, debugdata, sizedebug, written, 0)
+	pdbposition += sizedebug
+	
+	pdbposition += WritePadding(pdbfilehandle, pdbposition, RoundUpFile(0x200 + sizedebug))
+	
+	WriteFile(pdbfilehandle, debugrelocdata, sizedebugreloc, written, 0)
+	pdbposition += sizedebugreloc
+	
+	print(cast(string, pdbposition))
+	pdbposition += WritePadding(pdbfilehandle, pdbposition, symstartoffset)
+	WriteFile(pdbfilehandle, debugsymboldata, sizedebugsymbols, written, 0)
+	WritePadding(pdbfilehandle, 0, 0x200)
+	
+	CloseHandle(pdbfilehandle)
 
 	print("Compilation complete.")
 }
+
+
+
+WriteCOFFPreamble : Win32Handle filehandle, integer cvdatasize, integer fileoffsetstart, integer relocsize, integer symstartoffset, integer symcount -> integer writtenbytes = 0
+{
+	buffer headerbuffer = 512
+	integer headersize = 0
+	
+	ByteStreamEmitInteger16(headerbuffer, headersize, 0x8664)						// Machine
+	ByteStreamEmitInteger16(headerbuffer, headersize, 1)							// NumberOfSections
+	ByteStreamEmitInteger(headerbuffer, headersize, 0x00000000)						// TimeDateStamp
+	ByteStreamEmitInteger(headerbuffer, headersize, symstartoffset)					// PointerToSymbolTable
+	ByteStreamEmitInteger(headerbuffer, headersize, symcount)						// NumberOfSymbols
+	ByteStreamEmitInteger16(headerbuffer, headersize, 0x0)							// SizeOfOptionalHeader
+	ByteStreamEmitInteger16(headerbuffer, headersize, 0x0)							// Characteristics
+	
+
+	integer written = 0
+	WriteFile(filehandle, headerbuffer, headersize, written, 0)
+	
+	writtenbytes = headersize
+	
+	integer bitnesshack = relocsize / 10
+	writtenbytes += WriteSectionHeader(filehandle, ".debug$S", fileoffsetstart, 0, cvdatasize, cvdatasize, 0x42100040, RoundUpFile(fileoffsetstart + cvdatasize), bitnesshack)
+}
+
+
+
+WriteDebugStub : Win32Handle filehandle -> integer writtenbytes = 0
+{
+	buffer headerbuffer = 512
+	integer headersize = 0
+	
+	ByteStreamEmitInteger(headerbuffer, headersize, 0)			// Characteristics
+	ByteStreamEmitInteger(headerbuffer, headersize, 1)			// TimeDateStamp
+	ByteStreamEmitInteger16(headerbuffer, headersize, 0)		// MajorVersion
+	ByteStreamEmitInteger16(headerbuffer, headersize, 0)		// MinorVersion
+	ByteStreamEmitInteger(headerbuffer, headersize, 2)			// Type
+	ByteStreamEmitInteger(headerbuffer, headersize, 60)			// SizeOfData
+	ByteStreamEmitInteger(headerbuffer, headersize, 0x7000 + 0x1c)			// AddressOfRawData			// TODO - evil
+	ByteStreamEmitInteger(headerbuffer, headersize, 0x2800 + 0x1c)			// PointerToRawData			// TODO - evil
+	
+	ByteStreamEmitInteger(headerbuffer, headersize, 0x53445352)	// "RSDS" signature
+
+	// PDB GUID
+	ByteStreamEmitByte(headerbuffer, headersize, 0x69)		// 69 EF 0A E9 50 03 6D 4B A7 73 AC 76 1C 3E 9B 0D
+	ByteStreamEmitByte(headerbuffer, headersize, 0xef)
+	ByteStreamEmitByte(headerbuffer, headersize, 0x0a)
+	ByteStreamEmitByte(headerbuffer, headersize, 0xe9)
+	ByteStreamEmitByte(headerbuffer, headersize, 0x50)
+	ByteStreamEmitByte(headerbuffer, headersize, 0x03)
+	ByteStreamEmitByte(headerbuffer, headersize, 0x6d)
+	ByteStreamEmitByte(headerbuffer, headersize, 0x4b)
+	ByteStreamEmitByte(headerbuffer, headersize, 0xa7)
+	ByteStreamEmitByte(headerbuffer, headersize, 0x73)
+	ByteStreamEmitByte(headerbuffer, headersize, 0xac)
+	ByteStreamEmitByte(headerbuffer, headersize, 0x76)
+	ByteStreamEmitByte(headerbuffer, headersize, 0x1c)
+	ByteStreamEmitByte(headerbuffer, headersize, 0x3e)
+	ByteStreamEmitByte(headerbuffer, headersize, 0x9b)
+	ByteStreamEmitByte(headerbuffer, headersize, 0x0d)
+
+	ByteStreamEmitInteger(headerbuffer, headersize, 0x6)			// "Age"
+
+
+	string pdbhack = ".\TestSuite.exe.pdb"
+	integer count = 0
+
+	while(count < length(pdbhack))
+	{
+		string char = charat(pdbhack, count)
+		ByteStreamEmitSubstring(headerbuffer, headersize, char, 1)
+
+		++count
+	}
+	
+	ByteStreamEmitByte(headerbuffer, headersize, 0)
+
+
+	integer written = 0
+	WriteFile(filehandle, headerbuffer, headersize, written, 0)
+
+	writtenbytes = headersize
+}
+
 
 WriteStringTable : Win32Handle filehandle, integer finalsize, BinaryTreeRoot<integer> ref offsets -> integer writtenbytes = 0
 {
@@ -226,6 +359,11 @@ WritePadding : Win32Handle filehandle, integer startpos, integer desiredpos -> i
 
 WriteSectionHeader : Win32Handle filehandle, string sectionname, integer location, integer virtuallocation, integer sectionsize, integer sectionvirtualsize, integer flags -> integer writtenbytes = 0
 {
+	writtenbytes = WriteSectionHeader(filehandle, sectionname, location, virtuallocation, sectionsize, sectionvirtualsize, flags, 0, 0)
+}
+
+WriteSectionHeader : Win32Handle filehandle, string sectionname, integer location, integer virtuallocation, integer sectionsize, integer sectionvirtualsize, integer flags, integer relocoffset, integer reloccount -> integer writtenbytes = 0
+{
 	print("Writing header for section '" ; sectionname ; "'...")
 
 	buffer headerbuffer = 256
@@ -234,7 +372,7 @@ WriteSectionHeader : Win32Handle filehandle, string sectionname, integer locatio
 	// This is a pitiful hack.
 
 	integer count = 0
-	assert(length(sectionname) < 8)
+	assert(length(sectionname) < 9)
 
 	while(count < length(sectionname))
 	{
@@ -256,9 +394,9 @@ WriteSectionHeader : Win32Handle filehandle, string sectionname, integer locatio
 	ByteStreamEmitInteger(headerbuffer, headersize, virtuallocation)
 	ByteStreamEmitInteger(headerbuffer, headersize, sectionvirtualsize)
 	ByteStreamEmitInteger(headerbuffer, headersize, location)
+	ByteStreamEmitInteger(headerbuffer, headersize, relocoffset)
 	ByteStreamEmitInteger(headerbuffer, headersize, 0)
-	ByteStreamEmitInteger(headerbuffer, headersize, 0)
-	ByteStreamEmitInteger16(headerbuffer, headersize, 0)
+	ByteStreamEmitInteger16From32(headerbuffer, headersize, reloccount)
 	ByteStreamEmitInteger16(headerbuffer, headersize, 0)
 	ByteStreamEmitInteger(headerbuffer, headersize, flags)
 
@@ -269,7 +407,7 @@ WriteSectionHeader : Win32Handle filehandle, string sectionname, integer locatio
 }
 
 
-WritePEHeader : Win32Handle filehandle, integer imagesize, integer offsetpdata, integer sizepdata, integer offsetxdata, integer sizexdata, integer offsetthunk, integer sizethunk, integer offsetrsrc, integer resourcesize, integer16 subsystem, integer sizecode -> integer writtenbytes = 0
+WritePEHeader : Win32Handle filehandle, integer imagesize, integer offsetdebug, integer sizedebug, integer offsetpdata, integer sizepdata, integer offsetxdata, integer sizexdata, integer offsetthunk, integer sizethunk, integer offsetrsrc, integer resourcesize, integer16 subsystem, integer sizecode -> integer writtenbytes = 0
 {
 	print("Writing PE headers...")
 
@@ -431,7 +569,7 @@ WritePEHeader : Win32Handle filehandle, integer imagesize, integer offsetpdata, 
 	// Begin NT headers
 	ByteStreamEmitInteger(headerbuffer, headersize, 0x00004550)
 	ByteStreamEmitInteger16(headerbuffer, headersize, 0x8664)						// Machine
-	ByteStreamEmitInteger16(headerbuffer, headersize, 7)							// NumberOfSections
+	ByteStreamEmitInteger16(headerbuffer, headersize, 8)							// NumberOfSections
 	ByteStreamEmitInteger(headerbuffer, headersize, 0x00000000)						// TimeDateStamp
 	ByteStreamEmitInteger(headerbuffer, headersize, 0)								// PointerToSymbolTable
 	ByteStreamEmitInteger(headerbuffer, headersize, 0)								// NumberOfSymbols
@@ -445,7 +583,7 @@ WritePEHeader : Win32Handle filehandle, integer imagesize, integer offsetpdata, 
 	ByteStreamEmitInteger(headerbuffer, headersize, RoundUp(sizecode))				// SizeOfCode
 	ByteStreamEmitInteger(headerbuffer, headersize, 0x1000)							// SizeOfInitializedData		// TODO - real data section size
 	ByteStreamEmitInteger(headerbuffer, headersize, 0)								// SizeOfUninitializedData
-	ByteStreamEmitInteger(headerbuffer, headersize, 0x7000)							// AddressOfEntryPoint			// TODO - unhardcode this stuff
+	ByteStreamEmitInteger(headerbuffer, headersize, 0x8000)							// AddressOfEntryPoint			// TODO - unhardcode this stuff
 	ByteStreamEmitInteger(headerbuffer, headersize, 0x1000)							// BaseOfCode
 
 	ByteStreamEmitInteger(headerbuffer, headersize, 0x400000)						// ImageBase
@@ -497,8 +635,8 @@ WritePEHeader : Win32Handle filehandle, integer imagesize, integer offsetpdata, 
 	ByteStreamEmitInteger(headerbuffer, headersize, 0)					// RVA virtual address 6
 	ByteStreamEmitInteger(headerbuffer, headersize, 0)					// Size
 
-	ByteStreamEmitInteger(headerbuffer, headersize, 0)					// RVA virtual address 7
-	ByteStreamEmitInteger(headerbuffer, headersize, 0)					// Size
+	ByteStreamEmitInteger(headerbuffer, headersize, offsetdebug)		// RVA virtual address 7
+	ByteStreamEmitInteger(headerbuffer, headersize, 0x1c)				// Size of directories array (NOT size of complete section!)
 
 	ByteStreamEmitInteger(headerbuffer, headersize, 0)					// RVA virtual address 8
 	ByteStreamEmitInteger(headerbuffer, headersize, 0)					// Size

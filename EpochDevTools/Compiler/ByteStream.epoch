@@ -43,6 +43,14 @@ ByteStreamEmitInteger16 : buffer ref targetbuffer, integer ref offset, integer16
 	++offset
 }
 
+ByteStreamEmitInteger16From32 : buffer ref targetbuffer, integer ref offset, integer value [nogc]
+{
+	writebuffer(targetbuffer, offset, (value) & 0xff)
+	++offset
+	writebuffer(targetbuffer, offset, (value / 0x100) & 0xff)
+	++offset
+}
+
 //
 // Emit a 32-bit floating point real into the stream
 //

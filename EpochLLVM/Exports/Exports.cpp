@@ -348,6 +348,22 @@ extern "C" void EpochLLVMSectionCopyGC(void* context, void* buffer)
 	reinterpret_cast<CodeGen::Context*>(context)->SectionCopyGC(buffer);
 }
 
+extern "C" void EpochLLVMSectionCopyDebug(void* context, void* buffer)
+{
+	reinterpret_cast<CodeGen::Context*>(context)->SectionCopyDebug(buffer);
+}
+
+extern "C" void EpochLLVMSectionCopyDebugReloc(void* context, void* buffer)
+{
+	reinterpret_cast<CodeGen::Context*>(context)->SectionCopyDebugReloc(buffer);
+}
+
+extern "C" void EpochLLVMSectionCopyDebugSymbols(void* context, void* buffer)
+{
+	reinterpret_cast<CodeGen::Context*>(context)->SectionCopyDebugSymbols(buffer);
+}
+
+
 
 extern "C" unsigned EpochLLVMSectionGetPDataSize(void* context)
 {
@@ -364,10 +380,24 @@ extern "C" unsigned EpochLLVMSectionGetGCSize(void* context)
 	return reinterpret_cast<CodeGen::Context*>(context)->SectionGetGCSize();
 }
 
+extern "C" unsigned EpochLLVMSectionGetDebugSize(void* context)
+{
+	return reinterpret_cast<CodeGen::Context*>(context)->SectionGetDebugSize();
+}
+
+extern "C" unsigned EpochLLVMSectionGetDebugRelocSize(void* context)
+{
+	return reinterpret_cast<CodeGen::Context*>(context)->SectionGetDebugRelocSize();
+}
+
+extern "C" unsigned EpochLLVMSectionGetDebugSymbolSize(void* context)
+{
+	return reinterpret_cast<CodeGen::Context*>(context)->SectionGetDebugSymbolSize();
+}
+
 
 
 extern "C" void* EpochLLVMCodePopValue(void* context)
 {
 	return reinterpret_cast<CodeGen::Context*>(context)->CodePopValue();
 }
-

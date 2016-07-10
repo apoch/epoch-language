@@ -83,3 +83,12 @@ EXPORTS
 
 	EpochLLVMSectionGetGCSize
 	EpochLLVMSectionCopyGC
+
+	EpochLLVMSectionGetDebugSize
+	EpochLLVMSectionCopyDebug
+
+	EpochLLVMSectionGetDebugRelocSize
+	EpochLLVMSectionCopyDebugReloc
+
+	EpochLLVMSectionGetDebugSymbolSize
+	EpochLLVMSectionCopyDebugSymbols
