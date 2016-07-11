@@ -1,6 +1,19 @@
 # Epoch Language Plans
 This file is a running stream-of-consciousness log of plans and thoughts surrounding the Epoch programming language. It is not intended to be an authoritative or exhaustive resource; it exists primarily for the curious and for recording various ideas.
+  
+  
+### MikeL 2016-07-11
+Recently I've been putting most of my effort into GC implementation overall, although in the small I've been distracted by a few interesting issues related to debugging. I'm growing really painfully tired of not having a good debug experience for Epoch. With the emission of exception handling metadata in 64-bit executables, we're finally one step closer to having debugger support. Callstacks are now correct and readable... assuming you know the emitted addresses of every function in the program.
 
+Obviously that's a non-starter, so I've been looking into hacky ways to generate PDB symbols for emitted Epoch binaries so that I can use WinDbg or even Visual Studio to debug Epoch code.
+
+My current approach is to emit a COFF object file alongside the generated EXE that contains the CodeView debug metadata emitted by LLVM, along with a symbol and string table. I then run this through `link.exe` to generate the PDB, and discard the binary that `link` produces, in favor of the Epoch binary. This is *sort of* functional at this point; the PDB contains enough data for debuggers to recognize the loaded image and that it contains code, but there's some kind of mismatched data in the linker because the PDB doesn't contain any definitive symbols.
+
+I think what I might try next is emitting a COFF object with the full contents of the Epoch .EXE and trying to get a runnable binary from `link`. If *that* binary and PDB are fully debuggable, then I have a starting point for whittling down the process and getting a minimal set of data to feed `link` to convince it to give me a usable PDB.
+
+On a tangential note, it's a profoundly weird experience to have your debugger (WinDbg) crash inside another debugger (VS) while you're trying to write a debugger (Epoch)!
+
+Of course this would be much simpler if the PDB format was documented or at least accessible through a documented API... alas. Someday I'll try and get debug output without reliance on `link.exe` but that's a ways from now. I'm fine with running a manual, VS-dependent step to generate debug info (for the moment).
   
   
 ### MikeL 2016-07-06
