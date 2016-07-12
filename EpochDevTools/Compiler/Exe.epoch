@@ -150,10 +150,13 @@ MakeExe : EpochProject ref project
 	}
 	
 	
-	Win32Handle pdbfilehandle = CreateFile(project.OutputFileName ; ".pdb", GENERIC_WRITE, 0, 0, CREATE_ALWAYS, 0, 0)
-	if(pdbfilehandle == -1)
+	string objfilename = substring(project.OutputFileName, 0, length(project.OutputFileName) - 4) ; ".obj"
+	string pdbfilename = substring(project.OutputFileName, 0, length(project.OutputFileName) - 4) ; ".pdb"
+
+	Win32Handle objfilehandle = CreateFile(objfilename, GENERIC_WRITE, 0, 0, CREATE_ALWAYS, 0, 0)
+	if(objfilehandle == -1)
 	{
-		print("Cannot open " ; project.OutputFileName ; ".pdb to emit .PDB!")
+		print("Cannot open " ; objfilename ; " to emit .OBJ!")
 		return()
 	}
 	
@@ -202,7 +205,7 @@ MakeExe : EpochProject ref project
 	position += sizegc
 
 	position += WritePadding(filehandle, position, offsetdebug)
-	position += WriteDebugStub(filehandle)
+	position += WriteDebugStub(filehandle, pdbfilename)
 
 	print("Writing code...")
 	
@@ -217,36 +220,52 @@ MakeExe : EpochProject ref project
 	integer symstartoffset = RoundUpFile(RoundUpFile(0x200 + sizedebug) + sizedebugreloc)
 	print(cast(string, symstartoffset))
 	
-	integer pdbposition = WriteCOFFPreamble(pdbfilehandle, sizedebug, 0x200, sizedebugreloc, symstartoffset, sizedebugsymbols / 18)
-	pdbposition += WritePadding(pdbfilehandle, pdbposition, 0x200)
+	integer objoffsetcode = RoundUpFile(sizedebugsymbols + symstartoffset)
+	integer objposition = WriteCOFFPreamble(objfilehandle, sizedebug, 0x200, sizedebugreloc, symstartoffset, 0xb8, objoffsetcode, sizecode)
+	objposition += WritePadding(objfilehandle, objposition, 0x200)
 	
-	WriteFile(pdbfilehandle, debugdata, sizedebug, written, 0)
-	pdbposition += sizedebug
+	WriteFile(objfilehandle, debugdata, sizedebug, written, 0)
+	objposition += sizedebug
 	
-	pdbposition += WritePadding(pdbfilehandle, pdbposition, RoundUpFile(0x200 + sizedebug))
+	objposition += WritePadding(objfilehandle, objposition, RoundUpFile(0x200 + sizedebug))
 	
-	WriteFile(pdbfilehandle, debugrelocdata, sizedebugreloc, written, 0)
-	pdbposition += sizedebugreloc
+	WriteFile(objfilehandle, debugrelocdata, sizedebugreloc, written, 0)
+	objposition += sizedebugreloc
 	
-	print(cast(string, pdbposition))
-	pdbposition += WritePadding(pdbfilehandle, pdbposition, symstartoffset)
-	WriteFile(pdbfilehandle, debugsymboldata, sizedebugsymbols, written, 0)
-	WritePadding(pdbfilehandle, 0, 0x200)
+	print(cast(string, objposition))
+	objposition += WritePadding(objfilehandle, objposition, symstartoffset)
+	WriteFile(objfilehandle, debugsymboldata, sizedebugsymbols, written, 0)
+	objposition += sizedebugsymbols
 	
-	CloseHandle(pdbfilehandle)
+	objposition += WritePadding(objfilehandle, objposition, objoffsetcode)
+	WriteFile(objfilehandle, codebinarybuffer, sizecode, written, 0)
+	objposition += sizecode
+	
+	integer dumboffset = RoundUpFile(objoffsetcode + sizecode)
+	dumboffset = RoundUpFile(dumboffset + sizecode)
+	dumboffset = RoundUpFile(dumboffset + sizecode)
+	dumboffset = RoundUpFile(dumboffset + sizecode)
+	dumboffset = RoundUpFile(dumboffset + sizecode)
+	dumboffset = RoundUpFile(dumboffset + sizecode)
+	objposition += WritePadding(objfilehandle, objposition, dumboffset)
+	
+	WriteFile(objfilehandle, codebinarybuffer, sizecode, written, 0)
+	objposition += sizecode
+	
+	CloseHandle(objfilehandle)
 
 	print("Compilation complete.")
 }
 
 
 
-WriteCOFFPreamble : Win32Handle filehandle, integer cvdatasize, integer fileoffsetstart, integer relocsize, integer symstartoffset, integer symcount -> integer writtenbytes = 0
+WriteCOFFPreamble : Win32Handle filehandle, integer cvdatasize, integer fileoffsetstart, integer relocsize, integer symstartoffset, integer symcount, integer codeoffset, integer codesize -> integer writtenbytes = 0
 {
 	buffer headerbuffer = 512
 	integer headersize = 0
 	
 	ByteStreamEmitInteger16(headerbuffer, headersize, 0x8664)						// Machine
-	ByteStreamEmitInteger16(headerbuffer, headersize, 1)							// NumberOfSections
+	ByteStreamEmitInteger16(headerbuffer, headersize, 8)							// NumberOfSections
 	ByteStreamEmitInteger(headerbuffer, headersize, 0x00000000)						// TimeDateStamp
 	ByteStreamEmitInteger(headerbuffer, headersize, symstartoffset)					// PointerToSymbolTable
 	ByteStreamEmitInteger(headerbuffer, headersize, symcount)						// NumberOfSymbols
@@ -261,11 +280,25 @@ WriteCOFFPreamble : Win32Handle filehandle, integer cvdatasize, integer fileoffs
 	
 	integer bitnesshack = relocsize / 10
 	writtenbytes += WriteSectionHeader(filehandle, ".debug$S", fileoffsetstart, 0, cvdatasize, cvdatasize, 0x42100040, RoundUpFile(fileoffsetstart + cvdatasize), bitnesshack)
+	writtenbytes += WriteSectionHeader(filehandle, ".text", codeoffset, 0, codesize, codesize, 0x60000020)
+	
+	integer dumboffset = RoundUpFile(codeoffset + codesize)
+	writtenbytes += WriteSectionHeader(filehandle, ".tex2", dumboffset, 0, codesize, codesize, 0x60000020)
+	dumboffset = RoundUpFile(dumboffset + codesize)
+	writtenbytes += WriteSectionHeader(filehandle, ".tex3", dumboffset, 0, codesize, codesize, 0x60000020)
+	dumboffset = RoundUpFile(dumboffset + codesize)
+	writtenbytes += WriteSectionHeader(filehandle, ".tex4", dumboffset, 0, codesize, codesize, 0x60000020)
+	dumboffset = RoundUpFile(dumboffset + codesize)
+	writtenbytes += WriteSectionHeader(filehandle, ".tex5", dumboffset, 0, codesize, codesize, 0x60000020)
+	dumboffset = RoundUpFile(dumboffset + codesize)
+	writtenbytes += WriteSectionHeader(filehandle, ".tex6", dumboffset, 0, codesize, codesize, 0x60000020)
+	dumboffset = RoundUpFile(dumboffset + codesize)
+	writtenbytes += WriteSectionHeader(filehandle, ".tex7", dumboffset, 0, codesize, codesize, 0x60000020)
 }
 
 
 
-WriteDebugStub : Win32Handle filehandle -> integer writtenbytes = 0
+WriteDebugStub : Win32Handle filehandle, string pdbfilename -> integer writtenbytes = 0
 {
 	buffer headerbuffer = 512
 	integer headersize = 0
@@ -282,32 +315,31 @@ WriteDebugStub : Win32Handle filehandle -> integer writtenbytes = 0
 	ByteStreamEmitInteger(headerbuffer, headersize, 0x53445352)	// "RSDS" signature
 
 	// PDB GUID
-	ByteStreamEmitByte(headerbuffer, headersize, 0x69)		// 69 EF 0A E9 50 03 6D 4B A7 73 AC 76 1C 3E 9B 0D
-	ByteStreamEmitByte(headerbuffer, headersize, 0xef)
-	ByteStreamEmitByte(headerbuffer, headersize, 0x0a)
-	ByteStreamEmitByte(headerbuffer, headersize, 0xe9)
-	ByteStreamEmitByte(headerbuffer, headersize, 0x50)
+	ByteStreamEmitByte(headerbuffer, headersize, 0x56)		// 56 E4 C2 CF 4D 30 1D 4D A0 6B C5 65 07 03 FB F2
+	ByteStreamEmitByte(headerbuffer, headersize, 0xe4)
+	ByteStreamEmitByte(headerbuffer, headersize, 0xc2)
+	ByteStreamEmitByte(headerbuffer, headersize, 0xcf)
+	ByteStreamEmitByte(headerbuffer, headersize, 0x4d)
+	ByteStreamEmitByte(headerbuffer, headersize, 0x30)
+	ByteStreamEmitByte(headerbuffer, headersize, 0x1d)
+	ByteStreamEmitByte(headerbuffer, headersize, 0x4d)
+	ByteStreamEmitByte(headerbuffer, headersize, 0xa0)
+	ByteStreamEmitByte(headerbuffer, headersize, 0x6b)
+	ByteStreamEmitByte(headerbuffer, headersize, 0xc5)
+	ByteStreamEmitByte(headerbuffer, headersize, 0x65)
+	ByteStreamEmitByte(headerbuffer, headersize, 0x07)
 	ByteStreamEmitByte(headerbuffer, headersize, 0x03)
-	ByteStreamEmitByte(headerbuffer, headersize, 0x6d)
-	ByteStreamEmitByte(headerbuffer, headersize, 0x4b)
-	ByteStreamEmitByte(headerbuffer, headersize, 0xa7)
-	ByteStreamEmitByte(headerbuffer, headersize, 0x73)
-	ByteStreamEmitByte(headerbuffer, headersize, 0xac)
-	ByteStreamEmitByte(headerbuffer, headersize, 0x76)
-	ByteStreamEmitByte(headerbuffer, headersize, 0x1c)
-	ByteStreamEmitByte(headerbuffer, headersize, 0x3e)
-	ByteStreamEmitByte(headerbuffer, headersize, 0x9b)
-	ByteStreamEmitByte(headerbuffer, headersize, 0x0d)
+	ByteStreamEmitByte(headerbuffer, headersize, 0xfb)
+	ByteStreamEmitByte(headerbuffer, headersize, 0xf2)
 
-	ByteStreamEmitInteger(headerbuffer, headersize, 0x6)			// "Age"
-
-
-	string pdbhack = ".\TestSuite.exe.pdb"
+	ByteStreamEmitInteger(headerbuffer, headersize, 0x13)			// "Age"
+	
+	
 	integer count = 0
 
-	while(count < length(pdbhack))
+	while(count < length(pdbfilename))
 	{
-		string char = charat(pdbhack, count)
+		string char = charat(pdbfilename, count)
 		ByteStreamEmitSubstring(headerbuffer, headersize, char, 1)
 
 		++count

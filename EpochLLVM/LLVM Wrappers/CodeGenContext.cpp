@@ -524,6 +524,11 @@ size_t Context::EmitBinaryObject(char* buffer, size_t maxoutput)
 	}
 
 
+
+	std::vector<char> stringbuffer;
+	unsigned numsyms = 0;
+
+	uint32_t offset = 4;
 	for(const auto& sym : image->symbols())
 	{
 #include <pshpack1.h>
@@ -550,32 +555,47 @@ size_t Context::EmitBinaryObject(char* buffer, size_t maxoutput)
 		if(!symname.length())
 			continue;
 
-		for(unsigned i = 0; i < std::min(size_t(8), symname.length()); ++i)
-			symbol.n_name[i] = symname[i];
+		memcpy(&symbol.n_name[4], &offset, sizeof(offset));
+
+
+		std::copy(std::begin(symname), std::end(symname), std::back_inserter(stringbuffer));
+		stringbuffer.push_back(0);
+		offset += symname.length() + 1;
 
 		symbol.n_value = (long)sym.getValue();
 		symbol.n_scnum = -1;
+		symbol.n_sclass = 3;
 		
 		switch(sym.getType())
 		{
-		case object::SymbolRef::ST_Data:
-			symbol.n_type = (1 << 4) + 2;
-			break;
-
 		case object::SymbolRef::ST_Function:
-			symbol.n_type = (2 << 4) + 1;
+			symbol.n_scnum = 8;
+			symbol.n_value += 0x1000;
+
+			if(symname == "@init")
+				symbol.n_sclass = 2;
+
+			symbol.n_type = (2 << 4);
 			break;
 
 		default:
-			symbol.n_type = 0;
+			symbol.n_sclass = 2;
+			symbol.n_scnum = -1;
+			symbol.n_value = 0;
+			symbol.n_type = (2 << 4);
 			break;
 		}
 		
-		symbol.n_sclass = 3;
 		symbol.n_numaux = 0;
 
 		AppendToBuffer(&DebugSymbols, symbol);
+		++numsyms;
 	}
+
+	AppendToBuffer(&DebugSymbols, uint32_t(stringbuffer.size() + 8));
+
+	std::copy(std::begin(stringbuffer), std::end(stringbuffer), std::back_inserter(DebugSymbols));
+
 
 	GCCompilation::PrepareGCData(*ee, &GCSection);
 
