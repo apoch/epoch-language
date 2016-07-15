@@ -1,5 +1,13 @@
 # Epoch Language Plans
 This file is a running stream-of-consciousness log of plans and thoughts surrounding the Epoch programming language. It is not intended to be an authoritative or exhaustive resource; it exists primarily for the curious and for recording various ideas.
+
+
+### MikeL 2016-07-15
+After much tinkering I did manage to coax WinDbg into listing sane callstacks, but Visual Studio remains elusive. I've determined that the main problem I have is the lack of control over how `link.exe` emits PE sections. Since I can't coerce the linker into emitting the same section layout as `EpochNativeBin.exe` does when it links an `.exe` file, the debug data naturally mismatches pretty badly.
+
+In lieu of mucking with `link` much more, I've started looking at a project called `cv2pdb` which originated with the D language toolchain. It uses an intriguing pattern of calling directly into `MSPDB140.dll` (or the appropriate version for some given install of Visual Studio) to emit a PDB file. Most of the logic looks unnecessary to me but I can extract the basic interfacing with the PDB writer DLL to generate my own PDBs without having to binary-create them from scratch.
+
+So far I have the PDB containing nothing, but it at least loads and validates in WinDbg and `DBH.exe` which is a great start. I'll likely sink much of the upcoming weekend into making a more useful implementation of this functionality.
   
   
 ### MikeL 2016-07-11
