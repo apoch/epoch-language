@@ -281,24 +281,24 @@ WriteDebugStub : Win32Handle filehandle, string pdbfilename -> integer writtenby
 	ByteStreamEmitInteger(headerbuffer, headersize, 0x53445352)	// "RSDS" signature
 
 	// PDB GUID
-	ByteStreamEmitByte(headerbuffer, headersize, 0x20)		// [20 AE BB 84 26 F7 6B 44 83 7E 2C 56 7F CE 77 F0] 84BBAE20-F726-446B-837E-2C567FCE77F0
-	ByteStreamEmitByte(headerbuffer, headersize, 0xae)
-	ByteStreamEmitByte(headerbuffer, headersize, 0xbb)
-	ByteStreamEmitByte(headerbuffer, headersize, 0x84)
-	ByteStreamEmitByte(headerbuffer, headersize, 0x26)
-	ByteStreamEmitByte(headerbuffer, headersize, 0xf7)
-	ByteStreamEmitByte(headerbuffer, headersize, 0x6b)
-	ByteStreamEmitByte(headerbuffer, headersize, 0x44)
-	ByteStreamEmitByte(headerbuffer, headersize, 0x83)
-	ByteStreamEmitByte(headerbuffer, headersize, 0x7e)
-	ByteStreamEmitByte(headerbuffer, headersize, 0x2c)
-	ByteStreamEmitByte(headerbuffer, headersize, 0x56)
-	ByteStreamEmitByte(headerbuffer, headersize, 0x7f)
-	ByteStreamEmitByte(headerbuffer, headersize, 0xce)
+	ByteStreamEmitByte(headerbuffer, headersize, 0x12)		// 12 e6 80 e6 dd 6a 77 49 9d 80 f2 21 07 b1 4c 4c
+	ByteStreamEmitByte(headerbuffer, headersize, 0xe6)
+	ByteStreamEmitByte(headerbuffer, headersize, 0x80)
+	ByteStreamEmitByte(headerbuffer, headersize, 0xe6)
+	ByteStreamEmitByte(headerbuffer, headersize, 0xdd)
+	ByteStreamEmitByte(headerbuffer, headersize, 0x6a)
 	ByteStreamEmitByte(headerbuffer, headersize, 0x77)
-	ByteStreamEmitByte(headerbuffer, headersize, 0xf0)
+	ByteStreamEmitByte(headerbuffer, headersize, 0x49)
+	ByteStreamEmitByte(headerbuffer, headersize, 0x9d)
+	ByteStreamEmitByte(headerbuffer, headersize, 0x80)
+	ByteStreamEmitByte(headerbuffer, headersize, 0xf2)
+	ByteStreamEmitByte(headerbuffer, headersize, 0x21)
+	ByteStreamEmitByte(headerbuffer, headersize, 0x07)
+	ByteStreamEmitByte(headerbuffer, headersize, 0xb1)
+	ByteStreamEmitByte(headerbuffer, headersize, 0x4c)
+	ByteStreamEmitByte(headerbuffer, headersize, 0x4c)
 
-	ByteStreamEmitInteger(headerbuffer, headersize, 78)			// "Age"
+	ByteStreamEmitInteger(headerbuffer, headersize, 21)			// "Age"
 	
 	
 	integer count = 0

@@ -777,12 +777,15 @@ namespace
 	}
 
 
+#include <pshpack1.h>
+
 	struct LineInfoEntry
 	{
 		unsigned int offset;
 		unsigned short line;
 	};
 
+#include <poppack.h>
 
 	void GeneratePDB(PDB* pdb)
 	{
@@ -791,7 +794,12 @@ namespace
 		GUID guid;
 		pdb->QuerySignature2(&guid);
 
-		std::cout << "PDB age is " << pdb->QueryAge() << " on GUID " << guid << std::endl;
+		std::cout << "PDB age is " << pdb->QueryAge() << std::endl;
+
+		for(size_t i = 0; i < sizeof(guid); ++i)
+			printf("%02x ", (reinterpret_cast<const unsigned char*>(&guid))[i]);
+
+		printf("\n");
 
 
 		DBI* dbi = pdb->CreateDBI();
@@ -827,14 +835,15 @@ namespace
 			{
 				if(mod->AddSecContrib(8, 0, 0x1000, 0x5) <= 0)
 					std::cout << "Failure with section contribution!" << std::endl;
-					
+				
+				/*
 				LineInfoEntry lineinfo;
 				lineinfo.offset = 0;
 				lineinfo.line = 1;
 
-				if(mod->AddLines("LinkedProgram.epoch", 8, 0, 0x6, 0x6, 1, reinterpret_cast<unsigned char*>(&lineinfo), sizeof(lineinfo)) <= 0)
+				if(mod->AddLines("LinkedProgram.epoch", 8, 0, 0xd, 0xd, 1, reinterpret_cast<unsigned char*>(&lineinfo), sizeof(lineinfo)) <= 0)
 					std::cout << "Failed to add line info!" << std::endl;
-
+					*/
 				std::basic_ifstream<char> infile("TestSuite.sym", std::ios::binary);
 				std::vector<char> symbolBuffer((std::istreambuf_iterator<char>(infile)), (std::istreambuf_iterator<char>()));
 
@@ -870,13 +879,12 @@ namespace
 				{
 					if(reloc->type == IMAGE_REL_AMD64_SECREL)
 					{
-						if(psyms[reloc->symbolindex].SectionNumber == 8)
-						{
-							unsigned adjustment = psyms[reloc->symbolindex].Value + 0x8000;
+						assert(psyms[reloc->symbolindex].SectionNumber == 8);
+						
+						unsigned adjustment = psyms[reloc->symbolindex].Value;
 
-							DWORD* adjusttarget = (DWORD*)(cvbuffer.data() + reloc->address);
-							*adjusttarget = adjustment;
-						}
+						DWORD* adjusttarget = (DWORD*)(cvbuffer.data() + reloc->address);
+						*adjusttarget = adjustment;
 					}
 					else if(reloc->type == IMAGE_REL_AMD64_SECTION)
 					{
@@ -890,12 +898,14 @@ namespace
 
 
 				std::vector<unsigned char> compactedcv;
+				//std::vector<unsigned char> othercv;
 
 				unsigned char* cvdata = cvbuffer.data();
 				DWORD magic = ConsumeFromBuffer<DWORD>(cvdata);
 				assert(magic == 4);
 
 				std::copy(cvbuffer.data(), cvdata, std::back_inserter(compactedcv));
+				//std::copy(cvbuffer.data(), cvdata, std::back_inserter(othercv));
 
 				while(size_t(cvdata - cvbuffer.data()) < cvbuffer.size())
 				{
@@ -903,16 +913,87 @@ namespace
 					DWORD sectiontype = ConsumeFromBuffer<DWORD>(cvdata);
 					DWORD sectionsize = ConsumeFromBuffer<DWORD>(cvdata);
 
-					cvdata += sectionsize;
-
 					if(sectiontype == 0xf1)
 					{
+						cvdata += sectionsize;
+						while(size_t(cvdata - cvbuffer.data()) % 4 != 0)
+							ConsumeFromBuffer<unsigned char>(cvdata);
+
 						std::copy(bookmark, cvdata, std::back_inserter(compactedcv));
+
+						while(compactedcv.size() % 4 != 0)
+							compactedcv.push_back(0);
+					}
+					else if(sectiontype == 0xf2)
+					{
+						unsigned char* endmark = cvdata + sectionsize;
+
+						DWORD funcoffset = ConsumeFromBuffer<DWORD>(cvdata);
+						WORD funcsection = ConsumeFromBuffer<WORD>(cvdata);
+
+						assert(funcsection == 8);
+
+						WORD flags = ConsumeFromBuffer<WORD>(cvdata);
+						assert(flags == 1);
+
+						DWORD funcsize = ConsumeFromBuffer<DWORD>(cvdata);
+
+						while(cvdata < endmark)
+						{
+							unsigned char* recmark = cvdata;
+
+							DWORD discard = ConsumeFromBuffer<DWORD>(cvdata);
+							DWORD numrecords = ConsumeFromBuffer<DWORD>(cvdata);
+							DWORD bytesplusextra = ConsumeFromBuffer<DWORD>(cvdata);
+
+							for(unsigned i = 0; i < numrecords; ++i)
+							{
+								DWORD instroffset = ConsumeFromBuffer<DWORD>(cvdata);
+
+								const uint32_t CVL_IsStatement = 1U << 31;
+
+								DWORD linedata = ConsumeFromBuffer<DWORD>(cvdata);
+								DWORD actualline = linedata & (~CVL_IsStatement);
+
+								// TODO - what to do with columns?!
+								
+								LineInfoEntry lineinfo;
+								lineinfo.line = unsigned short(actualline);
+								lineinfo.offset = instroffset - funcoffset;
+
+								if(actualline != linedata)
+									mod->AddLines("LinkedProgram.epoch", funcsection, funcoffset, funcsize, instroffset, 1, reinterpret_cast<unsigned char*>(&lineinfo), sizeof(lineinfo));
+							}
+
+							cvdata = recmark + bytesplusextra;
+						}
+
+
+						/*
+						std::copy(bookmark, cvdata, std::back_inserter(othercv));
+
+						while(othercv.size() % 4 != 0)
+							othercv.push_back(0);
+							*/
+
+						while(size_t(cvdata - cvbuffer.data()) % 4 != 0)
+							ConsumeFromBuffer<unsigned char>(cvdata);
+					}
+					else
+					{
+						cvdata += sectionsize;
+						while(size_t(cvdata - cvbuffer.data()) % 4 != 0)
+							ConsumeFromBuffer<unsigned char>(cvdata);
+
+						std::cout << "Section type " << std::hex << sectiontype << std::endl;
 					}
 				}
 				
 				if(mod->AddSymbols(compactedcv.data(), (long)compactedcv.size()) <= 0)
 					std::cout << "Failed to add symbols!" << std::endl;
+
+				//if(mod->AddSymbols(othercv.data(), (long)othercv.size()) <= 0)
+				//	std::cout << "Failed to add other CV" << std::endl;
 
 				mod->Close();
 			}
