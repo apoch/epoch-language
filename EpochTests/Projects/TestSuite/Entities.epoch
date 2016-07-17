@@ -9,61 +9,6 @@ TestEntities :
 {
 	TestSection("Entities")
 	
-	TEIfTest()
-	TEIfElseTest()
-	TEIfElseIfTest()
-	
-	TEWhileTest()
-	
 	TestSectionComplete()
 }
-
-
-
-TEIfTest :
-{
-	if(1 == 2)
-	{
-		TestAssert(false, "if conditions")
-	}
-}
-
-TEIfElseTest :
-{
-	if(true)
-	{
-		TestAssert(true, "if-else conditions")
-	}
-	else
-	{
-		TestAssert(false, "if-else conditions")
-	}
-}
-
-TEIfElseIfTest :
-{
-	if(1 == 2)
-	{
-		TestAssert(false, "if-elseif-else conditions")
-	}
-	elseif(2 == 1)
-	{
-		TestAssert(false, "if-elseif-else conditions")
-	}
-	else
-	{
-		TestAssert(true, "if-elseif-else conditions")
-	}
-}
-
-
-
-TEWhileTest :
-{
-	while(1 == 2)
-	{
-		TestAssert(false, "while loops")
-	}
-}
-
 

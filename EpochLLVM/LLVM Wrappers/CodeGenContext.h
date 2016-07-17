@@ -130,6 +130,7 @@ namespace CodeGen
 
 	private:	// Helpers
 		void SetupDebugInfo(llvm::Function* function);
+		void TagDebugLine(unsigned line, unsigned column);
 
 	private:	// Internal state
 		std::unique_ptr<llvm::Module> LLVMModule;

@@ -92,7 +92,6 @@ namespace
 	}
 
 
-
 	void ProcessArbitraryRelocations(const object::SectionRef& section, std::vector<char>* buffer)
 	{
 		for(const auto& reloc : section.relocations())
@@ -243,8 +242,8 @@ Context::Context()
 	DebugCompileUnit = DebugBuilder.createCompileUnit(dwarf::DW_LANG_C, "LinkedProgram.epoch", ".", "Epoch Compiler", false, "", 0);
 	DebugFile = DebugBuilder.createFile(DebugCompileUnit->getFilename(), DebugCompileUnit->getDirectory());
 
-	FunctionType* initfunctiontype = FunctionType::get(Type::getInt32Ty(getGlobalContext()), false);
-	InitFunction = Function::Create(initfunctiontype, GlobalValue::ExternalLinkage , "@init", LLVMModule.get());
+	FunctionType* initfunctiontype = FunctionType::get(Type::getVoidTy(getGlobalContext()), false);
+	InitFunction = Function::Create(initfunctiontype, GlobalValue::ExternalLinkage, "init", LLVMModule.get());
 	InitFunction->setGC("EpochGC");
 
 	SetupDebugInfo(InitFunction);
@@ -394,11 +393,21 @@ size_t Context::EmitBinaryObject(char* buffer, size_t maxoutput)
 	BasicBlock* bb = BasicBlock::Create(getGlobalContext(), "InitBlock", InitFunction);
 	LLVMBuilder.SetInsertPoint(bb);
 	LLVMBuilder.CreateCall(LLVMBuilder.CreateLoad(gcinitfunctionvar), ConstantInt::get(TypeGetInteger(), 0x6000));		// TODO - un-hardcode .gc segment address
+	TagDebugLine(++hack, 0);
+
 	// TODO - init globals here
 	LLVMBuilder.CreateCall(EntryPointFunction);
+	TagDebugLine(++hack, 0);
+
 	LLVMBuilder.CreateCall(LLVMBuilder.CreateLoad(gccollectstrsfunctionvar));
+	TagDebugLine(++hack, 0);
+
 	LLVMBuilder.CreateCall(LLVMBuilder.CreateLoad(exitprocessfunctionvar), ConstantInt::get(TypeGetInteger(), 0));
-	LLVMBuilder.CreateRet(ConstantInt::get(TypeGetInteger(), 0));
+	TagDebugLine(++hack, 0);
+
+	LLVMBuilder.CreateRetVoid();
+	//LLVMBuilder.CreateRet(ConstantInt::get(TypeGetInteger(), 0));
+	TagDebugLine(++hack, 0);
 
 	DebugBuilder.finalize();
 
@@ -531,19 +540,9 @@ size_t Context::EmitBinaryObject(char* buffer, size_t maxoutput)
 	uint32_t offset = 4;
 	for(const auto& sym : image->symbols())
 	{
-#include <pshpack1.h>
-		struct
-		{
-			char		n_name[8];
-			long		n_value;
-			short    	n_scnum;
-			unsigned short	n_type;
-			char		n_sclass;
-			char		n_numaux;
-		} symbol;
-#include <poppack.h>
+		IMAGE_SYMBOL symbol;
 
-		memset(symbol.n_name, 0, 8);
+		memset(symbol.N.ShortName, 0, 8);
 
 		auto nameerr = sym.getName();
 		if(!nameerr)
@@ -552,43 +551,39 @@ size_t Context::EmitBinaryObject(char* buffer, size_t maxoutput)
 		auto nameref = nameerr.get();
 		auto symname = nameref.str();
 
-		if(!symname.length())
-			continue;
-
-		memcpy(&symbol.n_name[4], &offset, sizeof(offset));
+		symbol.N.LongName[1] = offset;
 
 
 		std::copy(std::begin(symname), std::end(symname), std::back_inserter(stringbuffer));
 		stringbuffer.push_back(0);
 		offset += symname.length() + 1;
 
-		symbol.n_value = (long)sym.getValue();
-		symbol.n_scnum = -1;
-		symbol.n_sclass = 3;
+		symbol.Value = (DWORD)sym.getValue();
+		symbol.SectionNumber = IMAGE_SYM_ABSOLUTE;
+		symbol.StorageClass = IMAGE_SYM_CLASS_EXTERNAL;
 		
 		switch(sym.getType())
 		{
 		case object::SymbolRef::ST_Function:
-			symbol.n_scnum = 8;
-			symbol.n_value += 0x1000;
+			symbol.SectionNumber = 8;
 
-			if(symname == "@init")
-				symbol.n_sclass = 2;
+			if(symname == "init")
+				symbol.StorageClass = IMAGE_SYM_CLASS_EXTERNAL;
 
-			symbol.n_type = (2 << 4);
+			symbol.Type = (IMAGE_SYM_DTYPE_FUNCTION << N_BTSHFT);
 			break;
 
 		default:
-			symbol.n_sclass = 2;
-			symbol.n_scnum = -1;
-			symbol.n_value = 0;
-			symbol.n_type = (2 << 4);
+			symbol.StorageClass = IMAGE_SYM_CLASS_EXTERNAL;
+			symbol.SectionNumber = IMAGE_SYM_ABSOLUTE;
+			symbol.Value = 0;
+			symbol.Type = (IMAGE_SYM_DTYPE_POINTER << N_BTSHFT);
 			break;
 		}
 		
-		symbol.n_numaux = 0;
+		symbol.NumberOfAuxSymbols = 0;
 
-		AppendToBuffer(&DebugSymbols, symbol);
+		AppendToBuffer<IMAGE_SYMBOL, IMAGE_SIZEOF_SYMBOL>(&DebugSymbols, symbol);
 		++numsyms;
 	}
 
@@ -913,8 +908,7 @@ void Context::CodePushFunction(llvm::Function* func)
 
 void Context::CodeStatementFinalize()
 {
-	DebugLoc loc = DILocation::get(getGlobalContext(), ++hack, 0, LLVMBuilder.GetInsertBlock()->getParent()->getSubprogram());
-	LLVMBuilder.GetInsertBlock()->getInstList().back().setDebugLoc(loc);
+	TagDebugLine(++hack, 0);
 
 	assert(PendingValues.empty() || PendingValues.size() == 1);
 	PendingValues.clear();
@@ -1036,13 +1030,14 @@ void Context::SetupDebugInfo(Function* function)
 
 	DISubprogram* subprogram = DebugBuilder.createFunction(fcontext, function->getName(), StringRef(), DebugFile, line, debugtype, false, true, scopeline, DINode::FlagPrototyped, false);
 
+	/*
 	unsigned i = 1;
 	for(auto& arg : function->getArgumentList())
 	{
 		DebugBuilder.createParameterVariable(subprogram, arg.getName(), i, DebugFile, 0, (DIType*)(argtypes[i]), false, 0);
 		++i;
 	}
-
+	*/
 	function->setSubprogram(subprogram);
 }
 
@@ -1053,3 +1048,8 @@ llvm::DIType* Context::TypeGetDebugType(Type* t)
 	return DebugBuilder.createBasicType("placeholder", 32, 32, dwarf::DW_ATE_unsigned);
 }
 
+void Context::TagDebugLine(unsigned line, unsigned column)
+{
+	DebugLoc loc = DILocation::get(getGlobalContext(), line, column, LLVMBuilder.GetInsertBlock()->getParent()->getSubprogram());
+	LLVMBuilder.GetInsertBlock()->getInstList().back().setDebugLoc(loc);
+}
