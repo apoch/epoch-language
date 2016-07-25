@@ -11,22 +11,260 @@ struct p_string
 
 
 #include <pshpack1.h>
-	struct Relocation
-	{
-		uint32_t address;
-		uint32_t symbolindex;
-		uint16_t type;
-	};
-#include <poppack.h>
-
-typedef struct OMFDirHeader
+struct Relocation
 {
-    WORD        cbDirHeader;
-    WORD        cbDirEntry;
-    DWORD       cDir;
-    DWORD       lfoNextDir;
-    DWORD       flags;
-} OMFDirHeader;
+	uint32_t address;
+	uint32_t symbolindex;
+	uint16_t type;
+};
+
+union codeview_type
+{
+    struct
+    {
+        unsigned short int      len;
+        short int               id;
+    } generic;
+
+    struct
+    {
+        unsigned short int      len;
+        short int               id;
+        short int               attribute;
+        unsigned short int      type;
+    } modifier_v1;
+
+    struct
+    {
+        unsigned short int      len;
+        short int               id;
+        int                     type;
+        short int               attribute;
+    } modifier_v2;
+
+    struct
+    {
+        unsigned short int      len;
+        short int               id;
+        short int               attribute;
+        unsigned short int      datatype;
+        struct p_string         p_name;
+    } pointer_v1;
+
+    struct
+    {
+        unsigned short int      len;
+        short int               id;
+        unsigned int            datatype;
+        unsigned int            attribute;
+        struct p_string         p_name;
+    } pointer_v2;
+
+    struct
+    {
+        unsigned short int      len;
+        short int               id;
+        unsigned short int      elemtype;
+        unsigned short int      idxtype;
+        unsigned short int      arrlen;     /* numeric leaf */
+#if 0
+        struct p_string         p_name;
+#endif
+    } array_v1;
+
+    struct
+    {
+        unsigned short int      len;
+        short int               id;
+        unsigned int            elemtype;
+        unsigned int            idxtype;
+        unsigned short int      arrlen;    /* numeric leaf */
+#if 0
+        struct p_string         p_name;
+#endif
+    } array_v2;
+
+    struct
+    {
+        unsigned short int      len;
+        short int               id;
+        unsigned int            elemtype;
+        unsigned int            idxtype;
+        unsigned short int      arrlen;    /* numeric leaf */
+#if 0
+        char                    name[1];
+#endif
+    } array_v3;
+
+    struct
+    {
+        unsigned short int      len;
+        short int               id;
+        short int               n_element;
+        unsigned short int      fieldlist;
+        short int               property;
+        unsigned short int      derived;
+        unsigned short int      vshape;
+        unsigned short int      structlen;  /* numeric leaf */
+#if 0
+        struct p_string         p_name;
+#endif
+    } struct_v1;
+
+    struct
+    {
+        unsigned short int      len;
+        short int               id;
+        short int               n_element;
+        short int               property;
+        unsigned int            fieldlist;
+        unsigned int            derived;
+        unsigned int            vshape;
+        unsigned short int      structlen;  /* numeric leaf */
+#if 0
+        struct p_string         p_name;
+#endif
+    } struct_v2;
+
+    struct
+    {
+        unsigned short int      len;
+        short int               id;
+        short int               n_element;
+        short int               property;
+        unsigned int            fieldlist;
+        unsigned int            derived;
+        unsigned int            vshape;
+        unsigned short int      structlen;  /* numeric leaf */
+#if 0
+        char                    name[1];
+#endif
+    } struct_v3;
+
+    struct
+    {
+        unsigned short int      len;
+        short int               id;
+        unsigned short int      count;
+        unsigned short int      fieldlist;
+        short int               property;
+        unsigned short int      un_len;     /* numeric leaf */
+#if 0
+        struct p_string         p_name;
+#endif
+    } union_v1;
+
+    struct
+    {
+        unsigned short int      len;
+        short int               id;
+        unsigned short int      count;
+        short int               property;
+        unsigned int            fieldlist;
+        unsigned short int      un_len;     /* numeric leaf */
+#if 0
+        struct p_string         p_name;
+#endif
+    } union_v2;
+
+    struct
+    {
+        unsigned short int      len;
+        short int               id;
+        unsigned short int      count;
+        short int               property;
+        unsigned int            fieldlist;
+        unsigned short int      un_len;     /* numeric leaf */
+#if 0
+        char                    name[1];
+#endif
+    } union_v3;
+
+    struct
+    {
+        unsigned short int      len;
+        short int               id;
+        unsigned short int      count;
+        unsigned short int      type;
+        unsigned short int      fieldlist;
+        short int               property;
+        struct p_string         p_name;
+    } enumeration_v1;
+
+    struct
+    {
+        unsigned short int      len;
+        short int               id;
+        unsigned short int      count;
+        short int               property;
+        unsigned int            type;
+        unsigned int            fieldlist;
+        struct p_string         p_name;
+    } enumeration_v2;
+
+    struct
+    {
+        unsigned short int      len;
+        short int               id;
+        unsigned short int      count;
+        short int               property;
+        unsigned int            type;
+        unsigned int            fieldlist;
+        char                    name[1];
+    } enumeration_v3;
+
+    struct
+    {
+        unsigned short int      len;
+        short int               id;
+        unsigned short int      rvtype;
+        unsigned char           call;
+        unsigned char           reserved;
+        unsigned short int      params;
+        unsigned short int      arglist;
+    } procedure_v1;
+
+    struct
+    {
+        unsigned short int      len;
+        short int               id;
+        unsigned int            rvtype;
+        unsigned char           call;
+        unsigned char           reserved;
+        unsigned short int      params;
+        unsigned int            arglist;
+    } procedure_v2;
+
+    struct
+    {
+        unsigned short int      len;
+        short int               id;
+        unsigned short int      rvtype;
+        unsigned short int      class_type;
+        unsigned short int      this_type;
+        unsigned char           call;
+        unsigned char           reserved;
+        unsigned short int      params;
+        unsigned short int      arglist;
+        unsigned int            this_adjust;
+    } mfunction_v1;
+
+    struct
+    {
+        unsigned short int      len;
+        short int               id;
+        unsigned int            rvtype;
+        unsigned int            class_type;
+        unsigned                this_type;
+        unsigned char           call;
+        unsigned char           reserved;
+        unsigned short          params;
+        unsigned int            arglist;
+        unsigned int            this_adjust;
+    } mfunction_v2;
+};
+
+#include <poppack.h>
 
 
 union codeview_symbol
@@ -449,24 +687,6 @@ union codeview_symbol
 };
 
 
-typedef struct OMFDirEntry
-{
-    WORD        SubSection;
-    WORD        iMod;
-    DWORD       lfo;
-    DWORD       cb;
-} OMFDirEntry;
-
-typedef struct OMFSymHash
-{
-    unsigned short  symhash;
-    unsigned short  addrhash;
-    unsigned long   cbSymbol;
-    unsigned long   cbHSym;
-    unsigned long   cbHAddr;
-} OMFSymHash;
-
-
 struct Mod {
 public: virtual unsigned long Mod::QueryInterfaceVersion(void);
 public: virtual unsigned long Mod::QueryImplementationVersion(void);
@@ -727,7 +947,7 @@ public:
 	DBI* CreateDBI()
 	{
 		DBI* ret = nullptr;
-		if(basev10.CreateDBI("", &ret) <= 0 || !ret)
+		if(basev10.CreateDBI(nullptr, &ret) <= 0 || !ret)
 			return nullptr;
 
 		return ret;
@@ -745,6 +965,17 @@ public:
 	unsigned long QueryAge()
 	{
 		return basev10.QueryAge();
+	}
+
+	std::string QueryLastError()
+	{
+		char buffer[256];
+		long ret = basev10.QueryLastError(buffer);
+
+		std::ostringstream format;
+		format << buffer << " (" << ret << ")";
+
+		return format.str();
 	}
 
 private:
@@ -787,6 +1018,226 @@ namespace
 
 #include <poppack.h>
 
+	typedef unsigned long   CV_pubsymflag_t;
+	typedef union CV_PUBSYMFLAGS {
+		CV_pubsymflag_t grfFlags;
+		struct {
+			CV_pubsymflag_t fCode       :  1;    // set if public symbol refers to a code address
+			CV_pubsymflag_t fFunction   :  1;    // set if public symbol is a function
+			CV_pubsymflag_t fManaged    :  1;    // set if managed code (native or IL)
+			CV_pubsymflag_t fMSIL       :  1;    // set if managed IL code
+			CV_pubsymflag_t __unused    : 28;    // must be zero
+		};
+	} CV_PUBSYMFLAGS;
+
+
+
+
+	void RelocateRawCVData(std::vector<unsigned char>* cvbuffer, const std::vector<unsigned char>& relocbuffer, const std::vector<unsigned char>& symbuffer)
+	{
+		const IMAGE_SYMBOL* psyms = reinterpret_cast<const IMAGE_SYMBOL*>(symbuffer.data());
+		const unsigned numsyms = 0x39;		// TODO
+		
+		size_t numrelocs = relocbuffer.size() / sizeof(Relocation);
+		const Relocation* prelocs = reinterpret_cast<const Relocation*>(relocbuffer.data());
+		
+		for(size_t i = 0; i < numrelocs; ++i)
+		{
+			if(prelocs[i].type == IMAGE_REL_AMD64_SECREL)
+			{
+				assert(prelocs[i].address <= cvbuffer->size() - sizeof(DWORD));
+				assert(psyms[prelocs[i].symbolindex].SectionNumber == 8);
+
+				unsigned adjustment = psyms[prelocs[i].symbolindex].Value;
+
+				DWORD* target = reinterpret_cast<DWORD*>(cvbuffer->data() + prelocs[i].address);
+				assert(*target == 0);
+
+				*target = adjustment;
+			}
+			else if(prelocs[i].type == IMAGE_REL_AMD64_SECTION)
+			{
+				assert(prelocs[i].address <= cvbuffer->size() - sizeof(WORD));
+				assert(psyms[prelocs[i].symbolindex].SectionNumber == 8);
+
+				WORD* target = reinterpret_cast<WORD*>(cvbuffer->data() + prelocs[i].address);
+				assert(*target == 0);
+
+				*target = 8;
+			}
+			else
+			{
+				assert(false);
+			}
+		}
+	}
+
+
+	void AssembleCorrectedCVData(Mod* mod, const std::vector<unsigned char>& inbuffer, std::vector<unsigned char>* outbuffer)
+	{
+		const unsigned char* input = inbuffer.data();
+
+		DWORD versionheader = ConsumeFromBuffer<DWORD>(input);
+		assert(versionheader == 4);
+
+
+		Utility::AppendToBuffer(outbuffer, versionheader);
+
+		Utility::AppendToBuffer(outbuffer, DWORD(0xf1));
+		Utility::AppendToBuffer(outbuffer, DWORD(26));
+		Utility::AppendToBuffer(outbuffer, WORD(24));
+		Utility::AppendToBuffer(outbuffer, WORD(0x1136));		// S_SECTION
+		Utility::AppendToBuffer(outbuffer, WORD(8));
+		Utility::AppendToBuffer(outbuffer, unsigned char(0));
+		Utility::AppendToBuffer(outbuffer, unsigned char(0));
+		Utility::AppendToBuffer(outbuffer, DWORD(0x8000));
+		Utility::AppendToBuffer(outbuffer, DWORD(0x1000));
+		Utility::AppendToBuffer(outbuffer, DWORD(0x06000020));
+		Utility::AppendToBuffer(outbuffer, ".text");
+		Utility::AppendToBuffer(outbuffer, unsigned char('\0'));
+
+		while(outbuffer->size() % 4)
+			outbuffer->push_back(0);
+
+
+
+		while(input < inbuffer.data() + inbuffer.size())
+		{
+			DWORD sectionheader = ConsumeFromBuffer<DWORD>(input);
+			DWORD sectionsize = ConsumeFromBuffer<DWORD>(input);
+
+			if(sectionheader == 0xf1)
+			{
+				WORD procbytes = ConsumeFromBuffer<WORD>(input);
+				WORD procstartmagic = ConsumeFromBuffer<WORD>(input);
+				assert(procstartmagic == 0x1147);
+
+				ConsumeFromBuffer<DWORD>(input);
+				ConsumeFromBuffer<DWORD>(input);
+				ConsumeFromBuffer<DWORD>(input);
+
+				DWORD funcsize = ConsumeFromBuffer<DWORD>(input);
+
+				ConsumeFromBuffer<DWORD>(input);
+				ConsumeFromBuffer<DWORD>(input);
+				ConsumeFromBuffer<DWORD>(input);
+
+				DWORD sectionrelative = ConsumeFromBuffer<DWORD>(input);
+				WORD sectionindex = ConsumeFromBuffer<WORD>(input);
+
+				ConsumeFromBuffer<unsigned char>(input);
+
+				std::string name;
+				char b;
+
+				while((b = ConsumeFromBuffer<char>(input)) != '\0')
+					name += b;
+
+				WORD procterm = ConsumeFromBuffer<WORD>(input);
+				assert(procterm == 0x02);
+
+				WORD procend = ConsumeFromBuffer<WORD>(input);
+				assert(procend == 0x114F);
+
+				Utility::AppendToBuffer(outbuffer, sectionheader);
+				Utility::AppendToBuffer(outbuffer, sectionsize);
+				Utility::AppendToBuffer(outbuffer, procbytes);
+				Utility::AppendToBuffer(outbuffer, procstartmagic);
+
+				// pad 1
+				Utility::AppendToBuffer(outbuffer, 0);
+				Utility::AppendToBuffer(outbuffer, 0);
+				Utility::AppendToBuffer(outbuffer, 0);
+
+				Utility::AppendToBuffer(outbuffer, funcsize);
+
+				// pad 2
+				Utility::AppendToBuffer(outbuffer, 0);
+				Utility::AppendToBuffer(outbuffer, 0);
+				Utility::AppendToBuffer(outbuffer, 0);
+
+				Utility::AppendToBuffer(outbuffer, sectionrelative);
+				Utility::AppendToBuffer(outbuffer, sectionindex);
+
+				Utility::AppendToBuffer(outbuffer, unsigned char(0));
+				Utility::AppendToBuffer(outbuffer, name.c_str());
+				Utility::AppendToBuffer(outbuffer, unsigned char('\0'));
+
+				Utility::AppendToBuffer(outbuffer, procterm);
+				Utility::AppendToBuffer(outbuffer, procend);
+
+				while(outbuffer->size() % 4)
+					outbuffer->push_back(0);
+
+				if(mod->AddSecContrib(sectionindex, sectionrelative, funcsize, IMAGE_SCN_CNT_CODE | IMAGE_SCN_MEM_EXECUTE | IMAGE_SCN_MEM_READ | IMAGE_SCN_LNK_COMDAT) <= 0)
+					std::cout << "Failure with section contribution!" << std::endl;
+			}
+			else
+			{
+				assert(sectionheader == 0xf2 || sectionheader == 0xf3 || sectionheader == 0xf4);
+
+				Utility::AppendToBuffer(outbuffer, sectionheader);
+				Utility::AppendToBuffer(outbuffer, sectionsize);
+
+				const unsigned char* p = input;
+				while(p < input + sectionsize)
+				{
+					outbuffer->push_back(*p);
+					++p;
+				}
+				
+				input += sectionsize;
+			}
+
+			while((input - inbuffer.data()) % 4)
+				ConsumeFromBuffer<char>(input);
+		}
+	}
+
+	void PopulateModuleV2(Mod* mod)
+	{
+		// Open compiler-generated data files
+		std::basic_ifstream<unsigned char> symfile("TestSuite.sym", std::ios::binary);
+		std::basic_ifstream<unsigned char> relocfile("TestSuite.reloc", std::ios::binary);
+		std::basic_ifstream<unsigned char> cvfile("TestSuite.cv", std::ios::binary);
+
+		// Read file contents
+		std::vector<unsigned char> symbuffer((std::istreambuf_iterator<unsigned char>(symfile)), (std::istreambuf_iterator<unsigned char>()));;
+		std::vector<unsigned char> relocbuffer((std::istreambuf_iterator<unsigned char>(relocfile)), (std::istreambuf_iterator<unsigned char>()));;
+		std::vector<unsigned char> cvbuffer((std::istreambuf_iterator<unsigned char>(cvfile)), (std::istreambuf_iterator<unsigned char>()));
+		std::vector<unsigned char> codeviewdata;
+
+		RelocateRawCVData(&cvbuffer, relocbuffer, symbuffer);
+		AssembleCorrectedCVData(mod, cvbuffer, &codeviewdata);
+
+
+		if(mod->AddSymbols(codeviewdata.data(), static_cast<long>(codeviewdata.size())) <= 0)
+			std::cout << "Failure adding symbols!" << std::endl;
+
+		// Set up public mappings for each function
+		const IMAGE_SYMBOL* psyms = reinterpret_cast<const IMAGE_SYMBOL*>(symbuffer.data());
+		const unsigned numsyms = 0x39;		// TODO
+		const char* stringstart = reinterpret_cast<const char*>(symbuffer.data()) + (numsyms * sizeof(IMAGE_SYMBOL));
+
+		for(size_t i = 0; i < numsyms; ++i)
+		{
+			if(!ISFCN(psyms[i].Type))
+				continue;
+
+			const char* symname = stringstart + psyms[i].N.LongName[1];
+			short section = psyms[i].SectionNumber;
+			DWORD value = psyms[i].Value;
+
+			CV_PUBSYMFLAGS flags;
+			flags.grfFlags = 0;
+			flags.fFunction = 1;
+			if(mod->AddPublic2(symname, section, value, flags.grfFlags) <= 0)
+				std::cout << "Failure adding public symbol!" << std::endl;
+		}
+
+		// TODO - do we need to populate type data or something? (not likely)
+	}
+
 	void GeneratePDB(PDB* pdb)
 	{
 		std::cout << "PDB opened!" << std::endl;
@@ -806,196 +1257,79 @@ namespace
 		TPI* tpi = pdb->OpenTPI();
 		if(dbi && tpi)
 		{
-			if(dbi->AddSec(1, 0x1, 0x0, 0x100) <= 0)
+			if(dbi->AddSec(1, 0x109, 0x0, 0x100) <= 0)
 				std::cout << "Error adding section..." << std::endl;
 			
-			if(dbi->AddSec(2, 0x1, 0x0, 0x100) <= 0)
+			if(dbi->AddSec(2, 0x109, 0x0, 0x100) <= 0)
 				std::cout << "Error adding section..." << std::endl;
 
-			if(dbi->AddSec(3, 0x1, 0x0, 0x100) <= 0)
+			if(dbi->AddSec(3, 0x109, 0x0, 0x100) <= 0)
 				std::cout << "Error adding section..." << std::endl;
 
-			if(dbi->AddSec(4, 0x1, 0x0, 0x100) <= 0)
+			if(dbi->AddSec(4, 0x109, 0x0, 0x100) <= 0)
 				std::cout << "Error adding section..." << std::endl;
 
-			if(dbi->AddSec(5, 0x1, 0x0, 0x100) <= 0)
+			if(dbi->AddSec(5, 0x109, 0x0, 0x100) <= 0)
 				std::cout << "Error adding section..." << std::endl;
 
-			if(dbi->AddSec(6, 0x1, 0x0, 0x100) <= 0)
+			if(dbi->AddSec(6, 0x109, 0x0, 0x100) <= 0)
 				std::cout << "Error adding section..." << std::endl;
 
-			if(dbi->AddSec(7, 0x1, 0x0, 0x100) <= 0)
+			if(dbi->AddSec(7, 0x109, 0x0, 0x100) <= 0)
 				std::cout << "Error adding section..." << std::endl;
 
-			if(dbi->AddSec(8, 0x5, 0x0, 0x1000) <= 0)
+			if(dbi->AddSec(8, 0x10d, 0x0, 0x1000) <= 0)
 				std::cout << "Error adding section..." << std::endl;
 
-			Mod* mod = dbi->OpenMod("TestSuite.obj", "TestSuite.lib");
+			if(dbi->AddSec(9, 0x208, 0x0, 0xffffffff) <= 0)
+				std::cout << "Error adding section..." << std::endl;
+
+			Mod* mod = dbi->OpenMod("D:\\epoch\\epoch-language\\x64\\debug\\TestSuite.obj", "D:\\epoch\\epoch-language\\x64\\debug\\TestSuite.lib");
 			if(mod)
 			{
-				if(mod->AddSecContrib(8, 0, 0x1000, 0x5) <= 0)
-					std::cout << "Failure with section contribution!" << std::endl;
-				
 				/*
-				LineInfoEntry lineinfo;
-				lineinfo.offset = 0;
-				lineinfo.line = 1;
+				std::vector<char> typebuffer;
 
-				if(mod->AddLines("LinkedProgram.epoch", 8, 0, 0xd, 0xd, 1, reinterpret_cast<unsigned char*>(&lineinfo), sizeof(lineinfo)) <= 0)
-					std::cout << "Failed to add line info!" << std::endl;
-					*/
-				std::basic_ifstream<char> infile("TestSuite.sym", std::ios::binary);
-				std::vector<char> symbolBuffer((std::istreambuf_iterator<char>(infile)), (std::istreambuf_iterator<char>()));
+				DWORD typeheader = 4;
+				Utility::AppendToBuffer(&typebuffer, typeheader);
 
-				const IMAGE_SYMBOL* psyms = reinterpret_cast<const IMAGE_SYMBOL*>(symbolBuffer.data());
-				unsigned numsyms = 0x39;			// TODO
-				const char* stringstart = symbolBuffer.data() + (numsyms * sizeof(IMAGE_SYMBOL));
-				for(unsigned i = 0; i < numsyms; ++i)
+				/ *
 				{
-					const char* name = stringstart + psyms[i].N.LongName[1];
-
-					//if(!ISFCN(psyms[i].Type))
-					//	continue;
-
-					if(mod->AddPublic2(name, 8, psyms[i].Value, psyms[i].Type) <= 0)
-						std::cout << "Failure to add public symbol!" << std::endl;
+					codeview_type t;
+					t.pointer_v1.len = 8;//sizeof(t.pointer_v1) - sizeof(t.pointer_v1.len);
+					t.pointer_v1.id = 0x1002;
+					t.pointer_v1.p_name.namelen = 1;
+					t.pointer_v1.p_name.name[0] = 'U';
+					t.pointer_v1.attribute = 0x403;
+					t.pointer_v1.datatype = 0x74;
+					Utility::AppendToBuffer(&typebuffer, t.pointer_v1);
 				}
-
-
-
-				std::basic_ifstream<char> relocfile("TestSuite.reloc", std::ios::binary);
-				std::vector<char> relocbuffer((std::istreambuf_iterator<char>(relocfile)), (std::istreambuf_iterator<char>()));
-
-				std::basic_ifstream<unsigned char> cvfile("TestSuite.cv", std::ios::binary);
-				std::vector<unsigned char> cvbuffer((std::istreambuf_iterator<unsigned char>(cvfile)), (std::istreambuf_iterator<unsigned char>()));
-
-
-
-
-				size_t numrelocs = relocbuffer.size() / sizeof(Relocation);
-				Relocation* reloc = reinterpret_cast<Relocation*>(relocbuffer.data());
-
-				for(size_t i = 0; i < numrelocs; ++i, ++reloc)
-				{
-					if(reloc->type == IMAGE_REL_AMD64_SECREL)
-					{
-						assert(psyms[reloc->symbolindex].SectionNumber == 8);
-						
-						unsigned adjustment = psyms[reloc->symbolindex].Value;
-
-						DWORD* adjusttarget = (DWORD*)(cvbuffer.data() + reloc->address);
-						*adjusttarget = adjustment;
-					}
-					else if(reloc->type == IMAGE_REL_AMD64_SECTION)
-					{
-						assert(psyms[reloc->symbolindex].SectionNumber == 8);
-
-						WORD* adjusttarget = (WORD*)(cvbuffer.data() + reloc->address);
-						*adjusttarget = 8;
-					}
-				}
-
-
-
-				std::vector<unsigned char> compactedcv;
-				//std::vector<unsigned char> othercv;
-
-				unsigned char* cvdata = cvbuffer.data();
-				DWORD magic = ConsumeFromBuffer<DWORD>(cvdata);
-				assert(magic == 4);
-
-				std::copy(cvbuffer.data(), cvdata, std::back_inserter(compactedcv));
-				//std::copy(cvbuffer.data(), cvdata, std::back_inserter(othercv));
-
-				while(size_t(cvdata - cvbuffer.data()) < cvbuffer.size())
-				{
-					unsigned char* bookmark = cvdata;
-					DWORD sectiontype = ConsumeFromBuffer<DWORD>(cvdata);
-					DWORD sectionsize = ConsumeFromBuffer<DWORD>(cvdata);
-
-					if(sectiontype == 0xf1)
-					{
-						cvdata += sectionsize;
-						while(size_t(cvdata - cvbuffer.data()) % 4 != 0)
-							ConsumeFromBuffer<unsigned char>(cvdata);
-
-						std::copy(bookmark, cvdata, std::back_inserter(compactedcv));
-
-						while(compactedcv.size() % 4 != 0)
-							compactedcv.push_back(0);
-					}
-					else if(sectiontype == 0xf2)
-					{
-						unsigned char* endmark = cvdata + sectionsize;
-
-						DWORD funcoffset = ConsumeFromBuffer<DWORD>(cvdata);
-						WORD funcsection = ConsumeFromBuffer<WORD>(cvdata);
-
-						assert(funcsection == 8);
-
-						WORD flags = ConsumeFromBuffer<WORD>(cvdata);
-						assert(flags == 1);
-
-						DWORD funcsize = ConsumeFromBuffer<DWORD>(cvdata);
-
-						while(cvdata < endmark)
-						{
-							unsigned char* recmark = cvdata;
-
-							DWORD discard = ConsumeFromBuffer<DWORD>(cvdata);
-							DWORD numrecords = ConsumeFromBuffer<DWORD>(cvdata);
-							DWORD bytesplusextra = ConsumeFromBuffer<DWORD>(cvdata);
-
-							for(unsigned i = 0; i < numrecords; ++i)
-							{
-								DWORD instroffset = ConsumeFromBuffer<DWORD>(cvdata);
-
-								const uint32_t CVL_IsStatement = 1U << 31;
-
-								DWORD linedata = ConsumeFromBuffer<DWORD>(cvdata);
-								DWORD actualline = linedata & (~CVL_IsStatement);
-
-								// TODO - what to do with columns?!
-								
-								LineInfoEntry lineinfo;
-								lineinfo.line = unsigned short(actualline);
-								lineinfo.offset = instroffset - funcoffset;
-
-								if(actualline != linedata)
-									mod->AddLines("LinkedProgram.epoch", funcsection, funcoffset, funcsize, instroffset, 1, reinterpret_cast<unsigned char*>(&lineinfo), sizeof(lineinfo));
-							}
-
-							cvdata = recmark + bytesplusextra;
-						}
-
-
-						/*
-						std::copy(bookmark, cvdata, std::back_inserter(othercv));
-
-						while(othercv.size() % 4 != 0)
-							othercv.push_back(0);
-							*/
-
-						while(size_t(cvdata - cvbuffer.data()) % 4 != 0)
-							ConsumeFromBuffer<unsigned char>(cvdata);
-					}
-					else
-					{
-						cvdata += sectionsize;
-						while(size_t(cvdata - cvbuffer.data()) % 4 != 0)
-							ConsumeFromBuffer<unsigned char>(cvdata);
-
-						std::cout << "Section type " << std::hex << sectiontype << std::endl;
-					}
-				}
+				* /
 				
-				if(mod->AddSymbols(compactedcv.data(), (long)compactedcv.size()) <= 0)
-					std::cout << "Failed to add symbols!" << std::endl;
+				{
+					codeview_type t;
+					t.pointer_v2.len = 10;
+					t.pointer_v2.id = 0x1002;
+					t.pointer_v2.attribute = 0;
+					t.pointer_v2.datatype = 0;
+					Utility::AppendToBuffer<decltype(t.pointer_v2), 12>(&typebuffer, t.pointer_v2);
+				}
 
-				//if(mod->AddSymbols(othercv.data(), (long)othercv.size()) <= 0)
-				//	std::cout << "Failed to add other CV" << std::endl;
+				while(typebuffer.size() & 3)
+					typebuffer.push_back(0xf4 - (typebuffer.size() & 3));
 
-				mod->Close();
+				int result = mod->AddTypes(reinterpret_cast<unsigned char*>(typebuffer.data()), (long)typebuffer.size());
+				std::cout << result << std::endl;
+				if(result <= 0)
+					std::cout << "Failure with type registration!" << std::endl;
+
+				std::cout << pdb->QueryLastError() << std::endl;
+				*/
+
+				PopulateModuleV2(mod);
+
+				if(mod->Close() <= 0)
+					std::cout << "Commit module failure" << std::endl;
 			}
 			else
 			{

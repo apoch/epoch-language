@@ -104,6 +104,15 @@ namespace
 				continue;
 			}
 
+			char buffer[1024] = {0};
+			SYMBOL_INFO* syminfo = (SYMBOL_INFO*)(buffer);
+			syminfo->SizeOfStruct = sizeof(SYMBOL_INFO);
+			syminfo->MaxNameLen = 256;
+
+
+			DWORD64 displ = 0;
+			BOOL success = ::SymFromAddr(::GetCurrentProcess(), frame.AddrPC.Offset, &displ, syminfo);
+
 			TraceStackRoots(frame.AddrPC.Offset, frame.AddrStack.Offset, stringpool);
 		}
 	}
@@ -123,6 +132,7 @@ void GC::Init(uint32_t gcsectionoffset)
 	GCTable.Roots = reinterpret_cast<const GCRootData*>(reinterpret_cast<const char*>(GCTable.Entries) + GCTable.NumEntries * sizeof(GCSafePointData));
 
 
+	::SymSetOptions(::SymGetOptions() | SYMOPT_DEBUG);
 	::SymInitialize(::GetCurrentProcess(), NULL, TRUE);
 }
 

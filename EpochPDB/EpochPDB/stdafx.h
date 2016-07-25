@@ -15,7 +15,7 @@
 #include <iostream>
 #include <fstream>
 #include <iterator>
-
+#include <sstream>
 
 
 #include "../../EpochLLVM/Utility/Utility.h"

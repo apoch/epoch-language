@@ -24,11 +24,6 @@ extern "C" void ERT_passtest()
 	std::cout << "TEST: pass" << std::endl;
 }
 
-extern "C" void ERT_print(const char* out)
-{
-	std::cout << out << std::endl;
-}
-
 extern "C" const char* ERT_string_concat(const char* s1, const char* s2)
 {
 	return StringPool.AllocConcat(s1, s2);
@@ -45,4 +40,10 @@ extern "C" void ERT_gc_collect_strings()
 	GC::CollectStrings(&StringPool, _ReturnAddress());
 }
 
+
+
+extern "C" void ERT_print(const char* out)
+{
+	std::cout << out << std::endl;
+}
 

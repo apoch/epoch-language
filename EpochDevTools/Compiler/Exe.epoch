@@ -298,7 +298,7 @@ WriteDebugStub : Win32Handle filehandle, string pdbfilename -> integer writtenby
 	ByteStreamEmitByte(headerbuffer, headersize, 0x4c)
 	ByteStreamEmitByte(headerbuffer, headersize, 0x4c)
 
-	ByteStreamEmitInteger(headerbuffer, headersize, 21)			// "Age"
+	ByteStreamEmitInteger(headerbuffer, headersize, 424)			// "Age"
 	
 	
 	integer count = 0
