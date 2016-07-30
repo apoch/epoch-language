@@ -1,0 +1,12 @@
+[source]
+PDB.epoch
+..\Compiler\Bytestream.epoch
+
+[resources]
+
+[output]
+output-file D:\LLVM\gitmirror\llvm-bin\Debug\bin\epochpdb.exe
+
+[options]
+use-console
+

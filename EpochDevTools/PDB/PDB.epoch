@@ -1,0 +1,129 @@
+//
+// Test bed for PDB emission from Epoch code
+//
+
+
+
+type Win32Handle : integer
+
+
+CreateFile :
+	string  filename,
+	integer access,
+	integer sharemode,
+	integer attributes,
+	integer creation,
+	integer flags,
+	integer template
+ ->
+	Win32Handle ret = 0
+ [external("Kernel32.dll", "CreateFileW", "stdcall")]
+ 
+
+CloseHandle : Win32Handle handle -> boolean ret = false [external("Kernel32.dll", "CloseHandle", "stdcall")]
+
+
+WriteFile :
+	Win32Handle handle,
+	buffer ref data,
+	integer numbytes,
+	integer ref written,
+	integer ignored2
+ ->
+	boolean ret = false
+ [external("Kernel32.dll", "WriteFile", "stdcall")]
+
+
+
+entrypoint :
+{
+	integer GENERIC_WRITE = 0x40000000
+	integer CREATE_ALWAYS = 2
+
+	string pdbfilename = "TestSuite.pdb"
+	Win32Handle pdbfilehandle = CreateFile(pdbfilename, GENERIC_WRITE, 0, 0, CREATE_ALWAYS, 0, 0)
+	if(pdbfilehandle == -1)
+	{
+		print("Cannot open " ; pdbfilename ; " to emit .PDB!")
+		assert(false)
+	}
+	
+	integer filepos = WriteMagic(pdbfilehandle)
+	filepos = WriteSuperBlock(pdbfilehandle, filepos)
+	
+	CloseHandle(pdbfilehandle)
+}
+
+
+
+WriteMagic : Win32Handle pdbfilehandle -> integer fileposition = 0
+{
+	buffer magic = 64
+	integer magicsize = 0
+	
+	string magicstring = "Microsoft C/C++ MSF 7.00"
+	
+	integer count = 0
+	while(count < length(magicstring))
+	{
+		string char = charat(magicstring, count)
+		ByteStreamEmitSubstring(magic, magicsize, char, 1)
+
+		++count
+	}
+	
+	ByteStreamEmitByte(magic, magicsize, 13)
+	ByteStreamEmitByte(magic, magicsize, 10)
+	ByteStreamEmitByte(magic, magicsize, 26)
+	ByteStreamEmitByte(magic, magicsize, 68)
+	ByteStreamEmitByte(magic, magicsize, 83)
+	ByteStreamEmitByte(magic, magicsize, 0)
+	ByteStreamEmitByte(magic, magicsize, 0)
+	ByteStreamEmitByte(magic, magicsize, 0)
+	
+	WriteFile(pdbfilehandle, magic, magicsize, fileposition, 0)
+}
+
+
+WriteSuperBlock : Win32Handle pdbfilehandle, integer startfileposition -> integer endfileposition = 0
+{
+	buffer sbheader = 128
+	integer headersize = 0
+	
+	ByteStreamEmitInteger(sbheader, headersize, 1024)		// Block size
+	ByteStreamEmitInteger(sbheader, headersize, 4)			// Free block map index
+	ByteStreamEmitInteger(sbheader, headersize, 4)			// Number blocks present
+	ByteStreamEmitInteger(sbheader, headersize, 0)			// Directory bytes
+	ByteStreamEmitInteger(sbheader, headersize, 0)			// Unknown
+	ByteStreamEmitInteger(sbheader, headersize, 3)			// Block map index
+	
+	integer written = 0
+	WriteFile(pdbfilehandle, sbheader, headersize, written, 0)
+	
+	endfileposition = startfileposition + written
+	endfileposition += WritePadding(pdbfilehandle, endfileposition, 1024 * 7)
+}
+
+
+
+// TODO - replace with better option
+charat : string in, integer index -> string c = substring(in, index, 1) [nogc]
+
+
+
+WritePadding : Win32Handle filehandle, integer startpos, integer desiredpos -> integer writtenbytes = 0
+{
+	writtenbytes = desiredpos - startpos
+
+	if(writtenbytes < 0)
+	{
+		assert(false)
+	}
+
+	buffer empty = writtenbytes
+	integer written = 0
+	WriteFile(filehandle, empty, writtenbytes, written, 0)
+}
+
+
+
