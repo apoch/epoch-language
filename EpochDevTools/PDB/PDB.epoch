@@ -4,6 +4,28 @@
 
 
 
+structure PDBFileLayout :
+	integer BlockSize,
+	integer BlockCount,
+	integer DirectoryHintBlock,
+	integer DirectoryStartBlock,
+	integer PDBInfoStartBlock,
+	integer TPIStartBlock,
+	integer DBIStartBlock,
+	integer IPIStartBlock,
+	integer GlobalsStartBlock,
+	integer PublicsStartBlock,
+	integer SymbolsStartBlock
+	
+
+structure PDBOutputStream :
+	string            FileName,
+	Win32Handle       FileHandle,
+	integer           FilePosition,
+	PDBFileLayout ref Layout
+
+
+
 type Win32Handle : integer
 
 
@@ -84,80 +106,93 @@ entrypoint :
 {
 	integer GENERIC_WRITE = 0x40000000
 	integer CREATE_ALWAYS = 2
+	
+	Win32Handle invalidhandle = -1
+	PDBFileLayout layout = 1024, 12, 2, 3, 6, 7, 8, 9, 10, 11, 12
+	PDBOutputStream stream = "TestSuite.pdb", invalidhandle, 0, layout
 
-	string pdbfilename = "TestSuite.pdb"
-	Win32Handle pdbfilehandle = CreateFile(pdbfilename, GENERIC_WRITE, 0, 0, CREATE_ALWAYS, 0, 0)
-	if(pdbfilehandle == -1)
+	stream.FileHandle = CreateFile(stream.FileName, GENERIC_WRITE, 0, 0, CREATE_ALWAYS, 0, 0)
+	if(stream.FileHandle == -1)
 	{
-		print("Cannot open " ; pdbfilename ; " to emit .PDB!")
+		print("Cannot open " ; stream.FileName ; " to emit .PDB!")
 		assert(false)
 	}
 	
-	integer filepos = WriteMagic(pdbfilehandle)
-	filepos = WriteSuperBlock(pdbfilehandle, filepos)
+	WriteMagic(stream)
+	WriteSuperBlock(stream)
 	
 	// This is some kind of indirection that points to the actual directory block??
-	filepos += WritePadding(pdbfilehandle, filepos, 1024 * 2)
-	filepos += WriteHack(pdbfilehandle)
+	PadToBeginningOfBlock(stream, layout.DirectoryHintBlock)
+	stream.FilePosition += WriteDirectoryHint(stream.FileHandle)
 	
 	// Move up to the block for the directory data
-	filepos += WritePadding(pdbfilehandle, filepos, 1024 * 3)
-	filepos = WriteDirectory(pdbfilehandle, filepos)
+	PadToBeginningOfBlock(stream, layout.DirectoryStartBlock)
+	WriteDirectory(stream)
 	
 	// Move up to the block for the PDB info stream
-	filepos += WritePadding(pdbfilehandle, filepos, 1024 * 6)
-	filepos = WritePDBInfoStream(pdbfilehandle, filepos)
+	PadToBeginningOfBlock(stream, layout.PDBInfoStartBlock)
+	stream.FilePosition = WritePDBInfoStream(stream.FileHandle, stream.FilePosition)
 	
 	// Move up and write the TPI stream
-	filepos += WritePadding(pdbfilehandle, filepos, 1024 * 7)
-	filepos = WriteTPIStream(pdbfilehandle, filepos)
+	PadToBeginningOfBlock(stream, layout.TPIStartBlock)
+	stream.FilePosition = WriteTPIStream(stream.FileHandle, stream.FilePosition)
 	
 	// Move up and write the DBI stream
-	filepos += WritePadding(pdbfilehandle, filepos, 1024 * 8)
-	filepos = WriteDBIStream(pdbfilehandle, filepos)
+	PadToBeginningOfBlock(stream, layout.DBIStartBlock)
+	stream.FilePosition = WriteDBIStream(stream.FileHandle, stream.FilePosition)
 
 	// Move up and write the IPI stream
-	filepos += WritePadding(pdbfilehandle, filepos, 1024 * 9)
-	filepos = WriteIPIStream(pdbfilehandle, filepos)
+	PadToBeginningOfBlock(stream, layout.IPIStartBlock)
+	stream.FilePosition = WriteIPIStream(stream.FileHandle, stream.FilePosition)
 
 	// Move up and write the globals (DBI) stream
-	filepos += WritePadding(pdbfilehandle, filepos, 1024 * 10)
-	filepos = WriteGlobalsStream(pdbfilehandle, filepos)
+	PadToBeginningOfBlock(stream, layout.GlobalsStartBlock)
+	stream.FilePosition = WriteGlobalsStream(stream.FileHandle, stream.FilePosition)
 	
 	// Move up and write the publics (DBI) stream
-	filepos += WritePadding(pdbfilehandle, filepos, 1024 * 11)
-	filepos = WritePublicsStream(pdbfilehandle, filepos)
+	PadToBeginningOfBlock(stream, layout.PublicsStartBlock)
+	stream.FilePosition = WritePublicsStream(stream.FileHandle, stream.FilePosition)
 	
 	// Move up and write the symbol records (DBI) stream
-	filepos += WritePadding(pdbfilehandle, filepos, 1024 * 12)
-	filepos = WriteSymbolRecordsStream(pdbfilehandle, filepos)
+	PadToBeginningOfBlock(stream, layout.SymbolsStartBlock)
+	stream.FilePosition = WriteSymbolRecordsStream(stream.FileHandle, stream.FilePosition)
 	
 	// Pad to the end of the file
-	filepos += WritePadding(pdbfilehandle, filepos, 1024 * 13)
+	PadToBeginningOfBlock(stream, layout.BlockCount + 1)
 
-	CloseHandle(pdbfilehandle)
+	CloseHandle(stream.FileHandle)
 }
 
 
 
-WriteHack : Win32Handle pdbfilehandle -> integer written = 0
+PadToBeginningOfBlock : PDBOutputStream ref stream, integer blockindex
+{
+	// TODO - lame compiler bug workaround in the 32-bit compiler
+	integer fpos = stream.FilePosition
+	fpos += WritePadding(stream.FileHandle, stream.FilePosition, stream.Layout.BlockSize * blockindex)
+	stream.FilePosition = fpos
+}
+
+
+
+WriteDirectoryHint : Win32Handle pdbfilehandle -> integer written = 0
 {
 	buffer hack = 32
 	integer hacksize = 0
 	
-	ByteStreamEmitInteger(hack, hacksize, 3)
+	ByteStreamEmitInteger(hack, hacksize, 3)		// Block index of where the directory actually lives
 	
 	WriteFile(pdbfilehandle, hack, hacksize, written, 0)
 }
 
 
 
-WriteMagic : Win32Handle pdbfilehandle -> integer fileposition = 0
+WriteMagic : PDBOutputStream ref stream
 {
 	buffer magic = 64
 	integer magicsize = 0
 	
-	string magicstring = "Microsoft C/C++ MSF 7.00"
+	string magicstring = "Microsoft C/C++ MSF 7.00"	// Magic header start
 	
 	integer count = 0
 	while(count < length(magicstring))
@@ -168,41 +203,43 @@ WriteMagic : Win32Handle pdbfilehandle -> integer fileposition = 0
 		++count
 	}
 	
-	ByteStreamEmitByte(magic, magicsize, 13)
-	ByteStreamEmitByte(magic, magicsize, 10)
-	ByteStreamEmitByte(magic, magicsize, 26)
-	ByteStreamEmitByte(magic, magicsize, 68)
-	ByteStreamEmitByte(magic, magicsize, 83)
-	ByteStreamEmitByte(magic, magicsize, 0)
-	ByteStreamEmitByte(magic, magicsize, 0)
-	ByteStreamEmitByte(magic, magicsize, 0)
+	ByteStreamEmitByte(magic, magicsize, 13)		// Carriage return
+	ByteStreamEmitByte(magic, magicsize, 10)		// Linefeed
+	ByteStreamEmitByte(magic, magicsize, 26)		// Magic?
+	ByteStreamEmitByte(magic, magicsize, 68)		// 'D'
+	ByteStreamEmitByte(magic, magicsize, 83)		// 'S'
+	ByteStreamEmitByte(magic, magicsize, 0)			// Null magic
+	ByteStreamEmitByte(magic, magicsize, 0)			// Null magic
+	ByteStreamEmitByte(magic, magicsize, 0)			// Null magic
 	
-	WriteFile(pdbfilehandle, magic, magicsize, fileposition, 0)
+	WriteFile(stream.FileHandle, magic, magicsize, stream.FilePosition, 0)
 }
 
 
-WriteSuperBlock : Win32Handle pdbfilehandle, integer startfileposition -> integer endfileposition = 0
+WriteSuperBlock : PDBOutputStream ref stream
 {
 	buffer sbheader = 128
 	integer headersize = 0
 	
-	ByteStreamEmitInteger(sbheader, headersize, 1024)		// Block size
+	ByteStreamEmitInteger(sbheader, headersize, stream.Layout.BlockSize)
 	ByteStreamEmitInteger(sbheader, headersize, 4)			// Free block map index
-	ByteStreamEmitInteger(sbheader, headersize, 12)			// Number blocks present
+	ByteStreamEmitInteger(sbheader, headersize, stream.Layout.BlockCount)
 	ByteStreamEmitInteger(sbheader, headersize, 68)			// Directory bytes
 	ByteStreamEmitInteger(sbheader, headersize, 0)			// Unknown
-	ByteStreamEmitInteger(sbheader, headersize, 2)			// Block map index (directory location)
+	ByteStreamEmitInteger(sbheader, headersize, stream.Layout.DirectoryHintBlock)
 	
 	integer written = 0
-	WriteFile(pdbfilehandle, sbheader, headersize, written, 0)
+	WriteFile(stream.FileHandle, sbheader, headersize, written, 0)
 	
-	endfileposition = startfileposition + written
-	endfileposition += WritePadding(pdbfilehandle, endfileposition, 1024)
+	integer endfileposition = stream.FilePosition + written
+	endfileposition += WritePadding(stream.FileHandle, endfileposition, stream.Layout.BlockSize)
+	
+	stream.FilePosition = endfileposition
 }
 
 
 
-WriteDirectory : Win32Handle pdbfilehandle, integer startfileposition -> integer endfileposition = 0
+WriteDirectory : PDBOutputStream ref stream
 {
 	buffer directory = 128
 	integer directorysize = 0
@@ -223,20 +260,20 @@ WriteDirectory : Win32Handle pdbfilehandle, integer startfileposition -> integer
 	
 
 	// Stream blocks
-	ByteStreamEmitInteger(directory, directorysize, 5)		// Old MSF directory, unused
-	ByteStreamEmitInteger(directory, directorysize, 6)		// PDB info stream
-	ByteStreamEmitInteger(directory, directorysize, 7)		// TPI stream
-	ByteStreamEmitInteger(directory, directorysize, 8)		// DBI stream
-	ByteStreamEmitInteger(directory, directorysize, 9)		// IPI stream
+	ByteStreamEmitInteger(directory, directorysize, 5)		// Old MSF directory, unused (TODO - unhardcode)
+	ByteStreamEmitInteger(directory, directorysize, stream.Layout.PDBInfoStartBlock)
+	ByteStreamEmitInteger(directory, directorysize, stream.Layout.TPIStartBlock)
+	ByteStreamEmitInteger(directory, directorysize, stream.Layout.DBIStartBlock)
+	ByteStreamEmitInteger(directory, directorysize, stream.Layout.IPIStartBlock)
 	
-	ByteStreamEmitInteger(directory, directorysize, 10)		// globals stream (DBI)
-	ByteStreamEmitInteger(directory, directorysize, 11)		// publics stream (DBI)
-	ByteStreamEmitInteger(directory, directorysize, 12)		// symbol records stream (DBI)
+	ByteStreamEmitInteger(directory, directorysize, stream.Layout.GlobalsStartBlock)
+	ByteStreamEmitInteger(directory, directorysize, stream.Layout.PublicsStartBlock)
+	ByteStreamEmitInteger(directory, directorysize, stream.Layout.SymbolsStartBlock)
 	
 	integer written = 0
-	WriteFile(pdbfilehandle, directory, directorysize, written, 0)
+	WriteFile(stream.FileHandle, directory, directorysize, written, 0)
 	
-	endfileposition = startfileposition + written
+	stream.FilePosition = stream.FilePosition + written
 }
 
 
