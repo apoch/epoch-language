@@ -32,6 +32,51 @@ WriteFile :
  ->
 	boolean ret = false
  [external("Kernel32.dll", "WriteFile", "stdcall")]
+ 
+WriteFile :
+	Win32Handle handle,
+	integer ptr,
+	integer numbytes,
+	integer ref written,
+	integer ignored2
+ ->
+	boolean ret = false
+ [external("Kernel32.dll", "WriteFile", "stdcall")]
+  
+ 
+
+CreateFileMapping :
+	Win32Handle filehandle,
+	integer attributes,
+	integer protection,
+	integer maxsizehigh,
+	integer maxsizelow,
+	integer name
+ ->
+	Win32Handle ret = 0
+ [external("Kernel32.dll", "CreateFileMappingW", "stdcall")]
+ 
+
+GetFileSize :
+	Win32Handle handle,
+	integer ignored
+ ->
+	integer size = 0
+ [external("Kernel32.dll", "GetFileSize", "stdcall")]
+ 
+
+MapViewOfFile :
+	Win32Handle handle,
+	integer access,
+	integer offsethigh,
+	integer offsetlow,
+	integer bytestomap
+ ->
+	integer ptr = 0
+ [external("Kernel32.dll", "MapViewOfFile", "stdcall")]
+
+
+UnmapViewOfFile : integer ptr -> boolean ret = false [external("Kernel32.dll", "UnmapViewOfFile", "stdcall")]
 
 
 
@@ -75,9 +120,21 @@ entrypoint :
 	filepos += WritePadding(pdbfilehandle, filepos, 1024 * 9)
 	filepos = WriteIPIStream(pdbfilehandle, filepos)
 
-	// Pad out the file (temp until we know how to populate everything cleanly)
+	// Move up and write the globals (DBI) stream
 	filepos += WritePadding(pdbfilehandle, filepos, 1024 * 10)
+	filepos = WriteGlobalsStream(pdbfilehandle, filepos)
 	
+	// Move up and write the publics (DBI) stream
+	filepos += WritePadding(pdbfilehandle, filepos, 1024 * 11)
+	filepos = WritePublicsStream(pdbfilehandle, filepos)
+	
+	// Move up and write the symbol records (DBI) stream
+	filepos += WritePadding(pdbfilehandle, filepos, 1024 * 12)
+	filepos = WriteSymbolRecordsStream(pdbfilehandle, filepos)
+	
+	// Pad to the end of the file
+	filepos += WritePadding(pdbfilehandle, filepos, 1024 * 13)
+
 	CloseHandle(pdbfilehandle)
 }
 
@@ -131,8 +188,8 @@ WriteSuperBlock : Win32Handle pdbfilehandle, integer startfileposition -> intege
 	
 	ByteStreamEmitInteger(sbheader, headersize, 1024)		// Block size
 	ByteStreamEmitInteger(sbheader, headersize, 4)			// Free block map index
-	ByteStreamEmitInteger(sbheader, headersize, 9)			// Number blocks present
-	ByteStreamEmitInteger(sbheader, headersize, 44)			// Directory bytes
+	ByteStreamEmitInteger(sbheader, headersize, 12)			// Number blocks present
+	ByteStreamEmitInteger(sbheader, headersize, 68)			// Directory bytes
 	ByteStreamEmitInteger(sbheader, headersize, 0)			// Unknown
 	ByteStreamEmitInteger(sbheader, headersize, 2)			// Block map index (directory location)
 	
@@ -151,7 +208,7 @@ WriteDirectory : Win32Handle pdbfilehandle, integer startfileposition -> integer
 	integer directorysize = 0
 	
 	// Number of streams
-	ByteStreamEmitInteger(directory, directorysize, 5)
+	ByteStreamEmitInteger(directory, directorysize, 8)
 
 	// Stream sizes
 	ByteStreamEmitInteger(directory, directorysize, 1)			// These 1s are placeholders saying we don't know a valid length; can't use 0 or things barf
@@ -159,6 +216,11 @@ WriteDirectory : Win32Handle pdbfilehandle, integer startfileposition -> integer
 	ByteStreamEmitInteger(directory, directorysize, 56)		// TODO - real TPI stream size
 	ByteStreamEmitInteger(directory, directorysize, 64)		// TODO - real DBI stream
 	ByteStreamEmitInteger(directory, directorysize, 56)		// TODO - real IPI stream (?)
+	
+	ByteStreamEmitInteger(directory, directorysize, 44 + 516)		// globals stream
+	ByteStreamEmitInteger(directory, directorysize, 44 + 516)		// publics stream
+	ByteStreamEmitInteger(directory, directorysize, 26)		// symbol records stream [TODO]
+	
 
 	// Stream blocks
 	ByteStreamEmitInteger(directory, directorysize, 5)		// Old MSF directory, unused
@@ -166,6 +228,10 @@ WriteDirectory : Win32Handle pdbfilehandle, integer startfileposition -> integer
 	ByteStreamEmitInteger(directory, directorysize, 7)		// TPI stream
 	ByteStreamEmitInteger(directory, directorysize, 8)		// DBI stream
 	ByteStreamEmitInteger(directory, directorysize, 9)		// IPI stream
+	
+	ByteStreamEmitInteger(directory, directorysize, 10)		// globals stream (DBI)
+	ByteStreamEmitInteger(directory, directorysize, 11)		// publics stream (DBI)
+	ByteStreamEmitInteger(directory, directorysize, 12)		// symbol records stream (DBI)
 	
 	integer written = 0
 	WriteFile(pdbfilehandle, directory, directorysize, written, 0)
@@ -276,11 +342,11 @@ WriteDBIStream : Win32Handle pdbfilehandle, integer startfileposition -> integer
 	ByteStreamEmitInteger(header, headersize, version)
 
 	ByteStreamEmitInteger(header, headersize, 1)		// age (must match PDB age)
-	ByteStreamEmitInteger16(header, headersize, 0)		// stream index of global symbols
+	ByteStreamEmitInteger16(header, headersize, 5)		// stream index of global symbols
 	ByteStreamEmitInteger16(header, headersize, 0)		// build number
-	ByteStreamEmitInteger16(header, headersize, 0)		// stream index of public symbols
+	ByteStreamEmitInteger16(header, headersize, 6)		// stream index of public symbols
 	ByteStreamEmitInteger16(header, headersize, 0)		// PDB DLL version (MSPDBxxx.DLL)
-	ByteStreamEmitInteger16(header, headersize, 0)		// stream index of symbol records
+	ByteStreamEmitInteger16(header, headersize, 7)		// stream index of symbol records
 	ByteStreamEmitInteger16(header, headersize, 0)		// rebuild number of PDB DLL
 	ByteStreamEmitInteger(header, headersize, 0)		// module info substream size
 	ByteStreamEmitInteger(header, headersize, 0)		// section contribution substream size
@@ -340,6 +406,66 @@ WriteIPIStream : Win32Handle pdbfilehandle, integer startfileposition -> integer
 
 
 
+WriteGlobalsStream : Win32Handle pdbfilehandle, integer startfileposition -> integer endfileposition = 0
+{
+	buffer header = 1024
+	integer headersize = 0
+	
+	ByteStreamEmitInteger(header, headersize, 0)		// hash
+	ByteStreamEmitInteger(header, headersize, 0)		// address map
+	ByteStreamEmitInteger(header, headersize, 0)		// num thunks
+	ByteStreamEmitInteger(header, headersize, 0)		// size of thunk
+	ByteStreamEmitInteger16(header, headersize, 0)		// section index thunk table
+	ByteStreamEmitInteger16(header, headersize, 0)		// padding
+	ByteStreamEmitInteger(header, headersize, 0)		// offset of thunk table
+	ByteStreamEmitInteger(header, headersize, 0)		// number of sections
+
+	// Hash header
+	ByteStreamEmitInteger(header, headersize, 0xffffffff)		// signature
+	ByteStreamEmitInteger(header, headersize, 0xeffe0000 + 19990810)		// version
+	ByteStreamEmitInteger(header, headersize, 0)		// size
+	ByteStreamEmitInteger(header, headersize, 0)		// num buckets
+	
+	
+	// Magic bitmap
+	integer count = 0
+	while(count < 516)
+	{
+		ByteStreamEmitByte(header, headersize, 0)
+		
+		++count
+	}
+	
+
+	integer written = 0
+	WriteFile(pdbfilehandle, header, headersize, written, 0)
+	
+	endfileposition = startfileposition + written	
+}
+
+
+WritePublicsStream : Win32Handle pdbfilehandle, integer startfileposition -> integer endfileposition = 0
+{
+	endfileposition = WriteGlobalsStream(pdbfilehandle, startfileposition)
+}
+
+
+WriteSymbolRecordsStream : Win32Handle pdbfilehandle, integer startfileposition -> integer endfileposition = 0
+{
+	buffer symbols = 1024
+	integer symbolssize = 0
+
+
+	SymbolSection sectionsymbol = 8, 0x8000, 0x1000, 0x60000020, ".text"
+	ByteStreamEmitSymbol(symbols, symbolssize, sectionsymbol)
+
+
+	integer written = 0
+	WriteFile(pdbfilehandle, symbols, symbolssize, written, 0)
+	endfileposition = startfileposition + written
+}
+
+
 
 // TODO - replace with better option
 charat : string in, integer index -> string c = substring(in, index, 1) [nogc]
@@ -359,6 +485,5 @@ WritePadding : Win32Handle filehandle, integer startpos, integer desiredpos -> i
 	integer written = 0
 	WriteFile(filehandle, empty, writtenbytes, written, 0)
 }
-
 
 

@@ -1,5 +1,6 @@
 [source]
 PDB.epoch
+Symbols.epoch
 ..\Compiler\Bytestream.epoch
 
 [resources]

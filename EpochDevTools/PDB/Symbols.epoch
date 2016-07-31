@@ -1,0 +1,45 @@
+//
+// PDB symbol stream logic
+//
+
+
+structure SymbolSection :
+	integer16 ImageSectionIndex,
+	integer ImageSectionRVA,
+	integer ImageSectionSize,
+	integer Characteristics,
+	string ImageSectionName
+	
+	
+	
+	
+
+
+
+ByteStreamEmitSymbol : buffer ref stream, integer ref pos, SymbolSection ref symbol
+{
+	// TODO - hack to work around broken compiler demotion rules?
+	integer totalsize = 18 + length(symbol.ImageSectionName) + 1
+	integer16 mysize = cast(integer16, totalsize)
+
+	ByteStreamEmitInteger16(stream, pos, mysize)
+	ByteStreamEmitInteger16(stream, pos, 0x1136)						// S_SECTION
+	ByteStreamEmitInteger16(stream, pos, symbol.ImageSectionIndex)
+	ByteStreamEmitInteger16(stream, pos, 0)								// Alignment, reserved byte
+	ByteStreamEmitInteger(stream, pos, symbol.ImageSectionRVA)
+	ByteStreamEmitInteger(stream, pos, symbol.ImageSectionSize)
+	ByteStreamEmitInteger(stream, pos, symbol.Characteristics)
+
+	integer count = 0
+	while(count < length(symbol.ImageSectionName))
+	{
+		string char = charat(symbol.ImageSectionName, count)
+		ByteStreamEmitSubstring(stream, pos, char, 1)
+
+		++count
+	}
+	
+	ByteStreamEmitByte(stream, pos, 0)									// null terminator
+}
+
+
