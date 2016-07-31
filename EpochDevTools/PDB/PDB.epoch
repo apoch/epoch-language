@@ -50,8 +50,29 @@ entrypoint :
 	
 	integer filepos = WriteMagic(pdbfilehandle)
 	filepos = WriteSuperBlock(pdbfilehandle, filepos)
+	filepos += WritePadding(pdbfilehandle, filepos, 1024 * 2)
+	
+	filepos += WriteHack(pdbfilehandle)
+	
+	filepos += WritePadding(pdbfilehandle, filepos, 1024 * 3)
+		
+	filepos = WriteDirectory(pdbfilehandle, filepos)
+	
+	filepos += WritePadding(pdbfilehandle, filepos, 1024 * 10)
 	
 	CloseHandle(pdbfilehandle)
+}
+
+
+
+WriteHack : Win32Handle pdbfilehandle -> integer written = 0
+{
+	buffer hack = 32
+	integer hacksize = 0
+	
+	ByteStreamEmitInteger(hack, hacksize, 3)
+	
+	WriteFile(pdbfilehandle, hack, hacksize, written, 0)
 }
 
 
@@ -92,16 +113,47 @@ WriteSuperBlock : Win32Handle pdbfilehandle, integer startfileposition -> intege
 	
 	ByteStreamEmitInteger(sbheader, headersize, 1024)		// Block size
 	ByteStreamEmitInteger(sbheader, headersize, 4)			// Free block map index
-	ByteStreamEmitInteger(sbheader, headersize, 4)			// Number blocks present
-	ByteStreamEmitInteger(sbheader, headersize, 0)			// Directory bytes
+	ByteStreamEmitInteger(sbheader, headersize, 5)			// Number blocks present
+	ByteStreamEmitInteger(sbheader, headersize, 44)			// Directory bytes
 	ByteStreamEmitInteger(sbheader, headersize, 0)			// Unknown
-	ByteStreamEmitInteger(sbheader, headersize, 3)			// Block map index
+	ByteStreamEmitInteger(sbheader, headersize, 2)			// Block map index (directory location)
 	
 	integer written = 0
 	WriteFile(pdbfilehandle, sbheader, headersize, written, 0)
 	
 	endfileposition = startfileposition + written
-	endfileposition += WritePadding(pdbfilehandle, endfileposition, 1024 * 7)
+	endfileposition += WritePadding(pdbfilehandle, endfileposition, 1024)
+}
+
+
+
+WriteDirectory : Win32Handle pdbfilehandle, integer startfileposition -> integer endfileposition = 0
+{
+	buffer directory = 128
+	integer directorysize = 0
+	
+	// Number of streams
+	ByteStreamEmitInteger(directory, directorysize, 5)
+
+	// Stream sizes
+	ByteStreamEmitInteger(directory, directorysize, 1)
+	ByteStreamEmitInteger(directory, directorysize, 1)
+	ByteStreamEmitInteger(directory, directorysize, 1)
+	ByteStreamEmitInteger(directory, directorysize, 1)
+	ByteStreamEmitInteger(directory, directorysize, 1)
+
+	// Stream blocks
+	ByteStreamEmitInteger(directory, directorysize, 5)
+	ByteStreamEmitInteger(directory, directorysize, 6)
+	ByteStreamEmitInteger(directory, directorysize, 7)
+	ByteStreamEmitInteger(directory, directorysize, 8)
+	ByteStreamEmitInteger(directory, directorysize, 9)
+	
+	integer written = 0
+	WriteFile(pdbfilehandle, directory, directorysize, written, 0)
+	
+	endfileposition = startfileposition + written
+	endfileposition += WritePadding(pdbfilehandle, endfileposition, 1024 * 4)
 }
 
 
