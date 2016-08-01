@@ -3,19 +3,28 @@
 //
 
 
+structure PDBStream :
+	simplelist<integer> Blocks,
+	integer Length
+
+structure PDBDirectory :
+	integer NumStreams,
+	PDBStream ref OldMSFDirectory,
+	PDBStream ref PDB,
+	PDBStream ref TPI,
+	PDBStream ref DBI,
+	PDBStream ref IPI,
+	PDBStream ref Globals,
+	PDBStream ref Publics,
+	PDBStream ref Symbols
+
 
 structure PDBFileLayout :
 	integer BlockSize,
 	integer BlockCount,
-	integer DirectoryHintBlock,
-	integer DirectoryStartBlock,
-	integer PDBInfoStartBlock,
-	integer TPIStartBlock,
-	integer DBIStartBlock,
-	integer IPIStartBlock,
-	integer GlobalsStartBlock,
-	integer PublicsStartBlock,
-	integer SymbolsStartBlock
+	PDBStream ref DirectoryHints,
+	PDBStream ref DirectoryStream,
+	PDBDirectory ref Directory
 	
 
 structure PDBOutputStream :
@@ -107,8 +116,23 @@ entrypoint :
 	integer GENERIC_WRITE = 0x40000000
 	integer CREATE_ALWAYS = 2
 	
+	PDBStream directoryhint = simplelist<integer>(2, nothing), 0
+	PDBStream directorystream = simplelist<integer>(3, nothing), 68
+	
+	PDBStream msf = simplelist<integer>(5, nothing), 1					// Placeholder; 0 is invalid but we have nothing to put here
+	PDBStream pdb = simplelist<integer>(6, nothing), 48					// TODO - pull real PDB stream size
+	PDBStream tpi = simplelist<integer>(7, nothing), 56					// TODO - real TPI stream
+	PDBStream dbi = simplelist<integer>(8, nothing), 64					// TODO - real DBI stream
+	PDBStream ipi = simplelist<integer>(9, nothing), 56					// TODO - real IPI stream (?)
+	PDBStream globals = simplelist<integer>(10, nothing), 44 + 516		// TODO - real globals stream
+	PDBStream publics = simplelist<integer>(11, nothing), 44 + 516		// TODO - real publics stream
+	PDBStream symbols = simplelist<integer>(12, nothing), 26			// TODO - real symbol records size
+	
+	PDBDirectory pdbdir = 8, msf, pdb, tpi, dbi, ipi, globals, publics, symbols
+
+	
 	Win32Handle invalidhandle = -1
-	PDBFileLayout layout = 1024, 12, 2, 3, 6, 7, 8, 9, 10, 11, 12
+	PDBFileLayout layout = 1024, 12, directoryhint, directorystream, pdbdir
 	PDBOutputStream stream = "TestSuite.pdb", invalidhandle, 0, layout
 
 	stream.FileHandle = CreateFile(stream.FileName, GENERIC_WRITE, 0, 0, CREATE_ALWAYS, 0, 0)
@@ -122,39 +146,39 @@ entrypoint :
 	WriteSuperBlock(stream)
 	
 	// This is some kind of indirection that points to the actual directory block??
-	PadToBeginningOfBlock(stream, layout.DirectoryHintBlock)
-	stream.FilePosition += WriteDirectoryHint(stream.FileHandle)
+	PadToBeginningOfBlock(stream, layout.DirectoryHints.Blocks.value)
+	stream.FilePosition += WriteDirectoryHint(stream.FileHandle, layout.DirectoryStream.Blocks.value)
 	
 	// Move up to the block for the directory data
-	PadToBeginningOfBlock(stream, layout.DirectoryStartBlock)
+	PadToBeginningOfBlock(stream, layout.DirectoryStream.Blocks.value)
 	WriteDirectory(stream)
 	
 	// Move up to the block for the PDB info stream
-	PadToBeginningOfBlock(stream, layout.PDBInfoStartBlock)
+	PadToBeginningOfBlock(stream, layout.Directory.PDB.Blocks.value)
 	stream.FilePosition = WritePDBInfoStream(stream.FileHandle, stream.FilePosition)
 	
 	// Move up and write the TPI stream
-	PadToBeginningOfBlock(stream, layout.TPIStartBlock)
+	PadToBeginningOfBlock(stream, layout.Directory.TPI.Blocks.value)
 	stream.FilePosition = WriteTPIStream(stream.FileHandle, stream.FilePosition)
 	
 	// Move up and write the DBI stream
-	PadToBeginningOfBlock(stream, layout.DBIStartBlock)
+	PadToBeginningOfBlock(stream, layout.Directory.DBI.Blocks.value)
 	stream.FilePosition = WriteDBIStream(stream.FileHandle, stream.FilePosition)
 
 	// Move up and write the IPI stream
-	PadToBeginningOfBlock(stream, layout.IPIStartBlock)
+	PadToBeginningOfBlock(stream, layout.Directory.IPI.Blocks.value)
 	stream.FilePosition = WriteIPIStream(stream.FileHandle, stream.FilePosition)
 
 	// Move up and write the globals (DBI) stream
-	PadToBeginningOfBlock(stream, layout.GlobalsStartBlock)
+	PadToBeginningOfBlock(stream, layout.Directory.Globals.Blocks.value)
 	stream.FilePosition = WriteGlobalsStream(stream.FileHandle, stream.FilePosition)
 	
 	// Move up and write the publics (DBI) stream
-	PadToBeginningOfBlock(stream, layout.PublicsStartBlock)
+	PadToBeginningOfBlock(stream, layout.Directory.Publics.Blocks.value)
 	stream.FilePosition = WritePublicsStream(stream.FileHandle, stream.FilePosition)
 	
 	// Move up and write the symbol records (DBI) stream
-	PadToBeginningOfBlock(stream, layout.SymbolsStartBlock)
+	PadToBeginningOfBlock(stream, layout.Directory.Symbols.Blocks.value)
 	stream.FilePosition = WriteSymbolRecordsStream(stream.FileHandle, stream.FilePosition)
 	
 	// Pad to the end of the file
@@ -175,12 +199,12 @@ PadToBeginningOfBlock : PDBOutputStream ref stream, integer blockindex
 
 
 
-WriteDirectoryHint : Win32Handle pdbfilehandle -> integer written = 0
+WriteDirectoryHint : Win32Handle pdbfilehandle, integer hint -> integer written = 0
 {
 	buffer hack = 32
 	integer hacksize = 0
 	
-	ByteStreamEmitInteger(hack, hacksize, 3)		// Block index of where the directory actually lives
+	ByteStreamEmitInteger(hack, hacksize, hint)		// Block index of where the directory actually lives
 	
 	WriteFile(pdbfilehandle, hack, hacksize, written, 0)
 }
@@ -224,9 +248,9 @@ WriteSuperBlock : PDBOutputStream ref stream
 	ByteStreamEmitInteger(sbheader, headersize, stream.Layout.BlockSize)
 	ByteStreamEmitInteger(sbheader, headersize, 4)			// Free block map index
 	ByteStreamEmitInteger(sbheader, headersize, stream.Layout.BlockCount)
-	ByteStreamEmitInteger(sbheader, headersize, 68)			// Directory bytes
+	ByteStreamEmitInteger(sbheader, headersize, stream.Layout.DirectoryStream.Length)
 	ByteStreamEmitInteger(sbheader, headersize, 0)			// Unknown
-	ByteStreamEmitInteger(sbheader, headersize, stream.Layout.DirectoryHintBlock)
+	ByteStreamEmitInteger(sbheader, headersize, stream.Layout.DirectoryHints.Blocks.value)
 	
 	integer written = 0
 	WriteFile(stream.FileHandle, sbheader, headersize, written, 0)
@@ -245,30 +269,27 @@ WriteDirectory : PDBOutputStream ref stream
 	integer directorysize = 0
 	
 	// Number of streams
-	ByteStreamEmitInteger(directory, directorysize, 8)
+	ByteStreamEmitInteger(directory, directorysize, stream.Layout.Directory.NumStreams)	
 
 	// Stream sizes
-	ByteStreamEmitInteger(directory, directorysize, 1)			// These 1s are placeholders saying we don't know a valid length; can't use 0 or things barf
-	ByteStreamEmitInteger(directory, directorysize, 48)		// TODO - pull PDB stream datasize from a real structure, don't hardcode it
-	ByteStreamEmitInteger(directory, directorysize, 56)		// TODO - real TPI stream size
-	ByteStreamEmitInteger(directory, directorysize, 64)		// TODO - real DBI stream
-	ByteStreamEmitInteger(directory, directorysize, 56)		// TODO - real IPI stream (?)
-	
-	ByteStreamEmitInteger(directory, directorysize, 44 + 516)		// globals stream
-	ByteStreamEmitInteger(directory, directorysize, 44 + 516)		// publics stream
-	ByteStreamEmitInteger(directory, directorysize, 26)		// symbol records stream [TODO]
-	
+	ByteStreamEmitInteger(directory, directorysize, stream.Layout.Directory.OldMSFDirectory.Length)
+	ByteStreamEmitInteger(directory, directorysize, stream.Layout.Directory.PDB.Length)
+	ByteStreamEmitInteger(directory, directorysize, stream.Layout.Directory.TPI.Length)
+	ByteStreamEmitInteger(directory, directorysize, stream.Layout.Directory.DBI.Length)
+	ByteStreamEmitInteger(directory, directorysize, stream.Layout.Directory.IPI.Length)
+	ByteStreamEmitInteger(directory, directorysize, stream.Layout.Directory.Globals.Length)
+	ByteStreamEmitInteger(directory, directorysize, stream.Layout.Directory.Publics.Length)
+	ByteStreamEmitInteger(directory, directorysize, stream.Layout.Directory.Symbols.Length)
 
 	// Stream blocks
-	ByteStreamEmitInteger(directory, directorysize, 5)		// Old MSF directory, unused (TODO - unhardcode)
-	ByteStreamEmitInteger(directory, directorysize, stream.Layout.PDBInfoStartBlock)
-	ByteStreamEmitInteger(directory, directorysize, stream.Layout.TPIStartBlock)
-	ByteStreamEmitInteger(directory, directorysize, stream.Layout.DBIStartBlock)
-	ByteStreamEmitInteger(directory, directorysize, stream.Layout.IPIStartBlock)
-	
-	ByteStreamEmitInteger(directory, directorysize, stream.Layout.GlobalsStartBlock)
-	ByteStreamEmitInteger(directory, directorysize, stream.Layout.PublicsStartBlock)
-	ByteStreamEmitInteger(directory, directorysize, stream.Layout.SymbolsStartBlock)
+	ByteStreamEmitInteger(directory, directorysize, stream.Layout.Directory.OldMSFDirectory.Blocks.value)
+	ByteStreamEmitInteger(directory, directorysize, stream.Layout.Directory.PDB.Blocks.value)
+	ByteStreamEmitInteger(directory, directorysize, stream.Layout.Directory.TPI.Blocks.value)
+	ByteStreamEmitInteger(directory, directorysize, stream.Layout.Directory.DBI.Blocks.value)
+	ByteStreamEmitInteger(directory, directorysize, stream.Layout.Directory.IPI.Blocks.value)
+	ByteStreamEmitInteger(directory, directorysize, stream.Layout.Directory.Globals.Blocks.value)
+	ByteStreamEmitInteger(directory, directorysize, stream.Layout.Directory.Publics.Blocks.value)
+	ByteStreamEmitInteger(directory, directorysize, stream.Layout.Directory.Symbols.Blocks.value)
 	
 	integer written = 0
 	WriteFile(stream.FileHandle, directory, directorysize, written, 0)

@@ -2,6 +2,7 @@
 PDB.epoch
 Symbols.epoch
 ..\Compiler\Bytestream.epoch
+..\Common\DataStructures.epoch
 
 [resources]
 
