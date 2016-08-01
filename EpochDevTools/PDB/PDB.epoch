@@ -31,7 +31,17 @@ structure PDBOutputStream :
 	string            FileName,
 	Win32Handle       FileHandle,
 	integer           FilePosition,
-	PDBFileLayout ref Layout
+	PDBFileLayout ref Layout,
+	DBISection        DBI
+
+
+structure DBIModule :
+	string SourceFile,
+	string ObjectFile
+	
+structure DBISection :
+	integer ModuleSubstreamSize,
+	list<DBIModule> Modules
 
 
 
@@ -116,24 +126,37 @@ entrypoint :
 	integer GENERIC_WRITE = 0x40000000
 	integer CREATE_ALWAYS = 2
 	
+	DBIModule testmodule = "D:\Test.epoch", "D:\Test.obj"
+	list<DBIModule> modulelist = testmodule, nothing
+
+	integer dbimodinfolen = 64 + length(testmodule.SourceFile) + 1 + length(testmodule.ObjectFile) + 1
+	while((dbimodinfolen & 3) != 0)
+	{
+		++dbimodinfolen
+	}
+
+	
 	PDBStream directoryhint = simplelist<integer>(2, nothing), 0
 	PDBStream directorystream = simplelist<integer>(3, nothing), 68
 	
 	PDBStream msf = simplelist<integer>(5, nothing), 1					// Placeholder; 0 is invalid but we have nothing to put here
 	PDBStream pdb = simplelist<integer>(6, nothing), 48					// TODO - pull real PDB stream size
 	PDBStream tpi = simplelist<integer>(7, nothing), 56					// TODO - real TPI stream
-	PDBStream dbi = simplelist<integer>(8, nothing), 64					// TODO - real DBI stream
+	PDBStream dbi = simplelist<integer>(8, nothing), 64	+ dbimodinfolen	// TODO - real DBI stream
 	PDBStream ipi = simplelist<integer>(9, nothing), 56					// TODO - real IPI stream (?)
 	PDBStream globals = simplelist<integer>(10, nothing), 44 + 516		// TODO - real globals stream
 	PDBStream publics = simplelist<integer>(11, nothing), 44 + 516		// TODO - real publics stream
 	PDBStream symbols = simplelist<integer>(12, nothing), 26			// TODO - real symbol records size
 	
 	PDBDirectory pdbdir = 8, msf, pdb, tpi, dbi, ipi, globals, publics, symbols
+	
+	
+	DBISection dbisection = dbimodinfolen, modulelist
 
 	
 	Win32Handle invalidhandle = -1
 	PDBFileLayout layout = 1024, 12, directoryhint, directorystream, pdbdir
-	PDBOutputStream stream = "TestSuite.pdb", invalidhandle, 0, layout
+	PDBOutputStream stream = "TestSuite.pdb", invalidhandle, 0, layout, dbisection
 
 	stream.FileHandle = CreateFile(stream.FileName, GENERIC_WRITE, 0, 0, CREATE_ALWAYS, 0, 0)
 	if(stream.FileHandle == -1)
@@ -163,7 +186,7 @@ entrypoint :
 	
 	// Move up and write the DBI stream
 	PadToBeginningOfBlock(stream, layout.Directory.DBI.Blocks.value)
-	stream.FilePosition = WriteDBIStream(stream.FileHandle, stream.FilePosition)
+	WriteDBIStream(stream)
 
 	// Move up and write the IPI stream
 	PadToBeginningOfBlock(stream, layout.Directory.IPI.Blocks.value)
@@ -388,7 +411,7 @@ WriteTPIStream : Win32Handle pdbfilehandle, integer startfileposition -> integer
 
 
 
-WriteDBIStream : Win32Handle pdbfilehandle, integer startfileposition -> integer endfileposition = 0
+WriteDBIStream : PDBOutputStream ref stream
 {
 	buffer header = 128
 	integer headersize = 0
@@ -400,13 +423,13 @@ WriteDBIStream : Win32Handle pdbfilehandle, integer startfileposition -> integer
 	ByteStreamEmitInteger(header, headersize, version)
 
 	ByteStreamEmitInteger(header, headersize, 1)		// age (must match PDB age)
-	ByteStreamEmitInteger16(header, headersize, 5)		// stream index of global symbols
+	ByteStreamEmitInteger16(header, headersize, 5)		// stream index of global symbols			// TODO - get this from the PDBDirectory
 	ByteStreamEmitInteger16(header, headersize, 0)		// build number
-	ByteStreamEmitInteger16(header, headersize, 6)		// stream index of public symbols
+	ByteStreamEmitInteger16(header, headersize, 6)		// stream index of public symbols			// TODO - get this from the PDBDirectory
 	ByteStreamEmitInteger16(header, headersize, 0)		// PDB DLL version (MSPDBxxx.DLL)
-	ByteStreamEmitInteger16(header, headersize, 7)		// stream index of symbol records
+	ByteStreamEmitInteger16(header, headersize, 7)		// stream index of symbol records			// TODO - get this from the PDBDirectory
 	ByteStreamEmitInteger16(header, headersize, 0)		// rebuild number of PDB DLL
-	ByteStreamEmitInteger(header, headersize, 0)		// module info substream size
+	ByteStreamEmitInteger(header, headersize, stream.DBI.ModuleSubstreamSize)
 	ByteStreamEmitInteger(header, headersize, 0)		// section contribution substream size
 	ByteStreamEmitInteger(header, headersize, 0)		// section map substream size
 	ByteStreamEmitInteger(header, headersize, 0)		// file info substream size
@@ -415,15 +438,84 @@ WriteDBIStream : Win32Handle pdbfilehandle, integer startfileposition -> integer
 	ByteStreamEmitInteger(header, headersize, 0)		// DbgHeader info size
 	ByteStreamEmitInteger(header, headersize, 0)		// EC substream size (?)
 	ByteStreamEmitInteger16(header, headersize, 0)		// flags
-	ByteStreamEmitInteger16(header, headersize, 0)		// machine type
+	ByteStreamEmitInteger16(header, headersize, 0x8664)	// machine type (AMD64)
 	ByteStreamEmitInteger(header, headersize, 0)		// pad
 
 	integer written = 0
-	WriteFile(pdbfilehandle, header, headersize, written, 0)
+	WriteFile(stream.FileHandle, header, headersize, written, 0)
+	stream.FilePosition = stream.FilePosition + written	
+
 	
-	endfileposition = startfileposition + written	
+	EmitDBIModule(stream, stream.DBI.Modules)
 }
 
+
+EmitDBIModule : PDBOutputStream ref stream, list<DBIModule> ref modlist
+{
+	buffer modinfo = 128
+	integer modsize = 0
+	
+	ByteStreamEmitInteger(modinfo, modsize, 0)			// Unused field?
+	
+	// Section contribution
+	ByteStreamEmitInteger16(modinfo, modsize, 8)		// section index
+	ByteStreamEmitInteger16(modinfo, modsize, 0)		// padding
+	ByteStreamEmitInteger(modinfo, modsize, 0)			// offset of contribution
+	ByteStreamEmitInteger(modinfo, modsize, 65)			// size of contribution		TODO
+	ByteStreamEmitInteger(modinfo, modsize, 0x60000020)	// characteristics
+	ByteStreamEmitInteger16(modinfo, modsize, 0)		// module index
+	ByteStreamEmitInteger16(modinfo, modsize, 0)		// padding
+	ByteStreamEmitInteger(modinfo, modsize, 0)			// data crc
+	ByteStreamEmitInteger(modinfo, modsize, 0)			// reloc crc
+	
+	
+	ByteStreamEmitInteger16(modinfo, modsize, 0)		// flags		TODO
+	ByteStreamEmitInteger16(modinfo, modsize, 0)		// stream number of debug info		TODO
+	ByteStreamEmitInteger(modinfo, modsize, 0)			// bytes of symbol info
+	ByteStreamEmitInteger(modinfo, modsize, 0)			// bytes of line number info
+	ByteStreamEmitInteger(modinfo, modsize, 0)			// bytes of C13 line number info
+	
+	ByteStreamEmitInteger16(modinfo, modsize, 1)		// num contributing files
+	ByteStreamEmitInteger16(modinfo, modsize, 0)		// padding
+	
+	ByteStreamEmitInteger(modinfo, modsize, 0)			// unused (file name offsets)
+	ByteStreamEmitInteger(modinfo, modsize, 0)			// name index for source file name
+	ByteStreamEmitInteger(modinfo, modsize, 0)			// name index for path to compiler PDB ??
+
+
+	integer count = 0
+	while(count < length(modlist.value.SourceFile))
+	{
+		string char = charat(modlist.value.SourceFile, count)
+		ByteStreamEmitSubstring(modinfo, modsize, char, 1)
+
+		++count
+	}
+	
+	ByteStreamEmitByte(modinfo, modsize, 0)
+	
+
+	count = 0
+	while(count < length(modlist.value.ObjectFile))
+	{
+		string char = charat(modlist.value.ObjectFile, count)
+		ByteStreamEmitSubstring(modinfo, modsize, char, 1)
+
+		++count
+	}
+	
+	ByteStreamEmitByte(modinfo, modsize, 0)
+	
+	
+	integer written = 0
+	WriteFile(stream.FileHandle, modinfo, modsize, written, 0)
+	stream.FilePosition = stream.FilePosition + written	
+
+
+	EmitDBIModule(stream, modlist.next)
+}
+
+EmitDBIModule : PDBOutputStream ref stream, nothing
 
 
 WriteIPIStream : Win32Handle pdbfilehandle, integer startfileposition -> integer endfileposition = 0
