@@ -34,7 +34,7 @@ type PDBSymbol : SymbolSection | SymbolProcStart | SymbolBlockEnd
 
 SymbolGetSize : SymbolSection ref symbol -> integer size = 18 + length(symbol.ImageSectionName) + 1
 SymbolGetSize : SymbolProcStart ref symbol -> integer size = 37 + length(symbol.DisplayName) + 1
-SymbolGetSize : SymbolBlockEnd ref symbol -> integer size = 2
+SymbolGetSize : SymbolBlockEnd ref symbol -> integer size = 6
 
 
 
@@ -111,8 +111,9 @@ ByteStreamEmitSymbol : buffer ref stream, integer ref pos, SymbolProcStart ref s
 
 ByteStreamEmitSymbol : buffer ref stream, integer ref pos, SymbolBlockEnd ref symbol
 {
-	ByteStreamEmitInteger16(stream, pos, 2)
+	ByteStreamEmitInteger16(stream, pos, 6)
 	ByteStreamEmitInteger16(stream, pos, 0x6)							// S_END	
+	ByteStreamEmitInteger(stream, pos, 0)
 }
 
 
