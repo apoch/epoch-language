@@ -131,9 +131,16 @@ entrypoint :
 	integer CREATE_ALWAYS = 2
 	
 	SymbolSection sectionsymbol = 8, 0x8000, 0x1000, 0x60000020, ".text"
+	SymbolProcStart initsymbolps = 0, 0, 0, 65, 0, 0, 0, 8, 0, "init"
+	PDBSymbol initsymbol = initsymbolps
+	
 	list<PDBSymbol> symbollist = sectionsymbol, nothing
+	append<PDBSymbol>(symbollist, initsymbol)
 	
 	DBIModule testmodule = "D:\Test.epoch", "D:\Test.obj", 0, symbollist
+	
+	ComputeSymbolSize(testmodule)
+	
 	list<DBIModule> modulelist = testmodule, nothing
 	
 	integer dbimodinfolen = 64 + length(testmodule.SourceFile) + 1 + length(testmodule.ObjectFile) + 1
@@ -157,7 +164,7 @@ entrypoint :
 	PDBStream publics = simplelist<integer>(11, nothing), 44 + 516		// TODO - real publics stream
 	PDBStream symbols = simplelist<integer>(12, nothing), 26			// TODO - real symbol records size
 	
-	PDBStream hackstream = simplelist<integer>(13, nothing), 26			// TODO - real stream
+	PDBStream hackstream = simplelist<integer>(13, nothing), testmodule.SymbolSize + 8			// TODO - real stream
 	
 	PDBDirectory pdbdir = 9, msf, pdb, tpi, dbi, ipi, globals, publics, symbols, hackstream
 
@@ -214,7 +221,7 @@ entrypoint :
 	
 	// HACK - TODO
 	PadToBeginningOfBlock(stream, 13)
-	stream.FilePosition = WriteSymbolRecordsStream(stream.FileHandle, stream.FilePosition)
+	WriteDBIModuleSymbols(stream, stream.DBI.Modules.value)
 	
 	// Pad to the end of the file
 	PadToBeginningOfBlock(stream, layout.BlockCount + 1)
@@ -474,6 +481,12 @@ ComputeSymbolSize : DBIModule ref mod
 ComputeSymbolSize : list<PDBSymbol> ref symlist, integer ref sizecounter
 {
 	sizecounter += SymbolGetSize(symlist.value) + 2
+	
+	//while((sizecounter & 3) != 0)
+	//{
+	//	++sizecounter
+	//}
+	
 	ComputeSymbolSize(symlist.next, sizecounter)
 }
 
@@ -503,8 +516,8 @@ EmitDBIModule : PDBOutputStream ref stream, list<DBIModule> ref modlist
 	
 	
 	ByteStreamEmitInteger16(modinfo, modsize, 0)		// flags		TODO
-	ByteStreamEmitInteger16(modinfo, modsize, 9)		// stream number of debug info		TODO
-	ByteStreamEmitInteger(modinfo, modsize, modlist.value.SymbolSize)
+	ByteStreamEmitInteger16(modinfo, modsize, 8)		// stream number of debug info		TODO
+	ByteStreamEmitInteger(modinfo, modsize, modlist.value.SymbolSize + 4)
 	ByteStreamEmitInteger(modinfo, modsize, 0)			// bytes of line number info
 	ByteStreamEmitInteger(modinfo, modsize, 0)			// bytes of C13 line number info
 	
@@ -652,6 +665,37 @@ WriteSymbolRecordsStream : Win32Handle pdbfilehandle, integer startfileposition 
 	endfileposition = startfileposition + written
 }
 
+
+
+WriteDBIModuleSymbols : PDBOutputStream ref stream, DBIModule ref module
+{
+	buffer header = 4
+	integer headersize = 0
+	
+	ByteStreamEmitInteger(header, headersize, 4)
+	
+	integer written = 0
+	WriteFile(stream.FileHandle, header, headersize, written, 0)
+	
+	stream.FilePosition = stream.FilePosition + written
+	
+	
+	buffer symboldata = module.SymbolSize + 1024
+	integer symboldatasize = 0
+	ByteStreamEmitSymbolList(symboldata, symboldatasize, module.Symbols)
+	
+	WriteFile(stream.FileHandle, symboldata, symboldatasize, written, 0)
+	stream.FilePosition = stream.FilePosition + written
+	
+	
+	buffer footer = 4
+	integer footersize = 0
+	
+	ByteStreamEmitInteger(footer, footersize, 0)			// Global Refs size
+	
+	WriteFile(stream.FileHandle, footer, footersize, written, 0)
+	stream.FilePosition = stream.FilePosition + written
+}
 
 
 // TODO - replace with better option

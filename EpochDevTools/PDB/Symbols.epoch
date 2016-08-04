@@ -33,7 +33,7 @@ type PDBSymbol : SymbolSection | SymbolProcStart | SymbolBlockEnd
 
 
 SymbolGetSize : SymbolSection ref symbol -> integer size = 18 + length(symbol.ImageSectionName) + 1
-SymbolGetSize : SymbolProcStart ref symbol -> integer size = 18 + length(symbol.DisplayName) + 1
+SymbolGetSize : SymbolProcStart ref symbol -> integer size = 37 + length(symbol.DisplayName) + 1
 SymbolGetSize : SymbolBlockEnd ref symbol -> integer size = 2
 
 
@@ -41,6 +41,12 @@ SymbolGetSize : SymbolBlockEnd ref symbol -> integer size = 2
 ByteStreamEmitSymbolList : buffer ref stream, integer ref pos, list<PDBSymbol> ref symlist
 {
 	ByteStreamEmitSymbol(stream, pos, symlist.value)
+	
+	//while((pos & 3) != 0)
+	//{
+	//	ByteStreamEmitByte(stream, pos, 0)
+	//}
+	
 	ByteStreamEmitSymbolList(stream, pos, symlist.next)
 }
 
@@ -86,6 +92,8 @@ ByteStreamEmitSymbol : buffer ref stream, integer ref pos, SymbolProcStart ref s
 	ByteStreamEmitInteger(stream, pos, symbol.DebugStart)
 	ByteStreamEmitInteger(stream, pos, symbol.DebugEnd)
 	ByteStreamEmitInteger(stream, pos, symbol.FunctionType)
+	ByteStreamEmitInteger(stream, pos, 0)							// code offset?
+	ByteStreamEmitInteger16(stream, pos, symbol.Segment)
 	ByteStreamEmitByte(stream, pos, symbol.Flags & 0xff)
 	
 	integer count = 0
