@@ -155,11 +155,11 @@ entrypoint :
 	DBISection dbisection = dbimodinfolen, modulelist
 
 	
-	PDBStream directoryhint = simplelist<integer>(2, nothing), 0
-	PDBStream directorystream = simplelist<integer>(3, nothing), 76
+	PDBStream directoryhint = simplelist<integer>(3, nothing), 0
+	PDBStream directorystream = simplelist<integer>(4, nothing), 76
 	
 	PDBStream msf = simplelist<integer>(5, nothing), 1					// Placeholder; 0 is invalid but we have nothing to put here
-	PDBStream pdb = simplelist<integer>(6, nothing), 48					// TODO - pull real PDB stream size
+	PDBStream pdb = simplelist<integer>(6, nothing), 196  				// TODO - pull real PDB stream size [was 48]
 	PDBStream tpi = simplelist<integer>(7, nothing), 56					// TODO - real TPI stream
 	PDBStream dbi = simplelist<integer>(8, nothing), 64	+ dbimodinfolen	// TODO - real DBI stream
 	PDBStream ipi = simplelist<integer>(9, nothing), 56					// TODO - real IPI stream (?)
@@ -173,7 +173,7 @@ entrypoint :
 
 	
 	Win32Handle invalidhandle = -1
-	PDBFileLayout layout = 1024, 13, directoryhint, directorystream, pdbdir
+	PDBFileLayout layout = 1024, 14, directoryhint, directorystream, pdbdir
 	PDBOutputStream stream = "TestSuite.pdb", invalidhandle, 0, layout, dbisection
 
 	stream.FileHandle = CreateFile(stream.FileName, GENERIC_WRITE, 0, 0, CREATE_ALWAYS, 0, 0)
@@ -185,6 +185,8 @@ entrypoint :
 	
 	WriteMagic(stream)
 	WriteSuperBlock(stream)
+	
+	WriteBlockMap(stream)
 	
 	// This is some kind of indirection that points to the actual directory block??
 	PadToBeginningOfBlock(stream, layout.DirectoryHints.Blocks.value)
@@ -232,6 +234,21 @@ entrypoint :
 	CloseHandle(stream.FileHandle)
 }
 
+
+WriteBlockMap : PDBOutputStream ref stream
+{
+	buffer ff = 1
+	integer ffsize = 0
+	
+	ByteStreamEmitByte(ff, ffsize, 0xff)
+	
+	while(stream.FilePosition < stream.Layout.BlockSize * 3)
+	{
+		integer written = 0
+		WriteFile(stream.FileHandle, ff, ffsize, written, 0)
+		stream.FilePosition = stream.FilePosition + 1
+	}
+}
 
 
 PadToBeginningOfBlock : PDBOutputStream ref stream, integer blockindex
@@ -291,7 +308,7 @@ WriteSuperBlock : PDBOutputStream ref stream
 	integer headersize = 0
 	
 	ByteStreamEmitInteger(sbheader, headersize, stream.Layout.BlockSize)
-	ByteStreamEmitInteger(sbheader, headersize, 4)			// Free block map index
+	ByteStreamEmitInteger(sbheader, headersize, 1)			// Free block map index
 	ByteStreamEmitInteger(sbheader, headersize, stream.Layout.BlockCount)
 	ByteStreamEmitInteger(sbheader, headersize, stream.Layout.DirectoryStream.Length)
 	ByteStreamEmitInteger(sbheader, headersize, 0)			// Unknown
@@ -348,10 +365,10 @@ WriteDirectory : PDBOutputStream ref stream
 
 WritePDBInfoStream : Win32Handle pdbfilehandle, integer startfileposition -> integer endfileposition = 0
 {
-	buffer header = 128
+	buffer header = 256
 	integer headersize = 0
 	
-	integer version = 20140508
+	integer version = 20000404
 	integer signature = 0 // TODO - timestamp?
 	integer age = 1
 	
@@ -382,11 +399,68 @@ WritePDBInfoStream : Win32Handle pdbfilehandle, integer startfileposition -> int
 
 
 	// String table thingy
-	ByteStreamEmitInteger(header, headersize, 0)
-	ByteStreamEmitInteger(header, headersize, 0)
-	ByteStreamEmitInteger(header, headersize, 0)
-	ByteStreamEmitInteger(header, headersize, 0)
-	ByteStreamEmitInteger(header, headersize, 0)
+	ByteStreamEmitInteger(header, headersize, 80)		// Hack
+	ByteStreamEmitInteger(header, headersize, 4096)
+	ByteStreamEmitInteger(header, headersize, 4097)
+	ByteStreamEmitInteger(header, headersize, 4098)
+	ByteStreamEmitInteger(header, headersize, 4099)
+	
+	
+	// DUMB TEMPORARY HACK
+	ByteStreamEmitInteger(header, headersize, 0xfe)
+	ByteStreamEmitInteger(header, headersize, 0xfd)
+	ByteStreamEmitInteger(header, headersize, 0xfc)
+	ByteStreamEmitInteger(header, headersize, 0xfb)
+
+	ByteStreamEmitInteger(header, headersize, 0xee)
+	ByteStreamEmitInteger(header, headersize, 0xed)
+	ByteStreamEmitInteger(header, headersize, 0xec)
+	ByteStreamEmitInteger(header, headersize, 0xeb)
+
+	ByteStreamEmitInteger(header, headersize, 0xde)
+	ByteStreamEmitInteger(header, headersize, 0xdd)
+	ByteStreamEmitInteger(header, headersize, 0xdc)
+	ByteStreamEmitInteger(header, headersize, 0xdb)
+
+	ByteStreamEmitInteger(header, headersize, 0xce)
+	ByteStreamEmitInteger(header, headersize, 0xcd)
+	ByteStreamEmitInteger(header, headersize, 0xcc)
+	ByteStreamEmitInteger(header, headersize, 0xcb)
+
+	ByteStreamEmitInteger(header, headersize, 0xbe)
+	ByteStreamEmitInteger(header, headersize, 0xbd)
+	ByteStreamEmitInteger(header, headersize, 0)		// DE-POISONED: this is an array size of some kind
+	ByteStreamEmitInteger(header, headersize, 0)		// same as above
+
+	ByteStreamEmitInteger(header, headersize, 0xae)
+	ByteStreamEmitInteger(header, headersize, 0xad)
+	ByteStreamEmitInteger(header, headersize, 0xac)
+	ByteStreamEmitInteger(header, headersize, 0xab)
+
+	ByteStreamEmitInteger(header, headersize, 0x9e)
+	ByteStreamEmitInteger(header, headersize, 0x9d)
+	ByteStreamEmitInteger(header, headersize, 0x9c)
+	ByteStreamEmitInteger(header, headersize, 0x9b)
+
+	ByteStreamEmitInteger(header, headersize, 0x8e)
+	ByteStreamEmitInteger(header, headersize, 0x8d)
+	ByteStreamEmitInteger(header, headersize, 0x8c)
+	ByteStreamEmitInteger(header, headersize, 0x8b)
+
+	ByteStreamEmitInteger(header, headersize, 0x7e)
+	ByteStreamEmitInteger(header, headersize, 0x7d)
+	ByteStreamEmitInteger(header, headersize, 0x7c)
+	ByteStreamEmitInteger(header, headersize, 0x7b)
+
+	ByteStreamEmitInteger(header, headersize, 0x6e)
+	ByteStreamEmitInteger(header, headersize, 0x6d)
+	ByteStreamEmitInteger(header, headersize, 0x6c)
+	ByteStreamEmitInteger(header, headersize, 0x6b)
+
+	ByteStreamEmitInteger(header, headersize, 0x5e)
+	ByteStreamEmitInteger(header, headersize, 0x5d)
+	ByteStreamEmitInteger(header, headersize, 0x5c)
+	ByteStreamEmitInteger(header, headersize, 0x5b)
 
 
 	integer written = 0
@@ -415,7 +489,7 @@ WriteTPIStream : Win32Handle pdbfilehandle, integer startfileposition -> integer
 	
 	// These values seem fixed?
 	ByteStreamEmitInteger(header, headersize, 4)		// Hash key size
-	ByteStreamEmitInteger(header, headersize, 4096)		// Number of hash buckets
+	ByteStreamEmitInteger(header, headersize, 262143)	// Number of hash buckets
 	
 	ByteStreamEmitInteger(header, headersize, 0)		// Hash value buffer offset
 	ByteStreamEmitInteger(header, headersize, 0)		// Hash value buffer length
@@ -441,7 +515,7 @@ WriteDBIStream : PDBOutputStream ref stream
 	integer headersize = 0
 	
 	integer signature = 0xffffffff
-	integer version = 20091201
+	integer version = 19990903
 	
 	ByteStreamEmitInteger(header, headersize, signature)
 	ByteStreamEmitInteger(header, headersize, version)
@@ -589,7 +663,7 @@ WriteIPIStream : Win32Handle pdbfilehandle, integer startfileposition -> integer
 	
 	// These values seem fixed?
 	ByteStreamEmitInteger(header, headersize, 4)		// Hash key size
-	ByteStreamEmitInteger(header, headersize, 4096)		// Number of hash buckets
+	ByteStreamEmitInteger(header, headersize, 262143)	// Number of hash buckets
 	
 	ByteStreamEmitInteger(header, headersize, 0)		// Hash value buffer offset
 	ByteStreamEmitInteger(header, headersize, 0)		// Hash value buffer length

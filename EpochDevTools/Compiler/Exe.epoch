@@ -281,24 +281,24 @@ WriteDebugStub : Win32Handle filehandle, string pdbfilename -> integer writtenby
 	ByteStreamEmitInteger(headerbuffer, headersize, 0x53445352)	// "RSDS" signature
 
 	// PDB GUID
-	ByteStreamEmitByte(headerbuffer, headersize, 0x12)		// 12 e6 80 e6 dd 6a 77 49 9d 80 f2 21 07 b1 4c 4c
-	ByteStreamEmitByte(headerbuffer, headersize, 0xe6)
-	ByteStreamEmitByte(headerbuffer, headersize, 0x80)
-	ByteStreamEmitByte(headerbuffer, headersize, 0xe6)
-	ByteStreamEmitByte(headerbuffer, headersize, 0xdd)
-	ByteStreamEmitByte(headerbuffer, headersize, 0x6a)
-	ByteStreamEmitByte(headerbuffer, headersize, 0x77)
-	ByteStreamEmitByte(headerbuffer, headersize, 0x49)
-	ByteStreamEmitByte(headerbuffer, headersize, 0x9d)
-	ByteStreamEmitByte(headerbuffer, headersize, 0x80)
-	ByteStreamEmitByte(headerbuffer, headersize, 0xf2)
-	ByteStreamEmitByte(headerbuffer, headersize, 0x21)
-	ByteStreamEmitByte(headerbuffer, headersize, 0x07)
-	ByteStreamEmitByte(headerbuffer, headersize, 0xb1)
-	ByteStreamEmitByte(headerbuffer, headersize, 0x4c)
-	ByteStreamEmitByte(headerbuffer, headersize, 0x4c)
+	ByteStreamEmitByte(headerbuffer, headersize, 0xf0)
+	ByteStreamEmitByte(headerbuffer, headersize, 0xf0)
+	ByteStreamEmitByte(headerbuffer, headersize, 0xf0)
+	ByteStreamEmitByte(headerbuffer, headersize, 0xf0)
+	ByteStreamEmitByte(headerbuffer, headersize, 0xf0)
+	ByteStreamEmitByte(headerbuffer, headersize, 0xf0)
+	ByteStreamEmitByte(headerbuffer, headersize, 0xf0)
+	ByteStreamEmitByte(headerbuffer, headersize, 0xf0)
+	ByteStreamEmitByte(headerbuffer, headersize, 0xf0)
+	ByteStreamEmitByte(headerbuffer, headersize, 0xf0)
+	ByteStreamEmitByte(headerbuffer, headersize, 0xf0)
+	ByteStreamEmitByte(headerbuffer, headersize, 0xf0)
+	ByteStreamEmitByte(headerbuffer, headersize, 0xf0)
+	ByteStreamEmitByte(headerbuffer, headersize, 0xf0)
+	ByteStreamEmitByte(headerbuffer, headersize, 0xf0)
+	ByteStreamEmitByte(headerbuffer, headersize, 0xf0)
 
-	ByteStreamEmitInteger(headerbuffer, headersize, 424)			// "Age"
+	ByteStreamEmitInteger(headerbuffer, headersize, 1)			// "Age"
 	
 	
 	integer count = 0
