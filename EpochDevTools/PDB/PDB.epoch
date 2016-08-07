@@ -38,7 +38,10 @@ structure PDBOutputStream :
 	
 structure DBISection :
 	integer ModuleSubstreamSize,
-	list<DBIModule> Modules
+	integer SectionContributionSize,
+	integer SectionMapSize,
+	list<DBIModule> Modules,
+	list<SectionContribution> SectionContributions
 
 
 structure DBIModule :
@@ -47,6 +50,15 @@ structure DBIModule :
 	integer SymbolSize,
 	list<PDBSymbol> Symbols
 
+
+structure SectionContribution :
+	integer16 SectionIndex,
+	integer Offset,
+	integer Size,
+	integer Characteristics,
+	integer16 ModuleIndex,
+	integer DataCRC,
+	integer RelocCRC
 
 
 type Win32Handle : integer
@@ -131,7 +143,7 @@ entrypoint :
 	integer CREATE_ALWAYS = 2
 	
 	SymbolSection sectionsymbol = 8, 0x8000, 0x1000, 0x60000020, ".text"
-	SymbolProcStart initsymbolps = 0, 0, 0, 65, 0, 0, 0, 8, 0, "init"
+	SymbolProcStart initsymbolps = 0, 0x4a, 0, 65, 0, 0, 0, 8, 0, "init"		// TODO - 0x4a is offset of next (end) symbol, this should not be hard-coded!
 	SymbolBlockEnd endsymbolps = 0
 	PDBSymbol initsymbol = initsymbolps
 	PDBSymbol endsymbol = endsymbolps
@@ -152,7 +164,13 @@ entrypoint :
 		++dbimodinfolen
 	}
 
-	DBISection dbisection = dbimodinfolen, modulelist
+	integer sectionmapsize = 9 * 20 + 4 // TODO - dynamic section map
+	integer dbicontribslen = 32		// TODO - compute dynamic contributions length (don't forget version signature +4)
+	
+	SectionContribution initsc = 8, 0, 65, 0x60001020, 0, 0, 0
+	list<SectionContribution> contriblist = initsc, nothing
+
+	DBISection dbisection = dbimodinfolen, dbicontribslen, sectionmapsize, modulelist, contriblist
 
 	
 	PDBStream directoryhint = simplelist<integer>(3, nothing), 0
@@ -161,7 +179,7 @@ entrypoint :
 	PDBStream msf = simplelist<integer>(5, nothing), 1					// Placeholder; 0 is invalid but we have nothing to put here
 	PDBStream pdb = simplelist<integer>(6, nothing), 196  				// TODO - pull real PDB stream size [was 48]
 	PDBStream tpi = simplelist<integer>(7, nothing), 56					// TODO - real TPI stream
-	PDBStream dbi = simplelist<integer>(8, nothing), 64	+ dbimodinfolen	// TODO - real DBI stream
+	PDBStream dbi = simplelist<integer>(8, nothing), 64	+ dbimodinfolen	+ dbicontribslen + sectionmapsize   // TODO - real DBI stream
 	PDBStream ipi = simplelist<integer>(9, nothing), 56					// TODO - real IPI stream (?)
 	PDBStream globals = simplelist<integer>(10, nothing), 44 + 516		// TODO - real globals stream
 	PDBStream publics = simplelist<integer>(11, nothing), 44 + 516		// TODO - real publics stream
@@ -528,8 +546,8 @@ WriteDBIStream : PDBOutputStream ref stream
 	ByteStreamEmitInteger16(header, headersize, 7)		// stream index of symbol records			// TODO - get this from the PDBDirectory
 	ByteStreamEmitInteger16(header, headersize, 0)		// rebuild number of PDB DLL
 	ByteStreamEmitInteger(header, headersize, stream.DBI.ModuleSubstreamSize)
-	ByteStreamEmitInteger(header, headersize, 0)		// section contribution substream size
-	ByteStreamEmitInteger(header, headersize, 0)		// section map substream size
+	ByteStreamEmitInteger(header, headersize, stream.DBI.SectionContributionSize)
+	ByteStreamEmitInteger(header, headersize, stream.DBI.SectionMapSize)
 	ByteStreamEmitInteger(header, headersize, 0)		// file info substream size
 	ByteStreamEmitInteger(header, headersize, 0)		// type server map size
 	ByteStreamEmitInteger(header, headersize, 0)		// index of MFC type server
@@ -545,8 +563,152 @@ WriteDBIStream : PDBOutputStream ref stream
 
 	
 	EmitDBIModule(stream, stream.DBI.Modules)
+	EmitDBISectionContributions(stream)
+	EmitDBISectionMap(stream)
 }
 
+
+
+EmitDBISectionContributions : PDBOutputStream ref stream
+{
+	buffer header = 16
+	integer headersize = 0
+
+	integer version = 0xeffe0000 + 19970605
+	
+	ByteStreamEmitInteger(header, headersize, version)
+	
+	integer written = 0
+	WriteFile(stream.FileHandle, header, headersize, written, 0)
+	stream.FilePosition = stream.FilePosition + written
+	
+	
+	EmitDBISectionContribution(stream, stream.DBI.SectionContributions)
+}
+
+
+EmitDBISectionMap : PDBOutputStream ref stream
+{
+	buffer header = 512
+	integer headersize = 0
+	
+	ByteStreamEmitInteger16(header, headersize, 9)
+	ByteStreamEmitInteger16(header, headersize, 9)
+	
+	// section descriptor
+	ByteStreamEmitInteger16(header, headersize, 0x109)		// flags
+	ByteStreamEmitInteger16(header, headersize, 0)			// overlay
+	ByteStreamEmitInteger16(header, headersize, 0)			// group
+	ByteStreamEmitInteger16(header, headersize, 1)			// frame
+	ByteStreamEmitInteger16(header, headersize, 0xffff)		// name
+	ByteStreamEmitInteger16(header, headersize, 0xffff)		// class name
+	ByteStreamEmitInteger(header, headersize, 0)			// offset
+	ByteStreamEmitInteger(header, headersize, 0x100)		// length
+	
+	ByteStreamEmitInteger16(header, headersize, 0x109)		// flags
+	ByteStreamEmitInteger16(header, headersize, 0)			// overlay
+	ByteStreamEmitInteger16(header, headersize, 0)			// group
+	ByteStreamEmitInteger16(header, headersize, 2)			// frame
+	ByteStreamEmitInteger16(header, headersize, 0xffff)		// name
+	ByteStreamEmitInteger16(header, headersize, 0xffff)		// class name
+	ByteStreamEmitInteger(header, headersize, 0)			// offset
+	ByteStreamEmitInteger(header, headersize, 0x100)		// length
+
+	ByteStreamEmitInteger16(header, headersize, 0x109)		// flags
+	ByteStreamEmitInteger16(header, headersize, 0)			// overlay
+	ByteStreamEmitInteger16(header, headersize, 0)			// group
+	ByteStreamEmitInteger16(header, headersize, 3)			// frame
+	ByteStreamEmitInteger16(header, headersize, 0xffff)		// name
+	ByteStreamEmitInteger16(header, headersize, 0xffff)		// class name
+	ByteStreamEmitInteger(header, headersize, 0)			// offset
+	ByteStreamEmitInteger(header, headersize, 0x100)		// length
+
+	ByteStreamEmitInteger16(header, headersize, 0x109)		// flags
+	ByteStreamEmitInteger16(header, headersize, 0)			// overlay
+	ByteStreamEmitInteger16(header, headersize, 0)			// group
+	ByteStreamEmitInteger16(header, headersize, 4)			// frame
+	ByteStreamEmitInteger16(header, headersize, 0xffff)		// name
+	ByteStreamEmitInteger16(header, headersize, 0xffff)		// class name
+	ByteStreamEmitInteger(header, headersize, 0)			// offset
+	ByteStreamEmitInteger(header, headersize, 0x100)		// length
+
+	ByteStreamEmitInteger16(header, headersize, 0x109)		// flags
+	ByteStreamEmitInteger16(header, headersize, 0)			// overlay
+	ByteStreamEmitInteger16(header, headersize, 0)			// group
+	ByteStreamEmitInteger16(header, headersize, 5)			// frame
+	ByteStreamEmitInteger16(header, headersize, 0xffff)		// name
+	ByteStreamEmitInteger16(header, headersize, 0xffff)		// class name
+	ByteStreamEmitInteger(header, headersize, 0)			// offset
+	ByteStreamEmitInteger(header, headersize, 0x100)		// length
+
+	ByteStreamEmitInteger16(header, headersize, 0x109)		// flags
+	ByteStreamEmitInteger16(header, headersize, 0)			// overlay
+	ByteStreamEmitInteger16(header, headersize, 0)			// group
+	ByteStreamEmitInteger16(header, headersize, 6)			// frame
+	ByteStreamEmitInteger16(header, headersize, 0xffff)		// name
+	ByteStreamEmitInteger16(header, headersize, 0xffff)		// class name
+	ByteStreamEmitInteger(header, headersize, 0)			// offset
+	ByteStreamEmitInteger(header, headersize, 0x100)		// length
+
+	ByteStreamEmitInteger16(header, headersize, 0x109)		// flags
+	ByteStreamEmitInteger16(header, headersize, 0)			// overlay
+	ByteStreamEmitInteger16(header, headersize, 0)			// group
+	ByteStreamEmitInteger16(header, headersize, 7)			// frame
+	ByteStreamEmitInteger16(header, headersize, 0xffff)		// name
+	ByteStreamEmitInteger16(header, headersize, 0xffff)		// class name
+	ByteStreamEmitInteger(header, headersize, 0)			// offset
+	ByteStreamEmitInteger(header, headersize, 0x100)		// length
+
+	ByteStreamEmitInteger16(header, headersize, 0x10d)		// flags
+	ByteStreamEmitInteger16(header, headersize, 0)			// overlay
+	ByteStreamEmitInteger16(header, headersize, 0)			// group
+	ByteStreamEmitInteger16(header, headersize, 8)			// frame
+	ByteStreamEmitInteger16(header, headersize, 0xffff)		// name
+	ByteStreamEmitInteger16(header, headersize, 0xffff)		// class name
+	ByteStreamEmitInteger(header, headersize, 0)			// offset
+	ByteStreamEmitInteger(header, headersize, 0x1000)		// length
+
+	ByteStreamEmitInteger16(header, headersize, 0x208)		// flags
+	ByteStreamEmitInteger16(header, headersize, 0)			// overlay
+	ByteStreamEmitInteger16(header, headersize, 0)			// group
+	ByteStreamEmitInteger16(header, headersize, 9)			// frame
+	ByteStreamEmitInteger16(header, headersize, 0xffff)		// name
+	ByteStreamEmitInteger16(header, headersize, 0xffff)		// class name
+	ByteStreamEmitInteger(header, headersize, 0)			// offset
+	ByteStreamEmitInteger(header, headersize, 0xffffffff)	// length	
+	
+	integer written = 0
+	WriteFile(stream.FileHandle, header, headersize, written, 0)
+	stream.FilePosition = stream.FilePosition + written
+}
+
+
+EmitDBISectionContribution : PDBOutputStream ref stream, list<SectionContribution> ref scs
+{
+	buffer contrib = 128
+	integer contribsize = 0
+	
+	ByteStreamEmitInteger16(contrib, contribsize, scs.value.SectionIndex)
+	ByteStreamEmitInteger16(contrib, contribsize, 0)
+	ByteStreamEmitInteger(contrib, contribsize, scs.value.Offset)
+	ByteStreamEmitInteger(contrib, contribsize, scs.value.Size)
+	ByteStreamEmitInteger(contrib, contribsize, scs.value.Characteristics)
+	ByteStreamEmitInteger16(contrib, contribsize, scs.value.ModuleIndex)
+	ByteStreamEmitInteger16(contrib, contribsize, 0)
+	ByteStreamEmitInteger(contrib, contribsize, scs.value.DataCRC)
+	ByteStreamEmitInteger(contrib, contribsize, scs.value.RelocCRC)
+
+	// SC2 component
+	//ByteStreamEmitInteger(contrib, contribsize, 0)		// TODO [ISectCoff]	
+	
+	integer written = 0
+	WriteFile(stream.FileHandle, contrib, contribsize, written, 0)
+	stream.FilePosition = stream.FilePosition + written
+	
+	EmitDBISectionContribution(stream, scs.next)
+}
+
+EmitDBISectionContribution : PDBOutputStream ref stream, nothing
 
 
 ComputeSymbolSize : DBIModule ref mod
