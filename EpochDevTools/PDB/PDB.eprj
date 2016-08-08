@@ -1,6 +1,8 @@
 [source]
+Entrypoint.epoch
 PDB.epoch
 Symbols.epoch
+Win32Boilerplate.epoch
 ..\Compiler\Bytestream.epoch
 ..\Common\DataStructures.epoch
 

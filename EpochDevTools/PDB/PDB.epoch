@@ -40,15 +40,14 @@ structure DBISection :
 	integer ModuleSubstreamSize,
 	integer SectionContributionSize,
 	integer SectionMapSize,
-	list<DBIModule> Modules,
-	list<SectionContribution> SectionContributions
-
+	list<DBIModule> Modules
 
 structure DBIModule :
 	string SourceFile,
 	string ObjectFile,
 	integer SymbolSize,
-	list<PDBSymbol> Symbols
+	list<PDBSymbol> Symbols,
+	list<SectionContribution> SectionContributions
 
 
 structure SectionContribution :
@@ -61,138 +60,17 @@ structure SectionContribution :
 	integer RelocCRC
 
 
-type Win32Handle : integer
 
-
-CreateFile :
-	string  filename,
-	integer access,
-	integer sharemode,
-	integer attributes,
-	integer creation,
-	integer flags,
-	integer template
- ->
-	Win32Handle ret = 0
- [external("Kernel32.dll", "CreateFileW", "stdcall")]
- 
-
-CloseHandle : Win32Handle handle -> boolean ret = false [external("Kernel32.dll", "CloseHandle", "stdcall")]
-
-
-WriteFile :
-	Win32Handle handle,
-	buffer ref data,
-	integer numbytes,
-	integer ref written,
-	integer ignored2
- ->
-	boolean ret = false
- [external("Kernel32.dll", "WriteFile", "stdcall")]
- 
-WriteFile :
-	Win32Handle handle,
-	integer ptr,
-	integer numbytes,
-	integer ref written,
-	integer ignored2
- ->
-	boolean ret = false
- [external("Kernel32.dll", "WriteFile", "stdcall")]
-  
- 
-
-CreateFileMapping :
-	Win32Handle filehandle,
-	integer attributes,
-	integer protection,
-	integer maxsizehigh,
-	integer maxsizelow,
-	integer name
- ->
-	Win32Handle ret = 0
- [external("Kernel32.dll", "CreateFileMappingW", "stdcall")]
- 
-
-GetFileSize :
-	Win32Handle handle,
-	integer ignored
- ->
-	integer size = 0
- [external("Kernel32.dll", "GetFileSize", "stdcall")]
- 
-
-MapViewOfFile :
-	Win32Handle handle,
-	integer access,
-	integer offsethigh,
-	integer offsetlow,
-	integer bytestomap
- ->
-	integer ptr = 0
- [external("Kernel32.dll", "MapViewOfFile", "stdcall")]
-
-
-UnmapViewOfFile : integer ptr -> boolean ret = false [external("Kernel32.dll", "UnmapViewOfFile", "stdcall")]
-
-
-
-entrypoint :
+WritePDB : PDBOutputStream ref stream
 {
+	// We only support writing in a single pass, and no reads (yet).
+	// So don't allow emission of a PDB if it already opened a file.
+	assert(stream.FileHandle == -1)
+	
+
 	integer GENERIC_WRITE = 0x40000000
 	integer CREATE_ALWAYS = 2
-	
-	SymbolSection sectionsymbol = 8, 0x8000, 0x1000, 0x60000020, ".text"
-	SymbolProcStart initsymbolps = 0, 0x4a, 0, 65, 0, 0, 0, 8, 0, "init"		// TODO - 0x4a is offset of next (end) symbol, this should not be hard-coded!
-	SymbolBlockEnd endsymbolps = 0
-	PDBSymbol initsymbol = initsymbolps
-	PDBSymbol endsymbol = endsymbolps
-	
-	list<PDBSymbol> symbollist = sectionsymbol, nothing
-	append<PDBSymbol>(symbollist, initsymbol)
-	append<PDBSymbol>(symbollist, endsymbol)
-	
-	DBIModule testmodule = "D:\Test.epoch", "D:\Test.obj", 0, symbollist
-	
-	ComputeSymbolSize(testmodule)
-	
-	list<DBIModule> modulelist = testmodule, nothing
-	
-	integer dbimodinfolen = 64 + length(testmodule.SourceFile) + 1 + length(testmodule.ObjectFile) + 1
-	while((dbimodinfolen & 3) != 0)
-	{
-		++dbimodinfolen
-	}
 
-	integer sectionmapsize = 9 * 20 + 4 // TODO - dynamic section map
-	integer dbicontribslen = 32		// TODO - compute dynamic contributions length (don't forget version signature +4)
-	
-	SectionContribution initsc = 8, 0, 65, 0x60001020, 0, 0, 0
-	list<SectionContribution> contriblist = initsc, nothing
-
-	DBISection dbisection = dbimodinfolen, dbicontribslen, sectionmapsize, modulelist, contriblist
-
-	
-	PDBStream directoryhint = simplelist<integer>(3, nothing), 0
-	PDBStream directorystream = simplelist<integer>(4, nothing), 76
-	
-	PDBStream msf = simplelist<integer>(5, nothing), 1					// Placeholder; 0 is invalid but we have nothing to put here
-	PDBStream pdb = simplelist<integer>(6, nothing), 196  				// TODO - pull real PDB stream size [was 48]
-	PDBStream tpi = simplelist<integer>(7, nothing), 56					// TODO - real TPI stream
-	PDBStream dbi = simplelist<integer>(8, nothing), 64	+ dbimodinfolen	+ dbicontribslen + sectionmapsize   // TODO - real DBI stream
-	PDBStream ipi = simplelist<integer>(9, nothing), 56					// TODO - real IPI stream (?)
-	PDBStream globals = simplelist<integer>(10, nothing), 44 + 516		// TODO - real globals stream
-	PDBStream publics = simplelist<integer>(11, nothing), 44 + 516		// TODO - real publics stream
-	PDBStream symbols = simplelist<integer>(12, nothing), 26			// TODO - real symbol records size
-	
-	PDBStream hackstream = simplelist<integer>(13, nothing), testmodule.SymbolSize + 8			// TODO - real stream
-	
-	PDBDirectory pdbdir = 9, msf, pdb, tpi, dbi, ipi, globals, publics, symbols, hackstream
-
-	
-	Win32Handle invalidhandle = -1
-	PDBFileLayout layout = 1024, 14, directoryhint, directorystream, pdbdir
-	PDBOutputStream stream = "TestSuite.pdb", invalidhandle, 0, layout, dbisection
 
 	stream.FileHandle = CreateFile(stream.FileName, GENERIC_WRITE, 0, 0, CREATE_ALWAYS, 0, 0)
 	if(stream.FileHandle == -1)
@@ -207,39 +85,39 @@ entrypoint :
 	WriteBlockMap(stream)
 	
 	// This is some kind of indirection that points to the actual directory block??
-	PadToBeginningOfBlock(stream, layout.DirectoryHints.Blocks.value)
-	stream.FilePosition += WriteDirectoryHint(stream.FileHandle, layout.DirectoryStream.Blocks.value)
+	PadToBeginningOfBlock(stream, stream.Layout.DirectoryHints.Blocks.value)
+	stream.FilePosition = stream.FilePosition + WriteDirectoryHint(stream.FileHandle, stream.Layout.DirectoryStream.Blocks.value)
 	
 	// Move up to the block for the directory data
-	PadToBeginningOfBlock(stream, layout.DirectoryStream.Blocks.value)
+	PadToBeginningOfBlock(stream, stream.Layout.DirectoryStream.Blocks.value)
 	WriteDirectory(stream)
 	
 	// Move up to the block for the PDB info stream
-	PadToBeginningOfBlock(stream, layout.Directory.PDB.Blocks.value)
+	PadToBeginningOfBlock(stream, stream.Layout.Directory.PDB.Blocks.value)
 	stream.FilePosition = WritePDBInfoStream(stream.FileHandle, stream.FilePosition)
 	
 	// Move up and write the TPI stream
-	PadToBeginningOfBlock(stream, layout.Directory.TPI.Blocks.value)
+	PadToBeginningOfBlock(stream, stream.Layout.Directory.TPI.Blocks.value)
 	stream.FilePosition = WriteTPIStream(stream.FileHandle, stream.FilePosition)
 	
 	// Move up and write the DBI stream
-	PadToBeginningOfBlock(stream, layout.Directory.DBI.Blocks.value)
+	PadToBeginningOfBlock(stream, stream.Layout.Directory.DBI.Blocks.value)
 	WriteDBIStream(stream)
 
 	// Move up and write the IPI stream
-	PadToBeginningOfBlock(stream, layout.Directory.IPI.Blocks.value)
+	PadToBeginningOfBlock(stream, stream.Layout.Directory.IPI.Blocks.value)
 	stream.FilePosition = WriteIPIStream(stream.FileHandle, stream.FilePosition)
 
 	// Move up and write the globals (DBI) stream
-	PadToBeginningOfBlock(stream, layout.Directory.Globals.Blocks.value)
+	PadToBeginningOfBlock(stream, stream.Layout.Directory.Globals.Blocks.value)
 	stream.FilePosition = WriteGlobalsStream(stream.FileHandle, stream.FilePosition)
 	
 	// Move up and write the publics (DBI) stream
-	PadToBeginningOfBlock(stream, layout.Directory.Publics.Blocks.value)
+	PadToBeginningOfBlock(stream, stream.Layout.Directory.Publics.Blocks.value)
 	stream.FilePosition = WritePublicsStream(stream.FileHandle, stream.FilePosition)
 	
 	// Move up and write the symbol records (DBI) stream
-	PadToBeginningOfBlock(stream, layout.Directory.Symbols.Blocks.value)
+	PadToBeginningOfBlock(stream, stream.Layout.Directory.Symbols.Blocks.value)
 	stream.FilePosition = WriteSymbolRecordsStream(stream.FileHandle, stream.FilePosition)
 	
 	// HACK - TODO
@@ -247,10 +125,11 @@ entrypoint :
 	WriteDBIModuleSymbols(stream, stream.DBI.Modules.value)
 	
 	// Pad to the end of the file
-	PadToBeginningOfBlock(stream, layout.BlockCount + 1)
+	PadToBeginningOfBlock(stream, stream.Layout.BlockCount + 1)
 
 	CloseHandle(stream.FileHandle)
 }
+
 
 
 WriteBlockMap : PDBOutputStream ref stream
@@ -583,7 +462,7 @@ EmitDBISectionContributions : PDBOutputStream ref stream
 	stream.FilePosition = stream.FilePosition + written
 	
 	
-	EmitDBISectionContribution(stream, stream.DBI.SectionContributions)
+	EmitDBISectionContributionsForModules(stream, stream.DBI.Modules)
 }
 
 
@@ -683,32 +562,43 @@ EmitDBISectionMap : PDBOutputStream ref stream
 }
 
 
+EmitDBISectionContributionsForModules : PDBOutputStream ref stream, list<DBIModule> ref modules
+{
+	EmitDBISectionContribution(stream, modules.value.SectionContributions)
+	EmitDBISectionContributionsForModules(stream, modules.next)
+}
+
+EmitDBISectionContributionsForModules : PDBOutputStream ref stream, nothing
+
+
 EmitDBISectionContribution : PDBOutputStream ref stream, list<SectionContribution> ref scs
 {
-	buffer contrib = 128
-	integer contribsize = 0
-	
-	ByteStreamEmitInteger16(contrib, contribsize, scs.value.SectionIndex)
-	ByteStreamEmitInteger16(contrib, contribsize, 0)
-	ByteStreamEmitInteger(contrib, contribsize, scs.value.Offset)
-	ByteStreamEmitInteger(contrib, contribsize, scs.value.Size)
-	ByteStreamEmitInteger(contrib, contribsize, scs.value.Characteristics)
-	ByteStreamEmitInteger16(contrib, contribsize, scs.value.ModuleIndex)
-	ByteStreamEmitInteger16(contrib, contribsize, 0)
-	ByteStreamEmitInteger(contrib, contribsize, scs.value.DataCRC)
-	ByteStreamEmitInteger(contrib, contribsize, scs.value.RelocCRC)
-
-	// SC2 component
-	//ByteStreamEmitInteger(contrib, contribsize, 0)		// TODO [ISectCoff]	
-	
-	integer written = 0
-	WriteFile(stream.FileHandle, contrib, contribsize, written, 0)
-	stream.FilePosition = stream.FilePosition + written
-	
+	EmitDBISectionContributionSingle(stream, scs.value)
 	EmitDBISectionContribution(stream, scs.next)
 }
 
 EmitDBISectionContribution : PDBOutputStream ref stream, nothing
+
+
+EmitDBISectionContributionSingle : PDBOutputStream ref stream, SectionContribution ref sc
+{
+	buffer contrib = 128
+	integer contribsize = 0
+	
+	ByteStreamEmitInteger16(contrib, contribsize, sc.SectionIndex)
+	ByteStreamEmitInteger16(contrib, contribsize, 0)
+	ByteStreamEmitInteger(contrib, contribsize, sc.Offset)
+	ByteStreamEmitInteger(contrib, contribsize, sc.Size)
+	ByteStreamEmitInteger(contrib, contribsize, sc.Characteristics)
+	ByteStreamEmitInteger16(contrib, contribsize, sc.ModuleIndex)
+	ByteStreamEmitInteger16(contrib, contribsize, 0)
+	ByteStreamEmitInteger(contrib, contribsize, sc.DataCRC)
+	ByteStreamEmitInteger(contrib, contribsize, sc.RelocCRC)
+	
+	integer written = 0
+	WriteFile(stream.FileHandle, contrib, contribsize, written, 0)
+	stream.FilePosition = stream.FilePosition + written
+}
 
 
 ComputeSymbolSize : DBIModule ref mod
@@ -737,23 +627,21 @@ EmitDBIModule : PDBOutputStream ref stream, list<DBIModule> ref modlist
 	ComputeSymbolSize(modlist.value)
 
 
+	buffer unusedheader = 4
+	integer unusedheadersize = 0
+	ByteStreamEmitInteger(unusedheader, unusedheadersize, 0)
+
+	integer written = 0
+	WriteFile(stream.FileHandle, unusedheader, unusedheadersize, written, 0)
+	stream.FilePosition = stream.FilePosition + written
+
+
+	EmitDBISectionContributionSingle(stream, modlist.value.SectionContributions.value)	
+
+
 	buffer modinfo = 128
 	integer modsize = 0
-	
-	ByteStreamEmitInteger(modinfo, modsize, 0)			// Unused field?
-	
-	// Section contribution
-	ByteStreamEmitInteger16(modinfo, modsize, 8)		// section index
-	ByteStreamEmitInteger16(modinfo, modsize, 0)		// padding
-	ByteStreamEmitInteger(modinfo, modsize, 0)			// offset of contribution
-	ByteStreamEmitInteger(modinfo, modsize, 65)			// size of contribution		TODO
-	ByteStreamEmitInteger(modinfo, modsize, 0x60000020)	// characteristics
-	ByteStreamEmitInteger16(modinfo, modsize, 0)		// module index
-	ByteStreamEmitInteger16(modinfo, modsize, 0)		// padding
-	ByteStreamEmitInteger(modinfo, modsize, 0)			// data crc
-	ByteStreamEmitInteger(modinfo, modsize, 0)			// reloc crc
-	
-	
+		
 	ByteStreamEmitInteger16(modinfo, modsize, 0)		// flags		TODO
 	ByteStreamEmitInteger16(modinfo, modsize, 8)		// stream number of debug info		TODO
 	ByteStreamEmitInteger(modinfo, modsize, modlist.value.SymbolSize + 4)
@@ -797,7 +685,6 @@ EmitDBIModule : PDBOutputStream ref stream, list<DBIModule> ref modlist
 	}
 	
 	
-	integer written = 0
 	WriteFile(stream.FileHandle, modinfo, modsize, written, 0)
 	stream.FilePosition = stream.FilePosition + written
 
@@ -934,26 +821,6 @@ WriteDBIModuleSymbols : PDBOutputStream ref stream, DBIModule ref module
 	
 	WriteFile(stream.FileHandle, footer, footersize, written, 0)
 	stream.FilePosition = stream.FilePosition + written
-}
-
-
-// TODO - replace with better option
-charat : string in, integer index -> string c = substring(in, index, 1) [nogc]
-
-
-
-WritePadding : Win32Handle filehandle, integer startpos, integer desiredpos -> integer writtenbytes = 0
-{
-	writtenbytes = desiredpos - startpos
-
-	if(writtenbytes < 0)
-	{
-		assert(false)
-	}
-
-	buffer empty = writtenbytes
-	integer written = 0
-	WriteFile(filehandle, empty, writtenbytes, written, 0)
 }
 
 
