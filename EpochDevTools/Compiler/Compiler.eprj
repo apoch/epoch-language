@@ -31,6 +31,8 @@ Dump.epoch
 ..\Common\Parser.epoch
 ..\Common\Win32.epoch
 LLVM.epoch
+..\PDB\PDB.epoch
+..\PDB\Symbols.epoch
 
 [resources]
 

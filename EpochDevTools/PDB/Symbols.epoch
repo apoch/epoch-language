@@ -1,5 +1,13 @@
 //
-// PDB symbol stream logic
+// The Epoch Language Project
+// Epoch Development Tools - PDB generation library
+//
+// SYMBOLS.EPOCH
+// CodeView symbol management routines and definitions
+//
+// Logic for storing and emitting a serialized stream of CodeView
+// symbols for use in a PDB file. See also the other PDB-related
+// modules for additional documentation and context.
 //
 
 

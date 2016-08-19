@@ -137,7 +137,7 @@ MakeExe : EpochProject ref project
 	integer offsetcode           = RoundUpFile(offsetdebug + 0x200)				// TODO - hardcoded hack for .debug
 
 	integer totaldebugsize 		 = sizedebug + sizedebugreloc + sizedebugsymbols
-	integer sizeimage            = RoundUp(RoundUp(virtualoffsetcode + sizecode) + totaldebugsize)
+	integer sizeimage            = RoundUp(virtualoffsetcode + sizecode)
 
 
 	integer GENERIC_WRITE = 0x40000000
@@ -184,7 +184,7 @@ MakeExe : EpochProject ref project
 	position += WriteSectionHeader(filehandle, ".gc", offsetgc, virtualoffsetgc, sizegc, sizegc, 0x40000040)
 	position += WriteSectionHeader(filehandle, ".debug", offsetdebug, virtualoffsetdebug, 0x200, 0x200, 0x40000040)
 	position += WriteSectionHeader(filehandle, ".text", offsetcode, virtualoffsetcode, sizecode, sizecode, 0x60000020)
-	position += WriteSectionHeader(filehandle, ".debug$S", offsetcv, RoundUp(virtualoffsetcode + sizecode), totaldebugsize, totaldebugsize, 0x40000040, sizedebug + offsetcv, sizedebugreloc / 10)
+	//position += WriteSectionHeader(filehandle, ".debug$S", offsetcv, RoundUp(virtualoffsetcode + sizecode), totaldebugsize, totaldebugsize, 0x40000040, sizedebug + offsetcv, sizedebugreloc / 10)
 
 	print("Writing thunk table...")
 	position += WritePadding(filehandle, position, offsetthunk)
@@ -220,16 +220,16 @@ MakeExe : EpochProject ref project
 	WriteFile(filehandle, codebinarybuffer, sizecode, written, 0)
 	position += sizecode
 
-	position += WritePadding(filehandle, position, RoundUpFile(position))
+	//position += WritePadding(filehandle, position, RoundUpFile(position))
 
-	WriteFile(filehandle, debugdata, sizedebug, written, 0)
-	position += sizedebug
+	//WriteFile(filehandle, debugdata, sizedebug, written, 0)
+	//position += sizedebug
 
-	WriteFile(filehandle, debugrelocdata, sizedebugreloc, written, 0)
-	position += sizedebugreloc
+	//WriteFile(filehandle, debugrelocdata, sizedebugreloc, written, 0)
+	//position += sizedebugreloc
 	
-	WriteFile(filehandle, debugsymboldata, sizedebugsymbols, written, 0)
-	position += sizedebugsymbols
+	//WriteFile(filehandle, debugsymboldata, sizedebugsymbols, written, 0)
+	//position += sizedebugsymbols
 
 
 	CloseHandle(filehandle)
@@ -257,6 +257,10 @@ MakeExe : EpochProject ref project
 	}
 	WriteFile(relocfilehandle, debugrelocdata, sizedebugreloc, written, 0)
 	CloseHandle(relocfilehandle)
+	
+	
+	print("Emitting PDB file...")
+	GeneratePDB(pdbfilename)
 
 
 	print("Compilation complete.")
@@ -619,7 +623,7 @@ WritePEHeader : Win32Handle filehandle, integer imagesize, integer offsetdebug, 
 	// Begin NT headers
 	ByteStreamEmitInteger(headerbuffer, headersize, 0x00004550)
 	ByteStreamEmitInteger16(headerbuffer, headersize, 0x8664)						// Machine
-	ByteStreamEmitInteger16(headerbuffer, headersize, 9)							// NumberOfSections
+	ByteStreamEmitInteger16(headerbuffer, headersize, 8)							// NumberOfSections
 	ByteStreamEmitInteger(headerbuffer, headersize, 0x00000000)						// TimeDateStamp
 	ByteStreamEmitInteger(headerbuffer, headersize, 0)								// PointerToSymbolTable
 	ByteStreamEmitInteger(headerbuffer, headersize, 0)								// NumberOfSymbols
@@ -1101,6 +1105,66 @@ ThunkTableAddFunctionToList : ThunkTableLibrary ref library, nothing, string fun
 {
 	ThunkTableEntry entry = funcname, 0, 0, 0
 	ListPrependOrCreate<ThunkTableEntry>(library.Functions, entry)
+}
+
+
+
+GeneratePDB : string pdbfilename
+{	
+	SymbolSection sectionsymbol = 8, 0x8000, 0x1000, 0x60000020, ".text"
+	SymbolProcStart initsymbolps = 0, 0x4a, 0, 65, 0, 0, 0, 8, 0, "init"		// TODO - 0x4a is offset of next (end) symbol, this should not be hard-coded!
+	SymbolBlockEnd endsymbolps = 0
+	PDBSymbol initsymbol = initsymbolps
+	PDBSymbol endsymbol = endsymbolps
+	
+	list<PDBSymbol> symbollist = sectionsymbol, nothing
+	append<PDBSymbol>(symbollist, initsymbol)
+	append<PDBSymbol>(symbollist, endsymbol)
+	
+	SectionContribution initsc = 8, 0, 65, 0x60001020, 0, 0, 0
+	list<SectionContribution> contriblist = initsc, nothing
+
+	DBIModule testmodule = "D:\Test.epoch", "D:\Test.obj", 0, symbollist, contriblist
+	
+	ComputeSymbolSize(testmodule)
+	
+	list<DBIModule> modulelist = testmodule, nothing
+	
+	integer dbimodinfolen = 64 + length(testmodule.SourceFile) + 1 + length(testmodule.ObjectFile) + 1
+	while((dbimodinfolen & 3) != 0)
+	{
+		++dbimodinfolen
+	}
+
+	integer sectionmapsize = 9 * 20 + 4 // TODO - dynamic section map
+	integer dbicontribslen = 32		// TODO - compute dynamic contributions length (don't forget version signature +4)
+	
+	DBISection dbisection = dbimodinfolen, dbicontribslen, sectionmapsize, modulelist
+
+	
+	PDBStream directoryhint = simplelist<integer>(3, nothing), 0
+	PDBStream directorystream = simplelist<integer>(4, nothing), 76
+	
+	PDBStream msf = simplelist<integer>(5, nothing), 1					// Placeholder; 0 is invalid but we have nothing to put here
+	PDBStream pdb = simplelist<integer>(6, nothing), 196  				// TODO - pull real PDB stream size [was 48]
+	PDBStream tpi = simplelist<integer>(7, nothing), 56					// TODO - real TPI stream
+	PDBStream dbi = simplelist<integer>(8, nothing), 64 + dbimodinfolen + dbicontribslen + sectionmapsize   // TODO - real DBI stream
+	PDBStream ipi = simplelist<integer>(9, nothing), 56					// TODO - real IPI stream (?)
+	PDBStream globals = simplelist<integer>(10, nothing), 44 + 516		// TODO - real globals stream
+	PDBStream publics = simplelist<integer>(11, nothing), 44 + 516		// TODO - real publics stream
+	PDBStream symbols = simplelist<integer>(12, nothing), 26			// TODO - real symbol records size
+	
+	PDBStream hackstream = simplelist<integer>(13, nothing), testmodule.SymbolSize + 8			// TODO - real stream
+	list<PDBStream> hackstreamlist = hackstream, nothing
+	
+	PDBDirectory pdbdir = 9, msf, pdb, tpi, dbi, ipi, globals, publics, symbols, hackstreamlist
+
+	
+	Win32Handle invalidhandle = -1
+	PDBFileLayout layout = 1024, 14, directoryhint, directorystream, pdbdir
+	PDBOutputStream stream = pdbfilename, invalidhandle, 0, layout, dbisection
+
+	WritePDB(stream)
 }
 
 

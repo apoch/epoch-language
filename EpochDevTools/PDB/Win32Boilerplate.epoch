@@ -1,3 +1,15 @@
+//
+// The Epoch Language Project
+// Epoch Development Tools - PDB generation test harness
+//
+// WIN32BOILERPLATE.EPOCH
+// Common Win32 linkage/infrastructure for file I/O
+//
+// This file is just a copy/paste duplicate of Win32 declarations
+// for doing things like file I/O and such. It should be coalesced
+// into a single shared library file eventually.
+//
+
 
 type Win32Handle : integer
 

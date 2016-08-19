@@ -1,14 +1,97 @@
 //
-// Test bed for PDB emission from Epoch code
+// The Epoch Language Project
+// Epoch Development Tools - PDB generation library
+//
+// PDB.EPOCH
+// Wrappers and structures for generating PDB files
+//
+// Main wrappers for generating a PDB (Microsoft debug information) from the Epoch
+// ecosystem. Designed primarily to support compiler emission of PDBs during the build
+// process.
+//
+// Noteworthy resources for understanding how all this works:
+//
+//   https://github.com/Microsoft/microsoft-pdb
+//      - Especially cvdump tool and the source code for MSF/PDB loading
+//      - As of this writing the samples do not build, but are still instructive
+//
+//   https://github.com/llvm-mirror/llvm/tree/master/lib/DebugInfo
+//      - MSF and PDB parsing and writing code was invaluable
+//      - An even more complete and clean implementation than we have here!
+//      - Not relied upon since our hope is to minimize C++ dependencies
+//      - Also, was not in release-ready form in time for this effort's goals
+//      - ... but could have been used as an alternative to this module
+//
+//   https://github.com/rainers/cv2pdb
+//      - Informed the first MSPDB140.dll-based version of this process
+//      - Provided many key tidbits of knowledge early on in reverse engineering PDBs
+//      - Not directly useful much anymore, but still interesting
+//
+//   DIA2Dump sample from the Visual Studio DIA SDK folder
+//      - Useful for low-level verification of a PDB file's contents
+//      - Provides a debuggable implementation of DIA client - handy for reversing!
+//
+//   https://github.com/apoch/epoch-language/wiki/Knowledge-Dump---Debugging-Epoch-Programs
+//      - Historical documentation on the process of developing this module
+//      - Probably kept more up to date than this header comment will ever be
+//
+// PDB files are the basis of serialized debug information for Microsoft-platform
+// programming and debugging tools. Notably: Visual Studio, WinDbg, DbgHelp.dll all
+// use PDB format to describe debuggees. Both "in vitro" and "post mortem" debug
+// tools rely heavily on the symbol data and other information (such as source code
+// line mappings) stored in PDBs.
+//
+// Historically, the PDB format was a total black box, and it has only been in
+// the relatively recent past that Microsoft has begun opening up details of how
+// these files work. The "container" format is something known as MSF, or Multiple
+// Stream Format. MSF files are like a simplistic filesystem. Within the streams of
+// data of a host MSF, PDBs store a variety of useful data about the debug target,
+// namely things like what code files are compiled in, what machine code instructions
+// correspond to what source text, the types of variables used and how they all
+// interrelate, and so on.
+//
+// At one point in time it was considered a viable plan to write a special Epoch-
+// specific debugger. Someday this may still happen, but with the ability to tap
+// tools like Visual Studio and WinDbg, it is much less appealing. The pragmatic
+// approach is to simply generate PDB debug data for Epoch programs, and let the
+// existing debug tools do their magic.
 //
 
 
+//
+// In-memory representation of a single stream in the MSF file.
+//
+// MSF files are broken up into streams of blocks. Each block is a uniform
+// size and the file's blocks are contiguous on disk. However, a stream need
+// not be an even multiple of block size (extra space is padded out). Moreover,
+// streams need not be contiguous, i.e. the constituent blocks might be spread
+// out throughout the file. This makes MSF useful for doing two-phase commits.
+//
+// Our particular implementation does not write interleaved streams. Instead,
+// we compute the needed stream blocks up front when collating the PDB data.
+// When it comes time to write to disk, all streams are contiguous on disk for
+// ease of manual inspection and debugging.
+//
 structure PDBStream :
 	simplelist<integer> Blocks,
 	integer Length
 
+
+//
+// In-memory representation of the MSF directory.
+//
+// The directory contains a compact listing of all the streams in the file
+// and which blocks have been allocated to each stream. Note that partial
+// blocks only appear at the end of streams, i.e. each block in a stream is
+// going to be full except maybe the last one, subject to padding.
+//
+// Our implementation uses a number of reserved (or "named") stream indices
+// for storing de facto streams of various flavors. Additional streams are
+// appended for general purpose use, such as the symbol data from each DBI
+// module in the PDB.
+//
 structure PDBDirectory :
-	integer NumStreams,
+	integer NumStreams,					// TODO - remove hard-coding of this and compute it dynamically instead
 	PDBStream ref OldMSFDirectory,
 	PDBStream ref PDB,
 	PDBStream ref TPI,
@@ -17,9 +100,17 @@ structure PDBDirectory :
 	PDBStream ref Globals,
 	PDBStream ref Publics,
 	PDBStream ref Symbols,
-	PDBStream ref TemporaryHack
+	list<PDBStream> AdditionalStreams
 
 
+//
+// Metadata describing the layout of a PDB/MSF file.
+//
+// We use the smallest legal block size (1KB) in general, because it is
+// a reasonable balance between compactness and simplicity. The number of
+// total blocks in the MSF file is tracked here as well as data for the
+// directory indirection stream and the directory itself.
+//
 structure PDBFileLayout :
 	integer BlockSize,
 	integer BlockCount,
@@ -28,6 +119,12 @@ structure PDBFileLayout :
 	PDBDirectory ref Directory
 	
 
+//
+// Stream session for outputting a fabricated PDB.
+//
+// Used for tracking the output process to the actual disk file as well
+// as hosting the MSF layout and the PDB data itself.
+//
 structure PDBOutputStream :
 	string            FileName,
 	Win32Handle       FileHandle,
@@ -35,13 +132,27 @@ structure PDBOutputStream :
 	PDBFileLayout ref Layout,
 	DBISection        DBI
 
-	
+
+//
+// In-memory tracking of the DBI (debug information) data set.
+//
+// Holds computed fields for aiding in serialization as well as pointing
+// to a collection of Module records that describe the final debug target.
+//
 structure DBISection :
 	integer ModuleSubstreamSize,
 	integer SectionContributionSize,
 	integer SectionMapSize,
 	list<DBIModule> Modules
 
+//
+// In-memory representation of a "mod" or Module.
+//
+// Modules are useful abstractions for programs linked from multiple
+// different sources, such as some .lib files and some raw code files.
+// For our purposes we typically only store one module and have a list
+// of contributing files (.epoch code files) assigned to that module.
+//
 structure DBIModule :
 	string SourceFile,
 	string ObjectFile,
@@ -50,21 +161,37 @@ structure DBIModule :
 	list<SectionContribution> SectionContributions
 
 
+//
+// In-memory metadata about a section contribution.
+//
+// Each COFF section in the final linked binary image is made up of
+// many contributors. Typically there is one contribution for each
+// function in the program source. These records describe how exactly
+// a function maps into the final binary COFF section.
+//
 structure SectionContribution :
-	integer16 SectionIndex,
-	integer Offset,
-	integer Size,
-	integer Characteristics,
-	integer16 ModuleIndex,
-	integer DataCRC,
-	integer RelocCRC
+	integer16 SectionIndex,				// Index of the COFF section in which this contribution appears
+	integer Offset,						// Offset inside the section at which the contribution appears
+	integer Size,						// Size (bytes) of the contribution
+	integer Characteristics,			// Characteristics of the contribution. Haven't seen a difference between this and the section's characteristics in practice.
+	integer16 ModuleIndex,				// Index of the DBI module that contains the function
+	integer DataCRC,					// CRC of the actual function code; can safely be zero
+	integer RelocCRC					// CRC of the relocation data applied to the contribution; can safely be zero
 
 
 
+//
+// Main wrapper function for writing a PDB to disk.
+//
+// The data must be populated and accurate (for things like offsets, sizes, etc.)
+// prior to emission. The actual block layout of the MSF file and streams will be
+// computed internally to this function, so there's no need to have that totally
+// figured out before calling.
+//
 WritePDB : PDBOutputStream ref stream
 {
 	// We only support writing in a single pass, and no reads (yet).
-	// So don't allow emission of a PDB if it already opened a file.
+	// So don't allow emission of a PDB if we already opened a file.
 	assert(stream.FileHandle == -1)
 	
 
@@ -239,7 +366,7 @@ WriteDirectory : PDBOutputStream ref stream
 	ByteStreamEmitInteger(directory, directorysize, stream.Layout.Directory.Globals.Length)
 	ByteStreamEmitInteger(directory, directorysize, stream.Layout.Directory.Publics.Length)
 	ByteStreamEmitInteger(directory, directorysize, stream.Layout.Directory.Symbols.Length)
-	ByteStreamEmitInteger(directory, directorysize, stream.Layout.Directory.TemporaryHack.Length)
+	ByteStreamEmitInteger(directory, directorysize, stream.Layout.Directory.AdditionalStreams.value.Length)		// TODO - iterate over this list
 
 	// Stream blocks
 	ByteStreamEmitInteger(directory, directorysize, stream.Layout.Directory.OldMSFDirectory.Blocks.value)
@@ -250,7 +377,7 @@ WriteDirectory : PDBOutputStream ref stream
 	ByteStreamEmitInteger(directory, directorysize, stream.Layout.Directory.Globals.Blocks.value)
 	ByteStreamEmitInteger(directory, directorysize, stream.Layout.Directory.Publics.Blocks.value)
 	ByteStreamEmitInteger(directory, directorysize, stream.Layout.Directory.Symbols.Blocks.value)
-	ByteStreamEmitInteger(directory, directorysize, stream.Layout.Directory.TemporaryHack.Blocks.value)
+	ByteStreamEmitInteger(directory, directorysize, stream.Layout.Directory.AdditionalStreams.value.Blocks.value)
 	
 	integer written = 0
 	WriteFile(stream.FileHandle, directory, directorysize, written, 0)

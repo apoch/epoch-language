@@ -1,3 +1,21 @@
+//
+// The Epoch Language Project
+// Epoch Development Tools - PDB generation test harness
+//
+// ENTRYPOINT.EPOCH
+// Test harness entry point
+//
+// Entry point for setting up and fabricating a complete, usable
+// PDB file based on invented data. This is just a bootstrapping
+// thing and should go away eventually, once the compiler itself
+// is emitting PDBs reliably (based on actual code). The primary
+// advantage of having a separate tool to fabricate PDBs lies in
+// the ability to iterate on it quickly without having to invoke
+// a full compiler session every time something is refined. Once
+// the base logic is solid there will be little need for such an
+// isolated process.
+//
+
 
 entrypoint :
 {	
@@ -38,15 +56,16 @@ entrypoint :
 	PDBStream msf = simplelist<integer>(5, nothing), 1					// Placeholder; 0 is invalid but we have nothing to put here
 	PDBStream pdb = simplelist<integer>(6, nothing), 196  				// TODO - pull real PDB stream size [was 48]
 	PDBStream tpi = simplelist<integer>(7, nothing), 56					// TODO - real TPI stream
-	PDBStream dbi = simplelist<integer>(8, nothing), 64	+ dbimodinfolen	+ dbicontribslen + sectionmapsize   // TODO - real DBI stream
+	PDBStream dbi = simplelist<integer>(8, nothing), 64 + dbimodinfolen + dbicontribslen + sectionmapsize   // TODO - real DBI stream
 	PDBStream ipi = simplelist<integer>(9, nothing), 56					// TODO - real IPI stream (?)
 	PDBStream globals = simplelist<integer>(10, nothing), 44 + 516		// TODO - real globals stream
 	PDBStream publics = simplelist<integer>(11, nothing), 44 + 516		// TODO - real publics stream
 	PDBStream symbols = simplelist<integer>(12, nothing), 26			// TODO - real symbol records size
 	
 	PDBStream hackstream = simplelist<integer>(13, nothing), testmodule.SymbolSize + 8			// TODO - real stream
+	list<PDBStream> hackstreamlist = hackstream, nothing
 	
-	PDBDirectory pdbdir = 9, msf, pdb, tpi, dbi, ipi, globals, publics, symbols, hackstream
+	PDBDirectory pdbdir = 9, msf, pdb, tpi, dbi, ipi, globals, publics, symbols, hackstreamlist
 
 	
 	Win32Handle invalidhandle = -1
