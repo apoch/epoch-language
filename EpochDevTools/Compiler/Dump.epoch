@@ -146,6 +146,11 @@ DumpSignatureParams : nothing
 
 
 
+DumpOverloadList : FunctionDefinition ref func
+{
+	DumpOverloadList(func.Overloads)
+}
+
 DumpOverloadList : list<Overload> ref overloads
 {
 	DumpOverload(overloads.value)

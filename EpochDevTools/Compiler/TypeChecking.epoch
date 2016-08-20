@@ -597,6 +597,9 @@ TypeInference : Statement ref statement, InferenceContext ref context -> boolean
 			success = false
 			print("No matching overload for call to " ; GetPooledString(statement.Name) ; "()")
 			DumpTypeList(paramtypes)
+			
+			print("Available overloads:")
+			DumpOverloadList(contextfunc)
 		}
 	}
 
@@ -2233,6 +2236,17 @@ CheckMemberTypes : list<StructureMember> ref members, simplelist<integer> ref ty
 {
 	integer membertype = MakeNonReferenceType(GetMemberTypeDecompose(members.value))
 	integer curtype = MakeNonReferenceType(types.value)
+
+	while((membertype & 0x7f000000) == 0x05000000)
+	{
+		membertype = FindTypeAliasBase(membertype)
+	}
+
+	while((curtype & 0x7f000000) == 0x05000000)
+	{
+		curtype = FindTypeAliasBase(curtype)
+	}
+
 
 	if(membertype == curtype)
 	{
