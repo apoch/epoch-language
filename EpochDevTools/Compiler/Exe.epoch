@@ -6,9 +6,9 @@
 // Executable binary generation routines
 //
 // This module is responsible for outputting executable
-// 32-bit Windows binaries in the PE format. The binary
-// itself is a stub that launches the Epoch runtime and
-// passes in a stream of bytecode embedded in the file.
+// 64-bit Windows binaries in the PE format. The binary
+// itself is compiled via LLVM, but the linking and all
+// on-disk arrangement of the image is done here.
 //
 // In general code in this file is pretty hacky and not
 // especially clear. It could use some major cleanup.
@@ -260,7 +260,7 @@ MakeExe : EpochProject ref project
 	
 	
 	print("Emitting PDB file...")
-	GeneratePDB(pdbfilename)
+	GeneratePDB(pdbfilename, debugsymboldata, sizedebugsymbols)
 
 
 	print("Compilation complete.")
@@ -1109,17 +1109,19 @@ ThunkTableAddFunctionToList : ThunkTableLibrary ref library, nothing, string fun
 
 
 
-GeneratePDB : string pdbfilename
-{	
+GeneratePDB : string pdbfilename, buffer ref symboldata, integer symbolsize
+{
 	SymbolSection sectionsymbol = 8, 0x8000, 0x1000, 0x60000020, ".text"
-	SymbolProcStart initsymbolps = 0, 0x4a, 0, 65, 0, 0, 0, 8, 0, "init"		// TODO - 0x4a is offset of next (end) symbol, this should not be hard-coded!
-	SymbolBlockEnd endsymbolps = 0
-	PDBSymbol initsymbol = initsymbolps
-	PDBSymbol endsymbol = endsymbolps
+	//SymbolProcStart initsymbolps = 0, 0x4a, 0, 65, 0, 0, 0, 8, 0, "init"		// TODO - 0x4a is offset of next (end) symbol, this should not be hard-coded!
+	//SymbolBlockEnd endsymbolps = 0
+	//PDBSymbol initsymbol = initsymbolps
+	//PDBSymbol endsymbol = endsymbolps
 	
 	list<PDBSymbol> symbollist = sectionsymbol, nothing
-	append<PDBSymbol>(symbollist, initsymbol)
-	append<PDBSymbol>(symbollist, endsymbol)
+	//append<PDBSymbol>(symbollist, initsymbol)
+	//append<PDBSymbol>(symbollist, endsymbol)
+	
+	TransferSymbols(symbollist, symboldata, symbolsize)
 	
 	SectionContribution initsc = 8, 0, 65, 0x60001020, 0, 0, 0
 	list<SectionContribution> contriblist = initsc, nothing
@@ -1167,4 +1169,9 @@ GeneratePDB : string pdbfilename
 	WritePDB(stream)
 }
 
+
+TransferSymbols : list<PDBSymbol> ref symbols, buffer ref symboldata, integer symbolsize
+{
+	
+}
 
