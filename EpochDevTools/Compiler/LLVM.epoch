@@ -69,6 +69,7 @@ EpochLLVMTypeGetPointerTo : LLVMContextHandle context, LLVMFunctionType raw -> L
 EpochLLVMTypeGetReal : LLVMContextHandle context -> LLVMType t = 0													[external("EpochLLVM.dll", "EpochLLVMTypeGetReal")]
 EpochLLVMTypeGetString : LLVMContextHandle context -> LLVMType t = 0												[external("EpochLLVM.dll", "EpochLLVMTypeGetString")]
 EpochLLVMTypeGetVoid : LLVMContextHandle context -> LLVMType t = 0													[external("EpochLLVM.dll", "EpochLLVMTypeGetVoid")]
+EpochLLVMTypeGetBuffer : LLVMContextHandle context -> LLVMType t = 0												[external("EpochLLVM.dll", "EpochLLVMTypeGetBuffer")]
 
 EpochLLVMEmitBinaryObject : LLVMContextHandle handle, buffer ref outbuffer, integer maxsize -> integer written = 0 	[external("EpochLLVM.dll", "EpochLLVMEmitBinaryObject")]
 
@@ -294,6 +295,10 @@ GetLLVMTypeForEpochType : LLVMContextHandle context, integer typeid -> LLVMType 
 	elseif(typeid == 0x02000000)
 	{
 		t = EpochLLVMTypeGetString(context)
+	}
+	elseif(typeid == 0x02000001)
+	{
+		t = EpochLLVMTypeGetBuffer(context)
 	}
 	elseif(IsStructureType(typeid))
 	{

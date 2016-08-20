@@ -369,6 +369,11 @@ llvm::Type* Context::TypeGetVoid()
 	return Type::getVoidTy(getGlobalContext());
 }
 
+llvm::Type* Context::TypeGetBuffer()
+{
+	return Type::getInt8PtrTy(getGlobalContext());
+}
+
 
 
 extern "C" void LLVMLinkInMCJIT();

@@ -48,6 +48,7 @@ namespace CodeGen
 		llvm::Type* TypeGetReal();
 		llvm::Type* TypeGetString();
 		llvm::Type* TypeGetVoid();
+		llvm::Type* TypeGetBuffer();
 
 		llvm::DIType* TypeGetDebugType(llvm::Type* t);
 
