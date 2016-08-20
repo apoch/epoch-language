@@ -1,6 +1,15 @@
 # Epoch Language Plans
 This file is a running stream-of-consciousness log of plans and thoughts surrounding the Epoch programming language. It is not intended to be an authoritative or exhaustive resource; it exists primarily for the curious and for recording various ideas.
 
+### MikeL 2016-08-20
+Debug info generation has reached a level where the Epoch compiler is directly emitting stub `PDB` files for any built binary. This is a rough but working proof-of-concept. A vast amount of work still needs to go into making the debug files do the right things, with the right data from the compiler front-end; but the foundations are down and the rest is just iteration and polish. The heavy R&D is mostly over - type metadata being the main exception.
+
+In the process of converting LLVM's emitted CodeView buffers to data suitable for embedding in a PDB, I realized that there's basically no good byte-wise extraction mechanism in Epoch right now. That is to say, given a `buffer` of N bytes, I can't easily turn, say, bytes 30-34 into an `integer` and operate on it.
+
+I'm loath to do genuine pointer arithmetic muppetry in Epoch, at least right now; but the other extreme end (writing a support DLL that has an API for extracting data from `buffer`s) isn't all that appealing either. So I'm going to sit down and think about array support and how to make it integrate elegantly with byte-stream value extraction.
+
+That'll be my new "weekend project" I suspect!
+
 
 ### MikeL 2016-07-15
 After much tinkering I did manage to coax WinDbg into listing sane callstacks, but Visual Studio remains elusive. I've determined that the main problem I have is the lack of control over how `link.exe` emits PE sections. Since I can't coerce the linker into emitting the same section layout as `EpochNativeBin.exe` does when it links an `.exe` file, the debug data naturally mismatches pretty badly.
