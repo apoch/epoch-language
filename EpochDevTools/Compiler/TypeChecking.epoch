@@ -2090,7 +2090,7 @@ FilterTypesForPromotion : simplelist<integer> ref in, simplelist<integer> ref ou
 
 	CheckIfContainsOnlyDemotedTypes(in, hasdemoted, hassuperior, hasother)
 
-	if(hasdemoted && hassuperior && (!hasother))
+	if(hassuperior && (!hasother) && (!hasdemoted))
 	{
 		StripPromotedTypes(in, out)
 	}

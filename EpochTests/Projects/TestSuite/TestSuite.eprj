@@ -6,6 +6,7 @@ Operators.epoch
 Entities.epoch
 Harness.epoch
 Structures.epoch
+TypePromotion.epoch
 
 [resources]
 

@@ -28,6 +28,7 @@ entrypoint :
 	TestOperators()
 	TestEntities()
 	TestStructures()
+	TestTypePromotion()
 
 	// TODO - generate report
 }

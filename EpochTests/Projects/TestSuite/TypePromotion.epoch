@@ -1,0 +1,21 @@
+//
+// TYPEPROMOTION.EPOCH
+//
+// Test suite for type promotion and demotion
+//
+
+
+TestTypePromotion :
+{
+	TestSection("Type promotion/demotion")
+	
+	TTPInteger64Demote()
+	
+	TestSectionComplete()
+}
+
+
+
+TTPInteger64Demote : -> 0
+
+
