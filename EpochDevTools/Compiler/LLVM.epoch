@@ -1177,8 +1177,10 @@ CreateAllStructuresInLLVM : LLVMContextHandle context, list<StructureDefinition>
 {
 	CreateAllStructuresInLLVM(context, structures.next)
 
-	if(structures.value.Name != 0)
+	if((structures.value.Name != 0) && (!structures.value.IsTemplate))
 	{
+		print(GetPooledString(structures.value.Name) ; "...")
+		
 		CreateStructureMembersInLLVM(context, structures.value.Members)
 		LLVMType sty = EpochLLVMStructureTypeCreate(context, GetPooledString(structures.value.Name))
 
