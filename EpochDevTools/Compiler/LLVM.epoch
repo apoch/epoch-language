@@ -59,6 +59,8 @@ EpochLLVMFunctionSetEntry : LLVMContextHandle context, LLVMFunctionRef func					
 EpochLLVMStructureQueueMemberType : LLVMContextHandle context, LLVMType t											[external("EpochLLVM.dll", "EpochLLVMStructureQueueMemberType")]
 EpochLLVMStructureTypeCreate : LLVMContextHandle context, string structurename -> LLVMType t = 0					[external("EpochLLVM.dll", "EpochLLVMStructureTypeCreate")]
 
+EpochLLVMSumTypeCreate : LLVMContextHandle context, string name, integer width -> LLVMType t = 0					[external("EpochLLVM.dll", "EpochLLVMSumTypeCreate")]
+
 
 EpochLLVMTypeGetBoolean : LLVMContextHandle context -> LLVMType t = 0												[external("EpochLLVM.dll", "EpochLLVMTypeGetBoolean")]
 EpochLLVMTypeGetInteger : LLVMContextHandle context -> LLVMType t = 0												[external("EpochLLVM.dll", "EpochLLVMTypeGetInteger")]
@@ -168,8 +170,25 @@ CreateAllFunctionSignaturesInLLVM : LLVMContextHandle context, list<FunctionSign
 {
 	if(signatures.value.Name != 0)
 	{
+		print(cast(string, signatures.value.Name) ; " " ; GetPooledString(GetNameOfType(signatures.value.Name)))
+
+		if(!signatures.value.InferenceDone)
+		{
+			ResolveSignatureTypes(signatures.value.Parameters)
+			signatures.value.InferenceDone = true
+		}
+
+		DumpSignature(signatures.value)
+
 		EpochLLVMFunctionTypePush(context)
-		LLVMType funcrettype = GetLLVMTypeForEpochType(context, GetTypeByName(signatures.value.ReturnTypeName))
+		LLVMType funcrettype = EpochLLVMTypeGetVoid(context)
+		if((signatures.value.ReturnTypeName != 0))
+		{
+			integer t = GetTypeByName(signatures.value.ReturnTypeName)
+			assertmsg(t != 0, "Invalid return type signature")
+			funcrettype = GetLLVMTypeForEpochType(context, t)
+		}
+
 		CreateFunctionParamTypesInLLVM(context, signatures.value.Parameters, 0, false)
 
 		LLVMFunctionType functype = EpochLLVMFunctionTypeCreate(context, funcrettype)
@@ -232,11 +251,13 @@ CreateFunctionParamTypesInLLVM : LLVMContextHandle context, list<UnresolvedParam
 	if((MakeNonReferenceType(params.value.ResolvedType) == 0x01000000) && (rawfuncname != 0))
 	{
 		integer typeid = GetTypeByName(rawfuncname)
+		assertmsg(typeid != 0, "Invalid constructor name")
 		LLVMType paramtype = GetLLVMTypeForEpochType(context, MakeReferenceType(typeid))
 		EpochLLVMFunctionQueueParamType(context, paramtype)
 	}
 	else
 	{
+		assertmsg(params.value.ResolvedType != 0, "Invalid param type")
 		LLVMType paramtype = GetLLVMTypeForEpochType(context, params.value.ResolvedType)
 		EpochLLVMFunctionQueueParamType(context, paramtype)
 	}
@@ -249,7 +270,7 @@ CreateFunctionParamTypesInLLVM : LLVMContextHandle context, nothing, integer raw
 
 CreateFunctionParamTypesInLLVM : LLVMContextHandle context, list<Parameter> ref params, integer rawfuncname, boolean isthunk
 {
-	if(params.value.Name != 0)
+	if(params.value.Type != 0)
 	{
 		LLVMType paramtype = GetLLVMTypeForEpochType(context, params.value.Type)
 		EpochLLVMFunctionQueueParamType(context, paramtype)
@@ -259,10 +280,16 @@ CreateFunctionParamTypesInLLVM : LLVMContextHandle context, list<Parameter> ref 
 }
 
 
-GetLLVMTypeForEpochType : LLVMContextHandle context, Expression expr -> LLVMType t = GetLLVMTypeForEpochType(context, expr.Type)
+GetLLVMTypeForEpochType : LLVMContextHandle context, Expression expr -> LLVMType t = 0
+{
+	assertmsg(expr.Type != 0, "Invalid expression type")
+	t = GetLLVMTypeForEpochType(context, expr.Type)
+}
 
 GetLLVMTypeForEpochType : LLVMContextHandle context, integer typeid -> LLVMType t = 0
 {
+	integer originaltype = typeid
+
 	boolean wasref = IsReferenceType(typeid)
 	typeid = MakeNonReferenceType(typeid)
 	
@@ -305,6 +332,15 @@ GetLLVMTypeForEpochType : LLVMContextHandle context, integer typeid -> LLVMType 
 		boolean found = BinaryTreeCopyPayload<LLVMType>(LLVMStructureTypeTable.RootNode, typeid, t)
 		assertmsg(found, "Structure type not registered with LLVM " ; GetPooledString(GetNameOfType(typeid)))
 	}
+	elseif(IsSumType(typeid))
+	{
+		boolean found = BinaryTreeCopyPayload<LLVMType>(LLVMSumTypeTable.RootNode, typeid, t)
+		if(!found)
+		{
+			t = EpochLLVMSumTypeCreate(context, GetPooledString(GetNameOfType(typeid)), GetTypeSize(typeid))
+			BinaryTreeCreateOrInsert<LLVMType>(LLVMSumTypeTable, typeid, t)
+		}
+	}
 	elseif(IsFunctionType(typeid))
 	{
 		LLVMFunctionType fty = 0
@@ -315,7 +351,7 @@ GetLLVMTypeForEpochType : LLVMContextHandle context, integer typeid -> LLVMType 
 	}
 	else
 	{
-		assertmsg(false, "Unsupported type for LLVM bindings: " ; GetPooledString(GetNameOfType(typeid)))
+		assertmsg(false, "Unsupported type for LLVM bindings: " ; cast(string, originaltype)) //GetPooledString(GetNameOfType(typeid)))
 	}
 	
 	if(wasref)
@@ -370,6 +406,7 @@ CreateSingleLLVMAlloca : LLVMBuildContext ref context, Variable ref var, Functio
 		if(listcontains(CustomConstructors, func.Name))
 		{
 			integer typeid = GetTypeByName(func.RawName)
+			assertmsg(typeid != 0, "Invalid constructor")
 			
 			LLVMType vartype = GetLLVMTypeForEpochType(context.Context, MakeReferenceType(typeid))
 			LLVMAlloca alloca = EpochLLVMCodeCreateAlloca(context.Context, vartype, GetPooledString(var.Name))
@@ -378,7 +415,9 @@ CreateSingleLLVMAlloca : LLVMBuildContext ref context, Variable ref var, Functio
 			return()
 		}
 	}
-	
+
+	assertmsg(var.VarType != 0, "Invalid variable type")
+
 	LLVMType vartype = GetLLVMTypeForEpochType(context.Context, var.VarType)
 	LLVMAlloca alloca = EpochLLVMCodeCreateAlloca(context.Context, vartype, GetPooledString(var.Name))
 	BinaryTreeCreateOrInsert<LLVMAlloca>(context.LocalVariables, var.Name, alloca)
@@ -1178,9 +1217,7 @@ CreateAllStructuresInLLVM : LLVMContextHandle context, list<StructureDefinition>
 	CreateAllStructuresInLLVM(context, structures.next)
 
 	if((structures.value.Name != 0) && (!structures.value.IsTemplate))
-	{
-		print(GetPooledString(structures.value.Name) ; "...")
-		
+	{	
 		CreateStructureMembersInLLVM(context, structures.value.Members)
 		LLVMType sty = EpochLLVMStructureTypeCreate(context, GetPooledString(structures.value.Name))
 
@@ -1195,19 +1232,31 @@ CreateAllStructuresInLLVM : LLVMContextHandle context, nothing
 
 CreateStructureMembersInLLVM : LLVMContextHandle context, list<StructureMember> ref members
 {
-	EpochLLVMStructureQueueMemberType(context, GetLLVMTypeForMemberType(context, members.value))
+	if(GetMemberName(members.value) != 0)
+	{
+		EpochLLVMStructureQueueMemberType(context, GetLLVMTypeForMemberType(context, members.value))
+	}
+
 	CreateStructureMembersInLLVM(context, members.next)
 }
 
 CreateStructureMembersInLLVM : LLVMContextHandle context, nothing
 
 
-GetLLVMTypeForMemberType : LLVMContextHandle context, StructureMemberVariable ref member -> LLVMType t = GetLLVMTypeForEpochType(context, member.Type)
+GetLLVMTypeForMemberType : LLVMContextHandle context, StructureMemberVariable ref member -> LLVMType t = 0
+{
+	assertmsg(member.Type != 0, "Invalid structure member variable type")
+	t = GetLLVMTypeForEpochType(context, member.Type)
+}
+
 GetLLVMTypeForMemberType : LLVMContextHandle context, StructureMemberFunctionRef ref member -> LLVMType t = 0
 {
 	EpochLLVMFunctionTypePush(context)
 
-	LLVMType funcrettype = GetLLVMTypeForEpochType(context, GetTypeByName(member.Signature.ReturnTypeName))
+	integer ret = GetTypeByName(member.Signature.ReturnTypeName)
+	assertmsg(ret != 0, "Invalid return type from structure member function signature")
+
+	LLVMType funcrettype = GetLLVMTypeForEpochType(context, ret)
 	CreateFunctionParamTypesInLLVM(context, member.Signature.Parameters, 0, false)
 	
 	LLVMFunctionType fty = EpochLLVMFunctionTypeCreate(context, funcrettype)

@@ -338,6 +338,14 @@ extern "C" void EpochLLVMStructureQueueMemberType(void* context, void* membertyp
 
 
 
+extern "C" void* EpochLLVMSumTypeCreate(void* context, const wchar_t* name, unsigned width)
+{
+	std::wstring widename(name);
+	std::string narrowname(widename.begin(), widename.end());
+	return reinterpret_cast<CodeGen::Context*>(context)->SumTypeCreate(narrowname.c_str(), width);
+}
+
+
 extern "C" void EpochLLVMSectionCopyPData(void* context, void* buffer)
 {
 	reinterpret_cast<CodeGen::Context*>(context)->SectionCopyPData(buffer);

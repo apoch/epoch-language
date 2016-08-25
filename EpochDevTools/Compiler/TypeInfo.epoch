@@ -112,6 +112,7 @@ GetNameOfType : integer typeid -> integer name = 0
 	else
 	{
 		print("Unknown type " ; cast(string, typeid))
+		print("HINT: that might be a string handle? " ; GetPooledString(typeid))
 		assert(false)
 	}
 }
@@ -212,6 +213,15 @@ IsStructureType : integer typeid -> boolean ret = false [nogc]
 		ret = true
 	}
 }
+
+IsSumType : integer typeid -> boolean ret = false [nogc]
+{
+	if((typeid & 0x7f000000) == 0x07000000)
+	{
+		ret = true
+	}
+}
+
 
 IsReferenceType : integer typeid -> boolean ret = false [nogc]
 {

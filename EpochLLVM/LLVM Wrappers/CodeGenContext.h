@@ -55,6 +55,8 @@ namespace CodeGen
 		llvm::Type* StructureTypeCreate(const char* name);
 		void StructureTypeQueueMember(llvm::Type* membertype);
 
+		llvm::Type* SumTypeCreate(const char* name, unsigned width);
+
 	public:		// Function management interface
 		llvm::Function* FunctionCreate(const char* name, llvm::FunctionType* fty);
 		llvm::GlobalVariable* FunctionCreateThunk(const char* name, llvm::FunctionType* fty);

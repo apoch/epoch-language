@@ -1059,3 +1059,15 @@ void Context::TagDebugLine(unsigned line, unsigned column)
 	LLVMBuilder.GetInsertBlock()->getInstList().back().setDebugLoc(loc);
 }
 
+
+llvm::Type* Context::SumTypeCreate(const char* name, unsigned width)
+{
+	std::vector<llvm::Type*> members;
+	members.push_back(llvm::Type::getInt32Ty(getGlobalContext()));
+	members.push_back(llvm::Type::getIntNTy(getGlobalContext(), width * 8));
+
+	llvm::Type* t = llvm::StructType::create(members, name);
+	return t;
+}
+
+

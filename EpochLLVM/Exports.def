@@ -27,6 +27,8 @@ EXPORTS
 	EpochLLVMStructureTypeCreate
 	EpochLLVMStructureQueueMemberType
 
+	EpochLLVMSumTypeCreate
+
 	EpochLLVMEmitBinaryObject
 
 	EpochLLVMSetThunkCallback

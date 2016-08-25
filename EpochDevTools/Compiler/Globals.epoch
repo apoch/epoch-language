@@ -86,6 +86,7 @@ global
 	BinaryTreeRoot<LLVMFunctionRef> LLVMFunctionTable = nothing
 	BinaryTreeRoot<LLVMType> LLVMStructureTypeTable = nothing
 	BinaryTreeRoot<LLVMFunctionType> LLVMFunctionSignatureTable = nothing
+	BinaryTreeRoot<LLVMType> LLVMSumTypeTable = nothing
 	
 	BinaryTreeRoot<integer> GlobalStringOffsets = nothing
 	
@@ -103,6 +104,7 @@ global
 	list<StructureMember> dummymembers = dummymember, nothing
 	StructureDefinition dummystruct = 0, 0, 0, 0, 0, dummymembers, 0, "", false
 	list<StructureDefinition> Structures = dummystruct, nothing
+	list<StructureDefinition> DependencyStructures = dummystruct, nothing
 
 
 	// TODO - convert to an enumeration

@@ -165,4 +165,19 @@ DumpOverload : Overload ref overload
 
 
 
+DumpStructures : list<StructureDefinition> ref structs
+{
+	print("--- STRUCTURES ---")
+	DumpStructureList(structs)
+	print("------------------")
+}
+
+
+DumpStructureList : list<StructureDefinition> ref structs
+{
+	print(GetPooledString(structs.value.Name))
+	DumpStructureList(structs.next)
+}
+
+DumpStructureList : nothing
 

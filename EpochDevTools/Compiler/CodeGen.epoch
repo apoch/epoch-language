@@ -1527,47 +1527,59 @@ EmitMemberDataCopy : BytecodeStream ref stream, StructureMemberFunctionRef ref m
 CodeGenRearrangeStructures : list<StructureDefinition> ref thelist
 {
 	simplelist<integer> processed = 0, nothing
-	boolean changed = CodeGenRearrangeStructuresRecurse(thelist, processed)
+	CodeGenRearrangeStructuresRecurse(DependencyStructures, thelist, processed)
 
-	if(changed)
-	{
-		CodeGenRearrangeStructures(thelist)
-	}
+	Structures = DependencyStructures
 }
 
-CodeGenRearrangeStructuresRecurse : list<StructureDefinition> ref thelist, simplelist<integer> ref processed -> boolean changed = false
+CodeGenRearrangeStructuresRecurse : list<StructureDefinition> ref rearranged, list<StructureDefinition> ref thelist, simplelist<integer> ref processed
 {
 	if((thelist.value.Name != 0) && (!thelist.value.IsTemplate))
 	{
-		simplelist<integer> dependencies = 0, nothing
-		ParseStructDependencies(thelist.value.Members, dependencies)
-
-		if(MissingDependency(dependencies, processed))
-		{
-			SwapDown(thelist, thelist.next)
-			changed = true
-		}
-
-		simpleprepend<integer>(processed, thelist.value.Type)
+		CodeGenRearrangeStructuresVisit(DependencyStructures, thelist.value, processed)
 	}
 
-	if(!changed)
-	{
-		CodeGenRearrangeStructuresRecurse(thelist.next, processed)
-	}
+	CodeGenRearrangeStructuresRecurse(DependencyStructures, thelist.next, processed)
 }
 
-CodeGenRearrangeStructuresRecurse : nothing, simplelist<integer> ref processed -> false
+CodeGenRearrangeStructuresRecurse : list<StructureDefinition> ref rearranged, nothing, simplelist<integer> ref processed
 
 
-SwapDown : list<StructureDefinition> ref thelist, list<StructureDefinition> ref tail
+CodeGenRearrangeStructuresVisit : list<StructureDefinition> ref rearranged, StructureDefinition ref s, simplelist<integer> ref processed
 {
-	StructureDefinition temp = tail.value
-	tail.value = thelist.value
-	thelist.value = temp
+	if(!listcontains(processed, s.Type))
+	{
+		simplelist<integer> dependencies = 0, nothing
+		ParseStructDependencies(s, dependencies)
+
+		VisitDependencies(DependencyStructures, dependencies, processed)
+
+		simpleprepend<integer>(processed, s.Type)
+		prepend<StructureDefinition>(DependencyStructures, s)
+	}
 }
 
-SwapDown : list<StructureDefinition> ref thelist, nothing
+
+VisitDependencies : list<StructureDefinition> ref rearranged, simplelist<integer> ref dependencies, simplelist<integer> ref processed
+{
+	if(dependencies.value != 0)
+	{
+		integer name = GetNameOfStructureByType(dependencies.value)
+		if(name != 0)			// hack
+		{
+			ContextNode<StructureDefinition> wrap = nothing
+			boolean found = SearchBinaryTreeForPayload<StructureDefinition>(GlobalRootNamespace.Structures.RootNode, name, wrap)
+
+			assertmsg(found, "Missing definition for structure type " ; GetPooledString(name))
+
+			CodeGenRearrangeStructuresVisit(DependencyStructures, wrap, processed)
+		}
+	}
+
+	VisitDependencies(DependencyStructures, dependencies.next, processed)
+}
+
+VisitDependencies : list<StructureDefinition> ref rearranged, nothing, simplelist<integer> ref processed
 
 
 

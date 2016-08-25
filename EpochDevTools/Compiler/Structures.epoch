@@ -265,14 +265,34 @@ ParseStructDependencies : list<StructureMember> ref members, simplelist<integer>
 {
 	integer dependency = GetMemberDependency(members.value)
 	if(dependency != 0)
-	{
-		simpleprepend<integer>(out, dependency)
+	{		
+		if(IsStructureType(dependency))
+		{
+			//ParseStructDependenciesDeep(GetNameOfType(dependency), out)
+			simpleprepend<integer>(out, MakeNonReferenceType(dependency))
+		}
 	}
 
 	ParseStructDependencies(members.next, out)
 }
 
 ParseStructDependencies : nothing, simplelist<integer> ref out
+
+
+ParseStructDependencies : StructureDefinition ref struct, simplelist<integer> ref out
+{
+	ParseStructDependencies(struct.Members, out)
+}
+
+
+ParseStructDependenciesDeep : integer name, simplelist<integer> ref out
+{
+	ContextNode<StructureDefinition> wrap = nothing
+	boolean found = SearchBinaryTreeForPayload<StructureDefinition>(GlobalRootNamespace.Structures.RootNode, name, wrap)
+	assertmsg(found, "Error in structure dependency graph, missing a structure!")
+	
+	ParseStructDependencies(wrap, out)
+}
 
 
 GetMemberDependency : StructureMemberVariable ref var -> integer dep = 0
@@ -289,18 +309,18 @@ GetMemberDependency : StructureMemberVariable ref var -> integer dep = 0
 GetMemberDependency : StructureMemberFunctionRef ref member -> 0
 
 
-MissingDependency : simplelist<integer> ref dependencies, simplelist<integer> ref processed -> boolean missing = true
+MissingDependency : simplelist<integer> ref dependencies, simplelist<integer> ref processed -> integer missing = 0
 {
 	// TODO - clean up this horrible code
 	if(dependencies.value != 0)
 	{
 		if(listcontains(processed, dependencies.value))
 		{
-			missing = false
+			missing = MissingDependency(dependencies.next, processed)
 		}
 		else
 		{
-			missing = MissingDependency(dependencies.next, processed)
+			missing = dependencies.value
 		}
 	}
 	else
@@ -309,7 +329,7 @@ MissingDependency : simplelist<integer> ref dependencies, simplelist<integer> re
 	}
 }
 
-MissingDependency : nothing, simplelist<integer> ref processed -> boolean missing = false
+MissingDependency : nothing, simplelist<integer> ref processed -> 0
 
 
 ConstructorMatchesParameterTypes : list<StructureDefinition> ref structures, integer ctorname, simplelist<integer> ref types, boolean ref matchesctor -> boolean match = false

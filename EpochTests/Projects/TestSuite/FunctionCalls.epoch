@@ -9,6 +9,52 @@ TestFunctionCalls :
 {
 	TestSection("Function calls")
 	
+	TestAssert(TFCBooleanReturn(), "literal boolean return value")
+	TestAssert(TFCNonTrivialReturn(), "named boolean return value")
+	
+	TFCParamExpectTrue(true)
+	TFCParamExpectFalse(false)
+	
+	TestAssert(CompareStrings("a", "b") == -1, "external string compare")
+	
+	TFCHigherOrder()
+	
 	TestSectionComplete()
 }
 
+
+
+TFCBooleanReturn : -> true
+TFCNonTrivialReturn : -> boolean ret = true
+
+
+TFCParamExpectTrue : boolean expected
+{
+	TestAssert(expected, "boolean function parameter")
+}
+
+TFCParamExpectFalse : boolean expected
+{
+	TestAssert(!expected, "boolean function parameter, inverted")
+}
+
+
+
+CompareStrings : string lhs, string rhs -> integer ret = 0 [external("Kernel32.dll", "lstrcmpA")]
+
+
+
+TFCHigherOrder :
+{
+	integer foo = 40
+	TestAssert(foo == 40, "higher order function precondition")
+	foo = TFCMutate(foo, TFCMutatorAddition, 5)
+	foo = TFCMutate(foo, TFCMutatorSubtraction, 3)
+	TestAssert(foo == 42, "higher order function postcondition")
+}
+
+
+TFCMutate : integer value, (mutator : integer, integer -> integer), integer param -> mutator(value, param)
+
+TFCMutatorAddition : integer value, integer param -> value + param
+TFCMutatorSubtraction : integer value, integer param -> value - param
