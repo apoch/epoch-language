@@ -16,6 +16,7 @@ TestStructures :
 	TSAnonymous()
 	TSCustomConstructor()
 	TSCopyConstructor()
+	TSStructureParams()
 	
 	TestSectionComplete()
 }
@@ -54,6 +55,19 @@ TSMultipleMembers :
 	TestAssert(test.beta == 2, "structure member order 2")
 	TestAssert(test.gamma == 3, "structure member order 3")
 }
+
+
+TSStructureParams :
+{
+	StructureTest2 test = 39, 1, 2
+	integer sumfields = TSSumFields(test)
+	
+	TestAssert(sumfields == 42, "structure parameters")
+}
+
+
+TSSumFields : StructureTest2 ref test -> test.alpha + test.beta + test.gamma
+
 
 TSNested :
 {

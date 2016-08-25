@@ -1036,7 +1036,6 @@ EmitSingleAtomToLLVM : LLVMBuildContext ref context, OperatorInvokeAtom ref atom
 EmitSingleAtomToLLVM : LLVMBuildContext ref context, RefBinding ref atom
 {
 	integer index = GetStructureMemberIndex(atom.StructureName, atom.Identifier)
-	
 	LLVMGEP gep = EpochLLVMCodeCreateGEP(context.Context, index)
 	EpochLLVMCodePushRawGEP(context.Context, gep)
 }
@@ -1076,6 +1075,11 @@ EmitCompoundBindingsToLLVM : LLVMBuildContext ref context, list<RefBinding> ref 
 	assertmsg(var.VarType != 0, "Compound bindings reference bogus variable")
 	integer lhstypename = GetNameOfType(var.VarType)
 	integer index = GetStructureMemberIndex(lhstypename, tail.value.Identifier)
+
+	if(IsReferenceType(var.VarType))
+	{
+		EpochLLVMCodeCreateDereference(context.Context)
+	}
 	
 	LLVMGEP gep = EpochLLVMCodeCreateGEP(context.Context, index)
 	EpochLLVMCodePushRawGEP(context.Context, gep)
