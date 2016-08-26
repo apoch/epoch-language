@@ -170,15 +170,11 @@ CreateAllFunctionSignaturesInLLVM : LLVMContextHandle context, list<FunctionSign
 {
 	if(signatures.value.Name != 0)
 	{
-		print(cast(string, signatures.value.Name) ; " " ; GetPooledString(GetNameOfType(signatures.value.Name)))
-
 		if(!signatures.value.InferenceDone)
 		{
 			ResolveSignatureTypes(signatures.value.Parameters)
 			signatures.value.InferenceDone = true
 		}
-
-		DumpSignature(signatures.value)
 
 		EpochLLVMFunctionTypePush(context)
 		LLVMType funcrettype = EpochLLVMTypeGetVoid(context)
@@ -273,6 +269,11 @@ CreateFunctionParamTypesInLLVM : LLVMContextHandle context, list<Parameter> ref 
 	if(params.value.Type != 0)
 	{
 		LLVMType paramtype = GetLLVMTypeForEpochType(context, params.value.Type)
+		if(params.value.Name == 2)
+		{
+			paramtype = EpochLLVMTypeGetPointerTo(context, paramtype)
+		}
+
 		EpochLLVMFunctionQueueParamType(context, paramtype)
 	}	
 
@@ -1051,15 +1052,15 @@ EmitSingleAtomToLLVM : LLVMBuildContext ref context, CompoundAtom ref atom
 
 	if(!IsReferenceType(atom.Type))
 	{
-		if((atom.Type & 0x7f000000) == 0x07000000)
-		{
+		//if((atom.Type & 0x7f000000) == 0x07000000)
+		//{
 			// TODO - sum type annotations?
 			//BytecodeReadReferenceAnnotated(stream)
-		}
-		else
-		{
+		//}
+		//else
+		//{
 			EpochLLVMCodeCreateDereference(context.Context)
-		}
+		//}
 	}
 }
 
