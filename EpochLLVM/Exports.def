@@ -64,6 +64,7 @@ EXPORTS
 	EpochLLVMCodePushInteger
 	EpochLLVMCodePushInteger16
 	EpochLLVMCodePushInteger64
+	EpochLLVMCodePushReal
 	EpochLLVMCodePushRawAlloca
 	EpochLLVMCodePushRawCall
 	EpochLLVMCodePushRawGEP

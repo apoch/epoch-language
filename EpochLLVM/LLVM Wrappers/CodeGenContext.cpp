@@ -875,6 +875,12 @@ void Context::CodePushInteger64(uint64_t value)
 	PendingValues.push_back(val);
 }
 
+void Context::CodePushReal(float value)
+{
+	llvm::Value* val = ConstantFP::get(Type::getFloatTy(getGlobalContext()), value);
+	PendingValues.push_back(val);
+}
+
 void Context::CodePushRawAlloca(llvm::AllocaInst* alloc)
 {
 	PendingValues.push_back(alloc);

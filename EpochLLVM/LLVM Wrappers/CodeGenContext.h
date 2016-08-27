@@ -93,6 +93,7 @@ namespace CodeGen
 		void CodePushInteger(int value);
 		void CodePushInteger16(short value);
 		void CodePushInteger64(uint64_t value);
+		void CodePushReal(float value);
 		void CodePushRawAlloca(llvm::AllocaInst* alloc);
 		void CodePushRawCall(llvm::CallInst* callinst);
 		void CodePushRawGEP(llvm::Value* gep);

@@ -278,6 +278,11 @@ extern "C" void EpochLLVMCodePushInteger64(void* context, int value)
 	reinterpret_cast<CodeGen::Context*>(context)->CodePushInteger64(value);
 }
 
+extern "C" void EpochLLVMCodePushReal(void* context, float value)
+{
+	reinterpret_cast<CodeGen::Context*>(context)->CodePushReal(value);
+}
+
 
 extern "C" void EpochLLVMCodePushRawAlloca(void* context, void* alloc)
 {

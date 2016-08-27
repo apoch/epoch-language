@@ -123,6 +123,7 @@ EpochLLVMCodePushBoolean : LLVMContextHandle context, boolean literal											
 EpochLLVMCodePushInteger : LLVMContextHandle context, integer literal												[external("EpochLLVM.dll", "EpochLLVMCodePushInteger")]
 EpochLLVMCodePushInteger16 : LLVMContextHandle context, integer16 literal											[external("EpochLLVM.dll", "EpochLLVMCodePushInteger16")]
 EpochLLVMCodePushInteger64 : LLVMContextHandle context, integer literal												[external("EpochLLVM.dll", "EpochLLVMCodePushInteger64")]
+EpochLLVMCodePushReal : LLVMContextHandle context, real literal														[external("EpochLLVM.dll", "EpochLLVMCodePushReal")]
 EpochLLVMCodePushRawAlloca : LLVMContextHandle context, LLVMAlloca alloca											[external("EpochLLVM.dll", "EpochLLVMCodePushRawAlloca")]
 EpochLLVMCodePushRawCall : LLVMContextHandle context, integer callinst												[external("EpochLLVM.dll", "EpochLLVMCodePushRawCall")]
 EpochLLVMCodePushRawGEP : LLVMContextHandle context, LLVMGEP gep													[external("EpochLLVM.dll", "EpochLLVMCodePushRawGEP")]
@@ -883,6 +884,11 @@ EmitSingleAtomToLLVM : LLVMBuildContext ref context, boolean ref literal
 	EpochLLVMCodePushBoolean(context.Context, literal)
 }
 
+EmitSingleAtomToLLVM : LLVMBuildContext ref context, real ref literal
+{
+	EpochLLVMCodePushReal(context.Context, literal)
+}
+
 EmitSingleAtomToLLVM : LLVMBuildContext ref context, StringHandleAtom ref literal
 {
 	EpochLLVMCodePushString(context.Context, literal.Handle)
@@ -907,9 +913,19 @@ EmitSingleAtomToLLVM : LLVMBuildContext ref context, IdentifierAtom ref idatom
 		{
 			LLVMFunctionRef func = 0
 			BinaryTreeCopyPayload<LLVMFunctionRef>(LLVMFunctionTable.RootNode, idatom.Handle, func)
-			assertmsg(func != 0, "Missing function used as higher-order parameter")
-			
-			EpochLLVMCodePushFunction(context.Context, func)
+
+			if(func != 0)
+			{
+				EpochLLVMCodePushFunction(context.Context, func)
+			}
+			else
+			{
+				LLVMAlloca alloca = 0
+				BinaryTreeCopyPayload<LLVMAlloca>(context.LocalVariables.RootNode, idatom.Handle, alloca)
+				assertmsg(alloca != 0, "Missing function used as higher-order parameter")
+
+				EpochLLVMCodeCreateRead(context.Context, alloca)
+			}
 		}
 		elseif(GetTypeByName(idatom.Handle) != 0)
 		{
@@ -935,9 +951,19 @@ EmitSingleAtomToLLVM : LLVMBuildContext ref context, IdentifierAtom ref idatom
 			{
 				LLVMFunctionRef func = 0
 				BinaryTreeCopyPayload<LLVMFunctionRef>(LLVMFunctionTable.RootNode, idatom.Handle, func)
-				assertmsg(func != 0, "Missing function used as higher-order parameter")
 				
-				EpochLLVMCodePushFunction(context.Context, func)
+				if(func != 0)
+				{
+					EpochLLVMCodePushFunction(context.Context, func)
+				}
+				else
+				{
+					LLVMAlloca alloca = 0
+					BinaryTreeCopyPayload<LLVMAlloca>(context.LocalVariables.RootNode, idatom.Handle, alloca)
+					assertmsg(alloca != 0, "Missing function used as higher-order parameter")
+
+					EpochLLVMCodeCreateRead(context.Context, alloca)
+				}
 			}
 			else
 			{
@@ -1062,6 +1088,11 @@ EmitSingleAtomToLLVM : LLVMBuildContext ref context, CompoundAtom ref atom
 			EpochLLVMCodeCreateDereference(context.Context)
 		//}
 	}
+}
+
+EmitSingleAtomToLLVM : LLVMBuildContext ref context, TypeAnnotationAtom ref atom
+{
+	// TODO ?
 }
 
 
