@@ -29,6 +29,7 @@ entrypoint :
 	TestEntities()
 	TestStructures()
 	TestTypePromotion()
+	TestSumTypes()
 
 	// TODO - generate report
 }

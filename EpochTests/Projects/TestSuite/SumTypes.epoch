@@ -1,0 +1,31 @@
+//
+// SUMTYPES.EPOCH
+//
+// Test suite for sum types
+//
+
+
+TestSumTypes :
+{
+	TestSection("Sum types")
+	
+	TSTPassthrough()
+	
+	TestSectionComplete()
+}
+
+
+type BasicSumType : integer | string
+
+
+TSTPassthrough :
+{
+	BasicSumType test = 42
+	TSTCheckPassthrough(test)
+}
+
+TSTCheckPassthrough : BasicSumType ref test
+{
+	TestAssert(true, "basic sumtype parameter passthrough")
+}
+
