@@ -1192,6 +1192,7 @@ PrepareThunkTable : ThunkTable ref table
 	ThunkTableAddEntry(table, "EpochRT.dll", "ERT_assert")
 	ThunkTableAddEntry(table, "EpochRT.dll", "ERT_passtest")
 	ThunkTableAddEntry(table, "EpochRT.dll", "ERT_print")
+	ThunkTableAddEntry(table, "EpochRT.dll", "ERT_string_compare")
 	ThunkTableAddEntry(table, "EpochRT.dll", "ERT_string_concat")
 	ThunkTableAddEntry(table, "EpochRT.dll", "ERT_gc_init")
 	ThunkTableAddEntry(table, "EpochRT.dll", "ERT_gc_collect_strings")

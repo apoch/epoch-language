@@ -646,7 +646,7 @@ llvm::CallInst* Context::CodeCreateCall(llvm::Function* target)
 		PendingValues.pop_back();
 	}
 	std::reverse(relevantargs.begin(), relevantargs.end());
-	
+
 	llvm::CallInst* inst = LLVMBuilder.CreateCall(target, relevantargs);
 
 	if(inst->getType() != Type::getVoidTy(getGlobalContext()))

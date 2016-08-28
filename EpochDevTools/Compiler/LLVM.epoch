@@ -161,9 +161,16 @@ SetUpAllLLVMCode : LLVMContextHandle context
 
 	print("Generating LLVM function thunks...")
 	SetUpCustomLLVMThunks(context, GlobalRootNamespace.FunctionTags)
+
+	print("Generating LLVM type-matcher declarations...")
+	GenerateTypeMatcherMappings(Functions)
+	GeneratePendingTypeMatchersInLLVM(context, PendingTypeMatchers)
 	
 	print("Generating LLVM function implementations...")
 	CreateAllFunctionsInLLVM(context, Functions)
+
+	print("Generating LLVM type-matcher implementations...")
+	// TODO
 }
 
 
@@ -1021,6 +1028,8 @@ EmitSingleAtomToLLVM : LLVMBuildContext ref context, IdentifierAtom ref idatom
 
 EmitSingleAtomToLLVM : LLVMBuildContext ref context, OperatorInvokeAtom ref atom
 {
+	boolean getthunk = false
+
 	if(atom.OperatorName == PooledStringHandleForUnaryNotBoolean)
 	{
 		EpochLLVMCodeOperatorBooleanNot(context.Context)
@@ -1045,17 +1054,26 @@ EmitSingleAtomToLLVM : LLVMBuildContext ref context, OperatorInvokeAtom ref atom
 	{
 		EpochLLVMCodeOperatorIntegerMinus(context.Context)
 	}
+	elseif(atom.OperatorName == PooledStringHandleForEqualityString)
+	{
+		getthunk = true
+	}
 	elseif(atom.OperatorName == PooledStringHandleForStringConcat)
+	{
+		getthunk = true
+	}
+	else
+	{
+		assertmsg(false, "Operator not implemented in LLVM bindings")
+	}
+
+	if(getthunk)
 	{
 		integer thunk = 0
 		BinaryTreeCopyPayload<integer>(LLVMGlobalThunks.RootNode, atom.OperatorName, thunk)
 		
 		assertmsg(thunk != 0, "Missing external thunk")
 		EpochLLVMCodeCreateCallThunk(context.Context, thunk)
-	}
-	else
-	{
-		assertmsg(false, "Operator not implemented in LLVM bindings")
 	}
 }
 
@@ -1139,6 +1157,7 @@ SetUpBuiltInLLVMThunks : LLVMContextHandle context
 	BuiltInThunkCreateAssert(context)
 	BuiltInThunkCreatePasstest(context)
 	BuiltInThunkCreatePrint(context)
+	BuiltInThunkCreateStringEquality(context)
 	BuiltInThunkCreateStringConcat(context)
 	
 	BuiltInThunkCreateGCInit(context)
@@ -1217,6 +1236,17 @@ BuiltInThunkCreatePrint : LLVMContextHandle context
 	integer thunk = EpochLLVMFunctionCreateThunk(context, "ERT_print", fty)
 
 	BinaryTreeCreateOrInsert<integer>(LLVMGlobalThunks, PooledStringHandleForPrint, thunk)
+}
+
+BuiltInThunkCreateStringEquality : LLVMContextHandle context
+{
+	EpochLLVMFunctionTypePush(context)
+	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetString(context))
+	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetString(context))
+	LLVMFunctionType fty = EpochLLVMFunctionTypeCreate(context, EpochLLVMTypeGetBoolean(context))
+	integer thunk = EpochLLVMFunctionCreateThunk(context, "ERT_string_compare", fty)
+
+	BinaryTreeCreateOrInsert<integer>(LLVMGlobalThunks, PooledStringHandleForEqualityString, thunk)
 }
 
 BuiltInThunkCreateStringConcat : LLVMContextHandle context
@@ -1461,4 +1491,56 @@ ADummyFunction :
 	simplelist<boolean> hack = false, nothing
 	hack.value = true
 }
+
+
+CreateTypeMatcherDeclInLLVM : integer key, PendingTypeMatcher ref value, LLVMContextHandle ref context -> true
+{
+	string funcname = GetPooledString(value.MatcherName)
+
+	EpochLLVMFunctionTypePush(context)
+
+	LLVMType funcrettype = EpochLLVMTypeGetVoid(context)
+	
+	// TODO - inspect overloads for param types??
+	//CreateFunctionParamTypesInLLVM(context, func.Params, rawname, false)
+	
+	LLVMFunctionType functype = EpochLLVMFunctionTypeCreate(context, funcrettype)
+	LLVMFunctionRef llvmfunc = EpochLLVMFunctionCreate(context, funcname, functype)
+
+	BinaryTreeCreateOrInsert<LLVMFunctionRef>(LLVMFunctionTable, value.MatcherName, llvmfunc)	
+}
+
+
+
+
+
+
+GeneratePendingTypeMatchersInLLVM : LLVMContextHandle context, list<PendingTypeMatcher> ref pendingmatchers
+{
+	GeneratePendingTypeMatcherInLLVM(context, pendingmatchers.value)
+	GeneratePendingTypeMatchersInLLVM(context, pendingmatchers.next)
+}
+
+GeneratePendingTypeMatchersInLLVM : LLVMContextHandle context, nothing
+
+GeneratePendingTypeMatcherInLLVM : LLVMContextHandle context, PendingTypeMatcher ref matcher
+{
+	if(matcher.OverloadName == 0)
+	{
+		return()
+	}
+
+	ContextNode<TypeMatcher> matchwrap = nothing
+	if(!GetExistingTypeMatcher(TypeMatchers, matcher.MatcherName, matchwrap))
+	{
+		CreateTypeMatcherDeclInLLVM(matcher.MatcherName, matcher, context)
+		matchwrap = TypeMatchers.value
+	}
+
+	ContextNode<FunctionDefinition> wrap = nothing
+	SearchBinaryTreeForPayload<FunctionDefinition>(GlobalRootNamespace.Functions.RootNode, matcher.OverloadName, wrap)
+
+	WalkParametersForTypeMatcherContext(wrap, matchwrap)
+}
+
 

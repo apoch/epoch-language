@@ -10,6 +10,7 @@ TestSumTypes :
 	TestSection("Sum types")
 	
 	TSTPassthrough()
+	TSTTypeMatch()
 	
 	TestSectionComplete()
 }
@@ -28,4 +29,26 @@ TSTCheckPassthrough : BasicSumType ref test
 {
 	TestAssert(true, "basic sumtype parameter passthrough")
 }
+
+
+
+TSTTypeMatch :
+{
+	BasicSumType test = 42
+	TSTCheckTypeMatch(test)
+	
+	BasicSumType test2 = "test"
+	TSTCheckTypeMatch(test2)
+}
+
+TSTCheckTypeMatch : integer val
+{
+	TestAssert(val == 42, "sumtype type matching - integer fork")
+}
+
+TSTCheckTypeMatch : string val
+{
+	TestAssert(val == "test", "sumtype type matching - string fork")
+}
+
 
