@@ -2,8 +2,9 @@
 <PackageManifest Version="2.0.0" xmlns="http://schemas.microsoft.com/developer/vsx-schema/2011" xmlns:d="http://schemas.microsoft.com/developer/vsx-schema-design/2011">
   <Metadata>
     <Identity Id="Epoch.ProjectType..fdff1d6b-c9f6-40e2-b570-b965c5a3e629" Version="1.0" Language="en-US" Publisher="Epoch.ProjectType" />
-    <DisplayName>Epoch VSIX</DisplayName>
-    <Description xml:space="preserve">A template for creating a Epoch project.</Description>
+    <DisplayName>Epoch Programming Language</DisplayName>
+    <Description xml:space="preserve">Support for writing Epoch programs from within Visual Studio.</Description>
+    <MoreInfo>https://www.github.com/apoch/epoch-language</MoreInfo>
   </Metadata>
   <Installation>
     <InstallationTarget Id="Microsoft.VisualStudio.Pro" Version="14.0" />
