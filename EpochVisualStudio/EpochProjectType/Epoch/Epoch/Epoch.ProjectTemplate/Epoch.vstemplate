@@ -18,8 +18,7 @@
       These are the items which will show up when a new project is created using the custom project system.
       Items referenced in here must also be referenced in the project file.
       -->
-      <ProjectItem>Properties\AssemblyInfo.cs</ProjectItem>
-      <ProjectItem OpenInEditor="true" ReplaceParameters="true">Program.cs</ProjectItem>
+      <ProjectItem OpenInEditor="true" ReplaceParameters="true">EntryPoint.epoch</ProjectItem>
     </Project>
   </TemplateContent>
 </VSTemplate>
