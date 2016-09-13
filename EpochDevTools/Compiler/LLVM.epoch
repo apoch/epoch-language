@@ -166,11 +166,11 @@ SetUpAllLLVMCode : LLVMContextHandle context
 	GenerateTypeMatcherMappings(Functions)
 	GeneratePendingTypeMatchersInLLVM(context, PendingTypeMatchers)
 	
-	print("Generating LLVM function implementations...")
+	print("Generating LLVM function declarations...")
 	CreateAllFunctionsInLLVM(context, Functions)
 
 	print("Generating LLVM type-matcher implementations...")
-	// TODO
+	EmitAllTypeMatchersInLLVM(context, TypeMatchers)
 }
 
 
@@ -1493,27 +1493,6 @@ ADummyFunction :
 }
 
 
-CreateTypeMatcherDeclInLLVM : integer key, PendingTypeMatcher ref value, LLVMContextHandle ref context -> true
-{
-	string funcname = GetPooledString(value.MatcherName)
-
-	EpochLLVMFunctionTypePush(context)
-
-	LLVMType funcrettype = EpochLLVMTypeGetVoid(context)
-	
-	// TODO - inspect overloads for param types??
-	//CreateFunctionParamTypesInLLVM(context, func.Params, rawname, false)
-	
-	LLVMFunctionType functype = EpochLLVMFunctionTypeCreate(context, funcrettype)
-	LLVMFunctionRef llvmfunc = EpochLLVMFunctionCreate(context, funcname, functype)
-
-	BinaryTreeCreateOrInsert<LLVMFunctionRef>(LLVMFunctionTable, value.MatcherName, llvmfunc)	
-}
-
-
-
-
-
 
 GeneratePendingTypeMatchersInLLVM : LLVMContextHandle context, list<PendingTypeMatcher> ref pendingmatchers
 {
@@ -1533,7 +1512,10 @@ GeneratePendingTypeMatcherInLLVM : LLVMContextHandle context, PendingTypeMatcher
 	ContextNode<TypeMatcher> matchwrap = nothing
 	if(!GetExistingTypeMatcher(TypeMatchers, matcher.MatcherName, matchwrap))
 	{
-		CreateTypeMatcherDeclInLLVM(matcher.MatcherName, matcher, context)
+		list<FunctionSignature> dsl = dummysignature, nothing
+		TypeMatcher m = matcher.MatcherName, dsl
+		prepend<TypeMatcher>(TypeMatchers, m)
+
 		matchwrap = TypeMatchers.value
 	}
 
@@ -1542,5 +1524,98 @@ GeneratePendingTypeMatcherInLLVM : LLVMContextHandle context, PendingTypeMatcher
 
 	WalkParametersForTypeMatcherContext(wrap, matchwrap)
 }
+
+
+
+EmitAllTypeMatchersInLLVM : LLVMContextHandle context, list<TypeMatcher> ref matchers
+{
+	if(matchers.value.Name != 0)
+	{
+		string funcname = GetPooledString(matchers.value.Name)
+
+		EpochLLVMFunctionTypePush(context)
+
+		LLVMType funcrettype = EpochLLVMTypeGetVoid(context)
+		
+		// TODO - inspect overloads for param types??
+
+		// Statically known param types should be embedded in the signature
+		//  - EnumerateOverloadsAndAddParameterTypes
+
+		// For overloaded param types, create anonymous sum types with all type possibilities
+		//  - This means new code
+
+		// Caller is responsible for constructing sum typed objects to pass in
+		//  - Can probably get away with minor tweaks to type inference as it already exists
+
+		// Type matcher inspects each sum type and dispatches accordingly
+		// For statically known overload resolution, ensure LLVM opts do the right thing??
+		//  - OR we could detect this internally and emit a direct call to the overload
+		//  - probably have to do that detection at call site?
+		//  - Optimization for later; first pass doesn't absolutely need this
+
+		//CreateFunctionParamTypesInLLVM(context, func.Params, rawname, false)
+		
+		LLVMFunctionType functype = EpochLLVMFunctionTypeCreate(context, funcrettype)
+		LLVMFunctionRef llvmfunc = EpochLLVMFunctionCreate(context, funcname, functype)
+
+		BinaryTreeCreateOrInsert<LLVMFunctionRef>(LLVMFunctionTable, matchers.value.Name, llvmfunc)
+
+		// TODO - emit type matcher body
+
+		// Prolog
+		// Per overload iteration - EmitTypeMatcherOverloadsInLLVM(context, matchers.value.Overloads)
+		// Epilog
+	}
+
+	EmitAllTypeMatchersInLLVM(context, matchers.next)
+}
+
+EmitAllTypeMatchersInLLVM : LLVMContextHandle context, nothing
+
+
+EmitTypeMatcherOverloadsInLLVM : LLVMContextHandle context, list<FunctionSignature> ref signatures
+{
+	EmitTypeMatcherOverloadsInLLVM(context, signatures.next)
+
+	if(signatures.value.Name != 0)
+	{
+		// TODO - emit type match code
+
+		// Prolog for this particular overload
+
+		EmitTypeMatcherParamsInLLVM(context, signatures.value.Parameters)
+
+		// Epilog for this particular overload
+	}
+}
+
+EmitTypeMatcherOverloadsInLLVM : LLVMContextHandle context, nothing
+
+
+EmitTypeMatcherParamsInLLVM : LLVMContextHandle context, list<Parameter> ref params
+{
+	EmitTypeMatcherParamsInLLVM(context, params.next)
+
+	if(params.value.Name != 0)
+	{
+		integer refflag = 0
+		if(IsReferenceType(params.value.Type))
+		{
+			refflag = 1
+		}
+		
+		integer paramtype = MakeNonReferenceType(params.value.Type)
+		while((paramtype & 0x7f000000) == 0x05000000)
+		{
+			paramtype = FindTypeAliasBase(paramtype)
+		}
+
+		// TODO - emit parameter matching logic
+	}
+}
+
+EmitTypeMatcherParamsInLLVM : LLVMContextHandle context, nothing
+
 
 

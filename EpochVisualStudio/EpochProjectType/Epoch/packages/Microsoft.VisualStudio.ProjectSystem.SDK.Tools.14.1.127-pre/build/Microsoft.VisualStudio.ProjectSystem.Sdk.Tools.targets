@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+
+  <UsingTask TaskName="XamlRuleToCode" AssemblyFile="Microsoft.VisualStudio.ProjectSystem.Sdk.Tasks.dll"/>
+
+  <ItemGroup>
+    <!-- CPS style item type support -->
+    <PropertyPageSchema Include="$(MSBuildThisFileDirectory)XamlPropertyRule.ContentType.xaml"/>
+    <PropertyPageSchema Include="$(MSBuildThisFileDirectory)XamlPropertyRule.xaml">
+      <Context>File;BrowseObject</Context>
+    </PropertyPageSchema>
+
+    <!-- C# project system style item type support-->
+    <AvailableItemName Include="XamlPropertyRule" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <PrepareResourceNamesDependsOn>
+      GenerateRuleSourceFromXaml;
+      $(PrepareResourceNamesDependsOn)
+    </PrepareResourceNamesDependsOn>
+    <CleanDependsOn>GenerateRulePrep;$(CleanDependsOn)</CleanDependsOn>
+  </PropertyGroup>
+
+  <ItemDefinitionGroup>
+    <XamlPropertyRule>
+      <Namespace>$(RootNamespace)</Namespace>
+      <Generator>MSBuild:GenerateRuleSourceFromXaml</Generator>
+      <CreateFallbackRule>true</CreateFallbackRule>
+      <OutputPath>$(IntermediateOutputPath)</OutputPath>
+      <DataAccess>IRule</DataAccess>
+      <RuleInjection>ProjectLevel</RuleInjection>
+      <RuleInjectionCatalog>Project</RuleInjectionCatalog>
+      <RuleInjectionClassName>ProjectProperties</RuleInjectionClassName>
+    </XamlPropertyRule>
+  </ItemDefinitionGroup>
+
+  <Target Name="GenerateRulePrep">
+    <ItemGroup>
+      <_XamlPropertyRuleSource Include="@(XamlPropertyRule->'$(IntermediateOutputPath)%(FileName)$(DefaultLanguageSourceExtension)')"/>
+      <Compile Include="@(_XamlPropertyRuleSource)">
+        <ExcludeFromStyleCop>true</ExcludeFromStyleCop>
+      </Compile>
+      <Clean Include="@(_XamlPropertyRuleSource)" />
+    </ItemGroup>
+  </Target>
+
+  <!-- The target needs to run so the task can populate the output items correctly. The task does an uptodate check on the files themselves-->
+  <Target Name="GenerateRuleSourceFromXaml"
+          BeforeTargets="BeforeCompile"
+          DependsOnTargets="GenerateRulePrep"
+          Condition="'@(XamlPropertyRule)' != ''">
+    <XamlRuleToCode
+       CreateFallbackRule="%(XamlPropertyRule.CreateFallbackRule)"
+       NamespaceName="%(XamlPropertyRule.Namespace)"
+       RuleMissingError="%(XamlPropertyRule.RuleMissingError)"
+       PropertyMissingError="%(XamlPropertyRule.PropertyMissingError)"
+       Inputs="@(XamlPropertyRule)"
+       OutputDirectory="%(XamlPropertyRule.OutputPath)"
+       DataAccess="%(XamlPropertyRule.DataAccess)"
+       RuleBaseTypes="%(XamlPropertyRule.RuleBaseTypes)"
+       RuleNamePrefix="%(XamlPropertyRule.RuleNamePrefix)"
+       RuleInjectionClassName="%(XamlPropertyRule.RuleInjectionClassName)"
+       RuleInjection="%(XamlPropertyRule.RuleInjection)"
+       RuleInjectionContextName="%(XamlPropertyRule.RuleInjectionCatalog)"
+       RuleInjectionItemTypePropertyName="%(XamlPropertyRule.RuleInjectionItemTypePropertyName)"
+       RuleInjectionItemNamePropertyName="%(XamlPropertyRule.RuleInjectionItemNamePropertyName)"
+       ProjectPropertiesContext="%(XamlPropertyRule.ProjectPropertiesContext)"
+       IPropertyPagesCatalogTypeName="%(XamlPropertyRule.IPropertyPagesCatalogTypeName)"
+       IRuleTypeName="%(XamlPropertyRule.IRuleTypeName)"
+       ConfiguredProjectTypeName="%(XamlPropertyRule.ConfiguredProjectTypeName)"
+       IEvaluatedPropertyTypeName="%(XamlPropertyRule.IEvaluatedPropertyTypeName)"
+       IProjectPropertiesContextTypeName="%(XamlPropertyRule.IProjectPropertiesContextTypeName)">
+      <Output TaskParameter="ResourcesToEmbed" ItemName="EmbeddedResource"/>
+    </XamlRuleToCode>
+  </Target>
+
+</Project>

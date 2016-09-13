@@ -1,0 +1,275 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>Microsoft.VisualStudio.Composition.Configuration</name>
+    </assembly>
+    <members>
+        <member name="P:Microsoft.VisualStudio.Composition.AttributedPartDiscovery.IsNonPublicSupported">
+            <summary>
+            Gets a value indicating whether non-public types and members will be explored.
+            </summary>
+            <remarks>
+            The Microsoft.Composition NuGet package ignores non-publics.
+            </remarks>
+        </member>
+        <member name="P:Microsoft.VisualStudio.Composition.AttributedPartDiscovery.PublicVsNonPublicFlags">
+            <summary>
+            Gets the flags that select just public members or public and non-public as appropriate.
+            </summary>
+        </member>
+        <member name="M:Microsoft.VisualStudio.Composition.AttributedPartDiscovery.GetImportConstraints(System.Reflection.ICustomAttributeProvider)">
+            <summary>
+            Creates a set of import constraints for an import site.
+            </summary>
+            <param name="importSite">The importing member or parameter.</param>
+            <returns>A set of import constraints.</returns>
+        </member>
+        <member name="M:Microsoft.VisualStudio.Composition.ExportMetadataViewInterfaceEmitProxy.WithMetadataViewEmitProxySupport(Microsoft.VisualStudio.Composition.ComposableCatalog)">
+            <summary>
+            Adds support for queries to <see cref="M:Microsoft.VisualStudio.Composition.ExportProvider.GetExports``2"/> where
+            <c>TMetadata</c> is an interface.
+            </summary>
+            <param name="catalog">The catalog from which constructed ExportProviders may have this support added.</param>
+            <returns>The catalog with the additional support.</returns>
+        </member>
+        <member name="T:Microsoft.VisualStudio.Composition.MetadataViewGenerator">
+             <summary>
+             Constructs concrete types for metadata view interfaces.
+             </summary>
+             <remarks>
+             Assume TMetadataView is:
+             <code><![CDATA[
+             interface Foo
+             {
+                 public string RefTypeProperty { get; }
+                 public bool ValueTypeProperty { get; }
+             }
+             ]]></code>
+            
+             The class to be generated will look approximately like:
+             <code><![CDATA[
+             public class __Foo__MedataViewProxy : TMetadataView
+            
+                 private readonly IReadOnlyDictionary<string, object> metadata;
+                 private readonly IReadOnlyDictionary<string, object> defaultMetadata;
+            
+                 private __Foo__MedataViewProxy (IReadOnlyDictionary<string, object> metadata, IReadOnlyDictionary<string, object> defaultMetadata)
+                 {
+                     this.metadata = metadata;
+                     this.defaultMetadata = defaultMetadata;
+                 }
+            
+                 // Interface
+                 public string RefTypeProperty
+                 {
+                     get
+                     {
+                         object value;
+                         if (!this.metadata.TryGetValue("RefTypeProperty", out value))
+                             value = this.defaultMetadata["RefTypeProperty"];
+                         return value as string;
+                     }
+                 }
+            
+                 public bool ValueTypeProperty
+                 {
+                     get
+                     {
+                         object value;
+                         if (!this.metadata.TryGetValue("RefTypeProperty", out value))
+                             value = this.defaultMetadata["RefTypeProperty"];
+                         return (bool)value;
+                     }
+                 }
+            
+                 public static object Create(IReadOnlyDictionary<string, object> metadata, IReadOnlyDictionary<string, object> defaultMetadata)
+                 {
+                    return new __Foo__MedataViewProxy(metadata, defaultMetadata);
+                 }
+             }
+             ]]></code>
+             </remarks>
+        </member>
+        <member name="T:Microsoft.VisualStudio.Composition.ConfigurationStrings">
+            <summary>
+              A strongly-typed resource class, for looking up localized strings, etc.
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.Composition.ConfigurationStrings.ResourceManager">
+            <summary>
+              Returns the cached ResourceManager instance used by this class.
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.Composition.ConfigurationStrings.Culture">
+            <summary>
+              Overrides the current thread's CurrentUICulture property for all
+              resource lookups using this strongly typed resource class.
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.Composition.ConfigurationStrings.AssemblyNameMustBeSetFirst">
+            <summary>
+              Looks up a localized string similar to AssemblyName must be set first..
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.Composition.ConfigurationStrings.CannotBeEmpty">
+            <summary>
+              Looks up a localized string similar to Cannot be empty..
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.Composition.ConfigurationStrings.CollectionMustBePublicAndPublicCtorWhenUsingImportingCtor">
+            <summary>
+              Looks up a localized string similar to Collection must be public with a public constructor when used with an [ImportingConstructor]..
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.Composition.ConfigurationStrings.CompilerErrorsOccurred">
+            <summary>
+              Looks up a localized string similar to Compilation errors occurred..
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.Composition.ConfigurationStrings.CustomImportSourceNotSupported">
+            <summary>
+              Looks up a localized string similar to Custom import sources are not yet supported..
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.Composition.ConfigurationStrings.ExportsOnMembersNotAllowedWhenDeclaringTypeGeneric">
+            <summary>
+              Looks up a localized string similar to Exports on members not allowed when the declaring type is generic..
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.Composition.ConfigurationStrings.FailedToGenerateEmbeddableTypes">
+            <summary>
+              Looks up a localized string similar to Failed to generate embeddable types..
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.Composition.ConfigurationStrings.ImportConstraintTypeNotSupported">
+            <summary>
+              Looks up a localized string similar to The import constraint type {0} is not supported..
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.Composition.ConfigurationStrings.IsExpectedOnlyOnImportsOfExportFactoryOfT">
+            <summary>
+              Looks up a localized string similar to {0} is expected only on imports of ExportFactory&lt;T&gt;..
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.Composition.ConfigurationStrings.IsExportFactoryExpectedTrue">
+            <summary>
+              Looks up a localized string similar to IsExportFactory is expected to be true..
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.Composition.ConfigurationStrings.MemberContainsBothImportAndImportMany">
+            <summary>
+              Looks up a localized string similar to Member &quot;{0}&quot; contains both ImportAttribute and ImportManyAttribute..
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.Composition.ConfigurationStrings.NoImportingConstructorFound">
+            <summary>
+              Looks up a localized string similar to No importing constructor found..
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.Composition.ConfigurationStrings.NoMemberToSatisfy">
+            <summary>
+              Looks up a localized string similar to No member to satisfy..
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.Composition.ConfigurationStrings.OnImportsSatisfiedTakeNoParameters">
+            <summary>
+              Looks up a localized string similar to OnImportsSatisfied method should take no parameters..
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.Composition.ConfigurationStrings.OnlyOneOnImportsSatisfiedMethodIsSupported">
+            <summary>
+              Looks up a localized string similar to Only one OnImportsSatisfied method is supported..
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.Composition.ConfigurationStrings.OnlySupportedOnWriteOperations">
+            <summary>
+              Looks up a localized string similar to Only supported on write operations..
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.Composition.ConfigurationStrings.ReadableStreamRequired">
+            <summary>
+              Looks up a localized string similar to Readable stream required..
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.Composition.ConfigurationStrings.TypeMustDefineMemberInfoOrDerivedType">
+            <summary>
+              Looks up a localized string similar to Type must be the one that defines memberInfo or a derived type..
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.Composition.ConfigurationStrings.UnexpectedConstraintType">
+            <summary>
+              Looks up a localized string similar to Unexpected constraint type: {0}..
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.Composition.ConfigurationStrings.UnsupportedFormat">
+            <summary>
+              Looks up a localized string similar to Unsupported format: {0}..
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.Composition.ConfigurationStrings.WritableStreamRequired">
+            <summary>
+              Looks up a localized string similar to Writable stream required..
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.Composition.ConfigurationStrings.WrongType">
+            <summary>
+              Looks up a localized string similar to Wrong type..
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.Composition.SerializationContextBase.Resolver">
+            <summary>
+            Gets the resolver to use when deserializing.
+            </summary>
+        </member>
+        <member name="M:Microsoft.VisualStudio.Composition.SerializationContextBase.TryPrepareSerializeReusableObject(System.Object)">
+            <summary>
+            Prepares the object for referential sharing in the serialization stream.
+            </summary>
+            <param name="value">The value that may be serialized more than once.</param>
+            <returns><c>true</c> if the object should be serialized; otherwise <c>false</c>.</returns>
+        </member>
+        <member name="M:Microsoft.VisualStudio.Composition.SerializationContextBase.TryPrepareDeserializeReusableObject``1(System.UInt32@,``0@)">
+            <summary>
+            Gets an object that has already been deserialized, if available.
+            </summary>
+            <typeparam name="T">The type of deserialized object to retrieve.</typeparam>
+            <param name="id">Receives the ID of the object.</param>
+            <param name="value">Receives the value of the object, if available.</param>
+            <returns><c>true</c> if the caller should deserialize the object; <c>false</c> if the object is in <paramref name="value"/>.</returns>
+        </member>
+        <member name="T:Microsoft.VisualStudio.Composition.SerializationContextBase.SmartInterningEqualityComparer">
+            <summary>
+            An equality comparer that provides a bit better recognition of objects for better interning.
+            </summary>
+        </member>
+        <member name="M:Microsoft.VisualStudio.Composition.NetFxAdapters.AsExportProvider(Microsoft.VisualStudio.Composition.ExportProvider)">
+            <summary>
+            Creates an instance of a <see cref="T:System.ComponentModel.Composition.Hosting.ExportProvider"/>
+            for purposes of compatibility with the version of MEF found in the .NET Framework.
+            </summary>
+            <param name="exportProvider">The <see cref="T:Microsoft.VisualStudio.Composition.ExportProvider"/> to wrap.</param>
+            <returns>A MEF "v1" shim.</returns>
+        </member>
+        <member name="M:Microsoft.VisualStudio.Composition.NetFxAdapters.WithCompositionService(Microsoft.VisualStudio.Composition.ComposableCatalog)">
+            <summary>
+            Creates a catalog that exports an instance of <see cref="T:System.ComponentModel.Composition.ICompositionService"/>.
+            </summary>
+            <param name="catalog">The catalog to add the export to.</param>
+            <returns>A catalog that includes <see cref="T:System.ComponentModel.Composition.ICompositionService"/>.</returns>
+        </member>
+        <member name="M:Microsoft.VisualStudio.Composition.NetFxAdapters.WithDesktopSupport(Microsoft.VisualStudio.Composition.ComposableCatalog)">
+            <summary>
+            Adds parts that allow MEF to work on .NET Framework platforms.
+            </summary>
+            <param name="catalog">The catalog to add desktop support to.</param>
+            <returns>The catalog that includes desktop support.</returns>
+        </member>
+        <member name="M:Microsoft.VisualStudio.Composition.NetFxAdapters.MefV1ExportProvider.GetExportFactoryProductImportDefinitionIfApplicable(System.ComponentModel.Composition.Primitives.ImportDefinition)">
+            <summary>
+            Extracts the ImportDefinition for the T in an ExportFactory{T} import, if applicable.
+            </summary>
+            <param name="definition">The ImportDefinition which may be an ExportFactory.</param>
+            <returns>The import definition that describes the created part, or <c>null</c> if the import definition isn't an ExportFactory.</returns>
+        </member>
+    </members>
+</doc>

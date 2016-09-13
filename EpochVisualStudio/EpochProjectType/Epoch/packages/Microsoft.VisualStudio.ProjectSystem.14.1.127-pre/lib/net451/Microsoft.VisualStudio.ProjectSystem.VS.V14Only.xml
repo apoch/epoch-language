@@ -1,0 +1,1122 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>Microsoft.VisualStudio.ProjectSystem.VS.V14Only</name>
+    </assembly>
+    <members>
+        <member name="T:Microsoft.VisualStudio.ProjectSystem.VS.Build.AddMessageResult">
+            <summary>
+            Indicates the level of processing that has occurred by a particular extension
+            and what level of processing should still occur.
+            </summary>
+        </member>
+        <member name="F:Microsoft.VisualStudio.ProjectSystem.VS.Build.AddMessageResult.NotHandled">
+            <summary>
+            The message was not handled.
+            </summary>
+        </member>
+        <member name="F:Microsoft.VisualStudio.ProjectSystem.VS.Build.AddMessageResult.HandledAndStopProcessing">
+            <summary>
+            The message has been added and does not need to be processed further by the other providers.
+            </summary>
+        </member>
+        <member name="T:Microsoft.VisualStudio.ProjectSystem.VS.Build.IVsErrorListProvider">
+            <summary>
+            Provides access to the error list.
+            </summary>
+        </member>
+        <member name="M:Microsoft.VisualStudio.ProjectSystem.VS.Build.IVsErrorListProvider.SuspendRefresh">
+            <summary>
+            Stops refreshing the error list until <see cref="M:Microsoft.VisualStudio.ProjectSystem.VS.Build.IVsErrorListProvider.ResumeRefresh"/> is called.
+            </summary>
+            <devremarks>Dev15: Consider making this async</devremarks>
+        </member>
+        <member name="M:Microsoft.VisualStudio.ProjectSystem.VS.Build.IVsErrorListProvider.ResumeRefresh">
+            <summary>
+            Restarts the refreshing of the error list after it has been suspended.
+            </summary>
+            <devremarks>Dev15: Consider making this async</devremarks>
+        </member>
+        <member name="M:Microsoft.VisualStudio.ProjectSystem.VS.Build.IVsErrorListProvider.AddMessageAsync(Microsoft.VisualStudio.ProjectSystem.VS.Build.TargetGeneratedTask)">
+            <summary>
+            Adds the specified message to the error list.
+            </summary>
+            <param name="task">The message that needs to be added to the error list.</param>
+            <returns>Task whose result is <see cref="F:Microsoft.VisualStudio.ProjectSystem.VS.Build.AddMessageResult.HandledAndStopProcessing"/> if the message has been added and does not need to be processed further by
+            the other providers. Otherwise, set the result to <see cref="F:Microsoft.VisualStudio.ProjectSystem.VS.Build.AddMessageResult.NotHandled"/>.</returns>
+        </member>
+        <member name="M:Microsoft.VisualStudio.ProjectSystem.VS.Build.IVsErrorListProvider.ClearMessageFromTargetAsync(System.String)">
+            <summary>
+            Clears the messages that are associated with the specified target.
+            </summary>
+            <param name="targetName">The target.</param>
+        </member>
+        <member name="M:Microsoft.VisualStudio.ProjectSystem.VS.Build.IVsErrorListProvider.ClearAllAsync">
+            <summary>
+            Clears all the messages.
+            </summary>
+        </member>
+        <member name="T:Microsoft.VisualStudio.ProjectSystem.VS.Build.IVsLoggerProvider2">
+            <summary>
+            Creates instances of MSBuild loggers for VS windows.
+            </summary>
+            <remarks>
+            This contract defines the boundary between the VS shell system
+            and the consumer to help avoid taking unnecessary assembly dependencies
+            in the client.
+            </remarks>
+        </member>
+        <member name="M:Microsoft.VisualStudio.ProjectSystem.VS.Build.IVsLoggerProvider2.CreateLoggerAsync(Microsoft.VisualStudio.Shell.Interop.IVsOutputWindowPane,System.Boolean,System.Threading.CancellationToken)">
+            <summary>
+            Creates a MSBuild logger that connects to the Visual Studio Output Window.
+            </summary>
+            <param name="outputPane">The IVsOutputWindowPane instance the created logger will emit to.
+            If null, no logger will be created and null will be returned.</param>
+            <param name="populateErrorList"><c>true</c> if the error list should be populated as well as the output window; <c>false</c> otherwise.</param>
+            <param name="cancellationToken">A cancellation token.</param>
+            <returns>Instance of the MSBuild logger, or null if unable.</returns>
+        </member>
+        <member name="M:Microsoft.VisualStudio.ProjectSystem.VS.Build.IVsLoggerProvider2.CreateLoggerAsync(System.IO.TextWriter,System.Boolean,System.Threading.CancellationToken)">
+            <summary>
+            Creates a MSBuild logger that connects to the Visual Studio Output Window.
+            </summary>
+            <param name="outputWriter">
+            The <see cref="T:System.IO.TextWriter"/> instance the created logger will emit to.
+            <see cref="M:System.IDisposable.Dispose"/> will not be called on this instance at the conclusion of the build.
+            If null, no logger will be created and null will be returned.
+            </param>
+            <param name="populateErrorList"><c>true</c> if the error list should be populated as well as the output window; <c>false</c> otherwise.</param>
+            <param name="cancellationToken">A cancellation token.</param>
+            <returns>Instance of the MSBuild logger, or null if unable.</returns>
+        </member>
+        <member name="T:Microsoft.VisualStudio.ProjectSystem.VS.Build.IVsLoggerProvider">
+            <summary>
+            Creates instances of MSBuild loggers for VS windows.
+            </summary>
+            <remarks>
+            This contract defines the boundary between the VS shell system
+            and the consumer to help avoid taking unnecessary assembly dependencies
+            in the client.
+            </remarks>
+            <devremarks>
+            Dev15 TODO: Delete this interface in favor of the <see cref="T:Microsoft.VisualStudio.ProjectSystem.VS.Build.IVsLoggerProvider2"/> interface (and rename that one).
+            </devremarks>
+        </member>
+        <member name="M:Microsoft.VisualStudio.ProjectSystem.VS.Build.IVsLoggerProvider.CreateLogger(Microsoft.VisualStudio.Shell.Interop.IVsOutputWindowPane,System.Boolean)">
+            <summary>
+            Creates a MSBuild logger that connects to the Visual Studio Output Window.
+            </summary>
+            <param name="output">The IVsOutputWindowPane instance the created logger will emit to.
+            If null, no logger will be created and null will be returned.</param>
+            <param name="populateErrorList"><c>true</c> if the error list should be populated as well as the output window; <c>false</c> otherwise.</param>
+            <returns>Instance of the MSBuild logger, or null if unable.</returns>
+        </member>
+        <member name="T:Microsoft.VisualStudio.ProjectSystem.VS.Build.TargetGeneratedTask">
+            <summary>
+            A task that appears in the Visual Studio error list that is the result of building a specific MSBuild target.
+            </summary>
+            <devremarks>
+            TODO: Remove this class. We don't use the old APIs any more.
+            </devremarks>
+        </member>
+        <member name="P:Microsoft.VisualStudio.ProjectSystem.VS.Build.TargetGeneratedTask.GeneratingTarget">
+            <summary>
+            Gets or sets the target that produced this error list item.
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.ProjectSystem.VS.Build.TargetGeneratedTask.BuildEventArgs">
+            <summary>
+            Gets or sets the associated build event args.
+            </summary>
+        </member>
+        <member name="T:Microsoft.VisualStudio.ProjectSystem.VS.Designers.ILanguageServiceRegister">
+            <summary>
+            A service exported into the ProjectService scope that provides a registry of Intellisense projects.
+            </summary>
+            <remarks>
+            This is useful so that references between projects may be resolved to their respective intellisense projects,
+            allowing P2P intellisense to function without having to build those projects first.
+            </remarks>
+        </member>
+        <member name="M:Microsoft.VisualStudio.ProjectSystem.VS.Designers.ILanguageServiceRegister.RegisterProjectAsync(Microsoft.VisualStudio.ProjectSystem.VS.Designers.IProjectWithIntellisense)">
+            <summary>
+            Registers an intellisense project with the registry so that other projects may discover it.
+            </summary>
+            <param name="project">The intellisense project being added.</param>
+        </member>
+        <member name="M:Microsoft.VisualStudio.ProjectSystem.VS.Designers.ILanguageServiceRegister.UnregisterAsync(Microsoft.VisualStudio.ProjectSystem.VS.Designers.IProjectWithIntellisense)">
+            <summary>
+            Removes an intellisense project from the registry prior to closing it.
+            </summary>
+            <param name="project">The intellisense project being closed.</param>
+        </member>
+        <member name="M:Microsoft.VisualStudio.ProjectSystem.VS.Designers.ILanguageServiceRegister.TryGetIntellisenseProject(System.String,Microsoft.VisualStudio.Shell.Interop.IVsIntellisenseProject@)">
+            <summary>
+            Gets the intellisense project for the project with the given path.
+            </summary>
+            <param name="projectPath">The absolute path to the project.</param>
+            <param name="project">Set to the intellisense project if one with a matching path is registered; otherwise <c>null</c>.</param>
+            <returns><c>true</c> if a matching project was found; otherwise <c>false</c>.</returns>
+        </member>
+        <member name="T:Microsoft.VisualStudio.ProjectSystem.VS.Designers.IProjectWithIntellisense">
+            <summary>
+            An interface implemented by the C#/VB language service integration services.
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.ProjectSystem.VS.Designers.IProjectWithIntellisense.UnconfiguredProject">
+            <summary>
+            Gets the CPS project the Intellisense project is created for.
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.ProjectSystem.VS.Designers.IProjectWithIntellisense.IntellisenseProject">
+            <summary>
+            Gets the intellisense project.
+            </summary>
+        </member>
+        <member name="M:Microsoft.VisualStudio.ProjectSystem.VS.Designers.IProjectWithIntellisense.OnProjectAddedAsync(Microsoft.VisualStudio.ProjectSystem.UnconfiguredProject,Microsoft.VisualStudio.Shell.Interop.IVsIntellisenseProject)">
+            <summary>
+            Invoked when another intellisense project has been created.
+            </summary>
+            <param name="unconfiguredProject">The CPS project that is being initialized for intellisense.</param>
+            <param name="intellisenseProject">The intellisense project.</param>
+        </member>
+        <member name="M:Microsoft.VisualStudio.ProjectSystem.VS.Designers.IProjectWithIntellisense.OnProjectRemovedAsync(Microsoft.VisualStudio.ProjectSystem.UnconfiguredProject,Microsoft.VisualStudio.Shell.Interop.IVsIntellisenseProject)">
+            <summary>
+            Invoked when an existing intellisense project is being closed.
+            </summary>
+            <param name="unconfiguredProject">The CPS project that is being initialized for intellisense.</param>
+            <param name="intellisenseProject">The intellisense project.</param>
+        </member>
+        <member name="T:Microsoft.VisualStudio.ProjectSystem.VS.Designers.ILegacyProjectSystemRegistration">
+            <summary>
+            Allows for associating legacy project system implementations with CPS services.
+            </summary>
+        </member>
+        <member name="M:Microsoft.VisualStudio.ProjectSystem.VS.Designers.ILegacyProjectSystemRegistration.SetLegacyProject(Microsoft.VisualStudio.Shell.Interop.IVsHierarchy,Microsoft.VisualStudio.ProjectSystem.Designers.IVsUnconfiguredProjectIntegrationService)">
+            <summary>
+            Associates a CPS service with a non-CPS IVsHierarchy.
+            </summary>
+            <param name="hierarchy">The non-CPS project hierarchy COM object.</param>
+            <param name="integrationService">The CPS service that can be used to discover a CPS feature within the legacy project.</param>
+        </member>
+        <member name="T:Microsoft.VisualStudio.ProjectSystem.VS.Designers.IProjectCodeModelProvider">
+            <summary>
+            An interface that may be exported to the UnconfiguredProject scope
+            that binds language services and DTE together to provide code models.
+            </summary>
+        </member>
+        <member name="M:Microsoft.VisualStudio.ProjectSystem.VS.Designers.IProjectCodeModelProvider.GetCodeModel(EnvDTE.Project)">
+            <summary>
+            Gets the file code model for a given DTE project.
+            </summary>
+            <param name="project">The DTE project for which to create a code model.</param>
+            <returns>The code model.  Possibly null.</returns>
+        </member>
+        <member name="T:Microsoft.VisualStudio.ProjectSystem.VS.Designers.IVsProjectTreeService">
+            <summary>
+            An interface implemented by the CPS IVsProject object to offer project tree services.
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.ProjectSystem.VS.Designers.IVsProjectTreeService.InitialSourceItemsPopulated">
+            <summary>
+            Gets a task whose completion signals that source items have been populated.
+            </summary>
+        </member>
+        <member name="M:Microsoft.VisualStudio.ProjectSystem.VS.Designers.IVsProjectTreeService.PublishLatestReferencesAsync">
+            <summary>
+            Returns a task that will complete when the latest snapshot from the project subscription service is available.
+            </summary>
+            <returns>A task, which the caller could await for.</returns>
+        </member>
+        <member name="T:Microsoft.VisualStudio.ProjectSystem.VS.ITextWriterWithMessageId">
+            <summary>
+            This is optional interface to implement by TextWriter logger wrappers for output window
+            to allow passing the correlation id (ProviderGUID + messageID) for the output window message.
+            </summary>
+        </member>
+        <member name="M:Microsoft.VisualStudio.ProjectSystem.VS.ITextWriterWithMessageId.WriteLineWithId(System.Guid,System.UInt32,System.String)">
+            <summary>
+            Output a  message to IVsOutputWindowPane that can be correlated to Error tasks.
+            </summary>
+            <param name="messageProviderGuid">provider Guid. Provider (defined by the Guid) is essentially "namespace" for the messages id's.
+            It is expected all id's to be unique within the scope of the same provider.</param>
+            <param name="messageId">message ID (unique withing <paramref name="messageProviderGuid"/> provider)</param>
+            <param name="value">string to output</param>
+        </member>
+        <member name="T:Microsoft.VisualStudio.ProjectSystem.VS.IVsWizardExecutionEvents">
+            <summary>
+            An interface that may be exported into the UnconfiguredProject scope to receive the events on executing item template wizard.
+            </summary>
+            <remarks>
+            The listening clients should live in either ProjectService scope or UnconfiguredProject scope.
+            </remarks>
+            <remarks>
+            The project that is executing the wizard is not passed to the listening clients.
+            Instead, the listening clients could import <see cref="T:Microsoft.VisualStudio.ProjectSystem.UnconfiguredProject"/> to put
+            themselves in UnconfiguredProject scope and then they will be called only when that project
+            is executing the wizard.
+            </remarks>
+        </member>
+        <member name="M:Microsoft.VisualStudio.ProjectSystem.VS.IVsWizardExecutionEvents.OnAfterRunWizard(System.String,System.String,EnvDTE.wizardResult)">
+            <summary>
+            Notifies listening clients that the wizard has been executed.
+            </summary>
+            <param name="wizardPath">The full path of the wizard.</param>
+            <param name="itemPath">The full path of the item that should be created by the wizard.</param>
+            <param name="wizardResult">The result of the wizard execution.</param>
+        </member>
+        <member name="T:Microsoft.VisualStudio.ProjectSystem.VS.IPageMetadata">
+            <summary>
+            A piece of metadata to describe a page to be shown on the project designer.
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.ProjectSystem.VS.IPageMetadata.Name">
+            <summary>
+            Gets the canonical name of the page.  It needs be unique.
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.ProjectSystem.VS.IPageMetadata.PageGuid">
+            <summary>
+            Gets the Guid of the page control.  The project designer cocreates the control to show the page.
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.ProjectSystem.VS.IPageMetadata.PageOrder">
+            <summary>
+            Gets a number to sort pages, a page with a smaller number will be shown at the top.
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.ProjectSystem.VS.IPageMetadata.HasConfigurationCondition">
+            <summary>
+            Gets a value indicating whether the page shows different values for different configurations/platforms.
+            The project designer will show a configuration toolbar on the top of the page.
+            </summary>
+        </member>
+        <member name="T:Microsoft.VisualStudio.ProjectSystem.VS.IProjectAsyncLoadDashboardInternal">
+            <summary>
+            An export that reports on the status of async project load.
+            </summary>
+        </member>
+        <member name="M:Microsoft.VisualStudio.ProjectSystem.VS.IProjectAsyncLoadDashboardInternal.OnProjectLoadedInHost">
+            <summary>
+            Signals that the host IDE considers the project loaded.
+            </summary>
+        </member>
+        <member name="T:Microsoft.VisualStudio.ProjectSystem.VS.IProjectAsyncLoadDashboard">
+            <summary>
+            An export that reports on the status of async project load.
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.ProjectSystem.VS.IProjectAsyncLoadDashboard.ProjectLoadedInHost">
+            <summary>
+            Gets a task that completes when the host recognizes that this project is loaded.
+            </summary>
+        </member>
+        <member name="T:Microsoft.VisualStudio.ProjectSystem.VS.IProjectNestingService">
+            <summary>
+            Allows an extension to nest projects underneath a CPS project.
+            </summary>
+        </member>
+        <member name="E:Microsoft.VisualStudio.ProjectSystem.VS.IProjectNestingService.NestedHierarchyAdded">
+            <summary>
+            Raised when a hierarchy item has been attached to a nested hierarchy.
+            </summary>
+            <remarks>
+            This event must be raised on the UI thread.
+            </remarks>
+        </member>
+        <member name="M:Microsoft.VisualStudio.ProjectSystem.VS.IProjectNestingService.GetNestedHierarchyAsync(Microsoft.VisualStudio.ProjectSystem.Designers.IProjectTree)">
+            <summary>
+            Gets the hierarchy nested by the specified tree.
+            </summary>
+            <param name="projectTree">The project tree.</param>
+            <returns>A task whose result is the nested hierarchy, or whose result is <c>null</c> if there is no nested hierarchy for this tree.</returns>
+        </member>
+        <member name="M:Microsoft.VisualStudio.ProjectSystem.VS.IProjectNestingService.OnOpenChildrenAsync">
+            <summary>
+            Called when the IDE invokes IVsParentProject.OpenChildren.
+            </summary>
+        </member>
+        <member name="M:Microsoft.VisualStudio.ProjectSystem.VS.IProjectNestingService.OnSetNestedProjectAsync(System.Guid,System.UInt32)">
+            <summary>
+            Called when the IDE invokes IVsParentProject3.SetNestedProject.
+            </summary>
+        </member>
+        <member name="M:Microsoft.VisualStudio.ProjectSystem.VS.IProjectNestingService.OnRemoveNestedProjectAsync(System.Guid)">
+            <summary>
+            Called when the IDE invokes IVsParentProject..
+            </summary>
+        </member>
+        <member name="M:Microsoft.VisualStudio.ProjectSystem.VS.IProjectNestingService.OnDeleteNestedProjectAsync(System.Guid)">
+            <summary>
+            Called when the IDE invokes IVsParentProject3.DeleteNestedProject.
+            </summary>
+        </member>
+        <member name="M:Microsoft.VisualStudio.ProjectSystem.VS.IProjectNestingService.OnNotifyOnInvalidateItemsAsync(System.UInt32,System.Boolean)">
+            <summary>
+            Called when the IDE invokes IVsParentProject3.NotifyOnInvalidateItems.
+            </summary>
+        </member>
+        <member name="M:Microsoft.VisualStudio.ProjectSystem.VS.IProjectNestingService.OnNotifyOnItemAddedAsync(System.UInt32,System.UInt32,System.UInt32)">
+            <summary>
+            Called when the IDE invokes a similar method on IVsParentProject3.
+            </summary>
+        </member>
+        <member name="M:Microsoft.VisualStudio.ProjectSystem.VS.IProjectNestingService.OnNotifyOnItemDeletedAsync(System.UInt32)">
+            <summary>
+            Called when the IDE invokes a similar method on IVsParentProject3.
+            </summary>
+        </member>
+        <member name="M:Microsoft.VisualStudio.ProjectSystem.VS.IProjectNestingService.OnNotifyOnPropertyChangedAsync(System.UInt32,System.Int32,System.UInt32)">
+            <summary>
+            Called when the IDE invokes a similar method on IVsParentProject3.
+            </summary>
+        </member>
+        <member name="M:Microsoft.VisualStudio.ProjectSystem.VS.IProjectNestingService.OnNestedProjectReloadedAsync(System.Guid,Microsoft.VisualStudio.Shell.Interop.IVsHierarchy)">
+            <summary>
+            Called when the IDE invokes a similar method on IVsParentProject3.
+            </summary>
+        </member>
+        <member name="M:Microsoft.VisualStudio.ProjectSystem.VS.IProjectNestingService.OnAfterAddedToSolutionAsync">
+            <summary>
+            Called when the IDE invokes a similar method on IVsParentProject3.
+            </summary>
+        </member>
+        <member name="M:Microsoft.VisualStudio.ProjectSystem.VS.IProjectNestingService.OnPrepareNestedProjectCreationInfoAsync(System.String,System.UInt32)">
+            <summary>
+            Called when the IDE invokes a similar method on IVsParentProject3.
+            </summary>
+        </member>
+        <member name="M:Microsoft.VisualStudio.ProjectSystem.VS.IProjectNestingService.OnCleanupNestedProjectCreationInfoAsync(System.Boolean,System.UInt32,System.UInt32,System.Guid)">
+            <summary>
+            Called when the IDE invokes a similar method on IVsParentProject3.
+            </summary>
+        </member>
+        <member name="M:Microsoft.VisualStudio.ProjectSystem.VS.IProjectNestingService.OnQueryRenameNestedProjectAsync(System.Guid,System.String,System.String)">
+            <summary>
+            Called when the IDE invokes a similar method on IVsParentProject3.
+            </summary>
+        </member>
+        <member name="M:Microsoft.VisualStudio.ProjectSystem.VS.IProjectNestingService.OnAfterRenameNestedProjectAsync(System.Guid,System.String,System.String)">
+            <summary>
+            Called when the IDE invokes a similar method on IVsParentProject3.
+            </summary>
+        </member>
+        <member name="M:Microsoft.VisualStudio.ProjectSystem.VS.IProjectNestingService.OnNestedProjectClosedAsync(System.UInt32)">
+            <summary>
+            Called when the IDE invokes a similar method on IVsParentProject3.
+            </summary>
+        </member>
+        <member name="M:Microsoft.VisualStudio.ProjectSystem.VS.IProjectNestingService.OnCloseChildrenAsync">
+            <summary>
+            Called when the IDE invokes IVsParentProject.CloseChildren.
+            </summary>
+        </member>
+        <member name="M:Microsoft.VisualStudio.ProjectSystem.VS.IProjectNestingService.OnCloseProjectAsync">
+            <summary>
+            Called when this (parent) project is about to be closed.
+            </summary>
+        </member>
+        <member name="T:Microsoft.VisualStudio.ProjectSystem.VS.NestedHierarchyAddedEventArgs">
+            <summary>
+            Describes a nested hierarchy and its location.
+            </summary>
+        </member>
+        <member name="M:Microsoft.VisualStudio.ProjectSystem.VS.NestedHierarchyAddedEventArgs.#ctor(System.UInt32,Microsoft.VisualStudio.Shell.Interop.IVsHierarchy)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Microsoft.VisualStudio.ProjectSystem.VS.NestedHierarchyAddedEventArgs"/> class.
+            </summary>
+            <param name="itemId">The item identifier.</param>
+            <param name="nestedHierarchy">The nested hierarchy.</param>
+        </member>
+        <member name="P:Microsoft.VisualStudio.ProjectSystem.VS.NestedHierarchyAddedEventArgs.ItemId">
+            <summary>
+            Gets the ITEMID of the nesting item.
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.ProjectSystem.VS.NestedHierarchyAddedEventArgs.NestedHierarchy">
+            <summary>
+            Gets the nested hierarchy.
+            </summary>
+            <value>
+            The nested hierarchy.
+            </value>
+        </member>
+        <member name="T:Microsoft.VisualStudio.ProjectSystem.VS.IVsIsDocumentInProjectHandler">
+            <summary>
+            Handles calls to IVsProject*.IsDocumentInProject
+            </summary>
+        </member>
+        <member name="M:Microsoft.VisualStudio.ProjectSystem.VS.IVsIsDocumentInProjectHandler.IsDocumentInProjectAsync(System.String)">
+            <summary>
+            Checks for the presence of a file in the project.
+            </summary>
+            <param name="documentMoniker">The moniker of the document or file being sought.</param>
+            <returns>A struct detailing what was (or wasn't) found.</returns>
+        </member>
+        <member name="T:Microsoft.VisualStudio.ProjectSystem.VS.IsDocumentInProjectResult">
+            <summary>
+            Describes the result of a call to <see cref="M:Microsoft.VisualStudio.ProjectSystem.VS.IVsIsDocumentInProjectHandler.IsDocumentInProjectAsync(System.String)"/>.
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.ProjectSystem.VS.IsDocumentInProjectResult.ProjectTree">
+            <summary>
+            Gets or sets the project tree.
+            </summary>
+            <value>
+            The project tree.
+            </value>
+        </member>
+        <member name="P:Microsoft.VisualStudio.ProjectSystem.VS.IsDocumentInProjectResult.ProjectTreeVersion">
+            <summary>
+            Gets or sets the project tree version.
+            </summary>
+            <value>
+            The project tree version.
+            </value>
+        </member>
+        <member name="P:Microsoft.VisualStudio.ProjectSystem.VS.IsDocumentInProjectResult.OldDocumentPriority">
+            <summary>
+            Gets or sets the document priority as it should be returned from <see cref="M:Microsoft.VisualStudio.Shell.Interop.IVsProject3.IsDocumentInProject(System.String,System.Int32@,Microsoft.VisualStudio.Shell.Interop.VSDOCUMENTPRIORITY[],System.UInt32@)"/>.
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.ProjectSystem.VS.IsDocumentInProjectResult.DocumentPriority">
+            <summary>
+            Gets or sets the document priority as it should be returned from <see cref="M:Microsoft.VisualStudio.Shell.Interop.IVsProject5.IsDocumentInProject2(System.String,System.Int32@,System.Int32@,System.UInt32@)"/>.
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.ProjectSystem.VS.IsDocumentInProjectResult.IsEmpty">
+            <summary>
+            Gets a value indicating whether this instance is empty.
+            </summary>
+            <value>
+              <c>true</c> if this instance is empty; otherwise, <c>false</c>.
+            </value>
+        </member>
+        <member name="T:Microsoft.VisualStudio.ProjectSystem.VS.Debuggers.DebugLaunchOperation">
+            <summary>
+            Direction on how the debugger should launch or attach to the application.
+            </summary>
+            <remarks>
+            The members of this enum have values that match the native structure
+            <see cref="T:Microsoft.VisualStudio.Shell.Interop.DEBUG_LAUNCH_OPERATION"/>
+            to allow direct copying.
+            </remarks>
+        </member>
+        <member name="F:Microsoft.VisualStudio.ProjectSystem.VS.Debuggers.DebugLaunchOperation.AlreadyRunning">
+            <summary>
+            Attach to a process
+            </summary>
+            <remarks>
+             bstrExe is the process name, or a NULL character followed by
+             a string indicating the hexadecimal process id
+            </remarks>
+        </member>
+        <member name="F:Microsoft.VisualStudio.ProjectSystem.VS.Debuggers.DebugLaunchOperation.CreateProcess">
+            <summary>
+            Launch the application
+            </summary>
+            <remarks>
+            bstrExe is the full path to the exe,
+             bstrArg are the arguments to pass to CreateProcess,
+             clsidCustom specifies the single debug engine to use (NULL for default),
+             or dwClsidCount and pclsidList specify the debug engines to use
+            </remarks>
+        </member>
+        <member name="F:Microsoft.VisualStudio.ProjectSystem.VS.Debuggers.DebugLaunchOperation.Custom">
+            <summary>
+            Deprecated -- same as DLO_CreateProcess
+            </summary>
+        </member>
+        <member name="F:Microsoft.VisualStudio.ProjectSystem.VS.Debuggers.DebugLaunchOperation.LaunchByWebServer">
+            <summary>
+            Use special HTTP verb to debug
+            </summary>
+        </member>
+        <member name="F:Microsoft.VisualStudio.ProjectSystem.VS.Debuggers.DebugLaunchOperation.AttachToHostingProcess">
+            <summary>
+            Attach to a hosting process
+            </summary>
+        </member>
+        <member name="F:Microsoft.VisualStudio.ProjectSystem.VS.Debuggers.DebugLaunchOperation.StartDebuggingHostingProcess">
+            <summary>
+            Start debugging
+            </summary>
+        </member>
+        <member name="F:Microsoft.VisualStudio.ProjectSystem.VS.Debuggers.DebugLaunchOperation.LaunchBrowser">
+            <summary>
+            Launch a browser for web services or web browser debuggers
+            </summary>
+        </member>
+        <member name="F:Microsoft.VisualStudio.ProjectSystem.VS.Debuggers.DebugLaunchOperation.AppPackageDebug">
+            <summary>
+            The debugger should launch and/or register for debugging of a Windows 8 appcontainer
+            application. When using this option, VsAppPackageLaunchInfo should be supplied, along
+            with bstrExe, launch flags, remote connection information and engine information.
+            </summary>
+        </member>
+        <member name="F:Microsoft.VisualStudio.ProjectSystem.VS.Debuggers.DebugLaunchOperation.AttachToSuspendedLaunchProcess">
+            <summary>
+            The debugger should attach to the specified process, where the specified
+            process is a newly-launched process, which was launched using the CREATE_SUSPENDED
+            flag to the Win32 CreateProcess API. This allows the debugger to act as though
+            it launched the process, even though the process was actually started via
+            some other mechanism.
+            </summary>
+        </member>
+        <member name="T:Microsoft.VisualStudio.ProjectSystem.VS.Debuggers.IDebugLaunchSettings">
+            <summary>
+            A structure that a CPS debugger provider must fill out to fire up a debugger.
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.ProjectSystem.VS.Debuggers.IDebugLaunchSettings.LaunchOperation">
+            <summary>
+            Gets a description of how this process should be launched or attached.
+            </summary>
+            <remarks>
+            Copied into VsDebugTargetInfo2.dlo.
+            </remarks>
+        </member>
+        <member name="P:Microsoft.VisualStudio.ProjectSystem.VS.Debuggers.IDebugLaunchSettings.LaunchOptions">
+            <summary>
+            Gets launch flags that were passed to IVsDebuggableProjectCfg::Launch
+            </summary>
+            <remarks>
+            Copied into VsDebugTargetInfo2.LaunchFlags.
+            </remarks>
+        </member>
+        <member name="P:Microsoft.VisualStudio.ProjectSystem.VS.Debuggers.IDebugLaunchSettings.AppPackageLaunchInfo">
+            <summary>
+            Gets information required to start/launch Windows Store apps.
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.ProjectSystem.VS.Debuggers.IDebugLaunchSettings.LaunchDebugEngineGuid">
+            <summary>
+            guid of debug engine used for launch, (DLO_CreateProcess)
+            </summary>
+            <remarks>
+            Copied into VsDebugTargetInfo2.guidLaunchDebugEngine.
+            </remarks>
+        </member>
+        <member name="P:Microsoft.VisualStudio.ProjectSystem.VS.Debuggers.IDebugLaunchSettings.AdditionalDebugEngines">
+            <summary>
+            Collection of debug engine guids.  Should not include the <see cref="P:Microsoft.VisualStudio.ProjectSystem.VS.Debuggers.IDebugLaunchSettings.LaunchDebugEngineGuid"/>.
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.ProjectSystem.VS.Debuggers.IDebugLaunchSettings.PortSupplierGuid">
+            <summary>
+            port supplier guid
+            </summary>
+            <remarks>
+            Copied into VsDebugTargetInfo2.guidPortSupplier.
+            </remarks>
+        </member>
+        <member name="P:Microsoft.VisualStudio.ProjectSystem.VS.Debuggers.IDebugLaunchSettings.PortName">
+            <summary>
+            name of port from above supplier (NULL is fine)
+            </summary>
+            <remarks>
+            Copied into VsDebugTargetInfo2.bstrPortName.
+            </remarks>
+        </member>
+        <member name="P:Microsoft.VisualStudio.ProjectSystem.VS.Debuggers.IDebugLaunchSettings.RemoteMachine">
+            <summary>
+            NULL for local machine, or remote machine name
+            </summary>
+            <remarks>
+            Copied into VsDebugTargetInfo2.bstrRemoteMachine.
+            </remarks>
+        </member>
+        <member name="P:Microsoft.VisualStudio.ProjectSystem.VS.Debuggers.IDebugLaunchSettings.CurrentDirectory">
+            <summary>
+            current directory (DLO_CreateProcess)
+            </summary>
+            <remarks>
+            Copied into VsDebugTargetInfo2.bstrCurDir.
+            </remarks>
+        </member>
+        <member name="P:Microsoft.VisualStudio.ProjectSystem.VS.Debuggers.IDebugLaunchSettings.Executable">
+            <summary>
+            The name of the executable
+            </summary>
+            <remarks>
+            Copied into VsDebugTargetInfo2.bstrExe
+            </remarks>
+        </member>
+        <member name="P:Microsoft.VisualStudio.ProjectSystem.VS.Debuggers.IDebugLaunchSettings.Arguments">
+            <summary>
+            specifies how this process should be launched or attached
+            </summary>
+            <remarks>
+            Copied into VsDebugTargetInfo2.bstrArg
+            </remarks>
+        </member>
+        <member name="P:Microsoft.VisualStudio.ProjectSystem.VS.Debuggers.IDebugLaunchSettings.Environment">
+            <summary>
+            Get the dictionary for environment variables to set in the debuggee.
+            </summary>
+            <remarks>
+            Copied into VsDebugTargetInfo2.bstrEnv.
+            </remarks>
+        </member>
+        <member name="P:Microsoft.VisualStudio.ProjectSystem.VS.Debuggers.IDebugLaunchSettings.Options">
+            <summary>
+            custom options, specific to each guidLaunchDebugEngine.
+            </summary>
+            <remarks>
+            Copied into VsDebugTargetInfo2.bstrOptions.
+            </remarks>
+        </member>
+        <member name="P:Microsoft.VisualStudio.ProjectSystem.VS.Debuggers.IDebugLaunchSettings.StandardInputHandle">
+            <summary>
+            for file redirection
+            </summary>
+            <remarks>
+            Copied into VsDebugTargetInfo2.hStdInput.
+            </remarks>
+        </member>
+        <member name="P:Microsoft.VisualStudio.ProjectSystem.VS.Debuggers.IDebugLaunchSettings.StandardOutputHandle">
+            <summary>
+            for file redirection
+            </summary>
+            <remarks>
+            Copied into VsDebugTargetInfo2.hStdOutput.
+            </remarks>
+        </member>
+        <member name="P:Microsoft.VisualStudio.ProjectSystem.VS.Debuggers.IDebugLaunchSettings.StandardErrorHandle">
+            <summary>
+            for file redirection
+            </summary>
+            <remarks>
+            Copied into VsDebugTargetInfo2.hStdError.
+            </remarks>
+        </member>
+        <member name="P:Microsoft.VisualStudio.ProjectSystem.VS.Debuggers.IDebugLaunchSettings.SendToOutputWindow">
+            <summary>
+            if TRUE, stdout and stderr will be routed to the output window
+            </summary>
+            <remarks>
+            Copied into VsDebugTargetInfo2.fSendToOutputWindow.
+            </remarks>
+        </member>
+        <member name="P:Microsoft.VisualStudio.ProjectSystem.VS.Debuggers.IDebugLaunchSettings.ProcessId">
+            <summary>
+            process id (DLO_AlreadyRunning)
+            </summary>
+            <remarks>
+            Copied into VsDebugTargetInfo2.dwProcessId.
+            </remarks>
+        </member>
+        <member name="P:Microsoft.VisualStudio.ProjectSystem.VS.Debuggers.IDebugLaunchSettings.Project">
+            <summary>
+            The project that is launching the debuggee process.
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.ProjectSystem.VS.Debuggers.IDebugLaunchSettings.Unknown">
+            <summary>
+            interface pointer - usage depends on DEBUG_LAUNCH_OPERATION
+            </summary>
+            <remarks>
+            Copied into VsDebugTargetInfo2.pUnknown.
+            </remarks>
+        </member>
+        <member name="P:Microsoft.VisualStudio.ProjectSystem.VS.Debuggers.IDebugLaunchSettings.ProcessLanguageGuid">
+            <summary>
+            Language of the hosting process. Used to preload EE's
+            </summary>
+            <remarks>
+            Copied into VsDebugTargetInfo2.guidProcessLanguage.
+            </remarks>
+        </member>
+        <member name="T:Microsoft.VisualStudio.ProjectSystem.VS.Debuggers.IDebugQueryTarget">
+            <summary>
+            An optional interface that <see cref="T:Microsoft.VisualStudio.ProjectSystem.Debuggers.IDebugLaunchProvider"/> exports may also implement
+            in order to support the Visual Studio <see cref="T:Microsoft.VisualStudio.Shell.Interop.IVsQueryDebuggableProjectCfg"/> interface.
+            </summary>
+        </member>
+        <member name="M:Microsoft.VisualStudio.ProjectSystem.VS.Debuggers.IDebugQueryTarget.QueryDebugTargetsCountAsync(Microsoft.VisualStudio.ProjectSystem.Debuggers.DebugLaunchOptions)">
+            <summary>
+            Gets the number of elements that would be in the array returned by <see cref="M:Microsoft.VisualStudio.ProjectSystem.VS.Debuggers.IDebugQueryTarget.QueryDebugTargetsAsync(Microsoft.VisualStudio.ProjectSystem.Debuggers.DebugLaunchOptions)"/>.
+            </summary>
+            <param name="launchOptions">The flags that would be passed to <see cref="M:Microsoft.VisualStudio.ProjectSystem.Debuggers.IDebugLaunchProvider.LaunchAsync(Microsoft.VisualStudio.ProjectSystem.Debuggers.DebugLaunchOptions)"/> to actually launch the debugger.</param>
+            <returns>A non-negative integer.</returns>
+        </member>
+        <member name="M:Microsoft.VisualStudio.ProjectSystem.VS.Debuggers.IDebugQueryTarget.QueryDebugTargetsAsync(Microsoft.VisualStudio.ProjectSystem.Debuggers.DebugLaunchOptions)">
+            <summary>
+            Gets the debugger initialization settings that would be used to launch the debugger.
+            </summary>
+            <param name="launchOptions">The flags that would be passed to <see cref="M:Microsoft.VisualStudio.ProjectSystem.Debuggers.IDebugLaunchProvider.LaunchAsync(Microsoft.VisualStudio.ProjectSystem.Debuggers.DebugLaunchOptions)"/> to actually launch the debugger.</param>
+            <returns>An array of elements that each describe a debuggee process to launch.  May be empty, but must not be null.</returns>
+            <remarks>
+            Implementations of this method should not have any side-effects.
+            </remarks>
+        </member>
+        <member name="T:Microsoft.VisualStudio.ProjectSystem.VS.IActiveIntellisenseProjectProvider">
+            <summary>
+            An interface that may be exported at the UnconfiguredProject scope that allows CPS extenders
+            to provide their own handling of the VSHPROPID_ActiveIntellisenseProjectContext
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.ProjectSystem.VS.IActiveIntellisenseProjectProvider.ActiveIntellisenseProjectContext">
+            <summary>
+            Gets or sets the current shared item context intellisense project name. Can be null.
+            </summary>
+        </member>
+        <member name="T:Microsoft.VisualStudio.ProjectSystem.VS.ICodeModelProvider">
+            <summary>
+            An interface that may be exported to the UnconfiguredProject scope
+            that binds language services and DTE together to provide code models.
+            </summary>
+            <devremarks>
+            TODO: Rename to IFileCodeModelProvider
+            </devremarks>
+        </member>
+        <member name="M:Microsoft.VisualStudio.ProjectSystem.VS.ICodeModelProvider.GetFileCodeModel(EnvDTE.ProjectItem)">
+            <summary>
+            Gets the file code model for a given DTE project item.
+            </summary>
+            <param name="fileItem">The DTE file for which to create a code model.</param>
+            <returns>The code model.  Possibly null.</returns>
+        </member>
+        <member name="T:Microsoft.VisualStudio.ProjectSystem.VS.ISharedItemContextHierarchyProvider">
+            <summary>
+            An interface that may be exported at the UnconfiguredProject scope that allows that allows CPS extenders
+            to provider their own handling of the VSHPROPID_SharedItemContextHieararchy
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.ProjectSystem.VS.ISharedItemContextHierarchyProvider.SharedItemContextHierarchy">
+            <summary>
+            Gets or sets the current shared item context hierarchy. Can be null.
+            </summary>
+        </member>
+        <member name="T:Microsoft.VisualStudio.ProjectSystem.VS.ILanguageFeaturesProvider">
+            <summary>
+            Provides programming language specific features.
+            i.e. makes a proper identifier from the given string.
+            </summary>
+        </member>
+        <member name="M:Microsoft.VisualStudio.ProjectSystem.VS.ILanguageFeaturesProvider.MakeProperIdentifier(System.String)">
+            <summary>
+            Makes a proper identifier from the given string.
+            </summary>
+            <param name="name">The input string.</param>
+            <returns>A proper identifier which meets the language spec.</returns>
+        </member>
+        <member name="M:Microsoft.VisualStudio.ProjectSystem.VS.ILanguageFeaturesProvider.MakeProperNamespace(System.String)">
+            <summary>
+            Makes a proper namespace from the given string.
+            </summary>
+            <param name="name">The input string.</param>
+            <returns>A proper namespace which meets the language spec.</returns>
+        </member>
+        <member name="M:Microsoft.VisualStudio.ProjectSystem.VS.ILanguageFeaturesProvider.ConcatNamespaces(System.String[])">
+            <summary>
+            Concatenate multiple namespace names.
+            </summary>
+            <param name="namespaceNames">The array of namespace names to be concatenated.</param>
+            <returns>A concatenated namespace name.</returns>
+        </member>
+        <member name="T:Microsoft.VisualStudio.ProjectSystem.VS.IProjectTargetChange">
+            <summary>
+            This interface was defined to work around the issue that IVsProjectTargetChange can't be used across assembly boundaries
+            when it's used as a generic type parameter (e.g. Task&lt;IVsProjectTargetChange&gt;), because IVsProjectTargetChange is
+            an embedded interop type.
+            </summary>
+        </member>
+        <member name="T:Microsoft.VisualStudio.ProjectSystem.VS.IProjectGuidService">
+            <summary>
+            Obtains the project GUID.
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.ProjectSystem.VS.IProjectGuidService.ProjectGuid">
+            <summary>
+            Gets the project identifier that uniquely identifies this project within a solution.
+            </summary>
+            <devremarks>
+            TODO: make this an async method to reflect both implementations we have already.
+            </devremarks>
+        </member>
+        <member name="T:Microsoft.VisualStudio.ProjectSystem.VS.RetargetCheckOptions">
+            <summary>
+            Describe the context when <see cref="M:Microsoft.VisualStudio.ProjectSystem.VS.IProjectRetargetHandler.CheckForRetargetAsync(Microsoft.VisualStudio.ProjectSystem.VS.RetargetCheckOptions)"></see> is invoked.
+            </summary>
+        </member>
+        <member name="F:Microsoft.VisualStudio.ProjectSystem.VS.RetargetCheckOptions.None">
+            <summary>
+            None.
+            </summary>
+        </member>
+        <member name="F:Microsoft.VisualStudio.ProjectSystem.VS.RetargetCheckOptions.NoPrompt">
+            <summary>
+            There will be no prompt. Load sequence will proceed with the default action on Cancel.
+            This option will be used on solution load case after first open.
+            </summary>
+        </member>
+        <member name="F:Microsoft.VisualStudio.ProjectSystem.VS.RetargetCheckOptions.RequiredOnly">
+            <summary>
+            This option will consider only projects that have "IVsProjectTargetChange.UnloadOnCancel" equal to <c>true</c>.
+            </summary>
+        </member>
+        <member name="F:Microsoft.VisualStudio.ProjectSystem.VS.RetargetCheckOptions.FirstSolutionLoad">
+            <summary>
+            Set when load project/solution for the first time
+            </summary>
+        </member>
+        <member name="F:Microsoft.VisualStudio.ProjectSystem.VS.RetargetCheckOptions.ProjectLoad">
+            <summary>
+            Set when called after project load
+            </summary>
+        </member>
+        <member name="F:Microsoft.VisualStudio.ProjectSystem.VS.RetargetCheckOptions.SolutionRetarget">
+            <summary>
+            Set when invoking Solution Retarget command
+            </summary>
+        </member>
+        <member name="F:Microsoft.VisualStudio.ProjectSystem.VS.RetargetCheckOptions.ProjectRetarget">
+            <summary>
+            Set when invoked by Retarget project command
+            </summary>
+        </member>
+        <member name="F:Microsoft.VisualStudio.ProjectSystem.VS.RetargetCheckOptions.ProjectReload">
+            <summary>
+            Set when called after project load
+            </summary>
+        </member>
+        <member name="T:Microsoft.VisualStudio.ProjectSystem.VS.RetargetOptions">
+            <summary>
+            A hint to <see cref="M:Microsoft.VisualStudio.ProjectSystem.VS.IProjectRetargetHandler.RetargetAsync(System.IO.TextWriter,Microsoft.VisualStudio.ProjectSystem.VS.RetargetOptions,Microsoft.VisualStudio.ProjectSystem.VS.IProjectTargetChange,System.String)"/> telling it the extra requirements for retargeting.
+            </summary>
+        </member>
+        <member name="F:Microsoft.VisualStudio.ProjectSystem.VS.RetargetOptions.None">
+            <summary>
+            None.
+            </summary>
+        </member>
+        <member name="F:Microsoft.VisualStudio.ProjectSystem.VS.RetargetOptions.Backup">
+            <summary>
+            Do backup if it's supported.
+            </summary>
+        </member>
+        <member name="T:Microsoft.VisualStudio.ProjectSystem.VS.IProjectRetargetHandler">
+            <summary>
+            An interface a MEF component can implement to opt in the project retargeting experience.
+            This interface is expected to be defined in UnconfiguredProject scope.
+            </summary>
+        </member>
+        <member name="M:Microsoft.VisualStudio.ProjectSystem.VS.IProjectRetargetHandler.CheckForRetargetAsync(Microsoft.VisualStudio.ProjectSystem.VS.RetargetCheckOptions)">
+            <summary>
+            Checks the project to see whether it wants to opt in the retargeting experiences.
+            </summary>
+            <param name="options">The option to describe the context.</param>
+            <returns>
+            A task whose result is an instance of <see cref="T:Microsoft.VisualStudio.ProjectSystem.VS.IProjectTargetChange"/>.
+            The task's result can be <c>null</c> if the project doesn't need retargeting.
+            </returns>
+        </member>
+        <member name="M:Microsoft.VisualStudio.ProjectSystem.VS.IProjectRetargetHandler.RetargetAsync(System.IO.TextWriter,Microsoft.VisualStudio.ProjectSystem.VS.RetargetOptions,Microsoft.VisualStudio.ProjectSystem.VS.IProjectTargetChange,System.String)">
+            <summary>
+            Execute the retargeting.
+            </summary>
+            <param name="outputLogger">The logger used to report states, warnings, and errors.</param>
+            <param name="options">The options to describe the extra requirements need to take care.</param>
+            <param name="projectTargetChange">The instance of <see cref="T:Microsoft.VisualStudio.ProjectSystem.VS.IProjectTargetChange"/>.</param>
+            <param name="backupLocation">The full path of the backup folder.</param>
+        </member>
+        <member name="M:Microsoft.VisualStudio.ProjectSystem.VS.IProjectRetargetHandler.GetAffectedFilesAsync(Microsoft.VisualStudio.ProjectSystem.VS.IProjectTargetChange)">
+            <summary>
+            The list of full paths of files which are going to be changed during retargeting.
+            </summary>
+            <param name="projectTargetChange">The result of a prior call to <see cref="M:Microsoft.VisualStudio.ProjectSystem.VS.IProjectRetargetHandler.CheckForRetargetAsync(Microsoft.VisualStudio.ProjectSystem.VS.RetargetCheckOptions)" />. This parameter is required.</param>
+            <returns>A task whose result is the list of full paths of the affected files.</returns>
+        </member>
+        <member name="T:Microsoft.VisualStudio.ProjectSystem.VS.IVsOutputWindowTextWriterFactory">
+            <summary>
+            A factory that wraps Visual Studio output window panes with a thread-safe .NET <see cref="T:System.IO.TextWriter"/>.
+            </summary>
+        </member>
+        <member name="M:Microsoft.VisualStudio.ProjectSystem.VS.IVsOutputWindowTextWriterFactory.CreateTextWriter(Microsoft.VisualStudio.Shell.Interop.IVsOutputWindowPane)">
+            <summary>
+            Creates a wrapping, thread-safe <see cref="T:System.IO.TextWriter"/> around a Visual Studio output window pane.
+            </summary>
+            <param name="outputWindowPane">The output window pane to wrap.</param>
+            <returns>A disposable wrapper around the <see cref="T:System.IO.TextWriter"/>.</returns>
+        </member>
+        <member name="T:Microsoft.VisualStudio.ProjectSystem.VS.IVsProjectDesignerPageProvider">
+            <summary>
+            Provides project pages to be shown for the project.
+            A project that wants to use the project designer has to implement this component under unconfigured project context.
+            </summary>
+        </member>
+        <member name="M:Microsoft.VisualStudio.ProjectSystem.VS.IVsProjectDesignerPageProvider.GetPagesAsync">
+            <summary>
+            Get metadata for project desiger pages need be shown for the project.
+            Pages from all providers for the project will be merged together, and all of them will be shown.
+            </summary>
+        </member>
+        <member name="T:Microsoft.VisualStudio.ProjectSystem.VS.IProfilableProjectProvider">
+            <summary>
+            An interface that MEF extensions can export to provide an implementation for profiling the project.
+            </summary>
+            <remarks>
+            The policy in CPS is that the first preferred MEF extension is used exclusively.
+            </remarks>
+        </member>
+        <member name="P:Microsoft.VisualStudio.ProjectSystem.VS.IProfilableProjectProvider.LegacyWebSupportRequired">
+            <summary>
+            Gets a value indicating whether legacy Web support is required.
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.ProjectSystem.VS.IProfilableProjectProvider.SuppressSignedAssemblyWarnings">
+            <summary>
+            Gets a value indicating if signed assembly warnings are to be displayed.
+            </summary>
+        </member>
+        <member name="M:Microsoft.VisualStudio.ProjectSystem.VS.IProfilableProjectProvider.AllBrowserTargetsFinishedAsync">
+            <summary>
+            Notifies the profiler that all of the browser targets have exited if browser targets were created.
+            This is useful for the profilr to finish profiling when the browser is closed by shutting down any services they provided.
+            </summary>
+        </member>
+        <member name="M:Microsoft.VisualStudio.ProjectSystem.VS.IProfilableProjectProvider.BeforeLaunchAsync(System.String)">
+            <summary>
+            Calls this method before the profile starts (e.g. web project may need to stop any running instance of IIS Express before profile starts.)
+            </summary>
+            <param name="profilingTask">One of the strings returned from <see cref="M:Microsoft.VisualStudio.ProjectSystem.VS.IProfilableProjectProvider.GetSupportedProfilingTasksAsync"/></param>
+        </member>
+        <member name="M:Microsoft.VisualStudio.ProjectSystem.VS.IProfilableProjectProvider.BeforeTargetsLaunchedAsync">
+            <summary>
+            Calls this method before any launch targets are started.
+            </summary>
+        </member>
+        <member name="M:Microsoft.VisualStudio.ProjectSystem.VS.IProfilableProjectProvider.GetSupportedProfilingTasksAsync">
+            <summary>
+            Gets the profiling tasks that are supported by the profiler.
+            </summary>
+            <returns>The supported profiling tasks. A <c>null</c> IEnumerable is acceptable to the caller.</returns>
+        </member>
+        <member name="M:Microsoft.VisualStudio.ProjectSystem.VS.IProfilableProjectProvider.LaunchProfilerAsync">
+            <summary>
+            Launches the profiler.
+            </summary>
+        </member>
+        <member name="M:Microsoft.VisualStudio.ProjectSystem.VS.IProfilableProjectProvider.ProfilerAnalysisFinishedAsync">
+            <summary>
+            Notifies the profiler that the analysis is fully completed.
+            </summary>
+        </member>
+        <member name="M:Microsoft.VisualStudio.ProjectSystem.VS.IProfilableProjectProvider.QueryProfilerTargetInfoEnumAsync">
+            <summary>
+            Returns the information of the profiler targets that will be used for launch.
+            </summary>
+            <returns>
+            A task whose result is the profiler targets info. The expected type of object here is IVsProfilerTargetInfo.
+            Returning Task&lt;object[]&gt; instead of Task&lt;IVsProfilerTargetInfo[]&gt; is because IVsProfilerTargetInfo is an embedded interop type,
+            so it can't be used across assembly boundaries.
+            </returns>
+        </member>
+        <member name="T:Microsoft.VisualStudio.ProjectSystem.VS.PropertyPages.IDynamicPropertyModifier">
+            <summary>
+            Optional interface implemented by property page service provider object
+            Allows to get/set value of not yet applied dynamic property
+            </summary>
+        </member>
+        <member name="M:Microsoft.VisualStudio.ProjectSystem.VS.PropertyPages.IDynamicPropertyModifier.TryGetPropertyValue(System.String,System.String@)">
+            <summary>
+            Get value
+            </summary>
+        </member>
+        <member name="M:Microsoft.VisualStudio.ProjectSystem.VS.PropertyPages.IDynamicPropertyModifier.SetPropertyValueAsync(System.String,System.String)">
+            <summary>
+            Set value
+            </summary>
+        </member>
+        <member name="T:Microsoft.VisualStudio.ProjectSystem.Designers.IVsProjectServices">
+            <summary>
+            Visual Studio specific services for the shim.
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.ProjectSystem.Designers.IVsProjectServices.SolutionDirectory">
+            <summary>
+            Gets the directory containing the solution file.
+            </summary>
+            <returns>A full path that always ends with a directory separator character.</returns>
+        </member>
+        <member name="M:Microsoft.VisualStudio.ProjectSystem.Designers.IVsProjectServices.LookupProjectPathFromProjectGuid(System.Guid)">
+            <summary>
+            Gets the absolute project path from a project GUID.
+            </summary>
+        </member>
+        <member name="M:Microsoft.VisualStudio.ProjectSystem.Designers.IVsProjectServices.GetProjectIdentifierGuid(EnvDTE.Project)">
+            <summary>
+            Gets the project GUID from several different objects Visual Studio might use.
+            </summary>
+            <param name="project">
+            A IVsHierarchy, VCProject or a EnvDTE.Project instance.
+            </param>
+            <returns>The project guid, or <see cref="F:System.Guid.Empty"/> if the type of the object was not recognized.</returns>
+        </member>
+        <member name="M:Microsoft.VisualStudio.ProjectSystem.Designers.IVsProjectServices.GetProjectIdentifierGuid(Microsoft.VisualStudio.VCProjectEngine.VCProject)">
+            <summary>
+            Gets the project GUID from several different objects Visual Studio might use.
+            </summary>
+            <param name="project">
+            A IVsHierarchy, VCProject or a EnvDTE.Project instance.
+            </param>
+            <returns>The project guid, or <see cref="F:System.Guid.Empty"/> if the type of the object was not recognized.</returns>
+        </member>
+        <member name="M:Microsoft.VisualStudio.ProjectSystem.Designers.IVsProjectServices.GetProjectIdentifierGuid(Microsoft.VisualStudio.Shell.Interop.IVsHierarchy)">
+            <summary>
+            Gets the project GUID from several different objects Visual Studio might use.
+            </summary>
+            <param name="project">
+            A IVsHierarchy, VCProject or a EnvDTE.Project instance.
+            </param>
+            <returns>The project guid, or <see cref="F:System.Guid.Empty"/> if the type of the object was not recognized.</returns>
+        </member>
+        <member name="M:Microsoft.VisualStudio.ProjectSystem.Designers.IVsProjectServices.GetProjectIdentifierGuid(System.String)">
+            <summary>
+            Gets the Guid given a path to a project if possible.
+            </summary>
+            <param name="projectName">The full or solution-relative path to a project.</param>
+            <exception cref="T:System.Runtime.InteropServices.COMException">Thrown when the given project does not belong to the solution.</exception>
+        </member>
+        <member name="M:Microsoft.VisualStudio.ProjectSystem.Designers.IVsProjectServices.IsProjectContainedInSolution(System.Guid)">
+            <summary>
+            Indicates if the project with the given guid is present in the opened solution.
+            </summary>
+            <param name="value"> The project guid. </param>
+            <returns> True, if and only if the project is contained by the solution. </returns>
+        </member>
+        <member name="M:Microsoft.VisualStudio.ProjectSystem.Designers.IVsProjectServices.IsProjectContainedInSolution(System.String)">
+            <summary>
+            Indicates if the project with the given evaluated full path is present in the opened solution.
+            </summary>
+            <param name="evaluatedFullPath"> The evaluated full path of the project. </param>
+            <returns> True, if and only if the project is contained by the solution. </returns>
+        </member>
+        <member name="M:Microsoft.VisualStudio.ProjectSystem.Designers.IVsProjectServices.GetHierarchyByProjectName(System.String)">
+            <summary>
+            Gets the IVsHierarchy object for the project with the given path.
+            </summary>
+            <param name="projectName">The absolute or solution-relative path to a project file.</param>
+            <returns>The IVsHierarchy object, or <c>null</c> if it could not be retrieved, for various reasons.</returns>
+        </member>
+        <member name="T:Microsoft.VisualStudio.Project.IVsUnconfiguredProjectTypeGuidSetter">
+            <summary>
+            A backdoor for VC to set the ProjectTypeGuid on the IVsUnconfiguredProjectIntegrationService.
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.Project.IVsUnconfiguredProjectTypeGuidSetter.ProjectTypeGuid">
+            <summary>
+            Sets the ProjectTypeGuid property on the IVsUnconfiguredProjectIntegrationService.
+            </summary>
+        </member>
+        <member name="M:Microsoft.VisualStudio.Project.IVsUnconfiguredProjectTypeGuidSetter.SetActiveProjectConfigurationAsync(Microsoft.VisualStudio.ProjectSystem.ProjectConfiguration,Microsoft.VisualStudio.ProjectSystem.ProjectConfiguration)">
+            <summary>
+            Sets the active project configuration to be the specified configuration.
+            </summary>
+            <param name="activeProjectConfiguration">The active project configuration.</param>
+            <param name="previouslyActiveProjectConfiguration">The previously active project configuration. This parameter could be <c>null</c>.</param>
+            <remarks>This method needs to be invoked on UI thread.</remarks>
+        </member>
+    </members>
+</doc>

@@ -1,0 +1,51 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<!--Copyright, Microsoft Corporation, All rights reserved.-->
+<Rule xmlns="http://schemas.microsoft.com/build/2009/properties"
+      Name="XamlPropertyRule"
+      DisplayName="XAML Property Rule"
+      PageTemplate="generic"
+      Description="A description of project properties or item metadata in XAML.">
+    <Rule.Categories>
+        <Category Name="General" DisplayName="General" />
+        <Category Name="RuleInjection" DisplayName="Rule Injection" />
+        <Category Name="Advanced" DisplayName="Advanced" />
+    </Rule.Categories>
+    <Rule.DataSource>
+        <DataSource Persistence="ProjectFile" ItemType="XamlPropertyRule" />
+    </Rule.DataSource>
+    <EnumProperty Name="DataAccess" DisplayName="Generated API">
+        <EnumValue Name="None" DisplayName="Property names only" Description="No data access will be offered by the generated code. Only string constants will be generated." />
+        <EnumValue Name="IRule" DisplayName="Property names and IRule accessors" Description='CPS data access layer ("DM2").' />
+    </EnumProperty>
+    <EnumProperty Name="RuleInjection" Category="RuleInjection">
+        <EnumValue Name="None" Description="No partial class will be created." />
+        <EnumValue Name="ProjectLevel" Description="A partial class will be generated to make accessing the generated rule easy." />
+    </EnumProperty>
+    <EnumProperty Name="RuleInjectionCatalog" Category="RuleInjection">
+        <EnumValue Name="Project" />
+        <EnumValue Name="File" />
+    </EnumProperty>
+    <EnumProperty Name="RuleInjectionClassName" Category="RuleInjection">
+    </EnumProperty>
+    <StringProperty Name="Namespace" DisplayName="Namespace for generated class" />
+    <BoolProperty Name="CreateFallbackRule" DisplayName="Create fallback rule" />
+    <StringProperty Name="OutputPath" DisplayName="Generated source file directory" />
+
+    <StringProperty Name="RuleMissingError" Category="Advanced" Description="The fully-qualified static method to invoke with the schema name of the missing rule when a property is accessed via the data model." />
+    <StringProperty Name="PropertyMissingError" Category="Advanced" Description="The fully-qualified static method to invoke with the name of the rule and a property that is missing from the schema file." />
+    <StringProperty Name="RuleInjectionItemTypePropertyName" Description="The name of the property in the partial class that gets the item type to use when initializing the rule." />
+    <StringProperty Name="RuleInjectionItemNamePropertyName" Description="The name of the property in the partial class that gets the item name to use when initializing the rule." />
+    <StringListProperty Name="RuleBaseTypes" Category="Advanced" Description="The full names of base types of the generated rule class." />
+    <StringProperty Name="RuleNamePrefix" Category="Advanced" />
+    <StringProperty Name="ProjectPropertiesContext" Category="Advanced" Description="Gets or sets the fully-qualified name of the concrete class that implements IProjectPropertiesContext." />
+    <StringProperty Name="IPropertyPagesCatalogTypeName" Category="Advanced" />
+    <StringProperty Name="IRuleTypeName" Category="Advanced" />
+    <StringProperty Name="ConfiguredProjectTypeName" Category="Advanced" />
+    <StringProperty Name="IEvaluatedPropertyTypeName" Category="Advanced" />
+    <StringProperty Name="IProjectPropertiesContextTypeName" Category="Advanced" />
+
+    <StringProperty Name="Generator" DisplayName="Custom Tool" />
+    <StringProperty Name="LastGenOutput" Visible="false" Description="The filename of the last file generated as a result of the SFG." />
+    <BoolProperty Name="DesignTime" Visible="false" Description="A value indicating whether this file has a designer." />
+    <BoolProperty Name="AutoGen" Visible="false" Description="A value indicating whether this is a generated file." />
+</Rule>

@@ -1,0 +1,1434 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>Microsoft.VisualStudio.Composition</name>
+    </assembly>
+    <members>
+        <member name="F:Microsoft.VisualStudio.Composition.ComposableCatalog.parts">
+            <summary>
+            The parts in the catalog.
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.Composition.ComposableCatalog.Parts">
+            <summary>
+            Gets the set of parts that belong to the catalog.
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.Composition.ComposableCatalog.DiscoveredParts">
+            <summary>
+            Gets the parts that were added to the catalog via a <see cref="T:Microsoft.VisualStudio.Composition.PartDiscovery"/> class.
+            </summary>
+        </member>
+        <member name="M:Microsoft.VisualStudio.Composition.ComposableCatalog.AddCatalog(Microsoft.VisualStudio.Composition.ComposableCatalog)">
+            <summary>
+            Merges this catalog with another one, including parts, discovery details and errors.
+            </summary>
+            <param name="catalogToMerge">The catalog to be merged with this one.</param>
+            <returns>The merged version of the catalog.</returns>
+        </member>
+        <member name="M:Microsoft.VisualStudio.Composition.ComposableCatalog.AddCatalogs(System.Collections.Generic.IEnumerable{Microsoft.VisualStudio.Composition.ComposableCatalog})">
+            <summary>
+            Merges this catalog with others, including parts, discovery details and errors.
+            </summary>
+            <param name="catalogsToMerge">The catalogs to be merged with this one.</param>
+            <returns>The merged version of the catalog.</returns>
+        </member>
+        <member name="P:Microsoft.VisualStudio.Composition.ComposedPart.SatisfyingExports">
+            <summary>
+            Gets a map of this part's imports, and the exports which satisfy them.
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.Composition.ComposedPart.RequiredSharingBoundaries">
+            <summary>
+            Gets the set of sharing boundaries that this part must be instantiated within.
+            </summary>
+        </member>
+        <member name="T:Microsoft.VisualStudio.Composition.DelegateServices">
+            <summary>
+            Static factory methods for creating .NET Func{T} instances with fewer allocations in some scenarios.
+            </summary>
+            <remarks>
+            These methods employ a neat trick where we take advantage of the fact that Delegate has a field to store
+            the instance on which to invoke the method. In general, that field is really just the first
+            argument to pass to the method. So if the method is static, we can use that field to store
+            something else as the first parameter.
+            So provided the valueFactory that the caller gave us is a reusable delegate to a static method
+            that takes one parameter that is a reference type, it means many Func{T} instances can be
+            constructed for different parameterized values while only incurring the cost of the Func{T} delegate itself
+            and no closure.
+            In most cases this is an insignificant difference. But if you're counting allocations for GC pressure,
+            this might be just what you need.
+            </remarks>
+        </member>
+        <member name="M:Microsoft.VisualStudio.Composition.DelegateServices.FromValue``1(``0)">
+            <summary>
+            Creates a Func{T} from a delegate that takes one parameter
+            (for the cost of a delegate, but without incurring the cost of a closure).
+            </summary>
+            <typeparam name="T">The type of value to return from the function.</typeparam>
+            <param name="value">The value to return from the lazy.</param>
+            <returns>The lazy instance.</returns>
+        </member>
+        <member name="M:Microsoft.VisualStudio.Composition.DelegateServices.As``1(System.Func{System.Object})">
+            <summary>
+            Creates a delegate that invokes another delegate and casts the result to a given type.
+            </summary>
+            <typeparam name="T">The type to cast the result of <paramref name="valueFactory"/> to.</typeparam>
+            <param name="valueFactory">The delegate to chain execution to.</param>
+            <returns>A delegate which, when invoked, will invoke <paramref name="valueFactory"/>.</returns>
+        </member>
+        <member name="M:Microsoft.VisualStudio.Composition.DelegateServices.As(System.Func{System.Object},System.Type)">
+            <summary>
+            Creates a <see cref="T:System.Func`1"/> delegate for a given <see cref="T:System.Func`1"/> delegate.
+            </summary>
+            <param name="func">The function that produces the T value typed as <see cref="T:System.Object"/>.</param>
+            <param name="typeArg">The <c>T</c> type argument for the returned function's return type.</param>
+            <returns>An instance of <see cref="T:System.Func`1"/>, typed as <see cref="T:System.Func`1"/>.</returns>
+        </member>
+        <member name="T:Microsoft.VisualStudio.Composition.DelegatingExportProvider">
+            <summary>
+            A base class for ExportProviders that wish to intercept queries for exports
+            to modify the query or the result.
+            </summary>
+        </member>
+        <member name="F:Microsoft.VisualStudio.Composition.DelegatingExportProvider.inner">
+            <summary>
+            The inner <see cref="T:Microsoft.VisualStudio.Composition.ExportProvider"/> to which queries will be forwarded.
+            </summary>
+        </member>
+        <member name="M:Microsoft.VisualStudio.Composition.DelegatingExportProvider.#ctor(Microsoft.VisualStudio.Composition.ExportProvider)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Microsoft.VisualStudio.Composition.DelegatingExportProvider"/> class.
+            </summary>
+            <param name="inner">The instance to forward queries to.</param>
+        </member>
+        <member name="M:Microsoft.VisualStudio.Composition.DelegatingExportProvider.GetExports(Microsoft.VisualStudio.Composition.ImportDefinition)">
+            <summary>
+            Forwards the exports query to the inner <see cref="T:Microsoft.VisualStudio.Composition.ExportProvider"/>.
+            </summary>
+            <param name="importDefinition">A description of the exports desired.</param>
+            <returns>The resulting exports.</returns>
+        </member>
+        <member name="M:Microsoft.VisualStudio.Composition.DelegatingExportProvider.GetMetadataViewProvider(System.Type)">
+            <inheritdoc />
+        </member>
+        <member name="M:Microsoft.VisualStudio.Composition.DelegatingExportProvider.GetExportsCore(Microsoft.VisualStudio.Composition.ImportDefinition)">
+            <summary>
+            Throws <see cref="T:System.NotImplementedException"/>.
+            </summary>
+        </member>
+        <member name="F:Microsoft.VisualStudio.Composition.Dgml.Namespace">
+            <summary>
+            The namespace that all DGML nodes appear in.
+            </summary>
+        </member>
+        <member name="M:Microsoft.VisualStudio.Composition.Dgml.Node(System.String,System.String,System.String)">
+            <summary>
+            Creates a new DGML Node element.
+            </summary>
+            <param name="id">The ID by which the node can be referenced in links. Used as label if label is null.</param>
+            <param name="label">The node's caption.</param>
+            <param name="group">May be empty, "Expanded" or "Collapsed" (for container nodes).</param>
+        </member>
+        <member name="M:Microsoft.VisualStudio.Composition.Dgml.WithCategories(System.Xml.Linq.XElement,System.String[])">
+            <summary>
+            Adds categories to a DGML node or link.
+            </summary>
+            <param name="element">The node or link to add categories to.</param>
+            <param name="categories">The categories to add.</param>
+            <returns>The same node that was passed in. To enable "fluent" syntax.</returns>
+        </member>
+        <member name="M:Microsoft.VisualStudio.Composition.DiscoveredParts.ThrowOnErrors">
+            <summary>
+            Returns the discovered parts if no errors occurred, otherwise throws an exception describing any discovery failures.
+            </summary>
+            <returns>This discovery result.</returns>
+            <exception cref="T:Microsoft.VisualStudio.Composition.CompositionFailedException">Thrown if <see cref="P:Microsoft.VisualStudio.Composition.DiscoveredParts.DiscoveryErrors"/> is non-empty.</exception>
+            <remarks>
+            This method returns <c>this</c> so that it may be used in a 'fluent API' expression.
+            </remarks>
+        </member>
+        <member name="P:Microsoft.VisualStudio.Composition.ExportDefinitionBinding.ExportingMember">
+            <summary>
+            Gets the member with the ExportAttribute applied. <c>null</c> when the export is on the type itself.
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.Composition.ExportDefinitionBinding.ExportingMemberRef">
+            <summary>
+            Gets the member with the ExportAttribute applied. The return value's <see cref="P:Microsoft.VisualStudio.Composition.Reflection.MemberRef.IsEmpty"/>
+            is <c>true</c> when the export is on the type itself.
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.Composition.ExportDefinitionBinding.IsStaticExport">
+            <summary>
+            Gets a value indicating whether the exporting member is static.
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.Composition.Export.Metadata">
+            <summary>
+            Gets the metadata on the exported value.
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.Composition.Export.Value">
+            <summary>
+            Gets the exported value.
+            </summary>
+            <remarks>
+            This may incur a value construction cost upon first retrieval.
+            </remarks>
+        </member>
+        <member name="T:Microsoft.VisualStudio.Composition.IAssemblyLoader">
+            <summary>
+            Supplies the functionality for loading assemblies.
+            </summary>
+            <remarks>
+            Implementations MUST be thread-safe and should be very fast for assemblies
+            that have already been loaded.
+            </remarks>
+        </member>
+        <member name="M:Microsoft.VisualStudio.Composition.IAssemblyLoader.LoadAssembly(System.String,System.String)">
+            <summary>
+            Loads an assembly with the specified name and path.
+            </summary>
+            <param name="assemblyFullName">The full name of the assembly, as might be found in the <see cref="P:System.Reflection.AssemblyName.FullName"/> property.</param>
+            <param name="codeBasePath">The path to the assembly to load. May be null.</param>
+            <returns>The loaded assembly. Never <c>null</c>.</returns>
+            <exception cref="T:System.Exception">May be thrown if the assembly cannot be found or fails to load.</exception>
+        </member>
+        <member name="M:Microsoft.VisualStudio.Composition.IAssemblyLoader.LoadAssembly(System.Reflection.AssemblyName)">
+            <summary>
+            Loads an assembly with the specified name.
+            </summary>
+            <param name="assemblyName">The assembly name.</param>
+            <returns>The loaded assembly. Never <c>null</c>.</returns>
+            <exception cref="T:System.Exception">May be thrown if the assembly cannot be found or fails to load.</exception>
+        </member>
+        <member name="T:Microsoft.VisualStudio.Composition.IMetadataViewProvider">
+            <summary>
+            Provides metadata view proxy instances for arbitrary metadata view interfaces.
+            </summary>
+        </member>
+        <member name="M:Microsoft.VisualStudio.Composition.IMetadataViewProvider.IsMetadataViewSupported(System.Type)">
+            <summary>
+            Gets a value indicating whether this provider can create a metadata proxy for a given type.
+            </summary>
+            <param name="metadataType">The type of the required proxy.</param>
+            <returns><c>true</c> if the provider can create a proxy for this type. Otherwise false.</returns>
+        </member>
+        <member name="M:Microsoft.VisualStudio.Composition.IMetadataViewProvider.CreateProxy(System.Collections.Generic.IReadOnlyDictionary{System.String,System.Object},System.Collections.Generic.IReadOnlyDictionary{System.String,System.Object},System.Type)">
+            <summary>
+            Creates a metadata view that acts as a strongly-typed accessor
+            to a metadata dictionary.
+            </summary>
+            <param name="metadata">The metadata dictionary.</param>
+            <param name="defaultValues">The metadata dictionary of defaults, to be used when <paramref name="metadata"/> is missing a key.</param>
+            <param name="metadataViewType">The type of metadata view to create.</param>
+            <returns>The proxy instance.</returns>
+        </member>
+        <member name="M:Microsoft.VisualStudio.Composition.ImportMetadataViewConstraint.GetConstraint(Microsoft.VisualStudio.Composition.Reflection.TypeRef,Microsoft.VisualStudio.Composition.Resolver)">
+            <summary>
+            Creates a constraint for the specified metadata type.
+            </summary>
+            <param name="metadataTypeRef">The metadata type.</param>
+            <param name="resolver">The assembly loader.</param>
+            <returns>A constraint to match the metadata type.</returns>
+        </member>
+        <member name="M:Microsoft.VisualStudio.Composition.ImportDefinitionBinding.#ctor(Microsoft.VisualStudio.Composition.ImportDefinition,Microsoft.VisualStudio.Composition.Reflection.TypeRef,Microsoft.VisualStudio.Composition.Reflection.MemberRef)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Microsoft.VisualStudio.Composition.ImportDefinitionBinding"/> class
+            to represent an importing member.
+            </summary>
+        </member>
+        <member name="M:Microsoft.VisualStudio.Composition.ImportDefinitionBinding.#ctor(Microsoft.VisualStudio.Composition.ImportDefinition,Microsoft.VisualStudio.Composition.Reflection.TypeRef,Microsoft.VisualStudio.Composition.Reflection.ParameterRef)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Microsoft.VisualStudio.Composition.ImportDefinitionBinding"/> class
+            to represent a parameter in an importing constructor.
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.Composition.ImportDefinitionBinding.ImportDefinition">
+            <summary>
+            Gets the definition for this import.
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.Composition.ImportDefinitionBinding.ImportingMember">
+            <summary>
+            Gets the member this import is found on. Null for importing constructors.
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.Composition.ImportDefinitionBinding.ImportingMemberRef">
+            <summary>
+            Gets the member this import is found on. Null for importing constructors.
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.Composition.ImportDefinitionBinding.ImportingSiteType">
+            <summary>
+            Gets the actual type of the variable or member that will be assigned the result.
+            This includes any Lazy, ExportFactory or collection wrappers.
+            </summary>
+            <value>Never null.</value>
+        </member>
+        <member name="P:Microsoft.VisualStudio.Composition.ImportDefinitionBinding.ImportingSiteTypeRef">
+            <summary>
+            Gets the actual type of the variable or member that will be assigned the result.
+            This includes any Lazy, ExportFactory or collection wrappers.
+            </summary>
+            <value>Never null.</value>
+        </member>
+        <member name="P:Microsoft.VisualStudio.Composition.ImportDefinitionBinding.ImportingSiteElementType">
+            <summary>
+            Gets the type of the member, with the ImportMany collection and Lazy/ExportFactory stripped off, when present.
+            </summary>
+        </member>
+        <member name="F:Microsoft.VisualStudio.Composition.LazyMetadataWrapper.direction">
+            <summary>
+            The direction of value translation for this instance.
+            </summary>
+        </member>
+        <member name="F:Microsoft.VisualStudio.Composition.LazyMetadataWrapper.underlyingMetadata">
+            <summary>
+            The underlying metadata, which may be partially translated since value translation may choose
+            to persist the translated result.
+            </summary>
+        </member>
+        <member name="F:Microsoft.VisualStudio.Composition.LazyMetadataWrapper.Direction.ToSubstitutedValue">
+            <summary>
+            The metadata wrapper will replace instances of Type with TypeRef, and other such serialization substitutions.
+            </summary>
+        </member>
+        <member name="F:Microsoft.VisualStudio.Composition.LazyMetadataWrapper.Direction.ToOriginalValue">
+            <summary>
+            The metadata wrapper will reverse the <see cref="F:Microsoft.VisualStudio.Composition.LazyMetadataWrapper.Direction.ToSubstitutedValue"/> operation, restoring Type where TypeRef is found, etc.
+            </summary>
+        </member>
+        <member name="T:Microsoft.VisualStudio.Composition.LazyServices">
+            <summary>
+            Static factory methods for creating .NET Lazy{T} instances.
+            </summary>
+        </member>
+        <member name="M:Microsoft.VisualStudio.Composition.LazyServices.IsAnyLazyType(System.Type)">
+            <summary>
+            Gets a value indicating whether a type is a Lazy`1 or Lazy`2 type.
+            </summary>
+            <param name="type">The type to be tested.</param>
+            <returns><c>true</c> if <paramref name="type"/> is some Lazy type.</returns>
+        </member>
+        <member name="M:Microsoft.VisualStudio.Composition.LazyServices.CreateStronglyTypedLazyFactory(System.Type,System.Type)">
+            <summary>
+            Creates a factory that takes a Func{object} and object-typed metadata
+            and returns a strongly-typed Lazy{T, TMetadata} instance.
+            </summary>
+            <param name="exportType">The type of values created by the Func{object} value factories. Null is interpreted to be <c>typeof(object)</c>.</param>
+            <param name="metadataViewType">The type of metadata passed to the lazy factory. Null is interpreted to be <c>typeof(IDictionary{string, object})</c>.</param>
+            <returns>A function that takes a Func{object} value factory and metadata, and produces a Lazy{T, TMetadata} instance.</returns>
+        </member>
+        <member name="T:Microsoft.VisualStudio.Composition.MetadataTokenType">
+            <summary>
+            The bits set on metadata tokens based on type of token.
+            </summary>
+            <remarks>
+            This can be used in the future to remove these MSBs when serializing the metadata tokens
+            in order to make them more compressible by virtue of their being significantly smaller
+            numbers after removing the leading byte.
+            These come from: http://msdn.microsoft.com/en-us/library/ms231937(v=vs.110).aspx
+            </remarks>
+        </member>
+        <member name="T:Microsoft.VisualStudio.Composition.MetadataViewClassProvider">
+            <summary>
+            Supports metadata views that are concrete classes with a public constructor
+            that accepts the metadata dictionary as its only parameter.
+            </summary>
+        </member>
+        <member name="T:Microsoft.VisualStudio.Composition.PartCreationPolicyConstraint">
+            <summary>
+            A constraint that may be included in an <see cref="T:Microsoft.VisualStudio.Composition.ImportDefinition"/> that only matches
+            exports whose parts have a compatible <see cref="T:Microsoft.VisualStudio.Composition.CreationPolicy"/>.
+            </summary>
+        </member>
+        <member name="F:Microsoft.VisualStudio.Composition.PartCreationPolicyConstraint.SharedPartRequired">
+            <summary>
+            The constraint to include in the <see cref="T:Microsoft.VisualStudio.Composition.ImportDefinition"/> when a shared part is required.
+            </summary>
+        </member>
+        <member name="F:Microsoft.VisualStudio.Composition.PartCreationPolicyConstraint.NonSharedPartRequired">
+            <summary>
+            The constraint to include in the <see cref="T:Microsoft.VisualStudio.Composition.ImportDefinition"/> when a non-shared part is required.
+            </summary>
+        </member>
+        <member name="M:Microsoft.VisualStudio.Composition.PartCreationPolicyConstraint.GetExportMetadata(Microsoft.VisualStudio.Composition.CreationPolicy)">
+            <summary>
+            Gets a dictionary of metadata to include in an <see cref="T:Microsoft.VisualStudio.Composition.ExportDefinition"/> to signify the exporting part's CreationPolicy.
+            </summary>
+            <param name="partCreationPolicy">The <see cref="T:Microsoft.VisualStudio.Composition.CreationPolicy"/> of the exporting <see cref="T:Microsoft.VisualStudio.Composition.ComposablePartDefinition"/>.</param>
+            <returns>A dictionary of metadata.</returns>
+        </member>
+        <member name="M:Microsoft.VisualStudio.Composition.PartCreationPolicyConstraint.GetRequiredCreationPolicyConstraints(Microsoft.VisualStudio.Composition.CreationPolicy)">
+            <summary>
+            Creates a set of constraints to apply to an import given its required part creation policy.
+            </summary>
+        </member>
+        <member name="M:Microsoft.VisualStudio.Composition.PartDiscovery.Combine(Microsoft.VisualStudio.Composition.PartDiscovery[])">
+            <summary>
+            Creates an aggregate <see cref="T:Microsoft.VisualStudio.Composition.PartDiscovery"/> instance that delegates to a series of other part discovery extensions.
+            </summary>
+            <param name="discoveryMechanisms">The discovery extensions to use. In some cases, extensions defined earlier in the list are preferred.</param>
+            <returns>The aggregate PartDiscovery instance.</returns>
+        </member>
+        <member name="M:Microsoft.VisualStudio.Composition.PartDiscovery.CreatePart(System.Type)">
+            <summary>
+            Reflects on a type and returns metadata on its role as a MEF part, if applicable.
+            </summary>
+            <param name="partType">The type to reflect over.</param>
+            <returns>A new instance of <see cref="T:Microsoft.VisualStudio.Composition.ComposablePartDefinition"/> if <paramref name="partType"/>
+            represents a MEF part; otherwise <c>null</c>.</returns>
+        </member>
+        <member name="M:Microsoft.VisualStudio.Composition.PartDiscovery.CreatePartsAsync(System.Reflection.Assembly,System.Threading.CancellationToken)">
+            <summary>
+            Reflects over an assembly and produces MEF parts for every applicable type.
+            </summary>
+            <param name="assembly">The assembly to search for MEF parts.</param>
+            <param name="cancellationToken">The cancellation token.</param>
+            <returns>A set of generated parts.</returns>
+        </member>
+        <member name="M:Microsoft.VisualStudio.Composition.PartDiscovery.CreatePartsAsync(System.Collections.Generic.IEnumerable{System.Reflection.Assembly},System.IProgress{Microsoft.VisualStudio.Composition.DiscoveryProgress},System.Threading.CancellationToken)">
+            <summary>
+            Reflects over a set of assemblies and produces MEF parts for every applicable type.
+            </summary>
+            <param name="assemblies">The assemblies to search for MEF parts.</param>
+            <param name="progress">An optional way to receive progress updates on how discovery is progressing.</param>
+            <param name="cancellationToken">The cancellation token.</param>
+            <returns>A set of generated parts.</returns>
+        </member>
+        <member name="M:Microsoft.VisualStudio.Composition.PartDiscovery.CreatePartsAsync(System.Collections.Generic.IEnumerable{System.String},System.IProgress{Microsoft.VisualStudio.Composition.DiscoveryProgress},System.Threading.CancellationToken)">
+            <summary>
+            Reflects over a set of assemblies and produces MEF parts for every applicable type.
+            </summary>
+            <param name="assemblyPaths">The paths to assemblies to search for MEF parts.</param>
+            <param name="progress">An optional way to receive progress updates on how discovery is progressing.</param>
+            <param name="cancellationToken">The cancellation token.</param>
+            <returns>A set of generated parts.</returns>
+        </member>
+        <member name="M:Microsoft.VisualStudio.Composition.PartDiscovery.AddElement(System.Array,System.Object,System.Type)">
+            <summary>
+            Creates an array that contains the contents of a prior array (if any) and one additional element.
+            </summary>
+            <param name="priorArray">The previous version of the array. May be <c>null</c>. This will not be modified by this method.</param>
+            <param name="value">The value to add to the array. May be <c>null</c>.</param>
+            <param name="elementType">The element type for the array, if it is created fresh. May be <c>null</c>.</param>
+            <returns>A new array.</returns>
+        </member>
+        <member name="M:Microsoft.VisualStudio.Composition.PartDiscovery.GetTypes(System.Reflection.Assembly)">
+            <summary>
+            Gets the types to consider for MEF parts.
+            </summary>
+            <param name="assembly">The assembly to read.</param>
+            <returns>A sequence of types.</returns>
+        </member>
+        <member name="M:Microsoft.VisualStudio.Composition.PartDiscovery.CreatePart(System.Type,System.Boolean)">
+            <summary>
+            Reflects on a type and returns metadata on its role as a MEF part, if applicable.
+            </summary>
+            <param name="partType">The type to reflect over.</param>
+            <param name="typeExplicitlyRequested">A value indicating whether this type was explicitly requested for inclusion in the catalog.</param>
+            <returns>A new instance of <see cref="T:Microsoft.VisualStudio.Composition.ComposablePartDefinition"/> if <paramref name="partType"/>
+            represents a MEF part; otherwise <c>null</c>.</returns>
+        </member>
+        <member name="M:Microsoft.VisualStudio.Composition.PartDiscovery.IsImportManyCollectionTypeCreateable(Microsoft.VisualStudio.Composition.ImportDefinitionBinding)">
+            <summary>
+            Checks whether an import many collection is creatable.
+            </summary>
+        </member>
+        <member name="M:Microsoft.VisualStudio.Composition.PartDiscovery.IsImportManyCollectionTypeCreateable(System.Type,System.Type)">
+            <summary>
+            Checks whether an import many collection is creatable.
+            </summary>
+            <param name="collectionType">The value from ImportingSiteType.</param>
+            <param name="elementType">The value from ImportingSiteTypeWithoutCollection.</param>
+            <returns><c>true</c> if the collection is creatable; <c>false</c> otherwise.</returns>
+        </member>
+        <member name="M:Microsoft.VisualStudio.Composition.PartDiscovery.GetMetadataType(System.Type)">
+            <summary>
+            Gets the Type of the interface that serves as a metadata view for a given import.
+            </summary>
+            <param name="receivingType">The type of the importing member or parameter, without its ImportMany collection if it had one.</param>
+            <returns>The metadata view, <see cref="T:System.Collections.Generic.IDictionary`2"/>, or <c>null</c> if there is none.</returns>
+        </member>
+        <member name="M:Microsoft.VisualStudio.Composition.ComposablePartDefinition.#ctor(Microsoft.VisualStudio.Composition.Reflection.TypeRef,System.Collections.Generic.IReadOnlyDictionary{System.String,System.Object},System.Collections.Generic.IReadOnlyCollection{Microsoft.VisualStudio.Composition.ExportDefinition},System.Collections.Generic.IReadOnlyDictionary{Microsoft.VisualStudio.Composition.Reflection.MemberRef,System.Collections.Generic.IReadOnlyCollection{Microsoft.VisualStudio.Composition.ExportDefinition}},System.Collections.Generic.IEnumerable{Microsoft.VisualStudio.Composition.ImportDefinitionBinding},System.String,Microsoft.VisualStudio.Composition.Reflection.MethodRef,Microsoft.VisualStudio.Composition.Reflection.ConstructorRef,System.Collections.Generic.IReadOnlyList{Microsoft.VisualStudio.Composition.ImportDefinitionBinding},Microsoft.VisualStudio.Composition.CreationPolicy,System.Boolean)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Microsoft.VisualStudio.Composition.ComposablePartDefinition"/> class.
+            </summary>
+            <param name="partType">Type of the part.</param>
+            <param name="metadata">The metadata discovered on the part.</param>
+            <param name="exportedTypes">The exported types.</param>
+            <param name="exportingMembers">The exporting members.</param>
+            <param name="importingMembers">The importing members.</param>
+            <param name="sharingBoundary">The sharing boundary that this part is shared within.</param>
+            <param name="onImportsSatisfied">The method to invoke after satisfying imports, if any.</param>
+            <param name="importingConstructorRef">The constructor to invoke to construct the part.</param>
+            <param name="importingConstructorImports">The importing arguments taken by the importing constructor. <c>null</c> if the part cannot be instantiated.</param>
+            <param name="partCreationPolicy">The creation policy for this part.</param>
+            <param name="isSharingBoundaryInferred">A value indicating whether the part does not have an explicit sharing boundary, and therefore can obtain its sharing boundary based on its imports.</param>
+        </member>
+        <member name="P:Microsoft.VisualStudio.Composition.ComposablePartDefinition.IsSharingBoundaryInferred">
+            <summary>
+            Gets a value indicating whether the sharing boundary must be inferred from what is imported.
+            </summary>
+            <remarks>
+            This is <c>true</c> when the part was discovered by MEFv1 attributes, since these attributes do not have
+            a way to convey a sharing boundary.
+            This is <c>false</c> when the part is discovered by MEFv2 attributes, which have a SharedAttribute(string) that they can use
+            to specify the value.
+            When this is <c>true</c>, the <see cref="P:Microsoft.VisualStudio.Composition.ComposablePartDefinition.SharingBoundary"/> property is set to <see cref="F:System.String.Empty"/>.
+            </remarks>
+        </member>
+        <member name="P:Microsoft.VisualStudio.Composition.ComposablePartDefinition.Metadata">
+            <summary>
+            Gets the metadata for this part.
+            </summary>
+            <remarks>
+            This metadata has no effect on composition, but may be useful if the host
+            wishes to filter a catalog based on part metadata prior to creating a composition.
+            </remarks>
+        </member>
+        <member name="P:Microsoft.VisualStudio.Composition.ComposablePartDefinition.ExportedTypes">
+            <summary>
+            Gets the types exported on the part itself.
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.Composition.ComposablePartDefinition.ExportingMembers">
+            <summary>
+            Gets the exports found on members of the part (exporting properties, fields, methods.)
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.Composition.ComposablePartDefinition.ExportDefinitions">
+            <summary>
+            Gets a sequence of all exports found on this part (both the type directly and its members).
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.Composition.ComposablePartDefinition.ImportingConstructorImports">
+            <summary>
+            Gets the list of parameters on the importing constructor.
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.Composition.ComposablePartDefinition.Imports">
+            <summary>
+            Gets a sequence of all imports found on this part (both members and importing constructor).
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.Composition.CompositionConfiguration.Catalog">
+            <summary>
+            Gets the catalog that backs this configuration.
+            This may be a smaller catalog than the one passed in to create this configuration
+            if invalid parts were removed.
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.Composition.CompositionConfiguration.Parts">
+            <summary>
+            Gets the composed parts, with exports satisfied, that make up this configuration.
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.Composition.CompositionConfiguration.MetadataViewsAndProviders">
+            <summary>
+            Gets a map of metadata views and their matching providers.
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.Composition.CompositionConfiguration.CompositionErrors">
+            <summary>
+            Gets the compositional errors detected while creating this configuration that led to the removal
+            of parts from the catalog backing this configuration.
+            </summary>
+            <remarks>
+            The errors are collected as a stack. The topmost stack element represents the first level of errors detected.
+            As errors are detected and parts removed to achieve a 'stable composition', each cycle of removing parts
+            and detecting additional errors gets a deeper element in the stack.
+            Therefore the 'root cause' of all failures is generally found in the topmost stack element.
+            </remarks>
+        </member>
+        <member name="M:Microsoft.VisualStudio.Composition.CompositionConfiguration.ThrowOnErrors">
+            <summary>
+            Returns the configuration if it is valid, otherwise throws an exception describing any compositional failures.
+            </summary>
+            <returns>This configuration.</returns>
+            <exception cref="T:Microsoft.VisualStudio.Composition.CompositionFailedException">Thrown if <see cref="P:Microsoft.VisualStudio.Composition.CompositionConfiguration.CompositionErrors"/> is non-empty.</exception>
+            <remarks>
+            This method returns <c>this</c> so that it may be used in a 'fluent API' expression.
+            </remarks>
+        </member>
+        <member name="M:Microsoft.VisualStudio.Composition.CompositionConfiguration.PathExistsBetween``1(``0,``0,System.Func{``0,System.Collections.Generic.IEnumerable{``0}},System.Collections.Generic.HashSet{``0})">
+            <summary>
+            Detects whether a path exists between two nodes.
+            </summary>
+            <typeparam name="T">The type of node.</typeparam>
+            <param name="origin">The node to start the search from.</param>
+            <param name="target">The node to try to find a path to.</param>
+            <param name="getDirectLinks">A function that enumerates the allowable steps to take from a given node.</param>
+            <param name="visited">A reusable collection to use as part of the algorithm to avoid allocations for each call.</param>
+            <returns>
+            If a path is found, a non-empty stack describing the path including <paramref name="target"/> (as the deepest element)
+            and excluding <paramref name="origin"/>.
+            If a path is not found, an empty stack is returned.
+            </returns>
+        </member>
+        <member name="M:Microsoft.VisualStudio.Composition.CompositionConfiguration.ComputeInferredSharingBoundaries(System.Collections.Generic.IEnumerable{Microsoft.VisualStudio.Composition.CompositionConfiguration.PartBuilder})">
+            <summary>
+            Returns a map of those MEF parts that are missing explicit sharing boundaries, and the sharing boundary that can be inferred.
+            </summary>
+            <param name="partBuilders">The part builders to build the map for.</param>
+            <returns>A map of those parts with inferred boundaries where the key is the part and the value is its designated sharing boundary.</returns>
+        </member>
+        <member name="M:Microsoft.VisualStudio.Composition.CompositionConfiguration.ComputeSharingBoundaryMetadata(System.Collections.Generic.IEnumerable{Microsoft.VisualStudio.Composition.CompositionConfiguration.PartBuilder})">
+            <summary>
+            Constructs a map of all sharing boundaries and information about the boundaries that create them.
+            </summary>
+            <param name="partBuilders">A set of part builders.</param>
+            <returns>A map where the key is the name of a sharing boundary and the value is its metadata.</returns>
+        </member>
+        <member name="P:Microsoft.VisualStudio.Composition.CompositionConfiguration.PartBuilder.PartDefinition">
+            <summary>
+            Gets or sets the part definition tracked by this instance.
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.Composition.CompositionConfiguration.PartBuilder.RequiredSharingBoundaries">
+            <summary>
+            Gets the sharing boundaries required to instantiate this part.
+            </summary>
+            <remarks>
+            This is the union of the part's own explicitly declared sharing boundary
+            and the boundaries of all parts it imports (transitively).
+            </remarks>
+        </member>
+        <member name="P:Microsoft.VisualStudio.Composition.CompositionConfiguration.PartBuilder.ImportingParts">
+            <summary>
+            Gets the set of parts that import this one.
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.Composition.CompositionConfiguration.PartBuilder.SatisfyingExports">
+            <summary>
+            Gets the set of parts imported by this one.
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.Composition.CompositionConfiguration.SharingBoundaryMetadata.ParentBoundariesUnion">
+            <summary>
+            Gets the set of parent boundaries that MAY be present at the construction of this sharing boundary.
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.Composition.CompositionConfiguration.SharingBoundaryMetadata.ParentBoundariesIntersection">
+            <summary>
+            Gets the set of parent boundaries that ARE always present at the construction of this sharing boundary.
+            </summary>
+        </member>
+        <member name="F:Microsoft.VisualStudio.Composition.ExportProvider.EmptyMetadata">
+            <summary>
+            A metadata template used by the generated code.
+            </summary>
+        </member>
+        <member name="F:Microsoft.VisualStudio.Composition.ExportProvider.metadataViewProviders">
+            <summary>
+            The metadata view providers available to this ExportProvider.
+            </summary>
+            <remarks>
+            This field is lazy to avoid a chicken-and-egg problem with initializing it in our constructor.
+            </remarks>
+        </member>
+        <member name="F:Microsoft.VisualStudio.Composition.ExportProvider.sharedInstantiatedParts">
+            <summary>
+            A map of shared boundary names to their shared instances.
+            The value is a dictionary of types to their lazily-constructed instances and state.
+            </summary>
+        </member>
+        <member name="F:Microsoft.VisualStudio.Composition.ExportProvider.sharingBoundaryExportProviderOwners">
+            <summary>
+            A map of sharing boundary names to the ExportProvider that owns them.
+            </summary>
+        </member>
+        <member name="F:Microsoft.VisualStudio.Composition.ExportProvider.disposableInstantiatedSharedParts">
+            <summary>
+            The disposable objects whose lifetimes are shared and tied to a specific sharing boundary.
+            </summary>
+        </member>
+        <member name="F:Microsoft.VisualStudio.Composition.ExportProvider.disposableNonSharedParts">
+            <summary>
+            The dispoable objects whose lifetimes are controlled by this instance.
+            </summary>
+            <remarks>
+            Access to this collection is guarded by locking the collection instance itself.
+            </remarks>
+        </member>
+        <member name="F:Microsoft.VisualStudio.Composition.ExportProvider.freshSharingBoundaries">
+            <summary>
+            The sharing boundaries that this ExportProvider creates new sharing boundaries for.
+            </summary>
+        </member>
+        <member name="F:Microsoft.VisualStudio.Composition.ExportProvider.typeAndSelectedMetadataViewProviderCache">
+            <summary>
+            A cache for the <see cref="M:Microsoft.VisualStudio.Composition.ExportProvider.GetMetadataViewProvider(System.Type)"/> method which has shown up on perf traces.
+            </summary>
+            <remarks>
+            All access to this dictionary is guarded by a lock on this field.
+            </remarks>
+        </member>
+        <member name="T:Microsoft.VisualStudio.Composition.ExportProvider.PartLifecycleState">
+            <summary>
+            The several stages of initialization that each MEF part goes through.
+            </summary>
+        </member>
+        <member name="F:Microsoft.VisualStudio.Composition.ExportProvider.PartLifecycleState.NotCreated">
+            <summary>
+            The MEF part has not yet been instantiated.
+            </summary>
+        </member>
+        <member name="F:Microsoft.VisualStudio.Composition.ExportProvider.PartLifecycleState.Creating">
+            <summary>
+            The MEF part's importing constructor is being invoked.
+            </summary>
+        </member>
+        <member name="F:Microsoft.VisualStudio.Composition.ExportProvider.PartLifecycleState.Created">
+            <summary>
+            The MEF part has been instantiated.
+            </summary>
+        </member>
+        <member name="F:Microsoft.VisualStudio.Composition.ExportProvider.PartLifecycleState.ImmediateImportsSatisfied">
+            <summary>
+            The MEF part's importing members have been satisfied.
+            </summary>
+        </member>
+        <member name="F:Microsoft.VisualStudio.Composition.ExportProvider.PartLifecycleState.ImmediateImportsSatisfiedTransitively">
+            <summary>
+            All MEF parts reachable from this one (through non-lazy import paths) have been satisfied.
+            </summary>
+        </member>
+        <member name="F:Microsoft.VisualStudio.Composition.ExportProvider.PartLifecycleState.OnImportsSatisfiedInProgress">
+            <summary>
+            The MEF part's OnImportsSatisfied method is being invoked.
+            </summary>
+        </member>
+        <member name="F:Microsoft.VisualStudio.Composition.ExportProvider.PartLifecycleState.OnImportsSatisfiedInvoked">
+            <summary>
+            The MEF part's OnImportsSatisfied method has been invoked (or would have if one was defined).
+            </summary>
+        </member>
+        <member name="F:Microsoft.VisualStudio.Composition.ExportProvider.PartLifecycleState.OnImportsSatisfiedInvokedTransitively">
+            <summary>
+            The OnImportsSatisfied methods on this and all MEF parts reachable from this one (through non-lazy import paths) have been invoked.
+            </summary>
+        </member>
+        <member name="F:Microsoft.VisualStudio.Composition.ExportProvider.PartLifecycleState.Final">
+            <summary>
+            This part is ready for exposure to the user.
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.Composition.ExportProvider.NonDisposableWrapper">
+            <summary>
+            Gets a lazy that creates an instance of DelegatingExportProvider.
+            </summary>
+        </member>
+        <member name="M:Microsoft.VisualStudio.Composition.ExportProvider.IsFullyInitializedExportRequiredWhenSettingImport(Microsoft.VisualStudio.Composition.ExportProvider.PartLifecycleTracker,System.Boolean,System.Boolean)">
+            <summary>
+            Gets a value indicating whether an import with the given characteristics must be initially satisfied
+            with a fully pre-initialized export.
+            </summary>
+            <param name="importingPartTracker">The tracker for the part that is importing.</param>
+            <param name="isLazy"><c>true</c> if the import is a Lazy{T} style import; <c>false</c> otherwise.</param>
+            <param name="isImportingConstructorArgument"><c>true</c> if the import appears in an importing constructor; <c>false</c> otherwise.</param>
+            <returns>
+            <c>true</c> if the export must have its imports transitively satisfied and OnImportsSatisfied methods invoked
+            prior to being exposed to the receiver; <c>false</c> if the export can be partially initialized when the receiver
+            first observes it.
+            </returns>
+        </member>
+        <member name="M:Microsoft.VisualStudio.Composition.ExportProvider.GetExportsCore(Microsoft.VisualStudio.Composition.ImportDefinition)">
+            <summary>
+            When implemented by a derived class, returns an <see cref="T:System.Collections.Generic.IEnumerable`1"/> of values that
+            satisfy the contract name of the specified <see cref="T:Microsoft.VisualStudio.Composition.ImportDefinition"/>.
+            </summary>
+            <remarks>
+            The derived type is *not* expected to filter the exports based on the import definition constraints.
+            </remarks>
+        </member>
+        <member name="M:Microsoft.VisualStudio.Composition.ExportProvider.GetValueFromMember(System.Object,System.Reflection.MemberInfo,System.Type,System.Type)">
+            <summary>
+            Gets the value from some member of a part.
+            </summary>
+            <param name="exportingPart">The instance of the part to extract the value from. May be <c>null</c> for static exports.</param>
+            <param name="exportingMember">The member exporting the value. May be <c>null</c> for exporting the type/instance itself.</param>
+            <param name="importingSiteElementType">The type of the importing member, with ImportMany collections and Lazy/ExportFactory stripped away.</param>
+            <param name="exportedValueType">The contractually exported value type.</param>
+            <returns>The value of the member.</returns>
+        </member>
+        <member name="M:Microsoft.VisualStudio.Composition.ExportProvider.TrackDisposableValue(System.IDisposable,System.String)">
+            <summary>
+            Adds a value to be disposed of when this or a parent ExportProvider is disposed of.
+            </summary>
+            <param name="instantiatedPart">The part to be disposed.</param>
+            <param name="sharingBoundary">
+            The sharing boundary associated with the part.
+            May be null for non-shared parts, or the empty string for the default sharing scope.
+            </param>
+        </member>
+        <member name="M:Microsoft.VisualStudio.Composition.ExportProvider.GetMetadataViewDefaults(System.Type)">
+            <summary>
+            Gets a dictionary of metadata that describes all the default values supplied by a metadata view.
+            </summary>
+            <param name="metadataView">The metadata view type.</param>
+            <returns>A dictionary of default metadata values.</returns>
+        </member>
+        <member name="M:Microsoft.VisualStudio.Composition.ExportProvider.GetMetadataViewProvider(System.Type)">
+            <summary>
+            Gets a provider that can create a metadata view of a specified type over a dictionary of metadata.
+            </summary>
+            <param name="metadataView">The type of metadata view required.</param>
+            <returns>A metadata view provider.</returns>
+            <exception cref="T:System.NotSupportedException">Thrown if no metadata view provider available is compatible with the type.</exception>
+        </member>
+        <member name="M:Microsoft.VisualStudio.Composition.ExportProvider.AcquireSharingBoundaryInstances(System.String)">
+            <summary>
+            Gets the shared parts dictionary with a given sharing boundary name.
+            </summary>
+            <param name="sharingBoundaryName">The name of the sharing boundary.</param>
+            <returns>The dictionary containing parts and instances. Never null.</returns>
+            <exception cref="T:Microsoft.VisualStudio.Composition.CompositionFailedException">Thrown if the dictionary for the given sharing boundary isn't found.</exception>
+        </member>
+        <member name="T:Microsoft.VisualStudio.Composition.ExportProvider.PartLifecycleTracker">
+            <summary>
+            A state machine that tracks an individual instance of a MEF part.
+            Every single instantiated MEF part (including each individual NonShared instance)
+            has an associated instance of this class to track its lifecycle from initialization to disposal.
+            </summary>
+        </member>
+        <member name="F:Microsoft.VisualStudio.Composition.ExportProvider.PartLifecycleTracker.syncObject">
+            <summary>
+            An object that locks when the state machine is transitioning between states.
+            It is Pulsed after each <see cref="P:Microsoft.VisualStudio.Composition.ExportProvider.PartLifecycleTracker.State"/> change.
+            </summary>
+        </member>
+        <member name="F:Microsoft.VisualStudio.Composition.ExportProvider.PartLifecycleTracker.sharingBoundary">
+            <summary>
+            The sharing boundary that the MEF part this tracker is associated with belongs to.
+            </summary>
+        </member>
+        <member name="F:Microsoft.VisualStudio.Composition.ExportProvider.PartLifecycleTracker.isDisposed">
+            <summary>
+            A value indicating whether this instance has been disposed of.
+            </summary>
+        </member>
+        <member name="F:Microsoft.VisualStudio.Composition.ExportProvider.PartLifecycleTracker.value">
+            <summary>
+            Backing field for the <see cref="P:Microsoft.VisualStudio.Composition.ExportProvider.PartLifecycleTracker.Value"/> property.
+            </summary>
+        </member>
+        <member name="F:Microsoft.VisualStudio.Composition.ExportProvider.PartLifecycleTracker.deferredInitializationParts">
+            <summary>
+            A collection of all immediate imports (property and constructor) as they are satisfied
+            if by an exporting part that has not been fully initialized already.
+            It is nulled out upon reaching the final stage of initialization.
+            </summary>
+            <remarks>
+            This collection is populated from the <see cref="F:Microsoft.VisualStudio.Composition.ExportProvider.PartLifecycleState.Creating"/>
+            and <see cref="F:Microsoft.VisualStudio.Composition.ExportProvider.PartLifecycleState.ImmediateImportsSatisfied"/> stages, each of which
+            occur on a single thread. It is then enumerated from <see cref="M:Microsoft.VisualStudio.Composition.ExportProvider.PartLifecycleTracker.MoveToStateTransitively(Microsoft.VisualStudio.Composition.ExportProvider.PartLifecycleState,System.Collections.Generic.HashSet{Microsoft.VisualStudio.Composition.ExportProvider.PartLifecycleTracker})"/>
+            which *may* be invoked from multiple threads.
+            </remarks>
+        </member>
+        <member name="F:Microsoft.VisualStudio.Composition.ExportProvider.PartLifecycleTracker.threadExecutingStep">
+            <summary>
+            The thread that is currently executing a particular step.
+            </summary>
+            <remarks>
+            This is used to avoid deadlocking when we're executing a particular step
+            then while executing 3rd party code, that code calls us back on the same thread
+            to ask for an instance of the part.
+            In these circumstances we return a partially initialized value rather than
+            deadlock by trying to wait for a fully initialized one.
+            This matches MEFv1 and MEFv2 behavior.
+            </remarks>
+        </member>
+        <member name="F:Microsoft.VisualStudio.Composition.ExportProvider.PartLifecycleTracker.fault">
+            <summary>
+            Stores any exception captured during initialization.
+            </summary>
+        </member>
+        <member name="M:Microsoft.VisualStudio.Composition.ExportProvider.PartLifecycleTracker.#ctor(Microsoft.VisualStudio.Composition.ExportProvider,System.String)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Microsoft.VisualStudio.Composition.ExportProvider.PartLifecycleTracker"/> class.
+            </summary>
+            <param name="owningExportProvider">The ExportProvider that owns the lifetime and sharing boundaries for the part to be instantiated.</param>
+            <param name="sharingBoundary">The sharing boundary the part belongs to.</param>
+        </member>
+        <member name="P:Microsoft.VisualStudio.Composition.ExportProvider.PartLifecycleTracker.Value">
+            <summary>
+            Gets or sets the instantiated part, if applicable and after it has been created. Otherwise <c>null</c>.
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.Composition.ExportProvider.PartLifecycleTracker.State">
+            <summary>
+            Gets the level of initialization the MEF part has already undergone.
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.Composition.ExportProvider.PartLifecycleTracker.OwningExportProvider">
+            <summary>
+            Gets the ExportProvider that owns the lifetime and sharing boundaries for the part to be instantiated.
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.Composition.ExportProvider.PartLifecycleTracker.PartType">
+            <summary>
+            Gets the type behind the part.
+            </summary>
+        </member>
+        <member name="M:Microsoft.VisualStudio.Composition.ExportProvider.PartLifecycleTracker.GetValueReadyToExpose">
+            <summary>
+            Gets the instance of the part after fully initializing it.
+            </summary>
+            <remarks>
+            In the less common case that this method is called on top of a callstack where this same
+            part is actually *in progress* of executing any initialization step, this method will
+            simply return the value as-is rather than deadlock or throw.
+            This allows certain spec'd MEF behaviors to work.
+            </remarks>
+        </member>
+        <member name="M:Microsoft.VisualStudio.Composition.ExportProvider.PartLifecycleTracker.GetValueReadyToRetrieveExportingMembers">
+            <summary>
+            Gets the instance of the part after instantiating it.
+            Importing properties may not have been satisfied yet.
+            </summary>
+        </member>
+        <member name="M:Microsoft.VisualStudio.Composition.ExportProvider.PartLifecycleTracker.Dispose">
+            <summary>
+            Disposes of the MEF part if it is disposable.
+            </summary>
+        </member>
+        <member name="M:Microsoft.VisualStudio.Composition.ExportProvider.PartLifecycleTracker.CreateValue">
+            <summary>
+            Instantiates the MEF part and initializes it only so much as executing its importing constructor.
+            </summary>
+            <returns>The instantiated MEF part.</returns>
+        </member>
+        <member name="M:Microsoft.VisualStudio.Composition.ExportProvider.PartLifecycleTracker.SatisfyImports">
+            <summary>
+            Satisfies importing members on the MEF part itself.
+            </summary>
+        </member>
+        <member name="M:Microsoft.VisualStudio.Composition.ExportProvider.PartLifecycleTracker.InvokeOnImportsSatisfied">
+            <summary>
+            Invokes the OnImportsSatisfied method on the part, if applicable.
+            </summary>
+            <remarks>
+            If not applicable for this MEF part, this method should simply no-op.
+            </remarks>
+        </member>
+        <member name="M:Microsoft.VisualStudio.Composition.ExportProvider.PartLifecycleTracker.ReportPartiallyInitializedImport(Microsoft.VisualStudio.Composition.ExportProvider.PartLifecycleTracker)">
+            <summary>
+            Indicates that a MEF import was satisfied with a value that was not completely initialized
+            so that it can be initialized later (before this MEF part is allowed to be observed by the MEF client).
+            </summary>
+            <param name="importedPart">The part that has been imported by this part without full initialization.</param>
+        </member>
+        <member name="M:Microsoft.VisualStudio.Composition.ExportProvider.PartLifecycleTracker.ThrowPartNotInstantiableException">
+            <summary>
+            Throws a <see cref="T:Microsoft.VisualStudio.Composition.CompositionFailedException"/> indicating the part cannot be instantiated.
+            </summary>
+        </member>
+        <member name="M:Microsoft.VisualStudio.Composition.ExportProvider.PartLifecycleTracker.Create">
+            <summary>
+            Invokes <see cref="M:Microsoft.VisualStudio.Composition.ExportProvider.PartLifecycleTracker.CreateValue"/> if this part has not already done so
+            and performs initial processing of the instance.
+            </summary>
+        </member>
+        <member name="M:Microsoft.VisualStudio.Composition.ExportProvider.PartLifecycleTracker.SatisfyImmediateImports">
+            <summary>
+            Invokes <see cref="M:Microsoft.VisualStudio.Composition.ExportProvider.PartLifecycleTracker.SatisfyImports"/> if this part has not already done so.
+            </summary>
+        </member>
+        <member name="M:Microsoft.VisualStudio.Composition.ExportProvider.PartLifecycleTracker.NotifyTransitiveImportsSatisfied">
+            <summary>
+            Invokes <see cref="M:Microsoft.VisualStudio.Composition.ExportProvider.PartLifecycleTracker.InvokeOnImportsSatisfied"/> if this part has not already done so.
+            </summary>
+        </member>
+        <member name="M:Microsoft.VisualStudio.Composition.ExportProvider.PartLifecycleTracker.MoveNext(Microsoft.VisualStudio.Composition.ExportProvider.PartLifecycleState)">
+            <summary>
+            Executes the next step in this part's initialization.
+            </summary>
+            <param name="nextState">The state to transition to. It must be no more than one state beyond the current one.</param>
+        </member>
+        <member name="M:Microsoft.VisualStudio.Composition.ExportProvider.PartLifecycleTracker.ShouldMoveTo(Microsoft.VisualStudio.Composition.ExportProvider.PartLifecycleState)">
+            <summary>
+            Checks whether the MEF part's next step in initialization is the specified one.
+            </summary>
+            <param name="nextState">The step that is expected to be the next appropriate one.</param>
+            <returns>
+            <c>true</c> if <paramref name="nextState"/> is one step beyond the current <see cref="P:Microsoft.VisualStudio.Composition.ExportProvider.PartLifecycleTracker.State"/>.
+            <c>false</c> if this MEF part has advanced to or beyond that step already.
+            </returns>
+            <exception cref="T:System.InvalidOperationException">
+            Thrown if this part is not yet ready for this step because that is a sign of a bug in the caller.
+            </exception>
+        </member>
+        <member name="M:Microsoft.VisualStudio.Composition.ExportProvider.PartLifecycleTracker.MoveToState(Microsoft.VisualStudio.Composition.ExportProvider.PartLifecycleState)">
+            <summary>
+            Advances this MEF part to the specified stage of initialization.
+            </summary>
+            <param name="requiredState">The initialization state to advance to.</param>
+            <remarks>
+            If the specified state has already been reached, this method simply returns to the caller.
+            </remarks>
+        </member>
+        <member name="M:Microsoft.VisualStudio.Composition.ExportProvider.PartLifecycleTracker.MoveToStateTransitively(Microsoft.VisualStudio.Composition.ExportProvider.PartLifecycleState,System.Collections.Generic.HashSet{Microsoft.VisualStudio.Composition.ExportProvider.PartLifecycleTracker})">
+            <summary>
+            Advances this part and everything it imports (transitively) to the specified state.
+            </summary>
+            <param name="requiredState">The state to advance this and all related parts to.</param>
+            <param name="visitedNodes">
+            Used in the recursive call to avoid loops leading to stack overflows.
+            It also identifies all related parts so they can be "stamped" as being transitively initialized.
+            This MUST be <c>null</c> for non-recursive calls.
+            </param>
+        </member>
+        <member name="M:Microsoft.VisualStudio.Composition.ExportProvider.PartLifecycleTracker.UpdateState(Microsoft.VisualStudio.Composition.ExportProvider.PartLifecycleState)">
+            <summary>
+            Indicates that a new stage of initialization has been reached.
+            </summary>
+            <param name="newState">The new state.</param>
+            <returns><c>true</c> if the new state actually represents an advancement over the prior state.</returns>
+        </member>
+        <member name="M:Microsoft.VisualStudio.Composition.ExportProvider.PartLifecycleTracker.WaitForState(Microsoft.VisualStudio.Composition.ExportProvider.PartLifecycleState)">
+            <summary>
+            Blocks the calling thread until this Part reaches the required initialization stage.
+            </summary>
+            <param name="state">The stage required by the caller.</param>
+        </member>
+        <member name="M:Microsoft.VisualStudio.Composition.ExportProvider.PartLifecycleTracker.ThrowIfFaulted">
+            <summary>
+            Rethrows an exception experienced while initializing this MEF part if there is one.
+            </summary>
+        </member>
+        <member name="M:Microsoft.VisualStudio.Composition.ExportProvider.PartLifecycleTracker.ThrowIfDisposed">
+            <summary>
+            Throw an <see cref="T:System.ObjectDisposedException"/> if this instance has been disposed of previously.
+            </summary>
+        </member>
+        <member name="M:Microsoft.VisualStudio.Composition.ExportProvider.PartLifecycleTracker.Fault(System.Exception)">
+            <summary>
+            Records that a failure occurred in initializing this part
+            and advances this Part to its <see cref="F:Microsoft.VisualStudio.Composition.ExportProvider.PartLifecycleState.Final"/>.
+            </summary>
+            <param name="exception">The failure.</param>
+        </member>
+        <member name="M:Microsoft.VisualStudio.Composition.ImportDefinition.#ctor(System.String,Microsoft.VisualStudio.Composition.ImportCardinality,System.Collections.Generic.IReadOnlyDictionary{System.String,System.Object},System.Collections.Generic.IReadOnlyCollection{Microsoft.VisualStudio.Composition.IImportSatisfiabilityConstraint},System.Collections.Generic.IReadOnlyCollection{System.String})">
+            <summary>
+            Initializes a new instance of the <see cref="T:Microsoft.VisualStudio.Composition.ImportDefinition"/> class
+            based on MEF v2 attributes.
+            </summary>
+        </member>
+        <member name="M:Microsoft.VisualStudio.Composition.ImportDefinition.#ctor(System.String,Microsoft.VisualStudio.Composition.ImportCardinality,System.Collections.Generic.IReadOnlyDictionary{System.String,System.Object},System.Collections.Generic.IReadOnlyCollection{Microsoft.VisualStudio.Composition.IImportSatisfiabilityConstraint})">
+            <summary>
+            Initializes a new instance of the <see cref="T:Microsoft.VisualStudio.Composition.ImportDefinition"/> class
+            based on MEF v1 attributes.
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.Composition.ImportDefinition.ExportFactorySharingBoundaries">
+            <summary>
+            Gets the sharing boundaries created when the export factory is used.
+            </summary>
+        </member>
+        <member name="T:Microsoft.VisualStudio.Composition.PassthroughMetadataViewProvider">
+            <summary>
+            Supports metadata views that are any type that <see cref="T:System.Collections.Immutable.ImmutableDictionary`2"/>
+            could be assigned to, including <see cref="T:System.Collections.Generic.IDictionary`2"/> and <see cref="T:System.Collections.Generic.IReadOnlyDictionary`2"/>.
+            </summary>
+        </member>
+        <member name="T:Microsoft.VisualStudio.Composition.ReflectionHelpers.Assignability">
+            <summary>
+            Describes how compatible an export and import site pair are.
+            </summary>
+        </member>
+        <member name="F:Microsoft.VisualStudio.Composition.ReflectionHelpers.Assignability.Definitely">
+            <summary>
+            Static analysis of the types involved guarantee that assignment will succeed at runtime.
+            </summary>
+            <remarks>
+            For example, a property typed as string will always export a value assignable to an import of type string.
+            </remarks>
+        </member>
+        <member name="F:Microsoft.VisualStudio.Composition.ReflectionHelpers.Assignability.Maybe">
+            <summary>
+            Static analysis cannot definitively say whether assignment at runtime will succeed.
+            </summary>
+            <remarks>
+            For example, a property typed as "object" that exports IFoo may return an IFoo object at runtime (success),
+            or it may return a System.String object (failure).
+            </remarks>
+        </member>
+        <member name="F:Microsoft.VisualStudio.Composition.ReflectionHelpers.Assignability.DefinitelyNot">
+            <summary>
+            Static analysis of the types involved guarantee that assignment will fail at runtime.
+            </summary>
+            <remarks>
+            For example, a property typed as string will never export a value assignable to an import of type int.
+            </remarks>
+        </member>
+        <member name="M:Microsoft.VisualStudio.Composition.ReflectionHelpers.CreateFuncOfType(System.Type,System.Func{System.Object})">
+            <summary>
+            Creates a <see cref="T:System.Func`1"/> delegate for a given <see cref="T:System.Func`1"/> delegate.
+            </summary>
+            <param name="typeArg">The <c>T</c> type argument for the returned function's return type.</param>
+            <param name="func">The function that produces the T value typed as <see cref="T:System.Object"/>.</param>
+            <returns>An instance of <see cref="T:System.Func`1"/>, typed as <see cref="T:System.Func`1"/>.</returns>
+        </member>
+        <member name="M:Microsoft.VisualStudio.Composition.ReflectionHelpers.EnumTypeAndBaseTypes(System.Type)">
+            <summary>
+            Produces a sequence of this type, and each of its base types, in order of ascending the type hierarchy.
+            </summary>
+        </member>
+        <member name="M:Microsoft.VisualStudio.Composition.ReflectionHelpers.CloseGenericType(System.Type,System.Type)">
+            <summary>
+            Returns a type with generic type arguments supplied by a constructed type that is derived from
+            the supplied generic type definition.
+            </summary>
+            <param name="genericTypeDefinition">The generic type definition to return a constructed type from.</param>
+            <param name="constructedType">A constructed type that is, or derives from, <paramref name="genericTypeDefinition"/>.</param>
+            <returns>A constructed type.</returns>
+        </member>
+        <member name="M:Microsoft.VisualStudio.Composition.ReflectionHelpers.ExtractGenericTypeArguments(System.Type,System.Type)">
+            <summary>
+            Extracts generic type arguments from a constructed type that are necessary to close a generic type definition.
+            </summary>
+            <param name="genericTypeDefinition">A generic type definition.</param>
+            <param name="constructedType">A closed type from which may be obtained generic type arguments.</param>
+            <returns>The type argument necessary to construct the closed type.</returns>
+        </member>
+        <member name="F:Microsoft.VisualStudio.Composition.Reflection.ParameterRef.parameterIndex">
+            <summary>
+            A 0-based index describing which parameter in the method this references.
+            </summary>
+        </member>
+        <member name="F:Microsoft.VisualStudio.Composition.Reflection.TypeRef.resolvedType">
+            <summary>
+            Backing field for the lazily initialized <see cref="P:Microsoft.VisualStudio.Composition.Reflection.TypeRef.ResolvedType"/> property.
+            </summary>
+        </member>
+        <member name="F:Microsoft.VisualStudio.Composition.Reflection.TypeRef.hashCode">
+            <summary>
+            A lazily initialized cache of the result of calling <see cref="M:Microsoft.VisualStudio.Composition.Reflection.TypeRef.GetHashCode"/>.
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.Composition.Reflection.TypeRef.ResolvedType">
+            <summary>
+            Gets the resolved type.
+            </summary>
+        </member>
+        <member name="M:Microsoft.VisualStudio.Composition.Reflection.TypeRef.Get(System.Type,Microsoft.VisualStudio.Composition.Resolver)">
+            <summary>
+            Gets a TypeRef that represents a given Type instance.
+            </summary>
+            <param name="type">The Type to represent. May be <c>null</c> to get a <c>null</c> result.</param>
+            <param name="resolver">The resolver to use to reconstitute <paramref name="type"/> or derivatives later.</param>
+            <returns>An instance of TypeRef if <paramref name="type"/> is not <c>null</c>; otherwise <c>null</c>.</returns>
+        </member>
+        <member name="F:Microsoft.VisualStudio.Composition.Resolver.DefaultInstance">
+            <summary>
+            A <see cref="T:Microsoft.VisualStudio.Composition.Resolver"/> instance that should only be used in code paths
+            that serve for *debugging* purposes.
+            </summary>
+        </member>
+        <member name="F:Microsoft.VisualStudio.Composition.Resolver.InstanceCache">
+            <summary>
+            A cache of TypeRef instances that correspond to Type instances.
+            </summary>
+            <remarks>
+            This is for efficiency to avoid duplicates where convenient to do so.
+            It is not intended as a guarantee of reference equality across equivalent TypeRef instances.
+            </remarks>
+        </member>
+        <member name="P:Microsoft.VisualStudio.Composition.RuntimeComposition.RuntimeImport.ImportingMemberRef">
+            <summary>
+            Gets the importing member. May be empty if the import site is an importing constructor parameter.
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.Composition.RuntimeComposition.RuntimeImport.ImportingParameterRef">
+            <summary>
+            Gets the importing parameter. May be empty if the import site is an importing field or property.
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.Composition.RuntimeComposition.RuntimeImport.ExportFactorySharingBoundaries">
+            <summary>
+            Gets the sharing boundaries created when the export factory is used.
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.Composition.RuntimeComposition.RuntimeImport.ImportingSiteElementType">
+            <summary>
+            Gets the type of the member, with the ImportMany collection and Lazy/ExportFactory stripped off, when present.
+            </summary>
+        </member>
+        <member name="F:Microsoft.VisualStudio.Composition.RuntimeExportProviderFactory.RuntimeExportProvider.DeclaredOnlyLookup">
+            <summary>
+            BindingFlags that find members declared exactly on the receiving type, whether they be public or not, instance or static.
+            </summary>
+        </member>
+        <member name="M:Microsoft.VisualStudio.Composition.RuntimeExportProviderFactory.RuntimeExportProvider.GetExportedValueHelper(Microsoft.VisualStudio.Composition.RuntimeComposition.RuntimeImport,Microsoft.VisualStudio.Composition.RuntimeComposition.RuntimeExport,Microsoft.VisualStudio.Composition.RuntimeComposition.RuntimePart,Microsoft.VisualStudio.Composition.Reflection.TypeRef,Microsoft.VisualStudio.Composition.Reflection.TypeRef,Microsoft.VisualStudio.Composition.RuntimeExportProviderFactory.RuntimeExportProvider.RuntimePartLifecycleTracker)">
+            <summary>
+            Called from <see cref="M:Microsoft.VisualStudio.Composition.RuntimeExportProviderFactory.RuntimeExportProvider.GetExportedValue(Microsoft.VisualStudio.Composition.RuntimeComposition.RuntimeImport,Microsoft.VisualStudio.Composition.RuntimeComposition.RuntimeExport,Microsoft.VisualStudio.Composition.RuntimeExportProviderFactory.RuntimeExportProvider.RuntimePartLifecycleTracker)"/>
+            only, as an assisting method. See remarks.
+            </summary>
+            <remarks>
+            This method is separate from its one caller to avoid a csc.exe compiler bug
+            where it captures "this" in the closure for exportedValue, resulting in a memory leak
+            which caused one of our GC unit tests to fail.
+            </remarks>
+        </member>
+        <member name="M:Microsoft.VisualStudio.Composition.RuntimeExportProviderFactory.RuntimeExportProvider.GetPartConstructedTypeRef(Microsoft.VisualStudio.Composition.RuntimeComposition.RuntimePart,System.Collections.Generic.IReadOnlyDictionary{System.String,System.Object})">
+            <summary>
+            Gets the constructed type (non generic type definition) for a part.
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.Composition.RuntimeExportProviderFactory.RuntimeExportProvider.RuntimePartLifecycleTracker.PartType">
+            <summary>
+            Gets the type that backs this part.
+            </summary>
+        </member>
+        <member name="T:Microsoft.VisualStudio.Composition.StandardAssemblyLoader">
+            <summary>
+            A typical .NET Framework implementation of the <see cref="T:Microsoft.VisualStudio.Composition.IAssemblyLoader"/> interface.
+            </summary>
+        </member>
+        <member name="F:Microsoft.VisualStudio.Composition.StandardAssemblyLoader.loadedAssemblies">
+            <summary>
+            A cache of assembly names to loaded assemblies.
+            </summary>
+        </member>
+        <member name="M:Microsoft.VisualStudio.Composition.StandardAssemblyLoader.LoadAssembly(System.Reflection.AssemblyName)">
+            <inheritdoc />
+        </member>
+        <member name="M:Microsoft.VisualStudio.Composition.StandardAssemblyLoader.LoadAssembly(System.String,System.String)">
+            <inheritdoc />
+        </member>
+        <member name="T:Microsoft.VisualStudio.Composition.Strings">
+            <summary>
+              A strongly-typed resource class, for looking up localized strings, etc.
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.Composition.Strings.ResourceManager">
+            <summary>
+              Returns the cached ResourceManager instance used by this class.
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.Composition.Strings.Culture">
+            <summary>
+              Overrides the current thread's CurrentUICulture property for all
+              resource lookups using this strongly typed resource class.
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.Composition.Strings.AllValuesMustBeNonNull">
+            <summary>
+              Looks up a localized string similar to All values must be non-null..
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.Composition.Strings.CannotDirectlyDisposeAnImport">
+            <summary>
+              Looks up a localized string similar to This instance is an import and cannot be directly disposed..
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.Composition.Strings.CannotImportBecauseExportingPartCannotBeInstantiated">
+            <summary>
+              Looks up a localized string similar to {0}: cannot import exported value from {1} because the exporting part cannot be instantiated. Is it missing an importing constructor?.
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.Composition.Strings.CollectionTypeMustDeriveFromICollectionOfT">
+            <summary>
+              Looks up a localized string similar to Collection type must derive from ICollection&lt;T&gt;..
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.Composition.Strings.ContainerDisposalEncounteredExceptions">
+            <summary>
+              Looks up a localized string similar to Instantiated part(s) threw exception(s) from IDisposable.Dispose()..
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.Composition.Strings.ErrorsDuringDiscovery">
+            <summary>
+              Looks up a localized string similar to Errors occurred during discovery..
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.Composition.Strings.ErrorsInComposition">
+            <summary>
+              Looks up a localized string similar to Errors exist in the composition..
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.Composition.Strings.ErrorWhileSettingImport">
+            <summary>
+              Looks up a localized string similar to Import &quot;{0}&quot; could not be satisfied..
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.Composition.Strings.ExactlyOneEntryForEveryImport">
+            <summary>
+              Looks up a localized string similar to There should be exactly one entry for every import..
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.Composition.Strings.ExceptionThrownByPartUnderInitialization">
+            <summary>
+              Looks up a localized string similar to An exception was thrown while initializing part &quot;{0}&quot;..
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.Composition.Strings.ExpectedExactlyOneExportButFound">
+            <summary>
+              Looks up a localized string similar to {0}: expected exactly 1 export of {1} but found {2}.{3}.
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.Composition.Strings.ExpectedOneOrZeroExportsButFound">
+            <summary>
+              Looks up a localized string similar to {0}: expected 1 or 0 exports of {1} but found {2}.{3}.
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.Composition.Strings.ExportedValueNotAssignableToImport">
+            <summary>
+              Looks up a localized string similar to Value exported from &quot;{0}&quot; cannot be assigned to import site &quot;{1}&quot;..
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.Composition.Strings.ExportOfExportProviderNotAllowed">
+            <summary>
+              Looks up a localized string similar to {0}: Export of ExportProvider is not allowed..
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.Composition.Strings.FailStableComposition">
+            <summary>
+              Looks up a localized string similar to Failed to find a stable composition..
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.Composition.Strings.FailureWhileScanningType">
+            <summary>
+              Looks up a localized string similar to Failure while scanning type &quot;{0}&quot;..
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.Composition.Strings.ImportingCtorHasUnsupportedParameterTypeForImportMany">
+            <summary>
+              Looks up a localized string similar to Importing constructor has an unsupported parameter type for an [ImportMany]. Only T[] and IEnumerable&lt;T&gt; are supported..
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.Composition.Strings.ImportsThatUseGenericTypeParametersNotSupported">
+            <summary>
+              Looks up a localized string similar to {0}: imports that use generic type parameters are not supported..
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.Composition.Strings.InstanceEmpty">
+            <summary>
+              Looks up a localized string similar to This instance is empty..
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.Composition.Strings.IsNotAssignableFromExportedMEFValue">
+            <summary>
+              Looks up a localized string similar to {0}: is not assignable from exported MEF value {1}..
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.Composition.Strings.LoopBetweenNonSharedParts">
+            <summary>
+              Looks up a localized string similar to Loop between non-shared parts..
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.Composition.Strings.LoopInvolvingImportingCtorArgumentAndAllNonLazyImports">
+            <summary>
+              Looks up a localized string similar to Loop involving ImportingConstructor argument and all non-lazy imports..
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.Composition.Strings.MetadataTypeNotSupported">
+            <summary>
+              Looks up a localized string similar to {0}: metadata type {1} is not supported..
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.Composition.Strings.NoImportingConstructor">
+            <summary>
+              Looks up a localized string similar to No importing constructor..
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.Composition.Strings.NotATypeSpec">
+            <summary>
+              Looks up a localized string similar to Not a type spec..
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.Composition.Strings.NotClosedFormOfOther">
+            <summary>
+              Looks up a localized string similar to Not a closed form of the other..
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.Composition.Strings.NotGenericTypeDefinition">
+            <summary>
+              Looks up a localized string similar to This is not a generic type definition..
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.Composition.Strings.NotInitialized">
+            <summary>
+              Looks up a localized string similar to Not initialized..
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.Composition.Strings.PartBelongsToAnotherSharingBoundary">
+            <summary>
+              Looks up a localized string similar to Inappropriate request for export from part that belongs to another sharing boundary..
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.Composition.Strings.PartIsNotInstantiable">
+            <summary>
+              Looks up a localized string similar to This part ({0}) cannot be instantiated..
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.Composition.Strings.PartIsNotShared">
+            <summary>
+              Looks up a localized string similar to Part is not shared..
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.Composition.Strings.ReflectionTypeLoadExceptionWhileEnumeratingTypes">
+            <summary>
+              Looks up a localized string similar to ReflectionTypeLoadException while enumerating types in assembly &quot;{0}&quot;. Results will be incomplete..
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.Composition.Strings.ScanningMEFAssemblies">
+            <summary>
+              Looks up a localized string similar to Scanning MEF assemblies....
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.Composition.Strings.TypeOfMetadataViewUnsupported">
+            <summary>
+              Looks up a localized string similar to Type of metadata view is unsupported..
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.Composition.Strings.UnableToDeterminePrimarySharingBoundary">
+            <summary>
+              Looks up a localized string similar to Unable to determine the primary sharing boundary for MEF part &quot;{0}&quot;..
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.Composition.Strings.UnableToEnumerateTypes">
+            <summary>
+              Looks up a localized string similar to Unable to enumerate types in assembly &quot;{0}&quot;..
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.Composition.Strings.UnableToInstantiateCustomImportCollectionType">
+            <summary>
+              Looks up a localized string similar to Unable to instantiate custom import collection type..
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.Composition.Strings.UnableToLoadAssembly">
+            <summary>
+              Looks up a localized string similar to Unable to load assembly &quot;{0}&quot; for scanning..
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.Composition.Strings.UnexpectedMemberType">
+            <summary>
+              Looks up a localized string similar to Unexpected member type..
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.Composition.Strings.UnexpectedNumberOfExportsFound">
+            <summary>
+              Looks up a localized string similar to Expected {0} export(s) with contract name &quot;{1}&quot; but found {2} after applying applicable constraints..
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.Composition.Strings.UnexpectedSharedPartState">
+            <summary>
+              Looks up a localized string similar to This shared part is in state {0} but must be in state {1} for this operation..
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.Composition.Strings.UnresolvableMetadataToken">
+            <summary>
+              Looks up a localized string similar to Unresolvable metadata token..
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.Composition.Strings.WrongLength">
+            <summary>
+              Looks up a localized string similar to Wrong length..
+            </summary>
+        </member>
+    </members>
+</doc>

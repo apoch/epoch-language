@@ -1,0 +1,164 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>Microsoft.VisualStudio.ProjectSystem.Interop</name>
+    </assembly>
+    <members>
+        <member name="T:Microsoft.VisualStudio.ProjectSystem.Interop.INuGetPackageManager">
+            <summary>
+            Represents an interface for project systems to control NuGet package management behavior.
+            </summary>
+        </member>
+        <member name="M:Microsoft.VisualStudio.ProjectSystem.Interop.INuGetPackageManager.GetInstalledPackagesAsync(System.Threading.CancellationToken)">
+            <summary>
+            Returns the list of packages installed in the project. This should
+            return only the direct dependencies.
+            </summary>
+            <remarks>
+            A class with generic parameters (Task in this case)
+            cannot use embedded types as type parameters.
+            (See: http://msdn.microsoft.com/en-us/library/dd264728.aspx).
+            That's the reason why the return type is marked as collection of objects rather than
+            <see cref="T:Microsoft.VisualStudio.ProjectSystem.Interop.INuGetPackageMoniker"/> because the latter is an embedded type.
+            The actual implementations should return <see cref="T:Microsoft.VisualStudio.ProjectSystem.Interop.INuGetPackageMoniker"/> objects
+            in the collection.
+            </remarks>
+        </member>
+        <member name="M:Microsoft.VisualStudio.ProjectSystem.Interop.INuGetPackageManager.InstallPackageAsync(Microsoft.VisualStudio.ProjectSystem.Interop.INuGetPackageMoniker,System.Collections.Generic.IReadOnlyDictionary{System.String,System.Object},System.IO.TextWriter,System.IProgress{Microsoft.VisualStudio.ProjectSystem.Interop.INuGetPackageInstallProgress},System.Threading.CancellationToken)">
+            <summary>
+            Installs a package in the project.
+            </summary>
+            <param name="package">Package to install.</param>
+            <param name="options">Any options specified by the user.</param>
+            <param name="logger">Logger to report the progress back to the NuGet. Can be null.</param>
+            <param name="progress">To report the progress back to NuGet. Can be null.</param>
+            <param name="cancellationToken">Cancellation token.Cancellation token. When responding
+            to cancellation, the implementors should ensure the rollback of
+            everything done and bring the project to original state.</param>
+            <remarks>
+            This should typically download the package and it's dependencies into the
+            project's packages folder, modify the package manifest file for the project,
+            add references to assemblies and any other additional steps
+            required for the package installation.
+            </remarks>
+        </member>
+        <member name="M:Microsoft.VisualStudio.ProjectSystem.Interop.INuGetPackageManager.UninstallPackageAsync(Microsoft.VisualStudio.ProjectSystem.Interop.INuGetPackageMoniker,System.Collections.Generic.IReadOnlyDictionary{System.String,System.Object},System.IO.TextWriter,System.IProgress{Microsoft.VisualStudio.ProjectSystem.Interop.INuGetPackageInstallProgress},System.Threading.CancellationToken)">
+            <summary>
+            Uninstalls the package.
+            </summary>
+            <param name="package">Package to uninstall.</param>
+            <param name="options">Any options specified by the user.</param>
+            <param name="logger">Logger to report the progress back to the NuGet.</param>
+            <param name="progress">To report the progress back to NuGet.</param>
+            <param name="cancellationToken">Cancellation token. When responding
+            to cancellation, the implementors should ensure the rollback of
+            everything done and bring the project to original state.</param>
+            <remarks>
+            This should handle all the steps required to remove the project's dependency
+            on package like removing the package reference from package manifest and also
+            removing assembly references and any other additional steps.
+            </remarks>
+        </member>
+        <member name="M:Microsoft.VisualStudio.ProjectSystem.Interop.INuGetPackageManager.CanSupport(System.String,Microsoft.VisualStudio.ProjectSystem.Interop.NuGetOperation)">
+            <summary>
+            Specifies whether the current implementation actually supports the given option.
+            </summary>
+            <param name="optionName">Option name.</param>
+            <param name="operation">NuGet Operation.</param>
+            <returns>True if the given optionName is supported for the given operation by
+            this implementation, otherwise false.</returns>
+        </member>
+        <member name="M:Microsoft.VisualStudio.ProjectSystem.Interop.INuGetPackageManager.GetSupportedFrameworksAsync(System.Threading.CancellationToken)">
+            <summary>
+            Gets a list of frameworks supported by the project system.
+            </summary>
+            <returns>A readonly collection of <see cref="T:System.Runtime.Versioning.FrameworkName"/>s
+            supported by the project system.</returns>
+        </member>
+        <member name="T:Microsoft.VisualStudio.ProjectSystem.Interop.IVsMSBuildTaskFreeThreadedFileManager">
+            <summary>
+            Provides free-threaded access to file contents, including unsaved changes
+            in the editors.
+            </summary>
+        </member>
+        <member name="M:Microsoft.VisualStudio.ProjectSystem.Interop.IVsMSBuildTaskFreeThreadedFileManager.Delete(System.String)">
+            <summary>
+            Marks a file as deleted for the duration of this build and closes editor windows.
+            </summary>
+        </member>
+        <member name="M:Microsoft.VisualStudio.ProjectSystem.Interop.IVsMSBuildTaskFreeThreadedFileManager.Exists(System.String,System.Boolean)">
+            <summary>
+            Checks whether the file exists in the running document table and/or on disk.
+            </summary>
+        </member>
+        <member name="M:Microsoft.VisualStudio.ProjectSystem.Interop.IVsMSBuildTaskFreeThreadedFileManager.GetFileContents(System.String)">
+            <summary>
+            Gets the contents of the file with the specified name.
+            </summary>
+            <returns>A TextReader.</returns>
+            <remarks>
+            The caller is responsible to dispose of the returned TextReader.
+            </remarks>
+        </member>
+        <member name="M:Microsoft.VisualStudio.ProjectSystem.Interop.IVsMSBuildTaskFreeThreadedFileManager.GetFileLastChangeTime(System.String)">
+            <summary>
+            Gets the timestamp of the last file write.
+            </summary>
+        </member>
+        <member name="M:Microsoft.VisualStudio.ProjectSystem.Interop.IVsMSBuildTaskFreeThreadedFileManager.PutGeneratedFileContents(System.String,System.String)">
+            <summary>
+            Updates the contents of the specified file.
+            </summary>
+        </member>
+        <member name="T:Microsoft.VisualStudio.ProjectSystem.Interop.NuGetOperation">
+            <summary>
+            Represents a nuget operation.
+            </summary>
+        </member>
+        <member name="F:Microsoft.VisualStudio.ProjectSystem.Interop.NuGetOperation.Install">
+            <summary>
+            Represent installing a package.
+            </summary>
+        </member>
+        <member name="F:Microsoft.VisualStudio.ProjectSystem.Interop.NuGetOperation.Uninstall">
+            <summary>
+            Represents uninstalling a package.
+            </summary>
+        </member>
+        <member name="T:Microsoft.VisualStudio.ProjectSystem.Interop.INuGetPackageInstallProgress">
+            <summary>
+            Represents the progress of a nuget installation operation.
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.ProjectSystem.Interop.INuGetPackageInstallProgress.InstalledPackagesCount">
+            <summary>
+            Count of packages installed so far.
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.ProjectSystem.Interop.INuGetPackageInstallProgress.TotalPackagesToInstall">
+            <summary>
+            Count of packages to be installed.
+            </summary>
+        </member>
+        <member name="T:Microsoft.VisualStudio.ProjectSystem.Interop.INuGetPackageMoniker">
+            <summary>
+            Represents metadata about a nuget package.
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.ProjectSystem.Interop.INuGetPackageMoniker.Id">
+            <summary>
+            Gets the Id of package.
+            </summary>
+        </member>
+        <member name="P:Microsoft.VisualStudio.ProjectSystem.Interop.INuGetPackageMoniker.Version">
+            <summary>
+            Gets the Version of package.
+            </summary>
+        </member>
+        <member name="T:Microsoft.VisualStudio.ProjectSystem.Interop.SVsDesignTimeBuildOutputWindowPane">
+            <summary>
+            The service that represents the IVsOutputWindowPane for design-time build logging.
+            </summary>
+        </member>
+    </members>
+</doc>

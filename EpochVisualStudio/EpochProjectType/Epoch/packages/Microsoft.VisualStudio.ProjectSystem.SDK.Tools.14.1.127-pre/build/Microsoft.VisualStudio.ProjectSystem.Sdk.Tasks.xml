@@ -1,0 +1,221 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>Microsoft.VisualStudio.ProjectSystem.Sdk.Tasks</name>
+    </assembly>
+    <members>
+        <member name="T:Microsoft.Build.NonShippingTasks.XamlRuleToCode">
+            <summary>
+            An MSBuild Task that generates source code from 
+            <see cref="T:Microsoft.Build.Framework.XamlTypes.Rule"/>
+            objects described in XAML.
+            </summary>
+        </member>
+        <member name="T:Microsoft.Build.NonShippingTasks.XamlRuleToCode.DataAccessStyle">
+            <summary>
+            The mode of data access to code gen, if any.
+            </summary>
+        </member>
+        <member name="F:Microsoft.Build.NonShippingTasks.XamlRuleToCode.DataAccessStyle.None">
+            <summary>
+            No data access will be offered by the generated code.
+            Only string constants will be generated.
+            </summary>
+        </member>
+        <member name="F:Microsoft.Build.NonShippingTasks.XamlRuleToCode.DataAccessStyle.IRule">
+            <summary>
+            CPS data access layer ("DM2").
+            </summary>
+        </member>
+        <member name="T:Microsoft.Build.NonShippingTasks.XamlRuleToCode.RuleInjectionStyle">
+            <summary>
+            Indicates the partial class to generate to make rules
+            more accessible in source code.
+            </summary>
+        </member>
+        <member name="F:Microsoft.Build.NonShippingTasks.XamlRuleToCode.RuleInjectionStyle.None">
+            <summary>
+            No partial class will be created.
+            </summary>
+        </member>
+        <member name="F:Microsoft.Build.NonShippingTasks.XamlRuleToCode.RuleInjectionStyle.ProjectLevel">
+            <summary>
+            A partial class will be generated to make accessing the generated rule easy.
+            </summary>
+        </member>
+        <member name="M:Microsoft.Build.NonShippingTasks.XamlRuleToCode.#ctor">
+            <summary>
+            Initializes a new instance of the <see cref="T:Microsoft.Build.NonShippingTasks.XamlRuleToCode"/> class.
+            </summary>
+        </member>
+        <member name="P:Microsoft.Build.NonShippingTasks.XamlRuleToCode.Inputs">
+            <summary>
+            Gets or sets the XAML files to generate language source files for.
+            </summary>
+        </member>
+        <member name="P:Microsoft.Build.NonShippingTasks.XamlRuleToCode.OutputDirectory">
+            <summary>
+            Gets or sets the directory where generated source files should be placed.
+            </summary>
+        </member>
+        <member name="P:Microsoft.Build.NonShippingTasks.XamlRuleToCode.Language">
+            <summary>
+            Gets or sets the language of the source files to generate.
+            </summary>
+            <value>Defaults to C#.</value>
+        </member>
+        <member name="P:Microsoft.Build.NonShippingTasks.XamlRuleToCode.NamespaceName">
+            <summary>
+            Gets or sets the namespace the generated classes should belong to.
+            </summary>
+        </member>
+        <member name="P:Microsoft.Build.NonShippingTasks.XamlRuleToCode.ProjectPropertiesContext">
+            <summary>
+            Gets or sets the fully-qualified name of the concrete class
+            that implements IProjectPropertiesContext.
+            </summary>
+            <value>The default value is "Microsoft.VisualStudio.Project.Utilities.ProjectPropertiesContext"</value>
+        </member>
+        <member name="P:Microsoft.Build.NonShippingTasks.XamlRuleToCode.RuleMissingError">
+            <summary>
+            The fully-qualified static method to invoke with the schema name 
+            of the missing rule when a property is accessed via the data model.
+            </summary>
+        </member>
+        <member name="P:Microsoft.Build.NonShippingTasks.XamlRuleToCode.CreateFallbackRule">
+            <summary>
+            Should a fallback rule be generated
+            </summary>
+        </member>
+        <member name="P:Microsoft.Build.NonShippingTasks.XamlRuleToCode.PropertyMissingError">
+            <summary>
+            The fully-qualified static method to invoke with the name of the 
+            rule and a property that is missing from the schema file.
+            </summary>
+        </member>
+        <member name="P:Microsoft.Build.NonShippingTasks.XamlRuleToCode.DataAccess">
+            <summary>
+            Gets or sets the kind of data access layer the generated source files
+            will include that provide property I/O.
+            </summary>
+        </member>
+        <member name="P:Microsoft.Build.NonShippingTasks.XamlRuleToCode.RuleInjection">
+            <summary>
+            Gets or sets whether a partial class should be generated to inject a property accessor.
+            </summary>
+            <remarks>
+            This property has no direct references because it is initialized from MSBuild .targets
+            and its effect is to set an internal property, which *is* actually used.
+            </remarks>
+        </member>
+        <member name="P:Microsoft.Build.NonShippingTasks.XamlRuleToCode.RuleNamePrefix">
+            <summary>
+            Gets or sets a string to prepend to the name of the generated class.
+            </summary>
+        </member>
+        <member name="P:Microsoft.Build.NonShippingTasks.XamlRuleToCode.RuleInjectionClassName">
+            <summary>
+            Gets or sets the name of the partial class to inject the rule accessors into.
+            </summary>
+        </member>
+        <member name="P:Microsoft.Build.NonShippingTasks.XamlRuleToCode.RuleInjectionFilePropertyName">
+            <summary>
+            Gets or sets the name of the property in the partial class that gets
+            the file value to use when initializing the rule.
+            </summary>
+        </member>
+        <member name="P:Microsoft.Build.NonShippingTasks.XamlRuleToCode.RuleInjectionContextName">
+            <summary>
+            The contextName to look up in the catalog
+            </summary>
+        </member>
+        <member name="P:Microsoft.Build.NonShippingTasks.XamlRuleToCode.RuleInjectionItemTypePropertyName">
+            <summary>
+            Gets or sets the name of the property in the partial class that gets
+            the item type to use when initializing the rule.
+            </summary>
+        </member>
+        <member name="P:Microsoft.Build.NonShippingTasks.XamlRuleToCode.RuleInjectionItemNamePropertyName">
+            <summary>
+            Gets or sets the name of the property in the partial class that gets
+            the item name to use when initializing the rule.
+            </summary>
+        </member>
+        <member name="P:Microsoft.Build.NonShippingTasks.XamlRuleToCode.IPropertyPagesCatalogTypeName">
+            <summary>
+            Gets or sets the full name of the IPropertyPagesCatalog type.
+            </summary>
+        </member>
+        <member name="P:Microsoft.Build.NonShippingTasks.XamlRuleToCode.IRuleTypeName">
+            <summary>
+            Gets or sets the full name of the IRule type.
+            </summary>
+        </member>
+        <member name="P:Microsoft.Build.NonShippingTasks.XamlRuleToCode.ConfiguredProjectTypeName">
+            <summary>
+            Gets or sets the full name of the ConfiguredProject type.
+            </summary>
+        </member>
+        <member name="P:Microsoft.Build.NonShippingTasks.XamlRuleToCode.IEvaluatedPropertyTypeName">
+            <summary>
+            Gets or sets the full name of the IEvaluatedProperty type.
+            </summary>
+        </member>
+        <member name="P:Microsoft.Build.NonShippingTasks.XamlRuleToCode.IProjectPropertiesContextTypeName">
+            <summary>
+            Gets or sets the full name of the IProjectPropertiesContext type.
+            </summary>
+        </member>
+        <member name="P:Microsoft.Build.NonShippingTasks.XamlRuleToCode.ResourcesToEmbed">
+            <summary>
+            Gets or sets an array of resources to be embedded in the assembly.
+            </summary>
+        </member>
+        <member name="P:Microsoft.Build.NonShippingTasks.XamlRuleToCode.RuleBaseTypes">
+            <summary>
+            Gets or sets the full names of base types of the generated rule class.
+            </summary>
+        </member>
+        <member name="P:Microsoft.Build.NonShippingTasks.XamlRuleToCode.DataAccessLayer">
+            <summary>
+            Gets or sets the kind of data access layer the generated source files
+            will include that provide property I/O.
+            </summary>
+        </member>
+        <member name="P:Microsoft.Build.NonShippingTasks.XamlRuleToCode.RuleInjectionClass">
+            <summary>
+            Gets or sets whether a partial class should be generated to inject a property accessor.
+            </summary>
+        </member>
+        <member name="M:Microsoft.Build.NonShippingTasks.XamlRuleToCode.Execute">
+            <summary>
+            Performs code generation from the provided Xaml files.
+            </summary>
+        </member>
+        <member name="M:Microsoft.Build.NonShippingTasks.XamlRuleToCode.IsOutputUpToDate(System.String,System.String)">
+            <summary>
+            Checks whether an output file is up-to-date with respect to an input file.
+            </summary>
+        </member>
+        <member name="M:Microsoft.Build.NonShippingTasks.XamlRuleToCode.Convert(System.String,System.String,System.String,System.CodeDom.Compiler.CodeDomProvider,System.Boolean)">
+            <summary>
+            Performs code generation for a specific input and output.
+            </summary>
+        </member>
+        <member name="T:Microsoft.Build.NonShippingTasks.RuleToCodeDom">
+            <summary>
+            Generates a CodeDOM type representation of a Rule for strongly-typed property access.
+            </summary>
+        </member>
+        <member name="M:Microsoft.Build.NonShippingTasks.RuleToCodeDom.#ctor(System.String,Microsoft.Build.Framework.XamlTypes.Rule,Microsoft.Build.NonShippingTasks.XamlRuleToCode,System.Collections.Generic.IEnumerable{System.CodeDom.CodeTypeReference},System.Boolean)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Microsoft.Build.NonShippingTasks.RuleToCodeDom"/> class.
+            </summary>
+        </member>
+        <member name="M:Microsoft.Build.NonShippingTasks.RuleToCodeDom.IsUniquePropertyName(Microsoft.Build.Framework.XamlTypes.BaseProperty)">
+            <summary>
+            Checks for other properties in this same rule that have the same property name, and returns <c>false</c> if there are any.
+            </summary>
+        </member>
+    </members>
+</doc>
