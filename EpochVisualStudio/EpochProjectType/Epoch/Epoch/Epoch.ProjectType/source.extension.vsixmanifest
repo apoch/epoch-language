@@ -14,8 +14,9 @@
     <!--<Dependency d:Source="Installed" Id="B73A99D8-FCAA-4197-9122-F8ABA095A72F" DisplayName="Visual Studio Common Project System v14" Version="[11.2,14.0)" />-->
   </Dependencies>
   <Assets>
-    <Asset Type="Microsoft.VisualStudio.MefComponent" d:Source="Project" d:ProjectName="Epoch.ProjectType" Path="|Epoch.ProjectType|"/>
+    <Asset Type="Microsoft.VisualStudio.MefComponent" d:Source="Project" d:ProjectName="Epoch.ProjectType" Path="|Epoch.ProjectType|" />
     <Asset Type="Microsoft.VisualStudio.VsPackage" d:Source="Project" d:ProjectName="Epoch.ProjectType" Path="|Epoch.ProjectType;PkgdefProjectOutputGroup|" />
     <Asset Type="Microsoft.VisualStudio.ProjectTemplate" d:Source="Project" d:ProjectName="Epoch.ProjectTemplate" d:TargetPath="|Epoch.ProjectTemplate;TemplateProjectOutputGroup|" Path="ProjectTemplates" d:VsixSubPath="ProjectTemplates" />
+    <Asset Type="Microsoft.VisualStudio.MefComponent" d:Source="Project" d:ProjectName="%CurrentProject%" Path="|%CurrentProject%|" />
   </Assets>
 </PackageManifest>
