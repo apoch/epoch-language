@@ -28,15 +28,17 @@
     </ContentType>
 
     <ContentType
-        Name="CSharpFile"
-        DisplayName="C# file"
+        Name="EpochFile"
+        DisplayName="Epoch file"
         ItemType="Compile">
     </ContentType>
 
-    <ItemType Name="Compile" DisplayName="C# compiler"/>
+    <ItemType Name="Compile" DisplayName="Epoch compiler"/>
     <ItemType Name="EmbeddedResource" DisplayName="Embedded Resource"/>
     <ItemType Name="None" DisplayName="Does not participate in build"/>
     <ItemType Name="Content" DisplayName="Content" />
+
+    <FileExtension Name=".epoch" ContentType="EpochFile"/>
 
     <FileExtension Name=".asax" ContentType="Asax"/>
     <FileExtension Name=".asmx" ContentType="HTML"/>

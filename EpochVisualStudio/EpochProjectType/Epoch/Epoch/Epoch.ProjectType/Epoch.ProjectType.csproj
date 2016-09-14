@@ -212,7 +212,7 @@
     <None Include="BuildSystem\Rules\ProjectItemsSchema.xaml">
       <SubType>Designer</SubType>
     </None>
-    <None Include="BuildSystem\Rules\csharp.browseobject.xaml">
+    <None Include="BuildSystem\Rules\Epoch.browseobject.xaml">
       <SubType>Designer</SubType>
     </None>
     <XamlPropertyRule Include="BuildSystem\Rules\general.xaml">
@@ -264,7 +264,7 @@
     <XamlPropertyRule Include="BuildSystem\Rules\debugger_general.xaml">
       <SubType>Designer</SubType>
     </XamlPropertyRule>
-    <XamlPropertyRule Include="BuildSystem\Rules\csharp.xaml">
+    <XamlPropertyRule Include="BuildSystem\Rules\Epoch.xaml">
       <SubType>Designer</SubType>
     </XamlPropertyRule>
     <XamlPropertyRule Include="BuildSystem\Rules\EmbeddedResource.xaml">

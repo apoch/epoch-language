@@ -4,10 +4,10 @@
 
   <ItemGroup>
     <PropertyPageSchema Include="$(MSBuildThisFileDirectory)Rules\csProjectItemsSchema.xaml;"/>
-    <PropertyPageSchema Include="$(MSBuildThisFileDirectory)Rules\csharp.xaml;">
+    <PropertyPageSchema Include="$(MSBuildThisFileDirectory)Rules\Epoch.xaml;">
       <Context>File</Context>
     </PropertyPageSchema>
-    <PropertyPageSchema Include="$(MSBuildThisFileDirectory)Rules\csharp.browseobject.xaml;">
+    <PropertyPageSchema Include="$(MSBuildThisFileDirectory)Rules\Epoch.browseobject.xaml;">
       <Context>BrowseObject</Context>
     </PropertyPageSchema>
   </ItemGroup>

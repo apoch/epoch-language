@@ -11,13 +11,13 @@
 namespace EpochVS {
 	
 	
-	internal partial class CSharp {
+	internal partial class Epoch {
 		
 		/// <summary>Backing field for deserialized rule.<see cref='Microsoft.Build.Framework.XamlTypes.Rule'/>.</summary>
 		private static Microsoft.Build.Framework.XamlTypes.Rule deserializedFallbackRule;
 		
 		/// <summary>The name of the schema to look for at runtime to fulfill property access.</summary>
-		internal const string SchemaName = "CSharp";
+		internal const string SchemaName = "Epoch";
 		
 		/// <summary>The ItemType given in the Rule.DataSource property.  May not apply to every Property's individual DataSource.</summary>
 		internal const string PrimaryDataSourceItemType = "Compile";
@@ -64,13 +64,13 @@ namespace EpochVS {
 		/// <summary>Thread locking object</summary>
 		private object locker = new object();
 		
-		/// <summary>Initializes a new instance of the CSharp class.</summary>
-		internal CSharp(Microsoft.VisualStudio.ProjectSystem.Properties.IRule rule) {
+		/// <summary>Initializes a new instance of the Epoch class.</summary>
+		internal Epoch(Microsoft.VisualStudio.ProjectSystem.Properties.IRule rule) {
 			this.rule = rule;
 		}
 		
-		/// <summary>Initializes a new instance of the CSharp class.</summary>
-		internal CSharp(Microsoft.VisualStudio.ProjectSystem.ConfiguredProject configuredProject, System.Collections.Immutable.IImmutableDictionary<string, Microsoft.VisualStudio.ProjectSystem.Properties.IPropertyPagesCatalog> catalogs, string context, string file, string itemType, string itemName) : 
+		/// <summary>Initializes a new instance of the Epoch class.</summary>
+		internal Epoch(Microsoft.VisualStudio.ProjectSystem.ConfiguredProject configuredProject, System.Collections.Immutable.IImmutableDictionary<string, Microsoft.VisualStudio.ProjectSystem.Properties.IPropertyPagesCatalog> catalogs, string context, string file, string itemType, string itemName) : 
 				this(GetRule(System.Collections.Immutable.ImmutableDictionary.GetValueOrDefault(catalogs, context), file, itemType, itemName)) {
 			if ((configuredProject == null)) {
 				throw new System.ArgumentNullException("configuredProject");
@@ -82,8 +82,8 @@ namespace EpochVS {
 			this.itemName = itemName;
 		}
 		
-		/// <summary>Initializes a new instance of the CSharp class.</summary>
-		internal CSharp(Microsoft.VisualStudio.ProjectSystem.Properties.IRule rule, Microsoft.VisualStudio.ProjectSystem.ConfiguredProject configuredProject) : 
+		/// <summary>Initializes a new instance of the Epoch class.</summary>
+		internal Epoch(Microsoft.VisualStudio.ProjectSystem.Properties.IRule rule, Microsoft.VisualStudio.ProjectSystem.ConfiguredProject configuredProject) : 
 				this(rule) {
 			if ((rule == null)) {
 				throw new System.ArgumentNullException("rule");
@@ -98,13 +98,13 @@ namespace EpochVS {
 			this.itemName = this.rule.ItemName;
 		}
 		
-		/// <summary>Initializes a new instance of the CSharp class.</summary>
-		internal CSharp(Microsoft.VisualStudio.ProjectSystem.ConfiguredProject configuredProject, System.Collections.Immutable.IImmutableDictionary<string, Microsoft.VisualStudio.ProjectSystem.Properties.IPropertyPagesCatalog> catalogs, string context, Microsoft.VisualStudio.ProjectSystem.Properties.IProjectPropertiesContext propertyContext) : 
+		/// <summary>Initializes a new instance of the Epoch class.</summary>
+		internal Epoch(Microsoft.VisualStudio.ProjectSystem.ConfiguredProject configuredProject, System.Collections.Immutable.IImmutableDictionary<string, Microsoft.VisualStudio.ProjectSystem.Properties.IPropertyPagesCatalog> catalogs, string context, Microsoft.VisualStudio.ProjectSystem.Properties.IProjectPropertiesContext propertyContext) : 
 				this(configuredProject, catalogs, context, GetContextFile(propertyContext), propertyContext.ItemType, propertyContext.ItemName) {
 		}
 		
-		/// <summary>Initializes a new instance of the CSharp class that assumes a project context (neither property sheet nor items).</summary>
-		internal CSharp(Microsoft.VisualStudio.ProjectSystem.ConfiguredProject configuredProject, System.Collections.Immutable.IImmutableDictionary<string, Microsoft.VisualStudio.ProjectSystem.Properties.IPropertyPagesCatalog> catalogs) : 
+		/// <summary>Initializes a new instance of the Epoch class that assumes a project context (neither property sheet nor items).</summary>
+		internal Epoch(Microsoft.VisualStudio.ProjectSystem.ConfiguredProject configuredProject, System.Collections.Immutable.IImmutableDictionary<string, Microsoft.VisualStudio.ProjectSystem.Properties.IPropertyPagesCatalog> catalogs) : 
 				this(configuredProject, catalogs, "Project", null, null, null) {
 		}
 		
@@ -254,7 +254,7 @@ namespace EpochVS {
 			if ((this.configuredProject == null)) {
 				return;
 			}
-			Microsoft.Build.Framework.XamlTypes.Rule unboundRule = CSharp.deserializedFallbackRule;
+			Microsoft.Build.Framework.XamlTypes.Rule unboundRule = Epoch.deserializedFallbackRule;
 			if ((unboundRule == null)) {
 				System.IO.Stream xamlStream = null;
 				System.Reflection.Assembly thisAssembly = System.Reflection.Assembly.GetExecutingAssembly();
@@ -269,8 +269,8 @@ namespace EpochVS {
 						Microsoft.Build.Framework.XamlTypes.Rule t = ((Microsoft.Build.Framework.XamlTypes.Rule)(ruleEnumerator.Current));
 						if (System.StringComparer.OrdinalIgnoreCase.Equals(t.Name, SchemaName)) {
 							unboundRule = t;
-							unboundRule.Name = "dc7be107-b8f7-4a8c-8d4b-b4d4c12fe42b";
-							CSharp.deserializedFallbackRule = unboundRule;
+							unboundRule.Name = "48aa153b-9ce2-4ceb-97ee-816ed73b1d99";
+							Epoch.deserializedFallbackRule = unboundRule;
 						}
 					}
 				}
@@ -288,18 +288,6 @@ namespace EpochVS {
 		/// <summary>Enum values for the SubType property.</summary>
 		internal class SubTypeValues {
 			
-			/// <summary>The  ("Designer") value for the SubType property.</summary>
-			internal const string Designer = "Designer";
-			
-			/// <summary>The  ("Component") value for the SubType property.</summary>
-			internal const string Component = "Component";
-			
-			/// <summary>The  ("Control") value for the SubType property.</summary>
-			internal const string Control = "Control";
-			
-			/// <summary>The  ("Form") value for the SubType property.</summary>
-			internal const string Form = "Form";
-			
 			/// <summary>The  ("Code") value for the SubType property.</summary>
 			internal const string Code = "Code";
 			
@@ -311,17 +299,17 @@ namespace EpochVS {
 	
 	internal partial class ProjectProperties {
 		
-		private static System.Func<System.Threading.Tasks.Task<System.Collections.Immutable.IImmutableDictionary<string, Microsoft.VisualStudio.ProjectSystem.Properties.IPropertyPagesCatalog>>, object, CSharp> CreateCSharpPropertiesDelegate = new System.Func<System.Threading.Tasks.Task<System.Collections.Immutable.IImmutableDictionary<string, Microsoft.VisualStudio.ProjectSystem.Properties.IPropertyPagesCatalog>>, object, CSharp>(CreateCSharpProperties);
+		private static System.Func<System.Threading.Tasks.Task<System.Collections.Immutable.IImmutableDictionary<string, Microsoft.VisualStudio.ProjectSystem.Properties.IPropertyPagesCatalog>>, object, Epoch> CreateEpochPropertiesDelegate = new System.Func<System.Threading.Tasks.Task<System.Collections.Immutable.IImmutableDictionary<string, Microsoft.VisualStudio.ProjectSystem.Properties.IPropertyPagesCatalog>>, object, Epoch>(CreateEpochProperties);
 		
-		private static CSharp CreateCSharpProperties(System.Threading.Tasks.Task<System.Collections.Immutable.IImmutableDictionary<string, Microsoft.VisualStudio.ProjectSystem.Properties.IPropertyPagesCatalog>> namedCatalogs, object state) {
+		private static Epoch CreateEpochProperties(System.Threading.Tasks.Task<System.Collections.Immutable.IImmutableDictionary<string, Microsoft.VisualStudio.ProjectSystem.Properties.IPropertyPagesCatalog>> namedCatalogs, object state) {
 			ProjectProperties that = ((ProjectProperties)(state));
-			return new CSharp(that.ConfiguredProject, namedCatalogs.Result, "Project", that.File, that.ItemType, that.ItemName);
+			return new Epoch(that.ConfiguredProject, namedCatalogs.Result, "Project", that.File, that.ItemType, that.ItemName);
 		}
 		
-		/// <summary>Gets the strongly-typed property accessor used to get and set C# source file properties.</summary>
-		internal System.Threading.Tasks.Task<CSharp> GetCSharpPropertiesAsync() {
+		/// <summary>Gets the strongly-typed property accessor used to get and set Epoch source file properties.</summary>
+		internal System.Threading.Tasks.Task<Epoch> GetEpochPropertiesAsync() {
 			System.Threading.Tasks.Task<System.Collections.Immutable.IImmutableDictionary<string, Microsoft.VisualStudio.ProjectSystem.Properties.IPropertyPagesCatalog>> namedCatalogsTask = this.GetNamedCatalogsAsync();
-			return namedCatalogsTask.ContinueWith(CreateCSharpPropertiesDelegate, this, System.Threading.CancellationToken.None, System.Threading.Tasks.TaskContinuationOptions.ExecuteSynchronously, System.Threading.Tasks.TaskScheduler.Default);
+			return namedCatalogsTask.ContinueWith(CreateEpochPropertiesDelegate, this, System.Threading.CancellationToken.None, System.Threading.Tasks.TaskContinuationOptions.ExecuteSynchronously, System.Threading.Tasks.TaskScheduler.Default);
 		}
 	}
 }

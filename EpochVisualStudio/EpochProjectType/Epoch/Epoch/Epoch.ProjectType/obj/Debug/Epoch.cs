@@ -11,37 +11,34 @@
 namespace EpochVS {
 	
 	
-	internal partial class ComReference {
+	internal partial class Epoch {
 		
 		/// <summary>Backing field for deserialized rule.<see cref='Microsoft.Build.Framework.XamlTypes.Rule'/>.</summary>
 		private static Microsoft.Build.Framework.XamlTypes.Rule deserializedFallbackRule;
 		
 		/// <summary>The name of the schema to look for at runtime to fulfill property access.</summary>
-		internal const string SchemaName = "ComReference";
+		internal const string SchemaName = "Epoch";
 		
 		/// <summary>The ItemType given in the Rule.DataSource property.  May not apply to every Property's individual DataSource.</summary>
-		internal const string PrimaryDataSourceItemType = "COMReference";
+		internal const string PrimaryDataSourceItemType = "Compile";
 		
 		/// <summary>The Label given in the Rule.DataSource property.  May not apply to every Property's individual DataSource.</summary>
-		internal const string PrimaryDataSourceLabel = "";
+		internal const string PrimaryDataSourceLabel = "Configuration";
 		
-		/// <summary>The GUID of the COM server. (The "Guid" property).</summary>
-		internal const string GuidProperty = "Guid";
+		/// <summary> (The "ExcludedFromBuild" property).</summary>
+		internal const string ExcludedFromBuildProperty = "ExcludedFromBuild";
 		
-		/// <summary>The LCID of the COM server. (The "Lcid" property).</summary>
-		internal const string LcidProperty = "Lcid";
+		/// <summary> (The "Visible" property).</summary>
+		internal const string VisibleProperty = "Visible";
 		
-		/// <summary> (The "VersionMajor" property).</summary>
-		internal const string VersionMajorProperty = "VersionMajor";
+		/// <summary> (The "DependentUpon" property).</summary>
+		internal const string DependentUponProperty = "DependentUpon";
 		
-		/// <summary> (The "VersionMinor" property).</summary>
-		internal const string VersionMinorProperty = "VersionMinor";
+		/// <summary> (The "Link" property).</summary>
+		internal const string LinkProperty = "Link";
 		
-		/// <summary> (The "Isolated" property).</summary>
-		internal const string IsolatedProperty = "Isolated";
-		
-		/// <summary> (The "WrapperTool" property).</summary>
-		internal const string WrapperToolProperty = "WrapperTool";
+		/// <summary> (The "SubType" property).</summary>
+		internal const string SubTypeProperty = "SubType";
 		
 		/// <summary>Backing field for the <see cref='Microsoft.Build.Framework.XamlTypes.Rule'/> property.</summary>
 		private Microsoft.VisualStudio.ProjectSystem.Properties.IRule rule;
@@ -67,13 +64,13 @@ namespace EpochVS {
 		/// <summary>Thread locking object</summary>
 		private object locker = new object();
 		
-		/// <summary>Initializes a new instance of the ComReference class.</summary>
-		internal ComReference(Microsoft.VisualStudio.ProjectSystem.Properties.IRule rule) {
+		/// <summary>Initializes a new instance of the Epoch class.</summary>
+		internal Epoch(Microsoft.VisualStudio.ProjectSystem.Properties.IRule rule) {
 			this.rule = rule;
 		}
 		
-		/// <summary>Initializes a new instance of the ComReference class.</summary>
-		internal ComReference(Microsoft.VisualStudio.ProjectSystem.ConfiguredProject configuredProject, System.Collections.Immutable.IImmutableDictionary<string, Microsoft.VisualStudio.ProjectSystem.Properties.IPropertyPagesCatalog> catalogs, string context, string file, string itemType, string itemName) : 
+		/// <summary>Initializes a new instance of the Epoch class.</summary>
+		internal Epoch(Microsoft.VisualStudio.ProjectSystem.ConfiguredProject configuredProject, System.Collections.Immutable.IImmutableDictionary<string, Microsoft.VisualStudio.ProjectSystem.Properties.IPropertyPagesCatalog> catalogs, string context, string file, string itemType, string itemName) : 
 				this(GetRule(System.Collections.Immutable.ImmutableDictionary.GetValueOrDefault(catalogs, context), file, itemType, itemName)) {
 			if ((configuredProject == null)) {
 				throw new System.ArgumentNullException("configuredProject");
@@ -85,8 +82,8 @@ namespace EpochVS {
 			this.itemName = itemName;
 		}
 		
-		/// <summary>Initializes a new instance of the ComReference class.</summary>
-		internal ComReference(Microsoft.VisualStudio.ProjectSystem.Properties.IRule rule, Microsoft.VisualStudio.ProjectSystem.ConfiguredProject configuredProject) : 
+		/// <summary>Initializes a new instance of the Epoch class.</summary>
+		internal Epoch(Microsoft.VisualStudio.ProjectSystem.Properties.IRule rule, Microsoft.VisualStudio.ProjectSystem.ConfiguredProject configuredProject) : 
 				this(rule) {
 			if ((rule == null)) {
 				throw new System.ArgumentNullException("rule");
@@ -101,13 +98,13 @@ namespace EpochVS {
 			this.itemName = this.rule.ItemName;
 		}
 		
-		/// <summary>Initializes a new instance of the ComReference class.</summary>
-		internal ComReference(Microsoft.VisualStudio.ProjectSystem.ConfiguredProject configuredProject, System.Collections.Immutable.IImmutableDictionary<string, Microsoft.VisualStudio.ProjectSystem.Properties.IPropertyPagesCatalog> catalogs, string context, Microsoft.VisualStudio.ProjectSystem.Properties.IProjectPropertiesContext propertyContext) : 
+		/// <summary>Initializes a new instance of the Epoch class.</summary>
+		internal Epoch(Microsoft.VisualStudio.ProjectSystem.ConfiguredProject configuredProject, System.Collections.Immutable.IImmutableDictionary<string, Microsoft.VisualStudio.ProjectSystem.Properties.IPropertyPagesCatalog> catalogs, string context, Microsoft.VisualStudio.ProjectSystem.Properties.IProjectPropertiesContext propertyContext) : 
 				this(configuredProject, catalogs, context, GetContextFile(propertyContext), propertyContext.ItemType, propertyContext.ItemName) {
 		}
 		
-		/// <summary>Initializes a new instance of the ComReference class that assumes a project context (neither property sheet nor items).</summary>
-		internal ComReference(Microsoft.VisualStudio.ProjectSystem.ConfiguredProject configuredProject, System.Collections.Immutable.IImmutableDictionary<string, Microsoft.VisualStudio.ProjectSystem.Properties.IPropertyPagesCatalog> catalogs) : 
+		/// <summary>Initializes a new instance of the Epoch class that assumes a project context (neither property sheet nor items).</summary>
+		internal Epoch(Microsoft.VisualStudio.ProjectSystem.ConfiguredProject configuredProject, System.Collections.Immutable.IImmutableDictionary<string, Microsoft.VisualStudio.ProjectSystem.Properties.IPropertyPagesCatalog> catalogs) : 
 				this(configuredProject, catalogs, "Project", null, null, null) {
 		}
 		
@@ -118,8 +115,8 @@ namespace EpochVS {
 			}
 		}
 		
-		/// <summary>The GUID of the COM server.</summary>
-		internal Microsoft.VisualStudio.ProjectSystem.Properties.IEvaluatedProperty Guid {
+		/// <summary>ExcludedFromBuild</summary>
+		internal Microsoft.VisualStudio.ProjectSystem.Properties.IEvaluatedProperty ExcludedFromBuild {
 			get {
 				Microsoft.VisualStudio.ProjectSystem.Properties.IRule localRule = this.rule;
 				if ((localRule == null)) {
@@ -128,18 +125,18 @@ namespace EpochVS {
 				if ((localRule == null)) {
 					return null;
 				}
-				Microsoft.VisualStudio.ProjectSystem.Properties.IEvaluatedProperty property = ((Microsoft.VisualStudio.ProjectSystem.Properties.IEvaluatedProperty)(localRule.GetProperty(GuidProperty)));
+				Microsoft.VisualStudio.ProjectSystem.Properties.IEvaluatedProperty property = ((Microsoft.VisualStudio.ProjectSystem.Properties.IEvaluatedProperty)(localRule.GetProperty(ExcludedFromBuildProperty)));
 				if (((property == null) 
 							&& (this.GeneratedFallbackRule != null))) {
 					localRule = this.GeneratedFallbackRule;
-					property = ((Microsoft.VisualStudio.ProjectSystem.Properties.IEvaluatedProperty)(localRule.GetProperty(GuidProperty)));
+					property = ((Microsoft.VisualStudio.ProjectSystem.Properties.IEvaluatedProperty)(localRule.GetProperty(ExcludedFromBuildProperty)));
 				}
 				return property;
 			}
 		}
 		
-		/// <summary>The LCID of the COM server.</summary>
-		internal Microsoft.VisualStudio.ProjectSystem.Properties.IEvaluatedProperty Lcid {
+		/// <summary>Visible</summary>
+		internal Microsoft.VisualStudio.ProjectSystem.Properties.IEvaluatedProperty Visible {
 			get {
 				Microsoft.VisualStudio.ProjectSystem.Properties.IRule localRule = this.rule;
 				if ((localRule == null)) {
@@ -148,18 +145,18 @@ namespace EpochVS {
 				if ((localRule == null)) {
 					return null;
 				}
-				Microsoft.VisualStudio.ProjectSystem.Properties.IEvaluatedProperty property = ((Microsoft.VisualStudio.ProjectSystem.Properties.IEvaluatedProperty)(localRule.GetProperty(LcidProperty)));
+				Microsoft.VisualStudio.ProjectSystem.Properties.IEvaluatedProperty property = ((Microsoft.VisualStudio.ProjectSystem.Properties.IEvaluatedProperty)(localRule.GetProperty(VisibleProperty)));
 				if (((property == null) 
 							&& (this.GeneratedFallbackRule != null))) {
 					localRule = this.GeneratedFallbackRule;
-					property = ((Microsoft.VisualStudio.ProjectSystem.Properties.IEvaluatedProperty)(localRule.GetProperty(LcidProperty)));
+					property = ((Microsoft.VisualStudio.ProjectSystem.Properties.IEvaluatedProperty)(localRule.GetProperty(VisibleProperty)));
 				}
 				return property;
 			}
 		}
 		
-		/// <summary>VersionMajor</summary>
-		internal Microsoft.VisualStudio.ProjectSystem.Properties.IEvaluatedProperty VersionMajor {
+		/// <summary>DependentUpon</summary>
+		internal Microsoft.VisualStudio.ProjectSystem.Properties.IEvaluatedProperty DependentUpon {
 			get {
 				Microsoft.VisualStudio.ProjectSystem.Properties.IRule localRule = this.rule;
 				if ((localRule == null)) {
@@ -168,18 +165,18 @@ namespace EpochVS {
 				if ((localRule == null)) {
 					return null;
 				}
-				Microsoft.VisualStudio.ProjectSystem.Properties.IEvaluatedProperty property = ((Microsoft.VisualStudio.ProjectSystem.Properties.IEvaluatedProperty)(localRule.GetProperty(VersionMajorProperty)));
+				Microsoft.VisualStudio.ProjectSystem.Properties.IEvaluatedProperty property = ((Microsoft.VisualStudio.ProjectSystem.Properties.IEvaluatedProperty)(localRule.GetProperty(DependentUponProperty)));
 				if (((property == null) 
 							&& (this.GeneratedFallbackRule != null))) {
 					localRule = this.GeneratedFallbackRule;
-					property = ((Microsoft.VisualStudio.ProjectSystem.Properties.IEvaluatedProperty)(localRule.GetProperty(VersionMajorProperty)));
+					property = ((Microsoft.VisualStudio.ProjectSystem.Properties.IEvaluatedProperty)(localRule.GetProperty(DependentUponProperty)));
 				}
 				return property;
 			}
 		}
 		
-		/// <summary>VersionMinor</summary>
-		internal Microsoft.VisualStudio.ProjectSystem.Properties.IEvaluatedProperty VersionMinor {
+		/// <summary>Link</summary>
+		internal Microsoft.VisualStudio.ProjectSystem.Properties.IEvaluatedProperty Link {
 			get {
 				Microsoft.VisualStudio.ProjectSystem.Properties.IRule localRule = this.rule;
 				if ((localRule == null)) {
@@ -188,18 +185,18 @@ namespace EpochVS {
 				if ((localRule == null)) {
 					return null;
 				}
-				Microsoft.VisualStudio.ProjectSystem.Properties.IEvaluatedProperty property = ((Microsoft.VisualStudio.ProjectSystem.Properties.IEvaluatedProperty)(localRule.GetProperty(VersionMinorProperty)));
+				Microsoft.VisualStudio.ProjectSystem.Properties.IEvaluatedProperty property = ((Microsoft.VisualStudio.ProjectSystem.Properties.IEvaluatedProperty)(localRule.GetProperty(LinkProperty)));
 				if (((property == null) 
 							&& (this.GeneratedFallbackRule != null))) {
 					localRule = this.GeneratedFallbackRule;
-					property = ((Microsoft.VisualStudio.ProjectSystem.Properties.IEvaluatedProperty)(localRule.GetProperty(VersionMinorProperty)));
+					property = ((Microsoft.VisualStudio.ProjectSystem.Properties.IEvaluatedProperty)(localRule.GetProperty(LinkProperty)));
 				}
 				return property;
 			}
 		}
 		
-		/// <summary>Isolated</summary>
-		internal Microsoft.VisualStudio.ProjectSystem.Properties.IEvaluatedProperty Isolated {
+		/// <summary>SubType</summary>
+		internal Microsoft.VisualStudio.ProjectSystem.Properties.IEvaluatedProperty SubType {
 			get {
 				Microsoft.VisualStudio.ProjectSystem.Properties.IRule localRule = this.rule;
 				if ((localRule == null)) {
@@ -208,31 +205,11 @@ namespace EpochVS {
 				if ((localRule == null)) {
 					return null;
 				}
-				Microsoft.VisualStudio.ProjectSystem.Properties.IEvaluatedProperty property = ((Microsoft.VisualStudio.ProjectSystem.Properties.IEvaluatedProperty)(localRule.GetProperty(IsolatedProperty)));
+				Microsoft.VisualStudio.ProjectSystem.Properties.IEvaluatedProperty property = ((Microsoft.VisualStudio.ProjectSystem.Properties.IEvaluatedProperty)(localRule.GetProperty(SubTypeProperty)));
 				if (((property == null) 
 							&& (this.GeneratedFallbackRule != null))) {
 					localRule = this.GeneratedFallbackRule;
-					property = ((Microsoft.VisualStudio.ProjectSystem.Properties.IEvaluatedProperty)(localRule.GetProperty(IsolatedProperty)));
-				}
-				return property;
-			}
-		}
-		
-		/// <summary>WrapperTool</summary>
-		internal Microsoft.VisualStudio.ProjectSystem.Properties.IEvaluatedProperty WrapperTool {
-			get {
-				Microsoft.VisualStudio.ProjectSystem.Properties.IRule localRule = this.rule;
-				if ((localRule == null)) {
-					localRule = this.GeneratedFallbackRule;
-				}
-				if ((localRule == null)) {
-					return null;
-				}
-				Microsoft.VisualStudio.ProjectSystem.Properties.IEvaluatedProperty property = ((Microsoft.VisualStudio.ProjectSystem.Properties.IEvaluatedProperty)(localRule.GetProperty(WrapperToolProperty)));
-				if (((property == null) 
-							&& (this.GeneratedFallbackRule != null))) {
-					localRule = this.GeneratedFallbackRule;
-					property = ((Microsoft.VisualStudio.ProjectSystem.Properties.IEvaluatedProperty)(localRule.GetProperty(WrapperToolProperty)));
+					property = ((Microsoft.VisualStudio.ProjectSystem.Properties.IEvaluatedProperty)(localRule.GetProperty(SubTypeProperty)));
 				}
 				return property;
 			}
@@ -277,12 +254,12 @@ namespace EpochVS {
 			if ((this.configuredProject == null)) {
 				return;
 			}
-			Microsoft.Build.Framework.XamlTypes.Rule unboundRule = ComReference.deserializedFallbackRule;
+			Microsoft.Build.Framework.XamlTypes.Rule unboundRule = Epoch.deserializedFallbackRule;
 			if ((unboundRule == null)) {
 				System.IO.Stream xamlStream = null;
 				System.Reflection.Assembly thisAssembly = System.Reflection.Assembly.GetExecutingAssembly();
 				try {
-					xamlStream = thisAssembly.GetManifestResourceStream("XamlRuleToCode:comreference.xaml");
+					xamlStream = thisAssembly.GetManifestResourceStream("XamlRuleToCode:Epoch.xaml");
 					Microsoft.Build.Framework.XamlTypes.IProjectSchemaNode root = ((Microsoft.Build.Framework.XamlTypes.IProjectSchemaNode)(System.Xaml.XamlServices.Load(xamlStream)));
 					System.Collections.Generic.IEnumerator<System.Object> ruleEnumerator = root.GetSchemaObjects(typeof(Microsoft.Build.Framework.XamlTypes.Rule)).GetEnumerator();
 					for (
@@ -292,8 +269,8 @@ namespace EpochVS {
 						Microsoft.Build.Framework.XamlTypes.Rule t = ((Microsoft.Build.Framework.XamlTypes.Rule)(ruleEnumerator.Current));
 						if (System.StringComparer.OrdinalIgnoreCase.Equals(t.Name, SchemaName)) {
 							unboundRule = t;
-							unboundRule.Name = "6daad3d2-e478-4faf-8ada-eac9013e86bf";
-							ComReference.deserializedFallbackRule = unboundRule;
+							unboundRule.Name = "a6430daf-d2b6-4d41-976f-4248d57f9bb7";
+							Epoch.deserializedFallbackRule = unboundRule;
 						}
 					}
 				}
@@ -307,21 +284,32 @@ namespace EpochVS {
 			Microsoft.VisualStudio.ProjectSystem.Properties.IPropertyPagesCatalog catalog = this.configuredProject.Services.PropertyPagesCatalog.GetMemoryOnlyCatalog("FallbackRuleCodeGenerationContext");
 			this.fallbackRule = catalog.BindToContext(unboundRule.Name, this.file, this.itemType, this.itemName);
 		}
+		
+		/// <summary>Enum values for the SubType property.</summary>
+		internal class SubTypeValues {
+			
+			/// <summary>The  ("Code") value for the SubType property.</summary>
+			internal const string Code = "Code";
+			
+			/// <summary>Prevents automatic generation of a default constructor.</summary>
+			private SubTypeValues() {
+			}
+		}
 	}
 	
 	internal partial class ProjectProperties {
 		
-		private static System.Func<System.Threading.Tasks.Task<System.Collections.Immutable.IImmutableDictionary<string, Microsoft.VisualStudio.ProjectSystem.Properties.IPropertyPagesCatalog>>, object, ComReference> CreateComReferencePropertiesDelegate = new System.Func<System.Threading.Tasks.Task<System.Collections.Immutable.IImmutableDictionary<string, Microsoft.VisualStudio.ProjectSystem.Properties.IPropertyPagesCatalog>>, object, ComReference>(CreateComReferenceProperties);
+		private static System.Func<System.Threading.Tasks.Task<System.Collections.Immutable.IImmutableDictionary<string, Microsoft.VisualStudio.ProjectSystem.Properties.IPropertyPagesCatalog>>, object, Epoch> CreateEpochPropertiesDelegate = new System.Func<System.Threading.Tasks.Task<System.Collections.Immutable.IImmutableDictionary<string, Microsoft.VisualStudio.ProjectSystem.Properties.IPropertyPagesCatalog>>, object, Epoch>(CreateEpochProperties);
 		
-		private static ComReference CreateComReferenceProperties(System.Threading.Tasks.Task<System.Collections.Immutable.IImmutableDictionary<string, Microsoft.VisualStudio.ProjectSystem.Properties.IPropertyPagesCatalog>> namedCatalogs, object state) {
+		private static Epoch CreateEpochProperties(System.Threading.Tasks.Task<System.Collections.Immutable.IImmutableDictionary<string, Microsoft.VisualStudio.ProjectSystem.Properties.IPropertyPagesCatalog>> namedCatalogs, object state) {
 			ProjectProperties that = ((ProjectProperties)(state));
-			return new ComReference(that.ConfiguredProject, namedCatalogs.Result, "Project", that.File, that.ItemType, that.ItemName);
+			return new Epoch(that.ConfiguredProject, namedCatalogs.Result, "Project", that.File, that.ItemType, that.ItemName);
 		}
 		
-		/// <summary>Gets the strongly-typed property accessor used to get and set COM reference properties properties.</summary>
-		internal System.Threading.Tasks.Task<ComReference> GetComReferencePropertiesAsync() {
+		/// <summary>Gets the strongly-typed property accessor used to get and set Epoch source file properties.</summary>
+		internal System.Threading.Tasks.Task<Epoch> GetEpochPropertiesAsync() {
 			System.Threading.Tasks.Task<System.Collections.Immutable.IImmutableDictionary<string, Microsoft.VisualStudio.ProjectSystem.Properties.IPropertyPagesCatalog>> namedCatalogsTask = this.GetNamedCatalogsAsync();
-			return namedCatalogsTask.ContinueWith(CreateComReferencePropertiesDelegate, this, System.Threading.CancellationToken.None, System.Threading.Tasks.TaskContinuationOptions.ExecuteSynchronously, System.Threading.Tasks.TaskScheduler.Default);
+			return namedCatalogsTask.ContinueWith(CreateEpochPropertiesDelegate, this, System.Threading.CancellationToken.None, System.Threading.Tasks.TaskContinuationOptions.ExecuteSynchronously, System.Threading.Tasks.TaskScheduler.Default);
 		}
 	}
 }
