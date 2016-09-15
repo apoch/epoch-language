@@ -17,6 +17,7 @@
     <ProjectCapability Include="AssemblyReferences;COMReferences;ProjectReferences;SDKReferences" />
     <ProjectCapability Include="AllTargetOutputGroups;VisualStudioWellKnownOutputGroups" />
     <ProjectCapability Include="ProjectConfigurationsDeclaredAsItems" />
+    <ProjectCapability Include="DeclaredSourceItems" />
   </ItemGroup>
 
   <ItemGroup>
@@ -70,5 +71,11 @@
       <Context>BrowseObject</Context>
     </PropertyPageSchema>
   </ItemGroup>
+
+  <UsingTask TaskName="EpochVS.BuildTask" AssemblyFile="C:\USERS\APOCH\APPDATA\LOCAL\MICROSOFT\VISUALSTUDIO\14.0EXP\EXTENSIONS\EPOCH.PROJECTTYPE\EPOCH PROGRAMMING LANGUAGE\1.0\EpochVS.dll" />
+
+  <Target Name="Build" Inputs="@(Compile)" Outputs="d:\foo.exe">
+    <BuildTask Filename="@(Compile)"/>
+  </Target>
   
 </Project>

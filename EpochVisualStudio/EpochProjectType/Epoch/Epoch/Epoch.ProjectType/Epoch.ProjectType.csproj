@@ -156,6 +156,13 @@
     <Reference Include="WindowsBase" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\EpochCodeTemplate\EpochCodeTemplate.csproj">
+      <Project>{34338f51-c285-4e2b-9e16-9b64b1f3cf0d}</Project>
+      <Name>EpochCodeTemplate</Name>
+      <VSIXSubPath>ItemTemplates</VSIXSubPath>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+      <IncludeOutputGroupsInVSIX>TemplateProjectOutputGroup%3b</IncludeOutputGroupsInVSIX>
+    </ProjectReference>
     <ProjectReference Include="..\Epoch.ProjectTemplate\Epoch.ProjectTemplate.csproj">
       <Project>{b5d5f724-25a1-4577-8014-b9454e04f289}</Project>
       <Name>Epoch.ProjectTemplate</Name>
@@ -177,6 +184,8 @@
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="BuildUpToDateCheckProvider.cs" />
+    <Compile Include="BuildTask.cs" />
     <Compile Include="EditorClassifier1.cs" />
     <Compile Include="EditorClassifier1ClassificationDefinition.cs" />
     <Compile Include="EpochCommentFormat.cs" />

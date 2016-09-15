@@ -7,7 +7,7 @@
 	Description="Epoch source file"
 	xmlns="http://schemas.microsoft.com/build/2009/properties">
     <Rule.DataSource>
-        <DataSource Persistence="ProjectFile" Label="Configuration" ItemType="Compile" HasConfigurationCondition="false" />
+        <DataSource Persistence="ProjectFile" Label="Configuration" ItemType="Compile" HasConfigurationCondition="true" />
     </Rule.DataSource>
 
     <StringProperty Name="Identity" DisplayName="File Name" ReadOnly="true" Category="Misc">
