@@ -5,6 +5,7 @@ using System.Text;
 
 using Microsoft.Build.Framework;
 using Microsoft.Build.Utilities;
+using System.Diagnostics;
 
 namespace EpochVS
 {
@@ -21,7 +22,20 @@ namespace EpochVS
 
         public override bool Execute()
         {
-            Log.LogMessage(MessageImportance.High, "Compiling file {0}...", m_fileName);
+            var process = new Process
+            {
+                StartInfo = new ProcessStartInfo
+                {
+                    FileName = "d:\\epoch\\epoch-language\\bin\\debug\\EpochNativeBin.exe",      // TODO - remove hardcoded paths
+                    Arguments = "/files " + m_fileName + " /output D:\\Epoch\\Scratch\\VSBuilds\\EpochProgram.exe",
+                    UseShellExecute = false,
+                    RedirectStandardOutput = true,
+                    CreateNoWindow = true
+                }
+            };
+
+            process.Start();
+            Log.LogMessagesFromStream(process.StandardOutput, MessageImportance.High);
 
             return true;
         }
