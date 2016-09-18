@@ -36,58 +36,88 @@ entrypoint :
 		return()
 	}
 	
+	string files = ""
+	string output = ""
+	
 	integer cmdlineindex = 1
 	while(cmdlineindex < cmdlinegetcount())
 	{
-		string filename = cmdlineget(cmdlineindex)
-		if((length(filename) > 5) && (substring(filename, length(filename) - 5) == ".eprj"))
+		string switch = cmdlineget(cmdlineindex)
+		
+		if(switch == "/files")
 		{
-			print("Building: " ; filename)
-			print("")
-
-			PrepareStringTable()
-			PrepareThunkTable(GlobalThunkTable)
-			InitBuiltInOverloads()
-
-			ChangeToPath(filename)
-			CompileProject(filename)
+			++cmdlineindex
+			files = cmdlineget(cmdlineindex)
 		}
-		else
+		elseif(switch == "/output")
 		{
-			print("Executing: " ; filename)
-			print("")
-
-			buffer codebuffer = 1024000
-			BytecodeStream codestream = codebuffer, 0
-			
-			PrepareStringTable()
-			PrepareThunkTable(GlobalThunkTable)
-			InitBuiltInOverloads()
-
-			if(CompileFile(filename, codestream))
-			{
-				ExecuteByteCodeBuffer(codestream.Buffer, codestream.Offset)
-			}
+			++cmdlineindex
+			output = cmdlineget(cmdlineindex)
 		}
 		
 		++cmdlineindex
 	}
-}
+	
+	if(length(files) == 0)
+	{
+		print("No input files specified; use /files switch")
+		return()
+	}
+	
+	if(length(output) == 0)
+	{
+		output = "EpochProgram.exe"
+	}
+	
+
+	PrepareStringTable()
+	PrepareThunkTable(GlobalThunkTable)
+	InitBuiltInOverloads()
 
 
-//
-// Load the given project file (.eprj) and compile
-// all of the code referenced by it.
-//
-CompileProject : string filename
-{	
+	simplelist<string> sourcefilelist = "", nothing
+	simplelist<string> resourcefilelist = "", nothing
+	EpochProject project = "", output, sourcefilelist, resourcefilelist, true
+
+	
+	print("Compilation arguments:")
+	
+	string split = files
+	while(stringcontains(split, ";"))
+	{
+		integer i = 0
+		while(i < length(split))
+		{
+			string c = charat(split, i)
+			if(c == ";")
+			{
+				string singlefile = substring(split, 0, i)
+				split = substring(split, i + 1)
+				
+				print(singlefile)
+				
+				simple_append<string>(sourcefilelist, singlefile)
+				
+				i = 0
+			}
+			else
+			{
+				++i
+			}
+		}
+	}
+	
+	if(length(split) > 0)
+	{
+		print(split)
+		simple_append<string>(sourcefilelist, split)
+	}
+	
+	print(" --->")
+	print(output)
+	
+	
 	integer projectStartMs = timeGetTime()
-
-	simplelist<string> emptysourcefilelist = "", nothing
-	simplelist<string> emptyresourcefilelist = "", nothing
-	EpochProject project = "", "project.exe", emptysourcefilelist, emptyresourcefilelist, false
-
-	ParseProjectFile(filename, project)
 
 	print("Parsing source code...")
 	integer startMs = timeGetTime()
