@@ -190,6 +190,7 @@
     <Compile Include="EditorClassifier1ClassificationDefinition.cs" />
     <Compile Include="EpochCommentFormat.cs" />
     <Compile Include="EditorClassifier1Provider.cs" />
+    <Compile Include="GlobalPropertiesProvider.cs" />
     <Compile Include="MyConfiguredProject.cs" />
     <Compile Include="MyUnconfiguredProject.cs" />
     <Compile Include="ProjectProperties.cs" />

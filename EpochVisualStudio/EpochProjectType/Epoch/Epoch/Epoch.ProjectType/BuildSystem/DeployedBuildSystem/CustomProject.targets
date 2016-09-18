@@ -72,9 +72,9 @@
     </PropertyPageSchema>
   </ItemGroup>
 
-  <UsingTask TaskName="EpochVS.BuildTask" AssemblyFile="C:\USERS\APOCH\APPDATA\LOCAL\MICROSOFT\VISUALSTUDIO\14.0EXP\EXTENSIONS\EPOCH.PROJECTTYPE\EPOCH PROGRAMMING LANGUAGE\1.0\EpochVS.dll" />
+  <UsingTask TaskName="EpochVS.BuildTask" AssemblyFile="$(EpochVSExtensionPath)\EpochVS.DLL" />
 
-  <Target Name="Build" Inputs="@(Compile)" Outputs="d:\foo.exe">
+  <Target Name="Build">
     <BuildTask Filename="@(Compile)"/>
   </Target>
   
