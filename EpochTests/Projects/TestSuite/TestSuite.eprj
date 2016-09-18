@@ -9,6 +9,9 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'" Label="Configuration">
   </PropertyGroup>
+  <PropertyGroup Label="Configuration">
+    <OutputName>$(SolutionDir)..\..\..\x64\debug\$(MSBuildProjectName).exe</OutputName>
+  </PropertyGroup>
   <Import Project="$(CustomProjectExtensionsPath)CustomProject.props" />
   <PropertyGroup>
     <SchemaVersion>2.0</SchemaVersion>
