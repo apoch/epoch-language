@@ -75,7 +75,7 @@
   <UsingTask TaskName="EpochVS.BuildTask" AssemblyFile="$(EpochVSExtensionPath)\EpochVS.DLL" />
 
   <Target Name="Build">
-    <BuildTask Filename="@(Compile)"/>
+    <BuildTask Filename="@(Compile)" Output="$(OutputPath)\$(MSBuildProjectName).exe" />
   </Target>
   
 </Project>
