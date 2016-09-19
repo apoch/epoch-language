@@ -4,7 +4,7 @@ Welcome to the home of **Epoch**, an opinionated programming language designed t
 Epoch places a strong emphasis on certain ways of thinking about programming, at both large and small scales. The decisions behind the language will undoubtedly not please everyone - but if you're a like-minded programmer, we hope Epoch scratches your itch as well as it has scratched our own.
 
 ## What It Looks Like
-See the [[Example Epoch Snippets|Example-Snippets]] page for a showcase of small Epoch programs doing routine things.
+See the [Example Epoch Snippets](https://github.com/apoch/epoch-language/wiki/Example-Snippets) page for a showcase of small Epoch programs doing routine things.
 
 ## What's Different
 * Leave behind nullable types - and gain freedom from null pointer/null reference problems
