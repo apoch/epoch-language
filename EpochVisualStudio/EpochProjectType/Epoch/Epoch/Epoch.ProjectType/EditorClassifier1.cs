@@ -15,6 +15,7 @@ namespace EpochVS
     {
         private readonly IClassificationTypeRegistryService classificationRegistry;
         private readonly HashSet<string> TypeKeywords;
+        private readonly HashSet<string> LiteralKeywords;
 
         internal EditorClassifier1(IClassificationTypeRegistryService registry)
         {
@@ -28,7 +29,15 @@ namespace EpochVS
                 "boolean",
                 "string",
                 "real",
-                "buffer"
+                "buffer",
+                "nothing",
+                "ref"
+            };
+
+            LiteralKeywords = new HashSet<string>()
+            {
+                "true",
+                "false"
             };
         }
 
@@ -200,6 +209,9 @@ namespace EpochVS
 
             if (TypeKeywords.Contains(token))
                 return State.Type;
+
+            if (LiteralKeywords.Contains(token))
+                return State.Literal;
 
             return State.Default;
         }
