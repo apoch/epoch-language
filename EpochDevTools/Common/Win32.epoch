@@ -92,3 +92,6 @@ WriteFile :
 timeGetTime : -> integer ms = 0 [external("WinMM.dll", "timeGetTime", "stdcall")]
 
 
+ExitProcess : integer value [external("Kernel32.dll", "ExitProcess", "stdcall")]
+
+

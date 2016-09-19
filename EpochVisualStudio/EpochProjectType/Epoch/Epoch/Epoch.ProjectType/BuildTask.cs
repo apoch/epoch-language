@@ -45,7 +45,9 @@ namespace EpochVS
             process.Start();
             Log.LogMessagesFromStream(process.StandardOutput, MessageImportance.High);
 
-            return true;
+            process.WaitForExit();
+
+            return (process.ExitCode == 0);
         }
     }
 }

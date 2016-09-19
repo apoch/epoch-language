@@ -61,7 +61,7 @@ entrypoint :
 	if(length(files) == 0)
 	{
 		print("No input files specified; use /files switch")
-		return()
+		ExitProcess(100)
 	}
 	
 	if(length(output) == 0)
@@ -130,7 +130,7 @@ entrypoint :
 		integer projectEndMs = timeGetTime()
 		print("Building failed in " ; cast(string, projectEndMs - projectStartMs) ; " milliseconds")
 		
-		return()
+		ExitProcess(200)
 	}
 	
 
@@ -145,7 +145,7 @@ entrypoint :
 		integer projectEndMs = timeGetTime()
 		print("Building failed in " ; cast(string, projectEndMs - projectStartMs) ; " milliseconds")
 		
-		return()
+		ExitProcess(300)
 	}
 
 	//print("Generating code...")
@@ -163,7 +163,7 @@ entrypoint :
 
 	integer projectEndMs = timeGetTime()
 	print("Building succeeded in " ; cast(string, projectEndMs - projectStartMs) ; " milliseconds")
-		
+
 }
 
 //
