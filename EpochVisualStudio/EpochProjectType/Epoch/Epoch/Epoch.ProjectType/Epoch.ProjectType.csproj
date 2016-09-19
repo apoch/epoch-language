@@ -186,6 +186,7 @@
   <ItemGroup>
     <Compile Include="BuildUpToDateCheckProvider.cs" />
     <Compile Include="BuildTask.cs" />
+    <Compile Include="DebuggerSupportLaunchProvider.cs" />
     <Compile Include="EditorClassifier1.cs" />
     <Compile Include="EditorClassifier1ClassificationDefinition.cs" />
     <Compile Include="EpochCommentFormat.cs" />
@@ -282,6 +283,10 @@
     </XamlPropertyRule>
   </ItemGroup>
   <ItemGroup>
+    <XamlPropertyRule Include="BuildSystem\Rules\DebuggerSupport.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </XamlPropertyRule>
     <Page Include="BuildSystem\Rules\general.browseobject.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>

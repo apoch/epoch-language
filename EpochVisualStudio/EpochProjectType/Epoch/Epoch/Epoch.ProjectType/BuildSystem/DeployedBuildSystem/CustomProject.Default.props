@@ -14,7 +14,7 @@
     <OutputType>exe</OutputType>
     <OutputPath>bin\$(Configuration)\</OutputPath>
     <DebugSymbols>true</DebugSymbols>
-    <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
+    <DebuggerFlavor>DebuggerSupport</DebuggerFlavor>
 
     <WinRTReferenceTabs>TAB_SDK_ALL</WinRTReferenceTabs>
     <AssemblyReferenceTabs>TAB_ASSEMBLY_ALL</AssemblyReferenceTabs>
