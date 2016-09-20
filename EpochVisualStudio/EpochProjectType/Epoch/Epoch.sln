@@ -9,6 +9,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Epoch.ProjectTemplate", "Ep
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EpochCodeTemplate", "EpochCodeTemplate\EpochCodeTemplate.csproj", "{34338F51-C285-4E2B-9E16-9B64B1F3CF0D}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EpochBuild", "EpochBuild\EpochBuild.csproj", "{90D4994A-F222-4751-BB58-794C17DE40AB}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -27,6 +29,10 @@ Global
 		{34338F51-C285-4E2B-9E16-9B64B1F3CF0D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{34338F51-C285-4E2B-9E16-9B64B1F3CF0D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{34338F51-C285-4E2B-9E16-9B64B1F3CF0D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{90D4994A-F222-4751-BB58-794C17DE40AB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{90D4994A-F222-4751-BB58-794C17DE40AB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{90D4994A-F222-4751-BB58-794C17DE40AB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{90D4994A-F222-4751-BB58-794C17DE40AB}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

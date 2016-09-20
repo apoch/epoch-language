@@ -156,6 +156,10 @@
     <Reference Include="WindowsBase" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\EpochBuild\EpochBuild.csproj">
+      <Project>{90d4994a-f222-4751-bb58-794c17de40ab}</Project>
+      <Name>EpochBuild</Name>
+    </ProjectReference>
     <ProjectReference Include="..\..\EpochCodeTemplate\EpochCodeTemplate.csproj">
       <Project>{34338f51-c285-4e2b-9e16-9b64b1f3cf0d}</Project>
       <Name>EpochCodeTemplate</Name>

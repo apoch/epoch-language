@@ -72,7 +72,7 @@
     </PropertyPageSchema>
   </ItemGroup>
 
-  <UsingTask TaskName="EpochVS.BuildTask" AssemblyFile="$(EpochVSExtensionPath)\EpochVS.DLL" />
+  <UsingTask TaskName="EpochVS.BuildTask" AssemblyFile="$(EpochVSExtensionPath)\EpochBuild.DLL" />
 
   <Target Name="Build" Inputs="@(Compile)" Outputs="$(OutputName)">
     <BuildTask Filename="@(Compile)" Output="$(OutputName)" />
