@@ -4,13 +4,16 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.Text;
-
+using Microsoft.VisualStudio.TextManager.Interop;
+using Microsoft.VisualStudio.Shell.Interop;
+using Microsoft.VisualStudio.Threading;
+using Microsoft.VisualStudio.Shell;
 
 namespace Epoch.ProjectParser
 {
     public class ProjectParser
     {
-        private static List<string> ParsedFunctionNames = null;
+        private static Dictionary<string, List<string>> ParsedFunctionNames = null;
 
 
         private enum CharacterClass
@@ -323,7 +326,7 @@ namespace Epoch.ProjectParser
             } while (hasbases);
         }
 
-        private static bool ParseSumType(List<string> tokens)
+        private static bool ParseSumType(string filename, List<string> tokens)
         {
             if (tokens[0] != "type")
                 return false;
@@ -356,7 +359,7 @@ namespace Epoch.ProjectParser
             return true;
         }
 
-        private static bool ParseStrongAlias(List<string> tokens)
+        private static bool ParseStrongAlias(string filename, List<string> tokens)
         {
             if (tokens[0] != "type")
                 return false;
@@ -373,7 +376,7 @@ namespace Epoch.ProjectParser
             return true;
         }
 
-        private static bool ParseWeakAlias(List<string> tokens)
+        private static bool ParseWeakAlias(string filename, List<string> tokens)
         {
             if (tokens[0] != "alias")
                 return false;
@@ -389,25 +392,25 @@ namespace Epoch.ProjectParser
             return true;
         }
 
-        private static bool ParseStructure(List<string> tokens)
+        private static bool ParseStructure(string filename, List<string> tokens)
         {
             // TODO
             return false;
         }
 
-        private static bool ParseGlobalBlock(List<string> tokens)
+        private static bool ParseGlobalBlock(string filename, List<string> tokens)
         {
             // TODO
             return false;
         }
 
-        private static bool ParseTask(List<string> tokens)
+        private static bool ParseTask(string filename, List<string> tokens)
         {
             // TODO
             return false;
         }
 
-        private static bool ParseFunction(List<string> tokens)
+        private static bool ParseFunction(string filename, List<string> tokens)
         {
             if (tokens.Count < 2)
                 return false;
@@ -426,7 +429,7 @@ namespace Epoch.ProjectParser
 
             tokens.RemoveRange(0, 2);
 
-            ParsedFunctionNames.Add(functionname);
+            ParsedFunctionNames[filename].Add(functionname);
 
             if (tokens[0] != "[")
             {
@@ -617,32 +620,32 @@ namespace Epoch.ProjectParser
             return true;
         }
 
-        private static bool ParseString(string code)
+        private static bool ParseString(string filename, string code)
         {
             try
             {
                 List<string> tokens = Lex(code);
                 while (tokens.Count > 0)
                 {
-                    if (ParseSumType(tokens))
+                    if (ParseSumType(filename, tokens))
                     {
                     }
-                    else if (ParseStrongAlias(tokens))
+                    else if (ParseStrongAlias(filename, tokens))
                     {
                     }
-                    else if (ParseWeakAlias(tokens))
+                    else if (ParseWeakAlias(filename, tokens))
                     {
                     }
-                    else if (ParseStructure(tokens))
+                    else if (ParseStructure(filename, tokens))
                     {
                     }
-                    else if (ParseGlobalBlock(tokens))
+                    else if (ParseGlobalBlock(filename, tokens))
                     {
                     }
-                    else if (ParseTask(tokens))
+                    else if (ParseTask(filename, tokens))
                     {
                     }
-                    else if (ParseFunction(tokens))
+                    else if (ParseFunction(filename, tokens))
                     {
                     }
                     else
@@ -678,20 +681,53 @@ namespace Epoch.ProjectParser
 
 
 
+        private async static System.Threading.Tasks.Task ParseFileFromTextBuffer(ITextBuffer textBuffer)
+        {
+            IVsTextBuffer bufferAdapter;
+            textBuffer.Properties.TryGetProperty(typeof(IVsTextBuffer), out bufferAdapter);
+            if (bufferAdapter != null)
+            {
+                await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+                var persistFileFormat = bufferAdapter as IPersistFileFormat;
+                string filename = null;
+                uint formatIndex;
+                if (persistFileFormat != null)
+                    persistFileFormat.GetCurFile(out filename, out formatIndex);
+
+
+                List<string> oldFunctionNames = null;
+
+                if (ParsedFunctionNames == null)
+                    ParsedFunctionNames = new Dictionary<string, List<string>>();
+
+                if (filename == null)
+                    filename = "@@UnsavedFiles";
+
+                if (!ParsedFunctionNames.ContainsKey(filename))
+                    ParsedFunctionNames.Add(filename, new List<string>());
+                else
+                {
+                    oldFunctionNames = ParsedFunctionNames[filename];
+                    ParsedFunctionNames[filename].Clear();
+                }
+
+
+                string code = textBuffer.CurrentSnapshot.GetText();
+
+                if (!ParseString(filename, code))
+                {
+                    if (oldFunctionNames != null)
+                        ParsedFunctionNames[filename] = oldFunctionNames;
+                }
+            }
+        }
+
+
         public static void ParseTextBuffer(ITextBuffer textBuffer)
         {
             // TODO - cache this
-            // TODO - merge with results of the entire project
 
-            var oldParsedFunctionNames = ParsedFunctionNames;
-
-            ParsedFunctionNames = new List<string>();
-            string code = textBuffer.CurrentSnapshot.GetText();
-
-            if (!ParseString(code))
-            {
-                ParsedFunctionNames = oldParsedFunctionNames;
-            }
+            var task = ParseFileFromTextBuffer(textBuffer);
         }
 
         public static void GetAvailableFunctionNames(List<string> functionNames)
@@ -699,7 +735,8 @@ namespace Epoch.ProjectParser
             if (ParsedFunctionNames == null)
                 return;
 
-            functionNames.AddRange(ParsedFunctionNames);
+            foreach(var kvp in ParsedFunctionNames)
+                functionNames.AddRange(kvp.Value);
         }
     }
 }
