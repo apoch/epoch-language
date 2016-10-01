@@ -211,6 +211,7 @@
     <Compile Include="GlobalPropertiesProvider.cs" />
     <Compile Include="MyConfiguredProject.cs" />
     <Compile Include="MyUnconfiguredProject.cs" />
+    <Compile Include="ProjectParser.cs" />
     <Compile Include="ProjectProperties.cs" />
     <Compile Include="EditorCompletionCommandHandler.cs" />
     <Compile Include="VsPackage.cs" />

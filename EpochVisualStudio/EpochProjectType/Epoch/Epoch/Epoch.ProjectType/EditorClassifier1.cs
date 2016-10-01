@@ -6,8 +6,11 @@
 
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.Composition;
 using Microsoft.VisualStudio.Text;
 using Microsoft.VisualStudio.Text.Classification;
+using Microsoft.VisualStudio.Utilities;
+using Epoch.ProjectParser;
 
 namespace EpochVS
 {
@@ -67,7 +70,8 @@ namespace EpochVS
             StringLiteral,
             Symbol,
             Literal,
-            HexLiteral
+            HexLiteral,
+            IdentifierFunction
         }
 
         public IList<ClassificationSpan> GetClassificationSpans(SnapshotSpan span)
@@ -132,6 +136,11 @@ namespace EpochVS
                                 state = State.Default;
                             break;
 
+                        case State.IdentifierFunction:
+                            if (!char.IsLetterOrDigit(ch[0]) && ch != "_")
+                                state = State.Default;
+                            break;
+
                         case State.StringLiteral:
                             if (ch == "\"")
                             {
@@ -172,7 +181,7 @@ namespace EpochVS
         {
             IClassificationType classification = null;
 
-            if (prevstate == State.Type)
+            if (prevstate == State.Type || prevstate == State.IdentifierFunction)
                 prevstate = ClassifyToken(line.GetText().Substring(statestart, i - statestart));
 
             switch (prevstate)
@@ -196,6 +205,10 @@ namespace EpochVS
                 case State.Type:
                     classification = classificationRegistry.GetClassificationType("keyword");
                     break;
+
+                case State.IdentifierFunction:
+                    classification = classificationRegistry.GetClassificationType("cppFunction");
+                    break;
             }
 
             if (classification != null)
@@ -214,9 +227,27 @@ namespace EpochVS
             if (LiteralKeywords.Contains(token))
                 return State.Literal;
 
+            List<string> functionNames = new List<string>();
+            ProjectParser.GetAvailableFunctionNames(functionNames);
+            if (functionNames.Contains(token))
+                return State.IdentifierFunction;
+
             return State.Default;
         }
 
         #endregion
+    }
+
+    internal static class FileAndContentTypeDefinitions
+    {
+        [Export]
+        [Name("EpochFile")]
+        [BaseDefinition("text")]
+        internal static ContentTypeDefinition EpochContentTypeDefinition;
+
+        [Export]
+        [FileExtension(".epoch")]
+        [ContentType("EpochFile")]
+        internal static FileExtensionToContentTypeDefinition EpochFileExtensionDefinition;
     }
 }

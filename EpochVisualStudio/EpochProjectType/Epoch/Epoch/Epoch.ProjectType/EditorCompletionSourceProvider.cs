@@ -11,7 +11,7 @@ using Microsoft.VisualStudio.Utilities;
 namespace EpochVS
 {
     [Export(typeof(ICompletionSourceProvider))]
-    [ContentType("plaintext")]
+    [ContentType("EpochFile")]
     [Name("Epoch name completion")]
     class EditorCompletionSourceProvider : ICompletionSourceProvider
     {

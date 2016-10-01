@@ -246,7 +246,7 @@ namespace EpochVS {
 						Microsoft.Build.Framework.XamlTypes.Rule t = ((Microsoft.Build.Framework.XamlTypes.Rule)(ruleEnumerator.Current));
 						if (System.StringComparer.OrdinalIgnoreCase.Equals(t.Name, SchemaName)) {
 							unboundRule = t;
-							unboundRule.Name = "8a6fce10-4ec3-4e42-b400-1459dbb1488a";
+							unboundRule.Name = "1712ddd3-f9d4-49b1-a0d0-4d23d79156c0";
 							DebuggerSupport.deserializedFallbackRule = unboundRule;
 						}
 					}

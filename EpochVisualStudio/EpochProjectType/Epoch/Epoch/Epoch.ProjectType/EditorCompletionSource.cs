@@ -7,6 +7,7 @@ using Microsoft.VisualStudio.Language.Intellisense;
 using Microsoft.VisualStudio.Text;
 using Microsoft.VisualStudio.Text.Operations;
 using Microsoft.VisualStudio.Utilities;
+using Epoch.ProjectParser;
 
 namespace EpochVS
 {
@@ -25,9 +26,11 @@ namespace EpochVS
         void ICompletionSource.AugmentCompletionSession(ICompletionSession session, IList<CompletionSet> completionSets)
         {
             List<string> strList = new List<string>();
-            strList.Add("entrypoint");
             strList.Add("print");
             strList.Add("assert");
+
+            ProjectParser.ParseTextBuffer(m_textBuffer);
+            ProjectParser.GetAvailableFunctionNames(strList);
 
             m_completionList = new List<Completion>();
             foreach(string str in strList)
