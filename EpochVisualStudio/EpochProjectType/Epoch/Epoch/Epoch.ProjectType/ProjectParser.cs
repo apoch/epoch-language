@@ -14,7 +14,20 @@ namespace Epoch.ProjectParser
     public class ProjectParser
     {
         private static Dictionary<string, List<string>> ParsedFunctionNames = null;
+        private static Dictionary<string, List<string>> ParsedStructures = null;
 
+        private static Dictionary<string, StructureDefinition> StructureDefinitions = null;
+
+        private class StructureDefinition
+        {
+            public List<StructureMember> Members = null;
+        };
+
+        private class StructureMember
+        {
+            public string Name;
+            public string Type;
+        };
 
         private enum CharacterClass
         {
@@ -394,8 +407,133 @@ namespace Epoch.ProjectParser
 
         private static bool ParseStructure(string filename, List<string> tokens)
         {
-            // TODO
-            return false;
+            bool templated = false;
+
+            if (tokens[0] != "structure")
+                return false;
+
+            string structurename = tokens[1];
+
+            if (tokens[2] == "<")
+            {
+                tokens.RemoveRange(0, 3);
+                if (!ParseTemplateParameters(tokens))
+                    return false;
+
+                templated = true;
+
+                if (tokens[1] == ":")
+                    return false;
+            }
+            else if (tokens[2] != ":")
+            {
+                return false;
+            }
+
+            tokens.RemoveRange(0, 2);
+
+            if (!templated)
+                tokens.RemoveAt(0);
+
+            ParsedStructures[filename].Add(structurename);
+
+            bool moremembers = true;
+            while (moremembers)
+            {
+                if (tokens[0] == "(")
+                {
+                    tokens.RemoveAt(0);
+
+                    // TODO - members?
+                    tokens.RemoveAt(0);
+
+                    if (tokens[0] != ":")
+                        return false;
+
+                    tokens.RemoveAt(0);
+
+                    bool moreparams = true;
+                    while (moreparams)
+                    {
+                        tokens.RemoveAt(0);
+                        if (tokens[0] != ",")
+                        {
+                            moreparams = false;
+                        }
+                        else
+                            tokens.RemoveAt(0);
+                    }
+
+                    if (tokens[0] == "->")
+                    {
+                        tokens.RemoveAt(0);
+                        tokens.RemoveAt(0);
+                    }
+
+                    if (tokens[0] != ")")
+                    {
+                        return false;
+                    }
+
+                    tokens.RemoveAt(0);
+                }
+                else
+                {
+                    bool isref = false;
+
+                    string membertype = tokens[0];
+
+                    tokens.RemoveAt(0);
+
+                    string membername = tokens[0];
+
+                    tokens.RemoveAt(0);
+
+                    if (membername == "<")
+                    {
+                        int memberlookahead = ParseTemplateArgs(tokens, 0);
+                        if (memberlookahead > 0)
+                        {
+                            tokens.RemoveRange(0, memberlookahead + 1);
+                            membername = tokens[0];
+                            tokens.RemoveAt(0);
+                        }
+                        else
+                        {
+                            return false;
+                        }
+                    }
+
+                    if (membername == "ref")
+                    {
+                        isref = true;
+                        membername = tokens[0];
+                        tokens.RemoveAt(0);
+                    }
+
+                    if (!StructureDefinitions.ContainsKey(structurename))
+                    {
+                        StructureDefinitions.Add(structurename, new StructureDefinition());
+                        StructureDefinitions[structurename].Members = new List<StructureMember>();
+                    }
+
+                    var member = new StructureMember();
+                    member.Name = membername;
+                    member.Type = membertype;
+
+                    if (isref)
+                        member.Type += " ref";
+
+                    StructureDefinitions[structurename].Members.Add(member);
+                }
+
+                if (tokens[0] != ",")
+                    moremembers = false;
+                else
+                    tokens.RemoveAt(0);
+            }
+
+            return true;
         }
 
         private static bool ParseGlobalBlock(string filename, List<string> tokens)
@@ -696,9 +834,21 @@ namespace Epoch.ProjectParser
 
 
                 List<string> oldFunctionNames = null;
+                List<string> oldStructures = null;
+
+                Dictionary<string, StructureDefinition> oldStructureDefinitions = null;
+
 
                 if (ParsedFunctionNames == null)
                     ParsedFunctionNames = new Dictionary<string, List<string>>();
+
+                if (ParsedStructures == null)
+                    ParsedStructures = new Dictionary<string, List<string>>();
+
+                if (StructureDefinitions == null)
+                    StructureDefinitions = new Dictionary<string, StructureDefinition>();
+                else
+                    StructureDefinitions.Clear();
 
                 if (filename == null)
                     filename = "@@UnsavedFiles";
@@ -711,6 +861,14 @@ namespace Epoch.ProjectParser
                     ParsedFunctionNames[filename].Clear();
                 }
 
+                if (!ParsedStructures.ContainsKey(filename))
+                    ParsedStructures.Add(filename, new List<string>());
+                else
+                {
+                    oldStructures = ParsedStructures[filename];
+                    ParsedStructures[filename].Clear();
+                }
+
 
                 string code = textBuffer.CurrentSnapshot.GetText();
 
@@ -718,6 +876,12 @@ namespace Epoch.ProjectParser
                 {
                     if (oldFunctionNames != null)
                         ParsedFunctionNames[filename] = oldFunctionNames;
+
+                    if (oldStructures != null)
+                        ParsedStructures[filename] = oldStructures;
+
+                    if (oldStructureDefinitions != null)
+                        StructureDefinitions = oldStructureDefinitions;
                 }
             }
         }
@@ -737,6 +901,15 @@ namespace Epoch.ProjectParser
 
             foreach(var kvp in ParsedFunctionNames)
                 functionNames.AddRange(kvp.Value);
+        }
+
+        public static void GetAvailableStructureNames(List<string> structureNames)
+        {
+            if (ParsedStructures == null)
+                return;
+
+            foreach (var kvp in ParsedStructures)
+                structureNames.AddRange(kvp.Value);
         }
     }
 }

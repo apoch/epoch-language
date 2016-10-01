@@ -10,6 +10,7 @@ using Microsoft.VisualStudio.Text;
 using Microsoft.VisualStudio.Text.Editor;
 using Microsoft.VisualStudio.TextManager.Interop;
 using Microsoft.VisualStudio.Utilities;
+using Epoch.ProjectParser;
 
 namespace EpochVS
 {
@@ -49,6 +50,8 @@ namespace EpochVS
         {
             this.m_textView = textView;
             this.m_provider = provider;
+
+            ProjectParser.ParseTextBuffer(textView.TextBuffer);
 
             //add the command to the command chain
             textViewAdapter.AddCommandFilter(this, out m_nextCommandHandler);

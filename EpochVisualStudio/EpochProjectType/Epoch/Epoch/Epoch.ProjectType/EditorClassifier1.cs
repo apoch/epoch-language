@@ -71,7 +71,8 @@ namespace EpochVS
             Symbol,
             Literal,
             HexLiteral,
-            IdentifierFunction
+            IdentifierFunction,
+            IdentifierUDT,
         }
 
         public IList<ClassificationSpan> GetClassificationSpans(SnapshotSpan span)
@@ -209,6 +210,10 @@ namespace EpochVS
                 case State.IdentifierFunction:
                     classification = classificationRegistry.GetClassificationType("cppFunction");
                     break;
+
+                case State.IdentifierUDT:
+                    classification = classificationRegistry.GetClassificationType("class name");
+                    break;
             }
 
             if (classification != null)
@@ -231,6 +236,11 @@ namespace EpochVS
             ProjectParser.GetAvailableFunctionNames(functionNames);
             if (functionNames.Contains(token))
                 return State.IdentifierFunction;
+
+            List<string> structureNames = new List<string>();
+            ProjectParser.GetAvailableStructureNames(structureNames);
+            if (structureNames.Contains(token))
+                return State.IdentifierUDT;
 
             return State.Default;
         }

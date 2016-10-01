@@ -21,8 +21,6 @@ namespace EpochVS
         {
             m_sourceProvider = sourceProvider;
             m_textBuffer = textBuffer;
-
-            ProjectParser.ParseTextBuffer(m_textBuffer);
         }
 
         void ICompletionSource.AugmentCompletionSession(ICompletionSession session, IList<CompletionSet> completionSets)
