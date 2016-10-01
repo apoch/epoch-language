@@ -363,7 +363,8 @@ namespace Epoch.ProjectParser
 
             tokens.RemoveRange(0, 2);
 
-            // TODO - intellisense hook for types
+            // TODO - separate list of sum types/aliases instead?
+            ParsedStructures[filename].Add(sumtypename);
 
             ParseSumTypeBases(tokens);
 
@@ -382,7 +383,8 @@ namespace Epoch.ProjectParser
 
             tokens.RemoveAt(0);
 
-            // TODO - intellisense hook for types
+            // TODO - separate list of sum types/aliases instead?
+            ParsedStructures[filename].Add(tokens[0]);
 
             tokens.RemoveRange(0, 3);
 
@@ -399,7 +401,8 @@ namespace Epoch.ProjectParser
 
             tokens.RemoveAt(0);
 
-            // TODO - intellisense hook for types
+            // TODO - separate list of sum types/aliases instead?
+            ParsedStructures[filename].Add(tokens[0]);
 
             tokens.RemoveRange(0, 3);
             return true;

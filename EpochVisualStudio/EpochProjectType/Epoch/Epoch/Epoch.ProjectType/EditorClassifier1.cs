@@ -35,7 +35,8 @@ namespace EpochVS
                 "buffer",
                 "nothing",
                 "ref",
-                "structure"
+                "structure",
+                "type",
             };
 
             LiteralKeywords = new HashSet<string>()
