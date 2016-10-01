@@ -16,11 +16,13 @@ namespace EpochVS
         private EditorCompletionSourceProvider m_sourceProvider;
         private ITextBuffer m_textBuffer;
         private List<Completion> m_completionList;
+        private IGlyphService m_glyphService;
 
-        public EditorCompletionSource(EditorCompletionSourceProvider sourceProvider, ITextBuffer textBuffer)
+        public EditorCompletionSource(EditorCompletionSourceProvider sourceProvider, ITextBuffer textBuffer, IGlyphService glyphService)
         {
             m_sourceProvider = sourceProvider;
             m_textBuffer = textBuffer;
+            m_glyphService = glyphService;
         }
 
         void ICompletionSource.AugmentCompletionSession(ICompletionSession session, IList<CompletionSet> completionSets)
@@ -29,14 +31,25 @@ namespace EpochVS
             strList.Add("print");
             strList.Add("assert");
 
-            ProjectParser.ParseTextBuffer(m_textBuffer);
+            //ProjectParser.ParseTextBuffer(m_textBuffer);
             ProjectParser.GetAvailableFunctionNames(strList);
 
+            var funcglyph = m_glyphService.GetGlyph(StandardGlyphGroup.GlyphGroupMethod, StandardGlyphItem.GlyphItemPublic);
             m_completionList = new List<Completion>();
             foreach(string str in strList)
             {
-                m_completionList.Add(new Completion(str, str, str, null, null));
+                m_completionList.Add(new Completion(str, str, str, funcglyph, null));
             }
+
+
+
+            List<string> structureNames = new List<string>();
+            ProjectParser.GetAvailableStructureNames(structureNames);
+
+            var structglyph = m_glyphService.GetGlyph(StandardGlyphGroup.GlyphGroupType, StandardGlyphItem.GlyphItemPublic);
+            foreach (string str in structureNames)
+                m_completionList.Add(new Completion(str, str, str, structglyph, null));
+
 
             // TODO - cleanup
             completionSets.Add(new CompletionSet(

@@ -251,6 +251,10 @@ namespace EpochVS
 
     internal static class FileAndContentTypeDefinitions
     {
+
+        // Disable "Field is never assigned to..." compiler's warning. Justification: the field is assigned by MEF.
+#pragma warning disable 649
+
         [Export]
         [Name("EpochFile")]
         [BaseDefinition("text")]
@@ -260,5 +264,8 @@ namespace EpochVS
         [FileExtension(".epoch")]
         [ContentType("EpochFile")]
         internal static FileExtensionToContentTypeDefinition EpochFileExtensionDefinition;
+
+#pragma warning restore 649
+
     }
 }

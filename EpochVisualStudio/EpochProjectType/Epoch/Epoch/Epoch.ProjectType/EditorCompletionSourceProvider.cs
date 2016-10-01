@@ -18,9 +18,13 @@ namespace EpochVS
         [Import]
         internal ITextStructureNavigatorSelectorService NavigatorService { get; set; }
 
+        [Import]
+        IGlyphService GlyphService = null;
+
+
         public ICompletionSource TryCreateCompletionSource(ITextBuffer textBuffer)
         {
-            return new EditorCompletionSource(this, textBuffer);
+            return new EditorCompletionSource(this, textBuffer, GlyphService);
         }
     }
 }
