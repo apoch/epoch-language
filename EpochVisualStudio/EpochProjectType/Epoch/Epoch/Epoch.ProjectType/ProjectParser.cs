@@ -8,6 +8,7 @@ using Microsoft.VisualStudio.TextManager.Interop;
 using Microsoft.VisualStudio.Shell.Interop;
 using Microsoft.VisualStudio.Threading;
 using Microsoft.VisualStudio.Shell;
+using Microsoft.VisualStudio;
 
 namespace Epoch.ProjectParser
 {
@@ -821,20 +822,31 @@ namespace Epoch.ProjectParser
         }
 
 
-
-        private async static System.Threading.Tasks.Task ParseFileFromTextBuffer(ITextBuffer textBuffer)
+        private async static System.Threading.Tasks.Task ParseFilesFromCurrentSolution(EnvDTE.DTE dte)
         {
-            IVsTextBuffer bufferAdapter;
-            textBuffer.Properties.TryGetProperty(typeof(IVsTextBuffer), out bufferAdapter);
-            if (bufferAdapter != null)
-            {
-                await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
-                var persistFileFormat = bufferAdapter as IPersistFileFormat;
-                string filename = null;
-                uint formatIndex;
-                if (persistFileFormat != null)
-                    persistFileFormat.GetCurFile(out filename, out formatIndex);
+            await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
 
+            if (dte == null || dte.Solution == null)
+                return;
+
+            foreach (EnvDTE.Project project in dte.Solution.Projects)
+            {
+                foreach (EnvDTE.ProjectItem item in project.ProjectItems)
+                {
+                    if (item.FileCount == 1 && item.FileNames[0].EndsWith(".epoch", StringComparison.OrdinalIgnoreCase))
+                    {
+                        ParseFileOnDisk(item.FileNames[0]);
+                    }
+                }
+            }
+        }
+
+
+        private static void ParseFileOnDisk(string filename)
+        {
+            try
+            {
+                string text = System.IO.File.ReadAllText(filename);
 
                 List<string> oldFunctionNames = null;
                 List<string> oldStructures = null;
@@ -853,8 +865,6 @@ namespace Epoch.ProjectParser
                 else
                     StructureDefinitions.Clear();
 
-                if (filename == null)
-                    filename = "@@UnsavedFiles";
 
                 if (!ParsedFunctionNames.ContainsKey(filename))
                     ParsedFunctionNames.Add(filename, new List<string>());
@@ -872,10 +882,8 @@ namespace Epoch.ProjectParser
                     ParsedStructures[filename].Clear();
                 }
 
-
-                string code = textBuffer.CurrentSnapshot.GetText();
-
-                if (!ParseString(filename, code))
+                // TODO - get off the UI thread here
+                if (!ParseString(filename, text))
                 {
                     if (oldFunctionNames != null)
                         ParsedFunctionNames[filename] = oldFunctionNames;
@@ -886,15 +894,49 @@ namespace Epoch.ProjectParser
                     if (oldStructureDefinitions != null)
                         StructureDefinitions = oldStructureDefinitions;
                 }
+
+            }
+            catch
+            {
+            }
+        }
+
+        private async static System.Threading.Tasks.Task ParseFileFromTextBuffer(ITextBuffer textBuffer)
+        {
+            IVsTextBuffer bufferAdapter;
+            textBuffer.Properties.TryGetProperty(typeof(IVsTextBuffer), out bufferAdapter);
+            if (bufferAdapter != null)
+            {
+                await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+                var persistFileFormat = bufferAdapter as IPersistFileFormat;
+                string filename = null;
+                uint formatIndex;
+                if (persistFileFormat != null)
+                    persistFileFormat.GetCurFile(out filename, out formatIndex);
+
+                if (filename != null)
+                    ParseFileOnDisk(filename);
+                else
+                {
+                    // TODO - this will slowly corrupt/overfill the completion hint dictionaries
+                    // We should probably stop stuffing all this logic in static functions and
+                    // write a proper wrapper around it.
+                    ParseString("@@UnsavedFiles", textBuffer.CurrentSnapshot.GetText());
+                }
             }
         }
 
 
         public static void ParseTextBuffer(ITextBuffer textBuffer)
         {
-            // TODO - cache this
+            // TODO - cache this better?
 
             var task = ParseFileFromTextBuffer(textBuffer);
+        }
+
+        public static void ParseProject(EnvDTE.DTE dte)
+        {
+            var task = ParseFilesFromCurrentSolution(dte);
         }
 
         public static void GetAvailableFunctionNames(List<string> functionNames)

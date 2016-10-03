@@ -27,6 +27,8 @@ namespace EpochVS
 
         void ICompletionSource.AugmentCompletionSession(ICompletionSession session, IList<CompletionSet> completionSets)
         {
+            m_completionList = new List<Completion>();
+
             List<string> strList = new List<string>();
             strList.Add("print");
             strList.Add("assert");
@@ -35,12 +37,8 @@ namespace EpochVS
             ProjectParser.GetAvailableFunctionNames(strList);
 
             var funcglyph = m_glyphService.GetGlyph(StandardGlyphGroup.GlyphGroupMethod, StandardGlyphItem.GlyphItemPublic);
-            m_completionList = new List<Completion>();
             foreach(string str in strList)
-            {
                 m_completionList.Add(new Completion(str, str, str, funcglyph, null));
-            }
-
 
 
             List<string> structureNames = new List<string>();
@@ -50,11 +48,13 @@ namespace EpochVS
             foreach (string str in structureNames)
                 m_completionList.Add(new Completion(str, str, str, structglyph, null));
 
+            m_completionList.Sort((a, b) => { return a.DisplayText.CompareTo(b.DisplayText); });
+
 
             // TODO - cleanup
             completionSets.Add(new CompletionSet(
-                "Epoch Functions",    //the non-localized title of the tab
-                "Epoch Functions",    //the display title of the tab
+                "Epoch",    //the non-localized title of the tab
+                "Epoch",    //the display title of the tab
                 FindTokenSpanAtPosition(session.GetTriggerPoint(m_textBuffer),
                     session),
                 m_completionList,

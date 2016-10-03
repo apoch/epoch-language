@@ -35,6 +35,8 @@ namespace EpochVS
 
             Func<EditorCompletionCommandHandler> createCommandHandler = delegate () { return new EditorCompletionCommandHandler(textViewAdapter, textView, this); };
             textView.Properties.GetOrCreateSingletonProperty(createCommandHandler);
+
+            ProjectParser.ParseProject(ServiceProvider.GetService(typeof(EnvDTE.DTE)) as EnvDTE.DTE);
         }
 
     }
