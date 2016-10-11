@@ -19,12 +19,25 @@ namespace EpochVS
         internal ITextStructureNavigatorSelectorService NavigatorService { get; set; }
 
         [Import]
-        IGlyphService GlyphService = null;
+        internal IGlyphService GlyphService = null;
 
 
         public ICompletionSource TryCreateCompletionSource(ITextBuffer textBuffer)
         {
             return new EditorCompletionSource(this, textBuffer, GlyphService);
+        }
+    }
+
+
+    [Export(typeof(ISignatureHelpSourceProvider))]
+    [Name("Epoch function signature help source")]
+    [Order(Before = "default")]
+    [ContentType("EpochFile")]
+    internal class EditorSignatureHelpSourceProvider : ISignatureHelpSourceProvider
+    {
+        public ISignatureHelpSource TryCreateSignatureHelpSource(ITextBuffer textBuffer)
+        {
+            return new EditorSignatureHelpSource(textBuffer);
         }
     }
 }

@@ -805,20 +805,339 @@ namespace Epoch.ProjectParser
         }
 
 
-        private static void ParseCodeBlock(List<string> tokens)
+        private static bool ParseCodeBlock(List<string> tokens)
         {
-            // TODO - parse code correctly
-            while (tokens[0] != "}")
-                tokens.RemoveAt(0);
+            string token = tokens[0];
+            while (token != "}")
+            {
+                if (ParseEntity(tokens))
+                {
+                }
+                else if (ParsePreopStatement(tokens, false))
+                {
+                }
+                else if (ParsePostopStatement(tokens))
+                {
+                }
+                else if (ParseStatement(tokens, false))
+                {
+                }
+                else if (ParseInitialization(tokens))
+                {
+                }
+                else if (ParseAssignment(tokens))
+                {
+                }
+                else
+                    return false;
+
+                token = tokens[0];
+
+            }
 
             tokens.RemoveAt(0);
+
+            return true;
         }
 
 
         private static bool ParseExpression(List<string> tokens)
         {
-            // TODO - parse expressions
+            bool matchedstatement = false;
+
+            if (!ParseExpressionTerm(tokens, true, out matchedstatement))
+                return false;
+
+            if (matchedstatement && tokens[0] == ")")
+            {
+            }
+            else
+            {
+                while (ParseExpressionOperator(tokens))
+                {
+                    if (!ParseExpressionTerm(tokens, false, out matchedstatement))
+                        return false;
+                }
+            }
+
+            return true;
+        }
+
+        private static bool ParseExpressionTerm(List<string> tokens, bool startsexpr, out bool matchedstatement)
+        {
+            string term = tokens[0];
+            matchedstatement = false;
+
+            if (term == ")")
+                return false;
+
+            if (term == ",")
+                return false;
+
+            if (term == "")
+                return false;
+
+            if (term == "(")
+            {
+                tokens.RemoveAt(0);
+                if (ParseExpression(tokens))
+                {
+                    tokens.RemoveAt(0);
+                    return true;
+                }
+
+                return false;
+            }
+
+            if (term == "!")
+            {
+                tokens.RemoveAt(0);
+                return ParseExpressionTerm(tokens, startsexpr, out matchedstatement);
+            }
+
+            if (term == "false" || term == "true" || term == "0" || term == "0.0")
+                tokens.RemoveAt(0);
+            else if (ParsePreopStatement(tokens, true))
+                return true;
+            else if (ParseStatement(tokens, true))
+            {
+                matchedstatement = true;
+                return true;
+            }
+            else
+            {
+                tokens.RemoveAt(0);
+            }
+
+            return true;
+        }
+
+        private static bool ParseStatement(List<string> tokens, bool substatement)
+        {
+            int lookahead = 0;
+
+            if (tokens[1] == "<")
+            {
+                lookahead = ParseTemplateArgs(tokens, 2);
+            }
+
+            if (tokens[1 + lookahead] != "(")
+                return false;
+
+            tokens.RemoveRange(0, 2 + lookahead);
+            while (tokens[0] != ")")
+            {
+                if (!ParseExpression(tokens))
+                    return false;
+
+                if (tokens[0] == ",")
+                    tokens.RemoveAt(0);
+            }
+
+            tokens.RemoveAt(0);
+            return true;
+        }
+
+        private static bool ParseExpressionOperator(List<string> tokens)
+        {
+            string op = tokens[0];
+            if (op == ")")
+                return false;
+
+            if (op == ",")
+                return false;
+
+            if (op == "")
+                return false;
+
+            if (op.Length > 2)
+                return false;
+
+            bool knownoperator = false;
+            if (op == ".")
+                knownoperator = true;
+            else if (op == "+")
+                knownoperator = true;
+            else if (op == "-")
+                knownoperator = true;
+            else if (op == "*")
+                knownoperator = true;
+            else if (op == "/")
+                knownoperator = true;
+            else if (op == "==")
+                knownoperator = true;
+            else if (op == "!=")
+                knownoperator = true;
+            else if (op == ";")
+                knownoperator = true;
+            else if (op == ">")
+                knownoperator = true;
+            else if (op == "<")
+                knownoperator = true;
+            else if (op == "&")
+                knownoperator = true;
+            else if (op == "&&")
+                knownoperator = true;
+
+            if (knownoperator)
+            {
+                tokens.RemoveAt(0);
+                return true;
+            }
+
             return false;
+        }
+
+        private static bool ParsePreopStatement(List<string> tokens, bool substatement)
+        {
+            bool recognized = false;
+            string potential = tokens[0];
+
+            if (potential == "++")
+                recognized = true;
+            else if (potential == "--")
+                recognized = true;
+
+            if (recognized)
+            {
+                tokens.RemoveAt(0);
+                tokens.RemoveAt(0);
+
+                while (tokens[0] == ".")
+                {
+                    tokens.RemoveAt(0);
+                    tokens.RemoveAt(0);
+                }
+
+                return true;
+            }
+
+            return false;
+        }
+
+
+        private static bool ParseEntity(List<string> tokens)
+        {
+            string entityname = tokens[0];
+            if (entityname == "if")
+            {
+                if (tokens[1] == "(")
+                {
+                    tokens.RemoveRange(0, 2);
+
+                    ParseExpression(tokens);
+                    tokens.RemoveAt(0);
+
+                    ParseEntityCode(tokens);
+
+                    while (tokens[0] == "elseif")
+                    {
+                        tokens.RemoveRange(0, 2);
+                        ParseExpression(tokens);
+                        tokens.RemoveAt(0);
+                        ParseEntityCode(tokens);
+                    }
+
+                    if (tokens[0] == "else")
+                    {
+                        tokens.RemoveAt(0);
+                        ParseEntityCode(tokens);
+                    }
+
+                    return true;
+                }
+            }
+            else if (entityname == "while")
+            {
+                if (tokens[1] == "(")
+                {
+                    tokens.RemoveRange(0, 2);
+
+                    ParseExpression(tokens);
+                    tokens.RemoveAt(0);
+
+                    return ParseEntityCode(tokens);
+                }
+            }
+
+            return false;
+        }
+
+        private static bool ParsePostopStatement(List<string> tokens)
+        {
+            bool recognized = false;
+
+            string operand = tokens[0];
+            int operandlength = 1;
+            while (tokens[operandlength] == ".")
+                operandlength += 2;
+
+            string potential = tokens[operandlength];
+            if (potential == "++")
+                recognized = true;
+            else if (potential == "--")
+                recognized = true;
+
+            if (recognized)
+            {
+                tokens.RemoveRange(0, operandlength + 1);
+
+                return true;
+            }
+
+            return false;
+        }
+
+
+        private static bool ParseAssignment(List<string> tokens)
+        {
+            int lhslength = 1;
+            while (tokens[lhslength] == ".")
+                lhslength += 2;
+
+            string assignmenttoken = tokens[lhslength];
+            bool recognized = false;
+
+            if (assignmenttoken == "=")
+                recognized = true;
+            else if (assignmenttoken == "+=")
+                recognized = true;
+            else if (assignmenttoken == "-=")
+                recognized = true;
+
+            if (!recognized)
+                return false;
+
+            tokens.RemoveRange(0, lhslength + 1);
+
+            bool haschain = true;
+            while (haschain)
+            {
+                lhslength = 1;
+                while (tokens[lhslength] == ".")
+                    lhslength += 2;
+
+                if (tokens[lhslength] == "=")
+                {
+                    if (assignmenttoken != "=")
+                        return false;
+
+                    tokens.RemoveRange(0, lhslength + 1);
+                }
+                else
+                    haschain = false;
+            }
+
+            return ParseExpression(tokens);
+        }
+
+        private static bool ParseEntityCode(List<string> tokens)
+        {
+            if (tokens[0] != "{")
+                return false;
+
+            tokens.RemoveAt(0);
+            return ParseCodeBlock(tokens);
         }
 
 

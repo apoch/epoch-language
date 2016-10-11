@@ -11,6 +11,7 @@ using Microsoft.VisualStudio.Text.Editor;
 using Microsoft.VisualStudio.TextManager.Interop;
 using Microsoft.VisualStudio.Utilities;
 using Epoch.ProjectParser;
+using Microsoft.VisualStudio.Text.Operations;
 
 namespace EpochVS
 {
@@ -25,7 +26,11 @@ namespace EpochVS
         [Import]
         internal ICompletionBroker CompletionBroker { get; set; }
         [Import]
+        internal ISignatureHelpBroker SignatureBroker { get; set; }
+        [Import]
         internal SVsServiceProvider ServiceProvider { get; set; }
+        [Import]
+        internal ITextStructureNavigatorSelectorService NavigatorService { get; set; }
 
         public void VsTextViewCreated(IVsTextView textViewAdapter)
         {
@@ -33,7 +38,7 @@ namespace EpochVS
             if (textView == null)
                 return;
 
-            Func<EditorCompletionCommandHandler> createCommandHandler = delegate () { return new EditorCompletionCommandHandler(textViewAdapter, textView, this); };
+            Func<EditorCompletionCommandHandler> createCommandHandler = delegate () { return new EditorCompletionCommandHandler(textViewAdapter, textView, this, SignatureBroker); };
             textView.Properties.GetOrCreateSingletonProperty(createCommandHandler);
 
             ProjectParser.ParseProject(ServiceProvider.GetService(typeof(EnvDTE.DTE)) as EnvDTE.DTE);
@@ -47,11 +52,14 @@ namespace EpochVS
         private ITextView m_textView;
         private EditorCompletionCommandHandlerProvider m_provider;
         private ICompletionSession m_session;
+        private ISignatureHelpSession m_signatureSession;
+        private ISignatureHelpBroker m_broker;
 
-        internal EditorCompletionCommandHandler(IVsTextView textViewAdapter, ITextView textView, EditorCompletionCommandHandlerProvider provider)
+        internal EditorCompletionCommandHandler(IVsTextView textViewAdapter, ITextView textView, EditorCompletionCommandHandlerProvider provider, ISignatureHelpBroker broker)
         {
             this.m_textView = textView;
             this.m_provider = provider;
+            this.m_broker = broker;
 
             ProjectParser.ParseTextBuffer(textView.TextBuffer);
 
@@ -125,6 +133,18 @@ namespace EpochVS
                     m_session.Filter();
                 handled = true;
             }
+            else if (typedChar.Equals('('))
+            {
+                TriggerFunctionSignatureHint();
+
+                handled = true;
+            }
+            else if (typedChar.Equals(')') && m_signatureSession != null)
+            {
+                m_signatureSession.Dismiss();
+                m_signatureSession = null;
+            }
+
             if (handled) return VSConstants.S_OK;
             return retVal;
         }
@@ -150,6 +170,17 @@ namespace EpochVS
             m_session.Start();
 
             return true;
+        }
+
+        private void TriggerFunctionSignatureHint()
+        {
+            //move the point back so it's in the preceding word
+            SnapshotPoint point = m_textView.Caret.Position.BufferPosition - 1;
+            //TextExtent extent = m_navigator.GetExtentOfWord(point);
+            //string word = extent.Span.GetText();
+            //if (word.Equals("add"))
+                m_signatureSession = m_broker.TriggerSignatureHelp(m_textView);
+
         }
 
         private void OnSessionDismissed(object sender, EventArgs e)
