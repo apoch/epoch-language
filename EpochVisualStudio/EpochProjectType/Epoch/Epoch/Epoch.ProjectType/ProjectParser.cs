@@ -17,11 +17,40 @@ namespace Epoch.ProjectParser
         private static Dictionary<string, List<string>> ParsedFunctionNames = null;
         private static Dictionary<string, List<string>> ParsedStructures = null;
 
+        private static Dictionary<string, Dictionary<string, FunctionDefinition>> FunctionDefinitions = null;
         private static Dictionary<string, StructureDefinition> StructureDefinitions = null;
 
         private class StructureDefinition
         {
             public List<StructureMember> Members = null;
+        };
+
+        public class FunctionDefinition
+        {
+            public string FunctionName;
+
+            public List<FunctionParameter> Parameters = null;
+            public string ReturnType;
+
+            public override string ToString()
+            {
+                string ret = string.Format("{0} : {1}", FunctionName, string.Join(", ", Parameters));
+                if (ReturnType != null && ReturnType.Length > 0)
+                    ret += " -> " + ReturnType;
+
+                return ret;
+            }
+        };
+
+        public class FunctionParameter
+        {
+            public string Name;
+            public string Type;
+
+            public override string ToString()
+            {
+                return string.Format("{0} {1}", Type, Name);
+            }
         };
 
         private class StructureMember
@@ -575,8 +604,8 @@ namespace Epoch.ProjectParser
 
             if (tokens[0] != "[")
             {
-                ParseFunctionParams(tokens);
-                ParseFunctionReturn(tokens);
+                ParseFunctionParams(tokens, filename, functionname);
+                ParseFunctionReturn(tokens, filename, functionname);
             }
             ParseFunctionTags(tokens);
 
@@ -591,20 +620,33 @@ namespace Epoch.ProjectParser
             return true;
         }
 
-        private static void ParseFunctionParams(List<string> tokens)
+        private static void ParseFunctionParams(List<string> tokens, string filename, string functionname)
         {
             if (tokens.Count == 0)
                 return;
+
+            var sig = GetOrCreateFunctionSignature(filename, functionname);
 
             while ((tokens[0] != "{") && (tokens[0] != "->"))
             {
                 if (tokens[0] == "nothing")
                 {
+                    var nothingparam = new FunctionParameter();
+                    nothingparam.Name = "";
+                    nothingparam.Type = "nothing";
+                    sig.Parameters.Add(nothingparam);
+
                     tokens.RemoveAt(0);
                 }
                 else if (tokens[0] == "(")
                 {
                     tokens.RemoveAt(0);
+
+                    // TODO - better representation of higher order functions
+                    var funcparam = new FunctionParameter();
+                    funcparam.Name = "";
+                    funcparam.Type = "(" + tokens[0] + " : -> )";
+                    sig.Parameters.Add(funcparam);
 
                     if (tokens[1] == ":")
                     {
@@ -637,6 +679,11 @@ namespace Epoch.ProjectParser
                 }
                 else if (HandleLiteralFunctionParam(tokens[0]))
                 {
+                    var literalparam = new FunctionParameter();
+                    literalparam.Name = "";
+                    literalparam.Type = tokens[0];
+                    sig.Parameters.Add(literalparam);
+
                     tokens.RemoveAt(0);
                 }
                 else
@@ -645,11 +692,23 @@ namespace Epoch.ProjectParser
                     if (tokens[1] == "<")
                         lookahead = ParseTemplateArgs(tokens, 2);
 
+                    string typetoken = string.Join(" ", tokens.GetRange(0, 1 + lookahead));
                     string nametoken = tokens[1 + lookahead];
-                    tokens.RemoveRange(0, 2 + lookahead);
 
                     if (nametoken == "ref")
+                    {
                         tokens.RemoveAt(0);
+                        nametoken = tokens[1];
+
+                        typetoken += " ref";
+                    }
+
+                    tokens.RemoveRange(0, 2 + lookahead);
+
+                    var param = new FunctionParameter();
+                    param.Type = typetoken;
+                    param.Name = nametoken;
+                    sig.Parameters.Add(param);
                 }
             }
 
@@ -659,15 +718,41 @@ namespace Epoch.ProjectParser
             tokens.RemoveAt(0);
         }
 
-        private static void ParseFunctionReturn(List<string> tokens)
+        private static void ParseFunctionReturn(List<string> tokens, string filename, string functionname)
         {
             if (tokens[0] != "->")
                 return;
 
             tokens.RemoveAt(0);
 
-            if (!ParseInitialization(tokens))
+            if (!ParseInitialization(tokens, filename, true, functionname))
+            {
                 ParseExpression(tokens);
+                GetOrCreateFunctionSignature(filename, functionname).ReturnType = "<expr>";
+            }
+        }
+
+        private static FunctionDefinition GetOrCreateFunctionSignature(string filename, string functionname)
+        {
+            if (FunctionDefinitions == null)
+                FunctionDefinitions = new Dictionary<string, Dictionary<string, FunctionDefinition>>();
+
+            if (!FunctionDefinitions.ContainsKey(filename))
+                FunctionDefinitions.Add(filename, new Dictionary<string, FunctionDefinition>());
+
+            var defs = FunctionDefinitions[filename];
+            if (!defs.ContainsKey(functionname))
+            {
+                var newfunc = new FunctionDefinition();
+                newfunc.FunctionName = functionname;
+                newfunc.Parameters = new List<FunctionParameter>();
+                newfunc.ReturnType = null;
+
+                defs.Add(functionname, newfunc);
+                return newfunc;
+            }
+
+            return defs[functionname];
         }
 
         private static void ParseFunctionTags(List<string> tokens)
@@ -731,7 +816,7 @@ namespace Epoch.ProjectParser
             return false;
         }
 
-        private static bool ParseInitialization(List<string> tokens)
+        private static bool ParseInitialization(List<string> tokens, string filename, bool isfuncreturn, string functionname)
         {
             if (tokens[1] == ".")
                 return false;
@@ -749,6 +834,9 @@ namespace Epoch.ProjectParser
 
             if (templated)
                 ParseTemplateArgs(tokens, 2);
+
+            if (isfuncreturn)
+                GetOrCreateFunctionSignature(filename, functionname).ReturnType = tokens[0];
 
             tokens.RemoveRange(0, 3 + skipahead);
 
@@ -822,7 +910,7 @@ namespace Epoch.ProjectParser
                 else if (ParseStatement(tokens, false))
                 {
                 }
-                else if (ParseInitialization(tokens))
+                else if (ParseInitialization(tokens, null, false, null))
                 {
                 }
                 else if (ParseAssignment(tokens))
@@ -1170,6 +1258,8 @@ namespace Epoch.ProjectParser
                 List<string> oldFunctionNames = null;
                 List<string> oldStructures = null;
 
+                Dictionary<string, FunctionDefinition> oldFunctionDefs = null;
+
                 Dictionary<string, StructureDefinition> oldStructureDefinitions = null;
 
 
@@ -1178,6 +1268,10 @@ namespace Epoch.ProjectParser
 
                 if (ParsedStructures == null)
                     ParsedStructures = new Dictionary<string, List<string>>();
+
+                if (FunctionDefinitions == null)
+                    FunctionDefinitions = new Dictionary<string, Dictionary<string, FunctionDefinition>>();
+
 
                 if (StructureDefinitions == null)
                     StructureDefinitions = new Dictionary<string, StructureDefinition>();
@@ -1201,6 +1295,14 @@ namespace Epoch.ProjectParser
                     ParsedStructures[filename].Clear();
                 }
 
+                if (!FunctionDefinitions.ContainsKey(filename))
+                    FunctionDefinitions.Add(filename, new Dictionary<string, FunctionDefinition>());
+                else
+                {
+                    oldFunctionDefs = FunctionDefinitions[filename];
+                    FunctionDefinitions[filename].Clear();
+                }
+
                 // TODO - get off the UI thread here
                 if (!ParseString(filename, text))
                 {
@@ -1212,6 +1314,9 @@ namespace Epoch.ProjectParser
 
                     if (oldStructureDefinitions != null)
                         StructureDefinitions = oldStructureDefinitions;
+
+                    if (oldFunctionDefs != null)
+                        FunctionDefinitions[filename] = oldFunctionDefs;
                 }
 
             }
@@ -1274,6 +1379,18 @@ namespace Epoch.ProjectParser
 
             foreach (var kvp in ParsedStructures)
                 structureNames.AddRange(kvp.Value);
+        }
+
+        public static void GetAvailableFunctionSignatures(List<FunctionDefinition> functions)
+        {
+            if (FunctionDefinitions == null)
+                return;
+
+            foreach (var filekvp in FunctionDefinitions)
+            {
+                foreach (var funckvp in filekvp.Value)
+                    functions.Add(funckvp.Value);
+            }
         }
     }
 }

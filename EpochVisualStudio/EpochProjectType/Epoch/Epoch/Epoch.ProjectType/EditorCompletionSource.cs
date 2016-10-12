@@ -110,10 +110,10 @@ namespace EpochVS
         private ReadOnlyCollection<IParameter> m_parameters;
         private string m_printContent;
 
-        internal EpochFunctionSignature(ITextBuffer subjectBuffer, string content, string doc, ReadOnlyCollection<IParameter> parameters)
+        internal EpochFunctionSignature(ITextBuffer subjectBuffer, ProjectParser.FunctionDefinition content, string doc, ReadOnlyCollection<IParameter> parameters)
         {
             m_subjectBuffer = subjectBuffer;
-            m_content = content;
+            m_content = content.ToString();
             m_documentation = doc;
             m_parameters = parameters;
             m_subjectBuffer.Changed += new EventHandler<TextContentChangedEventArgs>(OnSubjectBufferChanged);
@@ -235,35 +235,31 @@ namespace EpochVS
             ITrackingSpan applicableToSpan = m_textBuffer.CurrentSnapshot.CreateTrackingSpan(
              new Span(position, 0), SpanTrackingMode.EdgeInclusive, 0);
 
-            signatures.Add(CreateSignature(m_textBuffer, "add(int firstInt, int secondInt)", "Documentation for adding integers.", applicableToSpan));
-            signatures.Add(CreateSignature(m_textBuffer, "add(double firstDouble, double secondDouble)", "Documentation for adding doubles.", applicableToSpan));
+            var knownFunctions = new List<ProjectParser.FunctionDefinition>();
+            ProjectParser.GetAvailableFunctionSignatures(knownFunctions);
 
+            foreach(var func in knownFunctions)
+                signatures.Add(CreateSignature(m_textBuffer, func, "Documentation goes here.", applicableToSpan));
         }
 
-        private EpochFunctionSignature CreateSignature(ITextBuffer textBuffer, string methodSig, string methodDoc, ITrackingSpan span)
+        private EpochFunctionSignature CreateSignature(ITextBuffer textBuffer, ProjectParser.FunctionDefinition methodSig, string methodDoc, ITrackingSpan span)
         {
             EpochFunctionSignature sig = new EpochFunctionSignature(textBuffer, methodSig, methodDoc, null);
             textBuffer.Changed += new EventHandler<TextContentChangedEventArgs>(sig.OnSubjectBufferChanged);
 
-            //find the parameters in the method signature (expect methodname(one, two)
-            string[] pars = methodSig.Split(new char[] { '(', ',', ')' });
             List<IParameter> paramList = new List<IParameter>();
 
             int locusSearchStart = 0;
-            for (int i = 1; i < pars.Length; i++)
+            for (int i = 0; i < methodSig.Parameters.Count; ++i)
             {
-                string param = pars[i].Trim();
+                string param = string.Format("{0} {1}", methodSig.Parameters[i].Type, methodSig.Parameters[i].Name);
 
-                if (string.IsNullOrEmpty(param))
-                    continue;
-
-                //find where this parameter is located in the method signature
-                int locusStart = methodSig.IndexOf(param, locusSearchStart);
+                int locusStart = methodSig.ToString().IndexOf(param, locusSearchStart);
                 if (locusStart >= 0)
                 {
                     Span locus = new Span(locusStart, param.Length);
                     locusSearchStart = locusStart + param.Length;
-                    paramList.Add(new EpochParameter("Documentation for the parameter.", locus, param, sig));
+                    paramList.Add(new EpochParameter("Parameter documentation goes here.", locus, param, sig));
                 }
             }
 
