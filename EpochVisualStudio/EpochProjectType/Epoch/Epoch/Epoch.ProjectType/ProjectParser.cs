@@ -610,7 +610,7 @@ namespace Epoch.ProjectParser
             ParseFunctionTags(tokens);
 
 
-            if (tokens[0] != "{")
+            if (tokens.Count <= 0 || tokens[0] != "{")
                 return true;
 
             tokens.RemoveAt(0);
@@ -757,6 +757,9 @@ namespace Epoch.ProjectParser
 
         private static void ParseFunctionTags(List<string> tokens)
         {
+            if (tokens.Count <= 0)
+                return;
+
             if (tokens[0] != "[")
                 return;
 
@@ -818,6 +821,9 @@ namespace Epoch.ProjectParser
 
         private static bool ParseInitialization(List<string> tokens, string filename, bool isfuncreturn, string functionname)
         {
+            if (tokens.Count < 2)
+                return false;
+
             if (tokens[1] == ".")
                 return false;
 
@@ -1004,6 +1010,9 @@ namespace Epoch.ProjectParser
         {
             int lookahead = 0;
 
+            if (tokens.Count < 2)
+                return false;
+
             if (tokens[1] == "<")
             {
                 lookahead = ParseTemplateArgs(tokens, 2);
@@ -1028,6 +1037,9 @@ namespace Epoch.ProjectParser
 
         private static bool ParseExpressionOperator(List<string> tokens)
         {
+            if (tokens.Count <= 0)
+                return false;
+
             string op = tokens[0];
             if (op == ")")
                 return false;

@@ -38,7 +38,10 @@ namespace EpochVS
             if (textView == null)
                 return;
 
-            Func<EditorCompletionCommandHandler> createCommandHandler = delegate () { return new EditorCompletionCommandHandler(textViewAdapter, textView, this, SignatureBroker); };
+            Func<EditorCompletionCommandHandler> createCommandHandler = delegate () {
+                return new EditorCompletionCommandHandler(textViewAdapter, textView, this, SignatureBroker, NavigatorService.GetTextStructureNavigator(textView.TextBuffer));
+            };
+
             textView.Properties.GetOrCreateSingletonProperty(createCommandHandler);
 
             ProjectParser.ParseProject(ServiceProvider.GetService(typeof(EnvDTE.DTE)) as EnvDTE.DTE);
@@ -54,12 +57,20 @@ namespace EpochVS
         private ICompletionSession m_session;
         private ISignatureHelpSession m_signatureSession;
         private ISignatureHelpBroker m_broker;
+        private ITextStructureNavigator m_navigator;
 
-        internal EditorCompletionCommandHandler(IVsTextView textViewAdapter, ITextView textView, EditorCompletionCommandHandlerProvider provider, ISignatureHelpBroker broker)
+        internal EditorCompletionCommandHandler(
+            IVsTextView textViewAdapter,
+            ITextView textView,
+            EditorCompletionCommandHandlerProvider provider,
+            ISignatureHelpBroker broker,
+            ITextStructureNavigator navigator
+        )
         {
             this.m_textView = textView;
             this.m_provider = provider;
             this.m_broker = broker;
+            this.m_navigator = navigator;
 
             ProjectParser.ParseTextBuffer(textView.TextBuffer);
 
@@ -174,13 +185,7 @@ namespace EpochVS
 
         private void TriggerFunctionSignatureHint()
         {
-            //move the point back so it's in the preceding word
-            SnapshotPoint point = m_textView.Caret.Position.BufferPosition - 1;
-            //TextExtent extent = m_navigator.GetExtentOfWord(point);
-            //string word = extent.Span.GetText();
-            //if (word.Equals("add"))
-                m_signatureSession = m_broker.TriggerSignatureHelp(m_textView);
-
+            m_signatureSession = m_broker.TriggerSignatureHelp(m_textView);
         }
 
         private void OnSessionDismissed(object sender, EventArgs e)

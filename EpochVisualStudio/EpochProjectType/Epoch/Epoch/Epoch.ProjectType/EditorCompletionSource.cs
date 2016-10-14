@@ -9,6 +9,8 @@ using Microsoft.VisualStudio.Text.Operations;
 using Microsoft.VisualStudio.Utilities;
 using Epoch.ProjectParser;
 using System.Collections.ObjectModel;
+using Microsoft.VisualStudio.TextManager.Interop;
+using Microsoft.VisualStudio.Text.Editor;
 
 namespace EpochVS
 {
@@ -221,10 +223,12 @@ namespace EpochVS
     internal class EditorSignatureHelpSource : ISignatureHelpSource
     {
         private ITextBuffer m_textBuffer;
+        private ITextStructureNavigatorSelectorService m_navigator;
 
-        public EditorSignatureHelpSource(ITextBuffer textBuffer)
+        public EditorSignatureHelpSource(ITextBuffer textBuffer, ITextStructureNavigatorSelectorService navigator)
         {
             m_textBuffer = textBuffer;
+            m_navigator = navigator;
         }
 
         public void AugmentSignatureHelpSession(ISignatureHelpSession session, IList<ISignature> signatures)
@@ -235,11 +239,23 @@ namespace EpochVS
             ITrackingSpan applicableToSpan = m_textBuffer.CurrentSnapshot.CreateTrackingSpan(
              new Span(position, 0), SpanTrackingMode.EdgeInclusive, 0);
 
+
+            SnapshotPoint point = session.TextView.Caret.Position.BufferPosition - 2;
+            TextExtent extent = m_navigator.GetTextStructureNavigator(m_textBuffer).GetExtentOfWord(point);
+            string hintfunction = extent.Span.GetText();
+
+
+
             var knownFunctions = new List<ProjectParser.FunctionDefinition>();
             ProjectParser.GetAvailableFunctionSignatures(knownFunctions);
 
-            foreach(var func in knownFunctions)
+            foreach (var func in knownFunctions)
+            {
+                if (!func.FunctionName.Equals(hintfunction))
+                    continue;
+
                 signatures.Add(CreateSignature(m_textBuffer, func, "Documentation goes here.", applicableToSpan));
+            }
         }
 
         private EpochFunctionSignature CreateSignature(ITextBuffer textBuffer, ProjectParser.FunctionDefinition methodSig, string methodDoc, ITrackingSpan span)

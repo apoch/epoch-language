@@ -35,9 +35,12 @@ namespace EpochVS
     [ContentType("EpochFile")]
     internal class EditorSignatureHelpSourceProvider : ISignatureHelpSourceProvider
     {
+        [Import]
+        internal ITextStructureNavigatorSelectorService NavigatorService { get; set; }
+
         public ISignatureHelpSource TryCreateSignatureHelpSource(ITextBuffer textBuffer)
         {
-            return new EditorSignatureHelpSource(textBuffer);
+            return new EditorSignatureHelpSource(textBuffer, NavigatorService);
         }
     }
 }
