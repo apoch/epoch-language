@@ -31,6 +31,7 @@ namespace Epoch.ProjectParser
 
             public List<FunctionParameter> Parameters = null;
             public string ReturnType;
+            public Dictionary<string, FunctionTag> Tags;
 
             public override string ToString()
             {
@@ -53,6 +54,12 @@ namespace Epoch.ProjectParser
             }
         };
 
+        public class FunctionTag
+        {
+            public string TagName;
+            public List<string> TagParams;
+        };
+
         private class StructureMember
         {
             public string Name;
@@ -72,12 +79,20 @@ namespace Epoch.ProjectParser
 
         private static CharacterClass LexerClassify(char c, CharacterClass currentclass)
         {
-            if ("abcdef0123456789".Contains(c))
+            if ("abcdef".Contains(c))
             {
                 if (currentclass == CharacterClass.Literal)
                     return CharacterClass.Literal;
 
                 return CharacterClass.Identifier;
+            }
+
+            if ("0123456789".Contains(c))
+            {
+                if (currentclass == CharacterClass.Identifier)
+                    return CharacterClass.Identifier;
+
+                return CharacterClass.Literal;
             }
 
             if (c == 'x')
@@ -600,15 +615,17 @@ namespace Epoch.ProjectParser
 
             tokens.RemoveRange(0, 2);
 
-            ParsedFunctionNames[filename].Add(functionname);
+            var sig = GetOrCreateFunctionSignature(filename, functionname);
 
             if (tokens[0] != "[")
             {
                 ParseFunctionParams(tokens, filename, functionname);
                 ParseFunctionReturn(tokens, filename, functionname);
             }
-            ParseFunctionTags(tokens);
+            ParseFunctionTags(tokens, sig);
 
+            if (sig.Tags == null || !sig.Tags.ContainsKey("constructor"))
+                ParsedFunctionNames[filename].Add(functionname);
 
             if (tokens.Count <= 0 || tokens[0] != "{")
                 return true;
@@ -710,12 +727,12 @@ namespace Epoch.ProjectParser
                     param.Name = nametoken;
                     sig.Parameters.Add(param);
                 }
+
+                if (tokens[0] != ",")
+                    return;
+
+                tokens.RemoveAt(0);
             }
-
-            if (tokens[0] != ",")
-                return;
-
-            tokens.RemoveAt(0);
         }
 
         private static void ParseFunctionReturn(List<string> tokens, string filename, string functionname)
@@ -747,6 +764,7 @@ namespace Epoch.ProjectParser
                 newfunc.FunctionName = functionname;
                 newfunc.Parameters = new List<FunctionParameter>();
                 newfunc.ReturnType = null;
+                newfunc.Tags = null;
 
                 defs.Add(functionname, newfunc);
                 return newfunc;
@@ -755,7 +773,7 @@ namespace Epoch.ProjectParser
             return defs[functionname];
         }
 
-        private static void ParseFunctionTags(List<string> tokens)
+        private static void ParseFunctionTags(List<string> tokens, FunctionDefinition func)
         {
             if (tokens.Count <= 0)
                 return;
@@ -766,15 +784,24 @@ namespace Epoch.ProjectParser
             tokens.RemoveAt(0);
 
             while (tokens[0] != "]")
-                ParseSingleFunctionTag(tokens);
+                ParseSingleFunctionTag(tokens, func);
 
             tokens.RemoveAt(0);
         }
 
-        private static void ParseSingleFunctionTag(List<string> tokens)
+        private static void ParseSingleFunctionTag(List<string> tokens, FunctionDefinition func)
         {
+            var tag = new FunctionTag();
+            tag.TagName = tokens[0];
+
+            if (func.Tags == null)
+                func.Tags = new Dictionary<string, FunctionTag>();
+
+            func.Tags.Add(tag.TagName, tag);
+
             if (tokens[1] == "(")
             {
+                // TODO - parse tag params
                 tokens.RemoveRange(0, 2);
 
                 while (tokens[0] != ")")
