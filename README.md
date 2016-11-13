@@ -1,3 +1,9 @@
+
+> Please, give us tools that are a pleasure to use, especially for our routine assignments, instead of providing something we have to fight with. Please, give us tools that encourage us to write better programs, by enhancing our pleasure when we do so.
+>
+>_-- Donald Knuth, Communications of the ACM, December 1974_
+
+
 # The Epoch Programming Language
 Welcome to the home of **Epoch**, an opinionated programming language designed to balance speed, control, and productivity.
 
