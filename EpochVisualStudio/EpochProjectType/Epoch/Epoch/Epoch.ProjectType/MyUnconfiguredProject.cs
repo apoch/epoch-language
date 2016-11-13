@@ -25,8 +25,8 @@ namespace EpochVS
 
     [Export]
     [AppliesTo(MyUnconfiguredProject.UniqueCapability)]
-    [ProjectTypeRegistration(VsPackage.ProjectTypeGuid, "Epoch", "#2", ProjectExtension, Language, resourcePackageGuid: VsPackage.PackageGuid, PossibleProjectExtensions = ProjectExtension, ProjectTemplatesDir = @"..\..\Templates\Projects\MyCustomProject")]
-    [ProvideProjectItem(VsPackage.ProjectTypeGuid, "My Items", @"..\..\Templates\ProjectItems\MyCustomProject", 500)]
+    [ProjectTypeRegistration(VsPackage.ProjectTypeGuid, "Epoch", "#2", ProjectExtension, Language, resourcePackageGuid: VsPackage.PackageGuid, PossibleProjectExtensions = ProjectExtension, ProjectTemplatesDir = @"ProjectTemplates\Epoch")]
+    [ProvideProjectItem(VsPackage.ProjectTypeGuid, "My Items", @"ItemTemplates\Epoch", 500)]
     internal class MyUnconfiguredProject
     {
         /// <summary>

@@ -1,7 +1,8 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup Label="Globals">
-      <CustomProjectExtensionsPath>$(LocalAppData)\CustomProjectSystems\Epoch\</CustomProjectExtensionsPath>
+      <CustomProjectExtensionsPath>$(MSBuildProgramFiles32)\MSBuild\Epoch\</CustomProjectExtensionsPath>
+    <OutputName>$(MSBuildProjectName).exe</OutputName>
   </PropertyGroup>
   
   <Import Project="$(CustomProjectExtensionsPath)CustomProject.Default.props" />

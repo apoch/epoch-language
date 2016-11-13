@@ -10,7 +10,7 @@
     </Rule.DataSource>
 
     <StringProperty Name="DebuggerSupportCommand" DisplayName="Command"
-                Default="$(OutputName)"
+                Default="$(MSBuildProjectDirectory)\bin\$(Configuration)\$(OutputName)"
                 Description="The debug command to execute.">
         <StringProperty.ValueEditors>
             <ValueEditor EditorType="DefaultFindFullPathPropertyEditor" DisplayName="&lt;regsvr32.exe&gt;">

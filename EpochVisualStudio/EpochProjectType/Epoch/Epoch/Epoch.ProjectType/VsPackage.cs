@@ -25,8 +25,9 @@ namespace EpochVS
     /// Creating project extensions or project types does not actually require a VSPackage.
     /// </remarks>
     [PackageRegistration(UseManagedResourcesOnly = true)]
-    [Description("A custom project type based on CPS")]
+    [Description("Epoch Language support for Visual Studio")]
     [Guid(VsPackage.PackageGuid)]
+    [ProvideAutoLoad(Microsoft.VisualStudio.VSConstants.UICONTEXT.ShellInitialized_string)]
     public sealed class VsPackage : Package
     {
         /// <summary>

@@ -53,3 +53,6 @@ EpochBGFXWrapper/EpochBGFXWrapper/Debug/**
 /EpochVisualStudio/EpochProjectType/Epoch/EpochCodeTemplate/bin/Release/ItemTemplates/Epoch/1033
 /EpochVisualStudio/EpochProjectType/Epoch/Epoch/Epoch.ProjectTemplate/bin/Release/ProjectTemplates/Epoch/1033
 /EpochVisualStudio/EpochProjectType/Epoch/EpochBuild/obj/Release
+/EpochVisualStudio/EpochProjectType/Epoch/Release
+/EpochVisualStudio/EpochProjectType/Epoch/EpochSetup/Release/EpochSetup.msi
+/EpochVisualStudio/EpochProjectType/Epoch/VSConfigUpdateUtility/Release

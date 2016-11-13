@@ -44,6 +44,8 @@
     <DefineConstants>TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <CopyVsixExtensionFiles>True</CopyVsixExtensionFiles>
+    <CopyVsixExtensionLocation>D:\Epoch\Temp\VSIX</CopyVsixExtensionLocation>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="EnvDTE, Version=8.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a" />
@@ -228,10 +230,16 @@
   final implementation, and provide the basic processing for handling rules in CPS.
   -->
   <ItemGroup>
-    <None Include="BuildSystem\DeployedBuildSystem\CustomProject.Default.props" />
+    <None Include="BuildSystem\DeployedBuildSystem\CustomProject.Default.props">
+      <SubType>Designer</SubType>
+    </None>
     <None Include="BuildSystem\DeployedBuildSystem\CustomProject.props" />
-    <None Include="BuildSystem\DeployedBuildSystem\CustomProject.targets" />
-    <None Include="BuildSystem\DeployedBuildSystem\CustomProjectCs.targets" />
+    <None Include="BuildSystem\DeployedBuildSystem\CustomProject.targets">
+      <SubType>Designer</SubType>
+    </None>
+    <None Include="BuildSystem\DeployedBuildSystem\CustomProjectCs.targets">
+      <SubType>Designer</SubType>
+    </None>
   </ItemGroup>
   <!--
   The XAML files provide buth compile-time implementations for CPS rules as well as
