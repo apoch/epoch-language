@@ -1,0 +1,94 @@
+﻿[$RootKey$]
+"InstallDir"="$RootFolder$"
+"ShellFolder"="$ShellFolder$"
+"ThisVersionDTECLSID"="{091c076c-3daa-4568-bc50-2086c8bf55bd}"
+"ThisVersionSolutionCLSID"="{7bd953e2-8c0b-4b68-87c3-cd6e5330080f}"
+"SplashScreenBitmap"="$RootFolder$\Splash.bmp"
+"AppName"="EpochVSShell"
+"AppIcon"="$RootFolder$\ApplicationIcon.ico"
+"ProductVersion"="1.0"
+"CommandLineLogo"="My Company EpochVSShell Version 1.0"
+"UserFilesSubFolderName"="EpochVSShell"
+"NewProjDlgSlnTreeNodeTitle"="EpochVSShell Solution"
+"NewProjDlgInstalledTemplatesHdr"="EpochVSShell installed templates"
+"HideMiscellaneousFilesByDefault"=dword:00000000
+"AddinsAllowed"=dword:00000001
+"DisableOutputWindow"=dword:00000000
+"AllowsDroppedFilesOnMainWindow"=dword:00000001
+"DefaultSearchPage"="https://www.bing.com"
+"DefaultHomePage"="http://www.My Company.com"
+"HideSolutionConcept"=dword:00000000
+"DefaultDebugEngine"="{00000000-0000-0000-0000-000000000000}"
+"UserOptsFileExt"="EpochVSShell_suo"
+"SolutionFileExt"="EpochVSShell_sln"
+"DefaultUserFilesFolderRoot"="EpochVSShell"
+"SolutionFileCreatorIdentifier"="EpochVSShell Solution File, Format Version 11.00"
+"DefaultProjectsLocation"="$MyDocuments$\EpochVSShell"
+"AppLocalizationPackage"="{844e7fd9-a8c8-453e-8e21-a56ade1d7865}"
+"DDEApplication"="EpochVSShell.1.0"
+// set ShowHierarchyRootInTitle to dword:00000000 to omit the project name from the main window title
+"ShowHierarchyRootInTitle"=dword:00000001
+
+// Auto recovery is disable by default. Uncomment the following to enable auto recovery feature.
+//"UseAutoRecovery"=dword:00000001
+
+// Startpage is disabled by default. Uncomment the following to enable start page feature.
+// Please note one need to also specify a Start Page "Uri" under "[$RootKey$\StartPage\Default]" and
+// comment out No_ShellPkg_StartPageCommand in the UI project's vsct file.
+//"DisableStartPage"=dword:00000000
+
+// Samples in the New Project Dialog are disabled by default. Uncomment the following to 
+// enable the samples feature in the New Project Dialog.
+//"EnableSamples"=dword:00000001
+
+// Support for Microsoft supplied extension galleries is disabled by default. Uncomment the following to 
+// enable Microsoft-supplied extension galleries in the Extension Manager dialog.
+//"EnableMicrosoftGalleries"=dword:00000001
+
+// Support for end-user customization of extension galleries is disabled by default.
+// Uncomment the following to enable end-user customization of extension galleries
+// that appear in the Extension Manager dialog.
+//"EnablePrivateGalleries"=dword:00000001
+
+// If you enable a Start Page, specify the Uri of the loose or compiled Start Page XAML file.
+//[$RootKey$\StartPage\Default]
+//"Uri"="$RootFolder$\StartPage.xaml"
+
+//If you have a directory containing assemblies that need to be loaded, but not added
+//  to the probing path of the .config file, then you can add those here. Simply uncomment
+//  then add your directories to this key, and the AppDomain manager will look for your
+//  assemblies under the paths given.
+//[$RootKey$\BindingPaths\{844e7fd9-a8c8-453e-8e21-a56ade1d7865}]
+//"$RootFolder$"=""
+//"C:\Directory1"=""
+//"C:\Directory2"=""
+
+[$RootKey$\Menus]
+"{844e7fd9-a8c8-453e-8e21-a56ade1d7865}"=", 1000, 1"
+
+[$RootKey$\Profile]
+"DefaultVsProfile"="$RootFolder$\Profiles\General.vssettings"
+
+[$RootKey$\Packages\{844e7fd9-a8c8-453e-8e21-a56ade1d7865}]
+"Inprocserver32"="$RootFolder$\EpochVSShell.exe"
+
+[$RootKey$\Packages\{844e7fd9-a8c8-453e-8e21-a56ade1d7865}\SatelliteDll]
+"DllName"="EpochVSShellui.dll"
+"Path"="$RootFolder$"
+
+// Create local VS template location
+[$RootKey$\VSTemplate\Item]
+"UserFolder"="$RootFolder$\ItemTemplates"
+"CacheFolder"="$RootFolder$\ItemTemplatesCache"
+
+[$RootKey$\VSTemplate\Project]
+"UserFolder"="$RootFolder$\ProjectTemplates"
+"CacheFolder"="$RootFolder$\ProjectTemplatesCache"
+
+// Disable the online template tab and the framework dropdown in the new project and item dialog.
+[$RootKey$\NewProjectDialog]
+"DisableOnlineTemplates"=dword:00000001
+"HideFrameworkSelection"=dword:00000001
+
+
+

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="us-ascii"?>
+<UserSettings>
+  <ApplicationIdentity version="11.0"/>
+  <Category name="Environment_Group" RegisteredName="Environment_Group">
+    <Category name="Environment_CommandBars" Category="{B9D9C123-B500-4202-B887-57C829CBD08F}" Package="{DA9FB551-C724-11d0-AE1F-00A0C90FFFC3}" RegisteredName="Environment_CommandBars" PackageName="Visual Studio Environment Package">
+      <CommandBars Version="05072811">
+        <DefaultCustomizations/>
+        <UserCustomizations/>
+      </CommandBars>
+      <PropertyValue name="ShowLargeButtons">false</PropertyValue>
+      <PropertyValue name="ShowScreenTipShortcutKeys">false</PropertyValue>
+      <PropertyValue name="ShowScreenTips">true</PropertyValue>
+    </Category>
+  </Category>
+</UserSettings>

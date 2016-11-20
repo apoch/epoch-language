@@ -1,0 +1,177 @@
+﻿This file contains information that should be merged into the registry
+from a setup program, or copied into a .reg file and merged into the
+registry for your own personal testing. If you are using a Visual Studio
+Setup Project, then simply copy the file starting below the the "CUT HERE"
+line until the end, and save it to a file with the extension .reg. Then open 
+the Registry editor for your setup program, right click on the Registry editor 
+window, select Import and then browse to the .reg file you have created. All 
+the correct settings have been made and you do not need to make any further 
+modifications. To test these settings on your computer, save the contents of 
+this file to a .reg file like you would for a Setup project, but also search 
+for the value $RootFolder$ and replace it with the directory path containing 
+your program (using double backslashes "\\" as the delimiter). 
+After saving these changes, double-click on the .reg file and merge the changes
+into the registry.
+
+--------------------------------  CUT HERE  --------------------------------
+Windows Registry Editor Version 5.00
+
+[HKEY_CLASSES_ROOT\CLSID\{091c076c-3daa-4568-bc50-2086c8bf55bd}]
+@="EpochVSShell DTE Object"
+
+[HKEY_CLASSES_ROOT\CLSID\{091c076c-3daa-4568-bc50-2086c8bf55bd}\LocalServer32]
+@="$RootFolder$\\EpochVSShell.exe"
+
+[HKEY_CLASSES_ROOT\CLSID\{091c076c-3daa-4568-bc50-2086c8bf55bd}\ProgID]
+@="EpochVSShell.DTE.1.0"
+
+[HKEY_CLASSES_ROOT\CLSID\{091c076c-3daa-4568-bc50-2086c8bf55bd}\VersionIndependentProgID]
+@="EpochVSShell.DTE"
+
+[HKEY_CLASSES_ROOT\CLSID\{091c076c-3daa-4568-bc50-2086c8bf55bd}\Programmable]
+@=""
+
+[HKEY_CLASSES_ROOT\CLSID\{091c076c-3daa-4568-bc50-2086c8bf55bd}\TypeLib]
+@="{80cc9f66-e7d8-4ddd-85b6-d9e6cd0e93e2}"
+
+[HKEY_CLASSES_ROOT\CLSID\{091c076c-3daa-4568-bc50-2086c8bf55bd}\DefaultIcon]
+@="$RootFolder$\\EpochVSShell.exe,1200"
+
+[HKEY_CLASSES_ROOT\CLSID\{091c076c-3daa-4568-bc50-2086c8bf55bd}\Version]
+@="1.0"
+
+[HKEY_CLASSES_ROOT\CLSID\{7bd953e2-8c0b-4b68-87c3-cd6e5330080f}]
+@="EpochVSShell Solution Object"
+
+[HKEY_CLASSES_ROOT\CLSID\{7bd953e2-8c0b-4b68-87c3-cd6e5330080f}\LocalServer32]
+@="$RootFolder$\\EpochVSShell.exe"
+
+[HKEY_CLASSES_ROOT\CLSID\{7bd953e2-8c0b-4b68-87c3-cd6e5330080f}\ProgID]
+@="EpochVSShell.Solution.1.0"
+
+[HKEY_CLASSES_ROOT\CLSID\{7bd953e2-8c0b-4b68-87c3-cd6e5330080f}\VersionIndependentProgID]
+@="EpochVSShell.Solution"
+
+[HKEY_CLASSES_ROOT\CLSID\{7bd953e2-8c0b-4b68-87c3-cd6e5330080f}\Programmable]
+@=""
+
+[HKEY_CLASSES_ROOT\CLSID\{7bd953e2-8c0b-4b68-87c3-cd6e5330080f}\TypeLib]
+@="{80cc9f66-e7d8-4ddd-85b6-d9e6cd0e93e2}"
+
+[HKEY_CLASSES_ROOT\CLSID\{7bd953e2-8c0b-4b68-87c3-cd6e5330080f}\DefaultIcon]
+@="$RootFolder$\\EpochVSShell.exe,1200"
+
+[HKEY_CLASSES_ROOT\CLSID\{7bd953e2-8c0b-4b68-87c3-cd6e5330080f}\Version]
+@="1.0"
+
+[HKEY_CLASSES_ROOT\EpochVSShell.DTE.1.0]
+@="EpochVSShell DTE Object"
+
+[HKEY_CLASSES_ROOT\EpochVSShell.DTE.1.0\CLSID]
+@="{091c076c-3daa-4568-bc50-2086c8bf55bd}"
+
+[HKEY_CLASSES_ROOT\EpochVSShell.Solution.1.0]
+@="EpochVSShell Solution Object"
+
+[HKEY_CLASSES_ROOT\EpochVSShell.Solution.1.0\CLSID]
+@="{7bd953e2-8c0b-4b68-87c3-cd6e5330080f}"
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\AppEnv\14.0\Apps\EpochVSShell_1.0]
+"StubExePath"="$RootFolder$\\EpochVSShell.exe"
+"AppName"="EpochVSShell"
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\EpochVSShell.exe]
+@="$RootFolder$\\EpochVSShell.exe"
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Internet Explorer\MAIN\FeatureControl\FEATURE_ENABLE_SCRIPT_PASTE_URLACTION_IF_PROMPT]
+"EpochVSShell.exe"=dword:00000000
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Internet Explorer\MAIN\FeatureControl\FEATURE_LOCALMACHINE_LOCKDOWN]
+"EpochVSShell.exe"=dword:00000001
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Internet Explorer\MAIN\FeatureControl\FEATURE_RESTRICT_ABOUT_PROTOCOL_IE7]
+"EpochVSShell.exe"=dword:00000001
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Internet Explorer\MAIN\FeatureControl\FEATURE_BLOCK_CROSS_PROTOCOL_FILE_NAVIGATION]
+"EpochVSShell.exe"=dword:00000001
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Internet Explorer\MAIN\FeatureControl\FEATURE_IFRAME_MAILTO_THRESHOLD]
+"EpochVSShell.exe"=dword:00000001
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Internet Explorer\MAIN\FeatureControl\FEATURE_SCRIPTURL_MITIGATION]
+"EpochVSShell.exe"=dword:00000001
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Internet Explorer\MAIN\FeatureControl\FEATURE_SHOW_APP_PROTOCOL_WARN_DIALOG]
+"EpochVSShell.exe"=dword:00000001
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Internet Explorer\MAIN\FeatureControl\FEATURE_VIEWLINKEDWEBOC_IS_UNSAFE]
+"EpochVSShell.exe"=dword:00000001
+
+; Uncomment the entries below if you want to register a source file extension to work with Dynamic Data Exchange (DDE)
+
+;[HKEY_CLASSES_ROOT\Applications\EpochVSShell.exe]
+
+;[HKEY_CLASSES_ROOT\Applications\EpochVSShell.exe\shell]
+
+;[HKEY_CLASSES_ROOT\Applications\EpochVSShell.exe\shell\Open]
+
+;[HKEY_CLASSES_ROOT\Applications\EpochVSShell.exe\shell\Open\ddeexec]
+;@="Open(\"%1\")"
+
+;[HKEY_CLASSES_ROOT\Applications\EpochVSShell.exe\shell\Open\ddeexec\Application]
+;@="EpochVSShell.1.0"
+
+;[HKEY_CLASSES_ROOT\Applications\EpochVSShell.exe\shell\Open\ddeexec\Topic]
+;@="system"
+
+;[HKEY_CLASSES_ROOT\Applications\EpochVSShell.exe\shell\edit]
+
+;[HKEY_CLASSES_ROOT\Applications\EpochVSShell.exe\shell\edit\Command]
+;@="\"$RootFolder$\\EpochVSShell.exe\" /dde"
+
+;[HKEY_CLASSES_ROOT\Applications\EpochVSShell.exe\shell\edit\ddeexec]
+;@="Open(\"%1\")"
+
+;[HKEY_CLASSES_ROOT\Applications\EpochVSShell.exe\shell\edit\ddeexec\Application]
+;@="EpochVSShell.1.0"
+
+;[HKEY_CLASSES_ROOT\Applications\EpochVSShell.exe\shell\edit\ddeexec\Topic]
+;@="system"
+
+;[HKEY_CLASSES_ROOT\.EpochVSShell_ext]
+;@="EpochVSShell.EpochVSShell_ext.1.0"
+
+;[HKEY_CLASSES_ROOT\EpochVSShell.EpochVSShell_ext.1.0]
+;"AlwaysShowExt"="1"
+;@="EpochVSShell Source file"
+
+;[HKEY_CLASSES_ROOT\EpochVSShell.EpochVSShell_ext.1.0\DefaultIcon]
+;@="$RootFolder$\\EpochVSShell.exe,1200"
+
+;[HKEY_CLASSES_ROOT\EpochVSShell.EpochVSShell_ext.1.0\shell]
+
+;[HKEY_CLASSES_ROOT\EpochVSShell.EpochVSShell_ext.1.0\shell\Open]
+
+;[HKEY_CLASSES_ROOT\EpochVSShell.EpochVSShell_ext.1.0\shell\Open\Command]
+;@="\"$RootFolder$\\EpochVSShell.exe\" /dde"
+
+;[HKEY_CLASSES_ROOT\EpochVSShell.EpochVSShell_ext.1.0\shell\Open\ddeexec]
+;@="Open(\"%1\")"
+
+;[HKEY_CLASSES_ROOT\EpochVSShell.EpochVSShell_ext.1.0\shell\Open\ddeexec\Application]
+;@="EpochVSShell.1.0"
+
+;[HKEY_CLASSES_ROOT\EpochVSShell.EpochVSShell_ext.1.0\shell\Open\ddeexec\Topic]
+;@="system"
+
+; Uncomment the entries below if you want to register your program for participation in Set Default Programs
+; for the file extension defined above.
+
+;[HKEY_LOCAL_MACHINE\SOFTWARE\RegisteredApplications]
+;"EpochVSShell.1.0"="SOFTWARE\\Microsoft\\EpochVSShell\\1.0\\Capabilities"
+
+;[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\EpochVSShell\1.0\Capabilities]
+;"ApplicationDescription"="Description of EpochVSShell"
+
+;[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\EpochVSShell\1.0\Capabilities\FileAssociations]
+;".EpochVSShell_ext"="EpochVSShell.EpochVSShell_ext.1.0"

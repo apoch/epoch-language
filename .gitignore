@@ -56,3 +56,5 @@ EpochBGFXWrapper/EpochBGFXWrapper/Debug/**
 /EpochVisualStudio/EpochProjectType/Epoch/Release
 /EpochVisualStudio/EpochProjectType/Epoch/EpochSetup/Release/EpochSetup.msi
 /EpochVisualStudio/EpochProjectType/Epoch/VSConfigUpdateUtility/Release
+/EpochVisualStudio/EpochVSShell/EpochVSShell/EpochVSShell.AboutBoxPackage/obj/Debug
+/EpochVisualStudio/EpochVSShell/EpochVSShell/ShellExtensionsVSIX/obj/Debug

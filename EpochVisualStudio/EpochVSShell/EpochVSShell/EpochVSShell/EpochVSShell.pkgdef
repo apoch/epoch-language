@@ -1,0 +1,21 @@
+﻿[$Initialization$]
+"ApplicationExtensionsFolder"  = "$RootFolder$\Extensions"
+"PkgDefSearchPath"             = "$ShellFolder$\Common7\IDE\ShellExtensions; \
+                                  $ShellFolder$\Common7\IDE\CommonExtensions\DataDesign; \
+                                  $ShellFolder$\Common7\IDE\CommonExtensions\Platform; \
+                                  $ShellFolder$\Common7\IDE\CommonExtensions\Microsoft\DesignTools; \
+                                  $ShellFolder$\Common7\IDE\CommonExtensions\Microsoft\Editor; \
+                                  $ShellFolder$\Common7\IDE\CommonExtensions\Microsoft\ErrorList; \
+                                  $ShellFolder$\Common7\IDE\CommonExtensions\Microsoft\TemplateProviders; \
+                                  $ShellFolder$\Common7\IDE\CommonExtensions\Microsoft\Diff; \
+                                  $ShellFolder$\Common7\IDE\CommonExtensions\Microsoft\ProjectWizards; \
+                                  $ShellFolder$\Common7\IDE\CommonExtensions\Microsoft\Language\CallHierarchy; \
+                                  $ShellFolder$\Common7\IDE\CommonExtensions\Microsoft\ObjectBrowser; \
+                                  $ShellFolder$\Common7\IDE\CommonExtensions\Microsoft\Web; \
+                                  $ShellFolder$\Common7\IDE\CommonExtensions\Microsoft\Windows Forms Designer Services; \
+                                  $ShellFolder$\Common7\IDE\CommonExtensions\Microsoft\Windows Forms Designer UI; \
+                                  $ShellFolder$\Common7\IDE\CommonExtensions\Microsoft\ReportingServices; \
+                                  $ShellFolder$\Common7\IDE\CommonExtensions\Microsoft\VSTelemetry; \
+                                  $ApplicationExtensionsFolder$"
+"RegistryRoot"                 = "Software\My Company\EpochVSShell\1.0"
+"ImageManifestSearchPath"      = "$ShellFolder$\Common7\IDE"
