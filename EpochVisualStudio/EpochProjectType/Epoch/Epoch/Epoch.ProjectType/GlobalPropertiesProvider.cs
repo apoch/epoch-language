@@ -26,11 +26,14 @@ namespace EpochVS
         internal GlobalPropertiesProvider(IThreadHandling threadHandling)
             : base(threadHandling.JoinableTaskContext)
         {
+            System.Windows.Forms.MessageBox.Show("GlobalPropertiesProvider constructed");
         }
 
         public override Task<IImmutableDictionary<string, string>> GetGlobalPropertiesAsync(CancellationToken cancellationToken)
         {
             string dllpath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+
+            System.Windows.Forms.MessageBox.Show(dllpath);
 
             IImmutableDictionary<string, string> properties = Empty.PropertiesMap
                 .SetItem("EpochVSExtensionPath", dllpath);

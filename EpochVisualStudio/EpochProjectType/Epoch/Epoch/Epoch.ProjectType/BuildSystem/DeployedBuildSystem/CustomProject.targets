@@ -77,5 +77,13 @@
   <Target Name="Build" Inputs="@(Compile)" Outputs="$(OutputName)">
     <BuildTask Filename="@(Compile)" Output="$(OutputName)" />
   </Target>
+
+  <Target Name="Clean">
+    <Delete Files="$(OutputName)" />
+  </Target>
+
+  <Target Name="Rebuild">
+    <CallTarget RunEachTargetSeparately="true" ContinueOnError="false" Targets="Clean;Build" />
+  </Target>
   
 </Project>
