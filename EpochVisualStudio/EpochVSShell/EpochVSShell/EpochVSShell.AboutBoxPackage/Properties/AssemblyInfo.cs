@@ -7,12 +7,12 @@ using System.Runtime.InteropServices;
 // General Information about an assembly is controlled through the following 
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("About Box Package")]
-[assembly: AssemblyDescription("")]
+[assembly: AssemblyTitle("Epoch Language Tools")]
+[assembly: AssemblyDescription("Powered by Visual Studio")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("My Company")]
-[assembly: AssemblyProduct("About Box Package")]
-[assembly: AssemblyCopyright("Copyright © My Company 2016")]
+[assembly: AssemblyCompany("Epoch Language Project")]
+[assembly: AssemblyProduct("Epoch Language Tools")]
+[assembly: AssemblyCopyright("Copyright © 2016 Mike Lewis")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 

@@ -7,23 +7,23 @@
 "AppName"="EpochVSShell"
 "AppIcon"="$RootFolder$\ApplicationIcon.ico"
 "ProductVersion"="1.0"
-"CommandLineLogo"="My Company EpochVSShell Version 1.0"
+"CommandLineLogo"="Epoch Language Tools Powered By Visual Studio"
 "UserFilesSubFolderName"="EpochVSShell"
-"NewProjDlgSlnTreeNodeTitle"="EpochVSShell Solution"
-"NewProjDlgInstalledTemplatesHdr"="EpochVSShell installed templates"
+"NewProjDlgSlnTreeNodeTitle"="Epoch Solution"
+"NewProjDlgInstalledTemplatesHdr"="Epoch installed templates"
 "HideMiscellaneousFilesByDefault"=dword:00000000
 "AddinsAllowed"=dword:00000001
 "DisableOutputWindow"=dword:00000000
 "AllowsDroppedFilesOnMainWindow"=dword:00000001
-"DefaultSearchPage"="https://www.bing.com"
-"DefaultHomePage"="http://www.My Company.com"
+"DefaultSearchPage"="https://www.google.com/"
+"DefaultHomePage"="https://github.com/apoch/epoch-language"
 "HideSolutionConcept"=dword:00000000
 "DefaultDebugEngine"="{00000000-0000-0000-0000-000000000000}"
-"UserOptsFileExt"="EpochVSShell_suo"
-"SolutionFileExt"="EpochVSShell_sln"
+"UserOptsFileExt"="epochopts"
+"SolutionFileExt"="esln"
 "DefaultUserFilesFolderRoot"="EpochVSShell"
-"SolutionFileCreatorIdentifier"="EpochVSShell Solution File, Format Version 11.00"
-"DefaultProjectsLocation"="$MyDocuments$\EpochVSShell"
+"SolutionFileCreatorIdentifier"="Epoch Solution File, Format Version 11.00"
+"DefaultProjectsLocation"="$MyDocuments$\Epoch"
 "AppLocalizationPackage"="{844e7fd9-a8c8-453e-8e21-a56ade1d7865}"
 "DDEApplication"="EpochVSShell.1.0"
 // set ShowHierarchyRootInTitle to dword:00000000 to omit the project name from the main window title
@@ -43,12 +43,12 @@
 
 // Support for Microsoft supplied extension galleries is disabled by default. Uncomment the following to 
 // enable Microsoft-supplied extension galleries in the Extension Manager dialog.
-//"EnableMicrosoftGalleries"=dword:00000001
+"EnableMicrosoftGalleries"=dword:00000001
 
 // Support for end-user customization of extension galleries is disabled by default.
 // Uncomment the following to enable end-user customization of extension galleries
 // that appear in the Extension Manager dialog.
-//"EnablePrivateGalleries"=dword:00000001
+"EnablePrivateGalleries"=dword:00000001
 
 // If you enable a Start Page, specify the Uri of the loose or compiled Start Page XAML file.
 //[$RootKey$\StartPage\Default]

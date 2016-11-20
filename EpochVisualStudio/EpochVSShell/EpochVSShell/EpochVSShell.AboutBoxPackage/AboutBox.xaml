@@ -8,7 +8,7 @@
         <XmlDataProvider x:Key="aboutProvider" XPath="ApplicationInfo" IsAsynchronous="False" IsInitialLoadEnabled="True">
             <x:XData>
                 <ApplicationInfo xmlns="">
-                    <Link x:Uid="moreinfo" Uri="http://www.My Company.com">More Info</Link>
+                    <Link x:Uid="moreinfo" Uri="https://github.com/apoch/epoch-language">More Info</Link>
                 </ApplicationInfo>
             </x:XData>
         </XmlDataProvider>

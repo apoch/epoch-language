@@ -17,5 +17,5 @@
                                   $ShellFolder$\Common7\IDE\CommonExtensions\Microsoft\ReportingServices; \
                                   $ShellFolder$\Common7\IDE\CommonExtensions\Microsoft\VSTelemetry; \
                                   $ApplicationExtensionsFolder$"
-"RegistryRoot"                 = "Software\Epoch\EpochVSShell\1.0"
+"RegistryRoot"                 = "Software\My Company\EpochVSShell\1.0"
 "ImageManifestSearchPath"      = "$ShellFolder$\Common7\IDE"
