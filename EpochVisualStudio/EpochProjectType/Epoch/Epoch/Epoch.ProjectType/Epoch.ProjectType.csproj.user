@@ -4,6 +4,8 @@
     <ProjectView>ProjectFiles</ProjectView>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|AnyCPU'">
-    <StartArguments>/rootsuffix Exp</StartArguments>
+    <StartArguments>
+    </StartArguments>
+    <StartAction>Program</StartAction>
   </PropertyGroup>
 </Project>

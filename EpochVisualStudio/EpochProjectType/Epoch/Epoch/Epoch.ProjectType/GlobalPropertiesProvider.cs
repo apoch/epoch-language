@@ -8,6 +8,7 @@ namespace EpochVS
 {
     using System.ComponentModel.Composition;
     using Microsoft.VisualStudio.ProjectSystem;
+    using Microsoft.VisualStudio.ProjectSystem.Build;
     using Microsoft.VisualStudio.ProjectSystem.Designers;
     using Microsoft.VisualStudio.ProjectSystem.Utilities;
     using Microsoft.VisualStudio.Shell;
@@ -19,12 +20,12 @@ namespace EpochVS
     using System.Reflection;
 
     [Export(typeof(IProjectGlobalPropertiesProvider))]
-    [AppliesTo("Epoch")]
-    internal class GlobalPropertiesProvider : StaticGlobalPropertiesProviderBase
+    [AppliesTo(MyUnconfiguredProject.UniqueCapability)]
+    public class GlobalPropertiesProvider : StaticGlobalPropertiesProviderBase
     {
         [ImportingConstructor]
-        internal GlobalPropertiesProvider(IThreadHandling threadHandling)
-            : base(threadHandling.JoinableTaskContext)
+        public GlobalPropertiesProvider(IThreadHandling handling)
+            : base(handling.JoinableTaskContext)
         {
             System.Windows.Forms.MessageBox.Show("GlobalPropertiesProvider constructed");
         }

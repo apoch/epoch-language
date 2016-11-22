@@ -20,6 +20,7 @@ namespace EpochVS
         public ProjectProperties(ConfiguredProject configuredProject)
             : base(configuredProject)
         {
+            System.Windows.Forms.MessageBox.Show("A");
         }
 
         /// <summary>
@@ -28,6 +29,7 @@ namespace EpochVS
         public ProjectProperties(ConfiguredProject configuredProject, string file, string itemType, string itemName)
             : base(configuredProject, file, itemType, itemName)
         {
+            System.Windows.Forms.MessageBox.Show("B");
         }
 
         /// <summary>
@@ -36,6 +38,7 @@ namespace EpochVS
         public ProjectProperties(ConfiguredProject configuredProject, IProjectPropertiesContext projectPropertiesContext)
             : base(configuredProject, projectPropertiesContext)
         {
+            System.Windows.Forms.MessageBox.Show("C");
         }
 
         /// <summary>
@@ -44,6 +47,7 @@ namespace EpochVS
         public ProjectProperties(ConfiguredProject configuredProject, UnconfiguredProject unconfiguredProject)
             : base(configuredProject, unconfiguredProject)
         {
+            System.Windows.Forms.MessageBox.Show("D");
         }
     }
 }

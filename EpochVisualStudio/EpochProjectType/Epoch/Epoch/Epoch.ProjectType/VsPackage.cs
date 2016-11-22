@@ -51,5 +51,15 @@ namespace EpochVS
         /// resource names can be calculated for embedded resources.
         /// </summary>
         internal const string DefaultNamespace = "EpochVS";
+
+        /// <summary>
+        /// Initialization of the package; this method is called right after the package is sited, so this is the place
+        /// where you can put all the initilaization code that rely on services provided by VisualStudio.
+        /// </summary>
+        protected override void Initialize()
+        {
+            System.Windows.Forms.MessageBox.Show("EpochVSInit");
+            base.Initialize();
+        }
     }
 }

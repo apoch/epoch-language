@@ -5,6 +5,7 @@ using Microsoft.VisualStudio.Utilities;
 
 namespace EpochVS
 {
+    /*
     [Export(typeof(EditorFormatDefinition))]
     [ClassificationType(ClassificationTypeNames = "EpochComment")]
     [Name("EpochComment")]
@@ -17,5 +18,5 @@ namespace EpochVS
             this.DisplayName = "Epoch Comment";
             this.ForegroundColor = Colors.Green;
         }
-    }
+    }*/
 }
