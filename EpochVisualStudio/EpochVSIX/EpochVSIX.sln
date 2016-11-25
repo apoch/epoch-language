@@ -1,0 +1,32 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 14
+VisualStudioVersion = 14.0.25420.1
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EpochVSIX.ProjectType", "EpochVSIX\EpochVSIX.ProjectType\EpochVSIX.ProjectType.csproj", "{CAFC053B-0CE3-4004-B9AC-C1FB094EEC19}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EpochVSIX.ProjectTemplate", "EpochVSIX\EpochVSIX.ProjectTemplate\EpochVSIX.ProjectTemplate.csproj", "{69D2F10D-7617-4854-A63C-A1CE3C397D60}"
+EndProject
+Project("{54435603-DBB4-11D2-8724-00A0C9A8B90C}") = "EpochSetup", "EpochVSIX\EpochSetup\EpochSetup.vdproj", "{4E01741E-5559-41F1-9FBE-B44C4B5FBDBE}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{CAFC053B-0CE3-4004-B9AC-C1FB094EEC19}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CAFC053B-0CE3-4004-B9AC-C1FB094EEC19}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CAFC053B-0CE3-4004-B9AC-C1FB094EEC19}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CAFC053B-0CE3-4004-B9AC-C1FB094EEC19}.Release|Any CPU.Build.0 = Release|Any CPU
+		{69D2F10D-7617-4854-A63C-A1CE3C397D60}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{69D2F10D-7617-4854-A63C-A1CE3C397D60}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{69D2F10D-7617-4854-A63C-A1CE3C397D60}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{69D2F10D-7617-4854-A63C-A1CE3C397D60}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4E01741E-5559-41F1-9FBE-B44C4B5FBDBE}.Debug|Any CPU.ActiveCfg = Debug
+		{4E01741E-5559-41F1-9FBE-B44C4B5FBDBE}.Release|Any CPU.ActiveCfg = Release
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

@@ -1,0 +1,10 @@
+﻿//
+// EpochVSIX1
+//
+
+
+entrypoint :
+{
+	print("Hello, world!")
+}
+
