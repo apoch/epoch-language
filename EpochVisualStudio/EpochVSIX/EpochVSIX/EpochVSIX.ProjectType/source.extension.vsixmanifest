@@ -3,7 +3,7 @@
   <Metadata>
     <Identity Id="EpochVSIX.ProjectType..f21a8d4e-c719-4a8d-b3fb-053979362d35" Version="1.0" Language="en-US" Publisher="EpochVSIX.ProjectType" />
     <DisplayName>Epoch VSIX</DisplayName>
-    <Description xml:space="preserve">A template for creating a Epoch project.</Description>
+    <Description xml:space="preserve">A template for creating an Epoch project.</Description>
   </Metadata>
   <Installation InstalledByMsi="true">
     <InstallationTarget Id="Microsoft.VisualStudio.Pro" Version="14.0" />
