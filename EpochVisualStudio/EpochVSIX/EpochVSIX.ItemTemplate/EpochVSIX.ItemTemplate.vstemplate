@@ -5,7 +5,7 @@
     <Description>A template for creating a new Epoch code file.</Description>
     <Icon>EpochVSIX.ItemTemplate.ico</Icon>
     <TemplateID>e3e21582-0bb0-4e49-96a8-5f81d925ea89</TemplateID>
-    <ProjectType>EpochVSIX</ProjectType>
+    <ProjectType>Epoch</ProjectType>
     <RequiredFrameworkVersion>2.0</RequiredFrameworkVersion>
     <NumberOfParentCategoriesToRollUp>1</NumberOfParentCategoriesToRollUp>
     <DefaultName>Module.epoch</DefaultName>

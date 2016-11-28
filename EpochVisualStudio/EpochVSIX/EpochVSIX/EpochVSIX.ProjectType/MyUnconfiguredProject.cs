@@ -45,7 +45,7 @@ namespace EpochVSIX
         /// </remarks>
         internal const string UniqueCapability = "EpochVSIX";
 
-        internal const string Language = "EpochVSIX";
+        internal const string Language = "Epoch";
 
         [ImportingConstructor]
         public MyUnconfiguredProject(UnconfiguredProject unconfiguredProject)

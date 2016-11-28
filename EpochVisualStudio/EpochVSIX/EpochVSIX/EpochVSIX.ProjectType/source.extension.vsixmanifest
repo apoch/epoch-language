@@ -1,12 +1,16 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <PackageManifest Version="2.0.0" xmlns="http://schemas.microsoft.com/developer/vsx-schema/2011" xmlns:d="http://schemas.microsoft.com/developer/vsx-schema-design/2011">
   <Metadata>
-    <Identity Id="EpochVSIX.ProjectType..7002a968-bbf1-4858-96c9-bf0b59bd51b5" Version="1.0" Language="en-US" Publisher="EpochVSIX.ProjectType" />
-    <DisplayName>Epoch VSIX</DisplayName>
-    <Description xml:space="preserve">A template for creating a Epoch project.</Description>
+    <Identity Id="EpochVSIX.ProjectType..7002a968-bbf1-4858-96c9-bf0b59bd51b5" Version="1.0" Language="en-US" Publisher="Mike Lewis" />
+    <DisplayName>Epoch Language Tools</DisplayName>
+    <Description xml:space="preserve">Tools for using the Epoch programming language with Visual Studio.</Description>
+    <MoreInfo>https://github.com/apoch/epoch-language</MoreInfo>
+    <License>License.txt</License>
   </Metadata>
   <Installation>
-    <InstallationTarget Id="Microsoft.VisualStudio.Pro" Version="14.0" />
+    <InstallationTarget Version="[14.0,15.0)" Id="Microsoft.VisualStudio.Community" />
+    <InstallationTarget Version="[14.0,15.0)" Id="Microsoft.VisualStudio.Pro" />
+    <InstallationTarget Version="[14.0,15.0)" Id="Microsoft.VisualStudio.Enterprise" />
   </Installation>
   <Dependencies>
     <!--<Dependency Id="Microsoft.Framework.NDP" DisplayName="Microsoft .NET Framework" d:Source="Manual" Version="4.6" />-->
