@@ -1,0 +1,9 @@
+﻿//
+// $safeprojectname$ Entry Point
+//
+
+entrypoint :
+{
+	print("Hello, world!")
+}
+
