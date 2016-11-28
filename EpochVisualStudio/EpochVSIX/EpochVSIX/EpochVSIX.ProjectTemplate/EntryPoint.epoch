@@ -1,5 +1,9 @@
 ﻿//
-// $safeprojectname$ Entry Point
+// $safeprojectname$
+//
+// Project Entry Point
+// By $username$ ($registeredorganization$)
+// $time$
 //
 
 entrypoint :
