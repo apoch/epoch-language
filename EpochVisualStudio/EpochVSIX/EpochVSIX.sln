@@ -4,6 +4,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 VisualStudioVersion = 14.0.25420.1
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EpochVSIX.ProjectType", "EpochVSIX\EpochVSIX.ProjectType\EpochVSIX.ProjectType.csproj", "{3126A16B-3ABF-4061-AA3A-795CBE044381}"
+	ProjectSection(ProjectDependencies) = postProject
+		{1BA2F1A2-6680-4FEE-ADC3-44DC7695EF61} = {1BA2F1A2-6680-4FEE-ADC3-44DC7695EF61}
+	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EpochVSIX.ProjectTemplate", "EpochVSIX\EpochVSIX.ProjectTemplate\EpochVSIX.ProjectTemplate.csproj", "{55F00A43-6DA9-4439-B1A4-F5085F75D69C}"
 EndProject

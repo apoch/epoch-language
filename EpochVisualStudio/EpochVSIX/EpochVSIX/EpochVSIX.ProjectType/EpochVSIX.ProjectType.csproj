@@ -134,6 +134,13 @@
     <Reference Include="WindowsBase" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\EpochVSIX.ItemTemplate\EpochVSIX.ItemTemplate.csproj">
+      <Project>{1BA2F1A2-6680-4FEE-ADC3-44DC7695EF61}</Project>
+      <Name>EpochVSIX.ItemTemplate</Name>
+      <VSIXSubPath>ItemTemplates</VSIXSubPath>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+      <IncludeOutputGroupsInVSIX>TemplateProjectOutputGroup%3b</IncludeOutputGroupsInVSIX>
+    </ProjectReference>
     <ProjectReference Include="..\EpochVSIX.ProjectTemplate\EpochVSIX.ProjectTemplate.csproj">
       <Project>{55f00a43-6da9-4439-b1a4-f5085f75d69c}</Project>
       <Name>EpochVSIX.ProjectTemplate</Name>

@@ -16,5 +16,6 @@
     <Asset Type="Microsoft.VisualStudio.MefComponent" d:Source="Project" d:ProjectName="EpochVSIX.ProjectType" Path="|EpochVSIX.ProjectType|"/>
     <Asset Type="Microsoft.VisualStudio.VsPackage" d:Source="Project" d:ProjectName="EpochVSIX.ProjectType" Path="|EpochVSIX.ProjectType;PkgdefProjectOutputGroup|" />
     <Asset Type="Microsoft.VisualStudio.ProjectTemplate" d:Source="Project" d:ProjectName="EpochVSIX.ProjectTemplate" d:TargetPath="|EpochVSIX.ProjectTemplate;TemplateProjectOutputGroup|" Path="ProjectTemplates" d:VsixSubPath="ProjectTemplates" />
+    <Asset Type="Microsoft.VisualStudio.ItemTemplate" d:Source="Project" d:ProjectName="EpochVSIX.ItemTemplate" d:TargetPath="|EpochVSIX.ItemTemplate;TemplateProjectOutputGroup|" Path="ItemTemplates" d:VsixSubPath="ItemTemplates" />
   </Assets>
 </PackageManifest>
