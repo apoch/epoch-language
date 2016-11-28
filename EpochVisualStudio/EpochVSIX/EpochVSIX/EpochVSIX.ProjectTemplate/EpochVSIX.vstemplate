@@ -4,7 +4,7 @@
     <Name>Epoch Project</Name>
     <Description>A template for creating an Epoch project.</Description>
     <Icon>EpochVSIX.ico</Icon>
-    <ProjectType>Epoch</ProjectType>
+    <ProjectType>EpochVSIX</ProjectType>
     <RequiredFrameworkVersion>4.5.2</RequiredFrameworkVersion>
     <SortOrder>1</SortOrder>
     <TemplateID>{26d84451-58bc-44fa-bace-947777e911dd}</TemplateID>
