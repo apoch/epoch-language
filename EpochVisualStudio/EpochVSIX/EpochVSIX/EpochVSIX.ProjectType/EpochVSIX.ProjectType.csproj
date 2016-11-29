@@ -134,6 +134,12 @@
     <Reference Include="WindowsBase" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\EpochBuild\EpochBuild.csproj">
+      <Project>{90D4994A-F222-4751-BB58-794C17DE40AB}</Project>
+      <Name>EpochBuild</Name>
+      <IncludeOutputGroupsInVSIX>BuiltProjectOutputGroup%3bBuiltProjectOutputGroupDependencies%3bGetCopyToOutputDirectoryItems%3bSatelliteDllsProjectOutputGroup%3b</IncludeOutputGroupsInVSIX>
+      <IncludeOutputGroupsInVSIXLocalOnly>DebugSymbolsProjectOutputGroup%3b</IncludeOutputGroupsInVSIXLocalOnly>
+    </ProjectReference>
     <ProjectReference Include="..\..\EpochVSIX.ItemTemplate\EpochVSIX.ItemTemplate.csproj">
       <Project>{1BA2F1A2-6680-4FEE-ADC3-44DC7695EF61}</Project>
       <Name>EpochVSIX.ItemTemplate</Name>
@@ -162,9 +168,11 @@
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="DebuggerLaunchProvider.cs" />
     <Compile Include="MyConfiguredProject.cs" />
     <Compile Include="MyUnconfiguredProject.cs" />
     <Compile Include="ProjectProperties.cs" />
+    <Compile Include="PropertyProvider.cs" />
     <Compile Include="VsPackage.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
@@ -179,9 +187,13 @@
   final implementation, and provide the basic processing for handling rules in CPS.
   -->
   <ItemGroup>
-    <None Include="BuildSystem\DeployedBuildSystem\CustomProject.Default.props" />
+    <None Include="BuildSystem\DeployedBuildSystem\CustomProject.Default.props">
+      <SubType>Designer</SubType>
+    </None>
     <None Include="BuildSystem\DeployedBuildSystem\CustomProject.props" />
-    <None Include="BuildSystem\DeployedBuildSystem\CustomProject.targets" />
+    <None Include="BuildSystem\DeployedBuildSystem\CustomProject.targets">
+      <SubType>Designer</SubType>
+    </None>
     <None Include="BuildSystem\DeployedBuildSystem\CustomProjectCs.targets" />
   </ItemGroup>
   <!--
@@ -253,10 +265,18 @@
     </XamlPropertyRule>
   </ItemGroup>
   <ItemGroup>
+    <XamlPropertyRule Include="BuildSystem\Rules\Debugger.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </XamlPropertyRule>
     <Page Include="BuildSystem\Rules\general.browseobject.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>
+    <XamlPropertyRule Include="BuildSystem\Rules\Epoch.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </XamlPropertyRule>
   </ItemGroup>
   <ItemGroup>
     <Analyzer Include="..\..\packages\Microsoft.VisualStudio.ProjectSystem.Analyzers.14.1.127-pre\analyzers\Microsoft.VisualStudio.ProjectSystem.Analyzers.dll" />

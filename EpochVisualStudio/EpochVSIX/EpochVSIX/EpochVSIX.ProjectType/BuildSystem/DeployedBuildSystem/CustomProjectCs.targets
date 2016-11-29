@@ -5,14 +5,10 @@
   <Import Project="$(MSBuildThisFileDirectory)\CustomProject.targets" />
 
   <ItemGroup>
-    <ProjectCapability Include="ReferencesFolder"/>
-
     <PropertyPageSchema Include="$(MSBuildThisFileDirectory)Rules\csProjectItemsSchema.xaml;"/>
-    <PropertyPageSchema Include="$(MSBuildThisFileDirectory)Rules\csharp.xaml;">
-      <Context>File</Context>
-    </PropertyPageSchema>
-    <PropertyPageSchema Include="$(MSBuildThisFileDirectory)Rules\csharp.browseobject.xaml;">
-      <Context>BrowseObject</Context>
+
+    <PropertyPageSchema Include="$(MSBuildThisFileDirectory)Rules\Epoch.xaml;">
+      <Context>File;BrowseObject</Context>
     </PropertyPageSchema>
   </ItemGroup>
 </Project>

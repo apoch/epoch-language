@@ -4,7 +4,7 @@
     <ProjectSystemBase>$(MSBuildThisFileDirectory)</ProjectSystemBase>
 
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
-    <Platform Condition=" '$(Platform)' == '' ">x86</Platform>
+    <Platform Condition=" '$(Platform)' == '' ">x64</Platform>
 
     <TargetPlatformVersion>7.0</TargetPlatformVersion>
     <TargetFrameworkVersion>v4.6</TargetFrameworkVersion>
@@ -14,7 +14,7 @@
     <OutputType>exe</OutputType>
     <OutputPath>bin\$(Configuration)\</OutputPath>
     <DebugSymbols>true</DebugSymbols>
-    <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
+    <DebuggerFlavor>DebuggerSupport</DebuggerFlavor>
 
     <WinRTReferenceTabs>TAB_SDK_ALL</WinRTReferenceTabs>
     <AssemblyReferenceTabs>TAB_ASSEMBLY_ALL</AssemblyReferenceTabs>

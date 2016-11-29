@@ -5,12 +5,15 @@ VisualStudioVersion = 14.0.25420.1
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EpochVSIX.ProjectType", "EpochVSIX\EpochVSIX.ProjectType\EpochVSIX.ProjectType.csproj", "{3126A16B-3ABF-4061-AA3A-795CBE044381}"
 	ProjectSection(ProjectDependencies) = postProject
+		{90D4994A-F222-4751-BB58-794C17DE40AB} = {90D4994A-F222-4751-BB58-794C17DE40AB}
 		{1BA2F1A2-6680-4FEE-ADC3-44DC7695EF61} = {1BA2F1A2-6680-4FEE-ADC3-44DC7695EF61}
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EpochVSIX.ProjectTemplate", "EpochVSIX\EpochVSIX.ProjectTemplate\EpochVSIX.ProjectTemplate.csproj", "{55F00A43-6DA9-4439-B1A4-F5085F75D69C}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EpochVSIX.ItemTemplate", "EpochVSIX.ItemTemplate\EpochVSIX.ItemTemplate.csproj", "{1BA2F1A2-6680-4FEE-ADC3-44DC7695EF61}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EpochBuild", "EpochBuild\EpochBuild.csproj", "{90D4994A-F222-4751-BB58-794C17DE40AB}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -30,6 +33,10 @@ Global
 		{1BA2F1A2-6680-4FEE-ADC3-44DC7695EF61}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{1BA2F1A2-6680-4FEE-ADC3-44DC7695EF61}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{1BA2F1A2-6680-4FEE-ADC3-44DC7695EF61}.Release|Any CPU.Build.0 = Release|Any CPU
+		{90D4994A-F222-4751-BB58-794C17DE40AB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{90D4994A-F222-4751-BB58-794C17DE40AB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{90D4994A-F222-4751-BB58-794C17DE40AB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{90D4994A-F222-4751-BB58-794C17DE40AB}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
