@@ -10,15 +10,15 @@ using Microsoft.VisualStudio.Threading;
 using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio;
 
-namespace Epoch.ProjectParser
+namespace EpochVSIX
 {
     public class ProjectParser
     {
-        private static Dictionary<string, List<string>> ParsedFunctionNames = null;
-        private static Dictionary<string, List<string>> ParsedStructures = null;
+        private Dictionary<string, List<string>> ParsedFunctionNames = null;
+        private Dictionary<string, List<string>> ParsedStructures = null;
 
-        private static Dictionary<string, Dictionary<string, FunctionDefinition>> FunctionDefinitions = null;
-        private static Dictionary<string, StructureDefinition> StructureDefinitions = null;
+        private Dictionary<string, Dictionary<string, FunctionDefinition>> FunctionDefinitions = null;
+        private Dictionary<string, StructureDefinition> StructureDefinitions = null;
 
         private class StructureDefinition
         {
@@ -77,7 +77,7 @@ namespace Epoch.ProjectParser
             StringLiteral,
         };
 
-        private static CharacterClass LexerClassify(char c, CharacterClass currentclass)
+        private CharacterClass LexerClassify(char c, CharacterClass currentclass)
         {
             if ("abcdefx".Contains(c))
             {
@@ -118,7 +118,7 @@ namespace Epoch.ProjectParser
             return CharacterClass.Identifier;
         }
 
-        private static bool IsValidPunctuation(string token)
+        private bool IsValidPunctuation(string token)
         {
             if (token == "==")
                 return true;
@@ -151,7 +151,7 @@ namespace Epoch.ProjectParser
         }
 
 
-        private static List<string> Lex(string code)
+        private List<string> Lex(string code)
         {
             List<string> tokens = new List<string>();
 
@@ -298,7 +298,7 @@ namespace Epoch.ProjectParser
             return tokens;
         }
 
-        private static bool ParseTemplateParameters(List<string> tokens)
+        private bool ParseTemplateParameters(List<string> tokens)
         {
             bool hasparams = true;
 
@@ -317,7 +317,7 @@ namespace Epoch.ProjectParser
             return true;
         }
 
-        private static int ScanTemplateArgs(List<string> tokens, int initialconsume)
+        private int ScanTemplateArgs(List<string> tokens, int initialconsume)
         {
             int consumed = initialconsume;
             bool hasargs = true;
@@ -336,7 +336,7 @@ namespace Epoch.ProjectParser
             return consumed;
         }
 
-        private static int ParseTemplateArgs(List<string> tokens, int initialconsume)
+        private int ParseTemplateArgs(List<string> tokens, int initialconsume)
         {
             int consumed = initialconsume;
 
@@ -357,7 +357,7 @@ namespace Epoch.ProjectParser
             return consumed;
         }
 
-        private static void ParseSumTypeBases(List<string> tokens)
+        private void ParseSumTypeBases(List<string> tokens)
         {
             bool hasbases = true;
             do
@@ -376,7 +376,7 @@ namespace Epoch.ProjectParser
             } while (hasbases);
         }
 
-        private static bool ParseSumType(string filename, List<string> tokens)
+        private bool ParseSumType(string filename, List<string> tokens)
         {
             if (tokens[0] != "type")
                 return false;
@@ -410,7 +410,7 @@ namespace Epoch.ProjectParser
             return true;
         }
 
-        private static bool ParseStrongAlias(string filename, List<string> tokens)
+        private bool ParseStrongAlias(string filename, List<string> tokens)
         {
             if (tokens[0] != "type")
                 return false;
@@ -428,7 +428,7 @@ namespace Epoch.ProjectParser
             return true;
         }
 
-        private static bool ParseWeakAlias(string filename, List<string> tokens)
+        private bool ParseWeakAlias(string filename, List<string> tokens)
         {
             if (tokens[0] != "alias")
                 return false;
@@ -445,7 +445,7 @@ namespace Epoch.ProjectParser
             return true;
         }
 
-        private static bool ParseStructure(string filename, List<string> tokens)
+        private bool ParseStructure(string filename, List<string> tokens)
         {
             bool templated = false;
 
@@ -576,19 +576,19 @@ namespace Epoch.ProjectParser
             return true;
         }
 
-        private static bool ParseGlobalBlock(string filename, List<string> tokens)
+        private bool ParseGlobalBlock(string filename, List<string> tokens)
         {
             // TODO
             return false;
         }
 
-        private static bool ParseTask(string filename, List<string> tokens)
+        private bool ParseTask(string filename, List<string> tokens)
         {
             // TODO
             return false;
         }
 
-        private static bool ParseFunction(string filename, List<string> tokens)
+        private bool ParseFunction(string filename, List<string> tokens)
         {
             if (tokens.Count < 2)
                 return false;
@@ -629,7 +629,7 @@ namespace Epoch.ProjectParser
             return true;
         }
 
-        private static void ParseFunctionParams(List<string> tokens, string filename, string functionname)
+        private void ParseFunctionParams(List<string> tokens, string filename, string functionname)
         {
             if (tokens.Count == 0)
                 return;
@@ -727,7 +727,7 @@ namespace Epoch.ProjectParser
             }
         }
 
-        private static void ParseFunctionReturn(List<string> tokens, string filename, string functionname)
+        private void ParseFunctionReturn(List<string> tokens, string filename, string functionname)
         {
             if (tokens[0] != "->")
                 return;
@@ -741,7 +741,7 @@ namespace Epoch.ProjectParser
             }
         }
 
-        private static FunctionDefinition GetOrCreateFunctionSignature(string filename, string functionname)
+        private FunctionDefinition GetOrCreateFunctionSignature(string filename, string functionname)
         {
             if (FunctionDefinitions == null)
                 FunctionDefinitions = new Dictionary<string, Dictionary<string, FunctionDefinition>>();
@@ -765,7 +765,7 @@ namespace Epoch.ProjectParser
             return defs[functionname];
         }
 
-        private static void ParseFunctionTags(List<string> tokens, FunctionDefinition func)
+        private void ParseFunctionTags(List<string> tokens, FunctionDefinition func)
         {
             if (tokens.Count <= 0)
                 return;
@@ -781,7 +781,7 @@ namespace Epoch.ProjectParser
             tokens.RemoveAt(0);
         }
 
-        private static void ParseSingleFunctionTag(List<string> tokens, FunctionDefinition func)
+        private void ParseSingleFunctionTag(List<string> tokens, FunctionDefinition func)
         {
             var tag = new FunctionTag();
             tag.TagName = tokens[0];
@@ -814,7 +814,7 @@ namespace Epoch.ProjectParser
         }
 
 
-        private static bool HandleLiteralFunctionParam(string token)
+        private bool HandleLiteralFunctionParam(string token)
         {
             if (token == "0")
                 return true;
@@ -838,7 +838,7 @@ namespace Epoch.ProjectParser
             return false;
         }
 
-        private static bool ParseInitialization(List<string> tokens, string filename, bool isfuncreturn, string functionname)
+        private bool ParseInitialization(List<string> tokens, string filename, bool isfuncreturn, string functionname)
         {
             if (tokens.Count < 2)
                 return false;
@@ -875,7 +875,7 @@ namespace Epoch.ProjectParser
             return true;
         }
 
-        private static bool ParseString(string filename, string code)
+        private bool ParseString(string filename, string code)
         {
             try
             {
@@ -918,7 +918,7 @@ namespace Epoch.ProjectParser
         }
 
 
-        private static bool ParseCodeBlock(List<string> tokens)
+        private bool ParseCodeBlock(List<string> tokens)
         {
             string token = tokens[0];
             while (token != "}")
@@ -954,7 +954,7 @@ namespace Epoch.ProjectParser
         }
 
 
-        private static bool ParseExpression(List<string> tokens)
+        private bool ParseExpression(List<string> tokens)
         {
             bool matchedstatement = false;
 
@@ -976,7 +976,7 @@ namespace Epoch.ProjectParser
             return true;
         }
 
-        private static bool ParseExpressionTerm(List<string> tokens, bool startsexpr, out bool matchedstatement)
+        private bool ParseExpressionTerm(List<string> tokens, bool startsexpr, out bool matchedstatement)
         {
             string term = tokens[0];
             matchedstatement = false;
@@ -1025,7 +1025,7 @@ namespace Epoch.ProjectParser
             return true;
         }
 
-        private static bool ParseStatement(List<string> tokens, bool substatement)
+        private bool ParseStatement(List<string> tokens, bool substatement)
         {
             int lookahead = 0;
 
@@ -1054,7 +1054,7 @@ namespace Epoch.ProjectParser
             return true;
         }
 
-        private static bool ParseExpressionOperator(List<string> tokens)
+        private bool ParseExpressionOperator(List<string> tokens)
         {
             if (tokens.Count <= 0)
                 return false;
@@ -1107,7 +1107,7 @@ namespace Epoch.ProjectParser
             return false;
         }
 
-        private static bool ParsePreopStatement(List<string> tokens, bool substatement)
+        private bool ParsePreopStatement(List<string> tokens, bool substatement)
         {
             bool recognized = false;
             string potential = tokens[0];
@@ -1135,7 +1135,7 @@ namespace Epoch.ProjectParser
         }
 
 
-        private static bool ParseEntity(List<string> tokens)
+        private bool ParseEntity(List<string> tokens)
         {
             string entityname = tokens[0];
             if (entityname == "if")
@@ -1182,7 +1182,7 @@ namespace Epoch.ProjectParser
             return false;
         }
 
-        private static bool ParsePostopStatement(List<string> tokens)
+        private bool ParsePostopStatement(List<string> tokens)
         {
             bool recognized = false;
 
@@ -1208,7 +1208,7 @@ namespace Epoch.ProjectParser
         }
 
 
-        private static bool ParseAssignment(List<string> tokens)
+        private bool ParseAssignment(List<string> tokens)
         {
             int lhslength = 1;
             while (tokens[lhslength] == ".")
@@ -1250,7 +1250,7 @@ namespace Epoch.ProjectParser
             return ParseExpression(tokens);
         }
 
-        private static bool ParseEntityCode(List<string> tokens)
+        private bool ParseEntityCode(List<string> tokens)
         {
             if (tokens[0] != "{")
                 return false;
@@ -1260,7 +1260,7 @@ namespace Epoch.ProjectParser
         }
 
 
-        private async static System.Threading.Tasks.Task ParseFilesFromCurrentSolution(EnvDTE.DTE dte)
+        private async System.Threading.Tasks.Task ParseFilesFromCurrentSolution(EnvDTE.DTE dte)
         {
             await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
 
@@ -1275,12 +1275,16 @@ namespace Epoch.ProjectParser
                     {
                         ParseFileOnDisk(item.FileNames[0]);
                     }
+                    else
+                    {
+                        // TODO - handle nested folders
+                    }
                 }
             }
         }
 
 
-        private static void ParseFileOnDisk(string filename)
+        private void ParseFileOnDisk(string filename)
         {
             try
             {
@@ -1356,7 +1360,7 @@ namespace Epoch.ProjectParser
             }
         }
 
-        private async static System.Threading.Tasks.Task ParseFileFromTextBuffer(ITextBuffer textBuffer)
+        private async System.Threading.Tasks.Task ParseFileFromTextBuffer(ITextBuffer textBuffer)
         {
             IVsTextBuffer bufferAdapter;
             textBuffer.Properties.TryGetProperty(typeof(IVsTextBuffer), out bufferAdapter);
@@ -1382,19 +1386,19 @@ namespace Epoch.ProjectParser
         }
 
 
-        public static void ParseTextBuffer(ITextBuffer textBuffer)
+        public void ParseTextBuffer(ITextBuffer textBuffer)
         {
             // TODO - cache this better?
 
             var task = ParseFileFromTextBuffer(textBuffer);
         }
 
-        public static void ParseProject(EnvDTE.DTE dte)
+        public void ParseProject(EnvDTE.DTE dte)
         {
             var task = ParseFilesFromCurrentSolution(dte);
         }
 
-        public static void GetAvailableFunctionNames(List<string> functionNames)
+        public void GetAvailableFunctionNames(List<string> functionNames)
         {
             if (ParsedFunctionNames == null)
                 return;
@@ -1403,7 +1407,7 @@ namespace Epoch.ProjectParser
                 functionNames.AddRange(kvp.Value);
         }
 
-        public static void GetAvailableStructureNames(List<string> structureNames)
+        public void GetAvailableStructureNames(List<string> structureNames)
         {
             if (ParsedStructures == null)
                 return;
@@ -1412,7 +1416,7 @@ namespace Epoch.ProjectParser
                 structureNames.AddRange(kvp.Value);
         }
 
-        public static void GetAvailableFunctionSignatures(List<FunctionDefinition> functions)
+        public void GetAvailableFunctionSignatures(List<FunctionDefinition> functions)
         {
             if (FunctionDefinitions == null)
                 return;
