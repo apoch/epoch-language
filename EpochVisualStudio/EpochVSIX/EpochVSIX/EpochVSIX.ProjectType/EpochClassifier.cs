@@ -27,7 +27,7 @@ namespace EpochVSIX
 
         internal EpochClassifier(IClassificationTypeRegistryService registry)
         {
-            Parser = new ProjectParser();
+            Parser = ProjectParser.GetInstance();
             classificationRegistry = registry;
 
             TypeKeywords = new HashSet<string>()

@@ -14,6 +14,18 @@ namespace EpochVSIX
 {
     public class ProjectParser
     {
+        private static ProjectParser Instance = null;
+
+        internal static ProjectParser GetInstance()
+        {
+            if (Instance == null)
+                Instance = new ProjectParser();
+
+            return Instance;
+        }
+
+
+
         private Dictionary<string, List<string>> ParsedFunctionNames = null;
         private Dictionary<string, List<string>> ParsedStructures = null;
 
