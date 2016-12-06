@@ -197,6 +197,8 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="DebuggerLaunchProvider.cs" />
+    <Compile Include="EpochBraceMatching.cs" />
+    <Compile Include="EpochBraceMatchingTaggerProvider.cs" />
     <Compile Include="EpochClassifier.cs" />
     <Compile Include="EpochClassifierClassificationDefinition.cs" />
     <Compile Include="EpochClassifierFormat.cs" />
@@ -204,6 +206,9 @@
     <Compile Include="EpochCompletionCommandHandler.cs" />
     <Compile Include="EpochCompletionSource.cs" />
     <Compile Include="EpochCompletionSourceProvider.cs" />
+    <Compile Include="EpochOutliningTagger.cs" />
+    <Compile Include="EpochOutliningTaggerProvider.cs" />
+    <Compile Include="EpochSignatureHelpSource.cs" />
     <Compile Include="MyConfiguredProject.cs" />
     <Compile Include="MyUnconfiguredProject.cs" />
     <Compile Include="ProjectParser.cs" />

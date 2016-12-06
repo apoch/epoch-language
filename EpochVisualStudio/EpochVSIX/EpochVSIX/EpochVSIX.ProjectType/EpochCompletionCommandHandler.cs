@@ -10,6 +10,7 @@ using Microsoft.VisualStudio.Text;
 using Microsoft.VisualStudio.Text.Editor;
 using Microsoft.VisualStudio.TextManager.Interop;
 using Microsoft.VisualStudio.Utilities;
+using Microsoft.VisualStudio.Text.Operations;
 
 namespace EpochVSIX
 {
@@ -25,6 +26,10 @@ namespace EpochVSIX
         internal ICompletionBroker CompletionBroker { get; set; }
         [Import]
         internal SVsServiceProvider ServiceProvider { get; set; }
+        [Import]
+        internal ITextStructureNavigatorSelectorService NavigatorService { get; set; }
+        [Import]
+        internal ISignatureHelpBroker SignatureHelpBroker { get; set; }
 
         public void VsTextViewCreated(IVsTextView textViewAdapter)
         {
@@ -32,7 +37,11 @@ namespace EpochVSIX
             if (textView == null)
                 return;
 
-            Func<EpochCompletionCommandHandler> createCommandHandler = delegate () { return new EpochCompletionCommandHandler(textViewAdapter, textView, this); };
+            Func<EpochCompletionCommandHandler> createCommandHandler = delegate ()
+            {
+                return new EpochCompletionCommandHandler(textViewAdapter, textView, this, SignatureHelpBroker, NavigatorService.GetTextStructureNavigator(textView.TextBuffer));
+            };
+
             textView.Properties.GetOrCreateSingletonProperty(createCommandHandler);
 
             ProjectParser.GetInstance().ParseProject(ServiceProvider.GetService(typeof(EnvDTE.DTE)) as EnvDTE.DTE);
@@ -45,11 +54,16 @@ namespace EpochVSIX
         private ITextView m_textView;
         private EpochCompletionHandlerProvider m_provider;
         private ICompletionSession m_session;
+        private ITextStructureNavigator m_navigator;
+        private ISignatureHelpBroker m_broker;
+        private ISignatureHelpSession m_signatureHelpSession;
 
-        internal EpochCompletionCommandHandler(IVsTextView textViewAdapter, ITextView textView, EpochCompletionHandlerProvider provider)
+        internal EpochCompletionCommandHandler(IVsTextView textViewAdapter, ITextView textView, EpochCompletionHandlerProvider provider, ISignatureHelpBroker broker, ITextStructureNavigator nav)
         {
             this.m_textView = textView;
             this.m_provider = provider;
+            this.m_navigator = nav;
+            this.m_broker = broker;
 
             //add the command to the command chain
             textViewAdapter.AddCommandFilter(this, out m_nextCommandHandler);
@@ -73,6 +87,22 @@ namespace EpochVSIX
             if (pguidCmdGroup == VSConstants.VSStd2K && nCmdID == (uint)VSConstants.VSStd2KCmdID.TYPECHAR)
             {
                 typedChar = (char)(ushort)Marshal.GetObjectForNativeVariant(pvaIn);
+            }
+
+            if (typedChar.Equals('('))
+            {
+                //move the point back so it's in the preceding word
+                SnapshotPoint point = m_textView.Caret.Position.BufferPosition - 1;
+                TextExtent extent = m_navigator.GetExtentOfWord(point);
+                string word = extent.Span.GetText();
+                if (word.Equals("add"))
+                    m_signatureHelpSession = m_broker.TriggerSignatureHelp(m_textView);
+
+            }
+            else if (typedChar.Equals(')') && m_session != null)
+            {
+                m_signatureHelpSession.Dismiss();
+                m_signatureHelpSession = null;
             }
 
             //check for a commit character
