@@ -6,6 +6,7 @@ using System.Text;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Utilities;
 using System.Diagnostics;
+using Microsoft.Win32;
 
 namespace EpochVS
 {
@@ -30,24 +31,54 @@ namespace EpochVS
 
         public override bool Execute()
         {
-            var process = new Process
+            string compilerPath = "";
+
+            var regvalue = Registry.GetValue("HKEY_LOCAL_MACHINE\\Software\\Epoch\\CurrentInstall", "InstallPath", "");
+            if (regvalue == null)
             {
-                StartInfo = new ProcessStartInfo
+                LogMissingCompiler();
+                return false;
+            }
+
+            compilerPath = regvalue as string;
+            if (compilerPath.Length <= 0)
+            {
+                LogMissingCompiler();
+                return false;
+            }
+
+            string compilerFileName = compilerPath + "\\EpochNativeBin.exe";
+            try
+            {
+                var process = new Process
                 {
-                    FileName = "d:\\epoch\\epoch-language\\bin\\debug\\EpochNativeBin.exe",      // TODO - remove hardcoded paths
-                    Arguments = "/files " + m_fileName + " /output " + m_outputName,
-                    UseShellExecute = false,
-                    RedirectStandardOutput = true,
-                    CreateNoWindow = true
-                }
-            };
+                    StartInfo = new ProcessStartInfo
+                    {
+                        FileName = compilerFileName,
+                        Arguments = "/files " + m_fileName + " /output \"" + m_outputName + "\"",
+                        UseShellExecute = false,
+                        RedirectStandardOutput = true,
+                        CreateNoWindow = true
+                    }
+                };
 
-            process.Start();
-            Log.LogMessagesFromStream(process.StandardOutput, MessageImportance.High);
+                process.Start();
+                Log.LogMessagesFromStream(process.StandardOutput, MessageImportance.High);
 
-            process.WaitForExit();
+                process.WaitForExit();
 
-            return (process.ExitCode == 0);
+                return (process.ExitCode == 0);
+            }
+            catch
+            {
+                Log.LogError("Error invoking compiler at \"{0}\". Please ensure Epoch compiler is properly installed.", compilerFileName);
+                return false;
+            }
+        }
+
+        private void LogMissingCompiler()
+        {
+            Log.LogError("Compiler not found. Please ensure Epoch compiler is properly installed.");
         }
     }
 }

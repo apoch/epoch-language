@@ -7,10 +7,10 @@
   <Import Project="$(CustomProjectExtensionsPath)CustomProject.Default.props" />
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
-    <OutputName>$(MSBuildProjectName).exe</OutputName>
+    <OutputName>bin\$(Configuration)\$(MSBuildProjectName).exe</OutputName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
-    <OutputName>$(MSBuildProjectName).exe</OutputName>
+    <OutputName>bin\$(Configuration)\$(MSBuildProjectName).exe</OutputName>
   </PropertyGroup>
 
   <Import Project="$(CustomProjectExtensionsPath)CustomProject.props" />
