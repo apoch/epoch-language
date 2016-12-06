@@ -91,15 +91,9 @@ namespace EpochVSIX
 
             if (typedChar.Equals('('))
             {
-                //move the point back so it's in the preceding word
-                SnapshotPoint point = m_textView.Caret.Position.BufferPosition - 1;
-                TextExtent extent = m_navigator.GetExtentOfWord(point);
-                string word = extent.Span.GetText();
-                if (word.Equals("add"))
-                    m_signatureHelpSession = m_broker.TriggerSignatureHelp(m_textView);
-
+                m_signatureHelpSession = m_broker.TriggerSignatureHelp(m_textView);
             }
-            else if (typedChar.Equals(')') && m_session != null)
+            else if (typedChar.Equals(')') && m_signatureHelpSession != null)
             {
                 m_signatureHelpSession.Dismiss();
                 m_signatureHelpSession = null;
