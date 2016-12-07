@@ -8,9 +8,11 @@
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <OutputName>bin\$(Configuration)\$(MSBuildProjectName).exe</OutputName>
+    <DebuggerFlavor>Debugger</DebuggerFlavor>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <OutputName>bin\$(Configuration)\$(MSBuildProjectName).exe</OutputName>
+    <DebuggerFlavor>Debugger</DebuggerFlavor>
   </PropertyGroup>
 
   <Import Project="$(CustomProjectExtensionsPath)CustomProject.props" />
