@@ -20,9 +20,7 @@
   </PropertyGroup>
   
   <ItemGroup>
-    <Compile Include="EntryPoint.epoch">
-      <SubType>Code</SubType>
-    </Compile>
+    <EpochCompile Include="EntryPoint.epoch" />
   </ItemGroup>
 
   <Import Project="$(CustomProjectExtensionsPath)CustomProjectCs.targets" />

@@ -55,7 +55,7 @@ namespace EpochVS
                     StartInfo = new ProcessStartInfo
                     {
                         FileName = compilerFileName,
-                        Arguments = "/files " + m_fileName + " /output \"" + m_outputName + "\"",
+                        Arguments = "/files " + m_fileName + " /output " + m_outputName,
                         UseShellExecute = false,
                         RedirectStandardOutput = true,
                         CreateNoWindow = true
