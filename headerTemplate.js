@@ -13,14 +13,12 @@ myHeaderPrototype.createdCallback = function() {
   let relativeHomeLink = "";
   let relativeOverviewLink = "";
   let relativeArticlesLink = "";
-  let relativeDownloadsLink = "";
   
   //Add ../s
   if(relativePathLevel == 0) {
      relativeHomeLink += "./";
      relativeOverviewLink += "./";
      relativeArticlesLink += "./";
-     relativeDownloadsLink += "./";
   }
   else {
     for(let i = 0; i < relativePathLevel; ++i)
@@ -28,7 +26,6 @@ myHeaderPrototype.createdCallback = function() {
       relativeHomeLink += "../";
       relativeOverviewLink += "../";
       relativeArticlesLink += "../";
-      relativeDownloadsLink += "../";
     }
   }
  
@@ -36,7 +33,6 @@ myHeaderPrototype.createdCallback = function() {
   relativeHomeLink += "index.html";
   relativeOverviewLink += "project_overview.html";
   relativeArticlesLink += "articles/index.html";
-  relativeDownloadsLink += "downloads.html";
 
   t.innerHTML = `
   <div class="page-title">
@@ -48,7 +44,7 @@ myHeaderPrototype.createdCallback = function() {
     '<a class="navlink" href=' + relativeHomeLink + '>Home</a>' +
     '<a class="navlink" href=' + relativeOverviewLink + '>Overview</a>' +
     '<a class="navlink" href=' + relativeArticlesLink + '>Articles</a>' +
-    '<a class="navlink" href=' + relativeDownloadsLink + '>Downloads</a>' +
+    '<a class="navlink" href="https://github.com/apoch/epoch-language/releases">Releases</a>' +
     `<a class="navlink" href="https://github.com/apoch/epoch-language">Source</a>
   </div>`;
 };
