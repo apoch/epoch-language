@@ -36,6 +36,8 @@
       <Custom Action='SetFromCmdLineValueINSTALLDIR' After='AppSearch'>
         CMDLINE_INSTALLDIR
       </Custom>
+      <Custom Action='InstallVSIX' After='InstallFinalize'>NOT Installed</Custom>
+      <Custom Action='UninstallVSIX' After="InstallInitialize">REMOVE="ALL"</Custom>
     </InstallExecuteSequence>
 
     <Property Id="INSTALLDIR">
@@ -77,6 +79,9 @@
         <RegistryKey Root="HKLM" Key="Software\Epoch\CurrentInstall">
           <RegistryValue Name="InstallPath" Value="[INSTALLDIR]" Type="string" />
         </RegistryKey>
+        <RegistryKey Root="HKLM" Key="Software\WOW6432Node\Epoch\CurrentInstall">
+          <RegistryValue Name="InstallPath" Value="[INSTALLDIR]" Type="string" />
+        </RegistryKey>
       </Component>
     </Directory>
 
@@ -94,5 +99,13 @@
       </Feature>
     </Feature>
 
+    <CustomAction Id="InstallVSIX" Directory="INSTALLDIR" ExeCommand='[ProgramFilesFolder]\Microsoft Visual Studio 14.0\Common7\IDE\vsixinstaller.exe "[INSTALLDIR]\EpochVSIX.vsix"' Return="check" />
+    <CustomAction Id="UninstallVSIX" Directory="INSTALLDIR" Execute="immediate" ExeCommand="[ProgramFilesFolder]\Microsoft Visual Studio 14.0\Common7\IDE\vsixinstaller.exe &quot;/u:EpochVSIX.ProjectType..7002a968-bbf1-4858-96c9-bf0b59bd51b5&quot;" Return="check" />
+
+    <UIRef Id="WixUI_Mondo" />
+    <UIRef Id="WixUI_ErrorProgressText" />
+
+    <WixVariable Id="WixUILicenseRtf" Value="Assets\License.rtf" />
+    
   </Product>
 </Wix>
