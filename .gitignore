@@ -80,3 +80,6 @@ EpochBGFXWrapper/EpochBGFXWrapper/Debug/**
 /EpochVisualStudio/EpochVSIX/EpochBuild/obj/Debug
 /EpochTests/Projects/TestSuite/bin/Debug
 /EpochTests/Projects/TestSuite/TestSuite.eprj.user
+/EpochVisualStudio/EpochVSIX/EpochSetupWiX/obj
+/EpochVisualStudio/EpochVSIX/EpochSetupWiX/bin
+/EpochVisualStudio/EpochVSIX/EpochSetupWiX/Assets

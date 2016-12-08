@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+	<Product Id="*" Name="Epoch Language Development Tools" Language="1033" Version="0.1.0.0" Manufacturer="Mike Lewis" UpgradeCode="d14de07c-d8a6-4c79-9d38-2ff731f73910">
+		<Package Id="*" InstallerVersion="400" Compressed="yes" InstallScope="perMachine"/>
+
+    <Icon Id="Icon.exe" SourceFile="Assets\Epoch.ico" />
+
+    <Property Id="ARPPRODUCTICON" Value="Icon.exe" />
+    <Property Id="ARPHELPLINK" Value="https://github.com/apoch/epoch-language" />
+    <Property Id="ARPNOREPAIR" Value="yes" Secure="yes" />
+    <Property Id="ARPNOMODIFY" Value="yes" Secure="yes" />
+
+    <MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed." />
+
+    <InstallExecuteSequence>
+      <Custom Action="SetARPINSTALLLOCATION" After="InstallValidate"></Custom>
+    </InstallExecuteSequence>
+
+    <CustomAction Id="SetARPINSTALLLOCATION" Property="ARPINSTALLLOCATION" Value="[INSTALLDIR]" />
+
+    <Condition Message="A 64-bit edition of Windows is required to use this toolkit.">
+      <![CDATA[VersionNT64]]>
+    </Condition>
+
+
+    <CustomAction Id='SaveCmdLineValueINSTALLDIR' Property='CMDLINE_INSTALLDIR' Value='[INSTALLDIR]' Execute='firstSequence' />
+    <CustomAction Id='SetFromCmdLineValueINSTALLDIR' Property='INSTALLDIR' Value='[CMDLINE_INSTALLDIR]' Execute='firstSequence' />
+    <InstallUISequence>
+      <Custom Action='SaveCmdLineValueINSTALLDIR' Before='AppSearch' />
+      <Custom Action='SetFromCmdLineValueINSTALLDIR' After='AppSearch'>
+        CMDLINE_INSTALLDIR
+      </Custom>
+    </InstallUISequence>
+    <InstallExecuteSequence>
+      <Custom Action='SaveCmdLineValueINSTALLDIR' Before='AppSearch' />
+      <Custom Action='SetFromCmdLineValueINSTALLDIR' After='AppSearch'>
+        CMDLINE_INSTALLDIR
+      </Custom>
+    </InstallExecuteSequence>
+
+    <Property Id="INSTALLDIR">
+      <RegistrySearch Id="DetermineInstallLocation" Type="raw" Root="HKLM" Key="Software\Epoch\CurrentInstall" Name="InstallPath" />
+    </Property>
+
+    <Media Id="1" Cabinet="media1.cab" EmbedCab="yes" />
+
+    <Directory Id="TARGETDIR" Name="SourceDir">
+      <Directory Id="ProgramFilesFolder">
+        <Directory Id="INSTALLDIR" Name="Epoch Language Tools">
+
+          <Component Id="CompilerComponent" Guid="*" Win64="no">
+            <File Source="Assets\EpochNativeBin.exe" Id="EpochNativeBin" ProcessorArchitecture="x86" />
+         </Component>
+          <Component Id="LibraryComponent" Guid="*" Win64="no">
+            <File Source="Assets\EpochLibrary.dll" Id="EpochLibrary" ProcessorArchitecture="x86" />
+          </Component>
+          <Component Id="LLVMComponent" Guid="*" Win64="no">
+            <File Source="Assets\EpochLLVM.dll" Id="EpochLLVM" ProcessorArchitecture="x86" />
+          </Component>
+          <Component Id="LegacyRuntimeComponent" Guid="*" Win64="no">
+            <File Source="Assets\EpochRuntime.dll" Id="EpochRuntime" ProcessorArchitecture="x86" />
+          </Component>
+
+          <Component Id="VisualStudioExtension" Guid="*" Win64="no">
+            <File Source="Assets\EpochVSIX.vsix" Id="EpochVSIX" />
+          </Component>
+          
+        </Directory>
+      </Directory>
+      <Directory Id="System64Folder">
+        <Component Id="RuntimeComponent" Guid="*" Win64="yes" Permanent="yes">
+          <File Source="Assets\EpochRT.dll" Id="EpochRT" ProcessorArchitecture="x64" />
+        </Component>
+      </Directory>
+
+      <Component Id="RegistryComponent" Guid="*">
+        <RegistryKey Root="HKLM" Key="Software\Epoch\CurrentInstall">
+          <RegistryValue Name="InstallPath" Value="[INSTALLDIR]" Type="string" />
+        </RegistryKey>
+      </Component>
+    </Directory>
+
+    <Feature Id="Complete" Title="Epoch Language Development Tools" Description="Compiler and Visual Studio 2015 Extensions for Epoch development" Display="expand" Level="1" ConfigurableDirectory="INSTALLDIR">
+      <Feature Id="Compiler" Title="Epoch Compiler" Description="Tools for compiling Epoch programs" Level="1">
+        <ComponentRef Id="CompilerComponent" />
+        <ComponentRef Id="LibraryComponent" />
+        <ComponentRef Id="LLVMComponent" />
+        <ComponentRef Id="LegacyRuntimeComponent" />
+        <ComponentRef Id="RegistryComponent" />
+        <ComponentRef Id="RuntimeComponent" />
+      </Feature>
+      <Feature Id="VSIX" Title="Visual Studio 2015 Extensions" Description="Extensions for developing Epoch programs in Visual Studio 2015">
+        <ComponentRef Id="VisualStudioExtension" />
+      </Feature>
+    </Feature>
+
+  </Product>
+</Wix>
