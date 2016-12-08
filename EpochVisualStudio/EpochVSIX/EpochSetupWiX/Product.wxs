@@ -52,7 +52,7 @@
 
           <Component Id="CompilerComponent" Guid="*" Win64="no">
             <File Source="Assets\EpochNativeBin.exe" Id="EpochNativeBin" ProcessorArchitecture="x86" />
-         </Component>
+          </Component>
           <Component Id="LibraryComponent" Guid="*" Win64="no">
             <File Source="Assets\EpochLibrary.dll" Id="EpochLibrary" ProcessorArchitecture="x86" />
           </Component>
@@ -69,10 +69,129 @@
           
         </Directory>
       </Directory>
+      
       <Directory Id="System64Folder">
         <Component Id="RuntimeComponent" Guid="*" Win64="yes" Permanent="yes">
           <File Source="Assets\EpochRT.dll" Id="EpochRT" ProcessorArchitecture="x64" />
         </Component>
+      </Directory>
+      
+      <Directory Id="LocalAppDataFolder">
+        <Directory Id="CustomProjectSystems" Name="CustomProjectSystems">
+          <Directory Id="EpochVSIX" Name="EpochVSIX">
+            <Directory Id="Rules" Name="Rules">
+              <Component Id="BuildRuleXml_1" Guid="ca29eeee-eef5-4080-9d1e-652cca1e67a0">
+                <RegistryValue Root="HKCU" Key="Software\Epoch\CurrentInstall" Name="BuildRulesInstall1" Value="1" Type="integer" KeyPath="yes" />
+                <File Source="Assets\Build\Rules\assemblyreference.xaml" Id="RULE_assemblyreference" />
+                <RemoveFolder Id="CleanupBuildRules" On="uninstall"/>
+              </Component>
+              <Component Id="BuildRuleXml_2" Guid="76c8ed64-7692-46e3-acae-f56ebe6ae2df">
+                <RegistryValue Root="HKCU" Key="Software\Epoch\CurrentInstall" Name="BuildRulesInstall2" Value="1" Type="integer" KeyPath="yes" />
+                <File Source="Assets\Build\Rules\comreference.xaml" Id="RULE_comreference" />
+              </Component>
+              <Component Id="BuildRuleXml_3" Guid="5b30db65-23df-4935-bc8d-6cd954ac24d1">
+                <RegistryValue Root="HKCU" Key="Software\Epoch\CurrentInstall" Name="BuildRulesInstall3" Value="1" Type="integer" KeyPath="yes" />
+                <File Source="Assets\Build\Rules\csharp.browseobject.xaml" Id="RULE_csbrowse" />
+              </Component>
+              <Component Id="BuildRuleXml_4" Guid="98e1b1c3-248b-4d20-945a-72c817b366e3">
+                <RegistryValue Root="HKCU" Key="Software\Epoch\CurrentInstall" Name="BuildRulesInstall4" Value="1" Type="integer" KeyPath="yes" />
+                <File Source="Assets\Build\Rules\csharp.xaml" Id="RULE_cs" />
+              </Component>
+              <Component Id="BuildRuleXml_5" Guid="f57c455a-4c10-4089-94c5-cc88bfeb35d1">
+                <RegistryValue Root="HKCU" Key="Software\Epoch\CurrentInstall" Name="BuildRulesInstall5" Value="1" Type="integer" KeyPath="yes" />
+                <File Source="Assets\Build\Rules\CustomPropertyPage.xaml" Id="RULE_customprop" />
+              </Component>
+              <Component Id="BuildRuleXml_6" Guid="4573be9a-2921-447c-a0a9-cdd887176f2c">
+                <RegistryValue Root="HKCU" Key="Software\Epoch\CurrentInstall" Name="BuildRulesInstall6" Value="1" Type="integer" KeyPath="yes" />
+                <File Source="Assets\Build\Rules\Debugger.xaml" Id="RULE_debugger" />
+              </Component>
+              <Component Id="BuildRuleXml_7" Guid="7a0d0bcb-9bd9-4145-9b00-dff1290e0595">
+                <RegistryValue Root="HKCU" Key="Software\Epoch\CurrentInstall" Name="BuildRulesInstall7" Value="1" Type="integer" KeyPath="yes" />
+                <File Source="Assets\Build\Rules\debugger_general.xaml" Id="RULE_debuggerGeneral" />
+              </Component>
+              <Component Id="BuildRuleXml_8" Guid="f40a94d8-a5b1-47ad-9fb2-4c1e12eab762">
+                <RegistryValue Root="HKCU" Key="Software\Epoch\CurrentInstall" Name="BuildRulesInstall8" Value="1" Type="integer" KeyPath="yes" />
+                <File Source="Assets\Build\Rules\EmbeddedResource.xaml" Id="RULE_EmbeddedResource" />
+              </Component>
+              <Component Id="BuildRuleXml_9" Guid="ee841ab6-9b4d-4b25-be14-557d4aeaaea4">
+                <RegistryValue Root="HKCU" Key="Software\Epoch\CurrentInstall" Name="BuildRulesInstall9" Value="1" Type="integer" KeyPath="yes" />
+                <File Source="Assets\Build\Rules\Epoch.xaml" Id="RULE_Epoch" />
+              </Component>
+              <Component Id="BuildRuleXml_10" Guid="ca2f9ede-4ca3-4d1f-af7e-41f97f595a1f">
+                <RegistryValue Root="HKCU" Key="Software\Epoch\CurrentInstall" Name="BuildRulesInstall10" Value="1" Type="integer" KeyPath="yes" />
+                <File Source="Assets\Build\Rules\folder.xaml" Id="RULE_Folder" />
+              </Component>
+              <Component Id="BuildRuleXml_11" Guid="8f9d901d-894e-471c-b85f-586d6e2c49d4">
+                <RegistryValue Root="HKCU" Key="Software\Epoch\CurrentInstall" Name="BuildRulesInstall11" Value="1" Type="integer" KeyPath="yes" />
+                <File Source="Assets\Build\Rules\general.browseobject.xaml" Id="RULE_genbrowse" />
+              </Component>
+              <Component Id="BuildRuleXml_12" Guid="9c406cb6-5a9d-4be3-a24e-9250415b7b3c">
+                <RegistryValue Root="HKCU" Key="Software\Epoch\CurrentInstall" Name="BuildRulesInstall12" Value="1" Type="integer" KeyPath="yes" />
+                <File Source="Assets\Build\Rules\general.xaml" Id="RULE_general" />
+              </Component>
+              <Component Id="BuildRuleXml_13" Guid="a0e73cb2-154c-4fff-a6eb-445f374339e9">
+                <RegistryValue Root="HKCU" Key="Software\Epoch\CurrentInstall" Name="BuildRulesInstall13" Value="1" Type="integer" KeyPath="yes" />
+                <File Source="Assets\Build\Rules\general_file.xaml" Id="RULE_generalfile" />
+              </Component>
+              <Component Id="BuildRuleXml_14" Guid="78760de7-82c2-40ad-811e-e3cae39be10f">
+                <RegistryValue Root="HKCU" Key="Software\Epoch\CurrentInstall" Name="BuildRulesInstall14" Value="1" Type="integer" KeyPath="yes" />
+                <File Source="Assets\Build\Rules\none.xaml" Id="RULE_none" />
+              </Component>
+              <Component Id="BuildRuleXml_15" Guid="5a909e0e-83b5-4a1f-a6e7-6dd5bbb09589">
+                <RegistryValue Root="HKCU" Key="Software\Epoch\CurrentInstall" Name="BuildRulesInstall15" Value="1" Type="integer" KeyPath="yes" />
+                <File Source="Assets\Build\Rules\ProjectItemsSchema.xaml" Id="RULE_projitems" />
+              </Component>
+              <Component Id="BuildRuleXml_16" Guid="8c86a43a-7d2c-43bc-a444-ecb96079c7c6">
+                <RegistryValue Root="HKCU" Key="Software\Epoch\CurrentInstall" Name="BuildRulesInstall16" Value="1" Type="integer" KeyPath="yes" />
+                <File Source="Assets\Build\Rules\projectreference.xaml" Id="RULE_projref" />
+              </Component>
+              <Component Id="BuildRuleXml_17" Guid="de444499-e06e-49b2-bfe4-9a5b79b74dce">
+                <RegistryValue Root="HKCU" Key="Software\Epoch\CurrentInstall" Name="BuildRulesInstall17" Value="1" Type="integer" KeyPath="yes" />
+                <File Source="Assets\Build\Rules\ResolvedAssemblyReference.xaml" Id="RULE_resasmref" />
+              </Component>
+              <Component Id="BuildRuleXml_18" Guid="0d8777b3-5746-4b76-bf13-39352fa30a36">
+                <RegistryValue Root="HKCU" Key="Software\Epoch\CurrentInstall" Name="BuildRulesInstall18" Value="1" Type="integer" KeyPath="yes" />
+                <File Source="Assets\Build\Rules\ResolvedCOMReference.xaml" Id="RULE_rescomref" />
+              </Component>
+              <Component Id="BuildRuleXml_19" Guid="f2161de1-823b-4bb1-84ae-26f374750d1d">
+                <RegistryValue Root="HKCU" Key="Software\Epoch\CurrentInstall" Name="BuildRulesInstall19" Value="1" Type="integer" KeyPath="yes" />
+                <File Source="Assets\Build\Rules\ResolvedProjectReference.xaml" Id="RULE_resprojref" />
+              </Component>
+              <Component Id="BuildRuleXml_20" Guid="c019affd-4429-4b2d-894a-4a6e762b1b28">
+                <RegistryValue Root="HKCU" Key="Software\Epoch\CurrentInstall" Name="BuildRulesInstall20" Value="1" Type="integer" KeyPath="yes" />
+                <File Source="Assets\Build\Rules\resolvedsdkreference.xaml" Id="RULE_ressdkref" />
+              </Component>
+              <Component Id="BuildRuleXml_21" Guid="51dfca1b-21d2-4d85-84dd-062f973bf5b9">
+                <RegistryValue Root="HKCU" Key="Software\Epoch\CurrentInstall" Name="BuildRulesInstall21" Value="1" Type="integer" KeyPath="yes" />
+                <File Source="Assets\Build\Rules\scc.xaml" Id="RULE_scc" />
+              </Component>
+              <Component Id="BuildRuleXml_22" Guid="0d5762da-43b7-4690-99b3-8332217da7a3">
+                <RegistryValue Root="HKCU" Key="Software\Epoch\CurrentInstall" Name="BuildRulesInstall22" Value="1" Type="integer" KeyPath="yes" />
+                <File Source="Assets\Build\Rules\sdkreference.xaml" Id="RULE_sdkref" />
+              </Component>
+            </Directory>
+            
+            <Component Id="CustomProjectTargetProps_1" Guid="815d510a-9742-4233-9d5b-cd54fbd6d696">
+              <RegistryValue Root="HKCU" Key="Software\Epoch\CurrentInstall" Name="BuildRulesInstall_CPS1" Value="1" Type="integer" KeyPath="yes" />
+              <RemoveFolder Id="CleanupBuildTargets" On="uninstall"/>
+              <RemoveFolder Id="CleanupCPS" Directory="CustomProjectSystems" On="uninstall" />
+              <File Source="Assets\Build\CustomProject.Default.props" Id="CPDprops" />
+            </Component>
+            <Component Id="CustomProjectTargetProps_2" Guid="84694196-30d1-4cd8-a61f-a6ec02fc0881">
+              <RegistryValue Root="HKCU" Key="Software\Epoch\CurrentInstall" Name="BuildRulesInstall_CPS2" Value="1" Type="integer" KeyPath="yes" />
+              <File Source="Assets\Build\CustomProject.props" Id="CPprops" />
+            </Component>
+            
+            <Component Id="CustomProjectTargetProps_3" Guid="ff0a2613-0f1b-4beb-b9f6-49bc3ace9512">
+              <RegistryValue Root="HKCU" Key="Software\Epoch\CurrentInstall" Name="BuildRulesInstall_CPS3" Value="1" Type="integer" KeyPath="yes" />
+              <File Source="Assets\Build\CustomProject.targets" Id="CPTs" />
+            </Component>
+            <Component Id="CustomProjectTargetProps_4" Guid="994ee1f5-109f-4ef7-b824-cffed567d271">
+              <RegistryValue Root="HKCU" Key="Software\Epoch\CurrentInstall" Name="BuildRulesInstall_CPS4" Value="1" Type="integer" KeyPath="yes" />
+              <File Source="Assets\Build\CustomProjectCs.targets" Id="CPTCs" />
+            </Component>
+          </Directory>
+        </Directory>
       </Directory>
 
       <Component Id="RegistryComponent" Guid="*">
@@ -93,6 +212,32 @@
         <ComponentRef Id="LegacyRuntimeComponent" />
         <ComponentRef Id="RegistryComponent" />
         <ComponentRef Id="RuntimeComponent" />
+        <ComponentRef Id="BuildRuleXml_1" />
+        <ComponentRef Id="BuildRuleXml_2" />
+        <ComponentRef Id="BuildRuleXml_3" />
+        <ComponentRef Id="BuildRuleXml_4" />
+        <ComponentRef Id="BuildRuleXml_5" />
+        <ComponentRef Id="BuildRuleXml_6" />
+        <ComponentRef Id="BuildRuleXml_7" />
+        <ComponentRef Id="BuildRuleXml_8" />
+        <ComponentRef Id="BuildRuleXml_9" />
+        <ComponentRef Id="BuildRuleXml_10" />
+        <ComponentRef Id="BuildRuleXml_11" />
+        <ComponentRef Id="BuildRuleXml_12" />
+        <ComponentRef Id="BuildRuleXml_13" />
+        <ComponentRef Id="BuildRuleXml_14" />
+        <ComponentRef Id="BuildRuleXml_15" />
+        <ComponentRef Id="BuildRuleXml_16" />
+        <ComponentRef Id="BuildRuleXml_17" />
+        <ComponentRef Id="BuildRuleXml_18" />
+        <ComponentRef Id="BuildRuleXml_19" />
+        <ComponentRef Id="BuildRuleXml_20" />
+        <ComponentRef Id="BuildRuleXml_21" />
+        <ComponentRef Id="BuildRuleXml_22" />
+        <ComponentRef Id="CustomProjectTargetProps_1" />
+        <ComponentRef Id="CustomProjectTargetProps_2" />
+        <ComponentRef Id="CustomProjectTargetProps_3" />
+        <ComponentRef Id="CustomProjectTargetProps_4" />
       </Feature>
       <Feature Id="VSIX" Title="Visual Studio 2015 Extensions" Description="Extensions for developing Epoch programs in Visual Studio 2015">
         <ComponentRef Id="VisualStudioExtension" />
