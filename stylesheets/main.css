@@ -1,7 +1,7 @@
 /* Header styles */
 my-header {
   display: block;
-  background-color: rgb(70, 84, 148);
+  background-color: rgb(0, 0, 0);
   padding: 5px;
 }
 
@@ -47,7 +47,7 @@ a.navlink
   padding-top: 3px;
   padding-bottom: 3px;
   
-  background-color: #7991FC;
+  background-color: rgb(120, 120, 120);
   
   flex: 1 0 auto;
   height: 35px;
@@ -58,7 +58,7 @@ a.navlink
 }
 
 a.navlink:hover {
-  background-color: #6175CF;
+  background-color: rgb(160, 160, 160);
   text-decoration: none !important;
 }
 
@@ -68,7 +68,7 @@ body
 {
   font-family: Calibri, Helvetica, Arial, sans-serif;
   padding: 0px;
-  background-color: #DCE2FC;
+  background-color: #FFFFFF;
   margin: 0px;
 }
 
