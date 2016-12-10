@@ -12,6 +12,14 @@ using Microsoft.VisualStudio;
 
 namespace EpochVSIX
 {
+    internal class ErrorListHelper : IServiceProvider
+    {
+        public object GetService(Type serviceType)
+        {
+            return Package.GetGlobalService(serviceType);
+        }
+    }
+
     public class ProjectParser
     {
         private static ProjectParser Instance = null;
@@ -25,6 +33,7 @@ namespace EpochVSIX
         }
 
 
+        private ErrorListProvider ErrorProvider = null;
 
         private Dictionary<string, List<string>> ParsedFunctionNames = null;
         private Dictionary<string, List<string>> ParsedStructures = null;
@@ -88,6 +97,15 @@ namespace EpochVSIX
             Literal,
             StringLiteral,
         };
+
+
+        internal ProjectParser()
+        {
+            ErrorProvider = new ErrorListProvider(new ErrorListHelper());
+            ErrorProvider.ProviderName = "Epoch Language";
+            ErrorProvider.ProviderGuid = new Guid(VsPackage.PackageGuid);
+        }
+
 
         private CharacterClass LexerClassify(char c, CharacterClass currentclass)
         {
@@ -921,8 +939,15 @@ namespace EpochVSIX
                     }
                 }
             }
-            catch
+            catch(Exception ex)
             {
+                var errorTask = new ErrorTask();
+                errorTask.Text = ex.ToString();
+                errorTask.Category = TaskCategory.CodeSense;
+                errorTask.ErrorCategory = TaskErrorCategory.Error;
+                errorTask.Document = filename;
+
+                ErrorProvider.Tasks.Add(errorTask);
                 return false;
             }
 
@@ -1281,16 +1306,24 @@ namespace EpochVSIX
 
             foreach (EnvDTE.Project project in dte.Solution.Projects)
             {
-                foreach (EnvDTE.ProjectItem item in project.ProjectItems)
+                ParseProjectItems(project.ProjectItems);
+            }
+        }
+
+        private void ParseProjectItems(EnvDTE.ProjectItems items)
+        {
+            if (items == null)
+                return;
+
+            foreach (EnvDTE.ProjectItem item in items)
+            {
+                if (item.FileCount == 1 && item.FileNames[0].EndsWith(".epoch", StringComparison.OrdinalIgnoreCase))
                 {
-                    if (item.FileCount == 1 && item.FileNames[0].EndsWith(".epoch", StringComparison.OrdinalIgnoreCase))
-                    {
-                        ParseFileOnDisk(item.FileNames[0]);
-                    }
-                    else
-                    {
-                        // TODO - handle nested folders
-                    }
+                    ParseFileOnDisk(item.FileNames[0]);
+                }
+                else
+                {
+                    ParseProjectItems(item.ProjectItems);
                 }
             }
         }
