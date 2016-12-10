@@ -43,6 +43,10 @@ namespace EpochVSIX
                 "ref",
                 "structure",
                 "type",
+                "if",
+                "elseif",
+                "else",
+                "while",
             };
 
             LiteralKeywords = new HashSet<string>()
