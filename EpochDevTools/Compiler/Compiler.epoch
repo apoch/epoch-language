@@ -163,7 +163,7 @@ entrypoint :
 
 	integer projectEndMs = timeGetTime()
 	print("Building succeeded in " ; cast(string, projectEndMs - projectStartMs) ; " milliseconds")
-
+	ExitProcess(0)
 }
 
 //

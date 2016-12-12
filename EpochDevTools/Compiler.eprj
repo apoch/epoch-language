@@ -1,5 +1,23 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x86">
+      <Configuration>Debug</Configuration>
+      <Platform>x86</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x86">
+      <Configuration>Release</Configuration>
+      <Platform>x86</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <CustomProjectExtensionsPath>$(LocalAppData)\CustomProjectSystems\EpochVSIX\</CustomProjectExtensionsPath>
     <ProjectGuid>34108b4e-8883-4c16-97c9-e55f3a4e769b</ProjectGuid>
@@ -9,7 +27,15 @@
     <OutputName>bin\$(Configuration)\$(MSBuildProjectName).exe</OutputName>
     <DebuggerFlavor>Debugger</DebuggerFlavor>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x86'" Label="Configuration">
+    <OutputName>bin\$(Configuration)\$(MSBuildProjectName).exe</OutputName>
+    <DebuggerFlavor>Debugger</DebuggerFlavor>
+  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <OutputName>bin\$(Configuration)\$(MSBuildProjectName).exe</OutputName>
+    <DebuggerFlavor>Debugger</DebuggerFlavor>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x86'" Label="Configuration">
     <OutputName>bin\$(Configuration)\$(MSBuildProjectName).exe</OutputName>
     <DebuggerFlavor>Debugger</DebuggerFlavor>
   </PropertyGroup>

@@ -54,9 +54,14 @@
   </ItemGroup>
 
   <UsingTask TaskName="EpochVS.BuildTask" AssemblyFile="$(EpochVSExtensionPath)\EpochBuild.DLL" />
+  <UsingTask TaskName="EpochVS.BuildTask32" AssemblyFile="$(EpochVSExtensionPath)\EpochBuild.DLL" />
 
-  <Target Name="Build" Inputs="@(EpochCompile)" Outputs="$(OutputName)">
+  <Target Name="Build" Inputs="@(EpochCompile)" Outputs="$(OutputName)" Condition="'$(Platform)' == 'x64'">
     <BuildTask Filename="@(EpochCompile)" Output="$(OutputName)" />
+  </Target>
+
+  <Target Name="Build" Inputs="@(EpochCompile)" Outputs="$(OutputName)" Condition="'$(Platform)' == 'x86'">
+    <BuildTask32 Filename="@(EpochCompile)" Output="$(OutputName)" />
   </Target>
 
   <Target Name="Clean">
