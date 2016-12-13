@@ -83,3 +83,4 @@ EpochBGFXWrapper/EpochBGFXWrapper/Debug/**
 /EpochVisualStudio/EpochVSIX/EpochSetupWiX/obj
 /EpochVisualStudio/EpochVSIX/EpochSetupWiX/bin
 /EpochVisualStudio/EpochVSIX/EpochSetupWiX/Assets
+/EpochDevTools/Compiler.VC.db

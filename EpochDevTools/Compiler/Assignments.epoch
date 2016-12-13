@@ -177,3 +177,5 @@ GetAssignmentRHSType : Assignment ref assignment -> integer rettype = GetAssignm
 GetAssignmentRHSType : AssignmentCompound ref assignment -> integer rettype = GetAssignmentRHSType(assignment.RHS)
 
 
+structure AAAAAtrocioushack :
+	ContextNode<PendingTypeMatcher> MoreHack

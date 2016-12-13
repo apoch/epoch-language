@@ -374,5 +374,7 @@ global
 
 	BinaryTreeRoot<integer> TypeToNameMap = nothing
 	BinaryTreeRoot<integer> NameToTypeMap = nothing
-}
 
+
+	simplelist<boolean> StupidHack = false, nothing
+}
