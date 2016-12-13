@@ -1,2 +1,0 @@
-﻿Microsoft.VisualStudio.ProjectSystem.SDK
-========================================
