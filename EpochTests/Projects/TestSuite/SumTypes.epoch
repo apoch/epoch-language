@@ -35,20 +35,20 @@ TSTCheckPassthrough : BasicSumType ref test
 TSTTypeMatch :
 {
 	BasicSumType test = 42
-	//TSTCheckTypeMatch(test)
+	TSTCheckTypeMatch(test)
 	
 	BasicSumType test2 = "test"
-	//TSTCheckTypeMatch(test2)
+	TSTCheckTypeMatch(test2)
 }
 
-//TSTCheckTypeMatch : integer val
-//{
-//	TestAssert(val == 42, "sumtype type matching - integer fork")
-//}
+TSTCheckTypeMatch : integer val
+{
+	TestAssert(val == 42, "sumtype type matching - integer fork")
+}
 
-//TSTCheckTypeMatch : string val
-//{
-//	TestAssert(val == "test", "sumtype type matching - string fork")
-//}
+TSTCheckTypeMatch : string val
+{
+	TestAssert(val == "test", "sumtype type matching - string fork")
+}
 
 

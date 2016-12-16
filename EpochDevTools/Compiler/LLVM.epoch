@@ -1537,13 +1537,7 @@ EmitAllTypeMatchersInLLVM : LLVMContextHandle context, list<TypeMatcher> ref mat
 
 		LLVMType funcrettype = EpochLLVMTypeGetVoid(context)
 		
-		// TODO - inspect overloads for param types??
-
-		// Statically known param types should be embedded in the signature
-		//  - EnumerateOverloadsAndAddParameterTypes
-
-		// For overloaded param types, create anonymous sum types with all type possibilities
-		//  - This means new code
+		CreateTypeMatcherParamsInLLVM(context, matchers.value.Overloads, matchers.value.Overloads.value.Parameters, 0)
 
 		// Caller is responsible for constructing sum typed objects to pass in
 		//  - Can probably get away with minor tweaks to type inference as it already exists
@@ -1553,19 +1547,20 @@ EmitAllTypeMatchersInLLVM : LLVMContextHandle context, list<TypeMatcher> ref mat
 		//  - OR we could detect this internally and emit a direct call to the overload
 		//  - probably have to do that detection at call site?
 		//  - Optimization for later; first pass doesn't absolutely need this
-
-		//CreateFunctionParamTypesInLLVM(context, func.Params, rawname, false)
 		
 		LLVMFunctionType functype = EpochLLVMFunctionTypeCreate(context, funcrettype)
 		LLVMFunctionRef llvmfunc = EpochLLVMFunctionCreate(context, funcname, functype)
 
 		BinaryTreeCreateOrInsert<LLVMFunctionRef>(LLVMFunctionTable, matchers.value.Name, llvmfunc)
 
-		// TODO - emit type matcher body
+		EpochLLVMCodeCreateBasicBlock(context, llvmfunc, true)
 
-		// Prolog
-		// Per overload iteration - EmitTypeMatcherOverloadsInLLVM(context, matchers.value.Overloads)
-		// Epilog
+		// TODO - Prolog
+		EmitTypeMatcherOverloadsInLLVM(context, matchers.value.Overloads)
+		// TODO - Epilog?
+
+		// TODO - correct return types
+		EpochLLVMCodeCreateRetVoid(context)
 	}
 
 	EmitAllTypeMatchersInLLVM(context, matchers.next)
@@ -1616,6 +1611,68 @@ EmitTypeMatcherParamsInLLVM : LLVMContextHandle context, list<Parameter> ref par
 }
 
 EmitTypeMatcherParamsInLLVM : LLVMContextHandle context, nothing
+
+
+
+CreateTypeMatcherParamsInLLVM : LLVMContextHandle context, list<FunctionSignature> ref overloads, list<Parameter> ref params, integer paramindex
+{
+	if(params.value.Name != 0)
+	{
+		simplelist<integer> typelist = 0, nothing
+		EnumerateSignaturesAndAddParameterTypes(overloads, paramindex, typelist)
+
+		if(countnonzero(typelist) == 1)
+		{
+			LLVMType paramtype = GetLLVMTypeForEpochType(context, params.value.Type)
+			if(params.value.Name == 2)
+			{
+				paramtype = EpochLLVMTypeGetPointerTo(context, paramtype)
+			}
+
+			EpochLLVMFunctionQueueParamType(context, paramtype)
+		}
+		else
+		{
+			// TODO - emit appropriate sum type!
+			LLVMType paramtype = GetLLVMTypeForEpochType(context, 0x07000001)
+			if(params.value.Name == 2)
+			{
+				paramtype = EpochLLVMTypeGetPointerTo(context, paramtype)
+			}
+
+			EpochLLVMFunctionQueueParamType(context, paramtype)
+		}	
+	}
+
+	CreateTypeMatcherParamsInLLVM(context, overloads, params.next, paramindex + 1)
+}
+
+CreateTypeMatcherParamsInLLVM : LLVMContextHandle context, list<FunctionSignature> ref overloads, nothing, integer paramindex
+
+
+
+EnumerateSignaturesAndAddParameterTypes : list<FunctionSignature> ref signatures, integer paramindex, simplelist<integer> ref typelist
+{
+	GetParameterTypeFromSignature(signatures.value.Parameters, paramindex, typelist)
+	EnumerateSignaturesAndAddParameterTypes(signatures.next, paramindex, typelist)
+}
+
+EnumerateSignaturesAndAddParameterTypes : nothing, integer paramindex, simplelist<integer> ref typelist
+
+
+
+GetParameterTypeFromSignature : list<Parameter> ref params, integer paramindex, simplelist<integer> ref typelist
+{
+	if(paramindex == 0)
+	{
+		simpleprepend<integer>(typelist, params.value.Type)
+		return()
+	}
+
+	GetParameterTypeFromSignature(params.next, paramindex, typelist)
+}
+
+
 
 
 
