@@ -174,7 +174,7 @@ MakeExe : EpochProject ref project
 
 	integer written = 0
 	integer position = 0
-	position += WritePEHeader(filehandle, sizeimage, virtualoffsetdebug, sizedebug, virtualoffsetpdata, sizepdata, virtualoffsetxdata, sizexdata, virtualoffsetthunk + GlobalThunkTable.DescriptorOffset, sizethunk, virtualoffsetrsrc, sizersrc, subsystem, sizecode)
+	position += WritePEHeader(filehandle, sizeimage, virtualoffsetdebug, sizedebug, virtualoffsetpdata, sizepdata, virtualoffsetxdata, sizexdata, virtualoffsetthunk + GlobalThunkTable.DescriptorOffset, sizethunk, virtualoffsetrsrc, sizersrc, subsystem, sizecode, virtualoffsetcode)
 
 	position += WriteSectionHeader(filehandle, ".idata", offsetthunk, virtualoffsetthunk, sizethunk, sizethunk, 0xc0000040)
 	position += WriteSectionHeader(filehandle, ".rsrc", offsetrsrc, virtualoffsetrsrc, sizersrc, sizersrc, 0x40000040)
@@ -461,7 +461,7 @@ WriteObjSectionHeader : Win32Handle filehandle, string sectionname, integer loca
 
 
 
-WritePEHeader : Win32Handle filehandle, integer imagesize, integer offsetdebug, integer sizedebug, integer offsetpdata, integer sizepdata, integer offsetxdata, integer sizexdata, integer offsetthunk, integer sizethunk, integer offsetrsrc, integer resourcesize, integer16 subsystem, integer sizecode -> integer writtenbytes = 0
+WritePEHeader : Win32Handle filehandle, integer imagesize, integer offsetdebug, integer sizedebug, integer offsetpdata, integer sizepdata, integer offsetxdata, integer sizexdata, integer offsetthunk, integer sizethunk, integer offsetrsrc, integer resourcesize, integer16 subsystem, integer sizecode, integer entrypointaddress -> integer writtenbytes = 0
 {
 	print("Writing PE headers...")
 
@@ -637,7 +637,7 @@ WritePEHeader : Win32Handle filehandle, integer imagesize, integer offsetdebug, 
 	ByteStreamEmitInteger(headerbuffer, headersize, RoundUp(sizecode))				// SizeOfCode
 	ByteStreamEmitInteger(headerbuffer, headersize, 0x1000)							// SizeOfInitializedData		// TODO - real data section size
 	ByteStreamEmitInteger(headerbuffer, headersize, 0)								// SizeOfUninitializedData
-	ByteStreamEmitInteger(headerbuffer, headersize, 0x8000)							// AddressOfEntryPoint			// TODO - unhardcode this stuff
+	ByteStreamEmitInteger(headerbuffer, headersize, entrypointaddress)				// AddressOfEntryPoint
 	ByteStreamEmitInteger(headerbuffer, headersize, 0x1000)							// BaseOfCode
 
 	ByteStreamEmitInteger(headerbuffer, headersize, 0x400000)						// ImageBase
