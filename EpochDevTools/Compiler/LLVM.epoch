@@ -1669,7 +1669,7 @@ GetParameterTypeFromSignature : list<Parameter> ref params, integer paramindex, 
 		return()
 	}
 
-	GetParameterTypeFromSignature(params.next, paramindex, typelist)
+	GetParameterTypeFromSignature(params.next, paramindex - 1, typelist)
 }
 
 
