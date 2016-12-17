@@ -7,6 +7,7 @@ using Microsoft.Build.Framework;
 using Microsoft.Build.Utilities;
 using System.Diagnostics;
 using Microsoft.Win32;
+using System.Threading;
 
 namespace EpochVS
 {
@@ -70,23 +71,37 @@ namespace EpochVS
                     }
                 };
 
-                process.OutputDataReceived += (sender, args) => { Log.LogMessage(MessageImportance.High, args.Data); };
-                process.ErrorDataReceived += (sender, args) => { Log.LogMessage(MessageImportance.High, args.Data); };
+                using (AutoResetEvent outputHandle = new AutoResetEvent(false))
+                using (AutoResetEvent errorHandle = new AutoResetEvent(false))
+                {
+                    process.OutputDataReceived += (sender, args) => { ProcessLine(args.Data, outputHandle); };
+                    process.ErrorDataReceived += (sender, args) => { ProcessLine(args.Data, errorHandle); };
 
-                process.Start();
+                    process.Start();
 
-                process.BeginOutputReadLine();
-                process.BeginErrorReadLine();
+                    process.BeginOutputReadLine();
+                    process.BeginErrorReadLine();
 
-                process.WaitForExit();
+                    process.WaitForExit();
+                    if (outputHandle.WaitOne(1000) && errorHandle.WaitOne(1000))
+                        return (process.ExitCode == 0);
+                }
 
-                return (process.ExitCode == 0);
+                return false;
             }
             catch
             {
                 Log.LogError("Error invoking compiler at \"{0}\". Please ensure Epoch compiler is properly installed.", compilerFileName);
                 return false;
             }
+        }
+
+        private void ProcessLine(string data, AutoResetEvent e)
+        {
+            if (data != null)
+                Log.LogMessage(MessageImportance.High, data);
+            else
+                e.Set();
         }
     }
 
