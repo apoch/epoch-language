@@ -10,7 +10,7 @@ using Microsoft.Win32;
 
 namespace EpochVS
 {
-    public class BuildTask : Microsoft.Build.Utilities.Task
+    public abstract class BuildTaskCommonImplementation : Task
     {
         private string m_fileName;
         private string m_outputName;
@@ -28,6 +28,13 @@ namespace EpochVS
             get { return m_outputName; }
             set { m_outputName = value; }
         }
+
+        protected void LogMissingCompiler()
+        {
+            Log.LogError("Compiler not found. Please ensure Epoch compiler is properly installed.");
+        }
+
+        protected abstract string GetCompilerRelativePath();
 
         public override bool Execute()
         {
@@ -47,7 +54,7 @@ namespace EpochVS
                 return false;
             }
 
-            string compilerFileName = compilerPath + "\\EpochNativeBin.exe";
+            string compilerFileName = compilerPath + GetCompilerRelativePath();
             try
             {
                 var process = new Process
@@ -58,12 +65,18 @@ namespace EpochVS
                         Arguments = "/files " + m_fileName + " /output " + m_outputName,
                         UseShellExecute = false,
                         RedirectStandardOutput = true,
+                        RedirectStandardError = true,
                         CreateNoWindow = true
                     }
                 };
 
+                process.OutputDataReceived += (sender, args) => { Log.LogMessage(MessageImportance.High, args.Data); };
+                process.ErrorDataReceived += (sender, args) => { Log.LogMessage(MessageImportance.High, args.Data); };
+
                 process.Start();
-                Log.LogMessagesFromStream(process.StandardOutput, MessageImportance.High);
+
+                process.BeginOutputReadLine();
+                process.BeginErrorReadLine();
 
                 process.WaitForExit();
 
@@ -75,83 +88,22 @@ namespace EpochVS
                 return false;
             }
         }
+    }
 
-        private void LogMissingCompiler()
+    public class BuildTask : BuildTaskCommonImplementation
+    {
+        protected override string GetCompilerRelativePath()
         {
-            Log.LogError("Compiler not found. Please ensure Epoch compiler is properly installed.");
+            return "\\EpochNativeBin.exe";
         }
     }
 
 
-    public class BuildTask32 : Microsoft.Build.Utilities.Task
+    public class BuildTask32 : BuildTaskCommonImplementation
     {
-        private string m_fileName;
-        private string m_outputName;
-
-        [Required]
-        public string Filename
+        protected override string GetCompilerRelativePath()
         {
-            get { return m_fileName; }
-            set { m_fileName = value; }
-        }
-
-        [Required]
-        public string Output
-        {
-            get { return m_outputName; }
-            set { m_outputName = value; }
-        }
-
-        public override bool Execute()
-        {
-            string compilerPath = "";
-
-            var regvalue = Registry.GetValue("HKEY_LOCAL_MACHINE\\Software\\Epoch\\CurrentInstall", "InstallPath", "");
-            if (regvalue == null)
-            {
-                LogMissingCompiler();
-                return false;
-            }
-
-            compilerPath = regvalue as string;
-            if (compilerPath.Length <= 0)
-            {
-                LogMissingCompiler();
-                return false;
-            }
-
-            string compilerFileName = compilerPath + "\\Epoch32\\EpochCompiler.exe";
-            try
-            {
-                var process = new Process
-                {
-                    StartInfo = new ProcessStartInfo
-                    {
-                        FileName = compilerFileName,
-                        Arguments = "/files " + m_fileName + " /output " + m_outputName,
-                        UseShellExecute = false,
-                        RedirectStandardOutput = true,
-                        CreateNoWindow = true
-                    }
-                };
-
-                process.Start();
-                Log.LogMessagesFromStream(process.StandardOutput, MessageImportance.High);
-
-                process.WaitForExit();
-
-                return (process.ExitCode == 0);
-            }
-            catch
-            {
-                Log.LogError("Error invoking compiler at \"{0}\". Please ensure Epoch compiler is properly installed.", compilerFileName);
-                return false;
-            }
-        }
-
-        private void LogMissingCompiler()
-        {
-            Log.LogError("Compiler not found. Please ensure Epoch compiler is properly installed.");
+            return "\\Epoch32\\EpochCompiler.exe";
         }
     }
 }
