@@ -85,3 +85,4 @@ EpochBGFXWrapper/EpochBGFXWrapper/Debug/**
 /EpochVisualStudio/EpochVSIX/EpochSetupWiX/Assets
 /EpochDevTools/Compiler.VC.db
 /EpochDevTools/Compiler.eprj.user
+/EpochTests/Projects/TestSuite/TestSuite.VC.db
