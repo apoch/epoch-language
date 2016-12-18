@@ -134,7 +134,7 @@ MakeExe : EpochProject ref project
 	integer virtualoffsetcode    = RoundUp(virtualoffsetdebug + 0x200)			// TODO - hardcoded hack for .debug
 	integer offsetcode           = RoundUpFile(offsetdebug + 0x200)				// TODO - hardcoded hack for .debug
 
-	integer sizecode = EpochLLVMEmitBinaryObject(llvm, codebinarybuffer, 0x10000, virtualoffsetcode + 0x0400000)		// TODO - also bad hacks
+	integer sizecode = EpochLLVMEmitBinaryObject(llvm, codebinarybuffer, 0x10000, virtualoffsetcode + 0x0400000, virtualoffsetgc)		// TODO - also bad hacks
 
 	integer totaldebugsize 		 = sizedebug + sizedebugreloc + sizedebugsymbols
 	integer sizeimage            = RoundUp(virtualoffsetcode + sizecode)

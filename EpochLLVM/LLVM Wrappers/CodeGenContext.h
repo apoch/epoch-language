@@ -27,6 +27,11 @@ namespace llvm
 	}
 }
 
+namespace CodeGenInternal
+{
+	class TrivialMemoryManager;
+}
+
 
 namespace CodeGen
 {
@@ -111,7 +116,7 @@ namespace CodeGen
 
 	public:		// Object code emission interface
 		void PrepareBinaryObject();
-		size_t EmitBinaryObject(char* buffer, size_t maxoutput, unsigned entrypointaddress);
+		size_t EmitBinaryObject(char* buffer, size_t maxoutput, unsigned entrypointaddress, unsigned gcaddress);
 
 	public:		// Miscellaneous configuration interface
 		void SetEntryFunction(llvm::Function* func);
@@ -177,6 +182,7 @@ namespace CodeGen
 
 		const llvm::object::ObjectFile* EmittedImage;
 		llvm::ExecutionEngine* CachedExecutionEngine;
+		CodeGenInternal::TrivialMemoryManager * CachedMemoryManager;
 	};
 
 }

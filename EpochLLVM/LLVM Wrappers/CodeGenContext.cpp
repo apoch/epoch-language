@@ -24,7 +24,7 @@ using namespace Utility;
 static unsigned hack = 0;
 
 
-namespace
+namespace CodeGenInternal
 {
 
 #include <pshpack1.h>
@@ -151,6 +151,9 @@ namespace
 
 		uint64_t getSymbolAddress(const std::string& foo) override;
 
+	public:
+		unsigned GCDataAddress;
+
 	private:		// Internal state
 		ThunkCallbackT ThunkCallback;
 		StringCallbackT StringCallback;
@@ -211,6 +214,10 @@ namespace
 
 			return StringCallback(handle);
 		}
+		else if(foo == "gcdataoffset")			// TODO - harden this
+		{
+			return GCDataAddress;
+		}
 		else
 		{
 			std::wstring wide(foo.begin(), foo.end());
@@ -224,6 +231,9 @@ namespace
 
 
 }
+
+
+using namespace CodeGenInternal;
 
 
 
@@ -394,10 +404,12 @@ void Context::PrepareBinaryObject()
 	GlobalVariable* gcinitfunctionvar = FunctionCreateThunk("ERT_gc_init", exitprocesstype);
 	GlobalVariable* gccollectstrsfunctionvar = FunctionCreateThunk("ERT_gc_collect_strings", voidtype);
 
+
+	GlobalVariable* gcdataoffset = new GlobalVariable(*LLVMModule, TypeGetInteger(), true, GlobalValue::ExternalWeakLinkage, nullptr, "gcdataoffset", nullptr, GlobalValue::NotThreadLocal, 0, true);
 	
 	BasicBlock* bb = BasicBlock::Create(getGlobalContext(), "InitBlock", InitFunction);
 	LLVMBuilder.SetInsertPoint(bb);
-	LLVMBuilder.CreateCall(LLVMBuilder.CreateLoad(gcinitfunctionvar), ConstantInt::get(TypeGetInteger(), 0x6000));		// TODO - un-hardcode .gc segment address
+	LLVMBuilder.CreateCall(LLVMBuilder.CreateLoad(gcinitfunctionvar), LLVMBuilder.CreatePtrToInt(gcdataoffset, TypeGetInteger()));
 	TagDebugLine(++hack, 0);
 
 	// TODO - init globals here
@@ -438,6 +450,7 @@ void Context::PrepareBinaryObject()
 	uint64_t pdata = 0;
 	uint64_t xdata = 0;
 	std::unique_ptr<TrivialMemoryManager> blobmgr = std::make_unique<TrivialMemoryManager>(ThunkCallback, StringCallback, &EmissionAddress, &EmissionSize, &pdata, &xdata);
+	CachedMemoryManager = blobmgr.get();
 
 	// HACK! We move the smart pointer's contents into the EngineBuilder
 	// below, but we still want to access the module for other purposes.
@@ -596,8 +609,10 @@ void Context::PrepareBinaryObject()
 	GCCompilation::PrepareGCData(*CachedExecutionEngine, &GCSection);
 }
 
-size_t Context::EmitBinaryObject(char* buffer, size_t maxoutput, unsigned entrypointaddress)
+size_t Context::EmitBinaryObject(char* buffer, size_t maxoutput, unsigned entrypointaddress, unsigned gcaddress)
 {
+	CachedMemoryManager->GCDataAddress = gcaddress;
+
 	CachedExecutionEngine->mapSectionAddress((void*)(EmissionAddress), entrypointaddress);
 	CachedExecutionEngine->finalizeObject();
 
