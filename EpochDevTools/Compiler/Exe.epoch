@@ -87,7 +87,7 @@ MakeExe : EpochProject ref project
 	
 	EmitAllFunctionsToLLVM(llvm, Functions)
 	
-	integer sizecode = EpochLLVMEmitBinaryObject(llvm, codebinarybuffer, 0x10000)		// TODO - also bad hack
+	EpochLLVMPrepareBinaryObject(llvm)
 	
 	
 	integer sizepdata = EpochLLVMSectionGetPDataSize(llvm)
@@ -111,8 +111,6 @@ MakeExe : EpochProject ref project
 	EpochLLVMSectionCopyDebugReloc(llvm, debugrelocdata)
 	EpochLLVMSectionCopyDebugSymbols(llvm, debugsymboldata)
 	
-	EpochLLVMContextDestroy(llvm)
-
 	
 	integer virtualoffsetrsrc    = RoundUp(virtualoffsetthunk + sizethunk)
 	integer offsetrsrc           = RoundUpFile(offsetthunk + sizethunk)
@@ -136,8 +134,13 @@ MakeExe : EpochProject ref project
 	integer virtualoffsetcode    = RoundUp(virtualoffsetdebug + 0x200)			// TODO - hardcoded hack for .debug
 	integer offsetcode           = RoundUpFile(offsetdebug + 0x200)				// TODO - hardcoded hack for .debug
 
+	integer sizecode = EpochLLVMEmitBinaryObject(llvm, codebinarybuffer, 0x10000, virtualoffsetcode + 0x0400000)		// TODO - also bad hacks
+
 	integer totaldebugsize 		 = sizedebug + sizedebugreloc + sizedebugsymbols
 	integer sizeimage            = RoundUp(virtualoffsetcode + sizecode)
+
+	
+	EpochLLVMContextDestroy(llvm)
 
 
 	integer GENERIC_WRITE = 0x40000000

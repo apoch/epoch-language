@@ -120,9 +120,14 @@ extern "C" void EpochLLVMFunctionSetEntry(void* context, void* func)
 
 
 
-extern "C" size_t EpochLLVMEmitBinaryObject(void* context, char* buffer, size_t maxoutput)
+extern "C" void EpochLLVMPrepareBinaryObject(void* context)
 {
-	return reinterpret_cast<CodeGen::Context*>(context)->EmitBinaryObject(buffer, maxoutput);
+	reinterpret_cast<CodeGen::Context*>(context)->PrepareBinaryObject();
+}
+
+extern "C" size_t EpochLLVMEmitBinaryObject(void* context, char* buffer, size_t maxoutput, unsigned entrypointaddress)
+{
+	return reinterpret_cast<CodeGen::Context*>(context)->EmitBinaryObject(buffer, maxoutput, entrypointaddress);
 }
 
 extern "C" void EpochLLVMSetThunkCallback(void* context, void* funcptr)

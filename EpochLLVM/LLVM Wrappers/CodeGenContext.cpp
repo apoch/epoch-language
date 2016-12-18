@@ -380,7 +380,7 @@ extern "C" void LLVMLinkInMCJIT();
 
 
 
-size_t Context::EmitBinaryObject(char* buffer, size_t maxoutput)
+void Context::PrepareBinaryObject()
 {
 	LLVMLinkInMCJIT();
 
@@ -437,9 +437,7 @@ size_t Context::EmitBinaryObject(char* buffer, size_t maxoutput)
 
 	uint64_t pdata = 0;
 	uint64_t xdata = 0;
-	uint64_t emissionaddr = 0;
-	size_t s = 0;
-	std::unique_ptr<TrivialMemoryManager> blobmgr = std::make_unique<TrivialMemoryManager>(ThunkCallback, StringCallback, &emissionaddr, &s, &pdata, &xdata);
+	std::unique_ptr<TrivialMemoryManager> blobmgr = std::make_unique<TrivialMemoryManager>(ThunkCallback, StringCallback, &EmissionAddress, &EmissionSize, &pdata, &xdata);
 
 	// HACK! We move the smart pointer's contents into the EngineBuilder
 	// below, but we still want to access the module for other purposes.
@@ -457,7 +455,7 @@ size_t Context::EmitBinaryObject(char* buffer, size_t maxoutput)
 	ExecutionEngine* ee = eb.create(machine);
 	if(!ee)
 	{
-		return 0;
+		return;
 	}
 
 	llvmmodule->setDataLayout(ee->getDataLayout());
@@ -466,8 +464,6 @@ size_t Context::EmitBinaryObject(char* buffer, size_t maxoutput)
 
 	llvmmodule->dump();
 
-
-	const object::ObjectFile* image;
 
 	class JEL : public JITEventListener
 	{
@@ -497,17 +493,17 @@ size_t Context::EmitBinaryObject(char* buffer, size_t maxoutput)
 				}
 			}
 		}
-	} listener(&emissionaddr, &s, &image);
+	} listener(&EmissionAddress, &EmissionSize, &EmittedImage);
 
 	ee->RegisterJITEventListener(&listener);
 
 	ee->DisableLazyCompilation(true);
 	ee->generateCodeForModule(llvmmodule);
-	ee->mapSectionAddress((void*)(emissionaddr), 0x0408000);				// TODO
-	ee->finalizeObject();
+
+	CachedExecutionEngine = ee;
 
 
-	for(const auto& section : image->sections())
+	for(const auto& section : EmittedImage->sections())
 	{
 		if(!section.isText() && !section.isBSS() && !section.isVirtual())
 		{	
@@ -543,7 +539,7 @@ size_t Context::EmitBinaryObject(char* buffer, size_t maxoutput)
 	unsigned numsyms = 0;
 
 	uint32_t offset = 4;
-	for(const auto& sym : image->symbols())
+	for(const auto& sym : EmittedImage->symbols())
 	{
 		IMAGE_SYMBOL symbol;
 
@@ -597,11 +593,16 @@ size_t Context::EmitBinaryObject(char* buffer, size_t maxoutput)
 	std::copy(std::begin(stringbuffer), std::end(stringbuffer), std::back_inserter(DebugSymbols));
 
 
-	GCCompilation::PrepareGCData(*ee, &GCSection);
+	GCCompilation::PrepareGCData(*CachedExecutionEngine, &GCSection);
+}
 
+size_t Context::EmitBinaryObject(char* buffer, size_t maxoutput, unsigned entrypointaddress)
+{
+	CachedExecutionEngine->mapSectionAddress((void*)(EmissionAddress), entrypointaddress);
+	CachedExecutionEngine->finalizeObject();
 
-	memcpy(buffer, (void*)(emissionaddr), s);
-	return s;
+	memcpy(buffer, (void*)(EmissionAddress), EmissionSize);
+	return EmissionSize;
 }
 
 

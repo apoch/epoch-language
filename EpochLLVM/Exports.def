@@ -30,6 +30,7 @@ EXPORTS
 	EpochLLVMSumTypeCreate
 
 	EpochLLVMEmitBinaryObject
+	EpochLLVMPrepareBinaryObject
 
 	EpochLLVMSetThunkCallback
 	EpochLLVMSetStringCallback

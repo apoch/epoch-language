@@ -20,6 +20,11 @@ namespace llvm
 
 	class BasicBlock;
 	class CallInst;
+
+	namespace object
+	{
+		class ObjectFile;
+	}
 }
 
 
@@ -105,7 +110,8 @@ namespace CodeGen
 		void CodeStatementFinalize();
 
 	public:		// Object code emission interface
-		size_t EmitBinaryObject(char* buffer, size_t maxoutput);
+		void PrepareBinaryObject();
+		size_t EmitBinaryObject(char* buffer, size_t maxoutput, unsigned entrypointaddress);
 
 	public:		// Miscellaneous configuration interface
 		void SetEntryFunction(llvm::Function* func);
@@ -165,6 +171,12 @@ namespace CodeGen
 		std::vector<char> DebugData;
 		std::vector<char> DebugRelocs;
 		std::vector<char> DebugSymbols;
+
+		uint64_t EmissionAddress;
+		size_t EmissionSize;
+
+		const llvm::object::ObjectFile* EmittedImage;
+		llvm::ExecutionEngine* CachedExecutionEngine;
 	};
 
 }

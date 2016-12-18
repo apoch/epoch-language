@@ -73,7 +73,8 @@ EpochLLVMTypeGetString : LLVMContextHandle context -> LLVMType t = 0												
 EpochLLVMTypeGetVoid : LLVMContextHandle context -> LLVMType t = 0													[external("EpochLLVM.dll", "EpochLLVMTypeGetVoid")]
 EpochLLVMTypeGetBuffer : LLVMContextHandle context -> LLVMType t = 0												[external("EpochLLVM.dll", "EpochLLVMTypeGetBuffer")]
 
-EpochLLVMEmitBinaryObject : LLVMContextHandle handle, buffer ref outbuffer, integer maxsize -> integer written = 0 	[external("EpochLLVM.dll", "EpochLLVMEmitBinaryObject")]
+EpochLLVMPrepareBinaryObject : LLVMContextHandle handle																[external("EpochLLVM.dll", "EpochLLVMPrepareBinaryObject")]
+EpochLLVMEmitBinaryObject : LLVMContextHandle handle, buffer ref outbuffer, integer maxsize, integer entrypointaddress -> integer written = 0 	[external("EpochLLVM.dll", "EpochLLVMEmitBinaryObject")]
 
 EpochLLVMSetThunkCallback : LLVMContextHandle handle, (func : string -> integer)                                    [external("EpochLLVM.dll", "EpochLLVMSetThunkCallback")]
 EpochLLVMSetStringCallback : LLVMContextHandle handle, (func : integer -> integer)									[external("EpochLLVM.dll", "EpochLLVMSetStringCallback")]
