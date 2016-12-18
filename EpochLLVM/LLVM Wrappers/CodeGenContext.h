@@ -80,6 +80,7 @@ namespace CodeGen
 		llvm::CallInst* CodeCreateCall(llvm::Function* target);
 		void CodeCreateCallIndirect(llvm::AllocaInst* target);
 		llvm::CallInst* CodeCreateCallThunk(llvm::GlobalVariable* target);
+		void CodeCreateCast(llvm::Type* targettype);
 		void CodeCreateCondBranch(llvm::Value* cond, llvm::BasicBlock* truetarget, llvm::BasicBlock* falsetarget);
 		void CodeCreateDereference();
 		llvm::Value* CodeCreateGEP(unsigned index);
@@ -109,6 +110,7 @@ namespace CodeGen
 		void CodePushRawGEP(llvm::Value* gep);
 		void CodePushString(unsigned handle);
 		void CodePushFunction(llvm::Function* func);
+		void CodePushExtractedStructValue(unsigned memberindex);
 
 		llvm::Value* CodePopValue();
 

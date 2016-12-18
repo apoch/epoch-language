@@ -711,6 +711,21 @@ llvm::CallInst* Context::CodeCreateCallThunk(llvm::GlobalVariable* target)
 	return inst;
 }
 
+void Context::CodeCreateCast(Type* targettype)
+{
+	llvm::Value* v = PendingValues.back();
+	PendingValues.pop_back();
+
+	llvm::Value* castvalue;
+	
+	if(targettype->isPointerTy() && !v->getType()->isPointerTy())
+		castvalue = LLVMBuilder.CreateIntToPtr(v, targettype);
+	else
+		castvalue = LLVMBuilder.CreateTruncOrBitCast(v, targettype);
+
+	PendingValues.push_back(castvalue);
+}
+
 void Context::CodeCreateCondBranch(Value* cond, BasicBlock* truetarget, BasicBlock* falsetarget)
 {
 	LLVMBuilder.CreateCondBr(cond, truetarget, falsetarget);
@@ -933,6 +948,18 @@ void Context::CodePushFunction(llvm::Function* func)
 }
 
 
+void Context::CodePushExtractedStructValue(unsigned memberindex)
+{
+	Value* structure = PendingValues.back();
+	PendingValues.pop_back();
+
+	unsigned indices[] = { memberindex };
+	Value* extracted = LLVMBuilder.CreateExtractValue(structure, indices);
+
+	PendingValues.push_back(extracted);
+}
+
+
 void Context::CodeStatementFinalize()
 {
 	TagDebugLine(++hack, 0);
@@ -949,7 +976,7 @@ llvm::BasicBlock* Context::GetCurrentBasicBlock()
 
 void Context::SetCurrentBasicBlock(llvm::BasicBlock* block)
 {
-	LLVMBuilder.SetInsertPoint(block);	
+	LLVMBuilder.SetInsertPoint(block);
 }
 
 

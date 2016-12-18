@@ -41,6 +41,7 @@ EXPORTS
 	EpochLLVMCodeCreateCall
 	EpochLLVMCodeCreateCallIndirect
 	EpochLLVMCodeCreateCallThunk
+	EpochLLVMCodeCreateCast
 	EpochLLVMCodeCreateCondBranch
 	EpochLLVMCodeCreateGEP
 	EpochLLVMCodeCreateRead
@@ -71,6 +72,7 @@ EXPORTS
 	EpochLLVMCodePushRawGEP
 	EpochLLVMCodePushString
 	EpochLLVMCodePushFunction
+	EpochLLVMCodePushExtractedStructValue
 
 	EpochLLVMCodePopValue
 
