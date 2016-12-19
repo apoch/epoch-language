@@ -706,7 +706,7 @@ EmitSingleCodeBlockEntryToLLVM : LLVMBuildContext ref context, Statement ref ent
 		{
 			integer varname = ExtractConstructorIdentifier(entry.Parameters)
 			assertmsg(varname != 0, "Couldn't find variable to initialize")
-						
+
 			LLVMAlloca alloca = 0
 			BinaryTreeCopyPayload<LLVMAlloca>(context.LocalVariables.RootNode, varname, alloca)
 			assertmsg(alloca != 0, "Couldn't find LLVM binding alloca to initialize")
@@ -717,8 +717,22 @@ EmitSingleCodeBlockEntryToLLVM : LLVMBuildContext ref context, Statement ref ent
 	}
 	elseif(SumTypeExists(entry.Name))
 	{
-		// TODO - LLVM sum type implementation
-		//BytecodeConstructSumType(stream)
+		integer stvarname = ExtractConstructorIdentifier(entry.Parameters)
+		assertmsg(stvarname != 0, "Couldn't find sum-typed variable to initialize")
+
+		LLVMAlloca stalloca = 0
+		BinaryTreeCopyPayload<LLVMAlloca>(context.LocalVariables.RootNode, stvarname, stalloca)
+		assertmsg(stalloca != 0, "Couldn't find LLVM binding sum-typed alloca to initialize")
+
+		EpochLLVMCodePushRawAlloca(context.Context, stalloca)
+		LLVMGEP stgep = EpochLLVMCodeCreateGEP(context.Context, 0)
+
+		EpochLLVMCodePushRawAlloca(context.Context, stalloca)
+		LLVMGEP payloadgep = EpochLLVMCodeCreateGEP(context.Context, 1)
+		EmitPartialExpressionListToLLVM(context, entry.Parameters)
+		EpochLLVMCodeCreateWriteStructure(context.Context, stgep)
+		EpochLLVMCodeCreateCast(context.Context, GetLLVMTypeForEpochType(context.Context, 0x01000005))			// TODO - look up appropriate storage type for sum-type
+		EpochLLVMCodeCreateWriteStructure(context.Context, payloadgep)
 	}
 	else
 	{
@@ -1113,7 +1127,7 @@ EmitSingleAtomToLLVM : LLVMBuildContext ref context, CompoundAtom ref atom
 
 EmitSingleAtomToLLVM : LLVMBuildContext ref context, TypeAnnotationAtom ref atom
 {
-	// TODO ?
+	EpochLLVMCodePushInteger(context.Context, atom.Type)
 }
 
 
@@ -1541,15 +1555,6 @@ EmitAllTypeMatchersInLLVM : LLVMContextHandle context, list<TypeMatcher> ref mat
 		LLVMType funcrettype = EpochLLVMTypeGetVoid(context)
 		
 		CreateTypeMatcherParamsInLLVM(context, matchers.value.Overloads, matchers.value.Overloads.value.Parameters, 0)
-
-		// Caller is responsible for constructing sum typed objects to pass in
-		//  - Can probably get away with minor tweaks to type inference as it already exists
-
-		// Type matcher inspects each sum type and dispatches accordingly
-		// For statically known overload resolution, ensure LLVM opts do the right thing??
-		//  - OR we could detect this internally and emit a direct call to the overload
-		//  - probably have to do that detection at call site?
-		//  - Optimization for later; first pass doesn't absolutely need this
 		
 		LLVMFunctionType functype = EpochLLVMFunctionTypeCreate(context, funcrettype)
 		LLVMFunctionRef llvmfunc = EpochLLVMFunctionCreate(context, funcname, functype)

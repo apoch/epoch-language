@@ -720,8 +720,10 @@ void Context::CodeCreateCast(Type* targettype)
 	
 	if(targettype->isPointerTy() && !v->getType()->isPointerTy())
 		castvalue = LLVMBuilder.CreateIntToPtr(v, targettype);
+	else if(!targettype->isPointerTy() && v->getType()->isPointerTy())
+		castvalue = LLVMBuilder.CreatePtrToInt(v, targettype);
 	else
-		castvalue = LLVMBuilder.CreateTruncOrBitCast(v, targettype);
+		castvalue = LLVMBuilder.CreateZExtOrTrunc(v, targettype);
 
 	PendingValues.push_back(castvalue);
 }
