@@ -5,13 +5,13 @@
 //
 
 
-TestTypePromotion :
+TestTypePromotion : Harness ref harness
 {
-	TestSection("Type promotion/demotion")
+	TestSection(harness, "Type promotion/demotion")
 	
 	TTPInteger64Demote()
 	
-	TestSectionComplete()
+	TestSectionComplete(harness)
 }
 
 

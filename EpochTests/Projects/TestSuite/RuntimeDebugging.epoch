@@ -22,17 +22,17 @@
 // is informed that the section is over, and flow control is
 // returned to the caller to begin another section.
 //
-TestRuntimeDebugFunctions :
+TestRuntimeDebugFunctions : Harness ref harness
 {
 	// Enter the section and initialize reporting data for it
-	TestSection("Debug RTL functions")
+	TestSection(harness, "Debug RTL functions")
 	
 	// Test assertions are working
-	TRDFAssert()
+	TRDFAssert(harness)
 	
 	// Section finished, return to caller (optionally also
 	// displaying stats if the harness is in verbose mode)
-	TestSectionComplete()
+	TestSectionComplete(harness)
 }
 
 
@@ -45,7 +45,7 @@ TestRuntimeDebugFunctions :
 // this as a sufficient pass. If failed asserts really have
 // broken, it should be plenty obvious elsewhere.
 //
-TRDFAssert :
+TRDFAssert : Harness ref harness
 {
 	// Actually test the RTL assert, but don't let it fail because
 	// we don't want to halt the test suite. Instead, we will test
@@ -58,7 +58,7 @@ TRDFAssert :
 	// test. At some point we have to simply hope that the harness
 	// works correctly and will catch failed tests, so we won't go
 	// all meta with trying to validate the harness from inside.
-	TestAssert(true, "basic assertion check")
+	TestAssert(true, harness, "basic assertion check")
 }
 
 

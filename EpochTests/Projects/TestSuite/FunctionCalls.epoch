@@ -5,21 +5,21 @@
 //
 
 
-TestFunctionCalls :
+TestFunctionCalls : Harness ref harness
 {
-	TestSection("Function calls")
+	TestSection(harness, "Function calls")
 	
-	TestAssert(TFCBooleanReturn(), "literal boolean return value")
-	TestAssert(TFCNonTrivialReturn(), "named boolean return value")
+	TestAssert(TFCBooleanReturn(), harness, "literal boolean return value")
+	TestAssert(TFCNonTrivialReturn(), harness, "named boolean return value")
 	
-	TFCParamExpectTrue(true)
-	TFCParamExpectFalse(false)
+	TFCParamExpectTrue(true, harness)
+	TFCParamExpectFalse(false, harness)
 	
-	TestAssert(CompareStrings("a", "b") == -1, "external string compare")
+	TestAssert(CompareStrings("a", "b") == -1, harness, "external string compare")
 	
-	TFCHigherOrder()
+	TFCHigherOrder(harness)
 	
-	TestSectionComplete()
+	TestSectionComplete(harness)
 }
 
 
@@ -28,14 +28,14 @@ TFCBooleanReturn : -> true
 TFCNonTrivialReturn : -> boolean ret = true
 
 
-TFCParamExpectTrue : boolean expected
+TFCParamExpectTrue : boolean expected, Harness ref harness
 {
-	TestAssert(expected, "boolean function parameter")
+	TestAssert(expected, harness, "boolean function parameter")
 }
 
-TFCParamExpectFalse : boolean expected
+TFCParamExpectFalse : boolean expected, Harness ref harness
 {
-	TestAssert(!expected, "boolean function parameter, inverted")
+	TestAssert(!expected, harness, "boolean function parameter, inverted")
 }
 
 
@@ -44,13 +44,13 @@ CompareStrings : string lhs, string rhs -> integer ret = 0 [external("Kernel32.d
 
 
 
-TFCHigherOrder :
+TFCHigherOrder : Harness ref harness
 {
 	integer foo = 40
-	TestAssert(foo == 40, "higher order function precondition")
+	TestAssert(foo == 40, harness, "higher order function precondition")
 	foo = TFCMutate(foo, TFCMutatorAddition, 5)
 	foo = TFCMutate(foo, TFCMutatorSubtraction, 3)
-	TestAssert(foo == 42, "higher order function postcondition")
+	TestAssert(foo == 42, harness, "higher order function postcondition")
 }
 
 

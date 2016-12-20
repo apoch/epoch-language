@@ -5,50 +5,52 @@
 //
 
 
-TestSumTypes :
+TestSumTypes : Harness ref harness
 {
-	TestSection("Sum types")
+	TestSection(harness, "Sum types")
 	
-	TSTPassthrough()
-	TSTTypeMatch()
+	TSTPassthrough(harness)
+	TSTTypeMatch(harness)
 	
-	TestSectionComplete()
+	TestSectionComplete(harness)
 }
 
 
 type BasicSumType : integer | string
 
 
-TSTPassthrough :
+TSTPassthrough : Harness ref harness
 {
 	BasicSumType test = 42
-	TSTCheckPassthrough(test)
+	TSTCheckPassthrough(harness, test)
 }
 
-TSTCheckPassthrough : BasicSumType ref test
+TSTCheckPassthrough : Harness ref harness, BasicSumType ref test
 {
-	TestAssert(true, "basic sumtype parameter passthrough")
+	TestAssert(true, harness, "basic sumtype parameter passthrough")
 }
 
 
 
-TSTTypeMatch :
+TSTTypeMatch : Harness ref harness
 {
+	Harness foo = 0, 0, 0, 0
+
 	BasicSumType test = 42
-	TSTCheckTypeMatch(test)
+	TSTCheckTypeMatch(foo, test)
 	
 	BasicSumType test2 = "test"
-	TSTCheckTypeMatch(test2)
+	TSTCheckTypeMatch(foo, test2)
 }
 
-TSTCheckTypeMatch : integer val
+TSTCheckTypeMatch : Harness ref harness, integer val
 {
-	TestAssert(val == 42, "sumtype type matching - integer fork")
+	TestAssert(val == 42, harness, "sumtype type matching - integer fork")
 }
 
-TSTCheckTypeMatch : string val
+TSTCheckTypeMatch : Harness ref harness, string val
 {
-	TestAssert(val == "test", "sumtype type matching - string fork")
+	TestAssert(val == "test", harness, "sumtype type matching - string fork")
 }
 
 

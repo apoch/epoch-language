@@ -4,33 +4,47 @@
 // Test harness code for the Epoch test suite
 //
 	
-	
+structure Harness :
+	integer SectionsStarted,
+	integer SectionsCompleted,
+	integer TestsPassed,
+	integer TestsFailed
 
-TestSection : string sectionname
+
+TestSection : Harness ref harness, string sectionname
 {
-	// TODO - formatting, once dynamic string support is reimplemented in LLVM64
+	integer previous = harness.SectionsStarted
+	harness.SectionsStarted = previous + 1
+	
 	print("BEGIN TESTS: " ; sectionname)
 }
 
 
-TestSectionComplete :
+TestSectionComplete : Harness ref harness
 {
-	// TODO - pass along state for the tests
-	// TODO - display section statistics
+	integer previous = harness.SectionsCompleted
+	harness.SectionsCompleted = previous + 1
+
 	print("SECTION COMPLETE")
 	print("")
 }
 
 
-TestAssert : boolean success, string testname
+TestAssert : boolean success, Harness ref harness, string testname
 {
 	if(!success)
 	{
 		print("*** TEST FAILED: " ; testname)
+
+		integer previous = harness.TestsFailed
+		harness.TestsFailed = previous + 1
 	}
 	else
 	{
 		print("PASS: " ; testname)
+
+		integer previous = harness.TestsPassed
+		harness.TestsPassed = previous + 1
 	}
 }
 

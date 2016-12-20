@@ -5,64 +5,64 @@
 //
 
 
-TestEntities :
+TestEntities : Harness ref harness
 {
-	TestSection("Entities")
+	TestSection(harness, "Entities")
 	
-	TEIfTest()
-	TEIfElseTest()
-	TEIfElseIfTest()
+	TEIfTest(harness)
+	TEIfElseTest(harness)
+	TEIfElseIfTest(harness)
 	
-	TEWhileTest()
+	TEWhileTest(harness)
 	
-	TestSectionComplete()
+	TestSectionComplete(harness)
 }
 
 
 
-TEIfTest :
+TEIfTest : Harness ref harness
 {
 	if(1 == 2)
 	{
-		TestAssert(false, "if conditions")
+		TestAssert(false, harness, "if conditions")
 	}
 }
 
-TEIfElseTest :
+TEIfElseTest : Harness ref harness
 {
 	if(true)
 	{
-		TestAssert(true, "if-else conditions")
+		TestAssert(true, harness, "if-else conditions")
 	}
 	else
 	{
-		TestAssert(false, "if-else conditions")
+		TestAssert(false, harness, "if-else conditions")
 	}
 }
 
-TEIfElseIfTest :
+TEIfElseIfTest : Harness ref harness
 {
 	if(1 == 2)
 	{
-		TestAssert(false, "if-elseif-else conditions")
+		TestAssert(false, harness, "if-elseif-else conditions")
 	}
 	elseif(2 == 1)
 	{
-		TestAssert(false, "if-elseif-else conditions")
+		TestAssert(false, harness, "if-elseif-else conditions")
 	}
 	else
 	{
-		TestAssert(true, "if-elseif-else conditions")
+		TestAssert(true, harness, "if-elseif-else conditions")
 	}
 }
 
 
 
-TEWhileTest :
+TEWhileTest : Harness ref harness
 {
 	while(1 == 2)
 	{
-		TestAssert(false, "while loops")
+		TestAssert(false, harness, "while loops")
 	}
 }
 

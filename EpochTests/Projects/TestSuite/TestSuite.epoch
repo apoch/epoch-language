@@ -22,14 +22,16 @@ entrypoint :
 	print("Compiler and runtime test suite")
 	print("")
 
+	Harness harness = 0, 0, 0, 0
+
 	// Execute all test sections
-	TestRuntimeDebugFunctions()
-	TestFunctionCalls()
-	TestOperators()
-	TestEntities()
-	TestStructures()
-	TestTypePromotion()
-	TestSumTypes()
+	TestRuntimeDebugFunctions(harness)
+	TestFunctionCalls(harness)
+	TestOperators(harness)
+	TestEntities(harness)
+	TestStructures(harness)
+	TestTypePromotion(harness)
+	TestSumTypes(harness)
 
 	// TODO - generate report
 }
