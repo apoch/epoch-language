@@ -649,10 +649,10 @@ TypeInference : Statement ref statement, InferenceContext ref context -> boolean
 		//AnnotateAllParameters(statement.Parameters, originalname, 0, paramcount, statement.TopLevel)
 	}
 
-	if(SumTypeExists(statement.Name))
-	{
-		AnnotateAllParameters(statement.Parameters, originalname, 0, paramcount, statement.TopLevel)
-	}
+	//if(SumTypeExists(statement.Name))
+	//{
+	//	AnnotateAllParameters(statement.Parameters, originalname, 0, paramcount, statement.TopLevel)
+	//}
 }
 
 
