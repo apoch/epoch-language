@@ -883,6 +883,30 @@ void Context::CodeCreateOperatorIntegerMinus()
 	PendingValues.push_back(val);
 }
 
+void Context::CodeCreateOperatorIntegerDivide()
+{
+	Value* denominator = PendingValues.back();
+	PendingValues.pop_back();
+
+	Value* numerator = PendingValues.back();
+	PendingValues.pop_back();
+
+	Value* quotient = LLVMBuilder.CreateSDiv(numerator, denominator);
+	PendingValues.push_back(quotient);
+}
+
+void Context::CodeCreateOperatorIntegerMultiply()
+{
+	Value* rhs = PendingValues.back();
+	PendingValues.pop_back();
+
+	Value* lhs = PendingValues.back();
+	PendingValues.pop_back();
+
+	Value* product = LLVMBuilder.CreateMul(lhs, rhs);
+	PendingValues.push_back(product);
+}
+
 
 void Context::CodePushBoolean(bool value)
 {

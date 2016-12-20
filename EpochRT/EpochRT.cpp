@@ -34,6 +34,14 @@ extern "C" bool ERT_string_compare(const char* s1, const char* s2)
 	return (std::strcmp(s1, s2) == 0);
 }
 
+extern "C" const char* ERT_string_from_integer(int i)
+{
+	std::ostringstream convert;
+	convert << i;
+
+	return StringPool.Alloc(convert.str());
+}
+
 extern "C" void ERT_gc_init(unsigned segmentoffset)
 {
 	GC::Init(segmentoffset);

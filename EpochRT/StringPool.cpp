@@ -15,6 +15,13 @@ ThreadStringPool::~ThreadStringPool()
 }
 
 
+const char* ThreadStringPool::Alloc(const std::string& s)
+{
+	Pool.emplace_back(TraceFlag, new std::string(s));
+
+	return Pool.back().String->c_str();
+}
+
 const char* ThreadStringPool::AllocConcat(const char* s1, const char* s2)
 {
 	std::ostringstream concat;

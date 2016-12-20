@@ -33,6 +33,16 @@ entrypoint :
 	TestTypePromotion(harness)
 	TestSumTypes(harness)
 
-	// TODO - generate report
+	print("TESTS COMPLETED")
+	print("Sections initiated: " ; cast(string, harness.SectionsStarted))
+	print("Sections completed: " ; cast(string, harness.SectionsCompleted))
+	print("      Tests passed: " ; cast(string, harness.TestsPassed))
+	print("      Tests failed: " ; cast(string, harness.TestsFailed))
+	//print(cast(string, (harness.TestsPassed * 100) / (harness.TestsPassed + harness.TestsFailed)) ; "% success rate")
+
+	integer totaltests = harness.TestsPassed + harness.TestsFailed
+	integer percentnumerator = harness.TestsPassed * 100
+	integer percent = percentnumerator / totaltests
+	print(cast(string, percent) ; "% success rate")
 }
 

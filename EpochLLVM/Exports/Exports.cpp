@@ -266,6 +266,15 @@ extern "C" void EpochLLVMCodeOperatorIntegerMinus(void* context)
 	reinterpret_cast<CodeGen::Context*>(context)->CodeCreateOperatorIntegerMinus();
 }
 
+extern "C" void EpochLLVMCodeOperatorIntegerDivide(void* context)
+{
+	reinterpret_cast<CodeGen::Context*>(context)->CodeCreateOperatorIntegerDivide();
+}
+
+extern "C" void EpochLLVMCodeOperatorIntegerMultiply(void* context)
+{
+	reinterpret_cast<CodeGen::Context*>(context)->CodeCreateOperatorIntegerMultiply();
+}
 
 
 extern "C" void EpochLLVMCodePushBoolean(void* context, bool value)

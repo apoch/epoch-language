@@ -120,6 +120,8 @@ EpochLLVMCodeOperatorIntegerEquals : LLVMContextHandle context														[ext
 EpochLLVMCodeOperatorIntegerNotEquals : LLVMContextHandle context													[external("EpochLLVM.dll", "EpochLLVMCodeOperatorIntegerNotEquals")]
 EpochLLVMCodeOperatorIntegerPlus : LLVMContextHandle context														[external("EpochLLVM.dll", "EpochLLVMCodeOperatorIntegerPlus")]
 EpochLLVMCodeOperatorIntegerMinus : LLVMContextHandle context														[external("EpochLLVM.dll", "EpochLLVMCodeOperatorIntegerMinus")]
+EpochLLVMCodeOperatorIntegerMultiply : LLVMContextHandle context													[external("EpochLLVM.dll", "EpochLLVMCodeOperatorIntegerMultiply")]
+EpochLLVMCodeOperatorIntegerDivide : LLVMContextHandle context														[external("EpochLLVM.dll", "EpochLLVMCodeOperatorIntegerDivide")]
 
 EpochLLVMCodePushBoolean : LLVMContextHandle context, boolean literal												[external("EpochLLVM.dll", "EpochLLVMCodePushBoolean")]
 EpochLLVMCodePushInteger : LLVMContextHandle context, integer literal												[external("EpochLLVM.dll", "EpochLLVMCodePushInteger")]
@@ -704,7 +706,14 @@ EmitSingleCodeBlockEntryToLLVM : LLVMBuildContext ref context, Statement ref ent
 	{
 		if(GetTypeByName(entry.Name) == 0)
 		{
-			EmitExpressionListToLLVM(context, entry.Parameters)
+			if(entry.Name == PooledStringHandleForCastIntegerToString)
+			{
+				EmitPartialExpressionListToLLVM(context, entry.Parameters)
+			}
+			else
+			{
+				EmitExpressionListToLLVM(context, entry.Parameters)
+			}
 			
 			integer thunk = 0
 			BinaryTreeCopyPayload<integer>(LLVMGlobalThunks.RootNode, entry.Name, thunk)
@@ -1079,6 +1088,14 @@ EmitSingleAtomToLLVM : LLVMBuildContext ref context, OperatorInvokeAtom ref atom
 	{
 		EpochLLVMCodeOperatorIntegerMinus(context.Context)
 	}
+	elseif(atom.OperatorName == PooledStringHandleForMultiplyInteger)
+	{
+		EpochLLVMCodeOperatorIntegerMultiply(context.Context)
+	}
+	elseif(atom.OperatorName == PooledStringHandleForDivideInteger)
+	{
+		EpochLLVMCodeOperatorIntegerDivide(context.Context)
+	}
 	elseif(atom.OperatorName == PooledStringHandleForEqualityString)
 	{
 		getthunk = true
@@ -1139,7 +1156,15 @@ EmitSingleAtomToLLVM : LLVMBuildContext ref context, TypeAnnotationAtom ref atom
 }
 
 
+EmitSingleAtomToLLVM : LLVMBuildContext ref context, ParentheticalExpression ref atom
+{
+	DecomposeParentheticalInLLVM(context, atom.Inner)
+}
 
+DecomposeParentheticalInLLVM : LLVMBuildContext ref context, Expression ref expr
+{
+	EmitExpressionAtomsToLLVM(context, expr.Atoms)
+}
 
 
 EmitCompoundBindingsToLLVM : LLVMBuildContext ref context, list<RefBinding> ref bindings, list<RefBinding> ref tail
@@ -1184,6 +1209,7 @@ SetUpBuiltInLLVMThunks : LLVMContextHandle context
 	BuiltInThunkCreatePrint(context)
 	BuiltInThunkCreateStringEquality(context)
 	BuiltInThunkCreateStringConcat(context)
+	BuiltInThunkCreateStringFromInteger(context)
 	
 	BuiltInThunkCreateGCInit(context)
 	BuiltInThunkCreateGCCollectStrings(context)
@@ -1283,6 +1309,16 @@ BuiltInThunkCreateStringConcat : LLVMContextHandle context
 	integer thunk = EpochLLVMFunctionCreateThunk(context, "ERT_string_concat", fty)
 
 	BinaryTreeCreateOrInsert<integer>(LLVMGlobalThunks, PooledStringHandleForStringConcat, thunk)
+}
+
+BuiltInThunkCreateStringFromInteger : LLVMContextHandle context
+{
+	EpochLLVMFunctionTypePush(context)
+	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetInteger(context))
+	LLVMFunctionType fty = EpochLLVMFunctionTypeCreate(context, EpochLLVMTypeGetString(context))
+	integer thunk = EpochLLVMFunctionCreateThunk(context, "ERT_string_from_integer", fty)
+
+	BinaryTreeCreateOrInsert<integer>(LLVMGlobalThunks, PooledStringHandleForCastIntegerToString, thunk)
 }
 
 

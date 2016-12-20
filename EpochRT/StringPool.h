@@ -8,6 +8,7 @@ public:
 	~ThreadStringPool();
 
 public:
+	const char* Alloc(const std::string& s);
 	const char* AllocConcat(const char* s1, const char* s2);
 
 	void MarkInUse(const char* s);

@@ -99,6 +99,8 @@ namespace CodeGen
 		void CodeCreateOperatorIntegerNotEquals();
 		void CodeCreateOperatorIntegerPlus();
 		void CodeCreateOperatorIntegerMinus();
+		void CodeCreateOperatorIntegerDivide();
+		void CodeCreateOperatorIntegerMultiply();
 
 		void CodePushBoolean(bool value);
 		void CodePushInteger(int value);
