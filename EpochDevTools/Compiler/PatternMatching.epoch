@@ -46,68 +46,6 @@ EnsurePatternMatcherExists : nothing, integer rawname, integer mangledname
 }
 
 
-
-CodeGenEmitPatternMatchers : BytecodeStream ref stream, list<PendingPatternMatcher> ref matchers
-{
-	if(!listcontains(EmittedPatternMatchers, matchers.value.MatcherName))
-	{
-		ByteStreamEmitByte(stream.Buffer, stream.Offset, 0x11)			// DefineLexicalScope instruction
-		ByteStreamEmitInteger(stream.Buffer, stream.Offset, matchers.value.MatcherName)
-		ByteStreamEmitInteger(stream.Buffer, stream.Offset, 0)
-		ByteStreamEmitInteger(stream.Buffer, stream.Offset, 0)
-
-		BytecodeEnterPatternResolver(stream, matchers.value.MatcherName)
-		EmitOverloadsForPatternMatcher(stream, PendingPatternMatchers, matchers.value.MatcherName, true)
-		EmitOverloadsForPatternMatcher(stream, PendingPatternMatchers, matchers.value.MatcherName, false)
-		BytecodeExitPatternResolver(stream)
-
-		simpleprepend<integer>(EmittedPatternMatchers, matchers.value.MatcherName)
-	}
-
-	CodeGenEmitPatternMatchers(stream, matchers.next)
-}
-
-CodeGenEmitPatternMatchers : BytecodeStream ref stream, nothing
-
-
-EmitOverloadsForPatternMatcher : BytecodeStream ref stream, list<PendingPatternMatcher> ref matchers, integer matchername, boolean preferliterals
-{
-	if(matchername == matchers.value.MatcherName)
-	{
-		// TODO - filter down to matchers that fit the most general function pattern
-
-		EmitPatternMatchOverload(stream, Functions, matchers.value.OverloadName, preferliterals)
-	}
-
-	EmitOverloadsForPatternMatcher(stream, matchers.next, matchername, preferliterals)
-}
-
-EmitOverloadsForPatternMatcher : BytecodeStream ref stream, nothing, integer matchername, boolean preferliterals
-
-
-
-EmitPatternMatchOverload : BytecodeStream ref stream, list<FunctionDefinition> ref functions, integer overloadname, boolean preferliterals
-{
-	if(functions.value.Name == overloadname)
-	{
-		boolean hasliterals = FunctionSignatureHasLiterals(functions.value.Params)
-		if(hasliterals && preferliterals)
-		{
-			EmitPatternMatchingForFunction(stream, functions.value)
-		}
-		elseif((!hasliterals) && (!preferliterals))
-		{
-			EmitPatternMatchingForFunction(stream, functions.value)
-		}
-	}
-	else
-	{
-		EmitPatternMatchOverload(stream, functions.next, overloadname, preferliterals)
-	}
-}
-
-
-
 PatternMatcherExists : nothing, integer matchername -> false
 
 PatternMatcherExists : list<PendingPatternMatcher> ref matchers, integer matchername -> boolean exists = false

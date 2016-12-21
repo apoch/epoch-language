@@ -53,7 +53,6 @@
     <EpochCompile Include="Common\Win32.epoch" />
     <EpochCompile Include="Compiler\Assignments.epoch" />
     <EpochCompile Include="Compiler\Builtin.epoch" />
-    <EpochCompile Include="Compiler\Bytecode.epoch" />
     <EpochCompile Include="Compiler\ByteStream.epoch" />
     <EpochCompile Include="Compiler\CodeBlocks.epoch" />
     <EpochCompile Include="Compiler\CodeGen.epoch" />

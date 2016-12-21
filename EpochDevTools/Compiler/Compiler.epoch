@@ -147,16 +147,6 @@ entrypoint :
 		
 		ExitProcess(300)
 	}
-
-	//print("Generating code...")
-
-	//buffer streambuffer = 8192000
-	//BytecodeStream stream = streambuffer, 0
-
-	//startMs = timeGetTime()
-	//OnCodeGenProcessProgram(stream)
-	//endMs = timeGetTime()
-	//print("Code generation completed in " ; cast(string, endMs - startMs) ; " milliseconds")
 	
 	print("Writing executable file...")
 	MakeExe(project)
@@ -204,50 +194,6 @@ ParseFile : string filename -> boolean success = false
 	}
 	
 	success = Parse(filename, contents, len, PrintWrapper)
-}
-
-
-//
-// Helper for compiling a single-file program
-//
-CompileFile : string filename, BytecodeStream ref codestream -> boolean success = false
-{
-	integer len = 0
-	string contents = ReadFile(filename, len)
-
-	if(len == 0)
-	{
-		return()
-	}
-
-	integer startparsems = timeGetTime()
-	boolean parseok = Parse(filename, contents, len, PrintWrapper)
-	integer durationparsems = timeGetTime() - startparsems
-
-	print("Parsing completed in " ; cast(string, durationparsems) ; " milliseconds")
-	if(!parseok)
-	{
-		return()
-	}
-
-	integer startprocessms = timeGetTime()
-	boolean irok = IRProcess()
-	integer durationprocessms = timeGetTime() - startprocessms
-
-	print("Semantic analysis completed in " ; cast(string, durationprocessms) ; " milliseconds")
-	if(!irok)
-	{
-		return()
-	}
-
-	integer startcodegenms = timeGetTime()
-	OnCodeGenProcessProgram(codestream)
-	integer durationcodegenms = timeGetTime() - startcodegenms
-
-	print("Code generation completed in " ; cast(string, durationcodegenms) ; " milliseconds")
-	print("")
-
-	success = true
 }
 
 
