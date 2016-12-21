@@ -700,8 +700,6 @@ EmitSingleCodeBlockEntryToLLVM : LLVMBuildContext ref context, AssignmentCompoun
 
 EmitSingleCodeBlockEntryToLLVM : LLVMBuildContext ref context, Statement ref entry
 {
-	// TODO - see if we still need type annotation logic, see CodeGenEmitSingleCodeBlockEntry and sum-type construction
-	
 	if(IsRecognizedBuiltIn(entry.Name))
 	{
 		if(GetTypeByName(entry.Name) == 0)
@@ -893,8 +891,6 @@ EmitExpressionAtomsToLLVM : LLVMBuildContext ref context, Expression ref expr
 
 EmitExpressionAtomsToLLVM : LLVMBuildContext ref context, list<ExpressionAtom> ref atoms
 {
-	// TODO - expand this to support all the nifty stuff atoms can do
-	
 	EmitSingleAtomToLLVM(context, atoms.value)
 	EmitExpressionAtomsToLLVM(context, atoms.next)
 }
@@ -1475,7 +1471,6 @@ CreateCopyConstructorInLLVM : LLVMContextHandle context, StructureDefinition ref
 	LLVMType funcrettype = EpochLLVMTypeGetVoid(context)
 	
 	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetPointerTo(context, GetLLVMTypeForEpochType(context, struct.Type)))
-	//EpochLLVMFunctionQueueParamType(context, GetLLVMTypeForEpochType(context, struct.Type))		// TODO - this supposedly fixes something, but what?
 	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetPointerTo(context, GetLLVMTypeForEpochType(context, struct.Type)))
 
 	LLVMFunctionType functype = EpochLLVMFunctionTypeCreate(context, funcrettype)
