@@ -129,8 +129,8 @@ namespace EpochVSIX
             {
                 if (m_session == null || m_session.IsDismissed) // If there is no active session, bring up completion
                 {
-                    this.TriggerCompletion();
-                    m_session.Filter();
+                    if (this.TriggerCompletion())
+                        m_session.Filter();
                 }
                 else    //the completion session is already active, so just filter
                 {
@@ -154,10 +154,27 @@ namespace EpochVSIX
             //the caret must be in a non-projection location 
             SnapshotPoint? caretPoint =
             m_textView.Caret.Position.Point.GetPoint(
-            textBuffer => (!textBuffer.ContentType.IsOfType("projection")), PositionAffinity.Predecessor);
+            textBuffer => (FilterTextBufferPos(textBuffer)), PositionAffinity.Predecessor);
             if (!caretPoint.HasValue)
             {
                 return false;
+            }
+
+            EpochClassifier classifier = m_textView.TextBuffer.Properties.GetOrCreateSingletonProperty<EpochClassifier>(creator: () => null);
+            if (classifier != null)
+            {
+                var spans = classifier.GetClassificationSpans(m_textView.GetTextElementSpan(caretPoint.Value));
+                if (spans != null)
+                {
+                    foreach (var span in spans)
+                    {
+                        if (span.ClassificationType.IsOfType("comment"))
+                            return false;
+
+                        if (span.ClassificationType.IsOfType("string"))
+                            return false;
+                    }
+                }
             }
 
             m_session = m_provider.CompletionBroker.CreateCompletionSession
@@ -168,6 +185,14 @@ namespace EpochVSIX
             //subscribe to the Dismissed event on the session 
             m_session.Dismissed += this.OnSessionDismissed;
             m_session.Start();
+
+            return true;
+        }
+
+        private bool FilterTextBufferPos(ITextBuffer textBuffer)
+        {
+            if (textBuffer.ContentType.IsOfType("projection"))
+                return false;
 
             return true;
         }
