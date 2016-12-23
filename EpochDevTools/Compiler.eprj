@@ -45,6 +45,7 @@
   </PropertyGroup>
   <ItemGroup>
     <EpochCompile Include="Common\DataStructures.epoch" />
+    <EpochCompile Include="Common\DataStructures\LinkedList.epoch" />
     <EpochCompile Include="Common\Lexer.epoch" />
     <EpochCompile Include="Common\Parser.epoch" />
     <EpochCompile Include="Common\Project.epoch" />
