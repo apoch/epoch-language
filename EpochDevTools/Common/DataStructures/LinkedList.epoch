@@ -5,15 +5,42 @@
 // LINKEDLIST.EPOCH
 // Common library implementation of linked list data structure
 //
+// The list<> templated type, as well as its companion type
+// simplelist<>, forms a singly linked list of nodes for an
+// arbitrarily sized collection.
+//
+// simplelist<> holds its member data by value, while list<>
+// holds elements by reference. Prefer to use the simplelist
+// variant when value types are appropriate, i.e. generally
+// when copies of node data are inexpensive and/or shallow.
+//
+// Both variants use an algebraic sum type to define their
+// respective node pointers, and a structure for holding
+// individual data elements and pointers to the next node
+// in the list. If a node is the tail of a list, i.e. there
+// is no successor node, the sum typed pointer will hold a
+// "nothing." Otherwise, the pointer will point at the next
+// node's containing structure.
+//
 
 
 
 //
-// Singly linked list data structures
+// Linked list template for holding data by value
 //
-// The simplelist holds elements by value type, whereas
-// the list holds them by reference. Prefer to use the
-// simplelist for things which are cheap to copy.
+// The simplelistnode<> templated type is an algebraic sum
+// type which holds either a reference to a simplelist<>
+// templated structure object, or "nothing." The use of the
+// magic "nothing" type indicates the absence of a sensible
+// value for the object. In this case, "nothing" is used to
+// denote the end or tail of a linked list.
+//
+// The value of each node is stored in the templated object
+// of type simplelist<>. A node consists of a copy of the
+// user data for the list entry, as well as a sum-typed
+// pointer to the next node in the list. As noted earlier,
+// the sum-typed member might hold "nothing", indicating
+// that the list has ended and no further nodes exist.
 //
 
 type simplelistnode<type T> : simplelist<T> | nothing
@@ -23,6 +50,17 @@ structure simplelist<type T> :
 	simplelistnode<T> next
 
 
+//
+// Linked list template for holding data by reference
+//
+// The listnode<> and list<> templates work much the same
+// as the simplelist<> variant, with the notable exception
+// that list<> objects contain references to their data
+// instead of copies of it. This can be useful when more
+// than one container might hold the same data and copies
+// are not desirable.
+//
+
 type listnode<type T> : list<T> | nothing
 
 structure list<type T> :
@@ -30,27 +68,56 @@ structure list<type T> :
 	listnode<T> next
 
 
-//
-// List manipulation functions
-//
 
+
+//
+// Prepend a value to the beginning of a simplelist<>
+//
+// Expected to run in O(1) time and with minimal storage overhead.
+//
 simpleprepend<type T> : simplelist<T> ref thelist, T value [nogc]
 {
 	simplelist<T> newlist = value, thelist
 	thelist = newlist
 }
 
+
+//
+// Prepend a reference to the beginning of a list<>
+//
+// Expected to run in O(1) time and with minimal storage overhead.
+//
 prepend<type T> : list<T> ref thelist, T ref value [nogc]
 {
 	list<T> newlist = value, thelist
 	thelist = newlist
 }
 
+//
+// Given a listnode<>, prepend a new node or create
+// a new list<> if no nodes currently exist.
+//
+// Expected to run in O(1) time and with minimal storage overhead.
+//
 ListPrependOrCreate<type T> : listnode<T> ref node, T ref value [nogc]
 {
 	list<T> newlist = value, node
 	listnode<T> wrap = newlist
 	node = wrap
+}
+
+
+//
+// Append a value to a new node at the tail of a simplelist<>
+//
+// Currently uses a helper function to use type dispatching to find
+// the existing list tail node and modify it.
+//
+// Expected to run in O(n) time in n elements in the container.
+//
+simple_append<type T> : simplelist<T> ref thelist, T value [nogc]
+{
+	simple_append_recurse<T>(thelist, thelist.next, value)
 }
 
 simple_append_recurse<type T> : simplelist<T> ref thelist, nothing, T value [nogc]
@@ -64,9 +131,18 @@ simple_append_recurse<type T> : simplelist<T> ref thelist, simplelist<T> ref tai
 	simple_append_recurse<T>(tail, tail.next, value)
 }
 
-simple_append<type T> : simplelist<T> ref thelist, T value [nogc]
+
+//
+// Append a reference to a new node at the tail of a list<>
+//
+// Currently uses a helper function to use type dispatching to find
+// the existing list tail node and modify it.
+//
+// Expected to run in O(n) time in n elements in the container.
+//
+append<type T> : list<T> ref thelist, T ref value [nogc]
 {
-	simple_append_recurse<T>(thelist, thelist.next, value)
+	append_recurse<T>(thelist, thelist.next, value)
 }
 
 append_recurse<type T> : list<T> ref thelist, nothing, T ref value [nogc]
@@ -80,17 +156,30 @@ append_recurse<type T> : list<T> ref thelist, list<T> ref tail, T ref value [nog
 	append_recurse<T>(tail, tail.next, value)
 }
 
-append<type T> : list<T> ref thelist, T ref value [nogc]
-{
-	append_recurse<T>(thelist, thelist.next, value)
-}
 
+//
+// Given a list<> reference and a reference to some subsequent
+// element in that container, removes the leading element(s)
+// and leaves the list<> pointing at the subsequent element.
+//
+// Expected to run in O(1) time and with no storage usage.
+//
+// Typical usage is pop<T>(list, list.next) although this may
+// fail in the current implementation for lists with only one
+// element in them.
+//
 pop<type T> : list<T> ref head, list<T> ref tail [nogc]
 {
 	head = tail
 }
 
 
+//
+// Copy out the Nth element of a list<> and return a flag
+// indicating if the element was successfully found.
+//
+// Expected to run in O(n) time in n elements in the container.
+//
 copyfromlist<type T> : list<T> ref thelist, integer count, T ref outvalue -> boolean found = false [nogc]
 {
 	if(count == 0)
@@ -101,7 +190,12 @@ copyfromlist<type T> : list<T> ref thelist, integer count, T ref outvalue -> boo
 		return()
 	}
 
+	// This may need to be relaxed, since it can cause crashes
+	// when the function is used on a list which is too short.
+	// Some callers may find it desirable to get a false return
+	// instead of dropping the program on the floor.
 	assert(count > 0)
+
 	found = copyfromlist<T>(thelist.next, count - 1, outvalue)
 }
 
@@ -110,9 +204,11 @@ copyfromlist<type T> : nothing, integer count, T ref outvalue -> false [nogc]
 
 
 //
-// List traversal/inspection functions
+// Count the number of integer elements in a simplelist<integer>
+// which have nonzero values assigned.
 //
-
+// Expected to run in O(n) time in n elements in the container.
+//
 countnonzero : simplelist<integer> ref thelist -> integer count = 0 [nogc]
 {
 	if(thelist.value != 0)
@@ -126,7 +222,13 @@ countnonzero : simplelist<integer> ref thelist -> integer count = 0 [nogc]
 countnonzero : nothing -> 0 [nogc]
 
 
-
+//
+// Check if a simplelist<integer> contains a value equal to the
+// given value in any node.
+//
+// Expected to run in O(n) time in n elements in the container.
+// May return earlier if the sought-after value is located.
+//
 listcontains : simplelist<integer> ref thelist, integer value -> boolean ret = false [nogc]
 {
 	if(thelist.value == value)
