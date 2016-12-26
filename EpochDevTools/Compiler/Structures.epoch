@@ -107,17 +107,6 @@ GetNameOfStructureByType : list<StructureDefinition> ref structures, integer typ
 GetNameOfStructureByType : nothing, integer typeid -> integer name = 0
 
 
-GetStructureMemberTypeAndOffset : integer structurename, integer membername, integer ref memtype, integer ref memoffset
-{
-	ContextNode<StructureDefinition> wrap = nothing
-	boolean found = SearchBinaryTreeForPayload<StructureDefinition>(GlobalRootNamespace.Structures.RootNode, structurename, wrap)
-	assert(found)
-
-	memtype = 0
-	memoffset = 0
-	GetMemberTypeAndOffset(wrap, membername, memtype, memoffset)
-}
-
 GetStructureMemberType : integer structurename, integer membername -> integer rtype = 0
 {
 	ContextNode<StructureDefinition> wrap = nothing
@@ -155,36 +144,6 @@ GetMemberType : nothing, integer membername -> integer rtype = 0
 {
 	print("Bogus structure member!")
 	print(GetPooledString(membername))
-}
-
-
-GetMemberTypeAndOffset : StructureDefinition ref struct, integer membername, integer ref memtype, integer ref memoffset
-{
-	GetMemberTypeAndOffset(struct.Members, membername, memtype, memoffset)
-}
-
-
-GetMemberTypeAndOffset : list<StructureMember> ref members, integer membername, integer ref memtype, integer ref memoffset
-{
-	integer thisname = GetMemberName(members.value)
-	if(thisname == membername)
-	{
-		memtype = GetMemberTypeDecompose(members.value)
-	}
-	else
-	{
-		if(thisname != 0)
-		{
-			memoffset += GetMemberSize(members.value)
-		}
-		GetMemberTypeAndOffset(members.next, membername, memtype, memoffset)
-	}
-}
-
-GetMemberTypeAndOffset : nothing, integer membername, integer ref memtype, integer ref memoffset
-{
-	print("Bogus structure member!")
-	assert(false)
 }
 
 
@@ -230,20 +189,6 @@ GetMemberTypeDecompose : StructureMemberFunctionRef ref member -> integer rtype 
 GetMemberName : StructureMemberVariable ref memvar -> integer name = memvar.Name [nogc]
 
 GetMemberName : StructureMemberFunctionRef ref member -> integer name = member.Name [nogc]
-
-
-GetMemberSize : StructureMemberVariable ref memvar -> integer r = 0 [nogc]
-{
-	integer memtype = memvar.Type
-	while((memtype & 0x7f000000) == 0x05000000)
-	{
-		memtype = FindTypeAliasBase(memtype)
-	}
-	
-	r = GetTypeSize(memtype)
-}
-
-GetMemberSize : StructureMemberFunctionRef ref member -> 4 [nogc]
 
 
 GetStructureTypeByName : integer name -> integer typeid = 0 [nogc]
