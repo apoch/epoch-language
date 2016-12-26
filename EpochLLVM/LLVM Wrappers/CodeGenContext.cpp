@@ -384,6 +384,10 @@ llvm::Type* Context::TypeGetBuffer()
 	return Type::getInt8PtrTy(getGlobalContext());
 }
 
+llvm::Type* Context::TypeGetArrayOfType(llvm::Type* elementtype, int arity)
+{
+	return ArrayType::get(elementtype, arity);
+}
 
 
 extern "C" void LLVMLinkInMCJIT();

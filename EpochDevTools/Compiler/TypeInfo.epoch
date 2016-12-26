@@ -241,3 +241,24 @@ MakeReferenceType : integer typeid -> integer reftypeid = typeid [nogc]
 
 MakeNonReferenceType : integer typeid -> (typeid & 0x7fffffff) [nogc]
 
+
+IsArrayType : integer typeid -> boolean ret = false [nogc]
+{
+	if((typeid & 0x7f000000) == 0x0a000000)
+	{
+		ret = true
+	}
+}
+
+GetArrayElementType : integer typeid -> integer ty = 0
+{
+	// TODO - implement array element type lookup
+}
+
+GetArrayArity : integer typeid -> integer arity = 0
+{
+	// TODO - implement array arity lookup
+}
+
+
+

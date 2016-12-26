@@ -48,6 +48,7 @@ global
 	BinaryTreeRoot<LLVMType> LLVMStructureTypeTable = nothing
 	BinaryTreeRoot<LLVMFunctionType> LLVMFunctionSignatureTable = nothing
 	BinaryTreeRoot<LLVMType> LLVMSumTypeTable = nothing
+	BinaryTreeRoot<LLVMType> LLVMArrayTypeTable = nothing
 	
 	BinaryTreeRoot<integer> GlobalStringOffsets = nothing
 	

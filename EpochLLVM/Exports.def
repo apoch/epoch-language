@@ -17,6 +17,7 @@ EXPORTS
 	EpochLLVMTypeGetString
 	EpochLLVMTypeGetVoid
 	EpochLLVMTypeGetBuffer
+	EpochLLVMTypeGetArrayOfType
 
 	EpochLLVMFunctionCreate
 	EpochLLVMFunctionCreateThunk

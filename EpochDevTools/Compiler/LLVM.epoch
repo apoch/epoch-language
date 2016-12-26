@@ -72,6 +72,7 @@ EpochLLVMTypeGetReal : LLVMContextHandle context -> LLVMType t = 0													[
 EpochLLVMTypeGetString : LLVMContextHandle context -> LLVMType t = 0												[external("EpochLLVM.dll", "EpochLLVMTypeGetString")]
 EpochLLVMTypeGetVoid : LLVMContextHandle context -> LLVMType t = 0													[external("EpochLLVM.dll", "EpochLLVMTypeGetVoid")]
 EpochLLVMTypeGetBuffer : LLVMContextHandle context -> LLVMType t = 0												[external("EpochLLVM.dll", "EpochLLVMTypeGetBuffer")]
+EpochLLVMTypeGetArrayOfType : LLVMContextHandle context, LLVMType elementtype, integer arity -> LLVMType t = 0		[external("EpochLLVM.dll", "EpochLLVMTypeGetArrayOfType")]
 
 EpochLLVMPrepareBinaryObject : LLVMContextHandle handle																[external("EpochLLVM.dll", "EpochLLVMPrepareBinaryObject")]
 EpochLLVMEmitBinaryObject : LLVMContextHandle handle, buffer ref outbuffer, integer maxsize, integer entrypointaddress, integer gcaddress -> integer written = 0 	[external("EpochLLVM.dll", "EpochLLVMEmitBinaryObject")]
@@ -357,6 +358,15 @@ GetLLVMTypeForEpochType : LLVMContextHandle context, integer typeid -> LLVMType 
 		{
 			t = EpochLLVMSumTypeCreate(context, GetPooledString(GetNameOfType(typeid)), GetTypeSize(typeid))
 			BinaryTreeCreateOrInsert<LLVMType>(LLVMSumTypeTable, typeid, t)
+		}
+	}
+	elseif(IsArrayType(typeid))
+	{
+		boolean found = BinaryTreeCopyPayload<LLVMType>(LLVMArrayTypeTable.RootNode, typeid, t)
+		if(!found)
+		{
+			t = EpochLLVMTypeGetArrayOfType(context, GetArrayElementType(typeid), GetArrayArity(typeid))
+			BinaryTreeCreateOrInsert<LLVMType>(LLVMArrayTypeTable, typeid, t)
 		}
 	}
 	elseif(IsFunctionType(typeid))

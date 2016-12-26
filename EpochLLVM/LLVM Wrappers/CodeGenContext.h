@@ -59,6 +59,7 @@ namespace CodeGen
 		llvm::Type* TypeGetString();
 		llvm::Type* TypeGetVoid();
 		llvm::Type* TypeGetBuffer();
+		llvm::Type* TypeGetArrayOfType(llvm::Type* elementtype, int arity);
 
 		llvm::DIType* TypeGetDebugType(llvm::Type* t);
 

@@ -86,6 +86,10 @@ extern "C" void* EpochLLVMTypeGetBuffer(void* context)
 	return reinterpret_cast<CodeGen::Context*>(context)->TypeGetBuffer();
 }
 
+extern "C" void* EpochLLVMTypeGetArrayOfType(void* context, void* elementtype, int arity)
+{
+	return reinterpret_cast<CodeGen::Context*>(context)->TypeGetArrayOfType(reinterpret_cast<llvm::Type*>(elementtype), arity);
+}
 
 
 extern "C" void* EpochLLVMFunctionCreate(void* context, const wchar_t* name, void* ftype)
