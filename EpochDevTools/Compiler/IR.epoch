@@ -97,7 +97,7 @@ type OptionalExpressionList : ExpressionList | nothing
 
 type OptionalTemplateArgs : TemplateArgumentList | nothing
 
-type ExpressionOrAssignment : Expression | Assignment | AssignmentCompound
+type ExpressionOrAssignment : Expression | Assignment | AssignmentCompound | AssignmentArrayIndex
 
 structure Statement :
 	integer Name,
@@ -130,6 +130,15 @@ structure AssignmentCompound :
 	integer Annotation,
 	ExpressionOrAssignment RHS
 
+structure AssignmentArrayIndex :
+	integer Operator,
+	integer LHSName,
+	integer LHSType,
+	integer Annotation,
+	ExpressionOrAssignment RHS,
+	Expression IndexExpression
+
+
 structure PreOpStatement :
 	integer Operator,
 	simplelist<integer> ref Operand,
@@ -148,7 +157,7 @@ structure ParentheticalExpression :
 
 
 type CodeBlockEntry : Statement | MessageSend | PreOpStatement | PostOpStatement |
-		      Assignment | AssignmentCompound | EntityChain
+		      Assignment | AssignmentCompound | AssignmentArrayIndex | EntityChain
 
 structure CodeBlock :
 	list<CodeBlockEntry> ref Entries

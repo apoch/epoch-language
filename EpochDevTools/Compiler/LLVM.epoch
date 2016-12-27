@@ -682,6 +682,19 @@ EmitSingleCodeBlockEntryToLLVM : LLVMBuildContext ref context, Assignment ref en
 	EpochLLVMCodeCreateWrite(context.Context, alloca)
 }
 
+EmitSingleCodeBlockEntryToLLVM : LLVMBuildContext ref context, AssignmentArrayIndex ref entry
+{
+	assertmsg(entry.Operator == PooledStringHandleForAssignment, "Unsupported assignment operator")
+	
+	EmitAssignmentRHSToLLVM(context, entry.RHS)
+		
+	LLVMAlloca alloca = 0
+	BinaryTreeCopyPayload<LLVMAlloca>(context.LocalVariables.RootNode, entry.LHSName, alloca)
+
+	EmitExpressionAtomsToLLVM(context, entry.IndexExpression)
+	EpochLLVMCodeCreateReadArray(context.Context, alloca)
+	EpochLLVMCodeCreateWriteStructurePop(context.Context)
+}
 
 EmitSingleCodeBlockEntryToLLVM : LLVMBuildContext ref context, AssignmentCompound ref entry
 {

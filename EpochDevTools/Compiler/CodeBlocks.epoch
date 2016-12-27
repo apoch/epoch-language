@@ -242,6 +242,11 @@ SetAssignmentExpression : AssignmentCompound ref assignment, Expression ref expr
 	FollowChainAndSetExpression(assignment, assignment.RHS, expression)
 }
 
+SetAssignmentExpression : AssignmentArrayIndex ref assignment, Expression ref expression
+{
+	FollowChainAndSetExpression(assignment, assignment.RHS, expression)
+}
+
 
 FollowChainAndSetExpression : Assignment ref assignment, Assignment ref rhs, Expression ref expression
 {
@@ -275,6 +280,12 @@ FollowChainAndSetExpression : AssignmentCompound ref tomodify, Expression ref rh
 	tomodify.RHS = wrap
 }
 
+
+FollowChainAndSetExpression : AssignmentArrayIndex ref tomodify, Expression ref rhs, Expression ref newrhs
+{
+	ExpressionOrAssignment wrap = newrhs
+	tomodify.RHS = wrap
+}
 
 
 SetFunctionCodeBlock : FunctionDefinition ref funcdef, OptionalCodeBlock ref optblock

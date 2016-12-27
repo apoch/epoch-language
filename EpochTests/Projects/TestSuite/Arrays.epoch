@@ -10,6 +10,7 @@ TestArrays : Harness ref harness
 	TestSection(harness, "Arrays")
 
 	TADecl(harness)
+	TAWrite(harness)
 
 	TestSectionComplete(harness)
 }
@@ -24,5 +25,22 @@ TADecl : Harness ref harness
 	TestAssert(arrayoffour[1] == 1, harness, "array initialization/retrieval index 1")
 	TestAssert(arrayoffour[2] == 2, harness, "array initialization/retrieval index 2")
 	TestAssert(arrayoffour[3] == 3, harness, "array initialization/retrieval index 3")
+}
+
+TAWrite : Harness ref harness
+{
+	integer[3] test = 0, 0, 0
+
+	test[0] = 36
+	test[1] = 5
+	test[2] = 1
+
+	integer total = test[0] + test[1] + test[2]
+
+	TestAssert(test[0] == 36, harness, "array write/retrieval index 0")
+	TestAssert(test[1] == 5, harness, "array write/retrieval index 1")
+	TestAssert(test[2] == 1, harness, "array write/retrieval index 2")
+
+	TestAssert(total == 42, harness, "array write/arithmetic")
 }
 

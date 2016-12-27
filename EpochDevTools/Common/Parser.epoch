@@ -948,11 +948,6 @@ ParseInitialization : boolean inreturn -> boolean matched = false
 		string aritytoken = PeekToken(skipahead + 2)
 
 		arity = cast(integer, aritytoken)
-		if(arity < 1)
-		{
-			print("Arrays must have a positive arity")
-			return()
-		}
 
 		if(PeekToken(skipahead + 3) != "]")
 		{
@@ -980,6 +975,12 @@ ParseInitialization : boolean inreturn -> boolean matched = false
 	if(inreturn)
 	{
 		OnCodeGenEnterSubStatement()
+	}
+
+	if(isarray && (arity < 1))
+	{
+		print("Arrays must have positive arity")
+		return()
 	}
 
 	IREnterStatement(typename, true, templated, arity)
@@ -1286,6 +1287,25 @@ ParseAssignment : -> boolean matched = false
 		lhslength += 2
 	}
 
+	integer indexingtoken = lhslength + 1
+	boolean isindexing = false
+
+	if(PeekToken(lhslength) == "[")
+	{
+		string tok = PeekToken(lhslength)
+		while((length(tok) > 0) && (tok != "]"))
+		{
+			++lhslength
+			tok = PeekToken(lhslength)
+		}
+		++lhslength
+
+		if(length(PeekToken(lhslength)) > 0)
+		{
+			isindexing = true
+		}
+	}
+
 	string assignmenttoken = PeekToken(lhslength)
 	boolean recognized = false
 	if(assignmenttoken == "=")
@@ -1306,23 +1326,37 @@ ParseAssignment : -> boolean matched = false
 		return()
 	}
 
-	if(lhslength == 1)
+	if(isindexing)
 	{
-		OnCodeGenEnterAssignment(PoolString(assignmenttoken), PoolString(PeekToken(0)), 0, 0)
+		OnCodeGenEnterAssignmentArrayIndex(PoolString(assignmenttoken), PoolString(PeekToken(0)))
+		PopTokens(2)
+		if(!ParseExpression())
+		{
+			return()
+		}
+		PopTokens(2)
+		OnCodeGenAssignmentArrayIndexEnd()
 	}
 	else
 	{
-		OnCodeGenEnterAssignmentCompound(PoolString(assignmenttoken), PoolString(PeekToken(0)), 0, 0)
-		integer tokenindex = 2
-		while(tokenindex < lhslength)
+		if(lhslength == 1)
 		{
-			FindCurrentFunctionAndAppendCompoundMember(PoolString(PeekToken(tokenindex)))
-			tokenindex += 2
+			OnCodeGenEnterAssignment(PoolString(assignmenttoken), PoolString(PeekToken(0)), 0, 0)
 		}
-		OnCodeGenAssignmentCompoundEnd()
-	}
+		else
+		{
+			OnCodeGenEnterAssignmentCompound(PoolString(assignmenttoken), PoolString(PeekToken(0)), 0, 0)
+			integer tokenindex = 2
+			while(tokenindex < lhslength)
+			{
+				FindCurrentFunctionAndAppendCompoundMember(PoolString(PeekToken(tokenindex)))
+				tokenindex += 2
+			}
+			OnCodeGenAssignmentCompoundEnd()
+		}
 
-	PopTokens(lhslength + 1)
+		PopTokens(lhslength + 1)
+	}
 
 	boolean haschain = true
 	while(haschain)

@@ -1000,6 +1000,48 @@ TypeInference : Assignment ref assignment, InferenceContext ref context -> boole
 	assignment.Operator = FindAssignmentOperator(assignment.Operator, assignment.LHSType, GetAssignmentRHSType(assignment.RHS))
 }
 
+TypeInference : AssignmentArrayIndex ref assignment, InferenceContext ref context -> boolean success = true
+{
+	integer vartype = GetVariableTypeFromScope(context.ScopeRef.Wrapped, assignment.LHSName)
+	if(vartype == 0)
+	{
+		success = false
+		print("Assignment to non-existent variable " ; GetPooledString(assignment.LHSName))
+		return()
+	}
+
+	vartype = GetArrayElementType(ArrayTypes, vartype)
+
+	simplelist<integer> temp = vartype, nothing
+	InferenceContext newcontext = context.ScopeName, -1, temp, false, 0, false, false, context.ScopeRef, context.FuncRef
+
+	if(!TypeInference(assignment.RHS, newcontext))
+	{
+		print("Failed to infer type of RHS of assignment")
+		success = false
+	}
+
+	simplelist<integer> inttemp = 0x01000001, nothing
+	InferenceContext idxcontext = context.ScopeName, -1, inttemp, false, 0, false, false, context.ScopeRef, context.FuncRef
+
+	if(!TypeInference(assignment.IndexExpression, idxcontext))
+	{
+		print("Failed to infer type of LHS indexing expression for assignment")
+		success = false
+	}
+
+	assignment.LHSType = vartype
+
+	if(assignment.LHSType != GetAssignmentRHSType(assignment.RHS))
+	{
+		// TODO - check type of RHS vs. LHS?
+
+		assignment.Annotation = GetAssignmentRHSType(assignment.RHS)
+	}
+
+	assignment.Operator = FindAssignmentOperator(assignment.Operator, assignment.LHSType, GetAssignmentRHSType(assignment.RHS))	
+}
+
 TypeInference : AssignmentCompound ref assignment, InferenceContext ref context -> boolean success = true
 {
 	integer lhstype = ComputeCompoundAssignmentLHSType(assignment, context.ScopeRef.Wrapped)

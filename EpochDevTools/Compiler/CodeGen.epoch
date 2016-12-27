@@ -406,6 +406,29 @@ OnCodeGenAssignmentCompoundEnd :
 }
 
 
+OnCodeGenEnterAssignmentArrayIndex : integer operator, integer lhsname
+{
+	Expression tempexpr = dummyatomlist, 0
+	ExpressionOrAssignment rhs = tempexpr
+	AssignmentArrayIndex assignment = operator, lhsname, 0, 0, rhs, tempexpr
+	CodeBlockEntry cbe = assignment
+	AppendEntryToCurrentCodeBlock(cbe)
+
+	Expression blank = dummyatomlist, 0
+	ScratchExpressions.value = blank
+}
+
+OnCodeGenAssignmentArrayIndexEnd : 
+{
+	AppendArrayIndexToCurrentAssignment(ScratchExpressions.value)
+
+	ContextStackEntry entry = STACK_TYPE_ASSIGNMENT, 0
+	prepend<ContextStackEntry>(ContextStack, entry)
+
+	Expression blank = dummyatomlist, 0
+	ScratchExpressions.value = blank
+}
+
 
 OnCodeGenChainAssignmentCompound : integer operator, integer lhsname, integer lhstype, integer annotation
 {

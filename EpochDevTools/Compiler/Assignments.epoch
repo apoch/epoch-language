@@ -1,3 +1,26 @@
+AppendArrayIndexToCurrentAssignment : Expression ref expr
+{
+	AppendArrayIndexToLastAssignment(CurrentCodeBlockStack, expr)
+}
+
+AppendArrayIndexToLastAssignment : list<OptionalCodeBlock> ref blockstack, Expression ref expr
+{
+	GetTailCodeBlockAndAppendArrayIndexToLastAssignment(blockstack, blockstack.next, expr)
+}
+
+GetTailCodeBlockAndAppendArrayIndexToLastAssignment : list<OptionalCodeBlock> ref blockstack, list<OptionalCodeBlock> ref tail, Expression ref expr
+{
+	GetTailCodeBlockAndAppendArrayIndexToLastAssignment(tail, tail.next, expr)
+}
+
+GetTailCodeBlockAndAppendArrayIndexToLastAssignment : list<OptionalCodeBlock> ref blockstack, nothing, Expression ref expr
+{
+	GetTailAssignmentAndAppendArrayIndex(blockstack.value, expr)
+}
+
+
+
+
 AppendEntryToCurrentAssignmentChain : Assignment ref a
 {
 	AppendEntryToCurrentAssignmentChainWorker(CurrentCodeBlockStack, a)
@@ -48,6 +71,25 @@ GetTailAssignmentAndChain : CodeBlock ref codeblock, Assignment ref a
 GetTailAssignmentAndChain : CodeBlock ref codeblock, AssignmentCompound ref a
 {
 	FindTailAssignmentAndChain(codeblock.Entries, codeblock.Entries.next, a)
+}
+
+
+
+GetTailAssignmentAndAppendArrayIndex : CodeBlock ref codeblock, Expression ref expr
+{
+	FindTailAssignmentAndAppendArrayIndex(codeblock.Entries, codeblock.Entries.next, expr)
+}
+
+
+
+FindTailAssignmentAndAppendArrayIndex : list<CodeBlockEntry> ref entries, list<CodeBlockEntry> ref tail, Expression ref expr
+{
+	FindTailAssignmentAndAppendArrayIndex(tail, tail.next, expr)
+}
+
+FindTailAssignmentAndAppendArrayIndex : list<CodeBlockEntry> ref entries, nothing, Expression ref expr
+{
+	AppendArrayIndex(entries.value, expr)
 }
 
 
@@ -175,6 +217,13 @@ ComputeCompoundAssignmentLHSTypeMembers : nothing, integer structurename -> inte
 GetAssignmentRHSType : Expression ref expr -> integer rettype = expr.Type
 GetAssignmentRHSType : Assignment ref assignment -> integer rettype = GetAssignmentRHSType(assignment.RHS)
 GetAssignmentRHSType : AssignmentCompound ref assignment -> integer rettype = GetAssignmentRHSType(assignment.RHS)
+
+
+
+AppendArrayIndex : AssignmentArrayIndex ref a, Expression ref expr
+{
+	a.IndexExpression = expr
+}
 
 
 structure AAAAAtrocioushack :
