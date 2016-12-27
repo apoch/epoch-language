@@ -40,6 +40,7 @@
     <SchemaVersion>2.0</SchemaVersion>
   </PropertyGroup>
   <ItemGroup>
+    <EpochCompile Include="Arrays.epoch" />
     <EpochCompile Include="Entities.epoch" />
     <EpochCompile Include="FunctionCalls.epoch" />
     <EpochCompile Include="Harness.epoch" />

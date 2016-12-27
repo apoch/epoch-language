@@ -1,0 +1,31 @@
+//
+// ARRAYS.EPOCH
+//
+// Unit test suite for array typed data
+//
+
+
+TestArrays : Harness ref harness
+{
+	TestSection(harness, "Arrays")
+
+	TADecl(harness)
+
+	TestSectionComplete(harness)
+}
+
+
+
+TADecl : Harness ref harness
+{
+	integer[4] arrayoffour = 0, 1, 2, 3
+
+
+	// TODO - enable these asserts once parser/codegen is up to speed
+
+	//TestAssert(arrayoffour[0] == 0, harness, "array initialization index 0")
+	//TestAssert(arrayoffour[1] == 0, harness, "array initialization index 1")
+	//TestAssert(arrayoffour[2] == 0, harness, "array initialization index 2")
+	//TestAssert(arrayoffour[3] == 0, harness, "array initialization index 3")
+}
+

@@ -93,7 +93,7 @@ global
 	Expression dummyexpression = dummyatomlist, 0
 	list<Expression> ScratchExpressions = dummyexpression, nothing
 	
-	Statement dummystatement = 0, nothing, 0, nothing, false, false
+	Statement dummystatement = 0, nothing, 0, nothing, false, false, 0
 	list<Statement> SubStatements = dummystatement, nothing
 
 	Parameter dummyparam = 0, 0
@@ -194,6 +194,7 @@ global
 	integer GlobalSumTypeCounter = 0x07000000
 	integer GlobalTemplateInstanceCounter = 0x08000000
 	integer GlobalFunctionTypeCounter = 0x09000000
+	integer GlobalArrayTypeCounter = 0x0a000000
 
 	integer GlobalNothingCounter = 0
 
@@ -335,4 +336,8 @@ global
 
 
 	simplelist<boolean> StupidHack = false, nothing
+
+
+	ArrayType dummyarraytype = 0, 0, 0
+	list<ArrayType> ArrayTypes = dummyarraytype, nothing
 }

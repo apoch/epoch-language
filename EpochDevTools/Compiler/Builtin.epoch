@@ -491,6 +491,18 @@ FindBuiltinAndAddParameterTypes : integer funcname, integer paramindex, integer 
 				simpleprepend<integer>(types, ctype)
 			}
 		}
+		elseif(paramcount > 2)
+		{
+			// TODO - validate array arity here
+			if(paramindex == 0)
+			{
+				simpleprepend<integer>(types, 0x01000000)	// identifier type signature
+			}
+			else
+			{
+				simpleprepend<integer>(types, ctype)
+			}
+		}
 	}
 	elseif(funcname == PooledStringHandleForInteger16)
 	{

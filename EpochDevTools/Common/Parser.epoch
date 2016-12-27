@@ -828,7 +828,7 @@ ParseStatement : boolean substatement -> boolean matched = false
 		OnCodeGenEnterSubStatement()
 	}
 
-	IREnterStatement(statementname, !substatement, templated)
+	IREnterStatement(statementname, !substatement, templated, 0)
 
 	PopTokens(2 + lookahead)
 
@@ -941,6 +941,30 @@ ParseInitialization : boolean inreturn -> boolean matched = false
 		templated = true
 	}
 
+	boolean isarray = false
+	integer arity = 0
+	if(varname == "[")
+	{
+		string aritytoken = PeekToken(skipahead + 2)
+
+		arity = cast(integer, aritytoken)
+		if(arity < 1)
+		{
+			print("Arrays must have a positive arity")
+			return()
+		}
+
+		if(PeekToken(skipahead + 3) != "]")
+		{
+			return()
+		}
+
+		skipahead = skipahead + 3
+
+		isarray = true
+		varname = PeekToken(skipahead + 1)
+	}
+
 	if(PeekToken(2 + skipahead) != "=")
 	{
 		return()
@@ -958,7 +982,7 @@ ParseInitialization : boolean inreturn -> boolean matched = false
 		OnCodeGenEnterSubStatement()
 	}
 
-	IREnterStatement(typename, true, templated)
+	IREnterStatement(typename, true, templated, arity)
 	IRAddLiteralIdentifier(varname)
 
 	OnCodeGenShiftParameter()

@@ -32,6 +32,7 @@ entrypoint :
 	TestStructures(harness)
 	TestTypePromotion(harness)
 	TestSumTypes(harness)
+	TestArrays(harness)
 
 	print("TESTS COMPLETED")
 	print("Sections initiated: " ; cast(string, harness.SectionsStarted))

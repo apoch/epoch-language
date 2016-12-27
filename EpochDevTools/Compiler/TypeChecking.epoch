@@ -487,6 +487,11 @@ TypeInference : Statement ref statement, InferenceContext ref context -> boolean
 			statement.Name = GetNameOfType(vartype)
 		}
 
+		if(statement.ArrayArity > 0)
+		{
+			vartype = GetArrayType(ArrayTypes, vartype, statement.ArrayArity)
+		}
+
 		if(statement.TopLevel)
 		{
 			ConstructVariableFromStatement(statement, context.ScopeRef.Wrapped, vartype, origin)

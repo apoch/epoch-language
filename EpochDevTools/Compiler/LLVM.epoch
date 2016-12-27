@@ -365,7 +365,8 @@ GetLLVMTypeForEpochType : LLVMContextHandle context, integer typeid -> LLVMType 
 		boolean found = BinaryTreeCopyPayload<LLVMType>(LLVMArrayTypeTable.RootNode, typeid, t)
 		if(!found)
 		{
-			t = EpochLLVMTypeGetArrayOfType(context, GetArrayElementType(typeid), GetArrayArity(typeid))
+			LLVMType elty = GetLLVMTypeForEpochType(context, GetArrayElementType(ArrayTypes, typeid))
+			t = EpochLLVMTypeGetArrayOfType(context, elty, GetArrayArity(ArrayTypes, typeid))
 			BinaryTreeCreateOrInsert<LLVMType>(LLVMArrayTypeTable, typeid, t)
 		}
 	}
@@ -710,10 +711,15 @@ EmitSingleCodeBlockEntryToLLVM : LLVMBuildContext ref context, AssignmentCompoun
 
 EmitSingleCodeBlockEntryToLLVM : LLVMBuildContext ref context, Statement ref entry
 {
+	print("ALPHA")
 	if(IsRecognizedBuiltIn(entry.Name))
 	{
+		print("BETA")
 		if(GetTypeByName(entry.Name) == 0)
 		{
+			print("GAMMA")
+
+
 			if(entry.Name == PooledStringHandleForCastIntegerToString)
 			{
 				EmitPartialExpressionListToLLVM(context, entry.Parameters)
@@ -729,15 +735,24 @@ EmitSingleCodeBlockEntryToLLVM : LLVMBuildContext ref context, Statement ref ent
 		}
 		else
 		{
-			integer varname = ExtractConstructorIdentifier(entry.Parameters)
-			assertmsg(varname != 0, "Couldn't find variable to initialize")
+			print("EPSILON " ; cast(string, entry.ArrayArity))
 
-			LLVMAlloca alloca = 0
-			BinaryTreeCopyPayload<LLVMAlloca>(context.LocalVariables.RootNode, varname, alloca)
-			assertmsg(alloca != 0, "Couldn't find LLVM binding alloca to initialize")
+			if(entry.ArrayArity > 0)
+			{
+				print("DING")
+			}
+			else
+			{
+				integer varname = ExtractConstructorIdentifier(entry.Parameters)
+				assertmsg(varname != 0, "Couldn't find variable to initialize")
+
+				LLVMAlloca alloca = 0
+				BinaryTreeCopyPayload<LLVMAlloca>(context.LocalVariables.RootNode, varname, alloca)
+				assertmsg(alloca != 0, "Couldn't find LLVM binding alloca to initialize")
 			
-			EmitPartialExpressionListToLLVM(context, entry.Parameters)
-			EpochLLVMCodeCreateWrite(context.Context, alloca)
+				EmitPartialExpressionListToLLVM(context, entry.Parameters)
+				EpochLLVMCodeCreateWrite(context.Context, alloca)
+			}
 		}
 	}
 	elseif(SumTypeExists(entry.Name))
@@ -761,6 +776,8 @@ EmitSingleCodeBlockEntryToLLVM : LLVMBuildContext ref context, Statement ref ent
 	}
 	else
 	{
+		print("ZAP")
+
 		EmitExpressionListToLLVM(context, entry.Parameters)
 
 		integer vartype = GetVariableTypeFromScope(EmittingScope.Wrapped, entry.Name)
@@ -788,6 +805,7 @@ EmitSingleCodeBlockEntryToLLVM : LLVMBuildContext ref context, Statement ref ent
 	
 	if(entry.TopLevel)
 	{
+		print("FINALIZE")
 		EpochLLVMCodeStatementFinalize(context.Context)
 	}
 }

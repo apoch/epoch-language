@@ -250,15 +250,50 @@ IsArrayType : integer typeid -> boolean ret = false [nogc]
 	}
 }
 
-GetArrayElementType : integer typeid -> integer ty = 0
+GetArrayElementType : list<ArrayType> ref arraytypes, integer typeid -> integer ty = 0
 {
-	// TODO - implement array element type lookup
+	if(arraytypes.value.SignatureType == typeid)
+	{
+		ty = arraytypes.value.ElementType
+	}
+	else
+	{
+		ty = GetArrayElementType(arraytypes.next, typeid)
+	}
 }
 
-GetArrayArity : integer typeid -> integer arity = 0
+GetArrayArity : list<ArrayType> ref arraytypes, integer typeid -> integer arity = 0
 {
-	// TODO - implement array arity lookup
+	if(arraytypes.value.SignatureType == typeid)
+	{
+		arity = arraytypes.value.Arity
+	}
+	else
+	{
+		arity = GetArrayArity(arraytypes.next, typeid)
+	}
 }
 
+
+
+GetArrayType : list<ArrayType> ref arraytypes, integer elementtype, integer arity -> integer ret = 0 [nogc]
+{
+	if((arraytypes.value.ElementType == elementtype) && (arraytypes.value.Arity == arity))
+	{
+		ret = arraytypes.value.SignatureType
+		return()
+	}
+
+	ret = GetArrayType(arraytypes.next, elementtype, arity)
+}
+
+GetArrayType : nothing, integer elementtype, integer arity -> integer ret = 0 [nogc]
+{
+	integer typeid = (++GlobalArrayTypeCounter)
+	ArrayType at = typeid, elementtype, arity
+	prepend<ArrayType>(ArrayTypes, at)
+
+	ret = typeid
+}
 
 

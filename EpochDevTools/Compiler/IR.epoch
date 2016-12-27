@@ -100,7 +100,8 @@ structure Statement :
 	integer Type,
 	OptionalTemplateArgs TemplateArgs,
 	boolean TopLevel,
-	boolean InferenceDone
+	boolean InferenceDone,
+	integer ArrayArity
 
 structure MessageSend :
 	integer TargetName,
@@ -223,6 +224,12 @@ structure ContextStackEntry :
 	integer EntryType,
 	integer EntryName
 
+
+structure ArrayType :
+	integer SignatureType,
+	integer ElementType,
+	integer Arity
+
 structure SumTypeBase :
 	integer Name,
 	OptionalTemplateArgs TemplateArgs
@@ -334,10 +341,10 @@ IRExitFunction :
 }
 
 
-IREnterStatement : string funcname, boolean istoplevel, boolean hastemplateargs
+IREnterStatement : string funcname, boolean istoplevel, boolean hastemplateargs, integer arrayarity
 {
 	integer namehandle = PoolString(funcname)
-	OnCodeGenEnterStatement(namehandle, 0, istoplevel, hastemplateargs)
+	OnCodeGenEnterStatement(namehandle, 0, istoplevel, hastemplateargs, arrayarity)
 }
 
 IRExitStatement :
