@@ -762,6 +762,17 @@ void Context::CodeCreateRead(llvm::AllocaInst* allocatarget)
 	PendingValues.push_back(rv);
 }
 
+void* Context::CodeCreateReadArray(llvm::AllocaInst* allocatarget)
+{
+	Value* expr = PendingValues.back();
+	PendingValues.pop_back();
+
+	Value* rv = LLVMBuilder.CreateGEP(allocatarget, { ConstantInt::get(TypeGetInteger(), 0u), expr });
+	PendingValues.push_back(rv);
+
+	return rv;
+}
+
 void Context::CodeCreateReadParam(unsigned index)
 {
 	auto iter = LLVMBuilder.GetInsertBlock()->getParent()->arg_begin();

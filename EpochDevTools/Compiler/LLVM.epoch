@@ -103,6 +103,7 @@ EpochLLVMCodeCreateCast : LLVMContextHandle context, LLVMType targettype								
 EpochLLVMCodeCreateCondBranch : LLVMContextHandle handle, integer cond, LLVMBasicBlock tt, LLVMBasicBlock ft		[external("EpochLLVM.dll", "EpochLLVMCodeCreateCondBranch")]
 EpochLLVMCodeCreateGEP : LLVMContextHandle handle, integer index -> LLVMGEP ret = 0									[external("EpochLLVM.dll", "EpochLLVMCodeCreateGEP")]
 EpochLLVMCodeCreateRead : LLVMContextHandle handle, LLVMAlloca alloca												[external("EpochLLVM.dll", "EpochLLVMCodeCreateRead")]
+EpochLLVMCodeCreateReadArray : LLVMContextHandle handle, LLVMAlloca alloca -> LLVMGEP ret = 0						[external("EpochLLVM.dll", "EpochLLVMCodeCreateReadArray")]
 EpochLLVMCodeCreateReadParam : LLVMContextHandle handle, integer index												[external("EpochLLVM.dll", "EpochLLVMCodeCreateReadParam")]
 EpochLLVMCodeCreateReadStructure : LLVMContextHandle handle, LLVMGEP gep											[external("EpochLLVM.dll", "EpochLLVMCodeCreateReadStructure")]
 EpochLLVMCodeCreateRet : LLVMContextHandle handle																	[external("EpochLLVM.dll", "EpochLLVMCodeCreateRet")]
@@ -730,19 +731,29 @@ EmitSingleCodeBlockEntryToLLVM : LLVMBuildContext ref context, Statement ref ent
 		}
 		else
 		{
+			integer varname = ExtractConstructorIdentifier(entry.Parameters)
+			assertmsg(varname != 0, "Couldn't find variable to initialize")
+
+			LLVMAlloca alloca = 0
+			BinaryTreeCopyPayload<LLVMAlloca>(context.LocalVariables.RootNode, varname, alloca)
+			assertmsg(alloca != 0, "Couldn't find LLVM binding alloca to initialize")
+
 			if(entry.ArrayArity > 0)
 			{
-				// TODO - initialize arrays
+				integer paramcount = 0
+				while(paramcount < entry.ArrayArity)
+				{
+					EmitExpressionToLLVMFromList(context, entry.Parameters, 0, paramcount + 1)
+
+					EpochLLVMCodePushInteger(context.Context, paramcount)
+					EpochLLVMCodeCreateReadArray(context.Context, alloca)
+					EpochLLVMCodeCreateWriteStructurePop(context.Context)
+
+					++paramcount
+				}
 			}
 			else
-			{
-				integer varname = ExtractConstructorIdentifier(entry.Parameters)
-				assertmsg(varname != 0, "Couldn't find variable to initialize")
-
-				LLVMAlloca alloca = 0
-				BinaryTreeCopyPayload<LLVMAlloca>(context.LocalVariables.RootNode, varname, alloca)
-				assertmsg(alloca != 0, "Couldn't find LLVM binding alloca to initialize")
-			
+			{			
 				EmitPartialExpressionListToLLVM(context, entry.Parameters)
 				EpochLLVMCodeCreateWrite(context.Context, alloca)
 			}
@@ -899,6 +910,24 @@ EmitExpressionListToLLVM : LLVMBuildContext ref context, list<Expression> ref ex
 EmitPartialExpressionListToLLVM : LLVMBuildContext ref context, ExpressionList ref exprs
 {
 	EmitExpressionListToLLVM(context, exprs.Expressions.next)
+}
+
+
+EmitExpressionToLLVMFromList : LLVMBuildContext ref context, ExpressionList ref exprs, integer counter, integer target
+{
+	EmitExpressionToLLVMFromList(context, exprs.Expressions, counter, target)
+}
+
+EmitExpressionToLLVMFromList : LLVMBuildContext ref context, list<Expression> ref exprs, integer counter, integer target
+{
+	if(counter == target)
+	{
+		EmitExpressionAtomsToLLVM(context, exprs.value.Atoms)
+	}
+	else
+	{
+		EmitExpressionToLLVMFromList(context, exprs.next, counter + 1, target)
+	}
 }
 
 
@@ -1171,8 +1200,13 @@ EmitSingleAtomToLLVM : LLVMBuildContext ref context, TypeAnnotationAtom ref atom
 
 EmitSingleAtomToLLVM : LLVMBuildContext ref context, ArrayIndexAtom ref atom
 {
-	// TODO - access an array variable for read or write
-	EpochLLVMCodePushInteger(context.Context, -1)
+	EmitExpressionAtomsToLLVM(context, atom.IndexExpression)
+
+	LLVMAlloca alloca = 0
+	BinaryTreeCopyPayload<LLVMAlloca>(context.LocalVariables.RootNode, atom.ArrayVarName, alloca)
+	
+	EpochLLVMCodeCreateReadArray(context.Context, alloca)
+	EpochLLVMCodeCreateDereference(context.Context)
 }
 
 

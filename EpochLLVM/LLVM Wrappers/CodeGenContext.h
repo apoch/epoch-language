@@ -86,6 +86,7 @@ namespace CodeGen
 		void CodeCreateDereference();
 		llvm::Value* CodeCreateGEP(unsigned index);
 		void CodeCreateRead(llvm::AllocaInst* allocatarget);
+		void* CodeCreateReadArray(llvm::AllocaInst* allocatarget);
 		void CodeCreateReadParam(unsigned index);
 		void CodeCreateReadStructure(llvm::Value* gep);
 		void CodeCreateRet();

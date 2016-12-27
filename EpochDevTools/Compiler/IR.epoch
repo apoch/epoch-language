@@ -71,7 +71,8 @@ structure AtomSentinel :
 
 structure ArrayIndexAtom :
 	integer ArrayVarName,
-	Expression IndexExpression
+	Expression IndexExpression,
+	integer Type
 
 type ExpressionAtom : 	integer | integer16 | integer64 | boolean | real | StringHandleAtom |
 			IdentifierAtom | OperatorInvokeAtom | TypeAnnotationAtom | RefBinding |

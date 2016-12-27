@@ -218,7 +218,7 @@ OnCodeGenExitContext :
 	}
 	elseif(entrytype == STACK_TYPE_ARRAYINDEX)
 	{
-		ArrayIndexAtom arratom = entryname, ScratchExpressions.value
+		ArrayIndexAtom arratom = entryname, ScratchExpressions.value, 0
 		ExpressionAtom atom = arratom
 		pop<Expression>(ScratchExpressions, ScratchExpressions.next)
 		PlaceAtomInScratchExpression(atom)

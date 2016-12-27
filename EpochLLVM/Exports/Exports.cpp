@@ -198,6 +198,11 @@ extern "C" void EpochLLVMCodeCreateRead(void* context, void* allocatarget)
 	reinterpret_cast<CodeGen::Context*>(context)->CodeCreateRead(reinterpret_cast<llvm::AllocaInst*>(allocatarget));
 }
 
+extern "C" void* EpochLLVMCodeCreateReadArray(void* context, void* allocatarget)
+{
+	return reinterpret_cast<CodeGen::Context*>(context)->CodeCreateReadArray(reinterpret_cast<llvm::AllocaInst*>(allocatarget));
+}
+
 extern "C" void EpochLLVMCodeCreateReadParam(void* context, unsigned index)
 {
 	reinterpret_cast<CodeGen::Context*>(context)->CodeCreateReadParam(index);

@@ -46,6 +46,7 @@ EXPORTS
 	EpochLLVMCodeCreateCondBranch
 	EpochLLVMCodeCreateGEP
 	EpochLLVMCodeCreateRead
+	EpochLLVMCodeCreateReadArray
 	EpochLLVMCodeCreateReadParam
 	EpochLLVMCodeCreateReadStructure
 	EpochLLVMCodeCreateRet
