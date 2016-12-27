@@ -25,7 +25,7 @@ ExpressionAtomIsSentinel : Statement		   ref nonsentinel -> false [nogc]
 ExpressionAtomIsSentinel : RefBinding              ref nonsentinel -> false [nogc]
 ExpressionAtomIsSentinel : CompoundAtom            ref nonsentinel -> false [nogc]
 ExpressionAtomIsSentinel : ParentheticalExpression ref nonsentinel -> false [nogc]
-
+ExpressionAtomIsSentinel : ArrayIndexAtom		   ref nonsentinel -> false [nogc]
 
 
 AppendAtomToExpression : list<ExpressionAtom> ref atoms, list<ExpressionAtom> ref tail, ExpressionAtom ref atom
@@ -103,6 +103,7 @@ IsOperatorInvoke : Statement		   ref nonsentinel -> false [nogc]
 IsOperatorInvoke : RefBinding              ref nonsentinel -> false [nogc]
 IsOperatorInvoke : CompoundAtom		   ref nonsentinel -> false [nogc]
 IsOperatorInvoke : ParentheticalExpression ref nonsentinel -> false [nogc]
+IsOperatorInvoke : ArrayIndexAtom		ref nonsentinel -> false [nogc]
 
 
 IsRefBind : IdentifierAtom ref atom -> atom.IsReference [nogc]
@@ -125,6 +126,7 @@ IsRefBind : real 		   ref nonsentinel -> false [nogc]
 IsRefBind : Statement		   ref nonsentinel -> false [nogc]
 IsRefBind : ParentheticalExpression ref nonsentinel -> false [nogc]
 IsRefBind : OperatorInvokeAtom 	   ref nonsentinel -> false [nogc]
+IsRefBind : ArrayIndexAtom			ref nonsentinel -> false [nogc]
 
 
 IsTypeAnnotationAtom : TypeAnnotationAtom 	   ref nonsentinel -> true [nogc]
@@ -141,7 +143,7 @@ IsTypeAnnotationAtom : RefBinding              ref nonsentinel -> false [nogc]
 IsTypeAnnotationAtom : CompoundAtom		   ref nonsentinel -> false [nogc]
 IsTypeAnnotationAtom : ParentheticalExpression ref nonsentinel -> false [nogc]
 IsTypeAnnotationAtom : OperatorInvokeAtom 	   ref nonsentinel -> false [nogc]
-
+IsTypeAnnotationAtom : ArrayIndexAtom			ref nonsentinel -> false [nogc]
 
 
 IsMemberAccessOperator : OperatorInvokeAtom 	 ref nonsentinel -> boolean ismemberaccess = false [nogc]
@@ -164,6 +166,7 @@ IsMemberAccessOperator : Statement		 ref nonsentinel -> false [nogc]
 IsMemberAccessOperator : RefBinding              ref nonsentinel -> false [nogc]
 IsMemberAccessOperator : CompoundAtom            ref nonsentinel -> false [nogc]
 IsMemberAccessOperator : ParentheticalExpression ref nonsentinel -> false [nogc]
+IsMemberAccessOperator : ArrayIndexAtom			 ref nonsentinel -> false [nogc]
 
 
 
@@ -189,6 +192,8 @@ MarkAtomAsReference : CompoundAtom            ref atom -> true [nogc]
 {
 	atom.Type = MakeReferenceType(atom.Type)
 }
+
+MarkAtomAsReference : ArrayIndexAtom ref atom -> false [nogc]
 
 
 ShuntingYard : list<ExpressionAtom> ref atoms
@@ -224,6 +229,7 @@ ShuntingYardVisit : Statement               ref atom, list<ExpressionAtom> ref o
 ShuntingYardVisit : RefBinding              ref atom, list<ExpressionAtom> ref outputqueue, list<ExpressionAtom> ref opstack	{ ExpressionAtom wrap = atom  PlaceAtomInList(outputqueue, wrap) }
 ShuntingYardVisit : ParentheticalExpression ref atom, list<ExpressionAtom> ref outputqueue, list<ExpressionAtom> ref opstack	{ ExpressionAtom wrap = atom  PlaceAtomInList(outputqueue, wrap) }
 ShuntingYardVisit : CompoundAtom            ref atom, list<ExpressionAtom> ref outputqueue, list<ExpressionAtom> ref opstack	{ ExpressionAtom wrap = atom  PlaceAtomInList(outputqueue, wrap) }
+ShuntingYardVisit : ArrayIndexAtom			ref atom, list<ExpressionAtom> ref outputqueue, list<ExpressionAtom> ref opstack	{ ExpressionAtom wrap = atom  PlaceAtomInList(outputqueue, wrap) }
 
 ShuntingYardVisit : OperatorInvokeAtom ref atom, list<ExpressionAtom> ref outputqueue, list<ExpressionAtom> ref opstack
 {

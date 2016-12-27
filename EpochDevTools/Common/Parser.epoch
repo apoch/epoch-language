@@ -1135,7 +1135,23 @@ ParseExpressionTerm : boolean startsexpr, boolean ref matchedstatement -> boolea
 					}
 					else
 					{
-						IRAddLiteralIdentifier(term)
+						if(PeekToken(1) == "[")
+						{
+							PopTokens(2)
+
+							OnCodeGenEnterArrayIndex(term)
+							matched = ParseExpression()
+							OnCodeGenExitContext()
+							if(matched)
+							{
+								PopToken()
+							}
+							return()
+						}
+						else
+						{
+							IRAddLiteralIdentifier(term)
+						}
 					}
 				}
 			}

@@ -711,15 +711,10 @@ EmitSingleCodeBlockEntryToLLVM : LLVMBuildContext ref context, AssignmentCompoun
 
 EmitSingleCodeBlockEntryToLLVM : LLVMBuildContext ref context, Statement ref entry
 {
-	print("ALPHA")
 	if(IsRecognizedBuiltIn(entry.Name))
 	{
-		print("BETA")
 		if(GetTypeByName(entry.Name) == 0)
 		{
-			print("GAMMA")
-
-
 			if(entry.Name == PooledStringHandleForCastIntegerToString)
 			{
 				EmitPartialExpressionListToLLVM(context, entry.Parameters)
@@ -735,11 +730,9 @@ EmitSingleCodeBlockEntryToLLVM : LLVMBuildContext ref context, Statement ref ent
 		}
 		else
 		{
-			print("EPSILON " ; cast(string, entry.ArrayArity))
-
 			if(entry.ArrayArity > 0)
 			{
-				print("DING")
+				// TODO - initialize arrays
 			}
 			else
 			{
@@ -776,8 +769,6 @@ EmitSingleCodeBlockEntryToLLVM : LLVMBuildContext ref context, Statement ref ent
 	}
 	else
 	{
-		print("ZAP")
-
 		EmitExpressionListToLLVM(context, entry.Parameters)
 
 		integer vartype = GetVariableTypeFromScope(EmittingScope.Wrapped, entry.Name)
@@ -805,7 +796,6 @@ EmitSingleCodeBlockEntryToLLVM : LLVMBuildContext ref context, Statement ref ent
 	
 	if(entry.TopLevel)
 	{
-		print("FINALIZE")
 		EpochLLVMCodeStatementFinalize(context.Context)
 	}
 }
@@ -1177,6 +1167,12 @@ EmitSingleAtomToLLVM : LLVMBuildContext ref context, CompoundAtom ref atom
 EmitSingleAtomToLLVM : LLVMBuildContext ref context, TypeAnnotationAtom ref atom
 {
 	EpochLLVMCodePushInteger(context.Context, atom.Type)
+}
+
+EmitSingleAtomToLLVM : LLVMBuildContext ref context, ArrayIndexAtom ref atom
+{
+	// TODO - access an array variable for read or write
+	EpochLLVMCodePushInteger(context.Context, -1)
 }
 
 

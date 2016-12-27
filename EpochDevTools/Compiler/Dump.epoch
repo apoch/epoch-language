@@ -80,6 +80,13 @@ DumpAtom : Statement		   ref nonsentinel
 	print("END PARAMS")
 }
 
+DumpAtom : ArrayIndexAtom ref nonsentinel
+{
+	print("Array index of " ; GetPooledString(nonsentinel.ArrayVarName))
+	DumpExpressionAtoms(nonsentinel.IndexExpression.Atoms)
+	print("END INDEX")
+}
+
 DumpExpressionAtoms : list<ExpressionAtom> ref atoms
 {
 	DumpAtom(atoms.value)

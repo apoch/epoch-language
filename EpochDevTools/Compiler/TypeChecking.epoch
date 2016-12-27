@@ -1425,6 +1425,8 @@ WalkAtomsForType : list<ExpressionAtom> ref atoms, list<ExpressionAtom> ref tail
 		++counter
 		if(counter > 1)
 		{
+			print(cast(string, counter))
+			DumpExpressionAtoms(atoms)
 			SetOperatorAtomToOverload(atoms, stack.value.PossibilityList.value.FunctionName, counter)
 			++counter
 		}
@@ -1564,6 +1566,8 @@ EliminateImpossibleType : simplelist<integer> ref possibles, simplelist<integer>
 
 EliminateImpossibleType : nothing, simplelist<integer> ref filter, simplelist<integer> ref out -> 0 [nogc]
 
+
+GetAtomType : ArrayIndexAtom     ref atom, TypePossibilityList ref possibilities, Scope ref scope, ContextNode<FunctionDefinition> ref func, boolean funcret, boolean parenthetical { AddPossibleParameter(possibilities.Types, 0x01000001) }	// integer magic
 
 GetAtomType : AtomSentinel       ref atom, TypePossibilityList ref possibilities, Scope ref scope, ContextNode<FunctionDefinition> ref func, boolean funcret, boolean parenthetical { AddPossibleParameter(possibilities.Types, 0x00000002) }	// void magic
 GetAtomType : StringHandleAtom   ref atom, TypePossibilityList ref possibilities, Scope ref scope, ContextNode<FunctionDefinition> ref func, boolean funcret, boolean parenthetical { AddPossibleParameter(possibilities.Types, 0x02000000) }

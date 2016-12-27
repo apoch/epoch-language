@@ -84,6 +84,7 @@ global
 	integer STACK_TYPE_PARENTHETICAL = 11
 	integer STACK_TYPE_MESSAGE = 12
 	integer STACK_TYPE_TASK = 13
+	integer STACK_TYPE_ARRAYINDEX = 14
 
 	ContextStackEntry GlobalStackEntry = STACK_TYPE_GLOBAL, 0
 	list<ContextStackEntry> ContextStack = GlobalStackEntry, nothing

@@ -69,12 +69,16 @@ structure CompoundAtom :
 structure AtomSentinel :
 	integer dummy
 
+structure ArrayIndexAtom :
+	integer ArrayVarName,
+	Expression IndexExpression
 
 type ExpressionAtom : 	integer | integer16 | integer64 | boolean | real | StringHandleAtom |
 			IdentifierAtom | OperatorInvokeAtom | TypeAnnotationAtom | RefBinding |
 			CompoundAtom |
 			Statement |
 			ParentheticalExpression |
+			ArrayIndexAtom |
 			AtomSentinel
 
 

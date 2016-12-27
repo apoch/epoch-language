@@ -23,9 +23,9 @@ TADecl : Harness ref harness
 
 	// TODO - enable these asserts once parser/codegen is up to speed
 
-	//TestAssert(arrayoffour[0] == 0, harness, "array initialization index 0")
-	//TestAssert(arrayoffour[1] == 0, harness, "array initialization index 1")
-	//TestAssert(arrayoffour[2] == 0, harness, "array initialization index 2")
-	//TestAssert(arrayoffour[3] == 0, harness, "array initialization index 3")
+	TestAssert(arrayoffour[0] == 0, harness, "array initialization/retrieval index 0")
+	TestAssert(arrayoffour[1] == 0, harness, "array initialization/retrieval index 1")
+	TestAssert(arrayoffour[2] == 0, harness, "array initialization/retrieval index 2")
+	TestAssert(arrayoffour[3] == 0, harness, "array initialization/retrieval index 3")
 }
 

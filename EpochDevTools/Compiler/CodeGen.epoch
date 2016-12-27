@@ -146,9 +146,19 @@ OnCodeGenEnterFunctionReturn : integer funcname, boolean anonymous
 	InFuncRetHack = true
 }
 
+OnCodeGenEnterArrayIndex : string arrvarname
+{
+	ContextStackEntry entry = STACK_TYPE_ARRAYINDEX, PoolString(arrvarname)
+	prepend<ContextStackEntry>(ContextStack, entry)
+
+	Expression d = dummyatomlist, 0
+	prepend<Expression>(ScratchExpressions, d)
+}
+
 OnCodeGenExitContext :
 {
 	integer entrytype = ContextStack.value.EntryType
+	integer entryname = ContextStack.value.EntryName
 	pop<ContextStackEntry>(ContextStack, ContextStack.next)
 
 	if(entrytype == STACK_TYPE_STATEMENT)
@@ -205,6 +215,13 @@ OnCodeGenExitContext :
 	elseif(entrytype == STACK_TYPE_GLOBAL)
 	{
 		SetGlobalCodeBlock(CurrentCodeBlockStack.value)
+	}
+	elseif(entrytype == STACK_TYPE_ARRAYINDEX)
+	{
+		ArrayIndexAtom arratom = entryname, ScratchExpressions.value
+		ExpressionAtom atom = arratom
+		pop<Expression>(ScratchExpressions, ScratchExpressions.next)
+		PlaceAtomInScratchExpression(atom)
 	}
 }
 
