@@ -214,7 +214,9 @@ MakeExe : EpochProject ref project
 	position += sizegc
 
 	position += WritePadding(filehandle, position, offsetdebug)
-	position += WriteDebugStub(filehandle, pdbfilename)
+
+	// TODO - full qualified path or no path!
+	position += WriteDebugStub(filehandle, "D:\Epoch\epoch-language\EpochTests\Projects\TestSuite\bin\Debug\TestSuite.pdb", virtualoffsetdebug, offsetdebug)
 
 	print("Writing code...")
 	
@@ -263,7 +265,7 @@ MakeExe : EpochProject ref project
 	
 	
 	print("Emitting PDB file...")
-	GeneratePDB(pdbfilename, debugsymboldata, sizedebugsymbols)
+	GeneratePDB(pdbfilename, debugsymboldata, sizedebugsymbols, virtualoffsetcode, sizecode)
 
 
 	print("Compilation complete.")
@@ -271,7 +273,7 @@ MakeExe : EpochProject ref project
 
 
 
-WriteDebugStub : Win32Handle filehandle, string pdbfilename -> integer writtenbytes = 0
+WriteDebugStub : Win32Handle filehandle, string pdbfilename, integer realaddress, integer fileoffset -> integer writtenbytes = 0
 {
 	buffer headerbuffer = 512
 	integer headersize = 0
@@ -281,9 +283,9 @@ WriteDebugStub : Win32Handle filehandle, string pdbfilename -> integer writtenby
 	ByteStreamEmitInteger16(headerbuffer, headersize, 0)		// MajorVersion
 	ByteStreamEmitInteger16(headerbuffer, headersize, 0)		// MinorVersion
 	ByteStreamEmitInteger(headerbuffer, headersize, 2)			// Type
-	ByteStreamEmitInteger(headerbuffer, headersize, 60)			// SizeOfData
-	ByteStreamEmitInteger(headerbuffer, headersize, 0x7000 + 0x1c)			// AddressOfRawData			// TODO - evil
-	ByteStreamEmitInteger(headerbuffer, headersize, 0x1800 + 0x1c)			// PointerToRawData			// TODO - evil
+	ByteStreamEmitInteger(headerbuffer, headersize, 53 + length(pdbfilename))			// SizeOfData
+	ByteStreamEmitInteger(headerbuffer, headersize, realaddress + 0x1c)			// AddressOfRawData			// TODO - evil
+	ByteStreamEmitInteger(headerbuffer, headersize, fileoffset + 0x1c)			// PointerToRawData			// TODO - evil
 	
 	ByteStreamEmitInteger(headerbuffer, headersize, 0x53445352)	// "RSDS" signature
 
@@ -1112,17 +1114,17 @@ ThunkTableAddFunctionToList : ThunkTableLibrary ref library, nothing, string fun
 
 
 
-GeneratePDB : string pdbfilename, buffer ref symboldata, integer symbolsize
+GeneratePDB : string pdbfilename, buffer ref symboldata, integer symbolsize, integer codesectionstart, integer codesize
 {
-	SymbolSection sectionsymbol = 8, 0x8000, 0x1000, 0x60000020, ".text"
-	//SymbolProcStart initsymbolps = 0, 0x4a, 0, 65, 0, 0, 0, 8, 0, "init"		// TODO - 0x4a is offset of next (end) symbol, this should not be hard-coded!
-	//SymbolBlockEnd endsymbolps = 0
-	//PDBSymbol initsymbol = initsymbolps
-	//PDBSymbol endsymbol = endsymbolps
+	SymbolSection sectionsymbol = 8, codesectionstart, codesize, 0x60000020, ".text"
+	SymbolProcStart initsymbolps = 0, 0x4a, 0, 65, 0, 0, 0, 8, 0, "init"		// TODO - 0x4a is offset of next (end) symbol, this should not be hard-coded!
+	SymbolBlockEnd endsymbolps = 0
+	PDBSymbol initsymbol = initsymbolps
+	PDBSymbol endsymbol = endsymbolps
 	
 	list<PDBSymbol> symbollist = sectionsymbol, nothing
-	//append<PDBSymbol>(symbollist, initsymbol)
-	//append<PDBSymbol>(symbollist, endsymbol)
+	append<PDBSymbol>(symbollist, initsymbol)
+	append<PDBSymbol>(symbollist, endsymbol)
 	
 	TransferSymbols(symbollist, symboldata, symbolsize)
 	
@@ -1169,7 +1171,7 @@ GeneratePDB : string pdbfilename, buffer ref symboldata, integer symbolsize
 	PDBFileLayout layout = 1024, 14, directoryhint, directorystream, pdbdir
 	PDBOutputStream stream = pdbfilename, invalidhandle, 0, layout, dbisection
 
-	WritePDB(stream)
+	WritePDB(stream, codesectionstart, codesize)
 }
 
 

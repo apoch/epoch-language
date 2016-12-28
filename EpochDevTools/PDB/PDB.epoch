@@ -188,7 +188,7 @@ structure SectionContribution :
 // computed internally to this function, so there's no need to have that totally
 // figured out before calling.
 //
-WritePDB : PDBOutputStream ref stream
+WritePDB : PDBOutputStream ref stream, integer codesectionstart, integer codesize
 {
 	// We only support writing in a single pass, and no reads (yet).
 	// So don't allow emission of a PDB if we already opened a file.
@@ -245,7 +245,7 @@ WritePDB : PDBOutputStream ref stream
 	
 	// Move up and write the symbol records (DBI) stream
 	PadToBeginningOfBlock(stream, stream.Layout.Directory.Symbols.Blocks.value)
-	stream.FilePosition = WriteSymbolRecordsStream(stream.FileHandle, stream.FilePosition)
+	stream.FilePosition = WriteSymbolRecordsStream(stream.FileHandle, stream.FilePosition, codesectionstart, codesize)
 	
 	// HACK - TODO
 	PadToBeginningOfBlock(stream, 13)
@@ -601,6 +601,8 @@ EmitDBISectionMap : PDBOutputStream ref stream
 	ByteStreamEmitInteger16(header, headersize, 9)
 	ByteStreamEmitInteger16(header, headersize, 9)
 	
+	// TODO - reflect actual EXE sections here
+
 	// section descriptor
 	ByteStreamEmitInteger16(header, headersize, 0x109)		// flags
 	ByteStreamEmitInteger16(header, headersize, 0)			// overlay
@@ -654,7 +656,7 @@ EmitDBISectionMap : PDBOutputStream ref stream
 	ByteStreamEmitInteger16(header, headersize, 0xffff)		// name
 	ByteStreamEmitInteger16(header, headersize, 0xffff)		// class name
 	ByteStreamEmitInteger(header, headersize, 0)			// offset
-	ByteStreamEmitInteger(header, headersize, 0x100)		// length
+	ByteStreamEmitInteger(header, headersize, 0x1300)		// length
 
 	ByteStreamEmitInteger16(header, headersize, 0x109)		// flags
 	ByteStreamEmitInteger16(header, headersize, 0)			// overlay
@@ -672,7 +674,7 @@ EmitDBISectionMap : PDBOutputStream ref stream
 	ByteStreamEmitInteger16(header, headersize, 0xffff)		// name
 	ByteStreamEmitInteger16(header, headersize, 0xffff)		// class name
 	ByteStreamEmitInteger(header, headersize, 0)			// offset
-	ByteStreamEmitInteger(header, headersize, 0x1000)		// length
+	ByteStreamEmitInteger(header, headersize, 0x200)		// length
 
 	ByteStreamEmitInteger16(header, headersize, 0x208)		// flags
 	ByteStreamEmitInteger16(header, headersize, 0)			// overlay
@@ -903,13 +905,13 @@ WritePublicsStream : Win32Handle pdbfilehandle, integer startfileposition -> int
 }
 
 
-WriteSymbolRecordsStream : Win32Handle pdbfilehandle, integer startfileposition -> integer endfileposition = 0
+WriteSymbolRecordsStream : Win32Handle pdbfilehandle, integer startfileposition, integer codesectionstart, integer codesize -> integer endfileposition = 0
 {
 	buffer symbols = 1024
 	integer symbolssize = 0
 
 
-	SymbolSection sectionsymbol = 8, 0x8000, 0x1000, 0x60000020, ".text"
+	SymbolSection sectionsymbol = 8, codesectionstart, codesize, 0x60000020, ".text"
 	ByteStreamEmitSymbol(symbols, symbolssize, sectionsymbol)
 
 
