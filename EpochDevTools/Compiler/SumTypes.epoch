@@ -163,6 +163,12 @@ GetBaseMaxSize : list<SumTypeBase> ref basetypes, integer ref outsize
 	integer typename = basetypes.value.Name
 	if(typename != 0)
 	{
+		// HACK
+		if(GetTypeByName(typename) != 0)
+		{
+			typename = GetTypeByName(typename)
+		}
+
 		integer thissize = GetTypeSize(typename)
 		if(thissize > outsize)
 		{

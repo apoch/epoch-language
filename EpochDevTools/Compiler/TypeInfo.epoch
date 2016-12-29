@@ -46,6 +46,7 @@ GetTypeSize : integer typeid -> integer size = 0
 	else
 	{
 		print("Undefined type for size retrieval - " ; cast(string, typeid))
+		print("HINT: is this a type name? " ; GetPooledString(typeid))
 		assert(false)
 	}
 }

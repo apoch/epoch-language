@@ -726,6 +726,8 @@ void Context::CodeCreateCast(Type* targettype)
 		castvalue = LLVMBuilder.CreateIntToPtr(v, targettype);
 	else if(!targettype->isPointerTy() && v->getType()->isPointerTy())
 		castvalue = LLVMBuilder.CreatePtrToInt(v, targettype);
+	else if(targettype->isStructTy())
+		castvalue = LLVMBuilder.CreateBitCast(v, targettype);
 	else
 		castvalue = LLVMBuilder.CreateZExtOrTrunc(v, targettype);
 
