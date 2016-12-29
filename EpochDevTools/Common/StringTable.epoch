@@ -6,7 +6,7 @@ structure StringPool :
 	integer CurrentStringHandle
 
 
-PoolString : string s -> integer handle = FindHandleInTrie(GlobalStringPool.LookupTrie, s) [nogc]
+PoolString : string s -> integer handle = FindHandleInTrie(GlobalStringPool.LookupTrie, s)
 {
 	if(handle == 0)
 	{
@@ -14,7 +14,7 @@ PoolString : string s -> integer handle = FindHandleInTrie(GlobalStringPool.Look
 	}
 }
 
-PoolStringFast : string s -> integer handle = 0 [nogc]
+PoolStringFast : string s -> integer handle = 0
 {
 	++GlobalStringPool.CurrentStringHandle
 	StringTableRegisterString(GlobalStringPool.CurrentStringHandle, s)
@@ -29,7 +29,7 @@ StringTableRegisterString : integer handle, string contents
 }
 
 
-GetPooledString : integer handle -> string pooled = "" [nogc]
+GetPooledString : integer handle -> string pooled = ""
 {
 	BinaryTreeCopyPayload<string>(GlobalStringPool.LookupMap.RootNode, handle, pooled)
 }

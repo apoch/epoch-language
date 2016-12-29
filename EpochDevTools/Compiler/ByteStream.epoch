@@ -10,7 +10,7 @@
 //
 // Emit a single byte into the stream
 //
-ByteStreamEmitByte : buffer ref targetbuffer, integer ref offset, integer value [nogc]
+ByteStreamEmitByte : buffer ref targetbuffer, integer ref offset, integer value
 {
 	writebuffer(targetbuffer, offset, value & 0xff)
 	++offset
@@ -19,7 +19,7 @@ ByteStreamEmitByte : buffer ref targetbuffer, integer ref offset, integer value 
 //
 // Emit a 32-bit integer into the stream
 //
-ByteStreamEmitInteger : buffer ref targetbuffer, integer ref offset, integer value [nogc]
+ByteStreamEmitInteger : buffer ref targetbuffer, integer ref offset, integer value
 {
 	writebuffer(targetbuffer, offset, (value) & 0xff)
 	++offset
@@ -34,7 +34,7 @@ ByteStreamEmitInteger : buffer ref targetbuffer, integer ref offset, integer val
 //
 // Emit a 16-bit integer into the stream
 //
-ByteStreamEmitInteger16 : buffer ref targetbuffer, integer ref offset, integer16 value [nogc]
+ByteStreamEmitInteger16 : buffer ref targetbuffer, integer ref offset, integer16 value
 {
 	integer v = cast(integer, value)
 	writebuffer(targetbuffer, offset, (v) & 0xff)
@@ -43,7 +43,7 @@ ByteStreamEmitInteger16 : buffer ref targetbuffer, integer ref offset, integer16
 	++offset
 }
 
-ByteStreamEmitInteger16From32 : buffer ref targetbuffer, integer ref offset, integer value [nogc]
+ByteStreamEmitInteger16From32 : buffer ref targetbuffer, integer ref offset, integer value
 {
 	writebuffer(targetbuffer, offset, (value) & 0xff)
 	++offset
@@ -54,7 +54,7 @@ ByteStreamEmitInteger16From32 : buffer ref targetbuffer, integer ref offset, int
 //
 // Emit a 32-bit floating point real into the stream
 //
-ByteStreamEmitReal : buffer ref targetbuffer, integer ref offset, real value [nogc]
+ByteStreamEmitReal : buffer ref targetbuffer, integer ref offset, real value
 {
 	writebuffer(targetbuffer, offset, value)
 	offset += 4
@@ -63,7 +63,7 @@ ByteStreamEmitReal : buffer ref targetbuffer, integer ref offset, real value [no
 //
 // Emit a boolean byte into the stream
 //
-ByteStreamEmitBoolean : buffer ref targetbuffer, integer ref offset, boolean value [nogc]
+ByteStreamEmitBoolean : buffer ref targetbuffer, integer ref offset, boolean value
 {
 	ByteStreamEmitByte(targetbuffer, offset, cast(integer, value))
 }
@@ -71,7 +71,7 @@ ByteStreamEmitBoolean : buffer ref targetbuffer, integer ref offset, boolean val
 //
 // Pad the stream with 0 bytes until it is targetoffset bytes long
 //
-ByteStreamEmitPadding : buffer ref targetbuffer, integer ref offset, integer targetoffset [nogc]
+ByteStreamEmitPadding : buffer ref targetbuffer, integer ref offset, integer targetoffset
 {
 	while(offset < targetoffset)
 	{
@@ -82,7 +82,7 @@ ByteStreamEmitPadding : buffer ref targetbuffer, integer ref offset, integer tar
 //
 // Emit a string into the stream
 //
-ByteStreamEmitString : buffer ref targetbuffer, integer ref offset, string value [nogc]
+ByteStreamEmitString : buffer ref targetbuffer, integer ref offset, string value
 {
 	integer len = (length(value) + 1) * 2
 	writebuffer(targetbuffer, offset, value, len)
@@ -92,7 +92,7 @@ ByteStreamEmitString : buffer ref targetbuffer, integer ref offset, string value
 //
 // Emit a string (or portion thereof) into the stream
 //
-ByteStreamEmitSubstring : buffer ref targetbuffer, integer ref offset, string s, integer bytes [nogc]
+ByteStreamEmitSubstring : buffer ref targetbuffer, integer ref offset, string s, integer bytes
 {
 	writebuffer(targetbuffer, offset, s, bytes)
 	offset += bytes

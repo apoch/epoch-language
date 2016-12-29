@@ -13,7 +13,7 @@
 // Miscellaneous useful functions
 //
 
-assertmsg : boolean check, string message [nogc]
+assertmsg : boolean check, string message
 {
 	if(!check)
 	{

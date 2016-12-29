@@ -66,6 +66,7 @@ DumpAtom : OperatorInvokeAtom 	   ref nonsentinel { print("Operator " ; cast(str
 DumpAtom : TypeAnnotationAtom 	   ref nonsentinel { print("Type annotation") }
 DumpAtom : integer 		   ref nonsentinel { print("integer " ; cast(string, nonsentinel)) }
 DumpAtom : integer16 		   ref nonsentinel { print("integer16") }
+DumpAtom : integer64 ref nonsentinel { print("integer64") }
 DumpAtom : boolean 		   ref nonsentinel { print("boolean") }
 DumpAtom : real 		   ref nonsentinel { print("real " ; cast(string, nonsentinel)) }
 DumpAtom : RefBinding              ref nonsentinel { print("RefBinding") }
@@ -94,6 +95,32 @@ DumpExpressionAtoms : list<ExpressionAtom> ref atoms
 }
 
 DumpExpressionAtoms : nothing
+
+
+DumpAtomFoo : integer ref atom { print("integer") }
+DumpAtomFoo : integer16 ref atom { print("integer16") }
+DumpAtomFoo : integer64 ref atom { print("integer64") }
+DumpAtomFoo : boolean ref atom { print("boolean") }
+DumpAtomFoo : real ref atom { print("real") }
+DumpAtomFoo : StringHandleAtom ref atom { print("stringhandle") }
+DumpAtomFoo : IdentifierAtom ref atom { print("identifier") }
+DumpAtomFoo : OperatorInvokeAtom ref atom { print("operator") }
+DumpAtomFoo : TypeAnnotationAtom ref atom { print("type") }
+DumpAtomFoo : RefBinding ref atom { print("binding") }
+DumpAtomFoo : CompoundAtom ref atom { print("compound") }
+DumpAtomFoo : Statement ref atom { print("statement") }
+DumpAtomFoo : ParentheticalExpression ref atom { print("parenthetical") }
+DumpAtomFoo : ArrayIndexAtom ref atom { print("array") }
+DumpAtomFoo : AtomSentinel ref atom { print("sentinel") }
+
+DumpExpressionAtomsFoo : list<ExpressionAtom> ref atoms
+{
+	DumpAtomFoo(atoms.value)
+	DumpExpressionAtomsFoo(atoms.next)
+}
+
+DumpExpressionAtomsFoo : nothing
+
 
 
 DumpExpressionList : list<Expression> ref exprs

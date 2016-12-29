@@ -12,20 +12,20 @@ PlaceAtomInScratchExpression : ExpressionAtom ref atom
 	}
 }
 
-ExpressionAtomIsSentinel : AtomSentinel 	   ref sentinel    -> true [nogc]
-ExpressionAtomIsSentinel : StringHandleAtom 	   ref nonsentinel -> false [nogc]
-ExpressionAtomIsSentinel : IdentifierAtom 	   ref nonsentinel -> false [nogc]
-ExpressionAtomIsSentinel : OperatorInvokeAtom 	   ref nonsentinel -> false [nogc]
-ExpressionAtomIsSentinel : TypeAnnotationAtom 	   ref nonsentinel -> false [nogc]
-ExpressionAtomIsSentinel : integer 		   ref nonsentinel -> false [nogc]
-ExpressionAtomIsSentinel : integer16 		   ref nonsentinel -> false [nogc]
-ExpressionAtomIsSentinel : boolean 		   ref nonsentinel -> false [nogc]
-ExpressionAtomIsSentinel : real 		   ref nonsentinel -> false [nogc]
-ExpressionAtomIsSentinel : Statement		   ref nonsentinel -> false [nogc]
-ExpressionAtomIsSentinel : RefBinding              ref nonsentinel -> false [nogc]
-ExpressionAtomIsSentinel : CompoundAtom            ref nonsentinel -> false [nogc]
-ExpressionAtomIsSentinel : ParentheticalExpression ref nonsentinel -> false [nogc]
-ExpressionAtomIsSentinel : ArrayIndexAtom		   ref nonsentinel -> false [nogc]
+ExpressionAtomIsSentinel : AtomSentinel 	   ref sentinel    -> true
+ExpressionAtomIsSentinel : StringHandleAtom 	   ref nonsentinel -> false
+ExpressionAtomIsSentinel : IdentifierAtom 	   ref nonsentinel -> false
+ExpressionAtomIsSentinel : OperatorInvokeAtom 	   ref nonsentinel -> false
+ExpressionAtomIsSentinel : TypeAnnotationAtom 	   ref nonsentinel -> false
+ExpressionAtomIsSentinel : integer 		   ref nonsentinel -> false
+ExpressionAtomIsSentinel : integer16 		   ref nonsentinel -> false
+ExpressionAtomIsSentinel : boolean 		   ref nonsentinel -> false
+ExpressionAtomIsSentinel : real 		   ref nonsentinel -> false
+ExpressionAtomIsSentinel : Statement		   ref nonsentinel -> false
+ExpressionAtomIsSentinel : RefBinding              ref nonsentinel -> false
+ExpressionAtomIsSentinel : CompoundAtom            ref nonsentinel -> false
+ExpressionAtomIsSentinel : ParentheticalExpression ref nonsentinel -> false
+ExpressionAtomIsSentinel : ArrayIndexAtom		   ref nonsentinel -> false
 
 
 AppendAtomToExpression : list<ExpressionAtom> ref atoms, list<ExpressionAtom> ref tail, ExpressionAtom ref atom
@@ -41,11 +41,11 @@ AppendAtomToExpression : list<ExpressionAtom> ref atoms, nothing, ExpressionAtom
 
 
 
-CountExpressions : nothing -> 0 [nogc]
+CountExpressions : nothing -> 0
 
-CountExpressions : ExpressionList ref exprs -> integer count = CountExpressions(exprs.Expressions) [nogc]
+CountExpressions : ExpressionList ref exprs -> integer count = CountExpressions(exprs.Expressions)
 
-CountExpressions : list<Expression> ref exprs -> integer count = 1 [nogc]
+CountExpressions : list<Expression> ref exprs -> integer count = 1
 {
 	count += CountExpressions(exprs.next)
 }
@@ -56,22 +56,22 @@ countatoms : nothing -> 0
 
 
 
-SetAtomType : IdentifierAtom ref atom, integer typeid [nogc]
+SetAtomType : IdentifierAtom ref atom, integer typeid
 {
 	atom.Type = typeid
 }
 
-SetAtomType : CompoundAtom ref atom, integer typeid [nogc]
+SetAtomType : CompoundAtom ref atom, integer typeid
 {
 	atom.Type = typeid
 }
 
-SetAtomType : Statement ref atom, integer typeid [nogc]
+SetAtomType : Statement ref atom, integer typeid
 
 
 
 
-SetOperatorAtomToOverload : list<ExpressionAtom> ref atoms, integer overloadname, integer count [nogc]
+SetOperatorAtomToOverload : list<ExpressionAtom> ref atoms, integer overloadname, integer count
 {
 	if(count == 0)
 	{
@@ -83,32 +83,32 @@ SetOperatorAtomToOverload : list<ExpressionAtom> ref atoms, integer overloadname
 	}
 }
 
-ChangeOperator : OperatorInvokeAtom ref atom, integer overloadname [nogc]
+ChangeOperator : OperatorInvokeAtom ref atom, integer overloadname
 {
 	atom.OperatorName = overloadname
 }
 
 
-IsOperatorInvoke : OperatorInvokeAtom 	   ref nonsentinel -> true [nogc]
+IsOperatorInvoke : OperatorInvokeAtom 	   ref nonsentinel -> true
 
-IsOperatorInvoke : AtomSentinel 	   ref sentinel    -> false [nogc]
-IsOperatorInvoke : StringHandleAtom 	   ref nonsentinel -> false [nogc]
-IsOperatorInvoke : IdentifierAtom 	   ref nonsentinel -> false [nogc]
-IsOperatorInvoke : TypeAnnotationAtom 	   ref nonsentinel -> false [nogc]
-IsOperatorInvoke : integer 		   ref nonsentinel -> false [nogc]
-IsOperatorInvoke : integer16 		   ref nonsentinel -> false [nogc]
-IsOperatorInvoke : boolean 		   ref nonsentinel -> false [nogc]
-IsOperatorInvoke : real 		   ref nonsentinel -> false [nogc]
-IsOperatorInvoke : Statement		   ref nonsentinel -> false [nogc]
-IsOperatorInvoke : RefBinding              ref nonsentinel -> false [nogc]
-IsOperatorInvoke : CompoundAtom		   ref nonsentinel -> false [nogc]
-IsOperatorInvoke : ParentheticalExpression ref nonsentinel -> false [nogc]
-IsOperatorInvoke : ArrayIndexAtom		ref nonsentinel -> false [nogc]
+IsOperatorInvoke : AtomSentinel 	   ref sentinel    -> false
+IsOperatorInvoke : StringHandleAtom 	   ref nonsentinel -> false
+IsOperatorInvoke : IdentifierAtom 	   ref nonsentinel -> false
+IsOperatorInvoke : TypeAnnotationAtom 	   ref nonsentinel -> false
+IsOperatorInvoke : integer 		   ref nonsentinel -> false
+IsOperatorInvoke : integer16 		   ref nonsentinel -> false
+IsOperatorInvoke : boolean 		   ref nonsentinel -> false
+IsOperatorInvoke : real 		   ref nonsentinel -> false
+IsOperatorInvoke : Statement		   ref nonsentinel -> false
+IsOperatorInvoke : RefBinding              ref nonsentinel -> false
+IsOperatorInvoke : CompoundAtom		   ref nonsentinel -> false
+IsOperatorInvoke : ParentheticalExpression ref nonsentinel -> false
+IsOperatorInvoke : ArrayIndexAtom		ref nonsentinel -> false
 
 
-IsRefBind : IdentifierAtom ref atom -> atom.IsReference [nogc]
-IsRefBind : RefBinding ref atom -> true [nogc]
-IsRefBind : CompoundAtom		   ref nonsentinel -> boolean ret = true [nogc]
+IsRefBind : IdentifierAtom ref atom -> atom.IsReference
+IsRefBind : RefBinding ref atom -> true
+IsRefBind : CompoundAtom		   ref nonsentinel -> boolean ret = true
 {
 	if(!IsReferenceType(nonsentinel.Type))
 	{
@@ -116,37 +116,37 @@ IsRefBind : CompoundAtom		   ref nonsentinel -> boolean ret = true [nogc]
 	}
 }
 
-IsRefBind : TypeAnnotationAtom 	   ref nonsentinel -> false [nogc]
-IsRefBind : AtomSentinel 	   ref sentinel    -> false [nogc]
-IsRefBind : StringHandleAtom 	   ref nonsentinel -> false [nogc]
-IsRefBind : integer 		   ref nonsentinel -> false [nogc]
-IsRefBind : integer16 		   ref nonsentinel -> false [nogc]
-IsRefBind : boolean 		   ref nonsentinel -> false [nogc]
-IsRefBind : real 		   ref nonsentinel -> false [nogc]
-IsRefBind : Statement		   ref nonsentinel -> false [nogc]
-IsRefBind : ParentheticalExpression ref nonsentinel -> false [nogc]
-IsRefBind : OperatorInvokeAtom 	   ref nonsentinel -> false [nogc]
-IsRefBind : ArrayIndexAtom			ref nonsentinel -> false [nogc]
+IsRefBind : TypeAnnotationAtom 	   ref nonsentinel -> false
+IsRefBind : AtomSentinel 	   ref sentinel    -> false
+IsRefBind : StringHandleAtom 	   ref nonsentinel -> false
+IsRefBind : integer 		   ref nonsentinel -> false
+IsRefBind : integer16 		   ref nonsentinel -> false
+IsRefBind : boolean 		   ref nonsentinel -> false
+IsRefBind : real 		   ref nonsentinel -> false
+IsRefBind : Statement		   ref nonsentinel -> false
+IsRefBind : ParentheticalExpression ref nonsentinel -> false
+IsRefBind : OperatorInvokeAtom 	   ref nonsentinel -> false
+IsRefBind : ArrayIndexAtom			ref nonsentinel -> false
 
 
-IsTypeAnnotationAtom : TypeAnnotationAtom 	   ref nonsentinel -> true [nogc]
+IsTypeAnnotationAtom : TypeAnnotationAtom 	   ref nonsentinel -> true
 
-IsTypeAnnotationAtom : AtomSentinel 	   ref sentinel    -> false [nogc]
-IsTypeAnnotationAtom : StringHandleAtom 	   ref nonsentinel -> false [nogc]
-IsTypeAnnotationAtom : IdentifierAtom 	   ref nonsentinel -> false [nogc]
-IsTypeAnnotationAtom : integer 		   ref nonsentinel -> false [nogc]
-IsTypeAnnotationAtom : integer16 		   ref nonsentinel -> false [nogc]
-IsTypeAnnotationAtom : boolean 		   ref nonsentinel -> false [nogc]
-IsTypeAnnotationAtom : real 		   ref nonsentinel -> false [nogc]
-IsTypeAnnotationAtom : Statement		   ref nonsentinel -> false [nogc]
-IsTypeAnnotationAtom : RefBinding              ref nonsentinel -> false [nogc]
-IsTypeAnnotationAtom : CompoundAtom		   ref nonsentinel -> false [nogc]
-IsTypeAnnotationAtom : ParentheticalExpression ref nonsentinel -> false [nogc]
-IsTypeAnnotationAtom : OperatorInvokeAtom 	   ref nonsentinel -> false [nogc]
-IsTypeAnnotationAtom : ArrayIndexAtom			ref nonsentinel -> false [nogc]
+IsTypeAnnotationAtom : AtomSentinel 	   ref sentinel    -> false
+IsTypeAnnotationAtom : StringHandleAtom 	   ref nonsentinel -> false
+IsTypeAnnotationAtom : IdentifierAtom 	   ref nonsentinel -> false
+IsTypeAnnotationAtom : integer 		   ref nonsentinel -> false
+IsTypeAnnotationAtom : integer16 		   ref nonsentinel -> false
+IsTypeAnnotationAtom : boolean 		   ref nonsentinel -> false
+IsTypeAnnotationAtom : real 		   ref nonsentinel -> false
+IsTypeAnnotationAtom : Statement		   ref nonsentinel -> false
+IsTypeAnnotationAtom : RefBinding              ref nonsentinel -> false
+IsTypeAnnotationAtom : CompoundAtom		   ref nonsentinel -> false
+IsTypeAnnotationAtom : ParentheticalExpression ref nonsentinel -> false
+IsTypeAnnotationAtom : OperatorInvokeAtom 	   ref nonsentinel -> false
+IsTypeAnnotationAtom : ArrayIndexAtom			ref nonsentinel -> false
 
 
-IsMemberAccessOperator : OperatorInvokeAtom 	 ref nonsentinel -> boolean ismemberaccess = false [nogc]
+IsMemberAccessOperator : OperatorInvokeAtom 	 ref nonsentinel -> boolean ismemberaccess = false
 {
 	if(nonsentinel.OperatorName == PooledStringHandleForMemberAccess)
 	{
@@ -154,46 +154,46 @@ IsMemberAccessOperator : OperatorInvokeAtom 	 ref nonsentinel -> boolean ismembe
 	}
 }
 
-IsMemberAccessOperator : AtomSentinel 	   	 ref sentinel    -> false [nogc]
-IsMemberAccessOperator : StringHandleAtom 	 ref nonsentinel -> false [nogc]
-IsMemberAccessOperator : IdentifierAtom 	 ref nonsentinel -> false [nogc]
-IsMemberAccessOperator : TypeAnnotationAtom 	 ref nonsentinel -> false [nogc]
-IsMemberAccessOperator : integer 		 ref nonsentinel -> false [nogc]
-IsMemberAccessOperator : integer16 		 ref nonsentinel -> false [nogc]
-IsMemberAccessOperator : boolean 		 ref nonsentinel -> false [nogc]
-IsMemberAccessOperator : real 		   	 ref nonsentinel -> false [nogc]
-IsMemberAccessOperator : Statement		 ref nonsentinel -> false [nogc]
-IsMemberAccessOperator : RefBinding              ref nonsentinel -> false [nogc]
-IsMemberAccessOperator : CompoundAtom            ref nonsentinel -> false [nogc]
-IsMemberAccessOperator : ParentheticalExpression ref nonsentinel -> false [nogc]
-IsMemberAccessOperator : ArrayIndexAtom			 ref nonsentinel -> false [nogc]
+IsMemberAccessOperator : AtomSentinel 	   	 ref sentinel    -> false
+IsMemberAccessOperator : StringHandleAtom 	 ref nonsentinel -> false
+IsMemberAccessOperator : IdentifierAtom 	 ref nonsentinel -> false
+IsMemberAccessOperator : TypeAnnotationAtom 	 ref nonsentinel -> false
+IsMemberAccessOperator : integer 		 ref nonsentinel -> false
+IsMemberAccessOperator : integer16 		 ref nonsentinel -> false
+IsMemberAccessOperator : boolean 		 ref nonsentinel -> false
+IsMemberAccessOperator : real 		   	 ref nonsentinel -> false
+IsMemberAccessOperator : Statement		 ref nonsentinel -> false
+IsMemberAccessOperator : RefBinding              ref nonsentinel -> false
+IsMemberAccessOperator : CompoundAtom            ref nonsentinel -> false
+IsMemberAccessOperator : ParentheticalExpression ref nonsentinel -> false
+IsMemberAccessOperator : ArrayIndexAtom			 ref nonsentinel -> false
 
 
 
-MarkAtomAsReference : OperatorInvokeAtom      ref atom -> false [nogc]
-MarkAtomAsReference : AtomSentinel 	      ref atom -> false [nogc]
-MarkAtomAsReference : StringHandleAtom 	      ref atom -> false [nogc]
-MarkAtomAsReference : TypeAnnotationAtom      ref atom -> false [nogc]
-MarkAtomAsReference : integer 		      ref atom -> false [nogc]
-MarkAtomAsReference : integer16               ref atom -> false [nogc]
-MarkAtomAsReference : boolean 		      ref atom -> false [nogc]
-MarkAtomAsReference : real 		      ref atom -> false [nogc]
-MarkAtomAsReference : Statement		      ref atom -> false [nogc]
-MarkAtomAsReference : ParentheticalExpression ref atom -> false [nogc]
+MarkAtomAsReference : OperatorInvokeAtom      ref atom -> false
+MarkAtomAsReference : AtomSentinel 	      ref atom -> false
+MarkAtomAsReference : StringHandleAtom 	      ref atom -> false
+MarkAtomAsReference : TypeAnnotationAtom      ref atom -> false
+MarkAtomAsReference : integer 		      ref atom -> false
+MarkAtomAsReference : integer16               ref atom -> false
+MarkAtomAsReference : boolean 		      ref atom -> false
+MarkAtomAsReference : real 		      ref atom -> false
+MarkAtomAsReference : Statement		      ref atom -> false
+MarkAtomAsReference : ParentheticalExpression ref atom -> false
 
-MarkAtomAsReference : RefBinding              ref atom -> true [nogc]
+MarkAtomAsReference : RefBinding              ref atom -> true
 
-MarkAtomAsReference : IdentifierAtom          ref atom -> true [nogc]
+MarkAtomAsReference : IdentifierAtom          ref atom -> true
 {
 	atom.IsReference = true
 }
 
-MarkAtomAsReference : CompoundAtom            ref atom -> true [nogc]
+MarkAtomAsReference : CompoundAtom            ref atom -> true
 {
 	atom.Type = MakeReferenceType(atom.Type)
 }
 
-MarkAtomAsReference : ArrayIndexAtom ref atom -> false [nogc]
+MarkAtomAsReference : ArrayIndexAtom ref atom -> false
 
 
 ShuntingYard : list<ExpressionAtom> ref atoms
@@ -282,12 +282,12 @@ ShuntingYardFlush : list<ExpressionAtom> ref outputqueue, list<ExpressionAtom> r
 	}
 }
 
-ShuntingYardPopStack : list<ExpressionAtom> ref opstack, list<ExpressionAtom> ref tail [nogc]
+ShuntingYardPopStack : list<ExpressionAtom> ref opstack, list<ExpressionAtom> ref tail
 {
 	opstack = tail
 }
 
-ShuntingYardPopStack : list<ExpressionAtom> ref opstack, nothing [nogc]
+ShuntingYardPopStack : list<ExpressionAtom> ref opstack, nothing
 {
 	AtomSentinel sentinel = 0
 	list<ExpressionAtom> newlist = sentinel, nothing
@@ -298,7 +298,7 @@ ShuntingYardPopStack : list<ExpressionAtom> ref opstack, nothing [nogc]
 
 
 
-IsUnaryOperator : OperatorInvokeAtom ref atom -> boolean isunary = false [nogc]
+IsUnaryOperator : OperatorInvokeAtom ref atom -> boolean isunary = false
 {
 	if(atom.OperatorName == PooledStringHandleForUnaryNot)
 	{
@@ -307,7 +307,7 @@ IsUnaryOperator : OperatorInvokeAtom ref atom -> boolean isunary = false [nogc]
 }
 
 
-GetOperatorPrecedence : OperatorInvokeAtom ref atom -> integer precedence = 0 [nogc]
+GetOperatorPrecedence : OperatorInvokeAtom ref atom -> integer precedence = 0
 {
 	if(atom.OperatorName == PooledStringHandleForEquality)
 	{
@@ -373,25 +373,25 @@ ExtractConstructorIdentifier : ExpressionList ref parameters -> integer varname 
 ExtractConstructorIdentifier : list<Expression> ref parameters -> integer varname = ExtractIdentifier(parameters.value)
 ExtractConstructorIdentifier : nothing -> 0
 
-ExtractIdentifier : Expression ref expression -> integer id = ExtractIdentifier(expression.Atoms.value) [nogc]
+ExtractIdentifier : Expression ref expression -> integer id = ExtractIdentifier(expression.Atoms.value)
 
-ExtractIdentifier : IdentifierAtom ref atom -> atom.Handle [nogc]
+ExtractIdentifier : IdentifierAtom ref atom -> atom.Handle
 {
 	atom.Type = 0x81000000		// HACK - reference to identifier
 }
 
-ExtractIdentifier : AtomSentinel 	    ref sentinel    -> 0 [nogc]
-ExtractIdentifier : StringHandleAtom 	    ref nonsentinel -> 0 [nogc]
-ExtractIdentifier : OperatorInvokeAtom 	    ref nonsentinel -> 0 [nogc]
-ExtractIdentifier : TypeAnnotationAtom 	    ref nonsentinel -> 0 [nogc]
-ExtractIdentifier : integer 		    ref nonsentinel -> 0 [nogc]
-ExtractIdentifier : integer16 		    ref nonsentinel -> 0 [nogc]
-ExtractIdentifier : boolean 		    ref nonsentinel -> 0 [nogc]
-ExtractIdentifier : real 		    ref nonsentinel -> 0 [nogc]
-ExtractIdentifier : Statement		    ref nonsentinel -> 0 [nogc]
-ExtractIdentifier : RefBinding              ref nonsentinel -> 0 [nogc]
-ExtractIdentifier : CompoundAtom            ref nonsentinel -> 0 [nogc]
-ExtractIdentifier : ParentheticalExpression ref nonsentinel -> 0 [nogc]
+ExtractIdentifier : AtomSentinel 	    ref sentinel    -> 0
+ExtractIdentifier : StringHandleAtom 	    ref nonsentinel -> 0
+ExtractIdentifier : OperatorInvokeAtom 	    ref nonsentinel -> 0
+ExtractIdentifier : TypeAnnotationAtom 	    ref nonsentinel -> 0
+ExtractIdentifier : integer 		    ref nonsentinel -> 0
+ExtractIdentifier : integer16 		    ref nonsentinel -> 0
+ExtractIdentifier : boolean 		    ref nonsentinel -> 0
+ExtractIdentifier : real 		    ref nonsentinel -> 0
+ExtractIdentifier : Statement		    ref nonsentinel -> 0
+ExtractIdentifier : RefBinding              ref nonsentinel -> 0
+ExtractIdentifier : CompoundAtom            ref nonsentinel -> 0
+ExtractIdentifier : ParentheticalExpression ref nonsentinel -> 0
 
 
 PlaceAtomInList : list<ExpressionAtom> ref atoms, ExpressionAtom ref atom
@@ -496,7 +496,7 @@ MarkFirstAtomAsReference : list<Expression> ref exprs
 }
 
 
-FindPrePostOperatorOverload : integer operatorname, integer operandtype -> integer overloadname = 0 [nogc]
+FindPrePostOperatorOverload : integer operatorname, integer operandtype -> integer overloadname = 0
 {
 	if(operatorname == PooledStringHandleForPrePostIncrement)
 	{
@@ -514,7 +514,7 @@ FindPrePostOperatorOverload : integer operatorname, integer operandtype -> integ
 	}
 }
 
-FindAssignmentOperator : integer operatorname, integer lhstype, integer rhstype -> integer overloadname = operatorname [nogc]
+FindAssignmentOperator : integer operatorname, integer lhstype, integer rhstype -> integer overloadname = operatorname
 {
 	lhstype = MakeNonReferenceType(lhstype)
 	rhstype = MakeNonReferenceType(rhstype)
@@ -537,23 +537,23 @@ FindAssignmentOperator : integer operatorname, integer lhstype, integer rhstype 
 
 
 
-SetOptionalExpressionType : Expression ref expr, integer typeid [nogc]
+SetOptionalExpressionType : Expression ref expr, integer typeid
 {
 	expr.Type = typeid
 }
 
 
 
-GetIdentifier : IdentifierAtom ref atom -> atom.Handle [nogc]
+GetIdentifier : IdentifierAtom ref atom -> atom.Handle
 
 
 
-AppendBinding : list<RefBinding> ref bindings, list<RefBinding> ref tail, RefBinding ref binding [nogc]
+AppendBinding : list<RefBinding> ref bindings, list<RefBinding> ref tail, RefBinding ref binding
 {
 	AppendBinding(tail, tail.next, binding)
 }
 
-AppendBinding : list<RefBinding> ref bindings, nothing, RefBinding ref binding [nogc]
+AppendBinding : list<RefBinding> ref bindings, nothing, RefBinding ref binding
 {
 	list<RefBinding> newtail = binding, nothing
 	bindings.next = newtail

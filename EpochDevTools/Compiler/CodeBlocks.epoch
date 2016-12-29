@@ -133,27 +133,27 @@ ChainCompoundMember : AssignmentCompound ref tomodify, Expression ref rhs, integ
 }
 
 
-AppendCompoundMemberHelper : AssignmentCompound ref a, integer membername [nogc]
+AppendCompoundMemberHelper : AssignmentCompound ref a, integer membername
 {
 	AppendCompoundMember(a.LHS, a.LHS.next, membername)
 }
 
-AppendCompoundMemberHelper : PreOpStatement ref s, integer membername [nogc]
+AppendCompoundMemberHelper : PreOpStatement ref s, integer membername
 {
 	AppendCompoundMember(s.Operand, s.Operand.next, membername)
 }
 
-AppendCompoundMemberHelper : PostOpStatement ref s, integer membername [nogc]
+AppendCompoundMemberHelper : PostOpStatement ref s, integer membername
 {
 	AppendCompoundMember(s.Operand, s.Operand.next, membername)
 }
 
-AppendCompoundMember : simplelist<integer> ref members, simplelist<integer> ref tail, integer membername [nogc]
+AppendCompoundMember : simplelist<integer> ref members, simplelist<integer> ref tail, integer membername
 {
 	AppendCompoundMember(tail, tail.next, membername)
 }
 
-AppendCompoundMember : simplelist<integer> ref members, nothing, integer membername [nogc]
+AppendCompoundMember : simplelist<integer> ref members, nothing, integer membername
 {
 	simplelist<integer> newtail = membername, nothing
 	members.next = newtail
@@ -309,12 +309,12 @@ SetFunctionCodeBlockWorker : FunctionDefinition ref funcdef, nothing
 
 
 
-CodeBlockDepth : list<OptionalCodeBlock> ref stack -> integer count = 0 [nogc]
+CodeBlockDepth : list<OptionalCodeBlock> ref stack -> integer count = 0
 {
 	count = CodeBlockDepth(stack.next) + 1
 }
 
-CodeBlockDepth : nothing -> 0 [nogc]
+CodeBlockDepth : nothing -> 0
 
 
 

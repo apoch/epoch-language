@@ -318,7 +318,7 @@ PrepareStringTable :
 
 
 
-IsRecognizedBuiltIn : integer namehandle -> boolean recognized = false [nogc]
+IsRecognizedBuiltIn : integer namehandle -> boolean recognized = false
 {
 	// This is a REALLY bad hack.
 	if(namehandle < FirstNonBuiltInStringHandle)
@@ -329,7 +329,7 @@ IsRecognizedBuiltIn : integer namehandle -> boolean recognized = false [nogc]
 
 
 
-GetFunctionParameterCount : integer funcname -> integer count = -1 [nogc]
+GetFunctionParameterCount : integer funcname -> integer count = -1
 {
 	if(funcname == PooledStringHandleForSubstringWithLength)
 	{
@@ -1078,7 +1078,7 @@ MakeParametersReferencesForBuiltIn : integer funcname, ExpressionList ref params
 
 
 
-InitBuiltInOverloads : [nogc]
+InitBuiltInOverloads :
 {
 	Overload buffercopy = PooledStringHandleForBuffer, PooledStringHandleForBufferCopy, nothing
 	prepend<Overload>(AutoGenOverloads, buffercopy)

@@ -1,6 +1,6 @@
 
 
-TypeMatcherExists : list<TypeMatcher> ref matchers, integer matchername -> boolean ret = false [nogc]
+TypeMatcherExists : list<TypeMatcher> ref matchers, integer matchername -> boolean ret = false
 {
 	if(matchers.value.Name == matchername)
 	{
@@ -12,10 +12,10 @@ TypeMatcherExists : list<TypeMatcher> ref matchers, integer matchername -> boole
 	}
 }
 
-TypeMatcherExists : nothing, integer matchername -> boolean ret = false [nogc]
+TypeMatcherExists : nothing, integer matchername -> boolean ret = false
 
 
-GetExistingTypeMatcher : list<TypeMatcher> ref matchers, integer matchername, ContextNode<TypeMatcher> ref out -> boolean ret = false [nogc]
+GetExistingTypeMatcher : list<TypeMatcher> ref matchers, integer matchername, ContextNode<TypeMatcher> ref out -> boolean ret = false
 {
 	if(matchers.value.Name == matchername)
 	{
@@ -29,7 +29,7 @@ GetExistingTypeMatcher : list<TypeMatcher> ref matchers, integer matchername, Co
 	}
 }
 
-GetExistingTypeMatcher : nothing, integer matchername, ContextNode<TypeMatcher> ref out -> boolean ret = false [nogc]
+GetExistingTypeMatcher : nothing, integer matchername, ContextNode<TypeMatcher> ref out -> boolean ret = false
 
 
 
@@ -110,8 +110,8 @@ WalkParametersForTypeMatcherUnwrapped : nothing, TypeMatcher ref matcher, intege
 
 
 
-ContextHasTypeMatcher : PendingTypeMatcher ref matcher -> true [nogc]
-ContextHasTypeMatcher : nothing -> false [nogc]
+ContextHasTypeMatcher : PendingTypeMatcher ref matcher -> true
+ContextHasTypeMatcher : nothing -> false
 
 
 AnnotateTypeMatchedParamsForWrapper : FunctionDefinition ref func, OptionalExpressionList ref exprs
@@ -210,7 +210,7 @@ FindOrCreateTypeMatcher : integer rawname, integer overloadnamehandle, FunctionD
 	}
 }
 
-EnsureMatcherIsPending : integer overloadname, integer matcher, FunctionDefinition ref func [nogc]
+EnsureMatcherIsPending : integer overloadname, integer matcher, FunctionDefinition ref func
 {
 	boolean found = SearchBinaryTree<PendingTypeMatcher>(TypeMatchersWhichExist, overloadname)
 	if(found)

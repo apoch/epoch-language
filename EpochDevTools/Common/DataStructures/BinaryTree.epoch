@@ -22,7 +22,7 @@ structure BinaryTreeRoot<type T> :
 	BinaryTreeNode<T> ref RootNode
 	
 	
-BinaryTreeCreateOrInsert<type T> : BinaryTreeRoot<T> ref root, integer value, T ref payload [nogc]
+BinaryTreeCreateOrInsert<type T> : BinaryTreeRoot<T> ref root, integer value, T ref payload
 {
 	if(!InsertIntoBinaryTree<T>(root.RootNode, value, payload))
 	{
@@ -33,7 +33,7 @@ BinaryTreeCreateOrInsert<type T> : BinaryTreeRoot<T> ref root, integer value, T 
 }
 
 
-InsertIntoBinaryTree<type T> : BinaryTree<T> ref tree, integer value, T ref payload -> boolean ret = true [nogc]
+InsertIntoBinaryTree<type T> : BinaryTree<T> ref tree, integer value, T ref payload -> boolean ret = true
 {
 	if(tree.Value > value)
 	{
@@ -85,9 +85,9 @@ InsertIntoBinaryTree<type T> : BinaryTree<T> ref tree, integer value, T ref payl
 	}
 }
 
-InsertIntoBinaryTree<type T> : nothing, integer value, T ref payload -> boolean ret = false [nogc]
+InsertIntoBinaryTree<type T> : nothing, integer value, T ref payload -> boolean ret = false
 
-RotateLL<type T> : BinaryTree<T> ref tree [nogc]
+RotateLL<type T> : BinaryTree<T> ref tree
 {
 	BinaryTreeNode<T> temp = tree.Right
 	tree.Right = tree.Left
@@ -107,23 +107,23 @@ RotateLL<type T> : BinaryTree<T> ref tree [nogc]
 	tree.Height = RecomputeTreeDepth<T>(tree)
 }
 
-GetLeft<type T> : BinaryTree<T> ref tree -> BinaryTreeNode<T> ret = tree.Left [nogc]
-GetLeft<type T> : nothing -> BinaryTreeNode<T> ret = nothing [nogc]
+GetLeft<type T> : BinaryTree<T> ref tree -> BinaryTreeNode<T> ret = tree.Left
+GetLeft<type T> : nothing -> BinaryTreeNode<T> ret = nothing
 
-GetRight<type T> : BinaryTree<T> ref tree -> BinaryTreeNode<T> ret = tree.Right [nogc]
-GetRight<type T> : nothing -> BinaryTreeNode<T> ret = nothing [nogc]
+GetRight<type T> : BinaryTree<T> ref tree -> BinaryTreeNode<T> ret = tree.Right
+GetRight<type T> : nothing -> BinaryTreeNode<T> ret = nothing
 
-SetNodeLeft<type T> : BinaryTree<T> ref tree, BinaryTreeNode<T> newleft [nogc]
+SetNodeLeft<type T> : BinaryTree<T> ref tree, BinaryTreeNode<T> newleft
 {
 	tree.Left = newleft
 }
 
-SetNodeRight<type T> : BinaryTree<T> ref tree, BinaryTreeNode<T> newright [nogc]
+SetNodeRight<type T> : BinaryTree<T> ref tree, BinaryTreeNode<T> newright
 {
 	tree.Right = newright
 }
 
-RotateRR<type T> : BinaryTree<T> ref tree [nogc]
+RotateRR<type T> : BinaryTree<T> ref tree
 {
 	BinaryTreeNode<T> temp = tree.Left
 	tree.Left = tree.Right
@@ -143,27 +143,27 @@ RotateRR<type T> : BinaryTree<T> ref tree [nogc]
 	tree.Height = RecomputeTreeDepth<T>(tree)
 }
 
-RotateLR<type T> : BinaryTree<T> ref tree [nogc]
+RotateLR<type T> : BinaryTree<T> ref tree
 {
 	RotateRR<T>(tree.Left)
 	RotateLL<T>(tree)
 }
 
-RotateRL<type T> : BinaryTree<T> ref tree [nogc]
+RotateRL<type T> : BinaryTree<T> ref tree
 {
 	RotateLL<T>(tree.Right)
 	RotateRR<T>(tree)
 }
 
 
-TreeDepth<type T> : BinaryTree<T> ref tree -> integer depth = tree.Height [nogc]
-TreeDepth<type T> : nothing -> 0 [nogc]
+TreeDepth<type T> : BinaryTree<T> ref tree -> integer depth = tree.Height
+TreeDepth<type T> : nothing -> 0
 
 
-HasNode<type T> : BinaryTree<T> ref tree -> true [nogc]
-HasNode<type T> : nothing -> false [nogc]
+HasNode<type T> : BinaryTree<T> ref tree -> true
+HasNode<type T> : nothing -> false
 
-ComputeBalance<type T> : BinaryTree<T> ref tree -> integer balance = 0 [nogc]
+ComputeBalance<type T> : BinaryTree<T> ref tree -> integer balance = 0
 {
 	integer leftdepth = TreeDepth<T>(tree.Left)
 	integer rightdepth = TreeDepth<T>(tree.Right)
@@ -171,10 +171,10 @@ ComputeBalance<type T> : BinaryTree<T> ref tree -> integer balance = 0 [nogc]
 	balance = leftdepth - rightdepth
 }
 
-ComputeBalance<type T> : nothing -> 0 [nogc]
+ComputeBalance<type T> : nothing -> 0
 
 
-RecomputeTreeDepth<type T> : BinaryTree<T> ref tree -> integer depth = 1 [nogc]
+RecomputeTreeDepth<type T> : BinaryTree<T> ref tree -> integer depth = 1
 {
 	integer ldepth = TreeDepth<T>(tree.Left)
 	integer rdepth = TreeDepth<T>(tree.Right)
@@ -189,13 +189,13 @@ RecomputeTreeDepth<type T> : BinaryTree<T> ref tree -> integer depth = 1 [nogc]
 	}
 }
 
-SetHeight<type T> : BinaryTree<T> ref tree, integer newheight [nogc]
+SetHeight<type T> : BinaryTree<T> ref tree, integer newheight
 {
 	tree.Height = newheight
 }
 
 
-SearchBinaryTree<type T> : BinaryTree<T> ref tree, integer target -> boolean found = false [nogc]
+SearchBinaryTree<type T> : BinaryTree<T> ref tree, integer target -> boolean found = false
 {
 	if(tree.Value == target)
 	{
@@ -212,10 +212,10 @@ SearchBinaryTree<type T> : BinaryTree<T> ref tree, integer target -> boolean fou
 	}
 }
 
-SearchBinaryTree<type T> : nothing, integer target -> boolean found = false [nogc]
+SearchBinaryTree<type T> : nothing, integer target -> boolean found = false
 
 
-SearchBinaryTreeForPayload<type T> : BinaryTree<T> ref tree, integer target, ContextNode<T> ref out -> boolean found = false [nogc]
+SearchBinaryTreeForPayload<type T> : BinaryTree<T> ref tree, integer target, ContextNode<T> ref out -> boolean found = false
 {
 	if(tree.Value == target)
 	{
@@ -234,10 +234,10 @@ SearchBinaryTreeForPayload<type T> : BinaryTree<T> ref tree, integer target, Con
 	}
 }
 
-SearchBinaryTreeForPayload<type T> : nothing, integer target, ContextNode<T> ref out -> boolean found = false [nogc]
+SearchBinaryTreeForPayload<type T> : nothing, integer target, ContextNode<T> ref out -> boolean found = false
 
 
-BinaryTreeCopyPayload<type T> : BinaryTree<T> ref tree, integer target, T ref out -> boolean found = false [nogc]
+BinaryTreeCopyPayload<type T> : BinaryTree<T> ref tree, integer target, T ref out -> boolean found = false
 {
 	if(tree.Value == target)
 	{
@@ -255,18 +255,18 @@ BinaryTreeCopyPayload<type T> : BinaryTree<T> ref tree, integer target, T ref ou
 	}
 }
 
-BinaryTreeCopyPayload<type T> : nothing, integer target, T ref out -> boolean found = false [nogc]
+BinaryTreeCopyPayload<type T> : nothing, integer target, T ref out -> boolean found = false
 
 
 
-GetNodeValue<type T> : BinaryTree<T> ref node -> integer ret = node.Value [nogc]
+GetNodeValue<type T> : BinaryTree<T> ref node -> integer ret = node.Value
 
-SetNodeValue<type T> : BinaryTree<T> ref node, integer value [nogc]
+SetNodeValue<type T> : BinaryTree<T> ref node, integer value
 {
 	node.Value = value
 }
 
-SwapNodePayload<type T> : BinaryTree<T> ref a, BinaryTree<T> ref b [nogc]
+SwapNodePayload<type T> : BinaryTree<T> ref a, BinaryTree<T> ref b
 {
 	BTPayloadWrap<T> p = a.Payload.Payload
 	a.Payload = b.Payload

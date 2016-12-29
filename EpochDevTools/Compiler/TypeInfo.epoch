@@ -1,7 +1,7 @@
 
 
 
-GetTypeSize : integer typeid -> integer size = 0 [nogc]
+GetTypeSize : integer typeid -> integer size = 0
 {
 	if(typeid == 0x01000001)			// Integer
 	{
@@ -117,7 +117,7 @@ GetNameOfType : integer typeid -> integer name = 0
 	}
 }
 
-GetTypeByName : integer name -> integer typeid = 0 [nogc]
+GetTypeByName : integer name -> integer typeid = 0
 {
 	if(name == 0)
 	{
@@ -194,7 +194,7 @@ GetTypeByName : integer name -> integer typeid = 0 [nogc]
 }
 
 
-IsFunctionType : integer typeid -> boolean ret = false [nogc]
+IsFunctionType : integer typeid -> boolean ret = false
 {
 	if((typeid & 0x7f000000) == 0x09000000)
 	{
@@ -202,7 +202,7 @@ IsFunctionType : integer typeid -> boolean ret = false [nogc]
 	}
 }
 
-IsStructureType : integer typeid -> boolean ret = false [nogc]
+IsStructureType : integer typeid -> boolean ret = false
 {
 	if((typeid & 0x7f000000) == 0x03000000)
 	{
@@ -214,7 +214,7 @@ IsStructureType : integer typeid -> boolean ret = false [nogc]
 	}
 }
 
-IsSumType : integer typeid -> boolean ret = false [nogc]
+IsSumType : integer typeid -> boolean ret = false
 {
 	if((typeid & 0x7f000000) == 0x07000000)
 	{
@@ -223,7 +223,7 @@ IsSumType : integer typeid -> boolean ret = false [nogc]
 }
 
 
-IsReferenceType : integer typeid -> boolean ret = false [nogc]
+IsReferenceType : integer typeid -> boolean ret = false
 {
 	if((typeid & 0x80000000) != 0)
 	{
@@ -231,7 +231,7 @@ IsReferenceType : integer typeid -> boolean ret = false [nogc]
 	}
 }
 
-MakeReferenceType : integer typeid -> integer reftypeid = typeid [nogc]
+MakeReferenceType : integer typeid -> integer reftypeid = typeid
 {
 	if(!IsReferenceType(typeid))
 	{
@@ -239,10 +239,10 @@ MakeReferenceType : integer typeid -> integer reftypeid = typeid [nogc]
 	}
 }
 
-MakeNonReferenceType : integer typeid -> (typeid & 0x7fffffff) [nogc]
+MakeNonReferenceType : integer typeid -> (typeid & 0x7fffffff)
 
 
-IsArrayType : integer typeid -> boolean ret = false [nogc]
+IsArrayType : integer typeid -> boolean ret = false
 {
 	if((typeid & 0x7f000000) == 0x0a000000)
 	{
@@ -276,7 +276,7 @@ GetArrayArity : list<ArrayType> ref arraytypes, integer typeid -> integer arity 
 
 
 
-GetArrayType : list<ArrayType> ref arraytypes, integer elementtype, integer arity -> integer ret = 0 [nogc]
+GetArrayType : list<ArrayType> ref arraytypes, integer elementtype, integer arity -> integer ret = 0
 {
 	if((arraytypes.value.ElementType == elementtype) && (arraytypes.value.Arity == arity))
 	{
@@ -287,7 +287,7 @@ GetArrayType : list<ArrayType> ref arraytypes, integer elementtype, integer arit
 	ret = GetArrayType(arraytypes.next, elementtype, arity)
 }
 
-GetArrayType : nothing, integer elementtype, integer arity -> integer ret = 0 [nogc]
+GetArrayType : nothing, integer elementtype, integer arity -> integer ret = 0
 {
 	integer typeid = (++GlobalArrayTypeCounter)
 	ArrayType at = typeid, elementtype, arity
