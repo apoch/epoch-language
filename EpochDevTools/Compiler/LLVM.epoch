@@ -296,7 +296,7 @@ CreateFunctionParamTypesInLLVM : LLVMContextHandle context, list<Parameter> ref 
 }
 
 
-GetLLVMTypeForEpochType : LLVMContextHandle context, Expression expr -> LLVMType t = 0
+GetLLVMTypeForEpochType : LLVMContextHandle context, Expression ref expr -> LLVMType t = 0
 {
 	assertmsg(expr.Type != 0, "Invalid expression type")
 	t = GetLLVMTypeForEpochType(context, expr.Type)
@@ -1845,7 +1845,9 @@ ForwardTypeMatcherParamsInLLVM : LLVMContextHandle context, list<FunctionSignatu
 	if(countnonzero(typelist) != 1)
 	{
 		EpochLLVMCodePushExtractedStructValue(context, 1)
-		EpochLLVMCodeCreateCast(context, GetLLVMTypeForEpochType(context, params.value.Type))
+
+		integer ty = params.value.Type
+		EpochLLVMCodeCreateCast(context, GetLLVMTypeForEpochType(context, ty))
 	}
 
 	ForwardTypeMatcherParamsInLLVM(context, overloads, params.next, paramindex + 1)
