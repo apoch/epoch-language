@@ -985,12 +985,51 @@ WriteDBIModuleSymbols : PDBOutputStream ref stream, DBIModule ref module
 
 TransferSymbols : list<PDBSymbol> ref symbols, buffer ref symboldata, integer symbolsize, buffer ref relocdata, integer relocsize, integer symbolcount
 {
-	// TODO - parse symboldata buffer and turn it into a sequence of PDBSymbol objects, first relocating using relocdata
+	//
+	// Apply relocations to the raw symbol data so it will be easier
+	// for the end debugger to correlate with a running image of the
+	// program being compiled.
+	//
 
-	// relocdata is an array of Relocation structures; divide relocsize by sizeof(packed(Relocation)) to count relocations
+	integer RELOCATION_SIZE = 10		// sizeof(packed Relocation struct)
+	integer SYMBOL_SIZE = 18			// sizeof(packed ImageSymbol struct)
 
-	// symboldata is an array of ImageSymbol structures followed by a string pool of null-terminated strings
-	// symbol count is returned from EpochLLVM.dll when obtaining the buffer data and passed in as symbolcount
+	integer reloccount = relocsize / RELOCATION_SIZE    
+	integer i = 0
+	while(i < reloccount)
+	{
+		//Relocation reloc = extract<Relocation>(relocdata, i * RELOCATION_SIZE)
+
+		//if(reloc.Type == 0xb)			// IMAGE_REL_AMD64_SECREL
+		//{
+		//	assertmsg(reloc.Address <= (symbolsize - 4), "Invalid relocation address")		// 4 == sizeof(DWORD)
+
+		//	ImageSymbol symbol = extract<ImageSymbol>(symboldata, reloc.SymbolIndex * SYMBOL_SIZE)
+		//	assertmsg(symbol.SectionNumber == 8, "Cannot relocate code symbol from wrong EXE section")
+
+		//	store<integer>(symboldata, reloc.Address, symbol.Value)
+		//}
+		//elseif(reloc.Type == 0xa)		// IMAGE_REL_AMD64_SECTION
+		//{
+		//	assertmsg(reloc.Address <= (symbolsize - 2), "Invalid relocation address")		// 2 == sizeof(WORD)
+
+		//	ImageSymbol symbol = extract<ImageSymbol>(symboldata, reloc.SymbolIndex * SYMBOL_SIZE)
+		//	assertmsg(symbol.SectionNumber == 8, "Cannot relocate code symbol from wrong EXE section")
+
+		//	store<integer16>(symboldata, reloc.Address, 8)
+		//}
+		//else
+		//{
+		//	print("Unrecognized CodeView symbol type")
+		//	ExitProcess(1000)
+		//}
+
+		++i
+	}
+
+	//
+	// TODO - convert the data in the symboldata buffer into a stream of PDBSymbol objects
+	//
 }
 
 
