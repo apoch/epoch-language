@@ -109,7 +109,7 @@ MakeExe : EpochProject ref project
 	EpochLLVMSectionCopyGC(llvm, gcdata)
 	EpochLLVMSectionCopyDebug(llvm, debugdata)
 	EpochLLVMSectionCopyDebugReloc(llvm, debugrelocdata)
-	EpochLLVMSectionCopyDebugSymbols(llvm, debugsymboldata)
+	integer symbolcount = EpochLLVMSectionCopyDebugSymbols(llvm, debugsymboldata)
 	
 	
 	integer virtualoffsetrsrc    = RoundUp(virtualoffsetthunk + sizethunk)
@@ -265,7 +265,7 @@ MakeExe : EpochProject ref project
 	
 	
 	print("Emitting PDB file...")
-	GeneratePDB(pdbfilename, debugsymboldata, sizedebugsymbols, virtualoffsetcode, sizecode)
+	GeneratePDB(pdbfilename, debugsymboldata, sizedebugsymbols, virtualoffsetcode, sizecode, debugrelocdata, sizedebugreloc, symbolcount)
 
 
 	print("Compilation complete.")
@@ -1114,7 +1114,7 @@ ThunkTableAddFunctionToList : ThunkTableLibrary ref library, nothing, string fun
 
 
 
-GeneratePDB : string pdbfilename, buffer ref symboldata, integer symbolsize, integer codesectionstart, integer codesize
+GeneratePDB : string pdbfilename, buffer ref symboldata, integer symbolsize, integer codesectionstart, integer codesize, buffer ref relocdata, integer relocsize, integer symbolcount
 {
 	SymbolSection sectionsymbol = 8, codesectionstart, codesize, 0x60000020, ".text"
 	SymbolProcStart initsymbolps = 0, 0x4a, 0, 65, 0, 0, 0, 8, 0, "init"		// TODO - 0x4a is offset of next (end) symbol, this should not be hard-coded!
@@ -1126,7 +1126,7 @@ GeneratePDB : string pdbfilename, buffer ref symboldata, integer symbolsize, int
 	append<PDBSymbol>(symbollist, initsymbol)
 	append<PDBSymbol>(symbollist, endsymbol)
 	
-	TransferSymbols(symbollist, symboldata, symbolsize)
+	TransferSymbols(symbollist, symboldata, symbolsize, relocdata, relocsize, symbolcount)
 	
 	SectionContribution initsc = 8, 0, 65, 0x60001020, 0, 0, 0
 	list<SectionContribution> contriblist = initsc, nothing
@@ -1172,11 +1172,5 @@ GeneratePDB : string pdbfilename, buffer ref symboldata, integer symbolsize, int
 	PDBOutputStream stream = pdbfilename, invalidhandle, 0, layout, dbisection
 
 	WritePDB(stream, codesectionstart, codesize)
-}
-
-
-TransferSymbols : list<PDBSymbol> ref symbols, buffer ref symboldata, integer symbolsize
-{
-	
 }
 

@@ -179,6 +179,35 @@ structure SectionContribution :
 	integer RelocCRC					// CRC of the relocation data applied to the contribution; can safely be zero
 
 
+//
+// Description of an address relocation record
+//
+// The Type field determines what semantics the relocation has,
+// but in a nutshell, this gives us the ability to offset a raw
+// address in a CodeView section such that it corresponds to an
+// actual address in a running image - relocated base addresses
+// notwithstanding. In other words, we take in an offset into a
+// COFF section and manipulate it such that it becomes the same
+// address in the loaded/running image.
+//
+// This dramatically simplifies the implementation of looking a
+// symbol up in the debugger, since the debugger need only care
+// about the actual image's address space, modulo base address.
+//
+structure Relocation :
+	integer Address,
+	integer SymbolIndex,
+	integer16 Type
+
+
+structure ImageSymbol :
+	integer Zero,
+	integer OffsetToLongName,
+	integer Value,
+	integer16 SectionNumber,
+	integer16 Type,
+	integer16 StorageClassAndAuxSymbolCount
+
 
 //
 // Main wrapper function for writing a PDB to disk.
@@ -951,5 +980,18 @@ WriteDBIModuleSymbols : PDBOutputStream ref stream, DBIModule ref module
 	WriteFile(stream.FileHandle, footer, footersize, written, 0)
 	stream.FilePosition = stream.FilePosition + written
 }
+
+
+
+TransferSymbols : list<PDBSymbol> ref symbols, buffer ref symboldata, integer symbolsize, buffer ref relocdata, integer relocsize, integer symbolcount
+{
+	// TODO - parse symboldata buffer and turn it into a sequence of PDBSymbol objects, first relocating using relocdata
+
+	// relocdata is an array of Relocation structures; divide relocsize by sizeof(packed(Relocation)) to count relocations
+
+	// symboldata is an array of ImageSymbol structures followed by a string pool of null-terminated strings
+	// symbol count is returned from EpochLLVM.dll when obtaining the buffer data and passed in as symbolcount
+}
+
 
 

@@ -409,9 +409,9 @@ extern "C" void EpochLLVMSectionCopyDebugReloc(void* context, void* buffer)
 	reinterpret_cast<CodeGen::Context*>(context)->SectionCopyDebugReloc(buffer);
 }
 
-extern "C" void EpochLLVMSectionCopyDebugSymbols(void* context, void* buffer)
+extern "C" uint32_t EpochLLVMSectionCopyDebugSymbols(void* context, void* buffer)
 {
-	reinterpret_cast<CodeGen::Context*>(context)->SectionCopyDebugSymbols(buffer);
+	return reinterpret_cast<CodeGen::Context*>(context)->SectionCopyDebugSymbols(buffer);
 }
 
 

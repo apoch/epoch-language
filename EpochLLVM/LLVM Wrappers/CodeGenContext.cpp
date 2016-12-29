@@ -552,8 +552,8 @@ void Context::PrepareBinaryObject()
 
 
 
+	DebugSymbolCount = 0;
 	std::vector<char> stringbuffer;
-	unsigned numsyms = 0;
 
 	uint32_t offset = 4;
 	for(const auto& sym : EmittedImage->symbols())
@@ -602,7 +602,7 @@ void Context::PrepareBinaryObject()
 		symbol.NumberOfAuxSymbols = 0;
 
 		AppendToBuffer<IMAGE_SYMBOL, IMAGE_SIZEOF_SYMBOL>(&DebugSymbols, symbol);
-		++numsyms;
+		++DebugSymbolCount;
 	}
 
 	AppendToBuffer(&DebugSymbols, uint32_t(stringbuffer.size() + 8));
@@ -1061,9 +1061,10 @@ void Context::SectionCopyDebugReloc(void* buffer) const
 	memcpy(buffer, DebugRelocs.data(), DebugRelocs.size());
 }
 
-void Context::SectionCopyDebugSymbols(void* buffer) const
+uint32_t Context::SectionCopyDebugSymbols(void* buffer) const
 {
 	memcpy(buffer, DebugSymbols.data(), DebugSymbols.size());
+	return DebugSymbolCount;
 }
 
 

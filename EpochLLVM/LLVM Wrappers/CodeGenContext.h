@@ -147,7 +147,7 @@ namespace CodeGen
 		void SectionCopyGC(void* buffer) const;
 		void SectionCopyDebug(void* buffer) const;
 		void SectionCopyDebugReloc(void* buffer) const;
-		void SectionCopyDebugSymbols(void* buffer) const;
+		uint32_t SectionCopyDebugSymbols(void* buffer) const;
 
 	private:	// Helpers
 		void SetupDebugInfo(llvm::Function* function);
@@ -185,6 +185,8 @@ namespace CodeGen
 
 		uint64_t EmissionAddress;
 		size_t EmissionSize;
+
+		uint32_t DebugSymbolCount = 0;
 
 		const llvm::object::ObjectFile* EmittedImage;
 		llvm::ExecutionEngine* CachedExecutionEngine;
