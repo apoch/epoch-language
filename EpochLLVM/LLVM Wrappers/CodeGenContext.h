@@ -95,6 +95,7 @@ namespace CodeGen
 		void CodeCreateWriteParam(unsigned index);
 		void CodeCreateWriteStructure(llvm::Value* gep);
 		void CodeCreateWriteStructurePop();
+		void CodeCreateWriteStructurePopSumType();
 
 		void CodeCreateOperatorBooleanNot();
 		void CodeCreateOperatorIntegerEquals();

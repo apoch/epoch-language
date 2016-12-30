@@ -112,6 +112,7 @@ EpochLLVMCodeCreateWrite : LLVMContextHandle handle, LLVMAlloca alloca										
 EpochLLVMCodeCreateWriteParam : LLVMContextHandle handle, integer index												[external("EpochLLVM.dll", "EpochLLVMCodeCreateWriteParam")]
 EpochLLVMCodeCreateWriteStructure : LLVMContextHandle handle, LLVMGEP gep											[external("EpochLLVM.dll", "EpochLLVMCodeCreateWriteStructure")]
 EpochLLVMCodeCreateWriteStructurePop : LLVMContextHandle handle														[external("EpochLLVM.dll", "EpochLLVMCodeCreateWriteStructurePop")]
+EpochLLVMCodeCreateWriteStructurePopSumType : LLVMContextHandle handle												[external("EpochLLVM.dll", "EpochLLVMCodeCreateWriteStructurePopSumType")]
 
 EpochLLVMCodeCreateDereference : LLVMContextHandle handle															[external("EpochLLVM.dll", "EpochLLVMCodeCreateDereference")]
 
@@ -358,7 +359,7 @@ GetLLVMTypeForEpochType : LLVMContextHandle context, integer typeid -> LLVMType 
 		boolean found = BinaryTreeCopyPayload<LLVMType>(LLVMSumTypeTable.RootNode, 0x07000001, t)		// TODO - use real sum type signatures!!
 		if(!found)
 		{
-			t = EpochLLVMSumTypeCreate(context, GetPooledString(GetNameOfType(typeid)), 16) //GetTypeSize(typeid))			// TODO - proper sum type payload sizes
+			t = EpochLLVMSumTypeCreate(context, GetPooledString(GetNameOfType(typeid)), 8) //GetTypeSize(typeid))			// TODO - proper sum type payload sizes
 			BinaryTreeCreateOrInsert<LLVMType>(LLVMSumTypeTable, 0x07000001, t)
 		}
 	}
@@ -720,7 +721,15 @@ EmitSingleCodeBlockEntryToLLVM : LLVMBuildContext ref context, AssignmentCompoun
 
 	EmitAssignmentLHSGEPsToLLVM(context, entry.LHS.next, structurename)
 	
-	EpochLLVMCodeCreateWriteStructurePop(context.Context)
+	if(IsSumType(entry.LHSType))
+	{
+		EpochLLVMCodePushInteger(context.Context, GetAssignmentRHSType(entry.RHS))
+		EpochLLVMCodeCreateWriteStructurePopSumType(context.Context)
+	}
+	else
+	{
+		EpochLLVMCodeCreateWriteStructurePop(context.Context)
+	}
 }
 
 

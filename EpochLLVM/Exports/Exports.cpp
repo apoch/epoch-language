@@ -243,6 +243,11 @@ extern "C" void EpochLLVMCodeCreateWriteStructurePop(void* context)
 	reinterpret_cast<CodeGen::Context*>(context)->CodeCreateWriteStructurePop();
 }
 
+extern "C" void EpochLLVMCodeCreateWriteStructurePopSumType(void* context)
+{
+	reinterpret_cast<CodeGen::Context*>(context)->CodeCreateWriteStructurePopSumType();
+}
+
 
 extern "C" void EpochLLVMCodeCreateDereference(void* context)
 {

@@ -746,7 +746,20 @@ void Context::CodeCreateCast(Type* targettype)
 	else if(!targettype->isPointerTy() && v->getType()->isPointerTy())
 		castvalue = LLVMBuilder.CreatePtrToInt(v, targettype);
 	else
-		castvalue = LLVMBuilder.CreateZExtOrTrunc(v, targettype);
+	{
+		// TODO - dumb hack
+		if(v->getType()->isStructTy())
+		{
+			LoadInst* load = dyn_cast_or_null<LoadInst>(v);
+			if(load)
+			{
+				Value* ptr = load->getOperand(0);
+				castvalue = LLVMBuilder.CreatePtrToInt(ptr, targettype);
+			}
+		}
+		else
+			castvalue = LLVMBuilder.CreateZExtOrTrunc(v, targettype);
+	}
 
 	PendingValues.push_back(castvalue);
 }
@@ -825,7 +838,20 @@ void Context::CodeCreateWrite(llvm::AllocaInst* allocatarget)
 	Value* wv = PendingValues.back();
 	PendingValues.pop_back();
 
-	LLVMBuilder.CreateStore(wv, allocatarget);
+	if(wv->getType()->isStructTy())
+	{
+		Value* readannotationgep = LLVMBuilder.CreateExtractValue(wv, { 0 });
+		Value* readpayloadgep = LLVMBuilder.CreateExtractValue(wv, { 1 });
+
+		Value* loadedtarget = LLVMBuilder.CreateLoad(allocatarget);
+		Value* annotationgep = LLVMBuilder.CreateGEP(loadedtarget, { ConstantInt::get(TypeGetInteger(), 0), ConstantInt::get(TypeGetInteger(), 0) });
+		Value* payloadgep = LLVMBuilder.CreateGEP(loadedtarget, { ConstantInt::get(TypeGetInteger(), 0), ConstantInt::get(TypeGetInteger(), 1) });
+
+		LLVMBuilder.CreateStore(readannotationgep, annotationgep);
+		LLVMBuilder.CreateStore(readpayloadgep, payloadgep);
+	}
+	else
+		LLVMBuilder.CreateStore(wv, allocatarget);
 }
 
 void Context::CodeCreateWriteParam(unsigned index)
@@ -858,6 +884,29 @@ void Context::CodeCreateWriteStructurePop()
 	PendingValues.pop_back();
 
 	LLVMBuilder.CreateStore(wv, gep);
+}
+
+void Context::CodeCreateWriteStructurePopSumType()
+{
+	Value* annotation = PendingValues.back();
+	PendingValues.pop_back();
+
+	Value* gep = PendingValues.back();
+	PendingValues.pop_back();
+
+	Value* wv = PendingValues.back();
+	PendingValues.pop_back();
+
+	Type* ty = gep->getType()->getPointerElementType();
+
+	Value* st = ConstantStruct::get(cast<StructType>(ty), annotation, ConstantInt::get(ty->getContainedType(1), 0), nullptr);
+
+	// TODO - this is a stupid hack
+	Value* allocavalue = cast<LoadInst>(wv)->getOperand(0);
+	Value* castvalue = LLVMBuilder.CreatePtrToInt(allocavalue, ty->getContainedType(1));
+
+	LLVMBuilder.CreateInsertValue(st, castvalue, { 1u });
+	LLVMBuilder.CreateStore(st, gep);
 }
 
 void Context::CodeCreateOperatorBooleanNot()

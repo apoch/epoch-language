@@ -55,6 +55,7 @@ EXPORTS
 	EpochLLVMCodeCreateWriteParam
 	EpochLLVMCodeCreateWriteStructure
 	EpochLLVMCodeCreateWriteStructurePop
+	EpochLLVMCodeCreateWriteStructurePopSumType
 
 	EpochLLVMCodeCreateDereference
 
