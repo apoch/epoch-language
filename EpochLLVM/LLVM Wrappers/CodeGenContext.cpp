@@ -783,9 +783,16 @@ llvm::Value* Context::CodeCreateGEP(unsigned index)
 	Value* v = PendingValues.back();
 	PendingValues.pop_back();
 
-	Value* indices[] = {ConstantInt::get(Type::getInt32Ty(getGlobalContext()), 0), ConstantInt::get(Type::getInt32Ty(getGlobalContext()), index)};
-
-	return LLVMBuilder.CreateGEP(v, indices);
+	if(v->getType()->isStructTy())
+	{
+		Value* indices[] = {ConstantInt::get(Type::getInt32Ty(getGlobalContext()), index)};
+		return LLVMBuilder.CreateGEP(v, indices);
+	}
+	else
+	{
+		Value* indices[] = {ConstantInt::get(Type::getInt32Ty(getGlobalContext()), 0), ConstantInt::get(Type::getInt32Ty(getGlobalContext()), index)};
+		return LLVMBuilder.CreateGEP(v, indices);
+	}
 }
 
 void Context::CodeCreateRead(llvm::AllocaInst* allocatarget)
@@ -838,7 +845,7 @@ void Context::CodeCreateWrite(llvm::AllocaInst* allocatarget)
 	Value* wv = PendingValues.back();
 	PendingValues.pop_back();
 
-	if(wv->getType()->isStructTy())
+	if(wv->getType() != allocatarget->getAllocatedType())
 	{
 		Value* readannotationgep = LLVMBuilder.CreateExtractValue(wv, { 0 });
 		Value* readpayloadgep = LLVMBuilder.CreateExtractValue(wv, { 1 });
