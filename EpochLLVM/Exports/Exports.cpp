@@ -342,6 +342,11 @@ extern "C" void EpochLLVMCodePushExtractedStructValue(void* context, unsigned me
 	reinterpret_cast<CodeGen::Context*>(context)->CodePushExtractedStructValue(memberindex);
 }
 
+extern "C" void EpochLLVMCodePushNothing(void* context)
+{
+	reinterpret_cast<CodeGen::Context*>(context)->CodePushNothing();
+}
+
 
 extern "C" void EpochLLVMCodeStatementFinalize(void* context)
 {

@@ -115,6 +115,7 @@ namespace CodeGen
 		void CodePushString(unsigned handle);
 		void CodePushFunction(llvm::Function* func);
 		void CodePushExtractedStructValue(unsigned memberindex);
+		void CodePushNothing();
 
 		llvm::Value* CodePopValue();
 

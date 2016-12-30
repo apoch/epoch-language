@@ -136,6 +136,7 @@ EpochLLVMCodePushRawGEP : LLVMContextHandle context, LLVMGEP gep													[ex
 EpochLLVMCodePushString : LLVMContextHandle context, integer handle													[external("EpochLLVM.dll", "EpochLLVMCodePushString")]
 EpochLLVMCodePushFunction : LLVMContextHandle context, LLVMFunctionRef func											[external("EpochLLVM.dll", "EpochLLVMCodePushFunction")]
 EpochLLVMCodePushExtractedStructValue : LLVMContextHandle context, integer fieldindex								[external("EpochLLVM.dll", "EpochLLVMCodePushExtractedStructValue")]
+EpochLLVMCodePushNothing : LLVMContextHandle context																[external("EpochLLVM.dll", "EpochLLVMCodePushNothing")]
 
 EpochLLVMCodePopValue : LLVMContextHandle context -> integer magic = 0												[external("EpochLLVM.dll", "EpochLLVMCodePopValue")]
 
@@ -354,11 +355,11 @@ GetLLVMTypeForEpochType : LLVMContextHandle context, integer typeid -> LLVMType 
 	}
 	elseif(IsSumType(typeid))
 	{
-		boolean found = BinaryTreeCopyPayload<LLVMType>(LLVMSumTypeTable.RootNode, typeid, t)
+		boolean found = BinaryTreeCopyPayload<LLVMType>(LLVMSumTypeTable.RootNode, 0x07000001, t)		// TODO - use real sum type signatures!!
 		if(!found)
 		{
-			t = EpochLLVMSumTypeCreate(context, GetPooledString(GetNameOfType(typeid)), GetTypeSize(typeid))
-			BinaryTreeCreateOrInsert<LLVMType>(LLVMSumTypeTable, typeid, t)
+			t = EpochLLVMSumTypeCreate(context, GetPooledString(GetNameOfType(typeid)), 16) //GetTypeSize(typeid))			// TODO - proper sum type payload sizes
+			BinaryTreeCreateOrInsert<LLVMType>(LLVMSumTypeTable, 0x07000001, t)
 		}
 	}
 	elseif(IsArrayType(typeid))
@@ -1002,7 +1003,7 @@ EmitSingleAtomToLLVM : LLVMBuildContext ref context, IdentifierAtom ref idatom
 
 	if(atomtype == 0x00000004)							// Nothing type signature
 	{
-		EpochLLVMCodePushInteger(context.Context, 0)
+		EpochLLVMCodePushNothing(context.Context)
 	}
 	else
 	{
@@ -1663,7 +1664,7 @@ EmitAllTypeMatchersInLLVM : LLVMContextHandle context, list<TypeMatcher> ref mat
 		EpochLLVMFunctionTypePush(context)
 
 		LLVMType funcrettype = EpochLLVMTypeGetVoid(context)
-		
+
 		CreateTypeMatcherParamsInLLVM(context, matchers.value.Overloads, matchers.value.Overloads.value.Parameters, 0)
 		
 		LLVMFunctionType functype = EpochLLVMFunctionTypeCreate(context, funcrettype)
@@ -1710,6 +1711,7 @@ EmitTypeMatcherOverloadsInLLVM : LLVMContextHandle context, LLVMFunctionRef func
 
 	EpochLLVMCodePushBoolean(context, false)
 	EpochLLVMCodeCreateCallThunk(context, assertfunc)
+	EpochLLVMCodeStatementFinalize(context)
 
 	EpochLLVMCodeCreateBranch(context, exitblock, false)
 }
@@ -1766,6 +1768,7 @@ EmitTypeMatcherParamsInLLVM : LLVMContextHandle context, list<FunctionSignature>
 {
 	ForwardTypeMatcherParamsInLLVM(context, overloads, overloadsig)
 	EpochLLVMCodeCreateCall(context, overloadfunc)
+	EpochLLVMCodeStatementFinalize(context)
 	// TODO - stash non-void return value
 	EpochLLVMCodeCreateBranch(context, exitblock, false)
 }
@@ -1773,21 +1776,22 @@ EmitTypeMatcherParamsInLLVM : LLVMContextHandle context, list<FunctionSignature>
 
 CreateTypeMatcherParamsInLLVM : LLVMContextHandle context, list<FunctionSignature> ref overloads, list<Parameter> ref params, integer paramindex
 {
-	if(params.value.Name != 0)
+	if(params.value.Type != 0)
 	{
 		simplelist<integer> typelist = 0, nothing
 		EnumerateSignaturesAndAddParameterTypes(overloads, paramindex, typelist)
 
 		if(countnonzero(typelist) == 1)
 		{
-			LLVMType paramtype = GetLLVMTypeForEpochType(context, params.value.Type)
+			integer ty = params.value.Type
+			LLVMType paramtype = GetLLVMTypeForEpochType(context, ty)
 			EpochLLVMFunctionQueueParamType(context, paramtype)
 		}
 		else
 		{
 			// TODO - emit appropriate sum type!
 			LLVMType paramtype = GetLLVMTypeForEpochType(context, 0x07000001)
-			if(params.value.Name == 2)
+			if(IsReferenceType(params.value.Type))
 			{
 				paramtype = EpochLLVMTypeGetPointerTo(context, paramtype)
 			}

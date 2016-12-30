@@ -660,12 +660,31 @@ llvm::CallInst* Context::CodeCreateCall(llvm::Function* target)
 	llvm::FunctionType* fty = target->getFunctionType();
 
 	std::vector<Value*> relevantargs;
-	for(size_t i = 0; i < fty->getNumParams(); ++i)
+	for(size_t i = 0; i < fty->getNumParams(); )
 	{
 		relevantargs.push_back(PendingValues.back());
 		PendingValues.pop_back();
+
+		if(relevantargs.back())
+			++i;
 	}
 	std::reverse(relevantargs.begin(), relevantargs.end());
+
+	for(size_t i = 0; i < relevantargs.size(); )
+	{
+		if(!relevantargs[i])
+		{
+			StructType* paramtype = cast<StructType>(fty->getParamType(i));
+			Value* signature = ConstantInt::get(paramtype->getStructElementType(0), 4);
+			Value* payload = ConstantInt::get(paramtype->getStructElementType(1), 0);
+			relevantargs[i] = ConstantStruct::get(paramtype, signature, payload, nullptr);
+			relevantargs.erase(relevantargs.begin() + i + 1);
+		}
+		else
+		{
+			++i;
+		}
+	}
 
 	llvm::CallInst* inst = LLVMBuilder.CreateCall(target, relevantargs);
 
@@ -994,10 +1013,25 @@ void Context::CodePushExtractedStructValue(unsigned memberindex)
 	Value* structure = PendingValues.back();
 	PendingValues.pop_back();
 
-	unsigned indices[] = { memberindex };
-	Value* extracted = LLVMBuilder.CreateExtractValue(structure, indices);
+	Value* extracted;
+
+	if(structure->getType()->isPointerTy())
+	{
+		Value* indices[] = { ConstantInt::get(TypeGetInteger(), 0), ConstantInt::get(TypeGetInteger(), memberindex) };
+		extracted = LLVMBuilder.CreateLoad(LLVMBuilder.CreateGEP(structure, indices));
+	}
+	else
+	{
+		unsigned indices[] = { memberindex };
+		extracted = LLVMBuilder.CreateExtractValue(structure, indices);
+	}
 
 	PendingValues.push_back(extracted);
+}
+
+void Context::CodePushNothing()
+{
+	PendingValues.push_back(nullptr);
 }
 
 
