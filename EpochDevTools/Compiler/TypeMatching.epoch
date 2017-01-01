@@ -311,3 +311,89 @@ AnnotateTypeMatchedParams : list<UnresolvedParameter> ref params, list<Expressio
 AnnotateTypeMatchedParams : nothing, nothing
 
 
+StashArgumentTypesForTypeMatcher : integer matchername, simplelist<integer> ref argtypes
+{
+	ContextNode<CallSiteMetadata> wrap = nothing
+	boolean found = SearchBinaryTreeForPayload<CallSiteMetadata>(TypeMatcherCallSiteMetadata.RootNode, matchername, wrap)
+	if(found)
+	{
+		MergeArgumentTypeMetadata(wrap, argtypes)
+	}
+	else
+	{
+		simplelist<integer> emptyargtype = 0, nothing
+		ArgumentMetadata arg = emptyargtype
+		list<ArgumentMetadata> argtypesets = arg, nothing
+		CallSiteMetadata metadata = argtypesets
+		MergeArgumentTypeMetadata(metadata, argtypes)
+		BinaryTreeCreateOrInsert<CallSiteMetadata>(TypeMatcherCallSiteMetadata, matchername, metadata)
+	}
+
+	DumpTypeMatcherArgumentMetadata(matchername)
+}
+
+
+TypeMatcherNeedsSumTypeForParamIndex : integer matchername, integer paramindex -> boolean ret = false
+{
+	ContextNode<CallSiteMetadata> wrap = nothing
+	boolean found = SearchBinaryTreeForPayload<CallSiteMetadata>(TypeMatcherCallSiteMetadata.RootNode, matchername, wrap)
+	assertmsg(found, "Missing type dispatcher!")
+	if(found)
+	{
+		ret = TypeMatcherNeedsSumTypeForParamIndex(wrap, paramindex)
+	}
+}
+
+
+TypeMatcherNeedsSumTypeForParamIndex : CallSiteMetadata ref metadata, integer paramindex -> boolean ret = TypeMatcherNeedsSumTypeForParamIndex(metadata.ArgTypeSets, paramindex)
+
+TypeMatcherNeedsSumTypeForParamIndex : list<ArgumentMetadata> ref metadata, integer paramindex -> boolean ret = false
+{
+	if(paramindex == 0)
+	{
+		ret = AreAnyTypesSumTypes(metadata.value.ArgTypes)
+	}
+	else
+	{
+		ret = TypeMatcherNeedsSumTypeForParamIndex(metadata.next, paramindex - 1)
+	}
+}
+
+
+MergeArgumentTypeMetadata : CallSiteMetadata ref metadata, simplelist<integer> ref argtypes
+{
+	while(CountTypeSets(metadata.ArgTypeSets) < countnonzero(argtypes))
+	{
+		simplelist<integer> emptyargtype = 0, nothing
+		ArgumentMetadata arg = emptyargtype
+		append<ArgumentMetadata>(metadata.ArgTypeSets, arg)
+	}
+
+	MergeArgumentTypes(metadata.ArgTypeSets, argtypes)
+}
+
+
+MergeArgumentTypes : list<ArgumentMetadata> ref argtypesets, simplelist<integer> ref additions
+{
+	if(additions.value != 0)
+	{
+		integer addition = additions.value
+		if(!listcontains(argtypesets.value.ArgTypes, addition))
+		{
+			simpleprepend<integer>(argtypesets.value.ArgTypes, addition)
+		}
+	}
+
+	MergeArgumentTypes(argtypesets.next, additions.next)
+}
+
+MergeArgumentTypes : nothing, simplelist<integer> ref tail
+{
+	assertmsg(tail.value == 0, "Mismatched parameter/argument count in type dispatcher")
+}
+
+MergeArgumentTypes : nothing, nothing
+
+
+CountTypeSets : list<ArgumentMetadata> ref args -> integer ret = 1 + CountTypeSets(args.next)
+CountTypeSets : nothing -> 0

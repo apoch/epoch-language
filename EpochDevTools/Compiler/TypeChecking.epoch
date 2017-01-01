@@ -510,6 +510,7 @@ TypeInference : Statement ref statement, InferenceContext ref context -> boolean
 	ContextNode<FunctionDefinition> contextfunc = nothing
 	ContextNode<PendingTypeMatcher> contextmatch = nothing
 	boolean isuserfunc = false
+	simplelist<integer> paramtypes = 0, nothing
 
 
 	if(statement.Name == PooledStringHandleForCast)
@@ -533,7 +534,6 @@ TypeInference : Statement ref statement, InferenceContext ref context -> boolean
 			isuserfunc = SearchBinaryTreeForPayload<FunctionDefinition>(GlobalRootNamespace.Functions.RootNode, statement.Name, contextfunc)
 		}
 
-		simplelist<integer> paramtypes = 0, nothing
 		AccumulateParameterTypes(paramtypes, statement.Parameters)
 
 		integer overloadname = 0
@@ -652,6 +652,7 @@ TypeInference : Statement ref statement, InferenceContext ref context -> boolean
 	elseif(ContextHasTypeMatcher(contextmatch))
 	{
 		//AnnotateAllParameters(statement.Parameters, originalname, 0, paramcount, statement.TopLevel)
+		StashArgumentTypesForTypeMatcher(statement.Name, paramtypes)
 	}
 
 	//if(SumTypeExists(statement.Name))
@@ -2006,6 +2007,10 @@ WalkFunctionParamsAndSetReferencesUnwrapped : list<UnresolvedParameter> ref para
 		needref = true
 	}
 	elseif(params.value.ResolvedType == 0x00000004)			// TODO - don't assume "nothing" is always passed by ref
+	{
+		needref = true
+	}
+	elseif(IsSumType(paramexprs.value.Type))
 	{
 		needref = true
 	}

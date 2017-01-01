@@ -275,6 +275,12 @@ structure TypeMatcher :
 	integer Name,
 	list<FunctionSignature> ref Overloads
 
+structure ArgumentMetadata :
+	simplelist<integer> ref ArgTypes
+
+structure CallSiteMetadata :
+	list<ArgumentMetadata> ref ArgTypeSets
+
 
 structure FunctionTag :
 	integer FunctionName,

@@ -298,3 +298,19 @@ GetArrayType : nothing, integer elementtype, integer arity -> integer ret = 0
 }
 
 
+AreAnyTypesSumTypes : simplelist<integer> ref typelist -> boolean ret = false
+{
+	if(IsSumType(typelist.value))
+	{
+		ret = true
+	}
+	else
+	{
+		ret = AreAnyTypesSumTypes(typelist.next)
+	}
+}
+
+AreAnyTypesSumTypes : nothing -> false
+
+
+

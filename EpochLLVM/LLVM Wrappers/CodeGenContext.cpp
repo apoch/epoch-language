@@ -682,6 +682,12 @@ llvm::CallInst* Context::CodeCreateCall(llvm::Function* target)
 		}
 		else
 		{
+			// TODO - this is a ridiculously lame hack
+			if(fty->getParamType(i)->getPointerTo() == relevantargs[i]->getType())
+			{
+				relevantargs[i] = LLVMBuilder.CreateLoad(relevantargs[i]);
+			}
+
 			++i;
 		}
 	}
@@ -738,6 +744,9 @@ void Context::CodeCreateCast(Type* targettype)
 {
 	llvm::Value* v = PendingValues.back();
 	PendingValues.pop_back();
+
+	if(!v)
+		v = ConstantInt::get(TypeGetInteger(), 0);
 
 	llvm::Value* castvalue;
 	

@@ -51,6 +51,8 @@ global
 	BinaryTreeRoot<LLVMType> LLVMArrayTypeTable = nothing
 	
 	BinaryTreeRoot<integer> GlobalStringOffsets = nothing
+
+	BinaryTreeRoot<CallSiteMetadata> TypeMatcherCallSiteMetadata = nothing
 	
 	Variable dummyvar = 0, 0, 0, 0
 

@@ -215,3 +215,33 @@ DumpStructureList : list<StructureDefinition> ref structs
 
 DumpStructureList : nothing
 
+
+
+DumpTypeMatcherArgumentMetadata : integer matchername
+{
+	print("All known types from all known call sites to " ; GetPooledString(matchername))
+
+	ContextNode<CallSiteMetadata> wrap = nothing
+	if(SearchBinaryTreeForPayload<CallSiteMetadata>(TypeMatcherCallSiteMetadata.RootNode, matchername, wrap))
+	{
+		DumpTypeMatcherArgumentMetadata(wrap)
+	}
+
+	print("End of line.")
+}
+
+
+DumpTypeMatcherArgumentMetadata : CallSiteMetadata ref metadata
+{
+	DumpTypeMatcherArgumentMetadata(metadata.ArgTypeSets)
+}
+
+DumpTypeMatcherArgumentMetadata : list<ArgumentMetadata> ref argtypesets
+{
+	print("ARGUMENT TYPES:")
+	DumpTypeList(argtypesets.value.ArgTypes)
+
+	DumpTypeMatcherArgumentMetadata(argtypesets.next)
+}
+
+DumpTypeMatcherArgumentMetadata : nothing
