@@ -328,8 +328,6 @@ StashArgumentTypesForTypeMatcher : integer matchername, simplelist<integer> ref 
 		MergeArgumentTypeMetadata(metadata, argtypes)
 		BinaryTreeCreateOrInsert<CallSiteMetadata>(TypeMatcherCallSiteMetadata, matchername, metadata)
 	}
-
-	DumpTypeMatcherArgumentMetadata(matchername)
 }
 
 
