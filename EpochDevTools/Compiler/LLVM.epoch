@@ -676,14 +676,26 @@ EmitAssignmentRHSToLLVM : LLVMBuildContext ref context, Expression ref expr
 
 EmitSingleCodeBlockEntryToLLVM : LLVMBuildContext ref context, Assignment ref entry
 {
-	assertmsg(entry.Operator == PooledStringHandleForAssignment, "Unsupported assignment operator")
-	
-	EmitAssignmentRHSToLLVM(context, entry.RHS)
-		
 	LLVMAlloca alloca = 0
 	BinaryTreeCopyPayload<LLVMAlloca>(context.LocalVariables.RootNode, entry.LHSName, alloca)
 
-	EpochLLVMCodeCreateWrite(context.Context, alloca)
+	EmitAssignmentRHSToLLVM(context, entry.RHS)
+
+	
+	if(entry.Operator == PooledStringHandleForAssignment)
+	{
+		EpochLLVMCodeCreateWrite(context.Context, alloca)
+	}
+	elseif(entry.Operator == PooledStringHandleForIncrementAssignInteger)
+	{
+		EpochLLVMCodeCreateRead(context.Context, alloca)
+		EpochLLVMCodeOperatorIntegerPlus(context.Context)
+		EpochLLVMCodeCreateWrite(context.Context, alloca)
+	}
+	else
+	{
+		assertmsg(false, "Unsupported assignment operator")
+	}
 }
 
 EmitSingleCodeBlockEntryToLLVM : LLVMBuildContext ref context, AssignmentArrayIndex ref entry
