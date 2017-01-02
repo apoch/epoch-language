@@ -478,7 +478,7 @@ FindFunctionSignatureType : list<FunctionSignature> ref signatures, simplelist<i
 {
 	if(signatures.value.ReturnTypeName == returntypename)
 	{
-		if(SignatureMatchesParams(signatures.value.Parameters, paramtypes, paramrefflags))
+		if(SignatureMatchesParams(signatures.value.Parameters, paramtypes))
 		{
 			typeid = signatures.value.Name
 			return()

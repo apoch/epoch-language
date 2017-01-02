@@ -2336,15 +2336,15 @@ CheckMemberTypes : nothing, simplelist<integer> ref types -> boolean match = fal
 
 
 
-SignatureMatchesParams : list<Parameter> ref params, simplelist<integer> ref paramtypes, simplelist<boolean> ref paramrefflags -> boolean match = true
+SignatureMatchesParams : list<Parameter> ref params, simplelist<integer> ref paramtypes -> boolean match = true
 {
 	if(params.value.Name == 0)
 	{
-		match = SignatureMatchesParams(params.next, paramtypes, paramrefflags)
+		match = SignatureMatchesParams(params.next, paramtypes)
 	}
 	elseif(paramtypes.value == 0)
 	{
-		match = SignatureMatchesParams(params, paramtypes.next, paramrefflags.next)
+		match = SignatureMatchesParams(params, paramtypes.next)
 	}
 	elseif(MakeNonReferenceType(params.value.Type) != GetTypeByName(paramtypes.value))
 	{
@@ -2352,14 +2352,15 @@ SignatureMatchesParams : list<Parameter> ref params, simplelist<integer> ref par
 	}
 	else
 	{
-		match = SignatureMatchesParams(params.next, paramtypes.next, paramrefflags.next)
+		match = SignatureMatchesParams(params.next, paramtypes.next)
 	}
 }
 
-SignatureMatchesParams : nothing, simplelist<integer> ref paramtypes, simplelist<boolean> ref paramrefflags -> (paramtypes.value == 0)
-SignatureMatchesParams : list<Parameter> ref params, nothing, nothing -> (params.value.Name == 0)
+SignatureMatchesParams : nothing, simplelist<integer> ref paramtypes -> (paramtypes.value == 0)
+SignatureMatchesParams : list<Parameter> ref params, nothing -> (params.value.Name == 0)
 
-SignatureMatchesParams : nothing, nothing, nothing -> true
+SignatureMatchesParams : nothing, nothing -> true
+
 
 ResolveSignatureTypes : FunctionSignature ref signature
 {
