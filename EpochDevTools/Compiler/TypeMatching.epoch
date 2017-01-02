@@ -358,6 +358,39 @@ TypeMatcherNeedsSumTypeForParamIndex : list<ArgumentMetadata> ref metadata, inte
 }
 
 
+
+
+TypeMatcherGetSumTypeForParamIndex : integer matchername, integer paramindex -> integer typesignature = 0
+{
+	ContextNode<CallSiteMetadata> wrap = nothing
+	boolean found = SearchBinaryTreeForPayload<CallSiteMetadata>(TypeMatcherCallSiteMetadata.RootNode, matchername, wrap)
+	assertmsg(found, "Missing type dispatcher!")
+	if(found)
+	{
+		typesignature = TypeMatcherGetSumTypeForParamIndex(wrap, paramindex)
+	}
+}
+
+
+TypeMatcherGetSumTypeForParamIndex : CallSiteMetadata ref metadata, integer paramindex -> integer typesignature = TypeMatcherGetSumTypeForParamIndex(metadata.ArgTypeSets, paramindex)
+
+TypeMatcherGetSumTypeForParamIndex : list<ArgumentMetadata> ref metadata, integer paramindex -> integer typesignature = 0
+{
+	if(paramindex == 0)
+	{
+		if(AreAnyTypesSumTypes(metadata.value.ArgTypes))
+		{
+			typesignature = FindFirstSumTypeInList(metadata.value.ArgTypes)
+		}
+	}
+	else
+	{
+		typesignature = TypeMatcherGetSumTypeForParamIndex(metadata.next, paramindex - 1)
+	}
+}
+
+
+
 MergeArgumentTypeMetadata : CallSiteMetadata ref metadata, simplelist<integer> ref argtypes
 {
 	while(CountTypeSets(metadata.ArgTypeSets) < countnonzero(argtypes))

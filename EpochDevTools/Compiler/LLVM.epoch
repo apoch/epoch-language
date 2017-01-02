@@ -1704,6 +1704,8 @@ EmitTypeMatcherOverloadsInLLVM : LLVMContextHandle context, LLVMFunctionRef func
 {
 	if(signatures.value.Name != 0)
 	{
+		print(GetPooledString(signatures.value.Name))
+
 		LLVMFunctionRef overloadfunc = 0
 		BinaryTreeCopyPayload<LLVMFunctionRef>(LLVMFunctionTable.RootNode, signatures.value.Name, overloadfunc)
 
@@ -1752,13 +1754,22 @@ EmitTypeMatcherParamsInLLVM : LLVMContextHandle context, list<FunctionSignature>
 				paramtype = FindTypeAliasBase(paramtype)
 			}
 
-			if(TypeMatcherNeedsSumTypeForParamIndex(matchername, paramindex))
+
+			integer paramsumtype = TypeMatcherGetSumTypeForParamIndex(matchername, paramindex)
+			if(paramsumtype != 0)
 			{
-				EpochLLVMCodeCreateReadParam(context, paramindex)
-				EpochLLVMCodePushExtractedStructValue(context, 0)
-				EpochLLVMCodePushInteger(context, paramtype)
-				EpochLLVMCodeOperatorIntegerEquals(context)
-				EpochLLVMCodeCreateCondBranch(context, EpochLLVMCodePopValue(context), nextparamblock, nextoverloadblock)
+				if(SumTypeHasBase(paramsumtype, paramtype))
+				{
+					EpochLLVMCodeCreateReadParam(context, paramindex)
+					EpochLLVMCodePushExtractedStructValue(context, 0)
+					EpochLLVMCodePushInteger(context, paramtype)
+					EpochLLVMCodeOperatorIntegerEquals(context)
+					EpochLLVMCodeCreateCondBranch(context, EpochLLVMCodePopValue(context), nextparamblock, nextoverloadblock)
+				}
+				else
+				{
+					EpochLLVMCodeCreateBranch(context, nextparamblock, false)
+				}
 			}
 			else
 			{
@@ -1806,7 +1817,14 @@ CreateTypeMatcherParamsInLLVM : LLVMContextHandle context, CallSiteMetadata ref 
 
 CreateTypeMatcherParamsInLLVM : LLVMContextHandle context, list<ArgumentMetadata> ref argtypesets
 {
+	integer sumtypeid = FindFirstSumTypeInList(argtypesets.value.ArgTypes)
 	integer argtype = argtypesets.value.ArgTypes.value
+
+	if(sumtypeid != 0)
+	{
+		argtype = sumtypeid
+	}
+
 	if(TypeMatcherTypeListNeedsRef(argtypesets.value.ArgTypes))
 	{
 		argtype = MakeReferenceType(argtype)

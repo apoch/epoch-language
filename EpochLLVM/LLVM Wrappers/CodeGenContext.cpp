@@ -692,6 +692,21 @@ llvm::CallInst* Context::CodeCreateCall(llvm::Function* target)
 		}
 	}
 
+	// TODO - remove diagnostics
+	for(size_t i = 0; i < relevantargs.size(); ++i)
+	{
+		if(target->getFunctionType()->getParamType(i) != relevantargs[i]->getType())
+		{
+			for(size_t j = 0; j <= i; ++j)
+			{
+				target->getFunctionType()->getParamType(j)->dump();
+				relevantargs[i]->getType()->dump();
+			}
+
+			assert(false);
+		}
+	}
+
 	llvm::CallInst* inst = LLVMBuilder.CreateCall(target, relevantargs);
 
 	if(inst->getType() != Type::getVoidTy(getGlobalContext()))

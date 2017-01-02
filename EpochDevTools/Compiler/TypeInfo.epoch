@@ -313,4 +313,16 @@ AreAnyTypesSumTypes : simplelist<integer> ref typelist -> boolean ret = false
 AreAnyTypesSumTypes : nothing -> false
 
 
+FindFirstSumTypeInList : simplelist<integer> ref typelist -> integer ret = 0
+{
+	if(IsSumType(typelist.value))
+	{
+		ret = MakeNonReferenceType(typelist.value)
+	}
+	else
+	{
+		ret = FindFirstSumTypeInList(typelist.next)
+	}
+}
 
+FindFirstSumTypeInList : nothing -> 0
