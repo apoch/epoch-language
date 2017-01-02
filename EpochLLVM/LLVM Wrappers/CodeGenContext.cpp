@@ -975,6 +975,18 @@ void Context::CodeCreateOperatorIntegerNotEquals()
 	PendingValues.push_back(eqval);
 }
 
+void Context::CodeCreateOperatorIntegerGreaterThan()
+{
+	llvm::Value* operand2 = PendingValues.back();
+	PendingValues.pop_back();
+
+	llvm::Value* operand1 = PendingValues.back();
+	PendingValues.pop_back();
+
+	llvm::Value* gtval = LLVMBuilder.CreateICmpSGT(operand1, operand2);
+	PendingValues.push_back(gtval);
+}
+
 void Context::CodeCreateOperatorIntegerPlus()
 {
 	llvm::Value* operand2 = PendingValues.back();

@@ -62,6 +62,7 @@ EXPORTS
 	EpochLLVMCodeOperatorBooleanNot
 	EpochLLVMCodeOperatorIntegerEquals
 	EpochLLVMCodeOperatorIntegerNotEquals
+	EpochLLVMCodeOperatorIntegerGreaterThan
 	EpochLLVMCodeOperatorIntegerPlus
 	EpochLLVMCodeOperatorIntegerMinus
 	EpochLLVMCodeOperatorIntegerDivide
