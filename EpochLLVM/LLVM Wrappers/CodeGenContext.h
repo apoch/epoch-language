@@ -101,6 +101,7 @@ namespace CodeGen
 		void CodeCreateOperatorIntegerEquals();
 		void CodeCreateOperatorIntegerNotEquals();
 		void CodeCreateOperatorIntegerGreaterThan();
+		void CodeCreateOperatorIntegerLessThan();
 		void CodeCreateOperatorIntegerPlus();
 		void CodeCreateOperatorIntegerMinus();
 		void CodeCreateOperatorIntegerDivide();

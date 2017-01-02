@@ -275,6 +275,11 @@ extern "C" void EpochLLVMCodeOperatorIntegerGreaterThan(void* context)
 	reinterpret_cast<CodeGen::Context*>(context)->CodeCreateOperatorIntegerGreaterThan();
 }
 
+extern "C" void EpochLLVMCodeOperatorIntegerLessThan(void* context)
+{
+	reinterpret_cast<CodeGen::Context*>(context)->CodeCreateOperatorIntegerLessThan();
+}
+
 extern "C" void EpochLLVMCodeOperatorIntegerPlus(void* context)
 {
 	reinterpret_cast<CodeGen::Context*>(context)->CodeCreateOperatorIntegerPlus();

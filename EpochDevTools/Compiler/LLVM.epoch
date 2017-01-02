@@ -122,6 +122,7 @@ EpochLLVMCodeOperatorBooleanNot : LLVMContextHandle context															[exter
 EpochLLVMCodeOperatorIntegerEquals : LLVMContextHandle context														[external("EpochLLVM.dll", "EpochLLVMCodeOperatorIntegerEquals")]
 EpochLLVMCodeOperatorIntegerNotEquals : LLVMContextHandle context													[external("EpochLLVM.dll", "EpochLLVMCodeOperatorIntegerNotEquals")]
 EpochLLVMCodeOperatorIntegerGreaterThan : LLVMContextHandle context													[external("EpochLLVM.dll", "EpochLLVMCodeOperatorIntegerGreaterThan")]
+EpochLLVMCodeOperatorIntegerLessThan : LLVMContextHandle context													[external("EpochLLVM.dll", "EpochLLVMCodeOperatorIntegerLessThan")]
 EpochLLVMCodeOperatorIntegerPlus : LLVMContextHandle context														[external("EpochLLVM.dll", "EpochLLVMCodeOperatorIntegerPlus")]
 EpochLLVMCodeOperatorIntegerMinus : LLVMContextHandle context														[external("EpochLLVM.dll", "EpochLLVMCodeOperatorIntegerMinus")]
 EpochLLVMCodeOperatorIntegerMultiply : LLVMContextHandle context													[external("EpochLLVM.dll", "EpochLLVMCodeOperatorIntegerMultiply")]
@@ -1190,6 +1191,10 @@ EmitSingleAtomToLLVM : LLVMBuildContext ref context, OperatorInvokeAtom ref atom
 	elseif(atom.OperatorName == PooledStringHandleForGreaterThanInteger)
 	{
 		EpochLLVMCodeOperatorIntegerGreaterThan(context.Context)
+	}
+	elseif(atom.OperatorName == PooledStringHandleForLessThanInteger)
+	{
+		EpochLLVMCodeOperatorIntegerLessThan(context.Context)
 	}
 	elseif(atom.OperatorName == PooledStringHandleForEqualityString)
 	{
