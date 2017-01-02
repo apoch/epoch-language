@@ -283,6 +283,7 @@ global
 	integer PooledStringHandleForInteger64 = 0
 	integer PooledStringHandleForGCInit = 0
 	integer PooledStringhandleForGCCollectStrings = 0
+	integer PooledStringHandleForReturn = 0
 
 	integer FirstNonBuiltInStringHandle = 0
 

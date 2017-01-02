@@ -177,7 +177,10 @@ PrepareStringTable :
 	StringTableRegisterString((++counter), "else")
 	StringTableRegisterString((++counter), "while")
 	StringTableRegisterString((++counter), "do")
+	
 	StringTableRegisterString((++counter), "return")
+	PooledStringHandleForReturn = counter
+
 	StringTableRegisterString((++counter), "constructor")
 	StringTableRegisterString((++counter), "external")
 	StringTableRegisterString((++counter), "@@external")

@@ -26,7 +26,8 @@ type LLVMGEP : integer
 structure LLVMBuildContext :
 	LLVMContextHandle          Context,
 	LLVMFunctionRef            EmittingFunction,
-	BinaryTreeRoot<LLVMAlloca> LocalVariables
+	BinaryTreeRoot<LLVMAlloca> LocalVariables,
+	LLVMBasicBlock			   ExitBlock
 
 
 
@@ -516,10 +517,11 @@ EmitSingleFunctionToLLVM : LLVMContextHandle context, FunctionDefinition ref fun
 	BinaryTreeCopyPayload<LLVMFunctionRef>(LLVMFunctionTable.RootNode, func.Name, llvmfunc)
 
 	LLVMBasicBlock funcbody = EpochLLVMCodeCreateBasicBlock(context, llvmfunc, true)
+	LLVMBasicBlock exitblock = EpochLLVMCodeCreateBasicBlock(context, llvmfunc, false)
 	
 
 	BinaryTreeRoot<LLVMAlloca> vartree = nothing
-	LLVMBuildContext build = context, llvmfunc, vartree
+	LLVMBuildContext build = context, llvmfunc, vartree, exitblock
 	CreateLLVMAllocasForScope(build, func.AttachedScope.Wrapped, func)
 	
 	FindScopeAndSetContext(func)
@@ -542,6 +544,8 @@ EmitSingleFunctionToLLVM : LLVMContextHandle context, FunctionDefinition ref fun
 		EpochLLVMCodeCreateRead(context, alloca)
 		EpochLLVMCodeCreateWriteParam(context, 0)
 	}
+
+	EpochLLVMCodeCreateBranch(context, exitblock, true)
 	
 	if(func.AnonymousReturn)
 	{
@@ -762,18 +766,25 @@ EmitSingleCodeBlockEntryToLLVM : LLVMBuildContext ref context, Statement ref ent
 	{
 		if(GetTypeByName(entry.Name) == 0)
 		{
-			if(entry.Name == PooledStringHandleForCastIntegerToString)
+			if(entry.Name == PooledStringHandleForReturn)
 			{
-				EmitPartialExpressionListToLLVM(context, entry.Parameters)
+				EpochLLVMCodeCreateBranch(context.Context, context.ExitBlock, false)
 			}
 			else
 			{
-				EmitExpressionListToLLVM(context, entry.Parameters)
-			}
+				if(entry.Name == PooledStringHandleForCastIntegerToString)
+				{
+					EmitPartialExpressionListToLLVM(context, entry.Parameters)
+				}
+				else
+				{
+					EmitExpressionListToLLVM(context, entry.Parameters)
+				}
 			
-			integer thunk = 0
-			BinaryTreeCopyPayload<integer>(LLVMGlobalThunks.RootNode, entry.Name, thunk)
-			EpochLLVMCodeCreateCallThunk(context.Context, thunk)
+				integer thunk = 0
+				BinaryTreeCopyPayload<integer>(LLVMGlobalThunks.RootNode, entry.Name, thunk)
+				EpochLLVMCodeCreateCallThunk(context.Context, thunk)
+			}
 		}
 		else
 		{
