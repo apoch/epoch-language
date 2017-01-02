@@ -378,7 +378,7 @@ TypeMatcherGetSumTypeForParamIndex : list<ArgumentMetadata> ref metadata, intege
 {
 	if(paramindex == 0)
 	{
-		if(AreAnyTypesSumTypes(metadata.value.ArgTypes))
+		if(CountSumTypes(metadata.value.ArgTypes) == 1)
 		{
 			typesignature = FindFirstSumTypeInList(metadata.value.ArgTypes)
 		}

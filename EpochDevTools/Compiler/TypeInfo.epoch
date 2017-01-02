@@ -326,3 +326,17 @@ FindFirstSumTypeInList : simplelist<integer> ref typelist -> integer ret = 0
 }
 
 FindFirstSumTypeInList : nothing -> 0
+
+
+CountSumTypes : simplelist<integer> ref typelist -> integer count = 0
+{
+	if(IsSumType(typelist.value))
+	{
+		count = count + 1
+	}
+
+	count = count + CountSumTypes(typelist.next)
+}
+
+CountSumTypes : nothing -> 0
+

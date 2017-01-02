@@ -1704,15 +1704,13 @@ EmitTypeMatcherOverloadsInLLVM : LLVMContextHandle context, LLVMFunctionRef func
 {
 	if(signatures.value.Name != 0)
 	{
-		print(GetPooledString(signatures.value.Name))
-
 		LLVMFunctionRef overloadfunc = 0
 		BinaryTreeCopyPayload<LLVMFunctionRef>(LLVMFunctionTable.RootNode, signatures.value.Name, overloadfunc)
 
 		LLVMBasicBlock nextoverloadblock = EpochLLVMCodeCreateBasicBlock(context, func, false)
 
 		integer paramindex = 0
-		EmitTypeMatcherParamsInLLVM(context, alloverloads, signatures.value.Parameters, paramindex, func, overloadfunc, nextoverloadblock, signatures.value, exitblock, matchername)
+		EmitTypeMatcherParamsInLLVM(context, alloverloads, signatures.value.Parameters, paramindex, 0, func, overloadfunc, nextoverloadblock, signatures.value, exitblock, matchername)
 	}
 
 	EmitTypeMatcherOverloadsInLLVM(context, func, exitblock, signatures.next, alloverloads, matchername)
@@ -1731,7 +1729,7 @@ EmitTypeMatcherOverloadsInLLVM : LLVMContextHandle context, LLVMFunctionRef func
 }
 
 
-EmitTypeMatcherParamsInLLVM : LLVMContextHandle context, list<FunctionSignature> ref overloads, list<Parameter> ref params, integer paramindex, LLVMFunctionRef func, LLVMFunctionRef overloadfunc, LLVMBasicBlock nextoverloadblock, FunctionSignature ref overloadsig, LLVMBasicBlock exitblock, integer matchername
+EmitTypeMatcherParamsInLLVM : LLVMContextHandle context, list<FunctionSignature> ref overloads, list<Parameter> ref params, integer paramindex, integer relevantparams, LLVMFunctionRef func, LLVMFunctionRef overloadfunc, LLVMBasicBlock nextoverloadblock, FunctionSignature ref overloadsig, LLVMBasicBlock exitblock, integer matchername
 {
 	if(params.value.Name != 0)
 	{
@@ -1744,6 +1742,7 @@ EmitTypeMatcherParamsInLLVM : LLVMContextHandle context, list<FunctionSignature>
 		if(typecount == 1)
 		{
 			EpochLLVMCodeCreateBranch(context, nextparamblock, false)
+			++relevantparams
 		}
 		else
 		{
@@ -1765,6 +1764,7 @@ EmitTypeMatcherParamsInLLVM : LLVMContextHandle context, list<FunctionSignature>
 					EpochLLVMCodePushInteger(context, paramtype)
 					EpochLLVMCodeOperatorIntegerEquals(context)
 					EpochLLVMCodeCreateCondBranch(context, EpochLLVMCodePopValue(context), nextparamblock, nextoverloadblock)
+					++relevantparams
 				}
 				else
 				{
@@ -1779,23 +1779,30 @@ EmitTypeMatcherParamsInLLVM : LLVMContextHandle context, list<FunctionSignature>
 
 		EpochLLVMSetCurrentBasicBlock(context, nextparamblock)
 
-		EmitTypeMatcherParamsInLLVM(context, overloads, params.next, paramindex + 1, func, overloadfunc, nextoverloadblock, overloadsig, exitblock, matchername)
+		EmitTypeMatcherParamsInLLVM(context, overloads, params.next, paramindex + 1, relevantparams, func, overloadfunc, nextoverloadblock, overloadsig, exitblock, matchername)
 	}
 	else
 	{
-		EmitTypeMatcherParamsInLLVM(context, overloads, params.next, paramindex, func, overloadfunc, nextoverloadblock, overloadsig, exitblock, matchername)
+		EmitTypeMatcherParamsInLLVM(context, overloads, params.next, paramindex, relevantparams, func, overloadfunc, nextoverloadblock, overloadsig, exitblock, matchername)
 	}
 
 	EpochLLVMSetCurrentBasicBlock(context, nextoverloadblock)
 }
 
-EmitTypeMatcherParamsInLLVM : LLVMContextHandle context, list<FunctionSignature> ref overloads, nothing, integer paramindex, LLVMFunctionRef func, LLVMFunctionRef overloadfunc, LLVMBasicBlock nextoverloadblock, FunctionSignature ref overloadsig, LLVMBasicBlock exitblock, integer matchername
+EmitTypeMatcherParamsInLLVM : LLVMContextHandle context, list<FunctionSignature> ref overloads, nothing, integer paramindex, integer relevantparams, LLVMFunctionRef func, LLVMFunctionRef overloadfunc, LLVMBasicBlock nextoverloadblock, FunctionSignature ref overloadsig, LLVMBasicBlock exitblock, integer matchername
 {
-	ForwardTypeMatcherParamsInLLVM(context, overloads, matchername, overloadsig)
-	EpochLLVMCodeCreateCall(context, overloadfunc)
-	EpochLLVMCodeStatementFinalize(context)
-	// TODO - stash non-void return value
-	EpochLLVMCodeCreateBranch(context, exitblock, false)
+	if(relevantparams == paramindex)
+	{
+		ForwardTypeMatcherParamsInLLVM(context, overloads, matchername, overloadsig)
+		EpochLLVMCodeCreateCall(context, overloadfunc)
+		EpochLLVMCodeStatementFinalize(context)
+		// TODO - stash non-void return value
+		EpochLLVMCodeCreateBranch(context, exitblock, false)
+	}
+	else
+	{
+		EpochLLVMCodeCreateBranch(context, nextoverloadblock, false)
+	}
 }
 
 
