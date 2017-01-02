@@ -651,14 +651,8 @@ TypeInference : Statement ref statement, InferenceContext ref context -> boolean
 	}
 	elseif(ContextHasTypeMatcher(contextmatch))
 	{
-		//AnnotateAllParameters(statement.Parameters, originalname, 0, paramcount, statement.TopLevel)
 		StashArgumentTypesForTypeMatcher(statement.Name, paramtypes)
 	}
-
-	//if(SumTypeExists(statement.Name))
-	//{
-	//	AnnotateAllParameters(statement.Parameters, originalname, 0, paramcount, statement.TopLevel)
-	//}
 }
 
 
@@ -829,10 +823,10 @@ AnnotateNonReferenceParameters : ExpressionList ref exprs
 
 AnnotateNonReferenceParameters : list<Expression> ref params
 {
-	if((params.value.Type & 0x7f000000) != 0x07000000)
-	{
+	//if(params.value.Type != 0x01000000)		//if((params.value.Type & 0x7f000000) != 0x07000000)
+	//{
 		AddTypeAnnotation(params.value)
-	}
+	//}
 	AnnotateNonReferenceParameters(params.next)
 }
 

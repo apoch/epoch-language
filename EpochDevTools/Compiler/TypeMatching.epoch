@@ -48,7 +48,7 @@ FindTMOverloadAndAppendParameter : list<FunctionSignature> ref originallist, lis
 FindTMOverloadAndAppendParameter : list<FunctionSignature> ref originallist, nothing, integer overloadname, Parameter ref p
 {
 	list<Parameter> paramlist = p, nothing
-	FunctionSignature sig = overloadname, paramlist, 0, true
+	FunctionSignature sig = overloadname, paramlist, originallist.value.ReturnTypeName, true
 	prepend<FunctionSignature>(originallist, sig)
 }
 

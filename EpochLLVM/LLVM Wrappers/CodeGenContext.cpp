@@ -780,6 +780,8 @@ void Context::CodeCreateCast(Type* targettype)
 				Value* ptr = load->getOperand(0);
 				castvalue = LLVMBuilder.CreatePtrToInt(ptr, targettype);
 			}
+			else
+				castvalue = LLVMBuilder.CreateBitCast(LLVMBuilder.CreateExtractValue(v, { 1u }), targettype);
 		}
 		else
 			castvalue = LLVMBuilder.CreateZExtOrTrunc(v, targettype);

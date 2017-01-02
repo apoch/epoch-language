@@ -113,6 +113,11 @@ DumpAtomFoo : ParentheticalExpression ref atom { print("parenthetical") }
 DumpAtomFoo : ArrayIndexAtom ref atom { print("array") }
 DumpAtomFoo : AtomSentinel ref atom { print("sentinel") }
 
+DumpExpressionAtomsFoo : Expression ref expr
+{
+	DumpExpressionAtomsFoo(expr.Atoms)
+}
+
 DumpExpressionAtomsFoo : list<ExpressionAtom> ref atoms
 {
 	DumpAtomFoo(atoms.value)
@@ -123,10 +128,16 @@ DumpExpressionAtomsFoo : nothing
 
 
 
+DumpExpressionList : ExpressionList ref exprs
+{
+	DumpExpressionList(exprs.Expressions)
+}
+
+
 DumpExpressionList : list<Expression> ref exprs
 {
 	print("BEGIN EXPR")
-	DumpExpressionAtoms(exprs.value.Atoms)
+	DumpExpressionAtomsFoo(exprs.value.Atoms)
 	print("END EXPR")
 
 	DumpExpressionList(exprs.next)
