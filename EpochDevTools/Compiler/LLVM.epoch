@@ -1752,16 +1752,18 @@ EmitTypeMatcherParamsInLLVM : LLVMContextHandle context, list<FunctionSignature>
 				paramtype = FindTypeAliasBase(paramtype)
 			}
 
-			if(refflag)
+			if(TypeMatcherNeedsSumTypeForParamIndex(matchername, paramindex))
 			{
-				paramtype = MakeReferenceType(paramtype)
+				EpochLLVMCodeCreateReadParam(context, paramindex)
+				EpochLLVMCodePushExtractedStructValue(context, 0)
+				EpochLLVMCodePushInteger(context, paramtype)
+				EpochLLVMCodeOperatorIntegerEquals(context)
+				EpochLLVMCodeCreateCondBranch(context, EpochLLVMCodePopValue(context), nextparamblock, nextoverloadblock)
 			}
-
-			EpochLLVMCodeCreateReadParam(context, paramindex)
-			EpochLLVMCodePushExtractedStructValue(context, 0)
-			EpochLLVMCodePushInteger(context, paramtype)
-			EpochLLVMCodeOperatorIntegerEquals(context)
-			EpochLLVMCodeCreateCondBranch(context, EpochLLVMCodePopValue(context), nextparamblock, nextoverloadblock)
+			else
+			{
+				EpochLLVMCodeCreateBranch(context, nextparamblock, false)
+			}
 		}
 
 		EpochLLVMSetCurrentBasicBlock(context, nextparamblock)
