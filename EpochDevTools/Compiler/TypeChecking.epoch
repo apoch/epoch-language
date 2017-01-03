@@ -1,4 +1,4 @@
-TypeListContains : simplelist<integer> ref thelist, integer value -> integer ret = 0 [nogc]
+TypeListContains : simplelist<integer> ref thelist, integer value -> integer ret = 0
 {
 	integer listval = thelist.value
 	if((value & 0x7f000000) != 0x05000000)
@@ -100,7 +100,7 @@ structure ExpressionInferenceStackEntry :
 
 
 
-TypeInferenceSumTypeHelper : integer typeid, SumType ref st -> boolean success = true [nogc]
+TypeInferenceSumTypeHelper : integer typeid, SumType ref st -> boolean success = true
 {
 	if(st.Type != 0)
 	{
@@ -510,6 +510,7 @@ TypeInference : Statement ref statement, InferenceContext ref context -> boolean
 	ContextNode<FunctionDefinition> contextfunc = nothing
 	ContextNode<PendingTypeMatcher> contextmatch = nothing
 	boolean isuserfunc = false
+	simplelist<integer> paramtypes = 0, nothing
 
 
 	if(statement.Name == PooledStringHandleForCast)
@@ -533,7 +534,6 @@ TypeInference : Statement ref statement, InferenceContext ref context -> boolean
 			isuserfunc = SearchBinaryTreeForPayload<FunctionDefinition>(GlobalRootNamespace.Functions.RootNode, statement.Name, contextfunc)
 		}
 
-		simplelist<integer> paramtypes = 0, nothing
 		AccumulateParameterTypes(paramtypes, statement.Parameters)
 
 		integer overloadname = 0
@@ -651,13 +651,8 @@ TypeInference : Statement ref statement, InferenceContext ref context -> boolean
 	}
 	elseif(ContextHasTypeMatcher(contextmatch))
 	{
-		//AnnotateAllParameters(statement.Parameters, originalname, 0, paramcount, statement.TopLevel)
+		StashArgumentTypesForTypeMatcher(statement.Name, paramtypes)
 	}
-
-	//if(SumTypeExists(statement.Name))
-	//{
-	//	AnnotateAllParameters(statement.Parameters, originalname, 0, paramcount, statement.TopLevel)
-	//}
 }
 
 
@@ -720,7 +715,7 @@ TypeInference : MessageSend ref msg, InferenceContext ref context -> boolean suc
 
 
 
-AnyTypeIsReferenceType : simplelist<integer> ref types -> boolean isref = false [nogc]
+AnyTypeIsReferenceType : simplelist<integer> ref types -> boolean isref = false
 {
 	if(IsReferenceType(types.value))
 	{
@@ -732,10 +727,10 @@ AnyTypeIsReferenceType : simplelist<integer> ref types -> boolean isref = false 
 	}
 }
 
-AnyTypeIsReferenceType : nothing -> false [nogc]
+AnyTypeIsReferenceType : nothing -> false
 
 
-UnaliasType : integer namehandle -> integer unaliasedname = namehandle [nogc]
+UnaliasType : integer namehandle -> integer unaliasedname = namehandle
 {
 	integer typeid = 0
 	BinaryTreeCopyPayload<integer>(NameToTypeMap.RootNode, namehandle, typeid)
@@ -755,7 +750,7 @@ UnaliasType : integer namehandle -> integer unaliasedname = namehandle [nogc]
 
 
 
-FindTypeAliasBase : integer aliastype -> integer basetype = 0 [nogc]
+FindTypeAliasBase : integer aliastype -> integer basetype = 0
 {
 	boolean isref = IsReferenceType(aliastype)
 	aliastype = MakeNonReferenceType(aliastype)
@@ -776,7 +771,7 @@ GrabAliasBaseType : TypeAlias ref alias -> integer typeid = GetTypeByName(alias.
 GrabAliasBaseTypeName : TypeAlias ref alias -> integer typename = alias.BaseNameHandle
 
 
-FindTypeAliasByName : integer aliasname -> integer aliastype = 0 [nogc]
+FindTypeAliasByName : integer aliasname -> integer aliastype = 0
 {
 	BinaryTreeCopyPayload<integer>(NameToTypeMap.RootNode, aliasname, aliastype)
 }
@@ -821,32 +816,32 @@ AnnotateAllParameters : nothing, integer statementname, integer paramindex, inte
 
 
 
-AnnotateNonReferenceParameters : ExpressionList ref exprs [nogc]
+AnnotateNonReferenceParameters : ExpressionList ref exprs
 {
 	AnnotateNonReferenceParameters(exprs.Expressions)
 }
 
-AnnotateNonReferenceParameters : list<Expression> ref params [nogc]
+AnnotateNonReferenceParameters : list<Expression> ref params
 {
-	if((params.value.Type & 0x7f000000) != 0x07000000)
-	{
+	//if(params.value.Type != 0x01000000)		//if((params.value.Type & 0x7f000000) != 0x07000000)
+	//{
 		AddTypeAnnotation(params.value)
-	}
+	//}
 	AnnotateNonReferenceParameters(params.next)
 }
 
-AnnotateNonReferenceParameters : nothing [nogc]
+AnnotateNonReferenceParameters : nothing
 
 
 
-AddTypeAnnotation : nothing [nogc]
+AddTypeAnnotation : nothing
 
-AddTypeAnnotation : list<Expression> ref params [nogc]
+AddTypeAnnotation : list<Expression> ref params
 {
 	AddTypeAnnotation(params.value)
 }
 
-AddTypeAnnotation : Expression ref expr [nogc]
+AddTypeAnnotation : Expression ref expr
 {
 	integer typeid = expr.Type
 	TypeAnnotationAtom atom = typeid
@@ -855,25 +850,25 @@ AddTypeAnnotation : Expression ref expr [nogc]
 }
 
 
-AccumulateParameterTypes : simplelist<integer> ref types, OptionalExpressionList ref exprs [nogc]
+AccumulateParameterTypes : simplelist<integer> ref types, OptionalExpressionList ref exprs
 {
 	AccumulateParameterTypesUnwrap(types, exprs)
 }
 
-AccumulateParameterTypesUnwrap : simplelist<integer> ref types, ExpressionList ref exprs [nogc]
+AccumulateParameterTypesUnwrap : simplelist<integer> ref types, ExpressionList ref exprs
 {
 	AccumulateParameterTypesUnwrapped(exprs.Expressions, types)
 }
 
-AccumulateParameterTypesUnwrap : simplelist<integer> ref types, nothing [nogc]
+AccumulateParameterTypesUnwrap : simplelist<integer> ref types, nothing
 
-AccumulateParameterTypesUnwrapped : list<Expression> ref exprs, simplelist<integer> ref types [nogc]
+AccumulateParameterTypesUnwrapped : list<Expression> ref exprs, simplelist<integer> ref types
 {
 	AccumulateParameterTypesUnwrapped(exprs.next, types)
 	simpleprepend<integer>(types, exprs.value.Type)
 }
 
-AccumulateParameterTypesUnwrapped : nothing, simplelist<integer> ref types [nogc]
+AccumulateParameterTypesUnwrapped : nothing, simplelist<integer> ref types
 
 
 
@@ -1135,7 +1130,7 @@ AddTypeToParamTypeList : list<ParameterTypeList> ref outinfo, integer ty
 }
 
 
-GrabTypeListAtIndex : list<ParameterTypeList> ref paraminfo, integer paramindex, simplelist<integer> ref out [nogc]
+GrabTypeListAtIndex : list<ParameterTypeList> ref paraminfo, integer paramindex, simplelist<integer> ref out
 {
 	if(paramindex == 0)
 	{
@@ -1385,7 +1380,7 @@ TypeInference : Expression ref expression, InferenceContext ref context -> boole
 	}
 }
 
-CountPossibilities : list<InferencePossibility> ref thelist -> integer count = 0 [nogc]
+CountPossibilities : list<InferencePossibility> ref thelist -> integer count = 0
 {
 	if(thelist.value.FunctionName != 0)
 	{
@@ -1395,7 +1390,7 @@ CountPossibilities : list<InferencePossibility> ref thelist -> integer count = 0
 	count += CountPossibilities(thelist.next)
 }
 
-CountPossibilities : nothing -> 0 [nogc]
+CountPossibilities : nothing -> 0
 
 
 WalkAtomsForType : list<ExpressionAtom> ref atoms, list<ExpressionAtom> ref tail, list<ExpressionInferenceStackEntry> ref stack, integer ref counter, InferenceContext ref context -> boolean demotedtoright = false
@@ -1495,7 +1490,7 @@ CopyReturnTypeToParamTypes : list<ExpressionInferenceStackEntry> ref stack, noth
 
 
 
-AllOptionsConsumed : list<TypePossibilityList> ref options -> boolean allconsumed = true [nogc]
+AllOptionsConsumed : list<TypePossibilityList> ref options -> boolean allconsumed = true
 {
 	if(!options.value.Consumed)
 	{
@@ -1514,15 +1509,15 @@ AllOptionsConsumed : list<TypePossibilityList> ref options -> boolean allconsume
 	}
 }
 
-AllOptionsConsumed : nothing -> true [nogc]
+AllOptionsConsumed : nothing -> true
 
 
-PopExpressionInferenceStack : list<ExpressionInferenceStackEntry> ref stack, list<ExpressionInferenceStackEntry> ref tail [nogc]
+PopExpressionInferenceStack : list<ExpressionInferenceStackEntry> ref stack, list<ExpressionInferenceStackEntry> ref tail
 {
 	stack = tail
 }
 
-PopExpressionInferenceStack : list<ExpressionInferenceStackEntry> ref stack, nothing [nogc]
+PopExpressionInferenceStack : list<ExpressionInferenceStackEntry> ref stack, nothing
 
 
 WalkAtomsForType : list<ExpressionAtom> ref atoms, nothing, list<ExpressionInferenceStackEntry> ref stack, integer ref counter, InferenceContext ref context -> boolean demotedtoright = false
@@ -1589,7 +1584,7 @@ EliminateImpossibleParameters : list<TypePossibilityList> ref params, Expression
 EliminateImpossibleParameters : nothing, ExpressionAtom ref atom, Scope ref scope, ContextNode<FunctionDefinition> ref func, boolean funcret, boolean parenthetical -> true
 
 
-EliminateImpossibleType : simplelist<integer> ref possibles, simplelist<integer> ref filter, simplelist<integer> ref out -> integer count = 0 [nogc]
+EliminateImpossibleType : simplelist<integer> ref possibles, simplelist<integer> ref filter, simplelist<integer> ref out -> integer count = 0
 {
 	count = EliminateImpossibleType(possibles.next, filter, out)
 
@@ -1604,7 +1599,7 @@ EliminateImpossibleType : simplelist<integer> ref possibles, simplelist<integer>
 	}
 }
 
-EliminateImpossibleType : nothing, simplelist<integer> ref filter, simplelist<integer> ref out -> 0 [nogc]
+EliminateImpossibleType : nothing, simplelist<integer> ref filter, simplelist<integer> ref out -> 0
 
 
 // TODO - type inference on array indexing expressions
@@ -1656,9 +1651,9 @@ GetAtomType : ParentheticalExpression ref parenthetical, TypePossibilityList ref
 	}
 }
 
-GetParentheticalType : PreOpStatement ref statement -> integer rettype = statement.Type [nogc]
-GetParentheticalType : PostOpStatement ref statement -> integer rettype = statement.Type [nogc]
-GetParentheticalType : Expression ref expr -> integer rettype = expr.Type [nogc]
+GetParentheticalType : PreOpStatement ref statement -> integer rettype = statement.Type
+GetParentheticalType : PostOpStatement ref statement -> integer rettype = statement.Type
+GetParentheticalType : Expression ref expr -> integer rettype = expr.Type
 
 GetAtomTypeOperator : OperatorInvokeAtom ref atom, list<InferencePossibility> ref possibilities
 {
@@ -1728,7 +1723,7 @@ GetAtomType : IdentifierAtom ref atom, TypePossibilityList ref possibilities, Sc
 	}
 }
 
-AddPossibleParameter : simplelist<integer> ref possibilities, integer paramtype [nogc]
+AddPossibleParameter : simplelist<integer> ref possibilities, integer paramtype
 {
 	simpleprepend<integer>(possibilities, paramtype)
 
@@ -1738,7 +1733,7 @@ AddPossibleParameter : simplelist<integer> ref possibilities, integer paramtype 
 	//}
 }
 
-AddBinaryPossibility : list<InferencePossibility> ref possibilities, integer functionname, integer param1type, integer param2type, integer rettype [nogc]
+AddBinaryPossibility : list<InferencePossibility> ref possibilities, integer functionname, integer param1type, integer param2type, integer rettype
 {
 	assertmsg(functionname != 0, "Cannot configure inference possibility for nameless function")
 
@@ -1758,7 +1753,7 @@ AddBinaryPossibility : list<InferencePossibility> ref possibilities, integer fun
 	prepend<InferencePossibility>(possibilities, possibility)
 }
 
-AddUnaryPossibility : list<InferencePossibility> ref possibilities, integer functionname, integer param1type, integer rettype [nogc]
+AddUnaryPossibility : list<InferencePossibility> ref possibilities, integer functionname, integer param1type, integer rettype
 {
 	assertmsg(functionname != 0, "Cannot configure inference possibility for nameless function")
 
@@ -1874,8 +1869,8 @@ GetFunctionReturnType : nothing, integer funcname -> integer rettype = 0
 	rettype = GetPendingTypeMatcherReturnType(funcname, ignored)
 }
 
-GetOptionalExpressionType : Expression ref expr -> expr.Type [nogc]
-GetOptionalExpressionType : nothing -> 0 [nogc]
+GetOptionalExpressionType : Expression ref expr -> expr.Type
+GetOptionalExpressionType : nothing -> 0
 
 
 
@@ -2009,6 +2004,10 @@ WalkFunctionParamsAndSetReferencesUnwrapped : list<UnresolvedParameter> ref para
 	{
 		needref = true
 	}
+	elseif(IsSumType(paramexprs.value.Type))
+	{
+		needref = true
+	}
 
 	if(needref)
 	{
@@ -2028,43 +2027,43 @@ WalkFunctionParamsAndSetReferencesUnwrapped : nothing, nothing
 
 
 
-DemoteAtomType : list<ExpressionAtom> ref atoms [nogc]
+DemoteAtomType : list<ExpressionAtom> ref atoms
 {
 	PerformDemotion(atoms, atoms.value)
 }
 
-PerformDemotion : list<ExpressionAtom> ref atoms, integer ref atom [nogc]
+PerformDemotion : list<ExpressionAtom> ref atoms, integer ref atom
 {
 	integer16 newatom = cast(integer16, atom)
 	ExpressionAtom wrap = newatom
 	atoms.value = wrap
 }
 
-PerformDemotion : list<ExpressionAtom> ref atoms, IdentifierAtom ref atom [nogc]
+PerformDemotion : list<ExpressionAtom> ref atoms, IdentifierAtom ref atom
 
-PerformDemotion : list<ExpressionAtom> ref atoms, Statement ref atom [nogc]
+PerformDemotion : list<ExpressionAtom> ref atoms, Statement ref atom
 {
 	assertmsg(atom.Type == 0x01000002, "Failed to demote statement type")
 }
 
-PerformDemotion : list<ExpressionAtom> ref atoms, CompoundAtom ref atom [nogc]
+PerformDemotion : list<ExpressionAtom> ref atoms, CompoundAtom ref atom
 
 
-PromoteAtomType : list<ExpressionAtom> ref atoms [nogc]
+PromoteAtomType : list<ExpressionAtom> ref atoms
 {
 	PerformPromotion(atoms, atoms.value)
 }
 
-PerformPromotion : list<ExpressionAtom> ref atoms, integer ref atom [nogc]
+PerformPromotion : list<ExpressionAtom> ref atoms, integer ref atom
 {
 	integer64 newatom = atom
 	ExpressionAtom wrap = newatom
 	atoms.value = wrap
 }
 
-PerformPromotion : list<ExpressionAtom> ref atoms, IdentifierAtom ref atom [nogc]
+PerformPromotion : list<ExpressionAtom> ref atoms, IdentifierAtom ref atom
 
-PerformPromotion : list<ExpressionAtom> ref atoms, Statement ref atom [nogc]
+PerformPromotion : list<ExpressionAtom> ref atoms, Statement ref atom
 {
 	integer atomtype = atom.Type
 	while((atomtype & 0x7f000000) == 0x05000000)
@@ -2075,7 +2074,7 @@ PerformPromotion : list<ExpressionAtom> ref atoms, Statement ref atom [nogc]
 	assertmsg(atomtype == 0x01000005, "Failed to promote statement type")
 }
 
-PerformPromotion : list<ExpressionAtom> ref atoms, CompoundAtom ref atom [nogc]
+PerformPromotion : list<ExpressionAtom> ref atoms, CompoundAtom ref atom
 
 
 
@@ -2101,7 +2100,7 @@ FilterOverloadsForTypeDemotion : list<InferencePossibility> ref in, list<Inferen
 }
 
 
-FilterTypesForDemotion : simplelist<integer> ref in, simplelist<integer> ref out [nogc]
+FilterTypesForDemotion : simplelist<integer> ref in, simplelist<integer> ref out
 {
 	boolean hasdemoted = false
 	boolean hassuperior = false
@@ -2140,7 +2139,7 @@ FilterOverloadsForTypePromotion : list<InferencePossibility> ref in, list<Infere
 }
 
 
-FilterTypesForPromotion : simplelist<integer> ref in, simplelist<integer> ref out [nogc]
+FilterTypesForPromotion : simplelist<integer> ref in, simplelist<integer> ref out
 {
 	boolean hasdemoted = false
 	boolean hassuperior = false
@@ -2160,7 +2159,7 @@ FilterTypesForPromotion : simplelist<integer> ref in, simplelist<integer> ref ou
 
 
 
-CheckIfContainsOnlyDemotedOverloads : list<InferencePossibility> ref in, boolean ref hasdemoted, boolean ref hassuperior, boolean ref hasother [nogc]
+CheckIfContainsOnlyDemotedOverloads : list<InferencePossibility> ref in, boolean ref hasdemoted, boolean ref hassuperior, boolean ref hasother
 {
 	if(in.value.FunctionName != 0)
 	{
@@ -2188,10 +2187,10 @@ CheckIfContainsOnlyDemotedOverloads : list<InferencePossibility> ref in, boolean
 	CheckIfContainsOnlyDemotedOverloads(in.next, hasdemoted, hassuperior, hasother)
 }
 
-CheckIfContainsOnlyDemotedOverloads : nothing, boolean ref hasdemoted, boolean ref hassuperior, boolean ref hasother [nogc]
+CheckIfContainsOnlyDemotedOverloads : nothing, boolean ref hasdemoted, boolean ref hassuperior, boolean ref hasother
 
 
-StripDemotedOverloads : list<InferencePossibility> ref in, list<InferencePossibility> ref out [nogc]
+StripDemotedOverloads : list<InferencePossibility> ref in, list<InferencePossibility> ref out
 {
 	if(in.value.FunctionName != 0)
 	{
@@ -2204,11 +2203,11 @@ StripDemotedOverloads : list<InferencePossibility> ref in, list<InferencePossibi
 	StripDemotedOverloads(in.next, out)
 }
 
-StripDemotedOverloads : nothing, list<InferencePossibility> ref out [nogc]
+StripDemotedOverloads : nothing, list<InferencePossibility> ref out
 
 
 
-StripPromotedOverloads : list<InferencePossibility> ref in, list<InferencePossibility> ref out [nogc]
+StripPromotedOverloads : list<InferencePossibility> ref in, list<InferencePossibility> ref out
 {
 	if(in.value.FunctionName != 0)
 	{
@@ -2221,12 +2220,12 @@ StripPromotedOverloads : list<InferencePossibility> ref in, list<InferencePossib
 	StripPromotedOverloads(in.next, out)
 }
 
-StripPromotedOverloads : nothing, list<InferencePossibility> ref out [nogc]
+StripPromotedOverloads : nothing, list<InferencePossibility> ref out
 
 
 
 
-CheckIfContainsOnlyDemotedTypes : simplelist<integer> ref in, boolean ref hasdemoted, boolean ref hassuperior, boolean ref hasother [nogc]
+CheckIfContainsOnlyDemotedTypes : simplelist<integer> ref in, boolean ref hasdemoted, boolean ref hassuperior, boolean ref hasother
 {
 	if(in.value == 0x01000001)
 	{
@@ -2251,10 +2250,10 @@ CheckIfContainsOnlyDemotedTypes : simplelist<integer> ref in, boolean ref hasdem
 	CheckIfContainsOnlyDemotedTypes(in.next, hasdemoted, hassuperior, hasother)
 }
 
-CheckIfContainsOnlyDemotedTypes : nothing, boolean ref hasdemoted, boolean ref hassuperior, boolean ref hasother [nogc]
+CheckIfContainsOnlyDemotedTypes : nothing, boolean ref hasdemoted, boolean ref hassuperior, boolean ref hasother
 
 
-StripDemotedTypes : simplelist<integer> ref in, simplelist<integer> ref out [nogc]
+StripDemotedTypes : simplelist<integer> ref in, simplelist<integer> ref out
 {
 	if(in.value != 0)
 	{
@@ -2267,11 +2266,11 @@ StripDemotedTypes : simplelist<integer> ref in, simplelist<integer> ref out [nog
 	StripDemotedTypes(in.next, out)
 }
 
-StripDemotedTypes : nothing, simplelist<integer> ref out [nogc]
+StripDemotedTypes : nothing, simplelist<integer> ref out
 
 
 
-StripPromotedTypes : simplelist<integer> ref in, simplelist<integer> ref out [nogc]
+StripPromotedTypes : simplelist<integer> ref in, simplelist<integer> ref out
 {
 	if(in.value != 0)
 	{
@@ -2284,7 +2283,7 @@ StripPromotedTypes : simplelist<integer> ref in, simplelist<integer> ref out [no
 	StripPromotedTypes(in.next, out)
 }
 
-StripPromotedTypes : nothing, simplelist<integer> ref out [nogc]
+StripPromotedTypes : nothing, simplelist<integer> ref out
 
 
 CheckMemberTypes : list<StructureMember> ref members, simplelist<integer> ref types -> boolean match = true
@@ -2331,15 +2330,15 @@ CheckMemberTypes : nothing, simplelist<integer> ref types -> boolean match = fal
 
 
 
-SignatureMatchesParams : list<Parameter> ref params, simplelist<integer> ref paramtypes, simplelist<boolean> ref paramrefflags -> boolean match = true
+SignatureMatchesParams : list<Parameter> ref params, simplelist<integer> ref paramtypes -> boolean match = true
 {
 	if(params.value.Name == 0)
 	{
-		match = SignatureMatchesParams(params.next, paramtypes, paramrefflags)
+		match = SignatureMatchesParams(params.next, paramtypes)
 	}
 	elseif(paramtypes.value == 0)
 	{
-		match = SignatureMatchesParams(params, paramtypes.next, paramrefflags.next)
+		match = SignatureMatchesParams(params, paramtypes.next)
 	}
 	elseif(MakeNonReferenceType(params.value.Type) != GetTypeByName(paramtypes.value))
 	{
@@ -2347,14 +2346,15 @@ SignatureMatchesParams : list<Parameter> ref params, simplelist<integer> ref par
 	}
 	else
 	{
-		match = SignatureMatchesParams(params.next, paramtypes.next, paramrefflags.next)
+		match = SignatureMatchesParams(params.next, paramtypes.next)
 	}
 }
 
-SignatureMatchesParams : nothing, simplelist<integer> ref paramtypes, simplelist<boolean> ref paramrefflags -> (paramtypes.value == 0)
-SignatureMatchesParams : list<Parameter> ref params, nothing, nothing -> (params.value.Name == 0)
+SignatureMatchesParams : nothing, simplelist<integer> ref paramtypes -> (paramtypes.value == 0)
+SignatureMatchesParams : list<Parameter> ref params, nothing -> (params.value.Name == 0)
 
-SignatureMatchesParams : nothing, nothing, nothing -> true
+SignatureMatchesParams : nothing, nothing -> true
+
 
 ResolveSignatureTypes : FunctionSignature ref signature
 {
@@ -2371,17 +2371,17 @@ ResolveSignatureTypes : nothing
 
 
 
-FigureOutCastOriginType : list<Expression> ref params -> integer origintype = params.value.Type [nogc]
+FigureOutCastOriginType : list<Expression> ref params -> integer origintype = params.value.Type
 
-FigureOutCastOriginType : nothing -> 0 [nogc]
+FigureOutCastOriginType : nothing -> 0
 
 
-PopPendingFunctionForInference : ContextNode<FunctionDefinition> ref out -> boolean hasnode = false [nogc]
+PopPendingFunctionForInference : ContextNode<FunctionDefinition> ref out -> boolean hasnode = false
 {
 	hasnode = PopPendingFunctionForInferenceWorker(PendingInferenceFunctions, PendingInferenceFunctions.next, out)
 }
 
-PopPendingFunctionForInferenceWorker : list<FunctionDefinition> ref head, list<FunctionDefinition> ref tail, ContextNode<FunctionDefinition> ref out -> boolean hasnode = false [nogc]
+PopPendingFunctionForInferenceWorker : list<FunctionDefinition> ref head, list<FunctionDefinition> ref tail, ContextNode<FunctionDefinition> ref out -> boolean hasnode = false
 {
 	if(head.value.Name != 0)
 	{
@@ -2392,12 +2392,12 @@ PopPendingFunctionForInferenceWorker : list<FunctionDefinition> ref head, list<F
 	}
 }
 
-PopPendingFunctionForInferenceWorker : list<FunctionDefinition> ref head, nothing, ContextNode<FunctionDefinition> ref out -> boolean hasnode = false [nogc]
+PopPendingFunctionForInferenceWorker : list<FunctionDefinition> ref head, nothing, ContextNode<FunctionDefinition> ref out -> boolean hasnode = false
 {
 	assert(head.value.Name == 0)
 }
 
-PushPendingFunctionForInference : FunctionDefinition ref func [nogc]
+PushPendingFunctionForInference : FunctionDefinition ref func
 {
 	prepend<FunctionDefinition>(PendingInferenceFunctions, func)
 }

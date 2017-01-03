@@ -72,7 +72,7 @@ FunctionIsAutoGenOrHasIR : integer funcname -> boolean ret = false
 	}
 }
 
-FunctionIsAutoGen : simplelist<integer> ref genlist, integer target -> boolean ret = false [nogc]
+FunctionIsAutoGen : simplelist<integer> ref genlist, integer target -> boolean ret = false
 {
 	if(genlist.value == target)
 	{
@@ -84,7 +84,7 @@ FunctionIsAutoGen : simplelist<integer> ref genlist, integer target -> boolean r
 	}
 }
 
-FunctionIsAutoGen : nothing, integer target -> boolean ret = false [nogc]
+FunctionIsAutoGen : nothing, integer target -> boolean ret = false
 
 
 AppendParameter : list<Parameter> ref params, Parameter ref p
@@ -105,7 +105,7 @@ AppendParameterRecurse : list<Parameter> ref params, nothing, Parameter ref p
 
 
 
-CountParameters : list<Parameter> ref params -> integer count = 0 [nogc]
+CountParameters : list<Parameter> ref params -> integer count = 0
 {
 	count = CountParameters(params.next)
 
@@ -115,10 +115,10 @@ CountParameters : list<Parameter> ref params -> integer count = 0 [nogc]
 	}
 }
 
-CountParameters : nothing -> integer count = 0 [nogc]
+CountParameters : nothing -> integer count = 0
 
 
-FindFunctionAndSetInvokeTag : list<FunctionDefinition> ref functions, integer funcname, integer invoketarget [nogc]
+FindFunctionAndSetInvokeTag : list<FunctionDefinition> ref functions, integer funcname, integer invoketarget
 {
 	if(functions.value.Name == funcname)
 	{
@@ -130,7 +130,7 @@ FindFunctionAndSetInvokeTag : list<FunctionDefinition> ref functions, integer fu
 	}
 }
 
-FindFunctionAndSetInvokeTag : nothing, integer funcname, integer invoketarget [nogc]
+FindFunctionAndSetInvokeTag : nothing, integer funcname, integer invoketarget
 {
 	print("Cannot tag non-existent function")
 	assert(false)
@@ -169,10 +169,10 @@ GetFunctionWrapperParameterCount : nothing, integer mangledname -> integer count
 }
 
 
-CountUnresolvedParameters : FunctionParams ref params -> integer count = CountUnresolvedParametersUnwrapped(params.Params) [nogc]
-CountUnresolvedParameters : nothing -> 0 [nogc]
+CountUnresolvedParameters : FunctionParams ref params -> integer count = CountUnresolvedParametersUnwrapped(params.Params)
+CountUnresolvedParameters : nothing -> 0
 
-CountUnresolvedParametersUnwrapped : list<UnresolvedParameter> ref params -> integer count = 0 [nogc]
+CountUnresolvedParametersUnwrapped : list<UnresolvedParameter> ref params -> integer count = 0
 {
 	if(params.value.NameHandle != 0)
 	{
@@ -186,7 +186,7 @@ CountUnresolvedParametersUnwrapped : list<UnresolvedParameter> ref params -> int
 	count += CountUnresolvedParametersUnwrapped(params.next)
 }
 
-CountUnresolvedParametersUnwrapped : nothing -> 0 [nogc]
+CountUnresolvedParametersUnwrapped : nothing -> 0
 
 
 
@@ -351,13 +351,13 @@ UnwrapAllParamsForTypeRetrieval : FunctionParams ref params, integer paramcount,
 UnwrapAllParamsForTypeRetrieval : nothing, integer paramcount, list<ParameterTypeList> ref outinfo
 
 
-RetrieveAllParamTypes : list<UnresolvedParameter> ref params, list<ParameterTypeList> ref outinfo [nogc]
+RetrieveAllParamTypes : list<UnresolvedParameter> ref params, list<ParameterTypeList> ref outinfo
 {
 	simpleprepend<integer>(outinfo.value.Types, params.value.ResolvedType)
 	RetrieveAllParamTypes(params.next, outinfo.next)
 }
 
-RetrieveAllParamTypes : nothing, nothing [nogc]
+RetrieveAllParamTypes : nothing, nothing
 
 
 PrependFunctionParameter : list<FunctionDefinition> ref functions, integer funcname, integer paramname, integer paramtype
@@ -478,7 +478,7 @@ FindFunctionSignatureType : list<FunctionSignature> ref signatures, simplelist<i
 {
 	if(signatures.value.ReturnTypeName == returntypename)
 	{
-		if(SignatureMatchesParams(signatures.value.Parameters, paramtypes, paramrefflags))
+		if(SignatureMatchesParams(signatures.value.Parameters, paramtypes))
 		{
 			typeid = signatures.value.Name
 			return()
@@ -580,15 +580,15 @@ SignaturesMatch : nothing, nothing -> true
 
 
 
-SetFunctionReturnType : FunctionDefinition ref func, integer funcname, integer rettype [nogc]
+SetFunctionReturnType : FunctionDefinition ref func, integer funcname, integer rettype
 {
 	SetOptionalExpressionType(func.Return, rettype)
 }
 
 
-FunctionSignatureHasLiterals : FunctionParams ref params -> boolean hasliterals = FunctionSignatureHasLiterals(params.Params) [nogc]
+FunctionSignatureHasLiterals : FunctionParams ref params -> boolean hasliterals = FunctionSignatureHasLiterals(params.Params)
 
-FunctionSignatureHasLiterals : list<UnresolvedParameter> ref params -> boolean hasliterals = false [nogc]
+FunctionSignatureHasLiterals : list<UnresolvedParameter> ref params -> boolean hasliterals = false
 {
 	integer exprtype = GetOptionalExpressionType(params.value.PatternMatchValue)
 	if((exprtype != 0) && (exprtype != 0x00000002))
@@ -603,7 +603,7 @@ FunctionSignatureHasLiterals : list<UnresolvedParameter> ref params -> boolean h
 	}
 }
 
-FunctionSignatureHasLiterals : nothing -> false [nogc]
+FunctionSignatureHasLiterals : nothing -> false
 
 
 
@@ -641,7 +641,7 @@ FlagFunctionAsExternal : integer functionname
 
 
 
-CountTagParams : list<string> ref params -> integer count = 0 [nogc]
+CountTagParams : list<string> ref params -> integer count = 0
 {
 	count = CountTagParams(params.next)
 	if(params.value != "")
@@ -650,5 +650,5 @@ CountTagParams : list<string> ref params -> integer count = 0 [nogc]
 	}
 }
 
-CountTagParams : nothing -> integer count = 0 [nogc]
+CountTagParams : nothing -> integer count = 0
 

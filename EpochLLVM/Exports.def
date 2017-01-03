@@ -55,12 +55,15 @@ EXPORTS
 	EpochLLVMCodeCreateWriteParam
 	EpochLLVMCodeCreateWriteStructure
 	EpochLLVMCodeCreateWriteStructurePop
+	EpochLLVMCodeCreateWriteStructurePopSumType
 
 	EpochLLVMCodeCreateDereference
 
 	EpochLLVMCodeOperatorBooleanNot
 	EpochLLVMCodeOperatorIntegerEquals
 	EpochLLVMCodeOperatorIntegerNotEquals
+	EpochLLVMCodeOperatorIntegerGreaterThan
+	EpochLLVMCodeOperatorIntegerLessThan
 	EpochLLVMCodeOperatorIntegerPlus
 	EpochLLVMCodeOperatorIntegerMinus
 	EpochLLVMCodeOperatorIntegerDivide
@@ -77,6 +80,7 @@ EXPORTS
 	EpochLLVMCodePushString
 	EpochLLVMCodePushFunction
 	EpochLLVMCodePushExtractedStructValue
+	EpochLLVMCodePushNothing
 
 	EpochLLVMCodePopValue
 

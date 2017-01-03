@@ -51,7 +51,7 @@ structure Trie :
 // May allocate up to n nodes to store the appropriate data within
 // the trie itself.
 //
-PlaceDataInTrie : Trie ref trie, string data, integer handle [nogc]
+PlaceDataInTrie : Trie ref trie, string data, integer handle
 {
 	integer datalen = length(data)
 	if(datalen == 0)
@@ -63,7 +63,7 @@ PlaceDataInTrie : Trie ref trie, string data, integer handle [nogc]
 	PlaceDataInTrieChild(trie.Children, trie, subchar(data, 0), data, 1, datalen, handle)
 }
 
-PlaceDataInTrieRecurse : Trie ref trie, string data, integer offset, integer datalen, integer handle [nogc]
+PlaceDataInTrieRecurse : Trie ref trie, string data, integer offset, integer datalen, integer handle
 {
 	if(datalen == offset)
 	{
@@ -74,7 +74,7 @@ PlaceDataInTrieRecurse : Trie ref trie, string data, integer offset, integer dat
 	PlaceDataInTrieChild(trie.Children, trie, subchar(data, offset), data, offset + 1, datalen, handle)
 }
 
-PlaceDataInTrieChild : list<Trie> ref children, Trie ref originaltrie, integer character, string alldata, integer offset, integer datalen, integer handle [nogc]
+PlaceDataInTrieChild : list<Trie> ref children, Trie ref originaltrie, integer character, string alldata, integer offset, integer datalen, integer handle
 {
 	if(children.value.Character == character)
 	{
@@ -86,7 +86,7 @@ PlaceDataInTrieChild : list<Trie> ref children, Trie ref originaltrie, integer c
 	}
 }
 
-PlaceDataInTrieChild : nothing, Trie ref originaltrie, integer character, string alldata, integer offset, integer datalen, integer handle [nogc]
+PlaceDataInTrieChild : nothing, Trie ref originaltrie, integer character, string alldata, integer offset, integer datalen, integer handle
 {
 	Trie newtrie = character, nothing, 0
 	PlaceDataInTrieRecurse(newtrie, alldata, offset, datalen, handle)
@@ -102,7 +102,7 @@ PlaceDataInTrieChild : nothing, Trie ref originaltrie, integer character, string
 // Expected to run in O(n) time for n characters in the key.
 // Must not allocate memory.
 //
-FindHandleInTrie : Trie ref trie, string data -> integer handle = 0 [nogc]
+FindHandleInTrie : Trie ref trie, string data -> integer handle = 0
 {
 	if(length(data) == 0)
 	{
@@ -113,7 +113,7 @@ FindHandleInTrie : Trie ref trie, string data -> integer handle = 0 [nogc]
 	handle = FindHandleInTrieChildren(trie.Children, subchar(data, 0), data, 1, length(data))
 }
 
-FindHandleInTrieChildren : list<Trie> ref triechildren, integer character, string alldata, integer offset, integer datalength -> integer handle = 0 [nogc]
+FindHandleInTrieChildren : list<Trie> ref triechildren, integer character, string alldata, integer offset, integer datalength -> integer handle = 0
 {
 	if(triechildren.value.Character == character)
 	{
@@ -130,6 +130,6 @@ FindHandleInTrieChildren : list<Trie> ref triechildren, integer character, strin
 	handle = FindHandleInTrieChildren(triechildren.next, character, alldata, offset, datalength)
 }
 
-FindHandleInTrieChildren : nothing, integer character, string alldata, integer offset, integer datalength -> integer handle = 0 [nogc]
+FindHandleInTrieChildren : nothing, integer character, string alldata, integer offset, integer datalength -> integer handle = 0
 
 

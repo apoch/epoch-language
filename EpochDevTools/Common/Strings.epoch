@@ -86,14 +86,14 @@ ReadFile : string filename, integer ref len -> string contents = ""
 
 
 // TODO - replace with better option
-charat : string in, integer index -> string c = substring(in, index, 1) [nogc]
+charat : string in, integer index -> string c = substring(in, index, 1)
 
 
 
 QuoteString : string in -> string out = unescape("\'") ; in ; unescape("\'")
 
 
-stringcontains : string haystack, string needle -> boolean contains = false [nogc]
+stringcontains : string haystack, string needle -> boolean contains = false
 {
 	integer needlelen = length(needle)
 	integer haystacklen = length(haystack)

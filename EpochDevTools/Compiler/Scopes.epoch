@@ -41,7 +41,7 @@ FindVariableType : integer varname -> integer rettype = 0
 	}
 }
 
-FindVariableDataInSingleScope : Scope ref scope, integer varname, Variable ref outvar -> boolean found = false [nogc]
+FindVariableDataInSingleScope : Scope ref scope, integer varname, Variable ref outvar -> boolean found = false
 {
 	found = FindVariableDataInSingleScope(scope.Variables, varname, outvar)
 	if(!found)
@@ -53,7 +53,7 @@ FindVariableDataInSingleScope : Scope ref scope, integer varname, Variable ref o
 	}
 }
 
-FindVariableDataInSingleScope : list<Variable> ref vars, integer varname, Variable ref outvar -> boolean found = false [nogc]
+FindVariableDataInSingleScope : list<Variable> ref vars, integer varname, Variable ref outvar -> boolean found = false
 {
 	if(vars.value.Name == varname)
 	{
@@ -65,10 +65,10 @@ FindVariableDataInSingleScope : list<Variable> ref vars, integer varname, Variab
 	found = FindVariableDataInSingleScope(vars.next, varname, outvar)
 }
 
-FindVariableDataInSingleScope : nothing, integer varname, Variable ref outvar -> boolean found = false [nogc]
+FindVariableDataInSingleScope : nothing, integer varname, Variable ref outvar -> boolean found = false
 
 
-GetVariableTypeFromScope : Scope ref scope, integer varname -> integer vartype = 0 [nogc]
+GetVariableTypeFromScope : Scope ref scope, integer varname -> integer vartype = 0
 {
 	vartype = GetVariableTypeFromScope(scope.Variables, varname)
 	if(vartype == 0)
@@ -80,7 +80,7 @@ GetVariableTypeFromScope : Scope ref scope, integer varname -> integer vartype =
 	}
 }
 
-GetVariableTypeFromScope : list<Variable> ref vars, integer varname -> integer vartype = 0 [nogc]
+GetVariableTypeFromScope : list<Variable> ref vars, integer varname -> integer vartype = 0
 {
 	if(vars.value.Name == varname)
 	{
@@ -92,7 +92,7 @@ GetVariableTypeFromScope : list<Variable> ref vars, integer varname -> integer v
 	}
 }
 
-GetVariableTypeFromScope : nothing, integer varname -> 0 [nogc]
+GetVariableTypeFromScope : nothing, integer varname -> 0
 
 
 
@@ -117,7 +117,7 @@ ConstructVariableFromStatement : Statement ref statement, Scope ref scope, integ
 
 
 
-CacheGlobalCodeBlock : [nogc]
+CacheGlobalCodeBlock :
 {
 	ContextNode<Scope> wrap = nothing
 	boolean success = SearchBinaryTreeForPayload<Scope>(GlobalRootNamespace.Scopes.RootNode, GlobalCodeBlockName, wrap)

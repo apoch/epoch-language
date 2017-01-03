@@ -95,3 +95,5 @@ timeGetTime : -> integer ms = 0 [external("WinMM.dll", "timeGetTime", "stdcall")
 ExitProcess : integer value [external("Kernel32.dll", "ExitProcess", "stdcall")]
 
 
+MessageBox : integer hwnd, string message, string title, integer style -> integer ret = 0 [external("User32.dll", "MessageBoxW", "stdcall")]
+

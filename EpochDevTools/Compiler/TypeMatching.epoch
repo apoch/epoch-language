@@ -1,6 +1,6 @@
 
 
-TypeMatcherExists : list<TypeMatcher> ref matchers, integer matchername -> boolean ret = false [nogc]
+TypeMatcherExists : list<TypeMatcher> ref matchers, integer matchername -> boolean ret = false
 {
 	if(matchers.value.Name == matchername)
 	{
@@ -12,10 +12,10 @@ TypeMatcherExists : list<TypeMatcher> ref matchers, integer matchername -> boole
 	}
 }
 
-TypeMatcherExists : nothing, integer matchername -> boolean ret = false [nogc]
+TypeMatcherExists : nothing, integer matchername -> boolean ret = false
 
 
-GetExistingTypeMatcher : list<TypeMatcher> ref matchers, integer matchername, ContextNode<TypeMatcher> ref out -> boolean ret = false [nogc]
+GetExistingTypeMatcher : list<TypeMatcher> ref matchers, integer matchername, ContextNode<TypeMatcher> ref out -> boolean ret = false
 {
 	if(matchers.value.Name == matchername)
 	{
@@ -29,7 +29,7 @@ GetExistingTypeMatcher : list<TypeMatcher> ref matchers, integer matchername, Co
 	}
 }
 
-GetExistingTypeMatcher : nothing, integer matchername, ContextNode<TypeMatcher> ref out -> boolean ret = false [nogc]
+GetExistingTypeMatcher : nothing, integer matchername, ContextNode<TypeMatcher> ref out -> boolean ret = false
 
 
 
@@ -48,7 +48,7 @@ FindTMOverloadAndAppendParameter : list<FunctionSignature> ref originallist, lis
 FindTMOverloadAndAppendParameter : list<FunctionSignature> ref originallist, nothing, integer overloadname, Parameter ref p
 {
 	list<Parameter> paramlist = p, nothing
-	FunctionSignature sig = overloadname, paramlist, 0, true
+	FunctionSignature sig = overloadname, paramlist, originallist.value.ReturnTypeName, true
 	prepend<FunctionSignature>(originallist, sig)
 }
 
@@ -110,8 +110,8 @@ WalkParametersForTypeMatcherUnwrapped : nothing, TypeMatcher ref matcher, intege
 
 
 
-ContextHasTypeMatcher : PendingTypeMatcher ref matcher -> true [nogc]
-ContextHasTypeMatcher : nothing -> false [nogc]
+ContextHasTypeMatcher : PendingTypeMatcher ref matcher -> true
+ContextHasTypeMatcher : nothing -> false
 
 
 AnnotateTypeMatchedParamsForWrapper : FunctionDefinition ref func, OptionalExpressionList ref exprs
@@ -210,7 +210,7 @@ FindOrCreateTypeMatcher : integer rawname, integer overloadnamehandle, FunctionD
 	}
 }
 
-EnsureMatcherIsPending : integer overloadname, integer matcher, FunctionDefinition ref func [nogc]
+EnsureMatcherIsPending : integer overloadname, integer matcher, FunctionDefinition ref func
 {
 	boolean found = SearchBinaryTree<PendingTypeMatcher>(TypeMatchersWhichExist, overloadname)
 	if(found)
@@ -311,3 +311,120 @@ AnnotateTypeMatchedParams : list<UnresolvedParameter> ref params, list<Expressio
 AnnotateTypeMatchedParams : nothing, nothing
 
 
+StashArgumentTypesForTypeMatcher : integer matchername, simplelist<integer> ref argtypes
+{
+	ContextNode<CallSiteMetadata> wrap = nothing
+	boolean found = SearchBinaryTreeForPayload<CallSiteMetadata>(TypeMatcherCallSiteMetadata.RootNode, matchername, wrap)
+	if(found)
+	{
+		MergeArgumentTypeMetadata(wrap, argtypes)
+	}
+	else
+	{
+		simplelist<integer> emptyargtype = 0, nothing
+		ArgumentMetadata arg = emptyargtype
+		list<ArgumentMetadata> argtypesets = arg, nothing
+		CallSiteMetadata metadata = argtypesets
+		MergeArgumentTypeMetadata(metadata, argtypes)
+		BinaryTreeCreateOrInsert<CallSiteMetadata>(TypeMatcherCallSiteMetadata, matchername, metadata)
+	}
+}
+
+
+TypeMatcherNeedsSumTypeForParamIndex : integer matchername, integer paramindex -> boolean ret = false
+{
+	ContextNode<CallSiteMetadata> wrap = nothing
+	boolean found = SearchBinaryTreeForPayload<CallSiteMetadata>(TypeMatcherCallSiteMetadata.RootNode, matchername, wrap)
+	assertmsg(found, "Missing type dispatcher!")
+	if(found)
+	{
+		ret = TypeMatcherNeedsSumTypeForParamIndex(wrap, paramindex)
+	}
+}
+
+
+TypeMatcherNeedsSumTypeForParamIndex : CallSiteMetadata ref metadata, integer paramindex -> boolean ret = TypeMatcherNeedsSumTypeForParamIndex(metadata.ArgTypeSets, paramindex)
+
+TypeMatcherNeedsSumTypeForParamIndex : list<ArgumentMetadata> ref metadata, integer paramindex -> boolean ret = false
+{
+	if(paramindex == 0)
+	{
+		ret = AreAnyTypesSumTypes(metadata.value.ArgTypes)
+	}
+	else
+	{
+		ret = TypeMatcherNeedsSumTypeForParamIndex(metadata.next, paramindex - 1)
+	}
+}
+
+
+
+
+TypeMatcherGetSumTypeForParamIndex : integer matchername, integer paramindex -> integer typesignature = 0
+{
+	ContextNode<CallSiteMetadata> wrap = nothing
+	boolean found = SearchBinaryTreeForPayload<CallSiteMetadata>(TypeMatcherCallSiteMetadata.RootNode, matchername, wrap)
+	assertmsg(found, "Missing type dispatcher!")
+	if(found)
+	{
+		typesignature = TypeMatcherGetSumTypeForParamIndex(wrap, paramindex)
+	}
+}
+
+
+TypeMatcherGetSumTypeForParamIndex : CallSiteMetadata ref metadata, integer paramindex -> integer typesignature = TypeMatcherGetSumTypeForParamIndex(metadata.ArgTypeSets, paramindex)
+
+TypeMatcherGetSumTypeForParamIndex : list<ArgumentMetadata> ref metadata, integer paramindex -> integer typesignature = 0
+{
+	if(paramindex == 0)
+	{
+		if(CountSumTypes(metadata.value.ArgTypes) == 1)
+		{
+			typesignature = FindFirstSumTypeInList(metadata.value.ArgTypes)
+		}
+	}
+	else
+	{
+		typesignature = TypeMatcherGetSumTypeForParamIndex(metadata.next, paramindex - 1)
+	}
+}
+
+
+
+MergeArgumentTypeMetadata : CallSiteMetadata ref metadata, simplelist<integer> ref argtypes
+{
+	while(CountTypeSets(metadata.ArgTypeSets) < countnonzero(argtypes))
+	{
+		simplelist<integer> emptyargtype = 0, nothing
+		ArgumentMetadata arg = emptyargtype
+		append<ArgumentMetadata>(metadata.ArgTypeSets, arg)
+	}
+
+	MergeArgumentTypes(metadata.ArgTypeSets, argtypes)
+}
+
+
+MergeArgumentTypes : list<ArgumentMetadata> ref argtypesets, simplelist<integer> ref additions
+{
+	if(additions.value != 0)
+	{
+		integer addition = additions.value
+		if(!listcontains(argtypesets.value.ArgTypes, addition))
+		{
+			simpleprepend<integer>(argtypesets.value.ArgTypes, addition)
+		}
+	}
+
+	MergeArgumentTypes(argtypesets.next, additions.next)
+}
+
+MergeArgumentTypes : nothing, simplelist<integer> ref tail
+{
+	assertmsg(tail.value == 0, "Mismatched parameter/argument count in type dispatcher")
+}
+
+MergeArgumentTypes : nothing, nothing
+
+
+CountTypeSets : list<ArgumentMetadata> ref args -> integer ret = 1 + CountTypeSets(args.next)
+CountTypeSets : nothing -> 0

@@ -14,7 +14,7 @@ GetPendingPatternMatcherReturnType : list<PendingPatternMatcher> ref pending, in
 GetPendingPatternMatcherReturnType : nothing, integer matchername -> integer typeid = GetBuiltInReturnType(matchername)
 
 
-CheckForNeededPatternMatcher : list<PendingPatternMatcher> ref patternmatchers, integer rawname -> integer matchername = 0 [nogc]
+CheckForNeededPatternMatcher : list<PendingPatternMatcher> ref patternmatchers, integer rawname -> integer matchername = 0
 {
 	if(patternmatchers.value.RawName == rawname)
 	{
@@ -26,7 +26,7 @@ CheckForNeededPatternMatcher : list<PendingPatternMatcher> ref patternmatchers, 
 	}
 }
 
-CheckForNeededPatternMatcher : nothing, integer rawname -> 0 [nogc]
+CheckForNeededPatternMatcher : nothing, integer rawname -> 0
 
 
 EnsurePatternMatcherExists : list<PendingPatternMatcher> ref patternmatchers, integer rawname, integer mangledname

@@ -95,10 +95,13 @@ namespace CodeGen
 		void CodeCreateWriteParam(unsigned index);
 		void CodeCreateWriteStructure(llvm::Value* gep);
 		void CodeCreateWriteStructurePop();
+		void CodeCreateWriteStructurePopSumType();
 
 		void CodeCreateOperatorBooleanNot();
 		void CodeCreateOperatorIntegerEquals();
 		void CodeCreateOperatorIntegerNotEquals();
+		void CodeCreateOperatorIntegerGreaterThan();
+		void CodeCreateOperatorIntegerLessThan();
 		void CodeCreateOperatorIntegerPlus();
 		void CodeCreateOperatorIntegerMinus();
 		void CodeCreateOperatorIntegerDivide();
@@ -115,6 +118,7 @@ namespace CodeGen
 		void CodePushString(unsigned handle);
 		void CodePushFunction(llvm::Function* func);
 		void CodePushExtractedStructValue(unsigned memberindex);
+		void CodePushNothing();
 
 		llvm::Value* CodePopValue();
 

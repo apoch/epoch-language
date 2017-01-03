@@ -54,19 +54,19 @@ Parse : string filename, string code, integer len, (printer : string) -> boolean
 }
 
 
-PushToken : string token, string filename, integer row, integer column [nogc]
+PushToken : string token, string filename, integer row, integer column
 {
 	ParsedToken pt = token, filename, row, column
 	quick_append(TokenStreamTail.tail, pt)
 }
 
 
-PopToken : [nogc]
+PopToken :
 {
 	PopTokenFromStream(TokenStream, TokenStream.next)
 }
 
-PopTokens : integer count [nogc]
+PopTokens : integer count
 {
 	while(count > 0)
 	{
@@ -75,20 +75,20 @@ PopTokens : integer count [nogc]
 	}
 }
 
-PopTokenFromStream : list<ParsedToken> ref tokens, list<ParsedToken> ref tail [nogc]
+PopTokenFromStream : list<ParsedToken> ref tokens, list<ParsedToken> ref tail
 {
 	tokens = tail
 }
 
-PopTokenFromStream : list<ParsedToken> ref tokens, nothing [nogc]
+PopTokenFromStream : list<ParsedToken> ref tokens, nothing
 {
 	tokens.value = DummyParsedToken
 }
 
 
-PeekToken : integer displacement -> string token = PeekTokenInStream(TokenStream, displacement) [nogc]
+PeekToken : integer displacement -> string token = PeekTokenInStream(TokenStream, displacement)
 
-PeekTokenInStream : list<ParsedToken> ref tokens, integer displacement -> string token = tokens.value.Token [nogc]
+PeekTokenInStream : list<ParsedToken> ref tokens, integer displacement -> string token = tokens.value.Token
 {
 	if(displacement > 0)
 	{
@@ -96,22 +96,22 @@ PeekTokenInStream : list<ParsedToken> ref tokens, integer displacement -> string
 	}
 }
 
-PeekTokenInStream : nothing, integer displacement -> "" [nogc]
+PeekTokenInStream : nothing, integer displacement -> ""
 
 
-PeekParsedToken : integer displacement -> ParsedToken ret = PeekParsedTokenInStream(TokenStream, displacement) [nogc]
-PeekParsedTokenInStream : list<ParsedToken> ref tokens, integer displacement -> ParsedToken token = tokens.value [nogc]
+PeekParsedToken : integer displacement -> ParsedToken ret = PeekParsedTokenInStream(TokenStream, displacement)
+PeekParsedTokenInStream : list<ParsedToken> ref tokens, integer displacement -> ParsedToken token = tokens.value
 {
 	if(displacement > 0)
 	{
 		token = PeekParsedTokenInStream(tokens.next, displacement - 1)
 	}
 }
-PeekParsedTokenInStream : nothing, integer displacement -> DummyParsedToken [nogc]
+PeekParsedTokenInStream : nothing, integer displacement -> DummyParsedToken
 
 
 
-PeekWithExpectation : integer displacement, string expected -> boolean found = false [nogc]
+PeekWithExpectation : integer displacement, string expected -> boolean found = false
 {
 	string token = PeekToken(displacement)
 	if(token == expected)
@@ -1644,14 +1644,14 @@ HandleLiteralFunctionParam : string token -> boolean isliteral = false
 
 
 
-quick_append : list<ParsedToken> ref tailnode, ParsedToken ref token [nogc]
+quick_append : list<ParsedToken> ref tailnode, ParsedToken ref token
 {
 	list<ParsedToken> newlist = token, nothing
 	tailnode.next = newlist
 	TokenStreamTail.tail = newlist
 }
 
-quick_append : nothing, ParsedToken ref token [nogc]
+quick_append : nothing, ParsedToken ref token
 {
 	assertmsg(false, "quick_append failure")
 }

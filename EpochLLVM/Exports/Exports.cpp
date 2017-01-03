@@ -243,6 +243,11 @@ extern "C" void EpochLLVMCodeCreateWriteStructurePop(void* context)
 	reinterpret_cast<CodeGen::Context*>(context)->CodeCreateWriteStructurePop();
 }
 
+extern "C" void EpochLLVMCodeCreateWriteStructurePopSumType(void* context)
+{
+	reinterpret_cast<CodeGen::Context*>(context)->CodeCreateWriteStructurePopSumType();
+}
+
 
 extern "C" void EpochLLVMCodeCreateDereference(void* context)
 {
@@ -263,6 +268,16 @@ extern "C" void EpochLLVMCodeOperatorIntegerEquals(void* context)
 extern "C" void EpochLLVMCodeOperatorIntegerNotEquals(void* context)
 {
 	reinterpret_cast<CodeGen::Context*>(context)->CodeCreateOperatorIntegerNotEquals();
+}
+
+extern "C" void EpochLLVMCodeOperatorIntegerGreaterThan(void* context)
+{
+	reinterpret_cast<CodeGen::Context*>(context)->CodeCreateOperatorIntegerGreaterThan();
+}
+
+extern "C" void EpochLLVMCodeOperatorIntegerLessThan(void* context)
+{
+	reinterpret_cast<CodeGen::Context*>(context)->CodeCreateOperatorIntegerLessThan();
 }
 
 extern "C" void EpochLLVMCodeOperatorIntegerPlus(void* context)
@@ -340,6 +355,11 @@ extern "C" void EpochLLVMCodePushFunction(void* context, void* func)
 extern "C" void EpochLLVMCodePushExtractedStructValue(void* context, unsigned memberindex)
 {
 	reinterpret_cast<CodeGen::Context*>(context)->CodePushExtractedStructValue(memberindex);
+}
+
+extern "C" void EpochLLVMCodePushNothing(void* context)
+{
+	reinterpret_cast<CodeGen::Context*>(context)->CodePushNothing();
 }
 
 

@@ -14,7 +14,6 @@
 ExecuteByteCodeBuffer : buffer ref code, integer len [external("EpochRuntime.dll", "ExecuteByteCodeDeferred", "stdcall")]
 
 
-
 //
 // Compiler entry point
 //

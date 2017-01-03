@@ -26,7 +26,8 @@ type LLVMGEP : integer
 structure LLVMBuildContext :
 	LLVMContextHandle          Context,
 	LLVMFunctionRef            EmittingFunction,
-	BinaryTreeRoot<LLVMAlloca> LocalVariables
+	BinaryTreeRoot<LLVMAlloca> LocalVariables,
+	LLVMBasicBlock			   ExitBlock
 
 
 
@@ -112,6 +113,7 @@ EpochLLVMCodeCreateWrite : LLVMContextHandle handle, LLVMAlloca alloca										
 EpochLLVMCodeCreateWriteParam : LLVMContextHandle handle, integer index												[external("EpochLLVM.dll", "EpochLLVMCodeCreateWriteParam")]
 EpochLLVMCodeCreateWriteStructure : LLVMContextHandle handle, LLVMGEP gep											[external("EpochLLVM.dll", "EpochLLVMCodeCreateWriteStructure")]
 EpochLLVMCodeCreateWriteStructurePop : LLVMContextHandle handle														[external("EpochLLVM.dll", "EpochLLVMCodeCreateWriteStructurePop")]
+EpochLLVMCodeCreateWriteStructurePopSumType : LLVMContextHandle handle												[external("EpochLLVM.dll", "EpochLLVMCodeCreateWriteStructurePopSumType")]
 
 EpochLLVMCodeCreateDereference : LLVMContextHandle handle															[external("EpochLLVM.dll", "EpochLLVMCodeCreateDereference")]
 
@@ -120,6 +122,8 @@ EpochLLVMCodeStatementFinalize : LLVMContextHandle handle															[externa
 EpochLLVMCodeOperatorBooleanNot : LLVMContextHandle context															[external("EpochLLVM.dll", "EpochLLVMCodeOperatorBooleanNot")]
 EpochLLVMCodeOperatorIntegerEquals : LLVMContextHandle context														[external("EpochLLVM.dll", "EpochLLVMCodeOperatorIntegerEquals")]
 EpochLLVMCodeOperatorIntegerNotEquals : LLVMContextHandle context													[external("EpochLLVM.dll", "EpochLLVMCodeOperatorIntegerNotEquals")]
+EpochLLVMCodeOperatorIntegerGreaterThan : LLVMContextHandle context													[external("EpochLLVM.dll", "EpochLLVMCodeOperatorIntegerGreaterThan")]
+EpochLLVMCodeOperatorIntegerLessThan : LLVMContextHandle context													[external("EpochLLVM.dll", "EpochLLVMCodeOperatorIntegerLessThan")]
 EpochLLVMCodeOperatorIntegerPlus : LLVMContextHandle context														[external("EpochLLVM.dll", "EpochLLVMCodeOperatorIntegerPlus")]
 EpochLLVMCodeOperatorIntegerMinus : LLVMContextHandle context														[external("EpochLLVM.dll", "EpochLLVMCodeOperatorIntegerMinus")]
 EpochLLVMCodeOperatorIntegerMultiply : LLVMContextHandle context													[external("EpochLLVM.dll", "EpochLLVMCodeOperatorIntegerMultiply")]
@@ -136,8 +140,10 @@ EpochLLVMCodePushRawGEP : LLVMContextHandle context, LLVMGEP gep													[ex
 EpochLLVMCodePushString : LLVMContextHandle context, integer handle													[external("EpochLLVM.dll", "EpochLLVMCodePushString")]
 EpochLLVMCodePushFunction : LLVMContextHandle context, LLVMFunctionRef func											[external("EpochLLVM.dll", "EpochLLVMCodePushFunction")]
 EpochLLVMCodePushExtractedStructValue : LLVMContextHandle context, integer fieldindex								[external("EpochLLVM.dll", "EpochLLVMCodePushExtractedStructValue")]
+EpochLLVMCodePushNothing : LLVMContextHandle context																[external("EpochLLVM.dll", "EpochLLVMCodePushNothing")]
 
 EpochLLVMCodePopValue : LLVMContextHandle context -> integer magic = 0												[external("EpochLLVM.dll", "EpochLLVMCodePopValue")]
+EpochLLVMCodePopGEP : LLVMContextHandle context -> LLVMGEP gep = 0													[external("EpochLLVM.dll", "EpochLLVMCodePopValue")]
 
 EpochLLVMSectionGetPDataSize : LLVMContextHandle context -> integer size = 0										[external("EpochLLVM.dll", "EpochLLVMSectionGetPDataSize")]
 EpochLLVMSectionGetXDataSize : LLVMContextHandle context -> integer size = 0										[external("EpochLLVM.dll", "EpochLLVMSectionGetXDataSize")]
@@ -296,7 +302,7 @@ CreateFunctionParamTypesInLLVM : LLVMContextHandle context, list<Parameter> ref 
 }
 
 
-GetLLVMTypeForEpochType : LLVMContextHandle context, Expression expr -> LLVMType t = 0
+GetLLVMTypeForEpochType : LLVMContextHandle context, Expression ref expr -> LLVMType t = 0
 {
 	assertmsg(expr.Type != 0, "Invalid expression type")
 	t = GetLLVMTypeForEpochType(context, expr.Type)
@@ -354,11 +360,11 @@ GetLLVMTypeForEpochType : LLVMContextHandle context, integer typeid -> LLVMType 
 	}
 	elseif(IsSumType(typeid))
 	{
-		boolean found = BinaryTreeCopyPayload<LLVMType>(LLVMSumTypeTable.RootNode, typeid, t)
+		boolean found = BinaryTreeCopyPayload<LLVMType>(LLVMSumTypeTable.RootNode, 0x07000001, t)		// TODO - use real sum type signatures!!
 		if(!found)
 		{
-			t = EpochLLVMSumTypeCreate(context, GetPooledString(GetNameOfType(typeid)), GetTypeSize(typeid))
-			BinaryTreeCreateOrInsert<LLVMType>(LLVMSumTypeTable, typeid, t)
+			t = EpochLLVMSumTypeCreate(context, GetPooledString(GetNameOfType(typeid)), 8) //GetTypeSize(typeid))			// TODO - proper sum type payload sizes
+			BinaryTreeCreateOrInsert<LLVMType>(LLVMSumTypeTable, 0x07000001, t)
 		}
 	}
 	elseif(IsArrayType(typeid))
@@ -511,10 +517,11 @@ EmitSingleFunctionToLLVM : LLVMContextHandle context, FunctionDefinition ref fun
 	BinaryTreeCopyPayload<LLVMFunctionRef>(LLVMFunctionTable.RootNode, func.Name, llvmfunc)
 
 	LLVMBasicBlock funcbody = EpochLLVMCodeCreateBasicBlock(context, llvmfunc, true)
+	LLVMBasicBlock exitblock = EpochLLVMCodeCreateBasicBlock(context, llvmfunc, false)
 	
 
 	BinaryTreeRoot<LLVMAlloca> vartree = nothing
-	LLVMBuildContext build = context, llvmfunc, vartree
+	LLVMBuildContext build = context, llvmfunc, vartree, exitblock
 	CreateLLVMAllocasForScope(build, func.AttachedScope.Wrapped, func)
 	
 	FindScopeAndSetContext(func)
@@ -537,6 +544,8 @@ EmitSingleFunctionToLLVM : LLVMContextHandle context, FunctionDefinition ref fun
 		EpochLLVMCodeCreateRead(context, alloca)
 		EpochLLVMCodeCreateWriteParam(context, 0)
 	}
+
+	EpochLLVMCodeCreateBranch(context, exitblock, true)
 	
 	if(func.AnonymousReturn)
 	{
@@ -672,14 +681,26 @@ EmitAssignmentRHSToLLVM : LLVMBuildContext ref context, Expression ref expr
 
 EmitSingleCodeBlockEntryToLLVM : LLVMBuildContext ref context, Assignment ref entry
 {
-	assertmsg(entry.Operator == PooledStringHandleForAssignment, "Unsupported assignment operator")
-	
-	EmitAssignmentRHSToLLVM(context, entry.RHS)
-		
 	LLVMAlloca alloca = 0
 	BinaryTreeCopyPayload<LLVMAlloca>(context.LocalVariables.RootNode, entry.LHSName, alloca)
 
-	EpochLLVMCodeCreateWrite(context.Context, alloca)
+	EmitAssignmentRHSToLLVM(context, entry.RHS)
+
+	
+	if(entry.Operator == PooledStringHandleForAssignment)
+	{
+		EpochLLVMCodeCreateWrite(context.Context, alloca)
+	}
+	elseif(entry.Operator == PooledStringHandleForIncrementAssignInteger)
+	{
+		EpochLLVMCodeCreateRead(context.Context, alloca)
+		EpochLLVMCodeOperatorIntegerPlus(context.Context)
+		EpochLLVMCodeCreateWrite(context.Context, alloca)
+	}
+	else
+	{
+		assertmsg(false, "Unsupported assignment operator")
+	}
 }
 
 EmitSingleCodeBlockEntryToLLVM : LLVMBuildContext ref context, AssignmentArrayIndex ref entry
@@ -719,7 +740,23 @@ EmitSingleCodeBlockEntryToLLVM : LLVMBuildContext ref context, AssignmentCompoun
 
 	EmitAssignmentLHSGEPsToLLVM(context, entry.LHS.next, structurename)
 	
-	EpochLLVMCodeCreateWriteStructurePop(context.Context)
+	if(IsSumType(entry.LHSType))
+	{
+		integer rhstype = GetAssignmentRHSType(entry.RHS)
+		if(entry.LHSType == rhstype)
+		{
+			EpochLLVMCodeCreateWriteStructurePop(context.Context)
+		}
+		else
+		{
+			EpochLLVMCodePushInteger(context.Context, rhstype)
+			EpochLLVMCodeCreateWriteStructurePopSumType(context.Context)
+		}
+	}
+	else
+	{
+		EpochLLVMCodeCreateWriteStructurePop(context.Context)
+	}
 }
 
 
@@ -729,18 +766,25 @@ EmitSingleCodeBlockEntryToLLVM : LLVMBuildContext ref context, Statement ref ent
 	{
 		if(GetTypeByName(entry.Name) == 0)
 		{
-			if(entry.Name == PooledStringHandleForCastIntegerToString)
+			if(entry.Name == PooledStringHandleForReturn)
 			{
-				EmitPartialExpressionListToLLVM(context, entry.Parameters)
+				EpochLLVMCodeCreateBranch(context.Context, context.ExitBlock, false)
 			}
 			else
 			{
-				EmitExpressionListToLLVM(context, entry.Parameters)
-			}
+				if(entry.Name == PooledStringHandleForCastIntegerToString)
+				{
+					EmitPartialExpressionListToLLVM(context, entry.Parameters)
+				}
+				else
+				{
+					EmitExpressionListToLLVM(context, entry.Parameters)
+				}
 			
-			integer thunk = 0
-			BinaryTreeCopyPayload<integer>(LLVMGlobalThunks.RootNode, entry.Name, thunk)
-			EpochLLVMCodeCreateCallThunk(context.Context, thunk)
+				integer thunk = 0
+				BinaryTreeCopyPayload<integer>(LLVMGlobalThunks.RootNode, entry.Name, thunk)
+				EpochLLVMCodeCreateCallThunk(context.Context, thunk)
+			}
 		}
 		else
 		{
@@ -1002,7 +1046,7 @@ EmitSingleAtomToLLVM : LLVMBuildContext ref context, IdentifierAtom ref idatom
 
 	if(atomtype == 0x00000004)							// Nothing type signature
 	{
-		EpochLLVMCodePushInteger(context.Context, 0)
+		EpochLLVMCodePushNothing(context.Context)
 	}
 	else
 	{
@@ -1082,7 +1126,10 @@ EmitSingleAtomToLLVM : LLVMBuildContext ref context, IdentifierAtom ref idatom
 				
 				if(IsReferenceType(var.VarType))
 				{
-					EpochLLVMCodeCreateDereference(context.Context)
+					if(!IsSumType(var.VarType))
+					{
+						EpochLLVMCodeCreateDereference(context.Context)
+					}
 				}
 					
 					
@@ -1151,6 +1198,14 @@ EmitSingleAtomToLLVM : LLVMBuildContext ref context, OperatorInvokeAtom ref atom
 	elseif(atom.OperatorName == PooledStringHandleForDivideInteger)
 	{
 		EpochLLVMCodeOperatorIntegerDivide(context.Context)
+	}
+	elseif(atom.OperatorName == PooledStringHandleForGreaterThanInteger)
+	{
+		EpochLLVMCodeOperatorIntegerGreaterThan(context.Context)
+	}
+	elseif(atom.OperatorName == PooledStringHandleForLessThanInteger)
+	{
+		EpochLLVMCodeOperatorIntegerLessThan(context.Context)
 	}
 	elseif(atom.OperatorName == PooledStringHandleForEqualityString)
 	{
@@ -1639,7 +1694,8 @@ GeneratePendingTypeMatcherInLLVM : LLVMContextHandle context, PendingTypeMatcher
 	ContextNode<TypeMatcher> matchwrap = nothing
 	if(!GetExistingTypeMatcher(TypeMatchers, matcher.MatcherName, matchwrap))
 	{
-		list<FunctionSignature> dsl = dummysignature, nothing
+		FunctionSignature sig = 0, dummyparamlist, InferFunctionReturnType(matcher.OverloadImplementation), true
+		list<FunctionSignature> dsl = sig, nothing
 		TypeMatcher m = matcher.MatcherName, dsl
 		prepend<TypeMatcher>(TypeMatchers, m)
 
@@ -1662,9 +1718,14 @@ EmitAllTypeMatchersInLLVM : LLVMContextHandle context, list<TypeMatcher> ref mat
 
 		EpochLLVMFunctionTypePush(context)
 
+		integer rettypeid = matchers.value.Overloads.value.ReturnTypeName
 		LLVMType funcrettype = EpochLLVMTypeGetVoid(context)
-		
-		CreateTypeMatcherParamsInLLVM(context, matchers.value.Overloads, matchers.value.Overloads.value.Parameters, 0)
+		if(rettypeid != 0)
+		{
+			funcrettype = GetLLVMTypeForEpochType(context, rettypeid)
+		}
+
+		CreateTypeMatcherParamsInLLVM(context, matchers.value.Name)
 		
 		LLVMFunctionType functype = EpochLLVMFunctionTypeCreate(context, funcrettype)
 		LLVMFunctionRef llvmfunc = EpochLLVMFunctionCreate(context, funcname, functype)
@@ -1672,13 +1733,28 @@ EmitAllTypeMatchersInLLVM : LLVMContextHandle context, list<TypeMatcher> ref mat
 		BinaryTreeCreateOrInsert<LLVMFunctionRef>(LLVMFunctionTable, matchers.value.Name, llvmfunc)
 
 		EpochLLVMCodeCreateBasicBlock(context, llvmfunc, true)
+		LLVMAlloca retalloca = 0
+		
+		if(rettypeid != 0)
+		{
+			retalloca = EpochLLVMCodeCreateAlloca(context, funcrettype, "retval")
+		}
+
 		LLVMBasicBlock exitblock = EpochLLVMCodeCreateBasicBlock(context, llvmfunc, false)
 
-		EmitTypeMatcherOverloadsInLLVM(context, llvmfunc, exitblock, matchers.value.Overloads, matchers.value.Overloads)
+		EmitTypeMatcherOverloadsInLLVM(context, llvmfunc, exitblock, matchers.value.Overloads, matchers.value.Overloads, matchers.value.Name, retalloca)
 
-		// TODO - correct return types
 		EpochLLVMSetCurrentBasicBlock(context, exitblock)
-		EpochLLVMCodeCreateRetVoid(context)
+		if(rettypeid != 0)
+		{
+			EpochLLVMCodePushRawAlloca(context, retalloca)
+			EpochLLVMCodeCreateDereference(context)
+			EpochLLVMCodeCreateRet(context)
+		}
+		else
+		{
+			EpochLLVMCodeCreateRetVoid(context)
+		}
 	}
 
 	EmitAllTypeMatchersInLLVM(context, matchers.next)
@@ -1687,7 +1763,7 @@ EmitAllTypeMatchersInLLVM : LLVMContextHandle context, list<TypeMatcher> ref mat
 EmitAllTypeMatchersInLLVM : LLVMContextHandle context, nothing
 
 
-EmitTypeMatcherOverloadsInLLVM : LLVMContextHandle context, LLVMFunctionRef func, LLVMBasicBlock exitblock, list<FunctionSignature> ref signatures, list<FunctionSignature> ref alloverloads
+EmitTypeMatcherOverloadsInLLVM : LLVMContextHandle context, LLVMFunctionRef func, LLVMBasicBlock exitblock, list<FunctionSignature> ref signatures, list<FunctionSignature> ref alloverloads, integer matchername, LLVMAlloca retalloca
 {
 	if(signatures.value.Name != 0)
 	{
@@ -1697,25 +1773,26 @@ EmitTypeMatcherOverloadsInLLVM : LLVMContextHandle context, LLVMFunctionRef func
 		LLVMBasicBlock nextoverloadblock = EpochLLVMCodeCreateBasicBlock(context, func, false)
 
 		integer paramindex = 0
-		EmitTypeMatcherParamsInLLVM(context, alloverloads, signatures.value.Parameters, paramindex, func, overloadfunc, nextoverloadblock, signatures.value, exitblock)
+		EmitTypeMatcherParamsInLLVM(context, alloverloads, signatures.value.Parameters, paramindex, 0, func, overloadfunc, nextoverloadblock, signatures.value, exitblock, matchername, retalloca)
 	}
 
-	EmitTypeMatcherOverloadsInLLVM(context, func, exitblock, signatures.next, alloverloads)
+	EmitTypeMatcherOverloadsInLLVM(context, func, exitblock, signatures.next, alloverloads, matchername, retalloca)
 }
 
-EmitTypeMatcherOverloadsInLLVM : LLVMContextHandle context, LLVMFunctionRef func, LLVMBasicBlock exitblock, nothing, list<FunctionSignature> ref alloverloads
+EmitTypeMatcherOverloadsInLLVM : LLVMContextHandle context, LLVMFunctionRef func, LLVMBasicBlock exitblock, nothing, list<FunctionSignature> ref alloverloads, integer matchername, LLVMAlloca retalloca
 {
 	integer assertfunc = 0
 	BinaryTreeCopyPayload<integer>(LLVMGlobalThunks.RootNode, PooledStringHandleForAssert, assertfunc)
 
 	EpochLLVMCodePushBoolean(context, false)
 	EpochLLVMCodeCreateCallThunk(context, assertfunc)
+	EpochLLVMCodeStatementFinalize(context)
 
 	EpochLLVMCodeCreateBranch(context, exitblock, false)
 }
 
 
-EmitTypeMatcherParamsInLLVM : LLVMContextHandle context, list<FunctionSignature> ref overloads, list<Parameter> ref params, integer paramindex, LLVMFunctionRef func, LLVMFunctionRef overloadfunc, LLVMBasicBlock nextoverloadblock, FunctionSignature ref overloadsig, LLVMBasicBlock exitblock
+EmitTypeMatcherParamsInLLVM : LLVMContextHandle context, list<FunctionSignature> ref overloads, list<Parameter> ref params, integer paramindex, integer relevantparams, LLVMFunctionRef func, LLVMFunctionRef overloadfunc, LLVMBasicBlock nextoverloadblock, FunctionSignature ref overloadsig, LLVMBasicBlock exitblock, integer matchername, LLVMAlloca retalloca
 {
 	if(params.value.Name != 0)
 	{
@@ -1728,6 +1805,7 @@ EmitTypeMatcherParamsInLLVM : LLVMContextHandle context, list<FunctionSignature>
 		if(typecount == 1)
 		{
 			EpochLLVMCodeCreateBranch(context, nextparamblock, false)
+			++relevantparams
 		}
 		else
 		{
@@ -1738,69 +1816,100 @@ EmitTypeMatcherParamsInLLVM : LLVMContextHandle context, list<FunctionSignature>
 				paramtype = FindTypeAliasBase(paramtype)
 			}
 
-			if(refflag)
-			{
-				paramtype = MakeReferenceType(paramtype)
-			}
 
-			EpochLLVMCodeCreateReadParam(context, paramindex)
-			EpochLLVMCodePushExtractedStructValue(context, 0)
-			EpochLLVMCodePushInteger(context, paramtype)
-			EpochLLVMCodeOperatorIntegerEquals(context)
-			EpochLLVMCodeCreateCondBranch(context, EpochLLVMCodePopValue(context), nextparamblock, nextoverloadblock)
+			integer paramsumtype = TypeMatcherGetSumTypeForParamIndex(matchername, paramindex)
+			if(paramsumtype != 0)
+			{
+				if(SumTypeHasBase(paramsumtype, paramtype))
+				{
+					EpochLLVMCodeCreateReadParam(context, paramindex)
+					EpochLLVMCodePushExtractedStructValue(context, 0)
+					EpochLLVMCodePushInteger(context, paramtype)
+					EpochLLVMCodeOperatorIntegerEquals(context)
+					EpochLLVMCodeCreateCondBranch(context, EpochLLVMCodePopValue(context), nextparamblock, nextoverloadblock)
+					++relevantparams
+				}
+				else
+				{
+					EpochLLVMCodeCreateBranch(context, nextparamblock, false)
+				}
+			}
+			else
+			{
+				EpochLLVMCodeCreateBranch(context, nextparamblock, false)
+			}
 		}
 
 		EpochLLVMSetCurrentBasicBlock(context, nextparamblock)
 
-		EmitTypeMatcherParamsInLLVM(context, overloads, params.next, paramindex + 1, func, overloadfunc, nextoverloadblock, overloadsig, exitblock)
+		EmitTypeMatcherParamsInLLVM(context, overloads, params.next, paramindex + 1, relevantparams, func, overloadfunc, nextoverloadblock, overloadsig, exitblock, matchername, retalloca)
 	}
 	else
 	{
-		EmitTypeMatcherParamsInLLVM(context, overloads, params.next, paramindex, func, overloadfunc, nextoverloadblock, overloadsig, exitblock)
+		EmitTypeMatcherParamsInLLVM(context, overloads, params.next, paramindex, relevantparams, func, overloadfunc, nextoverloadblock, overloadsig, exitblock, matchername, retalloca)
 	}
 
 	EpochLLVMSetCurrentBasicBlock(context, nextoverloadblock)
 }
 
-EmitTypeMatcherParamsInLLVM : LLVMContextHandle context, list<FunctionSignature> ref overloads, nothing, integer paramindex, LLVMFunctionRef func, LLVMFunctionRef overloadfunc, LLVMBasicBlock nextoverloadblock, FunctionSignature ref overloadsig, LLVMBasicBlock exitblock
+EmitTypeMatcherParamsInLLVM : LLVMContextHandle context, list<FunctionSignature> ref overloads, nothing, integer paramindex, integer relevantparams, LLVMFunctionRef func, LLVMFunctionRef overloadfunc, LLVMBasicBlock nextoverloadblock, FunctionSignature ref overloadsig, LLVMBasicBlock exitblock, integer matchername, LLVMAlloca retalloca
 {
-	ForwardTypeMatcherParamsInLLVM(context, overloads, overloadsig)
-	EpochLLVMCodeCreateCall(context, overloadfunc)
-	// TODO - stash non-void return value
-	EpochLLVMCodeCreateBranch(context, exitblock, false)
+	if(relevantparams == paramindex)
+	{
+		ForwardTypeMatcherParamsInLLVM(context, overloads, matchername, overloadsig)
+		EpochLLVMCodeCreateCall(context, overloadfunc)
+		if(retalloca != 0)
+		{
+			EpochLLVMCodeCreateWrite(context, retalloca)
+		}
+		EpochLLVMCodeStatementFinalize(context)
+		EpochLLVMCodeCreateBranch(context, exitblock, false)
+	}
+	else
+	{
+		EpochLLVMCodeCreateBranch(context, nextoverloadblock, false)
+	}
 }
 
 
-CreateTypeMatcherParamsInLLVM : LLVMContextHandle context, list<FunctionSignature> ref overloads, list<Parameter> ref params, integer paramindex
+CreateTypeMatcherParamsInLLVM : LLVMContextHandle context, integer matchername
 {
-	if(params.value.Name != 0)
+	ContextNode<CallSiteMetadata> wrap = nothing
+	if(!SearchBinaryTreeForPayload<CallSiteMetadata>(TypeMatcherCallSiteMetadata.RootNode, matchername, wrap))
 	{
-		simplelist<integer> typelist = 0, nothing
-		EnumerateSignaturesAndAddParameterTypes(overloads, paramindex, typelist)
-
-		if(countnonzero(typelist) == 1)
-		{
-			LLVMType paramtype = GetLLVMTypeForEpochType(context, params.value.Type)
-			EpochLLVMFunctionQueueParamType(context, paramtype)
-		}
-		else
-		{
-			// TODO - emit appropriate sum type!
-			LLVMType paramtype = GetLLVMTypeForEpochType(context, 0x07000001)
-			if(params.value.Name == 2)
-			{
-				paramtype = EpochLLVMTypeGetPointerTo(context, paramtype)
-			}
-
-			EpochLLVMFunctionQueueParamType(context, paramtype)
-		}	
+		assertmsg(false, "Missing type matcher call site metadata")
 	}
 
-	CreateTypeMatcherParamsInLLVM(context, overloads, params.next, paramindex + 1)
+	CreateTypeMatcherParamsInLLVM(context, wrap)
 }
 
-CreateTypeMatcherParamsInLLVM : LLVMContextHandle context, list<FunctionSignature> ref overloads, nothing, integer paramindex
+CreateTypeMatcherParamsInLLVM : LLVMContextHandle context, CallSiteMetadata ref metadata
+{
+	CreateTypeMatcherParamsInLLVM(context, metadata.ArgTypeSets)
+}
 
+CreateTypeMatcherParamsInLLVM : LLVMContextHandle context, list<ArgumentMetadata> ref argtypesets
+{
+	integer sumtypeid = FindFirstSumTypeInList(argtypesets.value.ArgTypes)
+	integer argtype = argtypesets.value.ArgTypes.value
+
+	if(sumtypeid != 0)
+	{
+		argtype = sumtypeid
+	}
+
+	if(TypeMatcherTypeListNeedsRef(argtypesets.value.ArgTypes))
+	{
+		argtype = MakeReferenceType(argtype)
+	}
+
+	LLVMType paramtype = GetLLVMTypeForEpochType(context, argtype)
+	EpochLLVMFunctionQueueParamType(context, paramtype)
+
+	CreateTypeMatcherParamsInLLVM(context, argtypesets.next)
+}
+
+CreateTypeMatcherParamsInLLVM : LLVMContextHandle context, nothing
 
 
 EnumerateSignaturesAndAddParameterTypes : list<FunctionSignature> ref signatures, integer paramindex, simplelist<integer> ref typelist
@@ -1830,28 +1939,44 @@ GetParameterTypeFromSignature : list<Parameter> ref params, integer paramindex, 
 GetParameterTypeFromSignature : nothing, integer paramindex, simplelist<integer> ref typelist
 
 
-ForwardTypeMatcherParamsInLLVM : LLVMContextHandle context, list<FunctionSignature> ref overloads, FunctionSignature ref signature
+ForwardTypeMatcherParamsInLLVM : LLVMContextHandle context, list<FunctionSignature> ref overloads, integer matchername, FunctionSignature ref signature
 {
-	ForwardTypeMatcherParamsInLLVM(context, overloads, signature.Parameters, 0)
+	ForwardTypeMatcherParamsInLLVM(context, overloads, matchername, signature.Parameters, 0)
 }
 
-ForwardTypeMatcherParamsInLLVM : LLVMContextHandle context, list<FunctionSignature> ref overloads, list<Parameter> ref params, integer paramindex
+ForwardTypeMatcherParamsInLLVM : LLVMContextHandle context, list<FunctionSignature> ref overloads, integer matchername, list<Parameter> ref params, integer paramindex
 {
 	EpochLLVMCodeCreateReadParam(context, paramindex)
 
-	simplelist<integer> typelist = 0, nothing
-	EnumerateSignaturesAndAddParameterTypes(overloads, paramindex, typelist)
-
-	if(countnonzero(typelist) != 1)
+	integer ty = params.value.Type
+	if(TypeMatcherNeedsSumTypeForParamIndex(matchername, paramindex) && !IsSumType(ty))
 	{
 		EpochLLVMCodePushExtractedStructValue(context, 1)
-		EpochLLVMCodeCreateCast(context, GetLLVMTypeForEpochType(context, params.value.Type))
+		EpochLLVMCodeCreateCast(context, GetLLVMTypeForEpochType(context, ty))
 	}
 
-	ForwardTypeMatcherParamsInLLVM(context, overloads, params.next, paramindex + 1)
+	ForwardTypeMatcherParamsInLLVM(context, overloads, matchername, params.next, paramindex + 1)
 }
 
-ForwardTypeMatcherParamsInLLVM : LLVMContextHandle context, list<FunctionSignature> ref overloads, nothing, integer paramindex
+ForwardTypeMatcherParamsInLLVM : LLVMContextHandle context, list<FunctionSignature> ref overloads, integer matchername, nothing, integer paramindex
 
 
+
+TypeMatcherTypeListNeedsRef : simplelist<integer> ref typelist -> boolean ret = false
+{
+	if(IsSumType(typelist.value))
+	{
+		ret = true
+	}
+	elseif(IsReferenceType(typelist.value))
+	{
+		ret = true
+	}
+	else
+	{
+		ret = TypeMatcherTypeListNeedsRef(typelist.next)
+	}
+}
+
+TypeMatcherTypeListNeedsRef : nothing -> false
 
