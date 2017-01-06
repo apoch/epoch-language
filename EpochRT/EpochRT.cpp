@@ -64,3 +64,9 @@ extern "C" void ERT_print(const char* out)
 	std::cout << out << std::endl;
 }
 
+
+extern "C" void ERT_buffer_alloc(char** outbuffer, unsigned size)
+{
+	*outbuffer = new char[size];
+}
+
