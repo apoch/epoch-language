@@ -53,6 +53,11 @@ extern "C" void ERT_gc_collect_strings()
 }
 
 
+extern "C" short ERT_integer16_from_integer(int in)
+{
+	return static_cast<short>(in);
+}
+
 
 extern "C" void ERT_print(const char* out)
 {

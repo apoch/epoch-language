@@ -778,6 +778,10 @@ EmitSingleCodeBlockEntryToLLVM : LLVMBuildContext ref context, Statement ref ent
 				{
 					EmitPartialExpressionListToLLVM(context, entry.Parameters)
 				}
+				elseif(entry.Name == PooledStringHandleForCastIntegerToInteger16)
+				{
+					EmitPartialExpressionListToLLVM(context, entry.Parameters)
+				}
 				else
 				{
 					EmitExpressionListToLLVM(context, entry.Parameters)
@@ -1340,6 +1344,7 @@ SetUpBuiltInLLVMThunks : LLVMContextHandle context
 	BuiltInThunkCreateStringEquality(context)
 	BuiltInThunkCreateStringConcat(context)
 	BuiltInThunkCreateStringFromInteger(context)
+	BuiltInThunkCreateInteger16FromInteger(context)
 	
 	BuiltInThunkCreateGCInit(context)
 	BuiltInThunkCreateGCCollectStrings(context)
@@ -1451,6 +1456,15 @@ BuiltInThunkCreateStringFromInteger : LLVMContextHandle context
 	BinaryTreeCreateOrInsert<integer>(LLVMGlobalThunks, PooledStringHandleForCastIntegerToString, thunk)
 }
 
+BuiltInThunkCreateInteger16FromInteger : LLVMContextHandle context
+{
+	EpochLLVMFunctionTypePush(context)
+	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetInteger(context))
+	LLVMFunctionType fty = EpochLLVMFunctionTypeCreate(context, EpochLLVMTypeGetInteger16(context))
+	integer thunk = EpochLLVMFunctionCreateThunk(context, "ERT_integer16_from_integer", fty)
+
+	BinaryTreeCreateOrInsert<integer>(LLVMGlobalThunks, PooledStringHandleForCastIntegerToInteger16, thunk)
+}
 
 BuiltInThunkCreateGCInit : LLVMContextHandle context
 {
