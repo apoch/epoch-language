@@ -660,39 +660,52 @@ llvm::CallInst* Context::CodeCreateCall(llvm::Function* target)
 	llvm::FunctionType* fty = target->getFunctionType();
 
 	std::vector<Value*> relevantargs;
-	for(size_t i = 0; i < fty->getNumParams(); )
+	while(relevantargs.size() < fty->getNumParams())
 	{
-		relevantargs.push_back(PendingValues.back());
+		Value* arg = PendingValues.back();
 		PendingValues.pop_back();
 
-		if(relevantargs.back())
-			++i;
+		if(arg)
+		{
+			// TODO - this is a ridiculously lame hack
+			if(fty->getParamType(fty->getNumParams() - relevantargs.size() - 1)->getPointerTo() == arg->getType())
+				arg = LLVMBuilder.CreateLoad(arg);
+			// End hack
+
+			relevantargs.push_back(arg);
+		}
+		else				// Annotated sum type
+		{
+			arg = PendingValues.back();
+			PendingValues.pop_back();
+
+			StructType* paramtype = cast<StructType>(fty->getParamType(fty->getNumParams() - relevantargs.size() - 1));
+
+			Value* payload = nullptr;
+			Value* signature = arg;
+
+			if(cast<ConstantInt>(signature)->getValue().getZExtValue() != 4)
+			{
+				Value* rawpayload = PendingValues.back();
+				if(!rawpayload->getType()->isPointerTy())
+					rawpayload = cast<LoadInst>(rawpayload)->getOperand(0);
+	
+				payload = LLVMBuilder.CreatePtrToInt(rawpayload, paramtype->getStructElementType(1));
+
+				PendingValues.pop_back();
+			}
+			else
+				payload = ConstantInt::get(paramtype->getStructElementType(1), 0);
+
+			Value* st = LLVMBuilder.CreateInsertValue(llvm::UndefValue::get(paramtype), signature, { 0 });
+			st = LLVMBuilder.CreateInsertValue(st, payload, { 1 });
+			relevantargs.push_back(st);
+		}
 	}
 	std::reverse(relevantargs.begin(), relevantargs.end());
 
-	for(size_t i = 0; i < relevantargs.size(); )
-	{
-		if(!relevantargs[i])
-		{
-			StructType* paramtype = cast<StructType>(fty->getParamType(i));
-			Value* signature = ConstantInt::get(paramtype->getStructElementType(0), 4);
-			Value* payload = ConstantInt::get(paramtype->getStructElementType(1), 0);
-			relevantargs[i] = ConstantStruct::get(paramtype, signature, payload, nullptr);
-			relevantargs.erase(relevantargs.begin() + i + 1);
-		}
-		else
-		{
-			// TODO - this is a ridiculously lame hack
-			if(fty->getParamType(i)->getPointerTo() == relevantargs[i]->getType())
-			{
-				relevantargs[i] = LLVMBuilder.CreateLoad(relevantargs[i]);
-			}
-
-			++i;
-		}
-	}
-
 	// TODO - remove diagnostics
+	assert(relevantargs.size() == target->getFunctionType()->getNumParams());
 	for(size_t i = 0; i < relevantargs.size(); ++i)
 	{
 		if(target->getFunctionType()->getParamType(i) != relevantargs[i]->getType())
@@ -866,12 +879,19 @@ void Context::CodeCreateRetVoid()
 	LLVMBuilder.CreateRetVoid();
 }
 
-void Context::CodeCreateWrite(llvm::AllocaInst* allocatarget)
+void Context::CodeCreateWrite(llvm::AllocaInst* originaltarget)
 {
 	Value* wv = PendingValues.back();
 	PendingValues.pop_back();
 
-	if(wv->getType() != allocatarget->getAllocatedType())
+	Value* allocatarget = originaltarget;
+
+	// wv holds an int
+	// allocatarget holds an int**
+	if(originaltarget->getAllocatedType() == wv->getType()->getPointerTo())
+		allocatarget = LLVMBuilder.CreateLoad(allocatarget);
+
+	if(wv->getType() != allocatarget->getType()->getPointerElementType())
 	{
 		Value* readannotationgep = LLVMBuilder.CreateExtractValue(wv, { 0 });
 		Value* readpayloadgep = LLVMBuilder.CreateExtractValue(wv, { 1 });
@@ -905,7 +925,15 @@ void Context::CodeCreateWriteStructure(llvm::Value* gep)
 	Value* wv = PendingValues.back();
 	PendingValues.pop_back();
 
-	LLVMBuilder.CreateStore(wv, gep);
+	if(wv)
+		LLVMBuilder.CreateStore(wv, gep);
+	else
+	{
+		Value* signature = PendingValues.back();
+		PendingValues.pop_back();
+
+		LLVMBuilder.CreateStore(signature, gep);
+	}
 }
 
 void Context::CodeCreateWriteStructurePop()
@@ -1300,5 +1328,12 @@ llvm::Type* Context::SumTypeCreate(const char* name, unsigned width)
 	llvm::Type* t = llvm::StructType::create(members, name);
 	return t;
 }
+
+
+void Context::SumTypeMerge()
+{
+	PendingValues.push_back(nullptr);
+}
+
 
 

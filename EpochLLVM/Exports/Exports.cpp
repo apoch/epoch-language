@@ -404,6 +404,13 @@ extern "C" void* EpochLLVMSumTypeCreate(void* context, const wchar_t* name, unsi
 }
 
 
+extern "C" void EpochLLVMCodeMergeSumType(void* context)
+{
+	reinterpret_cast<CodeGen::Context*>(context)->SumTypeMerge();
+}
+
+
+
 extern "C" void EpochLLVMSectionCopyPData(void* context, void* buffer)
 {
 	reinterpret_cast<CodeGen::Context*>(context)->SectionCopyPData(buffer);

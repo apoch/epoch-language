@@ -145,6 +145,8 @@ EpochLLVMCodePushNothing : LLVMContextHandle context																[external("E
 EpochLLVMCodePopValue : LLVMContextHandle context -> integer magic = 0												[external("EpochLLVM.dll", "EpochLLVMCodePopValue")]
 EpochLLVMCodePopGEP : LLVMContextHandle context -> LLVMGEP gep = 0													[external("EpochLLVM.dll", "EpochLLVMCodePopValue")]
 
+EpochLLVMCodeMergeSumType : LLVMContextHandle context																[external("EpochLLVM.dll", "EpochLLVMCodeMergeSumType")]
+
 EpochLLVMSectionGetPDataSize : LLVMContextHandle context -> integer size = 0										[external("EpochLLVM.dll", "EpochLLVMSectionGetPDataSize")]
 EpochLLVMSectionGetXDataSize : LLVMContextHandle context -> integer size = 0										[external("EpochLLVM.dll", "EpochLLVMSectionGetXDataSize")]
 EpochLLVMSectionGetGCSize : LLVMContextHandle context -> integer size = 0											[external("EpochLLVM.dll", "EpochLLVMSectionGetGCSize")]
@@ -783,6 +785,9 @@ EmitSingleCodeBlockEntryToLLVM : LLVMBuildContext ref context, Statement ref ent
 			
 				integer thunk = 0
 				BinaryTreeCopyPayload<integer>(LLVMGlobalThunks.RootNode, entry.Name, thunk)
+
+				assertmsg(thunk != 0, "Missing function " ; GetPooledString(entry.Name))
+
 				EpochLLVMCodeCreateCallThunk(context.Context, thunk)
 			}
 		}
@@ -832,8 +837,10 @@ EmitSingleCodeBlockEntryToLLVM : LLVMBuildContext ref context, Statement ref ent
 		LLVMGEP payloadgep = EpochLLVMCodeCreateGEP(context.Context, 1)
 		EmitPartialExpressionListToLLVM(context, entry.Parameters)
 		EpochLLVMCodeCreateWriteStructure(context.Context, stgep)
-		EpochLLVMCodeCreateCast(context.Context, GetLLVMTypeForEpochType(context.Context, 0x01000005))			// TODO - look up appropriate storage type for sum-type
-		EpochLLVMCodeCreateWriteStructure(context.Context, payloadgep)
+
+		// TODO - This is no longer needed because WriteStructure does magic. Move that magic back into this module when suitable.
+		//EpochLLVMCodeCreateCast(context.Context, GetLLVMTypeForEpochType(context.Context, 0x01000005))
+		//EpochLLVMCodeCreateWriteStructure(context.Context, payloadgep)
 	}
 	else
 	{
@@ -1046,7 +1053,7 @@ EmitSingleAtomToLLVM : LLVMBuildContext ref context, IdentifierAtom ref idatom
 
 	if(atomtype == 0x00000004)							// Nothing type signature
 	{
-		EpochLLVMCodePushNothing(context.Context)
+		//EpochLLVMCodePushNothing(context.Context)			// TODO - eh?
 	}
 	else
 	{
@@ -1264,6 +1271,7 @@ EmitSingleAtomToLLVM : LLVMBuildContext ref context, CompoundAtom ref atom
 EmitSingleAtomToLLVM : LLVMBuildContext ref context, TypeAnnotationAtom ref atom
 {
 	EpochLLVMCodePushInteger(context.Context, atom.Type)
+	EpochLLVMCodeMergeSumType(context.Context)
 }
 
 EmitSingleAtomToLLVM : LLVMBuildContext ref context, ArrayIndexAtom ref atom

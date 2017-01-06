@@ -277,10 +277,13 @@ AnnotateTypeMatchedParamsFromConstructor : list<StructureMember> ref members, li
 	integer membertype = GetMemberTypeDecompose(members.value)
 	if((membertype & 0x7f000000) == 0x07000000)
 	{
-		if(MakeNonReferenceType(paramexprs.value.Type) != MakeNonReferenceType(membertype))
-		{
-			AddTypeAnnotation(paramexprs.value)
-		}
+		//if(MakeNonReferenceType(paramexprs.value.Type) != MakeNonReferenceType(membertype))
+		//{
+			//if(paramexprs.value.Type == 0x00000004)
+			//{
+				AddTypeAnnotation(paramexprs.value)
+			//}
+		//}
 	}
 
 	listnode<StructureMember> nm = members.next
@@ -299,6 +302,10 @@ AnnotateTypeMatchedParams : FunctionParams ref params, list<Expression> ref para
 AnnotateTypeMatchedParams : list<UnresolvedParameter> ref params, list<Expression> ref paramexprs
 {
 	if((params.value.ResolvedType & 0x7f000000) == 0x07000000)
+	{
+		AddTypeAnnotation(paramexprs.value)
+	}
+	elseif(IsSumType(paramexprs.value.Type))
 	{
 		AddTypeAnnotation(paramexprs.value)
 	}

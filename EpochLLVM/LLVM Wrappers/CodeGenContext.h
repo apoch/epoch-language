@@ -124,6 +124,8 @@ namespace CodeGen
 
 		void CodeStatementFinalize();
 
+		void SumTypeMerge();
+
 	public:		// Object code emission interface
 		void PrepareBinaryObject();
 		size_t EmitBinaryObject(char* buffer, size_t maxoutput, unsigned entrypointaddress, unsigned gcaddress);
