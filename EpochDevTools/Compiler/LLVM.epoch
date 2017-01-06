@@ -880,6 +880,33 @@ EmitSingleCodeBlockEntryToLLVM : LLVMBuildContext ref context, Statement ref ent
 	}
 }
 
+
+EmitSingleCodeBlockEntryToLLVM : LLVMBuildContext ref context, PreOpStatement ref preop
+{
+	LLVMAlloca alloca = 0
+	BinaryTreeCopyPayload<LLVMAlloca>(context.LocalVariables.RootNode, preop.Operand.value, alloca)
+
+	if(countnonzero(preop.Operand) == 1)
+	{
+		if(preop.Operator == PooledStringHandleForPrePostIncrementInteger)
+		{
+			EpochLLVMCodeCreateRead(context.Context, alloca)
+			EpochLLVMCodePushInteger(context.Context, 1)
+			EpochLLVMCodeOperatorIntegerPlus(context.Context)
+			EpochLLVMCodeCreateWrite(context.Context, alloca)
+			EpochLLVMCodeCreateRead(context.Context, alloca)
+		}
+		else
+		{
+			assertmsg(false, "Unsupported pre-operation")
+		}		
+	}
+	else
+	{
+		assertmsg(false, "Compound preincrement/decrement not implemented")
+	}
+}
+
 EmitSingleCodeBlockEntryToLLVM : LLVMBuildContext ref context, EntityChain ref entry
 {
 	EmitEntityChainEntriesToLLVM(context, entry.Entries)
