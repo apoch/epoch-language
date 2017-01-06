@@ -120,6 +120,7 @@ EpochLLVMCodeCreateDereference : LLVMContextHandle handle															[externa
 EpochLLVMCodeStatementFinalize : LLVMContextHandle handle															[external("EpochLLVM.dll", "EpochLLVMCodeStatementFinalize")]
 
 EpochLLVMCodeOperatorBooleanNot : LLVMContextHandle context															[external("EpochLLVM.dll", "EpochLLVMCodeOperatorBooleanNot")]
+EpochLLVMCodeOperatorIntegerBitwiseAnd : LLVMContextHandle context													[external("EpochLLVM.dll", "EpochLLVMCodeOperatorIntegerBitwiseAnd")]
 EpochLLVMCodeOperatorIntegerEquals : LLVMContextHandle context														[external("EpochLLVM.dll", "EpochLLVMCodeOperatorIntegerEquals")]
 EpochLLVMCodeOperatorIntegerNotEquals : LLVMContextHandle context													[external("EpochLLVM.dll", "EpochLLVMCodeOperatorIntegerNotEquals")]
 EpochLLVMCodeOperatorIntegerGreaterThan : LLVMContextHandle context													[external("EpochLLVM.dll", "EpochLLVMCodeOperatorIntegerGreaterThan")]
@@ -1218,6 +1219,10 @@ EmitSingleAtomToLLVM : LLVMBuildContext ref context, OperatorInvokeAtom ref atom
 	{
 		EpochLLVMCodeOperatorIntegerLessThan(context.Context)
 	}
+	elseif(atom.OperatorName == PooledStringHandleForBitwiseAnd)
+	{
+		EpochLLVMCodeOperatorIntegerBitwiseAnd(context.Context)
+	}
 	elseif(atom.OperatorName == PooledStringHandleForEqualityString)
 	{
 		getthunk = true
@@ -1228,7 +1233,7 @@ EmitSingleAtomToLLVM : LLVMBuildContext ref context, OperatorInvokeAtom ref atom
 	}
 	else
 	{
-		assertmsg(false, "Operator not implemented in LLVM bindings")
+		assertmsg(false, "Operator not implemented in LLVM bindings " ; GetPooledString(atom.OperatorName))
 	}
 
 	if(getthunk)

@@ -260,6 +260,11 @@ extern "C" void EpochLLVMCodeOperatorBooleanNot(void* context)
 	reinterpret_cast<CodeGen::Context*>(context)->CodeCreateOperatorBooleanNot();
 }
 
+extern "C" void EpochLLVMCodeOperatorIntegerBitwiseAnd(void* context)
+{
+	reinterpret_cast<CodeGen::Context*>(context)->CodeCreateOperatorIntegerBitwiseAnd();
+}
+
 extern "C" void EpochLLVMCodeOperatorIntegerEquals(void* context)
 {
 	reinterpret_cast<CodeGen::Context*>(context)->CodeCreateOperatorIntegerEquals();

@@ -979,6 +979,18 @@ void Context::CodeCreateOperatorBooleanNot()
 	PendingValues.push_back(notval);
 }
 
+void Context::CodeCreateOperatorIntegerBitwiseAnd()
+{
+	llvm::Value* operand2 = PendingValues.back();
+	PendingValues.pop_back();
+
+	llvm::Value* operand1 = PendingValues.back();
+	PendingValues.pop_back();
+
+	llvm::Value* result = LLVMBuilder.CreateAnd(operand1, operand2);
+	PendingValues.push_back(result);
+}
+
 void Context::CodeCreateOperatorIntegerEquals()
 {
 	llvm::Value* operand2 = PendingValues.back();

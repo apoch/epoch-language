@@ -98,6 +98,7 @@ namespace CodeGen
 		void CodeCreateWriteStructurePopSumType();
 
 		void CodeCreateOperatorBooleanNot();
+		void CodeCreateOperatorIntegerBitwiseAnd();
 		void CodeCreateOperatorIntegerEquals();
 		void CodeCreateOperatorIntegerNotEquals();
 		void CodeCreateOperatorIntegerGreaterThan();
