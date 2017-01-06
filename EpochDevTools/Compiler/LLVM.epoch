@@ -1349,6 +1349,7 @@ SetUpBuiltInLLVMThunks : LLVMContextHandle context
 	BuiltInThunkCreateStringEquality(context)
 	BuiltInThunkCreateStringConcat(context)
 	BuiltInThunkCreateStringFromInteger(context)
+	BuiltInThunkCreateStringLength(context)
 	BuiltInThunkCreateInteger16FromInteger(context)
 	
 	BuiltInThunkCreateGCInit(context)
@@ -1450,6 +1451,17 @@ BuiltInThunkCreateStringConcat : LLVMContextHandle context
 
 	BinaryTreeCreateOrInsert<integer>(LLVMGlobalThunks, PooledStringHandleForStringConcat, thunk)
 }
+
+BuiltInThunkCreateStringLength : LLVMContextHandle context
+{
+	EpochLLVMFunctionTypePush(context)
+	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetString(context))
+	LLVMFunctionType fty = EpochLLVMFunctionTypeCreate(context, EpochLLVMTypeGetInteger(context))
+	integer thunk = EpochLLVMFunctionCreateThunk(context, "lstrlenA", fty)
+
+	BinaryTreeCreateOrInsert<integer>(LLVMGlobalThunks, PooledStringHandleForLength, thunk)
+}
+
 
 BuiltInThunkCreateStringFromInteger : LLVMContextHandle context
 {

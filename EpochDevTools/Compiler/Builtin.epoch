@@ -1204,13 +1204,13 @@ FigureOutCastOverload : nothing -> 0
 PrepareThunkTable : ThunkTable ref table
 {
 	ThunkTableAddEntry(table, "Kernel32.dll", "ExitProcess")
+	ThunkTableAddEntry(table, "Kernel32.dll", "lstrlenA")
 	ThunkTableAddEntry(table, "EpochRT.dll", "ERT_assert")
 	ThunkTableAddEntry(table, "EpochRT.dll", "ERT_integer16_from_integer")			// TODO - existence of this thunk is stupid. Add support for internal typecasts in LLVM layer.
 	ThunkTableAddEntry(table, "EpochRT.dll", "ERT_passtest")
 	ThunkTableAddEntry(table, "EpochRT.dll", "ERT_print")
 	ThunkTableAddEntry(table, "EpochRT.dll", "ERT_string_compare")
 	ThunkTableAddEntry(table, "EpochRT.dll", "ERT_string_concat")
-	ThunkTableAddEntry(table, "EpochRT.dll", "ERT_string_from_integer")
 	ThunkTableAddEntry(table, "EpochRT.dll", "ERT_gc_init")
 	ThunkTableAddEntry(table, "EpochRT.dll", "ERT_gc_collect_strings")
 	
