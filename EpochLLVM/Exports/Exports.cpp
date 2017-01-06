@@ -228,6 +228,11 @@ extern "C" void EpochLLVMCodeCreateWrite(void* context, void* allocatarget)
 	reinterpret_cast<CodeGen::Context*>(context)->CodeCreateWrite(reinterpret_cast<llvm::AllocaInst*>(allocatarget));
 }
 
+extern "C" void EpochLLVMCodeCreateWriteIndirect(void* context, void* allocatarget)
+{
+	reinterpret_cast<CodeGen::Context*>(context)->CodeCreateWriteIndirect(reinterpret_cast<llvm::AllocaInst*>(allocatarget));
+}
+
 extern "C" void EpochLLVMCodeCreateWriteParam(void* context, unsigned index)
 {
 	reinterpret_cast<CodeGen::Context*>(context)->CodeCreateWriteParam(index);

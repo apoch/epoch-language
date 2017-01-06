@@ -907,6 +907,13 @@ void Context::CodeCreateWrite(llvm::AllocaInst* originaltarget)
 		LLVMBuilder.CreateStore(wv, allocatarget);
 }
 
+void Context::CodeCreateWriteIndirect(llvm::AllocaInst* allocatarget)
+{
+	Value* wv = PendingValues.back();
+	PendingValues.pop_back();
+	LLVMBuilder.CreateStore(wv, LLVMBuilder.CreateLoad(allocatarget));
+}
+
 void Context::CodeCreateWriteParam(unsigned index)
 {
 	auto iter = LLVMBuilder.GetInsertBlock()->getParent()->arg_begin();

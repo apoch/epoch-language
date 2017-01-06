@@ -92,6 +92,7 @@ namespace CodeGen
 		void CodeCreateRet();
 		void CodeCreateRetVoid();
 		void CodeCreateWrite(llvm::AllocaInst* allocatarget);
+		void CodeCreateWriteIndirect(llvm::AllocaInst* allocatarget);
 		void CodeCreateWriteParam(unsigned index);
 		void CodeCreateWriteStructure(llvm::Value* gep);
 		void CodeCreateWriteStructurePop();

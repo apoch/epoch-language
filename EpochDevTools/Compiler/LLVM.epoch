@@ -110,6 +110,7 @@ EpochLLVMCodeCreateReadStructure : LLVMContextHandle handle, LLVMGEP gep								
 EpochLLVMCodeCreateRet : LLVMContextHandle handle																	[external("EpochLLVM.dll", "EpochLLVMCodeCreateRet")]
 EpochLLVMCodeCreateRetVoid : LLVMContextHandle handle																[external("EpochLLVM.dll", "EpochLLVMCodeCreateRetVoid")]
 EpochLLVMCodeCreateWrite : LLVMContextHandle handle, LLVMAlloca alloca												[external("EpochLLVM.dll", "EpochLLVMCodeCreateWrite")]
+EpochLLVMCodeCreateWriteIndirect : LLVMContextHandle handle, LLVMAlloca alloca										[external("EpochLLVM.dll", "EpochLLVMCodeCreateWriteIndirect")]
 EpochLLVMCodeCreateWriteParam : LLVMContextHandle handle, integer index												[external("EpochLLVM.dll", "EpochLLVMCodeCreateWriteParam")]
 EpochLLVMCodeCreateWriteStructure : LLVMContextHandle handle, LLVMGEP gep											[external("EpochLLVM.dll", "EpochLLVMCodeCreateWriteStructure")]
 EpochLLVMCodeCreateWriteStructurePop : LLVMContextHandle handle														[external("EpochLLVM.dll", "EpochLLVMCodeCreateWriteStructurePop")]
@@ -689,20 +690,32 @@ EmitSingleCodeBlockEntryToLLVM : LLVMBuildContext ref context, Assignment ref en
 
 	EmitAssignmentRHSToLLVM(context, entry.RHS)
 
-	
 	if(entry.Operator == PooledStringHandleForAssignment)
 	{
-		EpochLLVMCodeCreateWrite(context.Context, alloca)
+		// Nothing to do here, simple assignment
 	}
 	elseif(entry.Operator == PooledStringHandleForIncrementAssignInteger)
 	{
 		EpochLLVMCodeCreateRead(context.Context, alloca)
+		if(IsReferenceType(entry.LHSType))
+		{
+			EpochLLVMCodeCreateDereference(context.Context)
+		}
+
 		EpochLLVMCodeOperatorIntegerPlus(context.Context)
-		EpochLLVMCodeCreateWrite(context.Context, alloca)
 	}
 	else
 	{
 		assertmsg(false, "Unsupported assignment operator")
+	}
+
+	if(IsReferenceType(entry.LHSType))
+	{
+		EpochLLVMCodeCreateWriteIndirect(context.Context, alloca)		
+	}
+	else
+	{
+		EpochLLVMCodeCreateWrite(context.Context, alloca)
 	}
 }
 
