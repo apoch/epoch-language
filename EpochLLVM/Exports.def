@@ -45,6 +45,7 @@ EXPORTS
 	EpochLLVMCodeCreateCast
 	EpochLLVMCodeCreateCondBranch
 	EpochLLVMCodeCreateGEP
+	EpochLLVMCodeCreateGlobal
 	EpochLLVMCodeCreateRead
 	EpochLLVMCodeCreateReadArray
 	EpochLLVMCodeCreateReadParam
@@ -79,6 +80,7 @@ EXPORTS
 	EpochLLVMCodePushRawAlloca
 	EpochLLVMCodePushRawCall
 	EpochLLVMCodePushRawGEP
+	EpochLLVMCodePushRawGlobal
 	EpochLLVMCodePushString
 	EpochLLVMCodePushFunction
 	EpochLLVMCodePushExtractedStructValue

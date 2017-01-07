@@ -85,6 +85,7 @@ namespace CodeGen
 		void CodeCreateCondBranch(llvm::Value* cond, llvm::BasicBlock* truetarget, llvm::BasicBlock* falsetarget);
 		void CodeCreateDereference();
 		llvm::Value* CodeCreateGEP(unsigned index);
+		llvm::GlobalVariable* CodeCreateGlobal(llvm::Type* type, const char* varname);
 		void CodeCreateRead(llvm::AllocaInst* allocatarget);
 		void* CodeCreateReadArray(llvm::AllocaInst* allocatarget);
 		void CodeCreateReadParam(unsigned index);
@@ -117,6 +118,7 @@ namespace CodeGen
 		void CodePushRawAlloca(llvm::AllocaInst* alloc);
 		void CodePushRawCall(llvm::CallInst* callinst);
 		void CodePushRawGEP(llvm::Value* gep);
+		void CodePushRawGlobal(llvm::GlobalVariable* global);
 		void CodePushString(unsigned handle);
 		void CodePushFunction(llvm::Function* func);
 		void CodePushExtractedStructValue(unsigned memberindex);

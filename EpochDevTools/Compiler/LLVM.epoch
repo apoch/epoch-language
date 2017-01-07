@@ -1,4 +1,4 @@
-//
+
 // The Epoch Language Project
 // Epoch Development Tools - Compiler Core
 //
@@ -24,10 +24,11 @@ type LLVMGEP : integer
 
 
 structure LLVMBuildContext :
-	LLVMContextHandle          Context,
-	LLVMFunctionRef            EmittingFunction,
-	BinaryTreeRoot<LLVMAlloca> LocalVariables,
-	LLVMBasicBlock			   ExitBlock
+	LLVMContextHandle             Context,
+	LLVMFunctionRef               EmittingFunction,
+	BinaryTreeRoot<LLVMAlloca>    LocalVariables,
+	BinaryTreeRoot<LLVMGlobalVar> GlobalVariables,
+	LLVMBasicBlock			      ExitBlock
 
 
 
@@ -103,6 +104,7 @@ EpochLLVMCodeCreateCallThunk : LLVMContextHandle handle, integer target -> integ
 EpochLLVMCodeCreateCast : LLVMContextHandle context, LLVMType targettype											[external("EpochLLVM.dll", "EpochLLVMCodeCreateCast")]
 EpochLLVMCodeCreateCondBranch : LLVMContextHandle handle, integer cond, LLVMBasicBlock tt, LLVMBasicBlock ft		[external("EpochLLVM.dll", "EpochLLVMCodeCreateCondBranch")]
 EpochLLVMCodeCreateGEP : LLVMContextHandle handle, integer index -> LLVMGEP ret = 0									[external("EpochLLVM.dll", "EpochLLVMCodeCreateGEP")]
+EpochLLVMCodeCreateGlobal : LLVMContextHandle context, LLVMType targettype, string varname -> LLVMGlobalVar ret = 0 [external("EpochLLVM.dll", "EpochLLVMCodeCreateGlobal")]
 EpochLLVMCodeCreateRead : LLVMContextHandle handle, LLVMAlloca alloca												[external("EpochLLVM.dll", "EpochLLVMCodeCreateRead")]
 EpochLLVMCodeCreateReadArray : LLVMContextHandle handle, LLVMAlloca alloca -> LLVMGEP ret = 0						[external("EpochLLVM.dll", "EpochLLVMCodeCreateReadArray")]
 EpochLLVMCodeCreateReadParam : LLVMContextHandle handle, integer index												[external("EpochLLVM.dll", "EpochLLVMCodeCreateReadParam")]
@@ -139,6 +141,7 @@ EpochLLVMCodePushReal : LLVMContextHandle context, real literal														[ex
 EpochLLVMCodePushRawAlloca : LLVMContextHandle context, LLVMAlloca alloca											[external("EpochLLVM.dll", "EpochLLVMCodePushRawAlloca")]
 EpochLLVMCodePushRawCall : LLVMContextHandle context, integer callinst												[external("EpochLLVM.dll", "EpochLLVMCodePushRawCall")]
 EpochLLVMCodePushRawGEP : LLVMContextHandle context, LLVMGEP gep													[external("EpochLLVM.dll", "EpochLLVMCodePushRawGEP")]
+EpochLLVMCodePushRawGlobal : LLVMContextHandle context, LLVMGlobalVar global										[external("EpochLLVM.dll", "EpochLLVMCodePushRawGlobal")]
 EpochLLVMCodePushString : LLVMContextHandle context, integer handle													[external("EpochLLVM.dll", "EpochLLVMCodePushString")]
 EpochLLVMCodePushFunction : LLVMContextHandle context, LLVMFunctionRef func											[external("EpochLLVM.dll", "EpochLLVMCodePushFunction")]
 EpochLLVMCodePushExtractedStructValue : LLVMContextHandle context, integer fieldindex								[external("EpochLLVM.dll", "EpochLLVMCodePushExtractedStructValue")]
@@ -188,7 +191,31 @@ SetUpAllLLVMCode : LLVMContextHandle context
 
 	print("Generating LLVM type-matcher implementations...")
 	EmitAllTypeMatchersInLLVM(context, TypeMatchers)
+
+	print("Generating LLVM global variables...")
+	CreateAllGlobalsInLLVM(context, GlobalScope.Wrapped)
 }
+
+
+
+CreateAllGlobalsInLLVM : LLVMContextHandle context, Scope ref scope
+{
+	CreateAllGlobalsInLLVM(context, scope.Variables)
+}
+
+CreateAllGlobalsInLLVM : LLVMContextHandle context, list<Variable> ref vars
+{
+	if(vars.value.VarType != 0)
+	{
+		LLVMType vartype = GetLLVMTypeForEpochType(context, vars.value.VarType)
+		LLVMGlobalVar global = EpochLLVMCodeCreateGlobal(context, vartype, GetPooledString(vars.value.Name))
+		BinaryTreeCreateOrInsert<LLVMGlobalVar>(LLVMGlobalTable, vars.value.Name, global)
+	}
+
+	CreateAllGlobalsInLLVM(context, vars.next)
+}
+
+CreateAllGlobalsInLLVM : LLVMContextHandle context, nothing
 
 
 CreateAllFunctionSignaturesInLLVM : LLVMContextHandle context, list<FunctionSignature> ref signatures
@@ -525,7 +552,7 @@ EmitSingleFunctionToLLVM : LLVMContextHandle context, FunctionDefinition ref fun
 	
 
 	BinaryTreeRoot<LLVMAlloca> vartree = nothing
-	LLVMBuildContext build = context, llvmfunc, vartree, exitblock
+	LLVMBuildContext build = context, llvmfunc, vartree, LLVMGlobalTable, exitblock
 	CreateLLVMAllocasForScope(build, func.AttachedScope.Wrapped, func)
 	
 	FindScopeAndSetContext(func)
@@ -860,8 +887,8 @@ EmitSingleCodeBlockEntryToLLVM : LLVMBuildContext ref context, Statement ref ent
 		EpochLLVMCodePushRawAlloca(context.Context, stalloca)
 		LLVMGEP stgep = EpochLLVMCodeCreateGEP(context.Context, 0)
 
-		EpochLLVMCodePushRawAlloca(context.Context, stalloca)
-		LLVMGEP payloadgep = EpochLLVMCodeCreateGEP(context.Context, 1)
+		//EpochLLVMCodePushRawAlloca(context.Context, stalloca)
+		//LLVMGEP payloadgep = EpochLLVMCodeCreateGEP(context.Context, 1)
 		EmitPartialExpressionListToLLVM(context, entry.Parameters)
 		EpochLLVMCodeCreateWriteStructure(context.Context, stgep)
 
@@ -1307,9 +1334,20 @@ EmitSingleAtomToLLVM : LLVMBuildContext ref context, CompoundAtom ref atom
 {
 	LLVMAlloca alloca = 0
 	BinaryTreeCopyPayload<LLVMAlloca>(context.LocalVariables.RootNode, atom.Bindings.value.Identifier, alloca)
+	if(alloca == 0)
+	{
+		LLVMGlobalVar global = 0
+		BinaryTreeCopyPayload<LLVMGlobalVar>(context.GlobalVariables.RootNode, atom.Bindings.value.Identifier, global)
+		
+		assertmsg(global != 0, "Missing local and global variable for compound atom: " ; GetPooledString(atom.Bindings.value.Identifier))
+		EpochLLVMCodePushRawGlobal(context.Context, global)
+	}
+	else
+	{
+		assertmsg(alloca != 0, "Missing local variable for compound atom: " ; GetPooledString(atom.Bindings.value.Identifier))
+		EpochLLVMCodePushRawAlloca(context.Context, alloca)
+	}
 
-	EpochLLVMCodePushRawAlloca(context.Context, alloca)
-	
 	EmitCompoundBindingsToLLVM(context, IsReferenceType(atom.Type), atom.Bindings, atom.Bindings.next)
 
 	//if(!IsReferenceType(atom.Type))

@@ -822,6 +822,12 @@ llvm::Value* Context::CodeCreateGEP(unsigned index)
 	Value* v = PendingValues.back();
 	PendingValues.pop_back();
 
+	if(!v)
+	{
+		LLVMBuilder.GetInsertBlock()->getParent()->dump();
+		assert(false);
+	}
+
 	if(v->getType()->isStructTy())
 	{
 		v = cast<LoadInst>(v)->getOperand(0);
@@ -830,6 +836,12 @@ llvm::Value* Context::CodeCreateGEP(unsigned index)
 	Value* indices[] = {ConstantInt::get(Type::getInt32Ty(getGlobalContext()), 0), ConstantInt::get(Type::getInt32Ty(getGlobalContext()), index)};
 	return LLVMBuilder.CreateGEP(v, indices);
 }
+
+llvm::GlobalVariable* Context::CodeCreateGlobal(llvm::Type* type, const char* name)
+{
+	return new GlobalVariable(type, false, GlobalValue::InternalLinkage, nullptr, name);
+}
+
 
 void Context::CodeCreateRead(llvm::AllocaInst* allocatarget)
 {
@@ -1135,6 +1147,11 @@ void Context::CodePushRawCall(llvm::CallInst* callinst)
 void Context::CodePushRawGEP(llvm::Value* gep)
 {
 	PendingValues.push_back(gep);
+}
+
+void Context::CodePushRawGlobal(llvm::GlobalVariable* global)
+{
+	PendingValues.push_back(global);
 }
 
 void Context::CodePushString(unsigned handle)
