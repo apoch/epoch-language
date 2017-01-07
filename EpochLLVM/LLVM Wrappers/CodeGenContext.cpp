@@ -824,14 +824,11 @@ llvm::Value* Context::CodeCreateGEP(unsigned index)
 
 	if(v->getType()->isStructTy())
 	{
-		Value* indices[] = {ConstantInt::get(Type::getInt32Ty(getGlobalContext()), index)};
-		return LLVMBuilder.CreateGEP(v, indices);
+		v = cast<LoadInst>(v)->getOperand(0);
 	}
-	else
-	{
-		Value* indices[] = {ConstantInt::get(Type::getInt32Ty(getGlobalContext()), 0), ConstantInt::get(Type::getInt32Ty(getGlobalContext()), index)};
-		return LLVMBuilder.CreateGEP(v, indices);
-	}
+
+	Value* indices[] = {ConstantInt::get(Type::getInt32Ty(getGlobalContext()), 0), ConstantInt::get(Type::getInt32Ty(getGlobalContext()), index)};
+	return LLVMBuilder.CreateGEP(v, indices);
 }
 
 void Context::CodeCreateRead(llvm::AllocaInst* allocatarget)

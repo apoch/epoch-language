@@ -1310,10 +1310,10 @@ EmitSingleAtomToLLVM : LLVMBuildContext ref context, CompoundAtom ref atom
 
 	EpochLLVMCodePushRawAlloca(context.Context, alloca)
 	
-	EmitCompoundBindingsToLLVM(context, atom.Bindings, atom.Bindings.next)
+	EmitCompoundBindingsToLLVM(context, IsReferenceType(atom.Type), atom.Bindings, atom.Bindings.next)
 
-	if(!IsReferenceType(atom.Type))
-	{
+	//if(!IsReferenceType(atom.Type))
+	//{
 		//if((atom.Type & 0x7f000000) == 0x07000000)
 		//{
 			// TODO - sum type annotations?
@@ -1321,9 +1321,9 @@ EmitSingleAtomToLLVM : LLVMBuildContext ref context, CompoundAtom ref atom
 		//}
 		//else
 		//{
-			EpochLLVMCodeCreateDereference(context.Context)
+		//	EpochLLVMCodeCreateDereference(context.Context)
 		//}
-	}
+	//}
 }
 
 EmitSingleAtomToLLVM : LLVMBuildContext ref context, TypeAnnotationAtom ref atom
@@ -1355,7 +1355,7 @@ DecomposeParentheticalInLLVM : LLVMBuildContext ref context, Expression ref expr
 }
 
 
-EmitCompoundBindingsToLLVM : LLVMBuildContext ref context, list<RefBinding> ref bindings, list<RefBinding> ref tail
+EmitCompoundBindingsToLLVM : LLVMBuildContext ref context, boolean endwithpointer, list<RefBinding> ref bindings, list<RefBinding> ref tail
 {
 	Variable var = 0, 0, 0, 0
 	FindVariableDataInSingleScope(EmittingScope.Wrapped, bindings.value.Identifier, var)
@@ -1372,19 +1372,28 @@ EmitCompoundBindingsToLLVM : LLVMBuildContext ref context, list<RefBinding> ref 
 	LLVMGEP gep = EpochLLVMCodeCreateGEP(context.Context, index)
 	EpochLLVMCodePushRawGEP(context.Context, gep)
 
-	EmitCompoundSubsequentBindingsToLLVM(context, tail.next)
+	EmitCompoundSubsequentBindingsToLLVM(context, endwithpointer, tail.next)
+
+	if(!endwithpointer)
+	{
+		EpochLLVMCodeCreateDereference(context.Context)
+	}
 }
 
-EmitCompoundSubsequentBindingsToLLVM : LLVMBuildContext ref context, nothing
+EmitCompoundSubsequentBindingsToLLVM : LLVMBuildContext ref context, boolean endwithpointer, nothing
 
-EmitCompoundSubsequentBindingsToLLVM : LLVMBuildContext ref context, list<RefBinding> ref bindings
+EmitCompoundSubsequentBindingsToLLVM : LLVMBuildContext ref context, boolean endwithpointer, list<RefBinding> ref bindings
 {
+	EpochLLVMCodeCreateDereference(context.Context)
+
 	EmitSingleAtomToLLVM(context, bindings.value)
-	EmitCompoundSubsequentBindingsToLLVM(context, bindings.next)
+
+	EmitCompoundSubsequentBindingsToLLVM(context, endwithpointer, bindings.next)
 }
 
 
-
+CheckForFollowingBinding : list<RefBinding> ref thelist -> true
+CheckForFollowingBinding : nothing -> false
 
 
 
