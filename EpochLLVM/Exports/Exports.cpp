@@ -193,6 +193,14 @@ extern "C" void* EpochLLVMCodeCreateGEP(void* context, unsigned index)
 	return reinterpret_cast<CodeGen::Context*>(context)->CodeCreateGEP(index);
 }
 
+extern "C" void* EpochLLVMCodeCreateGlobal(void* context, void* type, const wchar_t* name)
+{
+	std::wstring widename(name);
+	std::string narrowname(widename.begin(), widename.end());
+
+	return reinterpret_cast<CodeGen::Context*>(context)->CodeCreateGlobal(reinterpret_cast<llvm::Type*>(type), narrowname.c_str());
+}
+
 extern "C" void EpochLLVMCodeCreateRead(void* context, void* allocatarget)
 {
 	reinterpret_cast<CodeGen::Context*>(context)->CodeCreateRead(reinterpret_cast<llvm::AllocaInst*>(allocatarget));
@@ -228,6 +236,11 @@ extern "C" void EpochLLVMCodeCreateWrite(void* context, void* allocatarget)
 	reinterpret_cast<CodeGen::Context*>(context)->CodeCreateWrite(reinterpret_cast<llvm::AllocaInst*>(allocatarget));
 }
 
+extern "C" void EpochLLVMCodeCreateWriteIndirect(void* context, void* allocatarget)
+{
+	reinterpret_cast<CodeGen::Context*>(context)->CodeCreateWriteIndirect(reinterpret_cast<llvm::AllocaInst*>(allocatarget));
+}
+
 extern "C" void EpochLLVMCodeCreateWriteParam(void* context, unsigned index)
 {
 	reinterpret_cast<CodeGen::Context*>(context)->CodeCreateWriteParam(index);
@@ -258,6 +271,11 @@ extern "C" void EpochLLVMCodeCreateDereference(void* context)
 extern "C" void EpochLLVMCodeOperatorBooleanNot(void* context)
 {
 	reinterpret_cast<CodeGen::Context*>(context)->CodeCreateOperatorBooleanNot();
+}
+
+extern "C" void EpochLLVMCodeOperatorIntegerBitwiseAnd(void* context)
+{
+	reinterpret_cast<CodeGen::Context*>(context)->CodeCreateOperatorIntegerBitwiseAnd();
 }
 
 extern "C" void EpochLLVMCodeOperatorIntegerEquals(void* context)
@@ -342,6 +360,11 @@ extern "C" void EpochLLVMCodePushRawGEP(void* context, void* gep)
 	reinterpret_cast<CodeGen::Context*>(context)->CodePushRawGEP(reinterpret_cast<llvm::Value*>(gep));
 }
 
+extern "C" void EpochLLVMCodePushRawGlobal(void* context, void* global)
+{
+	reinterpret_cast<CodeGen::Context*>(context)->CodePushRawGlobal(reinterpret_cast<llvm::GlobalVariable*>(global));
+}
+
 extern "C" void EpochLLVMCodePushString(void* context, unsigned handle)
 {
 	reinterpret_cast<CodeGen::Context*>(context)->CodePushString(handle);
@@ -402,6 +425,13 @@ extern "C" void* EpochLLVMSumTypeCreate(void* context, const wchar_t* name, unsi
 	std::string narrowname(widename.begin(), widename.end());
 	return reinterpret_cast<CodeGen::Context*>(context)->SumTypeCreate(narrowname.c_str(), width);
 }
+
+
+extern "C" void EpochLLVMCodeMergeSumType(void* context)
+{
+	reinterpret_cast<CodeGen::Context*>(context)->SumTypeMerge();
+}
+
 
 
 extern "C" void EpochLLVMSectionCopyPData(void* context, void* buffer)

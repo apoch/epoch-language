@@ -85,6 +85,7 @@ namespace CodeGen
 		void CodeCreateCondBranch(llvm::Value* cond, llvm::BasicBlock* truetarget, llvm::BasicBlock* falsetarget);
 		void CodeCreateDereference();
 		llvm::Value* CodeCreateGEP(unsigned index);
+		llvm::GlobalVariable* CodeCreateGlobal(llvm::Type* type, const char* varname);
 		void CodeCreateRead(llvm::AllocaInst* allocatarget);
 		void* CodeCreateReadArray(llvm::AllocaInst* allocatarget);
 		void CodeCreateReadParam(unsigned index);
@@ -92,12 +93,14 @@ namespace CodeGen
 		void CodeCreateRet();
 		void CodeCreateRetVoid();
 		void CodeCreateWrite(llvm::AllocaInst* allocatarget);
+		void CodeCreateWriteIndirect(llvm::AllocaInst* allocatarget);
 		void CodeCreateWriteParam(unsigned index);
 		void CodeCreateWriteStructure(llvm::Value* gep);
 		void CodeCreateWriteStructurePop();
 		void CodeCreateWriteStructurePopSumType();
 
 		void CodeCreateOperatorBooleanNot();
+		void CodeCreateOperatorIntegerBitwiseAnd();
 		void CodeCreateOperatorIntegerEquals();
 		void CodeCreateOperatorIntegerNotEquals();
 		void CodeCreateOperatorIntegerGreaterThan();
@@ -115,6 +118,7 @@ namespace CodeGen
 		void CodePushRawAlloca(llvm::AllocaInst* alloc);
 		void CodePushRawCall(llvm::CallInst* callinst);
 		void CodePushRawGEP(llvm::Value* gep);
+		void CodePushRawGlobal(llvm::GlobalVariable* global);
 		void CodePushString(unsigned handle);
 		void CodePushFunction(llvm::Function* func);
 		void CodePushExtractedStructValue(unsigned memberindex);
@@ -123,6 +127,8 @@ namespace CodeGen
 		llvm::Value* CodePopValue();
 
 		void CodeStatementFinalize();
+
+		void SumTypeMerge();
 
 	public:		// Object code emission interface
 		void PrepareBinaryObject();

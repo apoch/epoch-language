@@ -1,6 +1,8 @@
 LIBRARY "EpochRT"
 EXPORTS
 	ERT_assert
+	ERT_buffer_alloc
+	ERT_integer16_from_integer
 	ERT_passtest
 	ERT_print
 	ERT_string_concat

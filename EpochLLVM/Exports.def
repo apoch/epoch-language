@@ -45,6 +45,7 @@ EXPORTS
 	EpochLLVMCodeCreateCast
 	EpochLLVMCodeCreateCondBranch
 	EpochLLVMCodeCreateGEP
+	EpochLLVMCodeCreateGlobal
 	EpochLLVMCodeCreateRead
 	EpochLLVMCodeCreateReadArray
 	EpochLLVMCodeCreateReadParam
@@ -52,6 +53,7 @@ EXPORTS
 	EpochLLVMCodeCreateRet
 	EpochLLVMCodeCreateRetVoid
 	EpochLLVMCodeCreateWrite
+	EpochLLVMCodeCreateWriteIndirect
 	EpochLLVMCodeCreateWriteParam
 	EpochLLVMCodeCreateWriteStructure
 	EpochLLVMCodeCreateWriteStructurePop
@@ -60,6 +62,7 @@ EXPORTS
 	EpochLLVMCodeCreateDereference
 
 	EpochLLVMCodeOperatorBooleanNot
+	EpochLLVMCodeOperatorIntegerBitwiseAnd
 	EpochLLVMCodeOperatorIntegerEquals
 	EpochLLVMCodeOperatorIntegerNotEquals
 	EpochLLVMCodeOperatorIntegerGreaterThan
@@ -77,6 +80,7 @@ EXPORTS
 	EpochLLVMCodePushRawAlloca
 	EpochLLVMCodePushRawCall
 	EpochLLVMCodePushRawGEP
+	EpochLLVMCodePushRawGlobal
 	EpochLLVMCodePushString
 	EpochLLVMCodePushFunction
 	EpochLLVMCodePushExtractedStructValue
@@ -88,7 +92,8 @@ EXPORTS
 
 	EpochLLVMGetCurrentBasicBlock
 	EpochLLVMSetCurrentBasicBlock
-
+	
+	EpochLLVMCodeMergeSumType
 
 	EpochLLVMSectionGetPDataSize
 	EpochLLVMSectionCopyPData

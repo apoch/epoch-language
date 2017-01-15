@@ -635,13 +635,17 @@ TypeInference : Statement ref statement, InferenceContext ref context -> boolean
 
 	if(vartype != 0)
 	{
-		if(isuserfunc)
-		{
-			AnnotateTypeMatchedParamsForWrapper(contextfunc, statement.Parameters)
-		}
-		else
+		if(StructureConstructorExists(Structures, statement.Name))
 		{
 			FindConstructorAndAnnotateTypeMatchedParams(Structures, statement.Name, statement.Parameters)
+		}
+		elseif(SumTypeExists(statement.Name))
+		{
+			AnnotateNonReferenceParameters(statement.Parameters)
+		}
+		elseif(isuserfunc)
+		{
+			AnnotateTypeMatchedParamsForWrapper(contextfunc, statement.Parameters)
 		}
 		
 		if((vartype & 0x7f000000) == 0x05000000)
