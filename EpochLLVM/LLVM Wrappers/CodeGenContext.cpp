@@ -710,13 +710,9 @@ llvm::CallInst* Context::CodeCreateCall(llvm::Function* target)
 	{
 		if(target->getFunctionType()->getParamType(i) != relevantargs[i]->getType())
 		{
-			for(size_t j = 0; j <= i; ++j)
-			{
-				target->getFunctionType()->getParamType(j)->dump();
-				relevantargs[i]->getType()->dump();
-			}
+			// TODO - this is terribad. At least assert that both types are sum types and both types have the same shape!
 
-			assert(false);
+			relevantargs[i] = LLVMBuilder.CreatePointerCast(relevantargs[i], target->getFunctionType()->getParamType(i));
 		}
 	}
 
