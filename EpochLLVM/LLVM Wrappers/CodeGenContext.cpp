@@ -901,12 +901,23 @@ void Context::CodeCreateWrite(llvm::AllocaInst* originaltarget)
 		Value* readannotationgep = LLVMBuilder.CreateExtractValue(wv, { 0 });
 		Value* readpayloadgep = LLVMBuilder.CreateExtractValue(wv, { 1 });
 
-		Value* loadedtarget = LLVMBuilder.CreateLoad(allocatarget);
-		Value* annotationgep = LLVMBuilder.CreateGEP(loadedtarget, { ConstantInt::get(TypeGetInteger(), 0), ConstantInt::get(TypeGetInteger(), 0) });
-		Value* payloadgep = LLVMBuilder.CreateGEP(loadedtarget, { ConstantInt::get(TypeGetInteger(), 0), ConstantInt::get(TypeGetInteger(), 1) });
+		if(allocatarget->getType()->getPointerElementType()->isPointerTy())
+		{
+			Value* loadedtarget = LLVMBuilder.CreateLoad(allocatarget);
+			Value* annotationgep = LLVMBuilder.CreateGEP(loadedtarget, { ConstantInt::get(TypeGetInteger(), 0), ConstantInt::get(TypeGetInteger(), 0) });
+			Value* payloadgep = LLVMBuilder.CreateGEP(loadedtarget, { ConstantInt::get(TypeGetInteger(), 0), ConstantInt::get(TypeGetInteger(), 1) });
 
-		LLVMBuilder.CreateStore(readannotationgep, annotationgep);
-		LLVMBuilder.CreateStore(readpayloadgep, payloadgep);
+			LLVMBuilder.CreateStore(readannotationgep, annotationgep);
+			LLVMBuilder.CreateStore(readpayloadgep, payloadgep);
+		}
+		else
+		{
+			Value* annotationgep = LLVMBuilder.CreateGEP(allocatarget, { ConstantInt::get(TypeGetInteger(), 0), ConstantInt::get(TypeGetInteger(), 0) });
+			Value* payloadgep = LLVMBuilder.CreateGEP(allocatarget, { ConstantInt::get(TypeGetInteger(), 0), ConstantInt::get(TypeGetInteger(), 1) });
+
+			LLVMBuilder.CreateStore(readannotationgep, annotationgep);
+			LLVMBuilder.CreateStore(LLVMBuilder.CreatePtrToInt(readpayloadgep, payloadgep->getType()->getPointerElementType()), payloadgep);
+		}
 	}
 	else
 		LLVMBuilder.CreateStore(wv, allocatarget);
