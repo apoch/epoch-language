@@ -1269,6 +1269,10 @@ EmitSingleAtomToLLVM : LLVMBuildContext ref context, IdentifierAtom ref idatom
 						EpochLLVMCodeCreateDereference(context.Context)
 					}
 				}
+				elseif(alloca == 0)
+				{
+					EpochLLVMCodeCreateDereference(context.Context)
+				}
 			}
 		}
 	}
