@@ -112,6 +112,7 @@ EpochLLVMCodeCreateReadStructure : LLVMContextHandle handle, LLVMGEP gep								
 EpochLLVMCodeCreateRet : LLVMContextHandle handle																	[external("EpochLLVM.dll", "EpochLLVMCodeCreateRet")]
 EpochLLVMCodeCreateRetVoid : LLVMContextHandle handle																[external("EpochLLVM.dll", "EpochLLVMCodeCreateRetVoid")]
 EpochLLVMCodeCreateWrite : LLVMContextHandle handle, LLVMAlloca alloca												[external("EpochLLVM.dll", "EpochLLVMCodeCreateWrite")]
+EpochLLVMCodeCreateWriteGlobal : LLVMContextHandle handle, LLVMGlobalVar global										[external("EpochLLVM.dll", "EpochLLVMCodeCreateWriteGlobal")]
 EpochLLVMCodeCreateWriteIndirect : LLVMContextHandle handle, LLVMAlloca alloca										[external("EpochLLVM.dll", "EpochLLVMCodeCreateWriteIndirect")]
 EpochLLVMCodeCreateWriteParam : LLVMContextHandle handle, integer index												[external("EpochLLVM.dll", "EpochLLVMCodeCreateWriteParam")]
 EpochLLVMCodeCreateWriteStructure : LLVMContextHandle handle, LLVMGEP gep											[external("EpochLLVM.dll", "EpochLLVMCodeCreateWriteStructure")]
@@ -123,6 +124,7 @@ EpochLLVMCodeCreateDereference : LLVMContextHandle handle															[externa
 EpochLLVMCodeStatementFinalize : LLVMContextHandle handle															[external("EpochLLVM.dll", "EpochLLVMCodeStatementFinalize")]
 
 EpochLLVMCodeOperatorBooleanNot : LLVMContextHandle context															[external("EpochLLVM.dll", "EpochLLVMCodeOperatorBooleanNot")]
+EpochLLVMCodeOperatorBooleanAnd : LLVMContextHandle context															[external("EpochLLVM.dll", "EpochLLVMCodeOperatorBooleanAnd")]
 EpochLLVMCodeOperatorIntegerBitwiseAnd : LLVMContextHandle context													[external("EpochLLVM.dll", "EpochLLVMCodeOperatorIntegerBitwiseAnd")]
 EpochLLVMCodeOperatorIntegerEquals : LLVMContextHandle context														[external("EpochLLVM.dll", "EpochLLVMCodeOperatorIntegerEquals")]
 EpochLLVMCodeOperatorIntegerNotEquals : LLVMContextHandle context													[external("EpochLLVM.dll", "EpochLLVMCodeOperatorIntegerNotEquals")]
@@ -940,26 +942,55 @@ EmitSingleCodeBlockEntryToLLVM : LLVMBuildContext ref context, PreOpStatement re
 {
 	LLVMAlloca alloca = 0
 	BinaryTreeCopyPayload<LLVMAlloca>(context.LocalVariables.RootNode, preop.Operand.value, alloca)
-	assertmsg(alloca != 0, "Missing alloca for pre-operand")
-
-	if(countnonzero(preop.Operand) == 1)
+	if(alloca != 0)
 	{
-		if(preop.Operator == PooledStringHandleForPrePostIncrementInteger)
+		if(countnonzero(preop.Operand) == 1)
 		{
-			EpochLLVMCodeCreateRead(context.Context, alloca)
-			EpochLLVMCodePushInteger(context.Context, 1)
-			EpochLLVMCodeOperatorIntegerPlus(context.Context)
-			EpochLLVMCodeCreateWrite(context.Context, alloca)
-			EpochLLVMCodeCreateRead(context.Context, alloca)
+			if(preop.Operator == PooledStringHandleForPrePostIncrementInteger)
+			{
+				EpochLLVMCodeCreateRead(context.Context, alloca)
+				EpochLLVMCodePushInteger(context.Context, 1)
+				EpochLLVMCodeOperatorIntegerPlus(context.Context)
+				EpochLLVMCodeCreateWrite(context.Context, alloca)
+				EpochLLVMCodeCreateRead(context.Context, alloca)
+			}
+			else
+			{
+				assertmsg(false, "Unsupported pre-operation")
+			}
 		}
 		else
 		{
-			assertmsg(false, "Unsupported pre-operation")
+			assertmsg(false, "Compound preincrement/decrement not implemented")
 		}
 	}
-	else
+	else		// Must be a parameter
 	{
-		assertmsg(false, "Compound preincrement/decrement not implemented")
+		LLVMGlobalVar global = 0
+		BinaryTreeCopyPayload<LLVMGlobalVar>(context.GlobalVariables.RootNode, preop.Operand.value, global)
+		assertmsg(global != 0, "Missing local and global variable")
+
+		if(countnonzero(preop.Operand) == 1)
+		{
+			if(preop.Operator == PooledStringHandleForPrePostIncrementInteger)
+			{
+				EpochLLVMCodePushRawGlobal(context.Context, global)
+				EpochLLVMCodeCreateDereference(context.Context)
+				EpochLLVMCodePushInteger(context.Context, 1)
+				EpochLLVMCodeOperatorIntegerPlus(context.Context)
+				EpochLLVMCodeCreateWriteGlobal(context.Context, global)
+				EpochLLVMCodePushRawGlobal(context.Context, global)
+				EpochLLVMCodeCreateDereference(context.Context)
+			}
+			else
+			{
+				assertmsg(false, "Unsupported pre-operation")
+			}
+		}
+		else
+		{
+			assertmsg(false, "Compound preincrement/decrement not implemented")
+		}		
 	}
 }
 
@@ -1292,6 +1323,10 @@ EmitSingleAtomToLLVM : LLVMBuildContext ref context, OperatorInvokeAtom ref atom
 	{
 		EpochLLVMCodeOperatorIntegerBitwiseAnd(context.Context)
 	}
+	elseif(atom.OperatorName == PooledStringHandleForBooleanAnd)
+	{
+		EpochLLVMCodeOperatorBooleanAnd(context.Context)
+	}
 	elseif(atom.OperatorName == PooledStringHandleForEqualityString)
 	{
 		getthunk = true
@@ -1371,6 +1406,16 @@ EmitSingleAtomToLLVM : LLVMBuildContext ref context, ParentheticalExpression ref
 DecomposeParentheticalInLLVM : LLVMBuildContext ref context, Expression ref expr
 {
 	EmitExpressionAtomsToLLVM(context, expr.Atoms)
+}
+
+DecomposeParentheticalInLLVM : LLVMBuildContext ref context, PreOpStatement ref preop
+{
+	EmitSingleCodeBlockEntryToLLVM(context, preop)
+}
+
+DecomposeParentheticalInLLVM : LLVMBuildContext ref context, PostOpStatement ref postop
+{
+	assertmsg(false, "Post-operations are not supported yet")
 }
 
 

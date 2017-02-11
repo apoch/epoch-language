@@ -923,6 +923,14 @@ void Context::CodeCreateWrite(llvm::AllocaInst* originaltarget)
 		LLVMBuilder.CreateStore(wv, allocatarget);
 }
 
+void Context::CodeCreateWrite(llvm::GlobalVariable* globaltarget)
+{
+	Value* wv = PendingValues.back();
+	PendingValues.pop_back();
+
+	LLVMBuilder.CreateStore(wv, globaltarget);
+}
+
 void Context::CodeCreateWriteIndirect(llvm::AllocaInst* allocatarget)
 {
 	Value* wv = PendingValues.back();
@@ -1000,6 +1008,18 @@ void Context::CodeCreateOperatorBooleanNot()
 
 	llvm::Value* notval = LLVMBuilder.CreateNot(val);
 	PendingValues.push_back(notval);
+}
+
+void Context::CodeCreateOperatorBooleanAnd()
+{
+	llvm::Value* operand2 = PendingValues.back();
+	PendingValues.pop_back();
+
+	llvm::Value* operand1 = PendingValues.back();
+	PendingValues.pop_back();
+
+	llvm::Value* result = LLVMBuilder.CreateAnd(operand1, operand2);
+	PendingValues.push_back(result);
 }
 
 void Context::CodeCreateOperatorIntegerBitwiseAnd()

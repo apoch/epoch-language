@@ -53,6 +53,7 @@ EXPORTS
 	EpochLLVMCodeCreateRet
 	EpochLLVMCodeCreateRetVoid
 	EpochLLVMCodeCreateWrite
+	EpochLLVMCodeCreateWriteGlobal
 	EpochLLVMCodeCreateWriteIndirect
 	EpochLLVMCodeCreateWriteParam
 	EpochLLVMCodeCreateWriteStructure
@@ -62,6 +63,7 @@ EXPORTS
 	EpochLLVMCodeCreateDereference
 
 	EpochLLVMCodeOperatorBooleanNot
+	EpochLLVMCodeOperatorBooleanAnd
 	EpochLLVMCodeOperatorIntegerBitwiseAnd
 	EpochLLVMCodeOperatorIntegerEquals
 	EpochLLVMCodeOperatorIntegerNotEquals

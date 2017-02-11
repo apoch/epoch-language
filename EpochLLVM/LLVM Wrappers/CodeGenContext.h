@@ -93,6 +93,7 @@ namespace CodeGen
 		void CodeCreateRet();
 		void CodeCreateRetVoid();
 		void CodeCreateWrite(llvm::AllocaInst* allocatarget);
+		void CodeCreateWrite(llvm::GlobalVariable* globaltarget);
 		void CodeCreateWriteIndirect(llvm::AllocaInst* allocatarget);
 		void CodeCreateWriteParam(unsigned index);
 		void CodeCreateWriteStructure(llvm::Value* gep);
@@ -100,6 +101,7 @@ namespace CodeGen
 		void CodeCreateWriteStructurePopSumType();
 
 		void CodeCreateOperatorBooleanNot();
+		void CodeCreateOperatorBooleanAnd();
 		void CodeCreateOperatorIntegerBitwiseAnd();
 		void CodeCreateOperatorIntegerEquals();
 		void CodeCreateOperatorIntegerNotEquals();
