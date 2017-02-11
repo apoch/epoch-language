@@ -236,6 +236,11 @@ extern "C" void EpochLLVMCodeCreateWrite(void* context, void* allocatarget)
 	reinterpret_cast<CodeGen::Context*>(context)->CodeCreateWrite(reinterpret_cast<llvm::AllocaInst*>(allocatarget));
 }
 
+extern "C" void EpochLLVMCodeCreateWriteGlobal(void* context, void* allocatarget)
+{
+	reinterpret_cast<CodeGen::Context*>(context)->CodeCreateWrite(reinterpret_cast<llvm::GlobalVariable*>(allocatarget));
+}
+
 extern "C" void EpochLLVMCodeCreateWriteIndirect(void* context, void* allocatarget)
 {
 	reinterpret_cast<CodeGen::Context*>(context)->CodeCreateWriteIndirect(reinterpret_cast<llvm::AllocaInst*>(allocatarget));
@@ -271,6 +276,11 @@ extern "C" void EpochLLVMCodeCreateDereference(void* context)
 extern "C" void EpochLLVMCodeOperatorBooleanNot(void* context)
 {
 	reinterpret_cast<CodeGen::Context*>(context)->CodeCreateOperatorBooleanNot();
+}
+
+extern "C" void EpochLLVMCodeOperatorBooleanAnd(void* context)
+{
+	reinterpret_cast<CodeGen::Context*>(context)->CodeCreateOperatorBooleanAnd();
 }
 
 extern "C" void EpochLLVMCodeOperatorIntegerBitwiseAnd(void* context)

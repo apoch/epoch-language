@@ -112,6 +112,7 @@ EpochLLVMCodeCreateReadStructure : LLVMContextHandle handle, LLVMGEP gep								
 EpochLLVMCodeCreateRet : LLVMContextHandle handle																	[external("EpochLLVM.dll", "EpochLLVMCodeCreateRet")]
 EpochLLVMCodeCreateRetVoid : LLVMContextHandle handle																[external("EpochLLVM.dll", "EpochLLVMCodeCreateRetVoid")]
 EpochLLVMCodeCreateWrite : LLVMContextHandle handle, LLVMAlloca alloca												[external("EpochLLVM.dll", "EpochLLVMCodeCreateWrite")]
+EpochLLVMCodeCreateWriteGlobal : LLVMContextHandle handle, LLVMGlobalVar global										[external("EpochLLVM.dll", "EpochLLVMCodeCreateWriteGlobal")]
 EpochLLVMCodeCreateWriteIndirect : LLVMContextHandle handle, LLVMAlloca alloca										[external("EpochLLVM.dll", "EpochLLVMCodeCreateWriteIndirect")]
 EpochLLVMCodeCreateWriteParam : LLVMContextHandle handle, integer index												[external("EpochLLVM.dll", "EpochLLVMCodeCreateWriteParam")]
 EpochLLVMCodeCreateWriteStructure : LLVMContextHandle handle, LLVMGEP gep											[external("EpochLLVM.dll", "EpochLLVMCodeCreateWriteStructure")]
@@ -123,6 +124,7 @@ EpochLLVMCodeCreateDereference : LLVMContextHandle handle															[externa
 EpochLLVMCodeStatementFinalize : LLVMContextHandle handle															[external("EpochLLVM.dll", "EpochLLVMCodeStatementFinalize")]
 
 EpochLLVMCodeOperatorBooleanNot : LLVMContextHandle context															[external("EpochLLVM.dll", "EpochLLVMCodeOperatorBooleanNot")]
+EpochLLVMCodeOperatorBooleanAnd : LLVMContextHandle context															[external("EpochLLVM.dll", "EpochLLVMCodeOperatorBooleanAnd")]
 EpochLLVMCodeOperatorIntegerBitwiseAnd : LLVMContextHandle context													[external("EpochLLVM.dll", "EpochLLVMCodeOperatorIntegerBitwiseAnd")]
 EpochLLVMCodeOperatorIntegerEquals : LLVMContextHandle context														[external("EpochLLVM.dll", "EpochLLVMCodeOperatorIntegerEquals")]
 EpochLLVMCodeOperatorIntegerNotEquals : LLVMContextHandle context													[external("EpochLLVM.dll", "EpochLLVMCodeOperatorIntegerNotEquals")]
@@ -391,11 +393,11 @@ GetLLVMTypeForEpochType : LLVMContextHandle context, integer typeid -> LLVMType 
 	}
 	elseif(IsSumType(typeid))
 	{
-		boolean found = BinaryTreeCopyPayload<LLVMType>(LLVMSumTypeTable.RootNode, 0x07000001, t)		// TODO - use real sum type signatures!!
+		boolean found = BinaryTreeCopyPayload<LLVMType>(LLVMSumTypeTable.RootNode, typeid, t)
 		if(!found)
 		{
-			t = EpochLLVMSumTypeCreate(context, GetPooledString(GetNameOfType(typeid)), 8) //GetTypeSize(typeid))			// TODO - proper sum type payload sizes
-			BinaryTreeCreateOrInsert<LLVMType>(LLVMSumTypeTable, 0x07000001, t)
+			t = EpochLLVMSumTypeCreate(context, GetPooledString(GetNameOfType(typeid)), GetTypeSize(typeid))			// TODO - double check return values from this function
+			BinaryTreeCreateOrInsert<LLVMType>(LLVMSumTypeTable, typeid, t)
 		}
 	}
 	elseif(IsArrayType(typeid))
@@ -499,7 +501,7 @@ EmitRetInitializerToLLVM : LLVMBuildContext ref context, FunctionDefinition ref 
 	
 	LLVMAlloca alloca = 0
 	BinaryTreeCopyPayload<LLVMAlloca>(context.LocalVariables.RootNode, returnname, alloca)
-	
+	assertmsg(alloca != 0, "Missing return alloca")
 	
 	EmitExpressionAtomsToLLVM(context, expr.Atoms)
 	
@@ -530,6 +532,7 @@ EmitParamInitializersToLLVM : LLVMBuildContext ref context, FunctionDefinition r
 {
 	LLVMAlloca alloca = 0
 	BinaryTreeCopyPayload<LLVMAlloca>(context.LocalVariables.RootNode, params.value.NameHandle, alloca)
+	assertmsg(alloca != 0, "Missing local alloca for parameter")
 	
 	EpochLLVMCodeCreateReadParam(context.Context, paramindex)
 	EpochLLVMCodeCreateWrite(context.Context, alloca)
@@ -657,6 +660,7 @@ EmitReturnRegisterToLLVM : LLVMBuildContext ref context, FunctionDefinition ref 
 	
 	LLVMAlloca alloca = 0
 	BinaryTreeCopyPayload<LLVMAlloca>(context.LocalVariables.RootNode, returnname, alloca)
+	assertmsg(alloca != 0, "Missing alloca for return value")
 	
 	EpochLLVMCodeCreateRead(context.Context, alloca)
 	EpochLLVMCodeCreateRet(context.Context)
@@ -699,6 +703,7 @@ EmitAssignmentRHSToLLVM : LLVMBuildContext ref context, Assignment ref entry
 	
 	LLVMAlloca alloca = 0
 	BinaryTreeCopyPayload<LLVMAlloca>(context.LocalVariables.RootNode, entry.LHSName, alloca)
+	assertmsg(alloca != 0, "Missing local assignment LHS")
 
 	EpochLLVMCodeCreateRead(context.Context, alloca)
 }
@@ -714,6 +719,7 @@ EmitSingleCodeBlockEntryToLLVM : LLVMBuildContext ref context, Assignment ref en
 {
 	LLVMAlloca alloca = 0
 	BinaryTreeCopyPayload<LLVMAlloca>(context.LocalVariables.RootNode, entry.LHSName, alloca)
+	assertmsg(alloca != 0, "Missing alloca for assignment LHS")
 
 	EmitAssignmentRHSToLLVM(context, entry.RHS)
 
@@ -754,6 +760,7 @@ EmitSingleCodeBlockEntryToLLVM : LLVMBuildContext ref context, AssignmentArrayIn
 		
 	LLVMAlloca alloca = 0
 	BinaryTreeCopyPayload<LLVMAlloca>(context.LocalVariables.RootNode, entry.LHSName, alloca)
+	assertmsg(alloca != 0, "Missing array")
 
 	EmitExpressionAtomsToLLVM(context, entry.IndexExpression)
 	EpochLLVMCodeCreateReadArray(context.Context, alloca)
@@ -768,6 +775,7 @@ EmitSingleCodeBlockEntryToLLVM : LLVMBuildContext ref context, AssignmentCompoun
 	
 	LLVMAlloca alloca = 0
 	BinaryTreeCopyPayload<LLVMAlloca>(context.LocalVariables.RootNode, entry.LHS.value, alloca)
+	assertmsg(alloca != 0, "Missing compound assignment LHS")
 	
 	integer typeid = FindVariableType(entry.LHS.value)
 	boolean isref = IsReferenceType(typeid)
@@ -934,25 +942,55 @@ EmitSingleCodeBlockEntryToLLVM : LLVMBuildContext ref context, PreOpStatement re
 {
 	LLVMAlloca alloca = 0
 	BinaryTreeCopyPayload<LLVMAlloca>(context.LocalVariables.RootNode, preop.Operand.value, alloca)
-
-	if(countnonzero(preop.Operand) == 1)
+	if(alloca != 0)
 	{
-		if(preop.Operator == PooledStringHandleForPrePostIncrementInteger)
+		if(countnonzero(preop.Operand) == 1)
 		{
-			EpochLLVMCodeCreateRead(context.Context, alloca)
-			EpochLLVMCodePushInteger(context.Context, 1)
-			EpochLLVMCodeOperatorIntegerPlus(context.Context)
-			EpochLLVMCodeCreateWrite(context.Context, alloca)
-			EpochLLVMCodeCreateRead(context.Context, alloca)
+			if(preop.Operator == PooledStringHandleForPrePostIncrementInteger)
+			{
+				EpochLLVMCodeCreateRead(context.Context, alloca)
+				EpochLLVMCodePushInteger(context.Context, 1)
+				EpochLLVMCodeOperatorIntegerPlus(context.Context)
+				EpochLLVMCodeCreateWrite(context.Context, alloca)
+				EpochLLVMCodeCreateRead(context.Context, alloca)
+			}
+			else
+			{
+				assertmsg(false, "Unsupported pre-operation")
+			}
 		}
 		else
 		{
-			assertmsg(false, "Unsupported pre-operation")
+			assertmsg(false, "Compound preincrement/decrement not implemented")
 		}
 	}
-	else
+	else		// Must be a parameter
 	{
-		assertmsg(false, "Compound preincrement/decrement not implemented")
+		LLVMGlobalVar global = 0
+		BinaryTreeCopyPayload<LLVMGlobalVar>(context.GlobalVariables.RootNode, preop.Operand.value, global)
+		assertmsg(global != 0, "Missing local and global variable")
+
+		if(countnonzero(preop.Operand) == 1)
+		{
+			if(preop.Operator == PooledStringHandleForPrePostIncrementInteger)
+			{
+				EpochLLVMCodePushRawGlobal(context.Context, global)
+				EpochLLVMCodeCreateDereference(context.Context)
+				EpochLLVMCodePushInteger(context.Context, 1)
+				EpochLLVMCodeOperatorIntegerPlus(context.Context)
+				EpochLLVMCodeCreateWriteGlobal(context.Context, global)
+				EpochLLVMCodePushRawGlobal(context.Context, global)
+				EpochLLVMCodeCreateDereference(context.Context)
+			}
+			else
+			{
+				assertmsg(false, "Unsupported pre-operation")
+			}
+		}
+		else
+		{
+			assertmsg(false, "Compound preincrement/decrement not implemented")
+		}		
 	}
 }
 
@@ -1172,6 +1210,7 @@ EmitSingleAtomToLLVM : LLVMBuildContext ref context, IdentifierAtom ref idatom
 				{
 					LLVMAlloca alloca = 0
 					BinaryTreeCopyPayload<LLVMAlloca>(context.LocalVariables.RootNode, idatom.Handle, alloca)
+					assertmsg(alloca != 0, "Missing variable")
 
 					EpochLLVMCodePushRawAlloca(context.Context, alloca)
 				}
@@ -1199,13 +1238,24 @@ EmitSingleAtomToLLVM : LLVMBuildContext ref context, IdentifierAtom ref idatom
 				LLVMAlloca alloca = 0
 				BinaryTreeCopyPayload<LLVMAlloca>(context.LocalVariables.RootNode, idatom.Handle, alloca)
 
-				if(idatom.IsReference)
+				if(alloca == 0)
 				{
-					EpochLLVMCodePushRawAlloca(context.Context, alloca)
+					LLVMGlobalVar global = 0
+					BinaryTreeCopyPayload<LLVMGlobalVar>(context.GlobalVariables.RootNode, idatom.Handle, global)
+		
+					assertmsg(global != 0, "Missing local and global variable")
+					EpochLLVMCodePushRawGlobal(context.Context, global)		
 				}
 				else
-				{	
-					EpochLLVMCodeCreateRead(context.Context, alloca)
+				{
+					if(idatom.IsReference)
+					{
+						EpochLLVMCodePushRawAlloca(context.Context, alloca)
+					}
+					else
+					{	
+						EpochLLVMCodeCreateRead(context.Context, alloca)
+					}
 				}
 					
 				Variable var = 0, 0, 0, 0
@@ -1219,32 +1269,13 @@ EmitSingleAtomToLLVM : LLVMBuildContext ref context, IdentifierAtom ref idatom
 						EpochLLVMCodeCreateDereference(context.Context)
 					}
 				}
-					
-					
-					//integer frames = 0
-					//integer index = FindVariable(idatom.Handle, frames)
-
-					//if(frames == 0)
-					//{
-					//	BytecodePushVarValue(stream, idatom.Handle, idatom.Type)
-					//}
-					//elseif(IsReferenceType(idatom.Type))
-					//{
-					//	BytecodeBindReference(stream, frames, index)
-					//}
-					//else
-					//{
-					//	Variable var = 0, 0, 0, 0
-					//	FindVariableDataInSingleScope(GlobalScope.Wrapped, idatom.Handle, var)
-
-					//	if(var.Name == 0)
-					//	{
-					//		print("Code generation error - missing local variable " ; GetPooledString(idatom.Handle) ; " in scope " ; GetPooledString(EmittingFunctionName))
-					//		assert(false)
-					//	}
-						
-					//	BytecodePushLocal(stream, frames, var.Offset)
-					//}
+				elseif(alloca == 0)
+				{
+					if(!idatom.IsReference)
+					{
+						EpochLLVMCodeCreateDereference(context.Context)
+					}
+				}
 			}
 		}
 	}
@@ -1299,6 +1330,10 @@ EmitSingleAtomToLLVM : LLVMBuildContext ref context, OperatorInvokeAtom ref atom
 	{
 		EpochLLVMCodeOperatorIntegerBitwiseAnd(context.Context)
 	}
+	elseif(atom.OperatorName == PooledStringHandleForBooleanAnd)
+	{
+		EpochLLVMCodeOperatorBooleanAnd(context.Context)
+	}
 	elseif(atom.OperatorName == PooledStringHandleForEqualityString)
 	{
 		getthunk = true
@@ -1349,19 +1384,6 @@ EmitSingleAtomToLLVM : LLVMBuildContext ref context, CompoundAtom ref atom
 	}
 
 	EmitCompoundBindingsToLLVM(context, IsReferenceType(atom.Type), atom.Bindings, atom.Bindings.next)
-
-	//if(!IsReferenceType(atom.Type))
-	//{
-		//if((atom.Type & 0x7f000000) == 0x07000000)
-		//{
-			// TODO - sum type annotations?
-			//BytecodeReadReferenceAnnotated(stream)
-		//}
-		//else
-		//{
-		//	EpochLLVMCodeCreateDereference(context.Context)
-		//}
-	//}
 }
 
 EmitSingleAtomToLLVM : LLVMBuildContext ref context, TypeAnnotationAtom ref atom
@@ -1376,6 +1398,7 @@ EmitSingleAtomToLLVM : LLVMBuildContext ref context, ArrayIndexAtom ref atom
 
 	LLVMAlloca alloca = 0
 	BinaryTreeCopyPayload<LLVMAlloca>(context.LocalVariables.RootNode, atom.ArrayVarName, alloca)
+	assertmsg(alloca != 0, "Missing array")
 	
 	EpochLLVMCodeCreateReadArray(context.Context, alloca)
 	EpochLLVMCodeCreateDereference(context.Context)
@@ -1390,6 +1413,16 @@ EmitSingleAtomToLLVM : LLVMBuildContext ref context, ParentheticalExpression ref
 DecomposeParentheticalInLLVM : LLVMBuildContext ref context, Expression ref expr
 {
 	EmitExpressionAtomsToLLVM(context, expr.Atoms)
+}
+
+DecomposeParentheticalInLLVM : LLVMBuildContext ref context, PreOpStatement ref preop
+{
+	EmitSingleCodeBlockEntryToLLVM(context, preop)
+}
+
+DecomposeParentheticalInLLVM : LLVMBuildContext ref context, PostOpStatement ref postop
+{
+	assertmsg(false, "Post-operations are not supported yet")
 }
 
 
@@ -1414,6 +1447,7 @@ EmitCompoundBindingsToLLVM : LLVMBuildContext ref context, boolean endwithpointe
 
 	if(!endwithpointer)
 	{
+		// TODO - if ultimate binding has type != expected type, and expected type is sum type, alloca a sumtype and stash payload (don't forget to hoist allocas later)
 		EpochLLVMCodeCreateDereference(context.Context)
 	}
 }

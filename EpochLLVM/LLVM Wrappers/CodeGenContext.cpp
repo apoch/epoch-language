@@ -710,13 +710,9 @@ llvm::CallInst* Context::CodeCreateCall(llvm::Function* target)
 	{
 		if(target->getFunctionType()->getParamType(i) != relevantargs[i]->getType())
 		{
-			for(size_t j = 0; j <= i; ++j)
-			{
-				target->getFunctionType()->getParamType(j)->dump();
-				relevantargs[i]->getType()->dump();
-			}
+			// TODO - this is terribad. At least assert that both types are sum types and both types have the same shape!
 
-			assert(false);
+			relevantargs[i] = LLVMBuilder.CreatePointerCast(relevantargs[i], target->getFunctionType()->getParamType(i));
 		}
 	}
 
@@ -905,15 +901,34 @@ void Context::CodeCreateWrite(llvm::AllocaInst* originaltarget)
 		Value* readannotationgep = LLVMBuilder.CreateExtractValue(wv, { 0 });
 		Value* readpayloadgep = LLVMBuilder.CreateExtractValue(wv, { 1 });
 
-		Value* loadedtarget = LLVMBuilder.CreateLoad(allocatarget);
-		Value* annotationgep = LLVMBuilder.CreateGEP(loadedtarget, { ConstantInt::get(TypeGetInteger(), 0), ConstantInt::get(TypeGetInteger(), 0) });
-		Value* payloadgep = LLVMBuilder.CreateGEP(loadedtarget, { ConstantInt::get(TypeGetInteger(), 0), ConstantInt::get(TypeGetInteger(), 1) });
+		if(allocatarget->getType()->getPointerElementType()->isPointerTy())
+		{
+			Value* loadedtarget = LLVMBuilder.CreateLoad(allocatarget);
+			Value* annotationgep = LLVMBuilder.CreateGEP(loadedtarget, { ConstantInt::get(TypeGetInteger(), 0), ConstantInt::get(TypeGetInteger(), 0) });
+			Value* payloadgep = LLVMBuilder.CreateGEP(loadedtarget, { ConstantInt::get(TypeGetInteger(), 0), ConstantInt::get(TypeGetInteger(), 1) });
 
-		LLVMBuilder.CreateStore(readannotationgep, annotationgep);
-		LLVMBuilder.CreateStore(readpayloadgep, payloadgep);
+			LLVMBuilder.CreateStore(readannotationgep, annotationgep);
+			LLVMBuilder.CreateStore(readpayloadgep, payloadgep);
+		}
+		else
+		{
+			Value* annotationgep = LLVMBuilder.CreateGEP(allocatarget, { ConstantInt::get(TypeGetInteger(), 0), ConstantInt::get(TypeGetInteger(), 0) });
+			Value* payloadgep = LLVMBuilder.CreateGEP(allocatarget, { ConstantInt::get(TypeGetInteger(), 0), ConstantInt::get(TypeGetInteger(), 1) });
+
+			LLVMBuilder.CreateStore(readannotationgep, annotationgep);
+			LLVMBuilder.CreateStore(LLVMBuilder.CreatePtrToInt(readpayloadgep, payloadgep->getType()->getPointerElementType()), payloadgep);
+		}
 	}
 	else
 		LLVMBuilder.CreateStore(wv, allocatarget);
+}
+
+void Context::CodeCreateWrite(llvm::GlobalVariable* globaltarget)
+{
+	Value* wv = PendingValues.back();
+	PendingValues.pop_back();
+
+	LLVMBuilder.CreateStore(wv, globaltarget);
 }
 
 void Context::CodeCreateWriteIndirect(llvm::AllocaInst* allocatarget)
@@ -993,6 +1008,18 @@ void Context::CodeCreateOperatorBooleanNot()
 
 	llvm::Value* notval = LLVMBuilder.CreateNot(val);
 	PendingValues.push_back(notval);
+}
+
+void Context::CodeCreateOperatorBooleanAnd()
+{
+	llvm::Value* operand2 = PendingValues.back();
+	PendingValues.pop_back();
+
+	llvm::Value* operand1 = PendingValues.back();
+	PendingValues.pop_back();
+
+	llvm::Value* result = LLVMBuilder.CreateAnd(operand1, operand2);
+	PendingValues.push_back(result);
 }
 
 void Context::CodeCreateOperatorIntegerBitwiseAnd()
