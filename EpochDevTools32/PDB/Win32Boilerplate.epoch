@@ -1,0 +1,107 @@
+//
+// The Epoch Language Project
+// Epoch Development Tools - PDB generation test harness
+//
+// WIN32BOILERPLATE.EPOCH
+// Common Win32 linkage/infrastructure for file I/O
+//
+// This file is just a copy/paste duplicate of Win32 declarations
+// for doing things like file I/O and such. It should be coalesced
+// into a single shared library file eventually.
+//
+
+
+type Win32Handle : integer
+
+
+CreateFile :
+	string  filename,
+	integer access,
+	integer sharemode,
+	integer attributes,
+	integer creation,
+	integer flags,
+	integer template
+ ->
+	Win32Handle ret = 0
+ [external("Kernel32.dll", "CreateFileW", "stdcall")]
+ 
+
+CloseHandle : Win32Handle handle -> boolean ret = false [external("Kernel32.dll", "CloseHandle", "stdcall")]
+
+
+WriteFile :
+	Win32Handle handle,
+	buffer ref data,
+	integer numbytes,
+	integer ref written,
+	integer ignored2
+ ->
+	boolean ret = false
+ [external("Kernel32.dll", "WriteFile", "stdcall")]
+ 
+WriteFile :
+	Win32Handle handle,
+	integer ptr,
+	integer numbytes,
+	integer ref written,
+	integer ignored2
+ ->
+	boolean ret = false
+ [external("Kernel32.dll", "WriteFile", "stdcall")]
+  
+ 
+
+CreateFileMapping :
+	Win32Handle filehandle,
+	integer attributes,
+	integer protection,
+	integer maxsizehigh,
+	integer maxsizelow,
+	integer name
+ ->
+	Win32Handle ret = 0
+ [external("Kernel32.dll", "CreateFileMappingW", "stdcall")]
+ 
+
+GetFileSize :
+	Win32Handle handle,
+	integer ignored
+ ->
+	integer size = 0
+ [external("Kernel32.dll", "GetFileSize", "stdcall")]
+ 
+
+MapViewOfFile :
+	Win32Handle handle,
+	integer access,
+	integer offsethigh,
+	integer offsetlow,
+	integer bytestomap
+ ->
+	integer ptr = 0
+ [external("Kernel32.dll", "MapViewOfFile", "stdcall")]
+
+
+UnmapViewOfFile : integer ptr -> boolean ret = false [external("Kernel32.dll", "UnmapViewOfFile", "stdcall")]
+
+
+
+// TODO - replace with better option
+charat : string in, integer index -> string c = substring(in, index, 1) [nogc]
+
+
+// TODO - centralize the duplicate implementations of this function
+WritePadding : Win32Handle filehandle, integer startpos, integer desiredpos -> integer writtenbytes = 0
+{
+	writtenbytes = desiredpos - startpos
+
+	if(writtenbytes < 0)
+	{
+		assert(false)
+	}
+
+	buffer empty = writtenbytes
+	integer written = 0
+	WriteFile(filehandle, empty, writtenbytes, written, 0)
+}

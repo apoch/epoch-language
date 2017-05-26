@@ -1,0 +1,235 @@
+
+FindSumTypeAndAddBase : integer sumtypename, integer sumtypeid, integer basetypeid, boolean templated
+{
+	ContextNode<SumType> wrap = nothing
+
+	if(SearchBinaryTreeForPayload<SumType>(GlobalRootNamespace.SumTypes.RootNode, sumtypename, wrap))
+	{
+		SumTypeBase base = basetypeid, nothing
+
+		if(templated)
+		{
+			PopTemplateArgList(ScratchTemplateArgumentStack.value.Args, ScratchTemplateArgumentStack.value.Args.next)
+			TemplateArgumentList arglist = ScratchTemplateArgumentStack.value
+			base.TemplateArgs = arglist
+
+			PopTemplateArgStack(ScratchTemplateArgumentStack, ScratchTemplateArgumentStack.next)
+		}
+
+		AddBaseToSumType(wrap, base)
+	}
+	else
+	{
+		SumTypeBase base = basetypeid, nothing
+		if(templated)
+		{
+			PopTemplateArgList(ScratchTemplateArgumentStack.value.Args, ScratchTemplateArgumentStack.value.Args.next)
+			TemplateArgumentList arglist = ScratchTemplateArgumentStack.value
+			base.TemplateArgs = arglist
+
+			PopTemplateArgStack(ScratchTemplateArgumentStack, ScratchTemplateArgumentStack.next)
+		}
+
+		list<SumTypeBase> bases = base, nothing
+		SumType st = sumtypename, sumtypeid, bases, false
+		BinaryTreeCreateOrInsert<SumType>(GlobalRootNamespace.SumTypes, sumtypename, st)
+
+		BinaryTreeCreateOrInsert<integer>(TypeToNameMap, sumtypeid, sumtypename)
+	}
+	
+	assertmsg(SumTypeHasBase(sumtypeid, basetypeid), "Sum type failed to register base type!")
+}
+
+AddBaseToSumType : SumType ref st, SumTypeBase ref base
+{
+	prepend<SumTypeBase>(st.Bases, base)
+}
+
+
+SetUpSumTypeTemplate : integer sumtypeid
+{
+	ContextNode<SumType> wrap = nothing
+	if(SearchBinaryTreeForPayload<SumType>(GlobalRootNamespace.SumTypes.RootNode, FindSumTypeName(sumtypeid), wrap))
+	{
+		SetUpSumTypeTemplate(wrap)
+
+		// Reset template parameter queue
+		list<TemplateParameter> dummylist = scratchtemplateparam, nothing
+		TemplateParameterQueue = dummylist
+	}
+	else
+	{
+		print("Sum type not found!")
+		assert(false)
+	}
+}
+
+SetUpSumTypeTemplate : SumType ref st
+{
+	st.IsTemplate = true
+	CreateSumTypeTemplateAndAttachParams(st.Name, TemplateParameterQueue)
+}
+
+
+
+CountSumTypeBases : list<SumTypeBase> ref bases -> integer count = 0
+{
+	count = CountSumTypeBases(bases.next)
+
+	if(bases.value.Name != 0)
+	{
+		++count
+	}
+}
+
+CountSumTypeBases : nothing -> integer count = 0
+
+
+SumTypeExists : integer typename -> boolean exists = SearchBinaryTree<SumType>(GlobalRootNamespace.SumTypes.RootNode, typename)
+
+
+FindSumTypeName : integer typeid -> integer name = 0
+{
+	BinaryTreeCopyPayload<integer>(TypeToNameMap.RootNode, typeid, name)
+}
+
+
+
+SumTypeHasBase : integer sumtypeid, integer basetypeid -> boolean hasbase = false
+{
+	if(basetypeid == 0)
+	{
+		return()
+	}
+
+	if(sumtypeid == 0)
+	{
+		return()
+	}
+
+	ContextNode<SumType> wrap = nothing
+	if(SearchBinaryTreeForPayload<SumType>(GlobalRootNamespace.SumTypes.RootNode, FindSumTypeName(sumtypeid), wrap))
+	{
+		hasbase = CheckBaseTypes(wrap, basetypeid)
+	}
+}
+
+
+CheckBaseTypes : SumType ref st, integer basetypeid -> boolean hasbase = CheckBaseTypes(st.Bases, basetypeid)
+
+CheckBaseTypes : list<SumTypeBase> ref bases, integer basetypeid -> boolean hasbase = false
+{
+	if(bases.value.Name == basetypeid)
+	{
+		hasbase = true
+	}
+	else
+	{
+		hasbase = CheckBaseTypes(bases.next, basetypeid)
+	}
+}
+
+CheckBaseTypes : nothing, integer basetypeid -> false
+
+
+FindSumTypeByName : integer name -> integer typeid = 0
+{
+	ContextNode<SumType> wrap = nothing
+	if(SearchBinaryTreeForPayload<SumType>(GlobalRootNamespace.SumTypes.RootNode, name, wrap))
+	{
+		typeid = GrabSumTypeID(wrap)
+	}
+}
+
+GrabSumTypeID : SumType ref st -> integer typeid = st.Type
+
+
+GetLargestSumTypeBaseSize : integer typeid -> integer size = 0
+{
+	ContextNode<SumType> wrap = nothing
+	if(SearchBinaryTreeForPayload<SumType>(GlobalRootNamespace.SumTypes.RootNode, FindSumTypeName(typeid), wrap))
+	{
+		GetBaseMaxSize(wrap, size)
+	}
+}
+
+GetBaseMaxSize : SumType ref st, integer ref outsize
+{
+	GetBaseMaxSize(st.Bases, outsize)
+}
+
+GetBaseMaxSize : list<SumTypeBase> ref basetypes, integer ref outsize
+{
+	integer typename = basetypes.value.Name
+	if(typename != 0)
+	{
+		// HACK
+		if(GetTypeByName(typename) != 0)
+		{
+			typename = GetTypeByName(typename)
+		}
+
+		integer thissize = GetTypeSize(typename)
+		if(thissize > outsize)
+		{
+			outsize = thissize
+		}
+	}
+
+	GetBaseMaxSize(basetypes.next, outsize)
+}
+
+GetBaseMaxSize : nothing, integer ref outsize
+
+ResolveSumTypeBases : list<SumTypeBase> ref bases -> boolean success = true
+{
+	if(bases.value.Name != 0)
+	{
+		integer resolvedtype = ResolveSingleBase(bases.value, bases.value.TemplateArgs)
+
+		if(resolvedtype == 0)
+		{
+			print("Sum type has unknown base type")
+			success = false
+		}
+
+		bases.value.Name = resolvedtype
+	}
+
+	if(!ResolveSumTypeBases(bases.next))
+	{
+		success = false
+	}
+}
+
+ResolveSumTypeBases : nothing -> true
+
+ResolveSingleBase : SumTypeBase ref base, nothing -> integer ret = GetTypeByName(base.Name)
+ResolveSingleBase : SumTypeBase ref base, TemplateArgumentList ref args -> integer ret = GetTypeByName(InstantiateStructureTemplate(base.Name, args))
+
+
+
+PrependSumTypeBases : simplelist<integer> ref input, SumType ref st
+{
+	PrependSumTypeBases(input, st.Bases)
+}
+
+PrependSumTypeBases : simplelist<integer> ref input, list<SumTypeBase> ref newentries
+{
+	simpleprepend<integer>(input, newentries.value.Name)
+	PrependSumTypeBases(input, newentries.next)
+}
+
+PrependSumTypeBases : simplelist<integer> ref input, nothing
+
+
+FindSumTypeAndPrependTypesToList : integer sumtypeid, simplelist<integer> ref types
+{
+	ContextNode<SumType> wrap = nothing
+	if(SearchBinaryTreeForPayload<SumType>(GlobalRootNamespace.SumTypes.RootNode, FindSumTypeName(sumtypeid), wrap))
+	{
+		PrependSumTypeBases(types, wrap)
+	}
+}
+
+

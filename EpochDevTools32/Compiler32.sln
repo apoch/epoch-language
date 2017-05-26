@@ -1,0 +1,22 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 14
+VisualStudioVersion = 14.0.25420.1
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{7BD20C85-AB56-499D-B05B-D5F12345423C}") = "Compiler32", "Compiler32.eprj", "{34108B4E-8883-4C16-97C9-E55F3A4E769B}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x86 = Debug|x86
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{34108B4E-8883-4C16-97C9-E55F3A4E769B}.Debug|x86.ActiveCfg = Debug|x86
+		{34108B4E-8883-4C16-97C9-E55F3A4E769B}.Debug|x86.Build.0 = Debug|x86
+		{34108B4E-8883-4C16-97C9-E55F3A4E769B}.Release|x86.ActiveCfg = Release|x86
+		{34108B4E-8883-4C16-97C9-E55F3A4E769B}.Release|x86.Build.0 = Release|x86
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

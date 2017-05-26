@@ -1,0 +1,230 @@
+AppendArrayIndexToCurrentAssignment : Expression ref expr
+{
+	AppendArrayIndexToLastAssignment(CurrentCodeBlockStack, expr)
+}
+
+AppendArrayIndexToLastAssignment : list<OptionalCodeBlock> ref blockstack, Expression ref expr
+{
+	GetTailCodeBlockAndAppendArrayIndexToLastAssignment(blockstack, blockstack.next, expr)
+}
+
+GetTailCodeBlockAndAppendArrayIndexToLastAssignment : list<OptionalCodeBlock> ref blockstack, list<OptionalCodeBlock> ref tail, Expression ref expr
+{
+	GetTailCodeBlockAndAppendArrayIndexToLastAssignment(tail, tail.next, expr)
+}
+
+GetTailCodeBlockAndAppendArrayIndexToLastAssignment : list<OptionalCodeBlock> ref blockstack, nothing, Expression ref expr
+{
+	GetTailAssignmentAndAppendArrayIndex(blockstack.value, expr)
+}
+
+
+
+
+AppendEntryToCurrentAssignmentChain : Assignment ref a
+{
+	AppendEntryToCurrentAssignmentChainWorker(CurrentCodeBlockStack, a)
+}
+
+AppendEntryToCurrentAssignmentChain : AssignmentCompound ref a
+{
+	AppendEntryToCurrentAssignmentChainWorker(CurrentCodeBlockStack, a)
+}
+
+AppendEntryToCurrentAssignmentChainWorker : list<OptionalCodeBlock> ref blockstack, Assignment ref a
+{
+	AppendEntryToAssignmentChain(blockstack, blockstack.next, a)
+}
+
+AppendEntryToCurrentAssignmentChainWorker : list<OptionalCodeBlock> ref blockstack, AssignmentCompound ref a
+{
+	AppendEntryToAssignmentChain(blockstack, blockstack.next, a)
+}
+
+AppendEntryToAssignmentChain : list<OptionalCodeBlock> ref stack, list<OptionalCodeBlock> ref tail, Assignment ref a
+{
+	AppendEntryToAssignmentChain(tail, tail.next, a)
+}
+
+AppendEntryToAssignmentChain : list<OptionalCodeBlock> ref stack, nothing, Assignment ref a
+{
+	GetTailAssignmentAndChain(stack.value, a)
+}
+
+
+AppendEntryToAssignmentChain : list<OptionalCodeBlock> ref stack, list<OptionalCodeBlock> ref tail, AssignmentCompound ref a
+{
+	AppendEntryToAssignmentChain(tail, tail.next, a)
+}
+
+AppendEntryToAssignmentChain : list<OptionalCodeBlock> ref stack, nothing, AssignmentCompound ref a
+{
+	GetTailAssignmentAndChain(stack.value, a)
+}
+
+
+GetTailAssignmentAndChain : CodeBlock ref codeblock, Assignment ref a
+{
+	FindTailAssignmentAndChain(codeblock.Entries, codeblock.Entries.next, a)
+}
+
+GetTailAssignmentAndChain : CodeBlock ref codeblock, AssignmentCompound ref a
+{
+	FindTailAssignmentAndChain(codeblock.Entries, codeblock.Entries.next, a)
+}
+
+
+
+GetTailAssignmentAndAppendArrayIndex : CodeBlock ref codeblock, Expression ref expr
+{
+	FindTailAssignmentAndAppendArrayIndex(codeblock.Entries, codeblock.Entries.next, expr)
+}
+
+
+
+FindTailAssignmentAndAppendArrayIndex : list<CodeBlockEntry> ref entries, list<CodeBlockEntry> ref tail, Expression ref expr
+{
+	FindTailAssignmentAndAppendArrayIndex(tail, tail.next, expr)
+}
+
+FindTailAssignmentAndAppendArrayIndex : list<CodeBlockEntry> ref entries, nothing, Expression ref expr
+{
+	AppendArrayIndex(entries.value, expr)
+}
+
+
+FindTailAssignmentAndChain : list<CodeBlockEntry> ref entries, list<CodeBlockEntry> ref tail, Assignment ref a
+{
+	FindTailAssignmentAndChain(tail, tail.next, a)
+}
+
+FindTailAssignmentAndChain : list<CodeBlockEntry> ref entries, nothing, Assignment ref a
+{
+	ChainAssignment(entries.value, a)
+}
+
+FindTailAssignmentAndChain : list<CodeBlockEntry> ref entries, list<CodeBlockEntry> ref tail, AssignmentCompound ref a
+{
+	FindTailAssignmentAndChain(tail, tail.next, a)
+}
+
+FindTailAssignmentAndChain : list<CodeBlockEntry> ref entries, nothing, AssignmentCompound ref a
+{
+	ChainAssignment(entries.value, a)
+}
+
+ChainAssignment : Assignment ref a, Assignment ref newtail
+{
+	AddAssignmentToChain(a, a.RHS, newtail)
+}
+
+ChainAssignment : AssignmentCompound ref a, Assignment ref newtail
+{
+	AddAssignmentToChain(a, a.RHS, newtail)
+}
+
+
+ChainAssignment : Assignment ref a, AssignmentCompound ref newtail
+{
+	AddAssignmentToChain(a, a.RHS, newtail)
+}
+
+ChainAssignment : AssignmentCompound ref a, AssignmentCompound ref newtail
+{
+	AddAssignmentToChain(a, a.RHS, newtail)
+}
+
+
+AddAssignmentToChain : Assignment ref tomodify, Assignment ref a, Assignment ref newtail
+{
+	AddAssignmentToChain(a, a.RHS, newtail)
+}
+
+AddAssignmentToChain : Assignment ref tomodify, Expression ref expr, Assignment ref newtail
+{
+	ExpressionOrAssignment wrap = newtail
+	tomodify.RHS = wrap
+}
+
+AddAssignmentToChain : AssignmentCompound ref tomodify, Assignment ref a, Assignment ref newtail
+{
+	AddAssignmentToChain(a, a.RHS, newtail)
+}
+
+AddAssignmentToChain : AssignmentCompound ref tomodify, Expression ref expr, Assignment ref newtail
+{
+	ExpressionOrAssignment wrap = newtail
+	tomodify.RHS = wrap
+}
+
+AddAssignmentToChain : Assignment ref tomodify, Assignment ref a, AssignmentCompound ref newtail
+{
+	AddAssignmentToChain(a, a.RHS, newtail)
+}
+
+AddAssignmentToChain : Assignment ref tomodify, Expression ref expr, AssignmentCompound ref newtail
+{
+	ExpressionOrAssignment wrap = newtail
+	tomodify.RHS = wrap
+}
+
+AddAssignmentToChain : AssignmentCompound ref tomodify, Assignment ref a, AssignmentCompound ref newtail
+{
+	AddAssignmentToChain(a, a.RHS, newtail)
+}
+
+AddAssignmentToChain : AssignmentCompound ref tomodify, Expression ref expr, AssignmentCompound ref newtail
+{
+	ExpressionOrAssignment wrap = newtail
+	tomodify.RHS = wrap
+}
+
+
+
+ComputeCompoundAssignmentLHSType : AssignmentCompound ref assignment, Scope ref scope -> integer typeid = 0
+{
+	integer rootname = assignment.LHS.value
+
+	Variable var = 0, 0, 0, 0
+	FindVariableDataInSingleScope(scope, rootname, var)
+
+	if(var.Name == 0)
+	{
+		print("Assignment has bogus LHS")
+		print(GetPooledString(rootname))
+		assert(false)
+	}
+
+	assertmsg(var.VarType != 0, "Variable has no type!")
+
+	integer vartypename = GetNameOfType(var.VarType)
+	typeid = ComputeCompoundAssignmentLHSTypeMembers(assignment.LHS.next, vartypename)
+}
+
+ComputeCompoundAssignmentLHSTypeMembers : simplelist<integer> ref lhsmembers, integer structurename -> integer typeid = 0
+{
+	integer membertype = GetStructureMemberType(structurename, lhsmembers.value)
+	assertmsg(membertype != 0, "Member in compound assignment has no type!")
+	typeid = ComputeCompoundAssignmentLHSTypeMembers(lhsmembers.next, GetNameOfType(membertype))
+}
+
+ComputeCompoundAssignmentLHSTypeMembers : nothing, integer structurename -> integer typeid = GetTypeByName(structurename)
+
+
+
+
+
+GetAssignmentRHSType : Expression ref expr -> integer rettype = expr.Type
+GetAssignmentRHSType : Assignment ref assignment -> integer rettype = GetAssignmentRHSType(assignment.RHS)
+GetAssignmentRHSType : AssignmentCompound ref assignment -> integer rettype = GetAssignmentRHSType(assignment.RHS)
+
+
+
+AppendArrayIndex : AssignmentArrayIndex ref a, Expression ref expr
+{
+	a.IndexExpression = expr
+}
+
+
+structure AAAAAtrocioushack :
+	ContextNode<PendingTypeMatcher> MoreHack

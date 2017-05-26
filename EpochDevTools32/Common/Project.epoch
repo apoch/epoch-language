@@ -1,0 +1,252 @@
+//
+// The Epoch Language Project
+// Epoch Development Tools - Common Library Modules
+//
+// PROJECT.EPOCH
+// Epoch project (.eprj) file parsing and handling module
+//
+// This module is responsible for loading, parsing, and acting
+// on the directives of an Epoch Project (.eprj) file. Projects
+// are simple text files with a list of input source files,
+// resource scripts, and compilation options used to build a
+// final Epoch executable program.
+//
+
+
+//
+// Data structure describing a project
+//
+structure EpochProject :
+	string ProjectFileName,
+	string OutputFileName,
+	simplelist<string> SourceFiles,
+	simplelist<string> ResourceFiles,
+	boolean UsesConsole
+
+
+ParseProjectFile : string filename, EpochProject ref project
+{
+	project.ProjectFileName = filename
+
+	integer len = 0
+	string contents = ReadFile(filename, len)
+
+	if(len == 0)
+	{
+		return()
+	}
+
+	boolean haslines = true
+	while(haslines)
+	{
+		string sectionline = ExtractLine(contents)
+		if(sectionline == "[source]")
+		{
+			ProjectParseSourceSection(contents, project)
+		}
+		elseif(sectionline == "[resources]")
+		{
+			ProjectParseResourcesSection(contents, project)
+		}
+		elseif(sectionline == "[output]")
+		{
+			ProjectParseOutputSection(contents, project)
+		}
+		elseif(sectionline == "[options]")
+		{
+			ProjectParseOptionsSection(contents, project)
+		}
+		elseif(sectionline == "")
+		{
+			if(contents == "")
+			{
+				haslines = false
+			}
+		}
+		else
+		{
+			print("Malformed project file!")
+			return()
+		}
+	}
+}
+
+
+//
+// Helper for splitting strings; should be generalized
+// and moved to a library at some point.
+//
+SplitProjectDirective : string line, string ref directive, string ref parameter
+{
+	integer pos = 0
+	while(charat(line, pos) != " ")
+	{
+		++pos
+	}
+	
+	directive = substring(line, 0, pos)
+	parameter = substring(line, pos + 1)
+}
+
+
+//
+// Main parser for the [source] project section
+//
+ProjectParseSourceSection : string ref contents, EpochProject ref project
+{
+	boolean haslines = true
+	while(haslines)
+	{
+		string line = ExtractLine(contents)
+		if(line == "")
+		{
+			haslines = false
+		}
+		else
+		{
+			simple_append<string>(project.SourceFiles, line)
+		}
+	}
+}
+
+
+//
+// Main parser for the [resources] project section
+//
+ProjectParseResourcesSection : string ref contents, EpochProject ref project
+{
+	boolean haslines = true
+	while(haslines)
+	{
+		string line = ExtractLine(contents)
+		if(line == "")
+		{
+			haslines = false
+		}
+		else
+		{
+			simple_append<string>(project.ResourceFiles, line)
+		}
+	}
+}
+
+//
+// Main parser for the [output] project section
+//
+ProjectParseOutputSection : string ref contents, EpochProject ref project
+{
+	boolean haslines = true
+	while(haslines)
+	{
+		string line = ExtractLine(contents)
+		if(line == "")
+		{
+			haslines = false
+		}
+		else
+		{
+			string directive = ""
+			string parameter = ""
+			SplitProjectDirective(line, directive, parameter)
+			
+			if(directive == "output-file")
+			{
+				project.OutputFileName = parameter
+			}
+			else
+			{
+				print("Unrecognized [output] directive " ; directive)
+			}
+		}
+	}
+}
+
+//
+// Main parser for the [options] project section
+//
+ProjectParseOptionsSection : string ref contents, EpochProject ref project
+{
+	boolean haslines = true
+	while(haslines)
+	{
+		string line = ExtractLine(contents)
+		if(line == "")
+		{
+			haslines = false
+		}
+		elseif(line == "use-console")
+		{
+			project.UsesConsole = true
+		}
+		else
+		{
+			print("Unrecognized [options] entry " ; line)
+		}
+	}
+}
+
+
+
+ProjectSaveToDisk : EpochProject ref project
+{
+	if(project.ProjectFileName == "")
+	{
+		// TODO - saveas prompt?
+		return()
+	}
+
+	string filestring = ""
+	string CRLF = unescape("\r\n")
+	
+	filestring = "[source]" ; CRLF
+	ProjectWriteFileList(project.SourceFiles, filestring)
+	
+	filestring = filestring ; "[resources]" ; CRLF
+	ProjectWriteFileList(project.ResourceFiles, filestring)
+	
+	filestring = filestring ; "[output]" ; CRLF
+	filestring = filestring ; "output-file " ; project.OutputFileName ; CRLF
+	
+	if(project.UsesConsole)
+	{
+		filestring = filestring ; CRLF ; "[options]" ; CRLF
+		filestring = filestring ; "use-console" ; CRLF
+	}
+	
+	filestring = filestring ; CRLF
+
+	integer GENERIC_WRITE = 0x40000000
+	integer CREATE_ALWAYS = 2
+	integer MB_ICONSTOP = 0x10
+
+	Win32Handle filehandle = CreateFile(project.ProjectFileName, GENERIC_WRITE, 0, 0, CREATE_ALWAYS, 0, 0)
+	if(filehandle == 0)
+	{
+		//MessageBox(0, "Unexpected error while saving file!", "ERA Development Environment", MB_ICONSTOP)
+		return()
+	}
+
+	integer filelen = length(filestring)
+	buffer output = narrowstring(filestring)
+	
+	integer written = 0
+	WriteFile(filehandle, output, filelen, written, 0)
+
+	CloseHandle(filehandle)
+}
+
+ProjectWriteFileList : simplelist<string> ref filelist, string ref filestring
+{
+	if(filelist.value != "")
+	{
+		filestring = filestring ; filelist.value ; unescape("\r\n")
+	}
+	
+	ProjectWriteFileList(filelist.next, filestring)
+}
+
+ProjectWriteFileList : nothing, string ref filestring
+{
+	filestring = filestring ; unescape("\r\n")
+}
+
