@@ -412,7 +412,7 @@ TypeInference : PreOpStatement ref statement, InferenceContext ref context -> bo
 	if(countnonzero(statement.Operand) > 1)
 	{
 		assertmsg(operandtype != 0, "Pre-operation statement has no type")
-		operandtype = ComputeCompoundAssignmentLHSTypeMembers(statement.Operand.next, GetNameOfType(operandtype))
+		operandtype = ComputeCompoundAssignmentLHSTypeMembers(statement.Operand.next, operandtype, GetNameOfType(operandtype))
 	}
 
 	statement.Operator = FindPrePostOperatorOverload(statement.Operator, operandtype)
@@ -439,7 +439,7 @@ TypeInference : PostOpStatement ref statement, InferenceContext ref context -> b
 	if(countnonzero(statement.Operand) > 1)
 	{
 		assertmsg(operandtype != 0, "Post-operation statement has no type")
-		operandtype = ComputeCompoundAssignmentLHSTypeMembers(statement.Operand.next, GetNameOfType(operandtype))
+		operandtype = ComputeCompoundAssignmentLHSTypeMembers(statement.Operand.next, operandtype, GetNameOfType(operandtype))
 	}
 
 	statement.Operator = FindPrePostOperatorOverload(statement.Operator, operandtype)
@@ -1046,6 +1046,8 @@ TypeInference : AssignmentCompound ref assignment, InferenceContext ref context 
 	integer lhstype = ComputeCompoundAssignmentLHSType(assignment, context.ScopeRef.Wrapped)
 
 	simplelist<integer> temp = lhstype, nothing
+	//simpleprepend<integer>(temp, MakeReferenceType(lhstype))
+
 	InferenceContext newcontext = context.ScopeName, -1, temp, false, 0, false, false, context.ScopeRef, context.FuncRef
 
 	if(!TypeInference(assignment.RHS, newcontext))
@@ -1055,15 +1057,16 @@ TypeInference : AssignmentCompound ref assignment, InferenceContext ref context 
 	}
 
 	assignment.LHSType = lhstype
+	integer rhstype = GetAssignmentRHSType(assignment.RHS)
 
-	if(assignment.LHSType != GetAssignmentRHSType(assignment.RHS))
+	if(lhstype != rhstype)
 	{
-		// TODO - check type of RHS vs. LHS?
+		// TODO - check type of RHS vs. LHS!
 
-		assignment.Annotation = GetAssignmentRHSType(assignment.RHS)
+		assignment.Annotation = rhstype
 	}
 
-	assignment.Operator = FindAssignmentOperator(assignment.Operator, assignment.LHSType, GetAssignmentRHSType(assignment.RHS))
+	assignment.Operator = FindAssignmentOperator(assignment.Operator, lhstype, rhstype)
 }
 
 TypeInference : EntityChain ref chain, InferenceContext ref context -> boolean success = TypeInference(chain.Entries, context)

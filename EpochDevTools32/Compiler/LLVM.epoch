@@ -781,6 +781,8 @@ EmitSingleCodeBlockEntryToLLVM : LLVMBuildContext ref context, AssignmentCompoun
 	boolean isref = IsReferenceType(typeid)
 	typeid = MakeNonReferenceType(typeid)
 
+	integer rhstype = GetAssignmentRHSType(entry.RHS)
+
 	integer structurename = GetNameOfStructureByType(typeid)
 	EpochLLVMCodePushRawAlloca(context.Context, alloca)
 
@@ -793,7 +795,6 @@ EmitSingleCodeBlockEntryToLLVM : LLVMBuildContext ref context, AssignmentCompoun
 	
 	if(IsSumType(entry.LHSType))
 	{
-		integer rhstype = GetAssignmentRHSType(entry.RHS)
 		if(entry.LHSType == rhstype)
 		{
 			EpochLLVMCodeCreateWriteStructurePop(context.Context)
@@ -806,6 +807,11 @@ EmitSingleCodeBlockEntryToLLVM : LLVMBuildContext ref context, AssignmentCompoun
 	}
 	else
 	{
+		if(IsReferenceType(rhstype))		// TODO - this is not correct, we should key off MakeAlloc, not type signature (because we might assign ref = ref)
+		{
+			EpochLLVMCodeCreateDereference(context.Context)
+		}
+
 		EpochLLVMCodeCreateWriteStructurePop(context.Context)
 	}
 }
@@ -927,7 +933,15 @@ EmitSingleCodeBlockEntryToLLVM : LLVMBuildContext ref context, Statement ref ent
 				assertmsg(llvmfunc != 0, "Failed to map LLVM function " ; GetPooledString(entry.Name))
 			}
 			
-			EpochLLVMCodeCreateCall(context.Context, llvmfunc)
+			if(entry.MakeAlloc)
+			{
+				// TODO - somehow stash a pointer to a heap allocation instead of an alloca
+				EpochLLVMCodeCreateCall(context.Context, llvmfunc)
+			}
+			else
+			{
+				EpochLLVMCodeCreateCall(context.Context, llvmfunc)
+			}
 		}
 	}
 	

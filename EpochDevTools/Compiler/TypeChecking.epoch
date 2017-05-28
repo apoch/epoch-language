@@ -1564,7 +1564,7 @@ EliminateImpossibleParameters : list<TypePossibilityList> ref params, Expression
 		TypePossibilityList poss = scratchpossibletypes, false
 		GetAtomType(atom, poss, scope, func, funcret, parenthetical)
 
-		simplelist<integer> types = 0, nothing
+		simplelist<integer> types = new 0, nothing
 		integer typecount = EliminateImpossibleType(params.value.Types, poss.Types, types)
 
 		if(typecount == 0)

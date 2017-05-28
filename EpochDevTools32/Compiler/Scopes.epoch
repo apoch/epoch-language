@@ -4,6 +4,15 @@
 StoreVariableInSingleScope : Scope ref scope, integer varname, integer vartype, boolean isref, integer origin
 {
 	Variable var = varname, vartype, origin, 0
+	if(isref)
+	{
+		var.VarType = MakeReferenceType(vartype)
+	}
+	elseif(origin == 0)
+	{
+		var.VarType = MakeNonReferenceType(vartype)
+	}
+
 	append<Variable>(scope.Variables, var)
 }
 
@@ -111,7 +120,7 @@ ConstructVariableFromStatement : Statement ref statement, Scope ref scope, integ
 			return()
 		}
 
-		StoreVariableInSingleScope(scope, varname, vartype, false, origin)
+		StoreVariableInSingleScope(scope, varname, vartype, statement.MakeAlloc, origin)
 	}
 }
 

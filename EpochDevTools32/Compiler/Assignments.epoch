@@ -198,17 +198,23 @@ ComputeCompoundAssignmentLHSType : AssignmentCompound ref assignment, Scope ref 
 	assertmsg(var.VarType != 0, "Variable has no type!")
 
 	integer vartypename = GetNameOfType(var.VarType)
-	typeid = ComputeCompoundAssignmentLHSTypeMembers(assignment.LHS.next, vartypename)
+	typeid = ComputeCompoundAssignmentLHSTypeMembers(assignment.LHS.next, var.VarType, vartypename)
 }
 
-ComputeCompoundAssignmentLHSTypeMembers : simplelist<integer> ref lhsmembers, integer structurename -> integer typeid = 0
+ComputeCompoundAssignmentLHSTypeMembers : simplelist<integer> ref lhsmembers, integer membertype, integer structurename -> integer typeid = 0
 {
 	integer membertype = GetStructureMemberType(structurename, lhsmembers.value)
 	assertmsg(membertype != 0, "Member in compound assignment has no type!")
-	typeid = ComputeCompoundAssignmentLHSTypeMembers(lhsmembers.next, GetNameOfType(membertype))
+	typeid = ComputeCompoundAssignmentLHSTypeMembers(lhsmembers.next, membertype, GetNameOfType(membertype))
 }
 
-ComputeCompoundAssignmentLHSTypeMembers : nothing, integer structurename -> integer typeid = GetTypeByName(structurename)
+ComputeCompoundAssignmentLHSTypeMembers : nothing, integer membertype, integer structurename -> integer typeid = GetTypeByName(structurename)
+{
+	if(IsReferenceType(membertype))
+	{
+		typeid = MakeReferenceType(typeid)
+	}
+}
 
 
 

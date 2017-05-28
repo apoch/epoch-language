@@ -687,12 +687,12 @@ InstantiateSingleAtom : real ref atom, boolean inret, list<TemplateParameter> re
 
 InstantiateStatement : integer statementname, boolean inret, nothing, list<TemplateParameter> ref templateparams, list<TemplateArgument> ref templateargs
 {
-	OnCodeGenEnterStatement(statementname, 0, inret, false, 0)			// TODO - enable use of arrays in templates
+	OnCodeGenEnterStatement(statementname, 0, inret, false, 0, false)			// TODO - enable use of arrays and allocs in templates
 }
 
 InstantiateStatement : integer statementname, boolean inret, TemplateArgumentList ref args, list<TemplateParameter> ref templateparams, list<TemplateArgument> ref templateargs
 {
-	Statement statement = statementname, nothing, 0, args, inret, false, 0
+	Statement statement = statementname, nothing, 0, args, inret, false, 0, false
 	PropagateTemplateArgsForStatement(statement, args, templateargs)
 	RemapAllTemplateArguments(statement.TemplateArgs, templateparams, templateargs)
 	OnCodeGenEmplaceStatement(statement)

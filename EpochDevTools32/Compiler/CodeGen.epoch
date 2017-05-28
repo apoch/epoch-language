@@ -298,10 +298,11 @@ OnCodeGenRegisterRefBinding : integer id, integer structureid, boolean isref, bo
 	PlaceAtomInScratchExpression(atom)
 }
 
-OnCodeGenEnterStatement : integer statementname, integer statementtype, boolean toplevel, boolean hastemplateargs, integer arrayarity
+OnCodeGenEnterStatement : integer statementname, integer statementtype, boolean toplevel, boolean hastemplateargs, integer arrayarity, boolean makealloc
 {
-	Statement statement = statementname, nothing, statementtype, nothing, toplevel, false, arrayarity
+	Statement statement = statementname, nothing, statementtype, nothing, toplevel, false, arrayarity, makealloc
 	statement.ArrayArity = arrayarity			// TODO - compiler bug?
+	statement.MakeAlloc = makealloc
 
 	if(hastemplateargs)
 	{

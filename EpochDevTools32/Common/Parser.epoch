@@ -828,7 +828,7 @@ ParseStatement : boolean substatement -> boolean matched = false
 		OnCodeGenEnterSubStatement()
 	}
 
-	IREnterStatement(statementname, !substatement, templated, 0)
+	IREnterStatement(statementname, !substatement, templated, 0, false)
 
 	PopTokens(2 + lookahead)
 
@@ -983,7 +983,14 @@ ParseInitialization : boolean inreturn -> boolean matched = false
 		return()
 	}
 
-	IREnterStatement(typename, true, templated, arity)
+	boolean makealloc = false
+	if(PeekToken(0) == "new")
+	{
+		makealloc = true
+		PopToken()
+	}
+
+	IREnterStatement(typename, true, templated, arity, makealloc)
 	IRAddLiteralIdentifier(varname)
 
 	OnCodeGenShiftParameter()

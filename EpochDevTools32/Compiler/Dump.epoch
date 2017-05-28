@@ -5,19 +5,25 @@ DumpTypeList : simplelist<integer> ref types
 {
 	if(types.value != 0)
 	{
-		string refflag = ""
-		if(IsReferenceType(types.value))
-		{
-			refflag = " ref"
-		}
-
-		print(" Potential type: " ; GetPooledString(GetNameOfType(types.value)) ; refflag)
+		DumpType(types.value)
 	}
 
 	DumpTypeList(types.next)
 }
 
 DumpTypeList : nothing
+
+
+DumpType : integer typeid
+{
+	string refflag = ""
+	if(IsReferenceType(typeid))
+	{
+		refflag = " ref"
+	}
+
+	print(" Potential type: " ; GetPooledString(GetNameOfType(typeid)) ; refflag)
+}
 
 
 
