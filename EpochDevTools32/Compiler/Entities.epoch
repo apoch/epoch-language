@@ -1,0 +1,24 @@
+
+
+AppendEntityToChain : list<EntityChain> ref chainstack, Entity ref e
+{
+	AppendEntityToChainUnwrap(chainstack.value.Entries, e)
+}
+
+AppendEntityToChainUnwrap : EntityList ref entitylist, Entity ref e
+{
+	AppendEntityToChainWorker(entitylist.ActualList, entitylist.ActualList.next, e)
+}
+
+AppendEntityToChainWorker : list<Entity> ref chain, list<Entity> ref tail, Entity ref e
+{
+	AppendEntityToChainWorker(tail, tail.next, e)
+}
+
+AppendEntityToChainWorker : list<Entity> ref chain, nothing, Entity ref e
+{
+	list<Entity> newtail = e, nothing
+	chain.next = newtail
+}
+
+

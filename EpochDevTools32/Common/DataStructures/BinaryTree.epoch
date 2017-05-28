@@ -1,0 +1,318 @@
+//
+// The Epoch Language Project
+// Epoch Development Tools - Common Library Modules
+//
+// BINARYTREE.EPOCH
+// Implementation of an AVL search tree
+//
+
+type BinaryTreeNode<type T> : BinaryTree<T> | nothing
+
+structure BTPayloadWrap<type T> :
+	T ref Payload
+
+structure BinaryTree<type T> :
+	integer Value,
+	BTPayloadWrap<T> Payload,
+	BinaryTreeNode<T> Left,
+	BinaryTreeNode<T> Right,
+	integer Height
+	
+structure BinaryTreeRoot<type T> :
+	BinaryTreeNode<T> ref RootNode
+	
+	
+BinaryTreeCreateOrInsert<type T> : BinaryTreeRoot<T> ref root, integer value, T ref payload
+{
+	if(!InsertIntoBinaryTree<T>(root.RootNode, value, payload))
+	{
+		BTPayloadWrap<T> wrap = payload
+		BinaryTree<T> newtree = value, wrap, nothing, nothing, 0
+		root.RootNode = newtree
+	}
+}
+
+
+InsertIntoBinaryTree<type T> : BinaryTree<T> ref tree, integer value, T ref payload -> boolean ret = true
+{
+	if(tree.Value > value)
+	{
+		if(!InsertIntoBinaryTree<T>(tree.Left, value, payload))
+		{
+			BTPayloadWrap<T> wrap = payload
+			BinaryTree<T> newtree = value, wrap, nothing, nothing, 0
+			tree.Left = newtree
+		}
+	}
+	elseif(tree.Value < value)
+	{
+		if(!InsertIntoBinaryTree<T>(tree.Right, value, payload))
+		{
+			BTPayloadWrap<T> wrap = payload
+			BinaryTree<T> newtree = value, wrap, nothing, nothing, 0
+			tree.Right = newtree
+		}
+	}
+	else
+	{
+		return()
+	}
+
+	integer balance = ComputeBalance<T>(tree)
+	if(balance > 1)
+	{
+		tree.Height = RecomputeTreeDepth<T>(tree)
+		if(ComputeBalance<T>(tree.Left) > 0)
+		{
+			RotateLL<T>(tree)
+		}
+		else
+		{
+			RotateLR<T>(tree)
+		}
+	}
+	elseif(balance < -1)
+	{
+		tree.Height = RecomputeTreeDepth<T>(tree)
+		if(ComputeBalance<T>(tree.Right) < 0)
+		{
+			RotateRR<T>(tree)
+		}
+		else
+		{
+			RotateRL<T>(tree)
+		}
+	}
+}
+
+InsertIntoBinaryTree<type T> : nothing, integer value, T ref payload -> boolean ret = false
+
+RotateLL<type T> : BinaryTree<T> ref tree
+{
+	BinaryTreeNode<T> temp = tree.Right
+	tree.Right = tree.Left
+	tree.Left = GetLeft<T>(tree.Right)
+
+	BinaryTreeNode<T> newnode = GetRight<T>(tree.Right)
+	SetNodeLeft<T>(tree.Right, newnode)
+	SetNodeRight<T>(tree.Right, temp)
+
+	integer tempvalue = tree.Value
+	tree.Value = GetNodeValue<T>(tree.Right)
+	SetNodeValue<T>(tree.Right, tempvalue)
+
+	SwapNodePayload<T>(tree, tree.Right)
+
+	SetHeight<T>(tree.Right, RecomputeTreeDepth<T>(tree.Right))
+	tree.Height = RecomputeTreeDepth<T>(tree)
+}
+
+GetLeft<type T> : BinaryTree<T> ref tree -> BinaryTreeNode<T> ret = tree.Left
+GetLeft<type T> : nothing -> BinaryTreeNode<T> ret = nothing
+
+GetRight<type T> : BinaryTree<T> ref tree -> BinaryTreeNode<T> ret = tree.Right
+GetRight<type T> : nothing -> BinaryTreeNode<T> ret = nothing
+
+SetNodeLeft<type T> : BinaryTree<T> ref tree, BinaryTreeNode<T> newleft
+{
+	tree.Left = newleft
+}
+
+SetNodeRight<type T> : BinaryTree<T> ref tree, BinaryTreeNode<T> newright
+{
+	tree.Right = newright
+}
+
+RotateRR<type T> : BinaryTree<T> ref tree
+{
+	BinaryTreeNode<T> temp = tree.Left
+	tree.Left = tree.Right
+	tree.Right = GetRight<T>(tree.Left)
+
+	BinaryTreeNode<T> newnode = GetLeft<T>(tree.Left)
+	SetNodeRight<T>(tree.Left, newnode)
+	SetNodeLeft<T>(tree.Left, temp)
+
+	integer tempvalue = tree.Value
+	tree.Value = GetNodeValue<T>(tree.Left)
+	SetNodeValue<T>(tree.Left, tempvalue)
+
+	SwapNodePayload<T>(tree, tree.Left)
+
+	SetHeight<T>(tree.Left, RecomputeTreeDepth<T>(tree.Left))
+	tree.Height = RecomputeTreeDepth<T>(tree)
+}
+
+RotateLR<type T> : BinaryTree<T> ref tree
+{
+	RotateRR<T>(tree.Left)
+	RotateLL<T>(tree)
+}
+
+RotateRL<type T> : BinaryTree<T> ref tree
+{
+	RotateLL<T>(tree.Right)
+	RotateRR<T>(tree)
+}
+
+
+TreeDepth<type T> : BinaryTree<T> ref tree -> integer depth = tree.Height
+TreeDepth<type T> : nothing -> 0
+
+
+HasNode<type T> : BinaryTree<T> ref tree -> true
+HasNode<type T> : nothing -> false
+
+ComputeBalance<type T> : BinaryTree<T> ref tree -> integer balance = 0
+{
+	integer leftdepth = TreeDepth<T>(tree.Left)
+	integer rightdepth = TreeDepth<T>(tree.Right)
+
+	balance = leftdepth - rightdepth
+}
+
+ComputeBalance<type T> : nothing -> 0
+
+
+RecomputeTreeDepth<type T> : BinaryTree<T> ref tree -> integer depth = 1
+{
+	integer ldepth = TreeDepth<T>(tree.Left)
+	integer rdepth = TreeDepth<T>(tree.Right)
+
+	if(ldepth > rdepth)
+	{
+		depth += ldepth
+	}
+	else
+	{
+		depth += rdepth
+	}
+}
+
+SetHeight<type T> : BinaryTree<T> ref tree, integer newheight
+{
+	tree.Height = newheight
+}
+
+
+SearchBinaryTree<type T> : BinaryTree<T> ref tree, integer target -> boolean found = false
+{
+	if(tree.Value == target)
+	{
+		found = true
+		return()
+	}
+	elseif(target < tree.Value)
+	{
+		found = SearchBinaryTree<T>(tree.Left, target)
+	}
+	else
+	{
+		found = SearchBinaryTree<T>(tree.Right, target)
+	}
+}
+
+SearchBinaryTree<type T> : nothing, integer target -> boolean found = false
+
+
+SearchBinaryTreeForPayload<type T> : BinaryTree<T> ref tree, integer target, ContextNode<T> ref out -> boolean found = false
+{
+	if(tree.Value == target)
+	{
+		found = true
+		ContextNode<T> outwrap = tree.Payload.Payload
+		out = outwrap
+		return()
+	}
+	elseif(target < tree.Value)
+	{
+		found = SearchBinaryTreeForPayload<T>(tree.Left, target, out)
+	}
+	else
+	{
+		found = SearchBinaryTreeForPayload<T>(tree.Right, target, out)
+	}
+}
+
+SearchBinaryTreeForPayload<type T> : nothing, integer target, ContextNode<T> ref out -> boolean found = false
+
+
+BinaryTreeCopyPayload<type T> : BinaryTree<T> ref tree, integer target, T ref out -> boolean found = false
+{
+	if(tree.Value == target)
+	{
+		found = true
+		out = tree.Payload.Payload
+		return()
+	}
+	elseif(target < tree.Value)
+	{
+		found = BinaryTreeCopyPayload<T>(tree.Left, target, out)
+	}
+	else
+	{
+		found = BinaryTreeCopyPayload<T>(tree.Right, target, out)
+	}
+}
+
+BinaryTreeCopyPayload<type T> : nothing, integer target, T ref out -> boolean found = false
+
+
+
+GetNodeValue<type T> : BinaryTree<T> ref node -> integer ret = node.Value
+
+SetNodeValue<type T> : BinaryTree<T> ref node, integer value
+{
+	node.Value = value
+}
+
+SwapNodePayload<type T> : BinaryTree<T> ref a, BinaryTree<T> ref b
+{
+	BTPayloadWrap<T> p = a.Payload.Payload
+	a.Payload = b.Payload
+	b.Payload = p
+}
+
+
+
+BinaryTreeWalkAllNodes<type T> : BinaryTree<T> ref tree, (func : integer, T ref -> boolean) -> boolean ret = true
+{
+	if(!func(tree.Value, tree.Payload.Payload))
+	{
+		ret = false
+	}
+
+	if(!BinaryTreeWalkAllNodes<T>(tree.Left, func))
+	{
+		ret = false
+	}
+
+	if(!BinaryTreeWalkAllNodes<T>(tree.Right, func))
+	{
+		ret = false
+	}
+}
+
+BinaryTreeWalkAllNodes<type T> : nothing, (func : integer, T ref -> boolean) -> boolean ret = true
+
+
+
+BinaryTreeWalkAllNodesWithParam<type T, type ParamT> : BinaryTree<T> ref tree, (func : integer, T ref, ParamT ref -> boolean), ParamT ref param -> boolean ret = true
+{
+	if(!func(tree.Value, tree.Payload.Payload, param))
+	{
+		ret = false
+	}
+
+	if(!BinaryTreeWalkAllNodesWithParam<T, ParamT>(tree.Left, func, param))
+	{
+		ret = false
+	}
+
+	if(!BinaryTreeWalkAllNodesWithParam<T, ParamT>(tree.Right, func, param))
+	{
+		ret = false
+	}
+}
+
+BinaryTreeWalkAllNodesWithParam<type T, type ParamT> : nothing, (func : integer, T ref, ParamT ref -> boolean), ParamT ref param -> boolean ret = true

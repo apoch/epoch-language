@@ -1,0 +1,264 @@
+
+
+
+DumpTypeList : simplelist<integer> ref types
+{
+	if(types.value != 0)
+	{
+		DumpType(types.value)
+	}
+
+	DumpTypeList(types.next)
+}
+
+DumpTypeList : nothing
+
+
+DumpType : integer typeid
+{
+	string refflag = ""
+	if(IsReferenceType(typeid))
+	{
+		refflag = " ref"
+	}
+
+	print(" Potential type: " ; GetPooledString(GetNameOfType(typeid)) ; refflag)
+}
+
+
+
+DumpAllOverloadParameters : list<Overload> ref overloads, integer rawname
+{
+	if(overloads.value.NormalName == rawname)
+	{
+		DumpFunctionParameters(Functions, overloads.value.MangledName)
+	}
+
+	DumpAllOverloadParameters(overloads.next, rawname)
+}
+
+DumpAllOverloadParameters : nothing, integer rawname
+
+
+DumpFunctionParameters : list<FunctionDefinition> ref functions, integer funcname
+{
+	if(functions.value.Name == funcname)
+	{
+		print(GetPooledString(funcname))
+		DumpUnresolvedParameters(functions.value.Params)
+	}
+	else
+	{
+		DumpFunctionParameters(functions.next, funcname)
+	}
+}
+
+DumpFunctionParameters : nothing, integer funcname
+
+
+
+DumpUnresolvedParameters : list<UnresolvedParameter> ref params
+{
+	print(GetPooledString(GetNameOfType(params.value.ResolvedType)))
+	DumpUnresolvedParameters(params.next)
+}
+
+DumpUnresolvedParameters : nothing
+
+DumpAtom : AtomSentinel 	   ref sentinel    { print("Sentinel") }
+DumpAtom : StringHandleAtom 	   ref nonsentinel { print("String handle " ; cast(string, nonsentinel.Handle) ; " = '" ; GetPooledString(nonsentinel.Handle) ; "'") }
+DumpAtom : IdentifierAtom 	   ref nonsentinel { print("Identifier " ; cast(string, nonsentinel.Handle) ; " = '" ; GetPooledString(nonsentinel.Handle) ; "'") }
+DumpAtom : OperatorInvokeAtom 	   ref nonsentinel { print("Operator " ; cast(string, nonsentinel.OperatorName)) }
+DumpAtom : TypeAnnotationAtom 	   ref nonsentinel { print("Type annotation") }
+DumpAtom : integer 		   ref nonsentinel { print("integer " ; cast(string, nonsentinel)) }
+DumpAtom : integer16 		   ref nonsentinel { print("integer16") }
+DumpAtom : integer64 ref nonsentinel { print("integer64") }
+DumpAtom : boolean 		   ref nonsentinel { print("boolean") }
+DumpAtom : real 		   ref nonsentinel { print("real " ; cast(string, nonsentinel)) }
+DumpAtom : RefBinding              ref nonsentinel { print("RefBinding") }
+DumpAtom : ParentheticalExpression ref nonsentinel { print("Parenthetical") }
+DumpAtom : CompoundAtom            ref nonsentinel { print("Compound") }
+
+DumpAtom : Statement		   ref nonsentinel
+{
+	print("Statement " ; GetPooledString(nonsentinel.Name))
+	print("BEGIN PARAMS")
+	DumpParameterAtoms(nonsentinel.Parameters)
+	print("END PARAMS")
+}
+
+DumpAtom : ArrayIndexAtom ref nonsentinel
+{
+	print("Array index of " ; GetPooledString(nonsentinel.ArrayVarName))
+	DumpExpressionAtoms(nonsentinel.IndexExpression.Atoms)
+	print("END INDEX")
+}
+
+DumpExpressionAtoms : list<ExpressionAtom> ref atoms
+{
+	DumpAtom(atoms.value)
+	DumpExpressionAtoms(atoms.next)
+}
+
+DumpExpressionAtoms : nothing
+
+
+DumpAtomFoo : integer ref atom { print("integer") }
+DumpAtomFoo : integer16 ref atom { print("integer16") }
+DumpAtomFoo : integer64 ref atom { print("integer64") }
+DumpAtomFoo : boolean ref atom { print("boolean") }
+DumpAtomFoo : real ref atom { print("real") }
+DumpAtomFoo : StringHandleAtom ref atom { print("stringhandle") }
+DumpAtomFoo : IdentifierAtom ref atom { print("identifier") }
+DumpAtomFoo : OperatorInvokeAtom ref atom { print("operator") }
+DumpAtomFoo : TypeAnnotationAtom ref atom { print("type") }
+DumpAtomFoo : RefBinding ref atom { print("binding") }
+DumpAtomFoo : CompoundAtom ref atom { print("compound") }
+DumpAtomFoo : Statement ref atom { print("statement") }
+DumpAtomFoo : ParentheticalExpression ref atom { print("parenthetical") }
+DumpAtomFoo : ArrayIndexAtom ref atom { print("array") }
+DumpAtomFoo : AtomSentinel ref atom { print("sentinel") }
+
+DumpExpressionAtomsFoo : Expression ref expr
+{
+	DumpExpressionAtomsFoo(expr.Atoms)
+}
+
+DumpExpressionAtomsFoo : list<ExpressionAtom> ref atoms
+{
+	DumpAtomFoo(atoms.value)
+	DumpExpressionAtomsFoo(atoms.next)
+}
+
+DumpExpressionAtomsFoo : nothing
+
+
+
+DumpExpressionList : ExpressionList ref exprs
+{
+	DumpExpressionList(exprs.Expressions)
+}
+
+
+DumpExpressionList : list<Expression> ref exprs
+{
+	print("BEGIN EXPR")
+	DumpExpressionAtomsFoo(exprs.value.Atoms)
+	print("END EXPR")
+
+	DumpExpressionList(exprs.next)
+}
+
+DumpExpressionList : nothing
+
+
+DumpParameterAtoms : ExpressionList ref exprs
+{
+	DumpExpressionList(exprs.Expressions)
+}
+
+DumpParameterAtoms : nothing
+
+
+DumpOverloadList : list<InferencePossibility> ref possibilities
+{
+	if(possibilities.value.FunctionName != 0)
+	{
+		print(GetPooledString(possibilities.value.FunctionName))
+	}
+
+	DumpOverloadList(possibilities.next)
+}
+
+DumpOverloadList : nothing
+
+
+DumpSignature : FunctionSignature ref sig
+{
+	print("  Function signature")
+	DumpSignatureParams(sig.Parameters)
+	print("  ->")
+	if(sig.ReturnTypeName != 0)
+	{
+		print(GetPooledString(sig.ReturnTypeName))
+	}
+}
+
+DumpSignatureParams : list<Parameter> ref params
+{
+	if(params.value.Type != 0)
+	{
+		print(GetPooledString(GetNameOfType(params.value.Type)))
+	}
+	DumpSignatureParams(params.next)
+}
+
+DumpSignatureParams : nothing
+
+
+
+DumpOverloadList : FunctionDefinition ref func
+{
+	DumpOverloadList(func.Overloads)
+}
+
+DumpOverloadList : list<Overload> ref overloads
+{
+	DumpOverload(overloads.value)
+	DumpOverloadList(overloads.next)
+}
+
+
+DumpOverload : Overload ref overload
+{
+	print(GetPooledString(overload.NormalName) ; " (" ; cast(string, overload.NormalName) ; ") -> " ; GetPooledString(overload.MangledName) ; " (" ; cast(string, overload.MangledName) ; ")")
+}
+
+
+
+DumpStructures : list<StructureDefinition> ref structs
+{
+	print("--- STRUCTURES ---")
+	DumpStructureList(structs)
+	print("------------------")
+}
+
+
+DumpStructureList : list<StructureDefinition> ref structs
+{
+	print(GetPooledString(structs.value.Name))
+	DumpStructureList(structs.next)
+}
+
+DumpStructureList : nothing
+
+
+
+DumpTypeMatcherArgumentMetadata : integer matchername
+{
+	print("All known types from all known call sites to " ; GetPooledString(matchername))
+
+	ContextNode<CallSiteMetadata> wrap = nothing
+	if(SearchBinaryTreeForPayload<CallSiteMetadata>(TypeMatcherCallSiteMetadata.RootNode, matchername, wrap))
+	{
+		DumpTypeMatcherArgumentMetadata(wrap)
+	}
+
+	print("End of line.")
+}
+
+
+DumpTypeMatcherArgumentMetadata : CallSiteMetadata ref metadata
+{
+	DumpTypeMatcherArgumentMetadata(metadata.ArgTypeSets)
+}
+
+DumpTypeMatcherArgumentMetadata : list<ArgumentMetadata> ref argtypesets
+{
+	print("ARGUMENT TYPES:")
+	DumpTypeList(argtypesets.value.ArgTypes)
+
+	DumpTypeMatcherArgumentMetadata(argtypesets.next)
+}
+
+DumpTypeMatcherArgumentMetadata : nothing

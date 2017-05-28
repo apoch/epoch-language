@@ -1,0 +1,186 @@
+//
+// The Epoch Language Project
+// Epoch Development Tools - Era Integrated Development Environment
+//
+// PROCESSSPAWN.EPOCH
+// Routines and helpers for spawning child processes
+//
+// The most obvious target of this functionality is compiler invocation.
+// For Era, we spawn a child process, pipe its outputs to the status pane,
+// and treat it as if it were an integrated part of the Era code.
+//
+
+
+structure SecurityAttributes :
+	integer Length,
+	integer SecurityDescriptor,
+	integer InheritHandlesFlag
+	
+	
+structure StartupInfo :
+	integer NumBytes,
+	integer Reserved,
+	integer Desktop,
+	integer Title,
+	integer X,
+	integer Y,
+	integer XSize,
+	integer YSize,
+	integer XChars,
+	integer YChars,
+	integer FillAttribute,
+	integer Flags,
+	integer16 ShowWindow,
+	integer16 Reserved2,
+	integer Reserved3,
+	integer Input,
+	integer Output,
+	integer Error
+	
+structure ProcessInformation :
+	integer ProcessHandle,
+	integer ThreadHandle,
+	integer ProcessID,
+	integer ThreadID
+	
+	
+CreatePipe : integer ref readpipe, integer ref writepipe, SecurityAttributes ref secattr, integer buffersize -> boolean ret = false [external("Kernel32.dll", "CreatePipe", "stdcall")]
+SetHandleInformation : integer handle, integer mask, integer flags -> boolean ret = false [external("Kernel32.dll", "SetHandleInformation", "stdcall")]
+
+
+PeekNamedPipe : integer pipe, integer databuffer, integer buffersize, integer ref bytesread, integer ref bytesavailable, integer ref bytesleft -> boolean ret = false [external("Kernel32.dll", "PeekNamedPipe", "stdcall")]
+
+CreateProcess : buffer ref appname, buffer ref cmdline, integer procaddr, integer threadattr, boolean inherithandles,
+		integer creationflags, integer environment, integer curdirectory, StartupInfo ref startinfo, ProcessInformation ref outprocinfo
+	->
+		boolean ret = false
+	[external("Kernel32.dll", "CreateProcessA", "stdcall")]
+	
+ReadFile : integer filehandle, buffer ref data, integer databytes, integer ref bytesread, integer overlapped -> boolean ret = false [external("Kernel32.dll", "ReadFile", "stdcall")]
+
+
+GetModuleFileName : integer module, buffer ref out, integer numbytes [external("Kernel32.dll", "GetModuleFileNameA", "stdcall")]
+
+
+strlen : buffer ref str -> integer len = 0 [external("msvcr100.dll", "strlen")]
+
+
+BuildProject : EpochProject ref project
+{
+	SecurityAttributes secattr = sizeof(secattr), 0, 1
+	
+	integer HANDLE_FLAG_INHERIT = 0x01
+	integer CREATE_NO_WINDOW = 0x8000000
+	integer STARTF_USESTDHANDLES = 0x100
+	
+	integer childoutread = 0
+	integer childoutwrite = 0
+	integer childinread = 0
+	integer childinwrite = 0
+	
+	AppendHistoryLine("Build process started...")
+	
+	CreatePipe(childoutread, childoutwrite, secattr, 0)
+	CreatePipe(childinread, childinwrite, secattr, 0)
+	
+	SetHandleInformation(childoutread, HANDLE_FLAG_INHERIT, 1)
+	SetHandleInformation(childinwrite, HANDLE_FLAG_INHERIT, 1)
+	
+	ProcessInformation pi = 0, 0, 0, 0
+	StartupInfo si = sizeof(si), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, STARTF_USESTDHANDLES, 0, 0, 0, childinread, childoutwrite, childoutwrite
+
+
+	buffer pathtoself = 1024
+	GetModuleFileName(0, pathtoself, 1023)
+	
+	string pathtocompiler = TrimFileName(widenfrombuffer(pathtoself, strlen(pathtoself))) ; "\EpochCompiler.exe"
+
+	buffer appname = narrowstring(pathtocompiler)
+	buffer cmdline = narrowstring("EpochCompiler.exe " ; QuoteString(project.ProjectFileName))
+	if(!CreateProcess(appname, cmdline, 0, 0, true, CREATE_NO_WINDOW, 0, 0, si, pi))
+	{
+		AppendHistoryLine("ERROR - EpochCompiler.exe could not be launched!")
+		return()
+	}
+	
+	CloseHandle(childinread)
+	CloseHandle(childoutwrite)
+
+	string chunk = ""
+	boolean readfromchild = true
+	while(readfromchild)
+	{
+		buffer buf = 2048
+		integer numread = 0
+		
+		integer ignored = 0
+		integer left = 0
+		integer available = 0
+		
+		readfromchild = PeekNamedPipe(childoutread, 0, 0, ignored, available, left)
+		if(available > 0)
+		{
+			readfromchild = ReadFile(childoutread, buf, 1, numread, 0)
+			
+			if(numread == 0)
+			{
+				readfromchild = false
+			}
+			else
+			{
+				chunk = chunk ; widenfrombuffer(buf, numread)
+			}
+			
+			TurnChunkIntoHistoryLine(chunk)
+		}
+		else
+		{
+			WaitMessage()
+		}
+		
+		if(!NonModalMessagePump(MainHWND))
+		{
+			readfromchild = false
+		}
+	}
+	
+	CloseHandle(pi.ProcessHandle)
+	CloseHandle(pi.ThreadHandle)
+	
+	CloseHandle(childinwrite)
+	CloseHandle(childoutread)
+	
+	AppendHistoryLine("Build process completed.")
+}
+
+
+TurnChunkIntoHistoryLine : string ref chunk -> boolean more = false
+{
+	integer len = length(chunk)
+	if(len < 1)
+	{
+		return()
+	}
+	
+	integer pos = 0
+	while(pos < len)
+	{
+		if(charat(chunk, pos) == unescape("\n"))
+		{
+			string line = substring(chunk, 0, pos)
+			if(length(line) > 2)
+			{
+				AppendHistoryLine("Build: " ; line)
+			}
+			
+			chunk = substring(chunk, pos + 1)
+			
+			more = true
+			
+			return()
+		}
+				
+		++pos
+	}
+}
+

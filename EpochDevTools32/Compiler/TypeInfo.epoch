@@ -1,0 +1,342 @@
+
+
+
+GetTypeSize : integer typeid -> integer size = 0
+{
+	if(typeid == 0x01000001)			// Integer
+	{
+		size = 4
+	}
+	elseif(typeid == 0x01000002)			// Integer16
+	{
+		size = 2
+	}
+	elseif(typeid == 0x01000003)			// Boolean
+	{
+		size = 1
+	}
+	elseif(typeid == 0x01000004)			// Real
+	{
+		size = 4
+	}
+	elseif(typeid == 0x01000005)			// Integer64
+	{
+		size = 8
+	}
+	elseif(typeid == 0x02000000)			// StringHandle
+	{
+		size = 4
+	}
+	elseif(typeid == 0x02000001)			// BufferHandle
+	{
+		size = 4
+	}
+	elseif(IsStructureType(typeid))			// StructureHandle
+	{
+		size = 4
+	}
+	elseif((typeid & 0xff000000) == 0x07000000)	// SumType
+	{
+		size = 4 + GetLargestSumTypeBaseSize(typeid)
+	}
+	elseif(typeid == 0x00000004)			// Nothing
+	{
+		size = 0
+	}
+	else
+	{
+		print("Undefined type for size retrieval - " ; cast(string, typeid))
+		print("HINT: is this a type name? " ; GetPooledString(typeid))
+		assert(false)
+	}
+}
+
+GetNameOfType : integer typeid -> integer name = 0
+{
+	typeid = MakeNonReferenceType(typeid)
+	if(typeid == 0x01000001)
+	{
+		name = PooledStringHandleForInteger
+	}
+	elseif(typeid == 0x01000002)
+	{
+		name = PooledStringHandleForInteger16
+	}
+	elseif(typeid == 0x01000003)
+	{
+		name = PooledStringHandleForBoolean
+	}
+	elseif(typeid == 0x01000004)
+	{
+		name = PooledStringHandleForReal
+	}
+	elseif(typeid == 0x01000005)
+	{
+		name = PooledStringHandleForInteger64
+	}
+	elseif(typeid == 0x02000000)
+	{
+		name = PooledStringHandleForString
+	}
+	elseif(typeid == 0x02000001)
+	{
+		name = PooledStringHandleForBuffer
+	}
+	elseif(typeid == 0x00000004)
+	{
+		name = PooledStringHandleForNothing
+	}
+	elseif(typeid == 0x01000000)
+	{
+		name = PooledStringHandleForIdentifier
+	}
+	elseif(IsStructureType(typeid))
+	{
+		name = GetNameOfStructureByType(typeid)
+	}
+	elseif((typeid & 0xff000000) == 0x07000000)
+	{
+		name = FindSumTypeName(typeid)
+	}
+	elseif((typeid & 0x7f000000) == 0x09000000)
+	{
+		name = PoolString("{function} " ; cast(string, typeid))
+	}
+	elseif((typeid & 0x7f000000) == 0x05000000)
+	{
+		BinaryTreeCopyPayload<integer>(TypeToNameMap.RootNode, typeid, name)
+	}
+	elseif(typeid == 0x00000002)
+	{
+		name = PoolString("{no return type}")
+	}
+	else
+	{
+		print("Unknown type " ; cast(string, typeid))
+		print("HINT: that might be a string handle? " ; GetPooledString(typeid))
+		assert(false)
+	}
+}
+
+GetTypeByName : integer name -> integer typeid = 0
+{
+	if(name == 0)
+	{
+		return()
+	}
+
+	integer unaliasedname = UnaliasType(name)
+	while(unaliasedname != name)
+	{
+		name = unaliasedname
+		unaliasedname = UnaliasType(name)
+	}
+	name = unaliasedname
+
+	if(name == PooledStringHandleForIdentifier)
+	{
+		typeid = 0x01000000
+	}
+	elseif(name == PooledStringHandleForInteger)
+	{
+		typeid = 0x01000001
+	}
+	elseif(name == PooledStringHandleForInteger16)
+	{
+		typeid = 0x01000002
+	}
+	elseif(name == PooledStringHandleForBoolean)
+	{
+		typeid = 0x01000003
+	}
+	elseif(name == PooledStringHandleForReal)
+	{
+		typeid = 0x01000004
+	}
+	elseif(name == PooledStringHandleForInteger64)
+	{
+		typeid = 0x01000005
+	}
+	elseif(name == PooledStringHandleForString)
+	{
+		typeid = 0x02000000
+	}
+	elseif(name == PooledStringHandleForNothing)
+	{
+		typeid = 0x00000004
+	}
+	elseif(name == PooledStringHandleForBuffer)
+	{
+		typeid = 0x02000001
+	}
+	else
+	{
+		integer structuretype = GetStructureTypeByName(name)
+		if(structuretype != 0)
+		{
+			typeid = structuretype
+			return()
+		}
+
+		integer sumtype = FindSumTypeByName(name)
+		if(sumtype != 0)
+		{
+			typeid = sumtype
+			return()
+		}
+
+		integer strongaliastype = FindTypeAliasByName(name)
+		if(strongaliastype != 0)
+		{
+			typeid = strongaliastype
+			return()
+		}
+	}
+}
+
+
+IsFunctionType : integer typeid -> boolean ret = false
+{
+	if((typeid & 0x7f000000) == 0x09000000)
+	{
+		ret = true
+	}
+}
+
+IsStructureType : integer typeid -> boolean ret = false
+{
+	if((typeid & 0x7f000000) == 0x03000000)
+	{
+		ret = true
+	}
+	elseif((typeid & 0x7f000000) == 0x08000000)
+	{
+		ret = true
+	}
+}
+
+IsSumType : integer typeid -> boolean ret = false
+{
+	if((typeid & 0x7f000000) == 0x07000000)
+	{
+		ret = true
+	}
+}
+
+
+IsReferenceType : integer typeid -> boolean ret = false
+{
+	if((typeid & 0x80000000) != 0)
+	{
+		ret = true
+	}
+}
+
+MakeReferenceType : integer typeid -> integer reftypeid = typeid
+{
+	if(!IsReferenceType(typeid))
+	{
+		reftypeid = typeid + 0x80000000
+	}
+}
+
+MakeNonReferenceType : integer typeid -> (typeid & 0x7fffffff)
+
+
+IsArrayType : integer typeid -> boolean ret = false
+{
+	if((typeid & 0x7f000000) == 0x0a000000)
+	{
+		ret = true
+	}
+}
+
+GetArrayElementType : list<ArrayType> ref arraytypes, integer typeid -> integer ty = 0
+{
+	if(arraytypes.value.SignatureType == typeid)
+	{
+		ty = arraytypes.value.ElementType
+	}
+	else
+	{
+		ty = GetArrayElementType(arraytypes.next, typeid)
+	}
+}
+
+GetArrayArity : list<ArrayType> ref arraytypes, integer typeid -> integer arity = 0
+{
+	if(arraytypes.value.SignatureType == typeid)
+	{
+		arity = arraytypes.value.Arity
+	}
+	else
+	{
+		arity = GetArrayArity(arraytypes.next, typeid)
+	}
+}
+
+
+
+GetArrayType : list<ArrayType> ref arraytypes, integer elementtype, integer arity -> integer ret = 0
+{
+	if((arraytypes.value.ElementType == elementtype) && (arraytypes.value.Arity == arity))
+	{
+		ret = arraytypes.value.SignatureType
+		return()
+	}
+
+	ret = GetArrayType(arraytypes.next, elementtype, arity)
+}
+
+GetArrayType : nothing, integer elementtype, integer arity -> integer ret = 0
+{
+	integer typeid = (++GlobalArrayTypeCounter)
+	ArrayType at = typeid, elementtype, arity
+	prepend<ArrayType>(ArrayTypes, at)
+
+	ret = typeid
+}
+
+
+AreAnyTypesSumTypes : simplelist<integer> ref typelist -> boolean ret = false
+{
+	if(IsSumType(typelist.value))
+	{
+		ret = true
+	}
+	else
+	{
+		ret = AreAnyTypesSumTypes(typelist.next)
+	}
+}
+
+AreAnyTypesSumTypes : nothing -> false
+
+
+FindFirstSumTypeInList : simplelist<integer> ref typelist -> integer ret = 0
+{
+	if(IsSumType(typelist.value))
+	{
+		ret = MakeNonReferenceType(typelist.value)
+	}
+	else
+	{
+		ret = FindFirstSumTypeInList(typelist.next)
+	}
+}
+
+FindFirstSumTypeInList : nothing -> 0
+
+
+CountSumTypes : simplelist<integer> ref typelist -> integer count = 0
+{
+	if(IsSumType(typelist.value))
+	{
+		count = count + 1
+	}
+
+	count = count + CountSumTypes(typelist.next)
+}
+
+CountSumTypes : nothing -> 0
+
