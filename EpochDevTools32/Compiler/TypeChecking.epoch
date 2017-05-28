@@ -416,7 +416,7 @@ TypeInference : PreOpStatement ref statement, InferenceContext ref context -> bo
 	}
 
 	statement.Operator = FindPrePostOperatorOverload(statement.Operator, operandtype)
-	statement.Type = operandtype		// TODO - maybe don't assume that the operator returns the same type as it takes?
+	statement.Type = var.VarType		// TODO - maybe don't assume that the operator returns the same type as it takes?
 }
 
 

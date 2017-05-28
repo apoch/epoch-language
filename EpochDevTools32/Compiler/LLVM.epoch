@@ -791,7 +791,7 @@ EmitSingleCodeBlockEntryToLLVM : LLVMBuildContext ref context, AssignmentCompoun
 		EpochLLVMCodeCreateDereference(context.Context)
 	}
 
-	EmitAssignmentLHSGEPsToLLVM(context, entry.LHS.next, structurename)
+	EmitAssignmentLHSGEPsToLLVM(context, entry.LHS.next, structurename, typeid, rhstype)
 	
 	if(IsSumType(entry.LHSType))
 	{
@@ -962,11 +962,45 @@ EmitSingleCodeBlockEntryToLLVM : LLVMBuildContext ref context, PreOpStatement re
 		{
 			if(preop.Operator == PooledStringHandleForPrePostIncrementInteger)
 			{
-				EpochLLVMCodeCreateRead(context.Context, alloca)
-				EpochLLVMCodePushInteger(context.Context, 1)
-				EpochLLVMCodeOperatorIntegerPlus(context.Context)
-				EpochLLVMCodeCreateWrite(context.Context, alloca)
-				EpochLLVMCodeCreateRead(context.Context, alloca)
+				if(IsReferenceType(preop.Type))
+				{
+					EpochLLVMCodePushInteger(context.Context, 1)
+					EpochLLVMCodeCreateRead(context.Context, alloca)
+					EpochLLVMCodeCreateDereference(context.Context)
+					EpochLLVMCodeOperatorIntegerPlus(context.Context)
+					EpochLLVMCodeCreateWriteIndirect(context.Context, alloca)
+					EpochLLVMCodeCreateRead(context.Context, alloca)
+					EpochLLVMCodeCreateDereference(context.Context)
+				}
+				else
+				{
+					EpochLLVMCodeCreateRead(context.Context, alloca)
+					EpochLLVMCodePushInteger(context.Context, 1)
+					EpochLLVMCodeOperatorIntegerPlus(context.Context)
+					EpochLLVMCodeCreateWrite(context.Context, alloca)
+					EpochLLVMCodeCreateRead(context.Context, alloca)
+				}
+			}
+			elseif(preop.Operator == PooledStringHandleForPrePostDecrementInteger)
+			{
+				if(IsReferenceType(preop.Type))
+				{
+					EpochLLVMCodePushInteger(context.Context, 1)
+					EpochLLVMCodeCreateRead(context.Context, alloca)
+					EpochLLVMCodeCreateDereference(context.Context)
+					EpochLLVMCodeOperatorIntegerMinus(context.Context)
+					EpochLLVMCodeCreateWriteIndirect(context.Context, alloca)
+					EpochLLVMCodeCreateRead(context.Context, alloca)
+					EpochLLVMCodeCreateDereference(context.Context)
+				}
+				else
+				{
+					EpochLLVMCodePushInteger(context.Context, 1)
+					EpochLLVMCodeCreateRead(context.Context, alloca)
+					EpochLLVMCodeOperatorIntegerMinus(context.Context)
+					EpochLLVMCodeCreateWrite(context.Context, alloca)
+					EpochLLVMCodeCreateRead(context.Context, alloca)
+				}
 			}
 			else
 			{
@@ -992,6 +1026,16 @@ EmitSingleCodeBlockEntryToLLVM : LLVMBuildContext ref context, PreOpStatement re
 				EpochLLVMCodeCreateDereference(context.Context)
 				EpochLLVMCodePushInteger(context.Context, 1)
 				EpochLLVMCodeOperatorIntegerPlus(context.Context)
+				EpochLLVMCodeCreateWriteGlobal(context.Context, global)
+				EpochLLVMCodePushRawGlobal(context.Context, global)
+				EpochLLVMCodeCreateDereference(context.Context)
+			}
+			elseif(preop.Operator == PooledStringHandleForPrePostDecrementInteger)
+			{
+				EpochLLVMCodePushInteger(context.Context, 1)
+				EpochLLVMCodePushRawGlobal(context.Context, global)
+				EpochLLVMCodeCreateDereference(context.Context)
+				EpochLLVMCodeOperatorIntegerMinus(context.Context)
 				EpochLLVMCodeCreateWriteGlobal(context.Context, global)
 				EpochLLVMCodePushRawGlobal(context.Context, global)
 				EpochLLVMCodeCreateDereference(context.Context)
@@ -1842,7 +1886,7 @@ EmitAnonStructureInitializationToLLVM : LLVMContextHandle context, nothing, inte
 
 
 
-EmitAssignmentLHSGEPsToLLVM : LLVMBuildContext ref context, simplelist<integer> ref lhsmembers, integer structurename
+EmitAssignmentLHSGEPsToLLVM : LLVMBuildContext ref context, simplelist<integer> ref lhsmembers, integer structurename, integer typeid, integer rhstype
 {
 	integer membertype = GetStructureMemberType(structurename, lhsmembers.value)
 	integer memberindex = GetStructureMemberIndex(structurename, lhsmembers.value)
@@ -1852,15 +1896,20 @@ EmitAssignmentLHSGEPsToLLVM : LLVMBuildContext ref context, simplelist<integer> 
 		membertype = FindTypeAliasBase(membertype)
 	}
 
+	if(IsReferenceType(typeid))
+	{
+		EpochLLVMCodeCreateDereference(context.Context)
+	}
+
 	LLVMGEP gep = EpochLLVMCodeCreateGEP(context.Context, memberindex)
 	EpochLLVMCodePushRawGEP(context.Context, gep)
 
 	// Recurse
 	assertmsg(membertype != 0, "Member has no type!")
-	EmitAssignmentLHSGEPsToLLVM(context, lhsmembers.next, GetNameOfType(membertype))
+	EmitAssignmentLHSGEPsToLLVM(context, lhsmembers.next, GetNameOfType(membertype), membertype, rhstype)
 }
 
-EmitAssignmentLHSGEPsToLLVM : LLVMBuildContext ref context, nothing, integer structurename
+EmitAssignmentLHSGEPsToLLVM : LLVMBuildContext ref context, nothing, integer structurename, integer typeid, integer rhstype
 
 
 ADummyFunction :

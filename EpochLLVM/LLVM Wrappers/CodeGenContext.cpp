@@ -824,6 +824,7 @@ llvm::Value* Context::CodeCreateGEP(unsigned index)
 		assert(false);
 	}
 
+	Value* originalv = v;
 	if(v->getType()->isStructTy())
 	{
 		v = cast<LoadInst>(v)->getOperand(0);
