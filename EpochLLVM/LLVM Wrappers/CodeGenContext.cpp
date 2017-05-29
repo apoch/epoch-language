@@ -997,7 +997,10 @@ void Context::CodeCreateWriteStructurePop()
 	Value* wv = PendingValues.back();
 	PendingValues.pop_back();
 
-	LLVMBuilder.CreateStore(wv, gep);
+	if(wv->getType()->getPointerTo() == gep->getType())
+		LLVMBuilder.CreateStore(wv, gep);
+	else
+		LLVMBuilder.CreateStore(LLVMBuilder.CreateLoad(wv), gep);
 }
 
 void Context::CodeCreateWriteStructurePopSumType()
