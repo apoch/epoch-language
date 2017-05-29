@@ -138,7 +138,7 @@ EpochLLVMCodeOperatorIntegerDivide : LLVMContextHandle context														[ext
 EpochLLVMCodePushBoolean : LLVMContextHandle context, boolean literal												[external("EpochLLVM.dll", "EpochLLVMCodePushBoolean")]
 EpochLLVMCodePushInteger : LLVMContextHandle context, integer literal												[external("EpochLLVM.dll", "EpochLLVMCodePushInteger")]
 EpochLLVMCodePushInteger16 : LLVMContextHandle context, integer16 literal											[external("EpochLLVM.dll", "EpochLLVMCodePushInteger16")]
-EpochLLVMCodePushInteger64 : LLVMContextHandle context, integer literal												[external("EpochLLVM.dll", "EpochLLVMCodePushInteger64")]
+EpochLLVMCodePushInteger64 : LLVMContextHandle context, integer64 literal											[external("EpochLLVM.dll", "EpochLLVMCodePushInteger64")]
 EpochLLVMCodePushReal : LLVMContextHandle context, real literal														[external("EpochLLVM.dll", "EpochLLVMCodePushReal")]
 EpochLLVMCodePushRawAlloca : LLVMContextHandle context, LLVMAlloca alloca											[external("EpochLLVM.dll", "EpochLLVMCodePushRawAlloca")]
 EpochLLVMCodePushRawCall : LLVMContextHandle context, integer callinst												[external("EpochLLVM.dll", "EpochLLVMCodePushRawCall")]
@@ -1143,7 +1143,7 @@ EmitSingleAtomToLLVM : LLVMBuildContext ref context, integer16 ref literal
 
 EmitSingleAtomToLLVM : LLVMBuildContext ref context, integer64 ref literal
 {
-	EpochLLVMCodePushInteger64(context.Context, literal.dummy)
+	EpochLLVMCodePushInteger64(context.Context, literal)
 }
 
 EmitSingleAtomToLLVM : LLVMBuildContext ref context, boolean ref literal

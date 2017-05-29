@@ -3,8 +3,6 @@
 //
 
 
-structure integer64 : integer dummy			// TODO - terrible hack, redo this once we get to self-hosting again
-
 structure ParsedToken :
 	string Token,
 	string FileName,

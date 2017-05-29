@@ -669,14 +669,8 @@ llvm::CallInst* Context::CodeCreateCall(llvm::Function* target)
 		{
 			if(isa<ConstantPointerNull>(arg))
 			{
-				if(!PendingValues.empty() && PendingValues.back())
-				{
-				}
-				else
-				{
-					if(PendingValues.empty())
-						relevantargs.push_back(arg);
-				}
+				if(PendingValues.empty())
+					relevantargs.push_back(arg);
 			}
 			else
 			{
@@ -910,6 +904,13 @@ void Context::CodeCreateWrite(llvm::AllocaInst* originaltarget)
 	// allocatarget holds an int**
 	if(originaltarget->getAllocatedType() == wv->getType()->getPointerTo())
 		allocatarget = LLVMBuilder.CreateLoad(allocatarget);
+
+	// Bootstrapping HACK
+	// int32 RHS, int64 LHS
+	if((originaltarget->getAllocatedType() == TypeGetInteger64()) && (wv->getType() == TypeGetInteger()))
+	{
+		wv = LLVMBuilder.CreateSExt(wv, originaltarget->getAllocatedType());
+	}
 
 	if(wv->getType() != allocatarget->getType()->getPointerElementType())
 	{
