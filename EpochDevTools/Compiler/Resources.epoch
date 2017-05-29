@@ -542,7 +542,8 @@ AddResourceIcon : string filename, integer groupid, integer language, ResourceHa
 				if(ptr != 0)
 				{
 					IconDirectoryHeader hdr = 0, 0, 0
-					marshalstructure(hdr, ptr)
+					// TODO - copy bits from ptr into hdr
+					//marshalstructure(hdr, ptr)
 					
 					// TODO - validate .ico
 					
@@ -556,7 +557,8 @@ AddResourceIcon : string filename, integer groupid, integer language, ResourceHa
 					while(imagecount < hdrcount)
 					{
 						IconDirectoryEntry entry = 0, 0, 0, 0, 0
-						marshalstructure(entry, ptr)
+						// TODO - copy bits from ptr into entry
+						//marshalstructure(entry, ptr)
 						
 						ResourceAdd(res, 0x03, imagecount + res.IconCounter, language, entry.BytesInResource)
 						
