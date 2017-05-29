@@ -1091,6 +1091,11 @@ EmitSingleCodeBlockEntryToLLVM : LLVMBuildContext ref context, PreOpStatement re
 			assertmsg(false, "Compound preincrement/decrement not implemented")
 		}		
 	}
+
+	if(preop.TopLevel)
+	{
+		EpochLLVMCodeStatementFinalize(context.Context)
+	}
 }
 
 EmitSingleCodeBlockEntryToLLVM : LLVMBuildContext ref context, EntityChain ref entry
@@ -1581,6 +1586,9 @@ SetUpBuiltInLLVMThunks : LLVMContextHandle context
 	BuiltInThunkCreateStringFromInteger(context)
 	BuiltInThunkCreateStringLength(context)
 	BuiltInThunkCreateInteger16FromInteger(context)
+	BuiltInThunkCreateWriteBufferString(context)
+	BuiltInThunkCreateSubstringWithLength(context)
+	BuiltInThunkCreateUnescape(context)
 	
 	BuiltInThunkCreateGCInit(context)
 	BuiltInThunkCreateGCCollectStrings(context)
@@ -1743,6 +1751,43 @@ BuiltInThunkCreateGCCollectStrings : LLVMContextHandle context
 	BinaryTreeCreateOrInsert<integer>(LLVMGlobalThunks, PooledStringhandleForGCCollectStrings, thunk)
 }
 
+
+BuiltInThunkCreateWriteBufferString : LLVMContextHandle context
+{
+	EpochLLVMFunctionTypePush(context)
+	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetPointerTo(context, EpochLLVMTypeGetBuffer(context)))
+	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetInteger(context))
+	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetString(context))
+	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetInteger(context))
+	LLVMFunctionType fty = EpochLLVMFunctionTypeCreate(context, EpochLLVMTypeGetVoid(context))
+	integer thunk = EpochLLVMFunctionCreateThunk(context, "ERT_write_buffer_string", fty)
+
+	BinaryTreeCreateOrInsert<integer>(LLVMGlobalThunks, PooledStringHandleForWriteBufferString, thunk)
+}
+
+
+BuiltInThunkCreateSubstringWithLength : LLVMContextHandle context
+{
+	EpochLLVMFunctionTypePush(context)
+	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetString(context))
+	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetInteger(context))
+	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetInteger(context))
+	LLVMFunctionType fty = EpochLLVMFunctionTypeCreate(context, EpochLLVMTypeGetString(context))
+	integer thunk = EpochLLVMFunctionCreateThunk(context, "ERT_substring_length", fty)
+
+	BinaryTreeCreateOrInsert<integer>(LLVMGlobalThunks, PooledStringHandleForSubstringWithLength, thunk)
+}
+
+
+BuiltInThunkCreateUnescape : LLVMContextHandle context
+{
+	EpochLLVMFunctionTypePush(context)
+	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetString(context))
+	LLVMFunctionType fty = EpochLLVMFunctionTypeCreate(context, EpochLLVMTypeGetString(context))
+	integer thunk = EpochLLVMFunctionCreateThunk(context, "ERT_string_unescape", fty)
+
+	BinaryTreeCreateOrInsert<integer>(LLVMGlobalThunks, PooledStringHandleForUnescape, thunk)
+}
 
 
 CreateAllStructuresInLLVM : LLVMContextHandle context, list<StructureDefinition> ref structures

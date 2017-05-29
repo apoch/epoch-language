@@ -174,7 +174,7 @@ global
 	list<TemplateSumType> TemplateSumTypes = dummysumtypetemplate, nothing
 
 	simplelist<integer> dummycompound = 0, nothing
-	PreOpStatement PreOpOnDeck = 0, dummycompound, 0
+	PreOpStatement PreOpOnDeck = 0, dummycompound, 0, true
 	PostOpStatement PostOpOnDeck = 0, dummycompound, 0
 
 
