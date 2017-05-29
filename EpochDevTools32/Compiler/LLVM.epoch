@@ -717,9 +717,16 @@ EmitAssignmentRHSToLLVM : LLVMBuildContext ref context, Expression ref expr
 
 EmitSingleCodeBlockEntryToLLVM : LLVMBuildContext ref context, Assignment ref entry
 {
+	LLVMGlobalVar global = 0
 	LLVMAlloca alloca = 0
 	BinaryTreeCopyPayload<LLVMAlloca>(context.LocalVariables.RootNode, entry.LHSName, alloca)
-	assertmsg(alloca != 0, "Missing alloca for assignment LHS")
+	
+
+	if(alloca == 0)
+	{
+		BinaryTreeCopyPayload<LLVMGlobalVar>(context.GlobalVariables.RootNode, entry.LHSName, global)
+	}
+
 
 	EmitAssignmentRHSToLLVM(context, entry.RHS)
 
@@ -729,7 +736,15 @@ EmitSingleCodeBlockEntryToLLVM : LLVMBuildContext ref context, Assignment ref en
 	}
 	elseif(entry.Operator == PooledStringHandleForIncrementAssignInteger)
 	{
-		EpochLLVMCodeCreateRead(context.Context, alloca)
+		if(alloca != 0)
+		{
+			EpochLLVMCodeCreateRead(context.Context, alloca)
+		}
+		else
+		{
+			assertmsg(false, "Not implemented (increment-assign on global)")
+		}
+
 		if(IsReferenceType(entry.LHSType))
 		{
 			EpochLLVMCodeCreateDereference(context.Context)
@@ -742,13 +757,21 @@ EmitSingleCodeBlockEntryToLLVM : LLVMBuildContext ref context, Assignment ref en
 		assertmsg(false, "Unsupported assignment operator")
 	}
 
-	if(IsReferenceType(entry.LHSType))
+	if(alloca != 0)
 	{
-		EpochLLVMCodeCreateWriteIndirect(context.Context, alloca)		
+		if(IsReferenceType(entry.LHSType))
+		{
+			EpochLLVMCodeCreateWriteIndirect(context.Context, alloca)		
+		}
+		else
+		{
+			EpochLLVMCodeCreateWrite(context.Context, alloca)
+		}
 	}
 	else
 	{
-		EpochLLVMCodeCreateWrite(context.Context, alloca)
+		assertmsg(global != 0, "Missing global variable")
+		EpochLLVMCodeCreateWriteGlobal(context.Context, global)		
 	}
 }
 
