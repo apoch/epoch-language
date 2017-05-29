@@ -938,8 +938,10 @@ void Context::CodeCreateWriteIndirect(llvm::AllocaInst* allocatarget)
 	PendingValues.pop_back();
 	if(wv->getType() == allocatarget->getAllocatedType()->getPointerTo())
 		LLVMBuilder.CreateStore(LLVMBuilder.CreateLoad(wv), allocatarget);
-	else
+	else if(wv->getType()->getPointerTo() == allocatarget->getAllocatedType())
 		LLVMBuilder.CreateStore(wv, LLVMBuilder.CreateLoad(allocatarget));
+	else
+		LLVMBuilder.CreateStore(wv, allocatarget);
 }
 
 void Context::CodeCreateWriteParam(unsigned index)

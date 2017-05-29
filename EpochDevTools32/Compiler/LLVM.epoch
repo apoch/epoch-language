@@ -796,9 +796,14 @@ EmitSingleCodeBlockEntryToLLVM : LLVMBuildContext ref context, AssignmentCompoun
 
 	EmitAssignmentRHSToLLVM(context, entry.RHS)
 	
+	LLVMGlobalVar global = 0
 	LLVMAlloca alloca = 0
 	BinaryTreeCopyPayload<LLVMAlloca>(context.LocalVariables.RootNode, entry.LHS.value, alloca)
-	assertmsg(alloca != 0, "Missing compound assignment LHS")
+	
+	if(alloca == 0)
+	{
+		BinaryTreeCopyPayload<LLVMGlobalVar>(context.GlobalVariables.RootNode, entry.LHS.value, global)
+	}
 	
 	integer typeid = FindVariableType(entry.LHS.value)
 	boolean isref = IsReferenceType(typeid)
@@ -807,7 +812,15 @@ EmitSingleCodeBlockEntryToLLVM : LLVMBuildContext ref context, AssignmentCompoun
 	integer rhstype = GetAssignmentRHSType(entry.RHS)
 
 	integer structurename = GetNameOfStructureByType(typeid)
-	EpochLLVMCodePushRawAlloca(context.Context, alloca)
+	
+	if(alloca != 0)
+	{
+		EpochLLVMCodePushRawAlloca(context.Context, alloca)
+	}
+	else
+	{
+		EpochLLVMCodePushRawGlobal(context.Context, global)
+	}
 
 	if(isref)
 	{
