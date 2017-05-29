@@ -318,7 +318,8 @@ void Context::FunctionFinalize()
 	//LLVMBuilder.GetInsertBlock()->getParent()->dump();
 
 	// TODO - better implementation of this
-	//assert(PendingValues.empty());
+	assert(PendingValues.empty() || PendingValues.size() == 1);
+	PendingValues.clear();
 }
 
 
