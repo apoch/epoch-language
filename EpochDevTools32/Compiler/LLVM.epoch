@@ -850,6 +850,11 @@ EmitSingleCodeBlockEntryToLLVM : LLVMBuildContext ref context, Statement ref ent
 			{
 				EpochLLVMCodeCreateBranch(context.Context, context.ExitBlock, false)
 			}
+			elseif(entry.Name == PooledStringHandleForCastInteger16ToInteger)
+			{
+				EmitPartialExpressionListToLLVM(context, entry.Parameters)
+				EpochLLVMCodeCreateCast(context.Context, GetLLVMTypeForEpochType(context.Context, 0x01000001))
+			}
 			else
 			{
 				if(entry.Name == PooledStringHandleForCastIntegerToString)
