@@ -1276,7 +1276,7 @@ EmitSingleAtomToLLVM : LLVMBuildContext ref context, IdentifierAtom ref idatom
 
 	if(atomtype == 0x00000004)							// Nothing type signature
 	{
-		//EpochLLVMCodePushNothing(context.Context)			// TODO - eh?
+		EpochLLVMCodePushNothing(context.Context)
 	}
 	else
 	{

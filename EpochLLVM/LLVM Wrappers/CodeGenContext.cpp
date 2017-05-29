@@ -667,12 +667,26 @@ llvm::CallInst* Context::CodeCreateCall(llvm::Function* target)
 
 		if(arg)
 		{
-			// TODO - this is a ridiculously lame hack
-			if(fty->getParamType(fty->getNumParams() - relevantargs.size() - 1)->getPointerTo() == arg->getType())
-				arg = LLVMBuilder.CreateLoad(arg);
-			// End hack
+			if(isa<ConstantPointerNull>(arg))
+			{
+				if(!PendingValues.empty() && PendingValues.back())
+				{
+				}
+				else
+				{
+					if(PendingValues.empty())
+						relevantargs.push_back(arg);
+				}
+			}
+			else
+			{
+				// TODO - this is a ridiculously lame hack
+				if(fty->getParamType(fty->getNumParams() - relevantargs.size() - 1)->getPointerTo() == arg->getType())
+					arg = LLVMBuilder.CreateLoad(arg);
+				// End hack
 
-			relevantargs.push_back(arg);
+				relevantargs.push_back(arg);
+			}
 		}
 		else				// Annotated sum type
 		{
@@ -1231,7 +1245,8 @@ void Context::CodePushExtractedStructValue(unsigned memberindex)
 
 void Context::CodePushNothing()
 {
-	PendingValues.push_back(nullptr);
+	Value* v = ConstantPointerNull::get(TypeGetInteger()->getPointerTo());
+	PendingValues.push_back(v);
 }
 
 
