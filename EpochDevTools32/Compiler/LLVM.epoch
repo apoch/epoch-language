@@ -868,6 +868,11 @@ EmitSingleCodeBlockEntryToLLVM : LLVMBuildContext ref context, Statement ref ent
 				EmitPartialExpressionListToLLVM(context, entry.Parameters)
 				EpochLLVMCodeCreateCast(context.Context, GetLLVMTypeForEpochType(context.Context, 0x01000001))
 			}
+			elseif(entry.Name == PooledStringHandleForCastBooleanToInteger)
+			{
+				EmitPartialExpressionListToLLVM(context, entry.Parameters)
+				EpochLLVMCodeCreateCast(context.Context, GetLLVMTypeForEpochType(context.Context, 0x01000001))				
+			}
 			else
 			{
 				if(entry.Name == PooledStringHandleForCastIntegerToString)
@@ -1603,6 +1608,8 @@ SetUpBuiltInLLVMThunks : LLVMContextHandle context
 	BuiltInThunkCreateWriteBuffer(context)
 	BuiltInThunkCreateRealToString(context)
 	BuiltInThunkCreateCommandLineIsValid(context)
+	BuiltInThunkCreateCommandLineGetCount(context)
+	BuiltInThunkCreateCommandLineGet(context)
 	
 	BuiltInThunkCreateGCInit(context)
 	BuiltInThunkCreateGCCollectStrings(context)
@@ -1922,6 +1929,16 @@ BuiltInThunkCreateCommandLineGetCount : LLVMContextHandle context
 	integer thunk = EpochLLVMFunctionCreateThunk(context, "ERT_cmdlinegetcount", fty)
 
 	BinaryTreeCreateOrInsert<integer>(LLVMGlobalThunks, PooledStringHandleForCmdLineGetCount, thunk)	
+}
+
+BuiltInThunkCreateCommandLineGet : LLVMContextHandle context
+{
+	EpochLLVMFunctionTypePush(context)
+	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetInteger(context))
+	LLVMFunctionType fty = EpochLLVMFunctionTypeCreate(context, EpochLLVMTypeGetString(context))
+	integer thunk = EpochLLVMFunctionCreateThunk(context, "ERT_cmdlineget", fty)
+
+	BinaryTreeCreateOrInsert<integer>(LLVMGlobalThunks, PooledStringHandleForCmdLineGet, thunk)	
 }
 
 
