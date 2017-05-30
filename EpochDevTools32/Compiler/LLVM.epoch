@@ -1601,6 +1601,8 @@ SetUpBuiltInLLVMThunks : LLVMContextHandle context
 	BuiltInThunkCreateSubchar(context)
 	BuiltInThunkCreateNarrowString(context)
 	BuiltInThunkCreateWriteBuffer(context)
+	BuiltInThunkCreateRealToString(context)
+	BuiltInThunkCreateCommandLineIsValid(context)
 	
 	BuiltInThunkCreateGCInit(context)
 	BuiltInThunkCreateGCCollectStrings(context)
@@ -1766,6 +1768,16 @@ BuiltInThunkCreateStringToInteger : LLVMContextHandle context
 	BinaryTreeCreateOrInsert<integer>(LLVMGlobalThunks, PooledStringHandleForCastStringToInteger, thunk)
 }
 
+BuiltInThunkCreateRealToString : LLVMContextHandle context
+{
+	EpochLLVMFunctionTypePush(context)
+	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetReal(context))
+	LLVMFunctionType fty = EpochLLVMFunctionTypeCreate(context, EpochLLVMTypeGetString(context))
+	integer thunk = EpochLLVMFunctionCreateThunk(context, "ERT_real_to_string", fty)
+
+	BinaryTreeCreateOrInsert<integer>(LLVMGlobalThunks, PooledStringHandleForCastRealToString, thunk)
+}
+
 BuiltInThunkCreateSubchar : LLVMContextHandle context
 {
 	EpochLLVMFunctionTypePush(context)
@@ -1893,6 +1905,25 @@ BuiltInThunkCreateNarrowString : LLVMContextHandle context
 
 	BinaryTreeCreateOrInsert<integer>(LLVMGlobalThunks, PooledStringHandleForNarrowString, thunk)
 }
+
+BuiltInThunkCreateCommandLineIsValid : LLVMContextHandle context
+{
+	EpochLLVMFunctionTypePush(context)
+	LLVMFunctionType fty = EpochLLVMFunctionTypeCreate(context, EpochLLVMTypeGetBoolean(context))
+	integer thunk = EpochLLVMFunctionCreateThunk(context, "ERT_cmdlineisvalid", fty)
+
+	BinaryTreeCreateOrInsert<integer>(LLVMGlobalThunks, PooledStringHandleForCmdLineIsValid, thunk)	
+}
+
+BuiltInThunkCreateCommandLineGetCount : LLVMContextHandle context
+{
+	EpochLLVMFunctionTypePush(context)
+	LLVMFunctionType fty = EpochLLVMFunctionTypeCreate(context, EpochLLVMTypeGetInteger(context))
+	integer thunk = EpochLLVMFunctionCreateThunk(context, "ERT_cmdlinegetcount", fty)
+
+	BinaryTreeCreateOrInsert<integer>(LLVMGlobalThunks, PooledStringHandleForCmdLineGetCount, thunk)	
+}
+
 
 
 CreateAllStructuresInLLVM : LLVMContextHandle context, list<StructureDefinition> ref structures

@@ -53,7 +53,8 @@ MakeExe : EpochProject ref project
 	ManifestReference dummymanifest = "", 0
 	list<ManifestReference> dummymanifestlist = dummymanifest, nothing
 
-	list<MenuEntry> nomenuentries = MenuSentinel(0), nothing
+	MenuSentinel menusentinel = 0
+	list<MenuEntry> nomenuentries = menusentinel, nothing
 	MenuResource emptymenu = 0, nomenuentries
 	list<MenuResource> nomenus = emptymenu, nothing
 	
