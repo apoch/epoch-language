@@ -676,8 +676,16 @@ llvm::CallInst* Context::CodeCreateCall(llvm::Function* target)
 			else
 			{
 				// TODO - this is a ridiculously lame hack
-				if(fty->getParamType(fty->getNumParams() - relevantargs.size() - 1)->getPointerTo() == arg->getType())
+				Type* paramType = fty->getParamType(fty->getNumParams() - relevantargs.size() - 1);
+				if(paramType->getPointerTo() == arg->getType())
 					arg = LLVMBuilder.CreateLoad(arg);
+				else if(arg->getType()->getPointerTo() == paramType)
+				{
+					// FREE ALLOCA IS BAD - can we relocate it during a code pass?
+					Value* argalloca = LLVMBuilder.CreateAlloca(arg->getType());
+					LLVMBuilder.CreateStore(arg, argalloca);
+					arg = argalloca;
+				}
 				// End hack
 
 				relevantargs.push_back(arg);
@@ -853,7 +861,9 @@ llvm::Value* Context::CodeCreateGEP(unsigned index)
 
 llvm::GlobalVariable* Context::CodeCreateGlobal(llvm::Type* type, const char* name)
 {
-	return new GlobalVariable(type, false, GlobalValue::InternalLinkage, nullptr, name);
+	auto gv = new GlobalVariable(type, false, GlobalValue::InternalLinkage, nullptr, name);
+	LLVMModule->getGlobalList().addNodeToList(gv);
+	return gv;
 }
 
 

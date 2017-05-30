@@ -1597,6 +1597,7 @@ SetUpBuiltInLLVMThunks : LLVMContextHandle context
 	BuiltInThunkCreateStringFromInteger(context)
 	BuiltInThunkCreateStringLength(context)
 	BuiltInThunkCreateInteger16FromInteger(context)
+	BuiltInThunkCreateStringToReal(context)
 	BuiltInThunkCreateWriteBufferString(context)
 	BuiltInThunkCreateSubstringWithLength(context)
 	BuiltInThunkCreateSubstringNoLength(context)
@@ -1610,6 +1611,8 @@ SetUpBuiltInLLVMThunks : LLVMContextHandle context
 	BuiltInThunkCreateCommandLineIsValid(context)
 	BuiltInThunkCreateCommandLineGetCount(context)
 	BuiltInThunkCreateCommandLineGet(context)
+	BuiltInThunkCreateWriteBufferReal(context)
+	BuiltInThunkCreateWidenFromPtr(context)
 	
 	BuiltInThunkCreateGCInit(context)
 	BuiltInThunkCreateGCCollectStrings(context)
@@ -1806,6 +1809,16 @@ BuiltInThunkCreateInteger16FromInteger : LLVMContextHandle context
 	BinaryTreeCreateOrInsert<integer>(LLVMGlobalThunks, PooledStringHandleForCastIntegerToInteger16, thunk)
 }
 
+BuiltInThunkCreateStringToReal : LLVMContextHandle context
+{
+	EpochLLVMFunctionTypePush(context)
+	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetString(context))
+	LLVMFunctionType fty = EpochLLVMFunctionTypeCreate(context, EpochLLVMTypeGetReal(context))
+	integer thunk = EpochLLVMFunctionCreateThunk(context, "ERT_string_to_real", fty)
+
+	BinaryTreeCreateOrInsert<integer>(LLVMGlobalThunks, PooledStringHandleForCastStringToReal, thunk)
+}
+
 BuiltInThunkCreateGCInit : LLVMContextHandle context
 {
 	EpochLLVMFunctionTypePush(context)
@@ -1865,6 +1878,18 @@ BuiltInThunkCreateWriteBufferMultiple : LLVMContextHandle context
 	BinaryTreeCreateOrInsert<integer>(LLVMGlobalThunks, PooledStringHandleForWriteBufferMultiple, thunk)
 }
 
+
+BuiltInThunkCreateWriteBufferReal : LLVMContextHandle context
+{
+	EpochLLVMFunctionTypePush(context)
+	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetPointerTo(context, EpochLLVMTypeGetBuffer(context)))
+	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetInteger(context))
+	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetReal(context))
+	LLVMFunctionType fty = EpochLLVMFunctionTypeCreate(context, EpochLLVMTypeGetVoid(context))
+	integer thunk = EpochLLVMFunctionCreateThunk(context, "ERT_write_buffer_real", fty)
+
+	BinaryTreeCreateOrInsert<integer>(LLVMGlobalThunks, PooledStringHandleForWriteBufferReal, thunk)
+}
 
 
 BuiltInThunkCreateSubstringWithLength : LLVMContextHandle context
@@ -1939,6 +1964,17 @@ BuiltInThunkCreateCommandLineGet : LLVMContextHandle context
 	integer thunk = EpochLLVMFunctionCreateThunk(context, "ERT_cmdlineget", fty)
 
 	BinaryTreeCreateOrInsert<integer>(LLVMGlobalThunks, PooledStringHandleForCmdLineGet, thunk)	
+}
+
+BuiltInThunkCreateWidenFromPtr : LLVMContextHandle context
+{
+	EpochLLVMFunctionTypePush(context)
+	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetInteger(context))
+	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetInteger(context))
+	LLVMFunctionType fty = EpochLLVMFunctionTypeCreate(context, EpochLLVMTypeGetString(context))
+	integer thunk = EpochLLVMFunctionCreateThunk(context, "ERT_widenfromptr", fty)
+
+	BinaryTreeCreateOrInsert<integer>(LLVMGlobalThunks, PooledStringHandleForWidenFromPtr, thunk)	
 }
 
 

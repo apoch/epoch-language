@@ -16,7 +16,7 @@ PoolString : string s -> integer handle = FindHandleInTrie(GlobalStringPool.Look
 
 PoolStringFast : string s -> integer handle = 0
 {
-	++GlobalStringPool.CurrentStringHandle
+	GlobalStringPool.CurrentStringHandle = GlobalStringPool.CurrentStringHandle + 1
 	StringTableRegisterString(GlobalStringPool.CurrentStringHandle, s)
 	handle = GlobalStringPool.CurrentStringHandle
 }
