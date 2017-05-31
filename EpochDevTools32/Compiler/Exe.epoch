@@ -69,7 +69,7 @@ MakeExe : EpochProject ref project
 	ComputeResourceOffsets(res)
 	
 
-	buffer codebinarybuffer = 0x10000		// TODO - this is a REALLY DUMB lazy hack, fix it by allocating a safe size for the code buffer
+	buffer codebinarybuffer = 0x100000		// TODO - this is a REALLY DUMB lazy hack, fix it by allocating a safe size for the code buffer
 	EpochLLVMInitialize()
 	LLVMContextHandle llvm = EpochLLVMContextCreate()
 	EpochLLVMSetThunkCallback(llvm, ThunkLookupMapper)

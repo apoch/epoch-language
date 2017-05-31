@@ -11,3 +11,7 @@ EXPORTS
 
 	ERT_gc_init
 	ERT_gc_collect_strings
+
+	EpochLib_SubstrCharDirect
+	EpochLib_StrPointer
+	EpochLib_SubstrDirect

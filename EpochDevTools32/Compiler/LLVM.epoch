@@ -862,6 +862,7 @@ EmitSingleCodeBlockEntryToLLVM : LLVMBuildContext ref context, Statement ref ent
 			if(entry.Name == PooledStringHandleForReturn)
 			{
 				EpochLLVMCodeCreateBranch(context.Context, context.ExitBlock, false)
+				EpochLLVMCodeCreateBasicBlock(context.Context, context.EmittingFunction, true)
 			}
 			elseif(entry.Name == PooledStringHandleForCastInteger16ToInteger)
 			{

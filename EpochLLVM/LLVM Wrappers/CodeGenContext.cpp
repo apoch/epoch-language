@@ -223,7 +223,10 @@ namespace CodeGenInternal
 			std::wstring wide(foo.begin(), foo.end());
 			size_t offset = ThunkCallback(wide.c_str());
 
-			assert(offset != 0);
+			// TODO - this needs to support globals that live in some constant-data section of the image.
+			//assert(offset != 0);
+			if(!offset)
+				return 0x610ba1;
 
 			return offset;
 		}
@@ -480,7 +483,7 @@ void Context::PrepareBinaryObject()
 
 	// TODO - reintroduce optimizations
 
-	llvmmodule->dump();
+	//llvmmodule->dump();
 
 
 	class JEL : public JITEventListener
@@ -1419,7 +1422,8 @@ llvm::DIType* Context::TypeGetDebugType(Type* t)
 void Context::TagDebugLine(unsigned line, unsigned column)
 {
 	DebugLoc loc = DILocation::get(getGlobalContext(), line, column, LLVMBuilder.GetInsertBlock()->getParent()->getSubprogram());
-	LLVMBuilder.GetInsertBlock()->getInstList().back().setDebugLoc(loc);
+	if(!LLVMBuilder.GetInsertBlock()->getInstList().empty())
+		LLVMBuilder.GetInsertBlock()->getInstList().back().setDebugLoc(loc);
 }
 
 
