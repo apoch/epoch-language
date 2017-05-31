@@ -71,13 +71,6 @@ extern "C" void ERT_buffer_alloc(char** outbuffer, unsigned size)
 }
 
 
-/*
-EpochLib_SubstrCharDirect : integer pointer, integer pos -> integer ch = 0 [external("EpochRT.dll", "EpochLib_SubstrCharDirect"), nogc]
-EpochLib_StrPointer : string s -> integer pointer = 0 [external("EpochRT.dll", "EpochLib_StrPointer"), nogc]
-EpochLib_SubstrDirect : integer pointer, integer pos, integer length -> string s = "" [external("EpochRT.dll", "EpochLib_SubstrDirect"), nogc]
-
-*/
-
 extern "C" char EpochLib_SubstrCharDirect(const char* p, int pos)
 {
 	return p[pos];

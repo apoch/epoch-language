@@ -134,7 +134,7 @@ MakeExe : EpochProject ref project
 	integer virtualoffsetcode    = RoundUp(virtualoffsetdebug + 0x200)			// TODO - hardcoded hack for .debug
 	integer offsetcode           = RoundUpFile(offsetdebug + 0x200)				// TODO - hardcoded hack for .debug
 
-	integer sizecode = EpochLLVMEmitBinaryObject(llvm, codebinarybuffer, 0x10000, virtualoffsetcode + 0x0400000, virtualoffsetgc)		// TODO - also bad hacks
+	integer sizecode = EpochLLVMEmitBinaryObject(llvm, codebinarybuffer, 0x100000, virtualoffsetcode + 0x0400000, virtualoffsetgc)		// TODO - also bad hacks
 
 	integer totaldebugsize 		 = sizedebug + sizedebugreloc + sizedebugsymbols
 	integer sizeimage            = RoundUp(virtualoffsetcode + sizecode)
@@ -1058,7 +1058,7 @@ SearchThunkLibForFunctionOffset : nothing, string funcname -> integer offset = -
 StringLookupMapper : integer stringhandle -> integer offset = 0
 {
 	// TODO - don't hard code base address
-	integer baseaddress = 0x405000
+	integer baseaddress = 0x415000
 	
 	BinaryTreeCopyPayload<integer>(GlobalStringOffsets.RootNode, stringhandle, offset)
 	
