@@ -1214,6 +1214,7 @@ PrepareThunkTable : ThunkTable ref table
 	ThunkTableAddEntry(table, "EpochRT.dll", "ERT_string_concat")
 	ThunkTableAddEntry(table, "EpochRT.dll", "ERT_gc_init")
 	ThunkTableAddEntry(table, "EpochRT.dll", "ERT_gc_collect_strings")
+	ThunkTableAddEntry(table, "EpochRT.dll", "ERT_cmdlineisvalid")
 	
 	table.TotalSize = 0
 	table.DescriptorOffset = 0

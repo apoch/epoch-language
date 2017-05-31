@@ -87,3 +87,8 @@ extern "C" const char* EpochLib_SubstrDirect(const char* p, int pos, int len)
 	return StringPool.Alloc(s);
 }
 
+extern "C" bool ERT_cmdlineisvalid()
+{
+	return false;
+}
+
