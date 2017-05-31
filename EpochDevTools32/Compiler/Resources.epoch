@@ -1452,7 +1452,9 @@ TrimWhitespace : string in -> string out = in
 		}
 	}
 	
-	out = substring(out, startpos, endpos - startpos + 1)
+	integer len = endpos - startpos
+	++len
+	out = substring(out, startpos, len)
 }
 
 

@@ -717,9 +717,16 @@ EmitAssignmentRHSToLLVM : LLVMBuildContext ref context, Expression ref expr
 
 EmitSingleCodeBlockEntryToLLVM : LLVMBuildContext ref context, Assignment ref entry
 {
+	LLVMGlobalVar global = 0
 	LLVMAlloca alloca = 0
 	BinaryTreeCopyPayload<LLVMAlloca>(context.LocalVariables.RootNode, entry.LHSName, alloca)
-	assertmsg(alloca != 0, "Missing alloca for assignment LHS")
+	
+
+	if(alloca == 0)
+	{
+		BinaryTreeCopyPayload<LLVMGlobalVar>(context.GlobalVariables.RootNode, entry.LHSName, global)
+	}
+
 
 	EmitAssignmentRHSToLLVM(context, entry.RHS)
 
@@ -729,7 +736,15 @@ EmitSingleCodeBlockEntryToLLVM : LLVMBuildContext ref context, Assignment ref en
 	}
 	elseif(entry.Operator == PooledStringHandleForIncrementAssignInteger)
 	{
-		EpochLLVMCodeCreateRead(context.Context, alloca)
+		if(alloca != 0)
+		{
+			EpochLLVMCodeCreateRead(context.Context, alloca)
+		}
+		else
+		{
+			assertmsg(false, "Not implemented (increment-assign on global)")
+		}
+
 		if(IsReferenceType(entry.LHSType))
 		{
 			EpochLLVMCodeCreateDereference(context.Context)
@@ -742,13 +757,21 @@ EmitSingleCodeBlockEntryToLLVM : LLVMBuildContext ref context, Assignment ref en
 		assertmsg(false, "Unsupported assignment operator")
 	}
 
-	if(IsReferenceType(entry.LHSType))
+	if(alloca != 0)
 	{
-		EpochLLVMCodeCreateWriteIndirect(context.Context, alloca)		
+		if(IsReferenceType(entry.LHSType))
+		{
+			EpochLLVMCodeCreateWriteIndirect(context.Context, alloca)		
+		}
+		else
+		{
+			EpochLLVMCodeCreateWrite(context.Context, alloca)
+		}
 	}
 	else
 	{
-		EpochLLVMCodeCreateWrite(context.Context, alloca)
+		assertmsg(global != 0, "Missing global variable")
+		EpochLLVMCodeCreateWriteGlobal(context.Context, global)		
 	}
 }
 
@@ -773,9 +796,14 @@ EmitSingleCodeBlockEntryToLLVM : LLVMBuildContext ref context, AssignmentCompoun
 
 	EmitAssignmentRHSToLLVM(context, entry.RHS)
 	
+	LLVMGlobalVar global = 0
 	LLVMAlloca alloca = 0
 	BinaryTreeCopyPayload<LLVMAlloca>(context.LocalVariables.RootNode, entry.LHS.value, alloca)
-	assertmsg(alloca != 0, "Missing compound assignment LHS")
+	
+	if(alloca == 0)
+	{
+		BinaryTreeCopyPayload<LLVMGlobalVar>(context.GlobalVariables.RootNode, entry.LHS.value, global)
+	}
 	
 	integer typeid = FindVariableType(entry.LHS.value)
 	boolean isref = IsReferenceType(typeid)
@@ -784,14 +812,22 @@ EmitSingleCodeBlockEntryToLLVM : LLVMBuildContext ref context, AssignmentCompoun
 	integer rhstype = GetAssignmentRHSType(entry.RHS)
 
 	integer structurename = GetNameOfStructureByType(typeid)
-	EpochLLVMCodePushRawAlloca(context.Context, alloca)
+	
+	if(alloca != 0)
+	{
+		EpochLLVMCodePushRawAlloca(context.Context, alloca)
+	}
+	else
+	{
+		EpochLLVMCodePushRawGlobal(context.Context, global)
+	}
 
 	if(isref)
 	{
 		EpochLLVMCodeCreateDereference(context.Context)
 	}
 
-	EmitAssignmentLHSGEPsToLLVM(context, entry.LHS.next, structurename)
+	EmitAssignmentLHSGEPsToLLVM(context, entry.LHS.next, structurename, typeid, rhstype)
 	
 	if(IsSumType(entry.LHSType))
 	{
@@ -826,6 +862,17 @@ EmitSingleCodeBlockEntryToLLVM : LLVMBuildContext ref context, Statement ref ent
 			if(entry.Name == PooledStringHandleForReturn)
 			{
 				EpochLLVMCodeCreateBranch(context.Context, context.ExitBlock, false)
+				EpochLLVMCodeCreateBasicBlock(context.Context, context.EmittingFunction, true)
+			}
+			elseif(entry.Name == PooledStringHandleForCastInteger16ToInteger)
+			{
+				EmitPartialExpressionListToLLVM(context, entry.Parameters)
+				EpochLLVMCodeCreateCast(context.Context, GetLLVMTypeForEpochType(context.Context, 0x01000001))
+			}
+			elseif(entry.Name == PooledStringHandleForCastBooleanToInteger)
+			{
+				EmitPartialExpressionListToLLVM(context, entry.Parameters)
+				EpochLLVMCodeCreateCast(context.Context, GetLLVMTypeForEpochType(context.Context, 0x01000001))				
 			}
 			else
 			{
@@ -962,11 +1009,45 @@ EmitSingleCodeBlockEntryToLLVM : LLVMBuildContext ref context, PreOpStatement re
 		{
 			if(preop.Operator == PooledStringHandleForPrePostIncrementInteger)
 			{
-				EpochLLVMCodeCreateRead(context.Context, alloca)
-				EpochLLVMCodePushInteger(context.Context, 1)
-				EpochLLVMCodeOperatorIntegerPlus(context.Context)
-				EpochLLVMCodeCreateWrite(context.Context, alloca)
-				EpochLLVMCodeCreateRead(context.Context, alloca)
+				if(IsReferenceType(preop.Type))
+				{
+					EpochLLVMCodePushInteger(context.Context, 1)
+					EpochLLVMCodeCreateRead(context.Context, alloca)
+					EpochLLVMCodeCreateDereference(context.Context)
+					EpochLLVMCodeOperatorIntegerPlus(context.Context)
+					EpochLLVMCodeCreateWriteIndirect(context.Context, alloca)
+					EpochLLVMCodeCreateRead(context.Context, alloca)
+					EpochLLVMCodeCreateDereference(context.Context)
+				}
+				else
+				{
+					EpochLLVMCodeCreateRead(context.Context, alloca)
+					EpochLLVMCodePushInteger(context.Context, 1)
+					EpochLLVMCodeOperatorIntegerPlus(context.Context)
+					EpochLLVMCodeCreateWrite(context.Context, alloca)
+					EpochLLVMCodeCreateRead(context.Context, alloca)
+				}
+			}
+			elseif(preop.Operator == PooledStringHandleForPrePostDecrementInteger)
+			{
+				if(IsReferenceType(preop.Type))
+				{
+					EpochLLVMCodePushInteger(context.Context, 1)
+					EpochLLVMCodeCreateRead(context.Context, alloca)
+					EpochLLVMCodeCreateDereference(context.Context)
+					EpochLLVMCodeOperatorIntegerMinus(context.Context)
+					EpochLLVMCodeCreateWriteIndirect(context.Context, alloca)
+					EpochLLVMCodeCreateRead(context.Context, alloca)
+					EpochLLVMCodeCreateDereference(context.Context)
+				}
+				else
+				{
+					EpochLLVMCodePushInteger(context.Context, 1)
+					EpochLLVMCodeCreateRead(context.Context, alloca)
+					EpochLLVMCodeOperatorIntegerMinus(context.Context)
+					EpochLLVMCodeCreateWrite(context.Context, alloca)
+					EpochLLVMCodeCreateRead(context.Context, alloca)
+				}
 			}
 			else
 			{
@@ -996,6 +1077,16 @@ EmitSingleCodeBlockEntryToLLVM : LLVMBuildContext ref context, PreOpStatement re
 				EpochLLVMCodePushRawGlobal(context.Context, global)
 				EpochLLVMCodeCreateDereference(context.Context)
 			}
+			elseif(preop.Operator == PooledStringHandleForPrePostDecrementInteger)
+			{
+				EpochLLVMCodePushInteger(context.Context, 1)
+				EpochLLVMCodePushRawGlobal(context.Context, global)
+				EpochLLVMCodeCreateDereference(context.Context)
+				EpochLLVMCodeOperatorIntegerMinus(context.Context)
+				EpochLLVMCodeCreateWriteGlobal(context.Context, global)
+				EpochLLVMCodePushRawGlobal(context.Context, global)
+				EpochLLVMCodeCreateDereference(context.Context)
+			}
 			else
 			{
 				assertmsg(false, "Unsupported pre-operation")
@@ -1005,6 +1096,11 @@ EmitSingleCodeBlockEntryToLLVM : LLVMBuildContext ref context, PreOpStatement re
 		{
 			assertmsg(false, "Compound preincrement/decrement not implemented")
 		}		
+	}
+
+	if(preop.TopLevel)
+	{
+		EpochLLVMCodeStatementFinalize(context.Context)
 	}
 }
 
@@ -1186,7 +1282,7 @@ EmitSingleAtomToLLVM : LLVMBuildContext ref context, IdentifierAtom ref idatom
 
 	if(atomtype == 0x00000004)							// Nothing type signature
 	{
-		//EpochLLVMCodePushNothing(context.Context)			// TODO - eh?
+		EpochLLVMCodePushNothing(context.Context)
 	}
 	else
 	{
@@ -1352,6 +1448,10 @@ EmitSingleAtomToLLVM : LLVMBuildContext ref context, OperatorInvokeAtom ref atom
 	{
 		getthunk = true
 	}
+	elseif(atom.OperatorName == PooledStringHandleForInequalityString)
+	{
+		getthunk = true
+	}
 	elseif(atom.OperatorName == PooledStringHandleForStringConcat)
 	{
 		getthunk = true
@@ -1489,13 +1589,31 @@ SetUpBuiltInLLVMThunks : LLVMContextHandle context
 {
 	BuiltInThunkCreateAssert(context)
 	BuiltInThunkCreateBufferAlloc(context)
+	BuiltInThunkCreateBufferCopy(context)
 	BuiltInThunkCreatePasstest(context)
 	BuiltInThunkCreatePrint(context)
 	BuiltInThunkCreateStringEquality(context)
+	BuiltInThunkCreateStringInequality(context)
 	BuiltInThunkCreateStringConcat(context)
 	BuiltInThunkCreateStringFromInteger(context)
 	BuiltInThunkCreateStringLength(context)
 	BuiltInThunkCreateInteger16FromInteger(context)
+	BuiltInThunkCreateStringToReal(context)
+	BuiltInThunkCreateWriteBufferString(context)
+	BuiltInThunkCreateSubstringWithLength(context)
+	BuiltInThunkCreateSubstringNoLength(context)
+	BuiltInThunkCreateUnescape(context)
+	BuiltInThunkCreateWriteBufferMultiple(context)
+	BuiltInThunkCreateStringToInteger(context)
+	BuiltInThunkCreateSubchar(context)
+	BuiltInThunkCreateNarrowString(context)
+	BuiltInThunkCreateWriteBuffer(context)
+	BuiltInThunkCreateRealToString(context)
+	BuiltInThunkCreateCommandLineIsValid(context)
+	BuiltInThunkCreateCommandLineGetCount(context)
+	BuiltInThunkCreateCommandLineGet(context)
+	BuiltInThunkCreateWriteBufferReal(context)
+	BuiltInThunkCreateWidenFromPtr(context)
 	
 	BuiltInThunkCreateGCInit(context)
 	BuiltInThunkCreateGCCollectStrings(context)
@@ -1567,6 +1685,17 @@ BuiltInThunkCreateBufferAlloc : LLVMContextHandle context
 	BinaryTreeCreateOrInsert<integer>(LLVMGlobalThunks, PooledStringHandleForBuffer, thunk)
 }
 
+BuiltInThunkCreateBufferCopy : LLVMContextHandle context
+{
+	EpochLLVMFunctionTypePush(context)
+	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetBuffer(context))
+	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetBuffer(context))
+	LLVMFunctionType fty = EpochLLVMFunctionTypeCreate(context, EpochLLVMTypeGetVoid(context))
+	integer thunk = EpochLLVMFunctionCreateThunk(context, "ERT_buffer_copy", fty)
+
+	BinaryTreeCreateOrInsert<integer>(LLVMGlobalThunks, PooledStringHandleForBufferCopy, thunk)
+}
+
 BuiltInThunkCreatePasstest : LLVMContextHandle context
 {
 	EpochLLVMFunctionTypePush(context)
@@ -1595,6 +1724,17 @@ BuiltInThunkCreateStringEquality : LLVMContextHandle context
 	integer thunk = EpochLLVMFunctionCreateThunk(context, "ERT_string_compare", fty)
 
 	BinaryTreeCreateOrInsert<integer>(LLVMGlobalThunks, PooledStringHandleForEqualityString, thunk)
+}
+
+BuiltInThunkCreateStringInequality : LLVMContextHandle context
+{
+	EpochLLVMFunctionTypePush(context)
+	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetString(context))
+	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetString(context))
+	LLVMFunctionType fty = EpochLLVMFunctionTypeCreate(context, EpochLLVMTypeGetBoolean(context))
+	integer thunk = EpochLLVMFunctionCreateThunk(context, "ERT_string_compare_notequal", fty)
+
+	BinaryTreeCreateOrInsert<integer>(LLVMGlobalThunks, PooledStringHandleForInequalityString, thunk)
 }
 
 BuiltInThunkCreateStringConcat : LLVMContextHandle context
@@ -1629,6 +1769,37 @@ BuiltInThunkCreateStringFromInteger : LLVMContextHandle context
 	BinaryTreeCreateOrInsert<integer>(LLVMGlobalThunks, PooledStringHandleForCastIntegerToString, thunk)
 }
 
+BuiltInThunkCreateStringToInteger : LLVMContextHandle context
+{
+	EpochLLVMFunctionTypePush(context)
+	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetString(context))
+	LLVMFunctionType fty = EpochLLVMFunctionTypeCreate(context, EpochLLVMTypeGetInteger(context))
+	integer thunk = EpochLLVMFunctionCreateThunk(context, "ERT_string_to_integer", fty)
+
+	BinaryTreeCreateOrInsert<integer>(LLVMGlobalThunks, PooledStringHandleForCastStringToInteger, thunk)
+}
+
+BuiltInThunkCreateRealToString : LLVMContextHandle context
+{
+	EpochLLVMFunctionTypePush(context)
+	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetReal(context))
+	LLVMFunctionType fty = EpochLLVMFunctionTypeCreate(context, EpochLLVMTypeGetString(context))
+	integer thunk = EpochLLVMFunctionCreateThunk(context, "ERT_real_to_string", fty)
+
+	BinaryTreeCreateOrInsert<integer>(LLVMGlobalThunks, PooledStringHandleForCastRealToString, thunk)
+}
+
+BuiltInThunkCreateSubchar : LLVMContextHandle context
+{
+	EpochLLVMFunctionTypePush(context)
+	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetString(context))
+	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetInteger(context))
+	LLVMFunctionType fty = EpochLLVMFunctionTypeCreate(context, EpochLLVMTypeGetInteger(context))
+	integer thunk = EpochLLVMFunctionCreateThunk(context, "ERT_subchar", fty)
+
+	BinaryTreeCreateOrInsert<integer>(LLVMGlobalThunks, PooledStringHandleForSubchar, thunk)
+}
+
 BuiltInThunkCreateInteger16FromInteger : LLVMContextHandle context
 {
 	EpochLLVMFunctionTypePush(context)
@@ -1637,6 +1808,16 @@ BuiltInThunkCreateInteger16FromInteger : LLVMContextHandle context
 	integer thunk = EpochLLVMFunctionCreateThunk(context, "ERT_integer16_from_integer", fty)
 
 	BinaryTreeCreateOrInsert<integer>(LLVMGlobalThunks, PooledStringHandleForCastIntegerToInteger16, thunk)
+}
+
+BuiltInThunkCreateStringToReal : LLVMContextHandle context
+{
+	EpochLLVMFunctionTypePush(context)
+	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetString(context))
+	LLVMFunctionType fty = EpochLLVMFunctionTypeCreate(context, EpochLLVMTypeGetReal(context))
+	integer thunk = EpochLLVMFunctionCreateThunk(context, "ERT_string_to_real", fty)
+
+	BinaryTreeCreateOrInsert<integer>(LLVMGlobalThunks, PooledStringHandleForCastStringToReal, thunk)
 }
 
 BuiltInThunkCreateGCInit : LLVMContextHandle context
@@ -1656,6 +1837,145 @@ BuiltInThunkCreateGCCollectStrings : LLVMContextHandle context
 	integer thunk = EpochLLVMFunctionCreateThunk(context, "ERT_gc_collect_strings", fty)
 
 	BinaryTreeCreateOrInsert<integer>(LLVMGlobalThunks, PooledStringhandleForGCCollectStrings, thunk)
+}
+
+
+BuiltInThunkCreateWriteBuffer : LLVMContextHandle context
+{
+	EpochLLVMFunctionTypePush(context)
+	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetPointerTo(context, EpochLLVMTypeGetBuffer(context)))
+	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetInteger(context))
+	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetInteger(context))
+	LLVMFunctionType fty = EpochLLVMFunctionTypeCreate(context, EpochLLVMTypeGetVoid(context))
+	integer thunk = EpochLLVMFunctionCreateThunk(context, "ERT_write_buffer", fty)
+
+	BinaryTreeCreateOrInsert<integer>(LLVMGlobalThunks, PooledStringHandleForWriteBuffer, thunk)
+}
+
+BuiltInThunkCreateWriteBufferString : LLVMContextHandle context
+{
+	EpochLLVMFunctionTypePush(context)
+	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetPointerTo(context, EpochLLVMTypeGetBuffer(context)))
+	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetInteger(context))
+	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetString(context))
+	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetInteger(context))
+	LLVMFunctionType fty = EpochLLVMFunctionTypeCreate(context, EpochLLVMTypeGetVoid(context))
+	integer thunk = EpochLLVMFunctionCreateThunk(context, "ERT_write_buffer_string", fty)
+
+	BinaryTreeCreateOrInsert<integer>(LLVMGlobalThunks, PooledStringHandleForWriteBufferString, thunk)
+}
+
+
+BuiltInThunkCreateWriteBufferMultiple : LLVMContextHandle context
+{
+	EpochLLVMFunctionTypePush(context)
+	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetPointerTo(context, EpochLLVMTypeGetBuffer(context)))
+	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetInteger(context))
+	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetInteger(context))
+	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetInteger(context))
+	LLVMFunctionType fty = EpochLLVMFunctionTypeCreate(context, EpochLLVMTypeGetVoid(context))
+	integer thunk = EpochLLVMFunctionCreateThunk(context, "ERT_write_buffer_multiple", fty)
+
+	BinaryTreeCreateOrInsert<integer>(LLVMGlobalThunks, PooledStringHandleForWriteBufferMultiple, thunk)
+}
+
+
+BuiltInThunkCreateWriteBufferReal : LLVMContextHandle context
+{
+	EpochLLVMFunctionTypePush(context)
+	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetPointerTo(context, EpochLLVMTypeGetBuffer(context)))
+	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetInteger(context))
+	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetReal(context))
+	LLVMFunctionType fty = EpochLLVMFunctionTypeCreate(context, EpochLLVMTypeGetVoid(context))
+	integer thunk = EpochLLVMFunctionCreateThunk(context, "ERT_write_buffer_real", fty)
+
+	BinaryTreeCreateOrInsert<integer>(LLVMGlobalThunks, PooledStringHandleForWriteBufferReal, thunk)
+}
+
+
+BuiltInThunkCreateSubstringWithLength : LLVMContextHandle context
+{
+	EpochLLVMFunctionTypePush(context)
+	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetString(context))
+	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetInteger(context))
+	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetInteger(context))
+	LLVMFunctionType fty = EpochLLVMFunctionTypeCreate(context, EpochLLVMTypeGetString(context))
+	integer thunk = EpochLLVMFunctionCreateThunk(context, "ERT_substring_length", fty)
+
+	BinaryTreeCreateOrInsert<integer>(LLVMGlobalThunks, PooledStringHandleForSubstringWithLength, thunk)
+}
+
+
+
+BuiltInThunkCreateSubstringNoLength : LLVMContextHandle context
+{
+	EpochLLVMFunctionTypePush(context)
+	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetString(context))
+	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetInteger(context))
+	LLVMFunctionType fty = EpochLLVMFunctionTypeCreate(context, EpochLLVMTypeGetString(context))
+	integer thunk = EpochLLVMFunctionCreateThunk(context, "ERT_substring_nolength", fty)
+
+	BinaryTreeCreateOrInsert<integer>(LLVMGlobalThunks, PooledStringHandleForSubstringNoLength, thunk)
+}
+
+
+BuiltInThunkCreateUnescape : LLVMContextHandle context
+{
+	EpochLLVMFunctionTypePush(context)
+	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetString(context))
+	LLVMFunctionType fty = EpochLLVMFunctionTypeCreate(context, EpochLLVMTypeGetString(context))
+	integer thunk = EpochLLVMFunctionCreateThunk(context, "ERT_string_unescape", fty)
+
+	BinaryTreeCreateOrInsert<integer>(LLVMGlobalThunks, PooledStringHandleForUnescape, thunk)
+}
+
+BuiltInThunkCreateNarrowString : LLVMContextHandle context
+{
+	EpochLLVMFunctionTypePush(context)
+	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetString(context))
+	LLVMFunctionType fty = EpochLLVMFunctionTypeCreate(context, EpochLLVMTypeGetBuffer(context))
+	integer thunk = EpochLLVMFunctionCreateThunk(context, "ERT_string_narrow", fty)
+
+	BinaryTreeCreateOrInsert<integer>(LLVMGlobalThunks, PooledStringHandleForNarrowString, thunk)
+}
+
+BuiltInThunkCreateCommandLineIsValid : LLVMContextHandle context
+{
+	EpochLLVMFunctionTypePush(context)
+	LLVMFunctionType fty = EpochLLVMFunctionTypeCreate(context, EpochLLVMTypeGetBoolean(context))
+	integer thunk = EpochLLVMFunctionCreateThunk(context, "ERT_cmdlineisvalid", fty)
+
+	BinaryTreeCreateOrInsert<integer>(LLVMGlobalThunks, PooledStringHandleForCmdLineIsValid, thunk)	
+}
+
+BuiltInThunkCreateCommandLineGetCount : LLVMContextHandle context
+{
+	EpochLLVMFunctionTypePush(context)
+	LLVMFunctionType fty = EpochLLVMFunctionTypeCreate(context, EpochLLVMTypeGetInteger(context))
+	integer thunk = EpochLLVMFunctionCreateThunk(context, "ERT_cmdlinegetcount", fty)
+
+	BinaryTreeCreateOrInsert<integer>(LLVMGlobalThunks, PooledStringHandleForCmdLineGetCount, thunk)	
+}
+
+BuiltInThunkCreateCommandLineGet : LLVMContextHandle context
+{
+	EpochLLVMFunctionTypePush(context)
+	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetInteger(context))
+	LLVMFunctionType fty = EpochLLVMFunctionTypeCreate(context, EpochLLVMTypeGetString(context))
+	integer thunk = EpochLLVMFunctionCreateThunk(context, "ERT_cmdlineget", fty)
+
+	BinaryTreeCreateOrInsert<integer>(LLVMGlobalThunks, PooledStringHandleForCmdLineGet, thunk)	
+}
+
+BuiltInThunkCreateWidenFromPtr : LLVMContextHandle context
+{
+	EpochLLVMFunctionTypePush(context)
+	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetInteger(context))
+	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetInteger(context))
+	LLVMFunctionType fty = EpochLLVMFunctionTypeCreate(context, EpochLLVMTypeGetString(context))
+	integer thunk = EpochLLVMFunctionCreateThunk(context, "ERT_widenfromptr", fty)
+
+	BinaryTreeCreateOrInsert<integer>(LLVMGlobalThunks, PooledStringHandleForWidenFromPtr, thunk)	
 }
 
 
@@ -1842,7 +2162,7 @@ EmitAnonStructureInitializationToLLVM : LLVMContextHandle context, nothing, inte
 
 
 
-EmitAssignmentLHSGEPsToLLVM : LLVMBuildContext ref context, simplelist<integer> ref lhsmembers, integer structurename
+EmitAssignmentLHSGEPsToLLVM : LLVMBuildContext ref context, simplelist<integer> ref lhsmembers, integer structurename, integer typeid, integer rhstype
 {
 	integer membertype = GetStructureMemberType(structurename, lhsmembers.value)
 	integer memberindex = GetStructureMemberIndex(structurename, lhsmembers.value)
@@ -1852,15 +2172,20 @@ EmitAssignmentLHSGEPsToLLVM : LLVMBuildContext ref context, simplelist<integer> 
 		membertype = FindTypeAliasBase(membertype)
 	}
 
+	if(IsReferenceType(typeid))
+	{
+		EpochLLVMCodeCreateDereference(context.Context)
+	}
+
 	LLVMGEP gep = EpochLLVMCodeCreateGEP(context.Context, memberindex)
 	EpochLLVMCodePushRawGEP(context.Context, gep)
 
 	// Recurse
 	assertmsg(membertype != 0, "Member has no type!")
-	EmitAssignmentLHSGEPsToLLVM(context, lhsmembers.next, GetNameOfType(membertype))
+	EmitAssignmentLHSGEPsToLLVM(context, lhsmembers.next, GetNameOfType(membertype), membertype, rhstype)
 }
 
-EmitAssignmentLHSGEPsToLLVM : LLVMBuildContext ref context, nothing, integer structurename
+EmitAssignmentLHSGEPsToLLVM : LLVMBuildContext ref context, nothing, integer structurename, integer typeid, integer rhstype
 
 
 ADummyFunction :

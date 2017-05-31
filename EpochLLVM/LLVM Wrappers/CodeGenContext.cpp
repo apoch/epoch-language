@@ -223,7 +223,10 @@ namespace CodeGenInternal
 			std::wstring wide(foo.begin(), foo.end());
 			size_t offset = ThunkCallback(wide.c_str());
 
-			assert(offset != 0);
+			// TODO - this needs to support globals that live in some constant-data section of the image.
+			//assert(offset != 0);
+			if(!offset)
+				return 0x610ba1;
 
 			return offset;
 		}
@@ -318,7 +321,8 @@ void Context::FunctionFinalize()
 	//LLVMBuilder.GetInsertBlock()->getParent()->dump();
 
 	// TODO - better implementation of this
-	//assert(PendingValues.empty());
+	assert(PendingValues.empty() || PendingValues.size() == 1);
+	PendingValues.clear();
 }
 
 
@@ -479,7 +483,7 @@ void Context::PrepareBinaryObject()
 
 	// TODO - reintroduce optimizations
 
-	llvmmodule->dump();
+	//llvmmodule->dump();
 
 
 	class JEL : public JITEventListener
@@ -667,12 +671,28 @@ llvm::CallInst* Context::CodeCreateCall(llvm::Function* target)
 
 		if(arg)
 		{
-			// TODO - this is a ridiculously lame hack
-			if(fty->getParamType(fty->getNumParams() - relevantargs.size() - 1)->getPointerTo() == arg->getType())
-				arg = LLVMBuilder.CreateLoad(arg);
-			// End hack
+			if(isa<ConstantPointerNull>(arg))
+			{
+				if(PendingValues.empty())
+					relevantargs.push_back(arg);
+			}
+			else
+			{
+				// TODO - this is a ridiculously lame hack
+				Type* paramType = fty->getParamType(fty->getNumParams() - relevantargs.size() - 1);
+				if(paramType->getPointerTo() == arg->getType())
+					arg = LLVMBuilder.CreateLoad(arg);
+				else if(arg->getType()->getPointerTo() == paramType)
+				{
+					// FREE ALLOCA IS BAD - can we relocate it during a code pass?
+					Value* argalloca = LLVMBuilder.CreateAlloca(arg->getType());
+					LLVMBuilder.CreateStore(arg, argalloca);
+					arg = argalloca;
+				}
+				// End hack
 
-			relevantargs.push_back(arg);
+				relevantargs.push_back(arg);
+			}
 		}
 		else				// Annotated sum type
 		{
@@ -688,7 +708,15 @@ llvm::CallInst* Context::CodeCreateCall(llvm::Function* target)
 			{
 				Value* rawpayload = PendingValues.back();
 				if(!rawpayload->getType()->isPointerTy())
-					rawpayload = cast<LoadInst>(rawpayload)->getOperand(0);
+				{
+					if(isa<LoadInst>(rawpayload))
+						rawpayload = cast<LoadInst>(rawpayload)->getOperand(0);
+					else
+					{
+						// TODO - solve problem of stack temporaries being passed into functions that expect a ref
+						assert(false);
+					}
+				}
 	
 				payload = LLVMBuilder.CreatePtrToInt(rawpayload, paramtype->getStructElementType(1));
 
@@ -824,6 +852,7 @@ llvm::Value* Context::CodeCreateGEP(unsigned index)
 		assert(false);
 	}
 
+	Value* originalv = v;
 	if(v->getType()->isStructTy())
 	{
 		v = cast<LoadInst>(v)->getOperand(0);
@@ -835,7 +864,9 @@ llvm::Value* Context::CodeCreateGEP(unsigned index)
 
 llvm::GlobalVariable* Context::CodeCreateGlobal(llvm::Type* type, const char* name)
 {
-	return new GlobalVariable(type, false, GlobalValue::InternalLinkage, nullptr, name);
+	auto gv = new GlobalVariable(type, false, GlobalValue::InternalLinkage, nullptr, name);
+	LLVMModule->getGlobalList().addNodeToList(gv);
+	return gv;
 }
 
 
@@ -896,6 +927,13 @@ void Context::CodeCreateWrite(llvm::AllocaInst* originaltarget)
 	if(originaltarget->getAllocatedType() == wv->getType()->getPointerTo())
 		allocatarget = LLVMBuilder.CreateLoad(allocatarget);
 
+	// Bootstrapping HACK
+	// int32 RHS, int64 LHS
+	if((originaltarget->getAllocatedType() == TypeGetInteger64()) && (wv->getType() == TypeGetInteger()))
+	{
+		wv = LLVMBuilder.CreateSExt(wv, originaltarget->getAllocatedType());
+	}
+
 	if(wv->getType() != allocatarget->getType()->getPointerElementType())
 	{
 		Value* readannotationgep = LLVMBuilder.CreateExtractValue(wv, { 0 });
@@ -935,7 +973,12 @@ void Context::CodeCreateWriteIndirect(llvm::AllocaInst* allocatarget)
 {
 	Value* wv = PendingValues.back();
 	PendingValues.pop_back();
-	LLVMBuilder.CreateStore(wv, LLVMBuilder.CreateLoad(allocatarget));
+	if(wv->getType() == allocatarget->getAllocatedType()->getPointerTo())
+		LLVMBuilder.CreateStore(LLVMBuilder.CreateLoad(wv), allocatarget);
+	else if(wv->getType()->getPointerTo() == allocatarget->getAllocatedType())
+		LLVMBuilder.CreateStore(wv, LLVMBuilder.CreateLoad(allocatarget));
+	else
+		LLVMBuilder.CreateStore(wv, allocatarget);
 }
 
 void Context::CodeCreateWriteParam(unsigned index)
@@ -975,7 +1018,10 @@ void Context::CodeCreateWriteStructurePop()
 	Value* wv = PendingValues.back();
 	PendingValues.pop_back();
 
-	LLVMBuilder.CreateStore(wv, gep);
+	if(wv->getType()->getPointerTo() == gep->getType())
+		LLVMBuilder.CreateStore(wv, gep);
+	else
+		LLVMBuilder.CreateStore(LLVMBuilder.CreateLoad(wv), gep);
 }
 
 void Context::CodeCreateWriteStructurePopSumType()
@@ -1225,7 +1271,8 @@ void Context::CodePushExtractedStructValue(unsigned memberindex)
 
 void Context::CodePushNothing()
 {
-	PendingValues.push_back(nullptr);
+	Value* v = ConstantPointerNull::get(TypeGetInteger()->getPointerTo());
+	PendingValues.push_back(v);
 }
 
 
@@ -1375,7 +1422,8 @@ llvm::DIType* Context::TypeGetDebugType(Type* t)
 void Context::TagDebugLine(unsigned line, unsigned column)
 {
 	DebugLoc loc = DILocation::get(getGlobalContext(), line, column, LLVMBuilder.GetInsertBlock()->getParent()->getSubprogram());
-	LLVMBuilder.GetInsertBlock()->getInstList().back().setDebugLoc(loc);
+	if(!LLVMBuilder.GetInsertBlock()->getInstList().empty())
+		LLVMBuilder.GetInsertBlock()->getInstList().back().setDebugLoc(loc);
 }
 
 

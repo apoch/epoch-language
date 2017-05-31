@@ -4,9 +4,9 @@
 
 
 // Evil, evil, evil hack
-EpochLib_SubstrCharDirect : integer pointer, integer pos -> integer ch = 0 [external("EpochLibrary.dll", "EpochLib_SubstrCharDirect"), nogc]
-EpochLib_StrPointer : string s -> integer pointer = 0 [external("EpochLibrary.dll", "EpochLib_StrPointer"), nogc]
-EpochLib_SubstrDirect : integer pointer, integer pos, integer length -> string s = "" [external("EpochLibrary.dll", "EpochLib_SubstrDirect"), nogc]
+EpochLib_SubstrCharDirect : integer pointer, integer pos -> integer ch = 0 [external("EpochRT.dll", "EpochLib_SubstrCharDirect"), nogc]
+EpochLib_StrPointer : string s -> integer pointer = 0 [external("EpochRT.dll", "EpochLib_StrPointer"), nogc]
+EpochLib_SubstrDirect : integer pointer, integer pos, integer length -> string s = "" [external("EpochRT.dll", "EpochLib_SubstrDirect"), nogc]
 
 Lex : string filename, string code, integer len
 {

@@ -143,7 +143,8 @@ structure AssignmentArrayIndex :
 structure PreOpStatement :
 	integer Operator,
 	simplelist<integer> ref Operand,
-	integer Type
+	integer Type,
+	boolean TopLevel
 
 structure PostOpStatement :
 	integer Operator,

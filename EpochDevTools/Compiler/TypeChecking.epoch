@@ -2060,7 +2060,7 @@ PromoteAtomType : list<ExpressionAtom> ref atoms
 
 PerformPromotion : list<ExpressionAtom> ref atoms, integer ref atom
 {
-	integer64 newatom = atom
+	integer64 newatom = atom				//cast(integer64, atom)		// TODO - this cast is obviated by a hack in the RTL
 	ExpressionAtom wrap = newatom
 	atoms.value = wrap
 }

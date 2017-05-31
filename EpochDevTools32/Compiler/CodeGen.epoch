@@ -652,7 +652,7 @@ OnCodeGenRegisterParenthetical :
 OnCodeGenPreparePreOpStatement : integer operator, integer operand
 {
 	simplelist<integer> operandlist = operand, nothing
-	PreOpStatement preop = operator, operandlist, 0
+	PreOpStatement preop = operator, operandlist, 0, true
 
 	PreOpOnDeck = preop
 }
@@ -666,6 +666,7 @@ OnCodeGenCompletePreOpStatement : boolean substatement
 {
 	if(substatement)
 	{
+		PreOpOnDeck.TopLevel = false
 		ExpressionOrPrePostOp wrap = PreOpOnDeck
 		ParentheticalExpression parenthetical = wrap
 		ExpressionAtom atom = parenthetical
@@ -673,6 +674,7 @@ OnCodeGenCompletePreOpStatement : boolean substatement
 	}
 	else
 	{
+		PreOpOnDeck.TopLevel = true
 		CodeBlockEntry cbe = PreOpOnDeck
 		AppendEntryToCurrentCodeBlock(cbe)
 	}

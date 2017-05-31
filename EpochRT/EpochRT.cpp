@@ -70,3 +70,20 @@ extern "C" void ERT_buffer_alloc(char** outbuffer, unsigned size)
 	*outbuffer = new char[size];
 }
 
+
+extern "C" char EpochLib_SubstrCharDirect(const char* p, int pos)
+{
+	return p[pos];
+}
+
+extern "C" const char* EpochLib_StrPointer(const char* s)
+{
+	return s;
+}
+
+extern "C" const char* EpochLib_SubstrDirect(const char* p, int pos, int len)
+{
+	std::string s(p + pos, len);
+	return StringPool.Alloc(s);
+}
+
