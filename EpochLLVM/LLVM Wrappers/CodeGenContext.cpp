@@ -223,10 +223,11 @@ namespace CodeGenInternal
 			std::wstring wide(foo.begin(), foo.end());
 			size_t offset = ThunkCallback(wide.c_str());
 
-			// TODO - this needs to support globals that live in some constant-data section of the image.
+			// TODO - this is a dumb hack
+			if(offset == 0)
+				offset = 0x610ba1;
+
 			//assert(offset != 0);
-			if(!offset)
-				return 0x610ba1;
 
 			return offset;
 		}

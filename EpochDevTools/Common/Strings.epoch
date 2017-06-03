@@ -111,3 +111,36 @@ stringcontains : string haystack, string needle -> boolean contains = false
 	}
 }
 
+
+stringsplit : string haystack, simplelist<string> ref outlist, string delimiterchar -> integer chunks = 0
+{
+	while(stringcontains(haystack, delimiterchar))
+	{
+		integer i = 0
+		while(i < length(haystack))
+		{
+			string c = charat(haystack, i)
+			if(c == delimiterchar)
+			{
+				string chunk = substring(haystack, 0, i)
+				haystack = substring(haystack, i + 1)
+				
+				++chunks
+				//simple_append<string>(outlist, chunk)
+				
+				i = 0
+			}
+			else
+			{
+				++i
+			}
+		}
+	}
+
+	if(length(haystack) > 0)
+	{
+		++chunks
+		//simple_append<string>(outlist, haystack)
+	}
+}
+

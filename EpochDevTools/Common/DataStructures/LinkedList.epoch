@@ -173,6 +173,11 @@ pop<type T> : list<T> ref head, list<T> ref tail
 	head = tail
 }
 
+simple_pop<type T> : simplelist<T> ref head, simplelist<T> ref tail
+{
+	head = tail
+}
+
 
 //
 // Copy out the Nth element of a list<> and return a flag

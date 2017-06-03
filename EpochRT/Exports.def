@@ -12,6 +12,26 @@ EXPORTS
 	ERT_gc_init
 	ERT_gc_collect_strings
 
+	ERT_cmdlineisvalid
+	ERT_cmdlinegetcount
+	ERT_cmdlineget
+	ERT_substring_length
+	ERT_write_buffer_real
+	ERT_subchar
+	ERT_widenfromptr
+	ERT_string_unescape
+	ERT_string_narrow
+	ERT_substring_nolength
+	ERT_string_from_integer
+	ERT_string_to_real
+	ERT_write_buffer_string
+	ERT_write_buffer
+	ERT_write_buffer_multiple
+	ERT_real_to_string
+	ERT_buffer_copy
+	ERT_string_compare_notequal
+	ERT_string_to_integer
+
 	EpochLib_SubstrCharDirect
 	EpochLib_StrPointer
 	EpochLib_SubstrDirect

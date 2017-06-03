@@ -2,6 +2,13 @@
 // Global state (just a hack while we bootstrap!)
 //
 
+
+structure GlobalMetadata :
+	integer Name,
+	integer Size,
+	integer Offset
+
+
 global
 {
 
@@ -39,7 +46,7 @@ global
 	ThunkTable GlobalThunkTable = nothing, 0, 0, 0
 	
 	BinaryTreeRoot<integer> LLVMGlobalThunks = nothing
-
+	BinaryTreeRoot<GlobalMetadata> LLVMGlobalVariables = nothing
 
 	// Remaining contents are largely hacky
 	

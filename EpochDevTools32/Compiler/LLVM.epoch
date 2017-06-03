@@ -169,7 +169,7 @@ EpochLLVMSectionCopyDebugReloc : LLVMContextHandle context, buffer ref targetbuf
 EpochLLVMSectionCopyDebugSymbols : LLVMContextHandle context, buffer ref targetbuffer -> integer numsyms = 0		[external("EpochLLVM.dll", "EpochLLVMSectionCopyDebugSymbols")]
 
 
-SetUpAllLLVMCode : LLVMContextHandle context
+SetUpAllLLVMCode : LLVMContextHandle context, integer ref globaloffsettracker
 {	
 	print("Generating LLVM structure types...")
 	CodeGenRearrangeStructures(Structures)
@@ -195,29 +195,35 @@ SetUpAllLLVMCode : LLVMContextHandle context
 	EmitAllTypeMatchersInLLVM(context, TypeMatchers)
 
 	print("Generating LLVM global variables...")
-	CreateAllGlobalsInLLVM(context, GlobalScope.Wrapped)
+	CreateAllGlobalsInLLVM(context, GlobalScope.Wrapped, globaloffsettracker)
 }
 
 
 
-CreateAllGlobalsInLLVM : LLVMContextHandle context, Scope ref scope
+CreateAllGlobalsInLLVM : LLVMContextHandle context, Scope ref scope, integer ref offset
 {
-	CreateAllGlobalsInLLVM(context, scope.Variables)
+	CreateAllGlobalsInLLVM(context, scope.Variables, offset)
 }
 
-CreateAllGlobalsInLLVM : LLVMContextHandle context, list<Variable> ref vars
+CreateAllGlobalsInLLVM : LLVMContextHandle context, list<Variable> ref vars, integer ref offset
 {
 	if(vars.value.VarType != 0)
 	{
 		LLVMType vartype = GetLLVMTypeForEpochType(context, vars.value.VarType)
 		LLVMGlobalVar global = EpochLLVMCodeCreateGlobal(context, vartype, GetPooledString(vars.value.Name))
 		BinaryTreeCreateOrInsert<LLVMGlobalVar>(LLVMGlobalTable, vars.value.Name, global)
+
+		integer size = GetTypeSize(vars.value.VarType)
+		GlobalMetadata meta = vars.value.Name, size, offset
+		BinaryTreeCreateOrInsert<GlobalMetadata>(LLVMGlobalVariables, vars.value.Name, meta)
+
+		offset = offset + size
 	}
 
-	CreateAllGlobalsInLLVM(context, vars.next)
+	CreateAllGlobalsInLLVM(context, vars.next, offset)
 }
 
-CreateAllGlobalsInLLVM : LLVMContextHandle context, nothing
+CreateAllGlobalsInLLVM : LLVMContextHandle context, nothing, integer ref offset
 
 
 CreateAllFunctionSignaturesInLLVM : LLVMContextHandle context, list<FunctionSignature> ref signatures

@@ -7,6 +7,9 @@
 //
 
 
+GetCommandLine : -> string cmdline = "" [external("Kernel32.dll", "GetCommandLineA")]
+
+
 //
 // Compiler entry point
 //
@@ -15,14 +18,20 @@ entrypoint :
 	print("Epoch Language Project")
 	print("Command line compiler and tools interface")
 	print("")
+
+	string cmd = GetCommandLine()
 	
-	if(!cmdlineisvalid())
+	if(length(cmd) < 1)
 	{
 		print("Invalid command line provided.")
 		return()
 	}
-	
-	if(cmdlinegetcount() < 2)
+
+
+	simplelist<string> cmdparams = "", nothing
+	integer cmdcount = stringsplit(cmd, cmdparams, " ")
+
+	if(cmdcount < 2)
 	{
 		print("Please specify the program or project to compile.")
 		return()
@@ -32,21 +41,24 @@ entrypoint :
 	string output = ""
 	
 	integer cmdlineindex = 1
-	while(cmdlineindex < cmdlinegetcount())
+	while(cmdlineindex < cmdcount)
 	{
-		string switch = cmdlineget(cmdlineindex)
+		string switch = cmdparams.value
 		
 		if(switch == "/files")
 		{
+			//simple_pop<string>(cmdparams, cmdparams.next)
 			++cmdlineindex
-			files = cmdlineget(cmdlineindex)
+			files = cmdparams.value
 		}
 		elseif(switch == "/output")
 		{
+			//simple_pop<string>(cmdparams, cmdparams.next)
 			++cmdlineindex
-			output = cmdlineget(cmdlineindex)
+			output = cmdparams.value
 		}
 		
+		//simple_pop<string>(cmdparams, cmdparams.next)
 		++cmdlineindex
 	}
 	

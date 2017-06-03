@@ -314,6 +314,11 @@ PrepareStringTable :
 	StringTableRegisterString((++counter), "ERT_gc_collect_strings")
 	PooledStringhandleForGCCollectStrings = counter
 
+
+	StringTableRegisterString((++counter), "ERT_substring_length")
+	StringTableRegisterString((++counter), "ERT_substring_nolength")
+	StringTableRegisterString((++counter), "ERT_write_buffer_real")
+
 	GlobalStringPool.CurrentStringHandle = counter + 1
 	FirstNonBuiltInStringHandle = GlobalStringPool.CurrentStringHandle
 }
@@ -1214,6 +1219,25 @@ PrepareThunkTable : ThunkTable ref table
 	ThunkTableAddEntry(table, "EpochRT.dll", "ERT_string_concat")
 	ThunkTableAddEntry(table, "EpochRT.dll", "ERT_gc_init")
 	ThunkTableAddEntry(table, "EpochRT.dll", "ERT_gc_collect_strings")
+	ThunkTableAddEntry(table, "EpochRT.dll", "ERT_cmdlineisvalid")
+	ThunkTableAddEntry(table, "EpochRT.dll", "ERT_cmdlinegetcount")
+	ThunkTableAddEntry(table, "EpochRT.dll", "ERT_cmdlineget")
+	ThunkTableAddEntry(table, "EpochRT.dll", "ERT_substring_length")
+	ThunkTableAddEntry(table, "EpochRT.dll", "ERT_write_buffer_real")
+	ThunkTableAddEntry(table, "EpochRT.dll", "ERT_subchar")
+	ThunkTableAddEntry(table, "EpochRT.dll", "ERT_widenfromptr")
+	ThunkTableAddEntry(table, "EpochRT.dll", "ERT_string_unescape")
+	ThunkTableAddEntry(table, "EpochRT.dll", "ERT_string_narrow")
+	ThunkTableAddEntry(table, "EpochRT.dll", "ERT_substring_nolength")
+	ThunkTableAddEntry(table, "EpochRT.dll", "ERT_string_from_integer")
+	ThunkTableAddEntry(table, "EpochRT.dll", "ERT_string_to_real")
+	ThunkTableAddEntry(table, "EpochRT.dll", "ERT_write_buffer_string")
+	ThunkTableAddEntry(table, "EpochRT.dll", "ERT_write_buffer")
+	ThunkTableAddEntry(table, "EpochRT.dll", "ERT_write_buffer_multiple")
+	ThunkTableAddEntry(table, "EpochRT.dll", "ERT_real_to_string")
+	ThunkTableAddEntry(table, "EpochRT.dll", "ERT_buffer_copy")
+	ThunkTableAddEntry(table, "EpochRT.dll", "ERT_string_compare_notequal")
+	ThunkTableAddEntry(table, "EpochRT.dll", "ERT_string_to_integer")
 	
 	table.TotalSize = 0
 	table.DescriptorOffset = 0
