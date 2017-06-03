@@ -1045,6 +1045,7 @@ ThunkLookupMapper : string funcname -> integer thunkoffset = 0
 		}
 		else
 		{
+			print("WARNING: unknown thunk " ; funcname)
 			thunkoffset = 0
 		}
 	}
