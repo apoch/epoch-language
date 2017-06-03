@@ -47,18 +47,18 @@ entrypoint :
 		
 		if(switch == "/files")
 		{
-			//simple_pop<string>(cmdparams, cmdparams.next)
+			simple_pop<string>(cmdparams, cmdparams.next)
 			++cmdlineindex
 			files = cmdparams.value
 		}
 		elseif(switch == "/output")
 		{
-			//simple_pop<string>(cmdparams, cmdparams.next)
+			simple_pop<string>(cmdparams, cmdparams.next)
 			++cmdlineindex
 			output = cmdparams.value
 		}
 		
-		//simple_pop<string>(cmdparams, cmdparams.next)
+		simple_pop<string>(cmdparams, cmdparams.next)
 		++cmdlineindex
 	}
 	

@@ -219,8 +219,7 @@ MakeExe : EpochProject ref project
 
 	position += WritePadding(filehandle, position, offsetdebug)
 
-	// TODO - full qualified path or no path!
-	position += WriteDebugStub(filehandle, "D:\Epoch\epoch-language\EpochTests\Projects\TestSuite\bin\Debug\TestSuite.pdb", virtualoffsetdebug, offsetdebug)
+	position += WriteDebugStub(filehandle, "Compiler.pdb", virtualoffsetdebug, offsetdebug)		// TODO - inherit name of project/.exe
 
 	print("Writing globals...")
 	position += WritePadding(filehandle, position, offsetglobals + globaloffsettracker)
@@ -1138,8 +1137,8 @@ ThunkTableAddFunctionToList : ThunkTableLibrary ref library, nothing, string fun
 
 GeneratePDB : string pdbfilename, buffer ref symboldata, integer symbolsize, integer codesectionstart, integer codesize, buffer ref relocdata, integer relocsize, integer symbolcount
 {
-	SymbolSection sectionsymbol = 8, codesectionstart, codesize, 0x60000020, ".text"
-	SymbolProcStart initsymbolps = 0, 0x4a, 0, 65, 0, 0, 0, 8, 0, "init"		// TODO - 0x4a is offset of next (end) symbol, this should not be hard-coded!
+	SymbolSection sectionsymbol = 9, codesectionstart, codesize, 0x60000020, ".text"
+	SymbolProcStart initsymbolps = 0, 0x4a, 0, 65, 0, 0, 0, 9, 0, "init"		// TODO - 0x4a is offset of next (end) symbol, this should not be hard-coded!
 	SymbolBlockEnd endsymbolps = 0
 	PDBSymbol initsymbol = initsymbolps
 	PDBSymbol endsymbol = endsymbolps
@@ -1150,7 +1149,7 @@ GeneratePDB : string pdbfilename, buffer ref symboldata, integer symbolsize, int
 	
 	TransferSymbols(symbollist, symboldata, symbolsize, relocdata, relocsize, symbolcount)
 	
-	SectionContribution initsc = 8, 0, 65, 0x60001020, 0, 0, 0
+	SectionContribution initsc = 9, 0, 65, 0x60001020, 0, 0, 0
 	list<SectionContribution> contriblist = initsc, nothing
 
 	DBIModule testmodule = "D:\Test.epoch", "D:\Test.obj", 0, symbollist, contriblist
