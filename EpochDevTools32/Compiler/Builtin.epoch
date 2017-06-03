@@ -314,6 +314,11 @@ PrepareStringTable :
 	StringTableRegisterString((++counter), "ERT_gc_collect_strings")
 	PooledStringhandleForGCCollectStrings = counter
 
+
+	StringTableRegisterString((++counter), "ERT_substring_length")
+	StringTableRegisterString((++counter), "ERT_substring_nolength")
+	StringTableRegisterString((++counter), "ERT_write_buffer_real")
+
 	GlobalStringPool.CurrentStringHandle = counter + 1
 	FirstNonBuiltInStringHandle = GlobalStringPool.CurrentStringHandle
 }
@@ -1215,6 +1220,8 @@ PrepareThunkTable : ThunkTable ref table
 	ThunkTableAddEntry(table, "EpochRT.dll", "ERT_gc_init")
 	ThunkTableAddEntry(table, "EpochRT.dll", "ERT_gc_collect_strings")
 	ThunkTableAddEntry(table, "EpochRT.dll", "ERT_cmdlineisvalid")
+	ThunkTableAddEntry(table, "EpochRT.dll", "ERT_cmdlinegetcount")
+	ThunkTableAddEntry(table, "EpochRT.dll", "ERT_cmdlineget")
 	
 	table.TotalSize = 0
 	table.DescriptorOffset = 0

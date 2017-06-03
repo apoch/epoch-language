@@ -89,6 +89,15 @@ extern "C" const char* EpochLib_SubstrDirect(const char* p, int pos, int len)
 
 extern "C" bool ERT_cmdlineisvalid()
 {
-	return false;
+	return true;
 }
 
+extern "C" unsigned ERT_cmdlinegetcount()
+{
+	return 1;
+}
+
+extern "C" const char* ERT_cmdlineget(unsigned index)
+{
+	return "";
+}

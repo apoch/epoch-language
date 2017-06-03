@@ -77,14 +77,13 @@ MakeExe : EpochProject ref project
 	
 	SetUpBuiltInLLVMThunks(llvm)
 	
-	SetUpAllLLVMCode(llvm)
+	integer globaloffsettracker = 0
+	SetUpAllLLVMCode(llvm, globaloffsettracker)
 
 	integer virtualoffsetthunk   = 0x1000
 	integer offsetthunk          = 0x400
 	integer sizethunk            = ThunkTableGetCompleteSize(GlobalThunkTable)
-
-	integer sizestrings          = PreprocessStringPool(GlobalStringPool, GlobalStringOffsets)
-	
+		
 	EmitAllFunctionsToLLVM(llvm, Functions)
 	
 	EpochLLVMPrepareBinaryObject(llvm)
@@ -96,6 +95,7 @@ MakeExe : EpochProject ref project
 	integer sizedebug = EpochLLVMSectionGetDebugSize(llvm)
 	integer sizedebugreloc = EpochLLVMSectionGetDebugRelocSize(llvm)
 	integer sizedebugsymbols = EpochLLVMSectionGetDebugSymbolSize(llvm)
+	integer sizestrings = PreprocessStringPool(GlobalStringPool, GlobalStringOffsets)
 	
 	buffer pdata = sizepdata
 	buffer xdata = sizexdata
@@ -131,8 +131,11 @@ MakeExe : EpochProject ref project
 	integer virtualoffsetdebug   = RoundUp(virtualoffsetgc + sizegc)
 	integer offsetdebug          = RoundUpFile(offsetgc + sizegc)
 
-	integer virtualoffsetcode    = RoundUp(virtualoffsetdebug + 0x200)			// TODO - hardcoded hack for .debug
-	integer offsetcode           = RoundUpFile(offsetdebug + 0x200)				// TODO - hardcoded hack for .debug
+	integer virtualoffsetglobals = RoundUp(virtualoffsetdebug + 0x200)			// TODO - hardcoded hack for .debug
+	integer offsetglobals        = RoundUp(offsetdebug + 0x200)					// TODO - hardcoded hack for .debug
+
+	integer virtualoffsetcode    = RoundUp(virtualoffsetglobals + globaloffsettracker)
+	integer offsetcode           = RoundUpFile(offsetglobals + globaloffsettracker)
 
 	integer sizecode = EpochLLVMEmitBinaryObject(llvm, codebinarybuffer, 0x100000, virtualoffsetcode + 0x0400000, virtualoffsetgc)		// TODO - also bad hacks
 
@@ -186,6 +189,7 @@ MakeExe : EpochProject ref project
 	position += WriteSectionHeader(filehandle, ".data", offsetstrings, virtualoffsetstrings, sizestrings, sizestrings, 0x40000040)
 	position += WriteSectionHeader(filehandle, ".gc", offsetgc, virtualoffsetgc, sizegc, sizegc, 0x40000040)
 	position += WriteSectionHeader(filehandle, ".debug", offsetdebug, virtualoffsetdebug, 0x200, 0x200, 0x40000040)
+	position += WriteSectionHeader(filehandle, ".global", offsetglobals, virtualoffsetglobals, globaloffsettracker, globaloffsettracker, 0xc0000040)		// TODO - characteristics of .global
 	position += WriteSectionHeader(filehandle, ".text", offsetcode, virtualoffsetcode, sizecode, sizecode, 0x60000020)
 	//position += WriteSectionHeader(filehandle, ".debug$S", offsetcv, RoundUp(virtualoffsetcode + sizecode), totaldebugsize, totaldebugsize, 0x40000040, sizedebug + offsetcv, sizedebugreloc / 10)
 
@@ -217,6 +221,9 @@ MakeExe : EpochProject ref project
 
 	// TODO - full qualified path or no path!
 	position += WriteDebugStub(filehandle, "D:\Epoch\epoch-language\EpochTests\Projects\TestSuite\bin\Debug\TestSuite.pdb", virtualoffsetdebug, offsetdebug)
+
+	print("Writing globals...")
+	position += WritePadding(filehandle, position, offsetglobals + globaloffsettracker)
 
 	print("Writing code...")
 	
@@ -628,7 +635,7 @@ WritePEHeader : Win32Handle filehandle, integer imagesize, integer offsetdebug, 
 	// Begin NT headers
 	ByteStreamEmitInteger(headerbuffer, headersize, 0x00004550)
 	ByteStreamEmitInteger16(headerbuffer, headersize, 0x8664)						// Machine
-	ByteStreamEmitInteger16(headerbuffer, headersize, 8)							// NumberOfSections
+	ByteStreamEmitInteger16(headerbuffer, headersize, 9)							// NumberOfSections
 	ByteStreamEmitInteger(headerbuffer, headersize, 0x00000000)						// TimeDateStamp
 	ByteStreamEmitInteger(headerbuffer, headersize, 0)								// PointerToSymbolTable
 	ByteStreamEmitInteger(headerbuffer, headersize, 0)								// NumberOfSymbols
@@ -759,7 +766,10 @@ CopySingleStringToBuffer : integer handle, string ref strpayload, StringPoolOutp
 {
 	integer offset = 0
 	boolean found = BinaryTreeCopyPayload<integer>(state.Offsets.RootNode, handle, offset)
-	assert(found)
+	if(!found)
+	{
+		
+	}
 	
 	integer len = length(strpayload)
 	integer counter = offset
@@ -1020,12 +1030,23 @@ ThunkLookupMapper : string funcname -> integer thunkoffset = 0
 {
 	// TODO - don't hard code base address
 	integer baseaddress = 0x401000
+	integer baseaddressglobals = 0x45b000
 	
 	thunkoffset = baseaddress + SearchThunkTableForFunctionOffset(GlobalThunkTable.Libraries, funcname)
 	
 	if(thunkoffset < baseaddress)
 	{
-		thunkoffset = 0
+		integer pooledhandle = PoolString(funcname)
+		GlobalMetadata meta = 0, 0, 0
+		boolean found = BinaryTreeCopyPayload<GlobalMetadata>(LLVMGlobalVariables.RootNode, pooledhandle, meta)
+		if(found)
+		{
+			thunkoffset = baseaddressglobals + meta.Offset
+		}
+		else
+		{
+			thunkoffset = 0
+		}
 	}
 }
 

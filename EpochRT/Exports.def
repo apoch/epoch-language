@@ -13,6 +13,8 @@ EXPORTS
 	ERT_gc_collect_strings
 
 	ERT_cmdlineisvalid
+	ERT_cmdlinegetcount
+	ERT_cmdlineget
 
 	EpochLib_SubstrCharDirect
 	EpochLib_StrPointer
