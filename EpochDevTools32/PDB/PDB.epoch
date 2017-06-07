@@ -214,7 +214,7 @@ WriteBufferPtrByte : buffer ref buf, integer offset, integer value [external("Ep
 WriteBufferPtrDword : buffer ref buf, integer offset, integer value [external("EpochPDBShim.dll", "WriteBufferPtrDword")]
 
 
-hackstrlen : integer strptr -> integer len = 0 [external("Kernel32.dll", "lstrlenA")]
+hackstrlen : integer strptr -> integer len = 0 [external("EpochPDBShim.dll", "StrLen")]
 
 
 //
@@ -994,7 +994,7 @@ WriteDBIModuleSymbols : PDBOutputStream ref stream, DBIModule ref module, buffer
 	integer symboldatasize = 0
 	ByteStreamEmitSymbolList(symboldata, symboldatasize, module.Symbols)
 	
-	WriteFile(stream.FileHandle, symboldata, 1024, written, 0)			// TODO - hardcoded size should be symboldatasize
+	WriteFile(stream.FileHandle, symboldata, symboldatasize, written, 0)
 	//WriteFile(stream.FileHandle, symbols, symbolsize, written, 0)
 	stream.FilePosition = stream.FilePosition + written
 	
@@ -1010,7 +1010,7 @@ WriteDBIModuleSymbols : PDBOutputStream ref stream, DBIModule ref module, buffer
 
 
 
-TransferSymbols : list<PDBSymbol> ref symbols, buffer ref symboldata, integer symbolsize, buffer ref relocdata, integer relocsize, buffer ref symbollist, integer symbolcount
+TransferSymbols : list<PDBSymbol> ref symbols, buffer ref symboldata, integer symbolsize, buffer ref relocdata, integer relocsize, buffer ref symbollist, list<SectionContribution> ref contriblist
 {
 	//
 	// Apply relocations to the raw symbol data so it will be easier
@@ -1076,56 +1076,132 @@ TransferSymbols : list<PDBSymbol> ref symbols, buffer ref symboldata, integer sy
 		++i
 	}
 
+	ConvertSymbolStream(symboldata, symbolsize, symbols, contriblist)
+
+	print("Stack unwind canary")
+}
+
+
+
+structure CodeViewChunk :
+	integer Header,
+	integer Size
+
+structure CodeViewProc :
+	integer16 Bytes,
+	integer16 Magic
+
+structure CodeViewProcSize :
+	integer Size
+
+structure CodeViewProcSection :
+	integer SectionRelative,
+	integer16 SectionIndex
+
+structure CodeViewProcTerm :
+	integer16 Magic
+
+structure CodeViewProcEnd :
+	integer16 Magic
+
+
+ConvertSymbolStream : buffer ref symboldata, integer symbolsize, list<PDBSymbol> ref symbols, list<SectionContribution> ref contriblist
+{
 	print("Converting symbols...")
 
-	integer symbolsoffset = 0x4a			// account for the "init" symbols (and section)
-	integer symbolindex = 0
-	while(symbolindex < symbolcount)
+	CodeViewChunk chunk = 0, 0
+	CodeViewProc proc = 0, 0
+	CodeViewProcSize procsize = 0
+	CodeViewProcSection procsection = 0, 0
+	CodeViewProcTerm term = 0
+	CodeViewProcEnd end = 0
+
+	integer slen = 0
+	string symbol = ""
+
+	integer writeoffset = 0x4a
+	integer readoffset = 4
+
+	while(readoffset < symbolsize)
 	{
-		ConvertSingleSymbol(symbollist, symbolindex, symbols, symbolcount, symbolsoffset)
-		++symbolindex
+		marshalstructure(chunk, GetBufferPtr(symboldata, readoffset))
+		readoffset += 8		// sizeof(CodeViewChunk)
+
+		if(chunk.Header == 0xf1)
+		{
+			marshalstructure(proc, GetBufferPtr(symboldata, readoffset))
+			readoffset += 4			// sizeof(CodeViewProc)
+			assertmsg(proc.Magic == 0x1147, "Mismatched codeview magic (1)")
+
+			readoffset += 12		// unknown fields/padding
+
+			marshalstructure(procsize, GetBufferPtr(symboldata, readoffset))
+			readoffset += 4			// sizeof(CodeViewProcSize)
+
+			readoffset += 12		// unknown fields/padding
+
+			marshalstructure(procsection, GetBufferPtr(symboldata, readoffset))
+			readoffset += 7			// sizeof(CodeViewProcSection) + 1 pad byte
+
+			slen = hackstrlen(GetBufferPtr(symboldata, readoffset))
+			symbol = widenfromptr(GetBufferPtr(symboldata, readoffset), slen)
+			readoffset += slen + 1	// null terminated
+
+			print(symbol)
+
+			marshalstructure(term, GetBufferPtr(symboldata, readoffset))
+			readoffset += 2			// sizeof(CodeViewProcTerm)
+			assertmsg(cast(integer, term.Magic) == 0x02, "Mismatched codeview magic (2)")
+
+			marshalstructure(end, GetBufferPtr(symboldata, readoffset))
+			readoffset += 2			// sizeof(CodeViewProcEnd)
+			assertmsg(cast(integer, end.Magic) == 0x114f, "Mismatched codeview magic (3)")
+
+			writeoffset += 0x30
+			writeoffset += slen
+
+			GenerateCorrectedCVSymbol(symbols, writeoffset, procsize.Size, procsection.SectionIndex, symbol)
+			// TODO - section contrib
+		}
+		else
+		{
+			if(chunk.Header == 0xf1)
+			{
+			}
+			elseif(chunk.Header == 0xf2)
+			{
+			}
+			elseif(chunk.Header == 0xf3)
+			{
+			}
+			elseif(chunk.Header == 0xf4)
+			{
+			}
+			else
+			{
+				assertmsg(false, "Unrecognized codeview chunk " ; cast(string, chunk.Header))
+			}
+
+			readoffset += chunk.Size
+		}
+
+		while(readoffset & 3 != 0)
+		{
+			++readoffset
+		}
 	}
+
+	print("Done.")
 }
 
 
-AccumulateSectionContributions : list<SectionContribution> ref contribs, list<PDBSymbol> ref symbols
+GenerateCorrectedCVSymbol : list<PDBSymbol> ref symbols, integer writeoffset, integer size, integer16 sectionindex, string symbol
 {
-}
-
-
-
-ConvertSingleSymbol : buffer ref symboldata, integer symbolindex, list<PDBSymbol> ref symbols, integer symbolcount, integer ref offsetnext
-{
-	integer SYMBOL_SIZE = 18			// sizeof(packed ImageSymbol struct)
-
-	ImageSymbol symbol = 0, 0, 0, 0, 0, 0
-	marshalstructure(symbol, GetBufferPtr(symboldata, symbolindex * SYMBOL_SIZE))
-
-	integer t = cast(integer, symbol.Type)
-	t = t & 0x30
-	if(t != 0x20)				// ISFCN(t)
-	{
-		return()
-	}
-
-	if(symbol.OffsetToLongName == 0)
-	{
-		print("WARNING: skipping unnamed function symbol")
-		return()
-	}
-
-	integer p = GetBufferPtr(symboldata, symbolcount * SYMBOL_SIZE + symbol.OffsetToLongName)
-	integer slen = hackstrlen(p)
-	string symname = widenfromptr(p, slen)
-
-	offsetnext = offsetnext + 0x30 + slen
-
-	SymbolProcStart initsymbolps = 0, offsetnext, 0, symbol.Value, 0, 0, 0, 9, 0, symname			// TODO - hardcoded param should be symbol.Value
+	SymbolProcStart startsymbolps = 0, writeoffset, 0, size, 0, 0, 0, sectionindex, 0, symbol
 	SymbolBlockEnd endsymbolps = 0
-	PDBSymbol initsymbol = initsymbolps
+	PDBSymbol startsymbol = startsymbolps
 	PDBSymbol endsymbol = endsymbolps
 	
-	append<PDBSymbol>(symbols, initsymbol)
+	append<PDBSymbol>(symbols, startsymbol)
 	append<PDBSymbol>(symbols, endsymbol)
 }
-

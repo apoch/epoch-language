@@ -3,3 +3,4 @@ EXPORTS
 	GetBufferPtr
 	WriteBufferPtrByte
 	WriteBufferPtrDword
+	StrLen

@@ -1146,13 +1146,13 @@ GeneratePDB : string pdbfilename, buffer ref symboldata, integer symbolsize, int
 	list<PDBSymbol> symbollistinternal = sectionsymbol, nothing
 	append<PDBSymbol>(symbollistinternal, initsymbol)
 	append<PDBSymbol>(symbollistinternal, endsymbol)
-	
-	TransferSymbols(symbollistinternal, symboldata, symbolsize, relocdata, relocsize, symbollist, symbolcount)
-	
+
 	SectionContribution initsc = 9, 0, 65, 0x60001020, 0, 0, 0
 	list<SectionContribution> contriblist = initsc, nothing
-
-	AccumulateSectionContributions(contriblist, symbollistinternal)
+	
+	TransferSymbols(symbollistinternal, symboldata, symbolsize, relocdata, relocsize, symbollist, contriblist)
+	
+	print("First canary")
 
 	DBIModule testmodule = "D:\Test.epoch", "D:\Test.obj", 0, symbollistinternal, contriblist
 	
@@ -1171,6 +1171,7 @@ GeneratePDB : string pdbfilename, buffer ref symboldata, integer symbolsize, int
 	
 	DBISection dbisection = dbimodinfolen, dbicontribslen, sectionmapsize, modulelist
 
+	print("Pre-stream setup canary")
 	
 	PDBStream directoryhint = simplelist<integer>(3, nothing), 0
 	PDBStream directorystream = simplelist<integer>(4, nothing), 76		// + (128 * 4)
@@ -1202,6 +1203,8 @@ GeneratePDB : string pdbfilename, buffer ref symboldata, integer symbolsize, int
 	Win32Handle invalidhandle = -1
 	PDBFileLayout layout = 1024, 14, directoryhint, directorystream, pdbdir
 	PDBOutputStream stream = pdbfilename, invalidhandle, 0, layout, dbisection
+
+	print("Final canary before we write PDB")
 
 	WritePDB(stream, codesectionstart, codesize, symbollist, symbollistbytes)
 }
