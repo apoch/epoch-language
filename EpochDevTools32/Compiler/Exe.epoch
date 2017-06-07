@@ -271,7 +271,7 @@ MakeExe : EpochProject ref project
 	
 	
 	print("Emitting PDB file...")
-	GeneratePDB(pdbfilename, debugsymboldata, sizedebugsymbols, virtualoffsetcode, sizecode, debugrelocdata, sizedebugreloc, symbolcount)
+	GeneratePDB(pdbfilename, debugdata, sizedebug, virtualoffsetcode, sizecode, debugrelocdata, sizedebugreloc, debugsymboldata, sizedebugsymbols, symbolcount)
 
 
 	print("Compilation complete.")
@@ -361,7 +361,7 @@ WritePadding : Win32Handle filehandle, integer startpos, integer desiredpos -> i
 
     if(writtenbytes < 0)
     {
-    	assertmsg(false, "INTERNAL ERROR - attempted to pad negative bytes")
+    	assertmsg(false, "INTERNAL ERROR - attempted to pad negative bytes " ; cast(string, writtenbytes))
 	}
 
 	buffer empty = writtenbytes
@@ -1135,7 +1135,7 @@ ThunkTableAddFunctionToList : ThunkTableLibrary ref library, nothing, string fun
 
 
 
-GeneratePDB : string pdbfilename, buffer ref symboldata, integer symbolsize, integer codesectionstart, integer codesize, buffer ref relocdata, integer relocsize, integer symbolcount
+GeneratePDB : string pdbfilename, buffer ref symboldata, integer symbolsize, integer codesectionstart, integer codesize, buffer ref relocdata, integer relocsize, buffer ref symbollist, integer symbollistbytes, integer symbolcount
 {
 	SymbolSection sectionsymbol = 9, codesectionstart, codesize, 0x60000020, ".text"
 	SymbolProcStart initsymbolps = 0, 0x4a, 0, 65, 0, 0, 0, 9, 0, "init"		// TODO - 0x4a is offset of next (end) symbol, this should not be hard-coded!
@@ -1143,16 +1143,18 @@ GeneratePDB : string pdbfilename, buffer ref symboldata, integer symbolsize, int
 	PDBSymbol initsymbol = initsymbolps
 	PDBSymbol endsymbol = endsymbolps
 	
-	list<PDBSymbol> symbollist = sectionsymbol, nothing
-	append<PDBSymbol>(symbollist, initsymbol)
-	append<PDBSymbol>(symbollist, endsymbol)
+	list<PDBSymbol> symbollistinternal = sectionsymbol, nothing
+	append<PDBSymbol>(symbollistinternal, initsymbol)
+	append<PDBSymbol>(symbollistinternal, endsymbol)
 	
-	TransferSymbols(symbollist, symboldata, symbolsize, relocdata, relocsize, symbolcount)
+	TransferSymbols(symbollistinternal, symboldata, symbolsize, relocdata, relocsize, symbollist, symbolcount)
 	
 	SectionContribution initsc = 9, 0, 65, 0x60001020, 0, 0, 0
 	list<SectionContribution> contriblist = initsc, nothing
 
-	DBIModule testmodule = "D:\Test.epoch", "D:\Test.obj", 0, symbollist, contriblist
+	AccumulateSectionContributions(contriblist, symbollistinternal)
+
+	DBIModule testmodule = "D:\Test.epoch", "D:\Test.obj", 0, symbollistinternal, contriblist
 	
 	ComputeSymbolSize(testmodule)
 	
@@ -1164,14 +1166,14 @@ GeneratePDB : string pdbfilename, buffer ref symboldata, integer symbolsize, int
 		++dbimodinfolen
 	}
 
-	integer sectionmapsize = 9 * 20 + 4 // TODO - dynamic section map
+	integer sectionmapsize = 10 * 20 + 4 // TODO - dynamic section map
 	integer dbicontribslen = 32		// TODO - compute dynamic contributions length (don't forget version signature +4)
 	
 	DBISection dbisection = dbimodinfolen, dbicontribslen, sectionmapsize, modulelist
 
 	
 	PDBStream directoryhint = simplelist<integer>(3, nothing), 0
-	PDBStream directorystream = simplelist<integer>(4, nothing), 76
+	PDBStream directorystream = simplelist<integer>(4, nothing), 76		// + (128 * 4)
 	
 	PDBStream msf = simplelist<integer>(5, nothing), 1					// Placeholder; 0 is invalid but we have nothing to put here
 	PDBStream pdb = simplelist<integer>(6, nothing), 196  				// TODO - pull real PDB stream size [was 48]
@@ -1182,7 +1184,16 @@ GeneratePDB : string pdbfilename, buffer ref symboldata, integer symbolsize, int
 	PDBStream publics = simplelist<integer>(11, nothing), 44 + 516		// TODO - real publics stream
 	PDBStream symbols = simplelist<integer>(12, nothing), 26			// TODO - real symbol records size
 	
-	PDBStream hackstream = simplelist<integer>(13, nothing), testmodule.SymbolSize + 8			// TODO - real stream
+	simplelist<integer> hackblocks = 13, nothing
+	
+	integer i = 0
+	while(i < 127)
+	{
+		//simple_append<integer>(hackblocks, 14 + i)
+		++i
+	}
+
+	PDBStream hackstream = hackblocks, testmodule.SymbolSize + 8			// TODO - real stream
 	list<PDBStream> hackstreamlist = hackstream, nothing
 	
 	PDBDirectory pdbdir = 9, msf, pdb, tpi, dbi, ipi, globals, publics, symbols, hackstreamlist
@@ -1192,6 +1203,6 @@ GeneratePDB : string pdbfilename, buffer ref symboldata, integer symbolsize, int
 	PDBFileLayout layout = 1024, 14, directoryhint, directorystream, pdbdir
 	PDBOutputStream stream = pdbfilename, invalidhandle, 0, layout, dbisection
 
-	WritePDB(stream, codesectionstart, codesize)
+	WritePDB(stream, codesectionstart, codesize, symbollist, symbollistbytes)
 }
 

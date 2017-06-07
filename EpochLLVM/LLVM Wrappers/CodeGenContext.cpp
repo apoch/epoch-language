@@ -588,7 +588,7 @@ void Context::PrepareBinaryObject()
 		switch(sym.getType())
 		{
 		case object::SymbolRef::ST_Function:
-			symbol.SectionNumber = 8;
+			symbol.SectionNumber = 9;
 
 			if(symname == "init")
 				symbol.StorageClass = IMAGE_SYM_CLASS_EXTERNAL;

@@ -1,0 +1,5 @@
+LIBRARY "EpochPDBShim"
+EXPORTS
+	GetBufferPtr
+	WriteBufferPtrByte
+	WriteBufferPtrDword
