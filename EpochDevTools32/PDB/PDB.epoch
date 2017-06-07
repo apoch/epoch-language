@@ -209,6 +209,14 @@ structure ImageSymbol :
 	integer16 StorageClassAndAuxSymbolCount
 
 
+
+structure PDBLineInfo :
+	integer FileNameOffset,
+	integer SourceOffset,
+	integer SourceLine
+
+
+
 GetBufferPtr : buffer ref buf, integer offset -> integer ptr = 0 [external("EpochPDBShim.dll", "GetBufferPtr")]
 WriteBufferPtrByte : buffer ref buf, integer offset, integer value [external("EpochPDBShim.dll", "WriteBufferPtrByte")]
 WriteBufferPtrDword : buffer ref buf, integer offset, integer value [external("EpochPDBShim.dll", "WriteBufferPtrDword")]
@@ -1010,7 +1018,7 @@ WriteDBIModuleSymbols : PDBOutputStream ref stream, DBIModule ref module, buffer
 
 
 
-TransferSymbols : list<PDBSymbol> ref symbols, buffer ref symboldata, integer symbolsize, buffer ref relocdata, integer relocsize, buffer ref symbollist, list<SectionContribution> ref contriblist
+TransferSymbols : list<PDBSymbol> ref symbols, buffer ref symboldata, integer symbolsize, buffer ref relocdata, integer relocsize, buffer ref symbollist, list<SectionContribution> ref contriblist, list<PDBLineInfo> ref lines
 {
 	//
 	// Apply relocations to the raw symbol data so it will be easier
@@ -1080,7 +1088,7 @@ TransferSymbols : list<PDBSymbol> ref symbols, buffer ref symboldata, integer sy
 		++i
 	}
 
-	ConvertSymbolStream(symboldata, symbolsize, symbols, contriblist)
+	ConvertSymbolStream(symboldata, symbolsize, symbols, contriblist, lines)
 
 	print("Stack unwind canary")
 }
@@ -1108,8 +1116,20 @@ structure CodeViewProcTerm :
 structure CodeViewProcEnd :
 	integer16 Magic
 
+structure CodeViewLineInfo :
+	integer FunctionOffset,
+	integer FunctionIndex,
+	integer FunctionSize,
+	integer SourceFileOffset,
+	integer NumPairs,
+	integer Size
 
-ConvertSymbolStream : buffer ref symboldata, integer symbolsize, list<PDBSymbol> ref symbols, list<SectionContribution> ref contriblist
+structure CodeViewLinePair :
+	integer Offset,
+	integer Line
+
+
+ConvertSymbolStream : buffer ref symboldata, integer symbolsize, list<PDBSymbol> ref symbols, list<SectionContribution> ref contriblist, list<PDBLineInfo> ref lines
 {
 	print("Converting symbols...")
 
@@ -1164,20 +1184,32 @@ ConvertSymbolStream : buffer ref symboldata, integer symbolsize, list<PDBSymbol>
 			writeoffset += 0x30
 			writeoffset += slen
 
-			print(cast(string, procsection.SectionRelative))
-
 			GenerateCorrectedCVSymbol(symbols, writeoffset, procsize.Size, procsection.SectionIndex, procsection.SectionRelative, symbol)
 			GenerateSectionContribution(contriblist, procsection.SectionIndex, procsection.SectionRelative, procsize.Size)
 		}
+		elseif(chunk.Header == 0xf2)
+		{
+			integer nextreadoffset = chunk.Size + readoffset
+
+			CodeViewLineInfo lineinfo = 0, 0, 0, 0, 0, 0
+			marshalstructure(lineinfo, GetBufferPtr(symboldata, readoffset))
+			readoffset += 24
+
+			integer pairindex = 0
+			while(pairindex < lineinfo.NumPairs)
+			{
+				CodeViewLinePair pair = 0, 0
+				marshalstructure(pair, GetBufferPtr(symboldata, readoffset))
+				readoffset += 8
+
+				++pairindex
+			}
+
+			readoffset = nextreadoffset
+		}		
 		else
 		{
-			if(chunk.Header == 0xf1)
-			{
-			}
-			elseif(chunk.Header == 0xf2)
-			{
-			}
-			elseif(chunk.Header == 0xf3)
+			if(chunk.Header == 0xf3)
 			{
 			}
 			elseif(chunk.Header == 0xf4)

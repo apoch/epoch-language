@@ -202,7 +202,6 @@ MakeExe : EpochProject ref project
 	position += WriteSectionHeader(filehandle, ".debug", offsetdebug, virtualoffsetdebug, 0x200, 0x200, 0x40000040)
 	position += WriteSectionHeader(filehandle, ".global", offsetglobals, virtualoffsetglobals, globaloffsettracker, globaloffsettracker, 0xc0000040)		// TODO - characteristics of .global
 	position += WriteSectionHeader(filehandle, ".text", offsetcode, virtualoffsetcode, sizecode, sizecode, 0x60000020)
-	//position += WriteSectionHeader(filehandle, ".debug$S", offsetcv, RoundUp(virtualoffsetcode + sizecode), totaldebugsize, totaldebugsize, 0x40000040, sizedebug + offsetcv, sizedebugreloc / 10)
 
 	print("Writing thunk table...")
 	position += WritePadding(filehandle, position, offsetthunk)
@@ -1142,8 +1141,11 @@ GeneratePDB : string pdbfilename, buffer ref symboldata, integer symbolsize, int
 
 	SectionContribution initsc = 9, 0, 65, 0x60001020, 0, 0, 0
 	list<SectionContribution> contriblist = initsc, nothing
+
+	PDBLineInfo dummyline = 0, 0, 0
+	list<PDBLineInfo> lines = dummyline, nothing
 	
-	TransferSymbols(symbollistinternal, symboldata, symbolsize, relocdata, relocsize, symbollist, contriblist)
+	TransferSymbols(symbollistinternal, symboldata, symbolsize, relocdata, relocsize, symbollist, contriblist, lines)
 	
 	print("First canary")
 
