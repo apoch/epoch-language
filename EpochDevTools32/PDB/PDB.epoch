@@ -1210,10 +1210,10 @@ ConvertSymbolStream : buffer ref symboldata, integer symbolsize, list<PDBSymbol>
 		}		
 		else
 		{
-			if(chunk.Header == 0xf3)
+			if(chunk.Header == 0xf3)				// TODO - transfer strings
 			{
 			}
-			elseif(chunk.Header == 0xf4)
+			elseif(chunk.Header == 0xf4)			// TODO - transfer file checksums
 			{
 			}
 			else

@@ -138,7 +138,15 @@ ByteStreamEmitSymbol : buffer ref stream, integer ref pos, SymbolBlockEnd ref sy
 
 ByteStreamEmitSymbol : buffer ref stream, integer ref pos, SymbolLineInfo ref symbol
 {
-	// TODO
+	integer16 mysize = cast(integer16, SymbolGetSize(symbol))
+
+	ByteStreamEmitInteger16(stream, pos, mysize)
+	ByteStreamEmitInteger16(stream, pos, 0xf3)
+
+	ByteStreamEmitInteger(stream, pos, symbol.FunctionOffset)
+	ByteStreamEmitInteger16(stream, pos, 9)							// TODO - hardcoded segment index
+	ByteStreamEmitInteger16(stream, pos, 0)			// flags??
+	ByteStreamEmitInteger(stream, pos, 0)		// TODO - should emit lines here maybe?
 }
 
 
