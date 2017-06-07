@@ -126,7 +126,7 @@ stringsplit : string haystack, simplelist<string> ref outlist, string delimiterc
 				haystack = substring(haystack, i + 1)
 				
 				++chunks
-				//simple_append<string>(outlist, chunk)
+				simple_append<string>(outlist, chunk)
 				
 				i = 0
 			}
@@ -140,7 +140,7 @@ stringsplit : string haystack, simplelist<string> ref outlist, string delimiterc
 	if(length(haystack) > 0)
 	{
 		++chunks
-		//simple_append<string>(outlist, haystack)
+		simple_append<string>(outlist, haystack)
 	}
 }
 

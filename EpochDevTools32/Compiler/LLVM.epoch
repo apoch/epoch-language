@@ -551,7 +551,7 @@ EmitParamInitializersToLLVM : LLVMBuildContext ref context, FunctionDefinition r
 
 EmitSingleFunctionToLLVM : LLVMContextHandle context, FunctionDefinition ref func
 {
-	print("Generating LLVM code for function: " ; GetPooledString(func.Name))
+	//print("Generating LLVM code for function: " ; GetPooledString(func.Name))
 
 	LLVMFunctionRef llvmfunc = 0
 	BinaryTreeCopyPayload<LLVMFunctionRef>(LLVMFunctionTable.RootNode, func.Name, llvmfunc)
