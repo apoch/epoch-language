@@ -1080,7 +1080,7 @@ TransferSymbols : list<PDBSymbol> ref symbols, buffer ref symboldata, integer sy
 
 	integer symbolsoffset = 0x4a			// account for the "init" symbols (and section)
 	integer symbolindex = 0
-	while(symbolindex < 1)
+	while(symbolindex < symbolcount)
 	{
 		ConvertSingleSymbol(symbollist, symbolindex, symbols, symbolcount, symbolsoffset)
 		++symbolindex
@@ -1101,20 +1101,26 @@ ConvertSingleSymbol : buffer ref symboldata, integer symbolindex, list<PDBSymbol
 	ImageSymbol symbol = 0, 0, 0, 0, 0, 0
 	marshalstructure(symbol, GetBufferPtr(symboldata, symbolindex * SYMBOL_SIZE))
 
+	integer t = cast(integer, symbol.Type)
+	t = t & 0x30
+	if(t != 0x20)				// ISFCN(t)
+	{
+		return()
+	}
+
 	if(symbol.OffsetToLongName == 0)
 	{
-		print("WARNING: skipping unnamed symbol")
+		print("WARNING: skipping unnamed function symbol")
 		return()
 	}
 
 	integer p = GetBufferPtr(symboldata, symbolcount * SYMBOL_SIZE + symbol.OffsetToLongName)
-	//integer slen = hackstrlen(p)
-	string symname = "HACK" //widenfromptr(p, slen)
-	//print(symname)
+	integer slen = hackstrlen(p)
+	string symname = widenfromptr(p, slen)
 
-	offsetnext = offsetnext + 0x34
+	offsetnext = offsetnext + 0x30 + slen
 
-	SymbolProcStart initsymbolps = 0, offsetnext, 0, 65, 0, 0, 0, 9, 0, symname			// TODO - hardcoded param should be symbol.Value
+	SymbolProcStart initsymbolps = 0, offsetnext, 0, symbol.Value, 0, 0, 0, 9, 0, symname			// TODO - hardcoded param should be symbol.Value
 	SymbolBlockEnd endsymbolps = 0
 	PDBSymbol initsymbol = initsymbolps
 	PDBSymbol endsymbol = endsymbolps
