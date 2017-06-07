@@ -1,0 +1,20 @@
+//
+// PDBTest
+//
+// Project Entry Point
+// By Apoch 
+// 6/6/2017 8:16:18 PM
+//
+
+
+test :
+{
+}
+
+
+entrypoint :
+{
+	test()
+	print("Hello, world!")
+}
+

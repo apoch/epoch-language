@@ -1080,7 +1080,7 @@ TransferSymbols : list<PDBSymbol> ref symbols, buffer ref symboldata, integer sy
 
 	integer symbolsoffset = 0x4a			// account for the "init" symbols (and section)
 	integer symbolindex = 0
-	while(symbolindex < 0)
+	while(symbolindex < 1)
 	{
 		ConvertSingleSymbol(symbollist, symbolindex, symbols, symbolcount, symbolsoffset)
 		++symbolindex
@@ -1114,7 +1114,7 @@ ConvertSingleSymbol : buffer ref symboldata, integer symbolindex, list<PDBSymbol
 
 	offsetnext = offsetnext + 0x34
 
-	SymbolProcStart initsymbolps = 0, offsetnext, 0, symbol.Value, 0, 0, 0, 9, 0, symname
+	SymbolProcStart initsymbolps = 0, offsetnext, 0, 65, 0, 0, 0, 9, 0, symname			// TODO - hardcoded param should be symbol.Value
 	SymbolBlockEnd endsymbolps = 0
 	PDBSymbol initsymbol = initsymbolps
 	PDBSymbol endsymbol = endsymbolps

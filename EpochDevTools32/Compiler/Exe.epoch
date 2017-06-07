@@ -1138,7 +1138,7 @@ ThunkTableAddFunctionToList : ThunkTableLibrary ref library, nothing, string fun
 GeneratePDB : string pdbfilename, buffer ref symboldata, integer symbolsize, integer codesectionstart, integer codesize, buffer ref relocdata, integer relocsize, buffer ref symbollist, integer symbollistbytes, integer symbolcount
 {
 	SymbolSection sectionsymbol = 9, codesectionstart, codesize, 0x60000020, ".text"
-	SymbolProcStart initsymbolps = 0, 0x4a, 0, 65, 0, 0, 0, 9, 0, "init"		// TODO - 0x4a is offset of next (end) symbol, this should not be hard-coded!
+	SymbolProcStart initsymbolps = 0, 0x4a, 0x52, 65, 0, 0, 0, 9, 0, "init"		// TODO - 0x4a is offset of next (end) symbol, this should not be hard-coded!
 	SymbolBlockEnd endsymbolps = 0
 	PDBSymbol initsymbol = initsymbolps
 	PDBSymbol endsymbol = endsymbolps
