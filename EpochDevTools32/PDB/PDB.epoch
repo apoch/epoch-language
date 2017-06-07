@@ -648,7 +648,7 @@ EmitDBISectionMap : PDBOutputStream ref stream
 	ByteStreamEmitInteger16(header, headersize, 0xffff)		// name
 	ByteStreamEmitInteger16(header, headersize, 0xffff)		// class name
 	ByteStreamEmitInteger(header, headersize, 0)			// offset
-	ByteStreamEmitInteger(header, headersize, 0x1900)		// length
+	ByteStreamEmitInteger(header, headersize, 0x1000)		// length
 	
 	// section descriptor .rsrc
 	ByteStreamEmitInteger16(header, headersize, 0x109)		// flags
@@ -668,7 +668,7 @@ EmitDBISectionMap : PDBOutputStream ref stream
 	ByteStreamEmitInteger16(header, headersize, 0xffff)		// name
 	ByteStreamEmitInteger16(header, headersize, 0xffff)		// class name
 	ByteStreamEmitInteger(header, headersize, 0)			// offset
-	ByteStreamEmitInteger(header, headersize, 0xa000)		// length
+	ByteStreamEmitInteger(header, headersize, 0x100)		// length
 
 	// section descriptor .xdata
 	ByteStreamEmitInteger16(header, headersize, 0x109)		// flags
@@ -678,7 +678,7 @@ EmitDBISectionMap : PDBOutputStream ref stream
 	ByteStreamEmitInteger16(header, headersize, 0xffff)		// name
 	ByteStreamEmitInteger16(header, headersize, 0xffff)		// class name
 	ByteStreamEmitInteger(header, headersize, 0)			// offset
-	ByteStreamEmitInteger(header, headersize, 0x7000)		// length
+	ByteStreamEmitInteger(header, headersize, 0x100)		// length
 
 	// section descriptor .data
 	ByteStreamEmitInteger16(header, headersize, 0x109)		// flags
@@ -688,7 +688,7 @@ EmitDBISectionMap : PDBOutputStream ref stream
 	ByteStreamEmitInteger16(header, headersize, 0xffff)		// name
 	ByteStreamEmitInteger16(header, headersize, 0xffff)		// class name
 	ByteStreamEmitInteger(header, headersize, 0)			// offset
-	ByteStreamEmitInteger(header, headersize, 0x28000)		// length
+	ByteStreamEmitInteger(header, headersize, 0x500)		// length
 
 	// section descriptor .gc
 	ByteStreamEmitInteger16(header, headersize, 0x109)		// flags
@@ -698,7 +698,7 @@ EmitDBISectionMap : PDBOutputStream ref stream
 	ByteStreamEmitInteger16(header, headersize, 0xffff)		// name
 	ByteStreamEmitInteger16(header, headersize, 0xffff)		// class name
 	ByteStreamEmitInteger(header, headersize, 0)			// offset
-	ByteStreamEmitInteger(header, headersize, 0x1d000)		// length
+	ByteStreamEmitInteger(header, headersize, 0x74)		// length
 
 	// section descriptor .debug
 	ByteStreamEmitInteger16(header, headersize, 0x109)		// flags
@@ -718,7 +718,7 @@ EmitDBISectionMap : PDBOutputStream ref stream
 	ByteStreamEmitInteger16(header, headersize, 0xffff)		// name
 	ByteStreamEmitInteger16(header, headersize, 0xffff)		// class name
 	ByteStreamEmitInteger(header, headersize, 0)			// offset
-	ByteStreamEmitInteger(header, headersize, 0x1000)		// length
+	ByteStreamEmitInteger(header, headersize, 42)		// length
 
 	// section descriptor .text
 	ByteStreamEmitInteger16(header, headersize, 0x10d)		// flags
@@ -728,7 +728,7 @@ EmitDBISectionMap : PDBOutputStream ref stream
 	ByteStreamEmitInteger16(header, headersize, 0xffff)		// name
 	ByteStreamEmitInteger16(header, headersize, 0xffff)		// class name
 	ByteStreamEmitInteger(header, headersize, 0)			// offset
-	ByteStreamEmitInteger(header, headersize, 0x56000)		// length
+	ByteStreamEmitInteger(header, headersize, 0xa0)		// length
 
 	// magic section (?)
 	ByteStreamEmitInteger16(header, headersize, 0x208)		// flags
@@ -768,9 +768,6 @@ EmitDBISectionContributionSingle : PDBOutputStream ref stream, SectionContributi
 {
 	buffer contrib = 128
 	integer contribsize = 0
-
-
-	print(cast(string, sc.Offset) ; " contribution of " ; cast(string, sc.Size) ; " bytes")
 	
 	ByteStreamEmitInteger16(contrib, contribsize, sc.SectionIndex)
 	ByteStreamEmitInteger16(contrib, contribsize, 0)
@@ -993,7 +990,7 @@ WriteDBIModuleSymbols : PDBOutputStream ref stream, DBIModule ref module, buffer
 	stream.FilePosition = stream.FilePosition + written
 	
 	
-	buffer symboldata = module.SymbolSize + 1024000
+	buffer symboldata = module.SymbolSize + 1024
 	integer symboldatasize = 0
 	ByteStreamEmitSymbolList(symboldata, symboldatasize, module.Symbols)
 	
@@ -1126,7 +1123,7 @@ ConvertSymbolStream : buffer ref symboldata, integer symbolsize, list<PDBSymbol>
 	integer slen = 0
 	string symbol = ""
 
-	integer writeoffset = 0x4a
+	integer writeoffset = 0x16
 	integer readoffset = 4
 
 	while(readoffset < symbolsize)
