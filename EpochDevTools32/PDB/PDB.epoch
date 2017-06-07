@@ -1166,7 +1166,7 @@ ConvertSymbolStream : buffer ref symboldata, integer symbolsize, list<PDBSymbol>
 
 			print(cast(string, procsection.SectionRelative))
 
-			GenerateCorrectedCVSymbol(symbols, writeoffset, procsize.Size, procsection.SectionIndex, symbol)
+			GenerateCorrectedCVSymbol(symbols, writeoffset, procsize.Size, procsection.SectionIndex, procsection.SectionRelative, symbol)
 			GenerateSectionContribution(contriblist, procsection.SectionIndex, procsection.SectionRelative, procsize.Size)
 		}
 		else
@@ -1201,9 +1201,9 @@ ConvertSymbolStream : buffer ref symboldata, integer symbolsize, list<PDBSymbol>
 }
 
 
-GenerateCorrectedCVSymbol : list<PDBSymbol> ref symbols, integer writeoffset, integer size, integer16 sectionindex, string symbol
+GenerateCorrectedCVSymbol : list<PDBSymbol> ref symbols, integer writeoffset, integer size, integer16 sectionindex, integer sectionrelative, string symbol
 {
-	SymbolProcStart startsymbolps = 0, writeoffset, 0, size, 0, 0, 0, sectionindex, 0, symbol
+	SymbolProcStart startsymbolps = 0, writeoffset, 0, size, 0, 0, 0, sectionindex, 0, symbol, sectionrelative
 	SymbolBlockEnd endsymbolps = 0
 	PDBSymbol startsymbol = startsymbolps
 	PDBSymbol endsymbol = endsymbolps

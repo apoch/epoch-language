@@ -29,7 +29,8 @@ structure SymbolProcStart :
 	integer FunctionType,
 	integer16 Segment,
 	integer Flags,
-	string DisplayName
+	string DisplayName,
+	integer SectionRelative
 	
 	
 structure SymbolBlockEnd :
@@ -100,7 +101,7 @@ ByteStreamEmitSymbol : buffer ref stream, integer ref pos, SymbolProcStart ref s
 	ByteStreamEmitInteger(stream, pos, symbol.DebugStart)
 	ByteStreamEmitInteger(stream, pos, symbol.DebugEnd)
 	ByteStreamEmitInteger(stream, pos, symbol.FunctionType)
-	ByteStreamEmitInteger(stream, pos, 0)							// code offset?
+	ByteStreamEmitInteger(stream, pos, symbol.SectionRelative)
 	ByteStreamEmitInteger16(stream, pos, symbol.Segment)
 	ByteStreamEmitByte(stream, pos, symbol.Flags & 0xff)
 	
