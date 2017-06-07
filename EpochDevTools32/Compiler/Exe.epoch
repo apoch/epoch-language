@@ -1167,7 +1167,7 @@ GeneratePDB : string pdbfilename, buffer ref symboldata, integer symbolsize, int
 	}
 
 	integer sectionmapsize = 10 * 20 + 4 // TODO - dynamic section map
-	integer dbicontribslen = 32		// TODO - compute dynamic contributions length (don't forget version signature +4)
+	integer dbicontribslen = 32 + (28 * 4)		// TODO - compute dynamic contributions length (don't forget version signature +4)
 	
 	DBISection dbisection = dbimodinfolen, dbicontribslen, sectionmapsize, modulelist
 

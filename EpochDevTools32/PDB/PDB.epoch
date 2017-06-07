@@ -768,6 +768,9 @@ EmitDBISectionContributionSingle : PDBOutputStream ref stream, SectionContributi
 {
 	buffer contrib = 128
 	integer contribsize = 0
+
+
+	print(cast(string, sc.Offset) ; " contribution of " ; cast(string, sc.Size) ; " bytes")
 	
 	ByteStreamEmitInteger16(contrib, contribsize, sc.SectionIndex)
 	ByteStreamEmitInteger16(contrib, contribsize, 0)
@@ -1034,7 +1037,7 @@ TransferSymbols : list<PDBSymbol> ref symbols, buffer ref symboldata, integer sy
 		if(reloc.Type == 0xb)			// IMAGE_REL_AMD64_SECREL
 		{
 			ImageSymbol symbol = 0, 0, 0, 0, 0, 0
-			marshalstructure(symbol, GetBufferPtr(symboldata, reloc.SymbolIndex * SYMBOL_SIZE))
+			marshalstructure(symbol, GetBufferPtr(symbollist, reloc.SymbolIndex * SYMBOL_SIZE))
 
 			if(symbol.SectionNumber == 9)
 			{
@@ -1051,7 +1054,7 @@ TransferSymbols : list<PDBSymbol> ref symbols, buffer ref symboldata, integer sy
 		elseif(reloc.Type == 0xa)		// IMAGE_REL_AMD64_SECTION
 		{
 			ImageSymbol symbol = 0, 0, 0, 0, 0, 0
-			marshalstructure(symbol, GetBufferPtr(symboldata, reloc.SymbolIndex * SYMBOL_SIZE))
+			marshalstructure(symbol, GetBufferPtr(symbollist, reloc.SymbolIndex * SYMBOL_SIZE))
 
 			if(symbol.SectionNumber == 9)
 			{
@@ -1065,6 +1068,10 @@ TransferSymbols : list<PDBSymbol> ref symbols, buffer ref symboldata, integer sy
 				{
 					print("WARNING: NOT relocating absolute symbol... " ; cast(string, reloc.Address) ; " val " ; cast(string, symbol.Value))
 				}
+			}
+			else
+			{
+				print("Bogus symbol for section " ; cast(string, cast(integer, symbol.SectionNumber)))
 			}
 		}
 		else
@@ -1159,6 +1166,8 @@ ConvertSymbolStream : buffer ref symboldata, integer symbolsize, list<PDBSymbol>
 
 			writeoffset += 0x30
 			writeoffset += slen
+
+			print(cast(string, procsection.SectionRelative))
 
 			GenerateCorrectedCVSymbol(symbols, writeoffset, procsize.Size, procsection.SectionIndex, symbol)
 			GenerateSectionContribution(contriblist, procsection.SectionIndex, procsection.SectionRelative, procsize.Size)
