@@ -1141,11 +1141,8 @@ GeneratePDB : string pdbfilename, buffer ref symboldata, integer symbolsize, int
 
 	SectionContribution initsc = 9, 0, 65, 0x60001020, 0, 0, 0
 	list<SectionContribution> contriblist = initsc, nothing
-
-	PDBLineInfo dummyline = 0, 0, 0
-	list<PDBLineInfo> lines = dummyline, nothing
 	
-	TransferSymbols(symbollistinternal, symboldata, symbolsize, relocdata, relocsize, symbollist, contriblist, lines)
+	TransferSymbols(symbollistinternal, symboldata, symbolsize, relocdata, relocsize, symbollist, contriblist)
 	
 	print("First canary")
 

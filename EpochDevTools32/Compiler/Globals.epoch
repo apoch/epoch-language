@@ -352,7 +352,4 @@ global
 
 	ArrayType dummyarraytype = 0, 0, 0
 	list<ArrayType> ArrayTypes = dummyarraytype, nothing
-
-	PDBLineInfo stupidhackforstupidcompiler = 0, 0, 0
-	list<PDBLineInfo> stupidhackagainbecausestupid = stupidhackforstupidcompiler, nothing
 }

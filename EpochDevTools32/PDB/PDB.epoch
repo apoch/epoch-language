@@ -209,14 +209,6 @@ structure ImageSymbol :
 	integer16 StorageClassAndAuxSymbolCount
 
 
-
-structure PDBLineInfo :
-	integer FileNameOffset,
-	integer SourceOffset,
-	integer SourceLine
-
-
-
 GetBufferPtr : buffer ref buf, integer offset -> integer ptr = 0 [external("EpochPDBShim.dll", "GetBufferPtr")]
 WriteBufferPtrByte : buffer ref buf, integer offset, integer value [external("EpochPDBShim.dll", "WriteBufferPtrByte")]
 WriteBufferPtrDword : buffer ref buf, integer offset, integer value [external("EpochPDBShim.dll", "WriteBufferPtrDword")]
@@ -1018,7 +1010,7 @@ WriteDBIModuleSymbols : PDBOutputStream ref stream, DBIModule ref module, buffer
 
 
 
-TransferSymbols : list<PDBSymbol> ref symbols, buffer ref symboldata, integer symbolsize, buffer ref relocdata, integer relocsize, buffer ref symbollist, list<SectionContribution> ref contriblist, list<PDBLineInfo> ref lines
+TransferSymbols : list<PDBSymbol> ref symbols, buffer ref symboldata, integer symbolsize, buffer ref relocdata, integer relocsize, buffer ref symbollist, list<SectionContribution> ref contriblist
 {
 	//
 	// Apply relocations to the raw symbol data so it will be easier
@@ -1088,7 +1080,7 @@ TransferSymbols : list<PDBSymbol> ref symbols, buffer ref symboldata, integer sy
 		++i
 	}
 
-	ConvertSymbolStream(symboldata, symbolsize, symbols, contriblist, lines)
+	ConvertSymbolStream(symboldata, symbolsize, symbols, contriblist)
 
 	print("Stack unwind canary")
 }
@@ -1129,7 +1121,7 @@ structure CodeViewLinePair :
 	integer Line
 
 
-ConvertSymbolStream : buffer ref symboldata, integer symbolsize, list<PDBSymbol> ref symbols, list<SectionContribution> ref contriblist, list<PDBLineInfo> ref lines
+ConvertSymbolStream : buffer ref symboldata, integer symbolsize, list<PDBSymbol> ref symbols, list<SectionContribution> ref contriblist
 {
 	print("Converting symbols...")
 
@@ -1195,6 +1187,9 @@ ConvertSymbolStream : buffer ref symboldata, integer symbolsize, list<PDBSymbol>
 			marshalstructure(lineinfo, GetBufferPtr(symboldata, readoffset))
 			readoffset += 24
 
+			CodeViewLinePair dummypair = -1, -1
+			list<CodeViewLinePair> pairlist = dummypair, nothing
+			
 			integer pairindex = 0
 			while(pairindex < lineinfo.NumPairs)
 			{
@@ -1202,8 +1197,14 @@ ConvertSymbolStream : buffer ref symboldata, integer symbolsize, list<PDBSymbol>
 				marshalstructure(pair, GetBufferPtr(symboldata, readoffset))
 				readoffset += 8
 
+				append<CodeViewLinePair>(pairlist, pair)
+
 				++pairindex
 			}
+
+			SymbolLineInfo outinfo = lineinfo.FunctionOffset, lineinfo.FunctionIndex, lineinfo.FunctionSize, lineinfo.SourceFileOffset, lineinfo.NumPairs, lineinfo.Size, pairlist
+			PDBSymbol sym = outinfo
+			append<PDBSymbol>(symbols, sym)
 
 			readoffset = nextreadoffset
 		}		
