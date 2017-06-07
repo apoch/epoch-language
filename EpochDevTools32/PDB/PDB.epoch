@@ -1161,7 +1161,7 @@ ConvertSymbolStream : buffer ref symboldata, integer symbolsize, list<PDBSymbol>
 			writeoffset += slen
 
 			GenerateCorrectedCVSymbol(symbols, writeoffset, procsize.Size, procsection.SectionIndex, symbol)
-			// TODO - section contrib
+			GenerateSectionContribution(contriblist, procsection.SectionIndex, procsection.SectionRelative, procsize.Size)
 		}
 		else
 		{
@@ -1205,3 +1205,10 @@ GenerateCorrectedCVSymbol : list<PDBSymbol> ref symbols, integer writeoffset, in
 	append<PDBSymbol>(symbols, startsymbol)
 	append<PDBSymbol>(symbols, endsymbol)
 }
+
+GenerateSectionContribution : list<SectionContribution> ref contriblist, integer16 sectionindex, integer startoffset, integer size
+{
+	SectionContribution sc = sectionindex, startoffset, size, 0x60001020, 0, 0, 0
+	append<SectionContribution>(contriblist, sc)
+}
+
