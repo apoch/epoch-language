@@ -1136,13 +1136,20 @@ ThunkTableAddFunctionToList : ThunkTableLibrary ref library, nothing, string fun
 
 GeneratePDB : string pdbfilename, buffer ref symboldata, integer symbolsize, integer codesectionstart, integer codesize, buffer ref relocdata, integer relocsize, buffer ref symbollist, integer symbollistbytes, integer symbolcount
 {
+	CodeViewLinePair dummypair = -1, -1
+	list<CodeViewLinePair> pairlist = dummypair, nothing
+
+	CodeViewLineInfoRaw lineinforaw = 0, 0, 0, 0, 0, 0
+	CodeViewLineInfo lineinfo = lineinforaw, pairlist
+	list<CodeViewLineInfo> lines = lineinfo, nothing
+	
 	SymbolSection sectionsymbol = 9, codesectionstart, codesize, 0x60000020, ".text"	
 	list<PDBSymbol> symbollistinternal = sectionsymbol, nothing
 
 	SectionContribution initsc = 9, 0, 65, 0x60001020, 0, 0, 0
 	list<SectionContribution> contriblist = initsc, nothing
 	
-	TransferSymbols(symbollistinternal, symboldata, symbolsize, relocdata, relocsize, symbollist, contriblist)
+	TransferSymbols(symbollistinternal, symboldata, symbolsize, relocdata, relocsize, symbollist, contriblist, lines)
 	
 	print("First canary")
 
@@ -1160,8 +1167,9 @@ GeneratePDB : string pdbfilename, buffer ref symboldata, integer symbolsize, int
 
 	integer sectionmapsize = 10 * 20 + 4 // TODO - dynamic section map
 	integer dbicontribslen = 4 + (28 * 4)		// TODO - compute dynamic contributions length (don't forget version signature +4)
+	integer dbilineslen = 0		// TODO - dynamic lines
 	
-	DBISection dbisection = dbimodinfolen, dbicontribslen, sectionmapsize, modulelist
+	DBISection dbisection = dbimodinfolen, dbicontribslen, sectionmapsize, modulelist, lines
 
 	print("Pre-stream setup canary")
 	
@@ -1171,7 +1179,7 @@ GeneratePDB : string pdbfilename, buffer ref symboldata, integer symbolsize, int
 	PDBStream msf = simplelist<integer>(5, nothing), 1					// Placeholder; 0 is invalid but we have nothing to put here
 	PDBStream pdb = simplelist<integer>(6, nothing), 196  				// TODO - pull real PDB stream size [was 48]
 	PDBStream tpi = simplelist<integer>(7, nothing), 56					// TODO - real TPI stream
-	PDBStream dbi = simplelist<integer>(8, nothing), 64 + dbimodinfolen + dbicontribslen + sectionmapsize   // TODO - real DBI stream
+	PDBStream dbi = simplelist<integer>(8, nothing), 64 + dbimodinfolen + dbicontribslen + sectionmapsize + dbilineslen  // TODO - real DBI stream
 	PDBStream ipi = simplelist<integer>(9, nothing), 56					// TODO - real IPI stream (?)
 	PDBStream globals = simplelist<integer>(10, nothing), 44 + 516		// TODO - real globals stream
 	PDBStream publics = simplelist<integer>(11, nothing), 44 + 516		// TODO - real publics stream

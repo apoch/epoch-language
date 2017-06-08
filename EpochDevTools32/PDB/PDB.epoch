@@ -143,7 +143,8 @@ structure DBISection :
 	integer ModuleSubstreamSize,
 	integer SectionContributionSize,
 	integer SectionMapSize,
-	list<DBIModule> Modules
+	list<DBIModule> Modules,
+	list<CodeViewLineInfo> Lines
 
 //
 // In-memory representation of a "mod" or Module.
@@ -287,6 +288,8 @@ WritePDB : PDBOutputStream ref stream, integer codesectionstart, integer codesiz
 	// HACK - TODO
 	PadToBeginningOfBlock(stream, 13)
 	WriteDBIModuleSymbols(stream, stream.DBI.Modules.value, symbolstart, symbolsize)
+
+	EmitDBILines(stream)
 	
 	// Pad to the end of the file
 	PadToBeginningOfBlock(stream, stream.Layout.BlockCount + 1)		// TODO
@@ -591,7 +594,7 @@ WriteDBIStream : PDBOutputStream ref stream
 	ByteStreamEmitInteger(header, headersize, stream.DBI.ModuleSubstreamSize)
 	ByteStreamEmitInteger(header, headersize, stream.DBI.SectionContributionSize)
 	ByteStreamEmitInteger(header, headersize, stream.DBI.SectionMapSize)
-	ByteStreamEmitInteger(header, headersize, 0)		// file info substream size
+	ByteStreamEmitInteger(header, headersize, 0)		// file info substream size				// TODO - this is hack
 	ByteStreamEmitInteger(header, headersize, 0)		// type server map size
 	ByteStreamEmitInteger(header, headersize, 0)		// index of MFC type server
 	ByteStreamEmitInteger(header, headersize, 0)		// DbgHeader info size
@@ -608,6 +611,8 @@ WriteDBIStream : PDBOutputStream ref stream
 	EmitDBIModule(stream, stream.DBI.Modules)
 	EmitDBISectionContributions(stream)
 	EmitDBISectionMap(stream)
+
+	//EmitDBILines(stream)
 }
 
 
@@ -878,6 +883,53 @@ EmitDBIModule : PDBOutputStream ref stream, list<DBIModule> ref modlist
 EmitDBIModule : PDBOutputStream ref stream, nothing
 
 
+EmitDBILines : PDBOutputStream ref stream
+{
+	buffer linesdata = 4096
+	integer linessize = 0
+
+	ByteStreamEmitDBILines(linesdata, linessize, stream.DBI.Lines)
+
+	integer written = 0
+	WriteFile(stream.FileHandle, linesdata, linessize, written, 0)
+	stream.FilePosition = stream.FilePosition + written
+}
+
+
+ByteStreamEmitDBILines : buffer ref data, integer ref size, list<CodeViewLineInfo> ref lines
+{
+	if(lines.value.Raw.NumPairs != 0)
+	{
+		ByteStreamEmitInteger(data, size, lines.value.Raw.FunctionOffset)
+		ByteStreamEmitInteger(data, size, lines.value.Raw.FunctionIndex)
+		ByteStreamEmitInteger(data, size, lines.value.Raw.FunctionSize)
+		ByteStreamEmitInteger(data, size, lines.value.Raw.SourceFileOffset)
+		ByteStreamEmitInteger(data, size, lines.value.Raw.NumPairs)
+		ByteStreamEmitInteger(data, size, lines.value.Raw.Size)
+
+		ByteStreamEmitDBILinePairs(data, size, lines.value.LinePairs)
+	}
+
+	ByteStreamEmitDBILines(data, size, lines.next)
+}
+
+ByteStreamEmitDBILines : buffer ref data, integer ref size, nothing
+
+
+ByteStreamEmitDBILinePairs : buffer ref data, integer ref size, list<CodeViewLinePair> ref pairs
+{
+	if(pairs.value.Offset > -1)
+	{
+		ByteStreamEmitInteger(data, size, pairs.value.Offset)
+		ByteStreamEmitInteger(data, size, pairs.value.Line)
+	}
+
+	ByteStreamEmitDBILinePairs(data, size, pairs.next)
+}
+
+ByteStreamEmitDBILinePairs : buffer ref data, integer ref size, nothing
+
+
 WriteIPIStream : Win32Handle pdbfilehandle, integer startfileposition -> integer endfileposition = 0
 {
 	buffer header = 128
@@ -1010,7 +1062,7 @@ WriteDBIModuleSymbols : PDBOutputStream ref stream, DBIModule ref module, buffer
 
 
 
-TransferSymbols : list<PDBSymbol> ref symbols, buffer ref symboldata, integer symbolsize, buffer ref relocdata, integer relocsize, buffer ref symbollist, list<SectionContribution> ref contriblist
+TransferSymbols : list<PDBSymbol> ref symbols, buffer ref symboldata, integer symbolsize, buffer ref relocdata, integer relocsize, buffer ref symbollist, list<SectionContribution> ref contriblist, list<CodeViewLineInfo> ref lines
 {
 	//
 	// Apply relocations to the raw symbol data so it will be easier
@@ -1080,7 +1132,7 @@ TransferSymbols : list<PDBSymbol> ref symbols, buffer ref symboldata, integer sy
 		++i
 	}
 
-	ConvertSymbolStream(symboldata, symbolsize, symbols, contriblist)
+	ConvertSymbolStream(symboldata, symbolsize, symbols, contriblist, lines)
 
 	print("Stack unwind canary")
 }
@@ -1108,7 +1160,7 @@ structure CodeViewProcTerm :
 structure CodeViewProcEnd :
 	integer16 Magic
 
-structure CodeViewLineInfo :
+structure CodeViewLineInfoRaw :
 	integer FunctionOffset,
 	integer FunctionIndex,
 	integer FunctionSize,
@@ -1116,12 +1168,16 @@ structure CodeViewLineInfo :
 	integer NumPairs,
 	integer Size
 
+structure CodeViewLineInfo :
+	CodeViewLineInfoRaw Raw,
+	list<CodeViewLinePair> ref LinePairs
+
 structure CodeViewLinePair :
 	integer Offset,
 	integer Line
 
 
-ConvertSymbolStream : buffer ref symboldata, integer symbolsize, list<PDBSymbol> ref symbols, list<SectionContribution> ref contriblist
+ConvertSymbolStream : buffer ref symboldata, integer symbolsize, list<PDBSymbol> ref symbols, list<SectionContribution> ref contriblist, list<CodeViewLineInfo> ref lines
 {
 	print("Converting symbols...")
 
@@ -1183,13 +1239,15 @@ ConvertSymbolStream : buffer ref symboldata, integer symbolsize, list<PDBSymbol>
 		{
 			integer nextreadoffset = chunk.Size + readoffset
 
-			CodeViewLineInfo lineinfo = 0, 0, 0, 0, 0, 0
-			marshalstructure(lineinfo, GetBufferPtr(symboldata, readoffset))
-			readoffset += 24
-
 			CodeViewLinePair dummypair = -1, -1
 			list<CodeViewLinePair> pairlist = dummypair, nothing
+
+			CodeViewLineInfoRaw lineinfo = 0, 0, 0, 0, 0, 0
+			marshalstructure(lineinfo, GetBufferPtr(symboldata, readoffset))
+			readoffset += 24
 			
+			CodeViewLineInfo stuff = lineinfo, pairlist
+
 			integer pairindex = 0
 			while(pairindex < lineinfo.NumPairs)
 			{
@@ -1197,14 +1255,12 @@ ConvertSymbolStream : buffer ref symboldata, integer symbolsize, list<PDBSymbol>
 				marshalstructure(pair, GetBufferPtr(symboldata, readoffset))
 				readoffset += 8
 
-				append<CodeViewLinePair>(pairlist, pair)
+				append<CodeViewLinePair>(stuff.LinePairs, pair)
 
 				++pairindex
 			}
 
-			SymbolLineInfo outinfo = lineinfo.FunctionOffset, lineinfo.FunctionIndex, lineinfo.FunctionSize, lineinfo.SourceFileOffset, lineinfo.NumPairs, lineinfo.Size, pairlist
-			PDBSymbol sym = outinfo
-			append<PDBSymbol>(symbols, sym)
+			append<CodeViewLineInfo>(lines, stuff)
 
 			readoffset = nextreadoffset
 		}		

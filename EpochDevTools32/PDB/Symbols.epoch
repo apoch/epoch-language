@@ -35,26 +35,15 @@ structure SymbolProcStart :
 	
 structure SymbolBlockEnd :
 	integer Dummy
-	
 
-structure SymbolLineInfo :
-	integer FunctionOffset,
-	integer FunctionIndex,
-	integer FunctionSize,
-	integer SourceFileOffset,
-	integer NumPairs,
-	integer Size,
-	list<CodeViewLinePair> ref LinePairs	
 
-	
-type PDBSymbol : SymbolSection | SymbolProcStart | SymbolBlockEnd | SymbolLineInfo
+type PDBSymbol : SymbolSection | SymbolProcStart | SymbolBlockEnd
 
 
 
 SymbolGetSize : SymbolSection ref symbol -> integer size = 18 + length(symbol.ImageSectionName) + 1
 SymbolGetSize : SymbolProcStart ref symbol -> integer size = 37 + length(symbol.DisplayName) + 1
 SymbolGetSize : SymbolBlockEnd ref symbol -> integer size = 6
-SymbolGetSize : SymbolLineInfo ref symbol -> integer size = 24 + (4 * symbol.NumPairs)
 
 
 ByteStreamEmitSymbolList : buffer ref stream, integer ref pos, list<PDBSymbol> ref symlist
@@ -134,20 +123,4 @@ ByteStreamEmitSymbol : buffer ref stream, integer ref pos, SymbolBlockEnd ref sy
 	ByteStreamEmitInteger16(stream, pos, 0x6)							// S_END	
 	ByteStreamEmitInteger(stream, pos, 0)
 }
-
-
-ByteStreamEmitSymbol : buffer ref stream, integer ref pos, SymbolLineInfo ref symbol
-{
-	integer16 mysize = cast(integer16, SymbolGetSize(symbol))
-
-	ByteStreamEmitInteger16(stream, pos, mysize)
-	ByteStreamEmitInteger16(stream, pos, 0xf3)
-
-	ByteStreamEmitInteger(stream, pos, symbol.FunctionOffset)
-	ByteStreamEmitInteger16(stream, pos, 9)							// TODO - hardcoded segment index
-	ByteStreamEmitInteger16(stream, pos, 0)			// flags??
-	ByteStreamEmitInteger(stream, pos, 0)		// TODO - should emit lines here maybe?
-}
-
-
 
