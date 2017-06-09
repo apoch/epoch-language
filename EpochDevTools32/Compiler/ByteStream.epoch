@@ -82,11 +82,18 @@ ByteStreamEmitPadding : buffer ref targetbuffer, integer ref offset, integer tar
 //
 // Emit a string into the stream
 //
-ByteStreamEmitString : buffer ref targetbuffer, integer ref offset, string value
+ByteStreamEmitStringNarrow : buffer ref targetbuffer, integer ref offset, string value
 {
-	integer len = (length(value) + 1) * 2
-	writebuffer(targetbuffer, offset, value, len)
-	offset += len
+	integer count = 0
+	integer len = length(value)
+
+	while(count < len)
+	{
+		string char = charat(value, count)
+		ByteStreamEmitSubstring(targetbuffer, offset, char, 1)
+
+		++count
+	}
 }
 
 //

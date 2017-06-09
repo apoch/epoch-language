@@ -288,8 +288,6 @@ WritePDB : PDBOutputStream ref stream, integer codesectionstart, integer codesiz
 	// HACK - TODO
 	PadToBeginningOfBlock(stream, 13)
 	WriteDBIModuleSymbols(stream, stream.DBI.Modules.value, symbolstart, symbolsize)
-
-	EmitDBILines(stream)
 	
 	// Pad to the end of the file
 	PadToBeginningOfBlock(stream, stream.Layout.BlockCount + 1)		// TODO
@@ -323,6 +321,14 @@ PadToBeginningOfBlock : PDBOutputStream ref stream, integer blockindex
 	stream.FilePosition = fpos
 }
 
+
+PadGarbageToBeginningOfBlock : PDBOutputStream ref stream, integer blockindex
+{
+	// TODO - lame compiler bug workaround in the 32-bit compiler
+	integer fpos = stream.FilePosition
+	fpos += WriteGarbage(stream.FileHandle, stream.FilePosition, stream.Layout.BlockSize * blockindex)
+	stream.FilePosition = fpos
+}
 
 
 WriteDirectoryHint : Win32Handle pdbfilehandle, integer hint -> integer written = 0
@@ -463,43 +469,22 @@ WritePDBInfoStream : Win32Handle pdbfilehandle, integer startfileposition -> int
 
 
 	// String table thingy
-	ByteStreamEmitInteger(header, headersize, 80)		// Hack
-	ByteStreamEmitInteger(header, headersize, 4096)
-	ByteStreamEmitInteger(header, headersize, 4097)
-	ByteStreamEmitInteger(header, headersize, 4098)
-	ByteStreamEmitInteger(header, headersize, 4099)
-	
-	
-	// DUMB TEMPORARY HACK
-	ByteStreamEmitInteger(header, headersize, 0xfe)
-	ByteStreamEmitInteger(header, headersize, 0xfd)
-	ByteStreamEmitInteger(header, headersize, 0xfc)
-	ByteStreamEmitInteger(header, headersize, 0xfb)
+	string s = "/names"
+	ByteStreamEmitInteger(header, headersize, length(s) + 1)
 
-	ByteStreamEmitInteger(header, headersize, 0xee)
-	ByteStreamEmitInteger(header, headersize, 0xed)
-	ByteStreamEmitInteger(header, headersize, 0xec)
-	ByteStreamEmitInteger(header, headersize, 0xeb)
+	ByteStreamEmitStringNarrow(header, headersize, s)
+	ByteStreamEmitByte(header, headersize, 0)
 
-	ByteStreamEmitInteger(header, headersize, 0xde)
-	ByteStreamEmitInteger(header, headersize, 0xdd)
-	ByteStreamEmitInteger(header, headersize, 0xdc)
-	ByteStreamEmitInteger(header, headersize, 0xdb)
 
-	ByteStreamEmitInteger(header, headersize, 0xce)
-	ByteStreamEmitInteger(header, headersize, 0xcd)
-	ByteStreamEmitInteger(header, headersize, 0xcc)
-	ByteStreamEmitInteger(header, headersize, 0xcb)
+	ByteStreamEmitInteger(header, headersize, 1)		// DE-POISONED: this is a hash table size/capacity pair
+	ByteStreamEmitInteger(header, headersize, 1)
+	ByteStreamEmitInteger(header, headersize, 1)		// DE-POISONED: this is a bit vector
+	ByteStreamEmitInteger(header, headersize, 1)
 
-	ByteStreamEmitInteger(header, headersize, 0xbe)
-	ByteStreamEmitInteger(header, headersize, 0xbd)
-	ByteStreamEmitInteger(header, headersize, 0)		// DE-POISONED: this is an array size of some kind
-	ByteStreamEmitInteger(header, headersize, 0)		// same as above
-
-	ByteStreamEmitInteger(header, headersize, 0xae)
-	ByteStreamEmitInteger(header, headersize, 0xad)
-	ByteStreamEmitInteger(header, headersize, 0xac)
-	ByteStreamEmitInteger(header, headersize, 0xab)
+	ByteStreamEmitInteger(header, headersize, 0)		// DE-POISONED: this is a bit vector of deleted data
+	ByteStreamEmitInteger(header, headersize, 0)
+	ByteStreamEmitInteger(header, headersize, 0)		// DE-POISONED: offset of a string I suppose
+	ByteStreamEmitInteger(header, headersize, 0)
 
 	ByteStreamEmitInteger(header, headersize, 0x9e)
 	ByteStreamEmitInteger(header, headersize, 0x9d)
@@ -526,6 +511,15 @@ WritePDBInfoStream : Win32Handle pdbfilehandle, integer startfileposition -> int
 	ByteStreamEmitInteger(header, headersize, 0x5c)
 	ByteStreamEmitInteger(header, headersize, 0x5b)
 
+	ByteStreamEmitInteger(header, headersize, 0x5a)
+	ByteStreamEmitInteger(header, headersize, 0x59)
+	ByteStreamEmitInteger(header, headersize, 0x58)
+	ByteStreamEmitInteger(header, headersize, 0x57)
+
+	ByteStreamEmitInteger(header, headersize, 0x56)
+	ByteStreamEmitInteger(header, headersize, 0x55)
+	ByteStreamEmitInteger(header, headersize, 0x54)
+	ByteStreamEmitInteger(header, headersize, 0x53)
 
 	integer written = 0
 	WriteFile(pdbfilehandle, header, headersize, written, 0)
@@ -594,7 +588,7 @@ WriteDBIStream : PDBOutputStream ref stream
 	ByteStreamEmitInteger(header, headersize, stream.DBI.ModuleSubstreamSize)
 	ByteStreamEmitInteger(header, headersize, stream.DBI.SectionContributionSize)
 	ByteStreamEmitInteger(header, headersize, stream.DBI.SectionMapSize)
-	ByteStreamEmitInteger(header, headersize, 0)		// file info substream size				// TODO - this is hack
+	ByteStreamEmitInteger(header, headersize, 48)		// file info substream size
 	ByteStreamEmitInteger(header, headersize, 0)		// type server map size
 	ByteStreamEmitInteger(header, headersize, 0)		// index of MFC type server
 	ByteStreamEmitInteger(header, headersize, 0)		// DbgHeader info size
@@ -612,7 +606,7 @@ WriteDBIStream : PDBOutputStream ref stream
 	EmitDBISectionContributions(stream)
 	EmitDBISectionMap(stream)
 
-	//EmitDBILines(stream)
+	EmitDBILines(stream)
 }
 
 
@@ -868,10 +862,10 @@ EmitDBIModule : PDBOutputStream ref stream, list<DBIModule> ref modlist
 	
 	ByteStreamEmitByte(modinfo, modsize, 0)
 	
-	while((modsize & 3) != 0)
-	{
-		ByteStreamEmitByte(modinfo, modsize, 0)
-	}
+	//while((modsize & 3) != 0)
+	//{
+	//	ByteStreamEmitByte(modinfo, modsize, 0)
+	//}
 	
 	
 	WriteFile(stream.FileHandle, modinfo, modsize, written, 0)
@@ -888,11 +882,55 @@ EmitDBILines : PDBOutputStream ref stream
 	buffer linesdata = 4096
 	integer linessize = 0
 
-	ByteStreamEmitDBILines(linesdata, linessize, stream.DBI.Lines)
+	// TODO - real values
+	integer modulecount = 1
+	integer filecount = 1
+
+	ByteStreamEmitInteger16(linesdata, linessize, cast(integer16, modulecount))
+	ByteStreamEmitInteger16(linesdata, linessize, cast(integer16, filecount))
+
+	integer i = modulecount
+	while(i > 0)
+	{
+		ByteStreamEmitInteger16(linesdata, linessize, 0)			// Unused according to LLVM's PDB implementation
+
+		--i
+	}
+
+	i = modulecount
+	while(i > 0)
+	{
+		ByteStreamEmitInteger16(linesdata, linessize, 1)			// Number of files in this module
+
+		--i
+	}
+
+	i = filecount
+	while(i > 0)
+	{
+		ByteStreamEmitInteger(linesdata, linessize, 0)				// TODO - offset of file name in names buffer
+
+		--i
+	}
+
+	// TODO - real file names, support for multiple files
+	string filename = "D:\Test.epoch"
+	ByteStreamEmitInteger(linesdata, linessize, length(filename) + 1)
+	ByteStreamEmitStringNarrow(linesdata, linessize, filename)
+	ByteStreamEmitByte(linesdata, linessize, 0)
+
+	//ByteStreamEmitDBILines(linesdata, linessize, stream.DBI.Lines)
+
+	while((linessize & 3) != 0)
+	{
+		ByteStreamEmitByte(linesdata, linessize, 0)
+	}
 
 	integer written = 0
 	WriteFile(stream.FileHandle, linesdata, linessize, written, 0)
 	stream.FilePosition = stream.FilePosition + written
+
+	print(cast(string, written))
 }
 
 
@@ -900,10 +938,19 @@ ByteStreamEmitDBILines : buffer ref data, integer ref size, list<CodeViewLineInf
 {
 	if(lines.value.Raw.NumPairs != 0)
 	{
-		ByteStreamEmitInteger(data, size, lines.value.Raw.FunctionOffset)
-		ByteStreamEmitInteger(data, size, lines.value.Raw.FunctionIndex)
-		ByteStreamEmitInteger(data, size, lines.value.Raw.FunctionSize)
-		ByteStreamEmitInteger(data, size, lines.value.Raw.SourceFileOffset)
+		//ByteStreamEmitInteger(data, size, lines.value.Raw.FunctionOffset)
+		//ByteStreamEmitInteger(data, size, lines.value.Raw.FunctionIndex)
+		//ByteStreamEmitInteger(data, size, lines.value.Raw.FunctionSize)
+		//ByteStreamEmitInteger(data, size, lines.value.Raw.SourceFileOffset)
+		//ByteStreamEmitInteger(data, size, lines.value.Raw.NumPairs)
+		//ByteStreamEmitInteger(data, size, lines.value.Raw.Size)
+
+		ByteStreamEmitInteger(data, size, 0xffffffff)		// TODO - offcon?
+		ByteStreamEmitInteger16(data, size, 0xffff)	// TODO - segcon?
+		ByteStreamEmitInteger16(data, size, 0xff)	// Flags
+		ByteStreamEmitInteger(data, size, 0xffffffff)		// TODO - cbcon?
+
+		ByteStreamEmitInteger(data, size, 0xfedcba90)			// TODO - fileID
 		ByteStreamEmitInteger(data, size, lines.value.Raw.NumPairs)
 		ByteStreamEmitInteger(data, size, lines.value.Raw.Size)
 
@@ -1047,7 +1094,6 @@ WriteDBIModuleSymbols : PDBOutputStream ref stream, DBIModule ref module, buffer
 	ByteStreamEmitSymbolList(symboldata, symboldatasize, module.Symbols)
 	
 	WriteFile(stream.FileHandle, symboldata, symboldatasize, written, 0)
-	//WriteFile(stream.FileHandle, symbols, symbolsize, written, 0)
 	stream.FilePosition = stream.FilePosition + written
 	
 	

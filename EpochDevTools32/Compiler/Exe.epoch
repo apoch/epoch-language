@@ -369,6 +369,28 @@ WritePadding : Win32Handle filehandle, integer startpos, integer desiredpos -> i
 }
 
 
+WriteGarbage : Win32Handle filehandle, integer startpos, integer desiredpos -> integer writtenbytes = 0
+{
+	writtenbytes = desiredpos - startpos
+
+    if(writtenbytes < 0)
+    {
+    	assertmsg(false, "INTERNAL ERROR - attempted to junk negative bytes " ; cast(string, writtenbytes))
+	}
+
+	buffer empty = writtenbytes
+	integer i = 0
+	while(i < writtenbytes)
+	{
+		ByteStreamEmitByte(empty, i, 0xc0)
+		++i
+	}
+
+	integer written = 0
+	WriteFile(filehandle, empty, writtenbytes, written, 0)
+}
+
+
 WriteSectionHeader : Win32Handle filehandle, string sectionname, integer location, integer virtuallocation, integer sectionsize, integer sectionvirtualsize, integer flags -> integer writtenbytes = 0
 {
 	writtenbytes = WriteSectionHeader(filehandle, sectionname, location, virtuallocation, sectionsize, sectionvirtualsize, flags, 0, 0)
@@ -1167,7 +1189,7 @@ GeneratePDB : string pdbfilename, buffer ref symboldata, integer symbolsize, int
 
 	integer sectionmapsize = 10 * 20 + 4 // TODO - dynamic section map
 	integer dbicontribslen = 4 + (28 * 4)		// TODO - compute dynamic contributions length (don't forget version signature +4)
-	integer dbilineslen = 0		// TODO - dynamic lines
+	integer dbilineslen = 48		// TODO - dynamic lines
 	
 	DBISection dbisection = dbimodinfolen, dbicontribslen, sectionmapsize, modulelist, lines
 
@@ -1177,22 +1199,15 @@ GeneratePDB : string pdbfilename, buffer ref symboldata, integer symbolsize, int
 	PDBStream directorystream = simplelist<integer>(4, nothing), 76		// + (128 * 4)
 	
 	PDBStream msf = simplelist<integer>(5, nothing), 1					// Placeholder; 0 is invalid but we have nothing to put here
-	PDBStream pdb = simplelist<integer>(6, nothing), 196  				// TODO - pull real PDB stream size [was 48]
+	PDBStream pdb = simplelist<integer>(6, nothing), 256  				// TODO - pull real PDB stream size [was 48]
 	PDBStream tpi = simplelist<integer>(7, nothing), 56					// TODO - real TPI stream
-	PDBStream dbi = simplelist<integer>(8, nothing), 64 + dbimodinfolen + dbicontribslen + sectionmapsize + dbilineslen  // TODO - real DBI stream
+	PDBStream dbi = simplelist<integer>(8, nothing), 64 + dbimodinfolen + dbicontribslen + sectionmapsize + dbilineslen // TODO - real DBI stream
 	PDBStream ipi = simplelist<integer>(9, nothing), 56					// TODO - real IPI stream (?)
 	PDBStream globals = simplelist<integer>(10, nothing), 44 + 516		// TODO - real globals stream
 	PDBStream publics = simplelist<integer>(11, nothing), 44 + 516		// TODO - real publics stream
 	PDBStream symbols = simplelist<integer>(12, nothing), 26			// TODO - real symbol records size
 	
 	simplelist<integer> hackblocks = 13, nothing
-	
-	integer i = 0
-	while(i < 127)
-	{
-		//simple_append<integer>(hackblocks, 14 + i)
-		++i
-	}
 
 	PDBStream hackstream = hackblocks, testmodule.SymbolSize + 8			// TODO - real stream
 	list<PDBStream> hackstreamlist = hackstream, nothing
