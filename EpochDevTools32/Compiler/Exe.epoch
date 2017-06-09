@@ -1189,17 +1189,17 @@ GeneratePDB : string pdbfilename, buffer ref symboldata, integer symbolsize, int
 
 	integer sectionmapsize = 10 * 20 + 4 // TODO - dynamic section map
 	integer dbicontribslen = 4 + (28 * 4)		// TODO - compute dynamic contributions length (don't forget version signature +4)
-	integer dbilineslen = 48		// TODO - dynamic lines
+	integer dbilineslen = 0 //48		// TODO - dynamic lines
 	
 	DBISection dbisection = dbimodinfolen, dbicontribslen, sectionmapsize, modulelist, lines
 
 	print("Pre-stream setup canary")
 	
 	PDBStream directoryhint = simplelist<integer>(3, nothing), 0
-	PDBStream directorystream = simplelist<integer>(4, nothing), 76		// + (128 * 4)
+	PDBStream directorystream = simplelist<integer>(4, nothing), 84		// + (128 * 4)
 	
 	PDBStream msf = simplelist<integer>(5, nothing), 1					// Placeholder; 0 is invalid but we have nothing to put here
-	PDBStream pdb = simplelist<integer>(6, nothing), 256  				// TODO - pull real PDB stream size [was 48]
+	PDBStream pdb = simplelist<integer>(6, nothing), 128  				// TODO - pull real PDB stream size [was 48]
 	PDBStream tpi = simplelist<integer>(7, nothing), 56					// TODO - real TPI stream
 	PDBStream dbi = simplelist<integer>(8, nothing), 64 + dbimodinfolen + dbicontribslen + sectionmapsize + dbilineslen // TODO - real DBI stream
 	PDBStream ipi = simplelist<integer>(9, nothing), 56					// TODO - real IPI stream (?)
@@ -1212,11 +1212,15 @@ GeneratePDB : string pdbfilename, buffer ref symboldata, integer symbolsize, int
 	PDBStream hackstream = hackblocks, testmodule.SymbolSize + 8			// TODO - real stream
 	list<PDBStream> hackstreamlist = hackstream, nothing
 	
-	PDBDirectory pdbdir = 9, msf, pdb, tpi, dbi, ipi, globals, publics, symbols, hackstreamlist
+	simplelist<integer> stringblocks = 14, nothing
+	PDBStream stringstream = stringblocks, 12							// TODO - real stream
+	append<PDBStream>(hackstreamlist, stringstream)
+	
+	PDBDirectory pdbdir = 10, msf, pdb, tpi, dbi, ipi, globals, publics, symbols, hackstreamlist
 
 	
 	Win32Handle invalidhandle = -1
-	PDBFileLayout layout = 1024, 14, directoryhint, directorystream, pdbdir
+	PDBFileLayout layout = 1024, 15, directoryhint, directorystream, pdbdir
 	PDBOutputStream stream = pdbfilename, invalidhandle, 0, layout, dbisection
 
 	print("Final canary before we write PDB")
