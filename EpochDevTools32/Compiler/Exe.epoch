@@ -1193,7 +1193,7 @@ GeneratePDB : string pdbfilename, buffer ref symboldata, integer symbolsize, int
 
 	integer sectionmapsize = 10 * 20 + 4 // TODO - dynamic section map
 	integer dbicontribslen = 4 + (28 * 4)		// TODO - compute dynamic contributions length (don't forget version signature +4)
-	integer dbifileslen = 24			// TODO - real data here
+	integer dbifileslen = 32			// TODO - real data here
 	integer dbilineslen = 0 //48		// TODO - dynamic lines
 	
 	DBISection dbisection = dbimodinfolen, dbicontribslen, sectionmapsize, modulelist, lines
@@ -1210,7 +1210,7 @@ GeneratePDB : string pdbfilename, buffer ref symboldata, integer symbolsize, int
 	PDBStream ipi = simplelist<integer>(9, nothing), 56					// TODO - real IPI stream (?)
 	PDBStream globals = simplelist<integer>(10, nothing), 44 + 516		// TODO - real globals stream
 	PDBStream publics = simplelist<integer>(11, nothing), 44 + 516		// TODO - real publics stream
-	PDBStream symbols = simplelist<integer>(12, nothing), 26			// TODO - real symbol records size
+	PDBStream symbols = simplelist<integer>(12, nothing), 512			// TODO - real symbol records size
 	
 	simplelist<integer> hackblocks = 13, nothing
 
@@ -1218,7 +1218,7 @@ GeneratePDB : string pdbfilename, buffer ref symboldata, integer symbolsize, int
 	list<PDBStream> hackstreamlist = hackstream, nothing
 	
 	simplelist<integer> stringblocks = 14, nothing
-	PDBStream stringstream = stringblocks, 22							// TODO - real stream
+	PDBStream stringstream = stringblocks, 26							// TODO - real stream
 	append<PDBStream>(hackstreamlist, stringstream)
 	
 	PDBDirectory pdbdir = 10, msf, pdb, tpi, dbi, ipi, globals, publics, symbols, hackstreamlist
