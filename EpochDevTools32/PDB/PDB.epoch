@@ -582,7 +582,7 @@ WritePDBStrings : PDBOutputStream ref stream
 
 	ByteStreamEmitInteger(header, headersize, 0xeffeeffe)		// Signature
 	ByteStreamEmitInteger(header, headersize, 2)				// Hash version
-	ByteStreamEmitInteger(header, headersize, length(test) + 1)				// Bytes of data
+	ByteStreamEmitInteger(header, headersize, length(test) + 1)				// Bytes of string data
 
 	ByteStreamEmitStringNarrow(header, headersize, test)
 	ByteStreamEmitByte(header, headersize, 0)
@@ -881,12 +881,7 @@ ComputeSymbolSize : DBIModule ref mod
 ComputeSymbolSize : list<PDBSymbol> ref symlist, integer ref sizecounter
 {
 	sizecounter += SymbolGetSize(symlist.value) + 2
-	
-	//while((sizecounter & 3) != 0)
-	//{
-	//	++sizecounter
-	//}
-	
+
 	ComputeSymbolSize(symlist.next, sizecounter)
 }
 
@@ -1388,5 +1383,14 @@ GenerateSectionContribution : list<SectionContribution> ref contriblist, integer
 {
 	SectionContribution sc = sectionindex, startoffset, size, 0x60001020, 0, 0, 0
 	append<SectionContribution>(contriblist, sc)
+}
+
+
+AlignToFour : integer in -> integer aligned = in
+{
+	while((aligned & 3) != 0)
+	{
+		++aligned
+	}
 }
 

@@ -1165,12 +1165,12 @@ GeneratePDB : string pdbfilename, buffer ref symboldata, integer symbolsize, int
 	CodeViewLineInfo lineinfo = lineinforaw, pairlist
 	list<CodeViewLineInfo> lines = lineinfo, nothing
 	
-	SymbolSection sectionsymbol = 9, 0, codesize, 0x60000020, ".text"	
+	SymbolSection sectionsymbol = 9, codesectionstart, codesize, 0x60000020, ".text"	
 	list<PDBSymbol> symbollistinternal = sectionsymbol, nothing
 
-	SymbolBlockEnd sectionend = 0
-	PDBSymbol sectionendsymbol = sectionend
-	append<PDBSymbol>(symbollistinternal, sectionendsymbol)
+	//SymbolBlockEnd sectionend = 0
+	//PDBSymbol sectionendsymbol = sectionend
+	//append<PDBSymbol>(symbollistinternal, sectionendsymbol)
 
 	SectionContribution initsc = 9, 0, 65, 0x60001020, 0, 0, 0
 	list<SectionContribution> contriblist = initsc, nothing
@@ -1214,7 +1214,7 @@ GeneratePDB : string pdbfilename, buffer ref symboldata, integer symbolsize, int
 	
 	simplelist<integer> hackblocks = 13, nothing
 
-	PDBStream hackstream = hackblocks, testmodule.SymbolSize + 8			// TODO - real stream
+	PDBStream hackstream = hackblocks, testmodule.SymbolSize + 8		// TODO - real stream
 	list<PDBStream> hackstreamlist = hackstream, nothing
 	
 	simplelist<integer> stringblocks = 14, nothing
