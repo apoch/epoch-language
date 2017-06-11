@@ -1214,7 +1214,7 @@ GeneratePDB : string pdbfilename, buffer ref symboldata, integer symbolsize, int
 	
 	simplelist<integer> hackblocks = 13, nothing
 
-	PDBStream hackstream = hackblocks, testmodule.SymbolSize + 8 + 168	// TODO - real stream
+	PDBStream hackstream = hackblocks, testmodule.SymbolSize + 8 + 168 + 20	// TODO - real stream
 	list<PDBStream> hackstreamlist = hackstream, nothing
 	
 	simplelist<integer> stringblocks = 14, nothing

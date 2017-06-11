@@ -915,7 +915,7 @@ EmitDBIModule : PDBOutputStream ref stream, list<DBIModule> ref modlist
 	ByteStreamEmitInteger16(modinfo, modsize, 8)		// stream number of debug info		TODO
 	ByteStreamEmitInteger(modinfo, modsize, modlist.value.SymbolSize + 4)
 	ByteStreamEmitInteger(modinfo, modsize, 0)			// bytes of line number info
-	ByteStreamEmitInteger(modinfo, modsize, 168)		// bytes of C13 line number info
+	ByteStreamEmitInteger(modinfo, modsize, 168 + 20)		// bytes of C13 line number info
 	
 	ByteStreamEmitInteger16(modinfo, modsize, 1)		// num contributing files
 	ByteStreamEmitInteger16(modinfo, modsize, 0)		// padding
@@ -985,8 +985,8 @@ ByteStreamEmitDBILines : buffer ref data, integer ref size, list<CodeViewLineInf
 		ByteStreamEmitInteger(data, size, 0xffffffff)		// TODO - cbcon?
 
 		ByteStreamEmitInteger(data, size, 0xfedcba90)			// TODO - fileID
-		ByteStreamEmitInteger(data, size, lines.value.Raw.NumPairs)
-		ByteStreamEmitInteger(data, size, lines.value.Raw.Size)
+		ByteStreamEmitInteger(data, size, 0x12345678) //lines.value.Raw.NumPairs)
+		ByteStreamEmitInteger(data, size, 0x39393939) //lines.value.Raw.Size)
 
 		ByteStreamEmitDBILinePairs(data, size, lines.value.LinePairs)
 	}
@@ -1001,8 +1001,8 @@ ByteStreamEmitDBILinePairs : buffer ref data, integer ref size, list<CodeViewLin
 {
 	if(pairs.value.Offset > -1)
 	{
-		ByteStreamEmitInteger(data, size, pairs.value.Offset)
-		ByteStreamEmitInteger(data, size, pairs.value.Line)
+		ByteStreamEmitInteger(data, size, 0xea7fece5) //pairs.value.Offset)
+		ByteStreamEmitInteger(data, size, 0xfdb97531) //pairs.value.Line)
 	}
 
 	ByteStreamEmitDBILinePairs(data, size, pairs.next)
@@ -1167,6 +1167,21 @@ WriteDBIModuleSymbols : PDBOutputStream ref stream, DBIModule ref module, buffer
 	buffer linedata = 1024
 	integer linesize = 0
 	
+	ByteStreamEmitInteger(linedata, linesize, 0xf4)				// Checksums
+	ByteStreamEmitInteger(linedata, linesize, 12)			// TODO - real value
+
+	ByteStreamEmitInteger(linedata, linesize, 6)				// Offset of filename in global string table
+	ByteStreamEmitInteger16(linedata, linesize, 4)				// Bytes of checksum + checksum kind in high byte
+	ByteStreamEmitInteger(linedata, linesize, 0)				// Null checksum
+
+
+	while((linesize & 3) != 0)
+	{
+		ByteStreamEmitByte(linedata, linesize, 0)
+	}
+
+
+	// Emit lines data
 	ByteStreamEmitInteger(linedata, linesize, 0xf2)
 	ByteStreamEmitInteger(linedata, linesize, 160)
 	ByteStreamEmitDBILines(linedata, linesize, stream.DBI.Lines)
@@ -1393,13 +1408,15 @@ ConvertSymbolStream : buffer ref symboldata, integer symbolsize, list<PDBSymbol>
 			append<CodeViewLineInfo>(lines, stuff)
 
 			readoffset = nextreadoffset
-		}		
+		}
+		elseif(chunk.Header == 0xf4)
+		{
+			// TODO - accumulate checksums
+			readoffset += chunk.Size 
+		}
 		else
 		{
 			if(chunk.Header == 0xf3)				// TODO - transfer strings
-			{
-			}
-			elseif(chunk.Header == 0xf4)			// TODO - transfer file checksums
 			{
 			}
 			else
