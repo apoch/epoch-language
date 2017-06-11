@@ -581,7 +581,7 @@ WritePDBStrings : PDBOutputStream ref stream
 	string test = "fubar"
 
 	ByteStreamEmitInteger(header, headersize, 0xeffeeffe)		// Signature
-	ByteStreamEmitInteger(header, headersize, 2)				// Hash version
+	ByteStreamEmitInteger(header, headersize, 1)				// Hash version
 	ByteStreamEmitInteger(header, headersize, length(test) + 1)				// Bytes of string data
 
 	ByteStreamEmitStringNarrow(header, headersize, test)
@@ -590,7 +590,7 @@ WritePDBStrings : PDBOutputStream ref stream
 	ByteStreamEmitInteger(header, headersize, 1)				// Hash count
 
 	// For each hash...
-	ByteStreamEmitInteger(header, headersize, 0)			// Hash ID
+	ByteStreamEmitInteger(header, headersize, 1)			// Hash ID
 
 	// Epilogue
 	ByteStreamEmitInteger(header, headersize, 1)			// Name count
