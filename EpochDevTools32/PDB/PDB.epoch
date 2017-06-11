@@ -880,7 +880,7 @@ ComputeSymbolSize : DBIModule ref mod
 
 ComputeSymbolSize : list<PDBSymbol> ref symlist, integer ref sizecounter
 {
-	sizecounter += SymbolGetSize(symlist.value) + 2
+	sizecounter += SymbolGetSize(symlist.value)
 
 	ComputeSymbolSize(symlist.next, sizecounter)
 }
@@ -1269,7 +1269,7 @@ ConvertSymbolStream : buffer ref symboldata, integer symbolsize, list<PDBSymbol>
 	integer slen = 0
 	string symbol = ""
 
-	integer writeoffset = 0x16
+	integer writeoffset = 0 //0x16
 	integer readoffset = 4
 
 	while(readoffset < symbolsize)
@@ -1307,10 +1307,13 @@ ConvertSymbolStream : buffer ref symboldata, integer symbolsize, list<PDBSymbol>
 			readoffset += 2			// sizeof(CodeViewProcEnd)
 			assertmsg(cast(integer, end.Magic) == 0x114f, "Mismatched codeview magic (3)")
 
-			writeoffset += 0x30
+			writeoffset += 0x2c
 			writeoffset += slen
 
 			GenerateCorrectedCVSymbol(symbols, writeoffset, procsize.Size, procsection.SectionIndex, procsection.SectionRelative, symbol)
+
+			writeoffset += 4
+
 			GenerateSectionContribution(contriblist, procsection.SectionIndex, procsection.SectionRelative, procsize.Size)
 		}
 		elseif(chunk.Header == 0xf2)
