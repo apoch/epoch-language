@@ -41,7 +41,7 @@ type PDBSymbol : SymbolSection | SymbolProcStart | SymbolBlockEnd
 
 
 
-SymbolGetSize : SymbolSection ref symbol -> integer size = 0 ///18 + length(symbol.ImageSectionName) + 1
+SymbolGetSize : SymbolSection ref symbol -> integer size = 20 + length(symbol.ImageSectionName) + 1
 SymbolGetSize : SymbolProcStart ref symbol -> integer size = 39 + length(symbol.DisplayName) + 1
 SymbolGetSize : SymbolBlockEnd ref symbol -> integer size = 8
 
@@ -49,7 +49,7 @@ SymbolGetSize : SymbolBlockEnd ref symbol -> integer size = 8
 ByteStreamEmitSymbolList : buffer ref stream, integer ref pos, list<PDBSymbol> ref symlist
 {
 	ByteStreamEmitSymbol(stream, pos, symlist.value)	
-	ByteStreamEmitSymbolList(stream, pos, symlist.next)
+	//ByteStreamEmitSymbolList(stream, pos, symlist.next)
 }
 
 ByteStreamEmitSymbolList : buffer ref stream, integer ref pos, nothing
@@ -58,10 +58,9 @@ ByteStreamEmitSymbolList : buffer ref stream, integer ref pos, nothing
 
 ByteStreamEmitSymbol : buffer ref stream, integer ref pos, SymbolSection ref symbol
 {
-	return()
 	integer16 mysize = cast(integer16, SymbolGetSize(symbol) - 2)
 
-	ByteStreamEmitInteger16(stream, pos, mysize)
+	ByteStreamEmitInteger16(stream, pos, 26)		// TODO - HACK
 	ByteStreamEmitInteger16(stream, pos, 0x1136)						// S_SECTION
 	ByteStreamEmitInteger16(stream, pos, symbol.ImageSectionIndex)
 	ByteStreamEmitInteger16(stream, pos, 0)								// Alignment, reserved byte
@@ -79,6 +78,12 @@ ByteStreamEmitSymbol : buffer ref stream, integer ref pos, SymbolSection ref sym
 	}
 	
 	ByteStreamEmitByte(stream, pos, 0)									// null terminator
+
+
+	//ByteStreamEmitByte(stream, pos, 0xfe)								// garbage
+	//ByteStreamEmitByte(stream, pos, 0xfd)								// garbage
+	//ByteStreamEmitByte(stream, pos, 0xfc)								// garbage
+	//ByteStreamEmitByte(stream, pos, 0xfb)								// garbage
 }
 
 

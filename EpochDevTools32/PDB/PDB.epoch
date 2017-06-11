@@ -818,14 +818,14 @@ EmitDBISectionMap : PDBOutputStream ref stream
 	ByteStreamEmitInteger(header, headersize, 0xa0)		// length
 
 	// magic section (?)
-	ByteStreamEmitInteger16(header, headersize, 0x208)		// flags
-	ByteStreamEmitInteger16(header, headersize, 0)			// overlay
-	ByteStreamEmitInteger16(header, headersize, 0)			// group
-	ByteStreamEmitInteger16(header, headersize, 10)			// frame
-	ByteStreamEmitInteger16(header, headersize, 0xffff)		// name
-	ByteStreamEmitInteger16(header, headersize, 0xffff)		// class name
-	ByteStreamEmitInteger(header, headersize, 0)			// offset
-	ByteStreamEmitInteger(header, headersize, 0xffffffff)	// length	
+	//ByteStreamEmitInteger16(header, headersize, 0x208)		// flags
+	//ByteStreamEmitInteger16(header, headersize, 0)			// overlay
+	//ByteStreamEmitInteger16(header, headersize, 0)			// group
+	//ByteStreamEmitInteger16(header, headersize, 10)			// frame
+	//ByteStreamEmitInteger16(header, headersize, 0xffff)		// name
+	//ByteStreamEmitInteger16(header, headersize, 0xffff)		// class name
+	//ByteStreamEmitInteger(header, headersize, 0)			// offset
+	//ByteStreamEmitInteger(header, headersize, 0xffffffff)	// length	
 	
 	integer written = 0
 	WriteFile(stream.FileHandle, header, headersize, written, 0)
@@ -910,7 +910,7 @@ EmitDBIModule : PDBOutputStream ref stream, list<DBIModule> ref modlist
 		
 	ByteStreamEmitInteger16(modinfo, modsize, 0)		// flags		TODO
 	ByteStreamEmitInteger16(modinfo, modsize, 8)		// stream number of debug info		TODO
-	ByteStreamEmitInteger(modinfo, modsize, modlist.value.SymbolSize + 4)
+	ByteStreamEmitInteger(modinfo, modsize, 32)	//modlist.value.SymbolSize + 4)
 	ByteStreamEmitInteger(modinfo, modsize, 0)			// bytes of line number info
 	ByteStreamEmitInteger(modinfo, modsize, 0)			// bytes of C13 line number info
 	
@@ -1052,6 +1052,44 @@ WriteGlobalsStream : Win32Handle pdbfilehandle, integer startfileposition -> int
 	buffer header = 1024
 	integer headersize = 0
 	
+	//ByteStreamEmitInteger(header, headersize, 0)		// hash
+	//ByteStreamEmitInteger(header, headersize, 0)		// address map
+	//ByteStreamEmitInteger(header, headersize, 0)		// num thunks
+	//ByteStreamEmitInteger(header, headersize, 0)		// size of thunk
+	//ByteStreamEmitInteger16(header, headersize, 0)		// section index thunk table
+	//ByteStreamEmitInteger16(header, headersize, 0)		// padding
+	//ByteStreamEmitInteger(header, headersize, 0)		// offset of thunk table
+	//ByteStreamEmitInteger(header, headersize, 0)		// number of sections
+
+	// Hash header
+	ByteStreamEmitInteger(header, headersize, 0xffffffff)		// signature
+	ByteStreamEmitInteger(header, headersize, 0xeffe0000 + 19990810)		// version
+	ByteStreamEmitInteger(header, headersize, 0)		// size
+	ByteStreamEmitInteger(header, headersize, 0)		// num buckets
+	
+	
+	// Magic bitmap
+	integer count = 0
+	while(count < 516)
+	{
+		ByteStreamEmitByte(header, headersize, 0)
+		
+		++count
+	}
+	
+
+	integer written = 0
+	WriteFile(pdbfilehandle, header, headersize, written, 0)
+	
+	endfileposition = startfileposition + written	
+}
+
+
+WritePublicsStream : Win32Handle pdbfilehandle, integer startfileposition -> integer endfileposition = 0
+{
+	buffer header = 1024
+	integer headersize = 0
+	
 	ByteStreamEmitInteger(header, headersize, 0)		// hash
 	ByteStreamEmitInteger(header, headersize, 0)		// address map
 	ByteStreamEmitInteger(header, headersize, 0)		// num thunks
@@ -1081,14 +1119,7 @@ WriteGlobalsStream : Win32Handle pdbfilehandle, integer startfileposition -> int
 	integer written = 0
 	WriteFile(pdbfilehandle, header, headersize, written, 0)
 	
-	endfileposition = startfileposition + written	
-}
-
-
-WritePublicsStream : Win32Handle pdbfilehandle, integer startfileposition -> integer endfileposition = 0
-{
-	endfileposition = WriteGlobalsStream(pdbfilehandle, startfileposition)
-}
+	endfileposition = startfileposition + written	}
 
 
 WriteSymbolRecordsStream : Win32Handle pdbfilehandle, integer startfileposition, integer codesectionstart, integer codesize -> integer endfileposition = 0
@@ -1097,7 +1128,7 @@ WriteSymbolRecordsStream : Win32Handle pdbfilehandle, integer startfileposition,
 	integer symbolssize = 0
 
 
-	SymbolSection sectionsymbol = 9, codesectionstart, codesize, 0x60000020, ".text"
+	SymbolSection sectionsymbol = 9, 0, codesize, 0x60000020, ".text"
 	ByteStreamEmitSymbol(symbols, symbolssize, sectionsymbol)
 
 
@@ -1269,7 +1300,7 @@ ConvertSymbolStream : buffer ref symboldata, integer symbolsize, list<PDBSymbol>
 	integer slen = 0
 	string symbol = ""
 
-	integer writeoffset = 0 //0x16
+	integer writeoffset = 0x1a
 	integer readoffset = 4
 
 	while(readoffset < symbolsize)
