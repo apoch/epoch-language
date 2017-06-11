@@ -1218,7 +1218,7 @@ GeneratePDB : string pdbfilename, buffer ref symboldata, integer symbolsize, int
 	list<PDBStream> hackstreamlist = hackstream, nothing
 	
 	simplelist<integer> stringblocks = 14, nothing
-	PDBStream stringstream = stringblocks, 28							// TODO - real stream
+	PDBStream stringstream = stringblocks, 75							// TODO - real stream
 	append<PDBStream>(hackstreamlist, stringstream)
 	
 	PDBDirectory pdbdir = 10, msf, pdb, tpi, dbi, ipi, globals, publics, symbols, hackstreamlist

@@ -416,7 +416,7 @@ WriteDirectory : PDBOutputStream ref stream
 	ByteStreamEmitInteger(directory, directorysize, stream.Layout.Directory.Publics.Length)
 	ByteStreamEmitInteger(directory, directorysize, stream.Layout.Directory.Symbols.Length)
 	ByteStreamEmitInteger(directory, directorysize, stream.Layout.Directory.AdditionalStreams.value.Length)		// TODO - iterate over this list
-	ByteStreamEmitInteger(directory, directorysize, 47)		// TODO
+	ByteStreamEmitInteger(directory, directorysize, 94)		// TODO
 
 	// Stream blocks
 	ByteStreamEmitInteger(directory, directorysize, stream.Layout.Directory.OldMSFDirectory.Blocks.value)
@@ -579,7 +579,7 @@ WritePDBStrings : PDBOutputStream ref stream
 	integer headersize = 0
 
 	string test = "fubar"
-	string test2 = "more_testing"
+	string test2 = "D:\Epoch\epoch-language\EpochTests\PDBTest\EntryPoint.epoch"
 
 	ByteStreamEmitInteger(header, headersize, 0xeffeeffe)		// Signature
 	ByteStreamEmitInteger(header, headersize, 1)				// Hash version
@@ -979,14 +979,14 @@ ByteStreamEmitDBILines : buffer ref data, integer ref size, list<CodeViewLineInf
 		//ByteStreamEmitInteger(data, size, lines.value.Raw.NumPairs)
 		//ByteStreamEmitInteger(data, size, lines.value.Raw.Size)
 
-		ByteStreamEmitInteger(data, size, 0xffffffff)		// TODO - offcon?
-		ByteStreamEmitInteger16(data, size, 0xffff)	// TODO - segcon?
-		ByteStreamEmitInteger16(data, size, 0xff)	// Flags
-		ByteStreamEmitInteger(data, size, 0xffffffff)		// TODO - cbcon?
+		ByteStreamEmitInteger(data, size, 0)				// TODO - offset of code contribution
+		ByteStreamEmitInteger16(data, size, 9)				// TODO - segment of contribution
+		ByteStreamEmitInteger16(data, size, 0)				// Flags (0 = just lines, 1 = has columns)
+		ByteStreamEmitInteger(data, size, 0xa0)				// TODO - code size of contribution
 
-		ByteStreamEmitInteger(data, size, 0xfedcba90)			// TODO - fileID
-		ByteStreamEmitInteger(data, size, 0x12345678) //lines.value.Raw.NumPairs)
-		ByteStreamEmitInteger(data, size, 0x39393939) //lines.value.Raw.Size)
+		ByteStreamEmitInteger(data, size, 0)				// TODO - file index
+		ByteStreamEmitInteger(data, size, lines.value.Raw.NumPairs)
+		ByteStreamEmitInteger(data, size, lines.value.Raw.Size + 12)
 
 		ByteStreamEmitDBILinePairs(data, size, lines.value.LinePairs)
 	}
@@ -1001,8 +1001,8 @@ ByteStreamEmitDBILinePairs : buffer ref data, integer ref size, list<CodeViewLin
 {
 	if(pairs.value.Offset > -1)
 	{
-		ByteStreamEmitInteger(data, size, 0xea7fece5) //pairs.value.Offset)
-		ByteStreamEmitInteger(data, size, 0xfdb97531) //pairs.value.Line)
+		ByteStreamEmitInteger(data, size, pairs.value.Offset)
+		ByteStreamEmitInteger(data, size, pairs.value.Line)
 	}
 
 	ByteStreamEmitDBILinePairs(data, size, pairs.next)
@@ -1185,8 +1185,6 @@ WriteDBIModuleSymbols : PDBOutputStream ref stream, DBIModule ref module, buffer
 	ByteStreamEmitInteger(linedata, linesize, 0xf2)
 	ByteStreamEmitInteger(linedata, linesize, 160)
 	ByteStreamEmitDBILines(linedata, linesize, stream.DBI.Lines)
-
-	print(cast(string, linesize))
 
 	WriteFile(stream.FileHandle, linedata, linesize, written, 0)
 	stream.FilePosition = stream.FilePosition + written
