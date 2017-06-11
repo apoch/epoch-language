@@ -907,10 +907,10 @@ EmitDBIModule : PDBOutputStream ref stream, list<DBIModule> ref modlist
 
 	buffer modinfo = 128
 	integer modsize = 0
-		
+
 	ByteStreamEmitInteger16(modinfo, modsize, 0)		// flags		TODO
 	ByteStreamEmitInteger16(modinfo, modsize, 8)		// stream number of debug info		TODO
-	ByteStreamEmitInteger(modinfo, modsize, 32)	//modlist.value.SymbolSize + 4)
+	ByteStreamEmitInteger(modinfo, modsize, modlist.value.SymbolSize + 4)
 	ByteStreamEmitInteger(modinfo, modsize, 0)			// bytes of line number info
 	ByteStreamEmitInteger(modinfo, modsize, 0)			// bytes of C13 line number info
 	
@@ -1156,6 +1156,8 @@ WriteDBIModuleSymbols : PDBOutputStream ref stream, DBIModule ref module, buffer
 	integer symboldatasize = 0
 	ByteStreamEmitSymbolList(symboldata, symboldatasize, module.Symbols)
 	
+	//assertmsg(module.SymbolSize == symboldatasize, "Emitted wrong number of symbol bytes!")
+
 	WriteFile(stream.FileHandle, symboldata, symboldatasize, written, 0)
 	stream.FilePosition = stream.FilePosition + written
 	
@@ -1300,7 +1302,7 @@ ConvertSymbolStream : buffer ref symboldata, integer symbolsize, list<PDBSymbol>
 	integer slen = 0
 	string symbol = ""
 
-	integer writeoffset = 0x1a
+	integer writeoffset = 0x1c
 	integer readoffset = 4
 
 	while(readoffset < symbolsize)
@@ -1404,7 +1406,7 @@ ConvertSymbolStream : buffer ref symboldata, integer symbolsize, list<PDBSymbol>
 
 GenerateCorrectedCVSymbol : list<PDBSymbol> ref symbols, integer writeoffset, integer size, integer16 sectionindex, integer sectionrelative, string symbol
 {
-	SymbolProcStart startsymbolps = 0, writeoffset, 0, size, 0, 0, 0, sectionindex, 0, symbol, sectionrelative
+	SymbolProcStart startsymbolps = 0, AlignToFour(writeoffset), 0, size, 0, 0, 0, sectionindex, 0, symbol, sectionrelative
 	SymbolBlockEnd endsymbolps = 0
 	PDBSymbol startsymbol = startsymbolps
 	PDBSymbol endsymbol = endsymbolps
