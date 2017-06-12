@@ -1209,7 +1209,7 @@ GeneratePDB : string pdbfilename, buffer ref symboldata, integer symbolsize, int
 	PDBStream dbi = simplelist<integer>(8, nothing), 64 + dbimodinfolen + dbicontribslen + sectionmapsize + dbilineslen + dbifileslen // TODO - real DBI stream
 	PDBStream ipi = simplelist<integer>(9, nothing), 56					// TODO - real IPI stream (?)
 	PDBStream globals = simplelist<integer>(10, nothing), 44 + 516		// TODO - real globals stream
-	PDBStream publics = simplelist<integer>(11, nothing), 44 + 516		// TODO - real publics stream
+	PDBStream publics = simplelist<integer>(11, nothing), 44 + 516 + 4 + (16 * 4) + (16 * 8) + (30 * 4) + (9 * 8) // TODO - real publics stream
 	PDBStream symbols = simplelist<integer>(12, nothing), 28			// TODO - real symbol records size
 	
 	simplelist<integer> hackblocks = 13, nothing
