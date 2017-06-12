@@ -15,3 +15,9 @@ extern "C" void WriteBufferPtrDword(char* b, unsigned offset, unsigned value)
 {
 	*reinterpret_cast<unsigned*>(b + offset) = value;
 }
+
+extern "C" int StrLen(const char* s)
+{
+	return strlen(s);
+}
+

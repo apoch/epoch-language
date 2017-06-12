@@ -143,7 +143,8 @@ structure DBISection :
 	integer ModuleSubstreamSize,
 	integer SectionContributionSize,
 	integer SectionMapSize,
-	list<DBIModule> Modules
+	list<DBIModule> Modules,
+	list<CodeViewLineInfo> Lines
 
 //
 // In-memory representation of a "mod" or Module.
@@ -214,7 +215,7 @@ WriteBufferPtrByte : buffer ref buf, integer offset, integer value [external("Ep
 WriteBufferPtrDword : buffer ref buf, integer offset, integer value [external("EpochPDBShim.dll", "WriteBufferPtrDword")]
 
 
-hackstrlen : integer strptr -> integer len = 0 [external("Kernel32.dll", "lstrlenA")]
+hackstrlen : integer strptr -> integer len = 0 [external("EpochPDBShim.dll", "StrLen")]
 
 
 //
@@ -287,6 +288,9 @@ WritePDB : PDBOutputStream ref stream, integer codesectionstart, integer codesiz
 	// HACK - TODO
 	PadToBeginningOfBlock(stream, 13)
 	WriteDBIModuleSymbols(stream, stream.DBI.Modules.value, symbolstart, symbolsize)
+
+	PadToBeginningOfBlock(stream, 14)
+	WritePDBStrings(stream)
 	
 	// Pad to the end of the file
 	PadToBeginningOfBlock(stream, stream.Layout.BlockCount + 1)		// TODO
@@ -320,6 +324,14 @@ PadToBeginningOfBlock : PDBOutputStream ref stream, integer blockindex
 	stream.FilePosition = fpos
 }
 
+
+PadGarbageToBeginningOfBlock : PDBOutputStream ref stream, integer blockindex
+{
+	// TODO - lame compiler bug workaround in the 32-bit compiler
+	integer fpos = stream.FilePosition
+	fpos += WriteGarbage(stream.FileHandle, stream.FilePosition, stream.Layout.BlockSize * blockindex)
+	stream.FilePosition = fpos
+}
 
 
 WriteDirectoryHint : Win32Handle pdbfilehandle, integer hint -> integer written = 0
@@ -388,7 +400,7 @@ WriteSuperBlock : PDBOutputStream ref stream
 
 WriteDirectory : PDBOutputStream ref stream
 {
-	buffer directory = 128
+	buffer directory = 1024
 	integer directorysize = 0
 	
 	// Number of streams
@@ -404,6 +416,7 @@ WriteDirectory : PDBOutputStream ref stream
 	ByteStreamEmitInteger(directory, directorysize, stream.Layout.Directory.Publics.Length)
 	ByteStreamEmitInteger(directory, directorysize, stream.Layout.Directory.Symbols.Length)
 	ByteStreamEmitInteger(directory, directorysize, stream.Layout.Directory.AdditionalStreams.value.Length)		// TODO - iterate over this list
+	ByteStreamEmitInteger(directory, directorysize, 94)		// TODO
 
 	// Stream blocks
 	ByteStreamEmitInteger(directory, directorysize, stream.Layout.Directory.OldMSFDirectory.Blocks.value)
@@ -415,6 +428,7 @@ WriteDirectory : PDBOutputStream ref stream
 	ByteStreamEmitInteger(directory, directorysize, stream.Layout.Directory.Publics.Blocks.value)
 	ByteStreamEmitInteger(directory, directorysize, stream.Layout.Directory.Symbols.Blocks.value)
 	ByteStreamEmitInteger(directory, directorysize, stream.Layout.Directory.AdditionalStreams.value.Blocks.value)
+	ByteStreamEmitInteger(directory, directorysize, 14)		// TODO
 	
 	integer written = 0
 	WriteFile(stream.FileHandle, directory, directorysize, written, 0)
@@ -460,45 +474,25 @@ WritePDBInfoStream : Win32Handle pdbfilehandle, integer startfileposition -> int
 
 
 	// String table thingy
-	ByteStreamEmitInteger(header, headersize, 80)		// Hack
-	ByteStreamEmitInteger(header, headersize, 4096)
-	ByteStreamEmitInteger(header, headersize, 4097)
-	ByteStreamEmitInteger(header, headersize, 4098)
-	ByteStreamEmitInteger(header, headersize, 4099)
-	
-	
-	// DUMB TEMPORARY HACK
-	ByteStreamEmitInteger(header, headersize, 0xfe)
-	ByteStreamEmitInteger(header, headersize, 0xfd)
-	ByteStreamEmitInteger(header, headersize, 0xfc)
-	ByteStreamEmitInteger(header, headersize, 0xfb)
+	string s = "/names"
+	ByteStreamEmitInteger(header, headersize, length(s) + 1)
 
-	ByteStreamEmitInteger(header, headersize, 0xee)
-	ByteStreamEmitInteger(header, headersize, 0xed)
-	ByteStreamEmitInteger(header, headersize, 0xec)
-	ByteStreamEmitInteger(header, headersize, 0xeb)
+	ByteStreamEmitStringNarrow(header, headersize, s)
+	ByteStreamEmitByte(header, headersize, 0)
 
-	ByteStreamEmitInteger(header, headersize, 0xde)
-	ByteStreamEmitInteger(header, headersize, 0xdd)
-	ByteStreamEmitInteger(header, headersize, 0xdc)
-	ByteStreamEmitInteger(header, headersize, 0xdb)
 
-	ByteStreamEmitInteger(header, headersize, 0xce)
-	ByteStreamEmitInteger(header, headersize, 0xcd)
-	ByteStreamEmitInteger(header, headersize, 0xcc)
-	ByteStreamEmitInteger(header, headersize, 0xcb)
+	ByteStreamEmitInteger(header, headersize, 1)		// DE-POISONED: this is a hash table size/capacity pair
+	ByteStreamEmitInteger(header, headersize, 1)
+	ByteStreamEmitInteger(header, headersize, 1)		// DE-POISONED: this is a bit vector
+	ByteStreamEmitInteger(header, headersize, 1)
 
-	ByteStreamEmitInteger(header, headersize, 0xbe)
-	ByteStreamEmitInteger(header, headersize, 0xbd)
-	ByteStreamEmitInteger(header, headersize, 0)		// DE-POISONED: this is an array size of some kind
-	ByteStreamEmitInteger(header, headersize, 0)		// same as above
+	ByteStreamEmitInteger(header, headersize, 0)		// DE-POISONED: this is a bit vector of deleted data
 
-	ByteStreamEmitInteger(header, headersize, 0xae)
-	ByteStreamEmitInteger(header, headersize, 0xad)
-	ByteStreamEmitInteger(header, headersize, 0xac)
-	ByteStreamEmitInteger(header, headersize, 0xab)
+	ByteStreamEmitInteger(header, headersize, 0)
+	ByteStreamEmitInteger(header, headersize, 9)		// TODO - stream index of actual data for this file
 
-	ByteStreamEmitInteger(header, headersize, 0x9e)
+	ByteStreamEmitInteger(header, headersize, 20091201)	// DE-POISONED: VC110 signature
+
 	ByteStreamEmitInteger(header, headersize, 0x9d)
 	ByteStreamEmitInteger(header, headersize, 0x9c)
 	ByteStreamEmitInteger(header, headersize, 0x9b)
@@ -523,6 +517,15 @@ WritePDBInfoStream : Win32Handle pdbfilehandle, integer startfileposition -> int
 	ByteStreamEmitInteger(header, headersize, 0x5c)
 	ByteStreamEmitInteger(header, headersize, 0x5b)
 
+	ByteStreamEmitInteger(header, headersize, 0x5a)
+	ByteStreamEmitInteger(header, headersize, 0x59)
+	ByteStreamEmitInteger(header, headersize, 0x58)
+	ByteStreamEmitInteger(header, headersize, 0x57)
+
+	ByteStreamEmitInteger(header, headersize, 0x56)
+	ByteStreamEmitInteger(header, headersize, 0x55)
+	ByteStreamEmitInteger(header, headersize, 0x54)
+	ByteStreamEmitInteger(header, headersize, 0x53)
 
 	integer written = 0
 	WriteFile(pdbfilehandle, header, headersize, written, 0)
@@ -570,6 +573,40 @@ WriteTPIStream : Win32Handle pdbfilehandle, integer startfileposition -> integer
 
 
 
+WritePDBStrings : PDBOutputStream ref stream
+{
+	buffer header = 128
+	integer headersize = 0
+
+	string test = "fubar"
+	string test2 = "D:\Epoch\epoch-language\EpochTests\PDBTest\EntryPoint.epoch"
+
+	ByteStreamEmitInteger(header, headersize, 0xeffeeffe)		// Signature
+	ByteStreamEmitInteger(header, headersize, 1)				// Hash version
+	ByteStreamEmitInteger(header, headersize, length(test) + 1 + length(test2) + 1)				// Bytes of string data
+
+	ByteStreamEmitStringNarrow(header, headersize, test)
+	ByteStreamEmitByte(header, headersize, 0)
+
+	ByteStreamEmitStringNarrow(header, headersize, test2)
+	ByteStreamEmitByte(header, headersize, 0)
+
+	ByteStreamEmitInteger(header, headersize, 2)			// Hash count
+
+	// For each hash...
+	ByteStreamEmitInteger(header, headersize, 0)			// Hash ID
+	ByteStreamEmitInteger(header, headersize, 6)			// Hash ID
+
+	// Epilogue
+	ByteStreamEmitInteger(header, headersize, 2)			// Name count
+
+	integer written = 0
+	WriteFile(stream.FileHandle, header, headersize, written, 0)
+	stream.FilePosition = stream.FilePosition + written	
+}
+
+
+
 WriteDBIStream : PDBOutputStream ref stream
 {
 	buffer header = 128
@@ -591,7 +628,7 @@ WriteDBIStream : PDBOutputStream ref stream
 	ByteStreamEmitInteger(header, headersize, stream.DBI.ModuleSubstreamSize)
 	ByteStreamEmitInteger(header, headersize, stream.DBI.SectionContributionSize)
 	ByteStreamEmitInteger(header, headersize, stream.DBI.SectionMapSize)
-	ByteStreamEmitInteger(header, headersize, 0)		// file info substream size
+	ByteStreamEmitInteger(header, headersize, 32)		// file info substream size
 	ByteStreamEmitInteger(header, headersize, 0)		// type server map size
 	ByteStreamEmitInteger(header, headersize, 0)		// index of MFC type server
 	ByteStreamEmitInteger(header, headersize, 0)		// DbgHeader info size
@@ -608,8 +645,61 @@ WriteDBIStream : PDBOutputStream ref stream
 	EmitDBIModule(stream, stream.DBI.Modules)
 	EmitDBISectionContributions(stream)
 	EmitDBISectionMap(stream)
+	EmitDBIFiles(stream)
 }
 
+
+EmitDBIFiles : PDBOutputStream ref stream
+{
+	buffer linesdata = 128
+	integer linessize = 0
+	
+	// TODO - real values
+	integer modulecount = 1
+	integer filecount = 1
+
+	ByteStreamEmitInteger16(linesdata, linessize, cast(integer16, modulecount))
+	ByteStreamEmitInteger16(linesdata, linessize, cast(integer16, filecount))
+
+	integer i = modulecount
+	while(i > 0)
+	{
+		ByteStreamEmitInteger16(linesdata, linessize, 0)			// Unused according to LLVM's PDB implementation
+
+		--i
+	}
+
+	i = modulecount
+	while(i > 0)
+	{
+		ByteStreamEmitInteger16(linesdata, linessize, 1)			// Number of files in this module
+
+		--i
+	}
+
+	i = filecount
+	while(i > 0)
+	{
+		ByteStreamEmitInteger(linesdata, linessize, 4)				// TODO - offset of file name in names buffer
+
+		--i
+	}
+
+	// TODO - real file names, support for multiple files
+	string filename = "D:\Test.epoch"
+	ByteStreamEmitInteger(linesdata, linessize, length(filename) + 1)
+	ByteStreamEmitStringNarrow(linesdata, linessize, filename)
+	ByteStreamEmitByte(linesdata, linessize, 0)
+
+	while((linessize & 3) != 0)
+	{
+		ByteStreamEmitByte(linesdata, linessize, 0)
+	}
+
+	integer written = 0
+	WriteFile(stream.FileHandle, linesdata, linessize, written, 0)
+	stream.FilePosition = stream.FilePosition + written
+}
 
 
 EmitDBISectionContributions : PDBOutputStream ref stream
@@ -648,7 +738,7 @@ EmitDBISectionMap : PDBOutputStream ref stream
 	ByteStreamEmitInteger16(header, headersize, 0xffff)		// name
 	ByteStreamEmitInteger16(header, headersize, 0xffff)		// class name
 	ByteStreamEmitInteger(header, headersize, 0)			// offset
-	ByteStreamEmitInteger(header, headersize, 0x1900)		// length
+	ByteStreamEmitInteger(header, headersize, 0x1000)		// length
 	
 	// section descriptor .rsrc
 	ByteStreamEmitInteger16(header, headersize, 0x109)		// flags
@@ -668,7 +758,7 @@ EmitDBISectionMap : PDBOutputStream ref stream
 	ByteStreamEmitInteger16(header, headersize, 0xffff)		// name
 	ByteStreamEmitInteger16(header, headersize, 0xffff)		// class name
 	ByteStreamEmitInteger(header, headersize, 0)			// offset
-	ByteStreamEmitInteger(header, headersize, 0xa000)		// length
+	ByteStreamEmitInteger(header, headersize, 0x100)		// length
 
 	// section descriptor .xdata
 	ByteStreamEmitInteger16(header, headersize, 0x109)		// flags
@@ -678,7 +768,7 @@ EmitDBISectionMap : PDBOutputStream ref stream
 	ByteStreamEmitInteger16(header, headersize, 0xffff)		// name
 	ByteStreamEmitInteger16(header, headersize, 0xffff)		// class name
 	ByteStreamEmitInteger(header, headersize, 0)			// offset
-	ByteStreamEmitInteger(header, headersize, 0x7000)		// length
+	ByteStreamEmitInteger(header, headersize, 0x100)		// length
 
 	// section descriptor .data
 	ByteStreamEmitInteger16(header, headersize, 0x109)		// flags
@@ -688,7 +778,7 @@ EmitDBISectionMap : PDBOutputStream ref stream
 	ByteStreamEmitInteger16(header, headersize, 0xffff)		// name
 	ByteStreamEmitInteger16(header, headersize, 0xffff)		// class name
 	ByteStreamEmitInteger(header, headersize, 0)			// offset
-	ByteStreamEmitInteger(header, headersize, 0x28000)		// length
+	ByteStreamEmitInteger(header, headersize, 0x500)		// length
 
 	// section descriptor .gc
 	ByteStreamEmitInteger16(header, headersize, 0x109)		// flags
@@ -698,7 +788,7 @@ EmitDBISectionMap : PDBOutputStream ref stream
 	ByteStreamEmitInteger16(header, headersize, 0xffff)		// name
 	ByteStreamEmitInteger16(header, headersize, 0xffff)		// class name
 	ByteStreamEmitInteger(header, headersize, 0)			// offset
-	ByteStreamEmitInteger(header, headersize, 0x1d000)		// length
+	ByteStreamEmitInteger(header, headersize, 0x74)		// length
 
 	// section descriptor .debug
 	ByteStreamEmitInteger16(header, headersize, 0x109)		// flags
@@ -718,7 +808,7 @@ EmitDBISectionMap : PDBOutputStream ref stream
 	ByteStreamEmitInteger16(header, headersize, 0xffff)		// name
 	ByteStreamEmitInteger16(header, headersize, 0xffff)		// class name
 	ByteStreamEmitInteger(header, headersize, 0)			// offset
-	ByteStreamEmitInteger(header, headersize, 0x1000)		// length
+	ByteStreamEmitInteger(header, headersize, 42)		// length
 
 	// section descriptor .text
 	ByteStreamEmitInteger16(header, headersize, 0x10d)		// flags
@@ -728,17 +818,17 @@ EmitDBISectionMap : PDBOutputStream ref stream
 	ByteStreamEmitInteger16(header, headersize, 0xffff)		// name
 	ByteStreamEmitInteger16(header, headersize, 0xffff)		// class name
 	ByteStreamEmitInteger(header, headersize, 0)			// offset
-	ByteStreamEmitInteger(header, headersize, 0x56000)		// length
+	ByteStreamEmitInteger(header, headersize, 0xa0)		// length
 
 	// magic section (?)
-	ByteStreamEmitInteger16(header, headersize, 0x208)		// flags
-	ByteStreamEmitInteger16(header, headersize, 0)			// overlay
-	ByteStreamEmitInteger16(header, headersize, 0)			// group
-	ByteStreamEmitInteger16(header, headersize, 10)			// frame
-	ByteStreamEmitInteger16(header, headersize, 0xffff)		// name
-	ByteStreamEmitInteger16(header, headersize, 0xffff)		// class name
-	ByteStreamEmitInteger(header, headersize, 0)			// offset
-	ByteStreamEmitInteger(header, headersize, 0xffffffff)	// length	
+	//ByteStreamEmitInteger16(header, headersize, 0x208)		// flags
+	//ByteStreamEmitInteger16(header, headersize, 0)			// overlay
+	//ByteStreamEmitInteger16(header, headersize, 0)			// group
+	//ByteStreamEmitInteger16(header, headersize, 10)			// frame
+	//ByteStreamEmitInteger16(header, headersize, 0xffff)		// name
+	//ByteStreamEmitInteger16(header, headersize, 0xffff)		// class name
+	//ByteStreamEmitInteger(header, headersize, 0)			// offset
+	//ByteStreamEmitInteger(header, headersize, 0xffffffff)	// length	
 	
 	integer written = 0
 	WriteFile(stream.FileHandle, header, headersize, written, 0)
@@ -793,13 +883,8 @@ ComputeSymbolSize : DBIModule ref mod
 
 ComputeSymbolSize : list<PDBSymbol> ref symlist, integer ref sizecounter
 {
-	sizecounter += SymbolGetSize(symlist.value) + 2
-	
-	//while((sizecounter & 3) != 0)
-	//{
-	//	++sizecounter
-	//}
-	
+	sizecounter += SymbolGetSize(symlist.value)
+
 	ComputeSymbolSize(symlist.next, sizecounter)
 }
 
@@ -823,20 +908,20 @@ EmitDBIModule : PDBOutputStream ref stream, list<DBIModule> ref modlist
 	EmitDBISectionContributionSingle(stream, modlist.value.SectionContributions.value)	
 
 
-	buffer modinfo = 128
+	buffer modinfo = 512
 	integer modsize = 0
-		
+
 	ByteStreamEmitInteger16(modinfo, modsize, 0)		// flags		TODO
 	ByteStreamEmitInteger16(modinfo, modsize, 8)		// stream number of debug info		TODO
 	ByteStreamEmitInteger(modinfo, modsize, modlist.value.SymbolSize + 4)
 	ByteStreamEmitInteger(modinfo, modsize, 0)			// bytes of line number info
-	ByteStreamEmitInteger(modinfo, modsize, 0)			// bytes of C13 line number info
+	ByteStreamEmitInteger(modinfo, modsize, 168 + 20)		// bytes of C13 line number info
 	
 	ByteStreamEmitInteger16(modinfo, modsize, 1)		// num contributing files
 	ByteStreamEmitInteger16(modinfo, modsize, 0)		// padding
 	
-	ByteStreamEmitInteger(modinfo, modsize, 0)			// unused (file name offsets)
-	ByteStreamEmitInteger(modinfo, modsize, 0)			// name index for source file name
+	ByteStreamEmitInteger(modinfo, modsize, 4)			// TODO (file name offsets)
+	ByteStreamEmitInteger(modinfo, modsize, 1)			// name index for source file name
 	ByteStreamEmitInteger(modinfo, modsize, 0)			// name index for path to compiler PDB ??
 
 
@@ -868,7 +953,6 @@ EmitDBIModule : PDBOutputStream ref stream, list<DBIModule> ref modlist
 		ByteStreamEmitByte(modinfo, modsize, 0)
 	}
 	
-	
 	WriteFile(stream.FileHandle, modinfo, modsize, written, 0)
 	stream.FilePosition = stream.FilePosition + written
 
@@ -876,6 +960,48 @@ EmitDBIModule : PDBOutputStream ref stream, list<DBIModule> ref modlist
 }
 
 EmitDBIModule : PDBOutputStream ref stream, nothing
+
+
+EmitDBILines : PDBOutputStream ref stream
+{
+	// TODO
+}
+
+
+ByteStreamEmitDBILines : buffer ref data, integer ref size, list<CodeViewLineInfo> ref lines
+{
+	if(lines.value.Raw.NumPairs != 0)
+	{
+		ByteStreamEmitInteger(data, size, lines.value.Raw.FunctionOffset)
+		ByteStreamEmitInteger16(data, size, 9)				// TODO - segment of contribution
+		ByteStreamEmitInteger16(data, size, 0)				// Flags (0 = just lines, 1 = has columns)
+		ByteStreamEmitInteger(data, size, lines.value.Raw.FunctionSize)
+
+		ByteStreamEmitInteger(data, size, 0)				// TODO - file index
+		ByteStreamEmitInteger(data, size, lines.value.Raw.NumPairs)
+		ByteStreamEmitInteger(data, size, lines.value.Raw.Size)
+
+		ByteStreamEmitDBILinePairs(data, size, lines.value.LinePairs)
+	}
+
+	ByteStreamEmitDBILines(data, size, lines.next)
+}
+
+ByteStreamEmitDBILines : buffer ref data, integer ref size, nothing
+
+
+ByteStreamEmitDBILinePairs : buffer ref data, integer ref size, list<CodeViewLinePair> ref pairs
+{
+	if(pairs.value.Offset > -1)
+	{
+		ByteStreamEmitInteger(data, size, pairs.value.Offset)
+		ByteStreamEmitInteger(data, size, pairs.value.Line)
+	}
+
+	ByteStreamEmitDBILinePairs(data, size, pairs.next)
+}
+
+ByteStreamEmitDBILinePairs : buffer ref data, integer ref size, nothing
 
 
 WriteIPIStream : Win32Handle pdbfilehandle, integer startfileposition -> integer endfileposition = 0
@@ -921,14 +1047,14 @@ WriteGlobalsStream : Win32Handle pdbfilehandle, integer startfileposition -> int
 	buffer header = 1024
 	integer headersize = 0
 	
-	ByteStreamEmitInteger(header, headersize, 0)		// hash
-	ByteStreamEmitInteger(header, headersize, 0)		// address map
-	ByteStreamEmitInteger(header, headersize, 0)		// num thunks
-	ByteStreamEmitInteger(header, headersize, 0)		// size of thunk
-	ByteStreamEmitInteger16(header, headersize, 0)		// section index thunk table
-	ByteStreamEmitInteger16(header, headersize, 0)		// padding
-	ByteStreamEmitInteger(header, headersize, 0)		// offset of thunk table
-	ByteStreamEmitInteger(header, headersize, 0)		// number of sections
+	//ByteStreamEmitInteger(header, headersize, 0)		// hash
+	//ByteStreamEmitInteger(header, headersize, 0)		// address map
+	//ByteStreamEmitInteger(header, headersize, 0)		// num thunks
+	//ByteStreamEmitInteger(header, headersize, 0)		// size of thunk
+	//ByteStreamEmitInteger16(header, headersize, 0)		// section index thunk table
+	//ByteStreamEmitInteger16(header, headersize, 0)		// padding
+	//ByteStreamEmitInteger(header, headersize, 0)		// offset of thunk table
+	//ByteStreamEmitInteger(header, headersize, 0)		// number of sections
 
 	// Hash header
 	ByteStreamEmitInteger(header, headersize, 0xffffffff)		// signature
@@ -956,7 +1082,90 @@ WriteGlobalsStream : Win32Handle pdbfilehandle, integer startfileposition -> int
 
 WritePublicsStream : Win32Handle pdbfilehandle, integer startfileposition -> integer endfileposition = 0
 {
-	endfileposition = WriteGlobalsStream(pdbfilehandle, startfileposition)
+	buffer header = 1024
+	integer headersize = 0
+	
+	ByteStreamEmitInteger(header, headersize, 10816)	// hash
+	ByteStreamEmitInteger(header, headersize, 4)		// address map
+	ByteStreamEmitInteger(header, headersize, 30)		// num thunks
+	ByteStreamEmitInteger(header, headersize, 8)		// size of thunk
+	ByteStreamEmitInteger16(header, headersize, 1)		// section index thunk table
+	ByteStreamEmitInteger16(header, headersize, 0)		// padding
+	ByteStreamEmitInteger(header, headersize, 0)		// offset of thunk table
+	ByteStreamEmitInteger(header, headersize, 9)		// number of sections
+
+	// Hash header
+	ByteStreamEmitInteger(header, headersize, 0xffffffff)		// signature
+	ByteStreamEmitInteger(header, headersize, 0xeffe0000 + 19990810)		// version
+	ByteStreamEmitInteger(header, headersize, 16 * 8)	// size
+	ByteStreamEmitInteger(header, headersize, 16)		// num buckets
+
+	// Hash records
+	ByteStreamEmitInteger(header, headersize, 0)
+	ByteStreamEmitInteger(header, headersize, 0)
+
+	ByteStreamEmitInteger(header, headersize, 0)
+	ByteStreamEmitInteger(header, headersize, 0)
+
+	ByteStreamEmitInteger(header, headersize, 0)
+	ByteStreamEmitInteger(header, headersize, 0)
+
+	ByteStreamEmitInteger(header, headersize, 0)
+	ByteStreamEmitInteger(header, headersize, 0)
+
+	ByteStreamEmitInteger(header, headersize, 0)
+	ByteStreamEmitInteger(header, headersize, 0)
+
+	ByteStreamEmitInteger(header, headersize, 0)
+	ByteStreamEmitInteger(header, headersize, 0)
+
+	ByteStreamEmitInteger(header, headersize, 0)
+	ByteStreamEmitInteger(header, headersize, 0)
+
+	ByteStreamEmitInteger(header, headersize, 0)
+	ByteStreamEmitInteger(header, headersize, 0)
+
+	ByteStreamEmitInteger(header, headersize, 0)
+	ByteStreamEmitInteger(header, headersize, 0)
+
+	ByteStreamEmitInteger(header, headersize, 0)
+	ByteStreamEmitInteger(header, headersize, 0)
+
+	ByteStreamEmitInteger(header, headersize, 0)
+	ByteStreamEmitInteger(header, headersize, 0)
+
+	ByteStreamEmitInteger(header, headersize, 0)
+	ByteStreamEmitInteger(header, headersize, 0)
+
+	ByteStreamEmitInteger(header, headersize, 0)
+	ByteStreamEmitInteger(header, headersize, 0)
+
+	ByteStreamEmitInteger(header, headersize, 0)
+	ByteStreamEmitInteger(header, headersize, 0)
+
+	ByteStreamEmitInteger(header, headersize, 0)
+	ByteStreamEmitInteger(header, headersize, 0)
+
+	ByteStreamEmitInteger(header, headersize, 0)
+	ByteStreamEmitInteger(header, headersize, 0)
+	
+	// Magic bitmap
+	ByteStreamEmitByte(header, headersize, 0xff)
+	ByteStreamEmitByte(header, headersize, 0xff)
+
+	integer count = 0
+	while(count < 516 - 2)
+	{
+		ByteStreamEmitByte(header, headersize, 0)
+		
+		++count
+	}
+	
+
+	integer written = 0
+	WriteFile(pdbfilehandle, header, headersize, written, 0)
+	
+	endfileposition = startfileposition + written
 }
 
 
@@ -966,7 +1175,7 @@ WriteSymbolRecordsStream : Win32Handle pdbfilehandle, integer startfileposition,
 	integer symbolssize = 0
 
 
-	SymbolSection sectionsymbol = 9, codesectionstart, codesize, 0x60000020, ".text"
+	SymbolSection sectionsymbol = 9, 0, codesize, 0x60000020, ".text"
 	ByteStreamEmitSymbol(symbols, symbolssize, sectionsymbol)
 
 
@@ -990,14 +1199,42 @@ WriteDBIModuleSymbols : PDBOutputStream ref stream, DBIModule ref module, buffer
 	stream.FilePosition = stream.FilePosition + written
 	
 	
-	buffer symboldata = module.SymbolSize + 1024000
+	buffer symboldata = module.SymbolSize + 1024
 	integer symboldatasize = 0
 	ByteStreamEmitSymbolList(symboldata, symboldatasize, module.Symbols)
 	
-	WriteFile(stream.FileHandle, symboldata, 1024, written, 0)			// TODO - hardcoded size should be symboldatasize
-	//WriteFile(stream.FileHandle, symbols, symbolsize, written, 0)
+	assertmsg(module.SymbolSize == symboldatasize, "Emitted wrong number of symbol bytes!")
+
+	WriteFile(stream.FileHandle, symboldata, symboldatasize, written, 0)
 	stream.FilePosition = stream.FilePosition + written
 	
+
+	buffer linedata = 1024
+	integer linesize = 0
+	
+	ByteStreamEmitInteger(linedata, linesize, 0xf4)				// Checksums
+	ByteStreamEmitInteger(linedata, linesize, 12)			// TODO - real value
+
+	ByteStreamEmitInteger(linedata, linesize, 6)				// Offset of filename in global string table
+	ByteStreamEmitInteger16(linedata, linesize, 4)				// Bytes of checksum + checksum kind in high byte
+	ByteStreamEmitInteger(linedata, linesize, 0)				// Null checksum
+
+
+	while((linesize & 3) != 0)
+	{
+		ByteStreamEmitByte(linedata, linesize, 0)
+	}
+
+
+	// Emit lines data
+	ByteStreamEmitInteger(linedata, linesize, 0xf2)
+	ByteStreamEmitInteger(linedata, linesize, 160)
+	ByteStreamEmitDBILines(linedata, linesize, stream.DBI.Lines)
+
+	WriteFile(stream.FileHandle, linedata, linesize, written, 0)
+	stream.FilePosition = stream.FilePosition + written
+
+
 	
 	buffer footer = 4
 	integer footersize = 0
@@ -1010,7 +1247,7 @@ WriteDBIModuleSymbols : PDBOutputStream ref stream, DBIModule ref module, buffer
 
 
 
-TransferSymbols : list<PDBSymbol> ref symbols, buffer ref symboldata, integer symbolsize, buffer ref relocdata, integer relocsize, buffer ref symbollist, integer symbolcount
+TransferSymbols : list<PDBSymbol> ref symbols, buffer ref symboldata, integer symbolsize, buffer ref relocdata, integer relocsize, buffer ref symbollist, list<SectionContribution> ref contriblist, list<CodeViewLineInfo> ref lines
 {
 	//
 	// Apply relocations to the raw symbol data so it will be easier
@@ -1034,7 +1271,7 @@ TransferSymbols : list<PDBSymbol> ref symbols, buffer ref symboldata, integer sy
 		if(reloc.Type == 0xb)			// IMAGE_REL_AMD64_SECREL
 		{
 			ImageSymbol symbol = 0, 0, 0, 0, 0, 0
-			marshalstructure(symbol, GetBufferPtr(symboldata, reloc.SymbolIndex * SYMBOL_SIZE))
+			marshalstructure(symbol, GetBufferPtr(symbollist, reloc.SymbolIndex * SYMBOL_SIZE))
 
 			if(symbol.SectionNumber == 9)
 			{
@@ -1051,7 +1288,7 @@ TransferSymbols : list<PDBSymbol> ref symbols, buffer ref symboldata, integer sy
 		elseif(reloc.Type == 0xa)		// IMAGE_REL_AMD64_SECTION
 		{
 			ImageSymbol symbol = 0, 0, 0, 0, 0, 0
-			marshalstructure(symbol, GetBufferPtr(symboldata, reloc.SymbolIndex * SYMBOL_SIZE))
+			marshalstructure(symbol, GetBufferPtr(symbollist, reloc.SymbolIndex * SYMBOL_SIZE))
 
 			if(symbol.SectionNumber == 9)
 			{
@@ -1066,6 +1303,10 @@ TransferSymbols : list<PDBSymbol> ref symbols, buffer ref symboldata, integer sy
 					print("WARNING: NOT relocating absolute symbol... " ; cast(string, reloc.Address) ; " val " ; cast(string, symbol.Value))
 				}
 			}
+			else
+			{
+				print("Bogus symbol for section " ; cast(string, cast(integer, symbol.SectionNumber)))
+			}
 		}
 		else
 		{
@@ -1076,56 +1317,192 @@ TransferSymbols : list<PDBSymbol> ref symbols, buffer ref symboldata, integer sy
 		++i
 	}
 
+	ConvertSymbolStream(symboldata, symbolsize, symbols, contriblist, lines)
+
+	print("Stack unwind canary")
+}
+
+
+
+structure CodeViewChunk :
+	integer Header,
+	integer Size
+
+structure CodeViewProc :
+	integer16 Bytes,
+	integer16 Magic
+
+structure CodeViewProcSize :
+	integer Size
+
+structure CodeViewProcSection :
+	integer SectionRelative,
+	integer16 SectionIndex
+
+structure CodeViewProcTerm :
+	integer16 Magic
+
+structure CodeViewProcEnd :
+	integer16 Magic
+
+structure CodeViewLineInfoRaw :
+	integer FunctionOffset,
+	integer FunctionIndex,
+	integer FunctionSize,
+	integer SourceFileOffset,
+	integer NumPairs,
+	integer Size
+
+structure CodeViewLineInfo :
+	CodeViewLineInfoRaw Raw,
+	list<CodeViewLinePair> ref LinePairs
+
+structure CodeViewLinePair :
+	integer Offset,
+	integer Line
+
+
+ConvertSymbolStream : buffer ref symboldata, integer symbolsize, list<PDBSymbol> ref symbols, list<SectionContribution> ref contriblist, list<CodeViewLineInfo> ref lines
+{
 	print("Converting symbols...")
 
-	integer symbolsoffset = 0x4a			// account for the "init" symbols (and section)
-	integer symbolindex = 0
-	while(symbolindex < symbolcount)
+	CodeViewChunk chunk = 0, 0
+	CodeViewProc proc = 0, 0
+	CodeViewProcSize procsize = 0
+	CodeViewProcSection procsection = 0, 0
+	CodeViewProcTerm term = 0
+	CodeViewProcEnd end = 0
+
+	integer slen = 0
+	string symbol = ""
+
+	integer writeoffset = 0x1c
+	integer readoffset = 4
+
+	while(readoffset < symbolsize)
 	{
-		ConvertSingleSymbol(symbollist, symbolindex, symbols, symbolcount, symbolsoffset)
-		++symbolindex
+		marshalstructure(chunk, GetBufferPtr(symboldata, readoffset))
+		readoffset += 8		// sizeof(CodeViewChunk)
+
+		if(chunk.Header == 0xf1)
+		{
+			marshalstructure(proc, GetBufferPtr(symboldata, readoffset))
+			readoffset += 4			// sizeof(CodeViewProc)
+			assertmsg(proc.Magic == 0x1147, "Mismatched codeview magic (1)")
+
+			readoffset += 12		// unknown fields/padding
+
+			marshalstructure(procsize, GetBufferPtr(symboldata, readoffset))
+			readoffset += 4			// sizeof(CodeViewProcSize)
+
+			readoffset += 12		// unknown fields/padding
+
+			marshalstructure(procsection, GetBufferPtr(symboldata, readoffset))
+			readoffset += 7			// sizeof(CodeViewProcSection) + 1 pad byte
+
+			slen = hackstrlen(GetBufferPtr(symboldata, readoffset))
+			symbol = widenfromptr(GetBufferPtr(symboldata, readoffset), slen)
+			readoffset += slen + 1	// null terminated
+
+			print(symbol)
+
+			marshalstructure(term, GetBufferPtr(symboldata, readoffset))
+			readoffset += 2			// sizeof(CodeViewProcTerm)
+			assertmsg(cast(integer, term.Magic) == 0x02, "Mismatched codeview magic (2)")
+
+			marshalstructure(end, GetBufferPtr(symboldata, readoffset))
+			readoffset += 2			// sizeof(CodeViewProcEnd)
+			assertmsg(cast(integer, end.Magic) == 0x114f, "Mismatched codeview magic (3)")
+
+			writeoffset += 0x2c
+			writeoffset += slen
+
+			GenerateCorrectedCVSymbol(symbols, writeoffset, procsize.Size, procsection.SectionIndex, procsection.SectionRelative, symbol)
+
+			writeoffset += 4
+
+			GenerateSectionContribution(contriblist, procsection.SectionIndex, procsection.SectionRelative, procsize.Size)
+		}
+		elseif(chunk.Header == 0xf2)
+		{
+			integer nextreadoffset = chunk.Size + readoffset
+
+			CodeViewLinePair dummypair = -1, -1
+			list<CodeViewLinePair> pairlist = dummypair, nothing
+
+			CodeViewLineInfoRaw lineinfo = 0, 0, 0, 0, 0, 0
+			marshalstructure(lineinfo, GetBufferPtr(symboldata, readoffset))
+			readoffset += 24
+			
+			CodeViewLineInfo stuff = lineinfo, pairlist
+
+			integer pairindex = 0
+			while(pairindex < lineinfo.NumPairs)
+			{
+				CodeViewLinePair pair = 0, 0
+				marshalstructure(pair, GetBufferPtr(symboldata, readoffset))
+				readoffset += 8
+
+				append<CodeViewLinePair>(stuff.LinePairs, pair)
+
+				++pairindex
+			}
+
+			append<CodeViewLineInfo>(lines, stuff)
+
+			readoffset = nextreadoffset
+		}
+		elseif(chunk.Header == 0xf4)
+		{
+			// TODO - accumulate checksums
+			readoffset += chunk.Size 
+		}
+		else
+		{
+			if(chunk.Header == 0xf3)				// TODO - transfer strings
+			{
+			}
+			else
+			{
+				assertmsg(false, "Unrecognized codeview chunk " ; cast(string, chunk.Header))
+			}
+
+			readoffset += chunk.Size
+		}
+
+		while(readoffset & 3 != 0)
+		{
+			++readoffset
+		}
 	}
+
+	print("Done.")
 }
 
 
-AccumulateSectionContributions : list<SectionContribution> ref contribs, list<PDBSymbol> ref symbols
+GenerateCorrectedCVSymbol : list<PDBSymbol> ref symbols, integer writeoffset, integer size, integer16 sectionindex, integer sectionrelative, string symbol
 {
-}
-
-
-
-ConvertSingleSymbol : buffer ref symboldata, integer symbolindex, list<PDBSymbol> ref symbols, integer symbolcount, integer ref offsetnext
-{
-	integer SYMBOL_SIZE = 18			// sizeof(packed ImageSymbol struct)
-
-	ImageSymbol symbol = 0, 0, 0, 0, 0, 0
-	marshalstructure(symbol, GetBufferPtr(symboldata, symbolindex * SYMBOL_SIZE))
-
-	integer t = cast(integer, symbol.Type)
-	t = t & 0x30
-	if(t != 0x20)				// ISFCN(t)
-	{
-		return()
-	}
-
-	if(symbol.OffsetToLongName == 0)
-	{
-		print("WARNING: skipping unnamed function symbol")
-		return()
-	}
-
-	integer p = GetBufferPtr(symboldata, symbolcount * SYMBOL_SIZE + symbol.OffsetToLongName)
-	integer slen = hackstrlen(p)
-	string symname = widenfromptr(p, slen)
-
-	offsetnext = offsetnext + 0x30 + slen
-
-	SymbolProcStart initsymbolps = 0, offsetnext, 0, symbol.Value, 0, 0, 0, 9, 0, symname			// TODO - hardcoded param should be symbol.Value
+	SymbolProcStart startsymbolps = 0, AlignToFour(writeoffset), 0, size, 0, 0, 0, sectionindex, 0, symbol, sectionrelative
 	SymbolBlockEnd endsymbolps = 0
-	PDBSymbol initsymbol = initsymbolps
+	PDBSymbol startsymbol = startsymbolps
 	PDBSymbol endsymbol = endsymbolps
 	
-	append<PDBSymbol>(symbols, initsymbol)
+	append<PDBSymbol>(symbols, startsymbol)
 	append<PDBSymbol>(symbols, endsymbol)
+}
+
+GenerateSectionContribution : list<SectionContribution> ref contriblist, integer16 sectionindex, integer startoffset, integer size
+{
+	SectionContribution sc = sectionindex, startoffset, size, 0x60001020, 0, 0, 0
+	append<SectionContribution>(contriblist, sc)
+}
+
+
+AlignToFour : integer in -> integer aligned = in
+{
+	while((aligned & 3) != 0)
+	{
+		++aligned
+	}
 }
 

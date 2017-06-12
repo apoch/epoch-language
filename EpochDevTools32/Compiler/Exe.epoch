@@ -80,6 +80,17 @@ MakeExe : EpochProject ref project
 	integer globaloffsettracker = 0
 	SetUpAllLLVMCode(llvm, globaloffsettracker)
 
+	// This is a bad workaround for the fact that 0-length sections
+	// cause the Windows loader to vomit. If the globals section is
+	// going to be empty anyways, we just pad it out a few bytes so
+	// that the loader will be happy.
+
+	// TODO - dynamically remove .global section if globals unused?
+	if(globaloffsettracker == 0)
+	{
+		globaloffsettracker = 42
+	}
+
 	integer virtualoffsetthunk   = 0x1000
 	integer offsetthunk          = 0x400
 	integer sizethunk            = ThunkTableGetCompleteSize(GlobalThunkTable)
@@ -191,7 +202,6 @@ MakeExe : EpochProject ref project
 	position += WriteSectionHeader(filehandle, ".debug", offsetdebug, virtualoffsetdebug, 0x200, 0x200, 0x40000040)
 	position += WriteSectionHeader(filehandle, ".global", offsetglobals, virtualoffsetglobals, globaloffsettracker, globaloffsettracker, 0xc0000040)		// TODO - characteristics of .global
 	position += WriteSectionHeader(filehandle, ".text", offsetcode, virtualoffsetcode, sizecode, sizecode, 0x60000020)
-	//position += WriteSectionHeader(filehandle, ".debug$S", offsetcv, RoundUp(virtualoffsetcode + sizecode), totaldebugsize, totaldebugsize, 0x40000040, sizedebug + offsetcv, sizedebugreloc / 10)
 
 	print("Writing thunk table...")
 	position += WritePadding(filehandle, position, offsetthunk)
@@ -219,7 +229,7 @@ MakeExe : EpochProject ref project
 
 	position += WritePadding(filehandle, position, offsetdebug)
 
-	position += WriteDebugStub(filehandle, "Compiler.pdb", virtualoffsetdebug, offsetdebug)		// TODO - inherit name of project/.exe
+	position += WriteDebugStub(filehandle, "PDBTest.pdb", virtualoffsetdebug, offsetdebug)		// TODO - inherit name of project/.exe
 
 	print("Writing globals...")
 	position += WritePadding(filehandle, position, offsetglobals + globaloffsettracker)
@@ -231,18 +241,7 @@ MakeExe : EpochProject ref project
 	WriteFile(filehandle, codebinarybuffer, sizecode, written, 0)
 	position += sizecode
 
-	//position += WritePadding(filehandle, position, RoundUpFile(position))
-
-	//WriteFile(filehandle, debugdata, sizedebug, written, 0)
-	//position += sizedebug
-
-	//WriteFile(filehandle, debugrelocdata, sizedebugreloc, written, 0)
-	//position += sizedebugreloc
-	
-	//WriteFile(filehandle, debugsymboldata, sizedebugsymbols, written, 0)
-	//position += sizedebugsymbols
-
-
+	position += WritePadding(filehandle, position, RoundUpFile(position))
 	CloseHandle(filehandle)
 
 	print("Emitting CodeView data...")
@@ -365,6 +364,28 @@ WritePadding : Win32Handle filehandle, integer startpos, integer desiredpos -> i
 	}
 
 	buffer empty = writtenbytes
+	integer written = 0
+	WriteFile(filehandle, empty, writtenbytes, written, 0)
+}
+
+
+WriteGarbage : Win32Handle filehandle, integer startpos, integer desiredpos -> integer writtenbytes = 0
+{
+	writtenbytes = desiredpos - startpos
+
+    if(writtenbytes < 0)
+    {
+    	assertmsg(false, "INTERNAL ERROR - attempted to junk negative bytes " ; cast(string, writtenbytes))
+	}
+
+	buffer empty = writtenbytes
+	integer i = 0
+	while(i < writtenbytes)
+	{
+		ByteStreamEmitByte(empty, i, 0xc0)
+		++i
+	}
+
 	integer written = 0
 	WriteFile(filehandle, empty, writtenbytes, written, 0)
 }
@@ -1029,7 +1050,7 @@ ThunkLookupMapper : string funcname -> integer thunkoffset = 0
 {
 	// TODO - don't hard code base address
 	integer baseaddress = 0x401000
-	integer baseaddressglobals = 0x45b000
+	integer baseaddressglobals = 0x408000
 	
 	thunkoffset = baseaddress + SearchThunkTableForFunctionOffset(GlobalThunkTable.Libraries, funcname)
 	
@@ -1079,7 +1100,7 @@ SearchThunkLibForFunctionOffset : nothing, string funcname -> integer offset = -
 StringLookupMapper : integer stringhandle -> integer offset = 0
 {
 	// TODO - don't hard code base address
-	integer baseaddress = 0x415000
+	integer baseaddress = 0x405000
 	
 	BinaryTreeCopyPayload<integer>(GlobalStringOffsets.RootNode, stringhandle, offset)
 	
@@ -1137,22 +1158,26 @@ ThunkTableAddFunctionToList : ThunkTableLibrary ref library, nothing, string fun
 
 GeneratePDB : string pdbfilename, buffer ref symboldata, integer symbolsize, integer codesectionstart, integer codesize, buffer ref relocdata, integer relocsize, buffer ref symbollist, integer symbollistbytes, integer symbolcount
 {
-	SymbolSection sectionsymbol = 9, codesectionstart, codesize, 0x60000020, ".text"
-	SymbolProcStart initsymbolps = 0, 0x4a, 0, 65, 0, 0, 0, 9, 0, "init"		// TODO - 0x4a is offset of next (end) symbol, this should not be hard-coded!
-	SymbolBlockEnd endsymbolps = 0
-	PDBSymbol initsymbol = initsymbolps
-	PDBSymbol endsymbol = endsymbolps
+	CodeViewLinePair dummypair = -1, -1
+	list<CodeViewLinePair> pairlist = dummypair, nothing
+
+	CodeViewLineInfoRaw lineinforaw = 0, 0, 0, 0, 0, 0
+	CodeViewLineInfo lineinfo = lineinforaw, pairlist
+	list<CodeViewLineInfo> lines = lineinfo, nothing
 	
+	SymbolSection sectionsymbol = 9, 0, codesize, 0x60000020, ".text"	
 	list<PDBSymbol> symbollistinternal = sectionsymbol, nothing
-	append<PDBSymbol>(symbollistinternal, initsymbol)
-	append<PDBSymbol>(symbollistinternal, endsymbol)
-	
-	TransferSymbols(symbollistinternal, symboldata, symbolsize, relocdata, relocsize, symbollist, symbolcount)
-	
+
+	//SymbolBlockEnd sectionend = 0
+	//PDBSymbol sectionendsymbol = sectionend
+	//append<PDBSymbol>(symbollistinternal, sectionendsymbol)
+
 	SectionContribution initsc = 9, 0, 65, 0x60001020, 0, 0, 0
 	list<SectionContribution> contriblist = initsc, nothing
-
-	AccumulateSectionContributions(contriblist, symbollistinternal)
+	
+	TransferSymbols(symbollistinternal, symboldata, symbolsize, relocdata, relocsize, symbollist, contriblist, lines)
+	
+	print("First canary")
 
 	DBIModule testmodule = "D:\Test.epoch", "D:\Test.obj", 0, symbollistinternal, contriblist
 	
@@ -1166,42 +1191,44 @@ GeneratePDB : string pdbfilename, buffer ref symboldata, integer symbolsize, int
 		++dbimodinfolen
 	}
 
-	integer sectionmapsize = 10 * 20 + 4 // TODO - dynamic section map
-	integer dbicontribslen = 32		// TODO - compute dynamic contributions length (don't forget version signature +4)
+	integer sectionmapsize = 9 * 20 + 4 // TODO - dynamic section map
+	integer dbicontribslen = 4 + (28 * 4)		// TODO - compute dynamic contributions length (don't forget version signature +4)
+	integer dbifileslen = 32			// TODO - real data here
+	integer dbilineslen = 0 //48		// TODO - dynamic lines
 	
-	DBISection dbisection = dbimodinfolen, dbicontribslen, sectionmapsize, modulelist
+	DBISection dbisection = dbimodinfolen, dbicontribslen, sectionmapsize, modulelist, lines
 
+	print("Pre-stream setup canary")
 	
 	PDBStream directoryhint = simplelist<integer>(3, nothing), 0
-	PDBStream directorystream = simplelist<integer>(4, nothing), 76		// + (128 * 4)
+	PDBStream directorystream = simplelist<integer>(4, nothing), 84		// + (128 * 4)
 	
 	PDBStream msf = simplelist<integer>(5, nothing), 1					// Placeholder; 0 is invalid but we have nothing to put here
-	PDBStream pdb = simplelist<integer>(6, nothing), 196  				// TODO - pull real PDB stream size [was 48]
+	PDBStream pdb = simplelist<integer>(6, nothing), 128  				// TODO - pull real PDB stream size [was 48]
 	PDBStream tpi = simplelist<integer>(7, nothing), 56					// TODO - real TPI stream
-	PDBStream dbi = simplelist<integer>(8, nothing), 64 + dbimodinfolen + dbicontribslen + sectionmapsize   // TODO - real DBI stream
+	PDBStream dbi = simplelist<integer>(8, nothing), 64 + dbimodinfolen + dbicontribslen + sectionmapsize + dbilineslen + dbifileslen // TODO - real DBI stream
 	PDBStream ipi = simplelist<integer>(9, nothing), 56					// TODO - real IPI stream (?)
 	PDBStream globals = simplelist<integer>(10, nothing), 44 + 516		// TODO - real globals stream
-	PDBStream publics = simplelist<integer>(11, nothing), 44 + 516		// TODO - real publics stream
-	PDBStream symbols = simplelist<integer>(12, nothing), 26			// TODO - real symbol records size
+	PDBStream publics = simplelist<integer>(11, nothing), 44 + 516 + 4 + (16 * 4) + (16 * 8) + (30 * 4) + (9 * 8) // TODO - real publics stream
+	PDBStream symbols = simplelist<integer>(12, nothing), 28			// TODO - real symbol records size
 	
 	simplelist<integer> hackblocks = 13, nothing
-	
-	integer i = 0
-	while(i < 127)
-	{
-		//simple_append<integer>(hackblocks, 14 + i)
-		++i
-	}
 
-	PDBStream hackstream = hackblocks, testmodule.SymbolSize + 8			// TODO - real stream
+	PDBStream hackstream = hackblocks, testmodule.SymbolSize + 8 + 168 + 20	// TODO - real stream
 	list<PDBStream> hackstreamlist = hackstream, nothing
 	
-	PDBDirectory pdbdir = 9, msf, pdb, tpi, dbi, ipi, globals, publics, symbols, hackstreamlist
+	simplelist<integer> stringblocks = 14, nothing
+	PDBStream stringstream = stringblocks, 75							// TODO - real stream
+	append<PDBStream>(hackstreamlist, stringstream)
+	
+	PDBDirectory pdbdir = 10, msf, pdb, tpi, dbi, ipi, globals, publics, symbols, hackstreamlist
 
 	
 	Win32Handle invalidhandle = -1
-	PDBFileLayout layout = 1024, 14, directoryhint, directorystream, pdbdir
+	PDBFileLayout layout = 1024, 15, directoryhint, directorystream, pdbdir
 	PDBOutputStream stream = pdbfilename, invalidhandle, 0, layout, dbisection
+
+	print("Final canary before we write PDB")
 
 	WritePDB(stream, codesectionstart, codesize, symbollist, symbollistbytes)
 }

@@ -59,11 +59,11 @@ namespace CodeGenInternal
 			{
 				if(reloc.getSymbol()->getName().get().str() == ".xdata")
 				{
-					*reinterpret_cast<char**>(fieldaddr) += 0xe000;		// TODO - don't hardcode the offset of the .xdata section
+					*reinterpret_cast<char**>(fieldaddr) += 0x4000;		// TODO - don't hardcode the offset of the .xdata section
 				}
 				else
 				{
-					*reinterpret_cast<char**>(fieldaddr) += reloc.getSymbol()->getAddress().get() + 0x5c000;    // TODO - don't hardcode the offset of the .text section
+					*reinterpret_cast<char**>(fieldaddr) += reloc.getSymbol()->getAddress().get() + 0x9000;    // TODO - don't hardcode the offset of the .text section
 				}
 			}
 		}
