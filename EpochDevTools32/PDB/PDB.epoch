@@ -1085,7 +1085,7 @@ WritePublicsStream : Win32Handle pdbfilehandle, integer startfileposition -> int
 	buffer header = 1024
 	integer headersize = 0
 	
-	ByteStreamEmitInteger(header, headersize, 10816)	// hash
+	ByteStreamEmitInteger(header, headersize, 168 + (16 * 8))		// hash
 	ByteStreamEmitInteger(header, headersize, 4)		// address map
 	ByteStreamEmitInteger(header, headersize, 30)		// num thunks
 	ByteStreamEmitInteger(header, headersize, 8)		// size of thunk
@@ -1095,10 +1095,10 @@ WritePublicsStream : Win32Handle pdbfilehandle, integer startfileposition -> int
 	ByteStreamEmitInteger(header, headersize, 9)		// number of sections
 
 	// Hash header
-	ByteStreamEmitInteger(header, headersize, 0xffffffff)		// signature
-	ByteStreamEmitInteger(header, headersize, 0xeffe0000 + 19990810)		// version
-	ByteStreamEmitInteger(header, headersize, 16 * 8)	// size
-	ByteStreamEmitInteger(header, headersize, 16)		// num buckets
+	ByteStreamEmitInteger(header, headersize, 0xffffffff)				// signature
+	ByteStreamEmitInteger(header, headersize, 0xeffe0000 + 19990810)	// version
+	ByteStreamEmitInteger(header, headersize, 16 + 16 * 8 + 516)				// size of header
+	ByteStreamEmitInteger(header, headersize, 16 * 8)					// number of bytes in buckets
 
 	// Hash records
 	ByteStreamEmitInteger(header, headersize, 0)
