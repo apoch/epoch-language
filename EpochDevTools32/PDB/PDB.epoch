@@ -1085,7 +1085,7 @@ WritePublicsStream : Win32Handle pdbfilehandle, integer startfileposition -> int
 	buffer header = 1024
 	integer headersize = 0
 	
-	ByteStreamEmitInteger(header, headersize, 164 + (16 * 8) + 516)		// hash
+	ByteStreamEmitInteger(header, headersize, 32 + 516)		// hash
 	ByteStreamEmitInteger(header, headersize, 4)		// address map
 	ByteStreamEmitInteger(header, headersize, 30)		// num thunks
 	ByteStreamEmitInteger(header, headersize, 8)		// size of thunk
