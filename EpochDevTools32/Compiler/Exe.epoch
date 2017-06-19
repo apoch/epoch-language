@@ -1201,7 +1201,7 @@ GeneratePDB : string pdbfilename, buffer ref symboldata, integer symbolsize, int
 	print("Pre-stream setup canary")
 	
 	PDBStream directoryhint = simplelist<integer>(3, nothing), 0
-	PDBStream directorystream = simplelist<integer>(4, nothing), 84		// + (128 * 4)
+	PDBStream directorystream = simplelist<integer>(4, nothing), 92		// + (128 * 4)
 	
 	PDBStream msf = simplelist<integer>(5, nothing), 1					// Placeholder; 0 is invalid but we have nothing to put here
 	PDBStream pdb = simplelist<integer>(6, nothing), 128  				// TODO - pull real PDB stream size [was 48]
@@ -1209,15 +1209,15 @@ GeneratePDB : string pdbfilename, buffer ref symboldata, integer symbolsize, int
 	PDBStream dbi = simplelist<integer>(8, nothing), 64 + dbimodinfolen + dbicontribslen + sectionmapsize + dbilineslen + dbifileslen // TODO - real DBI stream
 	PDBStream ipi = simplelist<integer>(9, nothing), 56					// TODO - real IPI stream (?)
 	PDBStream globals = simplelist<integer>(10, nothing), 44 + 516		// TODO - real globals stream
-	PDBStream publics = simplelist<integer>(11, nothing), 772			// TODO - real publics stream
-	PDBStream symbols = simplelist<integer>(12, nothing), 28			// TODO - real symbol records size
+	PDBStream publics = simplelist<integer>(11, nothing), 776			// TODO - real publics stream
+	PDBStream symbols = simplelist<integer>(12, nothing), 2500			// TODO - real symbol records size
 	
-	simplelist<integer> hackblocks = 13, nothing
+	simplelist<integer> hackblocks = 15, nothing
 
 	PDBStream hackstream = hackblocks, testmodule.SymbolSize + 8 + 168 + 20	// TODO - real stream
 	list<PDBStream> hackstreamlist = hackstream, nothing
 	
-	simplelist<integer> stringblocks = 14, nothing
+	simplelist<integer> stringblocks = 16, nothing
 	PDBStream stringstream = stringblocks, 75							// TODO - real stream
 	append<PDBStream>(hackstreamlist, stringstream)
 	
@@ -1225,7 +1225,7 @@ GeneratePDB : string pdbfilename, buffer ref symboldata, integer symbolsize, int
 
 	
 	Win32Handle invalidhandle = -1
-	PDBFileLayout layout = 1024, 15, directoryhint, directorystream, pdbdir
+	PDBFileLayout layout = 1024, 17, directoryhint, directorystream, pdbdir
 	PDBOutputStream stream = pdbfilename, invalidhandle, 0, layout, dbisection
 
 	print("Final canary before we write PDB")

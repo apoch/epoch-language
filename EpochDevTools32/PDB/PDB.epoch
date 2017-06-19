@@ -283,13 +283,15 @@ WritePDB : PDBOutputStream ref stream, integer codesectionstart, integer codesiz
 	
 	// Move up and write the symbol records (DBI) stream
 	PadToBeginningOfBlock(stream, stream.Layout.Directory.Symbols.Blocks.value)
-	stream.FilePosition = WriteSymbolRecordsStream(stream.FileHandle, stream.FilePosition, codesectionstart, codesize)
+	WriteSymbolRecordsStream(stream, stream.DBI.Modules.value)
+
+	PadGarbageToBeginningOfBlock(stream, 15)
 	
 	// HACK - TODO
-	PadToBeginningOfBlock(stream, 13)
+	PadToBeginningOfBlock(stream, 15)
 	WriteDBIModuleSymbols(stream, stream.DBI.Modules.value, symbolstart, symbolsize)
 
-	PadToBeginningOfBlock(stream, 14)
+	PadToBeginningOfBlock(stream, 16)
 	WritePDBStrings(stream)
 	
 	// Pad to the end of the file
@@ -427,8 +429,10 @@ WriteDirectory : PDBOutputStream ref stream
 	ByteStreamEmitInteger(directory, directorysize, stream.Layout.Directory.Globals.Blocks.value)
 	ByteStreamEmitInteger(directory, directorysize, stream.Layout.Directory.Publics.Blocks.value)
 	ByteStreamEmitInteger(directory, directorysize, stream.Layout.Directory.Symbols.Blocks.value)
+	ByteStreamEmitInteger(directory, directorysize, 13)
+	ByteStreamEmitInteger(directory, directorysize, 14)
 	ByteStreamEmitInteger(directory, directorysize, stream.Layout.Directory.AdditionalStreams.value.Blocks.value)
-	ByteStreamEmitInteger(directory, directorysize, 14)		// TODO
+	ByteStreamEmitInteger(directory, directorysize, 16)		// TODO
 	
 	integer written = 0
 	WriteFile(stream.FileHandle, directory, directorysize, written, 0)
@@ -1085,7 +1089,7 @@ WritePublicsStream : Win32Handle pdbfilehandle, integer startfileposition -> int
 	buffer header = 1024
 	integer headersize = 0
 	
-	ByteStreamEmitInteger(header, headersize, 32 + 516)		// hash
+	ByteStreamEmitInteger(header, headersize, 32 + 516 + 192)		// hash
 	ByteStreamEmitInteger(header, headersize, 4)		// address map
 	ByteStreamEmitInteger(header, headersize, 30)		// num thunks
 	ByteStreamEmitInteger(header, headersize, 8)		// size of thunk
@@ -1098,17 +1102,17 @@ WritePublicsStream : Win32Handle pdbfilehandle, integer startfileposition -> int
 	ByteStreamEmitInteger(header, headersize, 0xffffffff)				// signature
 	ByteStreamEmitInteger(header, headersize, 0xeffe0000 + 19990810)	// version
 	ByteStreamEmitInteger(header, headersize, 16)						// number of bytes of HRFiles
-	ByteStreamEmitInteger(header, headersize, 516)						// number of bytes in buckets
+	ByteStreamEmitInteger(header, headersize, 516 + 192)				// number of bytes in buckets
 
 	// HRFiles
-	ByteStreamEmitInteger(header, headersize, 0xab)
-	ByteStreamEmitInteger(header, headersize, 0xbc)
+	ByteStreamEmitInteger(header, headersize, 4)
+	ByteStreamEmitInteger(header, headersize, 1)
 
-	ByteStreamEmitInteger(header, headersize, 0xcd)
-	ByteStreamEmitInteger(header, headersize, 0xef)
+	ByteStreamEmitInteger(header, headersize, 4)
+	ByteStreamEmitInteger(header, headersize, 2)
 	
 	// Magic bitmap
-	ByteStreamEmitByte(header, headersize, 0)
+	ByteStreamEmitByte(header, headersize, 1)
 	ByteStreamEmitByte(header, headersize, 0)
 
 	integer count = 0
@@ -1119,85 +1123,100 @@ WritePublicsStream : Win32Handle pdbfilehandle, integer startfileposition -> int
 		++count
 	}
 
-	ByteStreamEmitInteger(header, headersize, 0xc0)
-	ByteStreamEmitInteger(header, headersize, 0xc0)
-	ByteStreamEmitInteger(header, headersize, 0xc0)
-	ByteStreamEmitInteger(header, headersize, 0xc0)
+	ByteStreamEmitInteger(header, headersize, 0xe)
+	ByteStreamEmitInteger(header, headersize, 0xc1)
+	ByteStreamEmitInteger(header, headersize, 0xc2)
+	ByteStreamEmitInteger(header, headersize, 0xc3)
 
-	ByteStreamEmitInteger(header, headersize, 0xc0)
-	ByteStreamEmitInteger(header, headersize, 0xc0)
-	ByteStreamEmitInteger(header, headersize, 0xc0)
-	ByteStreamEmitInteger(header, headersize, 0xc0)
+	ByteStreamEmitInteger(header, headersize, 0xc4)
+	ByteStreamEmitInteger(header, headersize, 0xc5)
+	ByteStreamEmitInteger(header, headersize, 0xc6)
+	ByteStreamEmitInteger(header, headersize, 0xc7)
 	
-	ByteStreamEmitInteger(header, headersize, 0xc0)
-	ByteStreamEmitInteger(header, headersize, 0xc0)
-	ByteStreamEmitInteger(header, headersize, 0xc0)
-	ByteStreamEmitInteger(header, headersize, 0xc0)
+	ByteStreamEmitInteger(header, headersize, 0xc8)
+	ByteStreamEmitInteger(header, headersize, 0xc9)
+	ByteStreamEmitInteger(header, headersize, 0xca)
+	ByteStreamEmitInteger(header, headersize, 0xcb)
 	
-	ByteStreamEmitInteger(header, headersize, 0xc0)
-	ByteStreamEmitInteger(header, headersize, 0xc0)
-	ByteStreamEmitInteger(header, headersize, 0xc0)
-	ByteStreamEmitInteger(header, headersize, 0xc0)
+	ByteStreamEmitInteger(header, headersize, 0xcc)
+	ByteStreamEmitInteger(header, headersize, 0xcd)
+	ByteStreamEmitInteger(header, headersize, 0xce)
+	ByteStreamEmitInteger(header, headersize, 0xcf)
 
-	ByteStreamEmitInteger(header, headersize, 0xc0)
-	ByteStreamEmitInteger(header, headersize, 0xc0)
-	ByteStreamEmitInteger(header, headersize, 0xc0)
-	ByteStreamEmitInteger(header, headersize, 0xc0)
+	ByteStreamEmitInteger(header, headersize, 0xd0)
+	ByteStreamEmitInteger(header, headersize, 0xd1)
+	ByteStreamEmitInteger(header, headersize, 0xd2)
+	ByteStreamEmitInteger(header, headersize, 0xd3)
 
-	ByteStreamEmitInteger(header, headersize, 0xc0)
-	ByteStreamEmitInteger(header, headersize, 0xc0)
-	ByteStreamEmitInteger(header, headersize, 0xc0)
-	ByteStreamEmitInteger(header, headersize, 0xc0)
+	ByteStreamEmitInteger(header, headersize, 0xd4)
+	ByteStreamEmitInteger(header, headersize, 0xd5)
+	ByteStreamEmitInteger(header, headersize, 0xd6)
+	ByteStreamEmitInteger(header, headersize, 0xd7)
 	
-	ByteStreamEmitInteger(header, headersize, 0xc0)
-	ByteStreamEmitInteger(header, headersize, 0xc0)
-	ByteStreamEmitInteger(header, headersize, 0xc0)
-	ByteStreamEmitInteger(header, headersize, 0xc0)
+	ByteStreamEmitInteger(header, headersize, 0xd8)
+	ByteStreamEmitInteger(header, headersize, 0xd9)
+	ByteStreamEmitInteger(header, headersize, 0xda)
+	ByteStreamEmitInteger(header, headersize, 0xdb)
 	
-	ByteStreamEmitInteger(header, headersize, 0xc0)
-	ByteStreamEmitInteger(header, headersize, 0xc0)
-	ByteStreamEmitInteger(header, headersize, 0xc0)
-	ByteStreamEmitInteger(header, headersize, 0xc0)
+	ByteStreamEmitInteger(header, headersize, 0xdc)
+	ByteStreamEmitInteger(header, headersize, 0xdd)
+	ByteStreamEmitInteger(header, headersize, 0xde)
+	ByteStreamEmitInteger(header, headersize, 0xdf)
 
-	ByteStreamEmitInteger(header, headersize, 0xc0)
-	ByteStreamEmitInteger(header, headersize, 0xc0)
-	ByteStreamEmitInteger(header, headersize, 0xc0)
-	ByteStreamEmitInteger(header, headersize, 0xc0)
+	ByteStreamEmitInteger(header, headersize, 0xe0)
+	ByteStreamEmitInteger(header, headersize, 0xe1)
+	ByteStreamEmitInteger(header, headersize, 0xe2)
+	ByteStreamEmitInteger(header, headersize, 0xe3)
 
-	ByteStreamEmitInteger(header, headersize, 0xc0)
-	ByteStreamEmitInteger(header, headersize, 0xc0)
-	ByteStreamEmitInteger(header, headersize, 0xc0)
-	ByteStreamEmitInteger(header, headersize, 0xc0)
+	ByteStreamEmitInteger(header, headersize, 0xe4)
+	ByteStreamEmitInteger(header, headersize, 0xe5)
+	ByteStreamEmitInteger(header, headersize, 0xe6)
+	ByteStreamEmitInteger(header, headersize, 0xe7)
 	
-	ByteStreamEmitInteger(header, headersize, 0xc0)
-	ByteStreamEmitInteger(header, headersize, 0xc0)
-	ByteStreamEmitInteger(header, headersize, 0xc0)
-	ByteStreamEmitInteger(header, headersize, 0xc0)
+	ByteStreamEmitInteger(header, headersize, 0xe8)
+	ByteStreamEmitInteger(header, headersize, 0xe9)
+	ByteStreamEmitInteger(header, headersize, 0xea)
+	ByteStreamEmitInteger(header, headersize, 0xeb)
 	
-	ByteStreamEmitInteger(header, headersize, 0xc0)
-	ByteStreamEmitInteger(header, headersize, 0xc0)
-	ByteStreamEmitInteger(header, headersize, 0xc0)
-	ByteStreamEmitInteger(header, headersize, 0xc0)
+	ByteStreamEmitInteger(header, headersize, 0xec)
+	ByteStreamEmitInteger(header, headersize, 0xed)
+	ByteStreamEmitInteger(header, headersize, 0xee)
+	ByteStreamEmitInteger(header, headersize, 0xef)
 
-	ByteStreamEmitInteger(header, headersize, 0xc0)
-	ByteStreamEmitInteger(header, headersize, 0xc0)
-	ByteStreamEmitInteger(header, headersize, 0xc0)
-	ByteStreamEmitInteger(header, headersize, 0xc0)
+	ByteStreamEmitInteger(header, headersize, 0xf0)
+	ByteStreamEmitInteger(header, headersize, 0xf1)
+	ByteStreamEmitInteger(header, headersize, 0xf2)
+	ByteStreamEmitInteger(header, headersize, 0xf3)
 
-	ByteStreamEmitInteger(header, headersize, 0xc0)
-	ByteStreamEmitInteger(header, headersize, 0xc0)
-	ByteStreamEmitInteger(header, headersize, 0xc0)
-	ByteStreamEmitInteger(header, headersize, 0xc0)
+	ByteStreamEmitInteger(header, headersize, 0xf4)
+	ByteStreamEmitInteger(header, headersize, 0xf5)
+	ByteStreamEmitInteger(header, headersize, 0xf6)
+	ByteStreamEmitInteger(header, headersize, 0xf7)
 	
-	ByteStreamEmitInteger(header, headersize, 0xc0)
-	ByteStreamEmitInteger(header, headersize, 0xc0)
-	ByteStreamEmitInteger(header, headersize, 0xc0)
-	ByteStreamEmitInteger(header, headersize, 0xc0)
+	ByteStreamEmitInteger(header, headersize, 0xf8)
+	ByteStreamEmitInteger(header, headersize, 0xf9)
+	ByteStreamEmitInteger(header, headersize, 0xfa)
+	ByteStreamEmitInteger(header, headersize, 0xfb)
 	
-	ByteStreamEmitInteger(header, headersize, 0xc0)
-	ByteStreamEmitInteger(header, headersize, 0xc0)
-	ByteStreamEmitInteger(header, headersize, 0xc0)
-	ByteStreamEmitInteger(header, headersize, 0xc0)
+	ByteStreamEmitInteger(header, headersize, 0xfc)
+	ByteStreamEmitInteger(header, headersize, 0xfd)
+	ByteStreamEmitInteger(header, headersize, 0xfe)
+	ByteStreamEmitInteger(header, headersize, 0xff)
+	
+	ByteStreamEmitInteger(header, headersize, 0x10)
+	ByteStreamEmitInteger(header, headersize, 0x11)
+	ByteStreamEmitInteger(header, headersize, 0x12)
+	ByteStreamEmitInteger(header, headersize, 0x13)
+	
+	ByteStreamEmitInteger(header, headersize, 0x14)
+	ByteStreamEmitInteger(header, headersize, 0x15)
+	ByteStreamEmitInteger(header, headersize, 0x16)
+	ByteStreamEmitInteger(header, headersize, 0x17)
+	
+	ByteStreamEmitInteger(header, headersize, 0x18)
+	ByteStreamEmitInteger(header, headersize, 0x19)
+	ByteStreamEmitInteger(header, headersize, 0x1a)
+	ByteStreamEmitInteger(header, headersize, 0x1b)
 		
 
 	integer written = 0
@@ -1209,19 +1228,29 @@ WritePublicsStream : Win32Handle pdbfilehandle, integer startfileposition -> int
 }
 
 
-WriteSymbolRecordsStream : Win32Handle pdbfilehandle, integer startfileposition, integer codesectionstart, integer codesize -> integer endfileposition = 0
+WriteSymbolRecordsStream : PDBOutputStream ref stream, DBIModule ref module
 {
-	buffer symbols = 1024
-	integer symbolssize = 0
-
-
-	SymbolSection sectionsymbol = 9, 0, codesize, 0x60000020, ".text"
-	ByteStreamEmitSymbol(symbols, symbolssize, sectionsymbol)
-
-
+	//buffer header = 4
+	//integer headersize = 0
+	//
+	//ByteStreamEmitInteger(header, headersize, 4)
+	//
+	//integer written = 0
+	//WriteFile(stream.FileHandle, header, headersize, written, 0)
+	//
+	//stream.FilePosition = stream.FilePosition + written
+	
+	
+	
+	buffer symboldata = module.SymbolSize + 1024
+	integer symboldatasize = 0
+	ByteStreamEmitSymbolList(symboldata, symboldatasize, module.Symbols)
+	
 	integer written = 0
-	WriteFile(pdbfilehandle, symbols, symbolssize, written, 0)
-	endfileposition = startfileposition + written
+	WriteFile(stream.FileHandle, symboldata, symboldatasize, written, 0)
+	stream.FilePosition = stream.FilePosition + written
+
+	print(cast(string, written) ; " bytes of symbol records")
 }
 
 
