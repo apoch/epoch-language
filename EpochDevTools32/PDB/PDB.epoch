@@ -262,27 +262,27 @@ WritePDB : PDBOutputStream ref stream, integer codesectionstart, integer codesiz
 	stream.FilePosition = WritePDBInfoStream(stream.FileHandle, stream.FilePosition)
 	
 	// Move up and write the TPI stream
-	PadToBeginningOfBlock(stream, stream.Layout.Directory.TPI.Blocks.value)
+	PadGarbageToBeginningOfBlock(stream, stream.Layout.Directory.TPI.Blocks.value)
 	stream.FilePosition = WriteTPIStream(stream.FileHandle, stream.FilePosition)
 	
 	// Move up and write the DBI stream
-	PadToBeginningOfBlock(stream, stream.Layout.Directory.DBI.Blocks.value)
+	PadGarbageToBeginningOfBlock(stream, stream.Layout.Directory.DBI.Blocks.value)
 	WriteDBIStream(stream)
 
 	// Move up and write the IPI stream
-	PadToBeginningOfBlock(stream, stream.Layout.Directory.IPI.Blocks.value)
+	PadGarbageToBeginningOfBlock(stream, stream.Layout.Directory.IPI.Blocks.value)
 	stream.FilePosition = WriteIPIStream(stream.FileHandle, stream.FilePosition)
 
 	// Move up and write the globals (DBI) stream
-	PadToBeginningOfBlock(stream, stream.Layout.Directory.Globals.Blocks.value)
+	PadGarbageToBeginningOfBlock(stream, stream.Layout.Directory.Globals.Blocks.value)
 	stream.FilePosition = WriteGlobalsStream(stream.FileHandle, stream.FilePosition)
 	
 	// Move up and write the publics (DBI) stream
-	PadToBeginningOfBlock(stream, stream.Layout.Directory.Publics.Blocks.value)
+	PadGarbageToBeginningOfBlock(stream, stream.Layout.Directory.Publics.Blocks.value)
 	stream.FilePosition = WritePublicsStream(stream.FileHandle, stream.FilePosition)
 	
 	// Move up and write the symbol records (DBI) stream
-	PadToBeginningOfBlock(stream, stream.Layout.Directory.Symbols.Blocks.value)
+	PadGarbageToBeginningOfBlock(stream, stream.Layout.Directory.Symbols.Blocks.value)
 	WriteSymbolRecordsStream(stream, stream.DBI.Modules.value)
 
 	PadGarbageToBeginningOfBlock(stream, 15)
@@ -291,11 +291,11 @@ WritePDB : PDBOutputStream ref stream, integer codesectionstart, integer codesiz
 	PadToBeginningOfBlock(stream, 15)
 	WriteDBIModuleSymbols(stream, stream.DBI.Modules.value, symbolstart, symbolsize)
 
-	PadToBeginningOfBlock(stream, 16)
+	PadGarbageToBeginningOfBlock(stream, 16)
 	WritePDBStrings(stream)
 	
 	// Pad to the end of the file
-	PadToBeginningOfBlock(stream, stream.Layout.BlockCount + 1)		// TODO
+	PadGarbageToBeginningOfBlock(stream, stream.Layout.BlockCount + 1)		// TODO
 
 	CloseHandle(stream.FileHandle)
 }
@@ -1105,11 +1105,11 @@ WritePublicsStream : Win32Handle pdbfilehandle, integer startfileposition -> int
 	ByteStreamEmitInteger(header, headersize, 516 + 192)				// number of bytes in buckets
 
 	// HRFiles
-	ByteStreamEmitInteger(header, headersize, 4)
 	ByteStreamEmitInteger(header, headersize, 1)
+	ByteStreamEmitInteger(header, headersize, 0)
 
-	ByteStreamEmitInteger(header, headersize, 4)
-	ByteStreamEmitInteger(header, headersize, 2)
+	ByteStreamEmitInteger(header, headersize, 1)
+	ByteStreamEmitInteger(header, headersize, 0)
 	
 	// Magic bitmap
 	ByteStreamEmitByte(header, headersize, 1)
@@ -1123,7 +1123,7 @@ WritePublicsStream : Win32Handle pdbfilehandle, integer startfileposition -> int
 		++count
 	}
 
-	ByteStreamEmitInteger(header, headersize, 0xe)
+	ByteStreamEmitInteger(header, headersize, 0)
 	ByteStreamEmitInteger(header, headersize, 0xc1)
 	ByteStreamEmitInteger(header, headersize, 0xc2)
 	ByteStreamEmitInteger(header, headersize, 0xc3)
@@ -1241,10 +1241,23 @@ WriteSymbolRecordsStream : PDBOutputStream ref stream, DBIModule ref module
 	//stream.FilePosition = stream.FilePosition + written
 	
 	
+
+
 	
-	buffer symboldata = module.SymbolSize + 1024
+	buffer symboldata = 4096
 	integer symboldatasize = 0
-	ByteStreamEmitSymbolList(symboldata, symboldatasize, module.Symbols)
+	//ByteStreamEmitSymbolList(symboldata, symboldatasize, symgarbagelist)
+
+	while(symboldatasize < 2500)
+	{
+		ByteStreamEmitInteger16(symboldata, symboldatasize, 17)
+		ByteStreamEmitInteger16(symboldata, symboldatasize, 0x110e)
+		ByteStreamEmitInteger(symboldata, symboldatasize, 0)
+		ByteStreamEmitInteger(symboldata, symboldatasize, 0)
+		ByteStreamEmitInteger16(symboldata, symboldatasize, 9)
+		ByteStreamEmitStringNarrow(symboldata, symboldatasize, "init")
+		ByteStreamEmitByte(symboldata, symboldatasize, 0)
+	}
 	
 	integer written = 0
 	WriteFile(stream.FileHandle, symboldata, symboldatasize, written, 0)

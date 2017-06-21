@@ -382,7 +382,7 @@ WriteGarbage : Win32Handle filehandle, integer startpos, integer desiredpos -> i
 	integer i = 0
 	while(i < writtenbytes)
 	{
-		ByteStreamEmitByte(empty, i, 0xc0)
+		ByteStreamEmitByte(empty, i, 0xf)
 		++i
 	}
 
