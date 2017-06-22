@@ -1209,8 +1209,8 @@ GeneratePDB : string pdbfilename, buffer ref symboldata, integer symbolsize, int
 	PDBStream dbi = simplelist<integer>(8, nothing), 64 + dbimodinfolen + dbicontribslen + sectionmapsize + dbilineslen + dbifileslen // TODO - real DBI stream
 	PDBStream ipi = simplelist<integer>(9, nothing), 56					// TODO - real IPI stream (?)
 	PDBStream globals = simplelist<integer>(10, nothing), 44 + 516		// TODO - real globals stream
-	PDBStream publics = simplelist<integer>(11, nothing), 776			// TODO - real publics stream
-	PDBStream symbols = simplelist<integer>(12, nothing), 2500			// TODO - real symbol records size
+	PDBStream publics = simplelist<integer>(11, nothing), 784			// TODO - real publics stream
+	PDBStream symbols = simplelist<integer>(12, nothing), 4096 * 3			// TODO - real symbol records size
 	
 	simplelist<integer> hackblocks = 15, nothing
 
@@ -1225,7 +1225,7 @@ GeneratePDB : string pdbfilename, buffer ref symboldata, integer symbolsize, int
 
 	
 	Win32Handle invalidhandle = -1
-	PDBFileLayout layout = 1024, 17, directoryhint, directorystream, pdbdir
+	PDBFileLayout layout = 4096, 17, directoryhint, directorystream, pdbdir
 	PDBOutputStream stream = pdbfilename, invalidhandle, 0, layout, dbisection
 
 	print("Final canary before we write PDB")

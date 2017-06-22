@@ -93,3 +93,5 @@ EpochBGFXWrapper/EpochBGFXWrapper/Debug/**
 /EpochDevTools32/ipch/EPOCHPDBSHIM-79fc71c3
 /EpochTests/PDBTest/PDBTest.VC.db
 /EpochTests/PDBTest/bin/Debug
+/Tools/MSFViewer/bin/Debug
+/Tools/MSFViewer/obj/Debug
