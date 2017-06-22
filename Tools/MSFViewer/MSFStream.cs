@@ -17,6 +17,20 @@ namespace MSFViewer
             FlattenedBuffer = rawbuffer;
         }
 
+        public MSFStream(byte[] entirefile, int streamsize, List<int> blocks, int blocksize)
+        {
+            FlattenedBuffer = new byte[streamsize];
+            int writeindex = 0;
+
+            for (int i = 0; i < blocks.Count - 1; ++i)
+            {
+                Array.Copy(entirefile, blocks[i] * blocksize, FlattenedBuffer, writeindex, blocksize);
+                writeindex += blocksize;
+            }
+
+            Array.Copy(entirefile, blocks[blocks.Count - 1] * blocksize, FlattenedBuffer, writeindex, streamsize % blocksize);
+        }
+
         public override string ToString()
         {
             return Name;

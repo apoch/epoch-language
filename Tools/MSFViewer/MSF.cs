@@ -33,6 +33,7 @@ namespace MSFViewer
         private int BlockCount = 0;
         private int DirectoryStreamLength = 0;
         private int HintBlock = 0;
+        private int StreamCount = 0;
 
         private void ParseMagic()
         {
@@ -59,7 +60,6 @@ namespace MSFViewer
 
         private void ParseSuperBlock()
         {
-            // TODO - parse superblock headers etc.
             BlockSize = ExtractInt32();
             FreeBlockMapIndex = ExtractInt32();
             BlockCount = ExtractInt32();
@@ -81,7 +81,34 @@ namespace MSFViewer
 
         private void ParseDirectory()
         {
-            // TODO
+            ReadOffset = BlockSize * DirectoryBlock;
+            StreamCount = ExtractInt32();
+
+            var streamsizes = new int[StreamCount];
+            for (int i = 0; i < StreamCount; ++i)
+            {
+                streamsizes[i] = ExtractInt32();
+            }
+
+            var blocks = new List<List<int>>();
+            for (int i = 0; i < StreamCount; ++i)
+            {
+                int extrablocks = streamsizes[i] / BlockSize;
+
+                var blocklist = new List<int>();
+                if (streamsizes[i] % BlockSize > 0)
+                    blocklist.Add(ExtractInt32());
+
+                for (int j = 0; j < extrablocks; ++j)
+                    blocklist.Add(ExtractInt32());
+
+                blocks.Add(blocklist);
+            }
+
+            for (int i = 0; i < StreamCount; ++i)
+            {
+                Streams.Add(new MSFStream(EntireFile.GetFlattenedBuffer(), streamsizes[i], blocks[i], BlockSize));
+            }
         }
 
 
