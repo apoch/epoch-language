@@ -37,11 +37,11 @@
             this.StreamListBox = new System.Windows.Forms.ListBox();
             this.TabStrip = new System.Windows.Forms.TabControl();
             this.TabAnalysis = new System.Windows.Forms.TabPage();
-            this.TabBytes = new System.Windows.Forms.TabPage();
-            this.ByteEditorPanel = new System.Windows.Forms.Panel();
             this.AnalysisListView = new System.Windows.Forms.ListView();
             this.ColumnHeaderDescription = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.ColumnHeaderValue = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.TabBytes = new System.Windows.Forms.TabPage();
+            this.ByteEditorPanel = new System.Windows.Forms.Panel();
             this.MainFormMenuStrip.SuspendLayout();
             this.TabStrip.SuspendLayout();
             this.TabAnalysis.SuspendLayout();
@@ -71,19 +71,19 @@
             // openToolStripMenuItem
             // 
             this.openToolStripMenuItem.Name = "openToolStripMenuItem";
-            this.openToolStripMenuItem.Size = new System.Drawing.Size(152, 22);
+            this.openToolStripMenuItem.Size = new System.Drawing.Size(112, 22);
             this.openToolStripMenuItem.Text = "&Open...";
             this.openToolStripMenuItem.Click += new System.EventHandler(this.openToolStripMenuItem_Click);
             // 
             // toolStripMenuItem1
             // 
             this.toolStripMenuItem1.Name = "toolStripMenuItem1";
-            this.toolStripMenuItem1.Size = new System.Drawing.Size(149, 6);
+            this.toolStripMenuItem1.Size = new System.Drawing.Size(109, 6);
             // 
             // exitToolStripMenuItem
             // 
             this.exitToolStripMenuItem.Name = "exitToolStripMenuItem";
-            this.exitToolStripMenuItem.Size = new System.Drawing.Size(152, 22);
+            this.exitToolStripMenuItem.Size = new System.Drawing.Size(112, 22);
             this.exitToolStripMenuItem.Text = "E&xit";
             this.exitToolStripMenuItem.Click += new System.EventHandler(this.exitToolStripMenuItem_Click);
             // 
@@ -126,27 +126,6 @@
             this.TabAnalysis.Text = "Analysis";
             this.TabAnalysis.UseVisualStyleBackColor = true;
             // 
-            // TabBytes
-            // 
-            this.TabBytes.Controls.Add(this.ByteEditorPanel);
-            this.TabBytes.Location = new System.Drawing.Point(4, 22);
-            this.TabBytes.Name = "TabBytes";
-            this.TabBytes.Padding = new System.Windows.Forms.Padding(3);
-            this.TabBytes.Size = new System.Drawing.Size(815, 570);
-            this.TabBytes.TabIndex = 1;
-            this.TabBytes.Text = "Hex Viewer";
-            this.TabBytes.UseVisualStyleBackColor = true;
-            // 
-            // ByteEditorPanel
-            // 
-            this.ByteEditorPanel.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
-            | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-            this.ByteEditorPanel.Location = new System.Drawing.Point(6, 6);
-            this.ByteEditorPanel.Name = "ByteEditorPanel";
-            this.ByteEditorPanel.Size = new System.Drawing.Size(806, 558);
-            this.ByteEditorPanel.TabIndex = 1;
-            // 
             // AnalysisListView
             // 
             this.AnalysisListView.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
@@ -171,7 +150,28 @@
             // ColumnHeaderValue
             // 
             this.ColumnHeaderValue.Text = "Value";
-            this.ColumnHeaderValue.Width = 100;
+            this.ColumnHeaderValue.Width = 250;
+            // 
+            // TabBytes
+            // 
+            this.TabBytes.Controls.Add(this.ByteEditorPanel);
+            this.TabBytes.Location = new System.Drawing.Point(4, 22);
+            this.TabBytes.Name = "TabBytes";
+            this.TabBytes.Padding = new System.Windows.Forms.Padding(3);
+            this.TabBytes.Size = new System.Drawing.Size(815, 570);
+            this.TabBytes.TabIndex = 1;
+            this.TabBytes.Text = "Hex Viewer";
+            this.TabBytes.UseVisualStyleBackColor = true;
+            // 
+            // ByteEditorPanel
+            // 
+            this.ByteEditorPanel.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this.ByteEditorPanel.Location = new System.Drawing.Point(6, 6);
+            this.ByteEditorPanel.Name = "ByteEditorPanel";
+            this.ByteEditorPanel.Size = new System.Drawing.Size(806, 558);
+            this.ByteEditorPanel.TabIndex = 1;
             // 
             // MainForm
             // 

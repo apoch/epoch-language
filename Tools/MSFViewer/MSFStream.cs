@@ -119,5 +119,13 @@ namespace MSFViewer
 
             return BitConverter.ToInt32(bytes, 0);
         }
+
+        protected Guid ExtractGuid()
+        {
+            var bytes = FlattenedBuffer.Skip(ReadOffset).Take(16).ToArray();
+            ReadOffset += 16;
+
+            return new Guid(bytes);
+        }
     }
 }

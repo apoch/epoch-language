@@ -123,7 +123,20 @@ namespace MSFViewer
 
             for (int i = 0; i < StreamCount; ++i)
             {
-                Streams.Add(new MSFStream(i, FlattenedBuffer, streamsizes[i], blocks[i], BlockSize));
+                switch (i)
+                {
+                    case 0:
+                        Streams.Add(new MSFStream(i, FlattenedBuffer, streamsizes[i], blocks[i], BlockSize));
+                        break;
+
+                    case 1:
+                        Streams.Add(new MSFStreamPDBInfo(i, FlattenedBuffer, streamsizes[i], blocks[i], BlockSize));
+                        break;
+
+                    default:
+                        Streams.Add(new MSFStream(i, FlattenedBuffer, streamsizes[i], blocks[i], BlockSize));
+                        break;
+                }
             }
         }
     }
