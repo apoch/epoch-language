@@ -51,7 +51,11 @@ namespace MSFViewer
         {
             if (StreamListBox.SelectedIndex >= 0)
             {
-                ByteEditorControl.SetBytes((StreamListBox.SelectedItem as MSFStream).GetFlattenedBuffer());
+                var bytes = (StreamListBox.SelectedItem as MSFStream).GetFlattenedBuffer();
+                if (bytes != null)
+                    ByteEditorControl.SetBytes(bytes);
+                else
+                    ByteEditorControl.SetBytes(new byte[0]);
             }
         }
     }

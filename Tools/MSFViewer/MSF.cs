@@ -107,7 +107,7 @@ namespace MSFViewer
 
             for (int i = 0; i < StreamCount; ++i)
             {
-                Streams.Add(new MSFStream(EntireFile.GetFlattenedBuffer(), streamsizes[i], blocks[i], BlockSize));
+                Streams.Add(new MSFStream(i, EntireFile.GetFlattenedBuffer(), streamsizes[i], blocks[i], BlockSize));
             }
         }
 
