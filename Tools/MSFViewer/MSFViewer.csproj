@@ -55,6 +55,7 @@
     </Compile>
     <Compile Include="MSF.cs" />
     <Compile Include="MSFStream.cs" />
+    <Compile Include="MSFStreamEntireFile.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <EmbeddedResource Include="MainForm.resx">

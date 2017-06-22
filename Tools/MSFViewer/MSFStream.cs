@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows.Forms;
 
 namespace MSFViewer
 {
@@ -10,7 +11,8 @@ namespace MSFViewer
     {
         public string Name = "(Unknown)";
 
-        private byte[] FlattenedBuffer = null;
+        protected byte[] FlattenedBuffer = null;
+        protected int ReadOffset = 0;
 
         public MSFStream(byte[] rawbuffer)
         {
@@ -66,9 +68,56 @@ namespace MSFViewer
             return Name;
         }
 
+        public void PopulateAnalysis(ListView lvw)
+        {
+            lvw.Items.Clear();
+            lvw.Groups.Clear();
+            var metagroup = lvw.Groups.Add("meta", "Metadata");
+
+            string datasize = (FlattenedBuffer != null) ? $"{FlattenedBuffer.Length}" : "0";
+            AddAnalysisItem(lvw, "Size of data", datasize, metagroup);
+
+            SubclassPopulateAnalysis(lvw);
+        }
+
+        protected virtual void SubclassPopulateAnalysis(ListView lvw)
+        {
+        }
+
+        protected void AddAnalysisItem(ListView lvw, string desc, string value, ListViewGroup group)
+        {
+            var item = new ListViewItem(new string[] { desc, value });
+            item.Group = group;
+            lvw.Items.Add(item);
+        }
+
         public byte[] GetFlattenedBuffer()
         {
             return FlattenedBuffer;
+        }
+
+        protected string ExtractStringWithLength(int length)
+        {
+            var ret = Encoding.ASCII.GetString(FlattenedBuffer.Skip(ReadOffset).Take(length).ToArray());
+            ReadOffset += length;
+
+            return ret;
+        }
+
+        protected byte ExtractByte()
+        {
+            var ret = FlattenedBuffer[ReadOffset];
+            ++ReadOffset;
+
+            return ret;
+        }
+
+        protected int ExtractInt32()
+        {
+            var bytes = FlattenedBuffer.Skip(ReadOffset).Take(4).ToArray();
+            ReadOffset += 4;
+
+            return BitConverter.ToInt32(bytes, 0);
         }
     }
 }

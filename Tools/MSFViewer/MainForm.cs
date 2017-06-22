@@ -38,7 +38,7 @@ namespace MSFViewer
 
                 StreamListBox.Items.Clear();
                 StreamListBox.Items.Add(EditingMSF.EntireFile);
-                foreach (var stream in EditingMSF.Streams)
+                foreach (var stream in EditingMSF.EntireFile.Streams)
                 {
                     StreamListBox.Items.Add(stream);
                 }
@@ -51,11 +51,14 @@ namespace MSFViewer
         {
             if (StreamListBox.SelectedIndex >= 0)
             {
-                var bytes = (StreamListBox.SelectedItem as MSFStream).GetFlattenedBuffer();
+                var stream = (StreamListBox.SelectedItem as MSFStream);
+                var bytes = stream.GetFlattenedBuffer();
                 if (bytes != null)
                     ByteEditorControl.SetBytes(bytes);
                 else
                     ByteEditorControl.SetBytes(new byte[0]);
+
+                stream.PopulateAnalysis(AnalysisListView);
             }
         }
     }
