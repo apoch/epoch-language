@@ -13,12 +13,13 @@ namespace MSFViewer
             : base(streamindex, entirefile, streamsize, blocks, blocksize)
         {
             Mods = new List<Mod>();
+            Contributions = new List<SectionContribution>();
 
             ParseHeaders();
             ParseModules();
+            ParseSectionContributions();
 
             // TODO
-            //ParseSectionContributions();
             //ParseSectionMap();
             //ParseFiles();
         }
@@ -41,8 +42,21 @@ namespace MSFViewer
             public string ObjectFileName;
         }
 
-        private List<Mod> Mods;
+        private class SectionContribution
+        {
+            public short SectionIndex;
+            public short Padding1;
+            public int Offset;
+            public int Size;
+            public int Characteristics;
+            public short ModuleIndex;
+            public short Padding2;
+            public int DataCRC;
+            public int RelocationCRC;
+        }
 
+        private List<Mod> Mods;
+        private List<SectionContribution> Contributions;
 
         private int Signature;
         private int Version;
@@ -69,6 +83,8 @@ namespace MSFViewer
         private short MachineType;
 
         private int Padding1;
+
+        private uint SCVersion;
 
 
         protected override void SubclassPopulateAnalysis(ListView lvw)
@@ -102,10 +118,12 @@ namespace MSFViewer
             AddAnalysisItem(lvw, "Machine type", $"{MachineType} (0x{MachineType:X})", miscgroup);
             AddAnalysisItem(lvw, "MFC type server index", $"{MFCTypeServerIndex}", miscgroup);
             AddAnalysisItem(lvw, "Padding (1)", $"{Padding1} (0x{Padding1:X})", miscgroup);
+            AddAnalysisItem(lvw, "Section contribution version", $"{SCVersion} ({SCVersion - 0xeffe0000})", miscgroup);
 
+            int i = 0;
             foreach (var mod in Mods)
             {
-                var group = lvw.Groups.Add(mod.SourceFileName, $"Module ({mod.SourceFileName})");
+                var group = lvw.Groups.Add($"mod{i}", $"Module {i} ({mod.SourceFileName})");
                 AddAnalysisItem(lvw, "Mystery header", $"{mod.UnusedModuleHeader} (0x{mod.UnusedModuleHeader:X})", group);
                 AddAnalysisItem(lvw, "Flags", $"{mod.Flags} (0x{mod.Flags:X})", group);
                 AddAnalysisItem(lvw, "Stream number", $"{mod.StreamNumber}", group);
@@ -119,6 +137,25 @@ namespace MSFViewer
                 AddAnalysisItem(lvw, "PDB path index", $"{mod.PDBPathIndex} (0x{mod.PDBPathIndex:X})", group);
                 AddAnalysisItem(lvw, "Source file name", $"{mod.SourceFileName}", group);
                 AddAnalysisItem(lvw, "Object file name", $"{mod.ObjectFileName}", group);
+
+                ++i;
+            }
+
+            i = 0;
+            foreach (var sc in Contributions)
+            {
+                var group = lvw.Groups.Add($"sc{i}", $"Section Contribution {i}");
+                AddAnalysisItem(lvw, "Section index", $"{sc.SectionIndex}", group);
+                AddAnalysisItem(lvw, "Padding", $"{sc.Padding1} (0x{sc.Padding1:X})", group);
+                AddAnalysisItem(lvw, "Offset", $"{sc.Offset} (0x{sc.Offset:X})", group);
+                AddAnalysisItem(lvw, "Size", $"{sc.Size} (0x{sc.Size:X})", group);
+                AddAnalysisItem(lvw, "Characteristics", $"0x{sc.Characteristics:X}", group);
+                AddAnalysisItem(lvw, "Module index", $"{sc.ModuleIndex}", group);
+                AddAnalysisItem(lvw, "Padding", $"{sc.Padding2} (0x{sc.Padding2:X})", group);
+                AddAnalysisItem(lvw, "Data CRC", $"{sc.DataCRC} (0x{sc.DataCRC:X})", group);
+                AddAnalysisItem(lvw, "Relocations CRC", $"{sc.RelocationCRC} (0x{sc.RelocationCRC:X})", group);
+
+                ++i;
             }
         }
 
@@ -155,23 +192,45 @@ namespace MSFViewer
         private void ParseModules()
         {
             int begin = ReadOffset;
-            for (int consumed = 0; consumed < ModuleSubstreamSize;)
+            while (ReadOffset - begin < ModuleSubstreamSize)
             {
                 var mod = ParseSingleModule();
                 Mods.Add(mod);
-
-                consumed = ReadOffset - begin;
             }
         }
 
-        private void ParseSectionContribution()
+        private void ParseSectionContributions()
         {
-            // TODO
-            ReadOffset += 28;
+            int begin = ReadOffset;
+
+            SCVersion = ExtractUInt32();
+
+            while (ReadOffset - begin < SectionContributionsSize)
+            {
+                var sc = ParseSectionContribution();
+                Contributions.Add(sc);
+            }
+        }
+
+        private SectionContribution ParseSectionContribution()
+        {
+            var ret = new SectionContribution();
+            ret.SectionIndex = ExtractInt16();
+            ret.Padding1 = ExtractInt16();
+            ret.Offset = ExtractInt32();
+            ret.Size = ExtractInt32();
+            ret.Characteristics = ExtractInt32();
+            ret.ModuleIndex = ExtractInt16();
+            ret.Padding2 = ExtractInt16();
+            ret.DataCRC = ExtractInt32();
+            ret.RelocationCRC = ExtractInt32();
+
+            return ret;
         }
 
         private Mod ParseSingleModule()
         {
+            int begin = ReadOffset;
             var ret = new Mod();
 
             ret.UnusedModuleHeader = ExtractInt32();
@@ -190,7 +249,8 @@ namespace MSFViewer
             ret.SourceFileName = ExtractTerminatedString();
             ret.ObjectFileName = ExtractTerminatedString();
 
-            Extract4ByteAlignment();
+            if (ReadOffset - begin < ModuleSubstreamSize)
+                Extract4ByteAlignment();
 
             return ret;
         }

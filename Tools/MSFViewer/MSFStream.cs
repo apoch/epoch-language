@@ -70,6 +70,8 @@ namespace MSFViewer
 
         public void PopulateAnalysis(ListView lvw)
         {
+            lvw.BeginUpdate();
+
             lvw.Items.Clear();
             lvw.Groups.Clear();
             var metagroup = lvw.Groups.Add("meta", "Metadata");
@@ -78,6 +80,8 @@ namespace MSFViewer
             AddAnalysisItem(lvw, "Size of data", datasize, metagroup);
 
             SubclassPopulateAnalysis(lvw);
+
+            lvw.EndUpdate();
         }
 
         protected virtual void SubclassPopulateAnalysis(ListView lvw)
@@ -158,6 +162,14 @@ namespace MSFViewer
         protected int ExtractInt32()
         {
             var ret = BitConverter.ToInt32(FlattenedBuffer, ReadOffset);
+            ReadOffset += 4;
+
+            return ret;
+        }
+
+        protected uint ExtractUInt32()
+        {
+            var ret = BitConverter.ToUInt32(FlattenedBuffer, ReadOffset);
             ReadOffset += 4;
 
             return ret;
