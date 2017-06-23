@@ -125,12 +125,12 @@ namespace MSFViewer
             {
                 switch (i)
                 {
-                    case 0:
-                        Streams.Add(new MSFStream(i, FlattenedBuffer, streamsizes[i], blocks[i], BlockSize));
-                        break;
-
                     case 1:
                         Streams.Add(new MSFStreamPDBInfo(i, FlattenedBuffer, streamsizes[i], blocks[i], BlockSize));
+                        break;
+
+                    case 3:
+                        Streams.Add(new MSFStreamDBI(i, FlattenedBuffer, streamsizes[i], blocks[i], BlockSize));
                         break;
 
                     default:

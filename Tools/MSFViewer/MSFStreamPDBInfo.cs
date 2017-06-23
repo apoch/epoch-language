@@ -42,17 +42,12 @@ namespace MSFViewer
         private int BitVector3 = 0;
         private int BitVector4 = 0;
 
-        private int StreamIndex = 0;
-
-        private int Signature2 = 0;
-
-
         protected override void SubclassPopulateAnalysis(ListView lvw)
         {
             var headergroup = lvw.Groups.Add("headers", "PDB Header Info");
-            AddAnalysisItem(lvw, "Version", $"{Version}", headergroup);
-            AddAnalysisItem(lvw, "Signature", $"{Signature}", headergroup);
-            AddAnalysisItem(lvw, "Age", $"{Age}", headergroup);
+            AddAnalysisItem(lvw, "Version", $"{Version} (0x{Version:X})", headergroup);
+            AddAnalysisItem(lvw, "Signature", $"{Signature} (0x{Signature:X})", headergroup);
+            AddAnalysisItem(lvw, "Age", $"{Age} (0x{Age:X})", headergroup);
             AddAnalysisItem(lvw, "GUID", $"{PDBGuid}", headergroup);
 
             var streamgroup = lvw.Groups.Add("streams", "Named Streams");
@@ -60,16 +55,12 @@ namespace MSFViewer
                 AddAnalysisItem(lvw, named.Name, $"{named.Index}", streamgroup);
 
             var unknowngroup = lvw.Groups.Add("stuff", "Unknown Data");
-            AddAnalysisItem(lvw, "Hash table size", $"{HashTableSize}", unknowngroup);
-            AddAnalysisItem(lvw, "Hash table capacity", $"{HashTableCapacity}", unknowngroup);
-            AddAnalysisItem(lvw, "Bit vector 1", $"{BitVector1}", unknowngroup);
-            AddAnalysisItem(lvw, "Bit vector 2", $"{BitVector2}", unknowngroup);
-            AddAnalysisItem(lvw, "Bit vector 3", $"{BitVector3}", unknowngroup);
-            AddAnalysisItem(lvw, "Bit vector 4", $"{BitVector4}", unknowngroup);
-            AddAnalysisItem(lvw, "Signature 2", $"{Signature2}", unknowngroup);
-
-            var pdbstreamgroup = lvw.Groups.Add("pdbstream", "PDB Stream");
-            AddAnalysisItem(lvw, "Stream index", $"{StreamIndex}", pdbstreamgroup);
+            AddAnalysisItem(lvw, "Hash table size", $"{HashTableSize} (0x{HashTableSize:X})", unknowngroup);
+            AddAnalysisItem(lvw, "Hash table capacity", $"{HashTableCapacity} (0x{HashTableCapacity:X})", unknowngroup);
+            AddAnalysisItem(lvw, "Bit vector 1", $"{BitVector1} (0x{BitVector1:X})", unknowngroup);
+            AddAnalysisItem(lvw, "Bit vector 2", $"{BitVector2} (0x{BitVector2:X})", unknowngroup);
+            AddAnalysisItem(lvw, "Bit vector 3", $"{BitVector3} (0x{BitVector3:X})", unknowngroup);
+            AddAnalysisItem(lvw, "Bit vector 4", $"{BitVector4} (0x{BitVector4:X})", unknowngroup);
         }
 
 
@@ -85,9 +76,10 @@ namespace MSFViewer
         private void ParseNamedStreams()
         {
             int length = ExtractInt32();
-            string name = ExtractStringWithLength(length);
+            var names = ExtractTerminatedStrings(length);
 
-            NamedStreams.Add(new NamedStream { Index = 0, Name = name });
+            foreach(var name in names)
+                NamedStreams.Add(new NamedStream { Index = 0, Name = name });
 
             // TODO - associate name with stream?
         }
@@ -105,9 +97,8 @@ namespace MSFViewer
 
         private void ParseStreamMetadata()
         {
-            StreamIndex = ExtractInt32();
-
-            Signature2 = ExtractInt32();
+            foreach(var named in NamedStreams)
+                named.Index = ExtractInt32();
         }
     }
 }

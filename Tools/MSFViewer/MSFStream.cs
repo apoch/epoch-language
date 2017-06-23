@@ -104,6 +104,28 @@ namespace MSFViewer
             return ret;
         }
 
+        protected string[] ExtractTerminatedStrings(int length)
+        {
+            var bytes = FlattenedBuffer.Skip(ReadOffset).Take(length).ToArray();
+            ReadOffset += length;
+
+            int nullcount = bytes.Count(b => (b == 0));
+            var ret = new string[nullcount];
+
+            int read = 0;
+            for (int i = 0; i < nullcount; ++i)
+            {
+                int substrend = read;
+                while ((substrend < bytes.Length) && (bytes[substrend] != 0))
+                    ++substrend;
+
+                ret[i] = Encoding.ASCII.GetString(bytes.Skip(read).Take(substrend - read).ToArray());
+                read = substrend + 1;
+            }
+
+            return ret;
+        }
+
         protected byte ExtractByte()
         {
             var ret = FlattenedBuffer[ReadOffset];
@@ -112,12 +134,20 @@ namespace MSFViewer
             return ret;
         }
 
+        protected short ExtractInt16()
+        {
+            var ret = BitConverter.ToInt16(FlattenedBuffer, ReadOffset);
+            ReadOffset += 2;
+
+            return ret;
+        }
+
         protected int ExtractInt32()
         {
-            var bytes = FlattenedBuffer.Skip(ReadOffset).Take(4).ToArray();
+            var ret = BitConverter.ToInt32(FlattenedBuffer, ReadOffset);
             ReadOffset += 4;
 
-            return BitConverter.ToInt32(bytes, 0);
+            return ret;
         }
 
         protected Guid ExtractGuid()

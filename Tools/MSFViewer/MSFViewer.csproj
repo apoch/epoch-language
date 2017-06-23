@@ -55,6 +55,7 @@
     </Compile>
     <Compile Include="MSF.cs" />
     <Compile Include="MSFStream.cs" />
+    <Compile Include="MSFStreamDBI.cs" />
     <Compile Include="MSFStreamEntireFile.cs" />
     <Compile Include="MSFStreamPDBInfo.cs" />
     <Compile Include="Program.cs" />
