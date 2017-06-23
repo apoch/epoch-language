@@ -12,14 +12,36 @@ namespace MSFViewer
         public MSFStreamDBI(int streamindex, byte[] entirefile, int streamsize, List<int> blocks, int blocksize)
             : base(streamindex, entirefile, streamsize, blocks, blocksize)
         {
+            Mods = new List<Mod>();
+
             ParseHeaders();
+            ParseModules();
 
             // TODO
-            //ParseModules();
             //ParseSectionContributions();
             //ParseSectionMap();
             //ParseFiles();
         }
+
+
+        private class Mod
+        {
+            public int UnusedModuleHeader;
+            public short Flags;
+            public short StreamNumber;
+            public int SymbolSize;
+            public int LineNumberBytes;
+            public int C13LineNumberBytes;
+            public short NumContributingFiles;
+            public short Padding;
+            public int FileNameOffset;
+            public int SourceFileNameIndex;
+            public int PDBPathIndex;
+            public string SourceFileName;
+            public string ObjectFileName;
+        }
+
+        private List<Mod> Mods;
 
 
         private int Signature;
@@ -79,7 +101,25 @@ namespace MSFViewer
             AddAnalysisItem(lvw, "Flags", $"{Flags} (0x{Flags:X})", miscgroup);
             AddAnalysisItem(lvw, "Machine type", $"{MachineType} (0x{MachineType:X})", miscgroup);
             AddAnalysisItem(lvw, "MFC type server index", $"{MFCTypeServerIndex}", miscgroup);
-            AddAnalysisItem(lvw, "Padding (1)", $"{Padding1} (0x{Padding1})", miscgroup);
+            AddAnalysisItem(lvw, "Padding (1)", $"{Padding1} (0x{Padding1:X})", miscgroup);
+
+            foreach (var mod in Mods)
+            {
+                var group = lvw.Groups.Add(mod.SourceFileName, $"Module ({mod.SourceFileName})");
+                AddAnalysisItem(lvw, "Mystery header", $"{mod.UnusedModuleHeader} (0x{mod.UnusedModuleHeader:X})", group);
+                AddAnalysisItem(lvw, "Flags", $"{mod.Flags} (0x{mod.Flags:X})", group);
+                AddAnalysisItem(lvw, "Stream number", $"{mod.StreamNumber}", group);
+                AddAnalysisItem(lvw, "Symbol size", $"{mod.SymbolSize} (0x{mod.SymbolSize:X})", group);
+                AddAnalysisItem(lvw, "Bytes of line number data", $"{mod.LineNumberBytes} (0x{mod.LineNumberBytes:X})", group);
+                AddAnalysisItem(lvw, "Bytes of C13 line number data", $"{mod.C13LineNumberBytes} (0x{mod.C13LineNumberBytes:X})", group);
+                AddAnalysisItem(lvw, "Number of contributing files", $"{mod.NumContributingFiles} (0x{mod.NumContributingFiles:X})", group);
+                AddAnalysisItem(lvw, "Padding", $"{mod.Padding} (0x{mod.Padding:X})", group);
+                AddAnalysisItem(lvw, "File name offset in string table", $"{mod.FileNameOffset} (0x{mod.FileNameOffset:X})", group);
+                AddAnalysisItem(lvw, "Source file name index", $"{mod.SourceFileNameIndex} (0x{mod.SourceFileNameIndex:X})", group);
+                AddAnalysisItem(lvw, "PDB path index", $"{mod.PDBPathIndex} (0x{mod.PDBPathIndex:X})", group);
+                AddAnalysisItem(lvw, "Source file name", $"{mod.SourceFileName}", group);
+                AddAnalysisItem(lvw, "Object file name", $"{mod.ObjectFileName}", group);
+            }
         }
 
 
@@ -110,6 +150,49 @@ namespace MSFViewer
             MachineType = ExtractInt16();
 
             Padding1 = ExtractInt32();
+        }
+
+        private void ParseModules()
+        {
+            int begin = ReadOffset;
+            for (int consumed = 0; consumed < ModuleSubstreamSize;)
+            {
+                var mod = ParseSingleModule();
+                Mods.Add(mod);
+
+                consumed = ReadOffset - begin;
+            }
+        }
+
+        private void ParseSectionContribution()
+        {
+            // TODO
+            ReadOffset += 28;
+        }
+
+        private Mod ParseSingleModule()
+        {
+            var ret = new Mod();
+
+            ret.UnusedModuleHeader = ExtractInt32();
+            ParseSectionContribution();
+
+            ret.Flags = ExtractInt16();
+            ret.StreamNumber = ExtractInt16();
+            ret.SymbolSize = ExtractInt32();
+            ret.LineNumberBytes = ExtractInt32();
+            ret.C13LineNumberBytes = ExtractInt32();
+            ret.NumContributingFiles = ExtractInt16();
+            ret.Padding = ExtractInt16();
+            ret.FileNameOffset = ExtractInt32();
+            ret.SourceFileNameIndex = ExtractInt32();
+            ret.PDBPathIndex = ExtractInt32();
+            ret.SourceFileName = ExtractTerminatedString();
+            ret.ObjectFileName = ExtractTerminatedString();
+
+            Extract4ByteAlignment();
+
+            return ret;
         }
     }
 }

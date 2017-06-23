@@ -104,6 +104,19 @@ namespace MSFViewer
             return ret;
         }
 
+        protected string ExtractTerminatedString()
+        {
+            int length = 0;
+            while (FlattenedBuffer[ReadOffset + length] != 0)
+                ++length;
+
+            var ret = Encoding.ASCII.GetString(FlattenedBuffer.Skip(ReadOffset).Take(length).ToArray());
+            ++length;
+            ReadOffset += length;
+
+            return ret;
+        }
+
         protected string[] ExtractTerminatedStrings(int length)
         {
             var bytes = FlattenedBuffer.Skip(ReadOffset).Take(length).ToArray();
@@ -156,6 +169,12 @@ namespace MSFViewer
             ReadOffset += 16;
 
             return new Guid(bytes);
+        }
+
+        protected void Extract4ByteAlignment()
+        {
+            while ((ReadOffset & 3) != 0)
+                ++ReadOffset;
         }
     }
 }
