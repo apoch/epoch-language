@@ -76,7 +76,7 @@ namespace MSFViewer
             lvw.Groups.Clear();
             var metagroup = lvw.Groups.Add("meta", "Metadata");
 
-            string datasize = (FlattenedBuffer != null) ? $"{FlattenedBuffer.Length}" : "0";
+            string datasize = (FlattenedBuffer != null) ? $"{FlattenedBuffer.Length} (0x{FlattenedBuffer.Length:X})" : "0";
             AddAnalysisItem(lvw, "Size of data", datasize, metagroup);
 
             SubclassPopulateAnalysis(lvw);
@@ -121,13 +121,13 @@ namespace MSFViewer
             return ret;
         }
 
-        protected string[] ExtractTerminatedStrings(int length)
+        protected Dictionary<int, string> ExtractTerminatedStrings(int length)
         {
             var bytes = FlattenedBuffer.Skip(ReadOffset).Take(length).ToArray();
             ReadOffset += length;
 
             int nullcount = bytes.Count(b => (b == 0));
-            var ret = new string[nullcount];
+            var ret = new Dictionary<int, string>();
 
             int read = 0;
             for (int i = 0; i < nullcount; ++i)
@@ -136,7 +136,7 @@ namespace MSFViewer
                 while ((substrend < bytes.Length) && (bytes[substrend] != 0))
                     ++substrend;
 
-                ret[i] = Encoding.ASCII.GetString(bytes.Skip(read).Take(substrend - read).ToArray());
+                ret[read] = Encoding.ASCII.GetString(bytes.Skip(read).Take(substrend - read).ToArray());
                 read = substrend + 1;
             }
 

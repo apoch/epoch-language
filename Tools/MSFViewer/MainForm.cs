@@ -13,8 +13,11 @@ namespace MSFViewer
 {
     public partial class MainForm : Form
     {
-        ByteViewer ByteEditorControl = null;
-        MSF EditingMSF = null;
+        private ByteViewer ByteEditorControl = null;
+        private MSF EditingMSF = null;
+
+        private int PreviousStreamSelectionIndex = -1;
+
 
         public MainForm()
         {
@@ -49,8 +52,11 @@ namespace MSFViewer
 
         private void StreamListBox_SelectedIndexChanged(object sender, EventArgs e)
         {
-            if (StreamListBox.SelectedIndex >= 0)
+            if (StreamListBox.SelectedIndex >= 0 && (StreamListBox.SelectedIndex != PreviousStreamSelectionIndex))
             {
+                Application.UseWaitCursor = true;
+                Application.DoEvents();
+
                 var stream = (StreamListBox.SelectedItem as MSFStream);
                 var bytes = stream.GetFlattenedBuffer();
                 if (bytes != null)
@@ -59,7 +65,11 @@ namespace MSFViewer
                     ByteEditorControl.SetBytes(new byte[0]);
 
                 stream.PopulateAnalysis(AnalysisListView);
+
+                Application.UseWaitCursor = false;
             }
+
+            PreviousStreamSelectionIndex = StreamListBox.SelectedIndex;
         }
     }
 }

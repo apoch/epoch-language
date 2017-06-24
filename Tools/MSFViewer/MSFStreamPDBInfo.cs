@@ -12,6 +12,8 @@ namespace MSFViewer
         public MSFStreamPDBInfo(int streamindex, byte[] entirefile, int streamsize, List<int> blocks, int blocksize)
             : base(streamindex, entirefile, streamsize, blocks, blocksize)
         {
+            BitVectors = new List<int>[2];
+
             ParsePDBHeader();
             ParseNamedStreams();
             ParseBitVectors();
@@ -37,10 +39,10 @@ namespace MSFViewer
         private int HashTableSize = 0;
         private int HashTableCapacity = 0;
 
-        private int BitVector1 = 0;
-        private int BitVector2 = 0;
-        private int BitVector3 = 0;
-        private int BitVector4 = 0;
+        private List<int>[] BitVectors;
+
+        private Dictionary<int, string> NameBuffer;
+
 
         protected override void SubclassPopulateAnalysis(ListView lvw)
         {
@@ -57,10 +59,8 @@ namespace MSFViewer
             var unknowngroup = lvw.Groups.Add("stuff", "Unknown Data");
             AddAnalysisItem(lvw, "Hash table size", $"{HashTableSize} (0x{HashTableSize:X})", unknowngroup);
             AddAnalysisItem(lvw, "Hash table capacity", $"{HashTableCapacity} (0x{HashTableCapacity:X})", unknowngroup);
-            AddAnalysisItem(lvw, "Bit vector 1", $"{BitVector1} (0x{BitVector1:X})", unknowngroup);
-            AddAnalysisItem(lvw, "Bit vector 2", $"{BitVector2} (0x{BitVector2:X})", unknowngroup);
-            AddAnalysisItem(lvw, "Bit vector 3", $"{BitVector3} (0x{BitVector3:X})", unknowngroup);
-            AddAnalysisItem(lvw, "Bit vector 4", $"{BitVector4} (0x{BitVector4:X})", unknowngroup);
+            AddAnalysisItem(lvw, "Bit vector (Present) number of words", $"{BitVectors[0].Count} (0x{BitVectors[0].Count:X})", unknowngroup);
+            AddAnalysisItem(lvw, "Bit vector (Deleted) number of words", $"{BitVectors[1].Count} (0x{BitVectors[1].Count:X})", unknowngroup);
         }
 
 
@@ -76,10 +76,7 @@ namespace MSFViewer
         private void ParseNamedStreams()
         {
             int length = ExtractInt32();
-            var names = ExtractTerminatedStrings(length);
-
-            foreach(var name in names)
-                NamedStreams.Add(new NamedStream { Index = 0, Name = name });
+            NameBuffer = ExtractTerminatedStrings(length);
 
             // TODO - associate name with stream?
         }
@@ -89,16 +86,28 @@ namespace MSFViewer
             HashTableSize = ExtractInt32();
             HashTableCapacity = ExtractInt32();
 
-            BitVector1 = ExtractInt32();
-            BitVector2 = ExtractInt32();
-            BitVector3 = ExtractInt32();
-            BitVector4 = ExtractInt32();
+            BitVectors[0] = ExtractBitVector();
+            BitVectors[1] = ExtractBitVector();
         }
 
         private void ParseStreamMetadata()
         {
-            foreach(var named in NamedStreams)
-                named.Index = ExtractInt32();
+            foreach (var name in NameBuffer)
+            {
+                int offsetofname = ExtractInt32();
+                NamedStreams.Add(new NamedStream { Index = ExtractInt32(), Name = NameBuffer[offsetofname] });
+            }
+        }
+
+        private List<int> ExtractBitVector()
+        {
+            var ret = new List<int>();
+            int len = ExtractInt32();
+
+            for (int i = 0; i < len; ++i)
+                ret.Add(ExtractInt32());
+
+            return ret;
         }
     }
 }
