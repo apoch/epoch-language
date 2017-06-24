@@ -489,8 +489,8 @@ WritePDBInfoStream : Win32Handle pdbfilehandle, integer startfileposition -> int
 	ByteStreamEmitInteger(header, headersize, 1)		// Begin an array of DWORDs of data.
 
 	ByteStreamEmitInteger(header, headersize, 0)		// DE-POISONED: this is a bit vector of deleted data
-	ByteStreamEmitInteger(header, headersize, 0)		// This seems necessary even if the bit vector is empty
 
+	ByteStreamEmitInteger(header, headersize, 0)		// This is offset of the stream name in the name buffer above
 	ByteStreamEmitInteger(header, headersize, 9)		// TODO - stream index of actual data for this file
 
 	ByteStreamEmitInteger(header, headersize, 20091201)	// DE-POISONED: VC110 signature
