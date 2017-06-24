@@ -9,7 +9,7 @@ namespace MSFViewer
 {
     class MSFStreamDBI : MSFStream
     {
-        public MSFStreamDBI(int streamindex, byte[] entirefile, int streamsize, List<int> blocks, int blocksize)
+        public MSFStreamDBI(int streamindex, byte[] entirefile, int streamsize, List<int> blocks, int blocksize, MSFStreamEntireFile ef)
             : base(streamindex, entirefile, streamsize, blocks, blocksize)
         {
             Mods = new List<Mod>();
@@ -22,6 +22,8 @@ namespace MSFViewer
             // TODO
             //ParseSectionMap();
             //ParseFiles();
+
+            ef.RegisterDBIStreams(GlobalsStreamIndex, PublicsStreamIndex, SymbolsStreamIndex);
         }
 
 

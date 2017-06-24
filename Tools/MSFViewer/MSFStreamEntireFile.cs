@@ -21,7 +21,18 @@ namespace MSFViewer
             ParseDirectory();
         }
 
+
+        public void RegisterDBIStreams(int globals, int publics, int symbols)
+        {
+            KnownStreamGlobals = globals;
+            KnownStreamPublics = publics;
+            KnownStreamSymbols = symbols;
+        }
+
+
         public List<MSFStream> Streams;
+
+        private MSFStreamPDBInfo PDBInfoStream;
 
         private int BlockSize = 0;
         private int DirectoryBlock = 0;
@@ -31,6 +42,10 @@ namespace MSFViewer
         private int HintBlock = 0;
         private int StreamCount = 0;
         private int Unknown = 0;
+
+        private int KnownStreamGlobals = -1;
+        private int KnownStreamPublics = -1;
+        private int KnownStreamSymbols = -1;
 
         protected override void SubclassPopulateAnalysis(ListView lvw)
         {
@@ -126,18 +141,27 @@ namespace MSFViewer
                 switch (i)
                 {
                     case 1:
-                        Streams.Add(new MSFStreamPDBInfo(i, FlattenedBuffer, streamsizes[i], blocks[i], BlockSize));
+                        PDBInfoStream = new MSFStreamPDBInfo(i, FlattenedBuffer, streamsizes[i], blocks[i], BlockSize);
+                        Streams.Add(PDBInfoStream);
                         break;
 
                     case 3:
-                        Streams.Add(new MSFStreamDBI(i, FlattenedBuffer, streamsizes[i], blocks[i], BlockSize));
+                        Streams.Add(new MSFStreamDBI(i, FlattenedBuffer, streamsizes[i], blocks[i], BlockSize, this));
                         break;
 
                     default:
-                        Streams.Add(new MSFStream(i, FlattenedBuffer, streamsizes[i], blocks[i], BlockSize));
+                        {
+                            var stream = new MSFStream(i, FlattenedBuffer, streamsizes[i], blocks[i], BlockSize);
+                            if((PDBInfoStream != null) && (stream.Name == null))
+                                stream.Name = PDBInfoStream.GetNameOfStream(i);
+                            Streams.Add(stream);
+                        }
                         break;
                 }
             }
+
+            if (KnownStreamSymbols > 0)
+                Streams[KnownStreamSymbols] = new MSFStreamSymbols(Streams[KnownStreamSymbols]);
         }
     }
 }

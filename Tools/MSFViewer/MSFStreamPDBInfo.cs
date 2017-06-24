@@ -20,6 +20,17 @@ namespace MSFViewer
             ParseStreamMetadata();
         }
 
+        public string GetNameOfStream(int index)
+        {
+            foreach (var named in NamedStreams)
+            {
+                if (named.Index == index)
+                    return $"Named Stream \"{named.Name}\" ({index})";
+            }
+
+            return null;
+        }
+
 
         private class NamedStream
         {
@@ -77,8 +88,6 @@ namespace MSFViewer
         {
             int length = ExtractInt32();
             NameBuffer = ExtractTerminatedStrings(length);
-
-            // TODO - associate name with stream?
         }
 
         private void ParseBitVectors()

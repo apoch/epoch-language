@@ -14,6 +14,8 @@ namespace MSFViewer
         protected byte[] FlattenedBuffer = null;
         protected int ReadOffset = 0;
 
+        private int StreamIndex = 0;
+
         public MSFStream(byte[] rawbuffer)
         {
             FlattenedBuffer = rawbuffer;
@@ -58,13 +60,18 @@ namespace MSFViewer
                     break;
 
                 default:
-                    Name = $"Unknown Stream {streamindex}";
+                    Name = null;
                     break;
             }
+
+            StreamIndex = streamindex;
         }
 
         public override string ToString()
         {
+            if (Name == null)
+                return $"Unknown Stream {StreamIndex}";
+
             return Name;
         }
 
@@ -88,7 +95,7 @@ namespace MSFViewer
         {
         }
 
-        protected void AddAnalysisItem(ListView lvw, string desc, string value, ListViewGroup group)
+        protected static void AddAnalysisItem(ListView lvw, string desc, string value, ListViewGroup group)
         {
             var item = new ListViewItem(new string[] { desc, value });
             item.Group = group;
