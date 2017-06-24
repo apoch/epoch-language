@@ -82,10 +82,14 @@ namespace MSFViewer
 
         
         private List<Symbol> Symbols = new List<Symbol>();
+        private int UnknownSymbols = 0;
 
 
         protected override void SubclassPopulateAnalysis(ListView lvw)
         {
+            var statgroup = lvw.Groups.Add("stats", "Statistics");
+            AddAnalysisItem(lvw, "Symbols of unrecognized type", $"{UnknownSymbols}", statgroup);
+
             int i = 0;
             foreach (var sym in Symbols)
             {
@@ -135,6 +139,7 @@ namespace MSFViewer
                     return new SymbolPublic(this, size, type);
             }
 
+            ++UnknownSymbols;
             return new Symbol { Size = size, Type = type };
         }
     }
