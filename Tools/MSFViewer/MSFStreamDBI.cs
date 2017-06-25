@@ -89,56 +89,56 @@ namespace MSFViewer
         private TypedByteSequence<uint> SCVersion;
 
 
-        protected override void SubclassPopulateAnalysis(ListView lvw)
+        protected override void SubclassPopulateAnalysis(ListView lvw, TreeView tvw)
         {
-            var headergroup = lvw.Groups.Add("headers", "DBI Header Info");
-            AddAnalysisItem(lvw, "Signature", headergroup, Signature);
-            AddAnalysisItem(lvw, "Version", headergroup, Version);
-            AddAnalysisItem(lvw, "Age", headergroup, Age);
+            var headergroup = AddAnalysisGroup(lvw, tvw, "headers", "DBI Header Info");
+            AddAnalysisItem(lvw, tvw, "Signature", headergroup, Signature);
+            AddAnalysisItem(lvw, tvw, "Version", headergroup, Version);
+            AddAnalysisItem(lvw, tvw, "Age", headergroup, Age);
 
-            var streamsgroup = lvw.Groups.Add("streams", "Stream Indices");
-            AddAnalysisItem(lvw, "Globals stream index", streamsgroup, GlobalsStreamIndex);
-            AddAnalysisItem(lvw, "Publics stream index", streamsgroup, PublicsStreamIndex);
-            AddAnalysisItem(lvw, "Symbols stream index", streamsgroup, SymbolsStreamIndex);
+            var streamsgroup = AddAnalysisGroup(lvw, tvw, "streams", "Stream Indices");
+            AddAnalysisItem(lvw, tvw, "Globals stream index", streamsgroup, GlobalsStreamIndex);
+            AddAnalysisItem(lvw, tvw, "Publics stream index", streamsgroup, PublicsStreamIndex);
+            AddAnalysisItem(lvw, tvw, "Symbols stream index", streamsgroup, SymbolsStreamIndex);
 
-            var buildgroup = lvw.Groups.Add("build", "Build Info");
-            AddAnalysisItem(lvw, "Build number", buildgroup, BuildNumber);
-            AddAnalysisItem(lvw, "PDB DLL version", buildgroup, PDBDLLVersion);
-            AddAnalysisItem(lvw, "PDB DLL rebuild", buildgroup, PDBDLLBuild);
+            var buildgroup = AddAnalysisGroup(lvw, tvw, "build", "Build Info");
+            AddAnalysisItem(lvw, tvw, "Build number", buildgroup, BuildNumber);
+            AddAnalysisItem(lvw, tvw, "PDB DLL version", buildgroup, PDBDLLVersion);
+            AddAnalysisItem(lvw, tvw, "PDB DLL rebuild", buildgroup, PDBDLLBuild);
 
-            var subsgroup = lvw.Groups.Add("subs", "Substreams Info");
-            AddAnalysisItem(lvw, "Module substream size", subsgroup, ModuleSubstreamSize);
-            AddAnalysisItem(lvw, "Section contributions size", subsgroup, SectionContributionsSize);
-            AddAnalysisItem(lvw, "Section map size", subsgroup, SectionMapSize);
-            AddAnalysisItem(lvw, "File substream size", subsgroup, FileSubstreamSize);
-            AddAnalysisItem(lvw, "Type-server map size", subsgroup, TypeServerMapSize);
-            AddAnalysisItem(lvw, "Dbg header info size", subsgroup, DbgHeaderInfoSize);
-            AddAnalysisItem(lvw, "EC substream size", subsgroup, ECSubstreamSize);
+            var subsgroup = AddAnalysisGroup(lvw, tvw, "subs", "Substreams Info");
+            AddAnalysisItem(lvw, tvw, "Module substream size", subsgroup, ModuleSubstreamSize);
+            AddAnalysisItem(lvw, tvw, "Section contributions size", subsgroup, SectionContributionsSize);
+            AddAnalysisItem(lvw, tvw, "Section map size", subsgroup, SectionMapSize);
+            AddAnalysisItem(lvw, tvw, "File substream size", subsgroup, FileSubstreamSize);
+            AddAnalysisItem(lvw, tvw, "Type-server map size", subsgroup, TypeServerMapSize);
+            AddAnalysisItem(lvw, tvw, "Dbg header info size", subsgroup, DbgHeaderInfoSize);
+            AddAnalysisItem(lvw, tvw, "EC substream size", subsgroup, ECSubstreamSize);
 
-            var miscgroup = lvw.Groups.Add("misc", "Miscellaneous Info");
-            AddAnalysisItem(lvw, "Flags", miscgroup, Flags);
-            AddAnalysisItem(lvw, "Machine type", miscgroup, MachineType);
-            AddAnalysisItem(lvw, "MFC type server index", miscgroup, MFCTypeServerIndex);
-            AddAnalysisItem(lvw, "Padding (1)", miscgroup, Padding1);
-            AddAnalysisItem(lvw, "Section contribution version", miscgroup, SCVersion);
+            var miscgroup = AddAnalysisGroup(lvw, tvw, "misc", "Miscellaneous Info");
+            AddAnalysisItem(lvw, tvw, "Flags", miscgroup, Flags);
+            AddAnalysisItem(lvw, tvw, "Machine type", miscgroup, MachineType);
+            AddAnalysisItem(lvw, tvw, "MFC type server index", miscgroup, MFCTypeServerIndex);
+            AddAnalysisItem(lvw, tvw, "Padding (1)", miscgroup, Padding1);
+            AddAnalysisItem(lvw, tvw, "Section contribution version", miscgroup, SCVersion);
 
             int i = 0;
             foreach (var mod in Mods)
             {
-                var group = lvw.Groups.Add($"mod{i}", $"Module {i} ({mod.SourceFileName})");
-                AddAnalysisItem(lvw, "Mystery header", group, mod.UnusedModuleHeader);
-                AddAnalysisItem(lvw, "Flags", group, mod.Flags);
-                AddAnalysisItem(lvw, "Stream number", group, mod.StreamNumber);
-                AddAnalysisItem(lvw, "Symbol size", group, mod.SymbolSize);
-                AddAnalysisItem(lvw, "Bytes of line number data", group, mod.LineNumberBytes);
-                AddAnalysisItem(lvw, "Bytes of C13 line number data", group, mod.C13LineNumberBytes);
-                AddAnalysisItem(lvw, "Number of contributing files", group, mod.NumContributingFiles);
-                AddAnalysisItem(lvw, "Padding", group, mod.Padding);
-                AddAnalysisItem(lvw, "File name offset in string table", group, mod.FileNameOffset);
-                AddAnalysisItem(lvw, "Source file name index", group, mod.SourceFileNameIndex);
-                AddAnalysisItem(lvw, "PDB path index", group, mod.PDBPathIndex);
-                AddAnalysisItem(lvw, "Source file name", group, mod.SourceFileName);
-                AddAnalysisItem(lvw, "Object file name", group, mod.ObjectFileName);
+                var group = AddAnalysisGroup(lvw, tvw, $"mod{i}", $"Module {i} ({mod.SourceFileName})");
+                AddAnalysisItem(lvw, tvw, "Mystery header", group, mod.UnusedModuleHeader);
+                AddAnalysisItem(lvw, tvw, "Flags", group, mod.Flags);
+                AddAnalysisItem(lvw, tvw, "Stream number", group, mod.StreamNumber);
+                AddAnalysisItem(lvw, tvw, "Symbol size", group, mod.SymbolSize);
+                AddAnalysisItem(lvw, tvw, "Bytes of line number data", group, mod.LineNumberBytes);
+                AddAnalysisItem(lvw, tvw, "Bytes of C13 line number data", group, mod.C13LineNumberBytes);
+                AddAnalysisItem(lvw, tvw, "Number of contributing files", group, mod.NumContributingFiles);
+                AddAnalysisItem(lvw, tvw, "Padding", group, mod.Padding);
+                AddAnalysisItem(lvw, tvw, "File name offset in string table", group, mod.FileNameOffset);
+                AddAnalysisItem(lvw, tvw, "Source file name index", group, mod.SourceFileNameIndex);
+                AddAnalysisItem(lvw, tvw, "PDB path index", group, mod.PDBPathIndex);
+                AddAnalysisItem(lvw, tvw, "Source file name", group, mod.SourceFileName);
+                AddAnalysisItem(lvw, tvw, "Object file name", group, mod.ObjectFileName);
 
                 ++i;
             }
@@ -146,16 +146,16 @@ namespace MSFViewer
             i = 0;
             foreach (var sc in Contributions)
             {
-                var group = lvw.Groups.Add($"sc{i}", $"Section Contribution {i}");
-                AddAnalysisItem(lvw, "Section index", group, sc.SectionIndex);
-                AddAnalysisItem(lvw, "Padding", group, sc.Padding1);
-                AddAnalysisItem(lvw, "Offset", group, sc.Offset);
-                AddAnalysisItem(lvw, "Size", group, sc.Size);
-                AddAnalysisItem(lvw, "Characteristics", group, sc.Characteristics);
-                AddAnalysisItem(lvw, "Module index", group, sc.ModuleIndex);
-                AddAnalysisItem(lvw, "Padding", group, sc.Padding2);
-                AddAnalysisItem(lvw, "Data CRC", group, sc.DataCRC);
-                AddAnalysisItem(lvw, "Relocations CRC", group, sc.RelocationCRC);
+                var group = AddAnalysisGroup(lvw, tvw, $"sc{i}", $"Section Contribution {i}");
+                AddAnalysisItem(lvw, tvw, "Section index", group, sc.SectionIndex);
+                AddAnalysisItem(lvw, tvw, "Padding", group, sc.Padding1);
+                AddAnalysisItem(lvw, tvw, "Offset", group, sc.Offset);
+                AddAnalysisItem(lvw, tvw, "Size", group, sc.Size);
+                AddAnalysisItem(lvw, tvw, "Characteristics", group, sc.Characteristics);
+                AddAnalysisItem(lvw, tvw, "Module index", group, sc.ModuleIndex);
+                AddAnalysisItem(lvw, tvw, "Padding", group, sc.Padding2);
+                AddAnalysisItem(lvw, tvw, "Data CRC", group, sc.DataCRC);
+                AddAnalysisItem(lvw, tvw, "Relocations CRC", group, sc.RelocationCRC);
 
                 ++i;
             }

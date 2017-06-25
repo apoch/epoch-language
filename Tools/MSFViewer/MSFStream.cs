@@ -75,42 +75,73 @@ namespace MSFViewer
             return Name;
         }
 
-        public void PopulateAnalysis(ListView lvw)
+        public void PopulateAnalysis(ListView lvw, TreeView tvw)
         {
+            tvw.BeginUpdate();
             lvw.BeginUpdate();
+
+            tvw.Nodes.Clear();
+            var rootnode = tvw.Nodes.Add("root", "MSF Stream");
 
             lvw.Items.Clear();
             lvw.Groups.Clear();
-            var metagroup = lvw.Groups.Add("meta", "Metadata");
+            var metagroup = AddAnalysisGroup(lvw, tvw, "meta", "Metadata");
 
             if (FlattenedBuffer != null)
-                AddAnalysisItem(lvw, "Size of data", metagroup, new TypedByteSequence<int>(FlattenedBuffer, 0, FlattenedBuffer.Length, FlattenedBuffer.Length));
+                AddAnalysisItem(lvw, tvw, "Size of data", metagroup, new TypedByteSequence<int>(FlattenedBuffer, 0, FlattenedBuffer.Length, FlattenedBuffer.Length));
             else
-                AddAnalysisItem(lvw, "Size of data", metagroup, "0");
+                AddAnalysisItem(lvw, tvw, "Size of data", metagroup, "0");
 
-            SubclassPopulateAnalysis(lvw);
+            SubclassPopulateAnalysis(lvw, tvw);
+
+            rootnode.Expand();
 
             lvw.EndUpdate();
+            tvw.EndUpdate();
         }
 
-        protected virtual void SubclassPopulateAnalysis(ListView lvw)
+        protected virtual void SubclassPopulateAnalysis(ListView lvw, TreeView tvw)
         {
         }
 
-        protected static void AddAnalysisItem(ListView lvw, string desc, ListViewGroup group, ByteSequence originaldata)
+        protected static ListViewGroup AddAnalysisGroup(ListView lvw, TreeView tvw, string key, string desc, string parent = "root")
+        {
+            var ret = lvw.Groups.Add(key, desc);
+            ret.Tag = key;
+
+            tvw.Nodes.Find(parent, true)[0].Nodes.Add(key, desc);
+
+            return ret;
+        }
+
+        protected static void AddAnalysisItem(ListView lvw, TreeView tvw, string desc, ListViewGroup group, ByteSequence originaldata)
         {
             var item = new ListViewItem(new string[] { desc, originaldata.ToString() });
             item.Group = group;
             item.Tag = originaldata;
             lvw.Items.Add(item);
+
+            var tnode = new TreeNode(desc);
+            tnode.Tag = originaldata;
+            AddTreeNodeByParentKey(tvw, group.Tag as string, tnode);
         }
 
-        protected static void AddAnalysisItem(ListView lvw, string desc, ListViewGroup group, string nonpreviewdata)
+        protected static void AddAnalysisItem(ListView lvw, TreeView tvw, string desc, ListViewGroup group, string nonpreviewdata)
         {
             var item = new ListViewItem(new string[] { desc, nonpreviewdata });
             item.Group = group;
             lvw.Items.Add(item);
+
+            var tnode = new TreeNode(desc);
+            AddTreeNodeByParentKey(tvw, group.Tag as string, tnode);
         }
+
+        private static void AddTreeNodeByParentKey(TreeView tvw, string key, TreeNode node)
+        {
+            var matching = tvw.Nodes.Find(key, true);
+            matching[0].Nodes.Add(node);
+        }
+
 
         public byte[] GetFlattenedBuffer()
         {

@@ -23,7 +23,7 @@ namespace MSFViewer
             public TypedByteSequence<ushort> Size;
             public TypedByteSequence<ushort> Type;
 
-            public virtual void PopulateAnalysis(ListView lvw, ListViewGroup group)
+            public virtual void PopulateAnalysis(ListView lvw, ListViewGroup group, TreeView tvw)
             {
             }
         }
@@ -48,12 +48,12 @@ namespace MSFViewer
                 stream.Extract4ByteAlignment();
             }
 
-            public override void PopulateAnalysis(ListView lvw, ListViewGroup group)
+            public override void PopulateAnalysis(ListView lvw, ListViewGroup group, TreeView tvw)
             {
-                AddAnalysisItem(lvw, "Public symbol type", group, PublicType);
-                AddAnalysisItem(lvw, "Start offset", group, Offset);
-                AddAnalysisItem(lvw, "Section index", group, SectionIndex);
-                AddAnalysisItem(lvw, "Name", group, Name);
+                AddAnalysisItem(lvw, tvw, "Public symbol type", group, PublicType);
+                AddAnalysisItem(lvw, tvw, "Start offset", group, Offset);
+                AddAnalysisItem(lvw, tvw, "Section index", group, SectionIndex);
+                AddAnalysisItem(lvw, tvw, "Name", group, Name);
             }
         }
 
@@ -73,10 +73,10 @@ namespace MSFViewer
                 stream.Extract4ByteAlignment();
             }
 
-            public override void PopulateAnalysis(ListView lvw, ListViewGroup group)
+            public override void PopulateAnalysis(ListView lvw, ListViewGroup group, TreeView tvw)
             {
-                AddAnalysisItem(lvw, "UDT symbol type index", group, TypeIndex);
-                AddAnalysisItem(lvw, "UDT name", group, Name);
+                AddAnalysisItem(lvw, tvw, "UDT symbol type index", group, TypeIndex);
+                AddAnalysisItem(lvw, tvw, "UDT name", group, Name);
             }
         }
 
@@ -85,19 +85,19 @@ namespace MSFViewer
         private int UnknownSymbols = 0;
 
 
-        protected override void SubclassPopulateAnalysis(ListView lvw)
+        protected override void SubclassPopulateAnalysis(ListView lvw, TreeView tvw)
         {
-            var statgroup = lvw.Groups.Add("stats", "Statistics");
-            AddAnalysisItem(lvw, "Symbols of unrecognized type", statgroup, $"{UnknownSymbols}");
+            var statgroup = AddAnalysisGroup(lvw, tvw, "stats", "Statistics");
+            AddAnalysisItem(lvw, tvw, "Symbols of unrecognized type", statgroup, $"{UnknownSymbols}");
 
             int i = 0;
             foreach (var sym in Symbols)
             {
-                var symgroup = lvw.Groups.Add($"symbols{i}", $"Symbol {i}");
-                AddAnalysisItem(lvw, "Symbol size", symgroup, sym.Size);
-                AddAnalysisItem(lvw, "Symbol type", symgroup, sym.Type);
+                var symgroup = AddAnalysisGroup(lvw, tvw, $"symbols{i}", $"Symbol {i}");
+                AddAnalysisItem(lvw, tvw, "Symbol size", symgroup, sym.Size);
+                AddAnalysisItem(lvw, tvw, "Symbol type", symgroup, sym.Type);
 
-                sym.PopulateAnalysis(lvw, symgroup);
+                sym.PopulateAnalysis(lvw, symgroup, tvw);
 
                 ++i;
             }

@@ -53,6 +53,39 @@ namespace MSFViewer
                     BytePreviewControl.SetBytes(bytes);
                 }
             };
+
+            AnalysisTreeView.AfterSelect += (e, args) =>
+            {
+                BytePreviewControl.SetBytes(new byte[] { });
+
+                var item = args.Node;
+                if (item == null)
+                    return;
+
+                var byteseq = (item.Tag as ByteSequence);
+                if (byteseq == null)
+                    return;
+
+                var bytes = byteseq.GetRawBytes();
+                if (bytes == null)
+                    return;
+
+                BytePreviewControl.SetBytes(bytes);
+
+                int lastindex = 0;
+                foreach (ListViewItem lvwitem in AnalysisListView.Items)
+                {
+                    if (lvwitem.Tag == byteseq)
+                    {
+                        lvwitem.Selected = true;
+                        lastindex = lvwitem.Index;
+                    }
+                    else
+                        lvwitem.Selected = false;
+                }
+
+                AnalysisListView.EnsureVisible(lastindex);
+            };
         }
 
         private void exitToolStripMenuItem_Click(object sender, EventArgs e)
@@ -91,7 +124,7 @@ namespace MSFViewer
                 else
                     ByteEditorControl.SetBytes(new byte[0]);
 
-                stream.PopulateAnalysis(AnalysisListView);
+                stream.PopulateAnalysis(AnalysisListView, AnalysisTreeView);
 
                 Application.UseWaitCursor = false;
             }

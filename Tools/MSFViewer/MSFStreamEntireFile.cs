@@ -47,23 +47,23 @@ namespace MSFViewer
         private int KnownStreamPublics = -1;
         private int KnownStreamSymbols = -1;
 
-        protected override void SubclassPopulateAnalysis(ListView lvw)
+        protected override void SubclassPopulateAnalysis(ListView lvw, TreeView tvw)
         {
-            var blockgroup = lvw.Groups.Add("blocks", "Blocks");
-            AddAnalysisItem(lvw, "Block size", blockgroup, BlockSize);
-            AddAnalysisItem(lvw, "Block count", blockgroup, BlockCount);
+            var blockgroup = AddAnalysisGroup(lvw, tvw, "blocks", "Blocks");
+            AddAnalysisItem(lvw, tvw, "Block size", blockgroup, BlockSize);
+            AddAnalysisItem(lvw, tvw, "Block count", blockgroup, BlockCount);
 
-            var directorygroup = lvw.Groups.Add("directory", "Directory");
-            AddAnalysisItem(lvw, "Directory hint block", directorygroup, HintBlock);
-            AddAnalysisItem(lvw, "Directory data block", directorygroup, DirectoryBlock);
-            AddAnalysisItem(lvw, "Directory stream length", directorygroup, DirectoryStreamLength);
+            var directorygroup = AddAnalysisGroup(lvw, tvw, "directory", "Directory");
+            AddAnalysisItem(lvw, tvw, "Directory hint block", directorygroup, HintBlock);
+            AddAnalysisItem(lvw, tvw, "Directory data block", directorygroup, DirectoryBlock);
+            AddAnalysisItem(lvw, tvw, "Directory stream length", directorygroup, DirectoryStreamLength);
 
-            var additionalgroup = lvw.Groups.Add("additional", "Additional Data");
-            AddAnalysisItem(lvw, "Free block map", additionalgroup, FreeBlockMapIndex);
-            AddAnalysisItem(lvw, "Unknown data field", additionalgroup, Unknown);
+            var additionalgroup = AddAnalysisGroup(lvw, tvw, "additional", "Additional Data");
+            AddAnalysisItem(lvw, tvw, "Free block map", additionalgroup, FreeBlockMapIndex);
+            AddAnalysisItem(lvw, tvw, "Unknown data field", additionalgroup, Unknown);
 
-            var streamgroup = lvw.Groups.Add("streams", "Streams");
-            AddAnalysisItem(lvw, "Stream count", streamgroup, StreamCount);
+            var streamgroup = AddAnalysisGroup(lvw, tvw, "streams", "Streams");
+            AddAnalysisItem(lvw, tvw, "Stream count", streamgroup, StreamCount);
         }
 
         private void ParseMagic()

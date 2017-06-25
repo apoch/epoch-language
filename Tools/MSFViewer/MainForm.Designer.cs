@@ -37,12 +37,13 @@
             this.StreamListBox = new System.Windows.Forms.ListBox();
             this.TabStrip = new System.Windows.Forms.TabControl();
             this.TabAnalysis = new System.Windows.Forms.TabPage();
+            this.PreviewPanel = new System.Windows.Forms.Panel();
             this.AnalysisListView = new System.Windows.Forms.ListView();
             this.ColumnHeaderDescription = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.ColumnHeaderValue = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.TabBytes = new System.Windows.Forms.TabPage();
             this.ByteEditorPanel = new System.Windows.Forms.Panel();
-            this.PreviewPanel = new System.Windows.Forms.Panel();
+            this.AnalysisTreeView = new System.Windows.Forms.TreeView();
             this.MainFormMenuStrip.SuspendLayout();
             this.TabStrip.SuspendLayout();
             this.TabAnalysis.SuspendLayout();
@@ -118,6 +119,7 @@
             // 
             // TabAnalysis
             // 
+            this.TabAnalysis.Controls.Add(this.AnalysisTreeView);
             this.TabAnalysis.Controls.Add(this.PreviewPanel);
             this.TabAnalysis.Controls.Add(this.AnalysisListView);
             this.TabAnalysis.Location = new System.Drawing.Point(4, 22);
@@ -128,18 +130,28 @@
             this.TabAnalysis.Text = "Analysis";
             this.TabAnalysis.UseVisualStyleBackColor = true;
             // 
+            // PreviewPanel
+            // 
+            this.PreviewPanel.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this.PreviewPanel.Location = new System.Drawing.Point(6, 379);
+            this.PreviewPanel.Name = "PreviewPanel";
+            this.PreviewPanel.Size = new System.Drawing.Size(950, 188);
+            this.PreviewPanel.TabIndex = 1;
+            // 
             // AnalysisListView
             // 
-            this.AnalysisListView.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
-            | System.Windows.Forms.AnchorStyles.Left) 
+            this.AnalysisListView.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
             | System.Windows.Forms.AnchorStyles.Right)));
             this.AnalysisListView.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
             this.ColumnHeaderDescription,
             this.ColumnHeaderValue});
             this.AnalysisListView.FullRowSelect = true;
-            this.AnalysisListView.Location = new System.Drawing.Point(6, 6);
+            this.AnalysisListView.HideSelection = false;
+            this.AnalysisListView.Location = new System.Drawing.Point(472, 6);
             this.AnalysisListView.Name = "AnalysisListView";
-            this.AnalysisListView.Size = new System.Drawing.Size(950, 367);
+            this.AnalysisListView.Size = new System.Drawing.Size(484, 367);
             this.AnalysisListView.TabIndex = 0;
             this.AnalysisListView.UseCompatibleStateImageBehavior = false;
             this.AnalysisListView.View = System.Windows.Forms.View.Details;
@@ -160,7 +172,7 @@
             this.TabBytes.Location = new System.Drawing.Point(4, 22);
             this.TabBytes.Name = "TabBytes";
             this.TabBytes.Padding = new System.Windows.Forms.Padding(3);
-            this.TabBytes.Size = new System.Drawing.Size(815, 570);
+            this.TabBytes.Size = new System.Drawing.Size(962, 570);
             this.TabBytes.TabIndex = 1;
             this.TabBytes.Text = "Hex Viewer";
             this.TabBytes.UseVisualStyleBackColor = true;
@@ -175,15 +187,16 @@
             this.ByteEditorPanel.Size = new System.Drawing.Size(806, 558);
             this.ByteEditorPanel.TabIndex = 1;
             // 
-            // PreviewPanel
+            // AnalysisTreeView
             // 
-            this.PreviewPanel.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            this.AnalysisTreeView.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
             | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
-            this.PreviewPanel.Location = new System.Drawing.Point(6, 379);
-            this.PreviewPanel.Name = "PreviewPanel";
-            this.PreviewPanel.Size = new System.Drawing.Size(950, 188);
-            this.PreviewPanel.TabIndex = 1;
+            this.AnalysisTreeView.ImeMode = System.Windows.Forms.ImeMode.On;
+            this.AnalysisTreeView.Location = new System.Drawing.Point(6, 6);
+            this.AnalysisTreeView.Name = "AnalysisTreeView";
+            this.AnalysisTreeView.Size = new System.Drawing.Size(460, 367);
+            this.AnalysisTreeView.TabIndex = 2;
             // 
             // MainForm
             // 
@@ -222,6 +235,7 @@
         private System.Windows.Forms.ColumnHeader ColumnHeaderDescription;
         private System.Windows.Forms.ColumnHeader ColumnHeaderValue;
         private System.Windows.Forms.Panel PreviewPanel;
+        private System.Windows.Forms.TreeView AnalysisTreeView;
     }
 }
 

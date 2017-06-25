@@ -55,23 +55,23 @@ namespace MSFViewer
         private Dictionary<int, string> NameBuffer;
 
 
-        protected override void SubclassPopulateAnalysis(ListView lvw)
+        protected override void SubclassPopulateAnalysis(ListView lvw, TreeView tvw)
         {
-            var headergroup = lvw.Groups.Add("headers", "PDB Header Info");
-            AddAnalysisItem(lvw, "Version", headergroup, Version);
-            AddAnalysisItem(lvw, "Signature", headergroup, Signature);
-            AddAnalysisItem(lvw, "Age", headergroup, Age);
-            AddAnalysisItem(lvw, "GUID", headergroup, PDBGuid);
+            var headergroup = AddAnalysisGroup(lvw, tvw, "headers", "PDB Header Info");
+            AddAnalysisItem(lvw, tvw, "Version", headergroup, Version);
+            AddAnalysisItem(lvw, tvw, "Signature", headergroup, Signature);
+            AddAnalysisItem(lvw, tvw, "Age", headergroup, Age);
+            AddAnalysisItem(lvw, tvw, "GUID", headergroup, PDBGuid);
 
-            var streamgroup = lvw.Groups.Add("streams", "Named Streams");
+            var streamgroup = AddAnalysisGroup(lvw, tvw, "streams", "Named Streams");
             foreach (var named in NamedStreams)
-                AddAnalysisItem(lvw, named.Name, streamgroup, $"{named.Index}");
+                AddAnalysisItem(lvw, tvw, named.Name, streamgroup, $"{named.Index}");
 
-            var unknowngroup = lvw.Groups.Add("stuff", "Unknown Data");
-            AddAnalysisItem(lvw, "Hash table size", unknowngroup, HashTableSize);
-            AddAnalysisItem(lvw, "Hash table capacity", unknowngroup, HashTableCapacity);
-            AddAnalysisItem(lvw, "Bit vector (Present) number of words", unknowngroup, $"{BitVectors[0].Count} (0x{BitVectors[0].Count:x})");
-            AddAnalysisItem(lvw, "Bit vector (Deleted) number of words", unknowngroup, $"{BitVectors[1].Count} (0x{BitVectors[1].Count:x})");
+            var unknowngroup = AddAnalysisGroup(lvw, tvw, "stuff", "Unknown Data");
+            AddAnalysisItem(lvw, tvw, "Hash table size", unknowngroup, HashTableSize);
+            AddAnalysisItem(lvw, tvw, "Hash table capacity", unknowngroup, HashTableCapacity);
+            AddAnalysisItem(lvw, tvw, "Bit vector (Present) number of words", unknowngroup, $"{BitVectors[0].Count} (0x{BitVectors[0].Count:x})");
+            AddAnalysisItem(lvw, tvw, "Bit vector (Deleted) number of words", unknowngroup, $"{BitVectors[1].Count} (0x{BitVectors[1].Count:x})");
         }
 
 

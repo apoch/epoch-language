@@ -61,29 +61,31 @@ namespace MSFViewer
         private TypedByteSequence<byte[]> Bitmap;
 
 
-        protected override void SubclassPopulateAnalysis(ListView lvw)
+        protected override void SubclassPopulateAnalysis(ListView lvw, TreeView tvw)
         {
-            var headergroup = lvw.Groups.Add("headers", "DBI Publics Header Info");
-            AddAnalysisItem(lvw, "Hash bytes", headergroup, HashBytes);
-            AddAnalysisItem(lvw, "Address map bytes", headergroup, AddressMapBytes);
-            AddAnalysisItem(lvw, "Number of thunks", headergroup, NumThunks);
-            AddAnalysisItem(lvw, "Thunk table section index", headergroup, ThunkTableSectionIndex);
-            AddAnalysisItem(lvw, "Padding", headergroup, Padding);
-            AddAnalysisItem(lvw, "Thunk table offset", headergroup, ThunkTableOffset);
-            AddAnalysisItem(lvw, "Number of sections", headergroup, NumSections);
-            AddAnalysisItem(lvw, "Signature", headergroup, Signature);
-            AddAnalysisItem(lvw, "Version", headergroup, Version);
-            AddAnalysisItem(lvw, "Version (desugared)", headergroup, $"{Version.ExtractedValue - 0xeffe0000}");
-            AddAnalysisItem(lvw, "Hash record bytes", headergroup, HRFilesBytes);
-            AddAnalysisItem(lvw, "Hash bucket bytes", headergroup, BucketBytes);
-            AddAnalysisItem(lvw, "Mystery bitmap", headergroup, new BitmapByteSequence(Bitmap));
+            var headergroup = AddAnalysisGroup(lvw, tvw, "headers", "DBI Publics Header Info");
+            AddAnalysisItem(lvw, tvw, "Hash bytes", headergroup, HashBytes);
+            AddAnalysisItem(lvw, tvw, "Address map bytes", headergroup, AddressMapBytes);
+            AddAnalysisItem(lvw, tvw, "Number of thunks", headergroup, NumThunks);
+            AddAnalysisItem(lvw, tvw, "Thunk table section index", headergroup, ThunkTableSectionIndex);
+            AddAnalysisItem(lvw, tvw, "Padding", headergroup, Padding);
+            AddAnalysisItem(lvw, tvw, "Thunk table offset", headergroup, ThunkTableOffset);
+            AddAnalysisItem(lvw, tvw, "Number of sections", headergroup, NumSections);
+            AddAnalysisItem(lvw, tvw, "Signature", headergroup, Signature);
+            AddAnalysisItem(lvw, tvw, "Version", headergroup, Version);
+            AddAnalysisItem(lvw, tvw, "Version (desugared)", headergroup, $"{Version.ExtractedValue - 0xeffe0000}");
+            AddAnalysisItem(lvw, tvw, "Hash record bytes", headergroup, HRFilesBytes);
+            AddAnalysisItem(lvw, tvw, "Hash bucket bytes", headergroup, BucketBytes);
+            AddAnalysisItem(lvw, tvw, "Mystery bitmap", headergroup, new BitmapByteSequence(Bitmap));
+
+            tvw.Nodes.Find("root", false)[0].Nodes.Add("hrfall", "Hash Records");
 
             int i = 0;
             foreach (var hrfile in HRFiles)
             {
-                var hrgroup = lvw.Groups.Add($"hrf{i}", $"Hash Record {i}");
-                AddAnalysisItem(lvw, "Record offset", hrgroup, hrfile.Offset);
-                AddAnalysisItem(lvw, "Record ???", hrgroup, hrfile.Unknown);
+                var hrgroup = AddAnalysisGroup(lvw, tvw, $"hrf{i}", $"Hash Record {i}", "hrfall");
+                AddAnalysisItem(lvw, tvw, "Record offset", hrgroup, hrfile.Offset);
+                AddAnalysisItem(lvw, tvw, "Record ???", hrgroup, hrfile.Unknown);
 
                 ++i;
             }
