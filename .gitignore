@@ -86,3 +86,13 @@ EpochBGFXWrapper/EpochBGFXWrapper/Debug/**
 /EpochDevTools/Compiler.VC.db
 /EpochDevTools/Compiler.eprj.user
 /EpochTests/Projects/TestSuite/TestSuite.VC.db
+/EpochDevTools/bin/Debug
+/EpochDevTools32/Debug
+/EpochDevTools32/EpochPDBShim/Debug/EpochPDBShim.tlog
+/EpochDevTools32/EpochPDBShim/Debug
+/EpochDevTools32/ipch/EPOCHPDBSHIM-79fc71c3
+/EpochDevTools32/Compiler32.VC.db
+/EpochTests/PDBTest/bin/Debug
+/EpochTests/PDBTest/PDBTest.VC.db
+/Tools/MSFViewer/bin/Debug
+/Tools/MSFViewer/obj/Debug
