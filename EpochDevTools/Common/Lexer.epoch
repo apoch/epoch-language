@@ -4,11 +4,11 @@
 
 
 // Evil, evil, evil hack
-EpochLib_SubstrCharDirect : integer pointer, integer pos -> integer ch = 0 [external("EpochLibrary.dll", "EpochLib_SubstrCharDirect"), nogc]
-EpochLib_StrPointer : string s -> integer pointer = 0 [external("EpochLibrary.dll", "EpochLib_StrPointer"), nogc]
-EpochLib_SubstrDirect : integer pointer, integer pos, integer length -> string s = "" [external("EpochLibrary.dll", "EpochLib_SubstrDirect"), nogc]
+EpochLib_SubstrCharDirect : integer pointer, integer pos -> integer ch = 0 [external("EpochRT.dll", "EpochLib_SubstrCharDirect"), nogc]
+EpochLib_StrPointer : string s -> integer pointer = 0 [external("EpochRT.dll", "EpochLib_StrPointer"), nogc]
+EpochLib_SubstrDirect : integer pointer, integer pos, integer length -> string s = "" [external("EpochRT.dll", "EpochLib_SubstrDirect"), nogc]
 
-Lex : string filename, string code, integer len [nogc]
+Lex : string filename, string code, integer len
 {
 	integer index = 0
 	integer lasttokenstart = 0
@@ -200,7 +200,7 @@ Lex : string filename, string code, integer len [nogc]
 }
 
 
-IsValidPunctuation : string token -> boolean valid = false [nogc]
+IsValidPunctuation : string token -> boolean valid = false
 {
 	if(token == "==")
 	{
@@ -241,7 +241,7 @@ IsValidPunctuation : string token -> boolean valid = false [nogc]
 }
 
 
-IsWhitespace : integer c -> boolean white = false [nogc]
+IsWhitespace : integer c -> boolean white = false
 {
 	if(c == CharacterSpace)
 	{
@@ -261,7 +261,7 @@ IsWhitespace : integer c -> boolean white = false [nogc]
 	}
 }
 
-Classify : integer c, integer currentclass -> integer class = CHARACTER_CLASS_IDENTIFIER [nogc]
+Classify : integer c, integer currentclass -> integer class = CHARACTER_CLASS_IDENTIFIER
 {
 	if(c == CharacterA)
 	{

@@ -11,7 +11,8 @@ TestSumTypes : Harness ref harness
 	
 	TSTPassthrough(harness)
 	TSTTypeMatch(harness)
-	
+	TSTNothing(harness)
+
 	TestSectionComplete(harness)
 }
 
@@ -54,3 +55,25 @@ TSTCheckTypeMatch : Harness ref harness, string val
 }
 
 
+
+type OptionalStringTest : string | nothing
+
+TSTNothing : Harness ref harness
+{
+	OptionalStringTest alpha = "testing"
+	OptionalStringTest beta = nothing
+
+	TSTCheckNothing(alpha, false, harness)
+	TSTCheckNothing(beta, true, harness)
+}
+
+
+TSTCheckNothing : string s, boolean wantNothing, Harness ref harness
+{
+	TestAssert(!wantNothing, harness, "sumtype type matching - expectation vs reality - string")
+}
+
+TSTCheckNothing : nothing, boolean wantNothing, Harness ref harness
+{
+	TestAssert(wantNothing, harness, "sumtype type matching - expectation vs reality - nothing")
+}

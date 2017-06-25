@@ -53,9 +53,126 @@ extern "C" void ERT_gc_collect_strings()
 }
 
 
+extern "C" short ERT_integer16_from_integer(int in)
+{
+	return static_cast<short>(in);
+}
+
 
 extern "C" void ERT_print(const char* out)
 {
 	std::cout << out << std::endl;
 }
+
+
+extern "C" void ERT_buffer_alloc(char** outbuffer, unsigned size)
+{
+	*outbuffer = new char[size];
+}
+
+
+extern "C" char EpochLib_SubstrCharDirect(const char* p, int pos)
+{
+	return p[pos];
+}
+
+extern "C" const char* EpochLib_StrPointer(const char* s)
+{
+	return s;
+}
+
+extern "C" const char* EpochLib_SubstrDirect(const char* p, int pos, int len)
+{
+	std::string s(p + pos, len);
+	return StringPool.Alloc(s);
+}
+
+extern "C" bool ERT_cmdlineisvalid()
+{
+	return true;
+}
+
+extern "C" unsigned ERT_cmdlinegetcount()
+{
+	return 1;
+}
+
+extern "C" const char* ERT_cmdlineget(unsigned index)
+{
+	return "";
+}
+
+extern "C" const char* ERT_substring_length(const char* str, unsigned pos, unsigned length)
+{
+	std::string s(str + pos, length);
+	return StringPool.Alloc(s);
+}
+
+extern "C" void ERT_write_buffer_real(char* buffer, float value)
+{
+}
+
+extern "C" char ERT_subchar(const char* str, unsigned pos)
+{
+	return str[pos];
+}
+
+extern "C" const char* ERT_widenfromptr(const char* p)
+{
+	return p;
+}
+
+extern "C" const char* ERT_string_unescape(const char* in)
+{
+	return in;
+}
+
+extern "C" const char* ERT_string_narrow(const char* p)
+{
+	return p;
+}
+
+extern "C" const char* ERT_substring_nolength(const char* str, unsigned pos)
+{
+	std::string s(str + pos);
+	return StringPool.Alloc(s);
+}
+
+extern "C" float ERT_string_to_real(const char* p)
+{
+	return 0.0f;
+}
+
+extern "C" void ERT_write_buffer_string(char* buffer, unsigned pos, const char* str)
+{
+}
+
+extern "C" void ERT_write_buffer(char* buffer, unsigned pos, char value)
+{
+}
+
+extern "C" void ERT_write_buffer_multiple()
+{
+}
+
+extern "C" const char* ERT_real_to_string(float value)
+{
+	return "";
+}
+
+extern "C" const char* ERT_buffer_copy(const char* buffer)
+{
+	return "";
+}
+
+extern "C" int ERT_string_compare_notequal(const char* a, const char* b)
+{
+	return lstrcmpA(a, b);
+}
+
+extern "C" int ERT_string_to_integer(const char* str)
+{
+	return 0;
+}
+
 

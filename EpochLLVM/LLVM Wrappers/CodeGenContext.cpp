@@ -63,7 +63,7 @@ namespace CodeGenInternal
 				}
 				else
 				{
-					*reinterpret_cast<char**>(fieldaddr) += reloc.getSymbol()->getAddress().get() + 0x8000;    // TODO - don't hardcode the offset of the .text section
+					*reinterpret_cast<char**>(fieldaddr) += reloc.getSymbol()->getAddress().get() + 0x9000;    // TODO - don't hardcode the offset of the .text section
 				}
 			}
 		}
@@ -223,7 +223,11 @@ namespace CodeGenInternal
 			std::wstring wide(foo.begin(), foo.end());
 			size_t offset = ThunkCallback(wide.c_str());
 
-			assert(offset != 0);
+			// TODO - this is a dumb hack
+			if(offset == 0)
+				offset = 0x610ba1;
+
+			//assert(offset != 0);
 
 			return offset;
 		}
@@ -318,7 +322,8 @@ void Context::FunctionFinalize()
 	//LLVMBuilder.GetInsertBlock()->getParent()->dump();
 
 	// TODO - better implementation of this
-	//assert(PendingValues.empty());
+	assert(PendingValues.empty() || PendingValues.size() == 1);
+	PendingValues.clear();
 }
 
 
@@ -479,7 +484,7 @@ void Context::PrepareBinaryObject()
 
 	// TODO - reintroduce optimizations
 
-	llvmmodule->dump();
+	//llvmmodule->dump();
 
 
 	class JEL : public JITEventListener
@@ -583,7 +588,7 @@ void Context::PrepareBinaryObject()
 		switch(sym.getType())
 		{
 		case object::SymbolRef::ST_Function:
-			symbol.SectionNumber = 8;
+			symbol.SectionNumber = 9;
 
 			if(symname == "init")
 				symbol.StorageClass = IMAGE_SYM_CLASS_EXTERNAL;
@@ -660,12 +665,85 @@ llvm::CallInst* Context::CodeCreateCall(llvm::Function* target)
 	llvm::FunctionType* fty = target->getFunctionType();
 
 	std::vector<Value*> relevantargs;
-	for(size_t i = 0; i < fty->getNumParams(); ++i)
+	while(relevantargs.size() < fty->getNumParams())
 	{
-		relevantargs.push_back(PendingValues.back());
+		Value* arg = PendingValues.back();
 		PendingValues.pop_back();
+
+		if(arg)
+		{
+			if(isa<ConstantPointerNull>(arg))
+			{
+				if(PendingValues.empty())
+					relevantargs.push_back(arg);
+			}
+			else
+			{
+				// TODO - this is a ridiculously lame hack
+				Type* paramType = fty->getParamType(fty->getNumParams() - relevantargs.size() - 1);
+				if(paramType->getPointerTo() == arg->getType())
+					arg = LLVMBuilder.CreateLoad(arg);
+				else if(arg->getType()->getPointerTo() == paramType)
+				{
+					// FREE ALLOCA IS BAD - can we relocate it during a code pass?
+					Value* argalloca = LLVMBuilder.CreateAlloca(arg->getType());
+					LLVMBuilder.CreateStore(arg, argalloca);
+					arg = argalloca;
+				}
+				// End hack
+
+				relevantargs.push_back(arg);
+			}
+		}
+		else				// Annotated sum type
+		{
+			arg = PendingValues.back();
+			PendingValues.pop_back();
+
+			StructType* paramtype = cast<StructType>(fty->getParamType(fty->getNumParams() - relevantargs.size() - 1));
+
+			Value* payload = nullptr;
+			Value* signature = arg;
+
+			if(cast<ConstantInt>(signature)->getValue().getZExtValue() != 4)
+			{
+				Value* rawpayload = PendingValues.back();
+				if(!rawpayload->getType()->isPointerTy())
+				{
+					if(isa<LoadInst>(rawpayload))
+						rawpayload = cast<LoadInst>(rawpayload)->getOperand(0);
+					else
+					{
+						// TODO - solve problem of stack temporaries being passed into functions that expect a ref
+						assert(false);
+					}
+				}
+	
+				payload = LLVMBuilder.CreatePtrToInt(rawpayload, paramtype->getStructElementType(1));
+
+				PendingValues.pop_back();
+			}
+			else
+				payload = ConstantInt::get(paramtype->getStructElementType(1), 0);
+
+			Value* st = LLVMBuilder.CreateInsertValue(llvm::UndefValue::get(paramtype), signature, { 0 });
+			st = LLVMBuilder.CreateInsertValue(st, payload, { 1 });
+			relevantargs.push_back(st);
+		}
 	}
 	std::reverse(relevantargs.begin(), relevantargs.end());
+
+	// TODO - remove diagnostics
+	assert(relevantargs.size() == target->getFunctionType()->getNumParams());
+	for(size_t i = 0; i < relevantargs.size(); ++i)
+	{
+		if(target->getFunctionType()->getParamType(i) != relevantargs[i]->getType())
+		{
+			// TODO - this is terribad. At least assert that both types are sum types and both types have the same shape!
+
+			relevantargs[i] = LLVMBuilder.CreatePointerCast(relevantargs[i], target->getFunctionType()->getParamType(i));
+		}
+	}
 
 	llvm::CallInst* inst = LLVMBuilder.CreateCall(target, relevantargs);
 
@@ -720,6 +798,9 @@ void Context::CodeCreateCast(Type* targettype)
 	llvm::Value* v = PendingValues.back();
 	PendingValues.pop_back();
 
+	if(!v)
+		v = ConstantInt::get(TypeGetInteger(), 0);
+
 	llvm::Value* castvalue;
 	
 	if(targettype->isPointerTy() && !v->getType()->isPointerTy())
@@ -727,7 +808,22 @@ void Context::CodeCreateCast(Type* targettype)
 	else if(!targettype->isPointerTy() && v->getType()->isPointerTy())
 		castvalue = LLVMBuilder.CreatePtrToInt(v, targettype);
 	else
-		castvalue = LLVMBuilder.CreateZExtOrTrunc(v, targettype);
+	{
+		// TODO - dumb hack
+		if(v->getType()->isStructTy())
+		{
+			LoadInst* load = dyn_cast_or_null<LoadInst>(v);
+			if(load)
+			{
+				Value* ptr = load->getOperand(0);
+				castvalue = LLVMBuilder.CreatePtrToInt(ptr, targettype);
+			}
+			else
+				castvalue = LLVMBuilder.CreateBitCast(LLVMBuilder.CreateExtractValue(v, { 1u }), targettype);
+		}
+		else
+			castvalue = LLVMBuilder.CreateZExtOrTrunc(v, targettype);
+	}
 
 	PendingValues.push_back(castvalue);
 }
@@ -751,10 +847,29 @@ llvm::Value* Context::CodeCreateGEP(unsigned index)
 	Value* v = PendingValues.back();
 	PendingValues.pop_back();
 
-	Value* indices[] = {ConstantInt::get(Type::getInt32Ty(getGlobalContext()), 0), ConstantInt::get(Type::getInt32Ty(getGlobalContext()), index)};
+	if(!v)
+	{
+		LLVMBuilder.GetInsertBlock()->getParent()->dump();
+		assert(false);
+	}
 
+	Value* originalv = v;
+	if(v->getType()->isStructTy())
+	{
+		v = cast<LoadInst>(v)->getOperand(0);
+	}
+
+	Value* indices[] = {ConstantInt::get(Type::getInt32Ty(getGlobalContext()), 0), ConstantInt::get(Type::getInt32Ty(getGlobalContext()), index)};
 	return LLVMBuilder.CreateGEP(v, indices);
 }
+
+llvm::GlobalVariable* Context::CodeCreateGlobal(llvm::Type* type, const char* name)
+{
+	auto gv = new GlobalVariable(type, false, GlobalValue::InternalLinkage, nullptr, name);
+	LLVMModule->getGlobalList().addNodeToList(gv);
+	return gv;
+}
+
 
 void Context::CodeCreateRead(llvm::AllocaInst* allocatarget)
 {
@@ -801,12 +916,70 @@ void Context::CodeCreateRetVoid()
 	LLVMBuilder.CreateRetVoid();
 }
 
-void Context::CodeCreateWrite(llvm::AllocaInst* allocatarget)
+void Context::CodeCreateWrite(llvm::AllocaInst* originaltarget)
 {
 	Value* wv = PendingValues.back();
 	PendingValues.pop_back();
 
-	LLVMBuilder.CreateStore(wv, allocatarget);
+	Value* allocatarget = originaltarget;
+
+	// wv holds an int
+	// allocatarget holds an int**
+	if(originaltarget->getAllocatedType() == wv->getType()->getPointerTo())
+		allocatarget = LLVMBuilder.CreateLoad(allocatarget);
+
+	// Bootstrapping HACK
+	// int32 RHS, int64 LHS
+	if((originaltarget->getAllocatedType() == TypeGetInteger64()) && (wv->getType() == TypeGetInteger()))
+	{
+		wv = LLVMBuilder.CreateSExt(wv, originaltarget->getAllocatedType());
+	}
+
+	if(wv->getType() != allocatarget->getType()->getPointerElementType())
+	{
+		Value* readannotationgep = LLVMBuilder.CreateExtractValue(wv, { 0 });
+		Value* readpayloadgep = LLVMBuilder.CreateExtractValue(wv, { 1 });
+
+		if(allocatarget->getType()->getPointerElementType()->isPointerTy())
+		{
+			Value* loadedtarget = LLVMBuilder.CreateLoad(allocatarget);
+			Value* annotationgep = LLVMBuilder.CreateGEP(loadedtarget, { ConstantInt::get(TypeGetInteger(), 0), ConstantInt::get(TypeGetInteger(), 0) });
+			Value* payloadgep = LLVMBuilder.CreateGEP(loadedtarget, { ConstantInt::get(TypeGetInteger(), 0), ConstantInt::get(TypeGetInteger(), 1) });
+
+			LLVMBuilder.CreateStore(readannotationgep, annotationgep);
+			LLVMBuilder.CreateStore(readpayloadgep, payloadgep);
+		}
+		else
+		{
+			Value* annotationgep = LLVMBuilder.CreateGEP(allocatarget, { ConstantInt::get(TypeGetInteger(), 0), ConstantInt::get(TypeGetInteger(), 0) });
+			Value* payloadgep = LLVMBuilder.CreateGEP(allocatarget, { ConstantInt::get(TypeGetInteger(), 0), ConstantInt::get(TypeGetInteger(), 1) });
+
+			LLVMBuilder.CreateStore(readannotationgep, annotationgep);
+			LLVMBuilder.CreateStore(LLVMBuilder.CreatePtrToInt(readpayloadgep, payloadgep->getType()->getPointerElementType()), payloadgep);
+		}
+	}
+	else
+		LLVMBuilder.CreateStore(wv, allocatarget);
+}
+
+void Context::CodeCreateWrite(llvm::GlobalVariable* globaltarget)
+{
+	Value* wv = PendingValues.back();
+	PendingValues.pop_back();
+
+	LLVMBuilder.CreateStore(wv, globaltarget);
+}
+
+void Context::CodeCreateWriteIndirect(llvm::AllocaInst* allocatarget)
+{
+	Value* wv = PendingValues.back();
+	PendingValues.pop_back();
+	if(wv->getType() == allocatarget->getAllocatedType()->getPointerTo())
+		LLVMBuilder.CreateStore(LLVMBuilder.CreateLoad(wv), allocatarget);
+	else if(wv->getType()->getPointerTo() == allocatarget->getAllocatedType())
+		LLVMBuilder.CreateStore(wv, LLVMBuilder.CreateLoad(allocatarget));
+	else
+		LLVMBuilder.CreateStore(wv, allocatarget);
 }
 
 void Context::CodeCreateWriteParam(unsigned index)
@@ -827,7 +1000,15 @@ void Context::CodeCreateWriteStructure(llvm::Value* gep)
 	Value* wv = PendingValues.back();
 	PendingValues.pop_back();
 
-	LLVMBuilder.CreateStore(wv, gep);
+	if(wv)
+		LLVMBuilder.CreateStore(wv, gep);
+	else
+	{
+		Value* signature = PendingValues.back();
+		PendingValues.pop_back();
+
+		LLVMBuilder.CreateStore(signature, gep);
+	}
 }
 
 void Context::CodeCreateWriteStructurePop()
@@ -838,7 +1019,33 @@ void Context::CodeCreateWriteStructurePop()
 	Value* wv = PendingValues.back();
 	PendingValues.pop_back();
 
-	LLVMBuilder.CreateStore(wv, gep);
+	if(wv->getType()->getPointerTo() == gep->getType())
+		LLVMBuilder.CreateStore(wv, gep);
+	else
+		LLVMBuilder.CreateStore(LLVMBuilder.CreateLoad(wv), gep);
+}
+
+void Context::CodeCreateWriteStructurePopSumType()
+{
+	Value* annotation = PendingValues.back();
+	PendingValues.pop_back();
+
+	Value* gep = PendingValues.back();
+	PendingValues.pop_back();
+
+	Value* wv = PendingValues.back();
+	PendingValues.pop_back();
+
+	Type* ty = gep->getType()->getPointerElementType();
+
+	Value* st = ConstantStruct::get(cast<StructType>(ty), annotation, ConstantInt::get(ty->getContainedType(1), 0), nullptr);
+
+	// TODO - this is a stupid hack
+	Value* allocavalue = cast<LoadInst>(wv)->getOperand(0);
+	Value* castvalue = LLVMBuilder.CreatePtrToInt(allocavalue, ty->getContainedType(1));
+
+	LLVMBuilder.CreateInsertValue(st, castvalue, { 1u });
+	LLVMBuilder.CreateStore(st, gep);
 }
 
 void Context::CodeCreateOperatorBooleanNot()
@@ -848,6 +1055,30 @@ void Context::CodeCreateOperatorBooleanNot()
 
 	llvm::Value* notval = LLVMBuilder.CreateNot(val);
 	PendingValues.push_back(notval);
+}
+
+void Context::CodeCreateOperatorBooleanAnd()
+{
+	llvm::Value* operand2 = PendingValues.back();
+	PendingValues.pop_back();
+
+	llvm::Value* operand1 = PendingValues.back();
+	PendingValues.pop_back();
+
+	llvm::Value* result = LLVMBuilder.CreateAnd(operand1, operand2);
+	PendingValues.push_back(result);
+}
+
+void Context::CodeCreateOperatorIntegerBitwiseAnd()
+{
+	llvm::Value* operand2 = PendingValues.back();
+	PendingValues.pop_back();
+
+	llvm::Value* operand1 = PendingValues.back();
+	PendingValues.pop_back();
+
+	llvm::Value* result = LLVMBuilder.CreateAnd(operand1, operand2);
+	PendingValues.push_back(result);
 }
 
 void Context::CodeCreateOperatorIntegerEquals()
@@ -872,6 +1103,30 @@ void Context::CodeCreateOperatorIntegerNotEquals()
 
 	llvm::Value* eqval = LLVMBuilder.CreateICmpNE(operand1, operand2);
 	PendingValues.push_back(eqval);
+}
+
+void Context::CodeCreateOperatorIntegerGreaterThan()
+{
+	llvm::Value* operand2 = PendingValues.back();
+	PendingValues.pop_back();
+
+	llvm::Value* operand1 = PendingValues.back();
+	PendingValues.pop_back();
+
+	llvm::Value* gtval = LLVMBuilder.CreateICmpSGT(operand1, operand2);
+	PendingValues.push_back(gtval);
+}
+
+void Context::CodeCreateOperatorIntegerLessThan()
+{
+	llvm::Value* operand2 = PendingValues.back();
+	PendingValues.pop_back();
+
+	llvm::Value* operand1 = PendingValues.back();
+	PendingValues.pop_back();
+
+	llvm::Value* gtval = LLVMBuilder.CreateICmpSLT(operand1, operand2);
+	PendingValues.push_back(gtval);
 }
 
 void Context::CodeCreateOperatorIntegerPlus()
@@ -968,6 +1223,11 @@ void Context::CodePushRawGEP(llvm::Value* gep)
 	PendingValues.push_back(gep);
 }
 
+void Context::CodePushRawGlobal(llvm::GlobalVariable* global)
+{
+	PendingValues.push_back(global);
+}
+
 void Context::CodePushString(unsigned handle)
 {
 	llvm::GlobalVariable* val = CachedStrings[handle];
@@ -994,10 +1254,26 @@ void Context::CodePushExtractedStructValue(unsigned memberindex)
 	Value* structure = PendingValues.back();
 	PendingValues.pop_back();
 
-	unsigned indices[] = { memberindex };
-	Value* extracted = LLVMBuilder.CreateExtractValue(structure, indices);
+	Value* extracted;
+
+	if(structure->getType()->isPointerTy())
+	{
+		Value* indices[] = { ConstantInt::get(TypeGetInteger(), 0), ConstantInt::get(TypeGetInteger(), memberindex) };
+		extracted = LLVMBuilder.CreateLoad(LLVMBuilder.CreateGEP(structure, indices));
+	}
+	else
+	{
+		unsigned indices[] = { memberindex };
+		extracted = LLVMBuilder.CreateExtractValue(structure, indices);
+	}
 
 	PendingValues.push_back(extracted);
+}
+
+void Context::CodePushNothing()
+{
+	Value* v = ConstantPointerNull::get(TypeGetInteger()->getPointerTo());
+	PendingValues.push_back(v);
 }
 
 
@@ -1147,7 +1423,8 @@ llvm::DIType* Context::TypeGetDebugType(Type* t)
 void Context::TagDebugLine(unsigned line, unsigned column)
 {
 	DebugLoc loc = DILocation::get(getGlobalContext(), line, column, LLVMBuilder.GetInsertBlock()->getParent()->getSubprogram());
-	LLVMBuilder.GetInsertBlock()->getInstList().back().setDebugLoc(loc);
+	if(!LLVMBuilder.GetInsertBlock()->getInstList().empty())
+		LLVMBuilder.GetInsertBlock()->getInstList().back().setDebugLoc(loc);
 }
 
 
@@ -1160,5 +1437,12 @@ llvm::Type* Context::SumTypeCreate(const char* name, unsigned width)
 	llvm::Type* t = llvm::StructType::create(members, name);
 	return t;
 }
+
+
+void Context::SumTypeMerge()
+{
+	PendingValues.push_back(nullptr);
+}
+
 
 

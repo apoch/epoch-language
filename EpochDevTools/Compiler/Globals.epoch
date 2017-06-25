@@ -49,8 +49,11 @@ global
 	BinaryTreeRoot<LLVMFunctionType> LLVMFunctionSignatureTable = nothing
 	BinaryTreeRoot<LLVMType> LLVMSumTypeTable = nothing
 	BinaryTreeRoot<LLVMType> LLVMArrayTypeTable = nothing
+	BinaryTreeRoot<LLVMGlobalVar> LLVMGlobalTable = nothing
 	
 	BinaryTreeRoot<integer> GlobalStringOffsets = nothing
+
+	BinaryTreeRoot<CallSiteMetadata> TypeMatcherCallSiteMetadata = nothing
 	
 	Variable dummyvar = 0, 0, 0, 0
 
@@ -281,6 +284,7 @@ global
 	integer PooledStringHandleForInteger64 = 0
 	integer PooledStringHandleForGCInit = 0
 	integer PooledStringhandleForGCCollectStrings = 0
+	integer PooledStringHandleForReturn = 0
 
 	integer FirstNonBuiltInStringHandle = 0
 

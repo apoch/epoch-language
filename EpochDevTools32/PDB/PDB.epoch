@@ -1,0 +1,1604 @@
+//
+// The Epoch Language Project
+// Epoch Development Tools - PDB generation library
+//
+// PDB.EPOCH
+// Wrappers and structures for generating PDB files
+//
+// Main wrappers for generating a PDB (Microsoft debug information) from the Epoch
+// ecosystem. Designed primarily to support compiler emission of PDBs during the build
+// process.
+//
+// Noteworthy resources for understanding how all this works:
+//
+//   https://github.com/Microsoft/microsoft-pdb
+//      - Especially cvdump tool and the source code for MSF/PDB loading
+//      - As of this writing the samples do not build, but are still instructive
+//
+//   https://github.com/llvm-mirror/llvm/tree/master/lib/DebugInfo
+//      - MSF and PDB parsing and writing code was invaluable
+//      - An even more complete and clean implementation than we have here!
+//      - Not relied upon since our hope is to minimize C++ dependencies
+//      - Also, was not in release-ready form in time for this effort's goals
+//      - ... but could have been used as an alternative to this module
+//
+//   https://github.com/rainers/cv2pdb
+//      - Informed the first MSPDB140.dll-based version of this process
+//      - Provided many key tidbits of knowledge early on in reverse engineering PDBs
+//      - Not directly useful much anymore, but still interesting
+//
+//   DIA2Dump sample from the Visual Studio DIA SDK folder
+//      - Useful for low-level verification of a PDB file's contents
+//      - Provides a debuggable implementation of DIA client - handy for reversing!
+//
+//   https://github.com/apoch/epoch-language/wiki/Knowledge-Dump---Debugging-Epoch-Programs
+//      - Historical documentation on the process of developing this module
+//      - Probably kept more up to date than this header comment will ever be
+//
+// PDB files are the basis of serialized debug information for Microsoft-platform
+// programming and debugging tools. Notably: Visual Studio, WinDbg, DbgHelp.dll all
+// use PDB format to describe debuggees. Both "in vitro" and "post mortem" debug
+// tools rely heavily on the symbol data and other information (such as source code
+// line mappings) stored in PDBs.
+//
+// Historically, the PDB format was a total black box, and it has only been in
+// the relatively recent past that Microsoft has begun opening up details of how
+// these files work. The "container" format is something known as MSF, or Multiple
+// Stream Format. MSF files are like a simplistic filesystem. Within the streams of
+// data of a host MSF, PDBs store a variety of useful data about the debug target,
+// namely things like what code files are compiled in, what machine code instructions
+// correspond to what source text, the types of variables used and how they all
+// interrelate, and so on.
+//
+// At one point in time it was considered a viable plan to write a special Epoch-
+// specific debugger. Someday this may still happen, but with the ability to tap
+// tools like Visual Studio and WinDbg, it is much less appealing. The pragmatic
+// approach is to simply generate PDB debug data for Epoch programs, and let the
+// existing debug tools do their magic.
+//
+
+
+//
+// In-memory representation of a single stream in the MSF file.
+//
+// MSF files are broken up into streams of blocks. Each block is a uniform
+// size and the file's blocks are contiguous on disk. However, a stream need
+// not be an even multiple of block size (extra space is padded out). Moreover,
+// streams need not be contiguous, i.e. the constituent blocks might be spread
+// out throughout the file. This makes MSF useful for doing two-phase commits.
+//
+// Our particular implementation does not write interleaved streams. Instead,
+// we compute the needed stream blocks up front when collating the PDB data.
+// When it comes time to write to disk, all streams are contiguous on disk for
+// ease of manual inspection and debugging.
+//
+structure PDBStream :
+	simplelist<integer> Blocks,
+	integer Length
+
+
+//
+// In-memory representation of the MSF directory.
+//
+// The directory contains a compact listing of all the streams in the file
+// and which blocks have been allocated to each stream. Note that partial
+// blocks only appear at the end of streams, i.e. each block in a stream is
+// going to be full except maybe the last one, subject to padding.
+//
+// Our implementation uses a number of reserved (or "named") stream indices
+// for storing de facto streams of various flavors. Additional streams are
+// appended for general purpose use, such as the symbol data from each DBI
+// module in the PDB.
+//
+structure PDBDirectory :
+	integer NumStreams,					// TODO - remove hard-coding of this and compute it dynamically instead
+	PDBStream ref OldMSFDirectory,
+	PDBStream ref PDB,
+	PDBStream ref TPI,
+	PDBStream ref DBI,
+	PDBStream ref IPI,
+	PDBStream ref Globals,
+	PDBStream ref Publics,
+	PDBStream ref Symbols,
+	list<PDBStream> AdditionalStreams
+
+
+//
+// Metadata describing the layout of a PDB/MSF file.
+//
+// We use the smallest legal block size (1KB) in general, because it is
+// a reasonable balance between compactness and simplicity. The number of
+// total blocks in the MSF file is tracked here as well as data for the
+// directory indirection stream and the directory itself.
+//
+structure PDBFileLayout :
+	integer BlockSize,
+	integer BlockCount,
+	PDBStream ref DirectoryHints,
+	PDBStream ref DirectoryStream,
+	PDBDirectory ref Directory
+	
+
+//
+// Stream session for outputting a fabricated PDB.
+//
+// Used for tracking the output process to the actual disk file as well
+// as hosting the MSF layout and the PDB data itself.
+//
+structure PDBOutputStream :
+	string            FileName,
+	Win32Handle       FileHandle,
+	integer           FilePosition,
+	PDBFileLayout ref Layout,
+	DBISection        DBI
+
+
+//
+// In-memory tracking of the DBI (debug information) data set.
+//
+// Holds computed fields for aiding in serialization as well as pointing
+// to a collection of Module records that describe the final debug target.
+//
+structure DBISection :
+	integer ModuleSubstreamSize,
+	integer SectionContributionSize,
+	integer SectionMapSize,
+	list<DBIModule> Modules,
+	list<CodeViewLineInfo> Lines
+
+//
+// In-memory representation of a "mod" or Module.
+//
+// Modules are useful abstractions for programs linked from multiple
+// different sources, such as some .lib files and some raw code files.
+// For our purposes we typically only store one module and have a list
+// of contributing files (.epoch code files) assigned to that module.
+//
+structure DBIModule :
+	string SourceFile,
+	string ObjectFile,
+	integer SymbolSize,
+	list<PDBSymbol> Symbols,
+	list<SectionContribution> SectionContributions
+
+
+//
+// In-memory metadata about a section contribution.
+//
+// Each COFF section in the final linked binary image is made up of
+// many contributors. Typically there is one contribution for each
+// function in the program source. These records describe how exactly
+// a function maps into the final binary COFF section.
+//
+structure SectionContribution :
+	integer16 SectionIndex,				// Index of the COFF section in which this contribution appears
+	integer Offset,						// Offset inside the section at which the contribution appears
+	integer Size,						// Size (bytes) of the contribution
+	integer Characteristics,			// Characteristics of the contribution. Haven't seen a difference between this and the section's characteristics in practice.
+	integer16 ModuleIndex,				// Index of the DBI module that contains the function
+	integer DataCRC,					// CRC of the actual function code; can safely be zero
+	integer RelocCRC					// CRC of the relocation data applied to the contribution; can safely be zero
+
+
+//
+// Description of an address relocation record
+//
+// The Type field determines what semantics the relocation has,
+// but in a nutshell, this gives us the ability to offset a raw
+// address in a CodeView section such that it corresponds to an
+// actual address in a running image - relocated base addresses
+// notwithstanding. In other words, we take in an offset into a
+// COFF section and manipulate it such that it becomes the same
+// address in the loaded/running image.
+//
+// This dramatically simplifies the implementation of looking a
+// symbol up in the debugger, since the debugger need only care
+// about the actual image's address space, modulo base address.
+//
+structure Relocation :
+	integer Address,
+	integer SymbolIndex,
+	integer16 Type
+
+
+structure ImageSymbol :
+	integer Zero,
+	integer OffsetToLongName,
+	integer Value,
+	integer16 SectionNumber,
+	integer16 Type,
+	integer16 StorageClassAndAuxSymbolCount
+
+
+GetBufferPtr : buffer ref buf, integer offset -> integer ptr = 0 [external("EpochPDBShim.dll", "GetBufferPtr")]
+WriteBufferPtrByte : buffer ref buf, integer offset, integer value [external("EpochPDBShim.dll", "WriteBufferPtrByte")]
+WriteBufferPtrDword : buffer ref buf, integer offset, integer value [external("EpochPDBShim.dll", "WriteBufferPtrDword")]
+
+
+hackstrlen : integer strptr -> integer len = 0 [external("EpochPDBShim.dll", "StrLen")]
+
+
+//
+// Main wrapper function for writing a PDB to disk.
+//
+// The data must be populated and accurate (for things like offsets, sizes, etc.)
+// prior to emission. The actual block layout of the MSF file and streams will be
+// computed internally to this function, so there's no need to have that totally
+// figured out before calling.
+//
+WritePDB : PDBOutputStream ref stream, integer codesectionstart, integer codesize, buffer ref symbolstart, integer symbolsize
+{
+	// We only support writing in a single pass, and no reads (yet).
+	// So don't allow emission of a PDB if we already opened a file.
+	assert(stream.FileHandle == -1)
+	
+
+	integer GENERIC_WRITE = 0x40000000
+	integer CREATE_ALWAYS = 2
+
+
+	stream.FileHandle = CreateFile(stream.FileName, GENERIC_WRITE, 0, 0, CREATE_ALWAYS, 0, 0)
+	if(stream.FileHandle == -1)
+	{
+		print("Cannot open " ; stream.FileName ; " to emit .PDB!")
+		assert(false)
+	}
+	
+	WriteMagic(stream)
+	WriteSuperBlock(stream)
+	
+	WriteBlockMap(stream)
+	
+	// This is some kind of indirection that points to the actual directory block??
+	PadToBeginningOfBlock(stream, stream.Layout.DirectoryHints.Blocks.value)
+	stream.FilePosition = stream.FilePosition + WriteDirectoryHint(stream.FileHandle, stream.Layout.DirectoryStream.Blocks.value)
+	
+	// Move up to the block for the directory data
+	PadToBeginningOfBlock(stream, stream.Layout.DirectoryStream.Blocks.value)
+	WriteDirectory(stream)
+	
+	// Move up to the block for the PDB info stream
+	PadToBeginningOfBlock(stream, stream.Layout.Directory.PDB.Blocks.value)
+	stream.FilePosition = WritePDBInfoStream(stream.FileHandle, stream.FilePosition)
+	
+	// Move up and write the TPI stream
+	PadGarbageToBeginningOfBlock(stream, stream.Layout.Directory.TPI.Blocks.value)
+	stream.FilePosition = WriteTPIStream(stream.FileHandle, stream.FilePosition)
+	
+	// Move up and write the DBI stream
+	PadGarbageToBeginningOfBlock(stream, stream.Layout.Directory.DBI.Blocks.value)
+	WriteDBIStream(stream)
+
+	// Move up and write the IPI stream
+	PadGarbageToBeginningOfBlock(stream, stream.Layout.Directory.IPI.Blocks.value)
+	stream.FilePosition = WriteIPIStream(stream.FileHandle, stream.FilePosition)
+
+	// Move up and write the globals (DBI) stream
+	PadGarbageToBeginningOfBlock(stream, stream.Layout.Directory.Globals.Blocks.value)
+	stream.FilePosition = WriteGlobalsStream(stream.FileHandle, stream.FilePosition)
+	
+	// Move up and write the publics (DBI) stream
+	PadGarbageToBeginningOfBlock(stream, stream.Layout.Directory.Publics.Blocks.value)
+	stream.FilePosition = WritePublicsStream(stream.FileHandle, stream.FilePosition)
+	
+	// Move up and write the symbol records (DBI) stream
+	PadGarbageToBeginningOfBlock(stream, stream.Layout.Directory.Symbols.Blocks.value)
+	WriteSymbolRecordsStream(stream, stream.DBI.Modules.value)
+	
+	// HACK - TODO
+	PadToBeginningOfBlock(stream, 15)
+	WriteDBIModuleSymbols(stream, stream.DBI.Modules.value, symbolstart, symbolsize)
+
+	PadGarbageToBeginningOfBlock(stream, 16)
+	WritePDBStrings(stream)
+	
+	// Pad to the end of the file
+	PadGarbageToBeginningOfBlock(stream, stream.Layout.BlockCount + 1)		// TODO
+
+	CloseHandle(stream.FileHandle)
+}
+
+
+
+WriteBlockMap : PDBOutputStream ref stream
+{
+	buffer ff = 1
+	integer ffsize = 0
+	
+	ByteStreamEmitByte(ff, ffsize, 0xff)
+	
+	while(stream.FilePosition < stream.Layout.BlockSize * 3)
+	{
+		integer written = 0
+		WriteFile(stream.FileHandle, ff, ffsize, written, 0)
+		stream.FilePosition = stream.FilePosition + 1
+	}
+}
+
+
+PadToBeginningOfBlock : PDBOutputStream ref stream, integer blockindex
+{
+	// TODO - lame compiler bug workaround in the 32-bit compiler
+	integer fpos = stream.FilePosition
+	fpos += WritePadding(stream.FileHandle, stream.FilePosition, stream.Layout.BlockSize * blockindex)
+	stream.FilePosition = fpos
+}
+
+
+PadGarbageToBeginningOfBlock : PDBOutputStream ref stream, integer blockindex
+{
+	// TODO - lame compiler bug workaround in the 32-bit compiler
+	integer fpos = stream.FilePosition
+	fpos += WriteGarbage(stream.FileHandle, stream.FilePosition, stream.Layout.BlockSize * blockindex)
+	stream.FilePosition = fpos
+}
+
+
+WriteDirectoryHint : Win32Handle pdbfilehandle, integer hint -> integer written = 0
+{
+	buffer hack = 32
+	integer hacksize = 0
+	
+	ByteStreamEmitInteger(hack, hacksize, hint)		// Block index of where the directory actually lives
+	
+	WriteFile(pdbfilehandle, hack, hacksize, written, 0)
+}
+
+
+
+WriteMagic : PDBOutputStream ref stream
+{
+	buffer magic = 64
+	integer magicsize = 0
+	
+	string magicstring = "Microsoft C/C++ MSF 7.00"	// Magic header start
+	
+	integer count = 0
+	while(count < length(magicstring))
+	{
+		string char = charat(magicstring, count)
+		ByteStreamEmitSubstring(magic, magicsize, char, 1)
+
+		++count
+	}
+	
+	ByteStreamEmitByte(magic, magicsize, 13)		// Carriage return
+	ByteStreamEmitByte(magic, magicsize, 10)		// Linefeed
+	ByteStreamEmitByte(magic, magicsize, 26)		// Magic?
+	ByteStreamEmitByte(magic, magicsize, 68)		// 'D'
+	ByteStreamEmitByte(magic, magicsize, 83)		// 'S'
+	ByteStreamEmitByte(magic, magicsize, 0)			// Null magic
+	ByteStreamEmitByte(magic, magicsize, 0)			// Null magic
+	ByteStreamEmitByte(magic, magicsize, 0)			// Null magic
+	
+	WriteFile(stream.FileHandle, magic, magicsize, stream.FilePosition, 0)
+}
+
+
+WriteSuperBlock : PDBOutputStream ref stream
+{
+	buffer sbheader = 128
+	integer headersize = 0
+	
+	ByteStreamEmitInteger(sbheader, headersize, stream.Layout.BlockSize)
+	ByteStreamEmitInteger(sbheader, headersize, 1)			// Free block map index
+	ByteStreamEmitInteger(sbheader, headersize, stream.Layout.BlockCount)
+	ByteStreamEmitInteger(sbheader, headersize, stream.Layout.DirectoryStream.Length)
+	ByteStreamEmitInteger(sbheader, headersize, 0)			// Unknown
+	ByteStreamEmitInteger(sbheader, headersize, stream.Layout.DirectoryHints.Blocks.value)
+	
+	integer written = 0
+	WriteFile(stream.FileHandle, sbheader, headersize, written, 0)
+	
+	integer endfileposition = stream.FilePosition + written
+	endfileposition += WritePadding(stream.FileHandle, endfileposition, stream.Layout.BlockSize)
+	
+	stream.FilePosition = endfileposition
+}
+
+
+
+WriteDirectory : PDBOutputStream ref stream
+{
+	buffer directory = 1024
+	integer directorysize = 0
+	
+	// Number of streams
+	ByteStreamEmitInteger(directory, directorysize, stream.Layout.Directory.NumStreams)	
+
+	// Stream sizes
+	ByteStreamEmitInteger(directory, directorysize, stream.Layout.Directory.OldMSFDirectory.Length)
+	ByteStreamEmitInteger(directory, directorysize, stream.Layout.Directory.PDB.Length)
+	ByteStreamEmitInteger(directory, directorysize, stream.Layout.Directory.TPI.Length)
+	ByteStreamEmitInteger(directory, directorysize, stream.Layout.Directory.DBI.Length)
+	ByteStreamEmitInteger(directory, directorysize, stream.Layout.Directory.IPI.Length)
+	ByteStreamEmitInteger(directory, directorysize, stream.Layout.Directory.Globals.Length)
+	ByteStreamEmitInteger(directory, directorysize, stream.Layout.Directory.Publics.Length)
+	ByteStreamEmitInteger(directory, directorysize, stream.Layout.Directory.Symbols.Length)
+	ByteStreamEmitInteger(directory, directorysize, stream.Layout.Directory.AdditionalStreams.value.Length)		// TODO - iterate over this list
+	ByteStreamEmitInteger(directory, directorysize, 94)		// TODO
+
+	// Stream blocks
+	ByteStreamEmitInteger(directory, directorysize, stream.Layout.Directory.OldMSFDirectory.Blocks.value)
+	ByteStreamEmitInteger(directory, directorysize, stream.Layout.Directory.PDB.Blocks.value)
+	ByteStreamEmitInteger(directory, directorysize, stream.Layout.Directory.TPI.Blocks.value)
+	ByteStreamEmitInteger(directory, directorysize, stream.Layout.Directory.DBI.Blocks.value)
+	ByteStreamEmitInteger(directory, directorysize, stream.Layout.Directory.IPI.Blocks.value)
+	ByteStreamEmitInteger(directory, directorysize, stream.Layout.Directory.Globals.Blocks.value)
+	ByteStreamEmitInteger(directory, directorysize, stream.Layout.Directory.Publics.Blocks.value)
+	ByteStreamEmitInteger(directory, directorysize, stream.Layout.Directory.Symbols.Blocks.value)
+	ByteStreamEmitInteger(directory, directorysize, 13)
+	ByteStreamEmitInteger(directory, directorysize, 14)
+	ByteStreamEmitInteger(directory, directorysize, stream.Layout.Directory.AdditionalStreams.value.Blocks.value)
+	ByteStreamEmitInteger(directory, directorysize, 16)		// TODO
+	
+	integer written = 0
+	WriteFile(stream.FileHandle, directory, directorysize, written, 0)
+	
+	stream.FilePosition = stream.FilePosition + written
+}
+
+
+
+WritePDBInfoStream : Win32Handle pdbfilehandle, integer startfileposition -> integer endfileposition = 0
+{
+	buffer header = 256
+	integer headersize = 0
+	
+	integer version = 20000404
+	integer signature = 0 // TODO - timestamp?
+	integer age = 1
+	
+	ByteStreamEmitInteger(header, headersize, version)
+	ByteStreamEmitInteger(header, headersize, signature)
+	ByteStreamEmitInteger(header, headersize, age)
+
+	// GUID (16 bytes)
+	ByteStreamEmitByte(header, headersize, 0xf0)
+	ByteStreamEmitByte(header, headersize, 0xf0)
+	ByteStreamEmitByte(header, headersize, 0xf0)
+	ByteStreamEmitByte(header, headersize, 0xf0)
+
+	ByteStreamEmitByte(header, headersize, 0xf0)
+	ByteStreamEmitByte(header, headersize, 0xf0)
+	ByteStreamEmitByte(header, headersize, 0xf0)
+	ByteStreamEmitByte(header, headersize, 0xf0)
+
+	ByteStreamEmitByte(header, headersize, 0xf0)
+	ByteStreamEmitByte(header, headersize, 0xf0)
+	ByteStreamEmitByte(header, headersize, 0xf0)
+	ByteStreamEmitByte(header, headersize, 0xf0)
+
+	ByteStreamEmitByte(header, headersize, 0xf0)
+	ByteStreamEmitByte(header, headersize, 0xf0)
+	ByteStreamEmitByte(header, headersize, 0xf0)
+	ByteStreamEmitByte(header, headersize, 0xf0)
+
+
+	// String table thingy
+	string s = "/names"
+	ByteStreamEmitInteger(header, headersize, length(s) + 1)
+
+	ByteStreamEmitStringNarrow(header, headersize, s)
+	ByteStreamEmitByte(header, headersize, 0)
+
+
+	ByteStreamEmitInteger(header, headersize, 1)		// DE-POISONED: this is a hash table size/capacity pair
+	ByteStreamEmitInteger(header, headersize, 1)
+	ByteStreamEmitInteger(header, headersize, 1)		// DE-POISONED: this is a bit vector. First entry is number of DWORDs of data.
+	ByteStreamEmitInteger(header, headersize, 1)		// Begin an array of DWORDs of data.
+
+	ByteStreamEmitInteger(header, headersize, 0)		// DE-POISONED: this is a bit vector of deleted data
+
+	ByteStreamEmitInteger(header, headersize, 0)		// This is offset of the stream name in the name buffer above
+	ByteStreamEmitInteger(header, headersize, 9)		// TODO - stream index of actual data for this file
+
+	ByteStreamEmitInteger(header, headersize, 20091201)	// DE-POISONED: VC110 signature
+
+	ByteStreamEmitInteger(header, headersize, 0x9d)
+	ByteStreamEmitInteger(header, headersize, 0x9c)
+	ByteStreamEmitInteger(header, headersize, 0x9b)
+
+	ByteStreamEmitInteger(header, headersize, 0x8e)
+	ByteStreamEmitInteger(header, headersize, 0x8d)
+	ByteStreamEmitInteger(header, headersize, 0x8c)
+	ByteStreamEmitInteger(header, headersize, 0x8b)
+
+	ByteStreamEmitInteger(header, headersize, 0x7e)
+	ByteStreamEmitInteger(header, headersize, 0x7d)
+	ByteStreamEmitInteger(header, headersize, 0x7c)
+	ByteStreamEmitInteger(header, headersize, 0x7b)
+
+	ByteStreamEmitInteger(header, headersize, 0x6e)
+	ByteStreamEmitInteger(header, headersize, 0x6d)
+	ByteStreamEmitInteger(header, headersize, 0x6c)
+	ByteStreamEmitInteger(header, headersize, 0x6b)
+
+	ByteStreamEmitInteger(header, headersize, 0x5e)
+	ByteStreamEmitInteger(header, headersize, 0x5d)
+	ByteStreamEmitInteger(header, headersize, 0x5c)
+	ByteStreamEmitInteger(header, headersize, 0x5b)
+
+	ByteStreamEmitInteger(header, headersize, 0x5a)
+	ByteStreamEmitInteger(header, headersize, 0x59)
+	ByteStreamEmitInteger(header, headersize, 0x58)
+	ByteStreamEmitInteger(header, headersize, 0x57)
+
+	ByteStreamEmitInteger(header, headersize, 0x56)
+	ByteStreamEmitInteger(header, headersize, 0x55)
+	ByteStreamEmitInteger(header, headersize, 0x54)
+	ByteStreamEmitInteger(header, headersize, 0x53)
+
+	integer written = 0
+	WriteFile(pdbfilehandle, header, headersize, written, 0)
+	
+	endfileposition = startfileposition + written
+}
+
+
+
+WriteTPIStream : Win32Handle pdbfilehandle, integer startfileposition -> integer endfileposition = 0
+{
+	buffer header = 128
+	integer headersize = 0
+	
+	integer version = 20040203
+
+	ByteStreamEmitInteger(header, headersize, version)
+	ByteStreamEmitInteger(header, headersize, 56)			// TODO - hardcoded magic size
+	ByteStreamEmitInteger(header, headersize, 0)		// Type index begin
+	ByteStreamEmitInteger(header, headersize, 0)		// Type index end
+	ByteStreamEmitInteger(header, headersize, 0)		// Type record bytes
+
+	ByteStreamEmitInteger16(header, headersize, 0)		// Hash stream index
+	ByteStreamEmitInteger16(header, headersize, 0)		// Hash aux stream index
+	
+	// These values seem fixed?
+	ByteStreamEmitInteger(header, headersize, 4)		// Hash key size
+	ByteStreamEmitInteger(header, headersize, 262143)	// Number of hash buckets
+	
+	ByteStreamEmitInteger(header, headersize, 0)		// Hash value buffer offset
+	ByteStreamEmitInteger(header, headersize, 0)		// Hash value buffer length
+	
+	ByteStreamEmitInteger(header, headersize, 0)		// Index offset buffer offset
+	ByteStreamEmitInteger(header, headersize, 0)		// Index offset buffer length
+	
+	ByteStreamEmitInteger(header, headersize, 0)		// Hash adjustment buffer offset
+	ByteStreamEmitInteger(header, headersize, 0)		// Hash adjustment buffer length
+
+
+	integer written = 0
+	WriteFile(pdbfilehandle, header, headersize, written, 0)
+	
+	endfileposition = startfileposition + written	
+}
+
+
+
+WritePDBStrings : PDBOutputStream ref stream
+{
+	buffer header = 128
+	integer headersize = 0
+
+	string test = "fubar"
+	string test2 = "D:\Epoch\epoch-language\EpochTests\PDBTest\EntryPoint.epoch"
+
+	ByteStreamEmitInteger(header, headersize, 0xeffeeffe)		// Signature
+	ByteStreamEmitInteger(header, headersize, 1)				// Hash version
+	ByteStreamEmitInteger(header, headersize, length(test) + 1 + length(test2) + 1)				// Bytes of string data
+
+	ByteStreamEmitStringNarrow(header, headersize, test)
+	ByteStreamEmitByte(header, headersize, 0)
+
+	ByteStreamEmitStringNarrow(header, headersize, test2)
+	ByteStreamEmitByte(header, headersize, 0)
+
+	ByteStreamEmitInteger(header, headersize, 2)			// Hash count
+
+	// For each hash...
+	ByteStreamEmitInteger(header, headersize, 0)			// Hash ID
+	ByteStreamEmitInteger(header, headersize, 6)			// Hash ID
+
+	// Epilogue
+	ByteStreamEmitInteger(header, headersize, 2)			// Name count
+
+	integer written = 0
+	WriteFile(stream.FileHandle, header, headersize, written, 0)
+	stream.FilePosition = stream.FilePosition + written	
+}
+
+
+
+WriteDBIStream : PDBOutputStream ref stream
+{
+	buffer header = 128
+	integer headersize = 0
+	
+	integer signature = 0xffffffff
+	integer version = 19990903
+	
+	ByteStreamEmitInteger(header, headersize, signature)
+	ByteStreamEmitInteger(header, headersize, version)
+
+	ByteStreamEmitInteger(header, headersize, 1)		// age (must match PDB age)
+	ByteStreamEmitInteger16(header, headersize, 5)		// stream index of global symbols			// TODO - get this from the PDBDirectory
+	ByteStreamEmitInteger16(header, headersize, 0)		// build number
+	ByteStreamEmitInteger16(header, headersize, 6)		// stream index of public symbols			// TODO - get this from the PDBDirectory
+	ByteStreamEmitInteger16(header, headersize, 0)		// PDB DLL version (MSPDBxxx.DLL)
+	ByteStreamEmitInteger16(header, headersize, 7)		// stream index of symbol records			// TODO - get this from the PDBDirectory
+	ByteStreamEmitInteger16(header, headersize, 0)		// rebuild number of PDB DLL
+	ByteStreamEmitInteger(header, headersize, stream.DBI.ModuleSubstreamSize)
+	ByteStreamEmitInteger(header, headersize, stream.DBI.SectionContributionSize)
+	ByteStreamEmitInteger(header, headersize, stream.DBI.SectionMapSize)
+	ByteStreamEmitInteger(header, headersize, 32)		// file info substream size
+	ByteStreamEmitInteger(header, headersize, 0)		// type server map size
+	ByteStreamEmitInteger(header, headersize, 0)		// index of MFC type server
+	ByteStreamEmitInteger(header, headersize, 0)		// DbgHeader info size
+	ByteStreamEmitInteger(header, headersize, 0)		// EC substream size (?)
+	ByteStreamEmitInteger16(header, headersize, 0)		// flags
+	ByteStreamEmitInteger16(header, headersize, 0x8664)	// machine type (AMD64)
+	ByteStreamEmitInteger(header, headersize, 0)		// pad
+
+	integer written = 0
+	WriteFile(stream.FileHandle, header, headersize, written, 0)
+	stream.FilePosition = stream.FilePosition + written	
+
+	
+	EmitDBIModule(stream, stream.DBI.Modules)
+	EmitDBISectionContributions(stream)
+	EmitDBISectionMap(stream)
+	EmitDBIFiles(stream)
+}
+
+
+EmitDBIFiles : PDBOutputStream ref stream
+{
+	buffer linesdata = 128
+	integer linessize = 0
+	
+	// TODO - real values
+	integer modulecount = 1
+	integer filecount = 1
+
+	ByteStreamEmitInteger16(linesdata, linessize, cast(integer16, modulecount))
+	ByteStreamEmitInteger16(linesdata, linessize, cast(integer16, filecount))
+
+	integer i = modulecount
+	while(i > 0)
+	{
+		ByteStreamEmitInteger16(linesdata, linessize, 0)			// Unused according to LLVM's PDB implementation
+
+		--i
+	}
+
+	i = modulecount
+	while(i > 0)
+	{
+		ByteStreamEmitInteger16(linesdata, linessize, 1)			// Number of files in this module
+
+		--i
+	}
+
+	i = filecount
+	while(i > 0)
+	{
+		ByteStreamEmitInteger(linesdata, linessize, 4)				// TODO - offset of file name in names buffer
+
+		--i
+	}
+
+	// TODO - real file names, support for multiple files
+	string filename = "D:\Test.epoch"
+	ByteStreamEmitInteger(linesdata, linessize, length(filename) + 1)
+	ByteStreamEmitStringNarrow(linesdata, linessize, filename)
+	ByteStreamEmitByte(linesdata, linessize, 0)
+
+	while((linessize & 3) != 0)
+	{
+		ByteStreamEmitByte(linesdata, linessize, 0)
+	}
+
+	integer written = 0
+	WriteFile(stream.FileHandle, linesdata, linessize, written, 0)
+	stream.FilePosition = stream.FilePosition + written
+}
+
+
+EmitDBISectionContributions : PDBOutputStream ref stream
+{
+	buffer header = 16
+	integer headersize = 0
+
+	integer version = 0xeffe0000 + 19970605
+	
+	ByteStreamEmitInteger(header, headersize, version)
+	
+	integer written = 0
+	WriteFile(stream.FileHandle, header, headersize, written, 0)
+	stream.FilePosition = stream.FilePosition + written
+	
+	
+	EmitDBISectionContributionsForModules(stream, stream.DBI.Modules)
+}
+
+
+EmitDBISectionMap : PDBOutputStream ref stream
+{
+	buffer header = 512
+	integer headersize = 0
+	
+	ByteStreamEmitInteger16(header, headersize, 9)
+	ByteStreamEmitInteger16(header, headersize, 9)
+	
+	// TODO - reflect actual EXE sections here
+
+	// section descriptor .idata
+	ByteStreamEmitInteger16(header, headersize, 0x109)		// flags
+	ByteStreamEmitInteger16(header, headersize, 0)			// overlay
+	ByteStreamEmitInteger16(header, headersize, 0)			// group
+	ByteStreamEmitInteger16(header, headersize, 1)			// frame
+	ByteStreamEmitInteger16(header, headersize, 0xffff)		// name
+	ByteStreamEmitInteger16(header, headersize, 0xffff)		// class name
+	ByteStreamEmitInteger(header, headersize, 0)			// offset
+	ByteStreamEmitInteger(header, headersize, 0x1000)		// length
+	
+	// section descriptor .rsrc
+	ByteStreamEmitInteger16(header, headersize, 0x109)		// flags
+	ByteStreamEmitInteger16(header, headersize, 0)			// overlay
+	ByteStreamEmitInteger16(header, headersize, 0)			// group
+	ByteStreamEmitInteger16(header, headersize, 2)			// frame
+	ByteStreamEmitInteger16(header, headersize, 0xffff)		// name
+	ByteStreamEmitInteger16(header, headersize, 0xffff)		// class name
+	ByteStreamEmitInteger(header, headersize, 0)			// offset
+	ByteStreamEmitInteger(header, headersize, 0x100)		// length
+
+	// section descriptor .pdata
+	ByteStreamEmitInteger16(header, headersize, 0x109)		// flags
+	ByteStreamEmitInteger16(header, headersize, 0)			// overlay
+	ByteStreamEmitInteger16(header, headersize, 0)			// group
+	ByteStreamEmitInteger16(header, headersize, 3)			// frame
+	ByteStreamEmitInteger16(header, headersize, 0xffff)		// name
+	ByteStreamEmitInteger16(header, headersize, 0xffff)		// class name
+	ByteStreamEmitInteger(header, headersize, 0)			// offset
+	ByteStreamEmitInteger(header, headersize, 0x100)		// length
+
+	// section descriptor .xdata
+	ByteStreamEmitInteger16(header, headersize, 0x109)		// flags
+	ByteStreamEmitInteger16(header, headersize, 0)			// overlay
+	ByteStreamEmitInteger16(header, headersize, 0)			// group
+	ByteStreamEmitInteger16(header, headersize, 4)			// frame
+	ByteStreamEmitInteger16(header, headersize, 0xffff)		// name
+	ByteStreamEmitInteger16(header, headersize, 0xffff)		// class name
+	ByteStreamEmitInteger(header, headersize, 0)			// offset
+	ByteStreamEmitInteger(header, headersize, 0x100)		// length
+
+	// section descriptor .data
+	ByteStreamEmitInteger16(header, headersize, 0x109)		// flags
+	ByteStreamEmitInteger16(header, headersize, 0)			// overlay
+	ByteStreamEmitInteger16(header, headersize, 0)			// group
+	ByteStreamEmitInteger16(header, headersize, 5)			// frame
+	ByteStreamEmitInteger16(header, headersize, 0xffff)		// name
+	ByteStreamEmitInteger16(header, headersize, 0xffff)		// class name
+	ByteStreamEmitInteger(header, headersize, 0)			// offset
+	ByteStreamEmitInteger(header, headersize, 0x500)		// length
+
+	// section descriptor .gc
+	ByteStreamEmitInteger16(header, headersize, 0x109)		// flags
+	ByteStreamEmitInteger16(header, headersize, 0)			// overlay
+	ByteStreamEmitInteger16(header, headersize, 0)			// group
+	ByteStreamEmitInteger16(header, headersize, 6)			// frame
+	ByteStreamEmitInteger16(header, headersize, 0xffff)		// name
+	ByteStreamEmitInteger16(header, headersize, 0xffff)		// class name
+	ByteStreamEmitInteger(header, headersize, 0)			// offset
+	ByteStreamEmitInteger(header, headersize, 0x74)		// length
+
+	// section descriptor .debug
+	ByteStreamEmitInteger16(header, headersize, 0x109)		// flags
+	ByteStreamEmitInteger16(header, headersize, 0)			// overlay
+	ByteStreamEmitInteger16(header, headersize, 0)			// group
+	ByteStreamEmitInteger16(header, headersize, 7)			// frame
+	ByteStreamEmitInteger16(header, headersize, 0xffff)		// name
+	ByteStreamEmitInteger16(header, headersize, 0xffff)		// class name
+	ByteStreamEmitInteger(header, headersize, 0)			// offset
+	ByteStreamEmitInteger(header, headersize, 0x200)		// length
+
+	// section descriptor .global
+	ByteStreamEmitInteger16(header, headersize, 0x109)		// flags
+	ByteStreamEmitInteger16(header, headersize, 0)			// overlay
+	ByteStreamEmitInteger16(header, headersize, 0)			// group
+	ByteStreamEmitInteger16(header, headersize, 8)			// frame
+	ByteStreamEmitInteger16(header, headersize, 0xffff)		// name
+	ByteStreamEmitInteger16(header, headersize, 0xffff)		// class name
+	ByteStreamEmitInteger(header, headersize, 0)			// offset
+	ByteStreamEmitInteger(header, headersize, 42)		// length
+
+	// section descriptor .text
+	ByteStreamEmitInteger16(header, headersize, 0x10d)		// flags
+	ByteStreamEmitInteger16(header, headersize, 0)			// overlay
+	ByteStreamEmitInteger16(header, headersize, 0)			// group
+	ByteStreamEmitInteger16(header, headersize, 9)			// frame
+	ByteStreamEmitInteger16(header, headersize, 0xffff)		// name
+	ByteStreamEmitInteger16(header, headersize, 0xffff)		// class name
+	ByteStreamEmitInteger(header, headersize, 0)			// offset
+	ByteStreamEmitInteger(header, headersize, 0xa0)		// length
+
+	// magic section (?)
+	//ByteStreamEmitInteger16(header, headersize, 0x208)		// flags
+	//ByteStreamEmitInteger16(header, headersize, 0)			// overlay
+	//ByteStreamEmitInteger16(header, headersize, 0)			// group
+	//ByteStreamEmitInteger16(header, headersize, 10)			// frame
+	//ByteStreamEmitInteger16(header, headersize, 0xffff)		// name
+	//ByteStreamEmitInteger16(header, headersize, 0xffff)		// class name
+	//ByteStreamEmitInteger(header, headersize, 0)			// offset
+	//ByteStreamEmitInteger(header, headersize, 0xffffffff)	// length	
+	
+	integer written = 0
+	WriteFile(stream.FileHandle, header, headersize, written, 0)
+	stream.FilePosition = stream.FilePosition + written
+}
+
+
+EmitDBISectionContributionsForModules : PDBOutputStream ref stream, list<DBIModule> ref modules
+{
+	EmitDBISectionContribution(stream, modules.value.SectionContributions)
+	EmitDBISectionContributionsForModules(stream, modules.next)
+}
+
+EmitDBISectionContributionsForModules : PDBOutputStream ref stream, nothing
+
+
+EmitDBISectionContribution : PDBOutputStream ref stream, list<SectionContribution> ref scs
+{
+	EmitDBISectionContributionSingle(stream, scs.value)
+	EmitDBISectionContribution(stream, scs.next)
+}
+
+EmitDBISectionContribution : PDBOutputStream ref stream, nothing
+
+
+EmitDBISectionContributionSingle : PDBOutputStream ref stream, SectionContribution ref sc
+{
+	buffer contrib = 128
+	integer contribsize = 0
+	
+	ByteStreamEmitInteger16(contrib, contribsize, sc.SectionIndex)
+	ByteStreamEmitInteger16(contrib, contribsize, 0)
+	ByteStreamEmitInteger(contrib, contribsize, sc.Offset)
+	ByteStreamEmitInteger(contrib, contribsize, sc.Size)
+	ByteStreamEmitInteger(contrib, contribsize, sc.Characteristics)
+	ByteStreamEmitInteger16(contrib, contribsize, sc.ModuleIndex)
+	ByteStreamEmitInteger16(contrib, contribsize, 0)
+	ByteStreamEmitInteger(contrib, contribsize, sc.DataCRC)
+	ByteStreamEmitInteger(contrib, contribsize, sc.RelocCRC)
+	
+	integer written = 0
+	WriteFile(stream.FileHandle, contrib, contribsize, written, 0)
+	stream.FilePosition = stream.FilePosition + written
+}
+
+
+ComputeSymbolSize : DBIModule ref mod
+{
+	mod.SymbolSize = 0
+	ComputeSymbolSize(mod.Symbols, mod.SymbolSize)
+}
+
+ComputeSymbolSize : list<PDBSymbol> ref symlist, integer ref sizecounter
+{
+	sizecounter += SymbolGetSize(symlist.value)
+
+	ComputeSymbolSize(symlist.next, sizecounter)
+}
+
+ComputeSymbolSize : nothing, integer ref sizecounter
+
+
+EmitDBIModule : PDBOutputStream ref stream, list<DBIModule> ref modlist
+{
+	ComputeSymbolSize(modlist.value)
+
+
+	buffer unusedheader = 4
+	integer unusedheadersize = 0
+	ByteStreamEmitInteger(unusedheader, unusedheadersize, 0)
+
+	integer written = 0
+	WriteFile(stream.FileHandle, unusedheader, unusedheadersize, written, 0)
+	stream.FilePosition = stream.FilePosition + written
+
+
+	EmitDBISectionContributionSingle(stream, modlist.value.SectionContributions.value)	
+
+
+	buffer modinfo = 512
+	integer modsize = 0
+
+	ByteStreamEmitInteger16(modinfo, modsize, 0)		// flags		TODO
+	ByteStreamEmitInteger16(modinfo, modsize, 8)		// stream number of debug info		TODO
+	ByteStreamEmitInteger(modinfo, modsize, modlist.value.SymbolSize + 4)
+	ByteStreamEmitInteger(modinfo, modsize, 0)			// bytes of line number info
+	ByteStreamEmitInteger(modinfo, modsize, 168 + 20)		// bytes of C13 line number info
+	
+	ByteStreamEmitInteger16(modinfo, modsize, 1)		// num contributing files
+	ByteStreamEmitInteger16(modinfo, modsize, 0)		// padding
+	
+	ByteStreamEmitInteger(modinfo, modsize, 4)			// TODO (file name offsets)
+	ByteStreamEmitInteger(modinfo, modsize, 1)			// name index for source file name
+	ByteStreamEmitInteger(modinfo, modsize, 0)			// name index for path to compiler PDB ??
+
+
+	integer count = 0
+	while(count < length(modlist.value.SourceFile))
+	{
+		string char = charat(modlist.value.SourceFile, count)
+		ByteStreamEmitSubstring(modinfo, modsize, char, 1)
+
+		++count
+	}
+	
+	ByteStreamEmitByte(modinfo, modsize, 0)
+	
+
+	count = 0
+	while(count < length(modlist.value.ObjectFile))
+	{
+		string char = charat(modlist.value.ObjectFile, count)
+		ByteStreamEmitSubstring(modinfo, modsize, char, 1)
+
+		++count
+	}
+	
+	ByteStreamEmitByte(modinfo, modsize, 0)
+	
+	while((modsize & 3) != 0)
+	{
+		ByteStreamEmitByte(modinfo, modsize, 0)
+	}
+	
+	WriteFile(stream.FileHandle, modinfo, modsize, written, 0)
+	stream.FilePosition = stream.FilePosition + written
+
+	EmitDBIModule(stream, modlist.next)
+}
+
+EmitDBIModule : PDBOutputStream ref stream, nothing
+
+
+EmitDBILines : PDBOutputStream ref stream
+{
+	// TODO
+}
+
+
+ByteStreamEmitDBILines : buffer ref data, integer ref size, list<CodeViewLineInfo> ref lines
+{
+	if(lines.value.Raw.NumPairs != 0)
+	{
+		ByteStreamEmitInteger(data, size, lines.value.Raw.FunctionOffset)
+		ByteStreamEmitInteger16(data, size, 9)				// TODO - segment of contribution
+		ByteStreamEmitInteger16(data, size, 0)				// Flags (0 = just lines, 1 = has columns)
+		ByteStreamEmitInteger(data, size, lines.value.Raw.FunctionSize)
+
+		ByteStreamEmitInteger(data, size, 0)				// TODO - file index
+		ByteStreamEmitInteger(data, size, lines.value.Raw.NumPairs)
+		ByteStreamEmitInteger(data, size, lines.value.Raw.Size)
+
+		ByteStreamEmitDBILinePairs(data, size, lines.value.LinePairs)
+	}
+
+	ByteStreamEmitDBILines(data, size, lines.next)
+}
+
+ByteStreamEmitDBILines : buffer ref data, integer ref size, nothing
+
+
+ByteStreamEmitDBILinePairs : buffer ref data, integer ref size, list<CodeViewLinePair> ref pairs
+{
+	if(pairs.value.Offset > -1)
+	{
+		ByteStreamEmitInteger(data, size, pairs.value.Offset)
+		ByteStreamEmitInteger(data, size, pairs.value.Line)
+	}
+
+	ByteStreamEmitDBILinePairs(data, size, pairs.next)
+}
+
+ByteStreamEmitDBILinePairs : buffer ref data, integer ref size, nothing
+
+
+WriteIPIStream : Win32Handle pdbfilehandle, integer startfileposition -> integer endfileposition = 0
+{
+	buffer header = 128
+	integer headersize = 0
+	
+	integer version = 20040203
+
+	ByteStreamEmitInteger(header, headersize, version)
+	ByteStreamEmitInteger(header, headersize, 56)			// TODO - hardcoded magic size
+	ByteStreamEmitInteger(header, headersize, 0)		// Type index begin
+	ByteStreamEmitInteger(header, headersize, 0)		// Type index end
+	ByteStreamEmitInteger(header, headersize, 0)		// Type record bytes
+
+	ByteStreamEmitInteger16(header, headersize, 0)		// Hash stream index
+	ByteStreamEmitInteger16(header, headersize, 0)		// Hash aux stream index
+	
+	// These values seem fixed?
+	ByteStreamEmitInteger(header, headersize, 4)		// Hash key size
+	ByteStreamEmitInteger(header, headersize, 262143)	// Number of hash buckets
+	
+	ByteStreamEmitInteger(header, headersize, 0)		// Hash value buffer offset
+	ByteStreamEmitInteger(header, headersize, 0)		// Hash value buffer length
+	
+	ByteStreamEmitInteger(header, headersize, 0)		// Index offset buffer offset
+	ByteStreamEmitInteger(header, headersize, 0)		// Index offset buffer length
+	
+	ByteStreamEmitInteger(header, headersize, 0)		// Hash adjustment buffer offset
+	ByteStreamEmitInteger(header, headersize, 0)		// Hash adjustment buffer length
+
+
+	integer written = 0
+	WriteFile(pdbfilehandle, header, headersize, written, 0)
+	
+	endfileposition = startfileposition + written	
+}
+
+
+
+WriteGlobalsStream : Win32Handle pdbfilehandle, integer startfileposition -> integer endfileposition = 0
+{
+	buffer header = 1024
+	integer headersize = 0
+	
+	//ByteStreamEmitInteger(header, headersize, 0)		// hash
+	//ByteStreamEmitInteger(header, headersize, 0)		// address map
+	//ByteStreamEmitInteger(header, headersize, 0)		// num thunks
+	//ByteStreamEmitInteger(header, headersize, 0)		// size of thunk
+	//ByteStreamEmitInteger16(header, headersize, 0)		// section index thunk table
+	//ByteStreamEmitInteger16(header, headersize, 0)		// padding
+	//ByteStreamEmitInteger(header, headersize, 0)		// offset of thunk table
+	//ByteStreamEmitInteger(header, headersize, 0)		// number of sections
+
+	// Hash header
+	ByteStreamEmitInteger(header, headersize, 0xffffffff)		// signature
+	ByteStreamEmitInteger(header, headersize, 0xeffe0000 + 19990810)		// version
+	ByteStreamEmitInteger(header, headersize, 0)		// size
+	ByteStreamEmitInteger(header, headersize, 0)		// num buckets
+	
+	
+	// Magic bitmap
+	integer count = 0
+	while(count < 516)
+	{
+		ByteStreamEmitByte(header, headersize, 0)
+		
+		++count
+	}
+	
+
+	integer written = 0
+	WriteFile(pdbfilehandle, header, headersize, written, 0)
+	
+	endfileposition = startfileposition + written	
+}
+
+
+WritePublicsStream : Win32Handle pdbfilehandle, integer startfileposition -> integer endfileposition = 0
+{
+	buffer header = 1024
+	integer headersize = 0
+	
+	ByteStreamEmitInteger(header, headersize, 36 + 516 + 192)		// hash
+	ByteStreamEmitInteger(header, headersize, 8)		// address map
+	ByteStreamEmitInteger(header, headersize, 30)		// num thunks
+	ByteStreamEmitInteger(header, headersize, 8)		// size of thunk
+	ByteStreamEmitInteger16(header, headersize, 1)		// section index thunk table
+	ByteStreamEmitInteger16(header, headersize, 0)		// padding
+	ByteStreamEmitInteger(header, headersize, 0)		// offset of thunk table
+	ByteStreamEmitInteger(header, headersize, 9)		// number of sections
+
+	// Hash header
+	ByteStreamEmitInteger(header, headersize, 0xffffffff)				// signature
+	ByteStreamEmitInteger(header, headersize, 0xeffe0000 + 19990810)	// version
+	ByteStreamEmitInteger(header, headersize, 16)						// number of bytes of HRFiles
+	ByteStreamEmitInteger(header, headersize, 516 + 192)				// number of bytes in buckets
+
+	// HRFiles
+	ByteStreamEmitInteger(header, headersize, 1)
+	ByteStreamEmitInteger(header, headersize, 0)		// this doesn't seem to matter?
+
+	ByteStreamEmitInteger(header, headersize, 1)
+	ByteStreamEmitInteger(header, headersize, 20)		// nor this?
+	
+	// Magic bitmap
+	ByteStreamEmitByte(header, headersize, 1)
+	ByteStreamEmitByte(header, headersize, 0)
+
+	integer count = 0
+	while(count < 516 - 2)
+	{
+		ByteStreamEmitByte(header, headersize, 0)
+		
+		++count
+	}
+
+	ByteStreamEmitInteger(header, headersize, 1)
+	ByteStreamEmitInteger(header, headersize, 1)
+	ByteStreamEmitInteger(header, headersize, 1)
+	ByteStreamEmitInteger(header, headersize, 1)
+
+	ByteStreamEmitInteger(header, headersize, 1)
+	ByteStreamEmitInteger(header, headersize, 1)
+	ByteStreamEmitInteger(header, headersize, 1)
+	ByteStreamEmitInteger(header, headersize, 1)
+	
+	ByteStreamEmitInteger(header, headersize, 1)
+	ByteStreamEmitInteger(header, headersize, 1)
+	ByteStreamEmitInteger(header, headersize, 1)
+	ByteStreamEmitInteger(header, headersize, 1)
+	
+	ByteStreamEmitInteger(header, headersize, 1)
+	ByteStreamEmitInteger(header, headersize, 1)
+	ByteStreamEmitInteger(header, headersize, 1)
+	ByteStreamEmitInteger(header, headersize, 1)
+
+	ByteStreamEmitInteger(header, headersize, 1)
+	ByteStreamEmitInteger(header, headersize, 1)
+	ByteStreamEmitInteger(header, headersize, 1)
+	ByteStreamEmitInteger(header, headersize, 1)
+
+	ByteStreamEmitInteger(header, headersize, 1)
+	ByteStreamEmitInteger(header, headersize, 1)
+	ByteStreamEmitInteger(header, headersize, 1)
+	ByteStreamEmitInteger(header, headersize, 1)
+	
+	ByteStreamEmitInteger(header, headersize, 1)
+	ByteStreamEmitInteger(header, headersize, 1)
+	ByteStreamEmitInteger(header, headersize, 1)
+	ByteStreamEmitInteger(header, headersize, 1)
+	
+	ByteStreamEmitInteger(header, headersize, 1)
+	ByteStreamEmitInteger(header, headersize, 1)
+	ByteStreamEmitInteger(header, headersize, 1)
+	ByteStreamEmitInteger(header, headersize, 1)
+
+	ByteStreamEmitInteger(header, headersize, 1)
+	ByteStreamEmitInteger(header, headersize, 1)
+	ByteStreamEmitInteger(header, headersize, 1)
+	ByteStreamEmitInteger(header, headersize, 1)
+
+	ByteStreamEmitInteger(header, headersize, 1)
+	ByteStreamEmitInteger(header, headersize, 1)
+	ByteStreamEmitInteger(header, headersize, 1)
+	ByteStreamEmitInteger(header, headersize, 1)
+	
+	ByteStreamEmitInteger(header, headersize, 1)
+	ByteStreamEmitInteger(header, headersize, 1)
+	ByteStreamEmitInteger(header, headersize, 1)
+	ByteStreamEmitInteger(header, headersize, 1)
+	
+	ByteStreamEmitInteger(header, headersize, 1)
+	ByteStreamEmitInteger(header, headersize, 1)
+	ByteStreamEmitInteger(header, headersize, 1)
+	ByteStreamEmitInteger(header, headersize, 1)
+
+	ByteStreamEmitInteger(header, headersize, 1)
+	ByteStreamEmitInteger(header, headersize, 1)
+	ByteStreamEmitInteger(header, headersize, 1)
+	ByteStreamEmitInteger(header, headersize, 1)
+
+	ByteStreamEmitInteger(header, headersize, 1)
+	ByteStreamEmitInteger(header, headersize, 1)
+	ByteStreamEmitInteger(header, headersize, 1)
+	ByteStreamEmitInteger(header, headersize, 1)
+	
+	ByteStreamEmitInteger(header, headersize, 1)
+	ByteStreamEmitInteger(header, headersize, 1)
+	ByteStreamEmitInteger(header, headersize, 1)
+	ByteStreamEmitInteger(header, headersize, 1)
+	
+	ByteStreamEmitInteger(header, headersize, 1)
+	ByteStreamEmitInteger(header, headersize, 1)
+	ByteStreamEmitInteger(header, headersize, 1)
+	ByteStreamEmitInteger(header, headersize, 1)
+	
+	ByteStreamEmitInteger(header, headersize, 1)
+	ByteStreamEmitInteger(header, headersize, 1)
+	ByteStreamEmitInteger(header, headersize, 1)
+	ByteStreamEmitInteger(header, headersize, 1)
+	
+	ByteStreamEmitInteger(header, headersize, 1)
+	ByteStreamEmitInteger(header, headersize, 1)
+	ByteStreamEmitInteger(header, headersize, 1)
+	ByteStreamEmitInteger(header, headersize, 1)
+	
+	ByteStreamEmitInteger(header, headersize, 1)
+	ByteStreamEmitInteger(header, headersize, 1)
+	ByteStreamEmitInteger(header, headersize, 1)
+	ByteStreamEmitInteger(header, headersize, 1)
+		
+
+	integer written = 0
+	WriteFile(pdbfilehandle, header, headersize, written, 0)
+
+	print(cast(string, written))
+	
+	endfileposition = startfileposition + written
+}
+
+
+WriteSymbolRecordsStream : PDBOutputStream ref stream, DBIModule ref module
+{
+	//buffer header = 4
+	//integer headersize = 0
+	//
+	//ByteStreamEmitInteger(header, headersize, 4)
+	//
+	//integer written = 0
+	//WriteFile(stream.FileHandle, header, headersize, written, 0)
+	//
+	//stream.FilePosition = stream.FilePosition + written
+	
+	
+
+
+	
+	buffer symboldata = 4096
+	integer symboldatasize = 0
+	//ByteStreamEmitSymbolList(symboldata, symboldatasize, symgarbagelist)
+
+	ByteStreamEmitInteger16(symboldata, symboldatasize, 17)
+	ByteStreamEmitInteger16(symboldata, symboldatasize, 0x110e)
+	ByteStreamEmitInteger(symboldata, symboldatasize, 2)
+	ByteStreamEmitInteger(symboldata, symboldatasize, 0)
+	ByteStreamEmitInteger16(symboldata, symboldatasize, 9)
+	ByteStreamEmitStringNarrow(symboldata, symboldatasize, "init")
+	ByteStreamEmitByte(symboldata, symboldatasize, 0)
+
+	while((symboldatasize & 3) != 0)
+	{
+		ByteStreamEmitByte(symboldata, symboldatasize, 0)
+	}
+
+	ByteStreamEmitInteger16(symboldata, symboldatasize, 17)
+	ByteStreamEmitInteger16(symboldata, symboldatasize, 0x110e)
+	ByteStreamEmitInteger(symboldata, symboldatasize, 2)
+	ByteStreamEmitInteger(symboldata, symboldatasize, 0x80)
+	ByteStreamEmitInteger16(symboldata, symboldatasize, 9)
+	ByteStreamEmitStringNarrow(symboldata, symboldatasize, "test")
+	ByteStreamEmitByte(symboldata, symboldatasize, 0)
+	
+	while((symboldatasize & 3) != 0)
+	{
+		ByteStreamEmitByte(symboldata, symboldatasize, 0)
+	}
+
+
+	integer written = 0
+	WriteFile(stream.FileHandle, symboldata, symboldatasize, written, 0)
+	stream.FilePosition = stream.FilePosition + written
+
+	print(cast(string, written) ; " bytes of symbol records")
+}
+
+
+
+WriteDBIModuleSymbols : PDBOutputStream ref stream, DBIModule ref module, buffer ref symbols, integer symbolsize
+{
+	buffer header = 4
+	integer headersize = 0
+	
+	ByteStreamEmitInteger(header, headersize, 4)
+	
+	integer written = 0
+	WriteFile(stream.FileHandle, header, headersize, written, 0)
+	
+	stream.FilePosition = stream.FilePosition + written
+	
+	
+	buffer symboldata = module.SymbolSize + 1024
+	integer symboldatasize = 0
+	ByteStreamEmitSymbolList(symboldata, symboldatasize, module.Symbols)
+	
+	assertmsg(module.SymbolSize == symboldatasize, "Emitted wrong number of symbol bytes!")
+
+	WriteFile(stream.FileHandle, symboldata, symboldatasize, written, 0)
+	stream.FilePosition = stream.FilePosition + written
+	
+
+	buffer linedata = 1024
+	integer linesize = 0
+	
+	ByteStreamEmitInteger(linedata, linesize, 0xf4)				// Checksums
+	ByteStreamEmitInteger(linedata, linesize, 12)			// TODO - real value
+
+	ByteStreamEmitInteger(linedata, linesize, 6)				// Offset of filename in global string table
+	ByteStreamEmitInteger16(linedata, linesize, 4)				// Bytes of checksum + checksum kind in high byte
+	ByteStreamEmitInteger(linedata, linesize, 0)				// Null checksum
+
+
+	while((linesize & 3) != 0)
+	{
+		ByteStreamEmitByte(linedata, linesize, 0)
+	}
+
+
+	// Emit lines data
+	ByteStreamEmitInteger(linedata, linesize, 0xf2)
+	ByteStreamEmitInteger(linedata, linesize, 160)
+	ByteStreamEmitDBILines(linedata, linesize, stream.DBI.Lines)
+
+	WriteFile(stream.FileHandle, linedata, linesize, written, 0)
+	stream.FilePosition = stream.FilePosition + written
+
+
+	
+	buffer footer = 4
+	integer footersize = 0
+	
+	ByteStreamEmitInteger(footer, footersize, 0)			// Global Refs size
+	
+	WriteFile(stream.FileHandle, footer, footersize, written, 0)
+	stream.FilePosition = stream.FilePosition + written
+}
+
+
+
+TransferSymbols : list<PDBSymbol> ref symbols, buffer ref symboldata, integer symbolsize, buffer ref relocdata, integer relocsize, buffer ref symbollist, list<SectionContribution> ref contriblist, list<CodeViewLineInfo> ref lines
+{
+	//
+	// Apply relocations to the raw symbol data so it will be easier
+	// for the end debugger to correlate with a running image of the
+	// program being compiled.
+	//
+
+	print("Relocating debug data...")
+
+	integer RELOCATION_SIZE = 10		// sizeof(packed Relocation struct)
+	integer SYMBOL_SIZE = 18			// sizeof(packed ImageSymbol struct)
+
+	integer reloccount = relocsize / RELOCATION_SIZE    
+	integer i = 0
+	while(i < reloccount)
+	{
+		Relocation reloc = 0, 0, 0
+		marshalstructure(reloc, GetBufferPtr(relocdata, i * RELOCATION_SIZE))
+
+
+		if(reloc.Type == 0xb)			// IMAGE_REL_AMD64_SECREL
+		{
+			ImageSymbol symbol = 0, 0, 0, 0, 0, 0
+			marshalstructure(symbol, GetBufferPtr(symbollist, reloc.SymbolIndex * SYMBOL_SIZE))
+
+			if(symbol.SectionNumber == 9)
+			{
+				if(reloc.Address < (symbolsize - 3))		// 4 == sizeof(DWORD), 1 offset for lack of <= operator
+				{
+					WriteBufferPtrDword(symboldata, reloc.Address, symbol.Value)
+				}
+				else
+				{
+					print("WARNING: NOT relocating relative symbol... " ; cast(string, reloc.Address) ; " val " ; cast(string, symbol.Value))
+				}
+			}
+		}
+		elseif(reloc.Type == 0xa)		// IMAGE_REL_AMD64_SECTION
+		{
+			ImageSymbol symbol = 0, 0, 0, 0, 0, 0
+			marshalstructure(symbol, GetBufferPtr(symbollist, reloc.SymbolIndex * SYMBOL_SIZE))
+
+			if(symbol.SectionNumber == 9)
+			{
+				// stash integer16
+				if(reloc.Address < (symbolsize - 1))		// 2 == sizeof(WORD), 1 offset for lack of <= operator
+				{
+					WriteBufferPtrByte(symboldata, reloc.Address, 9)
+					WriteBufferPtrByte(symboldata, reloc.Address + 1, 0)
+				}
+				else
+				{
+					print("WARNING: NOT relocating absolute symbol... " ; cast(string, reloc.Address) ; " val " ; cast(string, symbol.Value))
+				}
+			}
+			else
+			{
+				print("Bogus symbol for section " ; cast(string, cast(integer, symbol.SectionNumber)))
+			}
+		}
+		else
+		{
+			print("Unrecognized CodeView symbol type")
+			ExitProcess(1000)
+		}
+
+		++i
+	}
+
+	ConvertSymbolStream(symboldata, symbolsize, symbols, contriblist, lines)
+
+	print("Stack unwind canary")
+}
+
+
+
+structure CodeViewChunk :
+	integer Header,
+	integer Size
+
+structure CodeViewProc :
+	integer16 Bytes,
+	integer16 Magic
+
+structure CodeViewProcSize :
+	integer Size
+
+structure CodeViewProcSection :
+	integer SectionRelative,
+	integer16 SectionIndex
+
+structure CodeViewProcTerm :
+	integer16 Magic
+
+structure CodeViewProcEnd :
+	integer16 Magic
+
+structure CodeViewLineInfoRaw :
+	integer FunctionOffset,
+	integer FunctionIndex,
+	integer FunctionSize,
+	integer SourceFileOffset,
+	integer NumPairs,
+	integer Size
+
+structure CodeViewLineInfo :
+	CodeViewLineInfoRaw Raw,
+	list<CodeViewLinePair> ref LinePairs
+
+structure CodeViewLinePair :
+	integer Offset,
+	integer Line
+
+
+ConvertSymbolStream : buffer ref symboldata, integer symbolsize, list<PDBSymbol> ref symbols, list<SectionContribution> ref contriblist, list<CodeViewLineInfo> ref lines
+{
+	print("Converting symbols...")
+
+	CodeViewChunk chunk = 0, 0
+	CodeViewProc proc = 0, 0
+	CodeViewProcSize procsize = 0
+	CodeViewProcSection procsection = 0, 0
+	CodeViewProcTerm term = 0
+	CodeViewProcEnd end = 0
+
+	integer slen = 0
+	string symbol = ""
+
+	integer writeoffset = 0x1c
+	integer readoffset = 4
+
+	while(readoffset < symbolsize)
+	{
+		marshalstructure(chunk, GetBufferPtr(symboldata, readoffset))
+		readoffset += 8		// sizeof(CodeViewChunk)
+
+		if(chunk.Header == 0xf1)
+		{
+			marshalstructure(proc, GetBufferPtr(symboldata, readoffset))
+			readoffset += 4			// sizeof(CodeViewProc)
+			assertmsg(proc.Magic == 0x1147, "Mismatched codeview magic (1)")
+
+			readoffset += 12		// unknown fields/padding
+
+			marshalstructure(procsize, GetBufferPtr(symboldata, readoffset))
+			readoffset += 4			// sizeof(CodeViewProcSize)
+
+			readoffset += 12		// unknown fields/padding
+
+			marshalstructure(procsection, GetBufferPtr(symboldata, readoffset))
+			readoffset += 7			// sizeof(CodeViewProcSection) + 1 pad byte
+
+			slen = hackstrlen(GetBufferPtr(symboldata, readoffset))
+			symbol = widenfromptr(GetBufferPtr(symboldata, readoffset), slen)
+			readoffset += slen + 1	// null terminated
+
+			print(symbol)
+
+			marshalstructure(term, GetBufferPtr(symboldata, readoffset))
+			readoffset += 2			// sizeof(CodeViewProcTerm)
+			assertmsg(cast(integer, term.Magic) == 0x02, "Mismatched codeview magic (2)")
+
+			marshalstructure(end, GetBufferPtr(symboldata, readoffset))
+			readoffset += 2			// sizeof(CodeViewProcEnd)
+			assertmsg(cast(integer, end.Magic) == 0x114f, "Mismatched codeview magic (3)")
+
+			writeoffset += 0x2c
+			writeoffset += slen
+
+			GenerateCorrectedCVSymbol(symbols, writeoffset, procsize.Size, procsection.SectionIndex, procsection.SectionRelative, symbol)
+
+			writeoffset += 4
+
+			GenerateSectionContribution(contriblist, procsection.SectionIndex, procsection.SectionRelative, procsize.Size)
+		}
+		elseif(chunk.Header == 0xf2)
+		{
+			integer nextreadoffset = chunk.Size + readoffset
+
+			CodeViewLinePair dummypair = -1, -1
+			list<CodeViewLinePair> pairlist = dummypair, nothing
+
+			CodeViewLineInfoRaw lineinfo = 0, 0, 0, 0, 0, 0
+			marshalstructure(lineinfo, GetBufferPtr(symboldata, readoffset))
+			readoffset += 24
+			
+			CodeViewLineInfo stuff = lineinfo, pairlist
+
+			integer pairindex = 0
+			while(pairindex < lineinfo.NumPairs)
+			{
+				CodeViewLinePair pair = 0, 0
+				marshalstructure(pair, GetBufferPtr(symboldata, readoffset))
+				readoffset += 8
+
+				append<CodeViewLinePair>(stuff.LinePairs, pair)
+
+				++pairindex
+			}
+
+			append<CodeViewLineInfo>(lines, stuff)
+
+			readoffset = nextreadoffset
+		}
+		elseif(chunk.Header == 0xf4)
+		{
+			// TODO - accumulate checksums
+			readoffset += chunk.Size 
+		}
+		else
+		{
+			if(chunk.Header == 0xf3)				// TODO - transfer strings
+			{
+			}
+			else
+			{
+				assertmsg(false, "Unrecognized codeview chunk " ; cast(string, chunk.Header))
+			}
+
+			readoffset += chunk.Size
+		}
+
+		while(readoffset & 3 != 0)
+		{
+			++readoffset
+		}
+	}
+
+	print("Done.")
+}
+
+
+GenerateCorrectedCVSymbol : list<PDBSymbol> ref symbols, integer writeoffset, integer size, integer16 sectionindex, integer sectionrelative, string symbol
+{
+	SymbolProcStart startsymbolps = 0, AlignToFour(writeoffset), 0, size, 0, 0, 0, sectionindex, 0, symbol, sectionrelative
+	SymbolBlockEnd endsymbolps = 0
+	PDBSymbol startsymbol = startsymbolps
+	PDBSymbol endsymbol = endsymbolps
+	
+	append<PDBSymbol>(symbols, startsymbol)
+	append<PDBSymbol>(symbols, endsymbol)
+}
+
+GenerateSectionContribution : list<SectionContribution> ref contriblist, integer16 sectionindex, integer startoffset, integer size
+{
+	SectionContribution sc = sectionindex, startoffset, size, 0x60001020, 0, 0, 0
+	append<SectionContribution>(contriblist, sc)
+}
+
+
+AlignToFour : integer in -> integer aligned = in
+{
+	while((aligned & 3) != 0)
+	{
+		++aligned
+	}
+}
+

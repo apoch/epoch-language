@@ -3,8 +3,6 @@
 //
 
 
-structure integer64 : integer dummy			// TODO - terrible hack, redo this once we get to self-hosting again
-
 structure ParsedToken :
 	string Token,
 	string FileName,
@@ -274,6 +272,12 @@ structure PendingPatternMatcher :
 structure TypeMatcher :
 	integer Name,
 	list<FunctionSignature> ref Overloads
+
+structure ArgumentMetadata :
+	simplelist<integer> ref ArgTypes
+
+structure CallSiteMetadata :
+	list<ArgumentMetadata> ref ArgTypeSets
 
 
 structure FunctionTag :

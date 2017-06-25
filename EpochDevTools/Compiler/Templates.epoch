@@ -1,9 +1,9 @@
 
-IsFunctionTemplate : FunctionDefinition ref func -> boolean istemplate = func.IsTemplate [nogc]
-IsFunctionTemplate : nothing -> false [nogc]
+IsFunctionTemplate : FunctionDefinition ref func -> boolean istemplate = func.IsTemplate
+IsFunctionTemplate : nothing -> false
 
 
-IsFunctionTemplateFast : integer name -> boolean istemplate = false [nogc]
+IsFunctionTemplateFast : integer name -> boolean istemplate = false
 {
 	ContextNode<FunctionDefinition> wrap = nothing
 	boolean found = SearchBinaryTreeForPayload<FunctionDefinition>(GlobalRootNamespace.Functions.RootNode, name, wrap)
@@ -18,7 +18,7 @@ IsFunctionTemplateFast : integer name -> boolean istemplate = false [nogc]
 
 
 
-IRRegisterTemplateParameter : integer paramtype, integer paramname [nogc]
+IRRegisterTemplateParameter : integer paramtype, integer paramname
 {
 	TemplateParameter p = paramname, paramtype
 	prepend<TemplateParameter>(TemplateParameterQueue, p)
@@ -77,30 +77,30 @@ TransferTemplateParamsFromQueue : list<TemplateParameter> ref out, nothing
 
 
 
-PopTemplateArgStack : list<TemplateArgumentList> ref stack, list<TemplateArgumentList> ref next [nogc]
+PopTemplateArgStack : list<TemplateArgumentList> ref stack, list<TemplateArgumentList> ref next
 {
 	stack = next
 }
 
-PopTemplateArgList : list<TemplateArgument> ref thelist, list<TemplateArgument> ref tail [nogc]
+PopTemplateArgList : list<TemplateArgument> ref thelist, list<TemplateArgument> ref tail
 {
 	thelist = tail
 }
 
 
-AppendTemplateArgument : list<TemplateArgument> ref thelist, TemplateArgument ref arg [nogc]
+AppendTemplateArgument : list<TemplateArgument> ref thelist, TemplateArgument ref arg
 {
 	AppendTemplateArgumentRecurse(thelist, thelist.next, arg)
 }
 
 
-AppendTemplateArgumentRecurse : list<TemplateArgument> ref thelist, nothing, TemplateArgument ref arg [nogc]
+AppendTemplateArgumentRecurse : list<TemplateArgument> ref thelist, nothing, TemplateArgument ref arg
 {
 	list<TemplateArgument> newlist = arg, nothing
 	thelist.next = newlist
 }
 
-AppendTemplateArgumentRecurse : list<TemplateArgument> ref thelist, list<TemplateArgument> ref tail, TemplateArgument ref arg [nogc]
+AppendTemplateArgumentRecurse : list<TemplateArgument> ref thelist, list<TemplateArgument> ref tail, TemplateArgument ref arg
 {
 	AppendTemplateArgumentRecurse(tail, tail.next, arg)
 }
@@ -338,13 +338,13 @@ DoMemberInstantiation : StructureMemberVariable ref memvar, list<StructureMember
 	}
 }
 
-CopyTemplateArgs : TemplateArgumentList ref in, TemplateArgumentList ref out [nogc]
+CopyTemplateArgs : TemplateArgumentList ref in, TemplateArgumentList ref out
 {
 	TemplateArgumentList copy = in
 	out = copy
 }
 
-CopyTemplateArgs : nothing, TemplateArgumentList ref out [nogc]
+CopyTemplateArgs : nothing, TemplateArgumentList ref out
 
 DoBaseTypeInstantiation : list<SumTypeBase> ref bases, list<SumTypeBase> ref out, list<TemplateParameter> ref params, list<TemplateArgument> ref args
 {
@@ -499,14 +499,14 @@ RemapSignatureParamTypes : list<Parameter> ref parameters, list<TemplateParamete
 RemapSignatureParamTypes : nothing, list<TemplateParameter> ref templateparams, list<TemplateArgument> ref templateargs
 
 
-PropagateTemplateArgsForParameter : UnresolvedParameter ref p, TemplateArgumentList ref check, list<TemplateParameter> ref params, list<TemplateArgument> ref args [nogc]
+PropagateTemplateArgsForParameter : UnresolvedParameter ref p, TemplateArgumentList ref check, list<TemplateParameter> ref params, list<TemplateArgument> ref args
 {
 	TemplateArgumentList copy = check
 	RemapAllTemplateArguments(copy, params, args)
 	p.TemplateArgs = copy
 }
 
-PropagateTemplateArgsForParameter : UnresolvedParameter ref p, nothing, list<TemplateParameter> ref params, list<TemplateArgument> ref args [nogc]
+PropagateTemplateArgsForParameter : UnresolvedParameter ref p, nothing, list<TemplateParameter> ref params, list<TemplateArgument> ref args
 
 
 DoReturnInstantiation : Expression ref retexpr, integer funcname, boolean anonymous, list<TemplateParameter> ref templateparams, list<TemplateArgument> ref templateargs
@@ -519,7 +519,7 @@ DoReturnInstantiation : Expression ref retexpr, integer funcname, boolean anonym
 DoReturnInstantiation : nothing, integer funcname, boolean anonymous, list<TemplateParameter> ref templateparams, list<TemplateArgument> ref templateargs
 
 
-MapTemplateType : integer typenamehandle, list<TemplateParameter> ref templateparams, list<TemplateArgument> ref templateargs -> integer newtypename = typenamehandle [nogc]
+MapTemplateType : integer typenamehandle, list<TemplateParameter> ref templateparams, list<TemplateArgument> ref templateargs -> integer newtypename = typenamehandle
 {
 	if(templateparams.value.ParamName == typenamehandle)
 	{
@@ -531,25 +531,25 @@ MapTemplateType : integer typenamehandle, list<TemplateParameter> ref templatepa
 	}
 }
 
-MapTemplateType : integer typenamehandle, nothing, nothing -> typenamehandle [nogc]
+MapTemplateType : integer typenamehandle, nothing, nothing -> typenamehandle
 
 
-MangleTemplateNameByHandle : integer defname, nothing -> integer mangled = defname [nogc]
+MangleTemplateNameByHandle : integer defname, nothing -> integer mangled = defname
 
-MangleTemplateNameByHandle : integer defname, TemplateArgumentList ref args -> integer mangled = PoolString(MangleTemplateName(defname, args.Args)) [nogc]
+MangleTemplateNameByHandle : integer defname, TemplateArgumentList ref args -> integer mangled = PoolString(MangleTemplateName(defname, args.Args))
 
 
-MangleTemplateName : integer defname, list<TemplateArgument> ref args -> string mangled = GetPooledString(defname) ; "@@templateinst@" [nogc]
+MangleTemplateName : integer defname, list<TemplateArgument> ref args -> string mangled = GetPooledString(defname) ; "@@templateinst@"
 {
 	mangled = mangled ; MangleTemplateArguments(args)
 }
 
-MangleTemplateArguments : list<TemplateArgument> ref args -> string mangled = args.value.ReplaceWithString [nogc]
+MangleTemplateArguments : list<TemplateArgument> ref args -> string mangled = args.value.ReplaceWithString
 {
 	mangled = mangled ; MangleTemplateArguments(args.next)
 }
 
-MangleTemplateArguments : nothing -> "" [nogc]
+MangleTemplateArguments : nothing -> ""
 
 
 InstantiateStructureTemplate : integer defname, TemplateArgumentList ref args -> integer instancename = InstantiateStructureTemplate(defname, args.Args)
@@ -579,7 +579,7 @@ InstantiateStructureTemplateFast : integer defname, list<TemplateArgument> ref a
 }
 
 
-FindExistingTemplateInstance : list<TemplateInstance> ref instances, integer defname, list<TemplateArgument> ref args -> integer instancename = 0 [nogc]
+FindExistingTemplateInstance : list<TemplateInstance> ref instances, integer defname, list<TemplateArgument> ref args -> integer instancename = 0
 {
 	if(instances.value.DefName == defname)
 	{
@@ -593,11 +593,11 @@ FindExistingTemplateInstance : list<TemplateInstance> ref instances, integer def
 	instancename = FindExistingTemplateInstance(instances.next, defname, args)
 }
 
-FindExistingTemplateInstance : nothing, integer defname, list<TemplateArgument> ref args -> 0 [nogc]
+FindExistingTemplateInstance : nothing, integer defname, list<TemplateArgument> ref args -> 0
 
 
 
-TemplateArgumentsMatch : list<TemplateArgument> ref a, list<TemplateArgument> ref b -> boolean match = true [nogc]
+TemplateArgumentsMatch : list<TemplateArgument> ref a, list<TemplateArgument> ref b -> boolean match = true
 {
 	if(a.value.ReplaceWith != b.value.ReplaceWith)
 	{
@@ -609,9 +609,9 @@ TemplateArgumentsMatch : list<TemplateArgument> ref a, list<TemplateArgument> re
 	}
 }
 
-TemplateArgumentsMatch : nothing, list<TemplateArgument> ref b -> false [nogc]
-TemplateArgumentsMatch : list<TemplateArgument> ref a, nothing -> false [nogc]
-TemplateArgumentsMatch : nothing, nothing -> true [nogc]
+TemplateArgumentsMatch : nothing, list<TemplateArgument> ref b -> false
+TemplateArgumentsMatch : list<TemplateArgument> ref a, nothing -> false
+TemplateArgumentsMatch : nothing, nothing -> true
 
 
 

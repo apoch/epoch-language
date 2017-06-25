@@ -86,14 +86,14 @@ ReadFile : string filename, integer ref len -> string contents = ""
 
 
 // TODO - replace with better option
-charat : string in, integer index -> string c = substring(in, index, 1) [nogc]
+charat : string in, integer index -> string c = substring(in, index, 1)
 
 
 
 QuoteString : string in -> string out = unescape("\'") ; in ; unescape("\'")
 
 
-stringcontains : string haystack, string needle -> boolean contains = false [nogc]
+stringcontains : string haystack, string needle -> boolean contains = false
 {
 	integer needlelen = length(needle)
 	integer haystacklen = length(haystack)
@@ -108,6 +108,39 @@ stringcontains : string haystack, string needle -> boolean contains = false [nog
 		}
 
 		++index
+	}
+}
+
+
+stringsplit : string haystack, simplelist<string> ref outlist, string delimiterchar -> integer chunks = 0
+{
+	while(stringcontains(haystack, delimiterchar))
+	{
+		integer i = 0
+		while(i < length(haystack))
+		{
+			string c = charat(haystack, i)
+			if(c == delimiterchar)
+			{
+				string chunk = substring(haystack, 0, i)
+				haystack = substring(haystack, i + 1)
+				
+				++chunks
+				simple_append<string>(outlist, chunk)
+				
+				i = 0
+			}
+			else
+			{
+				++i
+			}
+		}
+	}
+
+	if(length(haystack) > 0)
+	{
+		++chunks
+		simple_append<string>(outlist, haystack)
 	}
 }
 

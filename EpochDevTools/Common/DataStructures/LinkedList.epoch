@@ -75,7 +75,7 @@ structure list<type T> :
 //
 // Expected to run in O(1) time and with minimal storage overhead.
 //
-simpleprepend<type T> : simplelist<T> ref thelist, T value [nogc]
+simpleprepend<type T> : simplelist<T> ref thelist, T value
 {
 	simplelist<T> newlist = value, thelist
 	thelist = newlist
@@ -87,7 +87,7 @@ simpleprepend<type T> : simplelist<T> ref thelist, T value [nogc]
 //
 // Expected to run in O(1) time and with minimal storage overhead.
 //
-prepend<type T> : list<T> ref thelist, T ref value [nogc]
+prepend<type T> : list<T> ref thelist, T ref value
 {
 	list<T> newlist = value, thelist
 	thelist = newlist
@@ -99,7 +99,7 @@ prepend<type T> : list<T> ref thelist, T ref value [nogc]
 //
 // Expected to run in O(1) time and with minimal storage overhead.
 //
-ListPrependOrCreate<type T> : listnode<T> ref node, T ref value [nogc]
+ListPrependOrCreate<type T> : listnode<T> ref node, T ref value
 {
 	list<T> newlist = value, node
 	listnode<T> wrap = newlist
@@ -115,18 +115,18 @@ ListPrependOrCreate<type T> : listnode<T> ref node, T ref value [nogc]
 //
 // Expected to run in O(n) time in n elements in the container.
 //
-simple_append<type T> : simplelist<T> ref thelist, T value [nogc]
+simple_append<type T> : simplelist<T> ref thelist, T value
 {
 	simple_append_recurse<T>(thelist, thelist.next, value)
 }
 
-simple_append_recurse<type T> : simplelist<T> ref thelist, nothing, T value [nogc]
+simple_append_recurse<type T> : simplelist<T> ref thelist, nothing, T value
 {
 	simplelist<T> newlist = value, nothing
 	thelist.next = newlist
 }
 
-simple_append_recurse<type T> : simplelist<T> ref thelist, simplelist<T> ref tail, T value [nogc]
+simple_append_recurse<type T> : simplelist<T> ref thelist, simplelist<T> ref tail, T value
 {
 	simple_append_recurse<T>(tail, tail.next, value)
 }
@@ -140,18 +140,18 @@ simple_append_recurse<type T> : simplelist<T> ref thelist, simplelist<T> ref tai
 //
 // Expected to run in O(n) time in n elements in the container.
 //
-append<type T> : list<T> ref thelist, T ref value [nogc]
+append<type T> : list<T> ref thelist, T ref value
 {
 	append_recurse<T>(thelist, thelist.next, value)
 }
 
-append_recurse<type T> : list<T> ref thelist, nothing, T ref value [nogc]
+append_recurse<type T> : list<T> ref thelist, nothing, T ref value
 {
 	list<T> newlist = value, nothing
 	thelist.next = newlist
 }
 
-append_recurse<type T> : list<T> ref thelist, list<T> ref tail, T ref value [nogc]
+append_recurse<type T> : list<T> ref thelist, list<T> ref tail, T ref value
 {
 	append_recurse<T>(tail, tail.next, value)
 }
@@ -168,7 +168,12 @@ append_recurse<type T> : list<T> ref thelist, list<T> ref tail, T ref value [nog
 // fail in the current implementation for lists with only one
 // element in them.
 //
-pop<type T> : list<T> ref head, list<T> ref tail [nogc]
+pop<type T> : list<T> ref head, list<T> ref tail
+{
+	head = tail
+}
+
+simple_pop<type T> : simplelist<T> ref head, simplelist<T> ref tail
 {
 	head = tail
 }
@@ -180,7 +185,7 @@ pop<type T> : list<T> ref head, list<T> ref tail [nogc]
 //
 // Expected to run in O(n) time in n elements in the container.
 //
-copyfromlist<type T> : list<T> ref thelist, integer count, T ref outvalue -> boolean found = false [nogc]
+copyfromlist<type T> : list<T> ref thelist, integer count, T ref outvalue -> boolean found = false
 {
 	if(count == 0)
 	{
@@ -199,7 +204,7 @@ copyfromlist<type T> : list<T> ref thelist, integer count, T ref outvalue -> boo
 	found = copyfromlist<T>(thelist.next, count - 1, outvalue)
 }
 
-copyfromlist<type T> : nothing, integer count, T ref outvalue -> false [nogc]
+copyfromlist<type T> : nothing, integer count, T ref outvalue -> false
 
 
 
@@ -209,7 +214,7 @@ copyfromlist<type T> : nothing, integer count, T ref outvalue -> false [nogc]
 //
 // Expected to run in O(n) time in n elements in the container.
 //
-countnonzero : simplelist<integer> ref thelist -> integer count = 0 [nogc]
+countnonzero : simplelist<integer> ref thelist -> integer count = 0
 {
 	if(thelist.value != 0)
 	{
@@ -219,7 +224,7 @@ countnonzero : simplelist<integer> ref thelist -> integer count = 0 [nogc]
 	count += countnonzero(thelist.next)
 }
 
-countnonzero : nothing -> 0 [nogc]
+countnonzero : nothing -> 0
 
 
 //
@@ -229,7 +234,7 @@ countnonzero : nothing -> 0 [nogc]
 // Expected to run in O(n) time in n elements in the container.
 // May return earlier if the sought-after value is located.
 //
-listcontains : simplelist<integer> ref thelist, integer value -> boolean ret = false [nogc]
+listcontains : simplelist<integer> ref thelist, integer value -> boolean ret = false
 {
 	if(thelist.value == value)
 	{
@@ -241,6 +246,6 @@ listcontains : simplelist<integer> ref thelist, integer value -> boolean ret = f
 	}
 }
 
-listcontains : nothing, integer value -> boolean contains = false [nogc]
+listcontains : nothing, integer value -> boolean contains = false
 
 

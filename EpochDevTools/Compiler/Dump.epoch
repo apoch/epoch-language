@@ -66,6 +66,7 @@ DumpAtom : OperatorInvokeAtom 	   ref nonsentinel { print("Operator " ; cast(str
 DumpAtom : TypeAnnotationAtom 	   ref nonsentinel { print("Type annotation") }
 DumpAtom : integer 		   ref nonsentinel { print("integer " ; cast(string, nonsentinel)) }
 DumpAtom : integer16 		   ref nonsentinel { print("integer16") }
+DumpAtom : integer64 ref nonsentinel { print("integer64") }
 DumpAtom : boolean 		   ref nonsentinel { print("boolean") }
 DumpAtom : real 		   ref nonsentinel { print("real " ; cast(string, nonsentinel)) }
 DumpAtom : RefBinding              ref nonsentinel { print("RefBinding") }
@@ -96,10 +97,47 @@ DumpExpressionAtoms : list<ExpressionAtom> ref atoms
 DumpExpressionAtoms : nothing
 
 
+DumpAtomFoo : integer ref atom { print("integer") }
+DumpAtomFoo : integer16 ref atom { print("integer16") }
+DumpAtomFoo : integer64 ref atom { print("integer64") }
+DumpAtomFoo : boolean ref atom { print("boolean") }
+DumpAtomFoo : real ref atom { print("real") }
+DumpAtomFoo : StringHandleAtom ref atom { print("stringhandle") }
+DumpAtomFoo : IdentifierAtom ref atom { print("identifier") }
+DumpAtomFoo : OperatorInvokeAtom ref atom { print("operator") }
+DumpAtomFoo : TypeAnnotationAtom ref atom { print("type") }
+DumpAtomFoo : RefBinding ref atom { print("binding") }
+DumpAtomFoo : CompoundAtom ref atom { print("compound") }
+DumpAtomFoo : Statement ref atom { print("statement") }
+DumpAtomFoo : ParentheticalExpression ref atom { print("parenthetical") }
+DumpAtomFoo : ArrayIndexAtom ref atom { print("array") }
+DumpAtomFoo : AtomSentinel ref atom { print("sentinel") }
+
+DumpExpressionAtomsFoo : Expression ref expr
+{
+	DumpExpressionAtomsFoo(expr.Atoms)
+}
+
+DumpExpressionAtomsFoo : list<ExpressionAtom> ref atoms
+{
+	DumpAtomFoo(atoms.value)
+	DumpExpressionAtomsFoo(atoms.next)
+}
+
+DumpExpressionAtomsFoo : nothing
+
+
+
+DumpExpressionList : ExpressionList ref exprs
+{
+	DumpExpressionList(exprs.Expressions)
+}
+
+
 DumpExpressionList : list<Expression> ref exprs
 {
 	print("BEGIN EXPR")
-	DumpExpressionAtoms(exprs.value.Atoms)
+	DumpExpressionAtomsFoo(exprs.value.Atoms)
 	print("END EXPR")
 
 	DumpExpressionList(exprs.next)
@@ -188,3 +226,33 @@ DumpStructureList : list<StructureDefinition> ref structs
 
 DumpStructureList : nothing
 
+
+
+DumpTypeMatcherArgumentMetadata : integer matchername
+{
+	print("All known types from all known call sites to " ; GetPooledString(matchername))
+
+	ContextNode<CallSiteMetadata> wrap = nothing
+	if(SearchBinaryTreeForPayload<CallSiteMetadata>(TypeMatcherCallSiteMetadata.RootNode, matchername, wrap))
+	{
+		DumpTypeMatcherArgumentMetadata(wrap)
+	}
+
+	print("End of line.")
+}
+
+
+DumpTypeMatcherArgumentMetadata : CallSiteMetadata ref metadata
+{
+	DumpTypeMatcherArgumentMetadata(metadata.ArgTypeSets)
+}
+
+DumpTypeMatcherArgumentMetadata : list<ArgumentMetadata> ref argtypesets
+{
+	print("ARGUMENT TYPES:")
+	DumpTypeList(argtypesets.value.ArgTypes)
+
+	DumpTypeMatcherArgumentMetadata(argtypesets.next)
+}
+
+DumpTypeMatcherArgumentMetadata : nothing
