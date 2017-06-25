@@ -13,8 +13,12 @@ namespace MSFViewer
 {
     public partial class MainForm : Form
     {
-        ByteViewer ByteEditorControl = null;
-        MSF EditingMSF = null;
+        private ByteViewer ByteEditorControl = null;
+        private ByteViewer BytePreviewControl = null;
+        private MSF EditingMSF = null;
+
+        private int PreviousStreamSelectionIndex = -1;
+
 
         public MainForm()
         {
@@ -23,6 +27,30 @@ namespace MSFViewer
             ByteEditorControl = new ByteViewer();
             ByteEditorPanel.Controls.Add(ByteEditorControl);
             ByteEditorControl.Dock = DockStyle.Fill;
+
+            BytePreviewControl = new ByteViewer();
+            PreviewPanel.Controls.Add(BytePreviewControl);
+            BytePreviewControl.Dock = DockStyle.Fill;
+
+            AnalysisListView.MouseClick += (e, args) =>
+            {
+                var item = AnalysisListView.GetItemAt(args.X, args.Y);
+                if (item == null)
+                    return;
+
+                var byteseq = (item.Tag as ByteSequence);
+                if (byteseq == null)
+                    return;
+
+                var bytes = byteseq.GetRawBytes();
+                if (bytes == null)
+                    return;
+
+                if (args.Button == MouseButtons.Left)
+                {
+                    BytePreviewControl.SetBytes(bytes);
+                }
+            };
         }
 
         private void exitToolStripMenuItem_Click(object sender, EventArgs e)
@@ -49,8 +77,11 @@ namespace MSFViewer
 
         private void StreamListBox_SelectedIndexChanged(object sender, EventArgs e)
         {
-            if (StreamListBox.SelectedIndex >= 0)
+            if (StreamListBox.SelectedIndex >= 0 && (StreamListBox.SelectedIndex != PreviousStreamSelectionIndex))
             {
+                Application.UseWaitCursor = true;
+                Application.DoEvents();
+
                 var stream = (StreamListBox.SelectedItem as MSFStream);
                 var bytes = stream.GetFlattenedBuffer();
                 if (bytes != null)
@@ -59,7 +90,11 @@ namespace MSFViewer
                     ByteEditorControl.SetBytes(new byte[0]);
 
                 stream.PopulateAnalysis(AnalysisListView);
+
+                Application.UseWaitCursor = false;
             }
+
+            PreviousStreamSelectionIndex = StreamListBox.SelectedIndex;
         }
     }
 }

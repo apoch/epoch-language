@@ -47,6 +47,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="ByteSequence.cs" />
     <Compile Include="MainForm.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -58,6 +59,7 @@
     <Compile Include="MSFStreamDBI.cs" />
     <Compile Include="MSFStreamEntireFile.cs" />
     <Compile Include="MSFStreamPDBInfo.cs" />
+    <Compile Include="MSFStreamSymbols.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <EmbeddedResource Include="MainForm.resx">
