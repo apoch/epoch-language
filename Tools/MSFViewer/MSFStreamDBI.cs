@@ -23,122 +23,122 @@ namespace MSFViewer
             //ParseSectionMap();
             //ParseFiles();
 
-            ef.RegisterDBIStreams(GlobalsStreamIndex, PublicsStreamIndex, SymbolsStreamIndex);
+            ef.RegisterDBIStreams(GlobalsStreamIndex.ExtractedValue, PublicsStreamIndex.ExtractedValue, SymbolsStreamIndex.ExtractedValue);
         }
 
 
         private class Mod
         {
-            public int UnusedModuleHeader;
-            public short Flags;
-            public short StreamNumber;
-            public int SymbolSize;
-            public int LineNumberBytes;
-            public int C13LineNumberBytes;
-            public short NumContributingFiles;
-            public short Padding;
-            public int FileNameOffset;
-            public int SourceFileNameIndex;
-            public int PDBPathIndex;
-            public string SourceFileName;
-            public string ObjectFileName;
+            public TypedByteSequence<int> UnusedModuleHeader;
+            public TypedByteSequence<short> Flags;
+            public TypedByteSequence<short> StreamNumber;
+            public TypedByteSequence<int> SymbolSize;
+            public TypedByteSequence<int> LineNumberBytes;
+            public TypedByteSequence<int> C13LineNumberBytes;
+            public TypedByteSequence<short> NumContributingFiles;
+            public TypedByteSequence<short> Padding;
+            public TypedByteSequence<int> FileNameOffset;
+            public TypedByteSequence<int> SourceFileNameIndex;
+            public TypedByteSequence<int> PDBPathIndex;
+            public TypedByteSequence<string> SourceFileName;
+            public TypedByteSequence<string> ObjectFileName;
         }
 
         private class SectionContribution
         {
-            public short SectionIndex;
-            public short Padding1;
-            public int Offset;
-            public int Size;
-            public int Characteristics;
-            public short ModuleIndex;
-            public short Padding2;
-            public int DataCRC;
-            public int RelocationCRC;
+            public TypedByteSequence<short> SectionIndex;
+            public TypedByteSequence<short> Padding1;
+            public TypedByteSequence<int> Offset;
+            public TypedByteSequence<int> Size;
+            public TypedByteSequence<int> Characteristics;
+            public TypedByteSequence<short> ModuleIndex;
+            public TypedByteSequence<short> Padding2;
+            public TypedByteSequence<int> DataCRC;
+            public TypedByteSequence<int> RelocationCRC;
         }
 
         private List<Mod> Mods;
         private List<SectionContribution> Contributions;
 
-        private int Signature;
-        private int Version;
-        private int Age;
+        private TypedByteSequence<int> Signature;
+        private TypedByteSequence<int> Version;
+        private TypedByteSequence<int> Age;
 
-        private short GlobalsStreamIndex;
-        private short BuildNumber;
-        private short PublicsStreamIndex;
-        private short PDBDLLVersion;
-        private short SymbolsStreamIndex;
-        private short PDBDLLBuild;
+        private TypedByteSequence<short> GlobalsStreamIndex;
+        private TypedByteSequence<short> BuildNumber;
+        private TypedByteSequence<short> PublicsStreamIndex;
+        private TypedByteSequence<short> PDBDLLVersion;
+        private TypedByteSequence<short> SymbolsStreamIndex;
+        private TypedByteSequence<short> PDBDLLBuild;
 
-        private int ModuleSubstreamSize;
-        private int SectionContributionsSize;
-        private int SectionMapSize;
-        private int FileSubstreamSize;
+        private TypedByteSequence<int> ModuleSubstreamSize;
+        private TypedByteSequence<int> SectionContributionsSize;
+        private TypedByteSequence<int> SectionMapSize;
+        private TypedByteSequence<int> FileSubstreamSize;
 
-        private int TypeServerMapSize;
-        private int MFCTypeServerIndex;
-        private int DbgHeaderInfoSize;
-        private int ECSubstreamSize;
+        private TypedByteSequence<int> TypeServerMapSize;
+        private TypedByteSequence<int> MFCTypeServerIndex;
+        private TypedByteSequence<int> DbgHeaderInfoSize;
+        private TypedByteSequence<int> ECSubstreamSize;
 
-        private short Flags;
-        private short MachineType;
+        private TypedByteSequence<short> Flags;
+        private TypedByteSequence<short> MachineType;
 
-        private int Padding1;
+        private TypedByteSequence<int> Padding1;
 
-        private uint SCVersion;
+        private TypedByteSequence<uint> SCVersion;
 
 
         protected override void SubclassPopulateAnalysis(ListView lvw)
         {
             var headergroup = lvw.Groups.Add("headers", "DBI Header Info");
-            AddAnalysisItem(lvw, "Signature", $"{Signature} (0x{Signature:X})", headergroup);
-            AddAnalysisItem(lvw, "Version", $"{Version} (0x{Version:X})", headergroup);
-            AddAnalysisItem(lvw, "Age", $"{Age} (0x{Age:X})", headergroup);
+            AddAnalysisItem(lvw, "Signature", headergroup, Signature);
+            AddAnalysisItem(lvw, "Version", headergroup, Version);
+            AddAnalysisItem(lvw, "Age", headergroup, Age);
 
             var streamsgroup = lvw.Groups.Add("streams", "Stream Indices");
-            AddAnalysisItem(lvw, "Globals stream index", $"{GlobalsStreamIndex}", streamsgroup);
-            AddAnalysisItem(lvw, "Publics stream index", $"{PublicsStreamIndex}", streamsgroup);
-            AddAnalysisItem(lvw, "Symbols stream index", $"{SymbolsStreamIndex}", streamsgroup);
+            AddAnalysisItem(lvw, "Globals stream index", streamsgroup, GlobalsStreamIndex);
+            AddAnalysisItem(lvw, "Publics stream index", streamsgroup, PublicsStreamIndex);
+            AddAnalysisItem(lvw, "Symbols stream index", streamsgroup, SymbolsStreamIndex);
 
             var buildgroup = lvw.Groups.Add("build", "Build Info");
-            AddAnalysisItem(lvw, "Build number", $"{BuildNumber}", buildgroup);
-            AddAnalysisItem(lvw, "PDB DLL version", $"{PDBDLLVersion}", buildgroup);
-            AddAnalysisItem(lvw, "PDB DLL rebuild", $"{PDBDLLBuild}", buildgroup);
+            AddAnalysisItem(lvw, "Build number", buildgroup, BuildNumber);
+            AddAnalysisItem(lvw, "PDB DLL version", buildgroup, PDBDLLVersion);
+            AddAnalysisItem(lvw, "PDB DLL rebuild", buildgroup, PDBDLLBuild);
 
             var subsgroup = lvw.Groups.Add("subs", "Substreams Info");
-            AddAnalysisItem(lvw, "Module substream size", $"{ModuleSubstreamSize} (0x{ModuleSubstreamSize:X})", subsgroup);
-            AddAnalysisItem(lvw, "Section contributions size", $"{SectionContributionsSize} (0x{SectionContributionsSize:X})", subsgroup);
-            AddAnalysisItem(lvw, "Section map size", $"{SectionMapSize} (0x{SectionMapSize:X})", subsgroup);
-            AddAnalysisItem(lvw, "File substream size", $"{FileSubstreamSize} (0x{FileSubstreamSize:X})", subsgroup);
-            AddAnalysisItem(lvw, "Type-server map size", $"{TypeServerMapSize} (0x{TypeServerMapSize:X})", subsgroup);
-            AddAnalysisItem(lvw, "Dbg header info size", $"{DbgHeaderInfoSize} (0x{DbgHeaderInfoSize:X})", subsgroup);
-            AddAnalysisItem(lvw, "EC substream size", $"{ECSubstreamSize} (0x{ECSubstreamSize:X})", subsgroup);
+            AddAnalysisItem(lvw, "Module substream size", subsgroup, ModuleSubstreamSize);
+            AddAnalysisItem(lvw, "Section contributions size", subsgroup, SectionContributionsSize);
+            AddAnalysisItem(lvw, "Section map size", subsgroup, SectionMapSize);
+            AddAnalysisItem(lvw, "File substream size", subsgroup, FileSubstreamSize);
+            AddAnalysisItem(lvw, "Type-server map size", subsgroup, TypeServerMapSize);
+            AddAnalysisItem(lvw, "Dbg header info size", subsgroup, DbgHeaderInfoSize);
+            AddAnalysisItem(lvw, "EC substream size", subsgroup, ECSubstreamSize);
 
             var miscgroup = lvw.Groups.Add("misc", "Miscellaneous Info");
-            AddAnalysisItem(lvw, "Flags", $"{Flags} (0x{Flags:X})", miscgroup);
-            AddAnalysisItem(lvw, "Machine type", $"{MachineType} (0x{MachineType:X})", miscgroup);
-            AddAnalysisItem(lvw, "MFC type server index", $"{MFCTypeServerIndex}", miscgroup);
-            AddAnalysisItem(lvw, "Padding (1)", $"{Padding1} (0x{Padding1:X})", miscgroup);
-            AddAnalysisItem(lvw, "Section contribution version", $"{SCVersion} ({SCVersion - 0xeffe0000})", miscgroup);
+            AddAnalysisItem(lvw, "Flags", miscgroup, Flags);
+            AddAnalysisItem(lvw, "Machine type", miscgroup, MachineType);
+            AddAnalysisItem(lvw, "MFC type server index", miscgroup, MFCTypeServerIndex);
+            AddAnalysisItem(lvw, "Padding (1)", miscgroup, Padding1);
+            AddAnalysisItem(lvw, "Section contribution version", miscgroup, SCVersion);
 
             int i = 0;
             foreach (var mod in Mods)
             {
                 var group = lvw.Groups.Add($"mod{i}", $"Module {i} ({mod.SourceFileName})");
-                AddAnalysisItem(lvw, "Mystery header", $"{mod.UnusedModuleHeader} (0x{mod.UnusedModuleHeader:X})", group);
-                AddAnalysisItem(lvw, "Flags", $"{mod.Flags} (0x{mod.Flags:X})", group);
-                AddAnalysisItem(lvw, "Stream number", $"{mod.StreamNumber}", group);
-                AddAnalysisItem(lvw, "Symbol size", $"{mod.SymbolSize} (0x{mod.SymbolSize:X})", group);
-                AddAnalysisItem(lvw, "Bytes of line number data", $"{mod.LineNumberBytes} (0x{mod.LineNumberBytes:X})", group);
-                AddAnalysisItem(lvw, "Bytes of C13 line number data", $"{mod.C13LineNumberBytes} (0x{mod.C13LineNumberBytes:X})", group);
-                AddAnalysisItem(lvw, "Number of contributing files", $"{mod.NumContributingFiles} (0x{mod.NumContributingFiles:X})", group);
-                AddAnalysisItem(lvw, "Padding", $"{mod.Padding} (0x{mod.Padding:X})", group);
-                AddAnalysisItem(lvw, "File name offset in string table", $"{mod.FileNameOffset} (0x{mod.FileNameOffset:X})", group);
-                AddAnalysisItem(lvw, "Source file name index", $"{mod.SourceFileNameIndex} (0x{mod.SourceFileNameIndex:X})", group);
-                AddAnalysisItem(lvw, "PDB path index", $"{mod.PDBPathIndex} (0x{mod.PDBPathIndex:X})", group);
-                AddAnalysisItem(lvw, "Source file name", $"{mod.SourceFileName}", group);
-                AddAnalysisItem(lvw, "Object file name", $"{mod.ObjectFileName}", group);
+                AddAnalysisItem(lvw, "Mystery header", group, mod.UnusedModuleHeader);
+                AddAnalysisItem(lvw, "Flags", group, mod.Flags);
+                AddAnalysisItem(lvw, "Stream number", group, mod.StreamNumber);
+                AddAnalysisItem(lvw, "Symbol size", group, mod.SymbolSize);
+                AddAnalysisItem(lvw, "Bytes of line number data", group, mod.LineNumberBytes);
+                AddAnalysisItem(lvw, "Bytes of C13 line number data", group, mod.C13LineNumberBytes);
+                AddAnalysisItem(lvw, "Number of contributing files", group, mod.NumContributingFiles);
+                AddAnalysisItem(lvw, "Padding", group, mod.Padding);
+                AddAnalysisItem(lvw, "File name offset in string table", group, mod.FileNameOffset);
+                AddAnalysisItem(lvw, "Source file name index", group, mod.SourceFileNameIndex);
+                AddAnalysisItem(lvw, "PDB path index", group, mod.PDBPathIndex);
+                AddAnalysisItem(lvw, "Source file name", group, mod.SourceFileName);
+                AddAnalysisItem(lvw, "Object file name", group, mod.ObjectFileName);
 
                 ++i;
             }
@@ -147,15 +147,15 @@ namespace MSFViewer
             foreach (var sc in Contributions)
             {
                 var group = lvw.Groups.Add($"sc{i}", $"Section Contribution {i}");
-                AddAnalysisItem(lvw, "Section index", $"{sc.SectionIndex}", group);
-                AddAnalysisItem(lvw, "Padding", $"{sc.Padding1} (0x{sc.Padding1:X})", group);
-                AddAnalysisItem(lvw, "Offset", $"{sc.Offset} (0x{sc.Offset:X})", group);
-                AddAnalysisItem(lvw, "Size", $"{sc.Size} (0x{sc.Size:X})", group);
-                AddAnalysisItem(lvw, "Characteristics", $"0x{sc.Characteristics:X}", group);
-                AddAnalysisItem(lvw, "Module index", $"{sc.ModuleIndex}", group);
-                AddAnalysisItem(lvw, "Padding", $"{sc.Padding2} (0x{sc.Padding2:X})", group);
-                AddAnalysisItem(lvw, "Data CRC", $"{sc.DataCRC} (0x{sc.DataCRC:X})", group);
-                AddAnalysisItem(lvw, "Relocations CRC", $"{sc.RelocationCRC} (0x{sc.RelocationCRC:X})", group);
+                AddAnalysisItem(lvw, "Section index", group, sc.SectionIndex);
+                AddAnalysisItem(lvw, "Padding", group, sc.Padding1);
+                AddAnalysisItem(lvw, "Offset", group, sc.Offset);
+                AddAnalysisItem(lvw, "Size", group, sc.Size);
+                AddAnalysisItem(lvw, "Characteristics", group, sc.Characteristics);
+                AddAnalysisItem(lvw, "Module index", group, sc.ModuleIndex);
+                AddAnalysisItem(lvw, "Padding", group, sc.Padding2);
+                AddAnalysisItem(lvw, "Data CRC", group, sc.DataCRC);
+                AddAnalysisItem(lvw, "Relocations CRC", group, sc.RelocationCRC);
 
                 ++i;
             }
@@ -194,7 +194,7 @@ namespace MSFViewer
         private void ParseModules()
         {
             int begin = ReadOffset;
-            while (ReadOffset - begin < ModuleSubstreamSize)
+            while (ReadOffset - begin < ModuleSubstreamSize.ExtractedValue)
             {
                 var mod = ParseSingleModule();
                 Mods.Add(mod);
@@ -207,7 +207,7 @@ namespace MSFViewer
 
             SCVersion = ExtractUInt32();
 
-            while (ReadOffset - begin < SectionContributionsSize)
+            while (ReadOffset - begin < SectionContributionsSize.ExtractedValue)
             {
                 var sc = ParseSectionContribution();
                 Contributions.Add(sc);
@@ -251,7 +251,7 @@ namespace MSFViewer
             ret.SourceFileName = ExtractTerminatedString();
             ret.ObjectFileName = ExtractTerminatedString();
 
-            if (ReadOffset - begin < ModuleSubstreamSize)
+            if (ReadOffset - begin < ModuleSubstreamSize.ExtractedValue)
                 Extract4ByteAlignment();
 
             return ret;

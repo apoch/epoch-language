@@ -39,16 +39,16 @@ namespace MSFViewer
         }
 
 
-        private int Version = 0;
-        private int Signature = 0;
-        private int Age = 0;
+        private TypedByteSequence<int> Version;
+        private TypedByteSequence<int> Signature;
+        private TypedByteSequence<int> Age;
 
-        private Guid PDBGuid;
+        private TypedByteSequence<Guid> PDBGuid;
 
         private List<NamedStream> NamedStreams = new List<NamedStream>();
 
-        private int HashTableSize = 0;
-        private int HashTableCapacity = 0;
+        private TypedByteSequence<int> HashTableSize;
+        private TypedByteSequence<int> HashTableCapacity;
 
         private List<int>[] BitVectors;
 
@@ -58,20 +58,20 @@ namespace MSFViewer
         protected override void SubclassPopulateAnalysis(ListView lvw)
         {
             var headergroup = lvw.Groups.Add("headers", "PDB Header Info");
-            AddAnalysisItem(lvw, "Version", $"{Version} (0x{Version:X})", headergroup);
-            AddAnalysisItem(lvw, "Signature", $"{Signature} (0x{Signature:X})", headergroup);
-            AddAnalysisItem(lvw, "Age", $"{Age} (0x{Age:X})", headergroup);
-            AddAnalysisItem(lvw, "GUID", $"{PDBGuid}", headergroup);
+            AddAnalysisItem(lvw, "Version", headergroup, Version);
+            AddAnalysisItem(lvw, "Signature", headergroup, Signature);
+            AddAnalysisItem(lvw, "Age", headergroup, Age);
+            AddAnalysisItem(lvw, "GUID", headergroup, PDBGuid);
 
             var streamgroup = lvw.Groups.Add("streams", "Named Streams");
             foreach (var named in NamedStreams)
-                AddAnalysisItem(lvw, named.Name, $"{named.Index}", streamgroup);
+                AddAnalysisItem(lvw, named.Name, streamgroup, $"{named.Index}");
 
             var unknowngroup = lvw.Groups.Add("stuff", "Unknown Data");
-            AddAnalysisItem(lvw, "Hash table size", $"{HashTableSize} (0x{HashTableSize:X})", unknowngroup);
-            AddAnalysisItem(lvw, "Hash table capacity", $"{HashTableCapacity} (0x{HashTableCapacity:X})", unknowngroup);
-            AddAnalysisItem(lvw, "Bit vector (Present) number of words", $"{BitVectors[0].Count} (0x{BitVectors[0].Count:X})", unknowngroup);
-            AddAnalysisItem(lvw, "Bit vector (Deleted) number of words", $"{BitVectors[1].Count} (0x{BitVectors[1].Count:X})", unknowngroup);
+            AddAnalysisItem(lvw, "Hash table size", unknowngroup, HashTableSize);
+            AddAnalysisItem(lvw, "Hash table capacity", unknowngroup, HashTableCapacity);
+            AddAnalysisItem(lvw, "Bit vector (Present) number of words", unknowngroup, $"{BitVectors[0].Count} (0x{BitVectors[0].Count:x})");
+            AddAnalysisItem(lvw, "Bit vector (Deleted) number of words", unknowngroup, $"{BitVectors[1].Count} (0x{BitVectors[1].Count:x})");
         }
 
 
@@ -86,8 +86,8 @@ namespace MSFViewer
 
         private void ParseNamedStreams()
         {
-            int length = ExtractInt32();
-            NameBuffer = ExtractTerminatedStrings(length);
+            var length = ExtractInt32();
+            NameBuffer = ExtractTerminatedStrings(length.ExtractedValue);
         }
 
         private void ParseBitVectors()
@@ -103,18 +103,18 @@ namespace MSFViewer
         {
             foreach (var name in NameBuffer)
             {
-                int offsetofname = ExtractInt32();
-                NamedStreams.Add(new NamedStream { Index = ExtractInt32(), Name = NameBuffer[offsetofname] });
+                var offsetofname = ExtractInt32();
+                NamedStreams.Add(new NamedStream { Index = ExtractInt32().ExtractedValue, Name = NameBuffer[offsetofname.ExtractedValue] });
             }
         }
 
         private List<int> ExtractBitVector()
         {
             var ret = new List<int>();
-            int len = ExtractInt32();
+            int len = ExtractInt32().ExtractedValue;
 
             for (int i = 0; i < len; ++i)
-                ret.Add(ExtractInt32());
+                ret.Add(ExtractInt32().ExtractedValue);
 
             return ret;
         }
