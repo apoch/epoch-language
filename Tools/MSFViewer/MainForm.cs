@@ -34,6 +34,8 @@ namespace MSFViewer
 
             AnalysisListView.MouseClick += (e, args) =>
             {
+                BytePreviewControl.SetBytes(new byte[] { });
+
                 var item = AnalysisListView.GetItemAt(args.X, args.Y);
                 if (item == null)
                     return;

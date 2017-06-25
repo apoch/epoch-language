@@ -36,6 +36,17 @@ namespace MSFViewer
 
             return CachedResponse;
         }
+
+        public bool HasData()
+        {
+            if (CachedResponse != null)
+                return true;
+
+            if ((RawBuffer != null) && (Size > 0))
+                return true;
+
+            return false;
+        }
     }
 
 

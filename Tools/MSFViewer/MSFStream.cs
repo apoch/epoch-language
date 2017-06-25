@@ -172,6 +172,15 @@ namespace MSFViewer
             return ret;
         }
 
+        protected TypedByteSequence<byte[]> ExtractBytes(int length)
+        {
+            var b = FlattenedBuffer.Skip(ReadOffset).Take(length).ToArray();
+            var ret = new TypedByteSequence<byte[]>(FlattenedBuffer, ReadOffset, length, b);
+            ReadOffset += length;
+
+            return ret;
+        }
+
         protected TypedByteSequence<short> ExtractInt16()
         {
             var s = BitConverter.ToInt16(FlattenedBuffer, ReadOffset);

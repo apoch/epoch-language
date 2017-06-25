@@ -162,6 +162,9 @@ namespace MSFViewer
 
             if (KnownStreamSymbols > 0)
                 Streams[KnownStreamSymbols] = new MSFStreamSymbols(Streams[KnownStreamSymbols], KnownStreamSymbols);
+
+            if (KnownStreamPublics > 0)
+                Streams[KnownStreamPublics] = new MSFStreamPublics(Streams[KnownStreamPublics], KnownStreamPublics);
         }
     }
 }

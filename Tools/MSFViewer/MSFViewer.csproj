@@ -59,6 +59,7 @@
     <Compile Include="MSFStreamDBI.cs" />
     <Compile Include="MSFStreamEntireFile.cs" />
     <Compile Include="MSFStreamPDBInfo.cs" />
+    <Compile Include="MSFStreamPublics.cs" />
     <Compile Include="MSFStreamSymbols.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
