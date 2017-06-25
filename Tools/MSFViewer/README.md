@@ -6,6 +6,8 @@ More information on the format can be found on [Microsoft's GitHub repository](h
 
 The goal of MSFViewer is to make viewing and understanding PDB data easier. Each "stream" of the MSF container is viewable as a contiguous sequence of bytes using a hex-editor style interface. Where certain fields and structures are well-understood, MSFViewer also provides a more friendly experience for reading the data in a PDB file.
 
+A major motivation for the development of this tool is that the PDB format is tricky and hard to support. Since the official code is currently in a suboptimal state, it can be difficult to know *why* a given PDB works (or doesn't work!) in one of the target debuggers. Since the tools for PDB viewing mostly focus on the *semantic meaning* of PDB data, they are not helpful for understanding the *structural layout* of the files themselves. To address this, MSFViewer provides a simple but effective UI for browsing the low-level details of a PDB file.
+
 ## Screenshots
 
 ![Analysis View](https://github.com/apoch/epoch-language/raw/master/Images/Screenshots/MSFViewer-DBI-Analysis.png)
