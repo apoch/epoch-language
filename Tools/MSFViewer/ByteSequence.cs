@@ -50,17 +50,35 @@ namespace MSFViewer
     }
 
 
-    class TypedByteSequence<T> : ByteSequence
+    class MaskedByteSequence : ByteSequence
     {
-        public TypedByteSequence(byte[] buffer, int readoffset, int size, T extractedvalue)
+        public MaskedByteSequence(byte[] buffer, int readoffset, int size, string mask)
             : base(buffer, readoffset, size)
         {
+            Mask = mask;
+        }
+
+        protected string Mask;
+
+        public override string ToString()
+        {
+            return Mask;
+        }
+    }
+
+
+    class TypedByteSequence<T> : MaskedByteSequence
+    {
+        public TypedByteSequence(byte[] buffer, int readoffset, int size, T extractedvalue)
+            : base(buffer, readoffset, size, null)
+        {
             ExtractedValue = extractedvalue;
+            Mask = MakeString();
         }
 
         public T ExtractedValue;
 
-        public override string ToString()
+        private string MakeString()
         {
             if (typeof(T) == typeof(string))
                 return ExtractedValue as string;
@@ -68,12 +86,7 @@ namespace MSFViewer
             if (!typeof(T).IsPrimitive)
                 return ExtractedValue.ToString();
 
-            return MakeStringFromPrimitive(ExtractedValue);
-        }
-
-        private string MakeStringFromPrimitive(T v)
-        {
-            return $"{v} (0x{v:x})";
+            return $"{ExtractedValue} (0x{ExtractedValue:x})";
         }
     }
 }

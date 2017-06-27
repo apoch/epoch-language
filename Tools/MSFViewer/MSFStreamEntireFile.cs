@@ -14,7 +14,7 @@ namespace MSFViewer
         {
             Streams = new List<MSFStream>();
 
-            ParseMagic();
+            ValidMagic = ParseMagic();
             ParseSuperBlock();
             ParseBlockMap();
             ParseDirectoryHint();
@@ -33,6 +33,7 @@ namespace MSFViewer
         public List<MSFStream> Streams;
 
         private MSFStreamPDBInfo PDBInfoStream;
+        private bool ValidMagic;
 
         private TypedByteSequence<int> BlockSize;
         private TypedByteSequence<int> DirectoryBlock;
@@ -59,6 +60,7 @@ namespace MSFViewer
             AddAnalysisItem(lvw, tvw, "Directory stream length", directorygroup, DirectoryStreamLength);
 
             var additionalgroup = AddAnalysisGroup(lvwcontrol, tvw, "additional", "Additional Data");
+            AddAnalysisItem(lvw, tvw, "Magic header", additionalgroup, new MaskedByteSequence(FlattenedBuffer, 0, 32, ValidMagic ? "Valid!" : "Invalid!"));       // TODO - magic length
             AddAnalysisItem(lvw, tvw, "Free block map", additionalgroup, FreeBlockMapIndex);
             AddAnalysisItem(lvw, tvw, "Unknown data field", additionalgroup, Unknown);
 
@@ -66,13 +68,13 @@ namespace MSFViewer
             AddAnalysisItem(lvw, tvw, "Stream count", streamgroup, StreamCount);
         }
 
-        private void ParseMagic()
+        private bool ParseMagic()
         {
             string MAGIC = "Microsoft C/C++ MSF 7.00";
             string filemagic = ExtractStringWithLength(MAGIC.Length).ExtractedValue;
 
             if (filemagic.CompareTo(MAGIC) != 0)
-                throw new Exception("Invalid PDB magic");
+                return false;
 
 
             if ((ExtractByte().ExtractedValue != 13) ||            // Carriage return
@@ -85,8 +87,10 @@ namespace MSFViewer
                 (ExtractByte().ExtractedValue != 0)                // Null magic
             )
             {
-                throw new Exception("Invalid PDB magic");
+                return false;
             }
+
+            return true;
         }
 
         private void ParseSuperBlock()

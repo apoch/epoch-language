@@ -23,6 +23,8 @@ namespace MSFViewer
             public TypedByteSequence<ushort> Size;
             public TypedByteSequence<ushort> Type;
 
+            public MaskedByteSequence CorrespondingByteSequence;
+
             public virtual void PopulateAnalysis(List<ListViewItem> lvw, AnalysisGroup group, TreeView tvw)
             {
             }
@@ -35,8 +37,9 @@ namespace MSFViewer
             public TypedByteSequence<ushort> SectionIndex;
             public TypedByteSequence<string> Name;
 
-            public SymbolPublic(MSFStreamSymbols stream, TypedByteSequence<ushort> size, TypedByteSequence<ushort> type)
+            public SymbolPublic(MSFStreamSymbols stream, TypedByteSequence<ushort> size, TypedByteSequence<ushort> type, MaskedByteSequence seq)
             {
+                CorrespondingByteSequence = seq;
                 Size = size;
                 Type = type;
 
@@ -62,8 +65,9 @@ namespace MSFViewer
             public TypedByteSequence<int> TypeIndex;
             public TypedByteSequence<string> Name;
 
-            public SymbolUDT(MSFStreamSymbols stream, TypedByteSequence<ushort> size, TypedByteSequence<ushort> type)
+            public SymbolUDT(MSFStreamSymbols stream, TypedByteSequence<ushort> size, TypedByteSequence<ushort> type, MaskedByteSequence seq)
             {
+                CorrespondingByteSequence = seq;
                 Size = size;
                 Type = type;
 
@@ -103,6 +107,8 @@ namespace MSFViewer
 
                 sym.PopulateAnalysis(lvw, symgroup, tvw);
 
+                symgroup.Node.Tag = sym.CorrespondingByteSequence;
+
                 ++i;
             }
         }
@@ -134,17 +140,19 @@ namespace MSFViewer
 
         private Symbol MakeSymbol(TypedByteSequence<ushort> size, TypedByteSequence<ushort> type)
         {
+            var seq = new MaskedByteSequence(FlattenedBuffer, ReadOffset - 4, size.ExtractedValue + 2, "Symbol");
+
             switch (type.ExtractedValue)
             {
                 case 0x1108:     // S_UDT
-                    return new SymbolUDT(this, size, type);
+                    return new SymbolUDT(this, size, type, seq);
 
                 case 0x110e:     // S_PUB32
-                    return new SymbolPublic(this, size, type);
+                    return new SymbolPublic(this, size, type, seq);
             }
 
             ++UnknownSymbols;
-            return new Symbol { Size = size, Type = type };
+            return new Symbol { Size = size, Type = type, CorrespondingByteSequence = seq };
         }
     }
 }
