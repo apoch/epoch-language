@@ -23,7 +23,7 @@ namespace MSFViewer
             public TypedByteSequence<ushort> Size;
             public TypedByteSequence<ushort> Type;
 
-            public virtual void PopulateAnalysis(ListView lvw, ListViewGroup group, TreeView tvw)
+            public virtual void PopulateAnalysis(List<ListViewItem> lvw, AnalysisGroup group, TreeView tvw)
             {
             }
         }
@@ -48,7 +48,7 @@ namespace MSFViewer
                 stream.Extract4ByteAlignment();
             }
 
-            public override void PopulateAnalysis(ListView lvw, ListViewGroup group, TreeView tvw)
+            public override void PopulateAnalysis(List<ListViewItem> lvw, AnalysisGroup group, TreeView tvw)
             {
                 AddAnalysisItem(lvw, tvw, "Public symbol type", group, PublicType);
                 AddAnalysisItem(lvw, tvw, "Start offset", group, Offset);
@@ -73,7 +73,7 @@ namespace MSFViewer
                 stream.Extract4ByteAlignment();
             }
 
-            public override void PopulateAnalysis(ListView lvw, ListViewGroup group, TreeView tvw)
+            public override void PopulateAnalysis(List<ListViewItem> lvw, AnalysisGroup group, TreeView tvw)
             {
                 AddAnalysisItem(lvw, tvw, "UDT symbol type index", group, TypeIndex);
                 AddAnalysisItem(lvw, tvw, "UDT name", group, Name);
@@ -85,15 +85,19 @@ namespace MSFViewer
         private int UnknownSymbols = 0;
 
 
-        protected override void SubclassPopulateAnalysis(ListView lvw, TreeView tvw)
+        protected override void SubclassPopulateAnalysis(List<ListViewItem> lvw, ListView lvwcontrol, TreeView tvw)
         {
-            var statgroup = AddAnalysisGroup(lvw, tvw, "stats", "Statistics");
+            var statgroup = AddAnalysisGroup(lvwcontrol, tvw, "stats", "Statistics");
             AddAnalysisItem(lvw, tvw, "Symbols of unrecognized type", statgroup, $"{UnknownSymbols}");
+
+
+            var symnode = tvw.Nodes.Find("root", false)[0].Nodes.Add("symbolsall", "Symbols");
+
 
             int i = 0;
             foreach (var sym in Symbols)
             {
-                var symgroup = AddAnalysisGroup(lvw, tvw, $"symbols{i}", $"Symbol {i}");
+                var symgroup = AddAnalysisGroup(lvwcontrol, tvw, $"symbols{i}", $"Symbol {i}", symnode);
                 AddAnalysisItem(lvw, tvw, "Symbol size", symgroup, sym.Size);
                 AddAnalysisItem(lvw, tvw, "Symbol type", symgroup, sym.Type);
 

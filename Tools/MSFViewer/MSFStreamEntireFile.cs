@@ -47,22 +47,22 @@ namespace MSFViewer
         private int KnownStreamPublics = -1;
         private int KnownStreamSymbols = -1;
 
-        protected override void SubclassPopulateAnalysis(ListView lvw, TreeView tvw)
+        protected override void SubclassPopulateAnalysis(List<ListViewItem> lvw, ListView lvwcontrol, TreeView tvw)
         {
-            var blockgroup = AddAnalysisGroup(lvw, tvw, "blocks", "Blocks");
+            var blockgroup = AddAnalysisGroup(lvwcontrol, tvw, "blocks", "Blocks");
             AddAnalysisItem(lvw, tvw, "Block size", blockgroup, BlockSize);
             AddAnalysisItem(lvw, tvw, "Block count", blockgroup, BlockCount);
 
-            var directorygroup = AddAnalysisGroup(lvw, tvw, "directory", "Directory");
+            var directorygroup = AddAnalysisGroup(lvwcontrol, tvw, "directory", "Directory");
             AddAnalysisItem(lvw, tvw, "Directory hint block", directorygroup, HintBlock);
             AddAnalysisItem(lvw, tvw, "Directory data block", directorygroup, DirectoryBlock);
             AddAnalysisItem(lvw, tvw, "Directory stream length", directorygroup, DirectoryStreamLength);
 
-            var additionalgroup = AddAnalysisGroup(lvw, tvw, "additional", "Additional Data");
+            var additionalgroup = AddAnalysisGroup(lvwcontrol, tvw, "additional", "Additional Data");
             AddAnalysisItem(lvw, tvw, "Free block map", additionalgroup, FreeBlockMapIndex);
             AddAnalysisItem(lvw, tvw, "Unknown data field", additionalgroup, Unknown);
 
-            var streamgroup = AddAnalysisGroup(lvw, tvw, "streams", "Streams");
+            var streamgroup = AddAnalysisGroup(lvwcontrol, tvw, "streams", "Streams");
             AddAnalysisItem(lvw, tvw, "Stream count", streamgroup, StreamCount);
         }
 

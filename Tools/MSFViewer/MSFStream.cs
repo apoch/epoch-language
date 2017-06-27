@@ -16,6 +16,14 @@ namespace MSFViewer
 
         private int StreamIndex = 0;
 
+
+        protected struct AnalysisGroup
+        {
+            public ListViewGroup LVGroup;
+            public TreeNode Node;
+        }
+
+
         public MSFStream(byte[] rawbuffer)
         {
             FlattenedBuffer = rawbuffer;
@@ -75,7 +83,7 @@ namespace MSFViewer
             return Name;
         }
 
-        public void PopulateAnalysis(ListView lvw, TreeView tvw)
+        public void PopulateAnalysis(ListView lvw, TreeView tvw, List<ListViewItem> lvwitems)
         {
             tvw.BeginUpdate();
             lvw.BeginUpdate();
@@ -88,60 +96,60 @@ namespace MSFViewer
             var metagroup = AddAnalysisGroup(lvw, tvw, "meta", "Metadata");
 
             if (FlattenedBuffer != null)
-                AddAnalysisItem(lvw, tvw, "Size of data", metagroup, new TypedByteSequence<int>(FlattenedBuffer, 0, FlattenedBuffer.Length, FlattenedBuffer.Length));
+                AddAnalysisItem(lvwitems, tvw, "Size of data", metagroup, new TypedByteSequence<int>(FlattenedBuffer, 0, FlattenedBuffer.Length, FlattenedBuffer.Length));
             else
-                AddAnalysisItem(lvw, tvw, "Size of data", metagroup, "0");
+                AddAnalysisItem(lvwitems, tvw, "Size of data", metagroup, "0");
 
-            SubclassPopulateAnalysis(lvw, tvw);
+            SubclassPopulateAnalysis(lvwitems, lvw, tvw);
 
             rootnode.Expand();
+            lvw.Items.AddRange(lvwitems.ToArray());
 
             lvw.EndUpdate();
             tvw.EndUpdate();
         }
 
-        protected virtual void SubclassPopulateAnalysis(ListView lvw, TreeView tvw)
+        protected virtual void SubclassPopulateAnalysis(List<ListViewItem> lvwitems, ListView lvw, TreeView tvw)
         {
         }
 
-        protected static ListViewGroup AddAnalysisGroup(ListView lvw, TreeView tvw, string key, string desc, string parent = "root")
+        protected static AnalysisGroup AddAnalysisGroup(ListView lvw, TreeView tvw, string key, string desc, TreeNode parent = null)
         {
-            var ret = lvw.Groups.Add(key, desc);
-            ret.Tag = key;
+            var ret = new AnalysisGroup();
+            ret.LVGroup = lvw.Groups.Add(key, desc);
+            ret.LVGroup.Tag = key;
 
-            tvw.Nodes.Find(parent, true)[0].Nodes.Add(key, desc);
+            if (parent != null)
+                ret.Node = parent.Nodes.Add(key, desc);
+            else
+                ret.Node = tvw.Nodes.Find("root", true)[0].Nodes.Add(key, desc);
 
             return ret;
         }
 
-        protected static void AddAnalysisItem(ListView lvw, TreeView tvw, string desc, ListViewGroup group, ByteSequence originaldata)
+        protected static void AddAnalysisItem(List<ListViewItem> lvwitems, TreeView tvw, string desc, AnalysisGroup group, ByteSequence originaldata)
         {
             var item = new ListViewItem(new string[] { desc, originaldata.ToString() });
-            item.Group = group;
+            item.Group = group.LVGroup;
             item.Tag = originaldata;
-            lvw.Items.Add(item);
+            lvwitems.Add(item);
 
             var tnode = new TreeNode(desc);
             tnode.Tag = originaldata;
-            AddTreeNodeByParentKey(tvw, group.Tag as string, tnode);
+
+            group.Node.Nodes.Add(tnode);
         }
 
-        protected static void AddAnalysisItem(ListView lvw, TreeView tvw, string desc, ListViewGroup group, string nonpreviewdata)
+        protected static void AddAnalysisItem(List<ListViewItem> lvwitems, TreeView tvw, string desc, AnalysisGroup group, string nonpreviewdata)
         {
             var item = new ListViewItem(new string[] { desc, nonpreviewdata });
-            item.Group = group;
-            lvw.Items.Add(item);
+            item.Group = group.LVGroup;
+            lvwitems.Add(item);
 
             var tnode = new TreeNode(desc);
-            AddTreeNodeByParentKey(tvw, group.Tag as string, tnode);
-        }
 
-        private static void AddTreeNodeByParentKey(TreeView tvw, string key, TreeNode node)
-        {
-            var matching = tvw.Nodes.Find(key, true);
-            matching[0].Nodes.Add(node);
+            group.Node.Nodes.Add(tnode);
         }
-
 
         public byte[] GetFlattenedBuffer()
         {

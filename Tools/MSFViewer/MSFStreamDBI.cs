@@ -89,24 +89,24 @@ namespace MSFViewer
         private TypedByteSequence<uint> SCVersion;
 
 
-        protected override void SubclassPopulateAnalysis(ListView lvw, TreeView tvw)
+        protected override void SubclassPopulateAnalysis(List<ListViewItem> lvw, ListView lvwcontrol, TreeView tvw)
         {
-            var headergroup = AddAnalysisGroup(lvw, tvw, "headers", "DBI Header Info");
+            var headergroup = AddAnalysisGroup(lvwcontrol, tvw, "headers", "DBI Header Info");
             AddAnalysisItem(lvw, tvw, "Signature", headergroup, Signature);
             AddAnalysisItem(lvw, tvw, "Version", headergroup, Version);
             AddAnalysisItem(lvw, tvw, "Age", headergroup, Age);
 
-            var streamsgroup = AddAnalysisGroup(lvw, tvw, "streams", "Stream Indices");
+            var streamsgroup = AddAnalysisGroup(lvwcontrol, tvw, "streams", "Stream Indices");
             AddAnalysisItem(lvw, tvw, "Globals stream index", streamsgroup, GlobalsStreamIndex);
             AddAnalysisItem(lvw, tvw, "Publics stream index", streamsgroup, PublicsStreamIndex);
             AddAnalysisItem(lvw, tvw, "Symbols stream index", streamsgroup, SymbolsStreamIndex);
 
-            var buildgroup = AddAnalysisGroup(lvw, tvw, "build", "Build Info");
+            var buildgroup = AddAnalysisGroup(lvwcontrol, tvw, "build", "Build Info");
             AddAnalysisItem(lvw, tvw, "Build number", buildgroup, BuildNumber);
             AddAnalysisItem(lvw, tvw, "PDB DLL version", buildgroup, PDBDLLVersion);
             AddAnalysisItem(lvw, tvw, "PDB DLL rebuild", buildgroup, PDBDLLBuild);
 
-            var subsgroup = AddAnalysisGroup(lvw, tvw, "subs", "Substreams Info");
+            var subsgroup = AddAnalysisGroup(lvwcontrol, tvw, "subs", "Substreams Info");
             AddAnalysisItem(lvw, tvw, "Module substream size", subsgroup, ModuleSubstreamSize);
             AddAnalysisItem(lvw, tvw, "Section contributions size", subsgroup, SectionContributionsSize);
             AddAnalysisItem(lvw, tvw, "Section map size", subsgroup, SectionMapSize);
@@ -115,7 +115,7 @@ namespace MSFViewer
             AddAnalysisItem(lvw, tvw, "Dbg header info size", subsgroup, DbgHeaderInfoSize);
             AddAnalysisItem(lvw, tvw, "EC substream size", subsgroup, ECSubstreamSize);
 
-            var miscgroup = AddAnalysisGroup(lvw, tvw, "misc", "Miscellaneous Info");
+            var miscgroup = AddAnalysisGroup(lvwcontrol, tvw, "misc", "Miscellaneous Info");
             AddAnalysisItem(lvw, tvw, "Flags", miscgroup, Flags);
             AddAnalysisItem(lvw, tvw, "Machine type", miscgroup, MachineType);
             AddAnalysisItem(lvw, tvw, "MFC type server index", miscgroup, MFCTypeServerIndex);
@@ -125,7 +125,7 @@ namespace MSFViewer
             int i = 0;
             foreach (var mod in Mods)
             {
-                var group = AddAnalysisGroup(lvw, tvw, $"mod{i}", $"Module {i} ({mod.SourceFileName})");
+                var group = AddAnalysisGroup(lvwcontrol, tvw, $"mod{i}", $"Module {i} ({mod.SourceFileName})");
                 AddAnalysisItem(lvw, tvw, "Mystery header", group, mod.UnusedModuleHeader);
                 AddAnalysisItem(lvw, tvw, "Flags", group, mod.Flags);
                 AddAnalysisItem(lvw, tvw, "Stream number", group, mod.StreamNumber);
@@ -146,7 +146,7 @@ namespace MSFViewer
             i = 0;
             foreach (var sc in Contributions)
             {
-                var group = AddAnalysisGroup(lvw, tvw, $"sc{i}", $"Section Contribution {i}");
+                var group = AddAnalysisGroup(lvwcontrol, tvw, $"sc{i}", $"Section Contribution {i}");
                 AddAnalysisItem(lvw, tvw, "Section index", group, sc.SectionIndex);
                 AddAnalysisItem(lvw, tvw, "Padding", group, sc.Padding1);
                 AddAnalysisItem(lvw, tvw, "Offset", group, sc.Offset);

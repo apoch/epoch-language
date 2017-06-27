@@ -37,13 +37,13 @@
             this.StreamListBox = new System.Windows.Forms.ListBox();
             this.TabStrip = new System.Windows.Forms.TabControl();
             this.TabAnalysis = new System.Windows.Forms.TabPage();
+            this.AnalysisTreeView = new System.Windows.Forms.TreeView();
             this.PreviewPanel = new System.Windows.Forms.Panel();
             this.AnalysisListView = new System.Windows.Forms.ListView();
             this.ColumnHeaderDescription = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.ColumnHeaderValue = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.TabBytes = new System.Windows.Forms.TabPage();
             this.ByteEditorPanel = new System.Windows.Forms.Panel();
-            this.AnalysisTreeView = new System.Windows.Forms.TreeView();
             this.MainFormMenuStrip.SuspendLayout();
             this.TabStrip.SuspendLayout();
             this.TabAnalysis.SuspendLayout();
@@ -130,6 +130,17 @@
             this.TabAnalysis.Text = "Analysis";
             this.TabAnalysis.UseVisualStyleBackColor = true;
             // 
+            // AnalysisTreeView
+            // 
+            this.AnalysisTreeView.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this.AnalysisTreeView.ImeMode = System.Windows.Forms.ImeMode.On;
+            this.AnalysisTreeView.Location = new System.Drawing.Point(6, 6);
+            this.AnalysisTreeView.Name = "AnalysisTreeView";
+            this.AnalysisTreeView.Size = new System.Drawing.Size(460, 367);
+            this.AnalysisTreeView.TabIndex = 2;
+            // 
             // PreviewPanel
             // 
             this.PreviewPanel.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
@@ -186,17 +197,6 @@
             this.ByteEditorPanel.Name = "ByteEditorPanel";
             this.ByteEditorPanel.Size = new System.Drawing.Size(806, 558);
             this.ByteEditorPanel.TabIndex = 1;
-            // 
-            // AnalysisTreeView
-            // 
-            this.AnalysisTreeView.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
-            | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-            this.AnalysisTreeView.ImeMode = System.Windows.Forms.ImeMode.On;
-            this.AnalysisTreeView.Location = new System.Drawing.Point(6, 6);
-            this.AnalysisTreeView.Name = "AnalysisTreeView";
-            this.AnalysisTreeView.Size = new System.Drawing.Size(460, 367);
-            this.AnalysisTreeView.TabIndex = 2;
             // 
             // MainForm
             // 

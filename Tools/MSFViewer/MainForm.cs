@@ -124,7 +124,8 @@ namespace MSFViewer
                 else
                     ByteEditorControl.SetBytes(new byte[0]);
 
-                stream.PopulateAnalysis(AnalysisListView, AnalysisTreeView);
+                var itemcache = new List<ListViewItem>();
+                stream.PopulateAnalysis(AnalysisListView, AnalysisTreeView, itemcache);
 
                 Application.UseWaitCursor = false;
             }

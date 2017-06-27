@@ -95,3 +95,5 @@ EpochBGFXWrapper/EpochBGFXWrapper/Debug/**
 /EpochTests/PDBTest/bin/Debug
 /Tools/MSFViewer/bin/Debug
 /Tools/MSFViewer/obj/Debug
+/Tools/MSFViewer/bin/Release
+/Tools/MSFViewer/obj/Release

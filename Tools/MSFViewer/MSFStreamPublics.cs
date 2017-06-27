@@ -61,9 +61,9 @@ namespace MSFViewer
         private TypedByteSequence<byte[]> Bitmap;
 
 
-        protected override void SubclassPopulateAnalysis(ListView lvw, TreeView tvw)
+        protected override void SubclassPopulateAnalysis(List<ListViewItem> lvw, ListView lvwcontrol, TreeView tvw)
         {
-            var headergroup = AddAnalysisGroup(lvw, tvw, "headers", "DBI Publics Header Info");
+            var headergroup = AddAnalysisGroup(lvwcontrol, tvw, "headers", "DBI Publics Header Info");
             AddAnalysisItem(lvw, tvw, "Hash bytes", headergroup, HashBytes);
             AddAnalysisItem(lvw, tvw, "Address map bytes", headergroup, AddressMapBytes);
             AddAnalysisItem(lvw, tvw, "Number of thunks", headergroup, NumThunks);
@@ -78,12 +78,12 @@ namespace MSFViewer
             AddAnalysisItem(lvw, tvw, "Hash bucket bytes", headergroup, BucketBytes);
             AddAnalysisItem(lvw, tvw, "Mystery bitmap", headergroup, new BitmapByteSequence(Bitmap));
 
-            tvw.Nodes.Find("root", false)[0].Nodes.Add("hrfall", "Hash Records");
+            var hrall = tvw.Nodes.Find("root", false)[0].Nodes.Add("hrfall", "Hash Records");
 
             int i = 0;
             foreach (var hrfile in HRFiles)
             {
-                var hrgroup = AddAnalysisGroup(lvw, tvw, $"hrf{i}", $"Hash Record {i}", "hrfall");
+                var hrgroup = AddAnalysisGroup(lvwcontrol, tvw, $"hrf{i}", $"Hash Record {i}", hrall);
                 AddAnalysisItem(lvw, tvw, "Record offset", hrgroup, hrfile.Offset);
                 AddAnalysisItem(lvw, tvw, "Record ???", hrgroup, hrfile.Unknown);
 
