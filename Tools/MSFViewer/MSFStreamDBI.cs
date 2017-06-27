@@ -42,6 +42,8 @@ namespace MSFViewer
             public TypedByteSequence<int> PDBPathIndex;
             public TypedByteSequence<string> SourceFileName;
             public TypedByteSequence<string> ObjectFileName;
+
+            public ByteSequence OriginalSequence;
         }
 
         private class SectionContribution
@@ -55,6 +57,8 @@ namespace MSFViewer
             public TypedByteSequence<short> Padding2;
             public TypedByteSequence<int> DataCRC;
             public TypedByteSequence<int> RelocationCRC;
+
+            public ByteSequence OriginalSequence;
         }
 
         private List<Mod> Mods;
@@ -87,6 +91,9 @@ namespace MSFViewer
         private TypedByteSequence<int> Padding1;
 
         private TypedByteSequence<uint> SCVersion;
+
+        private int SectionContributionBeginOffset;
+        private int ModulesBeginOffset;
 
 
         protected override void SubclassPopulateAnalysis(List<ListViewItem> lvw, ListView lvwcontrol, TreeView tvw)
@@ -122,10 +129,14 @@ namespace MSFViewer
             AddAnalysisItem(lvw, tvw, "Padding (1)", miscgroup, Padding1);
             AddAnalysisItem(lvw, tvw, "Section contribution version", miscgroup, SCVersion);
 
+
+            var modnode = tvw.Nodes.Find("root", false)[0].Nodes.Add("modsall", "Modules");
+            modnode.Tag = new MaskedByteSequence(FlattenedBuffer, ModulesBeginOffset, ModuleSubstreamSize.ExtractedValue, "Modules");
+
             int i = 0;
             foreach (var mod in Mods)
             {
-                var group = AddAnalysisGroup(lvwcontrol, tvw, $"mod{i}", $"Module {i} ({mod.SourceFileName})");
+                var group = AddAnalysisGroup(lvwcontrol, tvw, $"mod{i}", $"Module {i} ({mod.SourceFileName})", modnode);
                 AddAnalysisItem(lvw, tvw, "Mystery header", group, mod.UnusedModuleHeader);
                 AddAnalysisItem(lvw, tvw, "Flags", group, mod.Flags);
                 AddAnalysisItem(lvw, tvw, "Stream number", group, mod.StreamNumber);
@@ -140,13 +151,18 @@ namespace MSFViewer
                 AddAnalysisItem(lvw, tvw, "Source file name", group, mod.SourceFileName);
                 AddAnalysisItem(lvw, tvw, "Object file name", group, mod.ObjectFileName);
 
+                group.Node.Tag = mod.OriginalSequence;
+
                 ++i;
             }
+
+            var scnode = tvw.Nodes.Find("root", false)[0].Nodes.Add("scall", "Section Contributions");
+            scnode.Tag = new MaskedByteSequence(FlattenedBuffer, SectionContributionBeginOffset, SectionContributionsSize.ExtractedValue, "Section Contributions");
 
             i = 0;
             foreach (var sc in Contributions)
             {
-                var group = AddAnalysisGroup(lvwcontrol, tvw, $"sc{i}", $"Section Contribution {i}");
+                var group = AddAnalysisGroup(lvwcontrol, tvw, $"sc{i}", $"Section Contribution {i}", scnode);
                 AddAnalysisItem(lvw, tvw, "Section index", group, sc.SectionIndex);
                 AddAnalysisItem(lvw, tvw, "Padding", group, sc.Padding1);
                 AddAnalysisItem(lvw, tvw, "Offset", group, sc.Offset);
@@ -156,6 +172,8 @@ namespace MSFViewer
                 AddAnalysisItem(lvw, tvw, "Padding", group, sc.Padding2);
                 AddAnalysisItem(lvw, tvw, "Data CRC", group, sc.DataCRC);
                 AddAnalysisItem(lvw, tvw, "Relocations CRC", group, sc.RelocationCRC);
+
+                group.Node.Tag = sc.OriginalSequence;
 
                 ++i;
             }
@@ -194,6 +212,8 @@ namespace MSFViewer
         private void ParseModules()
         {
             int begin = ReadOffset;
+            ModulesBeginOffset = begin;
+
             while (ReadOffset - begin < ModuleSubstreamSize.ExtractedValue)
             {
                 var mod = ParseSingleModule();
@@ -204,6 +224,7 @@ namespace MSFViewer
         private void ParseSectionContributions()
         {
             int begin = ReadOffset;
+            SectionContributionBeginOffset = begin;
 
             SCVersion = ExtractUInt32();
 
@@ -216,6 +237,8 @@ namespace MSFViewer
 
         private SectionContribution ParseSectionContribution()
         {
+            var seq = new ByteSequence(FlattenedBuffer, ReadOffset, sizeof(ushort) * 4 + sizeof(uint) * 5);
+
             var ret = new SectionContribution();
             ret.SectionIndex = ExtractInt16();
             ret.Padding1 = ExtractInt16();
@@ -226,6 +249,8 @@ namespace MSFViewer
             ret.Padding2 = ExtractInt16();
             ret.DataCRC = ExtractInt32();
             ret.RelocationCRC = ExtractInt32();
+
+            ret.OriginalSequence = seq;
 
             return ret;
         }
@@ -253,6 +278,9 @@ namespace MSFViewer
 
             if (ReadOffset - begin < ModuleSubstreamSize.ExtractedValue)
                 Extract4ByteAlignment();
+
+            var seq = new ByteSequence(FlattenedBuffer, begin, ReadOffset - begin);
+            ret.OriginalSequence = seq;
 
             return ret;
         }

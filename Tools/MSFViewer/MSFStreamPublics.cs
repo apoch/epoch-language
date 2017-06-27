@@ -22,6 +22,8 @@ namespace MSFViewer
         {
             public TypedByteSequence<uint> Offset;
             public TypedByteSequence<uint> Unknown;
+
+            public ByteSequence OriginalSequence;
         }
 
 
@@ -60,6 +62,8 @@ namespace MSFViewer
 
         private TypedByteSequence<byte[]> Bitmap;
 
+        private int HRFBeginOffset;
+
 
         protected override void SubclassPopulateAnalysis(List<ListViewItem> lvw, ListView lvwcontrol, TreeView tvw)
         {
@@ -79,6 +83,7 @@ namespace MSFViewer
             AddAnalysisItem(lvw, tvw, "Mystery bitmap", headergroup, new BitmapByteSequence(Bitmap));
 
             var hrall = tvw.Nodes.Find("root", false)[0].Nodes.Add("hrfall", "Hash Records");
+            hrall.Tag = new ByteSequence(FlattenedBuffer, HRFBeginOffset, (int)HRFilesBytes.ExtractedValue);
 
             int i = 0;
             foreach (var hrfile in HRFiles)
@@ -86,6 +91,8 @@ namespace MSFViewer
                 var hrgroup = AddAnalysisGroup(lvwcontrol, tvw, $"hrf{i}", $"Hash Record {i}", hrall);
                 AddAnalysisItem(lvw, tvw, "Record offset", hrgroup, hrfile.Offset);
                 AddAnalysisItem(lvw, tvw, "Record ???", hrgroup, hrfile.Unknown);
+
+                hrgroup.Node.Tag = hrfile.OriginalSequence;
 
                 ++i;
             }
@@ -111,11 +118,16 @@ namespace MSFViewer
             if (HRFilesBytes.ExtractedValue % 8 == 0)
             {
                 int begin = ReadOffset;
+                HRFBeginOffset = begin;
+
                 while (ReadOffset - begin < HRFilesBytes.ExtractedValue)
                 {
+                    var seq = new ByteSequence(FlattenedBuffer, ReadOffset, sizeof(uint) * 2);
+
                     var hrfile = new HRFile();
                     hrfile.Offset = ExtractUInt32();
                     hrfile.Unknown = ExtractUInt32();
+                    hrfile.OriginalSequence = seq;
 
                     HRFiles.Add(hrfile);
                 }
