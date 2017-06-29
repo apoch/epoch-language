@@ -1104,10 +1104,10 @@ WritePublicsStream : Win32Handle pdbfilehandle, integer startfileposition -> int
 
 	// HRFiles
 	ByteStreamEmitInteger(header, headersize, 1)
-	ByteStreamEmitInteger(header, headersize, 0)		// this doesn't seem to matter?
+	ByteStreamEmitInteger(header, headersize, 1)		// this doesn't seem to matter?
 
-	ByteStreamEmitInteger(header, headersize, 1)
-	ByteStreamEmitInteger(header, headersize, 20)		// nor this?
+	ByteStreamEmitInteger(header, headersize, 21)
+	ByteStreamEmitInteger(header, headersize, 1)		// nor this?
 	
 	// Magic bitmap
 	ByteStreamEmitByte(header, headersize, 1)
