@@ -286,10 +286,10 @@ WritePDB : PDBOutputStream ref stream, integer codesectionstart, integer codesiz
 	WriteSymbolRecordsStream(stream, stream.DBI.Modules.value)
 	
 	// HACK - TODO
-	PadToBeginningOfBlock(stream, 15)
+	PadToBeginningOfBlock(stream, 13)
 	WriteDBIModuleSymbols(stream, stream.DBI.Modules.value, symbolstart, symbolsize)
 
-	PadGarbageToBeginningOfBlock(stream, 16)
+	PadGarbageToBeginningOfBlock(stream, 14)
 	WritePDBStrings(stream)
 	
 	// Pad to the end of the file
@@ -427,10 +427,8 @@ WriteDirectory : PDBOutputStream ref stream
 	ByteStreamEmitInteger(directory, directorysize, stream.Layout.Directory.Globals.Blocks.value)
 	ByteStreamEmitInteger(directory, directorysize, stream.Layout.Directory.Publics.Blocks.value)
 	ByteStreamEmitInteger(directory, directorysize, stream.Layout.Directory.Symbols.Blocks.value)
-	ByteStreamEmitInteger(directory, directorysize, 13)
-	ByteStreamEmitInteger(directory, directorysize, 14)
 	ByteStreamEmitInteger(directory, directorysize, stream.Layout.Directory.AdditionalStreams.value.Blocks.value)
-	ByteStreamEmitInteger(directory, directorysize, 16)		// TODO
+	ByteStreamEmitInteger(directory, directorysize, 14)		// TODO
 	
 	integer written = 0
 	WriteFile(stream.FileHandle, directory, directorysize, written, 0)
@@ -1087,7 +1085,7 @@ WritePublicsStream : Win32Handle pdbfilehandle, integer startfileposition -> int
 	buffer header = 1024
 	integer headersize = 0
 	
-	ByteStreamEmitInteger(header, headersize, 36 + 516 + 192)		// hash
+	ByteStreamEmitInteger(header, headersize, 44 + 516 + 192)		// hash
 	ByteStreamEmitInteger(header, headersize, 8)		// address map
 	ByteStreamEmitInteger(header, headersize, 30)		// num thunks
 	ByteStreamEmitInteger(header, headersize, 8)		// size of thunk
@@ -1099,7 +1097,7 @@ WritePublicsStream : Win32Handle pdbfilehandle, integer startfileposition -> int
 	// Hash header
 	ByteStreamEmitInteger(header, headersize, 0xffffffff)				// signature
 	ByteStreamEmitInteger(header, headersize, 0xeffe0000 + 19990810)	// version
-	ByteStreamEmitInteger(header, headersize, 16)						// number of bytes of HRFiles
+	ByteStreamEmitInteger(header, headersize, 24)						// number of bytes of HRFiles
 	ByteStreamEmitInteger(header, headersize, 516 + 192)				// number of bytes in buckets
 
 	// HRFiles
@@ -1109,6 +1107,9 @@ WritePublicsStream : Win32Handle pdbfilehandle, integer startfileposition -> int
 	ByteStreamEmitInteger(header, headersize, 21)
 	ByteStreamEmitInteger(header, headersize, 1)		// nor this?
 	
+	ByteStreamEmitInteger(header, headersize, 41)
+	ByteStreamEmitInteger(header, headersize, 1)		// nor this?
+
 	// Magic bitmap
 	ByteStreamEmitByte(header, headersize, 1)
 	ByteStreamEmitByte(header, headersize, 0)
@@ -1246,7 +1247,7 @@ WriteSymbolRecordsStream : PDBOutputStream ref stream, DBIModule ref module
 	integer symboldatasize = 0
 	//ByteStreamEmitSymbolList(symboldata, symboldatasize, symgarbagelist)
 
-	ByteStreamEmitInteger16(symboldata, symboldatasize, 17)
+	ByteStreamEmitInteger16(symboldata, symboldatasize, 18)
 	ByteStreamEmitInteger16(symboldata, symboldatasize, 0x110e)
 	ByteStreamEmitInteger(symboldata, symboldatasize, 2)
 	ByteStreamEmitInteger(symboldata, symboldatasize, 0)
@@ -1259,12 +1260,26 @@ WriteSymbolRecordsStream : PDBOutputStream ref stream, DBIModule ref module
 		ByteStreamEmitByte(symboldata, symboldatasize, 0)
 	}
 
-	ByteStreamEmitInteger16(symboldata, symboldatasize, 17)
+	ByteStreamEmitInteger16(symboldata, symboldatasize, 18)
 	ByteStreamEmitInteger16(symboldata, symboldatasize, 0x110e)
 	ByteStreamEmitInteger(symboldata, symboldatasize, 2)
 	ByteStreamEmitInteger(symboldata, symboldatasize, 0x80)
 	ByteStreamEmitInteger16(symboldata, symboldatasize, 9)
 	ByteStreamEmitStringNarrow(symboldata, symboldatasize, "test")
+	ByteStreamEmitByte(symboldata, symboldatasize, 0)
+	
+	while((symboldatasize & 3) != 0)
+	{
+		ByteStreamEmitByte(symboldata, symboldatasize, 0)
+	}
+
+
+	ByteStreamEmitInteger16(symboldata, symboldatasize, 18)
+	ByteStreamEmitInteger16(symboldata, symboldatasize, 0x1125)				// S_PROCREF
+	ByteStreamEmitInteger(symboldata, symboldatasize, 1)		// SumName?!
+	ByteStreamEmitInteger(symboldata, symboldatasize, 20)		// SymOffset
+	ByteStreamEmitInteger16(symboldata, symboldatasize, 1)		// iMod
+	ByteStreamEmitStringNarrow(symboldata, symboldatasize, "init")
 	ByteStreamEmitByte(symboldata, symboldatasize, 0)
 	
 	while((symboldatasize & 3) != 0)
