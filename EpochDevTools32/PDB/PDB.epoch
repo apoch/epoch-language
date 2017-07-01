@@ -847,12 +847,20 @@ EmitDBISectionContributionsForModules : PDBOutputStream ref stream, nothing
 
 EmitDBISectionContribution : PDBOutputStream ref stream, list<SectionContribution> ref scs
 {
-	EmitDBISectionContributionSingle(stream, scs.value)
+	if(cast(integer, scs.value.SectionIndex) != 0xffff)
+	{
+		EmitDBISectionContributionSingle(stream, scs.value)
+	}
+
 	EmitDBISectionContribution(stream, scs.next)
 }
 
 EmitDBISectionContribution : PDBOutputStream ref stream, nothing
 
+EmitDBISectionContributionSingle : PDBOutputStream ref stream, list<SectionContribution> ref scs
+{
+	EmitDBISectionContributionSingle(stream, scs.value)
+}
 
 EmitDBISectionContributionSingle : PDBOutputStream ref stream, SectionContribution ref sc
 {
@@ -905,7 +913,7 @@ EmitDBIModule : PDBOutputStream ref stream, list<DBIModule> ref modlist
 	stream.FilePosition = stream.FilePosition + written
 
 
-	EmitDBISectionContributionSingle(stream, modlist.value.SectionContributions.value)	
+	EmitDBISectionContributionSingle(stream, modlist.value.SectionContributions.next)	
 
 
 	buffer modinfo = 512
