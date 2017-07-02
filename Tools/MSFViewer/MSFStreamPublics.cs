@@ -14,7 +14,14 @@ namespace MSFViewer
         {
             Name = $"DBI Publics ({index})";
 
+            AddressMap = new List<TypedByteSequence<uint>>();
+            Thunks = new List<TypedByteSequence<uint>>();
+            Sections = new List<SectionMapEntry>();
+
             ParsePublicsHeader();
+            ParseAddressMap();
+            ParseThunkMap();
+            ParseSectionMap();
         }
 
 
@@ -29,9 +36,22 @@ namespace MSFViewer
 
         private class BitmapByteSequence : ByteSequence
         {
+            private uint BitCount = 0;
+
             public BitmapByteSequence(TypedByteSequence<byte[]> buffer)
                 : base(buffer?.ExtractedValue)
             {
+                if (buffer != null)
+                {
+                    foreach (byte b in buffer.ExtractedValue)
+                    {
+                        for (int i = 0; i < 8; ++i)
+                        {
+                            if ((b & (1 << i)) != 0)
+                                ++BitCount;
+                        }
+                    }
+                }
             }
 
             public override string ToString()
@@ -41,6 +61,20 @@ namespace MSFViewer
 
                 return "Absent";
             }
+
+            public uint CountBits()
+            {
+                return BitCount;
+            }
+        }
+
+        private class SectionMapEntry
+        {
+            public TypedByteSequence<uint> Offset;
+            public TypedByteSequence<ushort> SectionIndex;
+            public TypedByteSequence<ushort> Padding;
+
+            public ByteSequence OriginalSequence;
         }
 
 
@@ -60,9 +94,14 @@ namespace MSFViewer
 
         private List<HRFile> HRFiles = new List<HRFile>();
 
-        private TypedByteSequence<byte[]> Bitmap;
+        private BitmapByteSequence Bitmap;
+
+        private List<TypedByteSequence<uint>> AddressMap;
+        private List<TypedByteSequence<uint>> Thunks;
+        private List<SectionMapEntry> Sections;
 
         private int HRFBeginOffset;
+        private int AddrBeginOffset;
 
 
         protected override void SubclassPopulateAnalysis(List<ListViewItem> lvw, ListView lvwcontrol, TreeView tvw)
@@ -80,7 +119,7 @@ namespace MSFViewer
             AddAnalysisItem(lvw, tvw, "Version (desugared)", headergroup, $"{Version.ExtractedValue - 0xeffe0000}");
             AddAnalysisItem(lvw, tvw, "Hash record bytes", headergroup, HRFilesBytes);
             AddAnalysisItem(lvw, tvw, "Hash bucket bytes", headergroup, BucketBytes);
-            AddAnalysisItem(lvw, tvw, "Mystery bitmap", headergroup, new BitmapByteSequence(Bitmap));
+            AddAnalysisItem(lvw, tvw, "Mystery bitmap", headergroup, Bitmap);
 
             var hrall = tvw.Nodes.Find("root", false)[0].Nodes.Add("hrfall", "Hash Records");
             hrall.Tag = new ByteSequence(FlattenedBuffer, HRFBeginOffset, (int)HRFilesBytes.ExtractedValue);
@@ -93,6 +132,39 @@ namespace MSFViewer
                 AddAnalysisItem(lvw, tvw, "Record ???", hrgroup, hrfile.Unknown);
 
                 hrgroup.Node.Tag = hrfile.OriginalSequence;
+
+                ++i;
+            }
+
+            var addrgroup = AddAnalysisGroup(lvwcontrol, tvw, "addrmapall", "Address Map");
+
+            i = 0;
+            foreach (var addr in AddressMap)
+            {
+                AddAnalysisItem(lvw, tvw, $"Address {i}", addrgroup, addr);
+                ++i;
+            }
+
+            var thunkgroup = AddAnalysisGroup(lvwcontrol, tvw, "thunkall", "Thunk Map");
+
+            i = 0;
+            foreach (var thunk in Thunks)
+            {
+                AddAnalysisItem(lvw, tvw, $"Thunk {i}", thunkgroup, thunk);
+                ++i;
+            }
+
+            var secmapgroup = AddAnalysisGroup(lvwcontrol, tvw, "secmapall", "Section Map");
+
+            i = 0;
+            foreach (var sm in Sections)
+            {
+                var smgroup = AddAnalysisGroup(lvwcontrol, tvw, $"section{i}", $"Section {i}", secmapgroup.Node);
+                AddAnalysisItem(lvw, tvw, "Offset", smgroup, sm.Offset);
+                AddAnalysisItem(lvw, tvw, "Section Index", smgroup, sm.SectionIndex);
+                AddAnalysisItem(lvw, tvw, "Padding", smgroup, sm.Padding);
+
+                smgroup.Node.Tag = sm.OriginalSequence;
 
                 ++i;
             }
@@ -137,7 +209,41 @@ namespace MSFViewer
                 ReadOffset += (int)HRFilesBytes.ExtractedValue;
             }
 
-            Bitmap = ExtractBytes(516);         // TODO - magic number (seems constant in other tools though)
+            Bitmap = new BitmapByteSequence(ExtractBytes(516));         // TODO - magic number (seems constant in other tools though)
+
+            for (uint i = 0; i < Bitmap.CountBits(); ++i)
+                ExtractUInt32();
+        }
+
+
+        private void ParseAddressMap()
+        {
+            AddrBeginOffset = ReadOffset;
+            uint numaddrs = AddressMapBytes.ExtractedValue / sizeof(uint);
+            for (uint i = 0; i < numaddrs; ++i)
+                AddressMap.Add(ExtractUInt32());
+        }
+
+        private void ParseThunkMap()
+        {
+            uint numthunks = NumThunks.ExtractedValue;
+            for (uint i = 0; i < numthunks; ++i)
+                Thunks.Add(ExtractUInt32());
+        }
+
+        private void ParseSectionMap()
+        {
+            uint numsections = NumSections.ExtractedValue;
+            for (uint i = 0; i < numsections; ++i)
+            {
+                var seq = new ByteSequence(FlattenedBuffer, ReadOffset, 8);
+
+                var offset = ExtractUInt32();
+                var sectionindex = ExtractUInt16();
+                var padding = ExtractUInt16();
+
+                Sections.Add(new SectionMapEntry { Offset = offset, SectionIndex = sectionindex, Padding = padding, OriginalSequence = seq });
+            }
         }
     }
 }
