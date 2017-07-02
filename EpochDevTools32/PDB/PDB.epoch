@@ -1090,23 +1090,23 @@ WriteGlobalsStream : Win32Handle pdbfilehandle, integer startfileposition -> int
 
 WritePublicsStream : Win32Handle pdbfilehandle, integer startfileposition -> integer endfileposition = 0
 {
-	buffer header = 1024
+	buffer header = 4096
 	integer headersize = 0
 	
-	ByteStreamEmitInteger(header, headersize, 44 + 516 + 192)		// hash
+	ByteStreamEmitInteger(header, headersize, 44 + 516 + 128)		// length of data
 	ByteStreamEmitInteger(header, headersize, 8)		// address map
 	ByteStreamEmitInteger(header, headersize, 30)		// num thunks
 	ByteStreamEmitInteger(header, headersize, 8)		// size of thunk
 	ByteStreamEmitInteger16(header, headersize, 1)		// section index thunk table
 	ByteStreamEmitInteger16(header, headersize, 0)		// padding
 	ByteStreamEmitInteger(header, headersize, 0)		// offset of thunk table
-	ByteStreamEmitInteger(header, headersize, 9)		// number of sections
+	ByteStreamEmitInteger(header, headersize, 1)		// number of sections
 
 	// Hash header
 	ByteStreamEmitInteger(header, headersize, 0xffffffff)				// signature
 	ByteStreamEmitInteger(header, headersize, 0xeffe0000 + 19990810)	// version
 	ByteStreamEmitInteger(header, headersize, 24)						// number of bytes of HRFiles
-	ByteStreamEmitInteger(header, headersize, 516 + 192)				// number of bytes in buckets
+	ByteStreamEmitInteger(header, headersize, 516 + 128)				// number of bytes in buckets
 
 	// HRFiles
 	ByteStreamEmitInteger(header, headersize, 1)
@@ -1131,100 +1131,26 @@ WritePublicsStream : Win32Handle pdbfilehandle, integer startfileposition -> int
 	}
 
 	ByteStreamEmitInteger(header, headersize, 1)
-	ByteStreamEmitInteger(header, headersize, 1)
-	ByteStreamEmitInteger(header, headersize, 1)
-	ByteStreamEmitInteger(header, headersize, 1)
+	
 
-	ByteStreamEmitInteger(header, headersize, 1)
-	ByteStreamEmitInteger(header, headersize, 1)
-	ByteStreamEmitInteger(header, headersize, 1)
-	ByteStreamEmitInteger(header, headersize, 1)
-	
-	ByteStreamEmitInteger(header, headersize, 1)
-	ByteStreamEmitInteger(header, headersize, 1)
-	ByteStreamEmitInteger(header, headersize, 1)
-	ByteStreamEmitInteger(header, headersize, 1)
-	
-	ByteStreamEmitInteger(header, headersize, 1)
-	ByteStreamEmitInteger(header, headersize, 1)
-	ByteStreamEmitInteger(header, headersize, 1)
-	ByteStreamEmitInteger(header, headersize, 1)
+	// Address map - ???
+	ByteStreamEmitInteger(header, headersize, 0xfefefefe)
+	ByteStreamEmitInteger(header, headersize, 0xcdcdcdcd)
 
-	ByteStreamEmitInteger(header, headersize, 1)
-	ByteStreamEmitInteger(header, headersize, 1)
-	ByteStreamEmitInteger(header, headersize, 1)
-	ByteStreamEmitInteger(header, headersize, 1)
 
-	ByteStreamEmitInteger(header, headersize, 1)
-	ByteStreamEmitInteger(header, headersize, 1)
-	ByteStreamEmitInteger(header, headersize, 1)
-	ByteStreamEmitInteger(header, headersize, 1)
+	// Thunk map - ???
+	integer i = 0
+	while(i < 120)
+	{
+		ByteStreamEmitByte(header, headersize, 0xab)
+		++i
+	}
 	
-	ByteStreamEmitInteger(header, headersize, 1)
-	ByteStreamEmitInteger(header, headersize, 1)
-	ByteStreamEmitInteger(header, headersize, 1)
-	ByteStreamEmitInteger(header, headersize, 1)
-	
-	ByteStreamEmitInteger(header, headersize, 1)
-	ByteStreamEmitInteger(header, headersize, 1)
-	ByteStreamEmitInteger(header, headersize, 1)
-	ByteStreamEmitInteger(header, headersize, 1)
+	// section descriptor .text
+	ByteStreamEmitInteger(header, headersize, 0x9000)		// offset
+	ByteStreamEmitInteger16(header, headersize, 9)			// index of section
+	ByteStreamEmitInteger16(header, headersize, 0)			// pad
 
-	ByteStreamEmitInteger(header, headersize, 1)
-	ByteStreamEmitInteger(header, headersize, 1)
-	ByteStreamEmitInteger(header, headersize, 1)
-	ByteStreamEmitInteger(header, headersize, 1)
-
-	ByteStreamEmitInteger(header, headersize, 1)
-	ByteStreamEmitInteger(header, headersize, 1)
-	ByteStreamEmitInteger(header, headersize, 1)
-	ByteStreamEmitInteger(header, headersize, 1)
-	
-	ByteStreamEmitInteger(header, headersize, 1)
-	ByteStreamEmitInteger(header, headersize, 1)
-	ByteStreamEmitInteger(header, headersize, 1)
-	ByteStreamEmitInteger(header, headersize, 1)
-	
-	ByteStreamEmitInteger(header, headersize, 1)
-	ByteStreamEmitInteger(header, headersize, 1)
-	ByteStreamEmitInteger(header, headersize, 1)
-	ByteStreamEmitInteger(header, headersize, 1)
-
-	ByteStreamEmitInteger(header, headersize, 1)
-	ByteStreamEmitInteger(header, headersize, 1)
-	ByteStreamEmitInteger(header, headersize, 1)
-	ByteStreamEmitInteger(header, headersize, 1)
-
-	ByteStreamEmitInteger(header, headersize, 1)
-	ByteStreamEmitInteger(header, headersize, 1)
-	ByteStreamEmitInteger(header, headersize, 1)
-	ByteStreamEmitInteger(header, headersize, 1)
-	
-	ByteStreamEmitInteger(header, headersize, 1)
-	ByteStreamEmitInteger(header, headersize, 1)
-	ByteStreamEmitInteger(header, headersize, 1)
-	ByteStreamEmitInteger(header, headersize, 1)
-	
-	ByteStreamEmitInteger(header, headersize, 1)
-	ByteStreamEmitInteger(header, headersize, 1)
-	ByteStreamEmitInteger(header, headersize, 1)
-	ByteStreamEmitInteger(header, headersize, 1)
-	
-	ByteStreamEmitInteger(header, headersize, 1)
-	ByteStreamEmitInteger(header, headersize, 1)
-	ByteStreamEmitInteger(header, headersize, 1)
-	ByteStreamEmitInteger(header, headersize, 1)
-	
-	ByteStreamEmitInteger(header, headersize, 1)
-	ByteStreamEmitInteger(header, headersize, 1)
-	ByteStreamEmitInteger(header, headersize, 1)
-	ByteStreamEmitInteger(header, headersize, 1)
-	
-	ByteStreamEmitInteger(header, headersize, 1)
-	ByteStreamEmitInteger(header, headersize, 1)
-	ByteStreamEmitInteger(header, headersize, 1)
-	ByteStreamEmitInteger(header, headersize, 1)
-		
 
 	integer written = 0
 	WriteFile(pdbfilehandle, header, headersize, written, 0)
@@ -1284,7 +1210,7 @@ WriteSymbolRecordsStream : PDBOutputStream ref stream, DBIModule ref module
 
 	ByteStreamEmitInteger16(symboldata, symboldatasize, 18)
 	ByteStreamEmitInteger16(symboldata, symboldatasize, 0x1125)				// S_PROCREF
-	ByteStreamEmitInteger(symboldata, symboldatasize, 1)		// SumName?!
+	ByteStreamEmitInteger(symboldata, symboldatasize, 0)		// SumName?!
 	ByteStreamEmitInteger(symboldata, symboldatasize, 20)		// SymOffset
 	ByteStreamEmitInteger16(symboldata, symboldatasize, 1)		// iMod
 	ByteStreamEmitStringNarrow(symboldata, symboldatasize, "init")
@@ -1571,6 +1497,14 @@ ConvertSymbolStream : buffer ref symboldata, integer symbolsize, list<PDBSymbol>
 
 			readoffset = nextreadoffset
 		}
+		elseif(chunk.Header == 0xf3)
+		{
+			integer nextreadoffset = chunk.Size + readoffset
+
+			// TODO - do something with strings?
+
+			readoffset = nextreadoffset
+		}
 		elseif(chunk.Header == 0xf4)
 		{
 			// TODO - accumulate checksums
@@ -1578,14 +1512,7 @@ ConvertSymbolStream : buffer ref symboldata, integer symbolsize, list<PDBSymbol>
 		}
 		else
 		{
-			if(chunk.Header == 0xf3)				// TODO - transfer strings
-			{
-			}
-			else
-			{
-				assertmsg(false, "Unrecognized codeview chunk " ; cast(string, chunk.Header))
-			}
-
+			assertmsg(false, "Unrecognized codeview chunk " ; cast(string, chunk.Header))
 			readoffset += chunk.Size
 		}
 

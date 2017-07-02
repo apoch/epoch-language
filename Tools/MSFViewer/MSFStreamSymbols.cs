@@ -84,6 +84,36 @@ namespace MSFViewer
             }
         }
 
+        private class SymbolProcRef : Symbol
+        {
+            public TypedByteSequence<uint> SumName;
+            public TypedByteSequence<uint> SymOffset;
+            public TypedByteSequence<ushort> Module;
+            public TypedByteSequence<string> Name;
+
+            public SymbolProcRef(MSFStreamSymbols stream, TypedByteSequence<ushort> size, TypedByteSequence<ushort> type, MaskedByteSequence seq)
+            {
+                CorrespondingByteSequence = seq;
+                Size = size;
+                Type = type;
+
+                SumName = stream.ExtractUInt32();
+                SymOffset = stream.ExtractUInt32();
+                Module = stream.ExtractUInt16();
+                Name = stream.ExtractTerminatedString();
+
+                stream.Extract4ByteAlignment();
+            }
+
+            public override void PopulateAnalysis(List<ListViewItem> lvw, AnalysisGroup group, TreeView tvw)
+            {
+                AddAnalysisItem(lvw, tvw, "ProcRef sum name", group, SumName);
+                AddAnalysisItem(lvw, tvw, "Symbol offset", group, SymOffset);
+                AddAnalysisItem(lvw, tvw, "Module index", group, Module);
+                AddAnalysisItem(lvw, tvw, "Name", group, Name);
+            }
+        }
+
         
         private List<Symbol> Symbols = new List<Symbol>();
         private int UnknownSymbols = 0;
@@ -149,6 +179,9 @@ namespace MSFViewer
 
                 case 0x110e:     // S_PUB32
                     return new SymbolPublic(this, size, type, seq);
+
+                case 0x1125:     // S_PROCREF
+                    return new SymbolProcRef(this, size, type, seq);
             }
 
             ++UnknownSymbols;
