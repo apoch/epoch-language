@@ -33,8 +33,8 @@ namespace MSFViewer
             public TypedByteSequence<short> Flags;
             public TypedByteSequence<short> StreamNumber;
             public TypedByteSequence<uint> SymbolSize;
-            public TypedByteSequence<int> LineNumberBytes;
-            public TypedByteSequence<int> C13LineNumberBytes;
+            public TypedByteSequence<uint> LineNumberBytes;
+            public TypedByteSequence<uint> C13LineNumberBytes;
             public TypedByteSequence<short> NumContributingFiles;
             public TypedByteSequence<short> Padding;
             public TypedByteSequence<int> FileNameOffset;
@@ -269,8 +269,8 @@ namespace MSFViewer
             ret.Flags = ExtractInt16();
             ret.StreamNumber = ExtractInt16();
             ret.SymbolSize = ExtractUInt32();
-            ret.LineNumberBytes = ExtractInt32();
-            ret.C13LineNumberBytes = ExtractInt32();
+            ret.LineNumberBytes = ExtractUInt32();
+            ret.C13LineNumberBytes = ExtractUInt32();
             ret.NumContributingFiles = ExtractInt16();
             ret.Padding = ExtractInt16();
             ret.FileNameOffset = ExtractInt32();
@@ -285,7 +285,7 @@ namespace MSFViewer
             var seq = new ByteSequence(FlattenedBuffer, begin, ReadOffset - begin);
             ret.OriginalSequence = seq;
 
-            ef.RegisterDBIModuleStream(modi, ret.StreamNumber.ExtractedValue, ret.SymbolSize.ExtractedValue);
+            ef.RegisterDBIModuleStream(modi, ret.StreamNumber.ExtractedValue, ret.SymbolSize.ExtractedValue, ret.LineNumberBytes.ExtractedValue, ret.C13LineNumberBytes.ExtractedValue);
 
             return ret;
         }

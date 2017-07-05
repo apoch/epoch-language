@@ -725,8 +725,8 @@ EmitDBISectionMap : PDBOutputStream ref stream
 	buffer header = 512
 	integer headersize = 0
 	
-	ByteStreamEmitInteger16(header, headersize, 9)
-	ByteStreamEmitInteger16(header, headersize, 9)
+	ByteStreamEmitInteger16(header, headersize, 10)		// actual entry count
+	ByteStreamEmitInteger16(header, headersize, 9)		// logical count
 	
 	// TODO - reflect actual EXE sections here
 
@@ -821,14 +821,14 @@ EmitDBISectionMap : PDBOutputStream ref stream
 	ByteStreamEmitInteger(header, headersize, 0xa0)		// length
 
 	// magic section (?)
-	//ByteStreamEmitInteger16(header, headersize, 0x208)		// flags
-	//ByteStreamEmitInteger16(header, headersize, 0)			// overlay
-	//ByteStreamEmitInteger16(header, headersize, 0)			// group
-	//ByteStreamEmitInteger16(header, headersize, 10)			// frame
-	//ByteStreamEmitInteger16(header, headersize, 0xffff)		// name
-	//ByteStreamEmitInteger16(header, headersize, 0xffff)		// class name
-	//ByteStreamEmitInteger(header, headersize, 0)			// offset
-	//ByteStreamEmitInteger(header, headersize, 0xffffffff)	// length	
+	ByteStreamEmitInteger16(header, headersize, 0x208)		// flags
+	ByteStreamEmitInteger16(header, headersize, 0)			// overlay
+	ByteStreamEmitInteger16(header, headersize, 0)			// group
+	ByteStreamEmitInteger16(header, headersize, 10)			// frame
+	ByteStreamEmitInteger16(header, headersize, 0xffff)		// name
+	ByteStreamEmitInteger16(header, headersize, 0xffff)		// class name
+	ByteStreamEmitInteger(header, headersize, 0)			// offset
+	ByteStreamEmitInteger(header, headersize, 0xffffffff)	// length	
 	
 	integer written = 0
 	WriteFile(stream.FileHandle, header, headersize, written, 0)
@@ -1523,7 +1523,7 @@ ConvertSymbolStream : buffer ref symboldata, integer symbolsize, list<PDBSymbol>
 
 GenerateCorrectedCVSymbol : list<PDBSymbol> ref symbols, integer writeoffset, integer size, integer16 sectionindex, integer sectionrelative, string symbol
 {
-	SymbolProcStart startsymbolps = 0, AlignToFour(writeoffset), 0, size, 0, 0, 0, sectionindex, 0, symbol, sectionrelative
+	SymbolProcStart startsymbolps = 0, AlignToFour(writeoffset), 0, size, 0, size, 0, sectionindex, 0, symbol, sectionrelative
 	SymbolBlockEnd endsymbolps = 0
 	PDBSymbol startsymbol = startsymbolps
 	PDBSymbol endsymbol = endsymbolps

@@ -30,9 +30,14 @@ namespace MSFViewer
             KnownStreamSymbols = symbols;
         }
 
-        public void RegisterDBIModuleStream(int modi, int streamindex, uint symbytes)
+        public void RegisterDBIModuleStream(int modi, int streamindex, uint symbytes, uint linesbytes, uint c13linesbytes)
         {
-            KnownStreamModules.Add(modi, new ModInfo { StreamIndex = streamindex, NumBytesSymbols = symbytes });
+            KnownStreamModules.Add(modi, new ModInfo {
+                StreamIndex = streamindex,
+                NumBytesSymbols = symbytes,
+                NumBytesLines = linesbytes,
+                NumBytesC13Lines = c13linesbytes
+            });
         }
 
         public List<MSFStream> Streams;
@@ -57,6 +62,8 @@ namespace MSFViewer
         {
             public int StreamIndex;
             public uint NumBytesSymbols;
+            public uint NumBytesLines;
+            public uint NumBytesC13Lines;
         }
 
         private Dictionary<int, ModInfo> KnownStreamModules;
@@ -185,7 +192,17 @@ namespace MSFViewer
                 Streams[KnownStreamPublics] = new MSFStreamPublics(Streams[KnownStreamPublics], KnownStreamPublics);
 
             foreach (var stream in KnownStreamModules)
-                Streams[stream.Value.StreamIndex] = new MSFStreamDBIModule(Streams[stream.Value.StreamIndex], stream.Value.StreamIndex, stream.Key, stream.Value.NumBytesSymbols);
+            {
+                Streams[stream.Value.StreamIndex] =
+                    new MSFStreamDBIModule(
+                        Streams[stream.Value.StreamIndex],
+                        stream.Value.StreamIndex,
+                        stream.Key,
+                        stream.Value.NumBytesSymbols,
+                        stream.Value.NumBytesLines,
+                        stream.Value.NumBytesC13Lines
+                    );
+            }
         }
     }
 }
