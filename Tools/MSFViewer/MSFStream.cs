@@ -17,13 +17,6 @@ namespace MSFViewer
         private int StreamIndex = 0;
 
 
-        protected struct AnalysisGroup
-        {
-            public ListViewGroup LVGroup;
-            public TreeNode Node;
-        }
-
-
         public MSFStream(byte[] rawbuffer)
         {
             FlattenedBuffer = rawbuffer;
@@ -113,7 +106,7 @@ namespace MSFViewer
         {
         }
 
-        protected static AnalysisGroup AddAnalysisGroup(ListView lvw, TreeView tvw, string key, string desc, TreeNode parent = null)
+        internal static AnalysisGroup AddAnalysisGroup(ListView lvw, TreeView tvw, string key, string desc, TreeNode parent = null)
         {
             var ret = new AnalysisGroup();
             ret.LVGroup = lvw.Groups.Add(key, desc);
@@ -127,7 +120,7 @@ namespace MSFViewer
             return ret;
         }
 
-        protected static void AddAnalysisItem(List<ListViewItem> lvwitems, TreeView tvw, string desc, AnalysisGroup group, ByteSequence originaldata)
+        internal static void AddAnalysisItem(List<ListViewItem> lvwitems, TreeView tvw, string desc, AnalysisGroup group, ByteSequence originaldata)
         {
             var item = new ListViewItem(new string[] { desc, originaldata.ToString() });
             item.Group = group.LVGroup;
@@ -140,7 +133,7 @@ namespace MSFViewer
             group.Node.Nodes.Add(tnode);
         }
 
-        protected static void AddAnalysisItem(List<ListViewItem> lvwitems, TreeView tvw, string desc, AnalysisGroup group, string nonpreviewdata)
+        internal static void AddAnalysisItem(List<ListViewItem> lvwitems, TreeView tvw, string desc, AnalysisGroup group, string nonpreviewdata)
         {
             var item = new ListViewItem(new string[] { desc, nonpreviewdata });
             item.Group = group.LVGroup;
@@ -156,7 +149,12 @@ namespace MSFViewer
             return FlattenedBuffer;
         }
 
-        protected TypedByteSequence<string> ExtractStringWithLength(int length)
+        public int GetReadOffset()
+        {
+            return ReadOffset;
+        }
+
+        internal TypedByteSequence<string> ExtractStringWithLength(int length)
         {
             var ret = new TypedByteSequence<string>(FlattenedBuffer, ReadOffset, length, Encoding.ASCII.GetString(FlattenedBuffer.Skip(ReadOffset).Take(length).ToArray()));
             ReadOffset += length;
@@ -164,7 +162,7 @@ namespace MSFViewer
             return ret;
         }
 
-        protected TypedByteSequence<string> ExtractTerminatedString()
+        internal TypedByteSequence<string> ExtractTerminatedString()
         {
             int length = 0;
             while (FlattenedBuffer[ReadOffset + length] != 0)
@@ -180,7 +178,7 @@ namespace MSFViewer
             return ret;
         }
 
-        protected Dictionary<int, string> ExtractTerminatedStrings(int length)
+        internal Dictionary<int, string> ExtractTerminatedStrings(int length)
         {
             var bytes = FlattenedBuffer.Skip(ReadOffset).Take(length).ToArray();
             ReadOffset += length;
@@ -202,7 +200,7 @@ namespace MSFViewer
             return ret;
         }
 
-        protected TypedByteSequence<byte> ExtractByte()
+        internal TypedByteSequence<byte> ExtractByte()
         {
             var b = FlattenedBuffer[ReadOffset];
             var ret = new TypedByteSequence<byte>(FlattenedBuffer, ReadOffset, 1, b);
@@ -211,7 +209,7 @@ namespace MSFViewer
             return ret;
         }
 
-        protected TypedByteSequence<byte[]> ExtractBytes(int length)
+        internal TypedByteSequence<byte[]> ExtractBytes(int length)
         {
             var b = FlattenedBuffer.Skip(ReadOffset).Take(length).ToArray();
             var ret = new TypedByteSequence<byte[]>(FlattenedBuffer, ReadOffset, length, b);
@@ -220,7 +218,7 @@ namespace MSFViewer
             return ret;
         }
 
-        protected TypedByteSequence<short> ExtractInt16()
+        internal TypedByteSequence<short> ExtractInt16()
         {
             var s = BitConverter.ToInt16(FlattenedBuffer, ReadOffset);
             var ret = new TypedByteSequence<short>(FlattenedBuffer, ReadOffset, sizeof(short), s);
@@ -229,7 +227,7 @@ namespace MSFViewer
             return ret;
         }
 
-        protected TypedByteSequence<ushort> ExtractUInt16()
+        internal TypedByteSequence<ushort> ExtractUInt16()
         {
             var s = BitConverter.ToUInt16(FlattenedBuffer, ReadOffset);
             var ret = new TypedByteSequence<ushort>(FlattenedBuffer, ReadOffset, sizeof(ushort), s);
@@ -238,7 +236,7 @@ namespace MSFViewer
             return ret;
         }
 
-        protected TypedByteSequence<int> ExtractInt32()
+        internal TypedByteSequence<int> ExtractInt32()
         {
             var i = BitConverter.ToInt32(FlattenedBuffer, ReadOffset);
             var ret = new TypedByteSequence<int>(FlattenedBuffer, ReadOffset, sizeof(int), i);
@@ -247,7 +245,7 @@ namespace MSFViewer
             return ret;
         }
 
-        protected TypedByteSequence<uint> ExtractUInt32()
+        internal TypedByteSequence<uint> ExtractUInt32()
         {
             var u = BitConverter.ToUInt32(FlattenedBuffer, ReadOffset);
             var ret = new TypedByteSequence<uint>(FlattenedBuffer, ReadOffset, sizeof(uint), u);
@@ -256,7 +254,7 @@ namespace MSFViewer
             return ret;
         }
 
-        protected TypedByteSequence<Guid> ExtractGuid()
+        internal TypedByteSequence<Guid> ExtractGuid()
         {
             var bytes = FlattenedBuffer.Skip(ReadOffset).Take(16).ToArray();
             var ret = new TypedByteSequence<Guid>(FlattenedBuffer, ReadOffset, 16, new Guid(bytes));
@@ -265,7 +263,7 @@ namespace MSFViewer
             return ret;
         }
 
-        protected void Extract4ByteAlignment()
+        internal void Extract4ByteAlignment()
         {
             while ((ReadOffset & 3) != 0)
                 ++ReadOffset;

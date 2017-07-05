@@ -16,7 +16,7 @@ namespace MSFViewer
             Contributions = new List<SectionContribution>();
 
             ParseHeaders();
-            ParseModules();
+            ParseModules(ef);
             ParseSectionContributions();
 
             // TODO
@@ -32,7 +32,7 @@ namespace MSFViewer
             public TypedByteSequence<int> UnusedModuleHeader;
             public TypedByteSequence<short> Flags;
             public TypedByteSequence<short> StreamNumber;
-            public TypedByteSequence<int> SymbolSize;
+            public TypedByteSequence<uint> SymbolSize;
             public TypedByteSequence<int> LineNumberBytes;
             public TypedByteSequence<int> C13LineNumberBytes;
             public TypedByteSequence<short> NumContributingFiles;
@@ -209,15 +209,18 @@ namespace MSFViewer
             Padding1 = ExtractInt32();
         }
 
-        private void ParseModules()
+        private void ParseModules(MSFStreamEntireFile ef)
         {
+            int modi = 0;
             int begin = ReadOffset;
             ModulesBeginOffset = begin;
 
             while (ReadOffset - begin < ModuleSubstreamSize.ExtractedValue)
             {
-                var mod = ParseSingleModule();
+                var mod = ParseSingleModule(modi, ef);
                 Mods.Add(mod);
+
+                ++modi;
             }
         }
 
@@ -255,7 +258,7 @@ namespace MSFViewer
             return ret;
         }
 
-        private Mod ParseSingleModule()
+        private Mod ParseSingleModule(int modi, MSFStreamEntireFile ef)
         {
             int begin = ReadOffset;
             var ret = new Mod();
@@ -265,7 +268,7 @@ namespace MSFViewer
 
             ret.Flags = ExtractInt16();
             ret.StreamNumber = ExtractInt16();
-            ret.SymbolSize = ExtractInt32();
+            ret.SymbolSize = ExtractUInt32();
             ret.LineNumberBytes = ExtractInt32();
             ret.C13LineNumberBytes = ExtractInt32();
             ret.NumContributingFiles = ExtractInt16();
@@ -281,6 +284,8 @@ namespace MSFViewer
 
             var seq = new ByteSequence(FlattenedBuffer, begin, ReadOffset - begin);
             ret.OriginalSequence = seq;
+
+            ef.RegisterDBIModuleStream(modi, ret.StreamNumber.ExtractedValue, ret.SymbolSize.ExtractedValue);
 
             return ret;
         }

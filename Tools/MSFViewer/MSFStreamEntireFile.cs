@@ -13,7 +13,8 @@ namespace MSFViewer
             : base(rawbuffer)
         {
             Streams = new List<MSFStream>();
-
+            KnownStreamModules = new Dictionary<int, ModInfo>();
+            
             ValidMagic = ParseMagic();
             ParseSuperBlock();
             ParseBlockMap();
@@ -29,6 +30,10 @@ namespace MSFViewer
             KnownStreamSymbols = symbols;
         }
 
+        public void RegisterDBIModuleStream(int modi, int streamindex, uint symbytes)
+        {
+            KnownStreamModules.Add(modi, new ModInfo { StreamIndex = streamindex, NumBytesSymbols = symbytes });
+        }
 
         public List<MSFStream> Streams;
 
@@ -47,6 +52,15 @@ namespace MSFViewer
         private int KnownStreamGlobals = -1;
         private int KnownStreamPublics = -1;
         private int KnownStreamSymbols = -1;
+
+        class ModInfo
+        {
+            public int StreamIndex;
+            public uint NumBytesSymbols;
+        }
+
+        private Dictionary<int, ModInfo> KnownStreamModules;
+
 
         protected override void SubclassPopulateAnalysis(List<ListViewItem> lvw, ListView lvwcontrol, TreeView tvw)
         {
@@ -169,6 +183,9 @@ namespace MSFViewer
 
             if (KnownStreamPublics > 0)
                 Streams[KnownStreamPublics] = new MSFStreamPublics(Streams[KnownStreamPublics], KnownStreamPublics);
+
+            foreach (var stream in KnownStreamModules)
+                Streams[stream.Value.StreamIndex] = new MSFStreamDBIModule(Streams[stream.Value.StreamIndex], stream.Value.StreamIndex, stream.Key, stream.Value.NumBytesSymbols);
         }
     }
 }

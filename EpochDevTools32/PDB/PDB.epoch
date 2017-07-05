@@ -970,12 +970,6 @@ EmitDBIModule : PDBOutputStream ref stream, list<DBIModule> ref modlist
 EmitDBIModule : PDBOutputStream ref stream, nothing
 
 
-EmitDBILines : PDBOutputStream ref stream
-{
-	// TODO
-}
-
-
 ByteStreamEmitDBILines : buffer ref data, integer ref size, list<CodeViewLineInfo> ref lines
 {
 	if(lines.value.Raw.NumPairs != 0)
@@ -1096,7 +1090,7 @@ WritePublicsStream : Win32Handle pdbfilehandle, integer startfileposition -> int
 	ByteStreamEmitInteger(header, headersize, 44 + 516 + 128)		// length of data
 	ByteStreamEmitInteger(header, headersize, 8)		// address map
 	ByteStreamEmitInteger(header, headersize, 30)		// num thunks
-	ByteStreamEmitInteger(header, headersize, 8)		// size of thunk
+	ByteStreamEmitInteger(header, headersize, 4)		// size of thunk
 	ByteStreamEmitInteger16(header, headersize, 1)		// section index thunk table
 	ByteStreamEmitInteger16(header, headersize, 0)		// padding
 	ByteStreamEmitInteger(header, headersize, 0)		// offset of thunk table
@@ -1106,7 +1100,7 @@ WritePublicsStream : Win32Handle pdbfilehandle, integer startfileposition -> int
 	ByteStreamEmitInteger(header, headersize, 0xffffffff)				// signature
 	ByteStreamEmitInteger(header, headersize, 0xeffe0000 + 19990810)	// version
 	ByteStreamEmitInteger(header, headersize, 24)						// number of bytes of HRFiles
-	ByteStreamEmitInteger(header, headersize, 516 + 128)				// number of bytes in buckets
+	ByteStreamEmitInteger(header, headersize, 516 + 4)					// number of bytes in buckets
 
 	// HRFiles
 	ByteStreamEmitInteger(header, headersize, 1)
@@ -1130,6 +1124,7 @@ WritePublicsStream : Win32Handle pdbfilehandle, integer startfileposition -> int
 		++count
 	}
 
+	// There appears to be one of these for each bit set in the bitmap
 	ByteStreamEmitInteger(header, headersize, 1)
 	
 
@@ -1140,9 +1135,9 @@ WritePublicsStream : Win32Handle pdbfilehandle, integer startfileposition -> int
 
 	// Thunk map - ???
 	integer i = 0
-	while(i < 120)
+	while(i < 30)
 	{
-		ByteStreamEmitByte(header, headersize, 0xab)
+		ByteStreamEmitInteger(header, headersize, 0x426)
 		++i
 	}
 	

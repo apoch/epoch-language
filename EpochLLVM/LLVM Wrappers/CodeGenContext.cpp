@@ -253,7 +253,7 @@ Context::Context()
 
 	// TODO - stash CUs for each file of the input program; will require debug info internally in EpochCompiler
 	// TODO - change params to handle optimized code when optimizations are back in
-	DebugCompileUnit = DebugBuilder.createCompileUnit(dwarf::DW_LANG_C, "LinkedProgram.epoch", "D:\\epoch\\epoch-language\\x64\\debug", "Epoch Compiler", false, "", 0);
+	DebugCompileUnit = DebugBuilder.createCompileUnit(dwarf::SourceLanguage::DW_LANG_C_plus_plus_11, "LinkedProgram.epoch", "D:\\epoch\\epoch-language\\x64\\debug", "Epoch Compiler", false, "", 0);
 	DebugFile = DebugBuilder.createFile(DebugCompileUnit->getFilename(), DebugCompileUnit->getDirectory());
 
 	FunctionType* initfunctiontype = FunctionType::get(Type::getVoidTy(getGlobalContext()), false);

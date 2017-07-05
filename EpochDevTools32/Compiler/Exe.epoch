@@ -1165,7 +1165,7 @@ GeneratePDB : string pdbfilename, buffer ref symboldata, integer symbolsize, int
 	CodeViewLineInfo lineinfo = lineinforaw, pairlist
 	list<CodeViewLineInfo> lines = lineinfo, nothing
 	
-	SymbolSection sectionsymbol = 9, 0, codesize, 0x60000020, ".text"	
+	SymbolSection sectionsymbol = 9, 0x9000, codesize, 0x60000020, ".text"	
 	list<PDBSymbol> symbollistinternal = sectionsymbol, nothing
 
 	//SymbolBlockEnd sectionend = 0

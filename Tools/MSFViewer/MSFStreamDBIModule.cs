@@ -7,24 +7,27 @@ using System.Windows.Forms;
 
 namespace MSFViewer
 {
-    class MSFStreamSymbols : MSFStream
+    class MSFStreamDBIModule : MSFStream
     {
-        public MSFStreamSymbols(MSFStream rawstream, int index)
+        public MSFStreamDBIModule(MSFStream rawstream, int index, int dbimoduleindex, uint symbytes)
             : base(rawstream.GetFlattenedBuffer())
         {
-            Name = $"DBI Symbols ({index})";
+            Name = $"DBI Module {dbimoduleindex} ({index})";
 
-            ParseAllSymbols();
+            ParseAllSymbols(symbytes);
         }
-        
+
+
+        private TypedByteSequence<uint> Header;
+
         private List<Symbol> Symbols = new List<Symbol>();
-        private int UnknownSymbols = 0;
+
 
 
         protected override void SubclassPopulateAnalysis(List<ListViewItem> lvw, ListView lvwcontrol, TreeView tvw)
         {
-            var statgroup = AddAnalysisGroup(lvwcontrol, tvw, "stats", "Statistics");
-            AddAnalysisItem(lvw, tvw, "Symbols of unrecognized type", statgroup, $"{UnknownSymbols}");
+            var hdrgroup = AddAnalysisGroup(lvwcontrol, tvw, "header", "Header");
+            AddAnalysisItem(lvw, tvw, "Chunk header", hdrgroup, Header);
 
 
             var symnode = tvw.Nodes.Find("root", false)[0].Nodes.Add("symbolsall", "Symbols");
@@ -45,9 +48,13 @@ namespace MSFViewer
             }
         }
 
-        private void ParseAllSymbols()
+
+
+        private void ParseAllSymbols(uint symbytes)
         {
-            while (ReadOffset < FlattenedBuffer.Length)
+            Header = ExtractUInt32();
+
+            while (ReadOffset < symbytes)
             {
                 try
                 {
