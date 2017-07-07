@@ -924,7 +924,7 @@ EmitDBIModule : PDBOutputStream ref stream, list<DBIModule> ref modlist
 	ByteStreamEmitInteger16(modinfo, modsize, 8)		// stream number of debug info		TODO
 	ByteStreamEmitInteger(modinfo, modsize, modlist.value.SymbolSize + 4)
 	ByteStreamEmitInteger(modinfo, modsize, 0)			// bytes of line number info
-	ByteStreamEmitInteger(modinfo, modsize, 72 + 28)		// bytes of C13 line number info
+	ByteStreamEmitInteger(modinfo, modsize, 184 + 20)	// bytes of C13 line number info
 	
 	ByteStreamEmitInteger16(modinfo, modsize, 1)		// num contributing files
 	ByteStreamEmitInteger16(modinfo, modsize, 0)		// padding
@@ -975,6 +975,9 @@ ByteStreamEmitDBILines : buffer ref data, integer ref size, list<CodeViewLineInf
 {
 	if(lines.value.Raw.NumPairs != 0)
 	{
+		ByteStreamEmitInteger(data, size, 0xf2)
+		ByteStreamEmitInteger(data, size, lines.value.Raw.NumPairs * 8 + 24)
+
 		ByteStreamEmitInteger(data, size, lines.value.Raw.FunctionOffset)
 		ByteStreamEmitInteger16(data, size, 9)				// TODO - segment of contribution
 		ByteStreamEmitInteger16(data, size, 0)				// Flags (0 = just lines, 1 = has columns)
@@ -986,10 +989,8 @@ ByteStreamEmitDBILines : buffer ref data, integer ref size, list<CodeViewLineInf
 
 		ByteStreamEmitDBILinePairs(data, size, lines.value.LinePairs)
 	}
-	else
-	{
-		ByteStreamEmitDBILines(data, size, lines.next)
-	}
+	
+	ByteStreamEmitDBILines(data, size, lines.next)
 }
 
 ByteStreamEmitDBILines : buffer ref data, integer ref size, nothing
@@ -1270,16 +1271,12 @@ WriteDBIModuleSymbols : PDBOutputStream ref stream, DBIModule ref module, buffer
 
 
 	// Emit lines data
-	ByteStreamEmitInteger(linedata, linesize, 0xf2)
-	ByteStreamEmitInteger(linedata, linesize, 72)
-
-	integer startsize = linesize
+	integer linebeginoffset = linesize
 	ByteStreamEmitDBILines(linedata, linesize, stream.DBI.Lines)
-	print(cast(string, linesize - startsize) ; " bytes of lines data")
-
 	WriteFile(stream.FileHandle, linedata, linesize, written, 0)
 	stream.FilePosition = stream.FilePosition + written
 
+	print(cast(string, linesize - linebeginoffset) ; " bytes of lines data")
 
 	
 	buffer footer = 4
