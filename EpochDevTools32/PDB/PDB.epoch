@@ -143,6 +143,7 @@ structure DBISection :
 	integer ModuleSubstreamSize,
 	integer SectionContributionSize,
 	integer SectionMapSize,
+	integer FileSubstreamSize,
 	list<DBIModule> Modules,
 	list<CodeViewLineInfo> Lines
 
@@ -628,7 +629,7 @@ WriteDBIStream : PDBOutputStream ref stream
 	ByteStreamEmitInteger(header, headersize, stream.DBI.ModuleSubstreamSize)
 	ByteStreamEmitInteger(header, headersize, stream.DBI.SectionContributionSize)
 	ByteStreamEmitInteger(header, headersize, stream.DBI.SectionMapSize)
-	ByteStreamEmitInteger(header, headersize, 32)		// file info substream size
+	ByteStreamEmitInteger(header, headersize, stream.DBI.FileSubstreamSize)
 	ByteStreamEmitInteger(header, headersize, 0)		// type server map size
 	ByteStreamEmitInteger(header, headersize, 0)		// index of MFC type server
 	ByteStreamEmitInteger(header, headersize, 0)		// DbgHeader info size
@@ -651,7 +652,7 @@ WriteDBIStream : PDBOutputStream ref stream
 
 EmitDBIFiles : PDBOutputStream ref stream
 {
-	buffer linesdata = 128
+	buffer linesdata = 512
 	integer linessize = 0
 	
 	// TODO - real values
@@ -686,7 +687,7 @@ EmitDBIFiles : PDBOutputStream ref stream
 	}
 
 	// TODO - real file names, support for multiple files
-	string filename = "D:\Test.epoch"
+	string filename = "D:\Epoch\epoch-language\EpochTests\PDBTest\EntryPoint.epoch"
 	ByteStreamEmitInteger(linesdata, linessize, length(filename) + 1)
 	ByteStreamEmitStringNarrow(linesdata, linessize, filename)
 	ByteStreamEmitByte(linesdata, linessize, 0)
@@ -923,7 +924,7 @@ EmitDBIModule : PDBOutputStream ref stream, list<DBIModule> ref modlist
 	ByteStreamEmitInteger16(modinfo, modsize, 8)		// stream number of debug info		TODO
 	ByteStreamEmitInteger(modinfo, modsize, modlist.value.SymbolSize + 4)
 	ByteStreamEmitInteger(modinfo, modsize, 0)			// bytes of line number info
-	ByteStreamEmitInteger(modinfo, modsize, 168 + 20)		// bytes of C13 line number info
+	ByteStreamEmitInteger(modinfo, modsize, 72 + 28)		// bytes of C13 line number info
 	
 	ByteStreamEmitInteger16(modinfo, modsize, 1)		// num contributing files
 	ByteStreamEmitInteger16(modinfo, modsize, 0)		// padding
@@ -985,8 +986,10 @@ ByteStreamEmitDBILines : buffer ref data, integer ref size, list<CodeViewLineInf
 
 		ByteStreamEmitDBILinePairs(data, size, lines.value.LinePairs)
 	}
-
-	ByteStreamEmitDBILines(data, size, lines.next)
+	else
+	{
+		ByteStreamEmitDBILines(data, size, lines.next)
+	}
 }
 
 ByteStreamEmitDBILines : buffer ref data, integer ref size, nothing
@@ -1268,8 +1271,11 @@ WriteDBIModuleSymbols : PDBOutputStream ref stream, DBIModule ref module, buffer
 
 	// Emit lines data
 	ByteStreamEmitInteger(linedata, linesize, 0xf2)
-	ByteStreamEmitInteger(linedata, linesize, 160)
+	ByteStreamEmitInteger(linedata, linesize, 72)
+
+	integer startsize = linesize
 	ByteStreamEmitDBILines(linedata, linesize, stream.DBI.Lines)
+	print(cast(string, linesize - startsize) ; " bytes of lines data")
 
 	WriteFile(stream.FileHandle, linedata, linesize, written, 0)
 	stream.FilePosition = stream.FilePosition + written
