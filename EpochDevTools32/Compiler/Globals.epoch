@@ -352,4 +352,8 @@ global
 
 	ArrayType dummyarraytype = 0, 0, 0
 	list<ArrayType> ArrayTypes = dummyarraytype, nothing
+
+
+	integer GlobalDebugDataIndex = 0
+	BinaryTreeRoot<ParsedToken> DebugDataMap = nothing
 }

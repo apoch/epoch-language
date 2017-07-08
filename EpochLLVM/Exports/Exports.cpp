@@ -396,9 +396,9 @@ extern "C" void EpochLLVMCodePushNothing(void* context)
 }
 
 
-extern "C" void EpochLLVMCodeStatementFinalize(void* context)
+extern "C" void EpochLLVMCodeStatementFinalize(void* context, unsigned line, unsigned column)
 {
-	reinterpret_cast<CodeGen::Context*>(context)->CodeStatementFinalize();
+	reinterpret_cast<CodeGen::Context*>(context)->CodeStatementFinalize(line, column);
 }
 
 

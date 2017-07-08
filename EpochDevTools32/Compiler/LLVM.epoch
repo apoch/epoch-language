@@ -121,7 +121,7 @@ EpochLLVMCodeCreateWriteStructurePopSumType : LLVMContextHandle handle										
 
 EpochLLVMCodeCreateDereference : LLVMContextHandle handle															[external("EpochLLVM.dll", "EpochLLVMCodeCreateDereference")]
 
-EpochLLVMCodeStatementFinalize : LLVMContextHandle handle															[external("EpochLLVM.dll", "EpochLLVMCodeStatementFinalize")]
+EpochLLVMCodeStatementFinalize : LLVMContextHandle handle, integer line, integer column								[external("EpochLLVM.dll", "EpochLLVMCodeStatementFinalize")]
 
 EpochLLVMCodeOperatorBooleanNot : LLVMContextHandle context															[external("EpochLLVM.dll", "EpochLLVMCodeOperatorBooleanNot")]
 EpochLLVMCodeOperatorBooleanAnd : LLVMContextHandle context															[external("EpochLLVM.dll", "EpochLLVMCodeOperatorBooleanAnd")]
@@ -519,7 +519,7 @@ EmitRetInitializerToLLVM : LLVMBuildContext ref context, FunctionDefinition ref 
 		}
 		else
 		{
-			EpochLLVMCodeStatementFinalize(context.Context)
+			EpochLLVMCodeStatementFinalize(context.Context, 1, 1)
 		}
 	}
 	
@@ -1000,7 +1000,7 @@ EmitSingleCodeBlockEntryToLLVM : LLVMBuildContext ref context, Statement ref ent
 	
 	if(entry.TopLevel)
 	{
-		EpochLLVMCodeStatementFinalize(context.Context)
+		EpochLLVMCodeStatementFinalize(context.Context, 1, 1)
 	}
 }
 
@@ -1106,7 +1106,7 @@ EmitSingleCodeBlockEntryToLLVM : LLVMBuildContext ref context, PreOpStatement re
 
 	if(preop.TopLevel)
 	{
-		EpochLLVMCodeStatementFinalize(context.Context)
+		EpochLLVMCodeStatementFinalize(context.Context, 1, 1)
 	}
 }
 
@@ -2312,7 +2312,7 @@ EmitTypeMatcherOverloadsInLLVM : LLVMContextHandle context, LLVMFunctionRef func
 
 	EpochLLVMCodePushBoolean(context, false)
 	EpochLLVMCodeCreateCallThunk(context, assertfunc)
-	EpochLLVMCodeStatementFinalize(context)
+	EpochLLVMCodeStatementFinalize(context, 1, 1)
 
 	EpochLLVMCodeCreateBranch(context, exitblock, false)
 }
@@ -2388,7 +2388,7 @@ EmitTypeMatcherParamsInLLVM : LLVMContextHandle context, list<FunctionSignature>
 		{
 			EpochLLVMCodeCreateWrite(context, retalloca)
 		}
-		EpochLLVMCodeStatementFinalize(context)
+		EpochLLVMCodeStatementFinalize(context, 1, 1)
 		EpochLLVMCodeCreateBranch(context, exitblock, false)
 	}
 	else

@@ -1475,14 +1475,17 @@ ParseEntity : -> boolean matched = false
 
 ParseCodeBlock :
 {
-	string token = PeekToken(0)
-	while(token != "}")
+	ParsedToken token = PeekParsedToken(0)
+	while(token.Token != "}")
 	{
-		if(token == "")
+		if(token.Token == "")
 		{
 			print("Error: missing a }")
 			return()
 		}
+
+		RegisterDebugData(GlobalDebugDataIndex, token)
+
 
 		if(ParseEntity())
 		{
@@ -1511,7 +1514,9 @@ ParseCodeBlock :
 			return()
 		}
 
-		token = PeekToken(0)
+		++GlobalDebugDataIndex
+
+		token = PeekParsedToken(0)
 	}
 
 	PopToken()
@@ -1662,5 +1667,13 @@ quick_append : nothing, ParsedToken ref token
 {
 	assertmsg(false, "quick_append failure")
 }
+
+
+
+RegisterDebugData : integer index, ParsedToken ref token
+{
+	BinaryTreeCreateOrInsert<ParsedToken>(DebugDataMap, index, token)
+}
+
 
 

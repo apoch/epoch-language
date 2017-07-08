@@ -128,7 +128,7 @@ namespace CodeGen
 
 		llvm::Value* CodePopValue();
 
-		void CodeStatementFinalize();
+		void CodeStatementFinalize(unsigned line, unsigned column);
 
 		void SumTypeMerge();
 

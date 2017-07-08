@@ -1277,9 +1277,9 @@ void Context::CodePushNothing()
 }
 
 
-void Context::CodeStatementFinalize()
+void Context::CodeStatementFinalize(unsigned line, unsigned column)
 {
-	TagDebugLine(++hack, 0);
+	TagDebugLine(line, column);
 
 	assert(PendingValues.empty() || PendingValues.size() == 1);
 	PendingValues.clear();
