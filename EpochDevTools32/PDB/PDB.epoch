@@ -144,8 +144,7 @@ structure DBISection :
 	integer SectionContributionSize,
 	integer SectionMapSize,
 	integer FileSubstreamSize,
-	list<DBIModule> Modules,
-	list<CodeViewLineInfo> Lines
+	list<DBIModule> Modules
 
 //
 // In-memory representation of a "mod" or Module.
@@ -159,8 +158,10 @@ structure DBIModule :
 	string SourceFile,
 	string ObjectFile,
 	integer SymbolSize,
+	integer LinesSize,
 	list<PDBSymbol> Symbols,
-	list<SectionContribution> SectionContributions
+	list<SectionContribution> SectionContributions,
+	list<CodeViewLineInfo> Lines
 
 
 //
@@ -900,6 +901,22 @@ ComputeSymbolSize : list<PDBSymbol> ref symlist, integer ref sizecounter
 ComputeSymbolSize : nothing, integer ref sizecounter
 
 
+ComputeLinesSize : DBIModule ref mod
+{
+	mod.LinesSize = 0
+	ComputeLinesSize(mod.Lines, mod.LinesSize)
+}
+
+ComputeLinesSize : list<CodeViewLineInfo> ref lines, integer ref sizecounter
+{
+	sizecounter += lines.value.Raw.NumPairs * 8 + 24
+
+	ComputeLinesSize(lines.next, sizecounter)
+}
+
+ComputeLinesSize : nothing, integer ref sizecounter
+
+
 EmitDBIModule : PDBOutputStream ref stream, list<DBIModule> ref modlist
 {
 	ComputeSymbolSize(modlist.value)
@@ -1272,11 +1289,11 @@ WriteDBIModuleSymbols : PDBOutputStream ref stream, DBIModule ref module, buffer
 
 	// Emit lines data
 	integer linebeginoffset = linesize
-	ByteStreamEmitDBILines(linedata, linesize, stream.DBI.Lines)
+	ByteStreamEmitDBILines(linedata, linesize, module.Lines)
 	WriteFile(stream.FileHandle, linedata, linesize, written, 0)
 	stream.FilePosition = stream.FilePosition + written
 
-	print(cast(string, linesize - linebeginoffset) ; " bytes of lines data")
+	assertmsg(linesize - linebeginoffset == module.LinesSize, "Emitted wrong number of lines bytes!")
 
 	
 	buffer footer = 4

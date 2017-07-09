@@ -1180,9 +1180,10 @@ GeneratePDB : string pdbfilename, buffer ref symboldata, integer symbolsize, int
 	print("First canary")
 
 	// TODO - real file names
-	DBIModule testmodule = "D:\Epoch\epoch-language\EpochTests\PDBTest\EntryPoint.epoch", "D:\Test.obj", 0, symbollistinternal, contriblist
+	DBIModule testmodule = "D:\Epoch\epoch-language\EpochTests\PDBTest\EntryPoint.epoch", "D:\Test.obj", 0, 0, symbollistinternal, contriblist, lines
 	
 	ComputeSymbolSize(testmodule)
+	ComputeLinesSize(testmodule)
 	
 	list<DBIModule> modulelist = testmodule, nothing
 	
@@ -1196,7 +1197,7 @@ GeneratePDB : string pdbfilename, buffer ref symboldata, integer symbolsize, int
 	integer dbicontribslen = ComputeContributionsSize(contriblist)
 	integer dbifileslen = 80			// TODO - real data here
 	
-	DBISection dbisection = dbimodinfolen, dbicontribslen, sectionmapsize, dbifileslen, modulelist, lines
+	DBISection dbisection = dbimodinfolen, dbicontribslen, sectionmapsize, dbifileslen, modulelist
 
 	print("Pre-stream setup canary")
 	
@@ -1214,7 +1215,7 @@ GeneratePDB : string pdbfilename, buffer ref symboldata, integer symbolsize, int
 	
 	simplelist<integer> hackblocks = 13, nothing
 
-	PDBStream hackstream = hackblocks, testmodule.SymbolSize + 184 + 28	// TODO - real stream			TODO - 184 = byte count of lines
+	PDBStream hackstream = hackblocks, testmodule.SymbolSize + testmodule.LinesSize + 28	// TODO - real stream
 	list<PDBStream> hackstreamlist = hackstream, nothing
 	
 	simplelist<integer> stringblocks = 14, nothing
