@@ -1550,3 +1550,24 @@ AlignToFour : integer in -> integer aligned = in
 	}
 }
 
+
+ComputeContributionsSize : list<SectionContribution> ref contriblist -> integer ret = 4
+{
+	integer count = 0
+	CountContributions(contriblist, count)
+
+	ret = ret + (28 * count)
+}
+
+
+CountContributions : list<SectionContribution> ref contriblist, integer ref count
+{
+	if(cast(integer, contriblist.value.SectionIndex) != 0xffff)
+	{
+		++count
+	}
+
+	CountContributions(contriblist.next, count)
+}
+
+CountContributions : nothing, integer ref count

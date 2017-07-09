@@ -300,9 +300,10 @@ OnCodeGenRegisterRefBinding : integer id, integer structureid, boolean isref, bo
 
 OnCodeGenEnterStatement : integer statementname, integer statementtype, boolean toplevel, boolean hastemplateargs, integer arrayarity, boolean makealloc
 {
-	Statement statement = statementname, nothing, statementtype, nothing, toplevel, false, arrayarity, makealloc
+	Statement statement = statementname, nothing, statementtype, nothing, toplevel, false, arrayarity, makealloc, GlobalDebugDataIndex
 	statement.ArrayArity = arrayarity			// TODO - compiler bug?
 	statement.MakeAlloc = makealloc
+	statement.DebugInfoIndex = GlobalDebugDataIndex
 
 	if(hastemplateargs)
 	{

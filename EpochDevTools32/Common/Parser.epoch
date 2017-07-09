@@ -1484,6 +1484,7 @@ ParseCodeBlock :
 			return()
 		}
 
+		++GlobalDebugDataIndex
 		RegisterDebugData(GlobalDebugDataIndex, token)
 
 
@@ -1513,8 +1514,6 @@ ParseCodeBlock :
 			print("Parse failure: " ; PeekToken(0) ; " " ; PeekToken(1) ; " " ; PeekToken(2))
 			return()
 		}
-
-		++GlobalDebugDataIndex
 
 		token = PeekParsedToken(0)
 	}

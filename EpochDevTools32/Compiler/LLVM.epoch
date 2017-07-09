@@ -519,7 +519,7 @@ EmitRetInitializerToLLVM : LLVMBuildContext ref context, FunctionDefinition ref 
 		}
 		else
 		{
-			EpochLLVMCodeStatementFinalize(context.Context, 1, 1)
+			EpochLLVMCodeStatementFinalize(context.Context, 1, 1)			// TODO - real debug info
 		}
 	}
 	
@@ -1000,7 +1000,17 @@ EmitSingleCodeBlockEntryToLLVM : LLVMBuildContext ref context, Statement ref ent
 	
 	if(entry.TopLevel)
 	{
-		EpochLLVMCodeStatementFinalize(context.Context, 1, 1)
+		ParsedToken token = "", "", 0, 0
+		if(entry.DebugInfoIndex > 0)
+		{
+			BinaryTreeCopyPayload<ParsedToken>(DebugDataMap.RootNode, entry.DebugInfoIndex, token)
+			assertmsg(token.Row > 0, "Missing statement debug data " ; cast(string, entry.DebugInfoIndex))
+		}
+		else
+		{
+			print("WARNING - statement has no debug metadata yet!")
+		}
+		EpochLLVMCodeStatementFinalize(context.Context, token.Row, token.Column)
 	}
 }
 

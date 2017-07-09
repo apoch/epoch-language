@@ -104,7 +104,7 @@ global
 	Expression dummyexpression = dummyatomlist, 0
 	list<Expression> ScratchExpressions = dummyexpression, nothing
 	
-	Statement dummystatement = 0, nothing, 0, nothing, false, false, 0, false
+	Statement dummystatement = 0, nothing, 0, nothing, false, false, 0, false, 0
 	list<Statement> SubStatements = dummystatement, nothing
 
 	Parameter dummyparam = 0, 0

@@ -107,7 +107,8 @@ structure Statement :
 	boolean TopLevel,
 	boolean InferenceDone,
 	integer ArrayArity,
-	boolean MakeAlloc
+	boolean MakeAlloc,
+	integer DebugInfoIndex
 
 structure MessageSend :
 	integer TargetName,

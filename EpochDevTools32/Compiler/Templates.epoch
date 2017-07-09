@@ -692,7 +692,7 @@ InstantiateStatement : integer statementname, boolean inret, nothing, list<Templ
 
 InstantiateStatement : integer statementname, boolean inret, TemplateArgumentList ref args, list<TemplateParameter> ref templateparams, list<TemplateArgument> ref templateargs
 {
-	Statement statement = statementname, nothing, 0, args, inret, false, 0, false
+	Statement statement = statementname, nothing, 0, args, inret, false, 0, false, 0
 	PropagateTemplateArgsForStatement(statement, args, templateargs)
 	RemapAllTemplateArguments(statement.TemplateArgs, templateparams, templateargs)
 	OnCodeGenEmplaceStatement(statement)
