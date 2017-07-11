@@ -170,7 +170,7 @@ ByteStreamEmitSymbol : buffer ref stream, integer ref pos, SymbolProcStart ref s
 		ByteStreamEmitSymbol(stream, pos, local)
 
 
-		SymbolDefRangeRegisterRelative range = 335, 0, 0x24, 0x80, 9, 0x2a, 0		// TODO - 335 appears to be RSP
+		SymbolDefRangeRegisterRelative range = 335, 0, 0x24, 0x80, 9, 0x3a, 0		// TODO - 335 appears to be RSP
 		ByteStreamEmitSymbol(stream, pos, range)
 	}
 }
