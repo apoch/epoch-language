@@ -37,13 +37,20 @@ structure SymbolBlockEnd :
 	integer Dummy
 
 
-type PDBSymbol : SymbolSection | SymbolProcStart | SymbolBlockEnd
+structure SymbolLocal :
+	integer TypeIndex,
+	integer16 Flags,
+	string Name
+
+
+type PDBSymbol : SymbolSection | SymbolProcStart | SymbolBlockEnd | SymbolLocal
 
 
 
 SymbolGetSize : SymbolSection ref symbol -> integer size = AlignToFour(20 + length(symbol.ImageSectionName) + 1)
 SymbolGetSize : SymbolProcStart ref symbol -> integer size = AlignToFour(39 + length(symbol.DisplayName) + 1)
 SymbolGetSize : SymbolBlockEnd ref symbol -> integer size = 8
+SymbolGetSize : SymbolLocal ref symbol -> integer size = AlignToFour(10 + length(symbol.Name) + 1)
 
 
 ByteStreamEmitSymbolList : buffer ref stream, integer ref pos, list<PDBSymbol> ref symlist
@@ -90,12 +97,28 @@ ByteStreamEmitSymbol : buffer ref stream, integer ref pos, SymbolSection ref sym
 ByteStreamEmitSymbol : buffer ref stream, integer ref pos, SymbolProcStart ref symbol
 {
 	integer16 mysize = cast(integer16, SymbolGetSize(symbol) - 2)
+
+	// TODO - clean this out
+	integer bumphack = 0
+	if(symbol.DisplayName == "test")
+	{
+		bumphack = 16
+	}
 	
 	ByteStreamEmitInteger16(stream, pos, mysize)
 	ByteStreamEmitInteger16(stream, pos, 0x1110)						// S_GPROC32
 	ByteStreamEmitInteger(stream, pos, symbol.PtrParent)
-	ByteStreamEmitInteger(stream, pos, symbol.PtrEnd)
-	ByteStreamEmitInteger(stream, pos, symbol.PtrNext)
+	ByteStreamEmitInteger(stream, pos, symbol.PtrEnd + bumphack)
+	
+	if(symbol.DisplayName == "test")
+	{
+		ByteStreamEmitInteger(stream, pos, symbol.PtrEnd)
+	}
+	else
+	{
+		ByteStreamEmitInteger(stream, pos, symbol.PtrNext)
+	}
+	
 	ByteStreamEmitInteger(stream, pos, symbol.CodeSize)
 	ByteStreamEmitInteger(stream, pos, symbol.DebugStart)
 	ByteStreamEmitInteger(stream, pos, symbol.DebugEnd)
@@ -119,6 +142,15 @@ ByteStreamEmitSymbol : buffer ref stream, integer ref pos, SymbolProcStart ref s
 	{
 		ByteStreamEmitByte(stream, pos, 0)
 	}
+
+
+	if(symbol.DisplayName == "test")
+	{
+		integer T_INT = 0x74 ///0x8003
+		SymbolLocal local = T_INT, 0, "count"
+
+		ByteStreamEmitSymbol(stream, pos, local)
+	}
 }
 
 
@@ -135,4 +167,26 @@ ByteStreamEmitSymbol : buffer ref stream, integer ref pos, SymbolBlockEnd ref sy
 		ByteStreamEmitByte(stream, pos, 0)
 	}
 }
+
+
+ByteStreamEmitSymbol : buffer ref stream, integer ref pos, SymbolLocal ref symbol
+{
+	integer16 mysize = cast(integer16, SymbolGetSize(symbol) - 2)
+
+	print("Emitting local variable symbol: " ; symbol.Name)
+
+	ByteStreamEmitInteger16(stream, pos, mysize)
+	ByteStreamEmitInteger16(stream, pos, 0x113e)						// S_LOCAL
+	ByteStreamEmitInteger(stream, pos, symbol.TypeIndex)
+	ByteStreamEmitInteger16(stream, pos, symbol.Flags)
+	ByteStreamEmitStringNarrow(stream, pos, symbol.Name)
+
+	ByteStreamEmitByte(stream, pos, 0)
+
+	while((pos & 3) != 0)
+	{
+		ByteStreamEmitByte(stream, pos, 0)
+	}
+}
+
 

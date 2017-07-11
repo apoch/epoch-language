@@ -1184,6 +1184,15 @@ GeneratePDB : string pdbfilename, buffer ref symboldata, integer symbolsize, int
 	
 	ComputeSymbolSize(testmodule)
 	ComputeLinesSize(testmodule)
+
+	// TODO - plumb through from LLVM layer
+	//integer LF_LONG = 0x8003
+	//SymbolLocal local = LF_LONG, 0, "count"
+	//PDBSymbol localsymbol = local
+	//append<PDBSymbol>(symbollistinternal, localsymbol)
+
+	// TODO - this is gross
+	testmodule.SymbolSize = 208 //testmodule.SymbolSize + SymbolGetSize(local)
 	
 	list<DBIModule> modulelist = testmodule, nothing
 	
@@ -1202,7 +1211,7 @@ GeneratePDB : string pdbfilename, buffer ref symboldata, integer symbolsize, int
 	print("Pre-stream setup canary")
 	
 	PDBStream directoryhint = simplelist<integer>(3, nothing), 0
-	PDBStream directorystream = simplelist<integer>(4, nothing), 84		// + (128 * 4)
+	PDBStream directorystream = simplelist<integer>(4, nothing), 84
 	
 	PDBStream msf = simplelist<integer>(5, nothing), 1					// Placeholder; 0 is invalid but we have nothing to put here
 	PDBStream pdb = simplelist<integer>(6, nothing), 128  				// TODO - pull real PDB stream size [was 48]

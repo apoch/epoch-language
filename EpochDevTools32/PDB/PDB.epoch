@@ -919,9 +919,6 @@ ComputeLinesSize : nothing, integer ref sizecounter
 
 EmitDBIModule : PDBOutputStream ref stream, list<DBIModule> ref modlist
 {
-	ComputeSymbolSize(modlist.value)
-
-
 	buffer unusedheader = 4
 	integer unusedheadersize = 0
 	ByteStreamEmitInteger(unusedheader, unusedheadersize, 0)
@@ -941,7 +938,7 @@ EmitDBIModule : PDBOutputStream ref stream, list<DBIModule> ref modlist
 	ByteStreamEmitInteger16(modinfo, modsize, 8)		// stream number of debug info		TODO
 	ByteStreamEmitInteger(modinfo, modsize, modlist.value.SymbolSize + 4)
 	ByteStreamEmitInteger(modinfo, modsize, 0)			// bytes of line number info
-	ByteStreamEmitInteger(modinfo, modsize, 184 + 20)	// bytes of C13 line number info
+	ByteStreamEmitInteger(modinfo, modsize, modlist.value.LinesSize + 20)	// bytes of C13 line number info
 	
 	ByteStreamEmitInteger16(modinfo, modsize, 1)		// num contributing files
 	ByteStreamEmitInteger16(modinfo, modsize, 0)		// padding
@@ -1125,13 +1122,13 @@ WritePublicsStream : Win32Handle pdbfilehandle, integer startfileposition -> int
 
 	// HRFiles
 	ByteStreamEmitInteger(header, headersize, 1)
-	ByteStreamEmitInteger(header, headersize, 1)		// this doesn't seem to matter?
+	ByteStreamEmitInteger(header, headersize, 0)		// this doesn't seem to matter?
 
 	ByteStreamEmitInteger(header, headersize, 21)
-	ByteStreamEmitInteger(header, headersize, 1)		// nor this?
+	ByteStreamEmitInteger(header, headersize, 0)		// nor this?
 	
 	ByteStreamEmitInteger(header, headersize, 41)
-	ByteStreamEmitInteger(header, headersize, 1)		// nor this?
+	ByteStreamEmitInteger(header, headersize, 0)		// nor this?
 
 	// Magic bitmap
 	ByteStreamEmitByte(header, headersize, 1)
@@ -1264,7 +1261,7 @@ WriteDBIModuleSymbols : PDBOutputStream ref stream, DBIModule ref module, buffer
 	integer symboldatasize = 0
 	ByteStreamEmitSymbolList(symboldata, symboldatasize, module.Symbols)
 	
-	assertmsg(module.SymbolSize == symboldatasize, "Emitted wrong number of symbol bytes!")
+	assertmsg(module.SymbolSize == symboldatasize, "Emitted wrong number of symbol bytes - planned for " ; cast(string, module.SymbolSize) ; " vs actually emitted " ; cast(string, symboldatasize))
 
 	WriteFile(stream.FileHandle, symboldata, symboldatasize, written, 0)
 	stream.FilePosition = stream.FilePosition + written

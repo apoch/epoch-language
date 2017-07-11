@@ -484,7 +484,7 @@ void Context::PrepareBinaryObject()
 
 	// TODO - reintroduce optimizations
 
-	//llvmmodule->dump();
+	llvmmodule->dump();
 
 
 	class JEL : public JITEventListener
@@ -569,7 +569,10 @@ void Context::PrepareBinaryObject()
 
 		auto nameerr = sym.getName();
 		if(!nameerr)
+		{
+			std::cout << "SKIP nameless symbol" << std::endl;
 			continue;
+		}
 
 		auto nameref = nameerr.get();
 		auto symname = nameref.str();
@@ -597,13 +600,14 @@ void Context::PrepareBinaryObject()
 			break;
 
 		default:
+			std::cout << symname << std::endl;
 			symbol.StorageClass = IMAGE_SYM_CLASS_EXTERNAL;
 			symbol.SectionNumber = IMAGE_SYM_ABSOLUTE;
 			symbol.Value = 0;
 			symbol.Type = (IMAGE_SYM_DTYPE_POINTER << N_BTSHFT);
 			break;
 		}
-		
+
 		symbol.NumberOfAuxSymbols = 0;
 
 		AppendToBuffer<IMAGE_SYMBOL, IMAGE_SIZEOF_SYMBOL>(&DebugSymbols, symbol);
@@ -633,6 +637,18 @@ size_t Context::EmitBinaryObject(char* buffer, size_t maxoutput, unsigned entryp
 llvm::AllocaInst* Context::CodeCreateAlloca(llvm::Type* vartype, const char* varname)
 {
 	auto allocainst = LLVMBuilder.CreateAlloca(vartype, nullptr, varname);
+
+	auto subprogram = LLVMBuilder.GetInsertBlock()->getParent()->getSubprogram();
+	if(subprogram)
+	{
+		auto dbg = DebugBuilder.createAutoVariable(subprogram, varname, DebugFile, 1, TypeGetDebugType(vartype));
+		auto expr = DebugBuilder.createExpression();
+		
+		auto mdty = Type::getMetadataTy(getGlobalContext());
+		auto ftype = FunctionType::get(Type::getVoidTy(getGlobalContext()), { mdty, mdty, mdty }, false);
+
+		DebugBuilder.insertDeclare(allocainst, dbg, expr, DebugLoc::get(1, 0, subprogram), LLVMBuilder.GetInsertBlock());
+	}
 
 	if(vartype == Type::getInt8PtrTy(getGlobalContext()))
 	{

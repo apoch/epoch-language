@@ -9,7 +9,9 @@
 
 test :
 {
+	integer count = 0
 	print("Foo!")
+	++count
 }
 
 
