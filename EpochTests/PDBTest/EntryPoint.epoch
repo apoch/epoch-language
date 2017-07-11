@@ -10,8 +10,8 @@
 test :
 {
 	integer count = 0
-	print("Foo!")
 	++count
+	print(cast(string, count))
 }
 
 

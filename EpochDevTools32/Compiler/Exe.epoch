@@ -1192,7 +1192,7 @@ GeneratePDB : string pdbfilename, buffer ref symboldata, integer symbolsize, int
 	//append<PDBSymbol>(symbollistinternal, localsymbol)
 
 	// TODO - this is gross
-	testmodule.SymbolSize = 208 //testmodule.SymbolSize + SymbolGetSize(local)
+	testmodule.SymbolSize = 228 //testmodule.SymbolSize + SymbolGetSize(local)
 	
 	list<DBIModule> modulelist = testmodule, nothing
 	

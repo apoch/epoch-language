@@ -42,6 +42,22 @@ structure SymbolLocal :
 	integer16 Flags,
 	string Name
 
+structure SymbolDefRangeFrameRelative :
+	integer OffsetFromFP,
+	integer OffsetStart,
+	integer16 SectionIndexStart,
+	integer16 Range,
+	integer DummyToDo				// TODO - gap descriptors
+
+structure SymbolDefRangeRegisterRelative :
+	integer16 Register,
+	integer16 Flags,
+	integer BasePointerOffset,
+	integer OffsetStartCode,
+	integer16 SectionIndexStartCode,
+	integer16 RangeCode,
+	integer DummyToDo
+
 
 type PDBSymbol : SymbolSection | SymbolProcStart | SymbolBlockEnd | SymbolLocal
 
@@ -51,6 +67,8 @@ SymbolGetSize : SymbolSection ref symbol -> integer size = AlignToFour(20 + leng
 SymbolGetSize : SymbolProcStart ref symbol -> integer size = AlignToFour(39 + length(symbol.DisplayName) + 1)
 SymbolGetSize : SymbolBlockEnd ref symbol -> integer size = 8
 SymbolGetSize : SymbolLocal ref symbol -> integer size = AlignToFour(10 + length(symbol.Name) + 1)
+SymbolGetSize : SymbolDefRangeFrameRelative ref symbol -> integer size = AlignToFour(16)
+SymbolGetSize : SymbolDefRangeRegisterRelative ref symbol -> integer size = AlignToFour(18)
 
 
 ByteStreamEmitSymbolList : buffer ref stream, integer ref pos, list<PDBSymbol> ref symlist
@@ -102,7 +120,7 @@ ByteStreamEmitSymbol : buffer ref stream, integer ref pos, SymbolProcStart ref s
 	integer bumphack = 0
 	if(symbol.DisplayName == "test")
 	{
-		bumphack = 16
+		bumphack = 16 + 20
 	}
 	
 	ByteStreamEmitInteger16(stream, pos, mysize)
@@ -150,6 +168,10 @@ ByteStreamEmitSymbol : buffer ref stream, integer ref pos, SymbolProcStart ref s
 		SymbolLocal local = T_INT, 0, "count"
 
 		ByteStreamEmitSymbol(stream, pos, local)
+
+
+		SymbolDefRangeRegisterRelative range = 335, 0, 0x24, 0x80, 9, 0x2a, 0		// TODO - 335 appears to be RSP
+		ByteStreamEmitSymbol(stream, pos, range)
 	}
 }
 
@@ -173,8 +195,6 @@ ByteStreamEmitSymbol : buffer ref stream, integer ref pos, SymbolLocal ref symbo
 {
 	integer16 mysize = cast(integer16, SymbolGetSize(symbol) - 2)
 
-	print("Emitting local variable symbol: " ; symbol.Name)
-
 	ByteStreamEmitInteger16(stream, pos, mysize)
 	ByteStreamEmitInteger16(stream, pos, 0x113e)						// S_LOCAL
 	ByteStreamEmitInteger(stream, pos, symbol.TypeIndex)
@@ -182,6 +202,46 @@ ByteStreamEmitSymbol : buffer ref stream, integer ref pos, SymbolLocal ref symbo
 	ByteStreamEmitStringNarrow(stream, pos, symbol.Name)
 
 	ByteStreamEmitByte(stream, pos, 0)
+
+	while((pos & 3) != 0)
+	{
+		ByteStreamEmitByte(stream, pos, 0)
+	}
+}
+
+
+ByteStreamEmitSymbol : buffer ref stream, integer ref pos, SymbolDefRangeFrameRelative ref symbol
+{
+	integer16 mysize = cast(integer16, SymbolGetSize(symbol) - 2)
+
+	ByteStreamEmitInteger16(stream, pos, mysize)
+	ByteStreamEmitInteger16(stream, pos, 0x1142)						// S_DEFRANGE_FRAMEPOINTER_REL
+
+	ByteStreamEmitInteger(stream, pos, symbol.OffsetFromFP)
+	ByteStreamEmitInteger(stream, pos, symbol.OffsetStart)
+	ByteStreamEmitInteger16(stream, pos, symbol.SectionIndexStart)
+	ByteStreamEmitInteger16(stream, pos, symbol.Range)
+	//ByteStreamEmitInteger(stream, pos, 0)							// TODO - gaps?
+
+	while((pos & 3) != 0)
+	{
+		ByteStreamEmitByte(stream, pos, 0)
+	}
+}
+
+ByteStreamEmitSymbol : buffer ref stream, integer ref pos, SymbolDefRangeRegisterRelative ref symbol
+{
+	integer16 mysize = cast(integer16, SymbolGetSize(symbol) - 2)
+
+	ByteStreamEmitInteger16(stream, pos, mysize)
+	ByteStreamEmitInteger16(stream, pos, 0x1145)						// S_DEFRANGE_REGISTER_REL
+
+	ByteStreamEmitInteger16(stream, pos, symbol.Register)
+	ByteStreamEmitInteger16(stream, pos, symbol.Flags)
+	ByteStreamEmitInteger(stream, pos, symbol.BasePointerOffset)
+	ByteStreamEmitInteger(stream, pos, symbol.OffsetStartCode)
+	ByteStreamEmitInteger16(stream, pos, symbol.SectionIndexStartCode)
+	ByteStreamEmitInteger16(stream, pos, symbol.RangeCode)
 
 	while((pos & 3) != 0)
 	{
