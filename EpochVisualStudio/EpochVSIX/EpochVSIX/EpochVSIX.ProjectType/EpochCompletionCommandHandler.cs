@@ -101,8 +101,7 @@ namespace EpochVSIX
 
             //check for a commit character
             if (nCmdID == (uint)VSConstants.VSStd2KCmdID.RETURN
-                || nCmdID == (uint)VSConstants.VSStd2KCmdID.TAB
-                || (char.IsWhiteSpace(typedChar) || char.IsPunctuation(typedChar)))
+                || nCmdID == (uint)VSConstants.VSStd2KCmdID.TAB)
             {
                 //check for a a selection
                 if (m_session != null && !m_session.IsDismissed)

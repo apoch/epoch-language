@@ -50,6 +50,45 @@ namespace EpochVSIX
             foreach (string str in structureNames)
                 m_completionList.Add(new Completion(str, str, str, structglyph, null));
 
+
+            List<string> typeList = new List<string>();
+            typeList.Add("boolean");
+            typeList.Add("buffer");
+            typeList.Add("integer");
+            typeList.Add("integer16");
+            typeList.Add("integer64");
+            typeList.Add("real");
+            typeList.Add("string");
+
+            var typeglyph = m_glyphService.GetGlyph(StandardGlyphGroup.GlyphGroupIntrinsic, StandardGlyphItem.GlyphItemPublic);
+            foreach (string str in typeList)
+                m_completionList.Add(new Completion(str, str, str, typeglyph, null));
+
+
+            var keywordList = new List<string>();
+            keywordList.Add("ref");
+            keywordList.Add("else");
+            keywordList.Add("elseif");
+            keywordList.Add("if");
+            keywordList.Add("structure");
+            keywordList.Add("type");
+            keywordList.Add("while");
+
+            var keywordglyph = m_glyphService.GetGlyph(StandardGlyphGroup.GlyphGroupUnknown, StandardGlyphItem.GlyphItemPublic);
+            foreach (string str in keywordList)
+                m_completionList.Add(new Completion(str, str, str, keywordglyph, null));
+
+
+            var valueList = new List<string>();
+            valueList.Add("true");
+            valueList.Add("false");
+            valueList.Add("nothing");
+
+            var valueglyph = m_glyphService.GetGlyph(StandardGlyphGroup.GlyphGroupValueType, StandardGlyphItem.GlyphItemPublic);
+            foreach (string str in valueList)
+                m_completionList.Add(new Completion(str, str, str, valueglyph, null));
+
+
             m_completionList.Sort((a, b) => { return a.DisplayText.CompareTo(b.DisplayText); });
 
 
