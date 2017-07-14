@@ -15,6 +15,13 @@ namespace EpochVSIX
     using System.ComponentModel;
     using System.Runtime.InteropServices;
     using Microsoft.VisualStudio.Shell;
+    using Microsoft.VisualStudio;
+    using Microsoft.VisualStudio.Package;
+    using Microsoft.VisualStudio.TextManager.Interop;
+    using System.ComponentModel.Design;
+    using System.ComponentModel.Composition;
+    using Microsoft.VisualStudio.Editor;
+    using Microsoft.VisualStudio.ComponentModelHost;
 
     /// <summary>
     /// This class implements the package exposed by this assembly.
@@ -27,6 +34,10 @@ namespace EpochVSIX
     [PackageRegistration(UseManagedResourcesOnly = true)]
     [Description("A custom project type based on CPS")]
     [Guid(VsPackage.PackageGuid)]
+    [ProvideAutoLoad("{f1536ef8-92ec-443c-9ed7-fdadf150da82}")]         // UICONTEXT_SolutionExists
+    [ProvideService(typeof(EpochLanguageService), ServiceName = "Epoch")]
+    [ProvideLanguageExtension(VsPackage.LanguageServiceGuid, ".epoch")]
+    [ProvideLanguageService(typeof(EpochLanguageService), "Epoch", 1, CodeSense = true, RequestStockColors = true, EnableCommenting = true)]
     public sealed class VsPackage : Package
     {
         /// <summary>
@@ -40,6 +51,8 @@ namespace EpochVSIX
         /// </summary>
         public const string ProjectTypeGuid = "7bd20c85-ab56-499d-b05b-d5f12345423c";
 
+        public const string LanguageServiceGuid = "e0ddc0eb-23e7-45c7-8726-6fd20628992a";
+
         /// <summary>
         /// The file extension of this project type.  No preceding period.
         /// </summary>
@@ -50,5 +63,15 @@ namespace EpochVSIX
         /// resource names can be calculated for embedded resources.
         /// </summary>
         internal const string DefaultNamespace = "EpochVSIX";
+
+        protected override void Initialize()
+        {
+            base.Initialize();
+
+            IServiceContainer container = this as IServiceContainer;
+            var service = new EpochLanguageService(((IComponentModel)GetGlobalService(typeof(SComponentModel))).GetService<IVsEditorAdaptersFactoryService>());
+            service.SetSite(this);
+            container.AddService(typeof(EpochLanguageService), service, true);
+        }
     }
 }
