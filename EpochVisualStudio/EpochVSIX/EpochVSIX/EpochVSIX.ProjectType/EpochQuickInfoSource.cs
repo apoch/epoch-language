@@ -10,6 +10,10 @@ using Microsoft.VisualStudio.Text.Operations;
 using Microsoft.VisualStudio.Text.Tagging;
 using Microsoft.VisualStudio.Utilities;
 using System.ComponentModel.Composition;
+using Microsoft.VisualStudio.Shell.Interop;
+using Microsoft.VisualStudio.TextManager.Interop;
+using Microsoft.VisualStudio.Editor;
+using Microsoft.VisualStudio.Shell;
 
 namespace EpochVSIX
 {
@@ -18,11 +22,15 @@ namespace EpochVSIX
         private EpochQuickInfoSourceProvider m_provider;
         private ITextBuffer m_subjectBuffer;
         private Dictionary<string, string> m_dictionary;
+        private IVsDebugger m_debugger;
+        private IVsEditorAdaptersFactoryService m_adapter;
 
-        public EpochQuickInfoSource(EpochQuickInfoSourceProvider provider, ITextBuffer subjectBuffer)
+        public EpochQuickInfoSource(EpochQuickInfoSourceProvider provider, ITextBuffer subjectBuffer, IVsDebugger debugger, IVsEditorAdaptersFactoryService adapter)
         {
             m_provider = provider;
             m_subjectBuffer = subjectBuffer;
+            m_debugger = debugger;
+            m_adapter = adapter;
 
             var funclist = new List<ProjectParser.FunctionDefinition>();
             ProjectParser.GetInstance().GetAvailableFunctionSignatures(funclist);
@@ -49,6 +57,31 @@ namespace EpochVSIX
             ITextStructureNavigator navigator = m_provider.NavigatorService.GetTextStructureNavigator(m_subjectBuffer);
             TextExtent extent = navigator.GetExtentOfWord(subjectTriggerPoint.Value);
             string searchText = extent.Span.GetText();
+
+            /*
+            if (searchText == "count")
+            {
+                applicableToSpan = currentSnapshot.CreateTrackingSpan(extent.Span.Start, 5, SpanTrackingMode.EdgeInclusive);
+
+                IVsTextLines lines;
+                m_adapter.GetViewAdapter(session.TextView).GetBuffer(out lines);
+
+                string qicontent = null;
+                var span = new TextSpan();
+                span.iStartLine = querySpan.Start.GetContainingLine().LineNumber;
+                span.iStartIndex = querySpan.Start.GetContainingLine().Start.Difference(querySpan.Start);
+                span.iEndLine = span.iStartLine;
+                span.iEndIndex = span.iStartIndex + 5;
+
+                //m_debugger.GetDataTipValue(lines, new TextSpan[] { span }, searchText, out qicontent);
+
+                //qiContent.Add(qicontent);
+
+                qiContent.Add("Foo");
+
+                return;
+            }
+            */
 
             foreach (string key in m_dictionary.Keys)
             {
@@ -99,9 +132,17 @@ namespace EpochVSIX
         [Import]
         internal ITextBufferFactoryService TextBufferFactoryService { get; set; }
 
+        [Import]
+        internal SVsServiceProvider ServiceProvider { get; set; }
+
+        [Import]
+        internal IVsEditorAdaptersFactoryService AdapterService = null;
+
+
         public IQuickInfoSource TryCreateQuickInfoSource(ITextBuffer textBuffer)
         {
-            return new EpochQuickInfoSource(this, textBuffer);
+            var debugger = ServiceProvider.GetService(typeof(IVsDebugger)) as IVsDebugger;
+            return new EpochQuickInfoSource(this, textBuffer, debugger, AdapterService);
         }
     }
 

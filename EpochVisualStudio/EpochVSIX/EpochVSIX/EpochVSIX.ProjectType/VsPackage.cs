@@ -35,9 +35,9 @@ namespace EpochVSIX
     [Description("A custom project type based on CPS")]
     [Guid(VsPackage.PackageGuid)]
     [ProvideAutoLoad("{f1536ef8-92ec-443c-9ed7-fdadf150da82}")]         // UICONTEXT_SolutionExists
-    [ProvideService(typeof(EpochLanguageService), ServiceName = "Epoch")]
+    [ProvideService(typeof(EpochLanguageService), ServiceName = "EpochFile")]
     [ProvideLanguageExtension(VsPackage.LanguageServiceGuid, ".epoch")]
-    [ProvideLanguageService(typeof(EpochLanguageService), "Epoch", 1, CodeSense = true, RequestStockColors = true, EnableCommenting = true)]
+    [ProvideLanguageService(typeof(EpochLanguageService), "EpochFile", 1, CodeSense = true, RequestStockColors = true, EnableCommenting = true)]
     public sealed class VsPackage : Package
     {
         /// <summary>

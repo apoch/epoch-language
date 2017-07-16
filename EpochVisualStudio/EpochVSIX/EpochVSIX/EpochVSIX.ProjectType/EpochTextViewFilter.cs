@@ -39,14 +39,15 @@ namespace EpochVSIX
 
         public override int GetDataTipText(TextSpan[] pSpan, out string pbstrText)
         {
-            ThreadHelper.ThrowIfNotOnUIThread();
+            //ThreadHelper.ThrowIfNotOnUIThread();
 
-            if (!WpfTextView.TextBuffer.ContentType.IsOfType("EpochFile"))
-            {
+            //if (!WpfTextView.TextBuffer.ContentType.IsOfType("Epoch"))
+            //{
                 pbstrText = null;
                 return VSConstants.E_NOTIMPL;
-            }
+            //}
 
+            /*
             if (pSpan.Length != 1)
             {
                 throw new ArgumentException("Array parameter should contain exactly one TextSpan", "pSpan");
@@ -89,9 +90,10 @@ namespace EpochVSIX
                 // If it's not an expression, suppress the tip.
                 pbstrText = null;
                 return VSConstants.E_FAIL;
-            }*/
+            }* /
 
             return Debugger.GetDataTipValue(TextLines, pSpan, "count", out pbstrText);
+            */
         }
 
         public override int GetPairExtents(int iLine, int iIndex, TextSpan[] pSpan)
