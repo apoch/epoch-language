@@ -31,13 +31,6 @@ namespace EpochVSIX
             m_subjectBuffer = subjectBuffer;
             m_debugger = debugger;
             m_adapter = adapter;
-
-            var funclist = new List<ProjectParser.FunctionDefinition>();
-            ProjectParser.GetInstance().GetAvailableFunctionSignatures(funclist);
-
-            m_dictionary = new Dictionary<string, string>();
-            foreach (var func in funclist)
-                m_dictionary.Add(func.FunctionName, func.ToString());
         }
 
         public void AugmentQuickInfoSession(IQuickInfoSession session, IList<object> qiContent, out ITrackingSpan applicableToSpan)
@@ -49,6 +42,14 @@ namespace EpochVSIX
                 applicableToSpan = null;
                 return;
             }
+
+            var funclist = new List<ProjectParser.FunctionDefinition>();
+            ProjectParser.GetInstance().GetAvailableFunctionSignatures(funclist);
+
+            m_dictionary = new Dictionary<string, string>();
+            foreach (var func in funclist)
+                m_dictionary.Add(func.FunctionName, func.ToString());
+
 
             ITextSnapshot currentSnapshot = subjectTriggerPoint.Value.Snapshot;
             SnapshotSpan querySpan = new SnapshotSpan(subjectTriggerPoint.Value, 0);
@@ -85,14 +86,9 @@ namespace EpochVSIX
 
             foreach (string key in m_dictionary.Keys)
             {
-                int foundIndex = searchText.IndexOf(key, StringComparison.CurrentCultureIgnoreCase);
-                if (foundIndex > -1)
+                if (key.CompareTo(searchText) == 0)
                 {
-                    applicableToSpan = currentSnapshot.CreateTrackingSpan
-                        (
-                                                //querySpan.Start.Add(foundIndex).Position, 9, SpanTrackingMode.EdgeInclusive
-                                                extent.Span.Start + foundIndex, key.Length, SpanTrackingMode.EdgeInclusive
-                        );
+                    applicableToSpan = currentSnapshot.CreateTrackingSpan(extent.Span.Start, key.Length, SpanTrackingMode.EdgeInclusive);
 
                     string value;
                     m_dictionary.TryGetValue(key, out value);
