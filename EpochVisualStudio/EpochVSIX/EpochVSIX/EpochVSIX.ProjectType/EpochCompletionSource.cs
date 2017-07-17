@@ -35,7 +35,6 @@ namespace EpochVSIX
             strList.Add("print");
             strList.Add("assert");
 
-            //ProjectParser.ParseTextBuffer(m_textBuffer);
             Parser.GetAvailableFunctionNames(strList);
 
             var funcglyph = m_glyphService.GetGlyph(StandardGlyphGroup.GlyphGroupMethod, StandardGlyphItem.GlyphItemPublic);
@@ -49,6 +48,14 @@ namespace EpochVSIX
             var structglyph = m_glyphService.GetGlyph(StandardGlyphGroup.GlyphGroupType, StandardGlyphItem.GlyphItemPublic);
             foreach (string str in structureNames)
                 m_completionList.Add(new Completion(str, str, str, structglyph, null));
+
+
+            List<string> udtList = new List<string>();
+            Parser.GetAvailableTypeNames(udtList);
+
+            var udtglyph = m_glyphService.GetGlyph(StandardGlyphGroup.GlyphGroupTypedef, StandardGlyphItem.GlyphItemPublic);
+            foreach (string str in udtList)
+                m_completionList.Add(new Completion(str, str, str, udtglyph, null));
 
 
             List<string> typeList = new List<string>();
