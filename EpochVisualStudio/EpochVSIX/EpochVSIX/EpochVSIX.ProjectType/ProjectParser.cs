@@ -37,6 +37,7 @@ namespace EpochVSIX
 
         private Dictionary<string, List<string>> ParsedFunctionNames = null;
         private Dictionary<string, List<string>> ParsedStructures = null;
+        private Dictionary<string, List<string>> ParsedTypes = null;
 
         private Dictionary<string, Dictionary<string, FunctionDefinition>> FunctionDefinitions = null;
         private Dictionary<string, StructureDefinition> StructureDefinitions = null;
@@ -430,8 +431,7 @@ namespace EpochVSIX
 
             tokens.RemoveRange(0, 2);
 
-            // TODO - separate list of sum types/aliases instead?
-            ParsedStructures[filename].Add(sumtypename);
+            ParsedTypes[filename].Add(sumtypename);
 
             ParseSumTypeBases(tokens);
 
@@ -450,8 +450,7 @@ namespace EpochVSIX
 
             tokens.RemoveAt(0);
 
-            // TODO - separate list of sum types/aliases instead?
-            ParsedStructures[filename].Add(tokens[0]);
+            ParsedTypes[filename].Add(tokens[0]);
 
             tokens.RemoveRange(0, 3);
 
@@ -468,8 +467,7 @@ namespace EpochVSIX
 
             tokens.RemoveAt(0);
 
-            // TODO - separate list of sum types/aliases instead?
-            ParsedStructures[filename].Add(tokens[0]);
+            ParsedTypes[filename].Add(tokens[0]);
 
             tokens.RemoveRange(0, 3);
             return true;
@@ -514,7 +512,7 @@ namespace EpochVSIX
                 {
                     tokens.RemoveAt(0);
 
-                    // TODO - members?
+                    // TODO - members that are function pointers?
                     tokens.RemoveAt(0);
 
                     if (tokens[0] != ":")
@@ -1346,6 +1344,7 @@ namespace EpochVSIX
 
                 List<string> oldFunctionNames = null;
                 List<string> oldStructures = null;
+                List<string> oldTypes = null;
 
                 Dictionary<string, FunctionDefinition> oldFunctionDefs = null;
 
@@ -1357,6 +1356,9 @@ namespace EpochVSIX
 
                 if (ParsedStructures == null)
                     ParsedStructures = new Dictionary<string, List<string>>();
+
+                if (ParsedTypes == null)
+                    ParsedTypes = new Dictionary<string, List<string>>();
 
                 if (FunctionDefinitions == null)
                     FunctionDefinitions = new Dictionary<string, Dictionary<string, FunctionDefinition>>();
@@ -1384,6 +1386,14 @@ namespace EpochVSIX
                     ParsedStructures[filename].Clear();
                 }
 
+                if (!ParsedTypes.ContainsKey(filename))
+                    ParsedTypes.Add(filename, new List<string>());
+                else
+                {
+                    oldTypes = ParsedTypes[filename];
+                    ParsedTypes[filename].Clear();
+                }
+
                 if (!FunctionDefinitions.ContainsKey(filename))
                     FunctionDefinitions.Add(filename, new Dictionary<string, FunctionDefinition>());
                 else
@@ -1392,7 +1402,7 @@ namespace EpochVSIX
                     FunctionDefinitions[filename].Clear();
                 }
 
-                // TODO - get off the UI thread here
+                // TODO - get off the UI thread here?
                 if (!ParseString(filename, text))
                 {
                     if (oldFunctionNames != null)
@@ -1468,6 +1478,15 @@ namespace EpochVSIX
 
             foreach (var kvp in ParsedStructures)
                 structureNames.AddRange(kvp.Value);
+        }
+
+        public void GetAvailableTypeNames(List<string> typeNames)
+        {
+            if (ParsedTypes == null)
+                return;
+
+            foreach (var kvp in ParsedTypes)
+                typeNames.AddRange(kvp.Value);
         }
 
         public void GetAvailableFunctionSignatures(List<FunctionDefinition> functions)

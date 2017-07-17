@@ -84,6 +84,7 @@ namespace EpochVSIX
             HexLiteral,
             IdentifierFunction,
             IdentifierUDT,
+            IdentifierType,
         }
 
         public IList<ClassificationSpan> GetClassificationSpans(SnapshotSpan span)
@@ -199,7 +200,7 @@ namespace EpochVSIX
             switch (prevstate)
             {
                 case State.Comment:
-                    classification = classificationRegistry.GetClassificationType("comment");
+                    classification = classificationRegistry.GetClassificationType("comment");        // TODO - provide custom classifications for Epoch code highlighting
                     break;
 
                 case State.StringLiteral:
@@ -224,6 +225,10 @@ namespace EpochVSIX
 
                 case State.IdentifierUDT:
                     classification = classificationRegistry.GetClassificationType("class name");
+                    break;
+
+                case State.IdentifierType:
+                    classification = classificationRegistry.GetClassificationType("cppType");
                     break;
             }
 
@@ -252,6 +257,11 @@ namespace EpochVSIX
             Parser.GetAvailableStructureNames(structureNames);
             if (structureNames.Contains(token))
                 return State.IdentifierUDT;
+
+            List<string> typeNames = new List<string>();
+            Parser.GetAvailableTypeNames(typeNames);
+            if (typeNames.Contains(token))
+                return State.IdentifierType;
 
             return State.Default;
         }

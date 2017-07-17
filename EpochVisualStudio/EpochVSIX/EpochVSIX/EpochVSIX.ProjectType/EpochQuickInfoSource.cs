@@ -19,6 +19,7 @@ namespace EpochVSIX
 {
     class EpochQuickInfoSource : IQuickInfoSource
     {
+        private bool m_isDisposed;
         private EpochQuickInfoSourceProvider m_provider;
         private ITextBuffer m_subjectBuffer;
         private Dictionary<string, string> m_dictionary;
@@ -59,31 +60,6 @@ namespace EpochVSIX
             TextExtent extent = navigator.GetExtentOfWord(subjectTriggerPoint.Value);
             string searchText = extent.Span.GetText();
 
-            /*
-            if (searchText == "count")
-            {
-                applicableToSpan = currentSnapshot.CreateTrackingSpan(extent.Span.Start, 5, SpanTrackingMode.EdgeInclusive);
-
-                IVsTextLines lines;
-                m_adapter.GetViewAdapter(session.TextView).GetBuffer(out lines);
-
-                string qicontent = null;
-                var span = new TextSpan();
-                span.iStartLine = querySpan.Start.GetContainingLine().LineNumber;
-                span.iStartIndex = querySpan.Start.GetContainingLine().Start.Difference(querySpan.Start);
-                span.iEndLine = span.iStartLine;
-                span.iEndIndex = span.iStartIndex + 5;
-
-                //m_debugger.GetDataTipValue(lines, new TextSpan[] { span }, searchText, out qicontent);
-
-                //qiContent.Add(qicontent);
-
-                qiContent.Add("Foo");
-
-                return;
-            }
-            */
-
             foreach (string key in m_dictionary.Keys)
             {
                 if (key.CompareTo(searchText) == 0)
@@ -104,7 +80,6 @@ namespace EpochVSIX
             applicableToSpan = null;
         }
 
-        private bool m_isDisposed;
         public void Dispose()
         {
             if (!m_isDisposed)
