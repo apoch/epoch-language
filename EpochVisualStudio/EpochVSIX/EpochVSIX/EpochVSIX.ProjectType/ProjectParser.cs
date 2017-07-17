@@ -492,7 +492,7 @@ namespace EpochVSIX
 
                 templated = true;
 
-                if (tokens[1] == ":")
+                if (tokens[1] != ":")
                     return false;
             }
             else if (tokens[2] != ":")
@@ -597,7 +597,7 @@ namespace EpochVSIX
                     StructureDefinitions[structurename].Members.Add(member);
                 }
 
-                if (tokens[0] != ",")
+                if (tokens.Count < 1 || tokens[0] != ",")
                     moremembers = false;
                 else
                     tokens.RemoveAt(0);
@@ -637,7 +637,8 @@ namespace EpochVSIX
 
             tokens.RemoveRange(0, 2);
 
-            var sig = GetOrCreateFunctionSignature(filename, functionname);
+            var sig = CreateFunctionSignatureWithOverloading(filename, functionname);
+            functionname = sig.FunctionName;
 
             if (tokens[0] != "[")
             {
@@ -664,7 +665,7 @@ namespace EpochVSIX
             if (tokens.Count == 0)
                 return;
 
-            var sig = GetOrCreateFunctionSignature(filename, functionname);
+            var sig = GetFunctionSignature(filename, functionname);
 
             while ((tokens[0] != "{") && (tokens[0] != "->"))
             {
@@ -750,7 +751,7 @@ namespace EpochVSIX
                     sig.Parameters.Add(param);
                 }
 
-                if (tokens[0] != ",")
+                if (tokens.Count < 1 || tokens[0] != ",")
                     return;
 
                 tokens.RemoveAt(0);
@@ -759,7 +760,7 @@ namespace EpochVSIX
 
         private void ParseFunctionReturn(List<string> tokens, string filename, string functionname)
         {
-            if (tokens[0] != "->")
+            if (tokens.Count < 1 || tokens[0] != "->")
                 return;
 
             tokens.RemoveAt(0);
@@ -767,11 +768,16 @@ namespace EpochVSIX
             if (!ParseInitialization(tokens, filename, true, functionname))
             {
                 ParseExpression(tokens);
-                GetOrCreateFunctionSignature(filename, functionname).ReturnType = "<expr>";
+                GetFunctionSignature(filename, functionname).ReturnType = "<expr>";
             }
         }
 
-        private FunctionDefinition GetOrCreateFunctionSignature(string filename, string functionname)
+        private FunctionDefinition GetFunctionSignature(string filename, string functionname)
+        {
+            return FunctionDefinitions[filename][functionname];
+        }
+
+        private FunctionDefinition CreateFunctionSignatureWithOverloading(string filename, string functionname)
         {
             if (FunctionDefinitions == null)
                 FunctionDefinitions = new Dictionary<string, Dictionary<string, FunctionDefinition>>();
@@ -779,20 +785,23 @@ namespace EpochVSIX
             if (!FunctionDefinitions.ContainsKey(filename))
                 FunctionDefinitions.Add(filename, new Dictionary<string, FunctionDefinition>());
 
+            int i = 0;
+            var overloadname = functionname;
             var defs = FunctionDefinitions[filename];
-            if (!defs.ContainsKey(functionname))
+            while (defs.ContainsKey(overloadname))
             {
-                var newfunc = new FunctionDefinition();
-                newfunc.FunctionName = functionname;
-                newfunc.Parameters = new List<FunctionParameter>();
-                newfunc.ReturnType = null;
-                newfunc.Tags = null;
-
-                defs.Add(functionname, newfunc);
-                return newfunc;
+                ++i;
+                overloadname = $"{functionname}{i}";
             }
 
-            return defs[functionname];
+            var newfunc = new FunctionDefinition();
+            newfunc.FunctionName = overloadname;
+            newfunc.Parameters = new List<FunctionParameter>();
+            newfunc.ReturnType = null;
+            newfunc.Tags = null;
+
+            defs.Add(overloadname, newfunc);
+            return newfunc;
         }
 
         private void ParseFunctionTags(List<string> tokens, FunctionDefinition func)
@@ -891,12 +900,12 @@ namespace EpochVSIX
                 ParseTemplateArgs(tokens, 2);
 
             if (isfuncreturn)
-                GetOrCreateFunctionSignature(filename, functionname).ReturnType = tokens[0];
+                GetFunctionSignature(filename, functionname).ReturnType = tokens[0];
 
             tokens.RemoveRange(0, 3 + skipahead);
 
             ParseExpression(tokens);
-            while (tokens[0] == ",")
+            while (tokens.Count > 1 && tokens[0] == ",")
             {
                 tokens.RemoveAt(0);
                 ParseExpression(tokens);
