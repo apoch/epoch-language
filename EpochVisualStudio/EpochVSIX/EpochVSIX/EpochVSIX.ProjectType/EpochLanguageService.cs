@@ -113,7 +113,8 @@ namespace EpochVSIX
                                                      TokenInfo info,
                                                      ParseReason reason)
         {
-            return null;
+            var ret = new EpochDeclarations();
+            return ret;
         }
 
         public override string Goto(VSConstants.VSStd97CmdID cmd, IVsTextView textView, int line, int col, out TextSpan span)
@@ -127,4 +128,33 @@ namespace EpochVSIX
             return null;
         }
     }
+
+    internal class EpochDeclarations : Declarations
+    {
+        public override int GetCount()
+        {
+            return 0;
+        }
+
+        public override string GetDescription(int index)
+        {
+            return "";
+        }
+
+        public override string GetDisplayText(int index)
+        {
+            return "";
+        }
+
+        public override int GetGlyph(int index)
+        {
+            return 0;
+        }
+
+        public override string GetName(int index)
+        {
+            return "";
+        }
+    }
+
 }

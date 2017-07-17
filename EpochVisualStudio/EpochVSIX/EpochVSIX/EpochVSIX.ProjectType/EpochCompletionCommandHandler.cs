@@ -176,10 +176,8 @@ namespace EpochVSIX
                 }
             }
 
-            m_session = m_provider.CompletionBroker.CreateCompletionSession
-         (m_textView,
-                caretPoint.Value.Snapshot.CreateTrackingPoint(caretPoint.Value.Position, PointTrackingMode.Positive),
-                true);
+            var trackingPoint = caretPoint.Value.Snapshot.CreateTrackingPoint(caretPoint.Value.Position, PointTrackingMode.Positive);
+            m_session = m_provider.CompletionBroker.CreateCompletionSession(m_textView, trackingPoint, true);
 
             //subscribe to the Dismissed event on the session 
             m_session.Dismissed += this.OnSessionDismissed;
