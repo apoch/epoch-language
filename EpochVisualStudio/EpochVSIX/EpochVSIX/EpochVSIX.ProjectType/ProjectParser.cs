@@ -1063,7 +1063,6 @@ namespace EpochVSIX
                         }
                     }
 
-                    // Finally, perform the navigation.  
                     IVsTextManager mgr = serviceProvider.GetService(typeof(VsTextManagerClass)) as IVsTextManager;
                     if (mgr == null)
                         return;

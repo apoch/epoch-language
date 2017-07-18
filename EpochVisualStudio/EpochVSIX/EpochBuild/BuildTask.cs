@@ -11,10 +11,12 @@ using System.Threading;
 
 namespace EpochVS
 {
-    public abstract class BuildTaskCommonImplementation : Task
+    public abstract class BuildTaskCommonImplementation : Task, ICancelableTask
     {
         private string m_fileName;
         private string m_outputName;
+
+        private Process RunningProcess;
 
         [Required]
         public string Filename
@@ -71,6 +73,8 @@ namespace EpochVS
                     }
                 };
 
+                RunningProcess = process;
+
                 using (AutoResetEvent outputHandle = new AutoResetEvent(false))
                 using (AutoResetEvent errorHandle = new AutoResetEvent(false))
                 {
@@ -87,6 +91,8 @@ namespace EpochVS
                         return (process.ExitCode == 0);
                 }
 
+                RunningProcess = null;
+
                 return false;
             }
             catch
@@ -102,6 +108,15 @@ namespace EpochVS
                 Log.LogMessage(MessageImportance.High, data);
             else
                 e.Set();
+        }
+
+        public void Cancel()
+        {
+            if (RunningProcess != null)
+            {
+                RunningProcess.Kill();
+                RunningProcess = null;
+            }
         }
     }
 
