@@ -96,6 +96,14 @@ namespace EpochVSIX
                 m_completionList.Add(new Completion(str, str, str, valueglyph, null));
 
 
+            var varlist = new List<string>();
+            Parser.GetAvailableVariables(varlist, null, 0, 0);      // TODO - actual document and location
+
+            var varglyph = m_glyphService.GetGlyph(StandardGlyphGroup.GlyphGroupVariable, StandardGlyphItem.GlyphItemPublic);
+            foreach (string str in varlist)
+                m_completionList.Add(new Completion(str, str, str, varglyph, null));
+
+
             m_completionList.Sort((a, b) => { return a.DisplayText.CompareTo(b.DisplayText); });
 
 

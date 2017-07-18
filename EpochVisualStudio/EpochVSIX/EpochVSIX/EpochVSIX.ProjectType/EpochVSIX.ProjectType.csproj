@@ -77,6 +77,10 @@
     <Reference Include="Microsoft.VisualStudio.Editor, Version=14.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
       <Private>False</Private>
     </Reference>
+    <Reference Include="Microsoft.VisualStudio.ImageCatalog, Version=14.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL" />
+    <Reference Include="Microsoft.VisualStudio.Imaging.Interop.14.0.DesignTime, Version=14.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <EmbedInteropTypes>True</EmbedInteropTypes>
+    </Reference>
     <Reference Include="Microsoft.VisualStudio.Language.Intellisense, Version=14.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
       <Private>False</Private>
     </Reference>
@@ -212,9 +216,11 @@
     <Compile Include="EpochCompletionCommandHandler.cs" />
     <Compile Include="EpochCompletionSource.cs" />
     <Compile Include="EpochCompletionSourceProvider.cs" />
+    <Compile Include="EpochImagesMonikers.cs" />
     <Compile Include="EpochLanguageService.cs" />
     <Compile Include="EpochOutliningTagger.cs" />
     <Compile Include="EpochOutliningTaggerProvider.cs" />
+    <Compile Include="EpochProjectTreeModifier.cs" />
     <Compile Include="EpochQuickInfoSource.cs" />
     <Compile Include="EpochSignatureHelpSource.cs" />
     <Compile Include="EpochTextViewFilter.cs" />
@@ -228,6 +234,9 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="app.config" />
+    <Content Include="EpochImages.imagemanifest">
+      <IncludeInVSIX>true</IncludeInVSIX>
+    </Content>
     <None Include="packages.config" />
     <None Include="source.extension.vsixmanifest" />
     <None Include="Key.snk" />
@@ -315,6 +324,10 @@
     </XamlPropertyRule>
   </ItemGroup>
   <ItemGroup>
+    <Resource Include="Images\EpochImagesProjectIcon.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Resource>
     <XamlPropertyRule Include="BuildSystem\Rules\Debugger.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
@@ -333,6 +346,8 @@
     <Analyzer Include="..\..\packages\Microsoft.VisualStudio.Threading.Analyzers.14.1.131-pre\analyzers\Microsoft.VisualStudio.Threading.Analyzers.dll" />
   </ItemGroup>
   <ItemGroup>
+    <Resource Include="Images\EpochImagesProjectIcon.png" />
+    <Resource Include="Images\EpochImagesDocumentIcon.png" />
     <Content Include="License.txt">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
       <IncludeInVSIX>true</IncludeInVSIX>

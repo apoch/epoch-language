@@ -33,6 +33,24 @@ namespace EpochVSIX
         }
 
 
+        private class Token
+        {
+            public string Text;
+            public int Line;
+            public int Column;
+        }
+
+        private class Scope
+        {
+            public int StartLine;
+            public int StartColumn;
+            public int EndLine;
+            public int EndColumn;
+
+            public List<string> Variables = new List<string>();
+        }
+
+
         private ErrorListProvider ErrorProvider = null;
 
         private Dictionary<string, List<string>> ParsedFunctionNames = null;
@@ -98,6 +116,9 @@ namespace EpochVSIX
             Literal,
             StringLiteral,
         };
+
+
+        private Scope GlobalScope = null;
 
 
         internal ProjectParser()
@@ -182,12 +203,16 @@ namespace EpochVSIX
         }
 
 
-        private List<string> Lex(string code)
+        private List<Token> Lex(string code)
         {
-            List<string> tokens = new List<string>();
+            var tokens = new List<Token>();
 
             int index = 0;
             int lasttokenstart = 0;
+
+            int lastLineIndex = 0;
+            int currentLineIndex = 0;
+            int currentColumnIndex = 0;
 
             CharacterClass state = CharacterClass.White;
             CharacterClass prevstate = CharacterClass.White;
@@ -207,6 +232,11 @@ namespace EpochVSIX
                         state = LexerClassify(c, state);
                         lasttokenstart = index;
                     }
+                    else if (c == '\n')
+                    {
+                        ++currentLineIndex;
+                        currentColumnIndex = 0;
+                    }
                 }
                 else if (state == CharacterClass.Identifier)
                 {
@@ -223,7 +253,7 @@ namespace EpochVSIX
                     }
 
                     if (notidentifier)
-                        tokens.Add(code.Substring(lasttokenstart, index - lasttokenstart));
+                        tokens.Add(new Token { Text = code.Substring(lasttokenstart, index - lasttokenstart), Line = currentLineIndex, Column = currentColumnIndex });
                 }
                 else if (state == CharacterClass.Punctuation)
                 {
@@ -232,7 +262,7 @@ namespace EpochVSIX
                     else if (LexerClassify(c, state) != CharacterClass.Punctuation)
                         state = LexerClassify(c, state);
 
-                    tokens.Add(code.Substring(lasttokenstart, index - lasttokenstart));
+                    tokens.Add(new Token { Text = code.Substring(lasttokenstart, index - lasttokenstart), Line = currentLineIndex, Column = currentColumnIndex });
                     lasttokenstart = index;
                 }
                 else if (state == CharacterClass.PunctuationCompound)
@@ -255,7 +285,7 @@ namespace EpochVSIX
                             string potentialtoken = code.Substring(lasttokenstart, index - lasttokenstart);
                             if (!IsValidPunctuation(potentialtoken))
                             {
-                                tokens.Add(potentialtoken.Substring(0, potentialtoken.Length - 1));
+                                tokens.Add(new Token { Text = potentialtoken.Substring(0, potentialtoken.Length - 1), Line = currentLineIndex, Column = currentColumnIndex });
                                 lasttokenstart = index - 1;
                             }
                         }
@@ -268,12 +298,12 @@ namespace EpochVSIX
                             string potentialtoken = code.Substring(lasttokenstart, index - lasttokenstart);
                             if (!IsValidPunctuation(potentialtoken))
                             {
-                                tokens.Add(potentialtoken.Substring(0, potentialtoken.Length - 1));
+                                tokens.Add(new Token { Text = potentialtoken.Substring(0, potentialtoken.Length - 1), Line = currentLineIndex, Column = currentColumnIndex });
                                 lasttokenstart = index - 1;
                             }
                         }
 
-                        tokens.Add(code.Substring(lasttokenstart, index - lasttokenstart));
+                        tokens.Add(new Token { Text = code.Substring(lasttokenstart, index - lasttokenstart), Line = currentLineIndex, Column = currentColumnIndex });
                     }
                 }
                 else if (state == CharacterClass.Comment)
@@ -281,14 +311,18 @@ namespace EpochVSIX
                     if (c == '\r')
                         state = CharacterClass.White;
                     else if (c == '\n')
+                    {
                         state = CharacterClass.White;
+                        ++currentLineIndex;
+                        currentColumnIndex = 0;
+                    }
                 }
                 else if (state == CharacterClass.StringLiteral)
                 {
                     if (c == '\"')
                     {
                         state = CharacterClass.White;
-                        tokens.Add(code.Substring(lasttokenstart, index - lasttokenstart + 1));
+                        tokens.Add(new Token { Text = code.Substring(lasttokenstart, index - lasttokenstart + 1), Line = currentLineIndex, Column = currentColumnIndex });
                     }
                 }
                 else if (state == CharacterClass.Literal)
@@ -306,7 +340,7 @@ namespace EpochVSIX
                     }
 
                     if (notliteral)
-                        tokens.Add(code.Substring(lasttokenstart, index - lasttokenstart));
+                        tokens.Add(new Token { Text = code.Substring(lasttokenstart, index - lasttokenstart), Line = currentLineIndex, Column = currentColumnIndex });
                 }
 
                 // Hack for negated literals
@@ -321,15 +355,20 @@ namespace EpochVSIX
 
                 prevstate = state;
                 ++index;
+
+                if (currentLineIndex == lastLineIndex)
+                    ++currentColumnIndex;
+
+                lastLineIndex = currentLineIndex;
             }
 
             if ((lasttokenstart < code.Length) && (state != CharacterClass.White))
-                tokens.Add(code.Substring(lasttokenstart, code.Length - lasttokenstart));
+                tokens.Add(new Token { Text = code.Substring(lasttokenstart, code.Length - lasttokenstart), Line = currentLineIndex, Column = currentColumnIndex });
 
             return tokens;
         }
 
-        private bool ParseTemplateParameters(List<string> tokens)
+        private bool ParseTemplateParameters(List<Token> tokens)
         {
             bool hasparams = true;
 
@@ -337,9 +376,9 @@ namespace EpochVSIX
             {
                 tokens.RemoveRange(0, 2);
 
-                if (tokens[0] == ">")
+                if (tokens[0].Text == ">")
                     hasparams = false;
-                else if (tokens[0] == ",")
+                else if (tokens[0].Text == ",")
                     tokens.RemoveAt(0);
                 else
                     return false;
@@ -348,7 +387,7 @@ namespace EpochVSIX
             return true;
         }
 
-        private int ScanTemplateArgs(List<string> tokens, int initialconsume)
+        private int ScanTemplateArgs(List<Token> tokens, int initialconsume)
         {
             int consumed = initialconsume;
             bool hasargs = true;
@@ -356,9 +395,9 @@ namespace EpochVSIX
             {
                 ++consumed;
 
-                if (tokens[consumed] == ">")
+                if (tokens[consumed].Text == ">")
                     hasargs = false;
-                else if (tokens[consumed] == ",")
+                else if (tokens[consumed].Text == ",")
                     ++consumed;
                 else
                     return 0;
@@ -367,7 +406,7 @@ namespace EpochVSIX
             return consumed;
         }
 
-        private int ParseTemplateArgs(List<string> tokens, int initialconsume)
+        private int ParseTemplateArgs(List<Token> tokens, int initialconsume)
         {
             int consumed = initialconsume;
 
@@ -376,9 +415,9 @@ namespace EpochVSIX
             {
                 ++consumed;
 
-                if (tokens[consumed] == ">")
+                if (tokens[consumed].Text == ">")
                     hasargs = false;
-                else if (tokens[consumed] == ",")
+                else if (tokens[consumed].Text == ",")
                     ++consumed;
                 else
                     return 0;
@@ -388,12 +427,12 @@ namespace EpochVSIX
             return consumed;
         }
 
-        private void ParseSumTypeBases(List<string> tokens)
+        private void ParseSumTypeBases(List<Token> tokens)
         {
             bool hasbases = true;
             do
             {
-                if (tokens[1] == "<")
+                if (tokens[1].Text == "<")
                 {
                     int baselookahead = ParseTemplateArgs(tokens, 2);
                     tokens.RemoveRange(0, baselookahead + 2);
@@ -403,28 +442,28 @@ namespace EpochVSIX
                     tokens.RemoveRange(0, 2);
                 }
 
-                hasbases = (tokens[1] == "|");
+                hasbases = (tokens[1].Text == "|");
             } while (hasbases);
         }
 
-        private bool ParseSumType(string filename, List<string> tokens)
+        private bool ParseSumType(string filename, List<Token> tokens)
         {
-            if (tokens[0] != "type")
+            if (tokens[0].Text != "type")
                 return false;
 
-            string sumtypename = tokens[1];
-            if (tokens[2] == "<")
+            string sumtypename = tokens[1].Text;
+            if (tokens[2].Text == "<")
             {
                 tokens.RemoveRange(0, 3);
                 if (!ParseTemplateParameters(tokens))
                     return false;
 
-                if (tokens[1] != ":")
+                if (tokens[1].Text != ":")
                     return false;
             }
-            else if (tokens[2] != ":")
+            else if (tokens[2].Text != ":")
                 return false;
-            else if (tokens[4] != "|")
+            else if (tokens[4].Text != "|")
                 return false;
             else
                 tokens.RemoveAt(0);
@@ -440,49 +479,49 @@ namespace EpochVSIX
             return true;
         }
 
-        private bool ParseStrongAlias(string filename, List<string> tokens)
+        private bool ParseStrongAlias(string filename, List<Token> tokens)
         {
-            if (tokens[0] != "type")
+            if (tokens[0].Text != "type")
                 return false;
 
-            if (tokens[2] != ":")
+            if (tokens[2].Text != ":")
                 return false;
 
             tokens.RemoveAt(0);
 
-            ParsedTypes[filename].Add(tokens[0]);
+            ParsedTypes[filename].Add(tokens[0].Text);
 
             tokens.RemoveRange(0, 3);
 
             return true;
         }
 
-        private bool ParseWeakAlias(string filename, List<string> tokens)
+        private bool ParseWeakAlias(string filename, List<Token> tokens)
         {
-            if (tokens[0] != "alias")
+            if (tokens[0].Text != "alias")
                 return false;
 
-            if (tokens[2] != "=")
+            if (tokens[2].Text != "=")
                 return false;
 
             tokens.RemoveAt(0);
 
-            ParsedTypes[filename].Add(tokens[0]);
+            ParsedTypes[filename].Add(tokens[0].Text);
 
             tokens.RemoveRange(0, 3);
             return true;
         }
 
-        private bool ParseStructure(string filename, List<string> tokens)
+        private bool ParseStructure(string filename, List<Token> tokens)
         {
             bool templated = false;
 
-            if (tokens[0] != "structure")
+            if (tokens[0].Text != "structure")
                 return false;
 
-            string structurename = tokens[1];
+            string structurename = tokens[1].Text;
 
-            if (tokens[2] == "<")
+            if (tokens[2].Text == "<")
             {
                 tokens.RemoveRange(0, 3);
                 if (!ParseTemplateParameters(tokens))
@@ -490,10 +529,10 @@ namespace EpochVSIX
 
                 templated = true;
 
-                if (tokens[1] != ":")
+                if (tokens[1].Text != ":")
                     return false;
             }
-            else if (tokens[2] != ":")
+            else if (tokens[2].Text != ":")
             {
                 return false;
             }
@@ -508,14 +547,14 @@ namespace EpochVSIX
             bool moremembers = true;
             while (moremembers)
             {
-                if (tokens[0] == "(")
+                if (tokens[0].Text == "(")
                 {
                     tokens.RemoveAt(0);
 
                     // TODO - members that are function pointers?
                     tokens.RemoveAt(0);
 
-                    if (tokens[0] != ":")
+                    if (tokens[0].Text != ":")
                         return false;
 
                     tokens.RemoveAt(0);
@@ -524,7 +563,7 @@ namespace EpochVSIX
                     while (moreparams)
                     {
                         tokens.RemoveAt(0);
-                        if (tokens[0] != ",")
+                        if (tokens[0].Text != ",")
                         {
                             moreparams = false;
                         }
@@ -532,13 +571,13 @@ namespace EpochVSIX
                             tokens.RemoveAt(0);
                     }
 
-                    if (tokens[0] == "->")
+                    if (tokens[0].Text == "->")
                     {
                         tokens.RemoveAt(0);
                         tokens.RemoveAt(0);
                     }
 
-                    if (tokens[0] != ")")
+                    if (tokens[0].Text != ")")
                     {
                         return false;
                     }
@@ -549,11 +588,11 @@ namespace EpochVSIX
                 {
                     bool isref = false;
 
-                    string membertype = tokens[0];
+                    string membertype = tokens[0].Text;
 
                     tokens.RemoveAt(0);
 
-                    string membername = tokens[0];
+                    string membername = tokens[0].Text;
 
                     tokens.RemoveAt(0);
 
@@ -563,7 +602,7 @@ namespace EpochVSIX
                         if (memberlookahead > 0)
                         {
                             tokens.RemoveRange(0, memberlookahead + 1);
-                            membername = tokens[0];
+                            membername = tokens[0].Text;
                             tokens.RemoveAt(0);
                         }
                         else
@@ -575,7 +614,7 @@ namespace EpochVSIX
                     if (membername == "ref")
                     {
                         isref = true;
-                        membername = tokens[0];
+                        membername = tokens[0].Text;
                         tokens.RemoveAt(0);
                     }
 
@@ -595,7 +634,7 @@ namespace EpochVSIX
                     StructureDefinitions[structurename].Members.Add(member);
                 }
 
-                if (tokens.Count < 1 || tokens[0] != ",")
+                if (tokens.Count < 1 || tokens[0].Text != ",")
                     moremembers = false;
                 else
                     tokens.RemoveAt(0);
@@ -604,33 +643,49 @@ namespace EpochVSIX
             return true;
         }
 
-        private bool ParseGlobalBlock(string filename, List<string> tokens)
+        private bool ParseGlobalBlock(string filename, List<Token> tokens)
+        {
+            if (tokens[0].Text != "global")
+                return false;
+
+            if (tokens[1].Text != "{")
+                return false;
+
+            tokens.RemoveRange(0, 2);
+
+            while ((tokens.Count > 0) && (tokens[0].Text != "}"))
+            {
+                if (!ParseInitialization(tokens, filename, false, null))
+                    return false;
+            }
+
+            if (tokens.Count > 0)
+                tokens.RemoveAt(0);
+
+            return true;
+        }
+
+        private bool ParseTask(string filename, List<Token> tokens)
         {
             // TODO
             return false;
         }
 
-        private bool ParseTask(string filename, List<string> tokens)
-        {
-            // TODO
-            return false;
-        }
-
-        private bool ParseFunction(string filename, List<string> tokens)
+        private bool ParseFunction(string filename, List<Token> tokens)
         {
             if (tokens.Count < 2)
                 return false;
 
-            string functionname = tokens[0];
+            string functionname = tokens[0].Text;
 
-            if (tokens[1] == "<")
+            if (tokens[1].Text == "<")
             {
                 tokens.RemoveRange(0, 2);
                 if (!ParseTemplateParameters(tokens))
                     return false;
             }
 
-            if (tokens[1] != ":")
+            if (tokens[1].Text != ":")
                 return false;
 
             tokens.RemoveRange(0, 2);
@@ -638,7 +693,7 @@ namespace EpochVSIX
             var sig = CreateFunctionSignatureWithOverloading(filename, functionname);
             functionname = sig.FunctionName;
 
-            if (tokens[0] != "[")
+            if (tokens[0].Text != "[")
             {
                 ParseFunctionParams(tokens, filename, functionname);
                 ParseFunctionReturn(tokens, filename, functionname);
@@ -648,7 +703,7 @@ namespace EpochVSIX
             if (sig.Tags == null || !sig.Tags.ContainsKey("constructor"))
                 ParsedFunctionNames[filename].Add(functionname);
 
-            if (tokens.Count <= 0 || tokens[0] != "{")
+            if (tokens.Count <= 0 || tokens[0].Text != "{")
                 return true;
 
             tokens.RemoveAt(0);
@@ -658,16 +713,16 @@ namespace EpochVSIX
             return true;
         }
 
-        private void ParseFunctionParams(List<string> tokens, string filename, string functionname)
+        private void ParseFunctionParams(List<Token> tokens, string filename, string functionname)
         {
             if (tokens.Count == 0)
                 return;
 
             var sig = GetFunctionSignature(filename, functionname);
 
-            while ((tokens[0] != "{") && (tokens[0] != "->"))
+            while ((tokens[0].Text != "{") && (tokens[0].Text != "->"))
             {
-                if (tokens[0] == "nothing")
+                if (tokens[0].Text == "nothing")
                 {
                     var nothingparam = new FunctionParameter();
                     nothingparam.Name = "";
@@ -676,7 +731,7 @@ namespace EpochVSIX
 
                     tokens.RemoveAt(0);
                 }
-                else if (tokens[0] == "(")
+                else if (tokens[0].Text == "(")
                 {
                     tokens.RemoveAt(0);
 
@@ -686,40 +741,40 @@ namespace EpochVSIX
                     funcparam.Type = "(" + tokens[0] + " : -> )";
                     sig.Parameters.Add(funcparam);
 
-                    if (tokens[1] == ":")
+                    if (tokens[1].Text == ":")
                     {
                         tokens.RemoveRange(0, 2);
 
                         bool moreparams = true;
-                        if (tokens[0] == ")")
+                        if (tokens[0].Text == ")")
                             moreparams = false;
 
                         while (moreparams)
                         {
                             tokens.RemoveAt(0);
-                            if (tokens[0] == "ref")
+                            if (tokens[0].Text == "ref")
                                 tokens.RemoveAt(0);
 
-                            if (tokens[0] != ",")
+                            if (tokens[0].Text != ",")
                                 moreparams = false;
                             else
                                 tokens.RemoveAt(0);
                         }
 
-                        if (tokens[0] == "->")
+                        if (tokens[0].Text == "->")
                             tokens.RemoveRange(0, 2);
 
-                        if (tokens[0] != ")")
+                        if (tokens[0].Text != ")")
                             return;
                     }
 
                     tokens.RemoveAt(0);
                 }
-                else if (HandleLiteralFunctionParam(tokens[0]))
+                else if (HandleLiteralFunctionParam(tokens[0].Text))
                 {
                     var literalparam = new FunctionParameter();
                     literalparam.Name = "";
-                    literalparam.Type = tokens[0];
+                    literalparam.Type = tokens[0].Text;
                     sig.Parameters.Add(literalparam);
 
                     tokens.RemoveAt(0);
@@ -727,16 +782,16 @@ namespace EpochVSIX
                 else
                 {
                     int lookahead = 0;
-                    if (tokens[1] == "<")
+                    if (tokens[1].Text == "<")
                         lookahead = ParseTemplateArgs(tokens, 2);
 
-                    string typetoken = string.Join(" ", tokens.GetRange(0, 1 + lookahead));
-                    string nametoken = tokens[1 + lookahead];
+                    string typetoken = string.Join(" ", tokens.GetRange(0, 1 + lookahead).ConvertAll(a => a.Text));
+                    string nametoken = tokens[1 + lookahead].Text;
 
                     if (nametoken == "ref")
                     {
                         tokens.RemoveAt(0);
-                        nametoken = tokens[1];
+                        nametoken = tokens[1].Text;
 
                         typetoken += " ref";
                     }
@@ -749,16 +804,16 @@ namespace EpochVSIX
                     sig.Parameters.Add(param);
                 }
 
-                if (tokens.Count < 1 || tokens[0] != ",")
+                if (tokens.Count < 1 || tokens[0].Text != ",")
                     return;
 
                 tokens.RemoveAt(0);
             }
         }
 
-        private void ParseFunctionReturn(List<string> tokens, string filename, string functionname)
+        private void ParseFunctionReturn(List<Token> tokens, string filename, string functionname)
         {
-            if (tokens.Count < 1 || tokens[0] != "->")
+            if (tokens.Count < 1 || tokens[0].Text != "->")
                 return;
 
             tokens.RemoveAt(0);
@@ -802,42 +857,42 @@ namespace EpochVSIX
             return newfunc;
         }
 
-        private void ParseFunctionTags(List<string> tokens, FunctionDefinition func)
+        private void ParseFunctionTags(List<Token> tokens, FunctionDefinition func)
         {
             if (tokens.Count <= 0)
                 return;
 
-            if (tokens[0] != "[")
+            if (tokens[0].Text != "[")
                 return;
 
             tokens.RemoveAt(0);
 
-            while (tokens[0] != "]")
+            while (tokens[0].Text != "]")
                 ParseSingleFunctionTag(tokens, func);
 
             tokens.RemoveAt(0);
         }
 
-        private void ParseSingleFunctionTag(List<string> tokens, FunctionDefinition func)
+        private void ParseSingleFunctionTag(List<Token> tokens, FunctionDefinition func)
         {
             var tag = new FunctionTag();
-            tag.TagName = tokens[0];
+            tag.TagName = tokens[0].Text;
 
             if (func.Tags == null)
                 func.Tags = new Dictionary<string, FunctionTag>();
 
             func.Tags.Add(tag.TagName, tag);
 
-            if (tokens[1] == "(")
+            if (tokens[1].Text == "(")
             {
                 // TODO - parse tag params
                 tokens.RemoveRange(0, 2);
 
-                while (tokens[0] != ")")
+                while (tokens[0].Text != ")")
                 {
                     tokens.RemoveAt(0);
 
-                    if (tokens[0] == ",")
+                    if (tokens[0].Text == ",")
                         tokens.RemoveAt(0);
                 }
 
@@ -846,7 +901,7 @@ namespace EpochVSIX
             else
                 tokens.RemoveAt(0);
 
-            if (tokens[0] == ",")
+            if (tokens[0].Text == ",")
                 tokens.RemoveAt(0);
         }
 
@@ -875,35 +930,38 @@ namespace EpochVSIX
             return false;
         }
 
-        private bool ParseInitialization(List<string> tokens, string filename, bool isfuncreturn, string functionname)
+        private bool ParseInitialization(List<Token> tokens, string filename, bool isfuncreturn, string functionname)
         {
             if (tokens.Count < 2)
                 return false;
 
-            if (tokens[1] == ".")
+            if (tokens[1].Text == ".")
                 return false;
 
             bool templated = false;
             int skipahead = 0;
-            if (tokens[1] == "<")
+            if (tokens[1].Text == "<")
             {
                 skipahead = ScanTemplateArgs(tokens, 2);
                 templated = true;
             }
 
-            if (tokens[2 + skipahead] != "=")
+            if ((filename != null) && (functionname == null))
+                GetOrCreateGlobalScope().Variables.Add(tokens[1 + skipahead].Text);         // TODO - include var type
+
+            if (tokens[2 + skipahead].Text != "=")
                 return false;
 
             if (templated)
                 ParseTemplateArgs(tokens, 2);
 
             if (isfuncreturn)
-                GetFunctionSignature(filename, functionname).ReturnType = tokens[0];
+                GetFunctionSignature(filename, functionname).ReturnType = tokens[0].Text;
 
             tokens.RemoveRange(0, 3 + skipahead);
 
             ParseExpression(tokens);
-            while (tokens.Count > 1 && tokens[0] == ",")
+            while (tokens.Count > 1 && tokens[0].Text == ",")
             {
                 tokens.RemoveAt(0);
                 ParseExpression(tokens);
@@ -912,11 +970,19 @@ namespace EpochVSIX
             return true;
         }
 
+        private Scope GetOrCreateGlobalScope()
+        {
+            if (GlobalScope == null)
+                GlobalScope = new Scope();
+
+            return GlobalScope;
+        }
+
         private bool ParseString(string filename, string code)
         {
+            var tokens = Lex(code);
             try
             {
-                List<string> tokens = Lex(code);
                 while (tokens.Count > 0)
                 {
                     if (ParseSumType(filename, tokens))
@@ -942,17 +1008,23 @@ namespace EpochVSIX
                     }
                     else
                     {
-                        return false;
+                        throw new Exception("Syntax error");
                     }
                 }
             }
             catch(Exception ex)
             {
                 var errorTask = new ErrorTask();
-                errorTask.Text = ex.ToString();
+                errorTask.Text = ex.Message;
                 errorTask.Category = TaskCategory.CodeSense;
                 errorTask.ErrorCategory = TaskErrorCategory.Error;
                 errorTask.Document = filename;
+                errorTask.Line = (tokens.Count > 0) ? (tokens[0].Line) : 0;
+                errorTask.Column = (tokens.Count > 0) ? (tokens[0].Column) : 0;
+                errorTask.Navigate += (sender, args) =>
+                {
+                    // TODO - navigate to Line and Column in the appropriate Document
+                };
 
                 ErrorProvider.Tasks.Add(errorTask);
                 return false;
@@ -962,9 +1034,9 @@ namespace EpochVSIX
         }
 
 
-        private bool ParseCodeBlock(List<string> tokens)
+        private bool ParseCodeBlock(List<Token> tokens)
         {
-            string token = tokens[0];
+            string token = tokens[0].Text;
             while (token != "}")
             {
                 if (ParseEntity(tokens))
@@ -988,7 +1060,7 @@ namespace EpochVSIX
                 else
                     return false;
 
-                token = tokens[0];
+                token = tokens[0].Text;
 
             }
 
@@ -998,14 +1070,14 @@ namespace EpochVSIX
         }
 
 
-        private bool ParseExpression(List<string> tokens)
+        private bool ParseExpression(List<Token> tokens)
         {
             bool matchedstatement = false;
 
             if (!ParseExpressionTerm(tokens, true, out matchedstatement))
                 return false;
 
-            if (matchedstatement && tokens[0] == ")")
+            if (matchedstatement && tokens[0].Text == ")")
             {
             }
             else
@@ -1020,9 +1092,9 @@ namespace EpochVSIX
             return true;
         }
 
-        private bool ParseExpressionTerm(List<string> tokens, bool startsexpr, out bool matchedstatement)
+        private bool ParseExpressionTerm(List<Token> tokens, bool startsexpr, out bool matchedstatement)
         {
-            string term = tokens[0];
+            string term = tokens[0].Text;
             matchedstatement = false;
 
             if (term == ")")
@@ -1069,28 +1141,28 @@ namespace EpochVSIX
             return true;
         }
 
-        private bool ParseStatement(List<string> tokens, bool substatement)
+        private bool ParseStatement(List<Token> tokens, bool substatement)
         {
             int lookahead = 0;
 
             if (tokens.Count < 2)
                 return false;
 
-            if (tokens[1] == "<")
+            if (tokens[1].Text == "<")
             {
                 lookahead = ParseTemplateArgs(tokens, 2);
             }
 
-            if (tokens[1 + lookahead] != "(")
+            if (tokens[1 + lookahead].Text != "(")
                 return false;
 
             tokens.RemoveRange(0, 2 + lookahead);
-            while (tokens[0] != ")")
+            while (tokens[0].Text != ")")
             {
                 if (!ParseExpression(tokens))
                     return false;
 
-                if (tokens[0] == ",")
+                if (tokens[0].Text == ",")
                     tokens.RemoveAt(0);
             }
 
@@ -1098,12 +1170,12 @@ namespace EpochVSIX
             return true;
         }
 
-        private bool ParseExpressionOperator(List<string> tokens)
+        private bool ParseExpressionOperator(List<Token> tokens)
         {
             if (tokens.Count <= 0)
                 return false;
 
-            string op = tokens[0];
+            string op = tokens[0].Text;
             if (op == ")")
                 return false;
 
@@ -1151,10 +1223,10 @@ namespace EpochVSIX
             return false;
         }
 
-        private bool ParsePreopStatement(List<string> tokens, bool substatement)
+        private bool ParsePreopStatement(List<Token> tokens, bool substatement)
         {
             bool recognized = false;
-            string potential = tokens[0];
+            string potential = tokens[0].Text;
 
             if (potential == "++")
                 recognized = true;
@@ -1166,7 +1238,7 @@ namespace EpochVSIX
                 tokens.RemoveAt(0);
                 tokens.RemoveAt(0);
 
-                while (tokens[0] == ".")
+                while (tokens[0].Text == ".")
                 {
                     tokens.RemoveAt(0);
                     tokens.RemoveAt(0);
@@ -1179,12 +1251,12 @@ namespace EpochVSIX
         }
 
 
-        private bool ParseEntity(List<string> tokens)
+        private bool ParseEntity(List<Token> tokens)
         {
-            string entityname = tokens[0];
+            string entityname = tokens[0].Text;
             if (entityname == "if")
             {
-                if (tokens[1] == "(")
+                if (tokens[1].Text == "(")
                 {
                     tokens.RemoveRange(0, 2);
 
@@ -1193,7 +1265,7 @@ namespace EpochVSIX
 
                     ParseEntityCode(tokens);
 
-                    while (tokens[0] == "elseif")
+                    while (tokens[0].Text == "elseif")
                     {
                         tokens.RemoveRange(0, 2);
                         ParseExpression(tokens);
@@ -1201,7 +1273,7 @@ namespace EpochVSIX
                         ParseEntityCode(tokens);
                     }
 
-                    if (tokens[0] == "else")
+                    if (tokens[0].Text == "else")
                     {
                         tokens.RemoveAt(0);
                         ParseEntityCode(tokens);
@@ -1212,7 +1284,7 @@ namespace EpochVSIX
             }
             else if (entityname == "while")
             {
-                if (tokens[1] == "(")
+                if (tokens[1].Text == "(")
                 {
                     tokens.RemoveRange(0, 2);
 
@@ -1226,16 +1298,16 @@ namespace EpochVSIX
             return false;
         }
 
-        private bool ParsePostopStatement(List<string> tokens)
+        private bool ParsePostopStatement(List<Token> tokens)
         {
             bool recognized = false;
 
-            string operand = tokens[0];
+            string operand = tokens[0].Text;
             int operandlength = 1;
-            while (tokens[operandlength] == ".")
+            while (tokens[operandlength].Text == ".")
                 operandlength += 2;
 
-            string potential = tokens[operandlength];
+            string potential = tokens[operandlength].Text;
             if (potential == "++")
                 recognized = true;
             else if (potential == "--")
@@ -1252,13 +1324,13 @@ namespace EpochVSIX
         }
 
 
-        private bool ParseAssignment(List<string> tokens)
+        private bool ParseAssignment(List<Token> tokens)
         {
             int lhslength = 1;
-            while (tokens[lhslength] == ".")
+            while (tokens[lhslength].Text == ".")
                 lhslength += 2;
 
-            string assignmenttoken = tokens[lhslength];
+            string assignmenttoken = tokens[lhslength].Text;
             bool recognized = false;
 
             if (assignmenttoken == "=")
@@ -1277,10 +1349,10 @@ namespace EpochVSIX
             while (haschain)
             {
                 lhslength = 1;
-                while (tokens[lhslength] == ".")
+                while (tokens[lhslength].Text == ".")
                     lhslength += 2;
 
-                if (tokens[lhslength] == "=")
+                if (tokens[lhslength].Text == "=")
                 {
                     if (assignmenttoken != "=")
                         return false;
@@ -1294,9 +1366,9 @@ namespace EpochVSIX
             return ParseExpression(tokens);
         }
 
-        private bool ParseEntityCode(List<string> tokens)
+        private bool ParseEntityCode(List<Token> tokens)
         {
-            if (tokens[0] != "{")
+            if (tokens[0].Text != "{")
                 return false;
 
             tokens.RemoveAt(0);
@@ -1349,7 +1421,6 @@ namespace EpochVSIX
                 Dictionary<string, FunctionDefinition> oldFunctionDefs = null;
 
                 Dictionary<string, StructureDefinition> oldStructureDefinitions = null;
-
 
                 if (ParsedFunctionNames == null)
                     ParsedFunctionNames = new Dictionary<string, List<string>>();
@@ -1459,6 +1530,8 @@ namespace EpochVSIX
 
         public void ParseProject(EnvDTE.DTE dte)
         {
+            GlobalScope = null;
+
             var task = ParseFilesFromCurrentSolution(dte);
         }
 
@@ -1499,6 +1572,14 @@ namespace EpochVSIX
                 foreach (var funckvp in filekvp.Value)
                     functions.Add(funckvp.Value);
             }
+        }
+
+        public void GetAvailableVariables(List<string> variables, string document, int line, int column)
+        {
+            if (GlobalScope == null)
+                return;
+
+            variables.AddRange(GlobalScope.Variables);
         }
     }
 }
