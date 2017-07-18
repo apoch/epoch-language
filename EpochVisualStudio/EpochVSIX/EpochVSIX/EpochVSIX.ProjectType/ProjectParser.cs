@@ -123,7 +123,9 @@ namespace EpochVSIX
 
         internal ProjectParser()
         {
-            ErrorProvider = new ErrorListProvider(new ErrorListHelper());
+            var helper = new ErrorListHelper();
+
+            ErrorProvider = new ErrorListProvider(helper);
             ErrorProvider.ProviderName = "Epoch Language";
             ErrorProvider.ProviderGuid = new Guid(VsPackage.PackageGuid);
         }
@@ -708,7 +710,7 @@ namespace EpochVSIX
 
             tokens.RemoveAt(0);
 
-            ParseCodeBlock(tokens);
+            ParseCodeBlock(tokens, filename, functionname);
 
             return true;
         }
@@ -1021,9 +1023,52 @@ namespace EpochVSIX
                 errorTask.Document = filename;
                 errorTask.Line = (tokens.Count > 0) ? (tokens[0].Line) : 0;
                 errorTask.Column = (tokens.Count > 0) ? (tokens[0].Column) : 0;
-                errorTask.Navigate += (sender, args) =>
+                errorTask.Navigate += async (sender, args) =>
                 {
-                    // TODO - navigate to Line and Column in the appropriate Document
+                    var task = sender as Microsoft.VisualStudio.Shell.Task;
+                    if (string.IsNullOrEmpty(task.Document))
+                        return;
+
+                    await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+
+                    var serviceProvider = new ErrorListHelper();
+                    var openDoc = serviceProvider.GetService(typeof(IVsUIShellOpenDocument)) as IVsUIShellOpenDocument;
+                    if (openDoc == null)
+                        return;
+
+                    IVsWindowFrame frame;
+                    Microsoft.VisualStudio.OLE.Interop.IServiceProvider sp;
+                    IVsUIHierarchy hier;
+                    uint itemid;
+                    Guid logicalView = VSConstants.LOGVIEWID_Code;
+
+                    if (ErrorHandler.Failed(openDoc.OpenDocumentViaProject(task.Document, ref logicalView, out sp, out hier, out itemid, out frame)) || frame == null)
+                        return;
+
+                    object docData;
+                    frame.GetProperty((int)__VSFPROPID.VSFPROPID_DocData, out docData);
+ 
+                    VsTextBuffer buffer = docData as VsTextBuffer;
+                    if (buffer == null)
+                    {
+                        IVsTextBufferProvider bufferProvider = docData as IVsTextBufferProvider;
+                        if (bufferProvider != null)
+                        {
+                            IVsTextLines lines;
+                            ErrorHandler.ThrowOnFailure(bufferProvider.GetTextBuffer(out lines));
+                            buffer = lines as VsTextBuffer;
+
+                            if (buffer == null)
+                                return;
+                        }
+                    }
+
+                    // Finally, perform the navigation.  
+                    IVsTextManager mgr = serviceProvider.GetService(typeof(VsTextManagerClass)) as IVsTextManager;
+                    if (mgr == null)
+                        return;
+
+                    mgr.NavigateToLineAndColumn(buffer, ref logicalView, task.Line, task.Column, task.Line, task.Column);
                 };
 
                 ErrorProvider.Tasks.Add(errorTask);
@@ -1034,12 +1079,12 @@ namespace EpochVSIX
         }
 
 
-        private bool ParseCodeBlock(List<Token> tokens)
+        private bool ParseCodeBlock(List<Token> tokens, string filename, string functionname)
         {
             string token = tokens[0].Text;
             while (token != "}")
             {
-                if (ParseEntity(tokens))
+                if (ParseEntity(tokens, filename, functionname))
                 {
                 }
                 else if (ParsePreopStatement(tokens, false))
@@ -1051,7 +1096,7 @@ namespace EpochVSIX
                 else if (ParseStatement(tokens, false))
                 {
                 }
-                else if (ParseInitialization(tokens, null, false, null))
+                else if (ParseInitialization(tokens, filename, false, functionname))
                 {
                 }
                 else if (ParseAssignment(tokens))
@@ -1251,7 +1296,7 @@ namespace EpochVSIX
         }
 
 
-        private bool ParseEntity(List<Token> tokens)
+        private bool ParseEntity(List<Token> tokens, string filename, string functionname)
         {
             string entityname = tokens[0].Text;
             if (entityname == "if")
@@ -1263,20 +1308,20 @@ namespace EpochVSIX
                     ParseExpression(tokens);
                     tokens.RemoveAt(0);
 
-                    ParseEntityCode(tokens);
+                    ParseEntityCode(tokens, filename, functionname);
 
                     while (tokens[0].Text == "elseif")
                     {
                         tokens.RemoveRange(0, 2);
                         ParseExpression(tokens);
                         tokens.RemoveAt(0);
-                        ParseEntityCode(tokens);
+                        ParseEntityCode(tokens, filename, functionname);
                     }
 
                     if (tokens[0].Text == "else")
                     {
                         tokens.RemoveAt(0);
-                        ParseEntityCode(tokens);
+                        ParseEntityCode(tokens, filename, functionname);
                     }
 
                     return true;
@@ -1291,7 +1336,7 @@ namespace EpochVSIX
                     ParseExpression(tokens);
                     tokens.RemoveAt(0);
 
-                    return ParseEntityCode(tokens);
+                    return ParseEntityCode(tokens, filename, functionname);
                 }
             }
 
@@ -1366,13 +1411,13 @@ namespace EpochVSIX
             return ParseExpression(tokens);
         }
 
-        private bool ParseEntityCode(List<Token> tokens)
+        private bool ParseEntityCode(List<Token> tokens, string filename, string functionname)
         {
             if (tokens[0].Text != "{")
                 return false;
 
             tokens.RemoveAt(0);
-            return ParseCodeBlock(tokens);
+            return ParseCodeBlock(tokens, filename, functionname);
         }
 
 
