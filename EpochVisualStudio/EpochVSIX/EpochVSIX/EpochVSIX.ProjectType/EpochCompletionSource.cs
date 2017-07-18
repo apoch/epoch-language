@@ -31,15 +31,12 @@ namespace EpochVSIX
         {
             m_completionList = new List<Completion>();
 
-            List<string> strList = new List<string>();
-            strList.Add("print");
-            strList.Add("assert");
-
-            Parser.GetAvailableFunctionNames(strList);
+            var funcList = new List<ProjectParser.FunctionDefinition>();
+            Parser.GetAvailableFunctionSignatures(funcList);
 
             var funcglyph = m_glyphService.GetGlyph(StandardGlyphGroup.GlyphGroupMethod, StandardGlyphItem.GlyphItemPublic);
-            foreach (string str in strList)
-                m_completionList.Add(new Completion(str, str, str, funcglyph, null));
+            foreach (var sig in funcList)
+                m_completionList.Add(new Completion(sig.FunctionName, sig.FunctionName, sig.ToString(), funcglyph, null));
 
 
             List<string> structureNames = new List<string>();
