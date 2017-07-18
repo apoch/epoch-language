@@ -1625,5 +1625,15 @@ namespace EpochVSIX
 
             variables.AddRange(GlobalScope.Variables);
         }
+
+        public void Reset()
+        {
+            GlobalScope = null;
+            ParsedFunctionNames = null;
+            ParsedStructures = null;
+            ParsedTypes = null;
+            FunctionDefinitions = null;
+            StructureDefinitions = null;
+        }
     }
 }

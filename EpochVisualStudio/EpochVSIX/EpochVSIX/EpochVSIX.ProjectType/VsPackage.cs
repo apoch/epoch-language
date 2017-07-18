@@ -22,6 +22,7 @@ namespace EpochVSIX
     using System.ComponentModel.Composition;
     using Microsoft.VisualStudio.Editor;
     using Microsoft.VisualStudio.ComponentModelHost;
+    using Microsoft.VisualStudio.Shell.Interop;
 
     /// <summary>
     /// This class implements the package exposed by this assembly.
@@ -38,7 +39,7 @@ namespace EpochVSIX
     [ProvideService(typeof(EpochLanguageService), ServiceName = "EpochFile")]
     [ProvideLanguageExtension(VsPackage.LanguageServiceGuid, ".epoch")]
     [ProvideLanguageService(typeof(EpochLanguageService), "EpochFile", 1, CodeSense = true, RequestStockColors = true, EnableCommenting = true)]
-    public sealed class VsPackage : Package
+    public sealed class VsPackage : Package, IVsUpdateSolutionEvents, IVsUpdateSolutionEvents3
     {
         /// <summary>
         /// The GUID for this package.
@@ -64,6 +65,10 @@ namespace EpochVSIX
         /// </summary>
         internal const string DefaultNamespace = "EpochVSIX";
 
+
+        private uint BuildManagerCookie;
+        private uint BuildManagerCookie2;
+
         protected override void Initialize()
         {
             base.Initialize();
@@ -72,6 +77,49 @@ namespace EpochVSIX
             var service = new EpochLanguageService(((IComponentModel)GetGlobalService(typeof(SComponentModel))).GetService<IVsEditorAdaptersFactoryService>());
             service.SetSite(this);
             container.AddService(typeof(EpochLanguageService), service, true);
+
+            ThreadHelper.ThrowIfNotOnUIThread();
+            var buildManager = GetService(typeof(SVsSolutionBuildManager)) as IVsSolutionBuildManager;
+            buildManager.AdviseUpdateSolutionEvents(this, out BuildManagerCookie2);
+            (buildManager as IVsSolutionBuildManager3).AdviseUpdateSolutionEvents3(this, out BuildManagerCookie);
+        }
+
+        public int OnBeforeActiveSolutionCfgChange(IVsCfg pOldActiveSlnCfg, IVsCfg pNewActiveSlnCfg)
+        {
+            return VSConstants.S_OK;
+        }
+
+        public int OnAfterActiveSolutionCfgChange(IVsCfg pOldActiveSlnCfg, IVsCfg pNewActiveSlnCfg)
+        {
+            ProjectParser.GetInstance().Reset();
+            return VSConstants.S_OK;
+        }
+
+        public int UpdateSolution_Begin(ref int pfCancelUpdate)
+        {
+            return VSConstants.S_OK;
+        }
+
+        public int UpdateSolution_Done(int fSucceeded, int fModified, int fCancelCommand)
+        {
+            ProjectParser.GetInstance().Reset();
+            return VSConstants.S_OK;
+        }
+
+        public int UpdateSolution_StartUpdate(ref int pfCancelUpdate)
+        {
+            return VSConstants.S_OK;
+        }
+
+        public int UpdateSolution_Cancel()
+        {
+            return VSConstants.S_OK;
+        }
+
+        public int OnActiveProjectCfgChange(IVsHierarchy pIVsHierarchy)
+        {
+            ProjectParser.GetInstance().Reset();
+            return VSConstants.S_OK;
         }
     }
 }
