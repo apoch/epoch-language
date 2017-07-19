@@ -42,7 +42,7 @@ namespace EpochVSIX
 
         public override string GetFormatFilterList()
         {
-            return ".epoch";
+            return "Epoch files (*.epoch)|.epoch";
         }
 
         public override LanguagePreferences GetLanguagePreferences()

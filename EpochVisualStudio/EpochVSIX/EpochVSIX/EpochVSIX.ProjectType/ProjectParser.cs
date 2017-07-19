@@ -40,14 +40,20 @@ namespace EpochVSIX
             public int Column;
         }
 
-        private class Scope
+        internal class Variable
+        {
+            public string Name;
+            public string Type;
+        }
+
+        internal class Scope
         {
             public int StartLine;
             public int StartColumn;
             public int EndLine;
             public int EndColumn;
 
-            public List<string> Variables = new List<string>();
+            public List<Variable> Variables = new List<Variable>();
         }
 
 
@@ -60,7 +66,11 @@ namespace EpochVSIX
         private Dictionary<string, Dictionary<string, FunctionDefinition>> FunctionDefinitions = null;
         private Dictionary<string, StructureDefinition> StructureDefinitions = null;
 
-        private class StructureDefinition
+        private Dictionary<string, List<Scope>> ParsedScopes = null;
+        private Stack<List<Variable>> ParsedScopeStack = new Stack<List<Variable>>();
+
+
+        internal class StructureDefinition
         {
             public List<StructureMember> Members = null;
         };
@@ -100,7 +110,7 @@ namespace EpochVSIX
             public List<string> TagParams;
         };
 
-        private class StructureMember
+        internal class StructureMember
         {
             public string Name;
             public string Type;
@@ -119,7 +129,6 @@ namespace EpochVSIX
 
 
         private Scope GlobalScope = null;
-
 
         internal ProjectParser()
         {
@@ -622,7 +631,7 @@ namespace EpochVSIX
 
                     if (!StructureDefinitions.ContainsKey(structurename))
                     {
-                        StructureDefinitions.Add(structurename, new StructureDefinition());
+                        StructureDefinitions[structurename] = new StructureDefinition();
                         StructureDefinitions[structurename].Members = new List<StructureMember>();
                     }
 
@@ -948,8 +957,19 @@ namespace EpochVSIX
                 templated = true;
             }
 
+            var v = new Variable { Name = tokens[1 + skipahead].Text, Type = tokens[0].Text };      // TODO - include template parameters
             if ((filename != null) && (functionname == null))
-                GetOrCreateGlobalScope().Variables.Add(tokens[1 + skipahead].Text);         // TODO - include var type
+            {
+                GetOrCreateGlobalScope().Variables.Add(v);
+            }
+            else
+            {
+                if ((filename != null) && (functionname != null))
+                {
+                    if (ParsedScopeStack.Count > 0)
+                        ParsedScopeStack.Peek().Add(v);
+                }
+            }
 
             if (tokens[2 + skipahead].Text != "=")
                 return false;
@@ -1080,6 +1100,9 @@ namespace EpochVSIX
 
         private bool ParseCodeBlock(List<Token> tokens, string filename, string functionname)
         {
+            ParsedScopeStack.Push(new List<Variable>());
+            Token startBrace = tokens[0];
+
             string token = tokens[0].Text;
             while (token != "}")
             {
@@ -1108,7 +1131,10 @@ namespace EpochVSIX
 
             }
 
+            Token endBrace = tokens[0];
             tokens.RemoveAt(0);
+
+            AddScope(filename, startBrace.Line, endBrace.Line, startBrace.Column, endBrace.Column);
 
             return true;
         }
@@ -1481,9 +1507,8 @@ namespace EpochVSIX
 
                 if (StructureDefinitions == null)
                     StructureDefinitions = new Dictionary<string, StructureDefinition>();
-                else
-                    StructureDefinitions.Clear();
 
+                ParsedScopeStack.Clear();
 
                 if (!ParsedFunctionNames.ContainsKey(filename))
                     ParsedFunctionNames.Add(filename, new List<string>());
@@ -1618,8 +1643,32 @@ namespace EpochVSIX
             }
         }
 
-        public void GetAvailableVariables(List<string> variables, string document, int line, int column)
+        internal void GetAvailableVariables(List<Variable> variables, string document, int line, int column)
         {
+            foreach (var scope in ParsedScopes)
+            {
+                if (scope.Key.Equals(document))
+                {
+                    foreach (var s in scope.Value)
+                    {
+                        if (s.StartLine > line)
+                            continue;
+
+                        if (s.EndLine < line)
+                            continue;
+
+                        if ((s.StartLine == line) && (s.StartColumn > column))
+                            continue;
+
+                        if ((s.EndLine == line) && (s.EndColumn < column))
+                            continue;
+
+                        variables.AddRange(s.Variables);
+                    }
+                }
+            }
+
+
             if (GlobalScope == null)
                 return;
 
@@ -1634,6 +1683,28 @@ namespace EpochVSIX
             ParsedTypes = null;
             FunctionDefinitions = null;
             StructureDefinitions = null;
+            ParsedScopeStack = new Stack<List<Variable>>();
+        }
+
+        private void AddScope(string filename, int beginline, int endline, int begincol, int endcol)
+        {
+            if (ParsedScopes == null)
+                ParsedScopes = new Dictionary<string, List<Scope>>();
+
+            if (!ParsedScopes.ContainsKey(filename))
+                ParsedScopes.Add(filename, new List<Scope>());
+
+            var s = new Scope { StartLine = beginline, StartColumn = begincol, EndLine = endline, EndColumn = endcol };
+            s.Variables.AddRange(ParsedScopeStack.Pop());
+            ParsedScopes[filename].Add(s);
+        }
+
+        internal StructureDefinition GetStructureDefinition(string name)
+        {
+            if (StructureDefinitions == null || !StructureDefinitions.ContainsKey(name))
+                return null;
+
+            return StructureDefinitions[name];
         }
     }
 }
