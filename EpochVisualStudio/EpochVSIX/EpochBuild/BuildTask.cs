@@ -1,12 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-
-using Microsoft.Build.Framework;
+﻿using Microsoft.Build.Framework;
 using Microsoft.Build.Utilities;
-using System.Diagnostics;
 using Microsoft.Win32;
+using System.Diagnostics;
 using System.Threading;
 
 namespace EpochVS
@@ -88,7 +83,10 @@ namespace EpochVS
 
                     process.WaitForExit();
                     if (outputHandle.WaitOne(1000) && errorHandle.WaitOne(1000))
+                    {
+                        RunningProcess = null;
                         return (process.ExitCode == 0);
+                    }
                 }
 
                 RunningProcess = null;

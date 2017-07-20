@@ -957,7 +957,7 @@ namespace EpochVSIX
                 templated = true;
             }
 
-            var v = new Variable { Name = tokens[1 + skipahead].Text, Type = tokens[0].Text };      // TODO - include template parameters
+            var v = new Variable { Name = tokens[1 + skipahead].Text, Type = string.Join("", tokens.Take(skipahead + 1).Select(t => t.Text)) };
             if ((filename != null) && (functionname == null))
             {
                 GetOrCreateGlobalScope().Variables.Add(v);
@@ -1684,6 +1684,7 @@ namespace EpochVSIX
             FunctionDefinitions = null;
             StructureDefinitions = null;
             ParsedScopeStack = new Stack<List<Variable>>();
+            ParsedScopes = null;
         }
 
         private void AddScope(string filename, int beginline, int endline, int begincol, int endcol)
@@ -1701,6 +1702,7 @@ namespace EpochVSIX
 
         internal StructureDefinition GetStructureDefinition(string name)
         {
+            // TODO - if name indicates a parameterized type such as list<Foo> this will fail
             if (StructureDefinitions == null || !StructureDefinitions.ContainsKey(name))
                 return null;
 
