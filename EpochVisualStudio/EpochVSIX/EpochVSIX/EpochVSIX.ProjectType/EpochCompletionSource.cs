@@ -43,52 +43,37 @@ namespace EpochVSIX
                 var memberglyph = m_glyphService.GetGlyph(StandardGlyphGroup.GlyphGroupStruct, StandardGlyphItem.GlyphItemPublic);
                 var memfunglyph = m_glyphService.GetGlyph(StandardGlyphGroup.GlyphGroupMethod, StandardGlyphItem.GlyphItemPublic);
 
-                SnapshotPoint currentPoint = bufferpos - 1;
-                ITextStructureNavigator navigator = m_sourceProvider.NavigatorService.GetTextStructureNavigator(m_textBuffer);
-                TextExtent extent = navigator.GetExtentOfWord(currentPoint);
+                List<string> varstack = GetMemberAccessStack(bufferpos);
 
-                string varname = extent.Span.GetText();
+                var variables = GetApplicableVariables(session);
 
-                var parser = ProjectParser.GetInstance();
-                var variables = new List<ProjectParser.Variable>();
-
-                var pt = session.TextView.Caret.Position.Point.GetPoint(session.TextView.TextSnapshot, PositionAffinity.Predecessor);
-                if (pt.HasValue)
+                if (varstack != null)
                 {
-                    IVsTextBuffer bufferAdapter;
-                    m_textBuffer.Properties.TryGetProperty(typeof(Microsoft.VisualStudio.TextManager.Interop.IVsTextBuffer), out bufferAdapter);
-
-                    if (bufferAdapter != null)
+                    foreach (var v in variables)
                     {
-                        ThreadHelper.ThrowIfNotOnUIThread();
-                        var persistFileFormat = bufferAdapter as IPersistFileFormat;
-                        string ppzsFilename = null;
-                        uint iii;
-                        if (persistFileFormat != null)
+                        if (v.Name.Equals(varstack[0]))
                         {
-                            persistFileFormat.GetCurFile(out ppzsFilename, out iii);
-
-                            if (!string.IsNullOrEmpty(ppzsFilename))
+                            var defn = Parser.GetStructureDefinition(v.Type);
+                            for (int i = 1; i < varstack.Count; ++i)
                             {
-                                var line = pt.Value.GetContainingLine().LineNumber;
-                                var column = pt.Value.Position - pt.Value.GetContainingLine().Start.Position;
-                                parser.GetAvailableVariables(variables, ppzsFilename, line, column);
+                                if (defn == null)
+                                    break;
 
-                                foreach (var v in variables)
+                                foreach (var m in defn.Members)
                                 {
-                                    if (v.Name.Equals(varname))
+                                    if (m.Name.Equals(varstack[i]))
                                     {
-                                        var defn = parser.GetStructureDefinition(v.Type);
-                                        if (defn != null)
-                                        {
-                                            foreach (var m in defn.Members)
-                                                m_completionList.Add(new Completion(m.Name, m.Name, $"{m.Type} {m.Name}", memberglyph, null));
-                                        }
+                                        defn = Parser.GetStructureDefinition(m.Type);
+                                        break;
                                     }
                                 }
                             }
 
-                            // TODO - do something sane if the file is unsaved (and other error cases)
+                            if (defn != null)
+                            {
+                                foreach (var m in defn.Members)
+                                    m_completionList.Add(new Completion(m.Name, m.Name, $"{m.Type} {m.Name}", memberglyph, null));      //  TODO - support member functions
+                            }
                         }
                     }
                 }
@@ -159,8 +144,7 @@ namespace EpochVSIX
                     m_completionList.Add(new Completion(str, str, str, valueglyph, null));
 
 
-                var varlist = new List<ProjectParser.Variable>();
-                Parser.GetAvailableVariables(varlist, null, 0, 0);      // TODO - actual document and location
+                var varlist = GetApplicableVariables(session);
 
                 var varglyph = m_glyphService.GetGlyph(StandardGlyphGroup.GlyphGroupVariable, StandardGlyphItem.GlyphItemPublic);
                 foreach (var v in varlist)
@@ -195,6 +179,64 @@ namespace EpochVSIX
                 GC.SuppressFinalize(this);
                 m_isDisposed = true;
             }
+        }
+
+
+        private List<ProjectParser.Variable> GetApplicableVariables(ICompletionSession session)
+        {
+            var variables = new List<ProjectParser.Variable>();
+            var pt = session.TextView.Caret.Position.Point.GetPoint(session.TextView.TextSnapshot, PositionAffinity.Predecessor);
+            if (pt.HasValue)
+            {
+                var line = pt.Value.GetContainingLine().LineNumber;
+                var column = pt.Value.Position - pt.Value.GetContainingLine().Start.Position;
+
+                IVsTextBuffer bufferAdapter;
+                m_textBuffer.Properties.TryGetProperty(typeof(IVsTextBuffer), out bufferAdapter);
+
+                if (bufferAdapter != null)
+                {
+                    ThreadHelper.ThrowIfNotOnUIThread();
+                    var persistFileFormat = bufferAdapter as IPersistFileFormat;
+                    string filename = null;
+                    uint iii;
+                    if (persistFileFormat != null)
+                    {
+                        persistFileFormat.GetCurFile(out filename, out iii);
+
+                        if (!string.IsNullOrEmpty(filename))
+                        {
+                            Parser.GetAvailableVariables(variables, filename, line, column);
+                        }
+                    }
+                }
+            }
+
+            // TODO - handle failure cases?
+
+            return variables;
+        }
+
+        private List<string> GetMemberAccessStack(SnapshotPoint bufferpos)
+        {
+            ITextStructureNavigator navigator = m_sourceProvider.NavigatorService.GetTextStructureNavigator(m_textBuffer);
+
+            SnapshotPoint currentPoint = bufferpos - 1;
+            TextExtent extent = navigator.GetExtentOfWord(currentPoint);
+
+            var ret = new List<string>();
+
+            SnapshotPoint dotpos;
+            do
+            {
+                ret.Insert(0, extent.Span.GetText());
+                dotpos = extent.Span.Start - 1;
+
+                var prevtokenpos = dotpos - 1;
+                extent = navigator.GetExtentOfWord(prevtokenpos);
+            } while (dotpos.GetChar().Equals('.'));
+
+            return ret;
         }
     }
 }
