@@ -21,6 +21,7 @@ namespace EpochVSIX.Parser
             StringLiteral,
         };
 
+        private string FileName;
         private string Buffer;
         private List<Token> TokenCache;
 
@@ -35,8 +36,9 @@ namespace EpochVSIX.Parser
         private CharacterClass PreviousState = CharacterClass.White;
 
 
-        public LexSession(string buffer)
+        public LexSession(string filename, string buffer)
         {
+            FileName = filename;
             Buffer = buffer;
             TokenCache = new List<Token>();
 
@@ -51,6 +53,11 @@ namespace EpochVSIX.Parser
         public bool Empty
         {
             get { return (Buffer == null) || (LexIndex >= Buffer.Length); }
+        }
+
+        public string File
+        {
+            get { return FileName; }
         }
 
 

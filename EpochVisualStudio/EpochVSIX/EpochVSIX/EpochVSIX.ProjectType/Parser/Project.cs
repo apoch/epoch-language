@@ -15,12 +15,10 @@ namespace EpochVSIX.Parser
 
         private LexicalScope GlobalScope;
 
-        private Dictionary<string, TypeSignature> TypeSignatures;
-        private Dictionary<string, TypeSignatureInstantiated> TypeSignaturesInstantiated;
-
 
         private Dictionary<string, FunctionSignature> FunctionSignatures;
         private Dictionary<string, Structure> StructureDefinitions;
+        private Dictionary<string, SumType> SumTypes;
 
         private IVsHierarchy Hierarchy;
         private DateTime LastParseTime;
@@ -35,11 +33,9 @@ namespace EpochVSIX.Parser
             Files = new Dictionary<string, SourceFile>();
             GlobalScope = new LexicalScope();
 
-            TypeSignatures = new Dictionary<string, TypeSignature>();
-            TypeSignaturesInstantiated = new Dictionary<string, TypeSignatureInstantiated>();
-
             FunctionSignatures = new Dictionary<string, FunctionSignature>();
             StructureDefinitions = new Dictionary<string, Structure>();
+            SumTypes = new Dictionary<string, SumType>();
 
             LastParseTime = DateTime.MinValue;
             Hierarchy = hierarchy;
@@ -70,6 +66,12 @@ namespace EpochVSIX.Parser
                 StructureDefinitions.Add(nametoken.Text, structure);
         }
 
+        public void RegisterSumType(Token nametoken, SumType sumtype)
+        {
+            if (!SumTypes.ContainsKey(nametoken.Text))
+                SumTypes.Add(nametoken.Text, sumtype);
+        }
+
 
         public bool IsRecognizedFunction(string name)
         {
@@ -83,8 +85,7 @@ namespace EpochVSIX.Parser
 
         public bool IsRecognizedType(string name)
         {
-            // TODO
-            return false;
+            return SumTypes.ContainsKey(name);
         }
 
 
@@ -149,7 +150,7 @@ namespace EpochVSIX.Parser
         private void ParseFile(string filename)
         {
             string text = System.IO.File.ReadAllText(filename);
-            var lexer = new LexSession(text);
+            var lexer = new LexSession(filename, text);
             var parser = new ParseSession(lexer);
 
             parser.AugmentProject(this);

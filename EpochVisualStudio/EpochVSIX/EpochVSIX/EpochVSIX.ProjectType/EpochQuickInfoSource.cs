@@ -117,6 +117,7 @@ namespace EpochVSIX
 
         public IQuickInfoSource TryCreateQuickInfoSource(ITextBuffer textBuffer)
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             var debugger = ServiceProvider.GetService(typeof(IVsDebugger)) as IVsDebugger;
             return new EpochQuickInfoSource(this, textBuffer, debugger, AdapterService);
         }

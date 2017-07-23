@@ -16,7 +16,7 @@ namespace EpochVSIX.Parser
         {
             project.RegisterSourceFile(FileFullPath, this);
 
-            var lexer = new LexSession(filecontents);
+            var lexer = new LexSession(FileFullPath, filecontents);
             var parser = new ParseSession(lexer);
 
             parser.AugmentProject(project);
