@@ -11,6 +11,7 @@ using Microsoft.VisualStudio.Text.Editor;
 using Microsoft.VisualStudio.TextManager.Interop;
 using Microsoft.VisualStudio.Utilities;
 using Microsoft.VisualStudio.Text.Operations;
+using Microsoft.VisualStudio.Shell.Interop;
 
 namespace EpochVSIX
 {
@@ -37,14 +38,40 @@ namespace EpochVSIX
             if (textView == null)
                 return;
 
+            ThreadHelper.ThrowIfNotOnUIThread();
+
+            Parser.Project parsedproject = null;
+            var buffer = textView.TextBuffer;
+
+            IVsTextBuffer bufferAdapter;
+            buffer.Properties.TryGetProperty(typeof(IVsTextBuffer), out bufferAdapter);
+
+            var persist = (IPersistFileFormat)bufferAdapter;
+            if (persist != null)
+            {
+                string filename = null;
+                uint formatindex = 0;
+                if (persist.GetCurFile(out filename, out formatindex) == VSConstants.S_OK)
+                {
+                    var doctable = new RunningDocumentTable(ServiceProvider);
+                    var hierarchy = doctable.GetHierarchyItem(filename);
+                    if (hierarchy != null)
+                    {
+                        parsedproject = Parser.ProjectMapper.GetInstance().Map(hierarchy);
+                    }
+                }
+            }
+
+            if (!buffer.Properties.ContainsProperty(typeof(Parser.Project)))
+                buffer.Properties.AddProperty(typeof(Parser.Project), parsedproject);
+
+
             Func<EpochCompletionCommandHandler> createCommandHandler = delegate ()
             {
                 return new EpochCompletionCommandHandler(textViewAdapter, textView, this, SignatureHelpBroker, NavigatorService.GetTextStructureNavigator(textView.TextBuffer));
             };
 
             textView.Properties.GetOrCreateSingletonProperty(createCommandHandler);
-
-            ProjectParser.GetInstance().ParseProject(ServiceProvider.GetService(typeof(EnvDTE.DTE)) as EnvDTE.DTE);
         }
     }
 
@@ -57,6 +84,7 @@ namespace EpochVSIX
         private ITextStructureNavigator m_navigator;
         private ISignatureHelpBroker m_broker;
         private ISignatureHelpSession m_signatureHelpSession;
+        private Parser.Project m_parsedProject;
 
         internal EpochCompletionCommandHandler(IVsTextView textViewAdapter, ITextView textView, EpochCompletionHandlerProvider provider, ISignatureHelpBroker broker, ITextStructureNavigator nav)
         {
@@ -67,6 +95,8 @@ namespace EpochVSIX
 
             //add the command to the command chain
             textViewAdapter.AddCommandFilter(this, out m_nextCommandHandler);
+
+            m_parsedProject = textView.TextBuffer.Properties.GetProperty<Parser.Project>(typeof(Parser.Project));
         }
 
         public int QueryStatus(ref Guid pguidCmdGroup, uint cCmds, OLECMD[] prgCmds, IntPtr pCmdText)

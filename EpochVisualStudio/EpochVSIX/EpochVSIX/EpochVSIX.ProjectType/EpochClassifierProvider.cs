@@ -8,6 +8,11 @@ using System.ComponentModel.Composition;
 using Microsoft.VisualStudio.Text;
 using Microsoft.VisualStudio.Text.Classification;
 using Microsoft.VisualStudio.Utilities;
+using Microsoft.VisualStudio.TextManager.Interop;
+using Microsoft.VisualStudio.Editor;
+using Microsoft.VisualStudio.Shell;
+using Microsoft.VisualStudio.Shell.Interop;
+using Microsoft.VisualStudio;
 
 namespace EpochVSIX
 {
@@ -28,6 +33,12 @@ namespace EpochVSIX
         [Import]
         private IClassificationTypeRegistryService classificationRegistry;
 
+        [Import]
+        private IVsEditorAdaptersFactoryService AdapterFactory;
+
+        [Import]
+        private SVsServiceProvider ServiceProvider;
+
 #pragma warning restore 649
 
         #region IClassifierProvider
@@ -39,7 +50,34 @@ namespace EpochVSIX
         /// <returns>A classifier for the text buffer, or null if the provider cannot do so in its current state.</returns>
         public IClassifier GetClassifier(ITextBuffer buffer)
         {
-            return buffer.Properties.GetOrCreateSingletonProperty<EpochClassifier>(creator: () => new EpochClassifier(this.classificationRegistry));
+            ThreadHelper.ThrowIfNotOnUIThread();
+
+            Parser.Project project = null;
+            var bufferAdapter = AdapterFactory.GetBufferAdapter(buffer);
+            var textManager = ServiceProvider.GetService(typeof(SVsTextManager)) as IVsTextManager;
+
+            IVsEnumTextViews enumerator;
+            textManager.EnumViews(bufferAdapter, out enumerator);
+
+            uint count = 0;
+            enumerator.GetCount(ref count);
+            if (count > 0)
+            {
+                IVsTextView[] viewarray = new IVsTextView[count];
+                uint fetchCount = 0;
+                if (enumerator.Next(count, viewarray, ref fetchCount) == VSConstants.S_OK)
+                {
+                    foreach (var view in viewarray)
+                    {
+                        var viewAdapter = AdapterFactory.GetWpfTextView(view);
+                        viewAdapter.Properties.TryGetProperty<Parser.Project>(typeof(Parser.Project), out project);
+                        if (project != null)
+                            break;
+                    }
+                }
+            }
+
+            return buffer.Properties.GetOrCreateSingletonProperty<EpochClassifier>(creator: () => new EpochClassifier(this.classificationRegistry, project));
         }
 
         #endregion

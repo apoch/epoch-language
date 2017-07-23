@@ -226,6 +226,17 @@
     <Compile Include="EpochTextViewFilter.cs" />
     <Compile Include="MyConfiguredProject.cs" />
     <Compile Include="MyUnconfiguredProject.cs" />
+    <Compile Include="Parser\FunctionSignature.cs" />
+    <Compile Include="Parser\LexicalScope.cs" />
+    <Compile Include="Parser\LexSession.cs" />
+    <Compile Include="Parser\ParseSession.cs" />
+    <Compile Include="Parser\Project.cs" />
+    <Compile Include="Parser\ProjectMapper.cs" />
+    <Compile Include="Parser\SourceFile.cs" />
+    <Compile Include="Parser\Structure.cs" />
+    <Compile Include="Parser\Token.cs" />
+    <Compile Include="Parser\TypeSignature.cs" />
+    <Compile Include="Parser\Variable.cs" />
     <Compile Include="ProjectParser.cs" />
     <Compile Include="ProjectProperties.cs" />
     <Compile Include="PropertyProvider.cs" />

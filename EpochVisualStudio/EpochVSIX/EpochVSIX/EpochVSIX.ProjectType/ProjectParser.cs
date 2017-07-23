@@ -63,12 +63,12 @@ namespace EpochVSIX
         private Dictionary<string, List<string>> ParsedStructures = null;
         private Dictionary<string, List<string>> ParsedTypes = null;
 
-        private Dictionary<string, Dictionary<string, FunctionDefinition>> FunctionDefinitions = null;
+        private Dictionary<string, Dictionary<string, FunctionDefinition>> FunctionDefinitions = new Dictionary<string, Dictionary<string, FunctionDefinition>>();
         private Dictionary<string, StructureDefinition> StructureDefinitions = null;
 
         private Dictionary<string, List<Scope>> ParsedScopes = null;
         private Stack<List<Variable>> ParsedScopeStack = new Stack<List<Variable>>();
-
+        private Dictionary<string, List<string>> ParsedTemplates = new Dictionary<string, List<string>>();
 
         internal class StructureDefinition
         {
@@ -379,12 +379,14 @@ namespace EpochVSIX
             return tokens;
         }
 
-        private bool ParseTemplateParameters(List<Token> tokens)
+        private bool ParseTemplateParameters(List<Token> tokens, string basename)
         {
             bool hasparams = true;
+            var paramlist = new List<string>();
 
             while (hasparams)
             {
+                paramlist.Add(tokens[1].Text);
                 tokens.RemoveRange(0, 2);
 
                 if (tokens[0].Text == ">")
@@ -394,6 +396,9 @@ namespace EpochVSIX
                 else
                     return false;
             }
+
+            if (!ParsedTemplates.ContainsKey(basename))
+                ParsedTemplates.Add(basename, paramlist);
 
             return true;
         }
@@ -417,7 +422,7 @@ namespace EpochVSIX
             return consumed;
         }
 
-        private int ParseTemplateArgs(List<Token> tokens, int initialconsume)
+        private int ParseTemplateArgs(List<Token> tokens, int initialconsume, string templatename)
         {
             int consumed = initialconsume;
 
@@ -435,6 +440,8 @@ namespace EpochVSIX
 
             }
 
+            ProcessTemplateInstantiation(templatename, tokens.Skip(initialconsume).Take(consumed - initialconsume).ToArray());
+
             return consumed;
         }
 
@@ -445,7 +452,7 @@ namespace EpochVSIX
             {
                 if (tokens[1].Text == "<")
                 {
-                    int baselookahead = ParseTemplateArgs(tokens, 2);
+                    int baselookahead = ParseTemplateArgs(tokens, 2, tokens[0].Text);
                     tokens.RemoveRange(0, baselookahead + 2);
                 }
                 else
@@ -466,7 +473,7 @@ namespace EpochVSIX
             if (tokens[2].Text == "<")
             {
                 tokens.RemoveRange(0, 3);
-                if (!ParseTemplateParameters(tokens))
+                if (!ParseTemplateParameters(tokens, sumtypename))
                     return false;
 
                 if (tokens[1].Text != ":")
@@ -535,7 +542,7 @@ namespace EpochVSIX
             if (tokens[2].Text == "<")
             {
                 tokens.RemoveRange(0, 3);
-                if (!ParseTemplateParameters(tokens))
+                if (!ParseTemplateParameters(tokens, structurename))
                     return false;
 
                 templated = true;
@@ -609,7 +616,7 @@ namespace EpochVSIX
 
                     if (membername == "<")
                     {
-                        int memberlookahead = ParseTemplateArgs(tokens, 0);
+                        int memberlookahead = ParseTemplateArgs(tokens, 0, membertype);
                         if (memberlookahead > 0)
                         {
                             tokens.RemoveRange(0, memberlookahead + 1);
@@ -666,7 +673,7 @@ namespace EpochVSIX
 
             while ((tokens.Count > 0) && (tokens[0].Text != "}"))
             {
-                if (!ParseInitialization(tokens, filename, false, null))
+                if (!ParseInitialization(tokens, filename, false, null, null))
                     return false;
             }
 
@@ -687,12 +694,12 @@ namespace EpochVSIX
             if (tokens.Count < 2)
                 return false;
 
-            string functionname = tokens[0].Text;
+            string originalfunctionname = tokens[0].Text;
 
             if (tokens[1].Text == "<")
             {
                 tokens.RemoveRange(0, 2);
-                if (!ParseTemplateParameters(tokens))
+                if (!ParseTemplateParameters(tokens, originalfunctionname))
                     return false;
             }
 
@@ -701,35 +708,35 @@ namespace EpochVSIX
 
             tokens.RemoveRange(0, 2);
 
-            var sig = CreateFunctionSignatureWithOverloading(filename, functionname);
-            functionname = sig.FunctionName;
+            var sig = CreateFunctionSignatureWithOverloading(filename, originalfunctionname);
+            string overloadname = sig.FunctionName;
 
             if (tokens[0].Text != "[")
             {
-                ParseFunctionParams(tokens, filename, functionname);
-                ParseFunctionReturn(tokens, filename, functionname);
+                ParseFunctionParams(tokens, filename, originalfunctionname, overloadname);
+                ParseFunctionReturn(tokens, filename, originalfunctionname, overloadname);
             }
             ParseFunctionTags(tokens, sig);
 
             if (sig.Tags == null || !sig.Tags.ContainsKey("constructor"))
-                ParsedFunctionNames[filename].Add(functionname);
+                ParsedFunctionNames[filename].Add(overloadname);
 
             if (tokens.Count <= 0 || tokens[0].Text != "{")
                 return true;
 
             tokens.RemoveAt(0);
 
-            ParseCodeBlock(tokens, filename, functionname);
+            ParseCodeBlock(tokens, filename, originalfunctionname, overloadname);
 
             return true;
         }
 
-        private void ParseFunctionParams(List<Token> tokens, string filename, string functionname)
+        private void ParseFunctionParams(List<Token> tokens, string filename, string functionname, string overloadname)
         {
             if (tokens.Count == 0)
                 return;
 
-            var sig = GetFunctionSignature(filename, functionname);
+            var sig = GetFunctionSignatureForOverload(filename, functionname, overloadname);
 
             while ((tokens[0].Text != "{") && (tokens[0].Text != "->"))
             {
@@ -794,7 +801,7 @@ namespace EpochVSIX
                 {
                     int lookahead = 0;
                     if (tokens[1].Text == "<")
-                        lookahead = ParseTemplateArgs(tokens, 2);
+                        lookahead = ParseTemplateArgs(tokens, 2, tokens[0].Text);
 
                     string typetoken = string.Join(" ", tokens.GetRange(0, 1 + lookahead).ConvertAll(a => a.Text));
                     string nametoken = tokens[1 + lookahead].Text;
@@ -822,49 +829,45 @@ namespace EpochVSIX
             }
         }
 
-        private void ParseFunctionReturn(List<Token> tokens, string filename, string functionname)
+        private void ParseFunctionReturn(List<Token> tokens, string filename, string functionname, string overloadname)
         {
             if (tokens.Count < 1 || tokens[0].Text != "->")
                 return;
 
             tokens.RemoveAt(0);
 
-            if (!ParseInitialization(tokens, filename, true, functionname))
+            if (!ParseInitialization(tokens, filename, true, functionname, overloadname))
             {
                 ParseExpression(tokens);
-                GetFunctionSignature(filename, functionname).ReturnType = "<expr>";
+                GetFunctionSignatureForOverload(filename, functionname, overloadname).ReturnType = "<expr>";
             }
         }
 
-        private FunctionDefinition GetFunctionSignature(string filename, string functionname)
+        private FunctionDefinition GetFunctionSignatureForOverload(string filename, string functionbasename, string overloadname)
         {
-            return FunctionDefinitions[filename][functionname];
+            return FunctionDefinitions[functionbasename][overloadname];
         }
 
         private FunctionDefinition CreateFunctionSignatureWithOverloading(string filename, string functionname)
         {
-            if (FunctionDefinitions == null)
-                FunctionDefinitions = new Dictionary<string, Dictionary<string, FunctionDefinition>>();
-
-            if (!FunctionDefinitions.ContainsKey(filename))
-                FunctionDefinitions.Add(filename, new Dictionary<string, FunctionDefinition>());
+            if (!FunctionDefinitions.ContainsKey(functionname))
+                FunctionDefinitions.Add(functionname, new Dictionary<string, FunctionDefinition>());
 
             int i = 0;
             var overloadname = functionname;
-            var defs = FunctionDefinitions[filename];
-            while (defs.ContainsKey(overloadname))
+            while (FunctionDefinitions[functionname].ContainsKey(overloadname))
             {
                 ++i;
                 overloadname = $"{functionname}{i}";
             }
 
             var newfunc = new FunctionDefinition();
-            newfunc.FunctionName = overloadname;
+            newfunc.FunctionName = functionname;
             newfunc.Parameters = new List<FunctionParameter>();
             newfunc.ReturnType = null;
             newfunc.Tags = null;
 
-            defs.Add(overloadname, newfunc);
+            FunctionDefinitions[functionname].Add(overloadname, newfunc);
             return newfunc;
         }
 
@@ -941,7 +944,7 @@ namespace EpochVSIX
             return false;
         }
 
-        private bool ParseInitialization(List<Token> tokens, string filename, bool isfuncreturn, string functionname)
+        private bool ParseInitialization(List<Token> tokens, string filename, bool isfuncreturn, string functionname, string overloadname)
         {
             if (tokens.Count < 2)
                 return false;
@@ -957,14 +960,15 @@ namespace EpochVSIX
                 templated = true;
             }
 
+            string vartypebase = tokens[0].Text;
             var v = new Variable { Name = tokens[1 + skipahead].Text, Type = string.Join("", tokens.Take(skipahead + 1).Select(t => t.Text)) };
-            if ((filename != null) && (functionname == null))
+            if ((filename != null) && (overloadname == null))
             {
                 GetOrCreateGlobalScope().Variables.Add(v);
             }
             else
             {
-                if ((filename != null) && (functionname != null))
+                if ((filename != null) && (overloadname != null))
                 {
                     if (ParsedScopeStack.Count > 0)
                         ParsedScopeStack.Peek().Add(v);
@@ -975,10 +979,10 @@ namespace EpochVSIX
                 return false;
 
             if (templated)
-                ParseTemplateArgs(tokens, 2);
+                ParseTemplateArgs(tokens, 2, vartypebase);
 
             if (isfuncreturn)
-                GetFunctionSignature(filename, functionname).ReturnType = tokens[0].Text;
+                GetFunctionSignatureForOverload(filename, functionname, overloadname).ReturnType = tokens[0].Text;
 
             tokens.RemoveRange(0, 3 + skipahead);
 
@@ -1098,7 +1102,7 @@ namespace EpochVSIX
         }
 
 
-        private bool ParseCodeBlock(List<Token> tokens, string filename, string functionname)
+        private bool ParseCodeBlock(List<Token> tokens, string filename, string functionname, string overloadname)
         {
             ParsedScopeStack.Push(new List<Variable>());
             Token startBrace = tokens[0];
@@ -1106,7 +1110,7 @@ namespace EpochVSIX
             string token = tokens[0].Text;
             while (token != "}")
             {
-                if (ParseEntity(tokens, filename, functionname))
+                if (ParseEntity(tokens, filename, functionname, overloadname))
                 {
                 }
                 else if (ParsePreopStatement(tokens, false))
@@ -1118,7 +1122,7 @@ namespace EpochVSIX
                 else if (ParseStatement(tokens, false))
                 {
                 }
-                else if (ParseInitialization(tokens, filename, false, functionname))
+                else if (ParseInitialization(tokens, filename, false, functionname, overloadname))
                 {
                 }
                 else if (ParseAssignment(tokens))
@@ -1220,7 +1224,7 @@ namespace EpochVSIX
 
             if (tokens[1].Text == "<")
             {
-                lookahead = ParseTemplateArgs(tokens, 2);
+                lookahead = ParseTemplateArgs(tokens, 2, tokens[0].Text);
             }
 
             if (tokens[1 + lookahead].Text != "(")
@@ -1321,7 +1325,7 @@ namespace EpochVSIX
         }
 
 
-        private bool ParseEntity(List<Token> tokens, string filename, string functionname)
+        private bool ParseEntity(List<Token> tokens, string filename, string functionname, string overloadname)
         {
             string entityname = tokens[0].Text;
             if (entityname == "if")
@@ -1333,20 +1337,20 @@ namespace EpochVSIX
                     ParseExpression(tokens);
                     tokens.RemoveAt(0);
 
-                    ParseEntityCode(tokens, filename, functionname);
+                    ParseEntityCode(tokens, filename, functionname, overloadname);
 
                     while (tokens[0].Text == "elseif")
                     {
                         tokens.RemoveRange(0, 2);
                         ParseExpression(tokens);
                         tokens.RemoveAt(0);
-                        ParseEntityCode(tokens, filename, functionname);
+                        ParseEntityCode(tokens, filename, functionname, overloadname);
                     }
 
                     if (tokens[0].Text == "else")
                     {
                         tokens.RemoveAt(0);
-                        ParseEntityCode(tokens, filename, functionname);
+                        ParseEntityCode(tokens, filename, functionname, overloadname);
                     }
 
                     return true;
@@ -1361,7 +1365,7 @@ namespace EpochVSIX
                     ParseExpression(tokens);
                     tokens.RemoveAt(0);
 
-                    return ParseEntityCode(tokens, filename, functionname);
+                    return ParseEntityCode(tokens, filename, functionname, overloadname);
                 }
             }
 
@@ -1436,13 +1440,13 @@ namespace EpochVSIX
             return ParseExpression(tokens);
         }
 
-        private bool ParseEntityCode(List<Token> tokens, string filename, string functionname)
+        private bool ParseEntityCode(List<Token> tokens, string filename, string functionname, string overloadname)
         {
             if (tokens[0].Text != "{")
                 return false;
 
             tokens.RemoveAt(0);
-            return ParseCodeBlock(tokens, filename, functionname);
+            return ParseCodeBlock(tokens, filename, functionname, overloadname);
         }
 
 
@@ -1488,8 +1492,6 @@ namespace EpochVSIX
                 List<string> oldStructures = null;
                 List<string> oldTypes = null;
 
-                Dictionary<string, FunctionDefinition> oldFunctionDefs = null;
-
                 Dictionary<string, StructureDefinition> oldStructureDefinitions = null;
 
                 if (ParsedFunctionNames == null)
@@ -1500,9 +1502,6 @@ namespace EpochVSIX
 
                 if (ParsedTypes == null)
                     ParsedTypes = new Dictionary<string, List<string>>();
-
-                if (FunctionDefinitions == null)
-                    FunctionDefinitions = new Dictionary<string, Dictionary<string, FunctionDefinition>>();
 
 
                 if (StructureDefinitions == null)
@@ -1534,14 +1533,6 @@ namespace EpochVSIX
                     ParsedTypes[filename].Clear();
                 }
 
-                if (!FunctionDefinitions.ContainsKey(filename))
-                    FunctionDefinitions.Add(filename, new Dictionary<string, FunctionDefinition>());
-                else
-                {
-                    oldFunctionDefs = FunctionDefinitions[filename];
-                    FunctionDefinitions[filename].Clear();
-                }
-
                 // TODO - get off the UI thread here?
                 if (!ParseString(filename, text))
                 {
@@ -1553,9 +1544,6 @@ namespace EpochVSIX
 
                     if (oldStructureDefinitions != null)
                         StructureDefinitions = oldStructureDefinitions;
-
-                    if (oldFunctionDefs != null)
-                        FunctionDefinitions[filename] = oldFunctionDefs;
                 }
 
             }
@@ -1633,13 +1621,12 @@ namespace EpochVSIX
 
         public void GetAvailableFunctionSignatures(List<FunctionDefinition> functions)
         {
-            if (FunctionDefinitions == null)
-                return;
-
-            foreach (var filekvp in FunctionDefinitions)
+            foreach (var funckvp in FunctionDefinitions)
             {
-                foreach (var funckvp in filekvp.Value)
-                    functions.Add(funckvp.Value);
+                foreach (var overloadkvp in funckvp.Value)
+                {
+                    functions.Add(overloadkvp.Value);
+                }
             }
         }
 
@@ -1681,10 +1668,11 @@ namespace EpochVSIX
             ParsedFunctionNames = null;
             ParsedStructures = null;
             ParsedTypes = null;
-            FunctionDefinitions = null;
+            FunctionDefinitions = new Dictionary<string, Dictionary<string, FunctionDefinition>>();
             StructureDefinitions = null;
             ParsedScopeStack = new Stack<List<Variable>>();
             ParsedScopes = null;
+            ParsedTemplates = new Dictionary<string, List<string>>();
         }
 
         private void AddScope(string filename, int beginline, int endline, int begincol, int endcol)
@@ -1702,11 +1690,71 @@ namespace EpochVSIX
 
         internal StructureDefinition GetStructureDefinition(string name)
         {
-            // TODO - if name indicates a parameterized type such as list<Foo> this will fail
             if (StructureDefinitions == null || !StructureDefinitions.ContainsKey(name))
                 return null;
 
             return StructureDefinitions[name];
+        }
+
+        private void ProcessTemplateInstantiation(string basetemplatename, Token[] tokens)
+        {
+            if (!ParsedTemplates.ContainsKey(basetemplatename))
+                return;
+
+            var templatebase = ParsedTemplates[basetemplatename];
+            if (templatebase.Count != tokens.Length)
+                return;
+
+
+            string filledtemplatename = basetemplatename + "<";
+            string arguments = string.Join(",", tokens.Select(t => t.Text));
+            filledtemplatename += arguments + ">";
+
+            if (StructureDefinitions.ContainsKey(basetemplatename))
+            {
+                if (!StructureDefinitions.ContainsKey(filledtemplatename))
+                {
+                    var olddefinition = StructureDefinitions[basetemplatename];
+                    var newdefinition = new StructureDefinition();
+                    newdefinition.Members = new List<StructureMember>();
+                    foreach (var m in olddefinition.Members)
+                        newdefinition.Members.Add(new StructureMember { Name = m.Name, Type = ReplaceTemplateTypes(m.Type, templatebase, tokens) });
+
+                    StructureDefinitions.Add(filledtemplatename, newdefinition);
+                }
+            }
+            else if (FunctionDefinitions.ContainsKey(basetemplatename))
+            {
+                if (!FunctionDefinitions.ContainsKey(filledtemplatename))
+                {
+                    var olddefinition = FunctionDefinitions[basetemplatename][basetemplatename];
+                    var newdefinition = CreateFunctionSignatureWithOverloading(null, filledtemplatename);
+                    newdefinition.FunctionName = filledtemplatename;
+                    newdefinition.ReturnType = ReplaceTemplateTypes(olddefinition.ReturnType, templatebase, tokens);
+
+                    // TODO - template instantiate tags (compiler doesn't do this yet either?)
+
+                    newdefinition.Parameters = new List<FunctionParameter>();
+                    foreach (var p in olddefinition.Parameters)
+                        newdefinition.Parameters.Add(new FunctionParameter { Name = p.Name, Type = ReplaceTemplateTypes(p.Type, templatebase, tokens) });
+
+                    FunctionDefinitions[basetemplatename].Add(filledtemplatename, newdefinition);
+                }
+            }
+        }
+
+        private string ReplaceTemplateTypes(string typename, List<string> baseparams, Token[] arguments)
+        {
+            if (string.IsNullOrEmpty(typename))
+                return typename;
+
+            for (int i = 0; i < arguments.Length; ++i)
+            {
+                if (typename.Equals(baseparams[i]))
+                    return arguments[i].Text;
+            }
+
+            return typename;
         }
     }
 }

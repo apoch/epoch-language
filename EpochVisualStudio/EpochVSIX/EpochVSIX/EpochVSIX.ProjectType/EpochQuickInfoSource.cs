@@ -49,7 +49,12 @@ namespace EpochVSIX
 
             m_dictionary = new Dictionary<string, string>();
             foreach (var func in funclist)
-                m_dictionary.Add(func.FunctionName, func.ToString());
+            {
+                if (m_dictionary.ContainsKey(func.FunctionName))
+                    m_dictionary[func.FunctionName] += "\r\n" + func.ToString();
+                else
+                    m_dictionary.Add(func.FunctionName, func.ToString());
+            }
 
 
             ITextSnapshot currentSnapshot = subjectTriggerPoint.Value.Snapshot;

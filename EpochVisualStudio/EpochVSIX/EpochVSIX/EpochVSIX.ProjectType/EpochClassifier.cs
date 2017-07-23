@@ -22,12 +22,11 @@ namespace EpochVSIX
         private readonly HashSet<string> TypeKeywords;
         private readonly HashSet<string> LiteralKeywords;
 
-        private ProjectParser Parser;
+        private Parser.Project ParsedProject;
 
-
-        internal EpochClassifier(IClassificationTypeRegistryService registry)
+        internal EpochClassifier(IClassificationTypeRegistryService registry, Parser.Project project)
         {
-            Parser = ProjectParser.GetInstance();
+            ParsedProject = project;
             classificationRegistry = registry;
 
             TypeKeywords = new HashSet<string>()
@@ -93,6 +92,12 @@ namespace EpochVSIX
 
             if (span.Length == 0)
                 return result;
+
+            if (ParsedProject == null)
+                span.Snapshot.TextBuffer.Properties.TryGetProperty(typeof(Parser.Project), out ParsedProject);
+
+            if (ParsedProject != null)
+                ParsedProject.ParseIfOutdated();
 
             int startline = span.Start.GetContainingLine().LineNumber;
             int endline = span.End.GetContainingLine().LineNumber;
@@ -248,20 +253,17 @@ namespace EpochVSIX
             if (LiteralKeywords.Contains(token))
                 return State.Literal;
 
-            List<string> functionNames = new List<string>();
-            Parser.GetAvailableFunctionNames(functionNames);
-            if (functionNames.Contains(token))
-                return State.IdentifierFunction;
+            if (ParsedProject != null)
+            {
+                if (ParsedProject.IsRecognizedFunction(token))
+                    return State.IdentifierFunction;
 
-            List<string> structureNames = new List<string>();
-            Parser.GetAvailableStructureNames(structureNames);
-            if (structureNames.Contains(token))
-                return State.IdentifierUDT;
+                if (ParsedProject.IsRecognizedStructureType(token))
+                    return State.IdentifierUDT;
 
-            List<string> typeNames = new List<string>();
-            Parser.GetAvailableTypeNames(typeNames);
-            if (typeNames.Contains(token))
-                return State.IdentifierType;
+                if (ParsedProject.IsRecognizedType(token))
+                    return State.IdentifierType;
+            }
 
             return State.Default;
         }
