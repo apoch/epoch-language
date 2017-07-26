@@ -37,13 +37,12 @@ namespace EpochVSIX.Parser
             else if (!parser.CheckToken(4, "|"))
                 return null;
             else
-                totaltokens = 3;
+                totaltokens = 2;
 
-            totaltokens += 2;
-
-            bool hasbases = true;
             do
             {
+                ++totaltokens;
+
                 if (parser.CheckToken(totaltokens + 1, "<"))
                 {
                     var token = parser.PeekToken(totaltokens);
@@ -54,12 +53,9 @@ namespace EpochVSIX.Parser
                         return null;
                 }
                 else
-                {
-                    totaltokens += 2;
-                }
+                    ++totaltokens;
 
-                hasbases = parser.CheckToken(totaltokens + 1, "|");
-            } while (hasbases);
+            } while (parser.CheckToken(totaltokens, "|"));
 
             // Success! Consume everything and return the constructed result
             parser.ConsumeTokens(totaltokens);

@@ -19,6 +19,8 @@ namespace EpochVSIX.Parser
         private Dictionary<string, FunctionSignature> FunctionSignatures;
         private Dictionary<string, Structure> StructureDefinitions;
         private Dictionary<string, SumType> SumTypes;
+        private Dictionary<string, StrongAlias> StrongAliases;
+        private Dictionary<string, WeakAlias> WeakAliases;
 
         private IVsHierarchy Hierarchy;
         private DateTime LastParseTime;
@@ -30,12 +32,7 @@ namespace EpochVSIX.Parser
 
         public Project(IVsHierarchy hierarchy)
         {
-            Files = new Dictionary<string, SourceFile>();
-            GlobalScope = new LexicalScope();
-
-            FunctionSignatures = new Dictionary<string, FunctionSignature>();
-            StructureDefinitions = new Dictionary<string, Structure>();
-            SumTypes = new Dictionary<string, SumType>();
+            ResetContents();
 
             LastParseTime = DateTime.MinValue;
             Hierarchy = hierarchy;
@@ -48,6 +45,7 @@ namespace EpochVSIX.Parser
                 return;
 
             LastParseTime = DateTime.Now;
+            ResetContents();
             ParseHierarchy(Hierarchy, VSITEMID_ROOT);
         }
 
@@ -60,6 +58,12 @@ namespace EpochVSIX.Parser
                 Files.Add(path, file);
         }
 
+        public void RegisterStrongAlias(Token nametoken, StrongAlias alias)
+        {
+            if (!StrongAliases.ContainsKey(nametoken.Text))
+                StrongAliases.Add(nametoken.Text, alias);
+        }
+
         public void RegisterStructureType(Token nametoken, Structure structure)
         {
             if (!StructureDefinitions.ContainsKey(nametoken.Text))
@@ -70,6 +74,12 @@ namespace EpochVSIX.Parser
         {
             if (!SumTypes.ContainsKey(nametoken.Text))
                 SumTypes.Add(nametoken.Text, sumtype);
+        }
+
+        public void RegisterWeakAlias(Token nametoken, WeakAlias alias)
+        {
+            if (!WeakAliases.ContainsKey(nametoken.Text))
+                WeakAliases.Add(nametoken.Text, alias);
         }
 
 
@@ -85,7 +95,7 @@ namespace EpochVSIX.Parser
 
         public bool IsRecognizedType(string name)
         {
-            return SumTypes.ContainsKey(name);
+            return SumTypes.ContainsKey(name) || StrongAliases.ContainsKey(name) || WeakAliases.ContainsKey(name);
         }
 
 
@@ -154,6 +164,18 @@ namespace EpochVSIX.Parser
             var parser = new ParseSession(lexer);
 
             parser.AugmentProject(this);
+        }
+
+        private void ResetContents()
+        {
+            Files = new Dictionary<string, SourceFile>();
+            GlobalScope = new LexicalScope();
+
+            FunctionSignatures = new Dictionary<string, FunctionSignature>();
+            StructureDefinitions = new Dictionary<string, Structure>();
+            SumTypes = new Dictionary<string, SumType>();
+            StrongAliases = new Dictionary<string, StrongAlias>();
+            WeakAliases = new Dictionary<string, WeakAlias>();
         }
     }
 }

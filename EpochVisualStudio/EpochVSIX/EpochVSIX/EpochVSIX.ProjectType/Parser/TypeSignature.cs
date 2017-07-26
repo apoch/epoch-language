@@ -36,9 +36,16 @@ namespace EpochVSIX.Parser
 
 
 
-        public static TypeSignature Parse(IEnumerator<Token> tokens)
+        public static TypeSignature Construct(ParseSession parser, int begintoken, int endtoken)
         {
-            throw new NotImplementedException();
+            var signature = new TypeSignature();
+            signature.TypeName = parser.PeekToken(begintoken).Text;
+
+            int reftoken = endtoken - 1;
+            if (reftoken > begintoken)
+                signature.TypeIsReference = parser.CheckToken(reftoken, "ref");
+
+            return signature;
         }
     }
 
@@ -70,9 +77,16 @@ namespace EpochVSIX.Parser
         }
 
 
-        public static TypeSignatureInstantiated Parse(IEnumerator<Token> tokens)
+        public static TypeSignatureInstantiated Construct(ParseSession parser, int begintoken, int endtoken)
         {
-            throw new NotImplementedException();
+            var signature = new TypeSignatureInstantiated();
+            signature.TypeName = parser.PeekToken(begintoken).Text;
+
+            int reftoken = endtoken - 1;
+            if (reftoken > begintoken)
+                signature.TypeIsReference = parser.CheckToken(reftoken, "ref");
+
+            return signature;
         }
     }
 }

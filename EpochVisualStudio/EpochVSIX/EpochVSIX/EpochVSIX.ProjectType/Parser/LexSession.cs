@@ -277,6 +277,9 @@ namespace EpochVSIX.Parser
                 return CharacterClass.Punctuation;
             }
 
+            if (char.IsWhiteSpace(c))
+                return CharacterClass.White;
+
             return CharacterClass.Identifier;
         }
 

@@ -50,28 +50,39 @@ namespace EpochVSIX.Parser
                         continue;
                     }
 
+                    var strongalias = StrongAlias.Parse(this);
+                    if (strongalias != null)
+                    {
+                        project.RegisterStrongAlias(strongalias.Name, strongalias.Type);
+                        continue;
+                    }
 
+                    var weakalias = WeakAlias.Parse(this);
+                    if (weakalias != null)
+                    {
+                        project.RegisterWeakAlias(weakalias.Name, weakalias.Type);
+                        continue;
+                    }
 
-                    // TODO - this should be come syntax error data when parser is fleshed out
+                    var structure = Structure.Parse(this);
+                    if (structure != null)
+                    {
+                        project.RegisterStructureType(structure.Name, structure.Object);
+                        continue;
+                    }
+
+                    var globals = GlobalBlock.Parse(this);
+                    if (globals != null)
+                    {
+
+                        continue;
+                    }
+
+                    // TODO - this should become syntax error data when parser is fleshed out
                     throw new Exception("This syntax is not parsed yet");
 
 
                     /*
-                    if (ParseSumType(filename, tokens))
-                    {
-                    }
-                    else if (ParseStrongAlias(filename, tokens))
-                    {
-                    }
-                    else if (ParseWeakAlias(filename, tokens))
-                    {
-                    }
-                    else if (ParseStructure(filename, tokens))
-                    {
-                    }
-                    else if (ParseGlobalBlock(filename, tokens))
-                    {
-                    }
                     else if (ParseTask(filename, tokens))
                     {
                     }
@@ -166,6 +177,7 @@ namespace EpochVSIX.Parser
 
             }
 
+            ++totaltokens;
             return true;
         }
 
