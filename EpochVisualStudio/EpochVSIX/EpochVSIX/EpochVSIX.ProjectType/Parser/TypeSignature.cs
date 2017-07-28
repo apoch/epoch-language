@@ -12,6 +12,11 @@ namespace EpochVSIX.Parser
         {
             public string Name;
             public TypeSignature ArgumentType;
+
+            public override string ToString()
+            {
+                return $"{ArgumentType} {Name}";
+            }
         }
 
 
@@ -34,6 +39,19 @@ namespace EpochVSIX.Parser
             get { return TypeParameters; }
         }
 
+
+        public override string ToString()
+        {
+            string Params = "";
+            if (TypeParameters != null && TypeParameters.Count > 0)
+            {
+                Params = "<" + string.Join(", ", TypeParameters) + ">";
+            }
+
+            string IsRef = IsReference ? " ref" : "";
+
+            return $"{TypeName}{Params}{IsRef}";
+        }
 
 
         public static TypeSignature Construct(ParseSession parser, int begintoken, int endtoken)

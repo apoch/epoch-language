@@ -8,13 +8,20 @@ namespace EpochVSIX.Parser
 {
     class Structure
     {
-
+        public Token Name;
         public List<Member> Members;
 
         public class Member
         {
             public Token Name;
             public TypeSignature Type;
+        }
+
+
+        public override string ToString()
+        {
+            string memberlist = string.Join(",\r\n", Members.Select(x => $"    {x.Type.ToString()} {x.Name.Text}").ToArray());
+            return $"structure {Name.Text} :\r\n{memberlist}";
         }
 
 
@@ -43,7 +50,7 @@ namespace EpochVSIX.Parser
 
             ++totaltokens;
 
-            var structure = new Structure();
+            var structure = new Structure { Name = nametoken };
             structure.Members = new List<Member>();
             var parsed = new ParsedObject<Structure> { Name = nametoken, Object = structure };
 

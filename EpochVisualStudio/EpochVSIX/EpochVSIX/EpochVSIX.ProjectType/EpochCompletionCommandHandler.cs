@@ -84,7 +84,6 @@ namespace EpochVSIX
         private ITextStructureNavigator m_navigator;
         private ISignatureHelpBroker m_broker;
         private ISignatureHelpSession m_signatureHelpSession;
-        private Parser.Project m_parsedProject;
 
         internal EpochCompletionCommandHandler(IVsTextView textViewAdapter, ITextView textView, EpochCompletionHandlerProvider provider, ISignatureHelpBroker broker, ITextStructureNavigator nav)
         {
@@ -95,8 +94,6 @@ namespace EpochVSIX
 
             //add the command to the command chain
             textViewAdapter.AddCommandFilter(this, out m_nextCommandHandler);
-
-            m_parsedProject = textView.TextBuffer.Properties.GetProperty<Parser.Project>(typeof(Parser.Project));
         }
 
         public int QueryStatus(ref Guid pguidCmdGroup, uint cCmds, OLECMD[] prgCmds, IntPtr pCmdText)

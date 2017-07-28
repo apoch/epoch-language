@@ -74,12 +74,13 @@ namespace EpochVSIX.Parser
                     var globals = GlobalBlock.Parse(this);
                     if (globals != null)
                     {
-
+                        globals.AugmentProject(project);
                         continue;
                     }
 
                     // TODO - this should become syntax error data when parser is fleshed out
-                    throw new Exception("This syntax is not parsed yet");
+                    if (!Lexer.Empty)
+                        throw new Exception("This syntax is not parsed yet");
 
 
                     /*
@@ -133,6 +134,66 @@ namespace EpochVSIX.Parser
                 return null;
 
             return Lexer.PeekToken(offset);
+        }
+
+
+        internal bool ParsePreopStatement(int startoffset, out int consumedtokens)
+        {
+            consumedtokens = startoffset;
+            bool recognized = false;
+            var token = PeekToken(startoffset);
+            if (token == null)
+                return false;
+
+            string potential = token.Text;
+
+            if (potential == "++")
+                recognized = true;
+            else if (potential == "--")
+                recognized = true;
+
+            if (recognized)
+            {
+                do
+                {
+                    startoffset += 2;
+                } while (CheckToken(startoffset, "."));
+
+                consumedtokens = startoffset;
+                return true;
+            }
+
+            return false;
+        }
+
+        internal bool ParseStatement(int startoffset, out int consumedtokens)
+        {
+            consumedtokens = startoffset;
+            int totaltokens = consumedtokens;
+
+            if (CheckToken(totaltokens + 1, "<"))
+            {
+                if (!ParseTemplateArguments(totaltokens + 2, PeekToken(totaltokens), out totaltokens))
+                    return false;
+            }
+
+            if (!CheckToken(totaltokens + 1, "("))
+                return false;
+
+            totaltokens += 2;
+            while (!CheckToken(totaltokens, ")"))
+            {
+                var expr = Expression.Parse(this, totaltokens, out totaltokens);
+                if (expr == null)
+                    return false;
+
+                if (CheckToken(totaltokens, ","))
+                    ++totaltokens;
+            }
+
+            ++totaltokens;
+            consumedtokens = totaltokens;
+            return true;
         }
 
 

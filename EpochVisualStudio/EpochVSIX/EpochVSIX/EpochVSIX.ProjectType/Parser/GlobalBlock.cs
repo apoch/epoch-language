@@ -9,12 +9,21 @@ namespace EpochVSIX.Parser
     class GlobalBlock
     {
 
-        public List<Variable> Variables;
+        private List<Variable> Variables;
 
 
         private GlobalBlock()
         {
             Variables = new List<Variable>();
+        }
+
+
+        internal void AugmentProject(Project project)
+        {
+            foreach (var variable in Variables)
+            {
+                project.RegisterGlobalVariable(variable);
+            }
         }
 
 
@@ -35,10 +44,13 @@ namespace EpochVSIX.Parser
                 if (variable != null)
                     block.Variables.Add(variable);
                 else
-                    break;
+                    return null;
 
+                parser.ConsumeTokens(totaltokens);
+                totaltokens = 0;
             } while (!parser.CheckToken(totaltokens, "}"));
 
+            ++totaltokens;
             parser.ConsumeTokens(totaltokens);
             return block;
         }

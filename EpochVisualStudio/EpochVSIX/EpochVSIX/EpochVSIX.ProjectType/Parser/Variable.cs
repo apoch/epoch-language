@@ -30,21 +30,21 @@ namespace EpochVSIX.Parser
 
             var basetypename = parser.PeekToken(starttoken);
 
-            bool templated = false;
             int totaltokens = starttoken + 1;
             if (parser.CheckToken(totaltokens, "<"))
             {
+                ++totaltokens;
                 if (!parser.ParseTemplateArguments(totaltokens, basetypename, out totaltokens))
                     return null;
-
-                templated = true;
             }
 
-            if (!parser.CheckToken(totaltokens + 2, "="))
+            var varname = parser.PeekToken(totaltokens);
+
+            if (!parser.CheckToken(totaltokens + 1, "="))
                 return null;
 
             var type = TypeSignatureInstantiated.Construct(parser, starttoken, totaltokens);
-            var variable = new Variable { Name = basetypename, Origin = origin, Type = type };
+            var variable = new Variable { Name = varname, Origin = origin, Type = type };
 
             totaltokens += 2;
 

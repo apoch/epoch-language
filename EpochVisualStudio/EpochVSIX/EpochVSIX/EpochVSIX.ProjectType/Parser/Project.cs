@@ -50,6 +50,11 @@ namespace EpochVSIX.Parser
         }
 
 
+        public void RegisterGlobalVariable(Variable variable)
+        {
+            GlobalScope.Variables.Add(variable);
+        }
+
         public void RegisterSourceFile(string path, SourceFile file)
         {
             if (Files.ContainsKey(path))
@@ -80,6 +85,46 @@ namespace EpochVSIX.Parser
         {
             if (!WeakAliases.ContainsKey(nametoken.Text))
                 WeakAliases.Add(nametoken.Text, alias);
+        }
+
+
+        public List<FunctionSignature> GetAvailableFunctionSignatures()
+        {
+            return FunctionSignatures.Select(kvp => kvp.Value).ToList();
+        }
+
+        public Dictionary<string, Structure> GetAvailableStructureDefinitions()
+        {
+            return StructureDefinitions;
+        }
+
+        public List<string> GetAvailableTypeNames()
+        {
+            var t = SumTypes.Select(kvp => kvp.Key).Union(
+                    StrongAliases.Select(kvp => kvp.Key).Union(
+                    WeakAliases.Select(kvp => kvp.Key)
+                    ));
+
+            return t.ToList();
+        }
+
+        public List<Variable> GetAvailableVariables(string file, int line, int column)
+        {
+            var ret = new List<Variable>();
+            if (GlobalScope != null && GlobalScope.Variables.Count > 0)
+                ret.AddRange(GlobalScope.Variables);
+
+
+            return ret;
+        }
+
+
+        public Structure GetStructureDefinition(string name)
+        {
+            if (!StructureDefinitions.ContainsKey(name))
+                return null;
+
+            return StructureDefinitions[name];
         }
 
 

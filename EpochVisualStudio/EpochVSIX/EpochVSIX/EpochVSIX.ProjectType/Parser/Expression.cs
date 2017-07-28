@@ -95,19 +95,18 @@ namespace EpochVSIX.Parser
 
             if (parser.CheckToken(totaltokens, "false") || parser.CheckToken(totaltokens, "true") || parser.CheckToken(totaltokens, "0") || parser.CheckToken(totaltokens, "0.0"))
                 ++totaltokens;
-            // TODO
-            /*else if (ParsePreopStatement(tokens, true))
+            else if (parser.ParsePreopStatement(totaltokens, out totaltokens))
             {
                 consumedtokens = totaltokens;
                 return true;
             }
-            else if (ParseStatement(tokens, true))
+            else if (parser.ParseStatement(totaltokens, out totaltokens))
             {
                 matchedstatement = true;
                 consumedtokens = totaltokens;
                 return true;
             }
-            else*/
+            else
             {
                 ++totaltokens;
             }

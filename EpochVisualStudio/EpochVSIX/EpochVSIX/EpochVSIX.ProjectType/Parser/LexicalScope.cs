@@ -14,8 +14,8 @@ namespace EpochVSIX.Parser
         public int EndLine;
         public int EndColumn;
 
-        List<Variable> Variables;
+        public List<Variable> Variables = new List<Variable>();
 
-        LexicalScope ParentScope;
+        public LexicalScope ParentScope = null;
     }
 }

@@ -46,6 +46,7 @@ namespace EpochVSIX
                 "elseif",
                 "else",
                 "while",
+                "global",
             };
 
             LiteralKeywords = new HashSet<string>()

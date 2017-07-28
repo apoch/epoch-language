@@ -19,7 +19,7 @@ namespace EpochVSIX
         private ITextBuffer m_textBuffer;
         private List<Completion> m_completionList;
         private IGlyphService m_glyphService;
-        private ProjectParser Parser;
+        private Parser.Project m_parsedProject;
 
         public EpochCompletionSource(EpochCompletionSourceProvider sourceProvider, ITextBuffer textBuffer, IGlyphService glyphService)
         {
@@ -27,7 +27,7 @@ namespace EpochVSIX
             m_textBuffer = textBuffer;
             m_glyphService = glyphService;
 
-            Parser = ProjectParser.GetInstance();
+            m_parsedProject = textBuffer.Properties.GetProperty<Parser.Project>(typeof(Parser.Project));
         }
 
         void ICompletionSource.AugmentCompletionSession(ICompletionSession session, IList<CompletionSet> completionSets)
@@ -53,7 +53,10 @@ namespace EpochVSIX
                     {
                         if (v.Name.Equals(varstack[0]))
                         {
-                            var defn = Parser.GetStructureDefinition(v.Type);
+                            var defn = m_parsedProject.GetStructureDefinition(v.Type.Name);
+                            if (defn == null)
+                                continue;
+
                             for (int i = 1; i < varstack.Count; ++i)
                             {
                                 if (defn == null)
@@ -63,7 +66,7 @@ namespace EpochVSIX
                                 {
                                     if (m.Name.Equals(varstack[i]))
                                     {
-                                        defn = Parser.GetStructureDefinition(m.Type);
+                                        defn = m_parsedProject.GetStructureDefinition(m.Type.Name);
                                         break;
                                     }
                                 }
@@ -72,7 +75,7 @@ namespace EpochVSIX
                             if (defn != null)
                             {
                                 foreach (var m in defn.Members)
-                                    m_completionList.Add(new Completion(m.Name, m.Name, $"{m.Type} {m.Name}", memberglyph, null));      //  TODO - support member functions
+                                    m_completionList.Add(new Completion(m.Name.Text, m.Name.Text, $"{m.Type.Name} {m.Name.Text}", memberglyph, null));      //  TODO - support member functions
                             }
                         }
                     }
@@ -82,24 +85,24 @@ namespace EpochVSIX
             {
                 applicableTo = FindTokenSpanAtPosition(session.GetTriggerPoint(m_textBuffer), session);
 
-                var funcList = new List<ProjectParser.FunctionDefinition>();
-                Parser.GetAvailableFunctionSignatures(funcList);
+                var funcList = m_parsedProject.GetAvailableFunctionSignatures();
 
                 var funcglyph = m_glyphService.GetGlyph(StandardGlyphGroup.GlyphGroupMethod, StandardGlyphItem.GlyphItemPublic);
                 foreach (var sig in funcList)
-                    m_completionList.Add(new Completion(sig.FunctionName, sig.FunctionName, sig.ToString(), funcglyph, null));
+                {
+                    foreach (var ovl in sig.Overloads)
+                        m_completionList.Add(new Completion(sig.Name, sig.Name, ovl.ToString(), funcglyph, null));      // TODO - this doesn't populate yet
+                }
 
 
-                List<string> structureNames = new List<string>();
-                Parser.GetAvailableStructureNames(structureNames);
+                var structuredefs = m_parsedProject.GetAvailableStructureDefinitions();
 
                 var structglyph = m_glyphService.GetGlyph(StandardGlyphGroup.GlyphGroupType, StandardGlyphItem.GlyphItemPublic);
-                foreach (string str in structureNames)
-                    m_completionList.Add(new Completion(str, str, str, structglyph, null));
+                foreach (var strdef in structuredefs)
+                    m_completionList.Add(new Completion(strdef.Key, strdef.Key, strdef.Value.ToString(), structglyph, null));
 
 
-                List<string> udtList = new List<string>();
-                Parser.GetAvailableTypeNames(udtList);
+                var udtList = m_parsedProject.GetAvailableTypeNames();
 
                 var udtglyph = m_glyphService.GetGlyph(StandardGlyphGroup.GlyphGroupTypedef, StandardGlyphItem.GlyphItemPublic);
                 foreach (string str in udtList)
@@ -148,7 +151,7 @@ namespace EpochVSIX
 
                 var varglyph = m_glyphService.GetGlyph(StandardGlyphGroup.GlyphGroupVariable, StandardGlyphItem.GlyphItemPublic);
                 foreach (var v in varlist)
-                    m_completionList.Add(new Completion(v.Name, v.Name, v.Type + " " + v.Name, varglyph, null));
+                    m_completionList.Add(new Completion(v.Name.Text, v.Name.Text, v.Type.Name + " " + v.Name.Text, varglyph, null));
 
                 m_completionList.Sort((a, b) => { return a.DisplayText.CompareTo(b.DisplayText); });
             }
@@ -182,9 +185,9 @@ namespace EpochVSIX
         }
 
 
-        private List<ProjectParser.Variable> GetApplicableVariables(ICompletionSession session)
+        private List<Parser.Variable> GetApplicableVariables(ICompletionSession session)
         {
-            var variables = new List<ProjectParser.Variable>();
+            var variables = new List<Parser.Variable>();
             var pt = session.TextView.Caret.Position.Point.GetPoint(session.TextView.TextSnapshot, PositionAffinity.Predecessor);
             if (pt.HasValue)
             {
@@ -198,15 +201,16 @@ namespace EpochVSIX
                 {
                     ThreadHelper.ThrowIfNotOnUIThread();
                     var persistFileFormat = bufferAdapter as IPersistFileFormat;
-                    string filename = null;
-                    uint iii;
+
                     if (persistFileFormat != null)
                     {
-                        persistFileFormat.GetCurFile(out filename, out iii);
+                        string filename = null;
+                        uint formatIndex;
+                        persistFileFormat.GetCurFile(out filename, out formatIndex);
 
                         if (!string.IsNullOrEmpty(filename))
                         {
-                            Parser.GetAvailableVariables(variables, filename, line, column);
+                            variables = m_parsedProject.GetAvailableVariables(filename, line, column);
                         }
                     }
                 }

@@ -8,7 +8,9 @@ namespace EpochVSIX.Parser
 {
     class FunctionSignature
     {
-        List<FunctionOverload> Overloads = new List<FunctionOverload>();
+        public string Name;
+
+        public List<FunctionOverload> Overloads = new List<FunctionOverload>();
     }
 
     class FunctionOverload
