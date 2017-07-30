@@ -65,7 +65,7 @@ namespace EpochVSIX
             {
                 string param = methodSig.Parameters[i].ToString();
 
-                int locusStart = methodSig.ToString().IndexOf(param, locusSearchStart);
+                int locusStart = methodSig.Format(basename).IndexOf(param, locusSearchStart);
                 if (locusStart >= 0)
                 {
                     Span locus = new Span(locusStart, param.Length);
