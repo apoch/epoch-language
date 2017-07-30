@@ -78,19 +78,15 @@ namespace EpochVSIX.Parser
                         continue;
                     }
 
-                    // TODO - this should become syntax error data when parser is fleshed out
+                    var function = FunctionSignature.Parse(this);
+                    if (function != null)
+                    {
+                        project.RegisterFunction(function);
+                        continue;
+                    }
+
                     if (!Lexer.Empty)
-                        throw new Exception("This syntax is not parsed yet");
-
-
-                    /*
-                    else if (ParseTask(filename, tokens))
-                    {
-                    }
-                    else if (ParseFunction(filename, tokens))
-                    {
-                    }
-                    */
+                        throw new Exception("Syntax error");        // TODO - improve error messages
                 }
             }
             catch (Exception ex)
@@ -166,6 +162,33 @@ namespace EpochVSIX.Parser
             return false;
         }
 
+        internal bool ParsePostopStatement(int startoffset, out int consumedtokens)
+        {
+            consumedtokens = startoffset;
+            int totaltokens = startoffset;
+
+            var token = PeekToken(totaltokens);
+            if (token == null)
+                return false;
+
+            while (CheckToken(totaltokens + 1, "."))
+                ++totaltokens;
+
+            totaltokens += 2;
+
+            var potential = PeekToken(totaltokens);
+            if (potential == null)
+                return false;
+
+            if (potential.Text == "++" || potential.Text == "--")
+            {
+                consumedtokens = totaltokens;
+                return true;
+            }
+
+            return false;
+        }
+
         internal bool ParseStatement(int startoffset, out int consumedtokens)
         {
             consumedtokens = startoffset;
@@ -173,14 +196,18 @@ namespace EpochVSIX.Parser
 
             if (CheckToken(totaltokens + 1, "<"))
             {
-                if (!ParseTemplateArguments(totaltokens + 2, PeekToken(totaltokens), out totaltokens))
+                var token = PeekToken(totaltokens);
+                totaltokens += 2;
+                if (!ParseTemplateArguments(totaltokens, token, out totaltokens))
                     return false;
             }
+            else
+                ++totaltokens;
 
-            if (!CheckToken(totaltokens + 1, "("))
+            if (!CheckToken(totaltokens, "("))
                 return false;
 
-            totaltokens += 2;
+            ++totaltokens;
             while (!CheckToken(totaltokens, ")"))
             {
                 var expr = Expression.Parse(this, totaltokens, out totaltokens);
@@ -220,9 +247,10 @@ namespace EpochVSIX.Parser
             return true;
         }
 
-        internal bool ParseTemplateArguments(int startoffset, Token basetypename, out int totaltokens)
+        internal bool ParseTemplateArguments(int startoffset, Token basetypename, out int consumedtokens)
         {
-            totaltokens = startoffset;
+            consumedtokens = startoffset;
+            int totaltokens = startoffset;
             bool hasargs = true;
 
             while (hasargs)
@@ -239,6 +267,7 @@ namespace EpochVSIX.Parser
             }
 
             ++totaltokens;
+            consumedtokens = totaltokens;
             return true;
         }
 

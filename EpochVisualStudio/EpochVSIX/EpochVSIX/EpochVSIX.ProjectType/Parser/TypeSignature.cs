@@ -42,6 +42,9 @@ namespace EpochVSIX.Parser
 
         public override string ToString()
         {
+            if (TypeName == null)
+                return "nothing";
+
             string Params = "";
             if (TypeParameters != null && TypeParameters.Count > 0)
             {

@@ -12,5 +12,10 @@ namespace EpochVSIX.Parser
         public int Line;
         public int Column;
         public SourceFile File;
+
+        public override string ToString()
+        {
+            return Text;
+        }
     }
 }

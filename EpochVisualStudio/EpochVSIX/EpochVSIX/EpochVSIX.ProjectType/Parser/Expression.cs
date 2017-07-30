@@ -88,6 +88,10 @@ namespace EpochVSIX.Parser
             {
                 ++totaltokens;
                 var ret = ParseExpressionTerm(parser, atstart, totaltokens, out totaltokens, out matchedstatement);
+
+                if (matchedstatement && parser.CheckToken(totaltokens, ")"))
+                    ++totaltokens;
+
                 consumedtokens = totaltokens;
 
                 return ret;

@@ -50,6 +50,14 @@ namespace EpochVSIX.Parser
         }
 
 
+        public void RegisterFunction(FunctionSignature function)
+        {
+            if (FunctionSignatures.ContainsKey(function.Name.Text))
+                FunctionSignatures[function.Name.Text].Overloads.AddRange(function.Overloads);
+            else
+                FunctionSignatures.Add(function.Name.Text, function);
+        }
+
         public void RegisterGlobalVariable(Variable variable)
         {
             GlobalScope.Variables.Add(variable);
