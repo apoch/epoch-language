@@ -243,7 +243,6 @@
     <Compile Include="Parser\TypeSignature.cs" />
     <Compile Include="Parser\Variable.cs" />
     <Compile Include="Parser\WeakAlias.cs" />
-    <Compile Include="ProjectParser.cs" />
     <Compile Include="ProjectProperties.cs" />
     <Compile Include="PropertyProvider.cs" />
     <Compile Include="VsPackage.cs" />

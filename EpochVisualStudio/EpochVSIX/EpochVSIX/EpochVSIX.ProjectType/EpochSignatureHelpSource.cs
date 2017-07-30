@@ -19,11 +19,13 @@ namespace EpochVSIX
     {
         private ITextBuffer m_textBuffer;
         private ITextStructureNavigatorSelectorService m_navigator;
+        private Parser.Project m_parsedProject;
 
         public EpochSignatureHelpSource(ITextBuffer textBuffer, ITextStructureNavigatorSelectorService navigator)
         {
             m_textBuffer = textBuffer;
             m_navigator = navigator;
+            m_parsedProject = textBuffer.Properties.GetProperty<Parser.Project>(typeof(Parser.Project));
         }
 
         public void AugmentSignatureHelpSession(ISignatureHelpSession session, IList<ISignature> signatures)
@@ -39,23 +41,21 @@ namespace EpochVSIX
             TextExtent extent = m_navigator.GetTextStructureNavigator(m_textBuffer).GetExtentOfWord(point);
             string hintfunction = extent.Span.GetText();
 
-
-
-            var knownFunctions = new List<ProjectParser.FunctionDefinition>();
-            ProjectParser.GetInstance().GetAvailableFunctionSignatures(knownFunctions);
+            var knownFunctions = m_parsedProject.GetAvailableFunctionSignatures();
 
             foreach (var func in knownFunctions)
             {
-                if (!func.FunctionName.Equals(hintfunction))
+                if (!func.Name.Text.Equals(hintfunction))
                     continue;
 
-                signatures.Add(CreateSignature(m_textBuffer, func, "Documentation goes here.", applicableToSpan));
+                foreach (var overload in func.Overloads)
+                    signatures.Add(CreateSignature(m_textBuffer, func.Name.Text, overload, "Documentation goes here.", applicableToSpan));
             }
         }
 
-        private EpochFunctionSignature CreateSignature(ITextBuffer textBuffer, ProjectParser.FunctionDefinition methodSig, string methodDoc, ITrackingSpan span)
+        private EpochFunctionSignature CreateSignature(ITextBuffer textBuffer, string basename, Parser.FunctionOverload methodSig, string methodDoc, ITrackingSpan span)
         {
-            EpochFunctionSignature sig = new EpochFunctionSignature(textBuffer, methodSig, methodDoc, null);
+            EpochFunctionSignature sig = new EpochFunctionSignature(textBuffer, basename, methodSig, methodDoc, null);
             textBuffer.Changed += new EventHandler<TextContentChangedEventArgs>(sig.OnSubjectBufferChanged);
 
             List<IParameter> paramList = new List<IParameter>();
@@ -63,7 +63,7 @@ namespace EpochVSIX
             int locusSearchStart = 0;
             for (int i = 0; i < methodSig.Parameters.Count; ++i)
             {
-                string param = string.Format("{0} {1}", methodSig.Parameters[i].Type, methodSig.Parameters[i].Name);
+                string param = methodSig.Parameters[i].ToString();
 
                 int locusStart = methodSig.ToString().IndexOf(param, locusSearchStart);
                 if (locusStart >= 0)
@@ -134,10 +134,10 @@ namespace EpochVSIX
         private ReadOnlyCollection<IParameter> m_parameters;
         private string m_printContent;
 
-        internal EpochFunctionSignature(ITextBuffer subjectBuffer, ProjectParser.FunctionDefinition content, string doc, ReadOnlyCollection<IParameter> parameters)
+        internal EpochFunctionSignature(ITextBuffer subjectBuffer, string basename, Parser.FunctionOverload content, string doc, ReadOnlyCollection<IParameter> parameters)
         {
             m_subjectBuffer = subjectBuffer;
-            m_content = content.ToString();
+            m_content = content.Format(basename);
             m_documentation = doc;
             m_parameters = parameters;
             m_subjectBuffer.Changed += new EventHandler<TextContentChangedEventArgs>(OnSubjectBufferChanged);

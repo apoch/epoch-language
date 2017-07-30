@@ -75,6 +75,11 @@ namespace EpochVSIX.Parser
         public class TypeArgument
         {
             public TypeSignature SpecifiedType;
+
+            public override string ToString()
+            {
+                return SpecifiedType.ToString();
+            }
         }
 
 
@@ -95,6 +100,23 @@ namespace EpochVSIX.Parser
         public List<TypeArgument> Arguments
         {
             get { return TypeArguments; }
+        }
+
+
+        public override string ToString()
+        {
+            if (TypeName == null)
+                return "nothing";
+
+            string args = "";
+            if (TypeArguments != null && TypeArguments.Count > 0)
+            {
+                args = "<" + string.Join(", ", TypeArguments) + ">";
+            }
+
+            string IsRef = IsReference ? " ref" : "";
+
+            return $"{TypeName}{args}{IsRef}";
         }
 
 

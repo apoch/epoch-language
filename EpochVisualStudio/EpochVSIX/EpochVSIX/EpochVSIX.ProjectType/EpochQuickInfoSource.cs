@@ -25,6 +25,7 @@ namespace EpochVSIX
         private Dictionary<string, string> m_dictionary;
         private IVsDebugger m_debugger;
         private IVsEditorAdaptersFactoryService m_adapter;
+        private Parser.Project m_parsedProject;
 
         public EpochQuickInfoSource(EpochQuickInfoSourceProvider provider, ITextBuffer subjectBuffer, IVsDebugger debugger, IVsEditorAdaptersFactoryService adapter)
         {
@@ -32,6 +33,7 @@ namespace EpochVSIX
             m_subjectBuffer = subjectBuffer;
             m_debugger = debugger;
             m_adapter = adapter;
+            m_parsedProject = subjectBuffer.Properties.GetProperty<Parser.Project>(typeof(Parser.Project));
         }
 
         public void AugmentQuickInfoSession(IQuickInfoSession session, IList<object> qiContent, out ITrackingSpan applicableToSpan)
@@ -44,16 +46,12 @@ namespace EpochVSIX
                 return;
             }
 
-            var funclist = new List<ProjectParser.FunctionDefinition>();
-            ProjectParser.GetInstance().GetAvailableFunctionSignatures(funclist);
+            var funclist = m_parsedProject.GetAvailableFunctionSignatures();
 
             m_dictionary = new Dictionary<string, string>();
             foreach (var func in funclist)
             {
-                if (m_dictionary.ContainsKey(func.FunctionName))
-                    m_dictionary[func.FunctionName] += "\r\n" + func.ToString();
-                else
-                    m_dictionary.Add(func.FunctionName, func.ToString());
+                m_dictionary.Add(func.Name.Text, func.ToString());
             }
 
 

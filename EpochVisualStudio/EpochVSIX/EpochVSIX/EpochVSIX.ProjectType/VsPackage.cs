@@ -91,7 +91,7 @@ namespace EpochVSIX
 
         public int OnAfterActiveSolutionCfgChange(IVsCfg pOldActiveSlnCfg, IVsCfg pNewActiveSlnCfg)
         {
-            ProjectParser.GetInstance().Reset();
+            Parser.ProjectMapper.GetInstance().Reset();
             return VSConstants.S_OK;
         }
 
@@ -102,7 +102,7 @@ namespace EpochVSIX
 
         public int UpdateSolution_Done(int fSucceeded, int fModified, int fCancelCommand)
         {
-            ProjectParser.GetInstance().Reset();
+            Parser.ProjectMapper.GetInstance().Reset();
             return VSConstants.S_OK;
         }
 
@@ -118,7 +118,7 @@ namespace EpochVSIX
 
         public int OnActiveProjectCfgChange(IVsHierarchy pIVsHierarchy)
         {
-            ProjectParser.GetInstance().Reset();
+            Parser.ProjectMapper.GetInstance().Reset();
             return VSConstants.S_OK;
         }
     }

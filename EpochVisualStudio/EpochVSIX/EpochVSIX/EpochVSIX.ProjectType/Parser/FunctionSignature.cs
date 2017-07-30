@@ -14,6 +14,13 @@ namespace EpochVSIX.Parser
 
 
 
+        public override string ToString()
+        {
+            return string.Join("\r\n\r\n", Overloads.Select(o => o.Format(Name.Text)).ToArray());
+        }
+
+
+
         private static bool IsLiteralFunctionParam(Token token)
         {
             if (token.Text == "0")
@@ -437,6 +444,11 @@ namespace EpochVSIX.Parser
         {
             public string Name;
             public TypeSignature Type;
+
+            public override string ToString()
+            {
+                return $"{Type} {Name}";
+            }
         }
 
         public class Tag
@@ -444,14 +456,36 @@ namespace EpochVSIX.Parser
             public class TagParam
             {
                 public List<Token> AssociatedTokens;
+
+                public override string ToString()
+                {
+                    return string.Join(" ", AssociatedTokens.Select(t => t.Text));
+                }
             }
 
             public Token Name;
             public List<TagParam> Params;
+
+            public override string ToString()
+            {
+                string p = "";
+                if (Params != null && Params.Count > 0)
+                    p = $"({string.Join(", ", Params)})";
+
+                return $"{Name.Text}{p}";
+            }
         }
 
         public List<Parameter> Parameters;
         public TypeSignatureInstantiated ReturnType;
         public List<Tag> Tags;
+
+        public string Format(string basename)
+        {
+            string paramlist = Parameters == null ? "" : string.Join(", ", Parameters);
+            string ret = ReturnType == null ? "" : $" -> {ReturnType}";
+            string tags = Tags == null ? "" : $"[{string.Join(", ", Tags)}]";
+            return $"{basename} : {paramlist}{ret}{tags}";
+        }
     }
 }
