@@ -1,17 +1,12 @@
-﻿using System;
+﻿using Microsoft.VisualStudio.Language.Intellisense;
+using Microsoft.VisualStudio.Text;
+using Microsoft.VisualStudio.Text.Operations;
+using Microsoft.VisualStudio.Utilities;
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel.Composition;
-using System.Runtime.InteropServices;
-using Microsoft.VisualStudio.Language.Intellisense;
-using Microsoft.VisualStudio.Text;
-using Microsoft.VisualStudio.Text.Editor;
-using Microsoft.VisualStudio.Utilities;
-using Microsoft.VisualStudio.Editor;
-using Microsoft.VisualStudio.Text.Operations;
-using Microsoft.VisualStudio;
-using Microsoft.VisualStudio.TextManager.Interop;
-using Microsoft.VisualStudio.OLE.Interop;
+using System.Linq;
 
 namespace EpochVSIX
 {
@@ -179,19 +174,7 @@ namespace EpochVSIX
 
             //the number of commas in the string is the index of the current parameter
             string sigText = ApplicableToSpan.GetText(m_subjectBuffer.CurrentSnapshot);
-
-            int currentIndex = 0;
-            int commaCount = 0;
-            while (currentIndex < sigText.Length)
-            {
-                int commaIndex = sigText.IndexOf(',', currentIndex);
-                if (commaIndex == -1)
-                {
-                    break;
-                }
-                commaCount++;
-                currentIndex = commaIndex + 1;
-            }
+            int commaCount = sigText.Count(c => c == ',');
 
             if (commaCount < Parameters.Count)
             {
