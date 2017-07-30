@@ -9,14 +9,19 @@ namespace EpochVSIX.Parser
     class SourceFile
     {
         private string FileFullPath;
-        private List<LexicalScope> Scopes;
+
+
+        public string Path
+        {
+            get { return FileFullPath; }
+        }
 
 
         private void AugmentProject(Project project, string filecontents)
         {
             project.RegisterSourceFile(FileFullPath, this);
 
-            var lexer = new LexSession(FileFullPath, filecontents);
+            var lexer = new LexSession(this, filecontents);
             var parser = new ParseSession(lexer);
 
             parser.AugmentProject(project);
@@ -27,7 +32,6 @@ namespace EpochVSIX.Parser
         {
             var file = new SourceFile();
             file.FileFullPath = filepath;
-            file.Scopes = new List<LexicalScope>();
 
             file.AugmentProject(project, filecontents);
 

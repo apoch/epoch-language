@@ -12,6 +12,7 @@ namespace EpochVSIX.Parser
     class Project
     {
         private Dictionary<string, SourceFile> Files;
+        private Dictionary<string, List<LexicalScope>> Scopes;
 
         private LexicalScope GlobalScope;
 
@@ -56,6 +57,17 @@ namespace EpochVSIX.Parser
                 FunctionSignatures[function.Name.Text].Overloads.AddRange(function.Overloads);
             else
                 FunctionSignatures.Add(function.Name.Text, function);
+
+            foreach (var overload in function.Overloads)
+            {
+                if (overload.Scope == null)
+                    continue;
+
+                if (!Scopes.ContainsKey(overload.Scope.File.Path))
+                    Scopes.Add(overload.Scope.File.Path, new List<LexicalScope>());
+
+                Scopes[overload.Scope.File.Path].Add(overload.Scope);
+            }
         }
 
         public void RegisterGlobalVariable(Variable variable)
@@ -122,6 +134,25 @@ namespace EpochVSIX.Parser
             if (GlobalScope != null && GlobalScope.Variables.Count > 0)
                 ret.AddRange(GlobalScope.Variables);
 
+            if (Scopes.ContainsKey(file))
+            {
+                foreach (var scope in Scopes[file])
+                {
+                    if (scope.StartLine > line)
+                        continue;
+
+                    if (scope.EndLine < line)
+                        continue;
+
+                    if ((scope.StartLine == line) && (scope.StartColumn > column))
+                        continue;
+
+                    if ((scope.EndLine == line) && (scope.EndColumn < column))
+                        continue;
+
+                    ret.AddRange(scope.Variables);
+                }
+            }
 
             return ret;
         }
@@ -213,15 +244,13 @@ namespace EpochVSIX.Parser
         private void ParseFile(string filename)
         {
             string text = System.IO.File.ReadAllText(filename);
-            var lexer = new LexSession(filename, text);
-            var parser = new ParseSession(lexer);
-
-            parser.AugmentProject(this);
+            var file = SourceFile.AugmentProject(this, filename, text);
         }
 
         private void ResetContents()
         {
             Files = new Dictionary<string, SourceFile>();
+            Scopes = new Dictionary<string, List<LexicalScope>>();
             GlobalScope = new LexicalScope();
 
             FunctionSignatures = new Dictionary<string, FunctionSignature>();

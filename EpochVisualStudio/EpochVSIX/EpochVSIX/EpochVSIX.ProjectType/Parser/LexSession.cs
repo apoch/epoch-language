@@ -21,7 +21,7 @@ namespace EpochVSIX.Parser
             StringLiteral,
         };
 
-        private string FileName;
+        private SourceFile File;
         private string Buffer;
         private List<Token> TokenCache;
 
@@ -36,9 +36,9 @@ namespace EpochVSIX.Parser
         private CharacterClass PreviousState = CharacterClass.White;
 
 
-        public LexSession(string filename, string buffer)
+        public LexSession(SourceFile file, string buffer)
         {
-            FileName = filename;
+            File = file;
             Buffer = buffer;
             TokenCache = new List<Token>();
 
@@ -55,9 +55,9 @@ namespace EpochVSIX.Parser
             get { return (Buffer == null) || (LexIndex >= Buffer.Length); }
         }
 
-        public string File
+        public string FileName
         {
-            get { return FileName; }
+            get { return File.Path; }
         }
 
 
@@ -118,7 +118,7 @@ namespace EpochVSIX.Parser
                     }
 
                     if (notidentifier)
-                        TokenCache.Add(new Token { Text = Buffer.Substring(LastTokenStart, LexIndex - LastTokenStart), Line = CurrentLineIndex, Column = CurrentColumnIndex });
+                        CacheToken(Buffer.Substring(LastTokenStart, LexIndex - LastTokenStart));
                 }
                 else if (LexState == CharacterClass.Punctuation)
                 {
@@ -127,7 +127,7 @@ namespace EpochVSIX.Parser
                     else if (LexerClassify(c, LexState) != CharacterClass.Punctuation)
                         LexState = LexerClassify(c, LexState);
 
-                    TokenCache.Add(new Token { Text = Buffer.Substring(LastTokenStart, LexIndex - LastTokenStart), Line = CurrentLineIndex, Column = CurrentColumnIndex });
+                    CacheToken(Buffer.Substring(LastTokenStart, LexIndex - LastTokenStart));
                     LastTokenStart = LexIndex;
                 }
                 else if (LexState == CharacterClass.PunctuationCompound)
@@ -150,7 +150,7 @@ namespace EpochVSIX.Parser
                             string potentialtoken = Buffer.Substring(LastTokenStart, LexIndex - LastTokenStart);
                             if (!IsValidPunctuation(potentialtoken))
                             {
-                                TokenCache.Add(new Token { Text = potentialtoken.Substring(0, potentialtoken.Length - 1), Line = CurrentLineIndex, Column = CurrentColumnIndex });
+                                CacheToken(potentialtoken.Substring(0, potentialtoken.Length - 1));
                                 LastTokenStart = LexIndex - 1;
                             }
                         }
@@ -163,12 +163,12 @@ namespace EpochVSIX.Parser
                             string potentialtoken = Buffer.Substring(LastTokenStart, LexIndex - LastTokenStart);
                             if (!IsValidPunctuation(potentialtoken))
                             {
-                                TokenCache.Add(new Token { Text = potentialtoken.Substring(0, potentialtoken.Length - 1), Line = CurrentLineIndex, Column = CurrentColumnIndex });
+                                CacheToken(potentialtoken.Substring(0, potentialtoken.Length - 1));
                                 LastTokenStart = LexIndex - 1;
                             }
                         }
 
-                        TokenCache.Add(new Token { Text = Buffer.Substring(LastTokenStart, LexIndex - LastTokenStart), Line = CurrentLineIndex, Column = CurrentColumnIndex });
+                        CacheToken(Buffer.Substring(LastTokenStart, LexIndex - LastTokenStart));
                     }
                 }
                 else if (LexState == CharacterClass.Comment)
@@ -187,7 +187,7 @@ namespace EpochVSIX.Parser
                     if (c == '\"')
                     {
                         LexState = CharacterClass.White;
-                        TokenCache.Add(new Token { Text = Buffer.Substring(LastTokenStart, LexIndex - LastTokenStart + 1), Line = CurrentLineIndex, Column = CurrentColumnIndex });
+                        CacheToken(Buffer.Substring(LastTokenStart, LexIndex - LastTokenStart + 1));
                     }
                 }
                 else if (LexState == CharacterClass.Literal)
@@ -205,7 +205,7 @@ namespace EpochVSIX.Parser
                     }
 
                     if (notliteral)
-                        TokenCache.Add(new Token { Text = Buffer.Substring(LastTokenStart, LexIndex - LastTokenStart), Line = CurrentLineIndex, Column = CurrentColumnIndex });
+                        CacheToken(Buffer.Substring(LastTokenStart, LexIndex - LastTokenStart));
                 }
 
                 // Hack for negated literals
@@ -231,12 +231,25 @@ namespace EpochVSIX.Parser
             }
 
             if ((LastTokenStart < Buffer.Length) && (LexState != CharacterClass.White))
-                TokenCache.Add(new Token { Text = Buffer.Substring(LastTokenStart, Buffer.Length - LastTokenStart), Line = CurrentLineIndex, Column = CurrentColumnIndex });
+                CacheToken(Buffer.Substring(LastTokenStart, Buffer.Length - LastTokenStart));
 
             if ((TokenCache.Count == startcount) && Empty)
             {
                 TokenCache.Add(null);
             }
+        }
+
+        private void CacheToken(string token)
+        {
+            var t = new Token
+            {
+                Text = token,
+                Line = CurrentLineIndex,
+                Column = CurrentColumnIndex,
+                File = File
+            };
+
+            TokenCache.Add(t);
         }
 
         private CharacterClass LexerClassify(char c, CharacterClass currentclass)

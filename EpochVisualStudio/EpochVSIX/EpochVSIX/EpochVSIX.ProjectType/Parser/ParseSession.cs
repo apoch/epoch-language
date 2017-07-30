@@ -95,7 +95,7 @@ namespace EpochVSIX.Parser
                 errorTask.Text = ex.Message;
                 errorTask.Category = TaskCategory.CodeSense;
                 errorTask.ErrorCategory = TaskErrorCategory.Error;
-                errorTask.Document = Lexer.File;
+                errorTask.Document = Lexer.FileName;
                 errorTask.Line = (!Lexer.Empty && Lexer.PeekToken(0) != null) ? (Lexer.PeekToken(0).Line) : 0;
                 errorTask.Column = (!Lexer.Empty && Lexer.PeekToken(0) != null) ? (Lexer.PeekToken(0).Column) : 0;
                 errorTask.Navigate += NavigationHandler;

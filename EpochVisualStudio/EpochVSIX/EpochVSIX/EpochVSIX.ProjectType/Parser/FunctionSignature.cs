@@ -190,22 +190,31 @@ namespace EpochVSIX.Parser
 
             while (!parser.CheckToken(totaltokens, "]"))
             {
-                ret.Add(new FunctionOverload.Tag { Name = parser.PeekToken(totaltokens) });
+                var tag = new FunctionOverload.Tag { Name = parser.PeekToken(totaltokens) };
 
                 if (parser.CheckToken(totaltokens + 1, "("))
                 {
-                    // TODO - proper tag param handling
                     totaltokens += 2;
+
+                    tag.Params = new List<FunctionOverload.Tag.TagParam>();
+                    var p = new FunctionOverload.Tag.TagParam { AssociatedTokens = new List<Token>() };
 
                     while (!parser.CheckToken(totaltokens, ")"))
                     {
+                        p.AssociatedTokens.Add(parser.PeekToken(totaltokens));
                         ++totaltokens;
 
                         if (parser.CheckToken(totaltokens, ","))
+                        {
+                            tag.Params.Add(p);
                             ++totaltokens;
+                            p = new FunctionOverload.Tag.TagParam { AssociatedTokens = new List<Token>() };
+                        }
                     }
                 }
                 ++totaltokens;
+
+                ret.Add(tag);
 
                 if (parser.CheckToken(totaltokens, ","))
                     ++totaltokens;
@@ -218,7 +227,7 @@ namespace EpochVSIX.Parser
         }
 
 
-        private static bool ParseEntity(ParseSession parser, int starttoken, out int consumedtokens)
+        private static bool ParseEntity(ParseSession parser, LexicalScope parentscope, int starttoken, out int consumedtokens)
         {
             consumedtokens = starttoken;
             int totaltokens = starttoken;
@@ -241,7 +250,7 @@ namespace EpochVSIX.Parser
                     return false;
 
                 ++totaltokens;
-                ParseCodeBlock(parser, totaltokens, out totaltokens);
+                ParseCodeBlock(parser, parentscope, totaltokens, out totaltokens);
 
                 while (parser.CheckToken(totaltokens, "elseif"))
                 {
@@ -257,7 +266,7 @@ namespace EpochVSIX.Parser
                         return false;
 
                     ++totaltokens;
-                    ParseCodeBlock(parser, totaltokens, out totaltokens);
+                    ParseCodeBlock(parser, parentscope, totaltokens, out totaltokens);
                 }
 
                 if (parser.CheckToken(totaltokens, "else"))
@@ -267,7 +276,7 @@ namespace EpochVSIX.Parser
                         return false;
 
                     ++totaltokens;
-                    ParseCodeBlock(parser, totaltokens, out totaltokens);
+                    ParseCodeBlock(parser, parentscope, totaltokens, out totaltokens);
                 }
 
                 consumedtokens = totaltokens;
@@ -290,7 +299,7 @@ namespace EpochVSIX.Parser
                     return false;
 
                 ++totaltokens;
-                ParseCodeBlock(parser, totaltokens, out totaltokens);
+                ParseCodeBlock(parser, parentscope, totaltokens, out totaltokens);
 
                 consumedtokens = totaltokens;
                 return true;
@@ -344,15 +353,21 @@ namespace EpochVSIX.Parser
         }
 
 
-        private static void ParseCodeBlock(ParseSession parser, int starttoken, out int consumedtokens)
+        private static LexicalScope ParseCodeBlock(ParseSession parser, LexicalScope parentscope, int starttoken, out int consumedtokens)
         {
             consumedtokens = starttoken;
             int totaltokens = starttoken;
-            Token startBrace = parser.PeekToken(totaltokens);
+            Token afterStartBrace = parser.PeekToken(totaltokens);
+
+            var ret = new LexicalScope();
+            ret.File = afterStartBrace.File;
+            ret.StartLine = afterStartBrace.Line;
+            ret.StartColumn = afterStartBrace.Column;
+            ret.ParentScope = parentscope;
 
             while (!parser.CheckToken(totaltokens, "}"))
             {
-                if (ParseEntity(parser, totaltokens, out totaltokens)
+                if (ParseEntity(parser, ret, totaltokens, out totaltokens)
                     || parser.ParsePreopStatement(totaltokens, out totaltokens)
                     || parser.ParsePostopStatement(totaltokens, out totaltokens)
                     || parser.ParseStatement(totaltokens, out totaltokens))
@@ -379,14 +394,17 @@ namespace EpochVSIX.Parser
                 }
 
                 consumedtokens = totaltokens;
-                return;
+                return null;
             }
 
             Token endBrace = parser.PeekToken(totaltokens);
 
-            // TODO - add lexical scope
             ++totaltokens;
             consumedtokens = totaltokens;
+
+            ret.EndLine = endBrace.Line;
+            ret.EndColumn = endBrace.Column;
+            return ret;
         }
 
 
@@ -426,7 +444,8 @@ namespace EpochVSIX.Parser
             if (parser.CheckToken(totaltokens, "{"))
             {
                 ++totaltokens;
-                ParseCodeBlock(parser, totaltokens, out totaltokens);
+                var scope = ParseCodeBlock(parser, null, totaltokens, out totaltokens);
+                overload.Scope = scope;
             }
 
             parser.ConsumeTokens(totaltokens);
@@ -479,12 +498,13 @@ namespace EpochVSIX.Parser
         public List<Parameter> Parameters;
         public TypeSignatureInstantiated ReturnType;
         public List<Tag> Tags;
+        public LexicalScope Scope;
 
         public string Format(string basename)
         {
             string paramlist = Parameters == null ? "" : string.Join(", ", Parameters);
             string ret = ReturnType == null ? "" : $" -> {ReturnType}";
-            string tags = Tags == null ? "" : $"[{string.Join(", ", Tags)}]";
+            string tags = Tags == null ? "" : $" [{string.Join(", ", Tags)}]";
             return $"{basename} : {paramlist}{ret}{tags}";
         }
     }

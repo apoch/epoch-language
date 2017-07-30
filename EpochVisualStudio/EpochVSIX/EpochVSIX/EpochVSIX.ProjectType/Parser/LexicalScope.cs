@@ -8,7 +8,8 @@ namespace EpochVSIX.Parser
 {
     class LexicalScope
     {
-        public string Name;
+        public SourceFile File;
+
         public int StartLine;
         public int StartColumn;
         public int EndLine;
