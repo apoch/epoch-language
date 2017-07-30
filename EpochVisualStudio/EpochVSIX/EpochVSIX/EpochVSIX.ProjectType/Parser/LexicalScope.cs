@@ -18,5 +18,6 @@ namespace EpochVSIX.Parser
         public List<Variable> Variables = new List<Variable>();
 
         public LexicalScope ParentScope = null;
+        public List<LexicalScope> ChildScopes = null;
     }
 }

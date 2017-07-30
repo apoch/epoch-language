@@ -365,6 +365,14 @@ namespace EpochVSIX.Parser
             ret.StartColumn = afterStartBrace.Column;
             ret.ParentScope = parentscope;
 
+            if (parentscope != null)
+            {
+                if (parentscope.ChildScopes == null)
+                    parentscope.ChildScopes = new List<LexicalScope>();
+
+                parentscope.ChildScopes.Add(ret);
+            }
+
             while (!parser.CheckToken(totaltokens, "}"))
             {
                 if (ParseEntity(parser, ret, totaltokens, out totaltokens)
@@ -380,7 +388,7 @@ namespace EpochVSIX.Parser
                 var variable = Variable.Parse(parser, totaltokens, out totaltokens, Variable.Origins.Local);
                 if (variable != null)
                 {
-                    // TODO - stash variable definition in lexical scope
+                    ret.Variables.Add(variable);
                     parser.ConsumeTokens(totaltokens);
                     totaltokens = 0;
                     continue;

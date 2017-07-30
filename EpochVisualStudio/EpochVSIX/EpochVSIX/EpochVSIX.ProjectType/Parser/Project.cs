@@ -63,10 +63,11 @@ namespace EpochVSIX.Parser
                 if (overload.Scope == null)
                     continue;
 
-                if (!Scopes.ContainsKey(overload.Scope.File.Path))
-                    Scopes.Add(overload.Scope.File.Path, new List<LexicalScope>());
+                string p = overload.Scope.File.Path.ToLower();
+                if (!Scopes.ContainsKey(p))
+                    Scopes.Add(p, new List<LexicalScope>());
 
-                Scopes[overload.Scope.File.Path].Add(overload.Scope);
+                Scopes[p].Add(overload.Scope);
             }
         }
 
@@ -128,33 +129,46 @@ namespace EpochVSIX.Parser
             return t.ToList();
         }
 
-        public List<Variable> GetAvailableVariables(string file, int line, int column)
+        public List<Variable> GetAvailableVariables(string fileraw, int line, int column)
         {
             var ret = new List<Variable>();
             if (GlobalScope != null && GlobalScope.Variables.Count > 0)
                 ret.AddRange(GlobalScope.Variables);
 
-            if (Scopes.ContainsKey(file))
+            var filelower = fileraw.ToLower();
+            if (Scopes.ContainsKey(filelower))
             {
-                foreach (var scope in Scopes[file])
+                foreach (var scope in Scopes[filelower])
                 {
-                    if (scope.StartLine > line)
-                        continue;
-
-                    if (scope.EndLine < line)
-                        continue;
-
-                    if ((scope.StartLine == line) && (scope.StartColumn > column))
-                        continue;
-
-                    if ((scope.EndLine == line) && (scope.EndColumn < column))
-                        continue;
-
-                    ret.AddRange(scope.Variables);
+                    AddScopeTree(scope, ret, line, column);
                 }
             }
 
             return ret;
+        }
+
+
+        private void AddScopeTree(LexicalScope scope, List<Variable> ret, int line, int column)
+        {
+            if (scope.StartLine > line)
+                return;
+
+            if (scope.EndLine < line)
+                return;
+
+            if ((scope.StartLine == line) && (scope.StartColumn > column))
+                return;
+
+            if ((scope.EndLine == line) && (scope.EndColumn < column))
+                return;
+
+            ret.AddRange(scope.Variables);
+
+            if (scope.ChildScopes == null)
+                return;
+
+            foreach (var child in scope.ChildScopes)
+                AddScopeTree(child, ret, line, column);
         }
 
 

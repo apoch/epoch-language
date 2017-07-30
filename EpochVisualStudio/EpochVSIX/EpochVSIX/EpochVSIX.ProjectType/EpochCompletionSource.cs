@@ -51,7 +51,7 @@ namespace EpochVSIX
                 {
                     foreach (var v in variables)
                     {
-                        if (v.Name.Equals(varstack[0]))
+                        if (v.Name.Text.Equals(varstack[0]))
                         {
                             var defn = m_parsedProject.GetStructureDefinition(v.Type.Name);
                             if (defn == null)
@@ -70,6 +70,8 @@ namespace EpochVSIX
                                         break;
                                     }
                                 }
+
+                                defn = null;
                             }
 
                             if (defn != null)
