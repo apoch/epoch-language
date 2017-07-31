@@ -27,10 +27,6 @@ namespace EpochVSIX.Parser
         private DateTime LastParseTime;
 
 
-        private const uint VSITEMID_ROOT = 0xFFFFFFFE;          // TODO - obtain this in a better way
-        private const uint VSITEMID_NIL = 0xFFFFFFFF;
-
-
         public Project(IVsHierarchy hierarchy)
         {
             ResetContents();
@@ -47,7 +43,7 @@ namespace EpochVSIX.Parser
 
             LastParseTime = DateTime.Now;
             ResetContents();
-            ParseHierarchy(Hierarchy, VSITEMID_ROOT);
+            ParseHierarchy(Hierarchy, (uint)VSConstants.VSITEMID.Root);
         }
 
 
@@ -212,13 +208,13 @@ namespace EpochVSIX.Parser
             nestedHierarchyGuid = typeof(IVsHierarchy).GUID;
             result = hierarchy.GetNestedHierarchy(itemId, ref nestedHierarchyGuid, out nestedHiearchyValue, out nestedItemIdValue);
 
-            if (result == VSConstants.S_OK && nestedHiearchyValue != IntPtr.Zero && nestedItemIdValue == VSITEMID_ROOT)
+            if (result == VSConstants.S_OK && nestedHiearchyValue != IntPtr.Zero && nestedItemIdValue == (uint)VSConstants.VSITEMID.Root)
             {
                 nestedHierarchy = System.Runtime.InteropServices.Marshal.GetObjectForIUnknown(nestedHiearchyValue) as IVsHierarchy;
                 System.Runtime.InteropServices.Marshal.Release(nestedHiearchyValue);
 
                 if (nestedHierarchy != null)
-                    ParseHierarchy(nestedHierarchy, VSITEMID_ROOT);
+                    ParseHierarchy(nestedHierarchy, (uint)VSConstants.VSITEMID.Root);
             }
             else
             {
@@ -228,7 +224,7 @@ namespace EpochVSIX.Parser
 
                 while (result == VSConstants.S_OK && value != null)
                 {
-                    if (value is int && (uint)(int)value == VSITEMID_NIL)
+                    if (value is int && (VSConstants.VSITEMID)(int)value == VSConstants.VSITEMID.Nil)
                         break;
 
                     visibleChildNode = Convert.ToUInt32(value);

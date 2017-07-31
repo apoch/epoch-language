@@ -57,9 +57,9 @@ namespace EpochVSIX.Parser
             {
                 if (parser.CheckToken(totaltokens, "nothing"))
                 {
-                    var signature = new TypeSignature();
+                    var signature = new TypeSignatureInstantiated();
 
-                    ret.Add(new FunctionOverload.Parameter { Name = "nothing", Type = signature });
+                    ret.Add(new FunctionOverload.Parameter { Name = parser.PeekToken(totaltokens), Type = signature });
                     ++totaltokens;
                 }
                 else if (parser.CheckToken(totaltokens, "("))
@@ -97,15 +97,15 @@ namespace EpochVSIX.Parser
 
                     ++totaltokens;
 
-                    var signature = new TypeSignature();        // TODO - implement higher order function signatures
-                    ret.Add(new FunctionOverload.Parameter { Name = higherordername.Text, Type = signature });
+                    var signature = new TypeSignatureInstantiated();        // TODO - implement higher order function signatures
+                    ret.Add(new FunctionOverload.Parameter { Name = higherordername, Type = signature });
                 }
                 else if (IsLiteralFunctionParam(parser.PeekToken(totaltokens)))
                 {
                     // TODO - better literal support
 
-                    var signature = new TypeSignature();
-                    ret.Add(new FunctionOverload.Parameter { Name = parser.PeekToken(totaltokens).Text, Type = signature });
+                    var signature = new TypeSignatureInstantiated();
+                    ret.Add(new FunctionOverload.Parameter { Name = parser.PeekToken(totaltokens), Type = signature });
 
                     ++totaltokens;
                 }
@@ -130,8 +130,8 @@ namespace EpochVSIX.Parser
                         paramname = parser.PeekToken(totaltokens);
                     }
 
-                    var signature = TypeSignature.Construct(parser, begintoken, totaltokens);
-                    ret.Add(new FunctionOverload.Parameter { Name = paramname.Text, Type = signature });
+                    var signature = TypeSignatureInstantiated.Construct(parser, begintoken, totaltokens);
+                    ret.Add(new FunctionOverload.Parameter { Name = paramname, Type = signature });
 
                     ++totaltokens;
                 }
@@ -454,6 +454,15 @@ namespace EpochVSIX.Parser
                 ++totaltokens;
                 var scope = ParseCodeBlock(parser, null, totaltokens, out totaltokens);
                 overload.Scope = scope;
+
+                if (overload.Scope != null && overload.Parameters != null)
+                {
+                    foreach (var p in overload.Parameters)
+                    {
+                        var v = new Variable { Name = p.Name, Type = p.Type, Origin = Variable.Origins.Parameter };
+                        overload.Scope.Variables.Add(v);
+                    }
+                }
             }
 
             parser.ConsumeTokens(totaltokens);
@@ -469,8 +478,8 @@ namespace EpochVSIX.Parser
     {
         public class Parameter
         {
-            public string Name;
-            public TypeSignature Type;
+            public Token Name;
+            public TypeSignatureInstantiated Type;
 
             public override string ToString()
             {

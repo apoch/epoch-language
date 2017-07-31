@@ -62,6 +62,24 @@ namespace EpochVSIX.Parser
             var signature = new TypeSignature();
             signature.TypeName = parser.PeekToken(begintoken).Text;
 
+            if (parser.CheckToken(begintoken + 1, "<"))
+            {
+                signature.TypeParameters = new List<TypeParameter>();
+                int totaltokens = begintoken + 2;
+                while (!parser.CheckToken(totaltokens, ">"))
+                {
+                    var tokentype = parser.PeekToken(totaltokens);
+                    var tokenname = parser.PeekToken(totaltokens + 1);
+                    var param = new TypeParameter { Name = tokenname.Text, ArgumentType = new TypeSignature { TypeName = tokentype.Text } };
+
+                    signature.TypeParameters.Add(param);
+
+                    totaltokens += 2;
+                    if (parser.CheckToken(totaltokens, ","))
+                        ++totaltokens;
+                }
+            }
+
             int reftoken = endtoken - 1;
             if (reftoken > begintoken)
                 signature.TypeIsReference = parser.CheckToken(reftoken, "ref");
@@ -74,7 +92,7 @@ namespace EpochVSIX.Parser
     {
         public class TypeArgument
         {
-            public TypeSignature SpecifiedType;
+            public TypeSignatureInstantiated SpecifiedType;
 
             public override string ToString()
             {
@@ -124,6 +142,23 @@ namespace EpochVSIX.Parser
         {
             var signature = new TypeSignatureInstantiated();
             signature.TypeName = parser.PeekToken(begintoken).Text;
+
+
+            if (parser.CheckToken(begintoken + 1, "<"))
+            {
+                signature.TypeArguments = new List<TypeArgument>();
+                int totaltokens = begintoken + 2;
+                while (!parser.CheckToken(totaltokens, ">"))
+                {
+                    var argtoken = parser.PeekToken(totaltokens);
+                    signature.TypeArguments.Add(new TypeArgument { SpecifiedType = new TypeSignatureInstantiated { TypeName = argtoken.Text } });
+                    ++totaltokens;
+
+                    if (parser.CheckToken(totaltokens, ","))
+                        ++totaltokens;
+                }
+            }
+
 
             int reftoken = endtoken - 1;
             if (reftoken > begintoken)

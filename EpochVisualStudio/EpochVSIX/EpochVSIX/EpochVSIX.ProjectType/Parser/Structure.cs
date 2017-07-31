@@ -14,7 +14,7 @@ namespace EpochVSIX.Parser
         public class Member
         {
             public Token Name;
-            public TypeSignature Type;
+            public TypeSignatureInstantiated Type;
         }
 
 
@@ -124,7 +124,7 @@ namespace EpochVSIX.Parser
                         ++totaltokens;
                     }
 
-                    parsed.Object.Members.Add(new Member { Name = membername, Type = TypeSignature.Construct(parser, typestarttoken, typeendtoken) });
+                    parsed.Object.Members.Add(new Member { Name = membername, Type = TypeSignatureInstantiated.Construct(parser, typestarttoken, typeendtoken) });
                 }
 
                 if (!parser.CheckToken(totaltokens, ","))

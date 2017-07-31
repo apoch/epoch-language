@@ -54,6 +54,15 @@ namespace EpochVSIX
                 m_dictionary.Add(func.Name.Text, func.ToString());
             }
 
+            var structlist = m_parsedProject.GetAvailableStructureDefinitions();
+            foreach (var st in structlist)
+            {
+                m_dictionary.Add(st.Key, st.Value.ToString());
+            }
+
+            var variables = GetApplicableVariables(session);
+            foreach (var v in variables)
+                m_dictionary.Add(v.Name.Text, v.ToString());
 
             ITextSnapshot currentSnapshot = subjectTriggerPoint.Value.Snapshot;
             SnapshotSpan querySpan = new SnapshotSpan(subjectTriggerPoint.Value, 0);
@@ -90,6 +99,41 @@ namespace EpochVSIX
                 GC.SuppressFinalize(this);
                 m_isDisposed = true;
             }
+        }
+
+
+        private List<Parser.Variable> GetApplicableVariables(IQuickInfoSession session)
+        {
+            var variables = new List<Parser.Variable>();
+            var pt = session.GetTriggerPoint(session.TextView.TextBuffer).GetPoint(session.TextView.TextSnapshot);
+
+            var line = pt.GetContainingLine().LineNumber;
+            var column = pt.Position - pt.GetContainingLine().Start.Position;
+
+            IVsTextBuffer bufferAdapter;
+            m_subjectBuffer.Properties.TryGetProperty(typeof(IVsTextBuffer), out bufferAdapter);
+
+            if (bufferAdapter != null)
+            {
+                ThreadHelper.ThrowIfNotOnUIThread();
+                var persistFileFormat = bufferAdapter as IPersistFileFormat;
+
+                if (persistFileFormat != null)
+                {
+                    string filename = null;
+                    uint formatIndex;
+                    persistFileFormat.GetCurFile(out filename, out formatIndex);
+
+                    if (!string.IsNullOrEmpty(filename))
+                    {
+                        variables = m_parsedProject.GetAvailableVariables(filename, line, column);
+                    }
+                }
+            }
+
+            // TODO - handle failure cases?
+
+            return variables;
         }
     }
 

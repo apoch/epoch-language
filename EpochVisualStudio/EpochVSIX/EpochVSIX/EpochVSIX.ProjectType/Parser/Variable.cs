@@ -21,6 +21,12 @@ namespace EpochVSIX.Parser
         public Origins Origin;
 
 
+        public override string ToString()
+        {
+            return $"{Type} {Name} ({Origin})";
+        }
+
+
         internal static Variable Parse(ParseSession parser, int starttoken, out int consumedtokens, Origins origin)
         {
             consumedtokens = starttoken;
