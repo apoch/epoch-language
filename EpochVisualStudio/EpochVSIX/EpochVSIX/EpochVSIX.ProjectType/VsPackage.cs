@@ -37,6 +37,8 @@ namespace EpochVSIX
     [Guid(VsPackage.PackageGuid)]
     [ProvideAutoLoad("{f1536ef8-92ec-443c-9ed7-fdadf150da82}")]         // UICONTEXT_SolutionExists
     [ProvideService(typeof(EpochLanguageService), ServiceName = "EpochFile")]
+    [ProvideEditorExtension(typeof(EpochEditorFactory), ".epoch",  40)]  // Priority is crucial - I haven't tested it more, but with lower values (32 and lower) VS decides to initialize XML editor.
+    [ProvideEditorLogicalView(typeof(EpochEditorFactory), VSConstants.LOGVIEWID.Code_string)]
     [ProvideLanguageExtension(VsPackage.LanguageServiceGuid, ".epoch")]
     [ProvideLanguageService(typeof(EpochLanguageService), "EpochFile", 1, CodeSense = true, RequestStockColors = true, EnableCommenting = true)]
     public sealed class VsPackage : Package, IVsUpdateSolutionEvents, IVsUpdateSolutionEvents3
@@ -45,6 +47,11 @@ namespace EpochVSIX
         /// The GUID for this package.
         /// </summary>
         public const string PackageGuid = "b95d8222-cdfc-44b4-9635-585db8a10b9f";
+
+        /// <summary>
+        /// The GUID for the editor.
+        /// </summary>
+        public const string EditorGuid = "fb39200c-39d5-4333-970a-6ba7a28fe71f";
 
         /// <summary>
         /// The GUID for this project type.  It is unique with the project file extension and
@@ -82,6 +89,9 @@ namespace EpochVSIX
             var buildManager = GetService(typeof(SVsSolutionBuildManager)) as IVsSolutionBuildManager;
             buildManager.AdviseUpdateSolutionEvents(this, out BuildManagerCookie2);
             (buildManager as IVsSolutionBuildManager3).AdviseUpdateSolutionEvents3(this, out BuildManagerCookie);
+
+            // Finally we register the Epoch editor factory.
+            RegisterEditorFactory(new EpochEditorFactory(this));
         }
 
         public int OnBeforeActiveSolutionCfgChange(IVsCfg pOldActiveSlnCfg, IVsCfg pNewActiveSlnCfg)

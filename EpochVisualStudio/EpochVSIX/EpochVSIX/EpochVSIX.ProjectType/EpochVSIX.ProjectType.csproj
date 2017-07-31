@@ -216,6 +216,7 @@
     <Compile Include="EpochCompletionCommandHandler.cs" />
     <Compile Include="EpochCompletionSource.cs" />
     <Compile Include="EpochCompletionSourceProvider.cs" />
+    <Compile Include="EpochEditorFactory.cs" />
     <Compile Include="EpochImagesMonikers.cs" />
     <Compile Include="EpochLanguageService.cs" />
     <Compile Include="EpochOutliningTagger.cs" />
