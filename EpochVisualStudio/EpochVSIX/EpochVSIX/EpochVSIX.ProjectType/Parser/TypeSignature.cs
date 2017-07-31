@@ -42,7 +42,7 @@ namespace EpochVSIX.Parser
 
         public override string ToString()
         {
-            if (TypeName == null)
+            if (TypeName == null || TypeName == "nothing")
                 return "nothing";
 
             string Params = "";
@@ -123,7 +123,7 @@ namespace EpochVSIX.Parser
 
         public override string ToString()
         {
-            if (TypeName == null)
+            if (TypeName == null || TypeName == "nothing")
                 return "nothing";
 
             string args = "";

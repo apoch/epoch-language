@@ -489,6 +489,9 @@ namespace EpochVSIX.Parser
 
             public override string ToString()
             {
+                if (Name.Text == "nothing")
+                    return "nothing";
+
                 return $"{Type} {Name}";
             }
         }
