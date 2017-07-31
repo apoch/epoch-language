@@ -239,6 +239,7 @@
     <Compile Include="Parser\StrongAlias.cs" />
     <Compile Include="Parser\Structure.cs" />
     <Compile Include="Parser\SumType.cs" />
+    <Compile Include="Parser\SyntaxError.cs" />
     <Compile Include="Parser\Token.cs" />
     <Compile Include="Parser\TypeSignature.cs" />
     <Compile Include="Parser\Variable.cs" />

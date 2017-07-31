@@ -359,6 +359,12 @@ namespace EpochVSIX.Parser
             int totaltokens = starttoken;
             Token afterStartBrace = parser.PeekToken(totaltokens);
 
+            if (afterStartBrace == null)
+            {
+                parser.ConsumeTokens(starttoken);
+                throw new SyntaxError("Missing closing }", parser.ReversePeekToken());
+            }
+
             var ret = new LexicalScope();
             ret.File = afterStartBrace.File;
             ret.StartLine = afterStartBrace.Line;

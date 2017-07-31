@@ -300,6 +300,12 @@ namespace EpochVSIX.Parser
             SumTypes = new Dictionary<string, SumType>();
             StrongAliases = new Dictionary<string, StrongAlias>();
             WeakAliases = new Dictionary<string, WeakAlias>();
+
+            var helper = new ParseSession.ErrorListHelper();
+            var ErrorProvider = new ErrorListProvider(helper);
+            ErrorProvider.ProviderName = "Epoch Language";
+            ErrorProvider.ProviderGuid = new Guid(VsPackage.PackageGuid);
+            ErrorProvider.Tasks.Clear();        // TODO - this is probably too brute force
         }
     }
 }

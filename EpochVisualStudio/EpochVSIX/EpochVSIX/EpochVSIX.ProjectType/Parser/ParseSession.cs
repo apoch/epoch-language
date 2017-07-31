@@ -16,6 +16,7 @@ namespace EpochVSIX.Parser
         private LexSession Lexer;
         private ErrorListProvider ErrorProvider;
 
+        private Token LastConsumedToken = null;
 
 
         internal class ErrorListHelper : IServiceProvider
@@ -86,18 +87,18 @@ namespace EpochVSIX.Parser
                     }
 
                     if (!Lexer.Empty)
-                        throw new Exception("Syntax error");        // TODO - improve error messages
+                        throw new SyntaxError("Syntax error", PeekToken(0));
                 }
             }
-            catch (Exception ex)
+            catch (SyntaxError ex)
             {
                 var errorTask = new ErrorTask();
                 errorTask.Text = ex.Message;
                 errorTask.Category = TaskCategory.CodeSense;
                 errorTask.ErrorCategory = TaskErrorCategory.Error;
                 errorTask.Document = Lexer.FileName;
-                errorTask.Line = (!Lexer.Empty && Lexer.PeekToken(0) != null) ? (Lexer.PeekToken(0).Line) : 0;
-                errorTask.Column = (!Lexer.Empty && Lexer.PeekToken(0) != null) ? (Lexer.PeekToken(0).Column) : 0;
+                errorTask.Line = (ex.Origin != null) ? (ex.Origin.Line) : 0;
+                errorTask.Column = (ex.Origin != null) ? (ex.Origin.Column) : 0;
                 errorTask.Navigate += NavigationHandler;
 
                 ErrorProvider.Tasks.Add(errorTask);
@@ -119,9 +120,20 @@ namespace EpochVSIX.Parser
             return token.Text.Equals(expected);
         }
 
-        internal void ConsumeTokens(int count)
+        internal void ConsumeTokens(int originalcount)
         {
-            Lexer.ConsumeTokens(count);
+            int count = originalcount;
+            Token t = null;
+            while (t == null && count >= 0)
+            {
+                t = Lexer.PeekToken(count);
+                --count;
+            }
+
+            if (t != null)
+                LastConsumedToken = t;
+
+            Lexer.ConsumeTokens(originalcount);
         }
 
         internal Token PeekToken(int offset)
@@ -318,6 +330,12 @@ namespace EpochVSIX.Parser
 
             // TODO - this for some reason loads our code as JSON!
             mgr.NavigateToLineAndColumn(buffer, ref logicalView, task.Line, task.Column, task.Line, task.Column);
+        }
+
+
+        internal Token ReversePeekToken()
+        {
+            return LastConsumedToken;
         }
     }
 }
