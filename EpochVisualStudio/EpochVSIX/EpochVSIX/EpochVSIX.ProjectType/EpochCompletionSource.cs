@@ -133,7 +133,7 @@ namespace EpochVSIX
                 keywordList.Add("type");
                 keywordList.Add("while");
 
-                var keywordglyph = m_glyphService.GetGlyph(StandardGlyphGroup.GlyphGroupUnknown, StandardGlyphItem.GlyphItemPublic);
+                var keywordglyph = m_glyphService.GetGlyph(StandardGlyphGroup.GlyphKeyword, StandardGlyphItem.GlyphItemPublic);
                 foreach (string str in keywordList)
                     m_completionList.Add(new Completion(str, str, str, keywordglyph, null));
 
@@ -188,38 +188,11 @@ namespace EpochVSIX
 
         private List<Parser.Variable> GetApplicableVariables(ICompletionSession session)
         {
-            var variables = new List<Parser.Variable>();
             var pt = session.TextView.Caret.Position.Point.GetPoint(session.TextView.TextSnapshot, PositionAffinity.Predecessor);
-            if (pt.HasValue)
-            {
-                var line = pt.Value.GetContainingLine().LineNumber;
-                var column = pt.Value.Position - pt.Value.GetContainingLine().Start.Position;
+            if (!pt.HasValue)
+                return new List<Parser.Variable>();
 
-                IVsTextBuffer bufferAdapter;
-                m_textBuffer.Properties.TryGetProperty(typeof(IVsTextBuffer), out bufferAdapter);
-
-                if (bufferAdapter != null)
-                {
-                    ThreadHelper.ThrowIfNotOnUIThread();
-                    var persistFileFormat = bufferAdapter as IPersistFileFormat;
-
-                    if (persistFileFormat != null)
-                    {
-                        string filename = null;
-                        uint formatIndex;
-                        persistFileFormat.GetCurFile(out filename, out formatIndex);
-
-                        if (!string.IsNullOrEmpty(filename))
-                        {
-                            variables = m_parsedProject.GetAvailableVariables(filename, line, column);
-                        }
-                    }
-                }
-            }
-
-            // TODO - handle failure cases?
-
-            return variables;
+            return m_parsedProject.GetAvailableVariables(m_textBuffer, pt.Value);
         }
 
         private List<string> GetMemberAccessStack(SnapshotPoint bufferpos)

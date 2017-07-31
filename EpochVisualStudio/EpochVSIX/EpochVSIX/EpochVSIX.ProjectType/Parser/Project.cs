@@ -6,6 +6,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Microsoft.VisualStudio.Text;
+using Microsoft.VisualStudio.TextManager.Interop;
 
 namespace EpochVSIX.Parser
 {
@@ -143,6 +145,36 @@ namespace EpochVSIX.Parser
             return ret;
         }
 
+        public List<Variable> GetAvailableVariables(ITextBuffer buffer, SnapshotPoint pt)
+        {
+            var line = pt.GetContainingLine().LineNumber;
+            var column = pt.Position - pt.GetContainingLine().Start.Position;
+
+            IVsTextBuffer bufferAdapter;
+            buffer.Properties.TryGetProperty(typeof(IVsTextBuffer), out bufferAdapter);
+
+            if (bufferAdapter != null)
+            {
+                ThreadHelper.ThrowIfNotOnUIThread();
+                var persistFileFormat = bufferAdapter as IPersistFileFormat;
+
+                if (persistFileFormat != null)
+                {
+                    string filename = null;
+                    uint formatIndex;
+                    persistFileFormat.GetCurFile(out filename, out formatIndex);
+
+                    if (!string.IsNullOrEmpty(filename))
+                    {
+                        return GetAvailableVariables(filename, line, column);
+                    }
+                }
+            }
+
+            // TODO - handle failure cases?
+
+            return new List<Variable>();
+        }
 
         private void AddScopeTree(LexicalScope scope, List<Variable> ret, int line, int column)
         {
