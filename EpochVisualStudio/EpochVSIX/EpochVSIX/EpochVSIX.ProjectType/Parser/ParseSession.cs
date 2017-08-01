@@ -328,7 +328,11 @@ namespace EpochVSIX.Parser
             if (mgr == null)
                 return;
 
-            // TODO - this for some reason loads our code as JSON!
+            // This whole mess could arguably be a lot simpler as a call to ErrorProvider.Navigate()
+            // Unfortunately that API assumes 1-based column/line indices, whereas our task (in order
+            // to display correctly in the task list) assumes 0-based. It's possible there is some
+            // easy way to do the right mapping (it's just a subtraction after all!) but since this
+            // works as-is it can stay for now.
             mgr.NavigateToLineAndColumn(buffer, ref logicalView, task.Line, task.Column, task.Line, task.Column);
         }
 
