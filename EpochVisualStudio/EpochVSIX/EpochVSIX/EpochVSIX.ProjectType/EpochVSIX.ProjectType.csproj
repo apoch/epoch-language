@@ -227,6 +227,7 @@
     <Compile Include="EpochTextViewFilter.cs" />
     <Compile Include="MyConfiguredProject.cs" />
     <Compile Include="MyUnconfiguredProject.cs" />
+    <Compile Include="Parser\CodeHelpers.cs" />
     <Compile Include="Parser\Expression.cs" />
     <Compile Include="Parser\FunctionSignature.cs" />
     <Compile Include="Parser\GlobalBlock.cs" />

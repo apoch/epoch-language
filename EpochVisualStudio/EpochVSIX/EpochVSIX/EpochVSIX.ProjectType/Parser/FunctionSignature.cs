@@ -1,8 +1,15 @@
-﻿using System;
+﻿//
+// The Epoch Language Project
+// Visual Studio Integration/Extension
+//
+// Wrapper class for parsing a function signature from a token stream.
+// Function signatures consist of the function's name, optional parameters,
+// optional return variable/expression, and optional tags. Tags can have
+// further parameters as necessary.
+//
+
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace EpochVSIX.Parser
 {
@@ -17,32 +24,6 @@ namespace EpochVSIX.Parser
         public override string ToString()
         {
             return string.Join("\r\n\r\n", Overloads.Select(o => o.Format(Name.Text)).ToArray());
-        }
-
-
-
-        private static bool IsLiteralFunctionParam(Token token)
-        {
-            if (token.Text == "0")
-                return true;
-
-            if (token.Text == "0.0")
-                return true;
-
-            if (token.Text.Contains('.'))
-            {
-                float ignored;
-                if (float.TryParse(token.Text, out ignored))
-                    return true;
-            }
-            else
-            {
-                int ignored;
-                if (int.TryParse(token.Text, out ignored))
-                    return true;
-            }
-
-            return false;
         }
 
 
@@ -100,7 +81,7 @@ namespace EpochVSIX.Parser
                     var signature = new TypeSignatureInstantiated();        // TODO - implement higher order function signatures
                     ret.Add(new FunctionOverload.Parameter { Name = higherordername, Type = signature });
                 }
-                else if (IsLiteralFunctionParam(parser.PeekToken(totaltokens)))
+                else if (parser.PeekToken(totaltokens).IsLiteralFunctionParam())
                 {
                     // TODO - better literal support
 
@@ -211,6 +192,8 @@ namespace EpochVSIX.Parser
                             p = new FunctionOverload.Tag.TagParam { AssociatedTokens = new List<Token>() };
                         }
                     }
+
+                    tag.Params.Add(p);
                 }
                 ++totaltokens;
 
@@ -225,202 +208,6 @@ namespace EpochVSIX.Parser
             consumedtokens = totaltokens;
             return ret;
         }
-
-
-        private static bool ParseEntity(ParseSession parser, LexicalScope parentscope, int starttoken, out int consumedtokens)
-        {
-            consumedtokens = starttoken;
-            int totaltokens = starttoken;
-
-            if (parser.CheckToken(totaltokens, "if"))
-            {
-                if (!parser.CheckToken(totaltokens + 1, "("))
-                    return false;
-
-                totaltokens += 2;
-
-                var expr = Expression.Parse(parser, totaltokens, out totaltokens);
-                if (expr == null)
-                    return false;
-
-                while (parser.CheckToken(totaltokens, ")"))
-                    ++totaltokens;
-
-                if (!parser.CheckToken(totaltokens, "{"))
-                    return false;
-
-                ++totaltokens;
-                ParseCodeBlock(parser, parentscope, totaltokens, out totaltokens);
-
-                while (parser.CheckToken(totaltokens, "elseif"))
-                {
-                    totaltokens += 2;
-                    var condexpr = Expression.Parse(parser, totaltokens, out totaltokens);
-                    if (condexpr == null)
-                        return false;
-
-                    while (parser.CheckToken(totaltokens, ")"))
-                        ++totaltokens;
-
-                    if (!parser.CheckToken(totaltokens, "{"))
-                        return false;
-
-                    ++totaltokens;
-                    ParseCodeBlock(parser, parentscope, totaltokens, out totaltokens);
-                }
-
-                if (parser.CheckToken(totaltokens, "else"))
-                {
-                    ++totaltokens;
-                    if (!parser.CheckToken(totaltokens, "{"))
-                        return false;
-
-                    ++totaltokens;
-                    ParseCodeBlock(parser, parentscope, totaltokens, out totaltokens);
-                }
-
-                consumedtokens = totaltokens;
-                return true;
-            }
-            else if (parser.CheckToken(totaltokens, "while"))
-            {
-                if (!parser.CheckToken(totaltokens + 1, "("))
-                    return false;
-
-                totaltokens += 2;
-
-                while (parser.CheckToken(totaltokens, ")"))
-                    ++totaltokens;
-
-                var expr = Expression.Parse(parser, totaltokens, out totaltokens);
-                ++totaltokens;
-
-                if (!parser.CheckToken(totaltokens, "{"))
-                    return false;
-
-                ++totaltokens;
-                ParseCodeBlock(parser, parentscope, totaltokens, out totaltokens);
-
-                consumedtokens = totaltokens;
-                return true;
-            }
-
-            return false;
-        }
-
-        private static bool ParseAssignment(ParseSession parser, int starttoken, out int consumedtokens)
-        {
-            consumedtokens = starttoken;
-            int totaltokens = starttoken;
-
-            ++totaltokens;
-            while (parser.CheckToken(totaltokens, "."))
-                totaltokens += 2;
-
-            if (!parser.CheckToken(totaltokens, "=")
-                && !parser.CheckToken(totaltokens, "+=")
-                && !parser.CheckToken(totaltokens, "-="))
-            {
-                return false;
-            }
-
-            var assignmenttoken = parser.PeekToken(totaltokens);
-            ++totaltokens;
-            
-            bool haschain = true;
-            while (haschain)
-            {
-                while (parser.CheckToken(totaltokens + 1, "."))
-                    totaltokens += 2;
-
-                if (parser.CheckToken(totaltokens + 1, "="))
-                {
-                    if (assignmenttoken.Text != "=")
-                        return false;
-
-                    ++totaltokens;
-                }
-                else
-                    haschain = false;
-            }
-
-            var expr = Expression.Parse(parser, totaltokens, out totaltokens);
-            if (expr == null)
-                return false;
-
-            consumedtokens = totaltokens;
-            return true;
-        }
-
-
-        private static LexicalScope ParseCodeBlock(ParseSession parser, LexicalScope parentscope, int starttoken, out int consumedtokens)
-        {
-            consumedtokens = starttoken;
-            int totaltokens = starttoken;
-            Token afterStartBrace = parser.PeekToken(totaltokens);
-
-            if (afterStartBrace == null)
-            {
-                parser.ConsumeTokens(starttoken);
-                throw new SyntaxError("Missing closing }", parser.ReversePeekToken());
-            }
-
-            var ret = new LexicalScope();
-            ret.File = afterStartBrace.File;
-            ret.StartLine = afterStartBrace.Line;
-            ret.StartColumn = afterStartBrace.Column;
-            ret.ParentScope = parentscope;
-
-            if (parentscope != null)
-            {
-                if (parentscope.ChildScopes == null)
-                    parentscope.ChildScopes = new List<LexicalScope>();
-
-                parentscope.ChildScopes.Add(ret);
-            }
-
-            while (!parser.CheckToken(totaltokens, "}"))
-            {
-                if (ParseEntity(parser, ret, totaltokens, out totaltokens)
-                    || parser.ParsePreopStatement(totaltokens, out totaltokens)
-                    || parser.ParsePostopStatement(totaltokens, out totaltokens)
-                    || parser.ParseStatement(totaltokens, out totaltokens))
-                {
-                    parser.ConsumeTokens(totaltokens);
-                    totaltokens = 0;
-                    continue;
-                }
-
-                var variable = Variable.Parse(parser, totaltokens, out totaltokens, Variable.Origins.Local);
-                if (variable != null)
-                {
-                    ret.Variables.Add(variable);
-                    parser.ConsumeTokens(totaltokens);
-                    totaltokens = 0;
-                    continue;
-                }
-
-                if (ParseAssignment(parser, totaltokens, out totaltokens))
-                {
-                    parser.ConsumeTokens(totaltokens);
-                    totaltokens = 0;
-                    continue;
-                }
-
-                consumedtokens = totaltokens;
-                return null;
-            }
-
-            Token endBrace = parser.PeekToken(totaltokens);
-
-            ++totaltokens;
-            consumedtokens = totaltokens;
-
-            ret.EndLine = endBrace.Line;
-            ret.EndColumn = endBrace.Column;
-            return ret;
-        }
-
 
         public static FunctionSignature Parse(ParseSession parser)
         {
@@ -449,6 +236,7 @@ namespace EpochVSIX.Parser
                 var funcreturn = ParseFunctionReturn(parser, totaltokens, out totaltokens);
 
                 overload.Parameters = paramlist;
+                overload.ReturnName = funcreturn?.Name?.Text;
                 overload.ReturnType = funcreturn?.Type;
             }
 
@@ -458,7 +246,7 @@ namespace EpochVSIX.Parser
             if (parser.CheckToken(totaltokens, "{"))
             {
                 ++totaltokens;
-                var scope = ParseCodeBlock(parser, null, totaltokens, out totaltokens);
+                var scope = LexicalScope.Parse(parser, null, totaltokens, out totaltokens);
                 overload.Scope = scope;
 
                 if (overload.Scope != null && overload.Parameters != null)
@@ -523,13 +311,15 @@ namespace EpochVSIX.Parser
 
         public List<Parameter> Parameters;
         public TypeSignatureInstantiated ReturnType;
+        public string ReturnName;
         public List<Tag> Tags;
         public LexicalScope Scope;
 
         public string Format(string basename)
         {
             string paramlist = Parameters == null ? "" : string.Join(", ", Parameters);
-            string ret = ReturnType == null ? "" : $" -> {ReturnType}";
+            string retname = ReturnName == null ? "" : $" {ReturnName}";
+            string ret = ReturnType == null ? "" : $" -> {ReturnType}{retname}";
             string tags = Tags == null ? "" : $" [{string.Join(", ", Tags)}]";
             return $"{basename} : {paramlist}{ret}{tags}";
         }

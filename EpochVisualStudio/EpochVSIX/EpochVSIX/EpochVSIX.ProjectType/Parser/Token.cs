@@ -17,5 +17,30 @@ namespace EpochVSIX.Parser
         {
             return Text;
         }
+
+
+        internal bool IsLiteralFunctionParam()
+        {
+            if (Text == "0")
+                return true;
+
+            if (Text == "0.0")
+                return true;
+
+            if (Text.Contains('.'))
+            {
+                float ignored;
+                if (float.TryParse(Text, out ignored))
+                    return true;
+            }
+            else
+            {
+                int ignored;
+                if (int.TryParse(Text, out ignored))
+                    return true;
+            }
+
+            return false;
+        }
     }
 }
