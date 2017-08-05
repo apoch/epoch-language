@@ -24,14 +24,16 @@ namespace EpochVSIX
             QISession = qisession;
             Control = new Controls.EpochQuickInfoControl();
 
-            var epochContentType = ctregistry.GetContentType("EpochFile");
-            var declbuffer = bufferfactory.CreateTextBuffer(qisession.QuickInfoContent[0] as string, epochContentType);
+            var content = qisession.QuickInfoContent[0] as string;
 
-            declbuffer.Properties.AddProperty(typeof(Parser.Project), qisession.TextView.TextBuffer.Properties.GetProperty(typeof(Parser.Project)) as Parser.Project);
+            //var epochContentType = ctregistry.GetContentType("EpochFile");
+            //var declbuffer = bufferfactory.CreateTextBuffer(content, epochContentType);
 
-            var editor = editorfactory.CreateTextView(declbuffer);
+            //declbuffer.Properties.AddProperty(typeof(Parser.Project), qisession.TextView.TextBuffer.Properties.GetProperty(typeof(Parser.Project)) as Parser.Project);
 
-            Control.Attach(editor);
+            //var editor = editorfactory.CreateTextView(declbuffer);
+
+            Control.Attach(content);
 
             PopupStyles = PopupStyles.DismissOnMouseLeaveText | PopupStyles.PositionClosest;
             SpaceReservationManagerName = "quickinfo";

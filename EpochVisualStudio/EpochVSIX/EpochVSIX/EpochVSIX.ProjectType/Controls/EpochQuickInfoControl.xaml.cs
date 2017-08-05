@@ -27,13 +27,42 @@ namespace EpochVSIX.Controls
             InitializeComponent();
         }
 
-        internal void Attach(IWpfTextView editor)
+        internal void Attach(string content)
         {
             var color = VSColorTheme.GetThemedColor(EnvironmentColors.ToolTipBorderColorKey);
-            var mediacolor = System.Windows.Media.Color.FromArgb(color.A, color.R, color.G, color.B);
+            var mediacolor = Color.FromArgb(color.A, color.R, color.G, color.B);
             ColoredBorder.BorderBrush = new SolidColorBrush(mediacolor);
 
-            MainGrid.Children.Add(editor.VisualElement);
+            var forecolor = VSColorTheme.GetThemedColor(EnvironmentColors.ToolTipTextColorKey);
+            var mediaforecolor = Color.FromArgb(forecolor.A, forecolor.R, forecolor.G, forecolor.B);
+            var fcbrush = new SolidColorBrush(mediaforecolor);
+
+            var lines = content.Split(new string[] { "\r\n" }, StringSplitOptions.None);
+            foreach (var line in lines)
+            {
+                var horizontalStack = new StackPanel();
+                horizontalStack.Orientation = Orientation.Horizontal;
+                horizontalStack.Width = double.NaN;
+                horizontalStack.Height = double.NaN;
+
+                var words = line.Split(' ');
+                foreach (var word in words)
+                {
+                    var label = new Label();
+                    label.Width = double.NaN;
+                    label.Height = double.NaN;
+                    label.Content = word;
+                    label.Foreground = fcbrush;
+
+                    horizontalStack.Children.Add(label);
+                }
+
+                VerticalStack.Children.Add(horizontalStack);
+            }
+
+            var bgcolor = VSColorTheme.GetThemedColor(EnvironmentColors.ToolTipColorKey);
+            var mediabgcolor = Color.FromArgb(bgcolor.A, bgcolor.R, bgcolor.G, bgcolor.B);
+            VerticalStack.Background = new SolidColorBrush(mediabgcolor);
         }
     }
 }
