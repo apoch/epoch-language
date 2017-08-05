@@ -4,9 +4,8 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              mc:Ignorable="d" 
-             d:DesignHeight="300" d:DesignWidth="300">
-    <Grid>
-        <TextBlock x:Name="TipText" HorizontalAlignment="Left" Height="32" Margin="10,129,0,0" TextWrapping="Wrap" Text="IntelliSense test tip" VerticalAlignment="Top" Width="280" Background="{DynamicResource {x:Static SystemColors.ControlDarkBrushKey}}" Foreground="{DynamicResource {x:Static SystemColors.ControlTextBrushKey}}"/>
-
-    </Grid>
+             d:DesignHeight="32" d:DesignWidth="300">
+    <Border Name="ColoredBorder" BorderBrush="White" BorderThickness="1">
+        <Grid Name="MainGrid"/>
+    </Border>
 </UserControl>

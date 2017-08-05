@@ -1,4 +1,6 @@
-﻿using System;
+﻿using Microsoft.VisualStudio.PlatformUI;
+using Microsoft.VisualStudio.Text.Editor;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -23,6 +25,15 @@ namespace EpochVSIX.Controls
         public EpochQuickInfoControl()
         {
             InitializeComponent();
+        }
+
+        internal void Attach(IWpfTextView editor)
+        {
+            var color = VSColorTheme.GetThemedColor(EnvironmentColors.ToolTipBorderColorKey);
+            var mediacolor = System.Windows.Media.Color.FromArgb(color.A, color.R, color.G, color.B);
+            ColoredBorder.BorderBrush = new SolidColorBrush(mediacolor);
+
+            MainGrid.Children.Add(editor.VisualElement);
         }
     }
 }

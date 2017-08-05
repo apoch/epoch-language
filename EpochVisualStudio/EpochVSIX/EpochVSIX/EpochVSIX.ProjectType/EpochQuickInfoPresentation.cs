@@ -19,10 +19,19 @@ namespace EpochVSIX
         ITrackingSpan TrackingSpan;
         Controls.EpochQuickInfoControl Control;
 
-        public EpochIntellisensePresenter(IQuickInfoSession qisession)
+        public EpochIntellisensePresenter(IQuickInfoSession qisession, ITextBufferFactoryService bufferfactory, ITextEditorFactoryService editorfactory, IContentTypeRegistryService ctregistry)
         {
             QISession = qisession;
             Control = new Controls.EpochQuickInfoControl();
+
+            var epochContentType = ctregistry.GetContentType("EpochFile");
+            var declbuffer = bufferfactory.CreateTextBuffer(qisession.QuickInfoContent[0] as string, epochContentType);
+
+            declbuffer.Properties.AddProperty(typeof(Parser.Project), qisession.TextView.TextBuffer.Properties.GetProperty(typeof(Parser.Project)) as Parser.Project);
+
+            var editor = editorfactory.CreateTextView(declbuffer);
+
+            Control.Attach(editor);
 
             PopupStyles = PopupStyles.DismissOnMouseLeaveText | PopupStyles.PositionClosest;
             SpaceReservationManagerName = "quickinfo";
@@ -88,15 +97,20 @@ namespace EpochVSIX
     {
         [Import]
         public ITextEditorFactoryService EditorFactory { get; set; }
+
         [Import]
-        public IEditorOptionsFactoryService OptionsFactory { get; set; }
+        public ITextBufferFactoryService BufferFactory { get; set; }
+
+        [Import]
+        public IContentTypeRegistryService ContentTypeRegistry { get; set; }
+
 
         public IIntellisensePresenter TryCreateIntellisensePresenter(IIntellisenseSession session)
         {
             var qisession = session as IQuickInfoSession;
             if (qisession != null)
             {
-                return new EpochIntellisensePresenter(qisession);
+                return new EpochIntellisensePresenter(qisession, BufferFactory, EditorFactory, ContentTypeRegistry);
             }
 
             return null;

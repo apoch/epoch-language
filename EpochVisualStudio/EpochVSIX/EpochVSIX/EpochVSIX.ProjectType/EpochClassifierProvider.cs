@@ -56,25 +56,33 @@ namespace EpochVSIX
             var bufferAdapter = AdapterFactory.GetBufferAdapter(buffer);
             var textManager = ServiceProvider.GetService(typeof(SVsTextManager)) as IVsTextManager;
 
-            IVsEnumTextViews enumerator;
-            textManager.EnumViews(bufferAdapter, out enumerator);
-
-            uint count = 0;
-            enumerator.GetCount(ref count);
-            if (count > 0)
+            if (bufferAdapter != null)
             {
-                IVsTextView[] viewarray = new IVsTextView[count];
-                uint fetchCount = 0;
-                if (enumerator.Next(count, viewarray, ref fetchCount) == VSConstants.S_OK)
+                IVsEnumTextViews enumerator;
+                textManager.EnumViews(bufferAdapter, out enumerator);
+
+                uint count = 0;
+                enumerator.GetCount(ref count);
+                if (count > 0)
                 {
-                    foreach (var view in viewarray)
+                    IVsTextView[] viewarray = new IVsTextView[count];
+                    uint fetchCount = 0;
+                    if (enumerator.Next(count, viewarray, ref fetchCount) == VSConstants.S_OK)
                     {
-                        var viewAdapter = AdapterFactory.GetWpfTextView(view);
-                        viewAdapter.Properties.TryGetProperty<Parser.Project>(typeof(Parser.Project), out project);
-                        if (project != null)
-                            break;
+                        foreach (var view in viewarray)
+                        {
+                            var viewAdapter = AdapterFactory.GetWpfTextView(view);
+                            viewAdapter.Properties.TryGetProperty<Parser.Project>(typeof(Parser.Project), out project);
+                            if (project != null)
+                                break;
+                        }
                     }
                 }
+            }
+            else
+            {
+                // This is done for highlighted tooltips
+                buffer.Properties.TryGetProperty(typeof(Parser.Project), out project);
             }
 
             return buffer.Properties.GetOrCreateSingletonProperty<EpochClassifier>(creator: () => new EpochClassifier(this.classificationRegistry, project));
