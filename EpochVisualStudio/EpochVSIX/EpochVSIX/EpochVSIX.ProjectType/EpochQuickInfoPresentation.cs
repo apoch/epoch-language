@@ -1,0 +1,105 @@
+﻿using Microsoft.VisualStudio.Language.Intellisense;
+using Microsoft.VisualStudio.Utilities;
+using System;
+using System.Collections.Generic;
+using System.ComponentModel.Composition;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using Microsoft.VisualStudio.Text;
+using Microsoft.VisualStudio.Text.Adornments;
+using System.Windows;
+using Microsoft.VisualStudio.Text.Editor;
+
+namespace EpochVSIX
+{
+    class EpochIntellisensePresenter : IPopupIntellisensePresenter
+    {
+        IQuickInfoSession QISession;
+        ITrackingSpan TrackingSpan;
+        Controls.EpochQuickInfoControl Control;
+
+        public EpochIntellisensePresenter(IQuickInfoSession qisession)
+        {
+            QISession = qisession;
+            Control = new Controls.EpochQuickInfoControl();
+
+            PopupStyles = PopupStyles.DismissOnMouseLeaveText | PopupStyles.PositionClosest;
+            SpaceReservationManagerName = "quickinfo";
+        }
+
+        public double Opacity
+        {
+            get { return Control.Opacity; }
+            set { Control.Opacity = value; }
+        }
+
+        public PopupStyles PopupStyles
+        {
+            get;
+            private set;
+        }
+
+        public ITrackingSpan PresentationSpan
+        {
+            get
+            {
+                if (TrackingSpan == null)
+                    TrackingSpan = QISession.ApplicableToSpan;
+
+                return TrackingSpan;
+            }
+        }
+
+        public IIntellisenseSession Session
+        {
+            get
+            {
+                return QISession;
+            }
+        }
+
+        public string SpaceReservationManagerName
+        {
+            get;
+            private set;
+        }
+
+        public UIElement SurfaceElement
+        {
+            get
+            {
+                return Control;
+            }
+        }
+
+#pragma warning disable 67
+        public event EventHandler<ValueChangedEventArgs<PopupStyles>> PopupStylesChanged;
+        public event EventHandler PresentationSpanChanged;
+        public event EventHandler SurfaceElementChanged;
+#pragma warning restore 67
+    }
+
+    [Export(typeof(IIntellisensePresenterProvider))]
+    [Name("Epoch IntelliSense support")]
+    [Order(Before = "Default Quick Info Presenter")]
+    [ContentType("EpochFile")]
+    class EpochIntellisensePresenterProvider : IIntellisensePresenterProvider
+    {
+        [Import]
+        public ITextEditorFactoryService EditorFactory { get; set; }
+        [Import]
+        public IEditorOptionsFactoryService OptionsFactory { get; set; }
+
+        public IIntellisensePresenter TryCreateIntellisensePresenter(IIntellisenseSession session)
+        {
+            var qisession = session as IQuickInfoSession;
+            if (qisession != null)
+            {
+                return new EpochIntellisensePresenter(qisession);
+            }
+
+            return null;
+        }
+    }
+}

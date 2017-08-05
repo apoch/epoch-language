@@ -206,6 +206,9 @@
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Controls\EpochQuickInfoControl.xaml.cs">
+      <DependentUpon>EpochQuickInfoControl.xaml</DependentUpon>
+    </Compile>
     <Compile Include="DebuggerLaunchProvider.cs" />
     <Compile Include="EpochBraceMatching.cs" />
     <Compile Include="EpochBraceMatchingTaggerProvider.cs" />
@@ -222,6 +225,7 @@
     <Compile Include="EpochOutliningTagger.cs" />
     <Compile Include="EpochOutliningTaggerProvider.cs" />
     <Compile Include="EpochProjectTreeModifier.cs" />
+    <Compile Include="EpochQuickInfoPresentation.cs" />
     <Compile Include="EpochQuickInfoSource.cs" />
     <Compile Include="EpochSignatureHelpSource.cs" />
     <Compile Include="EpochTextViewFilter.cs" />
@@ -343,6 +347,10 @@
     </XamlPropertyRule>
   </ItemGroup>
   <ItemGroup>
+    <Page Include="Controls\EpochQuickInfoControl.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
     <Resource Include="Images\EpochImagesProjectIcon.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
