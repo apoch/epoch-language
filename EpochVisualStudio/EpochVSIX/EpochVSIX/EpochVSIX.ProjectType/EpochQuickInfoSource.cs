@@ -14,6 +14,7 @@ using Microsoft.VisualStudio.Shell.Interop;
 using Microsoft.VisualStudio.TextManager.Interop;
 using Microsoft.VisualStudio.Editor;
 using Microsoft.VisualStudio.Shell;
+using Microsoft.VisualStudio.Text.Classification;
 
 namespace EpochVSIX
 {
@@ -26,14 +27,20 @@ namespace EpochVSIX
         private IVsDebugger m_debugger;
         private IVsEditorAdaptersFactoryService m_adapter;
         private Parser.Project m_parsedProject;
+        private ITextBufferFactoryService m_bufferFactory;
+        private IContentTypeRegistryService m_contentTypes;
+        private IClassifierProvider m_classifierProvider;
 
-        public EpochQuickInfoSource(EpochQuickInfoSourceProvider provider, ITextBuffer subjectBuffer, IVsDebugger debugger, IVsEditorAdaptersFactoryService adapter)
+        public EpochQuickInfoSource(EpochQuickInfoSourceProvider provider, ITextBuffer subjectBuffer, IVsDebugger debugger, IVsEditorAdaptersFactoryService adapter, ITextBufferFactoryService bufferfactory, IContentTypeRegistryService contentTypes, IClassifierProvider classifierprovider)
         {
             m_provider = provider;
             m_subjectBuffer = subjectBuffer;
             m_debugger = debugger;
             m_adapter = adapter;
             m_parsedProject = subjectBuffer.Properties.GetProperty<Parser.Project>(typeof(Parser.Project));
+            m_bufferFactory = bufferfactory;
+            m_contentTypes = contentTypes;
+            m_classifierProvider = classifierprovider;
         }
 
         public void AugmentQuickInfoSession(IQuickInfoSession session, IList<object> qiContent, out ITrackingSpan applicableToSpan)
@@ -81,9 +88,7 @@ namespace EpochVSIX
                     string value;
                     m_dictionary.TryGetValue(key, out value);
                     if (value != null)
-                        qiContent.Add(value);
-                    else
-                        qiContent.Add("");
+                        qiContent.Add(ConstructHighlightableContent(value));
 
                     return;
                 }
@@ -107,6 +112,36 @@ namespace EpochVSIX
             var pt = session.GetTriggerPoint(session.TextView.TextBuffer).GetPoint(session.TextView.TextSnapshot);
             return m_parsedProject.GetAvailableVariables(m_subjectBuffer, pt);
         }
+
+        private EpochQuickInfoContent ConstructHighlightableContent(string text)
+        {
+            var content = new EpochQuickInfoContent();
+            content.WordToClassificationMap = new Dictionary<string, string>();
+            content.Lines = new List<List<ClassificationSpan>>();
+
+            var contentType = m_contentTypes.GetContentType("EpochFile");
+            var buffer = m_bufferFactory.CreateTextBuffer(text, contentType);
+            var snapshot = buffer.CurrentSnapshot;
+
+            var classifier = m_classifierProvider.GetClassifier(buffer) as EpochClassifier;
+            classifier.ParsedProject = m_subjectBuffer.Properties.GetProperty<Parser.Project>(typeof(Parser.Project));
+            var spans = classifier.GetAllSpans(new SnapshotSpan(snapshot, 0, text.Length), true);
+
+            var lines = text.Count(x => x == '\n') + 1;
+            for(int i = 0; i < lines; ++i)
+            {
+                var line = new List<ClassificationSpan>();
+                foreach (var span in spans)
+                {
+                    if (span.Span.Start.GetContainingLine().LineNumber == i)
+                        line.Add(span);
+                }
+
+                content.Lines.Add(line);
+            }
+
+            return content;
+        }
     }
 
 
@@ -128,12 +163,16 @@ namespace EpochVSIX
         [Import]
         internal IVsEditorAdaptersFactoryService AdapterService = null;
 
+        [Import]
+        internal IContentTypeRegistryService ContentTypeRegistry { get; set; }
+
 
         public IQuickInfoSource TryCreateQuickInfoSource(ITextBuffer textBuffer)
         {
             ThreadHelper.ThrowIfNotOnUIThread();
+            var ClassifierProvider = EpochClassifierProvider.Instance;
             var debugger = ServiceProvider.GetService(typeof(IVsDebugger)) as IVsDebugger;
-            return new EpochQuickInfoSource(this, textBuffer, debugger, AdapterService);
+            return new EpochQuickInfoSource(this, textBuffer, debugger, AdapterService, TextBufferFactoryService, ContentTypeRegistry, ClassifierProvider);
         }
     }
 

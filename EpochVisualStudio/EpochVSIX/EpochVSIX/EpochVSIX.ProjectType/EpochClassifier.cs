@@ -22,7 +22,7 @@ namespace EpochVSIX
         private readonly HashSet<string> TypeKeywords;
         private readonly HashSet<string> LiteralKeywords;
 
-        private Parser.Project ParsedProject;
+        internal Parser.Project ParsedProject;
 
         internal EpochClassifier(IClassificationTypeRegistryService registry, Parser.Project project)
         {
@@ -88,6 +88,11 @@ namespace EpochVSIX
         }
 
         public IList<ClassificationSpan> GetClassificationSpans(SnapshotSpan span)
+        {
+            return GetAllSpans(span, false);
+        }
+
+        public IList<ClassificationSpan> GetAllSpans(SnapshotSpan span, bool includeUnclassified)
         {
             var result = new List<ClassificationSpan>();
 
@@ -185,18 +190,18 @@ namespace EpochVSIX
 
                     if (state != prevstate)
                     {
-                        UpdateState(line, prevstate, i, statestart, result, span);
+                        UpdateState(line, prevstate, i, statestart, result, span, includeUnclassified);
 
                         statestart = newstart;
                     }
                 }
 
-                UpdateState(line, state, text.Length, statestart, result, span);
+                UpdateState(line, state, text.Length, statestart, result, span, includeUnclassified);
             }
             return result;
         }
 
-        private void UpdateState(ITextSnapshotLine line, State prevstate, int i, int statestart, IList<ClassificationSpan> result, SnapshotSpan span)
+        private void UpdateState(ITextSnapshotLine line, State prevstate, int i, int statestart, IList<ClassificationSpan> result, SnapshotSpan span, bool includeUnclassified)
         {
             IClassificationType classification = null;
 
@@ -240,6 +245,8 @@ namespace EpochVSIX
 
             if (classification != null)
                 result.Add(new ClassificationSpan(new SnapshotSpan(span.Snapshot, new Span(line.Start + statestart, i - statestart)), classification));
+            else if (includeUnclassified)
+                result.Add(new ClassificationSpan(new SnapshotSpan(span.Snapshot, new Span(line.Start + statestart, i - statestart)), classificationRegistry.GetClassificationType("text")));
 
         }
 

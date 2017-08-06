@@ -23,7 +23,7 @@ namespace EpochVSIX.Parser
 
         public override string ToString()
         {
-            return string.Join("\r\n\r\n", Overloads.Select(o => o.Format(Name.Text)).ToArray());
+            return string.Join("\r\n", Overloads.Select(o => o.Format(Name.Text)).ToArray());
         }
 
 

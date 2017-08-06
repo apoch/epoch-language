@@ -23,7 +23,7 @@ namespace EpochVSIX.Parser
 
         public override string ToString()
         {
-            return $"{Type} {Name} ({Origin})";
+            return $"{Type} {Name} // ({Origin})";
         }
 
 

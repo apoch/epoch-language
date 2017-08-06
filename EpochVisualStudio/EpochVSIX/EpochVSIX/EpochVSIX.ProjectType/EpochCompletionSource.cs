@@ -92,7 +92,7 @@ namespace EpochVSIX
                 var funcglyph = m_glyphService.GetGlyph(StandardGlyphGroup.GlyphGroupMethod, StandardGlyphItem.GlyphItemPublic);
                 foreach (var sig in funcList)
                 {
-                    m_completionList.Add(new Completion(sig.Name.Text, sig.Name.Text, string.Join("\r\n\r\n", sig.Overloads.Select(o => o.Format(sig.Name.Text)).ToArray()), funcglyph, null));
+                    m_completionList.Add(new Completion(sig.Name.Text, sig.Name.Text, string.Join("\r\n", sig.Overloads.Select(o => o.Format(sig.Name.Text)).ToArray()), funcglyph, null));
                 }
 
 

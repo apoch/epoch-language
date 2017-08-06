@@ -14,6 +14,13 @@ using Microsoft.VisualStudio.Text.Classification;
 
 namespace EpochVSIX
 {
+    class EpochQuickInfoContent
+    {
+        public Dictionary<string, string> WordToClassificationMap;
+        public List<List<ClassificationSpan>> Lines;
+    }
+
+
     class EpochIntellisensePresenter : IPopupIntellisensePresenter
     {
         IQuickInfoSession QISession;
@@ -25,15 +32,7 @@ namespace EpochVSIX
             QISession = qisession;
             Control = new Controls.EpochQuickInfoControl();
 
-            var content = qisession.QuickInfoContent[0] as string;
-
-            //var epochContentType = ctregistry.GetContentType("EpochFile");
-            //var declbuffer = bufferfactory.CreateTextBuffer(content, epochContentType);
-
-            //declbuffer.Properties.AddProperty(typeof(Parser.Project), qisession.TextView.TextBuffer.Properties.GetProperty(typeof(Parser.Project)) as Parser.Project);
-
-            //var editor = editorfactory.CreateTextView(declbuffer);
-
+            var content = qisession.QuickInfoContent[0] as EpochQuickInfoContent;
             Control.Attach(content, registry, formatmap.GetClassificationFormatMap(qisession.TextView));
 
             PopupStyles = PopupStyles.DismissOnMouseLeaveText | PopupStyles.PositionClosest;

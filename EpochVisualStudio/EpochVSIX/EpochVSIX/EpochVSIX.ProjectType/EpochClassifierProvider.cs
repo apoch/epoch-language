@@ -41,6 +41,15 @@ namespace EpochVSIX
 
 #pragma warning restore 649
 
+        public static EpochClassifierProvider Instance { get; private set; }
+
+        public EpochClassifierProvider()
+        {
+            if (Instance == null)
+                Instance = this;
+        }
+
+
         #region IClassifierProvider
 
         /// <summary>

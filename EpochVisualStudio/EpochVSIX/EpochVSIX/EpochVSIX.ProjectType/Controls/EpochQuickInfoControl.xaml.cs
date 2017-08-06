@@ -36,29 +36,27 @@ namespace EpochVSIX.Controls
             return new SolidColorBrush(mediacolor);
         }
 
-        internal void Attach(string content, IClassificationTypeRegistryService registry, IClassificationFormatMap formatMap)
+        internal void Attach(EpochQuickInfoContent content, IClassificationTypeRegistryService registry, IClassificationFormatMap formatMap)
         {
-            var commentBrush = formatMap.GetTextProperties(registry.GetClassificationType("comment")).ForegroundBrush;
-
             ColoredBorder.BorderBrush = CreateThemedBrush(EnvironmentColors.ToolTipBorderColorKey);
             var fcbrush = CreateThemedBrush(EnvironmentColors.ToolTipTextColorKey);
 
-            var lines = content.Split(new string[] { "\r\n" }, StringSplitOptions.None);
-            foreach (var line in lines)
+            foreach (var line in content.Lines)
             {
                 var horizontalStack = new StackPanel();
                 horizontalStack.Orientation = Orientation.Horizontal;
                 horizontalStack.Width = double.NaN;
                 horizontalStack.Height = double.NaN;
 
-                var words = line.Split(' ');
-                foreach (var word in words)
+                foreach (var word in line)
                 {
+                    var classification = word.ClassificationType;
+
                     var label = new Label();
                     label.Width = double.NaN;
                     label.Height = double.NaN;
-                    label.Content = word;
-                    label.Foreground = commentBrush;
+                    label.Content = word.Span.GetText();
+                    label.Foreground = formatMap.GetTextProperties(classification).ForegroundBrush;
 
                     horizontalStack.Children.Add(label);
                 }
