@@ -56,7 +56,7 @@ namespace EpochVSIX.Parser
                 if (parser.CheckToken(totaltokens + 1, "="))
                 {
                     if (assignmenttoken.Text != "=")
-                        return false;
+                        throw new SyntaxError("Chained assignments must all use the = assignment operator.", parser.PeekToken(totaltokens + 1));
 
                     ++totaltokens;
                 }
@@ -95,13 +95,13 @@ namespace EpochVSIX.Parser
 
                 var expr = Expression.Parse(parser, totaltokens, out totaltokens);
                 if (expr == null)
-                    return false;
+                    throw new SyntaxError("if() statement must be supplied with a valid Boolean-typed expression", parser.ReversePeekToken());
 
                 while (parser.CheckToken(totaltokens, ")"))
                     ++totaltokens;
 
                 if (!parser.CheckToken(totaltokens, "{"))
-                    return false;
+                    throw new SyntaxError("if() statement must be followed by a code block surrounded in braces { }", parser.PeekToken(totaltokens));
 
                 ++totaltokens;
                 LexicalScope.Parse(parser, parentscope, totaltokens, out totaltokens);
@@ -111,13 +111,13 @@ namespace EpochVSIX.Parser
                     totaltokens += 2;
                     var condexpr = Expression.Parse(parser, totaltokens, out totaltokens);
                     if (condexpr == null)
-                        return false;
+                        throw new SyntaxError("elseif() statement must be supplied with a valid Boolean-typed expression", parser.ReversePeekToken());
 
                     while (parser.CheckToken(totaltokens, ")"))
                         ++totaltokens;
 
                     if (!parser.CheckToken(totaltokens, "{"))
-                        return false;
+                        throw new SyntaxError("elseif() statement must be followed by a code block surrounded in braces { }", parser.PeekToken(totaltokens));
 
                     ++totaltokens;
                     LexicalScope.Parse(parser, parentscope, totaltokens, out totaltokens);
@@ -127,7 +127,7 @@ namespace EpochVSIX.Parser
                 {
                     ++totaltokens;
                     if (!parser.CheckToken(totaltokens, "{"))
-                        return false;
+                        throw new SyntaxError("else statement must be followed by a code block surrounded in braces { }", parser.PeekToken(totaltokens));
 
                     ++totaltokens;
                     LexicalScope.Parse(parser, parentscope, totaltokens, out totaltokens);
@@ -139,7 +139,7 @@ namespace EpochVSIX.Parser
             else if (parser.CheckToken(totaltokens, "while"))
             {
                 if (!parser.CheckToken(totaltokens + 1, "("))
-                    return false;
+                    throw new SyntaxError("while() statement must be supplied with a valid Boolean-typed expression", parser.ReversePeekToken());
 
                 totaltokens += 2;
 
@@ -150,7 +150,7 @@ namespace EpochVSIX.Parser
                 ++totaltokens;
 
                 if (!parser.CheckToken(totaltokens, "{"))
-                    return false;
+                    throw new SyntaxError("while() statement must be followed by a code block surrounded in braces { }", parser.PeekToken(totaltokens));
 
                 ++totaltokens;
                 LexicalScope.Parse(parser, parentscope, totaltokens, out totaltokens);

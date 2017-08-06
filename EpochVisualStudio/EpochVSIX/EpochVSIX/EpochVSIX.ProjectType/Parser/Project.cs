@@ -171,8 +171,6 @@ namespace EpochVSIX.Parser
                 }
             }
 
-            // TODO - handle failure cases?
-
             return new List<Variable>();
         }
 
