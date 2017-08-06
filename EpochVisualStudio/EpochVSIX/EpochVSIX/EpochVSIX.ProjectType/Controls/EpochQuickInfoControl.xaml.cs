@@ -1,4 +1,6 @@
 ﻿using Microsoft.VisualStudio.PlatformUI;
+using Microsoft.VisualStudio.Shell;
+using Microsoft.VisualStudio.Text.Classification;
 using Microsoft.VisualStudio.Text.Editor;
 using System;
 using System.Collections.Generic;
@@ -27,15 +29,19 @@ namespace EpochVSIX.Controls
             InitializeComponent();
         }
 
-        internal void Attach(string content)
+        private Brush CreateThemedBrush(ThemeResourceKey key)
         {
-            var color = VSColorTheme.GetThemedColor(EnvironmentColors.ToolTipBorderColorKey);
+            var color = VSColorTheme.GetThemedColor(key);
             var mediacolor = Color.FromArgb(color.A, color.R, color.G, color.B);
-            ColoredBorder.BorderBrush = new SolidColorBrush(mediacolor);
+            return new SolidColorBrush(mediacolor);
+        }
 
-            var forecolor = VSColorTheme.GetThemedColor(EnvironmentColors.ToolTipTextColorKey);
-            var mediaforecolor = Color.FromArgb(forecolor.A, forecolor.R, forecolor.G, forecolor.B);
-            var fcbrush = new SolidColorBrush(mediaforecolor);
+        internal void Attach(string content, IClassificationTypeRegistryService registry, IClassificationFormatMap formatMap)
+        {
+            var commentBrush = formatMap.GetTextProperties(registry.GetClassificationType("comment")).ForegroundBrush;
+
+            ColoredBorder.BorderBrush = CreateThemedBrush(EnvironmentColors.ToolTipBorderColorKey);
+            var fcbrush = CreateThemedBrush(EnvironmentColors.ToolTipTextColorKey);
 
             var lines = content.Split(new string[] { "\r\n" }, StringSplitOptions.None);
             foreach (var line in lines)
@@ -52,7 +58,7 @@ namespace EpochVSIX.Controls
                     label.Width = double.NaN;
                     label.Height = double.NaN;
                     label.Content = word;
-                    label.Foreground = fcbrush;
+                    label.Foreground = commentBrush;
 
                     horizontalStack.Children.Add(label);
                 }
@@ -60,9 +66,7 @@ namespace EpochVSIX.Controls
                 VerticalStack.Children.Add(horizontalStack);
             }
 
-            var bgcolor = VSColorTheme.GetThemedColor(EnvironmentColors.ToolTipColorKey);
-            var mediabgcolor = Color.FromArgb(bgcolor.A, bgcolor.R, bgcolor.G, bgcolor.B);
-            VerticalStack.Background = new SolidColorBrush(mediabgcolor);
+            VerticalStack.Background = CreateThemedBrush(EnvironmentColors.ToolTipColorKey);
         }
     }
 }

@@ -10,6 +10,7 @@ using Microsoft.VisualStudio.Text;
 using Microsoft.VisualStudio.Text.Adornments;
 using System.Windows;
 using Microsoft.VisualStudio.Text.Editor;
+using Microsoft.VisualStudio.Text.Classification;
 
 namespace EpochVSIX
 {
@@ -19,7 +20,7 @@ namespace EpochVSIX
         ITrackingSpan TrackingSpan;
         Controls.EpochQuickInfoControl Control;
 
-        public EpochIntellisensePresenter(IQuickInfoSession qisession, ITextBufferFactoryService bufferfactory, ITextEditorFactoryService editorfactory, IContentTypeRegistryService ctregistry)
+        public EpochIntellisensePresenter(IQuickInfoSession qisession, ITextBufferFactoryService bufferfactory, ITextEditorFactoryService editorfactory, IContentTypeRegistryService ctregistry, IClassificationTypeRegistryService registry, IClassificationFormatMapService formatmap)
         {
             QISession = qisession;
             Control = new Controls.EpochQuickInfoControl();
@@ -33,7 +34,7 @@ namespace EpochVSIX
 
             //var editor = editorfactory.CreateTextView(declbuffer);
 
-            Control.Attach(content);
+            Control.Attach(content, registry, formatmap.GetClassificationFormatMap(qisession.TextView));
 
             PopupStyles = PopupStyles.DismissOnMouseLeaveText | PopupStyles.PositionClosest;
             SpaceReservationManagerName = "quickinfo";
@@ -106,13 +107,19 @@ namespace EpochVSIX
         [Import]
         public IContentTypeRegistryService ContentTypeRegistry { get; set; }
 
+        [Import]
+        public IClassificationTypeRegistryService ClassificationTypeRegistry { get; set; }
+
+        [Import]
+        public IClassificationFormatMapService FormatMapService { get; set; }
+
 
         public IIntellisensePresenter TryCreateIntellisensePresenter(IIntellisenseSession session)
         {
             var qisession = session as IQuickInfoSession;
             if (qisession != null)
             {
-                return new EpochIntellisensePresenter(qisession, BufferFactory, EditorFactory, ContentTypeRegistry);
+                return new EpochIntellisensePresenter(qisession, BufferFactory, EditorFactory, ContentTypeRegistry, ClassificationTypeRegistry, FormatMapService);
             }
 
             return null;
