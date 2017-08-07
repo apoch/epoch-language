@@ -48,15 +48,45 @@ namespace EpochVSIX.Controls
                 horizontalStack.Width = double.NaN;
                 horizontalStack.Height = double.NaN;
 
+                if (content.Glyph != null)
+                {
+                    var source = content.Glyph;
+                    double leftMargin = 0.0;
+                    if (VerticalStack.Children.Count > 0)
+                    {
+                        source = content.SubGlyph;
+                        if (content.Glyph != content.SubGlyph)
+                            leftMargin = 10.0;
+                    }
+
+                    var glyph = new Image();
+                    glyph.Source = source;
+                    glyph.Margin = new Thickness(leftMargin, 0.0, 3.0, 0.0);
+                    horizontalStack.Children.Add(glyph);
+                }
+
                 foreach (var word in line)
                 {
-                    var classification = word.ClassificationType;
+                    var trimmed = word.Span.GetText().Trim();
+                    if (string.IsNullOrEmpty(trimmed))
+                        continue;
+
+                    double leftMargin = -3.0;
+                    double rightMargin = -3.0;
+
+                    if (trimmed[0] == ',' || trimmed[0] == ')' || trimmed[0] == ']' || trimmed[0] == '>')
+                        leftMargin = -6.0;
+                    else if (trimmed[0] == '[')
+                        rightMargin = -6.0;
+                    else if (trimmed[0] == '(' || trimmed[0] == '<')
+                        leftMargin = rightMargin = -6.0;
 
                     var label = new Label();
                     label.Width = double.NaN;
                     label.Height = double.NaN;
-                    label.Content = word.Span.GetText();
-                    label.Foreground = formatMap.GetTextProperties(classification).ForegroundBrush;
+                    label.Content = trimmed;
+                    label.Foreground = formatMap.GetTextProperties(word.ClassificationType).ForegroundBrush;
+                    label.Margin = new Thickness(leftMargin, label.Margin.Top, rightMargin, label.Margin.Bottom);
 
                     horizontalStack.Children.Add(label);
                 }
@@ -64,7 +94,7 @@ namespace EpochVSIX.Controls
                 VerticalStack.Children.Add(horizontalStack);
             }
 
-            VerticalStack.Background = CreateThemedBrush(EnvironmentColors.ToolTipColorKey);
+            MainGrid.Background = CreateThemedBrush(EnvironmentColors.ToolTipColorKey);
         }
     }
 }

@@ -11,6 +11,7 @@ using Microsoft.VisualStudio.Text.Adornments;
 using System.Windows;
 using Microsoft.VisualStudio.Text.Editor;
 using Microsoft.VisualStudio.Text.Classification;
+using System.Windows.Media;
 
 namespace EpochVSIX
 {
@@ -18,6 +19,8 @@ namespace EpochVSIX
     {
         public Dictionary<string, string> WordToClassificationMap;
         public List<List<ClassificationSpan>> Lines;
+        public ImageSource Glyph;
+        public ImageSource SubGlyph;
     }
 
 

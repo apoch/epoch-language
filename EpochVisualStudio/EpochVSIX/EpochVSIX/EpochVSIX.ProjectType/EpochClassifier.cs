@@ -118,7 +118,6 @@ namespace EpochVSIX
 
                 for (int i = 0; i < text.Length; ++i)
                 {
-                    int newstart = i;
                     State prevstate = state;
 
                     string ch = text.Substring(i, 1);
@@ -192,7 +191,7 @@ namespace EpochVSIX
                     {
                         UpdateState(line, prevstate, i, statestart, result, span, includeUnclassified);
 
-                        statestart = newstart;
+                        statestart = i;
                     }
                 }
 
@@ -210,6 +209,10 @@ namespace EpochVSIX
 
             switch (prevstate)
             {
+                case State.Default:
+                    classification = null;
+                    break;
+
                 case State.Comment:
                     classification = classificationRegistry.GetClassificationType("comment");        // TODO - provide custom classifications for Epoch code highlighting
                     break;
