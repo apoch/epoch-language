@@ -30,7 +30,7 @@ namespace EpochVSIX
         ITrackingSpan TrackingSpan;
         Controls.EpochQuickInfoControl Control;
 
-        public EpochIntellisensePresenter(IQuickInfoSession qisession, ITextBufferFactoryService bufferfactory, ITextEditorFactoryService editorfactory, IContentTypeRegistryService ctregistry, IClassificationTypeRegistryService registry, IClassificationFormatMapService formatmap)
+        public EpochIntellisensePresenter(IQuickInfoSession qisession, IClassificationTypeRegistryService registry, IClassificationFormatMapService formatmap)
         {
             QISession = qisession;
             Control = new Controls.EpochQuickInfoControl();
@@ -101,15 +101,6 @@ namespace EpochVSIX
     class EpochIntellisensePresenterProvider : IIntellisensePresenterProvider
     {
         [Import]
-        public ITextEditorFactoryService EditorFactory { get; set; }
-
-        [Import]
-        public ITextBufferFactoryService BufferFactory { get; set; }
-
-        [Import]
-        public IContentTypeRegistryService ContentTypeRegistry { get; set; }
-
-        [Import]
         public IClassificationTypeRegistryService ClassificationTypeRegistry { get; set; }
 
         [Import]
@@ -121,7 +112,7 @@ namespace EpochVSIX
             var qisession = session as IQuickInfoSession;
             if (qisession != null)
             {
-                return new EpochIntellisensePresenter(qisession, BufferFactory, EditorFactory, ContentTypeRegistry, ClassificationTypeRegistry, FormatMapService);
+                return new EpochIntellisensePresenter(qisession, ClassificationTypeRegistry, FormatMapService);
             }
 
             return null;
