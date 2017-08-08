@@ -195,34 +195,17 @@ namespace EpochVSIX.Parser
             return ret;
         }
 
-
-        private static Variable ParseFunctionReturn(ParseSession parser, int starttoken, out int consumedtokens)
-        {
-            consumedtokens = starttoken;
-            int totaltokens = starttoken;
-
-            if (!parser.CheckToken(totaltokens, "->"))
-                return null;
-
-            ++totaltokens;
-
-            var variable = Variable.Parse(parser, totaltokens, out totaltokens, Variable.Origins.Return);
-            if (variable == null)
-            {
-                var expr = Expression.Parse(parser, totaltokens, out totaltokens);
-                if (expr == null)
-                    return null;
-
-                // TODO - return something sane for expressions
-                consumedtokens = totaltokens;
-                return null;
-            }
-
-            consumedtokens = totaltokens;
-            return variable;
-        }
-
-
+        //
+        // Helper routine for parsing a series of function tags from a token stream.
+        //
+        // Function tag lists are denoted by square brackets. Each tag is a single token
+        // followed by an optional parenthesized list of parameters. Both sorts of lists
+        // are delimited by commas. Parameters may be literal values only, including but
+        // not limited to string literals. Expressions are not permitted.
+        //
+        // Passes back the index of the next token to inspect. Returns null if there are
+        // no tags present. Presently does not handle syntax errors nicely.
+        //
         private static List<FunctionOverload.Tag> ParseFunctionTags(ParseSession parser, int starttoken, out int consumedtokens)
         {
             consumedtokens = starttoken;
@@ -275,6 +258,15 @@ namespace EpochVSIX.Parser
             return ret;
         }
 
+        //
+        // Helper routine for parsing a function from a token stream.
+        // This helper will also extract the code body of the function.
+        //
+        // Consumes tokens on success. Returns null if a function definition
+        // is not matched. Success returns a function signature with exactly
+        // one overload; callers are expected to merge this with any other
+        // applicable overload lists.
+        //
         public static FunctionSignature Parse(ParseSession parser)
         {
             var nametoken = parser.PeekToken(0);
@@ -298,12 +290,8 @@ namespace EpochVSIX.Parser
 
             if (!parser.CheckToken(totaltokens, "["))
             {
-                var paramlist = ParseFunctionParams(parser, totaltokens, out totaltokens);
-                var funcreturn = ParseFunctionReturn(parser, totaltokens, out totaltokens);
-
-                overload.Parameters = paramlist;
-                overload.ReturnName = funcreturn?.Name?.Text;
-                overload.ReturnType = funcreturn?.Type;
+                overload.Parameters = ParseFunctionParams(parser, totaltokens, out totaltokens);
+                overload.Return = FunctionReturn.Parse(parser, totaltokens, out totaltokens);
             }
 
             var tags = ParseFunctionTags(parser, totaltokens, out totaltokens);
@@ -334,8 +322,94 @@ namespace EpochVSIX.Parser
         }
     }
 
+
+    //
+    // Wrapper for representing the return of a function.
+    //
+    // In a different language I might express this using a union type
+    // or sum type instead, but oh well. If ReturnVariable is set to a
+    // non-null value, the function is assumed to return a named typed
+    // variable. Otherwise, ReturnExpression might be set, which means
+    // that the function returns a computed expression - a common case
+    // for short helper functions, especially arithmetic operations.
+    //
+    // A null FunctionReturn OR a FunctionReturn with both members set
+    // to null signals a function with no return, i.e. a procedure.
+    //
+    class FunctionReturn
+    {
+        public Variable ReturnVariable;
+        public Expression ReturnExpression;
+
+
+        //
+        // Format a function return as a nice string
+        //
+        public override string ToString()
+        {
+            if (ReturnVariable != null)
+                return ReturnVariable.ToStringNoComments();
+
+            // Expressions currently do not store anything, so formatting
+            // them as a string is kind of pointless. Instead we just use
+            // a sort of placeholder string.
+            if (ReturnExpression != null)
+                return "<expression>";
+
+            return "";
+        }
+
+
+        //
+        // Helper routine for parsing a function return from a token stream.
+        //
+        // Passes back the index of the next token to examine. Returns null if
+        // no function return is provided or if there is a syntax error.
+        //
+        internal static FunctionReturn Parse(ParseSession parser, int starttoken, out int consumedtokens)
+        {
+            consumedtokens = starttoken;
+            int totaltokens = starttoken;
+
+            if (!parser.CheckToken(totaltokens, "->"))
+                return null;
+
+            ++totaltokens;
+
+            var variable = Variable.Parse(parser, totaltokens, out totaltokens, Variable.Origins.Return);
+            if (variable == null)
+            {
+                var expr = Expression.Parse(parser, totaltokens, out totaltokens);
+                if (expr == null)
+                    return null;
+
+                consumedtokens = totaltokens;
+                return new FunctionReturn { ReturnExpression = expr };
+            }
+
+            consumedtokens = totaltokens;
+            return new FunctionReturn { ReturnVariable = variable };
+        }
+    }
+
+    //
+    // Wrapper for describing a function overload.
+    //
+    // As noted above this wrapper will have at least one instance for every
+    // function in the source code even if it is not technically overloaded. 
+    //
+    // There's not much logic here since really all the class needs to do is
+    // hold some metadata and format the occasional string.
+    //
     class FunctionOverload
     {
+        //
+        // Wrapper for representing a function parameter.
+        //
+        // Parameters are set up to be a name and a type signature.
+        // Note the use of an "instantiated" type signature (i.e. any
+        // templates involved are taking instance arguments).
+        //
         public class Parameter
         {
             public Token Name;
@@ -350,6 +424,13 @@ namespace EpochVSIX.Parser
             }
         }
 
+        //
+        // Wrapper for representing a function tag.
+        //
+        // Tags are handled as opaque names plus optional parameters.
+        // Parameters are currently stored as raw token sequences, not
+        // actual parsed code.
+        //
         public class Tag
         {
             public class TagParam
@@ -375,17 +456,27 @@ namespace EpochVSIX.Parser
             }
         }
 
+        //
+        // Member data for a function overload
+        //
         public List<Parameter> Parameters;
-        public TypeSignatureInstantiated ReturnType;
-        public string ReturnName;
+        public FunctionReturn Return;
         public List<Tag> Tags;
         public LexicalScope Scope;
 
+        //
+        // Helper for formatting an overload signature into a string.
+        //
+        // Note that we do not just use ToString() here, because technically
+        // the overload's name is unutterable. Instead we take a "base name"
+        // parameter which controls the name of the function in the rendered
+        // text. This spares us the need to store the exact same name string
+        // on every single overload.
+        //
         public string Format(string basename)
         {
             string paramlist = Parameters == null ? "" : string.Join(", ", Parameters);
-            string retname = ReturnName == null ? "" : $" {ReturnName}";
-            string ret = ReturnType == null ? "" : $" -> {ReturnType}{retname}";
+            string ret = Return == null ? "" : $" -> {Return}";
             string tags = Tags == null ? "" : $" [{string.Join(", ", Tags)}]";
             return $"{basename} : {paramlist}{ret}{tags}";
         }

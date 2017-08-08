@@ -26,6 +26,11 @@ namespace EpochVSIX.Parser
             return $"{Type} {Name} // ({Origin})";
         }
 
+        public string ToStringNoComments()
+        {
+            return $"{Type} {Name}";
+        }
+
 
         internal static Variable Parse(ParseSession parser, int starttoken, out int consumedtokens, Origins origin)
         {
