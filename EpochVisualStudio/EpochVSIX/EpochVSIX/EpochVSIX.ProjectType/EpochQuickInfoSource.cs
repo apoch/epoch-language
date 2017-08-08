@@ -130,7 +130,6 @@ namespace EpochVSIX
         private EpochQuickInfoContent ConstructHighlightableContent(string text, TypeOfContent typeOfContent)
         {
             var content = new EpochQuickInfoContent();
-            content.WordToClassificationMap = new Dictionary<string, string>();
             content.Lines = new List<List<ClassificationSpan>>();
 
             if (typeOfContent == TypeOfContent.Variable)
