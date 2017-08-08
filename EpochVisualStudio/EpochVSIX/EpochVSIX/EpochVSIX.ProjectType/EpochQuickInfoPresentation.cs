@@ -84,7 +84,7 @@ namespace EpochVSIX
             Control = new Controls.EpochQuickInfoControl();
 
             var content = qisession.QuickInfoContent[0] as EpochQuickInfoContent;
-            Control.Attach(content, registry, formatmap.GetClassificationFormatMap(qisession.TextView));
+            Control.Attach(content, formatmap.GetClassificationFormatMap(qisession.TextView));
 
             PopupStyles = PopupStyles.DismissOnMouseLeaveText | PopupStyles.PositionClosest;
 
