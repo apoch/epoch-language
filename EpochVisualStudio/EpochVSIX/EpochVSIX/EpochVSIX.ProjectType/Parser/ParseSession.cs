@@ -47,21 +47,21 @@ namespace EpochVSIX.Parser
                     var sumtype = SumType.Parse(this);
                     if (sumtype != null)
                     {
-                        project.RegisterSumType(sumtype.Name, sumtype.Type);
+                        project.RegisterSumType(sumtype.Name, sumtype.Object);
                         continue;
                     }
 
                     var strongalias = StrongAlias.Parse(this);
                     if (strongalias != null)
                     {
-                        project.RegisterStrongAlias(strongalias.Name, strongalias.Type);
+                        project.RegisterStrongAlias(strongalias.Name, strongalias.Object);
                         continue;
                     }
 
                     var weakalias = WeakAlias.Parse(this);
                     if (weakalias != null)
                     {
-                        project.RegisterWeakAlias(weakalias.Name, weakalias.Type);
+                        project.RegisterWeakAlias(weakalias.Name, weakalias.Object);
                         continue;
                     }
 

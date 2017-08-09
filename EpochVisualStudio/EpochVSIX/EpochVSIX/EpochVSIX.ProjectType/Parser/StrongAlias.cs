@@ -8,15 +8,7 @@ namespace EpochVSIX.Parser
 {
     class StrongAlias
     {
-
-        internal class ParsedStrongAlias
-        {
-            public Token Name;
-            public StrongAlias Type;
-        }
-
-
-        internal static ParsedStrongAlias Parse(ParseSession parser)
+        internal static ParsedObject<StrongAlias> Parse(ParseSession parser)
         {
             if (!parser.CheckToken(0, "type"))
                 return null;
@@ -30,7 +22,7 @@ namespace EpochVSIX.Parser
 
             parser.ConsumeTokens(4);
             var aliastype = new StrongAlias { };
-            return new ParsedStrongAlias { Name = nametoken, Type = aliastype };
+            return new ParsedObject<StrongAlias> { Name = nametoken, Object = aliastype };
         }
 
     }

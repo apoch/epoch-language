@@ -8,15 +8,7 @@ namespace EpochVSIX.Parser
 {
     class WeakAlias
     {
-
-        internal class ParsedWeakAlias
-        {
-            public Token Name;
-            public WeakAlias Type;
-        }
-
-
-        internal static ParsedWeakAlias Parse(ParseSession parser)
+        internal static ParsedObject<WeakAlias> Parse(ParseSession parser)
         {
             if (!parser.CheckToken(0, "alias"))
                 return null;
@@ -30,7 +22,7 @@ namespace EpochVSIX.Parser
 
             parser.ConsumeTokens(4);
             var aliastype = new WeakAlias { };
-            return new ParsedWeakAlias { Name = nametoken, Type = aliastype };
+            return new ParsedObject<WeakAlias> { Name = nametoken, Object = aliastype };
         }
 
     }

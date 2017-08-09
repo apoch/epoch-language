@@ -8,13 +8,7 @@ namespace EpochVSIX.Parser
 {
     class SumType
     {
-        internal class ParsedSumType
-        {
-            public Token Name;
-            public SumType Type;
-        }
-
-        internal static ParsedSumType Parse(ParseSession parser)
+        internal static ParsedObject<SumType> Parse(ParseSession parser)
         {
             int totaltokens = 0;
             if (!parser.CheckToken(0, "type"))
@@ -60,7 +54,7 @@ namespace EpochVSIX.Parser
             // Success! Consume everything and return the constructed result
             parser.ConsumeTokens(totaltokens);
             var sumtype = new SumType { };
-            return new ParsedSumType { Name = sumtypename, Type = sumtype };
+            return new ParsedObject<SumType> { Name = sumtypename, Object = sumtype };
         }
     }
 }
