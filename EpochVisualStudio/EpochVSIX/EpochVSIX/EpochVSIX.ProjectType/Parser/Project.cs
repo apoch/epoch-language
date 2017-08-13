@@ -305,5 +305,58 @@ namespace EpochVSIX.Parser
             ErrorProvider.ProviderGuid = new Guid(VsPackage.PackageGuid);
             ErrorProvider.Tasks.Clear();        // TODO - this is probably too brute force
         }
+
+        internal async void NavigationHandler(object sender, EventArgs args)
+        {
+            var task = sender as Microsoft.VisualStudio.Shell.Task;
+            if (string.IsNullOrEmpty(task.Document))
+                return;
+
+            await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+
+            var serviceProvider = new ParseSession.ErrorListHelper();
+            var openDoc = serviceProvider.GetService(typeof(IVsUIShellOpenDocument)) as IVsUIShellOpenDocument;
+            if (openDoc == null)
+                return;
+
+            IVsWindowFrame frame;
+            Microsoft.VisualStudio.OLE.Interop.IServiceProvider sp;
+            IVsUIHierarchy hier;
+            uint itemid;
+            Guid logicalView = VSConstants.LOGVIEWID_Code;
+
+            if (ErrorHandler.Failed(openDoc.OpenDocumentViaProject(task.Document, ref logicalView, out sp, out hier, out itemid, out frame)) || frame == null)
+                return;
+
+            object docData;
+            frame.GetProperty((int)__VSFPROPID.VSFPROPID_DocData, out docData);
+
+            VsTextBuffer buffer = docData as VsTextBuffer;
+            if (buffer == null)
+            {
+                IVsTextBufferProvider bufferProvider = docData as IVsTextBufferProvider;
+                if (bufferProvider != null)
+                {
+                    IVsTextLines lines;
+                    ErrorHandler.ThrowOnFailure(bufferProvider.GetTextBuffer(out lines));
+                    buffer = lines as VsTextBuffer;
+
+                    if (buffer == null)
+                        return;
+                }
+            }
+
+            IVsTextManager mgr = serviceProvider.GetService(typeof(VsTextManagerClass)) as IVsTextManager;
+            if (mgr == null)
+                return;
+
+            // This whole mess could arguably be a lot simpler as a call to ErrorProvider.Navigate().
+            // Unfortunately that API assumes 1-based column/line indices, whereas our task (in order
+            // to display correctly in the task list) assumes 0-based. This can be worked around with
+            // a trivial addition/substraction, but the kicker is that the column is not used by that
+            // particular API. Therefore to preserve the column we do all this crazy stuff instead.
+            mgr.NavigateToLineAndColumn(buffer, ref logicalView, task.Line, task.Column, task.Line, task.Column);
+        }
+
     }
 }
