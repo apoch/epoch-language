@@ -1,8 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿//
+// The Epoch Language Project
+// Visual Studio Integration/Extension
+//
+// Wrapper for an individual source code file in a project.
+//
+// Currently this is mostly plumbing but could potentially be expanded
+// to do more things as features are added to the VS extension.
+//
 
 namespace EpochVSIX.Parser
 {
@@ -17,6 +21,9 @@ namespace EpochVSIX.Parser
         }
 
 
+        //
+        // Parse some code and add the data obtained to a Project.
+        //
         private void AugmentProject(Project project, string filecontents)
         {
             project.RegisterSourceFile(FileFullPath, this);
@@ -28,6 +35,9 @@ namespace EpochVSIX.Parser
         }
 
 
+        //
+        // Helper routine to load a source code file into a Project object.
+        //
         public static SourceFile AugmentProject(Project project, string filepath, string filecontents)
         {
             var file = new SourceFile();

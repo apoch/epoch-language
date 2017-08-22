@@ -1,13 +1,22 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿//
+// The Epoch Language Project
+// Visual Studio Integration/Extension
+//
+// Helper class for parsing strong type aliases from a token stream.
+//
 
 namespace EpochVSIX.Parser
 {
     class StrongAlias
     {
+
+        //
+        // Parse a strong type alias from a token stream.
+        //
+        // Presently there is no associated data, although it would
+        // probably be desirable to store the base type so that the
+        // IntelliSense tips for the alias can show it.
+        //
         internal static ParsedObject<StrongAlias> Parse(ParseSession parser)
         {
             if (!parser.CheckToken(0, "type"))

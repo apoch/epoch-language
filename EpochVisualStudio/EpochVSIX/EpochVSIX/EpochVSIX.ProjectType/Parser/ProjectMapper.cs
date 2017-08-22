@@ -1,10 +1,15 @@
-﻿using Microsoft.VisualStudio.Shell.Interop;
-using Microsoft.VisualStudio.TextManager.Interop;
-using System;
+﻿//
+// The Epoch Language Project
+// Visual Studio Integration/Extension
+//
+// Single point of authority for linking VS hierarchies with Project objects.
+//
+// The entire purpose of this class is to make it convenient to find a suitable
+// Project to go along with a corresponding IVsHierarchy (VS project).
+//
+
+using Microsoft.VisualStudio.Shell.Interop;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace EpochVSIX.Parser
 {
