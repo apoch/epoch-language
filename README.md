@@ -7,6 +7,8 @@
 # The Epoch Programming Language
 Welcome to the home of **Epoch**, an opinionated programming language designed to balance speed, control, and productivity.
 
+The Epoch language is designed to allow programmers to fluidly blend between writing **high-performance code**, **security-conscious code**, and **maintainable code**. We recognize that the balancing act of modern software implementation often demands paying careful attention to each of these aspects to varying degrees. Epoch's goal is to allow this balance to be achieved without requiring the use of multiple technology platforms.
+
 Epoch places a strong emphasis on certain ways of thinking about programming, at both large and small scales. The decisions behind the language will undoubtedly not please everyone - but if you're a like-minded programmer, we hope Epoch scratches your itch as well as it has scratched our own.
 
 ## Hello World
