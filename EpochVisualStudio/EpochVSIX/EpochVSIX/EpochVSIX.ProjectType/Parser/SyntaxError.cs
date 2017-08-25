@@ -1,8 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿//
+// The Epoch Language Project
+// Visual Studio Integration/Extension
+//
+// Basic exception type for wrapping syntax errors thrown by the parser.
+//
+
+using System;
 
 namespace EpochVSIX.Parser
 {

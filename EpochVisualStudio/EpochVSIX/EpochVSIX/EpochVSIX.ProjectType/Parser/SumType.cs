@@ -1,11 +1,19 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿//
+// The Epoch Language Project
+// Visual Studio Integration/Extension
+//
+// Helper for parsing sum type definitions.
+//
 
 namespace EpochVSIX.Parser
 {
+    //
+    // Wrapper class for a sum type definition.
+    //
+    // Note that this presently does not carry any state.
+    // We may wish to attach some later on if things like
+    // syntax hints and other IDE features would benefit.
+    //
     class SumType
     {
         internal static ParsedObject<SumType> Parse(ParseSession parser)

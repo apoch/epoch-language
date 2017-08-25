@@ -1,23 +1,43 @@
-﻿using System;
+﻿//
+// The Epoch Language Project
+// Visual Studio Integration/Extension
+//
+// Wrapper for parsing and describing structure types.
+//
+
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace EpochVSIX.Parser
 {
+    //
+    // This class provides basic storage for a structure type's
+    // definition (i.e. name, members and their types, etc.). A
+    // secondary objective is to parse those definitions from a
+    // given token stream.
+    //
     class Structure
     {
-        public Token Name;
-        public List<Member> Members;
 
+        //
+        // Auxiliary type for describing a structure member.
+        //
         public class Member
         {
             public Token Name;
             public TypeSignatureInstantiated Type;
         }
 
+        //
+        // Actual storage for the structure definition data.
+        //
+        public Token Name;
+        public List<Member> Members;
 
+
+        //
+        // Pretty-print the associated structure definition as a string.
+        //
         public override string ToString()
         {
             string memberlist = string.Join(",\r\n", Members.Select(x => $"    {x.Type.ToString()} {x.Name.Text}").ToArray());
@@ -25,6 +45,13 @@ namespace EpochVSIX.Parser
         }
 
 
+        //
+        // Helper routine for parsing a structure definition.
+        //
+        // Consumes tokens and returns a wrapped Structure on success.
+        // Returns null on parsing failures, either due to syntactical
+        // mistakes, or due to legitimate code that isn't a structure.
+        //
         internal static ParsedObject<Structure> Parse(ParseSession parser)
         {
             int totaltokens = 0;

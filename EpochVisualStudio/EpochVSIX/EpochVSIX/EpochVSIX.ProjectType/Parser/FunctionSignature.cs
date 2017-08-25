@@ -140,7 +140,7 @@ namespace EpochVSIX.Parser
                 //
                 // Handle functions with literal parameters (for pattern matching).
                 //
-                else if (parser.PeekToken(totaltokens).IsLiteralFunctionParam())
+                else if (IsLiteralFunctionParam(parser.PeekToken(totaltokens)))
                 {
                     // TODO - better literal support
 
@@ -193,6 +193,29 @@ namespace EpochVSIX.Parser
             }
 
             return ret;
+        }
+
+        //
+        // Helper routine for checking if a function parameter is a literal.
+        //
+        // Literals are allowed for use in pattern matching calls.
+        //
+        private static bool IsLiteralFunctionParam(Token token)
+        {
+            if (token.Text.Contains("."))
+            {
+                float ignored;
+                if (float.TryParse(token.Text, out ignored))
+                    return true;
+            }
+            else
+            {
+                int ignored;
+                if (int.TryParse(token.Text, out ignored))
+                    return true;
+            }
+
+            return false;
         }
 
         //

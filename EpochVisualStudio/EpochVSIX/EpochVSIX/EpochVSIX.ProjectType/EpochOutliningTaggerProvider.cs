@@ -1,12 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.ComponentModel.Composition;
-using Microsoft.VisualStudio.Text.Outlining;
+﻿using Microsoft.VisualStudio.Text;
 using Microsoft.VisualStudio.Text.Tagging;
 using Microsoft.VisualStudio.Utilities;
-using Microsoft.VisualStudio.Text;
+using System;
+using System.ComponentModel.Composition;
 
 namespace EpochVSIX
 {
@@ -17,9 +13,8 @@ namespace EpochVSIX
     {
         public ITagger<T> CreateTagger<T>(ITextBuffer buffer) where T : ITag
         {
-            //create a single tagger for each buffer.
-            Func<ITagger<T>> sc = delegate () { return new EpochOutliningTagger(buffer) as ITagger<T>; };
-            return buffer.Properties.GetOrCreateSingletonProperty<ITagger<T>>(sc);
+            Func<ITagger<T>> create = () => { return new EpochOutliningTagger(buffer) as ITagger<T>; };
+            return buffer.Properties.GetOrCreateSingletonProperty(create);
         }
     }
 }
