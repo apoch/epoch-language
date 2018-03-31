@@ -103,3 +103,10 @@ EpochBGFXWrapper/EpochBGFXWrapper/Debug/**
 /Release
 /EpochDevTools32/bin/Debug
 /EpochDevTools32/.vs/config
+/EpochVisualStudio/EpochVSIX/.vs/EpochVSIX/v15/Server/sqlite3
+/EpochVisualStudio/EpochVSIX/Backup
+/EpochVisualStudio/EpochVSIX/EpochVSIX/EpochVSIX.ProjectTemplate/obj/Release
+/EpochVisualStudio/EpochVSIX/EpochVSIX.ItemTemplate/obj/Release
+/EpochVisualStudio/EpochVSIX/UpgradeLog.htm
+/EpochVisualStudio/EpochVSShell/EpochVSShell/EpochVSShell.AboutBoxPackage/obj/Release
+/EpochVisualStudio/EpochVSShell/EpochVSShell/ShellExtensionsVSIX/obj/Release

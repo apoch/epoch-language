@@ -1,12 +1,17 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project ToolsVersion="15.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <Import Project="..\..\packages\Microsoft.VSSDK.BuildTools.14.3.25407\build\Microsoft.VSSDK.BuildTools.props" Condition="Exists('..\..\packages\Microsoft.VSSDK.BuildTools.14.3.25407\build\Microsoft.VSSDK.BuildTools.props')" />
   <PropertyGroup>
-    <MinimumVisualStudioVersion>14.0</MinimumVisualStudioVersion>
+    <MinimumVisualStudioVersion>15.0</MinimumVisualStudioVersion>
     <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">14.0</VisualStudioVersion>
     <VSToolsPath Condition="'$(VSToolsPath)' == ''">$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)</VSToolsPath>
     <NuGetPackageImportStamp>
     </NuGetPackageImportStamp>
+    <FileUpgradeFlags>
+    </FileUpgradeFlags>
+    <UpgradeBackupLocation>
+    </UpgradeBackupLocation>
+    <OldToolsVersion>4.0</OldToolsVersion>
   </PropertyGroup>
   <PropertyGroup>
     <RunPostBuildEvent>OnOutputUpdated</RunPostBuildEvent>
@@ -287,64 +292,83 @@
   <ItemGroup>
     <None Include="BuildSystem\Rules\ProjectItemsSchema.xaml">
       <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
     </None>
     <None Include="BuildSystem\Rules\csharp.browseobject.xaml">
       <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
     </None>
     <XamlPropertyRule Include="BuildSystem\Rules\general.xaml">
       <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
     </XamlPropertyRule>
     <XamlPropertyRule Include="BuildSystem\Rules\CustomPropertyPage.xaml">
       <RuleInjection>None</RuleInjection>
       <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
     </XamlPropertyRule>
     <XamlPropertyRule Include="BuildSystem\Rules\general_file.xaml">
       <RuleInjection>None</RuleInjection>
       <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
     </XamlPropertyRule>
     <XamlPropertyRule Include="BuildSystem\Rules\folder.xaml">
       <RuleInjection>None</RuleInjection>
       <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
     </XamlPropertyRule>
     <XamlPropertyRule Include="BuildSystem\Rules\none.xaml">
       <RuleInjection>None</RuleInjection>
       <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
     </XamlPropertyRule>
     <XamlPropertyRule Include="BuildSystem\Rules\assemblyreference.xaml">
       <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
     </XamlPropertyRule>
     <XamlPropertyRule Include="BuildSystem\Rules\comreference.xaml">
       <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
     </XamlPropertyRule>
     <XamlPropertyRule Include="BuildSystem\Rules\projectreference.xaml">
       <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
     </XamlPropertyRule>
     <XamlPropertyRule Include="BuildSystem\Rules\ResolvedAssemblyReference.xaml">
       <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
     </XamlPropertyRule>
     <XamlPropertyRule Include="BuildSystem\Rules\ResolvedCOMReference.xaml">
       <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
     </XamlPropertyRule>
     <XamlPropertyRule Include="BuildSystem\Rules\ResolvedProjectReference.xaml">
       <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
     </XamlPropertyRule>
     <XamlPropertyRule Include="BuildSystem\Rules\resolvedsdkreference.xaml">
       <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
     </XamlPropertyRule>
     <XamlPropertyRule Include="BuildSystem\Rules\scc.xaml">
       <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
     </XamlPropertyRule>
     <XamlPropertyRule Include="BuildSystem\Rules\sdkreference.xaml">
       <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
     </XamlPropertyRule>
     <XamlPropertyRule Include="BuildSystem\Rules\debugger_general.xaml">
       <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
     </XamlPropertyRule>
     <XamlPropertyRule Include="BuildSystem\Rules\csharp.xaml">
       <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
     </XamlPropertyRule>
     <XamlPropertyRule Include="BuildSystem\Rules\EmbeddedResource.xaml">
       <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
     </XamlPropertyRule>
   </ItemGroup>
   <ItemGroup>

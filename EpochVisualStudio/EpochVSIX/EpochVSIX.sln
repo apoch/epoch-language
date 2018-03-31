@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 14
-VisualStudioVersion = 14.0.25420.1
+# Visual Studio 15
+VisualStudioVersion = 15.0.27428.1
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EpochVSIX.ProjectType", "EpochVSIX\EpochVSIX.ProjectType\EpochVSIX.ProjectType.csproj", "{3126A16B-3ABF-4061-AA3A-795CBE044381}"
 	ProjectSection(ProjectDependencies) = postProject
@@ -92,5 +92,8 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {E943B007-1CD4-41F1-A0E0-467989DA158B}
 	EndGlobalSection
 EndGlobal
