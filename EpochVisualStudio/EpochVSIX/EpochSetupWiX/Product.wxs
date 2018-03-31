@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
 	<Product Id="*" Name="Epoch Language Development Tools" Language="1033" Version="0.1.0.0" Manufacturer="Mike Lewis" UpgradeCode="d14de07c-d8a6-4c79-9d38-2ff731f73910">
-		<Package Id="*" InstallerVersion="400" Compressed="yes" InstallScope="perMachine"/>
+		<Package Id="*" InstallerVersion="400" Compressed="yes" InstallScope="perMachine" Platform="x64" />
 
     <Icon Id="Icon.exe" SourceFile="Assets\Epoch.ico" />
 
@@ -104,10 +104,6 @@
               <Component Id="BuildRuleXml_6" Guid="4573be9a-2921-447c-a0a9-cdd887176f2c">
                 <RegistryValue Root="HKCU" Key="Software\Epoch\CurrentInstall" Name="BuildRulesInstall6" Value="1" Type="integer" KeyPath="yes" />
                 <File Source="Assets\Build\Rules\Debugger.xaml" Id="RULE_debugger" />
-              </Component>
-              <Component Id="BuildRuleXml_7" Guid="7a0d0bcb-9bd9-4145-9b00-dff1290e0595">
-                <RegistryValue Root="HKCU" Key="Software\Epoch\CurrentInstall" Name="BuildRulesInstall7" Value="1" Type="integer" KeyPath="yes" />
-                <File Source="Assets\Build\Rules\debugger_general.xaml" Id="RULE_debuggerGeneral" />
               </Component>
               <Component Id="BuildRuleXml_8" Guid="f40a94d8-a5b1-47ad-9fb2-4c1e12eab762">
                 <RegistryValue Root="HKCU" Key="Software\Epoch\CurrentInstall" Name="BuildRulesInstall8" Value="1" Type="integer" KeyPath="yes" />
@@ -218,7 +214,6 @@
         <ComponentRef Id="BuildRuleXml_4" />
         <ComponentRef Id="BuildRuleXml_5" />
         <ComponentRef Id="BuildRuleXml_6" />
-        <ComponentRef Id="BuildRuleXml_7" />
         <ComponentRef Id="BuildRuleXml_8" />
         <ComponentRef Id="BuildRuleXml_9" />
         <ComponentRef Id="BuildRuleXml_10" />
@@ -246,9 +241,6 @@
 
     <CustomAction Id="InstallVSIX" Directory="INSTALLDIR" ExeCommand='[ProgramFilesFolder]\Microsoft Visual Studio 14.0\Common7\IDE\vsixinstaller.exe "[INSTALLDIR]\EpochVSIX.vsix"' Return="check" />
     <CustomAction Id="UninstallVSIX" Directory="INSTALLDIR" Execute="immediate" ExeCommand="[ProgramFilesFolder]\Microsoft Visual Studio 14.0\Common7\IDE\vsixinstaller.exe &quot;/u:EpochVSIX.ProjectType..7002a968-bbf1-4858-96c9-bf0b59bd51b5&quot;" Return="check" />
-
-    <UIRef Id="WixUI_Mondo" />
-    <UIRef Id="WixUI_ErrorProgressText" />
 
     <WixVariable Id="WixUILicenseRtf" Value="Assets\License.rtf" />
     
