@@ -5,8 +5,6 @@
   <Import Project="$(MSBuildThisFileDirectory)\CustomProject.targets" />
 
   <ItemGroup>
-    <PropertyPageSchema Include="$(MSBuildThisFileDirectory)Rules\csProjectItemsSchema.xaml;"/>
-
     <PropertyPageSchema Include="$(MSBuildThisFileDirectory)Rules\Epoch.xaml;">
       <Context>File;BrowseObject</Context>
     </PropertyPageSchema>

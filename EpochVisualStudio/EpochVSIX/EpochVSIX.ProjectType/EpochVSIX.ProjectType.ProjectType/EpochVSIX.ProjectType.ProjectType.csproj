@@ -211,16 +211,14 @@
     <None Include="BuildSystem\DeployedBuildSystem\CustomProject.props" />
     <None Include="BuildSystem\DeployedBuildSystem\CustomProject.targets" />
     <None Include="BuildSystem\DeployedBuildSystem\CustomProjectCs.targets" />
-    <None Include="BuildSystem\DeployedBuildSystem\EpochVSIX.ProjectType.props" />
-    <None Include="BuildSystem\DeployedBuildSystem\EpochVSIX.ProjectType.targets" />
     <None Include="BuildSystem\Rules\ProjectItemsSchema.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </None>
-    <None Include="BuildSystem\Rules\script.browseobject.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </None>
+    <Content Include="EpochImages.imagemanifest">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <IncludeInVSIX>true</IncludeInVSIX>
+    </Content>
     <None Include="packages.config" />
     <None Include="source.extension.vsixmanifest">
       <SubType>Designer</SubType>
@@ -245,8 +243,6 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
       <IncludeInVSIX>true</IncludeInVSIX>
     </Content>
-    <Content Include="Images\EpochImagesDocumentIcon.png" />
-    <Content Include="Images\EpochImagesProjectIcon.png" />
     <Content Include="License.txt">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
       <IncludeInVSIX>true</IncludeInVSIX>
@@ -262,62 +258,63 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <Page Include="BuildSystem\Rules\assemblyreference.xaml">
-      <Generator>MSBuild:Compile</Generator>
+    <XamlPropertyRule Include="BuildSystem\Rules\assemblyreference.xaml">
       <SubType>Designer</SubType>
-    </Page>
-    <Page Include="BuildSystem\Rules\comreference.xaml">
-      <Generator>MSBuild:Compile</Generator>
-      <SubType>Designer</SubType>
-    </Page>
-    <Page Include="BuildSystem\Rules\csharp.browseobject.xaml">
-      <Generator>MSBuild:Compile</Generator>
-      <SubType>Designer</SubType>
-    </Page>
-    <Page Include="BuildSystem\Rules\csharp.xaml">
-      <Generator>MSBuild:Compile</Generator>
-      <SubType>Designer</SubType>
-    </Page>
-    <Page Include="BuildSystem\Rules\CustomPropertyPage.xaml">
-      <Generator>MSBuild:Compile</Generator>
-      <SubType>Designer</SubType>
-    </Page>
-    <XamlPropertyRule Include="BuildSystem\Rules\Debugger.xaml">
-      <SubType>Designer</SubType>
+      <Generator>XamlIntelliSenseFileGenerator</Generator>
     </XamlPropertyRule>
-    <Page Include="BuildSystem\Rules\EmbeddedResource.xaml">
+    <XamlPropertyRule Include="BuildSystem\Rules\comreference.xaml">
+      <SubType>Designer</SubType>
+      <Generator>XamlIntelliSenseFileGenerator</Generator>
+    </XamlPropertyRule>
+    <None Include="BuildSystem\Rules\csharp.browseobject.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
-    </Page>
-    <Page Include="BuildSystem\Rules\Epoch.xaml">
-      <Generator>MSBuild:Compile</Generator>
+    </None>
+    <XamlPropertyRule Include="BuildSystem\Rules\csharp.xaml">
       <SubType>Designer</SubType>
-    </Page>
-    <Page Include="BuildSystem\Rules\projectreference.xaml">
-      <Generator>MSBuild:Compile</Generator>
+      <Generator>XamlIntelliSenseFileGenerator</Generator>
+    </XamlPropertyRule>
+    <XamlPropertyRule Include="BuildSystem\Rules\CustomPropertyPage.xaml">
       <SubType>Designer</SubType>
-    </Page>
-    <Page Include="BuildSystem\Rules\ResolvedAssemblyReference.xaml">
-      <Generator>MSBuild:Compile</Generator>
+      <Generator>XamlIntelliSenseFileGenerator</Generator>
+    </XamlPropertyRule>
+    <XamlPropertyRule Include="BuildSystem\Rules\EmbeddedResource.xaml">
       <SubType>Designer</SubType>
-    </Page>
-    <Page Include="BuildSystem\Rules\ResolvedCOMReference.xaml">
-      <Generator>MSBuild:Compile</Generator>
+      <Generator>XamlIntelliSenseFileGenerator</Generator>
+    </XamlPropertyRule>
+    <XamlPropertyRule Include="BuildSystem\Rules\Epoch.xaml">
       <SubType>Designer</SubType>
-    </Page>
-    <Page Include="BuildSystem\Rules\ResolvedProjectReference.xaml">
-      <Generator>MSBuild:Compile</Generator>
+      <Generator>XamlIntelliSenseFileGenerator</Generator>
+    </XamlPropertyRule>
+    <XamlPropertyRule Include="BuildSystem\Rules\projectreference.xaml">
       <SubType>Designer</SubType>
-    </Page>
-    <Page Include="BuildSystem\Rules\resolvedsdkreference.xaml">
-      <Generator>MSBuild:Compile</Generator>
+      <Generator>XamlIntelliSenseFileGenerator</Generator>
+    </XamlPropertyRule>
+    <XamlPropertyRule Include="BuildSystem\Rules\ResolvedAssemblyReference.xaml">
       <SubType>Designer</SubType>
-    </Page>
-    <Page Include="BuildSystem\Rules\sdkreference.xaml">
-      <Generator>MSBuild:Compile</Generator>
+      <Generator>XamlIntelliSenseFileGenerator</Generator>
+    </XamlPropertyRule>
+    <XamlPropertyRule Include="BuildSystem\Rules\ResolvedCOMReference.xaml">
       <SubType>Designer</SubType>
-    </Page>
+      <Generator>XamlIntelliSenseFileGenerator</Generator>
+    </XamlPropertyRule>
+    <XamlPropertyRule Include="BuildSystem\Rules\ResolvedProjectReference.xaml">
+      <SubType>Designer</SubType>
+      <Generator>XamlIntelliSenseFileGenerator</Generator>
+    </XamlPropertyRule>
+    <XamlPropertyRule Include="BuildSystem\Rules\resolvedsdkreference.xaml">
+      <SubType>Designer</SubType>
+      <Generator>XamlIntelliSenseFileGenerator</Generator>
+    </XamlPropertyRule>
+    <XamlPropertyRule Include="BuildSystem\Rules\sdkreference.xaml">
+      <SubType>Designer</SubType>
+      <Generator>XamlIntelliSenseFileGenerator</Generator>
+    </XamlPropertyRule>
     <Page Include="Controls\EpochQuickInfoControl.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="Images\EpochImagesDocumentIcon.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>
@@ -327,9 +324,13 @@
     </Page>
   </ItemGroup>
   <ItemGroup>
+    <XamlPropertyRule Include="BuildSystem\Rules\Debugger.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:GenerateRuleSourceFromXaml</Generator>
+    </XamlPropertyRule>
     <XamlPropertyRule Include="BuildSystem\Rules\folder.xaml">
       <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
+      <Generator>XamlIntelliSenseFileGenerator</Generator>
     </XamlPropertyRule>
     <XamlPropertyRule Include="BuildSystem\Rules\general.browseobject.xaml">
       <SubType>Designer</SubType>
@@ -337,27 +338,19 @@
     </XamlPropertyRule>
     <XamlPropertyRule Include="BuildSystem\Rules\general.xaml">
       <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
+      <Generator>XamlIntelliSenseFileGenerator</Generator>
     </XamlPropertyRule>
     <XamlPropertyRule Include="BuildSystem\Rules\general_file.xaml">
       <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
+      <Generator>XamlIntelliSenseFileGenerator</Generator>
     </XamlPropertyRule>
     <XamlPropertyRule Include="BuildSystem\Rules\none.xaml">
       <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
+      <Generator>XamlIntelliSenseFileGenerator</Generator>
     </XamlPropertyRule>
     <XamlPropertyRule Include="BuildSystem\Rules\scc.xaml">
       <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </XamlPropertyRule>
-    <XamlPropertyRule Include="BuildSystem\Rules\script.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </XamlPropertyRule>
-    <XamlPropertyRule Include="BuildSystem\Rules\ScriptDebugger.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
+      <Generator>XamlIntelliSenseFileGenerator</Generator>
     </XamlPropertyRule>
   </ItemGroup>
   <ItemGroup>
