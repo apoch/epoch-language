@@ -1,0 +1,20 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<ImageManifest xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                           xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+                           xmlns="http://schemas.microsoft.com/VisualStudio/ImageManifestSchema/2014">
+  <Symbols>
+    <String Name="Resources" Value="/EpochVSIX;Component/" />
+    <Guid Name="EpochImageManifestGuid" Value="e6b80c76-4e85-480e-9c1a-9418c5fc17d2" />
+    <ID Name="ProjectIcon" Value="0" />
+    <ID Name="DocumentIcon" Value="1" />
+  </Symbols>
+  <Images>
+    <Image Guid="$(EpochImageManifestGuid)" ID="$(ProjectIcon)">
+      <Source Uri="$(Resources)/Images/EpochImagesProjectIcon.xaml" />
+    </Image>
+    <Image Guid="$(EpochImageManifestGuid)" ID="$(DocumentIcon)">
+      <Source Uri="$(Resources)/Images/EpochImagesDocumentIcon.xaml" />
+    </Image>
+  </Images>
+  <ImageLists />
+</ImageManifest>

@@ -1,0 +1,14 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup Label="Globals">
+      <CustomProjectExtensionsPath>$(LocalAppData)\CustomProjectSystems\EpochProjectType\</CustomProjectExtensionsPath>
+  </PropertyGroup>
+  
+  <Import Project="$(CustomProjectExtensionsPath)EpochProjectType.props" />
+    
+  <ItemGroup>
+    <EpochCompile Include="EntryPoint.epoch" />
+  </ItemGroup>
+
+  <Import Project="$(CustomProjectExtensionsPath)EpochProjectType.targets" />
+</Project>
