@@ -11,9 +11,6 @@
     <DefaultName>Module.epoch</DefaultName>
   </TemplateData>
   <TemplateContent>
-    <CustomParameters>
-      <CustomParameter Name="$EpochProjectName$" Value="$(MSBuildProjectFullPath)" />
-    </CustomParameters>
     <ProjectItem ReplaceParameters="true">Module.epoch</ProjectItem>
   </TemplateContent>
 </VSTemplate>
