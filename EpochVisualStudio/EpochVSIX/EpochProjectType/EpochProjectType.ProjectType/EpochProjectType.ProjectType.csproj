@@ -159,7 +159,6 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Controls\EpochQuickInfoControl.xaml.cs" />
-    <Compile Include="DebuggerLaunchProvider.cs" />
     <Compile Include="EpochBraceMatching.cs" />
     <Compile Include="EpochBraceMatchingTaggerProvider.cs" />
     <Compile Include="EpochBuildPropertiesProvider.cs" />
@@ -170,6 +169,7 @@
     <Compile Include="EpochCompletionCommandHandler.cs" />
     <Compile Include="EpochCompletionSource.cs" />
     <Compile Include="EpochCompletionSourceProvider.cs" />
+    <Compile Include="EpochDebuggerLaunchProvider.cs" />
     <Compile Include="EpochEditorFactory.cs" />
     <Compile Include="EpochImageManifestMonikers.cs" />
     <Compile Include="EpochLanguageService.cs" />
@@ -273,14 +273,13 @@
     <Content Include="EpochVSIX.ico" />
   </ItemGroup>
   <ItemGroup>
-    <XamlPropertyRule Include="BuildSystem\Rules\Debugger.xaml">
-      <Generator>MSBuild:Compile</Generator>
-      <SubType>Designer</SubType>
-    </XamlPropertyRule>
     <Page Include="BuildSystem\Rules\Epoch.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>
+    <XamlPropertyRule Include="BuildSystem\Rules\EpochDebugger.xaml">
+      <SubType>Designer</SubType>
+    </XamlPropertyRule>
     <Page Include="Controls\EpochQuickInfoControl.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>

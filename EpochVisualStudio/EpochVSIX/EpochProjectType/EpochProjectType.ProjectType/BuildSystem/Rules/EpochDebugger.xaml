@@ -5,20 +5,20 @@
 
     *BuildSystem\DeployedBuildSystem\CustomProject.props* - update the value of the existing DebuggerFlavor element to use the new debugger
     <PropertyGroup>
-      <DebuggerFlavor>Debugger</DebuggerFlavor>
+      <DebuggerFlavor>EpochDebugger</DebuggerFlavor>
     </PropertyGroup>
 -->
 <Rule
-	Name="Debugger"
-	DisplayName="Epoch Debugger"
+	Name="EpochDebugger"
+	DisplayName="EpochDebugger Debugger"
 	PageTemplate="debugger"
-	Description="Epoch Debugger options"
+	Description="EpochDebugger Debugger options"
 	xmlns="http://schemas.microsoft.com/build/2009/properties">
     <Rule.DataSource>
         <DataSource Persistence="UserFileWithXamlDefaults" />
     </Rule.DataSource>
 
-    <StringProperty Name="DebuggerCommand" DisplayName="Command"
+    <StringProperty Name="EpochDebuggerCommand" DisplayName="Command"
                 Default="$(TargetPath)"
                 Description="The debug command to execute.">
         <StringProperty.ValueEditors>
@@ -36,15 +36,15 @@
         </StringProperty.ValueEditors>
     </StringProperty>
 
-    <StringProperty Name="DebuggerCommandArguments" DisplayName="Command Arguments"
+    <StringProperty Name="EpochDebuggerCommandArguments" DisplayName="Command Arguments"
                 Description="The command line arguments to pass to the application.">
-        <Argument Property="DebuggerCommand" />
+        <Argument Property="EpochDebuggerCommand" />
     </StringProperty>
-    <StringProperty Name="DebuggerWorkingDirectory" DisplayName="Working Directory"
+    <StringProperty Name="EpochDebuggerWorkingDirectory" DisplayName="Working Directory"
                 Default="$(MSBuildProjectDirectory)"  
                 Description="The application's working directory. By default, the directory containing the project file."
                 Subtype="folder"/>
-    <BoolProperty Name="DebuggerDebuggerAttach" DisplayName="Attach"
+    <BoolProperty Name="EpochDebuggerDebuggerAttach" DisplayName="Attach"
                 Default="False"
                 Description="Specifies whether the debugger should attempt to attach to an existing process when debugging starts." />
 </Rule>

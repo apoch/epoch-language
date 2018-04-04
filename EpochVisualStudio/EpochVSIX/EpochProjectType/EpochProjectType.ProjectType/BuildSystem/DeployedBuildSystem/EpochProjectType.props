@@ -6,7 +6,7 @@
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">x64</Platform>
 
-    <DebuggerFlavor>Debugger</DebuggerFlavor>
+    <DebuggerFlavor>EpochDebugger</DebuggerFlavor>
     <RunWorkingDirectory>$(MSBuildProjectDirectory)</RunWorkingDirectory>
   </PropertyGroup>
 </Project>
