@@ -19,29 +19,16 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <CustomProjectExtensionsPath>$(LocalAppData)\CustomProjectSystems\EpochVSIX\</CustomProjectExtensionsPath>
+    <CustomProjectExtensionsPath>$(LocalAppData)\CustomProjectSystems\EpochProjectType\</CustomProjectExtensionsPath>
+    <RootNamespace>Compiler32</RootNamespace>
     <ProjectGuid>34108b4e-8883-4c16-97c9-e55f3a4e769b</ProjectGuid>
   </PropertyGroup>
-  <Import Project="$(CustomProjectExtensionsPath)CustomProject.Default.props" />
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
-    <OutputName>bin\$(Configuration)\$(MSBuildProjectName).exe</OutputName>
-    <DebuggerFlavor>Debugger</DebuggerFlavor>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x86'" Label="Configuration">
-    <OutputName>bin\$(Configuration)\$(MSBuildProjectName).exe</OutputName>
-    <DebuggerFlavor>Debugger</DebuggerFlavor>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
-    <OutputName>bin\$(Configuration)\$(MSBuildProjectName).exe</OutputName>
-    <DebuggerFlavor>Debugger</DebuggerFlavor>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x86'" Label="Configuration">
-    <OutputName>bin\$(Configuration)\$(MSBuildProjectName).exe</OutputName>
-    <DebuggerFlavor>Debugger</DebuggerFlavor>
-  </PropertyGroup>
-  <Import Project="$(CustomProjectExtensionsPath)CustomProject.props" />
+  <Import Project="$(CustomProjectExtensionsPath)EpochProjectType.props" />
   <PropertyGroup>
-    <SchemaVersion>2.0</SchemaVersion>
+    <OutputPath>$(MSBuildProjectDirectory)\$(Configuration)\$(Platform)\</OutputPath>
+    <RunWorkingDirectory>$(OutputPath)</RunWorkingDirectory>
+    <TargetName>$(MSBuildProjectName).exe</TargetName>
+    <TargetPath>$(OutputPath)\$(TargetName)</TargetPath>
   </PropertyGroup>
   <ItemGroup>
     <EpochCompile Include="Common\DataStructures.epoch" />
@@ -81,11 +68,5 @@
     <EpochCompile Include="PDB\PDB.epoch" />
     <EpochCompile Include="PDB\Symbols.epoch" />
   </ItemGroup>
-  <Import Project="$(CustomProjectExtensionsPath)CustomProjectCs.targets" />
-  <!-- This next bit is required unless the macro used to Import your targets is defined in an MSBuild toolset. -->
-  <ProjectExtensions>
-    <ProjectCapabilities>
-      <ProjectConfigurationsDeclaredAsItems />
-    </ProjectCapabilities>
-  </ProjectExtensions>
+  <Import Project="$(CustomProjectExtensionsPath)EpochProjectType.targets" />
 </Project>

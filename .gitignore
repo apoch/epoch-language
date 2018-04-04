@@ -117,3 +117,7 @@ EpochBGFXWrapper/EpochBGFXWrapper/Debug/**
 /EpochVisualStudio/EpochVSIX/EpochProjectType/EpochProjectType.ProjectType/obj/Debug
 /EpochVisualStudio/EpochVSIX/EpochVSIX.ProjectTemplate/bin/Debug/ProjectTemplates/Epoch/1033
 /EpochVisualStudio/EpochVSIX/EpochVSIX.ProjectTemplate/obj/Debug
+/Tools/MSFViewer/.vs/MSFViewer/v15/Server/sqlite3
+/EpochDevTools32/EpochPDBShim/x64/Debug
+/EpochDevTools32/x64/Debug
+/EpochDevTools32/.vs/Compiler32/v15
