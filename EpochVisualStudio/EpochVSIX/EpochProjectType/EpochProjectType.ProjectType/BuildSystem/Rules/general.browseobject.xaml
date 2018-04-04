@@ -24,4 +24,6 @@
             <DataSource Persistence="ProjectFile" PersistedName="MSBuildProjectFullPath" />
         </StringProperty.DataSource>
     </StringProperty>
+
+    <StringProperty Name="RootNamespace" DisplayName="Root namespace" Visible="False"/>
 </Rule>

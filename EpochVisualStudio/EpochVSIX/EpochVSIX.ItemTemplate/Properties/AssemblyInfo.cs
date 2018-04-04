@@ -8,9 +8,9 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyTitle("EpochVSIX.ItemTemplate")]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("Mike Lewis")]
+[assembly: AssemblyCompany("Company")]
 [assembly: AssemblyProduct("EpochVSIX.ItemTemplate")]
-[assembly: AssemblyCopyright("Copyright © Mike Lewis 2016")]
+[assembly: AssemblyCopyright("Copyright © Company 2018")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
@@ -20,7 +20,7 @@ using System.Runtime.InteropServices;
 [assembly: ComVisible(false)]
 
 // The following GUID is for the ID of the typelib if this project is exposed to COM
-[assembly: Guid("1ba2f1a2-6680-4fee-adc3-44dc7695ef61")]
+[assembly: Guid("15edf2e5-cf93-4ebd-88ac-ce526e1d0695")]
 
 // Version information for an assembly consists of the following four values:
 //

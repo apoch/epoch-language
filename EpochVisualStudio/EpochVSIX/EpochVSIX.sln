@@ -3,19 +3,18 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.27428.1
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EpochVSIX.ItemTemplate", "EpochVSIX.ItemTemplate\EpochVSIX.ItemTemplate.csproj", "{1BA2F1A2-6680-4FEE-ADC3-44DC7695EF61}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EpochBuild", "EpochBuild\EpochBuild.csproj", "{90D4994A-F222-4751-BB58-794C17DE40AB}"
 EndProject
 Project("{930C7802-8A8C-48F9-8165-68863BCCD9DD}") = "EpochSetupWiX", "EpochSetupWiX\EpochSetupWiX.wixproj", "{36171001-BC7D-4BBC-9470-4A60EB2AAC86}"
 	ProjectSection(ProjectDependencies) = postProject
 		{90D4994A-F222-4751-BB58-794C17DE40AB} = {90D4994A-F222-4751-BB58-794C17DE40AB}
-		{1BA2F1A2-6680-4FEE-ADC3-44DC7695EF61} = {1BA2F1A2-6680-4FEE-ADC3-44DC7695EF61}
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EpochVSIX.ProjectTemplate", "EpochVSIX.ProjectTemplate\EpochVSIX.ProjectTemplate.csproj", "{A486CB91-3B55-4605-95C9-DE5FA35E1AA9}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EpochProjectType.ProjectType", "EpochProjectType\EpochProjectType.ProjectType\EpochProjectType.ProjectType.csproj", "{17389BAD-14AB-41CA-80F6-9280F2AD9CA9}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EpochVSIX.ItemTemplate", "EpochVSIX.ItemTemplate\EpochVSIX.ItemTemplate.csproj", "{15EDF2E5-CF93-4EBD-88AC-CE526E1D0695}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -27,18 +26,6 @@ Global
 		Release|x86 = Release|x86
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{1BA2F1A2-6680-4FEE-ADC3-44DC7695EF61}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{1BA2F1A2-6680-4FEE-ADC3-44DC7695EF61}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{1BA2F1A2-6680-4FEE-ADC3-44DC7695EF61}.Debug|x64.ActiveCfg = Debug|Any CPU
-		{1BA2F1A2-6680-4FEE-ADC3-44DC7695EF61}.Debug|x64.Build.0 = Debug|Any CPU
-		{1BA2F1A2-6680-4FEE-ADC3-44DC7695EF61}.Debug|x86.ActiveCfg = Debug|Any CPU
-		{1BA2F1A2-6680-4FEE-ADC3-44DC7695EF61}.Debug|x86.Build.0 = Debug|Any CPU
-		{1BA2F1A2-6680-4FEE-ADC3-44DC7695EF61}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{1BA2F1A2-6680-4FEE-ADC3-44DC7695EF61}.Release|Any CPU.Build.0 = Release|Any CPU
-		{1BA2F1A2-6680-4FEE-ADC3-44DC7695EF61}.Release|x64.ActiveCfg = Release|Any CPU
-		{1BA2F1A2-6680-4FEE-ADC3-44DC7695EF61}.Release|x64.Build.0 = Release|Any CPU
-		{1BA2F1A2-6680-4FEE-ADC3-44DC7695EF61}.Release|x86.ActiveCfg = Release|Any CPU
-		{1BA2F1A2-6680-4FEE-ADC3-44DC7695EF61}.Release|x86.Build.0 = Release|Any CPU
 		{90D4994A-F222-4751-BB58-794C17DE40AB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{90D4994A-F222-4751-BB58-794C17DE40AB}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{90D4994A-F222-4751-BB58-794C17DE40AB}.Debug|x64.ActiveCfg = Debug|Any CPU
@@ -83,6 +70,18 @@ Global
 		{17389BAD-14AB-41CA-80F6-9280F2AD9CA9}.Release|x64.Build.0 = Release|Any CPU
 		{17389BAD-14AB-41CA-80F6-9280F2AD9CA9}.Release|x86.ActiveCfg = Release|Any CPU
 		{17389BAD-14AB-41CA-80F6-9280F2AD9CA9}.Release|x86.Build.0 = Release|Any CPU
+		{15EDF2E5-CF93-4EBD-88AC-CE526E1D0695}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{15EDF2E5-CF93-4EBD-88AC-CE526E1D0695}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{15EDF2E5-CF93-4EBD-88AC-CE526E1D0695}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{15EDF2E5-CF93-4EBD-88AC-CE526E1D0695}.Debug|x64.Build.0 = Debug|Any CPU
+		{15EDF2E5-CF93-4EBD-88AC-CE526E1D0695}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{15EDF2E5-CF93-4EBD-88AC-CE526E1D0695}.Debug|x86.Build.0 = Debug|Any CPU
+		{15EDF2E5-CF93-4EBD-88AC-CE526E1D0695}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{15EDF2E5-CF93-4EBD-88AC-CE526E1D0695}.Release|Any CPU.Build.0 = Release|Any CPU
+		{15EDF2E5-CF93-4EBD-88AC-CE526E1D0695}.Release|x64.ActiveCfg = Release|Any CPU
+		{15EDF2E5-CF93-4EBD-88AC-CE526E1D0695}.Release|x64.Build.0 = Release|Any CPU
+		{15EDF2E5-CF93-4EBD-88AC-CE526E1D0695}.Release|x86.ActiveCfg = Release|Any CPU
+		{15EDF2E5-CF93-4EBD-88AC-CE526E1D0695}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -1,9 +1,8 @@
 //
-// $safeprojectname$
+// $rootnamespace$
+// Project Entry Point Module
 //
-// Project Entry Point
-// By $username$ $registeredorganization$
-// $time$
+// $username$ - $time$
 //
 
 entrypoint :

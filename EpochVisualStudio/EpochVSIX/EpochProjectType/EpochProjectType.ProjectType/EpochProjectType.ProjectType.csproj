@@ -291,6 +291,13 @@
     </Resource>
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\EpochVSIX.ItemTemplate\EpochVSIX.ItemTemplate.csproj">
+      <Project>{15EDF2E5-CF93-4EBD-88AC-CE526E1D0695}</Project>
+      <Name>EpochVSIX.ItemTemplate</Name>
+      <VSIXSubPath>ItemTemplates</VSIXSubPath>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+      <IncludeOutputGroupsInVSIX>TemplateProjectOutputGroup%3b</IncludeOutputGroupsInVSIX>
+    </ProjectReference>
     <ProjectReference Include="..\..\EpochVSIX.ProjectTemplate\EpochVSIX.ProjectTemplate.csproj">
       <Project>{A486CB91-3B55-4605-95C9-DE5FA35E1AA9}</Project>
       <Name>EpochVSIX.ProjectTemplate</Name>
