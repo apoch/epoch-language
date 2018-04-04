@@ -4,10 +4,9 @@
     <ProjectSystemBase>$(MSBuildThisFileDirectory)</ProjectSystemBase>
 
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
-    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <Platform Condition=" '$(Platform)' == '' ">x64</Platform>
 
     <DebuggerFlavor>Debugger</DebuggerFlavor>
     <RunWorkingDirectory>$(MSBuildProjectDirectory)</RunWorkingDirectory>
-    <StartItem>$(OutputFile)</StartItem>
   </PropertyGroup>
 </Project>

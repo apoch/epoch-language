@@ -35,7 +35,7 @@ namespace EpochVSIX
     [PackageRegistration(UseManagedResourcesOnly = true)]
     [Description("A custom project type based on CPS")]
     [Guid(VsPackage.PackageGuid)]
-    [ProvideAutoLoad("{f1536ef8-92ec-443c-9ed7-fdadf150da82}")]         // UICONTEXT_SolutionExists
+    [ProvideAutoLoad(UIContextGuids80.SolutionExists)]
     [ProvideService(typeof(EpochLanguageService), ServiceName = "EpochFile")]
     [ProvideEditorExtension(typeof(EpochEditorFactory), ".epoch", 40)]  // Priority is crucial - I haven't tested it more, but with lower values (32 and lower) VS decides to initialize XML editor.
     [ProvideEditorLogicalView(typeof(EpochEditorFactory), VSConstants.LOGVIEWID.Code_string)]

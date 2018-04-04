@@ -1,13 +1,13 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
-    <ProjectConfiguration Include="Debug|AnyCPU">
+    <ProjectConfiguration Include="Debug|x64">
       <Configuration>Debug</Configuration>
-      <Platform>AnyCPU</Platform>
+      <Platform>x64</Platform>
     </ProjectConfiguration>
-    <ProjectConfiguration Include="Release|AnyCPU">
+    <ProjectConfiguration Include="Release|x64">
       <Configuration>Release</Configuration>
-      <Platform>AnyCPU</Platform>
+      <Platform>x64</Platform>
     </ProjectConfiguration>
   </ItemGroup>
 
@@ -57,16 +57,21 @@
     </PropertyPageSchema>
   </ItemGroup>
 
+  <UsingTask TaskName="EpochVS.BuildTask" AssemblyFile="$(EpochVSExtensionPath)\EpochBuild.DLL" />
+  <UsingTask TaskName="EpochVS.BuildTask32" AssemblyFile="$(EpochVSExtensionPath)\EpochBuild.DLL" />
+
   <Import Project="$(MSBuildProjectFullPath).user" Condition="Exists('$(MSBuildProjectFullPath).user')" />
 
-  <Target Name="Run">
-    <Message Text="$(RunCommandArguments)" />
-    <Exec Command='$(RunCommand) "$(MSBuildProjectDirectory)\$(StartItem)" $(RunCommandArguments)' WorkingDirectory="$(RunWorkingDirectory)" />
+  <Target Name="Build" Inputs="@(EpochCompile)" Outputs="test.exe">
+    <BuildTask Filename="@(EpochCompile)" Output="test.exe" Condition="'$(Platform)' == 'x64'" />
+    <BuildTask32 Filename="@(EpochCompile)" Output="test.exe" Condition="'$(Platform)' == 'x86'" />
   </Target>
 
-  <Target Name="Build" >
+  <Target Name="Clean">
+    <Delete Files="test.exe" />
   </Target>
 
   <Target Name="Rebuild">
+    <CallTarget RunEachTargetSeparately="true" ContinueOnError="false" Targets="Clean;Build" />
   </Target>
 </Project>

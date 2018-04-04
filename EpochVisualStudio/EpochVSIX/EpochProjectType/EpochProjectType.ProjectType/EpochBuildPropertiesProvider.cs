@@ -11,11 +11,11 @@ namespace EpochVSIX
 {
     [Export(typeof(IProjectGlobalPropertiesProvider))]
     [AppliesTo(MyUnconfiguredProject.UniqueCapability)]
-    public class PropertyProvider : StaticGlobalPropertiesProviderBase
+    public class EpochBuildPropertiesProvider : StaticGlobalPropertiesProviderBase
     {
         [ImportingConstructor]
-        public PropertyProvider(IProjectCommonServices services)
-            : base(services)
+        public EpochBuildPropertiesProvider(IProjectService service)
+            : base(service.Services)
         {
         }
 

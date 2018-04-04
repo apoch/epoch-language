@@ -162,6 +162,7 @@
     <Compile Include="DebuggerLaunchProvider.cs" />
     <Compile Include="EpochBraceMatching.cs" />
     <Compile Include="EpochBraceMatchingTaggerProvider.cs" />
+    <Compile Include="EpochBuildPropertiesProvider.cs" />
     <Compile Include="EpochClassifier.cs" />
     <Compile Include="EpochClassifierClassificationDefinition.cs" />
     <Compile Include="EpochClassifierFormat.cs" />
@@ -201,7 +202,6 @@
     <Compile Include="Parser\Variable.cs" />
     <Compile Include="Parser\WeakAlias.cs" />
     <Compile Include="ProjectProperties.cs" />
-    <Compile Include="PropertyProvider.cs" />
     <Compile Include="VsPackage.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
@@ -221,8 +221,12 @@
   final implementation, and provide the basic processing for handling rules in CPS.
   -->
   <ItemGroup>
-    <None Include="BuildSystem\DeployedBuildSystem\EpochProjectType.props" />
-    <None Include="BuildSystem\DeployedBuildSystem\EpochProjectType.targets" />
+    <None Include="BuildSystem\DeployedBuildSystem\EpochProjectType.props">
+      <SubType>Designer</SubType>
+    </None>
+    <None Include="BuildSystem\DeployedBuildSystem\EpochProjectType.targets">
+      <SubType>Designer</SubType>
+    </None>
   </ItemGroup>
   <!--
   The XAML files provide buth compile-time implementations for CPS rules as well as
@@ -291,6 +295,12 @@
     </Resource>
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\EpochBuild\EpochBuild.csproj">
+      <Project>{90D4994A-F222-4751-BB58-794C17DE40AB}</Project>
+      <Name>EpochBuild</Name>
+      <IncludeOutputGroupsInVSIX>BuiltProjectOutputGroup%3bBuiltProjectOutputGroupDependencies%3bGetCopyToOutputDirectoryItems%3bSatelliteDllsProjectOutputGroup%3b</IncludeOutputGroupsInVSIX>
+      <IncludeOutputGroupsInVSIXLocalOnly>DebugSymbolsProjectOutputGroup%3b</IncludeOutputGroupsInVSIXLocalOnly>
+    </ProjectReference>
     <ProjectReference Include="..\..\EpochVSIX.ItemTemplate\EpochVSIX.ItemTemplate.csproj">
       <Project>{15EDF2E5-CF93-4EBD-88AC-CE526E1D0695}</Project>
       <Name>EpochVSIX.ItemTemplate</Name>
