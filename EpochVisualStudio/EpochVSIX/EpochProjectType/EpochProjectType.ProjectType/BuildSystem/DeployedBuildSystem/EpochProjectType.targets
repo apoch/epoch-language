@@ -62,13 +62,14 @@
 
   <Import Project="$(MSBuildProjectFullPath).user" Condition="Exists('$(MSBuildProjectFullPath).user')" />
 
-  <Target Name="Build" Inputs="@(EpochCompile)" Outputs="test.exe">
-    <BuildTask Filename="@(EpochCompile)" Output="test.exe" Condition="'$(Platform)' == 'x64'" />
-    <BuildTask32 Filename="@(EpochCompile)" Output="test.exe" Condition="'$(Platform)' == 'x86'" />
+  <Target Name="Build" Inputs="@(EpochCompile)" Outputs="$(TargetPath)">
+    <MakeDir Directories="$(OutputPath)" />
+    <BuildTask Filename="@(EpochCompile)" Output="$(TargetPath)" Condition="'$(Platform)' == 'x64'" />
+    <BuildTask32 Filename="@(EpochCompile)" Output="$(TargetPath)" Condition="'$(Platform)' == 'x86'" />
   </Target>
 
   <Target Name="Clean">
-    <Delete Files="test.exe" />
+    <Delete Files="$(TargetPath)" />
   </Target>
 
   <Target Name="Rebuild">

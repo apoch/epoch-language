@@ -6,6 +6,13 @@
   </PropertyGroup>
   
   <Import Project="$(CustomProjectExtensionsPath)EpochProjectType.props" />
+
+  <PropertyGroup>
+    <OutputPath>$(MSBuildProjectDirectory)\$(Configuration)\$(Platform)\</OutputPath>
+    <RunWorkingDirectory>$(OutputPath)</RunWorkingDirectory>
+    <TargetName>$(MSBuildProjectName).exe</TargetName>
+    <TargetPath>$(OutputPath)\$(TargetName)</TargetPath>
+  </PropertyGroup>
     
   <ItemGroup>
     <EpochCompile Include="EntryPoint.epoch" />

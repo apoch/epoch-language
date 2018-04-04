@@ -7,6 +7,5 @@
     <Platform Condition=" '$(Platform)' == '' ">x64</Platform>
 
     <DebuggerFlavor>EpochDebugger</DebuggerFlavor>
-    <RunWorkingDirectory>$(MSBuildProjectDirectory)</RunWorkingDirectory>
   </PropertyGroup>
 </Project>
