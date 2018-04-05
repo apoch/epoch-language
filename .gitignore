@@ -121,3 +121,5 @@ EpochBGFXWrapper/EpochBGFXWrapper/Debug/**
 /EpochDevTools32/EpochPDBShim/x64/Debug
 /EpochDevTools32/x64/Debug
 /EpochDevTools32/.vs/Compiler32/v15
+/EpochDevTools/Debug/x64
+/EpochTests/PDBTest/Debug/x64

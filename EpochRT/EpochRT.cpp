@@ -3,6 +3,7 @@
 
 #include "stdafx.h"
 #include <iostream>
+#include <intrin.h>
 
 #include "StringPool.h"
 #include "GC.h"

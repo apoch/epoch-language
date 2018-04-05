@@ -1,9 +1,8 @@
 //
 // PDBTest
+// Project Entry Point Module
 //
-// Project Entry Point
-// By Apoch 
-// 6/6/2017 8:16:18 PM
+// Apoch - 4/5/2018 4:50:33 PM
 //
 
 
@@ -20,4 +19,3 @@ entrypoint :
 	test()
 	print("Hello, world!")
 }
-
