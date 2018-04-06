@@ -1,1 +1,0 @@
-Copy-Item D:\Epoch\epoch-language\Bin\TransitionRelease\EpochLLVM.* 'C:\Program Files (x86)\Epoch Language Tools\'

@@ -1,2 +1,0 @@
-Copy-Item "C:\Code\epoch-language\EpochDevTools32\Debug\x86\Compiler32.exe" 'C:\Program Files (x86)\Epoch Language Tools\Epoch32\EpochCompiler.exe'
-Copy-Item "C:\Code\epoch-language\EpochDevTools32\Debug\EpochPDBShim.dll" 'C:\Program Files (x86)\Epoch Language Tools\Epoch32\'

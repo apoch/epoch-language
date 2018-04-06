@@ -1,1 +1,0 @@
-Copy-Item D:\Epoch\epoch-language\bin\debug\EpochLLVM.* 'C:\Program Files (x86)\Epoch Language Tools\'
