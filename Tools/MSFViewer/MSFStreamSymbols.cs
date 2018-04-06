@@ -33,7 +33,7 @@ namespace MSFViewer
             int i = 0;
             foreach (var sym in Symbols)
             {
-                var symgroup = AddAnalysisGroup(lvwcontrol, tvw, $"symbols{i}", $"Symbol {i}", symnode);
+                var symgroup = AddAnalysisGroup(lvwcontrol, tvw, $"symbols{i}", $"Symbol {i} \"{sym}\"", symnode);
                 AddAnalysisItem(lvw, tvw, "Symbol size", symgroup, sym.Size);
                 AddAnalysisItem(lvw, tvw, "Symbol type", symgroup, sym.Type);
 

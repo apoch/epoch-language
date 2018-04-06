@@ -18,6 +18,11 @@ namespace MSFViewer
         {
         }
 
+        public override string ToString()
+        {
+            return "{unknown symbol type}";
+        }
+
         public static Symbol MakeSymbol(MSFStream stream, TypedByteSequence<ushort> size, TypedByteSequence<ushort> type)
         {
             var seq = new MaskedByteSequence(stream.GetFlattenedBuffer(), stream.GetReadOffset() - 4, size.ExtractedValue + 2, "Symbol");
@@ -73,6 +78,11 @@ namespace MSFViewer
             MSFStream.AddAnalysisItem(lvw, tvw, "Section index", group, SectionIndex);
             MSFStream.AddAnalysisItem(lvw, tvw, "Name", group, Name);
         }
+
+        public override string ToString()
+        {
+            return Name.ExtractedValue;
+        }
     }
 
     class SymbolUDT : Symbol
@@ -96,6 +106,11 @@ namespace MSFViewer
         {
             MSFStream.AddAnalysisItem(lvw, tvw, "UDT symbol type index", group, TypeIndex);
             MSFStream.AddAnalysisItem(lvw, tvw, "UDT name", group, Name);
+        }
+
+        public override string ToString()
+        {
+            return Name.ExtractedValue;
         }
     }
 
@@ -148,6 +163,12 @@ namespace MSFViewer
             MSFStream.AddAnalysisItem(lvw, tvw, "Flags", group, Flags);
             MSFStream.AddAnalysisItem(lvw, tvw, "Name", group, Name);
         }
+
+        public override string ToString()
+        {
+            return Name.ExtractedValue;
+        }
+
     }
 
     class SymbolProcRef : Symbol
@@ -177,6 +198,11 @@ namespace MSFViewer
             MSFStream.AddAnalysisItem(lvw, tvw, "Symbol offset", group, SymOffset);
             MSFStream.AddAnalysisItem(lvw, tvw, "Module index", group, Module);
             MSFStream.AddAnalysisItem(lvw, tvw, "Name", group, Name);
+        }
+
+        public override string ToString()
+        {
+            return Name.ExtractedValue;
         }
     }
 
@@ -213,6 +239,11 @@ namespace MSFViewer
             MSFStream.AddAnalysisItem(lvw, tvw, "Length", group, Length);
             MSFStream.AddAnalysisItem(lvw, tvw, "Characteristics", group, Characteristics);
             MSFStream.AddAnalysisItem(lvw, tvw, "Name", group, Name);
+        }
+
+        public override string ToString()
+        {
+            return Name.ExtractedValue;
         }
     }
 }
