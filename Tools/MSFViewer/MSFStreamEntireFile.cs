@@ -32,6 +32,10 @@ namespace MSFViewer
 
         public void RegisterDBIModuleStream(int modi, int streamindex, uint symbytes, uint linesbytes, uint c13linesbytes)
         {
+            // TODO - understand the role of invalid stream index better
+            if (streamindex < 0)
+                return;
+
             KnownStreamModules.Add(modi, new ModInfo {
                 StreamIndex = streamindex,
                 NumBytesSymbols = symbytes,

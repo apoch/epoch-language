@@ -68,8 +68,11 @@ namespace MSFViewer
 
         protected override void SubclassPopulateAnalysis(List<ListViewItem> lvw, ListView lvwcontrol, TreeView tvw)
         {
-            var hdrgroup = AddAnalysisGroup(lvwcontrol, tvw, "header", "Symbols header");
-            AddAnalysisItem(lvw, tvw, "Header", hdrgroup, Header);
+            if (Header != null)
+            {
+                var hdrgroup = AddAnalysisGroup(lvwcontrol, tvw, "header", "Symbols header");
+                AddAnalysisItem(lvw, tvw, "Header", hdrgroup, Header);
+            }
 
 
             var symnode = tvw.Nodes.Find("root", false)[0].Nodes.Add("symbolsall", "Symbols");
@@ -150,6 +153,12 @@ namespace MSFViewer
 
         private void ParseAllSymbols(uint symbytes)
         {
+            if (symbytes < 4)
+            {
+                ReadOffset += (int)symbytes;
+                return;
+            }
+
             Header = ExtractUInt32();
 
             while (ReadOffset < symbytes)
@@ -269,7 +278,8 @@ namespace MSFViewer
                 }
                 else
                 {
-                    ReadOffset += (int)chunksize.ExtractedValue;
+                    ReadOffset = (int)(begin + c13linesbytes);
+                    //ReadOffset += (int)chunksize.ExtractedValue;
                 }
             }
         }
