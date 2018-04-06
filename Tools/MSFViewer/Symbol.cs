@@ -30,6 +30,9 @@ namespace MSFViewer
                 case 0x110e:     // S_PUB32
                     return new SymbolPublic(stream, size, type, seq);
 
+                case 0x1110:    // S_GPROC32
+                    return new SymbolProc(stream, size, type, seq);
+
                 case 0x1125:     // S_PROCREF
                     return new SymbolProcRef(stream, size, type, seq);
 
@@ -93,6 +96,57 @@ namespace MSFViewer
         {
             MSFStream.AddAnalysisItem(lvw, tvw, "UDT symbol type index", group, TypeIndex);
             MSFStream.AddAnalysisItem(lvw, tvw, "UDT name", group, Name);
+        }
+    }
+
+    class SymbolProc : Symbol
+    {
+        public TypedByteSequence<uint> Parent;
+        public TypedByteSequence<uint> End;
+        public TypedByteSequence<uint> Next;
+        public TypedByteSequence<uint> CodeSize;
+        public TypedByteSequence<uint> DebugStart;
+        public TypedByteSequence<uint> DebugEnd;
+        public TypedByteSequence<uint> TypeIndex;
+        public TypedByteSequence<uint> CodeOffset;
+        public TypedByteSequence<ushort> Segment;
+        public TypedByteSequence<byte> Flags;
+        public TypedByteSequence<string> Name;
+
+        public SymbolProc(MSFStream stream, TypedByteSequence<ushort> size, TypedByteSequence<ushort> type, MaskedByteSequence seq)
+        {
+            CorrespondingByteSequence = seq;
+            Size = size;
+            Type = type;
+
+            Parent = stream.ExtractUInt32();
+            End = stream.ExtractUInt32();
+            Next = stream.ExtractUInt32();
+            CodeSize = stream.ExtractUInt32();
+            DebugStart = stream.ExtractUInt32();
+            DebugEnd = stream.ExtractUInt32();
+            TypeIndex = stream.ExtractUInt32();
+            CodeOffset = stream.ExtractUInt32();
+            Segment = stream.ExtractUInt16();
+            Flags = stream.ExtractByte();
+            Name = stream.ExtractTerminatedString();
+
+            stream.Extract4ByteAlignment();
+        }
+
+        public override void PopulateAnalysis(MSFStream stream, List<ListViewItem> lvw, AnalysisGroup group, TreeView tvw)
+        {
+            MSFStream.AddAnalysisItem(lvw, tvw, "Parent", group, Parent);
+            MSFStream.AddAnalysisItem(lvw, tvw, "End", group, End);
+            MSFStream.AddAnalysisItem(lvw, tvw, "Next", group, Next);
+            MSFStream.AddAnalysisItem(lvw, tvw, "Code size", group, CodeSize);
+            MSFStream.AddAnalysisItem(lvw, tvw, "Debug start", group, DebugStart);
+            MSFStream.AddAnalysisItem(lvw, tvw, "Debug end", group, DebugEnd);
+            MSFStream.AddAnalysisItem(lvw, tvw, "Type index", group, TypeIndex);
+            MSFStream.AddAnalysisItem(lvw, tvw, "Code offset", group, CodeOffset);
+            MSFStream.AddAnalysisItem(lvw, tvw, "Segment index", group, Segment);
+            MSFStream.AddAnalysisItem(lvw, tvw, "Flags", group, Flags);
+            MSFStream.AddAnalysisItem(lvw, tvw, "Name", group, Name);
         }
     }
 
