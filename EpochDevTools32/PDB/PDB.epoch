@@ -581,7 +581,7 @@ WritePDBStrings : PDBOutputStream ref stream
 	integer headersize = 0
 
 	string test = "fubar"
-	string test2 = "D:\Epoch\epoch-language\EpochTests\PDBTest\EntryPoint.epoch"
+	string test2 = "C:\Code\epoch-language\EpochTests\PDBTest\EntryPoint.epoch"
 
 	ByteStreamEmitInteger(header, headersize, 0xeffeeffe)		// Signature
 	ByteStreamEmitInteger(header, headersize, 1)				// Hash version
@@ -688,7 +688,7 @@ EmitDBIFiles : PDBOutputStream ref stream
 	}
 
 	// TODO - real file names, support for multiple files
-	string filename = "D:\Epoch\epoch-language\EpochTests\PDBTest\EntryPoint.epoch"
+	string filename = "C:\Code\epoch-language\EpochTests\PDBTest\EntryPoint.epoch"
 	ByteStreamEmitInteger(linesdata, linessize, length(filename) + 1)
 	ByteStreamEmitStringNarrow(linesdata, linessize, filename)
 	ByteStreamEmitByte(linesdata, linessize, 0)

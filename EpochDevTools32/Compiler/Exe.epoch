@@ -1180,7 +1180,7 @@ GeneratePDB : string pdbfilename, buffer ref symboldata, integer symbolsize, int
 	print("First canary")
 
 	// TODO - real file names
-	DBIModule testmodule = "D:\Epoch\epoch-language\EpochTests\PDBTest\EntryPoint.epoch", "D:\Test.obj", 0, 0, symbollistinternal, contriblist, lines
+	DBIModule testmodule = "C:\Code\epoch-language\EpochTests\PDBTest\EntryPoint.epoch", "D:\Test.obj", 0, 0, symbollistinternal, contriblist, lines
 	
 	ComputeSymbolSize(testmodule)
 	ComputeLinesSize(testmodule)
