@@ -102,7 +102,7 @@ namespace EpochVSIX
                     Content value;
                     dict.TryGetValue(key, out value);
                     if (value != null)
-                        qiContent.Add(ConstructHighlightableContent(value.Text, value.Type));
+                        qiContent.Add(value.Text);// ConstructHighlightableContent(value.Text, value.Type));
 
                     return;
                 }
