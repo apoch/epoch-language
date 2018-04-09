@@ -1194,7 +1194,7 @@ GeneratePDB : string pdbfilename, buffer ref symboldata, integer symbolsize, int
 	// TODO - this is gross, but the difference between the test symbols and the actual data we write should be 36 bytes, based on
 	// the overload of ByteStreamEmitSymbol for SymbolProcStart in Symbols.epoch. See the note there for details on what's up.
 
-	testmodule.SymbolSize = 228 //testmodule.SymbolSize + SymbolGetSize(local)
+	testmodule.SymbolSize = testmodule.SymbolSize + 36
 	
 	list<DBIModule> modulelist = testmodule, nothing
 	

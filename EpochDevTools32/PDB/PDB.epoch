@@ -903,7 +903,7 @@ ComputeSymbolSize : nothing, integer ref sizecounter
 
 ComputeLinesSize : DBIModule ref mod
 {
-	mod.LinesSize = 0
+	mod.LinesSize = 8
 	ComputeLinesSize(mod.Lines, mod.LinesSize)
 }
 
@@ -938,7 +938,7 @@ EmitDBIModule : PDBOutputStream ref stream, list<DBIModule> ref modlist
 	ByteStreamEmitInteger16(modinfo, modsize, 8)		// stream number of debug info		TODO
 	ByteStreamEmitInteger(modinfo, modsize, modlist.value.SymbolSize + 4)
 	ByteStreamEmitInteger(modinfo, modsize, 0)			// bytes of line number info
-	ByteStreamEmitInteger(modinfo, modsize, modlist.value.LinesSize + 20)	// bytes of C13 line number info
+	ByteStreamEmitInteger(modinfo, modsize, modlist.value.LinesSize)	// bytes of C13 line number info
 	
 	ByteStreamEmitInteger16(modinfo, modsize, 1)		// num contributing files
 	ByteStreamEmitInteger16(modinfo, modsize, 0)		// padding
@@ -1192,49 +1192,8 @@ WriteSymbolRecordsStream : PDBOutputStream ref stream, DBIModule ref module
 	
 	buffer symboldata = 4096
 	integer symboldatasize = 0
-	//ByteStreamEmitSymbolList(symboldata, symboldatasize, symgarbagelist)
-
-	ByteStreamEmitInteger16(symboldata, symboldatasize, 18)
-	ByteStreamEmitInteger16(symboldata, symboldatasize, 0x110e)
-	ByteStreamEmitInteger(symboldata, symboldatasize, 2)
-	ByteStreamEmitInteger(symboldata, symboldatasize, 0)
-	ByteStreamEmitInteger16(symboldata, symboldatasize, 9)
-	ByteStreamEmitStringNarrow(symboldata, symboldatasize, "init")
-	ByteStreamEmitByte(symboldata, symboldatasize, 0)
-
-	while((symboldatasize & 3) != 0)
-	{
-		ByteStreamEmitByte(symboldata, symboldatasize, 0)
-	}
-
-	ByteStreamEmitInteger16(symboldata, symboldatasize, 18)
-	ByteStreamEmitInteger16(symboldata, symboldatasize, 0x110e)
-	ByteStreamEmitInteger(symboldata, symboldatasize, 2)
-	ByteStreamEmitInteger(symboldata, symboldatasize, 0x80)
-	ByteStreamEmitInteger16(symboldata, symboldatasize, 9)
-	ByteStreamEmitStringNarrow(symboldata, symboldatasize, "test")
-	ByteStreamEmitByte(symboldata, symboldatasize, 0)
+	ByteStreamEmitSymbolList(symboldata, symboldatasize, module.Symbols)
 	
-	while((symboldatasize & 3) != 0)
-	{
-		ByteStreamEmitByte(symboldata, symboldatasize, 0)
-	}
-
-
-	ByteStreamEmitInteger16(symboldata, symboldatasize, 18)
-	ByteStreamEmitInteger16(symboldata, symboldatasize, 0x1125)				// S_PROCREF
-	ByteStreamEmitInteger(symboldata, symboldatasize, 0)		// SumName?!
-	ByteStreamEmitInteger(symboldata, symboldatasize, 20)		// SymOffset
-	ByteStreamEmitInteger16(symboldata, symboldatasize, 1)		// iMod
-	ByteStreamEmitStringNarrow(symboldata, symboldatasize, "init")
-	ByteStreamEmitByte(symboldata, symboldatasize, 0)
-	
-	while((symboldatasize & 3) != 0)
-	{
-		ByteStreamEmitByte(symboldata, symboldatasize, 0)
-	}
-
-
 	integer written = 0
 	WriteFile(stream.FileHandle, symboldata, symboldatasize, written, 0)
 	stream.FilePosition = stream.FilePosition + written
@@ -1290,7 +1249,7 @@ WriteDBIModuleSymbols : PDBOutputStream ref stream, DBIModule ref module, buffer
 	WriteFile(stream.FileHandle, linedata, linesize, written, 0)
 	stream.FilePosition = stream.FilePosition + written
 
-	assertmsg(linesize - linebeginoffset == module.LinesSize, "Emitted wrong number of lines bytes!")
+	assertmsg(linesize - linebeginoffset == module.LinesSize, "Emitted wrong number of lines bytes - planned for " ; cast(string, module.LinesSize) ; " vs actually emitted " ; cast(string, linesize - linebeginoffset))
 
 	
 	buffer footer = 4

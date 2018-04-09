@@ -14,8 +14,17 @@ test :
 }
 
 
+outer :
+{
+	integer whatever = 42
+	test()
+	print(cast(string, whatever))
+}
+
 entrypoint :
 {
-	test()
+	outer()
 	print("Hello, world!")
 }
+
+
