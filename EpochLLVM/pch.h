@@ -40,7 +40,6 @@
 #pragma warning(disable: 4141)		// inline used more than once
 #pragma warning(disable: 4291)		// no matching operator delete
 
-#define SUPPORT_DATATYPES_H 1
 #define END_WITH_NULL
 
 #include <stdint.h>
@@ -75,6 +74,7 @@
 #include <llvm/MC/MCSymbol.h>
 #include <llvm/Passes/PassBuilder.h>
 #include <llvm/IR/DIBuilder.h>
+#include <llvm/Support/Memory.h>
 
 #pragma warning(pop)
 

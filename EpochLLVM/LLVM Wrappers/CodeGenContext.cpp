@@ -170,7 +170,8 @@ namespace CodeGenInternal
 
 	uint8_t* TrivialMemoryManager::allocateCodeSection(uintptr_t Size, unsigned Alignment, unsigned SectionID, StringRef SectionName)
 	{
-		sys::MemoryBlock MB = sys::Memory::AllocateRWX(Size, 0, 0);
+		std::error_code ec;
+		sys::MemoryBlock MB = sys::Memory::allocateMappedMemory(Size, 0, sys::Memory::MF_READ | sys::Memory::MF_WRITE, ec);
 
 		*OutAddr = (uint64_t)MB.base();
 		*OutSize = Size;
@@ -181,7 +182,8 @@ namespace CodeGenInternal
 
 	uint8_t* TrivialMemoryManager::allocateDataSection(uintptr_t Size, unsigned Alignment, unsigned SectionID, StringRef SectionName, bool IsReadOnly)
 	{
-		sys::MemoryBlock MB = sys::Memory::AllocateRWX(Size, 0, 0);
+		std::error_code ec;
+		sys::MemoryBlock MB = sys::Memory::allocateMappedMemory(Size, 0, sys::Memory::MF_READ | sys::Memory::MF_WRITE, ec);
 
 		if(SectionName == ".pdata")
 			*OutPDataOffset = (uint64_t)MB.base();
@@ -244,19 +246,20 @@ using namespace CodeGenInternal;
 Context::Context()
 	: ThunkCallback(nullptr),
 	  StringCallback(nullptr),
-	  LLVMBuilder(getGlobalContext()),
+	  LLVMBuilder(GlobalContext),
 	  EntryPointFunction(nullptr),
-	  LLVMModule(std::make_unique<Module>("EpochModule", getGlobalContext())),
+	  LLVMModule(std::make_unique<Module>("EpochModule", GlobalContext)),
 	  DebugBuilder(*LLVMModule)
 {
+	LLVMModule->setTargetTriple("x86_64-pc-windows-msvc");
 	LLVMModule->addModuleFlag(Module::ModFlagBehavior::Warning, "CodeView", 1);
 
 	// TODO - stash CUs for each file of the input program; will require debug info internally in EpochCompiler
 	// TODO - change params to handle optimized code when optimizations are back in
-	DebugCompileUnit = DebugBuilder.createCompileUnit(dwarf::SourceLanguage::DW_LANG_C_plus_plus_11, "LinkedProgram.epoch", "D:\\epoch\\epoch-language\\x64\\debug", "Epoch Compiler", false, "", 0);
-	DebugFile = DebugBuilder.createFile(DebugCompileUnit->getFilename(), DebugCompileUnit->getDirectory());
+	DebugFile = DebugBuilder.createFile("LinkedProgram.epoch", "D:\\epoch\\epoch-language\\x64\\debug");
+	DebugCompileUnit = DebugBuilder.createCompileUnit(dwarf::SourceLanguage::DW_LANG_C_plus_plus_11, DebugFile, "Epoch Compiler", false, "", 0);
 
-	FunctionType* initfunctiontype = FunctionType::get(Type::getVoidTy(getGlobalContext()), false);
+	FunctionType* initfunctiontype = FunctionType::get(Type::getVoidTy(GlobalContext), false);
 	InitFunction = Function::Create(initfunctiontype, GlobalValue::ExternalLinkage, "init", LLVMModule.get());
 	InitFunction->setGC("EpochGC");
 
@@ -264,9 +267,9 @@ Context::Context()
 
 	{
 		std::vector<Type*> args;
-		args.push_back(Type::getInt8PtrTy(getGlobalContext())->getPointerTo());
-		args.push_back(Type::getInt8PtrTy(getGlobalContext()));
-		FunctionType* ftype = FunctionType::get(Type::getVoidTy(getGlobalContext()), args, false);
+		args.push_back(Type::getInt8PtrTy(GlobalContext)->getPointerTo());
+		args.push_back(Type::getInt8PtrTy(GlobalContext));
+		FunctionType* ftype = FunctionType::get(Type::getVoidTy(GlobalContext), args, false);
 		GCRootFunction = Function::Create(ftype, Function::ExternalLinkage, "llvm.gcroot", LLVMModule.get());
 	}
 }
@@ -346,22 +349,22 @@ void Context::SetStringCallback(void* funcptr)
 
 llvm::Type* Context::TypeGetBoolean()
 {
-	return Type::getInt1Ty(getGlobalContext());
+	return Type::getInt1Ty(GlobalContext);
 }
 
 llvm::Type* Context::TypeGetInteger()
 {
-	return Type::getInt32Ty(getGlobalContext());
+	return Type::getInt32Ty(GlobalContext);
 }
 
 llvm::Type* Context::TypeGetInteger16()
 {
-	return Type::getInt16Ty(getGlobalContext());
+	return Type::getInt16Ty(GlobalContext);
 }
 
 llvm::Type* Context::TypeGetInteger64()
 {
-	return Type::getInt64Ty(getGlobalContext());
+	return Type::getInt64Ty(GlobalContext);
 }
 
 llvm::Type* Context::TypeGetPointerTo(llvm::Type* raw)
@@ -371,22 +374,22 @@ llvm::Type* Context::TypeGetPointerTo(llvm::Type* raw)
 
 llvm::Type* Context::TypeGetReal()
 {
-	return Type::getFloatTy(getGlobalContext());
+	return Type::getFloatTy(GlobalContext);
 }
 
 llvm::Type* Context::TypeGetString()
 {
-	return Type::getInt8PtrTy(getGlobalContext());
+	return Type::getInt8PtrTy(GlobalContext);
 }
 
 llvm::Type* Context::TypeGetVoid()
 {
-	return Type::getVoidTy(getGlobalContext());
+	return Type::getVoidTy(GlobalContext);
 }
 
 llvm::Type* Context::TypeGetBuffer()
 {
-	return Type::getInt8PtrTy(getGlobalContext());
+	return Type::getInt8PtrTy(GlobalContext);
 }
 
 llvm::Type* Context::TypeGetArrayOfType(llvm::Type* elementtype, int arity)
@@ -416,7 +419,7 @@ void Context::PrepareBinaryObject()
 
 	GlobalVariable* gcdataoffset = new GlobalVariable(*LLVMModule, TypeGetInteger(), true, GlobalValue::ExternalWeakLinkage, nullptr, "gcdataoffset", nullptr, GlobalValue::NotThreadLocal, 0, true);
 	
-	BasicBlock* bb = BasicBlock::Create(getGlobalContext(), "InitBlock", InitFunction);
+	BasicBlock* bb = BasicBlock::Create(GlobalContext, "InitBlock", InitFunction);
 	LLVMBuilder.SetInsertPoint(bb);
 	LLVMBuilder.CreateCall(LLVMBuilder.CreateLoad(gcinitfunctionvar), LLVMBuilder.CreatePtrToInt(gcdataoffset, TypeGetInteger()));
 	TagDebugLine(++hack, 0);
@@ -450,7 +453,6 @@ void Context::PrepareBinaryObject()
 	std::string errstr;
 
 	TargetOptions opts;
-	opts.LessPreciseFPMADOption = true;
 	opts.UnsafeFPMath = true;
 	opts.AllowFPOpFusion = FPOpFusion::Fast;
 	opts.EnableFastISel = false;
@@ -588,7 +590,7 @@ void Context::PrepareBinaryObject()
 		symbol.SectionNumber = IMAGE_SYM_ABSOLUTE;
 		symbol.StorageClass = IMAGE_SYM_CLASS_EXTERNAL;
 		
-		switch(sym.getType())
+		switch(sym.getType().get())
 		{
 		case object::SymbolRef::ST_Function:
 			symbol.SectionNumber = 9;
@@ -647,11 +649,11 @@ llvm::AllocaInst* Context::CodeCreateAlloca(llvm::Type* vartype, const char* var
 		DebugBuilder.insertDeclare(allocainst, dbg, expr, DebugLoc::get(1, 0, subprogram), LLVMBuilder.GetInsertBlock());
 	}
 
-	if(vartype == Type::getInt8PtrTy(getGlobalContext()))
+	if(vartype == Type::getInt8PtrTy(GlobalContext))
 	{
-		Value* signature = ConstantInt::get(Type::getInt32Ty(getGlobalContext()), 0x02000000);
-		Value* constant = LLVMBuilder.CreateIntToPtr(signature, Type::getInt8PtrTy(getGlobalContext()));
-		Value* castptr = LLVMBuilder.CreatePointerCast(allocainst, Type::getInt8PtrTy(getGlobalContext())->getPointerTo());
+		Value* signature = ConstantInt::get(Type::getInt32Ty(GlobalContext), 0x02000000);
+		Value* constant = LLVMBuilder.CreateIntToPtr(signature, Type::getInt8PtrTy(GlobalContext));
+		Value* castptr = LLVMBuilder.CreatePointerCast(allocainst, Type::getInt8PtrTy(GlobalContext)->getPointerTo());
 		LLVMBuilder.CreateCall(GCRootFunction, { castptr, constant });
 	}
 
@@ -660,7 +662,7 @@ llvm::AllocaInst* Context::CodeCreateAlloca(llvm::Type* vartype, const char* var
 
 llvm::BasicBlock* Context::CodeCreateBasicBlock(llvm::Function* parent, bool setinsertpoint)
 {
-	BasicBlock* bb = BasicBlock::Create(getGlobalContext(), "", parent);
+	BasicBlock* bb = BasicBlock::Create(GlobalContext, "", parent);
 	if(setinsertpoint)
 		LLVMBuilder.SetInsertPoint(bb);
 	return bb;
@@ -760,7 +762,7 @@ llvm::CallInst* Context::CodeCreateCall(llvm::Function* target)
 
 	llvm::CallInst* inst = LLVMBuilder.CreateCall(target, relevantargs);
 
-	if(inst->getType() != Type::getVoidTy(getGlobalContext()))
+	if(inst->getType() != Type::getVoidTy(GlobalContext))
 		PendingValues.push_back(inst);
 
 	return inst;
@@ -781,7 +783,7 @@ void Context::CodeCreateCallIndirect(llvm::AllocaInst* targetAlloca)
 
 	llvm::CallInst* inst = LLVMBuilder.CreateCall(target, relevantargs);
 
-	if(inst->getType() != Type::getVoidTy(getGlobalContext()))
+	if(inst->getType() != Type::getVoidTy(GlobalContext))
 		PendingValues.push_back(inst);
 }
 
@@ -800,7 +802,7 @@ llvm::CallInst* Context::CodeCreateCallThunk(llvm::GlobalVariable* target)
 
 	llvm::CallInst* inst = LLVMBuilder.CreateCall(loadedTarget, relevantargs);
 
-	if(inst->getType() != Type::getVoidTy(getGlobalContext()))
+	if(inst->getType() != Type::getVoidTy(GlobalContext))
 		PendingValues.push_back(inst);
 
 	return inst;
@@ -872,7 +874,7 @@ llvm::Value* Context::CodeCreateGEP(unsigned index)
 		v = cast<LoadInst>(v)->getOperand(0);
 	}
 
-	Value* indices[] = {ConstantInt::get(Type::getInt32Ty(getGlobalContext()), 0), ConstantInt::get(Type::getInt32Ty(getGlobalContext()), index)};
+	Value* indices[] = {ConstantInt::get(Type::getInt32Ty(GlobalContext), 0), ConstantInt::get(Type::getInt32Ty(GlobalContext), index)};
 	return LLVMBuilder.CreateGEP(v, indices);
 }
 
@@ -1051,7 +1053,7 @@ void Context::CodeCreateWriteStructurePopSumType()
 
 	Type* ty = gep->getType()->getPointerElementType();
 
-	Value* st = ConstantStruct::get(cast<StructType>(ty), annotation, ConstantInt::get(ty->getContainedType(1), 0), nullptr);
+	Value* st = ConstantStruct::get(cast<StructType>(ty), { cast<Constant>(annotation), ConstantInt::get(ty->getContainedType(1), 0) });
 
 	// TODO - this is a stupid hack
 	Value* allocavalue = cast<LoadInst>(wv)->getOperand(0);
@@ -1193,31 +1195,31 @@ void Context::CodeCreateOperatorIntegerMultiply()
 
 void Context::CodePushBoolean(bool value)
 {
-	llvm::Value* val = ConstantInt::get(Type::getInt1Ty(getGlobalContext()), value);
+	llvm::Value* val = ConstantInt::get(Type::getInt1Ty(GlobalContext), value);
 	PendingValues.push_back(val);
 }
 
 void Context::CodePushInteger(int value)
 {
-	llvm::Value* val = ConstantInt::get(Type::getInt32Ty(getGlobalContext()), value);
+	llvm::Value* val = ConstantInt::get(Type::getInt32Ty(GlobalContext), value);
 	PendingValues.push_back(val);
 }
 
 void Context::CodePushInteger16(short value)
 {
-	llvm::Value* val = ConstantInt::get(Type::getInt16Ty(getGlobalContext()), value);
+	llvm::Value* val = ConstantInt::get(Type::getInt16Ty(GlobalContext), value);
 	PendingValues.push_back(val);
 }
 
 void Context::CodePushInteger64(uint64_t value)
 {
-	llvm::Value* val = ConstantInt::get(Type::getInt64Ty(getGlobalContext()), value);
+	llvm::Value* val = ConstantInt::get(Type::getInt64Ty(GlobalContext), value);
 	PendingValues.push_back(val);
 }
 
 void Context::CodePushReal(float value)
 {
-	llvm::Value* val = ConstantFP::get(Type::getFloatTy(getGlobalContext()), value);
+	llvm::Value* val = ConstantFP::get(Type::getFloatTy(GlobalContext), value);
 	PendingValues.push_back(val);
 }
 
@@ -1248,7 +1250,7 @@ void Context::CodePushString(unsigned handle)
 	{
 		std::ostringstream name;
 		name << "@epoch_static_string:" << handle;
-		val = new GlobalVariable(*LLVMModule, Type::getInt8Ty(getGlobalContext()), true, GlobalValue::ExternalWeakLinkage, NULL, name.str(), NULL, GlobalVariable::NotThreadLocal, 0, true);
+		val = new GlobalVariable(*LLVMModule, Type::getInt8Ty(GlobalContext), true, GlobalValue::ExternalWeakLinkage, NULL, name.str(), NULL, GlobalVariable::NotThreadLocal, 0, true);
 
 		CachedStrings[handle] = val;
 	}
@@ -1408,7 +1410,7 @@ void Context::SetupDebugInfo(Function* function)
 	std::vector<Metadata*> argtypes;
 	argtypes.push_back(TypeGetDebugType(function->getReturnType()));
 
-	for(auto& arg : function->getArgumentList())
+	for(auto& arg : function->args())
 		argtypes.push_back(TypeGetDebugType(arg.getType()));
 
 	DISubroutineType* debugtype = DebugBuilder.createSubroutineType(DebugBuilder.getOrCreateTypeArray(argtypes));
@@ -1430,12 +1432,12 @@ void Context::SetupDebugInfo(Function* function)
 llvm::DIType* Context::TypeGetDebugType(Type* t)
 {
 	// TODO - build better type data
-	return DebugBuilder.createBasicType("placeholder", 32, 32, dwarf::DW_ATE_unsigned);
+	return DebugBuilder.createBasicType("placeholder", 32, 32);
 }
 
 void Context::TagDebugLine(unsigned line, unsigned column)
 {
-	DebugLoc loc = DILocation::get(getGlobalContext(), line, column, LLVMBuilder.GetInsertBlock()->getParent()->getSubprogram());
+	DebugLoc loc = DILocation::get(GlobalContext, line, column, LLVMBuilder.GetInsertBlock()->getParent()->getSubprogram());
 	if(!LLVMBuilder.GetInsertBlock()->getInstList().empty())
 		LLVMBuilder.GetInsertBlock()->getInstList().back().setDebugLoc(loc);
 }
@@ -1444,8 +1446,8 @@ void Context::TagDebugLine(unsigned line, unsigned column)
 llvm::Type* Context::SumTypeCreate(const char* name, unsigned width)
 {
 	std::vector<llvm::Type*> members;
-	members.push_back(llvm::Type::getInt32Ty(getGlobalContext()));
-	members.push_back(llvm::Type::getIntNTy(getGlobalContext(), width * 8));
+	members.push_back(llvm::Type::getInt32Ty(GlobalContext));
+	members.push_back(llvm::Type::getIntNTy(GlobalContext, width * 8));
 
 	llvm::Type* t = llvm::StructType::create(members, name);
 	return t;
@@ -1458,4 +1460,15 @@ void Context::SumTypeMerge()
 }
 
 
+
+// Module::dump() - Allow printing of Modules from the debugger.
+LLVM_DUMP_METHOD
+void Module::dump() const {
+	print(dbgs(), nullptr,
+		/*ShouldPreserveUseListOrder=*/false, /*IsForDebug=*/true);
+}
+
+// Value::dump - allow easy printing of Values from the debugger.
+LLVM_DUMP_METHOD
+void Value::dump() const { print(dbgs(), /*IsForDebug=*/true); dbgs() << '\n'; }
 

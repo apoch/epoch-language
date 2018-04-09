@@ -166,6 +166,7 @@ namespace CodeGen
 		void TagDebugLine(unsigned line, unsigned column);
 
 	private:	// Internal state
+		llvm::LLVMContext GlobalContext;
 		std::unique_ptr<llvm::Module> LLVMModule;
 		llvm::Function* InitFunction;
 		llvm::Function* EntryPointFunction;
