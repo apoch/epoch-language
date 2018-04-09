@@ -644,9 +644,6 @@ llvm::AllocaInst* Context::CodeCreateAlloca(llvm::Type* vartype, const char* var
 		auto dbg = DebugBuilder.createAutoVariable(subprogram, varname, DebugFile, 1, TypeGetDebugType(vartype));
 		auto expr = DebugBuilder.createExpression();
 		
-		auto mdty = Type::getMetadataTy(getGlobalContext());
-		auto ftype = FunctionType::get(Type::getVoidTy(getGlobalContext()), { mdty, mdty, mdty }, false);
-
 		DebugBuilder.insertDeclare(allocainst, dbg, expr, DebugLoc::get(1, 0, subprogram), LLVMBuilder.GetInsertBlock());
 	}
 
