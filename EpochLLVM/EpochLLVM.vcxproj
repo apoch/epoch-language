@@ -154,8 +154,8 @@
     <LinkIncremental>false</LinkIncremental>
     <IntDir>$(SolutionDir)\Build\$(Configuration)\$(ProjectName)\</IntDir>
     <OutDir>D:\Epoch\epoch-language\EpochDevTools32\bin\Debug\</OutDir>
-    <IncludePath>D:\LLVM32\include;$(IncludePath)</IncludePath>
-    <LibraryPath>D:\LLVM32\Release\lib;$(LibraryPath)</LibraryPath>
+    <IncludePath>C:\Code\LLVM\LLVM-3.8.0-32bit\include;C:\Code\epoch-language\EpochLLVM;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\Code\LLVM\LLVM-3.8.0-32bit\Release\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
