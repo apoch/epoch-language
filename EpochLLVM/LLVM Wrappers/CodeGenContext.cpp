@@ -593,6 +593,7 @@ void Context::PrepareBinaryObject()
 		switch(sym.getType().get())
 		{
 		case object::SymbolRef::ST_Function:
+			std::cout << "Function: " << symname << std::endl;
 			symbol.SectionNumber = 9;
 
 			if(symname == "init")
@@ -602,7 +603,7 @@ void Context::PrepareBinaryObject()
 			break;
 
 		default:
-			std::cout << symname << std::endl;
+			std::cout << "Symbol: " << symname << std::endl;
 			symbol.StorageClass = IMAGE_SYM_CLASS_EXTERNAL;
 			symbol.SectionNumber = IMAGE_SYM_ABSOLUTE;
 			symbol.Value = 0;
@@ -646,7 +647,7 @@ llvm::AllocaInst* Context::CodeCreateAlloca(llvm::Type* vartype, const char* var
 		auto dbg = DebugBuilder.createAutoVariable(subprogram, varname, DebugFile, 1, TypeGetDebugType(vartype));
 		auto expr = DebugBuilder.createExpression();
 		
-		DebugBuilder.insertDeclare(allocainst, dbg, expr, DebugLoc::get(1, 0, subprogram), LLVMBuilder.GetInsertBlock());
+		DebugBuilder.insertDeclare(allocainst, dbg, expr, DebugLoc::get(++hack, 0, subprogram), LLVMBuilder.GetInsertBlock());
 	}
 
 	if(vartype == Type::getInt8PtrTy(GlobalContext))
@@ -1437,6 +1438,10 @@ llvm::DIType* Context::TypeGetDebugType(Type* t)
 
 void Context::TagDebugLine(unsigned line, unsigned column)
 {
+	// TODO - this is a dumb hack used to prevent bogus line data from reaching the debugger. It is bad.
+	if (line == 1 && column == 1)
+		return;
+
 	DebugLoc loc = DILocation::get(GlobalContext, line, column, LLVMBuilder.GetInsertBlock()->getParent()->getSubprogram());
 	if(!LLVMBuilder.GetInsertBlock()->getInstList().empty())
 		LLVMBuilder.GetInsertBlock()->getInstList().back().setDebugLoc(loc);
@@ -1461,6 +1466,8 @@ void Context::SumTypeMerge()
 
 
 
+#ifndef DEBUG
+
 // Module::dump() - Allow printing of Modules from the debugger.
 LLVM_DUMP_METHOD
 void Module::dump() const {
@@ -1471,4 +1478,6 @@ void Module::dump() const {
 // Value::dump - allow easy printing of Values from the debugger.
 LLVM_DUMP_METHOD
 void Value::dump() const { print(dbgs(), /*IsForDebug=*/true); dbgs() << '\n'; }
+
+#endif
 

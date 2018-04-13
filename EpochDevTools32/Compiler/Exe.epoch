@@ -1185,17 +1185,6 @@ GeneratePDB : string pdbfilename, buffer ref symboldata, integer symbolsize, int
 	ComputeSymbolSize(testmodule)
 	ComputeLinesSize(testmodule)
 
-	// TODO - plumb through from LLVM layer
-	//integer LF_LONG = 0x8003
-	//SymbolLocal local = LF_LONG, 0, "count"
-	//PDBSymbol localsymbol = local
-	//append<PDBSymbol>(symbollistinternal, localsymbol)
-
-	// TODO - this is gross, but the difference between the test symbols and the actual data we write should be 36 bytes, based on
-	// the overload of ByteStreamEmitSymbol for SymbolProcStart in Symbols.epoch. See the note there for details on what's up.
-
-	testmodule.SymbolSize = testmodule.SymbolSize + 36
-	
 	list<DBIModule> modulelist = testmodule, nothing
 	
 	integer dbimodinfolen = 64 + length(testmodule.SourceFile) + 1 + length(testmodule.ObjectFile) + 1
@@ -1206,7 +1195,8 @@ GeneratePDB : string pdbfilename, buffer ref symboldata, integer symbolsize, int
 
 	integer sectionmapsize = 10 * 20 + 4 // TODO - dynamic section map
 	integer dbicontribslen = ComputeContributionsSize(contriblist)
-	integer dbifileslen = 80			// TODO - real data here
+	integer dbifileslen = 76			// TODO - real data here
+	integer dbiecstringslen = 93		// TODO - actual DBI EC strings
 	
 	DBISection dbisection = dbimodinfolen, dbicontribslen, sectionmapsize, dbifileslen, modulelist
 
@@ -1218,19 +1208,19 @@ GeneratePDB : string pdbfilename, buffer ref symboldata, integer symbolsize, int
 	PDBStream msf = simplelist<integer>(5, nothing), 1					// Placeholder; 0 is invalid but we have nothing to put here
 	PDBStream pdb = simplelist<integer>(6, nothing), 128  				// TODO - pull real PDB stream size [was 48]
 	PDBStream tpi = simplelist<integer>(7, nothing), 56					// TODO - real TPI stream
-	PDBStream dbi = simplelist<integer>(8, nothing), 64 + dbimodinfolen + dbicontribslen + sectionmapsize + dbifileslen // TODO - real DBI stream
+	PDBStream dbi = simplelist<integer>(8, nothing), 64 + dbimodinfolen + dbicontribslen + sectionmapsize + dbifileslen + dbiecstringslen // TODO - real DBI stream
 	PDBStream ipi = simplelist<integer>(9, nothing), 56					// TODO - real IPI stream (?)
 	PDBStream globals = simplelist<integer>(10, nothing), 44 + 516		// TODO - real globals stream
 	PDBStream publics = simplelist<integer>(11, nothing), 724			// TODO - real publics stream
-	PDBStream symbols = simplelist<integer>(12, nothing), 60			// TODO - real symbol records size
+	PDBStream symbols = simplelist<integer>(12, nothing), 324			// TODO - real symbol records size
 	
 	simplelist<integer> hackblocks = 13, nothing
 
-	PDBStream hackstream = hackblocks, testmodule.SymbolSize + testmodule.LinesSize + 28	// TODO - real stream
+	PDBStream hackstream = hackblocks, testmodule.SymbolSize + testmodule.LinesSize + 20 + 8	// TODO - real stream
 	list<PDBStream> hackstreamlist = hackstream, nothing
 	
 	simplelist<integer> stringblocks = 14, nothing
-	PDBStream stringstream = stringblocks, 75							// TODO - real stream
+	PDBStream stringstream = stringblocks, 93							// TODO - real stream
 	append<PDBStream>(hackstreamlist, stringstream)
 	
 	PDBDirectory pdbdir = 10, msf, pdb, tpi, dbi, ipi, globals, publics, symbols, hackstreamlist

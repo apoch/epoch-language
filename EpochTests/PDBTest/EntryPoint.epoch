@@ -10,6 +10,7 @@ test :
 {
 	integer count = 0
 	++count
+	print("test")
 	print(cast(string, count))
 }
 

@@ -418,7 +418,7 @@ WriteDirectory : PDBOutputStream ref stream
 	ByteStreamEmitInteger(directory, directorysize, stream.Layout.Directory.Publics.Length)
 	ByteStreamEmitInteger(directory, directorysize, stream.Layout.Directory.Symbols.Length)
 	ByteStreamEmitInteger(directory, directorysize, stream.Layout.Directory.AdditionalStreams.value.Length)		// TODO - iterate over this list
-	ByteStreamEmitInteger(directory, directorysize, 94)		// TODO
+	ByteStreamEmitInteger(directory, directorysize, 93)		// TODO
 
 	// Stream blocks
 	ByteStreamEmitInteger(directory, directorysize, stream.Layout.Directory.OldMSFDirectory.Blocks.value)
@@ -609,6 +609,43 @@ WritePDBStrings : PDBOutputStream ref stream
 
 
 
+
+WriteDBIStrings : PDBOutputStream ref stream
+{
+	buffer header = 128
+	integer headersize = 0
+
+	string test = "fubar"
+	string test2 = "C:\Code\epoch-language\EpochTests\PDBTest\EntryPoint.epoch"
+
+	ByteStreamEmitInteger(header, headersize, 0xeffeeffe)		// Signature
+	ByteStreamEmitInteger(header, headersize, 1)				// Hash version
+	ByteStreamEmitInteger(header, headersize, length(test) + 1 + length(test2) + 1)				// Bytes of string data
+
+	ByteStreamEmitStringNarrow(header, headersize, test)
+	ByteStreamEmitByte(header, headersize, 0)
+
+	ByteStreamEmitStringNarrow(header, headersize, test2)
+	ByteStreamEmitByte(header, headersize, 0)
+
+	ByteStreamEmitInteger(header, headersize, 2)			// Hash count
+
+	// For each hash...
+	ByteStreamEmitInteger(header, headersize, 0)			// Hash ID
+	ByteStreamEmitInteger(header, headersize, 6)			// Hash ID
+
+	// Epilogue
+	ByteStreamEmitInteger(header, headersize, 2)			// Name count
+
+	integer written = 0
+	WriteFile(stream.FileHandle, header, headersize, written, 0)
+	stream.FilePosition = stream.FilePosition + written
+
+	print(cast(string, written) ; " bytes of DBI strings written")
+}
+
+
+
 WriteDBIStream : PDBOutputStream ref stream
 {
 	buffer header = 128
@@ -634,7 +671,7 @@ WriteDBIStream : PDBOutputStream ref stream
 	ByteStreamEmitInteger(header, headersize, 0)		// type server map size
 	ByteStreamEmitInteger(header, headersize, 0)		// index of MFC type server
 	ByteStreamEmitInteger(header, headersize, 0)		// DbgHeader info size
-	ByteStreamEmitInteger(header, headersize, 0)		// EC substream size (?)
+	ByteStreamEmitInteger(header, headersize, 93)		// EC substream size (?)
 	ByteStreamEmitInteger16(header, headersize, 0)		// flags
 	ByteStreamEmitInteger16(header, headersize, 0x8664)	// machine type (AMD64)
 	ByteStreamEmitInteger(header, headersize, 0)		// pad
@@ -648,6 +685,7 @@ WriteDBIStream : PDBOutputStream ref stream
 	EmitDBISectionContributions(stream)
 	EmitDBISectionMap(stream)
 	EmitDBIFiles(stream)
+	WriteDBIStrings(stream)
 }
 
 
@@ -701,6 +739,9 @@ EmitDBIFiles : PDBOutputStream ref stream
 	integer written = 0
 	WriteFile(stream.FileHandle, linesdata, linessize, written, 0)
 	stream.FilePosition = stream.FilePosition + written
+
+
+	print(cast(string, written) ; " bytes of DBI file table written")
 }
 
 
@@ -820,7 +861,7 @@ EmitDBISectionMap : PDBOutputStream ref stream
 	ByteStreamEmitInteger16(header, headersize, 0xffff)		// name
 	ByteStreamEmitInteger16(header, headersize, 0xffff)		// class name
 	ByteStreamEmitInteger(header, headersize, 0)			// offset
-	ByteStreamEmitInteger(header, headersize, 0xa0)		// length
+	ByteStreamEmitInteger(header, headersize, 0xc0)		// length				// TODO - this MUST be correct or debuggers will barf
 
 	// magic section (?)
 	ByteStreamEmitInteger16(header, headersize, 0x208)		// flags
@@ -938,7 +979,7 @@ EmitDBIModule : PDBOutputStream ref stream, list<DBIModule> ref modlist
 	ByteStreamEmitInteger16(modinfo, modsize, 8)		// stream number of debug info		TODO
 	ByteStreamEmitInteger(modinfo, modsize, modlist.value.SymbolSize + 4)
 	ByteStreamEmitInteger(modinfo, modsize, 0)			// bytes of line number info
-	ByteStreamEmitInteger(modinfo, modsize, modlist.value.LinesSize)	// bytes of C13 line number info
+	ByteStreamEmitInteger(modinfo, modsize, modlist.value.LinesSize + 20)	// bytes of C13 line number info
 	
 	ByteStreamEmitInteger16(modinfo, modsize, 1)		// num contributing files
 	ByteStreamEmitInteger16(modinfo, modsize, 0)		// padding
@@ -999,7 +1040,7 @@ ByteStreamEmitDBILines : buffer ref data, integer ref size, list<CodeViewLineInf
 
 		ByteStreamEmitInteger(data, size, 0)				// TODO - file index
 		ByteStreamEmitInteger(data, size, lines.value.Raw.NumPairs)
-		ByteStreamEmitInteger(data, size, lines.value.Raw.Size)
+		ByteStreamEmitInteger(data, size, lines.value.Raw.NumPairs * 8 + 12)
 
 		ByteStreamEmitDBILinePairs(data, size, lines.value.LinePairs)
 	}
@@ -1124,11 +1165,11 @@ WritePublicsStream : Win32Handle pdbfilehandle, integer startfileposition -> int
 	ByteStreamEmitInteger(header, headersize, 1)
 	ByteStreamEmitInteger(header, headersize, 0)		// this doesn't seem to matter?
 
-	ByteStreamEmitInteger(header, headersize, 21)
-	ByteStreamEmitInteger(header, headersize, 0)		// nor this?
-	
-	ByteStreamEmitInteger(header, headersize, 41)
-	ByteStreamEmitInteger(header, headersize, 0)		// nor this?
+	ByteStreamEmitInteger(header, headersize, 1)
+	ByteStreamEmitInteger(header, headersize, 0)		// this doesn't seem to matter?
+
+	ByteStreamEmitInteger(header, headersize, 1)
+	ByteStreamEmitInteger(header, headersize, 0)		// this doesn't seem to matter?
 
 	// Magic bitmap
 	ByteStreamEmitByte(header, headersize, 1)
@@ -1205,6 +1246,8 @@ WriteSymbolRecordsStream : PDBOutputStream ref stream, DBIModule ref module
 
 WriteDBIModuleSymbols : PDBOutputStream ref stream, DBIModule ref module, buffer ref symbols, integer symbolsize
 {
+	integer initfpos = stream.FilePosition
+
 	buffer header = 4
 	integer headersize = 0
 	
@@ -1225,6 +1268,7 @@ WriteDBIModuleSymbols : PDBOutputStream ref stream, DBIModule ref module, buffer
 	WriteFile(stream.FileHandle, symboldata, symboldatasize, written, 0)
 	stream.FilePosition = stream.FilePosition + written
 	
+	print(cast(string, stream.FilePosition - initfpos) ; " bytes written for symbol list (running total)")
 
 	buffer linedata = 1024
 	integer linesize = 0
@@ -1250,15 +1294,17 @@ WriteDBIModuleSymbols : PDBOutputStream ref stream, DBIModule ref module, buffer
 	stream.FilePosition = stream.FilePosition + written
 
 	assertmsg(linesize - linebeginoffset == module.LinesSize, "Emitted wrong number of lines bytes - planned for " ; cast(string, module.LinesSize) ; " vs actually emitted " ; cast(string, linesize - linebeginoffset))
-
+	print(cast(string, stream.FilePosition - initfpos) ; " bytes written for symbol list and lines data (running total)")
 	
-	buffer footer = 4
+	buffer footer = 128
 	integer footersize = 0
 	
 	ByteStreamEmitInteger(footer, footersize, 0)			// Global Refs size
 	
 	WriteFile(stream.FileHandle, footer, footersize, written, 0)
 	stream.FilePosition = stream.FilePosition + written
+
+	print(cast(string, stream.FilePosition - initfpos) ; " bytes written for DBI module symbols")
 }
 
 
@@ -1344,6 +1390,11 @@ structure CodeViewChunk :
 	integer Header,
 	integer Size
 
+
+structure CodeViewSymbolHeader :
+	integer16 Bytes,
+	integer16 Magic
+
 structure CodeViewProc :
 	integer16 Bytes,
 	integer16 Magic
@@ -1360,6 +1411,18 @@ structure CodeViewProcTerm :
 
 structure CodeViewProcEnd :
 	integer16 Magic
+
+structure CodeViewLocal :
+	integer TypeIndex,
+	integer16 Flags
+
+structure CodeViewRegisterRange :
+	integer16 Register,
+	integer16 Flags,
+	integer BasePointerOffset,
+	integer OffsetStartCode,
+	integer16 SectionIndexStartCode,
+	integer16 RangeCode	
 
 structure CodeViewLineInfoRaw :
 	integer FunctionOffset,
@@ -1389,55 +1452,189 @@ ConvertSymbolStream : buffer ref symboldata, integer symbolsize, list<PDBSymbol>
 	CodeViewProcTerm term = 0
 	CodeViewProcEnd end = 0
 
+	CodeViewSymbolHeader symbolheader = 0, 0
+
+	CodeViewLocal local = 0, 0
+	CodeViewRegisterRange regrange = 0, 0, 0, 0, 0, 0
+
 	integer slen = 0
 	string symbol = ""
 
+	integer locallen = 0
+	string localsymbol = ""
+
 	integer writeoffset = 0x1c
 	integer readoffset = 4
+	integer chunkbeginoffset = readoffset
+	integer goofyreadoffset = 0
+
+	boolean isproc = false
+	boolean dumbstupidflag = false
 
 	while(readoffset < symbolsize)
 	{
 		marshalstructure(chunk, GetBufferPtr(symboldata, readoffset))
 		readoffset += 8		// sizeof(CodeViewChunk)
 
+		chunkbeginoffset = readoffset
+
 		if(chunk.Header == 0xf1)
 		{
 			marshalstructure(proc, GetBufferPtr(symboldata, readoffset))
 			readoffset += 4			// sizeof(CodeViewProc)
-			assertmsg(proc.Magic == 0x1147, "Mismatched codeview magic (1)")
 
-			readoffset += 12		// unknown fields/padding
+			isproc = false
+			if(proc.Magic == 0x1147)			// Local procedure
+			{
+				isproc = true
+			}
+			elseif(proc.Magic == 0x1146)		// Global procedure
+			{
+				isproc = true
+			}
 
-			marshalstructure(procsize, GetBufferPtr(symboldata, readoffset))
-			readoffset += 4			// sizeof(CodeViewProcSize)
+			if(isproc)
+			{
+				readoffset += 12		// unknown fields/padding
 
-			readoffset += 12		// unknown fields/padding
+				marshalstructure(procsize, GetBufferPtr(symboldata, readoffset))
+				readoffset += 4			// sizeof(CodeViewProcSize)
 
-			marshalstructure(procsection, GetBufferPtr(symboldata, readoffset))
-			readoffset += 7			// sizeof(CodeViewProcSection) + 1 pad byte
+				readoffset += 12		// unknown fields/padding
 
-			slen = hackstrlen(GetBufferPtr(symboldata, readoffset))
-			symbol = widenfromptr(GetBufferPtr(symboldata, readoffset), slen)
-			readoffset += slen + 1	// null terminated
+				marshalstructure(procsection, GetBufferPtr(symboldata, readoffset))
+				readoffset += 7			// sizeof(CodeViewProcSection) + 1 pad byte
 
-			print(symbol)
+				slen = hackstrlen(GetBufferPtr(symboldata, readoffset))
+				symbol = widenfromptr(GetBufferPtr(symboldata, readoffset), slen)
+				readoffset += slen + 1	// null terminated
 
-			marshalstructure(term, GetBufferPtr(symboldata, readoffset))
-			readoffset += 2			// sizeof(CodeViewProcTerm)
-			assertmsg(cast(integer, term.Magic) == 0x02, "Mismatched codeview magic (2)")
+				print(symbol)
 
-			marshalstructure(end, GetBufferPtr(symboldata, readoffset))
-			readoffset += 2			// sizeof(CodeViewProcEnd)
-			assertmsg(cast(integer, end.Magic) == 0x114f, "Mismatched codeview magic (3)")
+				dumbstupidflag = false
+				goofyreadoffset = readoffset
+				while ((chunk.Size + chunkbeginoffset - 4) > goofyreadoffset)
+				{
+					marshalstructure(symbolheader, GetBufferPtr(symboldata, goofyreadoffset))
+					goofyreadoffset += 4
 
-			writeoffset += 0x2c
-			writeoffset += slen
+					if (symbolheader.Magic == 0x113e)
+					{
+						// S_LOCAL
+						marshalstructure(local, GetBufferPtr(symboldata, goofyreadoffset))
+						goofyreadoffset += 6
 
-			GenerateCorrectedCVSymbol(symbols, writeoffset, procsize.Size, procsection.SectionIndex, procsection.SectionRelative, symbol)
+						locallen = hackstrlen(GetBufferPtr(symboldata, goofyreadoffset))
+						localsymbol = widenfromptr(GetBufferPtr(symboldata, goofyreadoffset), locallen)
+						goofyreadoffset += locallen + 1	// null terminated
 
-			writeoffset += 4
+						print("LOCAL: " ; localsymbol)
+					}
+					elseif (symbolheader.Magic == 0x1145)
+					{
+						// S_DEFRANGE_REGISTER_REL
+						goofyreadoffset += cast(integer, symbolheader.Bytes) - 2
+						print("(register range)")
+					}
+					else
+					{
+						print("WARNING - Skipping " ; cast(string, cast(integer, symbolheader.Bytes)) ; " bytes of type " ; cast(string, cast(integer, symbolheader.Magic)))
+						goofyreadoffset += cast(integer, symbolheader.Bytes) - 2
+					}
+				}
 
-			GenerateSectionContribution(contriblist, procsection.SectionIndex, procsection.SectionRelative, procsize.Size)
+				if (goofyreadoffset > readoffset)
+				{
+					writeoffset += (goofyreadoffset - readoffset + 4)
+					dumbstupidflag = true
+					print("CANARY 1")
+				}
+
+				writeoffset += 0x2c
+				writeoffset += slen
+
+				// TODO - if we just pass along writeoffset here as the position of the next symbol, we will cause debuggers
+				// reading the PDB to barf when they reach the offset (since it points to itself more or less). This infinite
+				// loop is very annoying and sort of precludes using the debugger for its intended purposes, so we want to
+				// avoid that nonsense. What we NEED to do is read ahead in the symboldata buffer and peek out how many local
+				// and register-range symbols belong to this Proc, and then write the correct offset out.
+
+				GenerateCorrectedCVSymbol(symbols, writeoffset, procsize.Size, procsection.SectionIndex, 0, procsection.SectionRelative, symbol)
+
+				GenerateSectionContribution(contriblist, procsection.SectionIndex, procsection.SectionRelative, procsize.Size)
+
+
+				while ((chunk.Size + chunkbeginoffset - 4) > readoffset)
+				{
+					marshalstructure(symbolheader, GetBufferPtr(symboldata, readoffset))
+					readoffset += 4
+
+					if (symbolheader.Magic == 0x113e)
+					{
+						// S_LOCAL
+						marshalstructure(local, GetBufferPtr(symboldata, readoffset))
+						readoffset += 6
+
+						locallen = hackstrlen(GetBufferPtr(symboldata, readoffset))
+						localsymbol = widenfromptr(GetBufferPtr(symboldata, readoffset), locallen)
+						readoffset += locallen + 1	// null terminated
+
+						print("LOCAL: " ; localsymbol)
+
+						local.TypeIndex = 0x74			// T_INT			TODO - this is a silly hack
+
+						GenerateCorrectedCVLocal(symbols, local, localsymbol)
+					}
+					elseif (symbolheader.Magic == 0x1145)
+					{
+						// S_DEFRANGE_REGISTER_REL
+						marshalstructure(regrange, GetBufferPtr(symboldata, readoffset))
+						regrange.SectionIndexStartCode = 9
+						readoffset += cast(integer, symbolheader.Bytes) - 2
+
+						GenerateCorrectedCVRegisterRange(symbols, regrange)
+					}
+					else
+					{
+						print("WARNING - Skipping " ; cast(string, cast(integer, symbolheader.Bytes)) ; " bytes of type " ; cast(string, cast(integer, symbolheader.Magic)))
+						readoffset += cast(integer, symbolheader.Bytes) - 2
+					}
+				}
+
+				marshalstructure(term, GetBufferPtr(symboldata, readoffset))
+				readoffset += 2			// sizeof(CodeViewProcTerm)
+				assertmsg(cast(integer, term.Magic) == 0x02, "Mismatched codeview magic (2a) - value " ; cast(string, cast(integer, term.Magic)))
+
+				marshalstructure(end, GetBufferPtr(symboldata, readoffset))
+				readoffset += 2			// sizeof(CodeViewProcEnd)
+				assertmsg(cast(integer, end.Magic) == 0x114f, "Mismatched codeview magic (3a)")
+
+
+				GenerateCorrectedCVSymbolTerminator(symbols)
+				
+				if(!dumbstupidflag)
+				{
+					writeoffset += 4
+				}
+
+				while(writeoffset & 3 != 0)
+				{
+					++writeoffset
+				}
+			}
+			elseif(proc.Magic == 0x113c)		// S_COMPILE3
+			{
+				readoffset += 22		// ignored
+
+				slen = hackstrlen(GetBufferPtr(symboldata, readoffset))
+				readoffset += slen + 1			// null terminator
+
+				print("IGNORED compile3 symbol")
+			}
+			else
+			{
+				assertmsg(false, "Mismatched codeview magic (1) - got value " ; cast(string, cast(integer, proc.Magic)))
+			}
 		}
 		elseif(chunk.Header == 0xf2)
 		{
@@ -1455,9 +1652,19 @@ ConvertSymbolStream : buffer ref symboldata, integer symbolsize, list<PDBSymbol>
 			integer pairindex = 0
 			while(pairindex < lineinfo.NumPairs)
 			{
-				CodeViewLinePair pair = 0, 0
+				CodeViewLinePair pair = -1, -1
 				marshalstructure(pair, GetBufferPtr(symboldata, readoffset))
 				readoffset += 8
+
+				if (pair.Offset == 0)
+				{
+					if (pair.Line == 0)
+					{
+						pair.Line = 2
+					}
+				}
+
+				pair.Line = pair.Line + 0x80000000
 
 				append<CodeViewLinePair>(stuff.LinePairs, pair)
 
@@ -1497,15 +1704,35 @@ ConvertSymbolStream : buffer ref symboldata, integer symbolsize, list<PDBSymbol>
 }
 
 
-GenerateCorrectedCVSymbol : list<PDBSymbol> ref symbols, integer writeoffset, integer size, integer16 sectionindex, integer sectionrelative, string symbol
+GenerateCorrectedCVSymbol : list<PDBSymbol> ref symbols, integer writeoffset, integer size, integer16 sectionindex, integer flags, integer sectionrelative, string symbol
 {
-	SymbolProcStart startsymbolps = 0, AlignToFour(writeoffset), 0, size, 0, size, 0, sectionindex, 0, symbol, sectionrelative
-	SymbolBlockEnd endsymbolps = 0
+	SymbolProcStart startsymbolps = 0, AlignToFour(writeoffset), 0, size, 0, size, 0, sectionindex, flags, symbol, sectionrelative
 	PDBSymbol startsymbol = startsymbolps
-	PDBSymbol endsymbol = endsymbolps
 	
 	append<PDBSymbol>(symbols, startsymbol)
+}
+
+GenerateCorrectedCVSymbolTerminator : list<PDBSymbol> ref symbols
+{
+	SymbolBlockEnd endsymbolps = 0
+	PDBSymbol endsymbol = endsymbolps
 	append<PDBSymbol>(symbols, endsymbol)
+}
+
+GenerateCorrectedCVLocal : list<PDBSymbol> ref symbols, CodeViewLocal ref local, string name
+{
+	SymbolLocal localsl = local.TypeIndex, local.Flags, name
+	PDBSymbol sym = localsl
+	
+	append<PDBSymbol>(symbols, sym)
+}
+
+GenerateCorrectedCVRegisterRange : list<PDBSymbol> ref symbols, CodeViewRegisterRange ref regrange
+{
+	SymbolDefRangeRegisterRelative regsym = regrange.Register, regrange.Flags, regrange.BasePointerOffset, regrange.OffsetStartCode, regrange.SectionIndexStartCode, regrange.RangeCode, 0
+	PDBSymbol sym = regsym
+
+	append<PDBSymbol>(symbols, sym)
 }
 
 GenerateSectionContribution : list<SectionContribution> ref contriblist, integer16 sectionindex, integer startoffset, integer size

@@ -59,7 +59,7 @@ structure SymbolDefRangeRegisterRelative :
 	integer DummyToDo
 
 
-type PDBSymbol : SymbolSection | SymbolProcStart | SymbolBlockEnd | SymbolLocal
+type PDBSymbol : SymbolSection | SymbolProcStart | SymbolBlockEnd | SymbolLocal | SymbolDefRangeRegisterRelative
 
 
 
@@ -115,32 +115,12 @@ ByteStreamEmitSymbol : buffer ref stream, integer ref pos, SymbolSection ref sym
 ByteStreamEmitSymbol : buffer ref stream, integer ref pos, SymbolProcStart ref symbol
 {
 	integer16 mysize = cast(integer16, SymbolGetSize(symbol) - 2)
-
-	// TODO - clean this out - this basically is part of a hack that expands the symbols
-	// for the "test" proc to include a local variable definition and a live range. This
-	// data is what debuggers use to provide variable inspections during debugging.
-	integer bumphack = 0
-	if(symbol.DisplayName == "test")
-	{
-		bumphack = 16 + 20
-	}
 	
 	ByteStreamEmitInteger16(stream, pos, mysize)
 	ByteStreamEmitInteger16(stream, pos, 0x1110)						// S_GPROC32
 	ByteStreamEmitInteger(stream, pos, symbol.PtrParent)
-	ByteStreamEmitInteger(stream, pos, symbol.PtrEnd + bumphack)
-	
-
-	// Also hack
-	if(symbol.DisplayName == "test")
-	{
-		ByteStreamEmitInteger(stream, pos, symbol.PtrEnd)
-	}
-	else
-	{
-		ByteStreamEmitInteger(stream, pos, symbol.PtrNext)
-	}
-	
+	ByteStreamEmitInteger(stream, pos, symbol.PtrEnd)
+	ByteStreamEmitInteger(stream, pos, symbol.PtrNext)
 	ByteStreamEmitInteger(stream, pos, symbol.CodeSize)
 	ByteStreamEmitInteger(stream, pos, symbol.DebugStart)
 	ByteStreamEmitInteger(stream, pos, symbol.DebugEnd)
@@ -163,20 +143,6 @@ ByteStreamEmitSymbol : buffer ref stream, integer ref pos, SymbolProcStart ref s
 	while((pos & 3) != 0)
 	{
 		ByteStreamEmitByte(stream, pos, 0)
-	}
-
-
-	// Most of the hack
-	if(symbol.DisplayName == "test")
-	{
-		integer T_INT = 0x74 ///0x8003
-		SymbolLocal local = T_INT, 0, "count"
-
-		ByteStreamEmitSymbol(stream, pos, local)
-
-
-		SymbolDefRangeRegisterRelative range = 335, 0, 0x24, 0x80, 9, 0x3a, 0		// TODO - 335 appears to be RSP
-		ByteStreamEmitSymbol(stream, pos, range)
 	}
 }
 
