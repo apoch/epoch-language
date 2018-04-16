@@ -65,7 +65,7 @@ type PDBSymbol : SymbolSection | SymbolProcStart | SymbolBlockEnd | SymbolLocal 
 
 SymbolGetSize : SymbolSection ref symbol -> integer size = AlignToFour(20 + length(symbol.ImageSectionName) + 1)
 SymbolGetSize : SymbolProcStart ref symbol -> integer size = AlignToFour(39 + length(symbol.DisplayName) + 1)
-SymbolGetSize : SymbolBlockEnd ref symbol -> integer size = 8
+SymbolGetSize : SymbolBlockEnd ref symbol -> integer size = 4
 SymbolGetSize : SymbolLocal ref symbol -> integer size = AlignToFour(10 + length(symbol.Name) + 1)
 SymbolGetSize : SymbolDefRangeFrameRelative ref symbol -> integer size = AlignToFour(16)
 SymbolGetSize : SymbolDefRangeRegisterRelative ref symbol -> integer size = AlignToFour(18)
@@ -153,7 +153,6 @@ ByteStreamEmitSymbol : buffer ref stream, integer ref pos, SymbolBlockEnd ref sy
 
 	ByteStreamEmitInteger16(stream, pos, mysize)
 	ByteStreamEmitInteger16(stream, pos, 0x6)							// S_END	
-	ByteStreamEmitInteger(stream, pos, 0)
 
 	while((pos & 3) != 0)
 	{

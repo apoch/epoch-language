@@ -861,7 +861,7 @@ EmitDBISectionMap : PDBOutputStream ref stream
 	ByteStreamEmitInteger16(header, headersize, 0xffff)		// name
 	ByteStreamEmitInteger16(header, headersize, 0xffff)		// class name
 	ByteStreamEmitInteger(header, headersize, 0)			// offset
-	ByteStreamEmitInteger(header, headersize, 0xc0)		// length				// TODO - this MUST be correct or debuggers will barf
+	ByteStreamEmitInteger(header, headersize, 0x102)		// length				// TODO - this MUST be correct or debuggers will barf
 
 	// magic section (?)
 	ByteStreamEmitInteger16(header, headersize, 0x208)		// flags
@@ -1463,7 +1463,7 @@ ConvertSymbolStream : buffer ref symboldata, integer symbolsize, list<PDBSymbol>
 	integer locallen = 0
 	string localsymbol = ""
 
-	integer writeoffset = 0x1c
+	integer writeoffset = 0x20
 	integer readoffset = 4
 	integer chunkbeginoffset = readoffset
 	integer goofyreadoffset = 0
@@ -1550,7 +1550,7 @@ ConvertSymbolStream : buffer ref symboldata, integer symbolsize, list<PDBSymbol>
 					print("CANARY 1")
 				}
 
-				writeoffset += 0x2c
+				writeoffset += 0x28
 				writeoffset += slen
 
 				// TODO - if we just pass along writeoffset here as the position of the next symbol, we will cause debuggers
