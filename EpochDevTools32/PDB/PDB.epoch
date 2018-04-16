@@ -1146,7 +1146,7 @@ WritePublicsStream : Win32Handle pdbfilehandle, integer startfileposition -> int
 	buffer header = 4096
 	integer headersize = 0
 	
-	ByteStreamEmitInteger(header, headersize, 44 + 516 + 128)		// length of data
+	ByteStreamEmitInteger(header, headersize, 44 + 516 + 112)		// length of data
 	ByteStreamEmitInteger(header, headersize, 8)		// address map
 	ByteStreamEmitInteger(header, headersize, 30)		// num thunks
 	ByteStreamEmitInteger(header, headersize, 4)		// size of thunk
@@ -1158,16 +1158,10 @@ WritePublicsStream : Win32Handle pdbfilehandle, integer startfileposition -> int
 	// Hash header
 	ByteStreamEmitInteger(header, headersize, 0xffffffff)				// signature
 	ByteStreamEmitInteger(header, headersize, 0xeffe0000 + 19990810)	// version
-	ByteStreamEmitInteger(header, headersize, 24)						// number of bytes of HRFiles
+	ByteStreamEmitInteger(header, headersize, 8)						// number of bytes of HRFiles
 	ByteStreamEmitInteger(header, headersize, 516 + 4)					// number of bytes in buckets
 
 	// HRFiles
-	ByteStreamEmitInteger(header, headersize, 1)
-	ByteStreamEmitInteger(header, headersize, 0)		// this doesn't seem to matter?
-
-	ByteStreamEmitInteger(header, headersize, 1)
-	ByteStreamEmitInteger(header, headersize, 0)		// this doesn't seem to matter?
-
 	ByteStreamEmitInteger(header, headersize, 1)
 	ByteStreamEmitInteger(header, headersize, 0)		// this doesn't seem to matter?
 
@@ -1184,7 +1178,7 @@ WritePublicsStream : Win32Handle pdbfilehandle, integer startfileposition -> int
 	}
 
 	// There appears to be one of these for each bit set in the bitmap
-	ByteStreamEmitInteger(header, headersize, 1)
+	ByteStreamEmitInteger(header, headersize, 0)
 	
 
 	// Address map - ???
