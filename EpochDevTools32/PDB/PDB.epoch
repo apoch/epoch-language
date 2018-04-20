@@ -285,7 +285,7 @@ WritePDB : PDBOutputStream ref stream, integer codesectionstart, integer codesiz
 	
 	// Move up and write the symbol records (DBI) stream
 	PadGarbageToBeginningOfBlock(stream, stream.Layout.Directory.Symbols.Blocks.value)
-	WriteSymbolRecordsStream(stream, stream.DBI.Modules.value)
+	WritePublicSymbolRecordsStream(stream)
 	
 	// HACK - TODO
 	PadToBeginningOfBlock(stream, 13)
@@ -1165,6 +1165,9 @@ WritePublicsStream : Win32Handle pdbfilehandle, integer startfileposition -> int
 	ByteStreamEmitInteger(header, headersize, 1)
 	ByteStreamEmitInteger(header, headersize, 0)		// this doesn't seem to matter?
 
+	//ByteStreamEmitInteger(header, headersize, 77)
+	//ByteStreamEmitInteger(header, headersize, 0)		// this doesn't seem to matter?
+
 	// Magic bitmap
 	ByteStreamEmitByte(header, headersize, 1)
 	ByteStreamEmitByte(header, headersize, 0)
@@ -1179,7 +1182,7 @@ WritePublicsStream : Win32Handle pdbfilehandle, integer startfileposition -> int
 
 	// There appears to be one of these for each bit set in the bitmap
 	ByteStreamEmitInteger(header, headersize, 0)
-	
+
 
 	// Address map - ???
 	ByteStreamEmitInteger(header, headersize, 0xfefefefe)
@@ -1209,31 +1212,23 @@ WritePublicsStream : Win32Handle pdbfilehandle, integer startfileposition -> int
 }
 
 
-WriteSymbolRecordsStream : PDBOutputStream ref stream, DBIModule ref module
+WritePublicSymbolRecordsStream : PDBOutputStream ref stream
 {
-	//buffer header = 4
-	//integer headersize = 0
-	//
-	//ByteStreamEmitInteger(header, headersize, 4)
-	//
-	//integer written = 0
-	//WriteFile(stream.FileHandle, header, headersize, written, 0)
-	//
-	//stream.FilePosition = stream.FilePosition + written
-	
-	
+	// TODO - actually implement this
 
+	SymbolPublic publicrec = 2, 0, 9, "init"
+	PDBSymbol publicsym = publicrec
+	list<PDBSymbol> publicslist = publicsym, nothing
 
-	
-	buffer symboldata = 4096
+	buffer symboldata = 1024
 	integer symboldatasize = 0
-	ByteStreamEmitSymbolList(symboldata, symboldatasize, module.Symbols)
+	ByteStreamEmitSymbolList(symboldata, symboldatasize, publicslist)
 	
 	integer written = 0
 	WriteFile(stream.FileHandle, symboldata, symboldatasize, written, 0)
 	stream.FilePosition = stream.FilePosition + written
 
-	print(cast(string, written) ; " bytes of symbol records")
+	print(cast(string, written) ; " bytes of public symbol records")
 }
 
 

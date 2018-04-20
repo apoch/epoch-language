@@ -37,6 +37,13 @@ structure SymbolBlockEnd :
 	integer Dummy
 
 
+structure SymbolPublic :
+	integer Flags,
+	integer Offset,
+	integer16 Segment,
+	string Name
+
+
 structure SymbolLocal :
 	integer TypeIndex,
 	integer16 Flags,
@@ -59,7 +66,8 @@ structure SymbolDefRangeRegisterRelative :
 	integer DummyToDo
 
 
-type PDBSymbol : SymbolSection | SymbolProcStart | SymbolBlockEnd | SymbolLocal | SymbolDefRangeRegisterRelative
+type PDBSymbol : SymbolSection | SymbolProcStart | SymbolBlockEnd | SymbolLocal | SymbolDefRangeRegisterRelative | SymbolDefRangeFrameRelative
+				| SymbolPublic
 
 
 
@@ -69,6 +77,7 @@ SymbolGetSize : SymbolBlockEnd ref symbol -> integer size = 4
 SymbolGetSize : SymbolLocal ref symbol -> integer size = AlignToFour(10 + length(symbol.Name) + 1)
 SymbolGetSize : SymbolDefRangeFrameRelative ref symbol -> integer size = AlignToFour(16)
 SymbolGetSize : SymbolDefRangeRegisterRelative ref symbol -> integer size = AlignToFour(18)
+SymbolGetSize : SymbolPublic ref symbol -> integer size = AlignToFour(12 + length(symbol.Name) + 1)
 
 
 ByteStreamEmitSymbolList : buffer ref stream, integer ref pos, list<PDBSymbol> ref symlist
@@ -88,7 +97,7 @@ ByteStreamEmitSymbol : buffer ref stream, integer ref pos, SymbolSection ref sym
 	ByteStreamEmitInteger16(stream, pos, mysize)
 	ByteStreamEmitInteger16(stream, pos, 0x1136)						// S_SECTION
 	ByteStreamEmitInteger16(stream, pos, symbol.ImageSectionIndex)
-	ByteStreamEmitInteger16(stream, pos, 0)								// Alignment, reserved byte
+	ByteStreamEmitInteger16(stream, pos, 0xc)								// Alignment, reserved byte
 	ByteStreamEmitInteger(stream, pos, symbol.ImageSectionRVA)
 	ByteStreamEmitInteger(stream, pos, symbol.ImageSectionSize)
 	ByteStreamEmitInteger(stream, pos, symbol.Characteristics)
@@ -153,6 +162,26 @@ ByteStreamEmitSymbol : buffer ref stream, integer ref pos, SymbolBlockEnd ref sy
 
 	ByteStreamEmitInteger16(stream, pos, mysize)
 	ByteStreamEmitInteger16(stream, pos, 0x6)							// S_END	
+
+	while((pos & 3) != 0)
+	{
+		ByteStreamEmitByte(stream, pos, 0)
+	}
+}
+
+
+ByteStreamEmitSymbol : buffer ref stream, integer ref pos, SymbolPublic ref symbol
+{
+	integer16 mysize = cast(integer16, SymbolGetSize(symbol) - 2)
+
+	ByteStreamEmitInteger16(stream, pos, mysize)
+	ByteStreamEmitInteger16(stream, pos, 0x110e)						// S_PUB32
+	ByteStreamEmitInteger(stream, pos, symbol.Flags)
+	ByteStreamEmitInteger(stream, pos, symbol.Offset)
+	ByteStreamEmitInteger16(stream, pos, symbol.Segment)
+	ByteStreamEmitStringNarrow(stream, pos, symbol.Name)
+
+	ByteStreamEmitByte(stream, pos, 0)
 
 	while((pos & 3) != 0)
 	{
