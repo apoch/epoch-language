@@ -491,43 +491,9 @@ WritePDBInfoStream : Win32Handle pdbfilehandle, integer startfileposition -> int
 	ByteStreamEmitInteger(header, headersize, 0)		// DE-POISONED: this is a bit vector of deleted data
 
 	ByteStreamEmitInteger(header, headersize, 0)		// This is offset of the stream name in the name buffer above
-	ByteStreamEmitInteger(header, headersize, 9)		// TODO - stream index of actual data for this file
+	ByteStreamEmitInteger(header, headersize, 9)		// TODO - stream index of string table (make it dynamic)
 
 	ByteStreamEmitInteger(header, headersize, 20091201)	// DE-POISONED: VC110 signature
-
-	ByteStreamEmitInteger(header, headersize, 0x9d)
-	ByteStreamEmitInteger(header, headersize, 0x9c)
-	ByteStreamEmitInteger(header, headersize, 0x9b)
-
-	ByteStreamEmitInteger(header, headersize, 0x8e)
-	ByteStreamEmitInteger(header, headersize, 0x8d)
-	ByteStreamEmitInteger(header, headersize, 0x8c)
-	ByteStreamEmitInteger(header, headersize, 0x8b)
-
-	ByteStreamEmitInteger(header, headersize, 0x7e)
-	ByteStreamEmitInteger(header, headersize, 0x7d)
-	ByteStreamEmitInteger(header, headersize, 0x7c)
-	ByteStreamEmitInteger(header, headersize, 0x7b)
-
-	ByteStreamEmitInteger(header, headersize, 0x6e)
-	ByteStreamEmitInteger(header, headersize, 0x6d)
-	ByteStreamEmitInteger(header, headersize, 0x6c)
-	ByteStreamEmitInteger(header, headersize, 0x6b)
-
-	ByteStreamEmitInteger(header, headersize, 0x5e)
-	ByteStreamEmitInteger(header, headersize, 0x5d)
-	ByteStreamEmitInteger(header, headersize, 0x5c)
-	ByteStreamEmitInteger(header, headersize, 0x5b)
-
-	ByteStreamEmitInteger(header, headersize, 0x5a)
-	ByteStreamEmitInteger(header, headersize, 0x59)
-	ByteStreamEmitInteger(header, headersize, 0x58)
-	ByteStreamEmitInteger(header, headersize, 0x57)
-
-	ByteStreamEmitInteger(header, headersize, 0x56)
-	ByteStreamEmitInteger(header, headersize, 0x55)
-	ByteStreamEmitInteger(header, headersize, 0x54)
-	ByteStreamEmitInteger(header, headersize, 0x53)
 
 	integer written = 0
 	WriteFile(pdbfilehandle, header, headersize, written, 0)
