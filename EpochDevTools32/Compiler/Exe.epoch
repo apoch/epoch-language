@@ -1168,10 +1168,6 @@ GeneratePDB : string pdbfilename, buffer ref symboldata, integer symbolsize, int
 	SymbolSection sectionsymbol = 9, 0x9000, codesize, 0x60000020, ".text"	
 	list<PDBSymbol> symbollistinternal = sectionsymbol, nothing
 
-	//SymbolBlockEnd sectionend = 0
-	//PDBSymbol sectionendsymbol = sectionend
-	//append<PDBSymbol>(symbollistinternal, sectionendsymbol)
-
 	SectionContribution initsc = -1, 0, 0, 0, 0, 0, 0
 	list<SectionContribution> contriblist = initsc, nothing
 	
@@ -1210,17 +1206,14 @@ GeneratePDB : string pdbfilename, buffer ref symboldata, integer symbolsize, int
 	PDBStream globals = simplelist<integer>(10, nothing), 44 + 516		// TODO - real globals stream
 	PDBStream publics = simplelist<integer>(11, nothing), 708			// TODO - real publics stream
 	PDBStream symbols = simplelist<integer>(12, nothing), 20			// TODO - real symbol records size
-	
-	simplelist<integer> hackblocks = 13, nothing
 
-	PDBStream hackstream = hackblocks, testmodule.SymbolSize + testmodule.LinesSize + 20 + 8	// TODO - real stream
-	list<PDBStream> hackstreamlist = hackstream, nothing
+	PDBStream module = simplelist<integer>(13, nothing), testmodule.SymbolSize + testmodule.LinesSize + 20 + 8	// TODO - real stream size
+	PDBStream stringstream = simplelist<integer>(14, nothing), 93							// TODO - real stream size
+
+	list<PDBStream> additionalstreams = module, nothing
+	append<PDBStream>(additionalstreams, stringstream)
 	
-	simplelist<integer> stringblocks = 14, nothing
-	PDBStream stringstream = stringblocks, 93							// TODO - real stream
-	append<PDBStream>(hackstreamlist, stringstream)
-	
-	PDBDirectory pdbdir = msf, pdb, tpi, dbi, ipi, globals, publics, symbols, hackstreamlist
+	PDBDirectory pdbdir = msf, pdb, tpi, dbi, ipi, globals, publics, symbols, additionalstreams
 
 	PDBStream directoryhint = simplelist<integer>(3, nothing), 0
 	PDBStream directorystream = simplelist<integer>(4, nothing), ComputeDirectoryStreamSize(pdbdir, 4096)
