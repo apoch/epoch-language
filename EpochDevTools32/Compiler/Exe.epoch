@@ -200,7 +200,7 @@ MakeExe : EpochProject ref project
 	position += WriteSectionHeader(filehandle, ".data", offsetstrings, virtualoffsetstrings, sizestrings, sizestrings, 0x40000040)
 	position += WriteSectionHeader(filehandle, ".gc", offsetgc, virtualoffsetgc, sizegc, sizegc, 0x40000040)
 	position += WriteSectionHeader(filehandle, ".debug", offsetdebug, virtualoffsetdebug, 0x200, 0x200, 0x40000040)
-	position += WriteSectionHeader(filehandle, ".global", offsetglobals, virtualoffsetglobals, globaloffsettracker, globaloffsettracker, 0xc0000040)		// TODO - characteristics of .global
+	position += WriteSectionHeader(filehandle, ".global", offsetglobals, virtualoffsetglobals, globaloffsettracker, globaloffsettracker, 0xc0000040)
 	position += WriteSectionHeader(filehandle, ".text", offsetcode, virtualoffsetcode, sizecode, sizecode, 0x60000020)
 
 	print("Writing thunk table...")
@@ -229,7 +229,7 @@ MakeExe : EpochProject ref project
 
 	position += WritePadding(filehandle, position, offsetdebug)
 
-	position += WriteDebugStub(filehandle, "PDBTest.pdb", virtualoffsetdebug, offsetdebug)		// TODO - inherit name of project/.exe
+	position += WriteDebugStub(filehandle, "PDBTest.pdb", virtualoffsetdebug, offsetdebug)		// TODO - inherit name of project/.exe (but - crucially - strip off the full path)
 
 	print("Writing globals...")
 	position += WritePadding(filehandle, position, offsetglobals + globaloffsettracker)
