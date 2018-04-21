@@ -1327,7 +1327,7 @@ WriteDBIModuleSymbols : PDBOutputStream ref stream, DBIModule ref module, buffer
 
 
 
-TransferSymbols : list<PDBSymbol> ref symbols, buffer ref symboldata, integer symbolsize, buffer ref relocdata, integer relocsize, buffer ref symbollist, list<SectionContribution> ref contriblist, list<CodeViewLineInfo> ref lines
+TransferSymbols : list<PDBSymbol> ref symbols, buffer ref symboldata, integer symbolsize, buffer ref relocdata, integer relocsize, buffer ref symbollist, list<SectionContribution> ref contriblist, list<CodeViewLineInfo> ref lines, integer symbolcount
 {
 	//
 	// Apply relocations to the raw symbol data so it will be easier
@@ -1339,6 +1339,8 @@ TransferSymbols : list<PDBSymbol> ref symbols, buffer ref symboldata, integer sy
 
 	integer RELOCATION_SIZE = 10		// sizeof(packed Relocation struct)
 	integer SYMBOL_SIZE = 18			// sizeof(packed ImageSymbol struct)
+
+	integer stringoffset = SYMBOL_SIZE * symbolcount
 
 	integer reloccount = relocsize / RELOCATION_SIZE    
 	integer i = 0
@@ -1353,16 +1355,17 @@ TransferSymbols : list<PDBSymbol> ref symbols, buffer ref symboldata, integer sy
 			ImageSymbol symbol = 0, 0, 0, 0, 0, 0
 			marshalstructure(symbol, GetBufferPtr(symbollist, reloc.SymbolIndex * SYMBOL_SIZE))
 
-			if(symbol.SectionNumber == 9)
+			integer slen = hackstrlen(GetBufferPtr(symbollist, stringoffset + symbol.OffsetToLongName))
+			string symbolname = widenfromptr(GetBufferPtr(symbollist, stringoffset + symbol.OffsetToLongName), slen)
+			print("SECREL relocation of symbol " ; symbolname ; " val " ; cast(string, symbol.Value))
+
+			if(reloc.Address < (symbolsize - 3))		// 4 == sizeof(DWORD), 1 offset for lack of <= operator
 			{
-				if(reloc.Address < (symbolsize - 3))		// 4 == sizeof(DWORD), 1 offset for lack of <= operator
-				{
-					WriteBufferPtrDword(symboldata, reloc.Address, symbol.Value)
-				}
-				else
-				{
-					print("WARNING: NOT relocating relative symbol... " ; cast(string, reloc.Address) ; " val " ; cast(string, symbol.Value))
-				}
+				WriteBufferPtrDword(symboldata, reloc.Address, symbol.Value)
+			}
+			else
+			{
+				print("WARNING: NOT relocating relative symbol... " ; cast(string, reloc.Address) ; " val " ; cast(string, symbol.Value))
 			}
 		}
 		elseif(reloc.Type == 0xa)		// IMAGE_REL_AMD64_SECTION
@@ -1370,22 +1373,19 @@ TransferSymbols : list<PDBSymbol> ref symbols, buffer ref symboldata, integer sy
 			ImageSymbol symbol = 0, 0, 0, 0, 0, 0
 			marshalstructure(symbol, GetBufferPtr(symbollist, reloc.SymbolIndex * SYMBOL_SIZE))
 
-			if(symbol.SectionNumber == 9)
+			integer slen = hackstrlen(GetBufferPtr(symbollist, stringoffset + symbol.OffsetToLongName))
+			string symbolname = widenfromptr(GetBufferPtr(symbollist, stringoffset + symbol.OffsetToLongName), slen)
+			print("SECTION relocation of symbol " ; symbolname ; " val " ; cast(string, symbol.Value))
+
+			// stash integer16
+			if(reloc.Address < (symbolsize - 1))		// 2 == sizeof(WORD), 1 offset for lack of <= operator
 			{
-				// stash integer16
-				if(reloc.Address < (symbolsize - 1))		// 2 == sizeof(WORD), 1 offset for lack of <= operator
-				{
-					WriteBufferPtrByte(symboldata, reloc.Address, 9)
-					WriteBufferPtrByte(symboldata, reloc.Address + 1, 0)
-				}
-				else
-				{
-					print("WARNING: NOT relocating absolute symbol... " ; cast(string, reloc.Address) ; " val " ; cast(string, symbol.Value))
-				}
+				WriteBufferPtrByte(symboldata, reloc.Address, 9)
+				WriteBufferPtrByte(symboldata, reloc.Address + 1, 0)
 			}
 			else
 			{
-				print("Bogus symbol for section " ; cast(string, cast(integer, symbol.SectionNumber)))
+				print("WARNING: NOT relocating absolute symbol... " ; cast(string, reloc.Address) ; " val " ; cast(string, symbol.Value))
 			}
 		}
 		else
