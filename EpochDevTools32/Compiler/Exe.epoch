@@ -1202,9 +1202,6 @@ GeneratePDB : string pdbfilename, buffer ref symboldata, integer symbolsize, int
 
 	print("Pre-stream setup canary")
 	
-	PDBStream directoryhint = simplelist<integer>(3, nothing), 0
-	PDBStream directorystream = simplelist<integer>(4, nothing), 84
-	
 	PDBStream msf = simplelist<integer>(5, nothing), 1					// Placeholder; 0 is invalid but we have nothing to put here
 	PDBStream pdb = simplelist<integer>(6, nothing), 72  				// TODO - pull real PDB stream size [was 48, then 128]
 	PDBStream tpi = simplelist<integer>(7, nothing), 56					// TODO - real TPI stream
@@ -1223,7 +1220,10 @@ GeneratePDB : string pdbfilename, buffer ref symboldata, integer symbolsize, int
 	PDBStream stringstream = stringblocks, 93							// TODO - real stream
 	append<PDBStream>(hackstreamlist, stringstream)
 	
-	PDBDirectory pdbdir = 10, msf, pdb, tpi, dbi, ipi, globals, publics, symbols, hackstreamlist
+	PDBDirectory pdbdir = msf, pdb, tpi, dbi, ipi, globals, publics, symbols, hackstreamlist
+
+	PDBStream directoryhint = simplelist<integer>(3, nothing), 0
+	PDBStream directorystream = simplelist<integer>(4, nothing), ComputeDirectoryStreamSize(pdbdir, 4096)
 
 	
 	Win32Handle invalidhandle = -1

@@ -91,7 +91,6 @@ structure PDBStream :
 // module in the PDB.
 //
 structure PDBDirectory :
-	integer NumStreams,					// TODO - remove hard-coding of this and compute it dynamically instead
 	PDBStream ref OldMSFDirectory,
 	PDBStream ref PDB,
 	PDBStream ref TPI,
@@ -106,8 +105,8 @@ structure PDBDirectory :
 //
 // Metadata describing the layout of a PDB/MSF file.
 //
-// We use the smallest legal block size (1KB) in general, because it is
-// a reasonable balance between compactness and simplicity. The number of
+// We use the typically seen block size (4KB) in general, because it is
+// easier to maintain parity with the official PDB writers. The number of
 // total blocks in the MSF file is tracked here as well as data for the
 // directory indirection stream and the directory itself.
 //
@@ -405,8 +404,8 @@ WriteDirectory : PDBOutputStream ref stream
 	buffer directory = 1024
 	integer directorysize = 0
 	
-	// Number of streams
-	ByteStreamEmitInteger(directory, directorysize, stream.Layout.Directory.NumStreams)	
+	// Number of streams - eight fixed streams plus additional dynamic user-provided streams
+	ByteStreamEmitInteger(directory, directorysize, CountAdditionalStreams(stream.Layout.Directory.AdditionalStreams) + 8)
 
 	// Stream sizes
 	ByteStreamEmitInteger(directory, directorysize, stream.Layout.Directory.OldMSFDirectory.Length)
@@ -417,26 +416,90 @@ WriteDirectory : PDBOutputStream ref stream
 	ByteStreamEmitInteger(directory, directorysize, stream.Layout.Directory.Globals.Length)
 	ByteStreamEmitInteger(directory, directorysize, stream.Layout.Directory.Publics.Length)
 	ByteStreamEmitInteger(directory, directorysize, stream.Layout.Directory.Symbols.Length)
-	ByteStreamEmitInteger(directory, directorysize, stream.Layout.Directory.AdditionalStreams.value.Length)		// TODO - iterate over this list
-	ByteStreamEmitInteger(directory, directorysize, 93)		// TODO
+	WriteDirectoryAdditionalStreams(directory, directorysize, stream.Layout.Directory.AdditionalStreams)
+
 
 	// Stream blocks
-	ByteStreamEmitInteger(directory, directorysize, stream.Layout.Directory.OldMSFDirectory.Blocks.value)
-	ByteStreamEmitInteger(directory, directorysize, stream.Layout.Directory.PDB.Blocks.value)
-	ByteStreamEmitInteger(directory, directorysize, stream.Layout.Directory.TPI.Blocks.value)
-	ByteStreamEmitInteger(directory, directorysize, stream.Layout.Directory.DBI.Blocks.value)
-	ByteStreamEmitInteger(directory, directorysize, stream.Layout.Directory.IPI.Blocks.value)
-	ByteStreamEmitInteger(directory, directorysize, stream.Layout.Directory.Globals.Blocks.value)
-	ByteStreamEmitInteger(directory, directorysize, stream.Layout.Directory.Publics.Blocks.value)
-	ByteStreamEmitInteger(directory, directorysize, stream.Layout.Directory.Symbols.Blocks.value)
-	ByteStreamEmitInteger(directory, directorysize, stream.Layout.Directory.AdditionalStreams.value.Blocks.value)
-	ByteStreamEmitInteger(directory, directorysize, 14)		// TODO
-	
+	WriteDirectoryBlockList(directory, directorysize, stream.Layout.Directory.OldMSFDirectory.Blocks)
+	WriteDirectoryBlockList(directory, directorysize, stream.Layout.Directory.PDB.Blocks)
+	WriteDirectoryBlockList(directory, directorysize, stream.Layout.Directory.TPI.Blocks)
+	WriteDirectoryBlockList(directory, directorysize, stream.Layout.Directory.DBI.Blocks)
+	WriteDirectoryBlockList(directory, directorysize, stream.Layout.Directory.IPI.Blocks)
+	WriteDirectoryBlockList(directory, directorysize, stream.Layout.Directory.Globals.Blocks)
+	WriteDirectoryBlockList(directory, directorysize, stream.Layout.Directory.Publics.Blocks)
+	WriteDirectoryBlockList(directory, directorysize, stream.Layout.Directory.Symbols.Blocks)
+	WriteDirectoryAdditionalStreamsBlocks(directory, directorysize, stream.Layout.Directory.AdditionalStreams, stream.Layout.BlockSize)
+
+
 	integer written = 0
 	WriteFile(stream.FileHandle, directory, directorysize, written, 0)
 	
 	stream.FilePosition = stream.FilePosition + written
 }
+
+ComputeDirectoryStreamSize : PDBDirectory ref dir, integer blocksize -> integer directorybytes = 0
+{
+	// Storage for the stream count
+	directorybytes += 4
+
+	// Eight fixed streams; four bytes for the length of each stream
+	directorybytes += (4 * 8)
+
+	// Additional user-provided streams
+	directorybytes += (CountAdditionalStreams(dir.AdditionalStreams) * 4)
+
+	// Block records are trickier because they are variable length
+	directorybytes += 4 * ComputeBlocksNeeded(dir.OldMSFDirectory.Length, blocksize)
+	directorybytes += 4 * ComputeBlocksNeeded(dir.PDB.Length, blocksize)
+	directorybytes += 4 * ComputeBlocksNeeded(dir.TPI.Length, blocksize)
+	directorybytes += 4 * ComputeBlocksNeeded(dir.DBI.Length, blocksize)
+	directorybytes += 4 * ComputeBlocksNeeded(dir.IPI.Length, blocksize)
+	directorybytes += 4 * ComputeBlocksNeeded(dir.Globals.Length, blocksize)
+	directorybytes += 4 * ComputeBlocksNeeded(dir.Publics.Length, blocksize)
+	directorybytes += 4 * ComputeBlocksNeeded(dir.Symbols.Length, blocksize)
+
+	// Now account for additional streams
+	directorybytes += (CountAdditionalStreamBlocks(dir.AdditionalStreams, blocksize) * 4)
+}
+
+
+CountAdditionalStreams : list<PDBStream> ref streams -> integer count = 1 + CountAdditionalStreams(streams.next)
+CountAdditionalStreams : nothing -> 0
+
+
+ComputeBlocksNeeded : integer bytes, integer blocksize -> (bytes / blocksize + 1)		// TODO - this over-estimates
+
+CountAdditionalStreamBlocks : list<PDBStream> ref streams, integer blocksize -> integer count = ComputeBlocksNeeded(streams.value.Length, blocksize) + CountAdditionalStreamBlocks(streams.next, blocksize)
+CountAdditionalStreamBlocks : nothing, integer blocksize -> 0
+
+
+
+WriteDirectoryAdditionalStreams : buffer ref directory, integer ref directorysize, list<PDBStream> ref streams
+{
+	ByteStreamEmitInteger(directory, directorysize, streams.value.Length)
+	WriteDirectoryAdditionalStreams(directory, directorysize, streams.next)
+}
+
+WriteDirectoryAdditionalStreams : buffer ref directory, integer ref directorysize, nothing
+
+
+WriteDirectoryAdditionalStreamsBlocks : buffer ref directory, integer ref directorysize, list<PDBStream> ref streams, integer blocksize
+{
+	assertmsg(countnonzero(streams.value.Blocks) == ComputeBlocksNeeded(streams.value.Length, blocksize), "Writing a different number of blocks to directory header than to disk")
+	WriteDirectoryBlockList(directory, directorysize, streams.value.Blocks)
+	WriteDirectoryAdditionalStreamsBlocks(directory, directorysize, streams.next, blocksize)
+}
+
+WriteDirectoryAdditionalStreamsBlocks : buffer ref directory, integer ref directorysize, nothing, integer blocksize
+
+
+WriteDirectoryBlockList : buffer ref directory, integer ref directorysize, simplelist<integer> ref blocks
+{
+	ByteStreamEmitInteger(directory, directorysize, blocks.value)
+	WriteDirectoryBlockList(directory, directorysize, blocks.next)
+}
+
+WriteDirectoryBlockList : buffer ref directory, integer ref directorysize, nothing
 
 
 
