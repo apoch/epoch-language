@@ -263,8 +263,6 @@ Context::Context()
 	InitFunction = Function::Create(initfunctiontype, GlobalValue::ExternalLinkage, "init", LLVMModule.get());
 	InitFunction->setGC("EpochGC");
 
-	SetupDebugInfo(InitFunction);
-
 	{
 		std::vector<Type*> args;
 		args.push_back(Type::getInt8PtrTy(GlobalContext)->getPointerTo());
@@ -304,7 +302,6 @@ llvm::Function* Context::FunctionCreate(const char* name, llvm::FunctionType* ft
 {
 	Function* func = Function::Create(fty, GlobalValue::ExternalLinkage, name, LLVMModule.get());
 	func->setGC("EpochGC");
-	SetupDebugInfo(func);
 	return func;
 }
 
@@ -421,6 +418,9 @@ void Context::PrepareBinaryObject()
 	
 	BasicBlock* bb = BasicBlock::Create(GlobalContext, "InitBlock", InitFunction);
 	LLVMBuilder.SetInsertPoint(bb);
+
+	SetupDebugInfo(InitFunction);
+
 	LLVMBuilder.CreateCall(LLVMBuilder.CreateLoad(gcinitfunctionvar), LLVMBuilder.CreatePtrToInt(gcdataoffset, TypeGetInteger()));
 	TagDebugLine(++hack, 0);
 
@@ -637,17 +637,20 @@ size_t Context::EmitBinaryObject(char* buffer, size_t maxoutput, unsigned entryp
 }
 
 
-llvm::AllocaInst* Context::CodeCreateAlloca(llvm::Type* vartype, const char* varname)
+llvm::AllocaInst* Context::CodeCreateAlloca(llvm::Type* vartype, const char* varname, unsigned origin)
 {
 	auto allocainst = LLVMBuilder.CreateAlloca(vartype, nullptr, varname);
 
-	auto subprogram = LLVMBuilder.GetInsertBlock()->getParent()->getSubprogram();
-	if(subprogram)
+	if (origin == 0)
 	{
-		auto dbg = DebugBuilder.createAutoVariable(subprogram, varname, DebugFile, 1, TypeGetDebugType(vartype));
-		auto expr = DebugBuilder.createExpression();
-		
-		DebugBuilder.insertDeclare(allocainst, dbg, expr, DebugLoc::get(++hack, 0, subprogram), LLVMBuilder.GetInsertBlock());
+		auto subprogram = LLVMBuilder.GetInsertBlock()->getParent()->getSubprogram();
+		if (subprogram)
+		{
+			auto dbg = DebugBuilder.createAutoVariable(subprogram, varname, DebugFile, 1, TypeGetDebugType(vartype));
+			auto expr = DebugBuilder.createExpression();
+
+			DebugBuilder.insertDeclare(allocainst, dbg, expr, DebugLoc::get(++hack, 0, subprogram), LLVMBuilder.GetInsertBlock());
+		}
 	}
 
 	if(vartype == Type::getInt8PtrTy(GlobalContext))
@@ -663,9 +666,15 @@ llvm::AllocaInst* Context::CodeCreateAlloca(llvm::Type* vartype, const char* var
 
 llvm::BasicBlock* Context::CodeCreateBasicBlock(llvm::Function* parent, bool setinsertpoint)
 {
+	bool wasempty = parent->getBasicBlockList().empty();
+
 	BasicBlock* bb = BasicBlock::Create(GlobalContext, "", parent);
-	if(setinsertpoint)
+	if (setinsertpoint)
 		LLVMBuilder.SetInsertPoint(bb);
+
+	if (wasempty)
+		SetupDebugInfo(parent);
+
 	return bb;
 }
 
@@ -1301,6 +1310,12 @@ void Context::CodeStatementFinalize(unsigned line, unsigned column)
 	PendingValues.clear();
 }
 
+void Context::TagDebugLocation(llvm::Instruction* instr, unsigned line, unsigned column)
+{
+	DebugLoc loc = DILocation::get(GlobalContext, line, column, LLVMBuilder.GetInsertBlock()->getParent()->getSubprogram());
+	instr->setDebugLoc(loc);
+}
+
 
 llvm::BasicBlock* Context::GetCurrentBasicBlock()
 {
@@ -1418,14 +1433,20 @@ void Context::SetupDebugInfo(Function* function)
 
 	DISubprogram* subprogram = DebugBuilder.createFunction(fcontext, function->getName(), StringRef(), DebugFile, line, debugtype, false, true, scopeline, DINode::FlagPrototyped, false);
 
-	/*
+	
 	unsigned i = 1;
-	for(auto& arg : function->getArgumentList())
+	for(auto& arg : function->args())
 	{
-		DebugBuilder.createParameterVariable(subprogram, arg.getName(), i, DebugFile, 0, (DIType*)(argtypes[i]), false, 0);
+		// TODO - hardcoded param name is bad!
+		auto * var = DebugBuilder.createParameterVariable(subprogram, "value", i, DebugFile, line, (DIType*)(argtypes[i]), false, DINode::DIFlags::FlagZero);
+		auto expr = DebugBuilder.createExpression();
+
+		DebugBuilder.insertDeclare(&arg, var, expr, DebugLoc::get(1, 0, subprogram), LLVMBuilder.GetInsertBlock());
+
 		++i;
 	}
-	*/
+	
+
 	function->setSubprogram(subprogram);
 }
 
@@ -1438,10 +1459,6 @@ llvm::DIType* Context::TypeGetDebugType(Type* t)
 
 void Context::TagDebugLine(unsigned line, unsigned column)
 {
-	// TODO - this is a dumb hack used to prevent bogus line data from reaching the debugger. It is bad.
-	if (line == 1 && column == 1)
-		return;
-
 	DebugLoc loc = DILocation::get(GlobalContext, line, column, LLVMBuilder.GetInsertBlock()->getParent()->getSubprogram());
 	if(!LLVMBuilder.GetInsertBlock()->getInstList().empty())
 		LLVMBuilder.GetInsertBlock()->getInstList().back().setDebugLoc(loc);

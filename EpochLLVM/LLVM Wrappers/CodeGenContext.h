@@ -75,7 +75,7 @@ namespace CodeGen
 		void FunctionQueueParamType(llvm::Type* ty);
 
 	public:		// Instruction management interface
-		llvm::AllocaInst * CodeCreateAlloca(llvm::Type* vartype, const char* varname);
+		llvm::AllocaInst * CodeCreateAlloca(llvm::Type* vartype, const char* varname, unsigned origin);
 		llvm::BasicBlock* CodeCreateBasicBlock(llvm::Function* parent, bool setinsertpoint);
 		void CodeCreateBranch(llvm::BasicBlock* target, bool setinsertpoint);
 		llvm::CallInst* CodeCreateCall(llvm::Function* target);
@@ -129,6 +129,7 @@ namespace CodeGen
 		llvm::Value* CodePopValue();
 
 		void CodeStatementFinalize(unsigned line, unsigned column);
+		void TagDebugLocation(llvm::Instruction* instr, unsigned line, unsigned column);
 
 		void SumTypeMerge();
 

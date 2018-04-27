@@ -1221,7 +1221,7 @@ GeneratePDB : string pdbfilename, buffer ref symboldata, integer symbolsize, int
 	
 	Win32Handle invalidhandle = -1
 	PDBFileLayout layout = 4096, 15, directoryhint, directorystream, pdbdir
-	PDBOutputStream stream = pdbfilename, invalidhandle, 0, layout, dbisection
+	PDBOutputStream stream = pdbfilename, invalidhandle, 0, layout, dbisection, codesize
 
 	print("Final canary before we write PDB")
 

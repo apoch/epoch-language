@@ -145,12 +145,12 @@ extern "C" void EpochLLVMSetStringCallback(void* context, void* funcptr)
 }
 
 
-extern "C" void* EpochLLVMCodeCreateAlloca(void* context, void* vartype, const wchar_t* varname)
+extern "C" void* EpochLLVMCodeCreateAlloca(void* context, void* vartype, const wchar_t* varname, unsigned origin)
 {
 	std::wstring widename(varname);
 	std::string narrowname(widename.begin(), widename.end());
 
-	return reinterpret_cast<CodeGen::Context*>(context)->CodeCreateAlloca(reinterpret_cast<llvm::Type*>(vartype), narrowname.c_str());
+	return reinterpret_cast<CodeGen::Context*>(context)->CodeCreateAlloca(reinterpret_cast<llvm::Type*>(vartype), narrowname.c_str(), origin);
 }
 
 extern "C" void* EpochLLVMCodeCreateBasicBlock(void* context, void* parentfunc, bool setinsertpoint)
@@ -512,3 +512,11 @@ extern "C" void* EpochLLVMCodePopValue(void* context)
 {
 	return reinterpret_cast<CodeGen::Context*>(context)->CodePopValue();
 }
+
+
+
+extern "C" void EpochLLVMCodeTagDebugLocation(void* context, void* instr, unsigned line, unsigned column)
+{
+	reinterpret_cast<CodeGen::Context*>(context)->TagDebugLocation(reinterpret_cast<llvm::Instruction*>(instr), line, column);
+}
+

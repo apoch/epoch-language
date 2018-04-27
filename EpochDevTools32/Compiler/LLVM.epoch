@@ -96,7 +96,7 @@ EpochLLVMCodeCreateBasicBlock :
   [external("EpochLLVM.dll", "EpochLLVMCodeCreateBasicBlock")]
     
   
-EpochLLVMCodeCreateAlloca : LLVMContextHandle handle, LLVMType vartype, string varname -> LLVMAlloca ret = 0		[external("EpochLLVM.dll", "EpochLLVMCodeCreateAlloca")]
+EpochLLVMCodeCreateAlloca : LLVMContextHandle handle, LLVMType vartype, string varname, integer origin -> LLVMAlloca ret = 0		[external("EpochLLVM.dll", "EpochLLVMCodeCreateAlloca")]
 EpochLLVMCodeCreateBranch : LLVMContextHandle handle, LLVMBasicBlock target, boolean setinsertpoint 				[external("EpochLLVM.dll", "EpochLLVMCodeCreateBranch")]
 EpochLLVMCodeCreateCall : LLVMContextHandle handle, LLVMFunctionRef target -> integer ret = 0						[external("EpochLLVM.dll", "EpochLLVMCodeCreateCall")]
 EpochLLVMCodeCreateCallIndirect : LLVMContextHandle handle, LLVMAlloca alloca										[external("EpochLLVM.dll", "EpochLLVMCodeCreateCallIndirect")]
@@ -122,6 +122,7 @@ EpochLLVMCodeCreateWriteStructurePopSumType : LLVMContextHandle handle										
 EpochLLVMCodeCreateDereference : LLVMContextHandle handle															[external("EpochLLVM.dll", "EpochLLVMCodeCreateDereference")]
 
 EpochLLVMCodeStatementFinalize : LLVMContextHandle handle, integer line, integer column								[external("EpochLLVM.dll", "EpochLLVMCodeStatementFinalize")]
+EpochLLVMCodeTagDebugLocation : LLVMContextHandle handle, integer instr, integer line, integer column				[external("EpochLLVM.dll", "EpochLLVMCodeTagDebugLocation")]
 
 EpochLLVMCodeOperatorBooleanNot : LLVMContextHandle context															[external("EpochLLVM.dll", "EpochLLVMCodeOperatorBooleanNot")]
 EpochLLVMCodeOperatorBooleanAnd : LLVMContextHandle context															[external("EpochLLVM.dll", "EpochLLVMCodeOperatorBooleanAnd")]
@@ -484,7 +485,7 @@ CreateSingleLLVMAlloca : LLVMBuildContext ref context, Variable ref var, Functio
 			assertmsg(typeid != 0, "Invalid constructor")
 			
 			LLVMType vartype = GetLLVMTypeForEpochType(context.Context, MakeReferenceType(typeid))
-			LLVMAlloca alloca = EpochLLVMCodeCreateAlloca(context.Context, vartype, GetPooledString(var.Name))
+			LLVMAlloca alloca = EpochLLVMCodeCreateAlloca(context.Context, vartype, GetPooledString(var.Name), var.Origin)
 			BinaryTreeCreateOrInsert<LLVMAlloca>(context.LocalVariables, var.Name, alloca)
 			
 			return()
@@ -494,7 +495,7 @@ CreateSingleLLVMAlloca : LLVMBuildContext ref context, Variable ref var, Functio
 	assertmsg(var.VarType != 0, "Invalid variable type")
 
 	LLVMType vartype = GetLLVMTypeForEpochType(context.Context, var.VarType)
-	LLVMAlloca alloca = EpochLLVMCodeCreateAlloca(context.Context, vartype, GetPooledString(var.Name))
+	LLVMAlloca alloca = EpochLLVMCodeCreateAlloca(context.Context, vartype, GetPooledString(var.Name), var.Origin)
 	BinaryTreeCreateOrInsert<LLVMAlloca>(context.LocalVariables, var.Name, alloca)
 }
 
@@ -861,6 +862,8 @@ EmitSingleCodeBlockEntryToLLVM : LLVMBuildContext ref context, AssignmentCompoun
 
 EmitSingleCodeBlockEntryToLLVM : LLVMBuildContext ref context, Statement ref entry
 {
+	integer call = 0
+
 	if(IsRecognizedBuiltIn(entry.Name))
 	{
 		if(GetTypeByName(entry.Name) == 0)
@@ -993,24 +996,29 @@ EmitSingleCodeBlockEntryToLLVM : LLVMBuildContext ref context, Statement ref ent
 			}
 			else
 			{
-				EpochLLVMCodeCreateCall(context.Context, llvmfunc)
+				call = EpochLLVMCodeCreateCall(context.Context, llvmfunc)
 			}
 		}
 	}
 	
+	ParsedToken token = "", "", 0, 0
+	if(entry.DebugInfoIndex > 0)
+	{
+		BinaryTreeCopyPayload<ParsedToken>(DebugDataMap.RootNode, entry.DebugInfoIndex, token)
+		assertmsg(token.Row > 0, "Missing statement debug data " ; cast(string, entry.DebugInfoIndex))
+	}
+	else
+	{
+		print("WARNING - statement has no debug metadata yet!")
+	}
+	
 	if(entry.TopLevel)
 	{
-		ParsedToken token = "", "", 0, 0
-		if(entry.DebugInfoIndex > 0)
-		{
-			BinaryTreeCopyPayload<ParsedToken>(DebugDataMap.RootNode, entry.DebugInfoIndex, token)
-			assertmsg(token.Row > 0, "Missing statement debug data " ; cast(string, entry.DebugInfoIndex))
-		}
-		else
-		{
-			print("WARNING - statement has no debug metadata yet!")
-		}
 		EpochLLVMCodeStatementFinalize(context.Context, token.Row, token.Column)
+	}
+	elseif(call != 0)
+	{
+		EpochLLVMCodeTagDebugLocation(context.Context, call, token.Row, token.Column)
 	}
 }
 
@@ -2113,7 +2121,7 @@ CreateAnonConstructorInLLVM : LLVMContextHandle context, StructureDefinition ref
 	
 	
 	LLVMBasicBlock funcbody = EpochLLVMCodeCreateBasicBlock(context, llvmfunc, true)
-	LLVMAlloca retalloca = EpochLLVMCodeCreateAlloca(context, funcrettype, "@anonymous")
+	LLVMAlloca retalloca = EpochLLVMCodeCreateAlloca(context, funcrettype, "@anonymous", 2)
 	
 	EmitAnonStructureInitializationToLLVM(context, struct.Members, 0, 0, retalloca)
 	
@@ -2273,7 +2281,7 @@ EmitAllTypeMatchersInLLVM : LLVMContextHandle context, list<TypeMatcher> ref mat
 		
 		if(rettypeid != 0)
 		{
-			retalloca = EpochLLVMCodeCreateAlloca(context, funcrettype, "retval")
+			retalloca = EpochLLVMCodeCreateAlloca(context, funcrettype, "retval", 2)
 		}
 
 		LLVMBasicBlock exitblock = EpochLLVMCodeCreateBasicBlock(context, llvmfunc, false)

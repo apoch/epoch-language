@@ -11,15 +11,15 @@ test :
 	integer count = 0
 	++count
 	print("test")
-	print(cast(string, count))
+	display(count)
 }
 
 
 outer :
 {
 	integer whatever = 42
+	display(whatever)
 	test()
-	print(cast(string, whatever))
 }
 
 entrypoint :
@@ -28,4 +28,14 @@ entrypoint :
 	print("Hello, world!")
 }
 
+
+
+display : integer value
+{
+	value = value + zero()
+	print(cast(string, value))
+}
+
+
+zero : -> 0
 

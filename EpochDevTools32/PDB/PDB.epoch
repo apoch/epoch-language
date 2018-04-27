@@ -129,7 +129,8 @@ structure PDBOutputStream :
 	Win32Handle       FileHandle,
 	integer           FilePosition,
 	PDBFileLayout ref Layout,
-	DBISection        DBI
+	DBISection        DBI,
+	integer			  SizeOfCode
 
 
 //
@@ -890,7 +891,7 @@ EmitDBISectionMap : PDBOutputStream ref stream
 	ByteStreamEmitInteger16(header, headersize, 0xffff)		// name
 	ByteStreamEmitInteger16(header, headersize, 0xffff)		// class name
 	ByteStreamEmitInteger(header, headersize, 0)			// offset
-	ByteStreamEmitInteger(header, headersize, 0x102)		// length				// TODO - this MUST be correct or debuggers will barf
+	ByteStreamEmitInteger(header, headersize, stream.SizeOfCode)
 
 	// magic section (?)
 	ByteStreamEmitInteger16(header, headersize, 0x208)		// flags
@@ -973,13 +974,16 @@ ComputeSymbolSize : nothing, integer ref sizecounter
 
 ComputeLinesSize : DBIModule ref mod
 {
-	mod.LinesSize = 8
+	mod.LinesSize = 0
 	ComputeLinesSize(mod.Lines, mod.LinesSize)
 }
 
 ComputeLinesSize : list<CodeViewLineInfo> ref lines, integer ref sizecounter
 {
-	sizecounter += lines.value.Raw.NumPairs * 8 + 24
+	if (lines.value.Raw.NumPairs > 0)
+	{
+		sizecounter += lines.value.Raw.NumPairs * 8 + 32
+	}
 
 	ComputeLinesSize(lines.next, sizecounter)
 }
@@ -1327,8 +1331,20 @@ WriteDBIModuleSymbols : PDBOutputStream ref stream, DBIModule ref module, buffer
 
 
 
+structure HackMarshalInteger :
+	integer Value
+
+structure HackMarshalInteger16 :
+	integer16 Value
+
+
+
 TransferSymbols : list<PDBSymbol> ref symbols, buffer ref symboldata, integer symbolsize, buffer ref relocdata, integer relocsize, buffer ref symbollist, list<SectionContribution> ref contriblist, list<CodeViewLineInfo> ref lines, integer symbolcount
 {
+
+	HackMarshalInteger hackint = 0
+	HackMarshalInteger16 hackint16 = 0
+
 	//
 	// Apply relocations to the raw symbol data so it will be easier
 	// for the end debugger to correlate with a running image of the
@@ -1359,13 +1375,21 @@ TransferSymbols : list<PDBSymbol> ref symbols, buffer ref symboldata, integer sy
 			string symbolname = widenfromptr(GetBufferPtr(symbollist, stringoffset + symbol.OffsetToLongName), slen)
 			print("SECREL relocation of symbol " ; symbolname ; " val " ; cast(string, symbol.Value))
 
-			if(reloc.Address < (symbolsize - 3))		// 4 == sizeof(DWORD), 1 offset for lack of <= operator
+			marshalstructure(hackint, GetBufferPtr(symboldata, reloc.Address))
+			if(hackint.Value == 0)
 			{
-				WriteBufferPtrDword(symboldata, reloc.Address, symbol.Value)
+				if(reloc.Address < (symbolsize - 3))		// 4 == sizeof(DWORD), 1 offset for lack of <= operator
+				{
+					WriteBufferPtrDword(symboldata, reloc.Address, symbol.Value)
+				}
+				else
+				{
+					print("WARNING: NOT relocating relative symbol... " ; cast(string, reloc.Address) ; " val " ; cast(string, symbol.Value))
+				}
 			}
 			else
 			{
-				print("WARNING: NOT relocating relative symbol... " ; cast(string, reloc.Address) ; " val " ; cast(string, symbol.Value))
+				print("WARNING: skipped clobber during relocation! " ; cast(string, hackint.Value) ; " would be stomped with " ; cast(string, symbol.Value))
 			}
 		}
 		elseif(reloc.Type == 0xa)		// IMAGE_REL_AMD64_SECTION
@@ -1376,6 +1400,9 @@ TransferSymbols : list<PDBSymbol> ref symbols, buffer ref symboldata, integer sy
 			integer slen = hackstrlen(GetBufferPtr(symbollist, stringoffset + symbol.OffsetToLongName))
 			string symbolname = widenfromptr(GetBufferPtr(symbollist, stringoffset + symbol.OffsetToLongName), slen)
 			print("SECTION relocation of symbol " ; symbolname ; " val " ; cast(string, symbol.Value))
+
+			marshalstructure(hackint16, GetBufferPtr(symboldata, reloc.Address))
+			assertmsg(cast(integer, hackint16.Value) == 0, "Clobbering during relocation!")
 
 			// stash integer16
 			if(reloc.Address < (symbolsize - 1))		// 2 == sizeof(WORD), 1 offset for lack of <= operator
@@ -1485,9 +1512,9 @@ ConvertSymbolStream : buffer ref symboldata, integer symbolsize, list<PDBSymbol>
 	integer readoffset = 4
 	integer chunkbeginoffset = readoffset
 	integer goofyreadoffset = 0
+	integer goofywriteoffset = 0
 
 	boolean isproc = false
-	boolean dumbstupidflag = false
 
 	while(readoffset < symbolsize)
 	{
@@ -1529,8 +1556,8 @@ ConvertSymbolStream : buffer ref symboldata, integer symbolsize, list<PDBSymbol>
 
 				print(symbol)
 
-				dumbstupidflag = false
 				goofyreadoffset = readoffset
+				goofywriteoffset = 0
 				while ((chunk.Size + chunkbeginoffset - 4) > goofyreadoffset)
 				{
 					marshalstructure(symbolheader, GetBufferPtr(symboldata, goofyreadoffset))
@@ -1559,17 +1586,28 @@ ConvertSymbolStream : buffer ref symboldata, integer symbolsize, list<PDBSymbol>
 						print("WARNING - Skipping " ; cast(string, cast(integer, symbolheader.Bytes)) ; " bytes of type " ; cast(string, cast(integer, symbolheader.Magic)))
 						goofyreadoffset += cast(integer, symbolheader.Bytes) - 2
 					}
-				}
 
-				if (goofyreadoffset > readoffset)
-				{
-					writeoffset += (goofyreadoffset - readoffset + 4)
-					dumbstupidflag = true
-					print("CANARY 1")
+					integer b = cast(integer, symbolheader.Bytes)
+					while(b & 3 != 0)
+					{
+						++b
+					}
+
+					goofywriteoffset += b
 				}
 
 				writeoffset += 0x28
 				writeoffset += slen
+
+				if (goofyreadoffset > readoffset)
+				{
+					writeoffset += goofywriteoffset
+				}
+
+				while(writeoffset & 3 != 0)
+				{
+					++writeoffset
+				}
 
 				// TODO - if we just pass along writeoffset here as the position of the next symbol, we will cause debuggers
 				// reading the PDB to barf when they reach the offset (since it points to itself more or less). This infinite
@@ -1629,12 +1667,8 @@ ConvertSymbolStream : buffer ref symboldata, integer symbolsize, list<PDBSymbol>
 
 
 				GenerateCorrectedCVSymbolTerminator(symbols)
-				
-				if(!dumbstupidflag)
-				{
-					writeoffset += 4
-				}
 
+				writeoffset += 4
 				while(writeoffset & 3 != 0)
 				{
 					++writeoffset
