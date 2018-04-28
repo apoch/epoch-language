@@ -66,8 +66,15 @@ structure SymbolDefRangeRegisterRelative :
 	integer DummyToDo
 
 
+structure SymbolProcRef :
+	integer Zero,				// SumName
+	integer Offset,
+	integer16 ModuleIndex,
+	string Name
+
+
 type PDBSymbol : SymbolSection | SymbolProcStart | SymbolBlockEnd | SymbolLocal | SymbolDefRangeRegisterRelative | SymbolDefRangeFrameRelative
-				| SymbolPublic
+				| SymbolPublic | SymbolProcRef
 
 
 
@@ -78,6 +85,7 @@ SymbolGetSize : SymbolLocal ref symbol -> integer size = AlignToFour(10 + length
 SymbolGetSize : SymbolDefRangeFrameRelative ref symbol -> integer size = AlignToFour(16)
 SymbolGetSize : SymbolDefRangeRegisterRelative ref symbol -> integer size = AlignToFour(18)
 SymbolGetSize : SymbolPublic ref symbol -> integer size = AlignToFour(12 + length(symbol.Name) + 1)
+SymbolGetSize : SymbolProcRef ref symbol -> integer size = AlignToFour(12 + length(symbol.Name) + 1)
 
 
 ByteStreamEmitSymbolList : buffer ref stream, integer ref pos, list<PDBSymbol> ref symlist
@@ -241,6 +249,26 @@ ByteStreamEmitSymbol : buffer ref stream, integer ref pos, SymbolDefRangeRegiste
 	ByteStreamEmitInteger(stream, pos, symbol.OffsetStartCode)
 	ByteStreamEmitInteger16(stream, pos, symbol.SectionIndexStartCode)
 	ByteStreamEmitInteger16(stream, pos, symbol.RangeCode)
+
+	while((pos & 3) != 0)
+	{
+		ByteStreamEmitByte(stream, pos, 0)
+	}
+}
+
+
+ByteStreamEmitSymbol : buffer ref stream, integer ref pos, SymbolProcRef ref symbol
+{
+	integer16 mysize = cast(integer16, SymbolGetSize(symbol) - 2)
+
+	ByteStreamEmitInteger16(stream, pos, mysize)
+	ByteStreamEmitInteger16(stream, pos, 0x1125)						// S_PROCREF
+	ByteStreamEmitInteger(stream, pos, symbol.Zero)
+	ByteStreamEmitInteger(stream, pos, symbol.Offset)
+	ByteStreamEmitInteger16(stream, pos, symbol.ModuleIndex)
+	ByteStreamEmitStringNarrow(stream, pos, symbol.Name)
+
+	ByteStreamEmitByte(stream, pos, 0)
 
 	while((pos & 3) != 0)
 	{
