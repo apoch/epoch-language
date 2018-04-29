@@ -72,7 +72,7 @@ namespace CodeGen
 		llvm::Function* FunctionCreate(const char* name, llvm::FunctionType* fty);
 		llvm::GlobalVariable* FunctionCreateThunk(const char* name, llvm::FunctionType* fty);
 		void FunctionFinalize();
-		void FunctionQueueParamType(llvm::Type* ty);
+		void FunctionQueueParamType(llvm::Type* ty, const char* name);
 
 	public:		// Instruction management interface
 		llvm::AllocaInst * CodeCreateAlloca(llvm::Type* vartype, const char* varname, unsigned origin);
@@ -184,6 +184,8 @@ namespace CodeGen
 		StringCallbackT StringCallback;
 
 		std::vector<std::vector<llvm::Type*>> PendingParamTypeStack;
+		std::vector<std::vector<std::string>*> PendingParamNameStack;
+		std::map<llvm::FunctionType*, std::vector<std::string>*> PendingParamNamesSet;
 		std::vector<llvm::Type*> PendingMemberTypes;
 		std::vector<llvm::Value*> PendingValues;
 

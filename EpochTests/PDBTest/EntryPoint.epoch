@@ -30,10 +30,10 @@ entrypoint :
 
 
 
-display : integer value
+display : integer stuff
 {
-	value = value + zero()
-	print(cast(string, value))
+	stuff = stuff + zero()
+	print(cast(string, stuff))
 }
 
 

@@ -279,9 +279,10 @@ Context::~Context()
 }
 
 
-void Context::FunctionQueueParamType(llvm::Type* ty)
+void Context::FunctionQueueParamType(llvm::Type* ty, const char* name)
 {
 	PendingParamTypeStack.back().push_back(ty);
+	PendingParamNameStack.back()->push_back(name);
 }
 
 
@@ -289,6 +290,9 @@ llvm::FunctionType* Context::FunctionTypeCreate(llvm::Type* rettype)
 {
 	llvm::FunctionType* fty = FunctionType::get(rettype, PendingParamTypeStack.back(), false);
 	PendingParamTypeStack.pop_back();
+	
+	PendingParamNamesSet[fty] = PendingParamNameStack.back();
+	PendingParamNameStack.pop_back();
 
 	return fty;
 }
@@ -296,12 +300,27 @@ llvm::FunctionType* Context::FunctionTypeCreate(llvm::Type* rettype)
 void Context::FunctionTypePush()
 {
 	PendingParamTypeStack.push_back(std::vector<llvm::Type*>());
+	PendingParamNameStack.push_back(new std::vector<std::string>());
 }
 
 llvm::Function* Context::FunctionCreate(const char* name, llvm::FunctionType* fty)
 {
 	Function* func = Function::Create(fty, GlobalValue::ExternalLinkage, name, LLVMModule.get());
 	func->setGC("EpochGC");
+
+	auto ptr = PendingParamNamesSet[fty];
+	if (ptr)
+	{
+		unsigned i = 0;
+		for (auto& arg : func->args())
+		{
+			arg.setName((*ptr)[i++]);
+		}
+
+		delete ptr;
+		PendingParamNamesSet.erase(fty);
+	}
+
 	return func;
 }
 
@@ -1442,8 +1461,7 @@ void Context::SetupDebugInfo(Function* function)
 	unsigned i = 1;
 	for(auto& arg : function->args())
 	{
-		// TODO - hardcoded param name is bad!
-		auto * var = DebugBuilder.createParameterVariable(subprogram, "value", i, DebugFile, line, (DIType*)(argtypes[i]), false, DINode::DIFlags::FlagZero);
+		auto * var = DebugBuilder.createParameterVariable(subprogram, arg.getName(), i, DebugFile, line, (DIType*)(argtypes[i]), false, DINode::DIFlags::FlagZero);
 		auto expr = DebugBuilder.createExpression();
 
 		DebugBuilder.insertDeclare(&arg, var, expr, DebugLoc::get(1, 0, subprogram), LLVMBuilder.GetInsertBlock());

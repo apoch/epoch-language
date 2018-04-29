@@ -111,9 +111,11 @@ extern "C" void EpochLLVMFunctionFinalize(void* context)
 	reinterpret_cast<CodeGen::Context*>(context)->FunctionFinalize();
 }
 
-extern "C" void EpochLLVMFunctionQueueParamType(void* context, void* type)
+extern "C" void EpochLLVMFunctionQueueParamType(void* context, void* type, const wchar_t* name)
 {
-	reinterpret_cast<CodeGen::Context*>(context)->FunctionQueueParamType(reinterpret_cast<llvm::Type*>(type));
+	std::wstring widename(name);
+	std::string narrowname(widename.begin(), widename.end());
+	reinterpret_cast<CodeGen::Context*>(context)->FunctionQueueParamType(reinterpret_cast<llvm::Type*>(type), narrowname.c_str());
 }
 
 

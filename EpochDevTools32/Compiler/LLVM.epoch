@@ -52,7 +52,7 @@ EpochLLVMFunctionCreate :
 // TODO - this should return LLVMGlobalVar
 EpochLLVMFunctionCreateThunk : LLVMContextHandle context, string name, LLVMFunctionType ty -> integer v = 0			[external("EpochLLVM.dll", "EpochLLVMFunctionCreateThunk")]
 
-EpochLLVMFunctionQueueParamType : LLVMContextHandle context, LLVMType t												[external("EpochLLVM.dll", "EpochLLVMFunctionQueueParamType")]
+EpochLLVMFunctionQueueParamType : LLVMContextHandle context, LLVMType t, string name								[external("EpochLLVM.dll", "EpochLLVMFunctionQueueParamType")]
 
 EpochLLVMFunctionFinalize : LLVMContextHandle context																[external("EpochLLVM.dll", "EpochLLVMFunctionFinalize")]
 EpochLLVMFunctionSetEntry : LLVMContextHandle context, LLVMFunctionRef func											[external("EpochLLVM.dll", "EpochLLVMFunctionSetEntry")]
@@ -310,13 +310,13 @@ CreateFunctionParamTypesInLLVM : LLVMContextHandle context, list<UnresolvedParam
 		integer typeid = GetTypeByName(rawfuncname)
 		assertmsg(typeid != 0, "Invalid constructor name")
 		LLVMType paramtype = GetLLVMTypeForEpochType(context, MakeReferenceType(typeid))
-		EpochLLVMFunctionQueueParamType(context, paramtype)
+		EpochLLVMFunctionQueueParamType(context, paramtype, GetPooledString(rawfuncname))
 	}
 	else
 	{
 		assertmsg(params.value.ResolvedType != 0, "Invalid param type")
 		LLVMType paramtype = GetLLVMTypeForEpochType(context, params.value.ResolvedType)
-		EpochLLVMFunctionQueueParamType(context, paramtype)
+		EpochLLVMFunctionQueueParamType(context, paramtype, GetPooledString(params.value.NameHandle))
 	}
 	
 	CreateFunctionParamTypesInLLVM(context, params.next, rawfuncname, isthunk)
@@ -335,7 +335,7 @@ CreateFunctionParamTypesInLLVM : LLVMContextHandle context, list<Parameter> ref 
 			paramtype = EpochLLVMTypeGetPointerTo(context, paramtype)
 		}
 
-		EpochLLVMFunctionQueueParamType(context, paramtype)
+		EpochLLVMFunctionQueueParamType(context, paramtype, GetPooledString(params.value.Name))
 	}	
 
 	CreateFunctionParamTypesInLLVM(context, params.next, rawfuncname, isthunk)
@@ -1691,7 +1691,7 @@ SetUpSingleLLVMThunk : LLVMContextHandle context, list<FunctionDefinition> ref f
 BuiltInThunkCreateAssert : LLVMContextHandle context
 {
 	EpochLLVMFunctionTypePush(context)
-	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetBoolean(context))
+	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetBoolean(context), "expression")
 	LLVMFunctionType fty = EpochLLVMFunctionTypeCreate(context, EpochLLVMTypeGetVoid(context))
 	integer thunk = EpochLLVMFunctionCreateThunk(context, "ERT_assert", fty)
 
@@ -1701,8 +1701,8 @@ BuiltInThunkCreateAssert : LLVMContextHandle context
 BuiltInThunkCreateBufferAlloc : LLVMContextHandle context
 {
 	EpochLLVMFunctionTypePush(context)
-	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetPointerTo(context, EpochLLVMTypeGetBuffer(context)))
-	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetInteger(context))
+	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetPointerTo(context, EpochLLVMTypeGetBuffer(context)), "out")
+	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetInteger(context), "size")
 	LLVMFunctionType fty = EpochLLVMFunctionTypeCreate(context, EpochLLVMTypeGetVoid(context))
 	integer thunk = EpochLLVMFunctionCreateThunk(context, "ERT_buffer_alloc", fty)
 
@@ -1712,8 +1712,8 @@ BuiltInThunkCreateBufferAlloc : LLVMContextHandle context
 BuiltInThunkCreateBufferCopy : LLVMContextHandle context
 {
 	EpochLLVMFunctionTypePush(context)
-	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetBuffer(context))
-	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetBuffer(context))
+	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetBuffer(context), "in")
+	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetBuffer(context), "out")
 	LLVMFunctionType fty = EpochLLVMFunctionTypeCreate(context, EpochLLVMTypeGetVoid(context))
 	integer thunk = EpochLLVMFunctionCreateThunk(context, "ERT_buffer_copy", fty)
 
@@ -1732,7 +1732,7 @@ BuiltInThunkCreatePasstest : LLVMContextHandle context
 BuiltInThunkCreatePrint : LLVMContextHandle context
 {
 	EpochLLVMFunctionTypePush(context)
-	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetString(context))
+	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetString(context), "str")
 	LLVMFunctionType fty = EpochLLVMFunctionTypeCreate(context, EpochLLVMTypeGetVoid(context))
 	integer thunk = EpochLLVMFunctionCreateThunk(context, "ERT_print", fty)
 
@@ -1742,8 +1742,8 @@ BuiltInThunkCreatePrint : LLVMContextHandle context
 BuiltInThunkCreateStringEquality : LLVMContextHandle context
 {
 	EpochLLVMFunctionTypePush(context)
-	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetString(context))
-	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetString(context))
+	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetString(context), "l")
+	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetString(context), "r")
 	LLVMFunctionType fty = EpochLLVMFunctionTypeCreate(context, EpochLLVMTypeGetBoolean(context))
 	integer thunk = EpochLLVMFunctionCreateThunk(context, "ERT_string_compare", fty)
 
@@ -1753,8 +1753,8 @@ BuiltInThunkCreateStringEquality : LLVMContextHandle context
 BuiltInThunkCreateStringInequality : LLVMContextHandle context
 {
 	EpochLLVMFunctionTypePush(context)
-	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetString(context))
-	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetString(context))
+	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetString(context), "l")
+	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetString(context), "r")
 	LLVMFunctionType fty = EpochLLVMFunctionTypeCreate(context, EpochLLVMTypeGetBoolean(context))
 	integer thunk = EpochLLVMFunctionCreateThunk(context, "ERT_string_compare_notequal", fty)
 
@@ -1764,8 +1764,8 @@ BuiltInThunkCreateStringInequality : LLVMContextHandle context
 BuiltInThunkCreateStringConcat : LLVMContextHandle context
 {
 	EpochLLVMFunctionTypePush(context)
-	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetString(context))
-	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetString(context))
+	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetString(context), "l")
+	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetString(context), "r")
 	LLVMFunctionType fty = EpochLLVMFunctionTypeCreate(context, EpochLLVMTypeGetString(context))
 	integer thunk = EpochLLVMFunctionCreateThunk(context, "ERT_string_concat", fty)
 
@@ -1775,7 +1775,7 @@ BuiltInThunkCreateStringConcat : LLVMContextHandle context
 BuiltInThunkCreateStringLength : LLVMContextHandle context
 {
 	EpochLLVMFunctionTypePush(context)
-	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetString(context))
+	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetString(context), "str")
 	LLVMFunctionType fty = EpochLLVMFunctionTypeCreate(context, EpochLLVMTypeGetInteger(context))
 	integer thunk = EpochLLVMFunctionCreateThunk(context, "lstrlenA", fty)
 
@@ -1786,7 +1786,7 @@ BuiltInThunkCreateStringLength : LLVMContextHandle context
 BuiltInThunkCreateStringFromInteger : LLVMContextHandle context
 {
 	EpochLLVMFunctionTypePush(context)
-	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetInteger(context))
+	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetInteger(context), "val")
 	LLVMFunctionType fty = EpochLLVMFunctionTypeCreate(context, EpochLLVMTypeGetString(context))
 	integer thunk = EpochLLVMFunctionCreateThunk(context, "ERT_string_from_integer", fty)
 
@@ -1796,7 +1796,7 @@ BuiltInThunkCreateStringFromInteger : LLVMContextHandle context
 BuiltInThunkCreateStringToInteger : LLVMContextHandle context
 {
 	EpochLLVMFunctionTypePush(context)
-	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetString(context))
+	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetString(context), "str")
 	LLVMFunctionType fty = EpochLLVMFunctionTypeCreate(context, EpochLLVMTypeGetInteger(context))
 	integer thunk = EpochLLVMFunctionCreateThunk(context, "ERT_string_to_integer", fty)
 
@@ -1806,7 +1806,7 @@ BuiltInThunkCreateStringToInteger : LLVMContextHandle context
 BuiltInThunkCreateRealToString : LLVMContextHandle context
 {
 	EpochLLVMFunctionTypePush(context)
-	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetReal(context))
+	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetReal(context), "val")
 	LLVMFunctionType fty = EpochLLVMFunctionTypeCreate(context, EpochLLVMTypeGetString(context))
 	integer thunk = EpochLLVMFunctionCreateThunk(context, "ERT_real_to_string", fty)
 
@@ -1816,8 +1816,8 @@ BuiltInThunkCreateRealToString : LLVMContextHandle context
 BuiltInThunkCreateSubchar : LLVMContextHandle context
 {
 	EpochLLVMFunctionTypePush(context)
-	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetString(context))
-	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetInteger(context))
+	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetString(context), "str")
+	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetInteger(context), "index")
 	LLVMFunctionType fty = EpochLLVMFunctionTypeCreate(context, EpochLLVMTypeGetInteger(context))
 	integer thunk = EpochLLVMFunctionCreateThunk(context, "ERT_subchar", fty)
 
@@ -1827,7 +1827,7 @@ BuiltInThunkCreateSubchar : LLVMContextHandle context
 BuiltInThunkCreateInteger16FromInteger : LLVMContextHandle context
 {
 	EpochLLVMFunctionTypePush(context)
-	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetInteger(context))
+	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetInteger(context), "val")
 	LLVMFunctionType fty = EpochLLVMFunctionTypeCreate(context, EpochLLVMTypeGetInteger16(context))
 	integer thunk = EpochLLVMFunctionCreateThunk(context, "ERT_integer16_from_integer", fty)
 
@@ -1837,7 +1837,7 @@ BuiltInThunkCreateInteger16FromInteger : LLVMContextHandle context
 BuiltInThunkCreateStringToReal : LLVMContextHandle context
 {
 	EpochLLVMFunctionTypePush(context)
-	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetString(context))
+	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetString(context), "str")
 	LLVMFunctionType fty = EpochLLVMFunctionTypeCreate(context, EpochLLVMTypeGetReal(context))
 	integer thunk = EpochLLVMFunctionCreateThunk(context, "ERT_string_to_real", fty)
 
@@ -1847,7 +1847,7 @@ BuiltInThunkCreateStringToReal : LLVMContextHandle context
 BuiltInThunkCreateGCInit : LLVMContextHandle context
 {
 	EpochLLVMFunctionTypePush(context)
-	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetInteger(context))
+	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetInteger(context), "magic")
 	LLVMFunctionType fty = EpochLLVMFunctionTypeCreate(context, EpochLLVMTypeGetVoid(context))
 	integer thunk = EpochLLVMFunctionCreateThunk(context, "ERT_gc_init", fty)
 
@@ -1867,9 +1867,9 @@ BuiltInThunkCreateGCCollectStrings : LLVMContextHandle context
 BuiltInThunkCreateWriteBuffer : LLVMContextHandle context
 {
 	EpochLLVMFunctionTypePush(context)
-	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetPointerTo(context, EpochLLVMTypeGetBuffer(context)))
-	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetInteger(context))
-	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetInteger(context))
+	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetPointerTo(context, EpochLLVMTypeGetBuffer(context)), "buf")
+	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetInteger(context), "ptr")
+	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetInteger(context), "bytes")
 	LLVMFunctionType fty = EpochLLVMFunctionTypeCreate(context, EpochLLVMTypeGetVoid(context))
 	integer thunk = EpochLLVMFunctionCreateThunk(context, "ERT_write_buffer", fty)
 
@@ -1879,10 +1879,10 @@ BuiltInThunkCreateWriteBuffer : LLVMContextHandle context
 BuiltInThunkCreateWriteBufferString : LLVMContextHandle context
 {
 	EpochLLVMFunctionTypePush(context)
-	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetPointerTo(context, EpochLLVMTypeGetBuffer(context)))
-	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetInteger(context))
-	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetString(context))
-	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetInteger(context))
+	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetPointerTo(context, EpochLLVMTypeGetBuffer(context)), "buf")
+	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetInteger(context), "offset")
+	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetString(context), "str")
+	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetInteger(context), "bytes")
 	LLVMFunctionType fty = EpochLLVMFunctionTypeCreate(context, EpochLLVMTypeGetVoid(context))
 	integer thunk = EpochLLVMFunctionCreateThunk(context, "ERT_write_buffer_string", fty)
 
@@ -1893,10 +1893,10 @@ BuiltInThunkCreateWriteBufferString : LLVMContextHandle context
 BuiltInThunkCreateWriteBufferMultiple : LLVMContextHandle context
 {
 	EpochLLVMFunctionTypePush(context)
-	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetPointerTo(context, EpochLLVMTypeGetBuffer(context)))
-	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetInteger(context))
-	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetInteger(context))
-	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetInteger(context))
+	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetPointerTo(context, EpochLLVMTypeGetBuffer(context)), "buf")
+	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetInteger(context), "arg1")
+	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetInteger(context), "arg2")
+	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetInteger(context), "arg3")
 	LLVMFunctionType fty = EpochLLVMFunctionTypeCreate(context, EpochLLVMTypeGetVoid(context))
 	integer thunk = EpochLLVMFunctionCreateThunk(context, "ERT_write_buffer_multiple", fty)
 
@@ -1907,9 +1907,9 @@ BuiltInThunkCreateWriteBufferMultiple : LLVMContextHandle context
 BuiltInThunkCreateWriteBufferReal : LLVMContextHandle context
 {
 	EpochLLVMFunctionTypePush(context)
-	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetPointerTo(context, EpochLLVMTypeGetBuffer(context)))
-	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetInteger(context))
-	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetReal(context))
+	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetPointerTo(context, EpochLLVMTypeGetBuffer(context)), "buf")
+	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetInteger(context), "offset")
+	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetReal(context), "val")
 	LLVMFunctionType fty = EpochLLVMFunctionTypeCreate(context, EpochLLVMTypeGetVoid(context))
 	integer thunk = EpochLLVMFunctionCreateThunk(context, "ERT_write_buffer_real", fty)
 
@@ -1920,9 +1920,9 @@ BuiltInThunkCreateWriteBufferReal : LLVMContextHandle context
 BuiltInThunkCreateSubstringWithLength : LLVMContextHandle context
 {
 	EpochLLVMFunctionTypePush(context)
-	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetString(context))
-	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetInteger(context))
-	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetInteger(context))
+	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetString(context), "str")
+	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetInteger(context), "start")
+	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetInteger(context), "length")
 	LLVMFunctionType fty = EpochLLVMFunctionTypeCreate(context, EpochLLVMTypeGetString(context))
 	integer thunk = EpochLLVMFunctionCreateThunk(context, "ERT_substring_length", fty)
 
@@ -1934,8 +1934,8 @@ BuiltInThunkCreateSubstringWithLength : LLVMContextHandle context
 BuiltInThunkCreateSubstringNoLength : LLVMContextHandle context
 {
 	EpochLLVMFunctionTypePush(context)
-	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetString(context))
-	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetInteger(context))
+	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetString(context), "str")
+	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetInteger(context), "start")
 	LLVMFunctionType fty = EpochLLVMFunctionTypeCreate(context, EpochLLVMTypeGetString(context))
 	integer thunk = EpochLLVMFunctionCreateThunk(context, "ERT_substring_nolength", fty)
 
@@ -1946,7 +1946,7 @@ BuiltInThunkCreateSubstringNoLength : LLVMContextHandle context
 BuiltInThunkCreateUnescape : LLVMContextHandle context
 {
 	EpochLLVMFunctionTypePush(context)
-	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetString(context))
+	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetString(context), "str")
 	LLVMFunctionType fty = EpochLLVMFunctionTypeCreate(context, EpochLLVMTypeGetString(context))
 	integer thunk = EpochLLVMFunctionCreateThunk(context, "ERT_string_unescape", fty)
 
@@ -1956,7 +1956,7 @@ BuiltInThunkCreateUnescape : LLVMContextHandle context
 BuiltInThunkCreateNarrowString : LLVMContextHandle context
 {
 	EpochLLVMFunctionTypePush(context)
-	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetString(context))
+	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetString(context), "str")
 	LLVMFunctionType fty = EpochLLVMFunctionTypeCreate(context, EpochLLVMTypeGetBuffer(context))
 	integer thunk = EpochLLVMFunctionCreateThunk(context, "ERT_string_narrow", fty)
 
@@ -1984,7 +1984,7 @@ BuiltInThunkCreateCommandLineGetCount : LLVMContextHandle context
 BuiltInThunkCreateCommandLineGet : LLVMContextHandle context
 {
 	EpochLLVMFunctionTypePush(context)
-	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetInteger(context))
+	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetInteger(context), "index")
 	LLVMFunctionType fty = EpochLLVMFunctionTypeCreate(context, EpochLLVMTypeGetString(context))
 	integer thunk = EpochLLVMFunctionCreateThunk(context, "ERT_cmdlineget", fty)
 
@@ -1994,8 +1994,8 @@ BuiltInThunkCreateCommandLineGet : LLVMContextHandle context
 BuiltInThunkCreateWidenFromPtr : LLVMContextHandle context
 {
 	EpochLLVMFunctionTypePush(context)
-	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetInteger(context))
-	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetInteger(context))
+	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetInteger(context), "ptr")
+	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetInteger(context), "length")
 	LLVMFunctionType fty = EpochLLVMFunctionTypeCreate(context, EpochLLVMTypeGetString(context))
 	integer thunk = EpochLLVMFunctionCreateThunk(context, "ERT_widenfromptr", fty)
 
@@ -2078,7 +2078,7 @@ CreateAllConstructorsInLLVM : LLVMContextHandle context, nothing
 
 CreateMemberParamTypesInLLVM : LLVMContextHandle context, list<StructureMember> ref members
 {
-	EpochLLVMFunctionQueueParamType(context, GetLLVMTypeForMemberType(context, members.value))
+	EpochLLVMFunctionQueueParamType(context, GetLLVMTypeForMemberType(context, members.value), GetPooledString(GetMemberName(members.value)))
 	CreateMemberParamTypesInLLVM(context, members.next)
 }
 
@@ -2092,7 +2092,7 @@ CreateConstructorInLLVM : LLVMContextHandle context, StructureDefinition ref str
 	EpochLLVMFunctionTypePush(context)
 	LLVMType funcrettype = EpochLLVMTypeGetVoid(context)
 	
-	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetPointerTo(context, GetLLVMTypeForEpochType(context, struct.Type)))
+	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetPointerTo(context, GetLLVMTypeForEpochType(context, struct.Type)), GetPooledString(struct.Name))
 	CreateMemberParamTypesInLLVM(context, struct.Members)
 	
 	LLVMFunctionType functype = EpochLLVMFunctionTypeCreate(context, funcrettype)
@@ -2135,8 +2135,8 @@ CreateCopyConstructorInLLVM : LLVMContextHandle context, StructureDefinition ref
 	EpochLLVMFunctionTypePush(context)
 	LLVMType funcrettype = EpochLLVMTypeGetVoid(context)
 	
-	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetPointerTo(context, GetLLVMTypeForEpochType(context, struct.Type)))
-	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetPointerTo(context, GetLLVMTypeForEpochType(context, struct.Type)))
+	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetPointerTo(context, GetLLVMTypeForEpochType(context, struct.Type)), "a")
+	EpochLLVMFunctionQueueParamType(context, EpochLLVMTypeGetPointerTo(context, GetLLVMTypeForEpochType(context, struct.Type)), "b")
 
 	LLVMFunctionType functype = EpochLLVMFunctionTypeCreate(context, funcrettype)
 	LLVMFunctionRef llvmfunc = EpochLLVMFunctionCreate(context, GetPooledString(struct.CopyConstructorName), functype)
@@ -2448,7 +2448,7 @@ CreateTypeMatcherParamsInLLVM : LLVMContextHandle context, list<ArgumentMetadata
 	}
 
 	LLVMType paramtype = GetLLVMTypeForEpochType(context, argtype)
-	EpochLLVMFunctionQueueParamType(context, paramtype)
+	EpochLLVMFunctionQueueParamType(context, paramtype, "arg")
 
 	CreateTypeMatcherParamsInLLVM(context, argtypesets.next)
 }
