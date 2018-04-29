@@ -1459,7 +1459,7 @@ void Context::SetupDebugInfo(Function* function)
 llvm::DIType* Context::TypeGetDebugType(Type* t)
 {
 	// TODO - build better type data
-	return DebugBuilder.createBasicType("placeholder", 32, 32);
+	return DebugBuilder.createBasicType("integer", 32, llvm::dwarf::DW_ATE_signed);
 }
 
 void Context::TagDebugLine(unsigned line, unsigned column)

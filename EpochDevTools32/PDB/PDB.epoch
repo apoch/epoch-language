@@ -1674,8 +1674,6 @@ ConvertSymbolStream : buffer ref symboldata, integer symbolsize, list<PDBSymbol>
 
 						print("LOCAL: " ; localsymbol ; " type " ; cast(string, local.TypeIndex))
 
-						local.TypeIndex = 0x74			// T_INT			TODO - this is a silly hack
-
 						GenerateCorrectedCVLocal(symbols, local, localsymbol)
 					}
 					elseif (symbolheader.Magic == 0x1145)
