@@ -1592,8 +1592,16 @@ ConvertSymbolStream : buffer ref symboldata, integer symbolsize, list<PDBSymbol>
 					elseif (symbolheader.Magic == 0x1145)
 					{
 						// S_DEFRANGE_REGISTER_REL
+						marshalstructure(regrange, GetBufferPtr(symboldata, goofyreadoffset))
 						goofyreadoffset += cast(integer, symbolheader.Bytes) - 2
 						print("(register range)")
+
+						// TODO - dumb hack - replace register-relative symbol with a register symbol if the register is not RSP
+						if(cast(integer, regrange.Register) != 335)
+						{
+							print("Hack canary " ; cast(string, cast(integer, regrange.Register)))
+							goofywriteoffset = goofywriteoffset - 4
+						}
 					}
 					else
 					{
@@ -1649,7 +1657,7 @@ ConvertSymbolStream : buffer ref symboldata, integer symbolsize, list<PDBSymbol>
 						localsymbol = widenfromptr(GetBufferPtr(symboldata, readoffset), locallen)
 						readoffset += locallen + 1	// null terminated
 
-						print("LOCAL: " ; localsymbol)
+						print("LOCAL: " ; localsymbol ; " type " ; cast(string, local.TypeIndex))
 
 						local.TypeIndex = 0x74			// T_INT			TODO - this is a silly hack
 
