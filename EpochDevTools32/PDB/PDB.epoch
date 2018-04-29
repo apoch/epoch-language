@@ -1481,7 +1481,14 @@ structure CodeViewRegisterRange :
 	integer BasePointerOffset,
 	integer OffsetStartCode,
 	integer16 SectionIndexStartCode,
-	integer16 RangeCode	
+	integer16 RangeCode
+
+structure CodeViewRegister :
+	integer16 Register,
+	integer16 NoName,
+	integer OffsetStartCode,
+	integer16 SectionIndexStartCode,
+	integer16 RangeCode
 
 structure CodeViewLineInfoRaw :
 	integer FunctionOffset,
@@ -1515,6 +1522,7 @@ ConvertSymbolStream : buffer ref symboldata, integer symbolsize, list<PDBSymbol>
 
 	CodeViewLocal local = 0, 0
 	CodeViewRegisterRange regrange = 0, 0, 0, 0, 0, 0
+	CodeViewRegister register = 0, 0, 0, 0, 0
 
 	integer slen = 0
 	string symbol = ""
@@ -1603,6 +1611,13 @@ ConvertSymbolStream : buffer ref symboldata, integer symbolsize, list<PDBSymbol>
 							goofywriteoffset = goofywriteoffset - 4
 						}
 					}
+					elseif (symbolheader.Magic == 0x1141)
+					{
+						// S_DEFRANGE_REGISTER
+						marshalstructure(register, GetBufferPtr(symboldata, goofyreadoffset))
+						goofyreadoffset += cast(integer, symbolheader.Bytes) - 2
+						print("(register)")
+					}
 					else
 					{
 						print("WARNING - Skipping " ; cast(string, cast(integer, symbolheader.Bytes)) ; " bytes of type " ; cast(string, cast(integer, symbolheader.Magic)))
@@ -1671,6 +1686,15 @@ ConvertSymbolStream : buffer ref symboldata, integer symbolsize, list<PDBSymbol>
 						readoffset += cast(integer, symbolheader.Bytes) - 2
 
 						GenerateCorrectedCVRegisterRange(symbols, regrange)
+					}
+					elseif (symbolheader.Magic == 0x1141)
+					{
+						// S_DEFRANGE_REGISTER
+						marshalstructure(register, GetBufferPtr(symboldata, readoffset))
+						register.SectionIndexStartCode = 9
+						readoffset += cast(integer, symbolheader.Bytes) - 2
+
+						GenerateCorrectedCVRegister(symbols, register)
 					}
 					else
 					{
@@ -1798,6 +1822,14 @@ GenerateCorrectedCVLocal : list<PDBSymbol> ref symbols, CodeViewLocal ref local,
 	SymbolLocal localsl = local.TypeIndex, local.Flags, name
 	PDBSymbol sym = localsl
 	
+	append<PDBSymbol>(symbols, sym)
+}
+
+GenerateCorrectedCVRegister : list<PDBSymbol> ref symbols, CodeViewRegister ref register
+{
+	SymbolDefRangeRegister regsym = register.Register, register.NoName, register.OffsetStartCode, register.SectionIndexStartCode, register.RangeCode
+	PDBSymbol sym = regsym
+
 	append<PDBSymbol>(symbols, sym)
 }
 

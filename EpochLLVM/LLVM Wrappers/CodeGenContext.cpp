@@ -484,7 +484,12 @@ void Context::PrepareBinaryObject()
 
 	llvmmodule->setDataLayout(ee->getDataLayout());
 
-	// TODO - reintroduce optimizations
+	// TODO - reexamine optimizations
+
+	legacy::PassManager mpm;
+	mpm.add(createPromoteMemoryToRegisterPass());
+
+	mpm.run(*llvmmodule);
 
 	llvmmodule->dump();
 

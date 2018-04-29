@@ -56,6 +56,14 @@ structure SymbolDefRangeFrameRelative :
 	integer16 Range,
 	integer DummyToDo				// TODO - gap descriptors
 
+
+structure SymbolDefRangeRegister :
+	integer16 Register,
+	integer16 NoName,
+	integer OffsetStartCode,
+	integer16 SectionIndexStartCode,
+	integer16 RangeCode
+
 structure SymbolDefRangeRegisterRelative :
 	integer16 Register,
 	integer16 Flags,
@@ -74,7 +82,7 @@ structure SymbolProcRef :
 
 
 type PDBSymbol : SymbolSection | SymbolProcStart | SymbolBlockEnd | SymbolLocal | SymbolDefRangeRegisterRelative | SymbolDefRangeFrameRelative
-				| SymbolPublic | SymbolProcRef
+				| SymbolPublic | SymbolProcRef | SymbolDefRangeRegister
 
 
 
@@ -83,6 +91,8 @@ SymbolGetSize : SymbolProcStart ref symbol -> integer size = AlignToFour(39 + le
 SymbolGetSize : SymbolBlockEnd ref symbol -> integer size = 4
 SymbolGetSize : SymbolLocal ref symbol -> integer size = AlignToFour(10 + length(symbol.Name) + 1)
 SymbolGetSize : SymbolDefRangeFrameRelative ref symbol -> integer size = AlignToFour(16)
+
+SymbolGetSize : SymbolDefRangeRegister ref symbol -> integer size = AlignToFour(16)
 
 SymbolGetSize : SymbolDefRangeRegisterRelative ref symbol -> integer size = AlignToFour(18)
 {
@@ -245,6 +255,27 @@ ByteStreamEmitSymbol : buffer ref stream, integer ref pos, SymbolDefRangeFrameRe
 		ByteStreamEmitByte(stream, pos, 0)
 	}
 }
+
+
+ByteStreamEmitSymbol : buffer ref stream, integer ref pos, SymbolDefRangeRegister ref symbol
+{
+	integer16 mysize = cast(integer16, SymbolGetSize(symbol) - 2)
+
+	ByteStreamEmitInteger16(stream, pos, mysize)
+	ByteStreamEmitInteger16(stream, pos, 0x1141)						// S_DEFRANGE_REGISTER
+
+	ByteStreamEmitInteger16(stream, pos, symbol.Register)
+	ByteStreamEmitInteger16(stream, pos, symbol.NoName)
+	ByteStreamEmitInteger(stream, pos, symbol.OffsetStartCode)
+	ByteStreamEmitInteger16(stream, pos, symbol.SectionIndexStartCode)
+	ByteStreamEmitInteger16(stream, pos, symbol.RangeCode)
+
+	while((pos & 3) != 0)
+	{
+		ByteStreamEmitByte(stream, pos, 0)
+	}
+}
+
 
 ByteStreamEmitSymbol : buffer ref stream, integer ref pos, SymbolDefRangeRegisterRelative ref symbol
 {
