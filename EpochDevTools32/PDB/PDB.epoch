@@ -1547,202 +1547,189 @@ ConvertSymbolStream : buffer ref symboldata, integer symbolsize, list<PDBSymbol>
 
 		if(chunk.Header == 0xf1)
 		{
-			while(readoffset < chunkbeginoffset + chunk.Size)
+			marshalstructure(proc, GetBufferPtr(symboldata, readoffset))
+			readoffset += 4			// sizeof(CodeViewProc)
+
+			isproc = false
+			if(proc.Magic == 0x1147)			// Local procedure
 			{
-				marshalstructure(proc, GetBufferPtr(symboldata, readoffset))
-				readoffset += 4			// sizeof(CodeViewProc)
+				isproc = true
+			}
+			elseif(proc.Magic == 0x1146)		// Global procedure
+			{
+				isproc = true
+			}
 
-				isproc = false
-				if(proc.Magic == 0x1147)			// Local procedure
+			if(isproc)
+			{
+				readoffset += 12		// unknown fields/padding
+
+				marshalstructure(procsize, GetBufferPtr(symboldata, readoffset))
+				readoffset += 4			// sizeof(CodeViewProcSize)
+
+				readoffset += 12		// unknown fields/padding
+
+				marshalstructure(procsection, GetBufferPtr(symboldata, readoffset))
+				readoffset += 7			// sizeof(CodeViewProcSection) + 1 pad byte
+
+				slen = hackstrlen(GetBufferPtr(symboldata, readoffset))
+				symbol = widenfromptr(GetBufferPtr(symboldata, readoffset), slen)
+				readoffset += slen + 1	// null terminated
+
+				print(symbol)
+
+				goofyreadoffset = readoffset
+				goofywriteoffset = 0
+				while ((chunk.Size + chunkbeginoffset - 4) > goofyreadoffset)
 				{
-					isproc = true
-				}
-				elseif(proc.Magic == 0x1146)		// Global procedure
-				{
-					isproc = true
-				}
+					marshalstructure(symbolheader, GetBufferPtr(symboldata, goofyreadoffset))
+					goofyreadoffset += 4
 
-				if(isproc)
-				{
-					readoffset += 12		// unknown fields/padding
-
-					marshalstructure(procsize, GetBufferPtr(symboldata, readoffset))
-					readoffset += 4			// sizeof(CodeViewProcSize)
-
-					readoffset += 12		// unknown fields/padding
-
-					marshalstructure(procsection, GetBufferPtr(symboldata, readoffset))
-					readoffset += 7			// sizeof(CodeViewProcSection) + 1 pad byte
-
-					slen = hackstrlen(GetBufferPtr(symboldata, readoffset))
-					symbol = widenfromptr(GetBufferPtr(symboldata, readoffset), slen)
-					readoffset += slen + 1	// null terminated
-
-					print(symbol)
-
-					goofyreadoffset = readoffset
-					goofywriteoffset = 0
-					while ((chunk.Size + chunkbeginoffset - 4) > goofyreadoffset)
+					if (symbolheader.Magic == 0x113e)
 					{
-						marshalstructure(symbolheader, GetBufferPtr(symboldata, goofyreadoffset))
-						goofyreadoffset += 4
+						// S_LOCAL
+						marshalstructure(local, GetBufferPtr(symboldata, goofyreadoffset))
+						goofyreadoffset += 6
 
-						if (symbolheader.Magic == 0x113e)
-						{
-							// S_LOCAL
-							marshalstructure(local, GetBufferPtr(symboldata, goofyreadoffset))
-							goofyreadoffset += 6
+						locallen = hackstrlen(GetBufferPtr(symboldata, goofyreadoffset))
+						localsymbol = widenfromptr(GetBufferPtr(symboldata, goofyreadoffset), locallen)
+						goofyreadoffset += locallen + 1	// null terminated
 
-							locallen = hackstrlen(GetBufferPtr(symboldata, goofyreadoffset))
-							localsymbol = widenfromptr(GetBufferPtr(symboldata, goofyreadoffset), locallen)
-							goofyreadoffset += locallen + 1	// null terminated
-
-							print("LOCAL: " ; localsymbol)
-						}
-						elseif (symbolheader.Magic == 0x1145)
-						{
-							// S_DEFRANGE_REGISTER_REL
-							marshalstructure(regrange, GetBufferPtr(symboldata, goofyreadoffset))
-							goofyreadoffset += cast(integer, symbolheader.Bytes) - 2
-							print("(register range)")
-
-							// TODO - dumb hack - replace register-relative symbol with a register symbol if the register is not RSP
-							if(cast(integer, regrange.Register) != 335)
-							{
-								print("Hack canary " ; cast(string, cast(integer, regrange.Register)))
-								goofywriteoffset = goofywriteoffset - 4
-							}
-						}
-						elseif (symbolheader.Magic == 0x1141)
-						{
-							// S_DEFRANGE_REGISTER
-							marshalstructure(register, GetBufferPtr(symboldata, goofyreadoffset))
-							goofyreadoffset += cast(integer, symbolheader.Bytes) - 2
-							print("(register)")
-						}
-						else
-						{
-							print("WARNING - Skipping " ; cast(string, cast(integer, symbolheader.Bytes)) ; " bytes of type " ; cast(string, cast(integer, symbolheader.Magic)))
-							goofyreadoffset += cast(integer, symbolheader.Bytes) - 2
-						}
-
-						integer b = cast(integer, symbolheader.Bytes)
-						while(b & 3 != 0)
-						{
-							++b
-						}
-
-						goofywriteoffset += b
+						print("LOCAL: " ; localsymbol)
 					}
-
-					writeoffset += 0x28
-					writeoffset += slen
-
-					if (goofyreadoffset > readoffset)
+					elseif (symbolheader.Magic == 0x1145)
 					{
-						writeoffset += goofywriteoffset
-					}
+						// S_DEFRANGE_REGISTER_REL
+						marshalstructure(regrange, GetBufferPtr(symboldata, goofyreadoffset))
+						goofyreadoffset += cast(integer, symbolheader.Bytes) - 2
+						print("(register range)")
 
-					while(writeoffset & 3 != 0)
-					{
-						++writeoffset
-					}
-
-					// TODO - if we just pass along writeoffset here as the position of the next symbol, we will cause debuggers
-					// reading the PDB to barf when they reach the offset (since it points to itself more or less). This infinite
-					// loop is very annoying and sort of precludes using the debugger for its intended purposes, so we want to
-					// avoid that nonsense. What we NEED to do is read ahead in the symboldata buffer and peek out how many local
-					// and register-range symbols belong to this Proc, and then write the correct offset out.
-
-					GenerateCorrectedCVSymbol(symbols, writeoffset, procsize.Size, procsection.SectionIndex, 0, procsection.SectionRelative, symbol)
-
-					GenerateSectionContribution(contriblist, procsection.SectionIndex, procsection.SectionRelative, procsize.Size)
-
-
-					while ((chunk.Size + chunkbeginoffset - 4) > readoffset)
-					{
-						marshalstructure(symbolheader, GetBufferPtr(symboldata, readoffset))
-						readoffset += 4
-
-						if (symbolheader.Magic == 0x113e)
+						// TODO - dumb hack - replace register-relative symbol with a register symbol if the register is not RSP
+						if(cast(integer, regrange.Register) != 335)
 						{
-							// S_LOCAL
-							marshalstructure(local, GetBufferPtr(symboldata, readoffset))
-							readoffset += 6
-
-							locallen = hackstrlen(GetBufferPtr(symboldata, readoffset))
-							localsymbol = widenfromptr(GetBufferPtr(symboldata, readoffset), locallen)
-							readoffset += locallen + 1	// null terminated
-
-							print("LOCAL: " ; localsymbol ; " type " ; cast(string, local.TypeIndex))
-
-							GenerateCorrectedCVLocal(symbols, local, localsymbol)
-						}
-						elseif (symbolheader.Magic == 0x1145)
-						{
-							// S_DEFRANGE_REGISTER_REL
-							marshalstructure(regrange, GetBufferPtr(symboldata, readoffset))
-							regrange.SectionIndexStartCode = 9
-							readoffset += cast(integer, symbolheader.Bytes) - 2
-
-							GenerateCorrectedCVRegisterRange(symbols, regrange)
-						}
-						elseif (symbolheader.Magic == 0x1141)
-						{
-							// S_DEFRANGE_REGISTER
-							marshalstructure(register, GetBufferPtr(symboldata, readoffset))
-							register.SectionIndexStartCode = 9
-							readoffset += cast(integer, symbolheader.Bytes) - 2
-
-							GenerateCorrectedCVRegister(symbols, register)
-						}
-						else
-						{
-							print("WARNING - Skipping " ; cast(string, cast(integer, symbolheader.Bytes)) ; " bytes of type " ; cast(string, cast(integer, symbolheader.Magic)))
-							readoffset += cast(integer, symbolheader.Bytes) - 2
+							print("Hack canary " ; cast(string, cast(integer, regrange.Register)))
+							goofywriteoffset = goofywriteoffset - 4
 						}
 					}
-
-					marshalstructure(term, GetBufferPtr(symboldata, readoffset))
-					readoffset += 2			// sizeof(CodeViewProcTerm)
-					assertmsg(cast(integer, term.Magic) == 0x02, "Mismatched codeview magic (2a) - value " ; cast(string, cast(integer, term.Magic)))
-
-					marshalstructure(end, GetBufferPtr(symboldata, readoffset))
-					readoffset += 2			// sizeof(CodeViewProcEnd)
-					assertmsg(cast(integer, end.Magic) == 0x114f, "Mismatched codeview magic (3a)")
-
-
-					GenerateCorrectedCVSymbolTerminator(symbols)
-
-					writeoffset += 4
-					while(writeoffset & 3 != 0)
+					elseif (symbolheader.Magic == 0x1141)
 					{
-						++writeoffset
+						// S_DEFRANGE_REGISTER
+						marshalstructure(register, GetBufferPtr(symboldata, goofyreadoffset))
+						goofyreadoffset += cast(integer, symbolheader.Bytes) - 2
+						print("(register)")
+					}
+					else
+					{
+						print("WARNING - Skipping " ; cast(string, cast(integer, symbolheader.Bytes)) ; " bytes of type " ; cast(string, cast(integer, symbolheader.Magic)))
+						goofyreadoffset += cast(integer, symbolheader.Bytes) - 2
+					}
+
+					integer b = cast(integer, symbolheader.Bytes)
+					while(b & 3 != 0)
+					{
+						++b
+					}
+
+					goofywriteoffset += b
+				}
+
+				writeoffset += 0x28
+				writeoffset += slen
+
+				if (goofyreadoffset > readoffset)
+				{
+					writeoffset += goofywriteoffset
+				}
+
+				while(writeoffset & 3 != 0)
+				{
+					++writeoffset
+				}
+
+				// TODO - if we just pass along writeoffset here as the position of the next symbol, we will cause debuggers
+				// reading the PDB to barf when they reach the offset (since it points to itself more or less). This infinite
+				// loop is very annoying and sort of precludes using the debugger for its intended purposes, so we want to
+				// avoid that nonsense. What we NEED to do is read ahead in the symboldata buffer and peek out how many local
+				// and register-range symbols belong to this Proc, and then write the correct offset out.
+
+				GenerateCorrectedCVSymbol(symbols, writeoffset, procsize.Size, procsection.SectionIndex, 0, procsection.SectionRelative, symbol)
+
+				GenerateSectionContribution(contriblist, procsection.SectionIndex, procsection.SectionRelative, procsize.Size)
+
+
+				while ((chunk.Size + chunkbeginoffset - 4) > readoffset)
+				{
+					marshalstructure(symbolheader, GetBufferPtr(symboldata, readoffset))
+					readoffset += 4
+
+					if (symbolheader.Magic == 0x113e)
+					{
+						// S_LOCAL
+						marshalstructure(local, GetBufferPtr(symboldata, readoffset))
+						readoffset += 6
+
+						locallen = hackstrlen(GetBufferPtr(symboldata, readoffset))
+						localsymbol = widenfromptr(GetBufferPtr(symboldata, readoffset), locallen)
+						readoffset += locallen + 1	// null terminated
+
+						print("LOCAL: " ; localsymbol ; " type " ; cast(string, local.TypeIndex))
+
+						GenerateCorrectedCVLocal(symbols, local, localsymbol)
+					}
+					elseif (symbolheader.Magic == 0x1145)
+					{
+						// S_DEFRANGE_REGISTER_REL
+						marshalstructure(regrange, GetBufferPtr(symboldata, readoffset))
+						regrange.SectionIndexStartCode = 9
+						readoffset += cast(integer, symbolheader.Bytes) - 2
+
+						GenerateCorrectedCVRegisterRange(symbols, regrange)
+					}
+					elseif (symbolheader.Magic == 0x1141)
+					{
+						// S_DEFRANGE_REGISTER
+						marshalstructure(register, GetBufferPtr(symboldata, readoffset))
+						register.SectionIndexStartCode = 9
+						readoffset += cast(integer, symbolheader.Bytes) - 2
+
+						GenerateCorrectedCVRegister(symbols, register)
+					}
+					else
+					{
+						print("WARNING - Skipping " ; cast(string, cast(integer, symbolheader.Bytes)) ; " bytes of type " ; cast(string, cast(integer, symbolheader.Magic)))
+						readoffset += cast(integer, symbolheader.Bytes) - 2
 					}
 				}
-				elseif(proc.Magic == 0x113c)		// S_COMPILE3
+
+				marshalstructure(term, GetBufferPtr(symboldata, readoffset))
+				readoffset += 2			// sizeof(CodeViewProcTerm)
+				assertmsg(cast(integer, term.Magic) == 0x02, "Mismatched codeview magic (2a) - value " ; cast(string, cast(integer, term.Magic)))
+
+				marshalstructure(end, GetBufferPtr(symboldata, readoffset))
+				readoffset += 2			// sizeof(CodeViewProcEnd)
+				assertmsg(cast(integer, end.Magic) == 0x114f, "Mismatched codeview magic (3a)")
+
+
+				GenerateCorrectedCVSymbolTerminator(symbols)
+
+				writeoffset += 4
+				while(writeoffset & 3 != 0)
 				{
-					readoffset += 22		// ignored
-
-					slen = hackstrlen(GetBufferPtr(symboldata, readoffset))
-					readoffset += slen + 1			// null terminator
-
-					print("IGNORED compile3 symbol")
+					++writeoffset
 				}
-				elseif(proc.Magic == 0x110d)		// S_GDATA32
-				{
-					readoffset += 10		// ignored
+			}
+			elseif(proc.Magic == 0x113c)		// S_COMPILE3
+			{
+				readoffset += 22		// ignored
 
-					slen = hackstrlen(GetBufferPtr(symboldata, readoffset))
-					symbol = widenfromptr(GetBufferPtr(symboldata, readoffset), slen)
-					readoffset += slen + 1			// null terminator
+				slen = hackstrlen(GetBufferPtr(symboldata, readoffset))
+				readoffset += slen + 1			// null terminator
 
-					print("IGNORED S_GDATA32 symbol " ; symbol)
-				}
-				else
-				{
-					assertmsg(false, "Mismatched codeview magic (1) - got value " ; cast(string, cast(integer, proc.Magic)))
-				}
+				print("IGNORED compile3 symbol")
+			}
+			else
+			{
+				assertmsg(false, "Mismatched codeview magic (1) - got value " ; cast(string, cast(integer, proc.Magic)))
 			}
 		}
 		elseif(chunk.Header == 0xf2)
