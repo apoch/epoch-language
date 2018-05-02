@@ -331,6 +331,16 @@ llvm::GlobalVariable* Context::FunctionCreateThunk(const char* name, llvm::Funct
 	{
 		var = new GlobalVariable(*LLVMModule, fty->getPointerTo(), true, GlobalValue::ExternalWeakLinkage, NULL, name, NULL, GlobalVariable::NotThreadLocal, 0, true);
 		CachedThunkFunctions[name] = var;
+
+		std::vector<Metadata*> argtypes;
+		argtypes.push_back(TypeGetDebugType(fty->getReturnType()));
+
+		for (auto& p : fty->params())
+			argtypes.push_back(TypeGetDebugType(p));
+
+		DISubroutineType* debugtype = DebugBuilder.createSubroutineType(DebugBuilder.getOrCreateTypeArray(argtypes));
+		auto* gve = DebugBuilder.createGlobalVariableExpression(DebugCompileUnit, name, name, DebugFile, 1, debugtype, false);
+		var->addDebugInfo(gve);
 	}
 
 	return var;
