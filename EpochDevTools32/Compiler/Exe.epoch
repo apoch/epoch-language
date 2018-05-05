@@ -1168,7 +1168,7 @@ GeneratePDB : string pdbfilename, buffer ref symboldata, integer symbolsize, int
 	SymbolSection sectionsymbol = 9, 0x9000, codesize, 0x60000020, ".text"	
 	list<PDBSymbol> symbollistinternal = sectionsymbol, nothing
 
-	SectionContribution initsc = 5, 0x4ba, 5, 0x40000040, 0, 0, 0		// TODO - hardcoded junk
+	SectionContribution initsc = 5, 0, 0x500, 0x40000040, 0, 0, 0		// TODO - hardcoded junk
 	//SectionContribution initsc = -1, 0, 0, 0, 0, 0, 0
 	list<SectionContribution> contriblist = initsc, nothing
 	
@@ -1194,6 +1194,7 @@ GeneratePDB : string pdbfilename, buffer ref symboldata, integer symbolsize, int
 	integer dbicontribslen = ComputeContributionsSize(contriblist)
 	integer dbifileslen = 76			// TODO - real data here
 	integer dbiecstringslen = 93		// TODO - actual DBI EC strings
+	integer dbisechdrlen = 2 * 11		// TODO - real size of DBI section headers
 	
 	DBISection dbisection = dbimodinfolen, dbicontribslen, sectionmapsize, dbifileslen, modulelist
 
@@ -1202,7 +1203,7 @@ GeneratePDB : string pdbfilename, buffer ref symboldata, integer symbolsize, int
 	PDBStream msf = simplelist<integer>(5, nothing), 1					// Placeholder; 0 is invalid but we have nothing to put here
 	PDBStream pdb = simplelist<integer>(6, nothing), 72  				// TODO - pull real PDB stream size [was 48, then 128]
 	PDBStream tpi = simplelist<integer>(7, nothing), 56					// TODO - real TPI stream
-	PDBStream dbi = simplelist<integer>(8, nothing), 64 + dbimodinfolen + dbicontribslen + sectionmapsize + dbifileslen + dbiecstringslen // TODO - real DBI stream
+	PDBStream dbi = simplelist<integer>(8, nothing), 64 + dbimodinfolen + dbicontribslen + sectionmapsize + dbifileslen + dbiecstringslen + dbisechdrlen // TODO - real DBI stream
 	PDBStream ipi = simplelist<integer>(9, nothing), 56					// TODO - real IPI stream (?)
 	PDBStream globals = simplelist<integer>(10, nothing), 44 + 516 + 12		// TODO - real globals stream
 	PDBStream publics = simplelist<integer>(11, nothing), 708			// TODO - real publics stream
@@ -1210,9 +1211,11 @@ GeneratePDB : string pdbfilename, buffer ref symboldata, integer symbolsize, int
 
 	PDBStream module = simplelist<integer>(13, nothing), testmodule.SymbolSize + testmodule.LinesSize + 20 + 8	// TODO - real stream size
 	PDBStream stringstream = simplelist<integer>(14, nothing), 93							// TODO - real stream size
+	PDBStream sectionheaderstream = simplelist<integer>(15, nothing), 360		// TODO - real stream size
 
 	list<PDBStream> additionalstreams = module, nothing
 	append<PDBStream>(additionalstreams, stringstream)
+	append<PDBStream>(additionalstreams, sectionheaderstream)
 	
 	PDBDirectory pdbdir = msf, pdb, tpi, dbi, ipi, globals, publics, symbols, additionalstreams
 
@@ -1221,7 +1224,7 @@ GeneratePDB : string pdbfilename, buffer ref symboldata, integer symbolsize, int
 
 	
 	Win32Handle invalidhandle = -1
-	PDBFileLayout layout = 4096, 15, directoryhint, directorystream, pdbdir
+	PDBFileLayout layout = 4096, 16, directoryhint, directorystream, pdbdir
 	PDBOutputStream stream = pdbfilename, invalidhandle, 0, layout, dbisection, codesize
 
 	print("Final canary before we write PDB")
