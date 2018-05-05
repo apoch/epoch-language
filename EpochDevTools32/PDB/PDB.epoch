@@ -1157,7 +1157,7 @@ WriteGlobalsStream : Win32Handle pdbfilehandle, integer startfileposition -> int
 	ByteStreamEmitInteger(header, headersize, 516 + 4)		// total bytes worth of buckets
 	
 	// HRFiles
-	ByteStreamEmitInteger(header, headersize, 21)
+	ByteStreamEmitInteger(header, headersize, 41)
 	ByteStreamEmitInteger(header, headersize, 0)		// this doesn't seem to matter?	
 
 	// Magic bitmap
@@ -1257,7 +1257,8 @@ WritePublicSymbolRecordsStream : PDBOutputStream ref stream
 {
 	// TODO - actually implement this
 
-	SymbolPublic publicrec = 2, 0, 9, "init"
+	//SymbolPublic publicrec = 2, 0, 9, "init"
+	SymbolPublic publicrec = 0, 0x4ba, 5, "??_C@_03MBCKNMHH@Foo?$AA@"
 	PDBSymbol publicsym = publicrec
 	list<PDBSymbol> publicslist = publicsym, nothing
 

@@ -1168,7 +1168,8 @@ GeneratePDB : string pdbfilename, buffer ref symboldata, integer symbolsize, int
 	SymbolSection sectionsymbol = 9, 0x9000, codesize, 0x60000020, ".text"	
 	list<PDBSymbol> symbollistinternal = sectionsymbol, nothing
 
-	SectionContribution initsc = -1, 0, 0, 0, 0, 0, 0
+	SectionContribution initsc = 5, 0x4ba, 5, 0x40000040, 0, 0, 0		// TODO - hardcoded junk
+	//SectionContribution initsc = -1, 0, 0, 0, 0, 0, 0
 	list<SectionContribution> contriblist = initsc, nothing
 	
 	TransferSymbols(symbollistinternal, symboldata, symbolsize, relocdata, relocsize, symbollist, contriblist, lines, symbolcount)
@@ -1205,7 +1206,7 @@ GeneratePDB : string pdbfilename, buffer ref symboldata, integer symbolsize, int
 	PDBStream ipi = simplelist<integer>(9, nothing), 56					// TODO - real IPI stream (?)
 	PDBStream globals = simplelist<integer>(10, nothing), 44 + 516 + 12		// TODO - real globals stream
 	PDBStream publics = simplelist<integer>(11, nothing), 708			// TODO - real publics stream
-	PDBStream symbols = simplelist<integer>(12, nothing), 20 + 20		// TODO - real symbol records size
+	PDBStream symbols = simplelist<integer>(12, nothing), 20 + 40		// TODO - real symbol records size
 
 	PDBStream module = simplelist<integer>(13, nothing), testmodule.SymbolSize + testmodule.LinesSize + 20 + 8	// TODO - real stream size
 	PDBStream stringstream = simplelist<integer>(14, nothing), 93							// TODO - real stream size
