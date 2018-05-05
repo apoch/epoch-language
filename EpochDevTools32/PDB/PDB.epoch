@@ -733,7 +733,7 @@ EmitDBIOptionalHeader : PDBOutputStream ref stream
 	ByteStreamEmitInteger16(header, headersize, 0xffff)		//   Fixup,
 	ByteStreamEmitInteger16(header, headersize, 0xffff)		//   OmapToSrc,
 	ByteStreamEmitInteger16(header, headersize, 0xffff)		//   OmapFromSrc,
-	ByteStreamEmitInteger16(header, headersize, 10)			//   SectionHdr,
+	ByteStreamEmitInteger16(header, headersize, 0xffff)		//   SectionHdr,			// TODO - change this back to the stream index of section header data once we figure out why it breaks DIA2Dump
 	ByteStreamEmitInteger16(header, headersize, 0xffff)		//   TokenRidMap,
 	ByteStreamEmitInteger16(header, headersize, 0xffff)		//   Xdata,
 	ByteStreamEmitInteger16(header, headersize, 0xffff)		//   Pdata,
