@@ -81,8 +81,15 @@ structure SymbolProcRef :
 	string Name
 
 
+structure SymbolGlobalData :
+	integer TypeIndex,
+	integer Offset,
+	integer16 SegmentIndex,
+	string Name
+
+
 type PDBSymbol : SymbolSection | SymbolProcStart | SymbolBlockEnd | SymbolLocal | SymbolDefRangeRegisterRelative | SymbolDefRangeFrameRelative
-				| SymbolPublic | SymbolProcRef | SymbolDefRangeRegister
+				| SymbolPublic | SymbolProcRef | SymbolDefRangeRegister | SymbolGlobalData
 
 
 
@@ -106,6 +113,7 @@ SymbolGetSize : SymbolDefRangeRegisterRelative ref symbol -> integer size = Alig
 
 SymbolGetSize : SymbolPublic ref symbol -> integer size = AlignToFour(12 + length(symbol.Name) + 1)
 SymbolGetSize : SymbolProcRef ref symbol -> integer size = AlignToFour(12 + length(symbol.Name) + 1)
+SymbolGetSize : SymbolGlobalData ref symbol -> integer size = AlignToFour(12 + length(symbol.Name) + 1)
 
 
 ByteStreamEmitSymbolList : buffer ref stream, integer ref pos, list<PDBSymbol> ref symlist
@@ -338,4 +346,23 @@ ByteStreamEmitSymbol : buffer ref stream, integer ref pos, SymbolProcRef ref sym
 	}
 }
 
+
+ByteStreamEmitSymbol : buffer ref stream, integer ref pos, SymbolGlobalData ref symbol
+{
+	integer16 mysize = cast(integer16, SymbolGetSize(symbol) - 2)
+
+	ByteStreamEmitInteger16(stream, pos, mysize)
+	ByteStreamEmitInteger16(stream, pos, 0x110d)						// S_GDATA32
+	ByteStreamEmitInteger(stream, pos, symbol.TypeIndex)
+	ByteStreamEmitInteger(stream, pos, symbol.Offset)
+	ByteStreamEmitInteger16(stream, pos, symbol.SegmentIndex)
+	ByteStreamEmitStringNarrow(stream, pos, symbol.Name)
+
+	ByteStreamEmitByte(stream, pos, 0)
+
+	while((pos & 3) != 0)
+	{
+		ByteStreamEmitByte(stream, pos, 0)
+	}
+}
 
