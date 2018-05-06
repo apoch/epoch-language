@@ -99,7 +99,7 @@ EpochLLVMCodeCreateBasicBlock :
 EpochLLVMCodeCreateAlloca : LLVMContextHandle handle, LLVMType vartype, string varname, integer origin -> LLVMAlloca ret = 0		[external("EpochLLVM.dll", "EpochLLVMCodeCreateAlloca")]
 EpochLLVMCodeCreateBranch : LLVMContextHandle handle, LLVMBasicBlock target, boolean setinsertpoint 				[external("EpochLLVM.dll", "EpochLLVMCodeCreateBranch")]
 EpochLLVMCodeCreateCall : LLVMContextHandle handle, LLVMFunctionRef target -> integer ret = 0						[external("EpochLLVM.dll", "EpochLLVMCodeCreateCall")]
-EpochLLVMCodeCreateCallIndirect : LLVMContextHandle handle, LLVMAlloca alloca										[external("EpochLLVM.dll", "EpochLLVMCodeCreateCallIndirect")]
+EpochLLVMCodeCreateCallIndirect : LLVMContextHandle handle, LLVMAlloca alloca -> integer ret = 0					[external("EpochLLVM.dll", "EpochLLVMCodeCreateCallIndirect")]
 EpochLLVMCodeCreateCallThunk : LLVMContextHandle handle, integer target -> integer ret = 0							[external("EpochLLVM.dll", "EpochLLVMCodeCreateCallThunk")]
 EpochLLVMCodeCreateCast : LLVMContextHandle context, LLVMType targettype											[external("EpochLLVM.dll", "EpochLLVMCodeCreateCast")]
 EpochLLVMCodeCreateCondBranch : LLVMContextHandle handle, integer cond, LLVMBasicBlock tt, LLVMBasicBlock ft		[external("EpochLLVM.dll", "EpochLLVMCodeCreateCondBranch")]
@@ -977,7 +977,7 @@ EmitSingleCodeBlockEntryToLLVM : LLVMBuildContext ref context, Statement ref ent
 			BinaryTreeCopyPayload<LLVMAlloca>(context.LocalVariables.RootNode, entry.Name, fpalloca)
 			assertmsg(fpalloca != 0, "Missing higher order function parameter")
 			
-			EpochLLVMCodeCreateCallIndirect(context.Context, fpalloca)
+			call = EpochLLVMCodeCreateCallIndirect(context.Context, fpalloca)
 		}
 		else
 		{
@@ -992,7 +992,7 @@ EmitSingleCodeBlockEntryToLLVM : LLVMBuildContext ref context, Statement ref ent
 			if(entry.MakeAlloc)
 			{
 				// TODO - somehow stash a pointer to a heap allocation instead of an alloca
-				EpochLLVMCodeCreateCall(context.Context, llvmfunc)
+				call = EpochLLVMCodeCreateCall(context.Context, llvmfunc)
 			}
 			else
 			{
@@ -2401,7 +2401,13 @@ EmitTypeMatcherParamsInLLVM : LLVMContextHandle context, list<FunctionSignature>
 	if(relevantparams == paramindex)
 	{
 		ForwardTypeMatcherParamsInLLVM(context, overloads, matchername, overloadsig)
-		EpochLLVMCodeCreateCall(context, overloadfunc)
+		integer call = EpochLLVMCodeCreateCall(context, overloadfunc)
+
+		if (call != 0)
+		{
+			EpochLLVMCodeTagDebugLocation(context, call, 1, 1)			// TODO - solve this better
+		}
+
 		if(retalloca != 0)
 		{
 			EpochLLVMCodeCreateWrite(context, retalloca)

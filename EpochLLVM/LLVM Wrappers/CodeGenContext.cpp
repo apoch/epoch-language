@@ -59,11 +59,11 @@ namespace CodeGenInternal
 			{
 				if(reloc.getSymbol()->getName().get().str() == ".xdata")
 				{
-					*reinterpret_cast<char**>(fieldaddr) += 0x4000;		// TODO - don't hardcode the offset of the .xdata section
+					*reinterpret_cast<char**>(fieldaddr) += 0xb000; // 0x4000;		// TODO - don't hardcode the offset of the .xdata section
 				}
 				else
 				{
-					*reinterpret_cast<char**>(fieldaddr) += reloc.getSymbol()->getAddress().get() + 0x9000;    // TODO - don't hardcode the offset of the .text section
+					*reinterpret_cast<char**>(fieldaddr) += reloc.getSymbol()->getAddress().get() + 0x59000; // 0x9000;    // TODO - don't hardcode the offset of the .text section
 				}
 			}
 		}
@@ -812,7 +812,7 @@ llvm::CallInst* Context::CodeCreateCall(llvm::Function* target)
 	return inst;
 }
 
-void Context::CodeCreateCallIndirect(llvm::AllocaInst* targetAlloca)
+llvm::CallInst* Context::CodeCreateCallIndirect(llvm::AllocaInst* targetAlloca)
 {
 	llvm::Value* target = LLVMBuilder.CreateLoad(targetAlloca);
 	llvm::FunctionType* fty = cast<llvm::FunctionType>(cast<llvm::PointerType>(target->getType())->getElementType());
@@ -829,6 +829,8 @@ void Context::CodeCreateCallIndirect(llvm::AllocaInst* targetAlloca)
 
 	if(inst->getType() != Type::getVoidTy(GlobalContext))
 		PendingValues.push_back(inst);
+
+	return inst;
 }
 
 llvm::CallInst* Context::CodeCreateCallThunk(llvm::GlobalVariable* target)
@@ -924,8 +926,7 @@ llvm::Value* Context::CodeCreateGEP(unsigned index)
 
 llvm::GlobalVariable* Context::CodeCreateGlobal(llvm::Type* type, const char* name)
 {
-	auto gv = new GlobalVariable(type, false, GlobalValue::InternalLinkage, nullptr, name);
-	LLVMModule->getGlobalList().addNodeToList(gv);
+	auto gv = new GlobalVariable(*LLVMModule, type, false, GlobalValue::LinkageTypes::ExternalLinkage, nullptr, name);
 	return gv;
 }
 
@@ -1516,18 +1517,16 @@ void Context::SumTypeMerge()
 
 
 
-#ifndef DEBUG
+#ifdef NDEBUG
 
 // Module::dump() - Allow printing of Modules from the debugger.
-LLVM_DUMP_METHOD
-void Module::dump() const {
+void llvm::Module::dump() const {
 	print(dbgs(), nullptr,
 		/*ShouldPreserveUseListOrder=*/false, /*IsForDebug=*/true);
 }
 
 // Value::dump - allow easy printing of Values from the debugger.
-LLVM_DUMP_METHOD
-void Value::dump() const { print(dbgs(), /*IsForDebug=*/true); dbgs() << '\n'; }
+void llvm::Value::dump() const { print(dbgs(), /*IsForDebug=*/true); dbgs() << '\n'; }
 
 #endif
 

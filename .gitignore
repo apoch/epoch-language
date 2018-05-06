@@ -125,3 +125,7 @@ EpochBGFXWrapper/EpochBGFXWrapper/Debug/**
 /EpochTests/PDBTest/Debug/x64
 /EpochTests/PDBTest/.vs/PDBTest/v15
 /EpochVisualStudio/EpochVSIX/.vs/EpochVSIX/v15/Browse.VC.db
+/EpochDevTools32/Compiler32.eprj.user
+/bootstrap-err.txt
+/bootstrap-log.txt
+/Bootstrap

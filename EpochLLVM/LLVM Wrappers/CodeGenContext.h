@@ -79,7 +79,7 @@ namespace CodeGen
 		llvm::BasicBlock* CodeCreateBasicBlock(llvm::Function* parent, bool setinsertpoint);
 		void CodeCreateBranch(llvm::BasicBlock* target, bool setinsertpoint);
 		llvm::CallInst* CodeCreateCall(llvm::Function* target);
-		void CodeCreateCallIndirect(llvm::AllocaInst* target);
+		llvm::CallInst* CodeCreateCallIndirect(llvm::AllocaInst* target);
 		llvm::CallInst* CodeCreateCallThunk(llvm::GlobalVariable* target);
 		void CodeCreateCast(llvm::Type* targettype);
 		void CodeCreateCondBranch(llvm::Value* cond, llvm::BasicBlock* truetarget, llvm::BasicBlock* falsetarget);

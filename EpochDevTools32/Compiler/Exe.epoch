@@ -269,8 +269,8 @@ MakeExe : EpochProject ref project
 	CloseHandle(relocfilehandle)
 	
 	
-	print("Emitting PDB file...")
-	GeneratePDB(pdbfilename, debugdata, sizedebug, virtualoffsetcode, sizecode, debugrelocdata, sizedebugreloc, debugsymboldata, sizedebugsymbols, symbolcount)
+	//print("Emitting PDB file...")
+	//GeneratePDB(pdbfilename, debugdata, sizedebug, virtualoffsetcode, sizecode, debugrelocdata, sizedebugreloc, debugsymboldata, sizedebugsymbols, symbolcount)
 
 
 	print("Compilation complete.")
@@ -1050,7 +1050,7 @@ ThunkLookupMapper : string funcname -> integer thunkoffset = 0
 {
 	// TODO - don't hard code base address
 	integer baseaddress = 0x401000
-	integer baseaddressglobals = 0x408000
+	integer baseaddressglobals = 0x458000 // 0x408000
 	
 	thunkoffset = baseaddress + SearchThunkTableForFunctionOffset(GlobalThunkTable.Libraries, funcname)
 	
@@ -1100,7 +1100,7 @@ SearchThunkLibForFunctionOffset : nothing, string funcname -> integer offset = -
 StringLookupMapper : integer stringhandle -> integer offset = 0
 {
 	// TODO - don't hard code base address
-	integer baseaddress = 0x405000
+	integer baseaddress = 0x411000 //0x405000
 	
 	BinaryTreeCopyPayload<integer>(GlobalStringOffsets.RootNode, stringhandle, offset)
 	

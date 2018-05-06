@@ -170,9 +170,9 @@ extern "C" void* EpochLLVMCodeCreateCall(void* context, void* target)
 	return reinterpret_cast<CodeGen::Context*>(context)->CodeCreateCall(reinterpret_cast<llvm::Function*>(target));
 }
 
-extern "C" void EpochLLVMCodeCreateCallIndirect(void* context, void* target)
+extern "C" void* EpochLLVMCodeCreateCallIndirect(void* context, void* target)
 {
-	reinterpret_cast<CodeGen::Context*>(context)->CodeCreateCallIndirect(reinterpret_cast<llvm::AllocaInst*>(target));
+	return reinterpret_cast<CodeGen::Context*>(context)->CodeCreateCallIndirect(reinterpret_cast<llvm::AllocaInst*>(target));
 }
 
 extern "C" void* EpochLLVMCodeCreateCallThunk(void* context, void* target)
