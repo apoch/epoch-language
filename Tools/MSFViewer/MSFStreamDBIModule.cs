@@ -59,6 +59,7 @@ namespace MSFViewer
 
         private TypedByteSequence<uint> Header;
 
+        private ByteSequence LinesSeq;
         private ByteSequence C13LinesSeq;
 
         private List<Symbol> Symbols = new List<Symbol>();
@@ -94,6 +95,7 @@ namespace MSFViewer
 
 
             var linesnode = tvw.Nodes.Find("root", false)[0].Nodes.Add("lines", "Lines");
+            linesnode.Tag = LinesSeq;
 
             var c13linesnode = tvw.Nodes.Find("root", false)[0].Nodes.Add("c13lines", "C13 Lines");
             c13linesnode.Tag = C13LinesSeq;
@@ -185,8 +187,10 @@ namespace MSFViewer
 
         private void ParseAllLines(uint linesbytes)
         {
+            if (linesbytes > 0)
+                LinesSeq = new ByteSequence(FlattenedBuffer, ReadOffset, (int)linesbytes);
+
             ReadOffset += (int)linesbytes;
-            // TODO - meaningful interpretation of this?
         }
 
         private void ParseAllC13Lines(uint c13linesbytes)
@@ -279,7 +283,6 @@ namespace MSFViewer
                 else
                 {
                     ReadOffset = (int)(begin + c13linesbytes);
-                    //ReadOffset += (int)chunksize.ExtractedValue;
                 }
             }
         }

@@ -15,6 +15,7 @@ namespace MSFViewer
     {
         private ByteViewer ByteEditorControl = null;
         private ByteViewer BytePreviewControl = null;
+        private ByteViewer ByteRawBlockControl = null;
         private MSF EditingMSF = null;
 
         private int PreviousStreamSelectionIndex = -1;
@@ -31,6 +32,10 @@ namespace MSFViewer
             BytePreviewControl = new ByteViewer();
             PreviewPanel.Controls.Add(BytePreviewControl);
             BytePreviewControl.Dock = DockStyle.Fill;
+
+            ByteRawBlockControl = new ByteViewer();
+            RawDataBytesPanel.Controls.Add(ByteRawBlockControl);
+            ByteRawBlockControl.Dock = DockStyle.Fill;
 
             AnalysisListView.MouseClick += (e, args) =>
             {
@@ -126,11 +131,34 @@ namespace MSFViewer
 
                 var itemcache = new List<ListViewItem>();
                 stream.PopulateAnalysis(AnalysisListView, AnalysisTreeView, itemcache);
+                stream.PopulateRawBlocks(RawBlockListBox);
 
                 Application.UseWaitCursor = false;
             }
 
             PreviousStreamSelectionIndex = StreamListBox.SelectedIndex;
+        }
+
+        private void RawBlockListBox_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            var blocks = new List<MSFBlock>();
+            foreach (MSFBlock block in RawBlockListBox.SelectedItems)
+                blocks.Add(block);
+
+            if (blocks.Count > 0)
+            {
+                blocks.Sort((a, b) => { return a.Index - b.Index; });
+                var blob = new List<byte>();
+
+                foreach(var block in blocks)
+                {
+                    blob.AddRange(block.Bytes);
+                }
+
+                ByteRawBlockControl.SetBytes(blob.ToArray());
+            }
+            else
+                ByteRawBlockControl.SetBytes(new byte[0]);
         }
     }
 }

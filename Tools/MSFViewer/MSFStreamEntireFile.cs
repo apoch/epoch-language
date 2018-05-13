@@ -20,6 +20,8 @@ namespace MSFViewer
             ParseBlockMap();
             ParseDirectoryHint();
             ParseDirectory();
+
+            RawBlocks = MSFBlock.CopyBlockData(rawbuffer, BlockSize.ExtractedValue);
         }
 
 

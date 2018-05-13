@@ -56,6 +56,7 @@
       <DependentUpon>MainForm.cs</DependentUpon>
     </Compile>
     <Compile Include="MSF.cs" />
+    <Compile Include="MSFBlock.cs" />
     <Compile Include="MSFStream.cs" />
     <Compile Include="MSFStreamDBI.cs" />
     <Compile Include="MSFStreamDBIModule.cs" />

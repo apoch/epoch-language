@@ -16,6 +16,7 @@ namespace MSFViewer
 
         private int StreamIndex = 0;
 
+        protected List<MSFBlock> RawBlocks = null;
 
         public MSFStream(byte[] rawbuffer)
         {
@@ -36,6 +37,9 @@ namespace MSFViewer
                 }
 
                 Array.Copy(entirefile, blocks[blocks.Count - 1] * blocksize, FlattenedBuffer, writeindex, streamsize % blocksize);
+
+
+                RawBlocks = MSFBlock.CopyBlockData(entirefile, blocks, blocksize);
             }
 
             switch (streamindex)
@@ -100,6 +104,16 @@ namespace MSFViewer
 
             lvw.EndUpdate();
             tvw.EndUpdate();
+        }
+
+        public void PopulateRawBlocks(ListBox blocklist)
+        {
+            blocklist.Items.Clear();
+            if (RawBlocks != null)
+            {
+                foreach (var rawblock in RawBlocks)
+                    blocklist.Items.Add(rawblock);
+            }
         }
 
         protected virtual void SubclassPopulateAnalysis(List<ListViewItem> lvwitems, ListView lvw, TreeView tvw)

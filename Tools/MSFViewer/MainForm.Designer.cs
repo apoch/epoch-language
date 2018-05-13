@@ -44,10 +44,15 @@
             this.ColumnHeaderValue = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.TabBytes = new System.Windows.Forms.TabPage();
             this.ByteEditorPanel = new System.Windows.Forms.Panel();
+            this.TabRawData = new System.Windows.Forms.TabPage();
+            this.label1 = new System.Windows.Forms.Label();
+            this.RawBlockListBox = new System.Windows.Forms.ListBox();
+            this.RawDataBytesPanel = new System.Windows.Forms.Panel();
             this.MainFormMenuStrip.SuspendLayout();
             this.TabStrip.SuspendLayout();
             this.TabAnalysis.SuspendLayout();
             this.TabBytes.SuspendLayout();
+            this.TabRawData.SuspendLayout();
             this.SuspendLayout();
             // 
             // MainFormMenuStrip
@@ -111,6 +116,7 @@
             | System.Windows.Forms.AnchorStyles.Right)));
             this.TabStrip.Controls.Add(this.TabAnalysis);
             this.TabStrip.Controls.Add(this.TabBytes);
+            this.TabStrip.Controls.Add(this.TabRawData);
             this.TabStrip.Location = new System.Drawing.Point(201, 27);
             this.TabStrip.Name = "TabStrip";
             this.TabStrip.SelectedIndex = 0;
@@ -197,6 +203,47 @@
             this.ByteEditorPanel.Size = new System.Drawing.Size(806, 558);
             this.ByteEditorPanel.TabIndex = 1;
             // 
+            // TabRawData
+            // 
+            this.TabRawData.Controls.Add(this.RawDataBytesPanel);
+            this.TabRawData.Controls.Add(this.RawBlockListBox);
+            this.TabRawData.Controls.Add(this.label1);
+            this.TabRawData.Location = new System.Drawing.Point(4, 22);
+            this.TabRawData.Name = "TabRawData";
+            this.TabRawData.Size = new System.Drawing.Size(962, 570);
+            this.TabRawData.TabIndex = 2;
+            this.TabRawData.Text = "Raw Data";
+            this.TabRawData.UseVisualStyleBackColor = true;
+            // 
+            // label1
+            // 
+            this.label1.AutoSize = true;
+            this.label1.Location = new System.Drawing.Point(3, 2);
+            this.label1.Name = "label1";
+            this.label1.Size = new System.Drawing.Size(136, 13);
+            this.label1.TabIndex = 0;
+            this.label1.Text = "Data Blocks In This Stream";
+            // 
+            // RawBlockListBox
+            // 
+            this.RawBlockListBox.FormattingEnabled = true;
+            this.RawBlockListBox.Location = new System.Drawing.Point(6, 18);
+            this.RawBlockListBox.Name = "RawBlockListBox";
+            this.RawBlockListBox.SelectionMode = System.Windows.Forms.SelectionMode.MultiSimple;
+            this.RawBlockListBox.Size = new System.Drawing.Size(145, 303);
+            this.RawBlockListBox.TabIndex = 1;
+            this.RawBlockListBox.SelectedIndexChanged += new System.EventHandler(this.RawBlockListBox_SelectedIndexChanged);
+            // 
+            // RawDataBytesPanel
+            // 
+            this.RawDataBytesPanel.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this.RawDataBytesPanel.Location = new System.Drawing.Point(163, 18);
+            this.RawDataBytesPanel.Name = "RawDataBytesPanel";
+            this.RawDataBytesPanel.Size = new System.Drawing.Size(796, 549);
+            this.RawDataBytesPanel.TabIndex = 2;
+            // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -213,6 +260,8 @@
             this.TabStrip.ResumeLayout(false);
             this.TabAnalysis.ResumeLayout(false);
             this.TabBytes.ResumeLayout(false);
+            this.TabRawData.ResumeLayout(false);
+            this.TabRawData.PerformLayout();
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -235,6 +284,10 @@
         private System.Windows.Forms.ColumnHeader ColumnHeaderValue;
         private System.Windows.Forms.Panel PreviewPanel;
         private System.Windows.Forms.TreeView AnalysisTreeView;
+        private System.Windows.Forms.TabPage TabRawData;
+        private System.Windows.Forms.ListBox RawBlockListBox;
+        private System.Windows.Forms.Label label1;
+        private System.Windows.Forms.Panel RawDataBytesPanel;
     }
 }
 
