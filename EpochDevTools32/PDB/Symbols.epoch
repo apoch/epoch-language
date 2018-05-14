@@ -101,13 +101,13 @@ SymbolGetSize : SymbolDefRangeFrameRelative ref symbol -> integer size = AlignTo
 
 SymbolGetSize : SymbolDefRangeRegister ref symbol -> integer size = AlignToFour(16)
 
-SymbolGetSize : SymbolDefRangeRegisterRelative ref symbol -> integer size = AlignToFour(18)
+SymbolGetSize : SymbolDefRangeRegisterRelative ref symbol -> integer size = AlignToFour(16)   // AlignToFour(18)
 {
 	// TODO - dumb hack - replace anything that isn't relative to RSP with a Register sym instead
-	if(cast(integer, symbol.Register) != 335)
-	{
-		size = 16
-	}
+	//if(cast(integer, symbol.Register) != 335)
+	//{
+		//size = 16
+	//}
 }
 
 
@@ -287,27 +287,27 @@ ByteStreamEmitSymbol : buffer ref stream, integer ref pos, SymbolDefRangeRegiste
 
 ByteStreamEmitSymbol : buffer ref stream, integer ref pos, SymbolDefRangeRegisterRelative ref symbol
 {
-	if(cast(integer, symbol.Register) == 335)
-	{
-		integer16 mysize = cast(integer16, SymbolGetSize(symbol) - 2)
-
-		ByteStreamEmitInteger16(stream, pos, mysize)
-		ByteStreamEmitInteger16(stream, pos, 0x1145)						// S_DEFRANGE_REGISTER_REL
-
-		ByteStreamEmitInteger16(stream, pos, symbol.Register)
-		ByteStreamEmitInteger16(stream, pos, symbol.Flags)
-		ByteStreamEmitInteger(stream, pos, symbol.BasePointerOffset)
-		ByteStreamEmitInteger(stream, pos, symbol.OffsetStartCode)
-		ByteStreamEmitInteger16(stream, pos, symbol.SectionIndexStartCode)
-		ByteStreamEmitInteger16(stream, pos, symbol.RangeCode)
-
-		while((pos & 3) != 0)
-		{
-			ByteStreamEmitByte(stream, pos, 0)
-		}
-	}
-	else		// TODO - dumb hack - replace non-RSP-based REL symbols with REGISTER symbols instead (sneaky!)
-	{
+	//if(cast(integer, symbol.Register) == 335)
+	//{
+	//	integer16 mysize = cast(integer16, SymbolGetSize(symbol) - 2)
+	//
+	//	ByteStreamEmitInteger16(stream, pos, mysize)
+	//	ByteStreamEmitInteger16(stream, pos, 0x1145)						// S_DEFRANGE_REGISTER_REL
+	//
+	//	ByteStreamEmitInteger16(stream, pos, symbol.Register)
+	//	ByteStreamEmitInteger16(stream, pos, symbol.Flags)
+	//	ByteStreamEmitInteger(stream, pos, symbol.BasePointerOffset)
+	//	ByteStreamEmitInteger(stream, pos, symbol.OffsetStartCode)
+	//	ByteStreamEmitInteger16(stream, pos, symbol.SectionIndexStartCode)
+	//	ByteStreamEmitInteger16(stream, pos, symbol.RangeCode)
+	//
+	//	while((pos & 3) != 0)
+	//	{
+	//		ByteStreamEmitByte(stream, pos, 0)
+	//	}
+	//}
+	//else		// TODO - dumb hack - replace non-RSP-based REL symbols with REGISTER symbols instead (sneaky!)
+	//{
 		integer16 mysize = 14
 
 		ByteStreamEmitInteger16(stream, pos, mysize)
@@ -323,7 +323,7 @@ ByteStreamEmitSymbol : buffer ref stream, integer ref pos, SymbolDefRangeRegiste
 		{
 			ByteStreamEmitByte(stream, pos, 0)
 		}		
-	}
+	//}
 }
 
 

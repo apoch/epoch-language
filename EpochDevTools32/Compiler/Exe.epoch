@@ -69,7 +69,7 @@ MakeExe : EpochProject ref project
 	ComputeResourceOffsets(res)
 	
 
-	buffer codebinarybuffer = 0x100000		// TODO - this is a REALLY DUMB lazy hack, fix it by allocating a safe size for the code buffer
+	buffer codebinarybuffer = 0x800000		// TODO - this is a REALLY DUMB lazy hack, fix it by allocating a safe size for the code buffer
 	EpochLLVMInitialize()
 	LLVMContextHandle llvm = EpochLLVMContextCreate()
 	EpochLLVMSetThunkCallback(llvm, ThunkLookupMapper)
@@ -148,7 +148,7 @@ MakeExe : EpochProject ref project
 	integer virtualoffsetcode    = RoundUp(virtualoffsetglobals + globaloffsettracker)
 	integer offsetcode           = RoundUpFile(offsetglobals + globaloffsettracker)
 
-	integer sizecode = EpochLLVMEmitBinaryObject(llvm, codebinarybuffer, 0x100000, virtualoffsetcode + 0x0400000, virtualoffsetgc)		// TODO - also bad hacks
+	integer sizecode = EpochLLVMEmitBinaryObject(llvm, codebinarybuffer, 0x800000, virtualoffsetcode + 0x0400000, virtualoffsetgc)		// TODO - also bad hacks
 
 	integer totaldebugsize 		 = sizedebug + sizedebugreloc + sizedebugsymbols
 	integer sizeimage            = RoundUp(virtualoffsetcode + sizecode)
@@ -229,10 +229,10 @@ MakeExe : EpochProject ref project
 
 	position += WritePadding(filehandle, position, offsetdebug)
 
-	position += WriteDebugStub(filehandle, "PDBTest.pdb", virtualoffsetdebug, offsetdebug)		// TODO - inherit name of project/.exe (but - crucially - strip off the full path)
+	position += WriteDebugStub(filehandle, "CompilerTest.pdb", virtualoffsetdebug, offsetdebug)		// TODO - inherit name of project/.exe (but - crucially - strip off the full path)
 
 	print("Writing globals...")
-	position += WritePadding(filehandle, position, offsetglobals + globaloffsettracker)
+	position += WriteGarbage(filehandle, position, offsetglobals + globaloffsettracker)
 
 	print("Writing code...")
 	
@@ -244,33 +244,33 @@ MakeExe : EpochProject ref project
 	position += WritePadding(filehandle, position, RoundUpFile(position))
 	CloseHandle(filehandle)
 
-	print("Emitting CodeView data...")
-	WriteFile(objfilehandle, debugsymboldata, sizedebugsymbols, written, 0)
-	CloseHandle(objfilehandle)
+	//print("Emitting CodeView data...")
+	//WriteFile(objfilehandle, debugsymboldata, sizedebugsymbols, written, 0)
+	//CloseHandle(objfilehandle)
 
 
-	Win32Handle cvfilehandle = CreateFile(cvfilename, GENERIC_WRITE, 0, 0, CREATE_ALWAYS, 0, 0)
-	if(cvfilehandle == -1)
-	{
-		print("Cannot open " ; cvfilename ; " to emit .CV!")
-		return()
-	}
-	WriteFile(cvfilehandle, debugdata, sizedebug, written, 0)
-	CloseHandle(cvfilehandle)
+	//Win32Handle cvfilehandle = CreateFile(cvfilename, GENERIC_WRITE, 0, 0, CREATE_ALWAYS, 0, 0)
+	//if(cvfilehandle == -1)
+	//{
+	//	print("Cannot open " ; cvfilename ; " to emit .CV!")
+	//	return()
+	//}
+	//WriteFile(cvfilehandle, debugdata, sizedebug, written, 0)
+	//CloseHandle(cvfilehandle)
 
 
-	Win32Handle relocfilehandle = CreateFile(relocfilename, GENERIC_WRITE, 0, 0, CREATE_ALWAYS, 0, 0)
-	if(relocfilehandle == -1)
-	{
-		print("Cannot open " ; relocfilename ; " to emit .RELOC!")
-		return()
-	}
-	WriteFile(relocfilehandle, debugrelocdata, sizedebugreloc, written, 0)
-	CloseHandle(relocfilehandle)
+	//Win32Handle relocfilehandle = CreateFile(relocfilename, GENERIC_WRITE, 0, 0, CREATE_ALWAYS, 0, 0)
+	//if(relocfilehandle == -1)
+	//{
+	//	print("Cannot open " ; relocfilename ; " to emit .RELOC!")
+	//	return()
+	//}
+	//WriteFile(relocfilehandle, debugrelocdata, sizedebugreloc, written, 0)
+	//CloseHandle(relocfilehandle)
 	
 	
-	//print("Emitting PDB file...")
-	//GeneratePDB(pdbfilename, debugdata, sizedebug, virtualoffsetcode, sizecode, debugrelocdata, sizedebugreloc, debugsymboldata, sizedebugsymbols, symbolcount)
+	print("Emitting PDB file...")
+	GeneratePDB(pdbfilename, debugdata, sizedebug, virtualoffsetcode, sizecode, debugrelocdata, sizedebugreloc, debugsymboldata, sizedebugsymbols, symbolcount)
 
 
 	print("Compilation complete.")
@@ -1197,21 +1197,48 @@ GeneratePDB : string pdbfilename, buffer ref symboldata, integer symbolsize, int
 	integer dbisechdrlen = 2 * 11		// TODO - real size of DBI section headers
 	
 	DBISection dbisection = dbimodinfolen, dbicontribslen, sectionmapsize, dbifileslen, modulelist
+	integer dbilength = 64 + dbimodinfolen + dbicontribslen + sectionmapsize + dbifileslen + dbiecstringslen + dbisechdrlen // TODO - real DBI stream
 
 	print("Pre-stream setup canary")
 	
 	PDBStream msf = simplelist<integer>(5, nothing), 1					// Placeholder; 0 is invalid but we have nothing to put here
 	PDBStream pdb = simplelist<integer>(6, nothing), 72  				// TODO - pull real PDB stream size [was 48, then 128]
 	PDBStream tpi = simplelist<integer>(7, nothing), 56					// TODO - real TPI stream
-	PDBStream dbi = simplelist<integer>(8, nothing), 64 + dbimodinfolen + dbicontribslen + sectionmapsize + dbifileslen + dbiecstringslen + dbisechdrlen // TODO - real DBI stream
-	PDBStream ipi = simplelist<integer>(9, nothing), 56					// TODO - real IPI stream (?)
-	PDBStream globals = simplelist<integer>(10, nothing), 44 + 516 + 12		// TODO - real globals stream
-	PDBStream publics = simplelist<integer>(11, nothing), 708			// TODO - real publics stream
-	PDBStream symbols = simplelist<integer>(12, nothing), 20 + 40		// TODO - real symbol records size
+	PDBStream dbi = simplelist<integer>(8, nothing), dbilength
+	integer dbiblockcount = dbilength / 4096
 
-	PDBStream module = simplelist<integer>(13, nothing), testmodule.SymbolSize + testmodule.LinesSize + 20 + 8	// TODO - real stream size
-	PDBStream stringstream = simplelist<integer>(14, nothing), 93							// TODO - real stream size
-	PDBStream sectionheaderstream = simplelist<integer>(15, nothing), 360		// TODO - real stream size
+	// TODO - better block layout implementation
+	integer blockindex = 9
+	while(blockindex < (dbiblockcount + 9))
+	{
+		simple_append<integer>(dbi.Blocks, blockindex)
+		++blockindex
+	}
+
+	PDBStream ipi = simplelist<integer>(23, nothing), 56					// TODO - real IPI stream (?)
+	PDBStream globals = simplelist<integer>(24, nothing), 44 + 516 + 12		// TODO - real globals stream
+	PDBStream publics = simplelist<integer>(25, nothing), 708			// TODO - real publics stream
+	PDBStream symbols = simplelist<integer>(26, nothing), 20 + 40		// TODO - real symbol records size
+
+	integer modlength = testmodule.SymbolSize + testmodule.LinesSize + 20 + 8	// TODO - real stream size
+	integer modblockcount = (modlength / 4096)
+
+	PDBStream module = simplelist<integer>(27, nothing), modlength
+
+	// TODO - better block layout implementation
+	blockindex = 28
+	while(blockindex < (modblockcount + 28))
+	{
+		simple_append<integer>(module.Blocks, blockindex)
+		++blockindex
+	}
+
+	simplelist<integer> stringblocks = blockindex, nothing
+	PDBStream stringstream = stringblocks, 93							// TODO - real stream size
+
+	++blockindex
+	simplelist<integer> sectionheaderblocks = blockindex, nothing
+	PDBStream sectionheaderstream = sectionheaderblocks, 360		// TODO - real stream size
 
 	list<PDBStream> additionalstreams = module, nothing
 	append<PDBStream>(additionalstreams, stringstream)
@@ -1222,10 +1249,21 @@ GeneratePDB : string pdbfilename, buffer ref symboldata, integer symbolsize, int
 	PDBStream directoryhint = simplelist<integer>(3, nothing), 0
 	PDBStream directorystream = simplelist<integer>(4, nothing), ComputeDirectoryStreamSize(pdbdir, 4096)
 
-	
+	++blockindex
 	Win32Handle invalidhandle = -1
-	PDBFileLayout layout = 4096, 16, directoryhint, directorystream, pdbdir
+	PDBFileLayout layout = 4096, blockindex, directoryhint, directorystream, pdbdir
 	PDBOutputStream stream = pdbfilename, invalidhandle, 0, layout, dbisection, codesize
+
+	//dbimodinfolen + dbicontribslen + sectionmapsize + dbifileslen + dbiecstringslen + dbisechdrlen
+
+	print("DBI stream: " ; cast(string, dbi.Length))
+	print("DBI modinfo: " ; cast(string, dbimodinfolen))
+	print("DBI contributions: " ; cast(string, dbicontribslen))
+	print("DBI section map: " ; cast(string, sectionmapsize))
+	print("DBI files info: " ; cast(string, dbifileslen))
+	print("DBI ecs: " ; cast(string, dbiecstringslen))
+	print("DBI sechdr: " ; cast(string, dbisechdrlen))
+	print("Module stream: " ; cast(string, module.Length))
 
 	print("Final canary before we write PDB")
 

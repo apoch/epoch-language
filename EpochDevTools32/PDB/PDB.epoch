@@ -288,13 +288,13 @@ WritePDB : PDBOutputStream ref stream, integer codesectionstart, integer codesiz
 	WritePublicSymbolRecordsStream(stream)
 	
 	// HACK - TODO
-	PadToBeginningOfBlock(stream, 13)
+	PadToBeginningOfBlock(stream, GetPDBLayoutStartBlock(stream.Layout.Directory.AdditionalStreams, 0))
 	WriteDBIModuleSymbols(stream, stream.DBI.Modules.value, symbolstart, symbolsize)
 
-	PadGarbageToBeginningOfBlock(stream, 14)
+	PadGarbageToBeginningOfBlock(stream, GetPDBLayoutStartBlock(stream.Layout.Directory.AdditionalStreams, 1))
 	WritePDBStrings(stream)
 
-	PadToBeginningOfBlock(stream, 15)
+	PadToBeginningOfBlock(stream, GetPDBLayoutStartBlock(stream.Layout.Directory.AdditionalStreams, 2))
 	WritePDBSectionHeaders(stream)
 	
 	// Pad to the end of the file
@@ -302,6 +302,22 @@ WritePDB : PDBOutputStream ref stream, integer codesectionstart, integer codesiz
 
 	CloseHandle(stream.FileHandle)
 }
+
+GetPDBLayoutStartBlock : list<PDBStream> ref streams, integer offset -> integer blockindex = 0
+{
+	print("CANARY GPLSB " ; cast(string, offset))
+
+	if(offset > 0)
+	{
+		blockindex = GetPDBLayoutStartBlock(streams.next, offset - 1)
+	}
+	else
+	{
+		blockindex = streams.value.Blocks.value
+	}
+}
+
+GetPDBLayoutStartBlock : nothing, integer offset -> integer error = 0
 
 
 
@@ -405,7 +421,7 @@ WriteSuperBlock : PDBOutputStream ref stream
 
 WriteDirectory : PDBOutputStream ref stream
 {
-	buffer directory = 1024
+	buffer directory = 40960
 	integer directorysize = 0
 	
 	// Number of streams - eight fixed streams plus additional dynamic user-provided streams
@@ -681,6 +697,8 @@ WriteDBIStrings : PDBOutputStream ref stream
 
 WriteDBIStream : PDBOutputStream ref stream
 {
+	integer beginpos = stream.FilePosition
+
 	buffer header = 128
 	integer headersize = 0
 	
@@ -713,10 +731,12 @@ WriteDBIStream : PDBOutputStream ref stream
 	WriteFile(stream.FileHandle, header, headersize, written, 0)
 	stream.FilePosition = stream.FilePosition + written	
 
-	
 	EmitDBIModule(stream, stream.DBI.Modules)
 	EmitDBISectionContributions(stream)
 	EmitDBISectionMap(stream)
+
+	print(cast(string, stream.FilePosition - beginpos) ; " bytes from start of stream = DBI files location")
+
 	EmitDBIFiles(stream)
 	WriteDBIStrings(stream)
 	EmitDBIOptionalHeader(stream)
@@ -933,6 +953,8 @@ EmitDBISectionMap : PDBOutputStream ref stream
 	integer written = 0
 	WriteFile(stream.FileHandle, header, headersize, written, 0)
 	stream.FilePosition = stream.FilePosition + written
+
+	assertmsg(written == stream.DBI.SectionMapSize, "Wrote wrong number of DBI section map bytes")
 }
 
 
@@ -1029,7 +1051,9 @@ EmitDBIModule : PDBOutputStream ref stream, list<DBIModule> ref modlist
 	stream.FilePosition = stream.FilePosition + written
 
 
-	EmitDBISectionContributionSingle(stream, modlist.value.SectionContributions.next)	
+	// TODO - this is borked when we don't accumulate any contributions. Maybe it's just busted in general????
+	//EmitDBISectionContributionSingle(stream, modlist.value.SectionContributions.next)	
+	EmitDBISectionContributionSingle(stream, modlist.value.SectionContributions.value)
 
 
 	buffer modinfo = 512
@@ -1295,7 +1319,7 @@ WritePublicSymbolRecordsStream : PDBOutputStream ref stream
 	append<PDBSymbol>(publicslist, procsym)
 
 
-	buffer symboldata = 1024
+	buffer symboldata = 1048576		// TODO - this is a bad limitation
 	integer symboldatasize = 0
 	ByteStreamEmitSymbolList(symboldata, symboldatasize, publicslist)
 	
@@ -1334,7 +1358,7 @@ WriteDBIModuleSymbols : PDBOutputStream ref stream, DBIModule ref module, buffer
 	
 	print(cast(string, stream.FilePosition - initfpos) ; " bytes written for symbol list (running total)")
 
-	buffer linedata = 1024
+	buffer linedata = 1048576		// TODO - this is a bad limitation
 	integer linesize = 0
 	
 	ByteStreamEmitInteger(linedata, linesize, 0xf4)				// Checksums
@@ -1642,6 +1666,7 @@ ConvertSymbolStream : buffer ref symboldata, integer symbolsize, list<PDBSymbol>
 						locallen = hackstrlen(GetBufferPtr(symboldata, goofyreadoffset))
 						localsymbol = widenfromptr(GetBufferPtr(symboldata, goofyreadoffset), locallen)
 						goofyreadoffset += locallen + 1	// null terminated
+						goofywriteoffset += locallen + 1 + 10
 
 						print("LOCAL: " ; localsymbol)
 					}
@@ -1652,12 +1677,14 @@ ConvertSymbolStream : buffer ref symboldata, integer symbolsize, list<PDBSymbol>
 						goofyreadoffset += cast(integer, symbolheader.Bytes) - 2
 						print("(register range)")
 
+						goofywriteoffset += 16
+
 						// TODO - dumb hack - replace register-relative symbol with a register symbol if the register is not RSP
-						if(cast(integer, regrange.Register) != 335)
-						{
-							print("Hack canary " ; cast(string, cast(integer, regrange.Register)))
-							goofywriteoffset = goofywriteoffset - 4
-						}
+						//if(cast(integer, regrange.Register) != 335)
+						//{
+						//	print("Hack canary " ; cast(string, cast(integer, regrange.Register)))
+						//	goofywriteoffset = goofywriteoffset - 4
+						//}
 					}
 					elseif (symbolheader.Magic == 0x1141)
 					{
@@ -1665,6 +1692,8 @@ ConvertSymbolStream : buffer ref symboldata, integer symbolsize, list<PDBSymbol>
 						marshalstructure(register, GetBufferPtr(symboldata, goofyreadoffset))
 						goofyreadoffset += cast(integer, symbolheader.Bytes) - 2
 						print("(register)")
+
+						goofywriteoffset += 16
 					}
 					else
 					{
@@ -1672,16 +1701,13 @@ ConvertSymbolStream : buffer ref symboldata, integer symbolsize, list<PDBSymbol>
 						goofyreadoffset += cast(integer, symbolheader.Bytes) - 2
 					}
 
-					integer b = cast(integer, symbolheader.Bytes)
-					while(b & 3 != 0)
+					while(goofywriteoffset & 3 != 0)
 					{
-						++b
+						++goofywriteoffset
 					}
-
-					goofywriteoffset += b
 				}
 
-				writeoffset += 0x28
+				writeoffset += 40
 				writeoffset += slen
 
 				if (goofyreadoffset > readoffset)

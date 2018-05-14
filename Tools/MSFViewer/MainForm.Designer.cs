@@ -45,9 +45,9 @@
             this.TabBytes = new System.Windows.Forms.TabPage();
             this.ByteEditorPanel = new System.Windows.Forms.Panel();
             this.TabRawData = new System.Windows.Forms.TabPage();
-            this.label1 = new System.Windows.Forms.Label();
-            this.RawBlockListBox = new System.Windows.Forms.ListBox();
             this.RawDataBytesPanel = new System.Windows.Forms.Panel();
+            this.RawBlockListBox = new System.Windows.Forms.ListBox();
+            this.label1 = new System.Windows.Forms.Label();
             this.MainFormMenuStrip.SuspendLayout();
             this.TabStrip.SuspendLayout();
             this.TabAnalysis.SuspendLayout();
@@ -215,25 +215,6 @@
             this.TabRawData.Text = "Raw Data";
             this.TabRawData.UseVisualStyleBackColor = true;
             // 
-            // label1
-            // 
-            this.label1.AutoSize = true;
-            this.label1.Location = new System.Drawing.Point(3, 2);
-            this.label1.Name = "label1";
-            this.label1.Size = new System.Drawing.Size(136, 13);
-            this.label1.TabIndex = 0;
-            this.label1.Text = "Data Blocks In This Stream";
-            // 
-            // RawBlockListBox
-            // 
-            this.RawBlockListBox.FormattingEnabled = true;
-            this.RawBlockListBox.Location = new System.Drawing.Point(6, 18);
-            this.RawBlockListBox.Name = "RawBlockListBox";
-            this.RawBlockListBox.SelectionMode = System.Windows.Forms.SelectionMode.MultiSimple;
-            this.RawBlockListBox.Size = new System.Drawing.Size(145, 303);
-            this.RawBlockListBox.TabIndex = 1;
-            this.RawBlockListBox.SelectedIndexChanged += new System.EventHandler(this.RawBlockListBox_SelectedIndexChanged);
-            // 
             // RawDataBytesPanel
             // 
             this.RawDataBytesPanel.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
@@ -243,6 +224,25 @@
             this.RawDataBytesPanel.Name = "RawDataBytesPanel";
             this.RawDataBytesPanel.Size = new System.Drawing.Size(796, 549);
             this.RawDataBytesPanel.TabIndex = 2;
+            // 
+            // RawBlockListBox
+            // 
+            this.RawBlockListBox.FormattingEnabled = true;
+            this.RawBlockListBox.Location = new System.Drawing.Point(6, 18);
+            this.RawBlockListBox.Name = "RawBlockListBox";
+            this.RawBlockListBox.SelectionMode = System.Windows.Forms.SelectionMode.MultiExtended;
+            this.RawBlockListBox.Size = new System.Drawing.Size(145, 303);
+            this.RawBlockListBox.TabIndex = 1;
+            this.RawBlockListBox.SelectedIndexChanged += new System.EventHandler(this.RawBlockListBox_SelectedIndexChanged);
+            // 
+            // label1
+            // 
+            this.label1.AutoSize = true;
+            this.label1.Location = new System.Drawing.Point(3, 2);
+            this.label1.Name = "label1";
+            this.label1.Size = new System.Drawing.Size(136, 13);
+            this.label1.TabIndex = 0;
+            this.label1.Text = "Data Blocks In This Stream";
             // 
             // MainForm
             // 
