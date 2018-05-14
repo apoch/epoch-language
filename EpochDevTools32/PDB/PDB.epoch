@@ -858,7 +858,7 @@ EmitDBISectionMap : PDBOutputStream ref stream
 	ByteStreamEmitInteger16(header, headersize, 0xffff)		// name
 	ByteStreamEmitInteger16(header, headersize, 0xffff)		// class name
 	ByteStreamEmitInteger(header, headersize, 0)			// offset
-	ByteStreamEmitInteger(header, headersize, 0x63c)		// length
+	ByteStreamEmitInteger(header, headersize, 0x1878)		// length
 	
 	// section descriptor .rsrc
 	ByteStreamEmitInteger16(header, headersize, 0x109)		// flags
@@ -878,7 +878,7 @@ EmitDBISectionMap : PDBOutputStream ref stream
 	ByteStreamEmitInteger16(header, headersize, 0xffff)		// name
 	ByteStreamEmitInteger16(header, headersize, 0xffff)		// class name
 	ByteStreamEmitInteger(header, headersize, 0)			// offset
-	ByteStreamEmitInteger(header, headersize, 0x3c)			// length
+	ByteStreamEmitInteger(header, headersize, 0x6dbc)		// length
 
 	// section descriptor .xdata
 	ByteStreamEmitInteger16(header, headersize, 0x109)		// flags
@@ -888,7 +888,7 @@ EmitDBISectionMap : PDBOutputStream ref stream
 	ByteStreamEmitInteger16(header, headersize, 0xffff)		// name
 	ByteStreamEmitInteger16(header, headersize, 0xffff)		// class name
 	ByteStreamEmitInteger(header, headersize, 0)			// offset
-	ByteStreamEmitInteger(header, headersize, 0x28)			// length
+	ByteStreamEmitInteger(header, headersize, 0x5bd4)		// length
 
 	// section descriptor .data
 	ByteStreamEmitInteger16(header, headersize, 0x109)		// flags
@@ -898,7 +898,7 @@ EmitDBISectionMap : PDBOutputStream ref stream
 	ByteStreamEmitInteger16(header, headersize, 0xffff)		// name
 	ByteStreamEmitInteger16(header, headersize, 0xffff)		// class name
 	ByteStreamEmitInteger(header, headersize, 0)			// offset
-	ByteStreamEmitInteger(header, headersize, 0x500)		// length
+	ByteStreamEmitInteger(header, headersize, 0x27cde)		// length
 
 	// section descriptor .gc
 	ByteStreamEmitInteger16(header, headersize, 0x109)		// flags
@@ -908,7 +908,7 @@ EmitDBISectionMap : PDBOutputStream ref stream
 	ByteStreamEmitInteger16(header, headersize, 0xffff)		// name
 	ByteStreamEmitInteger16(header, headersize, 0xffff)		// class name
 	ByteStreamEmitInteger(header, headersize, 0)			// offset
-	ByteStreamEmitInteger(header, headersize, 0xd4)			// length
+	ByteStreamEmitInteger(header, headersize, 0x1d10c)		// length
 
 	// section descriptor .debug
 	ByteStreamEmitInteger16(header, headersize, 0x109)		// flags
@@ -928,7 +928,7 @@ EmitDBISectionMap : PDBOutputStream ref stream
 	ByteStreamEmitInteger16(header, headersize, 0xffff)		// name
 	ByteStreamEmitInteger16(header, headersize, 0xffff)		// class name
 	ByteStreamEmitInteger(header, headersize, 0)			// offset
-	ByteStreamEmitInteger(header, headersize, 42)			// length
+	ByteStreamEmitInteger(header, headersize, 0x3f1)		// length
 
 	// section descriptor .text
 	ByteStreamEmitInteger16(header, headersize, 0x10d)		// flags
@@ -1290,7 +1290,7 @@ WritePublicsStream : Win32Handle pdbfilehandle, integer startfileposition -> int
 	}
 	
 	// section descriptor .text
-	ByteStreamEmitInteger(header, headersize, 0x9000)		// offset
+	ByteStreamEmitInteger(header, headersize, 0x59000)		// offset				TODO - evil hardcoded numbers
 	ByteStreamEmitInteger16(header, headersize, 9)			// index of section
 	ByteStreamEmitInteger16(header, headersize, 0)			// pad
 
@@ -1402,15 +1402,26 @@ WritePDBSectionHeaders : PDBOutputStream ref stream
 	integer position = 0
 
 	// TODO - this is VERY bad and will cause issues with debuggers as it goes out of sync
-	position += WriteSectionHeader(stream.FileHandle, ".idata", 0x400, 0x1000, 0x63c, 0x63c, 0xc0000040)
-	position += WriteSectionHeader(stream.FileHandle, ".rsrc", 0xc00, 0x2000, 0x11, 0x11, 0x40000040)
-	position += WriteSectionHeader(stream.FileHandle, ".pdata", 0xe00, 0x3000, 0x3c, 0x3c, 0x40000040)
-	position += WriteSectionHeader(stream.FileHandle, ".xdata", 0x1000, 0x4000, 0x28, 0x28, 0x40000040)
-	position += WriteSectionHeader(stream.FileHandle, ".data", 0x1200, 0x5000, 0x500, 0x500, 0x40000040)
-	position += WriteSectionHeader(stream.FileHandle, ".gc", 0x1800, 0x6000, 0xd4, 0xd4, 0x40000040)
-	position += WriteSectionHeader(stream.FileHandle, ".debug", 0x1a00, 0x7000, 0x200, 0x200, 0x40000040)
-	position += WriteSectionHeader(stream.FileHandle, ".global", 0x2000, 0x8000, 0x2a, 0x2a, 0xc0000040)
-	position += WriteSectionHeader(stream.FileHandle, ".text", 0x2200, 0x9000, 0x131, 0x131, 0x60000020)
+	//position += WriteSectionHeader(stream.FileHandle, ".idata", 0x400, 0x1000, 0x63c, 0x63c, 0xc0000040)
+	//position += WriteSectionHeader(stream.FileHandle, ".rsrc", 0xc00, 0x2000, 0x11, 0x11, 0x40000040)
+	//position += WriteSectionHeader(stream.FileHandle, ".pdata", 0xe00, 0x3000, 0x3c, 0x3c, 0x40000040)
+	//position += WriteSectionHeader(stream.FileHandle, ".xdata", 0x1000, 0x4000, 0x28, 0x28, 0x40000040)
+	//position += WriteSectionHeader(stream.FileHandle, ".data", 0x1200, 0x5000, 0x500, 0x500, 0x40000040)
+	//position += WriteSectionHeader(stream.FileHandle, ".gc", 0x1800, 0x6000, 0xd4, 0xd4, 0x40000040)
+	//position += WriteSectionHeader(stream.FileHandle, ".debug", 0x1a00, 0x7000, 0x200, 0x200, 0x40000040)
+	//position += WriteSectionHeader(stream.FileHandle, ".global", 0x2000, 0x8000, 0x2a, 0x2a, 0xc0000040)
+	//position += WriteSectionHeader(stream.FileHandle, ".text", 0x2200, 0x9000, 0x131, 0x131, 0x60000020)
+
+	position += WriteSectionHeader(stream.FileHandle, ".idata", 0x400, 0x1000, 0x1878, 0x1878, 0xc0000040)
+	position += WriteSectionHeader(stream.FileHandle, ".rsrc", 0x1e00, 0x3000, 0x11, 0x11, 0x40000040)
+	position += WriteSectionHeader(stream.FileHandle, ".pdata", 0x2000, 0x4000, 0x6dbc, 0x6dbc, 0x40000040)
+	position += WriteSectionHeader(stream.FileHandle, ".xdata", 0x8e00, 0xb000, 0x5bd4, 0x5bd4, 0x40000040)
+	position += WriteSectionHeader(stream.FileHandle, ".data", 0xea00, 0x11000, 0x27cde, 0x27cde, 0x40000040)
+	position += WriteSectionHeader(stream.FileHandle, ".gc", 0x36800, 0x39000, 0x1d10c, 0x1d10c, 0x40000040)
+	position += WriteSectionHeader(stream.FileHandle, ".debug", 0x53a00, 0x57000, 0x200, 0x200, 0x40000040)
+	position += WriteSectionHeader(stream.FileHandle, ".global", 0x54000, 0x58000, 0x3f1, 0x3f1, 0xc0000040)
+	position += WriteSectionHeader(stream.FileHandle, ".text", 0x54400, 0x59000, 0x46a08, 0x46a08, 0x60000020)
+
 
 	stream.FilePosition = stream.FilePosition + position
 }
