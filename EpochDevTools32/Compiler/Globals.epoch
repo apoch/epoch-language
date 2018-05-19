@@ -356,4 +356,9 @@ global
 
 	integer GlobalDebugDataIndex = 0
 	BinaryTreeRoot<ParsedToken> DebugDataMap = nothing
+
+	integer ExeBaseAddressOfImports = 0
+	integer ExeBaseAddressOfGlobals = 0
+	integer ExeBaseAddressOfStrings = 0
+
 }

@@ -151,7 +151,12 @@ MakeExe : EpochProject ref project
 	integer virtualoffsetcode    = RoundUp(virtualoffsetglobals + globaloffsettracker)
 	integer offsetcode           = RoundUpFile(offsetglobals + globaloffsettracker)
 
-	integer sizecode = EpochLLVMEmitBinaryObject(llvm, codebinarybuffer, 0x800000, virtualoffsetcode + 0x0400000, virtualoffsetgc)		// TODO - also bad hacks
+	integer modulebaseaddress = 0x0400000			// TODO - relocate in 64 bit space to a better home
+	ExeBaseAddressOfImports = modulebaseaddress + virtualoffsetthunk
+	ExeBaseAddressOfGlobals = modulebaseaddress + virtualoffsetglobals
+	ExeBaseAddressOfStrings = modulebaseaddress + virtualoffsetstrings
+
+	integer sizecode = EpochLLVMEmitBinaryObject(llvm, codebinarybuffer, 0x800000, virtualoffsetcode + modulebaseaddress, virtualoffsetgc)		// TODO - also bad hacks
 
 	integer totaldebugsize 		 = sizedebug + sizedebugreloc + sizedebugsymbols
 	integer sizeimage            = RoundUp(virtualoffsetcode + sizecode)
@@ -1051,20 +1056,19 @@ ThunkTableEntryGetFirstThunkCopyOffset : list<ThunkTableEntry> ref functions -> 
 
 ThunkLookupMapper : string funcname -> integer thunkoffset = 0
 {
-	// TODO - don't hard code base address
-	integer baseaddress = 0x401000
-	integer baseaddressglobals = 0x458000 // 0x408000
+	assertmsg(ExeBaseAddressOfImports != 0, "Base address of import address table not configured!")
+	assertmsg(ExeBaseAddressOfGlobals != 0, "Base address of global data not configured!")
+
+	thunkoffset = ExeBaseAddressOfImports + SearchThunkTableForFunctionOffset(GlobalThunkTable.Libraries, funcname)
 	
-	thunkoffset = baseaddress + SearchThunkTableForFunctionOffset(GlobalThunkTable.Libraries, funcname)
-	
-	if(thunkoffset < baseaddress)
+	if(thunkoffset < ExeBaseAddressOfImports)
 	{
 		integer pooledhandle = PoolString(funcname)
 		GlobalMetadata meta = 0, 0, 0
 		boolean found = BinaryTreeCopyPayload<GlobalMetadata>(LLVMGlobalVariables.RootNode, pooledhandle, meta)
 		if(found)
 		{
-			thunkoffset = baseaddressglobals + meta.Offset
+			thunkoffset = ExeBaseAddressOfGlobals + meta.Offset
 		}
 		else
 		{
@@ -1102,12 +1106,11 @@ SearchThunkLibForFunctionOffset : nothing, string funcname -> integer offset = -
 
 StringLookupMapper : integer stringhandle -> integer offset = 0
 {
-	// TODO - don't hard code base address
-	integer baseaddress = 0x411000 //0x405000
-	
+	assertmsg(ExeBaseAddressOfStrings != 0, "Base address of string table not configured!")
+
 	BinaryTreeCopyPayload<integer>(GlobalStringOffsets.RootNode, stringhandle, offset)
 	
-	offset += baseaddress
+	offset += ExeBaseAddressOfStrings
 }
 
 
