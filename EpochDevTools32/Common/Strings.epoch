@@ -89,6 +89,24 @@ ReadFile : string filename, integer ref len -> string contents = ""
 charat : string in, integer index -> string c = substring(in, index, 1)
 
 
+reverseindexof : string haystack, string needle -> integer pos = -1
+{
+	integer needlelen = length(needle)
+	integer haystacklen = length(haystack)
+
+	integer index = haystacklen - needlelen
+	while (index > -1)
+	{
+		if(substring(haystack, index, needlelen) == needle)
+		{
+			pos = index
+			return()
+		}
+
+		--index
+	}
+}
+
 
 QuoteString : string in -> string out = unescape("\'") ; in ; unescape("\'")
 
