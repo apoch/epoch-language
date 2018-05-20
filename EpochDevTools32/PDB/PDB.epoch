@@ -228,7 +228,7 @@ hackstrlen : integer strptr -> integer len = 0 [external("EpochPDBShim.dll", "St
 // computed internally to this function, so there's no need to have that totally
 // figured out before calling.
 //
-WritePDB : PDBOutputStream ref stream, integer codesectionstart, integer codesize, buffer ref symbolstart, integer symbolsize
+WritePDB : PDBOutputStream ref stream, integer codesectionstart, buffer ref symbolstart, integer symbolsize
 {
 	// We only support writing in a single pass, and no reads (yet).
 	// So don't allow emission of a PDB if we already opened a file.

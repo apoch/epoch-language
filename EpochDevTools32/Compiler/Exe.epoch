@@ -1280,6 +1280,6 @@ GeneratePDB : string pdbfilename, buffer ref symboldata, integer symbolsize, int
 
 	print("Final canary before we write PDB")
 
-	WritePDB(stream, codesectionstart, codesize, symbollist, symbollistbytes)
+	WritePDB(stream, codesectionstart, symbollist, symbollistbytes)
 }
 
