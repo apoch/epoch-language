@@ -841,105 +841,46 @@ EmitDBISectionContributions : PDBOutputStream ref stream
 }
 
 
+EmitDBISectionMapEntries : buffer ref header, integer ref headersize, list<COFFSectionHeader> ref sectionheaders, integer frame
+{
+	EmitDBISectionMapEntry(header, headersize, sectionheaders.value, frame)
+	EmitDBISectionMapEntries(header, headersize, sectionheaders.next, frame + 1)
+}
+
+EmitDBISectionMapEntries : buffer ref header, integer ref headersize, nothing, integer frame
+
+
+EmitDBISectionMapEntry : buffer ref header, integer ref headersize, COFFSectionHeader ref sectionheader, integer frame
+{
+	integer16 flags = 0x109
+	if(sectionheader.Name == ".text")
+	{
+		flags = 0x10d
+	}
+
+	ByteStreamEmitInteger16(header, headersize, flags)		// flags
+	ByteStreamEmitInteger16(header, headersize, 0)			// overlay
+	ByteStreamEmitInteger16(header, headersize, 0)			// group
+	ByteStreamEmitInteger16(header, headersize, cast(integer16, frame))		// frame
+	ByteStreamEmitInteger16(header, headersize, 0xffff)		// name
+	ByteStreamEmitInteger16(header, headersize, 0xffff)		// class name
+	ByteStreamEmitInteger(header, headersize, 0)			// offset
+	ByteStreamEmitInteger(header, headersize, sectionheader.VirtualSize)		// length
+}
+
+
 EmitDBISectionMap : PDBOutputStream ref stream
 {
 	buffer header = 512
 	integer headersize = 0
 	
+	// TODO - reflect actual EXE sections here
 	ByteStreamEmitInteger16(header, headersize, 10)		// actual entry count
 	ByteStreamEmitInteger16(header, headersize, 9)		// logical count
 	
-	// TODO - reflect actual EXE sections here
 
-	// section descriptor .idata
-	ByteStreamEmitInteger16(header, headersize, 0x109)		// flags
-	ByteStreamEmitInteger16(header, headersize, 0)			// overlay
-	ByteStreamEmitInteger16(header, headersize, 0)			// group
-	ByteStreamEmitInteger16(header, headersize, 1)			// frame
-	ByteStreamEmitInteger16(header, headersize, 0xffff)		// name
-	ByteStreamEmitInteger16(header, headersize, 0xffff)		// class name
-	ByteStreamEmitInteger(header, headersize, 0)			// offset
-	ByteStreamEmitInteger(header, headersize, 0x1878)		// length
-	
-	// section descriptor .rsrc
-	ByteStreamEmitInteger16(header, headersize, 0x109)		// flags
-	ByteStreamEmitInteger16(header, headersize, 0)			// overlay
-	ByteStreamEmitInteger16(header, headersize, 0)			// group
-	ByteStreamEmitInteger16(header, headersize, 2)			// frame
-	ByteStreamEmitInteger16(header, headersize, 0xffff)		// name
-	ByteStreamEmitInteger16(header, headersize, 0xffff)		// class name
-	ByteStreamEmitInteger(header, headersize, 0)			// offset
-	ByteStreamEmitInteger(header, headersize, 0x11)			// length
+	EmitDBISectionMapEntries(header, headersize, stream.SectionHeaders, 1)
 
-	// section descriptor .pdata
-	ByteStreamEmitInteger16(header, headersize, 0x109)		// flags
-	ByteStreamEmitInteger16(header, headersize, 0)			// overlay
-	ByteStreamEmitInteger16(header, headersize, 0)			// group
-	ByteStreamEmitInteger16(header, headersize, 3)			// frame
-	ByteStreamEmitInteger16(header, headersize, 0xffff)		// name
-	ByteStreamEmitInteger16(header, headersize, 0xffff)		// class name
-	ByteStreamEmitInteger(header, headersize, 0)			// offset
-	ByteStreamEmitInteger(header, headersize, 0x6dbc)		// length
-
-	// section descriptor .xdata
-	ByteStreamEmitInteger16(header, headersize, 0x109)		// flags
-	ByteStreamEmitInteger16(header, headersize, 0)			// overlay
-	ByteStreamEmitInteger16(header, headersize, 0)			// group
-	ByteStreamEmitInteger16(header, headersize, 4)			// frame
-	ByteStreamEmitInteger16(header, headersize, 0xffff)		// name
-	ByteStreamEmitInteger16(header, headersize, 0xffff)		// class name
-	ByteStreamEmitInteger(header, headersize, 0)			// offset
-	ByteStreamEmitInteger(header, headersize, 0x5bd4)		// length
-
-	// section descriptor .data
-	ByteStreamEmitInteger16(header, headersize, 0x109)		// flags
-	ByteStreamEmitInteger16(header, headersize, 0)			// overlay
-	ByteStreamEmitInteger16(header, headersize, 0)			// group
-	ByteStreamEmitInteger16(header, headersize, 5)			// frame
-	ByteStreamEmitInteger16(header, headersize, 0xffff)		// name
-	ByteStreamEmitInteger16(header, headersize, 0xffff)		// class name
-	ByteStreamEmitInteger(header, headersize, 0)			// offset
-	ByteStreamEmitInteger(header, headersize, 0x27cde)		// length
-
-	// section descriptor .gc
-	ByteStreamEmitInteger16(header, headersize, 0x109)		// flags
-	ByteStreamEmitInteger16(header, headersize, 0)			// overlay
-	ByteStreamEmitInteger16(header, headersize, 0)			// group
-	ByteStreamEmitInteger16(header, headersize, 6)			// frame
-	ByteStreamEmitInteger16(header, headersize, 0xffff)		// name
-	ByteStreamEmitInteger16(header, headersize, 0xffff)		// class name
-	ByteStreamEmitInteger(header, headersize, 0)			// offset
-	ByteStreamEmitInteger(header, headersize, 0x1d10c)		// length
-
-	// section descriptor .debug
-	ByteStreamEmitInteger16(header, headersize, 0x109)		// flags
-	ByteStreamEmitInteger16(header, headersize, 0)			// overlay
-	ByteStreamEmitInteger16(header, headersize, 0)			// group
-	ByteStreamEmitInteger16(header, headersize, 7)			// frame
-	ByteStreamEmitInteger16(header, headersize, 0xffff)		// name
-	ByteStreamEmitInteger16(header, headersize, 0xffff)		// class name
-	ByteStreamEmitInteger(header, headersize, 0)			// offset
-	ByteStreamEmitInteger(header, headersize, 0x200)		// length
-
-	// section descriptor .global
-	ByteStreamEmitInteger16(header, headersize, 0x109)		// flags
-	ByteStreamEmitInteger16(header, headersize, 0)			// overlay
-	ByteStreamEmitInteger16(header, headersize, 0)			// group
-	ByteStreamEmitInteger16(header, headersize, 8)			// frame
-	ByteStreamEmitInteger16(header, headersize, 0xffff)		// name
-	ByteStreamEmitInteger16(header, headersize, 0xffff)		// class name
-	ByteStreamEmitInteger(header, headersize, 0)			// offset
-	ByteStreamEmitInteger(header, headersize, 0x3f1)		// length
-
-	// section descriptor .text
-	ByteStreamEmitInteger16(header, headersize, 0x10d)		// flags
-	ByteStreamEmitInteger16(header, headersize, 0)			// overlay
-	ByteStreamEmitInteger16(header, headersize, 0)			// group
-	ByteStreamEmitInteger16(header, headersize, 9)			// frame
-	ByteStreamEmitInteger16(header, headersize, 0xffff)		// name
-	ByteStreamEmitInteger16(header, headersize, 0xffff)		// class name
-	ByteStreamEmitInteger(header, headersize, 0)			// offset
-	ByteStreamEmitInteger(header, headersize, stream.SizeOfCode)
 
 	// magic section (?)
 	ByteStreamEmitInteger16(header, headersize, 0x208)		// flags
