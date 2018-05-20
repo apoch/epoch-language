@@ -136,6 +136,13 @@ extern "C" size_t EpochLLVMEmitBinaryObject(void* context, char* buffer, size_t 
 	return reinterpret_cast<CodeGen::Context*>(context)->EmitBinaryObject(buffer, maxoutput, entrypointaddress, gcaddress);
 }
 
+
+extern "C" void EpochLLVMRelocateBuffers(void* context, unsigned offsetxdata, unsigned offsettext)
+{
+	reinterpret_cast<CodeGen::Context*>(context)->RelocateBuffers(offsetxdata, offsettext);
+}
+
+
 extern "C" void EpochLLVMSetThunkCallback(void* context, void* funcptr)
 {
 	return reinterpret_cast<CodeGen::Context*>(context)->SetThunkCallback(funcptr);

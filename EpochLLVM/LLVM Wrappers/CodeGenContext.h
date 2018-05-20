@@ -137,6 +137,8 @@ namespace CodeGen
 		void PrepareBinaryObject();
 		size_t EmitBinaryObject(char* buffer, size_t maxoutput, unsigned entrypointaddress, unsigned gcaddress);
 
+		void RelocateBuffers(unsigned offsetxdata, unsigned offsettext);
+
 	public:		// Miscellaneous configuration interface
 		void SetEntryFunction(llvm::Function* func);
 

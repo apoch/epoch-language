@@ -107,25 +107,14 @@ MakeExe : EpochProject ref project
 	integer sizexdata = EpochLLVMSectionGetXDataSize(llvm)
 	integer sizegc = EpochLLVMSectionGetGCSize(llvm)
 	integer sizedebug = EpochLLVMSectionGetDebugSize(llvm)
-	integer sizedebugreloc = EpochLLVMSectionGetDebugRelocSize(llvm)
-	integer sizedebugsymbols = EpochLLVMSectionGetDebugSymbolSize(llvm)
 	integer sizestrings = PreprocessStringPool(GlobalStringPool, GlobalStringOffsets)
 	
 	buffer pdata = sizepdata
 	buffer xdata = sizexdata
 	buffer gcdata = sizegc
 	buffer debugdata = sizedebug
-	buffer debugrelocdata = sizedebugreloc
-	buffer debugsymboldata = sizedebugsymbols
-	
-	EpochLLVMSectionCopyPData(llvm, pdata)
-	EpochLLVMSectionCopyXData(llvm, xdata)
-	EpochLLVMSectionCopyGC(llvm, gcdata)
-	EpochLLVMSectionCopyDebug(llvm, debugdata)
-	EpochLLVMSectionCopyDebugReloc(llvm, debugrelocdata)
-	integer symbolcount = EpochLLVMSectionCopyDebugSymbols(llvm, debugsymboldata)
-	
-	
+
+
 	integer virtualoffsetrsrc    = RoundUp(virtualoffsetthunk + sizethunk)
 	integer offsetrsrc           = RoundUpFile(offsetthunk + sizethunk)
 	integer sizersrc             = res.DirectorySize + res.DataSize + 1
@@ -150,6 +139,24 @@ MakeExe : EpochProject ref project
 
 	integer virtualoffsetcode    = RoundUp(virtualoffsetglobals + globaloffsettracker)
 	integer offsetcode           = RoundUpFile(offsetglobals + globaloffsettracker)
+
+
+	EpochLLVMRelocateBuffers(llvm, virtualoffsetxdata, virtualoffsetcode)
+
+	integer sizedebugreloc = EpochLLVMSectionGetDebugRelocSize(llvm)
+	integer sizedebugsymbols = EpochLLVMSectionGetDebugSymbolSize(llvm)
+
+	buffer debugrelocdata = sizedebugreloc
+	buffer debugsymboldata = sizedebugsymbols
+	
+
+	EpochLLVMSectionCopyPData(llvm, pdata)
+	EpochLLVMSectionCopyXData(llvm, xdata)
+	EpochLLVMSectionCopyGC(llvm, gcdata)
+	EpochLLVMSectionCopyDebug(llvm, debugdata)
+	EpochLLVMSectionCopyDebugReloc(llvm, debugrelocdata)
+	integer symbolcount = EpochLLVMSectionCopyDebugSymbols(llvm, debugsymboldata)
+
 
 	integer modulebaseaddress = 0x0400000			// TODO - relocate in 64 bit space to a better home
 	ExeBaseAddressOfImports = modulebaseaddress + virtualoffsetthunk
@@ -176,17 +183,17 @@ MakeExe : EpochProject ref project
 	}
 	
 	
-	string objfilename = substring(project.OutputFileName, 0, length(project.OutputFileName) - 4) ; ".sym"
+	//string objfilename = substring(project.OutputFileName, 0, length(project.OutputFileName) - 4) ; ".sym"
 	string pdbfilename = substring(project.OutputFileName, 0, length(project.OutputFileName) - 4) ; ".pdb"
-	string cvfilename = substring(project.OutputFileName, 0, length(project.OutputFileName) - 4) ; ".cv"
-	string relocfilename = substring(project.OutputFileName, 0, length(project.OutputFileName) - 4) ; ".reloc"
+	//string cvfilename = substring(project.OutputFileName, 0, length(project.OutputFileName) - 4) ; ".cv"
+	//string relocfilename = substring(project.OutputFileName, 0, length(project.OutputFileName) - 4) ; ".reloc"
 
-	Win32Handle objfilehandle = CreateFile(objfilename, GENERIC_WRITE, 0, 0, CREATE_ALWAYS, 0, 0)
-	if(objfilehandle == -1)
-	{
-		print("Cannot open " ; objfilename ; " to emit .SYM!")
-		return()
-	}
+	//Win32Handle objfilehandle = CreateFile(objfilename, GENERIC_WRITE, 0, 0, CREATE_ALWAYS, 0, 0)
+	//if(objfilehandle == -1)
+	//{
+	//	print("Cannot open " ; objfilename ; " to emit .SYM!")
+	//	return()
+	//}
 	
 
 	integer16 subsystem = 2		// GUI

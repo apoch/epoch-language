@@ -49,7 +49,7 @@ namespace CodeGenInternal
 	// through the list and bump the offsets according to which section the final data should be
 	// found in.
 	//
-	void ProcessPDataRelocationForField(const object::SectionRef& section, IMAGE_RUNTIME_FUNCTION_ENTRY* data, void* fieldaddr)
+	void ProcessPDataRelocationForField(const object::SectionRef& section, IMAGE_RUNTIME_FUNCTION_ENTRY* data, unsigned xdataoffset, unsigned textoffset, void* fieldaddr)
 	{
 		size_t fieldoffset = reinterpret_cast<const char*>(fieldaddr) - reinterpret_cast<const char*>(data);
 
@@ -59,11 +59,11 @@ namespace CodeGenInternal
 			{
 				if(reloc.getSymbol()->getName().get().str() == ".xdata")
 				{
-					*reinterpret_cast<char**>(fieldaddr) += 0xb000; // 0x4000;		// TODO - don't hardcode the offset of the .xdata section
+					*reinterpret_cast<char**>(fieldaddr) += xdataoffset;
 				}
 				else
 				{
-					*reinterpret_cast<char**>(fieldaddr) += reloc.getSymbol()->getAddress().get() + 0x59000; // 0x9000;    // TODO - don't hardcode the offset of the .text section
+					*reinterpret_cast<char**>(fieldaddr) += reloc.getSymbol()->getAddress().get() + textoffset;
 				}
 			}
 		}
@@ -78,16 +78,16 @@ namespace CodeGenInternal
 	// that link time/image emission time is significantly hampered by this process, however, it
 	// isn't worth the effort or the loss of clarity.
 	//
-	void ProcessPDataRelocations(const object::SectionRef& section, std::vector<char>* buffer)
+	void ProcessPDataRelocations(const object::SectionRef& section, std::vector<char>* buffer, unsigned xdataoffset, unsigned textoffset)
 	{
 		size_t numrecords = buffer->size() / sizeof(IMAGE_RUNTIME_FUNCTION_ENTRY);
 		IMAGE_RUNTIME_FUNCTION_ENTRY* data = reinterpret_cast<IMAGE_RUNTIME_FUNCTION_ENTRY*>(buffer->data());
 
 		for(size_t i = 0; i < numrecords; ++i)
 		{
-			ProcessPDataRelocationForField(section, data, &(data[i].BeginAddress));
-			ProcessPDataRelocationForField(section, data, &(data[i].EndAddress));
-			ProcessPDataRelocationForField(section, data, &(data[i].UnwindInfoAddress));
+			ProcessPDataRelocationForField(section, data, xdataoffset, textoffset, &(data[i].BeginAddress));
+			ProcessPDataRelocationForField(section, data, xdataoffset, textoffset, &(data[i].EndAddress));
+			ProcessPDataRelocationForField(section, data, xdataoffset, textoffset, &(data[i].UnwindInfoAddress));
 		}
 	}
 
@@ -561,32 +561,56 @@ void Context::PrepareBinaryObject()
 	CachedExecutionEngine = ee;
 
 
-	for(const auto& section : EmittedImage->sections())
+	for (const auto& section : EmittedImage->sections())
 	{
-		if(!section.isText() && !section.isBSS() && !section.isVirtual())
-		{	
+		if (!section.isText() && !section.isBSS() && !section.isVirtual())
+		{
 			std::vector<char>* targetbuffer = nullptr;
 
 			StringRef sectionname;
 			section.getName(sectionname);
 
-			if(sectionname == ".pdata")
+			if (sectionname == ".pdata")
 				targetbuffer = &PData;
-			else if(sectionname == ".xdata")
+			else if (sectionname == ".xdata")
 				targetbuffer = &XData;
-			else if(sectionname == ".debug$S")
+			else if (sectionname == ".debug$S")
 				targetbuffer = &DebugData;
 
-			if(targetbuffer)
+			if (targetbuffer)
 			{
 				StringRef sectiondata;
 				section.getContents(sectiondata);
 				std::copy(sectiondata.begin(), sectiondata.end(), std::back_inserter(*targetbuffer));
 			}
+		}
+	}
 
-			if(sectionname == ".pdata")
-				ProcessPDataRelocations(section, targetbuffer);
-			else if(sectionname == ".debug$S")
+	GCCompilation::PrepareGCData(*CachedExecutionEngine, &GCSection);
+}
+
+
+void Context::RelocateBuffers(unsigned offsetxdata, unsigned offsettext)
+{
+	for (const auto& section : EmittedImage->sections())
+	{
+		if (!section.isText() && !section.isBSS() && !section.isVirtual())
+		{
+			std::vector<char>* targetbuffer = nullptr;
+
+			StringRef sectionname;
+			section.getName(sectionname);
+
+			if (sectionname == ".pdata")
+				targetbuffer = &PData;
+			else if (sectionname == ".xdata")
+				targetbuffer = &XData;
+			else if (sectionname == ".debug$S")
+				targetbuffer = &DebugData;
+
+			if (sectionname == ".pdata")
+				ProcessPDataRelocations(section, targetbuffer, offsetxdata, offsettext);
+			else if (sectionname == ".debug$S")
 				ProcessArbitraryRelocations(section, &DebugRelocs);
 		}
 	}
@@ -597,14 +621,14 @@ void Context::PrepareBinaryObject()
 	std::vector<char> stringbuffer;
 
 	uint32_t offset = 4;
-	for(const auto& sym : EmittedImage->symbols())
+	for (const auto& sym : EmittedImage->symbols())
 	{
 		IMAGE_SYMBOL symbol;
 
 		memset(symbol.N.ShortName, 0, 8);
 
 		auto nameerr = sym.getName();
-		if(!nameerr)
+		if (!nameerr)
 		{
 			std::cout << "SKIP nameless symbol" << std::endl;
 			continue;
@@ -623,14 +647,14 @@ void Context::PrepareBinaryObject()
 		symbol.Value = (DWORD)sym.getValue();
 		symbol.SectionNumber = IMAGE_SYM_ABSOLUTE;
 		symbol.StorageClass = IMAGE_SYM_CLASS_EXTERNAL;
-		
-		switch(sym.getType().get())
+
+		switch (sym.getType().get())
 		{
 		case object::SymbolRef::ST_Function:
 			std::cout << "Function: " << symname << std::endl;
 			symbol.SectionNumber = 9;
 
-			if(symname == "init")
+			if (symname == "init")
 				symbol.StorageClass = IMAGE_SYM_CLASS_EXTERNAL;
 
 			symbol.Type = (IMAGE_SYM_DTYPE_FUNCTION << N_BTSHFT);
@@ -654,10 +678,8 @@ void Context::PrepareBinaryObject()
 	AppendToBuffer(&DebugSymbols, uint32_t(stringbuffer.size() + 8));
 
 	std::copy(std::begin(stringbuffer), std::end(stringbuffer), std::back_inserter(DebugSymbols));
-
-
-	GCCompilation::PrepareGCData(*CachedExecutionEngine, &GCSection);
 }
+
 
 size_t Context::EmitBinaryObject(char* buffer, size_t maxoutput, unsigned entrypointaddress, unsigned gcaddress)
 {

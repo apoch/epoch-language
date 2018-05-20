@@ -153,7 +153,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='TransitionRelease|Win32'">
     <LinkIncremental>false</LinkIncremental>
     <IntDir>$(SolutionDir)\Build\$(Configuration)\$(ProjectName)\</IntDir>
-    <OutDir>c:\Epoch\epoch-language\EpochDevTools32\bin\Release\</OutDir>
+    <OutDir>c:\Code\epoch-language\EpochDevTools32\bin\Release\</OutDir>
     <IncludePath>C:\Code\LLVM\LLVM-6.0.0-32bit\include;C:\Code\epoch-language\EpochLLVM;$(IncludePath)</IncludePath>
     <LibraryPath>C:\Code\LLVM\LLVM-6.0.0-32bit\Release\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
