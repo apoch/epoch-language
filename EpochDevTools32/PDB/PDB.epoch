@@ -281,7 +281,7 @@ WritePDB : PDBOutputStream ref stream, integer codesectionstart, integer codesiz
 	
 	// Move up and write the publics (DBI) stream
 	PadGarbageToBeginningOfBlock(stream, stream.Layout.Directory.Publics.Blocks.value)
-	stream.FilePosition = WritePublicsStream(stream.FileHandle, stream.FilePosition)
+	stream.FilePosition = WritePublicsStream(stream.FileHandle, stream.FilePosition, codesectionstart)
 	
 	// Move up and write the symbol records (DBI) stream
 	PadGarbageToBeginningOfBlock(stream, stream.Layout.Directory.Symbols.Blocks.value)
@@ -1233,7 +1233,7 @@ WriteGlobalsStream : Win32Handle pdbfilehandle, integer startfileposition -> int
 }
 
 
-WritePublicsStream : Win32Handle pdbfilehandle, integer startfileposition -> integer endfileposition = 0
+WritePublicsStream : Win32Handle pdbfilehandle, integer startfileposition, integer codesectionstart -> integer endfileposition = 0
 {
 	buffer header = 4096
 	integer headersize = 0
@@ -1290,7 +1290,7 @@ WritePublicsStream : Win32Handle pdbfilehandle, integer startfileposition -> int
 	}
 	
 	// section descriptor .text
-	ByteStreamEmitInteger(header, headersize, 0x59000)		// offset				TODO - evil hardcoded numbers
+	ByteStreamEmitInteger(header, headersize, codesectionstart)		// offset of section
 	ByteStreamEmitInteger16(header, headersize, 9)			// index of section
 	ByteStreamEmitInteger16(header, headersize, 0)			// pad
 
