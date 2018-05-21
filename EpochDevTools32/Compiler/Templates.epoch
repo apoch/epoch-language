@@ -330,7 +330,7 @@ DoMemberInstantiation : StructureMemberVariable ref memvar, list<StructureMember
 	{
 		integer newtype = MapTemplateType(memvar.TypeNameHandle, params, args)
 
-		StructureMemberVariable newmemvar = memvar.Name, 0, newtype, scratchtemplatearglist
+		StructureMemberVariable newmemvar = memvar.Name, memvar.Type, newtype, scratchtemplatearglist
 		CopyTemplateArgs(memvar.TemplateArgs, newmemvar.TemplateArgs)
 		RemapAllTemplateArguments(newmemvar.TemplateArgs, params, args)
 		StructureMember newmember = newmemvar
