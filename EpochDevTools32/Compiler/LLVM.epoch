@@ -846,17 +846,17 @@ EmitSingleCodeBlockEntryToLLVM : LLVMBuildContext ref context, AssignmentCompoun
 	
 	if(IsSumType(entry.LHSType))
 	{
+		if (IsReferenceType(entry.LHSType))
+		{
+			EpochLLVMCodeCreateDereference(context.Context)
+		}
+
 		if(entry.LHSType == rhstype)
 		{
 			EpochLLVMCodeCreateWriteStructurePop(context.Context)
 		}
 		else
 		{
-			if (IsReferenceType(entry.LHSType))
-			{
-				EpochLLVMCodeCreateDereference(context.Context)
-			}
-
 			EpochLLVMCodePushInteger(context.Context, rhstype)
 			EpochLLVMCodeCreateWriteStructurePopSumType(context.Context)
 		}
