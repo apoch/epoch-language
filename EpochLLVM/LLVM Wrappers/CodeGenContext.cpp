@@ -1035,6 +1035,12 @@ void Context::CodeCreateWrite(llvm::AllocaInst* originaltarget)
 
 	if(wv->getType() != allocatarget->getType()->getPointerElementType())
 	{
+		if (!wv->getType()->isStructTy())
+		{
+			LLVMBuilder.GetInsertBlock()->getParent()->dump();
+			wv->dump();
+		}
+
 		Value* readannotationgep = LLVMBuilder.CreateExtractValue(wv, { 0 });
 		Value* readpayloadgep = LLVMBuilder.CreateExtractValue(wv, { 1 });
 

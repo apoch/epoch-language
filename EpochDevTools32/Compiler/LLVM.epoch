@@ -737,6 +737,7 @@ EmitSingleCodeBlockEntryToLLVM : LLVMBuildContext ref context, Assignment ref en
 	}
 
 
+	integer rhstype = GetAssignmentRHSType(entry)
 	EmitAssignmentRHSToLLVM(context, entry.RHS)
 
 	if(entry.Operator == PooledStringHandleForAssignment)
@@ -774,6 +775,11 @@ EmitSingleCodeBlockEntryToLLVM : LLVMBuildContext ref context, Assignment ref en
 		}
 		else
 		{
+			if(IsSumType(entry.LHSType) && IsReferenceType(rhstype))
+			{
+				EpochLLVMCodeCreateDereference(context.Context)
+			}
+
 			EpochLLVMCodeCreateWrite(context.Context, alloca)
 		}
 	}
