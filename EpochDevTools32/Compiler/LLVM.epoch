@@ -846,6 +846,11 @@ EmitSingleCodeBlockEntryToLLVM : LLVMBuildContext ref context, AssignmentCompoun
 		}
 		else
 		{
+			if (IsReferenceType(entry.LHSType))
+			{
+				EpochLLVMCodeCreateDereference(context.Context)
+			}
+
 			EpochLLVMCodePushInteger(context.Context, rhstype)
 			EpochLLVMCodeCreateWriteStructurePopSumType(context.Context)
 		}
@@ -1400,10 +1405,10 @@ EmitSingleAtomToLLVM : LLVMBuildContext ref context, IdentifierAtom ref idatom
 				
 				if(IsReferenceType(var.VarType))
 				{
-					if(!IsSumType(var.VarType))
-					{
+					//if(!IsSumType(var.VarType))
+					//{
 						EpochLLVMCodeCreateDereference(context.Context)
-					}
+					//}
 				}
 				elseif(alloca == 0)
 				{
@@ -1523,7 +1528,7 @@ EmitSingleAtomToLLVM : LLVMBuildContext ref context, CompoundAtom ref atom
 		EpochLLVMCodePushRawAlloca(context.Context, alloca)
 	}
 
-	EmitCompoundBindingsToLLVM(context, IsReferenceType(atom.Type), atom.Bindings, atom.Bindings.next)
+	EmitCompoundBindingsToLLVM(context, (IsSumType(atom.Type) && IsReferenceType(atom.Type)), atom.Bindings, atom.Bindings.next)
 }
 
 EmitSingleAtomToLLVM : LLVMBuildContext ref context, TypeAnnotationAtom ref atom

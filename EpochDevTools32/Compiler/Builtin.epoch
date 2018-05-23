@@ -446,7 +446,7 @@ FindBuiltinAndAddParameterTypes : integer funcname, integer paramindex, integer 
 		funcname = GetNameOfType(FindTypeAliasBase(ctype))
 	}
 
-	if((ctype & 0x7f000000) == 0x07000000)
+	if(IsSumType(ctype))
 	{
 		if(paramcount == 2)
 		{

@@ -348,7 +348,7 @@ llvm::GlobalVariable* Context::FunctionCreateThunk(const char* name, llvm::Funct
 
 void Context::FunctionFinalize()
 {
-	//LLVMBuilder.GetInsertBlock()->getParent()->dump();
+	LLVMBuilder.GetInsertBlock()->getParent()->dump();
 
 	// TODO - better implementation of this
 	assert(PendingValues.empty() || PendingValues.size() == 1);
@@ -781,7 +781,15 @@ llvm::CallInst* Context::CodeCreateCall(llvm::Function* target)
 			arg = PendingValues.back();
 			PendingValues.pop_back();
 
-			StructType* paramtype = cast<StructType>(fty->getParamType(fty->getNumParams() - relevantargs.size() - 1));
+			Type* pt = fty->getParamType(fty->getNumParams() - relevantargs.size() - 1);
+			if (pt->isPointerTy())
+			{
+				fty->dump();
+				LLVMBuilder.GetInsertBlock()->getParent()->dump();
+				arg->dump();
+			}
+
+			StructType* paramtype = cast<StructType>(pt);
 
 			Value* payload = nullptr;
 			Value* signature = arg;
@@ -820,6 +828,14 @@ llvm::CallInst* Context::CodeCreateCall(llvm::Function* target)
 	{
 		if(target->getFunctionType()->getParamType(i) != relevantargs[i]->getType())
 		{
+			if (relevantargs[i]->getType()->isStructTy())
+			{
+				LLVMBuilder.GetInsertBlock()->getParent()->dump();
+				relevantargs[i]->dump();
+				fty->dump();
+				target->dump();
+			}
+
 			// TODO - this is terribad. At least assert that both types are sum types and both types have the same shape!
 
 			relevantargs[i] = LLVMBuilder.CreatePointerCast(relevantargs[i], target->getFunctionType()->getParamType(i));

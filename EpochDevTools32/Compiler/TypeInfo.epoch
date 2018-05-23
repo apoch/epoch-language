@@ -94,7 +94,7 @@ GetNameOfType : integer typeid -> integer name = 0
 	{
 		name = GetNameOfStructureByType(typeid)
 	}
-	elseif((typeid & 0xff000000) == 0x07000000)
+	elseif(IsSumType(typeid))
 	{
 		name = FindSumTypeName(typeid)
 	}

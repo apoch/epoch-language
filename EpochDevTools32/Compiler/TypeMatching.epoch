@@ -186,7 +186,7 @@ AnyPendingTypeMatcherPointsToAnyOverload : nothing, integer rawname, integer par
 
 CheckForNeededTypeMatcher : simplelist<integer> ref types -> boolean needsmatcher = false
 {
-	if((types.value & 0x7f000000) == 0x07000000)
+	if(IsSumType(types.value))
 	{
 		needsmatcher = true
 	}
@@ -275,7 +275,7 @@ FindConstructorAndAnnotateTypeMatchedParams : nothing, integer funcname, list<Ex
 AnnotateTypeMatchedParamsFromConstructor : list<StructureMember> ref members, list<Expression> ref paramexprs
 {
 	integer membertype = GetMemberTypeDecompose(members.value)
-	if((membertype & 0x7f000000) == 0x07000000)
+	if(IsSumType(membertype) && !IsReferenceType(membertype))
 	{
 		//if(MakeNonReferenceType(paramexprs.value.Type) != MakeNonReferenceType(membertype))
 		//{
@@ -301,11 +301,11 @@ AnnotateTypeMatchedParams : FunctionParams ref params, list<Expression> ref para
 
 AnnotateTypeMatchedParams : list<UnresolvedParameter> ref params, list<Expression> ref paramexprs
 {
-	if((params.value.ResolvedType & 0x7f000000) == 0x07000000)
+	if(IsSumType(params.value.ResolvedType) && !IsReferenceType(params.value.ResolvedType))
 	{
 		AddTypeAnnotation(paramexprs.value)
 	}
-	elseif(IsSumType(paramexprs.value.Type))
+	elseif(IsSumType(paramexprs.value.Type) && !IsReferenceType(paramexprs.value.Type))
 	{
 		AddTypeAnnotation(paramexprs.value)
 	}

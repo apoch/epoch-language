@@ -37,7 +37,7 @@ TypeListContains : simplelist<integer> ref thelist, integer value -> integer ret
 		return()
 	}
 
-	if((value & 0x7f000000) == 0x07000000)
+	if(IsSumType(value))
 	{
 		if(MakeNonReferenceType(value) == MakeNonReferenceType(listval))
 		{
@@ -52,7 +52,7 @@ TypeListContains : simplelist<integer> ref thelist, integer value -> integer ret
 		}
 	}
 
-	if((listval & 0x7f000000) == 0x07000000)
+	if(IsSumType(listval))
 	{
 		if(MakeNonReferenceType(value) == MakeNonReferenceType(listval))
 		{
@@ -60,7 +60,7 @@ TypeListContains : simplelist<integer> ref thelist, integer value -> integer ret
 			return()
 		}
 
-		if(SumTypeHasBase(listval, MakeNonReferenceType(value)))
+		if(SumTypeHasBase(MakeNonReferenceType(listval), MakeNonReferenceType(value)))
 		{
 			ret = value
 			return()
@@ -802,7 +802,7 @@ AnnotateAllParameters : ExpressionList ref exprs, integer statementname, integer
 
 AnnotateAllParameters : list<Expression> ref params, integer statementname, integer paramindex, integer paramcount, boolean toplevel
 {
-	if((params.value.Type & 0x7f000000) != 0x07000000)
+	if(!IsSumType(params.value.Type))
 	{
 		AddTypeAnnotation(params.value)
 	}
@@ -829,7 +829,12 @@ AnnotateNonReferenceParameters : list<Expression> ref params
 {
 	//if(params.value.Type != 0x01000000)		//if((params.value.Type & 0x7f000000) != 0x07000000)
 	//{
+
+	if(!IsReferenceType(params.value.Type))
+	{
 		AddTypeAnnotation(params.value)
+	}
+
 	//}
 	AnnotateNonReferenceParameters(params.next)
 }
