@@ -109,7 +109,7 @@ DumpAtomFoo : integer64 ref atom { print("integer64") }
 DumpAtomFoo : boolean ref atom { print("boolean") }
 DumpAtomFoo : real ref atom { print("real") }
 DumpAtomFoo : StringHandleAtom ref atom { print("stringhandle") }
-DumpAtomFoo : IdentifierAtom ref atom { print("identifier") }
+DumpAtomFoo : IdentifierAtom ref atom { print("identifier " ; GetPooledString(atom.Handle)) }
 DumpAtomFoo : OperatorInvokeAtom ref atom { print("operator") }
 DumpAtomFoo : TypeAnnotationAtom ref atom { print("type") }
 DumpAtomFoo : RefBinding ref atom { print("binding") }
