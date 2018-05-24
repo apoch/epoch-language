@@ -755,7 +755,7 @@ llvm::CallInst* Context::CodeCreateCall(llvm::Function* target)
 		{
 			if(isa<ConstantPointerNull>(arg))
 			{
-				if(PendingValues.empty())
+				if(PendingValues.size() + relevantargs.size() < fty->getFunctionNumParams())
 					relevantargs.push_back(arg);
 			}
 			else
