@@ -16,8 +16,11 @@ ThreadStringPool StringPool;
 extern "C" void ERT_assert(bool flag)
 {
 	// TODO - better handling here
-	if(!flag)
+	if (!flag)
+	{
+		__debugbreak();
 		exit(0xffffffff);
+	}
 }
 
 extern "C" void ERT_passtest()

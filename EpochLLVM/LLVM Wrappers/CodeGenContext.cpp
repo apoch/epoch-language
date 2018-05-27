@@ -348,7 +348,7 @@ llvm::GlobalVariable* Context::FunctionCreateThunk(const char* name, llvm::Funct
 
 void Context::FunctionFinalize()
 {
-	LLVMBuilder.GetInsertBlock()->getParent()->dump();
+	//LLVMBuilder.GetInsertBlock()->getParent()->dump();
 
 	// TODO - better implementation of this
 	assert(PendingValues.empty() || PendingValues.size() == 1);
@@ -1590,6 +1590,8 @@ void llvm::Module::dump() const {
 
 // Value::dump - allow easy printing of Values from the debugger.
 void llvm::Value::dump() const { print(dbgs(), /*IsForDebug=*/true); dbgs() << '\n'; }
+
+void Type::dump() const { print(dbgs(), /*IsForDebug=*/true); dbgs() << '\n'; }
 
 #endif
 
