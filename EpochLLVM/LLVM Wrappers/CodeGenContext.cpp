@@ -1141,10 +1141,11 @@ void Context::CodeCreateWriteStructurePop()
 	Value* wv = PendingValues.back();
 	PendingValues.pop_back();
 
-	if(wv->getType()->getPointerTo() == gep->getType())
-		LLVMBuilder.CreateStore(wv, gep);
-	else
-		LLVMBuilder.CreateStore(LLVMBuilder.CreateLoad(wv), gep);
+	// TODO - horrid hack
+	while (wv->getType()->getPointerTo() != gep->getType())
+		wv = LLVMBuilder.CreateLoad(wv);
+
+	LLVMBuilder.CreateStore(wv, gep);
 }
 
 void Context::CodeCreateWriteStructurePopSumType()
