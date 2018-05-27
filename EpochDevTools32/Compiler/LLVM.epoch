@@ -1540,7 +1540,17 @@ EmitSingleAtomToLLVM : LLVMBuildContext ref context, CompoundAtom ref atom
 		EpochLLVMCodePushRawAlloca(context.Context, alloca)
 	}
 
-	EmitCompoundBindingsToLLVM(context, (IsSumType(atom.Type) && IsReferenceType(atom.Type)), atom.Bindings, atom.Bindings.next)
+	boolean endwithpointer = false
+	if(IsSumType(atom.Type) && IsReferenceType(atom.Type))
+	{
+		endwithpointer = true
+	}
+	elseif(IsReferenceType(atom.Type) && (MakeNonReferenceType(atom.Type) == 0x02000001))			// TODO - try and understand *why* buffer type is an exceptional case here!
+	{
+		endwithpointer = true
+	}
+
+	EmitCompoundBindingsToLLVM(context, endwithpointer, atom.Bindings, atom.Bindings.next)
 }
 
 EmitSingleAtomToLLVM : LLVMBuildContext ref context, TypeAnnotationAtom ref atom
