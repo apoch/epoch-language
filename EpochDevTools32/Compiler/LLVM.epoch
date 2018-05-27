@@ -967,17 +967,23 @@ EmitSingleCodeBlockEntryToLLVM : LLVMBuildContext ref context, Statement ref ent
 		BinaryTreeCopyPayload<LLVMAlloca>(context.LocalVariables.RootNode, stvarname, stalloca)
 		assertmsg(stalloca != 0, "Couldn't find LLVM binding sum-typed alloca to initialize")
 
-		EpochLLVMCodePushRawAlloca(context.Context, stalloca)
-		LLVMGEP stgep = EpochLLVMCodeCreateGEP(context.Context, 0)
+		integer rhstype = GetParameterTypeFromExpressionList(entry.Parameters, 1)
+		if (IsReferenceType(rhstype))
+		{
+			EmitPartialExpressionListToLLVM(context, entry.Parameters)
+			EpochLLVMCodeCreateDereference(context.Context)
+			EpochLLVMCodePushRawAlloca(context.Context, stalloca)
+			EpochLLVMCodePushInteger(context.Context, MakeNonReferenceType(rhstype))
+			EpochLLVMCodeCreateWriteStructurePopSumType(context.Context)
+		}
+		else
+		{
+			EpochLLVMCodePushRawAlloca(context.Context, stalloca)
+			LLVMGEP stgep = EpochLLVMCodeCreateGEP(context.Context, 0)
 
-		//EpochLLVMCodePushRawAlloca(context.Context, stalloca)
-		//LLVMGEP payloadgep = EpochLLVMCodeCreateGEP(context.Context, 1)
-		EmitPartialExpressionListToLLVM(context, entry.Parameters)
-		EpochLLVMCodeCreateWriteStructure(context.Context, stgep)
-
-		// TODO - This is no longer needed because WriteStructure does magic. Move that magic back into this module when suitable.
-		//EpochLLVMCodeCreateCast(context.Context, GetLLVMTypeForEpochType(context.Context, 0x01000005))
-		//EpochLLVMCodeCreateWriteStructure(context.Context, payloadgep)
+			EmitPartialExpressionListToLLVM(context, entry.Parameters)
+			EpochLLVMCodeCreateWriteStructure(context.Context, stgep)
+		}
 	}
 	else
 	{

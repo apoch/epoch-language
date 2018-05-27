@@ -884,6 +884,15 @@ llvm::CallInst* Context::CodeCreateCallThunk(llvm::GlobalVariable* target)
 	}
 	std::reverse(relevantargs.begin(), relevantargs.end());
 
+	// Dumb hack.
+	for (size_t i = 0; i < fty->getNumParams(); ++i)
+	{
+		if (fty->getParamType(i)->getPointerTo() == relevantargs[i]->getType())
+		{
+			relevantargs[i] = LLVMBuilder.CreateLoad(relevantargs[i]);
+		}
+	}
+
 	llvm::CallInst* inst = LLVMBuilder.CreateCall(loadedTarget, relevantargs);
 
 	if(inst->getType() != Type::getVoidTy(GlobalContext))
@@ -1104,8 +1113,17 @@ void Context::CodeCreateWriteStructure(llvm::Value* gep)
 	Value* wv = PendingValues.back();
 	PendingValues.pop_back();
 
-	if(wv)
+	if (wv)
+	{
+		if (wv->getType()->getPointerTo() != gep->getType())
+		{
+			LLVMBuilder.GetInsertBlock()->getParent()->dump();
+			wv->dump();
+			gep->dump();
+		}
+
 		LLVMBuilder.CreateStore(wv, gep);
+	}
 	else
 	{
 		Value* signature = PendingValues.back();

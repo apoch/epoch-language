@@ -558,3 +558,21 @@ AppendBinding : list<RefBinding> ref bindings, nothing, RefBinding ref binding
 	list<RefBinding> newtail = binding, nothing
 	bindings.next = newtail
 }
+
+
+GetParameterTypeFromExpressionList : ExpressionList ref l, integer index -> integer typeid = GetParameterTypeFromExpressionList(l.Expressions, index)
+
+GetParameterTypeFromExpressionList : list<Expression> ref exprs, integer index -> integer typeid = 0
+{
+	if (index == 0)
+	{
+		typeid = exprs.value.Type
+	}
+	else
+	{
+		typeid = GetParameterTypeFromExpressionList(exprs.next, index - 1)
+	}
+}
+
+
+GetParameterTypeFromExpressionList : nothing, integer index -> integer typeid = 0
