@@ -270,6 +270,13 @@ Context::Context()
 		FunctionType* ftype = FunctionType::get(Type::getVoidTy(GlobalContext), args, false);
 		GCRootFunction = Function::Create(ftype, Function::ExternalLinkage, "llvm.gcroot", LLVMModule.get());
 	}
+
+	{
+		std::vector<Type*> args;
+		args.push_back(TypeGetInteger());
+		FunctionType* ftype = FunctionType::get(TypeGetString(), args, false);
+		AllocatorThunk = FunctionCreateThunk("ERT_allocate", ftype);
+	}
 }
 
 
@@ -514,12 +521,12 @@ void Context::PrepareBinaryObject()
 	llvmmodule->setDataLayout(ee->getDataLayout());
 
 	// TODO - reexamine optimizations
-
+	/*
 	legacy::PassManager mpm;
 	mpm.add(createPromoteMemoryToRegisterPass());
 
 	mpm.run(*llvmmodule);
-
+	*/
 	llvmmodule->dump();
 
 
@@ -1167,7 +1174,7 @@ void Context::CodeCreateWriteStructurePopSumType()
 	Value* allocavalue = cast<LoadInst>(wv)->getOperand(0);
 	Value* castvalue = LLVMBuilder.CreatePtrToInt(allocavalue, ty->getContainedType(1));
 
-	LLVMBuilder.CreateInsertValue(st, castvalue, { 1u });
+	st = LLVMBuilder.CreateInsertValue(st, castvalue, { 1u });
 	LLVMBuilder.CreateStore(st, gep);
 }
 
@@ -1300,6 +1307,25 @@ void Context::CodeCreateOperatorIntegerMultiply()
 	PendingValues.push_back(product);
 }
 
+
+
+void Context::CodePushAllocate()
+{
+	Value* allocaslot = PendingValues.back();
+	PendingValues.pop_back();
+
+	Type* allocationtype = allocaslot->getType()->getPointerElementType();
+	
+	Value* sizegep = LLVMBuilder.CreateGEP(ConstantPointerNull::get(cast<PointerType>(allocationtype)), ConstantInt::get(TypeGetInteger(), 1));
+	Value* size = LLVMBuilder.CreatePtrToInt(sizegep, TypeGetInteger());
+
+	Value* allocation = LLVMBuilder.CreateCall(LLVMBuilder.CreateLoad(AllocatorThunk), size);
+	Value* castallocation = LLVMBuilder.CreatePointerCast(allocation, allocationtype);
+
+	PendingValues.push_back(castallocation);
+
+	LLVMBuilder.CreateStore(castallocation, allocaslot);
+}
 
 void Context::CodePushBoolean(bool value)
 {

@@ -338,6 +338,11 @@ extern "C" void EpochLLVMCodeOperatorIntegerMultiply(void* context)
 }
 
 
+extern "C" void EpochLLVMCodePushAllocate(void* context)
+{
+	reinterpret_cast<CodeGen::Context*>(context)->CodePushAllocate();
+}
+
 extern "C" void EpochLLVMCodePushBoolean(void* context, bool value)
 {
 	reinterpret_cast<CodeGen::Context*>(context)->CodePushBoolean(value);

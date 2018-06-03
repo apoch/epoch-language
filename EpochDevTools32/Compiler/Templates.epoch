@@ -648,7 +648,7 @@ InstantiateSingleAtom : Statement ref atom, boolean inret, list<TemplateParamete
 	integer statementname = MapTemplateType(atom.Name, templateparams, templateargs)
 
 	OnCodeGenEnterSubStatement()
-	InstantiateStatement(statementname, inret, atom.TemplateArgs, templateparams, templateargs)
+	InstantiateStatement(statementname, inret, atom.TemplateArgs, templateparams, templateargs, atom.MakeAlloc)
 
 	InstantiateExpressionList(atom.Parameters, false, templateparams, templateargs, 0)
 
@@ -685,14 +685,16 @@ InstantiateSingleAtom : real ref atom, boolean inret, list<TemplateParameter> re
 }
 
 
-InstantiateStatement : integer statementname, boolean inret, nothing, list<TemplateParameter> ref templateparams, list<TemplateArgument> ref templateargs
+InstantiateStatement : integer statementname, boolean inret, nothing, list<TemplateParameter> ref templateparams, list<TemplateArgument> ref templateargs, boolean makealloc
 {
-	OnCodeGenEnterStatement(statementname, 0, inret, false, 0, false)			// TODO - enable use of arrays and allocs in templates
+	OnCodeGenEnterStatement(statementname, 0, inret, false, 0, makealloc)			// TODO - enable use of arrays in templates
 }
 
-InstantiateStatement : integer statementname, boolean inret, TemplateArgumentList ref args, list<TemplateParameter> ref templateparams, list<TemplateArgument> ref templateargs
+InstantiateStatement : integer statementname, boolean inret, TemplateArgumentList ref args, list<TemplateParameter> ref templateparams, list<TemplateArgument> ref templateargs, boolean makealloc
 {
-	Statement statement = statementname, nothing, 0, args, inret, false, 0, false, 0
+	Statement statement = statementname, nothing, 0, args, inret, false, 0, makealloc, 0
+	statement.MakeAlloc = makealloc
+
 	PropagateTemplateArgsForStatement(statement, args, templateargs)
 	RemapAllTemplateArguments(statement.TemplateArgs, templateparams, templateargs)
 	OnCodeGenEmplaceStatement(statement)
@@ -746,7 +748,7 @@ InstantiateCodeBlockEntries : nothing, list<TemplateParameter> ref templateparam
 // TODO - support all code block entry types
 InstantiateCodeBlockEntry : Statement ref s, list<TemplateParameter> ref templateparams, list<TemplateArgument> ref templateargs
 {
-	InstantiateStatement(s.Name, true, s.TemplateArgs, templateparams, templateargs)
+	InstantiateStatement(s.Name, true, s.TemplateArgs, templateparams, templateargs, s.MakeAlloc)
 	InstantiateExpressionList(s.Parameters, false, templateparams, templateargs, 0)
 
 	IRExitStatement()

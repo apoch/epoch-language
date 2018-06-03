@@ -1238,6 +1238,7 @@ PrepareThunkTable : ThunkTable ref table
 	ThunkTableAddEntry(table, "EpochRT.dll", "ERT_buffer_copy")
 	ThunkTableAddEntry(table, "EpochRT.dll", "ERT_string_compare_notequal")
 	ThunkTableAddEntry(table, "EpochRT.dll", "ERT_string_to_integer")
+	ThunkTableAddEntry(table, "EpochRT.dll", "ERT_allocate")
 	
 	table.TotalSize = 0
 	table.DescriptorOffset = 0

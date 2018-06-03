@@ -1,42 +1,38 @@
-structure SomeData :
-	integer FieldOne,
-	string FieldTwo
+
+type simplelistnode<type T> : simplelist<T> | nothing
+
+structure simplelist<type T> :
+	T value,
+	simplelistnode<T> next
 
 
-type listnode<type T> : list<T> | nothing
-
-structure list<type T> :
-	T ref value,
-	listnode<T> next
-
-
-
-type node : container | nothing
-
-structure container :
-	SomeData ref value,
-	node next
-
-
-structure Hack :			// This is a workaround for a DUMB compiler bug
-	list<SomeData> ref List
 
 
 entrypoint :
 {
-	SomeData d = 42, "test"
+	simplelist<string> test = "foo", nothing
+	simple_append<string>(test, "bar")
+	simple_append<string>(test, "baz")
 
-	list<SomeData> l = d, nothing
-	mutate(l)
-
-	print(d.FieldTwo)
-	print(l.value.FieldTwo)
+	print("Done")
 }
 
 
 
-mutate : list<SomeData> ref l
+
+
+simple_append<type T> : simplelist<T> ref thelist, T value
 {
-	l.value.FieldTwo = "Fooooo"
+	simple_append_recurse<T>(thelist, thelist.next, value)
 }
 
+simple_append_recurse<type T> : simplelist<T> ref thelist, nothing, T value
+{
+	simplelist<T> newlist = new value, nothing
+	thelist.next = newlist
+}
+
+simple_append_recurse<type T> : simplelist<T> ref thelist, simplelist<T> ref tail, T value
+{
+	simple_append_recurse<T>(tail, tail.next, value)
+}

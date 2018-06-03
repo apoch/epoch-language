@@ -138,6 +138,7 @@ EpochLLVMCodeOperatorIntegerMinus : LLVMContextHandle context														[exte
 EpochLLVMCodeOperatorIntegerMultiply : LLVMContextHandle context													[external("EpochLLVM.dll", "EpochLLVMCodeOperatorIntegerMultiply")]
 EpochLLVMCodeOperatorIntegerDivide : LLVMContextHandle context														[external("EpochLLVM.dll", "EpochLLVMCodeOperatorIntegerDivide")]
 
+EpochLLVMCodePushAllocate : LLVMContextHandle context																[external("EpochLLVM.dll", "EpochLLVMCodePushAllocate")]
 EpochLLVMCodePushBoolean : LLVMContextHandle context, boolean literal												[external("EpochLLVM.dll", "EpochLLVMCodePushBoolean")]
 EpochLLVMCodePushInteger : LLVMContextHandle context, integer literal												[external("EpochLLVM.dll", "EpochLLVMCodePushInteger")]
 EpochLLVMCodePushInteger16 : LLVMContextHandle context, integer16 literal											[external("EpochLLVM.dll", "EpochLLVMCodePushInteger16")]
@@ -857,7 +858,7 @@ EmitSingleCodeBlockEntryToLLVM : LLVMBuildContext ref context, AssignmentCompoun
 		}
 		else
 		{
-			EpochLLVMCodePushInteger(context.Context, rhstype)
+			EpochLLVMCodePushInteger(context.Context, MakeNonReferenceType(rhstype))
 			EpochLLVMCodeCreateWriteStructurePopSumType(context.Context)
 		}
 	}
@@ -987,7 +988,24 @@ EmitSingleCodeBlockEntryToLLVM : LLVMBuildContext ref context, Statement ref ent
 	}
 	else
 	{
-		EmitExpressionListToLLVM(context, entry.Parameters)
+		if(entry.MakeAlloc)
+		{
+			integer consvarname = ExtractConstructorIdentifier(entry.Parameters)
+			assertmsg(consvarname != 0, "Couldn't find variable to initialize")
+
+			LLVMAlloca consalloca = 0
+			BinaryTreeCopyPayload<LLVMAlloca>(context.LocalVariables.RootNode, consvarname, consalloca)
+			assertmsg(consalloca != 0, "Couldn't find LLVM binding alloca to initialize")
+
+			EpochLLVMCodePushRawAlloca(context.Context, consalloca)
+			EpochLLVMCodePushAllocate(context.Context)
+
+			EmitPartialExpressionListToLLVM(context, entry.Parameters)
+		}
+		else
+		{
+			EmitExpressionListToLLVM(context, entry.Parameters)
+		}
 
 		integer vartype = GetVariableTypeFromScope(EmittingScope.Wrapped, entry.Name)
 		if((vartype & 0x7f000000) == 0x09000000)
@@ -1008,15 +1026,7 @@ EmitSingleCodeBlockEntryToLLVM : LLVMBuildContext ref context, Statement ref ent
 				assertmsg(llvmfunc != 0, "Failed to map LLVM function " ; GetPooledString(entry.Name))
 			}
 			
-			if(entry.MakeAlloc)
-			{
-				// TODO - somehow stash a pointer to a heap allocation instead of an alloca
-				call = EpochLLVMCodeCreateCall(context.Context, llvmfunc)
-			}
-			else
-			{
-				call = EpochLLVMCodeCreateCall(context.Context, llvmfunc)
-			}
+			call = EpochLLVMCodeCreateCall(context.Context, llvmfunc)
 		}
 	}
 	
@@ -1555,7 +1565,7 @@ EmitSingleAtomToLLVM : LLVMBuildContext ref context, CompoundAtom ref atom
 
 EmitSingleAtomToLLVM : LLVMBuildContext ref context, TypeAnnotationAtom ref atom
 {
-	EpochLLVMCodePushInteger(context.Context, atom.Type)
+	EpochLLVMCodePushInteger(context.Context, MakeNonReferenceType(atom.Type))
 	EpochLLVMCodeMergeSumType(context.Context)
 }
 
@@ -2397,7 +2407,7 @@ EmitTypeMatcherParamsInLLVM : LLVMContextHandle context, list<FunctionSignature>
 				{
 					EpochLLVMCodeCreateReadParam(context, paramindex)
 					EpochLLVMCodePushExtractedStructValue(context, 0)
-					EpochLLVMCodePushInteger(context, paramtype)
+					EpochLLVMCodePushInteger(context, MakeNonReferenceType(paramtype))
 					EpochLLVMCodeOperatorIntegerEquals(context)
 					EpochLLVMCodeCreateCondBranch(context, EpochLLVMCodePopValue(context), nextparamblock, nextoverloadblock)
 					++relevantparams

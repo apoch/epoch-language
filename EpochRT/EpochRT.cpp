@@ -180,3 +180,7 @@ extern "C" int ERT_string_to_integer(const char* str)
 }
 
 
+extern "C" void* ERT_allocate(unsigned bytes)
+{
+	return ::HeapAlloc(::GetProcessHeap(), HEAP_ZERO_MEMORY, bytes);
+}

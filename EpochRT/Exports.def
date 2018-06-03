@@ -31,6 +31,7 @@ EXPORTS
 	ERT_buffer_copy
 	ERT_string_compare_notequal
 	ERT_string_to_integer
+	ERT_allocate
 
 	EpochLib_SubstrCharDirect
 	EpochLib_StrPointer

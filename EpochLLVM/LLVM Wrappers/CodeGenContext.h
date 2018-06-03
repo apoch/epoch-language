@@ -112,6 +112,7 @@ namespace CodeGen
 		void CodeCreateOperatorIntegerDivide();
 		void CodeCreateOperatorIntegerMultiply();
 
+		void CodePushAllocate();
 		void CodePushBoolean(bool value);
 		void CodePushInteger(int value);
 		void CodePushInteger16(short value);
@@ -175,6 +176,8 @@ namespace CodeGen
 		llvm::Function* EntryPointFunction;
 
 		llvm::Function* GCRootFunction;
+
+		llvm::GlobalVariable* AllocatorThunk;
 
 		llvm::IRBuilder<> LLVMBuilder;
 
