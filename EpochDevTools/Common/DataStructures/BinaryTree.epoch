@@ -27,7 +27,7 @@ BinaryTreeCreateOrInsert<type T> : BinaryTreeRoot<T> ref root, integer value, T 
 	if(!InsertIntoBinaryTree<T>(root.RootNode, value, payload))
 	{
 		BTPayloadWrap<T> wrap = payload
-		BinaryTree<T> newtree = value, wrap, nothing, nothing, 0
+		BinaryTree<T> newtree = new value, wrap, nothing, nothing, 0
 		root.RootNode = newtree
 	}
 }
@@ -40,7 +40,7 @@ InsertIntoBinaryTree<type T> : BinaryTree<T> ref tree, integer value, T ref payl
 		if(!InsertIntoBinaryTree<T>(tree.Left, value, payload))
 		{
 			BTPayloadWrap<T> wrap = payload
-			BinaryTree<T> newtree = value, wrap, nothing, nothing, 0
+			BinaryTree<T> newtree = new value, wrap, nothing, nothing, 0
 			tree.Left = newtree
 		}
 	}
@@ -49,7 +49,7 @@ InsertIntoBinaryTree<type T> : BinaryTree<T> ref tree, integer value, T ref payl
 		if(!InsertIntoBinaryTree<T>(tree.Right, value, payload))
 		{
 			BTPayloadWrap<T> wrap = payload
-			BinaryTree<T> newtree = value, wrap, nothing, nothing, 0
+			BinaryTree<T> newtree = new value, wrap, nothing, nothing, 0
 			tree.Right = newtree
 		}
 	}

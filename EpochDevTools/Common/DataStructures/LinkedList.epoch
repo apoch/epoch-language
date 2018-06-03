@@ -122,7 +122,7 @@ simple_append<type T> : simplelist<T> ref thelist, T value
 
 simple_append_recurse<type T> : simplelist<T> ref thelist, nothing, T value
 {
-	simplelist<T> newlist = value, nothing
+	simplelist<T> newlist = new value, nothing
 	thelist.next = newlist
 }
 
@@ -147,7 +147,7 @@ append<type T> : list<T> ref thelist, T ref value
 
 append_recurse<type T> : list<T> ref thelist, nothing, T ref value
 {
-	list<T> newlist = value, nothing
+	list<T> newlist = new value, nothing
 	thelist.next = newlist
 }
 
