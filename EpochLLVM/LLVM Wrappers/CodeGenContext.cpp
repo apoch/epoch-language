@@ -263,6 +263,11 @@ Context::Context()
 	InitFunction = Function::Create(initfunctiontype, GlobalValue::ExternalLinkage, "init", LLVMModule.get());
 	InitFunction->setGC("EpochGC");
 
+	InitEntryBB = BasicBlock::Create(GlobalContext, "InitBlock", InitFunction);
+	GlobalInitBB = BasicBlock::Create(GlobalContext, "InitGlobals", InitFunction);
+	EntryPointInvokeBB = BasicBlock::Create(GlobalContext, "EntryPointInvoke", InitFunction);
+
+
 	{
 		std::vector<Type*> args;
 		args.push_back(Type::getInt8PtrTy(GlobalContext)->getPointerTo());
@@ -452,15 +457,19 @@ void Context::PrepareBinaryObject()
 
 	GlobalVariable* gcdataoffset = new GlobalVariable(*LLVMModule, TypeGetInteger(), true, GlobalValue::ExternalWeakLinkage, nullptr, "gcdataoffset", nullptr, GlobalValue::NotThreadLocal, 0, true);
 	
-	BasicBlock* bb = BasicBlock::Create(GlobalContext, "InitBlock", InitFunction);
-	LLVMBuilder.SetInsertPoint(bb);
+	LLVMBuilder.SetInsertPoint(InitEntryBB);
 
 	SetupDebugInfo(InitFunction);
 
 	LLVMBuilder.CreateCall(LLVMBuilder.CreateLoad(gcinitfunctionvar), LLVMBuilder.CreatePtrToInt(gcdataoffset, TypeGetInteger()));
 	TagDebugLine(++hack, 0);
 
-	// TODO - init globals here
+
+	LLVMBuilder.CreateBr(GlobalInitBB);
+	LLVMBuilder.SetInsertPoint(GlobalInitBB);
+	LLVMBuilder.CreateBr(EntryPointInvokeBB);
+	LLVMBuilder.SetInsertPoint(EntryPointInvokeBB);
+
 	LLVMBuilder.CreateCall(EntryPointFunction);
 	TagDebugLine(++hack, 0);
 
@@ -1428,7 +1437,10 @@ void Context::CodePushNothing()
 
 void Context::CodeStatementFinalize(unsigned line, unsigned column)
 {
-	TagDebugLine(line, column);
+	// Don't tag debug metadata in global initializers
+	auto* func = LLVMBuilder.GetInsertBlock()->getParent();
+	if (func != InitFunction)
+		TagDebugLine(line, column);
 
 	assert(PendingValues.empty() || PendingValues.size() == 1);
 	PendingValues.clear();
@@ -1448,6 +1460,10 @@ llvm::BasicBlock* Context::GetCurrentBasicBlock()
 
 void Context::SetCurrentBasicBlock(llvm::BasicBlock* block)
 {
+	// TODO - sloppy hack
+	if (!block)
+		block = GlobalInitBB;
+
 	LLVMBuilder.SetInsertPoint(block);
 }
 

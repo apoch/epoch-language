@@ -1,4 +1,10 @@
 
+global
+{
+	integer foo = 42
+}
+
+
 type simplelistnode<type T> : simplelist<T> | nothing
 
 structure simplelist<type T> :
@@ -10,6 +16,15 @@ structure simplelist<type T> :
 
 entrypoint :
 {
+	if(foo == 42)
+	{
+		print("Happy!")
+	}
+	else
+	{
+		print("Sad.")
+	}
+
 	simplelist<string> test = "foo", nothing
 	simple_append<string>(test, "bar")
 	simple_append<string>(test, "baz")

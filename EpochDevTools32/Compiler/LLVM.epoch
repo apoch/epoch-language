@@ -200,6 +200,22 @@ SetUpAllLLVMCode : LLVMContextHandle context, integer ref globaloffsettracker
 
 	print("Generating LLVM global variables...")
 	CreateAllGlobalsInLLVM(context, GlobalScope.Wrapped, globaloffsettracker)
+	CreateGlobalInitsInLLVM(context)
+}
+
+
+
+CreateGlobalInitsInLLVM : LLVMContextHandle context
+{
+	LLVMFunctionRef llvmfunc = 0
+
+	LLVMBasicBlock nullblock = 0
+	EpochLLVMSetCurrentBasicBlock(context, nullblock)
+
+	BinaryTreeRoot<LLVMAlloca> novars = nothing
+
+	LLVMBuildContext build = context, llvmfunc, novars, LLVMGlobalTable, nullblock
+	EmitCodeBlockToLLVM(build, GlobalCodeBlock)
 }
 
 
@@ -876,6 +892,11 @@ EmitSingleCodeBlockEntryToLLVM : LLVMBuildContext ref context, AssignmentCompoun
 
 EmitSingleCodeBlockEntryToLLVM : LLVMBuildContext ref context, Statement ref entry
 {
+	if(entry.Name == 0)
+	{
+		return()
+	}
+
 	integer call = 0
 
 	if(IsRecognizedBuiltIn(entry.Name))
@@ -915,7 +936,7 @@ EmitSingleCodeBlockEntryToLLVM : LLVMBuildContext ref context, Statement ref ent
 				integer thunk = 0
 				BinaryTreeCopyPayload<integer>(LLVMGlobalThunks.RootNode, entry.Name, thunk)
 
-				assertmsg(thunk != 0, "Missing function " ; GetPooledString(entry.Name))
+				assertmsg(thunk != 0, "Missing function " ; GetPooledString(entry.Name) ; " - " ; cast(string, entry.Name))
 
 				EpochLLVMCodeCreateCallThunk(context.Context, thunk)
 			}
@@ -927,35 +948,47 @@ EmitSingleCodeBlockEntryToLLVM : LLVMBuildContext ref context, Statement ref ent
 
 			LLVMAlloca alloca = 0
 			BinaryTreeCopyPayload<LLVMAlloca>(context.LocalVariables.RootNode, varname, alloca)
-			assertmsg(alloca != 0, "Couldn't find LLVM binding alloca to initialize")
-
-			if(entry.ArrayArity > 0)
+			
+			if(alloca != 0)
 			{
-				integer paramcount = 0
-				while(paramcount < entry.ArrayArity)
+				if(entry.ArrayArity > 0)
 				{
-					EmitExpressionToLLVMFromList(context, entry.Parameters, 0, paramcount + 1)
+					integer paramcount = 0
+					while(paramcount < entry.ArrayArity)
+					{
+						EmitExpressionToLLVMFromList(context, entry.Parameters, 0, paramcount + 1)
 
-					EpochLLVMCodePushInteger(context.Context, paramcount)
-					EpochLLVMCodeCreateReadArray(context.Context, alloca)
-					EpochLLVMCodeCreateWriteStructurePop(context.Context)
+						EpochLLVMCodePushInteger(context.Context, paramcount)
+						EpochLLVMCodeCreateReadArray(context.Context, alloca)
+						EpochLLVMCodeCreateWriteStructurePop(context.Context)
 
-					++paramcount
+						++paramcount
+					}
+				}
+				elseif(entry.Name == PooledStringHandleForBuffer)
+				{
+					integer thunk = 0
+					BinaryTreeCopyPayload<integer>(LLVMGlobalThunks.RootNode, PooledStringHandleForBuffer, thunk)
+
+					EpochLLVMCodePushRawAlloca(context.Context, alloca)
+					EmitPartialExpressionListToLLVM(context, entry.Parameters)
+					EpochLLVMCodeCreateCallThunk(context.Context, thunk)
+				}
+				else
+				{			
+					EmitPartialExpressionListToLLVM(context, entry.Parameters)
+					EpochLLVMCodeCreateWrite(context.Context, alloca)
 				}
 			}
-			elseif(entry.Name == PooledStringHandleForBuffer)
-			{
-				integer thunk = 0
-				BinaryTreeCopyPayload<integer>(LLVMGlobalThunks.RootNode, PooledStringHandleForBuffer, thunk)
-
-				EpochLLVMCodePushRawAlloca(context.Context, alloca)
-				EmitPartialExpressionListToLLVM(context, entry.Parameters)
-				EpochLLVMCodeCreateCallThunk(context.Context, thunk)
-			}
 			else
-			{			
+			{
+				// Must be a global
+				LLVMGlobalVar globvar = 0
+				BinaryTreeCopyPayload<LLVMGlobalVar>(context.GlobalVariables.RootNode, varname, globvar)
+				assertmsg(globvar != 0, "Missing local and global variable for initialization")
+
 				EmitPartialExpressionListToLLVM(context, entry.Parameters)
-				EpochLLVMCodeCreateWrite(context.Context, alloca)
+				EpochLLVMCodeCreateWriteGlobal(context.Context, globvar)
 			}
 		}
 	}

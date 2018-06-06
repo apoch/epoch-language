@@ -174,6 +174,9 @@ namespace CodeGen
 		std::unique_ptr<llvm::Module> LLVMModule;
 		llvm::Function* InitFunction;
 		llvm::Function* EntryPointFunction;
+		llvm::BasicBlock* InitEntryBB;
+		llvm::BasicBlock* GlobalInitBB;
+		llvm::BasicBlock* EntryPointInvokeBB;
 
 		llvm::Function* GCRootFunction;
 
