@@ -1406,9 +1406,19 @@ EmitSingleAtomToLLVM : LLVMBuildContext ref context, IdentifierAtom ref idatom
 				{
 					LLVMAlloca alloca = 0
 					BinaryTreeCopyPayload<LLVMAlloca>(context.LocalVariables.RootNode, idatom.Handle, alloca)
-					assertmsg(alloca != 0, "Missing variable")
+					if(alloca != 0)
+					{
+						EpochLLVMCodePushRawAlloca(context.Context, alloca)
+					}
+					else
+					{
+						// Must be a global
+						LLVMGlobalVar globvar = 0
+						BinaryTreeCopyPayload<LLVMGlobalVar>(context.GlobalVariables.RootNode, idatom.Handle, globvar)
+						assertmsg(globvar != 0, "Missing local and global variable")
 
-					EpochLLVMCodePushRawAlloca(context.Context, alloca)
+						EpochLLVMCodePushRawGlobal(context.Context, globvar)
+					}
 				}
 			}
 			elseif((atomtype & 0x7f000000) == 0x09000000)			// Function type family signature

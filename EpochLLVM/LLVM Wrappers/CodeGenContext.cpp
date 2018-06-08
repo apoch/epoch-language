@@ -803,6 +803,7 @@ llvm::CallInst* Context::CodeCreateCall(llvm::Function* target)
 				fty->dump();
 				LLVMBuilder.GetInsertBlock()->getParent()->dump();
 				arg->dump();
+				target->dump();
 			}
 
 			StructType* paramtype = cast<StructType>(pt);
