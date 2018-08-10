@@ -328,23 +328,23 @@ structure ContextWrapper<type T> :
 
 structure Namespace :
 	integer								NameHandle,
-	listnode<Namespace>					Children,
-	BinaryTreeRoot<Scope>				Scopes,
-	BinaryTreeRoot<SumType>				SumTypes,
-	BinaryTreeRoot<TypeAlias>			TypeAliases,
-	BinaryTreeRoot<TypeAlias>			TypeWeakAliases,
-	BinaryTreeRoot<StructureDefinition>	Structures,
-	BinaryTreeRoot<FunctionSignature>	FunctionSignatures,
-	listnode<FunctionTag>				FunctionTags,
-	BinaryTreeRoot<FunctionDefinition> 	Functions,
-	BinaryTreeRoot<Overload> 			Overloads,
-	BinaryTreeRoot<TypeMatcher>			TypeMatchers,
-	BinaryTreeRoot<TemplateFunction>	TemplateFunctions,
-	BinaryTreeRoot<TemplateStructure>	TemplateStructures,
-	BinaryTreeRoot<TemplateSumType>		TemplateSumTypes,
-	BinaryTreeRoot<TemplateInstance>	TemplateFunctionInstances,
-	BinaryTreeRoot<TemplateInstance>	TemplateStructureInstances,
-	BinaryTreeRoot<TemplateInstance>	TemplateSumTypeInstancess
+	listnode<Namespace>					ref Children,
+	BinaryTreeRoot<Scope>				ref Scopes,
+	BinaryTreeRoot<SumType>				ref SumTypes,
+	BinaryTreeRoot<TypeAlias>			ref TypeAliases,
+	BinaryTreeRoot<TypeAlias>			ref TypeWeakAliases,
+	BinaryTreeRoot<StructureDefinition>	ref Structures,
+	BinaryTreeRoot<FunctionSignature>	ref FunctionSignatures,
+	listnode<FunctionTag>				ref FunctionTags,
+	BinaryTreeRoot<FunctionDefinition> 	ref Functions,
+	BinaryTreeRoot<Overload> 			ref Overloads,
+	BinaryTreeRoot<TypeMatcher>			ref TypeMatchers,
+	BinaryTreeRoot<TemplateFunction>	ref TemplateFunctions,
+	BinaryTreeRoot<TemplateStructure>	ref TemplateStructures,
+	BinaryTreeRoot<TemplateSumType>		ref TemplateSumTypes,
+	BinaryTreeRoot<TemplateInstance>	ref TemplateFunctionInstances,
+	BinaryTreeRoot<TemplateInstance>	ref TemplateStructureInstances,
+	BinaryTreeRoot<TemplateInstance>	ref TemplateSumTypeInstancess
 
 
 

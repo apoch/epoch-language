@@ -771,7 +771,7 @@ llvm::CallInst* Context::CodeCreateCall(llvm::Function* target)
 		{
 			if(isa<ConstantPointerNull>(arg))
 			{
-				if(PendingValues.size() + relevantargs.size() < fty->getFunctionNumParams())
+				//if(PendingValues.size() + relevantargs.size() < fty->getFunctionNumParams())
 					relevantargs.push_back(arg);
 			}
 			else
@@ -798,7 +798,7 @@ llvm::CallInst* Context::CodeCreateCall(llvm::Function* target)
 			PendingValues.pop_back();
 
 			Type* pt = fty->getParamType(fty->getNumParams() - relevantargs.size() - 1);
-			if (pt->isPointerTy())
+			if (!pt->isStructTy())
 			{
 				fty->dump();
 				LLVMBuilder.GetInsertBlock()->getParent()->dump();
@@ -826,11 +826,12 @@ llvm::CallInst* Context::CodeCreateCall(llvm::Function* target)
 				}
 	
 				payload = LLVMBuilder.CreatePtrToInt(rawpayload, paramtype->getStructElementType(1));
-
-				PendingValues.pop_back();
 			}
 			else
 				payload = ConstantInt::get(paramtype->getStructElementType(1), 0);
+
+			// UHHHH
+			PendingValues.pop_back();
 
 			Value* st = LLVMBuilder.CreateInsertValue(llvm::UndefValue::get(paramtype), signature, { 0 });
 			st = LLVMBuilder.CreateInsertValue(st, payload, { 1 });
