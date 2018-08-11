@@ -1468,7 +1468,11 @@ EmitSingleAtomToLLVM : LLVMBuildContext ref context, IdentifierAtom ref idatom
 				FindVariableDataInSingleScope(EmittingScope.Wrapped, idatom.Handle, var)
 				if(var.Name == 0)
 				{
-					assertmsg(false, "Missing variable " ; GetPooledString(idatom.Handle))
+					boolean foundglobal = FindVariableDataInSingleScope(GlobalScope.Wrapped, idatom.Handle, var)
+					if(!foundglobal)
+					{
+						assertmsg(false, "Missing variable " ; GetPooledString(idatom.Handle))
+					}
 				}
 				
 				if(IsReferenceType(var.VarType))
