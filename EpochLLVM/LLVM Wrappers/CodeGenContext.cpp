@@ -226,7 +226,7 @@ namespace CodeGenInternal
 			size_t offset = ThunkCallback(wide.c_str());
 
 			// TODO - this is a dumb hack
-			if(offset == 0)
+			if (offset == 0)
 				offset = 0x610ba1;
 
 			//assert(offset != 0);
@@ -781,10 +781,12 @@ llvm::CallInst* Context::CodeCreateCall(llvm::Function* target)
 					arg = LLVMBuilder.CreateLoad(arg);
 				else if(arg->getType()->getPointerTo() == paramType)
 				{
-					// FREE ALLOCA IS BAD - can we relocate it during a code pass?
-					Value* argalloca = LLVMBuilder.CreateAlloca(arg->getType());
-					LLVMBuilder.CreateStore(arg, argalloca);
-					arg = argalloca;
+					auto* allocainst = new AllocaInst(arg->getType(), 0, nullptr, "MagicHackFreeAlloca");
+					auto& instlist = LLVMBuilder.GetInsertBlock()->getParent()->getEntryBlock().getInstList();
+					instlist.insert(instlist.begin(), allocainst);
+					
+					LLVMBuilder.CreateStore(arg, allocainst);
+					arg = allocainst;
 				}
 				// End hack
 
