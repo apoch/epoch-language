@@ -267,6 +267,7 @@ Context::Context()
 	GlobalInitBB = BasicBlock::Create(GlobalContext, "InitGlobals", InitFunction);
 	EntryPointInvokeBB = BasicBlock::Create(GlobalContext, "EntryPointInvoke", InitFunction);
 
+	SetupDebugInfo(InitFunction);
 
 	{
 		std::vector<Type*> args;
@@ -458,8 +459,6 @@ void Context::PrepareBinaryObject()
 	GlobalVariable* gcdataoffset = new GlobalVariable(*LLVMModule, TypeGetInteger(), true, GlobalValue::ExternalWeakLinkage, nullptr, "gcdataoffset", nullptr, GlobalValue::NotThreadLocal, 0, true);
 	
 	LLVMBuilder.SetInsertPoint(InitEntryBB);
-
-	SetupDebugInfo(InitFunction);
 
 	LLVMBuilder.CreateCall(LLVMBuilder.CreateLoad(gcinitfunctionvar), LLVMBuilder.CreatePtrToInt(gcdataoffset, TypeGetInteger()));
 	TagDebugLine(++hack, 0);
@@ -1439,10 +1438,7 @@ void Context::CodePushNothing()
 
 void Context::CodeStatementFinalize(unsigned line, unsigned column)
 {
-	// Don't tag debug metadata in global initializers
-	auto* func = LLVMBuilder.GetInsertBlock()->getParent();
-	if (func != InitFunction)
-		TagDebugLine(line, column);
+	TagDebugLine(line, column);
 
 	assert(PendingValues.empty() || PendingValues.size() == 1);
 	PendingValues.clear();

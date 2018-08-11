@@ -1,8 +1,11 @@
 
 global
 {
-	integer foo = 42
+	integer foo = add(40, 2)
 }
+
+
+add : integer a, integer b -> a + b
 
 
 type simplelistnode<type T> : simplelist<T> | nothing
