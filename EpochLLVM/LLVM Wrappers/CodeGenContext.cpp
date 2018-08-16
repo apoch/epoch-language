@@ -781,12 +781,20 @@ llvm::CallInst* Context::CodeCreateCall(llvm::Function* target)
 					arg = LLVMBuilder.CreateLoad(arg);
 				else if(arg->getType()->getPointerTo() == paramType)
 				{
-					auto* allocainst = new AllocaInst(arg->getType(), 0, nullptr, "MagicHackFreeAlloca");
-					auto& instlist = LLVMBuilder.GetInsertBlock()->getParent()->getEntryBlock().getInstList();
-					instlist.insert(instlist.begin(), allocainst);
-					
-					LLVMBuilder.CreateStore(arg, allocainst);
-					arg = allocainst;
+					if (!isa<LoadInst>(arg))
+					{
+						auto* allocainst = new AllocaInst(arg->getType(), 0, nullptr, "MagicHackFreeAlloca");
+						auto& instlist = LLVMBuilder.GetInsertBlock()->getParent()->getEntryBlock().getInstList();
+						instlist.insert(instlist.begin(), allocainst);
+
+						LLVMBuilder.CreateStore(arg, allocainst);
+						arg = allocainst;
+					}
+					else
+					{
+						auto* load = cast<LoadInst>(arg);
+						arg = load->getOperand(0);
+					}
 				}
 				// End hack
 

@@ -416,6 +416,14 @@ MergeArgumentTypes : list<ArgumentMetadata> ref argtypesets, simplelist<integer>
 	if(additions.value != 0)
 	{
 		integer addition = additions.value
+
+		// TODO - this is a terrible hack to make all sum typed function arguments pass by ref for the purposes of type matcher generation
+		// We can probably make this go away by asserting/dumping context instead of silently patching over the flaw
+		if(IsSumType(addition))
+		{
+			addition = MakeReferenceType(addition)
+		}
+
 		if(!listcontains(argtypesets.value.ArgTypes, addition))
 		{
 			simpleprepend<integer>(argtypesets.value.ArgTypes, addition)

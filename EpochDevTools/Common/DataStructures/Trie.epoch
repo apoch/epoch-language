@@ -88,10 +88,10 @@ PlaceDataInTrieChild : list<Trie> ref children, Trie ref originaltrie, integer c
 
 PlaceDataInTrieChild : nothing, Trie ref originaltrie, integer character, string alldata, integer offset, integer datalen, integer handle
 {
-	Trie newtrie = character, nothing, 0
+	Trie newtrie = new character, nothing, 0
 	PlaceDataInTrieRecurse(newtrie, alldata, offset, datalen, handle)
 
-	list<Trie> newtrielist = newtrie, originaltrie.Children
+	list<Trie> newtrielist = new newtrie, originaltrie.Children
 	originaltrie.Children = newtrielist
 }
 

@@ -1607,7 +1607,7 @@ ConvertSymbolStream : buffer ref symboldata, integer symbolsize, list<PDBSymbol>
 						goofyreadoffset += cast(integer, symbolheader.Bytes) - 2
 						print("(register range)")
 
-						goofywriteoffset += 16
+						goofywriteoffset += 20
 
 						// TODO - dumb hack - replace register-relative symbol with a register symbol if the register is not RSP
 						//if(cast(integer, regrange.Register) != 335)
