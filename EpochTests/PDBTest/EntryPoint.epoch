@@ -25,7 +25,7 @@ outer :
 entrypoint :
 {
 	outer()
-	print("Hello, world!")
+	display("Hello, world!")
 }
 
 
@@ -34,6 +34,12 @@ display : integer stuff
 {
 	stuff = stuff + zero()
 	print(cast(string, stuff))
+}
+
+
+display : string text
+{
+	print(text)
 }
 
 

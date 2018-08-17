@@ -529,12 +529,12 @@ void Context::PrepareBinaryObject()
 	llvmmodule->setDataLayout(ee->getDataLayout());
 
 	// TODO - reexamine optimizations
-	/*
+	
 	legacy::PassManager mpm;
 	mpm.add(createPromoteMemoryToRegisterPass());
 
 	mpm.run(*llvmmodule);
-	*/
+	
 	llvmmodule->dump();
 
 
@@ -1601,7 +1601,23 @@ void Context::SetupDebugInfo(Function* function)
 llvm::DIType* Context::TypeGetDebugType(Type* t)
 {
 	// TODO - build better type data
-	return DebugBuilder.createBasicType("integer", 32, llvm::dwarf::DW_ATE_signed);
+	if (t->isPointerTy())
+		return DebugBuilder.createPointerType(TypeGetDebugType(t->getPointerElementType()), 64);
+
+	if (t->isStructTy())
+		return DebugBuilder.createBasicType("Placeholder", 32, llvm::dwarf::DW_ATE_signed);
+
+	std::string str;
+	llvm::raw_string_ostream stream(str);
+	t->print(stream, true);
+
+	auto encoding = llvm::dwarf::DW_ATE_signed;
+	if (t->getPrimitiveSizeInBits() == 1)
+		encoding = llvm::dwarf::DW_ATE_boolean;
+	else if (t->getPrimitiveSizeInBits() == 8)
+		encoding = llvm::dwarf::DW_ATE_signed_char;
+
+	return DebugBuilder.createBasicType(stream.str(), t->getPrimitiveSizeInBits(), encoding);
 }
 
 void Context::TagDebugLine(unsigned line, unsigned column)

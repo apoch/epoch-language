@@ -1610,11 +1610,10 @@ ConvertSymbolStream : buffer ref symboldata, integer symbolsize, list<PDBSymbol>
 						goofywriteoffset += 20
 
 						// TODO - dumb hack - replace register-relative symbol with a register symbol if the register is not RSP
-						//if(cast(integer, regrange.Register) != 335)
-						//{
-						//	print("Hack canary " ; cast(string, cast(integer, regrange.Register)))
-						//	goofywriteoffset = goofywriteoffset - 4
-						//}
+						if(!HACKregistercheck(regrange.Register))
+						{
+							goofywriteoffset = goofywriteoffset - 4
+						}
 					}
 					elseif (symbolheader.Magic == 0x1141)
 					{
@@ -1879,3 +1878,17 @@ CountContributions : list<SectionContribution> ref contriblist, integer ref coun
 }
 
 CountContributions : nothing, integer ref count
+
+
+HACKregistercheck : integer16 reg -> boolean check = false
+{
+	if(cast(integer, reg) == 334)			// RBP
+	{
+		check = true
+	}
+	elseif(cast(integer, reg) == 335)		// RSP
+	{
+		check = true
+	}
+}
+
