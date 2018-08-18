@@ -410,7 +410,7 @@ GetLLVMTypeForEpochType : LLVMContextHandle context, integer typeid -> LLVMType 
 	}
 	elseif(typeid == 4)			// nothing
 	{
-		t = EpochLLVMTypeGetInteger(context)
+		t = EpochLLVMTypeGetInteger64(context)
 	}
 	elseif(IsStructureType(typeid))
 	{
