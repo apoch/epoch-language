@@ -1087,11 +1087,11 @@ ThunkTableAddFunctionToLibrary : ThunkTable ref table, list<ThunkTableLibrary> r
 
 ThunkTableAddFunctionToLibrary : ThunkTable ref table, nothing, string libname, string funcname
 {
-	ThunkTableEntry entry = funcname, 0, 0, 0
-	list<ThunkTableEntry> entrylist = entry, nothing
+	ThunkTableEntry entry = new funcname, 0, 0, 0
+	list<ThunkTableEntry> entrylist = new entry, nothing
 	listnode<ThunkTableEntry> entrynode = entrylist
 	
-	ThunkTableLibrary rtlib = libname, entrynode, 0, 0
+	ThunkTableLibrary rtlib = new libname, entrynode, 0, 0
 	ListPrependOrCreate<ThunkTableLibrary>(table.Libraries, rtlib)
 }
 
@@ -1109,7 +1109,7 @@ ThunkTableAddFunctionToList : ThunkTableLibrary ref library, list<ThunkTableEntr
 
 ThunkTableAddFunctionToList : ThunkTableLibrary ref library, nothing, string funcname
 {
-	ThunkTableEntry entry = funcname, 0, 0, 0
+	ThunkTableEntry entry = new funcname, 0, 0, 0
 	ListPrependOrCreate<ThunkTableEntry>(library.Functions, entry)
 }
 

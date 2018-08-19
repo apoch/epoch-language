@@ -101,7 +101,7 @@ prepend<type T> : list<T> ref thelist, T ref value
 //
 ListPrependOrCreate<type T> : listnode<T> ref node, T ref value
 {
-	list<T> newlist = value, node
+	list<T> newlist = new value, node
 	listnode<T> wrap = newlist
 	node = wrap
 }
