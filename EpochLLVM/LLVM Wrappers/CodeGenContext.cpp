@@ -823,18 +823,27 @@ llvm::CallInst* Context::CodeCreateCall(llvm::Function* target)
 			if(cast<ConstantInt>(signature)->getValue().getZExtValue() != 4)
 			{
 				Value* rawpayload = PendingValues.back();
-				if(!rawpayload->getType()->isPointerTy())
+				if (rawpayload->getType() == pt)
 				{
-					if(isa<LoadInst>(rawpayload))
-						rawpayload = cast<LoadInst>(rawpayload)->getOperand(0);
-					else
-					{
-						// TODO - solve problem of stack temporaries being passed into functions that expect a ref
-						assert(false);
-					}
+					relevantargs.push_back(rawpayload);
+					PendingValues.pop_back();
+					continue;
 				}
-	
-				payload = LLVMBuilder.CreatePtrToInt(rawpayload, paramtype->getStructElementType(1));
+				else
+				{
+					if (!rawpayload->getType()->isPointerTy())
+					{
+						if (isa<LoadInst>(rawpayload))
+							rawpayload = cast<LoadInst>(rawpayload)->getOperand(0);
+						else
+						{
+							// TODO - solve problem of stack temporaries being passed into functions that expect a ref
+							assert(false);
+						}
+					}
+
+					payload = LLVMBuilder.CreatePtrToInt(rawpayload, paramtype->getStructElementType(1));
+				}
 			}
 			else
 				payload = ConstantInt::get(paramtype->getStructElementType(1), 0);
