@@ -1,4 +1,24 @@
 
+structure ThunkTableEntry :
+	string FunctionName,
+	integer ThunkTableOffset,
+	integer ThunkAddressOffset,
+	integer ThunkAddressCopyOffset
+
+structure ThunkTableLibrary :
+	string LibraryName,
+	listnode<ThunkTableEntry> Functions,
+	integer StartOffset,
+	integer NameOffset
+
+structure ThunkTable :
+	listnode<ThunkTableLibrary> Libraries,
+	integer DescriptorOffset,
+	integer TotalSize,
+	integer AddressTableSize
+	
+
+
 global
 {
 	integer foo = add(40, 2)
@@ -8,6 +28,9 @@ global
 		BinaryTreeRoot<string>(nothing),
 		Trie(0, nothing, 0),
 		0
+
+
+	ThunkTable GlobalThunkTable = nothing, 0, 0, 0
 
 }
 
@@ -56,6 +79,12 @@ entrypoint :
 	StringTableRegisterString(1, "+")
 	StringTableRegisterString(2, "-")
 	StringTableRegisterString(3, "*")
+
+	ThunkTableAddEntry(GlobalThunkTable, "Kernel32.dll", "ExitProcess")
+	ThunkTableAddEntry(GlobalThunkTable, "Kernel32.dll", "lstrlenA")
+	ThunkTableAddEntry(GlobalThunkTable, "EpochRT.dll", "ERT_assert")
+	ThunkTableAddEntry(GlobalThunkTable, "EpochRT.dll", "ERT_buffer_alloc")
+
 
 	print("Done")
 }
@@ -508,5 +537,61 @@ BinaryTreeWalkAllNodesWithParam<type T, type ParamT> : BinaryTree<T> ref tree, (
 }
 
 BinaryTreeWalkAllNodesWithParam<type T, type ParamT> : nothing, (func : integer, T ref, ParamT ref -> boolean), ParamT ref param -> boolean ret = true
+
+
+
+ListPrependOrCreate<type T> : listnode<T> ref node, T ref value
+{
+	list<T> newlist = new value, node
+	listnode<T> wrap = newlist
+	node = wrap
+}
+
+
+ThunkTableAddEntry : ThunkTable ref table, string libname, string funcname
+{
+	ThunkTableAddFunctionToLibrary(table, table.Libraries, libname, funcname)
+}
+
+ThunkTableAddFunctionToLibrary : ThunkTable ref table, list<ThunkTableLibrary> ref libraries, string libname, string funcname
+{
+	if(libraries.value.LibraryName == libname)
+	{
+		ThunkTableAddFunctionToList(libraries.value, libraries.value.Functions, funcname)
+	}
+	else
+	{
+		ThunkTableAddFunctionToLibrary(table, libraries.next, libname, funcname)
+	}
+}
+
+ThunkTableAddFunctionToLibrary : ThunkTable ref table, nothing, string libname, string funcname
+{
+	ThunkTableEntry entry = new funcname, 0, 0, 0
+	list<ThunkTableEntry> entrylist = new entry, nothing
+	listnode<ThunkTableEntry> entrynode = entrylist
+	
+	ThunkTableLibrary rtlib = new libname, entrynode, 0, 0
+	ListPrependOrCreate<ThunkTableLibrary>(table.Libraries, rtlib)
+}
+
+ThunkTableAddFunctionToList : ThunkTableLibrary ref library, list<ThunkTableEntry> ref functions, string funcname
+{
+	if(functions.value.FunctionName == funcname)
+	{
+		// Function already exists, can bail safely
+	}
+	else
+	{
+		ThunkTableAddFunctionToList(library, functions.next, funcname)
+	}
+}
+
+ThunkTableAddFunctionToList : ThunkTableLibrary ref library, nothing, string funcname
+{
+	ThunkTableEntry entry = new funcname, 0, 0, 0
+	ListPrependOrCreate<ThunkTableEntry>(library.Functions, entry)
+}
+
 
 

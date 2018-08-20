@@ -422,7 +422,7 @@ GetLLVMTypeForEpochType : LLVMContextHandle context, integer typeid -> LLVMType 
 		boolean found = BinaryTreeCopyPayload<LLVMType>(LLVMSumTypeTable.RootNode, typeid, t)
 		if(!found)
 		{
-			t = EpochLLVMSumTypeCreate(context, GetPooledString(GetNameOfType(typeid)), GetTypeSize(typeid))			// TODO - double check return values from this function
+			t = EpochLLVMSumTypeCreate(context, GetPooledString(GetNameOfType(typeid)), 8)			// TODO - fix sum typed objects to packed storage
 			BinaryTreeCreateOrInsert<LLVMType>(LLVMSumTypeTable, typeid, t)
 		}
 	}
