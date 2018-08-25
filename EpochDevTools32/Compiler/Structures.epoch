@@ -488,3 +488,29 @@ ExtractAllMemberTypes : list<StructureMember> ref members, list<ParameterTypeLis
 }
 
 ExtractAllMemberTypes : nothing, nothing
+
+
+ComputeStructureSize : integer typeid -> integer size = 0
+{
+	integer structurename = GetNameOfType(typeid)
+	
+	ContextNode<StructureDefinition> wrap = nothing
+	boolean found = SearchBinaryTreeForPayload<StructureDefinition>(GlobalRootNamespace.Structures.RootNode, structurename, wrap)
+	assert(found)
+
+	ComputeStructureMemberSizes(wrap, size)
+}
+
+ComputeStructureMemberSizes : StructureDefinition ref structuredef, integer ref size
+{
+	ComputeStructureMemberSizes(structuredef.Members, size)
+}
+
+ComputeStructureMemberSizes : list<StructureMember> ref members, integer ref size
+{
+	size = size + GetTypeSize(GetMemberTypeDecompose(members.value))
+	ComputeStructureMemberSizes(members.next, size)
+}
+
+ComputeStructureMemberSizes : nothing, integer ref size
+

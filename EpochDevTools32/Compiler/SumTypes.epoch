@@ -193,6 +193,12 @@ ResolveSumTypeBases : list<SumTypeBase> ref bases -> boolean success = true
 			success = false
 		}
 
+		// TODO - HACK - this forces all structures in sum types to be indirected!
+		if(IsStructureType(resolvedtype))
+		{
+			resolvedtype = MakeReferenceType(resolvedtype)
+		}
+
 		bases.value.Name = resolvedtype
 	}
 

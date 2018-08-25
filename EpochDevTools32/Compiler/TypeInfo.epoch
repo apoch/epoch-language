@@ -33,11 +33,25 @@ GetTypeSize : integer typeid -> integer size = 0
 	}
 	elseif(IsStructureType(typeid))			// StructureHandle
 	{
-		size = 8
+		if(IsReferenceType(typeid))
+		{
+			size = 8
+		}
+		else
+		{
+			size = ComputeStructureSize(typeid)
+		}
 	}
 	elseif((typeid & 0xff000000) == 0x07000000)	// SumType
 	{
-		size = 4 + 8
+		if(IsReferenceType(typeid))
+		{
+			size = 8
+		}
+		else
+		{
+			size = 4 + GetLargestSumTypeBaseSize(typeid)
+		}
 	}
 	elseif(typeid == 0x00000004)			// Nothing
 	{

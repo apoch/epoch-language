@@ -422,7 +422,7 @@ GetLLVMTypeForEpochType : LLVMContextHandle context, integer typeid -> LLVMType 
 		boolean found = BinaryTreeCopyPayload<LLVMType>(LLVMSumTypeTable.RootNode, typeid, t)
 		if(!found)
 		{
-			t = EpochLLVMSumTypeCreate(context, GetPooledString(GetNameOfType(typeid)), 8)			// TODO - fix sum typed objects to packed storage
+			t = EpochLLVMSumTypeCreate(context, GetPooledString(GetNameOfType(typeid)), GetTypeSize(typeid))			// TODO - fix sum typed objects to packed storage
 			BinaryTreeCreateOrInsert<LLVMType>(LLVMSumTypeTable, typeid, t)
 		}
 	}
@@ -1005,9 +1005,12 @@ EmitSingleCodeBlockEntryToLLVM : LLVMBuildContext ref context, Statement ref ent
 		if (IsReferenceType(rhstype))
 		{
 			EmitPartialExpressionListToLLVM(context, entry.Parameters)
-			EpochLLVMCodeCreateDereference(context.Context)
+
+			// TODO - HACK - this should only dereference if the LHS is not reftype
+			//EpochLLVMCodeCreateDereference(context.Context)
+
 			EpochLLVMCodePushRawAlloca(context.Context, stalloca)
-			EpochLLVMCodePushInteger(context.Context, MakeNonReferenceType(rhstype))
+			EpochLLVMCodePushInteger(context.Context, rhstype)
 			EpochLLVMCodeCreateWriteStructurePopSumType(context.Context)
 		}
 		else
@@ -2443,7 +2446,7 @@ EmitTypeMatcherParamsInLLVM : LLVMContextHandle context, list<FunctionSignature>
 		else
 		{
 			boolean refflag = IsReferenceType(params.value.Type)	
-			integer paramtype = MakeNonReferenceType(params.value.Type)
+			integer paramtype = params.value.Type					// TODO - HACK - was makenonreftype but that breaks reftypes inside sum types
 			while((paramtype & 0x7f000000) == 0x05000000)
 			{
 				paramtype = FindTypeAliasBase(paramtype)
@@ -2457,7 +2460,7 @@ EmitTypeMatcherParamsInLLVM : LLVMContextHandle context, list<FunctionSignature>
 				{
 					EpochLLVMCodeCreateReadParam(context, paramindex)
 					EpochLLVMCodePushExtractedStructValue(context, 0)
-					EpochLLVMCodePushInteger(context, MakeNonReferenceType(paramtype))
+					EpochLLVMCodePushInteger(context, paramtype)
 					EpochLLVMCodeOperatorIntegerEquals(context)
 					EpochLLVMCodeCreateCondBranch(context, EpochLLVMCodePopValue(context), nextparamblock, nextoverloadblock)
 					++relevantparams
