@@ -846,7 +846,13 @@ llvm::CallInst* Context::CodeCreateCall(llvm::Function* target)
 				}
 			}
 			else
-				payload = ConstantInt::get(paramtype->getStructElementType(1), 0);
+			{
+				auto * arrtype = cast<ArrayType>(paramtype->getStructElementType(1));
+
+				std::vector<Constant*> zeroes(unsigned(arrtype->getArrayNumElements()), ConstantInt::get(paramtype->getStructElementType(1)->getArrayElementType(), 0u));
+
+				payload = ConstantArray::get(arrtype, zeroes);
+			}
 
 			// UHHHH
 			PendingValues.pop_back();
@@ -947,8 +953,17 @@ void Context::CodeCreateCast(Type* targettype)
 
 	llvm::Value* castvalue;
 	
-	if(targettype->isPointerTy() && !v->getType()->isPointerTy())
-		castvalue = LLVMBuilder.CreateIntToPtr(v, targettype);
+	if (targettype->isPointerTy() && !v->getType()->isPointerTy())
+	{
+		LoadInst* load = dyn_cast_or_null<LoadInst>(v);
+		assert(load);
+
+		Value* ptr = load->getOperand(0);
+
+		Value* indices[] = { ConstantInt::get(Type::getInt32Ty(GlobalContext), 0u) };
+		Value* gep = LLVMBuilder.CreateGEP(ptr, indices);
+		castvalue = LLVMBuilder.CreatePointerCast(gep, targettype);
+	}
 	else if(!targettype->isPointerTy() && v->getType()->isPointerTy())
 		castvalue = LLVMBuilder.CreatePtrToInt(v, targettype);
 	else
@@ -964,6 +979,14 @@ void Context::CodeCreateCast(Type* targettype)
 			}
 			else
 				castvalue = LLVMBuilder.CreateBitCast(LLVMBuilder.CreateExtractValue(v, { 1u }), targettype);
+		}
+		else if (v->getType()->isArrayTy())
+		{
+			LoadInst* load = dyn_cast_or_null<LoadInst>(v);
+			assert(load);
+
+			Value* ptr = load->getOperand(0);
+			castvalue = LLVMBuilder.CreatePointerCast(ptr, targettype);
 		}
 		else
 			castvalue = LLVMBuilder.CreateZExtOrTrunc(v, targettype);
@@ -981,6 +1004,13 @@ void Context::CodeCreateDereference()
 {
 	Value* p = PendingValues.back();
 	PendingValues.pop_back();
+
+	if (!p->getType()->isPointerTy())
+	{
+		LLVMBuilder.GetInsertBlock()->getParent()->dump();
+		p->dump();
+		assert(false);
+	}
 
 	Value* l = LLVMBuilder.CreateLoad(p);
 	PendingValues.push_back(l);
@@ -1195,16 +1225,31 @@ void Context::CodeCreateWriteStructurePopSumType()
 	Value* wv = PendingValues.back();
 	PendingValues.pop_back();
 
-	Type* ty = gep->getType()->getPointerElementType();
+	//Type* ty = gep->getType()->getPointerElementType();
 
-	Value* st = ConstantStruct::get(cast<StructType>(ty), { cast<Constant>(annotation), ConstantInt::get(ty->getContainedType(1), 0) });
 
-	// TODO - this is a stupid hack
-	Value* allocavalue = cast<LoadInst>(wv)->getOperand(0);
-	Value* castvalue = LLVMBuilder.CreatePtrToInt(allocavalue, ty->getContainedType(1));
+	//auto * arrtype = cast<ArrayType>(ty->getStructElementType(1));
 
-	st = LLVMBuilder.CreateInsertValue(st, castvalue, { 1u });
-	LLVMBuilder.CreateStore(st, gep);
+	//std::vector<Constant*> zeroes(unsigned(arrtype->getArrayNumElements()), ConstantInt::get(ty->getStructElementType(1)->getArrayElementType(), 0u));
+
+	//Value* st = ConstantArray::get(arrtype, zeroes);
+
+	//// TODO - this is a stupid hack
+	////Value* allocavalue = cast<LoadInst>(wv)->getOperand(0);
+	////Value* castvalue = LLVMBuilder.CreatePtrToInt(allocavalue, ty->getContainedType(1));
+
+	////Value* castvalue = LLVMBuilder.CreateBitCast(wv, ty->getContainedType(1));
+
+	//st = LLVMBuilder.CreateInsertValue(st, wv, { 1u });
+
+	Constant* zero = ConstantInt::get(TypeGetInteger(), 0);
+	Constant* one = ConstantInt::get(TypeGetInteger(), 1);
+	Value* annotationgep = LLVMBuilder.CreateGEP(gep, { zero, zero });
+	Value* payloadgep = LLVMBuilder.CreateGEP(gep, { zero, one });
+	Value* castgep = LLVMBuilder.CreatePointerCast(payloadgep, wv->getType()->getPointerTo());
+
+	LLVMBuilder.CreateStore(annotation, annotationgep);
+	LLVMBuilder.CreateStore(wv, castgep);
 }
 
 void Context::CodeCreateOperatorBooleanNot()
@@ -1641,7 +1686,7 @@ llvm::Type* Context::SumTypeCreate(const char* name, unsigned width)
 {
 	std::vector<llvm::Type*> members;
 	members.push_back(llvm::Type::getInt32Ty(GlobalContext));
-	members.push_back(llvm::Type::getIntNTy(GlobalContext, width * 8));
+	members.push_back(TypeGetArrayOfType(Type::getInt8Ty(GlobalContext), width));
 
 	llvm::Type* t = llvm::StructType::create(members, name);
 	return t;
