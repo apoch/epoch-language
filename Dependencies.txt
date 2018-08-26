@@ -4,6 +4,6 @@ The Epoch language project currently has the following dependencies:
 LLVM
 ----
 
-Version 3.8.0
+Version 6.0.0
 http://www.llvm.org/
 

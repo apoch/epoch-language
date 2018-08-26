@@ -1,6 +1,0 @@
-entrypoint :
-{
-	assert(true)
-	passtest()
-}
-
