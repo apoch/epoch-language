@@ -1,0 +1,13 @@
+//
+// Various outputting and diagnostic routines
+//
+
+
+DumpList<type T> : ListValue<T> ref thelist
+{
+	print(thelist.Head)
+	DumpList<T>(thelist.Next)
+}
+
+DumpList<type T> : nothing
+

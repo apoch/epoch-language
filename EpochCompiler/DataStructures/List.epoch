@@ -39,7 +39,7 @@ ListAppend<type T> : ListRef<T> ref thelist, ListRef<T> ref tail, T ref value
 
 
 //
-// The "by value" (as opposed to "by reference") versions of this routine
+// The "by value" (as opposed to "by reference") versions of these functions
 // are a necessary evil, because the legacy compiler doesn't understand how
 // to do overload resolution properly if they are called the same as each
 // other. Of course in the idealized world we are moving towards, we won't
@@ -49,6 +49,20 @@ ListAppend<type T> : ListRef<T> ref thelist, ListRef<T> ref tail, T ref value
 ListAppendV<type T> : ListValue<T> ref thelist, T value
 {
 	ListAppendV<T>(thelist, thelist.Next, value)
+}
+
+ListAppendV<type T> : ListValueNode<T> ref node, T value
+{
+	if(ListNodeHasPayloadV<T>(node))
+	{
+		ListAppendV<T>(node, node, value)
+	}
+	else
+	{
+		ListValue<T> newnode = value, nothing
+		ListValueNode<T> wrap = newnode
+		node = wrap
+	}
 }
 
 ListAppendV<type T> : ListValue<T> ref thelist, nothing, T value
@@ -61,3 +75,7 @@ ListAppendV<type T> : ListValue<T> ref thelist, ListValue<T> ref tail, T value
 {
 	ListAppendV<T>(tail, tail.Next, value)
 }
+
+
+ListNodeHasPayloadV<type T> : ListValue<T> ref node -> true
+ListNodeHasPayloadV<type T> : nothing -> false
