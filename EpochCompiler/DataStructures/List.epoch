@@ -1,0 +1,63 @@
+//
+// Linked list data structures
+//
+
+
+type ListValueNode<type T> : ListValue<T> | nothing
+
+structure ListValue<type T> :
+	T Head,
+	ListValueNode<T> Next
+
+
+
+type ListRefNode<type T> : ListRef<T> | nothing
+
+structure ListRef<type T> :
+	T ref Head,
+	ListRefNode<T> Next
+
+
+
+
+
+ListAppend<type T> : ListRef<T> ref thelist, T ref value
+{
+	ListAppend<T>(thelist, thelist.Next, value)
+}
+
+ListAppend<type T> : ListRef<T> ref thelist, nothing, T ref value
+{
+	ListRef<T> newnode = value, nothing
+	thelist.Next = newnode
+}
+
+ListAppend<type T> : ListRef<T> ref thelist, ListRef<T> ref tail, T ref value
+{
+	ListAppend<T>(tail, tail.Next, value)
+}
+
+
+//
+// The "by value" (as opposed to "by reference") versions of this routine
+// are a necessary evil, because the legacy compiler doesn't understand how
+// to do overload resolution properly if they are called the same as each
+// other. Of course in the idealized world we are moving towards, we won't
+// need to specify two types of list in the first place!
+//
+
+ListAppendV<type T> : ListValue<T> ref thelist, T value
+{
+	ListAppendV<T>(thelist, thelist.Next, value)
+}
+
+ListAppendV<type T> : ListValue<T> ref thelist, nothing, T value
+{
+	ListValue<T> newnode = value, nothing
+	thelist.Next = newnode
+}
+
+ListAppendV<type T> : ListValue<T> ref thelist, ListValue<T> ref tail, T value
+{
+	ListAppendV<T>(tail, tail.Next, value)
+}

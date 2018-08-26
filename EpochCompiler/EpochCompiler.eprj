@@ -13,7 +13,10 @@
     <TargetPath>$(OutputPath)\$(TargetName)</TargetPath>
   </PropertyGroup>
   <ItemGroup>
+    <EpochCompile Include="DataStructures\List.epoch" />
     <EpochCompile Include="EntryPoint.epoch" />
+    <EpochCompile Include="Platform\Win32.epoch" />
+    <EpochCompile Include="Utilities\Strings.epoch" />
   </ItemGroup>
   <Import Project="$(CustomProjectExtensionsPath)EpochProjectType.targets" />
 </Project>

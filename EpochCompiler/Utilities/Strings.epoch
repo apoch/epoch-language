@@ -1,0 +1,22 @@
+
+// TODO - replace with better option
+charat : string in, integer index -> string c = substring(in, index, 1)
+
+stringcontains : string haystack, string needle -> boolean contains = false
+{
+	integer needlelen = length(needle)
+	integer haystacklen = length(haystack)
+
+	integer index = 0
+	while(index < (haystacklen - needlelen))
+	{
+		if(substring(haystack, index, needlelen) == needle)
+		{
+			contains = true
+			return()
+		}
+
+		++index
+	}
+}
+

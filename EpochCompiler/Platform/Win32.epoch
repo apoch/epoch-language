@@ -1,0 +1,28 @@
+//
+// Win32 API declarations
+//
+// Also includes implementation of Epoch-specific wrapper functions
+// that would need to be rewritten to use a different platform's APIs
+// during a porting effort.
+//
+
+
+ExitProcess : integer value [external("Kernel32.dll", "ExitProcess", "stdcall")]
+
+
+
+
+
+
+
+//
+// Platform-agnostic wrappers
+//
+
+
+AbortProcess : integer code
+{
+	ExitProcess(code)
+}
+
+

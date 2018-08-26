@@ -7,6 +7,85 @@
 
 entrypoint :
 {
-	print("Hello, world!")
+	print("Epoch Language Project")
+	print("Cross-compiler: 32-bit compiler that builds 64-bit outputs")
+	print("")
+
+	string files = ""
+	string output = ""
+	
+	integer cmdlineindex = 1
+	while(cmdlineindex < cmdlinegetcount())
+	{
+		string switch = cmdlineget(cmdlineindex)
+		
+		if(switch == "/files")
+		{
+			++cmdlineindex
+			files = cmdlineget(cmdlineindex)
+		}
+		elseif(switch == "/output")
+		{
+			++cmdlineindex
+			output = cmdlineget(cmdlineindex)
+		}
+		
+		++cmdlineindex
+	}
+	
+	if(length(files) == 0)
+	{
+		print("No input files specified; use /files switch")
+		AbortProcess(100)
+	}
+	
+	if(length(output) == 0)
+	{
+		output = "EpochProgram.exe"
+	}
+
+
+	ListValue<string> sourcefilelist = "", nothing
+
+
+	print("Compilation arguments:")
+	
+	string split = files
+	while(stringcontains(split, ";"))
+	{
+		integer i = 0
+		while(i < length(split))
+		{
+			string c = charat(split, i)
+			if(c == ";")
+			{
+				string singlefile = substring(split, 0, i)
+				split = substring(split, i + 1)
+				
+				print(singlefile)
+				
+				ListAppendV<string>(sourcefilelist, singlefile)
+				
+				i = 0
+			}
+			else
+			{
+				++i
+			}
+		}
+	}
+	
+	if(length(split) > 0)
+	{
+		print(split)
+		ListAppendV<string>(sourcefilelist, split)
+	}
+	
+	print(" --->")
+	print(output)
+
+
+
+	print("(NOT IMPLEMENTED)")
 }
 
