@@ -1,0 +1,12 @@
+//
+// EpochCompiler
+// Project Entry Point Module
+//
+// Apoch - 8/26/2018 10:27:02 AM
+//
+
+entrypoint :
+{
+	print("Hello, world!")
+}
+

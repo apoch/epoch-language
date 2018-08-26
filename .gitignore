@@ -3,6 +3,7 @@
 *.dll
 *.pdb
 *.vcxproj.user
+*.eprj.user
 *.ncb
 *.suo
 *.aps
