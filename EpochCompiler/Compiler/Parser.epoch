@@ -1,0 +1,39 @@
+//
+// Parsing implementation
+//
+
+
+
+ParseFiles : ListValue<string> ref filelist -> boolean success = false
+{
+	integer filelen = -1
+	string contents = ReadFileText(filelist.Head, filelen)
+
+	if(filelen < 0)
+	{
+		print("*** ERROR: Failed to load file: " ; filelist.Head)
+		return()
+	}
+
+	print("Parsing: " ; filelist.Head)
+	if(!ParseFile(filelist.Head, contents))
+	{
+		print("*** ERROR: Failed to parse file: " ; filelist.Head)
+		return()
+	}
+
+	success = ParseFiles(filelist.Next)
+}
+
+
+ParseFiles : nothing -> true
+
+
+
+
+ParseFile : string filename, string contents -> boolean success = false
+{
+	print(contents)
+	success = true
+}
+

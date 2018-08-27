@@ -7,9 +7,71 @@
 //
 
 
+
+
+//
+// We use strong type aliases liberally to catch cases of passing
+// the wrong stuff around via opaque "integer" or whatever.
+//
+
+type Win32Handle : integer
+
+
+
+
 ExitProcess : integer value [external("Kernel32.dll", "ExitProcess", "stdcall")]
 
 
+
+CloseHandle : Win32Handle handle -> boolean ret = false [external("Kernel32.dll", "CloseHandle", "stdcall")]
+
+
+CreateFile :
+	string  filename,
+	integer access,
+	integer sharemode,
+	integer attributes,
+	integer creation,
+	integer flags,
+	integer template
+ ->
+	Win32Handle ret = 0
+ [external("Kernel32.dll", "CreateFileW", "stdcall")]
+
+
+CreateFileMapping :
+	Win32Handle filehandle,
+	integer attributes,
+	integer protection,
+	integer maxsizehigh,
+	integer maxsizelow,
+	integer name
+ ->
+	Win32Handle ret = 0
+ [external("Kernel32.dll", "CreateFileMappingW", "stdcall")]
+ 
+
+GetFileSize :
+	Win32Handle handle,
+	integer ignored
+ ->
+	integer size = 0
+ [external("Kernel32.dll", "GetFileSize", "stdcall")]
+ 
+
+MapViewOfFile :
+	Win32Handle handle,
+	integer access,
+	integer offsethigh,
+	integer offsetlow,
+	integer bytestomap
+ ->
+	integer ptr = 0
+ [external("Kernel32.dll", "MapViewOfFile", "stdcall")]
+
+
+
+UnmapViewOfFile : integer ptr -> boolean ret = false [external("Kernel32.dll", "UnmapViewOfFile", "stdcall")]
 
 
 
@@ -25,4 +87,43 @@ AbortProcess : integer code
 	ExitProcess(code)
 }
 
+
+
+ReadFileText : string filename, integer ref len -> string contents = ""
+{
+	Win32Handle INVALID_HANDLE_VALUE = 0xffffffff
+	integer FILE_SHARE_READ = 0x01
+	integer OPEN_EXISTING = 3
+	integer GENERIC_READ = 0x80000000
+
+	Win32Handle filehandle = CreateFile(filename, GENERIC_READ, 0, 0, OPEN_EXISTING, 0, 0)
+	if(filehandle != INVALID_HANDLE_VALUE)
+	{
+		integer PAGE_READONLY = 0x02
+
+		len = GetFileSize(filehandle, 0)
+
+		if(len > 0)
+		{
+			Win32Handle mappinghandle = CreateFileMapping(filehandle, 0, PAGE_READONLY, 0, 0, 0)
+			if(mappinghandle != 0)
+			{
+				integer FILE_MAP_READ = 0x04
+				integer ptr = MapViewOfFile(mappinghandle, FILE_MAP_READ, 0, 0, len)
+
+				if(ptr != 0)
+				{
+					contents = widenfromptr(ptr, len)
+					UnmapViewOfFile(ptr)
+				}
+				CloseHandle(mappinghandle)
+			}
+		}
+		else
+		{
+			contents = ""
+		}
+		CloseHandle(filehandle)
+	}
+}
 

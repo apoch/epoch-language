@@ -78,8 +78,14 @@ entrypoint :
 	print(" --->")
 	print(output)
 
+	print("")
 
+	if(!ParseFiles(sourcefilelist))
+	{
+		print("*** ERROR: Failed to parse input files.")
+		return()
+	}
 
-	print("(NOT IMPLEMENTED)")
+	print("Completed successfully.")
 }
 

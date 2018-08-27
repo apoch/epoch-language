@@ -13,6 +13,7 @@
     <TargetPath>$(OutputPath)\$(TargetName)</TargetPath>
   </PropertyGroup>
   <ItemGroup>
+    <EpochCompile Include="Compiler\Parser.epoch" />
     <EpochCompile Include="DataStructures\List.epoch" />
     <EpochCompile Include="EntryPoint.epoch" />
     <EpochCompile Include="Platform\Win32.epoch" />
