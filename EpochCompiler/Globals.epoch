@@ -1,0 +1,59 @@
+//
+// Globals
+//
+
+
+global
+{
+	integer CHARACTER_CLASS_WHITE = 0
+	integer CHARACTER_CLASS_IDENTIFIER = 1
+	integer CHARACTER_CLASS_PUNCTUATION = 2
+	integer CHARACTER_CLASS_COMMENT = 3
+	integer CHARACTER_CLASS_PUNCTUATION_COMPOUND = 4
+	integer CHARACTER_CLASS_STRING_LITERAL = 5
+	integer CHARACTER_CLASS_LITERAL = 6
+
+	integer CharacterCarriageReturn = subchar(unescape("\r"), 0)
+	integer CharacterLineFeed = subchar(unescape("\n"), 0)
+	integer CharacterTab = subchar(unescape("\t"), 0)
+	integer CharacterQuote = subchar(unescape("\'"), 0)
+	integer CharacterSlash = subchar("/", 0)
+	integer CharacterSpace = subchar(" ", 0)
+
+	integer CharacterA = subchar("a", 0)
+	integer CharacterB = subchar("b", 0)
+	integer CharacterC = subchar("c", 0)
+	integer CharacterD = subchar("d", 0)
+	integer CharacterE = subchar("e", 0)
+	integer CharacterF = subchar("f", 0)
+	integer CharacterX = subchar("x", 0)
+	integer CharacterZero = subchar("0", 0)
+	integer CharacterOne = subchar("1", 0)
+	integer CharacterTwo = subchar("2", 0)
+	integer CharacterThree = subchar("3", 0)
+	integer CharacterFour = subchar("4", 0)
+	integer CharacterFive = subchar("5", 0)
+	integer CharacterSix = subchar("6", 0)
+	integer CharacterSeven = subchar("7", 0)
+	integer CharacterEight = subchar("8", 0)
+	integer CharacterNine = subchar("9", 0)
+
+	integer CharacterOpenBrace = subchar("{", 0)
+	integer CharacterCloseBrace = subchar("}", 0)
+	integer CharacterColon = subchar(":", 0)
+	integer CharacterOpenParen = subchar("(", 0)
+	integer CharacterCloseParen = subchar(")", 0)
+	integer CharacterEquals = subchar("=", 0)
+	integer CharacterAmpersand = subchar("&", 0)
+	integer CharacterComma = subchar(",", 0)
+	integer CharacterPlus = subchar("+", 0)
+	integer CharacterMinus = subchar("-", 0)
+	integer CharacterLessThan = subchar("<", 0)
+	integer CharacterGreaterThan = subchar(">", 0)
+	integer CharacterDot = subchar(".", 0)
+	integer CharacterSemicolon = subchar(";", 0)
+	integer CharacterExclamation = subchar("!", 0)
+	integer CharacterOpenBracket = subchar("[", 0)
+	integer CharacterCloseBracket = subchar("]", 0)
+}
+

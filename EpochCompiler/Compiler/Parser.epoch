@@ -16,7 +16,7 @@ ParseFiles : ListValue<string> ref filelist -> boolean success = false
 	}
 
 	print("Parsing: " ; filelist.Head)
-	if(!ParseFile(filelist.Head, contents))
+	if(!ParseFile(filelist.Head, contents, filelen))
 	{
 		print("*** ERROR: Failed to parse file: " ; filelist.Head)
 		return()
@@ -31,9 +31,18 @@ ParseFiles : nothing -> true
 
 
 
-ParseFile : string filename, string contents -> boolean success = false
+ParseFile : string filename, string contents, integer len -> boolean success = false
 {
-	print(contents)
+	Lex(filename, contents, len)
 	success = true
+}
+
+
+
+
+// TEMP HACK
+PushToken : string token, string filename, integer linenumber, integer columnnumber
+{
+	print(token)
 }
 
