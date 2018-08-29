@@ -31,18 +31,54 @@ ParseFiles : nothing -> true
 
 
 
+
+
+structure LexToken :
+	string Token,
+	string FileName,
+	integer LineNumber,
+	integer ColumnNumber
+
+
+structure TokenContainer :
+	ListRef<LexToken> List,
+	ListRefNode<LexToken> Tail
+
+
+
+
 ParseFile : string filename, string contents, integer len -> boolean success = false
 {
-	Lex(filename, contents, len)
+	LexToken lt = "", filename, 0, 0
+	ListRef<LexToken> list = lt, nothing
+	TokenContainer tokens = list, list
+
+	Lex(filename, contents, len, tokens)
+
+	PopListHead<LexToken>(tokens.List)
+	DumpTokens(tokens.List)
+
 	success = true
 }
 
 
 
-
-// TEMP HACK
-PushToken : string token, string filename, integer linenumber, integer columnnumber
+PushToken : TokenContainer ref tokens, string token, string filename, integer linenumber, integer columnnumber
 {
-	print(token)
+	LexToken lt = token, filename, linenumber, columnnumber
+	InjectToken(tokens, tokens.Tail, lt)
+}
+
+
+InjectToken : TokenContainer ref tokens, ListRef<LexToken> ref tailnode, LexToken ref lt
+{
+	ListRef<LexToken> newlist = lt, nothing
+	tailnode.Next = newlist
+	tokens.Tail = newlist
+}
+
+InjectToken : TokenContainer ref tokens, nothing, LexToken ref lt
+{
+	assert(false)
 }
 

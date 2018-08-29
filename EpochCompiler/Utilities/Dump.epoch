@@ -11,3 +11,14 @@ DumpList<type T> : ListValue<T> ref thelist
 
 DumpList<type T> : nothing
 
+
+
+
+DumpTokens : ListRef<LexToken> ref thelist
+{
+	print(thelist.Head.FileName ; " - line " ; cast(string, thelist.Head.LineNumber) ; " col " ; cast(string, thelist.Head.ColumnNumber) ; " " ; thelist.Head.Token)
+	DumpTokens(thelist.Next)
+}
+
+DumpTokens : nothing
+

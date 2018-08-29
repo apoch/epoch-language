@@ -38,6 +38,25 @@ ListAppend<type T> : ListRef<T> ref thelist, ListRef<T> ref tail, T ref value
 }
 
 
+
+
+
+PopListHead<type T> : ListRef<T> ref thelist
+{
+	PopListHead<T>(thelist, thelist.Next)
+}
+
+PopListHead<type T> : ListRef<T> ref thelist, ListRef<T> ref nextnode
+{
+	thelist = nextnode
+}
+
+PopListHead<type T> : ListRef<T> ref thelist, nothing
+
+
+
+
+
 //
 // The "by value" (as opposed to "by reference") versions of these functions
 // are a necessary evil, because the legacy compiler doesn't understand how

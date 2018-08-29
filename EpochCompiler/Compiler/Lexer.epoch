@@ -9,7 +9,7 @@ EpochLib_SubstrCharDirect : integer pointer, integer pos -> integer ch = 0 [exte
 EpochLib_StrPointer : string s -> integer pointer = 0 [external("EpochLibrary.dll", "EpochLib_StrPointer"), nogc]
 EpochLib_SubstrDirect : integer pointer, integer pos, integer length -> string s = "" [external("EpochLibrary.dll", "EpochLib_SubstrDirect"), nogc]
 
-Lex : string filename, string code, integer len
+Lex : string filename, string code, integer len, TokenContainer ref tokens
 {
 	integer index = 0
 	integer lasttokenstart = 0
@@ -23,7 +23,7 @@ Lex : string filename, string code, integer len
 	integer codeptr = EpochLib_StrPointer(code)
 	
 	integer currentRow = 1
-	integer currentCol = 0
+	integer currentCol = 1
 
 	while(index < len)
 	{
@@ -34,9 +34,7 @@ Lex : string filename, string code, integer len
 			++currentRow
 			currentCol = 0
 		}
-
-		++currentCol
-		
+	
 
 		if(state == CHARACTER_CLASS_WHITE)
 		{
@@ -68,7 +66,7 @@ Lex : string filename, string code, integer len
 
 			if(notidentifier)
 			{
-				PushToken(EpochLib_SubstrDirect(codeptr, lasttokenstart, index - lasttokenstart), filename, lastTokenStartRow, lastTokenStartCol)
+				PushToken(tokens, EpochLib_SubstrDirect(codeptr, lasttokenstart, index - lasttokenstart), filename, lastTokenStartRow, lastTokenStartCol)
 			}
 		}
 		elseif(state == CHARACTER_CLASS_PUNCTUATION)
@@ -82,7 +80,7 @@ Lex : string filename, string code, integer len
 				state = Classify(c, state)
 			}
 
-			PushToken(EpochLib_SubstrDirect(codeptr, lasttokenstart, index - lasttokenstart), filename, lastTokenStartRow, lastTokenStartCol)
+			PushToken(tokens, EpochLib_SubstrDirect(codeptr, lasttokenstart, index - lasttokenstart), filename, lastTokenStartRow, lastTokenStartCol)
 			lasttokenstart = index
 			lastTokenStartRow = currentRow
 			lastTokenStartCol = currentCol
@@ -107,7 +105,7 @@ Lex : string filename, string code, integer len
 					string potentialtoken = EpochLib_SubstrDirect(codeptr, lasttokenstart, index - lasttokenstart)
 					if(!IsValidPunctuation(potentialtoken))
 					{
-						PushToken(substring(potentialtoken, 0, length(potentialtoken) - 1), filename, lastTokenStartRow, lastTokenStartCol)
+						PushToken(tokens, substring(potentialtoken, 0, length(potentialtoken) - 1), filename, lastTokenStartRow, lastTokenStartCol)
 						lasttokenstart = index - 1
 						
 						lastTokenStartRow = currentRow
@@ -123,7 +121,7 @@ Lex : string filename, string code, integer len
 					string potentialtoken = EpochLib_SubstrDirect(codeptr, lasttokenstart, index - lasttokenstart)
 					if(!IsValidPunctuation(potentialtoken))
 					{
-						PushToken(substring(potentialtoken, 0, length(potentialtoken) - 1), filename, lastTokenStartRow, lastTokenStartCol)
+						PushToken(tokens, substring(potentialtoken, 0, length(potentialtoken) - 1), filename, lastTokenStartRow, lastTokenStartCol)
 						lasttokenstart = index - 1
 
 						lastTokenStartRow = currentRow
@@ -131,7 +129,7 @@ Lex : string filename, string code, integer len
 					}
 				}
 
-				PushToken(EpochLib_SubstrDirect(codeptr, lasttokenstart, index - lasttokenstart), filename, lastTokenStartRow, lastTokenStartCol)
+				PushToken(tokens, EpochLib_SubstrDirect(codeptr, lasttokenstart, index - lasttokenstart), filename, lastTokenStartRow, lastTokenStartCol)
 			}
 		}
 		elseif(state == CHARACTER_CLASS_COMMENT)
@@ -150,7 +148,7 @@ Lex : string filename, string code, integer len
 			if(c == CharacterQuote)
 			{
 				state = CHARACTER_CLASS_WHITE
-				PushToken(EpochLib_SubstrDirect(codeptr, lasttokenstart, index - lasttokenstart + 1), filename, lastTokenStartRow, lastTokenStartCol)
+				PushToken(tokens, EpochLib_SubstrDirect(codeptr, lasttokenstart, index - lasttokenstart + 1), filename, lastTokenStartRow, lastTokenStartCol)
 			}
 		}
 		elseif(state == CHARACTER_CLASS_LITERAL)
@@ -169,7 +167,7 @@ Lex : string filename, string code, integer len
 
 			if(notliteral)
 			{
-				PushToken(EpochLib_SubstrDirect(codeptr, lasttokenstart, index - lasttokenstart), filename, lastTokenStartRow, lastTokenStartCol)
+				PushToken(tokens, EpochLib_SubstrDirect(codeptr, lasttokenstart, index - lasttokenstart), filename, lastTokenStartRow, lastTokenStartCol)
 			}
 		}
 
@@ -192,11 +190,12 @@ Lex : string filename, string code, integer len
 
 		prevstate = state
 		++index
+		++currentCol
 	}
 
 	if((lasttokenstart < len) && (state != CHARACTER_CLASS_WHITE))
 	{
-		PushToken(EpochLib_SubstrDirect(codeptr, lasttokenstart, len - lasttokenstart), filename, lastTokenStartRow, lastTokenStartCol)
+		PushToken(tokens, EpochLib_SubstrDirect(codeptr, lasttokenstart, len - lasttokenstart), filename, lastTokenStartRow, lastTokenStartCol)
 	}
 }
 
