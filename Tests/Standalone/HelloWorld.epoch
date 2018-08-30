@@ -1,0 +1,5 @@
+entrypoint :
+{
+	print("Hello world!")
+}
+
