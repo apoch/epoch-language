@@ -1,0 +1,4 @@
+LIBRARY "EpochLLVM"
+EXPORTS
+	EpochLLVMContextCreate
+	EpochLLVMContextDestroy

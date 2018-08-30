@@ -1,4 +1,4 @@
-.vs/**
+EpochCompiler/.vs/**
 *.exe
 *.dll
 *.pdb
@@ -11,6 +11,8 @@
 *.opensdf
 *.opendb
 *.VC.db
+/Bin/**
+/Build/**
 /EpochVisualStudio/EpochProjectType/Epoch/Epoch/Epoch.ProjectType/bin/**
 /EpochVisualStudio/EpochProjectType/Epoch/Epoch/Epoch.ProjectTemplate/bin/**
 /EpochVisualStudio/EpochProjectType/Epoch/Epoch/Epoch.ProjectTemplate/obj/**

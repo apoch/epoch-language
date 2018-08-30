@@ -89,7 +89,11 @@ entrypoint :
 		AbortProcess(200)
 	}
 
-	DumpProgram(program)
+	if(!CodeGenProgram(program, output))
+	{
+		print("*** ERROR: Failed to code-gen program.")
+		AbortProcess(300)
+	}
 
 	print("Completed successfully.")
 }

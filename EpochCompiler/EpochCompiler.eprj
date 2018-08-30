@@ -15,6 +15,7 @@
   <ItemGroup>
     <EpochCompile Include="Compiler\IR.epoch" />
     <EpochCompile Include="Compiler\Lexer.epoch" />
+    <EpochCompile Include="Compiler\LLVM.epoch" />
     <EpochCompile Include="Compiler\Parser.epoch" />
     <EpochCompile Include="Compiler\Types.epoch" />
     <EpochCompile Include="DataStructures\List.epoch" />

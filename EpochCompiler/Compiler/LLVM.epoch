@@ -1,0 +1,26 @@
+//
+// LLVM integration
+//
+
+
+type LLVMContextHandle : integer
+
+
+
+EpochLLVMContextCreate : -> LLVMContextHandle ret = 0 								[external("EpochLLVM.dll", "EpochLLVMContextCreate")]
+EpochLLVMContextDestroy : LLVMContextHandle handle									[external("EpochLLVM.dll", "EpochLLVMContextDestroy")]
+
+
+
+
+
+CodeGenProgram : Program ref program, string outputfile -> boolean success = false
+{
+	LLVMContextHandle context = EpochLLVMContextCreate()
+
+	// TODO
+
+	EpochLLVMContextDestroy(context)
+	success = true
+}
+
