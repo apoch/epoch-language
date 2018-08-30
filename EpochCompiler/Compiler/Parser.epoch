@@ -56,7 +56,22 @@ ParseFile : string filename, string contents, integer len -> boolean success = f
 	Lex(filename, contents, len, tokens)
 
 	PopListHead<LexToken>(tokens.List)
-	DumpTokens(tokens.List)
+
+	string headtoken = tokens.List.Head.Token
+	while(headtoken != "")
+	{
+		if(ParseFunction(tokens))
+		{
+			// AST should now contain a function
+		}
+		else
+		{
+			ParserSignalError(tokens)
+			return()
+		}
+
+		headtoken = tokens.List.Head.Token
+	}
 
 	success = true
 }
@@ -81,4 +96,93 @@ InjectToken : TokenContainer ref tokens, nothing, LexToken ref lt
 {
 	assert(false)
 }
+
+
+ParserSignalError : TokenContainer ref tokens
+{
+	print("*** ERROR: parsing failure")
+	DumpTokensCount(tokens.List, 3)
+}
+
+
+
+CompareTokens : ListRef<LexToken> ref tokenlist, integer index, string expected -> boolean matched = false
+{
+	if(index == 0)
+	{
+		if(tokenlist.Head.Token == expected)
+		{
+			matched = true
+		}
+	}
+	else
+	{
+		matched = CompareTokens(tokenlist.Next, index - 1, expected)
+	}
+}
+
+CompareTokens : nothing, integer index, string expected -> false
+
+
+
+PopTokens : ListRef<LexToken> ref tokenlist, integer count
+{
+	if(count > 0)
+	{
+		PopTokens(tokenlist, tokenlist.Next, count - 1)
+	}
+}
+
+PopTokens : ListRef<LexToken> ref tokenlist, ListRef<LexToken> ref newhead, integer count
+{
+	if(count > 0)
+	{
+		PopTokens(tokenlist, newhead.Next, count - 1)
+	}
+	else
+	{
+		PopListHead<LexToken>(tokenlist, newhead)
+	}
+}
+
+PopTokens : ListRef<LexToken> ref tokenlist, nothing, integer count
+{
+	if(count > 0)
+	{
+		assert(false)
+	}
+
+	LexToken lt = "", "", 0, 0
+	tokenlist.Head = lt
+}
+
+
+ParseFunction : TokenContainer ref tokens -> boolean success = false
+{
+	LexToken functionNameToken = tokens.List.Head
+
+	if(!CompareTokens(tokens.List, 1, ":"))
+	{
+		return()
+	}
+
+	PopTokens(tokens.List, 2)
+
+	if(!CompareTokens(tokens.List, 0, "{"))
+	{
+		// Function has no code body
+		success = true
+		return()
+	}
+
+	if(!CompareTokens(tokens.List, 1, "}"))
+	{
+		return()
+	}
+
+	PopTokens(tokens.List, 2)
+
+	success = true
+}
+
 

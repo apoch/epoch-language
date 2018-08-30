@@ -22,3 +22,19 @@ DumpTokens : ListRef<LexToken> ref thelist
 
 DumpTokens : nothing
 
+
+
+DumpTokensCount : ListRef<LexToken> ref thelist, integer count
+{
+	if(count < 0)
+	{
+		return()
+	}
+
+	print(thelist.Head.FileName ; " - line " ; cast(string, thelist.Head.LineNumber) ; " col " ; cast(string, thelist.Head.ColumnNumber) ; " " ; thelist.Head.Token)
+	DumpTokensCount(thelist.Next, count - 1)
+}
+
+DumpTokensCount : nothing, integer count
+
+
