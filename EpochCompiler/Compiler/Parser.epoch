@@ -4,7 +4,7 @@
 
 
 
-ParseFiles : ListValue<string> ref filelist -> boolean success = false
+ParseFiles : ListValue<string> ref filelist, Program ref program -> boolean success = false
 {
 	integer filelen = -1
 	string contents = ReadFileText(filelist.Head, filelen)
@@ -16,17 +16,17 @@ ParseFiles : ListValue<string> ref filelist -> boolean success = false
 	}
 
 	print("Parsing: " ; filelist.Head)
-	if(!ParseFile(filelist.Head, contents, filelen))
+	if(!ParseFile(filelist.Head, contents, filelen, program))
 	{
 		print("*** ERROR: Failed to parse file: " ; filelist.Head)
 		return()
 	}
 
-	success = ParseFiles(filelist.Next)
+	success = ParseFiles(filelist.Next, program)
 }
 
 
-ParseFiles : nothing -> true
+ParseFiles : nothing, Program ref program -> true
 
 
 
@@ -46,8 +46,7 @@ structure TokenContainer :
 
 
 
-
-ParseFile : string filename, string contents, integer len -> boolean success = false
+ParseFile : string filename, string contents, integer len, Program ref program -> boolean success = false
 {
 	LexToken lt = "", filename, 0, 0
 	ListRef<LexToken> list = lt, nothing
@@ -60,7 +59,7 @@ ParseFile : string filename, string contents, integer len -> boolean success = f
 	string headtoken = tokens.List.Head.Token
 	while(headtoken != "")
 	{
-		if(ParseFunction(tokens))
+		if(ParseFunction(tokens, program.RootNamespace))
 		{
 			// AST should now contain a function
 		}
@@ -157,7 +156,7 @@ PopTokens : ListRef<LexToken> ref tokenlist, nothing, integer count
 }
 
 
-ParseFunction : TokenContainer ref tokens -> boolean success = false
+ParseFunction : TokenContainer ref tokens, Namespace ref namespace -> boolean success = false
 {
 	LexToken functionNameToken = tokens.List.Head
 
@@ -171,19 +170,33 @@ ParseFunction : TokenContainer ref tokens -> boolean success = false
 	if(!CompareTokens(tokens.List, 0, "{"))
 	{
 		// Function has no code body
+		// TODO - pool strings
+		Function ret = INVALID_STRING_HANDLE, nothing, nothing
+		ListAppend<Function>(namespace.Functions, ret)
+
 		success = true
 		return()
 	}
 
 	PopTokens(tokens.List, 1)
 
-	success = ParseCodeBlock(tokens)
+
+	Function ret = INVALID_STRING_HANDLE, nothing, nothing
+	success = ParseCodeBlock(tokens, ret.Code)
+
+	if(success)
+	{
+		ListAppend<Function>(namespace.Functions, ret)
+	}
 }
 
 
 
-ParseCodeBlock : TokenContainer ref tokens -> boolean success = false
+ParseCodeBlock : TokenContainer ref tokens, Optional<CodeBlock> ref codeblock -> boolean success = false
 {
+	LexicalScope newscope = nothing
+	CodeBlock ret = newscope, nothing
+
 	string headtoken = tokens.List.Head.Token
 	while(headtoken != "}")
 	{
@@ -193,7 +206,7 @@ ParseCodeBlock : TokenContainer ref tokens -> boolean success = false
 			return()
 		}
 
-		if(ParseStatement(tokens))
+		if(ParseStatement(tokens, ret))
 		{
 			// AST should now contain a statement
 		}
@@ -207,11 +220,15 @@ ParseCodeBlock : TokenContainer ref tokens -> boolean success = false
 	}
 
 	PopTokens(tokens.List, 1)
+
+	Optional<CodeBlock> wrap = ret
+	codeblock = wrap
+
 	success = true
 }
 
 
-ParseStatement : TokenContainer ref tokens -> boolean success = false
+ParseStatement : TokenContainer ref tokens, CodeBlock ref parentblock -> boolean success = false
 {
 	LexToken statementNameToken = tokens.List.Head
 
@@ -236,6 +253,11 @@ ParseStatement : TokenContainer ref tokens -> boolean success = false
 	}
 
 	PopTokens(tokens.List, 1)
+
+	Statement s = INVALID_STRING_HANDLE, nothing, INVALID_TYPE_HANDLE
+	CodeBlockEntry e = s
+	ListAppend<CodeBlockEntry>(parentblock.Entries, e)
+
 	success = true
 }
 

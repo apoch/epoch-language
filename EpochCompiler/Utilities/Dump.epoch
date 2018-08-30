@@ -38,3 +38,29 @@ DumpTokensCount : ListRef<LexToken> ref thelist, integer count
 DumpTokensCount : nothing, integer count
 
 
+
+
+DumpProgram : Program ref program
+{
+	print("PROGRAM BEGIN")
+	DumpNamespace(program.RootNamespace)
+	print("PROGRAM END")
+}
+
+
+DumpNamespace : Namespace ref namespace
+{
+	print("NAMESPACE BEGIN")
+	DumpFunctions(namespace.Functions)
+	print("NAMESPACE END")
+}
+
+DumpFunctions : ListRef<Function> ref functions
+{
+	print("FUNCTION BEGIN")
+	print("FUNCTION END")
+
+	DumpFunctions(functions.Next)
+}
+
+DumpFunctions : nothing

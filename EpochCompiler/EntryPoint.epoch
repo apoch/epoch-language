@@ -80,11 +80,16 @@ entrypoint :
 
 	print("")
 
-	if(!ParseFiles(sourcefilelist))
+	Namespace rootnamespace = INVALID_STRING_HANDLE, nothing
+	Program program = rootnamespace, nothing
+
+	if(!ParseFiles(sourcefilelist, program))
 	{
 		print("*** ERROR: Failed to parse input files.")
 		AbortProcess(200)
 	}
+
+	DumpProgram(program)
 
 	print("Completed successfully.")
 }

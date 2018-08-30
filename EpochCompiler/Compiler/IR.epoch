@@ -9,6 +9,18 @@
 type StringHandle : integer
 
 
+
+structure Program :
+	Namespace RootNamespace,
+	Optional<GlobalBlock> Globals
+
+
+
+structure GlobalBlock :
+	ListRefNode<Initialization> Initializers
+
+
+
 structure Namespace :
 	StringHandle Name,
 	ListRefNode<Function> Functions
@@ -33,7 +45,7 @@ structure Variable :
 	TypeHandle Type
 
 
-type CodeBlockEntry : Statement | Assignment
+type CodeBlockEntry : Statement | Assignment | Initialization
 
 
 
@@ -47,6 +59,9 @@ structure Assignment :
 	ListValue<StringHandle> ref LeftSide,
 	Expression ref RightSide
 
+structure Initialization :
+	StringHandle VariableName,
+	ListRefNode<Expression> Arguments
 
 
 structure Expression :

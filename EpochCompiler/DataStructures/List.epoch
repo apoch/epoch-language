@@ -26,6 +26,20 @@ ListAppend<type T> : ListRef<T> ref thelist, T ref value
 	ListAppend<T>(thelist, thelist.Next, value)
 }
 
+ListAppend<type T> : ListRefNode<T> ref node, T ref value
+{
+	if(ListNodeHasPayload<T>(node))
+	{
+		ListAppend<T>(node, node, value)
+	}
+	else
+	{
+		ListRef<T> newnode = value, nothing
+		ListRefNode<T> wrap = newnode
+		node = wrap
+	}
+}
+
 ListAppend<type T> : ListRef<T> ref thelist, nothing, T ref value
 {
 	ListRef<T> newnode = value, nothing
@@ -38,6 +52,10 @@ ListAppend<type T> : ListRef<T> ref thelist, ListRef<T> ref tail, T ref value
 }
 
 
+
+
+ListNodeHasPayload<type T> : ListRef<T> ref node -> true
+ListNodeHasPayload<type T> : nothing -> false
 
 
 
