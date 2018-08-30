@@ -89,6 +89,24 @@ DumpCodeBlockEntries : nothing
 DumpCodeBlockEntry : Statement ref s
 {
 	print("STATEMENT BEGIN")
+	DumpExpressionList(s.Arguments)
 	print("STATEMENT END")
+}
+
+DumpExpressionList : ListRef<Expression> ref exprs
+{
+	print("EXPRESSION LIST BEGIN")
+	DumpExpression(exprs.Head)
+	print("EXPRESSION LIST END")
+}
+
+DumpExpressionList : nothing
+
+
+DumpExpression : Expression ref expr
+{
+	print("EXPRESSION BEGIN")
+	print("")		// TODO
+	print("EXPRESSION END")
 }
 

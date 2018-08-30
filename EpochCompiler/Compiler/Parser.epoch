@@ -239,6 +239,8 @@ ParseStatement : TokenContainer ref tokens, CodeBlock ref parentblock -> boolean
 
 	PopTokens(tokens.List, 2)
 
+	ListRefNode<Expression> parsedargs = nothing
+
 	string headtoken = tokens.List.Head.Token
 	while(headtoken != ")")
 	{
@@ -248,17 +250,44 @@ ParseStatement : TokenContainer ref tokens, CodeBlock ref parentblock -> boolean
 			return()
 		}
 
-		PopTokens(tokens.List, 1)
+		if(ParseExpression(tokens, parsedargs))
+		{
+		}
+		else
+		{
+			ParserSignalError(tokens, "mangled expression")
+			return()
+		}
+
 		headtoken = tokens.List.Head.Token
+		if(headtoken == ",")
+		{
+			PopTokens(tokens.List, 1)
+			headtoken = tokens.List.Head.Token
+		}
 	}
 
 	PopTokens(tokens.List, 1)
 
-	Statement s = INVALID_STRING_HANDLE, nothing, INVALID_TYPE_HANDLE
+	Statement s = INVALID_STRING_HANDLE, parsedargs, INVALID_TYPE_HANDLE
 	CodeBlockEntry e = s
 	ListAppend<CodeBlockEntry>(parentblock.Entries, e)
 
 	success = true
 }
 
+
+ParseExpression : TokenContainer ref tokens, ListRefNode<Expression> ref holder -> boolean success = false
+{
+	// TODO
+	StringAtom atom = INVALID_STRING_HANDLE
+	ExpressionAtom expratom = atom
+	ListRef<ExpressionAtom> atoms = expratom, nothing
+	Expression expr = atoms, INVALID_TYPE_HANDLE
+
+	ListAppend<Expression>(holder, expr)
+
+	PopTokens(tokens.List, 1)
+	success = true
+}
 
