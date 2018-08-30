@@ -83,7 +83,7 @@ entrypoint :
 	if(!ParseFiles(sourcefilelist))
 	{
 		print("*** ERROR: Failed to parse input files.")
-		return()
+		AbortProcess(200)
 	}
 
 	print("Completed successfully.")
