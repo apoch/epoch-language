@@ -1,0 +1,21 @@
+//
+// Optional<T> stuff
+//
+
+
+type Optional<type T> : T | nothing
+
+
+
+Has<type T> : Optional<T> ref opt -> boolean has = false
+{
+	if(HasChecker<T>(opt))
+	{
+		has = true
+	}
+}
+
+
+HasChecker<type T> : T ref opt -> true
+HasChecker<type T> : nothing -> false
+

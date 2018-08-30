@@ -1,0 +1,63 @@
+//
+// Intermediate representation of Epoch programs within the compiler
+//
+
+
+
+
+// TODO - rehome this
+type StringHandle : integer
+
+
+structure Namespace :
+	StringHandle Name,
+	ListRefNode<Function> Functions
+
+
+
+structure Function :
+	StringHandle Name,
+	Optional<CodeBlock> Code,
+	Optional<Expression> ReturnExpression
+
+structure CodeBlock :
+	LexicalScope Scope,
+	ListRefNode<CodeBlockEntry> Entries
+
+
+structure LexicalScope :
+	ListRefNode<Variable> Variables
+
+structure Variable :
+	StringHandle Name,
+	TypeHandle Type
+
+
+type CodeBlockEntry : Statement | Assignment
+
+
+
+structure Statement :
+	StringHandle Name,
+	ListRefNode<Expression> Arguments,
+	TypeHandle Type
+
+
+structure Assignment :
+	ListValue<StringHandle> ref LeftSide,
+	Expression ref RightSide
+
+
+
+structure Expression :
+	ListRef<ExpressionAtom> ref Atoms,
+	TypeHandle Type
+
+
+type ExpressionAtom : integer | StringAtom
+
+
+structure StringAtom :
+	StringHandle String
+
+

@@ -1,0 +1,16 @@
+//
+// Type metadata
+//
+
+
+
+type TypeHandle : integer
+type TypeCategory : integer
+
+
+structure TypeDefinition :
+	StringHandle Name,
+	TypeCategory Category,
+	ListValueNode<TypeHandle> SubTypes
+
+
