@@ -58,9 +58,37 @@ DumpNamespace : Namespace ref namespace
 DumpFunctions : ListRef<Function> ref functions
 {
 	print("FUNCTION BEGIN")
+	DumpCodeBlock(functions.Head.Code)
 	print("FUNCTION END")
 
 	DumpFunctions(functions.Next)
 }
 
 DumpFunctions : nothing
+
+DumpCodeBlock : CodeBlock ref codeblock
+{
+	print("CODE BLOCK BEGIN")
+	DumpCodeBlockEntries(codeblock.Entries)
+	print("CODE BLOCK END")
+}
+
+DumpCodeBlock : nothing
+
+
+DumpCodeBlockEntries : ListRef<CodeBlockEntry> ref entries
+{
+	DumpCodeBlockEntry(entries.Head)
+	DumpCodeBlockEntries(entries.Next)
+}
+
+DumpCodeBlockEntries : nothing
+
+
+
+DumpCodeBlockEntry : Statement ref s
+{
+	print("STATEMENT BEGIN")
+	print("STATEMENT END")
+}
+
