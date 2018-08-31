@@ -1,0 +1,316 @@
+//
+// Structures and routines for building the import address table in EXE files
+//
+
+
+
+
+structure ThunkTableEntry :
+	string FunctionName,
+	integer ThunkTableOffset,
+	integer ThunkAddressOffset,
+	integer ThunkAddressCopyOffset
+
+structure ThunkTableLibrary :
+	string LibraryName,
+	ListRefNode<ThunkTableEntry> Functions,
+	integer StartOffset,
+	integer NameOffset
+
+structure ThunkTable :
+	ListRefNode<ThunkTableLibrary> Libraries,
+	integer DescriptorOffset,
+	integer TotalSize,
+	integer AddressTableSize
+	
+
+
+
+
+ThunkTableAddEntry : ThunkTable ref table, string libname, string funcname
+{
+	ThunkTableAddFunctionToLibrary(table, table.Libraries, libname, funcname)
+}
+
+ThunkTableAddFunctionToLibrary : ThunkTable ref table, ListRef<ThunkTableLibrary> ref libraries, string libname, string funcname
+{
+	if(libraries.Head.LibraryName == libname)
+	{
+		ThunkTableAddFunctionToList(libraries.Head, libraries.Head.Functions, funcname)
+	}
+	else
+	{
+		ThunkTableAddFunctionToLibrary(table, libraries.Next, libname, funcname)
+	}
+}
+
+ThunkTableAddFunctionToLibrary : ThunkTable ref table, nothing, string libname, string funcname
+{
+	ThunkTableEntry entry = funcname, 0, 0, 0
+	ListRef<ThunkTableEntry> entrylist = entry, nothing
+	ListRefNode<ThunkTableEntry> entrynode = entrylist
+	
+	ThunkTableLibrary rtlib = libname, entrynode, 0, 0
+	ListAppend<ThunkTableLibrary>(table.Libraries, rtlib)
+}
+
+ThunkTableAddFunctionToList : ThunkTableLibrary ref library, ListRef<ThunkTableEntry> ref functions, string funcname
+{
+	if(functions.Head.FunctionName == funcname)
+	{
+		// Function already exists, can bail safely
+	}
+	else
+	{
+		ThunkTableAddFunctionToList(library, functions.Next, funcname)
+	}
+}
+
+ThunkTableAddFunctionToList : ThunkTableLibrary ref library, nothing, string funcname
+{
+	ThunkTableEntry entry = funcname, 0, 0, 0
+	ListAppend<ThunkTableEntry>(library.Functions, entry)
+}
+
+
+
+
+
+
+ThunkTableGetCompleteSize : ThunkTable ref table -> integer totalsize = 0
+{
+	table.TotalSize = 0
+	ThunkTableLibrariesWalkForSize(table.Libraries, table.TotalSize)
+	
+	integer initialsize = table.TotalSize
+	integer namelistsize = table.TotalSize
+	ThunkTableLibrariesWalkForAddressHolders(table.Libraries, namelistsize)
+	integer addresstablesize = namelistsize - initialsize
+	namelistsize += 8
+	ThunkTableLibrariesWalkForAddressCopyHolders(table.Libraries, namelistsize)
+	
+	totalsize = RoundUpFile(namelistsize)
+	table.DescriptorOffset = RoundUpFile(namelistsize)
+	
+	ThunkAddressesWalkLibrariesForOffsets(table.Libraries, totalsize)
+	
+	table.AddressTableSize = addresstablesize
+}
+
+ThunkTableLibrariesWalkForSize : ListRef<ThunkTableLibrary> ref libraries, integer ref startoffset
+{
+	libraries.Head.StartOffset = startoffset
+	ThunkTableFunctionsWalkForSize(libraries.Head.Functions, startoffset)
+	
+	libraries.Head.NameOffset = startoffset
+	
+	startoffset += length(libraries.Head.LibraryName) + 1				// NULL terminator
+	
+	ThunkTableLibrariesWalkForSize(libraries.Next, startoffset)
+}
+
+ThunkTableLibrariesWalkForSize : nothing, integer ref startoffset
+
+
+ThunkTableFunctionsWalkForSize : ListRef<ThunkTableEntry> ref functions, integer ref startoffset
+{
+	integer funclength = length(functions.Head.FunctionName) + 3		// NULL terminator plus the 16-bit hint word
+	functions.Head.ThunkTableOffset = startoffset
+	
+	startoffset += funclength
+	
+	ThunkTableFunctionsWalkForSize(functions.Next, startoffset)
+}
+
+ThunkTableFunctionsWalkForSize : nothing, integer ref startoffset
+
+
+ThunkAddressesWalkLibrariesForOffsets : ListRef<ThunkTableLibrary> ref libraries, integer ref startoffset
+{
+	startoffset += 20
+	ThunkAddressesWalkLibrariesForOffsets(libraries.Next, startoffset)
+}
+
+ThunkAddressesWalkLibrariesForOffsets : nothing, integer ref startoffset
+{
+	startoffset += 20			// Final "null" import descriptor
+}
+
+
+
+ThunkTableLibrariesWalkForAddressHolders : ListRef<ThunkTableLibrary> ref libraries, integer ref offset
+{
+	ThunkTableFunctionsWalkForAddressHolders(libraries.Head.Functions, offset)
+	ThunkTableLibrariesWalkForAddressHolders(libraries.Next, offset)
+}
+
+ThunkTableLibrariesWalkForAddressHolders : nothing, integer ref offset
+
+
+ThunkTableFunctionsWalkForAddressHolders : ListRef<ThunkTableEntry> ref functions, integer ref offset
+{
+	functions.Head.ThunkAddressOffset = offset
+	offset += 8
+
+	ThunkTableFunctionsWalkForAddressHolders(functions.Next, offset)
+}
+
+ThunkTableFunctionsWalkForAddressHolders : nothing, integer ref offset
+{
+	offset += 8
+}
+
+
+
+ThunkTableLibrariesWalkForAddressCopyHolders : ListRef<ThunkTableLibrary> ref libraries, integer ref offset
+{
+	ThunkTableFunctionsWalkForAddressCopyHolders(libraries.Head.Functions, offset)
+	ThunkTableLibrariesWalkForAddressCopyHolders(libraries.Next, offset)
+}
+
+ThunkTableLibrariesWalkForAddressCopyHolders : nothing, integer ref offset
+
+
+ThunkTableFunctionsWalkForAddressCopyHolders : ListRef<ThunkTableEntry> ref functions, integer ref offset
+{
+	functions.Head.ThunkAddressCopyOffset = offset
+	offset += 8
+
+	ThunkTableFunctionsWalkForAddressCopyHolders(functions.Next, offset)
+}
+
+ThunkTableFunctionsWalkForAddressCopyHolders : nothing, integer ref offset
+{
+	offset += 8
+}
+
+
+
+ThunkTableEmit : Win32Handle filehandle, ThunkTable ref table, integer virtualbase -> integer byteswritten = 0
+{
+	byteswritten += ThunkTableEmitLibraries(filehandle, table.Libraries)
+	byteswritten += ThunkTableEmitThunkHolders(filehandle, table.Libraries, virtualbase)
+	byteswritten += WritePadding(filehandle, 0, 8)
+	byteswritten += ThunkTableEmitThunkHolders(filehandle, table.Libraries, virtualbase)		// Second (copy) holders	
+	byteswritten += WritePadding(filehandle, byteswritten, table.DescriptorOffset)
+	byteswritten += ThunkTableEmitDescriptors(filehandle, table.Libraries, virtualbase)
+}
+
+ThunkTableEmitLibraries : Win32Handle filehandle, ListRef<ThunkTableLibrary> ref libraries -> integer byteswritten = 0
+{
+	byteswritten += ThunkTableEmitFunctions(filehandle, libraries.Head.Functions)
+	
+	buffer libname = narrowstring(libraries.Head.LibraryName)
+	integer written = 0
+	WriteFile(filehandle, libname, length(libraries.Head.LibraryName) + 1, written, 0)
+	
+	byteswritten += written
+	
+
+	byteswritten += ThunkTableEmitLibraries(filehandle, libraries.Next)
+}
+
+ThunkTableEmitLibraries : Win32Handle filehandle, nothing -> 0
+
+
+ThunkTableEmitFunctions : Win32Handle filehandle, ListRef<ThunkTableEntry> ref functions -> integer byteswritten = 0
+{
+	integer zerooffset = 0
+	buffer dummy16 = 2
+	
+	zerooffset = 0
+	ByteStreamEmitInteger16(dummy16, zerooffset, 0x0000)
+	
+	integer written = 0
+	WriteFile(filehandle, dummy16, 2, written, 0)
+	byteswritten += written
+	
+	written = 0
+	buffer funcname = narrowstring(functions.Head.FunctionName)
+	WriteFile(filehandle, funcname, length(functions.Head.FunctionName) + 1, written, 0)
+	byteswritten += written	
+	
+
+	byteswritten += ThunkTableEmitFunctions(filehandle, functions.Next)
+}
+
+ThunkTableEmitFunctions : Win32Handle filehandle, nothing -> integer byteswritten = 0
+
+
+ThunkTableEmitThunkHolders : Win32Handle filehandle, ListRef<ThunkTableLibrary> ref libraries, integer virtualbase -> integer byteswritten = 0
+{
+	byteswritten = ThunkTableEmitThunkHoldersPerFunction(filehandle, libraries.Head.Functions, virtualbase)
+
+	byteswritten += ThunkTableEmitThunkHolders(filehandle, libraries.Next, virtualbase)
+}
+
+ThunkTableEmitThunkHolders : Win32Handle filehandle, nothing, integer virtualbase -> 0
+
+
+ThunkTableEmitThunkHoldersPerFunction : Win32Handle filehandle, ListRef<ThunkTableEntry> ref functions, integer virtualbase -> integer byteswritten = 0
+{
+	buffer thunkbuffer = 16
+	integer thunksize = 0
+	
+	ByteStreamEmitInteger(thunkbuffer, thunksize, functions.Head.ThunkTableOffset + virtualbase)
+	ByteStreamEmitInteger(thunkbuffer, thunksize, 0)
+
+	integer written = 0
+	WriteFile(filehandle, thunkbuffer, thunksize, written, 0)
+	
+	byteswritten = written
+	byteswritten += ThunkTableEmitThunkHoldersPerFunction(filehandle, functions.Next, virtualbase)
+}
+
+ThunkTableEmitThunkHoldersPerFunction : Win32Handle filehandle, nothing, integer virtualbase -> integer byteswritten = 0
+{
+	byteswritten += WritePadding(filehandle, 0, 8)
+}
+
+
+
+ThunkTableEmitDescriptors : Win32Handle filehandle, ListRef<ThunkTableLibrary> ref libraries, integer virtualbase -> integer byteswritten = 0
+{
+	buffer thunkbuffer = 128
+	integer thunksize = 0
+		
+	ByteStreamEmitInteger(thunkbuffer, thunksize, virtualbase + ThunkTableGetLibFirstThunkOffset(libraries.Head))
+	ByteStreamEmitInteger(thunkbuffer, thunksize, 0)
+	ByteStreamEmitInteger(thunkbuffer, thunksize, 0)
+	ByteStreamEmitInteger(thunkbuffer, thunksize, virtualbase + libraries.Head.NameOffset)
+	ByteStreamEmitInteger(thunkbuffer, thunksize, virtualbase + ThunkTableGetLibFirstThunkCopyOffset(libraries.Head))	
+	
+	integer written = 0
+	WriteFile(filehandle, thunkbuffer, thunksize, written, 0)
+
+	byteswritten = thunksize
+	
+
+	byteswritten += ThunkTableEmitDescriptors(filehandle, libraries.Next, virtualbase)
+}
+
+ThunkTableEmitDescriptors : Win32Handle filehandle, nothing, integer virtualbase -> integer byteswritten = 0
+{
+	buffer thunkbuffer = 128
+	integer thunksize = 0
+	
+	ByteStreamEmitInteger(thunkbuffer, thunksize, 0)
+	ByteStreamEmitInteger(thunkbuffer, thunksize, 0)
+	ByteStreamEmitInteger(thunkbuffer, thunksize, 0)
+	ByteStreamEmitInteger(thunkbuffer, thunksize, 0)
+	ByteStreamEmitInteger(thunkbuffer, thunksize, 0)
+	
+	integer written = 0
+	WriteFile(filehandle, thunkbuffer, thunksize, written, 0)
+
+	byteswritten = thunksize
+}
+
+
+ThunkTableGetLibFirstThunkOffset : ThunkTableLibrary ref lib -> integer offset = ThunkTableEntryGetFirstThunkOffset(lib.Functions)
+ThunkTableEntryGetFirstThunkOffset : ListRef<ThunkTableEntry> ref functions -> integer offset = functions.Head.ThunkAddressOffset
+
+ThunkTableGetLibFirstThunkCopyOffset : ThunkTableLibrary ref lib -> integer offset = ThunkTableEntryGetFirstThunkCopyOffset(lib.Functions)
+ThunkTableEntryGetFirstThunkCopyOffset : ListRef<ThunkTableEntry> ref functions -> integer offset = functions.Head.ThunkAddressCopyOffset
+
+

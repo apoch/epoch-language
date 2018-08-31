@@ -33,22 +33,26 @@ WriteExecutable : string filename -> boolean success = false
 		return()
 	}
 
-	string pdbfilename = substring(filename, 0, length(filename) - 4) ; ".pdb"
+
+	ThunkTable thunktable = nothing, 0, 0, 0
+	ThunkTableAddEntry(thunktable, "Kernel32.dll", "ExitProcess")
+
+
+	string pdbfilename = substring(filename, 0, length(filename) - 4) ; ".pdb"			// TODO - this is a bad hack
 
 	integer virtualoffsetthunk   = 0x1000
 	integer offsetthunk          = 0x400
-	integer sizethunk            = 32 //ThunkTableGetCompleteSize(GlobalThunkTable)
+	integer sizethunk            = ThunkTableGetCompleteSize(thunktable)
 
 	integer sizepdata = 32 //EpochLLVMSectionGetPDataSize(llvm)
 	integer sizexdata = 32 //EpochLLVMSectionGetXDataSize(llvm)
 	integer sizegc = 32 //EpochLLVMSectionGetGCSize(llvm)
-	integer sizedebug = 0x200 //EpochLLVMSectionGetDebugSize(llvm)
 	integer sizestrings = 32 //PreprocessStringPool(GlobalStringPool, GlobalStringOffsets)
+	integer sizedebug = 0x200
 	
 	buffer pdata = sizepdata
 	buffer xdata = sizexdata
 	buffer gcdata = sizegc
-	buffer debugdata = sizedebug
 
 	integer globaloffsettracker = 42
 
@@ -71,8 +75,8 @@ WriteExecutable : string filename -> boolean success = false
 	integer virtualoffsetdebug   = RoundUp(virtualoffsetgc + sizegc)
 	integer offsetdebug          = RoundUpFile(offsetgc + sizegc)
 
-	integer virtualoffsetglobals = RoundUp(virtualoffsetdebug + 0x200)			// TODO - hardcoded hack for .debug
-	integer offsetglobals        = RoundUp(offsetdebug + 0x200)					// TODO - hardcoded hack for .debug
+	integer virtualoffsetglobals = RoundUp(virtualoffsetdebug + sizedebug)
+	integer offsetglobals        = RoundUp(offsetdebug + sizedebug)
 
 	integer virtualoffsetcode    = RoundUp(virtualoffsetglobals + globaloffsettracker)
 	integer offsetcode           = RoundUpFile(offsetglobals + globaloffsettracker)
@@ -86,7 +90,7 @@ WriteExecutable : string filename -> boolean success = false
 	//	subsystem = 2			// GUI
 	//}
 
-	integer thunkdescriptoroffset = 1 //GlobalThunkTable.DescriptorOffset
+	integer thunkdescriptoroffset = thunktable.DescriptorOffset
 
 	integer written = 0
 	integer position = 0
@@ -123,7 +127,7 @@ WriteExecutable : string filename -> boolean success = false
 
 	print("Writing thunk table...")
 	position += WritePadding(filehandle, position, offsetthunk)
-	position += WriteThunkTable(filehandle, virtualoffsetthunk)
+	position += WriteThunkTable(filehandle, virtualoffsetthunk, thunktable)
 
 	print("Writing resources...")
 	position += WritePadding(filehandle, position, offsetrsrc)
@@ -202,9 +206,9 @@ WriteGarbage : Win32Handle filehandle, integer startpos, integer desiredpos -> i
 }
 
 
-WriteThunkTable : Win32Handle filehandle, integer virtualoffsetthunk -> integer writtenbytes = 0
+WriteThunkTable : Win32Handle filehandle, integer virtualoffsetthunk, ThunkTable ref table -> integer writtenbytes = 0
 {
-	writtenbytes = 0 //ThunkTableEmit(filehandle, GlobalThunkTable, virtualoffsetthunk)
+	writtenbytes = ThunkTableEmit(filehandle, table, virtualoffsetthunk)
 }
 
 WriteSectionHeader : Win32Handle filehandle, string sectionname, integer location, integer virtuallocation, integer sectionsize, integer sectionvirtualsize, integer flags -> integer writtenbytes = 0
