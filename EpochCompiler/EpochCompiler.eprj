@@ -15,6 +15,7 @@
   <ItemGroup>
     <EpochCompile Include="Compiler\IR.epoch" />
     <EpochCompile Include="Compiler\Lexer.epoch" />
+    <EpochCompile Include="Linker\Exe.epoch" />
     <EpochCompile Include="Linker\Linker.epoch" />
     <EpochCompile Include="Compiler\LLVM.epoch" />
     <EpochCompile Include="Compiler\Parser.epoch" />
@@ -24,6 +25,7 @@
     <EpochCompile Include="EntryPoint.epoch" />
     <EpochCompile Include="Globals.epoch" />
     <EpochCompile Include="Platform\Win32.epoch" />
+    <EpochCompile Include="Utilities\ByteStream.epoch" />
     <EpochCompile Include="Utilities\Dump.epoch" />
     <EpochCompile Include="Utilities\Strings.epoch" />
   </ItemGroup>

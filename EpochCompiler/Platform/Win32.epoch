@@ -74,6 +74,16 @@ MapViewOfFile :
 UnmapViewOfFile : integer ptr -> boolean ret = false [external("Kernel32.dll", "UnmapViewOfFile", "stdcall")]
 
 
+WriteFile :
+	Win32Handle handle,
+	buffer ref data,
+	integer numbytes,
+	integer ref written,
+	integer ignored2
+ ->
+	boolean ret = false
+ [external("Kernel32.dll", "WriteFile", "stdcall")]
+
 
 
 

@@ -20,3 +20,22 @@ stringcontains : string haystack, string needle -> boolean contains = false
 	}
 }
 
+
+reverseindexof : string haystack, string needle -> integer pos = -1
+{
+	integer needlelen = length(needle)
+	integer haystacklen = length(haystack)
+
+	integer index = haystacklen - needlelen
+	while (index > -1)
+	{
+		if(substring(haystack, index, needlelen) == needle)
+		{
+			pos = index
+			return()
+		}
+
+		--index
+	}
+}
+
