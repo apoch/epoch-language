@@ -89,11 +89,25 @@ entrypoint :
 		AbortProcess(200)
 	}
 
-	if(!CodeGenProgram(program, output))
+
+	// TODO - type checking (error code 300 is reserved for this phase)
+
+
+	LLVMContextHandle context = EpochLLVMContextCreate()
+	if(!CodeGenProgram(program, context))
 	{
 		print("*** ERROR: Failed to code-gen program.")
-		AbortProcess(300)
+		EpochLLVMContextDestroy(context)
+		AbortProcess(400)
 	}
+
+	if(!LinkAndWriteProgram(program, context, output))
+	{
+		print("*** ERROR: Failed to link program.")
+		EpochLLVMContextDestroy(context)
+		AbortProcess(500)
+	}
+	EpochLLVMContextDestroy(context)
 
 	print("Completed successfully.")
 }

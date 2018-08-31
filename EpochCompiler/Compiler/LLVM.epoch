@@ -6,21 +6,20 @@
 type LLVMContextHandle : integer
 
 
-
 EpochLLVMContextCreate : -> LLVMContextHandle ret = 0 								[external("EpochLLVM.dll", "EpochLLVMContextCreate")]
-EpochLLVMContextDestroy : LLVMContextHandle handle									[external("EpochLLVM.dll", "EpochLLVMContextDestroy")]
+EpochLLVMContextDestroy : LLVMContextHandle context									[external("EpochLLVM.dll", "EpochLLVMContextDestroy")]
+
+EpochLLVMModuleDump : LLVMContextHandle context										[external("EpochLLVM.dll", "EpochLLVMModuleDump")]
 
 
 
-
-
-CodeGenProgram : Program ref program, string outputfile -> boolean success = false
+CodeGenProgram : Program ref program, LLVMContextHandle context -> boolean success = false
 {
-	LLVMContextHandle context = EpochLLVMContextCreate()
+	print("Generating code...")
 
 	// TODO
+	EpochLLVMModuleDump(context)
 
-	EpochLLVMContextDestroy(context)
 	success = true
 }
 

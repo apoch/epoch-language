@@ -2,3 +2,6 @@ LIBRARY "EpochLLVM"
 EXPORTS
 	EpochLLVMContextCreate
 	EpochLLVMContextDestroy
+
+	EpochLLVMModuleDump
+
