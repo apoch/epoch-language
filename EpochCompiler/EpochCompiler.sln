@@ -4,6 +4,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 VisualStudioVersion = 15.0.27428.2027
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{7BD20C85-AB56-499D-B05B-D5F12345423C}") = "EpochCompiler", "EpochCompiler.eprj", "{10512A3A-5CD1-4CA1-A5F0-84217F8B7555}"
+	ProjectSection(ProjectDependencies) = postProject
+		{ECFF69BA-77AA-4A7C-BE44-D76DAB372D4B} = {ECFF69BA-77AA-4A7C-BE44-D76DAB372D4B}
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "EpochLLVM", "..\EpochLLVM\EpochLLVM.vcxproj", "{ECFF69BA-77AA-4A7C-BE44-D76DAB372D4B}"
 EndProject
