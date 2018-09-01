@@ -4,12 +4,20 @@
 
 
 type LLVMContextHandle : integer
+type LLVMFunctionType : integer
+type LLVMFunction : integer
+type LLVMBasicBlock : integer
 
+EpochLLVMContextCreate : -> LLVMContextHandle ret = 0 													[external("EpochLLVM.dll", "EpochLLVMContextCreate")]
+EpochLLVMContextDestroy : LLVMContextHandle context														[external("EpochLLVM.dll", "EpochLLVMContextDestroy")]
 
-EpochLLVMContextCreate : -> LLVMContextHandle ret = 0 								[external("EpochLLVM.dll", "EpochLLVMContextCreate")]
-EpochLLVMContextDestroy : LLVMContextHandle context									[external("EpochLLVM.dll", "EpochLLVMContextDestroy")]
+EpochLLVMModuleDump : LLVMContextHandle context															[external("EpochLLVM.dll", "EpochLLVMModuleDump")]
 
-EpochLLVMModuleDump : LLVMContextHandle context										[external("EpochLLVM.dll", "EpochLLVMModuleDump")]
+EpochLLVMTypeCreateFunction : LLVMContextHandle context -> LLVMFunctionType ret = 0						[external("EpochLLVM.dll", "EpochLLVMTypeCreateFunction")]
+
+EpochLLVMFunctionCreate : LLVMContextHandle context, LLVMFunctionType fty -> LLVMFunction ret = 0		[external("EpochLLVM.dll", "EpochLLVMFunctionCreate")]
+
+EpochLLVMBasicBlockCreate : LLVMContextHandle context, LLVMFunction func -> LLVMBasicBlock ret = 0		[external("EpochLLVM.dll", "EpochLLVMBasicBlockCreate")]
 
 
 
@@ -17,8 +25,55 @@ CodeGenProgram : Program ref program, LLVMContextHandle context -> boolean succe
 {
 	print("Generating code...")
 
+	if(!CodeGenNamespace(program.RootNamespace, context))
+	{
+		return()
+	}
+
 	// TODO
 	EpochLLVMModuleDump(context)
+
+	success = true
+}
+
+
+
+CodeGenNamespace : Namespace ref namespace, LLVMContextHandle context -> boolean success = false
+{
+	if(!CodeGenFunctions(namespace.Functions, context))
+	{
+		return()
+	}
+
+	success = true
+}
+
+
+CodeGenFunctions : ListRef<Function> ref functions, LLVMContextHandle context -> boolean success = false
+{
+	if(!CodeGenFunction(functions.Head, context))
+	{
+		return()
+	}
+
+	if(CodeGenFunctions(functions.Next, context))
+	{
+		success = true
+	}
+}
+
+CodeGenFunctions : nothing, LLVMContextHandle context -> true
+
+
+
+CodeGenFunction : Function ref function, LLVMContextHandle context -> boolean success = false
+{
+	LLVMFunctionType fty = EpochLLVMTypeCreateFunction(context)
+	LLVMFunction llvmfunc = EpochLLVMFunctionCreate(context, fty)
+
+	LLVMBasicBlock bb = EpochLLVMBasicBlockCreate(context, llvmfunc)
+
+	// TODO
 
 	success = true
 }

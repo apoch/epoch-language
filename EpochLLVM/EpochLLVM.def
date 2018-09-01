@@ -5,3 +5,9 @@ EXPORTS
 
 	EpochLLVMModuleDump
 
+	EpochLLVMTypeCreateFunction
+
+	EpochLLVMFunctionCreate
+
+	EpochLLVMBasicBlockCreate
+
