@@ -35,14 +35,33 @@ EpochLLVMCodeCreateCall : LLVMContextHandle context, LLVMFunction target -> LLVM
 
 
 
+structure CodeGenCache :
+	LLVMContextHandle LLVM,
+	LLVMFunction EntrypointFunction
+
+
+
 CodeGenProgram : Program ref program, LLVMContextHandle context -> boolean success = false
 {
 	print("Generating code...")
 
-	if(!CodeGenNamespace(program.RootNamespace, context))
+	LLVMFunctionType initFuncType = EpochLLVMTypeCreateFunction(context)
+	LLVMFunction initFunc = EpochLLVMFunctionCreate(context, initFuncType, "@init")
+	LLVMBasicBlock initBB = EpochLLVMBasicBlockCreate(context, initFunc)
+
+	LLVMFunction ep = 0
+	CodeGenCache cache = context, ep
+
+	if(!CodeGenNamespace(program.RootNamespace, cache))
 	{
 		return()
 	}
+
+	// TODO - validate that entrypoint exists
+
+	EpochLLVMBasicBlockSetInsertPoint(context, initBB)
+	EpochLLVMCodeCreateCall(context, cache.EntrypointFunction)
+	EpochLLVMCodeCreateRetVoid(context)
 
 	EpochLLVMModuleCreateBinary(context)
 	success = true
@@ -50,9 +69,9 @@ CodeGenProgram : Program ref program, LLVMContextHandle context -> boolean succe
 
 
 
-CodeGenNamespace : Namespace ref namespace, LLVMContextHandle context -> boolean success = false
+CodeGenNamespace : Namespace ref namespace, CodeGenCache ref cache -> boolean success = false
 {
-	if(!CodeGenFunctions(namespace.Functions, context))
+	if(!CodeGenFunctions(namespace.Functions, cache))
 	{
 		return()
 	}
@@ -61,47 +80,36 @@ CodeGenNamespace : Namespace ref namespace, LLVMContextHandle context -> boolean
 }
 
 
-CodeGenFunctions : ListRef<Function> ref functions, LLVMContextHandle context -> boolean success = false
+CodeGenFunctions : ListRef<Function> ref functions, CodeGenCache ref cache -> boolean success = false
 {
-	if(!CodeGenFunction(functions.Head, context))
+	if(!CodeGenFunction(functions.Head, cache))
 	{
 		return()
 	}
 
-	if(CodeGenFunctions(functions.Next, context))
+	if(CodeGenFunctions(functions.Next, cache))
 	{
 		success = true
 	}
 }
 
-CodeGenFunctions : nothing, LLVMContextHandle context -> true
+CodeGenFunctions : nothing, CodeGenCache ref cache -> true
 
 
 
-CodeGenFunction : Function ref function, LLVMContextHandle context -> boolean success = false
+CodeGenFunction : Function ref function, CodeGenCache ref cache -> boolean success = false
 {
-	LLVMFunctionType fty2 = EpochLLVMTypeCreateFunction(context)
-	LLVMFunction llvmfunc2 = EpochLLVMFunctionCreate(context, fty2, "@init")
+	LLVMFunctionType fty = EpochLLVMTypeCreateFunction(cache.LLVM)
+	LLVMFunction llvmfunc = EpochLLVMFunctionCreate(cache.LLVM, fty, "entrypoint")
 
-	LLVMBasicBlock bb2 = EpochLLVMBasicBlockCreate(context, llvmfunc2)
-
-
-	LLVMFunctionType fty = EpochLLVMTypeCreateFunction(context)
-	LLVMFunction llvmfunc = EpochLLVMFunctionCreate(context, fty, "entrypoint")
-
-	LLVMBasicBlock bb = EpochLLVMBasicBlockCreate(context, llvmfunc)
-	EpochLLVMBasicBlockSetInsertPoint(context, bb)
+	LLVMBasicBlock bb = EpochLLVMBasicBlockCreate(cache.LLVM, llvmfunc)
+	EpochLLVMBasicBlockSetInsertPoint(cache.LLVM, bb)
 	
 	// TODO
+
+	cache.EntrypointFunction = llvmfunc
 	
-	EpochLLVMCodeCreateRetVoid(context)
-
-
-
-	EpochLLVMBasicBlockSetInsertPoint(context, bb2)
-	EpochLLVMCodeCreateCall(context, llvmfunc)
-	EpochLLVMCodeCreateRetVoid(context)
-
+	EpochLLVMCodeCreateRetVoid(cache.LLVM)
 	success = true
 }
 
