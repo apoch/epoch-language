@@ -21,7 +21,7 @@ RoundUpFile : integer in -> integer out = ((in / 0x200) + 1) * 0x200		// TODO - 
 StripPath : string path -> string filename = substring(path, reverseindexof(path, "\") + 1)
 
 
-WriteExecutable : string filename -> boolean success = false
+WriteExecutable : string filename, buffer ref codebuffer, integer codesize -> boolean success = false
 {
 	integer GENERIC_WRITE = 0x40000000
 	integer CREATE_ALWAYS = 2
@@ -81,8 +81,7 @@ WriteExecutable : string filename -> boolean success = false
 	integer virtualoffsetcode    = RoundUp(virtualoffsetglobals + globaloffsettracker)
 	integer offsetcode           = RoundUpFile(offsetglobals + globaloffsettracker)
 
-	integer sizecode			 = 42
-	integer sizeimage            = RoundUp(virtualoffsetcode + sizecode)
+	integer sizeimage            = RoundUp(virtualoffsetcode + codesize)
 
 	integer16 subsystem = 3		// console
 	//if(GUI)
@@ -94,7 +93,7 @@ WriteExecutable : string filename -> boolean success = false
 
 	integer written = 0
 	integer position = 0
-	position += WritePEHeader(filehandle, sizeimage, virtualoffsetdebug, sizedebug, virtualoffsetpdata, sizepdata, virtualoffsetxdata, sizexdata, virtualoffsetthunk + thunkdescriptoroffset, sizethunk, virtualoffsetrsrc, sizersrc, subsystem, sizecode, virtualoffsetcode)
+	position += WritePEHeader(filehandle, sizeimage, virtualoffsetdebug, sizedebug, virtualoffsetpdata, sizepdata, virtualoffsetxdata, sizexdata, virtualoffsetthunk + thunkdescriptoroffset, sizethunk, virtualoffsetrsrc, sizersrc, subsystem, codesize, virtualoffsetcode)
 
 	COFFSectionHeader headeridata = ".idata", offsetthunk, virtualoffsetthunk, sizethunk, sizethunk, 0xc0000040
 	ListRef<COFFSectionHeader> sectionheaders = headeridata, nothing
@@ -120,7 +119,7 @@ WriteExecutable : string filename -> boolean success = false
 	COFFSectionHeader headerglobal = ".global", offsetglobals, virtualoffsetglobals, globaloffsettracker, globaloffsettracker, 0xc0000040
 	ListAppend<COFFSectionHeader>(sectionheaders, headerglobal)
 
-	COFFSectionHeader headertext = ".text", offsetcode, virtualoffsetcode, sizecode, sizecode, 0x60000020
+	COFFSectionHeader headertext = ".text", offsetcode, virtualoffsetcode, codesize, codesize, 0x60000020
 	ListAppend<COFFSectionHeader>(sectionheaders, headertext)
 
 	position += WriteSectionHeaders(filehandle, sectionheaders)
@@ -159,8 +158,8 @@ WriteExecutable : string filename -> boolean success = false
 	
 	position += WritePadding(filehandle, position, offsetcode)
 
-	position += WritePadding(filehandle, position, offsetcode + sizecode) //WriteFile(filehandle, codebinarybuffer, sizecode, written, 0)
-	//position += sizecode
+	WriteFile(filehandle, codebuffer, codesize, written, 0)
+	position += codesize
 
 	position += WritePadding(filehandle, position, RoundUpFile(position))
 	CloseHandle(filehandle)

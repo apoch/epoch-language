@@ -3,7 +3,9 @@ EXPORTS
 	EpochLLVMContextCreate
 	EpochLLVMContextDestroy
 
+	EpochLLVMModuleCreateBinary
 	EpochLLVMModuleDump
+	EpochLLVMModuleGetCodeBuffer
 
 	EpochLLVMTypeCreateFunction
 

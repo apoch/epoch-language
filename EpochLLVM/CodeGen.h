@@ -18,11 +18,18 @@ public:
 	void CodeCreateRetVoid();
 
 public:
+	void CreateBinaryModule();
+
+	void* GetCodeBuffer(unsigned* outSize);
+
+public:
 	void DebugDump();
 
 private:
 	llvm::LLVMContext GlobalContext;
 	llvm::IRBuilder<> Builder;
 	std::unique_ptr<llvm::Module> LLVMModule;
+
+	std::vector<char> CodeBuffer;
 };
 

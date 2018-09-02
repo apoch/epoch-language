@@ -7,11 +7,14 @@ type LLVMContextHandle : integer
 type LLVMFunctionType : integer
 type LLVMFunction : integer
 type LLVMBasicBlock : integer
+type LLVMBuffer : integer
 
 EpochLLVMContextCreate : -> LLVMContextHandle ret = 0 													[external("EpochLLVM.dll", "EpochLLVMContextCreate")]
 EpochLLVMContextDestroy : LLVMContextHandle context														[external("EpochLLVM.dll", "EpochLLVMContextDestroy")]
 
 EpochLLVMModuleDump : LLVMContextHandle context															[external("EpochLLVM.dll", "EpochLLVMModuleDump")]
+EpochLLVMModuleCreateBinary : LLVMContextHandle context													[external("EpochLLVM.dll", "EpochLLVMModuleCreateBinary")]
+EpochLLVMModuleGetCodeBuffer : LLVMContextHandle context, integer ref size -> LLVMBuffer ret = 0		[external("EpochLLVM.dll", "EpochLLVMModuleGetCodeBuffer")]
 
 EpochLLVMTypeCreateFunction : LLVMContextHandle context -> LLVMFunctionType ret = 0						[external("EpochLLVM.dll", "EpochLLVMTypeCreateFunction")]
 
@@ -25,6 +28,8 @@ EpochLLVMBasicBlockSetInsertPoint : LLVMContextHandle context, LLVMBasicBlock bl
 EpochLLVMCodeCreateRetVoid : LLVMContextHandle context													[external("EpochLLVM.dll", "EpochLLVMCodeCreateRetVoid")]
 
 
+
+
 CodeGenProgram : Program ref program, LLVMContextHandle context -> boolean success = false
 {
 	print("Generating code...")
@@ -34,9 +39,7 @@ CodeGenProgram : Program ref program, LLVMContextHandle context -> boolean succe
 		return()
 	}
 
-	// TODO
-	EpochLLVMModuleDump(context)
-
+	EpochLLVMModuleCreateBinary(context)
 	success = true
 }
 
