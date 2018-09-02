@@ -1,4 +1,5 @@
 EpochCompiler/.vs/**
+EpochVisualStudio/EpochVSIX/.vs/**
 *.exe
 *.dll
 *.pdb
