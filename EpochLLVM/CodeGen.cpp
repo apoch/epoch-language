@@ -146,59 +146,33 @@ namespace CodeGenInternal
 	}
 
 
-
-
-	//
-	// Manually relocate a .pdata section entry (i.e. a RUNTIME_FUNCTION structure)
-	//
-	// The .pdata section emitted by LLVM is given offsets from 0 instead of the correct bases.
-	// Ordinarily the linker will relocate this section, but... hey guess what, we ARE the linker!
-	// So instead of delegating this work, we just handle it here, since we already know the base
-	// offsets of each section in the final image.
-	//
-	// Thankfully LLVM emits a nice set of relocation records for us so all we have to do is run
-	// through the list and bump the offsets according to which section the final data should be
-	// found in.
-	//
-	void ProcessPDataRelocationForField(const object::SectionRef& section, IMAGE_RUNTIME_FUNCTION_ENTRY* data, unsigned xdataoffset, unsigned textoffset, void* fieldaddr)
-	{
-		size_t fieldoffset = reinterpret_cast<const char*>(fieldaddr) - reinterpret_cast<const char*>(data);
-
-		for (const auto& reloc : section.relocations())
-		{
-			if (reloc.getOffset() == fieldoffset)
-			{
-				if (reloc.getSymbol()->getName().get().str() == ".xdata")
-				{
-					*reinterpret_cast<char**>(fieldaddr) += xdataoffset;
-				}
-				else
-				{
-					*reinterpret_cast<char**>(fieldaddr) += reloc.getSymbol()->getAddress().get() + textoffset;
-				}
-			}
-		}
-	}
-
 	//
 	// Batch relocate all .pdata RUNTIME_FUNCTION structures to the correct offsets
-	//
-	// See comments on ProcessPDataRelocationForField for details on why this is necessary.
-	//
-	// This could be rewritten to be a little messier but a lot faster. Until profiling indicates
-	// that link time/image emission time is significantly hampered by this process, however, it
-	// isn't worth the effort or the loss of clarity.
 	//
 	void ProcessPDataRelocations(const object::SectionRef& section, char* buffer, size_t bufferSize, unsigned xdataoffset, unsigned textoffset)
 	{
 		size_t numrecords = bufferSize / sizeof(IMAGE_RUNTIME_FUNCTION_ENTRY);
 		IMAGE_RUNTIME_FUNCTION_ENTRY* data = reinterpret_cast<IMAGE_RUNTIME_FUNCTION_ENTRY*>(buffer);
 
-		for (size_t i = 0; i < numrecords; ++i)
+		for (const auto& reloc : section.relocations())
 		{
-			ProcessPDataRelocationForField(section, data, xdataoffset, textoffset, &(data[i].BeginAddress));
-			ProcessPDataRelocationForField(section, data, xdataoffset, textoffset, &(data[i].EndAddress));
-			ProcessPDataRelocationForField(section, data, xdataoffset, textoffset, &(data[i].UnwindInfoAddress));
+			uint64_t recordIndex = reloc.getOffset() / sizeof(IMAGE_RUNTIME_FUNCTION_ENTRY);
+			uint64_t fieldoffset = reloc.getOffset() % sizeof(IMAGE_RUNTIME_FUNCTION_ENTRY);
+
+			switch (fieldoffset)
+			{
+			case offsetof(IMAGE_RUNTIME_FUNCTION_ENTRY, BeginAddress):
+				data[recordIndex].BeginAddress += textoffset;
+				break;
+
+			case offsetof(IMAGE_RUNTIME_FUNCTION_ENTRY, EndAddress):
+				data[recordIndex].EndAddress += textoffset;
+				break;
+
+			case offsetof(IMAGE_RUNTIME_FUNCTION_ENTRY, UnwindInfoAddress):
+				data[recordIndex].UnwindInfoAddress += xdataoffset;
+				break;
+			}
 		}
 	}
 
