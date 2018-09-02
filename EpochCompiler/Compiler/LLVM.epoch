@@ -19,6 +19,10 @@ EpochLLVMFunctionCreate : LLVMContextHandle context, LLVMFunctionType fty -> LLV
 
 EpochLLVMBasicBlockCreate : LLVMContextHandle context, LLVMFunction func -> LLVMBasicBlock ret = 0		[external("EpochLLVM.dll", "EpochLLVMBasicBlockCreate")]
 
+EpochLLVMBasicBlockSetInsertPoint : LLVMContextHandle context, LLVMBasicBlock block						[external("EpochLLVM.dll", "EpochLLVMBasicBlockSetInsertPoint")]
+
+
+EpochLLVMCodeCreateRetVoid : LLVMContextHandle context													[external("EpochLLVM.dll", "EpochLLVMCodeCreateRetVoid")]
 
 
 CodeGenProgram : Program ref program, LLVMContextHandle context -> boolean success = false
@@ -72,8 +76,11 @@ CodeGenFunction : Function ref function, LLVMContextHandle context -> boolean su
 	LLVMFunction llvmfunc = EpochLLVMFunctionCreate(context, fty)
 
 	LLVMBasicBlock bb = EpochLLVMBasicBlockCreate(context, llvmfunc)
-
+	EpochLLVMBasicBlockSetInsertPoint(context, bb)
+	
 	// TODO
+	
+	EpochLLVMCodeCreateRetVoid(context)
 
 	success = true
 }

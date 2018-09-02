@@ -42,11 +42,18 @@ Function* CodeGenContext::FunctionCreate(FunctionType* fty)
 
 BasicBlock* CodeGenContext::BasicBlockCreate(Function* func)
 {
-	auto* ret = BasicBlock::Create(GlobalContext, "", func);
+	return BasicBlock::Create(GlobalContext, "", func);
+}
 
-	Builder.SetInsertPoint(ret);
+void CodeGenContext::BasicBlockSetInsertPoint(BasicBlock* block)
+{
+	Builder.SetInsertPoint(block);
+}
+
+
+
+void CodeGenContext::CodeCreateRetVoid()
+{
 	Builder.CreateRetVoid();
-
-	return ret;
 }
 
