@@ -164,7 +164,7 @@ void CodeGenContext::DebugDump()
 
 FunctionType* CodeGenContext::TypeCreateFunction()
 {
-	return FunctionType::get(Type::getVoidTy(GlobalContext), false);
+	return FunctionType::get(Type::getInt32Ty(GlobalContext), false);
 }
 
 
@@ -188,7 +188,7 @@ void CodeGenContext::BasicBlockSetInsertPoint(BasicBlock* block)
 
 void CodeGenContext::CodeCreateRetVoid()
 {
-	Builder.CreateRetVoid();
+	Builder.CreateRet(ConstantInt::get(Type::getInt32Ty(GlobalContext), 0));
 }
 
 
