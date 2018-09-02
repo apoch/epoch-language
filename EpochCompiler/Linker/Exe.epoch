@@ -44,11 +44,14 @@ WriteExecutable : string filename, LLVMContextHandle llvmcontext -> boolean succ
 	integer offsetthunk          = 0x400
 	integer sizethunk            = ThunkTableGetCompleteSize(thunktable)
 
-	integer sizepdata = 32 //EpochLLVMSectionGetPDataSize(llvm)
-	integer sizexdata = 32 //EpochLLVMSectionGetXDataSize(llvm)
+	integer sizepdata = 0
+	integer sizexdata = 0
 	integer sizegc = 32 //EpochLLVMSectionGetGCSize(llvm)
 	integer sizestrings = 32 //PreprocessStringPool(GlobalStringPool, GlobalStringOffsets)
 	integer sizedebug = 0x200
+
+	LLVMBuffer pdatabuf = EpochLLVMModuleGetPDataBuffer(llvmcontext, sizepdata)
+	LLVMBuffer xdatabuf = EpochLLVMModuleGetXDataBuffer(llvmcontext, sizexdata)
 	
 	buffer pdata = sizepdata
 	buffer xdata = sizexdata
@@ -90,14 +93,16 @@ WriteExecutable : string filename, LLVMContextHandle llvmcontext -> boolean succ
 	integer thunkdescriptoroffset = thunktable.DescriptorOffset
 
 
-	EpochLLVMModuleFinalize(llvmcontext, virtualoffsetcode)
-
+	EpochLLVMModuleFinalize(llvmcontext, 0x400000, virtualoffsetcode)			// TODO - stop hard coding this address
+	EpochLLVMModuleRelocateBuffers(llvmcontext, virtualoffsetcode, virtualoffsetxdata)
 
 	integer codesize = 0
 	LLVMBuffer llvmcode = EpochLLVMModuleGetCodeBuffer(llvmcontext, codesize)
 
 	buffer codebuffer = codesize + 1
 	MemCopy(codebuffer, llvmcode, codesize)
+	MemCopy(pdata, pdatabuf, sizepdata)
+	MemCopy(xdata, xdatabuf, sizexdata)
 
 
 	integer sizeimage            = RoundUp(virtualoffsetcode + codesize)
@@ -174,6 +179,8 @@ WriteExecutable : string filename, LLVMContextHandle llvmcontext -> boolean succ
 
 	position += WritePadding(filehandle, position, RoundUpFile(position))
 	CloseHandle(filehandle)
+
+	success = true
 }
 
 
@@ -451,7 +458,7 @@ WritePEHeader : Win32Handle filehandle, integer imagesize, integer offsetdebug, 
 	ByteStreamEmitInteger(headerbuffer, headersize, entrypointaddress)				// AddressOfEntryPoint
 	ByteStreamEmitInteger(headerbuffer, headersize, 0x1000)							// BaseOfCode
 
-	ByteStreamEmitInteger(headerbuffer, headersize, 0x400000)						// ImageBase
+	ByteStreamEmitInteger(headerbuffer, headersize, 0x400000)						// ImageBase					// TODO - stop hard coding this address
 	ByteStreamEmitInteger(headerbuffer, headersize, 0)								// ImageBase upper 32 bits
 	ByteStreamEmitInteger(headerbuffer, headersize, 0x1000)							// SectionAlignment
 	ByteStreamEmitInteger(headerbuffer, headersize, 0x200)							// FileAlignment

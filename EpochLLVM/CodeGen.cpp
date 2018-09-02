@@ -26,13 +26,15 @@ namespace CodeGenInternal
 	class TrivialMemoryManager : public RTDyldMemoryManager
 	{
 	public:
-		TrivialMemoryManager(ThunkCallbackT funcptr, StringCallbackT strptr, uint64_t* outAddr, size_t* outSize, uint64_t* outPData, uint64_t* outXData)
+		TrivialMemoryManager(ThunkCallbackT funcptr, StringCallbackT strptr, uint64_t* outAddr, size_t* outSize, uint64_t* outPData, size_t* outPDataSize, uint64_t* outXData, size_t* outXDataSize)
 			: ThunkCallback(funcptr),
 			StringCallback(strptr),
 			OutAddr(outAddr),
 			OutSize(outSize),
 			OutPDataOffset(outPData),
-			OutXDataOffset(outXData)
+			OutPDataSize(outPDataSize),
+			OutXDataOffset(outXData),
+			OutXDataSize(outXDataSize)
 		{ }
 
 		uint8_t* allocateCodeSection(uintptr_t Size, unsigned Alignment, unsigned SectionID, StringRef SectionName) override;
@@ -61,7 +63,9 @@ namespace CodeGenInternal
 		size_t* OutSize;
 
 		uint64_t* OutPDataOffset;
+		size_t* OutPDataSize;
 		uint64_t* OutXDataOffset;
+		size_t* OutXDataSize;
 
 		SmallVector<sys::MemoryBlock, 16> FunctionMemory;
 		SmallVector<sys::MemoryBlock, 16> DataMemory;
@@ -85,9 +89,15 @@ namespace CodeGenInternal
 		sys::MemoryBlock MB = sys::Memory::allocateMappedMemory(Size, 0, sys::Memory::MF_READ | sys::Memory::MF_WRITE, ec);
 
 		if (SectionName == ".pdata")
+		{
 			*OutPDataOffset = (uint64_t)MB.base();
+			*OutPDataSize = Size;
+		}
 		else if (SectionName == ".xdata")
+		{
 			*OutXDataOffset = (uint64_t)MB.base();
+			*OutXDataSize = Size;
+		}
 
 		DataMemory.push_back(MB);
 		return (uint8_t*)MB.base();
@@ -135,6 +145,62 @@ namespace CodeGenInternal
 		//}
 	}
 
+
+
+
+	//
+	// Manually relocate a .pdata section entry (i.e. a RUNTIME_FUNCTION structure)
+	//
+	// The .pdata section emitted by LLVM is given offsets from 0 instead of the correct bases.
+	// Ordinarily the linker will relocate this section, but... hey guess what, we ARE the linker!
+	// So instead of delegating this work, we just handle it here, since we already know the base
+	// offsets of each section in the final image.
+	//
+	// Thankfully LLVM emits a nice set of relocation records for us so all we have to do is run
+	// through the list and bump the offsets according to which section the final data should be
+	// found in.
+	//
+	void ProcessPDataRelocationForField(const object::SectionRef& section, IMAGE_RUNTIME_FUNCTION_ENTRY* data, unsigned xdataoffset, unsigned textoffset, void* fieldaddr)
+	{
+		size_t fieldoffset = reinterpret_cast<const char*>(fieldaddr) - reinterpret_cast<const char*>(data);
+
+		for (const auto& reloc : section.relocations())
+		{
+			if (reloc.getOffset() == fieldoffset)
+			{
+				if (reloc.getSymbol()->getName().get().str() == ".xdata")
+				{
+					*reinterpret_cast<char**>(fieldaddr) += xdataoffset;
+				}
+				else
+				{
+					*reinterpret_cast<char**>(fieldaddr) += reloc.getSymbol()->getAddress().get() + textoffset;
+				}
+			}
+		}
+	}
+
+	//
+	// Batch relocate all .pdata RUNTIME_FUNCTION structures to the correct offsets
+	//
+	// See comments on ProcessPDataRelocationForField for details on why this is necessary.
+	//
+	// This could be rewritten to be a little messier but a lot faster. Until profiling indicates
+	// that link time/image emission time is significantly hampered by this process, however, it
+	// isn't worth the effort or the loss of clarity.
+	//
+	void ProcessPDataRelocations(const object::SectionRef& section, char* buffer, size_t bufferSize, unsigned xdataoffset, unsigned textoffset)
+	{
+		size_t numrecords = bufferSize / sizeof(IMAGE_RUNTIME_FUNCTION_ENTRY);
+		IMAGE_RUNTIME_FUNCTION_ENTRY* data = reinterpret_cast<IMAGE_RUNTIME_FUNCTION_ENTRY*>(buffer);
+
+		for (size_t i = 0; i < numrecords; ++i)
+		{
+			ProcessPDataRelocationForField(section, data, xdataoffset, textoffset, &(data[i].BeginAddress));
+			ProcessPDataRelocationForField(section, data, xdataoffset, textoffset, &(data[i].EndAddress));
+			ProcessPDataRelocationForField(section, data, xdataoffset, textoffset, &(data[i].UnwindInfoAddress));
+		}
+	}
 
 }
 
@@ -185,6 +251,11 @@ void CodeGenContext::BasicBlockSetInsertPoint(BasicBlock* block)
 }
 
 
+Value* CodeGenContext::CodeCreateCall(Function* target)
+{
+	return Builder.CreateCall(target);
+}
+
 
 void CodeGenContext::CodeCreateRetVoid()
 {
@@ -211,9 +282,7 @@ void CodeGenContext::CreateBinaryModule()
 	ThunkCallbackT ThunkCallback = nullptr;
 	StringCallbackT StringCallback = nullptr;
 
-	uint64_t pdata = 0;
-	uint64_t xdata = 0;
-	std::unique_ptr<TrivialMemoryManager> blobmgr = std::make_unique<TrivialMemoryManager>(ThunkCallback, StringCallback, &EmissionAddress, &EmissionSize, &pdata, &xdata);
+	std::unique_ptr<TrivialMemoryManager> blobmgr = std::make_unique<TrivialMemoryManager>(ThunkCallback, StringCallback, &EmissionAddress, &EmissionSize, &EmittedPData, &EmittedPDataSize, &EmittedXData, &EmittedXDataSize);
 	
 	// HACK! We move the smart pointer's contents into the EngineBuilder
 	// below, but we still want to access the module for other purposes.
@@ -281,47 +350,49 @@ void CodeGenContext::CreateBinaryModule()
 	CachedExecutionEngine->DisableLazyCompilation(true);
 	CachedExecutionEngine->generateCodeForModule(llvmmodule);
 
+
 	for (const auto& section : EmittedImage->sections())
 	{
 		if (!section.isText() && !section.isBSS() && !section.isVirtual())
 		{
-			std::vector<char>* targetbuffer = nullptr;
-
 			StringRef sectionname;
 			section.getName(sectionname);
 
 			if (sectionname == ".pdata")
-				targetbuffer = &PData;
-			else if (sectionname == ".xdata")
-				targetbuffer = &XData;
-			else if (sectionname == ".debug$S")
-				targetbuffer = &DebugData;
-
-			if (targetbuffer)
 			{
 				StringRef sectiondata;
 				section.getContents(sectiondata);
-				std::copy(sectiondata.begin(), sectiondata.end(), std::back_inserter(*targetbuffer));
+				std::copy(sectiondata.begin(), sectiondata.end(), std::back_inserter(PData));
 			}
 		}
 	}
 }
 
-void CodeGenContext::FinalizeBinaryModule(unsigned codeBaseAddress)
+void CodeGenContext::RelocateBuffers(unsigned codeOffset, unsigned xDataOffset)
 {
-	CachedMemoryManager->GCDataAddress = 0;
-	CachedExecutionEngine->mapSectionAddress((void*)EmissionAddress, codeBaseAddress);
-	CachedExecutionEngine->finalizeObject();
-
 	for (const auto& section : EmittedImage->sections())
 	{
-		if (section.isText())
+		if (!section.isText() && !section.isBSS() && !section.isVirtual())
 		{
-			StringRef sectiondata;
-			section.getContents(sectiondata);
-			std::copy(sectiondata.begin(), sectiondata.end(), std::back_inserter(CodeBuffer));
+			StringRef sectionname;
+			section.getName(sectionname);
+
+			if (sectionname == ".pdata")
+			{
+				ProcessPDataRelocations(section, PData.data(), PData.size(), xDataOffset, codeOffset);
+			}
 		}
 	}
+}
+
+void CodeGenContext::FinalizeBinaryModule(unsigned moduleBaseAddress, unsigned codeOffset)
+{
+	CachedMemoryManager->GCDataAddress = 0;
+	CachedExecutionEngine->mapSectionAddress((void*)EmissionAddress, moduleBaseAddress + codeOffset);
+	CachedExecutionEngine->finalizeObject();
+
+	CodeBuffer.resize(EmissionSize);
+	memcpy(CodeBuffer.data(), (void*)(EmissionAddress), EmissionSize);
 }
 
 void* CodeGenContext::GetCodeBuffer(unsigned* outSize)
@@ -330,5 +401,23 @@ void* CodeGenContext::GetCodeBuffer(unsigned* outSize)
 		*outSize = (unsigned)(CodeBuffer.size());
 
 	return (void*)(CodeBuffer.data());
+}
+
+
+void* CodeGenContext::GetPDataBuffer(unsigned* outSize)
+{
+	if (outSize)
+		*outSize = (unsigned)(PData.size());
+
+	return PData.data();
+}
+
+
+void* CodeGenContext::GetXDataBuffer(unsigned* outSize)
+{
+	if (outSize)
+		*outSize = (unsigned)(EmittedXDataSize);
+
+	return (void*)(EmittedXData);
 }
 

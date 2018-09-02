@@ -5,9 +5,7 @@
 LinkAndWriteProgram : Program ref program, LLVMContextHandle llvmcontext, string outputfilename -> boolean success = false
 {
 	print("Writing output binary...")
-	WriteExecutable(outputfilename, llvmcontext)
-
-	success = true
+	success = WriteExecutable(outputfilename, llvmcontext)
 }
 
 

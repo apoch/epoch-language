@@ -7,6 +7,9 @@ EXPORTS
 	EpochLLVMModuleDump
 	EpochLLVMModuleFinalize
 	EpochLLVMModuleGetCodeBuffer
+	EpochLLVMModuleGetPDataBuffer
+	EpochLLVMModuleGetXDataBuffer
+	EpochLLVMModuleRelocateBuffers
 
 	EpochLLVMTypeCreateFunction
 
@@ -15,4 +18,5 @@ EXPORTS
 	EpochLLVMBasicBlockCreate
 	EpochLLVMBasicBlockSetInsertPoint
 
+	EpochLLVMCodeCreateCall
 	EpochLLVMCodeCreateRetVoid

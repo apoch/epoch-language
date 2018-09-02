@@ -8,26 +8,30 @@ type LLVMFunctionType : integer
 type LLVMFunction : integer
 type LLVMBasicBlock : integer
 type LLVMBuffer : integer
+type LLVMValue : integer
 
-EpochLLVMContextCreate : -> LLVMContextHandle ret = 0 													[external("EpochLLVM.dll", "EpochLLVMContextCreate")]
-EpochLLVMContextDestroy : LLVMContextHandle context														[external("EpochLLVM.dll", "EpochLLVMContextDestroy")]
+EpochLLVMContextCreate : -> LLVMContextHandle ret = 0 																		[external("EpochLLVM.dll", "EpochLLVMContextCreate")]
+EpochLLVMContextDestroy : LLVMContextHandle context																			[external("EpochLLVM.dll", "EpochLLVMContextDestroy")]
 
-EpochLLVMModuleDump : LLVMContextHandle context															[external("EpochLLVM.dll", "EpochLLVMModuleDump")]
-EpochLLVMModuleCreateBinary : LLVMContextHandle context													[external("EpochLLVM.dll", "EpochLLVMModuleCreateBinary")]
-EpochLLVMModuleFinalize : LLVMContextHandle context, integer codeBaseAddress							[external("EpochLLVM.dll", "EpochLLVMModuleFinalize")]
-EpochLLVMModuleGetCodeBuffer : LLVMContextHandle context, integer ref size -> LLVMBuffer ret = 0		[external("EpochLLVM.dll", "EpochLLVMModuleGetCodeBuffer")]
+EpochLLVMModuleDump : LLVMContextHandle context																				[external("EpochLLVM.dll", "EpochLLVMModuleDump")]
+EpochLLVMModuleCreateBinary : LLVMContextHandle context																		[external("EpochLLVM.dll", "EpochLLVMModuleCreateBinary")]
+EpochLLVMModuleFinalize : LLVMContextHandle context, integer baseAddress, integer codeOffset								[external("EpochLLVM.dll", "EpochLLVMModuleFinalize")]
+EpochLLVMModuleGetCodeBuffer : LLVMContextHandle context, integer ref size -> LLVMBuffer ret = 0							[external("EpochLLVM.dll", "EpochLLVMModuleGetCodeBuffer")]
+EpochLLVMModuleGetPDataBuffer : LLVMContextHandle context, integer ref size -> LLVMBuffer ret = 0							[external("EpochLLVM.dll", "EpochLLVMModuleGetPDataBuffer")]
+EpochLLVMModuleGetXDataBuffer : LLVMContextHandle context, integer ref size -> LLVMBuffer ret = 0							[external("EpochLLVM.dll", "EpochLLVMModuleGetXDataBuffer")]
+EpochLLVMModuleRelocateBuffers : LLVMContextHandle context, integer codeOffset, integer xDataOffset							[external("EpochLLVM.dll", "EpochLLVMModuleRelocateBuffers")]
 
-EpochLLVMTypeCreateFunction : LLVMContextHandle context -> LLVMFunctionType ret = 0						[external("EpochLLVM.dll", "EpochLLVMTypeCreateFunction")]
+EpochLLVMTypeCreateFunction : LLVMContextHandle context -> LLVMFunctionType ret = 0											[external("EpochLLVM.dll", "EpochLLVMTypeCreateFunction")]
 
-EpochLLVMFunctionCreate : LLVMContextHandle context, LLVMFunctionType fty -> LLVMFunction ret = 0		[external("EpochLLVM.dll", "EpochLLVMFunctionCreate")]
+EpochLLVMFunctionCreate : LLVMContextHandle context, LLVMFunctionType fty -> LLVMFunction ret = 0							[external("EpochLLVM.dll", "EpochLLVMFunctionCreate")]
 
-EpochLLVMBasicBlockCreate : LLVMContextHandle context, LLVMFunction func -> LLVMBasicBlock ret = 0		[external("EpochLLVM.dll", "EpochLLVMBasicBlockCreate")]
+EpochLLVMBasicBlockCreate : LLVMContextHandle context, LLVMFunction func -> LLVMBasicBlock ret = 0							[external("EpochLLVM.dll", "EpochLLVMBasicBlockCreate")]
 
-EpochLLVMBasicBlockSetInsertPoint : LLVMContextHandle context, LLVMBasicBlock block						[external("EpochLLVM.dll", "EpochLLVMBasicBlockSetInsertPoint")]
+EpochLLVMBasicBlockSetInsertPoint : LLVMContextHandle context, LLVMBasicBlock block											[external("EpochLLVM.dll", "EpochLLVMBasicBlockSetInsertPoint")]
 
 
-EpochLLVMCodeCreateRetVoid : LLVMContextHandle context													[external("EpochLLVM.dll", "EpochLLVMCodeCreateRetVoid")]
-
+EpochLLVMCodeCreateRetVoid : LLVMContextHandle context																		[external("EpochLLVM.dll", "EpochLLVMCodeCreateRetVoid")]
+EpochLLVMCodeCreateCall : LLVMContextHandle context, LLVMFunction target -> LLVMValue ret = 0								[external("EpochLLVM.dll", "EpochLLVMCodeCreateCall")]
 
 
 
@@ -76,6 +80,12 @@ CodeGenFunctions : nothing, LLVMContextHandle context -> true
 
 CodeGenFunction : Function ref function, LLVMContextHandle context -> boolean success = false
 {
+	LLVMFunctionType fty2 = EpochLLVMTypeCreateFunction(context)
+	LLVMFunction llvmfunc2 = EpochLLVMFunctionCreate(context, fty2)
+
+	LLVMBasicBlock bb2 = EpochLLVMBasicBlockCreate(context, llvmfunc2)
+
+
 	LLVMFunctionType fty = EpochLLVMTypeCreateFunction(context)
 	LLVMFunction llvmfunc = EpochLLVMFunctionCreate(context, fty)
 
@@ -84,6 +94,12 @@ CodeGenFunction : Function ref function, LLVMContextHandle context -> boolean su
 	
 	// TODO
 	
+	EpochLLVMCodeCreateRetVoid(context)
+
+
+
+	EpochLLVMBasicBlockSetInsertPoint(context, bb2)
+	EpochLLVMCodeCreateCall(context, llvmfunc)
 	EpochLLVMCodeCreateRetVoid(context)
 
 	success = true

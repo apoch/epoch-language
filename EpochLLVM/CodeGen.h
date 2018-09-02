@@ -21,13 +21,17 @@ public:
 	llvm::BasicBlock* BasicBlockCreate(llvm::Function* func);
 	void BasicBlockSetInsertPoint(llvm::BasicBlock* block);
 
+	llvm::Value* CodeCreateCall(llvm::Function* target);
 	void CodeCreateRetVoid();
 
 public:
 	void CreateBinaryModule();
-	void FinalizeBinaryModule(unsigned codeBaseAddress);
+	void RelocateBuffers(unsigned codeOffset, unsigned xDataOffset);
+	void FinalizeBinaryModule(unsigned moduleBaseAddress, unsigned codeOffset);
 
 	void* GetCodeBuffer(unsigned* outSize);
+	void* GetPDataBuffer(unsigned* outSize);
+	void* GetXDataBuffer(unsigned* outSize);
 
 public:
 	void DebugDump();
@@ -39,11 +43,13 @@ private:
 
 	std::vector<char> CodeBuffer;
 	std::vector<char> PData;
-	std::vector<char> XData;
-	std::vector<char> DebugData;
 
 	uint64_t EmissionAddress = 0;
 	size_t EmissionSize = 0;
+	uint64_t EmittedPData = 0;
+	size_t EmittedPDataSize = 0;
+	uint64_t EmittedXData = 0;
+	size_t EmittedXDataSize = 0;
 	const llvm::object::ObjectFile* EmittedImage;
 
 	llvm::ExecutionEngine* CachedExecutionEngine;
