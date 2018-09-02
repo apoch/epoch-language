@@ -23,7 +23,7 @@ EpochLLVMModuleRelocateBuffers : LLVMContextHandle context, integer codeOffset, 
 
 EpochLLVMTypeCreateFunction : LLVMContextHandle context -> LLVMFunctionType ret = 0											[external("EpochLLVM.dll", "EpochLLVMTypeCreateFunction")]
 
-EpochLLVMFunctionCreate : LLVMContextHandle context, LLVMFunctionType fty -> LLVMFunction ret = 0							[external("EpochLLVM.dll", "EpochLLVMFunctionCreate")]
+EpochLLVMFunctionCreate : LLVMContextHandle context, LLVMFunctionType fty, string name  -> LLVMFunction ret = 0				[external("EpochLLVM.dll", "EpochLLVMFunctionCreate")]
 
 EpochLLVMBasicBlockCreate : LLVMContextHandle context, LLVMFunction func -> LLVMBasicBlock ret = 0							[external("EpochLLVM.dll", "EpochLLVMBasicBlockCreate")]
 
@@ -81,13 +81,13 @@ CodeGenFunctions : nothing, LLVMContextHandle context -> true
 CodeGenFunction : Function ref function, LLVMContextHandle context -> boolean success = false
 {
 	LLVMFunctionType fty2 = EpochLLVMTypeCreateFunction(context)
-	LLVMFunction llvmfunc2 = EpochLLVMFunctionCreate(context, fty2)
+	LLVMFunction llvmfunc2 = EpochLLVMFunctionCreate(context, fty2, "@init")
 
 	LLVMBasicBlock bb2 = EpochLLVMBasicBlockCreate(context, llvmfunc2)
 
 
 	LLVMFunctionType fty = EpochLLVMTypeCreateFunction(context)
-	LLVMFunction llvmfunc = EpochLLVMFunctionCreate(context, fty)
+	LLVMFunction llvmfunc = EpochLLVMFunctionCreate(context, fty, "entrypoint")
 
 	LLVMBasicBlock bb = EpochLLVMBasicBlockCreate(context, llvmfunc)
 	EpochLLVMBasicBlockSetInsertPoint(context, bb)

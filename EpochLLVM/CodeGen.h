@@ -16,7 +16,7 @@ public:
 public:
 	llvm::FunctionType* TypeCreateFunction();
 
-	llvm::Function* FunctionCreate(llvm::FunctionType* fty);
+	llvm::Function* FunctionCreate(llvm::FunctionType* fty, const char* name);
 
 	llvm::BasicBlock* BasicBlockCreate(llvm::Function* func);
 	void BasicBlockSetInsertPoint(llvm::BasicBlock* block);

@@ -208,9 +208,9 @@ FunctionType* CodeGenContext::TypeCreateFunction()
 }
 
 
-Function* CodeGenContext::FunctionCreate(FunctionType* fty)
+Function* CodeGenContext::FunctionCreate(FunctionType* fty, const char* name)
 {
-	return Function::Create(fty, GlobalValue::LinkageTypes::ExternalLinkage, "entrypoint", LLVMModule.get());
+	return Function::Create(fty, GlobalValue::LinkageTypes::ExternalLinkage, name, LLVMModule.get());
 }
 
 
