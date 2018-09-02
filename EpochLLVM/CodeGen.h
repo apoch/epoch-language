@@ -1,6 +1,12 @@
 #pragma once
 
 
+namespace CodeGenInternal
+{
+	class TrivialMemoryManager;
+}
+
+
 class CodeGenContext
 {
 public:
@@ -19,6 +25,7 @@ public:
 
 public:
 	void CreateBinaryModule();
+	void FinalizeBinaryModule(unsigned codeBaseAddress);
 
 	void* GetCodeBuffer(unsigned* outSize);
 
@@ -31,5 +38,15 @@ private:
 	std::unique_ptr<llvm::Module> LLVMModule;
 
 	std::vector<char> CodeBuffer;
+	std::vector<char> PData;
+	std::vector<char> XData;
+	std::vector<char> DebugData;
+
+	uint64_t EmissionAddress = 0;
+	size_t EmissionSize = 0;
+	const llvm::object::ObjectFile* EmittedImage;
+
+	llvm::ExecutionEngine* CachedExecutionEngine;
+	CodeGenInternal::TrivialMemoryManager* CachedMemoryManager;
 };
 

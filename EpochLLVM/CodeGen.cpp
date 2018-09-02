@@ -8,7 +8,7 @@ using namespace llvm;
 
 
 
-namespace
+namespace CodeGenInternal
 {
 
 	typedef size_t(__stdcall *ThunkCallbackT)(const wchar_t* thunkname);
@@ -138,7 +138,7 @@ namespace
 
 }
 
-
+using namespace CodeGenInternal;
 
 
 CodeGenContext::CodeGenContext()
@@ -199,9 +199,6 @@ void CodeGenContext::CreateBinaryModule()
 	LLVMInitializeNativeAsmPrinter();
 	LLVMInitializeNativeAsmParser();
 
-	std::vector<char> PData;
-	std::vector<char> XData;
-	std::vector<char> DebugData;
 
 	std::string errstr;
 
@@ -213,8 +210,7 @@ void CodeGenContext::CreateBinaryModule()
 
 	ThunkCallbackT ThunkCallback = nullptr;
 	StringCallbackT StringCallback = nullptr;
-	uint64_t EmissionAddress = 0;
-	size_t EmissionSize = 0;
+
 	uint64_t pdata = 0;
 	uint64_t xdata = 0;
 	std::unique_ptr<TrivialMemoryManager> blobmgr = std::make_unique<TrivialMemoryManager>(ThunkCallback, StringCallback, &EmissionAddress, &EmissionSize, &pdata, &xdata);
@@ -222,7 +218,7 @@ void CodeGenContext::CreateBinaryModule()
 	// HACK! We move the smart pointer's contents into the EngineBuilder
 	// below, but we still want to access the module for other purposes.
 	Module* llvmmodule = LLVMModule.get();
-	TrivialMemoryManager* memmgr = blobmgr.get();
+	CachedMemoryManager = blobmgr.get();
 
 
 	EngineBuilder eb(std::move(LLVMModule));
@@ -233,13 +229,13 @@ void CodeGenContext::CreateBinaryModule()
 	SmallVector<std::string, 2> emptyvec;
 	TargetMachine* machine = eb.selectTarget(Triple("x86_64-pc-windows-msvc"), "", "", emptyvec);
 
-	ExecutionEngine* ee = eb.create(machine);
-	if (!ee)
+	CachedExecutionEngine = eb.create(machine);
+	if (!CachedExecutionEngine)
 	{
 		return;
 	}
 
-	llvmmodule->setDataLayout(ee->getDataLayout());
+	llvmmodule->setDataLayout(CachedExecutionEngine->getDataLayout());
 
 	// TODO - reexamine optimizations
 
@@ -250,8 +246,6 @@ void CodeGenContext::CreateBinaryModule()
 
 	llvmmodule->dump();
 
-
-	const object::ObjectFile* EmittedImage;
 	class JEL : public JITEventListener
 	{
 		uint64_t* OutEmissionAddr;
@@ -282,29 +276,21 @@ void CodeGenContext::CreateBinaryModule()
 		}
 	} listener(&EmissionAddress, &EmissionSize, &EmittedImage);
 
-	ee->RegisterJITEventListener(&listener);
+	CachedExecutionEngine->RegisterJITEventListener(&listener);
 
-	ee->DisableLazyCompilation(true);
-	ee->generateCodeForModule(llvmmodule);
-
-	unsigned codebaseaddr = 0x409000;
-
-	memmgr->GCDataAddress = 0;
-	ee->mapSectionAddress((void*)EmissionAddress, codebaseaddr);
-	ee->finalizeObject();
+	CachedExecutionEngine->DisableLazyCompilation(true);
+	CachedExecutionEngine->generateCodeForModule(llvmmodule);
 
 	for (const auto& section : EmittedImage->sections())
 	{
-		if (!section.isBSS() && !section.isVirtual())
+		if (!section.isText() && !section.isBSS() && !section.isVirtual())
 		{
 			std::vector<char>* targetbuffer = nullptr;
 
 			StringRef sectionname;
 			section.getName(sectionname);
 
-			if (sectionname == ".text")
-				targetbuffer = &CodeBuffer;
-			else if (sectionname == ".pdata")
+			if (sectionname == ".pdata")
 				targetbuffer = &PData;
 			else if (sectionname == ".xdata")
 				targetbuffer = &XData;
@@ -317,6 +303,23 @@ void CodeGenContext::CreateBinaryModule()
 				section.getContents(sectiondata);
 				std::copy(sectiondata.begin(), sectiondata.end(), std::back_inserter(*targetbuffer));
 			}
+		}
+	}
+}
+
+void CodeGenContext::FinalizeBinaryModule(unsigned codeBaseAddress)
+{
+	CachedMemoryManager->GCDataAddress = 0;
+	CachedExecutionEngine->mapSectionAddress((void*)EmissionAddress, codeBaseAddress);
+	CachedExecutionEngine->finalizeObject();
+
+	for (const auto& section : EmittedImage->sections())
+	{
+		if (section.isText())
+		{
+			StringRef sectiondata;
+			section.getContents(sectiondata);
+			std::copy(sectiondata.begin(), sectiondata.end(), std::back_inserter(CodeBuffer));
 		}
 	}
 }

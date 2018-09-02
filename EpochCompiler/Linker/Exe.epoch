@@ -21,7 +21,7 @@ RoundUpFile : integer in -> integer out = ((in / 0x200) + 1) * 0x200		// TODO - 
 StripPath : string path -> string filename = substring(path, reverseindexof(path, "\") + 1)
 
 
-WriteExecutable : string filename, buffer ref codebuffer, integer codesize -> boolean success = false
+WriteExecutable : string filename, LLVMContextHandle llvmcontext -> boolean success = false
 {
 	integer GENERIC_WRITE = 0x40000000
 	integer CREATE_ALWAYS = 2
@@ -81,8 +81,6 @@ WriteExecutable : string filename, buffer ref codebuffer, integer codesize -> bo
 	integer virtualoffsetcode    = RoundUp(virtualoffsetglobals + globaloffsettracker)
 	integer offsetcode           = RoundUpFile(offsetglobals + globaloffsettracker)
 
-	integer sizeimage            = RoundUp(virtualoffsetcode + codesize)
-
 	integer16 subsystem = 3		// console
 	//if(GUI)
 	//{
@@ -90,6 +88,19 @@ WriteExecutable : string filename, buffer ref codebuffer, integer codesize -> bo
 	//}
 
 	integer thunkdescriptoroffset = thunktable.DescriptorOffset
+
+
+	EpochLLVMModuleFinalize(llvmcontext, virtualoffsetcode)
+
+
+	integer codesize = 0
+	LLVMBuffer llvmcode = EpochLLVMModuleGetCodeBuffer(llvmcontext, codesize)
+
+	buffer codebuffer = codesize + 1
+	MemCopy(codebuffer, llvmcode, codesize)
+
+
+	integer sizeimage            = RoundUp(virtualoffsetcode + codesize)
 
 	integer written = 0
 	integer position = 0

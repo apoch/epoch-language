@@ -14,6 +14,7 @@ EpochLLVMContextDestroy : LLVMContextHandle context														[external("Epoc
 
 EpochLLVMModuleDump : LLVMContextHandle context															[external("EpochLLVM.dll", "EpochLLVMModuleDump")]
 EpochLLVMModuleCreateBinary : LLVMContextHandle context													[external("EpochLLVM.dll", "EpochLLVMModuleCreateBinary")]
+EpochLLVMModuleFinalize : LLVMContextHandle context, integer codeBaseAddress							[external("EpochLLVM.dll", "EpochLLVMModuleFinalize")]
 EpochLLVMModuleGetCodeBuffer : LLVMContextHandle context, integer ref size -> LLVMBuffer ret = 0		[external("EpochLLVM.dll", "EpochLLVMModuleGetCodeBuffer")]
 
 EpochLLVMTypeCreateFunction : LLVMContextHandle context -> LLVMFunctionType ret = 0						[external("EpochLLVM.dll", "EpochLLVMTypeCreateFunction")]

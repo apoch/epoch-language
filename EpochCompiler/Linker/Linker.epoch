@@ -2,22 +2,10 @@
 // Linking and PE binary emission
 //
 
-
-
-MemCopy : buffer ref dest, LLVMBuffer source, integer count [external("msvcrt.dll", "memcpy")]
-
-
 LinkAndWriteProgram : Program ref program, LLVMContextHandle llvmcontext, string outputfilename -> boolean success = false
 {
-	integer codesize = 0
-	LLVMBuffer llvmcode = EpochLLVMModuleGetCodeBuffer(llvmcontext, codesize)
-
-	buffer codebuffer = codesize + 1
-	MemCopy(codebuffer, llvmcode, codesize)
-
-
 	print("Writing output binary...")
-	WriteExecutable(outputfilename, codebuffer, codesize)
+	WriteExecutable(outputfilename, llvmcontext)
 
 	success = true
 }

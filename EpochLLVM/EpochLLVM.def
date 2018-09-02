@@ -5,6 +5,7 @@ EXPORTS
 
 	EpochLLVMModuleCreateBinary
 	EpochLLVMModuleDump
+	EpochLLVMModuleFinalize
 	EpochLLVMModuleGetCodeBuffer
 
 	EpochLLVMTypeCreateFunction

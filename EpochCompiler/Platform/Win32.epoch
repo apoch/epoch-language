@@ -85,6 +85,7 @@ WriteFile :
  [external("Kernel32.dll", "WriteFile", "stdcall")]
 
 
+ MemCopy : buffer ref dest, LLVMBuffer source, integer count [external("msvcrt.dll", "memcpy")]
 
 
 //
