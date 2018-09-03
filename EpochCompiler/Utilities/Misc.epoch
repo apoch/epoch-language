@@ -1,0 +1,31 @@
+//
+// Miscellaneous useful functions
+//
+
+assertmsg : boolean check, string message
+{
+	if(!check)
+	{
+		print(message)
+		assert(false)
+	}
+}
+
+//
+// Count the number of integer elements in a ListValue<integer>
+// which have nonzero values assigned.
+//
+// Expected to run in O(n) time in n elements in the container.
+//
+countnonzero : ListValue<integer> ref thelist -> integer count = 0
+{
+	if(thelist.Head != 0)
+	{
+		++count
+	}
+
+	count += countnonzero(thelist.Next)
+}
+
+countnonzero : nothing -> 0
+

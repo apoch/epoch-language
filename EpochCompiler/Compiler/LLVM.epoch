@@ -35,6 +35,12 @@ EpochLLVMCodeCreateCall : LLVMContextHandle context, LLVMFunction target -> LLVM
 
 
 
+EpochLLVMModuleGetDebugBuffer : LLVMContextHandle context, integer ref size -> LLVMBuffer ret = 0							[external("EpochLLVM.dll", "EpochLLVMModuleGetDebugBuffer")]
+EpochLLVMModuleGetDebugRelocBuffer : LLVMContextHandle context, integer ref size -> LLVMBuffer ret = 0						[external("EpochLLVM.dll", "EpochLLVMModuleGetDebugRelocBuffer")]
+EpochLLVMModuleGetDebugSymbolsBuffer : LLVMContextHandle context, integer ref size, integer ref count -> LLVMBuffer ret = 0	[external("EpochLLVM.dll", "EpochLLVMModuleGetDebugSymbolsBuffer")]
+
+
+
 structure CodeGenCache :
 	LLVMContextHandle LLVM,
 	LLVMFunction EntrypointFunction

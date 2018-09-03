@@ -176,6 +176,49 @@ namespace CodeGenInternal
 		}
 	}
 
+
+#include <pshpack1.h>
+	struct Relocation
+	{
+		uint32_t address;
+		uint32_t symbolindex;
+		uint16_t type;
+	};
+#include <poppack.h>
+
+	template<typename T, size_t TSize = sizeof(T)>
+	void AppendToBuffer(std::vector<char>* buffer, const T& data)
+	{
+		const char* pdata = reinterpret_cast<const char*>(&data);
+		for (size_t i = 0; i < TSize; ++i)
+		{
+			buffer->push_back(*pdata);
+			++pdata;
+		}
+	}
+
+	void ProcessArbitraryRelocations(const object::SectionRef& section, std::vector<char>* buffer)
+	{
+		for (const auto& reloc : section.relocations())
+		{
+			unsigned idx = 0;
+			for (const auto& sym : section.getObject()->symbols())
+			{
+				if (sym.getName().get() == reloc.getSymbol()->getName().get())
+					break;
+
+				++idx;
+			}
+
+			Relocation relocStruct;
+			relocStruct.type = static_cast<uint16_t>(reloc.getType());
+			relocStruct.address = static_cast<uint32_t>(reloc.getOffset());
+			relocStruct.symbolindex = static_cast<uint32_t>(idx);
+
+			AppendToBuffer(buffer, relocStruct);
+		}
+	}
+
 }
 
 using namespace CodeGenInternal;
@@ -183,8 +226,16 @@ using namespace CodeGenInternal;
 
 CodeGenContext::CodeGenContext()
 	: LLVMModule(llvm::make_unique<Module>("EpochModule", GlobalContext)),
-	  Builder(GlobalContext)
+	  Builder(GlobalContext),
+	  DebugBuilder(*LLVMModule)
 {
+	LLVMModule->setTargetTriple("x86_64-pc-windows-msvc");
+	LLVMModule->addModuleFlag(Module::ModFlagBehavior::Warning, "CodeView", 1);
+
+	// TODO - stash CUs for each file of the input program; will require debug info internally in EpochCompiler
+	// TODO - change params to handle optimized code when optimizations are back in
+	DebugFile = DebugBuilder.createFile("LinkedProgram.epoch", "C:\\Code\\epoch-language");
+	DebugCompileUnit = DebugBuilder.createCompileUnit(dwarf::SourceLanguage::DW_LANG_C_plus_plus_11, DebugFile, "Epoch Compiler", false, "", 0);
 }
 
 
@@ -208,9 +259,63 @@ FunctionType* CodeGenContext::TypeCreateFunction()
 }
 
 
+llvm::DIType* CodeGenContext::TypeGetDebugType(Type* t)
+{
+	// TODO - build better type data
+	if (t->isPointerTy())
+		return DebugBuilder.createPointerType(TypeGetDebugType(t->getPointerElementType()), 64);
+
+	if (t->isStructTy())
+		return DebugBuilder.createBasicType("Placeholder", 32, llvm::dwarf::DW_ATE_signed);
+
+	std::string str;
+	llvm::raw_string_ostream stream(str);
+	t->print(stream, true);
+
+	auto encoding = llvm::dwarf::DW_ATE_signed;
+	if (t->getPrimitiveSizeInBits() == 1)
+		encoding = llvm::dwarf::DW_ATE_boolean;
+	else if (t->getPrimitiveSizeInBits() == 8)
+		encoding = llvm::dwarf::DW_ATE_signed_char;
+
+	return DebugBuilder.createBasicType(stream.str(), t->getPrimitiveSizeInBits(), encoding);
+}
+
+
 Function* CodeGenContext::FunctionCreate(FunctionType* fty, const char* name)
 {
-	return Function::Create(fty, GlobalValue::LinkageTypes::ExternalLinkage, name, LLVMModule.get());
+	auto* ret = Function::Create(fty, GlobalValue::LinkageTypes::ExternalLinkage, name, LLVMModule.get());
+
+	DIScope* fcontext = DebugCompileUnit;
+	unsigned line = 0;
+	unsigned scopeline = 0;
+
+	std::vector<Metadata*> argtypes;
+	argtypes.push_back(TypeGetDebugType(ret->getReturnType()));
+
+	for (auto& arg : ret->args())
+		argtypes.push_back(TypeGetDebugType(arg.getType()));
+
+	DISubroutineType* debugtype = DebugBuilder.createSubroutineType(DebugBuilder.getOrCreateTypeArray(argtypes));
+
+	DISubprogram* subprogram = DebugBuilder.createFunction(fcontext, ret->getName(), StringRef(), DebugFile, line, debugtype, false, true, scopeline, DINode::FlagPrototyped, false);
+
+
+	unsigned i = 1;
+	for (auto& arg : ret->args())
+	{
+		auto * var = DebugBuilder.createParameterVariable(subprogram, arg.getName(), i, DebugFile, line, (DIType*)(argtypes[i]), false, DINode::DIFlags::FlagZero);
+		auto expr = DebugBuilder.createExpression();
+
+		DebugBuilder.insertDeclare(&arg, var, expr, DebugLoc::get(1, 0, subprogram), Builder.GetInsertBlock());
+
+		++i;
+	}
+
+
+	ret->setSubprogram(subprogram);
+
+	return ret;
 }
 
 
@@ -227,7 +332,15 @@ void CodeGenContext::BasicBlockSetInsertPoint(BasicBlock* block)
 
 Value* CodeGenContext::CodeCreateCall(Function* target)
 {
-	return Builder.CreateCall(target);
+	Value* callnode = Builder.CreateCall(target);
+
+	unsigned line = 1;
+	unsigned column = 1;
+	DebugLoc loc = DILocation::get(GlobalContext, line, column, Builder.GetInsertBlock()->getParent()->getSubprogram());
+	if (!Builder.GetInsertBlock()->getInstList().empty())
+		Builder.GetInsertBlock()->getInstList().back().setDebugLoc(loc);
+
+	return callnode;
 }
 
 
@@ -244,6 +357,7 @@ void CodeGenContext::CreateBinaryModule()
 	LLVMInitializeNativeAsmPrinter();
 	LLVMInitializeNativeAsmParser();
 
+	DebugBuilder.finalize();
 
 	std::string errstr;
 
@@ -338,6 +452,12 @@ void CodeGenContext::CreateBinaryModule()
 				section.getContents(sectiondata);
 				std::copy(sectiondata.begin(), sectiondata.end(), std::back_inserter(PData));
 			}
+			else if (sectionname == ".debug$S")
+			{
+				StringRef sectiondata;
+				section.getContents(sectiondata);
+				std::copy(sectiondata.begin(), sectiondata.end(), std::back_inserter(DebugData));
+			}
 		}
 	}
 }
@@ -355,8 +475,74 @@ void CodeGenContext::RelocateBuffers(unsigned codeOffset, unsigned xDataOffset)
 			{
 				ProcessPDataRelocations(section, PData.data(), PData.size(), xDataOffset, codeOffset);
 			}
+			else if (sectionname == ".debug$S")
+			{
+				ProcessArbitraryRelocations(section, &DebugRelocs);
+			}
 		}
 	}
+
+	DebugSymbolCount = 0;
+	std::vector<char> stringbuffer;
+
+	uint32_t offset = 4;
+	for (const auto& sym : EmittedImage->symbols())
+	{
+		IMAGE_SYMBOL symbol;
+
+		memset(symbol.N.ShortName, 0, 8);
+
+		auto nameerr = sym.getName();
+		if (!nameerr)
+		{
+			std::cout << "SKIP nameless symbol" << std::endl;
+			continue;
+		}
+
+		auto nameref = nameerr.get();
+		auto symname = nameref.str();
+
+		symbol.N.LongName[1] = offset;
+
+
+		std::copy(std::begin(symname), std::end(symname), std::back_inserter(stringbuffer));
+		stringbuffer.push_back(0);
+		offset += symname.length() + 1;
+
+		symbol.Value = (DWORD)sym.getValue();
+		symbol.SectionNumber = IMAGE_SYM_ABSOLUTE;
+		symbol.StorageClass = IMAGE_SYM_CLASS_EXTERNAL;
+
+		switch (sym.getType().get())
+		{
+		case object::SymbolRef::ST_Function:
+			std::cout << "Function: " << symname << std::endl;
+			symbol.SectionNumber = 9;
+
+			if (symname == "@init")
+				symbol.StorageClass = IMAGE_SYM_CLASS_EXTERNAL;
+
+			symbol.Type = (IMAGE_SYM_DTYPE_FUNCTION << N_BTSHFT);
+			break;
+
+		default:
+			std::cout << "Symbol: " << symname << std::endl;
+			symbol.StorageClass = IMAGE_SYM_CLASS_EXTERNAL;
+			symbol.SectionNumber = IMAGE_SYM_ABSOLUTE;
+			symbol.Value = 0;
+			symbol.Type = (IMAGE_SYM_DTYPE_POINTER << N_BTSHFT);
+			break;
+		}
+
+		symbol.NumberOfAuxSymbols = 0;
+
+		AppendToBuffer<IMAGE_SYMBOL, IMAGE_SIZEOF_SYMBOL>(&DebugSymbols, symbol);
+		++DebugSymbolCount;
+	}
+
+	AppendToBuffer(&DebugSymbols, uint32_t(stringbuffer.size() + 8));
+
+	std::copy(std::begin(stringbuffer), std::end(stringbuffer), std::back_inserter(DebugSymbols));
 }
 
 void CodeGenContext::FinalizeBinaryModule(unsigned moduleBaseAddress, unsigned codeOffset)
@@ -377,6 +563,33 @@ void* CodeGenContext::GetCodeBuffer(unsigned* outSize)
 	return (void*)(CodeBuffer.data());
 }
 
+
+void* CodeGenContext::GetDebugBuffer(unsigned* outSize)
+{
+	if (outSize)
+		*outSize = (unsigned)(DebugData.size());
+
+	return (void*)(DebugData.data());
+}
+
+void* CodeGenContext::GetDebugRelocBuffer(unsigned* outSize)
+{
+	if (outSize)
+		*outSize = (unsigned)(DebugRelocs.size());
+
+	return (void*)(DebugRelocs.data());
+}
+
+void* CodeGenContext::GetDebugSymbolsBuffer(unsigned* outSize, unsigned* outCount)
+{
+	if (outSize)
+		*outSize = (unsigned)(DebugSymbols.size());
+
+	if (outCount)
+		*outCount = DebugSymbolCount;
+
+	return (void*)(DebugSymbols.data());
+}
 
 void* CodeGenContext::GetPDataBuffer(unsigned* outSize)
 {

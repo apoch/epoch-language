@@ -1,0 +1,369 @@
+//
+// The Epoch Language Project
+// Epoch Development Tools - PDB generation library
+//
+// SYMBOLS.EPOCH
+// CodeView symbol management routines and definitions
+//
+// Logic for storing and emitting a serialized stream of CodeView
+// symbols for use in a PDB file. See also the other PDB-related
+// modules for additional documentation and context.
+//
+
+
+structure SymbolSection :
+	integer16 ImageSectionIndex,
+	integer ImageSectionRVA,
+	integer ImageSectionSize,
+	integer Characteristics,
+	string ImageSectionName
+	
+	
+structure SymbolProcStart :
+	integer PtrParent,
+	integer PtrEnd,
+	integer PtrNext,
+	integer CodeSize,
+	integer DebugStart,
+	integer DebugEnd,
+	integer FunctionType,
+	integer16 Segment,
+	integer Flags,
+	string DisplayName,
+	integer SectionRelative
+	
+	
+structure SymbolBlockEnd :
+	integer Dummy
+
+
+structure SymbolPublic :
+	integer Flags,
+	integer Offset,
+	integer16 Segment,
+	string Name
+
+
+structure SymbolLocal :
+	integer TypeIndex,
+	integer16 Flags,
+	string Name
+
+structure SymbolDefRangeFrameRelative :
+	integer OffsetFromFP,
+	integer OffsetStart,
+	integer16 SectionIndexStart,
+	integer16 Range,
+	integer DummyToDo				// TODO - gap descriptors
+
+
+structure SymbolDefRangeRegister :
+	integer16 Register,
+	integer16 NoName,
+	integer OffsetStartCode,
+	integer16 SectionIndexStartCode,
+	integer16 RangeCode
+
+structure SymbolDefRangeRegisterRelative :
+	integer16 Register,
+	integer16 Flags,
+	integer BasePointerOffset,
+	integer OffsetStartCode,
+	integer16 SectionIndexStartCode,
+	integer16 RangeCode,
+	integer DummyToDo
+
+
+structure SymbolProcRef :
+	integer Zero,				// SumName
+	integer Offset,
+	integer16 ModuleIndex,
+	string Name
+
+
+structure SymbolGlobalData :
+	integer TypeIndex,
+	integer Offset,
+	integer16 SegmentIndex,
+	string Name
+
+
+type PDBSymbol : SymbolSection | SymbolProcStart | SymbolBlockEnd | SymbolLocal | SymbolDefRangeRegisterRelative | SymbolDefRangeFrameRelative
+				| SymbolPublic | SymbolProcRef | SymbolDefRangeRegister | SymbolGlobalData
+
+
+
+SymbolGetSize : SymbolSection ref symbol -> integer size = AlignToFour(20 + length(symbol.ImageSectionName) + 1)
+SymbolGetSize : SymbolProcStart ref symbol -> integer size = AlignToFour(39 + length(symbol.DisplayName) + 1)
+SymbolGetSize : SymbolBlockEnd ref symbol -> integer size = 4
+SymbolGetSize : SymbolLocal ref symbol -> integer size = AlignToFour(10 + length(symbol.Name) + 1)
+SymbolGetSize : SymbolDefRangeFrameRelative ref symbol -> integer size = AlignToFour(16)
+
+SymbolGetSize : SymbolDefRangeRegister ref symbol -> integer size = AlignToFour(16)
+
+SymbolGetSize : SymbolDefRangeRegisterRelative ref symbol -> integer size = AlignToFour(20)
+{
+	// TODO - dumb hack - replace anything that isn't relative to RSP with a Register sym instead
+	if(!HACKregistercheck(symbol.Register))
+	{
+		size = 16
+	}
+}
+
+
+
+SymbolGetSize : SymbolPublic ref symbol -> integer size = AlignToFour(12 + length(symbol.Name) + 1)
+SymbolGetSize : SymbolProcRef ref symbol -> integer size = AlignToFour(12 + length(symbol.Name) + 1)
+SymbolGetSize : SymbolGlobalData ref symbol -> integer size = AlignToFour(12 + length(symbol.Name) + 1)
+
+
+ByteStreamEmitSymbolList : buffer ref stream, integer ref pos, ListRef<PDBSymbol> ref symlist
+{
+	ByteStreamEmitSymbol(stream, pos, symlist.Head)	
+	ByteStreamEmitSymbolList(stream, pos, symlist.Next)
+}
+
+ByteStreamEmitSymbolList : buffer ref stream, integer ref pos, nothing
+
+
+
+ByteStreamEmitSymbol : buffer ref stream, integer ref pos, SymbolSection ref symbol
+{
+	integer16 mysize = cast(integer16, SymbolGetSize(symbol) - 2)
+
+	ByteStreamEmitInteger16(stream, pos, mysize)
+	ByteStreamEmitInteger16(stream, pos, 0x1136)						// S_SECTION
+	ByteStreamEmitInteger16(stream, pos, symbol.ImageSectionIndex)
+	ByteStreamEmitInteger16(stream, pos, 0xc)								// Alignment, reserved byte
+	ByteStreamEmitInteger(stream, pos, symbol.ImageSectionRVA)
+	ByteStreamEmitInteger(stream, pos, symbol.ImageSectionSize)
+	ByteStreamEmitInteger(stream, pos, symbol.Characteristics)
+
+	integer count = 0
+	while(count < length(symbol.ImageSectionName))
+	{
+		string char = charat(symbol.ImageSectionName, count)
+		ByteStreamEmitSubstring(stream, pos, char, 1)
+
+		++count
+	}
+	
+	ByteStreamEmitByte(stream, pos, 0)									// null terminator
+
+
+	while((pos & 3) != 0)
+	{
+		ByteStreamEmitByte(stream, pos, 0)
+	}
+}
+
+
+ByteStreamEmitSymbol : buffer ref stream, integer ref pos, SymbolProcStart ref symbol
+{
+	integer16 mysize = cast(integer16, SymbolGetSize(symbol) - 2)
+	
+	ByteStreamEmitInteger16(stream, pos, mysize)
+	ByteStreamEmitInteger16(stream, pos, 0x1110)						// S_GPROC32
+	ByteStreamEmitInteger(stream, pos, symbol.PtrParent)
+	ByteStreamEmitInteger(stream, pos, symbol.PtrEnd)
+	ByteStreamEmitInteger(stream, pos, symbol.PtrNext)
+	ByteStreamEmitInteger(stream, pos, symbol.CodeSize)
+	ByteStreamEmitInteger(stream, pos, symbol.DebugStart)
+	ByteStreamEmitInteger(stream, pos, symbol.DebugEnd)
+	ByteStreamEmitInteger(stream, pos, symbol.FunctionType)
+	ByteStreamEmitInteger(stream, pos, symbol.SectionRelative)
+	ByteStreamEmitInteger16(stream, pos, symbol.Segment)
+	ByteStreamEmitByte(stream, pos, symbol.Flags & 0xff)
+	
+	integer count = 0
+	while(count < length(symbol.DisplayName))
+	{
+		string char = charat(symbol.DisplayName, count)
+		ByteStreamEmitSubstring(stream, pos, char, 1)
+		
+		++count
+	}
+	
+	ByteStreamEmitByte(stream, pos, 0)									// null terminator
+
+	while((pos & 3) != 0)
+	{
+		ByteStreamEmitByte(stream, pos, 0)
+	}
+}
+
+
+ByteStreamEmitSymbol : buffer ref stream, integer ref pos, SymbolBlockEnd ref symbol
+{
+	integer16 mysize = cast(integer16, SymbolGetSize(symbol) - 2)
+
+	ByteStreamEmitInteger16(stream, pos, mysize)
+	ByteStreamEmitInteger16(stream, pos, 0x6)							// S_END	
+
+	while((pos & 3) != 0)
+	{
+		ByteStreamEmitByte(stream, pos, 0)
+	}
+}
+
+
+ByteStreamEmitSymbol : buffer ref stream, integer ref pos, SymbolPublic ref symbol
+{
+	integer16 mysize = cast(integer16, SymbolGetSize(symbol) - 2)
+
+	ByteStreamEmitInteger16(stream, pos, mysize)
+	ByteStreamEmitInteger16(stream, pos, 0x110e)						// S_PUB32
+	ByteStreamEmitInteger(stream, pos, symbol.Flags)
+	ByteStreamEmitInteger(stream, pos, symbol.Offset)
+	ByteStreamEmitInteger16(stream, pos, symbol.Segment)
+	ByteStreamEmitStringNarrow(stream, pos, symbol.Name)
+
+	ByteStreamEmitByte(stream, pos, 0)
+
+	while((pos & 3) != 0)
+	{
+		ByteStreamEmitByte(stream, pos, 0)
+	}
+}
+
+
+ByteStreamEmitSymbol : buffer ref stream, integer ref pos, SymbolLocal ref symbol
+{
+	integer16 mysize = cast(integer16, SymbolGetSize(symbol) - 2)
+
+	ByteStreamEmitInteger16(stream, pos, mysize)
+	ByteStreamEmitInteger16(stream, pos, 0x113e)						// S_LOCAL
+	ByteStreamEmitInteger(stream, pos, symbol.TypeIndex)
+	ByteStreamEmitInteger16(stream, pos, symbol.Flags)
+	ByteStreamEmitStringNarrow(stream, pos, symbol.Name)
+
+	ByteStreamEmitByte(stream, pos, 0)
+
+	while((pos & 3) != 0)
+	{
+		ByteStreamEmitByte(stream, pos, 0)
+	}
+}
+
+
+ByteStreamEmitSymbol : buffer ref stream, integer ref pos, SymbolDefRangeFrameRelative ref symbol
+{
+	integer16 mysize = cast(integer16, SymbolGetSize(symbol) - 2)
+
+	ByteStreamEmitInteger16(stream, pos, mysize)
+	ByteStreamEmitInteger16(stream, pos, 0x1142)						// S_DEFRANGE_FRAMEPOINTER_REL
+
+	ByteStreamEmitInteger(stream, pos, symbol.OffsetFromFP)
+	ByteStreamEmitInteger(stream, pos, symbol.OffsetStart)
+	ByteStreamEmitInteger16(stream, pos, symbol.SectionIndexStart)
+	ByteStreamEmitInteger16(stream, pos, symbol.Range)
+	//ByteStreamEmitInteger(stream, pos, 0)							// TODO - gaps?
+
+	while((pos & 3) != 0)
+	{
+		ByteStreamEmitByte(stream, pos, 0)
+	}
+}
+
+
+ByteStreamEmitSymbol : buffer ref stream, integer ref pos, SymbolDefRangeRegister ref symbol
+{
+	integer16 mysize = cast(integer16, SymbolGetSize(symbol) - 2)
+
+	ByteStreamEmitInteger16(stream, pos, mysize)
+	ByteStreamEmitInteger16(stream, pos, 0x1141)						// S_DEFRANGE_REGISTER
+
+	ByteStreamEmitInteger16(stream, pos, symbol.Register)
+	ByteStreamEmitInteger16(stream, pos, symbol.NoName)
+	ByteStreamEmitInteger(stream, pos, symbol.OffsetStartCode)
+	ByteStreamEmitInteger16(stream, pos, symbol.SectionIndexStartCode)
+	ByteStreamEmitInteger16(stream, pos, symbol.RangeCode)
+
+	while((pos & 3) != 0)
+	{
+		ByteStreamEmitByte(stream, pos, 0)
+	}
+}
+
+
+ByteStreamEmitSymbol : buffer ref stream, integer ref pos, SymbolDefRangeRegisterRelative ref symbol
+{
+	if(HACKregistercheck(symbol.Register))
+	{
+		integer16 mysize = cast(integer16, SymbolGetSize(symbol) - 2)
+	
+		ByteStreamEmitInteger16(stream, pos, mysize)
+		ByteStreamEmitInteger16(stream, pos, 0x1145)						// S_DEFRANGE_REGISTER_REL
+	
+		ByteStreamEmitInteger16(stream, pos, symbol.Register)
+		ByteStreamEmitInteger16(stream, pos, symbol.Flags)
+		ByteStreamEmitInteger(stream, pos, symbol.BasePointerOffset)
+		ByteStreamEmitInteger(stream, pos, symbol.OffsetStartCode)
+		ByteStreamEmitInteger16(stream, pos, symbol.SectionIndexStartCode)
+		ByteStreamEmitInteger16(stream, pos, symbol.RangeCode)
+	
+		while((pos & 3) != 0)
+		{
+			ByteStreamEmitByte(stream, pos, 0)
+		}
+	}
+	else		// TODO - dumb hack - replace non-RSP-based REL symbols with REGISTER symbols instead (sneaky!)
+	{
+		integer16 mysize = 14
+
+		ByteStreamEmitInteger16(stream, pos, mysize)
+		ByteStreamEmitInteger16(stream, pos, 0x1141)						// S_DEFRANGE_REGISTER
+
+		ByteStreamEmitInteger16(stream, pos, symbol.Register)
+		ByteStreamEmitInteger16(stream, pos, 0)
+		ByteStreamEmitInteger(stream, pos, symbol.OffsetStartCode)
+		ByteStreamEmitInteger16(stream, pos, symbol.SectionIndexStartCode)
+		ByteStreamEmitInteger16(stream, pos, symbol.RangeCode)
+
+		while((pos & 3) != 0)
+		{
+			ByteStreamEmitByte(stream, pos, 0)
+		}		
+	}
+}
+
+
+ByteStreamEmitSymbol : buffer ref stream, integer ref pos, SymbolProcRef ref symbol
+{
+	integer16 mysize = cast(integer16, SymbolGetSize(symbol) - 2)
+
+	ByteStreamEmitInteger16(stream, pos, mysize)
+	ByteStreamEmitInteger16(stream, pos, 0x1125)						// S_PROCREF
+	ByteStreamEmitInteger(stream, pos, symbol.Zero)
+	ByteStreamEmitInteger(stream, pos, symbol.Offset)
+	ByteStreamEmitInteger16(stream, pos, symbol.ModuleIndex)
+	ByteStreamEmitStringNarrow(stream, pos, symbol.Name)
+
+	ByteStreamEmitByte(stream, pos, 0)
+
+	while((pos & 3) != 0)
+	{
+		ByteStreamEmitByte(stream, pos, 0)
+	}
+}
+
+
+ByteStreamEmitSymbol : buffer ref stream, integer ref pos, SymbolGlobalData ref symbol
+{
+	integer16 mysize = cast(integer16, SymbolGetSize(symbol) - 2)
+
+	ByteStreamEmitInteger16(stream, pos, mysize)
+	ByteStreamEmitInteger16(stream, pos, 0x110d)						// S_GDATA32
+	ByteStreamEmitInteger(stream, pos, symbol.TypeIndex)
+	ByteStreamEmitInteger(stream, pos, symbol.Offset)
+	ByteStreamEmitInteger16(stream, pos, symbol.SegmentIndex)
+	ByteStreamEmitStringNarrow(stream, pos, symbol.Name)
+
+	ByteStreamEmitByte(stream, pos, 0)
+
+	while((pos & 3) != 0)
+	{
+		ByteStreamEmitByte(stream, pos, 0)
+	}
+}
+

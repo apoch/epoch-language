@@ -7,6 +7,9 @@ EXPORTS
 	EpochLLVMModuleDump
 	EpochLLVMModuleFinalize
 	EpochLLVMModuleGetCodeBuffer
+	EpochLLVMModuleGetDebugBuffer
+	EpochLLVMModuleGetDebugRelocBuffer
+	EpochLLVMModuleGetDebugSymbolsBuffer
 	EpochLLVMModuleGetPDataBuffer
 	EpochLLVMModuleGetXDataBuffer
 	EpochLLVMModuleRelocateBuffers

@@ -30,6 +30,9 @@ public:
 	void FinalizeBinaryModule(unsigned moduleBaseAddress, unsigned codeOffset);
 
 	void* GetCodeBuffer(unsigned* outSize);
+	void* GetDebugBuffer(unsigned* outSize);
+	void* GetDebugRelocBuffer(unsigned* outSize);
+	void* GetDebugSymbolsBuffer(unsigned* outSize, unsigned* outCount);
 	void* GetPDataBuffer(unsigned* outSize);
 	void* GetXDataBuffer(unsigned* outSize);
 
@@ -37,12 +40,19 @@ public:
 	void DebugDump();
 
 private:
+	llvm::DIType* TypeGetDebugType(llvm::Type* t);
+
+private:
 	llvm::LLVMContext GlobalContext;
-	llvm::IRBuilder<> Builder;
 	std::unique_ptr<llvm::Module> LLVMModule;
+	llvm::IRBuilder<> Builder;
+	llvm::DIBuilder DebugBuilder;
 
 	std::vector<char> CodeBuffer;
 	std::vector<char> PData;
+	std::vector<char> DebugData;
+	std::vector<char> DebugRelocs;
+	std::vector<char> DebugSymbols;
 
 	uint64_t EmissionAddress = 0;
 	size_t EmissionSize = 0;
@@ -54,5 +64,10 @@ private:
 
 	llvm::ExecutionEngine* CachedExecutionEngine;
 	CodeGenInternal::TrivialMemoryManager* CachedMemoryManager;
+
+	llvm::DIFile* DebugFile;
+	llvm::DICompileUnit* DebugCompileUnit;
+
+	unsigned DebugSymbolCount = 0;
 };
 

@@ -180,6 +180,28 @@ WriteExecutable : string filename, LLVMContextHandle llvmcontext -> boolean succ
 	position += WritePadding(filehandle, position, RoundUpFile(position))
 	CloseHandle(filehandle)
 
+	print("Emitting PDB file...")
+
+	integer sizedebug = 0
+	integer sizedebugreloc = 0
+	integer sizedebugsymbols = 0
+	integer symbolcount = 0
+
+	LLVMBuffer debugbuffer = EpochLLVMModuleGetDebugBuffer(llvmcontext, sizedebug)
+	LLVMBuffer debugrelocbuffer = EpochLLVMModuleGetDebugRelocBuffer(llvmcontext, sizedebugreloc)
+	LLVMBuffer debugsymbolbuffer = EpochLLVMModuleGetDebugSymbolsBuffer(llvmcontext, sizedebugsymbols, symbolcount)
+
+	buffer debugdata = sizedebug
+	buffer debugrelocdata = sizedebugreloc
+	buffer debugsymboldata = sizedebugsymbols
+
+	MemCopy(debugdata, debugbuffer, sizedebug)
+	MemCopy(debugrelocdata, debugrelocbuffer, sizedebugreloc)
+	MemCopy(debugsymboldata, debugsymbolbuffer, sizedebugsymbols)
+
+	GeneratePDB(pdbfilename, debugdata, sizedebug, virtualoffsetcode, codesize, debugrelocdata, sizedebugreloc, debugsymboldata, sizedebugsymbols, symbolcount, sectionheaders)
+
+
 	success = true
 }
 

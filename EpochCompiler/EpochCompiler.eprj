@@ -25,9 +25,12 @@
     <EpochCompile Include="DataStructures\Optional.epoch" />
     <EpochCompile Include="EntryPoint.epoch" />
     <EpochCompile Include="Globals.epoch" />
+    <EpochCompile Include="Linker\PDB.epoch" />
+    <EpochCompile Include="Linker\Symbols.epoch" />
     <EpochCompile Include="Platform\Win32.epoch" />
     <EpochCompile Include="Utilities\ByteStream.epoch" />
     <EpochCompile Include="Utilities\Dump.epoch" />
+    <EpochCompile Include="Utilities\Misc.epoch" />
     <EpochCompile Include="Utilities\Strings.epoch" />
   </ItemGroup>
   <Import Project="$(CustomProjectExtensionsPath)EpochProjectType.targets" />
