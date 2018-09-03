@@ -1,0 +1,29 @@
+
+
+structure StringPool :
+	BinaryTreeRoot<string> LookupMap,
+	Trie LookupTrie,
+	integer CurrentStringHandle
+
+
+PoolString : StringPool ref pool, string s -> integer handle = FindHandleInTrie(pool.LookupTrie, s)
+{
+	if(handle == 0)
+	{
+		handle = PoolStringFast(pool, s)
+	}
+}
+
+PoolStringFast : StringPool ref pool, string s -> integer handle = 0
+{
+	++pool.CurrentStringHandle
+	handle = pool.CurrentStringHandle
+
+	BinaryTreeCreateOrInsert<string>(pool.LookupMap, handle, s)
+	PlaceDataInTrie(pool.LookupTrie, s, handle)
+}
+
+GetPooledString : StringPool ref pool, integer handle -> string pooled = ""
+{
+	BinaryTreeCopyPayload<string>(pool.LookupMap.RootNode, handle, pooled)
+}
