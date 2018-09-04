@@ -1,12 +1,18 @@
 
 
+
+alias StringHandle = integer
+
+
+
+
 structure StringPool :
 	BinaryTreeRoot<string> LookupMap,
 	Trie LookupTrie,
-	integer CurrentStringHandle
+	StringHandle CurrentStringHandle
 
 
-PoolString : StringPool ref pool, string s -> integer handle = FindHandleInTrie(pool.LookupTrie, s)
+PoolString : StringPool ref pool, string s -> StringHandle handle = FindHandleInTrie(pool.LookupTrie, s)
 {
 	if(handle == 0)
 	{
@@ -14,7 +20,7 @@ PoolString : StringPool ref pool, string s -> integer handle = FindHandleInTrie(
 	}
 }
 
-PoolStringFast : StringPool ref pool, string s -> integer handle = 0
+PoolStringFast : StringPool ref pool, string s -> StringHandle handle = 0
 {
 	++pool.CurrentStringHandle
 	handle = pool.CurrentStringHandle
@@ -23,7 +29,7 @@ PoolStringFast : StringPool ref pool, string s -> integer handle = 0
 	PlaceDataInTrie(pool.LookupTrie, s, handle)
 }
 
-GetPooledString : StringPool ref pool, integer handle -> string pooled = ""
+GetPooledString : StringPool ref pool, StringHandle handle -> string pooled = ""
 {
 	BinaryTreeCopyPayload<string>(pool.LookupMap.RootNode, handle, pooled)
 }

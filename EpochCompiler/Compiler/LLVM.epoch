@@ -42,6 +42,7 @@ EpochLLVMModuleGetDebugSymbolsBuffer : LLVMContextHandle context, integer ref si
 
 
 structure CodeGenCache :
+	Program ref CodeGenProgram,
 	LLVMContextHandle LLVM,
 	LLVMFunction EntrypointFunction
 
@@ -56,7 +57,7 @@ CodeGenProgram : Program ref program, LLVMContextHandle context -> boolean succe
 	LLVMBasicBlock initBB = EpochLLVMBasicBlockCreate(context, initFunc)
 
 	LLVMFunction ep = 0
-	CodeGenCache cache = context, ep
+	CodeGenCache cache = program, context, ep
 
 	if(!CodeGenNamespace(program.RootNamespace, cache))
 	{
@@ -106,7 +107,7 @@ CodeGenFunctions : nothing, CodeGenCache ref cache -> true
 CodeGenFunction : Function ref function, CodeGenCache ref cache -> boolean success = false
 {
 	LLVMFunctionType fty = EpochLLVMTypeCreateFunction(cache.LLVM)
-	LLVMFunction llvmfunc = EpochLLVMFunctionCreate(cache.LLVM, fty, "entrypoint")
+	LLVMFunction llvmfunc = EpochLLVMFunctionCreate(cache.LLVM, fty, GetPooledString(cache.CodeGenProgram.TokenStringPool, function.Name))
 
 	LLVMBasicBlock bb = EpochLLVMBasicBlockCreate(cache.LLVM, llvmfunc)
 	EpochLLVMBasicBlockSetInsertPoint(cache.LLVM, bb)

@@ -80,8 +80,10 @@ entrypoint :
 
 	print("")
 
+	StringPool tokenpool = BinaryTreeRoot<string>(nothing), Trie(0, nothing, 0), INVALID_STRING_HANDLE 
+	StringPool literalpool = BinaryTreeRoot<string>(nothing), Trie(0, nothing, 0), INVALID_STRING_HANDLE 
 	Namespace rootnamespace = INVALID_STRING_HANDLE, nothing
-	Program program = rootnamespace, nothing
+	Program program = rootnamespace, nothing, tokenpool, literalpool
 
 	if(!ParseFiles(sourcefilelist, program))
 	{

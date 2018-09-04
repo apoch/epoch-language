@@ -42,7 +42,8 @@ structure LexToken :
 
 structure TokenContainer :
 	ListRef<LexToken> List,
-	ListRefNode<LexToken> Tail
+	ListRefNode<LexToken> Tail,
+	Program ref ParsedProgram
 
 
 
@@ -50,7 +51,7 @@ ParseFile : string filename, string contents, integer len, Program ref program -
 {
 	LexToken lt = "", filename, 0, 0
 	ListRef<LexToken> list = lt, nothing
-	TokenContainer tokens = list, list
+	TokenContainer tokens = list, list, program
 
 	Lex(filename, contents, len, tokens)
 
@@ -165,13 +166,14 @@ ParseFunction : TokenContainer ref tokens, Namespace ref namespace -> boolean su
 		return()
 	}
 
+	StringHandle functionNameHandle = PoolString(tokens.ParsedProgram.TokenStringPool, functionNameToken.Token)
+
 	PopTokens(tokens.List, 2)
 
 	if(!CompareTokens(tokens.List, 0, "{"))
 	{
 		// Function has no code body
-		// TODO - pool strings
-		Function ret = INVALID_STRING_HANDLE, nothing, nothing
+		Function ret = functionNameHandle, nothing, nothing
 		ListAppend<Function>(namespace.Functions, ret)
 
 		success = true
@@ -181,7 +183,7 @@ ParseFunction : TokenContainer ref tokens, Namespace ref namespace -> boolean su
 	PopTokens(tokens.List, 1)
 
 
-	Function ret = INVALID_STRING_HANDLE, nothing, nothing
+	Function ret = functionNameHandle, nothing, nothing
 	success = ParseCodeBlock(tokens, ret.Code)
 
 	if(success)
@@ -237,6 +239,8 @@ ParseStatement : TokenContainer ref tokens, CodeBlock ref parentblock -> boolean
 		return()
 	}
 
+	StringHandle statementNameHandle = PoolString(tokens.ParsedProgram.TokenStringPool, statementNameToken.Token)
+
 	PopTokens(tokens.List, 2)
 
 	ListRefNode<Expression> parsedargs = nothing
@@ -269,7 +273,7 @@ ParseStatement : TokenContainer ref tokens, CodeBlock ref parentblock -> boolean
 
 	PopTokens(tokens.List, 1)
 
-	Statement s = INVALID_STRING_HANDLE, parsedargs, INVALID_TYPE_HANDLE
+	Statement s = statementNameHandle, parsedargs, INVALID_TYPE_HANDLE
 	CodeBlockEntry e = s
 	ListAppend<CodeBlockEntry>(parentblock.Entries, e)
 
@@ -279,8 +283,10 @@ ParseStatement : TokenContainer ref tokens, CodeBlock ref parentblock -> boolean
 
 ParseExpression : TokenContainer ref tokens, ListRefNode<Expression> ref holder -> boolean success = false
 {
-	// TODO
-	StringAtom atom = INVALID_STRING_HANDLE
+	// TODO - support more complex expressions
+	LexToken stringLiteralToken = tokens.List.Head
+
+	StringAtom atom = PoolString(tokens.ParsedProgram.LiteralStringPool, stringLiteralToken.Token)
 	ExpressionAtom expratom = atom
 	ListRef<ExpressionAtom> atoms = expratom, nothing
 	Expression expr = atoms, INVALID_TYPE_HANDLE

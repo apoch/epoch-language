@@ -4,15 +4,11 @@
 
 
 
-
-// TODO - rehome this
-type StringHandle : integer
-
-
-
 structure Program :
 	Namespace RootNamespace,
-	Optional<GlobalBlock> Globals
+	Optional<GlobalBlock> Globals,
+	StringPool TokenStringPool,
+	StringPool LiteralStringPool
 
 
 

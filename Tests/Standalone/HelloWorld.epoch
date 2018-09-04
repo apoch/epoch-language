@@ -1,4 +1,4 @@
-entrypoint :
+flargle :
 {
 	print("Hello world!")
 }
