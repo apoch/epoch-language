@@ -22,7 +22,7 @@ PoolString : StringPool ref pool, string s -> StringHandle handle = FindHandleIn
 
 PoolStringFast : StringPool ref pool, string s -> StringHandle handle = 0
 {
-	++pool.CurrentStringHandle
+	pool.CurrentStringHandle = pool.CurrentStringHandle + 1
 	handle = pool.CurrentStringHandle
 
 	BinaryTreeCreateOrInsert<string>(pool.LookupMap, handle, s)
