@@ -42,8 +42,7 @@ structure LexToken :
 
 structure TokenContainer :
 	ListRef<LexToken> List,
-	ListRefNode<LexToken> Tail,
-	Program ref ParsedProgram
+	ListRefNode<LexToken> Tail
 
 
 
@@ -51,7 +50,7 @@ ParseFile : string filename, string contents, integer len, Program ref program -
 {
 	LexToken lt = "", filename, 0, 0
 	ListRef<LexToken> list = lt, nothing
-	TokenContainer tokens = list, list, program
+	TokenContainer tokens = list, list
 
 	Lex(filename, contents, len, tokens)
 
@@ -60,7 +59,7 @@ ParseFile : string filename, string contents, integer len, Program ref program -
 	string headtoken = tokens.List.Head.Token
 	while(headtoken != "")
 	{
-		if(ParseFunction(tokens, program.RootNamespace))
+		if(ParseFunction(program, tokens, program.RootNamespace))
 		{
 			// AST should now contain a function
 		}
@@ -157,7 +156,7 @@ PopTokens : ListRef<LexToken> ref tokenlist, nothing, integer count
 }
 
 
-ParseFunction : TokenContainer ref tokens, Namespace ref namespace -> boolean success = false
+ParseFunction : Program ref program, TokenContainer ref tokens, Namespace ref namespace -> boolean success = false
 {
 	LexToken functionNameToken = tokens.List.Head
 
@@ -166,7 +165,7 @@ ParseFunction : TokenContainer ref tokens, Namespace ref namespace -> boolean su
 		return()
 	}
 
-	StringHandle functionNameHandle = PoolString(tokens.ParsedProgram.TokenStringPool, functionNameToken.Token)
+	StringHandle functionNameHandle = PoolString(program.TokenStringPool, functionNameToken.Token)
 
 	PopTokens(tokens.List, 2)
 
@@ -184,7 +183,7 @@ ParseFunction : TokenContainer ref tokens, Namespace ref namespace -> boolean su
 
 
 	Function ret = functionNameHandle, nothing, nothing
-	success = ParseCodeBlock(tokens, ret.Code)
+	success = ParseCodeBlock(program, tokens, ret.Code)
 
 	if(success)
 	{
@@ -194,7 +193,7 @@ ParseFunction : TokenContainer ref tokens, Namespace ref namespace -> boolean su
 
 
 
-ParseCodeBlock : TokenContainer ref tokens, Optional<CodeBlock> ref codeblock -> boolean success = false
+ParseCodeBlock : Program ref program, TokenContainer ref tokens, Optional<CodeBlock> ref codeblock -> boolean success = false
 {
 	LexicalScope newscope = nothing
 	CodeBlock ret = newscope, nothing
@@ -208,7 +207,7 @@ ParseCodeBlock : TokenContainer ref tokens, Optional<CodeBlock> ref codeblock ->
 			return()
 		}
 
-		if(ParseStatement(tokens, ret))
+		if(ParseStatement(program, tokens, ret))
 		{
 			// AST should now contain a statement
 		}
@@ -230,7 +229,7 @@ ParseCodeBlock : TokenContainer ref tokens, Optional<CodeBlock> ref codeblock ->
 }
 
 
-ParseStatement : TokenContainer ref tokens, CodeBlock ref parentblock -> boolean success = false
+ParseStatement : Program ref program, TokenContainer ref tokens, CodeBlock ref parentblock -> boolean success = false
 {
 	LexToken statementNameToken = tokens.List.Head
 
@@ -239,7 +238,7 @@ ParseStatement : TokenContainer ref tokens, CodeBlock ref parentblock -> boolean
 		return()
 	}
 
-	StringHandle statementNameHandle = PoolString(tokens.ParsedProgram.TokenStringPool, statementNameToken.Token)
+	StringHandle statementNameHandle = PoolString(program.TokenStringPool, statementNameToken.Token)
 
 	PopTokens(tokens.List, 2)
 
@@ -254,7 +253,7 @@ ParseStatement : TokenContainer ref tokens, CodeBlock ref parentblock -> boolean
 			return()
 		}
 
-		if(ParseExpression(tokens, parsedargs))
+		if(ParseExpression(program, tokens, parsedargs))
 		{
 		}
 		else
@@ -281,12 +280,12 @@ ParseStatement : TokenContainer ref tokens, CodeBlock ref parentblock -> boolean
 }
 
 
-ParseExpression : TokenContainer ref tokens, ListRefNode<Expression> ref holder -> boolean success = false
+ParseExpression : Program ref program, TokenContainer ref tokens, ListRefNode<Expression> ref holder -> boolean success = false
 {
 	// TODO - support more complex expressions
 	LexToken stringLiteralToken = tokens.List.Head
 
-	StringAtom atom = PoolString(tokens.ParsedProgram.LiteralStringPool, stringLiteralToken.Token)
+	StringAtom atom = PoolString(program.LiteralStringPool, stringLiteralToken.Token)
 	ExpressionAtom expratom = atom
 	ListRef<ExpressionAtom> atoms = expratom, nothing
 	Expression expr = atoms, INVALID_TYPE_HANDLE
