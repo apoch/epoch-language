@@ -518,17 +518,11 @@ void CodeGenContext::RelocateBuffers(unsigned codeOffset, unsigned xDataOffset)
 		case object::SymbolRef::ST_Function:
 			std::cout << "Function: " << symname << std::endl;
 			symbol.SectionNumber = 9;
-
-			if (symname == "@init")
-				symbol.StorageClass = IMAGE_SYM_CLASS_EXTERNAL;
-
 			symbol.Type = (IMAGE_SYM_DTYPE_FUNCTION << N_BTSHFT);
 			break;
 
 		default:
 			std::cout << "Symbol: " << symname << std::endl;
-			symbol.StorageClass = IMAGE_SYM_CLASS_EXTERNAL;
-			symbol.SectionNumber = IMAGE_SYM_ABSOLUTE;
 			symbol.Value = 0;
 			symbol.Type = (IMAGE_SYM_DTYPE_POINTER << N_BTSHFT);
 			break;
