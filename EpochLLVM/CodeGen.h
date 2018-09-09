@@ -15,14 +15,21 @@ public:
 
 public:
 	llvm::FunctionType* TypeCreateFunction();
+	void TypeQueueFunctionParameter(llvm::Type* ty);
+
+	llvm::Type* TypeGetString();
 
 	llvm::Function* FunctionCreate(llvm::FunctionType* fty, const char* name);
+	llvm::GlobalVariable* FunctionCreateThunk(llvm::FunctionType* fty, const char* name);
 
 	llvm::BasicBlock* BasicBlockCreate(llvm::Function* func);
 	void BasicBlockSetInsertPoint(llvm::BasicBlock* block);
 
 	llvm::Value* CodeCreateCall(llvm::Function* target);
+	llvm::Value* CodeCreateCallThunk(llvm::GlobalVariable* target);
 	void CodeCreateRetVoid();
+
+	void CodePushValue();
 
 public:
 	void CreateBinaryModule();
@@ -53,6 +60,9 @@ private:
 	std::vector<char> DebugData;
 	std::vector<char> DebugRelocs;
 	std::vector<char> DebugSymbols;
+
+	std::vector<llvm::Value*> ValueStack;
+	std::vector<llvm::Type*> FunctionParamTypeStack;
 
 	uint64_t EmissionAddress = 0;
 	size_t EmissionSize = 0;

@@ -6,9 +6,11 @@
 type LLVMContextHandle : integer
 type LLVMFunctionType : integer
 type LLVMFunction : integer
+type LLVMFunctionThunk : integer
 type LLVMBasicBlock : integer
 type LLVMBuffer : integer
 type LLVMValue : integer
+type LLVMType : integer
 
 EpochLLVMContextCreate : -> LLVMContextHandle ret = 0 																		[external("EpochLLVM.dll", "EpochLLVMContextCreate")]
 EpochLLVMContextDestroy : LLVMContextHandle context																			[external("EpochLLVM.dll", "EpochLLVMContextDestroy")]
@@ -22,8 +24,11 @@ EpochLLVMModuleGetXDataBuffer : LLVMContextHandle context, integer ref size -> L
 EpochLLVMModuleRelocateBuffers : LLVMContextHandle context, integer codeOffset, integer xDataOffset							[external("EpochLLVM.dll", "EpochLLVMModuleRelocateBuffers")]
 
 EpochLLVMTypeCreateFunction : LLVMContextHandle context -> LLVMFunctionType ret = 0											[external("EpochLLVM.dll", "EpochLLVMTypeCreateFunction")]
+EpochLLVMTypeQueueFunctionParameter : LLVMContextHandle context, LLVMType ty												[external("EpochLLVM.dll", "EpochLLVMTypeQueueFunctionParameter")]
+EpochLLVMTypeGetString : LLVMContextHandle context -> LLVMType ty = 0														[external("EpochLLVM.dll", "EpochLLVMTypeGetString")]
 
 EpochLLVMFunctionCreate : LLVMContextHandle context, LLVMFunctionType fty, string name  -> LLVMFunction ret = 0				[external("EpochLLVM.dll", "EpochLLVMFunctionCreate")]
+EpochLLVMFunctionCreateThunk : LLVMContextHandle context, LLVMFunctionType fty, string name  -> LLVMFunctionThunk ret = 0	[external("EpochLLVM.dll", "EpochLLVMFunctionCreateThunk")]
 
 EpochLLVMBasicBlockCreate : LLVMContextHandle context, LLVMFunction func -> LLVMBasicBlock ret = 0							[external("EpochLLVM.dll", "EpochLLVMBasicBlockCreate")]
 
@@ -32,8 +37,9 @@ EpochLLVMBasicBlockSetInsertPoint : LLVMContextHandle context, LLVMBasicBlock bl
 
 EpochLLVMCodeCreateRetVoid : LLVMContextHandle context																		[external("EpochLLVM.dll", "EpochLLVMCodeCreateRetVoid")]
 EpochLLVMCodeCreateCall : LLVMContextHandle context, LLVMFunction target -> LLVMValue ret = 0								[external("EpochLLVM.dll", "EpochLLVMCodeCreateCall")]
+EpochLLVMCodeCreateCallThunk : LLVMContextHandle context, LLVMFunctionThunk target -> LLVMValue ret = 0						[external("EpochLLVM.dll", "EpochLLVMCodeCreateCallThunk")]
 
-
+EpochLLVMCodePushValue : LLVMContextHandle context																			[external("EpochLLVM.dll", "EpochLLVMCodePushValue")]
 
 EpochLLVMModuleGetDebugBuffer : LLVMContextHandle context, integer ref size -> LLVMBuffer ret = 0							[external("EpochLLVM.dll", "EpochLLVMModuleGetDebugBuffer")]
 EpochLLVMModuleGetDebugRelocBuffer : LLVMContextHandle context, integer ref size -> LLVMBuffer ret = 0						[external("EpochLLVM.dll", "EpochLLVMModuleGetDebugRelocBuffer")]
@@ -44,7 +50,8 @@ EpochLLVMModuleGetDebugSymbolsBuffer : LLVMContextHandle context, integer ref si
 structure CodeGenCache :
 	Program ref CodeGenProgram,
 	LLVMContextHandle LLVM,
-	LLVMFunction EntrypointFunction
+	LLVMFunction EntrypointFunction,
+	LLVMFunctionThunk PrintThunk
 
 
 
@@ -52,12 +59,16 @@ CodeGenProgram : Program ref program, LLVMContextHandle context -> boolean succe
 {
 	print("Generating code...")
 
+	EpochLLVMTypeQueueFunctionParameter(context, EpochLLVMTypeGetString(context))
+	LLVMFunctionType thunkType = EpochLLVMTypeCreateFunction(context)
+	LLVMFunctionThunk thunk = EpochLLVMFunctionCreateThunk(context, thunkType, "print")
+
 	LLVMFunctionType initFuncType = EpochLLVMTypeCreateFunction(context)
 	LLVMFunction initFunc = EpochLLVMFunctionCreate(context, initFuncType, "@init")
 	LLVMBasicBlock initBB = EpochLLVMBasicBlockCreate(context, initFunc)
 
 	LLVMFunction ep = 0
-	CodeGenCache cache = program, context, ep
+	CodeGenCache cache = program, context, ep, thunk
 
 	if(!CodeGenNamespace(program.RootNamespace, cache))
 	{
@@ -112,11 +123,54 @@ CodeGenFunction : Function ref function, CodeGenCache ref cache -> boolean succe
 	LLVMBasicBlock bb = EpochLLVMBasicBlockCreate(cache.LLVM, llvmfunc)
 	EpochLLVMBasicBlockSetInsertPoint(cache.LLVM, bb)
 	
-	// TODO
+	if(!CodeGenCodeBlock(function.Code, cache))
+	{
+		return()
+	}
 
-	cache.EntrypointFunction = llvmfunc
+	if(GetPooledString(cache.CodeGenProgram.TokenStringPool, function.Name) == "entrypoint")
+	{
+		cache.EntrypointFunction = llvmfunc
+	}
 	
 	EpochLLVMCodeCreateRetVoid(cache.LLVM)
 	success = true
 }
+
+
+
+CodeGenCodeBlock : CodeBlock ref block, CodeGenCache ref cache -> boolean success = CodeGenCodeBlockEntries(block.Entries, cache)
+
+CodeGenCodeBlock : nothing, CodeGenCache ref cache -> true
+
+
+
+CodeGenCodeBlockEntries : ListRef<CodeBlockEntry> ref entries, CodeGenCache ref cache -> boolean success = false
+{
+	if(!CodeGenCodeBlockEntry(entries.Head, cache))
+	{
+		return()
+	}
+
+	success = CodeGenCodeBlockEntries(entries.Next, cache)
+}
+
+CodeGenCodeBlockEntries : nothing, CodeGenCache ref cache -> true
+
+
+
+CodeGenCodeBlockEntry : Statement ref statement, CodeGenCache ref cache -> boolean success = false
+{
+	// TODO - this is hacky but it'll work for now
+	if(GetPooledString(cache.CodeGenProgram.TokenStringPool, statement.Name) != "print")
+	{
+		return()
+	}
+
+	EpochLLVMCodePushValue(cache.LLVM)
+	EpochLLVMCodeCreateCallThunk(cache.LLVM, cache.PrintThunk)
+
+	success = true
+}
+
 

@@ -173,6 +173,8 @@ ThunkTableLibrariesWalkForAddressCopyHolders : nothing, integer ref offset
 
 ThunkTableFunctionsWalkForAddressCopyHolders : ListRef<ThunkTableEntry> ref functions, integer ref offset
 {
+	print(functions.Head.FunctionName ; " - " ; cast(string, offset))
+
 	functions.Head.ThunkAddressCopyOffset = offset
 	offset += 8
 

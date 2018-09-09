@@ -15,11 +15,17 @@ EXPORTS
 	EpochLLVMModuleRelocateBuffers
 
 	EpochLLVMTypeCreateFunction
+	EpochLLVMTypeQueueFunctionParameter
+	EpochLLVMTypeGetString
 
 	EpochLLVMFunctionCreate
+	EpochLLVMFunctionCreateThunk
 
 	EpochLLVMBasicBlockCreate
 	EpochLLVMBasicBlockSetInsertPoint
 
 	EpochLLVMCodeCreateCall
+	EpochLLVMCodeCreateCallThunk
 	EpochLLVMCodeCreateRetVoid
+
+	EpochLLVMCodePushValue

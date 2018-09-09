@@ -36,6 +36,7 @@ WriteExecutable : string filename, LLVMContextHandle llvmcontext -> boolean succ
 
 	ThunkTable thunktable = nothing, 0, 0, 0
 	ThunkTableAddEntry(thunktable, "Kernel32.dll", "ExitProcess")
+	ThunkTableAddEntry(thunktable, "Kernel32.dll", "OutputDebugStringA")
 
 
 	string pdbfilename = substring(filename, 0, length(filename) - 4) ; ".pdb"			// TODO - this is a bad hack
@@ -158,7 +159,7 @@ WriteExecutable : string filename, LLVMContextHandle llvmcontext -> boolean succ
 	position += sizexdata
 
 	position += WritePadding(filehandle, position, offsetstrings)
-	position += WriteGarbage(filehandle, position, offsetstrings + sizestrings) //WriteStringTable(filehandle, sizestrings, GlobalStringOffsets)
+	position += WriteStringTable(filehandle, sizestrings)
 
 	position += WritePadding(filehandle, position, offsetgc)
 	WriteFile(filehandle, gcdata, sizegc, written, 0)
@@ -630,4 +631,21 @@ WriteSectionHeaders : Win32Handle filehandle, ListRef<COFFSectionHeader> ref sec
 }
 
 WriteSectionHeaders : Win32Handle filehandle, nothing -> 0
+
+
+WriteStringTable : Win32Handle filehandle, integer size -> integer writtenbytes = 0
+{
+	buffer junkbuf = size
+	
+	integer i = 0
+	while(i < size)
+	{
+		ByteStreamEmitByte(junkbuf, i, 97)
+	}
+
+	integer written = 0
+	WriteFile(filehandle, junkbuf, size, written, 0)
+
+	writtenbytes = size
+}
 

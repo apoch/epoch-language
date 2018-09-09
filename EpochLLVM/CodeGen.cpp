@@ -115,7 +115,7 @@ namespace CodeGenInternal
 	//
 	uint64_t TrivialMemoryManager::getSymbolAddress(const std::string& foo)
 	{
-		return 0xfabf00;
+		return 0x401000 + 88;
 		//if (foo.substr(0, 21) == "@epoch_static_string:")
 		//{
 		//	size_t handle = 0;
@@ -255,9 +255,16 @@ void CodeGenContext::DebugDump()
 
 FunctionType* CodeGenContext::TypeCreateFunction()
 {
-	return FunctionType::get(Type::getInt32Ty(GlobalContext), false);
+	auto* ret = FunctionType::get(Type::getInt32Ty(GlobalContext), FunctionParamTypeStack, false);
+	FunctionParamTypeStack.clear();
+
+	return ret;
 }
 
+void CodeGenContext::TypeQueueFunctionParameter(Type* ty)
+{
+	FunctionParamTypeStack.push_back(ty);
+}
 
 llvm::DIType* CodeGenContext::TypeGetDebugType(Type* t)
 {
@@ -279,6 +286,11 @@ llvm::DIType* CodeGenContext::TypeGetDebugType(Type* t)
 		encoding = llvm::dwarf::DW_ATE_signed_char;
 
 	return DebugBuilder.createBasicType(stream.str(), t->getPrimitiveSizeInBits(), encoding);
+}
+
+Type* CodeGenContext::TypeGetString()
+{
+	return Type::getInt8PtrTy(GlobalContext);
 }
 
 
@@ -318,6 +330,11 @@ Function* CodeGenContext::FunctionCreate(FunctionType* fty, const char* name)
 	return ret;
 }
 
+GlobalVariable* CodeGenContext::FunctionCreateThunk(FunctionType* fty, const char* name)
+{
+	return new GlobalVariable(*LLVMModule, fty->getPointerTo(), true, GlobalValue::ExternalWeakLinkage, NULL, name, NULL, GlobalVariable::NotThreadLocal, 0, true);
+}
+
 
 BasicBlock* CodeGenContext::BasicBlockCreate(Function* func)
 {
@@ -343,10 +360,30 @@ Value* CodeGenContext::CodeCreateCall(Function* target)
 	return callnode;
 }
 
+Value* CodeGenContext::CodeCreateCallThunk(GlobalVariable* target)
+{
+	Value* derefTarget = Builder.CreateLoad(target);
+	FunctionType* fty = cast<FunctionType>(derefTarget->getType()->getPointerElementType());
+
+	std::vector<Value*> relevantargs;
+	for (size_t i = 0; i < fty->getNumParams(); ++i)
+	{
+		relevantargs.push_back(Builder.CreateIntToPtr(ValueStack.back(), TypeGetString()));
+		ValueStack.pop_back();
+	}
+	std::reverse(relevantargs.begin(), relevantargs.end());
+
+	return Builder.CreateCall(derefTarget, relevantargs);
+}
 
 void CodeGenContext::CodeCreateRetVoid()
 {
 	Builder.CreateRet(ConstantInt::get(Type::getInt32Ty(GlobalContext), 0));
+}
+
+void CodeGenContext::CodePushValue()
+{
+	ValueStack.push_back(ConstantInt::get(Type::getInt64Ty(GlobalContext), 0x405000));
 }
 
 
