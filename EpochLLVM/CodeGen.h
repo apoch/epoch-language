@@ -49,6 +49,8 @@ public:
 private:
 	llvm::DIType* TypeGetDebugType(llvm::Type* t);
 
+	llvm::Value* GetStringPoolEntry(unsigned index);
+
 private:
 	llvm::LLVMContext GlobalContext;
 	std::unique_ptr<llvm::Module> LLVMModule;

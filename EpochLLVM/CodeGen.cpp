@@ -115,7 +115,10 @@ namespace CodeGenInternal
 	//
 	uint64_t TrivialMemoryManager::getSymbolAddress(const std::string& foo)
 	{
-		return 0x401000 + 88;
+		if(foo == "print")
+			return 0x401000 + 88;
+
+		return 0x405000;
 		//if (foo.substr(0, 21) == "@epoch_static_string:")
 		//{
 		//	size_t handle = 0;
@@ -368,7 +371,7 @@ Value* CodeGenContext::CodeCreateCallThunk(GlobalVariable* target)
 	std::vector<Value*> relevantargs;
 	for (size_t i = 0; i < fty->getNumParams(); ++i)
 	{
-		relevantargs.push_back(Builder.CreateIntToPtr(ValueStack.back(), TypeGetString()));
+		relevantargs.push_back(ValueStack.back());
 		ValueStack.pop_back();
 	}
 	std::reverse(relevantargs.begin(), relevantargs.end());
@@ -383,7 +386,16 @@ void CodeGenContext::CodeCreateRetVoid()
 
 void CodeGenContext::CodePushValue()
 {
-	ValueStack.push_back(ConstantInt::get(Type::getInt64Ty(GlobalContext), 0x405000));
+	ValueStack.push_back(GetStringPoolEntry(0));
+}
+
+
+Value* CodeGenContext::GetStringPoolEntry(unsigned index)
+{
+	// TODO - support more than one string!
+
+	auto* var = new GlobalVariable(*LLVMModule, Type::getInt8Ty(GlobalContext), true, GlobalValue::LinkageTypes::ExternalWeakLinkage, nullptr, "@string_constant");
+	return var;
 }
 
 
