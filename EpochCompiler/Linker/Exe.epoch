@@ -21,7 +21,7 @@ RoundUpFile : integer in -> integer out = ((in / 0x200) + 1) * 0x200		// TODO - 
 StripPath : string path -> string filename = substring(path, reverseindexof(path, "\") + 1)
 
 
-WriteExecutable : string filename, LLVMContextHandle llvmcontext -> boolean success = false
+WriteExecutable : string filename, LLVMContextHandle llvmcontext, StringPool ref stringpool -> boolean success = false
 {
 	integer GENERIC_WRITE = 0x40000000
 	integer CREATE_ALWAYS = 2
@@ -159,7 +159,7 @@ WriteExecutable : string filename, LLVMContextHandle llvmcontext -> boolean succ
 	position += sizexdata
 
 	position += WritePadding(filehandle, position, offsetstrings)
-	position += WriteStringTable(filehandle, sizestrings)
+	position += WriteStringTable(filehandle, sizestrings, stringpool)
 
 	position += WritePadding(filehandle, position, offsetgc)
 	WriteFile(filehandle, gcdata, sizegc, written, 0)
@@ -633,11 +633,15 @@ WriteSectionHeaders : Win32Handle filehandle, ListRef<COFFSectionHeader> ref sec
 WriteSectionHeaders : Win32Handle filehandle, nothing -> 0
 
 
-WriteStringTable : Win32Handle filehandle, integer size -> integer writtenbytes = 0
+WriteStringTable : Win32Handle filehandle, integer size, StringPool ref pool -> integer writtenbytes = 0
 {
 	buffer junkbuf = size
 	
+	string s = GetPooledString(pool, 1)
 	integer i = 0
+	ByteStreamEmitStringNarrow(junkbuf, i, s)
+	ByteStreamEmitByte(junkbuf, i, 0)
+
 	while(i < size)
 	{
 		ByteStreamEmitByte(junkbuf, i, 97)

@@ -285,7 +285,7 @@ ParseExpression : Program ref program, TokenContainer ref tokens, ListRefNode<Ex
 	// TODO - support more complex expressions
 	LexToken stringLiteralToken = tokens.List.Head
 
-	StringAtom atom = PoolString(program.LiteralStringPool, stringLiteralToken.Token)
+	StringAtom atom = PoolString(program.LiteralStringPool, unescape(substring(stringLiteralToken.Token, 1, length(stringLiteralToken.Token) - 2)))
 	ExpressionAtom expratom = atom
 	ListRef<ExpressionAtom> atoms = expratom, nothing
 	Expression expr = atoms, INVALID_TYPE_HANDLE
