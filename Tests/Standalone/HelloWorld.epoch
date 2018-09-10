@@ -1,5 +1,7 @@
 entrypoint :
 {
-	print("Hello world!\r\n")
+	print("Hello")
+	print(" ")
+	print("world!\r\n")
 }
 

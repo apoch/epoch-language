@@ -29,9 +29,13 @@ public:
 	llvm::Value* CodeCreateCallThunk(llvm::GlobalVariable* target);
 	void CodeCreateRetVoid();
 
-	void CodePushValue();
+	void CodePushValue(llvm::Value* value);
+
+	llvm::Value* GetStringPoolEntry(unsigned index);
 
 public:
+	void SetStringPoolCallback(void* functionPointer, void* param);
+
 	void CreateBinaryModule();
 	void RelocateBuffers(unsigned codeOffset, unsigned xDataOffset);
 	void FinalizeBinaryModule(unsigned moduleBaseAddress, unsigned codeOffset);
@@ -49,8 +53,6 @@ public:
 private:
 	llvm::DIType* TypeGetDebugType(llvm::Type* t);
 
-	llvm::Value* GetStringPoolEntry(unsigned index);
-
 private:
 	llvm::LLVMContext GlobalContext;
 	std::unique_ptr<llvm::Module> LLVMModule;
@@ -65,6 +67,10 @@ private:
 
 	std::vector<llvm::Value*> ValueStack;
 	std::vector<llvm::Type*> FunctionParamTypeStack;
+
+	std::map<unsigned, llvm::Value*> StringCache;
+	void* StringLookupFunction;
+	void* StringLookupParam;
 
 	uint64_t EmissionAddress = 0;
 	size_t EmissionSize = 0;

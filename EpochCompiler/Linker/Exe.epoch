@@ -33,7 +33,6 @@ WriteExecutable : string filename, LLVMContextHandle llvmcontext, StringPool ref
 		return()
 	}
 
-
 	ThunkTable thunktable = nothing, 0, 0, 0
 	ThunkTableAddEntry(thunktable, "Kernel32.dll", "ExitProcess")
 	ThunkTableAddEntry(thunktable, "Kernel32.dll", "OutputDebugStringA")
@@ -48,7 +47,7 @@ WriteExecutable : string filename, LLVMContextHandle llvmcontext, StringPool ref
 	integer sizepdata = 0
 	integer sizexdata = 0
 	integer sizegc = 32 //EpochLLVMSectionGetGCSize(llvm)
-	integer sizestrings = 32 //PreprocessStringPool(GlobalStringPool, GlobalStringOffsets)
+	integer sizestrings = PreprocessStringPool(stringpool, GlobalStringPoolState.OffsetMap)
 	integer sizedebug = 0x200
 
 	LLVMBuffer pdatabuf = EpochLLVMModuleGetPDataBuffer(llvmcontext, sizepdata)
@@ -93,6 +92,7 @@ WriteExecutable : string filename, LLVMContextHandle llvmcontext, StringPool ref
 
 	integer thunkdescriptoroffset = thunktable.DescriptorOffset
 
+	GlobalStringPoolState.AddressOfStringPool = virtualoffsetstrings + 0x400000
 
 	EpochLLVMModuleFinalize(llvmcontext, 0x400000, virtualoffsetcode)			// TODO - stop hard coding this address
 	EpochLLVMModuleRelocateBuffers(llvmcontext, virtualoffsetcode, virtualoffsetxdata)
@@ -159,7 +159,7 @@ WriteExecutable : string filename, LLVMContextHandle llvmcontext, StringPool ref
 	position += sizexdata
 
 	position += WritePadding(filehandle, position, offsetstrings)
-	position += WriteStringTable(filehandle, sizestrings, stringpool)
+	position += WriteStringTable(filehandle, sizestrings, stringpool, GlobalStringPoolState.OffsetMap)
 
 	position += WritePadding(filehandle, position, offsetgc)
 	WriteFile(filehandle, gcdata, sizegc, written, 0)
@@ -633,23 +633,69 @@ WriteSectionHeaders : Win32Handle filehandle, ListRef<COFFSectionHeader> ref sec
 WriteSectionHeaders : Win32Handle filehandle, nothing -> 0
 
 
-WriteStringTable : Win32Handle filehandle, integer size, StringPool ref pool -> integer writtenbytes = 0
+
+
+structure StringPoolOutputState :
+	BinaryTreeRoot<integer> ref Offsets,
+	buffer OutputBuffer
+
+WriteStringTable : Win32Handle filehandle, integer size, StringPool ref pool, BinaryTreeRoot<integer> ref offsets -> integer writtenbytes = 0
 {
-	buffer junkbuf = size
+	buffer stbuf = size + 1
+
+	StringPoolOutputState state = offsets, stbuf
+	BinaryTreeWalkAllNodesWithParam<string, StringPoolOutputState>(pool.LookupMap.RootNode, CopySingleStringToBuffer, state)
 	
-	string s = GetPooledString(pool, 1)
-	integer i = 0
-	ByteStreamEmitStringNarrow(junkbuf, i, s)
-	ByteStreamEmitByte(junkbuf, i, 0)
-
-	while(i < size)
-	{
-		ByteStreamEmitByte(junkbuf, i, 97)
-	}
-
 	integer written = 0
-	WriteFile(filehandle, junkbuf, size, written, 0)
+	WriteFile(filehandle, state.OutputBuffer, size, written, 0)		// NOTE: we can't refer to stbuf here because the buffer is a copy. The buffer is a copy because `buffer ref` makes the compiler choke.
 
 	writtenbytes = size
 }
 
+CopySingleStringToBuffer : integer handle, string ref strpayload, StringPoolOutputState ref state -> boolean ret = true
+{
+	integer offset = 0
+	boolean found = BinaryTreeCopyPayload<integer>(state.Offsets.RootNode, handle, offset)
+	if(!found)
+	{
+		print("WARNING - string has no computed offset in string pool!")
+		return()
+	}
+	
+	ByteStreamEmitStringNarrow(state.OutputBuffer, offset, strpayload)
+	ByteStreamEmitByte(state.OutputBuffer, offset, 0)
+}
+
+
+structure StringPoolPreprocessState :
+	BinaryTreeRoot<integer> ref Offsets,
+	integer CurrentOffset
+
+PreprocessStringPool : StringPool ref pool, BinaryTreeRoot<integer> ref outoffsets -> integer totallength = 0
+{
+	StringPoolPreprocessState state = outoffsets, 0
+	BinaryTreeWalkAllNodesWithParam<string, StringPoolPreprocessState>(pool.LookupMap.RootNode, PreprocessSingleString, state)
+	
+	totallength = state.CurrentOffset
+}
+
+PreprocessSingleString : integer handle, string ref strpayload, StringPoolPreprocessState ref state -> boolean ret = true
+{
+	BinaryTreeCreateOrInsert<integer>(state.Offsets, handle, state.CurrentOffset)
+	state.CurrentOffset = state.CurrentOffset + length(strpayload) + 1
+}
+
+
+StringLookupMapper : integer stringhandle, integer stateVoid -> integer offset = 0
+{
+	assertmsg(GlobalStringPoolState.AddressOfStringPool != 0, "Base address of string table not configured!")
+
+	BinaryTreeCopyPayload<integer>(GlobalStringPoolState.OffsetMap.RootNode, stringhandle, offset)
+	
+	offset += GlobalStringPoolState.AddressOfStringPool
+}
+
+
+structure StringLookupState :
+	integer AddressOfStringPool,
+	BinaryTreeRoot<integer> ref OffsetMap

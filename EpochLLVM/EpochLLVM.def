@@ -3,6 +3,8 @@ EXPORTS
 	EpochLLVMContextCreate
 	EpochLLVMContextDestroy
 
+	EpochLLVMContextSetStringPoolCallback
+
 	EpochLLVMModuleCreateBinary
 	EpochLLVMModuleDump
 	EpochLLVMModuleFinalize
@@ -29,3 +31,6 @@ EXPORTS
 	EpochLLVMCodeCreateRetVoid
 
 	EpochLLVMCodePushValue
+
+	EpochLLVMCodeGetStringValue
+

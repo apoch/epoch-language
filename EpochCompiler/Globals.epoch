@@ -5,6 +5,9 @@
 
 global
 {
+	BinaryTreeRoot<integer> GlobalStringPoolOffsetMap = nothing
+	StringLookupState GlobalStringPoolState = 0, GlobalStringPoolOffsetMap
+
 	StringHandle INVALID_STRING_HANDLE = 0
 	TypeHandle INVALID_TYPE_HANDLE = 0
 

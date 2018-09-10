@@ -15,6 +15,8 @@ type LLVMType : integer
 EpochLLVMContextCreate : -> LLVMContextHandle ret = 0 																		[external("EpochLLVM.dll", "EpochLLVMContextCreate")]
 EpochLLVMContextDestroy : LLVMContextHandle context																			[external("EpochLLVM.dll", "EpochLLVMContextDestroy")]
 
+EpochLLVMContextSetStringPoolCallback : LLVMContextHandle context, (func : integer, integer -> integer), integer void		[external("EpochLLVM.dll", "EpochLLVMContextSetStringPoolCallback")]
+
 EpochLLVMModuleDump : LLVMContextHandle context																				[external("EpochLLVM.dll", "EpochLLVMModuleDump")]
 EpochLLVMModuleCreateBinary : LLVMContextHandle context																		[external("EpochLLVM.dll", "EpochLLVMModuleCreateBinary")]
 EpochLLVMModuleFinalize : LLVMContextHandle context, integer baseAddress, integer codeOffset								[external("EpochLLVM.dll", "EpochLLVMModuleFinalize")]
@@ -39,7 +41,9 @@ EpochLLVMCodeCreateRetVoid : LLVMContextHandle context																		[externa
 EpochLLVMCodeCreateCall : LLVMContextHandle context, LLVMFunction target -> LLVMValue ret = 0								[external("EpochLLVM.dll", "EpochLLVMCodeCreateCall")]
 EpochLLVMCodeCreateCallThunk : LLVMContextHandle context, LLVMFunctionThunk target -> LLVMValue ret = 0						[external("EpochLLVM.dll", "EpochLLVMCodeCreateCallThunk")]
 
-EpochLLVMCodePushValue : LLVMContextHandle context																			[external("EpochLLVM.dll", "EpochLLVMCodePushValue")]
+EpochLLVMCodePushValue : LLVMContextHandle context, LLVMValue value															[external("EpochLLVM.dll", "EpochLLVMCodePushValue")]
+
+EpochLLVMCodeGetStringValue : LLVMContextHandle context, integer index -> LLVMValue value = 0								[external("EpochLLVM.dll", "EpochLLVMCodeGetStringValue")]
 
 EpochLLVMModuleGetDebugBuffer : LLVMContextHandle context, integer ref size -> LLVMBuffer ret = 0							[external("EpochLLVM.dll", "EpochLLVMModuleGetDebugBuffer")]
 EpochLLVMModuleGetDebugRelocBuffer : LLVMContextHandle context, integer ref size -> LLVMBuffer ret = 0						[external("EpochLLVM.dll", "EpochLLVMModuleGetDebugRelocBuffer")]
@@ -57,6 +61,8 @@ structure CodeGenCache :
 
 CodeGenProgram : Program ref program, LLVMContextHandle context -> boolean success = false
 {
+	EpochLLVMContextSetStringPoolCallback(context, StringLookupMapper, 0)
+
 	print("Generating code...")
 
 	EpochLLVMTypeQueueFunctionParameter(context, EpochLLVMTypeGetString(context))
@@ -167,10 +173,51 @@ CodeGenCodeBlockEntry : Statement ref statement, CodeGenCache ref cache -> boole
 		return()
 	}
 
-	EpochLLVMCodePushValue(cache.LLVM)
+	if(!CodeGenExpressionList(statement.Arguments, cache))
+	{
+		return()
+	}
+
 	EpochLLVMCodeCreateCallThunk(cache.LLVM, cache.PrintThunk)
 
 	success = true
 }
 
 
+CodeGenExpressionList : ListRef<Expression> ref expressions, CodeGenCache ref cache -> boolean success = false
+{
+	if(!CodeGenExpression(expressions.Head, cache))
+	{
+		return()
+	}
+
+	success = CodeGenExpressionList(expressions.Next, cache)
+}
+
+CodeGenExpressionList : nothing, CodeGenCache ref cache -> true
+
+
+
+CodeGenExpression : Expression ref expression, CodeGenCache ref cache -> boolean success = false
+{
+	success = CodeGenExpressionAtoms(expression.Atoms, cache)
+}
+
+CodeGenExpressionAtoms : ListRef<ExpressionAtom> ref atoms, CodeGenCache ref cache -> boolean success = false
+{
+	if(!CodeGenExpressionAtom(atoms.Head, cache))
+	{
+		return()
+	}
+
+	success = CodeGenExpressionAtoms(atoms.Next, cache)
+}
+
+CodeGenExpressionAtoms : nothing, CodeGenCache ref cache -> true
+
+
+CodeGenExpressionAtom : StringAtom ref atom, CodeGenCache ref cache -> true
+{
+	LLVMValue strval = EpochLLVMCodeGetStringValue(cache.LLVM, atom.String)
+	EpochLLVMCodePushValue(cache.LLVM, strval)
+}
