@@ -686,7 +686,7 @@ PreprocessSingleString : integer handle, string ref strpayload, StringPoolPrepro
 }
 
 
-StringLookupMapper : integer stringhandle, integer stateVoid -> integer offset = 0
+StringLookupMapper : integer stringhandle -> integer offset = 0
 {
 	assertmsg(GlobalStringPoolState.AddressOfStringPool != 0, "Base address of string table not configured!")
 

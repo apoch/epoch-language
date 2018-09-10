@@ -15,7 +15,7 @@ type LLVMType : integer
 EpochLLVMContextCreate : -> LLVMContextHandle ret = 0 																		[external("EpochLLVM.dll", "EpochLLVMContextCreate")]
 EpochLLVMContextDestroy : LLVMContextHandle context																			[external("EpochLLVM.dll", "EpochLLVMContextDestroy")]
 
-EpochLLVMContextSetStringPoolCallback : LLVMContextHandle context, (func : integer, integer -> integer), integer void		[external("EpochLLVM.dll", "EpochLLVMContextSetStringPoolCallback")]
+EpochLLVMContextSetStringPoolCallback : LLVMContextHandle context, (func : integer -> integer)								[external("EpochLLVM.dll", "EpochLLVMContextSetStringPoolCallback")]
 
 EpochLLVMModuleDump : LLVMContextHandle context																				[external("EpochLLVM.dll", "EpochLLVMModuleDump")]
 EpochLLVMModuleCreateBinary : LLVMContextHandle context																		[external("EpochLLVM.dll", "EpochLLVMModuleCreateBinary")]
@@ -61,7 +61,7 @@ structure CodeGenCache :
 
 CodeGenProgram : Program ref program, LLVMContextHandle context -> boolean success = false
 {
-	EpochLLVMContextSetStringPoolCallback(context, StringLookupMapper, 0)
+	EpochLLVMContextSetStringPoolCallback(context, StringLookupMapper)
 
 	print("Generating code...")
 

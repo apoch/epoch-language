@@ -34,7 +34,7 @@ public:
 	llvm::Value* GetStringPoolEntry(unsigned index);
 
 public:
-	void SetStringPoolCallback(void* functionPointer, void* param);
+	void SetStringPoolCallback(void* functionPointer);
 
 	void CreateBinaryModule();
 	void RelocateBuffers(unsigned codeOffset, unsigned xDataOffset);
@@ -70,7 +70,6 @@ private:
 
 	std::map<unsigned, llvm::Value*> StringCache;
 	void* StringLookupFunction;
-	void* StringLookupParam;
 
 	uint64_t EmissionAddress = 0;
 	size_t EmissionSize = 0;

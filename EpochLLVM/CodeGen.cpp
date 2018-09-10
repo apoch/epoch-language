@@ -12,7 +12,7 @@ namespace CodeGenInternal
 {
 
 	typedef size_t(__stdcall *ThunkCallbackT)(const wchar_t* thunkname);
-	typedef size_t(__stdcall *StringCallbackT)(size_t stringhandle, void* param);
+	typedef size_t(__stdcall *StringCallbackT)(size_t stringhandle);
 
 	//
 	// Memory management wrapper for handling image emission/linking
@@ -26,10 +26,9 @@ namespace CodeGenInternal
 	class TrivialMemoryManager : public RTDyldMemoryManager
 	{
 	public:
-		TrivialMemoryManager(ThunkCallbackT funcptr, StringCallbackT strptr, void* strparam, uint64_t* outAddr, size_t* outSize, uint64_t* outPData, size_t* outPDataSize, uint64_t* outXData, size_t* outXDataSize)
+		TrivialMemoryManager(ThunkCallbackT funcptr, StringCallbackT strptr, uint64_t* outAddr, size_t* outSize, uint64_t* outPData, size_t* outPDataSize, uint64_t* outXData, size_t* outXDataSize)
 			: ThunkCallback(funcptr),
 			StringCallback(strptr),
-			StringParam(strparam),
 			OutAddr(outAddr),
 			OutSize(outSize),
 			OutPDataOffset(outPData),
@@ -59,8 +58,6 @@ namespace CodeGenInternal
 	private:		// Internal state
 		ThunkCallbackT ThunkCallback;
 		StringCallbackT StringCallback;
-
-		void* StringParam;
 
 		uint64_t* OutAddr;
 		size_t* OutSize;
@@ -129,7 +126,7 @@ namespace CodeGenInternal
 			convert << symbolName.substr(21);
 			convert >> handle;
 
-			return StringCallback(handle, StringParam);
+			return StringCallback(handle);
 		}
 
 		return 0;
@@ -392,10 +389,9 @@ Value* CodeGenContext::GetStringPoolEntry(unsigned index)
 }
 
 
-void CodeGenContext::SetStringPoolCallback(void* functionPointer, void* param)
+void CodeGenContext::SetStringPoolCallback(void* functionPointer)
 {
 	StringLookupFunction = functionPointer;
-	StringLookupParam = param;
 }
 
 
@@ -418,7 +414,7 @@ void CodeGenContext::CreateBinaryModule()
 	ThunkCallbackT ThunkCallback = nullptr;
 	StringCallbackT StringCallback = reinterpret_cast<StringCallbackT>(StringLookupFunction);
 
-	std::unique_ptr<TrivialMemoryManager> blobmgr = std::make_unique<TrivialMemoryManager>(ThunkCallback, StringCallback, StringLookupParam, &EmissionAddress, &EmissionSize, &EmittedPData, &EmittedPDataSize, &EmittedXData, &EmittedXDataSize);
+	std::unique_ptr<TrivialMemoryManager> blobmgr = std::make_unique<TrivialMemoryManager>(ThunkCallback, StringCallback, &EmissionAddress, &EmissionSize, &EmittedPData, &EmittedPDataSize, &EmittedXData, &EmittedXDataSize);
 	
 	// HACK! We move the smart pointer's contents into the EngineBuilder
 	// below, but we still want to access the module for other purposes.
