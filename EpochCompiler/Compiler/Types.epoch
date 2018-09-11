@@ -4,13 +4,61 @@
 
 
 
-type TypeHandle : integer
-type TypeCategory : integer
+alias TypeHandle = integer				// Would be great to strong-alias this but the legacy compiler can't handle it!
 
-
-structure TypeDefinition :
+structure IntegralPrimitiveType :
 	StringHandle Name,
-	TypeCategory Category,
-	ListValueNode<TypeHandle> SubTypes
+	integer BitCount
+
+structure StringPrimitiveType :
+	StringHandle Name				// Generally "string"; mostly a dummy field
+
+structure FloatPrimitiveType :
+	StringHandle Name,
+	integer BitCount
+
+structure NothingType :
+	StringHandle Name				// Generally "nothing"; mostly a dummy field
+
+structure ArrayType :
+	TypeHandle ElementType,
+	integer Arity
+
+structure SumType :
+	StringHandle Name,
+	ListValue<TypeHandle> BaseTypes
+
+structure StructureType :
+	StringHandle Name,
+	ListRef<StructureMember> ref Members
+
+structure StructureMember :
+	StringHandle Name,
+	TypeHandle MemberType
 
 
+structure FunctionSignatureType :
+	TypeHandle ReturnType,
+	ListValue<TypeHandle> ParameterTypes
+
+
+structure ReferenceType :
+	TypeHandle ElementType
+
+
+structure AliasType :
+	StringHandle Name,
+	TypeHandle BaseType
+
+
+type TypeSignature : IntegralPrimitiveType | StringPrimitiveType | FloatPrimitiveType |
+					 NothingType |
+					 ArrayType | StructureType |
+					 SumType | AliasType |
+					 FunctionSignatureType |
+					 ReferenceType
+
+
+structure TypeSpace :
+	BinaryTreeRoot<TypeSignature> TypesByHandle,
+	BinaryTreeRoot<TypeHandle> NameLookupMap
